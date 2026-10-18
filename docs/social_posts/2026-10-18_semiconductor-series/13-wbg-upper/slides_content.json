@@ -1,0 +1,209 @@
+{
+  "slug": "13-wbg-upper",
+  "topic": "第三代半導體",
+  "part": "上",
+  "title": "省電為何還要換材料",
+  "angle": "從充電器與電力轉換切入 SiC/GaN，不把第三代解釋為取代所有矽晶片的下一代。",
+  "next_hook": "下一篇：SiC 和 GaN 都能省電，為什麼還要分工？",
+  "slides": [
+    {
+      "page": 1,
+      "title": "省電為何還要換材料",
+      "points": [
+        "電力轉換過程也會產生損耗",
+        "SiC 與 GaN 提供不同設計選擇"
+      ],
+      "bubble": "不是只換一顆更快的CPU。",
+      "visual": "power",
+      "diagram_labels": [
+        "輸入電力",
+        "轉換",
+        "負載"
+      ],
+      "host": {
+        "expression": "微笑解說",
+        "gaze": "看左側提示板",
+        "action": "短掌握短指示棒",
+        "prop": "空白提示板",
+        "intent": "指讀本頁的省電為何還要換材料",
+        "contact": "短掌接觸所列道具，身體與腳受地面支撐；無道具頁以視線和短掌邀請讀者。",
+        "asset_id": "bibi_semiconductor_host_02",
+        "version": "v001"
+      }
+    },
+    {
+      "page": 2,
+      "title": "第三代先別當成排名",
+      "points": [
+        "這裡指 SiC、GaN 等寬能隙材料",
+        "不是所有晶片都要升級成它們"
+      ],
+      "bubble": "材料分類，不是淘汰賽。",
+      "visual": "compare",
+      "diagram_labels": [
+        "矽 Si",
+        "碳化矽 SiC",
+        "氮化鎵 GaN"
+      ],
+      "host": {
+        "expression": "專注",
+        "gaze": "看放大鏡",
+        "action": "短掌握鏡柄",
+        "prop": "放大鏡",
+        "intent": "指讀本頁的第三代先別當成排名",
+        "contact": "短掌接觸所列道具，身體與腳受地面支撐；無道具頁以視線和短掌邀請讀者。",
+        "asset_id": "bibi_semiconductor_host_03",
+        "version": "v001"
+      }
+    },
+    {
+      "page": 3,
+      "title": "功率元件在管什麼",
+      "points": [
+        "它控制、轉換或分配電力",
+        "重點包括耐壓、效率與可靠度"
+      ],
+      "bubble": "搬電，也需要開關。",
+      "visual": "power",
+      "diagram_labels": [
+        "電源",
+        "功率開關",
+        "負載"
+      ],
+      "host": {
+        "expression": "開心記錄",
+        "gaze": "看左下筆記",
+        "action": "短掌靠筆記",
+        "prop": "空白筆記本",
+        "intent": "指讀本頁的功率元件在管什麼",
+        "contact": "短掌接觸所列道具，身體與腳受地面支撐；無道具頁以視線和短掌邀請讀者。",
+        "asset_id": "bibi_semiconductor_host_05",
+        "version": "v001"
+      }
+    },
+    {
+      "page": 4,
+      "title": "寬能隙帶來新可能",
+      "points": [
+        "材料特性有利高電場等工作條件",
+        "但元件與系統設計仍要配合"
+      ],
+      "bubble": "材料優勢要做成產品。",
+      "visual": "chain",
+      "diagram_labels": [
+        "材料",
+        "元件",
+        "系統"
+      ],
+      "host": {
+        "expression": "思考",
+        "gaze": "看右側樣品",
+        "action": "雙短掌靠桌",
+        "prop": "兩種樣品與矮桌",
+        "intent": "指讀本頁的寬能隙帶來新可能",
+        "contact": "短掌接觸所列道具，身體與腳受地面支撐；無道具頁以視線和短掌邀請讀者。",
+        "asset_id": "bibi_semiconductor_host_04",
+        "version": "v001"
+      }
+    },
+    {
+      "page": 5,
+      "title": "SiC和GaN先分清",
+      "points": [
+        "SiC 是碳化矽，GaN 是氮化鎵",
+        "兩者不是同一材料的不同名字"
+      ],
+      "bubble": "先認字，再談用途。",
+      "visual": "compare",
+      "diagram_labels": [
+        "SiC：碳化矽",
+        "GaN：氮化鎵"
+      ],
+      "host": {
+        "expression": "微笑解說",
+        "gaze": "看左側提示板",
+        "action": "短掌握短指示棒",
+        "prop": "空白提示板",
+        "intent": "指讀本頁的SiC和GaN先分清",
+        "contact": "短掌接觸所列道具，身體與腳受地面支撐；無道具頁以視線和短掌邀請讀者。",
+        "asset_id": "bibi_semiconductor_host_02",
+        "version": "v001"
+      }
+    },
+    {
+      "page": 6,
+      "title": "它們出現在哪裡",
+      "points": [
+        "充電電源、電動車與工業電力轉換",
+        "不同產品會評估不同材料"
+      ],
+      "bubble": "不是只為AI而生。",
+      "visual": "applications",
+      "diagram_labels": [
+        "充電電源",
+        "電動車",
+        "工業電力"
+      ],
+      "host": {
+        "expression": "擔心檢查",
+        "gaze": "看左下警示牌",
+        "action": "短掌扶牌",
+        "prop": "無字警示牌",
+        "intent": "指讀本頁的它們出現在哪裡",
+        "contact": "短掌接觸所列道具，身體與腳受地面支撐；無道具頁以視線和短掌邀請讀者。",
+        "asset_id": "bibi_semiconductor_host_06",
+        "version": "v001"
+      }
+    },
+    {
+      "page": 7,
+      "title": "矽仍然有它的位置",
+      "points": [
+        "成本、工藝與成熟度都影響選擇",
+        "新材料不代表舊材料失去用途"
+      ],
+      "bubble": "合適，才是重點。",
+      "visual": "balance",
+      "diagram_labels": [
+        "效率",
+        "成本",
+        "成熟度"
+      ],
+      "host": {
+        "expression": "點頭理解",
+        "gaze": "看右上",
+        "action": "短掌靠紙卡",
+        "prop": "三張筆記卡",
+        "intent": "指讀本頁的矽仍然有它的位置",
+        "contact": "短掌接觸所列道具，身體與腳受地面支撐；無道具頁以視線和短掌邀請讀者。",
+        "asset_id": "bibi_semiconductor_host_07",
+        "version": "v001"
+      }
+    },
+    {
+      "page": 8,
+      "title": "下一篇比較兩條路",
+      "points": [
+        "先懂材料與功率，再比較使用情境",
+        "下一篇看 SiC 和 GaN 的分工"
+      ],
+      "bubble": "你在哪裡看過GaN？",
+      "visual": "cta",
+      "diagram_labels": [
+        "SiC",
+        "GaN",
+        "使用情境"
+      ],
+      "host": {
+        "expression": "微笑邀請",
+        "gaze": "看讀者",
+        "action": "短掌貼身揮手",
+        "prop": "無",
+        "intent": "指讀本頁的下一篇比較兩條路",
+        "contact": "短掌接觸所列道具，身體與腳受地面支撐；無道具頁以視線和短掌邀請讀者。",
+        "asset_id": "bibi_semiconductor_host_08",
+        "version": "v001"
+      }
+    }
+  ]
+}

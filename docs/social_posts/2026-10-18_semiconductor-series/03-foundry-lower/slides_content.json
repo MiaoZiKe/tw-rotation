@@ -1,0 +1,210 @@
+{
+  "slug": "03-foundry-lower",
+  "topic": "晶圓代工",
+  "part": "下",
+  "title": "成熟製程為何還重要",
+  "angle": "從用途分工與產業鏈，看懂先進不代表適合所有晶片；提供研究問題而非股價預測。",
+  "next_hook": "下一組：HBM，GPU 跑得快，為什麼還會等資料？",
+  "slides": [
+    {
+      "page": 1,
+      "title": "成熟製程為何還重要",
+      "points": [
+        "手機運算晶片和電源晶片任務不同",
+        "挑製程，先問產品需要什麼"
+      ],
+      "bubble": "新舊，不是一張排名。",
+      "visual": "applications",
+      "diagram_labels": [
+        "運算",
+        "電源",
+        "感測"
+      ],
+      "host": {
+        "expression": "好奇歪頭",
+        "gaze": "看晶圓",
+        "action": "短掌靠晶圓",
+        "prop": "晶圓與支架",
+        "intent": "指讀本頁的成熟製程為何還重要",
+        "contact": "短掌接觸所列道具，身體與腳受地面支撐；無道具頁以視線和短掌邀請讀者。",
+        "asset_id": "bibi_semiconductor_host_01",
+        "version": "v001"
+      }
+    },
+    {
+      "page": 2,
+      "title": "先進與成熟各有工作",
+      "points": [
+        "高密度運算重視效能與能耗",
+        "電源、類比等產品也重視耐壓與成本"
+      ],
+      "bubble": "選對，比一味追新重要。",
+      "visual": "compare",
+      "diagram_labels": [
+        "密度與效能",
+        "耐壓與成本",
+        "產品條件"
+      ],
+      "host": {
+        "expression": "專注",
+        "gaze": "看放大鏡",
+        "action": "短掌握鏡柄",
+        "prop": "放大鏡",
+        "intent": "指讀本頁的先進與成熟各有工作",
+        "contact": "短掌接觸所列道具，身體與腳受地面支撐；無道具頁以視線和短掌邀請讀者。",
+        "asset_id": "bibi_semiconductor_host_03",
+        "version": "v001"
+      }
+    },
+    {
+      "page": 3,
+      "title": "成熟不是停止進步",
+      "points": [
+        "特殊製程也持續調整元件與材料",
+        "汽車、工業、通訊有各自規格"
+      ],
+      "bubble": "不同賽道，都要研發。",
+      "visual": "applications",
+      "diagram_labels": [
+        "車用",
+        "工業",
+        "通訊"
+      ],
+      "host": {
+        "expression": "開心記錄",
+        "gaze": "看左下筆記",
+        "action": "短掌靠筆記",
+        "prop": "空白筆記本",
+        "intent": "指讀本頁的成熟不是停止進步",
+        "contact": "短掌接觸所列道具，身體與腳受地面支撐；無道具頁以視線和短掌邀請讀者。",
+        "asset_id": "bibi_semiconductor_host_05",
+        "version": "v001"
+      }
+    },
+    {
+      "page": 4,
+      "title": "代工廠背後還有隊伍",
+      "points": [
+        "設備定義加工能力，材料參與製程",
+        "設計工具與矽智財協助客戶開發"
+      ],
+      "bubble": "背後有整個生態系。",
+      "visual": "chain",
+      "diagram_labels": [
+        "設計工具",
+        "設備材料",
+        "晶圓製造"
+      ],
+      "host": {
+        "expression": "思考",
+        "gaze": "看右側樣品",
+        "action": "雙短掌靠桌",
+        "prop": "兩種樣品與矮桌",
+        "intent": "指讀本頁的代工廠背後還有隊伍",
+        "contact": "短掌接觸所列道具，身體與腳受地面支撐；無道具頁以視線和短掌邀請讀者。",
+        "asset_id": "bibi_semiconductor_host_04",
+        "version": "v001"
+      }
+    },
+    {
+      "page": 5,
+      "title": "出貨前還要有人把關",
+      "points": [
+        "晶圓測試找出電性不合格的晶粒",
+        "封裝與成品測試完成後續整合"
+      ],
+      "bubble": "做得出，也要驗得過。",
+      "visual": "chain",
+      "diagram_labels": [
+        "晶圓測試",
+        "封裝",
+        "成品測試"
+      ],
+      "host": {
+        "expression": "微笑解說",
+        "gaze": "看左側提示板",
+        "action": "短掌握短指示棒",
+        "prop": "空白提示板",
+        "intent": "指讀本頁的出貨前還要有人把關",
+        "contact": "短掌接觸所列道具，身體與腳受地面支撐；無道具頁以視線和短掌邀請讀者。",
+        "asset_id": "bibi_semiconductor_host_02",
+        "version": "v001"
+      }
+    },
+    {
+      "page": 6,
+      "title": "有需求不等於立刻獲利",
+      "points": [
+        "廠房、機台與製程需要投資",
+        "接單結構與利用情況也影響營運"
+      ],
+      "bubble": "別跳過製造的代價。",
+      "visual": "balance",
+      "diagram_labels": [
+        "產品需求",
+        "產能配置",
+        "成本"
+      ],
+      "host": {
+        "expression": "擔心檢查",
+        "gaze": "看左下警示牌",
+        "action": "短掌扶牌",
+        "prop": "無字警示牌",
+        "intent": "指讀本頁的有需求不等於立刻獲利",
+        "contact": "短掌接觸所列道具，身體與腳受地面支撐；無道具頁以視線和短掌邀請讀者。",
+        "asset_id": "bibi_semiconductor_host_06",
+        "version": "v001"
+      }
+    },
+    {
+      "page": 7,
+      "title": "研究時先問三件事",
+      "points": [
+        "它做哪類產品？服務哪些應用？",
+        "新增產能，是否對應實際需求？"
+      ],
+      "bubble": "問題比概念股名單有用。",
+      "visual": "checklist",
+      "diagram_labels": [
+        "產品",
+        "應用",
+        "產能與需求"
+      ],
+      "host": {
+        "expression": "點頭理解",
+        "gaze": "看右上",
+        "action": "短掌靠紙卡",
+        "prop": "三張筆記卡",
+        "intent": "指讀本頁的研究時先問三件事",
+        "contact": "短掌接觸所列道具，身體與腳受地面支撐；無道具頁以視線和短掌邀請讀者。",
+        "asset_id": "bibi_semiconductor_host_07",
+        "version": "v001"
+      }
+    },
+    {
+      "page": 8,
+      "title": "看懂分工再看新聞",
+      "points": [
+        "先分清用途，再看技術與供應鏈",
+        "留言：你原本怎麼理解成熟製程？"
+      ],
+      "bubble": "下一組，來聊HBM！",
+      "visual": "cta",
+      "diagram_labels": [
+        "用途",
+        "技術",
+        "產業鏈"
+      ],
+      "host": {
+        "expression": "微笑邀請",
+        "gaze": "看讀者",
+        "action": "短掌貼身揮手",
+        "prop": "無",
+        "intent": "指讀本頁的看懂分工再看新聞",
+        "contact": "短掌接觸所列道具，身體與腳受地面支撐；無道具頁以視線和短掌邀請讀者。",
+        "asset_id": "bibi_semiconductor_host_08",
+        "version": "v001"
+      }
+    }
+  ]
+}

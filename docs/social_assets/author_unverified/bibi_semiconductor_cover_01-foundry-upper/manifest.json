@@ -1,0 +1,24 @@
+{
+  "asset_id": "bibi_semiconductor_cover_01-foundry-upper",
+  "中文名稱": "晶圓代工・上篇封面情境",
+  "category": "author_unverified",
+  "original_author": "unknown",
+  "illustration_author": "OpenAI imagegen",
+  "processed_by": "Codex",
+  "tool": "OpenAI imagegen；Codex正式文字後製",
+  "provenance_evidence": "本對話內建image_gen生成；角色參考為Andy提供跳跳.gif；原檔路徑與SHA256可核對。",
+  "parent_asset_id": "bibi_user_jump_gif",
+  "版本": "v001",
+  "尺寸": [
+    1774,
+    887
+  ],
+  "是否透明底": true,
+  "姿勢表情道具": "先別急著看奈米！",
+  "可用用途": "哩股哩股半導體介紹主持插畫；依情境使用，不作技術數據圖",
+  "權利狀態": "unknown：角色母版原作者權利未核實；新情境生成不覆蓋原畫歸屬",
+  "品管狀態": "review：待逐頁發布前核稿",
+  "prompt_summary": "把「代工」從廉價加工的印象，轉成把電路做進材料的精密製造。；暖白粉彩研究情境，單隻比比，不生成正式文字或數字，技術物件為概念示意。",
+  "sha256": "b62df2cf434e99ca4ba2f6813c63f90c87d8c85f15f7424f7b71bd72bb252b1a",
+  "source_file": "C:\\Users\\user\\.codex\\generated_images\\01a14c4f-1a7f-71e3-883c-de2d2fcd98b9\\exec-a121b09e-bd90-4215-8a41-be6a915be258.png"
+}

@@ -1,0 +1,24 @@
+{
+  "asset_id": "bibi_semiconductor_cover_09-wafer-lower",
+  "中文名稱": "矽晶圓・下篇封面情境",
+  "category": "author_unverified",
+  "original_author": "unknown",
+  "illustration_author": "OpenAI imagegen",
+  "processed_by": "Codex",
+  "tool": "OpenAI imagegen；Codex正式文字後製",
+  "provenance_evidence": "本對話內建image_gen生成；角色參考為Andy提供跳跳.gif；原檔路徑與SHA256可核對。",
+  "parent_asset_id": "bibi_user_jump_gif",
+  "版本": "v001",
+  "尺寸": [
+    1536,
+    1024
+  ],
+  "是否透明底": true,
+  "姿勢表情道具": "有樣品，不等於有訂單。",
+  "可用用途": "哩股哩股半導體介紹主持插畫；依情境使用，不作技術數據圖",
+  "權利狀態": "unknown：角色母版原作者權利未核實；新情境生成不覆蓋原畫歸屬",
+  "品管狀態": "review：待逐頁發布前核稿",
+  "prompt_summary": "以供應鏈位置與客戶驗證講商業邏輯；庫存、產能、終端需求是整理用觀察框架，非現況預測。；暖白粉彩研究情境，單隻比比，不生成正式文字或數字，技術物件為概念示意。",
+  "sha256": "a5fd0999cfade1b9713c7799087a7a97a568540d6c8b0380f9da300bf862ebf5",
+  "source_file": "C:\\Users\\user\\.codex\\generated_images\\01a14c4f-1a7f-71e3-883c-de2d2fcd98b9\\exec-77fba1b8-09ea-45fb-bc64-9a929d22b1e5.png"
+}

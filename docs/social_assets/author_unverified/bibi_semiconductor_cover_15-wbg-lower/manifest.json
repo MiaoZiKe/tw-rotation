@@ -1,0 +1,24 @@
+{
+  "asset_id": "bibi_semiconductor_cover_15-wbg-lower",
+  "中文名稱": "第三代半導體・下篇封面情境",
+  "category": "author_unverified",
+  "original_author": "unknown",
+  "illustration_author": "OpenAI imagegen",
+  "processed_by": "Codex",
+  "tool": "OpenAI imagegen；Codex正式文字後製",
+  "provenance_evidence": "本對話內建image_gen生成；角色參考為Andy提供跳跳.gif；原檔路徑與SHA256可核對。",
+  "parent_asset_id": "bibi_user_jump_gif",
+  "版本": "v001",
+  "尺寸": [
+    1536,
+    1024
+  ],
+  "是否透明底": true,
+  "姿勢表情道具": "會做材料，不等於賣整機。",
+  "可用用途": "哩股哩股半導體介紹主持插畫；依情境使用，不作技術數據圖",
+  "權利狀態": "unknown：角色母版原作者權利未核實；新情境生成不覆蓋原畫歸屬",
+  "品管狀態": "review：待逐頁發布前核稿",
+  "prompt_summary": "拆開基板、磊晶、元件、模組與系統驗證，提醒產業名詞不等於訂單或獲利。；暖白粉彩研究情境，單隻比比，不生成正式文字或數字，技術物件為概念示意。",
+  "sha256": "07b4db350fb042cc15b284bb0c970f5ac058b4b01af5081d801fd48c6328c482",
+  "source_file": "C:\\Users\\user\\.codex\\generated_images\\01a14c4f-1a7f-71e3-883c-de2d2fcd98b9\\exec-fb23f70b-1d9d-4918-8f61-f30588b71a18.png"
+}

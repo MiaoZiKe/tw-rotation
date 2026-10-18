@@ -1,0 +1,208 @@
+{
+  "slug": "11-packaging-middle",
+  "topic": "先進封裝",
+  "part": "中",
+  "title": "晶片為何開始拆開做",
+  "angle": "說明 Chiplet 與 2.5D/3D 的整合選擇，不把所有封裝都稱為 CoWoS，也不把所有 HBM 畫成 3D 上疊。",
+  "next_hook": "下一篇：先進封裝的機會，究竟分散在哪些產業角色？",
+  "slides": [
+    {
+      "page": 1,
+      "title": "晶片為何開始拆開做",
+      "points": [
+        "有些系統把功能分成多顆小晶片",
+        "再透過封裝把它們接成一個團隊"
+      ],
+      "bubble": "拆開做，再一起工作。",
+      "visual": "chiplets",
+      "diagram_labels": [
+        "運算",
+        "輸入輸出",
+        "互連"
+      ],
+      "host": {
+        "expression": "微笑解說",
+        "gaze": "看左側提示板",
+        "action": "短掌握短指示棒",
+        "prop": "空白提示板",
+        "intent": "指讀本頁的晶片為何開始拆開做",
+        "contact": "短掌接觸所列道具，身體與腳受地面支撐；無道具頁以視線和短掌邀請讀者。",
+        "asset_id": "bibi_semiconductor_host_02",
+        "version": "v001"
+      }
+    },
+    {
+      "page": 2,
+      "title": "小晶片先翻成白話",
+      "points": [
+        "Chiplet 是承擔部分功能的晶粒",
+        "透過連接，組成所需系統功能"
+      ],
+      "bubble": "像分工的專業隊友。",
+      "visual": "chiplets",
+      "diagram_labels": [
+        "功能晶粒",
+        "晶粒互連",
+        "系統"
+      ],
+      "host": {
+        "expression": "專注",
+        "gaze": "看放大鏡",
+        "action": "短掌握鏡柄",
+        "prop": "放大鏡",
+        "intent": "指讀本頁的小晶片先翻成白話",
+        "contact": "短掌接觸所列道具，身體與腳受地面支撐；無道具頁以視線和短掌邀請讀者。",
+        "asset_id": "bibi_semiconductor_host_03",
+        "version": "v001"
+      }
+    },
+    {
+      "page": 3,
+      "title": "每種功能未必用同製程",
+      "points": [
+        "運算、介面等功能需求不同",
+        "異質整合容許搭配不同技術"
+      ],
+      "bubble": "選擇不必全部相同。",
+      "visual": "compare",
+      "diagram_labels": [
+        "運算需求",
+        "介面需求",
+        "技術選擇"
+      ],
+      "host": {
+        "expression": "開心記錄",
+        "gaze": "看左下筆記",
+        "action": "短掌靠筆記",
+        "prop": "空白筆記本",
+        "intent": "指讀本頁的每種功能未必用同製程",
+        "contact": "短掌接觸所列道具，身體與腳受地面支撐；無道具頁以視線和短掌邀請讀者。",
+        "asset_id": "bibi_semiconductor_host_05",
+        "version": "v001"
+      }
+    },
+    {
+      "page": 4,
+      "title": "並排和堆疊是兩條路",
+      "points": [
+        "2.5D 常以中介層或橋接互連",
+        "3D 則讓晶粒垂直堆疊整合"
+      ],
+      "bubble": "方向不同，挑戰也不同。",
+      "visual": "bond_compare",
+      "diagram_labels": [
+        "並排互連",
+        "垂直堆疊"
+      ],
+      "host": {
+        "expression": "思考",
+        "gaze": "看右側樣品",
+        "action": "雙短掌靠桌",
+        "prop": "兩種樣品與矮桌",
+        "intent": "指讀本頁的並排和堆疊是兩條路",
+        "contact": "短掌接觸所列道具，身體與腳受地面支撐；無道具頁以視線和短掌邀請讀者。",
+        "asset_id": "bibi_semiconductor_host_04",
+        "version": "v001"
+      }
+    },
+    {
+      "page": 5,
+      "title": "CoWoS不是全部封裝",
+      "points": [
+        "它是先進封裝技術家族之一",
+        "技術名稱要和實際結構對照"
+      ],
+      "bubble": "別把家族叫成全世界。",
+      "visual": "compare",
+      "diagram_labels": [
+        "CoWoS",
+        "其他封裝技術"
+      ],
+      "host": {
+        "expression": "微笑解說",
+        "gaze": "看左側提示板",
+        "action": "短掌握短指示棒",
+        "prop": "空白提示板",
+        "intent": "指讀本頁的CoWoS不是全部封裝",
+        "contact": "短掌接觸所列道具，身體與腳受地面支撐；無道具頁以視線和短掌邀請讀者。",
+        "asset_id": "bibi_semiconductor_host_02",
+        "version": "v001"
+      }
+    },
+    {
+      "page": 6,
+      "title": "拆開不會自動更便宜",
+      "points": [
+        "連接、設計驗證與封裝都有成本",
+        "合適與否，要看整個系統目標"
+      ],
+      "bubble": "分工也要付協作成本。",
+      "visual": "balance",
+      "diagram_labels": [
+        "晶粒",
+        "互連",
+        "驗證與封裝"
+      ],
+      "host": {
+        "expression": "擔心檢查",
+        "gaze": "看左下警示牌",
+        "action": "短掌扶牌",
+        "prop": "無字警示牌",
+        "intent": "指讀本頁的拆開不會自動更便宜",
+        "contact": "短掌接觸所列道具，身體與腳受地面支撐；無道具頁以視線和短掌邀請讀者。",
+        "asset_id": "bibi_semiconductor_host_06",
+        "version": "v001"
+      }
+    },
+    {
+      "page": 7,
+      "title": "系統好才是真的好",
+      "points": [
+        "頻寬、功耗、散熱要一起設計",
+        "不能只因堆得高就判定更強"
+      ],
+      "bubble": "別只看外觀。",
+      "visual": "checklist",
+      "diagram_labels": [
+        "頻寬",
+        "功耗",
+        "散熱"
+      ],
+      "host": {
+        "expression": "點頭理解",
+        "gaze": "看右上",
+        "action": "短掌靠紙卡",
+        "prop": "三張筆記卡",
+        "intent": "指讀本頁的系統好才是真的好",
+        "contact": "短掌接觸所列道具，身體與腳受地面支撐；無道具頁以視線和短掌邀請讀者。",
+        "asset_id": "bibi_semiconductor_host_07",
+        "version": "v001"
+      }
+    },
+    {
+      "page": 8,
+      "title": "下一篇找出整合隊伍",
+      "points": [
+        "看懂結構，再看設備、材料與測試",
+        "下一篇把先進封裝產業鏈拆開"
+      ],
+      "bubble": "哪些角色最常被忽略？",
+      "visual": "cta",
+      "diagram_labels": [
+        "材料",
+        "設備",
+        "測試"
+      ],
+      "host": {
+        "expression": "微笑邀請",
+        "gaze": "看讀者",
+        "action": "短掌貼身揮手",
+        "prop": "無",
+        "intent": "指讀本頁的下一篇找出整合隊伍",
+        "contact": "短掌接觸所列道具，身體與腳受地面支撐；無道具頁以視線和短掌邀請讀者。",
+        "asset_id": "bibi_semiconductor_host_08",
+        "version": "v001"
+      }
+    }
+  ]
+}
