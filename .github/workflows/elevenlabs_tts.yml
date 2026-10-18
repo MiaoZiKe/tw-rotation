@@ -1,0 +1,80 @@
+name: 試做配音（ElevenLabs，台灣口音女聲）
+
+# Andy 2026-10-18：「用 ElevenLabs 試做台灣口音女聲 10 秒」。
+# 開發容器連不到 ElevenLabs，所以在 GitHub 雲端機器上跑。金鑰只放 GitHub Secrets 的 ELEVENLABS_API_KEY，不進 repo。
+# 觸發：改動 script.json（例如把 trigger 加 1）並推上工作分支；產出 mp3 commit 回同一分支。
+on:
+  push:
+    branches: [claude/blissful-sagan-sx1vag]
+    paths: [docs/marketing/videos/2026-10-18-elevenlabs_test/script.json, .github/workflows/elevenlabs_tts.yml]
+
+permissions:
+  contents: write
+
+jobs:
+  tts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.12"}
+      - run: pip install "requests==2.32.3"
+      - name: 找台灣口音女聲並產生試聽
+        env:
+          XI_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
+        run: |
+          python - <<'PY'
+          import json, os, pathlib, sys, requests
+          key = os.environ.get("XI_KEY", "")
+          spec = json.loads(pathlib.Path("docs/marketing/videos/2026-10-18-elevenlabs_test/script.json").read_text(encoding="utf-8"))
+          out = pathlib.Path(spec["out_dir"]); out.mkdir(parents=True, exist_ok=True)
+          log = []
+          if not key:
+              log.append("沒有設定 ELEVENLABS_API_KEY（GitHub Secrets），無法產生。")
+          else:
+              H = {"xi-api-key": key}
+              s = spec["search"]
+              r = requests.get("https://api.elevenlabs.io/v1/shared-voices", headers=H, timeout=30,
+                               params={"language": s["language"], "accent": s["accent"], "gender": s["gender"], "page_size": 30})
+              log.append(f"搜尋聲音庫：HTTP {r.status_code}")
+              voices = r.json().get("voices", []) if r.ok else []
+              if r.ok and not voices:
+                  r2 = requests.get("https://api.elevenlabs.io/v1/shared-voices", headers=H, timeout=30,
+                                    params={"language": s["language"], "gender": s["gender"], "search": "taiwan", "page_size": 30})
+                  voices = r2.json().get("voices", []) if r2.ok else []
+                  log.append(f"改用關鍵字 taiwan 搜尋：HTTP {r2.status_code}，{len(voices)} 個")
+              meta = []
+              for v in voices[: s["max"]]:
+                  vid, owner, name = v["voice_id"], v.get("public_owner_id"), v.get("name", "")
+                  use_id = vid
+                  tts = lambda i: requests.post(f"https://api.elevenlabs.io/v1/text-to-speech/{i}?output_format=mp3_44100_128",
+                                                headers={**H, "Content-Type": "application/json"}, timeout=60,
+                                                json={"text": spec["text"], "model_id": spec["model_id"],
+                                                      "voice_settings": {"stability": 0.4, "similarity_boost": 0.8, "style": 0.3}})
+                  t = tts(use_id)
+                  if not t.ok and owner:
+                      a = requests.post(f"https://api.elevenlabs.io/v1/voices/add/{owner}/{vid}", headers=H, timeout=30,
+                                        json={"new_name": f"tw_test_{name}"[:40]})
+                      log.append(f"{name}：直接用失敗 {t.status_code}，加入我的聲音 HTTP {a.status_code}")
+                      if a.ok:
+                          use_id = a.json().get("voice_id", vid); t = tts(use_id)
+                  fn = "".join(c if c.isalnum() else "_" for c in name)[:30] or vid
+                  if t.ok:
+                      (out / f"{fn}.mp3").write_bytes(t.content)
+                      log.append(f"{name}：成功 → {fn}.mp3")
+                  else:
+                      log.append(f"{name}：產生失敗 HTTP {t.status_code} {t.text[:200]}")
+                  meta.append({"name": name, "voice_id": vid, "accent": v.get("accent"), "age": v.get("age"),
+                               "description": v.get("description", "")[:200], "file": f"{fn}.mp3" if t.ok else None})
+              (out / "voices.json").write_text(json.dumps(meta, ensure_ascii=False, indent=1), encoding="utf-8")
+          (out / "log.txt").write_text("\n".join(log), encoding="utf-8")
+          print("\n".join(log))
+          PY
+      - name: commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/marketing/videos/2026-10-18-elevenlabs_test/voice
+          git commit -m "ElevenLabs 台灣口音女聲試聽" || exit 0
+          for i in 1 2 3; do git pull --no-rebase --no-edit && git push && break; sleep 5; done

@@ -1,0 +1,7 @@
+{
+  "out_dir": "docs/marketing/videos/2026-10-18-elevenlabs_test/voice",
+  "text": "欸，你有沒有發現，AI 晶片好像一直都在缺貨？其實啊，卡住的常常不是晶片本身，而是封裝。今天花一分鐘，帶你搞懂它！",
+  "model_id": "eleven_multilingual_v2",
+  "search": {"language": "zh", "accent": "taiwan mandarin", "gender": "female", "max": 4},
+  "trigger": 1
+}
