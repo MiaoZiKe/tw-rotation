@@ -1,140 +1,140 @@
 {
  "voice": "zh-TW-HsiaoYuNeural",
- "rate": "+0%",
+ "rate": "+10%",
  "pitch": "+0Hz",
  "text": "嗨，我是比比！今天用一分鐘，帶你看懂 AI 晶片為什麼一直缺貨，關鍵就在台積電的 CoWoS 先進封裝。",
  "words": [
   {
    "type": "WordBoundary",
    "text": "嗨",
-   "start": 0.1,
-   "dur": 0.175
+   "start": 0.095458,
+   "dur": 0.159083
   },
   {
    "type": "WordBoundary",
    "text": "我",
-   "start": 0.4875,
-   "dur": 0.225
+   "start": 0.447708,
+   "dur": 0.204541
   },
   {
    "type": "WordBoundary",
    "text": "是",
-   "start": 0.775,
-   "dur": 0.175
+   "start": 0.709083,
+   "dur": 0.159083
   },
   {
    "type": "WordBoundary",
    "text": "比比",
-   "start": 0.9875,
-   "dur": 0.45
+   "start": 0.902291,
+   "dur": 0.409083
   },
   {
    "type": "WordBoundary",
    "text": "今天",
-   "start": 2.475,
-   "dur": 0.3875
+   "start": 2.25,
+   "dur": 0.352291
   },
   {
    "type": "WordBoundary",
    "text": "用",
-   "start": 2.9,
-   "dur": 0.175
+   "start": 2.636375,
+   "dur": 0.159083
   },
   {
    "type": "WordBoundary",
    "text": "一分鐘",
-   "start": 3.15,
-   "dur": 0.575
+   "start": 2.863625,
+   "dur": 0.522708
   },
   {
    "type": "WordBoundary",
    "text": "帶",
-   "start": 4.0875,
-   "dur": 0.125
+   "start": 3.715916,
+   "dur": 0.113625
   },
   {
    "type": "WordBoundary",
    "text": "你",
-   "start": 4.3,
-   "dur": 0.1375
+   "start": 3.909083,
+   "dur": 0.125
   },
   {
    "type": "WordBoundary",
    "text": "看懂",
-   "start": 4.5125,
-   "dur": 0.35
+   "start": 4.102291,
+   "dur": 0.318166
   },
   {
    "type": "WordBoundary",
    "text": "AI",
-   "start": 4.9625,
-   "dur": 0.35
+   "start": 4.511375,
+   "dur": 0.318166
   },
   {
    "type": "WordBoundary",
    "text": "晶片",
-   "start": 5.4,
-   "dur": 0.5125
+   "start": 4.909083,
+   "dur": 0.465916
   },
   {
    "type": "WordBoundary",
    "text": "為什麼",
-   "start": 6.0125,
-   "dur": 0.5875
+   "start": 5.465916,
+   "dur": 0.534083
   },
   {
    "type": "WordBoundary",
    "text": "一直",
-   "start": 6.625,
-   "dur": 0.3375
+   "start": 6.022708,
+   "dur": 0.306833
   },
   {
    "type": "WordBoundary",
    "text": "缺貨",
-   "start": 7.0625,
-   "dur": 0.55
+   "start": 6.420458,
+   "dur": 0.5
   },
   {
    "type": "WordBoundary",
    "text": "關鍵",
-   "start": 8.0125,
-   "dur": 0.5375
+   "start": 7.284083,
+   "dur": 0.488625
   },
   {
    "type": "WordBoundary",
    "text": "就",
-   "start": 8.625,
-   "dur": 0.2375
+   "start": 7.840916,
+   "dur": 0.215916
   },
   {
    "type": "WordBoundary",
    "text": "在",
-   "start": 8.9125,
-   "dur": 0.1375
+   "start": 8.102291,
+   "dur": 0.125
   },
   {
    "type": "WordBoundary",
    "text": "台積電的",
-   "start": 9.15,
-   "dur": 0.6875
+   "start": 8.318166,
+   "dur": 0.625
   },
   {
    "type": "WordBoundary",
    "text": "CoWoS",
-   "start": 9.8375,
-   "dur": 0.7375
+   "start": 8.943166,
+   "dur": 0.670458
   },
   {
    "type": "WordBoundary",
    "text": "先進",
-   "start": 10.6375,
-   "dur": 0.475
+   "start": 9.670458,
+   "dur": 0.431833
   },
   {
    "type": "WordBoundary",
    "text": "封裝",
-   "start": 11.2,
-   "dur": 0.4625
+   "start": 10.181833,
+   "dur": 0.420458
   }
  ]
 }

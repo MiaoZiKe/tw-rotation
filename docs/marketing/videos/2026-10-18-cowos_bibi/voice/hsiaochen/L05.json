@@ -1,74 +1,62 @@
 {
  "voice": "zh-TW-HsiaoChenNeural",
- "rate": "+0%",
+ "rate": "+5%",
  "pitch": "+0Hz",
- "text": "晶片靠得近，資料跑得快，也比較省電。",
+ "text": "靠得近，跑得快，也更省電。",
  "words": [
   {
    "type": "WordBoundary",
-   "text": "晶片",
-   "start": 0.1,
-   "dur": 0.375
-  },
-  {
-   "type": "WordBoundary",
    "text": "靠",
-   "start": 0.525,
-   "dur": 0.1875
+   "start": 0.097625,
+   "dur": 0.202375
   },
   {
    "type": "WordBoundary",
    "text": "得",
-   "start": 0.725,
-   "dur": 0.1
+   "start": 0.323791,
+   "dur": 0.09525
   },
   {
    "type": "WordBoundary",
    "text": "近",
-   "start": 0.8875,
-   "dur": 0.2375
-  },
-  {
-   "type": "WordBoundary",
-   "text": "資料",
-   "start": 1.425,
-   "dur": 0.325
+   "start": 0.478583,
+   "dur": 0.214291
   },
   {
    "type": "WordBoundary",
    "text": "跑得",
-   "start": 1.775,
-   "dur": 0.3125
+   "start": 0.89525,
+   "dur": 0.321416
   },
   {
    "type": "WordBoundary",
    "text": "快",
-   "start": 2.15,
-   "dur": 0.3
+   "start": 1.276208,
+   "dur": 0.285708
   },
   {
    "type": "WordBoundary",
    "text": "也",
-   "start": 2.7,
-   "dur": 0.15
+   "start": 1.8,
+   "dur": 0.119041
   },
   {
    "type": "WordBoundary",
-   "text": "比較",
-   "start": 2.875,
-   "dur": 0.3
+   "text": "更",
+   "start": 1.966666,
+   "dur": 0.107125
   },
   {
    "type": "WordBoundary",
    "text": "省",
-   "start": 3.1875,
-   "dur": 0.15
+   "start": 2.109541,
+   "dur": 0.15475
   },
   {
    "type": "WordBoundary",
    "text": "電",
-   "start": 3.425,
-   "dur": 0.2625
+   "start": 2.347625,
+   "dur": 0.238083
   }
  ]
 }

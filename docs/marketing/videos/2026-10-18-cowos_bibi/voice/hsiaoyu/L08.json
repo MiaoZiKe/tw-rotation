@@ -1,128 +1,110 @@
 {
  "voice": "zh-TW-HsiaoYuNeural",
- "rate": "+0%",
+ "rate": "+10%",
  "pitch": "+0Hz",
- "text": "台積電在法說會說過，2024 和 2025 年，CoWoS 產能都比前一年翻倍，還是供不應求。",
+ "text": "台積電在法說會說過，2024、2025 年 CoWoS 產能都翻倍，還是供不應求。",
  "words": [
   {
    "type": "WordBoundary",
    "text": "台積電",
-   "start": 0.1,
-   "dur": 0.6375
+   "start": 0.095458,
+   "dur": 0.568166
   },
   {
    "type": "WordBoundary",
    "text": "在",
-   "start": 0.7625,
-   "dur": 0.2375
+   "start": 0.686375,
+   "dur": 0.227291
   },
   {
    "type": "WordBoundary",
    "text": "法",
-   "start": 1.0875,
-   "dur": 0.125
+   "start": 0.993166,
+   "dur": 0.113625
   },
   {
    "type": "WordBoundary",
    "text": "說",
-   "start": 1.3375,
-   "dur": 0.1875
+   "start": 1.231833,
+   "dur": 0.170458
   },
   {
    "type": "WordBoundary",
    "text": "會",
-   "start": 1.6,
-   "dur": 0.125
+   "start": 1.470458,
+   "dur": 0.113625
   },
   {
    "type": "WordBoundary",
    "text": "說",
-   "start": 1.8125,
-   "dur": 0.1875
+   "start": 1.663625,
+   "dur": 0.170458
   },
   {
    "type": "WordBoundary",
    "text": "過",
-   "start": 2.0625,
-   "dur": 0.25
+   "start": 1.890916,
+   "dur": 0.227291
   },
   {
    "type": "WordBoundary",
    "text": "2024",
-   "start": 2.6625,
-   "dur": 0.95
-  },
-  {
-   "type": "WordBoundary",
-   "text": "和",
-   "start": 3.8125,
-   "dur": 0.1875
+   "start": 2.413625,
+   "dur": 0.909083
   },
   {
    "type": "WordBoundary",
    "text": "2025",
-   "start": 4.0375,
-   "dur": 0.8
+   "start": 3.606833,
+   "dur": 0.761375
   },
   {
    "type": "WordBoundary",
    "text": "年",
-   "start": 4.9375,
-   "dur": 0.2
+   "start": 4.447708,
+   "dur": 0.136375
   },
   {
    "type": "WordBoundary",
    "text": "CoWoS",
-   "start": 5.6,
-   "dur": 0.75
+   "start": 4.629541,
+   "dur": 0.715916
   },
   {
    "type": "WordBoundary",
    "text": "產能",
-   "start": 6.375,
-   "dur": 0.3875
+   "start": 5.413625,
+   "dur": 0.352291
   },
   {
    "type": "WordBoundary",
    "text": "都",
-   "start": 6.875,
-   "dur": 0.1875
-  },
-  {
-   "type": "WordBoundary",
-   "text": "比",
-   "start": 7.1375,
-   "dur": 0.1
-  },
-  {
-   "type": "WordBoundary",
-   "text": "前",
-   "start": 7.325,
-   "dur": 0.225
-  },
-  {
-   "type": "WordBoundary",
-   "text": "一年",
-   "start": 7.6125,
-   "dur": 0.3625
+   "start": 5.845458,
+   "dur": 0.136375
   },
   {
    "type": "WordBoundary",
    "text": "翻倍",
-   "start": 8.0375,
-   "dur": 0.4375
+   "start": 6.05,
+   "dur": 0.409083
   },
   {
    "type": "WordBoundary",
    "text": "還是",
-   "start": 8.9,
-   "dur": 0.3625
+   "start": 6.845458,
+   "dur": 0.340916
   },
   {
    "type": "WordBoundary",
-   "text": "供不應求",
-   "start": 9.35,
-   "dur": 0.875
+   "text": "供不",
+   "start": 7.265916,
+   "dur": 0.340916
+  },
+  {
+   "type": "WordBoundary",
+   "text": "應求",
+   "start": 7.652291,
+   "dur": 0.409083
   }
  ]
 }

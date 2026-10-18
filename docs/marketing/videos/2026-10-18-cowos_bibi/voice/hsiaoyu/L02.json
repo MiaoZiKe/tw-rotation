@@ -1,50 +1,44 @@
 {
  "voice": "zh-TW-HsiaoYuNeural",
- "rate": "+0%",
+ "rate": "+10%",
  "pitch": "+0Hz",
- "text": "卡住的，常常不是晶片本身，而是封裝。",
+ "text": "卡住的常常不是晶片，而是封裝。",
  "words": [
   {
    "type": "WordBoundary",
    "text": "卡住的",
-   "start": 0.1,
-   "dur": 0.625
+   "start": 0.095458,
+   "dur": 0.488625
   },
   {
    "type": "WordBoundary",
    "text": "常常",
-   "start": 1.0125,
-   "dur": 0.475
+   "start": 0.595458,
+   "dur": 0.420458
   },
   {
    "type": "WordBoundary",
    "text": "不是",
-   "start": 1.55,
-   "dur": 0.3875
+   "start": 1.095458,
+   "dur": 0.329541
   },
   {
    "type": "WordBoundary",
    "text": "晶片",
-   "start": 1.975,
-   "dur": 0.45
-  },
-  {
-   "type": "WordBoundary",
-   "text": "本身",
-   "start": 2.4875,
-   "dur": 0.4625
+   "start": 1.459083,
+   "dur": 0.454541
   },
   {
    "type": "WordBoundary",
    "text": "而是",
-   "start": 3.275,
-   "dur": 0.375
+   "start": 2.163625,
+   "dur": 0.340916
   },
   {
    "type": "WordBoundary",
    "text": "封裝",
-   "start": 3.725,
-   "dur": 0.4625
+   "start": 2.572708,
+   "dur": 0.420458
   }
  ]
 }

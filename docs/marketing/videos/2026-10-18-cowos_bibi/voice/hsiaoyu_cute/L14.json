@@ -1,122 +1,86 @@
 {
  "voice": "zh-TW-HsiaoYuNeural",
- "rate": "+8%",
+ "rate": "+15%",
  "pitch": "+15Hz",
- "text": "想看先進封裝族群最近的資金熱度，網站的 CoWoS 先進封裝題材頁，幫你整理好了。",
+ "text": "想看先進封裝族群的資金熱度，到網站的 CoWoS 題材頁看看。",
  "words": [
   {
    "type": "WordBoundary",
    "text": "想",
-   "start": 0.096291,
-   "dur": 0.173625
+   "start": 0.093458,
+   "dur": 0.163041
   },
   {
    "type": "WordBoundary",
    "text": "看",
-   "start": 0.339333,
-   "dur": 0.185166
+   "start": 0.32175,
+   "dur": 0.184791
   },
   {
    "type": "WordBoundary",
    "text": "先進",
-   "start": 0.547666,
-   "dur": 0.439833
+   "start": 0.52825,
+   "dur": 0.413041
   },
   {
    "type": "WordBoundary",
    "text": "封裝",
-   "start": 1.056958,
-   "dur": 0.3935
+   "start": 1.006541,
+   "dur": 0.358708
   },
   {
    "type": "WordBoundary",
-   "text": "族群",
-   "start": 1.485166,
-   "dur": 0.462958
-  },
-  {
-   "type": "WordBoundary",
-   "text": "最近的",
-   "start": 2.052333,
-   "dur": 0.520833
+   "text": "族群的",
+   "start": 1.397833,
+   "dur": 0.532583
   },
   {
    "type": "WordBoundary",
    "text": "資金",
-   "start": 2.573166,
-   "dur": 0.358791
+   "start": 1.930416,
+   "dur": 0.347833
   },
   {
    "type": "WordBoundary",
    "text": "熱度",
-   "start": 2.989833,
-   "dur": 0.462958
+   "start": 2.332625,
+   "dur": 0.434791
+  },
+  {
+   "type": "WordBoundary",
+   "text": "到",
+   "start": 3.093458,
+   "dur": 0.065208
   },
   {
    "type": "WordBoundary",
    "text": "網站的",
-   "start": 3.719,
-   "dur": 0.59025
+   "start": 3.289125,
+   "dur": 0.47825
   },
   {
    "type": "WordBoundary",
    "text": "CoWoS",
-   "start": 4.30925,
-   "dur": 0.659708
-  },
-  {
-   "type": "WordBoundary",
-   "text": "先進",
-   "start": 5.026833,
-   "dur": 0.3935
-  },
-  {
-   "type": "WordBoundary",
-   "text": "封裝",
-   "start": 5.489833,
-   "dur": 0.3935
+   "start": 3.767375,
+   "dur": 0.630416
   },
   {
    "type": "WordBoundary",
    "text": "題材",
-   "start": 5.941208,
-   "dur": 0.416666
+   "start": 4.452166,
+   "dur": 0.347833
   },
   {
    "type": "WordBoundary",
    "text": "頁",
-   "start": 6.41575,
-   "dur": 0.243041
+   "start": 4.854333,
+   "dur": 0.163041
   },
   {
    "type": "WordBoundary",
-   "text": "幫",
-   "start": 6.982875,
-   "dur": 0.173625
-  },
-  {
-   "type": "WordBoundary",
-   "text": "你",
-   "start": 7.202791,
-   "dur": 0.173625
-  },
-  {
-   "type": "WordBoundary",
-   "text": "整理",
-   "start": 7.43425,
-   "dur": 0.335666
-  },
-  {
-   "type": "WordBoundary",
-   "text": "好",
-   "start": 7.850916,
-   "dur": 0.127333
-  },
-  {
-   "type": "WordBoundary",
-   "text": "了",
-   "start": 8.082416,
-   "dur": 0.150458
+   "text": "看看",
+   "start": 5.060875,
+   "dur": 0.402166
   }
  ]
 }

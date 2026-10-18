@@ -1,116 +1,98 @@
 {
  "voice": "zh-TW-HsiaoYuNeural",
- "rate": "+8%",
+ "rate": "+15%",
  "pitch": "+15Hz",
- "text": "把 GPU 跟好幾顆 HBM 記憶體，並排放在一片矽中介層上，再接到基板。",
+ "text": "把 GPU 和 HBM 記憶體，並排放在矽中介層上，再接到基板。",
  "words": [
   {
    "type": "WordBoundary",
    "text": "把",
-   "start": 0.096291,
-   "dur": 0.069458
+   "start": 0.093458,
+   "dur": 0.065208
   },
   {
    "type": "WordBoundary",
    "text": "GPU",
-   "start": 0.269916,
-   "dur": 0.636583
+   "start": 0.256541,
+   "dur": 0.630416
   },
   {
    "type": "WordBoundary",
-   "text": "跟",
-   "start": 0.964333,
-   "dur": 0.173625
-  },
-  {
-   "type": "WordBoundary",
-   "text": "好幾",
-   "start": 1.18425,
-   "dur": 0.416666
-  },
-  {
-   "type": "WordBoundary",
-   "text": "顆",
-   "start": 1.670375,
-   "dur": 0.150458
+   "text": "和",
+   "start": 0.995666,
+   "dur": 0.163041
   },
   {
    "type": "WordBoundary",
    "text": "HBM",
-   "start": 1.878708,
-   "dur": 0.613416
+   "start": 1.202166,
+   "dur": 0.597833
   },
   {
    "type": "WordBoundary",
    "text": "記憶體",
-   "start": 2.503708,
-   "dur": 0.590291
+   "start": 1.82175,
+   "dur": 0.554333
   },
   {
    "type": "WordBoundary",
-   "text": "並排",
-   "start": 3.522208,
-   "dur": 0.42825
+   "text": "並",
+   "start": 2.734791,
+   "dur": 0.130416
   },
   {
    "type": "WordBoundary",
-   "text": "放在",
-   "start": 4.019916,
-   "dur": 0.3935
-  },
-  {
-   "type": "WordBoundary",
-   "text": "一片",
-   "start": 4.482875,
-   "dur": 0.324083
+   "text": "排放在",
+   "start": 2.952166,
+   "dur": 0.586958
   },
   {
    "type": "WordBoundary",
    "text": "矽",
-   "start": 4.830083,
-   "dur": 0.219916
+   "start": 3.604333,
+   "dur": 0.163041
   },
   {
    "type": "WordBoundary",
    "text": "中",
-   "start": 5.107875,
-   "dur": 0.162041
+   "start": 3.832625,
+   "dur": 0.152166
   },
   {
    "type": "WordBoundary",
    "text": "介層",
-   "start": 5.304625,
-   "dur": 0.451375
+   "start": 4.017375,
+   "dur": 0.434791
   },
   {
    "type": "WordBoundary",
    "text": "上",
-   "start": 5.79075,
-   "dur": 0.2315
+   "start": 4.484791,
+   "dur": 0.206541
   },
   {
    "type": "WordBoundary",
    "text": "再",
-   "start": 6.323166,
-   "dur": 0.185166
+   "start": 4.952166,
+   "dur": 0.163041
   },
   {
    "type": "WordBoundary",
    "text": "接到",
-   "start": 6.566208,
-   "dur": 0.358791
+   "start": 5.169583,
+   "dur": 0.347833
   },
   {
    "type": "WordBoundary",
    "text": "基",
-   "start": 7.017583,
-   "dur": 0.185166
+   "start": 5.604333,
+   "dur": 0.173916
   },
   {
    "type": "WordBoundary",
    "text": "板",
-   "start": 7.260666,
-   "dur": 0.185166
+   "start": 5.832625,
+   "dur": 0.184791
   }
  ]
 }
