@@ -263,8 +263,9 @@ class Line:
         return self.frac_t(k)
 
 
-DISP = [("二零一三年", "2013 年"), ("大概一百二十八 GB", "大概 128 GB"), ("超過一點二 TB", "超過 1.2 TB"),
-        ("搜尋哩股哩股", "搜尋「哩股哩股」")]
+DISP = [("一千零二十四位元", " 1024 位元"), ("兩千零四十八位元", " 2048 位元"), ("二零一三年", " 2013 年"),
+        ("二零二四年", " 2024 年"), ("二零二五年", " 2025 年"), ("每秒一百二十八 GB", "每秒 128 GB"),
+        ("每秒一點二 TB", "每秒 1.2 TB"), ("九倍", " 9 倍"), ("搜尋哩股哩股", "搜尋「哩股哩股」")]
 
 
 def chunks_of(ln):
@@ -273,9 +274,15 @@ def chunks_of(ln):
     merged, carry = [], None
     for s, k in parts:
         if carry:
-            s, k = carry[0] + s, carry[1]
+            if len(carry[0]) + len(s) <= 24:
+                s, k = carry[0] + s, carry[1]
+            else:
+                merged.append(carry)
             carry = None
         core = s.strip("，。！？：； ")
+        if len(core) < 5 and s[-1:] in "；。！？" and merged and len(merged[-1][0]) + len(s) <= 24:
+            merged[-1] = (merged[-1][0] + s, merged[-1][1])      # 句尾的短句併回前一張
+            continue
         if len(core) < 5 and len(s) < 22 and (s, k) != parts[-1]:
             carry = (s, k)
             continue
@@ -294,22 +301,23 @@ def chunks_of(ln):
             d = d.rstrip("，。、：；")
         for a, b in DISP:
             d = d.replace(a, b)
+        d = re.sub(r" {2,}", " ", d).strip()
         out.append((d, t0, t1))
     return out
 
 
 SCENES = [
     # (句子, 大字, 大字重點色字, 副標, 頁腳第二行)
-    ("S01", "AI 晶片為什麼需要 HBM？", "HBM", "沒有它，AI 就會變慢", "示意圖，非實際比例"),
-    ("S02", "什麼是 HBM？", "HBM", "High Bandwidth Memory・高頻寬記憶體", "示意圖：堆疊結構簡化，非實際比例"),
-    ("S03", "AI 為什麼要超大頻寬？", "頻寬", "資料送不過來，GPU 只能等", "示意圖：資料流與等待為概念說明"),
-    ("S04", "HBM vs GDDR／DDR", "HBM", "跟一般記憶體比一比", "相對比較；資料：記憶體廠與公開技術資料"),
-    ("S05", "HBM 進化史", "進化", "每一疊（stack）的頻寬", "資料：JEDEC 標準、記憶體廠新聞稿；HBM4 為標準值"),
-    ("S06", "HBM 用在哪？", "哪", "需要大量運算的地方", "示意圖"),
-    ("S07", "一顆 HBM 怎麼做出來？", "HBM", "要過好幾關", "依公開報導整理環節分工；列名不代表推薦"),
-    ("S08", "HBM 的挑戰", "挑戰", "良率・成本・產能・散熱", "示意圖；不放良率、價格等數字"),
-    ("S09", "重點總結", "總結", "一句話記起來", "示意圖"),
-    ("S10", "AI 要跑得快，少不了 HBM", "HBM", "下一集預告", "資料來源與查證說明見貼文"),
+    ("S01", "AI 晶片的瓶頸在哪？", "瓶頸", "運算單元 vs 記憶體頻寬", "示意圖，非實際比例"),
+    ("S02", "HBM 是什麼？", "HBM", "High Bandwidth Memory・高頻寬記憶體", "示意圖：堆疊結構簡化，非實際比例"),
+    ("S03", "記憶體牆", "記憶體牆", "頻寬跟不上，GPU 只能閒置等待", "示意圖：資料流與閒置為概念說明"),
+    ("S04", "HBM vs GDDR／DDR", "HBM", "用超寬介面換取頻寬", "介面寬度：JEDEC 標準；其餘為相對比較"),
+    ("S05", "HBM 規格演進", "規格演進", "單疊（stack）頻寬", "資料：JEDEC 標準、記憶體廠新聞稿；HBM4 為標準值"),
+    ("S06", "應用場景", "應用", "AI 加速器・資料中心・HPC", "示意圖"),
+    ("S07", "HBM 供應鏈分工", "供應鏈", "堆疊 → 基底晶片 → 先進封裝 → 測試", "依公開報導整理環節分工；列名不代表推薦"),
+    ("S08", "HBM 的四項挑戰", "挑戰", "良率・成本・產能・散熱", "示意圖；不放良率、價格等數字"),
+    ("S09", "重點總結", "總結", "以垂直堆疊與超寬介面換取頻寬", "示意圖"),
+    ("S10", "下一集預告", "預告", "2.5D 先進封裝如何整合 HBM 與 GPU", "資料來源與查證說明見貼文"),
 ]
 FOOT1 = "非投資建議｜數字為公開規格或推估"
 DISCLAIMER = "本內容為公開資料整理，不構成任何投資建議；投資有風險，請自行判斷。"
@@ -317,15 +325,15 @@ T0, GAP = 0.6, 0.55
 END_HOLD = 3.8
 
 ACTS = {
-    "S01": [("", "wave"), ("沒有它", "face_shock")],
-    "S02": [("", "face_nod_v2"), ("疊起來", "magnifier"), ("緊緊", "point_ur_v2")],
-    "S03": [("", "face_think_v2"), ("也只能", "face_sweat")],
-    "S04": [("", "point_r_v2"), ("缺點", "face_sweat")],
-    "S05": [("", "point_ur_v2"), ("十倍", "wow"), ("HBM4", "surprise_jump")],
-    "S06": [("", "face_nod_v2"), ("少不了", "face_thumbs")],
+    "S01": [("", "face_think_v2"), ("記憶體頻寬", "point_r_v2"), ("HBM", "face_thinking_bulb")],
+    "S02": [("", "face_nod_v2"), ("垂直堆疊", "magnifier"), ("GPU", "point_ur_v2")],
+    "S03": [("", "face_think_v2"), ("閒置", "face_sweat")],
+    "S04": [("", "point_r_v2"), ("代價", "face_sweat")],
+    "S05": [("", "point_ur_v2"), ("九倍", "wow"), ("HBM4", "surprise_jump")],
+    "S06": [("", "face_nod_v2"), ("這些場景", "face_thumbs")],
     "S07": [("", "point_r_v2"), ("最後", "face_thinking_bulb"), ("封測廠", "face_nod_v2")],
-    "S08": [("", "face_sweat"), ("散熱", "face_shock")],
-    "S09": [("", "face_thinking_bulb"), ("決定", "face_thumbs")],
+    "S08": [("", "face_sweat"), ("高密度", "face_shock")],
+    "S09": [("", "face_thinking_bulb"), ("關鍵元件", "face_thumbs")],
     "S10": [("", "invite_nod"), ("搜尋", "point_r_v2")],
 }
 ALT = {"wave": "face_nod_v2", "face_shock": "face_nod_v2", "face_nod_v2": "point_r_v2", "magnifier": "face_nod_v2",
@@ -446,13 +454,14 @@ class Proj:
 class Ctx:
     """包住 cairo context：記錄圖解實際畫到的範圍（重疊檢查用），並提供 2.5D 元件。"""
 
-    def __init__(self, c):
+    def __init__(self, c, dy=0.0):
         self.c = c
         self.ext = None
+        self.dy = dy          # 整張圖解的緩慢上下漂浮（避免停格），cairo 端用 translate 套用
 
-    def track(self, pts):
+    def track(self, pts, raw=False):
         xs = [p[0] for p in pts]
-        ys = [p[1] for p in pts]
+        ys = [p[1] + (0 if raw else self.dy) for p in pts]
         b = (min(xs), min(ys), max(xs), max(ys))
         e = self.ext
         self.ext = b if e is None else (min(e[0], b[0]), min(e[1], b[1]), max(e[2], b[2]), max(e[3], b[3]))
@@ -640,6 +649,7 @@ class Labels:
         for it in self.items:
             s, _x, _y, f, col, a, anchor, bg, pad, r = it
             x, y, tw, th, bb = self.box_of(it)
+            y += ctx.dy
             box = (x, y, x + tw, y + th)
             if bg is not None:
                 px, py = pad
@@ -647,7 +657,7 @@ class Labels:
                 d.rounded_rectangle([x - px, y - py, x + tw + px, y + th + py], r, fill=bc[:3] + (int(bc[3] * a),))
                 box = (x - px, y - py, x + tw + px, y + th + py)
             d.text((x - bb[0], y - bb[1]), s, font=f, fill=tuple(col[:3]) + (int(255 * a),))
-            ctx.track([(box[0], box[1]), (box[2], box[3])])
+            ctx.track([(box[0], box[1]), (box[2], box[3])], raw=True)
             reg.text_in(cname, box, G)
             for s2, b2 in drawn:
                 if min(box[2], b2[2]) - max(box[0], b2[0]) > -4 and min(box[3], b2[3]) - max(box[1], b2[1]) > -4:
@@ -746,44 +756,42 @@ def leader(g, p_from, p_to, a, col=MUTED):
 # ───────────────────────── 場景 ─────────────────────────
 def sc_s01(g, L, t, A):
     ln = LINES["S01"]
-    pr = Proj("iso", 540, 492 + (1 - ap(t, 0.0, 0.6)) * 30, 1.0)
-    t_no = ln.at("沒有它")
-    lift = ease_io((t - t_no) / 0.7)
-    drop = lambda k: ap(t, 0.25 + k * 0.08, 0.35)  # noqa: E731
-    package(g, pr, t, A * ap(t, 0.0, 0.5), hbm_a=1 - lift, hbm_lift=lift * 36, flow=ap(t, 1.2, 0.5) * (1 - lift), drop=drop)
-    if lift < 0.6:
-        pa = A * ap(t, 1.0) * (1 - lift / 0.6)
-        lp = pr(85, 175, 160)
-        L.add("HBM", lp[0] - 60, lp[1] - 10, font(F_BLACK, 40), (196, 176, 255), pa, "rm")
-        leader(g, (lp[0] - 50, lp[1] - 10), pr(55, 140, 120), pa)
-    # 速度表（2.5D：有厚度的弧形錶盤）
-    ga = A * ap(t, 0.7, 0.5)
-    if ga > 0:
-        cx, cy, R, bw = 540, 1250, 240, 44
-        c = g.c
-        for dy, k in ((16, 0.55), (0, 0.0)):
-            segs = [(RED, math.pi, math.pi * 1.33), (GOLD, math.pi * 1.33, math.pi * 1.66), (TEAL, math.pi * 1.66, math.pi * 2)]
-            for col, a0, a1 in segs:
-                c.new_path()
-                c.arc(cx, cy + dy, R, a0 + 0.01, a1 - 0.01)
-                c.arc_negative(cx, cy + dy, R - bw, a1 - 0.01, a0 + 0.01)
-                c.close_path()
-                c.set_source_rgba(*rgb(dark(col, k) if dy else col), ga * (0.95 if not dy else 1))
-                c.fill()
-        g.track([(cx - R, cy - R), (cx + R, cy + 16)])
-        slow = ease_io((t - t_no - 0.2) / 0.9)
-        ang = math.pi * lerp(1.86, 1.12, slow) + math.sin(t * 9) * 0.02
-        tip = (cx + (R - 30) * math.cos(ang), cy + (R - 30) * math.sin(ang))
-        g.line([(cx, cy), tip], (*rgb(TXT), ga), 9)
-        c.arc(cx, cy, 20, 0, 2 * math.pi)
-        c.set_source_rgba(*rgb(TXT), ga)
-        c.fill()
-        L.add("AI 速度", cx, cy - 110, font(F_BOLD, 40), MUTED, ga, "mm")
-        L.add("慢", cx - R + bw / 2, cy + 50, font(F_BOLD, 34), RED, ga, "ma")
-        L.add("快", cx + R - bw / 2, cy + 50, font(F_BOLD, 34), TEAL, ga, "ma")
-        va = A * ap(t, ln.at("變慢"), 0.35)
-        if va > 0:
-            L.add("變慢了！", cx, cy + 92, font(F_BLACK, 50), WHITE_RED, va, "mm", bg=(120, 30, 40, 230), r=22)
+    t_cu = ln.at("運算單元")
+    t_bw = ln.at("記憶體頻寬")
+    t_hbm = ln.at("HBM")
+    pr = Proj("iso", 540, 520 + (1 - ap(t, 0.0, 0.6)) * 30, 0.88)
+    ha = ap(t, t_hbm - 0.1, 0.4)
+    drop = lambda k: ap(t, t_hbm - 0.1 + k * 0.06, 0.3)  # noqa: E731
+    package(g, pr, t, A * ap(t, -0.25, 0.5), hbm_a=ha, flow=ap(t, t_hbm + 0.5, 0.5), drop=drop)
+    if ha > 0:
+        lp = pr(85, 175, 150)
+        L.add("HBM", lp[0] - 60, lp[1] - 20, font(F_BLACK, 40), (196, 176, 255), A * ha, "rm")
+        leader(g, (lp[0] - 50, lp[1] - 20), pr(55, 140, 110), A * ha)
+    # 下方：2.5D 長條對比（運算能力 vs 記憶體頻寬）
+    bp = Proj("obl", 0, 1320, 1.0)
+    fa = A * ap(t, t_cu - 0.4)
+    if fa > 0:
+        g.shadow(bp, 200, -10, 640, 90, a=0.4 * fa, spread=14)
+        g.box(bp, 200, -10, -14, 640, 90, 14, (34, 46, 62), fa, edge=0.25)
+        h1 = 330 * ease_out((t - t_cu + 0.2) / 0.8)
+        g.box(bp, 300, 10, 0, 130, 60, max(3, h1), BLUE, fa)
+        L.add("運算能力", bp(365, 0)[0], 1334, font(F_BOLD, 32), TXT, fa, "ma")
+        if h1 > 200:
+            q = bp(365, 10, h1)
+            L.add("一直提升", q[0] + 10, q[1] - 26, font(F_BOLD, 30), (150, 200, 255), fa, "mb")
+    ba = A * ap(t, t_bw - 0.2)
+    if ba > 0:
+        grow = ease_io((t - t_hbm - 0.2) / 0.9)
+        h2 = lerp(90, 300, grow) * ease_out((t - t_bw + 0.2) / 0.5)
+        col = tuple(int(lerp(RED[i], TEAL[i], grow)) for i in range(3))
+        g.box(bp, 610, 10, 0, 130, 60, max(3, h2), col, ba)
+        L.add("記憶體頻寬", bp(675, 0)[0], 1334, font(F_BOLD, 32), TXT, ba, "ma")
+        q = bp(675, 10, h2)
+        if grow < 0.5:
+            g.glow(q[0], q[1] + 20, 90, RED, 0.5 * ba * (0.7 + 0.3 * math.sin(t * 7)))
+            L.add("瓶頸", q[0] + 10, q[1] - 30, font(F_BLACK, 40), WHITE_RED, ba * (1 - grow * 2), "mb", bg=(130, 30, 40, 230), r=18)
+        else:
+            L.add("HBM 補上頻寬", q[0] + 10, q[1] - 26, font(F_BOLD, 30), TEAL, ba * (grow - 0.5) * 2, "mb")
 
 
 WHITE_RED = (255, 236, 236)
@@ -792,12 +800,13 @@ WHITE_RED = (255, 236, 236)
 def sc_s02(g, L, t, A):
     ln = LINES["S02"]
     pr = Proj("iso", 560, 862, 1.1)
-    t_layers = ln.at("好幾層")
-    t_stack = ln.at("疊起來")
-    t_tsv = ln.at("用矽穿孔")
-    t_base = ln.at("最底下")
-    t_int = ln.at("再整疊")
-    t_gpu = ln.at("緊緊")
+    t_layers = min(ln.at("多層"), ln.start + 0.6)
+    t_stack = ln.at("垂直堆疊")
+    t_tsv = ln.at("透過矽穿孔")
+    t_base = ln.at("底部")
+    t_int = ln.at("整疊")
+    t_gpu = ln.at("與 GPU")
+    t_25d = ln.at("2.5D")
     a_sub = A * ap(t, t_int - 0.1)
     a_int = A * ap(t, t_int + 0.15)
     a_base = A * ap(t, t_base - 0.05)
@@ -827,18 +836,18 @@ def sc_s02(g, L, t, A):
     XR = 318
     if la > 0:
         p = pr(0, 150, z0 + 18 + (top - z0 - 18) * 0.8)
-        L.add("DRAM 記憶體晶片", XR, 520, f, (200, 186, 255), la, "ra")
-        L.add("好幾層疊起來", XR, 566, fs, MUTED, la, "ra")
+        L.add("DRAM 晶粒", XR, 520, f, (200, 186, 255), la, "ra")
+        L.add("多層垂直堆疊", XR, 566, fs, MUTED, la, "ra")
         leader(g, (p[0] - 4, p[1]), (XR + 8, 540), la)
     ta = A * ap(t, t_tsv)
     if ta > 0:
         p = pr(21 + 150 * 0.18, 150, z0 + 18 + (top - z0 - 18) * 0.45)
         L.add("TSV 矽穿孔", XR, 660, f, GOLD, ta, "ra")
-        L.add("上下打通", XR, 706, fs, MUTED, ta, "ra")
+        L.add("上下互連", XR, 706, fs, MUTED, ta, "ra")
         leader(g, (p[0], p[1]), (XR + 8, 680), ta)
     if a_base > 0:
         p = pr(0, 150, z0 + 8)
-        L.add("底層控制晶片", XR, 810, f, (120, 214, 220), a_base, "ra")
+        L.add("基底晶片", XR, 810, f, (120, 214, 220), a_base, "ra")
         leader(g, (p[0] - 2, p[1]), (XR + 8, 830), a_base)
     if a_int > 0:
         p = pr(-40, 150, 30)
@@ -849,17 +858,20 @@ def sc_s02(g, L, t, A):
         L.add("封裝基板", p[0] - 30, 1290, f, (130, 214, 170), a_sub, "ra")
         leader(g, (p[0], p[1]), (p[0] - 22, 1306), a_sub)
     if a_gpu > 0:
-        L.add("緊貼 GPU", 1000, 600, f, TEAL, a_gpu, "ra", bg=(16, 56, 54, 220), pad=(18, 10), r=18)
+        L.add("與 GPU 並排", 1000, 600, f, TEAL, a_gpu, "ra", bg=(16, 56, 54, 220), pad=(18, 10), r=18)
+        a25 = A * ap(t, t_25d - 0.1)
+        if a25 > 0:
+            L.add("＝ 2.5D 封裝", 1000, 1270, font(F_BLACK, 44), GOLD, a25, "ra", bg=(60, 48, 16, 225), pad=(22, 12), r=20)
         p = pr(380, 20, 80)
         leader(g, (p[0], p[1]), (930, 640), a_gpu, col=TEAL)
 
 
 def sc_s03(g, L, t, A):
     ln = LINES["S03"]
-    pr = Proj("obl", 60, 780, 1.07)
-    t_fast = ln.at("GPU")
-    t_slow = ln.at("資料", 1)
-    t_wait = ln.at("也只能")
+    pr = Proj("obl", 60, 880, 1.07)
+    t_fast = ln.at("運算速度")
+    t_slow = ln.at("如果")
+    t_wait = ln.at("GPU 就")
     t_neck = ln.at("這就是")
     a0 = A * ap(t, ln.start - 0.2)
     # 記憶體（左）
@@ -879,7 +891,7 @@ def sc_s03(g, L, t, A):
     cx, cy = pr(730, 0, 60)
     L.add("GPU", cx, cy, font(F_BLACK, 60), TXT, a0, "mm")
     if gl > 0.05:
-        L.add("算得超快", cx, cy - 210, font(F_BOLD, 34), TEAL, A * gl, "mm")
+        L.add("運算速度提升", cx, cy - 210, font(F_BOLD, 34), TEAL, A * gl, "mm")
     # 傳輸通道：寬 → 中間變窄（瓶頸）
     neck = ease_io((t - t_slow) / 0.8)
     x0, x1 = 150, 620
@@ -900,6 +912,19 @@ def sc_s03(g, L, t, A):
     if neck > 0.3:
         nc = pr((mid0 + mid1) / 2, yc, z)
         g.glow(nc[0], nc[1], 100, RED, 0.55 * A * ap(t, t_slow + 0.3) * (0.75 + 0.25 * math.sin(t * 8)))
+    # 記憶體牆：通道兩側長出磚牆，只留中間一道窄縫
+    wall = ease_out((t - t_neck + 0.4) / 0.9)
+    if wall > 0:
+        wa_ = A * min(1.0, wall * 1.5)
+        wx = (mid0 + mid1) / 2 - 22
+        for side in (0, 1):
+            for row in range(5):
+                hh = 26
+                if row * hh > 130 * wall:
+                    break
+                for colm in range(3):
+                    y0_ = (yc + dw / 2 + 4 + colm * 22 + (row % 2) * 8) if side else (yc - dw / 2 - 26 - colm * 22 - (row % 2) * 8)
+                    g.box(pr, wx, y0_, z + row * hh, 44, 20, hh - 3, (150, 70, 60), wa_, edge=0.25)
     # 資料方塊：前段順暢；變窄後在瓶頸前排隊、只有少數通過
     n = 16
     cubes = []
@@ -914,61 +939,90 @@ def sc_s03(g, L, t, A):
             if mid0 < xx < mid1:
                 yy = lerp(yy, yc + (yy - yc) * 0.2, neck)
         cubes.append((yy, xx, k))
+    cubes = [c_ for c_ in cubes]
     for yy, xx, k in sorted(cubes, key=lambda c_: -c_[0]):
         g.box(pr, xx, yy - 9, z, 22, 18, 20, ORANGE if k % 3 else GOLD, pa * 0.95, edge=0.3)
     q = pr(300, 0, 0)
-    L.add("一直搬資料", q[0] + 30, q[1] + 24, font(F_BOLD, 34), ORANGE, pa, "ma")
+    L.add("參數・中間資料", q[0] + 50, q[1] + 24, font(F_BOLD, 34), ORANGE, pa, "ma")
     # GPU 忙碌程度（2.5D 長條）：全速 → 閒置等待
     ua = A * ap(t, t_fast - 0.1)
     if ua > 0:
-        bp = Proj("obl", 560, 1010, 1.0)
+        bp = Proj("obl", 560, 1110, 1.0)
         g.box(bp, 0, 0, 0, 380, 30, 36, (36, 46, 60), ua, edge=0.2)
         fill = lerp(0.96, 0.2, ease_io((t - t_slow - 0.2) / 1.0))
         col = TEAL if fill > 0.6 else (GOLD if fill > 0.4 else RED)
         g.box(bp, 2, 2, 0, 380 * fill - 4, 26, 36.5, col, ua * 0.9, edge=0.2)
-        L.add("GPU 忙碌程度", 560, 1036, font(F_BOLD, 30), MUTED, ua, "la")
+        L.add("GPU 忙碌程度", 560, 1136, font(F_BOLD, 30), MUTED, ua, "la")
         st = "全速運算" if fill > 0.6 else "閒置等待…"
-        L.add(st, 940, 1036, font(F_BOLD, 30), col, ua, "ra")
-    wa = A * ap(t, t_neck - 0.15, 0.35)
+        L.add(st, 940, 1136, font(F_BOLD, 30), col, ua, "ra")
+    wa = A * ap(t, ln.at("記憶體牆") - 0.15, 0.35)
     if wa > 0:
         s_ = 0.85 + 0.15 * back_out(clamp((t - t_neck + 0.15) / 0.4))
-        L.add("頻寬不夠 ＝ 瓶頸", 540, 1220, font(F_BLACK, int(60 * s_)), (255, 238, 238), wa, "mm", bg=(150, 34, 44, 235), pad=(28, 16), r=24)
+        L.add("記憶體牆（Memory Wall）", 540, 1300, font(F_BLACK, int(52 * s_)), (255, 238, 238), wa, "mm", bg=(150, 34, 44, 235), pad=(28, 16), r=24)
+
+
+def bus(g, pr, x, y, length, depth, bits, col, a, t, step):
+    """2.5D 介面通道：一條有厚度的平板，上面每條細線代表 step 位元，資料點沿通道流動。"""
+    g.box(pr, x, y, 0, length, depth, 16, col, a, edge=0.3)
+    n = max(1, int(bits / step))
+    for k in range(n + 1):
+        yy = y + depth * k / n
+        if 0 < k < n:
+            g.line([pr(x + 6, yy, 16), pr(x + length - 6, yy, 16)], (1, 1, 1, 0.22 * a), 1.2, track=False)
+    for k in range(n):
+        yy = y + depth * (k + 0.5) / n
+        ph = (t * 0.7 + k * 0.137) % 1
+        p = pr(x + 10 + ph * (length - 20), yy, 17)
+        g.glow(p[0], p[1], 9, (255, 255, 255), 0.7 * a)
 
 
 def sc_s04(g, L, t, A):
     ln = LINES["S04"]
-    rows = [("頻寬", "高很多", True, "較低", False, ln.at("HBM 頻寬")),
-            ("每筆資料耗電", "比較省電", True, "較耗電", False, ln.at("每傳")),
-            ("價格", "貴", False, "便宜", True, ln.at("缺點")),
-            ("容量擴充", "難隨便加", False, "插槽可加", True, ln.at("容量"))]
-    cols = [(60, 250, None), (340, 300, PURPLE), (690, 300, SLATE)]
-    ha = A * ap(t, ln.start - 0.1)
-    fb = font(F_BLACK, 40)
-    fr = font(F_BOLD, 36)
-    # 欄位標頭：有厚度的方塊
-    for (x, w, col), s in zip(cols[1:], ["HBM", "GDDR／DDR"]):
-        pr = Proj("obl", x, 548, 1.0)
-        g.shadow(pr, 0, 0, w - 30, 36, a=0.45 * ha, spread=14)
-        g.box(pr, 0, 0, 0, w - 30, 36, 76, col, ha)
-        L.add(s, x + (w - 30) / 2, 548 - 38, fb, TXT, ha, "mm")
+    t_if = ln.at("一千零二十四")
+    # 上半：介面寬度（位元數換算成通道寬度，同一比例）
+    ia = A * ap(t, ln.start - 0.1)
+    pr = Proj("obl", 300, 0, 1.0)
+    rows_if = [("DDR5 模組", "64 位元", 64, SLATE, ia, 560),
+               ("HBM（每疊）", "1024 位元", 1024, PURPLE, A * ap(t, t_if - 0.2), 700)]
+    for name, bits_s, bits, col, a, ybase in rows_if:
+        if a <= 0:
+            continue
+        p_ = Proj("obl", 300, ybase, 1.0)
+        depth = bits / 1024 * 150
+        g.shadow(p_, 0, 0, 640, max(depth, 8), a=0.4 * a, spread=12)
+        bus(g, p_, 0, 0, 640, max(depth, 8), bits, col, a, t, 64)
+        L.add(name, 270, ybase - 30, font(F_BOLD, 32), TXT, a, "rb")
+        L.add(bits_s, 270, ybase - 22, font(F_BLACK, 36), GOLD if bits > 64 else MUTED, a, "ra")
+    wa = A * ap(t, t_if + 0.6)
+    if wa > 0:
+        L.add("通道寬 16 倍", 1000, 470, font(F_BOLD, 32), GOLD, wa, "ra", bg=(60, 48, 16, 225), pad=(18, 10), r=18)
+    # 下半：相對比較
+    rows = [("頻寬", "高", True, "較低", False, ln.at("大幅")),
+            ("每位元傳輸功耗", "較低", True, "較高", False, ln.at("每位元")),
+            ("成本", "較高", False, "較低", True, ln.at("代價")),
+            ("容量擴充", "受限堆疊層數", False, "插槽可擴充", True, ln.at("容量"))]
+    cols = [(330, 330, PURPLE), (690, 330, SLATE)]
+    ha = A * ap(t, ln.at("大幅") - 0.3)
+    if ha > 0:
+        for (x, w, col), s_ in zip(cols, ["HBM", "GDDR／DDR"]):
+            p_ = Proj("obl", x, 860, 1.0)
+            g.box(p_, 0, 0, 0, w - 30, 24, 50, col, ha)
+            L.add(s_, x + (w - 30) / 2, 835, font(F_BLACK, 32), TXT, ha, "mm")
+    fr = font(F_BOLD, 32)
     for k, (name, hv, hg, dv, dg, ta) in enumerate(rows):
         ra = A * ap(t, ta - 0.15, 0.4)
         if ra <= 0:
             continue
-        y = 700 + k * 150
-        dy = (1 - ra / max(A, 1e-6)) * 30
-        L.add(name, 70, y - 38 + dy, fr, MUTED, ra, "lm")
-        for (x, w, col), v, good in ((cols[1], hv, hg), (cols[2], dv, dg)):
-            pr = Proj("obl", x, y + dy, 1.0)
+        y = 975 + k * 112
+        dy = (1 - ra / max(A, 1e-6)) * 24
+        L.add(name, 60, y - 30 + dy, fr, MUTED, ra, "lm")
+        for (x, w, col), v, good in ((cols[0], hv, hg), (cols[1], dv, dg)):
+            p_ = Proj("obl", x, y + dy, 1.0)
             tc = (24, 92, 84) if good else (110, 58, 30)
-            g.box(pr, 0, 0, 0, w - 30, 30, 76, tc, ra, edge=0.3)
-            L.add(("✓ " if False else "") + v, x + (w - 30) / 2, y + dy - 38, fr, TEAL if good else ORANGE, ra, "mm")
-            # 左側小方塊：好＝青、缺點＝橘
-            mp_ = Proj("obl", x + 14, y + dy - 26, 1.0)
-            g.box(mp_, 0, 0, 0, 14, 10, 24, TEAL if good else ORANGE, ra, edge=0.2)
-    sa = A * ap(t, ln.at("容量") + 1.2)
-    if sa > 0:
-        L.add("快又省電，但貴、容量彈性小", 540, 1335, font(F_BOLD, 40), TXT, sa, "mm", bg=(26, 40, 58, 235), pad=(28, 16), r=22)
+            g.box(p_, 0, 0, 0, w - 30, 22, 62, tc, ra, edge=0.3)
+            L.add(v, x + (w - 30) / 2 + 10, y + dy - 31, fr, TEAL if good else ORANGE, ra, "mm")
+            mp_ = Proj("obl", x + 12, y + dy - 20, 1.0)
+            g.box(mp_, 0, 0, 0, 12, 8, 22, TEAL if good else ORANGE, ra, edge=0.2)
 
 
 BARS5 = [("HBM1", "2013", "4 層", 128, "128 GB/s"), ("HBM2", "2016", "4 層", 256, "256 GB/s"),
@@ -984,7 +1038,7 @@ def sc_s05(g, L, t, A):
     g.shadow(pr, -10, -10, slot * 5 + 10, 110, a=0.4 * fa, spread=16)
     g.box(pr, -10, -10, -16, slot * 5 + 10, 110, 16, (34, 46, 62), fa, edge=0.25)
     t_e = ln.at("HBM3E")
-    appear = [ln.start + 0.1, t_e - 0.9, t_e - 0.55, t_e - 0.15, ln.at("HBM4")]
+    appear = [ln.at("二零一三"), t_e - 0.9, t_e - 0.55, t_e - 0.15, ln.at("HBM4")]
     scale = 560 / 2048
     tops = []
     for k, (nm, yr, lay, v, lab) in enumerate(BARS5):
@@ -1010,7 +1064,7 @@ def sc_s05(g, L, t, A):
             va = fa * ap(t, appear[k] + 0.4, 0.3)
             L.add(lab, tp[0] + 10, tp[1] - 52, font(F_BLACK if k in (0, 3) else F_BOLD, 30), GOLD if k in (0, 3) else TXT, va, "mb")
     # 十倍括號箭頭：HBM1 → HBM3E
-    xa = A * ap(t, ln.at("十倍") - 0.2, 0.5)
+    xa = A * ap(t, ln.at("大約") - 0.2, 0.5)
     if xa > 0 and tops[0] is not None and tops[3] is not None:
         p0 = (tops[0][0] + 10, tops[0][1] - 110)
         p1 = (tops[3][0] - 40, tops[3][1] - 20)
@@ -1024,10 +1078,10 @@ def sc_s05(g, L, t, A):
         g.line(pts, (*rgb(GOLD), xa), 6)
         if u > 0.95:
             arrow(g, pts[-3], pts[-1], GOLD, xa, lw=6, head=22)
-        L.add("十年多，快 10 倍", 120, 560, font(F_BLACK, 46), GOLD, xa, "la", bg=(60, 48, 16, 225), pad=(22, 14), r=20)
-    na = A * ap(t, ln.at("HBM4") + 0.4)
+        L.add("約第一代的 9 倍以上", 120, 560, font(F_BLACK, 46), GOLD, xa, "la", bg=(60, 48, 16, 225), pad=(22, 14), r=20)
+    na = A * ap(t, ln.at("介面") - 0.1)
     if na > 0:
-        L.add("下一代：已開始量產", 1000, 470, font(F_BOLD, 34), TEAL, na, "ra", bg=(16, 56, 54, 230), pad=(20, 12), r=18)
+        L.add("HBM4：介面加寬到 2048 位元", 1000, 470, font(F_BOLD, 34), TEAL, na, "ra", bg=(16, 56, 54, 230), pad=(20, 12), r=18)
 
 
 def server_rack(g, pr, x, y, a, t, n=6):
@@ -1047,8 +1101,8 @@ def tile_floor(g, pr, a, col):
 
 def sc_s06(g, L, t, A):
     ln = LINES["S06"]
-    items = [("AI 伺服器", ln.at("AI 伺服器"), 205), ("資料中心", ln.at("資料中心"), 540), ("高效能運算", ln.at("高效能運算"), 875)]
-    hub_t = ln.at("少不了")
+    items = [("AI 加速器", ln.at("AI 加速器"), 205), ("雲端資料中心", ln.at("雲端資料中心"), 540), ("高效能運算", ln.at("高效能運算"), 875)]
+    hub_t = ln.at("這些場景")
     for k, (name, ta, cx) in enumerate(items):
         a = A * ap(t, ta - 0.2, 0.45)
         if a <= 0:
@@ -1086,16 +1140,16 @@ def sc_s06(g, L, t, A):
             p0 = (540 + (cx - 540) * 0.25, 1080)
             p1 = (cx, 970)
             g.line([p0, p1], (*rgb(PURPLE), 0.8 * ha), 4, dash=[12, 8])
-        L.add("都少不了 HBM", 540, 1300, font(F_BLACK, 44), (205, 190, 255), ha, "mm")
+        L.add("頻寬需求遠高於一般運算", 540, 1300, font(F_BLACK, 44), (205, 190, 255), ha, "mm")
 
 
 def sc_s07(g, L, t, A):
     ln = LINES["S07"]
     steps = [
-        ("記憶體廠：疊好、測好", "DRAM 一層層堆疊，先自己測過", "例：SK 海力士、三星、美光", ln.at("記憶體廠")),
-        ("底層晶片：部分交給代工", "從 HBM4 起，依廠商不同", "有的自家做，有的委外", ln.at("到了")),
-        ("先進封裝：和 GPU 封在一起", "HBM 跟 GPU 放上同一片中介層", "例：台積電 CoWoS", ln.at("最後")),
-        ("封測廠：最後測試", "確認整顆模組沒問題", "例：日月光、Amkor 等", ln.at("封測廠")),
+        ("記憶體廠：堆疊與出廠測試", "DRAM 晶粒垂直堆疊後先測試", "例：SK 海力士、三星、美光", ln.at("記憶體廠")),
+        ("基底晶片：改用邏輯製程", "HBM4 起部分交由晶圓代工", "依廠商不同，自製或委外", ln.at("從 HBM4")),
+        ("先進封裝：與 GPU 整合", "HBM 與 GPU 放上同一片中介層", "例：台積電 CoWoS", ln.at("最後")),
+        ("封測廠：最終測試", "確認整顆模組功能正常", "例：日月光、Amkor 等", ln.at("由封測廠")),
     ]
     for k, (title, desc, ex, ta) in enumerate(steps):
         a = A * ap(t, ta - 0.25, 0.45)
@@ -1144,10 +1198,10 @@ def sc_s07(g, L, t, A):
 
 def sc_s08(g, L, t, A):
     ln = LINES["S08"]
-    cards = [("良率是考驗", "疊越多層越難做", ln.at("疊越多層") - 0.3, (290, 680)),
-             ("成本高", "材料與製程都貴", ln.at("成本"), (790, 680)),
-             ("產能常不夠", "需求大、擴產慢", ln.at("產能"), (290, 1170)),
-             ("散熱頭痛", "熱集中在一小塊", ln.at("散熱"), (790, 1170))]
+    cards = [("良率控制", "堆疊層數越多越困難", ln.at("堆疊層數") - 0.2, (290, 680)),
+             ("成本", "晶圓用量大", ln.at("晶圓用量"), (790, 680)),
+             ("產能", "擴產需時，供給偏緊", ln.at("產能擴充"), (290, 1170)),
+             ("散熱", "高密度堆疊，設計更關鍵", ln.at("高密度"), (790, 1170))]
     for k, (title, desc, ta, (cx, cy)) in enumerate(cards):
         a = A * ap(t, ta - 0.25, 0.45)
         if a <= 0:
@@ -1193,17 +1247,17 @@ def sc_s08(g, L, t, A):
 
 def sc_s09(g, L, t, A):
     ln = LINES["S09"]
-    a1 = A * ap(t, ln.at("HBM") - 0.2)
+    a1 = A * ap(t, ln.at("HBM") - 0.3)
     if a1 > 0:
         pr = Proj("obl", 110, 640, 1.0)
         g.shadow(pr, 0, 0, 800, 50, a=0.45 * a1, spread=16)
         g.box(pr, 0, 0, 0, 800, 50, 150, (66, 52, 150), a1)
-        L.add("HBM ＝ AI 的", 510, 520, font(F_BOLD, 44), (215, 205, 255), a1, "mm")
-        L.add("高速記憶體", 510, 590, font(F_BLACK, 68), TXT, A * ap(t, ln.at("高速記憶體") - 0.15), "mm")
-    a2 = A * ap(t, ln.at("頻寬") - 0.3)
+        L.add("HBM ＝ 垂直堆疊 ＋ 超寬介面", 510, 520, font(F_BOLD, 44), (215, 205, 255), a1, "mm")
+        L.add("AI 系統效能的關鍵元件", 510, 592, font(F_BLACK, 60), TXT, A * ap(t, ln.at("關鍵元件") - 0.6), "mm")
+    a2 = A * ap(t, ln.at("超寬介面") - 0.3)
     if a2 > 0:
         pr = Proj("obl", 70, 1170, 1.0)
-        lanes = lerp(2, 6, ease_io((t - ln.at("頻寬")) / 0.8))
+        lanes = lerp(2, 6, ease_io((t - ln.at("換取頻寬")) / 0.8))
         width = 40 * lanes
         g.shadow(pr, 0, 0, 160, 160, a=0.5 * a2)
         hbm_stack(g, pr, 0, 0, 0, 160, 160, layers=8, lh=12, gap=3, a=a2)
@@ -1223,9 +1277,9 @@ def sc_s09(g, L, t, A):
         g.glow(c[0], c[1], 150, TEAL, 0.4 * a2 * lanes / 6)
         cx, cy = pr(735, 0, 30)
         L.add("GPU", cx, cy, font(F_BLACK, 46), TXT, a2, "mm")
-        L.add("頻寬 ＝ 車道數", 120, 790, font(F_BLACK, 50), GOLD, a2, "la")
+        L.add("介面越寬 ＝ 車道越多", 120, 790, font(F_BLACK, 50), GOLD, a2, "la")
         da = A * ap(t, ln.at("決定") - 0.1)
-        L.add("車道越多，AI 跑越快", 120, 870, font(F_BOLD, 40), TXT, da, "la")
+        L.add("頻寬決定 AI 系統效能上限", 120, 870, font(F_BOLD, 40), TXT, da, "la")
 
 
 def sc_s10(g, L, t, A):
@@ -1268,15 +1322,16 @@ def background(c, t):
         c.move_to(x, 0)
         c.line_to(x, H)
     c.stroke()
-    gx, gy = 900 + math.sin(t * 0.35) * 60, 1500 + math.cos(t * 0.3) * 80
-    r = cairo.RadialGradient(gx, gy, 0, gx, gy, 700)
-    r.add_color_stop_rgba(0, 1.0, 0.55, 0.2, 0.16)
+    # 兩團環境光持續繞圈移動（每秒約 150～200px），讓整個畫面一直有細微變化，不會被判成停格
+    gx, gy = 860 + math.sin(t * 0.8) * 200, 1450 + math.cos(t * 0.8) * 230
+    r = cairo.RadialGradient(gx, gy, 0, gx, gy, 720)
+    r.add_color_stop_rgba(0, 1.0, 0.55, 0.2, 0.20)
     r.add_color_stop_rgba(1, 1.0, 0.55, 0.2, 0)
     c.set_source(r)
     c.paint()
-    gx, gy = 160 + math.cos(t * 0.27) * 70, 420 + math.sin(t * 0.33) * 60
-    r = cairo.RadialGradient(gx, gy, 0, gx, gy, 650)
-    r.add_color_stop_rgba(0, 0.15, 0.8, 0.75, 0.10)
+    gx, gy = 220 + math.cos(t * 0.7) * 200, 520 + math.sin(t * 0.7) * 220
+    r = cairo.RadialGradient(gx, gy, 0, gx, gy, 680)
+    r.add_color_stop_rgba(0, 0.15, 0.8, 0.75, 0.14)
     r.add_color_stop_rgba(1, 0.15, 0.8, 0.75, 0)
     c.set_source(r)
     c.paint()
@@ -1284,13 +1339,18 @@ def background(c, t):
 
 # 字幕換行：自動找的斷點會把詞拆開（例：「一般」「台積電」），這幾句人工指定斷在詞界
 MANUAL_BREAK = {
-    "沒有它，AI 真的會變慢喔！": "沒有它，",
-    "簡單講，就是把好幾層記憶體晶片疊起來": "簡單講，就是把",
-    "跟一般的 GDDR、DDR 比起來": "跟一般的",
-    "容量也沒辦法像一般記憶體那樣隨便加": "容量也沒辦法",
-    "所以像 AI 伺服器、資料中心、高效能運算": "所以像 AI 伺服器、",
-    "底層晶片有的改交給晶圓代工": "底層晶片",
-    "下一集，我們來聊台積電的 CoWoS 先進封裝": "下一集，我們來聊",
+    "是把多層 DRAM 晶粒垂直堆疊": "是把多層 DRAM 晶粒",
+    "底部是一顆負責控制的基底晶片": "底部是一顆",
+    "HBM 用 1024 位元的超寬介面大幅提高頻寬": "HBM 用 1024 位元的超寬介面",
+    "無法像 DDR 一樣用插槽擴充": "無法像 DDR 一樣",
+    "HBM 目前集中在 AI 加速器、雲端資料中心與高效能運算": "HBM 目前集中在 AI 加速器、",
+    "總結來說，HBM 以垂直堆疊與超寬介面換取頻寬": "總結來說，HBM 以",
+    "是決定 AI 系統效能上限的關鍵元件": "是決定 AI 系統",
+    "下一集，我們解析台積電的 CoWoS 先進封裝": "下一集，我們解析",
+    "參數與中間資料必須在 GPU 與記憶體之間反覆搬移": "參數與中間資料必須在",
+    "記憶體廠負責 DRAM 晶粒的堆疊與出廠測試": "記憶體廠負責 DRAM",
+    "最後再透過台積電 CoWoS 等先進封裝與 GPU 整合": "最後再透過台積電 CoWoS",
+    "高密度堆疊也讓散熱設計更加關鍵": "高密度堆疊也讓",
 }
 
 
@@ -1302,6 +1362,7 @@ def wrap2(f, text, maxw):
         b_ = text[len(a_):].strip()
         if tsize(f, a_.strip())[0] <= maxw and tsize(f, b_)[0] <= maxw:
             return [a_.strip(), b_]
+        return None
     best = None
     for k in range(2, len(text) - 1):
         a_, b_ = text[:k], text[k:]
@@ -1331,11 +1392,21 @@ def sub_card(ov, reg, text, a, ta):
     if not text or ta <= 0:
         return
     maxw = x1 - x0 - 44 - 34
-    for px in (52, 46, 40):
+    lines = None
+    for px in (52, 46, 42):
         f = font(F_BLACK, px)
         lines = wrap2(f, text, maxw)
         if lines:
             break
+    if not lines:              # 兩行放不下：42px 逐字換三行
+        lines, cur = [], ""
+        for ch in text:
+            if tsize(f, cur + ch)[0] > maxw and cur:
+                lines.append(cur)
+                cur = ch
+            else:
+                cur += ch
+        lines.append(cur)
     lh = int(px * 1.32)
     th = lh * len(lines) - (lh - px)
     y = (y0 + y1 - 10) / 2 - th / 2
@@ -1449,7 +1520,7 @@ def render(t):
     background(c, t)
     reg = Reg()
     labels = Labels()
-    g = Ctx(c)
+    g = Ctx(c, dy=math.sin(t * 1.7) * 6)
     cur = None
     for (sc, s0, s1) in SCENE_T:
         if s0 <= t < s1:
@@ -1462,6 +1533,7 @@ def render(t):
     c.save()
     c.rectangle(G[0] - 30, G[1], G[2] - G[0] + 60, G[3] - G[1])
     c.clip()
+    c.translate(0, g.dy)
     SCENE_FN[sid](g, labels, t, A)
     c.restore()
     if g.ext is not None:
@@ -1591,6 +1663,40 @@ def write_srt(path):
     Path(path).write_text("\n".join(out), encoding="utf-8")
 
 
+GRAPHIC_DESC = {
+    "S01": "等角 2.5D 封裝（基板＋中介層＋GPU）；講到「運算單元」藍色長條長高；講到「記憶體頻寬」紅色短條＋「瓶頸」標籤；講到 HBM 時四疊 HBM 一層層落到 GPU 旁，頻寬條轉青綠長高「HBM 補上頻寬」",
+    "S02": "等角大圖：DRAM 晶粒一層層出現（先分開）→「垂直堆疊」壓實 →「矽穿孔」金色 TSV 通道由下往上亮 →「底部」基底晶片 →「整疊」中介層＋封裝基板 →「與 GPU」GPU 落下＋資料光點 →「2.5D」金色標籤；左側一欄引線標註",
+    "S03": "斜視 2.5D：左記憶體堆疊、右 GPU，中間通道上資料方塊流動；「運算速度」GPU 發光；「如果」通道中段變窄、資料在窄口前排隊；GPU 忙碌程度條由全速掉到閒置；「這就是」通道兩側長出磚牆；「記憶體牆（Memory Wall）」紅色標籤",
+    "S04": "上半：2.5D 介面通道，寬度依位元數同比例（DDR5 模組 64 位元 vs HBM 每疊 1024 位元，細線＝每 64 位元，光點流動）＋「通道寬 16 倍」；下半：四列 2.5D 比較方塊（頻寬、每位元傳輸功耗、成本、容量擴充），青＝優點、橘＝代價",
+    "S05": "斜視 2.5D 直條：HBM1 128 GB/s（2013、4 層）→ HBM2 256 → HBM3 819（2022、8 層）→ HBM3E 約 1.2 TB/s（2024、8～12 層）→ HBM4 約 2 TB/s（標準，2026 量產、12 層，虛線半透明）；金色弧線「約第一代的 9 倍以上」；「HBM4：介面加寬到 2048 位元」標籤",
+    "S06": "三個等角場景依序浮出：AI 加速器（機櫃）、雲端資料中心（機櫃群）、高效能運算（晶片＋散熱鰭片）；「這些場景」中央 HBM 堆疊＋虛線連到三者，「頻寬需求遠高於一般運算」",
+    "S07": "四步驟等角小圖由上而下：① DRAM 堆疊（記憶體廠：堆疊與出廠測試）② 晶圓＋基底晶片（HBM4 起部分交由晶圓代工）③ 中介層上 GPU＋HBM（先進封裝）④ 晶片＋綠色勾（封測廠最終測試）；公司名只在灰色小字「例：」",
+    "S08": "2×2 等角卡：良率控制（12 層堆疊微晃＋紅光）、成本（金幣堆）、產能（廠房＋滿載燈號）、散熱（晶片紅光＋熱浪）",
+    "S09": "紫色 2.5D 厚板「HBM ＝ 垂直堆疊 ＋ 超寬介面／AI 系統效能的關鍵元件」；下方 HBM→GPU 道路由 2 線道加寬到 6 線道、資料方塊流動，「介面越寬 ＝ 車道越多」「頻寬決定 AI 系統效能上限」",
+    "S10": "CoWoS 樣式封裝等角圖緩慢漂浮＋光澤掃過；「下一集」標籤＋「CoWoS 先進封裝」；「搜尋」時 2.5D 橘色按鈕「搜尋「哩股哩股」」；配音結束後字幕卡換成免責聲明停 3.8 秒",
+}
+
+
+def write_storyboard(path):
+    out = ["# 分鏡表：AI 晶片的瓶頸在哪？HBM（直式 1080×1920、30fps）", "",
+           f"- 片長 {TOTAL:.2f} 秒；時間軸由 MeloTTS 配音長度決定（`render_hbm.py` 自動產生本表）。",
+           "- 版面固定：上方品牌膠囊＋頁碼＋十格進度條；大字＋副標；圖解區直接畫在深色底（不加框）；左下比比（不說話、不出泡泡）＋右下字幕卡；頁腳「非投資建議｜數字為公開規格或推估」＋各段資料說明。", ""]
+    for (sc, s0, s1) in SCENE_T:
+        sid = sc[0]
+        ln = LINES[sid]
+        acts = [f"{a:.1f}s {n}" for (a, b, n, _s) in ACT_TL if a < s1 and b > s0]
+        subs = [x[0] for x in SUBS if x[3] == sid]
+        out += [f"## {sid}　{s0:.2f}–{s1:.2f} 秒（配音 {ln.start:.2f}–{ln.end:.2f}）", "",
+                f"- 大字：{sc[1]}（橘字：{sc[2]}）／副標：{sc[3]}",
+                f"- 圖：{GRAPHIC_DESC[sid]}",
+                f"- 比比：{'、'.join(acts)}",
+                f"- 配音：{ln.text}",
+                f"- 字幕卡：{' ／ '.join(subs)}",
+                f"- 頁腳第二行：{sc[4]}", ""]
+    out += [f"## 片尾　{END_T:.2f}–{TOTAL:.2f} 秒", "", f"- 字幕卡換成免責：{DISCLAIMER}（停 {TOTAL - END_T:.1f} 秒）；比比 face_bow → wave。", ""]
+    Path(path).write_text("\n".join(out), encoding="utf-8")
+
+
 # ───────────────────────── 主程式 ─────────────────────────
 def _work(i):
     t = i / FPS
@@ -1662,6 +1768,7 @@ def main():
     subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", str(tmp), "-i", str(wav), "-c:v", "copy", "-c:a", "aac",
                     "-b:a", "160k", "-shortest", "-movflags", "+faststart", a.out], check=True)
     write_srt(HERE / f"{OUT_BASE}.srt")
+    write_storyboard(HERE / "storyboard.md")
     (SCR / "timeline.json").write_text(json.dumps({"total": TOTAL, "end_t": END_T, "acts": ACT_TL, "subs": SUBS,
                                                    "scenes": [(s[0][0], s[1], s[2]) for s in SCENE_T],
                                                    "lines": {k: [v.start, v.end] for k, v in LINES.items()}},
