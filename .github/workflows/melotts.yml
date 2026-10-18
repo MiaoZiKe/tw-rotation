@@ -1,0 +1,60 @@
+name: 配音（MeloTTS，開源語音）
+
+# Andy 2026-10-18：「MeloTTS 確定這語音包」。MeloTTS 是 MyShell 的開源語音（MIT 授權），模型從 Hugging Face 下載；
+# 開發容器連不到 Hugging Face，所以在 GitHub 雲端機器上跑。不用任何 secrets。
+# 觸發：改動腳本 JSON（例如 trigger 加 1）推上工作分支；逐句產生 wav（44.1kHz）＋ durations.json，commit 回同一分支。
+on:
+  push:
+    branches: [claude/blissful-sagan-sx1vag]
+    paths: ["docs/marketing/videos/*/melo_script.json", .github/workflows/melotts.yml]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: melotts
+  cancel-in-progress: false
+
+jobs:
+  tts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with: {fetch-depth: 2}
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.10"}
+      - name: 安裝 MeloTTS
+        run: |
+          pip install torch==2.3.1 torchaudio==2.3.1 --index-url https://download.pytorch.org/whl/cpu
+          pip install git+https://github.com/myshell-ai/MeloTTS.git
+          python -m unidic download
+      - name: 逐句產生
+        run: |
+          python - <<'PY'
+          import json, pathlib, subprocess, wave
+          from melo.api import TTS
+          files = subprocess.run(["git", "diff", "--name-only", "HEAD~1", "HEAD"], capture_output=True, text=True).stdout.split()
+          scripts = [f for f in files if f.endswith("melo_script.json")] or [str(p) for p in pathlib.Path("docs/marketing/videos").glob("*/melo_script.json")]
+          cache = {}
+          for sp in scripts:
+              spec = json.loads(pathlib.Path(sp).read_text(encoding="utf-8"))
+              lang = spec.get("language", "ZH")
+              m = cache.get(lang) or cache.setdefault(lang, TTS(language=lang, device="cpu"))
+              spk = m.hps.data.spk2id[spec.get("speaker", lang)]
+              out = pathlib.Path(spec["out_dir"]); out.mkdir(parents=True, exist_ok=True)
+              dur = {}
+              for ln in spec["lines"]:
+                  p = out / f'{ln["id"]}.wav'
+                  m.tts_to_file(ln["text"], spk, str(p), speed=spec.get("speed", 1.0))
+                  with wave.open(str(p)) as w: dur[ln["id"]] = round(w.getnframes() / w.getframerate(), 3)
+                  print(sp, ln["id"], dur[ln["id"]])
+              (out / "durations.json").write_text(json.dumps(dur, ensure_ascii=False, indent=1), encoding="utf-8")
+          PY
+      - name: commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/marketing/videos
+          git commit -m "MeloTTS 配音產出" || exit 0
+          for i in 1 2 3; do git pull --no-rebase --no-edit && git push && break; sleep 5; done
