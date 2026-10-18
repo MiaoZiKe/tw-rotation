@@ -20,18 +20,18 @@
 
 |日期|主題|來源|狀態|PR|本機位置|
 |---|---|---|---|---|---|
-|2026-10-18|晶圓代工・上篇｜晶片不是印出來的|Andy指定產業地圖|8頁審閱版；未發布|待建立|C:\哩股哩股\output\2026-10-18_semiconductor-series\01-foundry-upper|
-|2026-10-18|晶圓代工・中篇｜電晶體為何站起來|Andy指定產業地圖|8頁審閱版；未發布|待建立|C:\哩股哩股\output\2026-10-18_semiconductor-series\02-foundry-middle|
-|2026-10-18|晶圓代工・下篇｜成熟製程為何還重要|Andy指定產業地圖|8頁審閱版；未發布|待建立|C:\哩股哩股\output\2026-10-18_semiconductor-series\03-foundry-lower|
-|2026-10-18|HBM・上篇｜GPU很快為何還在等|Andy指定產業地圖|8頁審閱版；未發布|待建立|C:\哩股哩股\output\2026-10-18_semiconductor-series\04-hbm-upper|
-|2026-10-18|HBM・中篇｜AI變強只靠多買GPU|Andy指定產業地圖|8頁審閱版；未發布|待建立|C:\哩股哩股\output\2026-10-18_semiconductor-series\05-hbm-middle|
-|2026-10-18|HBM・下篇｜誰真的在做HBM|Andy指定產業地圖|8頁審閱版；未發布|待建立|C:\哩股哩股\output\2026-10-18_semiconductor-series\06-hbm-lower|
-|2026-10-18|矽晶圓・上篇｜晶片為何從圓盤開始|Andy指定產業地圖|8頁審閱版；未發布|待建立|C:\哩股哩股\output\2026-10-18_semiconductor-series\07-wafer-upper|
-|2026-10-18|矽晶圓・中篇｜晶圓越大就一定越好|Andy指定產業地圖|8頁審閱版；未發布|待建立|C:\哩股哩股\output\2026-10-18_semiconductor-series\08-wafer-middle|
-|2026-10-18|矽晶圓・下篇｜一片晶圓如何變訂單|Andy指定產業地圖|8頁審閱版；未發布|待建立|C:\哩股哩股\output\2026-10-18_semiconductor-series\09-wafer-lower|
-|2026-10-18|先進封裝・上篇｜封裝只是包個殼嗎|Andy指定產業地圖|8頁審閱版；未發布|待建立|C:\哩股哩股\output\2026-10-18_semiconductor-series\10-packaging-upper|
-|2026-10-18|先進封裝・中篇｜晶片為何開始拆開做|Andy指定產業地圖|8頁審閱版；未發布|待建立|C:\哩股哩股\output\2026-10-18_semiconductor-series\11-packaging-middle|
-|2026-10-18|先進封裝・下篇｜封裝熱誰在忙什麼|Andy指定產業地圖|8頁審閱版；未發布|待建立|C:\哩股哩股\output\2026-10-18_semiconductor-series\12-packaging-lower|
-|2026-10-18|第三代半導體・上篇｜省電為何還要換材料|Andy指定產業地圖|8頁審閱版；未發布|待建立|C:\哩股哩股\output\2026-10-18_semiconductor-series\13-wbg-upper|
-|2026-10-18|第三代半導體・中篇｜SiC和GaN怎麼選|Andy指定產業地圖|8頁審閱版；未發布|待建立|C:\哩股哩股\output\2026-10-18_semiconductor-series\14-wbg-middle|
-|2026-10-18|第三代半導體・下篇｜新材料如何變成生意|Andy指定產業地圖|8頁審閱版；未發布|待建立|C:\哩股哩股\output\2026-10-18_semiconductor-series\15-wbg-lower|
+|2026-10-18|晶圓代工・上篇｜晶片不是印出來的|Andy指定產業地圖|8頁審閱版；未發布|[PR #10](https://github.com/MiaoZiKe/tw-rotation/pull/10)|C:\哩股哩股\output\2026-10-18_semiconductor-series\01-foundry-upper|
+|2026-10-18|晶圓代工・中篇｜電晶體為何站起來|Andy指定產業地圖|8頁審閱版；未發布|[PR #10](https://github.com/MiaoZiKe/tw-rotation/pull/10)|C:\哩股哩股\output\2026-10-18_semiconductor-series\02-foundry-middle|
+|2026-10-18|晶圓代工・下篇｜成熟製程為何還重要|Andy指定產業地圖|8頁審閱版；未發布|[PR #10](https://github.com/MiaoZiKe/tw-rotation/pull/10)|C:\哩股哩股\output\2026-10-18_semiconductor-series\03-foundry-lower|
+|2026-10-18|HBM・上篇｜GPU很快為何還在等|Andy指定產業地圖|8頁審閱版；未發布|[PR #10](https://github.com/MiaoZiKe/tw-rotation/pull/10)|C:\哩股哩股\output\2026-10-18_semiconductor-series\04-hbm-upper|
+|2026-10-18|HBM・中篇｜AI變強只靠多買GPU|Andy指定產業地圖|8頁審閱版；未發布|[PR #10](https://github.com/MiaoZiKe/tw-rotation/pull/10)|C:\哩股哩股\output\2026-10-18_semiconductor-series\05-hbm-middle|
+|2026-10-18|HBM・下篇｜誰真的在做HBM|Andy指定產業地圖|8頁審閱版；未發布|[PR #10](https://github.com/MiaoZiKe/tw-rotation/pull/10)|C:\哩股哩股\output\2026-10-18_semiconductor-series\06-hbm-lower|
+|2026-10-18|矽晶圓・上篇｜晶片為何從圓盤開始|Andy指定產業地圖|8頁審閱版；未發布|[PR #10](https://github.com/MiaoZiKe/tw-rotation/pull/10)|C:\哩股哩股\output\2026-10-18_semiconductor-series\07-wafer-upper|
+|2026-10-18|矽晶圓・中篇｜晶圓越大就一定越好|Andy指定產業地圖|8頁審閱版；未發布|[PR #10](https://github.com/MiaoZiKe/tw-rotation/pull/10)|C:\哩股哩股\output\2026-10-18_semiconductor-series\08-wafer-middle|
+|2026-10-18|矽晶圓・下篇｜一片晶圓如何變訂單|Andy指定產業地圖|8頁審閱版；未發布|[PR #10](https://github.com/MiaoZiKe/tw-rotation/pull/10)|C:\哩股哩股\output\2026-10-18_semiconductor-series\09-wafer-lower|
+|2026-10-18|先進封裝・上篇｜封裝只是包個殼嗎|Andy指定產業地圖|8頁審閱版；未發布|[PR #10](https://github.com/MiaoZiKe/tw-rotation/pull/10)|C:\哩股哩股\output\2026-10-18_semiconductor-series\10-packaging-upper|
+|2026-10-18|先進封裝・中篇｜晶片為何開始拆開做|Andy指定產業地圖|8頁審閱版；未發布|[PR #10](https://github.com/MiaoZiKe/tw-rotation/pull/10)|C:\哩股哩股\output\2026-10-18_semiconductor-series\11-packaging-middle|
+|2026-10-18|先進封裝・下篇｜封裝熱誰在忙什麼|Andy指定產業地圖|8頁審閱版；未發布|[PR #10](https://github.com/MiaoZiKe/tw-rotation/pull/10)|C:\哩股哩股\output\2026-10-18_semiconductor-series\12-packaging-lower|
+|2026-10-18|第三代半導體・上篇｜省電為何還要換材料|Andy指定產業地圖|8頁審閱版；未發布|[PR #10](https://github.com/MiaoZiKe/tw-rotation/pull/10)|C:\哩股哩股\output\2026-10-18_semiconductor-series\13-wbg-upper|
+|2026-10-18|第三代半導體・中篇｜SiC和GaN怎麼選|Andy指定產業地圖|8頁審閱版；未發布|[PR #10](https://github.com/MiaoZiKe/tw-rotation/pull/10)|C:\哩股哩股\output\2026-10-18_semiconductor-series\14-wbg-middle|
+|2026-10-18|第三代半導體・下篇｜新材料如何變成生意|Andy指定產業地圖|8頁審閱版；未發布|[PR #10](https://github.com/MiaoZiKe/tw-rotation/pull/10)|C:\哩股哩股\output\2026-10-18_semiconductor-series\15-wbg-lower|
