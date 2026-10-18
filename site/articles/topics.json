@@ -2,6 +2,186 @@
  "updated": "2026-10-18",
  "topics": [
   {
+   "id": "n_tsmc_aftermath",
+   "cat": "news",
+   "title": "台積電法說後一週：族群資金流向變了嗎",
+   "why": "法說會 10/15 剛過，讀者會問資金有沒有換族群；本站有近 5 日族群漲跌與法人買賣超可對照",
+   "score": 5,
+   "format_hint": "文章",
+   "added": "2026-10-18",
+   "site_links": [
+    "#flow"
+   ]
+  },
+  {
+   "id": "n_q3_season",
+   "cat": "news",
+   "title": "Q3 財報季開跑：哪些族群本週密集法說",
+   "why": "10 月下旬是第三季財報與法說高峰，可用本站族群分類整理本週場次集中在哪些環節",
+   "score": 4,
+   "format_hint": "文章",
+   "added": "2026-10-18",
+   "site_links": [
+    "#overview"
+   ]
+  },
+  {
+   "id": "n_semi_vs_elec",
+   "cat": "news",
+   "title": "半導體 vs 電子零組件：近 5 日誰吸金",
+   "why": "本站族群資金流向可直接對照兩大類近 5 日漲跌與法人買賣超",
+   "score": 4,
+   "format_hint": "貼文",
+   "added": "2026-10-18",
+   "site_links": [
+    "#flow"
+   ]
+  },
+  {
+   "id": "n_fx_foreign",
+   "cat": "news",
+   "title": "新台幣走勢與外資：匯率動了資金跟著動？",
+   "why": "匯率與外資買賣超常被一起討論，本站有外資買賣超日資料，可與匯率對照畫圖",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-10-18",
+   "site_links": [
+    "#overview"
+   ]
+  },
+  {
+   "id": "n_oct_week_ahead",
+   "cat": "news",
+   "title": "下週台股事件曆：法說、經濟數據一張表",
+   "why": "週日晚最常被搜尋的是下週行程；整理法說會與重要經濟數據公布日成一張表",
+   "score": 4,
+   "format_hint": "貼文",
+   "added": "2026-10-18",
+   "site_links": [
+    "#overview"
+   ]
+  },
+  {
+   "id": "i_ai_networking",
+   "cat": "intro",
+   "title": "AI 資料中心網通鏈：從晶片到線纜",
+   "why": "AI 叢集擴大讓網通需求被拆開討論，介紹交換器、網卡、線纜各環節台廠位置",
+   "score": 4,
+   "format_hint": "文章",
+   "added": "2026-10-18",
+   "site_links": [
+    "#industry"
+   ]
+  },
+  {
+   "id": "i_hbm_chain",
+   "cat": "intro",
+   "title": "HBM 產業鏈：記憶體、封裝到測試",
+   "why": "HBM 是 AI 加速器瓶頸之一，本站已有記憶體與先進封裝族群，可串成上下游",
+   "score": 4,
+   "format_hint": "文章",
+   "added": "2026-10-18",
+   "site_links": [
+    "#industry"
+   ]
+  },
+  {
+   "id": "i_ev_chain",
+   "cat": "intro",
+   "title": "電動車產業鏈：電池、電控到車用電子",
+   "why": "常青題：電動車供應鏈台廠分布，可用本站族群分類畫出環節",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-10-18",
+   "site_links": [
+    "#industry"
+   ]
+  },
+  {
+   "id": "i_robot",
+   "cat": "intro",
+   "title": "機器人產業鏈：減速機、感測器到控制器",
+   "why": "機器人題材熱度常被討論，介紹核心零組件與台廠所在環節，不談個股好壞",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-10-18",
+   "site_links": [
+    "#themes"
+   ]
+  },
+  {
+   "id": "i_shipping",
+   "cat": "intro",
+   "title": "航運產業鏈：貨櫃、散裝到航空怎麼分",
+   "why": "航運常被當景氣與運價指標，說明三種航運的差別與運價指數怎麼看",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-10-18",
+   "site_links": [
+    "#industry"
+   ]
+  },
+  {
+   "id": "k_etf_flow",
+   "cat": "know",
+   "title": "ETF 申購買回是什麼？為何會影響成分股",
+   "why": "ETF 資金流入流出會帶動成分股買賣，新手常不知道買賣機制",
+   "score": 4,
+   "format_hint": "文章",
+   "added": "2026-10-18",
+   "site_links": [
+    "#flow"
+   ]
+  },
+  {
+   "id": "k_futures_oi",
+   "cat": "know",
+   "title": "期貨未平倉是什麼？外資期貨怎麼看",
+   "why": "外資期貨未平倉是常被引用的指標，需說明多空口徑與常見誤讀",
+   "score": 4,
+   "format_hint": "文章",
+   "added": "2026-10-18",
+   "site_links": [
+    "#overview"
+   ]
+  },
+  {
+   "id": "k_ma_basics",
+   "cat": "know",
+   "title": "均線是什麼？5 日、20 日、60 日怎麼選",
+   "why": "技術面入門題，搭配本站 K 線圖說明各週期均線代表的持有期間",
+   "score": 3,
+   "format_hint": "貼文",
+   "added": "2026-10-18",
+   "site_links": [
+    "#stock"
+   ]
+  },
+  {
+   "id": "k_eps_pe",
+   "cat": "know",
+   "title": "EPS 與股價：為什麼財報好股價卻不漲",
+   "why": "常見疑問；說明預期、評價與財報時間差，用歷史財報季的例子對照",
+   "score": 4,
+   "format_hint": "文章",
+   "added": "2026-10-18",
+   "site_links": [
+    "#overview"
+   ]
+  },
+  {
+   "id": "k_turnover",
+   "cat": "know",
+   "title": "成交量與週轉率：量大一定代表熱嗎",
+   "why": "量能指標入門，區分成交量、成交值與週轉率，用本站資料畫對照圖",
+   "score": 3,
+   "format_hint": "貼文",
+   "added": "2026-10-18",
+   "site_links": [
+    "#flow"
+   ]
+  },
+  {
    "id": "n_week_flow",
    "cat": "news",
    "title": "上週外資賣超 vs 投信買超：誰在買哪個族群",
