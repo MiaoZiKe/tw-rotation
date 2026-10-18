@@ -1,0 +1,40 @@
+{
+  "count_method": "Actual Threads body only; includes URL/emoji/spaces/newlines; excludes ## headings and --- separators. Unicode code points and UTF-16 code units both <=500.",
+  "platforms": {
+    "facebook": {
+      "unicode_characters": 1101,
+      "utf16_code_units": 1109
+    },
+    "instagram": {
+      "unicode_characters": 1102,
+      "utf16_code_units": 1110
+    }
+  },
+  "threads": [
+    {
+      "post": 1,
+      "unicode_characters": 278,
+      "utf16_code_units": 280,
+      "within500": true
+    },
+    {
+      "post": 2,
+      "unicode_characters": 285,
+      "utf16_code_units": 287,
+      "within500": true
+    },
+    {
+      "post": 3,
+      "unicode_characters": 251,
+      "utf16_code_units": 252,
+      "within500": true
+    },
+    {
+      "post": 4,
+      "unicode_characters": 290,
+      "utf16_code_units": 294,
+      "within500": true
+    }
+  ],
+  "qa": "已從實際threads.md正文重新解析；官網、來源與免責保留，平台敘事含功能性emoji。"
+}

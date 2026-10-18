@@ -1,0 +1,19 @@
+{
+  "schema": "liguligu-social-catalog-metadata-v1",
+  "created_date": "2026-10-18",
+  "timezone": "Asia/Taipei",
+  "kind": "post",
+  "type": "IG輪播",
+  "category": "科普",
+  "origin": "GPT",
+  "topic": "晶圓代工",
+  "event_date": null,
+  "published_date": null,
+  "source_commit": "6dc0601e1c7c1575b9b5a0683382b862dd8e4cb5",
+  "cloud_import_status": "尚未匯入；本檔僅保存分類資訊，不代表網站已有記錄",
+  "records": [
+    {"id":"01-foundry-upper","title":"晶片不是印一次就好","part":"上","page_count":10,"tags":["晶圓代工","製程迴圈","曝光","光阻","蝕刻","CMP"]},
+    {"id":"02-foundry-middle","title":"電晶體為何換造型？","part":"中","page_count":10,"tags":["晶圓代工","電晶體","Planar","FinFET","GAA","奈米片"]},
+    {"id":"03-foundry-lower","title":"做小晶片，還要接線？","part":"下","page_count":10,"tags":["晶圓代工","FEOL","BEOL","互連","介電材料","產業鏈"]}
+  ]
+}

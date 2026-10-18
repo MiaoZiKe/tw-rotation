@@ -1,0 +1,290 @@
+[
+  {
+    "post": "01-foundry-upper",
+    "pages": [
+      {
+        "page": 1,
+        "size": [
+          1122,
+          1402
+        ],
+        "bytes": 2160086,
+        "sha256": "1bb83ae6cb2838cf3c5e5f2260c4c91ae7b4cd8f9db0b1cc1eaafc8ce7f4048f"
+      },
+      {
+        "page": 2,
+        "size": [
+          1122,
+          1402
+        ],
+        "bytes": 2106127,
+        "sha256": "d87d582f32d5981b47c5f216c2ec9190e72d997f170102a1db774f7b54e62548"
+      },
+      {
+        "page": 3,
+        "size": [
+          1122,
+          1402
+        ],
+        "bytes": 2070663,
+        "sha256": "0ec432e9a5263a7f468022b1ac063c8d99f3c453b3dca6bc8054578b06e385af"
+      },
+      {
+        "page": 4,
+        "size": [
+          1122,
+          1402
+        ],
+        "bytes": 2056113,
+        "sha256": "c8919828899180859d77794edf64cc0d7b9c41710920e5b3602bb17dc1d6d7d0"
+      },
+      {
+        "page": 5,
+        "size": [
+          1122,
+          1402
+        ],
+        "bytes": 2060686,
+        "sha256": "626918e04b4346ff0f6ea72eda169414566b07fb64d9bbb8fd92e5793a6749d0"
+      },
+      {
+        "page": 6,
+        "size": [
+          1122,
+          1402
+        ],
+        "bytes": 1942913,
+        "sha256": "9008b2c24c5d6f9e6ca782063ff5b382c5d7b72fc44d152e018b57780622ab05"
+      },
+      {
+        "page": 7,
+        "size": [
+          1122,
+          1402
+        ],
+        "bytes": 1901927,
+        "sha256": "59436a51977218071f9c2dc883c14b5cf45ddba9cba783767f8ff13234d466f0"
+      },
+      {
+        "page": 8,
+        "size": [
+          1122,
+          1402
+        ],
+        "bytes": 2180870,
+        "sha256": "94c9fa0518e23771fd60bdf3cd3e2d2a2afb35df6ec419ccbaf166c1b20a9f9c"
+      },
+      {
+        "page": 9,
+        "size": [
+          1122,
+          1402
+        ],
+        "bytes": 2105715,
+        "sha256": "28c270e294ccd5eacc501ec0b53b4fb85b984a5de81166719f650f9ce3f20701"
+      },
+      {
+        "page": 10,
+        "size": [
+          1122,
+          1402
+        ],
+        "bytes": 2060100,
+        "sha256": "fc670cc2f351d5522ce04d01937fe5bd200aa0bf62b866badcf95788be7b9576"
+      }
+    ],
+    "zip": "01-foundry-upper_10頁與文案.zip"
+  },
+  {
+    "post": "02-foundry-middle",
+    "pages": [
+      {
+        "page": 1,
+        "size": [
+          1122,
+          1402
+        ],
+        "bytes": 2145976,
+        "sha256": "123fec1246aac978043b67052c6746591a40ab0cbb60b292892ced30893f84f5"
+      },
+      {
+        "page": 2,
+        "size": [
+          1122,
+          1402
+        ],
+        "bytes": 2060541,
+        "sha256": "038a9dac0932614ac2d797c287291f1b6b9b5535fa8bb50d7479082bcc2d8d65"
+      },
+      {
+        "page": 3,
+        "size": [
+          1122,
+          1402
+        ],
+        "bytes": 2067288,
+        "sha256": "d5a4ece33af0fa8f48995fcbebd68e55bc8a996660858747db072bf9d8a0cd91"
+      },
+      {
+        "page": 4,
+        "size": [
+          1122,
+          1402
+        ],
+        "bytes": 2076386,
+        "sha256": "8410cbc9488fd4ea586810147dfa8bcc5433ade112e55ab17041c1b86e413126"
+      },
+      {
+        "page": 5,
+        "size": [
+          1122,
+          1402
+        ],
+        "bytes": 2092832,
+        "sha256": "2587abc05f6ca2b110bde61cf7a982b2f7379112738189544b76d3924ca53063"
+      },
+      {
+        "page": 6,
+        "size": [
+          1122,
+          1402
+        ],
+        "bytes": 2140263,
+        "sha256": "3c3c7e4c27d042bb3e2f37ef8981fa26b6eef5c9acfe2c4f072f71d1e3bce85a"
+      },
+      {
+        "page": 7,
+        "size": [
+          1122,
+          1402
+        ],
+        "bytes": 2122757,
+        "sha256": "6b6f7aa1fbdd442513bf25ffefc0de83db5e5ddaf3b87e7741d46d8daaa317a4"
+      },
+      {
+        "page": 8,
+        "size": [
+          1122,
+          1402
+        ],
+        "bytes": 2097881,
+        "sha256": "19a3a713c756e3fc5b8a355ce4c9a191b0d0cb00fc2eb226dcdd58e6eb447f7b"
+      },
+      {
+        "page": 9,
+        "size": [
+          1122,
+          1402
+        ],
+        "bytes": 2074108,
+        "sha256": "3667f420cefdaa0075ab930e9ee5675816d013be99dd7e22df652685115d2aaf"
+      },
+      {
+        "page": 10,
+        "size": [
+          1122,
+          1402
+        ],
+        "bytes": 2137328,
+        "sha256": "f76b323b6cd9802edb78895e83ca58634fccb8810796341b3555785c9f61794b"
+      }
+    ],
+    "zip": "02-foundry-middle_10頁與文案.zip"
+  },
+  {
+    "post": "03-foundry-lower",
+    "pages": [
+      {
+        "page": 1,
+        "size": [
+          1122,
+          1402
+        ],
+        "bytes": 2295915,
+        "sha256": "e25480b6dfb6c2b5793dbd8cd760ec0b04a1abf014a91d4cc1cd5647581f529a"
+      },
+      {
+        "page": 2,
+        "size": [
+          1122,
+          1402
+        ],
+        "bytes": 2070154,
+        "sha256": "3c5140e519caca8b0b5bea3d1f7cb7969bff51d47379bbb2fd48361cdcb6ab3d"
+      },
+      {
+        "page": 3,
+        "size": [
+          1122,
+          1402
+        ],
+        "bytes": 2252228,
+        "sha256": "2530ea71ab0b46d250dbdc7c07207db664920644f2160eff4e72ffc73ba7dc9b"
+      },
+      {
+        "page": 4,
+        "size": [
+          1122,
+          1402
+        ],
+        "bytes": 2307090,
+        "sha256": "2c822df03ddf2a2c97ac7bd73f74c6bf97df5681f10ded0cca436237aefbec5a"
+      },
+      {
+        "page": 5,
+        "size": [
+          1122,
+          1402
+        ],
+        "bytes": 2343681,
+        "sha256": "a41f5f905155ee70e455b3b0b469a2c3d3e183331342cdffa1e9dd1f6fc7dabb"
+      },
+      {
+        "page": 6,
+        "size": [
+          1122,
+          1402
+        ],
+        "bytes": 2265689,
+        "sha256": "7adfdf0dec0027074edbbaaa3fc3474faf3ffa2ce6b64ab4c37fc23733404f9b"
+      },
+      {
+        "page": 7,
+        "size": [
+          1122,
+          1402
+        ],
+        "bytes": 2317092,
+        "sha256": "38ddb1d032d695c70f02efd4a84bd7e01b29029da54bddebb3485fe9c5d38bac"
+      },
+      {
+        "page": 8,
+        "size": [
+          1122,
+          1402
+        ],
+        "bytes": 2066674,
+        "sha256": "e1b7c6f64639e55df24995cf8656419e4aed4bced631484a99168f9a4913d306"
+      },
+      {
+        "page": 9,
+        "size": [
+          1122,
+          1402
+        ],
+        "bytes": 2239201,
+        "sha256": "18e8c2ee4bc844c635a661b5aac0d5ddbc86ae4db45dc675946828124434df57"
+      },
+      {
+        "page": 10,
+        "size": [
+          1122,
+          1402
+        ],
+        "bytes": 2445615,
+        "sha256": "89a59f155bdb6bf0b0ca303a2d362e64c3b63c426fcbdb74cb39a126e04f92a7"
+      }
+    ],
+    "zip": "03-foundry-lower_10頁與文案.zip"
+  }
+]
