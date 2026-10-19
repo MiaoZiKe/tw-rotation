@@ -788,7 +788,7 @@ def render(dev, only=None, seg=None):
     cams = {s["sid"]: cam_track(o, s["meta"], s["sid"]) for s in shots}
     N = int(round(total * FPS))
     frames = [int(round(float(x) * FPS)) for x in only.split(",")] if only else range(N)
-    out_mp4 = SCR / (f"feat05_{dev}_silent.mp4" if not seg else f"seg/feat05_{'web' if dev == 'd' else 'mobile'}_{ORDER.index(seg) + 1:02d}_{seg}.mp4")
+    out_mp4 = SCR / (f"feat05_{dev}_silent_v2.mp4" if not seg else f"seg/feat05_{'web' if dev == 'd' else 'mobile'}_{ORDER.index(seg) + 1:02d}_{seg}.mp4")
     out_mp4.parent.mkdir(exist_ok=True)
     ff = None
     if not only:
@@ -813,7 +813,7 @@ def render(dev, only=None, seg=None):
     raw_view = {}
 
     chk = {sid: dict(cut=[], edge=[], transit=0, fill={}, ppc={}) for sid in ORDER}
-    EDGE_SIDS = ()
+    EDGE_SIDS = tuple(ORDER)   # v2：每一段都檢查「框邊切過輪盤／排行標籤文字」
 
     def crop_px(fr, x, y, w, h):
         """裁切（可超出錄影畫面：超出的部分補網頁底色＝畫面最左一欄的中位色）。"""
@@ -855,11 +855,19 @@ def render(dev, only=None, seg=None):
                 if not contains((cx, cy, cw, ch), f_raw, 0.5):
                     C_["cut"].append(round(tt, 2))
                 if sid in EDGE_SIDS:
+                    # v2：看得到的範圍 V＝介紹區塊（區塊以外整片淡成底色、看不到）；區塊幾乎佔滿畫面框時不淡化，V＝整個裁切範圍。
+                    # 任何一段輪盤／排行標籤文字只要「一部分在 V 裡、一部分在 V 外」就是被切到，記一格。
+                    fv = f if f is not None else f_raw
+                    if fv is not None and fv[2] * fv[3] < 0.985 * cw * ch:
+                        vx0, vy0 = max(cx, fv[0]), max(cy, fv[1])
+                        V = (vx0, vy0, min(cx + cw, fv[0] + fv[2]) - vx0, min(cy + ch, fv[1] + fv[3]) - vy0)
+                    else:
+                        V = (cx, cy, cw, ch)
                     eds = (s["meta"].get("edges") or [])
                     for e in (eds[kk] if kk < len(eds) else []):
-                        ix = min(e[0] + e[2], cx + cw) - max(e[0], cx)
-                        iy = min(e[1] + e[3], cy + ch) - max(e[1], cy)
-                        if ix > 0.5 and iy > 0.5 and not contains((cx, cy, cw, ch), e, 0.5):
+                        ix = min(e[0] + e[2], V[0] + V[2]) - max(e[0], V[0])
+                        iy = min(e[1] + e[3], V[1] + V[3]) - max(e[1], V[1])
+                        if ix > 0.5 and iy > 0.5 and not contains(V, e, 0.5):
                             C_["edge"].append(round(tt, 2))
                             break
                 lab = next((m[2] for m in reversed([m for m in s["meta"]["marks"] if m[1] == "cam"]) if m[0] <= k / FPS + 1e-6), "")
@@ -880,7 +888,7 @@ def render(dev, only=None, seg=None):
             fx1, fy1 = int(round((f[0] + f[2] - cx) * sx)), int(round((f[1] + f[3] - cy) * sy))
             fx0, fy0, fx1, fy1 = max(0, fx0), max(0, fy0), min(o.pw, fx1), min(o.ph, fy1)
             if (fx1 - fx0) * (fy1 - fy0) < 0.985 * o.pw * o.ph:   # 05：區塊外露出一點點（框邊截到的圖表字）也一律淡化
-                k_ = 0.80   # 05：介紹區塊以外淡到幾乎看不見（推近拍框邊附近的圖表字不搶戲），畫面只剩介紹的那一塊
+                k_ = 1.0    # 05 v2：介紹區塊以外整片淡成底色（看不到被框邊切到的圖表字），畫面只剩介紹的那一塊
                 dim = img.astype(np.float32) * (1 - k_) + np.array([255, 249, 239], np.float32) * k_
                 dim[fy0:fy1, fx0:fx1] = img[fy0:fy1, fx0:fx1]
                 img = dim.astype(np.uint8)
@@ -1039,7 +1047,7 @@ def render(dev, only=None, seg=None):
     wav = SCR / f"bgm_{dev}.wav"
     subprocess.run([sys.executable, str(REPO / "docs/marketing/video_1010/make_music_v3.py"), "--length", f"{total / SPEED + 0.3:.2f}",
                     "--style", "cute", "--out", str(wav), "--cues", str(cj)], check=True)
-    name = "feat05_fund_flow_web.mp4" if dev == "d" else "feat05_fund_flow_mobile.mp4"
+    name = "feat05_fund_flow_web_v2.mp4" if dev == "d" else "feat05_fund_flow_mobile_v2.mp4"
     final = HERE / name
     subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", str(out_mp4), "-i", str(wav), "-filter:v", f"setpts=PTS/{SPEED}", "-r", str(FPS),
                     "-c:v", "libx264", "-crf", "18", "-preset", "medium", "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "160k",

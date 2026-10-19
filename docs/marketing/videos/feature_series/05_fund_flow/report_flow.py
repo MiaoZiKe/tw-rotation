@@ -58,7 +58,7 @@ def main():
             f = R.RAW / f"{dev}_{sid}.json"
             if f.exists():
                 meta[sid] = json.loads(f.read_text(encoding="utf-8"))
-        mp4 = HERE / ("feat05_fund_flow_web.mp4" if dev == "d" else "feat05_fund_flow_mobile.mp4")
+        mp4 = HERE / ("feat05_fund_flow_web_v2.mp4" if dev == "d" else "feat05_fund_flow_mobile_v2.mp4")
         fz = freeze(mp4)
         D = dur(mp4)
         sb += [f"## {name}（片長 {D:.1f} 秒）", ""]
@@ -87,7 +87,7 @@ def main():
                 f"拉桿點擊的中心＝依數值換算的拉桿位置、點完逐次核對拉桿實際數值；點擊落在畫面框外 {len(out)} 次。",
                 f"- 停格：成片 ffmpeg freezedetect（n=0.003、d=0.5）{len([x for x in fz if 'freeze_start' in x])} 筆；畫面框內來源畫面連續不動最長 {j['still_max_s']} 秒（{j['still_at']} 秒附近）。",
                 f"- 鏡頭裁到介紹區塊的幀數（各段）：{', '.join(f'{a} {b}' for a, b in j['cut_frames'])}；推移中（不計）：{', '.join(f'{a} {b}' for a, b in j['transit_frames'])}。",
-                f"- 框邊切過環節卡的幀數（{'不適用'}）：{', '.join(f'{a} {b}' for a, b in j['edge_frames'])}。",
+                f"- 框邊切過輪盤／族群資金排行標籤文字的幀數（v2 新增：每一格量 ECharts 畫布上每一段標籤文字的外框，與實際裁切範圍部分相交就記一格）：{', '.join(f'{a} {b}' for a, b in j['edge_frames'])}。",
                 "- 推近拍：介紹內容佔畫面寬（最小值）／每 1 css 像素在成片上的像素（字放大倍數）："]
         for sid_, ff_ in j["fill"]:
             pp_ = dict(j["ppc"]).get(sid_, {})

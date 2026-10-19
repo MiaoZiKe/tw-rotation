@@ -67,6 +67,14 @@ CAM_JS = r"""([sels, pad, frame, edges]) => {
       if (s.startsWith('rect:')) out.push(rectOf(s));
       else if (s === 'dgsel') out.push(...dgsel());
       else if (s.startsWith('dgpre:')) out.push(...dgpre(s.slice(6)));
+      else if (s.startsWith('ztext:')) { const el = document.querySelector(s.slice(6)); const inst = el && window.echarts && echarts.getInstanceByDom(el);
+        if (inst) { const b = el.getBoundingClientRect(); inst.getZr().storage.getDisplayList().forEach(d => {
+          if (d.invisible || d.ignore || !(d.type === 'tspan' || d.type === 'text')) return; const t = d.style && d.style.text;
+          if (!t || !String(t).trim() || (d.style.opacity ?? 1) < 0.05) return; const r = d.getBoundingRect().clone(); if (d.transform) r.applyTransform(d.transform);
+          // 畫布外的部分本來就畫不出來（例：排行最長的族群名超出排行圖左緣，會被畫布切掉）→ 外框先夾到圖表元素範圍內，只量看得到的那段字
+          const l = Math.max(b.left, b.x + r.x), tp = Math.max(b.top, b.y + r.y), rr = Math.min(b.right, b.x + r.x + r.width), bb = Math.min(b.bottom, b.y + r.y + r.height);
+          if (rr - l < 1 || bb - tp < 1) return;
+          out.push({ left: l, top: tp, right: rr, bottom: bb, width: rr - l, height: bb - tp }); }); } }
       else if (s.startsWith('all:')) document.querySelectorAll(s.slice(4)).forEach(e => { if (e.getClientRects().length) out.push(e.getBoundingClientRect()); });
       else { const e = document.querySelector(s); if (e && e.getClientRects().length) out.push(e.getBoundingClientRect()); } }
     return out.filter(vis); };
@@ -187,7 +195,7 @@ class A(C.Act):
         self.settle()   # 前一句泡泡講完（最短停留）才換鏡頭，畫面與泡泡同步
         if isinstance(sels, str):
             sels = [sels]
-        self.cam_spec = ("sel", list(sels), pad, frame, minw, list(edges or []), zoom)
+        self.cam_spec = ("sel", list(sels), pad, frame, minw, list(edges if edges is not None else ZTEXT), zoom)
         self.cam_id += 1
         self.marks.append([round(self.t, 3), "cam", label or ",".join(sels)])
 
@@ -418,18 +426,21 @@ def slider_click(a, sel, value, label, ms=420, pause=160):
 
 
 ZMIN = 440   # 桌機推近拍的最小取景寬（css）
+# v2（CEO 審片）：每一拍都量輪盤（#rotClock）與族群資金排行（#rankFlow）上每一段標籤文字的外框，合成時逐格檢查「框邊有沒有切過任何一段標籤文字」
+ZTEXT = ["ztext:#rotClock", "ztext:#rankFlow"]
 
 
 # ------------------------------------------------------------------ 網頁版鏡頭（1600×900；左側導覽收成圖示列）
 def clock_top(pg):
-    return rect_of(pg, "#rotClock", 0, 0, 1, 0.5)          # 輪盤上半：改善／領先兩個象限（轉強的那一邊）
+    # v2（CEO 審片：只取上半圈會切到群組標籤）→ 框完整一圈（四個象限＋所有群組標籤）；這幾鏡用 2000 寬視窗，輪盤欄夠寬，整圈仍佔畫面寬 ≥70%
+    return rect_of(pg, "#rotClock", 0, 0, 1, 1)
 
 
 def rank_top(pg):
     """排行上方 6 名（標題列＋佔比增加最多的 6 個族群）。取景框上下緣落在「卡片上緣～標題」與「第 6、7 名之間」的空白、
     左緣落在左欄說明字的右邊（量 1800 寬版面：排行每列 47.4 css、第一列在排行區上緣下 35 css）。"""
     x, y, w, h = pg.evaluate(C.RECT_JS, "#rankFlowWrap")
-    return f"rect:{x + 6:.1f},{y - 37:.1f},{w + 2:.1f},329"
+    return f"rect:{x:.1f},{y - 42:.1f},{w:.1f},344"   # 上緣在標題字之上、下緣在第 6、7 名之間（標題 86～102、第 6 名底 393、第 7 名頂 427，css）
 
 
 def d_open(pg, a, start):
@@ -439,13 +450,13 @@ def d_open(pg, a, start):
     a.move(1000, 520, 400)
     a.say("錢往哪個族群跑？", "face_think_v2")
     a.idle(900)
-    a.cam([rank_top(pg)], 10, "推近：族群資金排行（增加最多）", minw=ZMIN, zoom=True)
+    a.cam([rank_top(pg)], 0, "推近：族群資金排行（增加最多）", minw=ZMIN, zoom=True)
     b = a.box("#rankFlowWrap", scroll=False)
     a.move(b["x"] + b["width"] * 0.62, b["y"] + 60, 600)
     a.say("誰的資金佔比在增加？", "tilt")
     a.idle(500)
     a.move(b["x"] + b["width"] * 0.62, b["y"] + 230, 700)
-    a.cam([clock_top(pg)], 10, "推近：輪盤上半（改善、領先）", minw=ZMIN, zoom=True)
+    a.cam([clock_top(pg)], 4, "推近：資金輪盤（整圈）", minw=ZMIN, zoom=True)
     a.hover("#rotClock .rq:nth-child(2)", 500, dy=1.9)
     a.say("哪個族群正在轉強？", "magnifier")
     a.hover("#rotClock .rq:nth-child(1)", 600, dy=1.9)
@@ -478,12 +489,12 @@ def d_days(pg, a, start):
     top = union_rect(pg, ["#flowRotTime", clock_top(pg)])
     first = True
     for v in (5, 10, 30):
-        a.cam([top], 8, f"推近：拉桿＋輪盤上半（{v} 天前）", minw=ZMIN, zoom=True)
+        a.cam([top], 4, f"推近：拉桿＋資金輪盤（{v} 天前）", minw=ZMIN, zoom=True)
         if first:
             a.say("輪盤的軌跡跟著變", "point_r_v2")
         slider_click(a, "#rotBack input", v, f"拉桿：{v} 天前")
         a.wait(900)
-        a.cam([rank_top(pg)], 10, f"推近：族群資金排行（{v} 天）", minw=ZMIN, zoom=True)
+        a.cam([rank_top(pg)], 0, f"推近：族群資金排行（{v} 天）", minw=ZMIN, zoom=True)
         if first:
             a.say("排行也換成這段期間", "talk_explain_v2")
         a.wait(1000)
@@ -515,12 +526,12 @@ def d_pick(pg, a, start):
     top = union_rect(pg, ["#flowRotFilter", pan, clock_top(pg)])
     first = True
     for c, lab in CHAINS:
-        a.cam([top], 8, f"推近：產業鏈清單＋輪盤上半（{lab[4:]}）", minw=ZMIN, zoom=True)
+        a.cam([top], 4, f"推近：產業鏈清單＋資金輪盤（{lab[4:]}）", minw=ZMIN, zoom=True)
         if first:
             a.say("選一條鏈，輪盤只留它", "spotlight")
         pick_chain(a, c, lab)
         a.wait(900)
-        a.cam([rank_top(pg)], 10, f"推近：族群資金排行（{lab[4:]}）", minw=ZMIN, zoom=True)
+        a.cam([rank_top(pg)], 0, f"推近：族群資金排行（{lab[4:]}）", minw=ZMIN, zoom=True)
         if first:
             a.say("排行也跟著篩", "face_nod_v2")
         a.wait(1000)
@@ -707,7 +718,7 @@ def m_end(pg, a, start):
     a.settle()
 
 
-VP_D = {"guide": (1800, 1080, 2), "open": (1800, 1080, 3), "days": (1800, 1080, 3), "pick": (1800, 1080, 3), "tree": (2000, 1152, 2.5), "end": (1800, 1080, 3)}
+VP_D = {"guide": (1800, 1080, 2), "open": (2000, 1152, 2.5), "days": (2000, 1152, 2.5), "pick": (2000, 1152, 2.5), "tree": (2000, 1152, 2.5), "end": (1800, 1080, 3)}
 D_SHOTS = {"open": d_open, "guide": d_guide, "days": d_days, "pick": d_pick, "tree": d_tree, "end": d_end}
 M_SHOTS = {"open": m_open, "guide": m_guide, "days": m_days, "pick": m_pick, "tree": m_tree, "end": m_end}
 
