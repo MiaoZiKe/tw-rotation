@@ -2,6 +2,29 @@
  "updated": "2026-10-19",
  "articles": [
   {
+   "id": "2026-10-17-know-hbm",
+   "cat": "know",
+   "title": "一張圖看懂 HBM：頻寬是 DDR5 的 40 倍",
+   "date": "2026-10-17",
+   "topic": "k_hbm",
+   "groups": [
+    {
+     "id": "hbm",
+     "name": "HBM 高頻寬記憶體"
+    },
+    {
+     "id": "ai_adv_packaging",
+     "name": "AI 先進封裝"
+    },
+    {
+     "id": "memory_module",
+     "name": "記憶體模組"
+    }
+   ],
+   "reading_min": 3,
+   "src": "api"
+  },
+  {
    "id": "2026-10-14-know-cowos",
    "cat": "know",
    "title": "CoWoS 產能預估 2 年最高擴 3.7 倍仍不夠",
@@ -299,41 +322,6 @@
     {
      "id": "ip_asic",
      "name": "客製 ASIC 矽智財"
-    }
-   ],
-   "reading_min": 3,
-   "src": "api"
-  },
-  {
-   "id": "2026-10-17-know-hbm",
-   "cat": "know",
-   "title": "HBM 跟一般記憶體差在哪？",
-   "date": "2026-10-17",
-   "topic": "k_hbm",
-   "groups": [
-    {
-     "id": "hbm",
-     "name": "HBM 高頻寬記憶體"
-    },
-    {
-     "id": "ai_adv_packaging",
-     "name": "AI 先進封裝"
-    },
-    {
-     "id": "foundry",
-     "name": "晶圓代工"
-    },
-    {
-     "id": "osat",
-     "name": "封測代工"
-    },
-    {
-     "id": "pkg_metrology",
-     "name": "封裝量測自動化"
-    },
-    {
-     "id": "pkg_equipment",
-     "name": "封裝製程機台"
     }
    ],
    "reading_min": 3,

@@ -13,7 +13,7 @@
 | 4 | 新文章 | k_abf IC 載板是什麼？ | ic_substrate | 已上架 2026-10-19 80 2026-10-19-know-abf |
 | 5 | 新文章 | k_psu_bbu AI 伺服器電源是什麼？ | server_psu（另嵌 2.5D power_bbu） | 已上架 2026-10-19 80 2026-10-19-know-psu-bbu |
 | 6 | 重做 | know-cowos CoWoS 是什麼？ | 站內 CoWoS-L 立體剖面（查 diagram_inventory） | 已上架 2026-10-19 84 2026-10-14-know-cowos |
-| 7 | 重做 | know-hbm HBM 跟一般記憶體差在哪？ | hbm | 待做 |
+| 7 | 重做 | know-hbm HBM 跟一般記憶體差在哪？ | hbm | 已上架 2026-10-19 82 2026-10-17-know-hbm |
 | 8 | 重做 | know-cpo CPO 是什麼？ | switch（800G 交換器，查 diagram_inventory）＋2.5D silicon_photonics | 待做 |
 | 9 | 新文章 | k_sic_gan 第三代半導體是什麼？ | wide_bandgap | 待做 |
 | 10 | 新文章 | k_wafer 矽晶圓是什麼？ | silicon_wafer | 待做 |
