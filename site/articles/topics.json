@@ -2,6 +2,18 @@
  "updated": "2026-10-19",
  "topics": [
   {
+   "id": "k_ssd",
+   "cat": "know",
+   "title": "SSD 是什麼？一片 M.2 固態硬碟拆開看",
+   "why": "網站已有 SSD 3D 剖析圖（#industry/semiconductor/dg/memory_module，切 3D）：主控、DRAM 快取、NAND 堆疊、金手指，文章用 scene 區塊嵌入",
+   "score": 5,
+   "format_hint": "文章＋3D 圖",
+   "added": "2026-10-19",
+   "site_links": [
+    "#industry/group/foundry"
+   ]
+  },
+  {
    "id": "k_foundry",
    "cat": "know",
    "title": "IC 代工是什麼？晶圓廠怎麼把設計變成晶片",
