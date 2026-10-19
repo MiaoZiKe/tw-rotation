@@ -1,10 +1,10 @@
 # 產品架構圖盤點（2026-10-19）
 
-給「比比知識」選題與撰寫用。來源：`site/three3d.js`（3D 場景 `SCENES`，20 個）、`site/themes3d.js`（題材 2.5D 等角剖析圖 `T.*`，22 張）、`site/diagrams.js`（產業鏈 2D 剖析圖，目前有 `SLOTS` 的 ai_server、mlcc 與 `DG.register` 的 pcb_rigid）、`site/artillus.js`（文章插圖積木，kind 只有 cowos／rack／custom）。
+給「比比知識」選題與撰寫用。來源：`site/three3d.js`（3D 場景 `SCENES`，21 個；2026-10-19 補 SSD）、`site/themes3d.js`（題材 2.5D 等角剖析圖 `T.*`，22 張）、`site/diagrams.js`（產業鏈 2D 剖析圖，目前有 `SLOTS` 的 ai_server、mlcc 與 `DG.register` 的 pcb_rigid）、`site/artillus.js`（文章插圖積木，kind 只有 cowos／rack／custom）。
 看圖路徑：3D 與 2D 在 `#industry/<鏈>` 或 `#industry/group/<族群 id>` 的剖析圖區（有 3D 場景的有 3D 切換鈕）；題材 2.5D 在 `#heatmap/theme/<題材 id>`（舊 `#themes/<id>` 會導過去）。
 取用方式：文章放對應頁連結＋該頁截圖，或用 `illus`（style:2）重畫；3D 優先。
 
-## 一、3D 場景（three3d.js）—— 20 張，知識題優先從這裡挑
+## 一、3D 場景（three3d.js）—— 21 張，知識題優先從這裡挑
 
 | 圖 id | 名稱 | 類型 | 看得到的路由 | 適合的比比知識 |
 |---|---|---|---|---|
@@ -13,6 +13,7 @@
 | wide_bandgap | 第三代半導體：SiC 與 GaN 功率元件 | 3D | #industry/group/wide_bandgap | SiC／GaN 差在哪 |
 | semiconductor | CoWoS-L 先進封裝（立體剖面） | 3D | #industry/group/ai_adv_packaging | CoWoS（已有 k_cowos，可寫進階版） |
 | hbm | HBM：堆疊記憶體與底下邏輯晶粒 | 3D | #industry/group/hbm | HBM（已有 k_hbm，已上架） |
+| ssd | SSD：一片 M.2 2280 NVMe 固態硬碟（金手指、主控、DRAM、NAND 切開見疊層晶粒） | 3D（另有 2D 俯視＋側視） | #industry/semiconductor/dg/memory_module（族群 memory_module） | SSD 是什麼？ |
 | ic_substrate | IC 載板：ABF 增層剖面 | 3D | #industry/group/ic_substrate | ABF 載板是什麼 |
 | pcb_rigid | PCB 硬板：多層板剖面與四種孔 | 3D（另有 2D） | #industry/group/pcb_rigid | PCB 是什麼、為何高階板吃緊 |
 | ai_server | AI 伺服器機櫃（NVL72 式） | 3D（另有 2D） | #industry/ai_server | AI 機櫃裡有什麼 |
@@ -36,7 +37,7 @@
 | 圖 id | 名稱 | 類型 | 適合的比比知識 |
 |---|---|---|---|
 | cowos | CoWoS 先進封裝：一顆 AI 加速器怎麼做出來 | 2.5D | CoWoS |
-| hbm_memory | HBM 與記憶體：從一顆 DRAM 到一條模組 | 2.5D | HBM、DRAM／SSD 入門（SSD 目前無專屬圖，可借此圖講記憶體分類） |
+| hbm_memory | HBM 與記憶體：從一顆 DRAM 到一條模組 | 2.5D | HBM、DRAM 入門（SSD 改用 3D 的 ssd 那張） |
 | pcb_ccl | 高階 PCB 與 CCL：一片板子怎麼壓出來 | 2.5D | PCB／CCL |
 | glass_substrate | 玻璃基板：下一代封裝載板 | 2.5D | 玻璃基板 |
 | asic_ip | ASIC 與矽智財：一顆客製晶片的組成 | 2.5D | ASIC／IP |
@@ -64,5 +65,5 @@
 
 ## 四、缺口
 
-- SSD／NAND 沒有專屬 3D 或 2.5D 圖（只有 hbm_memory 的記憶體分類），要寫先走 `illus_style.md` 新種類流程或用 `custom`。
+- ~~SSD／NAND 沒有專屬圖~~ → 2026-10-19 已補 3D 場景 `ssd`（規格 `docs/diagram_specs/ssd.md`）。題材 2.5D 仍沒有 SSD 專屬圖。
 - IC 設計、先進製程（GAA）沒有獨立圖，可借 foundry 3D。

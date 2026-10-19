@@ -1414,6 +1414,64 @@
       ],
       pulses: [{ parts: ['gold_finger', 'cage_pressfit', 'st_board', 'st_asic'], period: 2.4, kind: 'sig' }],
     },
+    /* ===== 半導體鏈：SSD（M.2 2280 NVMe），2026-10-19 Andy：「SSD 也要，請繪圖團隊補 3D 圖」 =====
+       規格書 docs/diagram_specs/ssd.md；2D 退路與掛載點是 site/dg/memory_module.js（族群 memory_module）。
+       由左（插槽端）到右（螺絲端）：主機板插槽 → 金手指（M key）→ PMIC／電感／電容 → 主控 → DRAM → NAND ×2 → 半圓螺絲缺口。
+       座標 1 ≈ 1 mm（板子照實際 80 × 22），★ 高度方向誇張約 2.5 倍，畫面標「示意圖，非實物比例」。
+       台股晶片一律用零件自己的 `codes`：環節預設名單比零件廣（例如 storage 環節裡多半是外商、dram_nor 混著 NOR 廠），
+       列錯就是錯誤宣稱。`codes: []` ＝ 明說台股沒有直接對應（DECISIONS #250）。*/
+    ssd: {
+      title: 'SSD：一片 M.2 2280 NVMe 固態硬碟（拆開來看）',
+      sub: '一條 22 × 80 mm 的小板子：左端是插進主機板的金手指（缺口偏一側＝M key），旁邊最大那顆是主控 IC（SSD 的大腦），緊鄰的是 DRAM 快取（便宜的款沒有這顆），往右排開的長方形大封裝是 NAND Flash —— 真正存資料的地方。切開的那一角看得到封裝裡疊了好幾片晶粒，而每一片晶粒裡面又是數百層的 3D 堆疊。右端的半圓缺口是固定螺絲的位置。示意圖，非實物比例（高度方向誇張約 2.5 倍）',
+      camera: [8, 60, 50], target: [-4, 1, 1], fit: 0.74, hk: 0.5,
+      parts: [
+        { seg: 'hdi_pcb', part: 'ssd_pcb', name: 'PCB 板（M.2 2280：寬 22、長 80 mm）', note: '多層板（層數依設計，示意）。防焊綠漆底下是走線：主控 → 金手指的 PCIe 差動對、主控 → NAND 的通道。一端金手指、一端半圓螺絲缺口，這兩個缺口就是 M.2 卡的外形特徵',
+          kind: 'ssdpcb', box: [80, 1, 22], at: [0, 0, 0], chX: -3, chLen: 26,
+          silk: [[-22.5, 0, 13.8, 13.8], [-10.5, 0, 8.8, 12.8], [2, 0, 12.8, 18.8], [16, 0, 12.8, 18.8], [-32.5, -6.5, 4.8, 4.8], [31, 0, 11, 14]],
+          codes: ['3044'], chipnote: '健鼎既有資料寫「記憶體模組板」；是否含 SSD 板未查證' },
+        { seg: 'hdi_pcb', part: 'ssd_finger', name: 'M.2 金手指（M key）', note: '插進主機板的那一端，上下兩面都有接點、兩面錯開半格。缺口偏一側：缺口位置決定插得進哪一種插槽，M key 走 PCIe ×4（NVMe）。鍍金是板廠的製程',
+          kind: 'ssdfinger', box: [4.2, 1.2, 22], at: [-37.9, 0, 0],
+          codes: ['3044'], chipnote: '金手指是板廠的鍍金製程（同 PCB 板）' },
+        { seg: 'storage', part: 'ssd_ctrl', name: '主控 IC（SSD 的大腦）', note: '★ 離金手指最近的那顆大晶片（PCIe 走線越短越好）。負責 PCIe／NVMe 介面、把電腦要的位址對到 NAND 的實體位置（FTL）、ECC 糾錯、磨損平均。晶圓是找晶圓代工廠做的',
+          kind: 'ssdpkg', box: [13, 2.8, 13], at: [-22.5, 1.9, 0], lid: true, bx: 12, bz: 12, ex: [0, 7, 0],
+          codes: ['8299', '2379'], chipnote: '群聯（NAND 控制 IC）、瑞昱（PCIe SSD 控制 IC，比重未揭露）' },
+        { seg: 'dram_nor', part: 'ssd_dram', name: 'DRAM 快取（有／無兩種款）', note: '放 FTL 對照表，主控查位址不必每次去翻 NAND。沒有這顆的「DRAM-less」款改借電腦的主記憶體（HMB），較便宜、重負載時較慢',
+          kind: 'ssdpkg', box: [8, 2.2, 12], at: [-10.5, 1.6, 0], bx: 6, bz: 9, ex: [0, 7, 0],
+          codes: ['2408', '3006'], chipnote: '這個環節做 DRAM 的兩家（未逐家查證是否供 SSD 快取）' },
+        { seg: 'storage', part: 'ssd_nand', name: 'NAND Flash 封裝（×2，切開一角）', note: '真正存資料的地方，斷電也不會忘。顆數依容量而定，大容量款背面也會貼。一顆封裝裡疊了好幾片晶粒（切開那一角看得到）',
+          kind: 'ssdnand', box: [12, 3.4, 18], at: [9, 2.2, 0], n: 2, gap: 14, axis: 'x', ex: [0, 8, 0],
+          codes: ['6239', '8150'], chipnote: '這兩家做 NAND 的封裝測試，不是 NAND 晶圓' },
+        { seg: 'storage', part: 'ssd_nand_die', name: '封裝裡疊起來的 NAND 晶粒', note: '★ 一片一片往同一側錯開成階梯，才能從每一階拉金線打到基板。圖上 8 片為示意（實際 4～16 片依容量）。每一片晶粒「裡面」又是 200～400 層以上的 3D 堆疊 —— 那是微米級，這個尺度看不到',
+          kind: 'ssdstack', box: [12, 3.4, 18], at: [9, 2.2, 0], layers: 8, n: 2, gap: 14, axis: 'x', ex: [0, 17, 0],
+          codes: [], chipnote: '3D NAND 晶圓由 Kioxia、Samsung、SK hynix、Micron、SanDisk 生產' },
+        { seg: 'ic_design', part: 'ssd_pmic', name: 'PMIC 電源管理 IC', note: '電從金手指進來先到這一區：把主機給的 3.3V 轉成主控、NAND、DRAM 各自要的電壓，旁邊那顆方塊是它的電感',
+          kind: 'ssdpkg', box: [4, 1.6, 4], at: [-32.5, 1.3, -6.5], leads: true, ex: [0, 6, 0],
+          codes: [], chipnote: 'SSD 用 PMIC 公開資料多為外商；台股 PMIC 廠的 SSD 營收查不到' },
+        { seg: 'passive_inductor', part: 'ssd_ind', name: '電源電感', note: 'PMIC 做降壓轉換一定要搭的那顆（一體成型、深灰方塊）',
+          kind: 'ssdind', box: [3.4, 2.2, 3.4], at: [-32.5, 1.6, -1.4], ex: [0, 6, 0] },
+        { seg: 'passive_comp', part: 'ssd_mlcc', name: '去耦電容（MLCC）', note: '一排米白色小方塊：穩住主控與 NAND 的供電，吸掉瞬間的電流波動。實際板上有幾十顆，這裡畫一排示意',
+          kind: 'mlccchip', box: [1.1, 0.9, 0.6], at: [-29.4, 0.95, 9.4], n: 6, gap: 1.8, axis: 'x', ex: [0, 5, 0],
+          codes: ['2327', '2492', '6173', '3026'] },
+        /* 散熱片放在板子**後面**當配件，不疊在晶片上：疊上去（即使半透明）會擋住點晶片的射線，
+           點主控卻選到散熱片；而且很多款根本沒有它。*/
+        { seg: 'thermal', part: 'ssd_hs', name: '散熱片（選配，放在旁邊）', note: '高速款（PCIe 4.0／5.0）主控很燙，常加一片鋁散熱片，底下墊導熱墊貼在晶片上。很多款沒有，所以畫成擺在旁邊的配件，不裝上去',
+          kind: 'ssdhs', box: [66, 2.6, 18], at: [-4, 1.3, -24], ex: [0, 8, -4],
+          codes: [], chipnote: 'SSD 散熱片多由模組廠自配' },
+        { seg: 'connector', part: 'ssd_socket', name: '主機板上的 M.2 插槽', note: '板子斜插進這個口、尾端用螺絲壓平。口裡有一根擋塊跟金手指的缺口對齊 —— key 不對就插不進去',
+          kind: 'ssdsock', box: [5, 4, 25], at: [-46, 0, 0], slotY: 0, ex: [-9, 0, 0],
+          codes: ['3533'], chipnote: '嘉澤有 M.2 插槽料號（信心中）' },
+      ],
+      /* 流線：PCIe 訊號是**差動對**（兩條並排），金手指 → 主控；主控 → 兩顆 NAND 各一條通道；
+         電力從金手指進 PMIC。全部掛在 PCB 板上（板子不動，流線就不會在爆炸時懸空）。*/
+      flows: [
+        { kind: 'sig', part: 'ssd_pcb', r: 0.24, per: 10, speed: 0.6, bidir: true, pts: [[-37, 0.75, 1.6], [-32, 0.75, 1.6], [-29.5, 0.9, 1.6]] },
+        { kind: 'sig', part: 'ssd_pcb', r: 0.24, per: 10, speed: 0.6, bidir: true, pts: [[-37, 0.75, 2.4], [-32, 0.75, 2.4], [-29.5, 0.9, 2.4]] },
+        { kind: 'sig', part: 'ssd_pcb', r: 0.24, per: 10, speed: 0.5, bidir: true, pts: [[-16, 0.8, 7.4], [-4, 0.8, 7.6], [2, 0.8, 9.4]] },
+        { kind: 'sig', part: 'ssd_pcb', r: 0.24, per: 10, speed: 0.5, bidir: true, pts: [[-16, 0.8, -7.4], [0, 0.8, -7.6], [16, 0.8, -9.4]] },
+        { kind: 'pwr', part: 'ssd_pcb', r: 0.26, per: 8, speed: 0.35, pts: [[-37, 0.75, -6.5], [-34.8, 0.8, -6.5]] },
+        { kind: 'pwr', part: 'ssd_pcb', r: 0.26, per: 8, speed: 0.35, pts: [[-30.3, 0.8, -6.5], [-27, 0.8, -8.6], [-16, 0.8, -9]] },
+      ],
+    },
   };
 
   function hasScene(id) { return !!SCENES[id]; }
@@ -1532,6 +1590,8 @@
        ⚠ 這幾支的建造函式幾乎每一塊都自己明講模組色 token，所以這裡的材質族主要是在決定
           PBR 手感（金屬度／粗糙度）與沒寫顏色那幾塊的底色，不是在決定主色。*/
     hsasic: 'si', hscage: 'metal', hstongue: 'plastic', hspin: 'organic', hsfly: 'emc', hsslot: 'plastic',
+    /* SSD（2026-10-19）：板子走 pcb（墨綠），晶片走 emc（石墨灰模封），晶粒走 si，散熱片走 alu，插槽走 plastic */
+    ssdpcb: 'pcb', ssdfinger: 'cu', ssdpkg: 'emc', ssdnand: 'emc', ssdstack: 'si', ssdind: 'emc', ssdhs: 'alu', ssdsock: 'plastic',
   };
   /* 角色 → 顏色 token（科技 v3 的五色系，docs/diagram_style_tech_v3.md §2；
      閱讀模式（v9，docs/diagram_refs/README.md）是同名 token 的中飽和值＋約 40% 柔光，不是灰粉彩）
@@ -8537,6 +8597,235 @@
       return mcRailSet(K, [[0, 0, 0]], h, d, w, 'yz');
     }
 
+    /* ================================================================ SSD（M.2 2280 NVMe，2026-10-19）
+       規格書 docs/diagram_specs/ssd.md。座標 1 單位 ≈ 1 mm：板子照實際 80 × 22，
+       ★ 高度方向誇張約 2.5 倍（晶片實際只有 1～1.5 mm 高，照實畫在 80 mm 長的板子上會看不出是晶片）。
+       這一批全部是**多出來的詞**，舊的一個都沒有動。*/
+    const SSD_NOTCH_Z = 5.3;            // M key 缺口中心（世界 z）。金手指與板子外形共用這一個數字，兩邊才對得上
+    const SSD_NOTCH_W = 1.3;
+    /* PCB 板：外形不是長方形 —— 一端有 M key 缺口、一端是半圓螺絲缺口（2280 的固定孔位）。
+       這兩個缺口就是「M.2 卡」跟「一片普通小板子」的差別，所以外形用 Shape 擠出，不用方塊。
+       板面：防焊綠漆底下看得到的走線（PCIe 差動對、NAND 通道）、導通孔、零件絲印框。*/
+    function ssdPcb(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const x0 = -w / 2, x1 = w / 2, y0 = -d / 2, y1 = d / 2, r = p.screwR || 1.75;
+      const ns = -SSD_NOTCH_Z, nh = SSD_NOTCH_W / 2, nd = p.notchDepth || 4.2;   // shape 的 y ＝ 世界的 −z（見下面的 rotateX）
+      const s = new T.Shape();
+      s.moveTo(x0, y0); s.lineTo(x1, y0); s.lineTo(x1, -r);
+      s.absarc(x1, 0, r, -Math.PI / 2, Math.PI / 2, true);      // 半圓螺絲缺口：往板內挖
+      s.lineTo(x1, y1); s.lineTo(x0, y1);
+      // 左緣（金手指端）由上往下走，經過 M key 缺口（ns＋nh 比 ns−nh 大，所以先到上緣）
+      s.lineTo(x0, ns + nh); s.lineTo(x0 + nd, ns + nh); s.lineTo(x0 + nd, ns - nh); s.lineTo(x0, ns - nh);
+      s.lineTo(x0, y0);
+      const geo = new T.ExtrudeGeometry(s, { depth: h, bevelEnabled: false, curveSegments: 10 });
+      geo.rotateX(-Math.PI / 2);         // 擠出方向（shape 的 z）→ 世界 y；shape 的 y → 世界 −z
+      geo.translate(0, -h / 2, 0);
+      const board = new T.Mesh(geo, K.mat(0, { rough: 0.5 }));
+      g.add(board);
+      g.add(aoPad(K, w * 0.96, d * 0.96, -h / 2 - 0.6));
+      const top = h / 2 + 0.02;
+      // 防焊漆底下的走線：比板子亮一階的細條（不是金色 —— 金色是露在外面的金手指）
+      const tr = [];
+      for (let i = 0; i < 4; i++) [-1, 1].forEach(sg => {           // PCIe ×4：四組差動對，金手指 → 主控
+        const z = 0.4 + i * 1.05 + sg * 0.17;
+        tr.push([7.4, 0.04, 0.12, x0 + 7.6, top, z]);
+      });
+      [[3.6, 6.2], [-7.6, -5.0]].forEach(([za, zb]) => {             // NAND 通道：主控 → 兩顆 NAND（各一束）
+        for (let i = 0; i < 6; i++) { const z = za + (zb - za) * i / 5; tr.push([p.chLen || 18, 0.04, 0.1, (p.chX || -6), top, z]); }
+      });
+      for (let i = 0; i < 5; i++) tr.push([0.12, 0.04, 6.5, x0 + 4.9 + i * 0.5, top, -6.0]);   // 電源區的寬銅面引出
+      g.add(mboxes(tr, K.mat(0.22, { rough: 0.45 })));
+      // 導通孔：一圈銅環中間一個暗點
+      const vias = [];
+      for (let i = 0; i < 26; i++) {
+        const vx = x0 + 9 + ((i * 37) % 62), vz = -9.2 + ((i * 53) % 184) / 10;
+        if (Math.abs(vz) < 7.2 && vx > -30 && vx < -15) continue;   // 主控底下不放（被 BGA 蓋住看不到）
+        vias.push([vx, top, vz]);
+      }
+      g.add(instOf(new T.CylinderGeometry(0.22, 0.22, 0.05, 8), K.mat(0, { color: K.css('--dg-cu', '#b0743a'), metal: 0.74, rough: 0.3 }), vias));
+      g.add(instOf(new T.CylinderGeometry(0.1, 0.1, 0.06, 6), K.mat(0, { color: K.css('--dg-edge', '#0e1526'), rough: 0.95, metal: 0.02 }), vias.map(v => [v[0], v[1] + 0.01, v[2]])));
+      // 絲印框：每一顆零件的位置（主控、DRAM、兩顆 NAND、PMIC）＋ 板尾的容量標示區
+      if (p.silk) g.add(silk(K, w, d, top + 0.01, p.silk));
+      // 螺絲缺口周圍的接地銅環（露銅、沒有綠漆）
+      const ring = new T.RingGeometry(r, r + 0.7, 18, 1, Math.PI / 2, Math.PI);
+      ring.rotateX(-Math.PI / 2); ring.translate(x1, top + 0.01, 0);
+      g.add(new T.Mesh(ring, K.mat(0, { color: K.css('--dg-sw-gold', '#d8b25a'), metal: 0.85, rough: 0.26 })));
+      return g;
+    }
+    /* 金手指：上下兩面都有、一面約 37 根、間距約 0.5 mm（示意），上下兩面錯開半格；
+       M key 缺口那一段沒有手指。前緣倒角（一片更薄的）—— 少了倒角看起來就只是一排小方塊。*/
+    function ssdFinger(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const au = K.mat(0.55, { color: K.css('--dg-sw-gold', '#d8b25a'), metal: 0.88, rough: 0.2 });
+      const pitch = p.pitch || 0.56, fw = pitch * 0.62, fl = w * 0.86, t = 0.06;
+      const at = [];
+      [1, -1].forEach(face => {
+        const off = face > 0 ? 0 : pitch / 2;                // 上下兩面錯開半格（M.2 的奇偶腳位分在兩面）
+        for (let z = -d / 2 + 0.5 + off; z <= d / 2 - 0.5; z += pitch) {
+          if (Math.abs(z - SSD_NOTCH_Z) < SSD_NOTCH_W / 2 + 0.3) continue;   // M key 缺口
+          at.push([-w / 2 + fl / 2 + 0.05, face * (h / 2 - 0.08), z, 0, 0, face > 0 ? 0 : Math.PI]);
+        }
+      });
+      const fb = new T.BoxGeometry(fl, t, fw);
+      const tip = new T.BoxGeometry(fl * 0.16, t * 0.5, fw); tip.translate(-fl * 0.56, -t * 0.25, 0);
+      g.add(instOf(mergeGeos([fb, tip]), au, at));
+      return g;
+    }
+    /* 一般 BGA 晶片（主控、DRAM、PMIC 共用）：封裝基板 ＋ 模封 ＋ 第 1 腳圓點 ＋ 周圍露出的錫球。
+       p.lid：主控常見的金屬散熱頂蓋（鎳色）；p.leads：QFN 那種四邊小焊腳（PMIC）。*/
+    function ssdPkg(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const sh = h * 0.2, mh = h * (p.lid ? 0.52 : 0.72);
+      const subY = -h / 2 + sh / 2 + h * 0.06;
+      if (!p.leads) g.add(put(box(w, sh, d, K.mat(0, { color: K.css('--dg-core', '#3f4a30'), rough: 0.72, metal: 0.08 })), 0, subY, 0));
+      const moldY = p.leads ? -h / 2 + mh / 2 : subY + sh / 2 + mh / 2;
+      g.add(put(box(w * (p.leads ? 1 : 0.96), mh, d * (p.leads ? 1 : 0.96), K.mat(0, { color: K.css('--dg-emc', '#2f3039'), rough: 0.6, metal: 0.1 })), 0, moldY, 0));
+      let topY = moldY + mh / 2;
+      if (p.lid) {
+        const lh = h * 0.18;
+        g.add(put(box(w * 0.78, lh, d * 0.78, K.mat(0, { color: K.css('--dg-ni', '#a9b1b9'), metal: 0.8, rough: 0.3 })), 0, topY + lh / 2, 0));
+        topY += lh;
+      } else {
+        // 雷射刻字區：一塊略亮的長方形（不寫任何真實廠牌字樣）
+        g.add(put(box(w * 0.56, 0.03, d * 0.22, K.mat(0.25, { color: K.css('--dg-emc', '#2f3039'), rough: 0.8, metal: 0.05 })), 0, topY + 0.015, d * 0.08));
+      }
+      g.add(put(cyl(Math.min(w, d) * 0.045, 0.05, K.mat(0, { color: K.css('--dg-cover', '#ddd6c2'), rough: 0.9, metal: 0.02 }), 10),
+        -w * 0.36, topY + 0.03, -d * 0.36));
+      if (p.leads) {
+        const sn = K.mat(0, { color: K.css('--dg-sn', '#e2e7ec'), metal: 0.6, rough: 0.34 });
+        const n = 5, pl = [];
+        for (let i = 0; i < n; i++) {
+          const o = (-(n - 1) / 2 + i) * (w * 0.8 / n);
+          pl.push([0.3, h * 0.18, 0.42, -w / 2 - 0.1, -h / 2 + h * 0.09, o], [0.3, h * 0.18, 0.42, w / 2 + 0.1, -h / 2 + h * 0.09, o],
+            [0.42, h * 0.18, 0.3, o, -h / 2 + h * 0.09, -d / 2 - 0.1], [0.42, h * 0.18, 0.3, o, -h / 2 + h * 0.09, d / 2 + 0.1]);
+        }
+        g.add(mboxes(pl, sn));
+        return g;
+      }
+      // 錫球：封裝底面一整片，邊緣那一圈看得到（中間被封裝擋住，畫外圈就夠）
+      const nx = p.bx || 10, nz = p.bz || 10, px = w * 0.9 / nx, pz = d * 0.9 / nz, rb = Math.min(px, pz) * 0.32;
+      const out = gridXZ(nx, nz, px, pz, -h / 2 + h * 0.03).filter((a, i) => {
+        const ix = Math.floor(i / nz), iz = i % nz;
+        return ix < 2 || iz < 2 || ix >= nx - 2 || iz >= nz - 2;
+      });
+      const bg = new T.SphereGeometry(rb, 8, 6); bg.scale(1, Math.min(1, (h * 0.07) / rb), 1);
+      g.add(instOf(bg, K.mat(0.35, { color: K.css('--dg-sn', '#e2e7ec'), metal: 0.6, rough: 0.35 }), out));
+      return g;
+    }
+    /* NAND 封裝：基板 ＋ 錫球 ＋ 模封，**切掉 x > 0、z > 0 那一角**（切法跟 MLCC／HBM 一致），
+       露出裡面那一疊晶粒（晶粒本身是另一個零件 ssd_nand_die，爆炸時會往上抽出來）。*/
+    function ssdNand(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const sh = h * 0.14, y0 = -h / 2 + h * 0.05;
+      g.add(put(box(w, sh, d, K.mat(0, { color: K.css('--dg-core', '#3f4a30'), rough: 0.72, metal: 0.08 })), 0, y0 + sh / 2, 0));
+      // 基板上的打線墊（+x 那一側一排，金線落在這裡）
+      const pads = [];
+      for (let i = 0; i < 9; i++) pads.push([0.5, 0.04, 0.6, w * 0.42, y0 + sh + 0.02, -d * 0.36 + i * d * 0.09]);
+      g.add(mboxes(pads, K.mat(0.3, { color: K.css('--dg-sw-gold', '#d8b25a'), metal: 0.85, rough: 0.25 })));
+      const mold = K.mat(0, { color: K.css('--dg-emc', '#2f3039'), rough: 0.62, metal: 0.1 });
+      const my0 = y0 + sh, my1 = h / 2;
+      g.add(mboxes(lspec(-w / 2 * 0.98, w / 2 * 0.98, my0, my1, -d / 2 * 0.98, d / 2 * 0.98, 0), mold));
+      // 切面描一圈亮邊：一眼看出「這裡是切開的」，不是缺了一塊
+      const cut = K.mat(0.4, { color: K.css('--dg-emc', '#2f3039'), rough: 0.7, metal: 0.05 });
+      g.add(mboxes([[w / 2 * 0.98, 0.06, 0.06, w / 4 * 0.98, my1, 0], [0.06, 0.06, d / 2 * 0.98, 0, my1, d / 4 * 0.98],
+        [0.06, my1 - my0, 0.06, 0, (my0 + my1) / 2, 0]], cut));
+      g.add(put(cyl(Math.min(w, d) * 0.04, 0.05, K.mat(0, { color: K.css('--dg-cover', '#ddd6c2'), rough: 0.9, metal: 0.02 }), 10),
+        -w * 0.36, my1 + 0.03, -d * 0.38));
+      const nx = 8, nz = 12, px = w * 0.86 / nx, pz = d * 0.86 / nz, rb = Math.min(px, pz) * 0.3;
+      const bg = new T.SphereGeometry(rb, 8, 6); bg.scale(1, Math.min(1, (h * 0.05) / rb), 1);
+      g.add(instOf(bg, K.mat(0.35, { color: K.css('--dg-sn', '#e2e7ec'), metal: 0.6, rough: 0.35 }), gridXZ(nx, nz, px, pz, y0 - h * 0.02)));
+      return g;
+    }
+    /* 封裝裡的晶粒堆疊：p.layers 片晶粒，每片往 −x 錯開一階（階梯），露出 +x 側的打線墊；
+       每片之間一層薄的黏晶膜（DAF）；金線從每一階的墊子拉到基板的打線墊。
+       ⚠ 每一片晶粒「裡面」還有數百層 3D NAND 結構 —— 那是微米級，這個尺度畫不出來，卡片上講。*/
+    function ssdStack(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const n = p.layers || 8;
+      const sh = h * 0.14, y0 = -h / 2 + h * 0.05 + sh;           // 跟 ssdNand 的基板頂面對齊
+      const avail = h / 2 - y0 - h * 0.08;
+      const dieH = avail / n * 0.78, dafH = avail / n * 0.22;
+      const dw = w * 0.7, dd = d * 0.8, step = w * 0.028;
+      const dies = [], daf = [], padL = [], wires = [];
+      for (let i = 0; i < n; i++) {
+        const yb = y0 + i * (dieH + dafH);
+        const cx = w * 0.06 - i * step;
+        daf.push([dw, dafH, dd, cx, yb + dafH / 2, 0]);
+        dies.push([dw, dieH, dd, cx, yb + dafH + dieH / 2, 0]);
+        const ex = cx + dw / 2, yt = yb + dafH + dieH;
+        padL.push([0.36, 0.03, dd * 0.9, ex - 0.26, yt + 0.015, 0]);
+        for (let k = 0; k < 6; k++) {
+          const z = -dd * 0.4 + k * dd * 0.16;
+          const a = new T.Vector3(ex - 0.26, yt + 0.02, z), b = new T.Vector3(w * 0.42, y0 + 0.02, z);
+          const m = new T.Vector3((a.x + b.x) / 2 + 0.3, a.y + 0.5, z);
+          wires.push(new T.TubeGeometry(new T.QuadraticBezierCurve3(a, m, b), 8, 0.035, 3, false));
+        }
+      }
+      g.add(mboxes(dies, K.mat(0.08, { color: K.css('--dg-si', '#33488a'), metal: 0.35, rough: 0.32 })));
+      g.add(mboxes(daf, K.mat(0, { color: K.css('--dg-cover', '#ddd6c2'), rough: 0.85, metal: 0.02 })));
+      g.add(mboxes(padL, K.mat(0.3, { color: K.css('--dg-ni', '#a9b1b9'), metal: 0.8, rough: 0.3 })));
+      g.add(new T.Mesh(mergeGeos(wires), K.mat(0.5, { color: K.css('--dg-sw-gold', '#d8b25a'), metal: 0.9, rough: 0.22 })));
+      return g;
+    }
+    /* 一體成型電源電感：深灰方塊 ＋ 底下兩片端電極（SSD 上那種，不是開放繞線的鼓型）。*/
+    function ssdInd(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      g.add(put(box(w, h * 0.92, d, K.mat(0, { color: K.css('--dg-el', '#4e5866'), rough: 0.78, metal: 0.16 })), 0, h * 0.04, 0));
+      const cu = K.mat(0, { color: K.css('--dg-sn', '#e2e7ec'), metal: 0.6, rough: 0.34 });
+      [-1, 1].forEach(s => g.add(put(box(w * 0.24, h * 0.5, d * 0.8, cu), s * (w / 2 - w * 0.1), -h * 0.2, 0)));
+      return g;
+    }
+    /* 散熱片（選配）：一片鋁底板 ＋ 縱向鰭片 ＋ 底下一層導熱墊。p.ghost 時整組半透明，看得到下面的晶片。*/
+    function ssdHs(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const base = box(w, h * 0.3, d, K.mat(0, { color: K.css('--dg-m-hs', '#a3b2c4'), metal: 0.7, rough: 0.42 }));
+      put(base, 0, -h * 0.35, 0); if (p.ghost) edge(base, K, 0.6); g.add(base);
+      const fins = [], nf = 9;
+      for (let i = 0; i < nf; i++) fins.push([w * 0.96, h * 0.7, d * 0.04, 0, h * 0.15, (-(nf - 1) / 2 + i) * d * 0.105]);
+      const fm = mboxes(fins, K.mat(0.1, { color: K.css('--dg-m-hs', '#a3b2c4'), metal: 0.7, rough: 0.42 }));
+      if (p.ghost) edge(fm, K, 0.45);
+      g.add(fm);
+      g.add(put(box(w * 0.9, h * 0.08, d * 0.9, K.mat(0, { color: K.css('--dg-cover', '#ddd6c2'), rough: 0.9, metal: 0.02 })), 0, -h * 0.54, 0));
+      return g;
+    }
+    /* 主機板上的 M.2 插槽：黑色塑膠殼 ＋ 朝 +x 開的插槽口 ＋ 口內上下兩排彈片 ＋ 底下焊腳。
+       插槽口也有 M key 的那根擋塊（跟板子的缺口同一個 z），插錯 key 就插不進去。*/
+    function ssdSock(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const pl = K.mat(0, { color: K.css('--dg-m-graphite', '#3A3F47'), rough: 0.66, metal: 0.08 });
+      const slotH = 1.4, slotY = (p.slotY || 0), slotD = w * 0.62;
+      // 殼：上蓋、下座、兩側擋牆、背板（開口朝 +x）
+      const yTop = slotY + slotH / 2, yBot = slotY - slotH / 2;
+      g.add(mboxes([[w, h / 2 - yTop, d, 0, (h / 2 + yTop) / 2, 0],
+        [w, yBot + h / 2, d, 0, (-h / 2 + yBot) / 2, 0],
+        [w, slotH, d * 0.04, 0, slotY, -d / 2 + d * 0.02], [w, slotH, d * 0.04, 0, slotY, d / 2 - d * 0.02],
+        [w - slotD, slotH, d, -w / 2 + (w - slotD) / 2, slotY, 0],
+        [slotD, slotH, SSD_NOTCH_W * 0.8, w / 2 - slotD / 2, slotY, SSD_NOTCH_Z]], pl));   // M key 擋塊
+      // 口內彈片：上下兩排，鍍金接觸點朝口內
+      const au = K.mat(0.4, { color: K.css('--dg-sw-gold', '#d8b25a'), metal: 0.88, rough: 0.22 });
+      const at = [];
+      for (let z = -d / 2 + 1.2; z <= d / 2 - 1.2; z += 0.56) {
+        if (Math.abs(z - SSD_NOTCH_Z) < SSD_NOTCH_W) continue;
+        at.push([w / 2 - slotD * 0.45, slotY + slotH / 2 - 0.12, z], [w / 2 - slotD * 0.45, slotY - slotH / 2 + 0.12, z + 0.28]);
+      }
+      g.add(instOf(new T.BoxGeometry(slotD * 0.7, 0.08, 0.26), au, at));
+      // 焊腳：殼的後緣一排、兩端各一個固定腳
+      const sn = K.mat(0, { color: K.css('--dg-sn', '#e2e7ec'), metal: 0.6, rough: 0.34 });
+      const tails = [];
+      for (let z = -d / 2 + 1.5; z <= d / 2 - 1.5; z += 1.12) tails.push([1.1, 0.12, 0.24, -w / 2 - 0.45, -h / 2 + 0.06, z]);
+      tails.push([1.6, 0.3, 1.4, 0, -h / 2 + 0.15, -d / 2 - 0.5], [1.6, 0.3, 1.4, 0, -h / 2 + 0.15, d / 2 + 0.5]);
+      g.add(mboxes(tails, sn));
+      return g;
+    }
+
     return { plain, rack, backplane, tray, gpu, chip, hbm, pcb, laminate, cdu, uqd, fan, psu, battery,
       optic, switch: switchBox, substrate, balls, rdl, bridge, die, probe, lid,
       // 兩種模式（DECISIONS #238）的共用件：圓角方塊、流線、粒子貼圖
@@ -8597,6 +8886,8 @@
       mthead: mtHead, mtspindle: mtSpindle, mttool: mtTool, mtmag: mtMag, mtatc: mtAtc,
       mtcab: mtCab, mtconv: mtConv, mtscrewy: mtScrewY, mtraily: mtRailY,
       mtmoty: mtMotY, mtbear: mtBear,
+      /* ---- SSD（M.2 2280 NVMe，2026-10-19）。同樣是**多出來的詞**，舊的一個都沒有動。*/
+      ssdpcb: ssdPcb, ssdfinger: ssdFinger, ssdpkg: ssdPkg, ssdnand: ssdNand, ssdstack: ssdStack, ssdind: ssdInd, ssdhs: ssdHs, ssdsock: ssdSock,
       _cylX: cylX, _halfBore: halfBore, _halfTubeY: halfTubeY, _halfTubeX: halfTubeX };
   }
 
