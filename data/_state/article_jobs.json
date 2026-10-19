@@ -1,19 +1,6 @@
 {
- "updated": "2026-10-19 16:17",
+ "updated": "2026-10-19 16:18",
  "jobs": [
-  {
-   "id": 16,
-   "topic_id": "sch-20261019-06-r1-intro-3",
-   "kind": "article",
-   "title": "AI 資料中心網通鏈：從晶片到線纜",
-   "note": "排程自動排入（規則 1，台北 2026-10-19 06:00）；建議主題 i_ai_networking",
-   "status": "queued",
-   "created": 1792382342790,
-   "updated": 1792382342790,
-   "result": null,
-   "stage": null,
-   "stage_at": null
-  },
   {
    "id": 18,
    "topic_id": "sch-20261019-06-r1-know-2",
