@@ -194,26 +194,7 @@ def header(o, im, reg, sid, data_date):
         d.rounded_rectangle([hx - 4, yb + th2 * 0.55, hx + hw + 4, yb + th2 + 6], 6, fill=YEL + (230,))
     d.text((x - bb2[0], yb - bb2[1]), title, font=ft, fill=INK)
     reg.add("標題", (x - 4, yb, x + tw2 + 4, yb + th2 + 6))
-    lines = [f"網站實際畫面・資料日 {data_date}", "畫面為歷史資料，僅供功能展示，不代表未來表現"]
-    if o.dev == "d":
-        yy = 14
-        boxes = []
-        for s in lines:
-            w_, h_, b_ = tsize(fs, s)
-            xx = o.W - 30 - w_
-            d.text((xx - b_[0], yy - b_[1]), s, font=fs, fill=MUTED)
-            boxes.append((xx, yy, xx + w_, yy + h_))
-            yy += 34
-        reg.add("右上說明", (min(b[0] for b in boxes), boxes[0][1], o.W - 30, boxes[-1][3]))
-    else:
-        s = lines[0] + "｜" + "歷史資料，不代表未來表現"
-        w_, h_, b_ = tsize(fs, s)
-        xx = (o.W - w_) / 2
-        yy = 118
-        d.text((xx - b_[0], yy - b_[1]), s, font=fs, fill=MUTED)
-        reg.add("上方說明", (xx, yy, xx + w_, yy + h_))
-        reg.text_in("上方說明", (xx, yy, xx + w_, yy + h_), (0, 0, o.W, o.H), 20)
-
+    # Andy 10-19：「後續影片都不要出現這種備註」→ 第 2 支起不放右上角的資料日／歷史資料角標（法遵由片尾免責卡承擔）
 
 def nav(o, im, reg, sid):
     if not o.nav:
@@ -514,7 +495,11 @@ def cam_track(o, meta, sid=""):
     fcur = None
     last_id = None
     ytop = 0 if sid == "guide" else 56 * dsf   # 引導段要看得到頂欄的選單鈕
-    for k, c in enumerate(meta["cams"]):
+    cams_in = list(meta["cams"])
+    first = next((i for i, c in enumerate(cams_in[:6]) if c[0] != 0), None)
+    if first:   # 開錄第一格還沒設定鏡頭（cam_id 0）：沿用緊接著設定的鏡頭，不閃一格整頁
+        cams_in[:first] = [cams_in[first]] * first
+    for k, c in enumerate(cams_in):
         cid, r = c[0], c[1:]
         full = r[2] >= W0 - 2 and r[3] >= H0 - 2
         fbs = meta.get("fabs") or []
