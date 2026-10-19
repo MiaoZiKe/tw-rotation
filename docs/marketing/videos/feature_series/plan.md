@@ -17,3 +17,13 @@ Andy 原話：「我目前網頁功能眾多，需要針對不同的功能做影
 每支：網頁 1920×1080＋手機 1080×1920；比比主持（依情境換表情／動作）；真人操作感（滑動、點圖表、篩選、計算範例）；畫面只留介紹中的區塊（裁切放大，參考 Andy 圖二）；每支做完先給 Andy 確認，再做下一支。
 
 **2026-10-19 Andy：「比比用泡泡講話 好點」** → 本系列比比主持、台詞放對話泡泡（＝字幕），不配旁白人聲，配輕快底樂；泡泡文字專業講解口吻、一泡一句。（這系列不適用 video_rules_1018 第 2 條「比比不說話、不出對話泡泡」。）
+
+## 素材與規範路徑（Andy 2026-10-19 指定）
+
+| 用途 | 路徑 |
+|---|---|
+| 比比主要素材庫 | `docs/anim/bibi_library/` |
+| 比比基礎姿勢庫 | `docs/anim/bibi_basepose_1012/` |
+| 素材索引 | `docs/anim/bibi_library/index.md` |
+| 比比角色標準參考圖 | `docs/anim/bibi_library/reference/parts_sheet_1011.webp` |
+| IG／Threads 視覺與編輯規範 | `docs/social_handoff/style/LIGULIGU_IG_Threads_Style_Guide.md`（貼文、封面一律照這份：奶油紙底 #FFF9EF、深咖啡字 #321A14、珊瑚／蜜桃／淡黃強調） |
