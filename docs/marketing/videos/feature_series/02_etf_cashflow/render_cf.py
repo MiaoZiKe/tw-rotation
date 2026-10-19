@@ -548,6 +548,8 @@ def cam_track(o, meta, sid=""):
         else:
             a = 0.16 if cid == last_id else 0.12
             cur = cur + (tgt - cur) * a
+            if fb:   # 平滑移動途中也不可以帶到客服鈕
+                cur = avoid_fab(o, cur, fb, r, ytop)
         if fr is None:
             fcur = None
         elif fcur is None or cid != last_id and fcur is None:
@@ -766,7 +768,9 @@ def render(dev, only=None, seg=None):
         if fb and f is not None:   # 網站右下角客服鈕（錄影內建）不可壓到這一句在介紹的區塊（layout_rules 第 8 條）
             ix = min(fb[0] + fb[2], f[0] + f[2]) - max(fb[0], f[0])
             iy = min(fb[1] + fb[3], f[1] + f[3]) - max(fb[1], f[1])
-            if ix > 0 and iy > 0:
+            vx = min(fb[0] + fb[2], cx + cw) - max(fb[0], cx)   # 客服鈕有入鏡才算（鏡頭已避開客服鈕時看不到它）
+            vy = min(fb[1] + fb[3], cy + ch) - max(fb[1], cy)
+            if ix > 0 and iy > 0 and vx > 0 and vy > 0:
                 raw_view["fab_hit"] = int(ix * iy)
         if f is not None:      # 介紹中的區塊以外淡化（奶油色 55%），區塊外圍一圈藍框
             sx, sy = o.pw / cw, o.ph / ch
