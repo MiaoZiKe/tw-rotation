@@ -459,6 +459,7 @@ def m_sheet(a, g, v, label=""):
         else:
             a.pg.keyboard.press("Escape")
         a.wait(600)
+    a.move(386, a.y, 250)   # 手指移到右側頁邊（空白處），不停在任何一列上
 
 
 SAFE_BACK_JS = r"""() => { const bk = document.querySelector('.msheetback'), sh = document.getElementById('mSheet'); if (!bk || !sh) return null;
@@ -625,12 +626,13 @@ def m_ret(pg, a, start):
     a.cam(["#etfRetCard .row.spread", "#etfRetBody .retcharts > div:first-child"], 6, "報酬比較")
     a.say("第三站：報酬比較", "point_r_v2")
     a.hover("#etfRetCard h3", 600)
-    a.say("期間可選近 1、3、5、10 年或上市以來", "talk_explain_v2")
-    a.scroll(by=-130, ms=700)
-    a.cam_view("設定抽屜")
+    a.say("期間在上方設定列，可選近 1～10 年", "talk_explain_v2")
+    a.cam([".m4ctlrow", ".m4trisg"], 6, "設定列")
+    a.scroll_to_el(".m4ctlrow", 150, 1200)
     m_sheet(a, "rng", "custom", "起始日期～至今")
+    a.cam(["#etfRetCard .row.spread", "#etfRngBox", "#etfRetCtl"], 6, "日期列")
+    a.scroll_to_el("#etfRetCard", 110, 1300)
     a.say("選「起始日期～至今」可自訂區間", "point_ur_v2")
-    a.cam(["#etfRetCard .row.spread", "#etfRngBox", "#etfRetBody .retcharts > div:first-child"], 6, "日期列")
     b = a.box("#etfRng .rpfrom")
     if b:
         a.click_xy(b["x"] + b["width"] / 2, b["y"] + b["height"] / 2, 500, 250, expect="#etfRng .rpfrom")
@@ -670,10 +672,12 @@ def m_ret(pg, a, start):
     a.say("下圖：並列每一檔的年化報酬率", "point_dr_v2")
     a.hover("#etfRetBar", 700, 0.5, 0.3)
     a.say("切換含息／不含息，看報酬多少來自配息", "talk_explain_v2")
-    a.cam_view("設定抽屜")
+    a.cam([".m4ctlrow", ".m4trisg"], 6, "設定列")
+    a.scroll_to_el(".m4ctlrow", 150, 1200)
     m_sheet(a, "basis", "price", "不含息")
     a.cam(["#etfRetBody .retcharts > div:last-child"], 6, "年化報酬率")
-    a.wait(500)
+    a.scroll_to_el("#etfRetBody .retcharts > div:last-child", 120, 1300)
+    a.wait(400)
     a.say("兩者差距越大，報酬越依賴配息", "face_thinking_bulb")
     a.hover("#etfRetBar", 700, 0.5, 0.6)
     a.cam(["#etfRetTbl"], 6, "明細表")
