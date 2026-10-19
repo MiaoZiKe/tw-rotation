@@ -91,11 +91,17 @@ JSON 範本（顏色、字級一律不寫，網站共用層套圖表庫 C／D／
 
 ### 1-3 產品架構圖取用四步（知識必做、產業鏈與新產品快訊有實體產品時做）
 
-稽核：知識 3 篇都有剖面插圖，但網站現成的 3D（`hbm`、`switch_wireless`、`semiconductor`）一張都沒用，站內連結藏在文末摺疊區。文章區塊目前**沒有能直接嵌站內 3D 的類型**（需求 #11），在那之前照這四步：
+稽核：知識 3 篇都有剖面插圖，但網站現成的 3D（`hbm`、`switch_wireless`、`semiconductor`）一張都沒用，站內連結藏在文末摺疊區。**2026-10-19 起文章有 `scene` 區塊（需求 #11 已做）可以直接嵌站內 3D／2.5D**，照這四步：
 
 1. **查圖**：`grep -n "<產品關鍵字>" docs/articles/diagram_inventory.md`，拿到圖 id、類型（3D／2.5D）、路由。3D 優先，其次 2.5D。
-2. **重畫**：用 `illus`（`"style": 2`、`kind:"custom"`）照該站內圖的**層次與零件名稱**重畫（零件名稱與站內圖一致，讀者點過去才對得起來）；零件 ≥ 6 個、mat ≥ 5 種（`illus_style.md` 2.1）。內建 kind 有 `cowos`、`rack` 的直接用，加 `"style": 2`。
-3. **導流**：插圖下一個區塊放 `callout`：「想轉著看？本站有可旋轉的 3D 版：產業地圖 → 〈族群名〉 → 剖析圖（3D）」，文字裡不放網址（`callout` 不渲染連結）。
+2. **嵌入**：放一塊 `scene`（欄位見 `production_guide.md`「`scene` 區塊」），`id` 就是 inventory 那一欄：
+   ```json
+   {"t": "scene", "kind": "3d", "id": "semiconductor", "title": "CoWoS-L：晶片與 HBM 並排在中介層上", "caption": "拖曳旋轉，點零件看名稱。"}
+   ```
+   2.5D 用 `"kind": "25d"`（例 `"id": "cowos"`、`"silicon_photonics"`、`"hbm_memory"`）。3D 與 2.5D 都有的產品可以各放一塊（3D 看結構、2.5D 看供應鏈），每篇最多 2 塊。
+   inventory 沒有、只能重畫的（例 SSD／NAND）才走下面的「重畫」。
+2-1. **重畫（選做；inventory 沒有圖時必做）**：用 `illus`（`"style": 2`、`kind:"custom"`）照該站內圖的**層次與零件名稱**重畫（零件名稱與站內圖一致，讀者點過去才對得起來）；零件 ≥ 6 個、mat ≥ 5 種（`illus_style.md` 2.1）。內建 kind 有 `cowos`、`rack` 的直接用，加 `"style": 2`。
+3. **導流**：用了 `scene` 就不必另寫 `callout`（區塊下方自帶「在站內完整頁面看 ↗」）；只有重畫的 `illus` 才在下一個區塊放 `callout`：「想轉著看？本站有可旋轉的 3D 版：產業地圖 → 〈族群名〉 → 剖析圖（3D）」，文字裡不放網址（`callout` 不渲染連結）。
 4. **連結**：`site_links` **第一個**放該圖的路由（例 `{"label":"HBM 3D 剖析圖","hash":"#industry/group/hbm"}`）。
 inventory 沒有的產品（例 SSD／NAND）：照 inventory 第四節，用 `custom` 重畫或改 `steps`／`compare`，並在交件寫「站內無架構圖」。
 
@@ -301,8 +307,8 @@ EOF
 | 7 | 資料湖補長歷史：`^SOX` `^GSPC` `^VIX` 回補到 2000 年；FRED 加 `BAMLH0A0HYM2`（高收益債利差）、`VIXCLS` | 資料 | 「跟 2008 比」的路徑圖與信用利差目前只能靠上網查摘要 | 高 |
 | 8 | `scripts/article_data.py`：一行指令輸出「族群 N 日漲跌／法人買賣超／營收年增」的 chart JSON | 資料 | 撰寫 agent 不必每篇重寫程式，省 token、口徑一致 | 中 |
 | 9 | ✅ 2026-10-17 已做：文章圖表統一成網站圖表庫款式（C 直條／D 橫條／E 時間軸，見 1-1） | 網頁 | Andy：「圖表風格需要 Follow 我網頁內的風格」 | 高 |
-| 10 | 手機（≤ 640）文章頁：`summary` 引言框與 `tags` 預設收起，或把 `ul` 後第一個視覺提到引言框前 | 網頁 | 2026-10-19 稽核：8 篇在 390 第一屏都看不到圖，頁首吃掉整屏（`quality_audit_1019.md`） | 高 |
-| 11 | `sitefig` 區塊：`{"t":"sitefig","kind":"3d"|"25d","id":"hbm","title":"…"}` 在文章內直接嵌站內 3D 場景（`three3d.js` `SCENES`）或題材 2.5D 圖（`themes3d.js`），可旋轉，手機給靜態圖＋「轉著看」鈕 | 網頁 | Andy 10-19「知識需要有該產品架構圖 2.5D 3D，可以從我網站內素材拿」；現在只能重畫＋導流（1-3） | 高 |
+| 10 | ✅ 2026-10-19 已做（分支 art-ui）：手機文章頁副標／族群／標籤／摘要收成一顆「導讀・相關族群」（預設收起、點了展開、記住），麵包屑收掉；原需求：手機（≤ 640）文章頁：`summary` 引言框與 `tags` 預設收起，或把 `ul` 後第一個視覺提到引言框前 | 網頁 | 2026-10-19 稽核：8 篇在 390 第一屏都看不到圖，頁首吃掉整屏（`quality_audit_1019.md`） | 高 |
+| 11 | ✅ 2026-10-19 已做（分支 art-ui），區塊名定為 `scene`：`{"t":"scene","kind":"3d"|"25d","id":"…","title":"…","caption":"…"}`（用法見 1-3、production_guide.md）；原需求：`sitefig` 區塊：`{"t":"sitefig","kind":"3d"|"25d","id":"hbm","title":"…"}` 在文章內直接嵌站內 3D 場景（`three3d.js` `SCENES`）或題材 2.5D 圖（`themes3d.js`），可旋轉，手機給靜態圖＋「轉著看」鈕 | 網頁 | Andy 10-19「知識需要有該產品架構圖 2.5D 3D，可以從我網站內素材拿」；現在只能重畫＋導流（1-3） | 高 |
 | 12 | Worker 機器路由加 `op:'get_body'`（`ARTICLE_PUT_KEY` 可用、只讀） | 網頁 | 品質稽核與重做要讀回已上架全文；10-19 稽核有 3 篇讀不到 | 中 |
 
 ## 8. 社群研究摘要（2026-10-17，WebSearch 10 次，只讀得到摘要）

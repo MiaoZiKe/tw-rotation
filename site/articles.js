@@ -230,6 +230,27 @@
 .artbody .artvid iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
 .artbody .artvid.x iframe{position:static;height:100%}
 .artbody .artvid .avc{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:6px;font-size:12.5px;color:var(--ink-2)}.artbody .artvid .avc a{color:var(--accent,#3b82f6);text-decoration:none}
+/* 10-19 稽核 #11：文章內嵌站內 3D／2.5D 剖析圖（scene 區塊）。外框跟其他圖卡同一組 token；捲到才載入，載入前是一塊固定高度的骨架（不跳版）。 */
+.artbody .artscene{margin:var(--sp-4) 0;padding:var(--sp-3);border:1px solid var(--line);border-radius:var(--r-md,10px);background:var(--panel-2,var(--panel));min-width:0}
+.artscene .asc{display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:15px;line-height:1.4}
+.artscene .asc .asb{flex:none;font-size:var(--fs-min);font-weight:600;color:var(--k,var(--cyan));border:1px solid color-mix(in srgb,var(--k,var(--cyan)) 50%,transparent);border-radius:999px;padding:1px 8px}
+.artscene .asw{position:relative;min-width:0;min-height:220px}
+.artscene[data-st="ready"] .asw{min-height:0}
+.artscene .ash,.artscene .asx{display:flex;align-items:center;justify-content:center;flex-direction:column;gap:6px;min-height:220px;border:1px dashed var(--line-2);border-radius:var(--r-sm,8px);color:var(--ink-3);font-size:var(--fs-sm);text-align:center;padding:var(--sp-3)}
+.artscene .asx{color:var(--ink-2)}
+.artscene .asx a,.artscene .asf a{color:var(--cyan);text-decoration:none;white-space:nowrap}
+.artscene .asx a:hover,.artscene .asf a:hover{text-decoration:underline}
+.artscene .asw>.dgwrap{margin:0}
+.artscene .asw>.dg3d{position:relative;min-width:0}
+.artscene .asf{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;margin-top:8px;font-size:13px;color:var(--ink-2);line-height:1.6}
+/* 手機預覽：圖先當靜態縮圖（不吃觸控，手指照常捲頁面），點「點開互動」才放開高度與操作 */
+.artscene.pv .asw{max-height:300px;overflow:hidden}
+.artscene.pv .asw>*:not(.asov){pointer-events:none}
+.artscene .asov{position:absolute;inset:0;z-index:5;display:flex;align-items:flex-end;justify-content:center;padding-bottom:14px;border:0;cursor:pointer;
+  background:linear-gradient(to bottom,transparent 55%,color-mix(in srgb,var(--panel-2,var(--panel)) 92%,transparent));touch-action:pan-y}
+.artscene .asov span{display:inline-flex;align-items:center;gap:6px;height:36px;padding:0 16px;border-radius:999px;background:var(--k,var(--cyan));color:#fff;font:inherit;font-size:14px;font-weight:600;box-shadow:0 2px 8px rgba(0,0,0,.25)}
+/* 10-19 稽核 #10：副標／族群／標籤／摘要包成一組；桌機照舊攤開（切換鈕不顯示），手機預設收起（見下面 ≤640 那段） */
+.arthdt{display:none}
 .artbody .callout{margin:var(--sp-4) 0;padding:var(--sp-3) var(--sp-4);border:1px solid color-mix(in srgb,var(--amber) 55%,transparent);border-radius:var(--r-sm,8px);
   background:color-mix(in srgb,var(--amber) 9%,var(--panel));font-weight:600}
 .artbody .tbw{overflow-x:auto;margin:var(--sp-3) 0 var(--sp-4);border:1px solid var(--line);border-radius:var(--r-sm,8px)}
@@ -419,6 +440,24 @@
   .artc .sm{display:none}   /* 手機只留重點（準則 3）：摘要點進去才看 */
   .artempty{min-height:260px}
   .artpost h2.artttl{font-size:19px}
+  /* 10-19 稽核 #10：手機第一屏要看得到鉤子圖 —— 麵包屑收掉（上面已有「← 返回」與分類徽章）、返回鈕與後設資訊縮一行，
+     副標／族群／標籤／摘要（摘要跟「三句話重點」重複）收進一顆「導讀・相關族群」，點了才展開，展開過記住 */
+  .artcrumb{display:none}
+  .artback{margin-bottom:6px}
+  .artmeta{gap:4px var(--sp-2);font-size:12.5px}
+  .artpost h2.artttl{margin:6px 0 8px}
+  .arthdt{display:flex;align-items:center;gap:6px;width:100%;min-height:36px;margin:0 0 var(--sp-2);padding:0 12px;border:1px solid var(--line);border-radius:var(--r-sm,8px);
+    background:var(--panel-3);color:var(--ink-2);font:inherit;font-size:13px;cursor:pointer;text-align:left}
+  .arthdt b{font-weight:600;color:var(--ink)}
+  .arthdt small{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink-3);font-size:12px}
+  .arthdt::after{content:"展開 ▾";flex:none;font-size:12px;color:var(--ink-3)}
+  .arthd.on>.arthdt::after{content:"收起 ▴"}
+  .arthd:not(.on)>.arthdb{display:none}
+  .arthd>.arthdb{padding:0 2px}
+  .artbody>h4:first-child{margin-top:var(--sp-3)}
+  .artbody .artscene{padding:var(--sp-2)}
+  .artscene .asc{font-size:14px;align-items:flex-start}
+  .artscene .asc .asb{margin-top:1px}
   .artbody{font-size:15px;line-height:1.8}
   .artlead{font-size:14.5px}
   .artbody h4{font-size:16px}
@@ -1286,6 +1325,131 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
     W.addEventListener('pointerleave', (ev) => { if (ev.pointerType === 'mouse') hi(''); });
     W.addEventListener('click', (ev) => { if (pt === 'mouse') return; const t = ev.target.closest('.ill li, .ilbs em'); hi(t && fig.dataset.hi !== t.dataset.part ? t.dataset.part : ''); });
   }
+  /* ------------------------------------------------------------------ 單篇：站內 3D／2.5D 剖析圖（scene 區塊）
+     10-19 Andy：「知識需要有該產品架構圖 2.5D 3D，可以從網站內素材拿」；稽核 #11：文章裡直接嵌站內的圖，不用重畫、也不用把人帶走。
+     {t:'scene', kind:'3d'|'25d', id, title?, caption?}
+       3d  ＝ three3d.js 的 SCENES（產業鏈頁的 3D 剖析圖，可旋轉、點零件）
+       25d ＝ themes3d.js 的題材等角剖析圖（點環節亮起、點代號進個股頁）
+     · 延遲載入：區塊捲到畫面附近（IntersectionObserver，上下 200px）才去抓 three3d.js／themes3d.js 與初始化，
+       沒捲到的文章一行 3D 程式都不載（首頁瘦身那套 TwLazy，跟產業頁共用同一份快取，不會重抓）。
+     · 手機（≤640）：先給靜態預覽（固定高度、不吃觸控，手指照常捲頁面），點「點開互動」才在原地放開高度與操作 —— 不跳頁。
+     · 失敗（id 不存在、瀏覽器不支援 WebGL、程式載不到）：整塊換成一行說明＋「到站內頁面看」連結，文章其他部分照常。
+     · id 只收小寫英數底線（白名單格式），JSON 的字串不會進到網址或 HTML；格式不對整塊不畫。
+     · 3D 尊重方案開關（features.js ind.3d）：方案沒開 3D 的身分只看到說明＋連結（不扣每日次數 —— 次數是給產業頁切 3D 用的）。*/
+  const SCENE_HASH3 = { semiconductor: '#industry/group/ai_adv_packaging', ai_server: '#industry/ai_server', motion_axis: '#industry/group/factory_automation' };
+  const okSid = (x) => /^[a-z][a-z0-9_]{1,39}$/.test(String(x || ''));
+  const sceneKind = (b) => (b.kind === '3d' ? '3d' : b.kind === '25d' || b.kind === '2.5d' ? '25d' : '');
+  const sceneHash = (k, id) => (k === '3d' ? SCENE_HASH3[id] || '#industry/group/' + id : '#heatmap/theme/' + id);
+  const isPhone = () => { try { return matchMedia('(max-width:640px)').matches; } catch (e) { return false; } };
+  function sceneHTML(b, bi) {
+    const k = sceneKind(b), id = String(b.id || '');
+    if (!k || !okSid(id)) return '';
+    const href = sceneHash(k, id);
+    return `<figure class="artscene k${k}" data-bi="${bi}" data-kind="${k}" data-sid="${esc(id)}" data-href="${esc(href)}" data-st="idle">`
+      + `<figcaption class="asc"><span class="asb">${k === '3d' ? '3D 剖析圖' : '2.5D 剖析圖'}</span><b>${esc(b.title || '')}</b></figcaption>`
+      + `<div class="asw"><div class="ash">捲到這裡就會載入互動圖…</div></div>`
+      + `<div class="asf">${b.caption ? `<span>${esc(b.caption)}</span>` : '<span></span>'}<a class="asl" href="${esc(href)}">在站內完整頁面看 ↗</a></div></figure>`;
+  }
+  function lazyGroup(g) {
+    const L = window.TwLazy;
+    if (!L) return Promise.reject(new Error('沒有載入器'));
+    /* 'r3d'＝只有 three3d.js（index.html 的 template#lazy-r3d）；舊版 index 沒有這組就退回整包產業頁 */
+    if (g === 'r3d' && !(L.srcs && L.srcs('r3d').length)) g = 'ind';
+    return L.load(g);
+  }
+  function disposeScene(fig) {
+    if (fig._v) { try { fig._v.dispose(); } catch (e) { /* 已經收過 */ } fig._v = null; }
+    const dg = fig.querySelector('.asw > .dgwrap'); if (dg && dg._dg3ro) { dg._dg3ro.disconnect(); dg._dg3ro = null; }
+  }
+  /* 2.5D：上色與點擊跟題材頁同一套規則（app.js wireThemeDiagram）—— 能對到供應鏈環節就用環節色、同一張圖顏色不重複；
+     點環節＝亮起它、其他變淡（再點一次取消）；點代號＝進個股頁。 */
+  function wireScene25(root) {
+    const A = window.App || {}, L = A.L, PAL = A.PALETTE || ['#22d3ee', '#a78bfa', '#f59e0b', '#34d399', '#f472b6', '#60a5fa'];
+    const used = new Set(), color = {}; let i = 0;
+    const pick = (seg) => {
+      const sc = seg && L && L.segColor ? L.segColor(seg) : '';
+      if (sc && sc !== '#8ea0c4' && !used.has(sc)) { used.add(sc); return sc; }
+      while (used.has(PAL[i % PAL.length]) && i < PAL.length * 2) i++;
+      const c = PAL[i++ % PAL.length]; used.add(c); return c;
+    };
+    const nodes = $$('[data-part]', root);
+    $$('.vstep[data-p]', root).forEach((n) => { const id = n.dataset.p; if (!(id in color)) color[id] = pick(n.dataset.seg); n.style.setProperty('--c', color[id]); });
+    nodes.forEach((n) => { const id = n.dataset.part; if (!id) return; if (!(id in color)) color[id] = pick(n.dataset.seg); n.style.setProperty('--c', color[id]); });
+    let cur = null;
+    const paint = () => nodes.forEach((n) => { n.classList.toggle('sel', !!cur && n.dataset.part === cur); n.classList.toggle('dim', !!cur && n.dataset.part !== cur); });
+    nodes.forEach((n) => { n.style.cursor = 'pointer'; n.onclick = (e) => { e.stopPropagation(); cur = cur === n.dataset.part ? null : n.dataset.part; paint(); }; });
+    $$('.scode', root).forEach((n) => { n.style.cursor = 'pointer'; n.onclick = (e) => { e.stopPropagation(); if (okCode(n.dataset.code)) location.hash = '#stock/' + n.dataset.code; }; });
+    $$('[data-chain]', root).forEach((n) => { n.style.cursor = 'pointer'; n.onclick = (e) => { e.stopPropagation(); if (/^[\w-]{1,60}$/.test(n.dataset.chain)) location.hash = '#industry/' + n.dataset.chain; }; });
+  }
+  function scenePreview(fig) {
+    const w = $('.asw', fig); if (!w || $('.asov', w)) return;
+    fig.classList.add('pv');
+    const ov = document.createElement('button');
+    ov.type = 'button'; ov.className = 'asov'; ov.setAttribute('aria-label', '點開互動：在這裡直接旋轉、點零件');
+    ov.innerHTML = '<span>點開互動 ⤢</span>';
+    ov.onclick = (e) => {
+      e.preventDefault(); e.stopPropagation();
+      fig.classList.remove('pv'); ov.remove(); fig.dataset.open = '1';
+      if (fig._v && fig._v.refit) { try { fig._v.refit(); } catch (x) { /* 量不到就照原樣 */ } }
+    };
+    w.appendChild(ov);
+  }
+  async function initScene(fig) {
+    const k = fig.dataset.kind, id = fig.dataset.sid, w = $('.asw', fig), href = fig.dataset.href || '#industry';
+    const fail = (why) => {
+      if (!fig.isConnected) return;
+      disposeScene(fig); fig.classList.remove('pv'); fig.dataset.st = 'fail';
+      w.innerHTML = `<div class="asx"><span>這張${k === '3d' ? ' 3D ' : ' 2.5D '}圖暫時載不出來${why ? '（' + esc(why) + '）' : ''}。</span><a href="${esc(href)}">到站內頁面看 ↗</a></div>`;
+    };
+    fig.dataset.st = 'loading';
+    w.innerHTML = '<div class="ash">載入互動圖中…</div>';
+    try {
+      if (k === '3d') {
+        const P = window.TwPerm;
+        if (P && P.can && !P.can('ind.3d')) {
+          fig.dataset.st = 'locked';
+          w.innerHTML = `<div class="asx"><span>3D 互動剖析圖是會員方案功能。</span><a href="${esc(href)}">到產業頁看平面剖析圖 ↗</a></div>`;
+          return;
+        }
+        await lazyGroup('r3d');
+        const R = window.Rack3D;
+        if (!R || !R.hasScene(id)) return fail('站內沒有這張圖');
+        if (!R.supported()) return fail('這個瀏覽器不支援 3D');
+        if (!fig.isConnected) return;
+        w.innerHTML = '<div class="dg3d"></div>';
+        const phone = isPhone();
+        const segC = (seg) => { const L = window.App && window.App.L; return (L && L.segColor && L.segColor(seg)) || '#8ea0c4'; };
+        const v = await R.mount(w.firstChild, id, { color: segC, anim: !phone, onSeg: () => {} });
+        if (!v) return fail();
+        if (!fig.isConnected) { try { v.dispose(); } catch (e) { /* 已離開這篇 */ } return; }
+        fig._v = v; fig.dataset.st = 'ready';
+        if (phone) scenePreview(fig);
+      } else {
+        await lazyGroup('thm');
+        const T = window.ThemeDiagrams;
+        if (!T || typeof T[id] !== 'function') return fail('站內沒有這張圖');
+        if (!fig.isConnected) return;
+        w.innerHTML = `<div class="dgwrap">${T[id]()}</div>`;
+        const root = w.firstChild;
+        /* fit() 會依容器寬重畫（換掉整張 svg），所以先 fit 再接點擊；之後寬度變了重畫時由 fit 的回呼重接 */
+        if (T.fit) T.fit(root, () => wireScene25(root));
+        wireScene25(root);
+        fig.dataset.st = 'ready';
+        if (isPhone()) scenePreview(fig);
+      }
+    } catch (e) {
+      fail(e && e.message ? String(e.message).slice(0, 40) : '');
+    }
+  }
+  function wireScenes(root) {
+    const figs = $$('.artscene', root); if (!figs.length) return;
+    const go = (fig) => { if (fig.dataset.st === 'idle') initScene(fig); };
+    if (typeof IntersectionObserver === 'undefined') { figs.forEach(go); return; }
+    const io = new IntersectionObserver((ents) => ents.forEach((e) => { if (e.isIntersecting) { io.unobserve(e.target); go(e.target); } }), { rootMargin: '200px 0px' });
+    figs.forEach((f) => io.observe(f));
+    root._sceneIO = io;
+  }
+
   function blockHTML(b, bi) {
     if (!b || typeof b !== 'object') return '';
     switch (b.t) {
@@ -1322,6 +1486,7 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
       case 'illus': return illusHTML(b, bi);
       case 'steps': return stepsHTML(b, bi);
       case 'compare': return compareHTML(b, bi);
+      case 'scene': return sceneHTML(b, bi);
       default: return '';
     }
   }
@@ -1608,6 +1773,8 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
     };
   }
   function disposeCharts(root) {
+    if (root && root._sceneIO) { root._sceneIO.disconnect(); root._sceneIO = null; }
+    $$('.artscene', root).forEach(disposeScene);
     if (typeof echarts === 'undefined') return;
     $$('.artchart .cv', root).forEach((el) => { const c = echarts.getInstanceByDom(el); if (c) c.dispose(); if (el._ro) { el._ro.disconnect(); el._ro = null; } });
     $$('.artflow .fl', root).forEach((el) => { if (el._ro) { el._ro.disconnect(); el._ro = null; } });
@@ -1664,12 +1831,29 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
     });
     $$('.artflow', root).forEach((fig) => { const b = blocks[+fig.dataset.bi]; if (b) wireFlow(fig, b); });
     $$('.artillus', root).forEach((fig) => { const b = blocks[+fig.dataset.bi]; if (b) wireIllus(fig, b); });
+    wireScenes(root);
+    /* 導讀（副標・族群・標籤・摘要）：手機預設收起，按了才展開；展開過就記住（手機準則 5）。桌機切換鈕不顯示，內容一直攤開。 */
+    const hd = $('#artHd', root), hdt = $('#artHdT', root);
+    if (hd && hdt) hdt.onclick = () => { const on = !hd.classList.contains('on'); hd.classList.toggle('on', on); hdt.setAttribute('aria-expanded', on ? 'true' : 'false'); try { localStorage.setItem(HD_KEY, on ? '1' : '0'); } catch (e) { /* 私密視窗 */ } };
     $$('.arttoc .tl button', root).forEach((bt) => { bt.onclick = () => { const h = root.querySelector(`#artBody h4[data-bi="${bt.dataset.bi}"]`); if (h) h.scrollIntoView({ behavior: 'smooth', block: 'start' }); }; });
     $$('.artgps button[data-gid]', root).forEach((bt) => { bt.onclick = () => { S.grp = new Set([bt.dataset.gid]); location.hash = '#articles'; }; });
     const back = $('#artBack', root);
     if (back) back.onclick = () => { if (S.backOk && history.length > 1) history.back(); else location.hash = back.dataset.to; };
   }
 
+  /* 10-19 稽核 #10（390 手機 8 篇第一屏都看不到圖）：副標・相關族群・標籤・摘要包成一組。
+     桌機：切換鈕 display:none，內容照舊攤開（跟以前一模一樣）；手機（≤640）：預設收成一顆「導讀・相關族群」，鉤子圖上到第一屏。 */
+  const HD_KEY = 'tw.art.hd';
+  function hdHTML(d, groups) {
+    const inner = `${d.subtitle ? `<p class="artsub">${esc(d.subtitle)}</p>` : ''}`
+      + `${groups.length ? `<div class="artgps"><span class="lb">相關族群</span>${groups.map((g) => `<button type="button" class="artgp" data-gid="${esc(g.id)}" title="看其他提到「${esc(g.name)}」的文章">${esc(g.name)}</button>`).join('')}</div>` : ''}`
+      + `${tagsHTML(d.tags)}${d.summary ? `<div class="artlead">${esc(d.summary)}</div>` : ''}`;
+    if (!inner) return '';
+    let on = false; try { on = localStorage.getItem(HD_KEY) === '1'; } catch (e) { /* 私密視窗 */ }
+    const parts = [d.subtitle || d.summary ? '導讀' : '', groups.length ? '相關族群' : '', !groups.length && Array.isArray(d.tags) && d.tags.length ? '標籤' : ''].filter(Boolean).join('・');
+    const peek = groups.length ? groups.map((g) => g.name).join('、') : (d.subtitle || '');
+    return `<div class="arthd${on ? ' on' : ''}" id="artHd"><button type="button" class="arthdt" id="artHdT" aria-expanded="${on ? 'true' : 'false'}" aria-controls="artHdB"><b>${esc(parts || '導讀')}</b><small>${esc(peek)}</small></button><div class="arthdb" id="artHdB">${inner}</div></div>`;
+  }
   function postHTML(d, meta, acc) {
     acc = acc || access();
     const qnote = acc.mode === 'quota' ? `<span class="artqt" title="Plus 精選文章全文額度：所有分類合計、累計不歸零">${LOCK_IC}全文額度 ${acc.used}／${acc.lim} 篇</span>` : '';
@@ -1692,10 +1876,7 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
   <nav class="artcrumb" aria-label="麵包屑"><a href="#articles">精選文章</a><span aria-hidden="true">›</span>${CATS[cat] ? `<a class="kc" href="#articles/${cat}">${icon(cat, 14)}${esc(catT(cat))}</a><span aria-hidden="true">›</span>` : ''}<span class="cur">${esc(d.title)}</span></nav>
   <div class="artmeta">${cat ? badge(cat) : ''}<span class="mono">${esc(d.date || '')}</span>${upd}<span>閱讀約 ${esc(Number(d.reading_min) || 1)} 分鐘</span>${vwHTML(d.id)}${qnote}${d.confidence ? `<span title="資料信心：依來源數量與一致性自評">資料信心 ${esc(d.confidence)}</span>` : ''}</div>
   <h2 class="artttl">${esc(d.title)}</h2>
-  ${d.subtitle ? `<p class="artsub">${esc(d.subtitle)}</p>` : ''}
-  ${groups.length ? `<div class="artgps"><span class="lb">相關族群</span>${groups.map((g) => `<button type="button" class="artgp" data-gid="${esc(g.id)}" title="看其他提到「${esc(g.name)}」的文章">${esc(g.name)}</button>`).join('')}</div>` : ''}
-  ${tagsHTML(d.tags)}
-  ${d.summary ? `<div class="artlead">${esc(d.summary)}</div>` : ''}
+  ${hdHTML(d, groups)}
   <div class="artbody" id="artBody">${blocks.map(blockHTML).join('')}</div>
   ${links.length ? `<details class="artsec artfold" id="artLinks" data-fold="links"${foldOpen('links')}><summary><h4>站內相關頁面<small>${links.length}</small></h4></summary><div class="artlinks">${links.map((l) => `<a href="${esc(l.hash)}">${esc(l.label)}</a>`).join('')}</div></details>` : ''}
   ${srcs.length ? `<details class="artsec artfold" id="artSrc" data-fold="src"${foldOpen('src')}><summary><h4>資料來源<small>${srcs.length}</small></h4></summary><ol class="artsrc">${srcs.map((s) => {
