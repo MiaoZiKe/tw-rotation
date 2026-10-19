@@ -1,19 +1,6 @@
 {
- "updated": "2026-10-19 14:21",
+ "updated": "2026-10-19 15:11",
  "jobs": [
-  {
-   "id": 12,
-   "topic_id": "sch-20261019-06-r1-news-2",
-   "kind": "article",
-   "title": "台積電法說後一週：族群資金流向變了嗎",
-   "note": "排程自動排入（規則 1，台北 2026-10-19 06:00）；建議主題 n_tsmc_aftermath",
-   "status": "working",
-   "created": 1792382342256,
-   "updated": 1792390916825,
-   "result": null,
-   "stage": "plan",
-   "stage_at": 1792390916825
-  },
   {
    "id": 13,
    "topic_id": "sch-20261019-06-r1-news-3",
