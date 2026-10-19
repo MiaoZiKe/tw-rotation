@@ -1,6 +1,29 @@
 {
- "updated": "2026-10-17",
+ "updated": "2026-10-19",
  "articles": [
+  {
+   "id": "2026-10-19-news-nanya-dram",
+   "cat": "news",
+   "title": "南亞科法說毛利率 85.7%，缺貨還會持續嗎",
+   "date": "2026-10-19",
+   "topic": "n_nanya_dram",
+   "groups": [
+    {
+     "id": "hbm",
+     "name": "HBM 高頻寬記憶體"
+    },
+    {
+     "id": "memory_module",
+     "name": "記憶體模組"
+    },
+    {
+     "id": "nor_niche_memory",
+     "name": "NOR Flash 利基記憶體"
+    }
+   ],
+   "reading_min": 3,
+   "src": "api"
+  },
   {
    "id": "2026-10-17-news-sox",
    "cat": "news",

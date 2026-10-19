@@ -467,6 +467,20 @@ html.m4 #v-etf #etfInc[data-inclk] .inclknote.m4o{display:flex;margin:-4px 0 8px
 /* 10-08 組合連動（Andy：「點擊特定區塊 整張圖表會連動有反應」）：選中那檔的明細卡＝跟表格 .hl 同一套琥珀色；月曆格不是那檔主要入帳的月份變淡（全站規格 .35、120ms） */
 #v-etf .cmr{cursor:pointer;transition:border-color .12s,background .12s,box-shadow .12s}
 #v-etf .cmr.hl{border-color:var(--amber);background:color-mix(in srgb,var(--amber) 14%,var(--panel));box-shadow:inset 3px 0 0 var(--amber)}
+/* 10-19 單檔／複利試算連動：清單列、情境表列 .hl＝琥珀底＋左條（同報酬比較表），.lk＝鎖定再加上下框；其他清單列整列變淡；膠囊同理 */
+#v-etf #incList .ilr{transition:background .12s,opacity .12s}
+#v-etf #incList .ilr.hl{background:color-mix(in srgb,var(--amber) 16%,var(--panel-2));box-shadow:inset 3px 0 0 var(--amber)}
+#v-etf #incList .ilr.lk{box-shadow:inset 3px 0 0 var(--amber),inset 0 1px 0 var(--amber),inset 0 -1px 0 var(--amber)}
+#v-etf #incList .ilr.dim{opacity:.6}
+#v-etf #incChips .snk{transition:opacity .12s,border-color .12s}
+#v-etf #incChips .snk.hl{border-color:var(--amber);background:color-mix(in srgb,var(--amber) 14%,var(--panel))}
+#v-etf #incChips .snk.dim{opacity:.5}
+#v-etf #incChips .snk b{padding:0 3px;cursor:pointer}
+#v-etf #cxTbl tbody tr{cursor:pointer;transition:background .12s}
+#v-etf #cxTbl tr.hl td{background:color-mix(in srgb,var(--amber) 16%,var(--panel-2))}
+#v-etf #cxTbl tr.hl td:first-child{box-shadow:inset 3px 0 0 var(--amber)}
+#v-etf #cxTbl tr.lk td{box-shadow:inset 0 1px 0 var(--amber),inset 0 -1px 0 var(--amber)}
+#v-etf #cxTbl tr.lk td:first-child{box-shadow:inset 3px 0 0 var(--amber),inset 0 1px 0 var(--amber),inset 0 -1px 0 var(--amber)}
 #v-etf .mgrid .mcell{cursor:pointer;transition:opacity .12s}
 #v-etf .mgrid .mcell.dim{opacity:.35}
 :root:not([data-theme="light"]) #v-etf .mgrid .mcell.dim{opacity:.55}   /* 暗色未選中不要糊成泥色，淺色不動 */
@@ -1994,8 +2008,6 @@ html.m4 #v-etf #etfInc[data-inclk] .inclknote.m4o{display:flex;margin:-4px 0 8px
     reflow(S.inc.main === 'x' ? $('#incPX') : S.inc.tab === 's' ? $('#incSingle') : $('#incCombo'));
     box.dataset.k = [S.inc.mode, incYearT(), incMonT(), S.inc.sort, S.inc.csort, S.inc.scope, S.inc.nhi ? 1 : 0, perKey(), S.inc.tab, S.inc.main].join('|');
   }
-  const touchy = () => !!(window.matchMedia && window.matchMedia('(hover: none)').matches);
-  function twoTap(key, fn) { if (touchy() && S._tap !== key) { S._tap = key; return; } S._tap = null; fn(); }
 
   /* ================= 月配試算表：單檔 ================= */
   function drawIncSingle() {
@@ -2017,6 +2029,7 @@ html.m4 #v-etf #etfInc[data-inclk] .inclknote.m4o{display:flex;margin:-4px 0 8px
     drawSingleCurve(top);
     drawIncList(R);
     drawDet();
+    incLink(top);
   }
   const firstOfMonthFn = (X) => (i) => i === 0 || X[i].slice(0, 7) !== X[i - 1].slice(0, 7);
   /* v8（Andy：「曲線圖月份之間都要微微線條區隔」）：每個月一條很淡的直線。顏色用 ink-3 的 16% 透明，深淺主題都看得到但不搶線。 */
@@ -2038,7 +2051,7 @@ html.m4 #v-etf #etfInc[data-inclk] .inclknote.m4o{display:flex;margin:-4px 0 8px
     const avg = MONTHS.map((_, m) => (vals.length ? +(vals.reduce((s, v) => s + v[m], 0) / vals.length).toFixed(2) : null));
     el.style.height = (mob ? 360 : 440) + 'px';
     const series = top.map((r, i) => ({ name: `${r.it.name} ${r.it.code}`, code: r.it.code, type: 'bar', barGap: mob ? '0%' : '12%', barCategoryGap: mob ? '16%' : '22%', barMaxWidth: 16, z: 2,
-      label: { show: false }, cursor: 'pointer', emphasis: { focus: 'series' }, itemStyle: { color: colOf(i), borderRadius: [3, 3, 0, 0] }, data: vals[i].map((v) => (v > 0 ? v : null)) }));
+      label: { show: false }, cursor: 'pointer', emphasis: { disabled: true }, itemStyle: { color: colOf(i), borderRadius: [3, 3, 0, 0] }, data: vals[i].map((v) => (v > 0 ? v : null)) }));
     series.push({ name: AVG, type: 'line', smooth: false, symbol: 'circle', symbolSize: 5, z: 5, data: avg, lineStyle: { width: 2, color: a.hexA(CH.ink2, 0.9) }, itemStyle: { color: CH.ink2 } });
     a.chart('incBar', {
       animation: false, timeGrid: false,
@@ -2066,8 +2079,7 @@ html.m4 #v-etf #etfInc[data-inclk] .inclknote.m4o{display:flex;margin:-4px 0 8px
       key.insertAdjacentHTML('beforeend', `<button type="button" class="snk addk" id="incChipAdd" title="從右側清單勾選加入（最多 5 檔）">＋加入</button>`);
       const ad = $('#incChipAdd'); if (ad) ad.onclick = () => { const s = $('#incSearch'); if (s) { s.focus(); s.scrollIntoView({ block: 'nearest' }); } };
     }
-    const ch = window.echarts && window.echarts.getInstanceByDom(el);
-    if (ch) { ch.off('click'); ch.on('click', (p) => { const s = series[p.seriesIndex]; if (!s || !s.code) return; twoTap('l' + s.code, () => openDet(S.inc.det === s.code ? null : s.code)); }); }
+    // 點直條／滑過直條改由 incLink 掛（第一下＝選取、已選中再點＝開明細）；原生 emphasis 關掉，加亮與變淡由 incLink 統一畫
     el.dataset.n = String(top.length);
     el.dataset.groups = vals.map((v) => v.join('/')).join(',');
   }
@@ -2097,8 +2109,74 @@ html.m4 #v-etf #etfInc[data-inclk] .inclknote.m4o{display:flex;margin:-4px 0 8px
         else cur = cur.filter((x) => x !== c);
         $('#incListMsg').textContent = ''; S.inc.sel = cur; drawIncSingle();
       };
-      $('.iln', row).onclick = () => openDet(S.inc.det === c ? null : c);
+      // 名稱鈕：圖上有這檔 → 第一下選取（三處連動）、已選中再點才開明細；圖上沒有的檔沒東西可連動，照舊一下就開明細
+      $('.iln', row).onclick = (e) => { e.stopPropagation(); if (!S._sCodes || !S._sCodes.includes(c) || S.inc.ssel === c) openDet(S.inc.det === c ? null : c); else if (S._sPick) S._sPick(c, 'iln'); };
     });
+  }
+  /* ★ 10-19 單檔三處連動（Andy：「圖表是有連動關係的，像這種同個資訊多張圖表，都需要有像是 ETF 月配那樣的連動效果」）：
+     每月入帳直條、右側清單、上方膠囊講的是同一批（≤5 檔）ETF，原本只靠顏色串 ⇒ 想知道「清單第 3 列是圖上哪一色、它哪幾個月入帳」得自己比顏色。
+     規格照抄 comboLink／retLink：
+       · 滑過清單列或膠囊：那一檔的直條全亮、其他檔變淡；滑過直條：清單那列 .hl、膠囊那顆亮。滑出恢復。
+       · 點一下＝鎖定（同樣效果＋直條外框、清單列琥珀色左條）；再點同一檔、或點空白處＝取消。
+       · 點直條／清單名稱：第一下＝選取，已選中再點才開下方明細卡（原本一下就開，畫面會跳）。膠囊的 × 照舊是拿掉那檔。
+     ⚠ 透明度寫在系列層 itemStyle.opacity（資料項沒帶 itemStyle，系列層照樣套），深 .55／淺 .35 用同一支 selDim()。
+     ⚠ 選取記在 S.inc.ssel（代號）：改目標／排序／勾選重畫後，那檔還在圖上就保留，不在就清掉。 */
+  function incLink(top) {
+    const a = A(), CH = a.CH, box = $('#incSingle'), el = $('#incBar');
+    if (!box || !el) return;
+    const codes = top.map((r) => r.it.code);
+    S._sCodes = codes;
+    const ch = window.echarts ? window.echarts.getInstanceByDom(el) : null;
+    let hov = null;
+    function paint() {
+      if (S.inc.ssel && !codes.includes(S.inc.ssel)) S.inc.ssel = null;
+      const sel = S.inc.ssel, any = !!(sel || hov);
+      const lvl = (c) => (c === sel ? 2 : c === hov ? 1 : 0);
+      const op = (c) => (!any || lvl(c) ? 1 : selDim());
+      box.dataset.ssel = sel || ''; box.dataset.shov = hov || '';
+      if (ch && !ch.isDisposed()) {
+        try { ch.setOption({ series: codes.map((c, i) => { const l = lvl(c);
+          return { z: l ? 3 : 2, itemStyle: { color: a.snColor ? a.snColor(i) : a.donut.color(i), borderRadius: [3, 3, 0, 0], opacity: op(c), borderColor: l ? CH.ink : 'transparent', borderWidth: l === 2 ? 1.5 : l ? 1 : 0 } }; }) }); } catch (e) { /* 競態 */ }
+      }
+      $$('#incList .ilr[data-code]').forEach((r) => { const c = r.dataset.code; r.classList.toggle('hl', c === sel || c === hov); r.classList.toggle('lk', c === sel); r.classList.toggle('dim', any && !lvl(c)); });
+      $$('#incChips .snk[data-n]').forEach((b) => { const c = b.dataset.n.split(' ').pop(); b.classList.toggle('hl', c === sel || c === hov); b.classList.toggle('lk', c === sel); b.classList.toggle('dim', any && !lvl(c)); });
+    }
+    const hover = (c) => { if (hov !== c) { hov = c; paint(); } };
+    // ⚠ 觸控點一下，zrender 會收到指標事件的 click 又收到瀏覽器補發的 click ⇒ 同一處 350ms 內第二下不算
+    let last = { k: '', t: 0 };
+    const pick = (c, src) => { const k = (src || '') + ':' + c, t = Date.now(); if (src && last.k === k && t - last.t < 350) return; last = { k, t };
+      S.inc.ssel = !c || c === S.inc.ssel ? null : c; hov = null; paint(); };
+    S._sPick = pick;
+    if (ch) {
+      if (ch._sOv) { ch.off('mouseover', ch._sOv); ch.off('mouseout', ch._sOu); ch.off('globalout', ch._sOu); ch.off('click', ch._sCk); }
+      const codeOf = (p) => (p.componentType === 'series' && p.seriesType === 'bar' ? codes[p.seriesIndex] : null);
+      ch._sOv = (p) => { const c = codeOf(p); if (c) hover(c); };
+      ch._sOu = () => hover(null);
+      // 第一下＝選取；已選中再點同一檔＝開明細卡（不取消選取，明細卡跟著那檔）
+      ch._sCk = (p) => { const c = codeOf(p); if (!c) return; if (S.inc.ssel === c && !(last.k === 'bar:' + c && Date.now() - last.t < 350)) openDet(S.inc.det === c ? null : c); else pick(c, 'bar'); };
+      ch.on('mouseover', ch._sOv); ch.on('mouseout', ch._sOu); ch.on('globalout', ch._sOu); ch.on('click', ch._sCk);
+      // ⚠ zr.off('click') 一定要帶函式（不帶會拔掉 ECharts 自己的 click）
+      const zr = ch.getZr(); if (zr._sBlank) zr.off('click', zr._sBlank);
+      zr._sBlank = (e) => { if (!e.target) pick(null); }; zr.on('click', zr._sBlank);
+    }
+    $$('#incList .ilr[data-code]').forEach((r) => {
+      const c = r.dataset.code; if (!codes.includes(c)) return;
+      r.onmouseenter = () => hover(c); r.onmouseleave = () => hover(null);
+      r.onclick = (e) => { if (e.target.closest('input, button, a')) return; pick(c, 'row'); };
+    });
+    // 膠囊：滑過＝連動；點名字＝鎖定；點 ×＝拿掉那檔（msTags 原本整顆都是拿掉，改成只有 × 拿掉）
+    $$('#incChips .snk[data-n]').forEach((b) => {
+      const c = b.dataset.n.split(' ').pop(), rm = b.onclick;
+      b.title = `點名字＝在圖上標出 ${b.dataset.n}；點 × 從圖上拿掉（清單也會取消勾選）`;
+      b.onmouseenter = () => hover(c); b.onmouseleave = () => hover(null);
+      b.onclick = (e) => { if (e.target.closest('b')) { if (rm) rm.call(b, e); return; } pick(c, 'chip'); };
+    });
+    // 卡片內的空白處＝取消；卡片外的空白處也算（整頁只掛一次，靠 S._sPick 拿到目前這一份）
+    if (!box._sBlank) { box._sBlank = true;
+      box.addEventListener('click', (e) => { if (S.inc.ssel && S._sPick && !e.target.closest('.ilr, .chart, canvas, button, a, input, select, label, .snk, [role="listbox"], .ddpanel')) S._sPick(null); }); }
+    if (!S._sLinkDoc) { S._sLinkDoc = true;
+      document.addEventListener('click', (e) => { if (S.inc && S.inc.ssel && S._sPick && document.contains(e.target) && !e.target.closest('#incSingle, .echarts-tooltip, [role="dialog"]')) S._sPick(null); }, true); }
+    paint();
   }
   function openDet(code) {
     S.inc.det = code; drawIncSingle();
@@ -2410,8 +2488,9 @@ html.m4 #v-etf #etfInc[data-inclk] .inclknote.m4o{display:flex;margin:-4px 0 8px
     S.inc.lsel = S.inc.lsel || {};
     const shown = () => lines.filter((l) => S.inc.lsel[l.key] !== false);
     const X = D.slice(i0);
-    const ser = lines.map((l) => ({ name: l.name, type: 'line', showSymbol: false, data: l.vals.slice(i0), lineStyle: { width: l.key === 'self' ? 2.2 : 1.5, color: l.col, type: l.dash || 'solid' }, itemStyle: { color: l.col },
-      emphasis: { focus: 'series' }, endLabel: { show: true, color: l.col, fontSize: 11.5, formatter: (p) => (p.value == null ? '' : (p.value > 0 ? '+' : '') + (+p.value).toFixed(1) + '%') }, labelLayout: { moveOverlap: 'shiftY' } }));
+    const ser = lines.map((l) => ({ name: l.name, type: 'line', showSymbol: false, data: l.vals.slice(i0), lineStyle: { width: CX_W(l), color: l.col, type: l.dash || 'solid' }, itemStyle: { color: l.col },
+      // triggerLineEvent：滑過／點線本身要拿得到 seriesIndex（跟情境表連動）；原生 emphasis 關掉，加粗與變淡由 cxLink 統一畫
+      emphasis: { disabled: true }, triggerLineEvent: true, endLabel: { show: true, color: l.col, fontSize: 11.5, formatter: (p) => (p.value == null ? '' : (p.value > 0 ? '+' : '') + (+p.value).toFixed(1) + '%') }, labelLayout: { moveOverlap: 'shiftY' } }));
     /* v8（Andy：「曲線圖月份之間都要微微線條區隔」）：每月第一週畫一條很淡的直線（markLine 掛在第一條線上、不吃滑鼠）。
        這張圖有 dataZoom，不走全站 TimeGrid（timeGrid:false），所以自己畫。 */
     const mk = X.map((d, k) => (k > 0 && d.slice(0, 7) !== X[k - 1].slice(0, 7) ? { xAxis: d } : null)).filter(Boolean);
@@ -2454,11 +2533,66 @@ html.m4 #v-etf #etfInc[data-inclk] .inclknote.m4o{display:flex;margin:-4px 0 8px
     };
     paint();
     const ch = window.echarts && window.echarts.getInstanceByDom(el);
-    if (ch) { ch.off('legendselectchanged'); ch.on('legendselectchanged', (e) => { lines.forEach((l) => { S.inc.lsel[l.key] = e.selected[l.name] !== false; }); paint(); }); }
+    const link = cxLink(ch, lines, shown);
+    if (ch) { ch.off('legendselectchanged'); ch.on('legendselectchanged', (e) => { lines.forEach((l) => { S.inc.lsel[l.key] = e.selected[l.name] !== false; }); paint(); link(); }); }
     el.dataset.lines = lines.map((l) => l.key).join(',');
     el.dataset.fin = lines.map((l) => +(l.fin / cost - 1).toFixed(4)).join(',');
     el.dataset.from = D[i0]; el.dataset.cost = String(Math.round(cost)); el.dataset.obj = S.inc.obj;
     el.dataset.state = 'ok';
+  }
+
+  /* ★ 10-19 複利試算兩處連動（Andy：「圖表是有連動關係的……都需要有像是 ETF 月配那樣的連動效果」）：
+     回測走勢的每一條線＝右邊情境表的一列，原本只靠表格列前面的小色塊對顏色 ⇒ 想知道「再投入 0050 那條是哪一條」得自己比色。
+     規格照抄 retLink：滑過表格列或線 → 那條線加粗、其他線（含期末標籤）變淡，表格那列 .hl；點一下＝鎖定（＋線陰影描邊、列上下框），
+     再點同一列／同一條線、或點空白處＝取消。表格這裡沒有下一層可進，所以點列只做選取／取消。
+     ⚠ 選取記在 S.inc.xsel（情境 key）：切對象／起始日重畫後那條還在就保留；用圖例把那條關掉就清掉（看不到的線不能被選著）。 */
+  const CX_W = (l) => (l.key === 'self' ? 2.2 : 1.5);
+  function cxLink(ch, lines, shown) {
+    const a = A(), CH = a.CH, wrap = $('#incPX'), el = $('#cxChart');
+    let hov = null, keys = [];
+    function paint() {
+      if (S.inc.xsel && !keys.includes(S.inc.xsel)) S.inc.xsel = null;
+      const sel = S.inc.xsel, any = !!(sel || hov);
+      const lvl = (k) => (k === sel ? 2 : k === hov ? 1 : 0);
+      const op = (k) => (!any || lvl(k) ? 1 : selDim());
+      if (el) { el.dataset.xsel = sel || ''; el.dataset.xhov = hov || ''; }
+      if (ch && !ch.isDisposed()) {
+        try { ch.setOption({ series: lines.map((l) => { const v = lvl(l.key);
+          return { z: v ? 3 : 2, lineStyle: { width: v ? CX_W(l) + 1.6 : CX_W(l), color: l.col, type: l.dash || 'solid', opacity: op(l.key), shadowBlur: v === 2 ? 6 : 0, shadowColor: v === 2 ? CH.ink : 'transparent' },
+            itemStyle: { color: l.col, opacity: op(l.key) }, endLabel: { opacity: op(l.key) } }; }) }); } catch (e) { /* 競態 */ }
+      }
+      $$('#cxTbl tr[data-key]').forEach((tr) => { const k = tr.dataset.key; tr.classList.toggle('hl', k === sel || k === hov); tr.classList.toggle('lk', k === sel); tr.classList.toggle('dim', any && !lvl(k)); });
+    }
+    const hover = (k) => { if (hov !== k) { hov = k; paint(); } };
+    let last = { k: '', t: 0 };
+    const pick = (k, src) => { const kk = (src || '') + ':' + k, t = Date.now(); if (src && last.k === kk && t - last.t < 350) return; last = { k: kk, t };
+      S.inc.xsel = !k || k === S.inc.xsel ? null : k; hov = null; paint(); };
+    S._xPick = pick;
+    if (ch) {
+      if (ch._xOv) { ch.off('mouseover', ch._xOv); ch.off('mouseout', ch._xOu); ch.off('globalout', ch._xOu); ch.off('click', ch._xCk); }
+      const keyOf = (p) => (p.componentType === 'series' && lines[p.seriesIndex] ? lines[p.seriesIndex].key : null);
+      ch._xOv = (p) => { const k = keyOf(p); if (k) hover(k); };
+      ch._xOu = () => hover(null);
+      ch._xCk = (p) => { const k = keyOf(p); if (k) pick(k, 'ln'); };
+      ch.on('mouseover', ch._xOv); ch.on('mouseout', ch._xOu); ch.on('globalout', ch._xOu); ch.on('click', ch._xCk);
+      // ⚠ zr.off('click') 一定要帶函式（不帶會拔掉 ECharts 自己的 click）；拖 dataZoom 滑桿時 e.target 有值，不會誤取消
+      const zr = ch.getZr(); if (zr._xBlank) zr.off('click', zr._xBlank);
+      zr._xBlank = (e) => { if (!e.target) pick(null); }; zr.on('click', zr._xBlank);
+    }
+    if (wrap && !wrap._xBlank) { wrap._xBlank = true;
+      wrap.addEventListener('click', (e) => { if (S.inc.xsel && S._xPick && !e.target.closest('tr[data-key], .chart, canvas, button, a, input, select, label, .ddpanel')) S._xPick(null); }); }
+    if (!S._xLinkDoc) { S._xLinkDoc = true;
+      document.addEventListener('click', (e) => { if (S.inc && S.inc.xsel && S._xPick && document.contains(e.target) && !e.target.closest('#incPX, .echarts-tooltip, [role="dialog"]')) S._xPick(null); }, true); }
+    // 表格每次 paint（圖例開關）都整張重寫 ⇒ 每次都要重掛；回傳這支給 legendselectchanged 用
+    const relink = () => {
+      keys = shown().map((l) => l.key);
+      $$('#cxTbl tr[data-key]').forEach((tr) => { const k = tr.dataset.key;
+        tr.onmouseenter = () => hover(k); tr.onmouseleave = () => hover(null);
+        tr.onclick = (e) => { if (e.target.closest('a, button')) return; pick(k, 'tr'); }; });
+      paint();
+    };
+    relink();
+    return relink;
   }
 
   /* ------------------------------------------------------------------ 入口 */
