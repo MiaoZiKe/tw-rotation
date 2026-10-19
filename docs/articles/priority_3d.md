@@ -17,6 +17,6 @@
 | 8 | 重做 | know-cpo CPO 是什麼？ | switch（800G 交換器，查 diagram_inventory）＋2.5D silicon_photonics | 已上架 2026-10-19 84 2026-10-17-know-cpo |
 | 9 | 新文章 | k_sic_gan 第三代半導體是什麼？ | wide_bandgap | 已上架 2026-10-19 79 2026-10-19-know-sic-gan |
 | 10 | 新文章 | k_wafer 矽晶圓是什麼？ | silicon_wafer | 已上架 2026-10-19 80 2026-10-19-know-wafer |
-| 11 | 新文章 | k_mlcc MLCC 是什麼？ | mlcc | 待做 |
+| 11 | 新文章 | k_mlcc MLCC 是什麼？ | mlcc | 已上架 2026-10-19 80 2026-10-19-know-mlcc |
 
 場景 id 以 docs/articles/diagram_inventory.md 為準（上表若與盤點表不同，以盤點表為準）。

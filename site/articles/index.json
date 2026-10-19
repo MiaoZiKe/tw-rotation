@@ -2,6 +2,29 @@
  "updated": "2026-10-19",
  "articles": [
   {
+   "id": "2026-10-19-know-mlcc",
+   "cat": "know",
+   "title": "MLCC 是什麼？AI 伺服器單台吃 1.5 萬顆",
+   "date": "2026-10-19",
+   "topic": "k_mlcc",
+   "groups": [
+    {
+     "id": "mlcc",
+     "name": "被動元件 MLCC"
+    },
+    {
+     "id": "jp_passive",
+     "name": "日本被動元件"
+    },
+    {
+     "id": "capacitor",
+     "name": "電容器"
+    }
+   ],
+   "reading_min": 3,
+   "src": "api"
+  },
+  {
    "id": "2026-10-17-know-cpo",
    "cat": "know",
    "title": "一張圖看懂 CPO：每位元功耗剩可插拔約 3 成",
