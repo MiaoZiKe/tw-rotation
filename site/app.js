@@ -5355,6 +5355,64 @@
       onPick: (v) => onPick(v || null) });
   }
 
+  /* ★ 2026-10-19 多圖連動（普查表第 12 項；規格 docs/style_guide.md 第十八節，照 etfpage.js comboLink）：
+     總覽「資金熱力圖」與相鄰卡片的「迷你資金輪盤」畫的是同一批族群 ——
+       · 滑過熱力圖方塊 → 輪盤同族群亮、其他點與尾巴變淡（highlightClock，跟輪盤自己滑過同一套）
+       · 滑過輪盤族群點 → 熱力圖那一塊外框亮（3px --ink）、其他方塊變淡（深 .55／淺 .35＝linkDim）
+       · 點擊＝鎖定（ovLinkSel，兩邊同一份），點空白處（卡片外、熱力圖／輪盤的空白）取消；
+         熱力圖原本「點方塊進族群頁」改成鎖定後的第二下；輪盤點族群照舊浮出說明框，再點同一顆＝收框並取消鎖定。
+     熱力圖的外框與變淡寫在資料項 itemStyle（不改顏色），原始資料留在 el._heatData，每次從原始資料重算，不會疊加。*/
+  let ovLinkSel = null;
+  const heatHas = (arr, gid) => (arr || []).some(d => d.gid === gid || (d.children && heatHas(d.children, gid)));
+  function ovHeatPaint(gid) {
+    const el = $('#heat'), c = el && window.echarts && echarts.getInstanceByDom(el);
+    if (!c || c.isDisposed() || !el._heatData) return;
+    const f = gid && heatHas(el._heatData, gid) ? gid : null;
+    if ((el._heatHi || null) === f) return;
+    el._heatHi = f; el.dataset.hi = f || '';
+    const dim = linkDim();
+    const map = (arr) => arr.map(d => (d.children ? { ...d, children: map(d.children) }
+      : !f || !d.gid ? d
+        : { ...d, itemStyle: { ...d.itemStyle, opacity: d.gid === f ? 1 : Math.min(d.itemStyle && d.itemStyle.opacity != null ? d.itemStyle.opacity : 1, dim),
+          borderColor: d.gid === f ? CH.ink : CH.card, borderWidth: d.gid === f ? 3 : 0 } }));
+    try { c.setOption({ series: [{ data: map(el._heatData) }] }); } catch (e) { /* 提示框與 dispose 競態 */ }
+  }
+  // 迷你輪盤亮誰：先試滑過的那一個，不在盤上（盤只畫前 10）就退回鎖定的那一個，都不在就全亮
+  function ovClockHi(g) {
+    const id = 'rotClockMini';
+    if (!(g && highlightClock(g, id)) && !(ovLinkSel && highlightClock(ovLinkSel, id))) highlightClock(null, id);
+  }
+  function ovLinkSet(g) {
+    ovLinkSel = g || null;
+    const m = $('#rotClockMini'), h = $('#heat');
+    if (m) m.dataset.sel = ovLinkSel || '';
+    if (h) h.dataset.sel = ovLinkSel || '';
+    ovClockHi(null);
+    ovHeatPaint(ovLinkSel);
+  }
+  function ovHeatBind(c, option) {
+    if (!c) return;
+    const el = c.getDom();
+    el._heatData = option.series[0].data; el._heatHi = null;
+    if (el._lkOver) { c.off('mouseover', el._lkOver); c.off('globalout', el._lkOut); }
+    // ⚠ 滑過熱力圖只重畫輪盤、不重畫熱力圖自己：treemap 換 data 會重建圖元，立刻觸發 mouseout → 又 mouseover，亮一下就被洗掉
+    el._lkOver = (p) => { const g = p.data && p.data.gid; if (g) ovClockHi(g); };
+    el._lkOut = () => ovClockHi(null);
+    c.on('mouseover', el._lkOver); c.on('globalout', el._lkOut);
+    try {
+      const zr = c.getZr();
+      if (zr._lkBlank) zr.off('click', zr._lkBlank);
+      zr._lkBlank = (ev) => { if (!ev.target && ovLinkSel && !linkTap('heat:blank')) ovLinkSet(null); };
+      zr.on('click', zr._lkBlank);
+    } catch (e) { /* 舊版 zrender */ }
+    if (ovLinkSel) { if (heatHas(el._heatData, ovLinkSel)) { el.dataset.sel = ovLinkSel; ovHeatPaint(ovLinkSel); } else ovLinkSet(null); }
+    if (!ovHeatBind._doc) {   // 卡片外的空白處也算取消：整頁只掛一次
+      ovHeatBind._doc = true;
+      document.addEventListener('click', (e) => {
+        if (ovLinkSel && document.contains(e.target) && !(e.target.closest && e.target.closest('#heat, #rotClockMini, #ovRotPop, .echarts-tooltip, [role="dialog"]'))) ovLinkSet(null);
+      }, true);
+    }
+  }
   let heatNoRot = 0;               // 還沒有 5 日 vs 20 日資金流向、改用漲跌上色的族群數（給 HOW.heat 讀）
   function renderHeat(gt, rot) {
     if (!gt || !gt.length) return empty('heat');
@@ -5372,8 +5430,13 @@
     const c = chart('heat', option);
     hmRelabel(c, heatVal);
     wheelZoom($('#heatWrap'), { onZoom: () => { const i = echarts.getInstanceByDom($('#heat')); if (i) i.resize(); } });
+    ovHeatBind(c, option);
     if (c) c.off('click').on('click', p => zoomClick($('#heatWrap'), () => {
       if (!p.data) return;
+      /* ★ 2026-10-19 多圖連動（普查表第 12 項）：點族群方塊第一下＝鎖定（迷你資金輪盤同族群亮、其他變淡），
+         已鎖定的同一塊再點一下才走原本的「進族群頁」。觸控會收到兩次 click，350ms 內同一塊第二下不算（linkTap）。*/
+      if (p.data.gid && ovLinkSel !== p.data.gid) { if (!linkTap('heat:' + p.data.gid)) ovLinkSet(p.data.gid); return; }
+      if (p.data.gid && linkTap('heat:' + p.data.gid)) return;
       // ★ 2026-10-05 Andy：熱力圖下方的成分股面板「這邊拿掉」→ 點族群方塊不再展開面板（不加回來）；保留 admin-v2 的埋點與族群權限提示
       // ★ 2026-10-08 晚 Andy：「資金熱力圖 點擊後會跳到該產業地圖族群，並將此功能權限進去」→ 點族群方塊直接進族群頁，
       //   走 hmGo：Plus 以上／站主／管理員照跳，訪客與免費會員跳升級卡、網址不動。族群本身被鎖（twGrpBlock）就停在鎖頭提示。
@@ -7998,7 +8061,7 @@
       const zr = c.getZr();
       if (el._rotHovZr !== zr) {                     // 第一次、或圖被 dispose 重建過（換主題）→ zrender 換了一個，要重新掛
         el._rotHovZr = zr; el._hovGid = null;
-        const back = () => el._numSel || (id === 'rotClock' ? rankSel : null);
+        const back = () => el._numSel || (id === 'rotClock' ? rankSel : id === 'rotClockMini' ? ovLinkSel : null);
         const onMove = (ev) => {
           if (el._hovRaf) return;
           el._hovRaf = requestAnimationFrame(() => {
@@ -8018,9 +8081,10 @@
             if (g === (el._hovGid || null)) return;
             el._hovGid = g;
             highlightClock(g || back(), id);
+            if (id === 'rotClockMini') ovHeatPaint(g || ovLinkSel);   // 10-19 多圖連動：熱力圖那一塊外框亮
           });
         };
-        const onOut = () => { if (!el._hovGid) return; el._hovGid = null; highlightClock(back(), id); };
+        const onOut = () => { if (!el._hovGid) return; el._hovGid = null; highlightClock(back(), id); if (id === 'rotClockMini') ovHeatPaint(ovLinkSel); };
         try { zr.on('mousemove', onMove); zr.on('globalout', onOut); } catch (e) { /* 忽略 */ }
       }
       if (!el.dataset.rotRo && window.ResizeObserver) {
@@ -8038,6 +8102,33 @@
     }
     /* ★ 2026-09-25：總覽小盤桌機改成像素半徑（rotGeo compact），所以欄寬改變時要跟著換高度與半徑，
        不然視窗拉寬之後盤還停在舊尺寸。只看寬度決定高度，不會來回觸發；120ms 去抖動。*/
+    /* ★ 2026-10-19 多圖連動（普查表第 12 項）：迷你輪盤以前沒有「滑過命中」（只有大輪盤有），
+       這裡補同一套 zrender 命中測試：滑到族群點 → 它亮、其他變淡（highlightClock），熱力圖那一塊外框亮（ovHeatPaint）；
+       滑開回到鎖定的那一個（ovLinkSel）。不用 ECharts 的 mouseover 的理由同大輪盤（換 data 會立刻觸發 mouseout）。*/
+    if (c && compact && id === 'rotClockMini') {
+      el._rotHov = { top, c };
+      const zr = c.getZr();
+      if (el._rotHovZr !== zr) {
+        el._rotHovZr = zr; el._hovGid = null;
+        const onMove = (ev) => {
+          if (el._hovRaf) return;
+          el._hovRaf = requestAnimationFrame(() => {
+            el._hovRaf = 0;
+            const H = el._rotHov; if (!H || !H.c || H.c.isDisposed()) return;
+            const si = (H.c.getOption().series || []).findIndex(s => s.type === 'scatter'); if (si < 0) return;
+            let best = null, bd = Infinity;
+            H.top.forEach(r => { if (r.isStock) return; const pp = r._pt || r.p; let q; try { q = H.c.convertToPixel({ seriesIndex: si }, [pp[0], pp[1]]); } catch (e) { q = null; }
+              if (!q) return; const d = Math.hypot(q[0] - ev.offsetX, q[1] - ev.offsetY); if (d <= (r.sz || 16) / 2 + 3 && d < bd) { bd = d; best = r; } });
+            const g = best ? best.gid : null;
+            if (g === (el._hovGid || null)) return;
+            el._hovGid = g;
+            ovClockHi(g); ovHeatPaint(g || ovLinkSel);
+          });
+        };
+        const onOut = () => { if (!el._hovGid) return; el._hovGid = null; ovClockHi(null); ovHeatPaint(ovLinkSel); };
+        try { zr.on('mousemove', onMove); zr.on('globalout', onOut); } catch (e) { /* 忽略 */ }
+      }
+    }
     if (c && compact && id === 'rotClockMini' && !el._miniRO && typeof ResizeObserver !== 'undefined') {
       let t = 0, lw = el.clientWidth;
       const miniRelayout = () => {
@@ -8074,8 +8165,12 @@
          不再推出下方的成分股面板，改成圓圈旁邊的小說明框（ovRotPop）。*/
       if (compact && id === 'rotClockMini' && $('#ovRotPop')) {
         const box = $('#ovRotPop');
+        /* 10-19 多圖連動：點族群點＝鎖定（熱力圖那一塊外框亮），說明框照舊浮出；再點同一顆＝收框並取消鎖定 */
+        if (linkTap('mini:' + r.gid)) return;
+        const same = ovLinkSel === r.gid;
+        ovLinkSet(same ? null : r.gid);
         // 再點一次同一顆＝收起來（dismissable 的「點外面」遇到點在圖上會被重畫蓋掉，所以這裡自己判斷）
-        if (!box.hidden && box.dataset.gid === r.gid) { box.hidden = true; return; }
+        if (same || (!box.hidden && box.dataset.gid === r.gid)) { box.hidden = true; return; }
         let px = null;
         try { px = c.convertToPixel({ seriesIndex: q.seriesIndex }, q.data.value); } catch (e) { /* 換算失敗就用點擊位置 */ }
         if (!px || !isFinite(px[0])) px = [q.event && q.event.offsetX, q.event && q.event.offsetY];
@@ -8095,6 +8190,14 @@
       drillOpen(r.gid, r.name);
     });
     // 多圖連動：點輪盤空白處＝取消鎖定（點到點時 ECharts 有 target，不清）。只拔自己上次掛的那一支。
+    if (c && id === 'rotClockMini') {   // 10-19：迷你輪盤的空白處＝取消總覽連動的鎖定
+      try {
+        const zr = c.getZr();
+        if (zr._lkBlank) zr.off('click', zr._lkBlank);
+        zr._lkBlank = (ev) => { if (!ev.target && ovLinkSel && !linkTap('mini:blank')) ovLinkSet(null); };
+        zr.on('click', zr._lkBlank);
+      } catch (e) { /* 同上 */ }
+    }
     if (c && id === 'rotClock') {
       try {
         const zr = c.getZr();

@@ -231,6 +231,17 @@ html[data-theme="light"] #v-admin{--pgL:40%}
 #v-admin [data-chart] .sc circle.hl,#v-admin [data-chart] .vbars rect.hl{stroke:var(--ink);stroke-width:2}
 #admBody .sc circle.hl{r:8}
 #v-admin .vbars rect.hl{filter:brightness(1.3)}
+/* 10-19 多圖連動（同一個 .trpair 的長條＋圓餅）：其他項變淡（透明度由 lkPaint 依主題寫進 --lkdim：深 .55／淺 .35），鎖定的那一項外框＋粗字 */
+#v-admin .lkbox [data-lk]{transition:opacity .12s ease}
+#v-admin .lkbox [data-lk].lkdim{opacity:var(--lkdim,.55)}
+#v-admin .lkbox .bars>.bt.lkon,#v-admin .lkbox .bars>.bt.lksel{outline:2px solid var(--ink);outline-offset:0}
+#v-admin .lkbox .bars>.bl.lkon,#v-admin .lkbox .bars>.bn.lkon,#v-admin .lkbox .bars>.bl.lksel,#v-admin .lkbox .bars>.bn.lksel{color:var(--ink);font-weight:700}
+#v-admin .lkbox li[data-lk].lksel{font-weight:700;box-shadow:inset 0 0 0 1px var(--ink);border-radius:6px}
+#v-admin .lkbox .bars>[data-lk],#v-admin .lkbox tr[data-lk],#v-admin .lkbox circle[data-lk]{cursor:pointer}
+#v-admin .lkgrp{margin-top:12px}
+#v-admin .lkbox tr[data-lk].lkon>td,#v-admin .lkbox tr[data-lk].lksel>td{background:color-mix(in srgb,var(--ink) 8%,transparent)}
+#v-admin .lkbox tr[data-lk].lksel>td{box-shadow:inset 0 1px 0 var(--ink),inset 0 -1px 0 var(--ink)}
+#v-admin .lkbox circle[data-lk].lkon,#v-admin .lkbox circle[data-lk].lksel{stroke:var(--ink);stroke-width:2.5}
 @media (prefers-reduced-motion:reduce){#admBody [data-chart] [data-row],#admBody [data-chart] li[data-k]{transition:none}}
 @media (max-width:1100px){#v-admin .admgrid.trpair,#v-admin .admgrid.trtop{grid-template-columns:minmax(0,1fr)}#v-admin .admgrid{grid-template-columns:repeat(2,minmax(0,1fr))}#v-admin .admgrid>.s2{grid-column:span 2}}
 @media (max-width:820px){#v-admin .trkpi .kpis{grid-template-columns:repeat(3,minmax(0,1fr))}#v-admin .trctl{border-left:0;padding-left:0}#v-admin .admgrid{grid-template-columns:minmax(0,1fr)}#v-admin .admgrid>.s2{grid-column:auto}}
@@ -795,9 +806,10 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
     const max = Math.max(...list.map((x) => x[1]), 1), o = opt || {};
     const nm = (k) => typeof names === 'function' ? names(k) : (names[k] || k);
     return `<div class="bars" data-chart="bars"${o.id ? ` id="${o.id}"` : ''}>` + list.map(([k, n], r) => { const t = tp(`<b>${esc(nm(k))}</b><br>${nf(n)} 次${total ? `・占 ${(n / total * 100).toFixed(1)}%` : ''}`);
-      return (o.click ? `<button type="button" class="bl" data-row="${r}"${t} data-k="${esc(k)}">${esc(nm(k))}</button>` : `<span class="bl" data-row="${r}"${t}>${esc(nm(k))}</span>`)
-      + `<span class="bt" data-row="${r}"${t}><i style="width:${(n / max * 100).toFixed(1)}%"></i></span>`
-      + `<span class="bn" data-row="${r}"${t}>${nf(n)}${total ? `<small style="color:var(--ink-2)"> ${(n / total * 100).toFixed(0)}%</small>` : ''}</span>`; }).join('') + '</div>';
+      const lk = o.lk ? ` data-lk="${esc(k)}"` : '';   // 10-19 多圖連動：跟同一個 .trpair 的圓餅用同一個 key
+      return (o.click ? `<button type="button" class="bl" data-row="${r}"${t}${lk} data-k="${esc(k)}">${esc(nm(k))}</button>` : `<span class="bl" data-row="${r}"${t}${lk}>${esc(nm(k))}</span>`)
+      + `<span class="bt" data-row="${r}"${t}${lk}><i style="width:${(n / max * 100).toFixed(1)}%"></i></span>`
+      + `<span class="bn" data-row="${r}"${t}${lk}>${nf(n)}${total ? `<small style="color:var(--ink-2)"> ${(n / total * 100).toFixed(0)}%</small>` : ''}</span>`; }).join('') + '</div>';
   }
 
   /* ---- 頂部：標題（＋三個子分頁 tab：2026-10-05 起桌機版搬到左側欄「管理區」底下的縮排子項，見 layout4.js syncPerm；
@@ -1207,6 +1219,56 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
 
   /* ==== 管理區所有圖表的一致互動（Andy 10-05）：滑過高亮該柱／扇區／點（其餘變淡）＋浮動提示（名稱、數值、占比）＋甜甜圈中心字換成該段；
      圖例滑過連動高亮；點擊：「全部」頁的長條／扇區進入該頁（其餘圖沒有可進的下一層，只提示）。事件委派在 #admBody 上，圖重畫不用重綁。 */
+  /* ==== 10-19 多圖連動（普查表第 10、11 項；規格 docs/style_guide.md 第十八節，照 etfpage.js comboLink）：
+     同一個 .trpair 裡的長條（data-lk）＋圓餅（spec.segs[].lk）＝同一批項目（頁面／功能／對象），用同一個 key 跨兩張卡一起亮：
+       · 滑過任一處的某一項 → 兩張卡的那一項亮（長條外框＋粗字、扇區外框），其他變淡（深 .55／淺 .35，不改顏色）
+       · 點擊＝鎖定（S.lkSel，跟著「目前分頁｜子分頁」，切走就失效），再點同一項或點空白處取消
+       · 「全部」頁原本「點長條／扇區進該頁」改成鎖定後的第二下（能點到底，但第一下不把人帶離這張圖）
+       · 圓餅只畫前 5 ＋其他：長條第 6 名以後亮「其他」那一塊；滑過「其他」→ 不在前 5 的長條一起亮 */
+  const LK_OTHER = '__other';
+  const lkDim = () => (document.documentElement.getAttribute('data-theme') === 'light' ? 0.35 : 0.55);
+  S.lkSel = {};
+  const lkCtx = () => S.tab + '|' + S.sub;
+  const lkPid = (pair) => { const b = pair && pair.querySelector('.bars[id]'); return b ? b.id : ''; };
+  const lkSelOf = (pair) => { const r = pair && S.lkSel[lkPid(pair)]; return r && r.ctx === lkCtx() ? r.k : null; };
+  function lkKeys(pair) { const el = pair.querySelector('.dnc[data-spec]'); if (!el) return null; try { return new Set(JSON.parse(el.dataset.spec).segs.map((x) => x.lk).filter((x) => x != null)); } catch (e) { return null; } }
+  const lkMatch = (k, a, dk) => a != null && (k === a || (!!dk && a === LK_OTHER && dk.has(LK_OTHER) && !dk.has(k)) || (!!dk && k === LK_OTHER && !dk.has(a)));
+  function lkPaint(pair, hov) {
+    if (!pair || !pair.isConnected) return;
+    const sel = lkSelOf(pair), act = hov != null ? hov : sel, dk = lkKeys(pair);
+    pair.dataset.sel = sel || ''; pair.dataset.act = act || '';
+    pair.style.setProperty('--lkdim', lkDim());
+    pair.querySelectorAll('[data-lk]').forEach((e) => { const on = lkMatch(e.dataset.lk, act, dk);
+      e.classList.toggle('lkdim', act != null && !on); e.classList.toggle('lkon', on); e.classList.toggle('lksel', lkMatch(e.dataset.lk, sel, dk)); });
+    const dn = pair.querySelector('.dnc[data-spec]'); if (dn && dn._lkPaint) dn._lkPaint(act, sel);
+  }
+  function lkHover(pair, k) {
+    const cur = S.lkHov && S.lkHov.pair === pair ? S.lkHov.k : null;
+    if (cur === k) return;
+    S.lkHov = k != null ? { pair, k } : null;
+    lkPaint(pair, k);
+  }
+  // ⚠ 觸控點一下，zrender 會收到指標事件的 click 又收到瀏覽器補發的 click ⇒ 同一處 350ms 內第二下不算（comboLink 同一招）
+  let lkLast = { k: '', t: 0 };
+  function lkClick(pair, k, page, src) {
+    const t = Date.now(), kk = src + ':' + k; if (lkLast.k === kk && t - lkLast.t < 350) return; lkLast = { k: kk, t };
+    const pid = lkPid(pair);
+    if (lkSelOf(pair) === k) {
+      if (page && S.tab === 'all') { S.lkSel = {}; S.lkHov = null; S.tab = page; S.sub = 'all'; paintTrTabs(); return; }   // 第二下＝進該頁
+      delete S.lkSel[pid];
+    } else S.lkSel[pid] = { k, ctx: lkCtx() };
+    lkPaint(pair, S.lkHov && S.lkHov.pair === pair ? S.lkHov.k : null);
+  }
+  function lkClear() {
+    const had = Object.keys(S.lkSel).length; S.lkSel = {}; const h = S.lkHov; S.lkHov = null;
+    if (!had && !h) return;
+    document.querySelectorAll('#trPageBody .lkbox').forEach((pr) => lkPaint(pr, null));
+  }
+  // 卡片外、圖外的空白處＝取消（整頁只掛一次）
+  document.addEventListener('click', (e) => {
+    if (!Object.keys(S.lkSel).length || !document.contains(e.target)) return;
+    if (!(e.target.closest && e.target.closest('.lkbox [data-lk], .lkbox .dnc, #trTip'))) lkClear();
+  });
   function tipEl() { let t = document.getElementById('trTip'); if (!t) { t = document.createElement('div'); t.id = 'trTip'; t.hidden = true; t.setAttribute('role', 'tooltip'); document.body.appendChild(t); } return t; }
   function hovClear(chart) {
     if (!chart) return;
@@ -1239,6 +1301,12 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
     const clearAll = () => { root.querySelectorAll('[data-chart].hov').forEach(hovClear); tipEl().hidden = true; S.tapEl = null; };
     root.addEventListener('mouseover', (e) => { if (S.touching) return; show(e.target, e.clientX, e.clientY); });
     root.addEventListener('mousemove', (e) => { if (!S.touching) place(e.clientX, e.clientY); });
+    /* 10-19 多圖連動：滑過長條列／圓餅圖例 → 同一個 .trpair 兩張卡一起亮。圓餅本體（.dnc）由 ECharts 的 mouseover 處理，這裡不管 */
+    root.addEventListener('mouseover', (e) => {
+      const pr = e.target.closest && e.target.closest('.lkbox'); if (!pr || !pr.querySelector('[data-lk]') || e.target.closest('.dnc')) return;
+      const el = e.target.closest('[data-lk]'); lkHover(pr, el ? el.dataset.lk : null);
+    });
+    root.addEventListener('mouseout', (e) => { const pr = e.target.closest && e.target.closest('.lkbox'); if (pr && S.lkHov && S.lkHov.pair === pr && !(e.relatedTarget && pr.contains(e.relatedTarget))) lkHover(pr, null); });
     root.addEventListener('mouseout', (e) => { if (S.touching) return; const chart = e.target.closest && e.target.closest('[data-chart]'); if (!chart) return; if (e.relatedTarget && chart.contains(e.relatedTarget)) return; hovClear(chart); });
     /* 觸控（手機）：點一下圖就出提示＋高亮，點圖外面收起來。有「下一步」的元素（全部頁的長條／扇區、每日直條）第一下只出提示，同一個再點一下才執行 */
     root.addEventListener('pointerdown', (e) => {
@@ -1246,7 +1314,7 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
       S.touching = true;
       const el = e.target.closest && e.target.closest('[data-tip],li[data-k]');
       if (!el || !el.closest('[data-chart]')) { clearAll(); S.suppress = false; return; }
-      const act = !!el.closest('[data-p], .dc[data-day]');
+      const act = !!el.closest('.dc[data-day]');   // 10-19：全部頁的長條／扇區第一下改成「鎖定」（本來就不跳頁），不用再擋
       S.suppress = act && S.tapEl !== el;
       show(e.target, e.clientX, e.clientY); S.tapEl = el;
     });
@@ -1284,7 +1352,10 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
     body.innerHTML = S.tab === 'all' ? allHtml() : S.tab === 'users' ? usersBody() : pageHtml(S.tab);
     /* 10-17：分頁裡的「每天直條」日期刻度原本只在第一次畫上排時藏重疊，切分頁後沒藏 → 09/18、09/19 疊在一起 */
     thinTicks(body); requestAnimationFrame(() => thinTicks(body));
+    body.querySelectorAll('.lkbox').forEach((pr) => { if (lkSelOf(pr)) lkPaint(pr, null); });   // 30 秒自動重畫後，鎖定的那一項還在就保留
     body.onclick = (e) => {
+      const lkE = e.target.closest('.lkbox [data-lk]');
+      if (lkE) { lkClick(lkE.closest('.lkbox'), lkE.dataset.lk, lkE.dataset.p || '', 'dom'); return; }
       const t = e.target.closest('[data-p]'); if (t && S.tab === 'all') { S.tab = t.dataset.p; S.sub = t.dataset.s || 'all'; paintTrTabs(); return; }
       const sb = e.target.closest('button[data-sub]'); if (sb) { S.sub = sb.dataset.sub; paintBody(); }
       const hb = e.target.closest('button[data-hr]'); if (hb) { S.hr = hb.dataset.hr; paintBody(); }
@@ -1293,7 +1364,7 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
     v.querySelectorAll('#trTabs .on, #trSubs .on').forEach((b) => { if (b.scrollIntoView) b.scrollIntoView({ block: 'nearest', inline: 'nearest' }); });
     const sc = body.querySelector('#trSc');
     if (S.ro) { S.ro.disconnect(); S.ro = null; }
-    if (sc && S.stk) { const draw = () => drawScatter(sc, S.stk.scat); draw(); if (window.ResizeObserver) { let lw = sc.clientWidth, lh = sc.clientHeight; S.ro = new ResizeObserver(() => { if (Math.abs(sc.clientWidth - lw) > 2 || Math.abs(sc.clientHeight - lh) > 2) { lw = sc.clientWidth; lh = sc.clientHeight; draw(); } }); S.ro.observe(sc); } }
+    if (sc && S.stk) { const draw = () => { drawScatter(sc, S.stk.scat); const g = sc.closest('.lkbox'); if (g && lkSelOf(g)) lkPaint(g, null); }; draw(); if (window.ResizeObserver) { let lw = sc.clientWidth, lh = sc.clientHeight; S.ro = new ResizeObserver(() => { if (Math.abs(sc.clientWidth - lw) > 2 || Math.abs(sc.clientHeight - lh) > 2) { lw = sc.clientWidth; lh = sc.clientHeight; draw(); } }); S.ro.observe(sc); } }
   }
   const card = (id, ttl, sub, inner, cls) => `<div class="card${cls ? ' ' + cls : ''}" id="${id}"><h3>${esc(ttl)}</h3><p class="use" title="${esc(sub)}">${esc(sub)}</p><div class="cb">${inner}</div></div>`;
   /* 「全部」：左＝各頁堆疊長條（有子頁的頁面依子頁上色，滑過看占比）；右＝各頁占比大甜甜圈（子頁＝同色系子扇區） */
@@ -1305,11 +1376,11 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
       const inner = segs.length > 1 ? segs.map((s) => `<i style="width:${(s.v / Math.max(ssum, 1) * 100).toFixed(2)}%;--c:${s.col}" ${tp(`<b>${esc(p.n)}・${esc(s.n)}</b><br>${nf(s.v)} 次・占該頁 ${(s.v / ssum * 100).toFixed(1)}%・占全站 ${(s.v / tot * 100).toFixed(1)}%`)}></i>`).join('')
         : `<i style="width:100%;--c:${pgCol(i, 0, 1)}" ${tp(`<b>${esc(p.n)}</b><br>${nf(d.total)} 次・占全站 ${(d.total / tot * 100).toFixed(1)}%`)}></i>`;
       const t0 = tp(`<b>${esc(p.n)}</b><br>${nf(d.total)} 次・占全站 ${(d.total / tot * 100).toFixed(1)}%`);
-      return `<button type="button" class="bl" data-p="${p.k}" data-row="${ri}"${t0}>${esc(p.n)}</button><span class="bt stk" data-p="${p.k}" data-row="${ri}"><span style="width:${w.toFixed(1)}%">${inner}</span></span><span class="bn" data-row="${ri}" data-p="${p.k}"${t0}>${nf(d.total)}<small>${(d.total / tot * 100).toFixed(0)}%</small></span>`;
+      return `<button type="button" class="bl" data-p="${p.k}" data-lk="${p.k}" data-row="${ri}"${t0}>${esc(p.n)}</button><span class="bt stk" data-p="${p.k}" data-lk="${p.k}" data-row="${ri}"><span style="width:${w.toFixed(1)}%">${inner}</span></span><span class="bn" data-row="${ri}" data-p="${p.k}" data-lk="${p.k}"${t0}>${nf(d.total)}<small>${(d.total / tot * 100).toFixed(0)}%</small></span>`;
     }).join('');
     /* ★ 2026-10-06：跟產業地圖一樣「前 5 ＋ 其他」，不再拆子頁（子頁明細在左邊堆疊長條）；顏色＝頁面色，跟左邊長條對應 */
-    const segs = list.map(({ p, i, d }) => ({ label: p.n, n: d.total, color: pgCol(i, 0, 1), tip: p.n, p: p.k }));
-    return `<div class="admgrid trpair">${card('trAllBars', '各頁被看了幾次？', '有子頁的以不同顏色堆疊', `<div class="bars stkbars" data-chart="bars" id="trAllB">${rows}</div>`)}
+    const segs = list.map(({ p, i, d }) => ({ label: p.n, n: d.total, color: pgCol(i, 0, 1), tip: p.n, p: p.k, lk: p.k }));
+    return `<div class="admgrid trpair lkbox">${card('trAllBars', '各頁被看了幾次？', '有子頁的以不同顏色堆疊', `<div class="bars stkbars" data-chart="bars" id="trAllB">${rows}</div>`)}
       ${card('trAllDonut', '各頁占比', '前 5 頁＋其他；顏色＝頁面，跟左邊長條一樣', donutG(segs, { aria: '各頁瀏覽占比' }))}</div>`;
   }
   /* 單一頁面：上方小分頁（全部＋子頁）、下方 功能使用次數（長條＋圓餅）、被點最多的對象（長條＋圓餅） */
@@ -1326,35 +1397,35 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
     sel.forEach((r) => { if (kindOf(r.comp) && r.det) { const key = r.det; byDet[key] = (byDet[key] || 0) + r.n; kinds.add(kindOf(r.comp)); } });
     const dl = Object.entries(byDet).sort((a, b) => b[1] - a[1]);
     const palette = window.App.donut.colors();      // ★ 2026-10-06：共用飽和色盤（App.donut），不再用 --cat-1..5（深色主題是螢光青／萊姆，淺色是粉彩，相鄰扇區分不出來）
-    const dsegs = (list, nameFn) => { const t5 = list.slice(0, 5), rest = sum(list.slice(5).map((x) => x[1])); return t5.map(([kk, n], i) => ({ label: nameFn(kk), n, color: palette[i] })).concat(rest ? [{ label: '其他', n: rest, color: window.App.donut.other() }] : []); };
-    const pair = (id, ttl, sub, list, nameFn, click, lim) => `${card(id + 'B', ttl, sub, bars(list.slice(0, lim || 10), nameFn, sum(list.map((x) => x[1])), { id: id + 'Bars', click }))}${card(id + 'D', ttl.replace(/？$/, '') + '占比', '前 5 名＋其他', donutG(dsegs(list, nameFn), { legend: dsegs(list, nameFn), legendN: 6, aria: ttl }))}`;
+    const dsegs = (list, nameFn) => { const t5 = list.slice(0, 5), rest = sum(list.slice(5).map((x) => x[1])); return t5.map(([kk, n], i) => ({ label: nameFn(kk), n, color: palette[i], lk: kk })).concat(rest ? [{ label: '其他', n: rest, color: window.App.donut.other(), lk: LK_OTHER }] : []); };
+    const pair = (id, ttl, sub, list, nameFn, click, lim) => `${card(id + 'B', ttl, sub, bars(list.slice(0, lim || 10), nameFn, sum(list.map((x) => x[1])), { id: id + 'Bars', click, lk: true }))}${card(id + 'D', ttl.replace(/？$/, '') + '占比', '前 5 名＋其他', donutG(dsegs(list, nameFn), { legend: dsegs(list, nameFn), legendN: 6, aria: ttl }))}`;
     let body = '';
     if (k === 'stock' && S.sub === 'tabs') {
       const tl = fl.map(([c, n]) => [c.replace(/^tab\./, ''), n]);
-      body = `<div class="admgrid trpair">${pair('trF', '各分頁被點幾次？', '個股頁下方分頁（含 ETF 成分股）', tl, (c) => (TAB_NAME[c] || c), false, 12)}</div>`;
+      body = `<div class="admgrid trpair lkbox">${pair('trF', '各分頁被點幾次？', '個股頁下方分頁（含 ETF 成分股）', tl, (c) => (TAB_NAME[c] || c), false, 12)}</div>`;
     } else if (k === 'stock' && S.sub === 'kline') {
       /* K 線指標：左＝各項功能（技術指標各自計次＋畫線工具各自計次＋AI 面向／四週期同看／指標面板／3D）；右組＝K 線週期切換，不重複 */
       const it = {}; const add = (nm, n) => { it[nm] = (it[nm] || 0) + n; };
       sel.forEach((r) => { if (r.comp === 'ind') add(r.det || '技術指標', r.n); else if (r.comp === 'draw.tool') add('畫線：' + (r.det || '工具'), r.n); else if (!/^kp\./.test(r.comp)) add(compName(r.comp), r.n); });
       const il = Object.entries(it).sort((a, b) => b[1] - a[1]);
       const pl = fl.filter(([c]) => /^kp\./.test(c));
-      body = `<div class="admgrid trpair">${pair('trF', '各項功能被用了幾次？', '技術指標／畫線／AI／四週期（含本益比河流）', il, (x) => x, false, 16)}</div>`
-        + (pl.length ? `<div class="admgrid trpair">${pair('trD', 'K 線週期切換', '日／週／月／分 K', pl, compName)}</div>` : '');
+      body = `<div class="admgrid trpair lkbox">${pair('trF', '各項功能被用了幾次？', '技術指標／畫線／AI／四週期（含本益比河流）', il, (x) => x, false, 16)}</div>`
+        + (pl.length ? `<div class="admgrid trpair lkbox">${pair('trD', 'K 線週期切換', '日／週／月／分 K', pl, compName)}</div>` : '');
     } else if (k === 'stock' && S.sub === 'all') {
-      body = `<div class="admgrid trpair">${pair('trF', '各功能被用了幾次？', '每個功能被用的次數', fl, compName)}</div>
-        <div class="admgrid trpair">${pair('trD', '被點最多的個股', '個股頁被打開次數，前 10 名', dl, stockNm)}</div>
+      body = `<div class="admgrid trpair lkbox">${pair('trF', '各功能被用了幾次？', '每個功能被用的次數', fl, compName)}</div>
+        <div class="lkbox lkgrp"><div class="admgrid trpair">${pair('trD', '被點最多的個股', '個股頁被打開次數，前 10 名', dl, stockNm)}</div>
         <div class="admgrid">${card('trStockFeat', '熱門個股的人都在用什麼功能？', '前 10 檔各自最常用的三個功能', S.stk.featRows.length ? stockTable(S.stk.featRows) : '<div class="empty">沒有資料</div>', 's2')}
-          ${card('trScatter', '哪些股票「又多人看、看的人又用得深」？', '右上＝熱門又被深度使用', S.stk.scat.length < 2 ? '<div class="empty">沒有資料</div>' : '<div class="sc" data-chart="sc" id="trSc"></div>')}</div>`;
+          ${card('trScatter', '哪些股票「又多人看、看的人又用得深」？', '右上＝熱門又被深度使用', S.stk.scat.length < 2 ? '<div class="empty">沒有資料</div>' : '<div class="sc" data-chart="sc" id="trSc"></div>')}</div></div>`;   /* ↑ lkgrp：被點最多的個股（長條＋圓餅）＋熱門個股功能表＋深度散點，四處用個股代號互亮（10-19 第二輪普查第 24 項） */
     } else if (!fl.length) {
       body = `<div class="empty trempty">沒有資料</div>`;
     } else {
       const nmDet = (x) => (kinds.has('個股') && /^[0-9A-Z]{4,6}$/.test(x) ? stockNm(x) : x);
-      body = (fl.length === 1 && dl.length ? '' : `<div class="admgrid trpair">${pair('trF', '各功能被用了幾次？', sn, fl, compName)}</div>`)
-        + (dl.length ? `<div class="admgrid trpair">${pair('trD', `被點最多的${[...kinds].join('／')}`, `${sn}・Top 10`, dl, nmDet)}</div>` : '');
+      body = (fl.length === 1 && dl.length ? '' : `<div class="admgrid trpair lkbox">${pair('trF', '各功能被用了幾次？', sn, fl, compName)}</div>`)
+        + (dl.length ? `<div class="admgrid trpair lkbox">${pair('trD', `被點最多的${[...kinds].join('／')}`, `${sn}・Top 10`, dl, nmDet)}</div>` : '');
     }
     return `<div class="trhd">${subs}</div>${body}`;
   }
-  const stockTable = (rows) => `<div class="tbw"><table class="fx"><colgroup><col style="width:24%"><col style="width:26%"><col style="width:50%"></colgroup><thead><tr><th>代號</th><th>觀看</th><th>最常用的功能</th></tr></thead><tbody>${rows.map((r) => `<tr><td class="nm">${esc(stockNm(r.code))}</td><td><span class="vb"><span><i style="width:${(r.views / Math.max(1, rows[0].views) * 100).toFixed(1)}%"></i></span><em>${nf(r.views)}</em></span></td><td>${r.top.length ? `<div class="chips">${r.top.map((x) => `<span class="chip">${esc(compName(x.comp).replace(/^.*：/, ''))} <b>${nf(x.n)}</b></span>`).join('')}</div>` : '<span style="color:var(--ink-2)">只看沒點功能</span>'}</td></tr>`).join('')}</tbody></table></div>`;
+  const stockTable = (rows) => `<div class="tbw"><table class="fx"><colgroup><col style="width:24%"><col style="width:26%"><col style="width:50%"></colgroup><thead><tr><th>代號</th><th>觀看</th><th>最常用的功能</th></tr></thead><tbody>${rows.map((r) => `<tr data-lk="${esc(r.code)}"><td class="nm">${esc(stockNm(r.code))}</td><td><span class="vb"><span><i style="width:${(r.views / Math.max(1, rows[0].views) * 100).toFixed(1)}%"></i></span><em>${nf(r.views)}</em></span></td><td>${r.top.length ? `<div class="chips">${r.top.map((x) => `<span class="chip">${esc(compName(x.comp).replace(/^.*：/, ''))} <b>${nf(x.n)}</b></span>`).join('')}</div>` : '<span style="color:var(--ink-2)">只看沒點功能</span>'}</td></tr>`).join('')}</tbody></table></div>`;
   /* 每天直條：只從「第一筆有資料的日子」起畫（前面沒紀錄的天數用一行字交代）。圖區吃滿卡片高度；y 軸 0／一半／最大值＋淡格線＋平均虛線；
      最高那天標值；天數 ≤ 7 時每根放大（寬到 140）並在柱上標值、柱下標日期，不再是細細兩根留一大片空白 */
   /* 橫軸刻度（每格一個完整日期）：依實際寬度由左到右留下不重疊的，第一個一定留；視窗縮放時重算 */
@@ -1423,7 +1494,7 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
     const xt = [0, 0.5, 1].map((f) => `<text x="${X(xm * f).toFixed(1)}" y="${H - B + 16}" text-anchor="${f === 0 ? 'start' : f === 1 ? 'end' : 'middle'}">${nf(Math.round(xm * f))}</text>`).join('');
     box.innerHTML = `<svg id="trScSvg" viewBox="0 0 ${W} ${H}" role="img" aria-label="個股被觀看次數與平均功能使用次數的散佈圖">${gl}<line x1="${L}" y1="${T}" x2="${L}" y2="${H - B}" stroke="var(--line-2)"/>${xt}
       <text x="${W - R}" y="${H - 6}" text-anchor="end">被觀看次數 →</text><text x="${L}" y="${H - 6}" text-anchor="start">每次觀看用幾次功能 ↑</text>
-      ${pts.map((p, pi) => `<circle data-row="${pi}"${tp(`<b>${esc(stockNm(p.code))}</b><br>被觀看 ${nf(p.x)} 次<br>每次平均用 ${p.y.toFixed(2)} 次功能`)} cx="${X(p.x).toFixed(1)}" cy="${Y(p.y).toFixed(1)}" r="6" fill="var(--cat-1)" fill-opacity=".85" stroke="var(--panel)" stroke-width="1.5"></circle>`).join('')}${out.join('')}</svg>`;
+      ${pts.map((p, pi) => `<circle data-row="${pi}" data-lk="${esc(p.code)}"${tp(`<b>${esc(stockNm(p.code))}</b><br>被觀看 ${nf(p.x)} 次<br>每次平均用 ${p.y.toFixed(2)} 次功能`)} cx="${X(p.x).toFixed(1)}" cy="${Y(p.y).toFixed(1)}" r="6" fill="var(--cat-1)" fill-opacity=".85" stroke="var(--panel)" stroke-width="1.5"></circle>`).join('')}${out.join('')}</svg>`;
   }
   /* ★ 2026-10-06 第三版（Andy 14:45：「管理區甜甜圈還是舊樣式，要一模一樣」，DECISIONS #331）：
      管理區所有甜甜圈（各頁占比、開站身分、功能占比、會員狀態、方案、分頁瀏覽）不再自己用 SVG 畫，
@@ -1435,7 +1506,7 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
     let segs = segs0.filter((x) => x.n > 0);
     if (segs.length > 6) {
       const keep = new Set(segs.slice().sort((a, b) => b.n - a.n).slice(0, 5)), rest = segs.filter((x) => !keep.has(x));
-      segs = segs.filter((x) => keep.has(x)).concat([{ label: '其他', n: sum(rest.map((x) => x.n)), color: 'var(--c0)', tip: '其他（' + rest.length + ' 項）' }]);
+      segs = segs.filter((x) => keep.has(x)).concat([{ label: '其他', n: sum(rest.map((x) => x.n)), color: 'var(--c0)', tip: '其他（' + rest.length + ' 項）', lk: segs.some((x) => x.lk != null) ? LK_OTHER : undefined }]);
     }
     o = Object.assign({}, o, { legend: segs, legendN: 6, top5: null });
     const tot = sum(segs.map((s) => s.n));
@@ -1443,9 +1514,9 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
     const top5 = (o.top5 || segs).slice().sort((x, y) => y.n - x.n).slice(0, 5), t5 = Math.round(sum(top5.map((x) => x.n)) / (o.totalN || tot) * 100);
     const c1 = o.center ? o.center[0] : '前五大', c2 = o.center ? o.center[1] : t5 + '%';
     const lg = (o.legend || segs).slice().sort((x, y) => (x.label === '其他') - (y.label === '其他') || y.n - x.n).slice(0, o.legendN || 6);
-    const spec = { c1, c2, segs: segs.filter((s) => s.n > 0).map((s) => ({ name: s.tip || s.label, n: s.n, color: s.color, k: s.k != null ? s.k : s.label, p: s.p || '', s: s.s || '', other: s.label === '其他' })) };
+    const spec = { c1, c2, segs: segs.filter((s) => s.n > 0).map((s) => ({ name: s.tip || s.label, n: s.n, color: s.color, k: s.k != null ? s.k : s.label, p: s.p || '', s: s.s || '', other: s.label === '其他', lk: s.lk })) };
     return `<div class="${o.cls || 'dn'}" data-chart="donut"${o.id ? ` id="${o.id}"` : ''} data-total="${tot}"><div class="dnc" role="img" aria-label="${esc(o.aria || '占比')}" data-spec="${esc(JSON.stringify(spec))}"></div>
-      <ul class="lg">${lg.map((s) => `<li data-k="${esc(s.k != null ? s.k : s.label)}" data-n="${s.n}"${tp(`<b>${esc(s.label)}</b><br>${s.ltxt || nf(s.n) + '（' + (s.n / (o.totalN || tot) * 100).toFixed(1) + '%）'}`)}><i style="background:${s.lcolor || s.color}"></i><span>${esc(s.label)}</span><b>${nf(Math.round(s.n))}</b><small>${(s.n / (o.totalN || tot) * 100).toFixed(1)}%</small></li>`).join('')}</ul></div>`;
+      <ul class="lg">${lg.map((s) => `<li data-k="${esc(s.k != null ? s.k : s.label)}"${s.lk != null ? ` data-lk="${esc(s.lk)}"` : ''} data-n="${s.n}"${tp(`<b>${esc(s.label)}</b><br>${s.ltxt || nf(s.n) + '（' + (s.n / (o.totalN || tot) * 100).toFixed(1) + '%）'}`)}><i style="background:${s.lcolor || s.color}"></i><span>${esc(s.label)}</span><b>${nf(Math.round(s.n))}</b><small>${(s.n / (o.totalN || tot) * 100).toFixed(1)}%</small></li>`).join('')}</ul></div>`;
   }
   /* 把 CSS 變數／hsl(calc(var())) 這類顏色解成 rgb（canvas 讀不懂 var()） */
   function resolveColor(host, c) {
@@ -1502,8 +1573,9 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
       let sp; try { sp = JSON.parse(el.dataset.spec); } catch (e) { return; }
       el.dataset.m = '1';
       const SZ = Math.round(el.clientWidth) || 160, tot = sum(sp.segs.map((s) => s.n)) || 1;
-      const parts = sp.segs.map((s) => ({ name: s.name, value: s.n, key: s.k, p: s.p, s2: s.s, color: s.other ? D.other() : resolveColor(el, s.color) }));
+      const parts = sp.segs.map((s) => ({ name: s.name, value: s.n, key: s.k, p: s.p, s2: s.s, lk: s.lk, color: s.other ? D.other() : resolveColor(el, s.color) }));
       const box = el.closest('[data-chart]');
+      const pair = el.closest('.lkbox'), linked = !!pair && parts.some((d) => d.lk != null);
       const cur = { hi: null };
       const opt = { tooltip: { ...A.tip, confine: false, position: D.tipPos, trigger: 'item', formatter: (q) => `<b>${esc(q.name)}</b><br>${nf(Math.round(q.value))}（${(+q.percent).toFixed(1)}%）` },
         title: D.center(sp.c1, sp.c2, SZ), animationDurationUpdate: D.MS,
@@ -1516,6 +1588,24 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
         try { inst.setOption({ title: D.center(hd ? hd.name : sp.c1, hd ? A.fmt.n(hd.value / tot * 100, 1) + '%' : sp.c2, SZ), series: [{ data: parts.map((d, i) => D.item(d, i, !!hd && d.name === nm)) }] }); } catch (e) { /* tooltip 與 dispose 競態 */ }
         if (box) { box.classList.toggle('hov', !!hd); box.querySelectorAll('li[data-k]').forEach((li) => li.classList.toggle('hl', !!hd && hd.key === li.dataset.k)); }
       };
+      if (linked) {   // 10-19 多圖連動：滑過／點擊交給 lkHover／lkClick（跟同一個 .trpair 的長條一起亮、一起變淡）
+        const keys = new Set(parts.map((d) => d.lk));
+        const onK = (k, a) => a != null && (k === a || (k === LK_OTHER && !keys.has(a)));
+        el._lkPaint = (act, sel) => {
+          if (inst.isDisposed()) return;
+          const hd = act != null ? parts.find((d) => onK(d.lk, act)) : null, dim = lkDim();
+          try { inst.setOption({ title: D.center(hd ? hd.name : sp.c1, hd ? A.fmt.n(hd.value / tot * 100, 1) + '%' : sp.c2, SZ),
+            series: [{ data: parts.map((d, i) => { const it = D.item(d, i, onK(d.lk, act) || onK(d.lk, sel)); it.itemStyle.opacity = act == null || onK(d.lk, act) ? 1 : dim; return it; }) }] }); } catch (e) { /* tooltip 與 dispose 競態 */ }
+          if (box) { box.classList.toggle('hov', !!hd); box.querySelectorAll('li[data-k]').forEach((li) => li.classList.toggle('hl', !!hd && li.dataset.lk === hd.lk)); }
+        };
+        inst.on('mouseover', (q) => { if (q.seriesIndex === 0 && parts[q.dataIndex]) lkHover(pair, parts[q.dataIndex].lk); });
+        inst.on('globalout', () => lkHover(pair, null));
+        inst.on('click', (q) => { const d = q.seriesIndex === 0 && parts[q.dataIndex]; if (d) lkClick(pair, d.lk, d.p, 'dn'); });
+        const zr = inst.getZr(); zr.on('click', (e) => { if (!e.target && lkSelOf(pair)) lkClear(); });
+        if (lkSelOf(pair)) lkPaint(pair, null);
+        requestAnimationFrame(() => { if (!inst.isDisposed()) inst.resize(); });
+        return;
+      }
       inst.on('mouseover', (q) => { if (q.seriesIndex === 0) setHi(q.name); });
       inst.on('globalout', () => setHi(null));
       inst.on('click', (q) => { const d = parts.find((x) => x.name === q.name); if (d && d.p && S.tab === 'all') { S.tab = d.p; S.sub = d.s2 || 'all'; paintTrTabs(); } });
