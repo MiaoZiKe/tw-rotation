@@ -234,6 +234,13 @@
 #v-etf .callist .mc svg{width:100%;height:84px;display:block}
 #v-etf table.et tr.hl td{background:color-mix(in srgb,var(--amber) 18%,var(--panel-2))!important}
 #v-etf table.et tr.hl td:first-child{box-shadow:inset 3px 0 0 var(--amber)}
+/* 10-19 報酬比較三處連動：鎖定那列多一圈外框（滑過只有琥珀底）；其他列變淡（深 .55／淺 .35，跟 selDim 同一組數字） */
+#v-etf #etfRetTbl tr[data-code]{cursor:pointer;transition:opacity .12s}
+#v-etf #etfRetTbl tr.lk td{box-shadow:inset 0 1px 0 var(--amber),inset 0 -1px 0 var(--amber)}
+#v-etf #etfRetTbl tr.lk td:first-child{box-shadow:inset 3px 0 0 var(--amber),inset 0 1px 0 var(--amber),inset 0 -1px 0 var(--amber)}
+#v-etf #etfRetTbl tr.dim{opacity:.55}
+:root[data-theme="light"] #v-etf #etfRetTbl tr.dim{opacity:.35}
+@media (prefers-reduced-motion:reduce){#v-etf #etfRetTbl tr[data-code]{transition:none}}
 #v-etf .callist .ml{display:flex;justify-content:space-between;gap:6px;font-size:12px;color:var(--ink-3);white-space:nowrap;margin-top:2px}
 #v-etf .callist .ml i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;vertical-align:-1px}
 #v-etf .callist .ph.stk{position:sticky;top:-8px;z-index:3;background:var(--panel-2);margin:-8px -10px 6px;padding:8px 10px;border-bottom:1px solid var(--line)}
@@ -1291,13 +1298,13 @@ html.m4 #v-etf #etfInc[data-inclk] .inclknote.m4o{display:flex;margin:-4px 0 8px
     body.dataset.k = pk + '|' + S.cat + '|' + S.basis; body.dataset.codes = sel.join(',');
     body.dataset.div = allNo ? 'none' : okRows.every(({ st }) => hasDiv(st)) ? 'all' : 'mixed';
     body.dataset.auto = auto ? '1' : '';
-    $$('tr[data-code]', body).forEach((tr) => { tr.onclick = () => A().goStock(tr.dataset.code); });
+    // 點表格列＝選取（三處連動）；已選中再點一次才進個股頁 —— 由 retLink 掛（跟月配組合的名稱鈕同邏輯）
     drawRetCharts(rows, colorOf, allNo);
     if (!S.series) loadSeries().then(() => { if (!$('#etfRetCard').hidden) drawRet(); });
   }
   function drawRetCharts(rows, colorOf, allNo) {
     const a = A(), CH = a.CH;
-    const lines = [];
+    const lines = [], lineCodes = [];
     rows.forEach(({ it, st }) => {
       const s = seriesOf(it.code); if (!s || !st.ok) return;
       const dv = hasDiv(st);
@@ -1306,7 +1313,9 @@ html.m4 #v-etf #etfInc[data-inclk] .inclknote.m4o{display:flex;margin:-4px 0 8px
       const i0 = s.d.findIndex((d) => d >= st.from); if (i0 < 0) return;
       const base = vals[i0]; if (!base) return;
       const col = colorOf[it.code];
-      lines.push({ name: `${it.name} ${it.code}${!allNo && !dv ? '・無配息' : ''}${st.since && S.per !== 'since' ? `（自 ${st.from.slice(0, 7)} 上市）` : ''}`, type: 'line', showSymbol: false, smooth: false, lineStyle: { width: 1.8, color: col }, emphasis: { focus: 'series' }, itemStyle: { color: col },
+      lineCodes.push(it.code);
+      // triggerLineEvent：滑過／點線本身要能拿到 seriesIndex（三處連動）；原生 emphasis 關掉 —— 加粗與變淡由 retLink 統一畫，兩套疊在一起會互相洗掉
+      lines.push({ name: `${it.name} ${it.code}${!allNo && !dv ? '・無配息' : ''}${st.since && S.per !== 'since' ? `（自 ${st.from.slice(0, 7)} 上市）` : ''}`, type: 'line', showSymbol: false, smooth: false, lineStyle: { width: RET_W0, color: col }, emphasis: { disabled: true }, triggerLineEvent: true, itemStyle: { color: col },
         data: s.d.slice(i0).map((d, j) => [d, +((vals[i0 + j] / base - 1) * 100).toFixed(2)]) });
     });
     const lineEl = $('#etfRetLine'); if (!lineEl) return;
@@ -1319,7 +1328,9 @@ html.m4 #v-etf #etfInc[data-inclk] .inclknote.m4o{display:flex;margin:-4px 0 8px
       a.chart('etfRetLine', {
         /* 手機 v2（≤640，html.m4）：圖例拿掉 —— 哪條線是誰改看上方「已選 N 檔 ▾」清單的色點（Andy：圖例改成清單篩選）；桌機照舊 */
         grid: { left: 52, right: 14, top: M4() ? 10 : 34, bottom: 28 }, legend: { show: !M4(), top: 0, textStyle: { color: CH.ink2, fontSize: 12 }, type: 'scroll' },
-        tooltip: { trigger: 'axis', valueFormatter: (v) => (v > 0 ? '+' : '') + v + '%' },
+        // 手機點線後提示框（掛在 body、不換行）比 390 寬幾 px，收起後仍撐著頁面能往右捲 4px（10-19 連動驗收抓到，main 上本來就有）
+        // ⇒ 只在手機限寬＋可換行＋限制在圖內；桌機一個字都不動
+        tooltip: { trigger: 'axis', ...RET_TIP_M4(), valueFormatter: (v) => (v > 0 ? '+' : '') + v + '%' },
         xAxis: { type: 'time', ...a.axisStyle, splitNumber: yrsSpan <= 3.2 ? 14 : yrsSpan <= 6 ? 12 : 10, splitLine: { show: false },
           axisLabel: { ...a.axisStyle.axisLabel, hideOverlap: true, formatter: { year: '{yyyy}', month: '{M}月', day: '{M}/{d}' } },
           minorTick: { show: true, splitNumber: yrsSpan <= 3.2 ? 1 : 3 }, minorSplitLine: { show: false } },
@@ -1332,7 +1343,7 @@ html.m4 #v-etf #etfInc[data-inclk] .inclknote.m4o{display:flex;margin:-4px 0 8px
     lineEl.dataset.first = lines.length ? lines.map((l) => l.data[0][0]).sort()[0] : '';
     const ok = rows.filter(({ st }) => st.ok);
     const barEl = $('#etfRetBar');
-    if (!ok.length) { holdEmpty('etfRetBar', whyNone(rows)); barEl.dataset.n = '0'; barEl.dataset.series = ''; return; }
+    if (!ok.length) { holdEmpty('etfRetBar', whyNone(rows)); barEl.dataset.n = '0'; barEl.dataset.series = ''; retLink({ lineCodes, lineCols: lineCodes.map((c) => colorOf[c]), barCodes: [], bars: [] }); return; }
     const best = (st) => (hasDiv(st) ? st.tr_ann : st.price_ann);
     const sorted = ok.slice().sort((x, y) => best(y.st) - best(x.st));
     const v = (x) => (x == null ? null : +(x * 100).toFixed(2));
@@ -1345,13 +1356,83 @@ html.m4 #v-etf #etfInc[data-inclk] .inclknote.m4o{display:flex;margin:-4px 0 8px
     barEl.innerHTML = '';
     a.chart('etfRetBar', {
       grid: { left: 96, right: 52, top: allNo ? 8 : 30, bottom: 24 }, legend: { show: !allNo, top: 0, textStyle: { color: CH.ink2, fontSize: 12 } },
-      tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, valueFormatter: (x) => (x == null ? '無配息' : x + '%') },
+      tooltip: { trigger: 'axis', ...RET_TIP_M4(), axisPointer: { type: 'shadow' }, valueFormatter: (x) => (x == null ? '無配息' : x + '%') },
       xAxis: { type: 'value', ...a.axisStyle, splitLine: { show: true, lineStyle: { color: CH.grid, opacity: 1 } }, axisLabel: { ...a.axisStyle.axisLabel, formatter: (x) => x + '%' } },
       yAxis: { type: 'category', inverse: true, data: sorted.map(ylab), ...a.axisStyle, axisLabel: { ...a.axisStyle.axisLabel, fontSize: 12, width: 86, overflow: 'truncate' } },
       series,
     });
     barEl.dataset.n = String(ok.length);
     barEl.dataset.series = series.map((x) => x.name).join(',');
+    retLink({ lineCodes, lineCols: lineCodes.map((c) => colorOf[c]), barCodes: sorted.map(({ it }) => it.code),
+      bars: series.map((x, k) => ({ vals: x.data, color: k === 0 ? SC.a : SC.b, w: x.barMaxWidth })) });
+  }
+  /* ★ 10-19 報酬比較三處連動（Andy：「圖表是有連動關係的，像這種同個資訊多張圖表，都需要有像是 ETF 月配那樣的連動效果」）：
+     折線、年化橫條、明細表講的是同一批 ETF，原本只靠顏色串（橫條還是統一兩色，連顏色都對不上）⇒ 想知道「這條線是哪一列、它的年化多少」得自己比對。
+     規格照抄月配組合 comboLink：
+       · 滑過任一處的某一檔：折線那條加粗、其他線變淡；橫條那一檔（不含息＋含息兩根）全亮、其他變淡；表格那列 .hl。滑出恢復。
+       · 點一下＝鎖定（同樣效果＋外框：線加陰影描邊、橫條外框、表格列琥珀色左條）；再點同一檔、或點空白處＝取消。
+       · 表格列：沒選中→先選取；已選中再點→進個股頁（第一下不把人帶離這頁）。圖例點擊照舊（ECharts 原生開關線）。
+     ⚠ 透明度寫在資料項 itemStyle.opacity／lineStyle.opacity（不改顏色），深 .55／淺 .35 用同一支 selDim()；資料項一旦帶 itemStyle 要連顏色一起寫。
+     ⚠ 選取記在 S.retSel（代號）：切期間／含息不含息／加入比較重畫後，那檔還在就保留，不在就清掉。
+     ⚠ 手機（≤640）照樣連動但不捲動；手機的表格列點擊被 mobile4.js 攔去展開明細列，那邊會呼叫 S._rPick 讓「展開＝選取」。 */
+  const RET_W0 = 1.8, RET_W1 = 3.4;
+  const RET_TIP_M4 = () => (M4() ? { confine: true, extraCssText: 'max-width:calc(100vw - 32px);white-space:normal;' } : {});
+  function retLink(m) {
+    const a = A(), CH = a.CH, body = $('#etfRetBody');
+    if (!body) return;
+    const inst = (id) => { const el = $('#' + id); const ch = el && window.echarts ? window.echarts.getInstanceByDom(el) : null; return ch && !ch.isDisposed() ? ch : null; };
+    const ln = m.lineCodes.length ? inst('etfRetLine') : null, br = m.barCodes.length ? inst('etfRetBar') : null;
+    const all = new Set([...m.lineCodes, ...m.barCodes, ...$$('#etfRetTbl tr[data-code]').map((tr) => tr.dataset.code)]);
+    let hov = null;
+    function paint() {
+      if (S.retSel && !all.has(S.retSel)) S.retSel = null;
+      const sel = S.retSel, any = !!(sel || hov);
+      // 0＝一般／變淡、1＝滑過、2＝鎖定
+      const lvl = (c) => (c === sel ? 2 : c === hov ? 1 : 0);
+      const op = (c) => (!any || lvl(c) ? 1 : selDim());
+      body.dataset.sel = sel || ''; body.dataset.hov = hov || '';
+      if (ln) {
+        try { ln.setOption({ series: m.lineCodes.map((c, i) => { const l = lvl(c), col = m.lineCols[i];
+          return { z: l ? 3 : 2, lineStyle: { width: l ? RET_W1 : RET_W0, color: col, opacity: op(c), shadowBlur: l === 2 ? 6 : 0, shadowColor: l === 2 ? CH.ink : 'transparent' }, itemStyle: { color: col, opacity: op(c) } }; }) }); } catch (e) { /* 競態 */ }
+      }
+      if (br) {
+        const lop = (c) => (!any || lvl(c) ? 1 : (selDim() === SEL_DIM_DARK ? 0.7 : 0.5));
+        try { br.setOption({ series: m.bars.map((b) => ({ data: b.vals.map((v, j) => { const c = m.barCodes[j], l = lvl(c);
+          // ⚠ 顏色、圓角要一起寫：資料項帶了 itemStyle，系列層的 itemStyle 就不再套（踩過：comboLink 直條整排退回預設青色）
+          return { value: v, itemStyle: { color: b.color, borderRadius: [0, 3, 3, 0], opacity: op(c), borderColor: l === 2 ? CH.ink : 'transparent', borderWidth: l === 2 ? 1.5 : 0 }, label: { opacity: lop(c) } }; }) })) }); } catch (e) { /* 競態 */ }
+      }
+      $$('#etfRetTbl tr[data-code]').forEach((tr) => { const c = tr.dataset.code; tr.classList.toggle('hl', c === sel || c === hov); tr.classList.toggle('lk', c === sel); tr.classList.toggle('dim', any && !lvl(c)); });
+    }
+    const hover = (c) => { if (hov !== c) { hov = c; paint(); } };
+    // ⚠ 觸控點一下，zrender 會收到指標事件的 click 又收到瀏覽器補發的 click ⇒ 同一處 350ms 內第二下不算，不然「選取→立刻取消」
+    let last = { k: '', t: 0 };
+    const pick = (c, src) => { const k = (src || '') + ':' + c, t = Date.now(); if (src && last.k === k && t - last.t < 350) return; last = { k, t };
+      S.retSel = !c || c === S.retSel ? null : c; hov = null; paint(); };
+    S._rPick = pick;
+    // ⚠ zr.off('click') 一定要帶函式：不帶會連 ECharts 自己掛在 zr 上的 click 一起拔掉，圖上的 'click' 事件就再也不會發（comboLink 踩過）
+    const wire = (ch, codeOf, tag) => {
+      if (ch._rOv) { ch.off('mouseover', ch._rOv); ch.off('mouseout', ch._rOu); ch.off('globalout', ch._rOu); ch.off('click', ch._rCk); }
+      ch._rOv = (p) => { const c = codeOf(p); if (c) hover(c); };
+      ch._rOu = () => hover(null);
+      ch._rCk = (p) => { const c = codeOf(p); if (c) pick(c, tag); };
+      ch.on('mouseover', ch._rOv); ch.on('mouseout', ch._rOu); ch.on('globalout', ch._rOu); ch.on('click', ch._rCk);
+      const zr = ch.getZr(); if (zr._rBlank) zr.off('click', zr._rBlank);
+      zr._rBlank = (e) => { if (!e.target) pick(null); }; zr.on('click', zr._rBlank);
+    };
+    if (ln) wire(ln, (p) => (p.componentType === 'series' ? m.lineCodes[p.seriesIndex] : null), 'ln');
+    if (br) wire(br, (p) => (p.componentType === 'series' ? m.barCodes[p.dataIndex] : null), 'br');
+    $$('#etfRetTbl tr[data-code]').forEach((tr) => {
+      const c = tr.dataset.code;
+      tr.onmouseenter = () => hover(c); tr.onmouseleave = () => hover(null);
+      tr.onclick = (e) => { if (e.target.closest('a')) return; if (S.retSel === c) A().goStock(c); else pick(c, 'tr'); };
+    });
+    // 卡片內的空白處（標題、小標、圖與圖之間）＝取消；卡片外的空白處也算（整頁只掛一次）
+    const card = $('#etfRetCard');
+    if (card && !card._rBlank) { card._rBlank = true;
+      card.addEventListener('click', (e) => { if (S.retSel && S._rPick && !e.target.closest('tr[data-code], tr.m4retx, .chart, canvas, button, a, input, select, label, .dd, [role="listbox"]')) S._rPick(null); }); }
+    if (!S._rLinkDoc) { S._rLinkDoc = true;
+      document.addEventListener('click', (e) => { if (S.retSel && S._rPick && document.contains(e.target) && !e.target.closest('#etfRetCard, .echarts-tooltip, [role="dialog"]')) S._rPick(null); }, true); }
+    paint();
   }
 
   /* ------------------------------------------------------------------ 5. 現金流試算（2026-10-07）
