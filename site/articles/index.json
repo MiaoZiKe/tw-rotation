@@ -2,6 +2,29 @@
  "updated": "2026-10-19",
  "articles": [
   {
+   "id": "2026-10-19-intro-ai-networking",
+   "cat": "intro",
+   "title": "AI 網通鏈：從 2 公尺銅纜到 100 公尺光纖",
+   "date": "2026-10-19",
+   "topic": "sch-20261019-06-r1-intro-3",
+   "groups": [
+    {
+     "id": "switch_wireless",
+     "name": "高速交換器與無線網路"
+    },
+    {
+     "id": "optical_module",
+     "name": "高速光模組"
+    },
+    {
+     "id": "ai_interconnect",
+     "name": "AI 互連元件"
+    }
+   ],
+   "reading_min": 3,
+   "src": "api"
+  },
+  {
    "id": "2026-10-19-know-dividend",
    "cat": "know",
    "title": "除息後 60 天僅 63% 填息：領股利不等於賺",
