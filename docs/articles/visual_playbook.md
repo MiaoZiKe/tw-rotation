@@ -24,8 +24,8 @@ Andy 10-17：「以後內容都需要搭配圖表，需要自己發想，例如�
 
 | 位置 | 放什麼 | 規則 |
 |---|---|---|
-| 第 1 區塊 | `h` 三句話重點＋`ul` 三條 | 沿用舊規定，三條都要帶數字 |
-| 緊接著（第一屏） | **鉤子圖**：一張圖或一組 `kpi` | 讀者滑到這裡就看到「發生什麼、多大」。快訊用走勢／變化圖，知識類可用 `steps`／`illus` |
+| 第 1 區塊 | `h` 三句話重點＋`ul` 三條 | 沿用舊規定，三條都要帶數字，**每條 ≤ 45 字** |
+| 緊接著（第一屏） | **鉤子圖**：`ul` 的下一個區塊**就是**視覺：快訊 `chart`、產業鏈 `flow`、知識 `illus`／`chart`；`kpi` 只在沒有走勢可畫時用 | 讀者滑到這裡就看到「發生什麼、多大」。中間不准夾 `h`、`p`。模板見 1-2 |
 | 中段 | **核心對比圖** 1～2 張 | 回答標題的那個問題（跟過去比、跟同業比、預期與實際比） |
 | 中後段 | **台股連結圖** 1 張，**必須用本站資料** | 族群漲跌、法人買賣超、營收、估值位置……這是競品沒有的 |
 | 結尾前 | **結論圖**或「接下來看什麼」的時間軸（`steps`） | 收在可追蹤的日期與指標，不收在建議 |
@@ -38,6 +38,7 @@ Andy 10-17：「以後內容都需要搭配圖表，需要自己發想，例如�
 | 產業鏈／介紹 intro | **≥ 2** | ≥ 2（其中 1 張 `flow` 或 `illus`） | 4～6 | ≤ 900 |
 | 知識 know | **≥ 2** | ≥ 2（`steps`／`illus`／`compare`） | 4～6 | ≤ 900 |
 
+- **第一屏預算（2026-10-19 稽核：8 篇在 390 手機第一屏都看不到任何圖）**：頁首會依序畫標題、`subtitle`、族群膠囊、`tags`、`summary`（引言框）再到內文，所以這幾欄要短：`subtitle` ≤ 24 字、`summary` ≤ 60 字且**不重複三句話重點**（寫成一句「這篇回答什麼問題」）、`groups` ≤ 3、`tags` ≤ 4。用 5-1 自檢程式量。
 - **每個 `h` 小節至少一個視覺**（圖、kpi 或表）；連續兩段 `p` 中間沒有視覺就拆。段落 ≤ 120 字。
 - 圖的 `title` 寫成**一句結論**，不是名詞：寫「費半 6 天跌 10%，是 7 月以來最深」，不寫「費半走勢」。
 - 每張圖只回答**一個問題**；動筆前先在草稿列「圖 → 回答的問題 → 資料來源」，答不出問題的圖不放。
@@ -61,6 +62,51 @@ Andy 10-17：「以後內容都需要搭配圖表，需要自己發想，例如�
 - **`highlight`／`marks` 的那根**換成琥珀（C 款「被選那根換強調色」）；`signed` 圖不能換色（紅綠有意義），改成 2px 外框。
 - 滑過長條：該條 2px 外框、其他維持原色；提示框是網站同一款（掛在 body、不會被卡片切掉）。
 - 數字標籤、軸字一律 12px、等寬字；這些都是網站共用層決定的，**撰寫時不要在 JSON 塞樣式欄位**（會被忽略）。
+
+### 1-2 各類別的固定配方（2026-10-19 稽核：數據圖不足 7／8 篇，知識 3 篇全部 0 張）
+
+先照配方把「必備圖」排好，再依題目加圖；配方裡的每一張都不能用 `kpi`、`table` 或文字代替 —— **有兩個以上同單位的數字，就畫成 `chart`**（例：CoWoS 月產能 11～14 萬→17～20 萬片＝`line`／`range`，不是 kpi）。
+
+| 類別 | 鉤子圖（`ul` 後第一個區塊） | 核心對比 | 台股連結（本站資料，必備） | 其他必備 |
+|---|---|---|---|---|
+| 快訊 news | `chart line`：事件主角近 20～60 日走勢，`marks` 標事件日 | `chart hbar`：跟歷史／同業／財測比，本次 `highlight` | `chart hbar`：相關族群同期漲跌（`signed`）；或 `chart bar`：外資／投信買賣超 | 有發表會、法說會、記者會 → `video`（1-4） |
+| 產業鏈 intro | `flow`：供應鏈圖（3～5 欄，節點帶 `codes`） | `chart hbar`：各環節規模或成本占比／毛利率 | `chart hbar`：鏈上各族群近 20 日漲跌（`signed`） | 主角產品的 `illus`（1-3）；**不列「代表公司」表** |
+| 知識 know | `illus` style:2（依站內 3D／2.5D 重畫，1-3）或 `chart` | `chart hbar`：新舊世代／替代方案的**同單位規格**（頻寬 GB/s、功耗 pJ/bit、線寬 nm、產能萬片／月） | `chart hbar`：相關族群近 60 日漲跌，或 `chart barline`：相關族群月營收年增 | `chart bar`：市場規模逐年（研調兩來源，預估年 `marks`）；`video`（1-4） |
+
+JSON 範本（顏色、字級一律不寫，網站共用層套圖表庫 C／D／E 款與 `--cat-*`、`--rise`／`--fall` 色票；寫了也會被忽略）：
+
+```json
+{"t":"chart","kind":"hbar","title":"〈一句結論：HBM4 每疊頻寬約 2 TB/s，是 DDR5 模組的 40 倍〉","unit":"GB/s",
+ "x":["DDR5-6400 模組","GDDR7 單顆","HBM3E 一疊","HBM4 一疊"],"series":[{"name":"頻寬","type":"bar","data":[51.2,128,1200,2000]}],
+ "highlight":[3],"note":"口徑：單一模組／單顆／單疊理論峰值","source":"JEDEC、美光，2025-04"}
+{"t":"chart","kind":"hbar","signed":true,"title":"〈一句結論：HBM 族群 60 日漲 18%，領先記憶體其他段〉","unit":"%",
+ "x":["…族群名…"],"series":[{"name":"近 60 日漲跌","type":"bar","data":[18.2]}],
+ "note":"成交值加權，YYYY-MM-DD 至 YYYY-MM-DD 收盤","source":"本站整理自證交所，YYYY-MM-DD"}
+{"t":"chart","kind":"bar","title":"〈一句結論：市場規模 3 年擴大 2.5 倍〉","unit":"億美元",
+ "x":["2024","2025","2026","2027"],"series":[{"name":"市場規模","type":"bar","data":[0,0,0,0]}],
+ "marks":[{"x":"2026","text":"預估"}],"note":"研調機構 A 與 B 的數字，取兩家都寫出的年份","source":"A，YYYY-MM；B，YYYY-MM"}
+```
+
+族群近 N 日漲跌與月營收年增：照第 3 節程式，`N = 60`（知識）或 `20`（產業鏈）；月營收用 `store.read("revenue_monthly")` 依 `loader.membership()` 合計後算年增。
+
+### 1-3 產品架構圖取用四步（知識必做、產業鏈與新產品快訊有實體產品時做）
+
+稽核：知識 3 篇都有剖面插圖，但網站現成的 3D（`hbm`、`switch_wireless`、`semiconductor`）一張都沒用，站內連結藏在文末摺疊區。文章區塊目前**沒有能直接嵌站內 3D 的類型**（需求 #11），在那之前照這四步：
+
+1. **查圖**：`grep -n "<產品關鍵字>" docs/articles/diagram_inventory.md`，拿到圖 id、類型（3D／2.5D）、路由。3D 優先，其次 2.5D。
+2. **重畫**：用 `illus`（`"style": 2`、`kind:"custom"`）照該站內圖的**層次與零件名稱**重畫（零件名稱與站內圖一致，讀者點過去才對得起來）；零件 ≥ 6 個、mat ≥ 5 種（`illus_style.md` 2.1）。內建 kind 有 `cowos`、`rack` 的直接用，加 `"style": 2`。
+3. **導流**：插圖下一個區塊放 `callout`：「想轉著看？本站有可旋轉的 3D 版：產業地圖 → 〈族群名〉 → 剖析圖（3D）」，文字裡不放網址（`callout` 不渲染連結）。
+4. **連結**：`site_links` **第一個**放該圖的路由（例 `{"label":"HBM 3D 剖析圖","hash":"#industry/group/hbm"}`）。
+inventory 沒有的產品（例 SSD／NAND）：照 inventory 第四節，用 `custom` 重畫或改 `steps`／`compare`，並在交件寫「站內無架構圖」。
+
+### 1-4 影片搜尋兩步（快訊、知識都要找；最多 2 次 WebSearch，算在 10 次內）
+
+稽核：8 篇 0 支影片，連特斯拉發表會、台積電法說會都沒附。
+
+1. **第 1 次**：`<事件或產品英文名> <活動名> youtube`（例：`Tesla Roadster unveiling 2026 youtube`、`TSMC Q3 2026 earnings call youtube`、`HBM explained youtube`）。知識類用「`<產品> explained`」或「`<產品> 是什麼 影片`」。
+2. **第 2 次**：換中文或換平台關鍵字（`<事件> 發表會 影片`、`<產品> 動畫 原理`）；兩次都出現**同一支**（相同 11 碼 id）或標題明確寫那場活動、片長 3～25 分鐘 → 採用。
+3. 放在**核心對比圖之後**（不搶鉤子圖位置），`{"t":"video","provider":"youtube","id":"<11 碼>","title":"<一句話說看什麼>","source":"<上傳者>（非官方加「轉載，非官方」）","date":"YYYY-MM-DD"}`；排除條件照 `production_guide.md` 影片區塊。
+4. 兩次都找不到 → 不放，交件寫「影片：搜 2 次未找到（關鍵字 A、B）」，不扣 A 分但 CEO 看得到。
 
 ## 2. 圖表發想清單（依題型挑，挑不到就從「讀者第一個會問什麼」反推）
 
@@ -166,6 +212,11 @@ print(days[0], "→", days[-1]); print(grp[grp.index.str.contains("晶圓|封裝
 | 一張圖看懂 | 一張圖看懂：晶圓代工第三季錢從哪裡來 |
 | 反差 | 營收創新高，股價卻跌了 8%：法說會講了什麼 |
 | 清單 | AI 伺服器 5 個零件，台股各由誰做 |
+| 知識：一張圖＋倍數 | 一張圖看懂 HBM：頻寬是 DDR5 的 40 倍 |
+| 知識：問題＋數字答案 | CPO 是什麼？每位元省電 70% 的光引擎 |
+| 知識：痛點 | CoWoS 為什麼永遠不夠？產能兩年翻 1.5 倍 |
+
+**知識類不准只寫「X 是什麼？」**（稽核：知識 3 篇標題都沒有數字，G 項全部 5 分）：要帶一個倍數、百分比或規模，數字要在鉤子圖或第一個核心對比圖裡看得到。
 
 **一定要**：標題裡的數字在內文第一屏看得到、有來源；問句標題在三句話重點的第一條就給答案。
 **不准**（`docs/launch_gap_legal_1009.md` 第三節）：「崩盤」「血洗」「末日」等誇大字眼（事實就是單日最大跌幅時寫數字，不寫形容詞）；「該上車」「進場時機」「低點到了」「必漲」「穩賺」「翻倍」；點名個股的「值得關注」「資金流入這檔」；「受惠」「概念股」；標題以族群或產業為主詞，公司名只在報導該公司自己公告的事實（月營收、法說會）時出現（法遵 2026-10-18 審 growth_plan_1018 時提出）；目標價、勝率、報酬率；「最準」「獨家」等無法證明的最高級。`stocks` 區塊只列「依本站族群分類的成分股」，`why` 寫它屬於哪個環節，不寫看好理由。
@@ -190,6 +241,38 @@ print(days[0], "→", days[-1]); print(grp[grp.index.str.contains("晶圓|封裝
 - **≥ 75 分上架**；60～74 退一次（附扣分項）；< 60 退一次並要求換角度。
 - 第二次仍 < 75：刪掉扣分的那幾張圖或段落後重算，≥ 70 就上架；否則該篇標 `failed`、寫原因，不跑第三輪。
 - 評分寫進交件回報一行：「評分 82（A15 B8 C5 D10 E15 F10 G10 H6 I10）」。
+
+### 5-1 交件自檢（撰寫 agent 交件前必跑；CEO 審稿也先跑一次，約 1 秒）
+
+```bash
+python3 - <全文.json> <<'EOF'
+import json,sys;d=json.load(open(sys.argv[1]));B=d["blocks"];cat=d["cat"]
+V={"chart","compare","flow","steps","stack","illus","video","kpi","table"};O={"compare","flow","steps","stack","illus","video"}
+ch=sum(b["t"]=="chart" for b in B);ot=sum(b["t"] in O for b in B);need={"news":(3,0),"intro":(2,2),"know":(2,2)}[cat]
+ul=next(i for i,b in enumerate(B) if b["t"]=="ul");first=B[ul+1]["t"] if ul+1<len(B) else "-"
+sec,bad=None,[]
+for b in B+[{"t":"h","text":"END"}]:
+    if b["t"]=="h":
+        if sec and not sec[1] and sec[0] not in("三句話重點","END"): bad.append(sec[0][:12])
+        sec=[b.get("text",""),False]
+    elif b["t"] in V|{"stocks"} and sec: sec[1]=True
+longp=[len(b["text"]) for b in B if b["t"]=="p" and len(b["text"])>120]
+words=sum(len(b.get("text","")) for b in B if b["t"] in("p","callout"))+sum(len(x) for b in B if b["t"]=="ul" for x in b["items"])
+lim={"news":600,"intro":900,"know":900}[cat]
+chk=[("數據圖",ch>=need[0],f"{ch}/{need[0]}"),("其他圖",ot>=need[1],f"{ot}/{need[1]}"),("合計4～6",4<=ch+ot<=6,ch+ot),
+ ("鉤子圖緊接三句話",first in("chart","illus","flow","kpi"),first),("本站資料圖",any(b["t"]=="chart" and "本站" in b.get("source","") for b in B),""),
+ ("影片",any(b["t"]=="video" for b in B),"沒有就要在交件寫搜過的關鍵字"),("小節都有視覺",not bad,bad),("段落≤120",not longp,longp),
+ ("字數",words<=lim,f"{words}/{lim}"),("標題≤26",len(d["title"])<=26,len(d["title"])),("標題有數字",any(c.isdigit() for c in d["title"]),""),
+ ("subtitle≤24",len(d.get("subtitle",""))<=24,len(d.get("subtitle",""))),("summary≤60",len(d.get("summary",""))<=60,len(d.get("summary",""))),
+ ("groups≤3",len(d.get("groups",[]))<=3,len(d.get("groups",[]))),("tags≤4",len(d.get("tags",[]))<=4,len(d.get("tags",[])))]
+if cat=="know": chk.append(("架構圖illus style2",any(b["t"]=="illus" and b.get("style")==2 for b in B),""))
+if cat=="intro": chk.append(("供應鏈圖",any(b["t"] in("flow","stack") for b in B),""))
+for n,ok,v in chk: print("✓" if ok else "✗",n,v)
+EOF
+```
+
+- 任一 ✗（「影片」除外，影片 ✗ 要在交件寫搜過的關鍵字）→ 先補再交；`字數` 只算 `p`／`callout`／`ul`，圖表內文字不算。
+- 這支只量「形」，A～I 的「質」（結論句、同一把尺、兩來源）仍由 CEO 照上表評。
 
 ## 6. 成本（與 `fast_path.md` 一致）
 
@@ -218,6 +301,9 @@ print(days[0], "→", days[-1]); print(grp[grp.index.str.contains("晶圓|封裝
 | 7 | 資料湖補長歷史：`^SOX` `^GSPC` `^VIX` 回補到 2000 年；FRED 加 `BAMLH0A0HYM2`（高收益債利差）、`VIXCLS` | 資料 | 「跟 2008 比」的路徑圖與信用利差目前只能靠上網查摘要 | 高 |
 | 8 | `scripts/article_data.py`：一行指令輸出「族群 N 日漲跌／法人買賣超／營收年增」的 chart JSON | 資料 | 撰寫 agent 不必每篇重寫程式，省 token、口徑一致 | 中 |
 | 9 | ✅ 2026-10-17 已做：文章圖表統一成網站圖表庫款式（C 直條／D 橫條／E 時間軸，見 1-1） | 網頁 | Andy：「圖表風格需要 Follow 我網頁內的風格」 | 高 |
+| 10 | 手機（≤ 640）文章頁：`summary` 引言框與 `tags` 預設收起，或把 `ul` 後第一個視覺提到引言框前 | 網頁 | 2026-10-19 稽核：8 篇在 390 第一屏都看不到圖，頁首吃掉整屏（`quality_audit_1019.md`） | 高 |
+| 11 | `sitefig` 區塊：`{"t":"sitefig","kind":"3d"|"25d","id":"hbm","title":"…"}` 在文章內直接嵌站內 3D 場景（`three3d.js` `SCENES`）或題材 2.5D 圖（`themes3d.js`），可旋轉，手機給靜態圖＋「轉著看」鈕 | 網頁 | Andy 10-19「知識需要有該產品架構圖 2.5D 3D，可以從我網站內素材拿」；現在只能重畫＋導流（1-3） | 高 |
+| 12 | Worker 機器路由加 `op:'get_body'`（`ARTICLE_PUT_KEY` 可用、只讀） | 網頁 | 品質稽核與重做要讀回已上架全文；10-19 稽核有 3 篇讀不到 | 中 |
 
 ## 8. 社群研究摘要（2026-10-17，WebSearch 10 次，只讀得到摘要）
 
