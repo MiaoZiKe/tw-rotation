@@ -2,6 +2,16 @@
  "updated": "2026-10-19",
  "articles": [
   {
+   "id": "2026-10-19-know-institutional",
+   "cat": "know",
+   "title": "外資買超當天大盤漲 83%，隔天只剩 56%",
+   "date": "2026-10-19",
+   "topic": "k_institutional",
+   "groups": [],
+   "reading_min": 3,
+   "src": "api"
+  },
+  {
    "id": "2026-10-19-intro-ai-networking",
    "cat": "intro",
    "title": "AI 網通鏈：從 2 公尺銅纜到 100 公尺光纖",
