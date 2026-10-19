@@ -890,7 +890,7 @@ def render(dev, only=None, seg=None):
             fx1, fy1 = int(round((f[0] + f[2] - cx) * sx)), int(round((f[1] + f[3] - cy) * sy))
             fx0, fy0, fx1, fy1 = max(0, fx0), max(0, fy0), min(o.pw, fx1), min(o.ph, fy1)
             if (fx1 - fx0) * (fy1 - fy0) < 0.985 * o.pw * o.ph:   # 05：區塊外露出一點點（框邊截到的圖表字）也一律淡化
-                k_ = 1.0    # 05 v2：介紹區塊以外整片淡成底色（看不到被框邊切到的圖表字），畫面只剩介紹的那一塊
+                k_ = 1.0 if dev == "d" else 0.80   # 05 v2：網頁介紹區塊以外整片淡成底色（看不到被框邊切到的圖表字）；手機維持 v1 的 80%（手機切分頁那一拍區塊只有分頁列，整片淡掉會變空白畫面）
                 dim = img.astype(np.float32) * (1 - k_) + np.array([255, 249, 239], np.float32) * k_
                 dim[fy0:fy1, fx0:fx1] = img[fy0:fy1, fx0:fx1]
                 img = dim.astype(np.uint8)
