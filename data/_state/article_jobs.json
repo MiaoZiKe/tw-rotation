@@ -1,5 +1,5 @@
 {
- "updated": "2026-10-19 16:07",
+ "updated": "2026-10-19 16:08",
  "jobs": [
   {
    "id": 14,
@@ -20,12 +20,12 @@
    "kind": "article",
    "title": "散熱產業鏈：從風扇到水冷板",
    "note": "排程自動排入（規則 1，台北 2026-10-19 06:00）；建議主題 i_thermal",
-   "status": "queued",
+   "status": "working",
    "created": 1792382342652,
-   "updated": 1792382342652,
+   "updated": 1792397314262,
    "result": null,
-   "stage": null,
-   "stage_at": null
+   "stage": "plan",
+   "stage_at": 1792397314262
   },
   {
    "id": 16,
