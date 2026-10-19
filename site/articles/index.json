@@ -2,6 +2,25 @@
  "updated": "2026-10-19",
  "articles": [
   {
+   "id": "2026-10-19-know-psu-bbu",
+   "cat": "know",
+   "title": "機櫃 120 kW：PSU 與 BBU 各管什麼",
+   "date": "2026-10-19",
+   "topic": "k_psu_bbu",
+   "groups": [
+    {
+     "id": "server_psu",
+     "name": "電源供應器"
+    },
+    {
+     "id": "bbu",
+     "name": "BBU 電池備援"
+    }
+   ],
+   "reading_min": 3,
+   "src": "api"
+  },
+  {
    "id": "2026-10-19-know-foundry",
    "cat": "know",
    "title": "IC 代工是什麼？全球前十大產值 7 成在一家",
