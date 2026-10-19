@@ -620,6 +620,8 @@ def cam_track(o, meta, sid=""):
             fcur = f.copy()
         else:
             fcur = fcur + (f - fcur) * 0.2
+            if settled:   # v2：鏡頭到位後淡化範圍直接對齊介紹區塊（還在收斂的淡化邊緣不會切過旁邊圖表的字）
+                fcur = f.copy()
         last_id = cid
         out.append(cur.copy())
         tgts.append(tgt.copy())
