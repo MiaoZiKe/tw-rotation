@@ -216,8 +216,8 @@ def d_cal(pg, a, start):
     a.say("填息天數：股價回到除息前收盤的交易日數", "magnifier")
     a.hover('#etfDayTbl tbody tr >> nth=0', 700, 0.85)
     a.cam(["#etfCalCard"], 6, "配息行事曆")
-    a.say("切換月份，提前掌握除息時程", "calendar")
-    a.click("#etfCalNext", label="下月")
+    a.say("切換月份，查看各月的除息時程", "calendar")
+    a.click("#etfCalPrev", label="上月")
     a.wait(900)
     a.hover('#etfCalGrid .cald.has', 600)
     a.click('#etfCalGrid .cald.has', label="點下個月有除息的日期")
@@ -407,23 +407,47 @@ def m_scroll_to(pg, sel, off=70):
     pg.wait_for_timeout(500)
 
 
+def m_sheet(a, g, v, label=""):
+    """手機：點「ETF 總覽設定」摘要鈕 → 抽屜裡點選項 → 抽屜還開著就點上方空白收起。"""
+    a.click("#m4EtfSet-list", label="ETF 總覽設定")
+    a.wait(650)
+    a.click(f'#mSheet button[data-g="{g}"][data-v="{v}"]', label=label or v)
+    a.wait(600)
+    if a.pg.evaluate("() => { const s = document.getElementById('mSheet'); return !!s && s.getClientRects().length > 0 && s.getBoundingClientRect().top < innerHeight - 40; }"):
+        pt = a.pg.evaluate(SAFE_BACK_JS)
+        if pt:
+            a.click_xy(pt[0], pt[1], 400, 200)
+        else:
+            a.pg.keyboard.press("Escape")
+        a.wait(600)
+
+
+SAFE_BACK_JS = r"""() => { const bk = document.querySelector('.msheetback'), sh = document.getElementById('mSheet'); if (!bk || !sh) return null;
+  const top = sh.getBoundingClientRect().top; const pe = bk.style.pointerEvents; bk.style.pointerEvents = 'none'; let best = null;
+  for (let y = 120; y < top - 24; y += 12) for (let x = 40; x < innerWidth - 40; x += 12) {
+    const e = document.elementFromPoint(x, y); if (!e) continue;
+    if (e.closest('button,a,input,select,label,summary,[role=button],[role=tab],.cald,.rk,canvas,[_echarts_instance_],header,.m4top,.topbar')) continue;
+    const d = Math.abs(y - (120 + top) / 2) + Math.abs(x - innerWidth / 2) * 0.3; if (!best || d < best[2]) best = [x, y, d]; }
+  bk.style.pointerEvents = pe; return best ? [best[0], best[1]] : null; }"""
+
+
 def m_open(pg, a, start):
     goto(pg, a, "#etf/list")
     pg.locator('#etfCatSeg button[data-v="配息型"]').first.click()
     pg.wait_for_timeout(1200)
-    m_scroll_to(pg, "#etfListCard", 60)
+    m_scroll_to(pg, "#etfListCard", 70)
     start()
     a.cam(["#etfListCard"], 6, "ETF 一覽")
     a.say("台股 ETF 超過三百檔，資料分散各處", "face_think_v2")
-    a.click("#etfListCard summary, #etfListCard .grp > button, #etfListCard [data-g]", label="展開分組")
+    a.click("#etfListCard .fqhd.fqc-m", label="展開月配")
     a.wait(600)
     a.cam_view("一覽捲動")
-    a.scroll(by=700, ms=2400)
+    a.scroll(by=650, ms=2400)
     a.say("配息日、類型、績效，要比較得自己整理", "face_sweat")
     a.scroll(by=600, ms=2000)
     a.idle(400)
     a.scroll(to_y=0, ms=1400)
-    a.cam(["#etfSub", "#etfCatBar", "#etfTri"], 6, "總覽上半")
+    a.cam(["#etfCatBar", ".m4ctlrow", ".m4trisg", "#etfTri"], 6, "總覽上半")
     a.say("ETF 專區把這些整合在同一個頁面", "face_thinking_bulb")
     a.hover("#etfPopCard", 700)
     a.say("以下實際操作一次", "invite_nod")
@@ -434,7 +458,7 @@ def m_open(pg, a, start):
 def m_cal(pg, a, start):
     goto(pg, a, "#etf/cal", 4000)
     start()
-    a.cam(["#etfSub", "#etfCalCard .calhd", "#etfCalGrid"], 6, "配息行事曆")
+    a.cam(["#etfCalCard .calhd", "#etfCalGrid"], 8, "配息行事曆")
     a.say("第一站：配息行事曆", "point_r_v2")
     a.hover('#etfCalGrid .cald.has', 700)
     a.say("格子標出當天除息的 ETF 與每單位配息", "talk_explain_v2")
@@ -445,7 +469,7 @@ def m_cal(pg, a, start):
     a.click('#etfCalGrid .cald.has', label="點有除息的日期")
     a.wait(600)
     a.cam(["#etfCalList"], 6, "當天清單")
-    a.scroll_to_el("#etfCalList", 80, 1000)
+    a.scroll_to_el("#etfCalList", 70, 1000)
     a.say("配息金額、當次殖利率、發放日一次看", "talk_explain_v2")
     a.hover('#etfDayTbl tbody tr', 700)
     a.say("當次殖利率＝配息 ÷ 除息前一日收盤", "talk_explain_v2")
@@ -453,9 +477,9 @@ def m_cal(pg, a, start):
     a.say("填息天數：股價回到除息前收盤的交易日數", "magnifier")
     a.hover('#etfDayTbl thead th >> nth=4', 900)
     a.scroll(to_y=0, ms=1000)
-    a.cam(["#etfSub", "#etfCalCard .calhd", "#etfCalGrid"], 6, "配息行事曆")
-    a.say("切換月份，提前掌握除息時程", "calendar")
-    a.click("#etfCalNext", label="下月")
+    a.cam(["#etfCalCard .calhd", "#etfCalGrid"], 8, "配息行事曆")
+    a.say("切換月份，查看各月的除息時程", "calendar")
+    a.click("#etfCalPrev", label="上月")
     a.wait(900)
     a.hover('#etfCalGrid .cald.has', 600)
     a.say("想參與配息，須在除息日前一交易日持有", "face_think_v2")
@@ -470,8 +494,9 @@ def m_types(pg, a, start):
     pg.locator('#etfCatSeg button[data-v="配息型"]').first.click()
     pg.wait_for_timeout(1500)
     start()
-    a.cam(["#etfSub", "#etfCatBar", "#etfTri"], 6, "分類分頁")
+    a.cam(["#etfCatBar", ".m4ctlrow", ".m4trisg", "#etfTri"], 6, "分類分頁")
     a.say("第二站：ETF 總覽，共分七類", "point_ur_v2")
+    a.hover('#etfCatSeg button[data-v="配息型"]', 600)
     a.say("依代號、名稱與配息紀錄自動分類", "talk_explain_v2")
     a.click('#etfCatSeg button[data-v="市值型"]', label="市值型")
     a.wait(700)
@@ -479,13 +504,12 @@ def m_types(pg, a, start):
     a.wait(600)
     a.say("分頁上的數字，就是每一類的檔數", "point_ur_v2")
     a.click('#etfCatSeg button[data-v="主動式"]', label="主動式")
-    a.wait(700)
-    pg.evaluate("() => { const s = document.querySelector('#etfCatSeg'); if (s) s.scrollLeft = 0; }")
+    a.wait(800)
     a.say("切換分頁，下方卡片與圖表同步換類", "talk_explain_v2")
     a.click('#etfCatSeg button[data-v="主題型"]', label="主題型")
     a.wait(600)
     a.cam_view("整頁同步")
-    a.scroll(by=500, ms=1600)
+    a.scroll(by=600, ms=1800)
     a.say("同一類型互相比較，基準才一致", "face_nod_v2")
     a.idle(500)
     a.scroll(to_y=0, ms=1200)
@@ -499,48 +523,126 @@ def m_cards(pg, a, start):
     pg.locator('#etfCatSeg button[data-v="配息型"]').first.click()
     pg.wait_for_timeout(1500)
     start()
-    a.cam(["#etfCatBar", "#etfTri"], 6, "三張卡")
+    a.cam([".m4ctlrow", ".m4trisg", "#etfTri"], 6, "三張卡")
     a.say("三張排行卡，先看口徑再看數字", "talk_explain_v2")
     a.hover("#etfPopSub", 800)
     a.say("受益人：集保受益人數的週增加量", "point_r_v2")
     a.hover('#etfPop .rk >> nth=0', 700, 0.75)
-    a.click('#etfPopSeg button[data-v="turnover"]', label="成交值")
-    a.wait(500)
+    a.cam_view("設定抽屜")
+    m_sheet(a, "pop", "turnover", "成交值")
+    a.cam([".m4ctlrow", ".m4trisg", "#etfTri"], 6, "三張卡")
     a.say("成交值：近 20 個交易日平均成交金額", "talk_explain_v2")
-    a.idle(500)
-    a.click('#etfPopSeg button[data-v="holders"]', label="受益人")
-    a.wait(400)
+    a.hover('#etfPop .rk >> nth=1', 700, 0.75)
     a.say("報酬率前 5：依含息年化報酬排序", "point_r_v2")
-    a.click(M_TRI_TAB.format(2), label="報酬率")
+    a.click('.m4trisg button[data-i="1"]', label="報酬率")
     a.wait(600)
     a.say("上市未滿期間的，改以上市以來計算", "talk_explain_v2")
     a.hover('#etfRetTop .rk >> nth=0', 700, 0.5)
     a.say("殖利率＝近 12 個月現金配息 ÷ 最新收盤", "coins")
-    a.click(M_TRI_TAB.format(3), label="殖利率")
+    a.click('.m4trisg button[data-i="2"]', label="殖利率")
     a.wait(600)
     a.say("平均填息天數，看配息是否被價差抵銷", "magnifier")
     a.hover('#etfYld .rk >> nth=0', 700, 0.85)
     a.say("以上皆為歷史資料，不代表未來表現", "face_nod_v2")
     a.idle(400)
-    a.click(M_TRI_TAB.format(1), label="最受歡迎")
+    a.click('.m4trisg button[data-i="0"]', label="最受歡迎")
     a.wait(400)
     a.settle()
-
-
-M_TRI_TAB = "#etfTriSeg button:nth-child({})"
 
 
 def m_ret(pg, a, start):
     goto(pg, a, "#etf/list")
     pg.locator('#etfCatSeg button[data-v="配息型"]').first.click()
     pg.wait_for_timeout(1500)
-    m_scroll_to(pg, "#etfRetCard", 60)
+    m_scroll_to(pg, "#etfRetCard", 130)
     start()
-    a.cam(["#etfRetCard"], 6, "報酬比較")
+    a.cam(["#etfRetCard .row.spread", "#etfRetBody .retcharts > div:first-child"], 6, "報酬比較")
     a.say("第三站：報酬比較", "point_r_v2")
+    a.hover("#etfRetCard h3", 600)
     a.say("期間可選近 1、3、5、10 年或上市以來", "talk_explain_v2")
-    a.mark("期間（手機在篩選列）")
+    a.scroll(by=-130, ms=700)
+    a.cam_view("設定抽屜")
+    m_sheet(a, "rng", "1y", "近 1 年")
+    m_sheet(a, "rng", "10y", "近 10 年")
+    a.say("也能選「起始日期～至今」自訂區間", "point_ur_v2")
+    m_sheet(a, "rng", "custom", "起始日期～至今")
+    a.cam(["#etfRetCard .row.spread", "#etfRngBox", "#etfRetBody .retcharts > div:first-child"], 6, "日期列")
+    b = a.box("#etfRng .rpfrom")
+    if b:
+        a.click_xy(b["x"] + 18, b["y"] + b["height"] / 2, 500, 250, expect="#etfRng .rpfrom")
+        a.wait(300)
+        pg.keyboard.press("ArrowDown")
+        a.wait(900)
+        a.mark("改起始日期")
+    a.cam(["#etfRetCtl", "#etfCmpDD .ddpanel"], 8, "加入比較")
+    a.say("點「已選 N 檔」，輸入代號或名稱搜尋", "point_r_v2")
+    a.click("#etfCmpDD .ddbtn", label="加入比較")
+    a.wait(500)
+    a.click("#etfCmpDD .sndd-q", label="搜尋框")
+    a.type_text("高股息", 160)
+    a.wait(500)
+    a.say("勾選加入，取消勾選就從圖表移除", "talk_explain_v2")
+    a.click("#etfCmpDD .ddlist label:has(input:not(:checked))", label="勾選一檔")
+    a.wait(500)
+    a.click("#etfCmpDD .ddlist label:has(input:not(:checked))", label="再勾一檔")
+    a.wait(500)
+    a.click("#etfCmpDD .ddlist label:has(input:checked)", label="取消勾選")
+    a.wait(600)
+    a.click("#etfCmpDD .ddbtn", label="收起清單")
+    a.wait(500)
+    a.cam(["#etfRetBody .retcharts > div:first-child"], 6, "累積報酬走勢")
+    a.scroll_to_el("#etfRetBody .retcharts", 120, 900)
+    a.say("左圖：累積報酬走勢，期初皆為 0%", "point_r_v2")
+    a.hover("#etfRetLine", 600, 0.5, 0.45)
+    a.say("拖曳下方拉桿，放大想看的區段", "talk_explain_v2")
+    hb = pg.evaluate(DZ_HANDLE_JS, "#etfRetLine")
+    if hb:
+        a.drag(hb[0], hb[1], hb[0] + 140, hb[1], 1200)
+        a.wait(900)
+        a.mark("拖曳拉桿")
+    a.cam(["#etfRetBody .retcharts > div:last-child"], 6, "年化報酬率")
+    a.scroll_to_el("#etfRetBody .retcharts > div:last-child", 120, 900)
+    a.say("下圖：並列每一檔的年化報酬率", "point_dr_v2")
+    a.hover("#etfRetBar", 700, 0.5, 0.3)
+    a.say("切換含息／不含息，看報酬多少來自配息", "talk_explain_v2")
+    a.cam_view("設定抽屜")
+    m_sheet(a, "basis", "price", "不含息")
+    a.cam(["#etfRetBody .retcharts > div:last-child"], 6, "年化報酬率")
+    a.wait(500)
+    a.say("兩者差距越大，報酬越依賴配息", "face_thinking_bulb")
+    a.cam_view("設定抽屜")
+    m_sheet(a, "basis", "tr", "含息")
+    a.cam(["#etfRetTbl"], 6, "明細表")
+    a.scroll_to_el("#etfRetTbl", 160, 900)
+    a.say("明細表列出各檔的價格年化與含息年化", "point_dr_v2")
+    a.hover("#etfRetTbl tbody tr >> nth=0", 700, 0.5)
+    a.hover("#etfRetTbl tbody tr >> nth=1", 600, 0.5)
+    a.idle(400)
     a.settle()
+
+
+def m_end(pg, a, start):
+    goto(pg, a, "#etf/list")
+    pg.locator('#etfCatSeg button[data-v="配息型"]').first.click()
+    pg.wait_for_timeout(1500)
+    start()
+    a.cam_view("總覽")
+    a.say("除息時程、分類比較、報酬回測，一頁完成", "proud_shine")
+    a.scroll(by=700, ms=2600)
+    a.say("想親自操作，搜尋「哩股哩股」", "invite_nod")
+    a.scroll(to_y=0, ms=1800)
+    a.idle(500)
+    a.settle()
+
+
+DZ_HANDLE_JS = r"""(sel) => { const host = document.querySelector(sel); if (!host || !window.echarts) return null;
+  const ch = echarts.getInstanceByDom(host); if (!ch) return null;
+  try { const dz = ch.getModel().getComponent('dataZoom'); if (!dz) return null; const v = ch.getViewOfComponentModel(dz);
+    const hs = v._displayables && v._displayables.handles; if (!hs || !hs[0]) return null; const h = hs[0];
+    const br = h.getBoundingRect(); const m = h.getComputedTransform ? h.getComputedTransform() : h.transform;
+    let cx = br.x + br.width / 2, cy = br.y + br.height / 2;
+    if (m) { const x = m[0] * cx + m[2] * cy + m[4], y = m[1] * cx + m[3] * cy + m[5]; cx = x; cy = y; }
+    const hr = host.getBoundingClientRect(); return [hr.left + cx, hr.top + cy]; } catch (e) { return null; } }"""
 
 
 def run(dev, shots, out, port):
@@ -607,7 +709,7 @@ def run(dev, shots, out, port):
 
 
 D_SHOTS = {"open": d_open, "cal": d_cal, "types": d_types, "cards": d_cards, "ret": d_ret, "end": d_end}
-M_SHOTS = {"open": m_open, "cal": m_cal, "types": m_types, "cards": m_cards, "ret": m_ret}
+M_SHOTS = {"open": m_open, "cal": m_cal, "types": m_types, "cards": m_cards, "ret": m_ret, "end": m_end}
 
 
 def main():
