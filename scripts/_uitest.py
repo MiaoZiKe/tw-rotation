@@ -3110,8 +3110,10 @@ def t_etf_income_v2(pg, b, base):
         lp.click("#incFq button[data-v='all']"); lp.wait_for_timeout(500)
         lp.click("#incReset"); lp.wait_for_timeout(600)
         c1 = J("() => document.querySelector('#incList .ilr').dataset.code")
+        # 10-19 連動：圖上有的那檔，名稱鈕第一下＝選取（三處連動），已選中再點才開細節卡
+        lp.click("#incList .ilr .iln"); lp.wait_for_timeout(500)
         lp.click("#incList .ilr .iln"); lp.wait_for_timeout(800)
-        ok(f"★ [{tag}] 點清單名稱 → 細節卡（甜甜圈＋12 個月直條）", J("() => document.querySelector('#incDet').dataset.code") == c1 and J("() => !!echarts.getInstanceByDom(document.getElementById('incDn')) && echarts.getInstanceByDom(document.getElementById('incMb')).getOption().xAxis[0].data.length === 12"), c1)
+        ok(f"★ [{tag}] 點清單名稱（第二下）→ 細節卡（甜甜圈＋12 個月直條）", J("() => document.querySelector('#incDet').dataset.code") == c1 and J("() => !!echarts.getInstanceByDom(document.getElementById('incDn')) && echarts.getInstanceByDom(document.getElementById('incMb')).getOption().xAxis[0].data.length === 12"), c1)
         # ---- 組合
         lp.click("#incTabs button[data-v='c']"); lp.wait_for_timeout(2000)
         wait_until(lp, "() => document.querySelector('#incCdn') && echarts.getInstanceByDom(document.getElementById('incCdn'))", 15000)
