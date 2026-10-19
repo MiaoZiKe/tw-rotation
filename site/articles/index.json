@@ -2,6 +2,29 @@
  "updated": "2026-10-19",
  "articles": [
   {
+   "id": "2026-10-17-know-cpo",
+   "cat": "know",
+   "title": "一張圖看懂 CPO：每位元功耗剩可插拔約 3 成",
+   "date": "2026-10-17",
+   "topic": "k_cpo",
+   "groups": [
+    {
+     "id": "silicon_photonics",
+     "name": "矽光子與 CPO"
+    },
+    {
+     "id": "optical_module",
+     "name": "高速光模組"
+    },
+    {
+     "id": "switch_wireless",
+     "name": "高速交換器與無線網路"
+    }
+   ],
+   "reading_min": 3,
+   "src": "api"
+  },
+  {
    "id": "2026-10-19-know-wafer",
    "cat": "know",
    "title": "矽晶圓是什麼？12 吋面積是 6 吋的 4 倍",
@@ -356,29 +379,6 @@
     {
      "id": "ip_asic",
      "name": "客製 ASIC 矽智財"
-    }
-   ],
-   "reading_min": 3,
-   "src": "api"
-  },
-  {
-   "id": "2026-10-17-know-cpo",
-   "cat": "know",
-   "title": "CPO 共同封裝光學是什麼？",
-   "date": "2026-10-17",
-   "topic": "k_cpo",
-   "groups": [
-    {
-     "id": "silicon_photonics",
-     "name": "矽光子與 CPO"
-    },
-    {
-     "id": "optical_module",
-     "name": "高速光模組"
-    },
-    {
-     "id": "switch_wireless",
-     "name": "高速交換器與無線網路"
     }
    ],
    "reading_min": 3,
