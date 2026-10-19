@@ -1341,7 +1341,7 @@ html.m4 #v-etf #etfInc[data-inclk] .inclknote.m4o{display:flex;margin:-4px 0 8px
       ? [{ name: '年化報酬率', type: 'bar', data: sorted.map(({ st }) => v(st.price_ann)), itemStyle: { color: SC.a, borderRadius: [0, 3, 3, 0] }, barMaxWidth: 12, label: lab }]
       : [{ name: '不含息', type: 'bar', data: sorted.map(({ st }) => v(st.price_ann)), itemStyle: { color: SC.a, borderRadius: [0, 3, 3, 0] }, barMaxWidth: 10, label: lab },
         { name: '含息', type: 'bar', data: sorted.map(({ st }) => (hasDiv(st) ? v(st.tr_ann) : null)), itemStyle: { color: SC.b, borderRadius: [0, 3, 3, 0] }, barMaxWidth: 10, label: lab }];
-    const ylab = ({ it, st }) => [it.name, st.since && S.per !== 'since' ? `上市以來 ${st.years} 年` : '', !allNo && !hasDiv(st) ? '無配息' : ''].filter(Boolean).join('\n');
+    const ylab = ({ it, st }) => [it.code, st.since && S.per !== 'since' ? `上市以來 ${st.years} 年` : '', !allNo && !hasDiv(st) ? '無配息' : ''].filter(Boolean).join('\n');
     barEl.innerHTML = '';
     a.chart('etfRetBar', {
       grid: { left: 96, right: 52, top: allNo ? 8 : 30, bottom: 24 }, legend: { show: !allNo, top: 0, textStyle: { color: CH.ink2, fontSize: 12 } },

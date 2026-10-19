@@ -708,8 +708,14 @@ input,textarea,select,[contenteditable]:not([contenteditable="false"]){caret-col
    ② 高度上限 min(70vh,560px)：18 列（8 近期＋10 熱門）放不下時在清單裡捲，不把整頁撐長。*/
 .sugg{position:absolute;top:42px;left:auto;right:0;width:max(100%,340px);max-width:calc(100vw - 16px);
   background:var(--panel);border:1px solid var(--line-2);
-  box-shadow:var(--shadow);z-index:50;max-height:min(70vh,560px);overflow:auto;display:none;border-radius:9px;
+  box-shadow:var(--shadow);z-index:50;max-height:min(70vh,560px);overflow-x:hidden;overflow-y:auto;display:none;border-radius:9px;
   overscroll-behavior:contain}
+/* 10-19 Andy：「只能有上下拉 Bar，上方應該要顯示可以選擇加入的自選分頁」 */
+.sugg .sgtabs{position:sticky;top:0;z-index:2;display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:8px 12px;background:var(--panel);border-bottom:1px solid var(--line)}
+.sugg .sgtl{font-size:12px;font-weight:700;color:var(--ink-3);margin-right:2px}
+.sugg .sgtab{display:inline-flex;align-items:center;gap:4px;height:28px;padding:0 10px;border:1px solid var(--line-2);border-radius:999px;background:var(--panel-2);color:var(--ink-2);font:inherit;font-size:13px;cursor:pointer}
+.sugg .sgtab small{font-size:11px;color:var(--ink-3);font-family:var(--mono)}
+.sugg .sgtab.on{border-color:var(--cyan);background:color-mix(in srgb,var(--cyan) 16%,var(--panel));color:var(--ink);font-weight:700}
 .sugg .sgrow{padding:8px 12px;cursor:pointer;font-size:14px;display:flex;align-items:center;gap:8px;min-width:0}
 .sugg .sgrow:hover,.sugg .sgrow.on{background:var(--panel-2)}
 .sugg .sgrow.on{box-shadow:inset 3px 0 0 var(--cyan)}

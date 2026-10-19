@@ -68,7 +68,7 @@ def test_頻率設定同步_舊格式也轉成第2版(tmp_path):
     assert d["enabled"] is False and d["rules"] == []
 
 
-def test_頻率設定到點_對日期星期與小時_只看最近兩小時():
+def test_頻率設定到點_對日期星期與小時_往回看12小時():
     from datetime import timezone, timedelta
     tz = timezone(timedelta(hours=8))
     sch = {"ver": 2, "enabled": True, "rules": [
@@ -77,7 +77,14 @@ def test_頻率設定到點_對日期星期與小時_只看最近兩小時():
     mon = datetime(2026, 10, 19, 10, 41, tzinfo=tz)          # 週一 10:41
     assert [(d, h, i) for d, h, i, _ in aj.due_slots(sch, mon)] == [("2026-10-19", 10, 1)]
     assert [(d, h, i) for d, h, i, _ in aj.due_slots(sch, datetime(2026, 10, 19, 11, 41, tzinfo=tz))] == [("2026-10-19", 10, 1)]  # 晚一小時還補得到
-    assert aj.due_slots(sch, datetime(2026, 10, 19, 12, 41, tzinfo=tz)) == []                       # 再晚就不補
+    assert [(d, h) for d, h, _, _ in aj.due_slots(sch, datetime(2026, 10, 19, 12, 41, tzinfo=tz))] == [("2026-10-19", 10)]  # 排程整輪跳過也補得到（10-19 改 12 小時）
+    assert aj.due_slots(sch, datetime(2026, 10, 19, 22, 41, tzinfo=tz)) == [] or all(h != 10 for _, h, _, _ in aj.due_slots(sch, datetime(2026, 10, 19, 22, 41, tzinfo=tz)))  # 超過 12 小時不補
+    # 設定在 10:30 才存 → 10 點那格還算（整點還沒結束）；11:05 才存 → 10 點不補
+    assert [(d, h) for d, h, _, _ in aj.due_slots({**sch, "updated": "2026-10-19 10:30"}, datetime(2026, 10, 19, 12, 41, tzinfo=tz))] == [("2026-10-19", 10)]
+    assert aj.due_slots({**sch, "updated": "2026-10-19 11:05"}, datetime(2026, 10, 19, 12, 41, tzinfo=tz)) == []
+    # Andy 10-18 的實際情況：每天 6:00、10-18 09:08 存，10-19 08:28 那輪要排到 6:00
+    andy = {"ver": 2, "enabled": True, "rules": [{"days": [1, 2, 3, 4, 5, 6, 7], "hours": [6], "cats": {"news": 3, "intro": 3, "know": 3}}], "updated": "2026-10-18 09:08"}
+    assert [(d, h) for d, h, _, _ in aj.due_slots(andy, datetime(2026, 10, 19, 8, 28, tzinfo=tz))] == [("2026-10-19", 6)]
     assert aj.due_slots(sch, datetime(2026, 10, 21, 10, 5, tzinfo=tz))[0][:3] == ("2026-10-21", 10, 1)  # 週三
     assert aj.due_slots(sch, datetime(2026, 10, 20, 10, 41, tzinfo=tz)) == []                       # 週二不在 days
     assert [(d, h, i) for d, h, i, _ in aj.due_slots(sch, datetime(2026, 10, 20, 21, 41, tzinfo=tz))] == [("2026-10-20", 21, 2)]
