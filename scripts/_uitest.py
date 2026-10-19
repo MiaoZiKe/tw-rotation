@@ -71235,6 +71235,17 @@ def t_pay_1011(b, base):
             prv.click("#coTabE", force=True); prv.wait_for_timeout(200)
             ok(f"{T}：硬點綠界分頁 → 還是停在銀行轉帳", prv.evaluate("() => document.getElementById('coTabB').getAttribute('aria-selected') === 'true' && document.getElementById('coPaneE').hidden"))
             shot(prv, "co_ecpay_review.png", "#subDlg .box")
+        # 10-19 Andy：「綠界審核通過了 幫我開通」（非信用卡收款通過、信用卡還沒）→ 正式站（不帶旗標）綠界分頁可按、寫 ATM／超商＋信用卡審核中、
+        #   沒有定期定額、預設單次付款；勾同意後「前往綠界付款」可按
+        prv.goto(base + "#pricing", wait_until="domcontentloaded")
+        wait_until(prv, "() => !!(window.TwCheckout && window.TwAccount && TwAccount.user())", 12000)
+        prv.evaluate("() => { delete window.TW_ECPAY_OPEN; delete window.TW_ECPAY_CREDIT; TwCheckout.open({ plan: 'plus', per: 'year' }); }")
+        nc = wait_until(prv, "() => { const e = document.getElementById('coTabE'); return e ? { dis: e.disabled, txt: e.innerText, esel: e.getAttribute('aria-selected'), recur: document.querySelector('input[name=coKind][value=recur]').closest('label').getClientRects().length === 0, renew: document.getElementById('coRenewL').getClientRects().length === 0, once: document.querySelector('input[name=coKind][value=once]').checked, otxt: document.querySelector('input[name=coKind][value=once]').closest('label').innerText } : null; }", 10000)
+        ok(f"{T}：非信用卡收款開通：綠界分頁可按、寫 ATM／超商與「信用卡審核中」、預設就在綠界分頁、沒有定期定額、預設單次付款", bool(nc) and not nc["dis"] and "ATM" in nc["txt"] and "信用卡審核中" in nc["txt"] and nc["esel"] == "true" and nc["recur"] and nc["renew"] and nc["once"] and "信用卡" not in nc["otxt"], nc)
+        if nc:
+            prv.check("#coAgree")
+            ok(f"{T}：非信用卡收款開通：勾同意後「前往綠界付款」可以按（不用勾自動續扣）", prv.evaluate("() => !document.getElementById('coGoE').disabled"))
+            shot(prv, "co_ecpay_noncredit.png", "#subDlg .box")
     finally:
         for c in ctxs:
             try:
