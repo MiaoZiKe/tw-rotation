@@ -169,6 +169,14 @@
 #v-etf .cald.out{opacity:.35;background:transparent}
 #v-etf .cald.today{border-color:var(--cyan);background:color-mix(in srgb,var(--cyan) 12%,var(--panel-2));box-shadow:0 0 0 1px var(--cyan) inset}
 #v-etf .cald.sel{border-color:var(--amber);box-shadow:0 0 0 2px var(--amber) inset}
+/* 10-19 行事曆連動：清單列 ⇄ 月曆格。.lh＝那一格（琥珀框）、.lk＝鎖定（粗框）、.dim＝其他有除息的格變淡；格內那檔代號 .ce.on 琥珀底 */
+#v-etf .cald.lh{border-color:var(--amber);box-shadow:0 0 0 1px var(--amber) inset}
+#v-etf .cald.lk{border-color:var(--amber);box-shadow:0 0 0 2px var(--amber) inset}
+#v-etf .cald.dim{opacity:.55} :root[data-theme="light"] #v-etf .cald.dim{opacity:.35}
+#v-etf .cald .ce.on,#v-etf .cald .cm.on{background:color-mix(in srgb,var(--amber) 32%,transparent);border-radius:3px;box-shadow:0 0 0 1px var(--amber)}
+#v-etf #etfCalList tr.lk td{box-shadow:inset 0 1px 0 var(--amber),inset 0 -1px 0 var(--amber)}
+#v-etf #etfCalList tr.lk td:first-child{box-shadow:inset 3px 0 0 var(--amber),inset 0 1px 0 var(--amber),inset 0 -1px 0 var(--amber)}
+#v-etf #etfCalList tr.dim{opacity:.55} :root[data-theme="light"] #v-etf #etfCalList tr.dim{opacity:.35}
 #v-etf .cald .dn{display:flex;align-items:center;gap:6px;height:16px;white-space:nowrap}
 #v-etf .cald .dn b{font:600 12px var(--mono)}
 #v-etf .cald .dn i{font-style:normal;font-size:11px;padding:0 5px;border-radius:999px;background:var(--cyan);color:var(--ontop);line-height:15px}
@@ -467,6 +475,20 @@ html.m4 #v-etf #etfInc[data-inclk] .inclknote.m4o{display:flex;margin:-4px 0 8px
 /* 10-08 組合連動（Andy：「點擊特定區塊 整張圖表會連動有反應」）：選中那檔的明細卡＝跟表格 .hl 同一套琥珀色；月曆格不是那檔主要入帳的月份變淡（全站規格 .35、120ms） */
 #v-etf .cmr{cursor:pointer;transition:border-color .12s,background .12s,box-shadow .12s}
 #v-etf .cmr.hl{border-color:var(--amber);background:color-mix(in srgb,var(--amber) 14%,var(--panel));box-shadow:inset 3px 0 0 var(--amber)}
+/* 10-19 單檔／複利試算連動：清單列、情境表列 .hl＝琥珀底＋左條（同報酬比較表），.lk＝鎖定再加上下框；其他清單列整列變淡；膠囊同理 */
+#v-etf #incList .ilr{transition:background .12s,opacity .12s}
+#v-etf #incList .ilr.hl{background:color-mix(in srgb,var(--amber) 16%,var(--panel-2));box-shadow:inset 3px 0 0 var(--amber)}
+#v-etf #incList .ilr.lk{box-shadow:inset 3px 0 0 var(--amber),inset 0 1px 0 var(--amber),inset 0 -1px 0 var(--amber)}
+#v-etf #incList .ilr.dim{opacity:.6}
+#v-etf #incChips .snk{transition:opacity .12s,border-color .12s}
+#v-etf #incChips .snk.hl{border-color:var(--amber);background:color-mix(in srgb,var(--amber) 14%,var(--panel))}
+#v-etf #incChips .snk.dim{opacity:.5}
+#v-etf #incChips .snk b{padding:0 3px;cursor:pointer}
+#v-etf #cxTbl tbody tr{cursor:pointer;transition:background .12s}
+#v-etf #cxTbl tr.hl td{background:color-mix(in srgb,var(--amber) 16%,var(--panel-2))}
+#v-etf #cxTbl tr.hl td:first-child{box-shadow:inset 3px 0 0 var(--amber)}
+#v-etf #cxTbl tr.lk td{box-shadow:inset 0 1px 0 var(--amber),inset 0 -1px 0 var(--amber)}
+#v-etf #cxTbl tr.lk td:first-child{box-shadow:inset 3px 0 0 var(--amber),inset 0 1px 0 var(--amber),inset 0 -1px 0 var(--amber)}
 #v-etf .mgrid .mcell{cursor:pointer;transition:opacity .12s}
 #v-etf .mgrid .mcell.dim{opacity:.35}
 :root:not([data-theme="light"]) #v-etf .mgrid .mcell.dim{opacity:.55}   /* 暗色未選中不要糊成泥色，淺色不動 */
@@ -1031,7 +1053,7 @@ html.m4 #v-etf #etfInc[data-inclk] .inclknote.m4o{display:flex;margin:-4px 0 8px
       const hol = CG.tag(k), nE = Math.max(1, S.capE - (hol ? 1 : 0));
       const isT = k === today;
       // 格內金額去掉尾巴的 0（0.700 → 0.7）：格子窄，代號才不會被省略號吃掉；完整金額在右側清單
-      const ent = L.slice(0, nE).map((e) => `<span class="ce"><span class="cc">${esc(e.code)}</span><span class="ca">${String(+(+e.amt).toFixed(3))}</span></span>`).join('');
+      const ent = L.slice(0, nE).map((e) => `<span class="ce" data-c="${esc(e.code)}"><span class="cc">${esc(e.code)}</span><span class="ca">${String(+(+e.amt).toFixed(3))}</span></span>`).join('');
       const more = L.length > nE ? `<span class="cm">+${L.length - nE} 檔</span>` : '';
       cells += `<button type="button" class="cald${CG.cls(k)}${L.length ? ' has' : ''}${isT ? ' today' : ''}${S.day === k ? ' sel' : ''}" data-d="${k}" data-n="${L.length}"
         ${L.length ? '' : 'tabindex="-1"'} aria-label="${k}${isT ? '（今天）' : ''}${L.length ? ' 有 ' + L.length + ' 檔除息' : ''}"><span class="dn"><b>${d}</b>${isT ? '<i>今天</i>' : ''}</span>${hol}${ent}${more}</button>`;
@@ -1057,11 +1079,18 @@ html.m4 #v-etf #etfInc[data-inclk] .inclknote.m4o{display:flex;margin:-4px 0 8px
     $('#etfCalToday').onclick = () => go(curM);
     $$('.cald.has', box).forEach((c) => { c.onclick = () => { S.code = null; S.day = S.day === c.dataset.d ? null : c.dataset.d; drawCal(); }; });
     $$('#etfCalList tr[data-code]', box).forEach((tr) => {
-      // 單檔明細表（有 data-i）：點列＝在圖上選那一次配息（雙向連動），再點一次取消；其他清單點列＝打開那一檔
-      if (tr.dataset.i != null) { tr.onclick = () => { const el = $('#etfCalList .cgmini', box); const i = +tr.dataset.i; if (el) window.CalGrid.pick(el, el._cgSel === i ? null : i); }; return; }
+      // 單檔明細表（有 data-i）：點列＝在圖上選那一次配息（雙向連動），再點一次取消；滑過列＝圖上那根加亮（calgrid hover）
+      if (tr.dataset.i != null) {
+        const el = () => $('#etfCalList .cgmini', box), i = +tr.dataset.i;
+        tr.onclick = () => { const g = el(); if (g) window.CalGrid.pick(g, g._cgSel === i ? null : i); };
+        return;
+      }
+      // 整月／當日清單：點列＝打開那一檔明細，同時月曆上那一檔所有除息格被鎖定標亮（calLink）。
+      // ⚠ 不改成「第一下選取、第二下才開」：這裡的點擊有每日次數（features.js etf.cal.click 每點一下都算），兩段式會讓會員白花一次
       tr.onclick = () => { S.code = tr.dataset.code; drawCal(); };
     });
-    if (S.code) window.CalGrid.mount($('#etfCalList', box));
+    if (S.code) { window.CalGrid.mount($('#etfCalList', box)); codeRowHL(); }
+    calLink(box);
     const bk = $('#etfCodeBack', box); if (bk) bk.onclick = () => { S.code = null; drawCal(); };
     const db = $('#etfDayBack', box); if (db) db.onclick = () => { S.day = null; drawCal(); };
     $$('#etfCalList .plink', box).forEach((a) => { a.onclick = (ev) => { ev.preventDefault(); A().goStock(a.dataset.code); }; });
@@ -1069,7 +1098,7 @@ html.m4 #v-etf #etfInc[data-inclk] .inclknote.m4o{display:flex;margin:-4px 0 8px
   }
   const COLS = '<colgroup><col><col style="width:56px"><col style="width:80px"><col style="width:58px"><col style="width:162px"></colgroup>';
   function calRows(L, withDate, idxOf) {
-    return L.map((e, k) => `<tr data-code="${esc(e.code)}"${idxOf ? ` data-i="${idxOf(k)}"` : ''} title="${esc(e.name)} ${esc(e.code)}：除息 ${e.ex}，配 ${e.amt} 元">
+    return L.map((e, k) => `<tr data-code="${esc(e.code)}" data-ex="${esc(e.ex)}"${idxOf ? ` data-i="${idxOf(k)}"` : ''} title="${esc(e.name)} ${esc(e.code)}：除息 ${e.ex}，配 ${e.amt} 元">
       <td><span class="cw">${withDate ? `<span class="note">${e.ex.slice(5)}</span> ` : ''}<span class="cn">${esc(e.name)}</span> <span class="note">${esc(e.code)}</span></span></td>
       <td>${A().fmt.n(e.amt, 3)}</td><td title="${esc(e.basis)}">${pctU(e.y)}${/估/.test(e.basis || '') ? '<span class="na">估</span>' : ''}</td>
       <td>${e.pay ? e.pay.slice(5) : '<span class="na">—</span>'}</td>
@@ -1092,7 +1121,7 @@ html.m4 #v-etf #etfInc[data-inclk] .inclknote.m4o{display:flex;margin:-4px 0 8px
     const tipOf = (i) => { const e = L[i]; return `<b>${esc(e.ex)} 除息</b><br>配息 <b>${A().fmt.n(e.amt, 3)} 元</b><br>當次殖利率 ${e.y == null ? '—' : pctU(e.y, 2)}<br>填息天數 ${esc(fillTxt(e.fill, e.fill_wait))}`; };
     const chartHTML = CGs.mini({ labels: L.map((e) => e.ex), bars: { vals: L.map((e) => +e.amt), color: 'var(--amber)', name: '配息' },
       line: { vals: ys, color: 'var(--cyan)', name: '殖利率' }, tip: tipOf, aria: `${it.name} 近 ${L.length} 次配息與當次殖利率`,
-      onPick: (i) => codeRowHL(i, true) });
+      onPick: (i) => codeRowHL(i, true), onHover: (i) => { codeRowHL(); if (S._cFromMini) S._cFromMini(i); } });
     return `${head}
       <div class="kpis"><div><small>最近一次配息</small><b>${A().fmt.n(last.amt, 3)} 元</b></div><div><small>當次殖利率</small><b>${last.y == null ? '—' : pctU(last.y, 2)}</b></div>
         <div><small>平均填息</small><b>${avg == null ? '—' : avg + ' 天'}</b></div></div>
@@ -1100,21 +1129,97 @@ html.m4 #v-etf #etfInc[data-inclk] .inclknote.m4o{display:flex;margin:-4px 0 8px
         <div class="ml"><span>${esc(L[0].ex.slice(2))}</span><span><i style="background:var(--amber)"></i>配息　<i style="background:var(--cyan)"></i>殖利率</span><span>${esc(last.ex.slice(2))}</span></div></div></div>
       <table class="et" id="etfCodeTbl">${COLS}${THEAD('除息日')}<tbody>${calRows(L.slice().reverse(), true, (k) => L.length - 1 - k)}</tbody></table>`;
   }
-  /* 單檔明細：圖上選了第 i 次配息 → 表格那一列加 .hl 並捲到看得見（清單框內捲，不動整頁）；i＝null 清掉 */
-  function codeRowHL(i, scroll) {
+  /* 單檔明細：表格列的狀態一律從小圖讀（選取 _cgSel、滑過 _cgHov，兩邊滑過都走 CalGrid 那一支）——
+     選取那列 .hl＋.lk（上下框）、滑過那列 .hl、有任一者時其他列 .dim；scroll＝選取時把那列捲進清單框（框內捲，不動整頁）。 */
+  function codeRowHL(_i, scroll) {
     const tb = document.getElementById('etfCodeTbl'); if (!tb) return;
-    tb.querySelectorAll('tr.hl').forEach((r) => r.classList.remove('hl'));
-    const tr = i == null ? null : tb.querySelector(`tbody tr[data-i="${i}"]`);
-    if (!tr) return;
-    tr.classList.add('hl');
-    if (scroll) {
-      const box = document.getElementById('etfCalList');
-      if (box) {
-        const br = box.getBoundingClientRect(), rr = tr.getBoundingClientRect(), head = (box.querySelector('.ph.stk') || { offsetHeight: 0 }).offsetHeight;
-        if (rr.top < br.top + head) box.scrollTop -= br.top + head - rr.top + 4;
-        else if (rr.bottom > br.bottom) box.scrollTop += rr.bottom - br.bottom + 4;
-      }
+    const g = document.querySelector('#etfCalList .cgmini');
+    const sel = g && g._cgSel != null ? g._cgSel : null, hov = g && g._cgHov != null ? g._cgHov : null;
+    let tr = null;
+    tb.querySelectorAll('tbody tr[data-i]').forEach((r) => { const i = +r.dataset.i;
+      r.classList.toggle('hl', i === sel || i === hov); r.classList.toggle('lk', i === sel);
+      r.classList.toggle('dim', (sel != null || hov != null) && i !== sel && i !== hov);
+      if (i === sel) tr = r; });
+    if (tr && scroll) inBox(document.getElementById('etfCalList'), tr);
+  }
+  /* 清單框內捲到看得見（只捲框、不動整頁；扣掉釘在框頂的標題列） */
+  function inBox(box, tr) {
+    if (!box || !tr) return;
+    const br = box.getBoundingClientRect(), rr = tr.getBoundingClientRect(), hd = box.querySelector('.ph.stk, thead');
+    const head = hd ? hd.getBoundingClientRect().height : 0;
+    if (rr.top < br.top + head) box.scrollTop -= br.top + head - rr.top + 4;
+    else if (rr.bottom > br.bottom) box.scrollTop += rr.bottom - br.bottom + 4;
+  }
+  const touchOnly = () => { try { return window.matchMedia('(hover: none)').matches; } catch (e) { return false; } };
+  /* ★ 10-19 行事曆連動（Andy：「同個資訊多張圖表，都需要有像是 ETF 月配那樣的連動效果」，普查第二輪第 20、21 項）：
+     左邊月曆格與右邊整月／當日清單講的是同一批除息，原本只有「點格＝篩當日清單」一個方向，想知道「清單這列是月曆哪一格」得自己對日期。
+     規格照抄 comboLink：
+       · 滑過清單列 → 月曆那一格外框亮、格內那檔代號亮（被「+N 檔」收起來就亮 +N），其他有除息的格變淡
+       · 滑過月曆格 → 清單裡那天的列 .hl、其他列變淡；桌機順便把第一列捲進清單框（框內捲，不動整頁；手機不捲）
+       · 點清單列＝打開那一檔明細＝鎖定：月曆上那一檔每一次除息的格都粗框＋代號亮、其他格變淡（看得出它一個月配幾次、哪幾天）
+         單檔明細裡：滑過表格列／小圖直條 → 月曆那一天亮；滑過月曆格 → 小圖那根與表格那列亮
+       · 點格子照舊＝篩出當天清單（.sel）；點月曆空白處（沒除息的格、星期列、格縫）＝回整月清單
+     ⚠ 點清單列不改成「第一下選取、第二下才開」：這裡每點一下都算每日次數（features.js etf.cal.click）。
+     ⚠ 變淡數字跟 selDim 同一組（深 .55／淺 .35，CSS 寫死）。 */
+  function calLink(box) {
+    const grid = $('#etfCalGrid', box), lst = $('#etfCalList', box);
+    if (!grid || !lst) return;
+    const code = S.code || null;
+    const K = new Set(((S.data && S.data.calendar) || []).map((e) => e.code + '|' + e.ex));
+    const cells = $$('.cald.has', grid);
+    const rows = $$(code ? '#etfCodeTbl tr[data-i][data-ex]' : 'tr[data-code][data-ex]:not([data-i])', lst);
+    const mini = () => $('.cgmini', lst);
+    const pk = code ? { c: code, d: null, src: 'lock' } : null;
+    let hov = null;   // { c: 代號或 null（滑過格）, d: 日期, src: 'row'|'cell' }
+    const hit = (x, d) => !!x && (x.d ? x.d === d && (!x.c || K.has(x.c + '|' + d)) : K.has(x.c + '|' + d));
+    function paint() {
+      const act = hov || pk;
+      cells.forEach((cell) => {
+        const d = cell.dataset.d, on = hit(hov, d), lk = hit(pk, d);
+        cell.classList.toggle('lh', on || lk); cell.classList.toggle('lk', lk);
+        cell.classList.toggle('dim', !!act && act.src !== 'cell' && !on && !lk);
+        const want = [on && hov.c, lk && pk.c].filter(Boolean);
+        let seen = false;
+        $$('.ce', cell).forEach((ce) => { const m = want.includes(ce.dataset.c); ce.classList.toggle('on', m); seen = seen || m; });
+        const cm = $('.cm', cell); if (cm) cm.classList.toggle('on', !seen && want.length > 0);
+      });
+      let first = null;
+      if (!code) rows.forEach((r) => {
+        const h = !!hov && hov.d === r.dataset.ex && (!hov.c || hov.c === r.dataset.code);
+        r.classList.toggle('hl', h); r.classList.toggle('dim', !!hov && hov.src === 'cell' && !h);
+        if (h && !first) first = r;
+      });
+      box.dataset.chov = hov ? (hov.c || '') + '|' + hov.d : '';
+      if (first && hov.src === 'cell' && window.innerWidth > 640 && !touchOnly()) inBox(lst, first);
     }
+    const same = (a, b) => (!a && !b) || (!!a && !!b && a.c === b.c && a.d === b.d && a.src === b.src);
+    const hover = (h) => { if (!same(h, hov)) { hov = h; paint(); } };
+    // 單檔明細：月曆格 ⇄ 小圖／表格。表格列與小圖直條都走 CalGrid.hover → onHover → 這裡的 S._cFromMini
+    const idxOfDay = (d) => { const r = rows.find((x) => x.dataset.ex === d); return r ? +r.dataset.i : null; };
+    S._cFromMini = code ? (i) => {
+      if (hov && hov.src === 'cell') return;     // 是月曆格帶動小圖的，不反過來把格子的狀態改成「列」
+      const r = i == null ? null : rows.find((x) => +x.dataset.i === i);
+      hover(r ? { c: code, d: r.dataset.ex, src: 'row' } : null);
+    } : null;
+    cells.forEach((cell) => {
+      cell.onmouseenter = () => { const d = cell.dataset.d; hover({ c: null, d, src: 'cell' });
+        if (code) { const g = mini(); if (g) window.CalGrid.hover(g, K.has(code + '|' + d) ? idxOfDay(d) : null); } };
+      cell.onmouseleave = () => { hover(null); if (code) { const g = mini(); if (g) window.CalGrid.hover(g, null); } };
+    });
+    rows.forEach((r) => {
+      if (code) {
+        const i = +r.dataset.i;
+        r.onmouseenter = () => { const g = mini(); if (g) window.CalGrid.hover(g, i); else hover({ c: code, d: r.dataset.ex, src: 'row' }); };
+        r.onmouseleave = () => { const g = mini(); if (g) window.CalGrid.hover(g, null); else hover(null); };
+      } else {
+        r.onmouseenter = () => hover({ c: r.dataset.code, d: r.dataset.ex, src: 'row' }); r.onmouseleave = () => hover(null);
+      }
+    });
+    // 月曆空白處（沒除息的格、星期列、格縫）＝取消：回整月清單（整頁只掛一次，box 是固定容器，裡面每次重畫）
+    if (!box._cBlank) { box._cBlank = true;
+      box.addEventListener('click', (e) => { if (!e.target.closest('#etfCalGrid') || e.target.closest('.cald.has')) return;
+        if (S.code || S.day) { S.code = null; S.day = null; drawCal(); } }); }
+    paint();
   }
   function calList(day, L) {
     const wd = WD[new Date(day + 'T00:00:00Z').getUTCDay()];
@@ -1994,8 +2099,6 @@ html.m4 #v-etf #etfInc[data-inclk] .inclknote.m4o{display:flex;margin:-4px 0 8px
     reflow(S.inc.main === 'x' ? $('#incPX') : S.inc.tab === 's' ? $('#incSingle') : $('#incCombo'));
     box.dataset.k = [S.inc.mode, incYearT(), incMonT(), S.inc.sort, S.inc.csort, S.inc.scope, S.inc.nhi ? 1 : 0, perKey(), S.inc.tab, S.inc.main].join('|');
   }
-  const touchy = () => !!(window.matchMedia && window.matchMedia('(hover: none)').matches);
-  function twoTap(key, fn) { if (touchy() && S._tap !== key) { S._tap = key; return; } S._tap = null; fn(); }
 
   /* ================= 月配試算表：單檔 ================= */
   function drawIncSingle() {
@@ -2017,6 +2120,7 @@ html.m4 #v-etf #etfInc[data-inclk] .inclknote.m4o{display:flex;margin:-4px 0 8px
     drawSingleCurve(top);
     drawIncList(R);
     drawDet();
+    incLink(top);
   }
   const firstOfMonthFn = (X) => (i) => i === 0 || X[i].slice(0, 7) !== X[i - 1].slice(0, 7);
   /* v8（Andy：「曲線圖月份之間都要微微線條區隔」）：每個月一條很淡的直線。顏色用 ink-3 的 16% 透明，深淺主題都看得到但不搶線。 */
@@ -2038,7 +2142,7 @@ html.m4 #v-etf #etfInc[data-inclk] .inclknote.m4o{display:flex;margin:-4px 0 8px
     const avg = MONTHS.map((_, m) => (vals.length ? +(vals.reduce((s, v) => s + v[m], 0) / vals.length).toFixed(2) : null));
     el.style.height = (mob ? 360 : 440) + 'px';
     const series = top.map((r, i) => ({ name: `${r.it.name} ${r.it.code}`, code: r.it.code, type: 'bar', barGap: mob ? '0%' : '12%', barCategoryGap: mob ? '16%' : '22%', barMaxWidth: 16, z: 2,
-      label: { show: false }, cursor: 'pointer', emphasis: { focus: 'series' }, itemStyle: { color: colOf(i), borderRadius: [3, 3, 0, 0] }, data: vals[i].map((v) => (v > 0 ? v : null)) }));
+      label: { show: false }, cursor: 'pointer', emphasis: { disabled: true }, itemStyle: { color: colOf(i), borderRadius: [3, 3, 0, 0] }, data: vals[i].map((v) => (v > 0 ? v : null)) }));
     series.push({ name: AVG, type: 'line', smooth: false, symbol: 'circle', symbolSize: 5, z: 5, data: avg, lineStyle: { width: 2, color: a.hexA(CH.ink2, 0.9) }, itemStyle: { color: CH.ink2 } });
     a.chart('incBar', {
       animation: false, timeGrid: false,
@@ -2066,8 +2170,7 @@ html.m4 #v-etf #etfInc[data-inclk] .inclknote.m4o{display:flex;margin:-4px 0 8px
       key.insertAdjacentHTML('beforeend', `<button type="button" class="snk addk" id="incChipAdd" title="從右側清單勾選加入（最多 5 檔）">＋加入</button>`);
       const ad = $('#incChipAdd'); if (ad) ad.onclick = () => { const s = $('#incSearch'); if (s) { s.focus(); s.scrollIntoView({ block: 'nearest' }); } };
     }
-    const ch = window.echarts && window.echarts.getInstanceByDom(el);
-    if (ch) { ch.off('click'); ch.on('click', (p) => { const s = series[p.seriesIndex]; if (!s || !s.code) return; twoTap('l' + s.code, () => openDet(S.inc.det === s.code ? null : s.code)); }); }
+    // 點直條／滑過直條改由 incLink 掛（第一下＝選取、已選中再點＝開明細）；原生 emphasis 關掉，加亮與變淡由 incLink 統一畫
     el.dataset.n = String(top.length);
     el.dataset.groups = vals.map((v) => v.join('/')).join(',');
   }
@@ -2097,8 +2200,74 @@ html.m4 #v-etf #etfInc[data-inclk] .inclknote.m4o{display:flex;margin:-4px 0 8px
         else cur = cur.filter((x) => x !== c);
         $('#incListMsg').textContent = ''; S.inc.sel = cur; drawIncSingle();
       };
-      $('.iln', row).onclick = () => openDet(S.inc.det === c ? null : c);
+      // 名稱鈕：圖上有這檔 → 第一下選取（三處連動）、已選中再點才開明細；圖上沒有的檔沒東西可連動，照舊一下就開明細
+      $('.iln', row).onclick = (e) => { e.stopPropagation(); if (!S._sCodes || !S._sCodes.includes(c) || S.inc.ssel === c) openDet(S.inc.det === c ? null : c); else if (S._sPick) S._sPick(c, 'iln'); };
     });
+  }
+  /* ★ 10-19 單檔三處連動（Andy：「圖表是有連動關係的，像這種同個資訊多張圖表，都需要有像是 ETF 月配那樣的連動效果」）：
+     每月入帳直條、右側清單、上方膠囊講的是同一批（≤5 檔）ETF，原本只靠顏色串 ⇒ 想知道「清單第 3 列是圖上哪一色、它哪幾個月入帳」得自己比顏色。
+     規格照抄 comboLink／retLink：
+       · 滑過清單列或膠囊：那一檔的直條全亮、其他檔變淡；滑過直條：清單那列 .hl、膠囊那顆亮。滑出恢復。
+       · 點一下＝鎖定（同樣效果＋直條外框、清單列琥珀色左條）；再點同一檔、或點空白處＝取消。
+       · 點直條／清單名稱：第一下＝選取，已選中再點才開下方明細卡（原本一下就開，畫面會跳）。膠囊的 × 照舊是拿掉那檔。
+     ⚠ 透明度寫在系列層 itemStyle.opacity（資料項沒帶 itemStyle，系列層照樣套），深 .55／淺 .35 用同一支 selDim()。
+     ⚠ 選取記在 S.inc.ssel（代號）：改目標／排序／勾選重畫後，那檔還在圖上就保留，不在就清掉。 */
+  function incLink(top) {
+    const a = A(), CH = a.CH, box = $('#incSingle'), el = $('#incBar');
+    if (!box || !el) return;
+    const codes = top.map((r) => r.it.code);
+    S._sCodes = codes;
+    const ch = window.echarts ? window.echarts.getInstanceByDom(el) : null;
+    let hov = null;
+    function paint() {
+      if (S.inc.ssel && !codes.includes(S.inc.ssel)) S.inc.ssel = null;
+      const sel = S.inc.ssel, any = !!(sel || hov);
+      const lvl = (c) => (c === sel ? 2 : c === hov ? 1 : 0);
+      const op = (c) => (!any || lvl(c) ? 1 : selDim());
+      box.dataset.ssel = sel || ''; box.dataset.shov = hov || '';
+      if (ch && !ch.isDisposed()) {
+        try { ch.setOption({ series: codes.map((c, i) => { const l = lvl(c);
+          return { z: l ? 3 : 2, itemStyle: { color: a.snColor ? a.snColor(i) : a.donut.color(i), borderRadius: [3, 3, 0, 0], opacity: op(c), borderColor: l ? CH.ink : 'transparent', borderWidth: l === 2 ? 1.5 : l ? 1 : 0 } }; }) }); } catch (e) { /* 競態 */ }
+      }
+      $$('#incList .ilr[data-code]').forEach((r) => { const c = r.dataset.code; r.classList.toggle('hl', c === sel || c === hov); r.classList.toggle('lk', c === sel); r.classList.toggle('dim', any && !lvl(c)); });
+      $$('#incChips .snk[data-n]').forEach((b) => { const c = b.dataset.n.split(' ').pop(); b.classList.toggle('hl', c === sel || c === hov); b.classList.toggle('lk', c === sel); b.classList.toggle('dim', any && !lvl(c)); });
+    }
+    const hover = (c) => { if (hov !== c) { hov = c; paint(); } };
+    // ⚠ 觸控點一下，zrender 會收到指標事件的 click 又收到瀏覽器補發的 click ⇒ 同一處 350ms 內第二下不算
+    let last = { k: '', t: 0 };
+    const pick = (c, src) => { const k = (src || '') + ':' + c, t = Date.now(); if (src && last.k === k && t - last.t < 350) return; last = { k, t };
+      S.inc.ssel = !c || c === S.inc.ssel ? null : c; hov = null; paint(); };
+    S._sPick = pick;
+    if (ch) {
+      if (ch._sOv) { ch.off('mouseover', ch._sOv); ch.off('mouseout', ch._sOu); ch.off('globalout', ch._sOu); ch.off('click', ch._sCk); }
+      const codeOf = (p) => (p.componentType === 'series' && p.seriesType === 'bar' ? codes[p.seriesIndex] : null);
+      ch._sOv = (p) => { const c = codeOf(p); if (c) hover(c); };
+      ch._sOu = () => hover(null);
+      // 第一下＝選取；已選中再點同一檔＝開明細卡（不取消選取，明細卡跟著那檔）
+      ch._sCk = (p) => { const c = codeOf(p); if (!c) return; if (S.inc.ssel === c && !(last.k === 'bar:' + c && Date.now() - last.t < 350)) openDet(S.inc.det === c ? null : c); else pick(c, 'bar'); };
+      ch.on('mouseover', ch._sOv); ch.on('mouseout', ch._sOu); ch.on('globalout', ch._sOu); ch.on('click', ch._sCk);
+      // ⚠ zr.off('click') 一定要帶函式（不帶會拔掉 ECharts 自己的 click）
+      const zr = ch.getZr(); if (zr._sBlank) zr.off('click', zr._sBlank);
+      zr._sBlank = (e) => { if (!e.target) pick(null); }; zr.on('click', zr._sBlank);
+    }
+    $$('#incList .ilr[data-code]').forEach((r) => {
+      const c = r.dataset.code; if (!codes.includes(c)) return;
+      r.onmouseenter = () => hover(c); r.onmouseleave = () => hover(null);
+      r.onclick = (e) => { if (e.target.closest('input, button, a')) return; pick(c, 'row'); };
+    });
+    // 膠囊：滑過＝連動；點名字＝鎖定；點 ×＝拿掉那檔（msTags 原本整顆都是拿掉，改成只有 × 拿掉）
+    $$('#incChips .snk[data-n]').forEach((b) => {
+      const c = b.dataset.n.split(' ').pop(), rm = b.onclick;
+      b.title = `點名字＝在圖上標出 ${b.dataset.n}；點 × 從圖上拿掉（清單也會取消勾選）`;
+      b.onmouseenter = () => hover(c); b.onmouseleave = () => hover(null);
+      b.onclick = (e) => { if (e.target.closest('b')) { if (rm) rm.call(b, e); return; } pick(c, 'chip'); };
+    });
+    // 卡片內的空白處＝取消；卡片外的空白處也算（整頁只掛一次，靠 S._sPick 拿到目前這一份）
+    if (!box._sBlank) { box._sBlank = true;
+      box.addEventListener('click', (e) => { if (S.inc.ssel && S._sPick && !e.target.closest('.ilr, .chart, canvas, button, a, input, select, label, .snk, [role="listbox"], .ddpanel')) S._sPick(null); }); }
+    if (!S._sLinkDoc) { S._sLinkDoc = true;
+      document.addEventListener('click', (e) => { if (S.inc && S.inc.ssel && S._sPick && document.contains(e.target) && !e.target.closest('#incSingle, .echarts-tooltip, [role="dialog"]')) S._sPick(null); }, true); }
+    paint();
   }
   function openDet(code) {
     S.inc.det = code; drawIncSingle();
@@ -2410,8 +2579,9 @@ html.m4 #v-etf #etfInc[data-inclk] .inclknote.m4o{display:flex;margin:-4px 0 8px
     S.inc.lsel = S.inc.lsel || {};
     const shown = () => lines.filter((l) => S.inc.lsel[l.key] !== false);
     const X = D.slice(i0);
-    const ser = lines.map((l) => ({ name: l.name, type: 'line', showSymbol: false, data: l.vals.slice(i0), lineStyle: { width: l.key === 'self' ? 2.2 : 1.5, color: l.col, type: l.dash || 'solid' }, itemStyle: { color: l.col },
-      emphasis: { focus: 'series' }, endLabel: { show: true, color: l.col, fontSize: 11.5, formatter: (p) => (p.value == null ? '' : (p.value > 0 ? '+' : '') + (+p.value).toFixed(1) + '%') }, labelLayout: { moveOverlap: 'shiftY' } }));
+    const ser = lines.map((l) => ({ name: l.name, type: 'line', showSymbol: false, data: l.vals.slice(i0), lineStyle: { width: CX_W(l), color: l.col, type: l.dash || 'solid' }, itemStyle: { color: l.col },
+      // triggerLineEvent：滑過／點線本身要拿得到 seriesIndex（跟情境表連動）；原生 emphasis 關掉，加粗與變淡由 cxLink 統一畫
+      emphasis: { disabled: true }, triggerLineEvent: true, endLabel: { show: true, color: l.col, fontSize: 11.5, formatter: (p) => (p.value == null ? '' : (p.value > 0 ? '+' : '') + (+p.value).toFixed(1) + '%') }, labelLayout: { moveOverlap: 'shiftY' } }));
     /* v8（Andy：「曲線圖月份之間都要微微線條區隔」）：每月第一週畫一條很淡的直線（markLine 掛在第一條線上、不吃滑鼠）。
        這張圖有 dataZoom，不走全站 TimeGrid（timeGrid:false），所以自己畫。 */
     const mk = X.map((d, k) => (k > 0 && d.slice(0, 7) !== X[k - 1].slice(0, 7) ? { xAxis: d } : null)).filter(Boolean);
@@ -2454,11 +2624,66 @@ html.m4 #v-etf #etfInc[data-inclk] .inclknote.m4o{display:flex;margin:-4px 0 8px
     };
     paint();
     const ch = window.echarts && window.echarts.getInstanceByDom(el);
-    if (ch) { ch.off('legendselectchanged'); ch.on('legendselectchanged', (e) => { lines.forEach((l) => { S.inc.lsel[l.key] = e.selected[l.name] !== false; }); paint(); }); }
+    const link = cxLink(ch, lines, shown);
+    if (ch) { ch.off('legendselectchanged'); ch.on('legendselectchanged', (e) => { lines.forEach((l) => { S.inc.lsel[l.key] = e.selected[l.name] !== false; }); paint(); link(); }); }
     el.dataset.lines = lines.map((l) => l.key).join(',');
     el.dataset.fin = lines.map((l) => +(l.fin / cost - 1).toFixed(4)).join(',');
     el.dataset.from = D[i0]; el.dataset.cost = String(Math.round(cost)); el.dataset.obj = S.inc.obj;
     el.dataset.state = 'ok';
+  }
+
+  /* ★ 10-19 複利試算兩處連動（Andy：「圖表是有連動關係的……都需要有像是 ETF 月配那樣的連動效果」）：
+     回測走勢的每一條線＝右邊情境表的一列，原本只靠表格列前面的小色塊對顏色 ⇒ 想知道「再投入 0050 那條是哪一條」得自己比色。
+     規格照抄 retLink：滑過表格列或線 → 那條線加粗、其他線（含期末標籤）變淡，表格那列 .hl；點一下＝鎖定（＋線陰影描邊、列上下框），
+     再點同一列／同一條線、或點空白處＝取消。表格這裡沒有下一層可進，所以點列只做選取／取消。
+     ⚠ 選取記在 S.inc.xsel（情境 key）：切對象／起始日重畫後那條還在就保留；用圖例把那條關掉就清掉（看不到的線不能被選著）。 */
+  const CX_W = (l) => (l.key === 'self' ? 2.2 : 1.5);
+  function cxLink(ch, lines, shown) {
+    const a = A(), CH = a.CH, wrap = $('#incPX'), el = $('#cxChart');
+    let hov = null, keys = [];
+    function paint() {
+      if (S.inc.xsel && !keys.includes(S.inc.xsel)) S.inc.xsel = null;
+      const sel = S.inc.xsel, any = !!(sel || hov);
+      const lvl = (k) => (k === sel ? 2 : k === hov ? 1 : 0);
+      const op = (k) => (!any || lvl(k) ? 1 : selDim());
+      if (el) { el.dataset.xsel = sel || ''; el.dataset.xhov = hov || ''; }
+      if (ch && !ch.isDisposed()) {
+        try { ch.setOption({ series: lines.map((l) => { const v = lvl(l.key);
+          return { z: v ? 3 : 2, lineStyle: { width: v ? CX_W(l) + 1.6 : CX_W(l), color: l.col, type: l.dash || 'solid', opacity: op(l.key), shadowBlur: v === 2 ? 6 : 0, shadowColor: v === 2 ? CH.ink : 'transparent' },
+            itemStyle: { color: l.col, opacity: op(l.key) }, endLabel: { opacity: op(l.key) } }; }) }); } catch (e) { /* 競態 */ }
+      }
+      $$('#cxTbl tr[data-key]').forEach((tr) => { const k = tr.dataset.key; tr.classList.toggle('hl', k === sel || k === hov); tr.classList.toggle('lk', k === sel); tr.classList.toggle('dim', any && !lvl(k)); });
+    }
+    const hover = (k) => { if (hov !== k) { hov = k; paint(); } };
+    let last = { k: '', t: 0 };
+    const pick = (k, src) => { const kk = (src || '') + ':' + k, t = Date.now(); if (src && last.k === kk && t - last.t < 350) return; last = { k: kk, t };
+      S.inc.xsel = !k || k === S.inc.xsel ? null : k; hov = null; paint(); };
+    S._xPick = pick;
+    if (ch) {
+      if (ch._xOv) { ch.off('mouseover', ch._xOv); ch.off('mouseout', ch._xOu); ch.off('globalout', ch._xOu); ch.off('click', ch._xCk); }
+      const keyOf = (p) => (p.componentType === 'series' && lines[p.seriesIndex] ? lines[p.seriesIndex].key : null);
+      ch._xOv = (p) => { const k = keyOf(p); if (k) hover(k); };
+      ch._xOu = () => hover(null);
+      ch._xCk = (p) => { const k = keyOf(p); if (k) pick(k, 'ln'); };
+      ch.on('mouseover', ch._xOv); ch.on('mouseout', ch._xOu); ch.on('globalout', ch._xOu); ch.on('click', ch._xCk);
+      // ⚠ zr.off('click') 一定要帶函式（不帶會拔掉 ECharts 自己的 click）；拖 dataZoom 滑桿時 e.target 有值，不會誤取消
+      const zr = ch.getZr(); if (zr._xBlank) zr.off('click', zr._xBlank);
+      zr._xBlank = (e) => { if (!e.target) pick(null); }; zr.on('click', zr._xBlank);
+    }
+    if (wrap && !wrap._xBlank) { wrap._xBlank = true;
+      wrap.addEventListener('click', (e) => { if (S.inc.xsel && S._xPick && !e.target.closest('tr[data-key], .chart, canvas, button, a, input, select, label, .ddpanel')) S._xPick(null); }); }
+    if (!S._xLinkDoc) { S._xLinkDoc = true;
+      document.addEventListener('click', (e) => { if (S.inc && S.inc.xsel && S._xPick && document.contains(e.target) && !e.target.closest('#incPX, .echarts-tooltip, [role="dialog"]')) S._xPick(null); }, true); }
+    // 表格每次 paint（圖例開關）都整張重寫 ⇒ 每次都要重掛；回傳這支給 legendselectchanged 用
+    const relink = () => {
+      keys = shown().map((l) => l.key);
+      $$('#cxTbl tr[data-key]').forEach((tr) => { const k = tr.dataset.key;
+        tr.onmouseenter = () => hover(k); tr.onmouseleave = () => hover(null);
+        tr.onclick = (e) => { if (e.target.closest('a, button')) return; pick(k, 'tr'); }; });
+      paint();
+    };
+    relink();
+    return relink;
   }
 
   /* ------------------------------------------------------------------ 入口 */

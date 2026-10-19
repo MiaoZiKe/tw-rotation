@@ -3476,7 +3476,16 @@
      ETF 預設排除（已拍板）—— ETF 的漲跌分佈跟個股不同，混在一起會把中央那根撐高。
      兩端各留一個「≤ -10%」「≥ +10%」的溢出格，不要把離群值丟掉。*/
   /* pick＝下鑽名單目前打開哪一根（null＝收起）；sort＝名單排序（chg 漲跌幅／to 成交值）。2026-09-28 下鑽加的。*/
-  const DIST = { market: '', groups: null, etf: false, pick: null, sort: 'chg' };
+  const DIST = { market: '', groups: null, etf: false, pick: null, sort: 'chg', hov: null, tabBins: null, repaint: null };
+  /* 漲跌幅 → 第幾根直條（0＝≤-10、1～10＝-10～+10 每 2%、11＝≥+10）。拉到外面是為了讓右邊分頁表（drawMarket）也用同一條分格規則
+     找「這一列在哪一根」—— 跟長條上的家數、下鑽名單三處對得起來（09-28 就是兩套規則害 10.00% 同時出現在兩格）。*/
+  const DIST_EDGES = [-10, -8, -6, -4, -2, 0, 2, 4, 6, 8, 10];
+  const distBin = (v) => {
+    if (v <= -10) return 0;
+    if (v >= 10) return DIST_EDGES.length;
+    let k = 0; while (k < DIST_EDGES.length - 1 && v > DIST_EDGES[k + 1]) k++;
+    return k + 1;
+  };
   /* 圖15 的篩選：市場（全部／上市／上櫃）、含不含 ETF、族群複選。
      ★ 2026-10-06（Andy 截圖：按「族群篩選」展開成一大片族群膠囊牆＋「還有 101 個族群在下面，往下捲」）：
        「改下拉式清單篩選」。族群改用全站共用的下拉多選（site/multiselect.js，window.TwMS）：
@@ -3541,7 +3550,9 @@
      · 族群一條都不預設；在圖例（或下面的族群鈕）點誰就疊誰上去，兩邊同步。族群線用的是上面選的那條均線。
      · 成分股 < 5 檔的族群名字後面標「樣本少」、線改點線 —— 3 檔的族群一檔翻身就跳 33 個百分點，
        不能跟全市場同等看待。*/
-  const MAT = { ma: '20', on: null };
+  const MAT = { ma: '20', on: null, sel: null };
+  /* 10-19 多圖連動：未選中的變淡寫在資料項／系列的 opacity（不改顏色），深 .55／淺 .35 —— 跟 etfpage.js selDim() 同一組數字 */
+  const lnkDim = () => (document.documentElement.getAttribute('data-theme') === 'light' ? 0.35 : 0.55);
   const MAT_SMALL = 5;
   /* ★ 2026-10-09（Andy：「下方依據不同分類做收合功能」）：族群卡依產業鏈分段（半導體／AI 伺服器／一般電子…），
      每段一個可收合的標題列：段名、族群數、段內平均站上 MA20、站上 60% 以上的有幾個。
@@ -3549,7 +3560,7 @@
      段的順序照鏈的固定順序，段內照舊依 MA20 由高到低（by_group 本來的排序）。*/
   const MA_SEC_KEY = 'tw.maSecOpen';
   const MA_CHAIN_ORDER = ['semiconductor', 'ai_server', 'electronics', 'software', 'financial', 'traditional', 'infrastructure', 'industry'];
-  const maCard = (g) => `<div class="ma" data-gid="${g.group_id}">
+  const maCard = (g) => `<div class="ma" data-gid="${g.group_id}" data-gn="${fmt.esc(g.group_name)}">
             <div class="n">${fmt.esc(g.group_name)}<em>${g.n} 檔</em></div>
             <div class="bar"><i style="width:${g.pct20}%;--c:${g.pct20 >= 60 ? 'var(--rise)' : g.pct20 >= 40 ? 'var(--amber)' : 'var(--fall)'}"></i></div>
             <div class="v">MA20 ${g.pct20}%<span>MA60 ${g.pct60}%</span></div></div>`;
@@ -3654,6 +3665,9 @@
       const key = $('#maGroupKey');
       if (key) msTags(key, [...MAT.on].filter(n => names.includes(n)).map(n => ({ name: n, color: gcol(n), title: `從圖上拿掉 ${gname(n)}` })),
         (n) => { const s = new Set(MAT.on); s.delete(n); setGroups(s); });
+      // 色票滑過＝那條線加粗（點一下照舊是拿掉；連動在 maLink）
+      if (key) $$('button.snk', key).forEach(b => { b.onmouseenter = () => MAT._hov && MAT._hov(b.dataset.n); b.onmouseleave = () => MAT._hov && MAT._hov(null); });
+      if (MAT._paint) MAT._paint();
     }
     paintGroups();
     const selected = { [mk1]: true, [mk2]: true };
@@ -3671,20 +3685,26 @@
       xAxis: { ...axisStyle, type: 'category', data: mb.dates, axisLabel: { color: CH.ink3, fontFamily: NUM_FONT, formatter: (v) => String(v).slice(5) } },
       yAxis: { ...axisStyle, min: 0, max: 100, axisLabel: { color: CH.ink3, fontFamily: NUM_FONT, formatter: '{value}%' } },
       series: [
-        { name: mk1, type: 'line', smooth: .25, showSymbol: false, connectNulls: true, z: 5,
+        { id: 'mk1', name: mk1, type: 'line', smooth: .25, showSymbol: false, connectNulls: true, z: 5,
           data: (mb.series['全市場'] || {})[MAT.ma] || [], lineStyle: { width: 2.6, color: CH.ink },
           markLine: { silent: true, symbol: 'none', label: { show: false },
             lineStyle: { color: hexA(CH.ink3, .5), type: 'dashed' }, data: [{ yAxis: 50 }] } },
-        { name: mk2, type: 'line', smooth: .25, showSymbol: false, connectNulls: true, z: 4,
+        { id: 'mk2', name: mk2, type: 'line', smooth: .25, showSymbol: false, connectNulls: true, z: 4,
           data: (mb.series['全市場'] || {})[ref] || [], lineStyle: { width: 1.6, type: 'dashed', color: CH.ink2 } },
         ...names.map((n, i) => ({
-          name: gname(n), type: 'line', smooth: .25, showSymbol: false, connectNulls: true,
+          id: 'g:' + n, name: gname(n), type: 'line', smooth: .25, showSymbol: false, connectNulls: true, triggerLineEvent: true,
+          emphasis: { disabled: true },      // 加粗／變淡由 maLink 自己畫，不讓 ECharts 的 emphasis 再疊一層
           data: (mb.series[n] || {})[MAT.ma] || [],
           lineStyle: { width: 1.5, type: small(n) ? 'dotted' : 'solid',
             color: L.gcolorByName ? L.gcolorByName(n) : PALETTE[i % PALETTE.length] },
         })),
+        /* 預覽線：滑過／選取的族群如果沒有疊在圖上（下拉沒勾），先用這條粗線把它畫出來 —— 不動圖例、不動下拉的勾選。
+           名字刻意跟圖例的名字不同（圖例裡沒勾的名字會被 legend 藏掉）。*/
+        { id: 'maPrev', name: '（預覽）', type: 'line', smooth: .25, showSymbol: false, connectNulls: true, z: 8, silent: true,
+          data: [], lineStyle: { width: 3.4, color: CH.ink } },
       ],
     }, { notMerge: true });
+    maLink(c, { names, gname, gcol, small, mb, mk1, mk2 });
     if (c) {
       c.off('legendselectchanged');
       c.on('legendselectchanged', (p) => {
@@ -3692,6 +3712,87 @@
         paintGroups(); setSub();
       });
     }
+  }
+
+  /* 10-19 多圖連動 #13（style_guide 十八，照 etfpage.js comboLink 的寫法）：站上均線走勢 ⇄ 族群方格 ⇄ 已選色票。
+     · 滑過方格／色票／圖上那條線：那條線加粗（3.4）、其他線變淡（lnkDim）；方格那格 .lnk-hl。
+       那個族群沒疊在圖上（下拉沒勾）時，用預覽線（maPrev）先畫出來，滑出就收掉 —— 不動下拉的勾選。
+     · 點方格／圖上的線＝鎖定（MAT.sel），其他方格也一起變淡；再點同一格方格才進族群頁；點同一條線、或點空白處＝取消。
+     · 色票點一下照舊是「從圖上拿掉」（色票上有 ×），只加滑過。
+     · 選取記在 MAT.sel：換均線重畫後還在；手機不自動捲動。*/
+  function maLink(c, o) {
+    if (!c) { MAT._pick = MAT._hov = MAT._paint = null; return; }
+    let hov = null;
+    const has = (n) => n != null && Object.prototype.hasOwnProperty.call(o.mb.series, n) && n !== '全市場';
+    if (MAT.sel != null && !has(MAT.sel)) MAT.sel = null;
+    const paint = () => {
+      if (c.isDisposed()) return;
+      const f = has(hov) ? hov : MAT.sel, d = lnkDim();
+      const onChart = f != null && MAT.on.has(f);
+      try {
+        c.setOption({ series: [
+          { id: 'mk1', lineStyle: { opacity: f == null ? 1 : d } },
+          { id: 'mk2', lineStyle: { opacity: f == null ? 1 : d } },
+          ...o.names.map(n => ({ id: 'g:' + n, z: n === f ? 7 : 2,
+            lineStyle: { width: n === f ? 3.4 : 1.5, opacity: f == null || n === f ? 1 : d } })),
+          { id: 'maPrev', name: f != null && !onChart ? o.gname(f) + '（預覽）' : '（預覽）',
+            data: f != null && !onChart ? ((o.mb.series[f] || {})[MAT.ma] || []) : [],
+            lineStyle: { width: 3.4, color: f != null ? o.gcol(f) : CH.ink, type: f != null && o.small(f) ? 'dotted' : 'solid' } },
+        ] });
+      } catch (e) { /* 提示框與 dispose 競態 */ }
+      const box = $('#maTrendBox'); if (box) box.dataset.lnk = f == null ? '' : f;
+      $$('#mktBody .ma[data-gn]').forEach(el => { const on = f != null && el.dataset.gn === f;
+        el.classList.toggle('lnk-hl', on); el.classList.toggle('lnk-sel', MAT.sel != null && el.dataset.gn === MAT.sel);
+        el.classList.toggle('lnk-dim', MAT.sel != null && !on); });
+      $$('#maGroupKey button.snk').forEach(b => b.classList.toggle('hl', f != null && b.dataset.n === f));
+    };
+    // ⚠ 觸控點一下，zrender 會收到指標事件的 click 又收到瀏覽器補發的 click ⇒ 同一處 350ms 內第二下不算（comboLink 踩過）
+    let last = { k: '', t: 0 };
+    const sel = (n, src) => { const k = src + ':' + n, t = Date.now(); if (src && last.k === k && t - last.t < 350) return false; last = { k, t };
+      MAT.sel = n; hov = null; paint(); return true; };
+    MAT._paint = paint;
+    MAT._hov = (n) => { if (hov !== n) { hov = n; paint(); } };
+    MAT._pick = (n, gid) => { if (MAT.sel === n) { location.hash = '#industry/group/' + gid; return; } sel(n, 'card'); };
+    const nameOf = (p) => (p && typeof p.seriesId === 'string' && p.seriesId.startsWith('g:') ? p.seriesId.slice(2) : null);
+    c.off('mouseover'); c.off('mouseout'); c.off('click');
+    c.on('mouseover', (p) => { const n = nameOf(p); if (n) MAT._hov(n); });
+    c.on('mouseout', (p) => { if (nameOf(p)) MAT._hov(null); });
+    c.on('click', (p) => { const n = nameOf(p); if (n) sel(MAT.sel === n ? null : n, 'line'); });
+    // ⚠ zr.off('click') 一定要帶函式：不帶會把 ECharts 自己的 click 一起拔掉
+    const zr = c.getZr(); if (zr._maBlank) zr.off('click', zr._maBlank);
+    zr._maBlank = (e) => { if (!e.target && MAT.sel != null) sel(null, ''); }; zr.on('click', zr._maBlank);
+    $$('#mktBody .ma[data-gn]').forEach(el => { el.onmouseenter = () => MAT._hov(el.dataset.gn); el.onmouseleave = () => MAT._hov(null); });
+    if (!MAT._doc) {   // 卡片外的空白處也算取消：整頁只掛一次
+      MAT._doc = true;
+      document.addEventListener('click', (e) => {
+        if (MAT.sel == null || !MAT._paint || !$('#maTrend') || !document.contains(e.target)) return;
+        if (e.target.closest('.ma[data-gn], #maTrendBox, #maGroupCtl, #maPick, .echarts-tooltip, [role="dialog"], .masec > summary, .m4fold')) return;
+        MAT.sel = null; MAT._paint();
+      }, true);
+    }
+    paint();
+  }
+
+  /* 10-19 多圖連動 #15（style_guide 十八）：右邊分頁表 ⇄ 左邊漲跌分佈直條。
+     · 滑過表格一列：它的漲跌幅落在哪一根，那根全亮＋外框、其他變淡；那列 .hl。滑出恢復。
+     · 分頁停在「漲停／跌停」：那幾檔所在的直條（通常是 +8～+10 與 ≥ +10、或對稱那兩根）常亮，一眼看出漲停在分佈的哪裡。
+     · 點直條：照舊打開下鑽名單（不改），同時右表裡落在那根的列一起 .hl。
+     · 表格列點一下照舊直接進個股頁（不改）—— 這張表是排行，不是同一份資料的明細；連動只加滑過與高亮。*/
+  function distLinkTable(t) {
+    const rows = $$('#mktInner tr[data-code]');
+    const chgOf = {}; (t && t[1] || []).forEach(r => { if (r && r.code != null && r.chg_pct != null) chgOf[r.code] = +r.chg_pct; });
+    rows.forEach(tr => { const v = chgOf[tr.dataset.code]; if (v != null && isFinite(v)) tr.dataset.bin = String(distBin(v)); });
+    const lim = t && (t[0] === '漲停' || t[0] === '跌停') && t[1] && t[1].length;
+    DIST.tabBins = lim ? new Set(rows.map(tr => tr.dataset.bin).filter(x => x != null).map(Number)) : null;
+    let hovTr = null;
+    DIST.rows = () => $$('#mktInner tr[data-code]').forEach(tr => tr.classList.toggle('hl',
+      tr === hovTr || (DIST.pick != null && tr.dataset.bin === String(DIST.pick))));
+    rows.forEach(tr => {
+      tr.onmouseenter = () => { if (tr.dataset.bin == null) return; hovTr = tr; DIST.hov = new Set([+tr.dataset.bin]); if (DIST.repaint) DIST.repaint(); };
+      tr.onmouseleave = () => { if (hovTr !== tr) return; hovTr = null; DIST.hov = null; if (DIST.repaint) DIST.repaint(); };
+    });
+    DIST.hov = null;
+    if (DIST.repaint) DIST.repaint(); else DIST.rows();
   }
 
   function drawChgDist() {
@@ -3714,12 +3815,7 @@
     /* ★ 2026-09-28 下鑽：每一根長條的**成員**跟家數一起算、用同一條分格規則（binOf）——
        以前點長條時另外用一段條件重篩一次，+8～+10 那格的上界寫成 ≤ 10，剛好 10.00% 的會同時出現在兩格，
        名單筆數就跟長條上的數字對不起來。現在長條上的數字就是 members[i].length。*/
-    const binOf = (v) => {
-      if (v <= -10) return 0;
-      if (v >= 10) return labels.length - 1;
-      let k = 0; while (k < edges.length - 1 && v > edges[k + 1]) k++;
-      return k + 1;
-    };
+    const binOf = distBin;
     const members = labels.map(() => []);
     pool.forEach(r => { members[binOf(+r.chg_pct)].push(r); });
     const bins = members.map(m => m.length);
@@ -3730,9 +3826,14 @@
     const mids = labels.map((_, i) => (i === 0 ? -11 : i === labels.length - 1 ? 11 : (edges[i - 1] + edges[i]) / 2));
     const norm = mids.map(x => n * 2 / (sd * Math.sqrt(2 * Math.PI)) * Math.exp(-Math.pow(x - mu, 2) / (2 * sd * sd)));
     // 選中那一根照原色、其他淡掉 —— 名單開著時一眼看得出「右邊這份是哪一根」
-    const barData = () => bins.map((v, i) => ({ value: v,
-      itemStyle: { color: chgColor(mids[i], 6), borderRadius: [3, 3, 0, 0],
-        opacity: DIST.pick == null || DIST.pick === i ? 1 : 0.35 } }));
+    /* 10-19 多圖連動 #15：亮哪幾根的優先序＝滑過右表那一列（DIST.hov）＞點開名單的那根（DIST.pick）＞右表停在漲停／跌停分頁（DIST.tabBins）。
+       亮的那根加外框，其他變淡 lnkDim()（深 .55／淺 .35，跟 etfpage selDim 同一組；改前固定 .35）。
+       ⚠ 漲停／跌停分頁只加外框、不把其他根變淡：右表預設就停在「漲停」，一進來整張分佈就灰掉一大半會被讀成「選了什麼」。*/
+    const actBins = () => DIST.hov || (DIST.pick != null ? new Set([DIST.pick]) : DIST.tabBins);
+    const barData = () => { const act = actBins(), soft = act && act === DIST.tabBins, d = lnkDim();
+      return bins.map((v, i) => { const on = !!act && act.has(i);
+        return { value: v, itemStyle: { color: chgColor(mids[i], 6), borderRadius: [3, 3, 0, 0],
+          opacity: !act || on || soft ? 1 : d, borderColor: on ? CH.ink : 'transparent', borderWidth: on ? (soft ? 2 : 1.2) : 0 } }; }); };
     if (DIST.pick != null && DIST.pick >= labels.length) DIST.pick = null;
     const distNarrow = ((host.clientWidth || 600) - 70) / labels.length < 30;   // 1440 一格 ~34px：斜 30° 字形本身不相碰（外接框會交疊，那是旋轉框的假陽性）
     const c = chart('chgDist', {
@@ -3756,6 +3857,11 @@
           lineStyle: { color: hexA(CH.ink3, .8), width: 1.4, type: 'dashed' } },
       ],
     }, { notMerge: true });
+    DIST.repaint = () => { const ci = echarts.getInstanceByDom($('#chgDist')); if (!ci || ci.isDisposed()) return;
+      try { ci.setOption({ series: [{ data: barData() }] }); } catch (e) { /* 競態 */ }
+      const act = actBins(); host.dataset.lnk = act ? [...act].sort((a, b2) => a - b2).join(',') : '';
+      if (DIST.rows) DIST.rows(); };
+    host.dataset.lnk = '';
     const sub = $('#distSub');
     /* ★ D4：副標一定要跟著模式換 —— 即時那一版的分母是「抓到報價的這幾檔」，
        寫成和盤後一樣的「N 檔」會被讀成全市場（完整的口徑說明在上面的 `#mktLive`）。*/
@@ -3774,8 +3880,7 @@
     const closePick = () => {
       DIST.pick = null;
       if (pickBox) { pickBox.hidden = true; pickBox.innerHTML = ''; }
-      const ci = echarts.getInstanceByDom($('#chgDist'));
-      if (ci) ci.setOption({ series: [{ data: barData() }] });
+      DIST.repaint();
     };
     const openPick = (i) => {
       if (!pickBox) return;
@@ -3801,8 +3906,7 @@
       $$('tr[data-code]', pickBox).forEach(tr => tr.onclick = (e) => { if (e.target.closest('a')) return; goStock(tr.dataset.code); });
       $('#distPickX', pickBox).onclick = closePick;
       $$('#distSort button', pickBox).forEach(bt => bt.onclick = () => { DIST.sort = bt.dataset.s; openPick(i); });
-      const ci = echarts.getInstanceByDom($('#chgDist'));
-      if (ci) ci.setOption({ series: [{ data: barData() }] });
+      DIST.repaint();
       dismissable(pickBox, closePick);
       // 手機名單排在圖下面：打開時捲到看得到名單頂端（已經看得到就不動）
       if (window.innerWidth <= 640) {
@@ -3825,7 +3929,7 @@
       zr.on('click', zr.__distClick);
     }
     // 篩選（市場／ETF／族群）或即時每分鐘重畫之後，名單跟著換成新的成員，停在同一根
-    if (DIST.pick != null) openPick(DIST.pick); else if (pickBox) pickBox.hidden = true;
+    if (DIST.pick != null) openPick(DIST.pick); else { if (pickBox) pickBox.hidden = true; DIST.repaint(); }
   }
 
   /* ================================================================ 漲跌家數／漲跌分佈的「即時」模式（D4）
@@ -4027,7 +4131,7 @@
      同一個分頁裡「即時」每 5 秒重畫不會觸發（kind 沒變、也沒離開過）。*/
   function mktReset() {
     mktTab = 0;
-    Object.assign(DIST, { market: '', groups: null, etf: false, pick: null, sort: 'chg' });
+    Object.assign(DIST, { market: '', groups: null, etf: false, pick: null, sort: 'chg', hov: null, tabBins: null });
     Object.assign(streakState, { who: 'trust', days: 3, view: streakViewDflt(), all: false });
     MAT.ma = '20'; MAT.on = null;
     candFacet = 'all'; candSort = { key: null, dir: 1 }; candOpen = null; candGroups = null;
@@ -4179,6 +4283,7 @@
         $('#mktInner').innerHTML = (t[2] ? `<div class="kpinote">${t[2]}</div>` : '')
           + (t[1].length ? stockTable(t[1], [PCT, CLOSE, TO]) : `<div class="empty">${live ? '抓到的這批' : '今天'}沒有${t[0]}的股票</div>`);
         bind();
+        distLinkTable(t);
       };
       /* ★ D4：模式切換列。盤後是預設（Andy 指定），即時那一顆亮起來的樣子沿用
          全站那顆 `.pb.livebtn`（資金分流樹、輪動時鐘都是同一顆），不另外發明一種。*/
@@ -4267,7 +4372,11 @@
           </div>
           <div id="maTrendBox"><div id="maTrend" class="chart" style="min-height:300px"></div></div></div>`
         + (gs.length ? (document.documentElement.classList.contains('m4') ? maGrid(gs) : maSections(gs, gt)) : '<div class="empty">尚無均線統計</div>');   // 手機（html.m4）照舊一片方格，mobile4.js 自己摺成段
-      $$('#mktBody .ma[data-gid]').forEach(e => e.onclick = () => { location.hash = '#industry/group/' + e.dataset.gid; });
+      /* 10-19 多圖連動（style_guide 十八）：方格第一下＝選取（走勢圖那條線加粗、其他變淡），再點同一格才進族群頁。
+         走勢圖還沒畫好（drawMaTrend 是非同步）之前點到，照舊直接進族群頁 —— 不讓第一下變成沒反應。*/
+      $$('#mktBody .ma[data-gid]').forEach(e => e.onclick = () => {
+        if (MAT._pick) MAT._pick(e.dataset.gn, e.dataset.gid); else location.hash = '#industry/group/' + e.dataset.gid; });
+      MAT._pick = null;
       wireMaSections();
       drawMaTrend();
       return;
@@ -8082,8 +8191,27 @@
         ovRotPop(box, el, r, back, px, (r.sz || 16) / 2 + 4);
         return;
       }
+      /* ★ 2026-10-19 多圖連動：資金流向頁的輪盤點族群＝鎖定（rankSel，跟點排行長條同一份狀態）→ 族群資金排行那一根同步亮；
+         再點同一顆＝取消（drillClose 會一起還原兩張圖與成分股面板）。*/
+      if (id === 'rotClock') {
+        if (linkTap('clk:' + r.gid)) return;
+        const step = rotLinkStep(r.gid);
+        if (step === 'close') { drillClose(); return; }
+        rankSel = r.gid;
+        highlightClock(r.gid, id);
+        if (step === 'lock') return;                 // 第一下只鎖定（排行那一根同步亮），第二下才開成分股面板
+      }
       drillOpen(r.gid, r.name);
     });
+    // 多圖連動：點輪盤空白處＝取消鎖定（點到點時 ECharts 有 target，不清）。只拔自己上次掛的那一支。
+    if (c && id === 'rotClock') {
+      try {
+        const zr = c.getZr();
+        if (zr._rfBlank) zr.off('click', zr._rfBlank);
+        zr._rfBlank = (ev) => { if (!ev.target && rankSel && !linkTap('clk:blank')) drillClose(); };
+        zr.on('click', zr._rfBlank);
+      } catch (e) { /* 同上 */ }
+    }
     /* ★ 2026-09-21：族群晶片列**不再由這裡產**。它搬進 `.rotfilter`（產業鏈 seg 的正下方），
        所以由 `wireRotFilter()` 一支負責 —— 一份名單、一套樣式、一個插入點。
        順帶解決一個播放時的老問題：以前每 420ms 重畫時鐘都要判斷要不要重建晶片列
@@ -9103,6 +9231,8 @@
       <li><b>拉Bar</b>＝看幾天前到最新（1～30 天），排行比的也是這一段。</li>
       <li><b>篩選</b>：上面兩個下拉（產業鏈、族群）與「只看前 10 大」，排行與輪盤一起篩。</li>
       <li><b>排行</b>：長條＝成交值佔比變化（pp），紅＝錢流進、綠＝錢退出。</li>
+      <li><b>兩張圖連動</b>：滑到輪盤的點或排行的長條，另一張同一個族群跟著亮、其他變淡 —— 用來對「錢流進最多的族群跑到循環哪一段」。
+        點一下＝鎖定，再點一下＝展開成分股；點空白處取消。</li>
       <li><b>空心圓</b>＝畫到盤上的個股。</li>
       <li data-live-ui><b>即時</b>：用當下價量往前續算一步，每 5 秒更新。灰虛線＝<b>慣性</b>（平盤也會走），
         亮色箭頭＝<b>今天真正推出來的</b>（很短是正常的，<b>沒有放大</b>）。
@@ -9244,6 +9374,7 @@
       + '桌機版的代表股先收起：滑鼠移到某個族群（圓點、名稱或那一整列）才顯示它的三檔，移開就收；點族群展開全部成分股時會一直顯示。'
       + '換日時節點依排名滑到新位置。'
       + '半導體的 IC 設計／代工／封測掛在同一個「半導體」節點；法定產業別的收容桶歸在「其他產業別」。'
+      + '右邊「資金流向排名」和樹連動：滑到一列，樹上那個族群連同它的線全亮、其他變淡（滑到樹上的族群，那一列也會亮）；點一列＝鎖定，再點一下＝展開成分股，點空白處取消。'
       + '點產業鏈＝右邊列出它底下的族群（◎＝圖上只看這個族群）；右邊清單點個股＝掛到族群底下（虛線、可多選，和輪動時鐘同一份選擇），→ 進個股頁。'
       + '展開只畫前 20 檔；「〇〇・其他」自動桶不展開。回上一階：麵包屑、「收起 ✕」、ESC 或點空白處。窄畫面先收起代表股那一層。'
       + '「即時」＝手寫板塊每分鐘依當下成交值重新排名、名次變了就換位；成交值是「最後成交價 × 累積張數」估算（雙掛已照 1/n 拆），'
@@ -9893,9 +10024,8 @@
       series: [{
         type: 'bar', barWidth: 15,
         // 圓角交給 softenOption（全站統一成膠囊形）；這裡只管顏色與「數字寫在哪一端」
-        data: rows.map(g => ({ value: +g.share_chg.toFixed(3), gid: g.group_id,
-          itemStyle: { color: chgColor(g.share_chg, 1.5) },
-          label: { position: g.share_chg >= 0 ? 'right' : 'left' } })),
+        // 2026-10-19 多圖連動：資料項由 rfData 產（選取的那根全亮＋外框、其他變淡），重畫時沿用 rankSel
+        data: rfData(rows, rows.some(g => g.group_id === rankSel) ? rankSel : null),
         label: { show: true, color: CH.ink2, fontSize: 12, fontFamily: NUM_FONT,
           // 窄欄位只寫佔比變化（這張圖回答的就是「誰把錢吸走了」）；期間報酬在 tooltip 裡還在
           formatter: (q) => lblOf(rows[q.dataIndex]) },
@@ -9907,15 +10037,23 @@
        所以點長條**不跳頁**：① 在排行卡下方原地展開成分股（重用 heatPanel）
        ② 同時把旁邊的輪動時鐘只亮這個族群、其餘壓暗 —— 兩張圖現在並排，一眼對得起來。
        再點同一根就取消（回到全亮）。*/
+    { const el = document.getElementById('rankFlow'); if (el) { el._rfRows = rows; el._rfFocus = rows.some(g => g.group_id === rankSel) ? rankSel : null; } }
     if (c) c.off('click').on('click', q => {
       const gid = q.data && q.data.gid; if (!gid) return;
+      if (linkTap('rf:' + gid)) return;                        // 觸控同一下補發的第二個 click 不算（不然「選取→立刻取消」）
       const g = rows.find(x => x.group_id === gid) || {};
       twT('rank_bar', g.group_name || gid);                    // 2026-10-05 埋點：右側排行被點的族群
       if (twGrpBlock(gid, g.group_name)) return;
       /* ★ 2026-09-21：這裡展開的清單改成兩階段共用的那一支（drillOpen）——
          以前是 heatPanel，點下去只能連到個股頁；現在同一份清單還可以把個股畫到圖上。
          面板就在圖正下方，所以一樣不自己捲動（heatPanel 的 scroll:false 是同一個理由）。*/
-      if (rankSel === gid) { rankSel = null; drillClose(); highlightClock(null); return; }
+      /* ★ 2026-10-19 多圖連動（style_guide 十八節：第一下＝選取、第二下才進下一層）：
+         改前：第一下就開成分股面板 —— 但面板開在這張排行的位置上（側欄共用一格），一開就把長條蓋住，
+         「兩張圖同一個族群一起亮」根本看不到。改後：第一下＝鎖定（輪盤與長條同一個族群亮、其他變淡）；
+         再點同一根＝開面板；面板開著時點別根＝直接換過去（照舊）；面板開著再點同一根＝收起（照舊）。*/
+      const step = rotLinkStep(gid);
+      if (step === 'close') { rankSel = null; drillClose(); highlightClock(null); return; }
+      if (step === 'lock') { rankSel = gid; highlightClock(gid); return; }
       /* ★ 2026-10-12 Andy 註冊會員權限表第 3 點：「右手邊長條圖…限制點擊5次」→ 點開一根算一次（再點同一根收起不算，上一行已經 return）；
          用完：不展開、不跳視窗，長條圖反灰＋旁邊小字由 quota.js 畫（features.js flow.rank.click）。*/
       if (window.TwQuota && window.TwQuota.use && !window.TwQuota.use('flow.rank.click', $('#rankFlow'))) return;
@@ -9931,6 +10069,24 @@
         'rankPanel');
     });
     lastRankRows = rows;
+    /* ★ 2026-10-19 多圖連動（Andy：「同個資訊多張圖表，都需要有像是 ETF 月配那樣的連動效果」，style_guide 十八節）：
+       以前只有「點長條 → 輪盤只亮這個族群」單向一種。現在：
+         · 滑過長條 → 輪盤那顆點變焦點、長條這邊其他根變淡（滑出回到鎖定的那一個，沒鎖就全亮）
+         · 滑過／點輪盤上的族群點 → 這邊那一根同步亮（highlightClock 會叫 rfPaint，兩邊同一個焦點）
+         · 點長條空白處 → 取消鎖定（跟再點同一根一樣走 drillClose）
+       ⚠ 不可以 zr.off('click')（不帶函式會連 ECharts 自己的 click 一起拔掉），只拔自己上次掛的那一支。*/
+    if (c) {
+      c.off('mouseover'); c.off('globalout');
+      c.on('mouseover', (q) => { const gid = q.data && q.data.gid; if (gid) highlightClock(gid); });
+      const back = () => { const ck = document.getElementById('rotClock'); highlightClock((ck && ck._numSel) || rankSel); };
+      c.on('mouseout', back); c.on('globalout', back);
+      try {
+        const zr = c.getZr();
+        if (zr._rfBlank) zr.off('click', zr._rfBlank);
+        zr._rfBlank = (ev) => { if (!ev.target && rankSel && !linkTap('rf:blank')) drillClose(); };
+        zr.on('click', zr._rfBlank);
+      } catch (e) { /* zrender 換版本時最多就是沒有點空白取消 */ }
+    }
     /* 欄寬變了一定要**重畫**，不能只 resize：grid 的 left/right 是像素值，
        `chart()` 掛的 ResizeObserver 只會呼叫 resize()，留白仍然是舊的那一組，
        於是把瀏覽器縮窄之後長條只剩一點點、族群名被裁掉 —— 這就是 C2「換一台電腦
@@ -10672,6 +10828,7 @@
        滑到資金分流樹卻停在別的族群，他會以為其中一張壞了。
      ★ 清單沿用全站的 `.hpanel` / `.hpanel .ms`（固定高度＋自己的捲軸），
        不另開第三種清單樣式 —— 那正是 E3「兩份長得一樣、行為卻不同的清單」的教訓。*/
+  const SKLINK = { hov: null, lock: null };   // 資金分流樹 ⇄ 資金流向排名的連動狀態（說明在 skLinkPaint 那一段）
   const DRILL = {
     gid: null, name: '', stocks: new Set(),
     data: null,           // rrg_members.json（下鑽時才抓）
@@ -10735,6 +10892,7 @@
      這時候要把鏈清掉 —— 不清的話麵包屑會寫著一條你根本沒點過的鏈。*/
   function drillOpen(gid, gname, note, panelId, keepChain) {
     if (!gid) return;
+    SKLINK.lock = null; SKLINK.hov = null;               // 展開成分股之後右欄換成面板，排名列的鎖定一起收掉
     gid = String(gid);
     if (!keepChain && DRILL.chain) { DRILL.chain = null; DRILL.chainName = ''; DRILL.chainRows = []; DRILL.open = new Set(); }
     const same = DRILL.gid === gid;
@@ -10755,6 +10913,7 @@
      不在面板裡自己再算一次 —— 面板要是自己算，拖時間軸時兩邊就會對不起來。*/
   function drillOpenChain(cid, cname, rows, note, panelId) {
     if (!cid) return;
+    SKLINK.lock = null; SKLINK.hov = null;
     const same = DRILL.chain === cid;
     const had = DRILL.stocks.size;
     if (panelId) DRILL.notes[panelId] = note || '';
@@ -10772,6 +10931,7 @@
      所以「返回之後圖上剩下什麼」只有一種答案。*/
   function drillClose() {
     const had = DRILL.stocks.size;
+    SKLINK.lock = null; SKLINK.hov = null;
     DRILL.gid = null; DRILL.name = ''; DRILL.stocks = new Set(); DRILL.notes = {};
     DRILL.chain = null; DRILL.chainName = ''; DRILL.chainRows = []; DRILL.open = new Set();
     const rpWas = !!($('#rankPanel') && !$('#rankPanel').hidden);
@@ -11134,6 +11294,44 @@
 
   /* 排行選了哪個族群（null＝沒選）。輪動時鐘用它決定誰亮誰暗。*/
   let rankSel = null;
+  /* ★ 2026-10-19 多圖連動共用小工具（資金流向頁；規格照 etfpage.js comboLink 與 style_guide 十八節）：
+       · linkDim：其他項變淡的透明度（深色 .55／淺色 .35，寫在資料項 opacity，不改顏色）
+       · linkTap：觸控點一下 zrender 會收到兩次 click（指標事件＋瀏覽器補發），同一處 350ms 內第二下不算 */
+  const linkDim = () => (theme() === 'light' ? 0.35 : 0.55);
+  let linkLast = { k: '', t: 0 };
+  const linkTap = (k) => { const t = Date.now(); if (linkLast.k === k && t - linkLast.t < 350) return true; linkLast = { k, t }; return false; };
+  /* 資金流向頁「輪盤族群點／排行長條」點一下該做什麼（兩邊同一套）：
+       'lock'＝只鎖定（還沒選、或選的是別的而面板沒開）；'open'＝開成分股面板；'close'＝收起並取消。*/
+  function rotLinkStep(gid) {
+    /* 側欄（成分股面板或象限面板）開著＝排行已經被蓋住，「先鎖定讓排行亮」看不到 → 直接開（等於照舊）*/
+    const b = $('#rankPanel'), sp = $('#stagePanel');
+    const open = !!(b && !b.hidden && DRILL.gid) || !!(sp && !sp.hidden);
+    if (rankSel === gid) return open ? 'close' : 'open';
+    return open ? 'open' : 'lock';
+  }
+  /* 族群資金排行的資料項：f＝焦點族群（null＝全亮）。顏色要一起寫 —— 資料項帶了 itemStyle 就不會再吃系列層的顏色。*/
+  function rfData(rows, f) {
+    return rows.map(g => { const on = !!f && g.group_id === f;
+      return { value: +g.share_chg.toFixed(3), gid: g.group_id,
+        itemStyle: { color: chgColor(g.share_chg, 1.5), opacity: !f || on ? 1 : linkDim(),
+          borderColor: on ? CH.ink : 'transparent', borderWidth: on ? 1.5 : 0 },
+        label: { position: g.share_chg >= 0 ? 'right' : 'left', opacity: !f || on ? 1 : (linkDim() > 0.5 ? 0.7 : 0.5) } }; });
+  }
+  /* 把族群資金排行重畫成「gid 亮、其他變淡」。gid 不在排行上（例如時鐘上的個股點、排行沒列的族群）＝全亮，
+     不要把整張排行壓暗（跟 highlightClock「不在時鐘上就不動」同一個道理）。*/
+  function rfPaint(gid) {
+    const el = document.getElementById('rankFlow');
+    const c = el && el._rfRows && window.echarts && echarts.getInstanceByDom(el);
+    if (!c || c.isDisposed()) return;
+    const f = gid && el._rfRows.some(g => g.group_id === gid) ? gid : null;
+    if (el._rfFocus === f) return;
+    // 圖被清掉／換成別的圖（空狀態、重建中）時不要硬塞資料進去：沒有 type 的 series 會讓 ECharts 在排版時讀不到格線而丟例外
+    const o = c.getOption(), s0 = o && o.series && o.series[0];
+    if (!s0 || s0.type !== 'bar' || !(s0.data || []).length) return;
+    el._rfFocus = f;
+    el.dataset.focus = f || '';
+    try { c.setOption({ series: [{ data: rfData(el._rfRows, f) }] }); } catch (e) { /* 提示框與 dispose 競態 */ }
+  }
   /* 只亮某一個族群：其餘的點與尾巴壓到 0.18 透明度。
      用 setOption 就地改（notMerge 預設 false），不重建圖表 ——
      重建的話尾巴會整個重畫一次，看起來像閃了一下。*/
@@ -11150,6 +11348,7 @@
        · 被點的那一個**一律拉到 1**，就算它原本不是焦點（規格 §3.2-2「它變焦點」）。
        · 換段色環跟著亮暗（custom series 的第三個值）。 */
   function highlightClock(gid, elId) {
+    if (!elId || elId === 'rotClock') rfPaint(gid);   // 2026-10-19 多圖連動：族群資金排行跟著同一個焦點亮／暗
     const el = document.getElementById(elId || 'rotClock');
     const c = el && window.echarts && echarts.getInstanceByDom(el);
     if (!c) return false;
@@ -11565,8 +11764,27 @@
       $$('.skr-tab button', box).forEach(b => b.onclick = () => {
         box.dataset.tab = b.dataset.t; sankeyRankDraw(box, box._skr.sd, box._skr.k, box._skr.pick); });
       box.querySelector('.skr-l').addEventListener('click', (e) => {
-        const r = e.target.closest('[data-gid]'); if (r && box._skr.pick) box._skr.pick(r.dataset.gid);
+        const r = e.target.closest('[data-gid]'); if (!r || !box._skr.pick) return;
+        /* ★ 2026-10-19 多圖連動（style_guide 十八節：表格列第一下＝選取、第二下才進下一層）：
+           資金分流樹右欄這一份（#sankeyRank）第一下＝鎖定（列 .hl、樹上那個族群與它的線全亮、其他變淡），
+           再點同一列才展開成分股面板（原本第一下就開）。手機 mobile3 那份（別的 box）維持原本行為。*/
+        if (box.id === 'sankeyRank') {
+          const gid = r.dataset.gid;
+          if (SKLINK.lock !== gid) { SKLINK.lock = gid; skLinkPaint(); return; }
+          SKLINK.lock = null; SKLINK.hov = null;
+        }
+        box._skr.pick(r.dataset.gid);
       });
+      // 滑過列＝樹上那個族群突顯（只認滑鼠：觸控點一下也會補發 pointerover，不然點完會一直卡在「滑過」）
+      if (box.id === 'sankeyRank') {
+        const lst = box.querySelector('.skr-l');
+        lst.addEventListener('pointerover', (e) => {
+          if (e.pointerType !== 'mouse') return;
+          const r = e.target.closest('.skr-r'); const g = r ? r.dataset.gid : null;
+          if (g !== SKLINK.hov) { SKLINK.hov = g; skLinkPaint(); }
+        });
+        lst.addEventListener('pointerleave', (e) => { if (e.pointerType === 'mouse' && SKLINK.hov) { SKLINK.hov = null; skLinkPaint(); } });
+      }
     }
     box._skr = { sd, k, pick };
     box.querySelector('.skr-t').textContent = `${day} 資金流向排名`;
@@ -11600,9 +11818,10 @@
       const bar = el.querySelector('.bar i');
       bar.className = r.dpp > 0 ? 'up' : 'down';
       bar.style.width = (Math.abs(r.dpp || 0) / mx * 100).toFixed(1) + '%';
-      el.title = `點一下在樹上展開「${r.name}」`;
+      el.title = box.id === 'sankeyRank' ? `點一下在樹上標出「${r.name}」，再點一下展開成分股` : `點一下在樹上展開「${r.name}」`;
       if (host.children[i] !== el) host.insertBefore(el, host.children[i] || null);
     });
+    if (box.id === 'sankeyRank') skLinkRows();                // 換日／換分頁重畫之後，鎖定的那一列照樣亮
     const em = box.querySelector('.skr-e');
     em.hidden = !!list.length;
     em.textContent = withD.length ? (tab === 'out' ? '這一天沒有族群的資金占比減少' : '這一天沒有族群的資金占比增加') : '';
@@ -11611,6 +11830,29 @@
      資金分流樹「點族群展開成個股」每個入口（圖上的族群點、右欄排名、族群下拉、產業鏈清單的 ◎）都走這一支；
      同一個族群同一天重點不重算，用完 → quota.js 跳卡片、畫面維持原樣。*/
   const skDrillOk = (gid) => !window.TwQuota || window.TwQuota.act('flow.sankey.drill', 'drill', gid);
+  /* ★ 2026-10-19 多圖連動：資金分流樹 ⇄ 右欄「資金流向排名」。
+       hov＝滑鼠正滑過的族群（列或樹上的族群點），lock＝點列鎖定的族群；焦點＝hov 優先、否則 lock。
+       樹（flowtopo.js）用 FlowTopo.focus() 把那個族群連同上下游的線全亮、其他變淡（深 .55／淺 .35）；列加 .hl。
+       點空白（樹的背景、卡片外、頁面其他地方）＝取消鎖定；點樹上的族群／產業鏈照舊展開（drillOpen 會清掉鎖定）。*/
+  const skFocus = () => SKLINK.hov || SKLINK.lock;
+  function skLinkRows() {
+    const f = skFocus(), box = $('#sankeyRank'); if (!box) return;
+    box.dataset.sel = SKLINK.lock || '';
+    $$('.skr-r', box).forEach(r => { r.classList.toggle('hl', r.dataset.gid === f); r.setAttribute('aria-pressed', r.dataset.gid === SKLINK.lock ? 'true' : 'false'); });
+  }
+  function skLinkPaint() {
+    skLinkRows();
+    const el = $('#sankey');
+    if (el && window.FlowTopo && window.FlowTopo.focus && window.FlowTopo.has(el)) window.FlowTopo.focus(el, skFocus(), linkDim());
+  }
+  function skLinkClear() { if (!SKLINK.lock && !SKLINK.hov) return; SKLINK.lock = null; SKLINK.hov = null; skLinkPaint(); }
+  /* 頁面其他地方的空白也算「點空白取消」：整頁只掛一次（capture，先於各元件自己的 click）。
+     排名列與「流入／流出」分頁鈕不算（列自己處理第一下／第二下，分頁只是換清單）；點樹本身由 onPick／onBlank 處理。*/
+  document.addEventListener('click', (e) => {
+    if (!SKLINK.lock || !document.contains(e.target)) return;
+    if (e.target.closest('#sankeyRank .skr-r, #sankeyRank .skr-tab, #sankey canvas, .echarts-tooltip, [role="dialog"]')) return;
+    skLinkClear();
+  }, true);
   function sankeyPickGroup(gid) {
     const st = sankeyState; if (!st || !gid) return;
     if (!skDrillOk(gid)) return;
@@ -12424,7 +12666,10 @@
         legend: live ? '<b>即時</b>' : '',
         tipHTML: (d) => skOpt.tooltip.formatter({ data: d, name: d.name }),
         onPick: (d, lv) => onPick({ data: d, name: d.name, dataIndex: lv === 0 ? 0 : -1 }),
-        onBlank: () => { if (drillActive()) drillClose(); },
+        onBlank: () => { skLinkClear(); if (drillActive()) drillClose(); },
+        // 2026-10-19 多圖連動：滑到族群點 → 右欄那一列 .hl；重畫時把目前的焦點交回去（換日、播放後照樣亮）
+        onHover: (d, lv) => { const g = lv === 2 && d && d.gid ? d.gid : null; if (g !== SKLINK.hov) { SKLINK.hov = g; skLinkRows(); } },
+        focusGid: skFocus(), focusDim: linkDim(),
       });
     }
     /* ★ 點背景就回復預設（Andy 2026-09-21：「當點擊背景時會恢復 Default 狀態」）。
@@ -13267,6 +13512,7 @@
     let showNum = (window.innerWidth <= 640) ? hmLS(SN_MOBK, '1') === '1' : hmLS('tw.season.num2', '1') === '1';   // 2026-10-08 晚 Andy：「數字 Default 開」（推翻同日手機預設關）          // ★ 2026-10-04 Andy 改口：「這邊 default 有數字」→ 預設印數字（換新鍵，舊的「關」不沿用）
     let focus = null;                                            // 圖例聚焦的那一級
     let pick = 'top', lineSel = new Set(), avgOn = true;         // 曲線圖：top／bot／none／custom
+    let snSel = null, snHov = null, snPaint = null, snHovTo = null;              // 10-19 長條模式連動：鎖定／滑過的族群名、重畫高亮的函式（snLink）
     let fellBack = false;
     const AVG = '全部族群平均';
     const MONTHS = Array.from({ length: 12 }, (_, i) => (i + 1) + ' 月');
@@ -13504,9 +13750,9 @@
       const zero = { silent: true, symbol: 'none', label: { show: false },
         lineStyle: { color: hexA(CH.ink3, .55), type: 'dashed', width: 1 }, data: [{ yAxis: isWin ? 50 : 0 }] };
       const series = drawn.map((n, i) => { const r = byName[n]; const col = colorOf[n];
-        return { name: n, type: 'bar', barGap: mob ? '0%' : '12%', barCategoryGap: Math.round(catGap * 100) + '%', barMaxWidth: 16, z: 2,
+        return { id: 'b:' + n, name: n, type: 'bar', barGap: mob ? '0%' : '12%', barCategoryGap: Math.round(catGap * 100) + '%', barMaxWidth: 16, z: 2,
           label: { show: false },                         // 一定要寫：不寫的話全站圓滑化會替 ≤16 根的長條自動補數值標籤
-          emphasis: { focus: 'series' }, itemStyle: { color: col },
+          emphasis: { disabled: true }, itemStyle: { color: col },     // 10-19：高亮改由 snLink 畫（emphasis.focus 只管滑過、管不到鎖定與下拉／色票那兩處）
           ...(i === 0 ? { markLine: zero } : {}),
           data: Array.from({ length: 12 }, (_, k) => { const cl = r.m[k + 1]; const v = cl ? cl[metric] : null; return v == null ? null : +v.toFixed(2); }) }; });
       if (avgOn) series.push({ name: AVG, type: 'line', smooth: false, symbol: 'circle', symbolSize: 5, z: 5, data: avg,
@@ -13557,9 +13803,52 @@
         warn.hidden = !msg;
         const gb = warn.querySelector('[data-goheat]'); if (gb) gb.onclick = () => { const h = $('#seasonView button[data-v="heat"]'); if (h) h.click(); };
       }
-      if (!c) return;
-      c.off('click').on('click', q => { if (!q.seriesName || q.seriesName === AVG) return; const r = byName[q.seriesName];
-        if (r && r.gid) location.hash = '#industry/group/' + r.gid; });
+      snLink(c, drawn, byName);
+    };
+    /* 10-19 多圖連動 #14（style_guide 十八，照 etfpage.js comboLink）：長條 ⇄ 圖下色票 ⇄ 族群下拉 三處同一個族群一起亮。
+       · 滑過長條／色票／下拉那一列：那個族群的長條全亮＋外框、其他長條變淡（lnkDim）；色票與下拉那列 .hl。
+       · 點長條＝鎖定（snSel）；再點同一個族群的長條才進族群頁（改前：點一下直接跳頁）；點圖的空白處＝取消。
+       · 色票點一下照舊是「從比較裡拿掉」（上面有 ×），只加滑過。
+       · 選取在重畫（換指標、換排序月、加減族群）後只要那個族群還畫著就保留。*/
+    const snLink = (c, drawn, byName) => {
+      if (!c) { snPaint = snHovTo = null; return; }
+      const el = $('#seasonLine');
+      if (snSel != null && !drawn.includes(snSel)) snSel = null;
+      if (snHov != null && !drawn.includes(snHov)) snHov = null;
+      snPaint = () => {
+        if (c.isDisposed()) return;
+        const f = snHov != null ? snHov : snSel, d = lnkDim();
+        try { c.setOption({ series: drawn.map(n => ({ id: 'b:' + n,
+          itemStyle: { opacity: f == null || n === f ? 1 : d, borderColor: n === f ? CH.ink : 'transparent', borderWidth: n === f ? 1.2 : 0 } })) }); } catch (e) { /* 競態 */ }
+        el.dataset.lnk = f == null ? '' : f; el.dataset.lnksel = snSel == null ? '' : snSel;
+        $$('#seasonKey button.snk').forEach(b => b.classList.toggle('hl', f != null && b.dataset.n === f));
+        $$('#seasonGroupDD .ddopt[data-n]').forEach(o => o.classList.toggle('hl', f != null && o.dataset.n === f));
+      };
+      const hovTo = (n) => { if (n != null && !drawn.includes(n)) n = null; if (snHov !== n) { snHov = n; snPaint(); } };
+      snHovTo = hovTo;
+      let last = { k: '', t: 0 };     // 觸控雙發的 click 350ms 內不算第二下（同 comboLink）
+      c.off('click'); c.off('mouseover'); c.off('mouseout');
+      c.on('click', q => { if (!q.seriesName || q.seriesName === AVG || !byName[q.seriesName]) return;
+        const n = q.seriesName, k = 'b:' + n, t = Date.now(); if (last.k === k && t - last.t < 350) return; last = { k, t };
+        if (snSel === n) { const r = byName[n]; if (r && r.gid) location.hash = '#industry/group/' + r.gid; return; }
+        snSel = n; snHov = null; snPaint(); });
+      c.on('mouseover', q => { if (q.seriesName && q.seriesName !== AVG) hovTo(q.seriesName); });
+      c.on('mouseout', () => hovTo(null));
+      const zr = c.getZr(); if (zr._snBlank) zr.off('click', zr._snBlank);
+      zr._snBlank = (e) => { if (!e.target && snSel != null) { snSel = null; snPaint(); } }; zr.on('click', zr._snBlank);
+      $$('#seasonKey button.snk').forEach(b => { b.onmouseenter = () => hovTo(b.dataset.n); b.onmouseleave = () => hovTo(null); });
+      const lst = $('#seasonGroupDD .ddlist');
+      if (lst && !lst._snHov) {   // 下拉清單每次 sync 會整個重建列 ⇒ 掛在清單容器上（委派），只掛一次
+        lst._snHov = 1;
+        lst.addEventListener('mouseover', (e) => { const o = e.target.closest('.ddopt[data-n]'); if (snHovTo) snHovTo(o ? o.dataset.n : null); });
+        lst.addEventListener('mouseleave', () => { if (snHovTo) snHovTo(null); });
+      }
+      // 卡片外的空白處也算取消（整頁只掛一次；每次 snLink 換成這一輪的清除函式）
+      document._snClear = (e) => { if (snSel == null || !el.isConnected || !el.offsetParent) return;
+        if (e.target.closest('#seasonLine, #seasonKey, #seasonGroupDD, #seasonPick, .echarts-tooltip, [role="dialog"]')) return;
+        snSel = null; snPaint(); };
+      if (!document._snDoc) { document._snDoc = 1; document.addEventListener('click', (e) => { if (document._snClear && document.contains(e.target)) document._snClear(e); }, true); }
+      snPaint();
     };
 
     /* ---------------- 共用：說明、提醒、按鈕狀態 ---------------- */

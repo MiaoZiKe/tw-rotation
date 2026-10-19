@@ -141,13 +141,18 @@
   function bind(el, c) {
     if (!c || el._cgBound === c) return;
     el._cgBound = c;
+    /* 10-19 補滑過雙向（Andy：「同個資訊多張圖表，都需要有像是 ETF 月配那樣的連動效果」）：
+       滑過圖上某一欄 → 通知面板（spec.onHover(i)）讓下方表格那列一起亮；面板滑過表格列 → 呼叫 CalGrid.hover(el, i) 走同一支，
+       圖上那根加亮、其他變淡（跟滑鼠停在圖上同一個效果）。沒給 onHover 的面板（財經日曆小圖）行為不變。 */
     const hov = (i) => {
       if (i === el._cgHov) return;
       el._cgHov = i;
       c.dispatchAction({ type: 'downplay', seriesIndex: 0 });
       if (i != null) c.dispatchAction({ type: 'highlight', seriesIndex: 0, dataIndex: i });
       el.dataset.hov = i == null ? '' : String(i);
+      if (el._cgm && el._cgm.onHover) el._cgm.onHover(i);
     };
+    el._cgHovFn = hov;
     c.on('updateAxisPointer', (e) => {
       const ai = e && e.axesInfo && e.axesInfo[0];
       hov(ai && ai.value != null ? +ai.value : null);
@@ -165,6 +170,12 @@
     });
     el.style.cursor = 'pointer';
   }
+  /* 外部（表格列）滑過 → 圖上第 i 根加亮；i＝null 恢復。圖還沒畫好就略過 */
+  function hover(el, i) {
+    if (!el || !el._cgHovFn) return;
+    const n = ((el._cgm && el._cgm.labels) || []).length;
+    el._cgHovFn(i != null && i >= 0 && i < n ? i : null);
+  }
   /* 把容器裡還沒畫的占位 div 畫出來；順手把已經不在頁面上的舊圖 dispose（面板每次重畫都是 innerHTML 整塊換掉） */
   function mount(root) {
     LIVE.forEach((el) => {
@@ -180,5 +191,5 @@
       LIVE.add(el);
     });
   }
-  window.CalGrid = { mini, mount, pick, load, cls, tag, holiday, isWeekend, fit, days: () => S.days };
+  window.CalGrid = { mini, mount, pick, hover, load, cls, tag, holiday, isWeekend, fit, days: () => S.days };
 })();

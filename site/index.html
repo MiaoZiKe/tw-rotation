@@ -1779,6 +1779,15 @@ canvas.rotripple{position:absolute;left:0;top:0;width:100%;height:100%;pointer-e
 .magrid .ma .bar i{display:block;height:100%;border-radius:3px;background:linear-gradient(90deg,color-mix(in srgb,var(--c) 55%,transparent),var(--c))}  /* 一律同色漸層（--c 由 JS 給；Andy 10-07） */
 .magrid .ma .v{font-family:var(--mono);font-size:11.5px;color:var(--ink-2);display:flex;justify-content:space-between}
 .magrid .ma .v span{color:var(--ink-3)}
+/* 2026-10-19 多圖連動（市場頁 #13～15）：滑過／鎖定的方格、色票、表格列、下拉列 —— 跟 ETF 月配明細卡 .hl 同一套琥珀色；
+   鎖定時其他方格變淡（.lnk-dim，深 .55／淺 .35 跟圖上同一組數字） */
+.magrid .ma.lnk-hl{border-color:var(--amber);box-shadow:inset 3px 0 0 var(--amber)}
+.magrid .ma.lnk-sel{border-color:var(--amber);background:color-mix(in srgb,var(--amber) 12%,var(--panel-3))}
+.magrid .ma.lnk-dim{opacity:.55}
+:root[data-theme="light"] .magrid .ma.lnk-dim{opacity:.35}
+.snkey .snk.hl{border-color:var(--amber);color:var(--ink);background:color-mix(in srgb,var(--amber) 16%,transparent)}
+#mktInner tr.hl>td,#seasonGroupDD .ddopt.hl{background:color-mix(in srgb,var(--amber) 14%,transparent)}
+#mktInner tr.hl>td:first-child{box-shadow:inset 3px 0 0 var(--amber)}
 /* 2026-10-09 站上均線族群卡依產業鏈分段收合（app.js maSections）：預設收起，展開過的記住 */
 .masecs{display:flex;flex-direction:column;gap:var(--sp-2,10px)}
 .masec{border:1px solid var(--line-2);border-radius:10px;background:var(--panel-2,var(--panel))}
@@ -3479,6 +3488,8 @@ h4.subh small{font-size:11.5px;font-weight:500;color:var(--ink-3)}
 .skrank .skr-r{all:unset;box-sizing:border-box;cursor:pointer;display:grid;grid-template-columns:20px minmax(0,1fr) auto;
   grid-template-rows:auto 5px;column-gap:8px;row-gap:3px;padding:6px 8px;border-radius:8px;border:1px solid transparent}
 .skrank .skr-r:hover,.skrank .skr-r:focus-visible{background:var(--panel-2);border-color:var(--line-2)}
+/* 2026-10-19 多圖連動：滑過／鎖定的那一列（跟 ETF 月配明細卡 .hl 同一套琥珀色；樹上同一個族群同時突顯） */
+.skrank .skr-r.hl{border-color:var(--amber);background:color-mix(in srgb,var(--amber) 14%,var(--panel));box-shadow:inset 3px 0 0 var(--amber)}
 .skrank .skr-r .i{font-family:var(--mono);font-size:12px;color:var(--ink-3);align-self:center}
 .skrank .skr-r .n{min-width:0;display:flex;flex-direction:column}
 .skrank .skr-r .n b{font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}

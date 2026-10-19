@@ -3110,8 +3110,10 @@ def t_etf_income_v2(pg, b, base):
         lp.click("#incFq button[data-v='all']"); lp.wait_for_timeout(500)
         lp.click("#incReset"); lp.wait_for_timeout(600)
         c1 = J("() => document.querySelector('#incList .ilr').dataset.code")
+        # 10-19 連動：圖上有的那檔，名稱鈕第一下＝選取（三處連動），已選中再點才開細節卡
+        lp.click("#incList .ilr .iln"); lp.wait_for_timeout(500)
         lp.click("#incList .ilr .iln"); lp.wait_for_timeout(800)
-        ok(f"★ [{tag}] 點清單名稱 → 細節卡（甜甜圈＋12 個月直條）", J("() => document.querySelector('#incDet').dataset.code") == c1 and J("() => !!echarts.getInstanceByDom(document.getElementById('incDn')) && echarts.getInstanceByDom(document.getElementById('incMb')).getOption().xAxis[0].data.length === 12"), c1)
+        ok(f"★ [{tag}] 點清單名稱（第二下）→ 細節卡（甜甜圈＋12 個月直條）", J("() => document.querySelector('#incDet').dataset.code") == c1 and J("() => !!echarts.getInstanceByDom(document.getElementById('incDn')) && echarts.getInstanceByDom(document.getElementById('incMb')).getOption().xAxis[0].data.length === 12"), c1)
         # ---- 組合
         lp.click("#incTabs button[data-v='c']"); lp.wait_for_timeout(2000)
         wait_until(lp, "() => document.querySelector('#incCdn') && echarts.getInstanceByDom(document.getElementById('incCdn'))", 15000)
@@ -4527,6 +4529,9 @@ def t_flow(pg, base):
         return { x: r.x + p[0], y: r.y + p[1], gid: d.row.gid, name: d.row.name }; }""")
     if ok("算得出時鐘上第一顆點的位置", bool(pt), pt):
         before = pg.evaluate("() => location.hash")
+        # ★ 2026-10-19 改前→改後（多圖連動，style_guide 十八節）：改前點一下就開成分股面板；
+        #   改後第一下＝鎖定（輪盤與族群資金排行同一個族群亮），第二下才開面板 —— 所以這裡點兩下（間隔 > 350ms 觸控去重）。
+        pg.mouse.click(pt["x"], pt["y"]); pg.wait_for_timeout(450)
         pg.mouse.click(pt["x"], pt["y"])
         pg.wait_for_timeout(1000)
         # 族群 id 有中文，location.hash 讀回來是編碼過的，要解回來才比得起來
@@ -11739,6 +11744,8 @@ def t_batch2(pg, base):
     spot = rank_spot()
     clicked = spot and spot.get("gid")
     if spot:
+        # ★ 2026-10-19 改前→改後（多圖連動，style_guide 十八節）：改前第一下就開面板；改後第一下＝鎖定（輪盤與排行同一個族群亮）、第二下才開 —— 所以點兩下（間隔 > 350ms 觸控去重）
+        pg.mouse.click(spot["x"], spot["y"]); pg.wait_for_timeout(450)
         pg.mouse.click(spot["x"], spot["y"])
         pg.wait_for_timeout(900)
         # heatPanel 產生的是 .ms > a[href^="#stock/"]，不是 a.lk-stock（那是 L.stock() 的樣式）
@@ -18451,6 +18458,8 @@ def t_side_panel(pg, b, base):
         const r = el.getBoundingClientRect(); if (!g) return null; const bb = g.getBoundingRect();
         return [r.left + bb.x + bb.width / 2, r.top + bb.y + bb.height / 2]; }""")
     if rb:
+        # ★ 2026-10-19 改前→改後（多圖連動，style_guide 十八節）：改前第一下就開面板；改後第一下＝鎖定（輪盤與排行同一個族群亮）、第二下才開 —— 所以點兩下（間隔 > 350ms 觸控去重）
+        pg.mouse.click(rb[0], rb[1]); pg.wait_for_timeout(450)
         pg.mouse.click(rb[0], rb[1]); pg.wait_for_timeout(1400)
         s3 = pg.evaluate(SIDE_M)
         ok("③ 點排行長條：成分股也開在輪盤旁邊的側欄", bool(s3["rank"]) and s3["inRow"], s3)
@@ -18523,6 +18532,8 @@ def t_side_merge(pg, b, base):
         const d = c.getModel().getSeriesByName('族群')[0].getData(); const g = d.getItemGraphicEl(0);
         const r = el.getBoundingClientRect(); return g ? [r.left + g.x, r.top + g.y] : null; }""")
     if xy:
+        # ★ 2026-10-19 改前→改後（多圖連動，style_guide 十八節）：改前第一下就開面板；改後第一下＝鎖定（輪盤與排行同一個族群亮）、第二下才開 —— 所以點兩下（間隔 > 350ms 觸控去重）
+        pg.mouse.click(xy[0], xy[1]); pg.wait_for_timeout(450)
         pg.mouse.click(xy[0], xy[1]); pg.wait_for_timeout(1300)
         s5 = pg.evaluate("""() => { const b = document.getElementById('rankPanel'); const on = b.querySelector('li[data-gid].ison');
             return { merged: b.classList.contains('merged') && !b.hidden, gid: b.dataset.gid, onGid: on ? on.dataset.gid : null,
