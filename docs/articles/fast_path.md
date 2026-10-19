@@ -17,6 +17,8 @@ Andy 10-17（同日稍晚）：「以後內容都需要搭配圖表，需要自�
 
 多出來的預算只花在兩件事：**用 Python 讀本站資料湖做圖**（便宜、競品沒有）與**把查證數字畫成圖**；不花在多開 agent、重讀文件、多截圖。
 
+**順序（Andy 10-19）**：每輪最先做 `docs/articles/priority_3d.md`（有 3D 圖的文章），再做 queued 請求，最後 `rework_queue.md`。
+
 ## 一篇文章的流程（照順序，不要加步驟）
 
 1. **CEO（排程對話）**：讀 `data/_state/article_jobs.json` 拿一筆（`kind: "topics"` 的先照最下面「主題候選」那節做）→ 標 `stage=plan`。只派**一個** agent（`general-purpose`，**Agent 工具帶 `model: "sonnet"`**），把下面「撰寫 agent 規則」整段貼給它。
