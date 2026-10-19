@@ -75,4 +75,4 @@ fast_path.md 同步：撰寫 agent 規則改成「交件前跑 playbook 5-1 自�
 
 ## 稽核留下的工具缺口
 
-- Worker 沒有機器鑰匙可用的「讀回全文」路由（只有 `put_body／del_body／list_bodies`），品質稽核與重做都得靠暫存區草稿；草稿跟著容器消失後就沒辦法再稽核。建議網頁單位加 `op:'get_body'`（同一把最小權限鑰匙，只讀）——已寫進 `visual_playbook.md` 第 7 節 #12。
+- Worker 沒有機器鑰匙可用的「讀回全文」路由（只有 `put_body／del_body／list_bodies`），品質稽核與重做都得靠暫存區草稿；草稿跟著容器消失後就沒辦法再稽核。→ Andy 10-19 選 A：**不改權限**，改為每篇上架留評分紀錄 `docs/articles/scores/<id>.json`。
