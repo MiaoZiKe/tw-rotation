@@ -3607,7 +3607,7 @@
        · 滑過右欄個股列 → 圖上那張卡亮琥珀框（.lkhl），連到它的線與另一端的公司一起提亮（直接叫那張卡自己的 onmouseenter，
          跟滑到卡上是同一個效果，不另寫一套）；滑過圖上的卡 → 右欄那一列 .hl（列在右欄捲動框外面時只捲右欄自己，不捲整頁）。
        · 點右欄個股列：第一下＝選取（列 .lk、圖上那張卡持續亮著），第二下才進個股頁（原本一點就走 —— 想先在圖上看它接誰都來不及）。
-         點圖上的公司卡（原本就是開原地資訊欄、不跳頁）也同時選取右欄那一列。點其他地方＝取消選取。
+         點圖上的公司卡照舊開原地資訊欄（不另外鎖定，見下面 click 的註解）。點其他地方＝取消選取。
        · 只認滑鼠滑過（pointerType mouse）：觸控點一下會補發 pointerover，點完會卡在「滑過」。
      狀態記在 .relmain 元素上（_rlSel／_rlHov，驗收讀 data-rl-sel／data-rl-hov）；右欄與圖重畫（換環節、收合）之後 paint 一次就回來。
      樣式在這裡注入（不動 index.html，避免跟別批同時改那個大檔撞到）。驗收：_uitest「第七批連動1019」。*/
@@ -3666,8 +3666,10 @@
         if (rm._rlSel !== h.code) { e.preventDefault(); rm._rlSel = h.code; rm._rlSrc = 'row'; relLinkPaint(rm); return; }
         rm._rlSel = null; return;   // 第二下：照原本的連結進個股頁
       }
-      // 圖上的卡：原本的點擊（開資訊欄、選環節）照跑，順便選取右欄那一列；右欄會因為選了環節重畫，畫完再上色
-      rm._rlSel = h.code; setTimeout(() => relLinkPaint(rm), 0);
+      /* 圖上的卡：原本的點擊（開原地資訊欄、選環節、「在圖上 highlight」鈕）照跑，這裡不另外鎖定 ——
+         鎖定會讓那張卡的連線一直亮著，「在圖上 highlight」按下去之前就已經亮了，那顆鈕就看不出作用（驗收「產業關係面板」抓到）。
+         之前右欄鎖定的那一列放掉（點了別家＝換焦點）。*/
+      if (rm._rlSel && rm._rlSel !== h.code) { rm._rlSel = null; setTimeout(() => relLinkPaint(rm), 0); }
     });
     if (!relLink._doc) { relLink._doc = true;
       document.addEventListener('click', (e) => {
@@ -6432,10 +6434,25 @@ html.m4 #etfHoldCard tr.hi td{background:color-mix(in srgb,var(--accent,#4ea1ff)
      不然平常滑到圖上一根柱，也會變成整個系列聚焦，改掉 stLink 那套「同一個時點全亮」的手感。
      變淡的濃度跟 stLink／ETF selDim() 同一組（深 .55／淺 .35）。只認滑鼠（pointerType mouse）：觸控點一下會補發 pointerover，
      那一下若當成滑過，點完開關那一條會卡在「亮著」。驗收：_uitest「第七批連動1019」。*/
+  let legBusy = false;   // legHi 自己送的 highlight／downplay 也會觸發 legNative 聽的事件：送的時候不回頭處理
   function legHi(ch, n) {
     if (!ch || (ch.isDisposed && ch.isDisposed())) return;
     const dom = ch.getDom(); const prev = dom._legHi == null ? null : dom._legHi;
-    if (prev === n) return;
+    if (prev === n || legBusy) return;
+    legBusy = true;
+    try { legHi0(ch, dom, prev, n); } finally { legBusy = false; }
+  }
+  /* 放不下、退回 ECharts 自己的圖例時（extLegFit 的 wrap；例如 1440 營收那一列塞了月／年、12／24／36 之後）：
+     ECharts 圖例滑過本來就會送 highlight／downplay（帶 seriesName、不帶 dataIndex），但沒有 focus 就只是那條變亮、其他不變淡。
+     聽這兩個事件接到 legHi，兩種圖例同一個手感。帶 dataIndex 的（軸指示器、滑到柱子上）不是圖例來的，不理。*/
+  function legNative(ch) {
+    if (!ch || ch._legNat) return; ch._legNat = true;
+    ch.on('highlight', (ev) => { const e = (ev && ev.batch && ev.batch[0]) || ev || {};
+      if (e.seriesName != null && e.dataIndex == null && e.seriesIndex == null) legHi(ch, String(e.seriesName)); });
+    ch.on('downplay', (ev) => { const e = (ev && ev.batch && ev.batch[0]) || ev || {};
+      if (e.seriesName != null && e.dataIndex == null && e.seriesIndex == null) legHi(ch, null); });
+  }
+  function legHi0(ch, dom, prev, n) {
     const ser = (ch.getOption().series || []);
     if (prev != null) {
       try { ch.dispatchAction({ type: 'downplay', seriesName: prev }); } catch (e) { /* 系列已不在 */ }
@@ -6541,6 +6558,7 @@ html.m4 #etfHoldCard tr.hi td{background:color-mix(in srgb,var(--accent,#4ea1ff)
       off[n] = !off[n]; paint();
       if (ch) ch.dispatchAction({ type: off[n] ? 'legendUnSelect' : 'legendSelect', name: n });
     };
+    legNative(c);
     legHover(box, () => { const d = document.getElementById(id); return d && window.echarts ? echarts.getInstanceByDom(d) : null; },
       (b) => (b.dataset.n && !off[b.dataset.n] ? b.dataset.n : null));
     // 兩種狀態共用 ECharts 的選取：不管點的是 HTML 圖例還是（放不下時的）ECharts 圖例，都從這裡同步回來

@@ -1,8 +1,0 @@
-/* 10-19 第七批連動（手機 #flow 分流長條 ⇄ 資金流向排名，mobile3.js drill() 的 paintLk）：
-   亮起來的長條列／排名列＝琥珀底＋左條；選取那一列多一圈琥珀框。排名列（.skr-r.hl）的亮底沿用桌機那條（index.html .skrank .skr-r.hl），這裡只補選取框。
-   只在 ≤640 生效，桌機不受影響。 */
-@media (max-width:640px){
-  .mdtree .mrank li[data-k].hl{background:color-mix(in srgb,var(--amber) 16%,transparent);box-shadow:inset 3px 0 0 var(--amber);border-radius:6px}
-  .mdtree .mrank li[data-k].lk{box-shadow:inset 3px 0 0 var(--amber),inset 0 0 0 1px var(--amber)}
-  .skrank .skr-r.lk{box-shadow:inset 3px 0 0 var(--amber),inset 0 0 0 1px var(--amber)}
-}

@@ -737,32 +737,6 @@
     if (rkh) rkh.onclick = () => { const on = rk.classList.contains('m4shut'); rk.classList.toggle('m4shut', !on); rkh.setAttribute('aria-expanded', on ? 'true' : 'false'); rkh.querySelector('i').textContent = on ? '▾' : '▸'; };
     /* ★ 2026-10-08（Andy：日期拉桿手機也要有）：讀桌機同一份 sankey_daily（每天各族群成交值＋成分股），拉到哪一天，樹就換成那一天。
        拉桿把手 ≥ 32px、手指拖得動；▶ 播放一天一天往後，播放中拉桿鎖住（同桌機）。沒有 sankey_daily 時照舊只看最新一天（flow_v3）。 */
-    /* ★ 2026-10-19 第七批連動（普查第二輪第 23 項；規格 docs/style_guide.md 第十八節）：手機 #flow 分流長條 ⇄ 資金流向排名。
-       同一批族群在上面的長條（台股 → 產業鏈 ▸ → 族群）與下面的排名各列一次，以前只有「點排名＝在長條展開並捲過去」單向一條路，
-       而且第一下就展開、捲走，想先對一下「排名第 3 的族群在長條上是哪一列」都來不及。
-         · 滑過（滑鼠，平板接滑鼠時）：排名一列 ⇄ 長條那個族群列互亮（.hl）；族群收在還沒展開的產業鏈底下時，亮那條產業鏈列。
-         · 選取（雙向）：點排名一列＝第一下選取（列 .hl＋框、長條上把它所屬的產業鏈展開、那個族群列 .lk），不捲動頁面（手機規格）；
-           再點同一列＝原本的下一層（展開成分股並捲過去）。點長條上的族群列＝原本的展開／收起照舊，同時選取／取消排名那一列。
-         · 點空白（卡片裡的標題字、卡片外）＝取消。只認滑鼠滑過：觸控點一下會補發 pointerover，點完會卡在「滑過」。
-       驗收：_uitest「第七批連動1019」。*/
-    let lkSel = null, lkHov = null, sdRef = null;
-    const gName = (gid) => { const g = ((sdRef && sdRef.groups) || []).find(x => x.gid === gid); return g ? g.name : null; };
-    const chainOf = (name) => { const c = kids('台股成交值').find(l => kids(l.target).some(x => x.target === name)); return c ? c.target : null; };
-    function paintLk() {
-      const act = [lkSel, lkHov].filter(Boolean);
-      box.dataset.lkSel = lkSel || ''; box.dataset.lkHov = lkHov || '';
-      const lis = [...box.querySelectorAll('.mdtree li[data-k]')];
-      const shown = new Set(lis.filter(li => li.dataset.k.indexOf('2:') === 0).map(li => li.dataset.k.slice(2)));
-      const chainHl = new Set(act.filter(n => !shown.has(n)).map(chainOf).filter(Boolean));
-      lis.forEach(li => { const k = li.dataset.k, nm = k.slice(2), g = k.indexOf('2:') === 0;
-        li.classList.toggle('hl', (g && act.includes(nm)) || (k.indexOf('1:') === 0 && chainHl.has(nm)));
-        li.classList.toggle('lk', g && nm === lkSel); });
-      const rkb = box.querySelector('#mSankeyRank');
-      if (rkb) rkb.querySelectorAll('.skr-r[data-gid]').forEach(r => { const nm = gName(r.dataset.gid);
-        r.classList.toggle('hl', !!nm && act.includes(nm)); r.classList.toggle('lk', !!nm && nm === lkSel);
-        r.setAttribute('aria-pressed', nm && nm === lkSel ? 'true' : 'false');
-        if (nm) r.title = `點一下在上面的長條標出「${nm}」，再點一下展開成分股`; });
-    }
     let dayIdx = -1, dayDates = [];
     const linksOfDay = (sd, i) => {
       const L = [], byChain = {};
@@ -779,13 +753,10 @@
       });
       return L;
     };
-    const draw = () => { tree.innerHTML = `<div class="mroot"><span class="n">${dayIdx >= 0 ? '族群成交值合計' : '台股成交值'}</span><b>${yi(total)} 億</b>${dayIdx >= 0 ? `<small class="mday">${esc(dayDates[dayIdx])}</small>` : ''}</div><div class="msub">台股 → 產業鏈 → 族群 → 個股</div><ul class="mrank">${rows('台股成交值', 1)}</ul>`; box.dataset.open = open.size; paintLk(); };
+    const draw = () => { tree.innerHTML = `<div class="mroot"><span class="n">${dayIdx >= 0 ? '族群成交值合計' : '台股成交值'}</span><b>${yi(total)} 億</b>${dayIdx >= 0 ? `<small class="mday">${esc(dayDates[dayIdx])}</small>` : ''}</div><div class="msub">台股 → 產業鏈 → 族群 → 個股</div><ul class="mrank">${rows('台股成交值', 1)}</ul>`; box.dataset.open = open.size; };
     tree.addEventListener('click', (e) => {
       const li = e.target.closest('li[data-k]'); if (!li) return;
-      const k = li.dataset.k; open.has(k) ? open.delete(k) : open.add(k);
-      // 第七批連動：族群列（第 2 層）＝展開就選取排名那一列、收起就取消；產業鏈與個股列不動選取
-      if (k.indexOf('2:') === 0) { const nm = k.slice(2); if (open.has(k)) lkSel = nm; else if (lkSel === nm) lkSel = null; }
-      draw();
+      const k = li.dataset.k; open.has(k) ? open.delete(k) : open.add(k); draw();
     });
     draw();
     if (rk) load('sankey_daily').then(sd => {
@@ -793,7 +764,6 @@
          舊的 tree 被拔掉），這時再 box.insertBefore(bar, 舊tree) 會丟 NotFoundError（_uitest 新-版面等高與多寬度 560／390 抓到）。
          舊 tree 已經不在 box 裡＝這一輪作廢，交給新的那一輪畫。 */
       if (!sd || !(sd.dates || []).length || !box.isConnected || tree.parentNode !== box || !(window.App && App.sankeyRankDraw)) return;
-      sdRef = sd;   // 第七批連動：排名列 gid → 族群名
       // 日期拉桿＋播放（只在手機 v2；放在樹的上面，第一屏看得到）
       if (document.documentElement.classList.contains('m4') && !box.querySelector('.mdaybar')) {
         dayDates = sd.dates; dayIdx = sd.dates.length - 1;
@@ -804,7 +774,7 @@
         const setDay = (i) => { dayIdx = i; rg.value = String(i); lab.textContent = sd.dates[i].slice(5);
           Lk = linksOfDay(sd, i); total = kids('台股成交值').reduce((a, l) => a + l.value, 0) || 1; open.clear(); draw();
           box.dataset.day = sd.dates[i];
-          try { App.sankeyRankDraw(rk, sd, i, rk._pick); } catch (e) { /* 排名畫不出來不擋樹 */ } paintLk(); };
+          try { App.sankeyRankDraw(rk, sd, i, rk._pick); } catch (e) { /* 排名畫不出來不擋樹 */ } };
         rg.addEventListener('input', () => setDay(+rg.value));
         let timer = 0;
         const stop = () => { clearInterval(timer); timer = 0; pb.textContent = '▶'; rg.disabled = false; bar.classList.remove('playing'); };
@@ -823,28 +793,10 @@
         const g = (sd.groups || []).find(x => x.gid === gid); if (!g) return;
         const ch = kids('台股成交值').find(l => kids(l.target).some(c => c.target === g.name));
         if (!ch) return;
-        // 第七批連動：第一下＝選取（展開它所屬的產業鏈讓那一列看得到，不捲動）；再點同一列才往下一層
-        if (lkSel !== g.name) { lkSel = g.name; open.add('1:' + ch.target); draw(); return; }
         open.add('1:' + ch.target); open.add('2:' + g.name); draw();
         const li = [...tree.querySelectorAll('li[data-k]')].find(x => x.dataset.k === '2:' + g.name);
         if (li) { li.classList.add('hit'); li.scrollIntoView({ block: 'center', behavior: 'smooth' }); }
       });
-      paintLk();
-      // 「流入最多／流出最多」分頁是 app.js 自己重畫的（新列沒有連動的 class）：重畫完補一次
-      rk.addEventListener('click', (e) => { if (e.target.closest('.skr-tab button')) setTimeout(paintLk, 0); });
-      const over = (e) => { if (e.pointerType !== 'mouse') return;
-        const r = e.target.closest('.skr-r[data-gid]'), li = e.target.closest('.mdtree li[data-k]');
-        const nm = r ? gName(r.dataset.gid) : (li && li.dataset.k.indexOf('2:') === 0 ? li.dataset.k.slice(2) : null);
-        if (nm !== lkHov) { lkHov = nm; paintLk(); } };
-      box.addEventListener('pointerover', over);
-      box.addEventListener('pointerleave', (e) => { if (e.pointerType === 'mouse' && lkHov) { lkHov = null; paintLk(); } });
-      // 點空白（卡片裡不是列、不是按鈕的地方，或卡片外）＝取消選取
-      const blank = (e) => {
-        if (!box.isConnected) { document.removeEventListener('click', blank, true); return; }
-        if (!lkSel || !document.contains(e.target)) return;
-        if (e.target.closest('.skr-r, .mdtree li[data-k], .skr-tab, .mdaybar, #mSankeyRankHd, [role="dialog"]')) return;
-        lkSel = null; paintLk(); };
-      document.addEventListener('click', blank, true);
     });
   }
 

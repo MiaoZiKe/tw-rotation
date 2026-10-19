@@ -242,6 +242,11 @@ html[data-theme="light"] #v-admin{--pgL:40%}
 #v-admin .lkbox tr[data-lk].lkon>td,#v-admin .lkbox tr[data-lk].lksel>td{background:color-mix(in srgb,var(--ink) 8%,transparent)}
 #v-admin .lkbox tr[data-lk].lksel>td{box-shadow:inset 0 1px 0 var(--ink),inset 0 -1px 0 var(--ink)}
 #v-admin .lkbox circle[data-lk].lkon,#v-admin .lkbox circle[data-lk].lksel{stroke:var(--ink);stroke-width:2.5}
+/* 10-19 第七批連動：使用時段直條 ⇄ 24 小時時鐘（.hrlk，同一個小時互亮；hrPaint） */
+#v-admin .hrlk .days .dc{transition:opacity .12s ease;cursor:pointer}
+#v-admin .hrlk .days .dc.lkdim{opacity:var(--lkdim,.55)}
+#v-admin .hrlk .days .dc.lkon i,#v-admin .hrlk .days .dc.lksel i{outline:2px solid var(--ink);outline-offset:0}
+#v-admin .hrlk .days .dc.lksel .dd{color:var(--ink);font-weight:700}
 @media (prefers-reduced-motion:reduce){#admBody [data-chart] [data-row],#admBody [data-chart] li[data-k]{transition:none}}
 @media (max-width:1100px){#v-admin .admgrid.trpair,#v-admin .admgrid.trtop{grid-template-columns:minmax(0,1fr)}#v-admin .admgrid{grid-template-columns:repeat(2,minmax(0,1fr))}#v-admin .admgrid>.s2{grid-column:span 2}}
 @media (max-width:820px){#v-admin .trkpi .kpis{grid-template-columns:repeat(3,minmax(0,1fr))}#v-admin .trctl{border-left:0;padding-left:0}#v-admin .admgrid{grid-template-columns:minmax(0,1fr)}#v-admin .admgrid>.s2{grid-column:auto}}
@@ -1153,11 +1158,11 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
   function hourData(series, mode) {
     const two = (n) => String(n).padStart(2, '0'), pad = (a) => { const h = (a || []).slice(0, 24); while (h.length < 24) h.push(0); return h; };
     const ss = series.map((x) => ({ ...x, arr: pad(x.arr) }));
-    const pick = (hs) => hs.map((x) => ({ l: two(x), tip: `${two(x)}:00–${two((x + 1) % 24)}:00`, v: ss.map((q) => q.arr[x]) }));
+    const pick = (hs) => hs.map((x) => ({ l: two(x), hrs: [x], tip: `${two(x)}:00–${two((x + 1) % 24)}:00`, v: ss.map((q) => q.arr[x]) }));
     if (mode === 'day') return pick(Array.from({ length: 12 }, (_, i) => 6 + i));
     if (mode === 'night') return pick(Array.from({ length: 12 }, (_, i) => (18 + i) % 24));
     const w = +mode || 1;
-    return Array.from({ length: 24 / w }, (_, i) => ({ l: w === 1 ? two(i) : `${two(i * w)}–${two((i + 1) * w % 24)}`, tip: `${two(i * w)}:00–${two((i + 1) * w % 24)}:00`, v: ss.map((q) => sum(q.arr.slice(i * w, i * w + w))) }));
+    return Array.from({ length: 24 / w }, (_, i) => ({ l: w === 1 ? two(i) : `${two(i * w)}–${two((i + 1) * w % 24)}`, hrs: Array.from({ length: w }, (_, j) => i * w + j), tip: `${two(i * w)}:00–${two((i + 1) * w % 24)}:00`, v: ss.map((q) => sum(q.arr.slice(i * w, i * w + w))) }));
   }
   function usersBody() {
     const st = S.st, on = S.on, mode = S.hr || '1', hm = S.hm || 'pv', hs = st.hstat || null, live = S.period === 'live';
@@ -1171,13 +1176,13 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
       chart = `<div class="dayplot"><div class="dayy">${[1, 0.75, 0.5, 0.25, 0].map((f) => `<span>${nf(Math.round(mx * f))}</span>`).join('')}</div>
         <div class="days hrs${few ? ' few' : ''}${hm === 'open' ? ' stk2' : ''}" data-chart="days" id="trHrBars">${hd.map((x, i) => { const tot = tots[i];
           const tip = tp(`<b>${x.tip}</b><br>${hm === 'open' ? `${series.map((q, j) => `${q.name} ${nf(x.v[j])}`).join('・')}<br>合計 ${nf(tot)} 次・占 ${(tot / Math.max(1, all) * 100).toFixed(1)}%` : `${nf(tot)} 次・占 ${(tot / Math.max(1, all) * 100).toFixed(1)}%`}`);
-          return `<div class="dc" data-row="${i}"${tip}>${few ? `<span class="dv">${nf(tot)}</span>` : ''}${series.map((q, j) => `<i style="height:${(x.v[j] / mx * 100).toFixed(1)}%;${hm === 'open' ? `--c:${q.col}` : ''}"></i>`).join('')}<span class="dd">${x.l}</span></div>`; }).join('')}</div></div>
+          return `<div class="dc" data-row="${i}" data-hrs="${x.hrs.join(',')}"${tip}>${few ? `<span class="dv">${nf(tot)}</span>` : ''}${series.map((q, j) => `<i style="height:${(x.v[j] / mx * 100).toFixed(1)}%;${hm === 'open' ? `--c:${q.col}` : ''}"></i>`).join('')}<span class="dd">${x.l}</span></div>`; }).join('')}</div></div>
         ${hm === 'open' ? `<div class="hrlg"><span><i style="background:var(--cat-2)"></i>訪客開站</span><span><i style="background:var(--cat-1)"></i>登入開站</span></div>` : ''}`; }
     const since = hs && hs.since && st.from && hs.since > st.from ? `<div class="hrnote">每小時統計從 ${esc(hs.since)} 起</div>` : '';
     const modes = `<div class="hrbar"><div class="nbsw lv2 hrmodes" id="trHrMetric" role="tablist">${[['pv', '頁面瀏覽'], ['open', '開站（登入／訪客）']].map(([k, n]) => `<button type="button" role="tab" data-hm="${k}" class="${hm === k ? 'on' : ''}">${n}</button>`).join('')}</div>
       <div class="nbsw lv2 hrmodes" id="trHrModes" role="tablist">${HR_MODES.map(([k, n]) => `<button type="button" role="tab" data-hr="${k}" class="${mode === k ? 'on' : ''}">${n}</button>`).join('')}</div></div>`;
     const clock = clockHtml(series.length === 2 ? src.login.map((x, i) => x + (src.guest[i] || 0)) : src.pv, hm === 'open' ? '開站' : '瀏覽');
-    return `<div class="admgrid trpair trusers">
+    return `<div class="admgrid trpair trusers hrlk">
       <div class="card" id="trHours"><h3>什麼時段最多人用？</h3><p class="use" title="每小時的${hm === 'open' ? '開站次數（登入／訪客堆疊）' : '頁面瀏覽次數'}。白天＝06:00–18:00、夜晚＝18:00–06:00。">白天 06–18／夜晚 18–06</p><div class="cb">${modes}${chart}${since}</div></div>
       <div class="card" id="trClock"><h3>24 小時時鐘</h3><p class="use" title="12 小時錶面、頂端是 12／0、順時針；內圈＝00:00–11:59、外圈＝12:00–23:59；長度與顏色深淺＝該小時的${hm === 'open' ? '開站' : '瀏覽'}量">內圈上午・外圈下午</p><div class="cb">${clock}</div></div></div>`;
   }
@@ -1264,7 +1269,37 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
     if (!had && !h) return;
     document.querySelectorAll('#trPageBody .lkbox').forEach((pr) => lkPaint(pr, null));
   }
+  /* ==== 10-19 第七批連動（普查第二輪，管理區流量觀測「使用者」頁；規格 docs/style_guide.md 第十八節）：
+     「什麼時段最多人用？」直條（1H／4H／6H／12H／白天／夜晚）與「24 小時時鐘」是同一份每小時數字畫兩次，
+     以前滑到直條 14 時，要自己在錶面上找「外圈 2 點」那一格 —— 兩步推論。現在用**小時**當共同的鍵：
+       · 滑過直條一格（4H 的一格＝4 個小時）→ 時鐘上那幾個小時亮（外框）、其他小時變淡；滑過時鐘一格 → 包含那個小時的直條亮、其他變淡。
+       · 點擊＝鎖定（S.hrSel，跟著目前分頁；切 1H／4H 不清掉 —— 鎖的是小時，換格寬照樣對得上），再點同一格或點空白處取消。
+       · 變淡＝透明度（深 .55／淺 .35，lkDim），不改顏色；時鐘中心字寫那幾個小時的合計。
+     狀態寫在 .hrlk 的 data-hr-sel／data-hr-act（驗收讀）。驗收：_uitest「第七批連動1019」。*/
+  S.hrSel = null; S.hrHov = null;
+  const hrSelOf = () => (S.hrSel && S.hrSel.ctx === lkCtx() ? S.hrSel.hrs : null);
+  function hrPaint() {
+    const pair = document.querySelector('#v-admin .hrlk'); if (!pair || !pair.isConnected) return;
+    const sel = hrSelOf(), act = S.hrHov || sel;
+    pair.dataset.hrSel = sel ? sel.join(',') : ''; pair.dataset.hrAct = act ? act.join(',') : '';
+    pair.style.setProperty('--lkdim', lkDim());
+    const hit = (el, set) => !!set && (el.dataset.hrs || '').split(',').some((h) => h !== '' && set.includes(+h));
+    pair.querySelectorAll('.days .dc[data-hrs]').forEach((el) => { const on = hit(el, act);
+      el.classList.toggle('lkon', on); el.classList.toggle('lkdim', !!act && !on); el.classList.toggle('lksel', hit(el, sel)); });
+    const ck = pair.querySelector('.dnc[data-clock]'); if (ck && ck._hrPaint) ck._hrPaint(act, sel);
+  }
+  function hrHover(hrs) { const k = hrs ? hrs.join(',') : '', cur = S.hrHov ? S.hrHov.join(',') : ''; if (k === cur) return; S.hrHov = hrs; hrPaint(); }
+  let hrLast = { k: '', t: 0 };
+  function hrClick(hrs, src) {
+    const k = hrs.join(','), t = Date.now(); if (src !== 'dom' && hrLast.k === src + k && t - hrLast.t < 350) return; hrLast = { k: src + k, t };
+    const cur = hrSelOf(); S.hrSel = cur && cur.join(',') === k ? null : { hrs: hrs.slice(), ctx: lkCtx() }; hrPaint();
+  }
   // 卡片外、圖外的空白處＝取消（整頁只掛一次）
+  document.addEventListener('click', (e) => {
+    if (!hrSelOf() || !document.contains(e.target)) return;
+    if (e.target.closest && e.target.closest('.hrlk .days .dc, .hrlk .dnc, #trTip, .hrmodes')) return;
+    S.hrSel = null; hrPaint();
+  });
   document.addEventListener('click', (e) => {
     if (!Object.keys(S.lkSel).length || !document.contains(e.target)) return;
     if (!(e.target.closest && e.target.closest('.lkbox [data-lk], .lkbox .dnc, #trTip'))) lkClear();
@@ -1306,6 +1341,11 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
       const pr = e.target.closest && e.target.closest('.lkbox'); if (!pr || !pr.querySelector('[data-lk]') || e.target.closest('.dnc')) return;
       const el = e.target.closest('[data-lk]'); lkHover(pr, el ? el.dataset.lk : null);
     });
+    // 10-19 第七批連動：使用時段直條 ⇄ 時鐘（只認滑鼠滑過；觸控點一下＝下面的 click 鎖定）
+    root.addEventListener('mouseover', (e) => { if (S.touching) return; const dc = e.target.closest && e.target.closest('.hrlk .days .dc[data-hrs]');
+      if (dc) hrHover(dc.dataset.hrs.split(',').map(Number)); else if (S.hrHov && !(e.target.closest && e.target.closest('.hrlk .dnc'))) hrHover(null); });
+    root.addEventListener('mouseout', (e) => { const d = e.target.closest && e.target.closest('.hrlk .days'); if (d && S.hrHov && !(e.relatedTarget && d.contains(e.relatedTarget))) hrHover(null); });
+    root.addEventListener('click', (e) => { const dc = e.target.closest && e.target.closest('.hrlk .days .dc[data-hrs]'); if (dc) hrClick(dc.dataset.hrs.split(',').map(Number), 'dom'); });
     root.addEventListener('mouseout', (e) => { const pr = e.target.closest && e.target.closest('.lkbox'); if (pr && S.lkHov && S.lkHov.pair === pr && !(e.relatedTarget && pr.contains(e.relatedTarget))) lkHover(pr, null); });
     root.addEventListener('mouseout', (e) => { if (S.touching) return; const chart = e.target.closest && e.target.closest('[data-chart]'); if (!chart) return; if (e.relatedTarget && chart.contains(e.relatedTarget)) return; hovClear(chart); });
     /* 觸控（手機）：點一下圖就出提示＋高亮，點圖外面收起來。有「下一步」的元素（全部頁的長條／扇區、每日直條）第一下只出提示，同一個再點一下才執行 */
@@ -1537,7 +1577,8 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
           label: pm ? { show: true, position: 'inside', formatter: () => String(k === 0 ? 12 : k), color: A.CH.ink, fontSize: 12, fontFamily: A.MONO } : undefined }; });
       const am = hrs(0), pmH = hrs(1), all = am.concat(pmH);
       const hiSet = { v: null };
-      const itemsOf = (list, i0) => list.map((d, i) => { const it = D.item(d, i0 + i, hiSet.v != null && hiSet.v.has(d.hour)); if (d.label) it.label = d.label; return it; });
+      const itemsOf = (list, i0) => list.map((d, i) => { const on = hiSet.v != null && hiSet.v.has(d.hour); const it = D.item(d, i0 + i, on); if (d.label) it.label = d.label;
+        if (hiSet.dim && !on) it.itemStyle.opacity = lkDim(); return it; });   // dim＝連動狀態（從直條來或鎖定）才變淡；只滑過錶面本身照舊不變淡
       const ring = (list, r0, r1, i0, pm) => D.series({ radius: [r0 + '%', r1 + '%'], cursor: 'default', startAngle: 90, padAngle: D.PAD_ANGLE, data: itemsOf(list, i0),
         emphasis: { scale: true, scaleSize: D.SCALE, label: { show: pm }, itemStyle: { borderColor: A.CH.ink, borderWidth: D.BORDER_HI } } })[0];
       const mk = () => [ring(am, 52, 68, 0, false), ring(pmH, 72, 92, 12, true), D.series({})[1]];
@@ -1546,21 +1587,35 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
         title: D.center(c1, c2, SZ, 0.52), animationDurationUpdate: D.MS, series: mk() }, { notMerge: true });
       const inst = echarts.getInstanceByDom(el); if (!inst) return;
       const box = el.closest('[data-chart]');
-      const setHi = (set, title) => {
-        if (inst.isDisposed()) return; hiSet.v = set;
+      const setHi = (set, title, dim) => {
+        if (inst.isDisposed()) return; hiSet.v = set; hiSet.dim = !!(set && dim);
         try { inst.setOption({ title, series: mk() }); } catch (e) { /* tooltip 與 dispose 競態 */ }
         if (box) box.classList.toggle('hov', !!set);
       };
       const hourHi = (x) => { const d = all.find((q) => q.hour === x); setHi(new Set([x]), D.center(d.name, `${nf(d.n)} 次`, SZ, 0.52)); };
       const rest = () => setHi(null, D.center(c1, c2, SZ, 0.52));
-      inst.on('mouseover', (q) => { if (q.seriesIndex <= 1 && q.data && q.data.hour != null) hourHi(q.data.hour); });
-      inst.on('globalout', rest);
+      const linked = !!el.closest('.hrlk');
+      if (linked) {
+        // 第七批連動：中心字＝那幾個小時的合計；act 是空的就看鎖定的那幾個小時，都沒有就回到尖峰時段
+        el._hrPaint = (act, sel) => { const set = act || sel; if (!set) { rest(); return; }
+          const ds = all.filter((q) => set.includes(q.hour)), n = sum(ds.map((q) => q.n));
+          const nm = ds.length === 1 ? ds[0].name : `${two(Math.min(...set))}–${two((Math.max(...set) + 1) % 24)} 時`;
+          setHi(new Set(set), D.center(nm, `${nf(n)} 次`, SZ, 0.52), true); };
+        inst.on('mouseover', (q) => { if (q.seriesIndex <= 1 && q.data && q.data.hour != null) hrHover([q.data.hour]); });
+        inst.on('globalout', () => hrHover(null));
+        inst.on('click', (q) => { if (q.seriesIndex <= 1 && q.data && q.data.hour != null) hrClick([q.data.hour], 'ck'); });
+        inst.getZr().on('click', (e) => { if (!e.target && hrSelOf()) { S.hrSel = null; hrPaint(); } });
+        requestAnimationFrame(hrPaint);
+      } else {
+        inst.on('mouseover', (q) => { if (q.seriesIndex <= 1 && q.data && q.data.hour != null) hourHi(q.data.hour); });
+        inst.on('globalout', rest);
+      }
       if (box) box.querySelectorAll('ul.lg li').forEach((li) => {
         li.addEventListener('mouseenter', () => {
           if (li.dataset.row != null && li.dataset.row !== '') hourHi(+li.dataset.row);
           else if (li.dataset.k === 'am' || li.dataset.k === 'pm') { const pm = li.dataset.k === 'pm'; setHi(new Set((pm ? pmH : am).map((d) => d.hour)), D.center(pm ? '外圈 下午' : '內圈 上午', `${nf(sum((pm ? pmH : am).map((d) => d.n)))} 次`, SZ, 0.52)); }
         });
-        li.addEventListener('mouseleave', rest);
+        li.addEventListener('mouseleave', () => (linked ? hrPaint() : rest()));   // 連動中：放開圖例回到連動狀態（鎖定的那幾個小時）
       });
       requestAnimationFrame(() => { if (!inst.isDisposed()) inst.resize(); });
     });
