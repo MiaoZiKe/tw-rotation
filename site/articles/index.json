@@ -2,6 +2,25 @@
  "updated": "2026-10-19",
  "articles": [
   {
+   "id": "2026-10-19-know-abf",
+   "cat": "know",
+   "title": "IC 載板是什麼？賣方估 2028 缺口最高 51%",
+   "date": "2026-10-19",
+   "topic": "k_abf",
+   "groups": [
+    {
+     "id": "ic_substrate",
+     "name": "PCB 載板"
+    },
+    {
+     "id": "ai_adv_packaging",
+     "name": "AI 先進封裝"
+    }
+   ],
+   "reading_min": 3,
+   "src": "api"
+  },
+  {
    "id": "2026-10-19-know-psu-bbu",
    "cat": "know",
    "title": "機櫃 120 kW：PSU 與 BBU 各管什麼",
