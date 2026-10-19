@@ -1,4 +1,122 @@
 {
- "updated": "2026-10-18 18:07",
- "jobs": []
+ "updated": "2026-10-19 11:59",
+ "jobs": [
+  {
+   "id": 11,
+   "topic_id": "sch-20261019-06-r1-news-1",
+   "kind": "article",
+   "title": "南亞科法說：記憶體缺貨還會持續嗎",
+   "note": "排程自動排入（規則 1，台北 2026-10-19 06:00）；建議主題 n_nanya_dram",
+   "status": "queued",
+   "created": 1792382342135,
+   "updated": 1792382342135,
+   "result": null,
+   "stage": null,
+   "stage_at": null
+  },
+  {
+   "id": 12,
+   "topic_id": "sch-20261019-06-r1-news-2",
+   "kind": "article",
+   "title": "台積電法說後一週：族群資金流向變了嗎",
+   "note": "排程自動排入（規則 1，台北 2026-10-19 06:00）；建議主題 n_tsmc_aftermath",
+   "status": "queued",
+   "created": 1792382342256,
+   "updated": 1792382342256,
+   "result": null,
+   "stage": null,
+   "stage_at": null
+  },
+  {
+   "id": 13,
+   "topic_id": "sch-20261019-06-r1-news-3",
+   "kind": "article",
+   "title": "上週外資賣超 vs 投信買超：誰在買哪個族群",
+   "note": "排程自動排入（規則 1，台北 2026-10-19 06:00）；建議主題 n_week_flow",
+   "status": "queued",
+   "created": 1792382342404,
+   "updated": 1792382342404,
+   "result": null,
+   "stage": null,
+   "stage_at": null
+  },
+  {
+   "id": 14,
+   "topic_id": "sch-20261019-06-r1-intro-1",
+   "kind": "article",
+   "title": "先進封裝供應鏈：誰在台積電身邊",
+   "note": "排程自動排入（規則 1，台北 2026-10-19 06:00）；建議主題 i_cowos_chain",
+   "status": "queued",
+   "created": 1792382342529,
+   "updated": 1792382342529,
+   "result": null,
+   "stage": null,
+   "stage_at": null
+  },
+  {
+   "id": 15,
+   "topic_id": "sch-20261019-06-r1-intro-2",
+   "kind": "article",
+   "title": "散熱產業鏈：從風扇到水冷板",
+   "note": "排程自動排入（規則 1，台北 2026-10-19 06:00）；建議主題 i_thermal",
+   "status": "queued",
+   "created": 1792382342652,
+   "updated": 1792382342652,
+   "result": null,
+   "stage": null,
+   "stage_at": null
+  },
+  {
+   "id": 16,
+   "topic_id": "sch-20261019-06-r1-intro-3",
+   "kind": "article",
+   "title": "AI 資料中心網通鏈：從晶片到線纜",
+   "note": "排程自動排入（規則 1，台北 2026-10-19 06:00）；建議主題 i_ai_networking",
+   "status": "queued",
+   "created": 1792382342790,
+   "updated": 1792382342790,
+   "result": null,
+   "stage": null,
+   "stage_at": null
+  },
+  {
+   "id": 17,
+   "topic_id": "sch-20261019-06-r1-know-1",
+   "kind": "article",
+   "title": "除權息與填息：領股利不等於賺",
+   "note": "排程自動排入（規則 1，台北 2026-10-19 06:00）；建議主題 k_dividend",
+   "status": "queued",
+   "created": 1792382342908,
+   "updated": 1792382342908,
+   "result": null,
+   "stage": null,
+   "stage_at": null
+  },
+  {
+   "id": 18,
+   "topic_id": "sch-20261019-06-r1-know-2",
+   "kind": "article",
+   "title": "法人買賣超怎麼看才不誤讀",
+   "note": "排程自動排入（規則 1，台北 2026-10-19 06:00）；建議主題 k_institutional",
+   "status": "queued",
+   "created": 1792382343050,
+   "updated": 1792382343050,
+   "result": null,
+   "stage": null,
+   "stage_at": null
+  },
+  {
+   "id": 19,
+   "topic_id": "sch-20261019-06-r1-know-3",
+   "kind": "article",
+   "title": "類股輪動是什麼？資金怎麼換跑道",
+   "note": "排程自動排入（規則 1，台北 2026-10-19 06:00）；建議主題 k_rotation",
+   "status": "queued",
+   "created": 1792382343166,
+   "updated": 1792382343166,
+   "result": null,
+   "stage": null,
+   "stage_at": null
+  }
+ ]
 }
