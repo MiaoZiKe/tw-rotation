@@ -879,7 +879,7 @@ def render(dev, only=None, seg=None):
             fx0, fy0 = int(round((f[0] - cx) * sx)), int(round((f[1] - cy) * sy))
             fx1, fy1 = int(round((f[0] + f[2] - cx) * sx)), int(round((f[1] + f[3] - cy) * sy))
             fx0, fy0, fx1, fy1 = max(0, fx0), max(0, fy0), min(o.pw, fx1), min(o.ph, fy1)
-            if (fx1 - fx0) * (fy1 - fy0) < 0.80 * o.pw * o.ph:
+            if (fx1 - fx0) * (fy1 - fy0) < 0.985 * o.pw * o.ph:   # 05：區塊外露出一點點（框邊截到的圖表字）也一律淡化
                 k_ = 0.80   # 05：介紹區塊以外淡到幾乎看不見（推近拍框邊附近的圖表字不搶戲），畫面只剩介紹的那一塊
                 dim = img.astype(np.float32) * (1 - k_) + np.array([255, 249, 239], np.float32) * k_
                 dim[fy0:fy1, fx0:fx1] = img[fy0:fy1, fx0:fx1]

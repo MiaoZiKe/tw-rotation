@@ -27,16 +27,17 @@ YEL = (255, 229, 165)
 
 
 def shot_crop():
-    """d_tree：資金分流樹全圖定位那一拍（族群層級，沒有個股）；裁分流樹卡片。"""
+    """d_tree：資金分流樹整張卡（族群層級，沒有個股）。取第一次點「看哪一天」拉桿之後 0.6 秒那一格（游標停在右上角拉桿上、不壓到樹），
+    裁切範圍＝全圖定位那一拍量到的卡片外框。"""
     js = json.loads((R.RAW / "d_tree.json").read_text(encoding="utf-8"))
-    t = js["says"][0]["t"] + 1.0
+    card = js["cams"][int((js["says"][0]["t"] + 0.5) * 30)][6]
+    t = [c for c in js["clicks"] if "看哪一天" in (c.get("label") or "")][0]["t"] + 0.6
     k = int(t * 30)
-    c = js["cams"][k][6]   # 介紹區塊（卡片外框，影片像素）
     cap = cv2.VideoCapture(str(R.RAW / "d_tree.mp4"))
     cap.set(cv2.CAP_PROP_POS_FRAMES, k)
     ok, fr = cap.read()
     im = Image.fromarray(cv2.cvtColor(fr, cv2.COLOR_BGR2RGB))
-    x, y, w, h = c
+    x, y, w, h = card
     return im.crop((int(x), int(y), int(x + w), int(y + h))), None
 
 
@@ -117,7 +118,7 @@ def make(kind):
     if kind == "16x9":
         bx, by = 40, H - bs - 40
     else:
-        bx, by = (W - bs) // 2, H - bs - 40
+        bx, by = (W - bs) // 2, sy + st.height - 40   # 9:16：比比放在網站畫面正下方（不留大片空白）
     cv.alpha_composite(bimg, (bx, by))
     reg.add("比比", (bx + xs_.min(), by + ys_.min(), bx + xs_.max(), by + ys_.max()))
     # 註記
