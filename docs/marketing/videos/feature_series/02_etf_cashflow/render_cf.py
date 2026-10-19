@@ -483,6 +483,33 @@ def drift_xy(t, o=None):
     return tri(t * px / 4 + 0.25), tri(t * py / 4 + 0.6)
 
 
+def avoid_fab(o, tgt, fb, r, ytop):
+    x, y, w, h = tgt
+    fx0, fy0, fx1, fy1 = fb[0] - 6, fb[1] - 6, fb[0] + fb[2] + 6, fb[1] + fb[3] + 6
+    if x + w <= fx0 or x >= fx1 or y + h <= fy0 or y >= fy1:
+        return tgt
+    cands = []
+    # ① 往上移；② 往左移；③ 以右下角收縮（右緣或下緣退到客服鈕外）
+    if fy0 - h >= ytop:
+        cands.append(np.array([x, fy0 - h, w, h]))
+    if fx0 - w >= 0:
+        cands.append(np.array([fx0 - w, y, w, h]))
+    hh = fy0 - y
+    if hh > 200:
+        cands.append(np.array([x, y, hh * o.asp, hh]))
+    ww = fx0 - x
+    if ww > 200:
+        cands.append(np.array([x, y, ww, ww / o.asp]))
+    if not cands:
+        return tgt
+
+    def cover(c):   # 這一句介紹的區塊有多少還在鏡頭裡（越多越好）
+        ix = max(0.0, min(c[0] + c[2], r[0] + r[2]) - max(c[0], r[0]))
+        iy = max(0.0, min(c[1] + c[3], r[1] + r[3]) - max(c[1], r[1]))
+        return ix * iy - 0.001 * abs(c[2] - w) * h
+    return max(cands, key=cover)
+
+
 def cam_track(o, meta, sid=""):
     W0, H0 = meta["size"]
     dsf = meta["dsf"]
@@ -511,6 +538,8 @@ def cam_track(o, meta, sid=""):
             hh = ww / o.asp
             r = [(lft + rgt) / 2 - ww / 2, ytop, ww, hh]
         tgt, cut = fit_cam(o, r, W0, H0, minw, content, xlim, ytop)
+        if fb:   # 鏡頭一律避開網站客服鈕（不藏它，只是不入鏡）：畫面只出現主持的那隻比比
+            tgt = avoid_fab(o, tgt, fb, r, ytop)
         if cut and not full:
             cuts.append(k)
         fr = np.array(r, np.float64) if not full else None

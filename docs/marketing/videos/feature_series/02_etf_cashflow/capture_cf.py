@@ -907,7 +907,7 @@ def d2_guide(pg, a, start):
 def d2_inc(pg, a, start):
     to_inc(pg)
     start()
-    a.cam(["#incPM"], 10, "條件列")
+    a.cam(["#incMode", "#incAmtSeg", "#incScope", "#etfIncRngBox"], 10, "條件列")
     a.say("先選目標：月領", "point_r_v2")
     a.click('#incMode button[data-v="m"]', label="月領")
     a.wait(900)
@@ -979,7 +979,7 @@ def d2_end(pg, a, start):
     pg.locator('#incTabs button').nth(1).click()
     pg.wait_for_timeout(1500)
     start()
-    a.cam(["#incPM", "#incCdn", "#incClk"], 8, "總覽")
+    a.cam(["#incMode", "#incCdn", "#incClk"], 8, "總覽")
     a.say("現金流規劃，一頁試算", "proud_shine")
     a.move(900, 500, 900)
     a.say("搜尋「哩股哩股」", "invite_nod")
