@@ -27,7 +27,8 @@ YEL = (255, 229, 165)
 
 
 def shot_crop():
-    meta = json.loads((R.RAW / "d_meta.json").read_text(encoding="utf-8"))["cal"]
+    f = R.RAW / "d_cal.json"
+    meta = json.loads(f.read_text(encoding="utf-8")) if f.exists() else json.loads((R.RAW / "d_meta.json").read_text(encoding="utf-8"))["cal"]
     # 點了日期之後、清單出現的那一刻（第 4 句泡泡出現後 1.5 秒）
     t = meta["says"][4]["t"] + 1.5
     cap = cv2.VideoCapture(str(R.RAW / "d_cal.mp4"))

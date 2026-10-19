@@ -42,9 +42,10 @@ PAD = 6
 XF = 12            # 鏡頭之間交叉淡化 0.4 秒
 END_DUR = 4.6      # 片尾卡（免責停留 ≥ 3 秒）
 
-ORDER = ["open", "cal", "types", "cards", "ret", "end"]
+ORDER = ["open", "guide", "cal", "types", "cards", "ret", "end"]
 SEC = {   # 膠囊、標題、標題重點字
     "open": ("ETF 專區", "ETF 資料一次整理", "一次整理"),
+    "guide": ("引導", "從首頁找到 ETF 頁", "找到 ETF 頁"),
     "cal": ("功能 1", "配息行事曆", "配息行事曆"),
     "types": ("功能 2", "ETF 總覽・類型分頁", "類型分頁"),
     "cards": ("功能 3", "總覽分類卡・看懂口徑", "看懂口徑"),
@@ -221,7 +222,7 @@ def nav(o, im, reg, sid):
     x0, y0, x1, _ = o.nav
     f = font(F_BOLD, 24)
     fn = font(F_BLACK, 22)
-    cur = [k for k, _ in NAV].index(sid) if sid in [k for k, _ in NAV] else (-1 if sid == "open" else 99)
+    cur = [k for k, _ in NAV].index(sid) if sid in [k for k, _ in NAV] else (-1 if sid in ("open", "guide") else 99)
     y = y0 + 4
     for i, (k, t) in enumerate(NAV):
         on, done = i == cur, i < cur
@@ -478,14 +479,16 @@ def fit_cam(o, r, W0, H0, minw, content, xlim=None, ytop=0):
         w = h * o.asp
         x = clamp(cx - w / 2, lo, hi - w)
     y = clamp(cy - h / 2, ytop, H0 - h)
+    if r[2] >= W0 - 2 and r[3] >= H0 - 2:      # 整個視窗（捲動、抽屜）：對齊上緣
+        y = ytop
     cut = (tw > w + 2) or (th > h + 2)
     return np.array([x, y, w, h], np.float64), cut
 
 
-def cam_track(o, meta):
+def cam_track(o, meta, sid=""):
     W0, H0 = meta["size"]
     dsf = meta["dsf"]
-    minw = 1150 if o.dev == "d" else 940
+    minw = o.pw if o.dev == "d" else o.pw   # 裁切寬度不小於畫面框寬：只縮小不放大（不糊）
     cx_ = meta.get("content_x") or [0, W0]
     xlim = [cx_[0] - 14 * dsf, cx_[1] + 14 * dsf] if o.dev == "d" else None
     content = [xlim[0], 52 * dsf, xlim[1] - xlim[0], 848 * dsf] if xlim else [0, 0, W0, H0]
@@ -493,7 +496,7 @@ def cam_track(o, meta):
     cur = None
     fcur = None
     last_id = None
-    ytop = 56 * dsf
+    ytop = 0 if sid == "guide" else 56 * dsf   # 引導段要看得到頂欄的選單鈕
     for k, c in enumerate(meta["cams"]):
         cid, r = c[0], c[1:]
         tgt, cut = fit_cam(o, r, W0, H0, minw, content, xlim, ytop)
@@ -519,10 +522,10 @@ def cam_track(o, meta):
 
 
 # ───────────────────────── 時間軸 ─────────────────────────
-def build(o, meta_all):
+def build(o, meta_all, order=None, with_end=True):
     shots = []
     t = 0.0
-    for sid in ORDER:
+    for sid in (order or ORDER):
         m = meta_all.get(sid)
         if not m or not m.get("ok"):
             if os.environ.get("FEAT_PARTIAL"):
@@ -532,8 +535,8 @@ def build(o, meta_all):
         start = t if not shots else t - XF / FPS
         shots.append(dict(sid=sid, meta=m, n=n, start=start, path=RAW / f"{o.dev}_{sid}.mp4"))
         t = start + n / FPS
-    end_start = t - XF / FPS
-    total = end_start + END_DUR
+    end_start = t - XF / FPS if with_end else t + 999
+    total = end_start + END_DUR if with_end else t
     bubbles = []
     for s in shots:
         says = s["meta"]["says"]
@@ -542,7 +545,8 @@ def build(o, meta_all):
             t0 = s["start"] + b["t"] + (0.25 if s["sid"] != "open" and i == 0 else 0.0)
             t1 = (s["start"] + says[i + 1]["t"]) if i + 1 < len(says) else shot_end - XF / FPS
             bubbles.append(dict(t0=t0, t1=t1 - 0.06, text=b["text"], act=b["act"], sid=s["sid"]))
-    bubbles.append(dict(t0=end_start + 0.2, t1=total, text="謝謝收看，我們下次見", act="face_bow", sid="__end"))
+    if with_end:
+        bubbles.append(dict(t0=end_start + 0.2, t1=total, text="謝謝收看，我們下次見", act="face_bow", sid="__end"))
     return shots, bubbles, end_start, total
 
 
@@ -635,13 +639,21 @@ class Reader:
         return self.last
 
 
-def render(dev, only=None, cover=False):
+def render(dev, only=None, seg=None):
     o = layout(dev)
-    meta_all = json.loads((RAW / f"{dev}_meta.json").read_text(encoding="utf-8"))
-    data_date = meta_all["cal"].get("data_date")
+    mf = RAW / f"{dev}_meta.json"
+    meta_all = json.loads(mf.read_text(encoding="utf-8")) if mf.exists() else {}
+    for sid in ORDER:      # 每鏡一檔（capture_etf.py 新版），覆蓋合併檔裡的舊紀錄
+        f = RAW / f"{dev}_{sid}.json"
+        if f.exists():
+            meta_all[sid] = json.loads(f.read_text(encoding="utf-8"))
+    data_date = next(iter(meta_all.values())).get("data_date")
     etf_asof = json.loads((REPO / "site" / "data" / "etf.json").read_text(encoding="utf-8")).get("asof")
     data_date = etf_asof or data_date
-    shots, bubbles, end_start, total = build(o, meta_all)
+    if seg:
+        shots, bubbles, end_start, total = build(o, meta_all, [seg], with_end=(seg == "end"))
+    else:
+        shots, bubbles, end_start, total = build(o, meta_all)
     acts = {b["act"] for b in bubbles} | {ALT.get(b["act"], "talk_explain_v2") for b in bubbles} | {"talk_explain_v2", "wave", "face_nod_v2"}
     ext = bibi_extent(o, sorted(acts))
     if dev == "d":
@@ -668,22 +680,23 @@ def render(dev, only=None, cover=False):
     mask = Image.new("L", (o.pw, o.ph), 0)
     ImageDraw.Draw(mask).rounded_rectangle([0, 0, o.pw - 1, o.ph - 1], 20, fill=255)
     mask = (np.array(mask).astype(np.float32) / 255)[..., None]
-    cams = {s["sid"]: cam_track(o, s["meta"]) for s in shots}
+    cams = {s["sid"]: cam_track(o, s["meta"], s["sid"]) for s in shots}
     N = int(round(total * FPS))
     frames = [int(round(float(x) * FPS)) for x in only.split(",")] if only else range(N)
-    out_mp4 = SCR / f"feat01_{dev}_silent.mp4"
+    out_mp4 = SCR / (f"feat01_{dev}_silent.mp4" if not seg else f"seg/feat01_{'web' if dev == 'd' else 'mobile'}_{ORDER.index(seg) + 1:02d}_{seg}.mp4")
+    out_mp4.parent.mkdir(exist_ok=True)
     ff = None
     if not only:
         ff = subprocess.Popen(["ffmpeg", "-y", "-loglevel", "error", "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{o.W}x{o.H}",
-                               "-r", str(FPS), "-i", "-", "-c:v", "libx264", "-crf", "18", "-preset", "medium", "-pix_fmt", "yuv420p",
+                               "-r", str(FPS), "-i", "-", "-c:v", "libx264", "-crf", "18" if not seg else "30", "-preset", "medium", "-pix_fmt", "yuv420p",
                                str(out_mp4)], stdin=subprocess.PIPE)
     readers = {}
     rows, issues, click_rows, still = [], [], [], []
     prev_panel = None
     run = 0
     max_run = (0, 0.0)
-    samp = SCR / f"samples_{dev}"
-    samp.mkdir(exist_ok=True)
+    samp = SCR / (f"samples_{dev}" if not seg else f"seg/samples_{dev}_{seg}")
+    samp.mkdir(parents=True, exist_ok=True)
     if not only:
         for old in samp.glob("*.png"):
             old.unlink()
@@ -821,12 +834,19 @@ def render(dev, only=None, cover=False):
             rc = c.get("rect_center")
             err = math.hypot(px - rc[0], py - rc[1]) if rc else None
             blank = (c.get("selector") or "").startswith("#mSheetBack")
-            click_rows.append((s["sid"], round(s["start"] + c["t"], 2), kind, c.get("label") or c.get("text"), err, inside, blank, (round(ox_), round(oy_))))
+            click_rows.append((s["sid"], round(float(s["start"] + c["t"]), 2), kind, c.get("label") or c.get("text"), None if err is None else round(float(err), 2), bool(inside), bool(blank), (int(round(ox_)), int(round(oy_)))))
     cut_rows = [(s["sid"], len(cams[s["sid"]][1])) for s in shots]
     meta_out = dict(dev=dev, total=total, end_start=end_start, frames=N, overlaps=len(rows), issues=len(issues),
-                    still_max_s=round(max_run[0] / FPS, 2), still_at=round(max_run[1], 2), cut_frames=cut_rows,
+                    still_max_s=round(float(max_run[0]) / FPS, 2), still_at=round(float(max_run[1]), 2), cut_frames=cut_rows,
                     clicks=click_rows, bubbles=[(round(b["t0"], 2), round(b["t1"], 2), b["text"], b["sid"]) for b in bubbles],
                     shots=[(s["sid"], round(s["start"], 2), round(s["n"] / FPS, 2)) for s in shots], data_date=data_date)
+    if seg:
+        (SCR / f"seg/render_{dev}_{seg}.json").write_text(json.dumps(meta_out, ensure_ascii=False, indent=1), encoding="utf-8")
+        (SCR / f"seg/overlap_rows_{dev}_{seg}.md").write_text("\n".join(rows[:300] + ["", "問題："] + issues[:300]), encoding="utf-8")
+        real = [c for c in click_rows if c[2] == "點擊" and not c[6]]
+        print(f"段落 {seg}：{out_mp4}｜{N} 幀｜重疊 {len(rows)} 筆｜其他問題 {len(issues)} 筆｜點擊 {len(real)} 次，中心誤差最大 "
+              f"{max([c[4] for c in real if c[4] is not None] or [0]):.1f}px，畫面框外 {len([c for c in click_rows if not c[5]])} 次｜畫面框內最長不動 {max_run[0] / FPS:.2f} 秒")
+        return
     (SCR / f"render_{dev}.json").write_text(json.dumps(meta_out, ensure_ascii=False, indent=1), encoding="utf-8")
     (SCR / f"overlap_rows_{dev}.md").write_text("\n".join(rows[:500] + ["", "問題："] + issues[:500]), encoding="utf-8")
     print("重疊", len(rows), "問題", len(issues), "幀", N, "畫面框最長不動", max_run[0] / FPS, "秒 @", max_run[1])
@@ -848,8 +868,9 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--dev", default="d", choices=["d", "m"])
     ap.add_argument("--frames", default="")
+    ap.add_argument("--seg", default="")
     g = ap.parse_args()
-    render(g.dev, g.frames or None)
+    render(g.dev, g.frames or None, g.seg or None)
 
 
 if __name__ == "__main__":

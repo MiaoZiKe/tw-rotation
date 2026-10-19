@@ -15,7 +15,8 @@ sys.path.insert(0, str(HERE))
 import render_etf as R  # noqa: E402
 
 PURPOSE = {
-    "open": "痛點：ETF 超過三百檔、資料分散；帶出 ETF 專區",
+    "open": "使用者需求與痛點：存 ETF 想知道除息日、配多少、同類比較、含息報酬；三百多檔資料分散",
+    "guide": "引導：從首頁總覽，點選單「ETF」→ 子選單（行事曆／總覽／試算）→ 進到配息行事曆",
     "cal": "功能 1 配息行事曆：看哪天除息、點日期看當天清單、看口徑、切月份",
     "types": "功能 2 類型分頁：切換七類、看每類檔數、下方同步換類",
     "cards": "功能 3 分類卡：受益人／成交值切換、報酬率前 5 與殖利率前 5 的口徑（只講口徑，不推薦）",
@@ -48,7 +49,12 @@ def main():
     rep = ["# 重疊與畫面檢查報告（render_etf.py 每一幀自動產生＋人工抽格）", ""]
     for dev, name in (("d", "網頁版"), ("m", "手機版")):
         j = json.loads((R.SCR / f"render_{dev}.json").read_text(encoding="utf-8"))
-        meta = json.loads((R.RAW / f"{dev}_meta.json").read_text(encoding="utf-8"))
+        mf = R.RAW / f"{dev}_meta.json"
+        meta = json.loads(mf.read_text(encoding="utf-8")) if mf.exists() else {}
+        for sid in R.ORDER:
+            f = R.RAW / f"{dev}_{sid}.json"
+            if f.exists():
+                meta[sid] = json.loads(f.read_text(encoding="utf-8"))
         mp4 = HERE / ("feat01_etf_web.mp4" if dev == "d" else "feat01_etf_mobile.mp4")
         fz = freeze(mp4)
         D = dur(mp4)
