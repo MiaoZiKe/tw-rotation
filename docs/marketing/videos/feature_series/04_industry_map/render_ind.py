@@ -788,7 +788,7 @@ def render(dev, only=None, seg=None):
     cams = {s["sid"]: cam_track(o, s["meta"], s["sid"]) for s in shots}
     N = int(round(total * FPS))
     frames = [int(round(float(x) * FPS)) for x in only.split(",")] if only else range(N)
-    out_mp4 = SCR / (f"feat04_{dev}_silent_v2.mp4" if not seg else f"seg/feat04_{'web' if dev == 'd' else 'mobile'}_{ORDER.index(seg) + 1:02d}_{seg}.mp4")
+    out_mp4 = SCR / (f"feat04_{dev}_silent_v3.mp4" if not seg else f"seg/feat04_{'web' if dev == 'd' else 'mobile'}_{ORDER.index(seg) + 1:02d}_{seg}.mp4")
     out_mp4.parent.mkdir(exist_ok=True)
     ff = None
     if not only:
@@ -803,7 +803,7 @@ def render(dev, only=None, seg=None):
     prev_panel = None
     run = 0
     max_run = (0, 0.0)
-    samp = SCR / (f"samples_v2_{dev}" if not seg else f"seg/samples_{dev}_{seg}")
+    samp = SCR / (f"samples_v3_{dev}" if not seg else f"seg/samples_{dev}_{seg}")
     samp.mkdir(parents=True, exist_ok=True)
     if not only:
         for old in samp.glob("*.png"):
@@ -1039,7 +1039,7 @@ def render(dev, only=None, seg=None):
     wav = SCR / f"bgm_{dev}.wav"
     subprocess.run([sys.executable, str(REPO / "docs/marketing/video_1010/make_music_v3.py"), "--length", f"{total / SPEED + 0.3:.2f}",
                     "--style", "cute", "--out", str(wav), "--cues", str(cj)], check=True)
-    name = "feat04_industry_map_web_v2.mp4" if dev == "d" else "feat04_industry_map_mobile_v2.mp4"
+    name = "feat04_industry_map_web_v3.mp4" if dev == "d" else "feat04_industry_map_mobile_v3.mp4"
     final = HERE / name
     subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", str(out_mp4), "-i", str(wav), "-filter:v", f"setpts=PTS/{SPEED}", "-r", str(FPS),
                     "-c:v", "libx264", "-crf", "18", "-preset", "medium", "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "160k",

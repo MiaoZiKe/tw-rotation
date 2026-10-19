@@ -212,24 +212,35 @@ class A(C.Act):
             tg["measured_by"] = "被點元素外框（按下前一刻）"
         return True
 
-    def click_now(self, sel, label, ms=380, pause=150, dx=0.5, dy=0.5):
-        """不捲動、量當下位置點（3D 標籤每幾格就重排，box() 的「等穩定」會等不到）。"""
+    def click_now(self, sel, label, ms=380, pause=150, dx=0.5, dy=0.5, dy_px=None, approach=None):
+        """不捲動、量當下位置點（3D 標籤每幾格就重排，box() 的「等穩定」會等不到）。dy_px：從元素上緣往下幾 px（標題列）。"""
         r = self.pg.evaluate(C.RECT_JS, sel)
         if not r:
             self.note(f"點不到 {sel}")
             return False
+        if dy_px is not None:
+            dy = min(0.5, dy_px / max(r[3], 1))
         x, y = r[0] + r[2] * dx, r[1] + r[3] * dy
+        if approach:   # 先水平移到元素旁邊（3D 標籤會在游標滑過時展開、蓋住隔壁標籤 → 只從畫布那一側水平進場）
+            self.move(r[0] - 60 if approach == "left" else r[0] + r[2] + 60, y, int(ms * 0.7))
+            ms = int(ms * 0.6)
         self.move(x, y, ms)
         self.wait(pause)
-        for _ in range(8):   # 標籤被游標滑過會展開（變高）、每幾格重排 → 跟著最新外框的中心走，連續兩次不動才點
+        for _ in range(14):   # 標籤被游標滑過會展開（變高）、每幾格重排 → 跟著最新外框走；位置不動、而且最上層確實是目標才點
             r2 = self.pg.evaluate(C.RECT_JS, sel)
             if not r2:
                 break
+            if dy_px is not None:
+                dy = min(0.5, dy_px / max(r2[3], 1))
             x2, y2 = r2[0] + r2[2] * dx, r2[1] + r2[3] * dy
-            if abs(x2 - x) < 1 and abs(y2 - y) < 1:
+            if abs(x2 - x) >= 1 or abs(y2 - y) >= 1:
+                x, y = x2, y2
+                self.move(x, y, 130)
+                continue
+            hit = self.pg.evaluate("([s, x, y]) => { const e = document.elementFromPoint(x, y); const t = document.querySelector(s); return !!(e && t && (e === t || t.contains(e))); }", [sel, x, y])
+            if hit:
                 break
-            x, y = x2, y2
-            self.move(x, y, 130)
+            self.idle(120)   # 最上層不是目標（被隔壁展開的標籤蓋住）：等一下再量
         self.note(f"點 {label}")
         self.click_xy(x, y, 1, 0, expect=sel)
         self.targets[-1]["label"] = label
@@ -422,7 +433,7 @@ def d_rel(pg, a, start):
     a.move(900, 450, 500)
     a.idle(700)
     first = True
-    for s, lab in (("hbm", "環節：HBM 記憶體"), ("power", "環節：電源"), ("switch", "環節：交換器")):
+    for s, lab in (("abf_pcb", "環節：IC 載板"), ("power", "環節：電源"), ("switch", "環節：交換器")):   # v3：第一環換成有台廠的 IC 載板（對應族群清單有內容）
         box = f'#relSec .segbox[data-seg="{s}"]'
         b = pg.evaluate(C.RECT_JS, box)
         tip_area = f"rect:{b[0]:.0f},{b[1]:.0f},{min(480, 1580 - b[0]):.0f},{b[3] + 130:.0f}"   # 環節框＋右下方即將浮出上下游說明的位置
@@ -442,36 +453,58 @@ def d_rel(pg, a, start):
     a.settle()
 
 
+D3_VIEW = {"width": 1280, "height": 800}   # v3：3D 這一鏡用 1280×800、2 倍像素錄 —— 機櫃與兩側標籤靠得比較近，推近後字仍清楚
+
+
+def rack_rect(pg):
+    """3D 機櫃本體（畫布正中央那一塊）在視窗座標的外框：畫布寬 22%、高 62% 的中央區（1280×800 實測機櫃約佔這麼大）。"""
+    r = pg.evaluate(C.RECT_JS, "#prod3d canvas")
+    w, h = r[2] * 0.22, r[3] * 0.62
+    return f"rect:{r[0] + r[2] / 2 - w / 2:.0f},{r[1] + r[3] * 0.2:.0f},{w:.0f},{h:.0f}"
+
+
 def d_3d(pg, a, start):
     goto(pg, f"#industry/{CHAIN}")
     warm3d(pg)
-    scroll_to(pg, "#dgTools", 76)   # 先捲到「切 3D 之後 3D 圖剛好在頂欄下方、客服鈕上方」的位置，切完不必再捲
-    a.x, a.y = 1300, 160
+    scroll_to(pg, "#dgTools", 76)   # 切 3D 之後 3D 圖剛好在頂欄下方、客服鈕上方，切完不必再捲
+    a.x, a.y = 1000, 160
     start()
-    a.cam(["#dg3d", "#prod3d"], 2, "2D／3D 切換")   # 切換鈕（切完連 3D 圖一起）
+    a.cam(["#dg3d"], 2, "2D／3D 切換")
     a.say("切到 3D，立體剖析圖", "3dglasses")
     a.click('#dg3d button[data-dm="3d"]', label="切 3D")
     a.until("() => document.querySelectorAll('#prod3d canvas').length > 0", 8000)
     a.wait(600)
-    a.cam(["#prod3d"], 4, "3D 剖析圖")
+    # 推近：機櫃本體＋兩側零件標籤（工具列、圖說不入框）
+    a.cam(["#prod3d canvas"], 4, "推近：機櫃＋兩側零件標籤", zoom=True)   # 兩側標籤疊在畫布內，畫布外框＝機櫃＋標籤
     r = a.box("#prod3d canvas", scroll=False)
     cx, cy, w = r["x"] + r["width"] / 2, r["y"] + r["height"] / 2, r["width"]
+    a.idle(500)
+    # 先點零件（機櫃還沒轉，標籤位置穩定，不會點到旁邊標籤的公司小籤），再示範拖曳旋轉、展開收攏
+    rack = rack_rect(pg)
+    first = True
+    for no, lab in (("06", "零件：HBM 記憶體"), ("12", "零件：電源櫃"), ("15", "零件：ToR 交換器")):   # 最後點交換器：下方零件卡（進料／出貨）不含外商客戶名
+        a.cam([lbl(no), rack], 10, f"推近：{lab}", minw=ZMIN, zoom=True)   # 被點的標籤＋它連到的機櫃本體
+        if first:
+            a.say("點零件，說明與環節連動", "magnifier")
+            first = False
+        side = pg.evaluate("(s) => { const r = document.querySelector(s).getBoundingClientRect(); return r.left + r.width / 2 > innerWidth / 2 ? 'left' : 'right'; }", lbl(no))
+        a.click_now(lbl(no) + " b", lab, approach=side)   # 點標籤的標題（下半部是公司小籤連結）；從畫布那一側水平進場
+        a.wait(300)
+        a.cam([lbl(no), rack], 10, f"{lab}＋說明", minw=ZMIN, zoom=True)   # 標籤點開後變高（多出說明），取景跟著重量
+        a.wait(1100)
+    a.cam(["#prod3d canvas"], 4, "推近：機櫃＋兩側零件標籤（旋轉）", zoom=True)
     a.say("拖曳就能 360 度旋轉", "hop_r")
     a.drag(cx - w * 0.14, cy, cx + w * 0.16, cy + 10, 1500)
     a.wait(300)
     a.drag(cx + w * 0.12, cy - 10, cx - w * 0.1, cy + 14, 1400)
     a.wait(300)
     a.say("移入展開、移出收攏", "reveal")
-    a.move(cx, 64, 600)               # 游標移出圖框 → 收攏
+    a.move(cx, r["y"] - 14, 600)      # 游標移出圖框 → 收攏
     a.wait(900)
     a.move(cx - 40, cy, 600)          # 移回圖框 → 展開
     a.wait(1100)
-    a.say("點零件，說明與環節連動", "magnifier")
-    for no, lab in (("06", "零件：HBM 記憶體"), ("12", "零件：電源櫃"), ("15", "零件：ToR 交換器")):   # 最後點交換器：下方零件卡（進料／出貨）不含外商客戶名
-        a.click_now(lbl(no), lab)
-        a.wait(1300)
     a.cam_view("捲動")
-    a.scroll_to_el("#partCard", 330, 700)
+    a.scroll_to_el("#partCard", 300, 700)
     a.cam(["#partCard"], 8, "零件卡：進料、出貨")
     a.say("進料、出貨一次看", "pointer_r")
     a.hover("#partCard .pc-row:nth-of-type(2)", 500, 0.3)
@@ -609,7 +642,7 @@ def m_3d(pg, a, start):
     a.click('#dg3d button[data-dm="3d"]', label="切 3D")
     a.until("() => document.querySelectorAll('#prod3d canvas').length > 0", 8000)
     a.wait(600)
-    a.cam(["#prod3d"], 4, "3D 剖析圖")
+    a.cam(["#prod3d"], 4, "3D 剖析圖：機櫃＋兩側編號", zoom=True)
     r = a.box("#prod3d canvas", scroll=False)
     cx, cy, w = r["x"] + r["width"] / 2, r["y"] + min(r["height"], 520) / 2, r["width"]
     a.say("手指拖曳就能旋轉", "hop_r")
@@ -631,7 +664,7 @@ def m_3d(pg, a, start):
     # 抽屜開著時整個畫面鋪了一層背景（點了會收抽屜），所以第 2、3 個零件用抽屜底部的「›」下一個編號切換
     a.click_now('#prod3d .mnum[data-no="11"]', "零件：編號 11 後門風扇模組")
     a.wait(350)   # 抽屜滑上來（動畫結束）才把它算進介紹區塊
-    a.cam(["#prod3d .mnum.on", "#mSheet"], 4, "3D＋零件抽屜", frame="rect:0,250,390,594")
+    a.cam(["#prod3d .mnum.on", "#mSheet"], 4, "3D＋零件抽屜（編號＋說明）", frame="rect:0,250,390,594", zoom=True)
     a.wait(1150)
     a.say("對應環節、台廠都列好", "pointer_r")
     for lab in ("抽屜「›」：編號 12 電源櫃", "抽屜「›」：編號 13 BBU 電池"):
@@ -678,8 +711,9 @@ def run(dev, shots, out, port):
                     cfg["viewport"] = {"width": 1600, "height": TALL_D[sid]}
                 if dev == "d" and sid in ("open", "chain", "rel"):   # v2 推近拍：3 倍像素錄，推近到 440～700 css 寬仍不糊
                     cfg["device_scale_factor"] = 3
-                if dev == "d" and sid == "3d":     # 3D 畫布在軟體算圖（swiftshader）下 2 倍像素一格要 2 秒以上：這一鏡用 1 倍（裁切區約 1430px 寬，放進 1650px 畫面框只放大 1.15 倍）
-                    cfg["device_scale_factor"] = 1
+                if dev == "d" and sid == "3d":     # v3：3D 推近 → 1280×800、2 倍像素（軟體算圖較慢，換字清楚）
+                    cfg["viewport"] = dict(D3_VIEW)
+                    cfg["device_scale_factor"] = 2
                 W = int(cfg["viewport"]["width"] * cfg["device_scale_factor"])
                 H = int(cfg["viewport"]["height"] * cfg["device_scale_factor"])
                 ctx = b.new_context(**cfg, locale="zh-TW", timezone_id="Asia/Taipei")
