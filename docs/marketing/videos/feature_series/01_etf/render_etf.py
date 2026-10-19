@@ -32,6 +32,9 @@ HERE = Path(__file__).resolve().parent
 REPO = HERE.parents[4]
 LIB = REPO / "docs" / "anim" / "bibi_library"
 SCR = Path(os.environ.get("FEAT_SCR", "/tmp/claude-0/-home-user-tw-rotation/3d7a42eb-0e07-50fa-8c50-cf31c62d682f/scratchpad/feat"))
+FAST = bool(os.environ.get("FEAT_FAST"))   # 第 2 版快節奏
+if FAST:
+    SCR = SCR / "fast"
 RAW = SCR / "raw"
 FD = Path(os.environ.get("HBM_FONT_DIR", "/tmp/claude-0/-home-user-tw-rotation/3d7a42eb-0e07-50fa-8c50-cf31c62d682f/scratchpad/font"))
 F_BOLD = str(FD / "NotoSansTC-Bold.ttf")
@@ -40,7 +43,7 @@ F_MED = str(FD / "NotoSansTC-Medium.ttf")
 FPS = 30
 PAD = 6
 XF = 12            # 鏡頭之間交叉淡化 0.4 秒
-END_DUR = 4.6      # 片尾卡（免責停留 ≥ 3 秒）
+END_DUR = 3.6 if FAST else 4.6      # 片尾卡（免責停留 ≥ 3 秒）
 
 ORDER = ["open", "guide", "cal", "types", "cards", "ret", "end"]
 SEC = {   # 膠囊、標題、標題重點字
@@ -890,7 +893,7 @@ def render(dev, only=None, seg=None):
     wav = SCR / f"bgm_{dev}.wav"
     subprocess.run([sys.executable, str(REPO / "docs/marketing/video_1010/make_music_v3.py"), "--length", f"{total + 0.3:.2f}",
                     "--style", "cute", "--out", str(wav), "--cues", str(cj)], check=True)
-    name = "feat01_etf_web.mp4" if dev == "d" else "feat01_etf_mobile.mp4"
+    name = ("feat01_etf_web" if dev == "d" else "feat01_etf_mobile") + ("_v2" if FAST else "") + ".mp4"
     final = HERE / name
     subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", str(out_mp4), "-i", str(wav), "-c:v", "copy", "-c:a", "aac", "-b:a", "160k",
                     "-shortest", "-movflags", "+faststart", str(final)], check=True)

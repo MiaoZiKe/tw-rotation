@@ -55,7 +55,7 @@ def main():
             f = R.RAW / f"{dev}_{sid}.json"
             if f.exists():
                 meta[sid] = json.loads(f.read_text(encoding="utf-8"))
-        mp4 = HERE / ("feat01_etf_web.mp4" if dev == "d" else "feat01_etf_mobile.mp4")
+        mp4 = HERE / (("feat01_etf_web" if dev == "d" else "feat01_etf_mobile") + ("_v2" if R.FAST else "") + ".mp4")
         fz = freeze(mp4)
         D = dur(mp4)
         sb += [f"## {name}（片長 {D:.1f} 秒）", ""]
