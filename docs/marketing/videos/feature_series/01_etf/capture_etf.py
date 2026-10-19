@@ -44,7 +44,7 @@ DEVS = {
 def bubble_dur(text: str) -> float:
     """泡泡停留秒數：依字數，至少 1.6 秒（CEO 10-19）。"""
     n = len(text.replace(" ", ""))
-    return max(1.8, 0.75 + 0.16 * n)
+    return max(1.6, 0.6 + 0.145 * n)
 
 
 CAM_JS = r"""([sels, pad]) => {
@@ -96,6 +96,7 @@ class A(C.Act):
 
     # 鏡頭：之後每一格都用這幾個元素的聯集（跟著捲動走）
     def cam(self, sels, pad=12, label=""):
+        self.settle()   # 前一句泡泡講完（最短停留）才換鏡頭，畫面與泡泡同步
         if isinstance(sels, str):
             sels = [sels]
         self.cam_spec = ("sel", list(sels), pad)
@@ -103,6 +104,7 @@ class A(C.Act):
         self.marks.append([round(self.t, 3), "cam", label or ",".join(sels)])
 
     def cam_view(self, label="viewport"):
+        self.settle()
         self.cam_spec = None
         self.cam_id += 1
         self.marks.append([round(self.t, 3), "cam", label])
@@ -210,7 +212,7 @@ def d_cal(pg, a, start):
     a.say("配息金額、當次殖利率、發放日一次看", "talk_explain_v2")
     a.hover('#etfDayTbl tbody tr >> nth=1', 600)
     a.hover('#etfDayTbl thead th >> nth=2', 700)
-    a.cam(["#etfCalList"], 10, "右側清單")
+    a.cam(["#etfCalList .ph", "#etfDayTbl thead", "#etfDayTbl tbody tr:nth-child(6)"], 10, "右側清單上半")
     a.say("當次殖利率＝配息 ÷ 除息前一日收盤", "talk_explain_v2")
     a.hover('#etfDayTbl thead th >> nth=4', 900)
     a.say("填息天數：股價回到除息前收盤的交易日數", "magnifier")
@@ -315,7 +317,7 @@ def d_ret(pg, a, start):
     # 點起始日期的「年」欄位，按方向鍵往前一年（真的改日期 → 期間自動變成「起始日期～至今」）
     b = a.box("#etfRng .rpfrom")
     if b:
-        a.click_xy(b["x"] + 22, b["y"] + b["height"] / 2, 500, 250, expect="#etfRng .rpfrom")
+        a.click_xy(b["x"] + b["width"] / 2, b["y"] + b["height"] / 2, 500, 250, expect="#etfRng .rpfrom")
         a.wait(300)
         pg.keyboard.press("ArrowDown")
         a.wait(900)
@@ -468,7 +470,7 @@ def m_cal(pg, a, start):
     a.say("點有除息的日期，下方列出當天清單", "point_dr_v2")
     a.click('#etfCalGrid .cald.has', label="點有除息的日期")
     a.wait(600)
-    a.cam(["#etfCalList"], 6, "當天清單")
+    a.cam(["#etfCalList .ph", "#etfDayTbl thead", "#etfDayTbl tbody tr:nth-child(8)"], 6, "當天清單上半")
     a.scroll_to_el("#etfCalList", 70, 1000)
     a.say("配息金額、當次殖利率、發放日一次看", "talk_explain_v2")
     a.hover('#etfDayTbl tbody tr', 700)
@@ -563,13 +565,12 @@ def m_ret(pg, a, start):
     a.scroll(by=-130, ms=700)
     a.cam_view("設定抽屜")
     m_sheet(a, "rng", "1y", "近 1 年")
-    m_sheet(a, "rng", "10y", "近 10 年")
     a.say("也能選「起始日期～至今」自訂區間", "point_ur_v2")
     m_sheet(a, "rng", "custom", "起始日期～至今")
     a.cam(["#etfRetCard .row.spread", "#etfRngBox", "#etfRetBody .retcharts > div:first-child"], 6, "日期列")
     b = a.box("#etfRng .rpfrom")
     if b:
-        a.click_xy(b["x"] + 18, b["y"] + b["height"] / 2, 500, 250, expect="#etfRng .rpfrom")
+        a.click_xy(b["x"] + b["width"] / 2, b["y"] + b["height"] / 2, 500, 250, expect="#etfRng .rpfrom")
         a.wait(300)
         pg.keyboard.press("ArrowDown")
         a.wait(900)
@@ -610,8 +611,7 @@ def m_ret(pg, a, start):
     a.cam(["#etfRetBody .retcharts > div:last-child"], 6, "年化報酬率")
     a.wait(500)
     a.say("兩者差距越大，報酬越依賴配息", "face_thinking_bulb")
-    a.cam_view("設定抽屜")
-    m_sheet(a, "basis", "tr", "含息")
+    a.hover("#etfRetBar", 700, 0.5, 0.6)
     a.cam(["#etfRetTbl"], 6, "明細表")
     a.scroll_to_el("#etfRetTbl", 160, 900)
     a.say("明細表列出各檔的價格年化與含息年化", "point_dr_v2")
@@ -668,6 +668,9 @@ def run(dev, shots, out, port):
                 C.fake_api(ctx)
                 ctx.add_init_script(C.HIDE_TIER_JS)
                 ctx.add_init_script(C.NOFAB_JS)
+                ctx.add_init_script(C.HIDE_B_JS)   # 法遵：B 類功能名稱不入鏡
+                if dev == "d":   # 桌機左側導覽收成圖示列：內容區更寬，鏡頭也不會帶到導覽文字
+                    ctx.add_init_script("try{localStorage.setItem('tw.layout4.nav','mini')}catch(e){}")
                 ctx.add_init_script(C.CURSOR_JS % ("true" if dev == "m" else "false"))
                 pg = ctx.new_page()
                 errs = []
@@ -692,7 +695,8 @@ def run(dev, shots, out, port):
                     a.wait(300)
                     mp4 = out / f"{dev}_{sid}.mp4"
                     r = rec.stop(mp4)
-                    r.update(size=[W, H], dsf=a.dsf, says=a.says, marks=a.marks, cams=rec.cams, clicks=a.targets,
+                    content = pg.evaluate("() => { const e = document.querySelector('#etfCalCard:not([hidden])') || document.querySelector('#etfBody'); const r = e.getBoundingClientRect(); return [r.left, r.right]; }")
+                    r.update(size=[W, H], dsf=a.dsf, content_x=[round(v * a.dsf) for v in content], says=a.says, marks=a.marks, cams=rec.cams, clicks=a.targets,
                              steps=a.log, errs=errs[:5], data_date=site_meta.get("data_date"))
                     meta[sid] = r
                     print(sid, r["dur"], "秒", len(a.says), "泡泡", len(a.targets), "點擊", "bad:", r.get("bad")[:3], "errs:", errs[:2])
