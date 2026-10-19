@@ -2,6 +2,16 @@
  "updated": "2026-10-19",
  "articles": [
   {
+   "id": "2026-10-19-know-dividend",
+   "cat": "know",
+   "title": "除息後 60 天僅 63% 填息：領股利不等於賺",
+   "date": "2026-10-19",
+   "topic": "sch-20261019-06-r1-know-1",
+   "groups": [],
+   "reading_min": 3,
+   "src": "api"
+  },
+  {
    "id": "2026-10-19-intro-cowos-chain",
    "cat": "intro",
    "title": "12～14 萬片的先進封裝，誰在台積電身邊",
