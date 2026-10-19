@@ -35,7 +35,7 @@ def shot_crop():
     ok, fr = cap.read()
     im = Image.fromarray(cv2.cvtColor(fr, cv2.COLOR_BGR2RGB))
     W, H = im.size
-    return im.crop((int(W * 0.30), int(H * 0.10), int(W * 0.985), int(H * 0.80))), None
+    return im.crop((int(W * 0.30), int(H * 0.118), int(W * 0.985), int(H * 0.80))), None
 
 
 def sticker(im, w, radius=34, border=14):
@@ -100,7 +100,7 @@ def make(kind):
         sx, sy = W - st.width - 70, H - st.height - 130
     else:
         st = sticker(crop, 940)
-        sx, sy = (W - st.width) // 2, ys + h_ + 110
+        sx, sy = (W - st.width) // 2, ys + h_ + 80
     sh = Image.new("RGBA", st.size, (0, 0, 0, 0))
     sh.paste((50, 26, 20, 60), (0, 0, st.width, st.height), st.split()[3])
     cv.alpha_composite(sh.filter(ImageFilter.GaussianBlur(10)), (sx + 10, sy + 14))
@@ -108,14 +108,14 @@ def make(kind):
     reg.add("網站畫面", (sx, sy, sx + st.width, sy + st.height))
     # 比比（看財經日曆）
     bimg = Image.open(R.LIB / "news" / "key.png").convert("RGBA")
-    bs = 430 if kind == "16x9" else 560
+    bs = 430 if kind == "16x9" else 470
     bimg = bimg.resize((bs, bs), Image.LANCZOS)
     a = np.array(bimg)[..., 3]
     ys_, xs_ = np.nonzero(a > 24)
     if kind == "16x9":
         bx, by = 40, H - bs - 40
     else:
-        bx, by = (W - bs) // 2, H - bs - 110
+        bx, by = (W - bs) // 2, H - bs - 40
     cv.alpha_composite(bimg, (bx, by))
     reg.add("比比", (bx + xs_.min(), by + ys_.min(), bx + xs_.max(), by + ys_.max()))
     # 註記

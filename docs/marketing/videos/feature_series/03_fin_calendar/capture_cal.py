@@ -105,7 +105,7 @@ def blur_js() -> str:
     pat = "|".join(re.escape(n) for n in names if n) + "|" + "|".join(sorted(codes))
     return r"""
 (() => {
-  const RE = new RegExp('(?<![0-9A-Za-z.,/:\\-])(' + %s + ')(?![0-9.,%%/:\\-])|(?<=收盤 )([0-9][0-9,]*(?:\\.[0-9]+)?)', 'g');   // 第二組：面板裡「收盤 X 元」的股價也模糊（避免由價位認出是哪一家）
+  const RE = new RegExp('(?<![0-9A-Za-z.,/:\\-])(' + %s + ')(?![0-9.,%%/:\\-])|(?<=收盤 |市值第 )([0-9][0-9,]*(?:\\.[0-9]+)?)', 'g');   // 第二組：面板裡「收盤 X 元」的股價、「市值第 N 名」的名次也模糊（避免由價位、名次認出是哪一家）
   const SKIP = '.fcard,[data-sec=spark],[data-sec=rule],#earnFilt,.elegend,.ehd,.wd,.dn,.edisc,.__blur,script,style,.badge,.stars';
   const css = () => { const st = document.createElement('style'); st.textContent = '.__blur{filter:blur(5px)!important;display:inline-block}'; document.head.appendChild(st); };
   const sweep = (root) => {
@@ -394,6 +394,8 @@ def d_fed(pg, a, start):
     sp = pg.evaluate("() => document.querySelectorAll('#earnPanel [data-sec=spark] .cgmini').length")
     for j in range(min(3, sp)):
         a.mini_hover(f"#earnPanel [data-sec=spark] .mini:nth-of-type({j + 1}) .cgmini", [10], hold=600, label=f"走勢 {j + 1} ")
+    a.cam_view("捲動")
+    a.scroll(by=220, ms=600)   # 面板最下面一段在客服鈕旁邊：整頁往下捲一點，面板整塊入鏡、鏡頭不必為了避開客服鈕把面板右側裁掉
     a.cam(["#earnPanel .sec:last-child"], 8, "下一次公布日")
     a.panel_scroll_to(".sec:last-child", 120)
     a.say("下一次公布日也列好", "alarm")
@@ -467,7 +469,7 @@ def m_open(pg, a, start):
     to_cal(pg, "fed")
     m_scroll_to(pg, "#earnCalCard", 60)
     start()
-    a.cam(["#earnFilt", "#earnGrid"], 6, "財經日曆（FED 消息）")
+    a.cam(["#earnLegend", "#earnGrid"], 6, "財經日曆（FED 消息）")   # 手機：分類鈕＋整張月曆比畫面框高，會被裁；開場只框圖例＋月曆
     a.say("重要數據，哪天公布？", "face_think_v2")
     a.hover(chip("cpi"), 700)
     a.hover(chip("fomc"), 700)
@@ -634,7 +636,7 @@ def m_end(pg, a, start):
     to_cal(pg, "fed")
     m_scroll_to(pg, "#earnCalCard", 60)
     start()
-    a.cam(["#earnFilt", "#earnGrid"], 6, "總覽")
+    a.cam(["#earnLegend", "#earnGrid"], 6, "總覽")
     a.say("財報、法說、FED 一頁掌握", "proud_shine")
     a.scroll(by=120, ms=1400)
     a.say("搜尋「哩股哩股」", "invite_nod")
