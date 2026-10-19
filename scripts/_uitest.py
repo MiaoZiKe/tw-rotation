@@ -1538,7 +1538,8 @@ def t_overview(pg, base):
         pg.evaluate("document.getElementById('heat').scrollIntoView({block:'center'})"); pg.wait_for_timeout(450)
         _lf = (pg.evaluate(HM_LEAF_XY, {"id": "heat"}) or [None])[0]
         if ok("下鑽後找得到族群方塊（前提）", bool(_lf), _lf):
-            pg.mouse.click(_lf["cx"], _lf["cy"]); pg.wait_for_timeout(900)
+            # 10-19 多圖連動：第一下＝鎖定（迷你輪盤同族群亮），同一塊第二下才進族群頁
+            pg.mouse.click(_lf["cx"], _lf["cy"]); pg.wait_for_timeout(450); pg.mouse.click(_lf["cx"], _lf["cy"]); pg.wait_for_timeout(900)
             h = pg.evaluate("decodeURIComponent(location.hash)")
             ok("點熱力圖族群方塊不展開成分股面板（Andy 10-05 拿掉）", not pg.evaluate("() => { const p = document.getElementById('heatPanel'); return !!p && !p.hidden; }"))
             ok(f"點族群方塊「{_lf['name']}」→ 進族群頁（{h}）", h.startswith("#industry/group/"), h)
@@ -51611,7 +51612,7 @@ def t_dismiss(pg, b, base, code):
     pg.wait_for_timeout(400)
     _lf = (pg.evaluate(HM_LEAF_XY, {"id": "heat"}) or [None])[0]
     if ok("[總覽熱力圖] 找得到最大的族群方塊（前提）", bool(_lf), _lf):
-        pg.mouse.click(_lf["cx"], _lf["cy"]); pg.wait_for_timeout(900)
+        pg.mouse.click(_lf["cx"], _lf["cy"]); pg.wait_for_timeout(450); pg.mouse.click(_lf["cx"], _lf["cy"]); pg.wait_for_timeout(900)   # 10-19：第二下才進族群頁
         # 10-08 晚 Andy：「資金熱力圖 點擊後會跳到該產業地圖族群」→ 改成進族群頁（本機無會員系統＝不受 Plus 限制）
         ok(f"[總覽熱力圖] 點「{_lf['name']}」→ 不展開成分股面板（10-05 拿掉）、直接進族群頁",
            not _dz_vis(pg, "#heatPanel") and pg.evaluate("location.hash").startswith("#industry/group/"), pg.evaluate("location.hash"))
@@ -61416,7 +61417,8 @@ def t_admin_v2(b, base, code):
     pg.click("#trTabs [data-t=flow]")
     ok(f"{T}：資金流向分頁：被點最多的族群第一名是被動元件 MLCC（9 次）", pg.evaluate("() => document.querySelector('#trDBars .bl').textContent.trim()") == "被動元件 MLCC", pg.inner_text("#trPageBody")[:200])
     pg.click("#trTabs [data-t=all]")
-    pg.locator("#trAllB button[data-p='stock']").click()
+    # 10-19 多圖連動：第一下＝鎖定（長條＋圓餅一起亮），同一條第二下才進該頁
+    pg.locator("#trAllB button[data-p='stock']").click(); pg.wait_for_timeout(450); pg.locator("#trAllB button[data-p='stock']").click()
     wait_until(pg, "() => document.querySelector('#trTabs button.on').dataset.t === 'stock'", 3000)
     ok(f"{T}：在「全部」點個股長條 → 切到個股分頁", pg.evaluate("() => document.querySelector('#trTabs button.on').dataset.t") == "stock")
     # ★ 2026-10-05 改前→改後（流量觀測1005，Andy：頁首卡整塊拿掉）：「？ 圖表怎麼選」與隱私說明移出頁面，改成總覽卡內一個 ? 小圖示的滑過提示（選型理由留在 docs/account_analytics.md）
@@ -61937,7 +61939,8 @@ def t_traffic_1005(b, base, code):
         hv("#trSc circle >> nth=0", "散佈圖點")
         pg.click("#trTabs [data-t=all]")
         # ---- 點長條／扇區進分頁、子分頁
-        pg.locator("#trAllB button[data-p='flow']").click()
+        # 10-19 多圖連動：第一下＝鎖定，同一條第二下才進該頁
+        pg.locator("#trAllB button[data-p='flow']").click(); pg.wait_for_timeout(450); pg.locator("#trAllB button[data-p='flow']").click()
         wait_until(pg, "() => document.querySelector('#trTabs button.on').dataset.t === 'flow'", 3000)
         ok(f"{TT}：點「資金流向」長條 → 進資金流向分頁，上方小分頁＝全部／資金輪動／資金分流樹／族群×法人",
            pg.evaluate("() => [...document.querySelectorAll('#trSubs button')].map(b => b.textContent.trim().replace(/[\\d,]+$/, '').trim()).join()") == "全部,資金輪動,資金分流樹,族群×法人" and pg.evaluate("() => document.getElementById('trSubs').classList.contains('nbsw')"))
@@ -61946,7 +61949,7 @@ def t_traffic_1005(b, base, code):
         pg.click("#trSubs button[data-sub='sankey']")
         ok(f"{TT}：點子分頁「資金分流樹」→ 長條換成該子頁的功能（點資金分流樹節點／連線）", "資金分流樹節點" in pg.inner_text("#trFBars") and "篩選" not in pg.inner_text("#trFBars"), pg.inner_text("#trFBars")[:80])
         pg.click("#trTabs [data-t=all]")
-        _ad = _dnx(pg, "#trAllDonut"); _ix = next(i for i, d in enumerate(_ad["data"]) if d["p"] == "flow"); _pt = pg.evaluate(DNX_PT, ["#trAllDonut", _ix]); pg.mouse.move(_pt[0], _pt[1], steps=3); pg.mouse.click(_pt[0], _pt[1])
+        _ad = _dnx(pg, "#trAllDonut"); _ix = next(i for i, d in enumerate(_ad["data"]) if d["p"] == "flow"); _pt = pg.evaluate(DNX_PT, ["#trAllDonut", _ix]); pg.mouse.move(_pt[0], _pt[1], steps=3); pg.mouse.click(_pt[0], _pt[1]); pg.wait_for_timeout(450); pg.mouse.click(_pt[0], _pt[1])   # 10-19：第二下才進該頁
         wait_until(pg, "() => document.querySelector('#trTabs button.on').dataset.t === 'flow'", 3000)
         ok(f"{TT}：點甜甜圈的「資金流向」扇區 → 進資金流向分頁", pg.evaluate("() => document.querySelector('#trTabs button.on').dataset.t") == "flow")
         # ---- 個股
@@ -67569,7 +67572,7 @@ def _hp_desktop(b, base, T, tag, who, plan, allow, errs, **kw):
     if f:
         x, y, d = f
         cur, tip = _hp_probe(pg, x, y)
-        pg.mouse.click(x, y); pg.wait_for_timeout(700)
+        pg.mouse.click(x, y); pg.wait_for_timeout(450); pg.mouse.click(x, y); pg.wait_for_timeout(700)   # 10-19 多圖連動：第一下＝鎖定，第二下才跳頁
         _hp_judge(pg, T, tag, f"總覽 資金熱力圖卡片 點族群方塊（{d.get('gid')}）", "#overview", allow, "#industry/group/" + d.get("gid"), False, None if allow else cur, None if allow else tip)
         ok(f"{T}【{tag}】資金熱力圖卡片：點方塊不會展開成分股面板（10-05 拿掉，不加回來）", not pg.evaluate("() => { const p = document.getElementById('heatPanel'); return !!p && !p.hidden && p.getClientRects().length > 0; }"))
         if allow:
@@ -67706,7 +67709,7 @@ def _hp_mobile(b, base, T, tag, who, plan, allow, errs):
     f = _hp_find(pg, "#heat", "gid", cols=5, rows=6)
     if f:
         x, y, d = f
-        pg.touchscreen.tap(x, y); pg.wait_for_timeout(900)
+        pg.touchscreen.tap(x, y); pg.wait_for_timeout(450); pg.touchscreen.tap(x, y); pg.wait_for_timeout(900)   # 10-19 多圖連動：第一下＝鎖定，第二下才跳頁
         _hp_judge(pg, T, MT, f"390 觸控 總覽 資金熱力圖 點族群方塊（{d.get('gid')}）", "#overview", allow, "#industry/group/" + d.get("gid"), False)
         ok(f"{T}【{MT}】資金熱力圖：沒有開手機抽屜（tileSheet）", not pg.evaluate("() => [...document.querySelectorAll('.m3sheet, .msheet')].some(e => e.getClientRects().length > 0 && !e.hidden)"))
     else:
@@ -67782,6 +67785,8 @@ def t_heat_plus_1008(b, base):
                 x, y, d = f
                 _hp_probe(pg, x, y)
                 pg.mouse.click(x, y)
+                if el == "heat":   # 10-19 多圖連動：熱力圖第一下＝鎖定，第二下才跳頁
+                    pg.wait_for_timeout(450); pg.mouse.click(x, y)
                 pg.wait_for_timeout(3500 if allow else 700)
                 pg.screenshot(path=str(pathlib.Path(sh) / n))
             c.close()
