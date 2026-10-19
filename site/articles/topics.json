@@ -1,6 +1,114 @@
 {
- "updated": "2026-10-18",
+ "updated": "2026-10-19",
  "topics": [
+  {
+   "id": "n_fomc_oct",
+   "cat": "news",
+   "title": "FOMC 10/28 前夕：外資與台股族群怎麼動",
+   "why": "FOMC 決議將於台北時間 10/29 凌晨公布，讀者會問利率前夕資金往哪個族群躲；本站有外資買賣超與族群漲跌可對照",
+   "score": 5,
+   "format_hint": "文章",
+   "added": "2026-10-19",
+   "site_links": [
+    "#flow"
+   ]
+  },
+  {
+   "id": "n_cpi_tw",
+   "cat": "news",
+   "title": "台灣 9 月 CPI 年增 2.73%：誰受惠",
+   "why": "台灣 9 月 CPI 年增 2.73%、連月高於 2%，可對照本站航運、食品等族群近期表現",
+   "score": 4,
+   "format_hint": "貼文",
+   "added": "2026-10-19",
+   "site_links": [
+    "#overview"
+   ]
+  },
+  {
+   "id": "n_etf_flow_week",
+   "cat": "news",
+   "title": "本週 ETF 申贖：資金流進哪些成分股",
+   "why": "ETF 成分股與申購買回影響籌碼，本站有 ETF 持股資料可對照近一週增減",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-10-19",
+   "site_links": [
+    "#flow"
+   ]
+  },
+  {
+   "id": "i_server_odm",
+   "cat": "intro",
+   "title": "AI 伺服器代工鏈：ODM、機殼到導軌",
+   "why": "AI 伺服器出貨帶動組裝與機構件，讀者常問代工廠與零組件廠怎麼分工",
+   "score": 4,
+   "format_hint": "文章",
+   "added": "2026-10-19",
+   "site_links": [
+    "#industry"
+   ]
+  },
+  {
+   "id": "i_ic_design",
+   "cat": "intro",
+   "title": "IC 設計產業鏈：從 IP、EDA 到晶圓代工",
+   "why": "IC 設計位在半導體鏈上游，讀者常搞不清設計、代工、封測的上下游關係",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-10-19",
+   "site_links": [
+    "#industry"
+   ]
+  },
+  {
+   "id": "i_pmic",
+   "cat": "intro",
+   "title": "電源管理 IC 鏈：PMIC 為何跟 AI 有關",
+   "why": "AI 伺服器用電量大增，電源管理晶片需求同步升高，常青產業鏈題材",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-10-19",
+   "site_links": [
+    "#industry"
+   ]
+  },
+  {
+   "id": "k_gap_fill",
+   "cat": "know",
+   "title": "跳空缺口是什麼？回補機率有多高",
+   "why": "財報季個股常跳空，讀者常問缺口是否一定回補；可用本站日 K 資料統計",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-10-19",
+   "site_links": [
+    "#overview"
+   ]
+  },
+  {
+   "id": "k_rsi_basics",
+   "cat": "know",
+   "title": "RSI 是什麼？超買超賣為何常失靈",
+   "why": "RSI 是最常被問的指標之一，強勢股可長期鈍化，可用本站指標對照",
+   "score": 3,
+   "format_hint": "貼文",
+   "added": "2026-10-19",
+   "site_links": [
+    "#overview"
+   ]
+  },
+  {
+   "id": "k_yield_trap",
+   "cat": "know",
+   "title": "殖利率怎麼算？高殖利率可能是陷阱",
+   "why": "第四季除息潮前夕，讀者會問高殖利率是否一定划算；本站有股利資料可對照",
+   "score": 4,
+   "format_hint": "文章",
+   "added": "2026-10-19",
+   "site_links": [
+    "#overview"
+   ]
+  },
   {
    "id": "n_tsmc_aftermath",
    "cat": "news",
