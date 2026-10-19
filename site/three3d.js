@@ -8909,7 +8909,8 @@
        高度另外受呼叫端給的上限 o.maxH() 管（industry.js 用 Fit 量「打開頁面、不捲動時畫布最多能多高」）。
        寬度決定的高度（寬 × hk，340～700）比上限高才壓；壓到 MIN_H 為止（再矮模型與卡片欄都擠不下，寧可捲一點）。
        上限只在 readCap() 讀（掛載時、onResize、refit）：H() 每幀都會被 layoutLabels 叫到，每幀量版面會逼瀏覽器重排。*/
-    const MIN_H = 340;
+    // 文章內嵌（o.below）卡片在底下、畫布只放模型：手機 354 寬時 340 的下限會讓扁平的模型只佔一半高，所以放寬到 180
+    const MIN_H = o.below ? 180 : 340;
     let capH = Infinity;
     let tightCap = Infinity;     // 「收掉上下空白」之後的高度（tighten() 算的），只在有上限（桌機產業鏈頁）時才會 < Infinity
     const readCap = () => { let v = NaN; try { v = o.maxH ? +o.maxH() : NaN; } catch (e) { /* 量不到就不限 */ } capH = isFinite(v) && v > 0 ? v : Infinity; };
@@ -8939,7 +8940,11 @@
        （兩欄至少要留 54% 給模型，不然「左右兩欄」這個版面本身就不成立）。
        塞不下就退一階：兩欄 → 右欄 → 卡片搬到畫布底下。*/
     const fitsCols = (n) => (W() - COL_MIN * n) >= W() * 0.54;
-    const mode = () => (vw() >= 1280 && fitsCols(2) ? 'lr' : ((vw() >= 960 && fitsCols(1)) ? 'r' : 'below'));
+    /* ★ 2026-10-19（Andy 附精選文章內嵌 3D 的截圖：右欄說明卡超出文章欄被切掉、畫面上方一大片空白）：
+       o.below＝呼叫端要求「卡片一律排在畫布底下」（只有 articles.js 的 scene 區塊傳）。
+       文章欄比產業頁窄、又沒有 #prod3d 那套欄位樣式，右欄模式的卡片貼著畫布右緣、被標籤層的 overflow 切掉；
+       排到底下就在文件流裡，不可能超出外框。產業鏈頁不傳這個參數，版面一個 px 都不變。*/
+    const mode = () => (o.below ? 'below' : (vw() >= 1280 && fitsCols(2) ? 'lr' : ((vw() >= 960 && fitsCols(1)) ? 'r' : 'below')));
     const colW = () => { const m = mode(); if (m === 'below') return 0;
       return Math.max(COL_MIN, Math.round((W() - STAGE_MAX) / (m === 'lr' ? 2 : 1))); };
     const cols = () => (mode() === 'lr' ? 2 : (mode() === 'r' ? 1 : 0));
@@ -9625,9 +9630,76 @@
       if (document.documentElement.classList.contains('m4')) controls.maxDistance = dist;
       camera.updateProjectionMatrix();
       controls.update();
+      if (o.below) centerFit();
       if (keepT !== 1) applyExplode(keepT);       // 還原成量之前的展開程度
       fitPose = { p: camera.position.clone(), t: controls.target.clone() };
     };
+    /* ★ 2026-10-19 文章內嵌（o.below，只有 articles.js 傳）：Andy 截圖「模型偏小偏下、上方一大片空白」。
+       上面的精確取景是照外接盒的**中心**對準畫面中心 —— 但透視投影下斜上方往下看，盒子投到畫面上並不對稱
+       （實測 800G 交換器拆開後佔畫布 24%～98% 高、13%～78% 寬：偏下偏左），兩邊各留 3% 只保證「塞得進去」。
+       這裡量收攏狀態的外接盒八個角實際投影到哪（NDC），把相機與注視點一起平移讓它置中，再照長邊拉近到佔 92%，反覆修到收斂。
+       量**收攏**的盒子：拆開狀態的盒子高了將近一倍（零件往上下拉開），照它取景，平常看到的收攏模型只剩畫布一半高、還偏上。
+       所以文章內嵌**不做游標移進去就拆開**（掛監聽那段看 o.below），要看拆解走「在站內完整頁面看」。產業鏈頁不傳 o.below，這段不跑。
+       呼叫時場景是拆開的（fitCamera 先 applyExplode(1) 量盒子），量完一定還原成拆開，交回 fitCamera 自己還原。*/
+    function centerFit() {
+      /* 只量零件本身（byIdx 的 groups，跳過被藏起來的）：整個 root 還包著地面的軟陰影片、光暈這類又大又扁的東西，
+         拿它置中，板子會被推到畫面上半部、下面留一大片空（第一版實測就是這樣）。
+         而且每個零件各自一個外接盒、各自投影再取聯集（跟 rectOf 一樣）：全部併成一個大盒子再投影，
+         那個大盒子的角落（例如「最右、最高、最後面」）根本沒有零件，投出來會比看得到的範圍大一圈，置中就歪了。
+         再細一層：量的是每個**看得見的實體網格**（Mesh／Line），跳過粒子（Points）與 Sprite ——
+         電流／光訊號的粒子在動畫跑起來之前座標全是 (0,0,0)，算進去等於把世界原點當成模型的一角（交換器那顆光模組的盒子因此往左下多出一大塊）。*/
+      applyExplode(0);
+      const boxes = [], tmp = new THREE.Box3();
+      byIdx.forEach(p => { if (!p || !p.groups) return; const bx = new THREE.Box3();
+        p.groups.forEach(g => {
+          for (let u = g.parent; u; u = u.parent) if (!u.visible) return;
+          g.updateWorldMatrix(true, true);
+          g.traverseVisible(x => {
+            if (x.isPoints || x.isSprite || !(x.isMesh || x.isLine) || !x.geometry) return;
+            if (x.isInstancedMesh) { if (x.computeBoundingBox) x.computeBoundingBox(); if (!x.boundingBox) return; tmp.copy(x.boundingBox); }
+            else { if (!x.geometry.boundingBox) x.geometry.computeBoundingBox(); tmp.copy(x.geometry.boundingBox); }
+            if (!tmp.isEmpty()) bx.union(tmp.applyMatrix4(x.matrixWorld));
+          });
+        });
+        if (!bx.isEmpty()) boxes.push(bx); });
+      applyExplode(1);
+      if (!boxes.length) return;
+      const v = new THREE.Vector3(), off = new THREE.Vector3();
+      const rightV = new THREE.Vector3(), upV = new THREE.Vector3();
+      /* 先把注視點搬到零件聯集的**立體中心**（方向與距離不變）：自轉是繞著注視點的垂直軸轉，
+         注視點不在模型中心的話，轉半圈模型就飄到一邊去（只在畫面平面上平移，實測轉幾秒就偏 10%）。
+         之後的畫面平移只修透視造成的那一點不對稱。*/
+      const all = new THREE.Box3(); boxes.forEach(bx => all.union(bx));
+      const c3 = all.getCenter(new THREE.Vector3());
+      off.copy(c3).sub(controls.target); camera.position.add(off); controls.target.copy(c3); controls.update();
+      /* 一次拉近太多步會震盪（透視：拉近之後近的零件往外跑得比遠的快，上一輪算的平移就不準了），
+         所以每輪最多縮放 1.25 倍、跑到收斂（最多 16 輪；13 個零件 × 8 個角，一輪不到 0.1ms）。*/
+      for (let k = 0; k < 16; k++) {
+        camera.updateMatrixWorld(); camera.updateProjectionMatrix();
+        let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
+        boxes.forEach(box => { for (let i = 0; i < 8; i++) {
+          v.set(i & 1 ? box.max.x : box.min.x, i & 2 ? box.max.y : box.min.y, i & 4 ? box.max.z : box.min.z).project(camera);
+          x0 = Math.min(x0, v.x); x1 = Math.max(x1, v.x); y0 = Math.min(y0, v.y); y1 = Math.max(y1, v.y);
+        } });
+        if (!isFinite(x0) || x1 - x0 <= 0 || y1 - y0 <= 0) return;
+        const d = camera.position.distanceTo(controls.target);
+        const hh = d * Math.tan(camera.fov * Math.PI / 360), hw = hh * camera.aspect;
+        rightV.setFromMatrixColumn(camera.matrixWorld, 0); upV.setFromMatrixColumn(camera.matrixWorld, 1);
+        off.copy(rightV).multiplyScalar((x0 + x1) / 2 * hw).addScaledVector(upV, (y0 + y1) / 2 * hh);
+        camera.position.add(off); controls.target.add(off);
+        const sf = Math.min(1.84 / (x1 - x0), 1.84 / (y1 - y0)), s = Math.max(0.8, Math.min(1.25, sf));
+        const dir = camera.position.clone().sub(controls.target);
+        camera.position.copy(controls.target).addScaledVector(dir, 1 / s);
+        controls.update();
+        // 拉近之後模型在畫面上佔的高度比例（NDC 高 2）：tighten() 拿它算「畫布收到多矮剛好」
+        fitInfo.fy = Math.min(2, (y1 - y0) * s);
+        if (Math.abs(sf - 1) < 0.004 && Math.abs(x0 + x1) < 0.008 && Math.abs(y0 + y1) < 0.008) break;
+      }
+      const dist = camera.position.distanceTo(controls.target);
+      fitInfo.dist = dist;
+      controls.minDistance = Math.min(controls.minDistance, dist * 0.5);
+      controls.maxDistance = document.documentElement.classList.contains('m4') ? dist : Math.max(controls.maxDistance, dist * 2.6);
+    }
     /* 取景完之後使用者還沒動過相機（沒拖、沒滾輪）＝還停在「預設視角」。畫布長寬比變了（頁首／分頁版面換、視窗縮放）
        而還在預設視角時就重新取景，不然預設畫面會是照舊的長寬比算的、整台可能頂出畫布（2026-10-03）。
        使用者已經轉過或拉近過就不動他的視角。*/
@@ -9646,6 +9718,7 @@
        外接盒量的是拆開狀態），所以改成直接守住「模型不變小」這一條。
        只在桌機產業鏈頁（有 o.maxH、capH 有限）、欄位模式、使用者還沒動過相機時做；手機與題材頁一個 px 都不變。*/
     const labNeed = () => {
+      if (o.below) return 0;                        // 卡片本來就排在底下（文章內嵌），不佔畫布高度
       let L = 0, R = 0, nL = 0, nR = 0, nB = 0;
       byIdx.forEach(p => {
         if (!p || !p.el || p.el.classList.contains('hid')) return;
@@ -9660,12 +9733,17 @@
        高度真的要變才在最後 setSize 一次。*/
     const aspectOnly = () => { camera.aspect = W() / H(); camera.updateProjectionMatrix(); };
     const tighten = () => {
-      if (!isFinite(capH) || !el.clientWidth || mode() === 'below' || touched) return;
+      // o.below（文章內嵌）：卡片本來就在底下，照樣收上下空白 —— 那正是 Andy 截圖裡「上方一大片空白」
+      if (!isFinite(capH) || !el.clientWidth || (mode() === 'below' && !o.below) || touched) return;
       const hPrev = H();
       tightCap = Infinity; aspectOnly(); fitCamera();
       const h0 = H(), lab = labNeed();
       let best = h0;
-      if (isFinite(lab) && fitInfo.dist > 0) {
+      if (o.below && fitInfo.fy > 0) {
+        /* 文章內嵌：centerFit 已經把模型置中、拉到長邊佔 92%。被寬度頂住時（扁平的板子）上下還有空，
+           畫布直接收到「模型高 ÷ 92%」—— 收矮之後換成被高度頂住，模型也還是 92%，不會變小。*/
+        best = Math.max(MIN_H, Math.ceil(h0 * fitInfo.fy / 1.84) + 4);
+      } else if (isFinite(lab) && fitInfo.dist > 0) {
         const s0 = h0 / fitInfo.dist;
         let lo = Math.max(MIN_H, Math.ceil(lab)), hi = h0;
         if (lo < h0 - 16) {
@@ -9677,7 +9755,7 @@
       tightCap = best < h0 - 16 ? best : Infinity;
       aspectOnly(); fitCamera();
       if (H() !== hPrev) { renderer.setSize(W(), H()); layoutLabels(); }
-      if (!below.hidden && below.children.length && isFinite(tightCap)) {
+      if (!o.below && !below.hidden && below.children.length && isFinite(tightCap)) {
         tightCap = Infinity; aspectOnly(); fitCamera(); renderer.setSize(W(), H()); layoutLabels();
       }
       markDirty();
@@ -9789,7 +9867,7 @@
       if (!m) {
         /* ★ #246：沒有 hover 的裝置（手機／平板）收不到 pointerenter，
            改成「點背景＝展開／收攏切換」。點零件仍然是選零件，兩件事不打架。選擇要記住（EXP_KEY）。*/
-        if (!canHover) { setExplode(expTarget !== 1); expSave(expTarget === 1); }
+        if (!canHover && !o.below) { setExplode(expTarget !== 1); expSave(expTarget === 1); }
         if (o.onBg) o.onBg();
       }
     };
@@ -9855,9 +9933,9 @@
     const onEnter = () => setExplode(true);
     const onLeave = () => setExplode(false);
     // 進場：收攏。沒有 hover 的裝置照它上一次的選擇（#246 第 6 點）
-    applyExplode(canHover ? 0 : (expSaved() ? 1 : 0));
+    applyExplode(canHover || o.below ? 0 : (expSaved() ? 1 : 0));
     expTarget = expT;
-    if (canHover) {
+    if (canHover && !o.below) {   // 文章內嵌（o.below）不拆：取景是照收攏的模型放大置中的，拆開會超出畫布（見 centerFit）
       /* 掛在**容器**（#prod3d）上，不是畫布：標籤卡片疊在畫布上方，
          掛畫布的話游標一滑過卡片就會收回去。pointerenter／pointerleave 不會因為
          在子元素之間移動而重複觸發（mouseover 會，所以刻意不用它）。*/

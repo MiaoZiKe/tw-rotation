@@ -242,6 +242,10 @@
 .artscene .asx a:hover,.artscene .asf a:hover{text-decoration:underline}
 .artscene .asw>.dgwrap{margin:0}
 .artscene .asw>.dg3d{position:relative;min-width:0}
+/* 10-19：3D 的說明卡排在畫布底下（three3d.js mount 的 below 參數）—— 桌機兩欄、手機一欄；說明文字最多兩行，卡片不比畫布寬 */
+.artscene .dg3d .dgstage-b{grid-template-columns:repeat(2,minmax(0,1fr));padding:8px 0 0}
+.artscene .dg3d .lbl3d.below{min-width:0;max-width:100%;overflow-wrap:anywhere}
+.artscene .dg3d .lbl3d.below i{-webkit-line-clamp:2}
 .artscene .asf{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap;margin-top:8px;font-size:13px;color:var(--ink-2);line-height:1.6}
 /* 手機預覽：圖先當靜態縮圖（不吃觸控，手指照常捲頁面），點「點開互動」才放開高度與操作 */
 .artscene.pv .asw{max-height:300px;overflow:hidden}
@@ -456,6 +460,7 @@
   .arthd>.arthdb{padding:0 2px}
   .artbody>h4:first-child{margin-top:var(--sp-3)}
   .artbody .artscene{padding:var(--sp-2)}
+  .artscene .dg3d .dgstage-b{grid-template-columns:minmax(0,1fr)}
   .artscene .asc{font-size:14px;align-items:flex-start}
   .artscene .asc .asb{margin-top:1px}
   .artbody{font-size:15px;line-height:1.8}
@@ -1419,7 +1424,13 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
         w.innerHTML = '<div class="dg3d"></div>';
         const phone = isPhone();
         const segC = (seg) => { const L = window.App && window.App.L; return (L && L.segColor && L.segColor(seg)) || '#8ea0c4'; };
-        const v = await R.mount(w.firstChild, id, { color: segC, anim: !phone, onSeg: () => {} });
+        /* 10-19 Andy 截圖（800G 交換器）：右欄說明卡超出文章欄被切掉、畫面上方一大片空白、模型偏小偏下。
+           below：說明卡一律排在畫布底下（文件流裡，不會被切；桌機排兩欄，CSS 在 .artscene 範圍內）；
+           maxH：給一個有限的高度上限，three3d.js 的 tighten() 才會把畫布收到模型剛好塞得下的高度（產業頁同一套），模型置中、不留上方空白。
+           anim 一律關：動畫開著時零件會自己動（交換器那顆光模組會來回抽插、整台自轉），取景量到的範圍跟幾秒後畫面上的不一樣，
+           實測桌機 1440 模型偏右上 10%；文章裡要的是一張穩定、置中的圖，想轉自己拖。 */
+        const capH = () => Math.round(Math.max(340, Math.min(560, (window.innerHeight || 800) * 0.7)));
+        const v = await R.mount(w.firstChild, id, { color: segC, anim: false, onSeg: () => {}, below: true, maxH: capH });
         if (!v) return fail();
         if (!fig.isConnected) { try { v.dispose(); } catch (e) { /* 已離開這篇 */ } return; }
         fig._v = v; fig.dataset.st = 'ready';

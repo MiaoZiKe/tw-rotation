@@ -83,7 +83,8 @@ def t_art_scene_1019(b, base, code):
             if s3["pv"]:
                 pg.evaluate("() => { const o = document.querySelector('.artscene.k3d .asov'); if (o) o.style.visibility = ''; }")
         ok(f"{T}（{w}）：捲到 3D 區塊 → three3d.js 才載入、畫布 {s3['w']}×{s3['h']} 真的畫出東西（{px.get('cols')} 種顏色、亮度標準差 {px.get('sd')}）、下方有「在站內完整頁面看」連到 #industry/group/ai_adv_packaging",
-           bool(ready) and s3["st"] == "ready" and s3["cv"] and s3["w"] >= 280 and s3["h"] >= 200 and s3["r3d"] and px.get("cols", 0) >= 20 and px.get("sd", 0) != 0
+           # 高度下限 200 → 160（10-19 之二：文章內嵌的畫布改成收到模型剛好塞得下，手機扁平模型約 180；模型佔比另外在「版面」那段量）
+           bool(ready) and s3["st"] == "ready" and s3["cv"] and s3["w"] >= 280 and s3["h"] >= 160 and s3["r3d"] and px.get("cols", 0) >= 20 and px.get("sd", 0) != 0
            and s3["link"] == "#industry/group/ai_adv_packaging", [s3, px])
         if w <= 640:
             ok(f"{T}（{w}）：手機 3D 先是預覽（高度 {s3['wh']} ≤ 300、蓋一顆「點開互動」，手指照常捲頁面）", s3["pv"] and s3["ov"] and s3["wh"] <= 302, s3)
@@ -178,4 +179,104 @@ def t_art_scene_1019(b, base, code):
     ok(f"{T}：沒有網頁錯誤", not errs, errs[:3])
 
 
-register("文章3D區塊1019", lambda pg, b, base, code: t_art_scene_1019(b, base, code))
+# ===================================================================== 文章3D區塊1019 之二：版面與取景（10-19 Andy 截圖）
+# Andy 附「800G 交換器：板卡上插著光模組」截圖：① 右欄零件說明卡超出文章欄右緣被切掉 ② 畫布上方一大片空白、模型偏小偏下。
+# 修法（articles.js 呼叫 Rack3D.mount 時傳 below／maxH、anim:false；three3d.js 只在 o.below 時跑 centerFit／tighten 的文章分支）：
+#   說明卡一律排到畫布底下（文件流，桌機兩欄、手機一欄）、取景照收攏的模型置中拉近、畫布收到模型剛好塞得下。
+# 驗收（1440／1024／800／390 各開一次，手機先點「點開互動」）：
+#   a. .artscene 裡每一個有字的元素都在 .artscene 外框內；每張說明卡都在畫布底下那一排（.dgstage-b），卡片本身沒有被裁掉的字（scrollWidth ≤ clientWidth）
+#   b. 模型在畫布上的實際像素範圍（同一塊畫面「畫布顯示」減「畫布藏起來」的差）高 ≥ 畫布高 50%，中心落在畫布 35%～65%
+#   c. 頁面沒有橫向捲軸
+#   d. 桌機：真的用滑鼠在畫布上拖一下 → 相機位置變了（文章裡的 3D 還是能轉）
+SCENE_FIT_BLOCK = {"t": "scene", "kind": "3d", "id": "switch_wireless", "title": "800G 交換器：板卡上插著光模組（測試）", "caption": "拖曳旋轉（測試）"}
+
+
+def _model_px_box(pg):
+    """畫布上模型的實際像素範圍：同一塊截圖，畫布顯示 vs 藏起來，差異 > 40 的像素外接框。編號圓點那層先藏掉，只量模型本身。"""
+    from PIL import Image, ImageChops
+    import io
+    bb = pg.locator(".artscene.k3d canvas >> nth=0").bounding_box()
+    clip = {"x": bb["x"], "y": bb["y"], "width": bb["width"], "height": bb["height"]}
+    pg.evaluate("() => document.querySelectorAll('.artscene .lbl3dLayer').forEach(e => e.style.visibility = 'hidden')")
+    pg.wait_for_timeout(200)
+    a = Image.open(io.BytesIO(pg.screenshot(clip=clip))).convert("RGB")
+    pg.evaluate("() => { document.querySelector('.artscene.k3d canvas').style.visibility = 'hidden'; }")
+    pg.wait_for_timeout(100)
+    c = Image.open(io.BytesIO(pg.screenshot(clip=clip))).convert("RGB")
+    pg.evaluate("() => { document.querySelector('.artscene.k3d canvas').style.visibility = ''; document.querySelectorAll('.artscene .lbl3dLayer').forEach(e => e.style.visibility = ''); }")
+    box = ImageChops.difference(a, c).convert("L").point(lambda v: 255 if v > 40 else 0).getbbox()
+    return a.size, box
+
+
+def t_art_scene_fit_1019(b, base):
+    T = "文章3D區塊1019"
+    errs: list[str] = []
+    idx = json.loads((SITE / "articles" / "index.json").read_text(encoding="utf-8"))["articles"]
+    pub = [a for a in idx if a.get("src") != "api" and (SITE / "articles" / "posts" / f"{a['id']}.json").exists()]
+    if not pub:
+        return
+    aid = pub[0]["id"]
+    post = json.loads((SITE / "articles" / "posts" / f"{aid}.json").read_text(encoding="utf-8"))
+    post["blocks"] = [SCENE_FIT_BLOCK] + post["blocks"]
+    shots = os.environ.get("TW_SCENE_SHOT")
+    for w in (1440, 1024, 800, 390):
+        c = b.new_context(viewport={"width": w, "height": 900 if w > 640 else 844})
+        c.add_init_script("try{localStorage.setItem('tw.live.on','0');localStorage.setItem('tw.tour','done')}catch(e){}")
+        c.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+        c.route(f"**/articles/posts/{aid}.json", lambda r: r.fulfill(status=200, content_type="application/json", body=json.dumps(post, ensure_ascii=False)))
+        pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)))
+        pg.goto(base + f"#article/{aid}", wait_until="domcontentloaded")
+        if not wait_until(pg, "() => document.querySelector('.artscene.k3d') ? 1 : 0", 15000):
+            ok(f"{T}（版面 {w}）：文章頁畫出交換器 3D 區塊", False); c.close(); continue
+        # 同意橫幅會蓋住畫面下緣（量像素時會算進去），有的話先按掉
+        if pg.evaluate("() => { const x = document.getElementById('lgAccept'); return !!(x && x.getClientRects().length); }"):
+            pg.click("#lgAccept"); pg.wait_for_timeout(300)
+        pg.locator(".artscene.k3d").scroll_into_view_if_needed()
+        rd = wait_until(pg, "() => { const f = document.querySelector('.artscene.k3d'); return f && (f.dataset.st === 'ready' || f.dataset.st === 'fail') ? 1 : 0; }", 40000, 300)
+        if not ok(f"{T}（版面 {w}）：交換器 3D 載入完成", bool(rd) and pg.evaluate("() => document.querySelector('.artscene.k3d').dataset.st") == "ready"):
+            c.close(); continue
+        if w <= 640:
+            pg.locator(".artscene.k3d .asov").click(); pg.wait_for_timeout(1200)
+        pg.wait_for_timeout(1500)
+        # 畫布捲到畫面上方（避開頁首與底部橫幅），再量
+        pg.evaluate("() => { const f = document.querySelector('.artscene.k3d'); scrollTo(0, f.getBoundingClientRect().top + scrollY - 70); }")
+        pg.wait_for_timeout(700)
+        lay = pg.evaluate("""() => { const f = document.querySelector('.artscene.k3d'), fr = f.getBoundingClientRect(), out = [];
+            f.querySelectorAll('*').forEach(e => { if (![...e.childNodes].some(n => n.nodeType === 3 && n.textContent.trim())) return;
+              const r = e.getBoundingClientRect(), cs = getComputedStyle(e); if (r.width < 1 || r.height < 1 || cs.visibility === 'hidden' || cs.display === 'none') return;
+              if (r.left < fr.left - 1 || r.right > fr.right + 1) out.push((e.className || e.tagName) + ':' + e.textContent.trim().slice(0, 10) + ' ' + Math.round(r.left) + '～' + Math.round(r.right)); });
+            const cards = [...f.querySelectorAll('.lbl3d')], inB = cards.filter(k => k.closest('.dgstage-b')).length;
+            const clip = cards.filter(k => k.scrollWidth > k.clientWidth + 1).map(k => k.textContent.trim().slice(0, 10));
+            const cv = f.querySelector('canvas').getBoundingClientRect();
+            return { fig: [Math.round(fr.left), Math.round(fr.right)], out, n: cards.length, inB, clip, cvW: Math.round(cv.width), cvH: Math.round(cv.height),
+              sw: document.documentElement.scrollWidth - innerWidth }; }""")
+        ok(f"{T}（版面 {w}）：說明卡 {lay['inB']}/{lay['n']} 張都排在畫布底下、沒有字超出 .artscene 外框（{lay['fig']}）、卡片裡沒有被裁掉的字、沒有橫向捲軸",
+           lay["n"] >= 8 and lay["inB"] == lay["n"] and not lay["out"] and not lay["clip"] and lay["sw"] <= 1, lay)
+        size, box = _model_px_box(pg)
+        hr = (box[3] - box[1]) / size[1] if box else 0
+        cy = ((box[1] + box[3]) / 2) / size[1] if box else 0
+        cx = ((box[0] + box[2]) / 2) / size[0] if box else 0
+        ok(f"{T}（版面 {w}）：模型在畫布 {size[0]}×{size[1]} 上佔 {hr:.0%} 高（≥ 50%；改前 1440 只有 22%）、中心在 ({cx:.0%}, {cy:.0%})（35%～65%）",
+           box is not None and hr >= 0.5 and 0.35 <= cx <= 0.65 and 0.35 <= cy <= 0.65, [size, box])
+        if shots:
+            if w <= 640:
+                pg.screenshot(path=shots.replace(".png", f"_fit_{w}.png"))
+            else:
+                pg.locator(".artscene.k3d").screenshot(path=shots.replace(".png", f"_fit_{w}.png"))
+        if w > 640:
+            c0 = pg.evaluate("() => window.Rack3D.current.cam()")
+            cb = pg.locator(".artscene.k3d canvas >> nth=0").bounding_box()
+            x0, y0 = cb["x"] + cb["width"] * 0.5, cb["y"] + cb["height"] * 0.5
+            pg.mouse.move(x0, y0); pg.mouse.down(); pg.mouse.move(x0 + 120, y0 + 10, steps=8); pg.mouse.up(); pg.wait_for_timeout(500)
+            c1 = pg.evaluate("() => window.Rack3D.current.cam()")
+            ok(f"{T}（版面 {w}）：在文章裡用滑鼠拖畫布 → 3D 真的轉了（相機 {c0} → {c1}）", c0 != c1, [c0, c1])
+        c.close()
+    ok(f"{T}（版面）：沒有網頁錯誤", not errs, errs[:3])
+
+
+def _t_art_scene_all(b, base, code):
+    t_art_scene_1019(b, base, code)
+    t_art_scene_fit_1019(b, base)
+
+
+register("文章3D區塊1019", lambda pg, b, base, code: _t_art_scene_all(b, base, code))
