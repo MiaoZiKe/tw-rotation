@@ -270,7 +270,11 @@ def bibi_frames(name, size, flip):
     return out
 
 
+SUBST = {"coins": "face_thinking_bulb"}   # 品牌規範：不用金錢圖示（金幣）
+
+
 def act_name(o, name):
+    name = SUBST.get(name, name)
     if o.dev == "m" and name.startswith("point_"):
         return "point_dr_v2"
     return name

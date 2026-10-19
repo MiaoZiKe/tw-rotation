@@ -311,7 +311,7 @@ def d_cards(pg, a, start):
     a.hover("#etfRetTopQ", 600, 0.8)
     a.cam(["#etfYldCard"], 10, "殖利率前 5")
     a.hover("#etfYldQ", 600, 0.4)
-    a.say("殖利率＝近 12 個月現金配息 ÷ 最新收盤", "coins")
+    a.say("殖利率＝近 12 個月現金配息 ÷ 最新收盤", "face_thinking_bulb")
     a.idle(500)
     a.say("平均填息天數，看配息是否被價差抵銷", "magnifier")
     a.idle(600)
@@ -593,7 +593,7 @@ def m_cards(pg, a, start):
     a.idle(500)
     a.click('.m4trisg button[data-i="2"]', label="殖利率")
     a.wait(500)
-    a.say("殖利率＝近 12 個月現金配息 ÷ 最新收盤", "coins")
+    a.say("殖利率＝近 12 個月現金配息 ÷ 最新收盤", "face_thinking_bulb")
     a.hover("#etfYldQ", 700)
     a.say("平均填息天數，看配息是否被價差抵銷", "magnifier")
     a.idle(500)
@@ -737,7 +737,7 @@ def run(dev, shots, out, port):
                 pg.goto(base + "#overview", wait_until="networkidle")
                 pg.wait_for_timeout(2500)
                 a = A(pg, dev == "m", cfg["viewport"]["width"], cfg["viewport"]["height"])
-                a.x, a.y = (4, 450) if dev == "d" else (380, 600)
+                a.x, a.y = (4, 450) if dev == "d" else (370, 160)
                 a.dsf = cfg["device_scale_factor"]
                 rec = Rec(pg, W, H, a)
                 state = {}
