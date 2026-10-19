@@ -36,7 +36,7 @@ def shot_crop():
     ok, fr = cap.read()
     im = Image.fromarray(cv2.cvtColor(fr, cv2.COLOR_BGR2RGB))
     x, y, w, h = c
-    return im.crop((int(x), int(y), int(x + w), int(y + h))), None
+    return im.crop((int(x) - 30, int(y) + 4, int(x + w) - 4, int(y + h) + 26)), None   # 下緣多留 26px：零件卡與圖說那一行完整入框
 
 
 def sticker(im, w, radius=34, border=14):

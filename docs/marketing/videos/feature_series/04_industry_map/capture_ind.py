@@ -65,12 +65,14 @@ CAM_JS = r"""([sels, pad]) => {
   if (!n) return null;
   // 右下角客服鈕：鏡頭避開它（不藏它）。區塊右緣碰到客服鈕那一欄時，下緣收到客服鈕上方，
   // 免得合成時為了避開客服鈕把區塊右側裁掉（寧可只拍到客服鈕以上那一段，介紹的區塊另外捲進來）。
-  const fab = [...document.querySelectorAll('#supFab, .supfab, .bibiring')].find(e => e.getClientRects().length);
+  const fab = [...document.querySelectorAll('#supFab, .supfab, .bibiring')].find(e => { if (!e.getClientRects().length) return false; const q = e.getBoundingClientRect(); const h = document.elementFromPoint(q.left + q.width / 2, q.top + q.height / 2); return !h || h === e || e.contains(h) || h.contains(e); });
   if (fab) { const f = fab.getBoundingClientRect(); if (x1 + pad > f.left - 6 && y1 + pad > f.top - 6 && f.top - 14 - pad > y0 + 80) y1 = Math.min(y1, f.top - 14 - pad); }
   return [x0 - pad, y0 - pad, x1 - x0 + 2 * pad, y1 - y0 + 2 * pad]; }"""
 
 FAB_JS = r"""() => { const es = [...document.querySelectorAll('#supFab, .supfab, #bibiRing, .bibiring, #bibiStage, .bibiwrap')]
-  .filter(e => e.getClientRects().length && getComputedStyle(e).visibility !== 'hidden' && +getComputedStyle(e).opacity > 0.05);
+  .filter(e => e.getClientRects().length && getComputedStyle(e).visibility !== 'hidden' && +getComputedStyle(e).opacity > 0.05)
+  .filter(e => { const r = e.getBoundingClientRect(); const h = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+    return !h || h === e || e.contains(h) || h.contains(e) || h.id === '__vc' || (h.closest && h.closest('#__vc')); });   // 被抽屜蓋住（看不到）的客服鈕不算入鏡
   if (!es.length) return null; let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
   es.forEach(e => { const r = e.getBoundingClientRect(); if (r.width < 2) return; x0 = Math.min(x0, r.left); y0 = Math.min(y0, r.top); x1 = Math.max(x1, r.right); y1 = Math.max(y1, r.bottom); });
   return x1 > x0 ? [x0, y0, x1 - x0, y1 - y0] : null; }"""
@@ -171,19 +173,23 @@ class A(C.Act):
         self.say_t, self.say_need = self.t, bubble_dur(text) + 0.08 + (0.27 if first else 0.0)
 
     def click(self, sel, ms=380, pause=150, dx=0.5, dy=0.5, label=""):
-        n0 = len(self.targets)
-        ok = super().click(sel, ms, pause, dx, dy, label)
-        if ok and len(self.targets) > n0:
-            tg = self.targets[-1]
-            if label:
-                tg["label"] = label
-            if tg.get("selector") in ("svg", "canvas") or (tg.get("selector") or "").startswith("svg"):
-                # SVG 裡的環節標題：elementFromPoint 往上找會停在整張 <svg>；改量被點的那個 <g> 本身的外框（點下那一刻）
-                r = self.pg.evaluate(C.RECT_JS, sel)
-                if r:
-                    tg["rect_center"] = self._vpt(r[0] + r[2] / 2, r[1] + r[3] / 2)
-                    tg["measured_by"] = "被點元素外框（getBoundingClientRect）"
-        return ok
+        b = self.box(sel)
+        if not b:
+            self.note(f"點不到 {sel}")
+            return False
+        x, y = b["x"] + b["width"] * dx, b["y"] + b["height"] * dy
+        self.note(f"點 {label or sel}")
+        self.move(x, y, ms)
+        self.wait(pause)
+        pre = self.pg.evaluate(C.RECT_JS, sel)   # 按下前一刻量被點元素本身的外框（SVG 環節標題點了會展開、位置會變）
+        self.click_xy(x, y, 1, 0, expect=sel)
+        tg = self.targets[-1]
+        if label:
+            tg["label"] = label
+        if pre and pre[2] > 0:
+            tg["rect_center"] = self._vpt(pre[0] + pre[2] / 2, pre[1] + pre[3] / 2)
+            tg["measured_by"] = "被點元素外框（按下前一刻）"
+        return True
 
     def click_now(self, sel, label, ms=380, pause=150, dx=0.5, dy=0.5):
         """不捲動、量當下位置點（3D 標籤每幾格就重排，box() 的「等穩定」會等不到）。"""
@@ -206,10 +212,7 @@ class A(C.Act):
         self.note(f"點 {label}")
         self.click_xy(x, y, 1, 0, expect=sel)
         self.targets[-1]["label"] = label
-        r3 = self.pg.evaluate(C.RECT_JS, sel)
-        if r3 and r3[2] > 0:
-            self.targets[-1]["rect_center"] = self._vpt(r3[0] + r3[2] / 2, r3[1] + r3[3] / 2)
-            self.targets[-1]["measured_by"] = "被點元素外框（點下那一刻）"
+        # 中心誤差以「按下前一刻」量到的外框為準（capture.record_target）；點下後標籤會展開說明而變高，不可事後再量
         return True
 
     def hover(self, sel, ms=420, dx=0.5, dy=0.5):
@@ -289,6 +292,8 @@ def warm3d(pg):
     pg.wait_for_timeout(1500)
 
 
+M_COL = "all:" + ", ".join(f'#relSec .segbox[data-seg="{x}"]' for x in ("thermal", "power", "optical", "switch", "connector", "fpc"))
+M_LOWER = "rect:0,268,390,576"   # 手機：視窗下方 390×576 css（＝畫面框比例的整寬），底部抽屜彈出時連同上方被點的編號一起入鏡
 DG_CAM = ["#prodDiagram .dgcol.l", "#prodDiagram .dgcol.r", "#prodDiagram svg.dg"]   # 2D 剖析圖：左右編號卡＋中間圖
 REL_CAM = ["all:#relSec .segbox", "#relStick"]   # 關聯圖：所有環節框（＋右側選取清單）；整張連標題列比畫面框比例高，標題列不入框免得上下被裁
 
@@ -455,7 +460,7 @@ def m_open(pg, a, start):
     scroll_to(pg, "#dgBody", 70)
     start()
     a.cam(["#dgBody"], 6, "AI 伺服器 2D 剖析圖")
-    a.move(200, 500, 400)
+    a.move(200, 240, 400)
     a.say("AI 伺服器由哪些零件組成？", "face_think_v2")
     a.idle(900)
     a.say("從上游到下游，台廠在哪段？", "tilt")
@@ -484,7 +489,7 @@ def m_guide(pg, a, start):
 def m_chain(pg, a, start):
     goto(pg, "#industry")
     start()
-    a.cam(["#chainSwitch", "#v-industry .card"], 6, "產業鏈分頁")
+    a.cam(["#chainSwitch", "#dgPick"], 6, "產業鏈分頁")
     a.say("上方分頁，切換產業鏈", "point_ur_v2")
     for c, lab in (("semiconductor", "產業鏈：半導體"), ("electronics", "產業鏈：一般電子"), (CHAIN, "產業鏈：AI 伺服器")):
         pg.evaluate("(s) => { const e = document.querySelector(s); if (e) e.scrollIntoView({inline: 'center', block: 'nearest', behavior: 'instant'}); }", chain_btn(c))
@@ -492,22 +497,26 @@ def m_chain(pg, a, start):
         a.wait(1100)
         if c == "semiconductor":
             a.say("每條鏈都有產品剖析圖", "talk_explain_v2")
+    # 手機：切產業鏈後先停在「族群總覽」小分頁 → 點「AI 伺服器」小分頁才是產品剖析圖
+    a.click(f'#dgPick a[data-dgid="{CHAIN}"]', label="小分頁：AI 伺服器剖析圖")
     a.until("() => !!document.querySelector('#dgBody .mnum')", 6000)
+    a.wait(400)
     a.cam_view("捲動")
-    a.scroll_to_el("#dgBody", 70, 700)
-    a.cam(["#dgBody"], 6, "剖析圖編號")
+    a.scroll_to_el("#dgBody", 268, 700)   # 剖析圖放在畫面中段：點編號後下方彈出的零件抽屜與剖析圖同一個鏡頭（390×576 css）
+    a.cam([M_LOWER], 0, "剖析圖編號＋零件抽屜")
     a.say("點編號看零件說明", "magic_frame")
-    for no in ("01", "07"):
-        sel = f'#dgBody .mnum[data-no="{no}"]'
-        a.click_now(sel, f"編號 {no}")
-        a.wait(1300)
-        pg.evaluate("() => { const b = document.getElementById('mSheetBack'); if (b) b.click(); }")
-        a.wait(400)
+    a.click_now('#dgBody .mnum[data-no="05"]', "編號 05")
+    a.wait(1300)
+    a.click_now('#mSheet .mshnav button[data-d="1"]', "抽屜「›」：下一個編號")
+    a.wait(1300)
     a.settle()
 
 
 def m_rel(pg, a, start):
     goto(pg, f"#industry/{CHAIN}")
+    # 關聯圖在頁尾附近：點下一格時上一格收起、整頁變矮，捲動位置會被瀏覽器往上夾 → 畫面跳到頁尾。
+    # 錄影的瀏覽器在頁尾下方墊一段空白（在視窗外，不入鏡），捲動位置就不會被夾。
+    pg.add_style_tag(content="body{padding-bottom:900px!important}")
     scroll_to(pg, "#relSec", 64)
     start()
     a.cam(REL_CAM, 6, "供應鏈關聯圖")
@@ -516,11 +525,12 @@ def m_rel(pg, a, start):
     a.wait(300)
     a.finger_hscroll("#chainMap", 260, 1100)
     a.say("點環節，展開台廠與連線", "point_dr_v2")
-    for s, lab in (("optical", "環節：光通訊模組"), ("switch", "環節：交換器"), ("power", "環節：電源")):
-        a.cam([seg(s), "#chainMap"], 6, lab)
+    # 由下往上點（交換器 → 光通訊 → 電源）：上一格收起時被點的那一格在它上方，位置不會被推動，畫面不跳
+    for s, lab in (("switch", "環節：交換器"), ("optical", "環節：光通訊模組"), ("power", "環節：電源")):
+        a.cam([M_COL], 8, lab)   # 手機：鏡頭拉近到被點的那一欄（散熱～軟板整欄；展開、收起時鏡頭穩定，不跟著單一格跳）
         a.click(seg(s), label=lab)
         a.wait(1300)
-        if s == "switch":
+        if s == "optical":
             a.say("上下游連線跟著亮", "magnifier")
     a.idle(300)
     a.settle()
@@ -553,13 +563,17 @@ def m_3d(pg, a, start):
     a.click_xy(cx, r["y"] + 30, 300, 150)
     a.targets[-1].update(label="3D 空白處（收攏）", blank=True)
     a.wait(1200)
+    a.cam_view("捲動")
+    a.scroll(by=-150, ms=600)   # 3D 往畫面中下段移：點編號後彈出的抽屜與模型、被點的編號同一個鏡頭
+    a.cam([M_LOWER], 0, "3D＋零件抽屜")
     a.say("點編號，說明跟著換", "magnifier")
-    for no, lab in (("06", "零件：HBM 記憶體"), ("12", "零件：電源櫃"), ("15", "零件：ToR 交換器")):
-        a.cam(["#prod3d", "#mSheet"], 4, lab)
-        a.click_now(f'#prod3d .mnum[data-no="{no}"]', lab)
+    # 抽屜開著時整個畫面鋪了一層背景（點了會收抽屜），所以第 2、3 個零件用抽屜底部的「›」下一個編號切換
+    a.click_now('#prod3d .mnum[data-no="11"]', "零件：編號 11 後門風扇模組")
+    a.wait(1500)
+    a.say("對應環節、台廠都列好", "pointer_r")
+    for lab in ("抽屜「›」：編號 12 電源櫃", "抽屜「›」：編號 13 BBU 電池"):
+        a.click_now('#mSheet .mshnav button[data-d="1"]', lab)
         a.wait(1500)
-        if no == "06":
-            a.say("對應環節、台廠都列好", "pointer_r")
     a.settle()
 
 
