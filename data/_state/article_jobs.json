@@ -1,5 +1,5 @@
 {
- "updated": "2026-10-19 11:59",
+ "updated": "2026-10-19 12:08",
  "jobs": [
   {
    "id": 11,
@@ -7,12 +7,12 @@
    "kind": "article",
    "title": "南亞科法說：記憶體缺貨還會持續嗎",
    "note": "排程自動排入（規則 1，台北 2026-10-19 06:00）；建議主題 n_nanya_dram",
-   "status": "queued",
+   "status": "working",
    "created": 1792382342135,
-   "updated": 1792382342135,
+   "updated": 1792382915055,
    "result": null,
-   "stage": null,
-   "stage_at": null
+   "stage": "plan",
+   "stage_at": 1792382915055
   },
   {
    "id": 12,
