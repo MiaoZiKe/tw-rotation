@@ -2,6 +2,48 @@
  "updated": "2026-10-19",
  "articles": [
   {
+   "id": "2026-10-19-intro-cowos-chain",
+   "cat": "intro",
+   "title": "12～14 萬片的先進封裝，誰在台積電身邊",
+   "date": "2026-10-19",
+   "topic": "sch-20261019-06-r1-intro-1",
+   "groups": [
+    {
+     "id": "ai_adv_packaging",
+     "name": "AI 先進封裝"
+    },
+    {
+     "id": "osat",
+     "name": "封測代工"
+    },
+    {
+     "id": "ic_substrate",
+     "name": "PCB 載板"
+    }
+   ],
+   "reading_min": 3,
+   "src": "api"
+  },
+  {
+   "id": "2026-10-19-intro-thermal",
+   "cat": "intro",
+   "title": "散熱產業鏈：單櫃功耗 3 倍，風扇換水冷板",
+   "date": "2026-10-19",
+   "topic": "sch-20261019-06-r1-intro-2",
+   "groups": [
+    {
+     "id": "liquid_cooling",
+     "name": "液冷散熱"
+    },
+    {
+     "id": "air_cooling",
+     "name": "氣冷與核心組件"
+    }
+   ],
+   "reading_min": 3,
+   "src": "api"
+  },
+  {
    "id": "2026-10-19-news-week-flow",
    "cat": "news",
    "title": "外資賣超60萬張、投信買超27萬張：誰買哪族群",
