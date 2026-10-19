@@ -3426,7 +3426,7 @@ def t_etf_ret_1006(pg, b, base):
             lp.wait_for_timeout(250)
 
         try:
-            lp.goto(f"{base}#etf", wait_until="networkidle")
+            lp.goto(f"{base}#etf/list", wait_until="networkidle")   # 10-19：#etf 預設改成配息行事曆，分類鈕與報酬比較在「ETF 總覽」分頁
             J("() => { try { Object.keys(localStorage).filter(k => k.startsWith('tw.etf.')).forEach(k => localStorage.removeItem(k)); } catch (e) {} }")
             lp.reload(wait_until="networkidle")
             wait_until(lp, "() => document.querySelector('#v-etf') && document.querySelector('#v-etf').dataset.ready === 'full'", 15000)

@@ -468,7 +468,11 @@
     const tr = e.target.closest && e.target.closest('#etfRetTbl tbody tr[data-code]'); if (!tr) return;
     e.stopPropagation(); e.preventDefault();
     const nx = tr.nextElementSibling;
-    if (nx && nx.classList.contains('m4retx')) { nx.remove(); tr.classList.remove('m4on'); return; }
+    /* 10-19 報酬比較三處連動：手機點一列＝展開明細＋選取這檔（折線加粗、橫條亮）；收起＝取消選取。不捲動（etfpage.js retLink） */
+    const ES = window.TwEtfPage && window.TwEtfPage.state, code = tr.dataset.code;
+    const rp = (c) => { if (ES && ES._rPick && (c ? ES.retSel !== c : ES.retSel === code)) ES._rPick(c); };
+    if (nx && nx.classList.contains('m4retx')) { nx.remove(); tr.classList.remove('m4on'); rp(null); return; }
+    rp(code);
     const t = tr.closest('table'), heads = $$('thead th', t).map((h) => h.textContent.trim());
     const cells = $$(':scope > td', tr);
     const parts = [1, 4, 5].filter((i) => cells[i]).map((i) => `<span><b>${esc(heads[i] || '')}</b> ${cells[i].innerHTML}</span>`).join('');
