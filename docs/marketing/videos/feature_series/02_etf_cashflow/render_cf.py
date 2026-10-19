@@ -42,7 +42,7 @@ F_MED = str(FD / "NotoSansTC-Medium.ttf")
 FPS = 30
 PAD = 6
 XF = 12            # 鏡頭之間交叉淡化 0.4 秒
-END_DUR = 5.0      # 片尾卡原片 5 秒（1.5 倍後 3.3 秒 ≥ 3 秒）
+END_DUR = 4.8      # 片尾卡原片 4.8 秒（1.5 倍後 3.2 秒 ≥ 3 秒）
 
 ORDER = ["open", "guide", "inc", "cx", "end"]
 SEC = {   # 膠囊、標題、標題重點字

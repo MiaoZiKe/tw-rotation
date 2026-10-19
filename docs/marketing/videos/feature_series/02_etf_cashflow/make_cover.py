@@ -16,7 +16,7 @@ from PIL import Image, ImageDraw, ImageFilter
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
-import render_etf as R  # noqa: E402
+import render_cf as R  # noqa: E402
 
 PAPER = (255, 249, 239)
 INK = (50, 26, 20)
@@ -27,18 +27,16 @@ YEL = (255, 229, 165)
 
 
 def shot_crop():
-    f = R.RAW / "d_cal.json"
-    meta = json.loads(f.read_text(encoding="utf-8")) if f.exists() else json.loads((R.RAW / "d_meta.json").read_text(encoding="utf-8"))["cal"]
-    # 點了日期之後、清單出現的那一刻（第 4 句泡泡出現後 1.5 秒）
-    t = (meta["says"][2]["t"] + 1.0) if R.FAST else (meta["says"][4]["t"] + 1.5)
-    cap = cv2.VideoCapture(str(R.RAW / "d_cal.mp4"))
+    meta = json.loads((R.RAW / "d_inc.json").read_text(encoding="utf-8"))
+    t = [x for x in meta["says"] if "切組合" in x["text"]][0]["t"] + 2.6   # 組合 B：圓餅＋12 個月時鐘＋明細
+    cap = cv2.VideoCapture(str(R.RAW / "d_inc.mp4"))
     cap.set(cv2.CAP_PROP_POS_FRAMES, int(t * 30))
     ok, fr = cap.read()
     im = Image.fromarray(cv2.cvtColor(fr, cv2.COLOR_BGR2RGB))
-    cx = meta.get("content_x") or [0, im.width]
-    # 配息行事曆卡片：左右用內容區、上下取卡片範圍（約 css 64～872）
-    asof = json.loads((R.REPO / "site" / "data" / "etf.json").read_text(encoding="utf-8")).get("asof")
-    return im.crop((cx[0] + 10, 2 * 64, cx[1] - 10, 2 * (798 if R.FAST else 836))), asof or meta.get("data_date")
+    js = json.loads((R.RAW / "d_inc.json").read_text(encoding="utf-8"))
+    k = min(int(t * 30), len(js["cams"]) - 1)
+    _cid, x, y, w, h = js["cams"][k]   # 這一刻鏡頭框住的範圍（組合分頁＋圓餅＋時鐘），影片像素
+    return im.crop((int(x), int(y), int(x + w), int(y + h))), None
 
 
 def sticker(im, w, radius=34, border=14):
@@ -65,13 +63,13 @@ def make(kind):
     cv = paper(W, H)
     d = ImageDraw.Draw(cv, "RGBA")
     reg = R.Reg()
-    crop, data_date = shot_crop()
+    crop, _ = shot_crop()
     f_pill = R.font(R.F_BOLD, 34 if kind == "16x9" else 40)
     f_big = R.font(R.F_BLACK, 150 if kind == "16x9" else 170)
     f_sub = R.font(R.F_BOLD, 44 if kind == "16x9" else 50)
     f_note = R.font(R.F_MED, 26 if kind == "16x9" else 30)
     # 膠囊
-    s = "哩股哩股・功能介紹 01"
+    s = "哩股哩股・功能介紹 02"
     tw, th, bb = R.tsize(f_pill, s)
     px, py = (80, 70) if kind == "16x9" else (80, 110)
     d.rounded_rectangle([px, py, px + tw + 56, py + th + 34], (th + 34) // 2, fill=CORAL + (255,), outline=INK + (255,), width=3)
@@ -80,7 +78,7 @@ def make(kind):
     # 大標：ETF（珊瑚）＋一頁看懂（淡黃刷底）
     y = py + th + 34 + (40 if kind == "16x9" else 70)
     x = px
-    for word, col, brush in (("ETF", CORAL, False), ("一頁看懂", INK, True)):
+    for word, col, brush in (("ETF", CORAL, False), ("現金流試算", INK, True)):
         w_, h_, b_ = R.tsize(f_big, word)
         if brush:
             d.rounded_rectangle([x - 6, y + h_ * 0.52, x + w_ + 10, y + h_ + 14], 18, fill=YEL + (255,))
@@ -91,8 +89,8 @@ def make(kind):
         else:
             if word == "ETF":
                 y += h_ + 40
-    big_bottom = y + R.tsize(f_big, "一頁看懂")[1] + 14
-    s2 = "配息行事曆・類型總覽・報酬比較"
+    big_bottom = y + R.tsize(f_big, "現金流試算")[1] + 14
+    s2 = "月配試算表・複利試算表"
     w_, h_, b_ = R.tsize(f_sub, s2)
     ys = big_bottom + (34 if kind == "16x9" else 44)
     d.text((px - b_[0], ys - b_[1]), s2, font=f_sub, fill=SUB)
@@ -110,7 +108,7 @@ def make(kind):
     cv.alpha_composite(st, (sx, sy))
     reg.add("網站畫面", (sx, sy, sx + st.width, sy + st.height))
     # 比比（好奇歪頭）
-    bimg = Image.open(R.LIB / "face_curious" / "key.png").convert("RGBA")
+    bimg = Image.open(R.LIB / "calc" / "key.png").convert("RGBA")
     bs = 430 if kind == "16x9" else 560
     bimg = bimg.resize((bs, bs), Image.LANCZOS)
     a = np.array(bimg)[..., 3]
@@ -122,12 +120,7 @@ def make(kind):
     cv.alpha_composite(bimg, (bx, by))
     reg.add("比比", (bx + xs_.min(), by + ys_.min(), bx + xs_.max(), by + ys_.max()))
     # 註記
-    note = f"網站實際畫面・資料日 {data_date}｜歷史資料，不代表未來表現"
-    w_, h_, b_ = R.tsize(f_note, note)
-    nx = W - 70 - w_ if kind == "16x9" else (W - w_) // 2
-    ny = H - 70 if kind == "16x9" else H - 60
-    d.text((nx - b_[0], ny - b_[1]), note, font=f_note, fill=SUB)
-    reg.add("註記", (nx, ny, nx + w_, ny + h_))
+    # Andy 10-19：不放資料日／歷史資料角標
     for name, box in [(n, b) for (n, _g, b) in reg.items]:
         reg.text_in(name, box, (0, 0, W, H), 30)
     out = HERE / f"cover_{kind}.png"

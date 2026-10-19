@@ -894,6 +894,19 @@ def to_inc(pg, wait=4500):
     goto(pg, None, "#etf/inc", wait)
 
 
+def hswipe_into(a, sel):
+    """元素在可左右滑的一排裡、超出畫面：像手指一樣把那一排逐格滑過去，再點。"""
+    dx = a.pg.evaluate("(s) => { const b = document.querySelector(s); if (!b) return 0; let p = b.parentElement; while (p && p.scrollWidth <= p.clientWidth + 2) p = p.parentElement; if (!p) return 0; const r = b.getBoundingClientRect(), pr = p.getBoundingClientRect(); const R = Math.min(pr.right, innerWidth); if (!p.id) p.id = '__vhs'; return r.right > R - 8 ? Math.ceil(r.right - R + 24) : (r.left < pr.left + 8 ? -Math.ceil(pr.left - r.left + 24) : 0); }", sel)
+    if not dx:
+        return
+    hid = a.pg.evaluate("(s) => { let p = document.querySelector(s).parentElement; while (p && p.scrollWidth <= p.clientWidth + 2) p = p.parentElement; return '#' + p.id; }", sel)
+    x0 = a.pg.evaluate("(h) => document.querySelector(h).scrollLeft", hid)
+    n = 15
+    for k in range(1, n + 1):
+        a.pg.evaluate("([h, v]) => { document.querySelector(h).scrollLeft = v; }", [hid, x0 + dx * (0.5 - 0.5 * math.cos(math.pi * k / n))])
+        a.frame()
+
+
 def d2_open(pg, a, start):
     to_inc(pg)
     pg.locator('#incTabs button').nth(1).click()
@@ -947,16 +960,17 @@ def d2_inc(pg, a, start):
     a.wait(700)
     a.click("#incList input[type=checkbox]:not(:checked)", label="勾選一檔")
     a.wait(800)
-    a.cam(["#incTabs", "#incCdn", "#incClk", "#incCTbl"], 8, "組合連動")
+    a.cam(['#incTabs button[data-i="0"]', '#incTabs button[data-i="2"]', "#incCdn", "#incClk"], 6, "組合連動：分頁＋圓餅＋時鐘")
     a.say("切組合，三張圖一起換", "happy_spin")
     for k in range(3):
         a.click(f'#incTabs button[data-i="{k}"]', label=f"組合 {'ABC'[k]}")
         a.wait(700)
+    a.cam(["#incClk", "#incCTbl"], 6, "時鐘＋明細")
     a.say("點時鐘某月，同步標出那檔", "face_thinking_bulb")
     for m in (0, 4, 8):
         tap_slice(a, "#incClk", m, f"時鐘第 {m + 1} 格")
         a.wait(700)
-    a.cam(["#incCView", "#incClk", "#incGrid", "#incCTbl"], 8, "時鐘／月曆格")
+    a.cam(["#incCView", "#incClk", "#incGrid", "#incCTbl"], 6, "時鐘／月曆格")
     a.say("切月曆格，看每月入帳", "clock")
     a.click('#incCView button[data-v="grid"]', label="月曆格")
     a.wait(800)
@@ -1039,17 +1053,15 @@ def m2_guide(pg, a, start):
     start()
     a.cam_view("首頁總覽")
     a.say("點左上角選單", "point_ur_v2")
-    a.idle(300)
     a.click("#m4Burger", label="選單")
     a.wait(900)
     a.cam(['.m4item[data-v="overview"]', '.m4item[data-v="etf"]'], 10, "選單抽屜")
     a.say("點「ETF」→「月配試算」", "magnifier")
-    a.hover('.m4item[data-v="etf"]', 600)
     a.click('.m4item[data-v="etf"]', label="選單：ETF")
-    a.wait(1300)
+    a.wait(900)
     a.cam([".m4subtabs", "#etfCalCard .calhd"], 6, "ETF 上方分頁")
     a.click('.m4subtabs button[data-sub="etf-inc"]', label="月配試算")
-    a.wait(1300)
+    a.wait(900)
     a.settle()
 
 
@@ -1064,13 +1076,13 @@ def m2_inc(pg, a, start):
     a.scroll_to_el("#incBar", 160, 800)
     a.cam(["#incSQ", "#incBar"], 6, "單檔長條")
     a.say("直條＝每月入帳金額", "surprise_jump")
-    a.hover("#incBar", 600, 0.3, 0.6)
-    a.move(*_rel(a, "#incBar", 0.75, 0.6), 900)
+    a.move(*_rel(a, "#incBar", 0.6, 0.6), 600)
     a.cam_view("捲動")
     a.scroll(to_y=0, ms=800)
     a.cam(["#incTabs", "#incCdn"], 6, "組合連動")
     a.say("切組合，圖表一起換", "happy_spin")
     for k in range(3):
+        hswipe_into(a, f'#incTabs button[data-i="{k}"]')
         a.click(f'#incTabs button[data-i="{k}"]', label=f"組合 {'ABC'[k]}")
         a.wait(700)
     a.cam_view("捲動")
@@ -1083,14 +1095,14 @@ def m2_inc(pg, a, start):
     a.say("切月曆格，看每月入帳", "clock")
     a.click('#incCView button[data-v="grid"]', label="月曆格")
     a.wait(800)
-    for m in (3, 10):
+    for m in (10,):
         a.click(f'#incGrid .mcell[data-m="{m}"]', label=f"{m} 月")
         a.wait(700)
     a.say("時鐘看全年分布", "face_nod_v2")
     a.click('#incCView button[data-v="clock"]', label="時鐘")
     a.wait(900)
     a.say("試算，不代表未來配息", "face_wink")
-    a.idle(700)
+    a.idle(300)
     a.settle()
 
 
@@ -1100,7 +1112,7 @@ def m2_cx(pg, a, start):
     a.cam([".m4subtabs"], 6, "分頁")
     a.say("再看「複利試算」", "point_r_v2")
     a.click('.m4subtabs button[data-sub="etf-cx"]', label="複利試算")
-    a.wait(1300)
+    a.wait(900)
     a.cam(["#incPX", "#__vsel"], 6, "條件")
     a.say("換對象，曲線和表一起變", "hourglass")
     a.click("#incPX .m4cond", label="條件")
@@ -1118,15 +1130,14 @@ def m2_cx(pg, a, start):
     a.scroll_to_el("#cxChart", 130, 800)
     a.cam(["#cxChart"], 6, "累積曲線")
     a.say("配息再投入 vs 只領現金", "rocket")
-    a.hover("#cxChart", 500, 0.35, 0.55)
-    a.move(*_rel(a, "#cxChart", 0.8, 0.45), 1000)
+    a.move(*_rel(a, "#cxChart", 0.75, 0.45), 400)
     a.cam_view("捲動")
     a.scroll_to_el("#cxTbl", 140, 800)
     a.cam(["#cxTbl", "#cxHead"], 6, "下表")
     a.say("下表比較期末資產與年化", "proud_shine")
-    a.idle(700)
+    a.idle(300)
     a.say("試算，不代表未來報酬", "bulb")
-    a.idle(700)
+    a.idle(300)
     a.settle()
 
 

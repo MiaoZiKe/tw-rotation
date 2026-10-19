@@ -1,4 +1,4 @@
-"""功能介紹影片 01 ETF：由錄影紀錄＋渲染紀錄產生 storyboard.md 與 overlap_report.md。
+"""功能介紹影片 02 ETF 現金流：由錄影紀錄＋渲染紀錄產生 storyboard.md 與 overlap_report.md。
 
 用法：python report_etf.py [--manual-d N] [--manual-m N]（人工抽格看過的張數，寫進報告）
 """
@@ -12,16 +12,14 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
-import render_etf as R  # noqa: E402
+import render_cf as R  # noqa: E402
 
 PURPOSE = {
-    "open": "使用者需求與痛點：存 ETF 想知道除息日、配多少、同類比較、含息報酬；三百多檔資料分散",
-    "guide": "引導：從首頁總覽，點選單「ETF」→ 子選單（行事曆／總覽／試算）→ 進到配息行事曆",
-    "cal": "功能 1 配息行事曆：看哪天除息、點日期看當天清單、看口徑、切月份",
-    "types": "功能 2 類型分頁：切換七類、看每類檔數、下方同步換類",
-    "cards": "功能 3 分類卡：受益人／成交值切換、報酬率前 5 與殖利率前 5 的口徑（只講口徑，不推薦）",
-    "ret": "功能 4 報酬比較：期間、改起始日期、加入比較（搜尋、勾選、取消）、走勢與年化、含息／不含息、明細表",
-    "end": "收尾：價值總結＋CTA「搜尋「哩股哩股」」",
+    "open": "需求：想每月都有現金流，要買幾張、投入多少",
+    "guide": "引導：首頁 → 選單 ETF → 現金流試算（手機：選單 → ETF → 上方分頁「月配試算」）",
+    "inc": "月配試算表：月領＋目標金額 → 每月入帳長條 → 篩月配 → 組合 A～C 連動（圓餅、時鐘、明細）→ 點時鐘月份 → 月曆格 → 切回時鐘",
+    "cx": "複利試算表：換對象 3 次、切 1／3／5 年（曲線與表同步）→ 配息再投入 vs 只領現金 → 自訂再投入（網頁）→ 期末資產與年化",
+    "end": "收尾：價值總結＋CTA「搜尋「哩股哩股」」＋片尾免責",
 }
 
 
@@ -41,12 +39,12 @@ def main():
     ap.add_argument("--manual-d", type=int, default=0)
     ap.add_argument("--manual-m", type=int, default=0)
     g = ap.parse_args()
-    sb = ["# 分鏡表：功能介紹影片 01 ETF（網頁 1920×1080／手機 1080×1920、30fps）", "",
+    sb = ["# 分鏡表：功能介紹影片 02 ETF 現金流（網頁 1920×1080／手機 1080×1920、30fps；成片整支 1.5 倍速，下表秒數為原片）", "",
           "- 比比主持、台詞用對話泡泡（一泡一句、≤22 字、停留依字數至少 1.8 秒），不配人聲；底樂＋點擊音效（make_music_v3.py 自製合成）。",
           "- 網站畫面框只放「這一句在介紹的那一塊」：鏡頭＝錄影時每一格量到的元素外框，補成框的比例後裁切放大；區塊以外淡化、外圍藍框。",
           "- 每段標「網站實際畫面・資料日」與「畫面為歷史資料，不代表未來表現」；片尾免責卡停 4.6 秒。",
           "- 本表由 `report_etf.py` 依錄影紀錄自動產生。", ""]
-    rep = ["# 重疊與畫面檢查報告（render_etf.py 每一幀自動產生＋人工抽格）", ""]
+    rep = ["# 重疊與畫面檢查報告（render_cf.py 原片每一幀自動產生＋人工抽格）", ""]
     for dev, name in (("d", "網頁版"), ("m", "手機版")):
         j = json.loads((R.SCR / f"render_{dev}.json").read_text(encoding="utf-8"))
         mf = R.RAW / f"{dev}_meta.json"
@@ -55,7 +53,7 @@ def main():
             f = R.RAW / f"{dev}_{sid}.json"
             if f.exists():
                 meta[sid] = json.loads(f.read_text(encoding="utf-8"))
-        mp4 = HERE / (("feat01_etf_web" if dev == "d" else "feat01_etf_mobile") + ("_v2" if R.FAST else "") + ".mp4")
+        mp4 = HERE / ("feat02_etf_cashflow_web.mp4" if dev == "d" else "feat02_etf_cashflow_mobile.mp4")
         fz = freeze(mp4)
         D = dur(mp4)
         sb += [f"## {name}（片長 {D:.1f} 秒）", ""]
