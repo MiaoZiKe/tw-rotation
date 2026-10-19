@@ -6036,6 +6036,11 @@ h3 .howbtn.pop{font-family:inherit}
 <script src="three3d.js"></script>
 <script src="industry.js"></script>
 </template>
+<!-- 10-19 文章內嵌 3D（articles.js scene 區塊）：只要 three3d.js，不必拖整包產業頁（industry.js＋dg/*）。
+     同一個 src → TwLazy 的快取跟 lazy-ind 共用，之後進產業頁不會再抓一次。 -->
+<template id="lazy-r3d">
+<script src="three3d.js"></script>
+</template>
 <template id="lazy-thm">
 <script src="diagrams.js"></script>
 <script src="themes3d.js"></script>
