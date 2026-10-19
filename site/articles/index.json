@@ -2,6 +2,29 @@
  "updated": "2026-10-19",
  "articles": [
   {
+   "id": "2026-10-19-know-foundry",
+   "cat": "know",
+   "title": "IC 代工是什麼？全球前十大產值 7 成在一家",
+   "date": "2026-10-19",
+   "topic": "k_foundry",
+   "groups": [
+    {
+     "id": "foundry",
+     "name": "晶圓代工"
+    },
+    {
+     "id": "silicon_wafer",
+     "name": "矽晶圓"
+    },
+    {
+     "id": "fab_process_equip",
+     "name": "前段製程設備"
+    }
+   ],
+   "reading_min": 4,
+   "src": "api"
+  },
+  {
    "id": "2026-10-19-know-ssd",
    "cat": "know",
    "title": "SSD 拆開看：小板讀取比硬碟快 35 倍",

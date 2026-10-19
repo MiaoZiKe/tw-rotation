@@ -9,7 +9,7 @@
 |---|---|---|---|---|
 | 1 | 重做 | 2026-10-14-intro-ai-server AI 伺服器產業鏈入門 | ai_server（另嵌 2.5D ai_server） | 已上架 2026-10-19 82 2026-10-14-intro-ai-server |
 | 2 | 新文章 | k_ssd SSD 是什麼？ | memory_module（SSD） | 已上架 2026-10-19 80 2026-10-19-know-ssd |
-| 3 | 新文章 | k_foundry IC 代工是什麼？ | foundry | 待做 |
+| 3 | 新文章 | k_foundry IC 代工是什麼？ | foundry | 已上架 2026-10-19 82 2026-10-19-know-foundry |
 | 4 | 新文章 | k_abf IC 載板是什麼？ | ic_substrate | 待做 |
 | 5 | 新文章 | k_psu_bbu AI 伺服器電源是什麼？ | server_psu（另嵌 2.5D power_bbu） | 待做 |
 | 6 | 重做 | know-cowos CoWoS 是什麼？ | 站內 CoWoS-L 立體剖面（查 diagram_inventory） | 待做 |
