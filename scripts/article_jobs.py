@@ -135,18 +135,32 @@ def write_schedule_if_changed(sch, path=None) -> bool:
 
 TOPICS = ROOT / "site" / "articles" / "topics.json"
 CAT_NAME = {"news": "比比快訊", "intro": "比比產業鏈", "know": "比比知識"}
-LOOKBACK_H = 2   # 這一個小時＋前一個小時：GitHub 排程常晚十幾分鐘、偶爾整輪跳過，多看一小時補得回來；再往前就不補（避免剛加的規則把今天早就過去的整點一次補排）
+LOOKBACK_H = 12  # 2026-10-19 從 2 改 12：GitHub 的 :41 排程實測會整輪跳過好幾小時（10-18 夜～10-19 早只跑了 05:54、08:28 兩次），
+                 # 6:00 的規則在 08:28 那輪已經超出「最近兩小時」→ 整批漏排（Andy：「為何沒有正常執行」）。往回看 12 小時，
+                 # Worker 對同一個 topic_id 不重排，所以重複看不會重複排；「剛加的規則把今天早就過去的整點一次補排」改由 updated 擋（見 due_slots）。
+
+
+def _sched_updated(sch: dict):
+    """頻率設定最後儲存時間（台北，"YYYY-MM-DD HH:MM"）→ datetime；讀不到回 None（不擋）。"""
+    try:
+        return datetime.strptime(str(sch.get("updated") or "")[:16], "%Y-%m-%d %H:%M").replace(tzinfo=TAIPEI)
+    except ValueError:
+        return None
 
 
 def due_slots(sch: dict, now: datetime, lookback: int = LOOKBACK_H):
     """頻率設定第 2 版：列出「最近 lookback 個整點裡對得上的 (台北日期, 小時, 第幾條規則, 規則)」。
-    對得上＝規則的 dates 含那天、或 days 含那天星期（1＝週一），而且 hours 含那個小時。沒開或不是第 2 版 → 空。"""
+    對得上＝規則的 dates 含那天、或 days 含那天星期（1＝週一），而且 hours 含那個小時。沒開或不是第 2 版 → 空。
+    整點在「設定最後儲存」之前就結束的不算（剛加的規則不會把今天早就過去的整點補排）。"""
     if not sch or sch.get("ver") != 2 or sch.get("enabled") is not True:
         return []
     now = now.astimezone(TAIPEI)
+    upd = _sched_updated(sch)
     out = []
     for back in range(lookback - 1, -1, -1):
         t = now - timedelta(hours=back)
+        if upd and t.replace(minute=0, second=0, microsecond=0) + timedelta(hours=1) <= upd:
+            continue
         day, wd, hr = t.strftime("%Y-%m-%d"), t.isoweekday(), t.hour
         for i, r in enumerate(sch.get("rules") or [], start=1):
             hit_day = day in (r.get("dates") or []) if "dates" in r else wd in (r.get("days") or [])
