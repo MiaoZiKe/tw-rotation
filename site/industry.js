@@ -3602,6 +3602,84 @@
     return { nSeg: segs.length, nTw: nTw, nEdge: nEdge };
   }
 
+  /* ★ 2026-10-19 第七批連動（普查第二輪第 19 項；規格 docs/style_guide.md 第十八節）：關聯圖 ↔ 右欄環節清單（#relList）。
+     同一批公司畫了兩次（圖上一張卡、右欄一列），以前滑到右欄「2330 台積電」，要自己在 140 條線的圖上找那張卡 —— 兩步推論。
+       · 滑過右欄個股列 → 圖上那張卡亮琥珀框（.lkhl），連到它的線與另一端的公司一起提亮（直接叫那張卡自己的 onmouseenter，
+         跟滑到卡上是同一個效果，不另寫一套）；滑過圖上的卡 → 右欄那一列 .hl（列在右欄捲動框外面時只捲右欄自己，不捲整頁）。
+       · 點右欄個股列：第一下＝選取（列 .lk、圖上那張卡持續亮著），第二下才進個股頁（原本一點就走 —— 想先在圖上看它接誰都來不及）。
+         點圖上的公司卡（原本就是開原地資訊欄、不跳頁）也同時選取右欄那一列。點其他地方＝取消選取。
+       · 只認滑鼠滑過（pointerType mouse）：觸控點一下會補發 pointerover，點完會卡在「滑過」。
+     狀態記在 .relmain 元素上（_rlSel／_rlHov，驗收讀 data-rl-sel／data-rl-hov）；右欄與圖重畫（換環節、收合）之後 paint 一次就回來。
+     樣式在這裡注入（不動 index.html，避免跟別批同時改那個大檔撞到）。驗收：_uitest「第七批連動1019」。*/
+  function relLinkCss() {
+    if (document.getElementById('relLinkCss')) return;
+    const st = document.createElement('style'); st.id = 'relLinkCss';
+    st.textContent = `.rellist .rlco.hl{background:color-mix(in srgb,var(--amber) 18%,var(--panel-2));box-shadow:inset 3px 0 0 var(--amber)}
+.rellist .rlco.lk{box-shadow:inset 3px 0 0 var(--amber),inset 0 0 0 1px var(--amber)}
+.chainmap .co.lkhl rect{stroke:var(--amber)!important;stroke-width:2.5px;stroke-opacity:1!important}
+.chainmap .co.lkhl text{fill:var(--ink)}
+.chainmap .co.lkhl{opacity:1!important}`;
+    document.head.appendChild(st);
+  }
+  function relLinkPaint(rm) {
+    if (!rm || !rm.isConnected) return;
+    const hov = rm._rlHov || null, sel = rm._rlSel || null;
+    rm.dataset.rlHov = hov || ''; rm.dataset.rlSel = sel || '';
+    const on = (c) => !!c && (c === hov || c === sel);
+    let hit = null;
+    rm.querySelectorAll('#relList .rlco[data-code]').forEach(r => { const c = r.dataset.code, l = on(c);
+      r.classList.toggle('hl', l); r.classList.toggle('lk', !!sel && c === sel); if (l && c === hov) hit = r; });
+    rm.querySelectorAll('.chainmap .co[data-code]').forEach(n => { const c = n.dataset.code; n.classList.toggle('lkhl', on(c)); });
+    // 從右欄滑過來（或只剩選取）→ 叫圖上那張卡自己的滑過效果，線與另一端一起亮；滑到圖上的卡時，卡自己已經做了
+    const want = rm._rlSrc === 'map' && hov ? null : (hov || sel);
+    const card = want ? rm.querySelector(`.chainmap .co[data-code="${want}"]`) : null;
+    if (card && card.onmouseenter) card.onmouseenter();
+    else if (rm._rlEdge && rm._rlSrc !== 'map') { const c0 = rm.querySelector('.chainmap .co'); if (c0 && c0.onmouseleave) c0.onmouseleave(); }
+    rm._rlEdge = !!card;
+    // 從圖上滑過來 → 右欄那一列不在可視範圍就只捲右欄自己的框（桌機才有右欄）
+    if (hit && rm._rlSrc === 'map') {
+      let box = hit.parentElement;
+      while (box && box !== rm && !(box.scrollHeight > box.clientHeight + 2 && /(auto|scroll)/.test(getComputedStyle(box).overflowY))) box = box.parentElement;
+      if (box && box !== rm) { const rb = hit.getBoundingClientRect(), bb = box.getBoundingClientRect();
+        if (rb.top < bb.top || rb.bottom > bb.bottom) box.scrollTop += rb.top - bb.top - (bb.height - rb.height) / 2; }
+    }
+  }
+  function relLink(host) {
+    const rm = host && (host.closest('.relmain') || host.parentElement); if (!rm) return;
+    relLinkCss();
+    relLinkPaint(rm);
+    if (rm._rlOn) return; rm._rlOn = true;
+    const codeOf = (t) => { const r = t && t.closest && t.closest('#relList .rlco[data-code], .chainmap .co[data-code]');
+      return r && rm.contains(r) && r.dataset.code ? { code: r.dataset.code, src: r.classList.contains('rlco') ? 'row' : 'map' } : null; };
+    rm.addEventListener('pointerover', (e) => { if (e.pointerType !== 'mouse') return;
+      const h = codeOf(e.target), c = h ? h.code : null;
+      if (c === (rm._rlHov || null)) return;
+      rm._rlHov = c; rm._rlSrc = h ? h.src : null;
+      // 卡自己的 onmouseleave 在 mouseout 之後才跑（會把線的提亮拿掉）：等它跑完再畫
+      setTimeout(() => relLinkPaint(rm), 0);
+    });
+    rm.addEventListener('pointerleave', (e) => { if (e.pointerType !== 'mouse' || !rm._rlHov) return; rm._rlHov = null; rm._rlSrc = null; setTimeout(() => relLinkPaint(rm), 0); });
+    rm.addEventListener('click', (e) => {
+      const h = codeOf(e.target); if (!h) return;
+      if (h.src === 'row') {
+        if (e.ctrlKey || e.metaKey || e.shiftKey || e.button === 1) return;   // 要在新分頁開的照舊直接開
+        if (rm._rlSel !== h.code) { e.preventDefault(); rm._rlSel = h.code; rm._rlSrc = 'row'; relLinkPaint(rm); return; }
+        rm._rlSel = null; return;   // 第二下：照原本的連結進個股頁
+      }
+      // 圖上的卡：原本的點擊（開資訊欄、選環節）照跑，順便選取右欄那一列；右欄會因為選了環節重畫，畫完再上色
+      rm._rlSel = h.code; setTimeout(() => relLinkPaint(rm), 0);
+    });
+    if (!relLink._doc) { relLink._doc = true;
+      document.addEventListener('click', (e) => {
+        document.querySelectorAll('.relmain').forEach((m) => {
+          if (!m._rlSel || !document.contains(e.target)) return;
+          const r = e.target.closest && e.target.closest('#relList .rlco, .chainmap .co');
+          if (r && m.contains(r)) return;
+          m._rlSel = null; relLinkPaint(m);
+        });
+      }, true);
+    }
+  }
   let m4OpenSeg = null;   // 手機 v2 關聯圖：目前展開的那一格（一次一格）
   function drawChainMap(host, sc, chainId, im, handlers) {
     if (!host) return;
@@ -3976,6 +4054,7 @@
          現在把它接到**既有那一套**上（onCompany → 跟點環節色標同一條路），
          不另外寫一套高亮邏輯。選的是**環節**（co.segment）不是族群，理由見 renderChain 的註解。*/
       if (handlers && handlers.onCompany) handlers.onCompany(co); }; });
+    relLink(host);
     const redraw = () => { drawChainMap(host, sc, chainId, im, handlers); if (handlers && handlers.onFold) handlers.onFold(); };
     $$('.segfold', host).forEach(n => n.onclick = (ev) => { ev.stopPropagation();
       const st2 = chainFoldGet(chainId); st2.seg[n.dataset.seg] = n.dataset.folded !== '1'; chainFoldSet(chainId, st2); redraw(); });
@@ -5909,8 +5988,10 @@
      單一段卡住的時間＝最慢那一格（實測冷啟動 4 格一次建完 340～510ms，拆開後每段 < 300ms）。
      mtfGen 是世代號：還沒建完就又重建（換週期下拉、切回單一週期、即時格資料到了）時，舊的那一串直接停。*/
   let mtfGen = 0;
+  let mtfCells = [], mtfAct = -1;   // 第七批連動：四格各自的圖與看板、游標現在在哪一格（-1＝都不在）
   function buildMtfGrid(pg) {
     const gen = ++mtfGen;
+    mtfCells = []; mtfAct = -1;
     const t0 = performance.now();
     const cfg = state.cfg || loadCfg();
     const river = cfg.peRiver ? peRiver(pg) : null;
@@ -5954,19 +6035,71 @@
       /* 游標看板：滑過哪一根就寫那一根的時間、開高低收與量。小圖沒有大圖那條圖例，
          不寫的話量柱只有高低、看不出是幾張。*/
       const tip = $('#mtip-' + i);
-      c.onCrosshair((k) => {
+      const showTip = (k) => {
         const d = k == null ? null : c.data[k];
         // 副圖標籤跟著游標那一根走（離開圖就回到最後一根）
         try { c.setPaneLabels(miniPaneText(c, state.cfg || cfg, k == null ? null : k)); } catch (e) { /* 已銷毀 */ }
+        if (tip) tip.dataset.k = d ? String(KUtil.fmtTime(d.time, dtf)) : '';
         if (!d || !tip) { if (tip) tip.hidden = true; return; }
         const prev = c.data[k - 1];
         const col = A.upDown(prev ? d.close - prev.close : d.close - d.open);
         tip.hidden = false;
         tip.innerHTML = `<b>${A.fmt.esc(KUtil.fmtTime(d.time, dtf))}</b>　開 ${A.fmt.n(d.open)} 高 ${A.fmt.n(d.high)} 低 ${A.fmt.n(d.low)} 收 <b style="color:${col}">${A.fmt.n(d.close)}</b>`
           + `<br>量 <b data-vol>${A.fmt.lot((d.volume || 0) / 1000)}</b>`;
+      };
+      mtfCells[i] = { c, showTip };
+      c.onCrosshair((k) => {
+        // 程式放上去的十字線（mtfSync 對別格 setCrosshairPosition）也會走到這裡：看板由 mtfSync 自己寫，這裡只處理「游標真的在這一格」
+        if (mtfAct >= 0 && mtfAct !== i) return;
+        showTip(k);
+        if (mtfAct === i) mtfSync(i, k);
       });
       miniCharts.push(c);
     };
+    /* ★ 2026-10-19 第七批連動（普查第二輪第 18 項；Andy：「同個資訊多張圖表，都需要有像是 ETF 月配那樣的連動效果」）：
+       四格是同一檔股票、同一條時間軸的四種切法，以前滑到日線某一天，要知道「這天在週線是哪一根」得自己數 —— 兩步推論。
+       現在游標在哪一格（mtfAct，靠 pointerenter／leave 認，不靠十字線事件：程式放上去的十字線也會觸發同一個事件，
+       用它判斷會在四格之間來回彈），其他三格就把十字線放到「包含那一天的那一根」，並把各自的看板寫成那一根的開高低收：
+         · 對方是日／週／月（週月 K 以那一期最後一個交易日標示，resampleDaily）→ 第一根「日期 ≥ 這一天」的那根；
+         · 對方是分 K、這一格也是分 K → 最後一根「時間 ≤ 這一刻」的那根；
+         · 對方是分 K、這一格是日週月 → 最後一根「日期 ≤ 這一天」的那根（那一期收盤前最後一小時）。
+       對方沒有涵蓋那一天（例如 1 小時只有近幾個月）→ 那一格的十字線收掉、看板藏起來，不硬放到最近的一根騙人。
+       游標離開那一格 → 其他三格一起收掉。驗收：_uitest「第七批連動1019」。*/
+    const dayOf = (t) => KUtil.fmtTime(t).slice(0, 10);
+    const mtfFind = (src, tgt) => {
+      const arr = tgt.c.data || []; if (!arr.length) return -1;
+      const sIn = typeof src.time === 'number', tIn = typeof arr[0].time === 'number', sd = dayOf(src.time);
+      if (!tIn) {
+        for (let j = 0; j < arr.length; j++) if (dayOf(arr[j].time) >= sd) return j;
+        return -1;
+      }
+      let best = -1;
+      for (let j = 0; j < arr.length; j++) {
+        if (sIn ? arr[j].time <= src.time : dayOf(arr[j].time) <= sd) best = j; else break;
+      }
+      // 最早一根都比這一刻晚（best＝-1），或這一天已經超過分 K 最後一天＝沒涵蓋到，不放
+      return best >= 0 && (best < arr.length - 1 || dayOf(arr[best].time) === sd) ? best : -1;
+    };
+    const mtfSync = (i, k) => {
+      const src = mtfCells[i]; if (!src) return;
+      const d = k == null ? null : src.c.data[k];
+      const hit = [];
+      mtfCells.forEach((t, j) => {
+        if (!t || j === i) return;
+        const idx = d ? mtfFind(d, t) : -1;
+        try {
+          if (idx < 0) { t.c.chart.clearCrosshairPosition(); t.showTip(null); hit.push(''); return; }
+          const b = t.c.data[idx];
+          t.c.chart.setCrosshairPosition(b.close, b.time, t.c.candle);
+          t.showTip(idx); hit.push(String(j) + ':' + dayOf(b.time));
+        } catch (e) { /* 那一格已銷毀 */ }
+      });
+      grid.dataset.sync = d ? i + '@' + dayOf(d.time) + '|' + hit.filter(Boolean).join(',') : '';
+    };
+    $$('.mtf-cell', grid).forEach((cel, i) => {
+      cel.addEventListener('pointerenter', () => { mtfAct = i; });
+      cel.addEventListener('pointerleave', () => { if (mtfAct !== i) return; mtfSync(i, null); mtfAct = -1; });
+    });
     // 驗收讀：mtfBuildMs＝單一段最久卡多久（第一段含排版＋第一格）、mtfBuildTotal＝四格全部建完的牆鐘時間
     state.mtfBuildMs = null; state.mtfBuildTotal = null;
     const step = (i, ts) => {
@@ -6291,6 +6424,49 @@ html.m4 #etfHoldCard tr.hi td{background:color-mix(in srgb,var(--accent,#4ea1ff)
        · o.dual[name]＝[正色, 負色]：逐根上色的長條（紅買綠賣、EPS 正負）畫成左右兩半，不讓人以為只有紅色。
        · o.labels[name]：圖例上顯示的字（例如把原本寫在 Y 軸上方的「EPS」單位併進圖例）。
      驗收：_uitest「設計v4第二批2B」。*/
+  /* ★ 2026-10-19 第七批連動（普查第二輪第 17 項；規格 docs/style_guide.md 第十八節）：HTML 圖例（.chlegend）與大戶散戶色塊（.hoTgl）
+     以前只能「點＝開關」，滑過沒有任何反應 —— 營收圖上三條線、法人兩組柱擠在一起時，要知道圖例上那個色塊是哪一條，
+     得自己比顏色（兩步推論）。現在滑過圖例鈕＝那一條（那一組柱）亮、其他系列變淡；滑出恢復；點擊開關照舊不變。
+     做法用 ECharts 自己的 highlight／downplay：滑進來的那一刻才把每個系列的 emphasis.focus 設成 'series'（blurScope 'global'：
+     大戶散戶三條線各在一格，'coordinateSystem' 的話其他格不會變淡），滑出 downplay 後把 focus 還原成原本的值 ——
+     不然平常滑到圖上一根柱，也會變成整個系列聚焦，改掉 stLink 那套「同一個時點全亮」的手感。
+     變淡的濃度跟 stLink／ETF selDim() 同一組（深 .55／淺 .35）。只認滑鼠（pointerType mouse）：觸控點一下會補發 pointerover，
+     那一下若當成滑過，點完開關那一條會卡在「亮著」。驗收：_uitest「第七批連動1019」。*/
+  function legHi(ch, n) {
+    if (!ch || (ch.isDisposed && ch.isDisposed())) return;
+    const dom = ch.getDom(); const prev = dom._legHi == null ? null : dom._legHi;
+    if (prev === n) return;
+    const ser = (ch.getOption().series || []);
+    if (prev != null) {
+      try { ch.dispatchAction({ type: 'downplay', seriesName: prev }); } catch (e) { /* 系列已不在 */ }
+      const f0 = dom._legF0 || [];
+      try { ch.setOption({ series: ser.map((s, i) => ({ emphasis: { focus: f0[i] || 'none' } })) }); } catch (e) { /* 圖已重畫 */ }
+    }
+    dom._legHi = n; dom.dataset.legHi = n || '';
+    if (n == null) return;
+    const dm = document.documentElement.getAttribute('data-theme') === 'light' ? 0.35 : 0.55;
+    dom._legF0 = ser.map(s => (s.emphasis && s.emphasis.focus) || 'none');
+    try {
+      ch.setOption({ series: ser.map(() => ({ emphasis: { focus: 'series', blurScope: 'global' },
+        blur: { itemStyle: { opacity: dm }, lineStyle: { opacity: dm }, areaStyle: { opacity: dm * 0.5 }, label: { opacity: dm } } })) });
+      ch.dispatchAction({ type: 'highlight', seriesName: n });
+    } catch (e) { /* 提示框與 dispose 競態 */ }
+  }
+  /* 把一組按鈕接成「滑過＝亮那個系列」。nameOf(btn)→系列名（null＝這顆不算，例如已經關掉的那條）。重複呼叫不會疊監聽。*/
+  function legHover(box, getChart, nameOf) {
+    if (!box) return;
+    box._legGet = getChart; box._legName = nameOf;
+    if (box._legOn) return; box._legOn = true;
+    box.addEventListener('pointerover', (e) => { if (e.pointerType !== 'mouse') return;
+      const b = e.target.closest('button'); const n = b && box.contains(b) ? box._legName(b) : null;
+      box.querySelectorAll('button.lghov').forEach(x => { if (x !== b) x.classList.remove('lghov'); });
+      if (b && n != null) b.classList.add('lghov');
+      legHi(box._legGet(), n == null ? null : n); });
+    box.addEventListener('pointerleave', (e) => { if (e.pointerType !== 'mouse') return;
+      box.querySelectorAll('button.lghov').forEach(x => x.classList.remove('lghov')); legHi(box._legGet(), null); });
+    // 點擊（開關）會重畫或藏掉那一條：先放掉滑過狀態，重畫完游標還在鈕上的話，下一個 pointerover 會再亮
+    box.addEventListener('click', () => { const ch = box._legGet(); if (ch && !ch.isDisposed()) { const d = ch.getDom(); d._legHi = null; d.dataset.legHi = ''; } }, true);
+  }
   const extLegOff = {};
   const extLegRec = {};
   function extLegFit(r) {
@@ -6365,6 +6541,8 @@ html.m4 #etfHoldCard tr.hi td{background:color-mix(in srgb,var(--accent,#4ea1ff)
       off[n] = !off[n]; paint();
       if (ch) ch.dispatchAction({ type: off[n] ? 'legendUnSelect' : 'legendSelect', name: n });
     };
+    legHover(box, () => { const d = document.getElementById(id); return d && window.echarts ? echarts.getInstanceByDom(d) : null; },
+      (b) => (b.dataset.n && !off[b.dataset.n] ? b.dataset.n : null));
     // 兩種狀態共用 ECharts 的選取：不管點的是 HTML 圖例還是（放不下時的）ECharts 圖例，都從這裡同步回來
     ['legendselectchanged', 'legendselected', 'legendunselected'].forEach(t => c.off(t, c._extLegSync));
     c._extLegSync = (ev) => { Object.entries(ev.selected || {}).forEach(([k, v]) => { off[k] = v === false; }); paint(); };
@@ -8347,6 +8525,9 @@ html.m4 #etfHoldCard tr.hi td{background:color-mix(in srgb,var(--accent,#4ea1ff)
       stLink('ho', { root: el, code: (pg.meta && pg.meta.code) || '', rows: '#hoTbl tr[data-k]', charts: [{ id: 'holderChart', keys: dates,
         hit: (di) => { if (!pubIdx.length) return null; let b = pubIdx[0]; pubIdx.forEach(i => { if (Math.abs(i - di) < Math.abs(b - di)) b = i; }); return dates[b]; } }] });
     }, { wins: [20, 63], key: 'tw.chipWinHo', dflt: 20 });   // 大戶／散戶只留 4 週、3 個月（#302），預設 4 週、自己記
+    // 第七批連動：滑過色塊＝那一格的線亮、其他兩格變淡（關掉的那條不算）
+    legHover($('#hoTgls', el), () => { const d = document.getElementById('holderChart'); return d && window.echarts ? echarts.getInstanceByDom(d) : null; },
+      (b) => { const L = HO_LINES.find(x => String(x.k) === b.dataset.k); return L && on.has(L.k) ? L.full : null; });
     $$('#hoTgls .hoTgl', el).forEach(b => b.onclick = () => {
       const k = +b.dataset.k;
       if (on.has(k)) on.delete(k); else on.add(k);

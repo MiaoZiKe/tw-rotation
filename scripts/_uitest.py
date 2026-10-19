@@ -17941,9 +17941,13 @@ def t_rel_list(pg, base):
 
         # ---- 點右欄的個股 → 真的進那一檔的個股頁；上一頁回得來
         code = pg.evaluate("() => (document.querySelector('#relList .rlseg.on .rlco') || {dataset:{}}).dataset.code")
+        # ★ 2026-10-19 第七批連動（style_guide 十八節：表格列第一下＝選取、第二下才進下一層）：
+        #   改前：點一下右欄個股＝進個股頁。改後：第一下＝選取（留在本頁、圖上那張卡亮），第二下才進個股頁。
+        click(pg, f'#relList .rlseg.on .rlco[data-code="{code}"]', 400)
+        ok(f"{L} 點右欄的個股第一下（{code}）→ 只選取、還在這條鏈", pg.evaluate("location.hash").startswith("#industry/"), pg.evaluate("location.hash"))
         click(pg, f'#relList .rlseg.on .rlco[data-code="{code}"]', 1600)
         h = pg.evaluate("location.hash")
-        ok(f"{L} 點右欄的個股（{code}）→ 真的進那一檔的個股頁", h == f"#stock/{code}", h)
+        ok(f"{L} 點右欄的個股第二下（{code}）→ 真的進那一檔的個股頁", h == f"#stock/{code}", h)
         pg.go_back()
         pg.wait_for_timeout(1500)
         ok(f"{L} 上一頁回得來（回到這條鏈）", pg.evaluate("location.hash").startswith("#industry/ai_server"),
