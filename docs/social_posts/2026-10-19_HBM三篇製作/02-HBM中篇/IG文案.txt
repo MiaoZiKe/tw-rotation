@@ -1,0 +1,32 @@
+🔍 AI越強，記憶體壓力就一定越大？
+
+先問兩件事：容量能放多少資料；帶寬（也稱頻寬）每秒能搬多少。裝得下，不代表搬得夠快。
+
+🧩 工作不同，壓力也不同。
+訓練要更新模型並保存中間結果。推論先處理輸入，再逐步生成輸出，瓶頸會隨階段、模型與批次改變。
+
+📌 長上下文或更多人同時使用，可能增加各請求的KV暫存需求。這些空間用來重用先前計算結果，不是把整段對話原文塞進去。
+
+HBM靠近GPU，能協助密集資料搬運；但運算、溝通、軟體、散熱與成本仍要一起看。不能把HBM升級當成效能保證，更不能直接翻成每家公司都獲利。
+
+💬 你讀到AI記憶體新聞時，會先問容量，還是帶寬？
+
+官網：https://liguligu-puipui.com/?utm_source=instagram&utm_medium=social&utm_campaign=hbm_series_20261019&utm_content=hbm-middle#overview
+
+資料查核：2026/10/19（台北）；架構與流程為示意，依模型與系統而異。
+來源：
+MiaoZiKe/tw-rotation｜本站結構圖解
+https://github.com/MiaoZiKe/tw-rotation/blob/6dc0601e1c7c1575b9b5a0683382b862dd8e4cb5/site/dg/hbm.js
+Micron｜容量/帶寬與製造
+https://www.micron.com/products/memory/hbm/hbm4
+Micron｜AI記憶體/儲存
+https://www.micron.com/markets-industries/ai
+NVIDIA Technical Blog｜推論與KV暫存
+https://developer.nvidia.com/blog/mastering-llm-techniques-inference-optimization/
+NVIDIA Megatron Bridge官方文件｜訓練記憶體
+https://docs.nvidia.com/nemo/megatron-bridge/0.5.0/apidocs/bridge/bridge.training.utils.theoretical_memory_utils.html
+NVIDIA官方文件｜運算/搬運瓶頸
+https://docs.nvidia.com/deeplearning/performance/dl-performance-gpu-background/
+
+#哩股哩股 #比比科技教室 #HBM #AI #半導體
+整理公開資訊，非投顧，投資請自行判斷。

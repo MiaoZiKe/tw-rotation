@@ -1,0 +1,33 @@
+🔍 看到「HBM合作」，你會先記公司名字，還是先問合作的是哪一段？
+
+同樣出現在HBM新聞裡，可能是在做DRAM晶粒、邏輯晶粒、堆疊測試，也可能是把HBM接進運算系統。這些角色彼此配合，卻不能直接畫上等號。🐹
+
+🧩 本篇抓住三層分工：
+
+1. 記憶體本體
+上方的core die是儲存資料的DRAM晶粒，需要設計與製造。SK hynix、Micron是原廠例子，但這不是完整名單，也不是投資推薦。
+
+2. 底層邏輯與合作
+本文示意的base die負責底層介面，與core die不同；實際配置依產品、世代而變。SK hynix在2024年4月公告與台積電合作HBM4，重點包括base die與CoWoS整合。要看清楚公告的時間和範圍，不能把一部分合作改寫成「整套HBM都由台積電製作」。
+
+3. 堆疊、測試與系統整合
+晶粒需要對位接合，組裝前要篩選，堆疊後也要驗證連接與功能。接著，HBM還需和運算晶粒完成系統整合；CoWoS是台積電的先進封裝技術之一。做記憶體堆疊，和整合進系統，是不同的工作。
+
+📌 看產業鏈時，最容易跳過的就是這一步：同屬記憶體或封測，不代表業務一樣；被列入概念族群，也不是已有HBM供貨或訂單的證據。先找角色與產品，再看公告怎麼說，才有可核對的研究起點。
+
+💬 這10頁裡，你最想讓比比繼續拆解哪一段分工？
+
+🌐 https://liguligu-puipui.com/?utm_source=facebook&utm_medium=social&utm_campaign=hbm_series&utm_content=hbm_lower#overview
+
+📚 來源（查閱2026/10/19）：
+本站HBM產業圖
+https://github.com/MiaoZiKe/tw-rotation/blob/32b22653fab6b819ed036200d436ed5c2449a9e7/site/dg/hbm.js
+SK hynix｜2024/4/19合作公告
+https://news.skhynix.com/en/sk-hynix-partners-with-tsmc-to-strengthen-hbm-technological-leadership/
+Micron｜HBM4製造FAQ
+https://www.micron.com/products/memory/hbm/hbm4
+TSMC｜3DFabric說明（2020/8/24）
+https://www.tsmc.com/english/news-events/blog-article-20200803
+
+圖為分工／結構示意，層數與尺寸非產品規格。合作公告不代表目前交付、訂單或所有世代均採相同分工。
+整理公開資訊，非投顧，投資請自行判斷。

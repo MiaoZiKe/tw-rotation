@@ -6,6 +6,249 @@
     "edit_prompt": "Precise text/label cleanup of completed HBMslide01, preserve layout/art/Bibi/body exactly. Change topcenterlabel『HBM（堆疊記憶體）』to『core die（記憶體晶粒）』because it points only to memorylayers above separatedbase. Change peachbottomlabel『基底晶粒（邏輯/電源/控制等）』to exact『base die（底層介面）』. Remove lower-right label『中介層（Interposer）』AND its leader/dot entirely, because it currently points to greenpackageboard notinterposer. Do not replace it. Preserve all other texts/shapes and correct Bibi hands. No bottomfootnotes.",
     "source_file": "C:\\Users\\user\\.codex\\generated_images\\01a14ba2-823d-7fc3-99ee-74bc8665383a\\exec-553fba28-7a03-4ddc-b806-0634f698c5f0.png",
     "file": "slides/01.png",
-    "qa": "已目視；移除錯指載板的中介層標籤、校準core/base標名。角色雙掌扶本，分工與系統示意清楚。"
+    "qa": "已目視；移除錯指載板的中介層標籤、校準core/base標名。角色雙掌扶本，分工與系統示意清楚。",
+    "dimensions": {
+      "width": 1122,
+      "height": 1402
+    },
+    "bytes": 2176610,
+    "sha256": "12a0197beaa2047fbf14713286e56d7c57411f436994410d25d9f8798cbf6a3a",
+    "qa_checks": {
+      "full_image_visual": true,
+      "mobile_360_visual": true,
+      "contact_200_percent_visual": true,
+      "bottom_footnote_absent": true,
+      "status": "passed"
+    },
+    "qa_files": [
+      "qa/01_mobile.png",
+      "qa/01_contact_200.png"
+    ]
+  },
+  {
+    "page": 2,
+    "title": "核心晶粒，原廠的基本功",
+    "prompt": "Create ONE fullfinishedTraditionalChinese IG educationalcarousel portrait4:5 matching reference1 WARM HANDPAINTED balancedstyle. Warmivory paper, deeppcoffee trulyfatroundnaturalhandwrittenheadline with subtlebasicvariation, bodylighter butlegible. Softpeachcoral/lightblue/mint. Onehero40–50%,ONEBibi,TWOshortpoints+ONEyellow supplementaryline. Real visible pencil/watercolor strokes and detailed chipmaterials/layers/contacts, noflatvector/template/3cardgrid, nofullroom/stars/moneyicons. Somepartialtable shadowokay. Reference2 ONLYBibiidentity: wide squatcreamwhitefurball, coffeeirregularoutline, SMALLsolidblackdoteyes NOhighlights, blacknoseomegamouth orange-pinktongue, paleorangebigcheeks, smallroundedears, shortorangebrownsidepatches, tinycurvedpaws/shortpinkorangefeet/NOtail. Naturaltiltbodyweight, meaningfulgaze and exactly2shortpaws contactingprops. Eachpagevarygaze/action/props. Top small哩股哩股 and『HBM下篇』andxx/10. Mainwords EXACT supplied; no unsupportedcompanyclaims,numericperformance,stockrecommendation. NO BOTTOM FOOTNOTES whatsoever: no source/date/disclaimer/URL/QR. Yellow supplement contentlast, then natural48–64pxbottommargin; do NOT leave hugeunusedbottom. Structural/role illustration标『分工示意』insidehero only. DetailedHBM ifshown: identicalbluecorelayers stackedABOVE distinctpeachbaseBOTTOM; inpackage HBMstandsBESIDE GPUoninterposer NEVERontopGPU. NOplants,coffee mugs,unrelateddecor. Onlylabels explicitlyrequested, no inventingtechnicaltext. Noextrafooter.\n02/10 Title『核心晶粒，原廠的基本功』Body1『HBM裡的DRAM晶粒，需要設計與製造。』Body2『記憶體原廠，是這一段的重要主角。』Yellow『SK hynix、Micron是例子，不是完整名單。』Hero:Detailed DRAM wafer and several singulated memorydies oncarrier, labeled『core die／DRAM晶粒』, small papernameplates SK hynix／Micron as text only notlogos. Bibi LEFT crouch looking through magnifier onepaw holdingmagnifier otherrestscarrier.",
+    "source_file": "C:\\Users\\user\\.codex\\generated_images\\01a14ba2-823d-7fc3-99ee-74bc8665383a\\exec-3c9df56e-ec8e-446a-874a-a91281d0ad29.png",
+    "file": "slides/02.png",
+    "qa": "已目視全文與兩掌/放大鏡接觸，原廠為例示非完整名單，無訂單/產能數值。",
+    "dimensions": {
+      "width": 1122,
+      "height": 1402
+    },
+    "bytes": 2317731,
+    "sha256": "e4e757af7e80e92d94cf6a73a124e45cdd1f93dc6ba56926a594efeec10af04c",
+    "qa_checks": {
+      "full_image_visual": true,
+      "mobile_360_visual": true,
+      "contact_200_percent_visual": true,
+      "bottom_footnote_absent": true,
+      "status": "passed"
+    },
+    "qa_files": [
+      "qa/02_mobile.png",
+      "qa/02_contact_200.png"
+    ]
+  },
+  {
+    "page": 3,
+    "title": "底層角色，別算錯帳",
+    "prompt": "Create ONE fullfinishedTraditionalChinese IG educationalcarousel portrait4:5 matching reference1 WARM HANDPAINTED balancedstyle. Warmivory paper, deeppcoffee trulyfatroundnaturalhandwrittenheadline with subtlebasicvariation, bodylighter butlegible. Softpeachcoral/lightblue/mint. Onehero40–50%,ONEBibi,TWOshortpoints+ONEyellow supplementaryline. Real visible pencil/watercolor strokes and detailed chipmaterials/layers/contacts, noflatvector/template/3cardgrid, nofullroom/stars/moneyicons. Somepartialtable shadowokay. Reference2 ONLYBibiidentity: wide squatcreamwhitefurball, coffeeirregularoutline, SMALLsolidblackdoteyes NOhighlights, blacknoseomegamouth orange-pinktongue, paleorangebigcheeks, smallroundedears, shortorangebrownsidepatches, tinycurvedpaws/shortpinkorangefeet/NOtail. Naturaltiltbodyweight, meaningfulgaze and exactly2shortpaws contactingprops. Eachpagevarygaze/action/props. Top small哩股哩股 and『HBM下篇』andxx/10. Mainwords EXACT supplied; no unsupportedcompanyclaims,numericperformance,stockrecommendation. NO BOTTOM FOOTNOTES whatsoever: no source/date/disclaimer/URL/QR. Yellow supplement contentlast, then natural48–64pxbottommargin; do NOT leave hugeunusedbottom. Structural/role illustration标『分工示意』insidehero only. DetailedHBM ifshown: identicalbluecorelayers stackedABOVE distinctpeachbaseBOTTOM; inpackage HBMstandsBESIDE GPUoninterposer NEVERontopGPU. NOplants,coffee mugs,unrelateddecor. Onlylabels explicitlyrequested, no inventingtechnicaltext. Noextrafooter.\n03/10 Title『底層角色，別算錯帳』Body1『本文示意的base die，負責底層介面。』Body2『它與上方儲存資料的core die不同。』Yellow『實際配置，依產品與世代而變。』Hero:Clear tiltedcutaway HBM with FOUR identical thin pale-blue DRAMcorelayers onTOP of ONE distinctpeachbase atBOTTOM, microbumps in gaps/TSV aligned. Labels『core die：記憶體』『base die：底層介面』correctendpoints. Bibi RIGHT looking down towardbottom with shortpointer onepaw otheronnotebook. Need small label『結構示意』insidehero notbottom. NOT extra unrelatedtechnicalwordlabels. Exactly FOURbluecorelayers, ONEorangebase bottom; no extra package underneath labeledbase, distinguish clearly.",
+    "source_file": "C:\\Users\\user\\.codex\\generated_images\\01a14ba2-823d-7fc3-99ee-74bc8665383a\\exec-e91aa920-c9b2-46ac-bbb1-1842fa526800.png",
+    "file": "slides/03.png",
+    "qa": "已目視四層core在單一base之上、引線端點正確，底層介面與儲存角色區分，正文依產品世代限制保留。",
+    "dimensions": {
+      "width": 1122,
+      "height": 1402
+    },
+    "bytes": 2163112,
+    "sha256": "f7fbf322cc757e29323686ad464f45a14b5279f4597693bc4258cac3cfac3c01",
+    "qa_checks": {
+      "full_image_visual": true,
+      "mobile_360_visual": true,
+      "contact_200_percent_visual": true,
+      "bottom_footnote_absent": true,
+      "status": "passed"
+    },
+    "qa_files": [
+      "qa/03_mobile.png",
+      "qa/03_contact_200.png"
+    ]
+  },
+  {
+    "page": 4,
+    "title": "合作，要看清楚範圍",
+    "prompt": "Create ONE fullfinishedTraditionalChinese IG educationalcarousel portrait4:5 matching reference1 WARM HANDPAINTED balancedstyle. Warmivory paper, deeppcoffee trulyfatroundnaturalhandwrittenheadline with subtlebasicvariation, bodylighter butlegible. Softpeachcoral/lightblue/mint. Onehero40–50%,ONEBibi,TWOshortpoints+ONEyellow supplementaryline. Real visible pencil/watercolor strokes and detailed chipmaterials/layers/contacts, noflatvector/template/3cardgrid, nofullroom/stars/moneyicons. Somepartialtable shadowokay. Reference2 ONLYBibiidentity: wide squatcreamwhitefurball, coffeeirregularoutline, SMALLsolidblackdoteyes NOhighlights, blacknoseomegamouth orange-pinktongue, paleorangebigcheeks, smallroundedears, shortorangebrownsidepatches, tinycurvedpaws/shortpinkorangefeet/NOtail. Naturaltiltbodyweight, meaningfulgaze and exactly2shortpaws contactingprops. Eachpagevarygaze/action/props. Top small哩股哩股 and『HBM下篇』andxx/10. Mainwords EXACT supplied; no unsupportedcompanyclaims,numericperformance,stockrecommendation. NO BOTTOM FOOTNOTES whatsoever: no source/date/disclaimer/URL/QR. Yellow supplement contentlast, then natural48–64pxbottommargin; do NOT leave hugeunusedbottom. Structural/role illustration标『分工示意』insidehero only. DetailedHBM ifshown: identicalbluecorelayers stackedABOVE distinctpeachbaseBOTTOM; inpackage HBMstandsBESIDE GPUoninterposer NEVERontopGPU. NOplants,coffee mugs,unrelateddecor. Onlylabels explicitlyrequested, no inventingtechnicaltext. Noextrafooter.\n04/10 Title『合作，要看清楚範圍』Body1『SK hynix曾公告與台積電合作HBM4。』Body2『重點包括base die與CoWoS整合。』Yellow『合作一部分，不等於承作整套HBM。』Hero:Researchdocument HERO labeled『2024年合作公告』, SK hynix／台積電 textnames connected to two highlighted scopeobjects『HBM4 base die』『CoWoS整合』. HBMstack smallshows peachbasehighlight, nextpackagemodel HBMbyGPU. No factorydeliveryclaims no12nm, no companylogos. Bibi LEFT readingdocument with smallglasses and two shortpaws gentlyturnpage.. This is dated2024 collaborationannouncement NOT proofcurrentorders. Make date INresearchdocumentheading, NOfooter. Onlyrequestedlabels andexacttwoorganisationsastext,nologos.",
+    "edit_prompt": "Precise character-only correction. In this slide04 Bibi's readingglasses/eyes appear with an extra darkdot outsideleftlens. Redraw ONLY Bibi face and simple roundreadingglasses: exactly TWO small solidblackeyes total, one centered INSIDEeachlens, NO blackdot outsideglasses, nowhitehighlights. Tinyblacknose atcenter ABOVEomegamouth, cheeks remainlargepaleorange. Preserve ears/fur/identity and BOTHshortpaws holdingannouncementpaper, all other image/text/diagrams unchanged. No extrafacefeatures.",
+    "source_file": "C:\\Users\\user\\.codex\\generated_images\\01a14ba2-823d-7fc3-99ee-74bc8665383a\\exec-3fdc7ed3-48b5-4526-a105-b89713689ae9.png",
+    "file": "slides/04.png",
+    "qa": "原生修正眼鏡旁額外黑點，兩眼在鏡片內；2024公告時點與合作範圍正文正確，非當前交付或全套HBM。",
+    "dimensions": {
+      "width": 1122,
+      "height": 1402
+    },
+    "bytes": 2201596,
+    "sha256": "2fc09336b15582d36421350a053fab8b9b5a8a1ace1ce053a7e3d0fead3f475a",
+    "qa_checks": {
+      "full_image_visual": true,
+      "mobile_360_visual": true,
+      "contact_200_percent_visual": true,
+      "bottom_footnote_absent": true,
+      "status": "passed"
+    },
+    "qa_files": [
+      "qa/04_mobile.png",
+      "qa/04_contact_200.png"
+    ]
+  },
+  {
+    "page": 5,
+    "title": "堆疊，是另一道功課",
+    "prompt": "Create ONE fullfinishedTraditionalChinese IG educationalcarousel portrait4:5 matching reference1 WARM HANDPAINTED balancedstyle. Warmivory paper, deeppcoffee trulyfatroundnaturalhandwrittenheadline with subtlebasicvariation, bodylighter butlegible. Softpeachcoral/lightblue/mint. Onehero40–50%,ONEBibi,TWOshortpoints+ONEyellow supplementaryline. Real visible pencil/watercolor strokes and detailed chipmaterials/layers/contacts, noflatvector/template/3cardgrid, nofullroom/stars/moneyicons. Somepartialtable shadowokay. Reference2 ONLYBibiidentity: wide squatcreamwhitefurball, coffeeirregularoutline, SMALLsolidblackdoteyes NOhighlights, blacknoseomegamouth orange-pinktongue, paleorangebigcheeks, smallroundedears, shortorangebrownsidepatches, tinycurvedpaws/shortpinkorangefeet/NOtail. Naturaltiltbodyweight, meaningfulgaze and exactly2shortpaws contactingprops. Eachpagevarygaze/action/props. Top small哩股哩股 and『HBM下篇』andxx/10. Mainwords EXACT supplied; no unsupportedcompanyclaims,numericperformance,stockrecommendation. NO BOTTOM FOOTNOTES whatsoever: no source/date/disclaimer/URL/QR. Yellow supplement contentlast, then natural48–64pxbottommargin; do NOT leave hugeunusedbottom. Structural/role illustration标『分工示意』insidehero only. DetailedHBM ifshown: identicalbluecorelayers stackedABOVE distinctpeachbaseBOTTOM; inpackage HBMstandsBESIDE GPUoninterposer NEVERontopGPU. NOplants,coffee mugs,unrelateddecor. Onlylabels explicitlyrequested, no inventingtechnicaltext. Noextrafooter.\n05/10 Title『堆疊，是另一道功課』Body1『晶粒要精準對位，接成可用的堆疊。』Body2『接合與封裝製程，會影響產品品質。』Yellow『各家路線不同，不能只看堆了幾層。』Hero:Genericprecisionbondingequipment head above individual DRAMdie alignedlowerstack, FOURcore layers abovepeachbase, tiny alignedbumpcontacts. Labels『對位』『接合』only. Bibi RIGHT wears tinygoggles curvedbody leaningtoobserve, two shortpaws resttableedge natural no unsafehandling.. Keep visibleactualstackstructure: FOUR identicalthinbluecorelayers ABOVE onepeachbottomlogicbase, microcontacts aligned, incomingdieheldbybonderfromtop. No extra topbase/logiclayer. Simple labels『對位』『接合』only, tinyhero『製程示意』.",
+    "source_file": "C:\\Users\\user\\.codex\\generated_images\\01a14ba2-823d-7fc3-99ee-74bc8665383a\\exec-aa6b1579-5917-420f-a625-d704bc6cd64f.png",
+    "file": "slides/05.png",
+    "qa": "已目視全文、堆疊於底部base上與對位接合示意；護目鏡後兩黑點眼，雙掌靠桌，非特定廠商製程或層數。",
+    "dimensions": {
+      "width": 1122,
+      "height": 1402
+    },
+    "bytes": 2270578,
+    "sha256": "17735aabc89f5ffac2decd1cb9663a35e6725f1cd61a42d4631edf593aae62ff",
+    "qa_checks": {
+      "full_image_visual": true,
+      "mobile_360_visual": true,
+      "contact_200_percent_visual": true,
+      "bottom_footnote_absent": true,
+      "status": "passed"
+    },
+    "qa_files": [
+      "qa/05_mobile.png",
+      "qa/05_contact_200.png"
+    ]
+  },
+  {
+    "page": 6,
+    "title": "測試，不是最後才出場",
+    "prompt": "Create ONE fullfinishedTraditionalChinese IG educationalcarousel portrait4:5 matching reference1 WARM HANDPAINTED balancedstyle. Warmivory paper, deeppcoffee trulyfatroundnaturalhandwrittenheadline with subtlebasicvariation, bodylighter butlegible. Softpeachcoral/lightblue/mint. Onehero40–50%,ONEBibi,TWOshortpoints+ONEyellow supplementaryline. Real visible pencil/watercolor strokes and detailed chipmaterials/layers/contacts, noflatvector/template/3cardgrid, nofullroom/stars/moneyicons. Somepartialtable shadowokay. Reference2 ONLYBibiidentity: wide squatcreamwhitefurball, coffeeirregularoutline, SMALLsolidblackdoteyes NOhighlights, blacknoseomegamouth orange-pinktongue, paleorangebigcheeks, smallroundedears, shortorangebrownsidepatches, tinycurvedpaws/shortpinkorangefeet/NOtail. Naturaltiltbodyweight, meaningfulgaze and exactly2shortpaws contactingprops. Eachpagevarygaze/action/props. Top small哩股哩股 and『HBM下篇』andxx/10. Mainwords EXACT supplied; no unsupportedcompanyclaims,numericperformance,stockrecommendation. NO BOTTOM FOOTNOTES whatsoever: no source/date/disclaimer/URL/QR. Yellow supplement contentlast, then natural48–64pxbottommargin; do NOT leave hugeunusedbottom. Structural/role illustration标『分工示意』insidehero only. DetailedHBM ifshown: identicalbluecorelayers stackedABOVE distinctpeachbaseBOTTOM; inpackage HBMstandsBESIDE GPUoninterposer NEVERontopGPU. NOplants,coffee mugs,unrelateddecor. Onlylabels explicitlyrequested, no inventingtechnicaltext. Noextrafooter.\n06/10 Title『測試，不是最後才出場』Body1『組裝前，先篩選合格的晶粒。』Body2『堆疊完成後，還要確認連接與功能。』Yellow『單顆合格，不代表整疊自然過關。』Hero:Two-stage testinghero linkedarrow: leftwafer onprobingstage smallprobes actuallycontactdie pads『組裝前測試』, rightHBM stack ontestfixture『堆疊後測試』. No numericalyield, no fakegreenallpass. Bibi LEFT holdingclipboard withEMPTYcheckboxes, focusedface headtiltedright, onepawclipboard otherpencil.. Teststage NOT bonder. Leftprobeheadwith fineverticalneedles touches ONEdiepadarray onwafer, rightassembledHBMpeachbase+bluecores in socket withtestlead, arrowmeansprocedureonly no allpassclaims. Smallinsidehero『流程示意』. No mandatoryfixedtesttechnologyor specifictestvendor. ",
+    "source_file": "C:\\Users\\user\\.codex\\generated_images\\01a14ba2-823d-7fc3-99ee-74bc8665383a\\exec-64de26cb-ae88-4dda-8f1f-2679eec82aeb.png",
+    "file": "slides/06.png",
+    "qa": "已目視組裝前後測試兩階段、流程示意與空框；無虛構良率或全部過關宣稱，雙掌持記錄工具自然。",
+    "dimensions": {
+      "width": 1122,
+      "height": 1402
+    },
+    "bytes": 2319924,
+    "sha256": "3de0ff38f207bbb957c35a60edafdcbd088736cfe7c880d1df9127f4d4612417",
+    "qa_checks": {
+      "full_image_visual": true,
+      "mobile_360_visual": true,
+      "contact_200_percent_visual": true,
+      "bottom_footnote_absent": true,
+      "status": "passed"
+    },
+    "qa_files": [
+      "qa/06_mobile.png",
+      "qa/06_contact_200.png"
+    ]
+  },
+  {
+    "page": 7,
+    "title": "先進封裝，把夥伴接起來",
+    "prompt": "Create ONE fullfinishedTraditionalChinese IG educationalcarousel portrait4:5 matching reference1 WARM HANDPAINTED balancedstyle. Warmivory paper, deeppcoffee trulyfatroundnaturalhandwrittenheadline with subtlebasicvariation, bodylighter butlegible. Softpeachcoral/lightblue/mint. Onehero40–50%,ONEBibi,TWOshortpoints+ONEyellow supplementaryline. Real visible pencil/watercolor strokes and detailed chipmaterials/layers/contacts, noflatvector/template/3cardgrid, nofullroom/stars/moneyicons. Somepartialtable shadowokay. Reference2 ONLYBibiidentity: wide squatcreamwhitefurball, coffeeirregularoutline, SMALLsolidblackdoteyes NOhighlights, blacknoseomegamouth orange-pinktongue, paleorangebigcheeks, smallroundedears, shortorangebrownsidepatches, tinycurvedpaws/shortpinkorangefeet/NOtail. Naturaltiltbodyweight, meaningfulgaze and exactly2shortpaws contactingprops. Eachpagevarygaze/action/props. Top small哩股哩股 and『HBM下篇』andxx/10. Mainwords EXACT supplied; no unsupportedcompanyclaims,numericperformance,stockrecommendation. NO BOTTOM FOOTNOTES whatsoever: no source/date/disclaimer/URL/QR. Yellow supplement contentlast, then natural48–64pxbottommargin; do NOT leave hugeunusedbottom. Structural/role illustration标『分工示意』insidehero only. DetailedHBM ifshown: identicalbluecorelayers stackedABOVE distinctpeachbaseBOTTOM; inpackage HBMstandsBESIDE GPUoninterposer NEVERontopGPU. NOplants,coffee mugs,unrelateddecor. Onlylabels explicitlyrequested, no inventingtechnicaltext. Noextrafooter.\n07/10 Title『先進封裝，把夥伴接起來』Body1『HBM還要與運算晶粒完成系統整合。』Body2『CoWoS是台積電的先進封裝技術之一。』Yellow『做HBM堆疊，和整合進系統不是同一步。』Hero:Accurate educationalCoWoSstyle cutaway: frombottom carrierboard substrate, abovesiliconinterposerwithdensecopperwires, TOPGPUcentral and oneHBMstack EACHside, HBM NOT ontopGPU. Label『HBM』『運算晶粒』『中介層』. Bibi RIGHT shortpaws support nearbody oneopenedmodelbaseedge, gaze followsinterconnect.. CRITICAL labelendpoints: 『中介層』must point to THINpalegray/brown siliconroutinglayer IMMEDIATELYUNDERGPUandHBM andABOVEgreenpackagecarrier, NOTgreenPCB. Show clear dense copperlines inthatinterposer layer. LabelHBMpointsblueDRAMstack, label運算晶粒pointsGPUcentral. NofakeTSMC logo/nounverifiedsupplier. Smallinsidehero『整合示意』.",
+    "source_file": "C:\\Users\\user\\.codex\\generated_images\\01a14ba2-823d-7fc3-99ee-74bc8665383a\\exec-ad8f764c-d723-4240-a201-49fc6919d6ef.png",
+    "file": "slides/07.png",
+    "qa": "已目視中介層引線落於上層灰色銅繞線層非綠載板，GPU/HBM並排非上下，雙掌扶模型合理；無特定訂單。",
+    "dimensions": {
+      "width": 1122,
+      "height": 1402
+    },
+    "bytes": 2294051,
+    "sha256": "cd3d633bccb26596c039007b496784e3d1889470c00bdc335a542dc0f07bf72c",
+    "qa_checks": {
+      "full_image_visual": true,
+      "mobile_360_visual": true,
+      "contact_200_percent_visual": true,
+      "bottom_footnote_absent": true,
+      "status": "passed"
+    },
+    "qa_files": [
+      "qa/07_mobile.png",
+      "qa/07_contact_200.png"
+    ]
+  },
+  {
+    "page": 8,
+    "title": "台灣角色，要說到哪一段",
+    "prompt": "Create ONE fullfinishedTraditionalChinese IG educationalcarousel portrait4:5 matching reference1 WARM HANDPAINTED balancedstyle. Warmivory paper, deeppcoffee trulyfatroundnaturalhandwrittenheadline with subtlebasicvariation, bodylighter butlegible. Softpeachcoral/lightblue/mint. Onehero40–50%,ONEBibi,TWOshortpoints+ONEyellow supplementaryline. Real visible pencil/watercolor strokes and detailed chipmaterials/layers/contacts, noflatvector/template/3cardgrid, nofullroom/stars/moneyicons. Somepartialtable shadowokay. Reference2 ONLYBibiidentity: wide squatcreamwhitefurball, coffeeirregularoutline, SMALLsolidblackdoteyes NOhighlights, blacknoseomegamouth orange-pinktongue, paleorangebigcheeks, smallroundedears, shortorangebrownsidepatches, tinycurvedpaws/shortpinkorangefeet/NOtail. Naturaltiltbodyweight, meaningfulgaze and exactly2shortpaws contactingprops. Eachpagevarygaze/action/props. Top small哩股哩股 and『HBM下篇』andxx/10. Mainwords EXACT supplied; no unsupportedcompanyclaims,numericperformance,stockrecommendation. NO BOTTOM FOOTNOTES whatsoever: no source/date/disclaimer/URL/QR. Yellow supplement contentlast, then natural48–64pxbottommargin; do NOT leave hugeunusedbottom. Structural/role illustration标『分工示意』insidehero only. DetailedHBM ifshown: identicalbluecorelayers stackedABOVE distinctpeachbaseBOTTOM; inpackage HBMstandsBESIDE GPUoninterposer NEVERontopGPU. NOplants,coffee mugs,unrelateddecor. Onlylabels explicitlyrequested, no inventingtechnicaltext. Noextrafooter.\n08/10 Title『台灣角色，要說到哪一段』Body1『先進封裝與特定邏輯晶粒合作，可分開看。』Body2『已查證的台積電角色，不是HBM記憶體原廠。』Yellow『每家公司，都要回到產品與公告。』Hero:One workbench researchmap 台積電 atcenter splitto『特定base die合作』 smallpeachdie/documentand『CoWoS整合』GPUHBMpackage. Noothercompanies orTaiwanflag maps, noclaim allbase outsourced. Bibi LEFT seatedwritingcarefully comparing two scopes onopenbook, shortpencilandpaw.. Add meaningfuldateINdocumentlabel『2024合作公告』notfooter; two tasks text『特定base die合作』『CoWoS整合』ONLY, not allbase/entireHBM. Personiswritingnotebook notpointinglikeprevious. Allsource/datefootersforbidden; no stocktickers.",
+    "source_file": "C:\\Users\\user\\.codex\\generated_images\\01a14ba2-823d-7fc3-99ee-74bc8665383a\\exec-b1f03aff-8e1c-4a95-98b0-6e50662526c7.png",
+    "file": "slides/08.png",
+    "qa": "已目視兩種台積電角色與2024合作公告標籤；未說所有base或全套HBM，兩掌持筆/靠本正常，無底腳。",
+    "dimensions": {
+      "width": 1122,
+      "height": 1402
+    },
+    "bytes": 2267494,
+    "sha256": "65d8e5afab255f951fc73052b6f48a2b4ca0765b218c04e5085d91cbf504ede5",
+    "qa_checks": {
+      "full_image_visual": true,
+      "mobile_360_visual": true,
+      "contact_200_percent_visual": true,
+      "bottom_footnote_absent": true,
+      "status": "passed"
+    },
+    "qa_files": [
+      "qa/08_mobile.png",
+      "qa/08_contact_200.png"
+    ]
+  },
+  {
+    "page": 9,
+    "title": "族群分類，不等於訂單",
+    "prompt": "Create ONE fullfinishedTraditionalChinese IG educationalcarousel portrait4:5 matching reference1 WARM HANDPAINTED balancedstyle. Warmivory paper, deeppcoffee trulyfatroundnaturalhandwrittenheadline with subtlebasicvariation, bodylighter butlegible. Softpeachcoral/lightblue/mint. Onehero40–50%,ONEBibi,TWOshortpoints+ONEyellow supplementaryline. Real visible pencil/watercolor strokes and detailed chipmaterials/layers/contacts, noflatvector/template/3cardgrid, nofullroom/stars/moneyicons. Somepartialtable shadowokay. Reference2 ONLYBibiidentity: wide squatcreamwhitefurball, coffeeirregularoutline, SMALLsolidblackdoteyes NOhighlights, blacknoseomegamouth orange-pinktongue, paleorangebigcheeks, smallroundedears, shortorangebrownsidepatches, tinycurvedpaws/shortpinkorangefeet/NOtail. Naturaltiltbodyweight, meaningfulgaze and exactly2shortpaws contactingprops. Eachpagevarygaze/action/props. Top small哩股哩股 and『HBM下篇』andxx/10. Mainwords EXACT supplied; no unsupportedcompanyclaims,numericperformance,stockrecommendation. NO BOTTOM FOOTNOTES whatsoever: no source/date/disclaimer/URL/QR. Yellow supplement contentlast, then natural48–64pxbottommargin; do NOT leave hugeunusedbottom. Structural/role illustration标『分工示意』insidehero only. DetailedHBM ifshown: identicalbluecorelayers stackedABOVE distinctpeachbaseBOTTOM; inpackage HBMstandsBESIDE GPUoninterposer NEVERontopGPU. NOplants,coffee mugs,unrelateddecor. Onlylabels explicitlyrequested, no inventingtechnicaltext. Noextrafooter.\n09/10 Title『族群分類，不等於訂單』Body1『同屬記憶體或封測，業務未必相同。』Body2『列在概念族群，不等於已有HBM供貨。』Yellow『看角色、產品，再核對合作證據。』Hero:Researchclassification notebook onegenericfolder『族群分類』and separatefirmdocument『產品／合作公告』, magnifier between; no namedTaiwancompanies no tickers no fakeorders. Bibi RIGHT contemplative tilt, one shortpawtoucheschin otherholds magnifier lookingatdocument.. No othertechnicalillustration needed, makeopenfolder detailedpaper/binding/written genericlines; document heading『產品／合作公告』, classificationfolder『族群分類』, a smallquestionmarkbetween. No confirmedcontractstamp/no stockpricechart/no fakecompanynames. Bibi shortpaws positions exactly2, onechin oneholds magnifierrealcontact; calmcuriousmouth nothappysale. ",
+    "source_file": "C:\\Users\\user\\.codex\\generated_images\\01a14ba2-823d-7fc3-99ee-74bc8665383a\\exec-b6c89070-1def-43fd-adff-9806492790d6.png",
+    "file": "slides/09.png",
+    "qa": "已目視概念分類與合作公告兩份資料區分，沒有虛構訂單/公司名；兩掌持放大鏡/思考接觸合理。",
+    "dimensions": {
+      "width": 1122,
+      "height": 1402
+    },
+    "bytes": 2096047,
+    "sha256": "b479b355ccec090febc60d55095bbe40cb68c9ac3ad8e06b6e4464a907559723",
+    "qa_checks": {
+      "full_image_visual": true,
+      "mobile_360_visual": true,
+      "contact_200_percent_visual": true,
+      "bottom_footnote_absent": true,
+      "status": "passed"
+    },
+    "qa_files": [
+      "qa/09_mobile.png",
+      "qa/09_contact_200.png"
+    ]
+  },
+  {
+    "page": 10,
+    "title": "問清楚角色，再看新聞",
+    "prompt": "Create ONE fullfinishedTraditionalChinese IG educationalcarousel portrait4:5 matching reference1 WARM HANDPAINTED balancedstyle. Warmivory paper, deeppcoffee trulyfatroundnaturalhandwrittenheadline with subtlebasicvariation, bodylighter butlegible. Softpeachcoral/lightblue/mint. Onehero40–50%,ONEBibi,TWOshortpoints+ONEyellow supplementaryline. Real visible pencil/watercolor strokes and detailed chipmaterials/layers/contacts, noflatvector/template/3cardgrid, nofullroom/stars/moneyicons. Somepartialtable shadowokay. Reference2 ONLYBibiidentity: wide squatcreamwhitefurball, coffeeirregularoutline, SMALLsolidblackdoteyes NOhighlights, blacknoseomegamouth orange-pinktongue, paleorangebigcheeks, smallroundedears, shortorangebrownsidepatches, tinycurvedpaws/shortpinkorangefeet/NOtail. Naturaltiltbodyweight, meaningfulgaze and exactly2shortpaws contactingprops. Eachpagevarygaze/action/props. Top small哩股哩股 and『HBM下篇』andxx/10. Mainwords EXACT supplied; no unsupportedcompanyclaims,numericperformance,stockrecommendation. NO BOTTOM FOOTNOTES whatsoever: no source/date/disclaimer/URL/QR. Yellow supplement contentlast, then natural48–64pxbottommargin; do NOT leave hugeunusedbottom. Structural/role illustration标『分工示意』insidehero only. DetailedHBM ifshown: identicalbluecorelayers stackedABOVE distinctpeachbaseBOTTOM; inpackage HBMstandsBESIDE GPUoninterposer NEVERontopGPU. NOplants,coffee mugs,unrelateddecor. Onlylabels explicitlyrequested, no inventingtechnicaltext. Noextrafooter.\n10/10 Title『問清楚角色，再看新聞』Body1『誰做記憶體？誰做邏輯與系統整合？』Body2『角色說清楚，研究才不只剩公司名字。』Yellow『你最想讓比比再拆解哪一段分工？』Hero:Concludingdetailed researchnotebook onpartialtable with three meaningfulobjects/labels『記憶體』『邏輯』『系統整合』: corestack, separatebasechip, GPUHBMsidebysidepackage. ONEBibi LEFT smilinglittlewave withshortpaw otherrestsnotebook, no checkedbuylist. NoURL,QR,sourcefooter,disclaimer.. Explicitly NO URLs,QR,sourceslist,dates,disclaimer or anybottomsmalltext. ThisisclosingCTA. Minimalphysicalobjects with detailedhandpaintedstructures: a small4blueDRAMcorestack, onepeachbasechip separatedfromstack forroles, packageGPUbesideHBMnotontop. Bibi wavesONEshortpaw otherrestsbook withnaturalshortcurvedpose, exactlytwohands, no sparefloatingpaws. No plant,mug ormoney.",
+    "source_file": "C:\\Users\\user\\.codex\\generated_images\\01a14ba2-823d-7fc3-99ee-74bc8665383a\\exec-90d48d87-09d3-4c76-9038-edb8a3d9c577.png",
+    "file": "slides/10.png",
+    "qa": "已目視分工示意、三角色不混同、兩掌揮手靠本，最後無URL/QR/來源/免責底腳，CTA正常。",
+    "dimensions": {
+      "width": 1122,
+      "height": 1402
+    },
+    "bytes": 2208925,
+    "sha256": "694398be3020ea0c8f38ef21d8bd72a4e67b0ce9f4f2e72b6bc361a2e6a1f34b",
+    "qa_checks": {
+      "full_image_visual": true,
+      "mobile_360_visual": true,
+      "contact_200_percent_visual": true,
+      "bottom_footnote_absent": true,
+      "status": "passed"
+    },
+    "qa_files": [
+      "qa/10_mobile.png",
+      "qa/10_contact_200.png"
+    ]
   }
 ]

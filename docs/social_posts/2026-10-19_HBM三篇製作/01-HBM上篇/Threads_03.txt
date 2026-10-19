@@ -1,0 +1,12 @@
+📌 高頻寬，不是全程滿速的保證。
+
+運算、容量、頻寬與應用條件要配合。base die配置也依架構而異，不能拿一種典型圖概括所有產品。
+
+下一篇：疊得越高，難在哪裡？💬 你最想看TSV、接合，還是散熱？
+
+官網：
+https://liguligu-puipui.com/?utm_source=threads&utm_medium=social&utm_campaign=hbm_series&utm_content=01-HBM-upper#overview
+
+來源：Micron HBM FAQ
+https://www.micron.com/products/memory/hbm
+整理公開資訊，非投顧，投資請自行判斷。

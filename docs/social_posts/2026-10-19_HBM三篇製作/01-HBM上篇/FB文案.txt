@@ -1,0 +1,26 @@
+GPU很快，為什麼還在等？🔍
+
+運算能力再強，也需要資料及時送達。想像一間很會做菜的廚房：廚師動作快，不代表食材就會自動到位。HBM要處理的，正是高資料吞吐的需求。
+
+🧩 HBM是高頻寬記憶體，採用多顆DRAM晶粒垂直堆疊的架構。它不是GPU，也不是儲存硬碟；任務是配合運算端，傳遞大量資料。
+
+先分清兩件事：容量是「能放多少」，頻寬是「每秒能傳多少」。裝得下資料，不代表來得及把資料送給運算單元。這也是為什麼看記憶體，不能只看容量。
+
+典型結構中，上方是core die記憶體晶粒，最底部是base die，負責底部介面與相關邏輯。TSV穿矽孔，協助堆疊內上下層的連接；模型把它放大，是為了看懂，不是實際孔徑與厚度。
+
+📌 還有一個很容易畫錯的地方：這篇介紹的典型封裝中，HBM與GPU是並排站在中介層上，不是把整疊HBM壓在GPU頭頂。中介層也不是空白底板，它透過細密繞線，讓運算晶粒和記憶體協作。
+
+不過，高頻寬不是魔法。實際效能仍取決於系統與應用條件，不能把「有HBM」直接翻成「全程滿速」。不同世代與設計也有差異，本篇只建立典型結構的入門框架，不把某一產品的base die或代工分工當成全部HBM共同規格。
+
+💬 你原本最容易混淆的是容量、頻寬，還是HBM的位置？下一篇再看：疊得越高，難在哪裡？
+
+官網：
+https://liguligu-puipui.com/?utm_source=facebook&utm_medium=social&utm_campaign=hbm_series&utm_content=01-HBM-upper#overview
+
+來源：哩股哩股產業地圖、Micron HBM FAQ、SK hynix官方結構說明。
+https://github.com/MiaoZiKe/tw-rotation/blob/32b22653fab6b819ed036200d436ed5c2449a9e7/site/dg/hbm.js
+https://www.micron.com/products/memory/hbm
+https://news.skhynix.com/en/sk-hynix-partners-with-tsmc-to-strengthen-hbm-technological-leadership/
+
+查核：2026-10-19。圖片層數、厚度與孔徑均為結構示意，不是產品數值或工程比例；倉庫與輸送帶為比喻，不是實際製程。Micron FAQ指出base die可依架構選用，因此本篇以典型示意解說，不宣稱所有世代相同。
+整理公開資訊，非投顧，投資請自行判斷。

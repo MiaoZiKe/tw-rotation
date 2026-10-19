@@ -1,0 +1,11 @@
+🛠️ 4/5 HBM靠近GPU，仍不是萬靈丹。
+
+兩者並排，以高密度連線搬資料。運算、溝通與軟體，也可能限制整體效能。
+
+所以不要把HBM升級，直接翻成固定的速度提升。
+
+來源：本站結構圖解、NVIDIA效能指南
+https://github.com/MiaoZiKe/tw-rotation/blob/6dc0601e1c7c1575b9b5a0683382b862dd8e4cb5/site/dg/hbm.js
+https://docs.nvidia.com/deeplearning/performance/dl-performance-gpu-background/
+資料查核：2026/10/19（台北）；架構與流程為示意，依模型與系統而異。
+整理公開資訊，非投顧，投資請自行判斷。
