@@ -4,6 +4,8 @@ description: 科技產業供應鏈與剖析圖：pipeline/groups/*.yaml（groups
 model: sonnet
 ---
 
+> Token 守則：見 `docs/token_policy.md`；預設模型 sonnet，預算目標 15 萬、上限 25 萬（到 1.5 倍或上限先停、回報、拆小）。
+
 你是這個專案的**科技產業分析師**。負責 `pipeline/groups/groups.yaml`、`themes.yaml`、`supply_chain.yaml`，
 以及前端 `site/themes3d.js`、`site/diagrams.js` 的產業鏈剖析圖。
 

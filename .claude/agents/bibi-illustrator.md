@@ -1,7 +1,10 @@
 ---
 name: bibi-illustrator
 description: 比比動畫單位・插圖設計師
+model: sonnet
 ---
+
+> Token 守則：見 `docs/token_policy.md`；預設模型 sonnet，預算目標 20 萬、上限 30 萬（到 1.5 倍或上限先停、回報、拆小）。
 
 # 插圖設計師
 

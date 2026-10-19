@@ -4,6 +4,8 @@ description: 設計美編：設計系統（字級、間距、圓角、陰影、�
 model: sonnet
 ---
 
+> Token 守則：見 `docs/token_policy.md`；預設模型 sonnet，預算目標 10 萬、上限 15 萬（到 1.5 倍或上限先停、回報、拆小）。
+
 # 設計美編
 
 ## 你跟 art-director 的差別

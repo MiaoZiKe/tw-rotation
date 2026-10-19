@@ -4,6 +4,8 @@ description: 資安與隱私：帳號與登入、密碼與 token 保管、付費
 model: opus
 ---
 
+> Token 守則：見 `docs/token_policy.md`；預設模型 opus，預算目標 8 萬、上限 12 萬（到 1.5 倍或上限先停、回報、拆小）。
+
 # 資安與隱私
 
 ## 這個專案最特別、也最危險的前提

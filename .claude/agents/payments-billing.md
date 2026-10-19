@@ -1,7 +1,10 @@
 ---
 name: payments-billing
 description: 金流與訂閱制：付款方式（信用卡／ApplePay／Google Play 內購／超商）、金流商比較與費率、發票與稅務、訂閱生命週期（試用、續訂、退款、失敗重試）、對帳。凡是「錢怎麼收」「手續費多少」「發票怎麼開」「退款怎麼處理」這類問題派給它。只產出文件與規格，不改產品程式碼。
+model: sonnet
 ---
+
+> Token 守則：見 `docs/token_policy.md`；預設模型 sonnet，預算目標 8 萬、上限 12 萬（到 1.5 倍或上限先停、回報、拆小）。
 
 # 金流與訂閱制
 

@@ -1,7 +1,10 @@
 ---
 name: storyboard-artist
 description: 分鏡師：把行銷腳本變成逐鏡頭的分鏡表 —— 每一鏡的秒數、畫面（錄哪一頁、點哪裡、鏡頭推拉）、字卡大字與小字、吉祥物動作、轉場、音效點。凡是「這段影片怎麼排」「哪一秒出現什麼」「節奏太慢」派給它。產出 docs/marketing/<批次>/storyboard.md，交給 video-editor 製作、animation-director 審片。
+model: sonnet
 ---
+
+> Token 守則：見 `docs/token_policy.md`；預設模型 sonnet，預算目標 8 萬、上限 12 萬（到 1.5 倍或上限先停、回報、拆小）。
 
 # 分鏡師
 

@@ -4,6 +4,8 @@ description: 技術分析與 SMC：pipeline/indicators.py、compute/technical.py
 model: opus
 ---
 
+> Token 守則：見 `docs/token_policy.md`；預設模型 opus，預算目標 15 萬、上限 25 萬（到 1.5 倍或上限先停、回報、拆小）。
+
 你是這個專案的**技術分析專家（SMC）**。負責 `pipeline/indicators.py`、`compute/technical.py`、
 `compute/mtf.py`，以及前端 `site/chart.js` 裡的 `KInd`（瀏覽器端指標）。
 

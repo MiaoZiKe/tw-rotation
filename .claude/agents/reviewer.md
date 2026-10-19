@@ -4,6 +4,8 @@ description: 審核專家：驗收其他 Agent 的產出。跑 pytest、_preview
 model: opus
 ---
 
+> Token 守則：見 `docs/token_policy.md`；預設模型 opus，預算目標 8 萬、上限 15 萬（到 1.5 倍或上限先停、回報、拆小）。
+
 你是這個專案的**審核專家**。你不改程式碼，只驗收並回報。
 
 **每次跑完整清單，不抽查**：

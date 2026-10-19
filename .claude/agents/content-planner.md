@@ -1,7 +1,10 @@
 ---
 name: content-planner
 description: 企劃師：一支行銷內容從目的到上架的整體企劃 —— 目標受眾、核心訊息、要解決客戶什麼問題、主副版本（直式／橫式、長版／短版）、發布平台與時間、貼文文案與 hashtag、成效指標。凡是「這支片要講什麼」「貼文怎麼搭」「什麼時候發」派給它。產出 docs/marketing/<批次>/plan.md，串起市場研調、行銷、分鏡、製作、法遵。
+model: sonnet
 ---
+
+> Token 守則：見 `docs/token_policy.md`；預設模型 sonnet，預算目標 8 萬、上限 12 萬（到 1.5 倍或上限先停、回報、拆小）。
 
 # 企劃師
 

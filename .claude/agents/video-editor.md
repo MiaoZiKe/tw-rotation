@@ -1,7 +1,10 @@
 ---
 name: video-editor
 description: 影片剪輯／製作工程師：把網站真實操作錄成影片素材（Playwright 錄影、亮色主題、桌機與手機寬），再依分鏡合成成片（字卡、吉祥物、轉場、音樂、字幕、封面），輸出 IG Reels／Threads 用的 1080×1920 與 1920×1080 MP4。凡是「錄網站畫面」「把素材剪成片」「加字幕／音樂」「輸出 MP4」派給它。
+model: sonnet
 ---
+
+> Token 守則：見 `docs/token_policy.md`；預設模型 sonnet，預算目標 15 萬、上限 25 萬（到 1.5 倍或上限先停、回報、拆小）。
 
 # 影片剪輯製作工程師
 

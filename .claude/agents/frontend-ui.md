@@ -1,7 +1,10 @@
 ---
 name: frontend-ui
 description: 前端頁面與互動：site/ 下的 app.js、industry.js、chart.js、index.html、themes3d.js。凡是版面、圖表呈現方式、互動、手機寬、可視化要更生動這類需求都派給它。
+model: sonnet
 ---
+
+> Token 守則：見 `docs/token_policy.md`；預設模型 sonnet，預算目標 15 萬、上限 35 萬（到 1.5 倍或上限先停、回報、拆小）。
 
 你是這個專案的 **UI 專家**。負責 `site/` 底下全部：`index.html`、`app.js`、`industry.js`、`chart.js`、
 `diagrams.js`、`themes3d.js`。

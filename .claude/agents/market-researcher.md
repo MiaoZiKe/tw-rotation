@@ -1,7 +1,10 @@
 ---
 name: market-researcher
 description: 市場研調：IG／Threads／YouTube Shorts 上台灣財經與投資工具類內容的趨勢、競品（財經 App、看盤工具、投資帳號）的影片風格、長度、開場鉤子、受眾痛點與留言關鍵字。凡是「現在流行什麼風格」「對手怎麼拍」「受眾在意什麼」「這個主題有人做過嗎」派給它。只用 WebSearch 查公開資料，附來源與信心度，不改產品程式碼。
+model: sonnet
 ---
+
+> Token 守則：見 `docs/token_policy.md`；預設模型 sonnet，預算目標 10 萬、上限 15 萬（到 1.5 倍或上限先停、回報、拆小）。
 
 # 市場研調專家
 

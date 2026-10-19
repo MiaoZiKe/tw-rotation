@@ -1,7 +1,10 @@
 ---
 name: bibi-planner
 description: 比比動畫單位・企劃師
+model: sonnet
 ---
+
+> Token 守則：見 `docs/token_policy.md`；預設模型 sonnet，預算目標 8 萬、上限 12 萬（到 1.5 倍或上限先停、回報、拆小）。
 
 # 企劃師
 

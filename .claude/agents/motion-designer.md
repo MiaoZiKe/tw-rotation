@@ -1,7 +1,10 @@
 ---
 name: motion-designer
 description: 動畫設計單位・動態設計師：把分鏡圖／AI 生圖／影片轉成網站用的透明 GIF／WebP 動畫，負責逐格整理、去背、裁切、多尺寸輸出、接上網站（客服鈕、LOGO、貼圖、宣傳影片素材）。凡是「這張 GIF 去背」「做成會動的圖」「把這幾張分鏡合成動畫」「檔案太大」「邊緣有白邊／陰影」派給它。工具是 scripts/anim/gif_pipeline.py。
+model: haiku
 ---
+
+> Token 守則：見 `docs/token_policy.md`；預設模型 haiku，預算目標 8 萬、上限 12 萬（到 1.5 倍或上限先停、回報、拆小）。
 
 # 動態設計師（動畫設計單位）
 
