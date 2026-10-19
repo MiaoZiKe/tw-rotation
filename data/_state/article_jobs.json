@@ -1,4 +1,122 @@
 {
- "updated": "2026-10-19 17:15",
- "jobs": []
+ "updated": "2026-10-20 06:38",
+ "jobs": [
+  {
+   "id": 20,
+   "topic_id": "sch-20261020-06-r1-news-1",
+   "kind": "article",
+   "title": "FOMC 10/28 前夕：外資與台股族群怎麼動",
+   "note": "排程自動排入（規則 1，台北 2026-10-20 06:00）；建議主題 n_fomc_oct",
+   "status": "queued",
+   "created": 1792449515433,
+   "updated": 1792449515433,
+   "result": null,
+   "stage": null,
+   "stage_at": null
+  },
+  {
+   "id": 21,
+   "topic_id": "sch-20261020-06-r1-news-2",
+   "kind": "article",
+   "title": "特斯拉與馬斯克最新動向：Optimus、TeraFab、資本支出上修",
+   "note": "排程自動排入（規則 1，台北 2026-10-20 06:00）；建議主題 n_musk_tesla",
+   "status": "queued",
+   "created": 1792449515580,
+   "updated": 1792449515580,
+   "result": null,
+   "stage": null,
+   "stage_at": null
+  },
+  {
+   "id": 22,
+   "topic_id": "sch-20261020-06-r1-news-3",
+   "kind": "article",
+   "title": "11 月後的財報行情：法說會空窗期資金往哪走",
+   "note": "排程自動排入（規則 1，台北 2026-10-20 06:00）；建議主題 n_nov_earnings",
+   "status": "queued",
+   "created": 1792449515747,
+   "updated": 1792449515747,
+   "result": null,
+   "stage": null,
+   "stage_at": null
+  },
+  {
+   "id": 23,
+   "topic_id": "sch-20261020-06-r1-intro-1",
+   "kind": "article",
+   "title": "先進封裝供應鏈：誰在台積電身邊",
+   "note": "排程自動排入（規則 1，台北 2026-10-20 06:00）；建議主題 i_cowos_chain",
+   "status": "queued",
+   "created": 1792449515931,
+   "updated": 1792449515931,
+   "result": null,
+   "stage": null,
+   "stage_at": null
+  },
+  {
+   "id": 24,
+   "topic_id": "sch-20261020-06-r1-intro-2",
+   "kind": "article",
+   "title": "散熱產業鏈：從風扇到水冷板",
+   "note": "排程自動排入（規則 1，台北 2026-10-20 06:00）；建議主題 i_thermal",
+   "status": "queued",
+   "created": 1792449516098,
+   "updated": 1792449516098,
+   "result": null,
+   "stage": null,
+   "stage_at": null
+  },
+  {
+   "id": 25,
+   "topic_id": "sch-20261020-06-r1-intro-3",
+   "kind": "article",
+   "title": "AI 資料中心網通鏈：從晶片到線纜",
+   "note": "排程自動排入（規則 1，台北 2026-10-20 06:00）；建議主題 i_ai_networking",
+   "status": "queued",
+   "created": 1792449516257,
+   "updated": 1792449516257,
+   "result": null,
+   "stage": null,
+   "stage_at": null
+  },
+  {
+   "id": 26,
+   "topic_id": "sch-20261020-06-r1-know-1",
+   "kind": "article",
+   "title": "除權息與填息：領股利不等於賺",
+   "note": "排程自動排入（規則 1，台北 2026-10-20 06:00）；建議主題 k_dividend",
+   "status": "queued",
+   "created": 1792449516444,
+   "updated": 1792449516444,
+   "result": null,
+   "stage": null,
+   "stage_at": null
+  },
+  {
+   "id": 27,
+   "topic_id": "sch-20261020-06-r1-know-2",
+   "kind": "article",
+   "title": "類股輪動是什麼？資金怎麼換跑道",
+   "note": "排程自動排入（規則 1，台北 2026-10-20 06:00）；建議主題 k_rotation",
+   "status": "queued",
+   "created": 1792449516618,
+   "updated": 1792449516618,
+   "result": null,
+   "stage": null,
+   "stage_at": null
+  },
+  {
+   "id": 28,
+   "topic_id": "sch-20261020-06-r1-know-3",
+   "kind": "article",
+   "title": "「概念股」是誰貼的標籤？",
+   "note": "排程自動排入（規則 1，台北 2026-10-20 06:00）；建議主題 k_concept",
+   "status": "queued",
+   "created": 1792449516807,
+   "updated": 1792449516807,
+   "result": null,
+   "stage": null,
+   "stage_at": null
+  }
+ ]
 }
