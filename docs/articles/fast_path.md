@@ -42,6 +42,7 @@ Andy 10-17（同日稍晚）：「以後內容都需要搭配圖表，需要自�
 
 ## 撰寫 agent 規則（CEO 派工時整段貼）
 
+- **類別內容要求**：知識必放 3D／2.5D 產品架構圖（查 `diagram_inventory.md`）、快訊挑熱門話題、產業鏈必有供應鏈圖，三類都盡量附影片 —— 見 `topic_gen.md`「類別定義與內容要求」。
 - 全程繁體中文；不給投資建議、不寫目標價、不點名「值得關注」的個股；不畫商標、logo。
 - 先讀 `docs/articles/visual_playbook.md`（整份，約 210 行）；格式照 `site/articles/posts/` 舊文章（只讀一篇當範本）；插圖欄位照 `production_guide.md` 的「illus 第 2 版欄位表」（grep 那一段）。
 - 動筆前列「圖表企劃」4～6 列；至少 1 張圖用本站資料湖（`git pull` 後 `PYTHONPATH=. python3 <scratchpad 裡的程式>`，只印結果，不把整張表印出來）。

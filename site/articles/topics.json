@@ -2,6 +2,114 @@
  "updated": "2026-10-19",
  "topics": [
   {
+   "id": "k_foundry",
+   "cat": "know",
+   "title": "IC 代工是什麼？晶圓廠怎麼把設計變成晶片",
+   "why": "3D 圖用 foundry 場景「晶圓代工：一顆電晶體與一個製程迴圈」立體圖；Andy 10-19 點名的知識題",
+   "score": 5,
+   "format_hint": "文章＋3D 圖",
+   "added": "2026-10-19",
+   "site_links": [
+    "#industry/group/foundry"
+   ]
+  },
+  {
+   "id": "k_wafer",
+   "cat": "know",
+   "title": "矽晶圓是什麼？沙子到鏡面晶圓的路",
+   "why": "3D 圖用 silicon_wafer「從熔湯到一片鏡面（切開的長晶爐）」，是晶片的最上游材料，站內已有立體圖",
+   "score": 5,
+   "format_hint": "文章＋3D 圖",
+   "added": "2026-10-19",
+   "site_links": [
+    "#industry/group/silicon_wafer"
+   ]
+  },
+  {
+   "id": "k_sic_gan",
+   "cat": "know",
+   "title": "第三代半導體是什麼？SiC 與 GaN 差在哪",
+   "why": "3D 圖用 wide_bandgap「SiC 與 GaN 功率元件（立體剖面）」；電動車與電源常聽到但少有人講清楚",
+   "score": 5,
+   "format_hint": "文章＋3D 圖",
+   "added": "2026-10-19",
+   "site_links": [
+    "#industry/group/wide_bandgap"
+   ]
+  },
+  {
+   "id": "k_abf",
+   "cat": "know",
+   "title": "IC 載板是什麼？ABF 增層怎麼疊出來",
+   "why": "3D 圖用 ic_substrate「ABF 增層剖面（半剖立體）」，可銜接已上架的 CoWoS 與 HBM 文章",
+   "score": 5,
+   "format_hint": "文章＋3D 圖",
+   "added": "2026-10-19",
+   "site_links": [
+    "#industry/group/ic_substrate"
+   ]
+  },
+  {
+   "id": "k_psu_bbu",
+   "cat": "know",
+   "title": "AI 伺服器電源是什麼？PSU 與 BBU 各管什麼",
+   "why": "3D 圖用 server_psu「一顆 PSU 拆開到晶片核心電壓」，2.5D 補 themes3d 的 power_bbu「伺服器電源與 BBU」",
+   "score": 5,
+   "format_hint": "文章＋3D 圖",
+   "added": "2026-10-19",
+   "site_links": [
+    "#industry/group/server_psu"
+   ]
+  },
+  {
+   "id": "k_mlcc",
+   "cat": "know",
+   "title": "MLCC 是什麼？一顆積層陶瓷電容怎麼疊出來",
+   "why": "3D 圖用 mlcc「切開近角」，2D 另有 MLCC 疊層剖析；被動元件題材的入門知識",
+   "score": 5,
+   "format_hint": "文章＋3D 圖",
+   "added": "2026-10-19",
+   "site_links": [
+    "#industry/group/mlcc"
+   ]
+  },
+  {
+   "id": "n_sox_drop",
+   "cat": "news",
+   "title": "費半為什麼跌這麼兇？AI 資本支出、油價與估值",
+   "why": "Andy 10-19 點名；近期科技股回檔（10/13 台股盤中跌逾千點）、市場疑慮 AI 資本支出與通膨油價。已有「費半 8 天跌 15.7% 對照 2008」一文，這題改寫成因與台股連動，避免重複",
+   "score": 5,
+   "format_hint": "文章",
+   "added": "2026-10-19",
+   "site_links": [
+    "#flow"
+   ]
+  },
+  {
+   "id": "n_musk_tesla",
+   "cat": "news",
+   "title": "特斯拉與馬斯克最新動向：Optimus、TeraFab、資本支出上修",
+   "why": "Andy 10-19 點名馬斯克電動車；搜尋到 4 月上修全年資本支出至 250 億美元以上、規劃自建晶片廠 TeraFab、Optimus 進入量產討論；已有 Roadster 供應鏈文，這題改寫整體動向與台廠環節，附發表會或財報影片",
+   "score": 5,
+   "format_hint": "文章",
+   "added": "2026-10-19",
+   "site_links": [
+    "#industry"
+   ]
+  },
+  {
+   "id": "n_nov_earnings",
+   "cat": "news",
+   "title": "11 月後的財報行情：法說會空窗期資金往哪走",
+   "why": "Andy 10-19 點名；年底法說會與財報密集期、12 月作帳到次年財報空窗期的行情節奏，本站有族群漲跌與外資買賣超可對照",
+   "score": 5,
+   "format_hint": "文章",
+   "added": "2026-10-19",
+   "site_links": [
+    "#flow"
+   ]
+  },
+  {
    "id": "n_fomc_oct",
    "cat": "news",
    "title": "FOMC 10/28 前夕：外資與台股族群怎麼動",
