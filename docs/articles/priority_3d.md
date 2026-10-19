@@ -7,7 +7,7 @@
 
 | 順序 | 類型 | 主題 id／文章 | 3D 場景 id（scene kind 3d） | 狀態 |
 |---|---|---|---|---|
-| 1 | 重做 | 2026-10-14-intro-ai-server AI 伺服器產業鏈入門 | ai_server（另嵌 2.5D ai_server） | 待做 |
+| 1 | 重做 | 2026-10-14-intro-ai-server AI 伺服器產業鏈入門 | ai_server（另嵌 2.5D ai_server） | 已上架 2026-10-19 82 2026-10-14-intro-ai-server |
 | 2 | 新文章 | k_ssd SSD 是什麼？ | memory_module（SSD） | 待做 |
 | 3 | 新文章 | k_foundry IC 代工是什麼？ | foundry | 待做 |
 | 4 | 新文章 | k_abf IC 載板是什麼？ | ic_substrate | 待做 |

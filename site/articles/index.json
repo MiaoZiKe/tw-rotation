@@ -376,46 +376,25 @@
   {
    "id": "2026-10-14-intro-ai-server",
    "cat": "intro",
-   "title": "AI 伺服器產業鏈入門：一台機器由誰組成",
-   "subtitle": "從晶片到機櫃，十幾個環節一次看懂",
+   "title": "AI 伺服器一櫃 120 kW，是氣冷機櫃的 3 倍",
    "date": "2026-10-14",
-   "tags": [
-    "AI伺服器",
-    "產業鏈",
-    "先進封裝",
-    "散熱",
-    "PCB",
-    "光通訊"
-   ],
-   "summary": "AI 伺服器不只是一顆 GPU。本文依本站產業鏈資料，用一張關係圖與一張對照表，3 分鐘看懂晶片、先進封裝、載板、PCB 與板材、散熱、電源、光通訊、交換器到系統組裝各在做什麼，以及台股代表公司。",
-   "reading_min": 3,
+   "topic": "i_ai_server",
    "groups": [
     {
      "id": "ai_server_odm",
      "name": "AI 伺服器組裝"
     },
     {
-     "id": "ai_adv_packaging",
-     "name": "AI 先進封裝"
-    },
-    {
-     "id": "ic_substrate",
-     "name": "PCB 載板"
-    },
-    {
-     "id": "pcb_rigid",
-     "name": "PCB 硬板製造"
-    },
-    {
      "id": "liquid_cooling",
      "name": "液冷散熱"
     },
     {
-     "id": "optical_module",
-     "name": "高速光模組"
+     "id": "ic_substrate",
+     "name": "PCB 載板"
     }
    ],
-   "topic": "i_ai_server"
+   "reading_min": 3,
+   "src": "api"
   }
  ]
 }
