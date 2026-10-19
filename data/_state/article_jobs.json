@@ -1,5 +1,5 @@
 {
- "updated": "2026-10-19 13:09",
+ "updated": "2026-10-19 13:16",
  "jobs": [
   {
    "id": 11,
@@ -9,10 +9,10 @@
    "note": "排程自動排入（規則 1，台北 2026-10-19 06:00）；建議主題 n_nanya_dram",
    "status": "working",
    "created": 1792382342135,
-   "updated": 1792386565207,
+   "updated": 1792387002661,
    "result": null,
-   "stage": "plan",
-   "stage_at": 1792386565207
+   "stage": "review",
+   "stage_at": 1792387002661
   },
   {
    "id": 12,
