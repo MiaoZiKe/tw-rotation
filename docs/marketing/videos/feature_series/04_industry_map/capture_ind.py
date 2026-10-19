@@ -242,9 +242,13 @@ class A(C.Act):
                 break
             self.idle(120)   # 最上層不是目標（被隔壁展開的標籤蓋住）：等一下再量
         self.note(f"點 {label}")
+        pre = self.pg.evaluate(C.RECT_JS, sel)   # 按下前一刻量「被點的那個元素」本身（3D 標籤點的是標題 b，不是整張標籤）
         self.click_xy(x, y, 1, 0, expect=sel)
         self.targets[-1]["label"] = label
-        # 中心誤差以「按下前一刻」量到的外框為準（capture.record_target）；點下後標籤會展開說明而變高，不可事後再量
+        if pre and pre[2] > 0:
+            self.targets[-1]["rect_center"] = self._vpt(pre[0] + pre[2] / 2, pre[1] + pre[3] / 2)
+            self.targets[-1]["measured_by"] = "被點元素外框（按下前一刻）"
+        # 中心誤差以「按下前一刻」量到的外框為準；點下後標籤會展開說明而變高，不可事後再量
         return True
 
     def hover(self, sel, ms=420, dx=0.5, dy=0.5):

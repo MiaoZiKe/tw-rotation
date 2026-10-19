@@ -1,7 +1,7 @@
 """功能介紹影片 04 產業地圖：封面兩張（16:9 1920×1080、9:16 1080×1920）。
 
 視覺照 docs/social_handoff/style/LIGULIGU_IG_Threads_Style_Guide.md：奶油紙底 #FFF9EF、深咖啡字 #321A14、
-珊瑚 #F58C83／蜜桃 #FFD4BA／淡黃 #FFE5A5 強調；標題 ≤ 14 字；網站畫面用錄影當下的實際畫面（v3：AI 伺服器 3D 立體剖析圖推近後的那一拍——電源櫃標籤＋說明＋機櫃本體；公司小籤已在錄影瀏覽器模糊）。
+珊瑚 #F58C83／蜜桃 #FFD4BA／淡黃 #FFE5A5 強調；標題 ≤ 14 字；網站畫面用錄影當下的實際畫面（v3：AI 伺服器 3D 立體剖析圖推近後的那一拍——機櫃本體＋兩側零件標籤；公司小籤已在錄影瀏覽器模糊）。
 元素外框兩兩比對（外擴 6px），有重疊就印出來。
 """
 from __future__ import annotations
@@ -27,13 +27,14 @@ YEL = (255, 229, 165)
 
 
 def shot_crop():
-    """v3：用成片同一套鏡頭（render_ind.cam_track）取 d_3d「零件：電源櫃＋說明」那一拍推近後的畫面
-    （被點的零件標籤展開說明＋它連到的機櫃本體；零件標籤上的公司小籤已在錄影瀏覽器模糊）。"""
+    """v3：用成片同一套鏡頭（render_ind.cam_track）取 d_3d「推近：機櫃＋兩側零件標籤（旋轉）」那一拍的畫面
+    （剛點過 ToR 交換器、標籤展開說明；零件標籤上的公司小籤已在錄影瀏覽器模糊）。"""
     js = json.loads((R.RAW / "d_3d.json").read_text(encoding="utf-8"))
-    t = [m[0] for m in js["marks"] if m[1] == "cam" and m[2] == "零件：電源櫃＋說明"][0] + 0.9
+    t = [m[0] for m in js["marks"] if m[1] == "cam" and m[2].startswith("推近：機櫃＋兩側零件標籤（旋轉）")][0] + 1.0
     k = int(t * 30)
     o = R.layout("d")
-    x, y, w, h = R.cam_track(o, js, "3d")["cams"][k]
+    x, y, w, h = R.cam_track(o, js, "3d")["focus"][k][0]   # 推近拍的介紹區塊＝3D 畫布（機櫃本體＋兩側零件標籤），不帶到畫布下方的圖說
+    x, y, w, h = x + 12, y + 12, w - 24, h - 24   # 去掉選取外框的留白（錄影時外擴 4px），畫布邊緣以外一點都不帶
     cap = cv2.VideoCapture(str(R.RAW / "d_3d.mp4"))
     cap.set(cv2.CAP_PROP_POS_FRAMES, k)
     ok, fr = cap.read()
