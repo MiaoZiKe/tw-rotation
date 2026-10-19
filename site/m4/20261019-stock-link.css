@@ -1,0 +1,12 @@
+/* 10-19 個股頁圖表連動（手機 #mbBody 的每日表；桌機 #stockTab 那份由 industry.js lkCss() 注入）：
+   亮起來那列＝琥珀底＋左條；鎖定那列多一圈琥珀框；其他列變淡（深 .55／淺 .35，跟圖上的變淡同一組數字）。只在 ≤640 生效，桌機不受影響。 */
+@media (max-width:640px){
+  #mbBody .mbtbl tr[data-k]{cursor:pointer;transition:opacity .12s}
+  #mbBody .mbtbl tr.hl td{background:color-mix(in srgb,var(--amber) 18%,var(--panel-2))!important}
+  #mbBody .mbtbl tr.hl td:first-child{box-shadow:inset 3px 0 0 var(--amber)}
+  #mbBody .mbtbl tr.lk td{box-shadow:inset 0 1px 0 var(--amber),inset 0 -1px 0 var(--amber)}
+  #mbBody .mbtbl tr.lk td:first-child{box-shadow:inset 3px 0 0 var(--amber),inset 0 1px 0 var(--amber),inset 0 -1px 0 var(--amber)}
+  #mbBody .mbtbl tr.dim{opacity:.55}
+  :root[data-theme="light"] #mbBody .mbtbl tr.dim{opacity:.35}
+}
+@media (max-width:640px) and (prefers-reduced-motion:reduce){#mbBody .mbtbl tr[data-k]{transition:none}}

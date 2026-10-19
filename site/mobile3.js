@@ -1491,11 +1491,20 @@
           axisLabel: { color: CH.ink3, fontSize: 12, fontFamily: A.NUM_FONT, formatter: o.y2fmt || yfmt } }] : []),
       series,
     }, { notMerge: true });
+    mLink(o.keys || o.full || o.x);
   }
-  /* 每日表：cols＝[{h, f(row)→[文字, class]}]；rows 已經是新到舊。sel＝目前分段對應的欄（加底色） */
-  function table(cols, rows, sel, cap) {
+  /* ★ 10-19 圖表連動（桌機 industry.js stLink 同一支；style_guide 第十八節）：每一頁的單張圖＋下面的每日表用同一個鍵（日期／月／季／年）串起來：
+     點圖上一根（或那一欄）＝那一列亮、其他變淡；再點同一個或點空白＝取消。手機不自動捲動（stLink 自己判斷 ≤640）。
+     表格列要有 data-k（table() 的 kf 參數）才連得到；沒給 kf 的頁只有圖自己亮暗。 */
+  function mLink(keys) {
+    const bx = document.getElementById('mbChartBox');
+    if (!window.StockLink || !bx || !bx.parentElement) return;
+    window.StockLink.link('m', { root: bx.parentElement, code: skCode(), rows: '.mbtbl tbody tr[data-k]', charts: [{ id: 'mbChart', keys }] });
+  }
+  /* 每日表：cols＝[{h, f(row)→[文字, class]}]；rows 已經是新到舊。sel＝目前分段對應的欄（加底色）；kf(row)→連動的鍵（10-19） */
+  function table(cols, rows, sel, cap, kf) {
     return `<div class="mbtblwrap"><table class="mbtbl">${cap ? `<caption>${cap}</caption>` : ''}<thead><tr>${cols.map((c, i) => `<th class="${i === sel ? 'sel' : ''}">${c.h}</th>`).join('')}</tr></thead>
-      <tbody>${rows.map(r => `<tr>${cols.map((c, i) => { const v = c.f(r); return `<td class="${(v[1] || '')}${i === sel ? ' sel' : ''}">${v[0]}</td>`; }).join('')}</tr>`).join('')}</tbody></table></div>`;
+      <tbody>${rows.map(r => `<tr${kf && kf(r) != null ? ` data-k="${esc(String(kf(r)))}"` : ''}>${cols.map((c, i) => { const v = c.f(r); return `<td class="${(v[1] || '')}${i === sel ? ' sel' : ''}">${v[0]}</td>`; }).join('')}</tr>`).join('')}</tbody></table></div>`;
   }
   const empty = (msg) => `<div class="mbempty">${msg}</div>`;
 
@@ -1687,7 +1696,7 @@
       + chartBox(kpi([[`${md(last.d)} ${nm}`, sInt(last[seg]), uc(last[seg])], ['5 日', sInt(sum(5)), uc(sum(5))], ['20 日', sInt(sum(20)), uc(sum(20))], [`${rows.length} 日`, sInt(sum(rows.length)), uc(sum(rows.length))]]
         .concat(seg === 'p' && (last.ps != null || last.ph != null) ? [['自行買賣', sInt(last.ps), uc(last.ps)], ['避險', sInt(last.ph), uc(last.ph)]] : [])))
       + table([{ h: '日期', f: r => [md(r.d)] }, { h: '外資', f: r => [sInt(r.f), uc(r.f)] }, { h: '投信', f: r => [sInt(r.t), uc(r.t)] },
-        { h: '自營商', f: r => [sInt(r.p), uc(r.p)] }, { h: '合計', f: r => [sInt(r.s), uc(r.s)] }], rows.slice().reverse(), SEG.findIndex(x => x[0] === seg) + 1, '單位：張；紅＝買超、綠＝賣超')
+        { h: '自營商', f: r => [sInt(r.p), uc(r.p)] }, { h: '合計', f: r => [sInt(r.s), uc(r.s)] }], rows.slice().reverse(), SEG.findIndex(x => x[0] === seg) + 1, '單位：張；紅＝買超、綠＝賣超', r => r.d)
       + `<div class="mbfoot">法人資料比價量晚一個交易日。</div>`;
     const draw = () => barChart({ x: rows.map(r => md(r.d)), full: rows.map(r => r.d), bars: [{ name: nm, data: rows.map(r => r[seg] == null ? null : Math.round(r[seg])) }], ytip: (v) => sInt(v) + ' 張' });
     wireSeg(body, 'inst'); wireFold(body, draw); draw();
@@ -1732,7 +1741,7 @@
     body.innerHTML = segBar('big', SEG, seg)
       + `<div class="mbhotgls" id="mbHoTgls" role="group" aria-label="顯示哪幾條線">${tg}</div>`
       + chartBox('')
-      + table(cols, W.slice().reverse(), -1, '單位：持股比例 %；▲▼＝比上一週（紅＝增加、綠＝減少）')
+      + table(cols, W.slice().reverse(), -1, '單位：持股比例 %；▲▼＝比上一週（紅＝增加、綠＝減少）', r => String(r.d).slice(0, 10))
       + `<div class="mbfoot">每週公布一次。千張以上往上、≤10 張往下＝籌碼往大戶集中。${grow}散戶＝持股 ≤10 張，與部分券商 App 的散戶定義不同。</div>`;
     const draw = () => {
       const el = document.getElementById('mbChart');
@@ -1758,6 +1767,7 @@
         series: L.map((h, i) => ({ name: h.n, type: 'line', xAxisIndex: i, yAxisIndex: i, data: W.map(r => r[h.k]), connectNulls: true,
           showSymbol: true, symbolSize: 7, lineStyle: { color: CH[h.c], width: 3 }, itemStyle: { color: CH[h.c] }, label: { show: false } })),
       }, { notMerge: true });
+      mLink(W.map(r => String(r.d).slice(0, 10)));
     };
     $('#mbHoTgls', body).onclick = (e) => {
       const b = e.target.closest('button[data-k]'); if (!b) return;
@@ -1853,7 +1863,7 @@
     const srcFoot = [hasCol.dt && CUT.dt && `當沖資料只更新到 ${md(CUT.dt)}`, hasCol.sl && CUT.sl && `借券賣出資料只更新到 ${md(CUT.sl)}`].filter(Boolean).join('、');
     const srcTxt = srcFoot ? `<span class="mbsrc" data-src-cut="1">${srcFoot}；之後寫「未提供」，不是 0。</span>` : '';
     const cap = '單位：張；融資／融券＝當日增減（紅＝增加、綠＝減少）' + (hasCol.dt ? '；當沖＝當沖成交張數' : '') + (hasCol.sl ? '；借券賣＝當日借券賣出張數（向借券系統借來賣，多為法人避險，不是融券）' : '；資餘／券餘＝餘額');
-    const tbl = table(cols, rows.slice().reverse(), sel, cap);
+    const tbl = table(cols, rows.slice().reverse(), sel, cap, r => r.d);
     if ((seg === 'dt' || seg === 'sl') && !hasData[seg]) {
       body.innerHTML = segBar('margin', SEG, seg) + `<div class="mbwhy"><b>${nm}：這一檔還沒有資料</b>${WHY[seg]}</div>` + tbl + (srcTxt ? `<div class="mbfoot">${srcTxt}</div>` : '');
       wireSeg(body, 'margin'); return;
@@ -1897,7 +1907,7 @@
         + chartBox(kpi([[`${last.ym.replace('-', '/')} 營收`, int(last.v) + ' 百萬'], ['YoY', sFix(last.yoy, 1) + '%', uc(last.yoy)], ['MoM', sFix(last.mom, 1) + '%', uc(last.mom)]])
           + legend([['當月', lastY], ['去年同期', prevC], ['MoM(%)', CH.violet, 1], ['YoY(%)', CH.amber, 1]]))
         + table([{ h: '年/月', f: r => [r[0].replace('-', '/')] }, { h: '月營收（百萬）', f: r => [r[1] == null ? '—' : (r[1] / 1e6).toLocaleString('en-US', { maximumFractionDigits: 1, minimumFractionDigits: 1 })] },
-          { h: 'YoY（%）', f: r => [sFix(r[2], 2), uc(r[2])] }, { h: 'MoM（%）', f: r => [sFix(r[3], 2), uc(r[3])] }], rows, -1)
+          { h: 'YoY（%）', f: r => [sFix(r[2], 2), uc(r[2])] }, { h: 'MoM（%）', f: r => [sFix(r[3], 2), uc(r[3])] }], rows, -1, '', r => r[0])
         + `<div class="mbfoot">圖：近 12 個月；表：近 ${rows.length} 個月。</div>`;
       const draw = () => barChart({ x: X.map(r => r.ym.slice(2).replace('-', '/')), full: X.map(r => r.ym),
         bars: [{ name: '當月', data: X.map(r => r.v == null ? null : Math.round(r.v)), color: lastY }, { name: '去年同期', data: X.map(r => r.ly == null ? null : Math.round(r.ly)), color: prevC }],
@@ -1917,7 +1927,7 @@
       body.innerHTML = segBar('rev', SEG, seg)
         + chartBox(kpi([[`${last.y}${last.m < 12 ? `（1–${last.m} 月）` : ''}`, int(last.v) + ' 百萬'], ['同期 YoY', sFix(last.yoy, 1) + '%', uc(last.yoy)]])
           + legend([['年營收', lastY], ['YoY(%)，同月份比', CH.amber, 1]]))
-        + table([{ h: '年', f: r => [r.y + (r.m < 12 ? `<small>（${r.m} 個月）</small>` : '')] }, { h: '營收（百萬）', f: r => [int(r.v)] }, { h: 'YoY（%）', f: r => [sFix(r.yoy, 2), uc(r.yoy)] }], Y.slice().reverse(), -1)
+        + table([{ h: '年', f: r => [r.y + (r.m < 12 ? `<small>（${r.m} 個月）</small>` : '')] }, { h: '營收（百萬）', f: r => [int(r.v)] }, { h: 'YoY（%）', f: r => [sFix(r.yoy, 2), uc(r.yoy)] }], Y.slice().reverse(), -1, '', r => String(r.y))
         + '<div class="mbfoot">未滿 12 個月的年度，YoY 跟前一年同月份比。</div>';
       const draw = () => barChart({ x: Y.map(r => String(r.y)), bars: [{ name: '年營收', data: Y.map(r => r.v == null ? null : Math.round(r.v)), color: lastY }],
         lines: [{ name: 'YoY(%)', data: Y.map(r => r.yoy == null ? null : +r.yoy.toFixed(1)), color: CH.amber }],
@@ -1960,7 +1970,7 @@
         + chartBox(kpi([[`${last[0]} EPS`, last[5] != null ? (+last[5]).toFixed(2) + ' 元' : '—', uc(last[5])], ['累計', last[6] != null ? (+last[6]).toFixed(2) + ' 元' : '—'],
           ['近四季', f.ttm_eps != null ? (+f.ttm_eps).toFixed(2) + ' 元' : '—'], ['毛利率', last[2] != null ? (+last[2]).toFixed(1) + '%' : '—']]) + lg)
         + table([{ h: '季', f: r => [r[0]] }, { h: '毛利率（%）', f: r => [p2(r[2])] }, { h: '淨利率（%）', f: r => [p2(r[4]), r[4] < 0 ? 'dn' : ''] },
-          { h: 'EPS', f: r => [p2(r[5]), r[5] < 0 ? 'dn' : ''] }, { h: '累計 EPS', f: r => [p2(r[6]), r[6] < 0 ? 'dn' : ''] }], q.slice().reverse(), 3)
+          { h: 'EPS', f: r => [p2(r[5]), r[5] < 0 ? 'dn' : ''] }, { h: '累計 EPS', f: r => [p2(r[6]), r[6] < 0 ? 'dn' : ''] }], q.slice().reverse(), 3, '', r => r[0])
         + `<div class="mbfoot">圖：近 ${X.length} 季；累計 EPS＝當年度第 1 季起累加${(pg.profit.gaps || []).length ? `；缺季 ${(pg.profit.gaps || []).map(esc).join('、')}（財報沒有，圖上留空）` : ''}。</div>`;
       const draw = () => barChart({ x: X.map(r => r[0]), bars: [{ name: 'EPS', data: X.map(r => r[5]), color: epsC }],
         lines: [{ name: '毛利率', data: X.map(r => r[2]), color: CH.cyan }, { name: '淨利率', data: X.map(r => r[4]), color: CH.violet }], ...opt });
@@ -1971,7 +1981,7 @@
       body.innerHTML = segBar('profit', SEG, seg)
         + chartBox(kpi([[`${yl(last)} EPS`, (+last.eps).toFixed(2) + ' 元', uc(last.eps)], ['毛利率', last.gm != null ? (+last.gm).toFixed(1) + '%' : '—'], ['淨利率', last.nm != null ? (+last.nm).toFixed(1) + '%' : '—']]) + lg)
         + table([{ h: '年', f: r => [r.year + (r.partial ? `<small>（${r.quarters} 季）</small>` : '')] }, { h: '毛利率（%）', f: r => [p2(r.gm)] }, { h: '淨利率（%）', f: r => [p2(r.nm), r.nm < 0 ? 'dn' : ''] },
-          { h: 'EPS', f: r => [p2(r.eps), r.eps < 0 ? 'dn' : ''] }], yr.slice().reverse(), 3)
+          { h: 'EPS', f: r => [p2(r.eps), r.eps < 0 ? 'dn' : ''] }], yr.slice().reverse(), 3, '', r => String(r.year))
         + '<div class="mbfoot">年度＝四季單季加總；今年還沒滿四季的標「前 n 季」。</div>';
       const draw = () => barChart({ x: yr.map(r => String(r.year)), bars: [{ name: 'EPS', data: yr.map(r => r.eps), color: epsC }],
         lines: [{ name: '毛利率', data: yr.map(r => r.gm), color: CH.cyan }, { name: '淨利率', data: yr.map(r => r.nm), color: CH.violet }], ...opt });
@@ -1998,7 +2008,7 @@
         + chartBox(kpi([['目前本益比', f.pe ? (+f.pe).toFixed(1) : '—'], ['同族群中位', f.group_median != null ? (+f.group_median).toFixed(1) : '—'], ['股價淨值比', f.pb != null ? (+f.pb).toFixed(2) : '—'], ['近四季 EPS', f.ttm_eps != null ? (+f.ttm_eps).toFixed(2) : '—']])
           + legend([['本益比（期間平均）', CH.violet, 1], ['期間最高', CH.ink3, 2], ['期間最低', CH.ink3, 2]]))
         + table([{ h: '財報季', f: r => [r.period] }, { h: '近四季 EPS', f: r => [r.ttm_eps == null ? '—' : (+r.ttm_eps).toFixed(2), r.ttm_eps < 0 ? 'dn' : ''] },
-          { h: '本益比', f: r => [(+r.pe).toFixed(1)] }, { h: '高', f: r => [r.pe_high == null ? '—' : (+r.pe_high).toFixed(1)] }, { h: '低', f: r => [r.pe_low == null ? '—' : (+r.pe_low).toFixed(1)] }], pe.slice().reverse(), 2)
+          { h: '本益比', f: r => [(+r.pe).toFixed(1)] }, { h: '高', f: r => [r.pe_high == null ? '—' : (+r.pe_high).toFixed(1)] }, { h: '低', f: r => [r.pe_low == null ? '—' : (+r.pe_low).toFixed(1)] }], pe.slice().reverse(), 2, '', r => r.period)
         + `<div class="mbfoot">每一季＝該季財報公布後到下一季公布前這段期間的本益比（股價 ÷ 近四季 EPS）。</div>`;
       const draw = () => barChart({ x: pe.map(r => r.period), linesOnly: true, bars: [], scale: true,
         /* 2026-10-09 手機與桌機同步：期間最高／最低以前是紅／綠線（本站紅＝漲、綠＝跌，會被讀成漲跌）。
@@ -2013,7 +2023,7 @@
         + chartBox(kpi([[`${last[0]} 營收`, last[1] != null ? (last[1] / 1e8).toFixed(1) + ' 億' : '—'], ['稅後淨利', last[8] != null ? (last[8] / 1e8).toFixed(1) + ' 億' : '—', uc(last[8])], ['營益率', last[3] != null ? (+last[3]).toFixed(1) + '%' : '—'], ['ROE', f.roe != null ? (+f.roe).toFixed(1) + '%' : '—']])
           + legend([['營收（億，左軸）', revC], ['稅後淨利（億，右軸）', CH.amber, 1]]))
         + table([{ h: '季', f: r => [r[0]] }, { h: '營收（億）', f: r => [r[1] == null ? '—' : (r[1] / 1e8).toFixed(1)] }, { h: '淨利（億）', f: r => [r[8] == null ? '—' : (r[8] / 1e8).toFixed(1), r[8] < 0 ? 'dn' : ''] },
-          { h: '營益率（%）', f: r => [r[3] == null ? '—' : (+r[3]).toFixed(1), r[3] < 0 ? 'dn' : ''] }], q.slice(-16).reverse(), 1)
+          { h: '營益率（%）', f: r => [r[3] == null ? '—' : (+r[3]).toFixed(1), r[3] < 0 ? 'dn' : ''] }], q.slice(-16).reverse(), 1, '', r => r[0])
         + '<div class="mbfoot">圖：近 12 季；表：近 16 季。</div>';
       const draw = () => barChart({ x: X.map(r => r[0].slice(2)), full: X.map(r => r[0]), bars: [{ name: '營收', data: X.map(r => r[1] == null ? null : +(r[1] / 1e8).toFixed(1)), color: revC }],
         lines: [{ name: '稅後淨利', data: X.map(r => r[8] == null ? null : +(r[8] / 1e8).toFixed(1)), color: CH.amber }],
@@ -2071,7 +2081,7 @@
       + (upTxt ? `<div class="mbfoot" style="margin-top:0">已公告、尚未除權息：${upTxt}</div>` : '')
       + chartBox(kpi(k) + legend(lg))
       + (`<div class="mbtblwrap"><table class="mbtbl mbdiv"><thead><tr><th>年度</th><th>除權日<br>除息日</th><th class="${seg !== 'all' ? 'sel' : ''}">股票股利<br>現金股利</th>${hasYl ? '<th>殖利率</th>' : ''}<th aria-label="展開"></th></tr></thead><tbody>`
-      + Y.slice().reverse().map((r, i) => `<tr class="mbdrow" data-i="${i}" tabindex="0" aria-expanded="false"><td>${r.y}${r.part ? '<br><small>今年</small>' : ''}</td><td>${r.qd ? md(r.qd) : '—'}<br>${r.xd ? md(r.xd) : '—'}</td>`
+      + Y.slice().reverse().map((r, i) => `<tr class="mbdrow" data-i="${i}" data-k="${r.y}" tabindex="0" aria-expanded="false"><td>${r.y}${r.part ? '<br><small>今年</small>' : ''}</td><td>${r.qd ? md(r.qd) : '—'}<br>${r.xd ? md(r.xd) : '—'}</td>`
         + `<td class="${seg !== 'all' ? 'sel' : ''}">${r.stock ? (+r.stock).toFixed(3) : '0'}<br>${r.cash ? (+r.cash).toFixed(3) : '0'}</td>${hasYl ? `<td>${r.yl != null ? r.yl.toFixed(2) + '%' : '—'}</td>` : ''}<td class="mbx">﹀</td></tr>`
         + `<tr class="mbdet" hidden><td colspan="${hasYl ? 5 : 4}">${r.it.map(x => { const rr = res.get(String(x.date).slice(0, 10));
           return `<div>${esc(x.date)} 除${esc(x.kind)}${x.period ? '（' + esc(x.period) + '）' : ''}：${x.kind === '息' ? '現金 ' + (x.cash != null ? (+x.cash).toFixed(3) : '—') + ' 元' : '股票 ' + (x.stock != null ? (+x.stock).toFixed(3) : '—') + ' 元'}`
