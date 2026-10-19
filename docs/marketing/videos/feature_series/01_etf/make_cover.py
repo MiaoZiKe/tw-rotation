@@ -30,7 +30,7 @@ def shot_crop():
     f = R.RAW / "d_cal.json"
     meta = json.loads(f.read_text(encoding="utf-8")) if f.exists() else json.loads((R.RAW / "d_meta.json").read_text(encoding="utf-8"))["cal"]
     # 點了日期之後、清單出現的那一刻（第 4 句泡泡出現後 1.5 秒）
-    t = meta["says"][4]["t"] + 1.5
+    t = (meta["says"][2]["t"] + 1.0) if R.FAST else (meta["says"][4]["t"] + 1.5)
     cap = cv2.VideoCapture(str(R.RAW / "d_cal.mp4"))
     cap.set(cv2.CAP_PROP_POS_FRAMES, int(t * 30))
     ok, fr = cap.read()
