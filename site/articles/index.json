@@ -2,6 +2,21 @@
  "updated": "2026-10-19",
  "articles": [
   {
+   "id": "2026-10-19-know-sic-gan",
+   "cat": "know",
+   "title": "第三代半導體是什麼？SiC 帶隙是矽的 2.9 倍",
+   "date": "2026-10-19",
+   "topic": "k_sic_gan",
+   "groups": [
+    {
+     "id": "wide_bandgap",
+     "name": "第三代半導體"
+    }
+   ],
+   "reading_min": 3,
+   "src": "api"
+  },
+  {
    "id": "2026-10-17-know-hbm",
    "cat": "know",
    "title": "一張圖看懂 HBM：頻寬是 DDR5 的 40 倍",
