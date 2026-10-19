@@ -2,6 +2,39 @@
  "updated": "2026-10-19",
  "articles": [
   {
+   "id": "2026-10-14-know-cowos",
+   "cat": "know",
+   "title": "CoWoS 月產能預估 2 年擴 3.7 倍，仍不夠",
+   "date": "2026-10-14",
+   "topic": "k_cowos",
+   "groups": [
+    {
+     "id": "ai_adv_packaging",
+     "name": "AI 先進封裝"
+    },
+    {
+     "id": "foundry",
+     "name": "晶圓代工"
+    },
+    {
+     "id": "pkg_equipment",
+     "name": "封裝製程機台"
+    }
+   ],
+   "reading_min": 3,
+   "src": "api"
+  },
+  {
+   "id": "2026-10-19-know-institutional",
+   "cat": "know",
+   "title": "外資買超當天大盤漲 83%，隔天只剩 56%",
+   "date": "2026-10-19",
+   "topic": "k_institutional",
+   "groups": [],
+   "reading_min": 3,
+   "src": "api"
+  },
+  {
    "id": "2026-10-19-intro-ai-networking",
    "cat": "intro",
    "title": "AI 網通鏈：從 2 公尺銅纜到 100 公尺光纖",
@@ -343,90 +376,25 @@
   {
    "id": "2026-10-14-intro-ai-server",
    "cat": "intro",
-   "title": "AI 伺服器產業鏈入門：一台機器由誰組成",
-   "subtitle": "從晶片到機櫃，十幾個環節一次看懂",
+   "title": "AI 伺服器一櫃 120 kW，是氣冷機櫃的 3 倍",
    "date": "2026-10-14",
-   "tags": [
-    "AI伺服器",
-    "產業鏈",
-    "先進封裝",
-    "散熱",
-    "PCB",
-    "光通訊"
-   ],
-   "summary": "AI 伺服器不只是一顆 GPU。本文依本站產業鏈資料，用一張關係圖與一張對照表，3 分鐘看懂晶片、先進封裝、載板、PCB 與板材、散熱、電源、光通訊、交換器到系統組裝各在做什麼，以及台股代表公司。",
-   "reading_min": 3,
+   "topic": "i_ai_server",
    "groups": [
     {
      "id": "ai_server_odm",
      "name": "AI 伺服器組裝"
     },
     {
-     "id": "ai_adv_packaging",
-     "name": "AI 先進封裝"
-    },
-    {
-     "id": "ic_substrate",
-     "name": "PCB 載板"
-    },
-    {
-     "id": "pcb_rigid",
-     "name": "PCB 硬板製造"
-    },
-    {
      "id": "liquid_cooling",
      "name": "液冷散熱"
     },
     {
-     "id": "optical_module",
-     "name": "高速光模組"
-    }
-   ],
-   "topic": "i_ai_server"
-  },
-  {
-   "id": "2026-10-14-know-cowos",
-   "cat": "know",
-   "title": "CoWoS 是什麼？AI 晶片的關鍵封裝",
-   "subtitle": "為什麼 HBM 要貼在 GPU 旁邊、產能為什麼總是不夠，一次看懂",
-   "date": "2026-10-14",
-   "tags": [
-    "CoWoS",
-    "先進封裝",
-    "HBM",
-    "台積電",
-    "ABF 載板",
-    "半導體"
-   ],
-   "summary": "CoWoS 是台積電的 2.5D 先進封裝，把運算晶片與高頻寬記憶體並排放在中介層上，解決 AI 晶片「資料送不進來」的瓶頸。3 分鐘看懂它的三層結構、-S／-R／-L 三個版本的差異、產能為何吃緊，以及台灣設備、載板、封測的代表公司。",
-   "reading_min": 3,
-   "groups": [
-    {
-     "id": "ai_adv_packaging",
-     "name": "AI 先進封裝"
-    },
-    {
-     "id": "foundry",
-     "name": "晶圓代工"
-    },
-    {
-     "id": "fab_process_equip",
-     "name": "前段製程設備"
-    },
-    {
-     "id": "pkg_equipment",
-     "name": "封裝製程機台"
-    },
-    {
      "id": "ic_substrate",
      "name": "PCB 載板"
-    },
-    {
-     "id": "hbm",
-     "name": "HBM 高頻寬記憶體"
     }
    ],
-   "topic": "k_cowos"
+   "reading_min": 3,
+   "src": "api"
   }
  ]
 }
