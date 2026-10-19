@@ -591,7 +591,7 @@ def end_card(o, base, reg, a):
     s1 = "搜尋「哩股哩股」"
     w_, h_, b_ = tsize(big, s1)
     cx = (x0 + x1) / 2
-    cy = y0 + (y1 - y0) * (0.30 if o.dev == "d" else 0.26)
+    cy = y0 + (y1 - y0) * (0.30 if o.dev == "d" else 0.30)
     bx0, by0, bx1, by1 = cx - w_ / 2 - 54, cy - h_ / 2 - 36, cx + w_ / 2 + 54, cy + h_ / 2 + 36
     d.rounded_rectangle([bx0, by0 + 10, bx1, by1 + 10], 46, fill=(180, 70, 55, int(255 * a)))
     d.rounded_rectangle([bx0, by0, bx1, by1], 46, fill=CORAL + (int(255 * a),))
@@ -615,7 +615,7 @@ def end_card(o, base, reg, a):
         dl = ["本內容為公開資料整理，", "不構成任何投資建議；", "投資有風險，請自行判斷。"]
     lh = 54
     hh = lh * len(dl) - (lh - 34) + 60
-    dy0 = y1 - (110 if o.dev == "d" else 140) - hh
+    dy0 = y1 - 110 - hh if o.dev == "d" else yy + 110
     dw = max(f3.getlength(s) for s in dl) + 80
     d.rounded_rectangle([cx - dw / 2, dy0, cx + dw / 2, dy0 + hh], 22, fill=(255, 255, 255, int(255 * a)), outline=(200, 185, 165, int(255 * a)), width=2)
     yy = dy0 + 30

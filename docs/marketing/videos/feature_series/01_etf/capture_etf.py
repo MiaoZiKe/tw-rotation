@@ -370,10 +370,11 @@ def d_ret(pg, a, start):
     nxt = pg.evaluate(LEGEND_NEXT_JS, "#etfRetLine")
     a.say("圖例較多時，可以翻頁查看", "face_nod_v2")
     if nxt:
-        a.click_xy(nxt[0], nxt[1], 600, 300)
-        a.wait(800)
-        a.click_xy(nxt[0], nxt[1], 300, 200)
-        a.wait(600)
+        for ms in (600, 300):
+            a.click_xy(nxt[0], nxt[1], ms, 250)
+            tg = a.targets[-1]   # 圖例翻頁箭頭是 ECharts 畫在 canvas 裡的圖形：中心取自 ECharts 量到的箭頭外框中心
+            tg.update(label="圖例翻頁箭頭", rect_center=list(tg["center"]), measured_by="echarts 圖例 pageNext 外框")
+            a.wait(800)
     a.cam(["#etfRetBody .retcharts > div:last-child"], 10, "年化報酬率")
     a.say("右圖：並列每一檔的年化報酬率", "point_r_v2")
     a.hover("#etfRetBar", 700, 0.45, 0.3)
@@ -438,6 +439,17 @@ def m_sheet(a, g, v, label=""):
     """手機：點「ETF 總覽設定」摘要鈕 → 抽屜裡點選項 → 抽屜還開著就點上方空白收起。"""
     a.click("#m4EtfSet-list", label="ETF 總覽設定")
     a.wait(650)
+    a.cam(["#mSheet .msheetbody"], 6, "設定抽屜")   # 抽屜在畫面下半：鏡頭跟過去，點的選項才在畫面框裡
+    sel = f'#mSheet button[data-g="{g}"][data-v="{v}"]'
+    # 選項在可左右滑的一排裡、超出右邊：先像手指一樣把那一排滑過去（逐格），選項完整入畫才點
+    dx = a.pg.evaluate("(s) => { const b = document.querySelector(s); if (!b) return 0; const p = b.parentElement, r = b.getBoundingClientRect(), pr = p.getBoundingClientRect(); return r.right > pr.right - 8 ? Math.ceil(r.right - pr.right + 24) : 0; }", sel)
+    if dx:
+        x0 = a.pg.evaluate("(s) => document.querySelector(s).parentElement.scrollLeft", sel)
+        n = 20
+        for k in range(1, n + 1):
+            a.pg.evaluate("([s, v]) => { document.querySelector(s).parentElement.scrollLeft = v; }", [sel, x0 + dx * (0.5 - 0.5 * math.cos(math.pi * k / n))])
+            a.frame()
+        a.wait(250)
     a.click(f'#mSheet button[data-g="{g}"][data-v="{v}"]', label=label or v)
     a.wait(600)
     if a.pg.evaluate("() => { const s = document.getElementById('mSheet'); return !!s && s.getClientRects().length > 0 && s.getBoundingClientRect().top < innerHeight - 40; }"):
@@ -454,7 +466,7 @@ SAFE_BACK_JS = r"""() => { const bk = document.querySelector('.msheetback'), sh 
   for (let y = 120; y < top - 24; y += 12) for (let x = 40; x < innerWidth - 40; x += 12) {
     const e = document.elementFromPoint(x, y); if (!e) continue;
     if (e.closest('button,a,input,select,label,summary,[role=button],[role=tab],.cald,.rk,canvas,[_echarts_instance_],header,.m4top,.topbar')) continue;
-    const d = Math.abs(y - (120 + top) / 2) + Math.abs(x - innerWidth / 2) * 0.3; if (!best || d < best[2]) best = [x, y, d]; }
+    const d = Math.abs(y - (top - 34)) + Math.abs(x - innerWidth / 2) * 0.3; if (!best || d < best[2]) best = [x, y, d]; }
   bk.style.pointerEvents = pe; return best ? [best[0], best[1]] : null; }"""
 
 
@@ -616,9 +628,8 @@ def m_ret(pg, a, start):
     a.say("期間可選近 1、3、5、10 年或上市以來", "talk_explain_v2")
     a.scroll(by=-130, ms=700)
     a.cam_view("設定抽屜")
-    m_sheet(a, "rng", "1y", "近 1 年")
-    a.say("也能選「起始日期～至今」自訂區間", "point_ur_v2")
     m_sheet(a, "rng", "custom", "起始日期～至今")
+    a.say("選「起始日期～至今」可自訂區間", "point_ur_v2")
     a.cam(["#etfRetCard .row.spread", "#etfRngBox", "#etfRetBody .retcharts > div:first-child"], 6, "日期列")
     b = a.box("#etfRng .rpfrom")
     if b:
@@ -651,6 +662,7 @@ def m_ret(pg, a, start):
     hb = pg.evaluate(DZ_HANDLE_JS, "#etfRetLine")
     if hb:
         a.drag(hb[0], hb[1], hb[0] + 140, hb[1], 1200)
+        a.targets[-1].update(label="拉桿把手", rect_center=list(a.targets[-1]["center"]), measured_by="echarts dataZoom 把手外框")
         a.wait(900)
         a.mark("拖曳拉桿")
     a.cam(["#etfRetBody .retcharts > div:last-child"], 6, "年化報酬率")
