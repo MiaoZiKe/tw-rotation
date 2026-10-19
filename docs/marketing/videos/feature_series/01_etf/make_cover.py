@@ -38,7 +38,7 @@ def shot_crop():
     cx = meta.get("content_x") or [0, im.width]
     # 配息行事曆卡片：左右用內容區、上下取卡片範圍（約 css 64～872）
     asof = json.loads((R.REPO / "site" / "data" / "etf.json").read_text(encoding="utf-8")).get("asof")
-    return im.crop((cx[0] + 10, 2 * 64, cx[1] - 10, 2 * 836)), asof or meta.get("data_date")
+    return im.crop((cx[0] + 10, 2 * 64, cx[1] - 10, 2 * (798 if R.FAST else 836))), asof or meta.get("data_date")
 
 
 def sticker(im, w, radius=34, border=14):
