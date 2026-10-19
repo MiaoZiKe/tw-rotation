@@ -6,6 +6,7 @@
 - 點擊行為統一：有連動的地方第一下＝選取，第二下才進下一層（例外：ETF 行事曆清單點一下照舊開明細，因為每點扣次數；色票點一下照舊拿掉；漲跌分佈右表照舊進個股）。
 - 驗收段落：ETF報酬連動1019、ETF月配連動1019、資金流向連動1019、行事曆連動1019、市場頁連動1019、個股連動1019、管理區與總覽連動1019、第七批連動1019；各批也跑桌機守門1008。既有紅項（ETF現金流v2 4、資金流向 14、季節性等 10、關聯圖清單 4、ETF專區1005、財經日曆1006）皆對照 origin/main 為既有。
 - 其他 10-19：個股獲利分頁一屏（stock-profit-fit）、ETF 長條標籤改代號、搜尋下拉加「加入到」自選分頁、產貼文排程往回看 12 小時修漏排、社群部接管（每週日 17:47 文案包排程；需 Andy 在排程掛 repo）、短影音規則 docs/marketing/videos/video_rules_1018.md（等 Andy 選 OpenAI 語音）。
+- 10-19 下午：功能公告（site/notices/features.json＋鈴鐺，規則 docs/feature_notices.md）；文章內 3D 不再被裁（scene 區塊 below）；文章排程改「有 3D 圖的先做」（docs/articles/priority_3d.md），已上架 IC 載板、PSU／BBU 等；**Token 政策** docs/token_policy.md（commit 7e80ace5：43 單位 opus 6／sonnet 35／haiku 2，每個 agent 檔頭有預算上限），兩個排程提示詞已改成照政策（空佇列不 clone、撰寫 agent 20 萬先停、社群 7 則一個 sonnet 寫完上限 45 萬、結尾附本輪用量）。下一步：resource-auditor 每週一量測一次。
 
 ### 2026-10-17 18:5x 精選文章插圖第 2 版（style:2）渲染器＋量測＋驗收（分支 illus-v2，未推 main）
 - Andy 10-17：「自動產精選文章，之後的圖需要再更細緻，顏色不要太單一……這次先不改（指已上架的 HBM 那張）」。規格 docs/articles/illus_style.md（動畫單位）。
