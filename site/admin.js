@@ -1251,7 +1251,7 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
   // ⚠ 觸控點一下，zrender 會收到指標事件的 click 又收到瀏覽器補發的 click ⇒ 同一處 350ms 內第二下不算（comboLink 同一招）
   let lkLast = { k: '', t: 0 };
   function lkClick(pair, k, page, src) {
-    const t = Date.now(), kk = src + ':' + k; if (lkLast.k === kk && t - lkLast.t < 350) return; lkLast = { k: kk, t };
+    const t = Date.now(), kk = src + ':' + k; if (src !== 'dom' && lkLast.k === kk && t - lkLast.t < 350) return; lkLast = { k: kk, t };   // DOM 的 click 不會重複發，只擋圓餅（zrender）
     const pid = lkPid(pair);
     if (lkSelOf(pair) === k) {
       if (page && S.tab === 'all') { S.lkSel = {}; S.lkHov = null; S.tab = page; S.sub = 'all'; paintTrTabs(); return; }   // 第二下＝進該頁
