@@ -6,7 +6,7 @@ name: 配音（MeloTTS，開源語音）
 on:
   push:
     branches: [claude/blissful-sagan-sx1vag]
-    paths: ["docs/marketing/videos/*/melo_script.json", .github/workflows/melotts.yml]
+    paths: ["docs/marketing/videos/**/melo_script.json", .github/workflows/melotts.yml]
 
 permissions:
   contents: write
@@ -36,7 +36,7 @@ jobs:
           import json, pathlib, subprocess, wave
           from melo.api import TTS
           files = subprocess.run(["git", "diff", "--name-only", "HEAD~1", "HEAD"], capture_output=True, text=True).stdout.split()
-          scripts = [f for f in files if f.endswith("melo_script.json")] or [str(p) for p in pathlib.Path("docs/marketing/videos").glob("*/melo_script.json")]
+          scripts = [f for f in files if f.endswith("melo_script.json")] or [str(p) for p in pathlib.Path("docs/marketing/videos").glob("**/melo_script.json")]
           cache = {}
           for sp in scripts:
               spec = json.loads(pathlib.Path(sp).read_text(encoding="utf-8"))
