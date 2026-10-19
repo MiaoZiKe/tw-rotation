@@ -868,14 +868,21 @@
   }
 
   /* 關聯（滑過一個節點：它的祖先＋子孫全亮，其餘壓暗）*/
+  /* ★ 2026-10-19 多圖連動（Andy：「同個資訊多張圖表，都需要有像是 ETF 月配那樣的連動效果」）：
+     除了滑鼠直接滑到節點（S.hover），外面的清單（資金流向排名）也可以指定一個族群當焦點（S.ext，focus() 設）。
+     兩者同一套「祖先＋子孫全亮、其餘壓暗」；滑鼠真的在畫布上時以滑鼠為準。
+     外部焦點的壓暗程度照 style_guide 十八節（深色 .55／淺色 .35，由呼叫端傳 extDim），
+     畫布自己的滑過維持原本 .22（既有驗收量的是這個值，不動）。*/
   function related(S, n) {
-    if (!S.hover) return true;
-    const h = S.hover;
-    for (let p = n; p; p = p.parent) if (p === h) return true;       // n 是 h 的子孫（或自己）
-    for (let p = h; p; p = p.parent) if (p === n) return true;       // n 是 h 的祖先
+    const h = S.hover || S.ext;
+    if (!h) return true;
+    // 用 key 比（不用物件相等）：外部焦點可能是在節點被重建之前設的，物件換了 key 不會換（手機實測抓到）
+    for (let p = n; p; p = p.parent) if (p === h || p.key === h.key) return true;       // n 是 h 的子孫（或自己）
+    for (let p = h; p; p = p.parent) if (p === n || p.key === n.key) return true;       // n 是 h 的祖先
     return false;
   }
-  const fadeOf = (S, n) => (n.dim ? 0.2 : 1) * (related(S, n) ? 1 : 0.22);
+  const unrel = (S, base) => (S.hover || !S.ext ? base : (S.extDim || base));   // 不相關的那些壓到多暗
+  const fadeOf = (S, n) => (n.dim ? 0.2 : 1) * (related(S, n) ? 1 : unrel(S, 0.22));
 
   /* ---- 靜態層：光纖（外層微光管＋內核實心線）---- */
   function drawBase(S) {
@@ -1150,7 +1157,7 @@
       const ox = n.x - n.tx, oy = n.y - n.ty;
       // 壓暗規則和經典版一樣：被篩掉的 0.35、滑過別條路徑時 0.25；代表股收起時跟著淡出
       const lvs = visOf(S, n) * (xf && xf.has(n) ? xf.get(n) : 1); n.labNow = null; if (lvs < 0.01) return;
-      g.globalAlpha = (n.dim ? 0.35 : (related(S, n) ? (n.stale || n.nodata ? 0.6 : 1) : 0.25)) * lvs;
+      g.globalAlpha = (n.dim ? 0.35 : (related(S, n) ? (n.stale || n.nodata ? 0.6 : 1) : unrel(S, 0.25))) * lvs;
       n.labNow = [B.x + ox, B.y + oy, B.w, B.h, g.globalAlpha];   // 驗收用：這一幀實際畫在哪、多不透明（probe 的 ln）
       if (B.badge) {
         g.beginPath();
@@ -1176,7 +1183,7 @@
       // 補間中標籤跟著節點走
       const ox = n.x - n.tx, oy = n.y - n.ty;
       const f = fadeOf(S, n);
-      g.globalAlpha = n.dim ? 0.38 : (related(S, n) ? 1 : 0.4);
+      g.globalAlpha = n.dim ? 0.38 : (related(S, n) ? 1 : unrel(S, 0.4));
       if (f < 0.3 && S.hover) g.globalAlpha = 0.35;
       if (xf && xf.has(n)) { const k = xf.get(n); n.labNow = null; if (k < 0.01) return; g.globalAlpha *= k; }
       n.labNow = [B.x + ox, B.y + oy, B.w, B.h, g.globalAlpha];
@@ -1588,6 +1595,8 @@
   function setHover(S, n) {
     if (n === S.hover) return;
     S.hover = n;
+    // 多圖連動：滑到哪個節點告訴外面（資金流向排名那一列跟著 .hl）；滑開傳 null
+    if (S.opts && S.opts.onHover) { try { S.opts.onHover(n ? n.d : null, n ? n.lv : -1); } catch (e) { /* 外面出錯不擋畫布 */ } }
     drawBase(S); drawLabels(S);
     if (!S.motion || !S.raf) drawFx(S, performance.now(), true);
   }
@@ -1653,8 +1662,23 @@
     }
     paintMotionBtn(S);
     buildModel(S);
+    // 多圖連動：重畫（換日、播放、展開）之後外部焦點還在就重新對上節點（節點物件可能換了）
+    if (opts && 'focusGid' in opts) { S.extGid = opts.focusGid || null; if (opts.focusDim) S.extDim = opts.focusDim; }
+    S.ext = extNode(S);
     layoutAndDraw(S, true);
     return S.H + barH(S);
+  }
+  const extNode = (S) => (S.extGid ? S.order.find(n => n.lv === 2 && n.d && n.d.gid === S.extGid) || null : null);
+  /* 多圖連動：外部指定焦點族群（gid；null＝取消）。不重算版面，只重畫線、標籤與粒子那一幀。*/
+  function focus(host, gid, dim) {
+    const S = host && host._ft; if (!S) return false;
+    S.extGid = gid || null; if (dim) S.extDim = dim;
+    const n = extNode(S);
+    if (n === S.ext) return !!n;
+    S.ext = n;
+    drawBase(S); drawLabels(S);
+    if (!S.motion || !S.raf) drawFx(S, performance.now(), true);
+    return !!n;
   }
 
   /* 驗收用：量測與探針（_uitest.py 讀這裡；不改任何狀態）*/
@@ -1722,6 +1746,8 @@
       slot: S.classic ? +(S.slot || 0).toFixed(1) : null, canvases: S.stage.querySelectorAll('canvas').length,
       stageBg: S.stage.style.background || '',
       tweening: !!S.tween, twE: +(S.twE == null ? 1 : S.twE).toFixed(3), twLin: !!(S.tween && S.tween.lin), hover: S.hover ? S.hover.key : null,
+      ext: S.ext ? S.ext.key : null, extDim: S.extDim || null,
+      fade: Object.fromEntries(S.order.filter(n => n.lv === 1 || n.lv === 2).map(n => [n.key, +fadeOf(S, n).toFixed(3)])),
     };
   }
   /* 驗收用：一口氣讓 k 顆粒子「到站」（亂數挑活著的節點），驗震波上限；只在經典光纖有意義 */
@@ -1742,6 +1768,6 @@
 
   /* 驗收用：把單次換日補間拉長（容器 headless 的 rAF 只有 13～15 FPS，450ms 內只取得到 2～3 個樣本）。傳 0 還原。*/
   function tweenMs(host, ms) { const S = host && host._ft; if (S) S.tweenMs = ms || 0; }
-  window.FlowTopo = { render, destroy, probe, resetMeter, CFG, tweenMs, burst,
+  window.FlowTopo = { render, destroy, probe, resetMeter, CFG, tweenMs, burst, focus,
     has: (host) => !!(host && host._ft), motionWanted };
 })();

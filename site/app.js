@@ -8082,8 +8082,27 @@
         ovRotPop(box, el, r, back, px, (r.sz || 16) / 2 + 4);
         return;
       }
+      /* ★ 2026-10-19 多圖連動：資金流向頁的輪盤點族群＝鎖定（rankSel，跟點排行長條同一份狀態）→ 族群資金排行那一根同步亮；
+         再點同一顆＝取消（drillClose 會一起還原兩張圖與成分股面板）。*/
+      if (id === 'rotClock') {
+        if (linkTap('clk:' + r.gid)) return;
+        const step = rotLinkStep(r.gid);
+        if (step === 'close') { drillClose(); return; }
+        rankSel = r.gid;
+        highlightClock(r.gid, id);
+        if (step === 'lock') return;                 // 第一下只鎖定（排行那一根同步亮），第二下才開成分股面板
+      }
       drillOpen(r.gid, r.name);
     });
+    // 多圖連動：點輪盤空白處＝取消鎖定（點到點時 ECharts 有 target，不清）。只拔自己上次掛的那一支。
+    if (c && id === 'rotClock') {
+      try {
+        const zr = c.getZr();
+        if (zr._rfBlank) zr.off('click', zr._rfBlank);
+        zr._rfBlank = (ev) => { if (!ev.target && rankSel && !linkTap('clk:blank')) drillClose(); };
+        zr.on('click', zr._rfBlank);
+      } catch (e) { /* 同上 */ }
+    }
     /* ★ 2026-09-21：族群晶片列**不再由這裡產**。它搬進 `.rotfilter`（產業鏈 seg 的正下方），
        所以由 `wireRotFilter()` 一支負責 —— 一份名單、一套樣式、一個插入點。
        順帶解決一個播放時的老問題：以前每 420ms 重畫時鐘都要判斷要不要重建晶片列
@@ -9103,6 +9122,8 @@
       <li><b>拉Bar</b>＝看幾天前到最新（1～30 天），排行比的也是這一段。</li>
       <li><b>篩選</b>：上面兩個下拉（產業鏈、族群）與「只看前 10 大」，排行與輪盤一起篩。</li>
       <li><b>排行</b>：長條＝成交值佔比變化（pp），紅＝錢流進、綠＝錢退出。</li>
+      <li><b>兩張圖連動</b>：滑到輪盤的點或排行的長條，另一張同一個族群跟著亮、其他變淡 —— 用來對「錢流進最多的族群跑到循環哪一段」。
+        點一下＝鎖定，再點一下＝展開成分股；點空白處取消。</li>
       <li><b>空心圓</b>＝畫到盤上的個股。</li>
       <li data-live-ui><b>即時</b>：用當下價量往前續算一步，每 5 秒更新。灰虛線＝<b>慣性</b>（平盤也會走），
         亮色箭頭＝<b>今天真正推出來的</b>（很短是正常的，<b>沒有放大</b>）。
@@ -9244,6 +9265,7 @@
       + '桌機版的代表股先收起：滑鼠移到某個族群（圓點、名稱或那一整列）才顯示它的三檔，移開就收；點族群展開全部成分股時會一直顯示。'
       + '換日時節點依排名滑到新位置。'
       + '半導體的 IC 設計／代工／封測掛在同一個「半導體」節點；法定產業別的收容桶歸在「其他產業別」。'
+      + '右邊「資金流向排名」和樹連動：滑到一列，樹上那個族群連同它的線全亮、其他變淡（滑到樹上的族群，那一列也會亮）；點一列＝鎖定，再點一下＝展開成分股，點空白處取消。'
       + '點產業鏈＝右邊列出它底下的族群（◎＝圖上只看這個族群）；右邊清單點個股＝掛到族群底下（虛線、可多選，和輪動時鐘同一份選擇），→ 進個股頁。'
       + '展開只畫前 20 檔；「〇〇・其他」自動桶不展開。回上一階：麵包屑、「收起 ✕」、ESC 或點空白處。窄畫面先收起代表股那一層。'
       + '「即時」＝手寫板塊每分鐘依當下成交值重新排名、名次變了就換位；成交值是「最後成交價 × 累積張數」估算（雙掛已照 1/n 拆），'
@@ -9893,9 +9915,8 @@
       series: [{
         type: 'bar', barWidth: 15,
         // 圓角交給 softenOption（全站統一成膠囊形）；這裡只管顏色與「數字寫在哪一端」
-        data: rows.map(g => ({ value: +g.share_chg.toFixed(3), gid: g.group_id,
-          itemStyle: { color: chgColor(g.share_chg, 1.5) },
-          label: { position: g.share_chg >= 0 ? 'right' : 'left' } })),
+        // 2026-10-19 多圖連動：資料項由 rfData 產（選取的那根全亮＋外框、其他變淡），重畫時沿用 rankSel
+        data: rfData(rows, rows.some(g => g.group_id === rankSel) ? rankSel : null),
         label: { show: true, color: CH.ink2, fontSize: 12, fontFamily: NUM_FONT,
           // 窄欄位只寫佔比變化（這張圖回答的就是「誰把錢吸走了」）；期間報酬在 tooltip 裡還在
           formatter: (q) => lblOf(rows[q.dataIndex]) },
@@ -9907,15 +9928,23 @@
        所以點長條**不跳頁**：① 在排行卡下方原地展開成分股（重用 heatPanel）
        ② 同時把旁邊的輪動時鐘只亮這個族群、其餘壓暗 —— 兩張圖現在並排，一眼對得起來。
        再點同一根就取消（回到全亮）。*/
+    { const el = document.getElementById('rankFlow'); if (el) { el._rfRows = rows; el._rfFocus = rows.some(g => g.group_id === rankSel) ? rankSel : null; } }
     if (c) c.off('click').on('click', q => {
       const gid = q.data && q.data.gid; if (!gid) return;
+      if (linkTap('rf:' + gid)) return;                        // 觸控同一下補發的第二個 click 不算（不然「選取→立刻取消」）
       const g = rows.find(x => x.group_id === gid) || {};
       twT('rank_bar', g.group_name || gid);                    // 2026-10-05 埋點：右側排行被點的族群
       if (twGrpBlock(gid, g.group_name)) return;
       /* ★ 2026-09-21：這裡展開的清單改成兩階段共用的那一支（drillOpen）——
          以前是 heatPanel，點下去只能連到個股頁；現在同一份清單還可以把個股畫到圖上。
          面板就在圖正下方，所以一樣不自己捲動（heatPanel 的 scroll:false 是同一個理由）。*/
-      if (rankSel === gid) { rankSel = null; drillClose(); highlightClock(null); return; }
+      /* ★ 2026-10-19 多圖連動（style_guide 十八節：第一下＝選取、第二下才進下一層）：
+         改前：第一下就開成分股面板 —— 但面板開在這張排行的位置上（側欄共用一格），一開就把長條蓋住，
+         「兩張圖同一個族群一起亮」根本看不到。改後：第一下＝鎖定（輪盤與長條同一個族群亮、其他變淡）；
+         再點同一根＝開面板；面板開著時點別根＝直接換過去（照舊）；面板開著再點同一根＝收起（照舊）。*/
+      const step = rotLinkStep(gid);
+      if (step === 'close') { rankSel = null; drillClose(); highlightClock(null); return; }
+      if (step === 'lock') { rankSel = gid; highlightClock(gid); return; }
       /* ★ 2026-10-12 Andy 註冊會員權限表第 3 點：「右手邊長條圖…限制點擊5次」→ 點開一根算一次（再點同一根收起不算，上一行已經 return）；
          用完：不展開、不跳視窗，長條圖反灰＋旁邊小字由 quota.js 畫（features.js flow.rank.click）。*/
       if (window.TwQuota && window.TwQuota.use && !window.TwQuota.use('flow.rank.click', $('#rankFlow'))) return;
@@ -9931,6 +9960,24 @@
         'rankPanel');
     });
     lastRankRows = rows;
+    /* ★ 2026-10-19 多圖連動（Andy：「同個資訊多張圖表，都需要有像是 ETF 月配那樣的連動效果」，style_guide 十八節）：
+       以前只有「點長條 → 輪盤只亮這個族群」單向一種。現在：
+         · 滑過長條 → 輪盤那顆點變焦點、長條這邊其他根變淡（滑出回到鎖定的那一個，沒鎖就全亮）
+         · 滑過／點輪盤上的族群點 → 這邊那一根同步亮（highlightClock 會叫 rfPaint，兩邊同一個焦點）
+         · 點長條空白處 → 取消鎖定（跟再點同一根一樣走 drillClose）
+       ⚠ 不可以 zr.off('click')（不帶函式會連 ECharts 自己的 click 一起拔掉），只拔自己上次掛的那一支。*/
+    if (c) {
+      c.off('mouseover'); c.off('globalout');
+      c.on('mouseover', (q) => { const gid = q.data && q.data.gid; if (gid) highlightClock(gid); });
+      const back = () => { const ck = document.getElementById('rotClock'); highlightClock((ck && ck._numSel) || rankSel); };
+      c.on('mouseout', back); c.on('globalout', back);
+      try {
+        const zr = c.getZr();
+        if (zr._rfBlank) zr.off('click', zr._rfBlank);
+        zr._rfBlank = (ev) => { if (!ev.target && rankSel && !linkTap('rf:blank')) drillClose(); };
+        zr.on('click', zr._rfBlank);
+      } catch (e) { /* zrender 換版本時最多就是沒有點空白取消 */ }
+    }
     /* 欄寬變了一定要**重畫**，不能只 resize：grid 的 left/right 是像素值，
        `chart()` 掛的 ResizeObserver 只會呼叫 resize()，留白仍然是舊的那一組，
        於是把瀏覽器縮窄之後長條只剩一點點、族群名被裁掉 —— 這就是 C2「換一台電腦
@@ -10672,6 +10719,7 @@
        滑到資金分流樹卻停在別的族群，他會以為其中一張壞了。
      ★ 清單沿用全站的 `.hpanel` / `.hpanel .ms`（固定高度＋自己的捲軸），
        不另開第三種清單樣式 —— 那正是 E3「兩份長得一樣、行為卻不同的清單」的教訓。*/
+  const SKLINK = { hov: null, lock: null };   // 資金分流樹 ⇄ 資金流向排名的連動狀態（說明在 skLinkPaint 那一段）
   const DRILL = {
     gid: null, name: '', stocks: new Set(),
     data: null,           // rrg_members.json（下鑽時才抓）
@@ -10735,6 +10783,7 @@
      這時候要把鏈清掉 —— 不清的話麵包屑會寫著一條你根本沒點過的鏈。*/
   function drillOpen(gid, gname, note, panelId, keepChain) {
     if (!gid) return;
+    SKLINK.lock = null; SKLINK.hov = null;               // 展開成分股之後右欄換成面板，排名列的鎖定一起收掉
     gid = String(gid);
     if (!keepChain && DRILL.chain) { DRILL.chain = null; DRILL.chainName = ''; DRILL.chainRows = []; DRILL.open = new Set(); }
     const same = DRILL.gid === gid;
@@ -10755,6 +10804,7 @@
      不在面板裡自己再算一次 —— 面板要是自己算，拖時間軸時兩邊就會對不起來。*/
   function drillOpenChain(cid, cname, rows, note, panelId) {
     if (!cid) return;
+    SKLINK.lock = null; SKLINK.hov = null;
     const same = DRILL.chain === cid;
     const had = DRILL.stocks.size;
     if (panelId) DRILL.notes[panelId] = note || '';
@@ -10772,6 +10822,7 @@
      所以「返回之後圖上剩下什麼」只有一種答案。*/
   function drillClose() {
     const had = DRILL.stocks.size;
+    SKLINK.lock = null; SKLINK.hov = null;
     DRILL.gid = null; DRILL.name = ''; DRILL.stocks = new Set(); DRILL.notes = {};
     DRILL.chain = null; DRILL.chainName = ''; DRILL.chainRows = []; DRILL.open = new Set();
     const rpWas = !!($('#rankPanel') && !$('#rankPanel').hidden);
@@ -11134,6 +11185,44 @@
 
   /* 排行選了哪個族群（null＝沒選）。輪動時鐘用它決定誰亮誰暗。*/
   let rankSel = null;
+  /* ★ 2026-10-19 多圖連動共用小工具（資金流向頁；規格照 etfpage.js comboLink 與 style_guide 十八節）：
+       · linkDim：其他項變淡的透明度（深色 .55／淺色 .35，寫在資料項 opacity，不改顏色）
+       · linkTap：觸控點一下 zrender 會收到兩次 click（指標事件＋瀏覽器補發），同一處 350ms 內第二下不算 */
+  const linkDim = () => (theme() === 'light' ? 0.35 : 0.55);
+  let linkLast = { k: '', t: 0 };
+  const linkTap = (k) => { const t = Date.now(); if (linkLast.k === k && t - linkLast.t < 350) return true; linkLast = { k, t }; return false; };
+  /* 資金流向頁「輪盤族群點／排行長條」點一下該做什麼（兩邊同一套）：
+       'lock'＝只鎖定（還沒選、或選的是別的而面板沒開）；'open'＝開成分股面板；'close'＝收起並取消。*/
+  function rotLinkStep(gid) {
+    /* 側欄（成分股面板或象限面板）開著＝排行已經被蓋住，「先鎖定讓排行亮」看不到 → 直接開（等於照舊）*/
+    const b = $('#rankPanel'), sp = $('#stagePanel');
+    const open = !!(b && !b.hidden && DRILL.gid) || !!(sp && !sp.hidden);
+    if (rankSel === gid) return open ? 'close' : 'open';
+    return open ? 'open' : 'lock';
+  }
+  /* 族群資金排行的資料項：f＝焦點族群（null＝全亮）。顏色要一起寫 —— 資料項帶了 itemStyle 就不會再吃系列層的顏色。*/
+  function rfData(rows, f) {
+    return rows.map(g => { const on = !!f && g.group_id === f;
+      return { value: +g.share_chg.toFixed(3), gid: g.group_id,
+        itemStyle: { color: chgColor(g.share_chg, 1.5), opacity: !f || on ? 1 : linkDim(),
+          borderColor: on ? CH.ink : 'transparent', borderWidth: on ? 1.5 : 0 },
+        label: { position: g.share_chg >= 0 ? 'right' : 'left', opacity: !f || on ? 1 : (linkDim() > 0.5 ? 0.7 : 0.5) } }; });
+  }
+  /* 把族群資金排行重畫成「gid 亮、其他變淡」。gid 不在排行上（例如時鐘上的個股點、排行沒列的族群）＝全亮，
+     不要把整張排行壓暗（跟 highlightClock「不在時鐘上就不動」同一個道理）。*/
+  function rfPaint(gid) {
+    const el = document.getElementById('rankFlow');
+    const c = el && el._rfRows && window.echarts && echarts.getInstanceByDom(el);
+    if (!c || c.isDisposed()) return;
+    const f = gid && el._rfRows.some(g => g.group_id === gid) ? gid : null;
+    if (el._rfFocus === f) return;
+    // 圖被清掉／換成別的圖（空狀態、重建中）時不要硬塞資料進去：沒有 type 的 series 會讓 ECharts 在排版時讀不到格線而丟例外
+    const o = c.getOption(), s0 = o && o.series && o.series[0];
+    if (!s0 || s0.type !== 'bar' || !(s0.data || []).length) return;
+    el._rfFocus = f;
+    el.dataset.focus = f || '';
+    try { c.setOption({ series: [{ data: rfData(el._rfRows, f) }] }); } catch (e) { /* 提示框與 dispose 競態 */ }
+  }
   /* 只亮某一個族群：其餘的點與尾巴壓到 0.18 透明度。
      用 setOption 就地改（notMerge 預設 false），不重建圖表 ——
      重建的話尾巴會整個重畫一次，看起來像閃了一下。*/
@@ -11150,6 +11239,7 @@
        · 被點的那一個**一律拉到 1**，就算它原本不是焦點（規格 §3.2-2「它變焦點」）。
        · 換段色環跟著亮暗（custom series 的第三個值）。 */
   function highlightClock(gid, elId) {
+    if (!elId || elId === 'rotClock') rfPaint(gid);   // 2026-10-19 多圖連動：族群資金排行跟著同一個焦點亮／暗
     const el = document.getElementById(elId || 'rotClock');
     const c = el && window.echarts && echarts.getInstanceByDom(el);
     if (!c) return false;
@@ -11565,8 +11655,27 @@
       $$('.skr-tab button', box).forEach(b => b.onclick = () => {
         box.dataset.tab = b.dataset.t; sankeyRankDraw(box, box._skr.sd, box._skr.k, box._skr.pick); });
       box.querySelector('.skr-l').addEventListener('click', (e) => {
-        const r = e.target.closest('[data-gid]'); if (r && box._skr.pick) box._skr.pick(r.dataset.gid);
+        const r = e.target.closest('[data-gid]'); if (!r || !box._skr.pick) return;
+        /* ★ 2026-10-19 多圖連動（style_guide 十八節：表格列第一下＝選取、第二下才進下一層）：
+           資金分流樹右欄這一份（#sankeyRank）第一下＝鎖定（列 .hl、樹上那個族群與它的線全亮、其他變淡），
+           再點同一列才展開成分股面板（原本第一下就開）。手機 mobile3 那份（別的 box）維持原本行為。*/
+        if (box.id === 'sankeyRank') {
+          const gid = r.dataset.gid;
+          if (SKLINK.lock !== gid) { SKLINK.lock = gid; skLinkPaint(); return; }
+          SKLINK.lock = null; SKLINK.hov = null;
+        }
+        box._skr.pick(r.dataset.gid);
       });
+      // 滑過列＝樹上那個族群突顯（只認滑鼠：觸控點一下也會補發 pointerover，不然點完會一直卡在「滑過」）
+      if (box.id === 'sankeyRank') {
+        const lst = box.querySelector('.skr-l');
+        lst.addEventListener('pointerover', (e) => {
+          if (e.pointerType !== 'mouse') return;
+          const r = e.target.closest('.skr-r'); const g = r ? r.dataset.gid : null;
+          if (g !== SKLINK.hov) { SKLINK.hov = g; skLinkPaint(); }
+        });
+        lst.addEventListener('pointerleave', (e) => { if (e.pointerType === 'mouse' && SKLINK.hov) { SKLINK.hov = null; skLinkPaint(); } });
+      }
     }
     box._skr = { sd, k, pick };
     box.querySelector('.skr-t').textContent = `${day} 資金流向排名`;
@@ -11600,9 +11709,10 @@
       const bar = el.querySelector('.bar i');
       bar.className = r.dpp > 0 ? 'up' : 'down';
       bar.style.width = (Math.abs(r.dpp || 0) / mx * 100).toFixed(1) + '%';
-      el.title = `點一下在樹上展開「${r.name}」`;
+      el.title = box.id === 'sankeyRank' ? `點一下在樹上標出「${r.name}」，再點一下展開成分股` : `點一下在樹上展開「${r.name}」`;
       if (host.children[i] !== el) host.insertBefore(el, host.children[i] || null);
     });
+    if (box.id === 'sankeyRank') skLinkRows();                // 換日／換分頁重畫之後，鎖定的那一列照樣亮
     const em = box.querySelector('.skr-e');
     em.hidden = !!list.length;
     em.textContent = withD.length ? (tab === 'out' ? '這一天沒有族群的資金占比減少' : '這一天沒有族群的資金占比增加') : '';
@@ -11611,6 +11721,29 @@
      資金分流樹「點族群展開成個股」每個入口（圖上的族群點、右欄排名、族群下拉、產業鏈清單的 ◎）都走這一支；
      同一個族群同一天重點不重算，用完 → quota.js 跳卡片、畫面維持原樣。*/
   const skDrillOk = (gid) => !window.TwQuota || window.TwQuota.act('flow.sankey.drill', 'drill', gid);
+  /* ★ 2026-10-19 多圖連動：資金分流樹 ⇄ 右欄「資金流向排名」。
+       hov＝滑鼠正滑過的族群（列或樹上的族群點），lock＝點列鎖定的族群；焦點＝hov 優先、否則 lock。
+       樹（flowtopo.js）用 FlowTopo.focus() 把那個族群連同上下游的線全亮、其他變淡（深 .55／淺 .35）；列加 .hl。
+       點空白（樹的背景、卡片外、頁面其他地方）＝取消鎖定；點樹上的族群／產業鏈照舊展開（drillOpen 會清掉鎖定）。*/
+  const skFocus = () => SKLINK.hov || SKLINK.lock;
+  function skLinkRows() {
+    const f = skFocus(), box = $('#sankeyRank'); if (!box) return;
+    box.dataset.sel = SKLINK.lock || '';
+    $$('.skr-r', box).forEach(r => { r.classList.toggle('hl', r.dataset.gid === f); r.setAttribute('aria-pressed', r.dataset.gid === SKLINK.lock ? 'true' : 'false'); });
+  }
+  function skLinkPaint() {
+    skLinkRows();
+    const el = $('#sankey');
+    if (el && window.FlowTopo && window.FlowTopo.focus && window.FlowTopo.has(el)) window.FlowTopo.focus(el, skFocus(), linkDim());
+  }
+  function skLinkClear() { if (!SKLINK.lock && !SKLINK.hov) return; SKLINK.lock = null; SKLINK.hov = null; skLinkPaint(); }
+  /* 頁面其他地方的空白也算「點空白取消」：整頁只掛一次（capture，先於各元件自己的 click）。
+     排名列與「流入／流出」分頁鈕不算（列自己處理第一下／第二下，分頁只是換清單）；點樹本身由 onPick／onBlank 處理。*/
+  document.addEventListener('click', (e) => {
+    if (!SKLINK.lock || !document.contains(e.target)) return;
+    if (e.target.closest('#sankeyRank .skr-r, #sankeyRank .skr-tab, #sankey canvas, .echarts-tooltip, [role="dialog"]')) return;
+    skLinkClear();
+  }, true);
   function sankeyPickGroup(gid) {
     const st = sankeyState; if (!st || !gid) return;
     if (!skDrillOk(gid)) return;
@@ -12424,7 +12557,10 @@
         legend: live ? '<b>即時</b>' : '',
         tipHTML: (d) => skOpt.tooltip.formatter({ data: d, name: d.name }),
         onPick: (d, lv) => onPick({ data: d, name: d.name, dataIndex: lv === 0 ? 0 : -1 }),
-        onBlank: () => { if (drillActive()) drillClose(); },
+        onBlank: () => { skLinkClear(); if (drillActive()) drillClose(); },
+        // 2026-10-19 多圖連動：滑到族群點 → 右欄那一列 .hl；重畫時把目前的焦點交回去（換日、播放後照樣亮）
+        onHover: (d, lv) => { const g = lv === 2 && d && d.gid ? d.gid : null; if (g !== SKLINK.hov) { SKLINK.hov = g; skLinkRows(); } },
+        focusGid: skFocus(), focusDim: linkDim(),
       });
     }
     /* ★ 點背景就回復預設（Andy 2026-09-21：「當點擊背景時會恢復 Default 狀態」）。
