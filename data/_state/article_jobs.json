@@ -1,5 +1,5 @@
 {
- "updated": "2026-10-19 15:11",
+ "updated": "2026-10-19 15:12",
  "jobs": [
   {
    "id": 13,
@@ -7,12 +7,12 @@
    "kind": "article",
    "title": "上週外資賣超 vs 投信買超：誰在買哪個族群",
    "note": "排程自動排入（規則 1，台北 2026-10-19 06:00）；建議主題 n_week_flow",
-   "status": "queued",
+   "status": "working",
    "created": 1792382342404,
-   "updated": 1792382342404,
+   "updated": 1792393957006,
    "result": null,
-   "stage": null,
-   "stage_at": null
+   "stage": "plan",
+   "stage_at": 1792393957006
   },
   {
    "id": 14,
