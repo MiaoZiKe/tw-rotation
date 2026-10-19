@@ -43,7 +43,7 @@ F_MED = str(FD / "NotoSansTC-Medium.ttf")
 FPS = 30
 PAD = 6
 XF = 12            # 鏡頭之間交叉淡化 0.4 秒
-END_DUR = 3.6 if FAST else 4.6      # 片尾卡（免責停留 ≥ 3 秒）
+END_DUR = 5.0 if FAST else 4.6      # 片尾卡（免責停留 ≥ 3 秒）
 
 ORDER = ["open", "guide", "cal", "types", "cards", "ret", "end"]
 SEC = {   # 膠囊、標題、標題重點字
@@ -519,10 +519,18 @@ def cam_track(o, meta, sid=""):
     ytop = 0 if sid == "guide" else 56 * dsf   # 引導段要看得到頂欄的選單鈕
     for k, c in enumerate(meta["cams"]):
         cid, r = c[0], c[1:]
-        tgt, cut = fit_cam(o, r, W0, H0, minw, content, xlim, ytop)
-        if cut:
-            cuts.append(k)
         full = r[2] >= W0 - 2 and r[3] >= H0 - 2
+        fbs = meta.get("fabs") or []
+        fb = fbs[k] if k < len(fbs) else None
+        if full and fb:   # 整頁鏡頭：構圖只取客服鈕以上（鏡頭避開客服鈕，不藏它）
+            hh = max(200.0, fb[1] - 8 - ytop)
+            lft, rgt = (xlim[0], xlim[1]) if xlim else (0, W0)
+            ww = min(rgt - lft, hh * o.asp)
+            hh = ww / o.asp
+            r = [(lft + rgt) / 2 - ww / 2, ytop, ww, hh]
+        tgt, cut = fit_cam(o, r, W0, H0, minw, content, xlim, ytop)
+        if cut and not full:
+            cuts.append(k)
         fr = np.array(r, np.float64) if not full else None
         if cur is None:
             cur = tgt.copy()
@@ -743,6 +751,14 @@ def render(dev, only=None, seg=None):
         img = cv2.resize(crop, (o.pw, o.ph), interpolation=cv2.INTER_AREA if cw > o.pw else cv2.INTER_CUBIC)
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         f = cams[s["sid"]][2][kk]
+        fbs = s["meta"].get("fabs") or []
+        fb = fbs[kk] if kk < len(fbs) else None
+        raw_view["fab_hit"] = 0
+        if fb and f is not None:   # 網站右下角客服鈕（錄影內建）不可壓到這一句在介紹的區塊（layout_rules 第 8 條）
+            ix = min(fb[0] + fb[2], f[0] + f[2]) - max(fb[0], f[0])
+            iy = min(fb[1] + fb[3], f[1] + f[3]) - max(fb[1], f[1])
+            if ix > 0 and iy > 0:
+                raw_view["fab_hit"] = int(ix * iy)
         if f is not None:      # 介紹中的區塊以外淡化（奶油色 55%），區塊外圍一圈藍框
             sx, sy = o.pw / cw, o.ph / ch
             fx0, fy0 = int(round((f[0] - cx) * sx)), int(round((f[1] - cy) * sy))
@@ -829,6 +845,8 @@ def render(dev, only=None, seg=None):
             issues.append(f"| {t:6.2f} | {x} |")
         # 來源畫面是否在動（畫面框內）
         if panel is not None:
+            if raw_view.get("fab_hit"):
+                issues.append(f"| {t:6.2f} | 客服鈕壓到介紹區塊 {raw_view['fab_hit']}px² |")
             pv = raw_view["v"]   # 跟這段停住的第一幀比（同 freezedetect 做法）
             if prev_panel is not None and np.abs(pv - prev_panel).max() < 6:
                 run += 1

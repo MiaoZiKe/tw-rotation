@@ -64,6 +64,13 @@ CAM_JS = r"""([sels, pad]) => {
   return [x0 - pad, y0 - pad, x1 - x0 + 2 * pad, y1 - y0 + 2 * pad]; }"""
 
 
+FAB_JS = r"""() => { const es = [...document.querySelectorAll('#supFab, .supfab, #bibiRing, .bibiring, #bibiStage, .bibiwrap')]
+  .filter(e => e.getClientRects().length && getComputedStyle(e).visibility !== 'hidden' && +getComputedStyle(e).opacity > 0.05);
+  if (!es.length) return null; let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
+  es.forEach(e => { const r = e.getBoundingClientRect(); if (r.width < 2) return; x0 = Math.min(x0, r.left); y0 = Math.min(y0, r.top); x1 = Math.max(x1, r.right); y1 = Math.max(y1, r.bottom); });
+  return x1 > x0 ? [x0, y0, x1 - x0, y1 - y0] : null; }"""
+
+
 class Rec(C.Recorder):
     """逐格錄影＋每格記錄鏡頭外框（影片像素）。"""
 
@@ -71,6 +78,7 @@ class Rec(C.Recorder):
         super().__init__(pg, w, h, dry=bool(os.environ.get("FEAT_DRY")))
         self.act = act
         self.cams: list = []
+        self.fabs: list = []
 
     def frame(self):
         super().frame()
@@ -89,6 +97,11 @@ class Rec(C.Recorder):
         if r is None:
             r = [0, 0, a.vw, a.vh]
         self.cams.append([a.cam_id] + [round(v * a.dsf, 1) for v in r])
+        try:
+            fb = self.pg.evaluate(FAB_JS)
+        except Exception:  # noqa: BLE001
+            fb = None
+        self.fabs.append([round(v * a.dsf, 1) for v in fb] if fb else None)
 
 
 class A(C.Act):
@@ -156,6 +169,32 @@ class A(C.Act):
 
     def mark(self, name):
         self.marks.append([round(self.t, 3), "mark", name])
+
+    def select_show(self, sel, value, label=""):
+        """原生下拉在截圖裡畫不出彈出清單：在同位置蓋一張自繪的展開清單（樣式仿網站），游標移到選項、點下、再收起。"""
+        b = self.box(sel)
+        if not b:
+            return False
+        x, y = b["x"] + b["width"] / 2, b["y"] + b["height"] / 2
+        self.move(x, y, 450)
+        self.pg.evaluate("([x,y]) => window.__vcRipple && window.__vcRipple(x,y)", [x, y])
+        self.record_target(x, y, "click", "期間下拉", expect=sel)
+        self.frame()
+        self.pg.evaluate(SEL_OVERLAY_JS, [sel, value])
+        self.wait(350)
+        opt = f'#__vsel [data-v="{value}"]'
+        ob = self.pg.locator(opt).first.bounding_box()
+        ox, oy = ob["x"] + ob["width"] / 2, ob["y"] + ob["height"] / 2
+        self.move(ox, oy, 450)
+        self.pg.evaluate("(v) => { const e = document.querySelector('#__vsel [data-v=\"' + v + '\"]'); if (e) e.classList.add('hv'); }", value)
+        self.wait(200)
+        self.pg.evaluate("([x,y]) => window.__vcRipple && window.__vcRipple(x,y)", [ox, oy])
+        self.record_target(ox, oy, "click", label or f"選 {value}")
+        self.frame()
+        self.pg.evaluate("() => { const e = document.getElementById('__vsel'); if (e) e.remove(); }")
+        self.pg.locator(sel).first.select_option(value)
+        self.frame()
+        return True
 
     def select(self, sel, value, label=""):
         """原生下拉在截圖裡畫不出彈出清單：游標移到下拉、漣漪、直接選值（畫面上的值與後續內容會跟著變）。"""
@@ -739,6 +778,19 @@ MOB_DATE_CSS = r"""(() => { const go = () => { const st = document.createElement
   document.head.appendChild(st); }; document.readyState === 'loading' ? document.addEventListener('DOMContentLoaded', go) : go(); })();"""
 
 
+SEL_OVERLAY_JS = r"""([s, v]) => { const e = document.querySelector(s); if (!e) return; const r = e.getBoundingClientRect();
+  const d = document.createElement('div'); d.id = '__vsel';
+  d.style.cssText = `position:fixed;left:${r.left}px;top:${r.bottom + 2}px;min-width:${r.width}px;z-index:2147483600;background:#fff;border:1px solid #c9d3e0;border-radius:8px;box-shadow:0 8px 24px rgba(15,23,42,.18);padding:4px 0;font:14px/1.2 system-ui,'Noto Sans TC',sans-serif;color:#1f2937`;
+  d.innerHTML = [...e.options].map(o => `<div data-v="${o.value}" style="padding:7px 14px;${o.value === e.value ? 'background:#e8f0fb;color:#1d4ed8;font-weight:600' : ''}">${o.text}</div>`).join('');
+  const st = document.createElement('style'); st.textContent = '#__vsel .hv{background:#2563eb!important;color:#fff!important}'; d.appendChild(st);
+  document.body.appendChild(d); }"""
+
+SIDE_SCROLL_JS = r"""(sel) => { const e = [...document.querySelectorAll('#tabs .l4subtab')].find(x => (x.innerText || '').trim() === sel); if (!e) return null;
+  let p = e.parentElement; while (p && p !== document.body) { const cs = getComputedStyle(p); if (/(auto|scroll)/.test(cs.overflowY) && p.scrollHeight > p.clientHeight + 2) break; p = p.parentElement; }
+  if (!p || p === document.body) return null; const r = e.getBoundingClientRect(), pr = p.getBoundingClientRect();
+  const need = r.bottom + 16 - pr.bottom; if (!p.id) p.id = '__vside'; return need > 0 ? ['#' + p.id, p.scrollTop + need] : null; }"""
+
+
 def run(dev, shots, out, port):
     cfg = DEVS[dev]
     W = int(cfg["viewport"]["width"] * cfg["device_scale_factor"])
@@ -759,9 +811,10 @@ def run(dev, shots, out, port):
                 ctx = b.new_context(**cfg, locale="zh-TW", timezone_id="Asia/Taipei")
                 ctx.clock.install(time=_dt.datetime.now(tz=_dt.timezone.utc))
                 ctx.add_init_script(C.PRESET)
-                C.fake_api(ctx)
-                ctx.add_init_script(C.HIDE_TIER_JS)
-                ctx.add_init_script(C.NOFAB_JS)
+                if not FAST:   # 第 1 版：假 Pro 會員＋藏客服鈕；第 2 版（Andy 10-19）：一般訪客的真實畫面、客服鈕照常顯示
+                    C.fake_api(ctx)
+                    ctx.add_init_script(C.HIDE_TIER_JS)
+                    ctx.add_init_script(C.NOFAB_JS)
                 ctx.add_init_script(C.HIDE_B_JS)   # 法遵：B 類功能名稱不入鏡
                 if dev == "m":   # 手機日期框太窄會截字（10/16/201…）：錄影時把寬度讓出來（只在錄影的瀏覽器裡）
                     ctx.add_init_script(MOB_DATE_CSS)
@@ -792,7 +845,7 @@ def run(dev, shots, out, port):
                     mp4 = out / f"{dev}_{sid}.mp4"
                     r = rec.stop(mp4)
                     content = [0, cfg["viewport"]["width"]] if sid == "guide" else pg.evaluate("() => { const e = document.querySelector('#etfCalCard:not([hidden])') || document.querySelector('#etfBody'); const r = e.getBoundingClientRect(); return [r.left, r.right]; }")
-                    r.update(size=[W, H], dsf=a.dsf, content_x=[round(v * a.dsf) for v in content], says=a.says, marks=a.marks, cams=rec.cams, clicks=a.targets,
+                    r.update(fabs=rec.fabs, size=[W, H], dsf=a.dsf, content_x=[round(v * a.dsf) for v in content], says=a.says, marks=a.marks, cams=rec.cams, clicks=a.targets,
                              steps=a.log, errs=errs[:5], data_date=site_meta.get("data_date"))
                     meta[sid] = r
                     (out / f"{dev}_{sid}.json").write_text(json.dumps(r, ensure_ascii=False), encoding="utf-8")   # 每鏡一檔（平行錄不互蓋）
@@ -829,7 +882,7 @@ def d2_open(pg, a, start):
     a.scroll(by=380, ms=2200)
     a.say("三百多檔，怎麼比？", "face_sweat")
     a.scroll(by=380, ms=2200)
-    a.idle(400)
+    a.idle(1300)
     a.settle()
 
 
@@ -841,6 +894,9 @@ def d2_guide(pg, a, start):
     a.hover('#tabs .tab[data-view="industry"]', 700)
     a.click('#tabs .tab[data-view="etf"]', label="選單：ETF")
     a.wait(1000)
+    sc = pg.evaluate(SIDE_SCROLL_JS, "現金流試算")
+    if sc:   # 側欄捲到整個 ETF 子選單（含最下面的「現金流試算」）完整入鏡
+        a.scroll(to_y=sc[1], ms=600, el=sc[0])
     a.cam(['#tabs .tab[data-view="etf"]', 'txt:#tabs .l4subtab|現金流試算'], 16, "ETF 子選單")
     a.say("再點「配息行事曆」", "point_r_v2")
     a.hover('#tabs .l4subtab:has-text("ETF 總覽")', 600)
@@ -852,7 +908,7 @@ def d2_guide(pg, a, start):
 def d2_cal(pg, a, start):
     goto(pg, a, "#etf/cal", 4000)
     start()
-    a.cam(["#etfCalCard"], 6, "配息行事曆")
+    a.cam(["#etfCalCard .calhd", "#etfCalGrid"], 6, "配息行事曆")
     a.say("格子＝當天除息與配息", "talk_explain_v2")
     a.hover('#etfCalGrid .cald.has >> nth=1', 900)
     a.hover('#etfCalGrid .cald.has', 800)
@@ -882,7 +938,7 @@ def d2_types(pg, a, start):
     a.say("下方卡片同步換類", "talk_explain_v2")
     a.click('#etfCatSeg button[data-v="主題型"]', label="主題型")
     a.wait(1400)
-    a.idle(500)
+    a.idle(1300)
     a.settle()
 
 
@@ -894,17 +950,17 @@ def d2_cards(pg, a, start):
     a.cam(["#etfPopCard"], 10, "最受歡迎")
     a.say("受益人：每週增加人數", "point_r_v2")
     a.hover("#etfPopSub", 900, 0.4)
-    a.idle(700)
+    a.idle(1500)
     a.cam(["#etfRetTopCard"], 10, "報酬率前 5")
     a.say("報酬率：依含息年化排序", "point_r_v2")
     a.hover("#etfRetTopQ", 900, 0.3)
-    a.idle(700)
+    a.idle(1500)
     a.cam(["#etfYldCard"], 10, "殖利率前 5")
     a.say("殖利率：近12月配息÷收盤", "face_thinking_bulb")
     a.hover("#etfYldQ", 900, 0.4)
-    a.idle(500)
+    a.idle(1200)
     a.say("歷史資料，不代表未來", "face_nod_v2")
-    a.idle(700)
+    a.idle(1500)
     a.settle()
 
 
@@ -916,9 +972,9 @@ def d2_ret(pg, a, start):
     pg.evaluate("(y) => scrollTo(0, y)", y)
     pg.wait_for_timeout(800)
     start()
-    a.cam(["#etfRetCard .row.spread", "#etfRetBody .retcharts"], 8, "報酬比較")
+    a.cam(["#etfRetCard .row.spread", "#etfRetBody .retcharts", "#__vsel"], 8, "報酬比較")
     a.say("報酬比較：先選期間", "talk_explain_v2")
-    a.select("#etfRng select", "1y", "期間：近 1 年")
+    a.select_show("#etfRng select", "1y", "期間：近 1 年")
     a.wait(1600)
     a.cam(["#etfRetCtl", "#etfCmpDD .ddpanel"], 14, "加入比較")
     a.say("搜尋、勾選要比的 ETF", "point_r_v2")
@@ -941,12 +997,16 @@ def d2_ret(pg, a, start):
     a.say("右圖比較年化報酬", "point_r_v2")
     a.hover("#etfRetBar", 800, 0.45, 0.3)
     a.idle(500)
+    a.cam_view("捲動")
+    a.scroll_to_el("#etfRetCard", 64, 700)
     a.cam(["#etfRetCtl", "#etfRetBody .retcharts"], 8, "含息切換")
     a.say("切含息／不含息看差距", "talk_explain_v2")
     a.click('#etfBasisSeg button[data-v="price"]', label="不含息")
-    a.wait(1600)
+    a.wait(1000)
+    a.hover("#etfRetBar", 600, 0.5, 0.35)
     a.click('#etfBasisSeg button[data-v="tr"]', label="含息")
-    a.wait(1300)
+    a.wait(800)
+    a.hover("#etfRetBar", 600, 0.5, 0.6)
     a.settle()
 
 
@@ -955,7 +1015,7 @@ def d2_end(pg, a, start):
     pg.locator('#etfCatSeg button[data-v="配息型"]').first.click()
     pg.wait_for_timeout(1500)
     start()
-    a.cam(["#etfCatBar", "#etfTri", "#etfRetCard"], 8, "總覽全區")
+    a.cam(["#etfCatBar", "#etfTri"], 8, "總覽上半")
     a.say("一頁完成 ETF 功課", "proud_shine")
     a.move(800, 300, 1000)
     a.say("搜尋「哩股哩股」", "invite_nod")
@@ -1008,8 +1068,9 @@ def m2_cal(pg, a, start):
     a.say("點日期看當天清單", "point_dr_v2")
     a.click('#etfCalGrid .cald.has', label="點有除息的日期")
     a.wait(700)
-    a.cam(["#etfCalList .ph", "#etfDayTbl thead", "#etfDayTbl tbody tr:nth-child(8)"], 6, "當天清單上半")
+    a.cam_view("捲動")
     a.scroll_to_el("#etfCalList", 70, 900)
+    a.cam(["#etfCalList .ph", "#etfDayTbl thead", "#etfDayTbl tbody tr:nth-child(8)"], 6, "當天清單上半")
     a.say("列出殖利率與發放日", "point_dr_v2")
     a.hover('#etfDayTbl thead th >> nth=2', 800)
     a.hover('#etfDayTbl thead th >> nth=3', 800)
@@ -1069,8 +1130,9 @@ def m2_ret(pg, a, start):
     a.cam([".m4ctlrow", ".m4trisg"], 6, "設定列")
     a.say("報酬比較：先選期間", "talk_explain_v2")
     m_sheet(a, "rng", "1y", "近 1 年")
-    a.cam(["#etfRetCtl", "#etfCmpDD .ddpanel"], 8, "加入比較")
+    a.cam_view("捲動")
     a.scroll_to_el("#etfRetCard", 110, 1000)
+    a.cam(["#etfRetCtl", "#etfCmpDD .ddpanel"], 8, "加入比較")
     a.say("搜尋、勾選要比的 ETF", "point_r_v2")
     a.click("#etfCmpDD .ddbtn", label="加入比較")
     a.wait(500)
@@ -1083,17 +1145,20 @@ def m2_ret(pg, a, start):
     a.wait(1000)
     a.click("#etfCmpDD .ddbtn", label="收起清單")
     a.wait(600)
-    a.cam(["#etfRetBody .retcharts > div:first-child"], 6, "累積報酬走勢")
+    a.cam_view("捲動")
     a.scroll_to_el("#etfRetBody .retcharts", 120, 900)
+    a.cam(["#etfRetBody .retcharts > div:first-child"], 6, "累積報酬走勢")
     a.say("走勢從 0% 一起比", "point_r_v2")
     a.hover("#etfRetLine", 700, 0.5, 0.45)
     a.idle(800)
     a.say("切含息／不含息看差距", "talk_explain_v2")
-    a.cam([".m4ctlrow", ".m4trisg"], 6, "設定列")
+    a.cam_view("捲動")
     a.scroll_to_el(".m4ctlrow", 150, 1000)
+    a.cam([".m4ctlrow", ".m4trisg"], 6, "設定列")
     m_sheet(a, "basis", "price", "不含息")
-    a.cam(["#etfRetBody .retcharts > div:last-child"], 6, "年化報酬率")
+    a.cam_view("捲動")
     a.scroll_to_el("#etfRetBody .retcharts > div:last-child", 120, 1100)
+    a.cam(["#etfRetBody .retcharts > div:last-child"], 6, "年化報酬率")
     a.say("下圖比較年化報酬", "point_dr_v2")
     a.wait(1500)
     a.settle()
