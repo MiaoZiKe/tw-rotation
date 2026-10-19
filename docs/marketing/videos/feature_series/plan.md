@@ -27,3 +27,5 @@ Andy 原話：「我目前網頁功能眾多，需要針對不同的功能做影
 | 素材索引 | `docs/anim/bibi_library/index.md` |
 | 比比角色標準參考圖 | `docs/anim/bibi_library/reference/parts_sheet_1011.webp` |
 | IG／Threads 視覺與編輯規範 | `docs/social_handoff/style/LIGULIGU_IG_Threads_Style_Guide.md`（貼文、封面一律照這份：奶油紙底 #FFF9EF、深咖啡字 #321A14、珊瑚／蜜桃／淡黃強調） |
+
+**2026-10-19 Andy：「若是需要什麼素材，提供給我 Prompt，我再由 GPT 那邊協助」** → 每支影片缺的素材寫進該支資料夾 `asset_prompts.md`（用途、規格、可直接貼給 GPT 的提示詞），先用現有素材把片做完，交片時把提示詞一起給 Andy。
