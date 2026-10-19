@@ -2,6 +2,29 @@
  "updated": "2026-10-19",
  "articles": [
   {
+   "id": "2026-10-14-know-cowos",
+   "cat": "know",
+   "title": "CoWoS 產能預估 2 年最高擴 3.7 倍仍不夠",
+   "date": "2026-10-14",
+   "topic": "k_cowos",
+   "groups": [
+    {
+     "id": "ai_adv_packaging",
+     "name": "AI 先進封裝"
+    },
+    {
+     "id": "foundry",
+     "name": "晶圓代工"
+    },
+    {
+     "id": "pkg_equipment",
+     "name": "封裝製程機台"
+    }
+   ],
+   "reading_min": 3,
+   "src": "api"
+  },
+  {
    "id": "2026-10-19-know-abf",
    "cat": "know",
    "title": "IC 載板是什麼？賣方估 2028 缺口最高 51%",
@@ -80,29 +103,6 @@
     {
      "id": "osat",
      "name": "封測代工"
-    }
-   ],
-   "reading_min": 3,
-   "src": "api"
-  },
-  {
-   "id": "2026-10-14-know-cowos",
-   "cat": "know",
-   "title": "CoWoS 月產能預估 2 年擴 3.7 倍，仍不夠",
-   "date": "2026-10-14",
-   "topic": "k_cowos",
-   "groups": [
-    {
-     "id": "ai_adv_packaging",
-     "name": "AI 先進封裝"
-    },
-    {
-     "id": "foundry",
-     "name": "晶圓代工"
-    },
-    {
-     "id": "pkg_equipment",
-     "name": "封裝製程機台"
     }
    ],
    "reading_min": 3,
