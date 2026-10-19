@@ -1,5 +1,5 @@
 {
- "updated": "2026-10-19 15:12",
+ "updated": "2026-10-19 15:16",
  "jobs": [
   {
    "id": 13,
@@ -9,10 +9,10 @@
    "note": "排程自動排入（規則 1，台北 2026-10-19 06:00）；建議主題 n_week_flow",
    "status": "working",
    "created": 1792382342404,
-   "updated": 1792393957006,
+   "updated": 1792394178383,
    "result": null,
-   "stage": "plan",
-   "stage_at": 1792393957006
+   "stage": "publish",
+   "stage_at": 1792394178383
   },
   {
    "id": 14,
