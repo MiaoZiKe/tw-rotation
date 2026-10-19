@@ -1,5 +1,5 @@
 {
- "updated": "2026-10-19 16:18",
+ "updated": "2026-10-19 17:08",
  "jobs": [
   {
    "id": 18,
@@ -7,12 +7,12 @@
    "kind": "article",
    "title": "法人買賣超怎麼看才不誤讀",
    "note": "排程自動排入（規則 1，台北 2026-10-19 06:00）；建議主題 k_institutional",
-   "status": "queued",
+   "status": "working",
    "created": 1792382343050,
-   "updated": 1792382343050,
+   "updated": 1792400886862,
    "result": null,
-   "stage": null,
-   "stage_at": null
+   "stage": "plan",
+   "stage_at": 1792400886862
   }
  ]
 }
