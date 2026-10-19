@@ -1,19 +1,6 @@
 {
- "updated": "2026-10-19 15:16",
+ "updated": "2026-10-19 15:17",
  "jobs": [
-  {
-   "id": 13,
-   "topic_id": "sch-20261019-06-r1-news-3",
-   "kind": "article",
-   "title": "上週外資賣超 vs 投信買超：誰在買哪個族群",
-   "note": "排程自動排入（規則 1，台北 2026-10-19 06:00）；建議主題 n_week_flow",
-   "status": "working",
-   "created": 1792382342404,
-   "updated": 1792394178383,
-   "result": null,
-   "stage": "publish",
-   "stage_at": 1792394178383
-  },
   {
    "id": 14,
    "topic_id": "sch-20261019-06-r1-intro-1",
@@ -75,19 +62,6 @@
    "status": "queued",
    "created": 1792382343050,
    "updated": 1792382343050,
-   "result": null,
-   "stage": null,
-   "stage_at": null
-  },
-  {
-   "id": 19,
-   "topic_id": "sch-20261019-06-r1-know-3",
-   "kind": "article",
-   "title": "類股輪動是什麼？資金怎麼換跑道",
-   "note": "排程自動排入（規則 1，台北 2026-10-19 06:00）；建議主題 k_rotation",
-   "status": "queued",
-   "created": 1792382343166,
-   "updated": 1792382343166,
    "result": null,
    "stage": null,
    "stage_at": null
