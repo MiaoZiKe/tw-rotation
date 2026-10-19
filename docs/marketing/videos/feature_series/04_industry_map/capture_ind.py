@@ -456,11 +456,16 @@ def d_rel(pg, a, start):
 D3_VIEW = {"width": 1280, "height": 800}   # v3：3D 這一鏡用 1280×800、2 倍像素錄 —— 機櫃與兩側標籤靠得比較近，推近後字仍清楚
 
 
-def rack_rect(pg):
-    """3D 機櫃本體（畫布正中央那一塊）在視窗座標的外框：畫布寬 22%、高 62% 的中央區（1280×800 實測機櫃約佔這麼大）。"""
+def rack_rect(pg, near=None):
+    """3D 機櫃本體（畫布正中央那一塊）在視窗座標的外框：畫布寬 22%、高 62% 的中央區（1280×800 實測機櫃約佔這麼大）。
+    near＝零件標籤的選擇器：只取機櫃上與這個標籤同高度上下 120px 的那一段（標籤的引線連到那裡），推近時不必把整座機櫃的高度都框進來。"""
     r = pg.evaluate(C.RECT_JS, "#prod3d canvas")
-    w, h = r[2] * 0.22, r[3] * 0.62
-    return f"rect:{r[0] + r[2] / 2 - w / 2:.0f},{r[1] + r[3] * 0.2:.0f},{w:.0f},{h:.0f}"
+    w = r[2] * 0.22
+    y0, y1 = r[1] + r[3] * 0.2, r[1] + r[3] * 0.82
+    if near:
+        q = pg.evaluate(C.RECT_JS, near)
+        y0, y1 = max(y0, q[1] - 120), min(y1, q[1] + q[3] + 120)
+    return f"rect:{r[0] + r[2] / 2 - w / 2:.0f},{y0:.0f},{w:.0f},{max(40, y1 - y0):.0f}"
 
 
 def d_3d(pg, a, start):
@@ -483,6 +488,7 @@ def d_3d(pg, a, start):
     rack = rack_rect(pg)
     first = True
     for no, lab in (("06", "零件：HBM 記憶體"), ("12", "零件：電源櫃"), ("15", "零件：ToR 交換器")):   # 最後點交換器：下方零件卡（進料／出貨）不含外商客戶名
+        rack = rack_rect(pg, lbl(no))   # 機櫃上跟這個標籤同高度的那一段
         a.cam([lbl(no), rack], 10, f"推近：{lab}", minw=ZMIN, zoom=True)   # 被點的標籤＋它連到的機櫃本體
         if first:
             a.say("點零件，說明與環節連動", "magnifier")
