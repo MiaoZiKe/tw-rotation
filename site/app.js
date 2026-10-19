@@ -14135,21 +14135,21 @@
     const W = () => window.TwWatch;
     const starBtn = (code, n) => {
       if (!W()) return '';
-      const on = W().has(code);
+      const on = W().codes().includes(String(code).toUpperCase());   // 10-19：★＝在「上方選中的那一頁」裡（不是任何一頁）
       return `<button type="button" class="sgstar${on ? ' on' : ''}" data-star="${fmt.esc(code)}" aria-pressed="${on}" aria-label="${on ? '從自選移除' : '加入自選'} ${fmt.esc(n)}" title="${on ? '已在自選（點一下移除）' : '加入自選'}">${on ? '★' : '☆'}</button>`;
     };
     const sgNote = (m) => {
       let e = sg.querySelector('#sgNote');
       if (!e) { e = document.createElement('div'); e.id = 'sgNote'; e.className = 'sgnote'; e.setAttribute('role', 'status'); }
-      sg.prepend(e); e.textContent = m; clearTimeout(sgNote.t); sgNote.t = setTimeout(() => { if (e.isConnected) e.remove(); }, 2600);
+      const tb = sg.querySelector('#sgTabs'); if (tb) tb.after(e); else sg.prepend(e); e.textContent = m; clearTimeout(sgNote.t); sgNote.t = setTimeout(() => { if (e.isConnected) e.remove(); }, 2600);
     };
     const toggleStar = (b) => {
       const w = W(); if (!w) return;
-      const c = b.dataset.star;
-      if (w.has(c)) { w.tabsWith(c).forEach(id => w.remove(c, id)); sgNote('已從自選移除 ' + c); }
-      else if (w.add(c)) sgNote('已加入〈' + w.curTab().name + '〉');
+      const c = b.dataset.star, t = w.curTab(), inCur = () => w.codes().includes(String(c).toUpperCase());
+      if (inCur()) { w.remove(c, t.id); sgNote('已從〈' + t.name + '〉移除 ' + c); }
+      else if (w.add(c)) sgNote('已加入〈' + t.name + '〉');
       else return;                                  // 被上限擋住：TwWatch 已跳卡片
-      const on = w.has(c);
+      const on = inCur();
       sg.querySelectorAll('.sgstar').forEach(x => {
         if (x.dataset.star !== c) return;
         x.classList.toggle('on', on); x.textContent = on ? '★' : '☆'; x.setAttribute('aria-pressed', String(on));
@@ -14157,7 +14157,17 @@
       });
     };
     const grp = (code) => `<span class="g">${fmt.esc(L.gname[L.cgroup[code]] || '')}</span>`;
+    /* 2026-10-19 Andy：「上方應該要顯示可以選擇加入的自選分頁」→ 下拉最上方固定一列「加入到：自選1 自選2 …」，
+       點哪一頁＝之後按 ☆ 就加進那一頁（TwWatch.setCur，自選清單頁的作用分頁也跟著換）；★ 表示在選中的那一頁裡。 */
+    const tabBar = () => {
+      const w = W(); if (!w || !w.tabs) return '';
+      const cur = w.cur();
+      return '<div class="sgtabs" id="sgTabs" role="group" aria-label="☆ 加入到哪一頁自選"><span class="sgtl">加入到</span>'
+        + w.tabs().map(t => `<button type="button" class="sgtab${t.id === cur ? ' on' : ''}" data-wtab="${fmt.esc(t.id)}" aria-pressed="${t.id === cur}" title="之後按 ☆ 會加進〈${fmt.esc(t.name)}〉">${fmt.esc(t.name)}<small>${t.codes.length}</small></button>`).join('')
+        + '</div>';
+    };
     const open = (html, mode) => {
+      if (html) html = tabBar() + html;
       sg.innerHTML = html; sg.dataset.mode = mode; act = -1;
       q.removeAttribute('aria-activedescendant');
       sg.style.display = html ? 'block' : 'none';
@@ -14244,6 +14254,13 @@
         recentSet(recentGet().filter(c => c !== del.dataset.del));
         panel(); q.focus();
         return;
+      }
+      const wt = e.target.closest('[data-wtab]');
+      if (wt) {
+        e.stopPropagation();
+        const w = W(); if (w) w.setCur(wt.dataset.wtab);
+        if (sg.dataset.mode === 'hits') search(); else panel();
+        q.focus(); return;
       }
       const st = e.target.closest('.sgstar');
       if (st) { e.stopPropagation(); toggleStar(st); q.focus(); return; }   // 不觸發整列的跳個股頁、不關下拉

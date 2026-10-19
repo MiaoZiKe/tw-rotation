@@ -3484,6 +3484,7 @@ def t_etf_ret_1006(pg, b, base):
                        mx["div"] == "mixed" and mx["nodiv"] == "1" and mx["cells"] == ["無配息", "無配息", "無配息"]
                        and not any("0.00%" in c for c in mx["cells"]) and mx["ycells"] and "%" in mx["ycells"][0], mx)
                     ok(f"★ [{tag}] 混合：長條名稱旁標「無配息」只標在沒配息那檔", mx["ylab"] and sum("無配息" in str(x) for x in mx["ylab"]) == 1, mx["ylab"])
+                    ok(f"[{tag}] 年化報酬率長條的左側標籤第一行是 ETF 代號（Andy 10-19：「這邊改成代號」）", mx["ylab"] and all(re.match(r"^[0-9A-Z]{4,6}(\n|$)", str(x)) for x in mx["ylab"]), mx["ylab"])
                 else:
                     ok(f"[{tag}] 混合案例：主題型找不到「有配息＋確定不配息」各一檔（資料不足，這條略過）", True)
                 # ---- 期間切換
@@ -60218,8 +60219,10 @@ def t_search_star_1007(b, base, code):
         pg.goto(base + "#overview", wait_until="domcontentloaded")
         wait_until(pg, "() => !!window.TwWatch && !!document.getElementById('q')", 10000)
         pg.wait_for_timeout(600)
-        if w <= 820 and pg.locator("#mSearchBtn").count() and pg.is_visible("#mSearchBtn"):
-            pg.click("#mSearchBtn")
+        if not pg.is_visible("#q"):   # 手機 v4：頂欄放大鏡是 #m4Search（10-19 修：原本找 #mSearchBtn，手機那輪一直卡住）
+            for sel in ("#m4Search", "#mSearchBtn"):
+                if pg.locator(sel).count() and pg.is_visible(sel):
+                    pg.click(sel); break
         pg.locator("#q").fill("23")
         ok(f"{T}（{w}）：輸入「23」→ 下拉每一列都有星號", bool(wait_until(pg, "() => { const r = document.querySelectorAll('#sugg .sgrow'); return r.length > 0 && [...r].every(x => x.querySelector('.sgstar')); }", 6000)))
         c0 = pg.evaluate("() => document.querySelector('#sugg .sgrow').dataset.c")
