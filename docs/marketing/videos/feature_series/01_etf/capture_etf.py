@@ -42,7 +42,7 @@ DEVS = {
 
 
 FAST = bool(os.environ.get("FEAT_FAST"))
-PACE = float(os.environ.get("FEAT_PACE", "1.25"))   # 快節奏版的等待倍率（調總長用）   # 第 2 版快節奏（Andy 10-19：「步調有點慢幫我加快點，並且不要太久」）
+PACE = float(os.environ.get("FEAT_PACE", "1.8"))   # 快節奏版的等待倍率（調總長用）   # 第 2 版快節奏（Andy 10-19：「步調有點慢幫我加快點，並且不要太久」）
 
 
 def bubble_dur(text: str) -> float:
@@ -149,8 +149,6 @@ class A(C.Act):
     def hover(self, sel, ms=None, dx=0.5, dy=0.5):
         if ms is None:
             ms = 420 if FAST else 600
-        elif FAST:
-            ms = int(ms * 0.65)
         return super().hover(sel, ms, dx, dy)
 
     def wait(self, ms):
