@@ -34,7 +34,7 @@ LIB = REPO / "docs" / "anim" / "bibi_library"
 SCR = Path(os.environ.get("FEAT_SCR", "/tmp/claude-0/-home-user-tw-rotation/3d7a42eb-0e07-50fa-8c50-cf31c62d682f/scratchpad/feat04"))
 FAST = True   # 第 2 支起一律快節奏
 SPEED = 1.5   # 成片整支 1.5 倍速（Andy 10-19：「控制 1min 內，可以載 x1.5 倍」）
-RAW = SCR / "raw"
+RAW = Path(os.environ.get("FEAT_RAW", str(SCR / "raw_v2")))
 FD = Path(os.environ.get("HBM_FONT_DIR", "/tmp/claude-0/-home-user-tw-rotation/3d7a42eb-0e07-50fa-8c50-cf31c62d682f/scratchpad/font"))
 F_BOLD = str(FD / "NotoSansTC-Bold.ttf")
 F_BLACK = str(FD / "NotoSansTC-Black.ttf")
@@ -439,36 +439,62 @@ def bubble_img(dev, text, tip_x, tip_y, side, zone):
     return np.array(im), (int(offx), int(offy)), (bx0, by0, bx1, by1), tail_box, tb, tuple(issues), len(lines)
 
 
-# ───────────────────────── 鏡頭 ─────────────────────────
-def fit_cam(o, r, W0, H0, minw, content, xlim=None, ytop=0):
-    x, y, w, h = r
-    if o.dev == "d" and w >= W0 - 2 and h >= H0 - 2:
-        x, y, w, h = content
+# ───────────────────────── 鏡頭（v2） ─────────────────────────
+# 取景：錄影時每一格量到「介紹區塊」focus（元素本身的完整外框，不以視窗裁切）與取景框 cam。
+# 合成時鏡頭一律把 focus 整塊放進「最壞情況的實際裁切範圍」（鏡頭慢移＝裁切框內縮 2%、在內縮範圍內來回 → 四邊各留 2%）。
+# 手機版允許取景框比錄影畫面寬一點（≤8%）：超出的部分補網頁底色（整塊區塊完整入鏡，不是靠留白算沒切到 —— 檢查是拿區塊本身的外框比實際裁切）。
+DRIFT = 0.02       # 裁切框內縮比例（四邊各最多內縮 2%）
+OUT_X = 0.08       # 手機取景最多比錄影畫面寬 8%
+
+
+def inner(c):
+    """最壞情況的實際裁切範圍（x, y, w, h）：四邊各內縮 2%。"""
+    x, y, w, h = c
+    return (x + DRIFT * w, y + DRIFT * h, (1 - 2 * DRIFT) * w, (1 - 2 * DRIFT) * h)
+
+
+def contains(c, f, tol=0.5):
+    """裁切框 c（x,y,w,h，四邊已內縮）是否整個包住 f（x,y,w,h）。"""
+    return f[0] >= c[0] - tol and f[1] >= c[1] - tol and f[0] + f[2] <= c[0] + c[2] + tol and f[1] + f[3] <= c[1] + c[3] + tol
+
+
+def fit2(o, cam, f, W0, H0, minw, allow_out, ytop, xlim):
+    x, y, w, h = cam
     cx, cy = x + w / 2, y + h / 2
-    tw, th = w, h
+    if f is not None:
+        w = max(w, f[2] / (1 - 2 * DRIFT) + 8)
+        h = max(h, f[3] / (1 - 2 * DRIFT) + 8)
     w = max(w, minw)
     if w / max(h, 1) < o.asp:
         w = h * o.asp
     else:
         h = w / o.asp
-    if w > W0:
-        w, h = W0, W0 / o.asp
-    if h > H0:
-        h, w = H0, H0 * o.asp
     lo, hi = (0, W0) if not xlim else (max(0, xlim[0]), min(W0, xlim[1]))
-    if w > hi - lo:
-        w = hi - lo
-        h = w / o.asp
-    x = clamp(cx - w / 2, lo, hi - w)
-    if h > H0 - ytop:
-        h = H0 - ytop
-        w = h * o.asp
-        x = clamp(cx - w / 2, lo, hi - w)
-    y = clamp(cy - h / 2, ytop, H0 - h)
-    if r[2] >= W0 - 2 and r[3] >= H0 - 2:      # 整個視窗（捲動、抽屜）：對齊上緣
-        y = ytop
-    cut = (tw > w + 2) or (th > h + 2)
-    return np.array([x, y, w, h], np.float64), cut
+    lim_w = (hi - lo) * (1 + OUT_X if allow_out else 1)
+    lim_h = (H0 - ytop) * (1 + OUT_X if allow_out else 1)
+    if w > lim_w:
+        w, h = lim_w, lim_w / o.asp
+    if h > lim_h:
+        h, w = lim_h, lim_h * o.asp
+    x, y = cx - w / 2, cy - h / 2
+    if f is not None:   # 平移到介紹區塊整塊落在四邊內縮 2% 之內
+        x = max(min(x, f[0] - DRIFT * w - 3), f[0] + f[2] - (1 - DRIFT) * w + 3)
+        y = max(min(y, f[1] - DRIFT * h - 3), f[1] + f[3] - (1 - DRIFT) * h + 3)
+
+    def clamp_axis(v, size, a0, a1, out):
+        if size <= a1 - a0:
+            v2 = clamp(v, a0, a1 - size)
+            return v2
+        return clamp(v, a1 - size, a0) if out else a0
+    x_in = clamp_axis(x, w, lo, hi, allow_out)
+    y_in = clamp_axis(y, h, ytop, H0, allow_out)
+    if allow_out and f is not None:   # 盡量留在錄影畫面內；區塊需要時才超出（補底色），上緣不超過頂欄
+        ok_in = contains(inner((x_in, y_in, w, h)), f, 1)
+        if not ok_in:
+            ox = W0 * OUT_X / 2
+            x_in = clamp(x, lo - ox, hi + ox - w) if w < hi - lo + 2 * ox else (lo + hi) / 2 - w / 2
+            y_in = clamp(y, ytop, H0 + H0 * OUT_X / 2 - h) if h < H0 - ytop + H0 * OUT_X / 2 else ytop
+    return np.array([x_in, y_in, w, h], np.float64)
 
 
 def tri(x):
@@ -484,6 +510,14 @@ def drift_xy(t, o=None):
     return tri(t * px / 4 + 0.25), tri(t * py / 4 + 0.6)
 
 
+def crop_of(c, t):
+    """實際裁切框：取景框內縮 2%，在內縮範圍內等速來回（鏡頭慢移）。"""
+    cx, cy, cw, ch = c
+    dx, dy = drift_xy(t)
+    mx, my = cw * DRIFT / 2, ch * DRIFT / 2
+    return (cx + mx + dx * mx, cy + my + dy * my, cw * (1 - DRIFT), ch * (1 - DRIFT))
+
+
 def avoid_fab(o, tgt, fb, r, ytop):
     x, y, w, h = tgt
     fx0, fy0, fx1, fy1 = fb[0] - 6, fb[1] - 6, fb[0] + fb[2] + 6, fb[1] + fb[3] + 6
@@ -493,7 +527,7 @@ def avoid_fab(o, tgt, fb, r, ytop):
     # ① 往上移；② 往左移；③ 以右下角收縮（右緣或下緣退到客服鈕外）
     if fy0 - h >= ytop:
         cands.append(np.array([x, fy0 - h, w, h]))
-    if fx0 - w >= 0:
+    if fx0 - w >= -o.out_px:
         cands.append(np.array([fx0 - w, y, w, h]))
     hh = fy0 - y
     if hh > 200:
@@ -503,8 +537,24 @@ def avoid_fab(o, tgt, fb, r, ytop):
         cands.append(np.array([x, y, ww, ww / o.asp]))
     if not cands:
         return tgt
+    if r is not None:   # 候選框平移到把介紹區塊整塊放進四邊內縮 2% 之內（平移後仍不碰客服鈕才算）
+        more = []
+        for c in cands:
+            cx_, cy_, cw_, ch_ = c
+            nx = max(min(cx_, r[0] - DRIFT * cw_ - 3), r[0] + r[2] - (1 - DRIFT) * cw_ + 3)
+            ny = max(min(cy_, r[1] - DRIFT * ch_ - 3), r[1] + r[3] - (1 - DRIFT) * ch_ + 3)
+            c2 = np.array([nx, max(ny, ytop), cw_, ch_])
+            if c2[0] + cw_ <= fx0 or c2[0] >= fx1 or c2[1] + ch_ <= fy0 or c2[1] >= fy1:
+                more.append(c2)
+        cands = cands + more
+    if r is not None:   # 先挑「介紹區塊仍整塊在內」的候選
+        ok = [c for c in cands if contains(inner(c), r, 1)]
+        if ok:
+            return min(ok, key=lambda c: abs(c[2] - w) + abs(c[1] - y) + abs(c[0] - x))
 
     def cover(c):   # 這一句介紹的區塊有多少還在鏡頭裡（越多越好）
+        if r is None:
+            return -abs(c[2] - w)
         ix = max(0.0, min(c[0] + c[2], r[0] + r[2]) - max(c[0], r[0]))
         iy = max(0.0, min(c[1] + c[3], r[1] + r[3]) - max(c[1], r[1]))
         return ix * iy - 0.001 * abs(c[2] - w) * h
@@ -512,55 +562,71 @@ def avoid_fab(o, tgt, fb, r, ytop):
 
 
 def cam_track(o, meta, sid=""):
+    """回傳每一格：取景框、目標取景框、介紹區塊、是否推移中、該拍標記。"""
     W0, H0 = meta["size"]
     dsf = meta["dsf"]
-    minw = o.pw if o.dev == "d" else o.pw   # 裁切寬度不小於畫面框寬：只縮小不放大（不糊）
     cx_ = meta.get("content_x") or [0, W0]
-    xlim = [cx_[0] - 14 * dsf, cx_[1] + 14 * dsf] if o.dev == "d" else None
-    content = [xlim[0], 52 * dsf, xlim[1] - xlim[0], 848 * dsf] if xlim else [0, 0, W0, H0]
-    out, cuts, focus = [], [], []
+    xlim = [cx_[0] - 30 * dsf, cx_[1] + 30 * dsf] if o.dev == "d" else None
+    allow_out = o.dev == "m"
+    o.out_px = W0 * OUT_X / 2 if allow_out else 0
+    ytop = (50 if o.dev == "d" else 56) * dsf   # 介紹區塊的取景一律在頂欄以下（不切到頂欄的按鈕）
+    ytop_full = 0 if sid == "guide" else ytop   # 引導段的整頁鏡頭要看得到頂欄的選單鈕
+    out, tgts, focus, transit, beats = [], [], [], [], []
     cur = None
     fcur = None
     last_id = None
-    ytop = 0 if sid == "guide" else 56 * dsf   # 引導段要看得到頂欄的選單鈕
+    settled = True
+    snaps = 0
     cams_in = list(meta["cams"])
     first = next((i for i, c in enumerate(cams_in[:6]) if c[0] != 0), None)
     if first:   # 開錄第一格還沒設定鏡頭（cam_id 0）：沿用緊接著設定的鏡頭，不閃一格整頁
         cams_in[:first] = [cams_in[first]] * first
+    fbs = meta.get("fabs") or []
     for k, c in enumerate(cams_in):
-        cid, r = c[0], c[1:]
-        full = r[2] >= W0 - 2 and r[3] >= H0 - 2
-        fbs = meta.get("fabs") or []
+        cid, r = c[0], c[1:5]
+        minw_c = c[5] if len(c) > 5 else 0
+        f = np.array(c[6], np.float64) if len(c) > 6 and c[6] else None
+        zoom = bool(c[7]) if len(c) > 7 else False
+        full = f is None
         fb = fbs[k] if k < len(fbs) else None
-        if full and fb:   # 整頁鏡頭：構圖只取客服鈕以上（鏡頭避開客服鈕，不藏它）
-            hh = max(200.0, fb[1] - 8 - ytop)
+        minw = max(o.pw * 0.5, minw_c) if minw_c else o.pw
+        if full:
             lft, rgt = (xlim[0], xlim[1]) if xlim else (0, W0)
-            ww = min(rgt - lft, hh * o.asp)
-            hh = ww / o.asp
-            r = [(lft + rgt) / 2 - ww / 2, ytop, ww, hh]
-        tgt, cut = fit_cam(o, r, W0, H0, minw, content, xlim, ytop)
-        if fb:   # 鏡頭一律避開網站客服鈕（不藏它，只是不入鏡）：畫面只出現主持的那隻比比
-            tgt = avoid_fab(o, tgt, fb, r, ytop)
-        if cut and not full:
-            cuts.append(k)
-        fr = np.array(r, np.float64) if not full else None
+            hh = (fb[1] - 8 - ytop_full) if fb else (H0 - ytop_full)
+            ww = min(rgt - lft, max(200.0, hh) * o.asp)
+            tgt = np.array([(lft + rgt) / 2 - ww / 2, ytop_full, ww, ww / o.asp])
+        else:
+            tgt = fit2(o, r, f, W0, H0, minw, allow_out, ytop, xlim)
+        if fb:   # 鏡頭一律避開網站客服鈕（不藏它，只是不入鏡）
+            tgt = avoid_fab(o, tgt, fb, f, ytop_full if full else ytop)
         if cur is None:
             cur = tgt.copy()
         else:
             a = 0.16 if cid == last_id else 0.12
             cur = cur + (tgt - cur) * a
-            if fb:   # 平滑移動途中也不可以帶到客服鈕
-                cur = avoid_fab(o, cur, fb, r, ytop)
-        if fr is None:
+            if fb:
+                cur = avoid_fab(o, cur, fb, f, ytop)
+        new_beat = cid != last_id
+        if new_beat:
+            settled = False
+        if not settled and np.abs(cur - tgt).max() < 0.012 * tgt[2]:
+            settled = True
+        if settled and f is not None and not contains(inner(cur), f, 1):
+            cur = tgt.copy()   # 同一拍內區塊變大（展開、彈出）：鏡頭立刻拉到能整塊放下，不讓它被裁
+            snaps += 1
+        if f is None:
             fcur = None
-        elif fcur is None or cid != last_id and fcur is None:
-            fcur = fr.copy()
+        elif fcur is None:
+            fcur = f.copy()
         else:
-            fcur = fcur + (fr - fcur) * 0.2
+            fcur = fcur + (f - fcur) * 0.2
         last_id = cid
         out.append(cur.copy())
-        focus.append(None if fcur is None else fcur.copy())
-    return out, cuts, focus
+        tgts.append(tgt.copy())
+        focus.append((None if f is None else f.copy(), None if fcur is None else fcur.copy()))
+        transit.append(not settled)
+        beats.append((cid, zoom))
+    return dict(cams=out, tgts=tgts, focus=focus, transit=transit, beats=beats, snaps=snaps)
 
 
 # ───────────────────────── 時間軸 ─────────────────────────
@@ -722,7 +788,7 @@ def render(dev, only=None, seg=None):
     cams = {s["sid"]: cam_track(o, s["meta"], s["sid"]) for s in shots}
     N = int(round(total * FPS))
     frames = [int(round(float(x) * FPS)) for x in only.split(",")] if only else range(N)
-    out_mp4 = SCR / (f"feat04_{dev}_silent.mp4" if not seg else f"seg/feat04_{'web' if dev == 'd' else 'mobile'}_{ORDER.index(seg) + 1:02d}_{seg}.mp4")
+    out_mp4 = SCR / (f"feat04_{dev}_silent_v2.mp4" if not seg else f"seg/feat04_{'web' if dev == 'd' else 'mobile'}_{ORDER.index(seg) + 1:02d}_{seg}.mp4")
     out_mp4.parent.mkdir(exist_ok=True)
     ff = None
     if not only:
@@ -737,7 +803,7 @@ def render(dev, only=None, seg=None):
     prev_panel = None
     run = 0
     max_run = (0, 0.0)
-    samp = SCR / (f"samples_{dev}" if not seg else f"seg/samples_{dev}_{seg}")
+    samp = SCR / (f"samples_v2_{dev}" if not seg else f"seg/samples_{dev}_{seg}")
     samp.mkdir(parents=True, exist_ok=True)
     if not only:
         for old in samp.glob("*.png"):
@@ -746,41 +812,76 @@ def render(dev, only=None, seg=None):
 
     raw_view = {}
 
-    def panel_of(s, k):
-        if s["sid"] not in readers:
-            readers[s["sid"]] = Reader(s["path"])
-        fr = readers[s["sid"]].get(min(k, s["n"] - 1))
-        kk = min(k, len(cams[s["sid"]][0]) - 1)
-        cx, cy, cw, ch = cams[s["sid"]][0][kk]
-        # 停格檢查用「沒加呼吸縮放」的原始鏡頭畫面
-        raw_view["v"] = cv2.resize(fr[int(round(cy)):int(round(cy + ch)), int(round(cx)):int(round(cx + cw))], (o.pw // 4, o.ph // 4), interpolation=cv2.INTER_AREA).astype(np.int16)
-        # 鏡頭慢移（同 v3_core._drift 的用意）：裁切框固定內縮 2%，在留出的邊內以每秒約 4.5 畫面像素等速來回平移
-        # （水平、垂直週期錯開，轉折點不重疊），網站本身沒有動作時畫面也不會完全靜止；停格檢查用的是沒平移的原始鏡頭畫面。
+    chk = {sid: dict(cut=[], edge=[], transit=0, fill={}, ppc={}) for sid in ORDER}
+    EDGE_SIDS = {"m": ("rel", "end"), "d": ()}[dev]
+
+    def crop_px(fr, x, y, w, h):
+        """裁切（可超出錄影畫面：超出的部分補網頁底色＝畫面最左一欄的中位色）。"""
+        Hs, Ws = fr.shape[:2]
+        x0, y0 = int(round(x)), int(round(y))
+        x1, y1 = int(round(x + w)), int(round(y + h))
+        if x0 >= 0 and y0 >= 0 and x1 <= Ws and y1 <= Hs:
+            return fr[y0:y1, x0:x1]
+        bgc = np.median(fr[Hs // 4:Hs * 3 // 4, 0:3].reshape(-1, 3), axis=0).astype(np.uint8)
+        outp = np.empty((y1 - y0, x1 - x0, 3), np.uint8)
+        outp[:] = bgc
+        sx0, sy0, sx1, sy1 = max(0, x0), max(0, y0), min(Ws, x1), min(Hs, y1)
+        if sx1 > sx0 and sy1 > sy0:
+            outp[sy0 - y0:sy1 - y0, sx0 - x0:sx1 - x0] = fr[sy0:sy1, sx0:sx1]
+        return outp
+
+    def panel_of(s, k, check=True):
+        sid = s["sid"]
+        if sid not in readers:
+            readers[sid] = Reader(s["path"])
+        fr = readers[sid].get(min(k, s["n"] - 1))
+        T = cams[sid]
+        kk = min(k, len(T["cams"]) - 1)
+        c0 = T["cams"][kk]
+        # 停格檢查用「沒加慢移」的原始鏡頭畫面
+        raw_view["v"] = cv2.resize(crop_px(fr, *c0), (o.pw // 4, o.ph // 4), interpolation=cv2.INTER_AREA).astype(np.int16)
         tt = s["start"] + k / FPS
-        dx, dy = drift_xy(tt)
-        mx, my = cw * 0.01, ch * 0.01
-        cx, cy, cw, ch = cx + mx + dx * mx, cy + my + dy * my, cw * 0.98, ch * 0.98
-        crop = fr[int(round(cy)):int(round(cy + ch)), int(round(cx)):int(round(cx + cw))]
+        cx, cy, cw, ch = crop_of(c0, tt)
+        crop = crop_px(fr, cx, cy, cw, ch)
         img = cv2.resize(crop, (o.pw, o.ph), interpolation=cv2.INTER_AREA if cw > o.pw else cv2.INTER_CUBIC)
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-        f = cams[s["sid"]][2][kk]
+        f_raw, f = T["focus"][kk]
+        cid, zoom = T["beats"][kk]
+        if check and k < s["n"]:
+            C_ = chk[sid]
+            if T["transit"][kk]:
+                C_["transit"] += 1
+            elif f_raw is not None:
+                if not contains((cx, cy, cw, ch), f_raw, 0.5):
+                    C_["cut"].append(round(tt, 2))
+                if sid in EDGE_SIDS:
+                    eds = (s["meta"].get("edges") or [])
+                    for e in (eds[kk] if kk < len(eds) else []):
+                        ix = min(e[0] + e[2], cx + cw) - max(e[0], cx)
+                        iy = min(e[1] + e[3], cy + ch) - max(e[1], cy)
+                        if ix > 0.5 and iy > 0.5 and not contains((cx, cy, cw, ch), e, 0.5):
+                            C_["edge"].append(round(tt, 2))
+                            break
+                lab = next((m[2] for m in reversed([m for m in s["meta"]["marks"] if m[1] == "cam"]) if m[0] <= k / FPS + 1e-6), "")
+                if zoom:
+                    C_["fill"][lab] = min(C_["fill"].get(lab, 9), f_raw[2] / cw)
+                C_["ppc"][lab] = min(C_["ppc"].get(lab, 99), o.pw / (cw / s["meta"]["dsf"]))
         fbs = s["meta"].get("fabs") or []
         fb = fbs[kk] if kk < len(fbs) else None
         raw_view["fab_hit"] = 0
-        if fb and f is not None:   # 網站右下角客服鈕（錄影內建）不可壓到這一句在介紹的區塊（layout_rules 第 8 條）
-            ix = min(fb[0] + fb[2], f[0] + f[2]) - max(fb[0], f[0])
-            iy = min(fb[1] + fb[3], f[1] + f[3]) - max(fb[1], f[1])
-            vx = min(fb[0] + fb[2], cx + cw) - max(fb[0], cx)   # 客服鈕有入鏡才算（鏡頭已避開客服鈕時看不到它）
+        if fb:   # 網站右下角客服鈕有入鏡就記一筆（鏡頭應該避開它）
+            vx = min(fb[0] + fb[2], cx + cw) - max(fb[0], cx)
             vy = min(fb[1] + fb[3], cy + ch) - max(fb[1], cy)
-            if ix > 0 and iy > 0 and vx > 0 and vy > 0:
-                raw_view["fab_hit"] = int(ix * iy)
+            if vx > 0 and vy > 0:
+                raw_view["fab_hit"] = int(vx * vy)
         if f is not None:      # 介紹中的區塊以外淡化（奶油色 55%），區塊外圍一圈藍框
             sx, sy = o.pw / cw, o.ph / ch
             fx0, fy0 = int(round((f[0] - cx) * sx)), int(round((f[1] - cy) * sy))
             fx1, fy1 = int(round((f[0] + f[2] - cx) * sx)), int(round((f[1] + f[3] - cy) * sy))
             fx0, fy0, fx1, fy1 = max(0, fx0), max(0, fy0), min(o.pw, fx1), min(o.ph, fy1)
-            if (fx1 - fx0) * (fy1 - fy0) < 0.93 * o.pw * o.ph:
-                dim = img.astype(np.float32) * 0.45 + np.array([255, 249, 239], np.float32) * 0.55
+            if (fx1 - fx0) * (fy1 - fy0) < 0.80 * o.pw * o.ph:
+                k_ = 0.82 if sid in EDGE_SIDS else 0.55   # 手機關聯圖：中欄＋右欄以外（頁尾字、圖下方的連線）淡到幾乎看不見，畫面只剩介紹的兩欄
+                dim = img.astype(np.float32) * (1 - k_) + np.array([255, 249, 239], np.float32) * k_
                 dim[fy0:fy1, fx0:fx1] = img[fy0:fy1, fx0:fx1]
                 img = dim.astype(np.uint8)
                 cv2.rectangle(img, (fx0 + 1, fy0 + 1), (fx1 - 2, fy1 - 2), (37, 131, 230), 3, cv2.LINE_AA)
@@ -809,7 +910,7 @@ def render(dev, only=None, seg=None):
                 s0 = active[0]
                 k0 = int(round((t - s0["start"]) * FPS))
                 a = clamp((t - s["start"]) / (XF / FPS))
-                panel = panel_of(s0, k0).astype(np.float32) * (1 - a) + panel * a
+                panel = panel_of(s0, k0, False).astype(np.float32) * (1 - a) + panel * a
             reg.add("網站畫面框", (x0 - 3, y0 - 3, x1 + 3, y1 + 3))
         if t >= end_start and sid != "end":
             pass
@@ -861,7 +962,7 @@ def render(dev, only=None, seg=None):
         # 來源畫面是否在動（畫面框內）
         if panel is not None:
             if raw_view.get("fab_hit"):
-                issues.append(f"| {t:6.2f} | 客服鈕壓到介紹區塊 {raw_view['fab_hit']}px² |")
+                issues.append(f"| {t:6.2f} | 客服鈕入鏡 {raw_view['fab_hit']}px² |")
             pv = raw_view["v"]   # 跟這段停住的第一幀比（同 freezedetect 做法）
             if prev_panel is not None and np.abs(pv - prev_panel).max() < 6:
                 run += 1
@@ -888,14 +989,14 @@ def render(dev, only=None, seg=None):
     ff.wait()
     # 點擊檢查
     for s in shots:
-        cams_s = cams[s["sid"]][0]
+        cams_s = cams[s["sid"]]["cams"]
         for c in s["meta"]["clicks"]:
             if c["kind"] != "click":
                 kind = "拖曳起點"
             else:
                 kind = "點擊"
             k = min(int(round(c["t"] * FPS)), len(cams_s) - 1)
-            cx, cy, cw, ch = cams_s[k]
+            cx, cy, cw, ch = crop_of(cams_s[k], s["start"] + c["t"])
             px, py = c["center"]
             ox_ = x0 + (px - cx) / cw * o.pw
             oy_ = y0 + (py - cy) / ch * o.ph
@@ -904,9 +1005,18 @@ def render(dev, only=None, seg=None):
             err = math.hypot(px - rc[0], py - rc[1]) if rc else None
             blank = (c.get("selector") or "").startswith("#mSheetBack") or bool(c.get("blank"))
             click_rows.append((s["sid"], round(float(s["start"] + c["t"]), 2), kind, c.get("label") or c.get("text"), None if err is None else round(float(err), 2), bool(inside), bool(blank), (int(round(ox_)), int(round(oy_)))))
-    cut_rows = [(s["sid"], len(cams[s["sid"]][1])) for s in shots]
+    cut_rows = [(s["sid"], len(chk[s["sid"]]["cut"])) for s in shots]
+    edge_rows = [(s["sid"], len(chk[s["sid"]]["edge"])) for s in shots]
+    transit_rows = [(s["sid"], chk[s["sid"]]["transit"]) for s in shots]
+    fill_rows = [(s["sid"], {k: round(v, 3) for k, v in chk[s["sid"]]["fill"].items()}) for s in shots]
+    ppc_rows = [(s["sid"], {k: round(v, 2) for k, v in chk[s["sid"]]["ppc"].items()}) for s in shots]
+    snaps = [(s["sid"], cams[s["sid"]]["snaps"]) for s in shots]
+    print("裁切", cut_rows, "框邊切卡", edge_rows, "推移", transit_rows, "拉鏡", snaps)
+    for sid_, ff_ in fill_rows:
+        if ff_:
+            print("佔寬", sid_, ff_)
     meta_out = dict(dev=dev, total=total, end_start=end_start, frames=N, overlaps=len(rows), issues=len(issues),
-                    still_max_s=round(float(max_run[0]) / FPS, 2), still_at=round(float(max_run[1]), 2), cut_frames=cut_rows,
+                    still_max_s=round(float(max_run[0]) / FPS, 2), still_at=round(float(max_run[1]), 2), cut_frames=cut_rows, edge_frames=edge_rows, transit_frames=transit_rows, fill=fill_rows, ppc=ppc_rows, snaps=snaps, cut_detail={k: v['cut'][:20] for k, v in chk.items()}, edge_detail={k: v['edge'][:20] for k, v in chk.items()},
                     clicks=click_rows, bubbles=[(round(b["t0"], 2), round(b["t1"], 2), b["text"], b["sid"]) for b in bubbles],
                     shots=[(s["sid"], round(s["start"], 2), round(s["n"] / FPS, 2)) for s in shots], data_date=data_date)
     if seg:
@@ -929,7 +1039,7 @@ def render(dev, only=None, seg=None):
     wav = SCR / f"bgm_{dev}.wav"
     subprocess.run([sys.executable, str(REPO / "docs/marketing/video_1010/make_music_v3.py"), "--length", f"{total / SPEED + 0.3:.2f}",
                     "--style", "cute", "--out", str(wav), "--cues", str(cj)], check=True)
-    name = "feat04_industry_map_web.mp4" if dev == "d" else "feat04_industry_map_mobile.mp4"
+    name = "feat04_industry_map_web_v2.mp4" if dev == "d" else "feat04_industry_map_mobile_v2.mp4"
     final = HERE / name
     subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", str(out_mp4), "-i", str(wav), "-filter:v", f"setpts=PTS/{SPEED}", "-r", str(FPS),
                     "-c:v", "libx264", "-crf", "18", "-preset", "medium", "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "160k",
