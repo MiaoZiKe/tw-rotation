@@ -58053,6 +58053,10 @@ def _sub_ctx(b, who, width=1440, feats=None, notices=None, lims=None, dq=None, o
                       + ("try { localStorage.setItem('tw.acct.tok', 'tok-test'); } catch (e) {}" if who else ""))
     c.route("**/fonts.googleapis.com/**", lambda r: r.abort())
     c.route(SUB_API + "/**", handle)
+    # 2026-10-19 起 notices.js 另外讀 repo 內的靜態功能更新（site/notices/features.json）併進鈴鐺；
+    # 這支假 Worker 驗的是 Worker 公告的數量與已讀（「紅點 2」「列出 2 則」），把靜態那份換成空的，數字才不會跟著每天新增的功能公告變。
+    # 靜態公告本身由「功能公告1019」段落驗。
+    c.route("**/notices/features.json*", lambda r: r.fulfill(status=200, content_type="application/json", body="[]"))
     return c, sent, st
 
 
@@ -69224,6 +69228,8 @@ def _acctm4_ctx(b, who, del_status=200, bill=None, desk=False, plans=None, perm=
     c.add_init_script(init)
     c.route("**/fonts.googleapis.com/**", lambda r: r.abort())
     c.route(ACCTM4_API + "/**", handle)
+    # 2026-10-19：靜態功能更新（site/notices/features.json）換成空的 —— 這裡驗的是「假 Worker 那一則公告 → 未讀 1」，不跟著每天的功能公告變（靜態那份由「功能公告1019」驗）
+    c.route("**/notices/features.json*", lambda r: r.fulfill(status=200, content_type="application/json", body="[]"))
     return c, st
 
 

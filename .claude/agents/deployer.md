@@ -45,6 +45,14 @@ model: sonnet
    （2026-09-23 真的發生過一次：`git add -A` 之後的 `git commit` 沒加 `--only`，
    把六個 agent 改到一半的程式碼一起推上去，觸發了一次半成品部署。）
 3. **這一段是不是一個完整的功能？** 半個功能上線比不上線更糟。
+4. **使用者看得到的新功能，同一個 commit 有沒有在 `site/notices/features.json` 加一則「功能更新」公告？**
+   （Andy 10-19：「新增功能需要有通知給其他人」。規則與寫法見 `docs/feature_notices.md`。）
+   ```
+   git diff --name-only <上次部署的 commit>..HEAD -- site/notices/features.json
+   python -c "import json;json.load(open('site/notices/features.json',encoding='utf-8'))"
+   ```
+   這批有使用者看得到的新功能、卻沒動到這個檔 → 退回去補一則再推；純修 bug、純資料、管理區專屬、只動文件的不用。
+   JSON 壞掉（第二行報錯）→ 一律不推（鈴鐺會讀不到全部功能公告）。
 
 ### ② 決定要跑哪些關卡（用機器判定，不准靠印象）
 

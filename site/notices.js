@@ -9,7 +9,13 @@
      · 對象過濾在 Worker 做（/v1/notices 只回「這個人該看到、而且上架中」的），前端不自己判斷。
    管理端 #admin/notices（只有管理者）：發佈／編輯／下架／刪除；欄位：標題、內容、類型、對象、上架與下架時間、置頂。
      不掛進 admin.js（另一條分支正在改），這一頁由這支自己畫，跟 support.js 的 #admin/feedback 共用 #v-subadm。
-   會員功能沒設定（沒有 Worker）→ 沒有公告來源，鈴鐺不出現。
+   會員功能沒設定（沒有 Worker）→ 沒有 Worker 公告；但「功能更新」靜態公告（下一段）照樣出現，鈴鐺也照樣在。
+   ★ 2026-10-19 Andy：「新增功能需要有通知給其他人」。Worker 公告只有管理者能在 #admin/notices 手動發，
+     推功能的人沒有管理者身分 → 新增 repo 內的靜態來源 site/notices/features.json（規則見 docs/feature_notices.md），
+     跟 Worker 公告併成同一份清單（照置頂、日期排序），類型一律「功能更新」。
+     · 這類 id 一律 f-YYYYMMDD-<slug>；已讀只存 localStorage（登入者也一樣）—— Worker 不認得這些 id，送過去會被拒收或白存。
+     · 沒有 Worker 的環境（訪客、預覽站、會員功能沒設定）也要看得到：鈴鐺改成「有任何公告」就出現，不再綁 Worker。
+     · aud：all＝所有人、member＝登入者、paid＝付費方案（或管理者）；前端過濾，因為這份檔是公開的、本來就沒有祕密。
    ============================================================================ */
 (function () {
   'use strict';
@@ -20,15 +26,37 @@
   const KINDS = { event: '活動', feature: '功能更新', maint: '維護', plan: '方案異動', pay: '帳務通知' };   // pay＝只有本人看得到的付款／升級／退款通知（2026-10-12）
   const AUD = [['all', '全部'], ['guest', '訪客'], ['member', '註冊會員（含付費）'], ['paid', '付費會員']];
   const S = { list: [], loaded: false, open: false, expand: null, at: 0 };
+  const F = { list: [], loaded: false, fly: null };                    // 靜態「功能更新」（features.json）
+  const isStatic = (id) => /^f-\d{8}-[a-z0-9-]+$/.test(String(id || ''));
   const A = () => window.TwAccount;
   const logged = () => { const a = A(); return !!(a && a.on() && a.user()); };
   const localRead = () => { try { const a = JSON.parse(ls.get(K_READ) || '[]'); return new Set(Array.isArray(a) ? a : []); } catch (e) { return new Set(); } };
   const saveLocal = (set) => ls.set(K_READ, JSON.stringify([...set].slice(-300)));
   const isRead = (n) => n.read === true || localRead().has(n.id);
-  const unread = () => S.list.filter((n) => !isRead(n));
+  /* 鈴鐺、下拉、橫幅、公告頁看的都是這份：Worker 公告＋這個人該看到的靜態功能更新（同 id 以 Worker 為準），置頂在前、新的在前 */
+  function audOk(n) {
+    if (n.aud === 'all') return true;
+    if (!logged()) return false;
+    if (n.aud === 'member') return true;
+    const u = A().user(); if (u && u.admin) return true;
+    const st = window.TwPerm && window.TwPerm.state ? window.TwPerm.state() : null;
+    return !!(st && st.plan && st.plan !== 'free');
+  }
+  function L() {
+    const ids = new Set(S.list.map((n) => n.id));
+    return S.list.concat(F.list.filter((n) => audOk(n) && !ids.has(n.id)))
+      .map((n, i) => [n, i]).sort((a, b) => (b[0].pinned ? 1 : 0) - (a[0].pinned ? 1 : 0) || (b[0].start || 0) - (a[0].start || 0) || a[1] - b[1]).map((x) => x[0]);
+  }
+  const unread = () => L().filter((n) => !isRead(n));
   const dstr = (ms) => new Date(ms + 8 * 3600 * 1000).toISOString().slice(0, 10).replace(/-/g, '/');
-  /* 純文字 → 安全 HTML：先跳脫、換行變 <br>、網址變連結 */
-  const rich = (s) => esc(s).replace(/https?:\/\/[^\s<>"']+/g, (u) => `<a href="${u}" target="_blank" rel="noopener noreferrer">${u}</a>`).replace(/\n/g, '<br>');
+  /* 純文字 → 安全 HTML：先跳脫、換行變 <br>、網址變連結。
+     2026-10-19 起站內路由也轉成連結：「[文字](#路由)」→ 顯示文字、連到 #路由；單獨寫的 #路由 → 原樣當連結。
+     一律在跳脫「之後」才比對，所以內容裡的 <script> 早就變成 &lt;script&gt;；路由只收英數、底線、斜線、減號，塞不進引號或 javascript:。
+     四種寫法放同一個 regex 一次掃完，已經轉成連結的字不會被第二條規則再轉一次。 */
+  const RICH = /\[([^\]\n]{1,60})\]\((#[a-z][\w\/-]*)\)|(https?:\/\/[^\s<>"']+)|(^|[^\w&\/#"=])(#[a-z][\w\/-]*)/gi;
+  const rich = (s) => esc(s).replace(RICH, (m, lt, lh, u, pre, h) => lh ? `<a class="ntin" href="${lh}">${lt}</a>`
+    : u ? `<a href="${u}" target="_blank" rel="noopener noreferrer">${u}</a>` : `${pre}<a class="ntin" href="${h}">${h}</a>`).replace(/\n/g, '<br>');
+  const plain = (s) => String(s || '').replace(/\[([^\]\n]{1,60})\]\(#[^)\s]*\)/g, '$1').replace(/\s+/g, ' ');
 
   css('noticesCss', `
 .ntbell{position:relative;display:inline-grid;place-items:center;width:34px;height:34px;box-sizing:border-box;padding:0;border:1px solid var(--line-2);border-radius:var(--r-sm,9px);background:var(--panel-2);color:var(--ink);cursor:pointer;flex:none}
@@ -50,6 +78,7 @@
 .ntitem .r1 .u{width:8px;height:8px;border-radius:50%;background:var(--rise);flex:none}
 .ntitem .ttl{display:block;font-size:14.5px;font-weight:600;margin:3px 0 2px;line-height:1.45}
 .ntitem .ntgo,.npi .ntgo{display:inline-block;margin-top:6px;font-size:12.5px;font-weight:600;color:var(--cyan);text-decoration:none}.npi .ntgo:hover{text-decoration:underline}
+.ntitem .bd a.ntin,.npi .bd a.ntin{color:var(--cyan);text-decoration:underline;text-underline-offset:2px}
 .ntitem .bd{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;font-size:13px;color:var(--ink-2);line-height:1.6}
 .ntitem.ex .bd{display:block;-webkit-line-clamp:unset}
 .ntkind{display:inline-block;font-size:11.5px;padding:1px 7px;border-radius:999px;border:1px solid var(--line-2);color:var(--ink)}
@@ -95,8 +124,29 @@
   const NT_TTL = 10 * 60 * 1000, NT_KEY = 'tw.nt.c';
   let ntFly = null;
   function ntWho() { const a = A(), u = a && a.user ? a.user() : null; return u && u.email ? String(u.email) : '-'; }
+  /* 靜態功能更新：整個 session 抓一次（no-cache＝每次開站跟伺服器確認有沒有新版，沒變就 304、幾乎不花流量）。
+     抓不到（離線、檔案不存在）就當作沒有，不影響 Worker 公告。*/
+  function normFeat(x) {
+    if (!x || !isStatic(x.id) || !x.title) return null;
+    const m = /^(\d{4})-(\d\d)-(\d\d)$/.exec(String(x.date || '')); if (!m) return null;
+    return { id: x.id, title: String(x.title).slice(0, 60), body: String(x.body || ''), kind: 'feature', aud: ['member', 'paid'].includes(x.aud) ? x.aud : 'all',
+      start: Date.UTC(+m[1], m[2] - 1, +m[3]) - 8 * 3600 * 1000, end: 0, pinned: x.pinned === true, stat: true };
+  }
+  function loadFeats() {
+    if (F.loaded) return Promise.resolve();
+    if (F.fly) return F.fly;
+    F.fly = fetch('notices/features.json', { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : [])).catch(() => []).then((arr) => {
+      F.list = (Array.isArray(arr) ? arr : []).map(normFeat).filter(Boolean); F.loaded = true; F.fly = null; repaint();
+    });
+    return F.fly;
+  }
+  function repaint() {
+    paintBell(); paintBanner();
+    if (S.open) paintDrop();
+    if ((location.hash || '').startsWith('#notices')) paintPage();
+  }
   function fetchList(force) {
-    const a = A(); if (!a || !a.on()) { S.list = []; S.loaded = false; paintBell(); return Promise.resolve(); }
+    const a = A(); if (!a || !a.on()) { S.list = []; S.loaded = false; repaint(); return Promise.resolve(); }
     if (!force) {
       if (ntFly) return ntFly;
       try {
@@ -118,16 +168,15 @@
       /* 伺服器說讀過的，本機也記起來（下次離線時紅點不會又冒出來）*/
       const set = localRead(); let g = false; S.list.forEach((n) => { if (n.read === true && !set.has(n.id)) { set.add(n.id); g = true; } }); if (g) saveLocal(set);
     }
-    paintBell(); paintBanner();
-    if (S.open) paintDrop();
-    if ((location.hash || '').startsWith('#notices')) paintPage();
+    repaint();
   }
   async function markRead(ids) {
     ids = ids.filter(Boolean); if (!ids.length) return;
     const set = localRead(); ids.forEach((id) => set.add(id)); saveLocal(set);
     S.list.forEach((n) => { if (ids.includes(n.id)) n.read = logged() ? true : n.read; });
     paintBell(); paintBanner();
-    if (logged()) await call('/v1/notices/read', { ids });
+    const srv = ids.filter((id) => !isStatic(id));                  // 靜態功能更新只記在本機，不送 Worker
+    if (logged() && srv.length) await call('/v1/notices/read', { ids: srv });
   }
 
   // ------------------------------------------------------------------ 鈴鐺＋下拉
@@ -135,7 +184,7 @@
   function paintBell() {
     const a = A();
     let b = document.getElementById('ntBell');
-    if (!a || !a.on()) { if (b) b.remove(); return; }
+    if (!(a && a.on()) && !L().length) { if (b) b.remove(); return; }
     if (!b) {
       b = document.createElement('button'); b.type = 'button'; b.id = 'ntBell'; b.className = 'ntbell'; b.setAttribute('aria-haspopup', 'dialog');
       b.innerHTML = BELL + '<span class="dot" id="ntDot" hidden></span>';
@@ -152,6 +201,12 @@
      layout4 的 syncTools 會依固定清單重排 #l4Tools 的子節點，放進去會被當成多出來的節點、每次都重排（而它又被觀察器叫醒）。
      沒有 l4（窄畫面）→ 放進 account.js 的 .acctbar 最前面。 */
   function place(b) {
+    /* 手機（mobile4 的 #m4Tools 看得到）：放進頂欄工具列、搜尋鈕右邊 —— 位置跟 mobile4.js 的 TOOLS 清單一致（2026-10-19，以前手機看不到鈴鐺）*/
+    const m4 = document.getElementById('m4Tools');
+    if (m4 && m4.getClientRects().length) {
+      if (b.parentNode !== m4) { const sb = document.getElementById('m4Search'); m4.insertBefore(b, sb && sb.parentNode === m4 ? sb.nextSibling : m4.firstChild); }
+      return;
+    }
     const tools = document.getElementById('l4Tools');
     const vis = (el) => !!el && el.getClientRects().length > 0;
     if (tools && vis(tools)) { if (b.nextElementSibling !== tools) tools.parentNode.insertBefore(b, tools); return; }
@@ -171,9 +226,16 @@
       document.body.appendChild(d);
       d.addEventListener('click', (e) => {
         const it = e.target.closest('.ntitem');
-        if (e.target.closest('a')) { if (e.target.closest('#ntAll')) toggleDrop(false); return; }
+        const ln = e.target.closest('a');
+        if (ln) {
+          if (ln.id === 'ntAll') { toggleDrop(false); return; }
+          /* 內文的站內連結：連結包在 <button> 裡，瀏覽器不一定照連結走 → 自己換頁（順手標已讀、收下拉）*/
+          const h = ln.getAttribute('href') || '';
+          if (h.charAt(0) === '#') { e.preventDefault(); if (it) markRead([it.dataset.id]); toggleDrop(false); location.hash = h; }
+          return;
+        }
         if (e.target.closest('#ntReadAll')) { markRead(unread().map((n) => n.id)).then(paintDrop); paintDrop(); return; }
-        const go = it && payLink(S.list.find((x) => x.id === it.dataset.id));
+        const go = it && payLink(L().find((x) => x.id === it.dataset.id));
         if (go) { markRead([it.dataset.id]); toggleDrop(false); location.hash = go; return; }
         if (it) { S.expand = S.expand === it.dataset.id ? null : it.dataset.id; markRead([it.dataset.id]); paintDrop(); }
       });
@@ -203,7 +265,7 @@
     const d = document.getElementById('ntDrop'); if (!d || d.hidden) return;
     const n = unread().length;
     d.innerHTML = `<div class="nth"><b>通知${n ? `（${n} 則未讀）` : ''}</b>${n ? '<button type="button" id="ntReadAll">全部標為已讀</button>' : ''}</div>
-      <div class="ntl">${S.list.length ? S.list.slice(0, 20).map(itemHTML).join('') : '<div class="ntempty">目前沒有公告</div>'}</div>
+      <div class="ntl">${L().length ? L().slice(0, 20).map(itemHTML).join('') : '<div class="ntempty">目前沒有公告</div>'}</div>
       <div class="ntf"><a href="#notices" id="ntAll">查看全部</a></div>`;
     const b = document.getElementById('ntBell'); if (!b) return;
     const r = b.getBoundingClientRect();
@@ -218,14 +280,14 @@
 
   // ------------------------------------------------------------------ 置頂橫幅
   function paintBanner() {
-    const top = S.list.find((n) => n.pinned && !isRead(n));
+    const top = L().find((n) => n.pinned && !isRead(n));
     let b = document.getElementById('ntBanner');
     if (!top) { if (b) b.remove(); return; }
     const main = document.querySelector('main'); if (!main) return;
     if (!b) { b = document.createElement('div'); b.id = 'ntBanner'; b.className = 'ntban'; b.setAttribute('role', 'status'); main.insertBefore(b, main.firstChild); }
     if (b.dataset.id === top.id) return;
     b.dataset.id = top.id;
-    b.innerHTML = `<span class="ntkind k-${esc(top.kind)}">${esc(KINDS[top.kind] || top.kind)}</span><b>${esc(top.title)}</b><span class="tx">${esc(top.body.replace(/\s+/g, ' '))}</span><a class="more" href="#notices">看全文</a><button type="button" aria-label="關閉這則公告">×</button>`;
+    b.innerHTML = `<span class="ntkind k-${esc(top.kind)}">${esc(KINDS[top.kind] || top.kind)}</span><b>${esc(top.title)}</b><span class="tx">${esc(plain(top.body))}</span><a class="more" href="#notices">看全文</a><button type="button" aria-label="關閉這則公告">×</button>`;
     b.querySelector('button').onclick = () => markRead([top.id]);
     b.querySelector('a.more').onclick = () => markRead([top.id]);
   }
@@ -233,14 +295,13 @@
   // ------------------------------------------------------------------ 公告頁 #notices
   function paintPage() {
     const v = view('v-notices'); if (!v) return;
-    const a = A();
-    if (!a || !a.on()) { v.innerHTML = '<div class="nphead"><h2>公告</h2></div><div class="npi"><p class="bd">目前沒有公告。</p></div>'; return; }
-    const n = unread().length;
+    const n = unread().length, list = L();
     v.innerHTML = `<div class="nphead"><h2>公告</h2>${n ? `<button type="button" id="npReadAll">全部標為已讀（${n}）</button>` : ''}</div>
-      ${S.list.length ? S.list.map((x) => `<article class="npi${isRead(x) ? '' : ' unread'}" data-id="${esc(x.id)}"><div class="r1"><span class="ntkind k-${esc(x.kind)}">${esc(KINDS[x.kind] || x.kind)}</span>${x.pinned ? '<span class="ntpin">置頂</span>' : ''}<span>${dstr(x.start)}</span>${isRead(x) ? '' : '<span style="color:var(--rise)">未讀</span>'}</div>
+      ${list.length ? list.map((x) => `<article class="npi${isRead(x) ? '' : ' unread'}" data-id="${esc(x.id)}"><div class="r1"><span class="ntkind k-${esc(x.kind)}">${esc(KINDS[x.kind] || x.kind)}</span>${x.pinned ? '<span class="ntpin">置頂</span>' : ''}<span>${dstr(x.start)}</span>${isRead(x) ? '' : '<span style="color:var(--rise)">未讀</span>'}</div>
         <h3>${esc(x.title)}</h3><div class="bd">${rich(x.body)}</div>${goHTML(x)}</article>`).join('') : '<div class="npi"><p class="bd">目前沒有公告。</p></div>'}`;
     const ra = v.querySelector('#npReadAll'); if (ra) ra.onclick = () => markRead(unread().map((x) => x.id)).then(paintPage);
     v.querySelectorAll('a.ntgo[data-go]').forEach((a) => { a.onclick = () => { markRead([a.dataset.go]); }; });
+    v.querySelectorAll('.npi .bd a.ntin').forEach((a) => { a.onclick = () => { const p = a.closest('.npi'); if (p) markRead([p.dataset.id]); }; });
   }
 
   // ------------------------------------------------------------------ 管理端 #admin/notices
@@ -301,7 +362,7 @@
   }
 
   window.TwSubRoutes.push((head, rest) => {
-    if (head === 'notices') { paintPage(); if (!S.loaded) fetchList(); return 'v-notices'; }
+    if (head === 'notices') { paintPage(); loadFeats(); if (!S.loaded) fetchList(); return 'v-notices'; }
     if (head === 'admin' && rest[0] === 'notices') { const v = view('v-subadm'); if (!v) return null; v.innerHTML = '<div class="card"><p class="muted">載入中…</p></div>'; renderNoticesAdmin(v); return 'v-subadm'; }
     return null;
   });
@@ -310,8 +371,9 @@
     if ((location.hash || '') === '#admin/notices') { const v = view('v-subadm'); if (v) renderNoticesAdmin(v); }
   });
   window.addEventListener('tw:account-config', () => { paintBell(); fetchList(); });
+  window.addEventListener('tw:perm', () => { if (F.list.some((n) => n.aud === 'paid')) repaint(); });   // 方案變了 → aud:paid 的那幾則要不要出現
   setInterval(() => { if (!document.hidden) fetchList(); }, 10 * 60 * 1000);
-  window.TwNotices = { refresh: () => fetchList(true), open: () => toggleDrop(true), unread: () => unread().length, list: () => S.list.slice(), renderNoticesAdmin };
-  function boot() { const a = A(); if (a && a.on()) { paintBell(); fetchList(); } }
+  window.TwNotices = { refresh: () => fetchList(true), open: () => toggleDrop(true), unread: () => unread().length, list: () => L(), renderNoticesAdmin };
+  function boot() { loadFeats(); const a = A(); if (a && a.on()) { paintBell(); fetchList(); } }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
 })();
