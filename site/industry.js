@@ -6385,6 +6385,171 @@ html.m4 #etfHoldCard tr.hi td{background:color-mix(in srgb,var(--accent,#4ea1ff)
   }
   const extLegendDrop = (id) => { const b = document.querySelector(`.chlegend[data-for="${id}"]`); if (b) b.remove(); delete extLegRec[id]; };
   /* ==========================================================================
+     ★ 2026-10-19 個股頁多圖連動（Andy：「圖表是有連動關係的，像這種同個資訊多張圖表，都需要有像是 ETF 月配那樣的連動效果」；
+       規格 docs/style_guide.md 第十八節、普查 docs/chart_link_census_1019.md 第 1～4 項）。
+     營收／獲利／除權息／法人／資券／大戶散戶每一頁都是「同一條時間軸」畫兩三次（圖＋圖＋明細表），
+     原本要知道「圖上這根柱是表裡哪一列」得自己對日期 —— 兩步推論。現在同一頁的圖與表用同一個鍵（月／季／年／日）串起來：
+       · 滑過任一處的某一個時點：那個時點在每張圖上全亮、其他柱變淡；每張圖在那個時點畫一條虛線（＝另一張圖的 axisPointer）；
+         明細表那一列 .hl，並把**表格自己的捲動框**捲到那一列（只捲表格、不捲整頁；手機不捲）。滑出恢復。
+       · 點一下＝鎖定（同樣效果＋柱外框、表格列琥珀框）；再點同一個、或點空白處＝取消。表格列也一樣（這些表的列沒有下一層可去）。
+       · 鍵的對齊：完全相同，或其中一邊是「年」（4 位數字）而另一邊以它開頭 ⇒ 年度柱對得到那一年的每個月／每一季／每一次除權息，
+         獲利「季／年」切換時鍵自動換成年（季 2024Q3 → 年 2024），本益比（每季）圖就亮那一年的四季（按年度對齊）。
+     ⚠ 變淡寫在資料項 itemStyle.opacity（不改顏色），深 .55／淺 .35，跟 ETF 的 selDim() 同一組數字；
+       資料項一旦帶 itemStyle 要連顏色一起寫（踩過：comboLink 直條整排退回預設青色）⇒ 顏色從畫好的 option 取回原樣再寫回去。
+     ⚠ 命中判斷用 zrender 的滑鼠座標換算類別（convertFromPixel），不靠滑到柱子上：法人 250 根細柱、折線圖沒有柱，
+       滑到那一欄的空白處也要算那一天（跟 axisPointer 同一個手感）。
+     ⚠ zr.off 一定要帶函式：不帶會連 ECharts 自己掛在 zr 上的 click 一起拔掉（comboLink 踩過）。
+     ⚠ 選取記在 LK.sel[區塊名]：切 12／24 月、季／年、區間鈕重畫後，那個鍵還在就保留；換股票清空。 */
+  const LK_DIM_DARK = 0.55, LK_DIM_LIGHT = 0.35;
+  const lkDim = () => (document.documentElement.getAttribute('data-theme') === 'light' ? LK_DIM_LIGHT : LK_DIM_DARK);
+  const LK = { code: null, sel: {}, grp: {} };
+  const lkYear = (s) => /^\d{4}$/.test(s);
+  const lkMatch = (a, b) => a === b || (lkYear(a) && b.indexOf(a) === 0) || (lkYear(b) && a.indexOf(b) === 0);
+  function lkCss() {
+    if (document.getElementById('stLinkCss')) return;
+    const s = document.createElement('style'); s.id = 'stLinkCss';
+    s.textContent = `#stockTab tr[data-k]{cursor:pointer;transition:opacity .12s}
+#stockTab tr.hl td{background:color-mix(in srgb,var(--amber) 18%,var(--panel-2))!important}
+#stockTab tr.hl td:first-child{box-shadow:inset 3px 0 0 var(--amber)}
+#stockTab tr.lk td{box-shadow:inset 0 1px 0 var(--amber),inset 0 -1px 0 var(--amber)}
+#stockTab tr.lk td:first-child{box-shadow:inset 3px 0 0 var(--amber),inset 0 1px 0 var(--amber),inset 0 -1px 0 var(--amber)}
+#stockTab tr.dim{opacity:.55}
+:root[data-theme="light"] #stockTab tr.dim{opacity:.35}
+@media (prefers-reduced-motion:reduce){#stockTab tr[data-k]{transition:none}}`;
+    document.head.appendChild(s);
+  }
+  /* 從剛畫好的圖取回每個長條系列的原樣（資料、每一根的顏色），之後每次重畫連動狀態都從這份原樣寫，不會越疊越淡 */
+  function lkOrig(ch) {
+    const op = ch.getOption(), md = ch.getModel();
+    return (op.series || []).map((s, si) => {
+      // _lkML／_lkW＝連動自己寫上去的記號（虛線、原本線寬）：再次掛連動但圖沒重畫時，不把「已經加粗過的線寬」當成原樣
+      const o = { type: s.type, xi: s.xAxisIndex || 0, ownML: !s._lkML && !!(s.markLine && (s.markLine.data || []).length), lw: s._lkW != null ? s._lkW : (s.lineStyle || {}).width };
+      if (s.type !== 'bar' || s.silent) { o.skip = s.type === 'bar'; return o; }
+      const sc = (s.itemStyle || {}).color;
+      let dt = null; try { dt = md.getSeriesByIndex(si).getData(); } catch (e) { /* 系列還沒建好 */ }
+      o.data = (s.data || []).map((d, j) => {
+        if (d == null || (typeof d === 'object' && !Array.isArray(d) && d.value == null)) return null;
+        const base = typeof d === 'object' && !Array.isArray(d) ? { ...d } : { value: d };
+        let col = base.itemStyle && base.itemStyle.color;
+        if (col == null && sc != null) col = typeof sc === 'function' ? sc({ dataIndex: j, value: base.value, data: d, seriesIndex: si }) : sc;
+        if (col == null && dt) { try { const v = dt.getItemVisual(j, 'style'); col = v && v.fill; } catch (e) { /* 沒有就讓系列色接手 */ } }
+        base.itemStyle = { ...(base.itemStyle || {}), ...(col != null ? { color: col } : {}) };
+        return base;
+      });
+      return o;
+    });
+  }
+  function lkPaintChart(c, act, on, lk) {
+    const ch = c.ch; if (!ch || ch.isDisposed()) return;
+    const CH = A.CH, dim = lkDim();
+    const any = act.length > 0 && (c.keys.some(on) || (c.serKey && c.orig.some((s, si) => on(c.serKey(si)))));
+    const cols = !any ? [] : c.cols ? c.cols(act) : c.keys.map((k, j) => (on(k) ? j : -1)).filter(j => j >= 0);
+    const seenX = new Set();
+    const series = c.orig.map((s, si) => {
+      const out = {};
+      if (s.type === 'bar' && !s.skip && s.data) {
+        out.data = s.data.map((d, j) => { if (d == null) return null;
+          const k = c.keys[j], l = any && on(k), L = any && lk(k);
+          return { ...d, itemStyle: { ...d.itemStyle, opacity: !any || l ? 1 : dim, borderColor: L ? CH.ink : 'transparent', borderWidth: L ? 1.5 : 0 } }; });
+      }
+      if (s.type === 'line' && c.serKey) {
+        const sk = c.serKey(si), l = any && sk != null && on(sk), w = s.lw || 1.5;
+        out.lineStyle = { width: l ? w + 1.5 : w, opacity: !any || l ? 1 : dim }; out.itemStyle = { opacity: !any || l ? 1 : dim }; out._lkW = w;
+      }
+      if (!s.ownML && !seenX.has(s.xi) && !s.skip) {
+        seenX.add(s.xi); out._lkML = 1;
+        out.markLine = { silent: true, symbol: 'none', animation: false, label: { show: false }, lineStyle: { color: CH.ink2, type: 'dashed', width: 1, opacity: 0.9 },
+          data: cols.map(j => ({ xAxis: j })) };
+      }
+      return out;
+    });
+    try { ch.setOption({ series }); } catch (e) { /* 提示框與 dispose 競態 */ }
+    ch.getDom().dataset.lkCols = cols.join(',');
+  }
+  /* 註冊一個連動區塊。cfg：root（這一頁的容器）、code（股票代號）、charts:[{id, keys:[每個類別的鍵], serKey?(si)→鍵, cols?(act)→要畫虛線的類別, hit?(di, yVal)→鍵}]、rows（表格列的選擇器，列上要有 data-k）
+     重畫之後再呼叫一次就好（同名區塊會換掉舊的監聽）。回傳 { paint, pick, get } 給頁面切季／年時換鍵用。 */
+  function stLink(name, cfg) {
+    if (!cfg || !cfg.root || !window.echarts) return null;
+    if (LK.code !== (cfg.code || '')) { LK.code = cfg.code || ''; LK.sel = {}; }
+    lkCss();
+    const root = cfg.root;
+    const charts = (cfg.charts || []).map((c) => { const el = document.getElementById(c.id); const ch = el && echarts.getInstanceByDom(el);
+      if (!ch || ch.isDisposed()) return null; return { ...c, keys: (c.keys || []).map(k => (k == null ? null : String(k))), ch, orig: lkOrig(ch) }; }).filter(Boolean);
+    const rows = () => (cfg.rows ? $$(cfg.rows, root) : []);
+    let hov = null;
+    const present = (k) => charts.some(c => c.keys.some(x => x != null && lkMatch(x, k)) || (c.serKey && c.orig.some((s, si) => { const v = c.serKey(si); return v != null && lkMatch(String(v), k); })))
+      || rows().some(r => lkMatch(r.dataset.k, k));
+    function paint(src) {
+      let sel = LK.sel[name] || null;
+      if (sel && !present(sel)) { sel = null; delete LK.sel[name]; }
+      const act = [sel, hov].filter(Boolean);
+      const on = (k) => k != null && act.some(a => lkMatch(String(k), a));
+      const lk = (k) => k != null && !!sel && lkMatch(String(k), sel);
+      root.dataset.lkSel = sel || ''; root.dataset.lkHov = hov || '';
+      charts.forEach(c => lkPaintChart(c, act, on, lk));
+      const rs = rows(), anyRow = act.length > 0 && rs.some(r => on(r.dataset.k));
+      rs.forEach(r => { const k = r.dataset.k, l = anyRow && on(k);
+        r.classList.toggle('hl', l); r.classList.toggle('lk', anyRow && lk(k)); r.classList.toggle('dim', anyRow && !l); });
+      // 從圖上來的才捲：只捲表格自己的捲動框（不碰整頁）；手機不捲（上下排，捲了會把剛點的圖推出畫面）
+      if (src === 'chart' && anyRow && (window.innerWidth || 1440) > 640) {
+        const r = rs.find(x => x.classList.contains('hl'));
+        let box = r && r.parentElement;
+        while (box && box !== root && !(box.scrollHeight > box.clientHeight + 2 && /(auto|scroll)/.test(getComputedStyle(box).overflowY))) box = box.parentElement;
+        if (r && box && box !== root) {
+          const rb = r.getBoundingClientRect(), bb = box.getBoundingClientRect(), th = (box.querySelector('thead') || { offsetHeight: 0 }).offsetHeight;
+          if (rb.top < bb.top + th || rb.bottom > bb.bottom) box.scrollTop += rb.top - bb.top - th - Math.max(0, (bb.height - th - rb.height) / 2);
+        }
+      }
+    }
+    /* ⚠ 觸控沒有「滑過」：手指點一下，瀏覽器會在 touchend 之後補發 mousemove／mouseenter，那一下會把剛取消的那欄又「滑過」亮起來
+       （實測：手機點同一欄取消後，那欄還亮著）⇒ 最近 1 秒內摸過螢幕，滑過一律不算，只認點擊 */
+    const hover = (k, src) => { k = k == null ? null : String(k); if (k != null && Date.now() - (LK.touchT || 0) < 1000) return; if (hov !== k) { hov = k; paint(src); } };
+    // ⚠ 觸控點一下，zrender 收到指標事件的 click 又收到瀏覽器補發的 click ⇒ 同一處 350ms 內第二下不算，不然「選取→立刻取消」
+    let last = { k: '', t: 0 };
+    const pick = (k, src) => { k = k == null ? null : String(k); const kk = (src || '') + ':' + k, t = Date.now();
+      if (src && last.k === kk && t - last.t < 350) return; last = { k: kk, t };
+      if (!k || (LK.sel[name] && LK.sel[name] === k)) delete LK.sel[name]; else LK.sel[name] = k;
+      hov = null; paint(src === 'tr' ? 'tr' : 'chart'); };
+    charts.forEach((c) => {
+      const ch = c.ch, zr = ch.getZr();
+      const nG = Math.max(1, ((ch.getOption().grid) || []).length);
+      const at = (e) => { const px = [e.offsetX, e.offsetY];
+        for (let g = 0; g < nG; g++) { let inG = false; try { inG = ch.containPixel({ gridIndex: g }, px); } catch (er) { /* 沒有這一格 */ }
+          if (!inG) continue;
+          const v = ch.convertFromPixel({ gridIndex: g }, px); if (!v) return null;
+          const di = Math.max(0, Math.min(c.keys.length - 1, Math.round(v[0])));
+          return c.hit ? c.hit(di, v[1], g) : c.keys[di]; }
+        return undefined; };   // undefined＝不在繪圖區（標題、圖例、軸字）
+      if (zr._lkMove) { zr.off('mousemove', zr._lkMove); zr.off('globalout', zr._lkOut); zr.off('click', zr._lkClick); }
+      zr._lkMove = (e) => { const k = at(e); hover(k === undefined ? null : k, 'chart'); };
+      zr._lkOut = () => hover(null, 'chart');
+      zr._lkClick = (e) => { const k = at(e);
+        if (k === undefined) { if (!e.target) pick(null, 'chart'); return; }   // 繪圖區外的空白＝取消；點到圖例、軸字不算
+        pick(k, 'c:' + c.id); };
+      zr.on('mousemove', zr._lkMove); zr.on('globalout', zr._lkOut); zr.on('click', zr._lkClick);
+    });
+    rows().forEach((r) => {
+      const k = r.dataset.k;
+      r.onmouseenter = () => hover(k, 'tr'); r.onmouseleave = () => hover(null, 'tr');
+      // 列原本就有點擊行為的（手機除權息：點一列展開明細）照做，再加上選取 ⇒「展開＝選取」；記一次原本的，重掛時不會疊兩層
+      if (r._lkPrev === undefined) r._lkPrev = r.onclick || null;
+      r.onclick = (e) => { if (e.target.closest('a, button')) return; if (r._lkPrev) r._lkPrev.call(r, e); pick(k, 'tr'); };
+    });
+    // 這一頁裡的空白處（標題、說明、圖與圖之間）＝取消；這一頁外面的空白處也算（整頁只掛一次，靠 LK.grp 找到目前每一組）
+    if (root._lkBlank) root.removeEventListener('click', root._lkBlank);
+    root._lkBlank = (e) => { if (LK.sel[name] && !e.target.closest('tr[data-k], .chart, canvas, button, a, input, select, label, .seg, .chlegend, .howtxt, .hoTgls, .mbseg, .mbhotgls, .mbfold')) pick(null); };
+    root.addEventListener('click', root._lkBlank);
+    LK.grp[name] = { root, pick };
+    if (!LK._doc) { LK._doc = true;
+      document.addEventListener('touchstart', () => { LK.touchT = Date.now(); }, { capture: true, passive: true });
+      document.addEventListener('click', (e) => { Object.keys(LK.grp).forEach((n) => { const g = LK.grp[n];
+        if (!g.root.isConnected) { delete LK.grp[n]; return; }
+        if (LK.sel[n] && document.contains(e.target) && !g.root.contains(e.target) && !e.target.closest('.echarts-tooltip, [role="dialog"], #cfgPop')) g.pick(null); }); }, true); }
+    paint();
+    return { paint, pick, get: () => LK.sel[name] || null, set: (k) => { if (k) LK.sel[name] = String(k); else delete LK.sel[name]; } };
+  }
+  window.StockLink = { link: stLink };   // 手機個股頁（mobile3.js 的單張圖＋每日表）共用同一支
+  /* ==========================================================================
      ★ 2026-10-03（Andy：「基本面卡：純數字小格、有圖表的大格並補充詳細；本益比這邊的算法需要新增到獲利那邊」，DECISIONS #305）
      本益比位置（peStand）：**目前本益比落在這一檔自己過去每天本益比的第幾百分位**，總覽基本面卡與「獲利」分頁共用這一支，數字一定一致。
        · 樣本＝peRiver(pg) 那一條逐日本益比（每天收盤 ÷ 當時最新的近四季 EPS，財報可用日起算、虧損季不算），
@@ -6803,7 +6968,7 @@ html.m4 #etfHoldCard tr.hi td{background:color-mix(in srgb,var(--accent,#4ea1ff)
         <div class="seg" id="revWin" role="group" aria-label="幾個月"><button type="button" data-v="12">12 月</button><button type="button" data-v="24">24 月</button><button type="button" data-v="36">36 月</button></div></div></div>
         ${hbox('skrev', ['月走勢：當月（青）＋去年同期（灰）並排', '線＝MoM、YoY（右軸 %）', '年度走勢：每年合計＋年增率', '今年未滿 12 個月＝跟去年同期幾個月比'])}<div id="revBar" class="chart"></div></div>
       <div class="card"><div class="row spread"><h3>逐年同月比較 ${hq('skrevy', '逐年同月比較')}</h3>${hbox('skrevy', ['每條線＝一年，同月份疊在一起比', '最粗那條＝今年', '看哪幾個月固定比較高＝旺季'])}<div class="seg" id="revMode"><button data-v="m" class="on">單月</button><button data-v="c">累計</button></div></div><div id="revYear" class="chart"></div></div>
-      <div class="card tblcard" id="revTblCard"><h3>月營收明細 <small data-readout>單位：百萬元</small> ${hq('skrevtbl', '月營收明細')}</h3>${hbox('skrevtbl', ['YoY＝比去年同月；MoM＝比上個月', '累計營收＝今年 1 月加到這個月', '累計 YoY＝今年累計 ÷ 去年同期累計 − 1', '1 月到這個月缺任一月，累計留「—」'])}<div class="tw"><table id="revTbl"><thead><tr><th class="l">年/月</th><th>月營收</th><th>去年同期</th><th>YoY</th><th>MoM</th><th>累計營收</th><th>累計 YoY</th></tr></thead><tbody>${mo.slice().reverse().slice(0, 36).map(r => `<tr><td class="l mono">${r[0].replace('-', '/')}</td><td class="num">${mil(r[1])}</td><td class="num muted">${mil(r[6])}</td><td class="num ${A.fmt.cls(r[2])}">${A.fmt.pct(r[2])}</td><td class="num ${A.fmt.cls(r[3])}">${A.fmt.pct(r[3])}</td><td class="num">${mil(r[4])}</td><td class="num ${A.fmt.cls(r[5])}">${A.fmt.pct(r[5])}</td></tr>`).join('')}</tbody></table></div></div></div>`;
+      <div class="card tblcard" id="revTblCard"><h3>月營收明細 <small data-readout>單位：百萬元</small> ${hq('skrevtbl', '月營收明細')}</h3>${hbox('skrevtbl', ['YoY＝比去年同月；MoM＝比上個月', '累計營收＝今年 1 月加到這個月', '累計 YoY＝今年累計 ÷ 去年同期累計 − 1', '1 月到這個月缺任一月，累計留「—」'])}<div class="tw"><table id="revTbl"><thead><tr><th class="l">年/月</th><th>月營收</th><th>去年同期</th><th>YoY</th><th>MoM</th><th>累計營收</th><th>累計 YoY</th></tr></thead><tbody>${mo.slice().reverse().slice(0, 36).map(r => `<tr data-k="${r[0]}"><td class="l mono">${r[0].replace('-', '/')}</td><td class="num">${mil(r[1])}</td><td class="num muted">${mil(r[6])}</td><td class="num ${A.fmt.cls(r[2])}">${A.fmt.pct(r[2])}</td><td class="num ${A.fmt.cls(r[3])}">${A.fmt.pct(r[3])}</td><td class="num">${mil(r[4])}</td><td class="num ${A.fmt.cls(r[5])}">${A.fmt.pct(r[5])}</td></tr>`).join('')}</tbody></table></div></div></div>`;
     /* ★ 2026-10-02（Andy #stock/1709，DECISIONS #295）：改前「營收走勢｜逐年同月」兩欄＋下面一張整列的月營收明細長表；
        改後三張卡並排（#revGrid .skrev3，跟總覽三欄同一套），明細表是第三欄、高度跟兩張圖卡一樣、在卡裡捲（.tblcard）。
        ≤1100 兩欄（明細表跨滿第二列）、≤820 一欄依序往下排。*/
@@ -6816,6 +6981,17 @@ html.m4 #etfHoldCard tr.hi td{background:color-mix(in srgb,var(--accent,#4ea1ff)
     let rview = lsGet('tw.revView', v => v === 'm' || v === 'y', 'm');
     let rwin = +lsGet('tw.revWin', v => ['12', '24', '36'].includes(v), '12');
     const yrsAll = rv.yearly || [];
+    const code = (pg.meta && pg.meta.code) || '';
+    let revKeys = [];
+    /* 10-19 三處連動（stLink 那段的說明）：營收走勢（月＝YYYY-MM、年＝YYYY）、逐年同月（每條線＝一年，滑到哪個月就取那個月最靠近游標的那一年）、月營收明細表 */
+    const linkRev = () => stLink('rev', { root: el, code, rows: '#revTbl tr[data-k]', charts: [
+      { id: 'revBar', keys: revKeys },
+      { id: 'revYear', keys: Array.from({ length: 12 }, () => null), serKey: (si) => (yr[si] ? String(yr[si].year) : null),
+        cols: (act) => [...new Set(act.filter(k => /^\d{4}-\d{2}$/.test(k)).map(k => +k.slice(5, 7) - 1))],
+        hit: (di, yv) => { const yc = echarts.getInstanceByDom($('#revYear', el)); if (!yc) return null;
+          let best = null, bd = Infinity; (yc.getOption().series || []).forEach((s_, si) => { const d = (s_.data || [])[di]; const v = d && typeof d === 'object' ? d.value : d;
+            if (v != null && yr[si] && Math.abs(v - yv) < bd) { bd = Math.abs(v - yv); best = si; } });
+          return best == null ? null : `${yr[best].year}-${String(di + 1).padStart(2, '0')}`; } }] });
     const drawRev = () => {
       $$('#revView button', el).forEach(b => b.classList.toggle('on', b.dataset.v === rview));
       $$('#revWin button', el).forEach(b => b.classList.toggle('on', +b.dataset.v === rwin));
@@ -6844,6 +7020,7 @@ html.m4 #etfHoldCard tr.hi td{background:color-mix(in srgb,var(--accent,#4ea1ff)
         el.dataset.revGap = String(gapN); el.dataset.revClip = clipped ? '1' : '0';
         if (sub) sub.textContent = t.length ? `${t[0][0]}～${t[t.length - 1][0]}，${t.length} 個月${gapN ? `（缺 ${gapN} 個月，留空）` : ''}${clipped ? '　·　右軸已截斷' : ''}` : '';
         if (pMin != null) { pctAx.min = pMin; pctAx.max = pMax; }
+        revKeys = t.map(r => r[0]);
         revC = A.chart('revBar', { tooltip: { ...A.tip, trigger: 'axis', formatter: ps => `<b>${ps[0].axisValue}</b><br>` + ps.map(p => `${p.marker}${p.seriesName} ${p.seriesName.includes('營收') || p.seriesName === '去年同期' ? A.fmt.yi(p.value) : A.fmt.pct(p.value)}`).join('<br>') },
           legend: { show: false }, grid: { left: 60, right: 50, top: 10, bottom: 30 },
           xAxis: { ...A.axisStyle, type: 'category', data: t.map(r => r[0]), axisLabel: { color: A.CH.ink3, formatter: v => v.slice(2).replace('-', '/'), hideOverlap: true } },
@@ -6861,6 +7038,7 @@ html.m4 #etfHoldCard tr.hi td{background:color-mix(in srgb,var(--accent,#4ea1ff)
           const part = y.months < 12;
           return { lab: part ? `${y.year}（${Math.min(...mths)}–${Math.max(...mths)} 月）` : String(y.year), rev: y.revenue, yoy, part }; });
         if (sub) sub.textContent = rows.length ? `${ys[0].year}～${ys[ys.length - 1].year}，${rows.length} 年` : '';
+        revKeys = ys.map(y => String(y.year));
         revC = A.chart('revBar', { tooltip: { ...A.tip, trigger: 'axis', formatter: ps => { const r = rows[ps[0].dataIndex]; return `<b>${r.lab}</b><br>營收 ${A.fmt.yi(r.rev)}<br>年增率 ${A.fmt.pct(r.yoy)}${r.part ? '（跟去年同樣月份比）' : ''}`; } },
           legend: { show: false }, grid: { left: 60, right: 50, top: 10, bottom: 30 },
           xAxis: { ...A.axisStyle, type: 'category', data: rows.map(r => r.lab), axisLabel: { color: A.CH.ink3, hideOverlap: true, formatter: v => v.slice(0, 4) } },
@@ -6870,6 +7048,7 @@ html.m4 #etfHoldCard tr.hi td{background:color-mix(in srgb,var(--accent,#4ea1ff)
       }
       const rvw = $('#revView', el);
       extLegend(revC, rvw && rvw.parentElement);        // 設計 v4 2B：圖例搬到月／年、12／24／36 那一列的右端
+      if ($('#revYear', el) && echarts.getInstanceByDom($('#revYear', el))) linkRev();   // 第一次畫時逐年同月還沒畫，交給 drawYear 收尾
     };
     $$('#revView button', el).forEach(b => b.onclick = () => { rview = b.dataset.v; lsSet('tw.revView', rview); drawRev(); });
     $$('#revWin button', el).forEach(b => b.onclick = () => { rwin = +b.dataset.v; lsSet('tw.revWin', String(rwin)); drawRev(); });
@@ -6885,7 +7064,7 @@ html.m4 #etfHoldCard tr.hi td{background:color-mix(in srgb,var(--accent,#4ea1ff)
          ⚠ 一開始的 option 就要寫 legend.type:'scroll'：plain 跟 scroll 是兩種元件，退回時才換 type 會整個換掉圖例元件，
          藏起來的年份（legend.selected）就丟了 —— _uitest「設計v4第二批2B」⑧（800→1000→800 來回後 2021 要仍藏著）抓到的。*/
       const rm = $('#revMode', el); if (rm) extLegend(yc, rm.parentElement, { fb: { top: 0, type: 'scroll', itemWidth: 10, itemGap: 5,
-        pageIconColor: A.CH.ink2, pageTextStyle: { color: A.CH.ink3 }, textStyle: { color: A.CH.ink2, fontSize: 12 } }, fbTop: 36 }); };   // 設計 v4 2B：六個年份的圖例放標題列最右端（放不下退回圖內單行）
+        pageIconColor: A.CH.ink2, pageTextStyle: { color: A.CH.ink3 }, textStyle: { color: A.CH.ink2, fontSize: 12 } }, fbTop: 36 }); linkRev(); };   // 設計 v4 2B：六個年份的圖例放標題列最右端（放不下退回圖內單行）
     $$('#revMode button').forEach(b => b.onclick = () => { $$('#revMode button').forEach(x => x.classList.toggle('on', x === b)); mode = b.dataset.v; drawYear(); });
     drawYear();
   }
@@ -7607,11 +7786,20 @@ html.m4 #etfHoldCard tr.hi td{background:color-mix(in srgb,var(--accent,#4ea1ff)
       <div class="card" id="profitCard"><div class="row spread"><h3>EPS 與三率 ${hq('skeps', 'EPS 與三率')} <small id="profitSub" data-readout>${A.fmt.esc(tmTxt)}</small></h3><div class="seg" id="profitMode" role="group" aria-label="季或年"><button type="button" data-v="q">季</button><button type="button" data-v="y">年</button></div></div>${hbox('skeps', ['柱＝EPS（左軸）；線＝三率（右軸）', '季＝單季；年＝四季相加', '今年未滿四季標「前 n 季」', '缺季留空，不拿別季湊'], '財報法規是季報，所以只有單季、沒有每月。年度三率＝全年毛利 ÷ 全年營收（不是四季比率平均）。')}<div id="profitChart" class="chart"></div></div>
       <div class="card tblcard" id="profitTblCard"><h3><span id="profitTblTtl">季報明細</span> ${hq('skproftbl', '季報明細')}</h3>${hbox('skproftbl', ['季＝單季數字；年＝四季相加，「季數」不滿 4＝還沒過完', '累計 EPS＝同一年 Q1 起逐季相加，跨年歸零', '中間缺一季，那季起的累計留「—」，不拿缺季湊', 'EPS 年增＝這季 EPS 減去年同季（元）', '營收、淨利的單位寫在數字後（億／萬）'])}<div class="tw" style="max-height:360px" id="profitTbl"></div></div></div>`;
     const pct = (v) => (v == null ? '—' : A.fmt.n(v, 2) + '%');
-    const tblQ = () => `<table><thead><tr><th class="l">季度</th><th>營收</th><th>毛利率</th><th>營益率</th><th>淨利率</th><th>淨利</th><th>EPS</th><th>累計 EPS</th><th>EPS 年增</th></tr></thead><tbody>${q.slice().reverse().map(r => `<tr><td class="l mono">${r[0]}</td><td class="num">${r[1] == null ? '—' : A.fmt.yi(r[1])}</td><td class="num">${pct(r[2])}</td><td class="num">${pct(r[3])}</td><td class="num">${pct(r[4])}</td><td class="num">${r[8] == null ? '—' : A.fmt.yi(r[8])}</td><td class="num">${r[5] == null ? '—' : A.fmt.n(r[5])}</td><td class="num">${r[6] == null ? '—' : A.fmt.n(r[6])}</td><td class="num ${A.fmt.cls(r[7])}">${r[7] != null ? (r[7] > 0 ? '+' : '') + A.fmt.n(r[7]) : '—'}</td></tr>`).join('')}</tbody></table>`;
-    const tblY = () => `<table><thead><tr><th class="l">年度</th><th>營收</th><th>毛利率</th><th>營益率</th><th>淨利率</th><th>淨利</th><th>EPS</th><th>季數</th></tr></thead><tbody>${yr.slice().reverse().map(y => `<tr><td class="l mono">${ylab(y)}</td><td class="num">${y.revenue == null ? '—' : A.fmt.yi(y.revenue)}</td><td class="num">${pct(y.gm)}</td><td class="num">${pct(y.om)}</td><td class="num">${pct(y.nm)}</td><td class="num">${y.net_income == null ? '—' : A.fmt.yi(y.net_income)}</td><td class="num">${y.eps == null ? '—' : A.fmt.n(y.eps)}</td><td class="num">${y.quarters}</td></tr>`).join('')}</tbody></table>`;
+    const tblQ = () => `<table><thead><tr><th class="l">季度</th><th>營收</th><th>毛利率</th><th>營益率</th><th>淨利率</th><th>淨利</th><th>EPS</th><th>累計 EPS</th><th>EPS 年增</th></tr></thead><tbody>${q.slice().reverse().map(r => `<tr data-k="${r[0]}"><td class="l mono">${r[0]}</td><td class="num">${r[1] == null ? '—' : A.fmt.yi(r[1])}</td><td class="num">${pct(r[2])}</td><td class="num">${pct(r[3])}</td><td class="num">${pct(r[4])}</td><td class="num">${r[8] == null ? '—' : A.fmt.yi(r[8])}</td><td class="num">${r[5] == null ? '—' : A.fmt.n(r[5])}</td><td class="num">${r[6] == null ? '—' : A.fmt.n(r[6])}</td><td class="num ${A.fmt.cls(r[7])}">${r[7] != null ? (r[7] > 0 ? '+' : '') + A.fmt.n(r[7]) : '—'}</td></tr>`).join('')}</tbody></table>`;
+    const tblY = () => `<table><thead><tr><th class="l">年度</th><th>營收</th><th>毛利率</th><th>營益率</th><th>淨利率</th><th>淨利</th><th>EPS</th><th>季數</th></tr></thead><tbody>${yr.slice().reverse().map(y => `<tr data-k="${y.year}"><td class="l mono">${ylab(y)}</td><td class="num">${y.revenue == null ? '—' : A.fmt.yi(y.revenue)}</td><td class="num">${pct(y.gm)}</td><td class="num">${pct(y.om)}</td><td class="num">${pct(y.nm)}</td><td class="num">${y.net_income == null ? '—' : A.fmt.yi(y.net_income)}</td><td class="num">${y.eps == null ? '—' : A.fmt.n(y.eps)}</td><td class="num">${y.quarters}</td></tr>`).join('')}</tbody></table>`;
     /* ★ 2026-09-26（小數點普查）：以前沒寫 formatter，提示框只印原值、沒有單位 —— EPS 補「元」、三率補「%」，位數跟下方季報明細表一致（EPS 2 位、三率 1 位）。*/
     let pmode = 'q';
     try { const v = localStorage.getItem('tw.profitMode'); if (v === 'q' || v === 'y') pmode = v; } catch (e) { /* 私密視窗 */ }
+    /* 10-19 三處連動（stLink 那段的說明）：本益比（每季）、EPS 與三率、季報明細表用同一個鍵。
+       季模式＝2024Q3；年模式＝2024，本益比（每季）那張的鍵也換成「年」⇒ 選 2024 就亮那一年的四季（按年度對齊）。
+       ⚠ 只加互動，不動任何高度（獲利一屏 1019 的版面：_uitest「個股獲利一屏1019」在量）。 */
+    const code = (pg.meta && pg.meta.code) || '';
+    let profLk = null;
+    const linkProfit = () => { const isY = el.dataset.profitMode === 'y';
+      profLk = stLink('prof', { root: el, code, rows: '#profitTbl tr[data-k]', charts: [
+        { id: 'profitChart', keys: isY ? yr.map(y => String(y.year)) : q.map(r => r[0]) },
+        { id: 'peQ', keys: pe.map(r => (r && r.period ? (isY ? String(r.period).slice(0, 4) : String(r.period)) : null)) }] }); };
     const drawProfit = () => {
       const isY = pmode === 'y' && yr.length;
       const X = isY ? yr.map(ylab) : q.map(r => r[0]);
@@ -7637,11 +7825,15 @@ html.m4 #etfHoldCard tr.hi td{background:color-mix(in srgb,var(--accent,#4ea1ff)
     };
     $$('#profitMode button', el).forEach(b => b.onclick = () => {
       pmode = b.dataset.v;
+      // 季 → 年：鎖定的「2024Q3」換成「2024」（年模式只有年）；年 → 季：留「2024」＝那一年的四季一起亮
+      if (profLk && pmode === 'y') { const k = profLk.get(); if (k && /^\d{4}Q/.test(k)) profLk.set(k.slice(0, 4)); }
       try { localStorage.setItem('tw.profitMode', pmode); } catch (e) { /* 忽略 */ }
       drawProfit();
+      linkProfit();
     });
     drawProfit();
     drawPeQ(pe, el, pg.daily);
+    linkProfit();
 
     // ---- 河流圖：兩種模式，選過就記住（換股票、重新整理都沿用）
     const river = peRiver(pg);
@@ -7764,7 +7956,7 @@ html.m4 #etfHoldCard tr.hi td{background:color-mix(in srgb,var(--accent,#4ea1ff)
       + (u.ex_date ? `（${u.ex_date} 除${u.kind === 'stock' ? '權' : '息'}）` : '（除權息日未定）')).join('；') : '';
     el.innerHTML = `<div class="kvs" style="margin-bottom:12px"><div class="k"><div class="l">近四次現金股利</div><div class="v">${dv.cash_ttm != null ? A.fmt.n(dv.cash_ttm) + ' 元' : '—'}</div></div><div class="k"><div class="l">殖利率</div><div class="v">${dv.yield_ttm != null ? A.fmt.n(dv.yield_ttm) + '%' : '—'}</div></div><div class="k"><div class="l">最近除息</div><div class="v" style="font-size:15px">${rs[0] ? rs[0].date : '—'}</div></div><div class="k"><div class="l">最近填息</div><div class="v">${rs[0] ? fillTxt(rs[0]) : '—'}</div></div></div>
       <div class="grid g2"><div class="card" id="divCard"><div class="row spread" id="divHead" style="gap:8px;flex-wrap:wrap"><h3>各年度股利 <small data-readout id="divSub">${divSub}</small> ${hq('skdiv', '各年度股利')}</h3></div>${hbox('skdiv', ['每年一根：琥珀＝現金、紫＝股票股利（元／股）', '年度＝實際除權息那一年，對得上右邊紀錄表', '同一年多次配息（季配、半年配）加總', '「未配」＝沒除權息；最右是今年', '線＝現金殖利率（右軸）＝現金股利 ÷ 除息前一日收盤'], `${cov.cover_from || 2016} 年以前與上市以前的年份不畫 —— 那些是「沒有資料」，不是「沒配」。季配、半年配的股利可能跨年發放，所以歸在實際配發那一年。`)}<div id="divBar" class="chart"></div>${upTxt ? `<div class="note" data-readout style="margin-top:6px">${upTxt}</div>` : ''}</div>
-      <div class="card"><h3>除權息紀錄 ${hq('skfill', '除權息紀錄')}</h3>${hbox('skfill', ['每一列＝一次除權或除息', '填息天數＝從除息日當天算第 1 個交易日，收盤第一次回到除息前一日收盤是第幾個交易日', '天數越短＝市場越認同', '「尚未填息（已 N 天）」＝到資料最後一天還沒填回、已經過 N 個交易日；「—」＝行情不足算不出來'])}<div class="tw" style="max-height:300px"><table><thead><tr><th class="l">除權息日</th><th class="l">類別</th><th>股利</th><th>前收盤</th><th>參考價</th><th>填息</th></tr></thead><tbody id="divRec">${rs.map(r => `<tr><td class="l mono">${r.date}</td><td class="l">${r.kind}</td><td class="num">${A.fmt.n(r.dividend)}</td><td class="num">${A.fmt.n(r.before_price)}</td><td class="num">${A.fmt.n(r.reference_price)}</td><td class="num" style="white-space:nowrap">${r.fill_days != null && r.fill_days !== -1 ? r.fill_days + ' 天' : `<span class="down">${fillTxt(r)}</span>`}</td></tr>`).join('') || '<tr><td colspan="6" class="l muted">—</td></tr>'}</tbody></table></div></div></div>`;
+      <div class="card"><h3>除權息紀錄 ${hq('skfill', '除權息紀錄')}</h3>${hbox('skfill', ['每一列＝一次除權或除息', '填息天數＝從除息日當天算第 1 個交易日，收盤第一次回到除息前一日收盤是第幾個交易日', '天數越短＝市場越認同', '「尚未填息（已 N 天）」＝到資料最後一天還沒填回、已經過 N 個交易日；「—」＝行情不足算不出來'])}<div class="tw" style="max-height:300px"><table><thead><tr><th class="l">除權息日</th><th class="l">類別</th><th>股利</th><th>前收盤</th><th>參考價</th><th>填息</th></tr></thead><tbody id="divRec">${rs.map(r => `<tr data-k="${A.fmt.esc(String(r.date).slice(0, 10))}"><td class="l mono">${r.date}</td><td class="l">${r.kind}</td><td class="num">${A.fmt.n(r.dividend)}</td><td class="num">${A.fmt.n(r.before_price)}</td><td class="num">${A.fmt.n(r.reference_price)}</td><td class="num" style="white-space:nowrap">${r.fill_days != null && r.fill_days !== -1 ? r.fill_days + ' 天' : `<span class="down">${fillTxt(r)}</span>`}</td></tr>`).join('') || '<tr><td colspan="6" class="l muted">—</td></tr>'}</tbody></table></div></div></div>`;
     /* ★ 2026-09-25（審查 R5）：① 字族用全站 NUM_FONT；② 數值一律最多 2 位；③ 標籤色跟主題走。*/
     if (!bars.length) { A.empty('divBar'); return; }
     const yrs = bars.map(b => String(b.year));
@@ -7813,6 +8005,8 @@ html.m4 #etfHoldCard tr.hi td{background:color-mix(in srgb,var(--accent,#4ea1ff)
       ],
     }, { notMerge: true });
     extLegend(dc, $('#divHead', el), { top: 12, fb: { top: 0, right: 0, textStyle: { color: A.CH.ink2, fontSize: 12 } } });   // 設計 v4 2B：圖例搬到標題列右端（繪圖區頂 30 → 12）
+    /* 10-19 連動（stLink 那段的說明）：年度柱（鍵＝年）對到除權息紀錄（鍵＝除權息日）—— 點 2024 那根，紀錄表裡 2024 的每一次都亮；點紀錄表一列，亮它那一年的柱 */
+    stLink('div', { root: el, code: (pg.meta && pg.meta.code) || '', rows: '#divRec tr[data-k]', charts: [{ id: 'divBar', keys: yrs }] });
   }
   /* 籌碼頁：資料不夠就不要畫一張空圖。
      Andy：「若是籌碼下方無法抓取到數據，就把他替換其他方式，或是直接刪除」。
@@ -7954,8 +8148,10 @@ html.m4 #etfHoldCard tr.hi td{background:color-mix(in srgb,var(--accent,#4ea1ff)
         const cell = (v, on) => `<td class="num ${A.fmt.cls(v)}${on ? ' sel' : ''}">${v == null ? '—' : A.fmt.i(Math.round(v / 1000))}</td>`;
         const rows = dates.slice().reverse().map(d => [d, imap.get(d)]).filter(x => x[1]);
         const th = (t, v) => `<th${seg.v === v ? ' class="sel"' : ''}>${t}</th>`;
-        tb.innerHTML = `<table><thead><tr><th class="l">日期</th>${th('外資', 'f')}${th('投信', 't')}${th('自營商', 'd')}${th('合計', 'a')}</tr></thead><tbody>${rows.map(([d, r]) => `<tr><td class="l mono">${d.slice(5)}</td>${cell(r[1], seg.v === 'f')}${cell(r[2], seg.v === 't')}${cell(r[3], seg.v === 'd')}${cell((r[1] || 0) + (r[2] || 0) + (r[3] || 0), seg.v === 'a')}</tr>`).join('') || '<tr><td colspan="5" class="l muted">這段期間沒有法人資料</td></tr>'}</tbody></table><div class="note" style="margin-top:4px">單位：張（買超－賣超）</div>`;
+        tb.innerHTML = `<table><thead><tr><th class="l">日期</th>${th('外資', 'f')}${th('投信', 't')}${th('自營商', 'd')}${th('合計', 'a')}</tr></thead><tbody>${rows.map(([d, r]) => `<tr data-k="${d}"><td class="l mono">${d.slice(5)}</td>${cell(r[1], seg.v === 'f')}${cell(r[2], seg.v === 't')}${cell(r[3], seg.v === 'd')}${cell((r[1] || 0) + (r[2] || 0) + (r[3] || 0), seg.v === 'a')}</tr>`).join('') || '<tr><td colspan="5" class="l muted">這段期間沒有法人資料</td></tr>'}</tbody></table><div class="note" style="margin-top:4px">單位：張（買超－賣超）</div>`;
       }
+      /* 10-19 連動（stLink 那段的說明）：法人每日柱＋累計線 ↔ 每日明細表（鍵＝交易日）*/
+      stLink('inst', { root: el, code: (pg.meta && pg.meta.code) || '', rows: '#instTbl tr[data-k]', charts: [{ id: 'instChart', keys: dates }] });
     });
     $$('#instSeg button', el).forEach(b => b.onclick = () => { iseg = b.dataset.v; lsSet('tw.instSeg', iseg); redraw(); });
   }
@@ -8033,8 +8229,10 @@ html.m4 #etfHoldCard tr.hi td{background:color-mix(in srgb,var(--accent,#4ea1ff)
         const rows = dates.slice().reverse().map(d => [d, mmap.get(d)]).filter(x => x[1]);
         const th = (t, v) => `<th${seg.v === v ? ' class="sel"' : ''}>${t}</th>`;
         /* 2026-10-02（#294 對帳）：欄名寫全（改前只寫「融資」「融券」，內容卻是增減，讀者拿去跟總覽的餘額比就對不上），餘額欄補回來 */
-        tb.innerHTML = `<table><thead><tr><th class="l">日期</th>${th('融資餘額', 'm')}${th('融資增減', 'm')}${th('融券餘額', 's')}${th('融券增減', 's')}${th('當沖張數', 'dt')}${th('借券賣出', 'sbl')}</tr></thead><tbody>${rows.map(([d, r]) => `<tr><td class="l mono">${d.slice(5)}</td>${num(r[1], false, seg.v === 'm')}${num(r[3], true, seg.v === 'm')}${num(r[2], false, seg.v === 's')}${num(r[4], true, seg.v === 's')}${num(r[5], false, seg.v === 'dt', naCut('dt', d))}${num(r[7], false, seg.v === 'sbl', naCut('sbl', d))}</tr>`).join('') || '<tr><td colspan="7" class="l muted">這段期間沒有資券資料</td></tr>'}</tbody></table><div class="note" style="margin-top:4px">單位：張。餘額＝當日收盤後的餘額；增減＝比前一日多或少；當沖張數＝當沖成交張數；借券賣出＝當日借券賣出張數</div>`;
+        tb.innerHTML = `<table><thead><tr><th class="l">日期</th>${th('融資餘額', 'm')}${th('融資增減', 'm')}${th('融券餘額', 's')}${th('融券增減', 's')}${th('當沖張數', 'dt')}${th('借券賣出', 'sbl')}</tr></thead><tbody>${rows.map(([d, r]) => `<tr data-k="${d}"><td class="l mono">${d.slice(5)}</td>${num(r[1], false, seg.v === 'm')}${num(r[3], true, seg.v === 'm')}${num(r[2], false, seg.v === 's')}${num(r[4], true, seg.v === 's')}${num(r[5], false, seg.v === 'dt', naCut('dt', d))}${num(r[7], false, seg.v === 'sbl', naCut('sbl', d))}</tr>`).join('') || '<tr><td colspan="7" class="l muted">這段期間沒有資券資料</td></tr>'}</tbody></table><div class="note" style="margin-top:4px">單位：張。餘額＝當日收盤後的餘額；增減＝比前一日多或少；當沖張數＝當沖成交張數；借券賣出＝當日借券賣出張數</div>`;
       }
+      // 10-19 連動：資券柱＋餘額線 ↔ 每日明細表（鍵＝交易日）；當沖／借券沒資料時圖是空狀態，只剩表格自己亮
+      stLink('mg', { root: el, code: (pg.meta && pg.meta.code) || '', rows: '#mgTbl tr[data-k]', charts: [{ id: 'marginChart', keys: dates }] });
     });
     $$('#mgSeg button', el).forEach(b => b.onclick = () => { mseg = b.dataset.v; lsSet('tw.mgSeg', mseg); redraw(); });
   }
@@ -8142,8 +8340,12 @@ html.m4 #etfHoldCard tr.hi td{background:color-mix(in srgb,var(--accent,#4ea1ff)
       if (ht) {
         const cell = (r, L) => { const p = prevOf(r); const w = p && p[L.k] != null && r[L.k] != null ? r[L.k] - p[L.k] : null;
           return `<td class="num${on.has(L.k) ? ' sel' : ''}">${r[L.k] == null ? '—' : A.fmt.n(r[L.k], 2) + '%'}<small class="${ppCls(w) === 'dn' ? 'down' : ppCls(w) === 'up' ? 'up' : 'muted'}" style="margin-left:6px">${w == null ? '' : pp(w)}</small></td>`; };
-        ht.innerHTML = `<table><thead><tr><th class="l">公布日</th>${HO_LINES.map(L => `<th${on.has(L.k) ? ' class="sel"' : ''}>${L.name}</th>`).join('')}</tr></thead><tbody>${ho.slice().reverse().map(r => `<tr><td class="l mono">${String(r[0])}</td>${HO_LINES.map(L => cell(r, L)).join('')}</tr>`).join('')}</tbody></table><div class="note" style="margin-top:4px">持股比例＝該級距持股 ÷ 總股數；小字＝跟上一週比（pp＝百分點）</div>`;
+        ht.innerHTML = `<table><thead><tr><th class="l">公布日</th>${HO_LINES.map(L => `<th${on.has(L.k) ? ' class="sel"' : ''}>${L.name}</th>`).join('')}</tr></thead><tbody>${ho.slice().reverse().map(r => `<tr data-k="${String(r[0]).slice(0, 10)}"><td class="l mono">${String(r[0])}</td>${HO_LINES.map(L => cell(r, L)).join('')}</tr>`).join('')}</tbody></table><div class="note" style="margin-top:4px">持股比例＝該級距持股 ÷ 總股數；小字＝跟上一週比（pp＝百分點）</div>`;
       }
+      /* 10-19 連動：三格持股線（同一條日期軸）↔ 每週明細表。集保一週才一筆，滑到兩個公布日之間就吸到最近的那個公布日（不然大部分日子對不到任何一列）*/
+      const pubIdx = dates.map((d, i) => (hmap.has(d) ? i : -1)).filter(i => i >= 0);
+      stLink('ho', { root: el, code: (pg.meta && pg.meta.code) || '', rows: '#hoTbl tr[data-k]', charts: [{ id: 'holderChart', keys: dates,
+        hit: (di) => { if (!pubIdx.length) return null; let b = pubIdx[0]; pubIdx.forEach(i => { if (Math.abs(i - di) < Math.abs(b - di)) b = i; }); return dates[b]; } }] });
     }, { wins: [20, 63], key: 'tw.chipWinHo', dflt: 20 });   // 大戶／散戶只留 4 週、3 個月（#302），預設 4 週、自己記
     $$('#hoTgls .hoTgl', el).forEach(b => b.onclick = () => {
       const k = +b.dataset.k;
