@@ -489,6 +489,19 @@ def fit_cam(o, r, W0, H0, minw, content, xlim=None, ytop=0):
     return np.array([x, y, w, h], np.float64), cut
 
 
+def tri(x):
+    """三角波 -1～1，週期 1。"""
+    x = x % 1.0
+    return 4 * x - 1 if x < 0.5 else 3 - 4 * x
+
+
+def drift_xy(t, o=None):
+    lo = drift_xy.o
+    px = 4.5 / (lo.pw * 0.01)          # 每秒要走的「振幅倍數」：4.5 畫面像素 ÷ 振幅
+    py = 4.5 / (lo.ph * 0.01)
+    return tri(t * px / 4 + 0.25), tri(t * py / 4 + 0.6)
+
+
 def cam_track(o, meta, sid=""):
     W0, H0 = meta["size"]
     dsf = meta["dsf"]
@@ -645,6 +658,7 @@ class Reader:
 
 def render(dev, only=None, seg=None):
     o = layout(dev)
+    drift_xy.o = o
     mf = RAW / f"{dev}_meta.json"
     meta_all = json.loads(mf.read_text(encoding="utf-8")) if mf.exists() else {}
     for sid in ORDER:      # 每鏡一檔（capture_etf.py 新版），覆蓋合併檔裡的舊紀錄
@@ -706,12 +720,22 @@ def render(dev, only=None, seg=None):
             old.unlink()
     x0, y0, x1, y1 = o.panel
 
+    raw_view = {}
+
     def panel_of(s, k):
         if s["sid"] not in readers:
             readers[s["sid"]] = Reader(s["path"])
         fr = readers[s["sid"]].get(min(k, s["n"] - 1))
         kk = min(k, len(cams[s["sid"]][0]) - 1)
         cx, cy, cw, ch = cams[s["sid"]][0][kk]
+        # 停格檢查用「沒加呼吸縮放」的原始鏡頭畫面
+        raw_view["v"] = cv2.resize(fr[int(round(cy)):int(round(cy + ch)), int(round(cx)):int(round(cx + cw))], (o.pw // 4, o.ph // 4), interpolation=cv2.INTER_AREA).astype(np.int16)
+        # 鏡頭慢移（同 v3_core._drift 的用意）：裁切框固定內縮 2%，在留出的邊內以每秒約 4.5 畫面像素等速來回平移
+        # （水平、垂直週期錯開，轉折點不重疊），網站本身沒有動作時畫面也不會完全靜止；停格檢查用的是沒平移的原始鏡頭畫面。
+        tt = s["start"] + k / FPS
+        dx, dy = drift_xy(tt)
+        mx, my = cw * 0.01, ch * 0.01
+        cx, cy, cw, ch = cx + mx + dx * mx, cy + my + dy * my, cw * 0.98, ch * 0.98
         crop = fr[int(round(cy)):int(round(cy + ch)), int(round(cx)):int(round(cx + cw))]
         img = cv2.resize(crop, (o.pw, o.ph), interpolation=cv2.INTER_AREA if cw > o.pw else cv2.INTER_CUBIC)
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
@@ -762,6 +786,9 @@ def render(dev, only=None, seg=None):
             a = clamp((t - end_start) / (XF / FPS))
             if a > 0:
                 ec = end_card(o, canvas, Reg(), 1.0)
+                ddx, ddy = drift_xy(t)
+                ix0, iy0, ix1, iy1 = x0 + 14, y0 + 14, x1 - 14, y1 - 14
+                ec[iy0:iy1, ix0:ix1] = np.roll(ec[iy0:iy1, ix0:ix1], (int(round(ddy * o.ph * 0.01)), int(round(ddx * o.pw * 0.01))), axis=(0, 1))
                 canvas = (canvas.astype(np.float32) * (1 - a) + ec.astype(np.float32) * a).astype(np.uint8)
                 if a >= 1:
                     end_card(o, canvas, reg, 1.0)
@@ -799,14 +826,16 @@ def render(dev, only=None, seg=None):
             issues.append(f"| {t:6.2f} | {x} |")
         # 來源畫面是否在動（畫面框內）
         if panel is not None:
-            pv = cv2.resize(panel.astype(np.uint8), (o.pw // 4, o.ph // 4), interpolation=cv2.INTER_AREA).astype(np.int16)
+            pv = raw_view["v"]   # 跟這段停住的第一幀比（同 freezedetect 做法）
             if prev_panel is not None and np.abs(pv - prev_panel).max() < 6:
                 run += 1
                 if run > max_run[0]:
                     max_run = (run, t)
             else:
                 run = 0
-            prev_panel = pv
+                prev_panel = pv
+            if prev_panel is None:
+                prev_panel = pv
         if only:
             p = SCR / f"f_{dev}_{t:06.2f}.png"
             Image.fromarray(canvas).save(p)

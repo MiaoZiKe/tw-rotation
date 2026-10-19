@@ -37,7 +37,8 @@ def shot_crop():
     im = Image.fromarray(cv2.cvtColor(fr, cv2.COLOR_BGR2RGB))
     cx = meta.get("content_x") or [0, im.width]
     # 配息行事曆卡片：左右用內容區、上下取卡片範圍（約 css 64～872）
-    return im.crop((cx[0] + 10, 2 * 64, cx[1] - 10, 2 * 872)), meta.get("data_date")
+    asof = json.loads((R.REPO / "site" / "data" / "etf.json").read_text(encoding="utf-8")).get("asof")
+    return im.crop((cx[0] + 10, 2 * 64, cx[1] - 10, 2 * 836)), asof or meta.get("data_date")
 
 
 def sticker(im, w, radius=34, border=14):
@@ -101,8 +102,8 @@ def make(kind):
         st = sticker(crop, 900)
         sx, sy = W - st.width - 70, H - st.height - 130
     else:
-        st = sticker(crop, 900)
-        sx, sy = (W - st.width) // 2, ys + h_ + 70
+        st = sticker(crop, 940)
+        sx, sy = (W - st.width) // 2, ys + h_ + 110
     sh = Image.new("RGBA", st.size, (0, 0, 0, 0))
     sh.paste((50, 26, 20, 60), (0, 0, st.width, st.height), st.split()[3])
     cv.alpha_composite(sh.filter(ImageFilter.GaussianBlur(10)), (sx + 10, sy + 14))
@@ -110,14 +111,14 @@ def make(kind):
     reg.add("網站畫面", (sx, sy, sx + st.width, sy + st.height))
     # 比比（好奇歪頭）
     bimg = Image.open(R.LIB / "face_curious" / "key.png").convert("RGBA")
-    bs = 430 if kind == "16x9" else 470
+    bs = 430 if kind == "16x9" else 560
     bimg = bimg.resize((bs, bs), Image.LANCZOS)
     a = np.array(bimg)[..., 3]
     ys_, xs_ = np.nonzero(a > 24)
     if kind == "16x9":
         bx, by = 40, H - bs - 40
     else:
-        bx, by = 40, H - bs - 90
+        bx, by = (W - bs) // 2, H - bs - 110
     cv.alpha_composite(bimg, (bx, by))
     reg.add("比比", (bx + xs_.min(), by + ys_.min(), bx + xs_.max(), by + ys_.max()))
     # 註記
