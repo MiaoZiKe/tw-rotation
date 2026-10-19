@@ -108,6 +108,13 @@
 #v-earnings .chip .nm,#v-earnings .chip .lb{overflow:hidden;text-overflow:ellipsis;min-width:0}
 #v-earnings .chip:hover,#v-earnings .chip:focus-visible{outline:none;border-color:var(--ink-2)}
 #v-earnings .chip.on{box-shadow:0 0 0 2px var(--amber) inset}
+/* 10-19 月曆標籤 ⇄ 右側清單連動：.hl＝滑過的那一筆（琥珀框）；選取後（.on）再加一圈外框，其他標籤變淡（深 .55／淺 .35，同 selDim） */
+#v-earnings .chip.hl{border-color:var(--amber);box-shadow:0 0 0 1px var(--amber) inset}
+#v-earnings .chip.on{outline:2px solid var(--amber);outline-offset:-1px}
+#v-earnings .chip.dim{opacity:.55} :root[data-theme="light"] #v-earnings .chip.dim{opacity:.35}
+#v-earnings .ed.lh{border-color:var(--amber)!important}
+#v-earnings .erow.hl{border-color:var(--amber);background:color-mix(in srgb,var(--amber) 16%,var(--panel-3));box-shadow:inset 3px 0 0 var(--amber)}
+#v-earnings .erow.dim{opacity:.55} :root[data-theme="light"] #v-earnings .erow.dim{opacity:.35}
 #v-earnings .kconf{background:color-mix(in srgb,var(--amber) 26%,var(--panel-2));color:var(--ink)}
 #v-earnings .kconf svg{color:var(--amber)}
 #v-earnings .kboard{background:color-mix(in srgb,var(--cyan) 22%,var(--panel-2))}
@@ -318,14 +325,46 @@
     $('#earnMonth').textContent = `${y} 年 ${mo} 月`;
     $('#earnToday').disabled = S.month === curM;
     const box = $('#earnCalCard'); box.dataset.month = S.month; box.dataset.n = String(nIn);
-    $$('.chip', grid).forEach((c) => { c.onclick = (ev) => { ev.stopPropagation(); pick({ t: 'ev', i: +c.dataset.i }); }; });
+    $$('.chip', grid).forEach((c) => {
+      c.onclick = (ev) => { ev.stopPropagation(); pick({ t: 'ev', i: +c.dataset.i }); };
+      c.onmouseenter = () => hoverEv(+c.dataset.i, 'chip'); c.onmouseleave = () => hoverEv(null);
+    });
     $$('.dn,.more', grid).forEach((c) => { c.onclick = () => pick(S.sel.t === 'day' && S.sel.d === c.dataset.d ? { t: 'week' } : { t: 'day', d: c.dataset.d }); });
+    // 月曆空白處（格子底、格與格之間）＝取消選取，回本週重點（style_guide 十八「點空白處取消」）
+    if (!grid._blank) { grid._blank = true;
+      grid.addEventListener('click', (e) => { if (S.sel.t === 'ev' && !e.target.closest('.chip, .dn, .more, button')) pick({ t: 'week' }); }); }
+    paintLink();
+  }
+  /* ★ 10-19 月曆標籤 ⇄ 右側清單連動（Andy：「同個資訊多張圖表，都需要有像是 ETF 月配那樣的連動效果」，普查第二輪第 22 項）：
+     右邊本週重點／當日清單的每一列就是月曆上的某一個標籤，原本只靠日期自己對。規格照抄 etfpage comboLink：
+       · 滑過清單列 → 月曆那個標籤亮（琥珀框）＋那一格亮，其他標籤變淡；標籤被「＋N」收起來時至少那一格亮
+       · 滑過月曆標籤 → 清單那一列 .hl、其他列變淡；桌機把那列捲進面板（面板框內捲，不動整頁；手機不捲）
+       · 點標籤或清單列＝選取（右側換成分析面板），月曆那個標籤加外框、其他標籤變淡；點月曆空白處或「← 回本週重點」取消
+     ⚠ 用事件序號 data-i 對（同一家公司一個月可能有董事會＋法說兩筆，用代號對會一次亮兩個）。 */
+  let hovI = null, hovSrc = '';
+  const touchOnly = () => { try { return window.matchMedia('(hover: none)').matches; } catch (e) { return false; } };
+  function hoverEv(i, src) { if (i === hovI && (src || '') === hovSrc) return; hovI = i; hovSrc = src || ''; paintLink(); }
+  function paintLink() {
+    const grid = $('#earnGrid'), panel = $('#earnPanel'); if (!grid) return;
+    const sel = S.sel.t === 'ev' ? S.sel.i : null, any = hovI != null || sel != null;
+    const e = hovI != null ? evs()[hovI] : null;
+    $$('.chip', grid).forEach((c) => { const i = +c.dataset.i;
+      c.classList.toggle('hl', i === hovI); c.classList.toggle('dim', any && i !== hovI && i !== sel && hovSrc !== 'chip'); });
+    $$('.ed[data-d]', grid).forEach((d) => d.classList.toggle('lh', !!e && d.dataset.d === e.d && hovSrc !== 'chip'));
+    let hit = null;
+    if (panel) $$('.erow', panel).forEach((r) => { const i = +r.dataset.i;
+      r.classList.toggle('hl', i === hovI); r.classList.toggle('dim', hovI != null && hovSrc === 'chip' && i !== hovI); if (i === hovI) hit = r; });
+    const box = $('#earnCalCard'); if (box) box.dataset.hov = hovI == null ? '' : String(hovI);
+    if (hit && hovSrc === 'chip' && panel && window.innerWidth > 640 && !touchOnly()) {
+      const br = panel.getBoundingClientRect(), rr = hit.getBoundingClientRect(), hd = $('.ph.stk', panel), head = hd ? hd.getBoundingClientRect().height : 0;
+      if (rr.top < br.top + head) panel.scrollTop -= br.top + head - rr.top + 4; else if (rr.bottom > br.bottom) panel.scrollTop += rr.bottom - br.bottom + 4;
+    }
   }
   function go(m) { S.month = m; drawCal(); }
 
   /* ------------------------------------------------------------------ 右側面板 */
   function pick(sel) {
-    S.sel = sel;
+    S.sel = sel; hovI = null; hovSrc = '';
     drawCal(); drawPanel(); markRows();
   }
   function rowHTML(e) {
@@ -335,7 +374,10 @@
       <span class="t">${esc(label(e))}${e.code ? '・' + esc(k.lab.replace('（公告）', '')) : e.tw ? '・台灣 ' + esc(e.tw.slice(6)) : ''}</span><span class="b">${st}</span></button></li>`;
   }
   function bindRows(box) {
-    $$('.erow', box).forEach((b) => { b.onclick = () => pick({ t: 'ev', i: +b.dataset.i }); });
+    $$('.erow', box).forEach((b) => {
+      b.onclick = () => pick({ t: 'ev', i: +b.dataset.i });
+      b.onmouseenter = () => hoverEv(+b.dataset.i, 'row'); b.onmouseleave = () => hoverEv(null);
+    });
   }
   function weekRange() {
     const t = new Date(todayTW() + 'T00:00:00Z');
