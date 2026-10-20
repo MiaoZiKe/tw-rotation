@@ -1,5 +1,5 @@
 {
- "updated": "2026-10-20 11:13",
+ "updated": "2026-10-20 11:20",
  "jobs": [
   {
    "id": 26,
@@ -23,19 +23,6 @@
    "status": "queued",
    "created": 1792449516618,
    "updated": 1792449516618,
-   "result": null,
-   "stage": null,
-   "stage_at": null
-  },
-  {
-   "id": 28,
-   "topic_id": "sch-20261020-06-r1-know-3",
-   "kind": "article",
-   "title": "「概念股」是誰貼的標籤？",
-   "note": "排程自動排入（規則 1，台北 2026-10-20 06:00）；建議主題 k_concept",
-   "status": "queued",
-   "created": 1792449516807,
-   "updated": 1792449516807,
    "result": null,
    "stage": null,
    "stage_at": null
