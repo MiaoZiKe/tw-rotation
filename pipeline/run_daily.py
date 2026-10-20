@@ -18,7 +18,7 @@ import pandas as pd
 from . import config
 from .compute import flow
 from .groups import loader
-from .sources import etf_pcf, finmind, macro, mis, mops, news, taifex, tdcc, tpex, twse
+from .sources import etf_pcf, finmind, macro, mis, mktfut, mops, news, taifex, tdcc, tpex, twse
 from .util import http, store
 from .util.roc import is_tradable_security
 
@@ -669,6 +669,14 @@ def main() -> int:
         since = (pd.Timestamp.now("UTC") - pd.Timedelta(days=40)).strftime("%Y-%m-%d")
         save("index_ohlc", step("finmind.index_ohlc", finmind.index_ohlc, since))
         save("index_ohlc", step("finmind.futures_ohlc", finmind.futures_ohlc, since))
+        # 市場明細三張卡（融資餘額／外資期貨口數／小台多空比，2026-10-20）：近 10 天增量，一共 4 次額度。
+        try:
+            _mf = mktfut.collect((pd.Timestamp.now("UTC") - pd.Timedelta(days=10)).strftime("%Y-%m-%d"))
+            for _t, _df in _mf.items():
+                save(_t, _df)
+                RESULT["steps"]["mktfut." + _t] = {"ok": not _df.empty, "rows": int(len(_df))}
+        except Exception as exc:  # noqa: BLE001
+            log.warning("市場明細期貨／融資抓取失敗（不影響其他步驟）：%s", exc)
 
     # 台指期 60 分 K（逐筆聚合，一天 1 次額度）。只在傍晚完整那輪做：15:30 時 FinMind 多半還沒出當天逐筆。
     if not light and not news_only and not args.skip_finmind and trade_date:

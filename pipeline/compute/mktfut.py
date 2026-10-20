@@ -1,0 +1,163 @@
+"""市場明細三張卡的 payload（site/data/market_fut.json，2026-10-20）：融資餘額／外資台指期口數／小台散戶多空比。
+
+只讀資料湖（margin_total、margin_daily、price_daily、company_info、fut_inst、fut_oi），不抓網路。
+口徑（前端「?」照抄）
+  · 融資餘額（億元）：FinMind 整體市場融資融券的 MarginPurchaseMoney（仟元）÷10 萬；融券餘額／融資張數同一個資料集（上市）。
+  · 大盤融資維持率（估算，2026-10-20 Andy 範本）＝ Σ(上市個股融資餘額張數×1000×當日收盤價) ÷ 融資總餘額(元) × 100。
+    非證交所法定整戶擔保維持率（那要每戶的借款與擔保品）；只是整體市場的現值／借款比。
+  · 台指期（TX）三大法人：多方／空方／淨 ＝ 未平倉口數（所有月份合計），淨＝多−空。
+  · 小台散戶多空比 ＝ −(外資＋投信＋自營 小台淨未平倉口數) ÷ 小台全市場未平倉口數 × 100%。
+"""
+from __future__ import annotations
+
+import pandas as pd
+
+DAYS = 120
+MARGIN_DAYS = 1300      # 信用交易頁週期鈕最長到 5 年／全部
+WHO = ("foreign", "trust", "dealer")
+
+
+def _f(v):
+    return None if v is None or pd.isna(v) else float(v)
+
+
+def margin_block(mt: pd.DataFrame, md: pd.DataFrame, company: pd.DataFrame, price: pd.DataFrame,
+                 idx: pd.DataFrame | None = None, members: pd.DataFrame | None = None) -> dict:
+    """上市大盤融資維持率（估算）＋融資／融券餘額＋加權指數＋個股融資增減排行。
+
+    維持率 ＝ Σ(各上市股融資餘額張數×1000×當日收盤價) ÷ 融資總餘額(元，整體市場 MarginPurchaseMoney×1000) × 100。
+    分子是「融資買進股票的現值」、分母是「借款餘額」，所以是整體市場的估算，**不是**證交所法定的整戶擔保維持率。
+    """
+    out = {"rows": [], "asof": None, "rank": None}
+    if mt is None or mt.empty:
+        return out
+    mt = mt.sort_values("date").drop_duplicates("date", keep="last")
+    first = mt["date"].tail(MARGIN_DAYS + 1).iloc[0]
+    caps, rank = {}, None
+    if md is not None and not md.empty and company is not None and not company.empty and price is not None and not price.empty:
+        tw = company[company["market"] == "TWSE"].drop_duplicates("code", keep="last")
+        codes = set(tw["code"].astype(str))
+        m = md[(md["date"].astype(str) >= first) & md["code"].astype(str).isin(codes)][["date", "code", "margin_balance", "margin_change"]].copy()
+        px = price[price["date"].astype(str) >= first][["date", "code", "close"]]
+        m = m.merge(px, on=["date", "code"], how="left")
+        m["cap"] = m["margin_balance"] * 1000 * m["close"]
+        g = m.groupby("date").agg(n=("code", "size"), cap=("cap", "sum"))
+        full = g["n"].median() if len(g) else 0
+        g = g[g["n"] >= 0.8 * full]          # 當天資料只到一半（回補尚未跟上）的日子不收，免得畫出假的暴跌
+        caps = g["cap"].to_dict()
+        if caps:
+            d = max(caps)
+            names = tw.set_index("code")["name"].to_dict()
+            x = m[m["date"] == d].dropna(subset=["margin_change"])
+            gmap = {}
+            if members is not None and not members.empty:
+                for r in members.itertuples():
+                    gmap.setdefault(str(r.code), []).append(r.group_name)
+            x = x[x["margin_change"] != 0]
+            x = pd.concat([x.nlargest(400, "margin_change"), x.nsmallest(400, "margin_change")]).drop_duplicates("code")
+            rank = {"d": d, "rows": [{"code": str(r.code), "name": names.get(r.code), "chg": float(r.margin_change),
+                                      "g": gmap.get(str(r.code), [])} for r in x.itertuples()]}
+    tx = {}
+    if idx is not None and not idx.empty:
+        t = idx[idx["symbol"] == "TSE"]
+        tx = dict(zip(t["date"].astype(str), pd.to_numeric(t["close"], errors="coerce")))
+    rows, prev = [], None
+    for r in mt.tail(MARGIN_DAYS + 1).itertuples():
+        yi = None if pd.isna(r.margin_money) else r.margin_money / 1e5
+        cap = caps.get(r.date)
+        ratio = (cap / (r.margin_money * 1000) * 100) if cap is not None and not pd.isna(r.margin_money) and r.margin_money else None
+        rows.append({"d": r.date, "ratio": _f(ratio), "margin_lots": _f(r.margin_lots),
+                     "margin_chg": _f(r.margin_lots - r.margin_lots_prev) if not pd.isna(r.margin_lots_prev) else None,
+                     "margin_yi": _f(yi), "cap_yi": _f(cap / 1e8) if cap is not None else None,
+                     "short_lots": _f(r.short_lots),
+                     "short_chg": _f(r.short_lots - r.short_lots_prev) if not pd.isna(r.short_lots_prev) else None,
+                     "taiex": _f(tx.get(r.date))})
+    out["rows"] = rows[-MARGIN_DAYS:]
+    out["asof"] = rows[-1]["d"]
+    out["rank"] = rank
+    return out
+
+
+def _taiex(idx):
+    if idx is None or idx.empty:
+        return {}
+    t = idx[idx["symbol"] == "TSE"]
+    return dict(zip(t["date"].astype(str), pd.to_numeric(t["close"], errors="coerce")))
+
+
+def settle_dates(dates: list[str]) -> list[str]:
+    """期貨結算日＝每月第三個星期三；那天沒開盤就順延到之後第一個有資料的交易日。"""
+    import datetime as dt
+    ds = sorted(dates)
+    if not ds:
+        return []
+    have = set(ds)
+    out = []
+    y, m = int(ds[0][:4]), int(ds[0][5:7])
+    ey, em = int(ds[-1][:4]), int(ds[-1][5:7])
+    while (y, m) <= (ey, em):
+        d = dt.date(y, m, 1)
+        d += dt.timedelta(days=(2 - d.weekday()) % 7 + 14)
+        x = d
+        for _ in range(7):
+            if x.isoformat() in have:
+                out.append(x.isoformat())
+                break
+            x += dt.timedelta(days=1)
+        y, m = (y + 1, 1) if m == 12 else (y, m + 1)
+    return out
+
+
+def fut_oi_json(fi: pd.DataFrame, idx=None, source="") -> dict:
+    """site/data/fut_oi.json：台指期（TX）三大法人多／空／淨未平倉口數，日期舊到新（order=asc）。"""
+    out = {"asof": None, "source": source, "order": "asc", "dates": [], "taiex": []}
+    for w in WHO:
+        out[w] = {"long": [], "short": [], "net": []}
+    if fi is None or fi.empty:
+        return out
+    d = fi[fi["futures_id"] == "TX"]
+    piv = {w: d[d["who"] == w].drop_duplicates("date", keep="last").set_index("date") for w in WHO}
+    dates = sorted(set.intersection(*[set(p.index) for p in piv.values()])) if all(len(p) for p in piv.values()) else []
+    tx = _taiex(idx)
+    out["dates"] = dates
+    out["taiex"] = [_f(tx.get(x)) for x in dates]
+    for w in WHO:
+        lo, sh = piv[w]["long_oi"], piv[w]["short_oi"]
+        out[w]["long"] = [_f(lo[x]) for x in dates]
+        out[w]["short"] = [_f(sh[x]) for x in dates]
+        out[w]["net"] = [_f(lo[x] - sh[x]) for x in dates]
+    out["asof"] = dates[-1] if dates else None
+    return out
+
+
+def retail_ratio_json(fi: pd.DataFrame, oi: pd.DataFrame, idx=None, source="") -> dict:
+    """site/data/retail_ratio.json：微台（TMF）散戶多空比。
+    散戶多單＝全市場未平倉−三大法人多方未平倉；散戶空單同理；多空比＝(散戶多−散戶空)÷全市場未平倉×100。"""
+    out = {"asof": None, "source": source, "product": "TMF", "order": "asc", "dates": [], "taiex": [], "total_oi": [],
+           "retail_long": [], "retail_short": [], "retail_net": [], "ratio_pct": [], "settle_dates": []}
+    if fi is None or fi.empty or oi is None or oi.empty:
+        return out
+    d = fi[fi["futures_id"] == "TMF"]
+    tot = oi[oi["futures_id"] == "TMF"].drop_duplicates("date", keep="last").set_index("date")["oi"]
+    byw = {w: d[d["who"] == w].drop_duplicates("date", keep="last").set_index("date") for w in WHO}
+    if not all(len(p) for p in byw.values()):
+        return out
+    dates = sorted(set(tot.index).intersection(*[set(p.index) for p in byw.values()]))
+    tx = _taiex(idx)
+    for x in dates:
+        t = float(tot[x])
+        if not t:
+            continue
+        il = sum(float(byw[w].loc[x, "long_oi"]) for w in WHO)
+        is_ = sum(float(byw[w].loc[x, "short_oi"]) for w in WHO)
+        rl, rs = t - il, t - is_
+        out["dates"].append(x); out["taiex"].append(_f(tx.get(x))); out["total_oi"].append(t)
+        out["retail_long"].append(rl); out["retail_short"].append(rs); out["retail_net"].append(rl - rs)
+        out["ratio_pct"].append((rl - rs) / t * 100)
+    out["settle_dates"] = settle_dates(out["dates"])
+    out["asof"] = out["dates"][-1] if out["dates"] else None
+    return out
+
+
+def build(mt, md, company, price, idx=None, members=None) -> dict:
+    return {"margin": margin_block(mt, md, company, price, idx, members)}
