@@ -1,0 +1,75 @@
+[
+ {
+  "head": "{\"swagger\":\"2.0\",\"info\":{\"description\":\"\\u672c\\u5e73\\u81fa\\u63d0\\u4f9b\\u81fa\\u7063\\u8b49\\u5238\\u4ea4\\u6613\\u6240\\u670d\\u52d9API\\uff0c\\u6b61\\u8fce\\u5404\\u4f4d\\u4ecb\\u63a5\\u4f7f\\u7528\\u3002<br><br>[\\u4f",
+  "http": 200,
+  "url": "https://openapi.twse.com.tw/v1/swagger.json"
+ },
+ {
+  "head": "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\"> <html xmlns=\"http://www.w3.org/1999/xhtml\"> <head> <meta http-equiv=\"Content-T",
+  "http": 200,
+  "url": "https://openapi.twse.com.tw/v1/fund/T86"
+ },
+ {
+  "head": "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\"> <html xmlns=\"http://www.w3.org/1999/xhtml\"> <head> <meta http-equiv=\"Content-T",
+  "http": 200,
+  "url": "https://openapi.twse.com.tw/v1/fund/TWT38U"
+ },
+ {
+  "head": "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\"> <html xmlns=\"http://www.w3.org/1999/xhtml\"> <head> <meta http-equiv=\"Content-T",
+  "http": 200,
+  "url": "https://openapi.twse.com.tw/v1/fund/TWT43U"
+ },
+ {
+  "head": "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\"> <html xmlns=\"http://www.w3.org/1999/xhtml\"> <head> <meta http-equiv=\"Content-T",
+  "http": 200,
+  "url": "https://openapi.twse.com.tw/v1/fund/TWT44U"
+ },
+ {
+  "head": "[ {\"出表日期\":\"1150819\",\"公司代號\":\"1225\",\"公司名稱\":\"福懋油          \",\"已發行股份總額\":\"242268306\",\"全體董事應持有股數\":\"12000000\",\"全體董事本人實際持有股數\":\"6130138\",\"全體董事法人代表人分戶集保股數\":\"0\",\"全體董事保留運用決定權信託股數\":\"0\",\"全體董事不足股數\":\"5869862\",\"全體監察人應持",
+  "http": 200,
+  "url": "https://openapi.twse.com.tw/v1/opendata/t187ap08_L"
+ },
+ {
+  "cols": [
+   "出表日期",
+   "公司代號",
+   "公司名稱",
+   "已發行股份總額",
+   "全體董事應持有股數",
+   "全體董事本人實際持有股數",
+   "全體董事法人代表人分戶集保股數",
+   "全體董事保留運用決定權信託股數",
+   "全體董事不足股數",
+   "全體監察人應持有股數",
+   "全體監察人本人實際持有股數",
+   "全體監察人法人代表人分戶集保股數",
+   "全體監察人保留運用決定權信託股數",
+   "全體監察人不足股數",
+   "持股不足已通知其董監"
+  ],
+  "n": 12,
+  "url": "https://openapi.twse.com.tw/v1/opendata/t187ap08_L"
+ },
+ {
+  "market": "上市",
+  "parts": [],
+  "rows": 0
+ },
+ {
+  "head": "{\"openapi\":\"3.0.0\",\"info\":{\"description\":\"\\u672c\\u5e73\\u81fa\\u63d0\\u4f9b\\u6ac3\\u6aaf\\u8cb7\\u8ce3\\u5e02\\u5834\\u8cc7\\u6599\\u670d\\u52d9API\\uff0c\\u5305\\u542b\\u4e0a\\u6ac3\\u3001\\u8208\\u6ac3\\u3001\\u5275\\u6ac",
+  "http": 200,
+  "url": "https://www.tpex.org.tw/openapi/swagger.json"
+ },
+ {
+  "head": "[ {\"Date\":\"1151020\",\"SecuritiesCompanyCode\":\"00411A\",\"CompanyName\":\"主動統一前沿科技\",\"Foreign Investors include Mainland Area Investors (Foreign Dealers excluded)-Total Buy\":\"569111\",\" Foreign Investors incl",
+  "http": 200,
+  "url": "https://www.tpex.org.tw/openapi/v1/tpex_3insti_daily_trading"
+ },
+ {
+  "market": "上櫃",
+  "parts": [
+   879
+  ],
+  "rows": 879
+ }
+]
