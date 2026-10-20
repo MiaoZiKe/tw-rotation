@@ -2,6 +2,16 @@
  "updated": "2026-10-20",
  "articles": [
   {
+   "id": "2026-10-20-know-dividend",
+   "cat": "know",
+   "title": "除息後 20 天只填 51%：領股利不等於賺",
+   "date": "2026-10-20",
+   "topic": "k_dividend",
+   "groups": [],
+   "reading_min": 3,
+   "src": "api"
+  },
+  {
    "id": "2026-10-20-know-rotation",
    "cat": "know",
    "title": "類股輪動是什麼？20 日內族群漲跌差 43 點",
