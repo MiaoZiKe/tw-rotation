@@ -904,51 +904,55 @@ def img_size(path: str) -> tuple[int, int]:
 
 # ---------------------------------------------------------------------------- 貼文文字
 # 文案（Threads 單則上限 500 字，含網址）。深連結用網站實際路由；hash 路由的 query 放在 # 前面
-THREADS_MAX = 500
+THREADS_MAX = 480          # Threads 單則上限 500 字（網址以實際字元數計），留 20 字餘裕
 ROUTE_INST = "market/streak"      # 法人頁路由；日後改 market/inst 只改這個常數
 HASHTAGS = {"intraday": "#台股 #資金流向 #熱力圖 #族群輪動", "close": "#台股 #法人買賣超 #投信 #外資"}
 DISCLAIMER = "資料：證交所／櫃買公開資料整理，僅供參考，不構成投資建議"
 
 
-def threads_len(txt: str) -> int:
-    """Threads 字數：網址一律以 23 字計（社群平台連結慣例；實際貼文前請以 App 內計數為準），其餘逐字。"""
-    return len(re.sub(r"https?://\S+", "x" * 23, txt))
-
-
 def deep_link(route: str, kind: str, ymd: str) -> str:
     camp = ("intraday_" if kind == "intraday" else "close_") + ymd[4:8]
-    return f"{SITE_URL}/?utm_source=threads&utm_medium=social&utm_campaign={camp}#{route}"
+    return f"{SITE_URL}/?utm_source=threads&utm_campaign={camp}#{route}"
 
 
 def _join(names: list, n: int) -> str:
     return "、".join(names[:n])
 
 
-def caption_lines(kind: str, stamp: str, shots: list[dict], data_date: str, ymd: str, n: int) -> list[str]:
+# 降級順序：(每行名稱數, 附網址的模式)；all＝每行都附、two＝只有前兩行（輪盤、分流樹）附、one＝只在第一行附一個
+LADDER = [(3, "all"), (2, "all"), (2, "two"), (1, "two"), (1, "one")]
+
+
+def caption_lines(kind: str, stamp: str, shots: list[dict], data_date: str, ymd: str, n: int, links: str = "all") -> list[str]:
     ok = {s["name"]: s for s in shots if s.get("ok")}
     L = []
+
+    def lk(route: str, idx: int) -> str:     # idx＝這是第幾個有內容的行（0 起算）
+        return f" → {deep_link(route, kind, ymd)}" if links == "all" or (links == "two" and idx < 2) else ""
     if kind == "intraday":
-        L.append(f"台股資金地圖｜{stamp}")
+        head = f"台股資金地圖｜{stamp}"
+        L.append(head + (f" → {deep_link('flow/rotation', kind, ymd)}" if links == "one" else ""))
+        idx = 0
         s = ok.get("rotation")
         if s:
             d = {k: v for k, v in s.get("lines", [])}
             if d.get("領先") and d.get("落後"):
-                L.append(f"資金輪盤：領先 {_join(d['領先'], n)}；落後 {_join(d['落後'], n)} → {deep_link('flow/rotation', kind, ymd)}")
+                L.append(f"資金輪盤：領先 {_join(d['領先'], n)}；落後 {_join(d['落後'], n)}" + lk("flow/rotation", idx)); idx += 1
         s = ok.get("sankey")
         if s:
             d = {k: v for k, v in s.get("notes", [])}
             if d.get("流入前五") and d.get("流出前五"):
-                L.append(f"資金分流樹：流入 {_join(d['流入前五'], n)}；流出 {_join(d['流出前五'], n)} → {deep_link('flow/sankey', kind, ymd)}")
+                L.append(f"資金分流樹：流入 {_join(d['流入前五'], n)}；流出 {_join(d['流出前五'], n)}" + lk("flow/sankey", idx)); idx += 1
         s = ok.get("heat")
         if s and s.get("heat"):
             h = sorted(s["heat"], key=lambda x: x[1])
             k = min(2, n)
             ups = "、".join(f"{a} {b:+.1f}%" for a, b in h[::-1][:k])
             dns = "、".join(f"{a} {b:+.1f}%" for a, b in h[:k])
-            L.append(f"熱力圖：漲最多 {ups}；跌最多 {dns} → {deep_link('heatmap/industry', kind, ymd)}")
+            L.append(f"熱力圖：漲最多 {ups}；跌最多 {dns}" + lk("heatmap/industry", idx)); idx += 1
         s = ok.get("market-breadth")
         if s and s.get("breadth"):
-            L.append(f"漲跌家數：上漲 {s['breadth']['up']} 家、下跌 {s['breadth']['down']} 家 → {deep_link('market/updown', kind, ymd)}")
+            L.append(f"漲跌家數：上漲 {s['breadth']['up']} 家、下跌 {s['breadth']['down']} 家" + lk("market/updown", idx)); idx += 1
     else:
         L.append(f"台股法人買賣超｜{data_date[5:].replace('-', '/')}")
         parts = []
@@ -964,15 +968,15 @@ def caption_lines(kind: str, stamp: str, shots: list[dict], data_date: str, ymd:
 
 
 def build_text(kind: str, stamp: str, shots: list[dict], data_date: str, ymd: str = "") -> str:
-    """Threads／IG 文案。超過 500 字就逐步縮短重點句（每行列的名稱 3→2→1 個）。"""
+    """Threads／IG 文案。一律用實際字元數 len(text) ≤ 480；超過就依 LADDER 降級（名稱 3→2→1，再來只有前兩行附網址，最後只留第一行一個網址）。"""
     ymd = ymd or data_date.replace("-", "")
     txt = ""
-    for n in (3, 2, 1):
-        txt = "\n".join(caption_lines(kind, stamp, shots, data_date, ymd, n))
-        if threads_len(txt) <= THREADS_MAX:
+    for n, links in LADDER:
+        txt = "\n".join(caption_lines(kind, stamp, shots, data_date, ymd, n, links))
+        if len(txt) <= THREADS_MAX:
             break
-    if threads_len(txt) > THREADS_MAX:
-        log(f"⚠ 文案 {threads_len(txt)} 字仍超過 {THREADS_MAX}")
+    if len(txt) > THREADS_MAX:
+        log(f"⚠ 文案 {len(txt)} 字仍超過 {THREADS_MAX}")
     return txt
 
 
@@ -1098,7 +1102,7 @@ def main() -> int:
         }
         (out / "manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2), "utf-8")
         (out / "caption.txt").write_text(manifest["threads"]["text"] + "\n", "utf-8")   # 給 Andy 手動貼 IG（限動 API 不能附文字與連結貼紙）
-        log("manifest：", out / "manifest.json", "；文案字數（網址以 23 計）", threads_len(manifest["threads"]["text"]))
+        log("manifest：", out / "manifest.json", "；文案字數", len(manifest["threads"]["text"]))
         return 0
     finally:
         if srv:
