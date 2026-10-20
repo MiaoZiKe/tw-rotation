@@ -2,6 +2,39 @@
  "updated": "2026-10-20",
  "articles": [
   {
+   "id": "2026-10-20-know-concept",
+   "cat": "know",
+   "title": "題材標籤誰貼的？同題材漲幅差到 90 點",
+   "date": "2026-10-20",
+   "topic": "sch-20261020-06-r1-know-3",
+   "groups": [],
+   "reading_min": 3,
+   "src": "api"
+  },
+  {
+   "id": "2026-10-20-intro-ai-networking",
+   "cat": "intro",
+   "title": "AI 網通鏈 5 個環節：從晶片到線纜",
+   "date": "2026-10-20",
+   "topic": "sch-20261020-06-r1-intro-3",
+   "groups": [
+    {
+     "id": "switch_wireless",
+     "name": "高速交換器與無線網路"
+    },
+    {
+     "id": "optical_module",
+     "name": "高速光模組"
+    },
+    {
+     "id": "silicon_photonics",
+     "name": "矽光子與 CPO"
+    }
+   ],
+   "reading_min": 3,
+   "src": "api"
+  },
+  {
    "id": "2026-10-20-know-dividend",
    "cat": "know",
    "title": "除息後 20 天只填 51%：領股利不等於賺",
@@ -18,29 +51,6 @@
    "date": "2026-10-20",
    "topic": "k_rotation",
    "groups": [],
-   "reading_min": 3,
-   "src": "api"
-  },
-  {
-   "id": "2026-10-20-intro-ai-networking",
-   "cat": "intro",
-   "title": "AI 網通鏈一張圖：交換晶片每 2 年翻倍",
-   "date": "2026-10-20",
-   "topic": "i_ai_networking",
-   "groups": [
-    {
-     "id": "switch_wireless",
-     "name": "高速交換器與無線網路"
-    },
-    {
-     "id": "optical_module",
-     "name": "高速光模組"
-    },
-    {
-     "id": "silicon_photonics",
-     "name": "矽光子與 CPO"
-    }
-   ],
    "reading_min": 3,
    "src": "api"
   },

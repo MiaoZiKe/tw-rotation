@@ -137,3 +137,19 @@
    - 若出現「夜盤只有一段、判斷不出成交日期的寫法」→ 看是哪一種，更新這份文件的「中信心」那一段。
 2. 期交所對雲端 IP 若回 403：程式不記成假日、下一輪再試；連續失敗就要考慮改走 data.gov.tw 的資源網址。
 3. 下載量：第一次約 30 個檔（全部期貨商品的逐筆，每檔壓縮後可能數十 MB），`TAIFEX_TICK_MAX_BYTES` 單檔上限 300 MB。
+
+
+## 六、期貨三大法人未平倉與整體融資融券（2026-10-20，市場明細「大盤融資維持率」＋期貨兩頁）
+
+| 資料 | 來源 | 授權／規範 | 信心 |
+|---|---|---|---|
+| 臺股期貨（TX）、微台指（TMF）三大法人多空未平倉口數 | FinMind `TaiwanFuturesInstitutionalInvestors`（底層為期交所「三大法人－區分各期貨契約」，政府資料開放平臺資料集 11592／11594 亦有同源資料，授權＝政府資料開放授權條款－第 1 版） | 走 FinMind API（專案既有白名單，吃額度，共 2 次請求）；不爬期交所網頁 | 欄位名依 FinMind 文件／社群範例，第一次 Actions 才實測 |
+| 微台全市場未平倉 | FinMind `TaiwanFuturesDaily`（TMF，一般交易時段 position，各單一月份 open_interest 加總，價差單丟掉） | 同上 | 同上 |
+| 整體市場融資融券（張、融資金額仟元） | FinMind `TaiwanStockTotalMarginPurchaseShortSale`（證交所公告彙總；上市） | 同上 | 欄位名（name＝MarginPurchase／ShortSale／MarginPurchaseMoney，TodayBalance／YesBalance）依記憶，解析遇到認不得的欄位會回空並把回應前 200 字寫 log |
+
+口徑
+- 散戶多空比（微台）：散戶多單＝全市場未平倉−(外資＋投信＋自營)多方未平倉；散戶空單同理；多空比＝(散戶多−散戶空)÷全市場未平倉×100%（Andy 範本公式；範本 10/19：139,906／122,789／51,206 → +51.17%，pytest 驗算）。主流網站（iThome、商周）分母有「所有月份合計」與「近月」兩種，本專案用所有月份合計。
+- 大盤融資維持率（估算）：Σ(上市個股融資餘額張×1000×當日收盤)÷整體市場融資金額(官方)×100，非證交所法定整戶擔保維持率。
+- 結算日＝每月第三個星期三（假日順延）。
+- 查證：iThome <https://ithelp.ithome.com.tw/articles/10288800>、商周 <https://smart.businessweekly.com.tw/Reading/IndepArticle.aspx?id=38560>、玩股網 <https://www.wantgoo.com/blog/248096/post/407>（定義與分母）；期交所三大法人資料集 <https://data.gov.tw/en/datasets/11592>。
+- 資料表：`margin_total`、`fut_inst`、`fut_oi`（config.TABLES v17），回補起點 2021-01-01（TMF 自 2024-08 才有資料），每日管線近 10 天增量。

@@ -832,6 +832,18 @@
     };
     return Object.assign({}, o, { tooltip: Array.isArray(o.tooltip) ? o.tooltip.map(fix) : fix(o.tooltip) });
   }
+  /* ★ 2026-10-20（資金輪動勾族群就丟「reading 'width'」、排行長條畫一半）：
+     softenOption 會替「單一橫條、全為非負值」補底軌（showBackground）。排行從 15 列（有負值、沒底軌）
+     篩成 1～3 個全正的族群時，底軌由關轉開 —— ECharts 5.5.1 這條更新路徑拿**舊資料的索引**去取新資料的版面
+     （BarView._renderNormal 的 `0===x.length?M=w(n)`），索引超過新筆數就是 undefined，整輪 render 中斷。
+     所以底軌由關轉開時先 clear() 再畫（只有這一下沒有補間），不靠各張圖自己記得。*/
+  function bgFlipReset(c, o) {
+    const ns = o && o.series; if (!ns || !c.getOptionRaw) return;
+    let os; try { os = (c.getOptionRaw() || {}).series; } catch (e) { return; }
+    if (!Array.isArray(os) || !os.length) return;
+    const arr = Array.isArray(ns) ? ns : [ns];
+    if (arr.some((s, i) => s && s.showBackground && os[i] && os[i].type === 'bar' && !os[i].showBackground)) c.clear();
+  }
   function chart(id, option, opts) {
     const el = typeof id === 'string' ? document.getElementById(id) : id; if (!el) return null;
     if (typeof echarts === 'undefined') { el.innerHTML = '<div class="empty">圖表函式庫載入失敗</div>'; return null; }
@@ -844,7 +856,7 @@
     if (!c) { c = echarts.init(el, null, { renderer: want }); el._renderer = want; fresh = true; }
     if (!c._soft) {                      // 圓滑化：包住這個實例的 setOption（之後的局部更新也吃得到，見 softenOption）
       const raw = c.setOption.bind(c);
-      c.setOption = (o2, ...rest) => raw(tipSafe(softenOption(o2, c), c), ...rest);
+      c.setOption = (o2, ...rest) => { const o3 = tipSafe(softenOption(o2, c), c); bgFlipReset(c, o3); return raw(o3, ...rest); };
       /* ★ 2026-10-06（DECISIONS #337）：時間軸分隔線是補在 series 最後面的 custom 系列（id `__tgrid*`）。
          圖自己與驗收讀 getOption().series 時**看不到它**（不然「series.length」「series.map」「slice(2)」這類既有讀法全部會多一個怪東西）；
          要看原樣用 getOptionRaw()。 */

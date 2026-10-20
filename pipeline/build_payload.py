@@ -16,7 +16,8 @@ import numpy as np
 import pandas as pd
 
 from . import config, delivery_log, indicators
-from .compute import explore
+from .compute import explore, inst_market, inst_today
+from .compute import mktfut as mktfut_c
 from .compute import analysis, earnings, etf, etf_holdings, flow, fundamental, mtf, rrg, scoring, season, stockpage, technical, themes
 from .groups import loader
 # TechNews 的分類在讀取端重跑（見下面 news_df 那一段的註解），所以要 import 抓取層的分類器
@@ -329,6 +330,28 @@ def build() -> None:
         streaks[who + "_sell"] = [] if df_x.empty else _clean(df_x.head(60).to_dict("records"))
     _write("trust_streak", streaks.get("trust", []))      # 舊鍵留著，換版時不會開天窗
     _write("inst_streak", streaks)
+    # 市場明細「大盤融資維持率」＋期貨兩頁資料層（2026-10-20）：只讀湖，湖裡還沒有就寫空殼，前端顯示「資料累積中」
+    try:
+        _ohlc = store.read("index_ohlc")
+        _fi, _oi = store.read("fut_inst"), store.read("fut_oi")
+        _write("market_fut", mktfut_c.build(store.read("margin_total"), margin, company, price, _ohlc, loader.membership()))
+        _write("fut_oi", mktfut_c.fut_oi_json(_fi, _ohlc, "期交所三大法人區分各期貨契約（經 FinMind TaiwanFuturesInstitutionalInvestors），臺股期貨 TX，所有到期月份合計"))
+        _write("retail_ratio", mktfut_c.retail_ratio_json(_fi, _oi, _ohlc, "期交所三大法人未平倉＋期貨每日行情未平倉（經 FinMind），微台指 TMF，所有到期月份合計"))
+    except Exception as exc:  # noqa: BLE001
+        log.warning("市場明細／期貨資料層產生失敗（不影響其他 JSON）：%s", exc)
+    # ★ 2026-10-20 當日三大法人買賣超（Andy：「也需要在盤後提供當天即時的法人買賣超狀況」）。口徑見 compute/inst_today.py
+    try:
+        _it = inst_today.payload(inst, price, names)
+        _it["latest"] = latest      # 價量最新交易日；前端用它判斷「法人表是不是還沒出齊」
+        _write("inst_today", _it)
+        # 三大法人買賣超日報（Andy 2026-10-20）：全市場每日金額序列（官方值為主，缺的日子上市估算補），口徑見 compute/inst_market.py
+        _im = inst_market.series(store.read("inst_market_daily"), inst, price, store.read("index_ohlc"))
+        _im["latest"] = latest
+        _write("inst_market", _im)
+    except Exception as exc:  # noqa: BLE001
+        log.warning("當日三大法人產出失敗：%s", exc)
+        _write("inst_today", {"date": None, "who": {}, "top": {}})
+        _write("inst_market", {"unit": "億元", "rows": [], "n_est": 0, "official_from": None})
 
     lap("M1 資金面")
 

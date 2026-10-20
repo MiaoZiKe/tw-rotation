@@ -1,0 +1,205 @@
+name: 社群即時貼文（Threads／IG 限動）
+
+# Andy 2026-10-20：「我需要在盤中發布當下即時狀況在 Threads 上和 IG 限動：資金輪盤、分流樹即時截圖（含旁邊的長條圖）、
+# 熱力圖（也要即時）、盤後提供當天法人買賣超；需要串接自動發布系統；排版只需要提供當前狀況。」
+#
+# 做的事：scripts/social_snap.py 把 checkout 的 site/ 在 runner 本機（127.0.0.1）跑起來、資料從正式站下載 → 切「即時」
+#         → 截圖＋排版（IG 限動用手機版面 1080×1920、Threads 用桌機寬圖）→ 產 manifest.json
+#         → 圖推到孤兒分支 social-snaps（Meta 要公開網址才抓得到圖）→ scripts/social_publish.py 發布。
+# 說明文件：docs/marketing/social_unit/live_posts.md
+#
+# 排程（GitHub 的 cron 一律用 UTC；週一到週五）：
+#   盤中  台北 09:35 ＝ UTC 01:35
+#   盤中  台北 11:05 ＝ UTC 03:05
+#   盤中  台北 13:05 ＝ UTC 05:05
+#   盤後  不排固定時間，接在「每日盤後管線」每一輪結束（含部署）之後（workflow_run），
+#         只有網站 meta.json 的法人資料日（inst_date）＝今天才發，而且同一天只發一次（social-snaps 分支 state/posted.json 已有 close-日期 就跳過）。
+# ★ 即時閘門：不用任何登入權杖。本機站注入 TW_LIVE_OVERRIDE（site/livegate.js 只在 127.0.0.1／localhost 認的後門，正式站不受影響）；
+#   報價請求由 Playwright 補上正式站的 Origin（Worker 看 Origin）。即時沒套上就不發，不拿盤後圖冒充。
+#         為什麼不固定時間：三大法人傍晚才落地（daily.yml 台北 18:30 那輪 phase=full 才有；15:30 那輪只抓價量），
+#         GitHub 排程又常延遲數十分鐘；接在管線後面，資料一定已經部署到網站，再用資料日期把關，延遲多久都不會發到舊資料。
+# ★ 非交易日不發：看「資料」不看執行當下的星期幾 —— 盤中看即時報價回應裡的成交日、盤後看 inst_date。
+# ★ 即時沒套上（抓不到報價）的那張不發，不拿盤後舊圖冒充即時。
+on:
+  schedule:
+    - cron: "35 1 * * 1-5"    # 台北 09:35 盤中
+    - cron: "5 3 * * 1-5"     # 台北 11:05 盤中
+    - cron: "5 5 * * 1-5"     # 台北 13:05 盤中
+  workflow_run:
+    workflows: ["每日盤後管線"]
+    types: [completed]        # 每日管線跑完（含部署）→ 盤後法人；資料日不是今天就自己跳過
+  workflow_dispatch:
+    inputs:
+      kind:
+        description: "intraday（盤中）或 close（盤後法人）"
+        type: choice
+        options: [intraday, close]
+        default: intraday
+      dry_run:
+        description: "只演練：照常截圖排版，但不真的發布"
+        type: boolean
+        default: true
+      force:
+        description: "略過盤中時段／交易日／資料日期檢查（測試用）"
+        type: boolean
+        default: false
+
+# 排隊不取消：兩輪不會互相截斷；發布一半被砍掉比晚一點發更糟
+concurrency:
+  group: social-live
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  snap-and-post:
+    # 每日管線失敗就不接（資料可能是舊的）
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      TZ: Asia/Taipei
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 決定這一輪是盤中還是盤後
+        id: kind
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_run" ]; then
+            echo "kind=close" >> "$GITHUB_OUTPUT"
+          elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "kind=${{ inputs.kind }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "kind=intraday" >> "$GITHUB_OUTPUT"
+          fi
+          echo "stamp=$(date '+%Y%m%d-%H%M')" >> "$GITHUB_OUTPUT"
+          echo "today=$(date '+%Y%m%d')" >> "$GITHUB_OUTPUT"
+
+      - name: 盤後已經發過了就不重複（每日管線一天跑三輪都會接到這裡）
+        id: done
+        if: steps.kind.outputs.kind == 'close' && github.event_name == 'workflow_run'
+        run: |
+          if git ls-remote --exit-code --heads origin social-snaps >/dev/null 2>&1; then
+            git fetch --depth=1 origin social-snaps
+            KEY="close-$(date '+%F')"
+            if git show FETCH_HEAD:state/posted.json 2>/dev/null | grep -q "\"$KEY\""; then
+              echo "今天的盤後法人已經發過（$KEY）→ 跳過"
+              echo "skip=1" >> "$GITHUB_OUTPUT"
+            fi
+          fi
+
+      - uses: actions/setup-python@v5
+        if: steps.done.outputs.skip != '1'
+        with:
+          python-version: "3.12"
+
+      - name: 安裝 Playwright、Pillow 與中文字型
+        if: steps.done.outputs.skip != '1'
+        run: |
+          pip install playwright pillow
+          python -m playwright install --with-deps chromium
+          sudo apt-get install -y fonts-noto-cjk
+
+      - name: 截圖＋排版＋產 manifest
+        id: snap
+        if: steps.done.outputs.skip != '1'
+        run: |
+          OUT="snaps/${{ steps.kind.outputs.kind }}-${{ steps.kind.outputs.stamp }}"
+          echo "out=$OUT" >> "$GITHUB_OUTPUT"
+          FORCE=""
+          if [ "${{ inputs.force }}" = "true" ]; then FORCE="--force"; fi
+          set +e
+          python scripts/social_snap.py --kind "${{ steps.kind.outputs.kind }}" --out "$OUT" \
+            --serve site --data-url https://liguligu-puipui.com/data --spoof-origin $FORCE
+          RC=$?
+          set -e
+          echo "rc=$RC" >> "$GITHUB_OUTPUT"
+          if [ "$RC" = "10" ]; then
+            echo "### 本輪刻意不發（非交易日／不在盤中時段／法人資料還不是今天）" >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          if [ "$RC" != "0" ]; then
+            echo "::error::social_snap.py 結束碼 $RC（2＝一張都沒截成、3＝版面有重疊）"
+            exit "$RC"
+          fi
+          echo "### 本輪產出" >> "$GITHUB_STEP_SUMMARY"
+          cat "$OUT/manifest.json" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: 存成 Actions artifact（保留 7 天）
+        if: steps.snap.outputs.rc == '0'
+        uses: actions/upload-artifact@v4
+        with:
+          name: social-${{ steps.kind.outputs.kind }}-${{ steps.kind.outputs.stamp }}
+          path: |
+            ${{ steps.snap.outputs.out }}
+            !${{ steps.snap.outputs.out }}/raw
+          retention-days: 7
+
+      # 推到孤兒分支 social-snaps：Meta 要抓得到的公開圖片網址（raw.githubusercontent.com）。
+      # 這條分支只放截圖與「今天發過沒」的標記，沒有任何程式；每次重建成單一 commit 後 force push（只有這條分支這樣做，
+      # 否則每天幾十張 PNG 的歷史會把 repo 撐爆）；保留最近 3 天的圖與 state/posted.json。
+      - name: 推圖到 social-snaps 分支
+        id: pub
+        if: steps.snap.outputs.rc == '0'
+        run: |
+          OUT="${{ steps.snap.outputs.out }}"
+          NAME="$(basename "$OUT")"
+          WORK="$(mktemp -d)"
+          mkdir -p "$WORK/snaps" "$WORK/state"
+          if git ls-remote --exit-code --heads origin social-snaps >/dev/null 2>&1; then
+            git fetch --depth=1 origin social-snaps
+            git archive FETCH_HEAD | tar -x -C "$WORK"
+            find "$WORK/snaps" -mindepth 1 -maxdepth 1 -type d -mtime +3 -exec rm -rf {} + 2>/dev/null || true
+          fi
+          mkdir -p "$WORK/snaps/$NAME"
+          cp "$OUT"/*.png "$OUT"/manifest.json "$WORK/snaps/$NAME/"
+          # 防重複紀錄（發布程式把 posted.json 寫在 manifest 旁）：把上一輪的帶進來，發完再寫回 state/
+          if [ -f "$WORK/state/posted.json" ]; then cp "$WORK/state/posted.json" "$OUT/posted.json"; fi
+          cd "$WORK"
+          git init -q
+          git checkout -q --orphan social-snaps
+          git config user.name  "tw-rotation-bot"
+          git config user.email "actions@github.com"
+          git add -A
+          git commit -q -m "社群截圖 $NAME"
+          git push --force "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" social-snaps
+          echo "base=https://raw.githubusercontent.com/${{ github.repository }}/social-snaps/snaps/$NAME" >> "$GITHUB_OUTPUT"
+          echo "圖片公開網址前綴：https://raw.githubusercontent.com/${{ github.repository }}/social-snaps/snaps/$NAME/"
+
+      - name: 發布（沒有金鑰會自動 dry-run）
+        id: post
+        if: steps.snap.outputs.rc == '0'
+        env:
+          THREADS_USER_ID: ${{ secrets.THREADS_USER_ID }}
+          THREADS_ACCESS_TOKEN: ${{ secrets.THREADS_ACCESS_TOKEN }}
+          IG_USER_ID: ${{ secrets.IG_USER_ID }}
+          IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
+        run: |
+          DRY=""
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.dry_run }}" = "true" ]; then DRY="--dry-run"; fi
+          # 真發布失敗 exit 1（這一步會紅）；dry-run、缺金鑰 exit 0
+          python scripts/social_publish.py --manifest "${{ steps.snap.outputs.out }}/manifest.json" \
+            --base-url "${{ steps.pub.outputs.base }}" $DRY
+          if [ -z "$DRY" ] && [ -f "${{ steps.snap.outputs.out }}/posted.json" ]; then echo "save=1" >> "$GITHUB_OUTPUT"; fi
+
+      # 發布程式的防重複紀錄 posted.json 要寫回 social-snaps，下一輪（含盤後那三次接力）才知道發過了；
+      # 發布失敗也要寫（已成功的那一半不能重發）
+      - name: 把 posted.json 寫回 social-snaps
+        if: always() && steps.pub.outcome == 'success'
+        run: |
+          OUT="${{ steps.snap.outputs.out }}"
+          if [ ! -f "$OUT/posted.json" ]; then echo "沒有 posted.json（dry-run 或沒發）→ 不寫回"; exit 0; fi
+          WORK="$(mktemp -d)"
+          git fetch --depth=1 origin social-snaps
+          git archive FETCH_HEAD | tar -x -C "$WORK"
+          mkdir -p "$WORK/state"
+          cp "$OUT/posted.json" "$WORK/state/posted.json"
+          cd "$WORK"
+          git init -q
+          git checkout -q --orphan social-snaps
+          git config user.name  "tw-rotation-bot"
+          git config user.email "actions@github.com"
+          git add -A
+          git commit -q -m "發布紀錄 ${{ steps.kind.outputs.stamp }}"
+          git push --force "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" social-snaps

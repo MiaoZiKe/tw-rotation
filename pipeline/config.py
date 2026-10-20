@@ -22,9 +22,16 @@ TABLES: dict[str, list[str]] = {
     "price_daily":        ["date", "code"],   # 個股日行情
     "valuation_daily":    ["date", "code"],   # 本益比 / 殖利率 / 股價淨值比
     "margin_daily":       ["date", "code"],   # 融資融券
+    # v17（2026-10-20，市場明細大盤融資維持率＋期貨三大法人／微台散戶多空比頁；來源 pipeline/sources/mktfut.py，FinMind）
+    "margin_total":       ["date"],           # 整體市場融資融券（上市）：張數與融資金額（仟元）
+    "fut_inst":           ["date", "futures_id", "who"],   # 期貨三大法人未平倉口數（TX 大台／TMF 微台；foreign／trust／dealer）
+    "fut_oi":             ["date", "futures_id"],          # 微台全市場未平倉口數（各月份加總）
     "index_daily":        ["date", "index"],  # 各類股指數
     "market_daily":       ["date"],           # 大盤成交統計
     "inst_daily":         ["date", "code"],   # 三大法人買賣超（個股別）
+    # v17（2026-10-20，三大法人買賣超日報）：全市場（上市）三大法人買賣「金額」官方值，一天一列，單位元。
+    #   來源 FinMind TaiwanStockTotalInstitutionalInvestors；欄位 {foreign,trust,dealer,total}_{buy,sell}。
+    "inst_market_daily":  ["date"],
     "revenue_monthly":    ["ym", "code"],     # 月營收
     "financial_q":        ["year", "quarter", "code"],  # EPS / 損益（單季值）
     "balance_q":          ["year", "quarter", "code"],  # 股本 / 淨值 / 總資產
