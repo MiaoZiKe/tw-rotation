@@ -76,7 +76,7 @@ def test_fut_oi_json_and_settle():
 
 def test_margin_maintenance_ratio_and_rank():
     mt = pd.DataFrame({"date": ["2026-10-16", "2026-10-19"], "margin_lots": [100.0, 110.0], "margin_lots_prev": [99.0, 100.0],
-                       "short_lots": [5.0, 6.0], "short_lots_prev": [5.0, 5.0], "margin_money": [1e6, 1e6]})   # 仟元 → 融資總餘額 10 億元
+                       "short_lots": [5.0, 6.0], "short_lots_prev": [5.0, 5.0], "margin_money": [1e9, 1e9]})   # 單位元 → 融資總餘額 10 億元
     company = pd.DataFrame({"code": ["A", "B", "C"], "name": ["甲", "乙", "丙"], "market": ["TWSE", "TWSE", "TPEX"]})
     rows = []
     for d in mt["date"]:
@@ -88,7 +88,7 @@ def test_margin_maintenance_ratio_and_rank():
     idx = pd.DataFrame({"date": mt["date"], "symbol": "TSE", "close": [20000.0, 20100.0]})
     mem = pd.DataFrame({"code": ["A"], "group_name": ["族群甲"]})
     r = c.margin_block(mt, md, company, px, idx, mem)
-    # 市值 = 10000*1000*100 + 20000*1000*50 = 2e9 ；借款 = 1e6*1000 = 1e9 → 200%
+    # 市值 = 10000*1000*100 + 20000*1000*50 = 2e9 ；借款 = 1e9 元 → 200%
     assert round(r["rows"][-1]["ratio"], 6) == 200.0
     assert r["rows"][-1]["margin_chg"] == 10.0 and r["rows"][-1]["short_chg"] == 1.0 and r["rows"][-1]["taiex"] == 20100.0
     rr = {x["code"]: x for x in r["rank"]["rows"]}
@@ -106,3 +106,54 @@ def test_margin_partial_day_dropped():
     px = pd.DataFrame([{"date": d, "code": k, "close": 10.0} for d in mt["date"] for k in "ABCDE"])
     r = c.margin_block(mt, md, company, px)
     assert r["rows"][0]["ratio"] is not None and r["rows"][1]["ratio"] is None
+
+
+def _lake(t):
+    import glob, os
+    fs = glob.glob(f"data/{t}/**/*.parquet", recursive=True)
+    return pd.concat(pd.read_parquet(f) for f in fs) if fs else pd.DataFrame()
+
+
+def test_margin_block_units_synthetic():
+    """margin_money 單位是元：6.4e11 元＝6,400 億；前日 6.5e11 → 較前日 -100 億；市值＝融資張×1000×收盤價。"""
+    mt = pd.DataFrame({"date": ["2026-10-16", "2026-10-19"], "margin_lots": [100.0, 100.0], "margin_lots_prev": [99.0, 100.0],
+                       "short_lots": [5.0, 4.0], "short_lots_prev": [5.0, 5.0],
+                       "margin_money": [6.5e11, 6.4e11], "margin_money_prev": [6.5e11, 6.5e11]})
+    codes = ["1101", "1102"]
+    md = pd.DataFrame([{"date": d, "code": c, "margin_balance": 50.0, "margin_change": 0.0} for d in mt["date"] for c in codes])
+    co = pd.DataFrame({"code": codes, "name": ["a", "b"], "market": ["TWSE", "TWSE"]})
+    px = pd.DataFrame([{"date": d, "code": c, "close": 1.28e7} for d in mt["date"] for c in codes])
+    b = c.margin_block(mt, md, co, px)
+    last, prev = b["rows"][-1], b["rows"][-2]
+    assert abs(last["margin_yi"] - 6400.0) < 1e-6 and abs(last["margin_yi"] - prev["margin_yi"] + 100.0) < 1e-6
+    # 市值 100張×1000×1.28e7＝1.28e12；÷6.4e11＝200%
+    assert abs(last["ratio"] - 200.0) < 1e-6
+
+
+def test_margin_block_partial_day_carries_forward():
+    """最新一天個股只到一半：缺的檔順延前日餘額，仍給維持率並標 partial；不到一半就留白。"""
+    codes = [str(1000 + i) for i in range(10)]
+    mt = pd.DataFrame({"date": ["d1", "d2", "d3"], "margin_lots": [10.0] * 3, "margin_lots_prev": [10.0] * 3,
+                       "short_lots": [1.0] * 3, "short_lots_prev": [1.0] * 3,
+                       "margin_money": [1e7] * 3, "margin_money_prev": [1e7] * 3})
+    rows = [{"date": d, "code": k, "margin_balance": 1.0, "margin_change": 0.0} for d in ("d1", "d2") for k in codes]
+    rows += [{"date": "d3", "code": k, "margin_balance": 1.0, "margin_change": 0.0} for k in codes[:6]]
+    co = pd.DataFrame({"code": codes, "name": codes, "market": "TWSE"})
+    px = pd.DataFrame([{"date": d, "code": k, "close": 1000.0} for d in ("d1", "d2", "d3") for k in codes])
+    b = c.margin_block(mt, pd.DataFrame(rows), co, px)
+    assert abs(b["rows"][-1]["ratio"] - 100.0) < 1e-6 and b["rows"][-1]["partial"] is True
+    rows = rows[:-6] + [{"date": "d3", "code": codes[0], "margin_balance": 1.0, "margin_change": 0.0}]
+    assert c.margin_block(mt, pd.DataFrame(rows), co, px)["rows"][-1]["ratio"] is None
+
+
+def test_margin_block_20261019_lake_regression():
+    """資料湖真實 10/19：融資 6,406.2 億、較前日 -49.8 億、維持率約 181%（Andy 參考站 181.31%，容許 ±3pp）。"""
+    mt, md = _lake("margin_total"), _lake("margin_daily")
+    if mt.empty or md.empty or "2026-10-19" not in set(mt["date"]):
+        import pytest; pytest.skip("資料湖沒有 2026-10-19")
+    b = c.margin_block(mt, md, _lake("company_info"), _lake("price_daily"))
+    r = {x["d"]: x for x in b["rows"]}
+    assert abs(r["2026-10-19"]["margin_yi"] - 6406.2) < 0.1
+    assert abs(r["2026-10-19"]["margin_yi"] - r["2026-10-16"]["margin_yi"] + 49.8) < 0.1
+    assert r["2026-10-19"]["short_lots"] == 201916 and r["2026-10-19"]["short_chg"] == -31686
+    assert abs(r["2026-10-19"]["ratio"] - 181.31) < 3

@@ -2,7 +2,7 @@
 
 三張表（都註冊在 config.TABLES，一律 store.append() 增量、日期用回應裡的 date）：
   · margin_total  ← FinMind `TaiwanStockTotalMarginPurchaseShortSale`（整體市場融資融券；上市）
-                   一天三列 name＝MarginPurchase（張）／ShortSale（張）／MarginPurchaseMoney（仟元），
+                   一天三列 name＝MarginPurchase（張）／ShortSale（張）／MarginPurchaseMoney（元，實測 6.4e11），
                    欄位 TodayBalance／YesBalance。攤成一天一列。
   · fut_inst      ← FinMind `TaiwanFuturesInstitutionalInvestors`（期交所三大法人區分各期貨契約，所有月份合計）
                    data_id＝TX（大台）、TMF（微台）；institutional_investors＝自營商／投信／外資。

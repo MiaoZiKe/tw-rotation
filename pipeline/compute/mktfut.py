@@ -25,7 +25,7 @@ def margin_block(mt: pd.DataFrame, md: pd.DataFrame, company: pd.DataFrame, pric
                  idx: pd.DataFrame | None = None, members: pd.DataFrame | None = None) -> dict:
     """上市大盤融資維持率（估算）＋融資／融券餘額＋加權指數＋個股融資增減排行。
 
-    維持率 ＝ Σ(各上市股融資餘額張數×1000×當日收盤價) ÷ 融資總餘額(元，整體市場 MarginPurchaseMoney×1000) × 100。
+    維持率 ＝ Σ(各上市股融資餘額張數×1000×當日收盤價) ÷ 融資總餘額(元，整體市場 MarginPurchaseMoney，單位元) × 100。
     分子是「融資買進股票的現值」、分母是「借款餘額」，所以是整體市場的估算，**不是**證交所法定的整戶擔保維持率。
     """
     out = {"rows": [], "asof": None, "rank": None}
@@ -33,18 +33,26 @@ def margin_block(mt: pd.DataFrame, md: pd.DataFrame, company: pd.DataFrame, pric
         return out
     mt = mt.sort_values("date").drop_duplicates("date", keep="last")
     first = mt["date"].tail(MARGIN_DAYS + 1).iloc[0]
-    caps, rank = {}, None
+    caps, rank, partial_days = {}, None, set()
     if md is not None and not md.empty and company is not None and not company.empty and price is not None and not price.empty:
         tw = company[company["market"] == "TWSE"].drop_duplicates("code", keep="last")
         codes = set(tw["code"].astype(str))
         m = md[(md["date"].astype(str) >= first) & md["code"].astype(str).isin(codes)][["date", "code", "margin_balance", "margin_change"]].copy()
         px = price[price["date"].astype(str) >= first][["date", "code", "close"]]
         m = m.merge(px, on=["date", "code"], how="left")
+        # 當天個股融資只到一部分（FinMind 逐檔回補還沒跟上）時，缺的檔用「前一次有資料的餘額」順延再乘當日收盤價：
+        # 融資餘額一天的變動遠小於持股數，實測 2026-10-16 隨機拿掉一半檔數用順延補，誤差 0.35pp（183.73 vs 183.38）；
+        # 檔數不到中位數一半的日子仍不收，免得畫出假的暴跌。
+        bal = m.pivot_table(index="date", columns="code", values="margin_balance", aggfunc="last").sort_index()
+        n_have = bal.notna().sum(axis=1)
+        full = n_have.median() if len(bal) else 0
+        bal = bal.ffill()
+        pxp = px.pivot_table(index="date", columns="code", values="close", aggfunc="last").reindex(index=bal.index, columns=bal.columns)
+        capser = (bal * 1000 * pxp).sum(axis=1, min_count=1)
+        keep = n_have >= 0.5 * full
+        caps = capser[keep].to_dict()
+        partial_days = set(n_have[keep & (n_have < 0.95 * full)].index)
         m["cap"] = m["margin_balance"] * 1000 * m["close"]
-        g = m.groupby("date").agg(n=("code", "size"), cap=("cap", "sum"))
-        full = g["n"].median() if len(g) else 0
-        g = g[g["n"] >= 0.8 * full]          # 當天資料只到一半（回補尚未跟上）的日子不收，免得畫出假的暴跌
-        caps = g["cap"].to_dict()
         if caps:
             d = max(caps)
             names = tw.set_index("code")["name"].to_dict()
@@ -63,13 +71,15 @@ def margin_block(mt: pd.DataFrame, md: pd.DataFrame, company: pd.DataFrame, pric
         tx = dict(zip(t["date"].astype(str), pd.to_numeric(t["close"], errors="coerce")))
     rows, prev = [], None
     for r in mt.tail(MARGIN_DAYS + 1).itertuples():
-        yi = None if pd.isna(r.margin_money) else r.margin_money / 1e5
+        # margin_money 實際單位是「元」（資料湖 2026-10-19 = 640,618,432,000 ＝ 6,406 億）；
+        # 舊版當成仟元（÷1e5、×1000）→ 融資金額差 1000 倍、維持率貼在 0%。
+        yi = None if pd.isna(r.margin_money) else r.margin_money / 1e8
         cap = caps.get(r.date)
-        ratio = (cap / (r.margin_money * 1000) * 100) if cap is not None and not pd.isna(r.margin_money) and r.margin_money else None
+        ratio = (cap / r.margin_money * 100) if cap is not None and not pd.isna(r.margin_money) and r.margin_money else None
         rows.append({"d": r.date, "ratio": _f(ratio), "margin_lots": _f(r.margin_lots),
                      "margin_chg": _f(r.margin_lots - r.margin_lots_prev) if not pd.isna(r.margin_lots_prev) else None,
                      "margin_yi": _f(yi), "cap_yi": _f(cap / 1e8) if cap is not None else None,
-                     "short_lots": _f(r.short_lots),
+                     "short_lots": _f(r.short_lots), "partial": r.date in partial_days,
                      "short_chg": _f(r.short_lots - r.short_lots_prev) if not pd.isna(r.short_lots_prev) else None,
                      "taiex": _f(tx.get(r.date))})
     out["rows"] = rows[-MARGIN_DAYS:]
