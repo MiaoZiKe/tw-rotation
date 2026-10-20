@@ -3413,6 +3413,7 @@
   const MKT = [
     ['updown', '漲跌家數'], ['streak', '法人連買賣'], ['ma', '站上均線'], ['cand', '今日關注'],
   ];
+  MKT.push(['fut', '期貨籌碼']);   // 2026-10-20 台指期三大法人＋微台散戶多空比合一頁，內容在 futpages.js
   /* 捲到某個元素，並且盯到版面穩住為止（以前是 wireKpiDrill 的內文；2026-09-28 KPI 細列換成摘要卡列後抽出來共用）。
      ★ 2026-09-19：換頁之後要再捲到那張圖。例如集中度圖在資金流向頁 2700px 處，
        使用者點完只會看到頁面頂端，得自己往下捲很久才找得到 —— 看起來像「點了沒反應」。
@@ -4337,6 +4338,7 @@
       return;
     }
 
+    if (kind === 'fut' && window.TwFut) { window.TwFut.draw('fut', body, title); return; }   // futpages.js
     if (kind === 'streak') {
       /* 2026-09-28 從總覽搬過來（Andy：「法人連續買賣超 資訊移動到市場明細」）。
          控制列、四象限、滾輪放大與拖曳全部照舊（renderTrust／wireStreak 一行沒改），只是換了一個家；
