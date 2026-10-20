@@ -23,7 +23,7 @@
       <b>大盤融資維持率是什麼？</b> 向券商借錢買股票（融資）時，股票現值對借款的比例。比例越高越安全；大盤整體的數字能看出槓桿部位的「安全墊」還剩多厚。<br><br>
       <b>130% 追繳門檻是什麼意思？</b> 個別融資帳戶的擔保品現值跌到借款的 130% 以下，券商會通知補錢（追繳），補不上就可能被強制賣出。這條線是個別帳戶的規則；大盤整體數字接近 130% 不代表全面斷頭，因為各戶成本不同（圖上虛線）。<br><br>
       <b>和證交所公布的維持率一樣嗎？</b> 不一樣。證交所自 2026/07/29 起暫停公布官方整體維持率，這裡自行推算：用上市個股融資餘額 × 當日收盤價加總，除以整體市場融資金額。證交所的整戶擔保維持率要有每戶的借款與擔保品，沒有公開的逐戶資料，所以這裡只能當趨勢參考。<br><br>
-      <b>限制</b>：只含上市、不含上櫃；融資成本與市值有時間差；當日資料不足八成檔數的日子不收。融資增加標紅、減少標綠（台股慣例）。個股排行的範圍是上市個股。想看個股層級請到<a href="#stock">個股頁</a>看融資融券。資料來源：證交所公開資料。`,
+      <b>部分估算</b>：維持率旁若標「部分估算」，代表當日部分個股資料尚未到齊，以前一日餘額補算。<br><br><b>限制</b>：只含上市、不含上櫃；融資成本與市值有時間差；當日資料不足八成檔數的日子不收。融資增加標紅、減少標綠（台股慣例）。個股排行的範圍是上市個股。想看個股層級請到<a href="#stock">個股頁</a>看融資融券。資料來源：證交所公開資料。`,
   };
 
   function howBtn(kind) {
@@ -96,7 +96,7 @@
     sync();
   }
   const MCOLS = [['d', '日期', r => r.d, 'l'], ['ratio', '維持率', r => num(r.ratio, 2) + '%', ''], ['margin_lots', '融資餘額(張)', r => num(r.margin_lots), ''],
-    ['margin_chg', '資增減', r => sg(r.margin_chg), 'chg'], ['margin_yi', '融資金額(億)', r => num(r.margin_yi, 0), ''], ['short_lots', '融券餘額', r => num(r.short_lots), ''], ['short_chg', '券增減', r => sg(r.short_chg), 'chg']];
+    ['margin_chg', '資增減', r => sg(r.margin_chg), 'chg'], ['margin_yi', '融資金額(億)', r => num(r.margin_yi, 1), ''], ['short_lots', '融券餘額', r => num(r.short_lots), ''], ['short_chg', '券增減', r => sg(r.short_chg), 'chg']];
 
   function drawMargin(body) {
     const m = (DATA && DATA.margin) || {}, all = m.rows || [];
@@ -105,10 +105,10 @@
     const dlt = (a, b) => (a != null && b != null) ? a - b : null;
     const dr = dlt(last.ratio, prev.ratio), dY = dlt(last.margin_yi, prev.margin_yi);
     const dayStale = !!(META && META.data_date && last.d && last.d < META.data_date);
-    const hero = `<div class="mf-top"><div class="mf-big"><span class="mf-l">上市融資維持率（估算）</span><b class="mf-bn ${cls(dr)}">${last.ratio == null ? '—' : num(last.ratio, 2) + '%'}</b>
+    const hero = `<div class="mf-top"><div class="mf-big"><span class="mf-l">上市融資維持率（估算）</span><b class="mf-bn ${cls(dr)}">${last.ratio == null ? '—' : num(last.ratio, 2) + '%'}${last.partial ? ' <small class="mf-part" title="當日部分個股資料尚未到齊，以前一日餘額補算">部分估算</small>' : ''}</b>
         <span class="${cls(dr)}">較前日 ${dr == null ? '—' : sg(dr, 2) + ' pp'}</span></div>`;
-    const tiles = `<div class="mf-tiles">` + tile('融資餘額（億元）', num(last.margin_yi, 0), '', '')
-      + tile('較前日（億元）', sg(dY, 0), '', cls(dY))
+    const tiles = `<div class="mf-tiles">` + tile('融資餘額（億元）', num(last.margin_yi, 1), '', '')
+      + tile('較前日（億元）', sg(dY, 1), '', cls(dY))
       + tile('融券餘額（張）', num(last.short_lots), '', '')
       + tile('融券增減（張）', sg(last.short_chg), '', cls(last.short_chg)) + `</div></div>`;
     const sorted = all.slice().sort((a, b) => { const x = a[sortSt.k], y = b[sortSt.k]; return ((x == null ? -Infinity : x) > (y == null ? -Infinity : y) ? 1 : -1) * sortSt.dir; });
@@ -169,7 +169,7 @@
 .mf-tile{display:flex;flex-direction:column;gap:2px;padding:8px 10px;border:1px solid var(--line,rgba(142,160,196,.2));border-radius:8px;min-width:0}
 .mf-l{font-size:12px;color:var(--ink-3,#8ea0c4)}.mf-v{font-size:18px;font-variant-numeric:tabular-nums}.mf-s{font-size:12px}
 .mf-tile .up,.mf-bn.up,.mf-rank .up,.mf-rk .up,.mf-big .up,#mfTbl .up{color:var(--rise)}.mf-tile .down,.mf-bn.down,.mf-big .down,.mf-rank .down,#mfTbl .down{color:var(--fall)}.mf-tbl{margin-top:10px}
-.mf-hero{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:0 0 10px}.mf-big{display:flex;flex-direction:column;gap:3px}.mf-bn{font-size:24px;font-variant-numeric:tabular-nums}.mf-sum{margin:4px 0 0;font-size:13px;color:var(--ink-2,#9aa7c0)}
+.mf-hero{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:0 0 10px}.mf-part{font-size:12px;font-weight:400;color:var(--ink-3,#8ea0c4);margin-left:6px}.mf-big{display:flex;flex-direction:column;gap:3px}.mf-bn{font-size:24px;font-variant-numeric:tabular-nums}.mf-sum{margin:4px 0 0;font-size:13px;color:var(--ink-2,#9aa7c0)}
 .mf-how{display:flex;flex-direction:column;gap:4px;padding:10px 12px;border:1px solid var(--line,rgba(142,160,196,.2));border-radius:8px;font-size:13px}
 .mf-grid{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:14px}.mf-main{min-width:0}.mf-aside{display:flex;flex-direction:column;gap:8px}
 .mf-ex{border:1px solid var(--line,rgba(142,160,196,.2));border-radius:8px;padding:8px 10px;font-size:13px}.mf-ex summary{cursor:pointer;font-weight:600}.mf-more{font-size:13px}

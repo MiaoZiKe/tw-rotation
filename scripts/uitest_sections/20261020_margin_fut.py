@@ -19,6 +19,7 @@ def _mf_fake():
     rows = [{"d": x, "ratio": 165 + (i % 40) * .6 - i * .05, "margin_lots": 7.5e6 + i * 1000, "margin_chg": (i % 9 - 4) * 1500.0,
              "margin_yi": 2400 + i * 3 - (i % 7) * 5, "cap_yi": 4000.0, "short_lots": 3e5 + i * 50, "short_chg": (i % 5 - 2) * 300.0,
              "taiex": 19000 + i * 25.0} for i, x in enumerate(days)]
+    rows[-1]["partial"] = True; rows[-1]["margin_yi"] = 3272.46
     rk = {"d": days[-1], "rows": [{"code": "2330", "name": "台積電", "chg": 8000.0 - i * 500, "g": ["晶圓代工"]} for i in range(8)]
           + [{"code": "2317", "name": "鴻海", "chg": -9000.0 + i * 500, "g": ["AI伺服器"]} for i in range(8)]}
     return {"margin": {"rows": rows, "asof": days[-1], "rank": rk}}
@@ -46,8 +47,9 @@ def t_margin_1020(b, base, code):
               return { tiles: c.querySelectorAll('.mf-tile').length, rows: c.querySelectorAll('#mfTbl tbody tr').length, n1: n('mfChart'), n2: n('mfChart2'),
                        big: c.querySelector('.mf-bn').textContent, rk: c.querySelectorAll('.mf-rk').length, asof: "",
                        ov: document.documentElement.scrollWidth - innerWidth, ml: echarts.getInstanceByDom(document.getElementById('mfChart')).getOption().series[0].markLine.data[0].yAxis }; }""")
-            ok(f"【{T}】{w} 大數字帶 %、4 格、明細 300 列、兩張圖各 126 根（6 月預設）、排行不在「大盤」分頁、130 追繳線", st["big"].endswith("%") and st["tiles"] == 4 and st["rows"] == 300 and st["n1"] == 126 and st["n2"] == 126 and st["rk"] == 0 and st["ml"] == 130, st)
+            ok(f"【{T}】{w} 大數字帶 %、4 格、明細 300 列、兩張圖各 126 根（6 月預設）、排行不在「大盤」分頁、130 追繳線", "%" in st["big"] and st["tiles"] == 4 and st["rows"] == 300 and st["n1"] == 126 and st["n2"] == 126 and st["rk"] == 0 and st["ml"] == 130, st)
             ok(f"【{T}】{w} 沒有橫向捲軸", st["ov"] <= 1 and True, st)
+            ok(f"【{T}】{w} 融資餘額一位小數（3,272.5）、維持率兩位小數、標「部分估算」", "3,272.5" in pg.locator(".mf-tiles").inner_text() and pg.locator(".mf-bn").inner_text().split("%")[0].split(".")[-1].strip().isdigit() and "部分估算" in pg.locator(".mf-big").inner_text(), pg.locator(".mf-big").inner_text())
             ok(f"【{T}】{w} 卡內重複標題已拿掉、說明卡／計算方式框／右側三張收合全不在畫面上", pg.evaluate("() => { const h = document.querySelector('#v-market .mkthead > h3'); return !(h && h.offsetParent) && !document.querySelector('.mf-ex, .mf-how, .mf-aside, .mf-sub'); }"))
             ok(f"【{T}】{w} 分段開關「大盤｜個股排行」預設大盤、期間鈕在頂列", pg.locator("#mfTab button").count() == 2 and "on" in (pg.locator("#mfTab button").first.get_attribute("class") or "") and pg.locator("#mfDays").count() == 1)
             pg.evaluate("window.scrollTo(0,0)"); pg.wait_for_timeout(200)
