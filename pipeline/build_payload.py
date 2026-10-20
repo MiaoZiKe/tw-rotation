@@ -23,7 +23,7 @@ from .groups import loader
 # TechNews 的分類在讀取端重跑（見下面 news_df 那一段的註解），所以要 import 抓取層的分類器
 from .sources import news as news_src
 from .sources import logos as logos_src
-from .util import store
+from .util import freshness, store
 from .util.roc import is_common_stock, is_tradable_security, limit_down_price, limit_up_price, norm_industry
 
 log = logging.getLogger(__name__)
@@ -825,10 +825,15 @@ def meta_payload(latest: str, history_days: int) -> dict:
     # （sources/mis.py 有實測數字），所以跟成交值有關的東西要標示出來。
     provisional = _provisional_share(latest)
 
+    # 資料新鮮度把關（2026-10-20）：直接讀資料湖算，不靠 last_run.json（inst 階段它比 build 晚寫）
+    fresh = freshness.check()
+
     return {
         "status": "ok",
         "data_date": latest,
         "price_latest": px_latest,
+        "freshness": fresh,
+        "freshness_warn": fresh.get("warn_labels", []) if fresh else [],
         "inst_date": inst_latest,
         "inst_list_date": _INST_LIST_DATE,   # stocks.json 每列 inst 的日期（見 candidates()）
         "provisional": provisional,

@@ -14969,6 +14969,10 @@
     /* 2026-09-28（Andy：讀者不需要知道資料集名稱）：只講「幾項沒更新」，不列 twse.price_daily 這類內部代號 */
     if (errs.length) { bits.push(`部分資料更新失敗（<b>${errs.length}</b> 項）`); level = 'bad'; }
     if (empt.length) { bits.push(`部分資料這一輪沒有更新（<b>${empt.length}</b> 項）`); level = level || 'warn'; }
+    /* 2026-10-20（Andy：「確保數據每天都有更新」）資料新鮮度把關：管線每輪檢查法人／融資券／期貨籌碼，
+       最新交易日缺資料或筆數不到近期中位數 8 成就列在這裡（徽章提示會寫出是哪幾項過期）。 */
+    const stale = meta.freshness_warn || [];
+    if (stale.length) { bits.push(`以下資料<b>過期或不完整</b>：${stale.map(x => fmt.esc(String(x))).join('、')}`); level = level || 'warn'; }
     if (meta.demo) { bits.push('這是示範資料，不是真實行情'); level = 'bad'; }
 
     const tail = [];

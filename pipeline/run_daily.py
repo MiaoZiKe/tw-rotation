@@ -15,11 +15,11 @@ from datetime import datetime, timedelta, timezone
 
 import pandas as pd
 
-from . import config
+from . import config, inst_bulk
 from .compute import flow
 from .groups import loader
 from .sources import etf_pcf, finmind, macro, mis, mktfut, mops, news, taifex, tdcc, tpex, twse
-from .util import http, store
+from .util import freshness, http, store
 from .util.roc import is_tradable_security
 
 logging.basicConfig(
@@ -59,6 +59,22 @@ def step(name: str, fn, *args, **kwargs):
     if rows == 0:
         log.warning("%s 沒有取得資料%s", name, f"：{err}" if err else "")
         RESULT["empty"].append(name)          # ← 不再只寫 log
+    return df if df is not None else pd.DataFrame()
+
+
+def _inst_bulk_step() -> pd.DataFrame:
+    """整天全市場法人補抓。不走 step()：拿不到（會員等級不夠）是預期內的，
+    若記進 RESULT["empty"]，網站每一輪都會顯示「部分資料這一輪沒有更新」，變成天天的假警報。"""
+    t0 = time.time()
+    try:
+        df = inst_bulk.fill_inst_bulk()
+    except Exception as exc:  # noqa: BLE001
+        log.exception("整天全市場法人補抓失敗（改走逐檔）")
+        RESULT["steps"]["finmind.institutional_bulk"] = {"ok": False, "rows": 0, "error": str(exc)[:300]}
+        return pd.DataFrame()
+    rows = 0 if df is None or df.empty else len(df)
+    RESULT["steps"]["finmind.institutional_bulk"] = {"ok": rows > 0, "rows": rows,
+                                                     "seconds": round(time.time() - t0, 1)}
     return df if df is not None else pd.DataFrame()
 
 
@@ -523,7 +539,7 @@ def run_inst_phase(args) -> int:
         return 0
     trade_date = str(trade_date)[:10]
     log.info("phase=inst：目標交易日 %s", trade_date)
-    codes = universe(args.universe)
+    codes = inst_bulk.with_site_codes(universe(args.universe))
 
     probe = [c for c in ("2330", "2317") if c in codes] or codes[:2]
     got = False
@@ -538,15 +554,20 @@ def run_inst_phase(args) -> int:
         return 0
 
     # 只抓目標日那一天（lookback=0），把額度與時間留給別的步驟
+    # 先整天全市場（1 次額度），再逐檔補剩下的（fetch_institutional 會跳過湖裡已有的）
+    n = save("inst_daily", _inst_bulk_step())
     inst = step("finmind.institutional", fetch_institutional, codes, trade_date, 0)
     inst = inst[inst["date"].astype(str) == trade_date] if not inst.empty else inst
-    n = save("inst_daily", inst)
+    n += save("inst_daily", inst)
     if n <= 0:
         log.info("phase=inst：沒有新增列（已到齊），不重算、不部署")
         _set_gh_output("inst_new", "false")
         return 0
 
     RESULT["phase"] = "inst"
+    fr = freshness.check()
+    if fr:
+        RESULT["freshness"], RESULT["warn"] = fr, fr.get("warn", [])
     try:
         from .build_payload import build
         build()
@@ -762,7 +783,10 @@ def main() -> int:
         save("index_intraday", step("finmind.tse_minute", collect_tse_minute))
 
     if not light and not news_only and not args.skip_finmind and trade_date:
-        codes = universe(args.universe)
+        # 2026-10-20：先用 1 次請求試整天全市場（成功就不必逐檔燒額度），再逐檔補剩下的。
+        #   逐檔名單 ＝ 成交值前 N 檔 ∪ 網站用到的全部個股，頁面用到的一檔都不缺。
+        save("inst_daily", step("finmind.institutional_bulk", inst_bulk.fill_inst_bulk))
+        codes = inst_bulk.with_site_codes(universe(args.universe))
         save("inst_daily", step("finmind.institutional",
                                 fetch_institutional, codes, trade_date))
         # 財報一季才變一次，每天用剩餘額度補一小批就夠（財報季會自然滾完）
@@ -786,6 +810,14 @@ def main() -> int:
             "trade_date": trade_date,
             "complete": final,
         })
+        # 資料新鮮度把關：每次寫狀態都重算（只讀幾張小表），warn 非空就進 last_run.json，網站徽章會顯示
+        fr = freshness.check()
+        if fr:
+            RESULT["freshness"] = fr
+            RESULT["warn"] = fr.get("warn", [])
+            if fr.get("warn"):
+                log.warning("資料新鮮度警告（最新交易日 %s）：%s", fr.get("trade_date"),
+                            {t: fr["tables"][t] for t in fr["warn"]})
         if final:                       # 這幾項要掃整個資料湖，只在最後算一次
             RESULT.update({
                 "finmind_budget_left": http.finmind_budget_left(),

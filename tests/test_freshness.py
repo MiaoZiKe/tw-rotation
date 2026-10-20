@@ -69,6 +69,9 @@ def rd(tmp_path, monkeypatch):
     monkeypatch.setattr(run_daily.macro, "release_calendar", lambda *a, **k: empty)
     monkeypatch.setattr(run_daily.finmind, "stock_info", lambda *a, **k: empty)
     monkeypatch.setattr(run_daily, "fetch_institutional", lambda *a, **k: empty)
+    monkeypatch.setattr(run_daily.inst_bulk, "fill_inst_bulk", lambda *a, **k: empty)   # 2026-10-20 新步驟，不打 FinMind
+    monkeypatch.setattr(run_daily.inst_bulk, "site_codes", lambda: [])
+    monkeypatch.setattr(run_daily.freshness, "check", lambda *a, **k: {})
     monkeypatch.setattr(run_daily, "refresh_financials", lambda *a, **k: empty)
     # ★ 2026-09-27：公開資訊觀測站兩支（重大訊息、董監持股）以前沒換掉，測試會真的連 openapi ——
     #   容器被出口代理擋掉時每支要重試退避好幾輪，完整 pytest 卡在這裡十幾分鐘。

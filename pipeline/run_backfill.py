@@ -18,7 +18,7 @@ from datetime import date, datetime, timedelta, timezone
 
 import pandas as pd
 
-from . import config
+from . import config, inst_bulk
 from .groups import loader
 from .sources import finmind, mktfut
 from .util import http, roc, store
@@ -846,8 +846,18 @@ def refresh_stale_inst(prog: dict, today: date | None = None, limit: int | None 
         # 一開始額度就用完：記下來讓 backfill.yml 的接力 job 等下一個額度視窗再派一輪（2026-10-05）
         _mark_quota_stopped(_progress(), ["inst_fresh"])
         return False
+    # 2026-10-20：續補前先試「整天全市場」（1 次額度/日）。成功的話最新交易日一次到齊，逐檔名單自然縮短；
+    #   拿不到（會員等級）就回空，下面照舊逐檔。失敗不影響續補。
+    try:
+        bulk = inst_bulk.fill_inst_bulk()
+        if not bulk.empty:
+            store.append("inst_daily", bulk)
+    except Exception as exc:  # noqa: BLE001
+        log.warning("整天全市場法人補抓失敗（改走逐檔）：%s", exc)
     price = store.read("price_daily")
-    universe = market_codes()
+    # 網站用到的個股排最前面：同樣落後天數時（排序是穩定的）先補它們，頁面才不缺
+    _site = set(inst_bulk.site_codes())
+    universe = sorted(market_codes(), key=lambda c: c not in _site)
     ok, latest, n_codes = True, None, {}
     plan = (prog.get("complete") or {}).get("plan:default")
     boost = FRESH_BOOST if (isinstance(plan, dict) and plan.get("done")

@@ -204,15 +204,26 @@ def institutional(code: str, start: str, end: str | None = None,
     df = pd.DataFrame(data)
     if df.empty or "name" not in df.columns:
         return pd.DataFrame()
+    return _inst_wide(df, code)
 
+
+def _inst_wide(df: pd.DataFrame, code: str | None) -> pd.DataFrame:
+    """長格式（每個法人一列）→ 寬格式（一檔一天一列）。code=None 時用每列自己的 stock_id（整天全市場）。"""
+    df = df.copy()
     df["net"] = pd.to_numeric(df.get("buy"), errors="coerce").fillna(0) - \
-                pd.to_numeric(df.get("sell"), errors="coerce").fillna(0)
+        pd.to_numeric(df.get("sell"), errors="coerce").fillna(0)
     df["field"] = df["name"].map(INVESTOR_MAP)
     df = df.dropna(subset=["field"])
     if df.empty:
         return pd.DataFrame()
+    if code is None:
+        if "stock_id" not in df.columns:
+            return pd.DataFrame()
+        df["code"] = df["stock_id"].astype(str)
+    else:
+        df["code"] = code
 
-    wide = (df.pivot_table(index="date", columns="field", values="net",
+    wide = (df.pivot_table(index=["date", "code"], columns="field", values="net",
                            aggfunc="sum")
               .reset_index())
     wide.columns.name = None
@@ -220,13 +231,35 @@ def institutional(code: str, start: str, end: str | None = None,
         if col not in wide.columns:
             wide[col] = 0.0
 
-    wide["code"] = code
     wide["date"] = wide["date"].astype(str)
     wide["dealer"] = wide["dealer_self"] + wide["dealer_hedge"]
     wide["foreign_total"] = wide["foreign"] + wide["foreign_dealer"]
     wide["inst_total"] = wide["foreign_total"] + wide["trust"] + wide["dealer"]
     return wide[["date", "code", "foreign", "foreign_dealer", "foreign_total",
                  "trust", "dealer_self", "dealer_hedge", "dealer", "inst_total"]]
+
+
+def institutional_day(day: str, *, wait: bool = False) -> pd.DataFrame:
+    """某一天**全市場**的個股三大法人，只吃 1 次額度（不帶 data_id）。
+
+    為什麼要有這支（2026-10-20，Andy：「確保數據每天都有更新」）：逐檔抓一天要 ~1,975 次請求，
+    FinMind 每小時 600 次、排程又常延遲，結果最新交易日的法人常只到 150～250 檔，頁面只好退回前一天。
+    整天一次拉回來就沒有額度問題。這個會員等級拿不拿得到整天全市場**查不到**（官方說明只講
+    sponsor 等級），所以失敗（HTTP 400／level 不足／回空）一律回空並把上游訊息印進 log，
+    呼叫端照舊走逐檔，不會因此少抓。
+    """
+    data = http.finmind_get("TaiwanStockInstitutionalInvestorsBuySell",
+                            start_date=day, end_date=day, wait_when_exhausted=wait)
+    if not data:
+        err = http.finmind_last_error("TaiwanStockInstitutionalInvestorsBuySell") or {}
+        log.warning("FinMind 整天全市場法人 %s 回空（上游：%s）", day,
+                    f"{err.get('status')} {err.get('msg')}" if err else "無錯誤訊息／當天無資料")
+        return pd.DataFrame()
+    df = pd.DataFrame(data)
+    if df.empty or not {"name", "stock_id"}.issubset(df.columns):
+        log.warning("FinMind 整天全市場法人 %s 欄位對不上；回應前 200 字：%s", day, str(data[:2])[:200])
+        return pd.DataFrame()
+    return _inst_wide(df, None)
 
 
 def per_history(code: str, start: str, end: str | None = None,

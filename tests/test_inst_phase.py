@@ -22,6 +22,10 @@ def env(monkeypatch, tmp_path):
     monkeypatch.setattr(run_daily.store, "latest_date", lambda t: "2026-10-20")
     monkeypatch.setattr(run_daily, "universe", lambda n: ["2330", "2317", "3008"])
     monkeypatch.setattr(run_daily.http, "finmind_budget_left", lambda: 100)
+    # 整天全市場補抓、新鮮度檢查會讀湖／打網路，這裡不測它們（見 test_data_fresh_1020.py）
+    monkeypatch.setattr(run_daily.inst_bulk, "fill_inst_bulk", lambda *a, **k: pd.DataFrame())
+    monkeypatch.setattr(run_daily.inst_bulk, "site_codes", lambda: [])
+    monkeypatch.setattr(run_daily.freshness, "check", lambda *a, **k: {})
     monkeypatch.setattr("sys.argv", ["run_daily", "--phase", "inst"])
     calls = {"saved": [], "built": 0, "fetch": 0}
     monkeypatch.setattr(run_daily, "save",
@@ -55,7 +59,7 @@ def test_出了法人_存湖並重算並通知部署(env, monkeypatch):
     monkeypatch.setattr(run_daily, "fetch_institutional",
                         lambda codes, d, lb=10: _inst(d, codes))
     assert run_daily.main() == 0
-    assert env["saved"] == ["inst_daily"] and env["built"] == 1
+    assert set(env["saved"]) == {"inst_daily"} and env["built"] == 1
     assert "inst_new=true" in env["out"].read_text()
 
 

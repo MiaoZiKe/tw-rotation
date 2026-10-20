@@ -56,6 +56,10 @@ def _run(monkeypatch, phase, tmp_path):
     monkeypatch.setattr(run_daily.twse, "price_daily", rec("twse.price_daily", px))
     monkeypatch.setattr(run_daily, "save", lambda *a, **k: 0)
     monkeypatch.setattr(run_daily, "fetch_institutional", rec("finmind.institutional"))
+    # 2026-10-20：整天全市場法人補抓與新鮮度檢查會讀真實資料湖／打 FinMind，階段測試不測它們（見 test_data_fresh_1020.py）
+    monkeypatch.setattr(run_daily.inst_bulk, "fill_inst_bulk", lambda *a, **k: pd.DataFrame())
+    monkeypatch.setattr(run_daily.inst_bulk, "site_codes", lambda: [])
+    monkeypatch.setattr(run_daily.freshness, "check", lambda *a, **k: {})
     # ★ 2026-09-19：分 K 一定要 mock。full phase 會抓 400 檔 Yahoo 分 K，
     #   沒 mock 的話在沒有網路的環境會發出上千個連線、一路重試到逾時
     #   （實測一次 full 就有 1,234 個失敗連線）。這是原本就漏的，
