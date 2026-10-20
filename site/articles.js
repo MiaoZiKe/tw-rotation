@@ -700,6 +700,7 @@
 .artc .lk span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .artc .lk.ok{color:var(--k)}
 .artc .lk.ok svg{color:var(--k)}
+.artqt.free{color:var(--k,var(--cyan));font-family:inherit}   /* 2026-10-20 單篇暫時公開：用類別色的勾，不用額度的琥珀色鎖頭 */
 .artc.lkd .tt{color:var(--ink)}
 .artlock{display:flex;flex-direction:column;align-items:center;gap:var(--sp-4);margin:var(--sp-4) 0 var(--sp-2)}
 .artlock .qcard{margin:0 auto}
@@ -734,12 +735,18 @@
      訪客／註冊會員（0 篇）被伺服器 403、Plus 第 6 篇 402、Pro／管理者不限。次數由伺服器記，這裡只把伺服器回報的「已讀清單」併進快取給畫面用。
      舊的 4 篇（沒有 src）維持原樣：靜態 JSON、本機計數。 */
   const isRemote = (m) => !!m && m.src === 'api';
+  /* 單篇暫時公開（2026-10-20，Andy：「暫時把這篇設成免費公開」，為了用訪客畫面錄功能影片）：index.json 那篇帶 "open": true。
+     這個旗標**只管畫面**（卡片不上鎖、詳情頁不看額度直接去抓全文、不扣 Plus 額度）；真正放不放行由 Worker 自己的 OPEN_ARTICLE_IDS 決定
+     （workers/account-api/articles.js，兩份清單由 anti_freeload.test.mjs 比對一致）。改這個旗標騙不到全文：Worker 不在清單上的照樣 401／403。
+     關掉＝兩邊都拿掉、推 main。 */
+  const isOpenArt = (m) => !!m && m.open === true;
   const legacyIds = () => new Set((S.idx ? S.idx.list : []).filter((a) => !isRemote(a)).map((a) => a.id));
-  async function remoteGet(id) {
+  async function remoteGet(id, pub) {   // pub＝公開文章：沒登入也去問（Worker 不看權杖）
     const A = window.TwAccount, T = TQ();
-    if (!A || !A.call || !A.user || !A.user()) return { kind: 'auth' };
+    if (!A || !A.call || (!pub && (!A.user || !A.user()))) return { kind: 'auth' };
     const j = await A.call('/v1/articles/get', { id });
     if (!j) return { kind: 'net' };
+    if (j.ok && j.open && j.post && j.post.title) return { kind: 'ok', d: Object.assign({}, j.post, { src: 'api' }) };   // 公開那篇：不帶額度欄位，不動本機計數
     const keep = legacyIds();
     if (T && Array.isArray(j.reads) && Object.prototype.hasOwnProperty.call(j, 'limit') && j.limit != null) { T.merge(AID, j.reads, (k) => !keep.has(k)); T.setLimit(AID, j.limit); }
     if (j.ok && j.post && j.post.title) return { kind: 'ok', d: Object.assign({}, j.post, { src: 'api' }) };
@@ -915,10 +922,11 @@
   }
   const cardHTML = (a, acc) => {
     acc = acc || access();
-    const open = isOpened(acc, a.id), may = mayOpen(acc, a.id);
-    const lk = open ? (acc.mode === 'full' ? '' : `<div class="lk ok">${CHK_IC}<span>已解鎖，可隨時重讀</span></div>`)
+    const free = isOpenArt(a), open = free || isOpened(acc, a.id), may = mayOpen(acc, a.id);
+    const lk = free ? (acc.mode === 'full' ? '' : `<div class="lk ok free">${CHK_IC}<span>限時公開，免登入看全文</span></div>`)
+      : open ? (acc.mode === 'full' ? '' : `<div class="lk ok">${CHK_IC}<span>已解鎖，可隨時重讀</span></div>`)
       : `<div class="lk">${LOCK_IC}<span>${may ? `點開會用掉 1 篇額度（剩 ${acc.lim - acc.used} 篇）` : acc.mode === 'none' ? '全文需 Plus 以上' : '額度已用完・只顯示標題'}</span></div>`;
-    return `<a class="artc k-${esc(a.cat)}${open ? '' : ' lkd'}" href="#article/${encodeURIComponent(a.id)}" data-id="${esc(a.id)}" data-cat="${esc(a.cat)}" data-date="${esc(a.date)}" data-lock="${open ? 0 : 1}" data-groups="${esc((a.groups || []).map((g) => g.id).join(' '))}" title="${esc(a.title)}">
+    return `<a class="artc k-${esc(a.cat)}${open ? '' : ' lkd'}"${free ? ' data-free="1"' : ''} href="#article/${encodeURIComponent(a.id)}" data-id="${esc(a.id)}" data-cat="${esc(a.cat)}" data-date="${esc(a.date)}" data-lock="${open ? 0 : 1}" data-groups="${esc((a.groups || []).map((g) => g.id).join(' '))}" title="${esc(a.title)}">
     <span class="wm">${icon(a.cat, 96)}</span>
     <div class="r1">${badge(a.cat)}<span class="d">${esc(a.date)}</span><span class="rm" title="閱讀時間">約 ${esc(Number(a.reading_min) || 1)} 分鐘</span></div>
     <div class="tt">${esc(a.title)}</div>${open && a.subtitle ? `<div class="st">${esc(a.subtitle)}</div>` : ''}
@@ -1867,7 +1875,8 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
   }
   function postHTML(d, meta, acc) {
     acc = acc || access();
-    const qnote = acc.mode === 'quota' ? `<span class="artqt" title="Plus 精選文章全文額度：所有分類合計、累計不歸零">${LOCK_IC}全文額度 ${acc.used}／${acc.lim} 篇</span>` : '';
+    const qnote = isOpenArt(meta) ? (acc.mode === 'full' ? '' : `<span class="artqt free" title="這篇暫時開放給所有人閱讀，不佔 Plus 全文額度">${CHK_IC}限時公開・不佔額度</span>`)
+      : acc.mode === 'quota' ? `<span class="artqt" title="Plus 精選文章全文額度：所有分類合計、累計不歸零">${LOCK_IC}全文額度 ${acc.used}／${acc.lim} 篇</span>` : '';
     const cat = CATS[d.cat] ? d.cat : (meta && meta.cat) || '';
     const kk = CATS[cat] ? cat : 'all';
     const links = (Array.isArray(d.site_links) ? d.site_links : []).filter((l) => l && okHash(l.hash) && l.label);
@@ -1930,11 +1939,12 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
       document.title = (meta ? meta.title : '精選文章') + '｜精選文章';
     };
     let acc = access();
-    if (!mayOpen(acc, id)) return locked(acc);
+    const free = isOpenArt(meta);
+    if (!free && !mayOpen(acc, id)) return locked(acc);
     let d;
     if (isRemote(meta)) {
       /* 新文章：伺服器才是裁判。本機判斷「可以讀」只代表「值得去問」；伺服器說不行（402 額度滿、403 沒權限、401 沒登入）就退回鎖定頁；連不到＝不顯示（fail-closed） */
-      const r = await remoteGet(id);
+      const r = await remoteGet(id, free);
       if (gone()) return;
       if (r.kind === 'nf') return notFound();
       if (r.kind === 'net') {
@@ -1950,7 +1960,7 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
       if (gone()) return;
       if (!d || !d.title) return notFound();
       /* 讀得到才記一次額度（讀不到的 id 不扣）；同一篇重讀不重算。兩個分頁同時用掉最後一格的競態：use 回 false → 退回鎖定頁。舊的靜態文章維持本機計數（它本來就是公開檔） */
-      if (acc.mode === 'quota' && !TQ().useLocal(AID, id)) return locked(access());
+      if (acc.mode === 'quota' && !free && !TQ().useLocal(AID, id)) return locked(access());
     }
     acc = access();
     S.sig = sigOf(acc);

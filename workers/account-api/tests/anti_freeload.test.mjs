@@ -252,3 +252,32 @@ test('備份：article_body 在匯出清單裡（全文只存在這裡，沒備�
   assert.ok(m.EXPORT_TABLES.includes('article_body'));
   for (const t of ['tot_ip', 'tot_ipg', 'tot_use', 'tot_guest']) assert.ok(!m.EXPORT_TABLES.includes(t), t + ' 不該進備份');
 });
+
+/* 單篇暫時公開（2026-10-20，Andy：「暫時把這篇設成免費公開」，為了錄功能影片）：
+   只認 Worker 自己的 OPEN_ARTICLE_IDS；前端傳什麼旗標都不算。公開那篇：未登入／訪客／註冊會員都拿得到、不記讀過、Plus 不扣額度；
+   其他文章行為完全不變。另外比對 site/articles/index.json 的 open:true 清單必須跟 Worker 一致（只改一邊＝畫面說開、伺服器說不行，或反過來） */
+import { OPEN_ARTICLE_IDS } from '../articles.js';
+import { readFileSync } from 'node:fs';
+test('單篇暫時公開：OPEN 那篇不用登入、不扣 Plus 額度；非 OPEN 照舊；前端 open 旗標不被採信；兩份清單一致', async () => {
+  const idx = JSON.parse(readFileSync(new URL('../../../site/articles/index.json', import.meta.url), 'utf8'));
+  const front = (idx.articles || []).filter((a) => a.open === true).map((a) => a.id).sort();
+  assert.deepEqual(front, [...OPEN_ARTICLE_IDS].sort(), 'site/articles/index.json 的 open:true 必須跟 workers/account-api/articles.js 的 OPEN_ARTICLE_IDS 一致');
+  if (!OPEN_ARTICLE_IDS.length) return;
+  const { hub, free, plus } = await setup();
+  const oid = OPEN_ARTICLE_IDS[0];
+  assert.equal((await bot(hub, { op: 'put_body', id: oid, json: post(oid) })).s, 200);
+  const g0 = await pj(hub, '/v1/articles/get', { id: oid });
+  assert.equal(g0.s, 200, '未登入可讀'); assert.equal(g0.j.open, true); assert.equal(g0.j.post.blocks[0].text, 'BODY-SECRET-' + oid);
+  assert.ok(!('limit' in g0.j) && !('reads' in g0.j), '公開那篇不回額度欄位');
+  assert.equal((await pj(hub, '/v1/articles/get', { id: oid, t: 'v1.x.1.1.bad' })).s, 200, '壞權杖也照讀（公開文章不看身分）');
+  assert.equal((await get(hub, free, oid)).s, 200, '註冊會員可讀');
+  for (let i = 0; i < 5; i++) assert.equal((await get(hub, plus, IDS[i])).s, 200);
+  assert.equal((await get(hub, plus, oid)).s, 200, 'Plus 額度用完仍可讀公開那篇');
+  assert.equal(hub.q('SELECT COUNT(*) AS c FROM article_reads WHERE id = ?', oid)[0].c, 0, '公開那篇不記讀過、不扣額度');
+  // 非公開文章：前端自己加 open 旗標也沒用
+  const r = await pj(hub, '/v1/articles/get', { id: IDS[6], open: true });
+  assert.equal(r.s, 401); assert.ok(!JSON.stringify(r.j).includes('BODY-SECRET'));
+  assert.equal((await get(hub, free, IDS[6])).s, 403, '註冊會員讀非公開仍 403');
+  assert.equal((await get(hub, plus, IDS[6])).s, 402, 'Plus 第 6 篇非公開仍 402');
+  assert.equal((await pj(hub, '/v1/articles/get', { id: 'missing-open-x' })).s, 401, '不在清單的不存在文章：照舊先擋登入');
+});

@@ -98,7 +98,8 @@
     }
    ],
    "reading_min": 3,
-   "src": "api"
+   "src": "api",
+   "open": true
   },
   {
    "id": "2026-10-16-news-tsmc-q3-call",

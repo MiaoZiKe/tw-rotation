@@ -7013,3 +7013,18 @@ Andy 原話：「幫我將頁面Default 為 亮色 晚上12:00-05:00 為黑色 �
 ### 別順手改回去
 - 不要讓 `applyTheme()` 自己存檔（換風格、到點自動換都會呼叫它，存了就變成「永久手動」）；手動存檔只走 `setThemeManual()`。
 - 不要把手動改回永久，也不要恢復讀 `tw.theme`。
+
+## #361 單篇暫時公開開關：某一篇精選文章暫時讓所有人（含未登入訪客）看全文（UI 專家，2026-10-20；合併時若撞號請改號）
+Andy 原話（10-20，錄「今日事件＋精選文章」功能影片時的選擇）：「暫時把這篇設成免費公開」。影片一律用未登入訪客畫面，所以先開放特斯拉那篇（`2026-10-17-news-tesla`）。
+
+- **兩份清單、各管一件事**：
+  - 伺服器（唯一的裁判）：`workers/account-api/articles.js` 最上面的 `OPEN_ARTICLE_IDS`。`POST /v1/articles/get` 讀到清單內的 id → 不看登入、不看方案、不寫 `article_reads`、回 `{ok, post, open:true}`（**不帶** `limit`／`reads`，前端不會拿它改額度）。清單外的文章行為完全不變（未登入 401、註冊會員 403、Plus 第 6 篇 402）。
+  - 畫面：`site/articles/index.json` 那篇加 `"open": true`。只決定卡片不上鎖（「限時公開，免登入看全文」）、詳情頁不先看額度就去抓全文（未登入也照樣呼叫 `/v1/articles/get`，只是不帶權杖）、Plus 不扣本機額度。
+  - **為什麼不只靠 index.json**：前端拿到的 JSON 誰都能改，Worker 若採信「前端說 open」就等於全文全開；反過來只改 Worker、畫面不改，訪客會看到鎖卡點不進去。所以兩邊都要有，並由 `workers/account-api/tests/anti_freeload.test.mjs` 比對兩份清單一致——只改一邊，Worker 部署的測試就失敗。
+  - **為什麼 Worker 不去讀公開的 index.json**：網站有多個網域（github.io、pages.dev、自有網域），Worker 去抓自家網站多一個會失敗的依賴；而且 index.json 每次上架文章都會被 Actions 改，把它綁進 Worker 部署條件會讓 Worker 一天被重部署很多次。
+- **關掉**：把那篇的 `"open": true` 從 `site/articles/index.json` 拿掉，同時把 id 從 `OPEN_ARTICLE_IDS` 拿掉（留空陣列 `[]` 即可），推 main（Worker 與 Pages 各自自動部署）。
+- 驗收：`_uitest --sections 單篇公開1020 --workers 1`（起真的 worker.js，以未登入訪客點進公開那篇看到內文與插圖、非公開那篇仍是鎖卡、直接打後端自加 open 旗標仍 401）。
+
+### 別順手改回去
+- 不要讓 Worker 採信請求裡的 `open` 欄位或前端任何旗標。
+- 公開那篇不要寫進 `article_reads`（那會吃掉 Plus 的 5 篇）。

@@ -4,6 +4,12 @@
    · POST /v1/articles/stats {}    → {views:{id:N}}     列表頁一次拿全部
    · 文章 id 只收英數、點、底線、減號（最長 80）；資料表最多 3000 列，避免被灌垃圾 id
    ============================================================================ */
+/* 單篇暫時公開（2026-10-20）：Andy 10-20 為了錄「今日事件＋精選文章」功能影片（影片一律用未登入訪客畫面）選了「暫時把這篇設成免費公開」。
+   這裡是**伺服器端唯一認的清單** —— 前端 site/articles/index.json 那篇的 "open": true 只負責畫面（卡片不上鎖、詳情頁去抓全文），
+   不會被 Worker 採信（任何人都能改自己瀏覽器收到的 JSON）。兩邊要一起改：tests/articles.test.mjs 會比對兩份清單一致，對不上就部署失敗。
+   關掉：把 id 從這裡拿掉＋index.json 那篇的 open 拿掉，推 main。 */
+export const OPEN_ARTICLE_IDS = ['2026-10-17-news-tesla'];
+const OPEN_IDS = new Set(OPEN_ARTICLE_IDS);
 export function installArticles(Hub, EXPORT_TABLES) {
   for (const t of ['article_views', 'article_views_day']) if (EXPORT_TABLES && !EXPORT_TABLES.includes(t)) EXPORT_TABLES.push(t);   // 備份一起帶走
   const ID_RE = /^[A-Za-z0-9._-]{4,80}$/;
@@ -447,11 +453,18 @@ export function installArticles(Hub, EXPORT_TABLES) {
       this.q('INSERT INTO tot_use (sub, id, key, at) VALUES (?, ?, ?, ?)', sub, id, key, now);
       return done({ ok: true });
     },
-    /* 單篇全文：{t, id} → {ok, post, limit, reads:[…]}；規則見檔頭 ① */
+    /* 單篇全文：{t, id} → {ok, post, limit, reads:[…]}；規則見檔頭 ①
+       例外：OPEN_IDS 裡的文章（單篇暫時公開，見下方常數）→ 不看登入、不看方案、不記 article_reads，回 {ok, post, open:true}（沒有 limit／reads，前端不會拿它去改額度） */
     '/v1/articles/get': async function (req, b) {
       this.artInit();
       const id = String(b.id || '');
       if (!ID_RE.test(id)) return this.json(req, { error: 'bad_id' }, 400);
+      if (OPEN_IDS.has(id)) {
+        const r0 = this.q('SELECT json FROM article_body WHERE id = ?', id)[0];
+        if (!r0) return this.json(req, { error: 'not_found' }, 404);
+        let p0; try { p0 = JSON.parse(r0.json); } catch (e) { return this.json(req, { error: 'server' }, 500); }
+        return this.json(req, { ok: true, post: p0, open: true });
+      }
       const v = b.t ? await this.verify(b.t) : null;
       if (!v) return this.json(req, { error: 'auth' }, 401);
       const lim = this.totLimitOf('art.read.n', v);

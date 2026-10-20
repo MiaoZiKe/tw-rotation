@@ -1,5 +1,11 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
+### 2026-10-20 單篇暫時公開開關（UI 專家）
+- Andy 10-20：「暫時把這篇設成免費公開」（錄功能影片用未登入訪客畫面）→ 特斯拉那篇 `2026-10-17-news-tesla` 全文暫時開放給所有人，不扣 Plus 額度。DECISIONS #361。
+- 伺服器端清單：`workers/account-api/articles.js` 的 `OPEN_ARTICLE_IDS`；畫面端：`site/articles/index.json` 那篇 `"open": true`。兩份由 anti_freeload.test.mjs 比對一致。
+- **錄完要關**：把 index.json 那篇的 `"open": true` 拿掉＋`OPEN_ARTICLE_IDS` 改成 `[]`，推 main。
+- 這批只驗：Worker 全部 node 測試（179 綠）、pytest test_article_public_guard、_uitest 單篇公開1020（新段）／防白嫖後端1016／精選文章分級1016／桌機守門1008、_preview（只抓到既有的 #industry/ai_server 800 寬文字交疊，與這批無關）。
+
 ### 2026-10-19 多圖連動全站（CEO 主 session）
 - Andy：「同個資訊多張圖表，都需要有像是 ETF 月配那樣的連動效果」「避免我重複下指令」。規格 docs/style_guide.md 第十八節；兩輪普查與排程 docs/chart_link_census_1019.md（24 項，#16 由 stLink、#23 手機已改用桌機版不另做）。
 - 上線：ETF 報酬比較（retLink）、資金流向兩組、ETF 月配單檔／複利（incLink／cxLink）、行事曆＋財經日曆、站上均線／季節性／漲跌分佈、個股頁四分頁（industry.js stLink＋mobile3）、管理區流量＋總覽熱力圖⇄迷你輪盤、第 7 批（個股圖例、四週期十字線、產業鏈關聯圖⇄右欄、流量時段圖）。
