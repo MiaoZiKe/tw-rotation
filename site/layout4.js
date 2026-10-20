@@ -108,6 +108,7 @@
       { k: 'xp-news', h: '#explore/news', t: '消息面', s: '消息', ic: 'news' },
     ],
   };
+  SUBS.market.push({ k: 'mkt-fut', h: '#market/fut', t: '期貨籌碼', s: '期貨', ic: 'landmark' });   // 2026-10-20 futpages.js
   const DESK_ONLY = ['market', 'explore'];   // 只有電腦版側欄有子項；手機抽屜（mobile4.js 讀 TwL4Nav.SUBS）不給
   /* 子分頁圖示：優先用 icons.js（全站同一套 Lucide、同一個線寬）；它被擋掉時退回這裡內嵌的同一組路徑 */
   const SUB_IC = {
