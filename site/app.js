@@ -3411,7 +3411,7 @@
   /* ★ 2026-09-28（Andy：「法人連續買賣超 資訊移動到市場明細」）：總覽右下那張四象限搬來這裡當第二個分頁。
      放在「漲跌家數」後面 —— 兩張都是在回答「今天盤面是誰在動」，一張看家數、一張看法人。*/
   const MKT = [
-    ['updown', '漲跌家數'], ['streak', '法人連買賣'], ['ma', '站上均線'], ['cand', '今日關注'],
+    ['updown', '漲跌家數'], ['inst', '三大法人'], ['ma', '站上均線'], ['cand', '今日關注'],
   ];
   /* 捲到某個元素，並且盯到版面穩住為止（以前是 wireKpiDrill 的內文；2026-09-28 KPI 細列換成摘要卡列後抽出來共用）。
      ★ 2026-09-19：換頁之後要再捲到那張圖。例如集中度圖在資金流向頁 2700px 處，
@@ -3468,14 +3468,17 @@
   let mktKind = 'updown', mktTab = 0;
   /* 「法人連買賣」分頁的三份輸入（積木 market.streak）。跟以前在總覽時一樣**明確當參數傳**給 renderTrust／wireStreak，
      不讓它回頭讀全域快取 D（驗收「積木-隱性參數」會把 D.inst_streak 清掉，圖要不變）。*/
-  const MKT_ST = { trust: null, cands: null, streak: null };
+  const MKT_ST = { trust: null, cands: null, streak: null, inst: null, imkt: null };
+  /* 「當日法人」分頁（#market/inst）的選擇：外資／投信／自營／合計，預設合計；跟其他市場明細分頁一樣離開就回預設（mktReset） */
+  const instState = { view: 'daily', per: '6m', sel: null, hov: null, sk: 'd', sd: -1, groups: null, tblAll: false };
   async function renderMarket() {
     wireHowto($('#v-market'));
     // stocks.json：圖15 的漲跌分佈長條圖要用（每一檔都有 market / group / chg_pct）
     const got = await Promise.all([load('market_heat'), load('groups_today'), load('candidates'),
                        load('groups_detail'), load('stocks', { fallback: [] }),
-                       load('trust_streak', { fallback: [] }), load('inst_streak', { fallback: {} })]);
-    MKT_ST.cands = got[2]; MKT_ST.trust = got[5]; MKT_ST.streak = got[6];
+                       load('trust_streak', { fallback: [] }), load('inst_streak', { fallback: {} }),
+                       load('inst_today', { fallback: {} }), load('inst_market', { fallback: {} })]);
+    MKT_ST.cands = got[2]; MKT_ST.trust = got[5]; MKT_ST.streak = got[6]; MKT_ST.inst = got[7]; MKT_ST.imkt = got[8];
     $('#mktSeg2').innerHTML = MKT.map(([k, l]) => `<button data-k="${k}">${l}</button>`).join('');
     $$('#mktSeg2 button').forEach(b => b.onclick = () => { location.hash = '#market/' + b.dataset.k; });
     drawMarket((location.hash.split('/')[1]) || 'updown');
@@ -4144,7 +4147,8 @@
   function mktReset() {
     mktTab = 0;
     Object.assign(DIST, { market: '', groups: null, etf: false, pick: null, sort: 'chg', hov: null, tabBins: null });
-    Object.assign(streakState, { who: 'trust', days: 3, view: streakViewDflt(), all: false });
+    Object.assign(streakState, { who: 'trust', days: 3, view: streakViewDflt(), all: false, groups: null });
+    Object.assign(instState, { view: 'daily', per: '6m', sel: null, hov: null, sk: 'd', sd: -1, groups: null, tblAll: false });
     MAT.ma = '20'; MAT.on = null;
     candFacet = 'all'; candSort = { key: null, dir: 1 }; candOpen = null; candGroups = null;
   }
@@ -4198,12 +4202,16 @@
   window.addEventListener('tw:perm', () => { if (/^#market\/cand/.test(location.hash || '') && typeof mktKind !== 'undefined' && mktKind === 'cand') { try { drawMarket('cand'); } catch (e) { /* 頁還沒準備好：下次進來照新權限畫 */ } } });
   function drawMarket(kind) {
     // 舊書籤 #market/top5 進來時落回漲跌家數（那一頁 2026-09-18 拿掉了）
+    // 2026-10-20：「法人連買賣」併進「三大法人」（日報／連續買賣超用頁內分段切換），舊網址 #market/streak 導到 #market/inst 並停在連續買賣超
+    const wantStreak = kind === 'streak';
+    if (wantStreak) { kind = 'inst'; try { history.replaceState(null, '', '#market/inst'); } catch (e) { /* 網址列改不了就算了 */ } }
     if (!MKT.some(m => m[0] === kind)) kind = 'updown';
-    if (kind !== mktKind || mktLeft) { mktReset(); MKT_ST.candOk = undefined; }   // 換分頁或離開再回來：這頁所有設定回預設（見 mktReset）；今日關注的「這次進來算過了沒」也歸零
+    if (kind !== mktKind || mktLeft) { mktReset(); MKT_ST.candOk = undefined; }
+    if (wantStreak) instState.view = 'streak';   // 換分頁或離開再回來：這頁所有設定回預設（見 mktReset）；今日關注的「這次進來算過了沒」也歸零
     mktLeft = false;
     mktKind = kind;
     // 法人連買賣的讀法在那張卡自己的 trust「?」；頁級 mkt 那顆在這一頁藏起來，不讓同一張卡標題出現兩顆內容重疊的「?」
-    { const mb = $('.howbtn[data-how="mkt"]'); if (mb) mb.style.display = kind === 'streak' ? 'none' : ''; }
+    { const mb = $('.howbtn[data-how="mkt"]'); if (mb) mb.style.display = kind === 'inst' ? 'none' : ''; }
     $$('#mktSeg2 button').forEach(b => b.classList.toggle('on', b.dataset.k === kind));
     // 標題列右側的免責：只有「今日候選」這一頁有 A／B 判定，其他分頁是事實統計，不掛（2026-10-06）
     { const dz = $('#mktDisc'); if (dz) { dz.hidden = kind !== 'cand'; if (kind === 'cand') fillDisc(dz.parentElement); } }
@@ -4337,20 +4345,29 @@
       return;
     }
 
-    if (kind === 'streak') {
+    if (kind === 'inst' && instState.view !== 'streak') {
+      /* ★ 2026-10-20（Andy：「也需要在盤後提供當天即時的法人買賣超狀況」）：當天三大法人，不是連續天數。
+         上面四格＝外資／投信／自營／合計的全市場淨買賣超（點格子或右上按鈕切換），下面左右兩欄＝所選法人買超前 10／賣超前 10。
+         金額＝股數×當日收盤價（估算），口徑與資料日見「?」。畫完設 data-ready，社群截圖用 window.TwSnapReady('inst-today') 等它。*/
+      renderInstReport(title, body, MKT_ST.inst || {}, MKT_ST.imkt || {});
+      return;
+    }
+
+    if (kind === 'inst') {   // view＝streak：原「法人連買賣」整段（2026-10-20 併進三大法人）
       /* 2026-09-28 從總覽搬過來（Andy：「法人連續買賣超 資訊移動到市場明細」）。
          控制列、四象限、滾輪放大與拖曳全部照舊（renderTrust／wireStreak 一行沒改），只是換了一個家；
          元素 id（#streakSub／#streakWho／#streakDays／#trustWrap／#trust）沿用，舊驗收與說明都還對得上。
          投信／外資／合計與天數門檻存在 streakState，換分頁再回來停在原本的選擇。*/
       title.innerHTML = '法人連續買賣超';          // 讀法在「?」（全站規矩：卡片上不放說明句）
       const who = streakState.who, dd = streakState.days;
-      body.innerHTML = `<div class="mktstreakbar">
+      body.innerHTML = instViewSeg() + `<div class="mktstreakbar">
           <span class="pill" id="streakSub" data-readout></span>
           <div class="row">
             <div class="seg tiny" id="streakView" role="group" aria-label="畫法">${[['rank', '排行'], ['quad', '四象限']].map(([k, l]) =>
               `<button type="button" data-v="${k}" class="${k === streakState.view ? 'on' : ''}">${l}</button>`).join('')}</div>
             <div class="seg tiny" id="streakWho">${[['trust', '投信'], ['foreign', '外資'], ['total', '合計']].map(([k, l]) =>
               `<button data-w="${k}" class="${k === who ? 'on' : ''}">${l}</button>`).join('')}</div>
+            <span id="streakGroupDD"></span>
             <select class="minisel" id="streakDays" title="連續天數門檻（買與賣都套用）">${[2, 3, 5, 8, 12].map(d =>
               `<option value="${d}"${d === dd ? ' selected' : ''}>≥${d} 天</option>`).join('')}</select>
             <button class="howbtn pop" data-how="trust" data-ttl="法人連續買賣超" type="button" aria-label="法人連續買賣超怎麼看">?</button>
@@ -4360,6 +4377,7 @@
         <div id="trustWrap"${streakState.view === 'quad' ? '' : ' hidden'}><div id="trust" class="chart" style="min-height:360px"></div></div>`;
       renderTrust(MKT_ST.trust, MKT_ST.cands, MKT_ST.streak);
       wireStreak(MKT_ST.trust, MKT_ST.cands, MKT_ST.streak);
+      wireInstViewSeg(); wireStreakGroups();
       return;
     }
 
@@ -9071,7 +9089,7 @@
      跟投信／天數一樣換分頁就回預設（mktReset，10-04 規矩：選取不寫進 localStorage）。
      手機（≤640）預設維持四象限 —— 這次只改網頁版（10-08「兩者不可侵犯」）。*/
   const streakViewDflt = () => ((window.matchMedia && matchMedia('(max-width:640px)').matches) ? 'quad' : 'rank');
-  const streakState = { who: 'trust', days: 3, view: streakViewDflt(), all: false };
+  const streakState = { who: 'trust', days: 3, view: streakViewDflt(), all: false, groups: null };
   const STREAK_NAME = { trust: '投信', foreign: '外資', total: '三大法人合計' };
 
   /* 積木 `market.streak` 的三份輸入全部從參數來（2026-09-24 #4b）：
@@ -9097,7 +9115,8 @@
     const sellSrc = all[who + '_sell'] || [];
     const names = {}; (cands || []).forEach(c => { names[c.code] = c.name; });
     const nm = (code) => names[code] || L.cname[code] || code;
-    const pick = (src, side) => (src || []).filter(r => (r.streak_days || 0) >= streakState.days)
+    const grpOf = (c) => { const r = (D.stocks || []).find(x => x.code === c); return (r && r.group) || '（未分類）'; };
+    const pick = (src, side) => (src || []).filter(r => (r.streak_days || 0) >= streakState.days && (!streakState.groups || streakState.groups.has(grpOf(r.code))))
       .map(r => { const n = r.streak_days || 0, acc = Math.abs(r.accumulated || 0) / 1000;
         const last = r.last != null ? Math.abs(r.last) / 1000 : null;
         const avg = n ? acc / n : 0;
@@ -9266,6 +9285,213 @@
     el.dataset.cross = '';
   }
 
+  /* ───────── 三大法人買賣超日報（#market/inst，2026-10-20 Andy 範本）─────────
+     資料：inst_market.json（全市場每日金額，億元，官方值為主、缺的日子上市估算 est）＋inst_today.json（個股合計 all）。
+     頁面：期間 seg（1月…全部）統一控制所有卡；四格當日＋百分位；每日買賣超（堆疊直條＋加權指數線）；期間累積；累積三線；說明；
+     每日明細表（可排序）；個股排行 Top 8（族群篩選）。圖表／表格同一天連動（style_guide §18）：滑過＝同日一起亮，點一下＝鎖定，再點取消。 */
+  const IR_PERS = [['1m', '1月', 21], ['3m', '3月', 63], ['6m', '6月', 126], ['1y', '1年', 252], ['3y', '3年', 756], ['5y', '5年', 1260], ['all', '全部', Infinity]];
+  const IR_WHO = [['f', '外資', 'cyan'], ['t', '投信', 'amber'], ['dl', '自營商', 'violet']];
+  const IR = { c1: null, c2: null };
+  const irYi = (v, d) => (v == null ? '—' : (v > 0 ? '+' : v < 0 ? '−' : '') + Math.abs(v).toLocaleString('en-US', { minimumFractionDigits: d == null ? 1 : d, maximumFractionDigits: d == null ? 1 : d }));
+  const irMD = (d) => (d ? d.slice(5).replace('-', '/') : '—');
+  const irCls = (v) => (v > 0 ? 'up' : v < 0 ? 'down' : '');
+  function irRows(M) {
+    const rows = (M && M.rows) || [];
+    const eff = (k) => { const p = IR_PERS.find(x => x[0] === k); return p && (p[2] === Infinity || rows.length >= p[2] * 0.9) ? k : null; };
+    let per = eff(instState.per) || 'all';
+    const n = IR_PERS.find(x => x[0] === per)[2];
+    return { per, rows: n === Infinity ? rows : rows.slice(-n), all: rows, ok: (k) => !!eff(k) };
+  }
+  function renderInstReport(title, body, P, M) {
+    const wrapAttrs = 'id="instToday" data-snap="inst-today"';
+    const R = irRows(M);
+    if (!R.all.length) {
+      title.innerHTML = '三大法人買賣超日報';
+      body.innerHTML = instViewSeg() + `<div ${wrapAttrs} data-ready="1"><div class="empty">全市場三大法人買賣金額還沒有資料（盤後官方值回補中）</div></div>`;
+      wireInstViewSeg(); return;
+    }
+    const rows = R.rows, last = rows[rows.length - 1];
+    const lastEst = !!last.est;
+    title.innerHTML = `三大法人買賣超日報 <small>${last.d}</small>`;
+    const hist = R.all.slice(-252);
+    const pct = (key) => { const v = last[key], xs = hist.map(r => r[key]); return Math.round(xs.filter(x => x <= v).length / xs.length * 100); };
+    const tiles = IR_WHO.concat([['tot', '三大法人合計', 'cyan']]).map(([k, l]) => {
+      const p = pct(k);
+      return `<div class="itile" data-k="${k}"><span class="il">${l}</span><b class="iv num ${irCls(last[k])}">${irYi(last[k])} 億</b>
+        <span class="ipct"><span class="trk"><i style="width:${p}%"></i></span><em>${p}%</em></span></div>`;
+    }).join('');
+    const cum = (key) => rows.reduce((s, r) => s + (r[key] || 0), 0);
+    const perLab = IR_PERS.find(x => x[0] === R.per)[1];
+    const nEst = rows.filter(r => r.est).length;
+    const segs = IR_PERS.map(([k, l, n]) => { const on = R.ok(k);
+      return `<button type="button" data-p="${k}" class="${k === R.per ? 'on' : ''}"${on ? '' : ` disabled title="官方資料目前只有 ${R.all.length} 個交易日，不足${l}（回補中）"`}>${l}</button>`; }).join('');
+    body.innerHTML = instViewSeg() + `<div ${wrapAttrs}>
+      <div class="mktstreakbar"><span class="pill" id="instSub" data-readout>資料日 ${irMD(last.d)}・單位億元・${nEst ? `含估算 ${nEst} 天（官方值回補中）` : '證交所官方值（上市）'}</span>
+        <div class="row"><div class="seg tiny" id="instPer" role="group" aria-label="期間">${segs}</div>
+          <button class="howbtn pop" data-how="inst" data-ttl="三大法人買賣超日報" type="button" aria-label="三大法人買賣超日報怎麼看">?</button></div></div>
+      <div class="howtxt" id="how-inst" hidden></div>
+      <div class="card irc"><h3>三大法人買賣超 <small>${last.d}${lastEst ? '（估算）' : ''}</small></h3><div class="itiles" id="instTiles">${tiles}</div>
+        <div class="irnote">歷史百分位基準：近 1 年（${hist.length} 個交易日）每日淨買賣超，越高＝今天越偏買超</div></div>
+      <div class="irgrid"><div class="card irc"><h3>每日買賣超・加權指數 <small>億元</small></h3><div id="instBars" class="chart" style="min-height:320px"></div></div>
+        <div class="card irc"><h3>期間累積買賣超 <small>${perLab.toUpperCase ? R.per.toUpperCase() : R.per}・億元</small></h3><div class="icum" id="instCum">${IR_WHO.concat([['tot', '三大法人合計']]).map(([k, l]) =>
+          `<div class="icrow"><span>${l}</span><b class="num ${irCls(cum(k))}">${irYi(cum(k))}</b></div>`).join('')}</div></div></div>
+      <div class="irgrid"><div class="card irc"><h3>累積買賣超 <small>億元・起點 0</small></h3><div id="instLines" class="chart" style="min-height:300px"></div></div>
+        <div class="card irc irabout"><h3>關於三大法人整體市場</h3>
+          <p>三大法人＝外資、投信、自營商。每天盤後，證交所公布他們在上市股票「買進金額 − 賣出金額」，紅＝淨買超、綠＝淨賣超。</p>
+          <p>外資金額大、常影響大盤方向；投信買賣集中在少數中小型股，連續買超常代表基金在建倉；自營商含自行買賣與避險，受權證與期貨避險影響較大。</p>
+          <p>三者同向買超，資金面最順；外資賣、投信買代表看法分歧，先別當單邊訊號。這是事實統計，不構成買賣建議。</p>
+          <p class="muted">資料來源：證交所三大法人買賣金額統計（上市，經 FinMind 取得）；官方值尚未回補的日子以個股買賣超×收盤價估算，標「估」。</p></div></div>
+      <div class="card irc"><h3>每日明細 <small>億元・點欄位標題排序・點一列鎖定那一天</small></h3><div class="tw irtbl" id="instTbl"></div></div>
+      <div class="card irc" id="instRankCard"><h3 id="instRankTtl">個股三大法人買賣超排行</h3>
+        <div class="row irgf"><span id="instGroupDD"></span><span class="muted" id="instRankN"></span></div><div class="strank" id="instRank"></div></div></div>`;
+    wireInstViewSeg();
+    $$('#instPer button', body).forEach(b => b.onclick = () => { if (b.disabled) return; instState.per = b.dataset.p; instState.sel = null; drawMarket('inst'); });
+    irCharts(rows);
+    irTable(rows);
+    irRank(P);
+    const box = $('#instToday'); box.dataset.date = last.d; box.dataset.per = R.per; box.dataset.n = String(rows.length); box.dataset.ready = '1';
+  }
+  /* 圖與表同一天連動：hov＝滑過的日期、sel＝點一下鎖定的日期（instState.sel，換期間／換頁回預設） */
+  function irPaint() {
+    const tb = $('#instTbl'); if (!tb) return;
+    const dm = instState.sel ? 1 : (instState.hov ? 1 : 0);
+    $$('tr[data-d]', tb).forEach(r => {
+      r.classList.toggle('hl', r.dataset.d === instState.hov);
+      r.classList.toggle('lk', r.dataset.d === instState.sel);
+      r.classList.toggle('dim', !!instState.sel && r.dataset.d !== instState.sel);
+    });
+    const root = $('#instToday'); if (root) { root.dataset.hov = instState.hov || ''; root.dataset.sel = instState.sel || ''; }
+    [IR.c1, IR.c2].forEach(c => { if (!c || c.isDisposed()) return;
+      c.setOption({ series: [{ id: 'lk', markLine: { silent: true, symbol: 'none', animation: false, label: { show: false },
+        lineStyle: { color: CH.ink2, type: 'dashed', width: 1 }, data: instState.sel ? [{ xAxis: instState.sel }] : [] } }] }); });
+    return dm;
+  }
+  function irCharts(rows) {
+    const dates = rows.map(r => r.d), dim = lnkDim();
+    const col = { f: CH.cyan, t: CH.amber, dl: CH.violet };
+    const hasTw = rows.some(r => r.tw != null);
+    const axX = { type: 'category', data: dates, boundaryGap: true, axisLine: { lineStyle: { color: CH.line } },
+      axisLabel: { color: CH.ink3, fontSize: 12, formatter: (v) => irMD(v), hideOverlap: true }, axisTick: { show: false } };
+    const bars = IR_WHO.map(([k, l]) => ({ name: l, type: 'bar', stack: 'n', barMaxWidth: 18, itemStyle: { color: col[k], opacity: 1 },
+      data: rows.map(r => ({ value: r[k], itemStyle: { opacity: r.est ? 0.55 : 1 } })) }));
+    const lkSer = { id: 'lk', type: 'line', data: [], silent: true, markLine: { data: [] } };
+    const c1 = chart('instBars', {
+      grid: { left: 8, right: hasTw ? 8 : 8, top: 34, bottom: 28, containLabel: true },
+      legend: { top: 0, textStyle: { color: CH.ink2, fontSize: 12 }, itemWidth: 12, itemHeight: 8, data: IR_WHO.map(x => x[1]).concat(hasTw ? ['加權指數'] : []) },
+      tooltip: { ...tip, trigger: 'axis', axisPointer: { type: 'shadow' },
+        formatter: (ps) => { const r = rows[ps[0].dataIndex]; if (!r) return '';
+          return `<b>${r.d}</b>${r.est ? '（估算）' : ''}<br>` + IR_WHO.map(([k, l]) => `${l}　<b style="color:${r[k] > 0 ? CH.up : r[k] < 0 ? CH.down : CH.ink2}">${irYi(r[k])}</b> 億`).join('<br>')
+            + `<br>合計　<b style="color:${r.tot > 0 ? CH.up : CH.down}">${irYi(r.tot)}</b> 億` + (r.tw != null ? `<br>加權指數　${fmt.n(r.tw, 0)}` : ''); } },
+      xAxis: axX,
+      yAxis: [{ ...axisStyle, type: 'value', axisLabel: { color: CH.ink3, fontSize: 12, formatter: (v) => String(v) } },
+        { type: 'value', scale: true, show: hasTw, splitLine: { show: false }, axisLine: { show: false }, axisLabel: { color: CH.ink3, fontSize: 12 } }],
+      series: [...bars, ...(hasTw ? [{ name: '加權指數', type: 'line', yAxisIndex: 1, showSymbol: false, symbol: 'none', smooth: false, z: 5,
+        lineStyle: { width: 1.6, color: CH.ink2 }, itemStyle: { color: CH.ink2 }, data: rows.map(r => r.tw) }] : []), lkSer],
+    }, { notMerge: true });
+    let acc = { f: 0, t: 0, dl: 0 };
+    const cums = { f: [], t: [], dl: [] };
+    rows.forEach(r => { IR_WHO.forEach(([k]) => { acc[k] += r[k] || 0; cums[k].push(Math.round(acc[k] * 100) / 100); }); });
+    const c2 = chart('instLines', {
+      grid: { left: 8, right: 8, top: 34, bottom: 28, containLabel: true },
+      legend: { top: 0, textStyle: { color: CH.ink2, fontSize: 12 }, itemWidth: 14, itemHeight: 8 },
+      tooltip: { ...tip, trigger: 'axis', axisPointer: { type: 'line' },
+        formatter: (ps) => { const i = ps[0].dataIndex; return `<b>${dates[i]}</b>（累積）<br>` + IR_WHO.map(([k, l]) => `${l}　<b style="color:${cums[k][i] > 0 ? CH.up : CH.down}">${irYi(cums[k][i])}</b> 億`).join('<br>'); } },
+      xAxis: axX, yAxis: { ...axisStyle, type: 'value' },
+      series: [...IR_WHO.map(([k, l]) => ({ name: l, type: 'line', showSymbol: false, symbol: 'none', lineStyle: { width: 2, color: col[k] }, itemStyle: { color: col[k] }, data: cums[k] })), lkSer],
+    }, { notMerge: true });
+    IR.c1 = c1; IR.c2 = c2;
+    if (!c1 || !c2) return;
+    try { echarts.connect([c1, c2]); } catch (e) { /* 舊版沒有 connect：兩張各自提示，連動只剩表格 */ }
+    const dateAt = (c, ev) => { const p = [ev.offsetX, ev.offsetY]; if (!c.containPixel('grid', p)) return null; const i = Math.round(c.convertFromPixel({ xAxisIndex: 0 }, p[0])); return dates[Math.max(0, Math.min(dates.length - 1, i))]; };
+    [c1, c2].forEach(c => {
+      c.on('updateAxisPointer', (e) => { const a = e.axesInfo && e.axesInfo[0]; if (!a) return; const v = typeof a.value === 'number' ? dates[a.value] : a.value;
+        if (v && v !== instState.hov) { instState.hov = v; irPaint(); } });
+      c.getZr().on('globalout', () => { if (instState.hov) { instState.hov = null; irPaint(); } });
+      c.getZr().on('click', (ev) => { const d = dateAt(c, ev); if (!d) { instState.sel = null; irPaint(); return; }
+        instState.sel = instState.sel === d ? null : d; irPaint(); irScrollTo(instState.sel); });
+    });
+    if (instState.sel) irPaint();
+  }
+  function irScrollTo(d) {
+    const tb = $('#instTbl'); const r = d && tb && tb.querySelector(`tr[data-d="${d}"]`);
+    if (r) tb.scrollTop = Math.max(0, r.offsetTop - tb.clientHeight / 2);   // 只捲表格自己的框，不動整頁
+  }
+  function irTable(rows) {
+    const tb = $('#instTbl'); if (!tb) return;
+    const cols = [['d', '日期', 'l'], ['f', '外資'], ['t', '投信'], ['dl', '自營商'], ['tot', '合計'], ['tw', '加權指數']];
+    const sk = instState.sk, sd = instState.sd;
+    const data = rows.slice().sort((a, b) => (sk === 'd' ? (a.d < b.d ? -1 : 1) : ((a[sk] == null ? -Infinity : a[sk]) - (b[sk] == null ? -Infinity : b[sk]))) * sd);
+    const m4 = document.documentElement.classList.contains('m4');
+    const shown = (m4 && !instState.tblAll) ? data.slice(0, 6) : data;
+    tb.innerHTML = `<table><thead><tr>${cols.map(([k, l, c]) => `<th class="${c || ''}${k === sk ? ' sorted' : ''}" data-k="${k}" role="button" tabindex="0">${l}${k === sk ? (sd > 0 ? ' ▲' : ' ▼') : ''}</th>`).join('')}</tr></thead><tbody>${shown.map(r =>
+      `<tr data-d="${r.d}"><td class="l">${r.d}${r.est ? ' <em class="iest" title="官方值尚未回補，用個股買賣超×收盤價估算">估</em>' : ''}</td>`
+      + ['f', 't', 'dl', 'tot'].map(k => `<td class="num ${irCls(r[k])}">${irYi(r[k])}</td>`).join('') + `<td class="num">${r.tw == null ? '—' : fmt.n(r.tw, 0)}</td></tr>`).join('')}</tbody></table>`
+      + (m4 && data.length > 6 ? `<div class="srmore"><button type="button" class="btn small" id="instTblAll">${instState.tblAll ? '收起，只看前 6 筆' : `看全部（${data.length} 筆）`}</button></div>` : '');
+    $$('th[data-k]', tb).forEach(h => { const go = () => { const k = h.dataset.k; if (instState.sk === k) instState.sd *= -1; else { instState.sk = k; instState.sd = k === 'd' ? -1 : -1; } irTable(rows); irPaint(); };
+      h.onclick = go; h.onkeydown = (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); } }; });
+    $$('tr[data-d]', tb).forEach(r => {
+      r.onmouseenter = () => { instState.hov = r.dataset.d; irPaint(); irShowTip(r.dataset.d, rows); };
+      r.onmouseleave = () => { instState.hov = null; irPaint(); };
+      r.onclick = () => { instState.sel = instState.sel === r.dataset.d ? null : r.dataset.d; irPaint(); };
+    });
+    const all = $('#instTblAll', tb); if (all) all.onclick = () => { instState.tblAll = !instState.tblAll; irTable(rows); irPaint(); };
+    irPaint();
+  }
+  function irShowTip(d, rows) {
+    const i = rows.findIndex(r => r.d === d); if (i < 0 || !IR.c1 || IR.c1.isDisposed()) return;
+    try { IR.c1.dispatchAction({ type: 'showTip', seriesIndex: 0, dataIndex: i }); } catch (e) { /* 圖還沒畫好：略過 */ }
+  }
+  function irRank(P) {
+    const box = $('#instRank'); if (!box) return;
+    const stocks = D.stocks || [], meta = {}; stocks.forEach(s => { meta[s.code] = s; });
+    const all = (P && P.all) || [];
+    const gOf = (c) => (meta[c] && meta[c].group) || '（未分類）';
+    const md = irMD(P && P.date);
+    const ttl = $('#instRankTtl'); if (ttl) ttl.innerHTML = `個股三大法人買賣超排行 <small>${md}・合計・億元</small>`;
+    const draw = () => {
+      const sel = instState.groups;
+      const pool = all.filter(r => !sel || sel.has(gOf(r[0])));
+      const nm = (c) => (meta[c] && meta[c].name) || L.cname[c] || c;
+      const buy = pool.filter(r => r[2] > 0).sort((a, b) => b[2] - a[2]).slice(0, 8);
+      const sell = pool.filter(r => r[2] < 0).sort((a, b) => a[2] - b[2]).slice(0, 8);
+      const mxOf = (rs) => Math.max(0.001, ...rs.map(r => Math.abs(r[2])));
+      const row = (r, side, mx) => `<div class="itrow" data-code="${r[0]}" role="link" tabindex="0" title="看 ${fmt.esc(nm(r[0]))} 個股頁">
+        <span class="nm"><b>${fmt.esc(nm(r[0]))}</b><em>${r[0]}</em></span>
+        <span class="sbar"><span class="trk"><i style="width:${Math.max(3, Math.abs(r[2]) / mx * 100).toFixed(1)}%"></i></span><b class="${side === 'buy' ? 'up' : 'down'}">${Math.abs(r[2]).toFixed(1)} 億</b></span>
+        <span class="lots">${fmt.lot(Math.abs(r[1]))}</span><span class="px grp">${fmt.esc(gOf(r[0]))}</span></div>`;
+      const col = (side, rs, t) => `<div class="srcol ${side}" data-side="${side}"><div class="srh"><b>${t}</b><small>前 ${rs.length} 檔（依金額）</small></div>
+        ${rs.length ? `<div class="itrow ithead" aria-hidden="true"><span>股票</span><span>金額</span><span class="lots">張數</span><span class="px">族群</span></div>
+        <div class="srlist">${rs.map(r => row(r, side, mxOf(rs))).join('')}</div>` : '<div class="empty">這個族群當天沒有符合的股票</div>'}</div>`;
+      box.innerHTML = col('buy', buy, '買超前 8') + col('sell', sell, '賣超前 8');
+      const n = $('#instRankN'); if (n) n.textContent = sel ? `篩選後 ${pool.length} 檔` : `全市場 ${all.length} 檔`;
+      $$('.itrow[data-code]', box).forEach(e => {
+        e.onclick = () => goStock(e.dataset.code);
+        e.onkeydown = (k) => { if (k.key === 'Enter' || k.key === ' ') { k.preventDefault(); goStock(e.dataset.code); } };
+      });
+      box.dataset.buy = String(buy.length); box.dataset.sell = String(sell.length);
+    };
+    const dd = $('#instGroupDD');
+    if (dd && window.TwMS) {
+      const cnt = new Map(); all.forEach(r => { const g = gOf(r[0]); cnt.set(g, (cnt.get(g) || 0) + 1); });
+      const chainOf = {}; (D.groups_today || []).forEach(g => { if (g && g.group_name) chainOf[g.group_name] = g.chain || 'industry'; });
+      const chainIds = [...Object.keys(L.chains || {}), 'industry', '_other'];
+      const items = [...cnt.keys()].map(g => ({ v: g, t: g, n: cnt.get(g), g: chainOf[g] || '_other' }))
+        .sort((a, b) => chainIds.indexOf(a.g) - chainIds.indexOf(b.g) || b.n - a.n || a.t.localeCompare(b.t, 'zh-Hant'));
+      TwMS.mount(dd, { id: 'instGroups', label: '族群', placeholder: '搜尋族群或產業鏈…', width: '11.5em', items,
+        groups: chainIds.map(k => ({ k, t: k === '_other' ? '其他' : chainLabel(k) })), selected: instState.groups,
+        onChange: (v) => { instState.groups = v; draw(); } });
+    }
+    draw();
+  }
+  const INST_VIEWS = [['daily', '日報'], ['streak', '連續買賣超']];
+  const instViewSeg = () => `<div class="seg tiny" id="instView" role="group" aria-label="看哪一種">${INST_VIEWS.map(([k, l]) =>
+    `<button type="button" data-v="${k}" class="${k === instState.view ? 'on' : ''}">${l}</button>`).join('')}</div>`;
+  function wireInstViewSeg() {
+    $$('#instView button').forEach(b => b.onclick = () => { if (b.dataset.v === instState.view) return; instState.view = b.dataset.v; instState.sel = null; drawMarket('inst'); });
+  }
+  /* 社群截圖（social_snap.py）用：容器畫完設 data-ready="1"。另一組若已定義同名函式就沿用它（這裡只在沒有時補最小版） */
+  if (!window.TwSnapReady) window.TwSnapReady = (name) => { const el = document.querySelector('[data-snap="' + name + '"]'); return !!(el && el.dataset.ready === '1' && el.offsetParent !== null); };
+
   function renderStreakRank(box, buys, sells, nm, who) {
     const LIM = 10;
     const ord = (a, b) => (b.n - a.n) || (b.lots - a.lots);
@@ -9294,6 +9520,21 @@
     });
     const all = $('#streakAll', box);
     if (all) all.onclick = () => { streakState.all = !streakState.all; renderStreakRank(box, buys, sells, nm, who); };
+  }
+
+  /* 連續買賣超的族群篩選（2026-10-20，個股類卡才加；用站上同一個 TwMS 下拉）：只留勾選族群的股票，排行與四象限一起篩 */
+  function wireStreakGroups() {
+    const dd = $('#streakGroupDD'); if (!dd || !window.TwMS) return;
+    const meta = {}; (D.stocks || []).forEach(s => { meta[s.code] = s; });
+    const codes = new Set(); ['trust', 'foreign', 'total'].forEach(w => [w, w + '_sell'].forEach(k => ((MKT_ST.streak || {})[k] || []).forEach(r => codes.add(r.code))));
+    const cnt = new Map(); codes.forEach(c => { const g = (meta[c] && meta[c].group) || '（未分類）'; cnt.set(g, (cnt.get(g) || 0) + 1); });
+    const chainOf = {}; (D.groups_today || []).forEach(g => { if (g && g.group_name) chainOf[g.group_name] = g.chain || 'industry'; });
+    const chainIds = [...Object.keys(L.chains || {}), 'industry', '_other'];
+    const items = [...cnt.keys()].map(g => ({ v: g, t: g, n: cnt.get(g), g: chainOf[g] || '_other' }))
+      .sort((a, b) => chainIds.indexOf(a.g) - chainIds.indexOf(b.g) || b.n - a.n || a.t.localeCompare(b.t, 'zh-Hant'));
+    TwMS.mount(dd, { id: 'streakGroups', label: '族群', placeholder: '搜尋族群或產業鏈…', width: '11.5em', items,
+      groups: chainIds.map(k => ({ k, t: k === '_other' ? '其他' : chainLabel(k) })), selected: streakState.groups,
+      onChange: (v) => { streakState.groups = v; renderTrust(MKT_ST.trust, MKT_ST.cands, MKT_ST.streak); } });
   }
 
   function wireStreak(trust, cands, streak) {
@@ -9464,6 +9705,14 @@
       + (udStat ? `這張圖目前的分母是${udStat.mkt === 'all' ? '' : UD_MKT_NAME[udStat.mkt]}個股索引裡有漲跌幅的 ${udStat.n} 檔`
         + (udStat.mkt === 'all' && udStat.heatN != null && udStat.heatN !== udStat.n ? `，上方 KPI「漲跌家數」是證交所當日收盤口徑（${udStat.heatN} 檔），今天沒成交的股票兩邊處理不同，所以會差幾十檔。` : '。') : '')
       + '站上 20 日均線的比例在市場明細的「站上均線」分頁。'),
+    inst: howHTML('三大法人今天買賣了多少、這段期間誰在加碼、買賣集中在哪幾檔。', [
+      '右上期間鈕（1月～全部）一次換掉所有圖、累積數字與明細表',
+      '四格＝今天外資／投信／自營／合計的淨買賣超（億元）；紅＝買超、綠＝賣超，下方細條＝今天在近 1 年的歷史百分位（越高越偏買超）',
+      '直條＝每天各法人買賣超，線＝加權指數；累積線看誰長期在買、誰長期在賣',
+      '滑過任一張圖或明細表，同一天一起亮；點一下鎖定、再點取消',
+      '外資看大錢方向、投信看有沒有人建倉；兩者同向買超最順，外資賣投信買＝分歧',
+    ], '金額是全市場（上市）三大法人買賣金額，來源證交所公告，經 FinMind 取得；官方值還沒回補的日子用個股買賣超×收盤價估算（只算上市），標「估」。'
+      + '外資含外資自營商；自營商含自行買賣與避險。個股排行是當天三大法人合計，可用族群篩選；金額是估算。切到「連續買賣超」看誰連續幾天買或賣。這是事實統計，不構成買賣建議。'),
     trust: howHTML('法人在誰身上連續下注、力道在加大還是收手。', [
       '排行：左＝連續買超、右＝連續賣超，長條越長＝連越久',
       '▲ 加碼＝最後一天比期間日均大（還在加）；▼ 減碼＝最後一天縮手',

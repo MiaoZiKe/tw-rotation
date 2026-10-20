@@ -170,7 +170,7 @@
       qsess: '#distGroupDD .twms-btn', qsessIn: '.twms-pan', qnoteAfter: '#distGroupDD, #m4MkSet', qfree: '.twms.open',
       desc: '漲跌分佈左上角「全部／上市／上櫃」「含 ETF」「族群」篩選（每改一次算一次；族群下拉打開一次之內改選＝一次）', veil: [], mark: [], block: [] },
     { id: 'mkt.streak', name: '市場明細：法人連買賣', cat: 'market', def: true, kind: 'bool', desc: '法人連續買賣超四象限', limBy: { free: 5 }, qnote: '法人連續買賣超今日 {n} 次已用完・Plus 以上可增加',
-      veil: [['#mktBody', '#mktSeg2 button[data-k="streak"].on']], mark: ['#mktSeg2 button[data-k="streak"]'], block: [] },
+      veil: [['#mktBody', '#instView button[data-v="streak"].on']], mark: ['#instView button[data-v="streak"]'], block: [] },
     { id: 'mkt.ma', name: '市場明細：站上均線', cat: 'market', def: true, kind: 'bool', desc: '站上均線名單', limBy: { free: 5 }, qnote: '站上均線今日 {n} 次已用完・Plus 以上可增加',
       veil: [['#mktBody', '#mktSeg2 button[data-k="ma"].on']], mark: ['#mktSeg2 button[data-k="ma"]'], block: [] },
     /* 2026-10-10 Andy：「註冊免費會員 今日關注限制不可以看」→ defBy 訪客／註冊會員關（範本沒寫這一項時的預設；範本寫了以範本為準），
@@ -420,7 +420,7 @@
   var SUB_OF = {
     'flow.rot': ['flow-rotation'], 'flow.sankey': ['flow-sankey'], 'flow.inst': ['flow-inst'],
     'heat.market': ['heat-industry'], 'heat.theme': ['heat-theme'],
-    'mkt.updown': ['mkt-updown'], 'mkt.streak': ['mkt-streak'], 'mkt.ma': ['mkt-ma'], 'mkt.cand': ['mkt-cand'],
+    'mkt.updown': ['mkt-updown'], 'mkt.streak': ['mkt-inst'], 'mkt.ma': ['mkt-ma'], 'mkt.cand': ['mkt-cand'],
     'etf.calendar': ['etf-cal'], 'etf.list': ['etf-list'], 'etf.cashflow': ['etf-inc'], 'etf.inc.comp': ['etf-cx']
   };
   /* ★ 2026-10-16 精選文章分級（Andy：「精選貼文限制給 Pro 可以看，Plus 只能所有類別共 5 篇，其他的只能看到標題」）。

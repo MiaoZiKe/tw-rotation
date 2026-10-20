@@ -95,7 +95,7 @@
        四面向＝長條（基本面）、脈搏（技術面，走勢與量）、人群（籌碼面，誰在買）、報紙（消息面）。 */
     market: [
       { k: 'mkt-updown', h: '#market/updown', t: '漲跌家數', s: '漲跌', ic: 'updown' },
-      { k: 'mkt-streak', h: '#market/streak', t: '法人連買賣', s: '法人', ic: 'landmark' },
+      { k: 'mkt-inst', h: '#market/inst', t: '三大法人', s: '法人', ic: 'landmark' },
       { k: 'mkt-ma', h: '#market/ma', t: '站上均線', s: '均線', ic: 'line' },
       { k: 'mkt-cand', h: '#market/cand', t: '今日關注', s: '關注', ic: 'target' },
     ],
