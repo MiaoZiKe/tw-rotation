@@ -106,6 +106,7 @@ ROT_UNCHECK = """async (el) => {   // 把「顯示軌跡／顯示腳印／水波
 }"""
 ROT_PIECES = [dict(name="rotation-wheel", sel="#rotClockWrap", title="資金輪盤", text="quad", pre=ROT_UNCHECK, trim_bottom_m=32, trim_bottom_d=17),   # 輪盤底下那行「⚡ 即時：灰虛線…」是畫布文字，只能裁掉
               dict(name="rotation-rank", sel="#rankFlowWrap", title="族群資金排行", pre_m=ROT_RANK_TALLER)]
+SANKEY_STORY_VW, SANKEY_STORY_VH, SANKEY_STORY_DSF = 910, 1300, 1.3   # 限動版分流樹：窄桌機視窗（手機 390 版的樹高寬比 1.86，放進卡片只佔內寬約 70%；桌機版面槽位較矮，重畫後比較接近卡片內寬比）
 SANKEY_SCRUB = [["即時板塊合計.*", ""], ["\\s*[—-]\\s*\\(真實\\)", ""], ["\\s*盤後\\s*$", ""]]   # 根節點只留「台股成交值」；去掉「盤後」尾巴
 SANKEY_PIECES = [dict(name="sankey-tree", sel="#sankeyWrap", title="資金分流樹", text="flows", root_sel="body",
                       
@@ -529,6 +530,24 @@ READ_FLOWS_JS = """async () => {
 }"""
 
 
+READ_HEAT_JS = """() => {   // 產業熱力圖（echarts treemap）：每個族群的名稱與漲跌幅（頁面圖上顯示的那組資料）
+  const e = document.getElementById('indTree'); const out = [];
+  if (!e || !window.echarts) return out;
+  const c = echarts.getInstanceByDom(e) || (e.firstElementChild && echarts.getInstanceByDom(e.firstElementChild));
+  if (!c) return out;
+  const walk = n => { if (n.children) n.children.forEach(walk); else if (typeof n.chg === 'number' && n.name) out.push([n.name, n.chg]); };
+  (c.getOption().series[0].data || []).forEach(walk);
+  return out;
+}"""
+
+
+def read_breadth(pg) -> dict:
+    """市場明細「漲跌家數 N 漲／N 跌」原文。"""
+    txt = pg.evaluate("() => document.body.innerText")
+    m = re.search(r"(\d[\d,]*)\s*漲／\s*(\d[\d,]*)\s*跌", txt)
+    return {"up": m.group(1), "down": m.group(2)} if m else {}
+
+
 def quad_lines(data) -> list:
     """2×2 四塊（版面照輪盤四個角：改善、領先／落後、轉弱），每塊標題＋前 5 個族群（頁面原文，不寫「等 N 個」）。"""
     d = {k: v for k, v in data}
@@ -639,6 +658,8 @@ def snap_targets(args, base: str, out: Path, today_ymd: str) -> tuple[list[dict]
                             recs = []
                             break
                         recs.append(shoot_piece(pg, pel, dict(name=part["name"], hide=part.get("hide", [])), raw_dir, "d", args.scale))
+                        if part["name"] == "heat-industry":
+                            info["heat"] = pg.evaluate(READ_HEAT_JS)
                     if recs:
                         from PIL import Image
                         ims = [Image.open(r["raw"]).convert("RGB") for r in recs]
@@ -666,6 +687,8 @@ def snap_targets(args, base: str, out: Path, today_ymd: str) -> tuple[list[dict]
                         info["pieces_d"].append(shoot_piece(pg, el, pc, raw_dir, "d", args.scale))
                         log("桌機截到", pc["name"])
                     pg.evaluate(UNHIDE_JS)
+                    if t["name"] == "market-breadth":
+                        info["breadth"] = read_breadth(pg)
                     if any(pc.get("text") == "quad" for pc in t.get("d", [])):
                         info["lines"] = quad_lines(pg.evaluate(READ_QUAD_JS))
                     if any(pc.get("text") == "flows" for pc in t.get("d", [])):
@@ -717,6 +740,20 @@ def snap_targets(args, base: str, out: Path, today_ymd: str) -> tuple[list[dict]
                     info["story_why"] = f"限動熱力圖例外：{str(exc)[:100]}"
                 continue
             try:
+                if t["name"] == "sankey":   # 限動版分流樹：換成窄桌機視窗重畫（重畫、非拉伸），樹本身變寬
+                    sargs = argparse.Namespace(**{**vars(args), "width": SANKEY_STORY_VW, "height": SANKEY_STORY_VH, "scale": SANKEY_STORY_DSF})
+                    sctx, spg = open_ctx(browser, base, sargs, today_ymd, sniff, False, SANKEY_STORY_DSF)
+                    el = prepare(spg, t, {})
+                    if el is None:
+                        info["story_why"] = "限動分流樹沒截成"
+                        sctx.close()
+                        continue
+                    for pc in t.get("m", []):
+                        rec = shoot_piece(spg, el, pc, raw_dir, "m", SANKEY_STORY_DSF)
+                        info["pieces_m"].append(rec)
+                        log("限動版截到", pc["name"], "（窄桌機視窗", SANKEY_STORY_VW, "）")
+                    sctx.close()
+                    continue
                 el = prepare(pg, t, {})
                 if el is None:
                     info["story_why"] = "手機版沒截成"
@@ -860,22 +897,77 @@ def img_size(path: str) -> tuple[int, int]:
 
 
 # ---------------------------------------------------------------------------- 貼文文字
-def build_text(kind: str, stamp: str, shots: list[dict], data_date: str) -> str:
-    ok = [s for s in shots if s.get("ok")]
+# 文案（Threads 單則上限 500 字，含網址）。深連結用網站實際路由；hash 路由的 query 放在 # 前面
+THREADS_MAX = 500
+ROUTE_INST = "market/streak"      # 法人頁路由；日後改 market/inst 只改這個常數
+HASHTAGS = {"intraday": "#台股 #資金流向 #熱力圖 #族群輪動", "close": "#台股 #法人買賣超 #投信 #外資"}
+DISCLAIMER = "資料：證交所／櫃買公開資料整理，僅供參考，不構成投資建議"
+
+
+def threads_len(txt: str) -> int:
+    """Threads 字數：網址一律以 23 字計（社群平台連結慣例；實際貼文前請以 App 內計數為準），其餘逐字。"""
+    return len(re.sub(r"https?://\S+", "x" * 23, txt))
+
+
+def deep_link(route: str, kind: str, ymd: str) -> str:
+    camp = ("intraday_" if kind == "intraday" else "close_") + ymd[4:8]
+    return f"{SITE_URL}/?utm_source=threads&utm_medium=social&utm_campaign={camp}#{route}"
+
+
+def _join(names: list, n: int) -> str:
+    return "、".join(names[:n])
+
+
+def caption_lines(kind: str, stamp: str, shots: list[dict], data_date: str, ymd: str, n: int) -> list[str]:
+    ok = {s["name"]: s for s in shots if s.get("ok")}
+    L = []
     if kind == "intraday":
-        head = next((s["headline"] for s in ok if s.get("headline")), "")
-        l1 = f"台股資金輪動｜{stamp}"
-        l2 = head or "資金輪盤、族群資金排行與資金分流樹目前狀況如圖"
+        L.append(f"台股資金地圖｜{stamp}")
+        s = ok.get("rotation")
+        if s:
+            d = {k: v for k, v in s.get("lines", [])}
+            if d.get("領先") and d.get("落後"):
+                L.append(f"資金輪盤：領先 {_join(d['領先'], n)}；落後 {_join(d['落後'], n)} → {deep_link('flow/rotation', kind, ymd)}")
+        s = ok.get("sankey")
+        if s:
+            d = {k: v for k, v in s.get("notes", [])}
+            if d.get("流入前五") and d.get("流出前五"):
+                L.append(f"資金分流樹：流入 {_join(d['流入前五'], n)}；流出 {_join(d['流出前五'], n)} → {deep_link('flow/sankey', kind, ymd)}")
+        s = ok.get("heat")
+        if s and s.get("heat"):
+            h = sorted(s["heat"], key=lambda x: x[1])
+            k = min(2, n)
+            ups = "、".join(f"{a} {b:+.1f}%" for a, b in h[::-1][:k])
+            dns = "、".join(f"{a} {b:+.1f}%" for a, b in h[:k])
+            L.append(f"熱力圖：漲最多 {ups}；跌最多 {dns} → {deep_link('heatmap/industry', kind, ymd)}")
+        s = ok.get("market-breadth")
+        if s and s.get("breadth"):
+            L.append(f"漲跌家數：上漲 {s['breadth']['up']} 家、下跌 {s['breadth']['down']} 家 → {deep_link('market/updown', kind, ymd)}")
     else:
-        l1 = f"盤後法人 {data_date[5:].replace('-', '/')}｜投信、外資、合計連續買賣超"
+        L.append(f"台股法人買賣超｜{data_date[5:].replace('-', '/')}")
         parts = []
         for who in ("trust", "foreign"):
-            s = next((x for x in ok if x["name"] == f"streak-{who}"), None)
-            buy = (s or {}).get("streak", {}).get("buy") or []
+            buy = (ok.get(f"streak-{who}") or {}).get("streak", {}).get("buy") or []
             if buy:
-                parts.append(f"{WHO_LABEL[who]}連買 " + "、".join(buy))
-        l2 = "｜".join(parts) or "投信、外資、合計連續買賣超如圖"
-    return "\n".join([l1, l2, "資料來自證交所／櫃買公開資料，僅供參考，不構成投資建議。", SITE_URL])
+                parts.append(f"{WHO_LABEL[who]}連買 " + _join(buy, n))
+        if parts:
+            L.append("；".join(parts) + f" → {deep_link(ROUTE_INST, kind, ymd)}")
+    L.append(DISCLAIMER)
+    L.append(HASHTAGS[kind])
+    return L
+
+
+def build_text(kind: str, stamp: str, shots: list[dict], data_date: str, ymd: str = "") -> str:
+    """Threads／IG 文案。超過 500 字就逐步縮短重點句（每行列的名稱 3→2→1 個）。"""
+    ymd = ymd or data_date.replace("-", "")
+    txt = ""
+    for n in (3, 2, 1):
+        txt = "\n".join(caption_lines(kind, stamp, shots, data_date, ymd, n))
+        if threads_len(txt) <= THREADS_MAX:
+            break
+    if threads_len(txt) > THREADS_MAX:
+        log(f"⚠ 文案 {threads_len(txt)} 字仍超過 {THREADS_MAX}")
+    return txt
 
 
 # ---------------------------------------------------------------------------- 主程式
@@ -994,12 +1086,13 @@ def main() -> int:
             "kind": args.kind,
             "taken_at": now_tpe().isoformat(timespec="seconds"),
             "data_date": data_date,
-            "threads": {"text": build_text(args.kind, stamp_full, ok, data_date),
+            "threads": {"text": build_text(args.kind, stamp_full, ok, data_date, today_ymd),
                         "images": threads_imgs},
             "story": stories,
         }
         (out / "manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2), "utf-8")
-        log("manifest：", out / "manifest.json")
+        (out / "caption.txt").write_text(manifest["threads"]["text"] + "\n", "utf-8")   # 給 Andy 手動貼 IG（限動 API 不能附文字與連結貼紙）
+        log("manifest：", out / "manifest.json", "；文案字數（網址以 23 計）", threads_len(manifest["threads"]["text"]))
         return 0
     finally:
         if srv:
