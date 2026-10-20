@@ -863,13 +863,13 @@ body{width:1080px;background:var(--bg);color:var(--ink);font-family:'Noto Sans C
 .brand .nm{font-size:__BN__px;font-weight:800;letter-spacing:1px;white-space:nowrap}
 .card{flex:1;min-height:0;display:flex;flex-direction:column;margin-top:8px;background:var(--panel);border:1.5px solid var(--line-2);border-radius:24px;padding:__CPAD__}
 .hd{flex:none;margin:0 6px 8px}
-.hd .t{font-size:__TT__px;font-weight:800;line-height:1.2;white-space:nowrap}
-.hd .s{font-size:22px;color:var(--ink3);margin-top:2px;white-space:nowrap}
+.hd .t{font-size:__TT__px;font-weight:800;line-height:1.5;white-space:nowrap}   /* 1.5：Noto CJK 的文字框高約 1.45em，行高低於它 Range 量到的框會互相壓到（雲端 runner 字型踩過） */
+.hd .s{font-size:22px;line-height:1.5;color:var(--ink3);margin-top:2px;white-space:nowrap}
 .grid{flex:none;display:grid;grid-template-columns:1fr 1fr;gap:10px;font-variant-numeric:tabular-nums}
 .grid.top{margin-bottom:10px}.grid.bot{margin-top:10px}
 .q{border-radius:14px;border:1.5px solid color-mix(in srgb,var(--c) 45%,var(--panel));background:color-mix(in srgb,var(--c) 9%,var(--panel));padding:__QP__;text-align:left;min-width:0}
-.q b{display:block;color:var(--c);font-size:__QT__px;font-weight:800;line-height:1.25;margin-bottom:4px}
-.q ul{list-style:none}.q li{font-size:__QF__px;line-height:1.38;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:clip}
+.q b{display:block;color:var(--c);font-size:__QT__px;font-weight:800;line-height:1.5;margin-bottom:4px}
+.q ul{list-style:none}.q li{font-size:__QF__px;line-height:1.5;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:clip}
 .imgbox{flex:1;min-height:0;display:flex;align-items:center;justify-content:center}
 .shot{max-width:100%;max-height:100%;display:block;border-radius:12px}
 .src{flex:none;text-align:right;margin-top:6px;font-size:26px;font-weight:700;color:var(--cyan);white-space:nowrap}
