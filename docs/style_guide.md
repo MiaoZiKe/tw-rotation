@@ -1,5 +1,7 @@
 # 網站預設風格規範（Default Style Guide）
 
+> Andy 介面規矩總表（10-20 彙整，73 條，新頁與改版交件前逐條自檢）：[`docs/andy_ui_rules.md`](andy_ui_rules.md)
+
 > 2026-10-05 設立。**新頁面、改版、新元件一律照這份**；跟這份衝突的舊寫法，下次碰到就改成這份。
 > 值都落在 CSS 變數（`site/theme4.css` 的 `:root[data-theme4]`、`site/index.html` 的 `:root`），**不准在 JS／頁面 CSS 寫死 px 或色碼**。
 > 自動檢查：`python scripts/_uitest.py --sections 風格規範`（違反就紅燈）。決策紀錄：DECISIONS #322（分頁細則 #321）。

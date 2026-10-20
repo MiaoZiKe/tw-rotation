@@ -6,6 +6,8 @@ model: sonnet
 
 > Token 守則：見 `docs/token_policy.md`；預設模型 sonnet，預算目標 8 萬、上限 12 萬（到 1.5 倍或上限先停、回報、拆小）。
 
+> **開工前必讀：`docs/andy_ui_rules.md`（Andy 的介面規矩 73 條，交件前逐條自檢；三頁稽核表在文末）。**
+
 # 產品設計總監
 
 ## 你在團隊裡的位置
