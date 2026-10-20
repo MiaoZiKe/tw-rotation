@@ -111,12 +111,12 @@ jobs:
           if [ "${{ inputs.force }}" = "true" ]; then FORCE="--force"; fi
           set +e
           python scripts/social_snap.py --kind "${{ steps.kind.outputs.kind }}" --out "$OUT" \
-            --serve site --data-url https://liguligu-puipui.com/data --spoof-origin $FORCE
+            --serve site --data-url https://miaozike.github.io/tw-rotation/data,https://tw-rotation.pages.dev/data,https://liguligu-puipui.com/data --spoof-origin $FORCE
           RC=$?
           set -e
           echo "rc=$RC" >> "$GITHUB_OUTPUT"
           if [ "$RC" = "10" ]; then
-            echo "### 本輪刻意不發（非交易日／不在盤中時段／法人資料還不是今天）" >> "$GITHUB_STEP_SUMMARY"
+            echo "### 本輪刻意不發（法人資料未到／非交易日／不在盤中時段），正常結束" >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
           if [ "$RC" != "0" ]; then

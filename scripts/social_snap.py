@@ -219,15 +219,23 @@ def fetch_meta(base: str) -> dict:
     """讀網站的 data/meta.json（資料日期、法人資料日期）。"""
     root = base.rsplit("/", 1)[0] if base.endswith(".html") else base.rstrip("/")
     try:
-        with urlopen(f"{root}/data/meta.json?_={int(time.time())}", timeout=20) as r:
-            return json.loads(r.read().decode("utf-8"))
+        return json.loads(_get(f"{root}/data/meta.json?_={int(time.time())}", 20).decode("utf-8"))
     except Exception as exc:  # noqa: BLE001
         log("讀不到 meta.json：", exc)
         return {}
 
 
-def sync_data(site_dir: Path, data_url: str) -> None:
-    """把網站會讀的 JSON 從正式站抓到本機 site/data/（名稱從 site/*.js 的 load('名稱') 與 data/xxx.json 掃出來）。"""
+def _get(url: str, timeout: int = 40) -> bytes:
+    from urllib.request import Request
+    req = Request(url, headers={"User-Agent": "Mozilla/5.0 (tw-rotation social_snap)", "Accept": "application/json,*/*"})
+    with urlopen(req, timeout=timeout) as r:
+        return r.read()
+
+
+def sync_data(site_dir: Path, data_url: str) -> bool:
+    """把網站會讀的 JSON 從正式站抓到本機 site/data/（名稱從 site/*.js 的 load('名稱') 與 data/xxx.json 掃出來）。
+    data_url 可用逗號放多個候選網址（依序試，第一個抓得到 meta.json 的當來源）。
+    meta.json 抓不到＝回 False（呼叫端要中止，不然後面全部逾時）。"""
     names = set()
     for f in site_dir.glob("*.js"):
         txt = f.read_text(encoding="utf-8", errors="ignore")
@@ -236,15 +244,30 @@ def sync_data(site_dir: Path, data_url: str) -> None:
     names.add("meta")
     dst = site_dir / "data"
     dst.mkdir(exist_ok=True)
-    ok = 0
-    for n in sorted(names):
+    cands = [u.strip().rstrip("/") for u in data_url.split(",") if u.strip()]
+    src = ""
+    for c in cands:
         try:
-            with urlopen(f"{data_url.rstrip('/')}/{n}.json?_={int(time.time())}", timeout=40) as r:
-                (dst / f"{n}.json").write_bytes(r.read())
+            (dst / "meta.json").write_bytes(_get(f"{c}/meta.json?_={int(time.time())}", 20))
+            src = c
+            log(f"資料來源採用 {c}")
+            break
+        except Exception as exc:  # noqa: BLE001
+            log(f"資料來源 {c}/meta.json 失敗：{exc}")
+    if not src:
+        log("所有候選資料網址都讀不到 meta.json：", cands)
+        return False
+    ok, miss = 0, []
+    for n in sorted(names):
+        url = f"{src}/{n}.json?_={int(time.time())}"
+        try:
+            (dst / f"{n}.json").write_bytes(_get(url))
             ok += 1
-        except Exception:  # noqa: BLE001
-            pass     # 沒有的檔頁面本來就有 fallback
-    log(f"下載網站資料 {ok}/{len(names)} 份 ← {data_url}")
+        except Exception as exc:  # noqa: BLE001
+            miss.append(n)
+            log(f"  下載失敗 {n}.json ← {url.split('?')[0]}：{exc}")     # 沒有的檔頁面本來就有 fallback
+    log(f"下載網站資料 {ok}/{len(names)} 份 ← {src}")
+    return True
 
 
 def mock_quote_handler(today_ymd: str, now_hms: str):
@@ -360,10 +383,21 @@ def go_target(pg, base: str, t: dict) -> None:
     pg.wait_for_timeout(2500)
 
 
+SNAP_READY_ALIAS = {"rotation": "rot-wheel", "sankey": "flow-tree", "streak-trust": "market-streak",
+                    "streak-foreign": "market-streak", "streak-total": "market-streak"}
+
+
 def wait_snap_ready(pg, name: str, timeout_ms: int) -> bool:
     """若頁面有 window.TwSnapReady（frontend-ui 提供），等它回 true；沒有就當作 true。"""
     has = pg.evaluate("() => typeof window.TwSnapReady === 'function'")
     if not has:
+        return True
+    # 本程式的目標名稱 ≠ site/snap.js MAP 的名稱（例：streak-trust → market-streak）：先換成 snap.js 認得的名稱；
+    # snap.js 沒有對應（或頁面上沒標出來）就不用它判斷，改靠截圖前的固定等待，免得永遠逾時
+    name = SNAP_READY_ALIAS.get(name, name)
+    known = pg.evaluate("() => (window.TwSnapList ? window.TwSnapList() : [])")
+    if name not in known:
+        log(f"  TwSnapReady 沒有「{name}」可判斷（頁面標記 {known}）→ 略過就緒判斷")
         return True
     deadline = time.time() + timeout_ms / 1000
     while time.time() < deadline:
@@ -829,13 +863,13 @@ body{width:1080px;background:var(--bg);color:var(--ink);font-family:'Noto Sans C
 .brand .nm{font-size:__BN__px;font-weight:800;letter-spacing:1px;white-space:nowrap}
 .card{flex:1;min-height:0;display:flex;flex-direction:column;margin-top:8px;background:var(--panel);border:1.5px solid var(--line-2);border-radius:24px;padding:__CPAD__}
 .hd{flex:none;margin:0 6px 8px}
-.hd .t{font-size:__TT__px;font-weight:800;line-height:1.2;white-space:nowrap}
-.hd .s{font-size:22px;color:var(--ink3);margin-top:2px;white-space:nowrap}
+.hd .t{font-size:__TT__px;font-weight:800;line-height:1.5;white-space:nowrap}   /* 1.5：Noto CJK 的文字框高約 1.45em，行高低於它 Range 量到的框會互相壓到（雲端 runner 字型踩過） */
+.hd .s{font-size:22px;line-height:1.5;color:var(--ink3);margin-top:2px;white-space:nowrap}
 .grid{flex:none;display:grid;grid-template-columns:1fr 1fr;gap:10px;font-variant-numeric:tabular-nums}
 .grid.top{margin-bottom:10px}.grid.bot{margin-top:10px}
 .q{border-radius:14px;border:1.5px solid color-mix(in srgb,var(--c) 45%,var(--panel));background:color-mix(in srgb,var(--c) 9%,var(--panel));padding:__QP__;text-align:left;min-width:0}
-.q b{display:block;color:var(--c);font-size:__QT__px;font-weight:800;line-height:1.25;margin-bottom:4px}
-.q ul{list-style:none}.q li{font-size:__QF__px;line-height:1.38;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:clip}
+.q b{display:block;color:var(--c);font-size:__QT__px;font-weight:800;line-height:1.5;margin-bottom:4px}
+.q ul{list-style:none}.q li{font-size:__QF__px;line-height:1.5;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:clip}
 .imgbox{flex:1;min-height:0;display:flex;align-items:center;justify-content:center}
 .shot{max-width:100%;max-height:100%;display:block;border-radius:12px}
 .src{flex:none;text-align:right;margin-top:6px;font-size:26px;font-weight:700;color:var(--cyan);white-space:nowrap}
@@ -998,7 +1032,7 @@ def main() -> int:
     ap.add_argument("--live-wait", type=int, default=30, help="等即時套上的秒數")
     ap.add_argument("--mock-live", action="store_true", help="模擬報價（本機示範用；正式站不要加）")
     ap.add_argument("--live-override", action="store_true", help="本機 TW_LIVE_OVERRIDE（只有 127.0.0.1 認）")
-    ap.add_argument("--data-url", default="", help="先從這個網址下載網站要用的 JSON 到 --serve 的 data/（例如 https://liguligu-puipui.com/data）")
+    ap.add_argument("--data-url", default="", help="先從這些網址（逗號分隔，依序試）下載網站要用的 JSON 到 --serve 的 data/，例如 https://miaozike.github.io/tw-rotation/data,https://tw-rotation.pages.dev/data")
     ap.add_argument("--spoof-origin", action="store_true", help="報價請求補上正式站 Origin（本機站打正式報價代理用）")
     ap.add_argument("--skip-live", nargs="?", const="all", default="", help="只測版面：不要求即時（all 或逗號分隔的目標名；會截到盤後畫面，絕不可用在發布）")
     ap.add_argument("--from-shots", default="", help="沿用另一個輸出資料夾已截好的圖（只換 --frame 配色，示範用）")
@@ -1019,7 +1053,8 @@ def main() -> int:
     base = args.base
     if args.serve:
         if args.data_url:
-            sync_data(Path(args.serve).resolve(), args.data_url)
+            if not sync_data(Path(args.serve).resolve(), args.data_url):
+                return 2
         srv = serve_dir(Path(args.serve).resolve(), args.port)
         base = f"http://127.0.0.1:{args.port}/index.html"
         args.live_override = True
