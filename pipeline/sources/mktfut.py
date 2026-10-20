@@ -6,8 +6,9 @@
                    欄位 TodayBalance／YesBalance。攤成一天一列。
   · fut_inst      ← FinMind `TaiwanFuturesInstitutionalInvestors`（期交所三大法人區分各期貨契約，所有月份合計）
                    data_id＝TX（大台）、TMF（微台）；institutional_investors＝自營商／投信／外資。
-  · fut_oi        ← FinMind `TaiwanFuturesDaily` data_id＝TMF（一般交易時段 position），
-                   各單一月份契約 open_interest 加總＝微台全市場未平倉（價差單 contract_date 帶 `/` 的丟掉）。
+  · fut_oi        ← FinMind `TaiwanFuturesDaily` data_id＝TX／MTX／TMF（一般交易時段 position），
+                   各單一月份契約 open_interest 加總＝該商品全市場未平倉（價差單 contract_date 帶 `/` 的丟掉）。
+                   2026-10-20 前只抓 MTX、算的卻是 TMF → retail_ratio.json 永遠空；現在三商品都進湖（fut_inst 也含 MTX）。
 欄位名依 FinMind 文件與社群範例；容器連不到外網，第一次 Actions 才會實測，
 所以解析一律「找不到欄位就回空並記 log（含回應前 200 字）」，不猜、不寫壞資料進只增不改的湖。
 """
@@ -22,7 +23,7 @@ from ..util import http
 log = logging.getLogger(__name__)
 
 WHO_MAP = (("外資", "foreign"), ("投信", "trust"), ("自營", "dealer"))
-FUT_IDS = ("TX", "TMF")   # TX 大台（外資口數頁）、TMF 微台（2024-08 起；散戶多空比頁）
+FUT_IDS = ("TX", "MTX", "TMF")   # TX 大台、MTX 小台、TMF 微台（2024-07 起）：外資口數頁用 TX，散戶多空比頁三商品都用
 
 
 def _head(rows) -> str:
@@ -102,7 +103,7 @@ def parse_fut_oi(rows: list[dict] | None, futures_id: str) -> pd.DataFrame:
 
 
 def collect(start: str, end: str | None = None, *, wait: bool = False) -> dict[str, pd.DataFrame]:
-    """一次抓五個請求（margin 1＋fut_inst 2＋fut_oi 1，共 4 次額度），回 {表名: DataFrame}；失敗的回空。"""
+    """一次抓七個請求（margin 1＋fut_inst 3＋fut_oi 3，共 7 次額度），回 {表名: DataFrame}；失敗的回空。"""
     out: dict[str, list[pd.DataFrame]] = {"margin_total": [], "fut_inst": [], "fut_oi": []}
     kw = dict(start_date=start, end_date=end, wait_when_exhausted=wait)
     out["margin_total"].append(parse_margin_total(
@@ -110,7 +111,7 @@ def collect(start: str, end: str | None = None, *, wait: bool = False) -> dict[s
     for fid in FUT_IDS:
         out["fut_inst"].append(parse_fut_inst(
             http.finmind_get("TaiwanFuturesInstitutionalInvestors", data_id=fid, **kw), fid))
-    out["fut_oi"].append(parse_fut_oi(http.finmind_get("TaiwanFuturesDaily", data_id="MTX", **kw), "MTX"))
+        out["fut_oi"].append(parse_fut_oi(http.finmind_get("TaiwanFuturesDaily", data_id=fid, **kw), fid))
     res = {}
     for k, v in out.items():
         v = [x for x in v if x is not None and not x.empty]

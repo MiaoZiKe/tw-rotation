@@ -336,7 +336,7 @@ def build() -> None:
         _fi, _oi = store.read("fut_inst"), store.read("fut_oi")
         _write("market_fut", mktfut_c.build(store.read("margin_total"), margin, company, price, _ohlc, loader.membership()))
         _write("fut_oi", mktfut_c.fut_oi_json(_fi, _ohlc, "期交所三大法人區分各期貨契約（經 FinMind TaiwanFuturesInstitutionalInvestors），臺股期貨 TX，所有到期月份合計"))
-        _write("retail_ratio", mktfut_c.retail_ratio_json(_fi, _oi, _ohlc, "期交所三大法人未平倉＋期貨每日行情未平倉（經 FinMind），微台指 TMF，所有到期月份合計"))
+        _write("retail_ratio", mktfut_c.retail_ratio_json(_fi, _oi, _ohlc, "期交所三大法人未平倉＋期貨每日行情未平倉（經 FinMind），大台 TX／小台 MTX／微台 TMF，所有到期月份合計"))
     except Exception as exc:  # noqa: BLE001
         log.warning("市場明細／期貨資料層產生失敗（不影響其他 JSON）：%s", exc)
     # ★ 2026-10-20 當日三大法人買賣超（Andy：「也需要在盤後提供當天即時的法人買賣超狀況」）。口徑見 compute/inst_today.py

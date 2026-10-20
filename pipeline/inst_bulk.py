@@ -12,7 +12,7 @@ from datetime import datetime, timezone
 import pandas as pd
 
 from .groups import loader
-from .sources import finmind
+from .sources import finmind, inst_official
 from .util import http, store
 from .util.freshness import HISTORY_DAYS, MIN_RATIO
 from .util.roc import is_tradable_security
@@ -56,20 +56,25 @@ def thin_dates(price_counts: pd.Series, inst_counts: pd.Series, max_days: int = 
 
 
 def fill_inst_bulk(max_days: int = 5) -> pd.DataFrame:
-    """對筆數偏少的最近交易日，各用 1 次請求拉整天全市場法人。額度沒了就停；沒權限回空。"""
+    """先用官方開放資料（證交所＋櫃買，各 1 次請求、不吃額度）拿最新一日全市場法人；
+    官方沒給或不夠的日子，再對筆數偏少的最近交易日各用 1 次 FinMind 請求拉整天。額度沒了就停；沒權限回空。"""
+    official = inst_official.fetch_all()
+    off_counts = official["date"].value_counts() if not official.empty else pd.Series(dtype="int64")
     try:
         yrs = [datetime.now(timezone.utc).year, datetime.now(timezone.utc).year - 1]
         px = store.read("price_daily", years=yrs)      # 只需要最近幾天，不必讀整張 950 萬列
         inst = store.read("inst_daily", years=yrs)
         if px.empty:
-            return pd.DataFrame()
+            return official
         pc = px["date"].astype(str).value_counts()
         ic = inst["date"].astype(str).value_counts() if not inst.empty else pd.Series(dtype="int64")
+        for d, n in off_counts.items():      # 官方這一輪拿到的算進去，避免再花 FinMind 額度補同一天
+            ic[str(d)] = max(int(ic.get(str(d), 0)), int(n))
         todo = thin_dates(pc, ic, max_days)
     except Exception as exc:  # noqa: BLE001
         log.warning("整天法人補抓：判斷缺口失敗 %s", exc)
-        return pd.DataFrame()
-    frames = []
+        return official
+    frames = [official] if not official.empty else []
     for d in todo:
         if http.finmind_budget_left() <= 1:
             log.warning("整天法人補抓：額度用盡，%s 之後的留給逐檔／下一輪", d)
