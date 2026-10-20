@@ -1,6 +1,116 @@
 {
- "updated": "2026-10-19",
+ "updated": "2026-10-20",
  "topics": [
+  {
+   "id": "n_openai_rev",
+   "cat": "news",
+   "title": "OpenAI 營收數字差 200 億，AI 股為何先跌",
+   "why": "FT 10/8 報導 OpenAI 年化營收約 500 億美元、低於先前傳的約 700 億，當日那斯達克收跌 1.25%；落差主因毛營收與淨營收算法不同（兩個來源互證）",
+   "score": 5,
+   "format_hint": "兩者",
+   "added": "2026-10-20",
+   "site_links": [
+    "#flow"
+   ]
+  },
+  {
+   "id": "n_oil_hormuz",
+   "cat": "news",
+   "title": "油價卡在 100 美元，通膨與科技股怎麼被牽動",
+   "why": "布蘭特原油 10/5 約 102.6 美元、一週在 100～108 美元震盪，主因荷莫茲海峽供給受阻；機構預測分歧（數字待寫稿時再核）",
+   "score": 4,
+   "format_hint": "文章",
+   "added": "2026-10-20",
+   "site_links": [
+    "#flow"
+   ]
+  },
+  {
+   "id": "n_yield_high",
+   "cat": "news",
+   "title": "非農轉弱，美債殖利率為何仍在高位",
+   "why": "美國 9 月非農低於預期、升息押注退潮（約 10/2～5），但 10 年期殖利率仍高；僅摘要為證，寫稿前須再核日期與數字",
+   "score": 3,
+   "format_hint": "貼文",
+   "added": "2026-10-20",
+   "site_links": [
+    "#overview"
+   ]
+  },
+  {
+   "id": "i_panel_chain",
+   "cat": "intro",
+   "title": "面板產業鏈：從玻璃基板到模組出貨",
+   "why": "面板是台灣傳統強項，站內有面板族群頁與 TFT-LCD 十三層 3D 圖，讀者常分不清驅動 IC、背光、面板廠的分工",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-10-20",
+   "site_links": [
+    "#industry/group/panel"
+   ]
+  },
+  {
+   "id": "i_automation_chain",
+   "cat": "intro",
+   "title": "工業自動化鏈：滑軌、減速機到工具機",
+   "why": "工具機與自動化零組件常被一起討論，站內有工業自動化軸與 CNC 工具機 3D 圖，可畫出環節分工",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-10-20",
+   "site_links": [
+    "#industry/group/factory_automation",
+    "#industry/group/machine_tool"
+   ]
+  },
+  {
+   "id": "i_semi_equip_chain",
+   "cat": "intro",
+   "title": "半導體設備與材料鏈：資本支出落在哪一段",
+   "why": "晶圓廠資本支出決定設備與材料需求，站內有半導體設備與材料 2.5D 圖與族群頁，適合拆成環節圖",
+   "score": 4,
+   "format_hint": "文章",
+   "added": "2026-10-20",
+   "site_links": [
+    "#heatmap/theme/semi_equipment",
+    "#industry/semiconductor"
+   ]
+  },
+  {
+   "id": "k_pcb_rigid",
+   "cat": "know",
+   "title": "PCB 硬板是什麼？多層板剖面與四種孔",
+   "why": "高階 PCB 常被說吃緊，卻少有人解釋板子怎麼疊；3D 圖用 pcb_rigid「多層板剖面與四種孔」，可銜接已上架的 IC 載板文",
+   "score": 5,
+   "format_hint": "文章＋3D 圖",
+   "added": "2026-10-20",
+   "site_links": [
+    "#industry/group/pcb_rigid"
+   ]
+  },
+  {
+   "id": "k_connector",
+   "cat": "know",
+   "title": "高速連接器是什麼？一個接點拆開看",
+   "why": "AI 伺服器內傳輸速率拉高，連接器成為關鍵零件；3D 圖用 ai_interconnect「一個接點拆開」",
+   "score": 4,
+   "format_hint": "文章＋3D 圖",
+   "added": "2026-10-20",
+   "site_links": [
+    "#industry/group/ai_interconnect"
+   ]
+  },
+  {
+   "id": "k_tft_panel",
+   "cat": "know",
+   "title": "面板是什麼？TFT-LCD 拆成十三層",
+   "why": "每個螢幕都有面板但少有人知道怎麼疊；3D 圖用 panel「TFT-LCD 拆成十三層」",
+   "score": 4,
+   "format_hint": "文章＋3D 圖",
+   "added": "2026-10-20",
+   "site_links": [
+    "#industry/group/panel"
+   ]
+  },
   {
    "id": "k_ssd",
    "cat": "know",
