@@ -23,7 +23,20 @@
   const sgd = (v, d) => (v == null || Number.isNaN(v) ? '—' : (v > 0 ? '+' : v < 0 ? '−' : '') + Math.abs(v).toFixed(d));
   const cls = (v) => (v > 0 ? 'up' : v < 0 ? 'down' : 'flat');
 
+  /* 全站一次性樣式：期貨籌碼／三大法人／信用交易三頁拿掉卡內重複標題（頁首已有）；
+     電腦版子頁在側欄、#mktSeg2 本來就藏起來 → 整條標題列收掉；沒有側欄的寬度保留分頁鈕那半邊。 */
+  if (!document.getElementById('fpGlobalCss')) {
+    const g = document.createElement('style'); g.id = 'fpGlobalCss';
+    g.textContent = '#v-market .card.mkt-notitle .mkthead>h3{display:none!important}:root.l4 #v-market .card.mkt-notitle>.mkthead{display:none}';
+    document.head.appendChild(g);
+  }
+
   /* 台股慣例：紅＝多／漲、綠＝空／跌。 */
+  /* 配色（Andy 10-20，三大法人那組同一套）：外資藍、投信橘、自營紫、散戶青綠；加權指數線淺色深藍黑／深色淺灰白，線寬 2。
+     紅綠只留給數字（買超賣超、漲跌）與個股長條，這裡的線與柱不用。 */
+  const PAL = { f: '#2563EB', t: '#F97316', d: '#A855F7', r: '#14B8A6' };
+  const isDark = () => document.documentElement.getAttribute('data-theme') !== 'light';
+  const txColor = () => (isDark() ? '#E2E8F0' : '#0F172A');
   const col = () => { const c = (A() && A().CH) || {}; return { up: c.up || '#ff4d6d', down: c.down || '#2ee59d', ink2: c.ink2 || '#a9b6d6', ink3: c.ink3 || '#6f7ea3', ink: c.ink || '#e8eeff', cyan: c.cyan || '#3ee0ff', amber: c.amber || '#ffb454', violet: c.violet || '#8b7bff', line: c.line || '#1e2a48' }; };
 
   /* 期間：futoi 以月為單位；retail 的「2 週」以天算。m＝月數、d＝天數、0＝全部 */
@@ -108,21 +121,29 @@
     return out;
   }
 
-  /* ---------------- 版面 CSS（桌機；手機另寫 site/m4/20261020-futpages.css） ---------------- */
+  /* ---------------- 版面 CSS（桌機；手機另寫 site/m4/20261020-futpages.css） ----------------
+     Andy 10-20：「上方已經有標題了，拿掉；右側的內容都移動到上面，未平倉圖表與清單並排；微台與未平倉用同個位置、分段式開關切換」
+     第一列＝商品分段開關＋「?」＋（靠右）期間鈕；第二列＝數字卡＋自動解讀並排；第三列＝圖（約 6）＋明細表（約 4）等高並排。 */
   function css() {
     if (document.getElementById('fpCss')) return;
     const st = document.createElement('style'); st.id = 'fpCss';
     st.textContent = `
-.fp-bar{display:flex;align-items:center;justify-content:flex-end;gap:10px;flex-wrap:wrap;margin-bottom:var(--sp-3,14px)}
-.fp-block{margin-bottom:var(--sp-4,22px)}.fp-sec{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin:0 0 10px}.fp-sec h2{margin:0;font-size:17px;color:var(--ink)}
-.fp-sub{font-size:12.5px;color:var(--ink-3);margin:-4px 0 10px}
-.fp-grid{display:grid;grid-template-columns:minmax(0,1fr) 340px;grid-template-areas:"main side" "tbl side";grid-template-rows:auto 1fr;gap:var(--sp-3,14px);align-items:start;align-content:start}
-.fp-main{grid-area:main;min-width:0}.fp-tblcard{grid-area:tbl;min-width:0}.fp-side{grid-area:side;display:flex;flex-direction:column;gap:var(--sp-3,14px);min-width:0}
+.fp-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:var(--sp-3,14px)}
+.fp-bar .fp-right{margin-left:auto;display:flex;align-items:center;gap:10px;flex-wrap:wrap;justify-content:flex-end}
+.fp-prod button{white-space:nowrap}
+.fp-block{margin-bottom:var(--sp-3,14px)}
+.fp-pane{display:flex;flex-direction:column;gap:var(--sp-3,14px)}
+.fp-topgrid{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:var(--sp-3,14px);align-items:stretch}
+.fp-split{display:grid;grid-template-columns:minmax(0,6fr) minmax(0,4fr);gap:var(--sp-3,14px);align-items:stretch}
+.fp-split>.fp-main{min-width:0}
+.fp-tblcard{min-width:0;contain:size;display:flex;flex-direction:column}
+.fp-tblcard .fp-tw{flex:1 1 0;min-height:0;max-height:none}
 .fp-hd{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px;flex-wrap:wrap}
 .fp-hd h3,.fp-card h3,.fp-card h4{margin:0;font-size:15px;color:var(--ink)}
-.fp-chart{height:360px;width:100%}
+.fp-chart{height:clamp(230px,calc(100vh - 500px),360px);width:100%}
+.fp-stale{font-size:12px;font-weight:700;padding:1px 8px;border-radius:999px;border:1px solid #F59E0B;color:#F59E0B;white-space:nowrap}
 .fp-note{font-size:12.5px;color:var(--ink-3);margin-top:6px;line-height:1.6}
-.fp-rng{font-size:12.5px;color:var(--ink-3);margin-left:auto;white-space:nowrap}
+.fp-rng{font-size:12.5px;color:var(--ink-3);white-space:nowrap}
 .fp-hint{font-size:12px;color:var(--ink-3);margin:-2px 0 6px}
 .fp-per button[disabled]{opacity:.4;cursor:not-allowed}
 .fp-big3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
@@ -134,9 +155,6 @@
 .fp-tag{flex:0 0 auto;font-size:12px;font-weight:700;padding:1px 8px;border-radius:999px;border:1px solid var(--line);white-space:nowrap}
 .fp-tag.up{background:rgba(255,77,109,.12);border-color:rgba(255,77,109,.4)}.fp-tag.down{background:rgba(46,229,157,.1);border-color:rgba(46,229,157,.4)}
 .fp-disc{font-size:11.5px;color:var(--ink-3);margin-top:8px}
-.fp-how .fp-hb{font-size:13.5px;line-height:1.75;color:var(--ink-2);margin-top:8px}
-.fp-how .fp-hb p{margin:0 0 8px}
-.fp-how h3{cursor:default}
 .fp-tw{max-height:380px;overflow:auto;border:1px solid var(--line);border-radius:10px;touch-action:pan-x pan-y;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
 .fp-tw table{border-collapse:separate;border-spacing:0;width:100%;min-width:max-content;font-size:13px}
 .fp-tw table thead th{position:sticky;top:0;z-index:2;background:var(--panel-2);padding:7px 10px;text-align:right;white-space:nowrap;cursor:pointer;user-select:none;border-bottom:1px solid var(--line);font-weight:600;color:var(--ink-2)}
@@ -147,16 +165,20 @@
 .fp-tw table tbody tr.sel td{background:var(--panel-3);box-shadow:inset 0 1px 0 var(--cyan),inset 0 -1px 0 var(--cyan)}
 .fp-tw th.sorted::after{content:attr(data-arrow);margin-left:4px;color:var(--cyan)}
 .fp-tw tr{cursor:pointer}
+.fp-top{margin:0}
 .fp-top .bigrow{display:flex;gap:18px;align-items:flex-end;flex-wrap:wrap}
 .fp-top .lab{font-size:13px;color:var(--ink-3)}.fp-top .lab b{color:var(--ink-2);font-weight:600}
 .fp-top .bignum{font:700 40px/1.15 'JetBrains Mono',monospace;white-space:nowrap}
 .fp-top .delta{font-size:13px;color:var(--ink-3);white-space:nowrap}
-.fp-top .sum{flex:1 1 280px;min-width:0;font-size:14px;line-height:1.7;color:var(--ink-2)}
+.fp-top .sum{flex:1 1 220px;min-width:0;font-size:13.5px;line-height:1.7;color:var(--ink-2)}
 .fp-top .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px;border-top:1px solid var(--line);padding-top:10px}
 .fp-top .stats .l{font-size:12.5px;color:var(--ink-3)}.fp-top .stats .v{font:700 19px/1.3 'JetBrains Mono',monospace;white-space:nowrap}
-.fp-top{margin-bottom:var(--sp-3,14px)}
+/* 窄畫面（含手機）：並排改上下，順序＝數字卡 → 圖 → 自動解讀 → 明細表 */
 @media (max-width:900px){
- .fp-grid{display:flex;flex-direction:column}.fp-side{display:contents}
+ .fp-pane{display:flex}.fp-topgrid,.fp-split{display:contents}
+ .fp-latest,.fp-top{order:1}.fp-main{order:2}.fp-auto{order:3}.fp-tblcard{order:4;contain:none;display:block}
+ .fp-tblcard .fp-tw{max-height:380px}
+ .fp-bar .fp-right{margin-left:0}
 }`;
     document.head.appendChild(st);
   }
@@ -172,12 +194,14 @@
       <p>不是買賣建議。資料來源：臺灣期貨交易所公布的微型臺指期貨未平倉與三大法人資料，經本站整理${src ? '（' + esc(src) + '）' : ''}。</p>`,
   };
 
-  /* ---------------- 主流程：一頁兩區（CEO 10-20 裁定合成 #market/fut） ----------------
-     P＝整頁共用狀態：期間（一組 .seg 週期鈕）、焦點日期（hov 滑過／lock 鎖定）、共用日期軸 axis。
-     兩區各自一份 sec（rows、排序、表格列索引）。微台資料比台指期短 → 同一條日期軸上微台那段沒資料的日子留白，區內寫「資料自 YYYY-MM 起」。*/
-  const P = { per: '6m', hov: null, lock: null, pers: [], secs: {}, axis: [], first: '' };
+  /* ---------------- 主流程：一頁一個商品、分段開關切換（Andy 10-20） ----------------
+     P＝整頁共用狀態：商品 kind、期間（一組 .seg 週期鈕）、焦點日期（hov 滑過／lock 鎖定）、日期軸 axis。
+     切商品時下面「數字卡＋自動解讀＋圖＋明細表＋說明」整塊換成那個商品，同一個位置，不再上下堆兩區。
+     商品選擇只記在這支檔的變數（同一次瀏覽內重畫、換主題都保留；離開再回來沿用上次，不寫 localStorage）。*/
+  const P = { kind: 'futoi', per: '6m', hov: null, lock: null, pers: [], secs: {}, axis: [], first: '' };
   let seq = 0;
-  const SECS = { futoi: { file: 'fut_oi', snap: 'fut-oi', title: '台指期三大法人未平倉' }, retail: { file: 'retail_ratio', snap: 'retail-ratio', title: '微台指散戶多空比' } };
+  const SECS = { futoi: { file: 'fut_oi', snap: 'fut-oi', title: '台指期三大法人未平倉', how: '台指期三大法人未平倉怎麼看？' }, retail: { file: 'retail_ratio', snap: 'retail-ratio', title: '微台指散戶多空比', how: '什麼是散戶多空比？' } };
+  const HOWKEYS = ['futoi', 'retail'];
 
   async function draw(kind, body, title) {
     css();
@@ -186,6 +210,7 @@
     body.innerHTML = '<div class="empty">載入中…</div>';
     const [fr, rr] = await Promise.all([A().load('fut_oi', { fallback: null }), A().load('retail_ratio', { fallback: null })]);
     if (my !== seq) return;                       // 等資料的時候使用者已經換頁
+    try { const mt = await A().load('meta', { fallback: null }); P.dataDate = (mt && mt.data_date) || ''; } catch (e) { P.dataDate = ''; }
     const futR = normalize('futoi', fr), retR = normalize('retail', rr);
     P.secs = {};
     if (futR) P.secs.futoi = { K: 'futoi', rows: futR, raw: fr, sort: { k: 'date', d: -1 } };
@@ -196,56 +221,64 @@
       body.dataset.snapReady = '1'; return;
     }
     const all = [].concat(futR || [], retR || []);
-    const first = all.reduce((m, r) => (r.date < m ? r.date : m), '9999'), last = all.reduce((m, r) => (r.date > m ? r.date : m), '0');
-    P.first = first; P.last = last;
-    P.pers = PERIODS.futoi.list.map((p) => { const cut = p[0] === 'all' ? null : cutoffOf(last, p); return { id: p[0], lab: p[1], cut, ok: !cut || addDays(first, 6) <= cut }; });
-    if (!P.pers.find((p) => p.id === P.per).ok) P.per = 'all';
+    P.first = all.reduce((m, r) => (r.date < m ? r.date : m), '9999'); P.last = all.reduce((m, r) => (r.date > m ? r.date : m), '0');
+    P.pers = PERIODS.futoi.list.map((p) => ({ id: p[0], lab: p[1], cut: p[0] === 'all' ? null : cutoffOf(P.last, p) }));
     build(body);
     body.dataset.snapReady = '1';
   }
   const addDays = (d, n) => { const x = new Date(d + 'T00:00:00Z'); x.setUTCDate(x.getUTCDate() + n); return x.toISOString().slice(0, 10); };
+  const firstOf = () => { const S = P.secs[P.kind]; return S ? S.rows[0].date : P.first; };
+  const perOk = (p) => !p.cut || addDays(firstOf(), 6) <= p.cut;
   const cutNow = () => P.pers.find((q) => q.id === P.per).cut;
   const view = (S) => { const c = cutNow(); return c ? S.rows.filter((r) => r.date >= c) : S.rows; };
-  const axisNow = () => {                           // 兩區共用的日期軸＝兩份資料在所選期間內的日期聯集
-    const set = new Set(), c = cutNow();
-    Object.values(P.secs).forEach((S) => S.rows.forEach((r) => { if (!c || r.date >= c) set.add(r.date); }));
-    return Array.from(set).sort();
-  };
+  const act = () => (P.secs[P.kind] ? [P.secs[P.kind]] : []);
+  const axisNow = () => { const S = P.secs[P.kind]; return S ? view(S).map((r) => r.date) : []; };
 
   const COLS = {
     futoi: [['date', '日期'], ['fl', '外資 多方'], ['fs', '外資 空方'], ['fn', '外資 淨部位'], ['tl', '投信 多方'], ['ts', '投信 空方'], ['tn', '投信 淨部位'], ['dl', '自營商 多方'], ['ds', '自營商 空方'], ['dn', '自營商 淨部位']],
     retail: [['date', '日期'], ['tx', '加權指數'], ['l', '散戶多單'], ['s', '散戶空單'], ['n', '散戶淨部位'], ['p', '散戶多空比']],
   };
   const isNet = (k) => k === 'fn' || k === 'tn' || k === 'dn' || k === 'n';
-  const secHead = (t, extra) => `<div class="fp-sec"><h2>${t}</h2>${extra || ''}</div>`;
-  const emptyCard = (K) => `<div class="card fp-card" data-snap="${SECS[K].snap}"><div class="empty">資料準備中</div></div>`;
+  const emptyCard = (K) => `<section class="fp-block" data-snap="${SECS[K].snap}"><div class="card fp-card"><div class="empty">資料準備中</div></div></section>`;
 
-  function sectionHtml(K, S) {
-    const how = (t) => `<div class="card fp-card fp-how fp-fold" id="fpHow-${K}"><h3>${t}</h3><div class="fp-hb">${HOW[K](S.raw.source)}</div></div>`;
+  function paneHtml(K, S) {
+    const num = K === 'futoi'
+      ? '<div class="card fp-card fp-latest" id="fpLatest"><h4 id="fpLatT"></h4><div class="fp-big3" id="fpBig3"></div></div>'
+      : '<div class="card fp-card fp-top" id="fpTop"></div>';
     const auto = `<div class="card fp-card fp-auto" id="fpAuto-${K}"><h3>自動解讀</h3><ul id="fpAutoUl-${K}"></ul><div class="fp-disc">依資料自動產生、只陳述數字，不構成投資建議。</div></div>`;
     const tbl = `<div class="card fp-card fp-tblcard"><div class="fp-hd"><h3>每日明細</h3><span class="fp-hint" style="margin:0">點欄名排序・點一列鎖定那一天</span></div><div class="fp-tw" id="fpTw-${K}" tabindex="0"></div></div>`;
     const hint = `<div class="fp-hint" id="fpHint-${K}"></div>`;
-    if (K === 'futoi') {
-      return `<section class="fp-block" data-snap="fut-oi">${secHead(SECS.futoi.title)}<div class="fp-grid">
-        <div class="card fp-card fp-main"><div class="fp-hd"><h3>每日淨未平倉</h3></div>${hint}
-          <div id="fpChart-futoi" class="chart fp-chart"></div><div class="fp-note">多方未平倉－空方未平倉，單位：口。紅＝淨多、綠＝淨空。</div></div>
-        <div class="fp-side"><div class="card fp-card fp-latest" id="fpLatest"><h4 id="fpLatT"></h4><div class="fp-big3" id="fpBig3"></div></div>
-          ${auto}${how('台指期三大法人未平倉怎麼看？')}</div>${tbl}</div></section>`;
-    }
     const bs = S.raw.product === 'TMF' || !S.raw.product ? '微台（TMF）' : esc(S.raw.product);
-    return `<section class="fp-block" data-snap="retail-ratio">${secHead(SECS.retail.title, `<span class="fp-sub" id="fpSub" style="margin:0">${bs}資料回溯至 ${S.rows[0].date.slice(0, 7)}</span>`)}
-      <div class="card fp-card fp-top" id="fpTop"></div><div class="fp-grid">
-        <div class="card fp-card fp-main"><div class="fp-hd"><h3>散戶多空比・加權指數</h3></div>${hint}
-          <div id="fpChart-retail" class="chart fp-chart"></div>
-          <div class="fp-note">散戶多單／空單＝全市場未平倉－三大法人同方向未平倉；多空比＝（多單－空單）÷全市場未平倉×100%。紅柱＝偏多、綠柱＝偏空，虛線＝結算日。</div></div>
-        <div class="fp-side">${auto}${how('什麼是散戶多空比？')}</div>${tbl}</div></section>`;
+    const chart = K === 'futoi'
+      ? `<div class="card fp-card fp-main"><div class="fp-hd"><h3>每日淨未平倉</h3><span class="fp-hint" style="margin:0">淨部位＝多方－空方，單位：口</span></div>${hint}
+          <div id="fpChart-futoi" class="chart fp-chart"></div></div>`
+      : `<div class="card fp-card fp-main"><div class="fp-hd"><h3>散戶多空比・加權指數</h3><span class="fp-hint" id="fpSub" style="margin:0" title="散戶多單／空單＝全市場未平倉－三大法人同方向未平倉；多空比＝（多單－空單）÷全市場未平倉×100%；虛線＝結算日">${bs}資料回溯至 ${S.rows[0].date.slice(0, 7)}・虛線＝結算日</span></div>${hint}
+          <div id="fpChart-retail" class="chart fp-chart"></div></div>`;
+    return `<section class="fp-block fp-pane" data-snap="${SECS[K].snap}"><div class="fp-topgrid">${num}${auto}</div><div class="fp-split">${chart}${tbl}</div></section>`;
   }
 
   function build(body) {
-    const segHtml = `<div class="seg tiny fp-per" role="group" aria-label="期間">${P.pers.map((p) => `<button type="button" data-per="${p.id}" class="${p.id === P.per ? 'on' : ''}"${p.ok ? '' : ` disabled title="資料只回溯到 ${P.first}，不足這個期間"`}>${p.lab}</button>`).join('')}</div>`;
-    body.innerHTML = `<div class="fp-bar"><span class="fp-rng" id="fpRng"></span>${segHtml}</div>`
-      + ['futoi', 'retail'].map((K) => (P.secs[K] ? sectionHtml(K, P.secs[K]) : `<section class="fp-block">${secHead(SECS[K].title)}${emptyCard(K)}</section>`)).join('');
-    wire(body);
+    const prod = `<div class="seg fp-prod" role="group" aria-label="商品">${HOWKEYS.map((k) => `<button type="button" data-k="${k}" class="${k === P.kind ? 'on' : ''}">${SECS[k].title}</button>`).join('')}</div>`;
+    const per = `<div class="seg tiny fp-per" role="group" aria-label="期間">${P.pers.map((p) => `<button type="button" data-per="${p.id}">${p.lab}</button>`).join('')}</div>`;
+    body.innerHTML = `<div class="fp-bar">${prod}<button class="howbtn pop" id="fpHowBtn" data-how="fut-how" data-ttl="" type="button" aria-label="怎麼看">?</button><div class="fp-right"><span class="fp-stale" id="fpStale" hidden title="資料日比最近一個交易日舊，雲端管線還沒更新到">資料未更新</span><span class="fp-rng" id="fpRng"></span>${per}</div></div>`
+      + '<div class="howtxt" id="how-fut-how" hidden><div class="howbody"></div></div><div id="fpPaneBox"></div>';
+    wireBar(body);
+    showKind(body);
+  }
+  /* 換商品：把舊的圖收掉、整塊內容換成另一個商品（同一個位置） */
+  function showKind(body) {
+    const box = $('#fpPaneBox', body), K = P.kind, S = P.secs[K];
+    $$('[_echarts_instance_]', box).forEach((d) => { try { const i = window.echarts.getInstanceByDom(d); if (i && !i.isDisposed()) i.dispose(); } catch (e) { /* 已收掉 */ } });
+    $$('.fp-prod button', body).forEach((x) => x.classList.toggle('on', x.dataset.k === K));
+    const hb = $('#fpHowBtn', body); hb.dataset.ttl = SECS[K].how; hb.setAttribute('aria-label', SECS[K].how);
+    $('#how-fut-how .howbody', body).innerHTML = S ? HOW[K](S.raw.source) : '<p>資料準備中。</p>';
+    P.hov = null; P.lock = null;
+    if (!perOk(P.pers.find((p) => p.id === P.per))) P.per = 'all';
+    $$('.fp-per button', body).forEach((b) => { const p = P.pers.find((q) => q.id === b.dataset.per), ok = perOk(p); b.disabled = !ok; b.title = ok ? '' : `資料只回溯到 ${firstOf()}，不足這個期間`; b.classList.toggle('on', p.id === P.per); });
+    { const st = $('#fpStale', body), dd = S && (S.raw.asof || S.rows[S.rows.length - 1].date); if (st) st.hidden = !(dd && P.dataDate && dd < P.dataDate); }
+    if (!S) { box.innerHTML = emptyCard(K); return; }
+    box.innerHTML = paneHtml(K, S);
+    wirePane(box, S);
     paintAll();
   }
 
@@ -264,13 +297,10 @@
       const mk = (id, nm, key, color) => ({ id, name: nm, type: 'line', showSymbol: false, smooth: false, connectNulls: false, lineStyle: { width: 2, color }, itemStyle: { color }, data: val(key) });
       return Object.assign(base, {
         yAxis: { type: 'value', scale: true, axisLabel: { color: c.ink3, formatter: (x) => (Math.abs(x) >= 1e4 ? (x / 1e4).toFixed(1) + '萬' : x) }, splitLine: { lineStyle: { color: c.line, opacity: .5 } } },
-        series: [mk('f', '外資', 'fn', c.cyan), mk('t', '投信', 'tn', c.amber), mk('d', '自營商', 'dn', c.violet)],
+        series: [mk('f', '外資', 'fn', PAL.f), mk('t', '投信', 'tn', PAL.t), mk('d', '自營商', 'dn', PAL.d)],
         tooltip: Object.assign(base.tooltip, { valueFormatter: (x) => sg(x) + ' 口' }),
       });
     }
-    const grad = (rgb, rev) => ({ type: 'linear', x: 0, y: 0, x2: 0, y2: 1, colorStops: rev ? [{ offset: 0, color: rgb + '73' }, { offset: 1, color: rgb }] : [{ offset: 0, color: rgb }, { offset: 1, color: rgb + '73' }] });
-    const hexOk = (h) => /^#[0-9a-f]{6}$/i.test(h);
-    const cu = hexOk(c.up) ? c.up : '#ff4d6d', cd = hexOk(c.down) ? c.down : '#2ee59d';
     const ps = val('p');
     return Object.assign(base, {
       yAxis: [
@@ -278,8 +308,8 @@
         { type: 'value', scale: true, axisLabel: { color: c.ink3 }, splitLine: { show: false } },
       ],
       series: [
-        { id: 'bar', name: '散戶多空比', type: 'bar', barMaxWidth: 18, data: ps.map((p) => (p == null ? null : { value: p, itemStyle: { color: p >= 0 ? grad(cu, false) : grad(cd, true) } })) },
-        { id: 'tx', name: '加權指數', type: 'line', yAxisIndex: 1, showSymbol: false, lineStyle: { width: 1.6, color: c.ink }, itemStyle: { color: c.ink }, data: val('tx') },
+        { id: 'bar', name: '散戶多空比', type: 'bar', barMaxWidth: 18, itemStyle: { color: PAL.r, opacity: 1 }, data: ps },
+        { id: 'tx', name: '加權指數', type: 'line', yAxisIndex: 1, showSymbol: false, lineStyle: { width: 2, color: txColor() }, itemStyle: { color: txColor() }, data: val('tx') },
       ],
       tooltip: Object.assign(base.tooltip, { valueFormatter: (x) => (x == null ? '—' : x) }),
     });
@@ -341,7 +371,7 @@
   const focusDate = () => P.lock || P.hov;
   function focusRow(S) { const f = focusDate(), v = view(S); return (f && v.find((r) => r.date === f)) || null; }
   function paintNumbers() {
-    const f = focusDate(), S1 = P.secs.futoi, S2 = P.secs.retail;
+    const f = focusDate(), S1 = P.kind === 'futoi' ? P.secs.futoi : null, S2 = P.kind === 'retail' ? P.secs.retail : null;
     if (S1) {
       const v = view(S1), r = focusRow(S1) || v[v.length - 1], isLast = !f;
       $('#fpLatT').innerHTML = `${isLast ? '最新一日' : (P.lock ? '鎖定日' : '滑過日')}淨未平倉 <span class="muted" style="font-weight:400">${r.date}</span>`;
@@ -361,25 +391,24 @@
     }
   }
   function paintAuto() {
-    Object.values(P.secs).forEach((S) => {
+    act().forEach((S) => {
       const v = view(S), items = S.K === 'futoi' ? readFut(S.rows, v) : readRetail(S.rows, v);
       $('#fpAutoUl-' + S.K).innerHTML = items.map((x) => `<li><span class="fp-tag ${x.c}">${x.tag}</span><span>${esc(x.t)}</span></li>`).join('');
     });
   }
   function paintHints() {
-    const bad = P.pers.filter((p) => !p.ok).map((p) => p.lab);
-    Object.values(P.secs).forEach((S) => {
+    const bad = P.pers.filter((p) => !perOk(p)).map((p) => p.lab);
+    act().forEach((S) => {
       const h = $('#fpHint-' + S.K); if (!h) return;
-      const c = cutNow(), short = S.rows[0].date > addDays(c || P.first, 6);
-      h.hidden = !short && !(bad.length && S.K === 'futoi');
-      h.textContent = short ? `資料自 ${S.rows[0].date.slice(0, 7)} 起（所選期間更早的日子沒有資料）` : (bad.length ? `${bad.join('、')}：資料只回溯到 ${P.first}，期間不足（按鈕反灰）` : '');
+      h.hidden = !bad.length;
+      h.textContent = bad.length ? `${bad.join('、')}：資料只回溯到 ${S.rows[0].date}，期間不足（按鈕反灰）` : '';
     });
   }
 
   /* 焦點日期改變：兩區一起更新大數字、圖上標示線、表格列亮起（不重畫整張表／圖） */
   function apply(fromClick) {
     paintNumbers();
-    Object.values(P.secs).forEach((S) => {
+    act().forEach((S) => {
       const el = $('#fpChart-' + S.K), ch = el && window.echarts ? window.echarts.getInstanceByDom(el) : null;
       if (ch) ch.setOption({ series: [{ id: S.K === 'futoi' ? 'f' : 'bar', markLine: marks(S.K) }] });
       const rows = S.rowEls || {};
@@ -396,14 +425,17 @@
   }
   function paintAll() {
     P.axis = axisNow();
-    { const r = $('#fpRng'); if (r) r.textContent = P.axis[0] + '～' + P.axis[P.axis.length - 1]; }
+    { const r = $('#fpRng'); if (r && P.axis.length) r.textContent = P.axis[0] + '～' + P.axis[P.axis.length - 1]; }
     paintHints(); paintNumbers(); paintAuto();
-    Object.values(P.secs).forEach((S) => { drawChart(S); drawTable(S); });
+    act().forEach((S) => { drawChart(S); drawTable(S); });
     apply(false);
   }
 
   /* ---- 事件 ---- */
-  function wire(body) {
+  function wireBar(body) {
+    $$('.fp-prod button', body).forEach((b) => {
+      b.onclick = () => { if (b.dataset.k === P.kind) return; P.kind = b.dataset.k; showKind(body); };
+    });
     $$('.fp-per button', body).forEach((b) => {
       b.onclick = () => {
         if (b.disabled) return;
@@ -414,19 +446,17 @@
         paintAll();
       };
     });
-    Object.values(P.secs).forEach((S) => {
-      const tw = $('#fpTw-' + S.K, body);
-      tw.onclick = (e) => {
-        const th = e.target.closest('th');
-        if (th) { const k = th.dataset.k; S.sort = S.sort.k === k ? { k, d: -S.sort.d } : { k, d: -1 }; drawTable(S); apply(false); return; }
-        const tr = e.target.closest('tr[data-d]');
-        if (tr) { const d = tr.dataset.d; P.lock = P.lock === d ? null : d; P.hov = null; P.fromRow = true; apply(true); }
-      };
-      tw.onmouseover = (e) => { const tr = e.target.closest('tbody tr[data-d]'); if (tr && tr.dataset.d !== P.hov) { P.fromRow = true; P.hov = tr.dataset.d; apply(false); } };
-      tw.onmouseleave = () => { if (P.hov) { P.hov = null; apply(false); } };
-      const how = $('#fpHow-' + S.K, body);
-      if (how) $('h3', how).onclick = () => { if (isM()) how.classList.toggle('open'); };   // 手機說明卡預設收起
-    });
+  }
+  function wirePane(box, S) {
+    const tw = $('#fpTw-' + S.K, box);
+    tw.onclick = (e) => {
+      const th = e.target.closest('th');
+      if (th) { const k = th.dataset.k; S.sort = S.sort.k === k ? { k, d: -S.sort.d } : { k, d: -1 }; drawTable(S); apply(false); return; }
+      const tr = e.target.closest('tr[data-d]');
+      if (tr) { const d = tr.dataset.d; P.lock = P.lock === d ? null : d; P.hov = null; P.fromRow = true; apply(true); }
+    };
+    tw.onmouseover = (e) => { const tr = e.target.closest('tbody tr[data-d]'); if (tr && tr.dataset.d !== P.hov) { P.fromRow = true; P.hov = tr.dataset.d; apply(false); } };
+    tw.onmouseleave = () => { if (P.hov) { P.hov = null; apply(false); } };
   }
 
   if (!window.TwSnapReady) window.TwSnapReady = () => Promise.resolve();   // origin/main 還沒有快照就緒掛鉤時的最小保底

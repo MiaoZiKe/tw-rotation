@@ -4215,6 +4215,9 @@
     // 法人連買賣的讀法在那張卡自己的 trust「?」；頁級 mkt 那顆在這一頁藏起來，不讓同一張卡標題出現兩顆內容重疊的「?」
     { const mb = $('.howbtn[data-how="mkt"]'); if (mb) mb.style.display = kind === 'inst' ? 'none' : ''; }
     $$('#mktSeg2 button').forEach(b => b.classList.toggle('on', b.dataset.k === kind));
+    /* 2026-10-20（Andy：「上方已經有標題了，拿掉」）：期貨籌碼／三大法人／信用交易三頁，頁首已寫「市場明細 xxx」，
+       卡內那條「市場明細：xxx ?」重複 → 加 .mkt-notitle 把它藏起來（樣式在 futpages.js 的 fpGlobalCss；其他頁不變）。「?」各頁卡內自有。 */
+    { const card = $('#v-market > .card'); if (card) card.classList.toggle('mkt-notitle', kind === 'fut' || kind === 'inst' || kind === 'credit'); }
     // 標題列右側的免責：只有「今日候選」這一頁有 A／B 判定，其他分頁是事實統計，不掛（2026-10-06）
     { const dz = $('#mktDisc'); if (dz) { dz.hidden = kind !== 'cand'; if (kind === 'cand') fillDisc(dz.parentElement); } }
     const heat = D.market_heat || {}, b = heat.breadth || {}, mv = b.movers || {};
