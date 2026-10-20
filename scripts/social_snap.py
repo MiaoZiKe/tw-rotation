@@ -83,6 +83,17 @@ BREADTH_TALL = ("(el) => { const h = 820; ['#chgDistBox', '#chgDist'].forEach(i 
                 " const ch = document.querySelector('#chgDist'); const c = window.echarts && ch && echarts.getInstanceByDom(ch); if (c) c.resize(); }")
 HEAT_TALL = ("(el) => { const h = 660; const ch = document.querySelector('#indTree'); [document.querySelector('#indTreeWrap'), ch].forEach(e => e && e.style.setProperty('height', h + 'px', 'important'));"
              " const c = window.echarts && ch && echarts.getInstanceByDom(ch); if (c) c.resize(); }")
+FILL_JS = """([el, a]) => {   // 把卡片拉到 a.want（css px）高：差額加在 a.charts 的圖表容器上，echarts／lightweight-charts 都重畫（不是拉伸點陣圖）
+  const delta = a.want - el.getBoundingClientRect().height;
+  a.charts.forEach(sel => { const e = el.querySelector(sel) || document.querySelector(sel); if (!e) return;
+    const h = Math.max(120, Math.round(e.getBoundingClientRect().height + delta));
+    e.style.setProperty('height', h + 'px', 'important'); e.style.setProperty('min-height', h + 'px', 'important'); });
+  if (window.echarts) document.querySelectorAll('[_echarts_instance_]').forEach(e => { const c = echarts.getInstanceByDom(e); if (c) c.resize(); });
+  window.dispatchEvent(new Event('resize'));
+  return el.getBoundingClientRect().height;
+}"""
+STORY_HEAT_VW, STORY_HEAT_DSF = 700, 2.4     # 熱力圖限動版：窄桌機視窗（>640 仍是桌機版面），方塊變大、字放大後更清楚
+STORY_RATIO = 1.6      # 限動截圖目標高寬比（1005×1608，剛好填滿卡片）
 ROT_UNCHECK = """async (el) => {   // 把「顯示軌跡／顯示腳印／水波／掃描」全部取消勾選，只留點與標籤
   const wait = ms => new Promise(r => setTimeout(r, ms));
   const find = () => [...document.querySelectorAll('input[type=checkbox]')].filter(i => /顯示軌跡|顯示腳印|水波|掃描/.test(((i.closest('label') || i.parentElement || {}).textContent) || ''));
@@ -113,20 +124,20 @@ TARGETS = [
     # 熱力圖：桌機網頁版（1440）上＝產業「整個台股一次看」、下＝題材資金熱力，合成一張（Threads 與限動共用這張）
     dict(name="heat", kind="intraday", label="資金熱力圖", route="heatmap/industry", card="#indTreeWrap",
          parts=[dict(name="heat-industry", route="heatmap/industry", card="#indTreeWrap", closest_card=True, live="auto", live_ok=None,
-                     hide=[".howbtn"]),
-                dict(name="heat-theme", route="heatmap/theme", card="#themeMapCard", live="auto", live_ok=None, hide=[".howbtn"])],
+                     hide=[".howbtn"], fill=dict(frac=0.60, charts=["#indTreeWrap", "#indTree"])),
+                dict(name="heat-theme", route="heatmap/theme", card="#themeMapCard", live="auto", live_ok=None, hide=[".howbtn"], fill=dict(frac=0.40, charts=["#themeMap"]))],
          live="auto", live_ok=None, headline=None, d=[dict(name="heat", title="資金熱力圖")], m=[]),
     dict(name="market-index", kind="intraday", label="大盤走勢", route="overview", card="#m3Frame",
          live=".livetg",
          live_ok="() => { const b = document.querySelector('.livetg'); const f = document.querySelector('#m3Frame');"
                  " return !!b && !!f && (b.classList.contains('on') || b.getAttribute('aria-pressed') === 'true') && !/連不到|抓不到|失敗|逾時/.test(f.innerText); }",
          headline=None, d=[dict(name="market-index", hide=[".howbtn"], hide_exact=["~即時"])],
-         m=[dict(name="market-index", hide=[".howbtn"], hide_exact=["~即時"])]),
+         m=[dict(name="market-index", hide=[".howbtn"], hide_exact=["~即時"], fill=dict(frac=1.0, charts=[".m3-chart", ".tv-lightweight-charts"]))]),
     dict(name="market-breadth", kind="intraday", label="漲跌家數", route="market/updown", card=".mktdist", closest_card=True,
          live="#mktMode button[data-m=live]",
          live_ok="() => { const n = document.querySelector('#mktLive');"
                  " return !!n && !n.hidden && !/抓取中|抓不到|失敗|逾時|連不到/.test(n.innerText); }",
-         headline=None, d=[dict(name="market-breadth", hide=[".howbtn"])], m=[dict(name="market-breadth", hide=[".howbtn", "#distFilter"])]),
+         headline=None, d=[dict(name="market-breadth", hide=[".howbtn"])], m=[dict(name="market-breadth", hide=[".howbtn", "#distFilter"], fill=dict(frac=1.0, charts=["#chgDistBox", "#chgDist"]))]),
     # 盤後（法人資料要收盤後證交所公布才有，沒有即時版，所以另一篇發，不放進盤中那篇）
     dict(name="streak-trust", kind="close", label="法人連續買賣超｜投信", route="market/streak",
          card="#mktBody", closest_card=True, live=None, live_ok=None, headline=None, streak_who="trust",
@@ -544,6 +555,10 @@ def shoot_piece(pg, card_el, pc: dict, raw_dir: Path, mode: str, dsf: float) -> 
         pg.wait_for_timeout(900)
     pg.evaluate(HIDE_JS, [pg.query_selector(pc["root_sel"]) if pc.get("root_sel") else tgt, {"css": pc.get("hide", []) + [".zbadge", ".echarts-tooltip"], "text": pc.get("hide_text", []), "exact": pc.get("hide_exact", []), "scrub": pc.get("scrub", [])}])
     pg.evaluate("() => { if (window.echarts) document.querySelectorAll('[_echarts_instance_]').forEach(e => { const c = echarts.getInstanceByDom(e); if (c) c.dispatchAction({ type: 'hideTip' }); }); }")
+    if mode == "m" and pc.get("fill"):
+        bb = tgt.bounding_box()
+        pg.evaluate(FILL_JS, [tgt, {"want": bb["width"] * STORY_RATIO * pc["fill"]["frac"], "charts": pc["fill"]["charts"]}])
+        pg.wait_for_timeout(1200)
     if mode == "m" and pc.get("pre_m"):
         pg.evaluate(pc["pre_m"], tgt)
         pg.wait_for_timeout(900)
@@ -667,6 +682,39 @@ def snap_targets(args, base: str, out: Path, today_ymd: str) -> tuple[list[dict]
                 continue
             t = next(x for x in TARGETS if x["name"] == info["name"])
             if t.get("parts"):
+                try:
+                    story_args = argparse.Namespace(**{**vars(args), "width": STORY_HEAT_VW, "scale": STORY_HEAT_DSF})
+                    sctx, spg = open_ctx(browser, base, story_args, today_ymd, sniff, False, STORY_HEAT_DSF)
+                    pw = None
+                    out_recs = []
+                    for part in t["parts"]:          # 一張一張處理（換路由後前一張的元素就失效）
+                        pinfo = {}
+                        pel = prepare(spg, part, pinfo)
+                        if pel is None:
+                            raise RuntimeError(f"{part['name']}：{pinfo.get('why')}")
+                        pw = pw or pel.bounding_box()["width"]
+                        total = pw * STORY_RATIO - 12
+                        pel.evaluate("e => e.scrollIntoView({block: 'start'})")
+                        spg.evaluate(FILL_JS, [pel, {"want": total * part["fill"]["frac"], "charts": part["fill"]["charts"]}])
+                        spg.wait_for_timeout(1500)
+                        out_recs.append(shoot_piece(spg, pel, dict(name=part["name"], hide=part.get("hide", [])), raw_dir, "m", STORY_HEAT_DSF))
+                    from PIL import Image
+                    ims = [Image.open(r["raw"]).convert("RGB") for r in out_recs]
+                    W = max(i.width for i in ims)
+                    gap = int(12 * STORY_HEAT_DSF)
+                    sheet = Image.new("RGB", (W, sum(i.height for i in ims) + gap * (len(ims) - 1)), (244, 243, 239))
+                    y = 0
+                    for im in ims:
+                        sheet.paste(im, ((W - im.width) // 2, y))
+                        y += im.height + gap
+                    path = raw_dir / "m_heat.png"
+                    sheet.save(path)
+                    info["pieces_m"] = [{"name": "heat", "raw": str(path), "dsf": STORY_HEAT_DSF, "min_css_font": min(r["min_css_font"] for r in out_recs),
+                                         "title": t["label"], "text": None, "jishi": [x for r in out_recs for x in r["jishi"]]}]
+                    log("限動版截到 heat（窄視窗", STORY_HEAT_VW, "）")
+                    sctx.close()
+                except Exception as exc:  # noqa: BLE001
+                    info["story_why"] = f"限動熱力圖例外：{str(exc)[:100]}"
                 continue
             try:
                 el = prepare(pg, t, {})
