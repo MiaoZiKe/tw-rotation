@@ -76,15 +76,16 @@ def t_futpages_1020(b, base, code):
         if w > 640:
             ok(f"{tag}：期間鈕靠右（右緣貼近內容區右緣）", abs((per["x"] + per["width"]) - (bar["x"] + bar["width"])) < 6, [per["x"] + per["width"], bar["x"] + bar["width"]])
         ok(f"{tag}：整頁只有一組期間鈕、預設「6月」", pg.locator(".fp-per").count() == 1 and pg.locator(".fp-per button.on").inner_text() == "6月")
-        ok(f"{tag}：說明改成頂列「?」、頁面上沒有說明卡", pg.locator("#fpHowBtn").count() == 1 and pg.locator(".fp-how").count() == 0)
+        ok(f"{tag}：說明改成頂列「?」、頁面上沒有說明卡", pg.locator("#fpHowBtn").count() == 1 and pg.locator(".fp-how, .fp-auto, .fp-note").count() == 0)
         # ---- 版面位置 ----
-        num, aut, ch, tb = bb("#fpLatest"), bb("#fpAuto-futoi"), bb("#fpChart-futoi"), bb(".fp-tblcard")
+        num, ch, tb = bb("#fpLatest"), bb("#fpChart-futoi"), bb(".fp-tblcard")
         cc = bb(".fp-main")
         if w > 900:
-            ok(f"{tag}：數字卡與自動解讀同一列並排", abs(num["y"] - aut["y"]) < 3 and num["x"] < aut["x"], [num, aut])
+            ok(f"{tag}：數字卡下方一行結論（最多兩行）、完整解讀進「?」", pg.locator("#fpConcl").inner_text().strip() != "" and pg.evaluate("() => document.getElementById('fpConcl').getBoundingClientRect().height") <= 50 and pg.locator("#fpAutoUl-futoi li").count() >= 2)
             ok(f"{tag}：圖與明細表左右並排、等高（6:4）", abs(cc["y"] - tb["y"]) < 3 and cc["x"] < tb["x"] and abs(cc["height"] - tb["height"]) < 4 and 1.2 < cc["width"] / tb["width"] < 2.0, [cc, tb])
             ok(f"{tag}：上方一列在圖的上面、沒有右側欄", num["y"] + num["height"] <= cc["y"] + 1 and (tb["x"] + tb["width"]) <= 1440 and not pg.locator(".fp-side").count(), [num, cc])
-            ok(f"{tag}：右側沒有大片空白（表格卡右緣＝圖卡右緣區）", abs((tb["x"] + tb["width"]) - (aut["x"] + aut["width"])) < 4, [tb, aut])
+            ok(f"{tag}：桌機 1440×900 第一屏看完期間鈕、數字卡、主圖與明細表", tb["y"] + tb["height"] <= 900 and cc["y"] + cc["height"] <= 900 and bb(".fp-per")["y"] < 200, [cc, tb])
+            ok(f"{tag}：畫面上沒有日期範圍與「資料回溯至」字樣", "資料回溯" not in pg.locator("#mktBody").inner_text() and not __import__("re").search(r"\d{4}-\d\d-\d\d～", pg.locator("#mktBody").inner_text()))
         # ---- 期間鈕真的按 ----
         seen = {}
         for lab in ["1月", "3月", "6月", "1年", "3年", "5年", "全部"]:
@@ -124,10 +125,13 @@ def t_futpages_1020(b, base, code):
         sc = pg.evaluate("() => { const e = document.getElementById('fpTw-futoi'); e.scrollTop = 60; e.scrollLeft = 40; return {st: e.scrollTop, ch: e.clientHeight, sl: e.scrollLeft, wide: e.scrollWidth > e.clientWidth}; }")
         ok(f"{tag}：台指期表格內部可捲、高度固定", sc["st"] > 0 and sc["ch"] <= 420 and (sc["sl"] > 0 or not sc["wide"]), sc)
         ok(f"{tag}：台指期自動解讀有內容、數字卡三格", pg.locator("#fpAutoUl-futoi li").count() >= 2 and pg.locator("#fpBig3 .v").count() == 3)
+        cl = pg.evaluate("() => echarts.getInstanceByDom(document.getElementById('fpChart-futoi')).getOption().series.map(x => [x.lineStyle.color, x.lineStyle.width])")
+        ok(f"{tag}：台指期三條線＝外資藍／投信橘／自營紫、線寬 2", [x[0].upper() for x in cl] == ["#2563EB", "#F97316", "#A855F7"] and all(x[1] == 2 for x in cl), cl)
+        ok(f"{tag}：台指期表格 3 欄淨部位＋合計、不橫向捲", pg.evaluate("() => { const e = document.getElementById('fpTw-futoi'); return Array.from(e.querySelectorAll('thead th')).length === 5 && (innerWidth < 900 || e.scrollWidth <= e.clientWidth + 2); }"))
         # ---- 「?」彈窗（台指期） ----
         pg.locator("#fpHowBtn").click(); pg.wait_for_timeout(300)
         pop = pg.evaluate("() => { const p = document.getElementById('howPop'); return p && !p.hidden ? p.innerText : ''; }")
-        ok(f"{tag}：「?」開說明彈窗，內容是台指期（含資料來源）", "淨部位" in pop and "資料來源" in pop and "台指期三大法人未平倉怎麼看" in pop and "散戶多空比是用" not in pop, pop[:80])
+        ok(f"{tag}：「?」開說明彈窗，內容是台指期（含資料來源）", "淨部位" in pop and "資料來源" in pop and "台指期三大法人未平倉怎麼看" in pop and "自動解讀" in pop and "散戶多空比是用" not in pop, pop[:80])
         pg.keyboard.press("Escape"); pg.wait_for_timeout(250)
         ok(f"{tag}：Esc 關掉說明彈窗", pg.evaluate("() => { const p = document.getElementById('howPop'); return !p || p.hidden; }"))
         # ---- 切到微台：同一位置、內容全換 ----
@@ -143,8 +147,10 @@ def t_futpages_1020(b, base, code):
             ok(f"{tag}：明細表欄位換成散戶多單／空單／多空比", "散戶多空比" in cols and "外資 淨部位" not in cols, cols)
             top = pg.locator("#fpTop").inner_text()
             ok(f"{tag}：數字卡換成多空比大數字（較前一交易日 pp）", "較前一交易日" in top and "pp" in top and "%" in top, top[:90])
-            ok(f"{tag}：自動解讀換成散戶內容", "散戶" in pg.locator("#fpAutoUl-retail").inner_text(), pg.locator("#fpAutoUl-retail").inner_text()[:60])
-            ok(f"{tag}：小字寫微台資料回溯月份", "2024-06" in pg.locator("#fpSub").inner_text())
+            ok(f"{tag}：自動解讀換成散戶內容（在「?」裡）", "散戶" in pg.locator("#fpAutoUl-retail").inner_text(), pg.locator("#fpAutoUl-retail").inner_text()[:60])
+            bc = pg.evaluate("() => { const m = echarts.getInstanceByDom(document.getElementById('fpChart-retail')).getModel(); const v = m.getSeriesByIndex(0).getData().getVisual('style'); return [String(v.fill) + (v.opacity != null ? '|' + v.opacity : ''), '' + (m.getSeriesByIndex(1).get('lineStyle').width)]; }")
+            ok(f"{tag}：微台柱子實色（散戶青綠、不漸層）、加權線寬 2", bc[0].startswith("hsl(17") and bc[1] == "2", bc)
+            ok(f"{tag}：微台反灰的期間鈕 title 寫資料回溯到哪（畫面不寫）", "2024-06" in (pg.locator(".fp-per button", has_text="5年").first.get_attribute("title") or ""))
             ok(f"{tag}：微台只能選資料夠長的期間（5年反灰、全部可按）", pg.locator(".fp-per button", has_text="5年").first.is_disabled() and not pg.locator(".fp-per button", has_text="全部").first.is_disabled())
             nv = pg.evaluate("() => echarts.getInstanceByDom(document.getElementById('fpChart-retail')).getOption().series[0].data.length")
             ok(f"{tag}：微台圖筆數＝表格列數", nv == nrows("retail") > 5, [nv, nrows("retail")])
@@ -171,8 +177,8 @@ def t_futpages_1020(b, base, code):
             ok(f"{tag}：手機沒有橫向捲軸", sw <= 1, sw)
             sg_, big, chb = bb(".fp-prod"), bb("#fpLatest"), bb("#fpChart-futoi")
             ok(f"{tag}：第一屏看得到分段開關、數字卡與主圖上緣", sg_["y"] + sg_["height"] < 844 and big["y"] + big["height"] < 844 and chb["y"] < 760, [sg_, big, chb["y"]])
-            order = pg.evaluate("() => ['#fpLatest','#fpChart-futoi','#fpAuto-futoi','#fpTw-futoi'].map(s => document.querySelector(s).getBoundingClientRect().top + scrollY)")
-            ok(f"{tag}：手機上下排順序 數字卡→圖→自動解讀→明細表", order == sorted(order), order)
+            order = pg.evaluate("() => ['#fpLatest','#fpChart-futoi','#fpTw-futoi'].map(s => document.querySelector(s).getBoundingClientRect().top + scrollY)")
+            ok(f"{tag}：手機上下排順序 數字卡→圖→明細表", order == sorted(order), order)
             sizes = pg.evaluate("() => { const bad = []; document.querySelectorAll('.fp-pane *, .fp-bar *').forEach(e => { if (e.children.length === 0 && e.textContent.trim() && getComputedStyle(e).display !== 'none') { const f = parseFloat(getComputedStyle(e).fontSize); if (f < 11) bad.push(e.className + ':' + f); } }); return bad.slice(0, 5); }")
             ok(f"{tag}：手機字級不小於 11px", not sizes, sizes)
         ok(f"{tag}：整段沒有頁面例外", not errs, errs[:3])

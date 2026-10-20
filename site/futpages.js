@@ -27,16 +27,29 @@
      電腦版子頁在側欄、#mktSeg2 本來就藏起來 → 整條標題列收掉；沒有側欄的寬度保留分頁鈕那半邊。 */
   if (!document.getElementById('fpGlobalCss')) {
     const g = document.createElement('style'); g.id = 'fpGlobalCss';
-    g.textContent = '#v-market .card.mkt-notitle .mkthead>h3{display:none!important}:root.l4 #v-market .card.mkt-notitle>.mkthead{display:none}';
+    /* 配色 token（Andy 10-20）：三大法人／期貨籌碼／信用交易同一套；JS 用 tok() 讀成實色給 ECharts */
+    g.textContent = ':root{--c-foreign:#2563EB;--c-trust:#F97316;--c-dealer:#A855F7;--c-retail:#14B8A6;--c-tx:#0F172A;--c-mgn-ratio:#E11D48;--c-mgn-bal:#0EA5E9;--c-short:#F59E0B}:root:not([data-theme="light"]){--c-tx:#E2E8F0}'
+      + '#v-market .card.mkt-notitle .mkthead>h3{display:none!important}:root.l4 #v-market .card.mkt-notitle>.mkthead{display:none}';
     document.head.appendChild(g);
   }
 
   /* 台股慣例：紅＝多／漲、綠＝空／跌。 */
   /* 配色（Andy 10-20，三大法人那組同一套）：外資藍、投信橘、自營紫、散戶青綠；加權指數線淺色深藍黑／深色淺灰白，線寬 2。
      紅綠只留給數字（買超賣超、漲跌）與個股長條，這裡的線與柱不用。 */
-  const PAL = { f: '#2563EB', t: '#F97316', d: '#A855F7', r: '#14B8A6' };
+  const tok = (n, d) => { try { return getComputedStyle(document.documentElement).getPropertyValue(n).trim() || d; } catch (e) { return d; } };
+  const PAL = { get f() { return tok('--c-foreign', '#2563EB'); }, get t() { return tok('--c-trust', '#F97316'); }, get d() { return tok('--c-dealer', '#A855F7'); }, get r() { return tok('--c-retail', '#14B8A6'); } };
+  /* Andy 10-20「直條實色不漸層」：app.js 的 BAR.apply 會把所有長條的 #hex／rgb 色換成同色漸層（10-07 全站規矩），
+     但它只認 #hex／rgb()／rgba()，認不得的色字串原樣保留 → 把 token 色轉成等價的 hsl() 字串，這張圖的柱子就維持實色（不動全站規矩）。 */
+  const solidHsl = (hex) => {
+    const m = /^#?([0-9a-f]{6})$/i.exec(hex); if (!m) return hex;
+    const r = parseInt(m[1].slice(0, 2), 16) / 255, g = parseInt(m[1].slice(2, 4), 16) / 255, b = parseInt(m[1].slice(4), 16) / 255;
+    const mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2, d = mx - mn;
+    let h = 0, sat = 0;
+    if (d) { sat = d / (1 - Math.abs(2 * l - 1)); h = mx === r ? ((g - b) / d) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4; h = (h * 60 + 360) % 360; }
+    return `hsl(${Math.round(h)},${Math.round(sat * 100)}%,${Math.round(l * 100)}%)`;
+  };
   const isDark = () => document.documentElement.getAttribute('data-theme') !== 'light';
-  const txColor = () => (isDark() ? '#E2E8F0' : '#0F172A');
+  const txColor = () => tok('--c-tx', isDark() ? '#E2E8F0' : '#0F172A');
   const col = () => { const c = (A() && A().CH) || {}; return { up: c.up || '#ff4d6d', down: c.down || '#2ee59d', ink2: c.ink2 || '#a9b6d6', ink3: c.ink3 || '#6f7ea3', ink: c.ink || '#e8eeff', cyan: c.cyan || '#3ee0ff', amber: c.amber || '#ffb454', violet: c.violet || '#8b7bff', line: c.line || '#1e2a48' }; };
 
   /* 期間：futoi 以月為單位；retail 的「2 週」以天算。m＝月數、d＝天數、0＝全部 */
@@ -65,6 +78,7 @@
           r[p + 'l'] = at(o.long, j); r[p + 's'] = at(o.short, j);
           r[p + 'n'] = o.net && o.net[j] != null ? Number(o.net[j]) : (r[p + 'l'] != null && r[p + 's'] != null ? r[p + 'l'] - r[p + 's'] : null);
         });
+        r.sum = (r.fn == null && r.tn == null && r.dn == null) ? null : (r.fn || 0) + (r.tn || 0) + (r.dn || 0);
       } else {
         r.tot = at(raw.total_oi, j); r.l = at(raw.retail_long, j); r.s = at(raw.retail_short, j);
         r.n = raw.retail_net && raw.retail_net[j] != null ? Number(raw.retail_net[j]) : (r.l != null && r.s != null ? r.l - r.s : null);
@@ -133,33 +147,34 @@
 .fp-prod button{white-space:nowrap}
 .fp-block{margin-bottom:var(--sp-3,14px)}
 .fp-pane{display:flex;flex-direction:column;gap:var(--sp-3,14px)}
-.fp-topgrid{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:var(--sp-3,14px);align-items:stretch}
+.fp-topgrid{display:grid;grid-template-columns:minmax(0,1fr);gap:var(--sp-3,14px);align-items:stretch}
 .fp-split{display:grid;grid-template-columns:minmax(0,6fr) minmax(0,4fr);gap:var(--sp-3,14px);align-items:stretch}
 .fp-split>.fp-main{min-width:0}
 .fp-tblcard{min-width:0;contain:size;display:flex;flex-direction:column}
 .fp-tblcard .fp-tw{flex:1 1 0;min-height:0;max-height:none}
 .fp-hd{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px;flex-wrap:wrap}
-.fp-hd h3,.fp-card h3,.fp-card h4{margin:0;font-size:15px;color:var(--ink)}
+.fp-hd h3,.fp-card h3,.fp-card h4{margin:0;font-size:16px;color:var(--ink)}
 .fp-chart{height:clamp(230px,calc(100vh - 500px),360px);width:100%}
 .fp-stale{font-size:12px;font-weight:700;padding:1px 8px;border-radius:999px;border:1px solid #F59E0B;color:#F59E0B;white-space:nowrap}
 .fp-note{font-size:12.5px;color:var(--ink-3);margin-top:6px;line-height:1.6}
-.fp-rng{font-size:12.5px;color:var(--ink-3);white-space:nowrap}
 .fp-hint{font-size:12px;color:var(--ink-3);margin:-2px 0 6px}
 .fp-per button[disabled]{opacity:.4;cursor:not-allowed}
 .fp-big3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
 .fp-big3>div{min-width:0}.fp-big3 .l{font-size:12.5px;color:var(--ink-3)}
-.fp-big3 .v{font:700 22px/1.25 'JetBrains Mono',monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.fp-big3 .s{font-size:11.5px;color:var(--ink-3);white-space:nowrap}
+.fp-big3 .v{font:700 24px/1.25 'JetBrains Mono',monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fp-big3 .s{font-size:12px;color:var(--ink-3);white-space:nowrap}
+.fp-concl{margin-top:8px;font-size:13.5px;line-height:1.6;color:var(--ink-2);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.fp-autoh{margin:14px 0 6px;font-size:14px;color:var(--ink)}
 .fp-auto ul{list-style:none;margin:8px 0 0;padding:0;display:flex;flex-direction:column;gap:8px}
 .fp-auto li{display:flex;gap:8px;align-items:flex-start;font-size:13.5px;line-height:1.6;color:var(--ink-2)}
 .fp-tag{flex:0 0 auto;font-size:12px;font-weight:700;padding:1px 8px;border-radius:999px;border:1px solid var(--line);white-space:nowrap}
-.fp-tag.up{background:rgba(255,77,109,.12);border-color:rgba(255,77,109,.4)}.fp-tag.down{background:rgba(46,229,157,.1);border-color:rgba(46,229,157,.4)}
+.fp-tag.up{background:color-mix(in srgb,var(--rise,#ff4d6d) 14%,transparent);border-color:color-mix(in srgb,var(--rise,#ff4d6d) 45%,transparent)}.fp-tag.down{background:color-mix(in srgb,var(--fall,#2ee59d) 12%,transparent);border-color:color-mix(in srgb,var(--fall,#2ee59d) 45%,transparent)}
 .fp-disc{font-size:11.5px;color:var(--ink-3);margin-top:8px}
 .fp-tw{max-height:380px;overflow:auto;border:1px solid var(--line);border-radius:10px;touch-action:pan-x pan-y;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
 .fp-tw table{border-collapse:separate;border-spacing:0;width:100%;min-width:max-content;font-size:13px}
-.fp-tw table thead th{position:sticky;top:0;z-index:2;background:var(--panel-2);padding:7px 10px;text-align:right;white-space:nowrap;cursor:pointer;user-select:none;border-bottom:1px solid var(--line);font-weight:600;color:var(--ink-2)}
+.fp-tw table thead th{position:sticky;top:0;z-index:2;background:var(--panel-2);padding:7px 6px;text-align:center;white-space:nowrap;cursor:pointer;user-select:none;border-bottom:1px solid var(--line);font-weight:600;color:var(--ink-2)}
 .fp-tw table thead th:first-child,.fp-tw table tbody td:first-child{position:sticky;left:0;text-align:left;z-index:3;background:var(--panel-2)}
-.fp-tw table tbody td{padding:6px 10px;text-align:right;white-space:nowrap;font-family:'JetBrains Mono',monospace;border-bottom:1px solid var(--line);background:var(--panel)}
+.fp-tw table tbody td{padding:6px 6px;text-align:center;white-space:nowrap;font-family:'JetBrains Mono',monospace;border-bottom:1px solid var(--line);background:var(--panel)}
 .fp-tw table tbody td:first-child{z-index:1;font-family:inherit}
 .fp-tw table tbody tr.hl td{background:var(--panel-3)}
 .fp-tw table tbody tr.sel td{background:var(--panel-3);box-shadow:inset 0 1px 0 var(--cyan),inset 0 -1px 0 var(--cyan)}
@@ -168,15 +183,15 @@
 .fp-top{margin:0}
 .fp-top .bigrow{display:flex;gap:18px;align-items:flex-end;flex-wrap:wrap}
 .fp-top .lab{font-size:13px;color:var(--ink-3)}.fp-top .lab b{color:var(--ink-2);font-weight:600}
-.fp-top .bignum{font:700 40px/1.15 'JetBrains Mono',monospace;white-space:nowrap}
+.fp-top .bignum{font:700 24px/1.25 'JetBrains Mono',monospace;white-space:nowrap}
 .fp-top .delta{font-size:13px;color:var(--ink-3);white-space:nowrap}
 .fp-top .sum{flex:1 1 220px;min-width:0;font-size:13.5px;line-height:1.7;color:var(--ink-2)}
 .fp-top .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px;border-top:1px solid var(--line);padding-top:10px}
-.fp-top .stats .l{font-size:12.5px;color:var(--ink-3)}.fp-top .stats .v{font:700 19px/1.3 'JetBrains Mono',monospace;white-space:nowrap}
+.fp-top .stats .l{font-size:12.5px;color:var(--ink-3)}.fp-top .stats .v{font:700 18px/1.3 'JetBrains Mono',monospace;white-space:nowrap}
 /* 窄畫面（含手機）：並排改上下，順序＝數字卡 → 圖 → 自動解讀 → 明細表 */
 @media (max-width:900px){
  .fp-pane{display:flex}.fp-topgrid,.fp-split{display:contents}
- .fp-latest,.fp-top{order:1}.fp-main{order:2}.fp-auto{order:3}.fp-tblcard{order:4;contain:none;display:block}
+ .fp-latest,.fp-top{order:1}.fp-main{order:2}.fp-tblcard{order:3;contain:none;display:block}
  .fp-tblcard .fp-tw{max-height:380px}
  .fp-bar .fp-right{margin-left:0}
 }`;
@@ -235,7 +250,7 @@
   const axisNow = () => { const S = P.secs[P.kind]; return S ? view(S).map((r) => r.date) : []; };
 
   const COLS = {
-    futoi: [['date', '日期'], ['fl', '外資 多方'], ['fs', '外資 空方'], ['fn', '外資 淨部位'], ['tl', '投信 多方'], ['ts', '投信 空方'], ['tn', '投信 淨部位'], ['dl', '自營商 多方'], ['ds', '自營商 空方'], ['dn', '自營商 淨部位']],
+    futoi: [['date', '日期'], ['fn', '外資淨'], ['tn', '投信淨'], ['dn', '自營淨'], ['sum', '合計']],
     retail: [['date', '日期'], ['tx', '加權指數'], ['l', '散戶多單'], ['s', '散戶空單'], ['n', '散戶淨部位'], ['p', '散戶多空比']],
   };
   const isNet = (k) => k === 'fn' || k === 'tn' || k === 'dn' || k === 'n';
@@ -243,24 +258,22 @@
 
   function paneHtml(K, S) {
     const num = K === 'futoi'
-      ? '<div class="card fp-card fp-latest" id="fpLatest"><h4 id="fpLatT"></h4><div class="fp-big3" id="fpBig3"></div></div>'
+      ? '<div class="card fp-card fp-latest" id="fpLatest"><h4 id="fpLatT"></h4><div class="fp-big3" id="fpBig3"></div><div class="fp-concl" id="fpConcl"></div></div>'
       : '<div class="card fp-card fp-top" id="fpTop"></div>';
-    const auto = `<div class="card fp-card fp-auto" id="fpAuto-${K}"><h3>自動解讀</h3><ul id="fpAutoUl-${K}"></ul><div class="fp-disc">依資料自動產生、只陳述數字，不構成投資建議。</div></div>`;
-    const tbl = `<div class="card fp-card fp-tblcard"><div class="fp-hd"><h3>每日明細</h3><span class="fp-hint" style="margin:0">點欄名排序・點一列鎖定那一天</span></div><div class="fp-tw" id="fpTw-${K}" tabindex="0"></div></div>`;
-    const hint = `<div class="fp-hint" id="fpHint-${K}"></div>`;
+    const tbl = `<div class="card fp-card fp-tblcard"><div class="fp-hd"><h3>每日明細</h3></div><div class="fp-tw" id="fpTw-${K}" tabindex="0"></div></div>`;
     const bs = S.raw.product === 'TMF' || !S.raw.product ? '微台（TMF）' : esc(S.raw.product);
     const chart = K === 'futoi'
-      ? `<div class="card fp-card fp-main"><div class="fp-hd"><h3>每日淨未平倉</h3><span class="fp-hint" style="margin:0">淨部位＝多方－空方，單位：口</span></div>${hint}
+      ? `<div class="card fp-card fp-main"><div class="fp-hd"><h3>淨未平倉</h3></div>
           <div id="fpChart-futoi" class="chart fp-chart"></div></div>`
-      : `<div class="card fp-card fp-main"><div class="fp-hd"><h3>散戶多空比・加權指數</h3><span class="fp-hint" id="fpSub" style="margin:0" title="散戶多單／空單＝全市場未平倉－三大法人同方向未平倉；多空比＝（多單－空單）÷全市場未平倉×100%；虛線＝結算日">${bs}資料回溯至 ${S.rows[0].date.slice(0, 7)}・虛線＝結算日</span></div>${hint}
+      : `<div class="card fp-card fp-main"><div class="fp-hd"><h3>散戶多空比</h3><span class="fp-hint" id="fpSub" style="margin:0" title="散戶多單／空單＝全市場未平倉－三大法人同方向未平倉；多空比＝（多單－空單）÷全市場未平倉×100%">${bs}・虛線＝結算日</span></div>
           <div id="fpChart-retail" class="chart fp-chart"></div></div>`;
-    return `<section class="fp-block fp-pane" data-snap="${SECS[K].snap}"><div class="fp-topgrid">${num}${auto}</div><div class="fp-split">${chart}${tbl}</div></section>`;
+    return `<section class="fp-block fp-pane" data-snap="${SECS[K].snap}"><div class="fp-topgrid">${num}</div><div class="fp-split">${chart}${tbl}</div></section>`;
   }
 
   function build(body) {
     const prod = `<div class="seg fp-prod" role="group" aria-label="商品">${HOWKEYS.map((k) => `<button type="button" data-k="${k}" class="${k === P.kind ? 'on' : ''}">${SECS[k].title}</button>`).join('')}</div>`;
     const per = `<div class="seg tiny fp-per" role="group" aria-label="期間">${P.pers.map((p) => `<button type="button" data-per="${p.id}">${p.lab}</button>`).join('')}</div>`;
-    body.innerHTML = `<div class="fp-bar">${prod}<button class="howbtn pop" id="fpHowBtn" data-how="fut-how" data-ttl="" type="button" aria-label="怎麼看">?</button><div class="fp-right"><span class="fp-stale" id="fpStale" hidden title="資料日比最近一個交易日舊，雲端管線還沒更新到">資料未更新</span><span class="fp-rng" id="fpRng"></span>${per}</div></div>`
+    body.innerHTML = `<div class="fp-bar">${prod}<button class="howbtn pop" id="fpHowBtn" data-how="fut-how" data-ttl="" type="button" aria-label="怎麼看">?</button><div class="fp-right"><span class="fp-stale" id="fpStale" hidden title="資料日比最近一個交易日舊，雲端管線還沒更新到">資料未更新</span>${per}</div></div>`
       + '<div class="howtxt" id="how-fut-how" hidden><div class="howbody"></div></div><div id="fpPaneBox"></div>';
     wireBar(body);
     showKind(body);
@@ -271,7 +284,7 @@
     $$('[_echarts_instance_]', box).forEach((d) => { try { const i = window.echarts.getInstanceByDom(d); if (i && !i.isDisposed()) i.dispose(); } catch (e) { /* 已收掉 */ } });
     $$('.fp-prod button', body).forEach((x) => x.classList.toggle('on', x.dataset.k === K));
     const hb = $('#fpHowBtn', body); hb.dataset.ttl = SECS[K].how; hb.setAttribute('aria-label', SECS[K].how);
-    $('#how-fut-how .howbody', body).innerHTML = S ? HOW[K](S.raw.source) : '<p>資料準備中。</p>';
+    $('#how-fut-how .howbody', body).innerHTML = S ? HOW[K](S.raw.source) + `<h4 class="fp-autoh">自動解讀</h4><ul class="fp-autoul" id="fpAutoUl-${K}" style="list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px"></ul><p class="fp-disc">依資料自動產生、只陳述數字，不構成投資建議。</p>` : '<p>資料準備中。</p>';
     P.hov = null; P.lock = null;
     if (!perOk(P.pers.find((p) => p.id === P.per))) P.per = 'all';
     $$('.fp-per button', body).forEach((b) => { const p = P.pers.find((q) => q.id === b.dataset.per), ok = perOk(p); b.disabled = !ok; b.title = ok ? '' : `資料只回溯到 ${firstOf()}，不足這個期間`; b.classList.toggle('on', p.id === P.per); });
@@ -308,7 +321,7 @@
         { type: 'value', scale: true, axisLabel: { color: c.ink3 }, splitLine: { show: false } },
       ],
       series: [
-        { id: 'bar', name: '散戶多空比', type: 'bar', barMaxWidth: 18, itemStyle: { color: PAL.r, opacity: 1 }, data: ps },
+        { id: 'bar', name: '散戶多空比', type: 'bar', barMaxWidth: 18, itemStyle: { color: solidHsl(PAL.r), opacity: 1 }, data: ps },
         { id: 'tx', name: '加權指數', type: 'line', yAxisIndex: 1, showSymbol: false, lineStyle: { width: 2, color: txColor() }, itemStyle: { color: txColor() }, data: val('tx') },
       ],
       tooltip: Object.assign(base.tooltip, { valueFormatter: (x) => (x == null ? '—' : x) }),
@@ -354,7 +367,8 @@
       if (ck === 'date') return `<td>${r.date}</td>`;
       if (ck === 'tx') return `<td>${x == null ? '—' : x.toLocaleString('zh-TW', { maximumFractionDigits: 2 })}</td>`;
       if (ck === 'p') return `<td class="${cls(x)}">${x == null ? '—' : sgd(x, 2) + '%'}</td>`;
-      if (isNet(ck)) return `<td class="${cls(x)}">${sg(x)}</td>`;
+      if (ck === 'sum') return `<td class="${cls(x)}">${sg(x)}</td>`;
+      if (isNet(ck)) { const p = ck[0], tip = r[p + 'l'] != null ? ` title="多方 ${nf(r[p + 'l'])}／空方 ${nf(r[p + 's'])} 口"` : ''; return `<td class="${cls(x)}"${tip}>${sg(x)}</td>`; }
       return `<td>${nf(x)}</td>`;
     };
     return `<table><thead><tr>${th}</tr></thead><tbody>${v.map((r) => `<tr data-d="${r.date}">${cols.map(([ck]) => td(r, ck)).join('')}</tr>`).join('')}</tbody></table>`;
@@ -374,7 +388,7 @@
     const f = focusDate(), S1 = P.kind === 'futoi' ? P.secs.futoi : null, S2 = P.kind === 'retail' ? P.secs.retail : null;
     if (S1) {
       const v = view(S1), r = focusRow(S1) || v[v.length - 1], isLast = !f;
-      $('#fpLatT').innerHTML = `${isLast ? '最新一日' : (P.lock ? '鎖定日' : '滑過日')}淨未平倉 <span class="muted" style="font-weight:400">${r.date}</span>`;
+      $('#fpLatT').innerHTML = isLast ? '最新一日淨未平倉' : `${P.lock ? '鎖定日' : '滑過日'}淨未平倉 <span class="muted" style="font-weight:400">${r.date}</span>`;
       $('#fpBig3').innerHTML = [['外資', 'f'], ['投信', 't'], ['自營商', 'd']].map(([nm, p]) => `<div><div class="l">${nm}</div><div class="v ${cls(r[p + 'n'])}">${sg(r[p + 'n'])}</div><div class="s">多 ${nf(r[p + 'l'])}</div><div class="s">空 ${nf(r[p + 's'])}</div></div>`).join('');
     }
     if (S2) {
@@ -383,27 +397,24 @@
       const i = S2.rows.indexOf(r), prev = S2.rows[i - 1], d = prev && prev.p != null && r.p != null ? r.p - prev.p : null;
       const big = r.p == null ? '—' : `${r.p > 0 ? '▲' : r.p < 0 ? '▼' : ''} ${sgd(r.p, 2)}%`;
       const lean = r.p == null ? '' : Math.abs(r.p) < 0.5 ? '多空幾乎打平' : r.p > 0 ? '散戶整體偏多（多單多於空單）' : '散戶整體偏空（空單多於多單）';
-      $('#fpTop').innerHTML = `<div class="bigrow"><div><div class="lab">散戶多空比 <b>${r.date}</b>${f && !miss ? '（所選日期）' : ''}${miss ? '（' + f + ' 微台尚無資料，顯示最新一日）' : ''}</div>
+      $('#fpTop').innerHTML = `<div class="bigrow"><div><div class="lab">${f && !miss ? `${P.lock ? '鎖定日' : '滑過日'}散戶多空比 <b>${r.date}</b>` : '最新一日散戶多空比'}${miss ? '（' + f + ' 微台尚無資料，顯示最新一日）' : ''}</div>
         <div class="bignum ${cls(r.p)}" id="fpBigNum">${big}</div>
         <div class="delta">較前一交易日 <span class="${cls(d)}">${d == null ? '—' : sgd(d, 2) + 'pp'}</span></div></div>
-        <div class="sum">${r.date.slice(5)} 微台全市場未平倉 ${nf(r.tot)} 口，扣掉三大法人後散戶多單 ${nf(r.l)} 口、空單 ${nf(r.s)} 口，${lean}。</div></div>
+        <div class="sum">微台全市場未平倉 ${nf(r.tot)} 口，扣掉三大法人後散戶多單 ${nf(r.l)} 口、空單 ${nf(r.s)} 口，${lean}。</div></div>
         <div class="stats"><div><div class="l">散戶多單（口）</div><div class="v up">${nf(r.l)}</div></div><div><div class="l">散戶空單（口）</div><div class="v down">${nf(r.s)}</div></div><div><div class="l">全市場未平倉（口）</div><div class="v">${nf(r.tot)}</div></div></div>`;
     }
   }
   function paintAuto() {
     act().forEach((S) => {
       const v = view(S), items = S.K === 'futoi' ? readFut(S.rows, v) : readRetail(S.rows, v);
-      $('#fpAutoUl-' + S.K).innerHTML = items.map((x) => `<li><span class="fp-tag ${x.c}">${x.tag}</span><span>${esc(x.t)}</span></li>`).join('');
+      const ul = $('#fpAutoUl-' + S.K);
+      if (ul) ul.innerHTML = items.map((x) => `<li style="display:flex;gap:8px;align-items:flex-start;font-size:13.5px;line-height:1.6"><span class="fp-tag ${x.c}">${x.tag}</span><span>${esc(x.t)}</span></li>`).join('');
+      /* 數字卡下方一行（最多兩行）結論；完整條目在「?」 */
+      const cc = $('#fpConcl');
+      if (cc) cc.textContent = items.slice(0, 2).map((x) => x.t).join('；');
     });
   }
-  function paintHints() {
-    const bad = P.pers.filter((p) => !perOk(p)).map((p) => p.lab);
-    act().forEach((S) => {
-      const h = $('#fpHint-' + S.K); if (!h) return;
-      h.hidden = !bad.length;
-      h.textContent = bad.length ? `${bad.join('、')}：資料只回溯到 ${S.rows[0].date}，期間不足（按鈕反灰）` : '';
-    });
-  }
+  function paintHints() { /* 期間不足的說明改放反灰按鈕的 title，畫面上不再寫「資料回溯至」 */ }
 
   /* 焦點日期改變：兩區一起更新大數字、圖上標示線、表格列亮起（不重畫整張表／圖） */
   function apply(fromClick) {
@@ -425,7 +436,7 @@
   }
   function paintAll() {
     P.axis = axisNow();
-    { const r = $('#fpRng'); if (r && P.axis.length) r.textContent = P.axis[0] + '～' + P.axis[P.axis.length - 1]; }
+    { const r = $('.fp-per'); if (r && P.axis.length) r.title = '目前顯示 ' + P.axis[0] + '～' + P.axis[P.axis.length - 1]; }
     paintHints(); paintNumbers(); paintAuto();
     act().forEach((S) => { drawChart(S); drawTable(S); });
     apply(false);

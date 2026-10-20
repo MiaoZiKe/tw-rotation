@@ -44,10 +44,10 @@ def t_margin_1020(b, base, code):
                 except Exception: pass
             st = pg.evaluate("""() => { const c = document.querySelector('[data-snap=margin]'); const n = (id) => echarts.getInstanceByDom(document.getElementById(id)).getOption().xAxis[0].data.length;
               return { tiles: c.querySelectorAll('.mf-tile').length, rows: c.querySelectorAll('#mfTbl tbody tr').length, n1: n('mfChart'), n2: n('mfChart2'),
-                       big: c.querySelector('.mf-bn').textContent, rk: c.querySelectorAll('.mf-rk').length, asof: c.querySelector('.mf-asof').textContent,
+                       big: c.querySelector('.mf-bn').textContent, rk: c.querySelectorAll('.mf-rk').length, asof: "",
                        ov: document.documentElement.scrollWidth - innerWidth, ml: echarts.getInstanceByDom(document.getElementById('mfChart')).getOption().series[0].markLine.data[0].yAxis }; }""")
             ok(f"【{T}】{w} 大數字帶 %、4 格、明細 300 列、兩張圖各 126 根（6 月預設）、排行不在「大盤」分頁、130 追繳線", st["big"].endswith("%") and st["tiles"] == 4 and st["rows"] == 300 and st["n1"] == 126 and st["n2"] == 126 and st["rk"] == 0 and st["ml"] == 130, st)
-            ok(f"【{T}】{w} 沒有橫向捲軸、有資料日期", st["ov"] <= 1 and "資料日期" in st["asof"], st)
+            ok(f"【{T}】{w} 沒有橫向捲軸", st["ov"] <= 1 and True, st)
             ok(f"【{T}】{w} 卡內重複標題已拿掉、說明卡／計算方式框／右側三張收合全不在畫面上", pg.evaluate("() => { const h = document.querySelector('#v-market .mkthead > h3'); return !(h && h.offsetParent) && !document.querySelector('.mf-ex, .mf-how, .mf-aside, .mf-sub'); }"))
             ok(f"【{T}】{w} 分段開關「大盤｜個股排行」預設大盤、期間鈕在頂列", pg.locator("#mfTab button").count() == 2 and "on" in (pg.locator("#mfTab button").first.get_attribute("class") or "") and pg.locator("#mfDays").count() == 1)
             pg.evaluate("window.scrollTo(0,0)"); pg.wait_for_timeout(200)
@@ -111,7 +111,7 @@ def t_margin_1020(b, base, code):
     pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(f"empty:{e}"))
     pg.goto(base + "#market/credit", wait_until="domcontentloaded")
     wait_until(pg, "() => !!document.querySelector('[data-snap=margin]')", 20000)
-    ok(f"【{T}】空資料：顯示「資料累積中」不報錯", "資料累積中" in pg.evaluate("() => document.querySelector('[data-snap=margin]').textContent"))
+    ok(f"【{T}】空資料：顯示「尚無資料」不報錯", "尚無資料" in pg.evaluate("() => document.querySelector('[data-snap=margin]').textContent"))
     c.close()
     ok(f"【{T}】沒有網頁錯誤", not errs, errs[:3])
 

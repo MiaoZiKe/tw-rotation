@@ -22,3 +22,16 @@
   html.m4 #mktSeg2{display:grid!important;grid-template-columns:repeat(5,1fr);gap:0 2px}
   html.m4 #mktSeg2 button{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:12px;padding-left:2px;padding-right:2px}
 }
+@media (max-width:640px){
+  /* 信用交易：數字卡 2×2、圖一次一張（分段「維持率｜融資餘額」）、說明全在「?」 */
+  .mf-bar{gap:8px}.mf-tab{flex:1 1 auto}.mf-bar .mf-ctl{margin-left:0;flex-basis:100%}
+  .mf-tiles{grid-template-columns:1fr 1fr!important}.mf-top{gap:8px}.mf-bn{font-size:24px}
+  .mf-ch{height:230px!important}
+}
+@media (max-width:640px){
+  /* 七顆期間鈕等分一整列，不再被截掉「全部」 */
+  .fp-per,#mfDays{display:grid!important;grid-template-columns:repeat(7,minmax(0,1fr));width:100%!important;max-width:100%!important;overflow:visible!important}
+  .fp-per button,#mfDays button{padding:6px 0!important;min-width:0;text-align:center}
+  .fp-bar .fp-right{flex-wrap:wrap}.fp-per{flex:1 1 100%}
+  .mf-tile{padding:6px 8px}.mf-v{font-size:16px}
+}
