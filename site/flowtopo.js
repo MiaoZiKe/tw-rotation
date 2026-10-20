@@ -584,6 +584,7 @@
       if (gX < W * 0.54) { gX = W * 0.54; lX = Math.min(W - 4 - maxL - 6, gX + 6 + 6 + maxG + 16); }
       cols = [CFG.CL_LEFT + 8, CFG.CL_LEFT + 8 + (gX - CFG.CL_LEFT - 8) * 0.44, gX, lX];
     }
+    if (Array.isArray(window.TW_SNAP_COLS)) cols = [cols[0], W * window.TW_SNAP_COLS[0], W * window.TW_SNAP_COLS[1], W * window.TW_SNAP_COLS[2]];   // 截圖程式（限動版）覆寫欄位比例；網頁沒設＝不動，行為不變
     const plan = slotPlan(S), slot = plan.slot;
     S.step = slot; S.slot = slot;
     let y = Math.max(plan.pad, (H - plan.body) / 2);   // 內容比最低高度矮時垂直置中
