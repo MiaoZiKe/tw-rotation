@@ -1,5 +1,14 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
+### 2026-10-20 CEO 總結（主 session）
+- ✅ 上線：市場明細新增「三大法人（日報｜個股）」#market/inst、「信用交易」#market/credit、「期貨籌碼（台指期三大法人未平倉｜台指散戶多空比 大台/小台/微台）」#market/fut（合併 preview/market-1020，Andy：「新增功能排版 OK 先推上」）；舊 #market/streak 導向 #market/inst。
+- ✅ 熱力圖 4 張盤中即時＋族群資金排行與輪盤即時同步（只給站主／管理員）；site/snap.js 截圖目標＋TwSnapReady（docs/social_snap_targets.md）。
+- ✅ 社群自動發布：scripts/social_snap.py（截圖排版）＋social_publish.py（Threads／IG 限動）＋.github/workflows/social-live.yml（盤中 09:35/11:05/13:05、盤後接 daily）。盤後 dry-run 成功；盤中待明天實測。**待 Andy**：Meta 設定（docs/marketing/social_unit/meta_api_setup.md，第 0 步 IG 商業帳號截圖）、盤中發文做法三選一（法遵 docs/marketing/social_unit/live_posts_legal.md：盤中再散布需授權，建議盤後再發）。
+- ✅ 資料修復：信用交易單位錯 1000 倍（mktfut.py）；散戶多空比只讀 TMF（已改三商品）；上櫃法人改櫃買 openapi 一次全市場（上市 openapi 無 T86，仍 FinMind 逐檔）；新鮮度把關 util/freshness.py＋資料狀態徽章；GitHub 排程被丟 → cron 避開整點半點＋backfill heal job 補派（scripts/heal_daily.py，尚未實測成功）。
+- ⚠️ 未完：10/20 手動 full（run 39414958315）collect 失敗，資料已 commit 但未部署 → data-steward 修中；三大法人全市場官方金額 inst_market_daily 尚未進湖（日報仍為估算 23 天）；遠端殘留分支 probe-inst-tmp（權限擋刪，請 Andy 刪）。
+- 規矩：docs/andy_ui_rules.md 第〇節＝Andy 10-20 的 17 條介面修正，CLAUDE.md 已加「介面一律照它、交件逐條自查」。
+- 這批只驗：桌機守門1008、期貨籌碼r3、信用交易r3、當日法人1020 等新段；三大法人r3 本機 networkidle 逾時未驗（組員端已驗）。
+
 ### 2026-10-20 資料新鮮度把關＋個股三大法人整天補抓（data-scraper）
 - Andy：「我看見那數據沒更新，確保數據每天都有更新」。10-19 個股三大法人只有 148～249 檔（正常 1,900+），頁面退回 10-16。
 - 根因：法人只能逐檔向 FinMind 要（每檔 1 次，一天 ~1,975 次），每小時額度 600、排程又常延遲；`backfill_progress.json` 的
