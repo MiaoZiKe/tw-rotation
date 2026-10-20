@@ -1,5 +1,5 @@
 {
- "updated": "2026-10-20 08:08",
+ "updated": "2026-10-20 09:08",
  "jobs": [
   {
    "id": 20,
@@ -9,10 +9,10 @@
    "note": "排程自動排入（規則 1，台北 2026-10-20 06:00）；建議主題 n_fomc_oct",
    "status": "working",
    "created": 1792449515433,
-   "updated": 1792454913939,
+   "updated": 1792458506740,
    "result": null,
-   "stage": "plan",
-   "stage_at": 1792454913939
+   "stage": "write",
+   "stage_at": 1792458506740
   },
   {
    "id": 21,
