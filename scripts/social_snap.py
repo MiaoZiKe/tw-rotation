@@ -219,15 +219,23 @@ def fetch_meta(base: str) -> dict:
     """讀網站的 data/meta.json（資料日期、法人資料日期）。"""
     root = base.rsplit("/", 1)[0] if base.endswith(".html") else base.rstrip("/")
     try:
-        with urlopen(f"{root}/data/meta.json?_={int(time.time())}", timeout=20) as r:
-            return json.loads(r.read().decode("utf-8"))
+        return json.loads(_get(f"{root}/data/meta.json?_={int(time.time())}", 20).decode("utf-8"))
     except Exception as exc:  # noqa: BLE001
         log("讀不到 meta.json：", exc)
         return {}
 
 
-def sync_data(site_dir: Path, data_url: str) -> None:
-    """把網站會讀的 JSON 從正式站抓到本機 site/data/（名稱從 site/*.js 的 load('名稱') 與 data/xxx.json 掃出來）。"""
+def _get(url: str, timeout: int = 40) -> bytes:
+    from urllib.request import Request
+    req = Request(url, headers={"User-Agent": "Mozilla/5.0 (tw-rotation social_snap)", "Accept": "application/json,*/*"})
+    with urlopen(req, timeout=timeout) as r:
+        return r.read()
+
+
+def sync_data(site_dir: Path, data_url: str) -> bool:
+    """把網站會讀的 JSON 從正式站抓到本機 site/data/（名稱從 site/*.js 的 load('名稱') 與 data/xxx.json 掃出來）。
+    data_url 可用逗號放多個候選網址（依序試，第一個抓得到 meta.json 的當來源）。
+    meta.json 抓不到＝回 False（呼叫端要中止，不然後面全部逾時）。"""
     names = set()
     for f in site_dir.glob("*.js"):
         txt = f.read_text(encoding="utf-8", errors="ignore")
@@ -236,15 +244,30 @@ def sync_data(site_dir: Path, data_url: str) -> None:
     names.add("meta")
     dst = site_dir / "data"
     dst.mkdir(exist_ok=True)
-    ok = 0
-    for n in sorted(names):
+    cands = [u.strip().rstrip("/") for u in data_url.split(",") if u.strip()]
+    src = ""
+    for c in cands:
         try:
-            with urlopen(f"{data_url.rstrip('/')}/{n}.json?_={int(time.time())}", timeout=40) as r:
-                (dst / f"{n}.json").write_bytes(r.read())
+            (dst / "meta.json").write_bytes(_get(f"{c}/meta.json?_={int(time.time())}", 20))
+            src = c
+            log(f"資料來源採用 {c}")
+            break
+        except Exception as exc:  # noqa: BLE001
+            log(f"資料來源 {c}/meta.json 失敗：{exc}")
+    if not src:
+        log("所有候選資料網址都讀不到 meta.json：", cands)
+        return False
+    ok, miss = 0, []
+    for n in sorted(names):
+        url = f"{src}/{n}.json?_={int(time.time())}"
+        try:
+            (dst / f"{n}.json").write_bytes(_get(url))
             ok += 1
-        except Exception:  # noqa: BLE001
-            pass     # 沒有的檔頁面本來就有 fallback
-    log(f"下載網站資料 {ok}/{len(names)} 份 ← {data_url}")
+        except Exception as exc:  # noqa: BLE001
+            miss.append(n)
+            log(f"  下載失敗 {n}.json ← {url.split('?')[0]}：{exc}")     # 沒有的檔頁面本來就有 fallback
+    log(f"下載網站資料 {ok}/{len(names)} 份 ← {src}")
+    return True
 
 
 def mock_quote_handler(today_ymd: str, now_hms: str):
@@ -998,7 +1021,7 @@ def main() -> int:
     ap.add_argument("--live-wait", type=int, default=30, help="等即時套上的秒數")
     ap.add_argument("--mock-live", action="store_true", help="模擬報價（本機示範用；正式站不要加）")
     ap.add_argument("--live-override", action="store_true", help="本機 TW_LIVE_OVERRIDE（只有 127.0.0.1 認）")
-    ap.add_argument("--data-url", default="", help="先從這個網址下載網站要用的 JSON 到 --serve 的 data/（例如 https://liguligu-puipui.com/data）")
+    ap.add_argument("--data-url", default="", help="先從這些網址（逗號分隔，依序試）下載網站要用的 JSON 到 --serve 的 data/，例如 https://miaozike.github.io/tw-rotation/data,https://tw-rotation.pages.dev/data")
     ap.add_argument("--spoof-origin", action="store_true", help="報價請求補上正式站 Origin（本機站打正式報價代理用）")
     ap.add_argument("--skip-live", nargs="?", const="all", default="", help="只測版面：不要求即時（all 或逗號分隔的目標名；會截到盤後畫面，絕不可用在發布）")
     ap.add_argument("--from-shots", default="", help="沿用另一個輸出資料夾已截好的圖（只換 --frame 配色，示範用）")
@@ -1019,7 +1042,8 @@ def main() -> int:
     base = args.base
     if args.serve:
         if args.data_url:
-            sync_data(Path(args.serve).resolve(), args.data_url)
+            if not sync_data(Path(args.serve).resolve(), args.data_url):
+                return 2
         srv = serve_dir(Path(args.serve).resolve(), args.port)
         base = f"http://127.0.0.1:{args.port}/index.html"
         args.live_override = True
