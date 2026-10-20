@@ -1,45 +1,6 @@
 {
- "updated": "2026-10-20 10:07",
+ "updated": "2026-10-20 11:21",
  "jobs": [
-  {
-   "id": 24,
-   "topic_id": "sch-20261020-06-r1-intro-2",
-   "kind": "article",
-   "title": "散熱產業鏈：從風扇到水冷板",
-   "note": "排程自動排入（規則 1，台北 2026-10-20 06:00）；建議主題 i_thermal",
-   "status": "working",
-   "created": 1792449516098,
-   "updated": 1792462063146,
-   "result": null,
-   "stage": "plan",
-   "stage_at": 1792462063146
-  },
-  {
-   "id": 25,
-   "topic_id": "sch-20261020-06-r1-intro-3",
-   "kind": "article",
-   "title": "AI 資料中心網通鏈：從晶片到線纜",
-   "note": "排程自動排入（規則 1，台北 2026-10-20 06:00）；建議主題 i_ai_networking",
-   "status": "queued",
-   "created": 1792449516257,
-   "updated": 1792449516257,
-   "result": null,
-   "stage": null,
-   "stage_at": null
-  },
-  {
-   "id": 26,
-   "topic_id": "sch-20261020-06-r1-know-1",
-   "kind": "article",
-   "title": "除權息與填息：領股利不等於賺",
-   "note": "排程自動排入（規則 1，台北 2026-10-20 06:00）；建議主題 k_dividend",
-   "status": "queued",
-   "created": 1792449516444,
-   "updated": 1792449516444,
-   "result": null,
-   "stage": null,
-   "stage_at": null
-  },
   {
    "id": 27,
    "topic_id": "sch-20261020-06-r1-know-2",
@@ -49,19 +10,6 @@
    "status": "queued",
    "created": 1792449516618,
    "updated": 1792449516618,
-   "result": null,
-   "stage": null,
-   "stage_at": null
-  },
-  {
-   "id": 28,
-   "topic_id": "sch-20261020-06-r1-know-3",
-   "kind": "article",
-   "title": "「概念股」是誰貼的標籤？",
-   "note": "排程自動排入（規則 1，台北 2026-10-20 06:00）；建議主題 k_concept",
-   "status": "queued",
-   "created": 1792449516807,
-   "updated": 1792449516807,
    "result": null,
    "stage": null,
    "stage_at": null
