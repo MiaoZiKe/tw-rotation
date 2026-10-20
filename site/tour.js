@@ -75,7 +75,7 @@
     { t: '個股頁：一檔股票的全部資料', sel: ['#skIdent', '#mbQuote'], route: () => (/^#stock\/[0-9A-Za-z]{4,6}/.test(location.hash) ? null : '#stock/2330'), routeRe: /^#stock\//, view: 'industry',
       d: 'K 線與多週期、營收獲利、法人籌碼、除權息都在這一頁（這裡以 2330 示範）；圖上的公司名稱或代號點下去都會到這裡。' },
     { t: '市場明細：完整名單', sel: [tab('market'), '#tabs .l4subtab[data-parent="market"]', '#m4Title'], union: true, route: '#market', routeRe: /^#market/, view: 'market', fast: true,
-      d: '漲跌家數、法人連買賣、站上均線、今日關注四份完整名單，可以排序、篩選，每一列都點得進個股頁。' },
+      d: '漲跌家數、三大法人（日報與連續買賣超）、站上均線、今日關注四份完整內容，可以排序、篩選，每一列都點得進個股頁。' },
     { t: '選股策略：用公開條件篩出個股', sel: [tab('explore'), '#tabs .l4subtab[data-parent="explore"]', '#m4Title'], union: true, route: '#explore', routeRe: /^#explore/, view: 'explore', fast: true,
       d: '分基本面、技術面、籌碼面、消息面；每張卡是一組公開條件與符合的個股，點一列看它符合哪幾條。' },
     { t: 'ETF 專區', sel: [tab('etf'), '#tabs .l4subtab[data-parent="etf"]', '#m4Title'], union: true, route: '#etf', routeRe: /^#etf/, view: 'etf', fast: true,

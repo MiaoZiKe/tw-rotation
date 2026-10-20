@@ -1,0 +1,22 @@
+/* 2026-10-20 市場明細兩頁期貨籌碼（site/futpages.js）手機版；只在 ≤640，桌機不受影響 */
+@media (max-width:640px){
+  .fp-chart{height:260px}
+  .fp-big3 .v{font-size:18px}
+  .fp-top .bignum{font-size:32px}
+  .fp-top .sum{flex-basis:100%;font-size:13px}
+  .fp-top .stats .v{font-size:16px}
+  .fp-hd{flex-wrap:wrap}.fp-rng{margin-left:0;font-size:12px;order:3;flex-basis:100%}
+  .fp-per{max-width:100%;overflow-x:auto}
+  html body .fp-tw{max-height:320px}
+  html body .fp-grid>*,html body .fp-side>*{min-width:0;max-width:100%}
+  .fp-grid{gap:10px}
+  .fp-latest{order:1}.fp-main{order:2}.fp-auto{order:3}.fp-tblcard{order:4}.fp-how{order:5}
+  .fp-fold .fp-hb{display:none}.fp-fold.open .fp-hb{display:block}
+  .fp-fold h3::after{content:'＋';float:right;color:var(--ink-3)}.fp-fold.open h3::after{content:'－'}
+  .fp-auto li{font-size:13px}
+}
+@media (max-width:640px){
+  /* 市場明細頁籤增到五顆：等分五欄，名稱才不被截 */
+  html.m4 #mktSeg2{display:grid!important;grid-template-columns:repeat(5,1fr);gap:0 2px}
+  html.m4 #mktSeg2 button{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:12px;padding-left:2px;padding-right:2px}
+}

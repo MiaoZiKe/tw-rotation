@@ -730,8 +730,8 @@ def t_sidesub_1010(b, base):
     直接開 #market/ma／#explore/news／#explore/<策略>／#explore 時群組展開且亮對的那格；▾ 收起／展開；mini 圖示列點子項照樣換頁；
     mktReset（換分頁回預設）照舊；390 手機：側欄子項一格都沒有、頁內分頁照舊能點、抽屜清單沒多東西。"""
     T = "側欄子分頁1010"
-    MK = [("updown", "漲跌家數"), ("streak", "法人連買賣"), ("ma", "站上均線"), ("cand", "今日關注"), ("credit", "信用交易")]
-    MKT_T = {"updown": "漲跌", "streak": "法人連續", "ma": "均線", "cand": "今日關注", "credit": "信用交易"}   # 內容卡標題（#mktTitle）裡一定有的字
+    MK = [("updown", "漲跌家數"), ("inst", "三大法人"), ("ma", "站上均線"), ("cand", "今日關注"), ("credit", "信用交易")]
+    MKT_T = {"updown": "漲跌", "inst": "三大法人", "ma": "均線", "cand": "今日關注", "credit": "信用交易"}   # 內容卡標題（#mktTitle）裡一定有的字
     XP = [("fund", "基本面"), ("tech", "技術面"), ("chip", "籌碼面"), ("news", "消息面")]
     c = b.new_context(viewport={"width": 1440, "height": 1000})
     # 第一次進站的狀態（沒收過、沒縮過）；之後同一個分頁裡重新整理要看得到「記住」，所以只清一次
@@ -748,7 +748,7 @@ def t_sidesub_1010(b, base):
                  ons: [...document.querySelectorAll('#tabs .l4subtab.on')].map(b => b.dataset.l4sub),
                  mseg: vis('mktSeg2'), chips: vis('slChips'),
                  mtitle: ((document.getElementById('mktTitle') || {}).textContent || '').trim(),
-                 rows: document.querySelectorAll('#mktBody tr[data-code], #mktBody .ma, #mktBody #trustRank .srrow[data-code], #mktBody canvas').length,
+                 rows: document.querySelectorAll('#mktBody tr[data-code], #mktBody .ma, #mktBody #trustRank .srrow[data-code], #mktBody .itrow[data-code], #mktBody canvas').length,
                  secs: [...document.querySelectorAll('#slGrid .sl-sec')].map(x => x.dataset.cat),
                  cards: [...document.querySelectorAll('#slGrid .sl-card')].map(x => x.dataset.sid).join(','),
                  chipOn: (document.querySelector('#slChips .sl-chip.on') || {dataset: {}}).dataset.cat || '' }; }"""
@@ -757,7 +757,7 @@ def t_sidesub_1010(b, base):
         ok(f"【{T}】側欄已掛上（1440 電腦版 html.l4）",
            wait_until(pg, "() => document.documentElement.classList.contains('l4') && document.querySelector('#tabs .l4subtab[data-parent=\"etf\"]')", 10000))
         mk, xp, etf = pg.evaluate(SIDE, "market"), pg.evaluate(SIDE, "explore"), pg.evaluate(SIDE, "etf")
-        ok(f"★【{T}】市場明細底下 5 個子項：漲跌家數｜法人連買賣｜站上均線｜今日關注｜信用交易", [x["t"] for x in mk] == [t for _, t in MK], [x["t"] for x in mk])
+        ok(f"★【{T}】市場明細底下 5 個子項：漲跌家數｜三大法人｜站上均線｜今日關注｜信用交易", [x["t"] for x in mk] == [t for _, t in MK], [x["t"] for x in mk])
         ok(f"★【{T}】選股策略底下 4 個子項：基本面｜技術面｜籌碼面｜消息面", [x["t"] for x in xp] == [t for _, t in XP], [x["t"] for x in xp])
         ok(f"【{T}】9 個子項預設都看得見（第一次進站、沒收過）", len(mk + xp) == 9 and all(x["vis"] for x in mk + xp), mk + xp)
         ref = etf[0] if etf else {}
@@ -768,7 +768,7 @@ def t_sidesub_1010(b, base):
             .sort((a, b) => a.getBoundingClientRect().top - b.getBoundingClientRect().top).map(e => e.dataset.view || e.dataset.l4sub || e.id)""")
         i = order.index("market") if "market" in order else -1
         ok(f"【{T}】側欄順序：市場明細 → 4 子項 → 選股策略 → 4 子項 → ETF",
-           i >= 0 and order[i:i + 12] == ["market", "mkt-updown", "mkt-streak", "mkt-ma", "mkt-cand", "mkt-credit", "explore", "xp-fund", "xp-tech", "xp-chip", "xp-news", "etf"],
+           i >= 0 and order[i:i + 12] == ["market", "mkt-updown", "mkt-inst", "mkt-ma", "mkt-cand", "mkt-credit", "explore", "xp-fund", "xp-tech", "xp-chip", "xp-news", "etf"],
            order[i:i + 11] if i >= 0 else order)
         # ① 市場明細：逐一點側欄子項
         seen = {}
@@ -781,13 +781,13 @@ def t_sidesub_1010(b, base):
             ok(f"★【{T}】點側欄「{t}」→ 網址 #market/{k}、內容標題換成「{t}」那一頁、有內容", d["hash"] == f"#market/{k}" and MKT_T[k] in d["mtitle"] and (d["rows"] > 0 or k == "credit"), d)   # 信用交易沒有個股列（資料累積中也算有內容卡，內容另有「大盤融資維持率1020」段驗）
             ok(f"★【{T}】「{t}」亮起（只亮這一格、aria-current）、頁首補「{t}」", d["ons"] == [f"mkt-{k}"] and d["sub1"] == t and cur == "page", [d, cur])
             ok(f"【{T}】「{t}」頁內那排分頁（#mktSeg2）在電腦版收起", not d["mseg"], d)
-        ok(f"【{T}】五個子頁的標題各不相同（真的換了內容）", len({v["mtitle"] for v in seen.values()}) == 5, {k: v["mtitle"] for k, v in seen.items()})
+        ok(f"【{T}】子頁的標題各不相同（真的換了內容）", len({v["mtitle"] for v in seen.values()}) == len(MK), {k: v["mtitle"] for k, v in seen.items()})
         # mktReset：漲跌家數切到第 2 個名單分頁 → 側欄換到法人連買賣 → 再回漲跌家數，名單分頁回第 1 個
         click(pg, '#tabs .l4subtab[data-l4sub="mkt-updown"]', 1200)
         if pg.evaluate("() => document.querySelectorAll('#mktTabs button').length >= 2"):
             click(pg, "#mktTabs button[data-i='1']", 500)
             a = pg.evaluate("() => (document.querySelector('#mktTabs button.on') || {dataset: {}}).dataset.i")
-            click(pg, '#tabs .l4subtab[data-l4sub="mkt-streak"]', 1200)
+            click(pg, '#tabs .l4subtab[data-l4sub="mkt-inst"]', 1200)
             click(pg, '#tabs .l4subtab[data-l4sub="mkt-updown"]', 1200)
             z = pg.evaluate("() => (document.querySelector('#mktTabs button.on') || {dataset: {}}).dataset.i")
             ok(f"★【{T}】mktReset 照舊：漲跌家數切到第 2 個名單 → 側欄換頁再回來，回到第 1 個", a == "1" and z == "0", (a, z))
@@ -840,12 +840,12 @@ def t_sidesub_1010(b, base):
         hid = pg.evaluate(SIDE, "market")
         _calm(); m1 = pg.evaluate(SIG, "market")
         solid = [e0, e1, m0, m1]
-        ok(f"【{T}】點市場明細的 ▾ → 4 個子項收起、網址不變", not any(x["vis"] for x in hid) and pg.evaluate("location.hash") == "#market/streak", hid)
+        ok(f"【{T}】點市場明細的 ▾ → 4 個子項收起、網址不變", not any(x["vis"] for x in hid) and pg.evaluate("location.hash") == "#market/inst", hid)
         ok(f"【{T}】子項收起時母分頁恢復選中樣式（目前那格看不到，改亮母分頁），展開／收起兩種樣子都跟 ETF 一模一樣", m0 == e0 and m1 == e1 and m0 != m1, solid)
         pg.reload(wait_until="networkidle"); pg.wait_for_timeout(800)
         ok(f"【{T}】收起狀態重新整理後記住（使用者手動收過）", not any(x["vis"] for x in pg.evaluate(SIDE, "market")))
         click(pg, '#tabs .tab[data-view="market"] .l4car', 400)
-        ok(f"【{T}】再點 ▾ → 展開、亮「法人連買賣」", all(x["vis"] for x in pg.evaluate(SIDE, "market")) and pg.evaluate(ST)["ons"] == ["mkt-streak"], pg.evaluate(ST))
+        ok(f"【{T}】再點 ▾ → 展開、亮「三大法人」", all(x["vis"] for x in pg.evaluate(SIDE, "market")) and pg.evaluate(ST)["ons"] == ["mkt-inst"], pg.evaluate(ST))
         # ⑤ mini 圖示列
         click(pg, "#l4NavBtn", 600)
         mini = pg.evaluate("() => document.documentElement.classList.contains('l4-mini')")
@@ -878,9 +878,9 @@ def t_sidesub_1010(b, base):
             on: (document.querySelector('#mktSeg2 button.on') || {dataset: {}}).dataset.k })""")
         ok(f"★【{T} 390】手機：沒有側欄子項、抽屜清單（TwL4Nav.SUBS）沒有市場明細／選股策略、頁內四顆分頁照舊看得見",
            d["subs"] == 0 and d["l4sub"] is None and "market" not in d["nav"] and "explore" not in d["nav"] and d["seg"] == 5 and d["on"] == "ma", d)
-        q.locator("#mktSeg2 button[data-k=streak]").tap(); q.wait_for_timeout(1500)
-        ok(f"【{T} 390】手機點頁內「法人連買賣」→ 照舊換頁", q.evaluate("location.hash") == "#market/streak"
-           and q.evaluate("(document.querySelector('#mktSeg2 button.on') || {dataset: {}}).dataset.k") == "streak")
+        q.locator("#mktSeg2 button[data-k=inst]").tap(); q.wait_for_timeout(1500)
+        ok(f"【{T} 390】手機點頁內「三大法人」→ 照舊換頁", q.evaluate("location.hash") == "#market/inst"
+           and q.evaluate("(document.querySelector('#mktSeg2 button.on') || {dataset: {}}).dataset.k") == "inst")
         q.goto(f"{base}#explore", wait_until="networkidle")
         wait_until(q, "() => document.querySelectorAll('#slChips button').length === 4", 10000); q.wait_for_timeout(600)
         vis = q.evaluate("() => [...document.querySelectorAll('#slChips button')].filter(b => b.getClientRects().length).length")
@@ -3889,8 +3889,8 @@ def t_market_drill_0928(pg, b, base):
     ok(f"★ [{tag}] 總覽的原位置沒有重複的法人連續買賣超", not ov["trust"] and not ov["card"] and ov["who"] == 0, ov)
     if ok(f"[{tag}] 總覽原位置留一條連結", ov["link"], ov):
         pg.click("#ovTrustLink"); pg.wait_for_timeout(1500)
-        ok(f"★ [{tag}] 點總覽那條連結 → 到市場明細的「法人連買賣」分頁", pg.evaluate("location.hash") == "#market/streak"
-           and pg.evaluate("() => (document.querySelector('#mktSeg2 button.on') || {dataset:{}}).dataset.k") == "streak",
+        ok(f"★ [{tag}] 點總覽那條連結 → 到市場明細的「法人連買賣」分頁", pg.evaluate("location.hash") == "#market/inst"   # 2026-10-20：法人連買賣併進「三大法人」，舊連結導到 #market/inst 停在連續買賣超
+           and pg.evaluate("() => (document.querySelector('#mktSeg2 button.on') || {dataset:{}}).dataset.k") == "inst" and pg.evaluate("!!document.getElementById('streakWho')"),
            pg.evaluate("location.hash"))
     for w in (1440, 800):
         pg.set_viewport_size({"width": w, "height": 1000})
@@ -4184,7 +4184,7 @@ def t_market(pg, base):
     tabs = pg.evaluate("[...document.querySelectorAll('#mktSeg2 button')].map(b => b.dataset.k)")
     # 2026-09-18（Andy 圖16「市場明細內資金集中這頁拿掉」）：四個 → 三個
     # 2026-09-28（Andy「法人連續買賣超 資訊移動到市場明細」）：多一個「法人連買賣」（streak）
-    ok("市場明細有五個分頁（漲跌家數／法人連買賣／站上均線／今日候選／信用交易）", tabs == ["updown", "streak", "ma", "cand", "credit"], tabs)
+    ok("市場明細有五個分頁（漲跌家數／三大法人／站上均線／今日候選／信用交易）", tabs == ["updown", "inst", "ma", "cand", "credit"], tabs)  # 2026-10-20 法人連買賣併進「三大法人」
     ok("資金集中那一頁真的拿掉了", "top5" not in tabs, tabs)
     # ★ 2026-10-07（Andy：「標題重複，把紅框移動下來」）：同名標題卡拿掉，四顆分頁鈕搬進下方內容卡標題列右側
     lay = pg.evaluate("""() => { const seg = document.getElementById('mktSeg2'), card = document.getElementById('mktBody').closest('.card');
@@ -4202,7 +4202,7 @@ def t_market(pg, base):
         seen[k] = pg.evaluate("""() => ({ on: (document.querySelector('#mktSeg2 button.on')||{dataset:{}}).dataset.k,
             title: (document.getElementById('mktTitle')||{}).innerText.split(String.fromCharCode(10))[0],
             rows: document.querySelectorAll('#mktBody tr[data-code]').length,
-            blocks: document.querySelectorAll('#mktBody .ma, #mktBody .t5, #mktBody #trust canvas, #mktBody #trust .empty, #mktBody #trustRank .srrow[data-code], #mktBody .mf-card').length })""")
+            blocks: document.querySelectorAll('#mktBody .ma, #mktBody .t5, #mktBody #trust canvas, #mktBody #trust .empty, #mktBody #trustRank .srrow[data-code], #mktBody #instTbl tr[data-d], #mktBody .mf-card').length })""")
         segpos[k] = pg.evaluate("() => { const r = document.getElementById('mktSeg2').getBoundingClientRect(); return [Math.round(r.right), Math.round(r.top)]; }")
         ok(f"市場明細「{k}」按下去真的被選取", seen[k]["on"] == k, seen[k])
         ok(f"市場明細「{k}」有列出東西", seen[k]["rows"] > 0 or seen[k]["blocks"] > 0, seen[k])
@@ -68014,7 +68014,7 @@ def t_free_perm_1010(b, base, code):
                 ok(f"{T}【{tag}】「法人連續買賣超 → 市場明細」：反灰＋旁邊「Plus 以上可跳轉」、點了網址不變、沒有彈出層",
                    "Plus 以上可跳轉" in (aft or "") and hh == "#overview" and not pg.evaluate(FP_POP), (aft, hh))
             else:
-                ok(f"{T}【{tag}】「法人連續買賣超 → 市場明細」真的換頁", hh.startswith("#market/streak"), hh)
+                ok(f"{T}【{tag}】「法人連續買賣超 → 市場明細」真的換頁", hh.startswith("#market/inst"), hh)
         c.close()
 
     # ---------------------------------------------------------------- ⑥ 3D 剖析圖：免費會員每日 3 張，第 4 張 3D 鈕反灰＋小字、不跳卡

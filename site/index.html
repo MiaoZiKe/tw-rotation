@@ -4923,6 +4923,60 @@ h3 .howbtn.pop{font-family:inherit}
 @media (max-width:1100px) and (min-width:641px){.strank{grid-template-columns:1fr}}
 @media (max-width:640px){.strank{grid-template-columns:1fr}.srrow{grid-template-columns:minmax(6em,1fr) minmax(0,1.4fr) 5.5em}.srrow .pw{display:none}}
 @media (max-width:640px){.mktstreakbar .row{gap:6px}}
+/* 2026-10-20 市場明細「當日法人」：上面四格淨買賣超、下面左右兩欄買超／賣超前 10（版型沿用法人連買賣的 .strank／.srcol） */
+.itiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:0 0 12px}
+.itile{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left;font:inherit;color:var(--ink);cursor:pointer;
+  background:var(--panel-3);border:1px solid var(--line-2);border-radius:10px;padding:10px 12px;min-width:0}
+.itile:hover{border-color:var(--cyan)}
+.itile.on{border-color:var(--cyan);box-shadow:0 0 0 1px var(--cyan) inset;background:color-mix(in srgb,var(--cyan) 8%,var(--panel-3))}
+.itile .il{font-size:13px;color:var(--ink-2)}
+.itile .iv{font-size:22px;line-height:1.2;font-family:var(--mono);white-space:nowrap}
+.itile .is{font-size:12px;color:var(--ink-3);font-family:var(--mono)}
+.itile .ib{display:flex;gap:10px;font-size:12px;font-family:var(--mono);flex-wrap:wrap}
+/* 2026-10-20 三大法人買賣超日報（#market/inst）：頁內分段、四格＋百分位、兩欄卡、明細表 */
+#instView{margin:0 0 10px}
+.irc{margin:0 0 12px;padding:12px 14px}
+.irc>h3{margin:0 0 8px;font-size:15px}
+.irgrid{display:grid;grid-template-columns:minmax(0,2fr) minmax(0,1fr);gap:12px;align-items:stretch}
+.irgrid>.card{margin:0 0 12px}
+.itile .ipct{display:flex;align-items:center;gap:6px;width:100%;margin-top:4px}
+.itile .ipct .trk{flex:1 1 auto;height:5px;border-radius:3px;background:color-mix(in srgb,var(--ink-3) 25%,transparent);overflow:hidden}
+.itile .ipct i{display:block;height:100%;background:var(--cyan)}
+.itile .ipct em{font-style:normal;font-family:var(--mono);font-size:12px;color:var(--ink-3)}
+.irnote{margin-top:8px;font-size:12px;color:var(--ink-3)}
+.icum{display:flex;flex-direction:column;gap:10px;padding-top:4px}
+.icrow{display:flex;align-items:baseline;justify-content:space-between;gap:8px;border-bottom:1px solid var(--line-2);padding-bottom:8px}
+.icrow span{color:var(--ink-2);font-size:13px}
+.icrow b{font-size:22px;font-family:var(--mono)}
+.irabout p{margin:0 0 8px;font-size:13px;line-height:1.65;color:var(--ink-2)}
+.irtbl{max-height:340px;overflow:auto}
+.irtbl table{width:100%}
+.irtbl th[data-k]{cursor:pointer;user-select:none;white-space:nowrap}
+.irtbl thead th{position:sticky;top:0;background:var(--panel-2,var(--panel));z-index:1}
+.irtbl tr[data-d]{cursor:pointer}
+.irtbl tr.hl td{background:color-mix(in srgb,var(--cyan) 14%,transparent)}
+.irtbl tr.lk td{background:color-mix(in srgb,var(--cyan) 22%,transparent);box-shadow:0 1px 0 var(--cyan) inset,0 -1px 0 var(--cyan) inset}
+.irtbl tr.dim td{opacity:.55}
+.iest{font-style:normal;font-size:11px;color:var(--amber);border:1px solid var(--amber);border-radius:4px;padding:0 3px;margin-left:4px}
+.irgf{gap:10px;align-items:center;margin:0 0 8px;flex-wrap:wrap}
+.itrow .px.grp{font-family:inherit;font-size:12px;color:var(--ink-3);overflow:hidden;text-overflow:ellipsis}
+.itrow:has(.px.grp){grid-template-columns:minmax(7.5em,1.1fr) minmax(0,2fr) 5.5em 7em}
+@media (max-width:1100px){.irgrid{grid-template-columns:1fr}}
+.itrow{display:grid;grid-template-columns:minmax(7.5em,1.1fr) minmax(0,2fr) 6.5em 5em;gap:10px;align-items:center;padding:5px 6px;border-radius:6px;font-size:13px}
+.itrow[data-code]{cursor:pointer}
+.itrow[data-code]:hover,.itrow[data-code]:focus-visible{background:color-mix(in srgb,var(--cyan) 10%,transparent);outline:none}
+.itrow.ithead{color:var(--ink-3);font-size:12px;padding-top:0;padding-bottom:2px;border-bottom:1px solid var(--line-2);border-radius:0}
+.itrow .nm{display:flex;align-items:baseline;gap:6px;min-width:0;white-space:nowrap;overflow:hidden}
+.itrow .nm b{overflow:hidden;text-overflow:ellipsis}
+.itrow .nm em{font-style:normal;font-family:var(--mono);font-size:12px;color:var(--ink-3)}
+.itrow .sbar{display:flex;align-items:center;gap:8px;min-width:0}
+.itrow .sbar .trk{flex:1 1 auto;min-width:0}
+.itrow .sbar i{display:block;height:12px;border-radius:3px}
+.itrow .sbar b{flex:none;width:4.8em;text-align:right;font-family:var(--mono);font-size:12.5px;white-space:nowrap}
+.srcol.buy .itrow .sbar i{background:linear-gradient(90deg,color-mix(in srgb,var(--rise) 45%,transparent),var(--rise))}
+.srcol.sell .itrow .sbar i{background:linear-gradient(90deg,color-mix(in srgb,var(--fall) 45%,transparent),var(--fall))}
+.itrow .lots,.itrow .px{text-align:right;font-family:var(--mono);font-size:12.5px;white-space:nowrap}
+@media (max-width:1100px) and (min-width:641px){.itiles{gap:8px}.itile .iv{font-size:19px}}
 
 /* ---- 市場明細：漲跌分佈下鑽（2026-09-28，Andy「點擊長條圖後，會顯示個股在右邊可以看」）----
    ⚠ 名單容器用 div 不用 aside：全站的 `aside` 規則是今日事件抽屜（position:fixed 貼右邊），用 aside 會整塊飛到畫面外。
@@ -5532,6 +5586,8 @@ h3 .howbtn.pop{font-family:inherit}
 <link rel="stylesheet" href="m4/20261017-jobstage.css">
 <link rel="stylesheet" href="m4/20261019-ntbell.css">
 <link rel="stylesheet" href="m4/20261019-stock-link.css">
+<link rel="stylesheet" href="m4/20261020-futpages.css">
+<link rel="stylesheet" href="m4/20261020-insttoday.css">
 <link rel="stylesheet" href="m4/20261020-margin-fut.css">
 <!-- m4:css 結束 -->
 <!-- ★ 2026-10-03 一屏看完（DECISIONS #308，fit.css／fit.js）：每張圖表卡完整落在一屏可視高度內，只動桌機（≥821）的卡高與圖高。 -->
@@ -6127,6 +6183,7 @@ return {load:load,ready:ready,srcs:srcs};})();
 <script src="calgrid.js"></script>
 <script src="rangepick.js"></script>
 <script src="etfpage.js"></script>
+<script src="futpages.js"></script><!-- 2026-10-20 市場明細：台指期三大法人未平倉、微台指散戶多空比 -->
 <script src="earnings.js"></script>
 <script src="artillus.js"></script><!-- 2026-10-16 精選文章的具象插圖（CoWoS 剖面、AI 機櫃）：{"t":"illus"} 區塊的 SVG 幾何與錨點；版面與引線在 articles.js -->
 <script src="articles.js"></script><!-- 2026-10-14 精選文章（列表／單篇）＋管理區 #admin/articles；資料在 site/articles/（不在 site/data/）-->
