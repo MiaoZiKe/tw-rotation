@@ -98,6 +98,7 @@
       { k: 'mkt-inst', h: '#market/inst', t: '三大法人', s: '法人', ic: 'landmark' },
       { k: 'mkt-ma', h: '#market/ma', t: '站上均線', s: '均線', ic: 'line' },
       { k: 'mkt-cand', h: '#market/cand', t: '今日關注', s: '關注', ic: 'target' },
+      { k: 'mkt-credit', h: '#market/credit', t: '信用交易', s: '信用', ic: 'line' },
     ],
     /* 2026-10-16 Andy：「精選文章已經裡面有分頁，側邊子分頁就拿掉」→ 精選文章不再有側欄子項（電腦版、手機抽屜都只剩一格「精選文章」）。
        類別切換只靠頁內那排分頁（articles.js #artCats）；#articles/<類別> 深連結照舊由 articles.js 讀網址選分頁。 */

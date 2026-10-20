@@ -1,0 +1,28 @@
+/* 2026-10-20 市場明細：融資餘額／外資期貨口數／期貨多空比（site/marketfut.js）手機版。只限 ≤640，桌機不動。
+   準則：一屏看到摘要＋圖；數字格 2×2；表格橫向可拖；說明文字收在「?」裡。 */
+@media (max-width:640px){
+  html.m4 .mf-card{padding:10px 12px}
+  html.m4 .mf-tiles{grid-template-columns:repeat(2,1fr);gap:8px}
+  html.m4 .mf-v{font-size:17px}
+  html.m4 .mf-sub{display:none}
+  html.m4 .mf-asof{display:block;margin:2px 0 0}
+  html.m4 .mf-ctl{width:100%;justify-content:flex-start}
+  html.m4 .mf-ctl .seg button{min-height:32px}
+  html.m4 .mf-card .chart{height:230px!important}
+  html.m4 .mf-tbl{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  html.m4 .mf-tbl table{min-width:420px}
+}
+@media (max-width:640px){
+  html.m4 .mf-hero,html.m4 .mf-grid,html.m4 .mf-rkgrid{grid-template-columns:1fr}
+  html.m4 .mf-bn{font-size:28px}
+  html.m4 .mf-how{display:none}
+  html.m4 .mf-scroll{max-height:300px}
+  html.m4 .mf-card .chart{height:230px!important}
+}
+@media (max-width:640px){ html.m4 .mf-range{display:block;width:100%} html.m4 .mf-gsel{margin-bottom:8px} }
+@media (max-width:640px){
+  html.m4 .mf-ctl .seg{max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;flex-wrap:nowrap}
+  html.m4 .mf-ctl .seg button{flex:0 0 auto}
+  html.m4 .mf-card .mf-scroll{max-height:230px!important}
+  html.m4 .mf-note{white-space:normal}
+}
