@@ -69,6 +69,48 @@ def payload(inst: pd.DataFrame, price: pd.DataFrame, names: dict) -> dict:
     allr = allr[allr["sh_"] != 0]
     all_total = [[str(r.code), int(round(r.sh_ / 1000)), round(float(r.sh_ * r.close) / 1e8, 3)]
                  for r in allr.itertuples()]
-    return {"all": all_total, "date": d, "n": n, "n_max": nmax,
+    # 外資／投信各自的全市場逐檔（同樣 [代號, 張, 億元]）：前端「當日買賣超」切身分後仍可用族群篩選，不被前 10 名卡住
+    all_by = {}
+    for k in ("foreign", "trust"):
+        a = day[day["close"].notna() & (day["close"] > 0)].copy()
+        a["sh_"] = pd.to_numeric(a[WHO_COLS[k]], errors="coerce").fillna(0.0)
+        a = a[a["sh_"] != 0]
+        all_by[k] = [[str(r.code), int(round(r.sh_ / 1000)), round(float(r.sh_ * r.close) / 1e8, 3)] for r in a.itertuples()]
+    all_by["total"] = all_total
+    win = _windows(inst, price, d)
+    return {"all": all_total, "all_by": all_by, "win": win, "date": d, "n": n, "n_max": nmax,
             "basis": "金額＝股數×當日收盤價（估算）；外資含外資自營商；自營商含自行買賣與避險",
             "who": who, "top": top}
+
+
+WIN_DAYS = (5, 21, 63, 126)   # 個股元件的期間：近 5 日／1 月／3 月／6 月（交易日數，與日報期間鈕同一把尺）
+WIN_TOP = 250                 # 每個身分、每個期間、買／賣各留前 250 檔（金額排序），控制 payload 大小
+
+
+def _windows(inst: pd.DataFrame, price: pd.DataFrame, d: str) -> dict:
+    """期間累計買賣超（逐檔）：近 N 個交易日每天「股數×當日收盤」加總。
+
+    Andy 10-20：「都需要有時間切換」→ 個股元件跟日報共用期間鈕。每天用當天收盤估金額，與單日口徑一致。
+    回傳 {"5": {"foreign": [[代號, 張, 億元], ...], "trust": ..., "total": ...}, ...}
+    """
+    try:
+        dates = sorted({str(x) for x in inst["date"].astype(str).unique() if str(x) <= d})
+        out: dict = {}
+        px = price[["date", "code", "close"]].copy()
+        px["date"] = px["date"].astype(str)
+        for n in WIN_DAYS:
+            ds = set(dates[-n:])
+            sub = inst[inst["date"].astype(str).isin(ds)].copy()
+            sub["date"] = sub["date"].astype(str)
+            sub = sub.merge(px, on=["date", "code"], how="left")
+            sub = sub[sub["close"].notna() & (sub["close"] > 0)]
+            out[str(n)] = {}
+            for k, col in (("foreign", "foreign_total"), ("trust", "trust"), ("total", "inst_total")):
+                sh = pd.to_numeric(sub[col], errors="coerce").fillna(0.0)
+                g = pd.DataFrame({"code": sub["code"].astype(str), "sh": sh, "amt": sh * sub["close"]}).groupby("code").sum()
+                g = g[g["sh"] != 0]
+                pick = pd.concat([g.nlargest(WIN_TOP, "amt"), g.nsmallest(WIN_TOP, "amt")]).loc[lambda x: ~x.index.duplicated()]
+                out[str(n)][k] = [[c, int(round(r.sh / 1000)), round(float(r.amt) / 1e8, 3)] for c, r in pick.iterrows()]
+        return out
+    except Exception:
+        return {}

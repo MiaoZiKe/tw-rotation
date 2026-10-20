@@ -1,0 +1,61 @@
+/* 2026-10-20 三大法人：日報三塊並排（買賣超圖／累積圖／明細）、個股元件「當日買賣超｜連續買賣超」雙模式。
+   上半（沒有 @media 的）是桌機與共用規則；手機規則全部包在 max-width:640px（桌機守門：不動 640 以上既有版面）。 */
+.stale-tag{display:inline-block;margin-left:8px;padding:1px 8px;border-radius:999px;font-size:12px;line-height:1.6;color:var(--amber);border:1px solid var(--amber);background:color-mix(in srgb,var(--amber) 12%,transparent);white-space:nowrap}
+.irtop{padding:10px 14px}
+.irtop .itiles{margin:0 0 6px}
+.irgo{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.irgo .irnote{margin:0}
+.irtri{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1.15fr) minmax(0,1fr);gap:12px;align-items:stretch}
+.irtri>.card{margin:0 0 12px;min-width:0}
+.irtri .irtbl{max-height:360px}
+.irtri .icum{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;padding:0 0 4px}
+.irtri .icrow{flex-direction:column;align-items:flex-start;gap:0;border-bottom:0;padding:0}
+.irtri .icrow b{font-size:17px}
+.irtri .icrow span{font-size:12px}
+@media (max-width:1100px){.irtri{grid-template-columns:1fr}}
+.itdh{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin:0 0 8px}
+.itdh b{font-size:15px}
+.itdh small{color:var(--ink-3);font-size:12px}
+/* 當日買賣超：股票｜金額長條＋數值｜張數｜連續天數｜族群 */
+.itrow.td,.itrow.td:has(.px.grp){grid-template-columns:minmax(7em,1.1fr) minmax(0,1.7fr) 5.5em 4.2em 7em}
+.itrow .dys{text-align:right;font-family:var(--mono);font-size:12.5px;color:var(--ink-2);white-space:nowrap}
+/* 連續買賣超多一欄「當日」 */
+@media (min-width:641px){
+  .srrow{grid-template-columns:minmax(7em,1.1fr) minmax(0,1.7fr) 5.8em 5.2em 7em}
+}
+.srrow .td1{text-align:right;font-family:var(--mono);font-size:12.5px;white-space:nowrap}
+@media (min-width:641px) and (max-width:1100px){.itrow.td,.itrow.td:has(.px.grp){grid-template-columns:minmax(6.5em,1fr) minmax(0,1.5fr) 5em 4em 6em}}
+@media (max-width:640px){
+  .srrow{grid-template-columns:minmax(4.6em,1fr) minmax(0,.9fr) 4.2em 4.2em}
+  .itrow.td,.itrow.td:has(.px.grp),:root.m4 #v-market .itrow.td,:root.m4 #v-market .itrow.td:has(.px.grp){grid-template-columns:minmax(5em,1fr) minmax(0,1.5fr) 3.6em;gap:8px}
+  :root.m4 #v-market .itrow.td .lots{display:none}
+  .irtri{grid-template-columns:1fr}
+  .irtri .icum{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .irtri .icrow b{font-size:15px}
+  :root.m4 #v-market #instGoStocks{min-height:40px}
+  :root.m4 #v-market #instMode button,:root.m4 #v-market #instSw button{min-height:40px}
+}
+.itile .icu{font-size:12px;color:var(--ink-3)}
+.itile .icu b{font-size:14px;font-family:var(--mono);font-weight:600}
+#instSub:empty{display:none}
+.irtri{grid-template-columns:minmax(0,1.05fr) minmax(0,1fr) minmax(0,1.3fr)}
+.irtri .irtbl table th,.irtri .irtbl table td{padding:6px 5px;font-size:12.5px;white-space:nowrap}
+@media (max-width:1100px){.irtri{grid-template-columns:1fr}}
+@media (max-width:640px){.irtri{grid-template-columns:1fr}}
+/* 手機：個股元件的控制列（模式／期間／身分／族群／天數）直接攤在頁面上、自動換行；不用 m4 的「設定」摘要鈕（它只認舊的三個控制） */
+@media (max-width:640px){
+  :root.m4 #v-market .mktstreakbar>.row:has(#instMode){display:flex!important;flex-wrap:wrap;gap:6px!important;width:100%}
+  :root.m4 #v-market .mktstreakbar:has(#instMode) #m4MkSet{display:none!important}
+  :root.m4 #v-market .mktstreakbar:has(#instMode) :is(#streakView,#streakWho){display:flex!important}
+  :root.m4 #v-market .mktstreakbar:has(#instMode) #streakDays{display:inline-block!important}
+  :root.m4 #v-market #instMode,:root.m4 #v-market #instSw{flex:1 1 100%;display:flex}
+  :root.m4 #v-market #instMode button,:root.m4 #v-market #instSw button{flex:1 1 0;min-width:0;padding-left:4px;padding-right:4px}
+  :root.m4 #v-market #streakView{flex:1 1 40%}
+  :root.m4 #v-market #streakView button,:root.m4 #v-market #streakWho button{flex:1 1 0;min-width:0}
+  :root.m4 #v-market #streakWho{flex:1 1 45%}
+  :root.m4 #v-market #streakGroupDD{flex:1 1 9em;min-width:0}
+  :root.m4 #v-market #streakGroupDD .twms-btn{width:100%}
+}
+.irtri>.card{display:flex;flex-direction:column}
+.irtri>.card>.chart{flex:1 1 auto}
+.irtri .irtbl{flex:1 1 auto}
