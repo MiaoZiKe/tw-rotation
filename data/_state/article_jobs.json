@@ -1,19 +1,6 @@
 {
- "updated": "2026-10-20 09:18",
+ "updated": "2026-10-20 09:19",
  "jobs": [
-  {
-   "id": 22,
-   "topic_id": "sch-20261020-06-r1-news-3",
-   "kind": "article",
-   "title": "11 月後的財報行情：法說會空窗期資金往哪走",
-   "note": "排程自動排入（規則 1，台北 2026-10-20 06:00）；建議主題 n_nov_earnings",
-   "status": "working",
-   "created": 1792449515747,
-   "updated": 1792458894136,
-   "result": null,
-   "stage": "write",
-   "stage_at": 1792458894136
-  },
   {
    "id": 24,
    "topic_id": "sch-20261020-06-r1-intro-2",
