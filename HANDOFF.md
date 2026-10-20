@@ -10,6 +10,11 @@
   資料狀態徽章提示列出「過期或不完整」項目；當天台北 19:00 前標 pending 不亮）。測試 tests/test_data_fresh_1020.py。
 - 沙箱打不到 FinMind，整天全市場能不能用要看 Actions 的 log（搜「整天全市場法人」）。
 - 這批只驗：test_data_fresh_1020／test_inst_phase／test_sources_v3／test_backfill* 單檔（本機沙箱無外網，test_stage_pipeline_news、test_freshness 要在 Actions 跑）。
+### 2026-10-20 三大法人買賣超日報（UI 專家；前端在預覽 preview/market-1020、資料層已在 main）
+- 市場明細「三大法人」（#market/inst）＝日報（期間鈕 1月～全部、四格＋百分位、堆疊直條＋指數線、累積、明細表、個股排行 Top 8＋族群篩選、全圖連動）＋ 頁內分段「連續買賣超」（原法人連買賣併入；舊 #market/streak 導向）。口徑見 docs/inst_today.md。
+- 資料：新表 inst_market_daily（FinMind TaiwanStockTotalInstitutionalInvestors，官方值，run_daily 每日＋run_backfill 回補 5 年）；官方值沒回補到的日子用 inst_daily×收盤（只算上市）估算並標「估」。**雲端第一次回補跑完前只有約 23 天估算，長期間鈕反灰**；回補後請確認外資數字與證交所公告值一致（例如 10/19 外資 −767.4 億）。
+- 未決：features.js 的 mkt.streak 配額改綁「連續買賣超」分段；沒有新增三大法人詞彙字典（TERMS 不存在）；手機整頁約 3 屏半（準則為 ≤3）。
+- 這批只驗：當日法人1020（新）、市場明細、市場明細下鑽0928、側欄子分頁1010、桌機守門1008、pytest 子集 189 綠＋先前全量 1165 綠。基準同樣紅的（與本批無關）：平台導覽1007、說明精簡、總覽 2、站上均線下拉1004、註冊會員權限1012。
 
 ### 2026-10-20 資金輪動勾族群 → 排行長條消失＋頁面例外（修好）
 - 症狀：#flow/rotation「族群」下拉勾晶圓代工／HPC 與網通 IC／矽晶圓，每勾一個丟 `reading 'width'`，族群資金排行只剩名字沒有長條。

@@ -1,0 +1,22 @@
+/* 2026-10-20 手機「三大法人」日報：四格 2×2、卡片單欄、明細表只留前 10 筆（JS 控制）、排行單欄且隱藏族群欄。只在 html.m4 / ≤640 生效，桌機不受影響 */
+@media (max-width:640px){
+  :root.m4 #v-market .itiles{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-bottom:6px}
+  :root.m4 #v-market .itile{padding:8px 10px}
+  :root.m4 #v-market .itile .iv{font-size:19px}
+  :root.m4 #v-market .irgrid{grid-template-columns:1fr}
+  :root.m4 #v-market .irc{padding:10px 10px}
+  :root.m4 #v-market .itrow,:root.m4 #v-market .itrow:has(.px.grp){grid-template-columns:minmax(6em,1fr) minmax(0,1.5fr) 5.2em;gap:8px;min-height:36px}
+  :root.m4 #v-market .itrow .px{display:none}
+  :root.m4 #v-market .irtbl{max-height:none;overflow:visible}
+  :root.m4 #v-market .irabout{display:none}
+  :root.m4 #v-market #instToday .mktstreakbar .row{width:100%;display:flex;flex-wrap:nowrap;gap:6px;align-items:center}
+  :root.m4 #v-market #instPer{flex:1 1 auto;min-width:0;display:flex}
+  :root.m4 #v-market #instPer button{flex:1 1 0}
+  :root.m4 #v-market #instPer button{padding-left:2px;padding-right:2px;min-width:0}
+  :root.m4 #v-market #instBars{min-height:230px!important;height:230px}
+  :root.m4 #v-market #instLines{min-height:190px!important;height:190px}
+  :root.m4 #v-market .irtbl table th,:root.m4 #v-market .irtbl table td{padding:6px 4px;font-size:12px}
+  :root.m4 #v-market .irtbl table th:nth-child(6),:root.m4 #v-market .irtbl table td:nth-child(6){display:none}
+  :root.m4 #v-market .icrow b{font-size:18px}
+  :root.m4 #v-market #instPer button,:root.m4 #v-market #instView button{min-height:40px}
+}
