@@ -147,7 +147,7 @@ BLUR_JS = r"""
 
 SEL_OVERLAY_JS = r"""([s, v]) => { const e = document.querySelector(s); if (!e) return; const r = e.getBoundingClientRect();
   const d = document.createElement('div'); d.id = '__vsel';
-  d.style.cssText = `position:fixed;left:${r.left}px;top:${r.bottom + 2}px;min-width:${r.width}px;max-height:150px;overflow:hidden;z-index:2147483600;background:#fff;border:1px solid #c9d3e0;border-radius:8px;box-shadow:0 8px 24px rgba(15,23,42,.18);padding:4px 0;font:14px/1.2 'Noto Sans TC',sans-serif;color:#1f2937`;
+  d.style.cssText = `position:fixed;left:${r.left}px;top:${r.bottom + 2}px;min-width:${r.width}px;max-height:162px;overflow:hidden;z-index:2147483600;background:#fff;border:1px solid #c9d3e0;border-radius:8px;box-shadow:0 8px 24px rgba(15,23,42,.18);padding:4px 0;font:14px/1.2 'Noto Sans TC',sans-serif;color:#1f2937`;
   d.innerHTML = [...e.options].map(o => `<div data-v="${o.value}" style="padding:7px 14px;white-space:nowrap;${o.value === e.value ? 'background:#e8f0fb;color:#1d4ed8;font-weight:600' : ''}">${o.text}</div>`).join('');
   const st = document.createElement('style'); st.textContent = '#__vsel .hv{background:#2563eb!important;color:#fff!important}'; d.appendChild(st);
   document.body.appendChild(d); }"""

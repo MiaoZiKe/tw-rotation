@@ -109,8 +109,8 @@ def make(kind):
     cv.alpha_composite(sh.filter(ImageFilter.GaussianBlur(10)), (sx + 10, sy + 14))
     cv.alpha_composite(st, (sx, sy))
     reg.add("網站畫面", (sx, sy, sx + st.width, sy + st.height))
-    # 比比（拿放大鏡）
-    bimg = Image.open(R.LIB / "news" / "key.png").convert("RGBA")
+    # 比比（轉地球儀＋新聞卡飛出）
+    bimg = Image.open(R.LIB / "globe" / "key.png").convert("RGBA")
     bs = 430 if kind == "16x9" else 470
     bimg = bimg.resize((bs, bs), Image.LANCZOS)
     a = np.array(bimg)[..., 3]
@@ -118,7 +118,7 @@ def make(kind):
     if kind == "16x9":
         bx, by = 40, H - bs - 40
     else:
-        bx, by = (W - bs) // 2, sy + st.height - 40   # 9:16：比比放在網站畫面正下方（不留大片空白）
+        bx, by = (W - bs) // 2, sy + st.height + 16 - int(ys_.min())   # 9:16：比比放在網站畫面正下方（留 16px，不重疊）
     cv.alpha_composite(bimg, (bx, by))
     reg.add("比比", (bx + xs_.min(), by + ys_.min(), bx + xs_.max(), by + ys_.max()))
     # 註記
