@@ -136,16 +136,23 @@ def _get(url: str) -> tuple[int | None, object]:
 
 
 def _discover(swagger_url: str, prefix: str) -> list[str]:
-    """讀 swagger.json，把路徑含法人關鍵字的也列為候選（路徑名猜錯時的自救）。"""
+    """讀 swagger.json，把「路徑或摘要」含法人／外資／投信／自營關鍵字的也列為候選（路徑名猜錯時的自救）。
+
+    只看路徑與 summary，不看整段說明（上次比對整段說明，把董監持股的「法人代表人」誤抓進來）。
+    命中的路徑與摘要全部寫進 DIAG，端點第一次上線要靠它校正。"""
     st, sw = _get(swagger_url)
     if not isinstance(sw, dict):
         return []
     found = []
     for p, v in (sw.get("paths") or {}).items():
-        if _KEYWORD.search(p + str(v)[:600]):
-            log.info("官方法人 swagger 發現路徑：%s", p)
+        summ = " ".join(str(x.get("summary", "")) for x in v.values() if isinstance(x, dict))
+        if "法人代表" in summ:
+            continue
+        if re.search(r"三大法人|外資|外陸資|投信|自營|nstitution|3insti|3itrade|T86|TWT38U|TWT43U|TWT44U", p + summ, re.I):
+            log.info("官方法人 swagger 發現路徑：%s（%s）", p, summ[:60])
+            DIAG.append({"swagger_path": p, "summary": summ[:80]})
             found.append(p)
-    return found
+    return found[:8]
 
 
 def _market(root: str, swagger: str, cands: list[str], label: str) -> pd.DataFrame:
