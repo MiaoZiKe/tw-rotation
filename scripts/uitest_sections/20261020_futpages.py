@@ -70,7 +70,7 @@ def t_futpages_1020(b, base, code):
         ttl_vis = pg.evaluate("() => { const h = document.querySelector('#v-market .mkthead > h3'); return !!h && h.offsetParent !== null; }")
         ok(f"{tag}：卡內重複標題「市場明細：期貨籌碼 ?」已拿掉", not ttl_vis and "mkt-notitle" in (pg.locator("#v-market > .card").first.get_attribute("class") or ""), ttl_vis)
         prod = pg.locator(".fp-prod button")
-        ok(f"{tag}：頂列分段開關兩顆、預設台指期", prod.count() == 2 and "台指期三大法人未平倉" in prod.nth(0).inner_text() and "微台指散戶多空比" in prod.nth(1).inner_text() and "on" in (prod.nth(0).get_attribute("class") or ""))
+        ok(f"{tag}：頂列分段開關兩顆、預設台指期", prod.count() == 2 and "台指期三大法人未平倉" in prod.nth(0).inner_text() and "台指散戶多空比" in prod.nth(1).inner_text() and "on" in (prod.nth(0).get_attribute("class") or ""))
         bar, per = bb(".fp-bar"), bb(".fp-per")
         ok(f"{tag}：期間鈕在頂列、在圖的上方", per["y"] < bb("#fpChart-futoi")["y"] and per["y"] + per["height"] <= bar["y"] + bar["height"] + 2, [per, bar])
         if w > 640:
@@ -139,9 +139,9 @@ def t_futpages_1020(b, base, code):
         before_chart_x = bb(".fp-main")["x"]
         pg.locator('.fp-prod button[data-k="retail"]').click()
         okr = wait_until(pg, FNR, 8000)
-        ok(f"{tag}：切到「微台指散戶多空比」→畫出微台圖與表", okr)
+        ok(f"{tag}：切到「台指散戶多空比」→畫出微台圖與表", okr)
         if okr:
-            ok(f"{tag}：切換後台指期的圖、表、數字卡已拿掉（同一位置不堆疊）", pg.locator("#fpChart-futoi, #fpTw-futoi, #fpLatest").count() == 0 and pg.locator(".fp-prod button.on").inner_text() == "微台指散戶多空比")
+            ok(f"{tag}：切換後台指期的圖、表、數字卡已拿掉（同一位置不堆疊）", pg.locator("#fpChart-futoi, #fpTw-futoi, #fpLatest").count() == 0 and pg.locator(".fp-prod button.on").inner_text() == "台指散戶多空比")
             ok(f"{tag}：圖在同一個位置（頂端／左緣不變）", (w <= 640 or abs(bb(".fp-main")["y"] - before_top) < 140) and abs(bb(".fp-main")["x"] - before_chart_x) < 3, [bb(".fp-main"), before_top])
             cols = pg.evaluate("() => Array.from(document.querySelectorAll('#fpTw-retail thead th')).map(t => t.textContent)")
             ok(f"{tag}：明細表欄位換成散戶多單／空單／多空比", "散戶多空比" in cols and "外資 淨部位" not in cols, cols)
@@ -150,7 +150,7 @@ def t_futpages_1020(b, base, code):
             ok(f"{tag}：自動解讀換成散戶內容（在「?」裡）", "散戶" in pg.locator("#fpAutoUl-retail").inner_text(), pg.locator("#fpAutoUl-retail").inner_text()[:60])
             bc = pg.evaluate("() => { const m = echarts.getInstanceByDom(document.getElementById('fpChart-retail')).getModel(); const v = m.getSeriesByIndex(0).getData().getVisual('style'); return [String(v.fill) + (v.opacity != null ? '|' + v.opacity : ''), '' + (m.getSeriesByIndex(1).get('lineStyle').width)]; }")
             ok(f"{tag}：微台柱子實色（散戶青綠、不漸層）、加權線寬 2", bc[0].startswith("hsl(17") and bc[1] == "2", bc)
-            ok(f"{tag}：微台反灰的期間鈕 title 寫資料回溯到哪（畫面不寫）", "2024-06" in (pg.locator(".fp-per button", has_text="5年").first.get_attribute("title") or ""))
+            ok(f"{tag}：微台反灰的期間鈕 title 寫資料回溯到哪（畫面不寫）", "資料自 06/03 起" in (pg.locator(".fp-per button", has_text="5年").first.get_attribute("title") or ""))
             ok(f"{tag}：微台只能選資料夠長的期間（5年反灰、全部可按）", pg.locator(".fp-per button", has_text="5年").first.is_disabled() and not pg.locator(".fp-per button", has_text="全部").first.is_disabled())
             nv = pg.evaluate("() => echarts.getInstanceByDom(document.getElementById('fpChart-retail')).getOption().series[0].data.length")
             ok(f"{tag}：微台圖筆數＝表格列數", nv == nrows("retail") > 5, [nv, nrows("retail")])
@@ -163,7 +163,7 @@ def t_futpages_1020(b, base, code):
             ok(f"{tag}：微台點欄名→由大到小", a2 == sorted(a2, reverse=True) and len(a2) > 5, a2[:4])
             pg.locator("#fpHowBtn").click(); pg.wait_for_timeout(300)
             pop2 = pg.evaluate("() => { const p = document.getElementById('howPop'); return p && !p.hidden ? p.innerText : ''; }")
-            ok(f"{tag}：切到微台後「?」說明換成散戶多空比", "什麼是散戶多空比" in pop2 and "微型台指" in pop2 and "淨部位＝多方" not in pop2, pop2[:80])
+            ok(f"{tag}：切到微台後「?」說明換成散戶多空比", "什麼是散戶多空比" in pop2 and "大台" in pop2 and "小台" in pop2 and "淨部位＝多方" not in pop2, pop2[:80])
             pg.keyboard.press("Escape"); pg.wait_for_timeout(250)
             pg.locator(".fp-per button", has_text="6月").first.click(); pg.wait_for_timeout(250)
             ok(f"{tag}：微台按「6月」圖表同步", pg.evaluate("() => echarts.getInstanceByDom(document.getElementById('fpChart-retail')).getOption().series[0].data.length") == nrows("retail"))
@@ -219,3 +219,98 @@ def t_futpages_1020(b, base, code):
 
 
 register("期貨籌碼兩頁1020", lambda pg, b, base, code: t_futpages_1020(b, base, code))
+
+
+# ===================================================================== 期貨籌碼r3（Andy 10-20 17:00）
+# ① 最新一日淨未平倉卡壓成一列（高度減半、三格同列）② 「台指散戶多空比」上方多一組 大台｜小台｜微台（預設小台），切換後圖、表、數字卡真的換
+# ③ 期間鈕真的按：圖的資料點數與表格列數隨期間變；資料不足的鈕反灰，title 寫「資料自 MM/DD 起」 ④ 圖上提示框同時最多 1 個
+_TIPS_JS = """() => [...document.body.children].filter(d => /9999999/.test(d.getAttribute('style') || '') && d.textContent.trim()
+  && getComputedStyle(d).display !== 'none' && getComputedStyle(d).visibility !== 'hidden').length"""
+
+
+def _fp_fake_products(fut):
+    import random
+    rnd = random.Random(5)
+    ds = fut["dates"]; tx = fut["taiex"]
+
+    def pack(start, scale, prod):
+        st = ds.index(start); rd = ds[st:]; m = len(rd)
+        tot = [int(scale * rnd.uniform(.9, 1.1)) for _ in range(m)]
+        rl = [int(t * rnd.uniform(.38, .52)) for t in tot]; rs = [int(t * rnd.uniform(.38, .52)) for t in tot]
+        return {"product": prod, "dates": rd, "taiex": tx[st:], "total_oi": tot, "retail_long": rl, "retail_short": rs,
+                "retail_net": [a - c for a, c in zip(rl, rs)], "ratio_pct": [round((a - c) / t * 100, 2) for a, c, t in zip(rl, rs, tot)], "settle_dates": []}
+    return {"asof": ds[-1], "source": "測試假資料", "order": "asc",
+            "products": {"TX": pack("2021-10-01", 90000, "TX"), "MTX": pack("2023-03-01", 70000, "MTX"), "TMF": pack("2024-06-03", 60000, "TMF")}}
+
+
+def t_futpages_r3(b, base, code):
+    T = "期貨籌碼r3"
+    import json as _j
+    fut, _ret = _fp_fake()
+    rr = _fp_fake_products(fut)
+    n = {k: len(v["dates"]) for k, v in rr["products"].items()}
+    for (w, h) in ((1440, 900), (390, 844)):
+        errs: list[str] = []
+        c = b.new_context(viewport={"width": w, "height": h})
+        c.add_init_script("try{localStorage.setItem('tw.tour','done');localStorage.setItem('tw.live.on','0')}catch(e){}")
+        c.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+        for fname, data in (("fut_oi", fut), ("retail_ratio", rr)):
+            c.route(f"**/data/{fname}.json*", lambda r, *_a, body=_j.dumps(data): r.fulfill(status=200, content_type="application/json", body=body))
+        pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)))
+        pg.goto(base + "#market/fut", wait_until="domcontentloaded")
+        tag = f"{T}（{w}）"
+        if not wait_until(pg, "() => !!document.getElementById('fpChart-futoi') && !!echarts.getInstanceByDom(document.getElementById('fpChart-futoi'))", 25000):
+            ok(f"{tag}：畫出台指期", False); c.close(); continue
+        agree = pg.get_by_role("button", name="同意並繼續")
+        if agree.count() and agree.first.is_visible():
+            agree.first.click(); pg.wait_for_timeout(300)
+        # ---- ① 最新一日卡一列 ----
+        g = pg.evaluate("""() => { const r = document.getElementById('fpLatest').getBoundingClientRect(); const vs = [...document.querySelectorAll('#fpBig3 .v')].map(e => Math.round(e.getBoundingClientRect().top));
+          return { h: Math.round(r.height), w: Math.round(r.width), ys: vs, concl: document.getElementById('fpConcl').getBoundingClientRect().height }; }""")
+        if w > 900:
+            ok(f"★ {tag}：最新一日卡壓成一列（高度 {g['h']}px ≤ 120、三個數字同一列、結論一行）", g["h"] <= 120 and len(set(g["ys"])) == 1 and g["concl"] <= 24, g)
+        # ---- ② 切到散戶：大台｜小台｜微台 ----
+        pg.locator('.fp-prod button[data-k="retail"]').click()
+        okr = wait_until(pg, "() => !!document.getElementById('fpChart-retail') && !!echarts.getInstanceByDom(document.getElementById('fpChart-retail'))", 8000)
+        ok(f"★ {tag}：切到「台指散戶多空比」畫出圖", okr)
+        if not okr:
+            c.close(); continue
+        segs = pg.evaluate("() => [...document.querySelectorAll('#fpProdSeg button')].map(b => ({ t: b.textContent, on: b.classList.contains('on'), dis: b.disabled }))")
+        ok(f"★ {tag}：上方 .seg「大台｜小台｜微台」三顆、預設小台、都可按", [x["t"] for x in segs] == ["大台", "小台", "微台"] and [x["t"] for x in segs if x["on"]] == ["小台"] and not any(x["dis"] for x in segs), segs)
+        npts = lambda: pg.evaluate("() => echarts.getInstanceByDom(document.getElementById('fpChart-retail')).getOption().series[0].data.length")
+        nrows = lambda: pg.evaluate("() => document.querySelectorAll('#fpTw-retail tbody tr').length")
+        ok(f"★ {tag}：預設小台 → 圖與表 {n['MTX']} 筆（全部）", True)
+        pg.locator(".fp-per button", has_text="全部").first.click(); pg.wait_for_timeout(300)
+        res = {}
+        for lab, key in (("大台", "TX"), ("小台", "MTX"), ("微台", "TMF")):
+            pg.locator("#fpProdSeg button", has_text=lab).click(); pg.wait_for_timeout(500)
+            res[key] = (npts(), nrows(), pg.locator("#fpTop").inner_text()[:80])
+            top_has = lab in pg.locator("#fpTop .sum").inner_text()
+            sub_has = lab in pg.locator("#fpSub").inner_text()
+            ok(f"★ {tag}：切到{lab} → 圖 {res[key][0]} 筆＝表 {res[key][1]} 列＝資料 {n[key]}、數字卡與副標寫「{lab}」", res[key][0] == res[key][1] == n[key] and top_has and sub_has, [res[key][:2], n[key], top_has, sub_has])
+            ok(f"[{tag}] 切到{lab} → 開關只亮{lab}", pg.evaluate("() => [...document.querySelectorAll('#fpProdSeg button.on')].map(b => b.textContent)") == [lab])
+        ok(f"★ {tag}：三個商品筆數各不相同（商品真的換資料）", len({v[0] for v in res.values()}) == 3, res)
+        # ---- ③ 期間鈕 ----
+        pg.locator("#fpProdSeg button", has_text="小台").click(); pg.wait_for_timeout(400)
+        seen = {}
+        for lab in ["1月", "3月", "6月", "1年", "3年", "5年", "全部"]:
+            btn = pg.locator(".fp-per button", has_text=lab).first
+            if btn.is_disabled():
+                ok(f"[{tag}] 小台「{lab}」反灰 title 寫「資料自 MM/DD 起」", __import__("re").search(r"資料自 \d\d/\d\d 起", btn.get_attribute("title") or "") is not None, btn.get_attribute("title"))
+                continue
+            btn.click(); pg.wait_for_timeout(250)
+            seen[lab] = npts()
+            ok(f"★ {tag}：小台按「{lab}」→ 圖 {seen[lab]} 筆＝表 {nrows()} 列", npts() == nrows(), [npts(), nrows()])
+        v = list(seen.values())
+        ok(f"★ {tag}：期間越長筆數越多（真的變）、全部＝{n['MTX']}", v == sorted(v) and len(set(v)) >= 4 and v[-1] == n["MTX"], seen)
+        # ---- ④ 提示框 ≤ 1 ----
+        box = pg.locator("#fpChart-retail").bounding_box()
+        pg.mouse.move(box["x"] + box["width"] * .5, box["y"] + box["height"] * .5); pg.wait_for_timeout(150)
+        pg.mouse.move(box["x"] + box["width"] * .6, box["y"] + box["height"] * .5); pg.wait_for_timeout(400)
+        tips = pg.evaluate(_TIPS_JS)
+        ok(f"★ {tag}：滑過散戶圖 → 提示框同時 {tips} 個（≤1）", tips <= 1, tips)
+        ok(f"{tag}：沒有頁面例外", not errs, errs[:3])
+        c.close()
+
+
+register("期貨籌碼r3", lambda pg, b, base, code: t_futpages_r3(b, base, code))

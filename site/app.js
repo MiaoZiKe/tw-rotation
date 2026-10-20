@@ -9313,12 +9313,37 @@
   const irYi = (v, d) => (v == null ? '—' : (v > 0 ? '+' : v < 0 ? '−' : '') + Math.abs(v).toLocaleString('en-US', { minimumFractionDigits: d == null ? 1 : d, maximumFractionDigits: d == null ? 1 : d }));
   const irMD = (d) => (d ? d.slice(5).replace('-', '/') : '—');
   const irCls = (v) => (v > 0 ? 'up' : v < 0 ? 'down' : '');
+  /* ★ 2026-10-20（Andy：連動圖「同一張圖出現兩個提示框」）：echarts.connect 會把 showTip 同步給連動的另一張圖，
+     游標那張一個、連動那張又一個（貼在它自己的座標上），畫面就兩個。規矩：**游標所在那張圖才顯示提示框，其餘連動的圖只留十字線／標示線**
+     （tooltip.showContent=false，軸指示線照畫）。滑過表格時沒有「游標所在圖」→ 預設第一張出提示。
+     三頁（三大法人、信用交易…）的連動圖共用這一支：window.TwOneTip(圖陣列) → { reset() }。 */
+  /* 做法：每張連動圖的提示框掛一個 className（tw-tipg ＋ 群組 ＋ 群組-序號），由一條動態 <style> 把「不是游標所在那張」的提示框 display:none。
+     ⚠ 不用 tooltip.showContent=false：實測連動圖關掉內容後，connect 同步回來的 hideTip 會把游標那張的提示框一起收掉（只閃第一下）。 */
+  const ONE_TIP = { n: 0, groups: {} };
+  function oneTipCss() {
+    let st = document.getElementById('twTipCss');
+    if (!st) { st = document.createElement('style'); st.id = 'twTipCss'; document.head.appendChild(st); }
+    const g = ONE_TIP.groups;
+    Object.keys(g).forEach(k => { if (g[k].cs.every(c => c.isDisposed())) delete g[k]; });
+    st.textContent = Object.keys(g).map(k => `.${k}:not(.${k}-${g[k].act}){display:none!important}`).join('\n');
+  }
+  function oneTip(cs) {
+    const list = (cs || []).filter(c => c && !c.isDisposed());
+    const tag = 'tw-tg' + (++ONE_TIP.n);
+    ONE_TIP.groups[tag] = { cs: list, act: 0 };
+    list.forEach((c, i) => { try { c.setOption({ tooltip: { className: `tw-tipg ${tag} ${tag}-${i}` } }); } catch (e) { /* 圖已收掉 */ } });
+    const set = (i) => { ONE_TIP.groups[tag] = { cs: list, act: i }; oneTipCss(); };
+    list.forEach((c, i) => { const dom = c.getDom(); dom.onmouseenter = () => set(i); dom.ontouchstart = () => set(i); });
+    set(0);
+    return { reset: () => set(0) };
+  }
+  window.TwOneTip = oneTip;
   function irRows(M) {
     const rows = (M && M.rows) || [];
     const eff = (k) => { const p = IR_PERS.find(x => x[0] === k); return p && (p[2] === Infinity || rows.length >= p[2] * 0.9) ? k : null; };
     let per = eff(instState.per) || 'all';
     const n = IR_PERS.find(x => x[0] === per)[2];
-    return { per, rows: n === Infinity ? rows : rows.slice(-n), all: rows, ok: (k) => !!eff(k) };
+    return { per, rows: n === Infinity ? rows : rows.slice(-n), all: rows, ok: (k) => !!eff(k), first: rows.length ? rows[0].d : '' };
   }
   function renderInstReport(title, body, P, M) {
     const wrapAttrs = 'id="instToday" data-snap="inst-today"';
@@ -9343,9 +9368,9 @@
     const perLab = IR_PERS.find(x => x[0] === R.per)[1];
     const nEst = rows.filter(r => r.est).length;
     const segs = IR_PERS.map(([k, l, n]) => { const on = R.ok(k);
-      return `<button type="button" data-p="${k}" class="${k === R.per ? 'on' : ''}"${on ? '' : ` disabled title="官方資料目前只有 ${R.all.length} 個交易日，不足${l}（回補中）"`}>${l}</button>`; }).join('');
+      return `<button type="button" data-p="${k}" class="${k === R.per ? 'on' : ''}"${on ? '' : ` disabled aria-disabled="true" title="資料自 ${irMD(R.first)} 起（${R.all.length} 個交易日），不足${l}，回補中"`}>${l}</button>`; }).join('');
     body.innerHTML = instViewSeg() + `<div ${wrapAttrs}>
-      <div class="mktstreakbar"><span id="instSub" data-readout>${instStale(last.d)}</span>
+      <div class="mktstreakbar"><span id="instSub" data-readout>${instStale(last.d)}<span class="muted irspan" title="目前這個期間涵蓋的資料">${irMD(rows[0].d)}～${irMD(last.d)}・${rows.length} 日${R.all.length < 60 ? '（資料自 ' + irMD(R.first) + ' 起，回補中）' : ''}</span></span>
         <div class="row"><div class="seg tiny" id="instPer" role="group" aria-label="期間">${segs}</div>
           <button class="howbtn pop" data-how="inst" data-ttl="三大法人買賣超日報" type="button" aria-label="三大法人買賣超日報怎麼看">?</button></div></div>
       <div class="howtxt" id="how-inst" hidden></div>
@@ -9354,7 +9379,7 @@
       <div class="irtri">
         <div class="card irc"><h3>每日買賣超・加權指數 <small>億元</small></h3><div id="instBars" class="chart" style="min-height:320px"></div></div>
         <div class="card irc"><h3>累積買賣超 <small>億元・起點 0</small></h3><div id="instLines" class="chart" style="min-height:250px"></div></div>
-        <div class="card irc"><h3>每日明細 <small>億元</small></h3><div class="tw irtbl" id="instTbl"></div></div></div>`;
+        <div class="card irc"><h3>每日明細 <small>億元${nEst ? '・左側橘線＝估算' : ''}</small></h3><div class="tw irtbl" id="instTbl"></div></div></div>`;
     wireInstViewSeg();
     $$('#instPer button', body).forEach(b => b.onclick = () => { if (b.disabled) return; instState.per = b.dataset.p; instState.sel = null; drawMarket('inst'); });
     irCharts(rows);
@@ -9391,6 +9416,9 @@
       axisLabel: { color: CH.ink3, fontSize: 12, formatter: (v) => irMD(v), hideOverlap: true }, axisTick: { show: false } };
     const bars = IR_WHO.map(([k, l]) => ({ name: l, type: 'bar', stack: 'n', barMaxWidth: 18, solid: true, itemStyle: { color: col[k], opacity: 1 },
       data: rows.map(r => ({ value: r[k], itemStyle: { opacity: r.est ? 0.9 : 1 } })) }));
+    /* ★ 2026-10-20 重複提示框的根因：每次換期間／換分頁都 body.innerHTML 整個重建，舊的圖實例沒人收 ——
+       它還掛在 echarts.connect 的群組裡、提示框又 appendToBody 留在 body，連動事件一來就在舊位置多冒一個。重畫前先把上一輪（容器已脫離頁面的）實例收掉。 */
+    [IR.c1, IR.c2].forEach(c => { try { if (c && !c.isDisposed() && !c.getDom().isConnected) c.dispose(); } catch (e) { /* 已收掉 */ } });
     const lkSer = { id: 'lk', type: 'line', data: [], silent: true, markLine: { data: [] } };
     const c1 = chart('instBars', {
       grid: { left: 8, right: hasTw ? 8 : 8, top: 34, bottom: 28, containLabel: true },
@@ -9418,6 +9446,7 @@
     }, { notMerge: true });
     IR.c1 = c1; IR.c2 = c2;
     if (!c1 || !c2) return;
+    IR.one = oneTip([c1, c2]);
     try { echarts.connect([c1, c2]); } catch (e) { /* 舊版沒有 connect：兩張各自提示，連動只剩表格 */ }
     const dateAt = (c, ev) => { const p = [ev.offsetX, ev.offsetY]; if (!c.containPixel('grid', p)) return null; const i = Math.round(c.convertFromPixel({ xAxisIndex: 0 }, p[0])); return dates[Math.max(0, Math.min(dates.length - 1, i))]; };
     [c1, c2].forEach(c => {
@@ -9435,19 +9464,19 @@
   }
   function irTable(rows) {
     const tb = $('#instTbl'); if (!tb) return;
-    const cols = [['d', '日期', 'l'], ['f', '外資'], ['t', '投信'], ['dl', '自營商'], ['tot', '合計'], ['tw', '加權指數']];
+    const cols = [['d', '日期', 'l'], ['f', '外資'], ['t', '投信'], ['dl', '自營商'], ['tot', '合計']];   // 加權指數移到列的 tooltip（Andy 10-20：明細表收窄留給圖）
     const sk = instState.sk, sd = instState.sd;
     const data = rows.slice().sort((a, b) => (sk === 'd' ? (a.d < b.d ? -1 : 1) : ((a[sk] == null ? -Infinity : a[sk]) - (b[sk] == null ? -Infinity : b[sk]))) * sd);
     const m4 = document.documentElement.classList.contains('m4');
     const shown = (m4 && !instState.tblAll) ? data.slice(0, 6) : data;
     tb.innerHTML = `<table><thead><tr>${cols.map(([k, l, c]) => `<th class="${c || ''}${k === sk ? ' sorted' : ''}" data-k="${k}" role="button" tabindex="0">${l}${k === sk ? (sd > 0 ? ' ▲' : ' ▼') : ''}</th>`).join('')}</tr></thead><tbody>${shown.map(r =>
-      `<tr data-d="${r.d}"><td class="l">${rows.length <= 260 ? irMD(r.d).replace('/', '-') : r.d}${r.est ? ' <em class="iest" title="官方值尚未回補，用個股買賣超×收盤價估算">估</em>' : ''}</td>`
-      + ['f', 't', 'dl', 'tot'].map(k => `<td class="num ${irCls(r[k])}">${irYi(r[k])}</td>`).join('') + `<td class="num">${r.tw == null ? '—' : fmt.n(r.tw, 0)}</td></tr>`).join('')}</tbody></table>`
+      `<tr data-d="${r.d}"${r.tw == null ? '' : ` title="${r.d}　加權指數 ${fmt.n(r.tw, 0)}"`}><td class="l${r.est ? ' est' : ''}"${r.est ? ' title="估算值：官方值尚未回補，用個股買賣超×收盤價估算"' : ''}>${rows.length <= 260 ? irMD(r.d).replace('/', '-') : r.d}</td>`
+      + ['f', 't', 'dl', 'tot'].map(k => `<td class="num ${irCls(r[k])}">${irYi(r[k])}</td>`).join('') + `</tr>`).join('')}</tbody></table>`
       + (m4 && data.length > 6 ? `<div class="srmore"><button type="button" class="btn small" id="instTblAll">${instState.tblAll ? '收起，只看前 6 筆' : `看全部（${data.length} 筆）`}</button></div>` : '');
     $$('th[data-k]', tb).forEach(h => { const go = () => { const k = h.dataset.k; if (instState.sk === k) instState.sd *= -1; else { instState.sk = k; instState.sd = k === 'd' ? -1 : -1; } irTable(rows); irPaint(); };
       h.onclick = go; h.onkeydown = (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); } }; });
     $$('tr[data-d]', tb).forEach(r => {
-      r.onmouseenter = () => { instState.hov = r.dataset.d; irPaint(); irShowTip(r.dataset.d, rows); };
+      r.onmouseenter = () => { instState.hov = r.dataset.d; irPaint(); if (IR.one) IR.one.reset(); irShowTip(r.dataset.d, rows); };
       r.onmouseleave = () => { instState.hov = null; irPaint(); };
       r.onclick = () => { instState.sel = instState.sel === r.dataset.d ? null : r.dataset.d; irPaint(); };
     });

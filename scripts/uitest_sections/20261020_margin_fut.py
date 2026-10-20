@@ -47,7 +47,7 @@ def t_margin_1020(b, base, code):
               return { tiles: c.querySelectorAll('.mf-tile').length, rows: c.querySelectorAll('#mfTbl tbody tr').length, n1: n('mfChart'), n2: n('mfChart2'),
                        big: c.querySelector('.mf-bn').textContent, rk: c.querySelectorAll('.mf-rk').length, asof: "",
                        ov: document.documentElement.scrollWidth - innerWidth, ml: echarts.getInstanceByDom(document.getElementById('mfChart')).getOption().series[0].markLine.data[0].yAxis }; }""")
-            ok(f"【{T}】{w} 大數字帶 %、4 格、明細 300 列、兩張圖各 126 根（6 月預設）、排行不在「大盤」分頁、130 追繳線", "%" in st["big"] and st["tiles"] == 4 and st["rows"] == 300 and st["n1"] == 126 and st["n2"] == 126 and st["rk"] == 0 and st["ml"] == 130, st)
+            ok(f"【{T}】{w} 大數字帶 %、4 格、明細 126 列（跟期間走）、兩張圖各 126 根（6 月預設）、排行不在「大盤」分頁、130 追繳線", "%" in st["big"] and st["tiles"] == 4 and st["rows"] == 126 and st["n1"] == 126 and st["n2"] == 126 and st["rk"] == 0 and st["ml"] == 130, st)
             ok(f"【{T}】{w} 沒有橫向捲軸", st["ov"] <= 1 and True, st)
             ok(f"【{T}】{w} 融資餘額一位小數（3,272.5）、維持率兩位小數、標「部分估算」", "3,272.5" in pg.locator(".mf-tiles").inner_text() and pg.locator(".mf-bn").inner_text().split("%")[0].split(".")[-1].strip().isdigit() and "部分估算" in pg.locator(".mf-big").inner_text(), pg.locator(".mf-big").inner_text())
             ok(f"【{T}】{w} 卡內重複標題已拿掉、說明卡／計算方式框／右側三張收合全不在畫面上", pg.evaluate("() => { const h = document.querySelector('#v-market .mkthead > h3'); return !(h && h.offsetParent) && !document.querySelector('.mf-ex, .mf-how, .mf-aside, .mf-sub'); }"))
@@ -93,7 +93,7 @@ def t_margin_1020(b, base, code):
             href = pg.evaluate("() => document.querySelector('.mf-rk').getAttribute('href')")
             ok(f"【{T}】{w} 排行列連到個股頁", href == "#stock/2330", href)
             pg.click("#mfTab button[data-k='mkt']"); pg.wait_for_timeout(400)
-            ok(f"【{T}】{w} 切回「大盤」→ 圖與明細表回來", pg.locator("#mfChart").count() == 1 and pg.locator("#mfTbl tbody tr").count() == 300)
+            ok(f"【{T}】{w} 切回「大盤」→ 圖與明細表回來", pg.locator("#mfChart").count() == 1 and pg.locator("#mfTbl tbody tr").count() == 21)
             pg.click("[data-snap=margin] .howbtn"); pg.wait_for_timeout(300)
             vis = pg.evaluate("() => { const p = document.getElementById('howPop'); return p && !p.hidden ? p.textContent : ''; }")
             ok(f"【{T}】{w} 「?」說明打開，寫出算式與非法定整戶維持率", "融資股票總市值" in vis and "整戶擔保維持率" in vis and "130% 追繳門檻是什麼意思" in vis and "大盤融資維持率是什麼" in vis, vis[:60])
@@ -119,3 +119,77 @@ def t_margin_1020(b, base, code):
 
 
 register("大盤融資維持率1020", lambda pg, b, base, code: t_margin_1020(b, base, code))
+
+
+# ===================================================================== 信用交易r3（Andy 10-20 17:00）
+# ① 期間鈕真的按：圖、明細表筆數一起變，資料不足的鈕反灰＋title「資料自 MM/DD 起」 ② 滑過維持率圖／融資餘額圖：提示框同時最多 1 個（連動那張只留十字線）
+# ③ 個股排行 增加／減少 Top 8 每列有水平長條（增加紅、減少綠、長度依該欄最大值）
+_TIPS_JS = """() => [...document.body.children].filter(d => /9999999/.test(d.getAttribute('style') || '') && d.textContent.trim()
+  && getComputedStyle(d).display !== 'none' && getComputedStyle(d).visibility !== 'hidden').length"""
+
+
+def t_margin_r3(b, base, code):
+    T = "信用交易r3"
+    errs = []
+    fake_d = _mf_fake(); N = len(fake_d["margin"]["rows"]); fake = json.dumps(fake_d)
+    for w in (1440, 390):
+        mob = w <= 640
+        tag = f"{T}（{w}）"
+        c = b.new_context(viewport={"width": w, "height": 900 if not mob else 844}, is_mobile=mob, has_touch=mob)
+        c.add_init_script("try{localStorage.setItem('tw.tour','done');localStorage.setItem('tw.live.on','0');}catch(e){}")
+        c.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+        c.route("**/data/market_fut.json*", lambda r: r.fulfill(status=200, content_type="application/json", body=fake))
+        pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(f"{w}:{e}"))
+        try:
+            pg.goto(base + "#market/credit", wait_until="domcontentloaded")
+            wait_until(pg, "() => !!document.querySelector('[data-snap=margin] .mf-tile')", 20000)
+            ag = pg.get_by_role("button", name="同意並繼續")
+            if ag.count():
+                try: ag.first.click(timeout=1500)
+                except Exception: pass
+            cnt = lambda: pg.evaluate("""() => { const n = (id) => echarts.getInstanceByDom(document.getElementById(id)).getOption().xAxis[0].data.length;
+              return [n('mfChart'), n('mfChart2'), document.querySelectorAll('#mfTbl tbody tr').length]; }""")
+            want = {"21": 21, "63": 63, "126": 126, "250": 250, "750": N, "1250": N, "0": N}
+            seen = []
+            for k, lab in (("21", "1月"), ("63", "3月"), ("126", "6月"), ("250", "1年"), ("750", "3年"), ("1250", "5年"), ("0", "全部")):
+                btn = pg.locator(f"#mfDays button[data-k='{k}']")
+                if btn.is_disabled():
+                    ok(f"[{tag}] 「{lab}」資料不足 → 反灰、title 寫「資料自 MM/DD 起」", __import__("re").search(r"資料自 \d\d/\d\d 起", btn.get_attribute("title") or "") is not None, btn.get_attribute("title"))
+                    continue
+                btn.click(); pg.wait_for_timeout(350)
+                got = cnt(); seen.append(got[0])
+                ok(f"★ {tag}：按「{lab}」→ 兩張圖與明細表同步 {got}（期望 {want[k]}）", got == [want[k]] * 3, got)
+            ok(f"★ {tag}：期間越長圖的根數越多（真的變）", seen == sorted(seen) and len(set(seen)) >= 4, seen)
+            ok(f"[{tag}] 3年／5年鈕在 {N} 筆資料下反灰", pg.locator("#mfDays button[data-k='750']").is_disabled() and pg.locator("#mfDays button[data-k='1250']").is_disabled())
+            pg.locator("#mfDays button[data-k='126']").click(); pg.wait_for_timeout(350)
+            if not mob:
+                for cid in ("mfChart", "mfChart2"):
+                    pg.evaluate("(id) => document.getElementById(id).scrollIntoView({block:'center', behavior:'instant'})", cid); pg.wait_for_timeout(600)   # 頁面有平滑捲動，等它停了再量位置
+                    box = pg.evaluate("(id) => { const r = document.getElementById(id).getBoundingClientRect(); return [r.left, r.top, r.width, r.height]; }", cid)
+                    pg.mouse.move(box[0] + box[2] * 0.4, box[1] + box[3] * 0.5); pg.wait_for_timeout(100)
+                    pg.mouse.move(box[0] + box[2] * 0.52, box[1] + box[3] * 0.5); pg.wait_for_timeout(500)
+                    tips = pg.evaluate(_TIPS_JS)
+                    vis = pg.evaluate("() => [...document.body.children].filter(d => /9999999/.test(d.getAttribute('style') || '') && d.textContent.trim() && getComputedStyle(d).display !== 'none' && getComputedStyle(d).visibility !== 'hidden').length")
+                    ok(f"★ {tag}：滑過 {cid} → 看得到的提示框 {vis} 個（恰 1，連動圖不再多一個）", vis == 1, vis)
+                # 滑過明細表一列 → 也只有一個
+                tr = pg.locator("#mfTbl tbody tr").nth(5); tr.scroll_into_view_if_needed(); tr.hover(); pg.wait_for_timeout(500)
+                ok(f"★ {tag}：滑過明細表一列 → 圖上提示框 ≤1", pg.evaluate(_TIPS_JS) <= 1, pg.evaluate(_TIPS_JS))
+            pg.click("#mfTab button[data-k='rank']"); pg.wait_for_timeout(400)
+            bars = pg.evaluate("""() => [...document.querySelectorAll('.mf-rank')].map(col => [...col.querySelectorAll('.mf-rk')].map(a => { const i = a.querySelector('.mf-sb i'); const t = a.querySelector('.mf-sb .trk');
+              return i ? { w: i.getBoundingClientRect().width, tw: t.getBoundingClientRect().width, cls: i.className, bg: getComputedStyle(i).backgroundImage.slice(0, 60) } : null; }))""")
+            ok(f"★ {tag}：增加／減少 Top 8 每列都有水平長條（{[len(x) for x in bars]}）", len(bars) == 2 and all(len(col) == 8 and all(col) for col in bars), [len(x) for x in bars])
+            if len(bars) == 2 and all(len(col) == 8 and all(col) for col in bars):
+                ok(f"★ {tag}：增加紅（up）、減少綠（down）、最長那條接近滿格、由長到短", all(x["cls"] == "up" for x in bars[0]) and all(x["cls"] == "down" for x in bars[1])
+                   and all(col[0]["w"] >= col[0]["tw"] * 0.95 for col in bars) and all(col[0]["w"] >= col[-1]["w"] for col in bars) and col_ok(bars), bars[0][:2])
+                small = pg.evaluate("() => [...document.querySelectorAll('.mf-rk *')].filter(e => e.children.length === 0 && e.textContent.trim() && parseFloat(getComputedStyle(e).fontSize) < 11).length")
+                ok(f"[{tag}] 排行字級 ≥ 11px、沒有橫向捲軸", small == 0 and pg.evaluate("() => document.documentElement.scrollWidth - innerWidth") <= 1, small)
+        finally:
+            c.close()
+    ok(f"{T}：沒有頁面例外", not errs, errs[:3])
+
+
+def col_ok(bars):
+    return all(bars[i][j]["w"] >= bars[i][j + 1]["w"] - 1 for i in range(2) for j in range(7))
+
+
+register("信用交易r3", lambda pg, b, base, code: t_margin_r3(b, base, code))

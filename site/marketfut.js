@@ -55,25 +55,32 @@
     const inst = cs.filter(Boolean);
     inst.forEach(c => { c.group = 'mfgrp'; });
     try { echarts.connect('mfgrp'); } catch (e) { /* 舊版沒有也不影響單張 */ }
+    // 2026-10-20 Andy「圖五重複出現錯誤」：連動的圖各出一個提示框 → 只讓游標所在那張出提示，另一張只留十字線（共用 App 的 TwOneTip）
+    const one = window.TwOneTip ? window.TwOneTip(inst) : null;
     const rowOf = (d) => body.querySelector(`#mfTbl tr[data-d="${d}"]`);
     const clear = (cls0) => body.querySelectorAll('#mfTbl tr.' + cls0).forEach(r => r.classList.remove(cls0));
     let locked = null;
     const dts = () => getDates();
     const hl = (d) => { clear('hl'); if (d) { const r = rowOf(d); if (r) { r.classList.add('hl'); const box = r.closest('.mf-scroll'); if (box) { const t = r.offsetTop - box.clientHeight / 2; box.scrollTop = Math.max(0, t); } } } };
     inst.forEach(c => {
-      c.on('updateAxisPointer', (e) => { const x = e.axesInfo && e.axesInfo[0]; if (x && x.value != null) hl(typeof x.value === 'number' ? dts()[x.value] : dts().find(d => md(d) === x.value)); });
-      c.getZr().on('globalout', () => hl(locked));
-      c.getZr().on('click', (ev) => { const p = [ev.offsetX, ev.offsetY]; if (!c.containPixel('grid', p)) { locked = null; clear('lk'); return; }
+      // 同一個圖實例會被重畫（排序、換期間）→ 先拆掉上一輪綁的事件，免得越疊越多
+      if (c.__lk) { c.off('updateAxisPointer', c.__lk.u); c.getZr().off('globalout', c.__lk.g); c.getZr().off('click', c.__lk.c); }
+      const u = (e) => { const x = e.axesInfo && e.axesInfo[0]; if (x && x.value != null) hl(typeof x.value === 'number' ? dts()[x.value] : dts().find(d => md(d) === x.value)); };
+      const g = () => hl(locked);
+      const k = (ev) => { const p = [ev.offsetX, ev.offsetY]; if (!c.containPixel('grid', p)) { locked = null; clear('lk'); return; }
         const idx = c.convertFromPixel({ gridIndex: 0 }, p)[0]; const d = dts()[Math.round(idx)];
-        clear('lk'); if (locked === d) { locked = null; return; } locked = d; const r = rowOf(d); if (r) r.classList.add('lk'); });
+        clear('lk'); if (locked === d) { locked = null; return; } locked = d; const r = rowOf(d); if (r) r.classList.add('lk'); };
+      c.on('updateAxisPointer', u); c.getZr().on('globalout', g); c.getZr().on('click', k); c.__lk = { u, g, c: k };
     });
     body.querySelectorAll('#mfTbl tr[data-d]').forEach(tr => {
-      tr.onmouseenter = () => { const i = dts().indexOf(tr.dataset.d); inst.forEach(c => { try { c.dispatchAction({ type: 'showTip', seriesIndex: 0, dataIndex: i }); } catch (e) { /* 圖已換掉 */ } }); hl(tr.dataset.d); };
+      tr.onmouseenter = () => { const i = dts().indexOf(tr.dataset.d); if (one) one.reset(); const c0 = inst[0]; try { c0.dispatchAction({ type: 'showTip', seriesIndex: 0, dataIndex: i }); } catch (e) { /* 圖已換掉 */ } hl(tr.dataset.d); };
       tr.onmouseleave = () => hl(locked);
     });
   }
   function rankList(title, list, cls0) {
-    return `<div class="mf-rank"><b class="${cls0}">${title}</b>${list.length ? list.map((r, i) => `<a class="mf-rk" href="#stock/${r.code}" title="到個股頁看融資融券"><span class="mf-n">${i + 1}</span><span class="mf-nm">${r.code} ${H.fmt.esc(r.name || '')}</span><span class="num ${cls(r.chg)}">${sg(r.chg / 1000, 2)} 千張</span></a>`).join('') : '<span class="muted">—</span>'}</div>`;
+    // 長條照三大法人個股同款（軌道＋漸層；增加＝紅、減少＝綠），以該欄最大值為滿格
+    const mx = Math.max(1, ...list.map(r => Math.abs(r.chg)));
+    return `<div class="mf-rank"><b class="${cls0}">${title}</b>${list.length ? list.map((r, i) => `<a class="mf-rk" href="#stock/${r.code}" title="到個股頁看融資融券"><span class="mf-n">${i + 1}</span><span class="mf-nm">${r.code} ${H.fmt.esc(r.name || '')}</span><span class="mf-sb"><span class="trk"><i class="${cls(r.chg)}" style="width:${Math.max(3, Math.abs(r.chg) / mx * 100).toFixed(1)}%"></i></span></span><span class="num mf-val ${cls(r.chg)}">${sg(r.chg / 1000, 2)} 千張</span></a>`).join('') : '<span class="muted">—</span>'}</div>`;
   }
   const grpSel = new Set();
   function paintRank(body, rk) {
@@ -99,9 +106,18 @@
     ['margin_chg', '資增減', r => sg(r.margin_chg), 'chg'], ['margin_yi', '融資金額(億)', r => num(r.margin_yi, 1), ''], ['short_lots', '融券餘額', r => num(r.short_lots), ''], ['short_chg', '券增減', r => sg(r.short_chg), 'chg']];
 
   function drawMargin(body) {
+    // ★ 2026-10-20「圖五重複出現錯誤」根因：換期間／排序／換分頁都會 body.innerHTML 重建，上一輪的圖實例沒收 ——
+    // 它仍在 echarts.connect 群組裡，提示框又 appendToBody 留在 body，連動事件一來就在舊位置多冒一個。重建前先收掉。
+    body.querySelectorAll('[_echarts_instance_]').forEach((d) => { try { const i = window.echarts.getInstanceByDom(d); if (i && !i.isDisposed()) i.dispose(); } catch (e) { /* 已收掉 */ } });
     const m = (DATA && DATA.margin) || {}, all = m.rows || [];
     if (!all.length) { body.innerHTML = shell('credit', '信用交易', '上市融資維持率（估算）、融資融券餘額與加權指數', '', empty('尚無資料'), null); return; }
     const last = all[all.length - 1], prev = all[all.length - 2] || {};
+    // 期間鈕：資料不足該期間（< 90%）就反灰，title 寫「資料自 MM/DD 起」；目前選的若不足 → 退到「全部」
+    const dayOk = (d) => !d || all.length >= d * 0.9;
+    if (!dayOk(st.days)) st.days = 0;
+    const dayBtns = [[21, '1月'], [63, '3月'], [126, '6月'], [250, '1年'], [750, '3年'], [1250, '5年'], [0, '全部']].map(([k, l]) => dayOk(k)
+      ? `<button type="button" data-k="${k}" class="${+k === +st.days ? 'on' : ''}">${l}</button>`
+      : `<button type="button" data-k="${k}" disabled aria-disabled="true" title="資料自 ${md(all[0].d).replace('-', '/')} 起（${all.length} 個交易日），不足${l}">${l}</button>`).join('');
     const dlt = (a, b) => (a != null && b != null) ? a - b : null;
     const dr = dlt(last.ratio, prev.ratio), dY = dlt(last.margin_yi, prev.margin_yi);
     const dayStale = !!(META && META.data_date && last.d && last.d < META.data_date);
@@ -111,7 +127,7 @@
       + tile('較前日（億元）', sg(dY, 1), '', cls(dY))
       + tile('融券餘額（張）', num(last.short_lots), '', '')
       + tile('融券增減（張）', sg(last.short_chg), '', cls(last.short_chg)) + `</div></div>`;
-    const sorted = all.slice().sort((a, b) => { const x = a[sortSt.k], y = b[sortSt.k]; return ((x == null ? -Infinity : x) > (y == null ? -Infinity : y) ? 1 : -1) * sortSt.dir; });
+    const sorted = tail(all).sort((a, b) => { const x = a[sortSt.k], y = b[sortSt.k]; return ((x == null ? -Infinity : x) > (y == null ? -Infinity : y) ? 1 : -1) * sortSt.dir; });
     const tb = `<div class="tw mf-scroll"><table id="mfTbl"><thead><tr>${MCOLS.map(c => `<th class="${c[3] === 'l' ? 'l' : ''} mf-sort${sortSt.k === c[0] ? ' on' : ''}" data-s="${c[0]}">${c[1]}${sortSt.k === c[0] ? (sortSt.dir > 0 ? ' ▲' : ' ▼') : ''}</th>`).join('')}</tr></thead><tbody>${
       sorted.map(r => `<tr data-d="${r.d}">${MCOLS.map(c => `<td class="${c[3] === 'l' ? 'l' : 'num'} ${c[3] === 'chg' ? cls(r[c[0]]) : ''}">${c[2](r)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
     const rk = m.rank;
@@ -125,7 +141,7 @@
         <div class="mf-rkgrid" id="mfRankBody"></div></div>` : '';
     const isRank = st.tab === 'rank';
     const bar = `<div class="mf-bar"><div class="seg fp-prod mf-tab" id="mfTab" role="group" aria-label="信用交易分頁"><button type="button" data-k="mkt" class="${isRank ? '' : 'on'}">大盤</button><button type="button" data-k="rank" class="${isRank ? 'on' : ''}">個股排行</button></div>${howBtn('credit')}
-        <div class="mf-ctl">${dayStale ? '<span class="mf-stale" title="資料日 ${last.d}，比最近一個交易日舊，雲端管線還沒更新到">資料未更新</span>' : ''}${isRank ? '' : seg('mfDays', [[21, '1月'], [63, '3月'], [126, '6月'], [250, '1年'], [750, '3年'], [1250, '5年'], [0, '全部']], st.days)}</div></div>`;
+        <div class="mf-ctl">${dayStale ? '<span class="mf-stale" title="資料日 ${last.d}，比最近一個交易日舊，雲端管線還沒更新到">資料未更新</span>' : ''}${isRank ? '' : `<div class="seg tiny" id="mfDays" role="group" aria-label="期間">${dayBtns}</div>`}</div></div>`;
     const mktPane = `${hero}${tiles}<div class="mf-split" data-chart="${st.chart}"><div class="mf-charts">
         <div class="mf-cseg"><div class="seg tiny" id="mfCSeg" role="group" aria-label="圖表"><button type="button" data-k="ratio" class="${st.chart === 'bal' ? '' : 'on'}">維持率</button><button type="button" data-k="bal" class="${st.chart === 'bal' ? 'on' : ''}">融資餘額</button></div></div>
         <div class="mf-cbox" data-c="ratio"><h4 class="mf-h">融資維持率 × 加權指數</h4><div id="mfChart" class="chart mf-ch"></div></div>
@@ -155,8 +171,8 @@
     wireRank(body, rk); 
     body.querySelectorAll('#mfTab button').forEach(b => b.onclick = () => { if (b.dataset.k === st.tab) return; st.tab = b.dataset.k; render('credit', body); });
     body.querySelectorAll('#mfCSeg button').forEach(b => b.onclick = () => { st.chart = b.dataset.k; render('credit', body); });
-    const setDays = (v) => { st.days = v; body.querySelectorAll('#mfDays button').forEach(b => b.classList.toggle('on', +b.dataset.k === v)); paint(); };
-    body.querySelectorAll('#mfDays button').forEach(b => b.onclick = () => { setDays(+b.dataset.k); });
+    // 換期間：整頁重畫（圖、明細表、區間一起換；圖實例沿用，事件在 linkCharts 先拆再綁）
+    body.querySelectorAll('#mfDays button').forEach(b => b.onclick = () => { if (b.disabled) return; st.days = +b.dataset.k; render('credit', body); });
     body.querySelectorAll('#mfTbl th[data-s]').forEach(th => th.onclick = () => { const k = th.dataset.s; sortSt.dir = sortSt.k === k ? -sortSt.dir : -1; sortSt.k = k; render('credit', body); });
   }
 
@@ -185,7 +201,10 @@
 @media (max-width:900px){.mf-top{grid-template-columns:1fr}.mf-split{display:flex;flex-direction:column}.mf-tblbox{contain:none;display:block}.mf-split .mf-tblbox .mf-scroll{max-height:320px!important}.mf-ch{height:220px}}
 #mfTbl tr.hl td{background:color-mix(in srgb,var(--cyan,#3ee0ff) 14%,transparent)}#mfTbl tr.lk td{background:color-mix(in srgb,var(--cyan,#3ee0ff) 26%,transparent)}#mfTbl td,#mfTbl th{text-align:center!important}#mfTbl td.l,#mfTbl th.l{text-align:left!important}
 .mf-ranks{margin-top:14px}.mf-gsel{margin:0 0 8px}.mf-rkgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.mf-rank{display:flex;flex-direction:column;gap:4px}
-.mf-rk{display:flex;gap:8px;align-items:center;padding:3px 6px;border-radius:6px;text-decoration:none;color:inherit}.mf-rk:hover{background:rgba(142,160,196,.12)}.mf-n{width:16px;color:var(--ink-3,#8ea0c4)}.mf-nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}`;
+.mf-rk{display:flex;gap:8px;align-items:center;padding:3px 6px;border-radius:6px;text-decoration:none;color:inherit}.mf-rk:hover{background:rgba(142,160,196,.12)}.mf-n{width:16px;color:var(--ink-3,#8ea0c4)}.mf-nm{flex:0 0 9em;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mf-sb{flex:1 1 auto;min-width:40px;display:flex}.mf-sb .trk{flex:1;height:12px;border-radius:3px;background:color-mix(in srgb,var(--ink-3,#8ea0c4) 16%,transparent);overflow:hidden}.mf-sb i{display:block;height:12px;border-radius:3px}
+.mf-sb i.up{background:linear-gradient(90deg,color-mix(in srgb,var(--rise) 45%,transparent),var(--rise))}.mf-sb i.down{background:linear-gradient(90deg,color-mix(in srgb,var(--fall) 45%,transparent),var(--fall))}
+.mf-val{flex:0 0 6.5em;text-align:right;font-variant-numeric:tabular-nums;font-size:12.5px}`;
     document.head.appendChild(el);
   })();
 

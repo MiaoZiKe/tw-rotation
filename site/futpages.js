@@ -159,11 +159,15 @@
 .fp-note{font-size:12.5px;color:var(--ink-3);margin-top:6px;line-height:1.6}
 .fp-hint{font-size:12px;color:var(--ink-3);margin:-2px 0 6px}
 .fp-per button[disabled]{opacity:.4;cursor:not-allowed}
-.fp-big3{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
-.fp-big3>div{min-width:0}.fp-big3 .l{font-size:12.5px;color:var(--ink-3)}
-.fp-big3 .v{font:700 24px/1.25 'JetBrains Mono',monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.fp-big3 .s{font-size:12px;color:var(--ink-3);white-space:nowrap}
-.fp-concl{margin-top:8px;font-size:13.5px;line-height:1.6;color:var(--ink-2);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.fp-latest{padding-top:10px;padding-bottom:10px}
+.fp-lrow{display:flex;align-items:center;gap:16px;flex-wrap:wrap}.fp-lrow h4{flex:0 0 auto;font-size:13px;line-height:1.4;white-space:nowrap}
+.fp-big3{flex:1 1 360px;display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:0}
+.fp-big3>div{min-width:0}.fp-big3 .l{font-size:12.5px;color:var(--ink-3);display:inline-block;margin-right:6px}
+.fp-big3 .v{display:inline-block;font:700 20px/1.25 'JetBrains Mono',monospace;white-space:nowrap}
+.fp-big3 .s{font-size:12px;color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fp-concl{margin-top:4px;font-size:13px;line-height:1.5;color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fp-prodseg{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:0 0 2px}.fp-prodseg .muted{font-size:12px}
+.fp-prodseg button[disabled]{opacity:.38;cursor:not-allowed}
 .fp-autoh{margin:14px 0 6px;font-size:14px;color:var(--ink)}
 .fp-auto ul{list-style:none;margin:8px 0 0;padding:0;display:flex;flex-direction:column;gap:8px}
 .fp-auto li{display:flex;gap:8px;align-items:flex-start;font-size:13.5px;line-height:1.6;color:var(--ink-2)}
@@ -204,7 +208,7 @@
       <p>怎麼用：①看<b>方向</b>——外資資金最大，淨空連續擴大代表避險或看空的力道在增加；②看<b>變化</b>——淨部位在加碼還是減碼，比單日正負更有意義；③<b>要跟現貨一起看</b>：外資常用台指期替現貨持股避險，淨空不等於看跌，要對照加權指數與外資現貨買賣超；④投信、自營商口數小，主要看方向有沒有轉折。</p>
       <p>這是統計，不是買賣建議。資料來源：臺灣期貨交易所每日公布的「三大法人－區分各期貨契約」（臺股期貨），經本站整理${src ? '（' + esc(src) + '）' : ''}，收盤後更新。</p>`,
     retail: (src) => `<p>散戶多空比是用期交所公布的數字<b>推算</b>出來的：期交所只公布「全市場未平倉」和「三大法人未平倉」，把全市場扣掉三大法人，剩下的就視為散戶（含法人以外的所有交易人）。</p>
-      <p><b>為什麼用微型台指（TMF）？</b>微台一口只有大台的十分之一，門檻低、散戶佔比高，所以它扣掉法人之後的剩餘部位，比大台更接近散戶的真實方向。</p>
+      <p><b>大台、小台、微台怎麼選？</b>三種都是台指期，只差一口的大小：大台（TX）最大，法人與大戶為主；小台（MTX）一口是大台的四分之一，散戶佔比高，台股常看的散戶多空比多半看小台，所以預設小台；微台（TMF）一口只有大台的十分之一，門檻最低、散戶最多但量最小。三種商品各自算各自的多空比，切換上方開關即可對照。</p>
       <p>怎麼用：①比率<b>大於 0</b>（紅）＝散戶多單多於空單；<b>小於 0</b>（綠）＝空單較多；②常見讀法是把散戶當<b>反指標</b>——散戶極度偏多時行情容易過熱，極度偏空時可能接近低檔，但這只是統計上的傾向、不保證；③搭配右軸的加權指數看「散戶是在跌的時候加碼偏多、還是漲的時候偏空」，若走勢與多空比反向就是圖旁解讀裡的「分歧」；④結算日（圖上虛線）前後部位會被結清，比率常出現跳動，不用過度解讀。</p>
       <p>不是買賣建議。資料來源：臺灣期貨交易所公布的微型臺指期貨未平倉與三大法人資料，經本站整理${src ? '（' + esc(src) + '）' : ''}。</p>`,
   };
@@ -213,9 +217,10 @@
      P＝整頁共用狀態：商品 kind、期間（一組 .seg 週期鈕）、焦點日期（hov 滑過／lock 鎖定）、日期軸 axis。
      切商品時下面「數字卡＋自動解讀＋圖＋明細表＋說明」整塊換成那個商品，同一個位置，不再上下堆兩區。
      商品選擇只記在這支檔的變數（同一次瀏覽內重畫、換主題都保留；離開再回來沿用上次，不寫 localStorage）。*/
-  const P = { kind: 'futoi', per: '6m', hov: null, lock: null, pers: [], secs: {}, axis: [], first: '' };
+  const P = { kind: 'futoi', per: '6m', hov: null, lock: null, pers: [], secs: {}, axis: [], first: '', prod: 'MTX', prods: {} };
+  const PROD_NAME = { TX: '大台', MTX: '小台', TMF: '微台' };   // 台指期三種契約（一口大小不同）；預設小台（Andy 10-20）
   let seq = 0;
-  const SECS = { futoi: { file: 'fut_oi', snap: 'fut-oi', title: '台指期三大法人未平倉', how: '台指期三大法人未平倉怎麼看？' }, retail: { file: 'retail_ratio', snap: 'retail-ratio', title: '微台指散戶多空比', how: '什麼是散戶多空比？' } };
+  const SECS = { futoi: { file: 'fut_oi', snap: 'fut-oi', title: '台指期三大法人未平倉', how: '台指期三大法人未平倉怎麼看？' }, retail: { file: 'retail_ratio', snap: 'retail-ratio', title: '台指散戶多空比', how: '什麼是散戶多空比？' } };
   const HOWKEYS = ['futoi', 'retail'];
 
   async function draw(kind, body, title) {
@@ -226,16 +231,27 @@
     const [fr, rr] = await Promise.all([A().load('fut_oi', { fallback: null }), A().load('retail_ratio', { fallback: null })]);
     if (my !== seq) return;                       // 等資料的時候使用者已經換頁
     try { const mt = await A().load('meta', { fallback: null }); P.dataDate = (mt && mt.data_date) || ''; } catch (e) { P.dataDate = ''; }
-    const futR = normalize('futoi', fr), retR = normalize('retail', rr);
+    const futR = normalize('futoi', fr);
+    /* 散戶多空比合約：{asof, order, products:{TX,MTX,TMF:{dates,taiex,total_oi,retail_long,…}}}；舊格式（頂層直接是 TMF 那包）也吃 */
+    P.prods = {};
+    if (rr && rr.products && typeof rr.products === 'object') {
+      Object.keys(PROD_NAME).forEach((k) => { const o = rr.products[k]; if (!o) return;
+        const raw = Object.assign({ asof: rr.asof, source: rr.source, order: rr.order }, o, { product: k });
+        const rows = normalize('retail', raw); if (rows) P.prods[k] = { rows, raw }; });
+    } else if (rr && Array.isArray(rr.dates)) {
+      const k = PROD_NAME[rr.product] ? rr.product : 'TMF', rows = normalize('retail', Object.assign({}, rr, { product: k })); if (rows) P.prods[k] = { rows, raw: Object.assign({}, rr, { product: k }) };
+    }
+    if (!P.prods[P.prod]) P.prod = P.prods.MTX ? 'MTX' : (Object.keys(P.prods)[0] || 'MTX');
+    const retR = P.prods[P.prod] ? P.prods[P.prod].rows : null;
     P.secs = {};
     if (futR) P.secs.futoi = { K: 'futoi', rows: futR, raw: fr, sort: { k: 'date', d: -1 } };
-    if (retR) P.secs.retail = { K: 'retail', rows: retR, raw: rr, sort: { k: 'date', d: -1 } };
+    if (retR) P.secs.retail = { K: 'retail', rows: retR, raw: P.prods[P.prod].raw, sort: { k: 'date', d: -1 } };
     P.hov = null; P.lock = null; P.per = '6m';
     if (!futR && !retR) {
       body.innerHTML = '<div class="card fp-card" data-snap="fut-oi"><div class="empty">資料準備中</div></div>';
       body.dataset.snapReady = '1'; return;
     }
-    const all = [].concat(futR || [], retR || []);
+    const all = [].concat(futR || [], ...Object.keys(P.prods).map((k) => P.prods[k].rows));
     P.first = all.reduce((m, r) => (r.date < m ? r.date : m), '9999'); P.last = all.reduce((m, r) => (r.date > m ? r.date : m), '0');
     P.pers = PERIODS.futoi.list.map((p) => ({ id: p[0], lab: p[1], cut: p[0] === 'all' ? null : cutoffOf(P.last, p) }));
     build(body);
@@ -258,16 +274,17 @@
 
   function paneHtml(K, S) {
     const num = K === 'futoi'
-      ? '<div class="card fp-card fp-latest" id="fpLatest"><h4 id="fpLatT"></h4><div class="fp-big3" id="fpBig3"></div><div class="fp-concl" id="fpConcl"></div></div>'
+      ? '<div class="card fp-card fp-latest" id="fpLatest"><div class="fp-lrow"><h4 id="fpLatT"></h4><div class="fp-big3" id="fpBig3"></div></div><div class="fp-concl" id="fpConcl"></div></div>'
       : '<div class="card fp-card fp-top" id="fpTop"></div>';
     const tbl = `<div class="card fp-card fp-tblcard"><div class="fp-hd"><h3>每日明細</h3></div><div class="fp-tw" id="fpTw-${K}" tabindex="0"></div></div>`;
-    const bs = S.raw.product === 'TMF' || !S.raw.product ? '微台（TMF）' : esc(S.raw.product);
+    const bs = PROD_NAME[P.prod] ? `${PROD_NAME[P.prod]}（${P.prod}）` : esc(S.raw.product || '');
+    const pseg = `<div class="fp-prodseg"><div class="seg tiny" id="fpProdSeg" role="group" aria-label="契約：大台、小台、微台">${Object.keys(PROD_NAME).map((k) => `<button type="button" data-p="${k}" class="${k === P.prod ? 'on' : ''}"${P.prods[k] ? '' : ` disabled aria-disabled="true" title="${PROD_NAME[k]}資料準備中"`}>${PROD_NAME[k]}</button>`).join('')}</div><span class="muted">台指期的三種契約，一口大小不同</span></div>`;
     const chart = K === 'futoi'
       ? `<div class="card fp-card fp-main"><div class="fp-hd"><h3>淨未平倉</h3></div>
           <div id="fpChart-futoi" class="chart fp-chart"></div></div>`
       : `<div class="card fp-card fp-main"><div class="fp-hd"><h3>散戶多空比</h3><span class="fp-hint" id="fpSub" style="margin:0" title="散戶多單／空單＝全市場未平倉－三大法人同方向未平倉；多空比＝（多單－空單）÷全市場未平倉×100%">${bs}・虛線＝結算日</span></div>
           <div id="fpChart-retail" class="chart fp-chart"></div></div>`;
-    return `<section class="fp-block fp-pane" data-snap="${SECS[K].snap}"><div class="fp-topgrid">${num}</div><div class="fp-split">${chart}${tbl}</div></section>`;
+    return `<section class="fp-block fp-pane" data-snap="${SECS[K].snap}">${K === 'retail' ? pseg : ''}<div class="fp-topgrid">${num}</div><div class="fp-split">${chart}${tbl}</div></section>`;
   }
 
   function build(body) {
@@ -287,7 +304,7 @@
     $('#how-fut-how .howbody', body).innerHTML = S ? HOW[K](S.raw.source) + `<h4 class="fp-autoh">自動解讀</h4><ul class="fp-autoul" id="fpAutoUl-${K}" style="list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px"></ul><p class="fp-disc">依資料自動產生、只陳述數字，不構成投資建議。</p>` : '<p>資料準備中。</p>';
     P.hov = null; P.lock = null;
     if (!perOk(P.pers.find((p) => p.id === P.per))) P.per = 'all';
-    $$('.fp-per button', body).forEach((b) => { const p = P.pers.find((q) => q.id === b.dataset.per), ok = perOk(p); b.disabled = !ok; b.title = ok ? '' : `資料只回溯到 ${firstOf()}，不足這個期間`; b.classList.toggle('on', p.id === P.per); });
+    $$('.fp-per button', body).forEach((b) => { const p = P.pers.find((q) => q.id === b.dataset.per), ok = perOk(p); b.disabled = !ok; b.title = ok ? '' : `資料自 ${firstOf().slice(5).replace('-', '/')} 起，不足${p.lab}`; b.classList.toggle('on', p.id === P.per); });
     { const st = $('#fpStale', body), dd = S && (S.raw.asof || S.rows[S.rows.length - 1].date); if (st) st.hidden = !(dd && P.dataDate && dd < P.dataDate); }
     if (!S) { box.innerHTML = emptyCard(K); return; }
     box.innerHTML = paneHtml(K, S);
@@ -389,7 +406,7 @@
     if (S1) {
       const v = view(S1), r = focusRow(S1) || v[v.length - 1], isLast = !f;
       $('#fpLatT').innerHTML = isLast ? '最新一日淨未平倉' : `${P.lock ? '鎖定日' : '滑過日'}淨未平倉 <span class="muted" style="font-weight:400">${r.date}</span>`;
-      $('#fpBig3').innerHTML = [['外資', 'f'], ['投信', 't'], ['自營商', 'd']].map(([nm, p]) => `<div><div class="l">${nm}</div><div class="v ${cls(r[p + 'n'])}">${sg(r[p + 'n'])}</div><div class="s">多 ${nf(r[p + 'l'])}</div><div class="s">空 ${nf(r[p + 's'])}</div></div>`).join('');
+      $('#fpBig3').innerHTML = [['外資', 'f'], ['投信', 't'], ['自營商', 'd']].map(([nm, p]) => `<div><span class="l">${nm}</span><span class="v ${cls(r[p + 'n'])}">${sg(r[p + 'n'])}</span><div class="s">多 ${nf(r[p + 'l'])}／空 ${nf(r[p + 's'])}</div></div>`).join('');
     }
     if (S2) {
       const v = view(S2), fr = focusRow(S2), r = fr || v[v.length - 1];
@@ -397,10 +414,10 @@
       const i = S2.rows.indexOf(r), prev = S2.rows[i - 1], d = prev && prev.p != null && r.p != null ? r.p - prev.p : null;
       const big = r.p == null ? '—' : `${r.p > 0 ? '▲' : r.p < 0 ? '▼' : ''} ${sgd(r.p, 2)}%`;
       const lean = r.p == null ? '' : Math.abs(r.p) < 0.5 ? '多空幾乎打平' : r.p > 0 ? '散戶整體偏多（多單多於空單）' : '散戶整體偏空（空單多於多單）';
-      $('#fpTop').innerHTML = `<div class="bigrow"><div><div class="lab">${f && !miss ? `${P.lock ? '鎖定日' : '滑過日'}散戶多空比 <b>${r.date}</b>` : '最新一日散戶多空比'}${miss ? '（' + f + ' 微台尚無資料，顯示最新一日）' : ''}</div>
+      $('#fpTop').innerHTML = `<div class="bigrow"><div><div class="lab">${f && !miss ? `${P.lock ? '鎖定日' : '滑過日'}散戶多空比 <b>${r.date}</b>` : '最新一日散戶多空比'}${miss ? '（' + f + ' ' + (PROD_NAME[P.prod] || '') + '尚無資料，顯示最新一日）' : ''}</div>
         <div class="bignum ${cls(r.p)}" id="fpBigNum">${big}</div>
         <div class="delta">較前一交易日 <span class="${cls(d)}">${d == null ? '—' : sgd(d, 2) + 'pp'}</span></div></div>
-        <div class="sum">微台全市場未平倉 ${nf(r.tot)} 口，扣掉三大法人後散戶多單 ${nf(r.l)} 口、空單 ${nf(r.s)} 口，${lean}。</div></div>
+        <div class="sum">${PROD_NAME[P.prod] || ''}全市場未平倉 ${nf(r.tot)} 口，扣掉三大法人後散戶多單 ${nf(r.l)} 口、空單 ${nf(r.s)} 口，${lean}。</div></div>
         <div class="stats"><div><div class="l">散戶多單（口）</div><div class="v up">${nf(r.l)}</div></div><div><div class="l">散戶空單（口）</div><div class="v down">${nf(r.s)}</div></div><div><div class="l">全市場未平倉（口）</div><div class="v">${nf(r.tot)}</div></div></div>`;
     }
   }
@@ -459,6 +476,14 @@
     });
   }
   function wirePane(box, S) {
+    $$('#fpProdSeg button', box).forEach((b) => {
+      b.onclick = () => {
+        if (b.disabled || b.dataset.p === P.prod) return;
+        const o = P.prods[b.dataset.p]; if (!o) return;
+        P.prod = b.dataset.p; P.secs.retail = { K: 'retail', rows: o.rows, raw: o.raw, sort: S.sort };
+        showKind(box.parentNode);
+      };
+    });
     const tw = $('#fpTw-' + S.K, box);
     tw.onclick = (e) => {
       const th = e.target.closest('th');

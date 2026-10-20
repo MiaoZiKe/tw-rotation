@@ -219,3 +219,69 @@ def t_inst_today_1020(b, base):
 
 
 register("當日法人1020", lambda pg, b, base, code: t_inst_today_1020(b, base))
+
+
+# ===================================================================== 三大法人r3（Andy 10-20 17:00）
+# ① 期間鈕「按了沒變」：真的點每顆可按的鈕 → 兩張圖的資料點數、明細表列數、四格「N月累積」字樣一起變；資料不足的鈕反灰＋title「資料自 MM/DD 起」
+#    根因（記在這）：事件有接；官方全市場金額還沒回補，資料只有 23 個交易日，「1月(21)」與「全部(23)」幾乎一樣、其餘鈕本來就該反灰卻看不出來 → 現在反灰明顯＋寫清楚資料區間
+# ② 明細表收窄（日期／外資／投信／自營／合計、加權指數進 tooltip、字 ≥12px），三塊約 38%／38%／24%
+# ③ 滑過兩張連動圖 → 看得到的提示框恰 1 個（不再一個在游標、一個貼右側）；滑過明細表一列 → 圖上 ≤1 個
+_VIS_TIPS = """() => [...document.body.children].filter(d => /9999999/.test(d.getAttribute('style') || '') && d.textContent.trim()
+  && getComputedStyle(d).display !== 'none' && getComputedStyle(d).visibility !== 'hidden').length"""
+
+
+def t_inst_r3(b, base):
+    import re as _re
+    errs: list[str] = []
+    c = b.new_context(viewport={"width": 1440, "height": 1000})
+    pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)))
+    try:
+        pg.goto(f"{base}#market/inst", wait_until="networkidle")
+        if not _inst_wait(pg):
+            ok("三大法人r3：日報畫出來", False); return
+        pg.wait_for_timeout(600)
+        tag = "三大法人r3（1440）"
+        pers = pg.evaluate("() => [...document.querySelectorAll('#instPer button')].map(b => ({ p: b.dataset.p, dis: b.disabled, title: b.title }))")
+        need = {"1m": 21, "3m": 63, "6m": 126, "1y": 252, "3y": 756, "5y": 1260, "all": 10 ** 9}
+        pg.locator('#instPer button[data-p="all"]').click(); pg.wait_for_timeout(600)
+        total = pg.evaluate(_INST_ST)["nrows"]
+        seen = {}
+        for p in pers:
+            if p["dis"]:
+                ok(f"★ [{tag}] 「{p['p']}」資料不足（共 {total} 日）→ 反灰、title 寫「資料自 MM/DD 起」", _re.search(r"資料自 \d\d/\d\d 起", p["title"] or "") is not None, p)
+                continue
+            pg.locator(f'#instPer button[data-p="{p["p"]}"]').click(); pg.wait_for_timeout(600)
+            s = pg.evaluate(_INST_ST)
+            exp = min(total, need[p["p"]])
+            lab = pg.evaluate("() => (document.querySelector('#instPer button.on') || {}).textContent")
+            icu = pg.evaluate("() => document.querySelector('.itile .icu').textContent")
+            ok(f"★ [{tag}] 按「{lab}」→ 兩張圖 {s['c1']['n']}／{s['c2']['n']} 點＝明細 {s['nrows']} 列＝期望 {exp}、四格寫「{lab}累積」", s["c1"]["n"] == s["c2"]["n"] == s["nrows"] == exp and icu.startswith(lab), [s["c1"], s["c2"], s["nrows"], exp, icu])
+            seen[p["p"]] = (s["c1"]["n"], s["cum"][0])
+        ok(f"★ [{tag}] 可按的期間鈕之間，點數或期間累積數字真的不一樣（{seen}）", len(set(seen.values())) >= 2 or len(seen) < 2, seen)
+        sub = pg.evaluate("() => (document.querySelector('#instSub .irspan') || {}).textContent || ''")
+        ok(f"[{tag}] 副標寫出目前涵蓋的日期區間與日數（{sub}）", _re.search(r"\d\d/\d\d～\d\d/\d\d・\d+ 日", sub) is not None, sub)
+        # ② 版面
+        pg.locator('#instPer button[data-p="all"]').click(); pg.wait_for_timeout(600)
+        lay = pg.evaluate("""() => { const cs = [...document.querySelectorAll('.irtri > .card')].map(e => e.getBoundingClientRect()); const th = [...document.querySelectorAll('#instTbl thead th')].map(t => t.textContent.trim());
+          const tot = cs[2].right - cs[0].left; const fs = [...document.querySelectorAll('#instTbl td, #instTbl th')].map(e => parseFloat(getComputedStyle(e).fontSize));
+          const tr = document.querySelector('#instTbl tbody tr');
+          return { w: cs.map(r => Math.round(r.width)), share: cs.map(r => Math.round(r.width / tot * 100)), th, minfs: Math.min(...fs), title: tr ? tr.title : '', ov: document.getElementById('instTbl').scrollWidth - document.getElementById('instTbl').clientWidth }; }""")
+        ok(f"★ [{tag}] 三塊寬度約 35%／35%／30%（實際 {lay['share']}%）、表不被切（不橫向捲）", abs(lay["share"][0] - 35) <= 3 and abs(lay["share"][1] - 35) <= 3 and abs(lay["share"][2] - 30) <= 3 and lay["ov"] <= 1, lay)
+        ok(f"★ [{tag}] 明細表只留 日期／外資／投信／自營商／合計（{lay['th']}）、字 ≥ 12px（{lay['minfs']}）、加權指數進列 tooltip", [x.rstrip(' ▲▼') for x in lay["th"]] == ["日期", "外資", "投信", "自營商", "合計"] and lay["minfs"] >= 12 and "加權指數" in lay["title"], lay)
+        # ③ 提示框
+        for cid in ("instBars", "instLines"):
+            pg.evaluate("(id) => document.getElementById(id).scrollIntoView({block:'center', behavior:'instant'})", cid); pg.wait_for_timeout(600)
+            box = pg.evaluate("(id) => { const r = document.getElementById(id).getBoundingClientRect(); return [r.left, r.top, r.width, r.height]; }", cid)
+            pg.mouse.move(box[0] + box[2] * .4, box[1] + box[3] * .5); pg.wait_for_timeout(120)
+            pg.mouse.move(box[0] + box[2] * .5, box[1] + box[3] * .5); pg.wait_for_timeout(500)
+            vis = pg.evaluate(_VIS_TIPS)
+            hl = pg.evaluate("() => document.querySelectorAll('#instTbl tr.hl').length")
+            ok(f"★ [{tag}] 滑過 {cid} → 看得到的提示框 {vis} 個（恰 1）、明細表同日亮起 {hl} 列", vis == 1 and hl == 1, [vis, hl])
+        tr = pg.locator("#instTbl tbody tr").nth(3); tr.scroll_into_view_if_needed(); tr.hover(); pg.wait_for_timeout(500)
+        ok(f"★ [{tag}] 滑過明細表一列 → 圖上提示框 ≤ 1 個", pg.evaluate(_VIS_TIPS) <= 1, pg.evaluate(_VIS_TIPS))
+    finally:
+        c.close()
+    ok("三大法人r3：沒有網頁錯誤", not errs, errs[:3])
+
+
+register("三大法人r3", lambda pg, b, base, code: t_inst_r3(b, base))
