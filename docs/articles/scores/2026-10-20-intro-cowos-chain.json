@@ -1,0 +1,55 @@
+{
+ "id": "2026-10-20-intro-cowos-chain",
+ "title": "誰在台積電身邊：封裝 6 環節營收年增 25～60%",
+ "cat": "intro",
+ "date": "2026-10-20",
+ "score": 80,
+ "rubric": {
+  "A": 15,
+  "B": 8,
+  "C": 5,
+  "D": 10,
+  "E": 10,
+  "F": 11,
+  "G": 9,
+  "H": 9,
+  "I": 3
+ },
+ "deductions": [
+  "無影片",
+  "無歷史對照",
+  "2027 LEAP 為推算值",
+  "3D 場景本機未驗證"
+ ],
+ "blocks": [
+  "h",
+  "ul",
+  "flow",
+  "h",
+  "p",
+  "steps",
+  "chart",
+  "h",
+  "chart",
+  "p",
+  "h",
+  "scene",
+  "h",
+  "chart",
+  "p",
+  "h",
+  "steps",
+  "callout"
+ ],
+ "charts": 3,
+ "own_data_charts": 2,
+ "video": false,
+ "scene": true,
+ "words": 416,
+ "sources": [
+  "technews.tw 2026-04-29",
+  "trendforce.com 2026-07-31"
+ ],
+ "reviewer": "CEO 排程",
+ "reworked_from": null
+}

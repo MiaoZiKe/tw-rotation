@@ -2,6 +2,29 @@
  "updated": "2026-10-20",
  "articles": [
   {
+   "id": "2026-10-20-intro-cowos-chain",
+   "cat": "intro",
+   "title": "誰在台積電身邊：封裝 6 環節營收年增 25～60%",
+   "date": "2026-10-20",
+   "topic": "sch-20261020-06-r1-intro-1",
+   "groups": [
+    {
+     "id": "ai_adv_packaging",
+     "name": "AI 先進封裝"
+    },
+    {
+     "id": "osat",
+     "name": "封測代工"
+    },
+    {
+     "id": "ic_substrate",
+     "name": "PCB 載板"
+    }
+   ],
+   "reading_min": 3,
+   "src": "api"
+  },
+  {
    "id": "2026-10-20-news-tesla-capex-optimus",
    "cat": "news",
    "title": "特斯拉資本支出上修到 250 億美元，近去年三倍",
