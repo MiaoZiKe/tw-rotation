@@ -1,0 +1,1075 @@
+"""功能介紹影片 06：今日事件＋精選文章 —— 成片合成（由 05 的 render_flow.py 複製改寫）（網頁 1920×1080／手機 1080×1920，30fps）。
+
+素材：capture_ev.py 錄的網站實際畫面（亮色主題、逐格算圖，游標與點擊漣漪在錄影當下畫進畫面）。
+版面（沿用第 6 版宣傳片）：奶油格紙底、左上藍色膠囊＋標題（黃色螢光底線）、右上「網站實際畫面・資料日」與歷史資料提醒；
+網站畫面框只放「這一句在介紹的那一塊」（鏡頭＝錄影時每一格量到的元素外框，補成畫面框比例後裁切放大，平滑跟隨）；
+比比主持、台詞用對話泡泡（一泡一句、≤14 字），泡泡尾巴指向比比；不配人聲，配輕快底樂＋點擊音效。
+
+每一幀登記所有元素外框，兩兩比對（外擴 6px）→ overlap_report.md；另外檢查：泡泡字出框、點擊落在鏡頭內、
+鏡頭有沒有把介紹的區塊裁掉、來源畫面（畫面框內）連續不動的最長秒數；成片再跑 ffmpeg freezedetect。
+
+用法：python render_ev.py --dev d|m [--frames 1.0,5.5]（只出單格）[--seg open]（單段＋1.5 倍速預覽）
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import math
+import os
+import re
+import subprocess
+import sys
+import wave
+from functools import lru_cache
+from pathlib import Path
+
+import cairo
+import cv2
+import numpy as np
+from PIL import Image, ImageDraw, ImageFont
+
+HERE = Path(__file__).resolve().parent
+REPO = HERE.parents[4]
+LIB = REPO / "docs" / "anim" / "bibi_library"
+SCR = Path(os.environ.get("FEAT_SCR", "/tmp/claude-0/-home-user-tw-rotation/3d7a42eb-0e07-50fa-8c50-cf31c62d682f/scratchpad/feat06"))
+FAST = True   # 第 2 支起一律快節奏
+SPEED = 1.5   # 成片整支 1.5 倍速（Andy 10-19：「控制 1min 內，可以載 x1.5 倍」）
+RAW = Path(os.environ.get("FEAT_RAW", str(SCR / "raw")))
+FD = Path(os.environ.get("HBM_FONT_DIR", "/tmp/claude-0/-home-user-tw-rotation/3d7a42eb-0e07-50fa-8c50-cf31c62d682f/scratchpad/font"))
+F_BOLD = str(FD / "NotoSansTC-Bold.ttf")
+F_BLACK = str(FD / "NotoSansTC-Black.ttf")
+F_MED = str(FD / "NotoSansTC-Medium.ttf")
+FPS = 30
+PAD = 6
+XF = 12            # 鏡頭之間交叉淡化 0.4 秒
+END_DUR = 4.8      # 片尾卡原片 4.8 秒（1.5 倍後 3.2 秒 ≥ 3 秒）
+
+ORDER = [s for s in os.environ.get("FEAT_ORDER", "open,guide,events,arts,tesla,end").split(",") if s]
+SEC = {   # 膠囊、標題、標題重點字
+    "open": ("今日事件", "新聞太多，哪些跟市場有關？", "跟市場有關"),
+    "guide": ("引導", "從首頁打開今日事件", "今日事件"),
+    "events": ("功能 1", "今日事件：分類、日期一鍵切", "一鍵切"),
+    "arts": ("功能 2", "精選文章：分類、族群、關鍵字", "族群"),
+    "tesla": ("功能 3", "點進文章：特斯拉這篇", "特斯拉"),
+    "end": ("今日事件＋精選文章", "事件與題材，一站看懂", "一站看懂"),
+}
+NAV = [("events", "今日事件"), ("arts", "精選文章")] + ([("tesla", "點進文章")] if "tesla" in ORDER else [])
+DISC = "本內容為公開資料整理，不構成任何投資建議；投資有風險，請自行判斷。"
+
+BG = (253, 247, 236)
+GRID = (238, 228, 212)
+INK = (40, 33, 28)
+MUTED = (110, 98, 88)
+BLUE = (37, 131, 230)
+BLUE_D = (22, 92, 170)
+YEL = (255, 214, 64)
+CORAL = (240, 112, 92)
+WHITE = (255, 255, 255)
+
+
+def font(p, s):
+    return _font(p, int(s))
+
+
+@lru_cache(maxsize=None)
+def _font(p, s):
+    return ImageFont.truetype(p, s)
+
+
+def tsize(f, s):
+    bb = f.getbbox(s)
+    return bb[2] - bb[0], bb[3] - bb[1], bb
+
+
+def clamp(x, a=0.0, b=1.0):
+    return max(a, min(b, x))
+
+
+def ease(x):
+    x = clamp(x)
+    return 0.5 - 0.5 * math.cos(math.pi * x)
+
+
+def back_out(x, s=1.6):
+    x = clamp(x) - 1
+    return x * x * ((s + 1) * x + s) + 1
+
+
+# ───────────────────────── 版面 ─────────────────────────
+class L:
+    pass
+
+
+def layout(dev):
+    o = L()
+    o.dev = dev
+    if dev == "d":
+        o.W, o.H = 1920, 1080
+        o.panel = (26, 94, 1676, 904)
+        o.bibi_size = 236
+        o.bibi_foot = (1800, 1070)
+        o.nav = (1696, 94, 1900, 0)
+        o.bub_zone = (26, 918, None, 1068)     # 泡泡在畫面框下方，右邊接尾巴指向比比
+        o.bub_font = 46
+        o.flip_point = True
+    else:
+        o.W, o.H = 1080, 1920
+        o.panel = (40, 420, 1040, 1898)
+        o.bibi_size = 240
+        o.bibi_foot = (150, 388)
+        o.nav = None
+        o.bub_zone = (None, 176, 1046, 398)    # 泡泡在比比右邊，尾巴往左
+        o.bub_font = 44
+        o.flip_point = False
+    x0, y0, x1, y1 = o.panel
+    o.pw, o.ph = x1 - x0, y1 - y0
+    o.asp = o.pw / o.ph
+    return o
+
+
+def grid_bg(o):
+    im = Image.new("RGB", (o.W, o.H), BG)
+    d = ImageDraw.Draw(im)
+    for x in range(0, o.W, 60):
+        d.line([(x, 0), (x, o.H)], fill=GRID, width=1)
+    for y in range(0, o.H, 60):
+        d.line([(0, y), (o.W, y)], fill=GRID, width=1)
+    return im
+
+
+class Reg:
+    def __init__(self):
+        self.items = []
+        self.issues = []
+
+    def add(self, name, box, group=None):
+        x0, y0, x1, y1 = box
+        if x1 - x0 >= 1 and y1 - y0 >= 1:
+            self.items.append((name, group or name, (x0, y0, x1, y1)))
+
+    def text_in(self, name, t, c, inset=0):
+        if t[0] < c[0] + inset - .5 or t[1] < c[1] + inset - .5 or t[2] > c[2] - inset + .5 or t[3] > c[3] - inset + .5:
+            self.issues.append(f"{name} 出框")
+
+    def overlaps(self):
+        out = []
+        it = self.items
+        for i in range(len(it)):
+            for j in range(i + 1, len(it)):
+                a, b = it[i], it[j]
+                if a[1] == b[1]:
+                    continue
+                ix = min(a[2][2], b[2][2]) + PAD - (max(a[2][0], b[2][0]) - PAD)
+                iy = min(a[2][3], b[2][3]) + PAD - (max(a[2][1], b[2][1]) - PAD)
+                if ix > 0 and iy > 0:
+                    out.append((a[0], b[0], int(ix * iy)))
+        return out
+
+
+def header(o, im, reg, sid, data_date):
+    """上方：藍色膠囊＋標題（黃色螢光底線）＋右上資料說明。回傳登記項目。"""
+    d = ImageDraw.Draw(im, "RGBA")
+    pill, title, hl = SEC[sid]
+    if o.dev == "d":
+        fp, ft, fs = font(F_BOLD, 26), font(F_BLACK, 44), font(F_MED, 21)
+        px, py, ph = 40, 20, 50
+        ty = 18
+        tx_gap = 22
+    else:
+        fp, ft, fs = font(F_BOLD, 30), font(F_BLACK, 56), font(F_MED, 25)
+        px, py, ph = 40, 30, 60
+        ty = 22
+        tx_gap = 24
+    tw, th, bb = tsize(fp, pill)
+    pw = tw + 44
+    d.rounded_rectangle([px, py, px + pw, py + ph], ph // 2, fill=BLUE + (255,), outline=(20, 40, 70, 255), width=3)
+    d.text((px + 22 - bb[0], py + (ph - th) / 2 - bb[1]), pill, font=fp, fill=WHITE)
+    reg.add("膠囊", (px, py, px + pw, py + ph))
+    x = px + pw + tx_gap
+    tw2, th2, bb2 = tsize(ft, title)
+    yb = py + ph / 2 - th2 / 2
+    if hl in title:
+        i = title.index(hl)
+        hx = x + ft.getlength(title[:i])
+        hw = ft.getlength(hl)
+        d.rounded_rectangle([hx - 4, yb + th2 * 0.55, hx + hw + 4, yb + th2 + 6], 6, fill=YEL + (230,))
+    d.text((x - bb2[0], yb - bb2[1]), title, font=ft, fill=INK)
+    reg.add("標題", (x - 4, yb, x + tw2 + 4, yb + th2 + 6))
+    # Andy 10-19：「後續影片都不要出現這種備註」→ 第 2 支起不放右上角的資料日／歷史資料角標（法遵由片尾免責卡承擔）
+
+def nav(o, im, reg, sid):
+    if not o.nav:
+        return
+    d = ImageDraw.Draw(im, "RGBA")
+    x0, y0, x1, _ = o.nav
+    f = font(F_BOLD, 24)
+    fn = font(F_BLACK, 22)
+    cur = [k for k, _ in NAV].index(sid) if sid in [k for k, _ in NAV] else (-1 if sid in ("open", "guide") else 99)
+    y = y0 + 4
+    for i, (k, t) in enumerate(NAV):
+        on, done = i == cur, i < cur
+        fill = BLUE + (255,) if on else (255, 255, 255, 235)
+        d.rounded_rectangle([x0, y, x1, y + 62], 18, fill=fill, outline=(BLUE_D if on else (205, 190, 170)) + (255,), width=2)
+        cx, cy = x0 + 28, y + 31
+        d.ellipse([cx - 15, cy - 15, cx + 15, cy + 15], fill=(WHITE if on else (BLUE if done else (226, 214, 196))) + (255,))
+        s = "✓" if done else str(i + 1)
+        if done:
+            d.line([(cx - 7, cy), (cx - 2, cy + 6), (cx + 8, cy - 6)], fill=WHITE, width=4)
+        else:
+            w_, h_, b_ = tsize(fn, s)
+            d.text((cx - w_ / 2 - b_[0], cy - h_ / 2 - b_[1]), s, font=fn, fill=(BLUE_D if on else MUTED))
+        w_, h_, b_ = tsize(f, t)
+        tx = x0 + 52
+        d.text((tx - b_[0], cy - h_ / 2 - b_[1]), t, font=f, fill=(WHITE if on else INK))
+        reg.text_in("導覽字", (tx, cy - h_ / 2, tx + w_, cy + h_ / 2), (x0, y, x1, y + 62), 4)
+        y += 74
+    reg.add("功能導覽", (x0, y0, x1, y - 12))
+
+
+# ───────────────────────── 比比 ─────────────────────────
+@lru_cache(maxsize=1)
+def lib_lengths():
+    d = {}
+    for line in (LIB / "index.md").read_text(encoding="utf-8").splitlines():
+        m = re.match(r"\|\s*`([a-z0-9_]+)`\s*\|.*\|\s*(\d+)\s*\|\s*([0-9.]+)\s*秒", line)
+        if m:
+            d[m.group(1)] = (int(m.group(2)), float(m.group(3)))
+    return d
+
+
+@lru_cache(maxsize=None)
+def bibi_frames(name, size, flip):
+    im = Image.open(LIB / name / "anim.webp")
+    out = []
+    for i in range(im.n_frames):
+        im.seek(i)
+        f = im.convert("RGBA").resize((size, size), Image.LANCZOS)
+        if flip:
+            f = f.transpose(Image.FLIP_LEFT_RIGHT)
+        a = np.array(f)
+        ys, xs = np.nonzero(a[..., 3] > 24)
+        out.append((a, (int(xs.min()), int(ys.min()), int(xs.max()) + 1, int(ys.max()) + 1)))
+    return out
+
+
+SUBST = {"coins": "face_thinking_bulb"}   # 品牌規範：不用金錢圖示（金幣）
+
+
+def act_name(o, name):
+    name = SUBST.get(name, name)
+    if o.dev == "m" and name.startswith("point_"):
+        return "point_dr_v2"
+    return name
+
+
+def bibi_frame(o, name, t):
+    name = act_name(o, name)
+    flip = o.flip_point and name.startswith("point_")
+    fr = bibi_frames(name, o.bibi_size, flip)
+    n = len(fr)
+    Ln = lib_lengths().get(name, (n, 1.2))[1]
+    i = int((t % Ln) / Ln * n) % n
+    s = o.bibi_size / 512
+    fx = 248 * s
+    if flip:
+        fx = o.bibi_size - fx
+    ox, oy = int(round(o.bibi_foot[0] - fx)), int(round(o.bibi_foot[1] - 482 * s))
+    a, b = fr[i]
+    return a, ox, oy, (ox + b[0], oy + b[1], ox + b[2], oy + b[3])
+
+
+def bibi_extent(o, names):
+    """所有會用到的動作、所有格的比比外框聯集（泡泡依這個放，保證尾巴不碰到比比）。"""
+    x0 = y0 = 1e9
+    x1 = y1 = -1e9
+    for n in names:
+        nn = act_name(o, n)
+        flip = o.flip_point and nn.startswith("point_")
+        for k in range(len(bibi_frames(nn, o.bibi_size, flip))):
+            _a, ox, oy, b = bibi_frame(o, n, k / len(bibi_frames(nn, o.bibi_size, flip)) * lib_lengths().get(nn, (1, 1.2))[1] + 1e-4)
+            x0, y0, x1, y1 = min(x0, b[0]), min(y0, b[1]), max(x1, b[2]), max(y1, b[3])
+    return x0, y0, x1, y1
+
+
+def blend(dst, src_rgba, ox, oy, alpha=1.0):
+    h, w = src_rgba.shape[:2]
+    H, W = dst.shape[:2]
+    x0, y0 = max(0, ox), max(0, oy)
+    x1, y1 = min(W, ox + w), min(H, oy + h)
+    if x1 <= x0 or y1 <= y0:
+        return
+    s = src_rgba[y0 - oy:y1 - oy, x0 - ox:x1 - ox]
+    a = s[..., 3:4].astype(np.float32) / 255 * alpha
+    dd = dst[y0:y1, x0:x1].astype(np.float32)
+    dst[y0:y1, x0:x1] = (dd * (1 - a) + s[..., :3].astype(np.float32) * a).astype(np.uint8)
+
+
+# ───────────────────────── 泡泡（單一封閉路徑：圓角框＋尾巴） ─────────────────────────
+def wrap(f, text, maxw):
+    if f.getlength(text) <= maxw:
+        return [text]
+    best = None
+    for k in range(3, len(text) - 2):
+        a_, b_ = text[:k].rstrip(), text[k:].lstrip()
+        if b_[:1] in "，。、；：」）％%" or (a_[-1:].isascii() and a_[-1:].isalnum() and b_[:1].isascii() and b_[:1].isalnum()):
+            continue
+        if a_[-1:] in "「（":
+            continue
+        wa, wb = f.getlength(a_), f.getlength(b_)
+        if wa <= maxw and wb <= maxw:
+            sc = abs(wa - wb) - (60 if a_[-1:] in "，、：" else 0)
+            if best is None or sc < best[0]:
+                best = (sc, [a_, b_])
+    return best[1] if best else None
+
+
+@lru_cache(maxsize=64)
+def bubble_img(dev, text, tip_x, tip_y, side, zone):
+    """回傳（RGBA 陣列、左上角、泡泡框外框、尾巴外框、文字外框、問題）。zone＝可放的範圍。"""
+    o = layout(dev)
+    fz = o.bub_font
+    zx0, zy0, zx1, zy1 = zone
+    maxw = (zx1 - zx0) - 80
+    for s in (fz, fz - 4, fz - 8):
+        f = font(F_BOLD, s)
+        lines = wrap(f, text, maxw)
+        if lines:
+            break
+    lh = int(s * 1.38)
+    tw = max(f.getlength(x) for x in lines)
+    th = lh * len(lines) - (lh - s)
+    bw, bh = tw + 80, max(th + 56, 96)
+    tail = max(30, bh * 0.25)
+    if side == "right":      # 泡泡在左、尾巴往右指向比比
+        bx1 = tip_x - tail
+        bx0 = max(zx0, bx1 - bw)
+        by0 = zy0 + ((zy1 - zy0) - bh) / 2
+    else:                    # 泡泡在右、尾巴往左
+        bx0 = tip_x + tail
+        bx1 = min(zx1, bx0 + bw)
+        by0 = zy0 + ((zy1 - zy0) - bh) / 2
+    by1 = by0 + bh
+    W, H = int(zx1 - zx0 + 200), int(zy1 - zy0 + 120)
+    offx, offy = zx0 - 100, zy0 - 60
+    surf = cairo.ImageSurface(cairo.FORMAT_ARGB32, W, H)
+    c = cairo.Context(surf)
+    c.translate(-offx, -offy)
+    r = 30
+    ty = min(max(tip_y, by0 + r + 22), by1 - r - 22)
+    root0, root1 = ty - bh * 0.16, ty + bh * 0.16
+    c.new_path()
+    c.move_to(bx0 + r, by0)
+    c.line_to(bx1 - r, by0)
+    c.arc(bx1 - r, by0 + r, r, -math.pi / 2, 0)
+    if side == "right":
+        c.line_to(bx1, root0)
+        c.curve_to(bx1 + tail * 0.35, root0 + 4, tip_x - 6, tip_y - 6, tip_x, tip_y)
+        c.curve_to(bx1 + tail * 0.45, root1 - 2, bx1 + 6, root1, bx1, root1)
+    c.line_to(bx1, by1 - r)
+    c.arc(bx1 - r, by1 - r, r, 0, math.pi / 2)
+    c.line_to(bx0 + r, by1)
+    c.arc(bx0 + r, by1 - r, r, math.pi / 2, math.pi)
+    if side == "left":
+        c.line_to(bx0, root1)
+        c.curve_to(bx0 - tail * 0.35, root1 - 4, tip_x + 6, tip_y + 6, tip_x, tip_y)
+        c.curve_to(bx0 - tail * 0.45, root0 + 2, bx0 - 6, root0, bx0, root0)
+    c.line_to(bx0, by0 + r)
+    c.arc(bx0 + r, by0 + r, r, math.pi, 1.5 * math.pi)
+    c.close_path()
+    # 陰影
+    c.save()
+    c.translate(0, 6)
+    c.set_source_rgba(0.25, 0.18, 0.12, 0.16)
+    c.fill_preserve()
+    c.restore()
+    c.new_path()
+    c.move_to(bx0 + r, by0)
+    # 重畫同一條路徑（cairo 的 fill_preserve 在 translate 後已改路徑，這裡直接再走一次）
+    c.line_to(bx1 - r, by0)
+    c.arc(bx1 - r, by0 + r, r, -math.pi / 2, 0)
+    if side == "right":
+        c.line_to(bx1, root0)
+        c.curve_to(bx1 + tail * 0.35, root0 + 4, tip_x - 6, tip_y - 6, tip_x, tip_y)
+        c.curve_to(bx1 + tail * 0.45, root1 - 2, bx1 + 6, root1, bx1, root1)
+    c.line_to(bx1, by1 - r)
+    c.arc(bx1 - r, by1 - r, r, 0, math.pi / 2)
+    c.line_to(bx0 + r, by1)
+    c.arc(bx0 + r, by1 - r, r, math.pi / 2, math.pi)
+    if side == "left":
+        c.line_to(bx0, root1)
+        c.curve_to(bx0 - tail * 0.35, root1 - 4, tip_x + 6, tip_y + 6, tip_x, tip_y)
+        c.curve_to(bx0 - tail * 0.45, root0 + 2, bx0 - 6, root0, bx0, root0)
+    c.line_to(bx0, by0 + r)
+    c.arc(bx0 + r, by0 + r, r, math.pi, 1.5 * math.pi)
+    c.close_path()
+    c.set_source_rgb(1, 1, 1)
+    c.fill_preserve()
+    c.set_line_width(4)
+    c.set_line_join(cairo.LINE_JOIN_ROUND)
+    c.set_source_rgb(*(v / 255 for v in INK))
+    c.stroke()
+    surf.flush()
+    arr = np.ndarray((H, surf.get_stride() // 4, 4), np.uint8, surf.get_data())[:, :W].copy()
+    rgba = arr[..., [2, 1, 0, 3]].copy()
+    al = rgba[..., 3:4].astype(np.float32) / 255
+    rgba[..., :3] = np.clip(rgba[..., :3].astype(np.float32) / np.maximum(al, 1e-3), 0, 255).astype(np.uint8)
+    im = Image.fromarray(rgba, "RGBA")
+    d = ImageDraw.Draw(im)
+    issues = []
+    ty0 = by0 + (bh - th) / 2
+    tboxes = []
+    for k, s_ in enumerate(lines):
+        w_ = f.getlength(s_)
+        x = bx0 + (bw - w_) / 2 if len(lines) > 1 else bx0 + 40
+        bb = f.getbbox(s_)
+        y = ty0 + k * lh
+        d.text((x - offx, y - offy - bb[1] + (s - (bb[3] - bb[1])) / 2), s_, font=f, fill=INK + (255,))
+        tboxes.append((x, y, x + w_, y + s))
+    tb = (min(b[0] for b in tboxes), min(b[1] for b in tboxes), max(b[2] for b in tboxes), max(b[3] for b in tboxes))
+    if tb[0] < bx0 + 20 or tb[2] > bx1 - 20 or tb[1] < by0 + 12 or tb[3] > by1 - 12:
+        issues.append("泡泡字出框")
+    if bx0 < zx0 - .5 or bx1 > zx1 + .5:
+        issues.append("泡泡超出可放範圍")
+    tail_box = (bx1, root0 - 6, tip_x, root1 + 6) if side == "right" else (tip_x, root0 - 6, bx0, root1 + 6)
+    # 尾巴與文字的距離 ≥ 10px
+    if side == "right" and tb[2] + 10 > bx1:
+        issues.append("尾巴離文字<10px")
+    if side == "left" and tb[0] - 10 < bx0:
+        issues.append("尾巴離文字<10px")
+    return np.array(im), (int(offx), int(offy)), (bx0, by0, bx1, by1), tail_box, tb, tuple(issues), len(lines)
+
+
+# ───────────────────────── 鏡頭（v2） ─────────────────────────
+# 取景：錄影時每一格量到「介紹區塊」focus（元素本身的完整外框，不以視窗裁切）與取景框 cam。
+# 合成時鏡頭一律把 focus 整塊放進「最壞情況的實際裁切範圍」（鏡頭慢移＝裁切框內縮 2%、在內縮範圍內來回 → 四邊各留 2%）。
+# 手機版允許取景框比錄影畫面寬一點（≤8%）：超出的部分補網頁底色（整塊區塊完整入鏡，不是靠留白算沒切到 —— 檢查是拿區塊本身的外框比實際裁切）。
+DRIFT = 0.008      # 裁切框內縮比例（四邊各最多內縮 0.8%；05 的卡片左右只離視窗邊 16 css、上緣離頂欄 16 css，2% 會把整張卡裁掉一角）
+OUT_X = 0.08       # 手機取景最多比錄影畫面寬 8%
+
+
+def inner(c):
+    """最壞情況的實際裁切範圍（x, y, w, h）：四邊各內縮 2%。"""
+    x, y, w, h = c
+    return (x + DRIFT * w, y + DRIFT * h, (1 - 2 * DRIFT) * w, (1 - 2 * DRIFT) * h)
+
+
+def contains(c, f, tol=0.5):
+    """裁切框 c（x,y,w,h，四邊已內縮）是否整個包住 f（x,y,w,h）。"""
+    return f[0] >= c[0] - tol and f[1] >= c[1] - tol and f[0] + f[2] <= c[0] + c[2] + tol and f[1] + f[3] <= c[1] + c[3] + tol
+
+
+def fit2(o, cam, f, W0, H0, minw, allow_out, ytop, xlim):
+    x, y, w, h = cam
+    cx, cy = x + w / 2, y + h / 2
+    if f is not None:
+        w = max(w, f[2] / (1 - 2 * DRIFT) + 8)
+        h = max(h, f[3] / (1 - 2 * DRIFT) + 8)
+    w = max(w, minw)
+    if w / max(h, 1) < o.asp:
+        w = h * o.asp
+    else:
+        h = w / o.asp
+    lo, hi = (0, W0) if not xlim else (max(0, xlim[0]), min(W0, xlim[1]))
+    lim_w = (hi - lo) * (1 + OUT_X if allow_out else 1)
+    lim_h = (H0 - ytop) * (1 + OUT_X if allow_out else 1)
+    if w > lim_w:
+        w, h = lim_w, lim_w / o.asp
+    if h > lim_h:
+        h, w = lim_h, lim_h * o.asp
+    x, y = cx - w / 2, cy - h / 2
+    if f is not None:   # 平移到介紹區塊整塊落在四邊內縮 2% 之內
+        x = max(min(x, f[0] - DRIFT * w - 3), f[0] + f[2] - (1 - DRIFT) * w + 3)
+        y = max(min(y, f[1] - DRIFT * h - 3), f[1] + f[3] - (1 - DRIFT) * h + 3)
+
+    def clamp_axis(v, size, a0, a1, out):
+        if size <= a1 - a0:
+            v2 = clamp(v, a0, a1 - size)
+            return v2
+        return clamp(v, a1 - size, a0) if out else a0
+    x_in = clamp_axis(x, w, lo, hi, allow_out)
+    y_in = clamp_axis(y, h, ytop, H0, allow_out)
+    if allow_out and f is not None:   # 盡量留在錄影畫面內；區塊需要時才超出（補底色），上緣不超過頂欄
+        ok_in = contains(inner((x_in, y_in, w, h)), f, 1)
+        if not ok_in:
+            ox = W0 * OUT_X / 2
+            x_in = clamp(x, lo - ox, hi + ox - w) if w < hi - lo + 2 * ox else (lo + hi) / 2 - w / 2
+            y_in = clamp(y, ytop, H0 + H0 * OUT_X / 2 - h) if h < H0 - ytop + H0 * OUT_X / 2 else ytop
+    return np.array([x_in, y_in, w, h], np.float64)
+
+
+def tri(x):
+    """三角波 -1～1，週期 1。"""
+    x = x % 1.0
+    return 4 * x - 1 if x < 0.5 else 3 - 4 * x
+
+
+def drift_xy(t, o=None):
+    lo = drift_xy.o
+    px = 4.5 / (lo.pw * 0.01)          # 每秒要走的「振幅倍數」：4.5 畫面像素 ÷ 振幅
+    py = 4.5 / (lo.ph * 0.01)
+    return tri(t * px / 4 + 0.25), tri(t * py / 4 + 0.6)
+
+
+def crop_of(c, t):
+    """實際裁切框：取景框內縮 2%，在內縮範圍內等速來回（鏡頭慢移）。"""
+    cx, cy, cw, ch = c
+    dx, dy = drift_xy(t)
+    mx, my = cw * DRIFT / 2, ch * DRIFT / 2
+    return (cx + mx + dx * mx, cy + my + dy * my, cw * (1 - DRIFT), ch * (1 - DRIFT))
+
+
+def avoid_fab(o, tgt, fb, r, ytop):
+    x, y, w, h = tgt
+    fx0, fy0, fx1, fy1 = fb[0] - 6, fb[1] - 6, fb[0] + fb[2] + 6, fb[1] + fb[3] + 6
+    if x + w <= fx0 or x >= fx1 or y + h <= fy0 or y >= fy1:
+        return tgt
+    cands = []
+    # ① 往上移；② 往左移；③ 以右下角收縮（右緣或下緣退到客服鈕外）
+    if fy0 - h >= ytop:
+        cands.append(np.array([x, fy0 - h, w, h]))
+    if fx0 - w >= -o.out_px:
+        cands.append(np.array([fx0 - w, y, w, h]))
+    hh = fy0 - y
+    if hh > 200:
+        cands.append(np.array([x, y, hh * o.asp, hh]))
+    ww = fx0 - x
+    if ww > 200:
+        cands.append(np.array([x, y, ww, ww / o.asp]))
+    if not cands:
+        return tgt
+    if r is not None:   # 候選框平移到把介紹區塊整塊放進四邊內縮 2% 之內（平移後仍不碰客服鈕才算）
+        more = []
+        for c in cands:
+            cx_, cy_, cw_, ch_ = c
+            nx = max(min(cx_, r[0] - DRIFT * cw_ - 3), r[0] + r[2] - (1 - DRIFT) * cw_ + 3)
+            ny = max(min(cy_, r[1] - DRIFT * ch_ - 3), r[1] + r[3] - (1 - DRIFT) * ch_ + 3)
+            c2 = np.array([nx, max(ny, ytop), cw_, ch_])
+            if c2[0] + cw_ <= fx0 or c2[0] >= fx1 or c2[1] + ch_ <= fy0 or c2[1] >= fy1:
+                more.append(c2)
+        cands = cands + more
+    if r is not None:   # 先挑「介紹區塊仍整塊在內」的候選
+        ok = [c for c in cands if contains(inner(c), r, 1)]
+        if ok:
+            return min(ok, key=lambda c: abs(c[2] - w) + abs(c[1] - y) + abs(c[0] - x))
+
+    def cover(c):   # 這一句介紹的區塊有多少還在鏡頭裡（越多越好）
+        if r is None:
+            return -abs(c[2] - w)
+        ix = max(0.0, min(c[0] + c[2], r[0] + r[2]) - max(c[0], r[0]))
+        iy = max(0.0, min(c[1] + c[3], r[1] + r[3]) - max(c[1], r[1]))
+        return ix * iy - 0.001 * abs(c[2] - w) * h
+    return max(cands, key=cover)
+
+
+def cam_track(o, meta, sid=""):
+    """回傳每一格：取景框、目標取景框、介紹區塊、是否推移中、該拍標記。"""
+    W0, H0 = meta["size"]
+    dsf = meta["dsf"]
+    cx_ = meta.get("content_x") or [0, W0]
+    xlim = [cx_[0] - 100 * dsf, cx_[1] + 100 * dsf] if o.dev == "d" else None   # 05：卡片比 04 寬，左右可帶到視窗邊（左邊是收合的導覽圖示列、右邊是頁面底色）
+    allow_out = o.dev == "m"
+    o.out_px = W0 * OUT_X / 2 if allow_out else 0
+    ytop = 0   # 06：今日事件抽屜從視窗頂端開始（蓋住頂欄），取景可以到視窗頂
+    ytop_full = 0 if sid == "guide" else ytop   # 引導段的整頁鏡頭要看得到頂欄的選單鈕
+    out, tgts, focus, transit, beats = [], [], [], [], []
+    cur = None
+    fcur = None
+    last_id = None
+    settled = True
+    snaps = 0
+    cams_in = list(meta["cams"])
+    first = next((i for i, c in enumerate(cams_in[:6]) if c[0] != 0), None)
+    if first:   # 開錄第一格還沒設定鏡頭（cam_id 0）：沿用緊接著設定的鏡頭，不閃一格整頁
+        cams_in[:first] = [cams_in[first]] * first
+    fbs = meta.get("fabs") or []
+    for k, c in enumerate(cams_in):
+        cid, r = c[0], c[1:5]
+        minw_c = c[5] if len(c) > 5 else 0
+        f = np.array(c[6], np.float64) if len(c) > 6 and c[6] else None
+        zoom = bool(c[7]) if len(c) > 7 else False
+        full = f is None
+        fb = fbs[k] if k < len(fbs) else None
+        minw = max(o.pw * 0.5, minw_c) if minw_c else o.pw
+        if full:
+            lft, rgt = (xlim[0], xlim[1]) if xlim else (0, W0)
+            hh = (fb[1] - 8 - ytop_full) if fb else (H0 - ytop_full)
+            ww = min(rgt - lft, max(200.0, hh) * o.asp)
+            tgt = np.array([(lft + rgt) / 2 - ww / 2, ytop_full, ww, ww / o.asp])
+        else:
+            tgt = fit2(o, r, f, W0, H0, minw, allow_out, ytop, xlim)
+        if fb:   # 鏡頭一律避開網站客服鈕（不藏它，只是不入鏡）
+            tgt = avoid_fab(o, tgt, fb, f, ytop_full if full else ytop)
+        if cur is None:
+            cur = tgt.copy()
+        else:
+            a = 0.16 if cid == last_id else 0.12
+            cur = cur + (tgt - cur) * a
+            if fb:
+                cur = avoid_fab(o, cur, fb, f, ytop)
+        new_beat = cid != last_id
+        if new_beat:
+            settled = False
+        if not settled and np.abs(cur - tgt).max() < 0.012 * tgt[2]:
+            settled = True
+        if settled and f is not None and not contains(inner(cur), f, 1):
+            cur = tgt.copy()   # 同一拍內區塊變大（展開、彈出）：鏡頭立刻拉到能整塊放下，不讓它被裁
+            snaps += 1
+        if f is None:
+            fcur = None
+        elif fcur is None:
+            fcur = f.copy()
+        else:
+            fcur = fcur + (f - fcur) * 0.2
+            if settled:   # v2：鏡頭到位後淡化範圍直接對齊介紹區塊（還在收斂的淡化邊緣不會切過旁邊圖表的字）
+                fcur = f.copy()
+        last_id = cid
+        out.append(cur.copy())
+        tgts.append(tgt.copy())
+        focus.append((None if f is None else f.copy(), None if fcur is None else fcur.copy()))
+        transit.append(not settled)
+        beats.append((cid, zoom))
+    return dict(cams=out, tgts=tgts, focus=focus, transit=transit, beats=beats, snaps=snaps)
+
+
+# ───────────────────────── 時間軸 ─────────────────────────
+def build(o, meta_all, order=None, with_end=True):
+    shots = []
+    t = 0.0
+    for sid in (order or ORDER):
+        m = meta_all.get(sid)
+        if not m or not m.get("ok"):
+            if os.environ.get("FEAT_PARTIAL"):
+                continue
+            raise SystemExit(f"缺鏡頭 {sid}")
+        n = int(round(m["dur"] * FPS))
+        start = t if not shots else t - XF / FPS
+        shots.append(dict(sid=sid, meta=m, n=n, start=start, path=RAW / f"{o.dev}_{sid}.mp4"))
+        t = start + n / FPS
+    end_start = t - XF / FPS if with_end else t + 999
+    total = end_start + END_DUR if with_end else t
+    bubbles = []
+    for s in shots:
+        says = s["meta"]["says"]
+        shot_end = s["start"] + s["n"] / FPS
+        for i, b in enumerate(says):
+            t0 = s["start"] + b["t"] + (0.25 if s["sid"] != "open" and i == 0 else 0.0)
+            t1 = (s["start"] + says[i + 1]["t"]) if i + 1 < len(says) else shot_end - XF / FPS
+            bubbles.append(dict(t0=t0, t1=t1 - 0.06, text=b["text"], act=b["act"], sid=s["sid"]))
+    if with_end:
+        bubbles.append(dict(t0=end_start + 0.2, t1=total, text="謝謝收看，我們下次見", act="face_bow", sid="__end"))
+    return shots, bubbles, end_start, total
+
+
+ALT = {"talk_explain_v2": "face_nod_v2", "face_nod_v2": "talk_explain_v2", "face_bow": "wave"}
+
+
+def act_at(bubbles, t):
+    cur = None
+    for b in bubbles:
+        if b["t0"] <= t:
+            cur = b
+    if cur is None:
+        return "wave", t
+    dt = t - cur["t0"]
+    if dt > 2.4 and cur["act"] != "face_bow":
+        k = int((dt - 2.4) // 2.2)
+        name = ALT.get(cur["act"], "talk_explain_v2") if k % 2 == 0 else "talk_explain_v2"
+        return name, (dt - 2.4) % 2.2
+    return cur["act"], dt
+
+
+def bubble_at(bubbles, t):
+    for b in bubbles:
+        if b["t0"] <= t < b["t1"]:
+            a_in = clamp((t - b["t0"]) / 0.2)
+            a_out = clamp((b["t1"] - t) / 0.12)
+            return b, a_in, a_out
+    return None, 0, 0
+
+
+# ───────────────────────── 片尾卡 ─────────────────────────
+def end_card(o, base, reg, a):
+    im = Image.fromarray(base)
+    d = ImageDraw.Draw(im, "RGBA")
+    x0, y0, x1, y1 = o.panel
+    d.rounded_rectangle([x0, y0, x1, y1], 26, fill=(255, 252, 245, int(255 * a)), outline=BLUE + (int(255 * a),), width=3)
+    big = font(F_BLACK, 92 if o.dev == "d" else 84)
+    s1 = "搜尋「哩股哩股」"
+    w_, h_, b_ = tsize(big, s1)
+    cx = (x0 + x1) / 2
+    cy = y0 + (y1 - y0) * (0.30 if o.dev == "d" else 0.30)
+    bx0, by0, bx1, by1 = cx - w_ / 2 - 54, cy - h_ / 2 - 36, cx + w_ / 2 + 54, cy + h_ / 2 + 36
+    d.rounded_rectangle([bx0, by0 + 10, bx1, by1 + 10], 46, fill=(180, 70, 55, int(255 * a)))
+    d.rounded_rectangle([bx0, by0, bx1, by1], 46, fill=CORAL + (int(255 * a),))
+    d.text((cx - w_ / 2 - b_[0], cy - h_ / 2 - b_[1]), s1, font=big, fill=WHITE + (int(255 * a),))
+    reg.add("搜尋鈕", (bx0, by0, bx1, by1 + 10))
+    f2 = font(F_BOLD, 40 if o.dev == "d" else 40)
+    s2 = "今日事件・精選文章・族群篩選"
+    s2b = ""
+    yy = by1 + 60
+    for s in [s2]:
+        w_, h_, b_ = tsize(f2, s)
+        d.text((cx - w_ / 2 - b_[0], yy - b_[1]), s, font=f2, fill=INK + (int(255 * a),))
+        reg.add("片尾說明", (cx - w_ / 2, yy, cx + w_ / 2, yy + h_), "片尾說明")
+        yy += h_ + 22
+    f3 = font(F_BOLD, 34 if o.dev == "d" else 36)
+    if o.dev == "d":
+        dl = [DISC]
+    else:
+        dl = ["本內容為公開資料整理，", "不構成任何投資建議；", "投資有風險，請自行判斷。"]
+    lh = 54
+    hh = lh * len(dl) - (lh - 34) + 60
+    dy0 = y1 - 110 - hh if o.dev == "d" else yy + 110
+    dw = max(f3.getlength(s) for s in dl) + 80
+    d.rounded_rectangle([cx - dw / 2, dy0, cx + dw / 2, dy0 + hh], 22, fill=(255, 255, 255, int(255 * a)), outline=(200, 185, 165, int(255 * a)), width=2)
+    yy = dy0 + 30
+    for s in dl:
+        w_, h_, b_ = tsize(f3, s)
+        d.text((cx - w_ / 2 - b_[0], yy - b_[1]), s, font=f3, fill=INK + (int(255 * a),))
+        reg.text_in("免責字", (cx - w_ / 2, yy, cx + w_ / 2, yy + h_), (cx - dw / 2, dy0, cx + dw / 2, dy0 + hh), 12)
+        yy += lh
+    return np.array(im)
+
+
+# ───────────────────────── 主流程 ─────────────────────────
+class Reader:
+    def __init__(self, path):
+        self.cap = cv2.VideoCapture(str(path))
+        self.k = -1
+        self.last = None
+
+    def get(self, k):
+        while self.k < k:
+            ok, fr = self.cap.read()
+            self.k += 1
+            if ok:
+                self.last = fr
+        return self.last
+
+
+def render(dev, only=None, seg=None):
+    o = layout(dev)
+    drift_xy.o = o
+    mf = RAW / f"{dev}_meta.json"
+    meta_all = json.loads(mf.read_text(encoding="utf-8")) if mf.exists() else {}
+    for sid in ORDER:      # 每鏡一檔（capture_etf.py 新版），覆蓋合併檔裡的舊紀錄
+        f = RAW / f"{dev}_{sid}.json"
+        if f.exists():
+            meta_all[sid] = json.loads(f.read_text(encoding="utf-8"))
+    data_date = next(iter(meta_all.values())).get("data_date")
+    if seg:
+        shots, bubbles, end_start, total = build(o, meta_all, [seg], with_end=(seg == "end"))
+    else:
+        shots, bubbles, end_start, total = build(o, meta_all)
+    acts = {b["act"] for b in bubbles} | {ALT.get(b["act"], "talk_explain_v2") for b in bubbles} | {"talk_explain_v2", "wave", "face_nod_v2"}
+    ext = bibi_extent(o, sorted(acts))
+    if dev == "d":
+        tip = (ext[0] - 13, (ext[1] + ext[3]) / 2 + 6)
+        zone = (o.bub_zone[0], o.bub_zone[1], int(tip[0]) - 10, o.bub_zone[3])
+        side = "right"
+    else:
+        tip = (ext[2] + 13, (ext[1] + ext[3]) / 2)
+        zone = (int(tip[0]) + 10, o.bub_zone[1], o.bub_zone[2], o.bub_zone[3])
+        side = "left"
+    tip = (int(round(tip[0])), int(round(tip[1])))
+    bg = np.array(grid_bg(o))
+    # 每鏡的靜態底（背景＋上方＋導覽＋畫面框外框）
+    statics = {}
+    for s in shots + [dict(sid="end")]:
+        im = Image.fromarray(bg.copy())
+        reg = Reg()
+        header(o, im, reg, s["sid"], data_date)
+        nav(o, im, reg, s["sid"])
+        d = ImageDraw.Draw(im)
+        x0, y0, x1, y1 = o.panel
+        d.rounded_rectangle([x0 - 3, y0 - 3, x1 + 3, y1 + 3], 22, fill=BLUE)
+        statics[s["sid"]] = (np.array(im), reg.items, reg.issues)
+    mask = Image.new("L", (o.pw, o.ph), 0)
+    ImageDraw.Draw(mask).rounded_rectangle([0, 0, o.pw - 1, o.ph - 1], 20, fill=255)
+    mask = (np.array(mask).astype(np.float32) / 255)[..., None]
+    cams = {s["sid"]: cam_track(o, s["meta"], s["sid"]) for s in shots}
+    N = int(round(total * FPS))
+    frames = [int(round(float(x) * FPS)) for x in only.split(",")] if only else range(N)
+    out_mp4 = SCR / (f"feat06_{dev}_silent.mp4" if not seg else f"seg/feat06_{'web' if dev == 'd' else 'mobile'}_{ORDER.index(seg) + 1:02d}_{seg}.mp4")
+    out_mp4.parent.mkdir(exist_ok=True)
+    ff = None
+    if not only:
+        ff = subprocess.Popen(["ffmpeg", "-y", "-loglevel", "error", "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{o.W}x{o.H}",
+                               "-r", str(FPS), "-i", "-", "-c:v", "libx264", "-crf", "18" if not seg else "30", "-preset", "medium", "-pix_fmt", "yuv420p",
+                               str(out_mp4)], stdin=subprocess.PIPE)
+    readers = {}
+    rows, issues, click_rows, still = [], [], [], []
+    for bb_ in bubbles:   # 原片每泡 ≥1.45 秒（1.5 倍速後 ≥0.97 秒）；片尾免責卡另計
+        if bb_["t1"] - bb_["t0"] < 1.45 - 1e-3 and not only:
+            issues.append(f"| {bb_['t0']:6.2f} | 泡泡停留 {bb_['t1'] - bb_['t0']:.2f} 秒（<1.45）：{bb_['text']} |")
+    prev_panel = None
+    run = 0
+    max_run = (0, 0.0)
+    samp = SCR / (f"samples_{dev}" if not seg else f"seg/samples_{dev}_{seg}")
+    samp.mkdir(parents=True, exist_ok=True)
+    if not only:
+        for old in samp.glob("*.png"):
+            old.unlink()
+    x0, y0, x1, y1 = o.panel
+
+    raw_view = {}
+
+    chk = {sid: dict(cut=[], edge=[], transit=0, fill={}, ppc={}) for sid in ORDER}
+    EDGE_SIDS = tuple(ORDER)   # v2：每一段都檢查「框邊切過輪盤／排行標籤文字」
+
+    def crop_px(fr, x, y, w, h):
+        """裁切（可超出錄影畫面：超出的部分補網頁底色＝畫面最左一欄的中位色）。"""
+        Hs, Ws = fr.shape[:2]
+        x0, y0 = int(round(x)), int(round(y))
+        x1, y1 = int(round(x + w)), int(round(y + h))
+        if x0 >= 0 and y0 >= 0 and x1 <= Ws and y1 <= Hs:
+            return fr[y0:y1, x0:x1]
+        bgc = np.median(fr[Hs // 4:Hs * 3 // 4, 0:3].reshape(-1, 3), axis=0).astype(np.uint8)
+        outp = np.empty((y1 - y0, x1 - x0, 3), np.uint8)
+        outp[:] = bgc
+        sx0, sy0, sx1, sy1 = max(0, x0), max(0, y0), min(Ws, x1), min(Hs, y1)
+        if sx1 > sx0 and sy1 > sy0:
+            outp[sy0 - y0:sy1 - y0, sx0 - x0:sx1 - x0] = fr[sy0:sy1, sx0:sx1]
+        return outp
+
+    def panel_of(s, k, check=True):
+        sid = s["sid"]
+        if sid not in readers:
+            readers[sid] = Reader(s["path"])
+        fr = readers[sid].get(min(k, s["n"] - 1))
+        T = cams[sid]
+        kk = min(k, len(T["cams"]) - 1)
+        c0 = T["cams"][kk]
+        # 停格檢查用「沒加慢移」的原始鏡頭畫面
+        raw_view["v"] = cv2.resize(crop_px(fr, *c0), (o.pw // 4, o.ph // 4), interpolation=cv2.INTER_AREA).astype(np.int16)
+        tt = s["start"] + k / FPS
+        cx, cy, cw, ch = crop_of(c0, tt)
+        crop = crop_px(fr, cx, cy, cw, ch)
+        img = cv2.resize(crop, (o.pw, o.ph), interpolation=cv2.INTER_AREA if cw > o.pw else cv2.INTER_CUBIC)
+        img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+        f_raw, f = T["focus"][kk]
+        cid, zoom = T["beats"][kk]
+        if check and k < s["n"]:
+            C_ = chk[sid]
+            if T["transit"][kk]:
+                C_["transit"] += 1
+            elif f_raw is not None:
+                if not contains((cx, cy, cw, ch), f_raw, 0.5):
+                    C_["cut"].append(round(tt, 2))
+                if sid in EDGE_SIDS:
+                    # v2：看得到的範圍 V＝介紹區塊（區塊以外整片淡成底色、看不到）；區塊幾乎佔滿畫面框時不淡化，V＝整個裁切範圍。
+                    # 任何一段輪盤／排行標籤文字只要「一部分在 V 裡、一部分在 V 外」就是被切到，記一格。
+                    fv = f if f is not None else f_raw
+                    if fv is not None and fv[2] * fv[3] < 0.985 * cw * ch:
+                        vx0, vy0 = max(cx, fv[0]), max(cy, fv[1])
+                        V = (vx0, vy0, min(cx + cw, fv[0] + fv[2]) - vx0, min(cy + ch, fv[1] + fv[3]) - vy0)
+                    else:
+                        V = (cx, cy, cw, ch)
+                    eds = (s["meta"].get("edges") or [])
+                    for e in (eds[kk] if kk < len(eds) else []):
+                        ix = min(e[0] + e[2], V[0] + V[2]) - max(e[0], V[0])
+                        iy = min(e[1] + e[3], V[1] + V[3]) - max(e[1], V[1])
+                        if ix > 0.5 and iy > 0.5 and not contains(V, e, 0.5):
+                            C_["edge"].append(round(tt, 2))
+                            if len(C_.setdefault("edge_r", [])) < 8:
+                                C_["edge_r"].append((round(tt, 2), [round(v / s["meta"]["dsf"]) for v in e], [round(v / s["meta"]["dsf"]) for v in V]))
+                            break
+                lab = next((m[2] for m in reversed([m for m in s["meta"]["marks"] if m[1] == "cam"]) if m[0] <= k / FPS + 1e-6), "")
+                if zoom:
+                    C_["fill"][lab] = min(C_["fill"].get(lab, 9), f_raw[2] / cw)
+                C_["ppc"][lab] = min(C_["ppc"].get(lab, 99), o.pw / (cw / s["meta"]["dsf"]))
+        fbs = s["meta"].get("fabs") or []
+        fb = fbs[kk] if kk < len(fbs) else None
+        raw_view["fab_hit"] = 0
+        if fb:   # 網站右下角客服鈕有入鏡就記一筆（鏡頭應該避開它）
+            vx = min(fb[0] + fb[2], cx + cw) - max(fb[0], cx)
+            vy = min(fb[1] + fb[3], cy + ch) - max(fb[1], cy)
+            if vx > 0 and vy > 0:
+                raw_view["fab_hit"] = int(vx * vy)
+        if f is not None:      # 介紹中的區塊以外淡化（奶油色 55%），區塊外圍一圈藍框
+            sx, sy = o.pw / cw, o.ph / ch
+            fx0, fy0 = int(round((f[0] - cx) * sx)), int(round((f[1] - cy) * sy))
+            fx1, fy1 = int(round((f[0] + f[2] - cx) * sx)), int(round((f[1] + f[3] - cy) * sy))
+            fx0, fy0, fx1, fy1 = max(0, fx0), max(0, fy0), min(o.pw, fx1), min(o.ph, fy1)
+            if (fx1 - fx0) * (fy1 - fy0) < 0.985 * o.pw * o.ph:   # 05：區塊外露出一點點（框邊截到的圖表字）也一律淡化
+                k_ = 1.0 if dev == "d" else 0.80   # 05 v2：網頁介紹區塊以外整片淡成底色（看不到被框邊切到的圖表字）；手機維持 v1 的 80%（手機切分頁那一拍區塊只有分頁列，整片淡掉會變空白畫面）
+                dim = img.astype(np.float32) * (1 - k_) + np.array([255, 249, 239], np.float32) * k_
+                dim[fy0:fy1, fx0:fx1] = img[fy0:fy1, fx0:fx1]
+                img = dim.astype(np.uint8)
+                cv2.rectangle(img, (fx0 + 1, fy0 + 1), (fx1 - 2, fy1 - 2), (37, 131, 230), 3, cv2.LINE_AA)
+        return img
+
+    for i in frames:
+        t = i / FPS
+        reg = Reg()
+        if t >= end_start + XF / FPS:
+            sid = "end"
+        else:
+            sid = [s for s in shots if s["start"] <= t + 1e-6][-1]["sid"]
+        base, items, iss = statics[sid]
+        canvas = base.copy()
+        for it in items:
+            reg.items.append(it)
+        issues += [f"| {t:6.2f} | {x} |" for x in iss]
+        # 畫面框內容
+        active = [s for s in shots if s["start"] <= t + 1e-6 < s["start"] + s["n"] / FPS]
+        panel = None
+        if active:
+            s = active[-1]
+            k = int(round((t - s["start"]) * FPS))
+            panel = panel_of(s, k).astype(np.float32)
+            if len(active) > 1:
+                s0 = active[0]
+                k0 = int(round((t - s0["start"]) * FPS))
+                a = clamp((t - s["start"]) / (XF / FPS))
+                panel = panel_of(s0, k0, False).astype(np.float32) * (1 - a) + panel * a
+            reg.add("網站畫面框", (x0 - 3, y0 - 3, x1 + 3, y1 + 3))
+        if t >= end_start and sid != "end":
+            pass
+        if panel is not None:
+            region = canvas[y0:y1, x0:x1].astype(np.float32)
+            canvas[y0:y1, x0:x1] = (panel * mask + region * (1 - mask)).astype(np.uint8)
+        if t >= end_start:
+            a = clamp((t - end_start) / (XF / FPS))
+            if a > 0:
+                ec = end_card(o, canvas, Reg(), 1.0)
+                ddx, ddy = drift_xy(t)
+                ix0, iy0, ix1, iy1 = x0 + 14, y0 + 14, x1 - 14, y1 - 14
+                ec[iy0:iy1, ix0:ix1] = np.roll(ec[iy0:iy1, ix0:ix1], (int(round(ddy * o.ph * 0.01)), int(round(ddx * o.pw * 0.01))), axis=(0, 1))
+                canvas = (canvas.astype(np.float32) * (1 - a) + ec.astype(np.float32) * a).astype(np.uint8)
+                if a >= 1:
+                    end_card(o, canvas, reg, 1.0)
+        # 泡泡
+        b, a_in, a_out = bubble_at(bubbles, t)
+        if b is not None:
+            arr, (ox, oy), bbox, tbox, txt, biss, nl = bubble_img(dev, b["text"], tip[0], tip[1], side, zone)
+            al = min(a_in, a_out)
+            sc = 0.86 + 0.14 * back_out(a_in)
+            if sc < 0.999:
+                h, w = arr.shape[:2]
+                px, py = tip[0] - ox, tip[1] - oy          # 以尾巴尖端為中心放大
+                im2 = Image.fromarray(arr).resize((max(1, int(w * sc)), max(1, int(h * sc))), Image.LANCZOS)
+                blend(canvas, np.array(im2), int(round(tip[0] - px * sc)), int(round(tip[1] - py * sc)), al)
+            else:
+                blend(canvas, arr, ox, oy, al)
+            reg.add("泡泡", (min(bbox[0], tbox[0]), bbox[1], max(bbox[2], tbox[2]), bbox[3] + 6), "泡泡")
+            reg.add("泡泡尾巴", tbox, "泡泡")
+            for x in biss:
+                issues.append(f"| {t:6.2f} | {x}：{b['text']} |")
+            if len(b["text"].replace(' ', '')) > 14:
+                issues.append(f"| {t:6.2f} | 泡泡超過 14 字：{b['text']} |")
+        # 比比
+        nm, bt = act_at(bubbles, t)
+        arr, ox, oy, bbx = bibi_frame(o, nm, bt)
+        blend(canvas, arr, ox, oy)
+        reg.add("比比", bbx)
+        if b is not None:
+            dtip = (bbx[0] - tip[0]) if side == "right" else (tip[0] - bbx[2])
+            if dtip < 12 - 0.5:
+                issues.append(f"| {t:6.2f} | 尾巴尖端離比比 {dtip:.0f}px（<12） |")
+        for (p, q, ar) in reg.overlaps():
+            rows.append(f"| {t:6.2f} | {p} | {q} | {ar} |")
+        for x in reg.issues:
+            issues.append(f"| {t:6.2f} | {x} |")
+        # 來源畫面是否在動（畫面框內）
+        if panel is not None:
+            if raw_view.get("fab_hit"):
+                issues.append(f"| {t:6.2f} | 客服鈕入鏡 {raw_view['fab_hit']}px² |")
+            pv = raw_view["v"]   # 跟這段停住的第一幀比（同 freezedetect 做法）
+            if prev_panel is not None and np.abs(pv - prev_panel).max() < 6:
+                run += 1
+                if run > max_run[0]:
+                    max_run = (run, t)
+            else:
+                run = 0
+                prev_panel = pv
+            if prev_panel is None:
+                prev_panel = pv
+        if only:
+            p = SCR / f"f_{dev}_{t:06.2f}.png"
+            Image.fromarray(canvas).save(p)
+            print(p, nm, b["text"] if b else "", reg.overlaps(), reg.issues)
+            continue
+        ff.stdin.write(canvas.tobytes())
+        if i % 15 == 0:
+            Image.fromarray(canvas).save(samp / f"s_{t:06.1f}.png")
+        if i % 300 == 0:
+            print(f"{t:6.1f}s / {total:.1f}", file=sys.stderr)
+    if only:
+        return
+    ff.stdin.close()
+    ff.wait()
+    # 點擊檢查
+    for s in shots:
+        cams_s = cams[s["sid"]]["cams"]
+        for c in s["meta"]["clicks"]:
+            if c["kind"] != "click":
+                kind = "拖曳起點"
+            else:
+                kind = "點擊"
+            k = min(int(round(c["t"] * FPS)), len(cams_s) - 1)
+            cx, cy, cw, ch = crop_of(cams_s[k], s["start"] + c["t"])
+            px, py = c["center"]
+            ox_ = x0 + (px - cx) / cw * o.pw
+            oy_ = y0 + (py - cy) / ch * o.ph
+            inside = x0 + 4 <= ox_ <= x1 - 4 and y0 + 4 <= oy_ <= y1 - 4
+            rc = c.get("rect_center")
+            err = math.hypot(px - rc[0], py - rc[1]) if rc else None
+            blank = (c.get("selector") or "").startswith("#mSheetBack") or bool(c.get("blank"))
+            click_rows.append((s["sid"], round(float(s["start"] + c["t"]), 2), kind, c.get("label") or c.get("text"), None if err is None else round(float(err), 2), bool(inside), bool(blank), (int(round(ox_)), int(round(oy_)))))
+    cut_rows = [(s["sid"], len(chk[s["sid"]]["cut"])) for s in shots]
+    edge_rows = [(s["sid"], len(chk[s["sid"]]["edge"])) for s in shots]
+    transit_rows = [(s["sid"], chk[s["sid"]]["transit"]) for s in shots]
+    fill_rows = [(s["sid"], {k: round(v, 3) for k, v in chk[s["sid"]]["fill"].items()}) for s in shots]
+    ppc_rows = [(s["sid"], {k: round(v, 2) for k, v in chk[s["sid"]]["ppc"].items()}) for s in shots]
+    snaps = [(s["sid"], cams[s["sid"]]["snaps"]) for s in shots]
+    for k_, v_ in chk.items():
+        if v_.get("edge_r"):
+            print("切字樣本（css：文字外框／看得到的範圍）", k_, v_["edge_r"][:8])
+    print("裁切", cut_rows, "框邊切卡", edge_rows, "推移", transit_rows, "拉鏡", snaps)
+    for sid_, ff_ in fill_rows:
+        if ff_:
+            print("佔寬", sid_, ff_)
+    meta_out = dict(dev=dev, total=total, end_start=end_start, frames=N, overlaps=len(rows), issues=len(issues),
+                    still_max_s=round(float(max_run[0]) / FPS, 2), still_at=round(float(max_run[1]), 2), cut_frames=cut_rows, edge_frames=edge_rows, transit_frames=transit_rows, fill=fill_rows, ppc=ppc_rows, snaps=snaps, cut_detail={k: v['cut'][:20] for k, v in chk.items()}, edge_detail={k: v['edge'][:20] for k, v in chk.items()},
+                    clicks=click_rows, bubbles=[(round(b["t0"], 2), round(b["t1"], 2), b["text"], b["sid"]) for b in bubbles],
+                    shots=[(s["sid"], round(s["start"], 2), round(s["n"] / FPS, 2)) for s in shots], data_date=data_date)
+    if seg:
+        (SCR / f"seg/render_{dev}_{seg}.json").write_text(json.dumps(meta_out, ensure_ascii=False, indent=1), encoding="utf-8")
+        (SCR / f"seg/overlap_rows_{dev}_{seg}.md").write_text("\n".join(rows[:300] + ["", "問題："] + issues[:300]), encoding="utf-8")
+        sp = out_mp4.with_name(out_mp4.stem + "_x1.5.mp4")
+        subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", str(out_mp4), "-filter:v", f"setpts=PTS/{SPEED}", "-r", str(FPS),
+                        "-c:v", "libx264", "-crf", "28", "-pix_fmt", "yuv420p", str(sp)], check=True)
+        real = [c for c in click_rows if c[2] == "點擊" and not c[6]]
+        print(f"段落 {seg}（1.5 倍速預覽 {sp}）：{out_mp4}｜{N} 幀｜重疊 {len(rows)} 筆｜其他問題 {len(issues)} 筆｜點擊 {len(real)} 次，中心誤差最大 "
+              f"{max([c[4] for c in real if c[4] is not None] or [0]):.1f}px，畫面框外 {len([c for c in click_rows if not c[5]])} 次｜畫面框內最長不動 {max_run[0] / FPS:.2f} 秒")
+        return
+    (SCR / f"render_{dev}.json").write_text(json.dumps(meta_out, ensure_ascii=False, indent=1), encoding="utf-8")
+    (SCR / f"overlap_rows_{dev}.md").write_text("\n".join(rows[:500] + ["", "問題："] + issues[:500]), encoding="utf-8")
+    print("重疊", len(rows), "問題", len(issues), "幀", N, "畫面框最長不動", max_run[0] / FPS, "秒 @", max_run[1])
+    # 配樂＋點擊音效
+    cues = {"cues": [[r[1] / SPEED, "tap"] for r in click_rows if r[2] == "點擊"] + [[(end_start + 0.3) / SPEED, "ding"]]}
+    cj = SCR / f"cues_{dev}.json"
+    cj.write_text(json.dumps(cues), encoding="utf-8")
+    wav = SCR / f"bgm_{dev}.wav"
+    subprocess.run([sys.executable, str(REPO / "docs/marketing/video_1010/make_music_v3.py"), "--length", f"{total / SPEED + 0.3:.2f}",
+                    "--style", "cute", "--out", str(wav), "--cues", str(cj)], check=True)
+    name = "feat06_events_articles_web.mp4" if dev == "d" else "feat06_events_articles_mobile.mp4"
+    final = HERE / name
+    subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", str(out_mp4), "-i", str(wav), "-filter:v", f"setpts=PTS/{SPEED}", "-r", str(FPS),
+                    "-c:v", "libx264", "-crf", "18", "-preset", "medium", "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "160k",
+                    "-shortest", "-movflags", "+faststart", str(final)], check=True)
+    print("成片", final)
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--dev", default="d", choices=["d", "m"])
+    ap.add_argument("--frames", default="")
+    ap.add_argument("--seg", default="")
+    g = ap.parse_args()
+    render(g.dev, g.frames or None, g.seg or None)
+
+
+if __name__ == "__main__":
+    main()
