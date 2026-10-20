@@ -1,5 +1,16 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
+### 2026-10-20 資料新鮮度把關＋個股三大法人整天補抓（data-scraper）
+- Andy：「我看見那數據沒更新，確保數據每天都有更新」。10-19 個股三大法人只有 148～249 檔（正常 1,900+），頁面退回 10-16。
+- 根因：法人只能逐檔向 FinMind 要（每檔 1 次，一天 ~1,975 次），每小時額度 600、排程又常延遲；`backfill_progress.json` 的
+  `inst@fresh2026-10-19` 當時 1,600 檔只做了 77；管線每步都「成功」所以沒人發現。`inst_market_daily`（全市場金額）整張還沒進湖。
+- 修法：`finmind.institutional_day`（不帶 data_id 一次拉整天，1 次額度；會員等級拿不拿得到**查不到**，拿不到回空照舊逐檔）、
+  `pipeline/inst_bulk.py`（full／inst 階段與每日續補先試）、逐檔名單 ＝ 前 500 ∪ 網站用到的全部個股、
+  `pipeline/util/freshness.py`（5 張表缺最新日或筆數 <近 10 日中位數 8 成 → last_run.json `warn`／meta.json `freshness_warn`，
+  資料狀態徽章提示列出「過期或不完整」項目；當天台北 19:00 前標 pending 不亮）。測試 tests/test_data_fresh_1020.py。
+- 沙箱打不到 FinMind，整天全市場能不能用要看 Actions 的 log（搜「整天全市場法人」）。
+- 這批只驗：test_data_fresh_1020／test_inst_phase／test_sources_v3／test_backfill* 單檔（本機沙箱無外網，test_stage_pipeline_news、test_freshness 要在 Actions 跑）。
+
 ### 2026-10-20 資金輪動勾族群 → 排行長條消失＋頁面例外（修好）
 - 症狀：#flow/rotation「族群」下拉勾晶圓代工／HPC 與網通 IC／矽晶圓，每勾一個丟 `reading 'width'`，族群資金排行只剩名字沒有長條。
 - 根因：softenOption 替「單一橫條、全為非負值」補底軌（showBackground）；排行篩到只剩正值族群時底軌由關轉開，ECharts 5.5.1 BarView 更新路徑用舊索引取新版面（`0===x.length?M=w(n)`）而中斷。跟圖表尺寸 0／rotRedraw 去抖動無關（量過容器 624×760、348×420 都正常）。
