@@ -68,35 +68,50 @@ CHROMIUM = os.environ.get("TW_CHROMIUM") or ("/opt/pw-browsers/chromium" if Path
 # live：「即時」鈕的選擇器（None＝沒有鈕，頁面本身就是當下資料）；live_ok：判斷即時真的套上的 JS（回 true／false）
 # 連買賣排行：藏掉分頁列、「看全部」，每邊只留前 7 列（n+8）（字才放得夠大）；摘要與設定列保留
 def STREAK_PIECE(name):
-    return dict(name=name, hide=["#mktSeg2", ".srcol .srrow:nth-child(n+8)"], hide_text=[r"^看全部"])
+    return dict(name=name, hide=["#mktSeg2", ".srcol .srrow:nth-child(n+8)"], hide_text=[r"^看全部"], title="盤後法人")
 
 
 # m：手機版（IG 限動）要截的片段；每片 dict(name, hide=[CSS], hide_text=[正規式], start, end, pre=JS)
 #     start／end＝CSS 選擇器或 {"js": "回傳元素的函式內文"}，None＝整張卡的上緣／下緣
-SANKEY_ROWS10 = ".skr-r:nth-child(n+11)"          # 排名清單只留前 10 列（不准切到半行）
+# 每個目標有兩份片段清單：d＝桌機寬（Threads 用）、m＝手機版面（IG 限動用）。片段欄位：
+#   name 檔名；sel 只截這個元素（沒有 sel＝整張卡）；hide／hide_text 截圖前藏起來的元素；pre_m 手機版截圖前跑的 JS（傳入該元素）；
+#   title 標題中間那段（「哩股哩股｜<title> MM/DD HH:MM」）；text＝輪盤上方四行（quad）或樹下方備註兩行（flows）
+ROT_RANK_TALLER = ("(el) => { const h = 540; const ch = document.querySelector('#rankFlow');"
+                   " [el, ch].forEach(e => e && e.style.setProperty('height', h + 'px', 'important'));"
+                   " const c = window.echarts && ch && echarts.getInstanceByDom(ch); if (c) c.resize(); }")
+ROT_PIECES = [dict(name="rotation-wheel", sel="#rotClockWrap", title="資金輪盤", text="quad", trim_bottom_m=32, trim_bottom_d=17),   # 輪盤底下那行「⚡ 即時：灰虛線…」是畫布文字，只能裁掉
+              dict(name="rotation-rank", sel="#rankFlowWrap", title="族群資金排行", pre_m=ROT_RANK_TALLER)]
+SANKEY_PIECES = [dict(name="sankey-tree", sel="#sankeyWrap", title="資金分流樹", text="flows", hide=["#sankeyLive"], hide_exact=["~即時"])]
 TARGETS = [
-    dict(name="rotation", kind="intraday", label="資金輪盤＋族群資金排行", route="flow/rotation",
+    dict(name="rotation", kind="intraday", label="資金輪盤／族群資金排行", route="flow/rotation",
          card="#flowRotCard", live="#rotLiveBtn",
          live_ok="() => { const b = document.querySelector('#rotLiveBtn'); const t = document.querySelector('#rotLiveTag');"
                  " return !!b && b.getAttribute('aria-pressed') === 'true' && !!t && !t.hidden && !/抓取中|抓不到|失敗|逾時|連不到/.test(t.innerText); }",
-         headline=r"資金[占佔]比\s*增加最多\s*[：:][^\n]*",
-         m=[dict(name="rotation-wheel", hide=["#flowRotTime"], start=".rothead", end="#rotClockWrap"),
-            dict(name="rotation-rank", hide=["#flowRotFilter", "#flowRotTime", ".rotchead", ".rotstagerow"],
-                 start=".rothead", end="#rankFlowWrap")]),
-    dict(name="sankey", kind="intraday", label="資金分流樹＋資金流向排名", route="flow/sankey",
-         card="#flowSankeyCard", live="#sankeyLiveBtn", hide_d=[SANKEY_ROWS10],
+         headline=r"資金[占佔]比\s*增加最多\s*[：:][^\n]*", d=ROT_PIECES, m=ROT_PIECES),
+    dict(name="sankey", kind="intraday", label="資金分流樹", route="flow/sankey",
+         card="#flowSankeyCard", live="#sankeyLiveBtn",
          live_ok="() => { const b = document.querySelector('#sankeyLiveBtn');"
                  " return !!b && (b.getAttribute('aria-pressed') === 'true' || b.classList.contains('on')) && !/抓取中|抓不到|失敗|逾時|連不到/.test((document.querySelector('#sankeyLive') || {}).innerText || ''); }",
-         headline=r"資金[占佔]比\s*增加最多\s*[：:][^\n]*",
-         m=[dict(name="sankey-tree", hide=[".ddrow", "#sankeyDays"], start=None, end="#sankeyWrap"),
-            dict(name="sankey-rank", hide=[SANKEY_ROWS10], start="#sankeyRank", end="#sankeyRank")]),
+         headline=None, d=SANKEY_PIECES, m=SANKEY_PIECES),
     dict(name="heat-industry", kind="intraday", label="產業熱力圖", route="heatmap/industry",
          card="#indTreeWrap", closest_card=True, live="auto", live_ok=None, headline=None,
-         m=[dict(name="heat-industry", hide_text=[r"^分組"])]),
+         d=[dict(name="heat-industry", title="產業熱力圖", hide=[".howbtn", ".zbadge"])],
+         m=[dict(name="heat-industry", title="產業熱力圖", hide=[".howbtn", ".zbadge"], hide_text=[r"^分組"])]),
     dict(name="heat-theme", kind="intraday", label="題材熱力圖", route="heatmap/theme",
          card="#themeMapCard", live="auto", live_ok=None, headline=None,
-         m=[dict(name="heat-theme")]),
-    # 盤後
+         d=[dict(name="heat-theme", title="題材熱力圖", hide=[".howbtn", ".zbadge"])], m=[dict(name="heat-theme", title="題材熱力圖", hide=[".howbtn", ".zbadge"])]),
+    dict(name="market-index", kind="intraday", label="大盤走勢", route="overview", card="#m3Frame",
+         live=".livetg",
+         live_ok="() => { const b = document.querySelector('.livetg'); const f = document.querySelector('#m3Frame');"
+                 " return !!b && !!f && (b.classList.contains('on') || b.getAttribute('aria-pressed') === 'true') && !/連不到|抓不到|失敗|逾時/.test(f.innerText); }",
+         headline=None, d=[dict(name="market-index", hide=[".howbtn"], hide_exact=["~即時"])],
+         m=[dict(name="market-index", hide=[".howbtn"], hide_exact=["~即時"])]),
+    dict(name="market-breadth", kind="intraday", label="漲跌家數", route="market/updown", card=".mktdist", closest_card=True,
+         live="#mktMode button[data-m=live]",
+         live_ok="() => { const n = document.querySelector('#mktLive');"
+                 " return !!n && !n.hidden && !/抓取中|抓不到|失敗|逾時|連不到/.test(n.innerText); }",
+         headline=None, d=[dict(name="market-breadth", hide=[".howbtn"])], m=[dict(name="market-breadth", hide=[".howbtn", "#distFilter"])]),
+    # 盤後（法人資料要收盤後證交所公布才有，沒有即時版，所以另一篇發，不放進盤中那篇）
     dict(name="streak-trust", kind="close", label="法人連續買賣超｜投信", route="market/streak",
          card="#mktBody", closest_card=True, live=None, live_ok=None, headline=None, streak_who="trust",
          m=[STREAK_PIECE("streak-trust")]),
@@ -111,6 +126,27 @@ TARGETS = [
          attr_only=True, live=None, live_ok=None, headline=None, m=[dict(name="inst-today")]),
 ]
 
+# 每張的標題＝功能名稱本身（Andy 10-20：「標題就是這功能」），副標是小字；全部畫面與貼文不出現「即時」字樣
+PIECE_META = {
+    "rotation-wheel": ("資金輪盤", "族群相對強弱與動能，各在哪個象限"),
+    "rotation-rank": ("族群資金排行", "各族群資金占比變化（pp）"),
+    "sankey-tree": ("資金分流樹", "成交值依產業鏈往族群流動"),
+    "heat-industry": ("產業熱力圖", "整個台股一次看，依漲跌幅上色"),
+    "heat-theme": ("題材熱力圖", "熱門題材一次看"),
+    "market-index": ("大盤走勢", "加權指數、櫃買指數、台指期"),
+    "market-breadth": ("漲跌家數", "全市場漲跌分佈"),
+    "streak-trust": ("法人連續買賣超", "投信"),
+    "streak-foreign": ("法人連續買賣超", "外資"),
+    "streak-total": ("法人連續買賣超", "三大法人合計"),
+    "inst-today": ("三大法人買賣超", "當日"),
+}
+# 版型配色：直接取自 site/index.html 的 CSS 變數（淺色 :root[data-theme=light]、深色 :root）
+FRAME = {
+    "light": dict(bg="#F4F3EF", panel="#ffffff", panel2="#FAF9F6", line="#E9E6DF", line2="#D6D2C8", ink="#1F1D19", ink2="#3E3A33",
+                  ink3="#5F5A51", cyan="#0a6b8a", rise="#c81234", fall="#07794f", amber="#8f5600"),
+    "dark": dict(bg="#070b16", panel="#0f172b", panel2="#141e36", line="#1e2a48", line2="#2a3860", ink="#e8eeff", ink2="#a9b6d6",
+                 ink3="#8493b8", cyan="#3ee0ff", rise="#ff4d6d", fall="#2ee59d", amber="#ffb454"),
+}
 WHO_LABEL = {"trust": "投信", "foreign": "外資", "total": "合計"}
 
 # 截圖前把所有「固定定位」的浮動元素（客服比比、同意橫幅、導覽、通知小視窗…）藏起來，不在目標卡片裡的才藏。
@@ -370,6 +406,7 @@ def read_streak(pg) -> dict:
 HIDE_JS = """([root, a]) => {   // a = {css: [...], text: [...]}；root＝卡片元素；回傳被藏起來的元素數
   const hit = new Set();
   (a.css || []).forEach(s => root.querySelectorAll(s).forEach(e => hit.add(e)));
+  (a.exact || []).forEach(t => root.querySelectorAll('*').forEach(e => { const tx = (e.textContent || '').trim(); if (e.children.length === 0 && (t[0] === '~' ? new RegExp(t.slice(1)).test(tx) : tx === t)) hit.add(e); }));
   (a.text || []).forEach(rx => {
     const re = new RegExp(rx);
     const c = [...root.querySelectorAll('*')].filter(e => re.test((e.innerText || '').trim()) && e.children.length < 4);
@@ -403,8 +440,88 @@ PIECE_RECT_JS = """([card, a]) => {
 }"""
 
 
+READ_QUAD_JS = """async () => {
+  const wait = ms => new Promise(r => setTimeout(r, ms));
+  const out = [];
+  for (const b of document.querySelectorAll('#rotClock .rotquads .rq')) {
+    const label = b.firstChild.textContent.trim();
+    b.click(); await wait(500);
+    const names = [...document.querySelectorAll('#stagePanel .ms li[data-gid] .g')].map(e => e.textContent.trim());
+    out.push([label, names]);
+    b.click(); await wait(300);
+  }
+  return out;
+}"""
+READ_FLOWS_JS = """async () => {
+  const wait = ms => new Promise(r => setTimeout(r, ms));
+  const read = () => [...document.querySelectorAll('#sankeyRank .skr-r')].slice(0, 5).map(r => {
+    const n = r.querySelector('.n b'), v = r.querySelector('.v b');
+    return (n ? n.textContent.trim() : '') + ' ' + (v ? v.textContent.trim() : ''); });
+  const tabs = [...document.querySelectorAll('#sankeyRank .skr-tab button')];
+  const res = { inflow: [], outflow: [] };
+  if (tabs[0]) { tabs[0].click(); await wait(500); res.inflow = read(); }
+  if (tabs[1]) { tabs[1].click(); await wait(500); res.outflow = read(); tabs[0] && tabs[0].click(); }
+  return res;
+}"""
+
+
+def quad_lines(data) -> list[str]:
+    order = ["領先", "轉弱", "改善", "落後"]
+    d = {k: v for k, v in data}
+    out = []
+    for k in order:
+        names = d.get(k)
+        if names is None:
+            continue
+        line = f"{k}：" + "、".join(names[:5]) if names else f"{k}：—"
+        if len(names) > 5:
+            line += f" 等 {len(names)} 個"
+        out.append(line)
+    return out
+
+
+def flow_notes(res: dict) -> list[str]:
+    out = []
+    if res.get("inflow"):
+        out.append("流入前五：" + "、".join(res["inflow"]))
+    if res.get("outflow"):
+        out.append("流出前五：" + "、".join(res["outflow"]))
+    return out
+
+
+def shoot_piece(pg, card_el, pc: dict, raw_dir: Path, mode: str, dsf: float) -> dict:
+    """截一片。mode＝'d'（桌機）或 'm'（手機）。有 sel 就只截那個元素；沒有 sel：桌機整張卡、手機依 start/end 切（連買賣、熱力圖）。"""
+    pg.evaluate(UNHIDE_JS)
+    tgt = pg.query_selector(pc["sel"]) if pc.get("sel") else card_el
+    if tgt is None:
+        raise RuntimeError(f"找不到 {pc.get('sel')}")
+    pg.evaluate(HIDE_JS, [tgt, {"css": pc.get("hide", []), "text": pc.get("hide_text", []), "exact": pc.get("hide_exact", [])}])
+    if mode == "m" and pc.get("pre_m"):
+        pg.evaluate(pc["pre_m"], tgt)
+        pg.wait_for_timeout(900)
+    pg.wait_for_timeout(600)
+    try:
+        tgt.evaluate("e => e.scrollIntoView({block: 'center'})")
+    except Exception:  # noqa: BLE001
+        pass
+    pg.wait_for_timeout(300)
+    pg.mouse.move(2, 2)          # 滑鼠移開，免得截到 hover 的「滾輪放大」小標
+    path = raw_dir / f"{mode}_{pc['name']}.png"
+    if mode == "m" and not pc.get("sel") and (pc.get("start") or pc.get("end")):
+        rect = pg.evaluate(PIECE_RECT_JS, [card_el, {"start": pc.get("start"), "end": pc.get("end")}])
+        cb = card_el.bounding_box()
+        pg.screenshot(path=str(path), clip={"x": cb["x"], "y": max(0, rect["y"]), "width": cb["width"], "height": rect["h"] + 6}, full_page=True)
+    elif pc.get("trim_bottom_" + mode):
+        r = pg.evaluate(PIECE_RECT_JS, [tgt, {"start": None, "end": None}])
+        pg.screenshot(path=str(path), clip={"x": r["x"], "y": r["y"], "width": r["w"], "height": r["h"] - pc["trim_bottom_" + mode]}, full_page=True)
+    else:
+        tgt.screenshot(path=str(path))
+    minpx = pg.evaluate(PIECE_RECT_JS, [tgt, {"start": None, "end": None}])["minpx"]
+    return {"name": pc["name"], "raw": str(path), "dsf": dsf, "min_css_font": minpx, "title": pc.get("title", ""), "text": pc.get("text")}
+
+
 def snap_targets(args, base: str, out: Path, today_ymd: str) -> tuple[list[dict], dict]:
-    """每個目標：桌機寬截一張（Threads 用）＋手機版面截 1～2 片（IG 限動用）。"""
+    """每個目標：桌機寬截片段（Threads 用）＋手機版面截片段（IG 限動用）。"""
     from playwright.sync_api import sync_playwright
     raw_dir = out / "raw"
     raw_dir.mkdir(parents=True, exist_ok=True)
@@ -414,7 +531,7 @@ def snap_targets(args, base: str, out: Path, today_ymd: str) -> tuple[list[dict]
     attr_mode = "only" if args.use_snap_attr else ("never" if args.no_snap_attr else "prefer")
     m_dsf = 1080 / 374.0          # 手機卡片寬 374 css px（390 − 左右各 8）→ 輸出剛好 1080 寬
 
-    def prepare(pg, t, info) -> object | None:
+    def prepare(pg, t, info):
         go_target(pg, base, t)
         el = resolve_target(pg, t, attr_mode)
         if el is None:
@@ -426,7 +543,7 @@ def snap_targets(args, base: str, out: Path, today_ymd: str) -> tuple[list[dict]
                         t["streak_who"])
             pg.wait_for_timeout(1500)
             info.setdefault("streak", read_streak(pg))
-        if args.kind == "intraday" and not args.skip_live:
+        if args.kind == "intraday" and not (args.skip_live == "all" or t["name"] in args.skip_live.split(",")):
             if not click_live(pg, t, el):
                 info["why"] = "沒有即時鈕（這張還不能即時）→ 不發"
                 return None
@@ -446,18 +563,20 @@ def snap_targets(args, base: str, out: Path, today_ymd: str) -> tuple[list[dict]
         # ---------- 桌機（Threads）
         ctx, pg = open_ctx(browser, base, args, today_ymd, sniff, False, args.scale)
         for t in wanted:
-            info = {"name": t["name"], "label": t["label"], "ok": False, "why": "", "pieces": []}
+            info = {"name": t["name"], "label": t["label"], "ok": False, "why": "", "pieces_d": [], "pieces_m": []}
             try:
                 el = prepare(pg, t, info)
                 if el is not None:
-                    if t.get("hide_d"):
-                        pg.evaluate(HIDE_JS, [el, {"css": t["hide_d"]}])
-                    el.scroll_into_view_if_needed()
-                    path = raw_dir / f"{t['name']}.png"
-                    el.screenshot(path=str(path))
-                    box = el.bounding_box()
-                    info.update(ok=True, raw=str(path), headline=read_headline(el, t), w=round(box["width"]), h=round(box["height"]))
-                    log("桌機截到", t["name"], info["w"], "x", info["h"])
+                    info["headline"] = read_headline(el, t)
+                    for pc in (t.get("d") or [dict(name=t["name"], title=t["label"])]):
+                        info["pieces_d"].append(shoot_piece(pg, el, pc, raw_dir, "d", args.scale))
+                        log("桌機截到", pc["name"])
+                    pg.evaluate(UNHIDE_JS)
+                    if any(pc.get("text") == "quad" for pc in t.get("d", [])):
+                        info["lines"] = quad_lines(pg.evaluate(READ_QUAD_JS))
+                    if any(pc.get("text") == "flows" for pc in t.get("d", [])):
+                        info["notes"] = flow_notes(pg.evaluate(READ_FLOWS_JS))
+                    info["ok"] = bool(info["pieces_d"])
             except Exception as exc:  # noqa: BLE001
                 info["why"] = f"例外：{str(exc)[:100]}"
             shots.append(info)
@@ -474,17 +593,9 @@ def snap_targets(args, base: str, out: Path, today_ymd: str) -> tuple[list[dict]
                     info["story_why"] = "手機版沒截成"
                     continue
                 for pc in t.get("m", []):
-                    pg.evaluate(UNHIDE_JS)
-                    pg.evaluate(HIDE_JS, [el, {"css": pc.get("hide", []), "text": pc.get("hide_text", [])}])
-                    pg.wait_for_timeout(700)
-                    rect = pg.evaluate(PIECE_RECT_JS, [el, {"start": pc.get("start"), "end": pc.get("end")}])
-                    cb = el.bounding_box()
-                    clip = {"x": cb["x"], "y": max(0, rect["y"]), "width": cb["width"], "height": rect["h"] + 6}
-                    path = raw_dir / f"m_{pc['name']}.png"
-                    pg.screenshot(path=str(path), clip=clip, full_page=True)
-                    info["pieces"].append({"name": pc["name"], "raw": str(path), "dsf": m_dsf, "min_css_font": rect["minpx"],
-                                           "w": round(clip["width"] * m_dsf), "h": round(clip["height"] * m_dsf)})
-                    log("手機截到", pc["name"], round(clip["width"] * m_dsf), "x", round(clip["height"] * m_dsf), "最小字", rect["minpx"], "px")
+                    rec = shoot_piece(pg, el, pc, raw_dir, "m", m_dsf)
+                    info["pieces_m"].append(rec)
+                    log("手機截到", pc["name"], "最小字 css", rec["min_css_font"])
                 pg.evaluate(UNHIDE_JS)
             except Exception as exc:  # noqa: BLE001
                 info["story_why"] = f"手機例外：{str(exc)[:100]}"
@@ -500,57 +611,80 @@ def b64(path: str) -> str:
 
 BASE_CSS = """
 *{box-sizing:border-box;margin:0;padding:0}
-body{width:1080px;background:#f4f7fb;font-family:'Noto Sans CJK TC','Noto Sans TC','PingFang TC','Microsoft JhengHei','WenQuanYi Zen Hei',sans-serif;color:#17233a}
-.title{font-weight:700;font-size:44px;line-height:1.3;white-space:nowrap}
-.foot{font-size:24px;line-height:1.4;color:#4a5a73;white-space:nowrap}
-.url{font-size:28px;font-weight:700;color:#0b5fa5;white-space:nowrap}
-.shot{display:block;border-radius:14px;box-shadow:0 2px 10px rgba(20,40,80,.18);background:#fff}
+body{background:#f4f7fb;font-family:'Noto Sans CJK TC','Noto Sans TC','PingFang TC','Microsoft JhengHei','WenQuanYi Zen Hei',sans-serif;color:#17233a}
+.title{font-weight:700;line-height:1.3;white-space:nowrap}
+.foot{line-height:1.4;color:#4a5a73;white-space:nowrap}
+.url{font-weight:700;color:#0b5fa5;white-space:nowrap}
 """
 
 
-def story_html(title: str, img: str, iw: int, ih: int) -> tuple[str, int, int, dict]:
-    """IG 限動 1080×1920（手機版面截圖）：標題在上、截圖撐滿中間、免責與網址在下。
-    截圖區高度上限 1630（佔畫布 85%）；超過就等比縮小（寬不會超過 1080）。"""
-    W, H = 1080, 1920
-    y_img0, box_h = 150, 1630
-    sc = min(1080 / iw, box_h / ih)
-    dw, dh = round(iw * sc), round(ih * sc)
-    y_img = y_img0 + (box_h - dh) // 2
-    html = f"""<html><head><meta charset=utf-8><style>{BASE_CSS}
-body{{height:{H}px;position:relative}}
-.title{{position:absolute;left:40px;top:62px;width:1000px;text-align:center;font-size:48px}}
-.shot{{position:absolute;left:{(W - dw) // 2}px;top:{y_img}px;width:{dw}px;height:{dh}px;border-radius:0;box-shadow:none}}
-.foot{{position:absolute;left:40px;top:1798px;width:1000px;text-align:center;font-size:24px}}
-.url{{position:absolute;left:40px;top:1842px;width:1000px;text-align:center;font-size:30px}}
-</style></head><body>
-<div class=title data-box=title>{title}</div>
-<img class=shot data-box=shot src="{img}">
-<div class=foot data-box=foot>{DISCLAIMER}</div>
-<div class=url data-box=url>{SITE_HOST}</div>
-</body></html>"""
-    return html, W, H, {"scale": sc, "shot_ratio": dh / H}
+def _esc(t: str) -> str:
+    return t.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
 
-def threads_html(title: str, img: str, iw: int, ih: int) -> tuple[str, int, int]:
-    """Threads 寬圖：1080 寬，標題列＋整張截圖（左右各留 24）＋頁尾一行。"""
-    W = 1080
-    dw = W - 48
-    dh = round(ih * dw / iw)
-    head, gap, foot = 110, 20, 96
-    H = head + dh + gap + foot
-    html = f"""<html><head><meta charset=utf-8><style>{BASE_CSS}
-body{{height:{H}px;position:relative}}
-.title{{position:absolute;left:24px;top:28px;width:1032px;font-size:40px}}
-.shot{{position:absolute;left:24px;top:{head}px;width:{dw}px;height:{dh}px}}
-.foot{{position:absolute;left:24px;top:{head + dh + gap + 4}px;width:760px;font-size:21px}}
-.url{{position:absolute;left:792px;top:{head + dh + gap}px;width:264px;text-align:right;font-size:24px}}
-</style></head><body>
-<div class=title data-box=title>{title}</div>
-<img class=shot data-box=shot src="{img}">
-<div class=foot data-box=foot>{DISCLAIMER}</div>
-<div class=url data-box=url>{SITE_HOST}</div>
-</body></html>"""
-    return html, W, H, {"scale": dw / iw, "shot_ratio": dh / H}
+def _logo_uri() -> str:
+    f = ROOT / "site" / "brand" / "icon-192.png"
+    return "data:image/png;base64," + base64.b64encode(f.read_bytes()).decode() if f.exists() else ""
+
+
+LABEL_COLOR = {"領先": "rise", "轉弱": "amber", "改善": "cyan", "落後": "fall", "流入前五": "rise", "流出前五": "fall"}
+
+
+def _rows(items: list[str]) -> str:
+    out = []
+    for x in items:
+        k, sep, rest = x.partition("：")
+        col = LABEL_COLOR.get(k)
+        if sep and col:
+            out.append(f'<div class=r><b style="color:var(--{col})">{_esc(k)}</b><span>{_esc(rest)}</span></div>')
+        else:
+            out.append(f'<div class=r><span>{_esc(x)}</span></div>')
+    return "".join(out)
+
+
+def layout_html(mode: str, title: str, sub: str, stamp: str, img: str, lines: list[str], notes: list[str], theme: str) -> str:
+    """財經終端／券商 App 風版型：品牌列（比比＋哩股哩股＋日期時間膠囊）→ 圓角細框卡片（標題＋副標、說明、截圖、備註）→ 底部細資料來源列。
+    flex 直排，元素天生不重疊；之後仍用瀏覽器量框檢查。story 1080×1920（截圖吃掉剩下高度、等比不裁）、threads 1080 寬高度隨內容。"""
+    c = FRAME[theme]
+    var = ":root{" + "".join(f"--{k}:{v};" for k, v in c.items()) + "}"
+    lines_box = f'<div class="txt top" data-box=lines>{_rows(lines)}</div>' if lines else ""
+    notes_box = f'<div class="txt bot" data-box=notes>{_rows(notes)}</div>' if notes else ""
+    story = mode == "story"
+    css = var + """
+*{box-sizing:border-box;margin:0;padding:0}
+body{width:1080px;background:var(--bg);color:var(--ink);font-family:'Noto Sans CJK TC','Noto Sans TC','PingFang TC','Microsoft JhengHei','WenQuanYi Zen Hei',sans-serif;display:flex;flex-direction:column;
+  padding:__PAD__}
+.brand{display:flex;align-items:center;gap:14px;height:76px;flex:none}
+.brand img{width:60px;height:60px;border-radius:14px;display:block}
+.brand .nm{font-size:38px;font-weight:800;letter-spacing:1px;white-space:nowrap}
+.brand .cap{margin-left:auto;font-family:'DejaVu Sans Mono','Noto Sans Mono CJK TC',monospace;font-variant-numeric:tabular-nums;font-size:28px;font-weight:700;
+  color:var(--cyan);border:2px solid var(--cyan);border-radius:999px;padding:6px 20px;white-space:nowrap}
+.card{flex:1;min-height:0;display:flex;flex-direction:column;margin-top:16px;background:var(--panel);border:1.5px solid var(--line-2);border-radius:26px;padding:__CPAD__}
+.hd{flex:none;margin-bottom:12px}
+.hd .t{font-size:46px;font-weight:800;line-height:1.2;white-space:nowrap}
+.hd .s{font-size:24px;color:var(--ink3);margin-top:4px;white-space:nowrap}
+.txt{flex:none;font-size:__TF__px;line-height:1.5;color:var(--ink2);font-variant-numeric:tabular-nums}
+.txt.top{margin-bottom:10px;font-size:__TT__px}.txt.bot{margin-top:12px;border-top:1.5px solid var(--line);padding-top:12px}
+.txt .r{display:flex;gap:12px;margin-bottom:4px}.txt .r b{flex:none;font-weight:800}.txt .r span{min-width:0}
+.imgbox{flex:1;min-height:0;display:flex;align-items:center;justify-content:center}
+.shot{max-width:100%;max-height:100%;display:block;border-radius:12px}
+.src{flex:none;display:flex;justify-content:space-between;align-items:baseline;gap:16px;margin-top:14px;padding-top:12px;border-top:1.5px solid var(--line);
+  font-size:24px;color:var(--ink3)}
+.src .u{color:var(--cyan);font-weight:700;white-space:nowrap}.src .d{white-space:nowrap}
+"""
+    if story:
+        css = css.replace("__PAD__", "44px 22px 40px").replace("__CPAD__", "22px 14px 14px").replace("__TF__", "31").replace("__TT__", "36")
+        css += "body{height:1920px}"
+    else:
+        css = css.replace("__PAD__", "24px 20px 20px").replace("__CPAD__", "20px 14px 14px").replace("__TF__", "28").replace("__TT__", "30")
+        css += ".card{flex:none}.shot{width:100%;max-height:none}.imgbox{flex:none;display:block}"
+    logo = _logo_uri()
+    body = f"""<div class=brand>{'<img data-box=logo src="' + logo + '">' if logo else ''}<div class=nm data-box=brand>哩股哩股</div><div class=cap data-box=cap>{_esc(stamp)}</div></div>
+<div class=card>
+<div class=hd><div class=t data-box=title>{_esc(title)}</div><div class=s data-box=sub>{_esc(sub)}</div></div>
+{lines_box}<div class=imgbox><img class=shot data-box=shot src="{img}"></div>{notes_box}</div>
+<div class=src><div class=d data-box=foot>{DISCLAIMER}</div><div class=u data-box=url>{SITE_HOST}</div></div>"""
+    return f"<!doctype html><html><head><meta charset=utf-8><style>{css}</style></head><body>{body}</body></html>"
 
 
 OVERLAP_JS = """() => {
@@ -571,18 +705,25 @@ OVERLAP_JS = """() => {
 }"""
 
 
-def compose(browser, kind_name: str, title: str, raw: str, iw: int, ih: int, out_png: Path, report: list, extra: dict | None = None) -> None:
-    img = b64(raw)
-    html, W, H, meta = (story_html if kind_name == "story" else threads_html)(title, img, iw, ih)
-    pg = browser.new_page(viewport={"width": W, "height": H}, device_scale_factor=1)
+def compose(browser, mode: str, rec: dict, stamp: str, lines: list[str], notes: list[str], out_png: Path, report: list, theme: str) -> None:
+    from PIL import Image
+    with Image.open(rec["raw"]) as im:
+        iw, ih = im.size
+    title, sub = PIECE_META.get(rec["name"], (rec.get("title") or rec["name"], ""))
+    html = layout_html(mode, title, sub, stamp, b64(rec["raw"]), lines, notes, theme)
+    pg = browser.new_page(viewport={"width": 1080, "height": 1920 if mode == "story" else 1200}, device_scale_factor=1)
     pg.set_content(html, wait_until="load")
-    pg.wait_for_timeout(300)
+    pg.wait_for_timeout(400)
+    H = 1920 if mode == "story" else int(pg.evaluate("document.body.offsetHeight"))
+    if mode != "story":
+        pg.set_viewport_size({"width": 1080, "height": H})
+        pg.wait_for_timeout(200)
     res = pg.evaluate(OVERLAP_JS)
-    res.update(file=out_png.name, w=W, h=H, **meta)
-    if extra:
-        res.update(extra)
-        if 'min_font_1080' in extra:
-            res['min_font_1080'] = round(extra['min_font_1080'] * meta['scale'], 1)
+    box = pg.evaluate("(() => { const r = document.querySelector('.shot').getBoundingClientRect(); return [r.width, r.height]; })()")
+    scale = box[0] / iw
+    res.update(file=out_png.name, w=1080, h=H, scale=round(scale, 3), shot_ratio=box[1] / H, shot_px=[round(box[0]), round(box[1])])
+    if rec.get("min_css_font") and rec["min_css_font"] < 900:
+        res["min_font_1080"] = round(rec["min_css_font"] * rec["dsf"] * scale, 1)
     report.append(res)
     pg.screenshot(path=str(out_png), full_page=False)
     pg.close()
@@ -599,8 +740,8 @@ def build_text(kind: str, stamp: str, shots: list[dict], data_date: str) -> str:
     ok = [s for s in shots if s.get("ok")]
     if kind == "intraday":
         head = next((s["headline"] for s in ok if s.get("headline")), "")
-        l1 = f"盤中即時 {stamp}｜台股資金輪動"
-        l2 = head or "資金輪盤、資金分流樹與熱力圖即時狀況如圖"
+        l1 = f"資金輪盤 {stamp}｜台股資金輪動"
+        l2 = head or "資金輪盤、族群資金排行與資金分流樹目前狀況如圖"
     else:
         l1 = f"盤後法人 {data_date[5:].replace('-', '/')}｜投信、外資、合計連續買賣超"
         parts = []
@@ -630,7 +771,9 @@ def main() -> int:
     ap.add_argument("--live-override", action="store_true", help="本機 TW_LIVE_OVERRIDE（只有 127.0.0.1 認）")
     ap.add_argument("--data-url", default="", help="先從這個網址下載網站要用的 JSON 到 --serve 的 data/（例如 https://liguligu-puipui.com/data）")
     ap.add_argument("--spoof-origin", action="store_true", help="報價請求補上正式站 Origin（本機站打正式報價代理用）")
-    ap.add_argument("--skip-live", action="store_true", help="只測版面：不要求即時（會截到盤後畫面，絕不可用在發布）")
+    ap.add_argument("--skip-live", nargs="?", const="all", default="", help="只測版面：不要求即時（all 或逗號分隔的目標名；會截到盤後畫面，絕不可用在發布）")
+    ap.add_argument("--from-shots", default="", help="沿用另一個輸出資料夾已截好的圖（只換 --frame 配色，示範用）")
+    ap.add_argument("--frame", choices=["light", "dark"], default="light", help="版型配色（預設淺色，跟截圖一致）")
     ap.add_argument("--use-snap-attr", action="store_true", help="只用 data-snap 屬性找目標")
     ap.add_argument("--no-snap-attr", action="store_true", help="不用 data-snap，只用現有選擇器")
     ap.add_argument("--force", action="store_true", help="略過「盤中時段／今天是不是交易日／法人資料是不是今天」的檢查（示範用）")
@@ -663,7 +806,11 @@ def main() -> int:
             if not ("09:00" <= hhmm <= "13:35"):
                 log(f"現在台北 {hhmm} 不在盤中時段（09:00～13:35；排程被 GitHub 延遲到收盤後會走這裡）→ 不發")
                 return 10
-        shots, sniff = snap_targets(args, base, out, today_ymd)
+        if args.from_shots:      # 只換版型配色：沿用另一輪已截好的圖（示範用）
+            shots = json.loads((Path(args.from_shots) / "shots.json").read_text("utf-8"))
+            sniff = {"quote_dates": set(), "errors": []}
+        else:
+            shots, sniff = snap_targets(args, base, out, today_ymd)
         if args.kind == "intraday" and not args.force:
             qd = sniff["quote_dates"]
             if qd and today_ymd not in qd:
@@ -678,24 +825,31 @@ def main() -> int:
             (out / "shots.json").write_text(json.dumps(shots, ensure_ascii=False, indent=2), "utf-8")
             return 2
 
-        title = (f"哩股哩股｜盤中即時 {stamp_now}" if args.kind == "intraday"
-                 else f"哩股哩股｜盤後法人 {data_date[5:].replace('-', '/')}")
+        stamp_full = now_tpe().strftime("%m/%d %H:%M")
+        dd = data_date[5:].replace("-", "/")
+        cap = dd if args.kind == "close" else stamp_full          # 日期時間膠囊（盤後＝資料日）
         report: list[dict] = []
         stories: list[str] = []
+        threads_imgs: list[str] = []
         from playwright.sync_api import sync_playwright
         with sync_playwright() as p:
             browser = p.chromium.launch(executable_path=CHROMIUM) if CHROMIUM else p.chromium.launch()
+
+            def texts(s, rec):
+                return (s.get("lines", []) if rec.get("text") == "quad" else []), (s.get("notes", []) if rec.get("text") == "flows" else [])
+
             for s in ok:
-                iw, ih = img_size(s["raw"])
-                compose(browser, "threads", title, s["raw"], iw, ih, out / f"threads_{s['name']}.png", report)
-                for pc in s.get("pieces", []):
-                    piw, pih = img_size(pc["raw"])
-                    compose(browser, "story", title, pc["raw"], piw, pih, out / f"story_{pc['name']}.png", report,
-                            {"min_font_1080": pc["min_css_font"] * pc["dsf"]})
-                    stories.append(f"story_{pc['name']}.png")
+                for rec in s["pieces_d"]:
+                    ln, nt = texts(s, rec)
+                    compose(browser, "threads", rec, cap, ln, nt, out / f"threads_{rec['name']}.png", report, args.frame)
+                    threads_imgs.append(f"threads_{rec['name']}.png")
+                for rec in s["pieces_m"]:
+                    ln, nt = texts(s, rec)
+                    compose(browser, "story", rec, cap, ln, nt, out / f"story_{rec['name']}.png", report, args.frame)
+                    stories.append(f"story_{rec['name']}.png")
             browser.close()
         for r in report:
-            if r["file"].startswith("story_") and r["shot_ratio"] < 0.75:
+            if r["file"].startswith("story_") and r["shot_ratio"] < 0.75 and r["h"] == 1920:
                 log(f"  ⚠ {r['file']} 截圖只佔畫布 {r['shot_ratio']:.0%}（<75%）")
         bad = [r for r in report if r["hits"] or r["out"] or r["cut"]]
         (out / "layout_report.json").write_text(json.dumps(report, ensure_ascii=False, indent=2), "utf-8")
@@ -710,8 +864,8 @@ def main() -> int:
             "kind": args.kind,
             "taken_at": now_tpe().isoformat(timespec="seconds"),
             "data_date": data_date,
-            "threads": {"text": build_text(args.kind, stamp_now, ok, data_date),
-                        "images": [f"threads_{s['name']}.png" for s in ok]},
+            "threads": {"text": build_text(args.kind, stamp_full, ok, data_date),
+                        "images": threads_imgs},
             "story": stories,
         }
         (out / "manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2), "utf-8")
