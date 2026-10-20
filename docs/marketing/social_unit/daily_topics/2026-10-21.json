@@ -1,0 +1,366 @@
+{
+  "target_date": "2026-10-21",
+  "data_date": "2026-10-20",
+  "warning": "",
+  "n": 8,
+  "track_a": {
+    "name": "A 總經",
+    "schedule": [
+      {
+        "date_et": "2026-10-28",
+        "tw_time": "10/29 02:00",
+        "kind": "fomc",
+        "title": "FOMC 利率決議",
+        "ref": "",
+        "org": "聯準會（Federal Reserve）",
+        "via": "yaml",
+        "phase": "未來",
+        "confidence": "待查證"
+      }
+    ],
+    "news": [
+      {
+        "title": "殖利率5%仍難吸引買盤 花旗直指美債避險效果減弱",
+        "source": "cnyes",
+        "url": "https://news.cnyes.com/news/id/6633952",
+        "date": "2026-10-20",
+        "groups": [],
+        "companies": [],
+        "also_reported_by": [],
+        "key_point": "",
+        "confidence": "待查證",
+        "extension_topics": [
+          "這件事的來龍去脈：背景與時間線",
+          "它對利率、匯率、油價或台股資金流的傳導路徑（描述，不預測）",
+          "過去類似事件發生時市場怎麼反應（歷史對照）"
+        ]
+      },
+      {
+        "title": "AI資料中心供電架構迎變革！ABB布局800V直流電，電力設備市場版圖有望擴大",
+        "source": "cnyes",
+        "url": "https://news.cnyes.com/news/id/6634469",
+        "date": "2026-10-20",
+        "groups": [],
+        "companies": [],
+        "also_reported_by": [],
+        "key_point": "",
+        "confidence": "待查證",
+        "extension_topics": [
+          "這件事的來龍去脈：背景與時間線",
+          "它對利率、匯率、油價或台股資金流的傳導路徑（描述，不預測）",
+          "過去類似事件發生時市場怎麼反應（歷史對照）"
+        ]
+      },
+      {
+        "title": "AI泡沫疑慮再起！南韓AI資料中心業者Elice掛牌首日暴跌32%",
+        "source": "cnyes",
+        "url": "https://news.cnyes.com/news/id/6634470",
+        "date": "2026-10-20",
+        "groups": [],
+        "companies": [],
+        "also_reported_by": [],
+        "key_point": "",
+        "confidence": "待查證",
+        "extension_topics": [
+          "這件事的來龍去脈：背景與時間線",
+          "它對利率、匯率、油價或台股資金流的傳導路徑（描述，不預測）",
+          "過去類似事件發生時市場怎麼反應（歷史對照）"
+        ]
+      },
+      {
+        "title": "民調：川普支持率創新低 過半民眾指他利用總統職位謀私利",
+        "source": "cnyes",
+        "url": "https://news.cnyes.com/news/id/6634248",
+        "date": "2026-10-20",
+        "groups": [],
+        "companies": [],
+        "also_reported_by": [],
+        "key_point": "",
+        "confidence": "待查證",
+        "extension_topics": [
+          "這件事的來龍去脈：背景與時間線",
+          "它對利率、匯率、油價或台股資金流的傳導路徑（描述，不預測）",
+          "過去類似事件發生時市場怎麼反應（歷史對照）"
+        ]
+      },
+      {
+        "title": "福斯攜手小鵬攻中國電動車市場踢鐵板！新車月銷僅267輛、遠低於原定目標",
+        "source": "cnyes",
+        "url": "https://news.cnyes.com/news/id/6634365",
+        "date": "2026-10-20",
+        "groups": [],
+        "companies": [],
+        "also_reported_by": [],
+        "key_point": "",
+        "confidence": "待查證",
+        "extension_topics": [
+          "這件事的來龍去脈：背景與時間線",
+          "它對利率、匯率、油價或台股資金流的傳導路徑（描述，不預測）",
+          "過去類似事件發生時市場怎麼反應（歷史對照）"
+        ]
+      },
+      {
+        "title": "AI伺服器、半導體拉動接單9月外銷訂單1,142億美元創新高",
+        "source": "cnyes",
+        "url": "https://news.cnyes.com/news/id/6634366",
+        "date": "2026-10-20",
+        "groups": [],
+        "companies": [],
+        "also_reported_by": [],
+        "key_point": "",
+        "confidence": "待查證",
+        "extension_topics": [
+          "這件事的來龍去脈：背景與時間線",
+          "它對利率、匯率、油價或台股資金流的傳導路徑（描述，不預測）",
+          "過去類似事件發生時市場怎麼反應（歷史對照）"
+        ]
+      },
+      {
+        "title": "美國年付利息突破1兆美元創新高 惠譽警告主權評等恐再降",
+        "source": "cnyes",
+        "url": "https://news.cnyes.com/news/id/6633948",
+        "date": "2026-10-20",
+        "groups": [],
+        "companies": [],
+        "also_reported_by": [],
+        "key_point": "",
+        "confidence": "待查證",
+        "extension_topics": [
+          "這件事的來龍去脈：背景與時間線",
+          "它對利率、匯率、油價或台股資金流的傳導路徑（描述，不預測）",
+          "過去類似事件發生時市場怎麼反應（歷史對照）"
+        ]
+      },
+      {
+        "title": "前九月外銷訂單 8,192 億美元，提前改寫全年新高",
+        "source": "technews",
+        "url": "https://finance.technews.tw/2026/10/20/september-export-orders-reach-114-billion/",
+        "date": "2026-10-20",
+        "groups": [],
+        "companies": [],
+        "also_reported_by": [],
+        "key_point": "",
+        "confidence": "待查證",
+        "extension_topics": [
+          "這件事的來龍去脈：背景與時間線",
+          "它對利率、匯率、油價或台股資金流的傳導路徑（描述，不預測）",
+          "過去類似事件發生時市場怎麼反應（歷史對照）"
+        ]
+      }
+    ]
+  },
+  "track_b": {
+    "name": "B 科技",
+    "news": [
+      {
+        "title": "阿里巴巴、騰訊與字節跳動力求在中國AI競爭中取勝",
+        "source": "cnyes",
+        "url": "https://news.cnyes.com/news/id/6634252",
+        "date": "2026-10-20",
+        "groups": [],
+        "companies": [],
+        "also_reported_by": [],
+        "key_point": "",
+        "confidence": "待查證",
+        "extension_topics": [
+          "這項技術或產品是什麼（一張圖看懂）",
+          "它在 AI／半導體供應鏈的位置",
+          "台股相關供應鏈介紹（依環節）"
+        ]
+      },
+      {
+        "title": "降規版也搶翻！中國科技三巨頭傳下單逾300萬張輝達新卡 供貨仍存變數",
+        "source": "cnyes",
+        "url": "https://news.cnyes.com/news/id/6634400",
+        "date": "2026-10-20",
+        "groups": [],
+        "companies": [],
+        "also_reported_by": [],
+        "key_point": "",
+        "confidence": "待查證",
+        "extension_topics": [
+          "這項技術或產品是什麼（一張圖看懂）",
+          "它在 AI／半導體供應鏈的位置",
+          "台股相關供應鏈介紹（依環節）"
+        ]
+      },
+      {
+        "title": "蘋果加碼美國製造！最高1億美元採購鈦材 Duo缺貨仍待解",
+        "source": "cnyes",
+        "url": "https://news.cnyes.com/news/id/6634444",
+        "date": "2026-10-20",
+        "groups": [],
+        "companies": [],
+        "also_reported_by": [],
+        "key_point": "",
+        "confidence": "待查證",
+        "extension_topics": [
+          "這項技術或產品是什麼（一張圖看懂）",
+          "它在 AI／半導體供應鏈的位置",
+          "台股相關供應鏈介紹（依環節）"
+        ]
+      },
+      {
+        "title": "年度考核後動刀！高通全球裁員 11月起通知員工",
+        "source": "cnyes",
+        "url": "https://news.cnyes.com/news/id/6634398",
+        "date": "2026-10-20",
+        "groups": [],
+        "companies": [],
+        "also_reported_by": [],
+        "key_point": "",
+        "confidence": "待查證",
+        "extension_topics": [
+          "這項技術或產品是什麼（一張圖看懂）",
+          "它在 AI／半導體供應鏈的位置",
+          "台股相關供應鏈介紹（依環節）"
+        ]
+      },
+      {
+        "title": "高雄台積電 F22 廠區工安意外，螺栓斷裂致 4 人墜落送醫後續勒令停工",
+        "source": "technews",
+        "url": "https://finance.technews.tw/2026/10/20/industrial-accident-at-tsmc-f22-plant-in-kaohsiung/",
+        "date": "2026-10-20",
+        "groups": [
+          "晶圓代工"
+        ],
+        "companies": [
+          {
+            "code": "2330",
+            "name": "台積電"
+          }
+        ],
+        "also_reported_by": [],
+        "key_point": "",
+        "confidence": "待查證",
+        "extension_topics": [
+          "晶圓代工的製程流程怎麼走（從矽晶圓到完成 IC 的主要步驟）",
+          "先進製程為什麼這麼貴、卡在哪裡",
+          "半導體製程流程怎麼走（設計→製造→封裝→測試）",
+          "半導體上下游合作關係：誰供貨給誰",
+          "這個環節目前邁向哪個階段"
+        ]
+      },
+      {
+        "title": "陸DRAM產能將激增31%！韓媒警告超級周期「只剩2至3年」 馬斯克把期限再往前推一年",
+        "source": "cnyes",
+        "url": "https://news.cnyes.com/news/id/6633996",
+        "date": "2026-10-20",
+        "groups": [],
+        "companies": [],
+        "also_reported_by": [],
+        "key_point": "",
+        "confidence": "待查證",
+        "extension_topics": [
+          "這項技術或產品是什麼（一張圖看懂）",
+          "它在 AI／半導體供應鏈的位置",
+          "台股相關供應鏈介紹（依環節）"
+        ]
+      },
+      {
+        "title": "8192塊GPU加持 輝達完成容錯量子計算創紀錄模擬",
+        "source": "cnyes",
+        "url": "https://news.cnyes.com/news/id/6634203",
+        "date": "2026-10-20",
+        "groups": [],
+        "companies": [],
+        "also_reported_by": [],
+        "key_point": "",
+        "confidence": "待查證",
+        "extension_topics": [
+          "這項技術或產品是什麼（一張圖看懂）",
+          "它在 AI／半導體供應鏈的位置",
+          "台股相關供應鏈介紹（依環節）"
+        ]
+      },
+      {
+        "title": "面板廠陷成本與需求雙重壓力，三大面板應用 10 月價格持平",
+        "source": "technews",
+        "url": "https://technews.tw/2026/10/20/panel-prices-in-2026-october-h2/",
+        "date": "2026-10-20",
+        "groups": [],
+        "companies": [],
+        "also_reported_by": [],
+        "key_point": "",
+        "confidence": "待查證",
+        "extension_topics": [
+          "這項技術或產品是什麼（一張圖看懂）",
+          "它在 AI／半導體供應鏈的位置",
+          "台股相關供應鏈介紹（依環節）"
+        ]
+      }
+    ],
+    "lectures": [
+      {
+        "date": "2026-10-21",
+        "code": "1731",
+        "name": "美吾華",
+        "note": "公司重大訊息公告（公開資訊觀測站），僅列事實，非推薦",
+        "confidence": "待查證"
+      },
+      {
+        "date": "2026-10-21",
+        "code": "3052",
+        "name": "夆典",
+        "note": "公司重大訊息公告（公開資訊觀測站），僅列事實，非推薦",
+        "confidence": "待查證"
+      },
+      {
+        "date": "2026-10-21",
+        "code": "4108",
+        "name": "懷特",
+        "note": "公司重大訊息公告（公開資訊觀測站），僅列事實，非推薦",
+        "confidence": "待查證"
+      },
+      {
+        "date": "2026-10-23",
+        "code": "5469",
+        "name": "瀚宇博",
+        "note": "公司重大訊息公告（公開資訊觀測站），僅列事實，非推薦",
+        "confidence": "待查證"
+      },
+      {
+        "date": "2026-10-23",
+        "code": "6191",
+        "name": "精成科",
+        "note": "公司重大訊息公告（公開資訊觀測站），僅列事實，非推薦",
+        "confidence": "待查證"
+      },
+      {
+        "date": "2026-10-27",
+        "code": "2337",
+        "name": "旺宏",
+        "note": "公司重大訊息公告（公開資訊觀測站），僅列事實，非推薦",
+        "confidence": "待查證"
+      },
+      {
+        "date": "2026-10-27",
+        "code": "3035",
+        "name": "智原",
+        "note": "公司重大訊息公告（公開資訊觀測站），僅列事實，非推薦",
+        "confidence": "待查證"
+      },
+      {
+        "date": "2026-10-27",
+        "code": "6239",
+        "name": "力成",
+        "note": "公司重大訊息公告（公開資訊觀測站），僅列事實，非推薦",
+        "confidence": "待查證"
+      },
+      {
+        "date": "2026-10-28",
+        "code": "2303",
+        "name": "聯電",
+        "note": "公司重大訊息公告（公開資訊觀測站），僅列事實，非推薦",
+        "confidence": "待查證"
+      },
+      {
+        "date": "2026-10-28",
+        "code": "5203",
+        "name": "訊連",
+        "note": "公司重大訊息公告（公開資訊觀測站），僅列事實，非推薦",
+        "confidence": "待查證"
+      }
+    ]
+  }
+}
