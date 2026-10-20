@@ -61,6 +61,25 @@ env:
   START_DATE: ${{ inputs.start_date || '2016-01-01' }}
 
 jobs:
+  # 自我補跑（2026-10-20）：daily.yml 的 schedule 被 GitHub 丟掉時，由這支每小時穩定的排程補派。
+  # 不佔 concurrency group（不然會排在長時間回補後面），只用 GITHUB_TOKEN 派 workflow_dispatch。
+  heal:
+    if: github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+      - name: 今天該跑的 daily phase 沒有成功紀錄就補派
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 scripts/heal_daily.py
+        continue-on-error: true
+
   backfill:
     runs-on: ubuntu-latest
     timeout-minutes: 350   # 上限 6 小時，留緩衝
