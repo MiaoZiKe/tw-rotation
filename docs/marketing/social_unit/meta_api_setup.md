@@ -46,7 +46,7 @@
 | 4 | Use cases（使用案例）畫面 | 勾 **Access the Threads API**（存取 Threads API）；**再**勾 **Manage messaging & content on Instagram**（管理 Instagram 的訊息與內容）。兩個都勾 | 若畫面只讓你選一個：先選 Threads，建好後到儀表板 **Add use case** 再加 IG。以畫面為準，截圖給 CEO |
 | 5 | Business（商業資產）| 選 **I don't want to connect a business portfolio yet**（先不連結） | 只發自己帳號不需要 |
 | 6 | 最後一步 | **Create app**（建立）。可能要你重輸 Facebook 密碼 | 密碼自己輸，不要貼給任何人 |
-| 7 | 左側 **App settings → Basic**（應用程式設定 → 基本資料） | 填 **Privacy Policy URL**（隱私權政策網址）：`https://miaozike.github.io/tw-rotation/#privacy`；**App Icon** 隨便放一張比比圖 | 若該網址不存在，改填首頁，以畫面為準 |
+| 7 | 左側 **App settings → Basic**（應用程式設定 → 基本資料） | 填 **Privacy Policy URL**（隱私權政策網址）：`https://liguligu-puipui.com/#privacy`；**App Icon** 隨便放一張比比圖 | 若該網址不存在，改填首頁，以畫面為準 |
 
 ## 3. 步驟二：Threads 的值（要拿 2 個）
 
@@ -54,7 +54,7 @@
 |---|---|---|---|
 | 1 | 左側 **Use cases** → **Access the Threads API** → **Customize**（自訂） | 進到 Threads 的設定頁 | |
 | 2 | **Permissions**（權限）分頁 | 確認 `threads_basic`、`threads_content_publish` 兩項後面是 **Ready for testing**（可測試）；沒有就按 **Add**（新增） | 其餘不用動 |
-| 3 | **Settings**（設定）分頁 | 「Redirect Callback URLs」填 `https://miaozike.github.io/tw-rotation/`；「Uninstall callback URL」「Delete callback URL」都填同一個網址 | 這三格 Meta 要求必填，我們用不到 |
+| 3 | **Settings**（設定）分頁 | 「Redirect Callback URLs」填 `https://liguligu-puipui.com/`；「Uninstall callback URL」「Delete callback URL」都填同一個網址 | 這三格 Meta 要求必填，我們用不到 |
 | 4 | 左側 **App roles**（應用程式角色）→ **Roles** → **Add People**（新增人員） | 選 **Threads Tester**（Threads 測試人員），輸入你的 **Threads 使用者名稱**（不含 @）→ **Add** | |
 | 5 | 手機／網頁 Threads：個人檔案 → 右上設定 → **Account**（帳號）→ **Website permissions**（網站權限）→ **Invites**（邀請） | 找到剛才的邀請 → **Accept**（接受） | 以畫面為準，截圖給 CEO |
 | 6 | 回 Meta：**Use cases → Access the Threads API → Customize → Settings** 的「User Token Generator」區 | 找到你的 Threads 帳號那列 → **Generate Access Token**（產生存取權杖）→ 跳出 Threads 授權視窗，按 **Continue**（繼續）| 產生的是短效權杖（1 小時），先別關頁面 |
