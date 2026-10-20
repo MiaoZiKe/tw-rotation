@@ -52,12 +52,37 @@ def test_retail_ratio_template_example():
     oi = pd.DataFrame({"date": ["2026-10-19"], "futures_id": "TMF", "oi": [139906]})
     idx = pd.DataFrame({"date": ["2026-10-19"], "symbol": "TSE", "close": [20000.0]})
     r = c.retail_ratio_json(fi, oi, idx)
-    assert r["retail_long"] == [122789.0] and r["retail_short"] == [51206.0]
-    assert round(r["ratio_pct"][0], 2) == 51.17 and r["retail_net"] == [71583.0] and r["taiex"] == [20000.0]
-    assert c.retail_ratio_json(pd.DataFrame(), oi)["dates"] == []
+    assert r["asof"] == "2026-10-19" and r["order"] == "asc" and set(r["products"]) == {"TX", "MTX", "TMF"}
+    t = r["products"]["TMF"]
+    assert t["retail_long"] == [122789.0] and t["retail_short"] == [51206.0]
+    assert round(t["ratio_pct"][0], 2) == 51.17 and t["retail_net"] == [71583.0] and t["taiex"] == [20000.0]
+    assert r["products"]["TX"]["dates"] == [] and r["products"]["MTX"]["dates"] == []   # 沒資料的商品是空殼，不報錯
+    assert c.retail_ratio_json(pd.DataFrame(), oi)["products"]["TMF"]["dates"] == []
     # 三家不齊 → 該日不算
     fi2 = s.parse_fut_inst([_inst("TMF", "2026-10-19", "外資", 1, 1)], "TMF")
-    assert c.retail_ratio_json(fi2, oi)["dates"] == []
+    assert c.retail_ratio_json(fi2, oi)["products"]["TMF"]["dates"] == []
+
+
+def test_retail_ratio_three_products(monkeypatch):
+    """大台／小台／微台各自用自己的全市場未平倉與法人口數，互不串。"""
+    rows, oirows = [], []
+    for fid, tot, (fl, fs) in (("TX", 1000, (300, 500)), ("MTX", 2000, (100, 900)), ("TMF", 139906, (9000, 60000))):
+        rows += [_inst(fid, "2026-10-19", "外資", fl, fs), _inst(fid, "2026-10-19", "投信", 0, 0), _inst(fid, "2026-10-19", "自營商", 0, 0)]
+        oirows.append({"date": "2026-10-19", "contract_date": "202610", "open_interest": tot, "trading_session": "position"})
+    fi = pd.concat([s.parse_fut_inst([x for x in rows if x["futures_id"] == f], f) for f in ("TX", "MTX", "TMF")])
+    oi = pd.concat([s.parse_fut_oi([o], f) for o, f in zip(oirows, ("TX", "MTX", "TMF"))])
+    r = c.retail_ratio_json(fi, oi)["products"]
+    assert round(r["TX"]["ratio_pct"][0], 2) == round(((1000 - 300) - (1000 - 500)) / 1000 * 100, 2) == 20.0
+    assert round(r["MTX"]["ratio_pct"][0], 2) == round((900 - 100) / 2000 * 100, 2)
+    assert r["TMF"]["total_oi"] == [139906.0]
+
+
+def test_collect_fetches_three_products(monkeypatch):
+    calls = []
+    monkeypatch.setattr(s.http, "finmind_get", lambda ds, **kw: calls.append((ds, kw.get("data_id"))) or [])
+    s.collect("2026-10-01")
+    assert ("TaiwanFuturesDaily", "TX") in calls and ("TaiwanFuturesDaily", "MTX") in calls and ("TaiwanFuturesDaily", "TMF") in calls
+    assert all(("TaiwanFuturesInstitutionalInvestors", f) in calls for f in ("TX", "MTX", "TMF"))
 
 
 def test_fut_oi_json_and_settle():

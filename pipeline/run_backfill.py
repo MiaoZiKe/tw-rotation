@@ -923,12 +923,13 @@ def refresh_stale_inst(prog: dict, today: date | None = None, limit: int | None 
 
 
 def backfill_mktfut(prog: dict, start: str = "2021-01-01") -> bool:
-    """市場明細與期貨兩頁的歷史（2026-10-20）：整體融資融券、期貨三大法人（TX／TMF）、微台未平倉，
-    各一次請求補 5 年。三張表都有資料才標 done；缺的下一輪重試，之後每日管線用 10 天增量。"""
-    flag = (prog.get("complete") or {}).get("mktfut")
+    """市場明細與期貨兩頁的歷史（2026-10-20）：整體融資融券、期貨三大法人與全市場未平倉（TX／MTX／TMF 三商品），
+    各一次請求補 5 年（TMF 自 2024-07 上市起）。三張表都有資料才標 done；缺的下一輪重試，之後每日管線用 10 天增量。"""
+    # 旗標改 mktfut3：舊 mktfut 旗標是「TX／TMF 三大法人＋MTX 未平倉」時代標的 done，三商品版要重補一次
+    flag = (prog.get("complete") or {}).get("mktfut3")
     if isinstance(flag, dict) and flag.get("done") and flag.get("start") == start:
         return True
-    if http.finmind_budget_left() <= 5:
+    if http.finmind_budget_left() <= 8:
         log.warning("額度不足 5 次，市場明細歷史這一輪先不補")
         return False
     got = mktfut.collect(start)
@@ -937,7 +938,7 @@ def backfill_mktfut(prog: dict, start: str = "2021-01-01") -> bool:
         total += store.append(t, df)
     ok = all(not df.empty for df in got.values())
     if ok:
-        prog.setdefault("complete", {})["mktfut"] = {"done": True, "start": start,
+        prog.setdefault("complete", {})["mktfut3"] = {"done": True, "start": start,
             "at": datetime.now(timezone.utc).isoformat(), "rows": total}
         _save_progress(prog)
     else:

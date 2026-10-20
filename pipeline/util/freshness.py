@@ -29,7 +29,7 @@ WATCH = {
     "inst_market_daily": "全市場三大法人金額",
     "margin_total": "整體融資融券",
     "fut_inst": "期貨三大法人",
-    "fut_oi": "微台未平倉",
+    "fut_oi": "期貨全市場未平倉",
 }
 MIN_RATIO = 0.8          # 最新日筆數至少要有近期中位數的幾成
 HISTORY_DAYS = 10        # 中位數看幾個交易日

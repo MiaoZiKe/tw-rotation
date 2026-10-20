@@ -6,7 +6,8 @@
   · 大盤融資維持率（估算，2026-10-20 Andy 範本）＝ Σ(上市個股融資餘額張數×1000×當日收盤價) ÷ 融資總餘額(元) × 100。
     非證交所法定整戶擔保維持率（那要每戶的借款與擔保品）；只是整體市場的現值／借款比。
   · 台指期（TX）三大法人：多方／空方／淨 ＝ 未平倉口數（所有月份合計），淨＝多−空。
-  · 小台散戶多空比 ＝ −(外資＋投信＋自營 小台淨未平倉口數) ÷ 小台全市場未平倉口數 × 100%。
+  · 散戶多空比（大台 TX／小台 MTX／微台 TMF，三商品各算各的）＝ (全市場未平倉−法人多方 − (全市場未平倉−法人空方)) ÷ 全市場未平倉 × 100%，
+    全市場未平倉＝一般交易時段各單一到期月份 open_interest 加總（排除價差單）。
 """
 from __future__ import annotations
 
@@ -140,20 +141,20 @@ def fut_oi_json(fi: pd.DataFrame, idx=None, source="") -> dict:
     return out
 
 
-def retail_ratio_json(fi: pd.DataFrame, oi: pd.DataFrame, idx=None, source="") -> dict:
-    """site/data/retail_ratio.json：微台（TMF）散戶多空比。
-    散戶多單＝全市場未平倉−三大法人多方未平倉；散戶空單同理；多空比＝(散戶多−散戶空)÷全市場未平倉×100。"""
-    out = {"asof": None, "source": source, "product": "TMF", "order": "asc", "dates": [], "taiex": [], "total_oi": [],
-           "retail_long": [], "retail_short": [], "retail_net": [], "ratio_pct": [], "settle_dates": []}
+RETAIL_PRODUCTS = ("TX", "MTX", "TMF")   # 大台、小台、微台
+
+
+def _retail_one(fi: pd.DataFrame, oi: pd.DataFrame, fid: str, tx) -> dict:
+    out = {"dates": [], "taiex": [], "total_oi": [], "retail_long": [], "retail_short": [], "retail_net": [],
+           "ratio_pct": [], "settle_dates": []}
     if fi is None or fi.empty or oi is None or oi.empty:
         return out
-    d = fi[fi["futures_id"] == "TMF"]
-    tot = oi[oi["futures_id"] == "TMF"].drop_duplicates("date", keep="last").set_index("date")["oi"]
+    d = fi[fi["futures_id"] == fid]
+    tot = oi[oi["futures_id"] == fid].drop_duplicates("date", keep="last").set_index("date")["oi"]
     byw = {w: d[d["who"] == w].drop_duplicates("date", keep="last").set_index("date") for w in WHO}
-    if not all(len(p) for p in byw.values()):
+    if not len(tot) or not all(len(p) for p in byw.values()):
         return out
     dates = sorted(set(tot.index).intersection(*[set(p.index) for p in byw.values()]))
-    tx = _taiex(idx)
     for x in dates:
         t = float(tot[x])
         if not t:
@@ -165,8 +166,17 @@ def retail_ratio_json(fi: pd.DataFrame, oi: pd.DataFrame, idx=None, source="") -
         out["retail_long"].append(rl); out["retail_short"].append(rs); out["retail_net"].append(rl - rs)
         out["ratio_pct"].append((rl - rs) / t * 100)
     out["settle_dates"] = settle_dates(out["dates"])
-    out["asof"] = out["dates"][-1] if out["dates"] else None
     return out
+
+
+def retail_ratio_json(fi: pd.DataFrame, oi: pd.DataFrame, idx=None, source="") -> dict:
+    """site/data/retail_ratio.json（2026-10-20 新合約）：{asof, source, order, products:{TX,MTX,TMF:{dates,taiex,...}}}。
+    散戶多單＝全市場未平倉(所有到期月份合計)−三大法人多方未平倉；散戶空單同理；
+    多空比＝(散戶多−散戶空)÷全市場未平倉×100。三商品各自獨立算；asof＝三商品最新日的最大值。"""
+    tx = _taiex(idx)
+    prods = {f: _retail_one(fi, oi, f, tx) for f in RETAIL_PRODUCTS}
+    last = [p["dates"][-1] for p in prods.values() if p["dates"]]
+    return {"asof": max(last) if last else None, "source": source, "order": "asc", "products": prods}
 
 
 def build(mt, md, company, price, idx=None, members=None) -> dict:

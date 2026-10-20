@@ -152,4 +152,6 @@
 - 大盤融資維持率（估算）：Σ(上市個股融資餘額張×1000×當日收盤)÷整體市場融資金額(官方)×100，非證交所法定整戶擔保維持率。
 - 結算日＝每月第三個星期三（假日順延）。
 - 查證：iThome <https://ithelp.ithome.com.tw/articles/10288800>、商周 <https://smart.businessweekly.com.tw/Reading/IndepArticle.aspx?id=38560>、玩股網 <https://www.wantgoo.com/blog/248096/post/407>（定義與分母）；期交所三大法人資料集 <https://data.gov.tw/en/datasets/11592>。
+- **三商品（2026-10-20，Andy 要求大台／小台／微台）**：TX、MTX、TMF 的三大法人（`fut_inst`）與全市場未平倉（`fut_oi`）都進湖；全市場未平倉＝FinMind `TaiwanFuturesDaily` 一般交易時段（`trading_session=position`）各單一到期月份 `open_interest` 加總，價差單（`contract_date` 含 `/`）排除；散戶公式同上。回補旗標 `mktfut3`（TX／MTX 5 年、TMF 自 2024-07 上市起）。`retail_ratio.json` 合約：`{asof,source,order:"asc",products:{TX,MTX,TMF:{dates,taiex,total_oi,retail_long,retail_short,retail_net,ratio_pct,settle_dates}}}`。
+- 沒產出的根因：source 把未平倉抓成 MTX 存進 `fut_oi`，compute 卻只讀 TMF，結果 `retail_ratio.json` 只有空殼（頁面顯示「資料準備中」）。
 - 資料表：`margin_total`、`fut_inst`、`fut_oi`（config.TABLES v17），回補起點 2021-01-01（TMF 自 2024-08 才有資料），每日管線近 10 天增量。
