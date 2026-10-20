@@ -569,8 +569,20 @@ def run_inst_phase(args) -> int:
     inst = inst[inst["date"].astype(str) == trade_date] if not inst.empty else inst
     n += save("inst_daily", inst)
     if n <= 0:
+        # 官方端點的診斷（網址／HTTP／欄位名）內容有變才寫檔並讓這輪 commit：Actions log 在容器讀不到，
+        # 端點第一次上線要靠這個檔校正 parser；沒變就照舊不 commit、不部署。
+        diag_changed = False
+        try:
+            f = config.STATE / "inst_official_diag.json"
+            cur = json.dumps(inst_official.DIAG[-40:], ensure_ascii=False, sort_keys=True, indent=1)
+            if inst_official.DIAG and (not f.exists() or f.read_text(encoding="utf-8") != cur):
+                f.parent.mkdir(parents=True, exist_ok=True)
+                f.write_text(cur, encoding="utf-8")
+                diag_changed = True
+        except Exception:  # noqa: BLE001
+            log.exception("寫官方法人診斷檔失敗")
         log.info("phase=inst：沒有新增列（已到齊），不重算、不部署")
-        _set_gh_output("inst_new", "false")
+        _set_gh_output("inst_new", "true" if diag_changed else "false")
         return 0
 
     RESULT["phase"] = "inst"
