@@ -296,6 +296,26 @@ def warm_articles(pg):
     pg.wait_for_function("() => document.querySelectorAll('#v-articles .artc').length > 3", timeout=15000)
 
 
+UNION_JS = r"""([sels, snapSel]) => { let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
+  for (const s of sels) { let els; const m = /^firstn:(\d+):(.*)$/.exec(s);
+    els = m ? [...document.querySelectorAll(m[2])].slice(0, +m[1]) : [document.querySelector(s)];
+    for (const e of els) { if (!e) continue; const r = e.getBoundingClientRect(); x0 = Math.min(x0, r.left); y0 = Math.min(y0, r.top); x1 = Math.max(x1, r.right); y1 = Math.max(y1, r.bottom); } }
+  // 下緣吸附到「沒有任何文字外框橫跨」的水平線（從 y1 往下找），框邊才不會切過文字
+  const boxes = []; const root = document.getElementById('v-articles'); const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT); let n;
+  while ((n = w.nextNode())) { if (!n.textContent.trim()) continue; const pe = n.parentElement; if (!pe || pe.closest('[hidden]') || getComputedStyle(pe).visibility === 'hidden') continue;
+    const rg = document.createRange(); rg.selectNodeContents(n); for (const q of rg.getClientRects()) if (q.right > x0 && q.left < x1 && q.height > 1) boxes.push([q.top, q.bottom]); }
+  let y = y1; const inside = (v) => boxes.some(([t, b]) => t + 1 < v && v < b - 1);
+  for (let k = 0; k < 800 && inside(y); k++) y += 0.5;
+  return [x0, y0, x1 - x0, y - y0]; }"""
+
+
+def fixed_rect(pg, sels):
+    """一組元素外框的聯集 → 固定的 'rect:'（篩選時卡片數、族群鈕數會變，取景固定在「全部文章」那一刻的範圍，鏡頭不跟著內容伸縮）；
+    下緣吸附到沒有文字橫跨的水平線。"""
+    x, y, w, h = pg.evaluate(UNION_JS, [sels, None])
+    return f"rect:{x:.1f},{y:.1f},{w:.1f},{h:.1f}"
+
+
 def d_arts(pg, a, start):
     warm_articles(pg)
     goto(pg, "#overview", 3500)
@@ -308,20 +328,21 @@ def d_arts(pg, a, start):
     a.cam(["#v-articles .artcard h3", "#artCats", ".artflt", "firstn:6:#v-articles .artc", "#artSide section:nth-of-type(1)", "#artSide section:nth-of-type(2)"], 6, "精選文章（全圖定位）", edges=ART_EDGES)
     a.say("文章分成三大類", "folder")
     a.idle(500)
-    a.cam(["#artCats", "firstn:6:#v-articles .artc", "#artSide section:nth-of-type(1)", "#artSide section:nth-of-type(2)"], 6, "推近：分類分頁＋第一排文章", minw=F.ZMIN, edges=ART_EDGES, zoom=True)
+    FX = fixed_rect(pg, ["#artCats", "firstn:6:#v-articles .artc", "#artSide section:nth-of-type(1)", "#artSide section:nth-of-type(2)"])
+    a.cam([FX], 0, "推近：分類分頁＋文章卡", minw=F.ZMIN, edges=ART_EDGES, zoom=True)
     for c, lab in (("news", "分類：比比快訊"), ("intro", "分類：比比產業鏈"), ("know", "分類：比比知識")):
         a.click(f'#artCats>button[data-cat="{c}"]', ms=380, pause=150, label=lab)
         a.wait(1000)
     a.click('#artCats>button[data-cat="all"]', ms=380, pause=150, label="分類：全部文章")
     a.wait(700)
-    a.cam(["#artSide section:nth-of-type(1)", "#artSide section:nth-of-type(2)", ".artflt", "firstn:6:#v-articles .artc"], 6, "推近：熱門族群＋篩選結果", minw=F.ZMIN, edges=ART_EDGES, zoom=True)
+    a.cam([FX], 0, "推近：熱門族群＋篩選結果", minw=F.ZMIN, edges=ART_EDGES, zoom=True)
     a.say("點族群，只看相關文章", "magnifier")
     for g, lab in (("foundry", "族群：晶圓代工"), ("ai_adv_packaging", "族群：AI 先進封裝"), ("memory_module", "族群：記憶體模組")):
         a.click(f'#artSide .gps button[data-gid="{g}"]', ms=380, pause=150, label=lab)
         a.wait(1000)
     a.click('#artClr', ms=380, pause=150, label="清除篩選")
     a.wait(700)
-    a.cam([".artflt", "firstn:6:#v-articles .artc", "#artSide section:nth-of-type(1)", "#artSide section:nth-of-type(2)"], 6, "推近：關鍵字搜尋", minw=F.ZMIN, edges=ART_EDGES, zoom=True)
+    a.cam([FX], 0, "推近：關鍵字搜尋", minw=F.ZMIN, edges=ART_EDGES, zoom=True)
     a.say("關鍵字搜標題", "magnifier")
     a.click("#artQ", ms=380, pause=120, label="搜尋框")
     a.type_text("#artQ", "Roadster")
@@ -628,6 +649,8 @@ def run(dev, shots, out, port):
                 ctx.add_init_script(C.PRESET)
                 ctx.add_init_script(C.HIDE_B_JS)   # 法遵：B 類功能名稱不入鏡
                 ctx.add_init_script(CLIP_JS)
+                if dev == "d":   # 網頁版：文章清單每組只露出前 6 張卡（兩排）、右欄只留前兩節 → 取景框下緣能落在乾淨的空白處（只在錄影的瀏覽器裡，不改 site/）
+                    ctx.add_init_script("(() => { const go = () => { const st = document.createElement('style'); st.textContent = '#artList .artc:nth-child(n+7){display:none!important}#artSide section:nth-of-type(n+3){display:none!important}'; document.head.appendChild(st); }; document.readyState === 'loading' ? document.addEventListener('DOMContentLoaded', go) : go(); })();")
                 ctx.add_init_script(BLUR_JS)       # 法遵：券商列、含公司名的標題、個股連結模糊
                 if dev == "d" and sid not in ("guide", "arts"):   # 桌機左側導覽收成圖示列：內容區更寬（引導段要看得到選單文字）
                     ctx.add_init_script("try{localStorage.setItem('tw.layout4.nav','mini')}catch(e){}")

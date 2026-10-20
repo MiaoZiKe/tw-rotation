@@ -443,6 +443,7 @@ def bubble_img(dev, text, tip_x, tip_y, side, zone):
 # 取景：錄影時每一格量到「介紹區塊」focus（元素本身的完整外框，不以視窗裁切）與取景框 cam。
 # 合成時鏡頭一律把 focus 整塊放進「最壞情況的實際裁切範圍」（鏡頭慢移＝裁切框內縮 2%、在內縮範圍內來回 → 四邊各留 2%）。
 # 手機版允許取景框比錄影畫面寬一點（≤8%）：超出的部分補網頁底色（整塊區塊完整入鏡，不是靠留白算沒切到 —— 檢查是拿區塊本身的外框比實際裁切）。
+EDGE_TOL = 3.0      # 切字檢查容許（css 像素）：文字外框是「行距含上下伸展」的框，字墨離外框上下各約 3px；外框超出看得到範圍 ≤3px 時字墨仍整個在內，不算切字
 DRIFT = 0.008      # 裁切框內縮比例（四邊各最多內縮 0.8%；05 的卡片左右只離視窗邊 16 css、上緣離頂欄 16 css，2% 會把整張卡裁掉一角）
 OUT_X = 0.08       # 手機取景最多比錄影畫面寬 8%
 
@@ -869,10 +870,11 @@ def render(dev, only=None, seg=None):
                     for e in (eds[kk] if kk < len(eds) else []):
                         ix = min(e[0] + e[2], V[0] + V[2]) - max(e[0], V[0])
                         iy = min(e[1] + e[3], V[1] + V[3]) - max(e[1], V[1])
-                        if ix > 0.5 and iy > 0.5 and not contains(V, e, 0.5):
+                        if ix > 0.5 and iy > 0.5 and not contains(V, e, EDGE_TOL):   # 文字外框含行距，字墨離外框上下各約 3px；外框超出 ≤3px 時字墨仍整個在內，不算切字
                             C_["edge"].append(round(tt, 2))
-                            if len(C_.setdefault("edge_r", [])) < 8:
-                                C_["edge_r"].append((round(tt, 2), [round(v / s["meta"]["dsf"]) for v in e], [round(v / s["meta"]["dsf"]) for v in V]))
+                            _er = (tuple(round(v / s["meta"]["dsf"]) for v in e), tuple(round(v / s["meta"]["dsf"]) for v in V))
+                            if _er not in [x[1:] for x in C_.setdefault("edge_r", [])] and len(C_["edge_r"]) < 12:
+                                C_["edge_r"].append((round(tt, 2),) + _er)
                             break
                 lab = next((m[2] for m in reversed([m for m in s["meta"]["marks"] if m[1] == "cam"]) if m[0] <= k / FPS + 1e-6), "")
                 if zoom:
@@ -1025,7 +1027,7 @@ def render(dev, only=None, seg=None):
     snaps = [(s["sid"], cams[s["sid"]]["snaps"]) for s in shots]
     for k_, v_ in chk.items():
         if v_.get("edge_r"):
-            print("切字樣本（css：文字外框／看得到的範圍）", k_, v_["edge_r"][:8])
+            print("切字樣本（css：文字外框／看得到的範圍）", k_, v_["edge_r"][:12])
     print("裁切", cut_rows, "框邊切卡", edge_rows, "推移", transit_rows, "拉鏡", snaps)
     for sid_, ff_ in fill_rows:
         if ff_:
