@@ -119,7 +119,7 @@
        係數對每條線一樣，所以「最密／最疏」的比例（驗收 ×6）不變；「每條線至少一顆」的下限不受影響。*/
     CL_P_BUDGET: 380,
     /* ★ 2026-09-26（第二版）黃金標準 docs/prototypes/flow_perfect_topology.html 的版面數字 */
-    EL_SLOT_MAX: 42, EL_SLOT_MIN: 36, EL_SLOT_FIT: 18, EL_PAD: 22, EL_PAD_FIT: 12,   // 族群槽位高度（參考稿 Math.min(42, (h−60)/n)）、上下留白
+    EL_SLOT_MAX: (window.TW_SNAP_SLOT_MAX > 0 ? window.TW_SNAP_SLOT_MAX : 42),   /* 截圖程式（scripts/social_snap.py）限動版可用 add_init_script 覆寫；一般網頁沒設＝42，行為不變 */ EL_SLOT_MIN: 36, EL_SLOT_FIT: 18, EL_PAD: 22, EL_PAD_FIT: 12,   // 族群槽位高度（參考稿 Math.min(42, (h−60)/n)）、上下留白
     EL_LEAF_SP: 13, EL_LEAF_R: 1.8,                 // 代表股間距（12px 字＋1）、小點半徑 1.8
     EL_BADGE_H: 17,                                 // 標籤膠囊高 17、圓角 3
     /* 黃金標準每幀先蓋一層 rgba(5,10,20,.38) 再重畫線 → 線條的「看起來的」透明度會累積到穩態

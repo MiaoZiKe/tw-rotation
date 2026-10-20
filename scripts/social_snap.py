@@ -106,7 +106,8 @@ ROT_UNCHECK = """async (el) => {   // 把「顯示軌跡／顯示腳印／水波
 }"""
 ROT_PIECES = [dict(name="rotation-wheel", sel="#rotClockWrap", title="資金輪盤", text="quad", pre=ROT_UNCHECK, trim_bottom_m=32, trim_bottom_d=17),   # 輪盤底下那行「⚡ 即時：灰虛線…」是畫布文字，只能裁掉
               dict(name="rotation-rank", sel="#rankFlowWrap", title="族群資金排行", pre_m=ROT_RANK_TALLER)]
-SANKEY_STORY_VW, SANKEY_STORY_VH, SANKEY_STORY_DSF = 910, 1300, 1.3   # 限動版分流樹：窄桌機視窗（手機 390 版的樹高寬比 1.86，放進卡片只佔內寬約 70%；桌機版面槽位較矮，重畫後比較接近卡片內寬比）
+SANKEY_STORY_VW, SANKEY_STORY_VH, SANKEY_STORY_DSF = 910, 1300, 1.3
+SANKEY_STORY_SLOT_MAX = 46   # 限動版分流樹槽高上限（預設 42）：把樹拉高、節點間距變大（重畫），圖上下貼齊標題與下方兩塊   # 限動版分流樹：窄桌機視窗（手機 390 版的樹高寬比 1.86，放進卡片只佔內寬約 70%；桌機版面槽位較矮，重畫後比較接近卡片內寬比）
 SANKEY_SCRUB = [["即時板塊合計.*", ""], ["\\s*[—-]\\s*\\(真實\\)", ""], ["\\s*盤後\\s*$", ""]]   # 根節點只留「台股成交值」；去掉「盤後」尾巴
 SANKEY_PIECES = [dict(name="sankey-tree", sel="#sankeyWrap", title="資金分流樹", text="flows", root_sel="body",
                       
@@ -749,6 +750,7 @@ def snap_targets(args, base: str, out: Path, today_ymd: str) -> tuple[list[dict]
                 if t["name"] == "sankey":   # 限動版分流樹：換成窄桌機視窗重畫（重畫、非拉伸），樹本身變寬
                     sargs = argparse.Namespace(**{**vars(args), "width": SANKEY_STORY_VW, "height": SANKEY_STORY_VH, "scale": SANKEY_STORY_DSF})
                     sctx, spg = open_ctx(browser, base, sargs, today_ymd, sniff, False, SANKEY_STORY_DSF)
+                    sctx.add_init_script(f"window.TW_SNAP_SLOT_MAX={SANKEY_STORY_SLOT_MAX};")
                     el = prepare(spg, t, {})
                     if el is None:
                         info["story_why"] = "限動分流樹沒截成"
