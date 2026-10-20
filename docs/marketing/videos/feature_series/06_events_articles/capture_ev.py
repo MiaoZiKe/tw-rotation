@@ -214,7 +214,8 @@ EV_HEAD = ["#side .side-h", "#evFilters"]
 
 
 def ev_rows(n, d=False):
-    head = ["#evDate", "#side .side-h h3", "#evFilters"] if d else EV_HEAD   # 桌機：抽屜上緣就是視窗上緣，取景上緣改落在標題列內
+    # 取景上緣離標題列的字／下拉框 ≥6px（桌機：抽屜上緣就是視窗上緣，只能落在標題列內；手機：抽屜上緣在 y=52）
+    head = ["#evDate", "#side .side-h h3", "#evFilters", "rect:1181,6,419,2"] if d else EV_HEAD + ["rect:90,58,300,2"]
     return head + [f"firstn:{n}:#evList .ev", "#__vsel"]
 
 
@@ -250,7 +251,7 @@ def d_guide(pg, a, start):
     a.x, a.y = 600, 400
     start()
     # 左側選單上段（搜尋框、事件、今日市場、總覽）：以 4 倍像素錄，推近後選單佔畫面寬 ≥70%
-    a.cam(["rect:4,84,218,148"], 0, "推近：左側選單「事件」", minw=200, edges=NAV_EDGES, zoom=True)
+    a.cam(["rect:4,124,218,118"], 0, "推近：左側選單「事件」", minw=200, edges=NAV_EDGES, zoom=True)
     a.say("左側選單「事件」", "point_r_v2")
     a.hover("#evToggle", 500)
     a.say("點一下就打開", "tap")
@@ -304,7 +305,7 @@ UNION_JS = r"""([sels, snapSel]) => { let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1
   const boxes = []; const root = document.getElementById('v-articles'); const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT); let n;
   while ((n = w.nextNode())) { if (!n.textContent.trim()) continue; const pe = n.parentElement; if (!pe || pe.closest('[hidden]') || getComputedStyle(pe).visibility === 'hidden') continue;
     const rg = document.createRange(); rg.selectNodeContents(n); for (const q of rg.getClientRects()) if (q.right > x0 && q.left < x1 && q.height > 1) boxes.push([q.top, q.bottom]); }
-  let y = y1; const inside = (v) => boxes.some(([t, b]) => t + 1 < v && v < b - 1);
+  let y = y1; const inside = (v) => boxes.some(([t, b]) => t - 4 < v && v < b + 4);
   for (let k = 0; k < 800 && inside(y); k++) y += 0.5;
   return [x0, y0, x1 - x0, y - y0]; }"""
 
@@ -358,10 +359,12 @@ def d_end(pg, a, start):
     goto(pg, "#articles", 2500)
     a.x, a.y = 900, 500
     start()
-    a.cam(["#artCats", "firstn:6:#v-articles .artc", "#artSide section:nth-of-type(1)", "#artSide section:nth-of-type(2)"], 6, "精選文章", edges=ART_EDGES)
+    FX = fixed_rect(pg, ["#artCats", "firstn:6:#v-articles .artc", "#artSide section:nth-of-type(1)", "#artSide section:nth-of-type(2)"])
+    a.cam([FX], 0, "精選文章", edges=ART_EDGES)
     a.say("事件＋文章，一站看懂", "proud_shine")
     a.move(700, 500, 900)
-    a.cam(["#artCats", "firstn:3:#v-articles .artc"], 6, "推近：分類分頁＋第一排文章", minw=F.ZMIN, edges=ART_EDGES, zoom=True)
+    FY = fixed_rect(pg, ["#artCats", ".artflt", "firstn:3:#v-articles .artc"])
+    a.cam([FY], 0, "推近：分類分頁＋第一排文章", minw=F.ZMIN, edges=ART_EDGES, zoom=True)
     a.say("搜尋「哩股哩股」", "invite_nod")
     a.move(1000, 600, 900)
     a.settle()
@@ -375,10 +378,10 @@ def m_open(pg, a, start):
     goto(pg, "#overview", 3500)
     open_drawer_now(pg, True)
     start()
-    a.cam(ev_rows(4), -12, "今日事件清單", edges=EV_EDGES)
+    a.cam(ev_rows(4), [-10, 0], "今日事件清單", edges=EV_EDGES)
     a.say("新聞多到看不完？", "face_sweat")
     a.idle(900)
-    a.cam(["firstn:2:#evList .ev"], -10, "推近：前兩則事件", edges=EV_EDGES)   # 第二拍推近到前兩則（鏡頭在動，畫面不停住）
+    a.cam(["firstn:2:#evList .ev"], [-10, 0], "推近：前兩則事件", edges=EV_EDGES)   # 第二拍推近到前兩則（鏡頭在動，畫面不停住）
     a.say("哪些事件跟市場有關？", "globe")
     a.idle(900)
     a.settle()
@@ -395,7 +398,7 @@ def m_guide(pg, a, start):
     a.say("點「事件」", "tap")
     a.click('.m4item[data-act="events"]', label="選單：事件")
     a.wait(1700)
-    a.cam(ev_rows(3), -10, "今日事件抽屜", edges=EV_EDGES)
+    a.cam(ev_rows(3), [-10, 0], "今日事件抽屜", edges=EV_EDGES)
     a.idle(600)
     a.settle()
 
@@ -404,7 +407,7 @@ def m_events(pg, a, start):
     goto(pg, "#overview", 3500)
     open_drawer_now(pg, True)
     start()
-    a.cam(ev_rows(3), -10, "分類＋清單", edges=EV_EDGES)
+    a.cam(ev_rows(3), [-10, 0], "分類＋清單", edges=EV_EDGES)
     a.say("依分類切換新聞", "news")
     first = True
     for c in ("台股", "科技", "總經"):
