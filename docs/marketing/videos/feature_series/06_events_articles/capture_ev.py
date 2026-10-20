@@ -147,7 +147,7 @@ BLUR_JS = r"""
 
 SEL_OVERLAY_JS = r"""([s, v]) => { const e = document.querySelector(s); if (!e) return; const r = e.getBoundingClientRect();
   const d = document.createElement('div'); d.id = '__vsel';
-  d.style.cssText = `position:fixed;left:${r.left}px;top:${r.bottom + 2}px;min-width:${r.width}px;z-index:2147483600;background:#fff;border:1px solid #c9d3e0;border-radius:8px;box-shadow:0 8px 24px rgba(15,23,42,.18);padding:4px 0;font:14px/1.2 'Noto Sans TC',sans-serif;color:#1f2937`;
+  d.style.cssText = `position:fixed;left:${r.left}px;top:${r.bottom + 2}px;min-width:${r.width}px;max-height:150px;overflow:hidden;z-index:2147483600;background:#fff;border:1px solid #c9d3e0;border-radius:8px;box-shadow:0 8px 24px rgba(15,23,42,.18);padding:4px 0;font:14px/1.2 'Noto Sans TC',sans-serif;color:#1f2937`;
   d.innerHTML = [...e.options].map(o => `<div data-v="${o.value}" style="padding:7px 14px;white-space:nowrap;${o.value === e.value ? 'background:#e8f0fb;color:#1d4ed8;font-weight:600' : ''}">${o.text}</div>`).join('');
   const st = document.createElement('style'); st.textContent = '#__vsel .hv{background:#2563eb!important;color:#fff!important}'; d.appendChild(st);
   document.body.appendChild(d); }"""
@@ -213,8 +213,9 @@ ART_EDGES = ["txt:.artc", "txt:#artCats>button", "txt:#artSide .gps button", "#a
 EV_HEAD = ["#side .side-h", "#evFilters"]
 
 
-def ev_rows(n):
-    return EV_HEAD + [f"firstn:{n}:#evList .ev", "#__vsel"]
+def ev_rows(n, d=False):
+    head = ["#evDate", "#side .side-h h3", "#evFilters"] if d else EV_HEAD   # 桌機：抽屜上緣就是視窗上緣，取景上緣改落在標題列內
+    return head + [f"firstn:{n}:#evList .ev", "#__vsel"]
 
 
 def open_drawer_now(pg, mob):
@@ -234,7 +235,7 @@ def d_open(pg, a, start):
     open_drawer_now(pg, False)
     a.x, a.y = 1300, 600
     start()
-    a.cam(ev_rows(2), [-12, 0], "今日事件清單", edges=EV_EDGES, zoom=True)
+    a.cam(ev_rows(2, True), [-12, 0], "今日事件清單", edges=EV_EDGES, zoom=True)
     a.say("新聞多到看不完？", "face_sweat")
     a.hover("#evList .ev > a >> nth=0", 500, dx=0.3)
     a.idle(500)
@@ -255,7 +256,7 @@ def d_guide(pg, a, start):
     a.say("點一下就打開", "tap")
     a.click("#evToggle", label="選單：事件")
     a.wait(1600)
-    a.cam(ev_rows(2), [-12, 0], "今日事件抽屜", edges=EV_EDGES, zoom=True)
+    a.cam(ev_rows(2, True), [-12, 0], "今日事件抽屜", edges=EV_EDGES, zoom=True)
     a.idle(700)
     a.settle()
 
@@ -265,7 +266,7 @@ def d_events(pg, a, start):
     open_drawer_now(pg, False)
     a.x, a.y = 1300, 500
     start()
-    a.cam(ev_rows(2), [-12, 0], "推近：分類＋清單", edges=EV_EDGES, zoom=True)
+    a.cam(ev_rows(2, True), [-12, 0], "推近：分類＋清單", edges=EV_EDGES, zoom=True)
     a.say("依分類切換新聞", "news")
     first = True
     for c in ("台股", "科技", "總經"):
@@ -280,7 +281,7 @@ def d_events(pg, a, start):
     pg.evaluate("() => document.getElementById('__vsel').remove()")
     sb = pg.evaluate(C.RECT_JS, "#evDate")
     drop = f"rect:{min(sb[0], ov[0]):.1f},{sb[1]:.1f},{max(sb[2], ov[2]):.1f},{ov[1] + ov[3] - sb[1] + 8:.1f}"
-    a.cam(ev_rows(2) + [drop], [-12, 0], "推近：日期下拉＋清單", edges=EV_EDGES, zoom=True)
+    a.cam(ev_rows(2, True) + [drop], [-12, 0], "推近：日期下拉＋清單", edges=EV_EDGES, zoom=True)
     a.say("日期選最近一週", "calendar")
     opts = pg.evaluate("() => [...document.querySelector('#evDate').options].map(o => o.value).filter(v => v !== 'all')")
     for v in opts[:3]:
@@ -304,23 +305,23 @@ def d_arts(pg, a, start):
     a.say("產業題材想一次看懂？", "face_curious")
     a.click('#tabs .tab[data-view="articles"]', label="選單：精選文章")
     a.wait(1800)
-    a.cam(["#v-articles .artcard h3", "#artCats", ".artflt", "firstn:3:#v-articles .artc", "#artSide section:nth-of-type(1)", "#artSide section:nth-of-type(2)"], 6, "精選文章（全圖定位）", edges=ART_EDGES)
+    a.cam(["#v-articles .artcard h3", "#artCats", ".artflt", "firstn:6:#v-articles .artc", "#artSide section:nth-of-type(1)", "#artSide section:nth-of-type(2)"], 6, "精選文章（全圖定位）", edges=ART_EDGES)
     a.say("文章分成三大類", "folder")
     a.idle(500)
-    a.cam(["#artCats", "firstn:3:#v-articles .artc", "#artSide section:nth-of-type(1)", "#artSide section:nth-of-type(2)"], 6, "推近：分類分頁＋第一排文章", minw=F.ZMIN, edges=ART_EDGES, zoom=True)
+    a.cam(["#artCats", "firstn:6:#v-articles .artc", "#artSide section:nth-of-type(1)", "#artSide section:nth-of-type(2)"], 6, "推近：分類分頁＋第一排文章", minw=F.ZMIN, edges=ART_EDGES, zoom=True)
     for c, lab in (("news", "分類：比比快訊"), ("intro", "分類：比比產業鏈"), ("know", "分類：比比知識")):
         a.click(f'#artCats>button[data-cat="{c}"]', ms=380, pause=150, label=lab)
         a.wait(1000)
     a.click('#artCats>button[data-cat="all"]', ms=380, pause=150, label="分類：全部文章")
     a.wait(700)
-    a.cam(["#artSide section:nth-of-type(2)", ".artflt", "firstn:3:#v-articles .artc"], 6, "推近：熱門族群＋篩選結果", minw=F.ZMIN, edges=ART_EDGES, zoom=True)
+    a.cam(["#artSide section:nth-of-type(1)", "#artSide section:nth-of-type(2)", ".artflt", "firstn:6:#v-articles .artc"], 6, "推近：熱門族群＋篩選結果", minw=F.ZMIN, edges=ART_EDGES, zoom=True)
     a.say("點族群，只看相關文章", "magnifier")
     for g, lab in (("foundry", "族群：晶圓代工"), ("ai_adv_packaging", "族群：AI 先進封裝"), ("memory_module", "族群：記憶體模組")):
         a.click(f'#artSide .gps button[data-gid="{g}"]', ms=380, pause=150, label=lab)
         a.wait(1000)
     a.click('#artClr', ms=380, pause=150, label="清除篩選")
     a.wait(700)
-    a.cam([".artflt", "firstn:3:#v-articles .artc", "#artSide section:nth-of-type(1)", "#artSide section:nth-of-type(2)"], 6, "推近：關鍵字搜尋", minw=F.ZMIN, edges=ART_EDGES, zoom=True)
+    a.cam([".artflt", "firstn:6:#v-articles .artc", "#artSide section:nth-of-type(1)", "#artSide section:nth-of-type(2)"], 6, "推近：關鍵字搜尋", minw=F.ZMIN, edges=ART_EDGES, zoom=True)
     a.say("關鍵字搜標題", "magnifier")
     a.click("#artQ", ms=380, pause=120, label="搜尋框")
     a.type_text("#artQ", "Roadster")
@@ -336,7 +337,7 @@ def d_end(pg, a, start):
     goto(pg, "#articles", 2500)
     a.x, a.y = 900, 500
     start()
-    a.cam(["#artCats", "firstn:3:#v-articles .artc", "#artSide section:nth-of-type(1)", "#artSide section:nth-of-type(2)"], 6, "精選文章", edges=ART_EDGES)
+    a.cam(["#artCats", "firstn:6:#v-articles .artc", "#artSide section:nth-of-type(1)", "#artSide section:nth-of-type(2)"], 6, "精選文章", edges=ART_EDGES)
     a.say("事件＋文章，一站看懂", "proud_shine")
     a.move(700, 500, 900)
     a.cam(["#artCats", "firstn:3:#v-articles .artc"], 6, "推近：分類分頁＋第一排文章", minw=F.ZMIN, edges=ART_EDGES, zoom=True)
@@ -508,7 +509,7 @@ def d_tesla(pg, a, start):
     card = '.artc[data-id="2026-10-17-news-tesla"]'
     a.x, a.y = 1000, 600
     start()
-    a.cam([".artflt", card], 6, "推近：特斯拉那篇（限時公開）", minw=F.ZMIN, edges=ART_EDGES, zoom=True)
+    a.cam([".artflt", card, "#artSide section:nth-of-type(1)", "#artSide section:nth-of-type(2)"], 6, "推近：特斯拉那篇（限時公開）", minw=F.ZMIN, edges=ART_EDGES, zoom=True)
     a.say("限時公開，免登入看", "face_cool")
     a.click(card, ms=420, pause=200, label="點進特斯拉那篇")
     a.until("() => !!document.querySelector('#artBody .artchart canvas')", 8000)
