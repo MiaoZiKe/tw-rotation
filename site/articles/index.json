@@ -2,6 +2,16 @@
  "updated": "2026-10-20",
  "articles": [
   {
+   "id": "2026-10-20-know-concept",
+   "cat": "know",
+   "title": "題材標籤誰貼的？同題材漲幅差到 90 點",
+   "date": "2026-10-20",
+   "topic": "sch-20261020-06-r1-know-3",
+   "groups": [],
+   "reading_min": 3,
+   "src": "api"
+  },
+  {
    "id": "2026-10-20-intro-ai-networking",
    "cat": "intro",
    "title": "AI 網通鏈 5 個環節：從晶片到線纜",
