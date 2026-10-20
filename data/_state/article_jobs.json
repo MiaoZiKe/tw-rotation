@@ -1,5 +1,5 @@
 {
- "updated": "2026-10-20 06:38",
+ "updated": "2026-10-20 08:08",
  "jobs": [
   {
    "id": 20,
@@ -7,12 +7,12 @@
    "kind": "article",
    "title": "FOMC 10/28 前夕：外資與台股族群怎麼動",
    "note": "排程自動排入（規則 1，台北 2026-10-20 06:00）；建議主題 n_fomc_oct",
-   "status": "queued",
+   "status": "working",
    "created": 1792449515433,
-   "updated": 1792449515433,
+   "updated": 1792454913939,
    "result": null,
-   "stage": null,
-   "stage_at": null
+   "stage": "plan",
+   "stage_at": 1792454913939
   },
   {
    "id": 21,
