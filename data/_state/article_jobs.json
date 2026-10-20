@@ -1,32 +1,6 @@
 {
- "updated": "2026-10-20 09:08",
+ "updated": "2026-10-20 09:14",
  "jobs": [
-  {
-   "id": 20,
-   "topic_id": "sch-20261020-06-r1-news-1",
-   "kind": "article",
-   "title": "FOMC 10/28 前夕：外資與台股族群怎麼動",
-   "note": "排程自動排入（規則 1，台北 2026-10-20 06:00）；建議主題 n_fomc_oct",
-   "status": "working",
-   "created": 1792449515433,
-   "updated": 1792458506740,
-   "result": null,
-   "stage": "write",
-   "stage_at": 1792458506740
-  },
-  {
-   "id": 21,
-   "topic_id": "sch-20261020-06-r1-news-2",
-   "kind": "article",
-   "title": "特斯拉與馬斯克最新動向：Optimus、TeraFab、資本支出上修",
-   "note": "排程自動排入（規則 1，台北 2026-10-20 06:00）；建議主題 n_musk_tesla",
-   "status": "queued",
-   "created": 1792449515580,
-   "updated": 1792449515580,
-   "result": null,
-   "stage": null,
-   "stage_at": null
-  },
   {
    "id": 22,
    "topic_id": "sch-20261020-06-r1-news-3",
