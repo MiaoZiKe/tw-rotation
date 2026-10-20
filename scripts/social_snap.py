@@ -112,12 +112,12 @@ SANKEY_PIECES = [dict(name="sankey-tree", sel="#sankeyWrap", title="資金分流
                       
                       hide=["#sankeyLive", "#sankeyMotionBtn", ".ftbtn"], hide_exact=["~即時", "~^動態"], scrub=SANKEY_SCRUB)]
 TARGETS = [
-    dict(name="rotation", kind="intraday", label="資金輪盤／族群資金排行", route="flow/rotation",
+    dict(name="rotation", snap="rot-wheel", kind="intraday", label="資金輪盤／族群資金排行", route="flow/rotation",
          card="#flowRotCard", live="#rotLiveBtn",
          live_ok="() => { const b = document.querySelector('#rotLiveBtn'); const t = document.querySelector('#rotLiveTag');"
                  " return !!b && b.getAttribute('aria-pressed') === 'true' && !!t && !t.hidden && !/抓取中|抓不到|失敗|逾時|連不到/.test(t.innerText); }",
          headline=r"資金[占佔]比\s*增加最多\s*[：:][^\n]*", d=ROT_PIECES, m=ROT_PIECES),
-    dict(name="sankey", kind="intraday", label="資金分流樹", route="flow/sankey",
+    dict(name="sankey", snap="flow-tree", kind="intraday", label="資金分流樹", route="flow/sankey",
          card="#flowSankeyCard", live="#sankeyLiveBtn",
          live_ok="() => { const b = document.querySelector('#sankeyLiveBtn');"
                  " return !!b && (b.getAttribute('aria-pressed') === 'true' || b.classList.contains('on')) && !/抓取中|抓不到|失敗|逾時|連不到/.test((document.querySelector('#sankeyLive') || {}).innerText || ''); }",
@@ -342,7 +342,7 @@ def resolve_target(pg, t: dict, use_attr: str):
     """回傳要截的元素 handle（優先 data-snap，其次舊選擇器）。"""
     el = None
     if use_attr != "never":
-        el = pg.query_selector(f'[data-snap="{t["name"]}"]')
+        el = pg.query_selector(f'[data-snap="{t.get("snap", t["name"])}"]')
     if el is None and (use_attr == "only" or t.get("attr_only")):
         return None
     if el is None:
@@ -633,9 +633,15 @@ def snap_targets(args, base: str, out: Path, today_ymd: str) -> tuple[list[dict]
             if not live_confirmed(pg, t, args):
                 info["why"] = "即時沒套上（抓不到報價）→ 不發"
                 return None
-        if not wait_snap_ready(pg, t["name"], 20000):
+        if not wait_snap_ready(pg, t.get("snap", t["name"]), 20000):
             info["why"] = "TwSnapReady 逾時 → 不發"
             return None
+        if args.kind == "intraday" and not (args.skip_live == "all" or t["name"] in args.skip_live.split(",")):
+            st = pg.evaluate("""(n) => { const e = document.querySelector('[data-snap="' + n + '"]'); const h = e && (e.closest('[data-snap-live]') || e);
+                                         return (h && h.getAttribute('data-snap-live')) || ''; }""", t.get("snap", t["name"]))
+            if st == "err":   # 前端回報即時抓不到（或等超過 60 秒）→ 不拿舊圖冒充
+                info["why"] = "data-snap-live=err（即時抓不到）→ 不發"
+                return None
         pg.wait_for_timeout(1500)
         pg.evaluate(HIDE_FLOATING_JS, t["card"])
         pg.wait_for_timeout(300)

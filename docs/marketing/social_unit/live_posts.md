@@ -72,3 +72,10 @@ python scripts/social_snap.py --kind close --serve site --force --out /tmp/demo/
 1. 熱力圖即時鈕與 `data-snap`／`window.TwSnapReady`（frontend-ui）：上線後對齊 `docs/social_snap_targets.md` 的名稱（`TARGETS` 的 `name`）；`social_snap.py` 會自動優先用 `[data-snap="<名稱>"]`。
 2. 當日三大法人買賣超卡（`data-snap="inst-today"`）。
 3. 正式站上實際跑一輪 dry-run，確認報價代理接受補上的 Origin、Playwright／字型安裝步驟沒問題。
+
+## 文案與 caption.txt（2026-10-20）
+- `scripts/social_snap.py` 每次輸出 `manifest.json` 的 `threads.text`，同一份文字另存 `caption.txt`（與 manifest 同資料夾）。
+- 格式：第 1 行標題＋時間；每張圖一行重點（資金輪盤領先／落後、資金分流樹流入／流出、熱力圖漲跌最多含 %、漲跌家數），行尾附站內深連結，網址帶 `?utm_source=threads&utm_medium=social&utm_campaign=intraday_MMDD`（盤後為 `close_MMDD`；hash 路由的 query 放在 # 前）；倒數第 2 行免責；最後一行 hashtag。
+- Threads 單則上限 500 字：網址以 23 字計，超過就把每行列的名稱 3→2→1 個縮短。
+- **IG 限動 API 不能附文字與連結貼紙**：限動只發圖，caption.txt 給 Andy 手動貼（連結貼紙要在 IG App 內手動加）。
+- 法人頁路由常數 `ROUTE_INST`（目前 `market/streak`），日後改 `market/inst` 只改這一處。
