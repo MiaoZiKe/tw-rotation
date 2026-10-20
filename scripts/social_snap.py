@@ -21,7 +21,7 @@ Andy 2026-10-20：「我需要在盤中發布當下即時狀況在 Threads 上�
     python scripts/social_snap.py --kind intraday --base http://127.0.0.1:8791/index.html --serve site --mock-live --out /tmp/demo
 
 結束碼：0＝有產出；10＝今天不是交易日／不在盤中時段／法人資料還不是今天，刻意不發（不算失敗）；
-        2＝一張都沒截成；3＝版面有重疊（不准發）。
+        2＝一張都沒截成；3＝版面有重疊（不准發）；4＝畫面上還有「即時」字樣（不准發）。
 
 誠實規則
 --------
@@ -79,9 +79,26 @@ def STREAK_PIECE(name):
 ROT_RANK_TALLER = ("(el) => { const h = 540; const ch = document.querySelector('#rankFlow');"
                    " [el, ch].forEach(e => e && e.style.setProperty('height', h + 'px', 'important'));"
                    " const c = window.echarts && ch && echarts.getInstanceByDom(ch); if (c) c.resize(); }")
-ROT_PIECES = [dict(name="rotation-wheel", sel="#rotClockWrap", title="資金輪盤", text="quad", trim_bottom_m=32, trim_bottom_d=17),   # 輪盤底下那行「⚡ 即時：灰虛線…」是畫布文字，只能裁掉
+BREADTH_TALL = ("(el) => { const h = 820; ['#chgDistBox', '#chgDist'].forEach(i => { const e = document.querySelector(i); if (e) e.style.setProperty('height', h + 'px', 'important'); });"
+                " const ch = document.querySelector('#chgDist'); const c = window.echarts && ch && echarts.getInstanceByDom(ch); if (c) c.resize(); }")
+HEAT_TALL = ("(el) => { const h = 660; const ch = document.querySelector('#indTree'); [document.querySelector('#indTreeWrap'), ch].forEach(e => e && e.style.setProperty('height', h + 'px', 'important'));"
+             " const c = window.echarts && ch && echarts.getInstanceByDom(ch); if (c) c.resize(); }")
+ROT_UNCHECK = """async (el) => {   // 把「顯示軌跡／顯示腳印／水波／掃描」全部取消勾選，只留點與標籤
+  const wait = ms => new Promise(r => setTimeout(r, ms));
+  const find = () => [...document.querySelectorAll('input[type=checkbox]')].filter(i => /顯示軌跡|顯示腳印|水波|掃描/.test(((i.closest('label') || i.parentElement || {}).textContent) || ''));
+  let cbs = find(), opened = false;
+  if (cbs.length < 4) { const b = document.querySelector('#m4RotSet'); if (b) { b.click(); opened = true; await wait(700); cbs = find(); } }
+  cbs.forEach(i => { if (i.checked) i.click(); });
+  await wait(700);
+  if (opened) { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); await wait(400); }
+  return cbs.length;
+}"""
+ROT_PIECES = [dict(name="rotation-wheel", sel="#rotClockWrap", title="資金輪盤", text="quad", pre=ROT_UNCHECK, trim_bottom_m=32, trim_bottom_d=17),   # 輪盤底下那行「⚡ 即時：灰虛線…」是畫布文字，只能裁掉
               dict(name="rotation-rank", sel="#rankFlowWrap", title="族群資金排行", pre_m=ROT_RANK_TALLER)]
-SANKEY_PIECES = [dict(name="sankey-tree", sel="#sankeyWrap", title="資金分流樹", text="flows", hide=["#sankeyLive"], hide_exact=["~即時"])]
+SANKEY_SCRUB = [["即時板塊合計.*", ""], ["\\s*[—-]\\s*\\(真實\\)", ""], ["\\s*盤後\\s*$", ""]]   # 根節點只留「台股成交值」；去掉「盤後」尾巴
+SANKEY_PIECES = [dict(name="sankey-tree", sel="#sankeyWrap", title="資金分流樹", text="flows", root_sel="body",
+                      
+                      hide=["#sankeyLive", "#sankeyMotionBtn", ".ftbtn"], hide_exact=["~即時", "~^動態"], scrub=SANKEY_SCRUB)]
 TARGETS = [
     dict(name="rotation", kind="intraday", label="資金輪盤／族群資金排行", route="flow/rotation",
          card="#flowRotCard", live="#rotLiveBtn",
@@ -93,13 +110,12 @@ TARGETS = [
          live_ok="() => { const b = document.querySelector('#sankeyLiveBtn');"
                  " return !!b && (b.getAttribute('aria-pressed') === 'true' || b.classList.contains('on')) && !/抓取中|抓不到|失敗|逾時|連不到/.test((document.querySelector('#sankeyLive') || {}).innerText || ''); }",
          headline=None, d=SANKEY_PIECES, m=SANKEY_PIECES),
-    dict(name="heat-industry", kind="intraday", label="產業熱力圖", route="heatmap/industry",
-         card="#indTreeWrap", closest_card=True, live="auto", live_ok=None, headline=None,
-         d=[dict(name="heat-industry", title="產業熱力圖", hide=[".howbtn", ".zbadge"])],
-         m=[dict(name="heat-industry", title="產業熱力圖", hide=[".howbtn", ".zbadge"], hide_text=[r"^分組"])]),
-    dict(name="heat-theme", kind="intraday", label="題材熱力圖", route="heatmap/theme",
-         card="#themeMapCard", live="auto", live_ok=None, headline=None,
-         d=[dict(name="heat-theme", title="題材熱力圖", hide=[".howbtn", ".zbadge"])], m=[dict(name="heat-theme", title="題材熱力圖", hide=[".howbtn", ".zbadge"])]),
+    # 熱力圖：桌機網頁版（1440）上＝產業「整個台股一次看」、下＝題材資金熱力，合成一張（Threads 與限動共用這張）
+    dict(name="heat", kind="intraday", label="資金熱力圖", route="heatmap/industry", card="#indTreeWrap",
+         parts=[dict(name="heat-industry", route="heatmap/industry", card="#indTreeWrap", closest_card=True, live="auto", live_ok=None,
+                     hide=[".howbtn"]),
+                dict(name="heat-theme", route="heatmap/theme", card="#themeMapCard", live="auto", live_ok=None, hide=[".howbtn"])],
+         live="auto", live_ok=None, headline=None, d=[dict(name="heat", title="資金熱力圖")], m=[]),
     dict(name="market-index", kind="intraday", label="大盤走勢", route="overview", card="#m3Frame",
          live=".livetg",
          live_ok="() => { const b = document.querySelector('.livetg'); const f = document.querySelector('#m3Frame');"
@@ -128,11 +144,10 @@ TARGETS = [
 
 # 每張的標題＝功能名稱本身（Andy 10-20：「標題就是這功能」），副標是小字；全部畫面與貼文不出現「即時」字樣
 PIECE_META = {
-    "rotation-wheel": ("資金輪盤", "族群相對強弱與動能，各在哪個象限"),
+    "rotation-wheel": ("資金輪盤", "族群在哪個象限"),
     "rotation-rank": ("族群資金排行", "各族群資金占比變化（pp）"),
-    "sankey-tree": ("資金分流樹", "成交值依產業鏈往族群流動"),
-    "heat-industry": ("產業熱力圖", "整個台股一次看，依漲跌幅上色"),
-    "heat-theme": ("題材熱力圖", "熱門題材一次看"),
+    "sankey-tree": ("資金分流樹", "成交值依產業鏈流向族群"),
+    "heat": ("資金熱力圖", "產業一次看（上）、題材資金熱力（下）"),
     "market-index": ("大盤走勢", "加權指數、櫃買指數、台指期"),
     "market-breadth": ("漲跌家數", "全市場漲跌分佈"),
     "streak-trust": ("法人連續買賣超", "投信"),
@@ -261,6 +276,19 @@ def spoof_origin_handler(route):
         route.abort()
 
 
+def flowtopo_patch(route):
+    """只改截圖用瀏覽器載到的 flowtopo.js（不動網站本身）：分流樹根節點標籤只留「台股成交值」、拿掉節點尾巴的「盤後」。
+    這兩段文字畫在畫布上，沒辦法用 DOM 改。"""
+    try:
+        resp = route.fetch()
+        body = resp.text()
+        body = body.replace("(S.opts.rootLines || ['台股成交值']).forEach", "['台股成交值'].forEach")
+        body = body.replace("out.push({ t: ' 盤後', c: P.ink3, w: 500, fs: 12 }); return out;", "return out;")
+        route.fulfill(response=resp, body=body)
+    except Exception:  # noqa: BLE001
+        route.continue_()
+
+
 def open_ctx(browser, base: str, args, today_ymd: str, sniff: dict, mobile: bool, dsf: float):
     if mobile:
         ctx = browser.new_context(viewport={"width": 390, "height": 844}, device_scale_factor=dsf, is_mobile=True,
@@ -277,6 +305,7 @@ def open_ctx(browser, base: str, args, today_ymd: str, sniff: dict, mobile: bool
         init += "try{localStorage.setItem('tw.live.proxy','https://mock-quote.test');}catch(e){}"
     ctx.add_init_script(init)
     pg = ctx.new_page()
+    pg.route("**/flowtopo.js*", flowtopo_patch)
     if args.mock_live:
         pg.route("**/quote?*", mock_quote_handler(today_ymd, now_tpe().strftime("%H:%M:%S")))
         pg.route("**/stream?*", lambda r: r.fulfill(status=404, content_type="application/json", body="{}"))
@@ -403,20 +432,44 @@ def read_streak(pg) -> dict:
     }""")
 
 
-HIDE_JS = """([root, a]) => {   // a = {css: [...], text: [...]}；root＝卡片元素；回傳被藏起來的元素數
-  const hit = new Set();
-  (a.css || []).forEach(s => root.querySelectorAll(s).forEach(e => hit.add(e)));
-  (a.exact || []).forEach(t => root.querySelectorAll('*').forEach(e => { const tx = (e.textContent || '').trim(); if (e.children.length === 0 && (t[0] === '~' ? new RegExp(t.slice(1)).test(tx) : tx === t)) hit.add(e); }));
-  (a.text || []).forEach(rx => {
-    const re = new RegExp(rx);
-    const c = [...root.querySelectorAll('*')].filter(e => re.test((e.innerText || '').trim()) && e.children.length < 4);
-    if (c[0]) hit.add(c[0].closest('.row,.ddrow,.rotfilter,div') || c[0]);
-  });
-  hit.forEach(e => { e.setAttribute('data-snap-hid', e.style.display || ' '); e.style.setProperty('display', 'none', 'important'); });
-  return hit.size;
+HIDE_JS = """([root, a]) => {   // a = {css, text, exact, scrub}；root＝卡片元素。即時模式會定期重畫，所以用 MutationObserver 持續套用
+  const apply = () => {
+    const hit = new Set();
+    (a.css || []).forEach(s => root.querySelectorAll(s).forEach(e => hit.add(e)));
+    (a.exact || []).forEach(t => root.querySelectorAll('*').forEach(e => { const tx = (e.textContent || '').trim(); if (e.children.length === 0 && (t[0] === '~' ? new RegExp(t.slice(1)).test(tx) : tx === t)) hit.add(e); }));
+    (a.text || []).forEach(rx => {
+      const re = new RegExp(rx);
+      const c = [...root.querySelectorAll('*')].filter(e => re.test((e.innerText || '').trim()) && e.children.length < 4);
+      if (c[0]) hit.add(c[0].closest('.row,.ddrow,.rotfilter,div') || c[0]);
+    });
+    hit.forEach(e => { if (!e.hasAttribute('data-snap-hid')) { e.setAttribute('data-snap-hid', e.style.display || ' '); e.style.setProperty('display', 'none', 'important'); } });
+    if ((a.scrub || []).length) {   // 只改截圖用的頁面狀態（文字節點），不動網站程式
+      const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT); let t;
+      while ((t = w.nextNode())) { let v = t.nodeValue; for (const [rx, rep] of a.scrub) v = v.replace(new RegExp(rx), rep); if (v !== t.nodeValue) t.nodeValue = v; }
+    }
+    return hit.size;
+  };
+  if (window.__snapObs) window.__snapObs.disconnect();
+  const n = apply();
+  let busy = false;
+  const ob = new MutationObserver(() => { if (busy) return; busy = true; ob.disconnect(); try { apply(); } finally { ob.observe(root, { subtree: true, childList: true, characterData: true }); busy = false; } });
+  ob.observe(root, { subtree: true, childList: true, characterData: true });
+  window.__snapObs = ob;
+  return n;
 }"""
-UNHIDE_JS = """() => document.querySelectorAll('[data-snap-hid]').forEach(e => {
-  const v = e.getAttribute('data-snap-hid'); e.style.removeProperty('display'); if (v.trim()) e.style.display = v; e.removeAttribute('data-snap-hid'); })"""
+SCAN_JS = """(root) => {   // 掃畫面上看得到的 DOM 文字有沒有「即時」（畫布內的字掃不到）
+  const out = [], w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  let t;
+  while ((t = w.nextNode())) {
+    if (!/即時/.test(t.nodeValue)) continue;
+    const e = t.parentElement;
+    if (!e || getComputedStyle(e).display === 'none' || getComputedStyle(e).visibility === 'hidden' || !e.getClientRects().length) continue;
+    out.push(t.nodeValue.trim().slice(0, 40) + ' @' + e.tagName + '.' + (e.className.baseVal ?? e.className) + ' < ' + (e.parentElement ? e.parentElement.tagName + '.' + (e.parentElement.className.baseVal ?? e.parentElement.className) : ''));
+  }
+  return out;
+}"""
+UNHIDE_JS = """() => { if (window.__snapObs) { window.__snapObs.disconnect(); window.__snapObs = null; } document.querySelectorAll('[data-snap-hid]').forEach(e => {
+  const v = e.getAttribute('data-snap-hid'); e.style.removeProperty('display'); if (v.trim()) e.style.display = v; e.removeAttribute('data-snap-hid'); }); }"""
 
 FIND_JS = """(spec) => { const f = new Function(spec); return f(); }"""
 PIECE_RECT_JS = """([card, a]) => {
@@ -456,7 +509,7 @@ READ_FLOWS_JS = """async () => {
   const wait = ms => new Promise(r => setTimeout(r, ms));
   const read = () => [...document.querySelectorAll('#sankeyRank .skr-r')].slice(0, 5).map(r => {
     const n = r.querySelector('.n b'), v = r.querySelector('.v b');
-    return (n ? n.textContent.trim() : '') + ' ' + (v ? v.textContent.trim() : ''); });
+    return n ? n.textContent.trim() : ''; });
   const tabs = [...document.querySelectorAll('#sankeyRank .skr-tab button')];
   const res = { inflow: [], outflow: [] };
   if (tabs[0]) { tabs[0].click(); await wait(500); res.inflow = read(); }
@@ -465,27 +518,18 @@ READ_FLOWS_JS = """async () => {
 }"""
 
 
-def quad_lines(data) -> list[str]:
-    order = ["領先", "轉弱", "改善", "落後"]
+def quad_lines(data) -> list:
+    """2×2 四塊（版面照輪盤四個角：改善、領先／落後、轉弱），每塊標題＋前 5 個族群（頁面原文，不寫「等 N 個」）。"""
     d = {k: v for k, v in data}
-    out = []
-    for k in order:
-        names = d.get(k)
-        if names is None:
-            continue
-        line = f"{k}：" + "、".join(names[:5]) if names else f"{k}：—"
-        if len(names) > 5:
-            line += f" 等 {len(names)} 個"
-        out.append(line)
-    return out
+    return [[k, d[k][:5]] for k in ("改善", "領先", "落後", "轉弱") if k in d]
 
 
-def flow_notes(res: dict) -> list[str]:
+def flow_notes(res: dict) -> list:
     out = []
     if res.get("inflow"):
-        out.append("流入前五：" + "、".join(res["inflow"]))
+        out.append(["流入前五", res["inflow"][:5]])
     if res.get("outflow"):
-        out.append("流出前五：" + "、".join(res["outflow"]))
+        out.append(["流出前五", res["outflow"][:5]])
     return out
 
 
@@ -495,7 +539,11 @@ def shoot_piece(pg, card_el, pc: dict, raw_dir: Path, mode: str, dsf: float) -> 
     tgt = pg.query_selector(pc["sel"]) if pc.get("sel") else card_el
     if tgt is None:
         raise RuntimeError(f"找不到 {pc.get('sel')}")
-    pg.evaluate(HIDE_JS, [tgt, {"css": pc.get("hide", []), "text": pc.get("hide_text", []), "exact": pc.get("hide_exact", [])}])
+    if pc.get("pre"):
+        pg.evaluate(pc["pre"], tgt)
+        pg.wait_for_timeout(900)
+    pg.evaluate(HIDE_JS, [pg.query_selector(pc["root_sel"]) if pc.get("root_sel") else tgt, {"css": pc.get("hide", []) + [".zbadge", ".echarts-tooltip"], "text": pc.get("hide_text", []), "exact": pc.get("hide_exact", []), "scrub": pc.get("scrub", [])}])
+    pg.evaluate("() => { if (window.echarts) document.querySelectorAll('[_echarts_instance_]').forEach(e => { const c = echarts.getInstanceByDom(e); if (c) c.dispatchAction({ type: 'hideTip' }); }); }")
     if mode == "m" and pc.get("pre_m"):
         pg.evaluate(pc["pre_m"], tgt)
         pg.wait_for_timeout(900)
@@ -517,7 +565,8 @@ def shoot_piece(pg, card_el, pc: dict, raw_dir: Path, mode: str, dsf: float) -> 
     else:
         tgt.screenshot(path=str(path))
     minpx = pg.evaluate(PIECE_RECT_JS, [tgt, {"start": None, "end": None}])["minpx"]
-    return {"name": pc["name"], "raw": str(path), "dsf": dsf, "min_css_font": minpx, "title": pc.get("title", ""), "text": pc.get("text")}
+    jishi = pg.evaluate(SCAN_JS, tgt)
+    return {"jishi": jishi, "name": pc["name"], "raw": str(path), "dsf": dsf, "min_css_font": minpx, "title": pc.get("title", ""), "text": pc.get("text")}
 
 
 def snap_targets(args, base: str, out: Path, today_ymd: str) -> tuple[list[dict], dict]:
@@ -565,6 +614,36 @@ def snap_targets(args, base: str, out: Path, today_ymd: str) -> tuple[list[dict]
         for t in wanted:
             info = {"name": t["name"], "label": t["label"], "ok": False, "why": "", "pieces_d": [], "pieces_m": []}
             try:
+                if t.get("parts"):
+                    recs = []
+                    for part in t["parts"]:
+                        pinfo = {}
+                        pel = prepare(pg, part, pinfo)
+                        if pel is None:
+                            info["why"] = f"{part['name']}：{pinfo.get('why')}"
+                            recs = []
+                            break
+                        recs.append(shoot_piece(pg, pel, dict(name=part["name"], hide=part.get("hide", [])), raw_dir, "d", args.scale))
+                    if recs:
+                        from PIL import Image
+                        ims = [Image.open(r["raw"]).convert("RGB") for r in recs]
+                        W = max(i.width for i in ims)
+                        gap = 24
+                        sheet = Image.new("RGB", (W, sum(i.height for i in ims) + gap * (len(ims) - 1)), (244, 243, 239))
+                        y = 0
+                        for im in ims:
+                            sheet.paste(im, ((W - im.width) // 2, y))
+                            y += im.height + gap
+                        path = raw_dir / f"d_{t['name']}.png"
+                        sheet.save(path)
+                        rec = {"name": t["name"], "raw": str(path), "dsf": args.scale, "min_css_font": min(r["min_css_font"] for r in recs),
+                               "title": t["label"], "text": None, "jishi": [x for r in recs for x in r["jishi"]]}
+                        info["pieces_d"] = [rec]
+                        info["pieces_m"] = [dict(rec)]       # 限動也用這張直式疊放的圖（等比放大填滿寬度）
+                        info["ok"] = True
+                        log("桌機截到", t["name"], "（產業＋題材合成）")
+                    shots.append(info)
+                    continue
                 el = prepare(pg, t, info)
                 if el is not None:
                     info["headline"] = read_headline(el, t)
@@ -587,6 +666,8 @@ def snap_targets(args, base: str, out: Path, today_ymd: str) -> tuple[list[dict]
             if not info["ok"]:
                 continue
             t = next(x for x in TARGETS if x["name"] == info["name"])
+            if t.get("parts"):
+                continue
             try:
                 el = prepare(pg, t, {})
                 if el is None:
@@ -630,60 +711,55 @@ def _logo_uri() -> str:
 LABEL_COLOR = {"領先": "rise", "轉弱": "amber", "改善": "cyan", "落後": "fall", "流入前五": "rise", "流出前五": "fall"}
 
 
-def _rows(items: list[str]) -> str:
+def _blocks(items: list, cls: str) -> str:
+    """items＝[[標題, [名稱, ...]], ...]；每塊一個方格（等寬等高），標題＋一行一個名稱，顏色沿用象限色。"""
     out = []
-    for x in items:
-        k, sep, rest = x.partition("：")
-        col = LABEL_COLOR.get(k)
-        if sep and col:
-            out.append(f'<div class=r><b style="color:var(--{col})">{_esc(k)}</b><span>{_esc(rest)}</span></div>')
-        else:
-            out.append(f'<div class=r><span>{_esc(x)}</span></div>')
-    return "".join(out)
+    for label, names in items:
+        col = LABEL_COLOR.get(label, "cyan")
+        rows = "".join(f"<li>{_esc(n)}</li>" for n in names)
+        out.append(f'<div class=q data-box=q style="--c:var(--{col})"><b>{_esc(label)}</b><ul>{rows}</ul></div>')
+    return f'<div class="grid {cls}">{"".join(out)}</div>' if out else ""
 
 
-def layout_html(mode: str, title: str, sub: str, stamp: str, img: str, lines: list[str], notes: list[str], theme: str) -> str:
-    """財經終端／券商 App 風版型：品牌列（比比＋哩股哩股＋日期時間膠囊）→ 圓角細框卡片（標題＋副標、說明、截圖、備註）→ 底部細資料來源列。
-    flex 直排，元素天生不重疊；之後仍用瀏覽器量框檢查。story 1080×1920（截圖吃掉剩下高度、等比不裁）、threads 1080 寬高度隨內容。"""
+def layout_html(mode: str, title: str, sub: str, img: str, top: list, bot: list, theme: str) -> str:
+    """財經終端／券商 App 風版型：品牌列（比比＋哩股哩股）→ 圓角細框卡片（標題＋副標、2×2 文字塊、截圖、備註塊）→ 右下網址。
+    邊距與內距壓到最小，空間全給內容；flex 直排，元素天生不重疊，之後仍用瀏覽器量框檢查。"""
     c = FRAME[theme]
     var = ":root{" + "".join(f"--{k}:{v};" for k, v in c.items()) + "}"
-    lines_box = f'<div class="txt top" data-box=lines>{_rows(lines)}</div>' if lines else ""
-    notes_box = f'<div class="txt bot" data-box=notes>{_rows(notes)}</div>' if notes else ""
     story = mode == "story"
     css = var + """
 *{box-sizing:border-box;margin:0;padding:0}
-body{width:1080px;background:var(--bg);color:var(--ink);font-family:'Noto Sans CJK TC','Noto Sans TC','PingFang TC','Microsoft JhengHei','WenQuanYi Zen Hei',sans-serif;display:flex;flex-direction:column;
-  padding:__PAD__}
-.brand{display:flex;align-items:center;gap:14px;height:76px;flex:none}
-.brand img{width:60px;height:60px;border-radius:14px;display:block}
-.brand .nm{font-size:38px;font-weight:800;letter-spacing:1px;white-space:nowrap}
-.brand .cap{margin-left:auto;font-family:'DejaVu Sans Mono','Noto Sans Mono CJK TC',monospace;font-variant-numeric:tabular-nums;font-size:28px;font-weight:700;
-  color:var(--cyan);border:2px solid var(--cyan);border-radius:999px;padding:6px 20px;white-space:nowrap}
-.card{flex:1;min-height:0;display:flex;flex-direction:column;margin-top:16px;background:var(--panel);border:1.5px solid var(--line-2);border-radius:26px;padding:__CPAD__}
-.hd{flex:none;margin-bottom:12px}
-.hd .t{font-size:46px;font-weight:800;line-height:1.2;white-space:nowrap}
-.hd .s{font-size:24px;color:var(--ink3);margin-top:4px;white-space:nowrap}
-.txt{flex:none;font-size:__TF__px;line-height:1.5;color:var(--ink2);font-variant-numeric:tabular-nums}
-.txt.top{margin-bottom:10px;font-size:__TT__px}.txt.bot{margin-top:12px;border-top:1.5px solid var(--line);padding-top:12px}
-.txt .r{display:flex;gap:12px;margin-bottom:4px}.txt .r b{flex:none;font-weight:800}.txt .r span{min-width:0}
+body{width:1080px;background:var(--bg);color:var(--ink);font-family:'Noto Sans CJK TC','Noto Sans TC','PingFang TC','Microsoft JhengHei','WenQuanYi Zen Hei',sans-serif;display:flex;flex-direction:column;padding:__PAD__}
+.brand{display:flex;align-items:center;gap:12px;height:__BH__px;flex:none}
+.brand img{width:__LG__px;height:__LG__px;border-radius:13px;display:block}
+.brand .nm{font-size:__BN__px;font-weight:800;letter-spacing:1px;white-space:nowrap}
+.card{flex:1;min-height:0;display:flex;flex-direction:column;margin-top:8px;background:var(--panel);border:1.5px solid var(--line-2);border-radius:24px;padding:__CPAD__}
+.hd{flex:none;margin:0 6px 8px}
+.hd .t{font-size:__TT__px;font-weight:800;line-height:1.2;white-space:nowrap}
+.hd .s{font-size:22px;color:var(--ink3);margin-top:2px;white-space:nowrap}
+.grid{flex:none;display:grid;grid-template-columns:1fr 1fr;gap:10px;font-variant-numeric:tabular-nums}
+.grid.top{margin-bottom:10px}.grid.bot{margin-top:10px}
+.q{border-radius:14px;border:1.5px solid color-mix(in srgb,var(--c) 45%,var(--panel));background:color-mix(in srgb,var(--c) 9%,var(--panel));padding:__QP__;text-align:left;min-width:0}
+.q b{display:block;color:var(--c);font-size:__QT__px;font-weight:800;line-height:1.25;margin-bottom:4px}
+.q ul{list-style:none}.q li{font-size:__QF__px;line-height:1.38;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:clip}
 .imgbox{flex:1;min-height:0;display:flex;align-items:center;justify-content:center}
 .shot{max-width:100%;max-height:100%;display:block;border-radius:12px}
-.src{flex:none;display:flex;justify-content:space-between;align-items:baseline;gap:16px;margin-top:14px;padding-top:12px;border-top:1.5px solid var(--line);
-  font-size:24px;color:var(--ink3)}
-.src .u{color:var(--cyan);font-weight:700;white-space:nowrap}.src .d{white-space:nowrap}
+.src{flex:none;text-align:right;margin-top:6px;font-size:26px;font-weight:700;color:var(--cyan);white-space:nowrap}
 """
     if story:
-        css = css.replace("__PAD__", "44px 22px 40px").replace("__CPAD__", "22px 14px 14px").replace("__TF__", "31").replace("__TT__", "36")
+        css = (css.replace("__PAD__", "24px 24px 18px").replace("__BH__", "62").replace("__LG__", "52").replace("__BN__", "36").replace("__CPAD__", "12px 12px 10px")
+               .replace("__TT__", "44").replace("__QP__", "10px 14px 8px").replace("__QT__", "40").replace("__QF__", "36"))
         css += "body{height:1920px}"
     else:
-        css = css.replace("__PAD__", "24px 20px 20px").replace("__CPAD__", "20px 14px 14px").replace("__TF__", "28").replace("__TT__", "30")
+        css = (css.replace("__PAD__", "20px 20px 14px").replace("__BH__", "56").replace("__LG__", "46").replace("__BN__", "32").replace("__CPAD__", "12px 12px 10px")
+               .replace("__TT__", "40").replace("__QP__", "8px 12px 6px").replace("__QT__", "30").replace("__QF__", "28"))
         css += ".card{flex:none}.shot{width:100%;max-height:none}.imgbox{flex:none;display:block}"
     logo = _logo_uri()
-    body = f"""<div class=brand>{'<img data-box=logo src="' + logo + '">' if logo else ''}<div class=nm data-box=brand>哩股哩股</div><div class=cap data-box=cap>{_esc(stamp)}</div></div>
+    body = f"""<div class=brand>{'<img data-box=logo src="' + logo + '">' if logo else ''}<div class=nm data-box=brand>哩股哩股</div></div>
 <div class=card>
 <div class=hd><div class=t data-box=title>{_esc(title)}</div><div class=s data-box=sub>{_esc(sub)}</div></div>
-{lines_box}<div class=imgbox><img class=shot data-box=shot src="{img}"></div>{notes_box}</div>
-<div class=src><div class=d data-box=foot>{DISCLAIMER}</div><div class=u data-box=url>{SITE_HOST}</div></div>"""
+{_blocks(top, "top")}<div class=imgbox><img class=shot data-box=shot src="{img}"></div>{_blocks(bot, "bot")}</div>
+<div class=src data-box=url>{SITE_HOST}</div>"""
     return f"<!doctype html><html><head><meta charset=utf-8><style>{css}</style></head><body>{body}</body></html>"
 
 
@@ -705,12 +781,12 @@ OVERLAP_JS = """() => {
 }"""
 
 
-def compose(browser, mode: str, rec: dict, stamp: str, lines: list[str], notes: list[str], out_png: Path, report: list, theme: str) -> None:
+def compose(browser, mode: str, rec: dict, top: list, bot: list, out_png: Path, report: list, theme: str) -> None:
     from PIL import Image
     with Image.open(rec["raw"]) as im:
         iw, ih = im.size
     title, sub = PIECE_META.get(rec["name"], (rec.get("title") or rec["name"], ""))
-    html = layout_html(mode, title, sub, stamp, b64(rec["raw"]), lines, notes, theme)
+    html = layout_html(mode, title, sub, b64(rec["raw"]), top, bot, theme)
     pg = browser.new_page(viewport={"width": 1080, "height": 1920 if mode == "story" else 1200}, device_scale_factor=1)
     pg.set_content(html, wait_until="load")
     pg.wait_for_timeout(400)
@@ -719,9 +795,9 @@ def compose(browser, mode: str, rec: dict, stamp: str, lines: list[str], notes: 
         pg.set_viewport_size({"width": 1080, "height": H})
         pg.wait_for_timeout(200)
     res = pg.evaluate(OVERLAP_JS)
-    box = pg.evaluate("(() => { const r = document.querySelector('.shot').getBoundingClientRect(); return [r.width, r.height]; })()")
+    box = pg.evaluate("(() => { const r = document.querySelector('.shot').getBoundingClientRect(), c = document.querySelector('.card').getBoundingClientRect(); return [r.width, r.height, c.height]; })()")
     scale = box[0] / iw
-    res.update(file=out_png.name, w=1080, h=H, scale=round(scale, 3), shot_ratio=box[1] / H, shot_px=[round(box[0]), round(box[1])])
+    res.update(file=out_png.name, w=1080, h=H, scale=round(scale, 3), shot_ratio=box[1] / H, content_ratio=box[2] / H, shot_px=[round(box[0]), round(box[1])])
     if rec.get("min_css_font") and rec["min_css_font"] < 900:
         res["min_font_1080"] = round(rec["min_css_font"] * rec["dsf"] * scale, 1)
     report.append(res)
@@ -740,7 +816,7 @@ def build_text(kind: str, stamp: str, shots: list[dict], data_date: str) -> str:
     ok = [s for s in shots if s.get("ok")]
     if kind == "intraday":
         head = next((s["headline"] for s in ok if s.get("headline")), "")
-        l1 = f"資金輪盤 {stamp}｜台股資金輪動"
+        l1 = f"台股資金輪動｜{stamp}"
         l2 = head or "資金輪盤、族群資金排行與資金分流樹目前狀況如圖"
     else:
         l1 = f"盤後法人 {data_date[5:].replace('-', '/')}｜投信、外資、合計連續買賣超"
@@ -817,6 +893,13 @@ def main() -> int:
                 log(f"即時報價的成交日 {sorted(qd)} 不是今天 {today_ymd}（休市日）→ 不發")
                 return 10
         ok = [s for s in shots if s.get("ok")]
+        bad_words = [(rec["name"], rec["jishi"]) for s in ok for rec in s["pieces_d"] + s["pieces_m"] if rec.get("jishi")]
+        log(f"「即時」字樣掃描：{sum(len(s['pieces_d']) + len(s['pieces_m']) for s in ok)} 片，{sum(len(h) for _, h in bad_words)} 筆")
+        if bad_words:
+            for n_, h_ in bad_words:
+                log("  ✗", n_, h_)
+            (out / "shots.json").write_text(json.dumps(shots, ensure_ascii=False, indent=2), "utf-8")
+            return 4
         for s in shots:
             if not s.get("ok"):
                 log("略過", s["name"], "：", s.get("why"))
@@ -827,7 +910,6 @@ def main() -> int:
 
         stamp_full = now_tpe().strftime("%m/%d %H:%M")
         dd = data_date[5:].replace("-", "/")
-        cap = dd if args.kind == "close" else stamp_full          # 日期時間膠囊（盤後＝資料日）
         report: list[dict] = []
         stories: list[str] = []
         threads_imgs: list[str] = []
@@ -840,17 +922,17 @@ def main() -> int:
 
             for s in ok:
                 for rec in s["pieces_d"]:
-                    ln, nt = texts(s, rec)
-                    compose(browser, "threads", rec, cap, ln, nt, out / f"threads_{rec['name']}.png", report, args.frame)
+                    tp, bt = texts(s, rec)
+                    compose(browser, "threads", rec, tp, bt, out / f"threads_{rec['name']}.png", report, args.frame)
                     threads_imgs.append(f"threads_{rec['name']}.png")
                 for rec in s["pieces_m"]:
-                    ln, nt = texts(s, rec)
-                    compose(browser, "story", rec, cap, ln, nt, out / f"story_{rec['name']}.png", report, args.frame)
+                    tp, bt = texts(s, rec)
+                    compose(browser, "story", rec, tp, bt, out / f"story_{rec['name']}.png", report, args.frame)
                     stories.append(f"story_{rec['name']}.png")
             browser.close()
         for r in report:
             if r["file"].startswith("story_") and r["shot_ratio"] < 0.75 and r["h"] == 1920:
-                log(f"  ⚠ {r['file']} 截圖只佔畫布 {r['shot_ratio']:.0%}（<75%）")
+                log(f"  ⚠ {r['file']} 截圖佔畫布 {r['shot_ratio']:.0%}、內容卡片佔 {r['content_ratio']:.0%}")
         bad = [r for r in report if r["hits"] or r["out"] or r["cut"]]
         (out / "layout_report.json").write_text(json.dumps(report, ensure_ascii=False, indent=2), "utf-8")
         (out / "shots.json").write_text(json.dumps(shots, ensure_ascii=False, indent=2), "utf-8")
