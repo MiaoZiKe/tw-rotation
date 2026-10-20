@@ -97,7 +97,7 @@ jobs:
       - name: 安裝 Playwright、Pillow 與中文字型
         if: steps.done.outputs.skip != '1'
         run: |
-          pip install playwright pillow
+          pip install playwright pillow requests
           python -m playwright install --with-deps chromium
           sudo apt-get install -y fonts-noto-cjk
 
