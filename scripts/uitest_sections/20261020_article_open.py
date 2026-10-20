@@ -24,8 +24,12 @@ def t_article_open_1020(b, base, code):
     origin = re.match(r"^(https?://[^/]+)", base).group(1)
     idx = json.loads((ROOT / "site" / "articles" / "index.json").read_text(encoding="utf-8"))
     arts = idx.get("articles") or []
-    if not ok(f"{T}：index.json 裡 {AO_OPEN} 帶 open:true", any(a.get("id") == AO_OPEN and a.get("open") is True for a in arts)):
-        return
+    # 10-20 錄完影片已關閉：index.json 沒有任何 open:true（Worker 的 OPEN_ARTICLE_IDS 也是空）時，
+    # 跳過「公開那篇」的檢查，只驗非公開文章仍然上鎖；日後再開放某篇時，這段會自動恢復完整檢查。
+    open_ids = [a.get("id") for a in arts if a.get("open") is True]
+    is_open = AO_OPEN in open_ids
+    if not is_open:
+        ok(f"{T}：目前沒有任何公開文章（index.json 無 open:true）", not open_ids, open_ids)
     # 同一天（同在預設日期區間）的另一篇非公開新文章當對照
     other = next((a["id"] for a in arts if a.get("src") == "api" and a.get("id") != AO_OPEN and not a.get("open") and a.get("date") == "2026-10-17"), None)
     if not ok(f"{T}：找得到一篇同日期的非公開新文章當對照", bool(other)):
@@ -53,7 +57,7 @@ def t_article_open_1020(b, base, code):
             return json.loads(urllib.request.urlopen(r, timeout=10).read())
 
         chart = {"t": "chart", "kind": "bar", "title": "驗收插圖", "x": ["A", "B", "C"], "series": [{"name": "數值", "data": [3, 5, 2]}]}
-        for pid, tag in ((AO_OPEN, "OPEN"), (other, "LOCKED")):
+        for pid, tag in (((AO_OPEN, "OPEN"),) if is_open else ()) + ((other, "LOCKED"),):
             r = bot({"op": "put_body", "id": pid, "json": {"id": pid, "cat": "news", "title": "驗收 " + tag, "date": "2026-10-17", "reading_min": 3,
                                                            "blocks": [{"t": "h", "text": "小標"}, {"t": "p", "text": "BODY-" + tag}, chart], "sources": [], "site_links": []}})
             ok(f"{T}：機器路由上傳 {pid} 全文", bool(r.get("ok")), r)
@@ -91,14 +95,15 @@ def t_article_open_1020(b, base, code):
         to_list(pg)
         cs = {c["id"]: c for c in pg.evaluate(CARDS)}
         co, cl = cs.get(AO_OPEN), cs.get(other)
-        ok(f"{T}[訪客]：列表上特斯拉那張卡沒有鎖（data-lock=0、寫「限時公開」）", bool(co) and co["lock"] == "0" and co["free"] == "1" and "限時公開" in co["lk"], co)
         ok(f"{T}[訪客]：同日期非公開那張仍是鎖卡（data-lock=1、寫「全文需 Plus 以上」）", bool(cl) and cl["lock"] == "1" and "Plus" in cl["lk"], cl)
-        p = click_card(pg, AO_OPEN)
-        ok(f"{T}[訪客]：真的點特斯拉那張 → 網址換成 #article/{AO_OPEN}", pg.evaluate("() => location.hash") == "#article/" + AO_OPEN, pg.evaluate("() => location.hash"))
-        ok(f"{T}[訪客]：詳情頁內文來自會員後端（BODY-OPEN）、沒有升級卡、寫「限時公開・不佔額度」", "BODY-OPEN" in (p["body"] or "") and not p["lock"] and "限時公開" in p["qt"], [p["body"], p["lock"], p["qt"]])
-        ok(f"{T}[訪客]：插圖（文章圖表）真的畫出來（寬高 > 0、有畫布）", bool(p["fig"]) and p["fig"][0] > 100 and p["fig"][1] > 80 and p["cv"], [p["fig"], p["cv"]])
-        okreq = gets and all('"t"' not in g for g in gets)
-        ok(f"{T}[訪客]：向 /v1/articles/get 要全文，請求裡沒有登入權杖", bool(okreq), gets)
+        if is_open:
+            ok(f"{T}[訪客]：列表上特斯拉那張卡沒有鎖（data-lock=0、寫「限時公開」）", bool(co) and co["lock"] == "0" and co["free"] == "1" and "限時公開" in co["lk"], co)
+            p = click_card(pg, AO_OPEN)
+            ok(f"{T}[訪客]：真的點特斯拉那張 → 網址換成 #article/{AO_OPEN}", pg.evaluate("() => location.hash") == "#article/" + AO_OPEN, pg.evaluate("() => location.hash"))
+            ok(f"{T}[訪客]：詳情頁內文來自會員後端（BODY-OPEN）、沒有升級卡、寫「限時公開・不佔額度」", "BODY-OPEN" in (p["body"] or "") and not p["lock"] and "限時公開" in p["qt"], [p["body"], p["lock"], p["qt"]])
+            ok(f"{T}[訪客]：插圖（文章圖表）真的畫出來（寬高 > 0、有畫布）", bool(p["fig"]) and p["fig"][0] > 100 and p["fig"][1] > 80 and p["cv"], [p["fig"], p["cv"]])
+            okreq = gets and all('"t"' not in g for g in gets)
+            ok(f"{T}[訪客]：向 /v1/articles/get 要全文，請求裡沒有登入權杖", bool(okreq), gets)
         to_list(pg)
         p2 = click_card(pg, other)
         ok(f"{T}[訪客]：點非公開那張 → 鎖定頁、DOM 沒有內文", p2["lock"] and p2["body"] is None and "BODY-LOCKED" not in p2["html"], [p2["lock"], p2["body"]])
@@ -109,8 +114,12 @@ def t_article_open_1020(b, base, code):
         # ================= 手機 390 訪客
         cm = new_ctx(390); pm = cm.new_page()
         to_list(pm)
-        p = click_card(pm, AO_OPEN)
-        ok(f"{T}[手機 390]：特斯拉詳情頁可讀（有內文、有插圖）、沒有橫向捲軸", "BODY-OPEN" in (p["body"] or "") and bool(p["fig"]) and p["sw"] <= p["vw"] + 1, [p["fig"], p["sw"], p["vw"]])
+        if is_open:
+            p = click_card(pm, AO_OPEN)
+            ok(f"{T}[手機 390]：特斯拉詳情頁可讀（有內文、有插圖）、沒有橫向捲軸", "BODY-OPEN" in (p["body"] or "") and bool(p["fig"]) and p["sw"] <= p["vw"] + 1, [p["fig"], p["sw"], p["vw"]])
+        else:
+            p = click_card(pm, other)
+            ok(f"{T}[手機 390]：非公開文章仍是鎖定頁、沒有內文、沒有橫向捲軸", p["lock"] and p["body"] is None and p["sw"] <= p["vw"] + 1, [p["lock"], p["sw"], p["vw"]])
         cm.close()
     finally:
         for c in ctxs:

@@ -8,7 +8,7 @@
    這裡是**伺服器端唯一認的清單** —— 前端 site/articles/index.json 那篇的 "open": true 只負責畫面（卡片不上鎖、詳情頁去抓全文），
    不會被 Worker 採信（任何人都能改自己瀏覽器收到的 JSON）。兩邊要一起改：tests/articles.test.mjs 會比對兩份清單一致，對不上就部署失敗。
    關掉：把 id 從這裡拿掉＋index.json 那篇的 open 拿掉，推 main。 */
-export const OPEN_ARTICLE_IDS = ['2026-10-17-news-tesla'];
+export const OPEN_ARTICLE_IDS = [];   // 10-20 錄完影片已關閉；開關機制保留，要再開就把 id 放回來並在 index.json 加 "open": true
 const OPEN_IDS = new Set(OPEN_ARTICLE_IDS);
 export function installArticles(Hub, EXPORT_TABLES) {
   for (const t of ['article_views', 'article_views_day']) if (EXPORT_TABLES && !EXPORT_TABLES.includes(t)) EXPORT_TABLES.push(t);   // 備份一起帶走

@@ -7024,6 +7024,7 @@ Andy 原話（10-20，錄「今日事件＋精選文章」功能影片時的選�
   - **為什麼 Worker 不去讀公開的 index.json**：網站有多個網域（github.io、pages.dev、自有網域），Worker 去抓自家網站多一個會失敗的依賴；而且 index.json 每次上架文章都會被 Actions 改，把它綁進 Worker 部署條件會讓 Worker 一天被重部署很多次。
 - **關掉**：把那篇的 `"open": true` 從 `site/articles/index.json` 拿掉，同時把 id 從 `OPEN_ARTICLE_IDS` 拿掉（留空陣列 `[]` 即可），推 main（Worker 與 Pages 各自自動部署）。
 - 驗收：`_uitest --sections 單篇公開1020 --workers 1`（起真的 worker.js，以未登入訪客點進公開那篇看到內文與插圖、非公開那篇仍是鎖卡、直接打後端自加 open 旗標仍 401）。
+- **10-20 錄完影片已關閉**：`OPEN_ARTICLE_IDS` 改回 `[]`、特斯拉那篇的 `"open": true` 拿掉（開關機制保留）。「單篇公開1020」段在清單為空時改驗「非公開文章仍上鎖、直接打後端仍 401」，不刪段。
 
 ### 別順手改回去
 - 不要讓 Worker 採信請求裡的 `open` 欄位或前端任何旗標。

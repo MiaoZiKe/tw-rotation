@@ -8,6 +8,9 @@
 - 新驗收段落 資金輪動勾族群1020（scripts/uitest_sections/20261020_資金輪動勾族群.py，桌機 1800／手機 390）；修正前 0 根長條＋5 次例外、修正後 3 根＋0 例外。
 - 這批只驗：資金輪動勾族群1020、--only 資金流向,新-資金流向,新-輪動時鐘,批次2,批次3,批次7,總覽、桌機守門1008、_preview。純前端改動，跳過 pytest。
 
+### 2026-10-20 單篇公開已收回
+- 影片錄完，特斯拉那篇改回付費：OPEN_ARTICLE_IDS=[]、index.json 拿掉 open；開關機制保留（DECISIONS #361）。單篇公開1020 段在清單為空時只驗非公開仍上鎖。這批驗了：Worker node 179 綠、單篇公開1020、精選文章分級1016、桌機守門1008。
+
 ### 2026-10-20 單篇暫時公開開關（UI 專家）
 - Andy 10-20：「暫時把這篇設成免費公開」（錄功能影片用未登入訪客畫面）→ 特斯拉那篇 `2026-10-17-news-tesla` 全文暫時開放給所有人，不扣 Plus 額度。DECISIONS #361。
 - 伺服器端清單：`workers/account-api/articles.js` 的 `OPEN_ARTICLE_IDS`；畫面端：`site/articles/index.json` 那篇 `"open": true`。兩份由 anti_freeload.test.mjs 比對一致。
