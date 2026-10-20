@@ -51,7 +51,7 @@ class A(E.A):
         return ok
 
 
-DG_FOCUS = ["#themeDetail .card h3", "all:#themeDiagram g.stn"]   # 剖析圖：標題列＋五張環節卡（不含下方製作流程列；整張卡比畫面框的比例高，放不進）
+DG_FOCUS = ["#themeDetail .card .row.spread", "all:#themeDiagram g.stn"]   # 剖析圖：標題列＋五張環節卡（不含下方製作流程列；整張卡比畫面框的比例高，放不進）
 HEAT_EDGES = ["ztext:#indTree", "txt:#indHeat .hmcell", "txt:#indHeat h3", "txt:#__vsel div", "txt:#indHeat .hmctl"]
 THM_EDGES = ["ztext:#themeMap", "txt:#themeMapCard .hmcell", "txt:#themeMapCard h3", "txt:#themeCtl", "txt:#__vsel div", "txt:#themeDetail h3", "txt:#themeDetail small", "txt:#themeDiagram svg"]
 NAV_EDGES = ["txt:#tabs .tab", "txt:#tabs .l4subtab"]
@@ -94,11 +94,11 @@ def tm_hover(a, sel, kws, host, ms=620, hold=700, top=False):
     return r
 
 
-def tm_click(a, sel, kws, label, host, ms=520, pause=160):
+def tm_click(a, sel, kws, label, host, ms=520, pause=160, top=False):
     r = tm(a, sel, kws)
     if not r:
         return None
-    x, y = r["x"] + r["w"] / 2, r["y"] + r["h"] / 2
+    x, y = r["x"] + r["w"] / 2, (r["y"] + min(16, r["h"] * 0.3) if top else r["y"] + r["h"] / 2)   # 桌機：落在方塊上緣，提示框往下長也不會超出圖表卡
     a.note(f"點方塊 {label}：{r['n']}")
     a.click_xy(x, y, ms, pause, expect=host)
     tg = a.targets[-1]
@@ -108,13 +108,37 @@ def tm_click(a, sel, kws, label, host, ms=520, pause=160):
     return r
 
 
+def scroll_stable(a, n=6, max_ms=2800):
+    """頁面捲動（含網站點方塊後自己平滑捲到剖析圖）停穩了才繼續：連續 n 格 scrollY 不變。"""
+    last, same = None, 0
+    for _ in range(int(max_ms * 30 / 1000)):
+        y = a.pg.evaluate("() => Math.round(scrollY)")
+        same = same + 1 if y == last else 0
+        last = y
+        if same >= n:
+            return
+        a.wait(33)
+
+
 def cell_click(a, sel, label):
     return a.click(sel, ms=380, pause=150, label=label)
 
 
-def heat_cam(pg, a, legend=True, label="產業熱力圖", pad=10, zoom=True, edges=None):
+def heat_cam(pg, a, legend=True, label="產業熱力圖", pad=[6, 0], zoom=True, edges=None):
     sels = ["#indTree"] + (["all:#indHeat .hmcell"] if legend else [])
     a.cam(sels, pad, label, minw=F.ZMIN, edges=edges or HEAT_EDGES, zoom=zoom)
+
+
+DG_JS = r"""() => { const hs = document.querySelector('#themeDetail .card .row.spread'), st = [...document.querySelectorAll('#themeDiagram g.stn')];
+  if (!hs || !st.length) return null; const rs = [hs.getBoundingClientRect(), ...st.map(e => e.getBoundingClientRect())];
+  const x0 = Math.min(...rs.map(r => r.left)), y0 = Math.min(...rs.map(r => r.top)), x1 = Math.max(...rs.map(r => r.right)), y1 = Math.max(...rs.map(r => r.bottom));
+  return [x0, y0, x1, y1]; }"""
+
+
+def dg_rect(pg):
+    """剖析圖取景：標題列＋五張環節卡；下緣縮 6px，落在卡內晶片列（≤820）與下方「製作流程」字樣（831）之間的空白。"""
+    r = pg.evaluate(DG_JS)
+    return f"rect:{r[0] - 4:.1f},{r[1]:.1f},{r[2] - r[0] + 8:.1f},{r[3] - 6 - r[1]:.1f}"
 
 
 def sel_drop_rect(pg, sel, value):
@@ -129,7 +153,7 @@ def sel_drop_rect(pg, sel, value):
 # ------------------------------------------------------------------ 網頁版（1000×600，推近 ≥1.7 倍）
 def d_open(pg, a, start):
     goto(pg, "#heatmap/industry", 4500)
-    a.x, a.y = 940, 120
+    a.x, a.y = 992, 300
     start()
     heat_cam(pg, a, legend=True, label="產業熱力圖（全市場）")
     a.say("錢集中在哪個族群？", "face_think_v2")
@@ -164,7 +188,7 @@ def d_guide(pg, a, start):
 
 def d_ind(pg, a, start):
     goto(pg, "#heatmap/industry", 4500)
-    a.x, a.y = 940, 120
+    a.x, a.y = 992, 300
     start()
     heat_cam(pg, a, legend=True, label="推近：熱力圖方塊")
     a.say("方塊越大，成交越多", "magnifier")
@@ -177,7 +201,7 @@ def d_ind(pg, a, start):
     a.idle(400)
     # 分組下拉（原生下拉錄不到展開 → 自繪展開清單）：不分組 → 產業鏈
     drop = sel_drop_rect(pg, "#indTreeGroup", "flat")
-    a.cam(["#indTreeGroup", drop, "#indTree"], 10, "推近：分組下拉＋熱力圖", minw=F.ZMIN, edges=HEAT_EDGES, zoom=True)
+    a.cam(["#indHeat h3", "#indTreeGroup", drop, "#indTree"], [6, 0], "推近：分組下拉＋熱力圖", minw=F.ZMIN, edges=HEAT_EDGES, zoom=True)
     a.wait(700)
     a.say("分組可以切換", "folder")
     a.select_show("#indTreeGroup", "flat", "分組：不分組")
@@ -198,7 +222,7 @@ def d_ind(pg, a, start):
 
 def d_thm(pg, a, start):
     goto(pg, "#heatmap/theme", 4500)
-    a.x, a.y = 940, 420
+    a.x, a.y = 992, 200
     start()
     mp = ["#themeMapCard"]
     a.cam(mp, 4, "推近：題材資金熱力", minw=F.ZMIN, edges=THM_EDGES, zoom=True)
@@ -217,14 +241,19 @@ def d_thm(pg, a, start):
     a.wait(900)
     a.cam(mp, 4, "推近：題材資金熱力（點方塊）", minw=F.ZMIN, edges=THM_EDGES, zoom=True)
     first = True
-    for kw, lab in ((["CoWoS"], "CoWoS／先進封裝"), (["矽光子"], "矽光子／CPO"), (["高階 PCB"], "高階 PCB／CCL")):
+    for kw, lab in ((["AI 伺服器"], "AI 伺服器"), (["CoWoS"], "CoWoS／先進封裝"), (["高階 PCB"], "高階 PCB／CCL")):
+        if pg.evaluate("() => Math.round(scrollY)") > 0:   # 上一次點方塊後網站自己把頁面往下捲了 → 先捲回頂端、停穩，再框圖表（鏡頭不會跟著捲動晃）
+            a.scroll(to_y=0, ms=500)
+        scroll_stable(a)
         a.cam(mp, 4, f"推近：點方塊（{lab}）", minw=F.ZMIN, edges=THM_EDGES, zoom=True)
         a.wait(700)
         if first:
             a.say("點方塊，展開剖析圖", "magic_frame")
-        tm_click(a, "#themeMap", kw, f"題材：{lab}", "#themeMap")
-        a.wait(500)
-        a.cam(DG_FOCUS, [4, 3], f"推近：產品剖析圖（{lab}）", minw=F.ZMIN, edges=THM_EDGES, zoom=True)
+        tm_click(a, "#themeMap", kw, f"題材：{lab}", "#themeMap", top=True)
+        a.wait(400)
+        scroll_stable(a)
+        a.move(600, 590, 500)   # 游標離開圖表（提示框跟著收起），免得提示框殘留在剖析圖畫面上
+        a.cam([dg_rect(pg)], 0, f"推近：產品剖析圖（{lab}）", minw=F.ZMIN, edges=THM_EDGES, zoom=True)
         if first:
             a.say("上中下游一張圖看完", "talk_explain_v2")
         a.wait(1100)
@@ -238,29 +267,34 @@ def d_thm(pg, a, start):
 
 def d_end(pg, a, start):
     goto(pg, "#heatmap/theme/pcb_ccl", 5000)
-    a.x, a.y = 940, 300
+    a.x, a.y = 992, 200
     start()
     a.cam(["#themeMapCard"], 4, "推近：題材資金熱力", minw=F.ZMIN, edges=THM_EDGES, zoom=True)
     a.say("熱力圖＋題材，一站看懂", "proud_shine")
     a.move(700, 200, 900)
-    a.cam(DG_FOCUS, [4, 3], "推近：產品剖析圖", minw=F.ZMIN, edges=THM_EDGES, zoom=True)
+    a.cam([dg_rect(pg)], 0, "推近：產品剖析圖", minw=F.ZMIN, edges=THM_EDGES, zoom=True)
     a.say("搜尋「哩股哩股」", "invite_nod")
     a.move(500, 520, 900)
     a.settle()
 
 
 # ------------------------------------------------------------------ 手機版（390×844，m4 版面；點方塊開底部面板）
-M_HEAT = ["#indTree", "all:#indHeat .hmcell"]
+M_HEAT = ["#indTreeGroup", "#indTree", "all:#indHeat .hmcell"]
 
 
 def m_open(pg, a, start):
     goto(pg, "#heatmap/industry", 4500)
     start()
-    a.cam(["#indHeat .card"], 4, "產業熱力圖（全市場）", edges=HEAT_EDGES)
+    a.cam(M_HEAT, [10, 2], "產業熱力圖（全市場）", edges=HEAT_EDGES)
     a.say("錢集中在哪個族群？", "face_think_v2")
     a.idle(1100)
+    gs = pg.evaluate(C.TREEMAP_GROUPS_JS, "#indTree") or []
+    top2 = [g["rect"] for g in gs[:2]]
+    if top2:
+        x0 = min(r[0] for r in top2); y0 = min(r[1] for r in top2); x1 = max(r[0] + r[2] for r in top2); y1 = max(r[1] + r[3] for r in top2)
+        a.cam([f"rect:{x0:.1f},{y0:.1f},{x1 - x0:.1f},{y1 - y0:.1f}"], [4, 2], "推近：AI 伺服器與半導體", minw=F.ZMIN, edges=HEAT_EDGES, zoom=True)
     a.say("哪個題材最熱？", "fire")
-    a.idle(1100)
+    a.idle(1300)
     a.settle()
 
 
@@ -271,7 +305,7 @@ def m_guide(pg, a, start):
     a.say("點左上角選單", "point_ur_v2")
     a.click("#m4Burger", label="選單")
     a.wait(900)
-    a.cam(['.m4item[data-v="heatmap"]', '.m4item[data-v="flow"]', '.m4item[data-v="industry"]'], 10, "選單抽屜", edges=[])
+    a.cam(['.m4item[data-v="heatmap"]', '.m4item[data-v="flow"]', '.m4item[data-v="industry"]'], [10, 2], "選單抽屜", edges=[])
     a.say("點「熱力圖」", "tap")
     a.click('.m4item[data-v="heatmap"]', label="選單：熱力圖")
     a.wait(1700)
@@ -287,25 +321,28 @@ def m_guide(pg, a, start):
 def m_ind(pg, a, start):
     goto(pg, "#heatmap/industry", 4500)
     start()
-    a.cam(["#indHeat .card"], 4, "產業熱力圖", edges=HEAT_EDGES)
+    a.cam(M_HEAT, [10, 2], "產業熱力圖", edges=HEAT_EDGES)
     a.say("方塊越大，成交越多", "magnifier")
     a.idle(700)
     a.say("點方塊，看漲跌與成交", "spotlight")
     for kw, lab in ((["晶圓代工"], "晶圓代工"), (["玻纖布", "軟板"], "AI 伺服器鏈"), (["HPC"], "HPC")):
-        a.cam(["#indTree", "#mSheet"], 4, f"點方塊＋底部面板（{lab}）", edges=HEAT_EDGES + ["txt:#mSheet"])
+        a.cam(["#indTree", "#mSheet"], [6, 2], f"點方塊＋底部面板（{lab}）", edges=HEAT_EDGES + ["txt:#mSheet"])
+        a.wait(500)
         tm_click(a, "#indTree", kw, f"方塊：{lab}", "#indTree")
         a.wait(1300)
     a.click("#mSheetBack", label="點背景關閉面板") if pg.locator("#mSheetBack").count() else None
     a.wait(700)
     drop = sel_drop_rect(pg, "#indTreeGroup", "flat")
-    a.cam(["#indHeat .card", drop], 4, "分組下拉＋熱力圖", edges=HEAT_EDGES)
+    a.cam(["#indTreeGroup", drop, "#indTree"], [10, 2], "分組下拉＋熱力圖", edges=HEAT_EDGES)
+    a.wait(600)
     a.say("分組可以切換", "folder")
     a.select_show("#indTreeGroup", "flat", "分組：不分組")
     a.wait(1100)
     a.say("不分組，一眼比大小", "talk_explain_v2")
     a.select_show("#indTreeGroup", "chain", "分組：產業鏈")
     a.wait(900)
-    a.cam(["#indHeat .card"], 4, "熱力圖＋色階圖例", edges=HEAT_EDGES)
+    a.cam(M_HEAT, [10, 2], "熱力圖＋色階圖例", edges=HEAT_EDGES)
+    a.wait(600)
     a.say("點色階，只看那一級", "spotlight")
     for b in (5, 1, 4):
         cell_click(a, f'#indHeat .hmcell[data-bin="{b}"]', f"色階：第 {b + 1} 級")
@@ -315,46 +352,65 @@ def m_ind(pg, a, start):
     a.settle()
 
 
+M_THM_MAP = ["#themeColorSel", "#themeMap", "all:#themeMapCard .hmcell"]
+M_THM_DG = ["all:#themeDiagram g.vstep", "all:#themeDiagram g.stn"]
+
+
 def m_thm(pg, a, start):
     goto(pg, "#heatmap/theme", 4500)
     start()
-    a.cam(["#themeMapCard"], 4, "題材資金熱力", edges=THM_EDGES)
+    a.cam(M_THM_MAP, [10, 2], "題材資金熱力", edges=THM_EDGES)
     a.say("題材熱度，藍冷紅熱", "fire")
     a.idle(900)
     drop = sel_drop_rect(pg, "#themeColorSel", "chg")
-    a.cam(["#themeMapCard", drop], 4, "顏色下拉＋題材熱力", edges=THM_EDGES)
+    a.cam(["#themeColorSel", drop, "#themeMap"], [10, 2], "顏色下拉＋題材熱力", edges=THM_EDGES)
+    a.wait(600)
     a.say("切換顏色看漲跌", "face_curious")
     a.select_show("#themeColorSel", "chg", "顏色：平均漲跌")
-    a.wait(1100)
+    a.wait(1000)
     a.select_show("#themeColorSel", "heat", "顏色：熱度")
-    a.wait(900)
+    a.wait(800)
     first = True
     for kw, lab in ((["CoWoS"], "CoWoS／先進封裝"), (["矽光子"], "矽光子／CPO"), (["高階 PCB"], "高階 PCB／CCL")):
         a.cam_view("捲動")
-        a.scroll_to_el("#themeMapCard", 62, 600)
-        a.cam(["#themeMapCard"], 4, f"點方塊（{lab}）", edges=THM_EDGES)
+        a.scroll(to_y=0, ms=600)
+        scroll_stable(a)
+        a.cam_view(f"點方塊（{lab}）")   # 點下去網站會自己平滑捲到剖析圖 → 這一拍用整個手機畫面（上 576 css），不框區塊（框區塊會在捲動那幾格被裁到）
+        a.wait(650)
         if first:
             a.say("點方塊，展開剖析圖", "magic_frame")
         tm_click(a, "#themeMap", kw, f"題材：{lab}", "#themeMap")
-        a.wait(500)
         a.cam_view("捲動")
-        a.scroll_to_el("#themeDetail", 64, 700)
-        a.cam(["#themeDetail .card"], 4, f"產品剖析圖（{lab}）", edges=THM_EDGES)
+        scroll_stable(a)
+        a.scroll_to_el("#themeDiagram g.vstep", 128, 700)
+        scroll_stable(a)
+        a.cam(M_THM_DG, [10, 0], f"產品剖析圖（{lab}）", edges=THM_EDGES)
         if first:
             a.say("上中下游一張圖看完", "talk_explain_v2")
         a.wait(1100)
         first = False
     a.say("點環節，展開細節", "bulb")
-    for n in (2, 3):
-        a.click(f"#themeDiagram .vstep:nth-of-type({n})", label=f"環節：第 {n} 步") if pg.locator(f"#themeDiagram .vstep:nth-of-type({n})").count() else a.note(f"找不到環節 {n}")
-        a.wait(900)
+    STEP_JS = "() => { const r = [...document.querySelectorAll('#themeDiagram g.vstep:not(.open)')].map(e => [e.getBoundingClientRect(), e]).filter(([b]) => b.top > 130 && b.bottom < 552)[0]; return r ? [r[0].x + r[0].width / 2, r[0].y + r[0].height / 2, r[1].dataset.p || ''] : null; }"
+    for k in range(2):   # 點畫面框內（上 576 css）看得到的下一個收起的環節；展開後再點下一個
+        a.cam_view(f"點環節（第 {k + 1} 次）")
+        a.wait(650)
+        pt = pg.evaluate(STEP_JS)
+        if not pt:
+            a.note("找不到可點的環節")
+            break
+        a.click_xy(pt[0], pt[1], 1, 150, expect="#themeDiagram")
+        tg = a.targets[-1]
+        tg["label"] = f"環節：{pt[2]}"
+        tg["rect_center"] = a._vpt(pt[0], pt[1])
+        tg["measured_by"] = "被點環節標題列的外框中心"
+        a.wait(1000)
     a.settle()
 
 
 def m_end(pg, a, start):
     goto(pg, "#heatmap/theme", 4500)
     start()
-    a.cam(["#themeMapCard"], 4, "題材資金熱力", edges=THM_EDGES)
+    a.cam(M_THM_MAP, [10, 2], "題材資金熱力", edges=THM_EDGES)
     a.say("熱力圖＋題材，一站看懂", "proud_shine")
     a.idle(1300)
     a.say("搜尋「哩股哩股」", "invite_nod")
@@ -362,8 +418,9 @@ def m_end(pg, a, start):
     a.settle()
 
 
-VP_D = {"open": (1000, 600, 2.2), "guide": (1600, 900, 4), "ind": (1000, 600, 2.2), "thm": (1000, 960, 2), "end": (1000, 960, 2)}
+VP_D = {"open": (1000, 560, 2.2), "guide": (1600, 900, 4), "ind": (1000, 560, 2.2), "thm": (1000, 960, 2), "end": (1000, 960, 2)}
 D_SHOTS = {"open": d_open, "guide": d_guide, "ind": d_ind, "thm": d_thm, "end": d_end}
+VP_M = {"open": (390, 740, 4), "ind": (390, 740, 4), "thm": (390, 844, 4), "end": (390, 844, 4)}   # 熱力圖卡片撐滿視窗高度 → 視窗矮一點，整張卡（含標題、圖例）放得進 9:16 畫面框
 M_SHOTS = {"open": m_open, "guide": m_guide, "ind": m_ind, "thm": m_thm, "end": m_end}
 
 
@@ -379,8 +436,9 @@ def run(dev, shots, out, port):
             b = p.chromium.launch(executable_path="/opt/pw-browsers/chromium", args=["--disable-gpu", "--enable-unsafe-swiftshader", "--use-angle=swiftshader", "--ignore-gpu-blocklist"])
             for sid in shots or list(reg):
                 cfg = dict(DEVS[dev])
-                if dev == "d" and sid in VP_D:
-                    w_, h_, k_ = VP_D[sid]
+                vp = (VP_D if dev == "d" else VP_M).get(sid)
+                if vp:
+                    w_, h_, k_ = vp
                     cfg["viewport"] = {"width": w_, "height": h_}
                     cfg["device_scale_factor"] = k_
                 W = int(cfg["viewport"]["width"] * cfg["device_scale_factor"])
@@ -401,7 +459,9 @@ def run(dev, shots, out, port):
                 if dev == "d" and sid != "guide":
                     ctx.add_init_script("try{localStorage.setItem('tw.layout4.nav','mini')}catch(e){}")
                 if dev == "d" and sid in ("open", "ind"):   # 熱力圖卡片撐滿視窗高度，客服鈕（固定在右下角）會壓在方塊上 → 錄影瀏覽器裡把它挪到左下角（導覽列下方），取景框內沒有客服鈕
-                    ctx.add_init_script("(() => { const go = () => { const st = document.createElement('style'); st.textContent = 'html body #supFab{right:auto!important;left:6px!important}'; document.head.appendChild(st); }; document.readyState === 'loading' ? document.addEventListener('DOMContentLoaded', go) : go(); })();")
+                    ctx.add_init_script("(() => { const go = () => { const st = document.createElement('style'); st.textContent = 'html body #supFab{right:auto!important;left:-80px!important}'; document.head.appendChild(st); }; document.readyState === 'loading' ? document.addEventListener('DOMContentLoaded', go) : go(); })();")
+                if dev == "m":   # 手機：熱力圖卡片撐滿視窗高度，客服鈕（右下角）會壓在卡片右下 → 錄影瀏覽器裡把它移到可視範圍下方（取景框內沒有客服鈕；不改 site/）
+                    ctx.add_init_script("(() => { const go = () => { const st = document.createElement('style'); st.textContent = 'html body #supFab{bottom:-120px!important}'; document.head.appendChild(st); }; document.readyState === 'loading' ? document.addEventListener('DOMContentLoaded', go) : go(); })();")
                 ctx.add_init_script(C.CURSOR_JS % ("true" if dev == "m" else "false"))
                 pg = ctx.new_page()
                 errs = []

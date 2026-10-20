@@ -1,8 +1,8 @@
-"""功能介紹影片 06 今日事件＋精選文章：封面兩張（16:9 1920×1080、9:16 1080×1920）。
+"""功能介紹影片 07 熱力圖＋題材：封面兩張（16:9 1920×1080、9:16 1080×1920）。
 
 視覺照 docs/social_handoff/style/LIGULIGU_IG_Threads_Style_Guide.md：奶油紙底 #FFF9EF、深咖啡字 #321A14、
 珊瑚 #F58C83／蜜桃 #FFD4BA／淡黃 #FFE5A5 強調；標題 ≤ 14 字；網站畫面用錄影當下的實際畫面
-（精選文章列表：分類分頁＋文章卡；標題含公司名的已在錄影時模糊，沒有個股主角）。
+（產業熱力圖全圖：只有族群名稱與漲跌，沒有個股主角）。
 元素外框兩兩比對（外擴 6px），有重疊就印出來。
 """
 from __future__ import annotations
@@ -17,7 +17,7 @@ from PIL import Image, ImageDraw, ImageFilter
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
-import render_ev as R  # noqa: E402
+import render_hm as R  # noqa: E402
 
 PAPER = (255, 249, 239)
 INK = (50, 26, 20)
@@ -28,20 +28,16 @@ YEL = (255, 229, 165)
 
 
 def shot_crop():
-    """d_arts：精選文章「全圖定位」那一拍（分類分頁＋文章卡＋右側快速瀏覽），取該拍最後一格，裁切範圍＝那一拍量到的卡片外框上半。"""
-    js = json.loads((R.RAW / "d_arts.json").read_text(encoding="utf-8"))
-    mk = [m for m in js["marks"] if m[1] == "cam"]
-    i = [k for k, m in enumerate(mk) if "全圖定位" in m[2]][0]
-    t = mk[i + 1][0] - 0.1
-    k = int(t * 30)
+    """d_open：產業熱力圖開場第 0.5 秒（游標在圖外、沒有提示框），裁切範圍＝那一拍量到的「熱力圖＋色階圖例」外框。"""
+    js = json.loads((R.RAW / "d_open.json").read_text(encoding="utf-8"))
+    k = 15
     card = js["cams"][k][6]
-    cap = cv2.VideoCapture(str(R.RAW / "d_arts.mp4"))
+    cap = cv2.VideoCapture(str(R.RAW / "d_open.mp4"))
     cap.set(cv2.CAP_PROP_POS_FRAMES, k)
     ok, fr = cap.read()
     im = Image.fromarray(cv2.cvtColor(fr, cv2.COLOR_BGR2RGB))
     x, y, w, h = card
-    hh = min(h, w * 0.56)
-    return im.crop((int(x), int(y), int(x + w), int(y + hh))), None
+    return im.crop((int(x), int(y), int(x + w), int(y + h))), None
 
 
 def sticker(im, w, radius=34, border=14):
@@ -74,7 +70,7 @@ def make(kind):
     f_sub = R.font(R.F_BOLD, 44 if kind == "16x9" else 50)
     f_note = R.font(R.F_MED, 26 if kind == "16x9" else 30)
     # 膠囊
-    s = "哩股哩股・功能介紹 06"
+    s = "哩股哩股・功能介紹 07"
     tw, th, bb = R.tsize(f_pill, s)
     px, py = (80, 70) if kind == "16x9" else (80, 110)
     d.rounded_rectangle([px, py, px + tw + 56, py + th + 34], (th + 34) // 2, fill=CORAL + (255,), outline=INK + (255,), width=3)
@@ -83,16 +79,16 @@ def make(kind):
     # 大標：資金（珊瑚）＋流向（淡黃刷底）
     y = py + th + 34 + (40 if kind == "16x9" else 70)
     x = px
-    for word, col, brush in (("今日事件", CORAL, False), ("精選文章", INK, True)):
+    for word, col, brush in (("熱力圖", CORAL, False), ("題材", INK, True)):
         w_, h_, b_ = R.tsize(f_big, word)
         if brush:
             d.rounded_rectangle([x - 6, y + h_ * 0.52, x + w_ + 10, y + h_ + 14], 18, fill=YEL + (255,))
         d.text((x - b_[0], y - b_[1]), word, font=f_big, fill=col)
         reg.add("大標" + word, (x - 6, y, x + w_ + 10, y + h_ + 14), "大標")
-        if word == "今日事件":   # 兩個詞都疊成兩行（16:9 右邊要放網站畫面）
+        if word == "熱力圖":   # 兩個詞都疊成兩行（16:9 右邊要放網站畫面）
             y += h_ + 40
-    big_bottom = y + R.tsize(f_big, "精選文章")[1] + 14
-    s2 = "新聞太多？事件與題材一站看懂"
+    big_bottom = y + R.tsize(f_big, "題材")[1] + 14
+    s2 = "全市場與題材，一站看懂"
     w_, h_, b_ = R.tsize(f_sub, s2)
     ys = big_bottom + (34 if kind == "16x9" else 44)
     d.text((px - b_[0], ys - b_[1]), s2, font=f_sub, fill=SUB)
@@ -109,8 +105,8 @@ def make(kind):
     cv.alpha_composite(sh.filter(ImageFilter.GaussianBlur(10)), (sx + 10, sy + 14))
     cv.alpha_composite(st, (sx, sy))
     reg.add("網站畫面", (sx, sy, sx + st.width, sy + st.height))
-    # 比比（轉地球儀＋新聞卡飛出）
-    bimg = Image.open(R.LIB / "globe" / "key.png").convert("RGBA")
+    # 比比（火苗＋溫度計）
+    bimg = Image.open(R.LIB / "fire" / "key.png").convert("RGBA")
     bs = 430 if kind == "16x9" else 470
     bimg = bimg.resize((bs, bs), Image.LANCZOS)
     a = np.array(bimg)[..., 3]
