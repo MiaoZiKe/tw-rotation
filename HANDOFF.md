@@ -1,5 +1,13 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
+### 2026-10-20 資金輪動勾族群 → 排行長條消失＋頁面例外（修好）
+- 症狀：#flow/rotation「族群」下拉勾晶圓代工／HPC 與網通 IC／矽晶圓，每勾一個丟 `reading 'width'`，族群資金排行只剩名字沒有長條。
+- 根因：softenOption 替「單一橫條、全為非負值」補底軌（showBackground）；排行篩到只剩正值族群時底軌由關轉開，ECharts 5.5.1 BarView 更新路徑用舊索引取新版面（`0===x.length?M=w(n)`）而中斷。跟圖表尺寸 0／rotRedraw 去抖動無關（量過容器 624×760、348×420 都正常）。
+- 修法：app.js `bgFlipReset`（掛在 chart() 包住的 setOption）：底軌由關轉開時先 clear() 再畫 —— 全站長條圖共用，不只排行。
+- 勾族群連帶展開成分股面板（pickGroup）是既有設計，未改。
+- 新驗收段落 資金輪動勾族群1020（scripts/uitest_sections/20261020_資金輪動勾族群.py，桌機 1800／手機 390）；修正前 0 根長條＋5 次例外、修正後 3 根＋0 例外。
+- 這批只驗：資金輪動勾族群1020、--only 資金流向,新-資金流向,新-輪動時鐘,批次2,批次3,批次7,總覽、桌機守門1008、_preview。純前端改動，跳過 pytest。
+
 ### 2026-10-20 單篇暫時公開開關（UI 專家）
 - Andy 10-20：「暫時把這篇設成免費公開」（錄功能影片用未登入訪客畫面）→ 特斯拉那篇 `2026-10-17-news-tesla` 全文暫時開放給所有人，不扣 Plus 額度。DECISIONS #361。
 - 伺服器端清單：`workers/account-api/articles.js` 的 `OPEN_ARTICLE_IDS`；畫面端：`site/articles/index.json` 那篇 `"open": true`。兩份由 anti_freeload.test.mjs 比對一致。
