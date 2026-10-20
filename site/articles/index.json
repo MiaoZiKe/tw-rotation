@@ -2,6 +2,16 @@
  "updated": "2026-10-20",
  "articles": [
   {
+   "id": "2026-10-20-know-rotation",
+   "cat": "know",
+   "title": "類股輪動是什麼？20 日內族群漲跌差 43 點",
+   "date": "2026-10-20",
+   "topic": "k_rotation",
+   "groups": [],
+   "reading_min": 3,
+   "src": "api"
+  },
+  {
    "id": "2026-10-20-intro-ai-networking",
    "cat": "intro",
    "title": "AI 網通鏈一張圖：交換晶片每 2 年翻倍",
