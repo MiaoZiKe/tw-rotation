@@ -3412,6 +3412,7 @@
      放在「漲跌家數」後面 —— 兩張都是在回答「今天盤面是誰在動」，一張看家數、一張看法人。*/
   const MKT = [
     ['updown', '漲跌家數'], ['streak', '法人連買賣'], ['ma', '站上均線'], ['cand', '今日關注'],
+    ['credit', '信用交易'],   // 2026-10-20：畫在 site/marketfut.js
   ];
   /* 捲到某個元素，並且盯到版面穩住為止（以前是 wireKpiDrill 的內文；2026-09-28 KPI 細列換成摘要卡列後抽出來共用）。
      ★ 2026-09-19：換頁之後要再捲到那張圖。例如集中度圖在資金流向頁 2700px 處，
@@ -4216,6 +4217,11 @@
     if (body && typeof echarts !== 'undefined') body.querySelectorAll('[_echarts_instance_]').forEach(d => {
       try { const i = echarts.getInstanceByDom(d); if (i && !i.isDisposed()) i.dispose(); } catch (e) { /* 已經沒了 */ }
     });
+    if (window.TwMktFut && window.TwMktFut.has(kind)) {   // 融資餘額／外資期貨口數／期貨多空比（site/marketfut.js）
+      { const mb = $('.howbtn[data-how="mkt"]'); if (mb) mb.style.display = 'none'; }
+      window.TwMktFut.draw(kind, body, title, { chart, fmt, load, msDD });
+      return;
+    }
     const PCT = ['漲跌', r => `<span class="${fmt.cls(r.chg_pct)}">${fmt.pct(r.chg_pct, 2)}</span>`];
     const CLOSE = ['收盤', r => fmt.n(r.close)];
     const TO = ['成交值', r => fmt.yi(r.turnover)];
