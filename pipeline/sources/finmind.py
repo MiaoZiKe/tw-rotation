@@ -839,3 +839,53 @@ def tse_minute_from_5s(px: list[dict], tr: list[dict], day: str) -> pd.DataFrame
                         "volume": bars["volume"].to_numpy(), "src": "finmind"})
     log.info("FinMind 加權 1 分 K %s：%d 根，成交金額合計 %.0f 百萬元", dday, len(out), out["volume"].sum() / 1000)
     return out
+
+
+def market_institutional(start: str, end: str | None = None, *, wait: bool = True) -> pd.DataFrame:
+    """全市場（上市）三大法人買賣金額 —— 證交所「三大法人買賣金額統計表」的官方值。
+
+    Andy 2026-10-20 要「三大法人買賣超日報」，會拿別站（證交所公告值，例如 10/19 外資 −767.4 億）比對，
+    所以全市場金額不能用「個股股數×收盤價」估算（對不上），改走 FinMind TaiwanStockTotalInstitutionalInvestors。
+    這個資料集不用 data_id（整個市場一份），一次請求拉整段日期，只吃 1 次額度。
+
+    回應是長格式：每天每個法人一列（name＝Foreign_Investor／Foreign_Dealer_Self／Investment_Trust／
+    Dealer_self／Dealer_Hedging／total；舊資料可能只有 Dealer），buy／sell 單位是「元」。
+    口徑與個股別 inst_daily 一致：外資＝外資＋外資自營商、自營商＝自行買賣＋避險、合計＝三者相加。
+    回傳寬格式，一天一列，單位元：{foreign,trust,dealer,total}_{buy,sell}。
+    """
+    data = http.finmind_get("TaiwanStockTotalInstitutionalInvestors",
+                            start_date=start, end_date=end, wait_when_exhausted=wait)
+    return parse_market_institutional(data)
+
+
+def parse_market_institutional(data) -> pd.DataFrame:
+    """把 FinMind 長格式回應轉成寬格式（獨立出來方便用假回應測試）。"""
+    if not data:
+        return pd.DataFrame()
+    df = pd.DataFrame(data)
+    if df.empty or not {"date", "name"}.issubset(df.columns):
+        return pd.DataFrame()
+    for c in ("buy", "sell"):
+        df[c] = pd.to_numeric(df.get(c), errors="coerce").fillna(0.0)
+    groups = {"foreign": ("Foreign_Investor", "Foreign_Dealer_Self"), "trust": ("Investment_Trust",),
+              "dealer": ("Dealer_self", "Dealer_Hedging")}
+    rows = []
+    for date, g in df.groupby(df["date"].astype(str)):
+        row = {"date": date}
+        have = set(g["name"])
+        for k, names in groups.items():
+            use = [n for n in names if n in have]
+            if k == "dealer" and not use and "Dealer" in have:
+                use = ["Dealer"]
+            if not use:
+                row[k + "_buy"] = row[k + "_sell"] = None
+                continue
+            sub = g[g["name"].isin(use)]
+            row[k + "_buy"], row[k + "_sell"] = float(sub["buy"].sum()), float(sub["sell"].sum())
+        parts = [k for k in groups if row[k + "_buy"] is not None]
+        if len(parts) < 3:
+            continue          # 三種法人缺一種就是不完整的一天，寧可不寫（下一輪重抓）
+        row["total_buy"] = sum(row[k + "_buy"] for k in groups)
+        row["total_sell"] = sum(row[k + "_sell"] for k in groups)
+        rows.append(row)
+    return pd.DataFrame(rows)
