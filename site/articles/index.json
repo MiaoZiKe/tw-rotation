@@ -2,6 +2,21 @@
  "updated": "2026-10-20",
  "articles": [
   {
+   "id": "2026-10-20-news-nov-earnings-gap",
+   "cat": "news",
+   "title": "11 月個股 14 年只 6 年漲，資金往哪走",
+   "date": "2026-10-20",
+   "topic": "sch-20261020-06-r1-news-3",
+   "groups": [
+    {
+     "id": "foundry",
+     "name": "晶圓代工"
+    }
+   ],
+   "reading_min": 3,
+   "src": "api"
+  },
+  {
    "id": "2026-10-20-intro-cowos-chain",
    "cat": "intro",
    "title": "誰在台積電身邊：封裝 6 環節營收年增 25～60%",

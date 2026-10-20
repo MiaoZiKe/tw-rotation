@@ -1,0 +1,50 @@
+{
+ "id": "2026-10-20-news-nov-earnings-gap",
+ "title": "11 月個股 14 年只 6 年漲，資金往哪走",
+ "cat": "news",
+ "date": "2026-10-20",
+ "score": 82,
+ "rubric": {
+  "A": 15,
+  "B": 10,
+  "C": 5,
+  "D": 10,
+  "E": 10,
+  "F": 11,
+  "G": 9,
+  "H": 9,
+  "I": 3
+ },
+ "deductions": [
+  "無影片",
+  "鉤子圖為近況走勢，標題數字在第二張圖",
+  "390 版畫面未由 CEO 逐項驗證"
+ ],
+ "blocks": [
+  "h",
+  "ul",
+  "chart",
+  "h",
+  "chart",
+  "chart",
+  "h",
+  "chart",
+  "chart",
+  "h",
+  "steps",
+  "p",
+  "callout"
+ ],
+ "charts": 5,
+ "own_data_charts": 5,
+ "video": false,
+ "scene": false,
+ "words": 208,
+ "sources": [
+  "本站資料湖",
+  "finance.yahoo.com",
+  "ctee.com.tw 2025-12-26"
+ ],
+ "reviewer": "CEO 排程",
+ "reworked_from": null
+}
