@@ -35,3 +35,15 @@ def _續補不打整天全市場法人(monkeypatch):
     monkeypatch.setattr(run_backfill, "inst_bulk", types.SimpleNamespace(
         fill_inst_bulk=lambda *a, **k: pd.DataFrame(), site_codes=lambda: []))
     yield
+
+
+@pytest.fixture(autouse=True)
+def _官方法人來源不打網路(monkeypatch):
+    """2026-10-20：inst_bulk.fill_inst_bulk 開頭會打官方法人端點（證交所／櫃買）。
+    既有測試一律換成空替身；inst_official 自己的測試（test_inst_official）直接換 _get，不受影響。"""
+    import pandas as pd
+
+    from pipeline.sources import inst_official
+    inst_official._cache.clear()
+    monkeypatch.setattr(inst_official, "fetch_all", lambda *a, **k: pd.DataFrame())
+    yield

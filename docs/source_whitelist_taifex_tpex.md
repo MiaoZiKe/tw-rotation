@@ -155,3 +155,15 @@
 - **三商品（2026-10-20，Andy 要求大台／小台／微台）**：TX、MTX、TMF 的三大法人（`fut_inst`）與全市場未平倉（`fut_oi`）都進湖；全市場未平倉＝FinMind `TaiwanFuturesDaily` 一般交易時段（`trading_session=position`）各單一到期月份 `open_interest` 加總，價差單（`contract_date` 含 `/`）排除；散戶公式同上。回補旗標 `mktfut3`（TX／MTX 5 年、TMF 自 2024-07 上市起）。`retail_ratio.json` 合約：`{asof,source,order:"asc",products:{TX,MTX,TMF:{dates,taiex,total_oi,retail_long,retail_short,retail_net,ratio_pct,settle_dates}}}`。
 - 沒產出的根因：source 把未平倉抓成 MTX 存進 `fut_oi`，compute 卻只讀 TMF，結果 `retail_ratio.json` 只有空殼（頁面顯示「資料準備中」）。
 - 資料表：`margin_total`、`fut_inst`、`fut_oi`（config.TABLES v17），回補起點 2021-01-01（TMF 自 2024-08 才有資料），每日管線近 10 天增量。
+
+## 附：個股三大法人日報（2026-10-20，官方開放資料，取代 FinMind 逐檔當主來源）
+
+| 來源 | 授權 | 實作 |
+|---|---|---|
+| 證交所 `openapi.twse.com.tw/v1`（候選 `/fund/T86`、`/fund/TWT38U`、`/fund/TWT43U`、`/fund/TWT44U`，另讀 swagger.json 找含「法人」的路徑） | 政府資料開放授權條款第 1 版（同本文第一節判準） | `pipeline/sources/inst_official.py` |
+| 櫃買 `www.tpex.org.tw/openapi/v1`（候選 `/tpex_3insti_daily_trading`，政府資料開放平臺資料集 11856「上櫃股票三大法人買賣明細資訊」） | 同上 | 同上 |
+
+- 一次一個市場、整天全市場，不吃 FinMind 額度；單位股；只收回應內有日期的資料、只收最新一日。
+- **不碰** `www.twse.com.tw/fund/T86`（官網端點，禁爬）。
+- 路徑與欄位是用 WebSearch 摘要推得、未實測；程式會把每支端點的「網址、HTTP 狀態、前 300 字」印進 log，第一次在 daily.yml 跑完以 log 為準校正。
+- 官方沒給的日子（歷史缺口）仍由 FinMind 續補。
