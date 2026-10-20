@@ -1,0 +1,34 @@
+name: probe-inst（一次性探測，用完刪除）
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 取兩家 swagger，找法人端點
+        run: |
+          set +e
+          for u in https://openapi.twse.com.tw/v1/swagger.json https://www.tpex.org.tw/openapi/swagger.json; do
+            echo "=== $u"
+            curl -sS -m 60 -A "Mozilla/5.0" -o /tmp/s.json -w "HTTP %{http_code} size %{size_download}\n" "$u"
+            python3 - <<'PY'
+          import json,re
+          try: s=json.load(open('/tmp/s.json'))
+          except Exception as e:
+              print("parse fail", e, open('/tmp/s.json','rb').read(200)); raise SystemExit
+          for p,v in s.get('paths',{}).items():
+              txt=json.dumps(v,ensure_ascii=False)
+              if re.search(r'法人|nstitution|T86|3insti|3itrade',p+txt):
+                  print("PATH",p, [x.get('summary') for x in v.values() if isinstance(x,dict)])
+          PY
+          done
+      - name: 取樣本
+        run: |
+          set +e
+          for u in https://openapi.twse.com.tw/v1/fund/T86 https://openapi.twse.com.tw/v1/fund/T86_ALL https://www.tpex.org.tw/openapi/v1/tpex_3insti_daily_trading; do
+            echo "=== $u"
+            curl -sS -m 60 -A "Mozilla/5.0" -w "\nHTTP %{http_code}\n" "$u" | head -c 900
+            echo
+          done
