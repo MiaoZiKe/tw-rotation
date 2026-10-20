@@ -21,3 +21,17 @@ def _清空FinMind錯誤紀錄(monkeypatch):
     monkeypatch.setattr(http, "_last_error", None)
     monkeypatch.setattr(http, "_last_errors", {})
     yield
+
+
+@pytest.fixture(autouse=True)
+def _續補不打整天全市場法人(monkeypatch):
+    """2026-10-20：refresh_stale_inst 開頭會先試 inst_bulk.fill_inst_bulk（讀真實資料湖＋打 FinMind）。
+    續補的既有測試不測它，一律換成空的替身；inst_bulk 本身的測試（test_data_fresh_1020）直接呼叫真模組，不受影響。"""
+    import types
+
+    import pandas as pd
+
+    from pipeline import run_backfill
+    monkeypatch.setattr(run_backfill, "inst_bulk", types.SimpleNamespace(
+        fill_inst_bulk=lambda *a, **k: pd.DataFrame(), site_codes=lambda: []))
+    yield
