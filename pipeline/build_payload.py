@@ -16,7 +16,7 @@ import numpy as np
 import pandas as pd
 
 from . import config, delivery_log, indicators
-from .compute import explore
+from .compute import explore, inst_market, inst_today
 from .compute import mktfut as mktfut_c
 from .compute import analysis, earnings, etf, etf_holdings, flow, fundamental, mtf, rrg, scoring, season, stockpage, technical, themes
 from .groups import loader
@@ -339,6 +339,19 @@ def build() -> None:
         _write("retail_ratio", mktfut_c.retail_ratio_json(_fi, _oi, _ohlc, "期交所三大法人未平倉＋期貨每日行情未平倉（經 FinMind），微台指 TMF，所有到期月份合計"))
     except Exception as exc:  # noqa: BLE001
         log.warning("市場明細／期貨資料層產生失敗（不影響其他 JSON）：%s", exc)
+    # ★ 2026-10-20 當日三大法人買賣超（Andy：「也需要在盤後提供當天即時的法人買賣超狀況」）。口徑見 compute/inst_today.py
+    try:
+        _it = inst_today.payload(inst, price, names)
+        _it["latest"] = latest      # 價量最新交易日；前端用它判斷「法人表是不是還沒出齊」
+        _write("inst_today", _it)
+        # 三大法人買賣超日報（Andy 2026-10-20）：全市場每日金額序列（官方值為主，缺的日子上市估算補），口徑見 compute/inst_market.py
+        _im = inst_market.series(store.read("inst_market_daily"), inst, price, store.read("index_ohlc"))
+        _im["latest"] = latest
+        _write("inst_market", _im)
+    except Exception as exc:  # noqa: BLE001
+        log.warning("當日三大法人產出失敗：%s", exc)
+        _write("inst_today", {"date": None, "who": {}, "top": {}})
+        _write("inst_market", {"unit": "億元", "rows": [], "n_est": 0, "official_from": None})
 
     lap("M1 資金面")
 

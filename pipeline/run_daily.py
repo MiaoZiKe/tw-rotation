@@ -677,6 +677,8 @@ def main() -> int:
                 RESULT["steps"]["mktfut." + _t] = {"ok": not _df.empty, "rows": int(len(_df))}
         except Exception as exc:  # noqa: BLE001
             log.warning("市場明細期貨／融資抓取失敗（不影響其他步驟）：%s", exc)
+        # 全市場三大法人買賣金額官方值（2026-10-20）：一次請求拉 40 天、1 次額度；store.append 依 date 去重
+        save("inst_market_daily", step("finmind.market_institutional", finmind.market_institutional, since))
 
     # 台指期 60 分 K（逐筆聚合，一天 1 次額度）。只在傍晚完整那輪做：15:30 時 FinMind 多半還沒出當天逐筆。
     if not light and not news_only and not args.skip_finmind and trade_date:

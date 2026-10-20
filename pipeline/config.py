@@ -29,6 +29,9 @@ TABLES: dict[str, list[str]] = {
     "index_daily":        ["date", "index"],  # 各類股指數
     "market_daily":       ["date"],           # 大盤成交統計
     "inst_daily":         ["date", "code"],   # 三大法人買賣超（個股別）
+    # v17（2026-10-20，三大法人買賣超日報）：全市場（上市）三大法人買賣「金額」官方值，一天一列，單位元。
+    #   來源 FinMind TaiwanStockTotalInstitutionalInvestors；欄位 {foreign,trust,dealer,total}_{buy,sell}。
+    "inst_market_daily":  ["date"],
     "revenue_monthly":    ["ym", "code"],     # 月營收
     "financial_q":        ["year", "quarter", "code"],  # EPS / 損益（單季值）
     "balance_q":          ["year", "quarter", "code"],  # 股本 / 淨值 / 總資產
