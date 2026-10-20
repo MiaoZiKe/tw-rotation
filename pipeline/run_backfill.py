@@ -20,7 +20,7 @@ import pandas as pd
 
 from . import config
 from .groups import loader
-from .sources import finmind
+from .sources import finmind, mktfut
 from .util import http, roc, store
 
 logging.basicConfig(
@@ -912,6 +912,62 @@ def refresh_stale_inst(prog: dict, today: date | None = None, limit: int | None 
     return ok
 
 
+def backfill_mktfut(prog: dict, start: str = "2021-01-01") -> bool:
+    """市場明細與期貨兩頁的歷史（2026-10-20）：整體融資融券、期貨三大法人（TX／TMF）、微台未平倉，
+    各一次請求補 5 年。三張表都有資料才標 done；缺的下一輪重試，之後每日管線用 10 天增量。"""
+    flag = (prog.get("complete") or {}).get("mktfut")
+    if isinstance(flag, dict) and flag.get("done") and flag.get("start") == start:
+        return True
+    if http.finmind_budget_left() <= 5:
+        log.warning("額度不足 5 次，市場明細歷史這一輪先不補")
+        return False
+    got = mktfut.collect(start)
+    total = 0
+    for t, df in got.items():
+        total += store.append(t, df)
+    ok = all(not df.empty for df in got.values())
+    if ok:
+        prog.setdefault("complete", {})["mktfut"] = {"done": True, "start": start,
+            "at": datetime.now(timezone.utc).isoformat(), "rows": total}
+        _save_progress(prog)
+    else:
+        log.warning("市場明細歷史有表回空（%s）—— 不標 done，下一輪重試",
+                    [t for t, d in got.items() if d.empty])
+    return ok
+
+INST_MARKET_START = "2021-01-01"   # 5 年；日報頁最長期間鈕要撐到這裡
+
+
+def backfill_inst_market(prog: dict, start: str = INST_MARKET_START) -> bool:
+    """全市場三大法人買賣金額官方值回補 5 年（2026-10-20，三大法人買賣超日報）。
+
+    一次請求拉整段（資料集不用 data_id），1 次額度。額度不足或回空（含 402）就不標 done，下一輪重試；
+    補過就不再補（進度檔記 complete["inst_market_daily"]），每日管線照樣用 40 天的增量。
+    """
+    flag = (prog.get("complete") or {}).get("inst_market_daily")
+    if isinstance(flag, dict) and flag.get("done") and flag.get("start") == start:
+        return True
+    if http.finmind_budget_left() <= 2:
+        log.warning("額度不足，三大法人全市場金額這一輪先不補")
+        return False
+    try:
+        df = finmind.market_institutional(start, wait=False)
+    except Exception as exc:  # noqa: BLE001
+        log.warning("三大法人全市場金額回補失敗：%s", exc)
+        return False
+    if df is None or df.empty:
+        err = http.finmind_last_error("TaiwanStockTotalInstitutionalInvestors") or {}
+        log.warning("三大法人全市場金額回空 —— 不標 done，下一輪重試（%s）",
+                    f"HTTP {err.get('status')} {err.get('msg')}" if err else "無錯誤訊息")
+        return False
+    n = store.append("inst_market_daily", df)
+    prog.setdefault("complete", {})["inst_market_daily"] = {
+        "done": True, "start": start, "at": datetime.now(timezone.utc).isoformat(), "rows": n}
+    _save_progress(prog)
+    log.info("三大法人全市場金額補完：%d 列（%s 起）", n, start)
+    return True
+
+
 def backfill_indices(prog: dict, start: str = INDEX_START) -> bool:
     """把加權指數、櫃買指數、台指期的日 K 一次補到 2000 年。
 
@@ -1351,6 +1407,10 @@ def run_plan(name: str, limit: int | None, today: date | None = None) -> dict:
         backfill_index_intraday(_progress())
     except Exception as exc:  # noqa: BLE001
         log.warning("指數分 K 回補失敗（不影響其他步驟）：%s", exc)
+    try:
+        backfill_mktfut(_progress())
+    except Exception as exc:  # noqa: BLE001
+        log.warning("市場明細融資／期貨回補失敗（不影響其他步驟）：%s", exc)
     results: dict[str, bool] = {}
     stopped_at: str | None = None
     totals = {k: 0 for k in DATA_KEYS}
@@ -1380,6 +1440,10 @@ def run_plan(name: str, limit: int | None, today: date | None = None) -> dict:
             refresh_stale_inst(_progress(), today, limit)
         except Exception as exc:  # noqa: BLE001
             log.warning("法人每日續補失敗（不影響其他步驟）：%s", exc)
+        try:
+            backfill_inst_market(_progress())
+        except Exception as exc:  # noqa: BLE001
+            log.warning("三大法人全市場金額回補失敗（不影響其他步驟）：%s", exc)
     prog = _progress()
     prog.setdefault("complete", {})
     prog["complete"][f"plan:{name}"] = {

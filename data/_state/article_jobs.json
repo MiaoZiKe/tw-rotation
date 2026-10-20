@@ -1,18 +1,4 @@
 {
- "updated": "2026-10-20 11:21",
- "jobs": [
-  {
-   "id": 27,
-   "topic_id": "sch-20261020-06-r1-know-2",
-   "kind": "article",
-   "title": "類股輪動是什麼？資金怎麼換跑道",
-   "note": "排程自動排入（規則 1，台北 2026-10-20 06:00）；建議主題 k_rotation",
-   "status": "queued",
-   "created": 1792449516618,
-   "updated": 1792449516618,
-   "result": null,
-   "stage": null,
-   "stage_at": null
-  }
- ]
+ "updated": "2026-10-20 11:30",
+ "jobs": []
 }
