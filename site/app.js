@@ -5365,6 +5365,181 @@
     if (b && !b.hidden && (b._vw !== window.innerWidth || b._vh !== window.innerHeight)) b.hidden = true;
   });
 
+  /* ================================================================ 熱力圖即時層（HL，2026-10-20）
+     Andy 10-20：「熱力圖都需要具備即時功能，他也是需要截圖發布的內容」。
+     範圍：總覽「資金熱力圖」#heat、熱力圖頁「整個台股一次看」#indTree、「題材資金熱力」#themeMap、總覽「熱門題材」#ovTheme。
+     口徑跟資金輪盤／資金分流樹的「即時」完全同一條公式，不另外發明：
+       · 報價：live.js 的「補位」（Live.want('heat', hlFill, {fill:true})）—— 不多打任何請求、5 秒節奏與節流閥不變，
+         名單＝人工族群成分股＋題材成分股（約 450 檔），一圈約 20～30 秒；輪完一圈才算數（之前顯示盤後、狀態是 pending）。
+       · 族群成交值：price × volume × 1000（估算）÷ 該股掛幾個手寫板塊（sklWeights，1/n 拆分）；漲跌：成交值加權（rlvCompute 同一支）。
+       · 自動桶（ind_*）沒有即時報價：維持盤後值，面積以「即時總量 ÷ 盤後總量」等比縮放，
+         不然盤中累積量只有全日的一部分，自動桶會被畫得比手寫族群大幾倍。
+       · 顏色：有「資金流向 pp」的族群盤中沒有即時版 → 即時中的族群改依即時漲跌換算（原本沒有資金流向的族群就是這樣上色）；
+         題材的「熱度」是日資料（法人、新聞），顏色仍依熱度，改選「平均漲跌」才會跟著即時變色；面積與提示框的數字一律即時。
+     · 只有站主或管理員（liveOK）、卡片「即時」開關開著、盤中（09:00–13:35）才套用；其餘時間顯示最後收盤。
+     · 截圖程式的就緒判斷：卡片上的 data-snap-live ＝ pending（即時中、還沒輪完一圈）／live（已套上）／close（收盤資料）／err（抓不到）。*/
+  const HL = { q: {}, asked: new Set(), ptr: 0, uni: null, uniSet: null, uniKey: null, ready: false, at: 0, err: '', today: '',
+    g: {}, stv: {}, chg: {}, hit: 0, th: null, subs: {}, sig: '', painted: '', pendSince: 0, quoteAt: '' };
+  const HL_CARDS = ['#ovHeatCard', '[data-hlcard="ind"]', '#themeMapCard', '#ovThemeCard'];
+  const hlIntra = () => !!(window.Live && window.Live.isIntraday && window.Live.isIntraday());
+  const hlCardOn = () => !!(window.Live && window.Live.cardOn && window.Live.cardOn('heat'));
+  const hlUse = () => liveOK() && hlCardOn() && hlIntra();                // 該不該用即時
+  const hlLive = () => hlUse() && HL.ready && HL.at > 0;                  // 已經有即時數字可以套
+  const hlShown = () => ['heat', 'indTree', 'themeMap', 'ovTheme'].some(id => { const e = document.getElementById(id); return !!e && e.getClientRects().length > 0; });
+  function hlUni() {
+    const det = D.groups_detail || {};
+    if (HL.uni && HL.uniKey && HL.uniKey[0] === det && HL.uniKey[1] === HL.th) return HL.uni;
+    const seen = new Set(), out = [];
+    const add = (c) => { c = String(c || ''); if (c && !seen.has(c)) { seen.add(c); out.push(c); } };
+    Object.keys(det).forEach(gid => { if (!isAutoBucket(gid)) (det[gid].members || []).forEach(m => add(m.code)); });
+    ((HL.th && HL.th.themes) || []).forEach(t => (t.members || []).forEach(m => add(m.code)));
+    HL.uni = out; HL.uniSet = seen; HL.uniKey = [det, HL.th]; HL.ptr = 0; HL.asked = new Set(); HL.ready = false;
+    return out;
+  }
+  function hlFill(room) {
+    if (!hlIntra() || !hlShown() || !hlCardOn()) return [];
+    if (ovsShown()) return [];      // 總覽：搭摘要卡「補位」的班車（名單幾乎重疊），不跟它搶同一批的空位
+    // 熱力圖頁沒載過族群成分股（總覽才會）：先去載，載好之後下一輪就有名單
+    if (!D.groups_detail) { if (!HL.gdBusy) { HL.gdBusy = true; load('groups_detail').catch(() => {}).then(() => { HL.gdBusy = false; }); } return []; }
+    const U = hlUni(); if (!U.length) return [];
+    const n = Math.min(room, U.length), out = [];
+    for (let i = 0; i < n; i++) out.push(U[(HL.ptr + i) % U.length]);
+    return out;
+  }
+  function hlMerge(c, nq) {                       // 只收今天的、只准往前（同 ovlMerge）
+    if (!nq || nq.price == null) return;
+    if (nq.date && nq.date !== HL.today) return;
+    const o = HL.q[c];
+    if (o) { const od = o.date || '', nd = nq.date || ''; if (od > nd) return; if (od === nd && String(nq.time || '') < String(o.time || '')) return; }
+    HL.q[c] = nq;
+  }
+  function hlCompute() {
+    const det = D.groups_detail || {}, w = sklWeights(), stv = {}, chg = {};
+    let at = '', hit = 0;
+    Object.keys(HL.q).forEach(c => {
+      const x = HL.q[c]; if (!x || x.price == null || x.volume == null) return;
+      const v = x.price * x.volume * 1000; if (!(v > 0)) return;
+      stv[c] = v; if (x.chgPct != null) chg[c] = x.chgPct; hit++;
+      if (x.time && x.time > at) at = x.time;
+    });
+    const g = {};
+    Object.keys(det).forEach(gid => {
+      if (isAutoBucket(gid)) return;
+      let to = 0, gw = 0, gc = 0, n = 0;
+      ((det[gid] || {}).members || []).forEach(m => {
+        const c = String(m.code); if (stv[c] == null) return;
+        const ww = stv[c] / Math.max(1, w[c] || 1);
+        to += ww; n++; if (chg[c] != null) { gw += ww; gc += chg[c] * ww; }
+      });
+      if (n && gw > 0) g[gid] = { to, chg: gc / gw, n };
+    });
+    HL.g = g; HL.stv = stv; HL.chg = chg; HL.hit = hit; HL.quoteAt = at;
+    if (hit) HL.at = Date.now();
+  }
+  /* 把盤後的列換成即時版。f＝欄位名 { id, to, chg, share? }。回 null＝不套（沒開／沒到盤中／還沒輪完一圈）。 */
+  function hlOverlay(rows, f) {
+    if (!hlLive() || !rows || !rows.length) return null;
+    let liveTo = 0, baseTo = 0; const ok = new Set();
+    rows.forEach(r => { const x = HL.g[r[f.id]]; if (x && r[f.to] > 0) { ok.add(r[f.id]); liveTo += x.to; baseTo += r[f.to]; } });
+    if (!ok.size) return null;
+    const scale = baseTo > 0 && liveTo > 0 ? liveTo / baseTo : 1;
+    let tot = 0;
+    const out = rows.map(r => {
+      const x = ok.has(r[f.id]) ? HL.g[r[f.id]] : null, o = Object.assign({}, r);
+      o[f.to] = x ? x.to : (r[f.to] || 0) * scale; if (x) o[f.chg] = x.chg; o.__live = !!x; tot += o[f.to]; return o;
+    });
+    if (f.share) out.forEach(o => { o[f.share] = tot > 0 ? o[f.to] / tot * 100 : o[f.share]; });
+    return { rows: out, live: ok, scale };
+  }
+  /* 題材：成分股逐檔換成即時（成交值＝price×volume×1000；沒報價的成分股用盤後值 × 同一個縮放）。 */
+  function hlThemes(th) {
+    if (!th || !th.themes) return th;
+    HL.th = th;
+    if (!hlLive()) return th;
+    let lv = 0, bs = 0;
+    th.themes.forEach(t => (t.members || []).forEach(m => { const v = HL.stv[String(m.code)]; if (v != null && m.turnover > 0) { lv += v; bs += m.turnover; } }));
+    if (!(lv > 0 && bs > 0)) return th;
+    const k = lv / bs;
+    let tot = 0;
+    const ts = th.themes.map(t => {
+      let to = 0, gw = 0, gc = 0, hit = 0;
+      const ms = (t.members || []).map(m => {
+        const c = String(m.code), v = HL.stv[c];
+        const mt = v != null ? v : (m.turnover || 0) * k, mc = v != null && HL.chg[c] != null ? HL.chg[c] : m.chg_pct;
+        if (v != null) hit++;
+        to += mt; if (mc != null) { gw += mt; gc += mc * mt; }
+        return Object.assign({}, m, { turnover: mt, chg_pct: mc });
+      });
+      tot += to;
+      return Object.assign({}, t, hit ? { turnover: to, chg_pct: gw > 0 ? gc / gw : t.chg_pct, members: ms, __live: true } : { turnover: (t.turnover || 0) * k });
+    });
+    ts.forEach(t => { t.share = tot > 0 ? t.turnover / tot * 100 : t.share; });
+    return Object.assign({}, th, { themes: ts });
+  }
+  function hlWant() { if (window.Live && window.Live.want) window.Live.want('heat', hlFill, { fill: true }); }
+  /* 各張圖登記「怎麼重畫」；即時有新數字（或開關／盤中狀態變了）就叫它。看不到的圖不畫。 */
+  function hlReg(name, fn) { HL.subs[name] = fn; hlWant(); hlSnap(); }
+  const HL_ID = { heat: 'heat', indTree: 'indTree', themeMap: 'themeMap', ovTheme: 'ovTheme' };
+  function hlRepaint() {
+    Object.keys(HL.subs).forEach(k => {
+      const e = document.getElementById(HL_ID[k] || k);
+      if (!e || !e.getClientRects().length) return;
+      const a = document.activeElement;                       // 正在操作這張卡的下拉／選單 → 不重畫，免得把選單關掉
+      if (a && a.closest && a.closest('#heatCtl,#ovThemeCtl,#themeCtl,[data-hlcard="ind"] .row')) return;
+      try { HL.subs[k](); } catch (x) { console.warn('熱力圖即時重畫失敗', k, x); }
+    });
+  }
+  /* 狀態旗標（給截圖程式與驗收）：卡片 data-snap-live。pending 超過 60 秒當作抓不到，免得截圖程式永遠等。 */
+  function hlState() {
+    if (!liveOK() || !hlCardOn() || !hlIntra()) return 'close';
+    if (hlLive()) return 'live';
+    if (HL.err) return 'err';
+    if (!HL.pendSince) HL.pendSince = Date.now();
+    return Date.now() - HL.pendSince > 60000 ? 'err' : 'pending';
+  }
+  function hlSnap() {
+    const s = hlState(); if (s !== 'pending') HL.pendSince = 0;
+    HL_CARDS.forEach(sel => { const e = document.querySelector(sel); if (!e) return;
+      if (e.dataset.snapLive !== s) e.dataset.snapLive = s;
+      const at = s === 'live' ? String(HL.at) : '';
+      if ((e.dataset.snapAt || '') !== at) e.dataset.snapAt = at; });
+    if (window.Live && window.Live.stampCard) window.Live.stampCard('heat', { at: HL.at, err: HL.err, every: 5000 });
+  }
+  function hlUpdate() {
+    hlCompute();
+    HL.sig = Object.keys(HL.g).sort().map(k => k + ':' + Math.round(HL.g[k].chg * 100) + ':' + Math.round(HL.g[k].to / 1e6)).join('|');
+    const st = hlLive() ? 'live' : 'close';
+    if (st === 'live' ? (HL.sig !== HL.painted) : (HL.painted !== 'close')) { HL.painted = st === 'live' ? HL.sig : 'close'; hlRepaint(); }
+    hlSnap();
+  }
+  window.addEventListener('tw:live', (e) => {
+    if (!liveOK()) return;
+    const d = (e && e.detail) || {}, sent = (d.fill && d.fill.heat) || [];
+    HL.today = ovlToday();
+    const Q = (window.Live && window.Live.quotes) || {};
+    const U = hlUni();
+    /* 這一輪抓回來的代號只要在名單裡就收（總覽的「補位」會先把空位塞滿 —— 那時熱力圖自己的補位分不到，
+       但名單大半重疊，搭同一班車；在別的頁（熱力圖頁）才靠自己的補位輪一圈）。 */
+    let got = 0;
+    (d.codes || []).forEach(c => { if (HL.uniSet && HL.uniSet.has(c)) { hlMerge(c, Q[c]); HL.asked.add(c); got++; } });
+    if (sent.length) HL.ptr = U.length ? (HL.ptr + sent.length) % U.length : 0;
+    if (got) {
+      HL.err = '';
+      if (!HL.ready) HL.ready = U.length > 0 && U.every(c => HL.asked.has(c));
+      hlUpdate();
+    }
+  });
+  window.addEventListener('tw:livetick', (e) => { const d = (e && e.detail) || {}; if (!d.ok && HL.pendSince && Date.now() - HL.pendSince > 15000) { HL.err = d.err || '這一輪沒抓到'; hlSnap(); } });   // 剛開頁的前幾輪還沒有名單可抓，不算失敗
+  window.addEventListener('tw:livecard', (e) => {                     // 開／關：打開重輪一圈才算數；關掉原地換回盤後
+    if (!e || !e.detail || e.detail.key !== 'heat') return;
+    HL.asked = new Set(); HL.ready = false; HL.pendSince = 0; HL.painted = ''; HL.err = '';
+    hlRepaint(); hlSnap();
+  });
+  window.addEventListener('tw:livegate', () => { HL.ready = false; HL.painted = ''; HL.pendSince = 0; });
+  // 盤中→盤後（或剛開盤）狀態一變就重畫一次；pending 轉 err 也靠這個更新旗標
+  setInterval(() => { const s = hlState(); const was = HL.painted === 'close' ? 'close' : 'live'; hlSnap();
+    if (s !== 'live' && was === 'live') { HL.painted = 'close'; hlRepaint(); } }, 5000);
+
   // 熱力圖的 option 與資料（放大罩與原圖共用，才不會兩邊畫出不一樣的東西）
   /* ★ 2026-09-24 熱力圖 v2（規格 §3.1）：顏色口徑不變（資金流向 pp；沒有資金流向的族群沿用
      舊的退路 —— 用漲跌幅 ÷3 換算到同一把尺上，等於舊版 `chgColor(chg, 3)` 的飽和點），
@@ -5525,7 +5700,12 @@
   let heatNoRot = 0;               // 還沒有 5 日 vs 20 日資金流向、改用漲跌上色的族群數（給 HOW.heat 讀）
   function renderHeat(gt, rot) {
     if (!gt || !gt.length) return empty('heat');
-    const { chains, inChain, option } = heatOption(gt, rot, heatChain, false, heatFocus);
+    // ★ 2026-10-20 熱力圖即時（HL）：盤中把列換成即時版；原本的 gt／rot 留給「切產業鏈」「圖例」重畫用
+    const hlView = () => { const o = hlOverlay(gt, { id: 'group_id', to: 'turnover', chg: 'chg_pct', share: 'turnover_share' });
+      return { gt: o ? o.rows : gt, rot: o ? (rot || []).filter(r => !o.live.has(r.group_id)) : rot }; };
+    hlReg('heat', () => renderHeat(gt, rot));
+    const hv0 = hlView();
+    const { chains, inChain, option } = heatOption(hv0.gt, hv0.rot, heatChain, false, heatFocus);
     if (heatChain && !chains[heatChain]) heatChain = null;
     heatChips(chains, $('#heatCtl'), heatChain, (c) => { heatChain = c; renderHeat(gt, rot); }, 'heatDD');
     const list = inChain || gt.filter(g => !g.group_id.startsWith('ind_'));
@@ -5535,7 +5715,7 @@
        · 族群一樣點得到：點方塊就在原地列出成分股（#heatPanel），面板上有「進族群頁 →」。
        · 「依漲跌上色」的口徑搬進「?」（HOW.heat 最下面那行小字，數字即時算，見 heatNoRot）。*/
     hmLegend('heat', 'flow', heatFocus, (f) => { heatFocus = f; renderHeat(gt, rot); });
-    heatNoRot = list.filter(g => !(rot || []).some(r => r.group_id === g.group_id)).length;
+    heatNoRot = list.filter(g => !(hv0.rot || []).some(r => r.group_id === g.group_id)).length;
     const c = chart('heat', option);
     hmRelabel(c, heatVal);
     wheelZoom($('#heatWrap'), { onZoom: () => { const i = echarts.getInstanceByDom($('#heat')); if (i) i.resize(); } });
@@ -5557,7 +5737,7 @@
     if (zb) zb.onclick = () => openZoom('資金熱力圖', (body, chipBox) => {
       let ch = heatChain;
       const draw = () => {
-        const r = heatOption(gt, rot, ch, true, heatFocus);
+        const hv = hlView(), r = heatOption(hv.gt, hv.rot, ch, true, heatFocus);
         heatChips(r.chains, chipBox, ch, (c2) => { ch = c2; draw(); }, 'heatZoomDD');
         const bc = chart(body, r.option);
         hmRelabel(bc, heatVal);
@@ -6027,7 +6207,7 @@
       const flat = step(mkt);
       if (!now || !flat || !isFinite(now.x) || !isFinite(now.y)) { skipped++; return; }
       const x = now.x, y = now.y, x0 = p.x, y0 = p.y;
-      pt[p.group_id] = { x, y, x0, y0, fx: flat.x, fy: flat.y,
+      pt[p.group_id] = { x, y, x0, y0, fx: flat.x, fy: flat.y, to: gw,   // to＝今天這一刻的估算成交值（1/n 拆分），族群資金排行即時版用
         dx: x - x0, dy: y - y0,                 // 總位移（收盤 → 現在）
         tdx: x - flat.x, tdy: y - flat.y,       // 今天真正推出來的那一段（持平基準 → 現在）
         ret: gr, n, stage: stageOf(x, y), stage0: p.quadrant || stageOf(x0, y0) };
@@ -6109,6 +6289,7 @@
     ['#rotLiveBtn', '#rotZoomLiveBtn'].forEach(sel => { const btn = $(sel);
       if (btn) { btn.classList.toggle('on', RLV.on); btn.setAttribute('aria-pressed', RLV.on ? 'true' : 'false'); } });
     liveDim('#rotBack', RLV.on); liveDim('#rotZoomBack', RLV.on);
+    { const sc = $('#rotClock') && $('#rotClock').closest('.card'); if (sc) sc.dataset.snapLive = !RLV.on ? 'close' : (RLV.err ? 'err' : (RLV.busy && !RLV.at ? 'pending' : 'live')); }   // 截圖就緒旗標（docs/social_snap_targets.md）
     try { rankSubPaint(); } catch (e) { /* 排行還沒畫 */ }
     const el = $('#rotLive');
     const tag = $('#rotLiveTag');
@@ -8643,7 +8824,9 @@
   function renderOvThemes(th) {
     const host = $('#ovTheme'); if (!host) return;
     if (!th || !th.themes || !th.themes.length) { const c = $('#ovThemeCtl'); if (c) c.innerHTML = ''; return empty('ovTheme', '尚無題材資料'); }
-    const M = ovThemeModel(th, OVT.sel, OVT.focus);
+    hlReg('ovTheme', () => renderOvThemes(th));
+    const thL = hlThemes(th);      // ★ 2026-10-20 熱力圖即時（HL）
+    const M = ovThemeModel(thL, OVT.sel, OVT.focus);
     if (!M.cur) OVT.sel = '';
     // ---- 下拉（.rotdd 那一套外觀；開合自己管，不跟資金輪動卡的 rotMenu 共用狀態）
     /* ★ 2026-09-26：標記與開合抽成 ddSingle()，資金熱力圖的產業鏈下拉呼叫同一支 ——
@@ -8660,7 +8843,7 @@
     const zb = $('#ovThemeZoom');
     if (zb) zb.onclick = () => openZoom('熱門題材', (body, chipBox, close) => {
       const draw = () => {
-        const Z = ovThemeModel(th, OVT.sel, null);
+        const Z = ovThemeModel(hlThemes(th), OVT.sel, null);
         ovThemeDD(chipBox, th, Z, 'ovThemeZoomDD', OVTZ, (v) => { OVT.sel = v; OVT.focus = null; renderOvThemes(th); draw(); });
         if (!Z.data.length) { const i = echarts.getInstanceByDom(body); if (i) i.dispose(); body.innerHTML = '<div class="empty">尚無成分股資料</div>'; return; }
         const bc = chart(body, Z.option, { notMerge: true });
@@ -9865,7 +10048,7 @@
     /* 即時那一輪只要重畫「時鐘」（卡片＋放大視窗）。
        刻意**不叫 `rotRedraw`** —— 它連排行與期間卡一起重畫，那兩張和即時完全無關，
        每分鐘白重建一次只會讓畫面閃一下。*/
-    rlvRedraw = () => { drawRot(rotFrame); renderStagePanel(); if (rotZoomDraw) rotZoomDraw(); };
+    rlvRedraw = () => { drawRot(rotFrame); renderStagePanel(); if (rotZoomDraw) rotZoomDraw(); { const rf = document.getElementById('rankFlow'); if (rf && rf._rfRedraw) rf._rfRedraw(); } };   // 2026-10-20：旁邊的族群資金排行吃同一份即時資料，一起重畫
     /* 放大視窗關掉時把卡片補回來：天數（rotFrame）與篩選都是在放大視窗裡改的，
        卡片那張圖在那段期間刻意沒有跟著重畫（每 420ms 重畫兩張會掉幀）。*/
     rotSyncCard = () => {
@@ -10032,8 +10215,28 @@
   }
 
   // ---- 族群資金排行：這段期間誰的成交值佔比長大、誰縮小
+  /* ★ 2026-10-20（Andy：「圖四族群資金排行沒有與旁邊的資金輪盤同步即時，資料對不上」）：
+     原因：輪盤「即時」吃 RLV（成分股即時報價續算），排行卻永遠吃盤後的 p.groups，按了即時只有輪盤在動。
+     修法：RLV 開著且有即時資料時，排行用同一份 RLV.pt 重算 —— 期間照輪盤（「看哪一天」到今天），今天這一刻併進去：
+       成交值 ＝ 盤後期間成交值 ＋ 今天即時估算（pt.to）；佔比 ＝ 有即時的族群之間重新分配（總和不變，沒即時的族群不動）；
+       佔比變化 ＝ 新佔比 − 上一段佔比；期間報酬 ＝ 盤後期間報酬與今天即時報酬（pt.ret，輪盤同一個數）連乘。*/
+  function rankLive(gs) {
+    if (!(RLV.on && !RLV.err && Object.keys(RLV.pt).length)) return null;
+    const cov = gs.filter(g => RLV.pt[g.group_id] && g.turnover > 0);
+    if (!cov.length) return null;
+    const sh0 = cov.reduce((a, g) => a + (g.share || 0), 0);
+    const to1 = {}; let tot1 = 0;
+    cov.forEach(g => { to1[g.group_id] = g.turnover + RLV.pt[g.group_id].to; tot1 += to1[g.group_id]; });
+    return gs.map(g => { const v = RLV.pt[g.group_id];
+      if (!v || !(to1[g.group_id] > 0)) return g;
+      const share = to1[g.group_id] / tot1 * sh0;
+      return Object.assign({}, g, { turnover: to1[g.group_id], share, share_chg: g.share_prev != null ? share - g.share_prev : g.share_chg,
+        ret: ((1 + (g.ret || 0) / 100) * (1 + v.ret) - 1) * 100, lv: v.ret * 100 }); });   // g.ret 是百分數，pt.ret 是小數
+  }
   function renderRankFlow(p) {
-    let gs = (p.groups || []).filter(g => g.share_chg != null);
+    const gsLive = rankLive(p.groups || []);
+    const rfEl0 = document.getElementById('rankFlow'); if (rfEl0) rfEl0.dataset.live = gsLive ? '1' : '';
+    let gs = (gsLive || p.groups || []).filter(g => g.share_chg != null);
     /* C4：排行與輪動時鐘吃**同一份**篩選（rotPickSet）。
        篩到一個都不剩就當作沒篩 —— 空白的圖比「全部」更沒用，
        而且使用者八成是勾到一個今天沒進排行的族群。*/
@@ -10114,7 +10317,7 @@
       },
       // bottom 30→38、nameGap 24→22：原本「佔比變化 (pp)」整行掉出容器下緣 6px
       grid: { left: GL, right: GR, top: 12, bottom: 38 },
-      xAxis: { ...axisStyle, name: '佔比變化 (pp)', nameLocation: 'middle', nameGap: 22, nameTextStyle: { color: CH.ink3, fontSize: 12 },
+      xAxis: { ...axisStyle, name: gsLive ? '佔比變化 (pp)・即時' : '佔比變化 (pp)', nameLocation: 'middle', nameGap: 22, nameTextStyle: { color: CH.ink3, fontSize: 12 },
         ...(xMin != null ? { min: xMin } : {}),
         // 2026-09-24 夜：上限貼著最大值（不再湊到整數 1），最長那根長條直接頂到右邊數字欄 —— 長條區多出 15～20%
         ...(vMax > 0 ? { max: +(vMax * 1.03).toFixed(3) } : {}),
@@ -12133,6 +12336,7 @@
     const btn = $('#sankeyLiveBtn');
     if (btn) { btn.classList.toggle('on', SKL.on); btn.setAttribute('aria-pressed', SKL.on ? 'true' : 'false'); }
     liveDim('#sankeyDays', SKL.on);
+    { const sc = $('#flowSankeyCard'); if (sc) sc.dataset.snapLive = !SKL.on ? 'close' : (SKL.err ? 'err' : (SKL.busy && !SKL.at ? 'pending' : 'live')); }   // 截圖就緒旗標
     if (!el) return;
     if (!SKL.on) { el.hidden = true; el.innerHTML = ''; return; }
     el.hidden = false;
@@ -13213,12 +13417,14 @@
   async function renderThemes(sel, mapOnly) {
     await needLazy('thm');   // 2026-10-04：題材剖析圖（themes3d.js）用到才載入；失敗也照畫熱力圖，只是沒有剖析圖
     const th = await load('themes'); if (!th || !th.themes || !th.themes.length) { empty('themeMap'); return; }
+    const thL = hlThemes(th);      // ★ 2026-10-20 熱力圖即時（HL）：盤中成分股逐檔換即時；下方題材細節仍用盤後的 th
+    hlReg('themeMap', () => renderThemes(sel, true));
     /* 2026-09-26：題材口徑（th.note）原本寫進「?」最下面的 #themeNote 小字；「?」不再放附註，那一格連同這行一起拿掉。*/
     /* ★ 2026-09-24 熱力圖 v2（規格 §3.1-4）：顏色預設＝熱度，5 格藍→紅（09-25 定案，只留這一組：藍＝冷、紅＝熱）。
        以前「熱度高＝紅」—— 紅在這個站是「漲」，熱度不是漲跌，兩個意思疊在同一個顏色上。
        右上多一個下拉「顏色：熱度｜平均漲跌」，選平均漲跌就換回 7 格紅綠（資料本來就有 chg_pct）。*/
     const mode = themeColor === 'chg' ? 'chg' : 'heat';   // 2026-09-25 Andy：熱度只留藍→紅一組（湖水藍拿掉；舊存的 heatT 一律回 heat）
-    const data = th.themes.map(t => ({ name: t.name, value: t.turnover, id: t.id, heat: t.heat, chg: t.chg_pct, share: t.share, news7: t.news7,
+    const data = thL.themes.map(t => ({ name: t.name, value: t.turnover, id: t.id, heat: t.heat, chg: t.chg_pct, share: t.share, news7: t.news7,
       ...hmItem(hmBin(mode !== 'chg' ? t.heat : t.chg_pct, mode), mode, themeFocus) }));
     const valOf = (d) => (d && d.id ? (mode !== 'chg' ? '熱度 ' + d.heat : fmt.pct(d.chg)) : '');
     const heatKind = mode === 'heatT' ? 'heatT' : 'heat';
@@ -14797,7 +15003,7 @@
     const meta = await load('meta');
     if (meta) { renderFreshness(meta); }
     window.App = { chainLabel, freqBadge, srcInfo, sankeyRankDraw, rotPopMembers, msDD, load, chart, howHTML, fmt, tip, axisStyle, NUM_FONT, CH, PALETTE, chgColor, heatColor, treeSkin, hexA,
-      hmBin, hmColor, hmItem, hmSeries, hmLegend, hmRelabel, hmTip, hmTipOpt, hmLS, hmLSset, HM_KIND, upDown, empty, charts, goStock, hmGo, D, L, wheelZoom, zoomClick, rangeBar, playBar, theme, applyTheme, liveMerge, onLive, LIVE_KEYS,
+      HL: { overlay: hlOverlay, themes: hlThemes, reg: hlReg, live: hlLive, use: hlUse, state: hlState, data: HL }, hmBin, hmColor, hmItem, hmSeries, hmLegend, hmRelabel, hmTip, hmTipOpt, hmLS, hmLSset, HM_KIND, upDown, empty, charts, goStock, hmGo, D, L, wheelZoom, zoomClick, rangeBar, playBar, theme, applyTheme, liveMerge, onLive, LIVE_KEYS,
       /* 給 scripts/_uitest.py 量「小圓點真的在動」用：回傳當下每一顆點的座標。
          用座標而不是 canvas 指紋 —— WebGL/Canvas 的指紋在這個容器裡量過是
          「永遠不會紅的假驗收」（DECISIONS #199），座標會變才是真的在動。*/

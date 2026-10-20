@@ -164,15 +164,19 @@
   }
   let fitHeatT = 0;
   window.addEventListener('resize', () => { clearTimeout(fitHeatT); fitHeatT = setTimeout(fitHeat, 120); });
-  function renderHeat(im) {
+  function renderHeat(im, soft) {
     const el = document.getElementById('indHeat');
     if (!el) return;
     if (!im || !im.chains) { el.innerHTML = '<div class="empty">尚無產業資料</div>'; return; }
     if (heatGroup === null) heatGroup = A.hmLS('tw.hmGroup', 'chain') === 'flat' ? 'flat' : 'chain';
-    disposeCharts(el);
+    /* ★ 2026-10-20 熱力圖即時（app.js HL）：盤中每輪只換圖上的資料（soft），卡片、下拉、滾輪放大的狀態都不動；
+       soft 時卡片還在才走這條，否則照舊整張重畫。*/
+    const keep = soft === true && !!document.getElementById('indTree') && !!document.getElementById('indTreeWrap');
+    if (A.HL) A.HL.reg('indTree', () => renderHeat(im, true));
+    if (!keep) disposeCharts(el);
     /* ★ 2026-09-24 說明精簡（Andy：「已經有說明就把表上補充文字拿掉」）：
        原本標題下那段「這張圖回答／怎麼用」搬進「怎麼看 ?」，卡片只留一行短副標。*/
-    el.innerHTML = `<div class="card"><div class="row spread"><h3>整個台股一次看 <button class="howbtn pop" data-how="indheat" type="button" aria-label="整個台股一次看怎麼看">?</button></h3>
+    if (!keep) el.innerHTML = `<div class="card" data-hlcard="ind"><div class="row spread"><h3>整個台股一次看 <button class="howbtn pop" data-how="indheat" type="button" aria-label="整個台股一次看怎麼看">?</button></h3>
       <div class="row" style="gap:8px"><label class="hmctl" title="方塊要不要依產業鏈分組">分組：<select id="indTreeGroup" aria-label="熱力圖分組方式">
         <option value="chain"${heatGroup === 'chain' ? ' selected' : ''}>產業鏈</option><option value="flat"${heatGroup === 'flat' ? ' selected' : ''}>不分組</option></select></label></div></div>
       <div class="howtxt" id="how-indheat" hidden>${A.howHTML('今天全市場的錢分佈在哪幾塊、哪一塊在漲。', [
@@ -182,17 +186,20 @@
       ], '要比同一條鏈裡誰漲誰跌，用<a class="lk" href="#industry">產業地圖</a>的長條圖比較快；右上「分組」可以改成不分組平鋪，一眼比大小。')}</div>
       <div class="zwrap" id="indTreeWrap"><div id="indTree" class="chart" style="min-height:560px"></div></div></div>`;
     const gsel = document.getElementById('indTreeGroup');
-    if (gsel) gsel.onchange = () => { heatGroup = gsel.value; A.hmLSset('tw.hmGroup', heatGroup); renderHeat(im); };
+    if (gsel && !keep) gsel.onchange = () => { heatGroup = gsel.value; A.hmLSset('tw.hmGroup', heatGroup); renderHeat(im); };
     /* ★ 2026-09-24（審查 R4）：產業鏈模式下，傳產／金融／基礎建設／軟體四條鏈的成交值加起來不到 5%，
        被擠在最右一條窄欄，鏈小標截成「傳產與…」、方塊截成「石化…」「基礎建…」這種殘字，很多塊乾脆沒字。
        做法：分組時每條鏈的**面積**至少佔全圖 CHAIN_MIN（鏈內各族群等比放大），名字才放得下；
        真實成交值另存在 `to`，提示框一律讀它，「怎麼看」也寫明這件事 —— 面積失真要講清楚，不能偷偷做。
        不分組模式照原本的成交值，不做任何放大（那是「一眼比大小」的模式）。*/
     const CHAIN_MIN = 0.05;
+    const hlAll = [].concat(...im.chains.map(c => c.groups)), hlO = A.HL ? A.HL.overlay(hlAll, { id: 'id', to: 'turnover', chg: 'chg_pct', share: 'turnover_share' }) : null;
+    let hlK = 0;
+    const chs = hlO ? im.chains.map(c => Object.assign({}, c, { groups: c.groups.map(() => hlO.rows[hlK++]) })) : im.chains;   // 盤中＝即時版（沒有就是原本的 im.chains）
     const nested0 = heatGroup !== 'flat';
-    const allTo = im.chains.reduce((s, c) => s + c.groups.reduce((t, g) => t + (g.turnover || 0), 0), 0) || 1;
+    const allTo = chs.reduce((s, c) => s + c.groups.reduce((t, g) => t + (g.turnover || 0), 0), 0) || 1;
     const chainK = {};
-    im.chains.forEach(c => {
+    chs.forEach(c => {
       const t = c.groups.reduce((s2, g) => s2 + (g.turnover || 0), 0);
       chainK[c.id] = nested0 && t > 0 ? Math.max(1, (allTo * CHAIN_MIN) / t) : 1;
     });
@@ -200,8 +207,8 @@
       pe: g.valuation && g.valuation.median, n: g.n, ...A.hmItem(A.hmBin(g.chg_pct, 'chg'), 'chg', heatFocusT) });
     const nested = heatGroup !== 'flat';
     const data = nested
-      ? im.chains.map(c => ({ name: c.name, cid: c.id, itemStyle: { color: A.CH.hmNa }, children: c.groups.map(g => leaf(c, g)) }))
-      : [].concat(...im.chains.map(c => c.groups.map(g => leaf(c, g))));
+      ? chs.map(c => ({ name: c.name, cid: c.id, itemStyle: { color: A.CH.hmNa }, children: c.groups.map(g => leaf(c, g)) }))
+      : [].concat(...chs.map(c => c.groups.map(g => leaf(c, g))));
     const HS = A.hmSeries(nested, 22);
     const valOf = (d) => (d && d.gid ? A.fmt.pct(d.chg) : '');
     const c = A.chart('indTree', { tooltip: { ...A.hmTipOpt(), formatter: p => { const d = p.data || {};

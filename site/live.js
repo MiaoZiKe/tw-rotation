@@ -821,8 +821,13 @@
     { key: 'watch', card: '#wlPanel', at: '.wlhd .wlx', pos: 'before' },
     { key: 'watch', card: '#mbWatch' },
     { key: 'm3', card: '#m3Frame', at: '.m3-bar .howbtn[data-how="m3"]', pos: 'after' },
+    /* ★ 2026-10-20 熱力圖即時（app.js HL）：四張熱力圖共用同一顆「熱力圖」開關（key=heat），掛在各卡標題旁。 */
+    { key: 'heat', card: '#ovHeatCard', at: '#heatCtl', pos: 'after' },
+    { key: 'heat', card: '#ovThemeCard', at: '#ovThemeCtl', pos: 'after' },
+    { key: 'heat', card: '#themeMapCard', at: '#themeCtl', pos: 'before' },
+    { key: 'heat', card: '[data-hlcard="ind"]', at: 'h3', pos: 'after' },
   ];
-  const TG_NAME = { stock: '個股報價與分時', watch: '自選清單', m3: '大盤三張圖', ovs: '總覽摘要卡' };
+  const TG_NAME = { stock: '個股報價與分時', watch: '自選清單', m3: '大盤三張圖', ovs: '總覽摘要卡', heat: '熱力圖' };
 
   function injectCss() {
     if (document.getElementById('liveTgCss')) return;
