@@ -1,19 +1,6 @@
 {
- "updated": "2026-10-20 11:20",
+ "updated": "2026-10-20 11:21",
  "jobs": [
-  {
-   "id": 26,
-   "topic_id": "sch-20261020-06-r1-know-1",
-   "kind": "article",
-   "title": "除權息與填息：領股利不等於賺",
-   "note": "排程自動排入（規則 1，台北 2026-10-20 06:00）；建議主題 k_dividend",
-   "status": "working",
-   "created": 1792449516444,
-   "updated": 1792465993015,
-   "result": null,
-   "stage": "write",
-   "stage_at": 1792465993015
-  },
   {
    "id": 27,
    "topic_id": "sch-20261020-06-r1-know-2",
