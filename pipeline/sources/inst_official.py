@@ -144,7 +144,10 @@ def _discover(swagger_url: str, prefix: str) -> list[str]:
     if not isinstance(sw, dict):
         return []
     found = []
-    for p, v in (sw.get("paths") or {}).items():
+    paths = sw.get("paths") or {}
+    DIAG.append({"swagger": swagger_url, "n_paths": len(paths),
+                 "fund_paths": sorted(p for p in paths if "fund" in p.lower())[:40]})
+    for p, v in paths.items():
         summ = " ".join(str(x.get("summary", "")) for x in v.values() if isinstance(x, dict))
         if "法人代表" in summ:
             continue
