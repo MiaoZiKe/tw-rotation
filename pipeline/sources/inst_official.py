@@ -34,6 +34,7 @@ FIELDS = ["foreign", "foreign_dealer", "trust", "dealer_self", "dealer_hedge", "
 MIN_ROWS = 300            # 一個市場少於這個數量視為格式不對／只回一部分，不收
 
 _cache: dict = {}
+DIAG: list[dict] = []     # 每支端點的（網址、狀態、前 200 字、欄位名）；run_daily 寫進 last_run.json，因為 Actions log 容器讀不到
 
 
 def classify(key: str) -> str | None:
@@ -125,6 +126,7 @@ def _get(url: str) -> tuple[int | None, object]:
         return None, None
     body = r.text[:300].replace("\n", " ")
     log.info("官方法人探測 %s -> HTTP %s，前300字：%s", url, r.status_code, body)
+    DIAG.append({"url": url, "http": r.status_code, "head": body[:200]})
     if r.status_code != 200:
         return r.status_code, None
     try:
@@ -157,6 +159,7 @@ def _market(root: str, swagger: str, cands: list[str], label: str) -> pd.DataFra
         part = parse_rows(raw) if isinstance(raw, list) else pd.DataFrame()
         if part.empty:
             if st == 200 and isinstance(raw, list) and raw:
+                DIAG.append({"url": root + p, "cols": [str(c) for c in list(raw[0])[:24]], "n": len(raw)})
                 log.warning("官方法人 %s 欄位對不上；欄位名：%s", p, list(raw[0])[:20])
             continue
         parts.append(part)
@@ -164,6 +167,7 @@ def _market(root: str, swagger: str, cands: list[str], label: str) -> pd.DataFra
         if not merge_parts(parts).empty:
             break
     df = merge_parts(parts)
+    DIAG.append({"market": label, "rows": int(len(df)), "parts": [int(len(x)) for x in parts]})
     if len(df) < MIN_ROWS:
         if not df.empty:
             log.warning("官方法人 %s 只有 %d 檔（< %d），不收", label, len(df), MIN_ROWS)

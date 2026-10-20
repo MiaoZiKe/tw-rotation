@@ -548,7 +548,8 @@ def run_inst_phase(args) -> int:
         log.exception("官方法人來源失敗，改走 FinMind")
         off = pd.DataFrame()
     RESULT["steps"]["inst_official"] = {"ok": not off.empty, "rows": int(len(off)),
-                                        "date": str(off["date"].max()) if not off.empty else None}
+                                        "date": str(off["date"].max()) if not off.empty else None,
+                                        "diag": inst_official.DIAG[-40:]}
     probe = [c for c in ("2330", "2317") if c in codes] or codes[:2]
     got = not off.empty
     for c in ([] if got else probe):
