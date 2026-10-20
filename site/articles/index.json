@@ -1,6 +1,44 @@
 {
- "updated": "2026-10-19",
+ "updated": "2026-10-20",
  "articles": [
+  {
+   "id": "2026-10-20-news-tesla-capex-optimus",
+   "cat": "news",
+   "title": "特斯拉資本支出上修到 250 億美元，近去年三倍",
+   "date": "2026-10-20",
+   "topic": "sch-20261020-06-r1-news-2",
+   "groups": [
+    {
+     "id": "robotics",
+     "name": "機器人"
+    },
+    {
+     "id": "ev_auto",
+     "name": "車用 / 電動車"
+    }
+   ],
+   "reading_min": 3,
+   "src": "api"
+  },
+  {
+   "id": "2026-10-20-news-fomc-oct",
+   "cat": "news",
+   "title": "FOMC 前夕：外資 5 日賣晶圓代工 38 萬張",
+   "date": "2026-10-20",
+   "topic": "sch-20261020-06-r1-news-1",
+   "groups": [
+    {
+     "id": "foundry",
+     "name": "晶圓代工"
+    },
+    {
+     "id": "bank",
+     "name": "銀行金融"
+    }
+   ],
+   "reading_min": 3,
+   "src": "api"
+  },
   {
    "id": "2026-10-17-news-tesla",
    "cat": "news",
