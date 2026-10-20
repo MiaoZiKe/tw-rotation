@@ -47,3 +47,47 @@ def _官方法人來源不打網路(monkeypatch):
     inst_official._cache.clear()
     monkeypatch.setattr(inst_official, "fetch_all", lambda *a, **k: pd.DataFrame())
     yield
+
+
+class 測試連了真網路(RuntimeError):
+    """測試呼叫了沒被替身的外部網路。"""
+
+
+@pytest.fixture(autouse=True)
+def _禁止連真網路(monkeypatch):
+    """2026-10-20：雲端 daily.yml 的 pytest 因為有測試偷打真網路（mis.twse、FinMind、Yahoo…）卡超過 1 小時。
+    測試的原則是「結果不依賴外部服務」：這裡把所有 requests 呼叫與非本機 socket 連線換成立刻 raise，
+    以後誰新增測試漏了替身，會當場紅（附上網址），而不是卡住或默默吃真資料。
+    刻意 raise 非 RequestException 的例外：http.get 會對 RequestException 重試＋sleep，
+    吃掉的話測試只是變慢；要它直接紅才抓得到漏洞。
+    需要真連線的測試（本機伺服器 127.0.0.1／localhost）不受影響。"""
+    import socket
+
+    import requests
+
+    def _擋_send(self, request, **kw):
+        raise 測試連了真網路(f"測試不准連真網路：{request.method} {request.url}")
+
+    monkeypatch.setattr(requests.Session, "send", _擋_send)
+
+    # yfinance 與 etf_pcf 走 curl_cffi（C 層連線，不經 requests／socket），要另外擋
+    try:
+        from curl_cffi.requests import Session as _CurlSession
+
+        def _擋_curl(self, method, url, *a, **kw):
+            raise 測試連了真網路(f"測試不准連真網路（curl_cffi）：{method} {url}")
+
+        monkeypatch.setattr(_CurlSession, "request", _擋_curl)
+    except ImportError:
+        pass
+
+    _原連線 = socket.create_connection
+
+    def _擋_連線(address, *a, **kw):
+        host = address[0] if isinstance(address, tuple) else str(address)
+        if host not in ("127.0.0.1", "localhost", "::1", "0.0.0.0"):
+            raise 測試連了真網路(f"測試不准連真網路：{address}")
+        return _原連線(address, *a, **kw)
+
+    monkeypatch.setattr(socket, "create_connection", _擋_連線)
+    yield
