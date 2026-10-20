@@ -115,7 +115,7 @@ def _shift_days(iso: str, days: int) -> str:
     return (d - pd.Timedelta(days=days)).isoformat()
 
 
-def fetch_institutional(codes: list[str], trade_date: str) -> pd.DataFrame:
+def fetch_institutional(codes: list[str], trade_date: str, lookback: int = 10) -> pd.DataFrame:
     """逐檔補三大法人。額度不夠時就抓到哪算到哪，剩下的明天再補。"""
     if not codes:
         return pd.DataFrame()
@@ -135,7 +135,7 @@ def fetch_institutional(codes: list[str], trade_date: str) -> pd.DataFrame:
     log.info("補三大法人：%d 檔（額度剩 %d）", len(todo), budget)
 
     frames = []
-    start = _shift_days(trade_date, 10)
+    start = _shift_days(trade_date, lookback)
     for i, code in enumerate(todo, 1):
         df = finmind.institutional(code, start, trade_date, wait=False)
         if not df.empty:
@@ -496,16 +496,90 @@ def collect_etf_holdings_monthly() -> pd.DataFrame:
     return sitca.top10(names, have_yms=have)
 
 
+def _set_gh_output(key: str, value: str) -> None:
+    """把結果交給 GitHub Actions 的後續步驟（本機跑沒有這個環境變數就略過）。"""
+    import os
+    path = os.environ.get("GITHUB_OUTPUT")
+    if path:
+        with open(path, "a", encoding="utf-8") as f:
+            f.write(f"{key}={value}\n")
+
+
+def run_inst_phase(args) -> int:
+    """phase=inst：台北 16:15／16:45／17:15 專門搶「當天三大法人」進資料湖。
+
+    為什麼獨立一個 phase（Andy 2026-10-20：盤後法人要盡快發到 Threads／IG）：
+    法人以前要等 18:30 的 full 才抓，full 還要跑一堆這件事用不到的東西（ETF、財報、新聞…）。
+    這裡只做三件事：① 用資料湖裡最新的價量日當交易日（15:30 那輪已進湖；不用執行當下日期）；
+    ② 先用兩檔權值股探針，FinMind 還沒出當天就直接收工，不白燒 500 次額度；
+    ③ 有新列才 append 並重算前端 JSON，沒有新列就告訴 workflow「不必 commit、不必部署」。
+    一律回 0：還沒出是常態，不是失敗（失敗會讓 social-live 的 workflow_run 閘門不接）。
+    """
+    started = datetime.now(timezone.utc)
+    trade_date = store.latest_date("price_daily")
+    if not trade_date:
+        log.warning("phase=inst：資料湖沒有價量日，收工")
+        _set_gh_output("inst_new", "false")
+        return 0
+    trade_date = str(trade_date)[:10]
+    log.info("phase=inst：目標交易日 %s", trade_date)
+    codes = universe(args.universe)
+
+    probe = [c for c in ("2330", "2317") if c in codes] or codes[:2]
+    got = False
+    for c in probe:
+        df = finmind.institutional(c, trade_date, trade_date, wait=False)
+        if not df.empty and (df["date"].astype(str) == trade_date).any():
+            got = True
+            break
+    if not got:
+        log.info("phase=inst：FinMind 還沒有 %s 的法人資料，下一輪再試", trade_date)
+        _set_gh_output("inst_new", "false")
+        return 0
+
+    # 只抓目標日那一天（lookback=0），把額度與時間留給別的步驟
+    inst = step("finmind.institutional", fetch_institutional, codes, trade_date, 0)
+    inst = inst[inst["date"].astype(str) == trade_date] if not inst.empty else inst
+    n = save("inst_daily", inst)
+    if n <= 0:
+        log.info("phase=inst：沒有新增列（已到齊），不重算、不部署")
+        _set_gh_output("inst_new", "false")
+        return 0
+
+    RESULT["phase"] = "inst"
+    try:
+        from .build_payload import build
+        build()
+        RESULT["steps"]["build_payload"] = {"ok": True}
+    except Exception as exc:  # noqa: BLE001
+        log.exception("產生前端資料失敗")
+        RESULT["errors"].append(f"build_payload: {exc}")
+        RESULT["steps"]["build_payload"] = {"ok": False, "error": str(exc)}
+    now = datetime.now(timezone.utc)
+    RESULT.update({"started_at": started.isoformat(), "finished_at": now.isoformat(),
+                   "duration_seconds": round((now - started).total_seconds(), 1),
+                   "trade_date": trade_date, "complete": True,
+                   "finmind_budget_left": http.finmind_budget_left()})
+    (config.STATE / "last_run.json").write_text(
+        json.dumps(RESULT, ensure_ascii=False, indent=2))
+    _set_gh_output("inst_new", "true")
+    return 0
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description="台股資金輪動儀表板 — 每日盤後管線")
     ap.add_argument("--skip-finmind", action="store_true",
                     help="不動用 FinMind 額度（回補當天用）")
     ap.add_argument("--universe", type=int, default=config.UNIVERSE_SIZE)
-    ap.add_argument("--phase", choices=["price", "full", "news"], default="full",
+    ap.add_argument("--phase", choices=["price", "full", "news", "inst"], default="full",
                     help="price＝只抓當天價量（台北 15:30 那輪，其他來源那時還沒出）；"
                          "full＝完整管線（傍晚之後那兩輪）；"
-                         "news＝只抓新聞與國際盤（週末用，價量那時本來就不會變）")
+                         "news＝只抓新聞與國際盤（週末用，價量那時本來就不會變）；"
+                         "inst＝只搶當天三大法人（台北 16:15／16:45／17:15，沒新資料就不部署）")
     args = ap.parse_args()
+    if args.phase == "inst":
+        RESULT["phase"] = "inst"
+        return run_inst_phase(args)
     light = args.phase == "price"
     news_only = args.phase == "news"
     RESULT["phase"] = args.phase
