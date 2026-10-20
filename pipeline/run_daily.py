@@ -18,7 +18,7 @@ import pandas as pd
 from . import config, inst_bulk
 from .compute import flow
 from .groups import loader
-from .sources import etf_pcf, finmind, macro, mis, mktfut, mops, news, taifex, tdcc, tpex, twse
+from .sources import inst_official, etf_pcf, finmind, macro, mis, mktfut, mops, news, taifex, tdcc, tpex, twse
 from .util import freshness, http, store
 from .util.roc import is_tradable_security
 
@@ -541,9 +541,17 @@ def run_inst_phase(args) -> int:
     log.info("phase=inst：目標交易日 %s", trade_date)
     codes = inst_bulk.with_site_codes(universe(args.universe))
 
+    # 官方開放資料（證交所＋櫃買，一次請求整個市場、不吃額度）優先；有最新日就不必再用 FinMind 探針
+    try:
+        off = inst_official.fetch_all()
+    except Exception:  # noqa: BLE001
+        log.exception("官方法人來源失敗，改走 FinMind")
+        off = pd.DataFrame()
+    RESULT["steps"]["inst_official"] = {"ok": not off.empty, "rows": int(len(off)),
+                                        "date": str(off["date"].max()) if not off.empty else None}
     probe = [c for c in ("2330", "2317") if c in codes] or codes[:2]
-    got = False
-    for c in probe:
+    got = not off.empty
+    for c in ([] if got else probe):
         df = finmind.institutional(c, trade_date, trade_date, wait=False)
         if not df.empty and (df["date"].astype(str) == trade_date).any():
             got = True
