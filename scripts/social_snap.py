@@ -383,10 +383,21 @@ def go_target(pg, base: str, t: dict) -> None:
     pg.wait_for_timeout(2500)
 
 
+SNAP_READY_ALIAS = {"rotation": "rot-wheel", "sankey": "flow-tree", "streak-trust": "market-streak",
+                    "streak-foreign": "market-streak", "streak-total": "market-streak"}
+
+
 def wait_snap_ready(pg, name: str, timeout_ms: int) -> bool:
     """若頁面有 window.TwSnapReady（frontend-ui 提供），等它回 true；沒有就當作 true。"""
     has = pg.evaluate("() => typeof window.TwSnapReady === 'function'")
     if not has:
+        return True
+    # 本程式的目標名稱 ≠ site/snap.js MAP 的名稱（例：streak-trust → market-streak）：先換成 snap.js 認得的名稱；
+    # snap.js 沒有對應（或頁面上沒標出來）就不用它判斷，改靠截圖前的固定等待，免得永遠逾時
+    name = SNAP_READY_ALIAS.get(name, name)
+    known = pg.evaluate("() => (window.TwSnapList ? window.TwSnapList() : [])")
+    if name not in known:
+        log(f"  TwSnapReady 沒有「{name}」可判斷（頁面標記 {known}）→ 略過就緒判斷")
         return True
     deadline = time.time() + timeout_ms / 1000
     while time.time() < deadline:
