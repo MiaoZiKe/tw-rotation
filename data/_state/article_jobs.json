@@ -1,5 +1,5 @@
 {
- "updated": "2026-10-20 10:07",
+ "updated": "2026-10-20 11:07",
  "jobs": [
   {
    "id": 24,
@@ -9,10 +9,10 @@
    "note": "排程自動排入（規則 1，台北 2026-10-20 06:00）；建議主題 i_thermal",
    "status": "working",
    "created": 1792449516098,
-   "updated": 1792462063146,
+   "updated": 1792465654509,
    "result": null,
-   "stage": "plan",
-   "stage_at": 1792462063146
+   "stage": "write",
+   "stage_at": 1792465654509
   },
   {
    "id": 25,
