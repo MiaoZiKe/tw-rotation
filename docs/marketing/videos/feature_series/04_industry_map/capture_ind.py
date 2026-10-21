@@ -298,8 +298,10 @@ def occ_check(rec, clicks, labels):
                 a = _inter(i, f)
                 if a <= 0:
                     continue
-                if cur and any(i[1] <= px <= i[1] + i[3] and i[2] <= py <= i[2] + i[4] for px, py in near):
+                if cur and any(j[0] == i[0] and j[1] <= px <= j[1] + j[3] and j[2] <= py <= j[2] + j[4] for px, py in near for j in I):
                     continue
+                if cur and any(math.hypot(f[1] + f[3] / 2 - px, f[2] + f[4] / 2 - py) <= 50 * rec.act.dsf for px, py in near):
+                    continue   # 游標就在剛點下的那一點旁（點完版面重排、被點元素移位的瞬間）   # 被點目標在同一組介紹元素（例：關聯圖整排環節框）裡：手指按在這組元素上，指示圈碰到鄰框也算被點的那一組
                 rows.append((round(t, 2), f[0], i[0], int(a), labels.get(_cid, "")))
         cm = rec.cams[fi] if fi < len(rec.cams) else None
         view = None
@@ -353,9 +355,43 @@ class A(C.Act):
             return None
         return self.pg.evaluate(OCC_JS, [self.occ_spec[0], self.occ_spec[1], self.occ_spec[2], ""])
 
+    def click_xy(self, x, y, ms=600, pause=400, expect=None):
+        """按下與放開之間不推進時鐘（3D 畫布在 pointerup 選零件：中間隔一格，手機版選得到編號卻開不了說明面板）。"""
+        self.move(x, y, ms)
+        self.wait(pause)
+        self.note(f"踩下 ({x:.0f},{y:.0f})css → 影片({x * self.dsf:.0f},{y * self.dsf:.0f})px")
+        self.pg.evaluate("([x,y]) => window.__vcRipple && window.__vcRipple(x,y)", [x, y])
+        self.record_target(x, y, "click", expect=expect)
+        self.pg.mouse.down()
+        self.pg.mouse.up()
+        self.frame()
+        self.frame()
+
     def drag(self, *a, **kw):
         self.cursor(True)
         return super().drag(*a, **kw)
+
+    def move(self, x, y, ms=600):
+        """手機：手指直接按在目標上（不從遠處滑過來、不經過別的內容）。"""
+        if self.mob:
+            self._put(x, y)
+            self.x, self.y = x, y
+            self.frame()
+            return
+        super().move(x, y, ms)
+
+    def wait_still3d(self, pg, max_ms=2500):
+        """逐格等到 3D 圓點／標籤位置連續兩次取樣（每 5 格）不動為止。"""
+        js = "() => [...document.querySelectorAll('#prod3d .mnum, .lbl3d')].map(e => { const r = e.getBoundingClientRect(); return [r.x, r.y]; })"
+        prev = None
+        for _ in range(max(1, int(max_ms / 1000 * FPS / 5))):
+            cur = pg.evaluate(js)
+            if prev and len(prev) == len(cur) and all(abs(p[0] - q[0]) < 0.6 and abs(p[1] - q[1]) < 0.6 for p, q in zip(prev, cur)):
+                return True
+            prev = cur
+            for _ in range(5):
+                self.frame()
+        return False
 
     def lift(self, ms=160):
         """手機：手指點完就離開螢幕（觸控指示圈淡出），不留在被介紹的內容上。"""
@@ -569,6 +605,12 @@ def has3d(pg):
     return pg.evaluate("() => document.querySelectorAll('#prod3d canvas').length > 0")
 
 
+def anim_off(pg):
+    """3D 工具列的「動畫：關」：機櫃不自己轉，編號圓點／標籤位置固定（自動轉動時圓點會互相蓋住、標籤會重排）。錄影前先按掉（不入鏡）。"""
+    pg.evaluate("() => { const bs = [...document.querySelectorAll('#dgAnim, #dgAnim button')]; const b = bs.find(x => (x.textContent || '').trim() === '關') || bs.find(x => /動畫\\s*[:：]\\s*開/.test((x.textContent || '').trim())); if (b) b.click(); }")
+    pg.wait_for_timeout(400)
+
+
 def warm3d(pg):
     """先切一次 3D 把 three.js 與模型載好（不錄），再切回 2D；正式錄影時再按一次 3D 會立刻出來。"""
     pg.evaluate("() => document.querySelector('#dg3d button[data-dm=\"3d\"]').click()")
@@ -618,14 +660,15 @@ def d_guide(pg, a, start):
     tab = '#tabs .tab[data-view="industry"]'
     a.x, a.y = 1000, 400
     start()
-    a.cam([tab], 70, "左側選單：產業地圖", minw=ZMIN, zoom=True)
+    a.cam(["rect:14,520,310,200"], 0, "左側選單：產業地圖", minw=ZMIN, zoom=True, intro=[tab])
     a.say("AI 伺服器由哪些零件組成？", "face_think_v2")
     a.move(330, 640, 600)
     a.click(tab, label="選單：產業地圖", ms=420)
     a.wait(120)
     a.park(ms=220)
     a.wait(1200)
-    a.cam(["#chainSwitch"], 6, "產業鏈分頁", minw=ZMIN, zoom=True)
+    b1, b4 = rect_css(pg, "#chainSwitch button:nth-child(1)"), rect_css(pg, "#chainSwitch button:nth-child(4)")
+    a.cam([f"rect:{b1[0] - 8:.0f},{b1[1] - 6:.0f},{b4[0] + b4[2] - b1[0] + 16:.0f},{b1[3] + 12:.0f}"], 0, "產業鏈分頁（前幾個）", minw=ZMIN, zoom=True, intro=[chain_btn(CHAIN)])
     a.say("選產業鏈，看剖析圖", "point_r_v2")
     a.safe_move(*[v for v in btn_pt(pg, chain_btn(CHAIN))], 500)
     a.click(chain_btn(CHAIN), label="產業鏈：AI 伺服器", ms=200, pause=120)
@@ -659,7 +702,7 @@ def dg_card(a, k, label, hold=700):
 def d_dg2d(pg, a, start):
     """剖析圖：點 04 → 05 → 03（電源櫃）。"""
     goto(pg, f"#industry/{CHAIN}")
-    scroll_to(pg, "#dgTools", 26)   # 整張圖在客服鈕上方（圖底 775、客服鈕頂 804）
+    scroll_to(pg, "#dgTools", 12)   # 整張圖在客服鈕上方（圖底約 773、客服鈕頂 804）
     hint = pg.evaluate("() => { const e = [...document.querySelectorAll('#prodDiagram span')].find(x => x.children.length === 0 && x.textContent.includes('每一張說明')); if (!e) return null; const r = e.getBoundingClientRect(); return `rect:${r.x},${r.y},${r.width},${r.height}`; }")
     full = DG_CAM + ([hint] if hint else [])
     a.x, a.y = 1585, 450
@@ -676,12 +719,17 @@ def d_3d(pg, a, start):
     """同一個零件切 3D：拖曳旋轉 → 點 11 → 13 → 12（電源櫃）。3D 這一鏡用 1280×800、2 倍像素錄（WebGL 軟體算圖很慢，畫布不能太大）。"""
     goto(pg, f"#industry/{CHAIN}")
     warm3d(pg)
+    anim_off(pg)
     pg.evaluate("() => document.querySelector('#prodDiagram .dgcol.l .dgc:nth-child(3) .bd b').click()")   # 接上一鏡：已選 03 電源櫃
     pg.wait_for_timeout(600)
     scroll_to(pg, "#dgTools", 76)
     a.x, a.y = 1000, 150
     start()
-    a.cam(["#dgBody", "#dg3d"], 6, "2D／3D 切換與 3D 圖", intro=["#dg3d"])
+    t3 = rect_css(pg, "#dg3d")
+    db = rect_css(pg, "#dgBody")
+    top3 = t3[1] - 4
+    fr3 = f"rect:{db[0]:.0f},{top3:.0f},{db[2]:.0f},{min(db[3], 700 - top3):.0f}"   # 工具列＋3D 畫布，底邊在客服鈕（頂 708）上方
+    a.cam([fr3], 0, "2D／3D 切換與 3D 圖", intro=["#dg3d"])
     a.say("同一個零件，切 3D 再看", "3dglasses")
     r = rect_css(pg, '#dg3d button[data-dm="3d"]')
     a.move(r[0] + r[2] / 2 + 60, r[1] - 40, 420)
@@ -696,6 +744,7 @@ def d_3d(pg, a, start):
     a.park(ms=300)
     a.drag(cx - 170, c[1] + 70, cx + 90, c[1] + 76, 1000)   # 在機櫃上方的空白處拖（不經過機櫃）
     a.wait(100)
+    a.wait_still3d(pg)
     first = True
     picked = ["12"]
     for lab_i in range(3):
@@ -724,7 +773,7 @@ def d_3d(pg, a, start):
     a.settle()
 
 
-def pick_label(pg, exclude=(), only=("13", "11", "10", "09")):
+def pick_label(pg, exclude=(), only=()):
     """挑「上下都有空位」的 3D 標籤（點開會長高，空位不夠會壓到隔壁標籤）；同一欄的鄰居距離最大的那個。"""
     cv = pg.evaluate(C.RECT_JS, "#prod3d canvas")
     pg.mouse.move(cv[0] + cv[2] / 2, cv[1] + cv[3] * 0.9)   # 游標在畫布裡＝標籤展開狀態（不錄影，只為量空位）
@@ -736,9 +785,10 @@ def pick_label(pg, exclude=(), only=("13", "11", "10", "09")):
             continue
         up = min([y0 - q[4] for q in L if q[0] != no and abs(q[1] - x0) < 60 and q[4] <= y0 + 2] or [400])
         dn = min([q[2] - y1 for q in L if q[0] != no and abs(q[1] - x0) < 60 and q[2] >= y1 - 2] or [400])
-        if y0 < 150 or y1 > pg.evaluate("() => innerHeight") - 60:
+        if y0 < 150 or y1 > pg.evaluate("() => innerHeight") - 24:
             continue
-        sc = min(up, 60) + min(dn, 120)
+        below = [q for q in L if q[0] != no and abs(q[1] - x0) < 60 and q[2] >= y1 - 2 and q[2] - y1 < 220]
+        sc = 1000 if not below else min(up, 60) + min(dn, 120)   # 同一欄最下面一張：點開長高也不會壓到下一張，優先
         if best is None or sc > best[0]:
             best = (sc, no)
     return best[1] if best else "06"
@@ -757,12 +807,10 @@ def rack_rect(pg, near=None):
 
 
 def tip_rect(pg, sel, dx=0.5):
-    """滑到環節標題上時，說明框會出現的範圍（游標右下 +14,+16；靠右會翻到左邊）。"""
+    """滑到環節標題上時，說明框會出現的範圍（游標右下 +14,+16，錄影 CSS 再推 +22,+18；寬約 340、高約 105～150）。只框說明框本身（標題在框外），旁邊節點只是它底下的背景。"""
     r = rect_css(pg, sel)
     cx, cy = r[0] + r[2] * dx, r[1] + r[3] / 2
-    w, h = 385, 150
-    x = cx + 14   # 錄影 CSS 把說明框再往右下推 22/18px；游標落點選在不會翻到左邊的位置（見 rel_seg）
-    return f"rect:{min(r[0], x) - 8:.0f},{r[1] - 8:.0f},{max(r[0] + r[2], x + w) - min(r[0], x) + 16:.0f},{cy + 16 + h - r[1] + 16:.0f}"
+    return f"rect:{cx + 34:.0f},{cy + 32:.0f},350,150"
 
 
 def rel_seg(a, pg, s, label, hold=750, first=False):
@@ -770,8 +818,8 @@ def rel_seg(a, pg, s, label, hold=750, first=False):
     再拍「被點環節＋上下游節點、連線」（此時沒有任何浮層蓋住節點）。"""
     t = seg(s)
     r = rect_css(pg, t)
-    dx = min(0.94, max(0.3, (1215 - r[0]) / r[2]))   # 游標落點 x ≤ 1215：說明框（寬約 340）靠右放不下會翻到游標左邊，要避開
-    a.cam([t, tip_rect(pg, t, dx)], 0, f"推近：{label} 說明框", minw=ZMIN, zoom=True, intro=[t, "#relTip"], floats=["#relTip", "all:#__vc > *", "all:.__vr"])
+    dx = min(0.94, max(0.3, (1100 - r[0]) / r[2]))   # 游標落點 x ≤ 1100：說明框（寬約 340＋偏移 22）整個落在畫面內、不翻到游標左邊
+    a.cam([tip_rect(pg, t, dx)], 0, f"推近：{label} 說明框", minw=ZMIN, zoom=True, intro=["#relTip"], floats=["#relTip", "all:#__vc > *", "all:.__vr"])
     a.safe_move(r[0] + r[2] * dx, r[1] + r[3] * 0.5, 480, avoid="#chainMap .segtitle, #chainMap .segnote")
     a.wait(600)   # 說明框出現、給觀眾看（上游／下游）
     a.click(t, label=label, ms=40, pause=40, dx=dx, dy=0.5)
@@ -780,7 +828,7 @@ def rel_seg(a, pg, s, label, hold=750, first=False):
     a.wait(160)
     b = rect_css(pg, segbox(s))
     st = pg.evaluate("() => { const e = document.querySelector('#relStick'); if (!e || !e.getClientRects().length) return null; const r = e.getBoundingClientRect(); return [r.left, r.top, r.right, r.bottom]; }")
-    x0, x1 = b[0] - 190, b[0] + b[2] + 190
+    x0, x1 = b[0] - 200, min(b[0] + 560, 1585)
     if st and st[2] < b[0] + 60:
         x0 = max(x0, st[2] + 14)
     fr = f"rect:{x0:.0f},{b[1] - 60:.0f},{x1 - x0:.0f},{b[3] + 120:.0f}"
@@ -799,7 +847,8 @@ def d_rel(pg, a, start):
     pg.wait_for_timeout(600)
     a.x, a.y = 1585, 300
     start()
-    a.cam(["#partCard"], 8, "零件小卡：環節：電源", minw=ZMIN, zoom=True)
+    pcr = rect_css(pg, "#partCard")
+    a.cam([f"rect:{pcr[0]:.0f},{pcr[1]:.0f},560,{min(pcr[3], 130):.0f}"], 0, "零件小卡：環節：電源", minw=ZMIN, zoom=True, intro=["rect:%d,%d,560,%d" % (pcr[0], pcr[1], min(pcr[3], 130))], floats=["all:#__vc > *", "all:.__vr"])
     a.say("電源櫃屬於「電源」環節", "point_r_v2")
     a.idle(1500)
     a.cam_view("捲動")
@@ -826,7 +875,7 @@ def m_guide(pg, a, start):
     goto(pg, "#overview", 3500)
     a.x, a.y = 300, 300
     start()
-    a.cam(["#m4Burger"], 60, "左上角選單", minw=ZMIN, zoom=True, frame="rect:0,50,390,576")
+    a.cam(["#m4Burger"], 0, "左上角選單", frame="rect:0,0,390,576")
     a.say("AI 伺服器由哪些零件組成？", "face_think_v2")
     a.click("#m4Burger", label="選單", ms=500, pause=100)
     a.lift(ms=90)
@@ -846,11 +895,11 @@ def m_guide(pg, a, start):
 
 def m_dg2d(pg, a, start):
     goto(pg, f"#industry/{CHAIN}")
-    pg.evaluate("() => scrollTo(0, document.querySelector('#dgBody').getBoundingClientRect().top + scrollY - 62)")
+    pg.evaluate("() => scrollTo(0, document.querySelector('#dgBody').getBoundingClientRect().top + scrollY - 62)")   # 圖頂 62、圖底 342 在面板頂（最高時 346）上方；取景 pad 0，圖頂離取景上緣 ≥4px
     pg.wait_for_timeout(500)
     a.x, a.y = 350, 380
     start()
-    a.cam(["#dgBody"], 4, "AI 伺服器 2D 剖析圖＋說明面板", frame=M_FRAME, intro=["#dgBody"])
+    a.cam(["#dgBody"], 0, "AI 伺服器 2D 剖析圖＋說明面板", frame=M_FRAME, intro=["#dgBody"])
     a.say("點編號，看零件說明", "magic_frame")
     a.wait(500)
     a.click_now('#dgBody .mnum[data-no="05"]', "編號 05 板上供電", ms=450, pause=100)
@@ -873,7 +922,8 @@ def rack_rect_m(pg):
 def m_dg3d(pg, a, start):
     goto(pg, f"#industry/{CHAIN}")
     warm3d(pg)
-    pg.evaluate("() => scrollTo(0, document.querySelector('#dgTools').getBoundingClientRect().top + scrollY - 58)")
+    anim_off(pg)
+    pg.evaluate("() => scrollTo(0, document.querySelector('#dgTools').getBoundingClientRect().top + scrollY - 70)")   # 3D 畫布底 ≈553 在面板頂（≈568）上方
     pg.wait_for_timeout(500)
     a.x, a.y = 350, 300
     start()
@@ -881,6 +931,7 @@ def m_dg3d(pg, a, start):
     a.say("同一個零件，切 3D 再看", "3dglasses")
     a.wait(300)
     a.click('#dg3d button[data-dm="3d"]', label="切 3D", ms=450, pause=100)
+    a.lift(ms=60)
     a.until("() => document.querySelectorAll('#prod3d canvas').length > 0", 8000)
     a.wait(500)
     rk = rack_rect_m(pg)
@@ -890,16 +941,46 @@ def m_dg3d(pg, a, start):
     a.drag(c[0] + 22, c[1] + 28, c[0] + 100, c[1] + 34, 1000)
     a.wait(150)
     a.say("點編號，說明跟著換", "magnifier")
-    a.click_now('#prod3d .mnum[data-no="11"]', "零件：編號 11 後門風扇模組", ms=450, pause=100)
+    # 編號圓點偶爾會被隔壁圓點蓋住（3D 轉動時）：挑 9～15 號裡「周圍 36px 內沒有別的圓點」的先點，再用面板的「‹」「›」一格一格換到 12 電源櫃，再往 13 看一格、回到 12
+    a.wait_still3d(pg)   # 拖曳放開後模型還有慣性在轉：等圓點位置不動了再挑、再點
+    start_no = pick_badge(pg, ("11", "13", "10", "14", "09", "15", "12"))
+    a.click_now(f'#prod3d .mnum[data-no="{start_no}"]', f"零件：編號 {start_no}", ms=450, pause=100)
     a.wait(450)
     a.cam(["#mSheet"], 4, "零件說明面板", frame="rect:0,268,390,576", intro=["#mSheet"])
     a.lift()
     a.wait(750)
-    for d, lab in (("1", "抽屜「›」：編號 12 電源櫃"), ("1", "抽屜「›」：編號 13 BBU 電池"), ("-1", "抽屜「‹」：回到編號 12 電源櫃")):
-        a.click_now(f'#mSheet .mshnav button[data-d="{d}"]', lab, ms=380, pause=100)
+    cur = int(start_no)
+    path = []
+    while cur != 12:
+        d = 1 if cur < 12 else -1
+        path.append(d)
+        cur += d
+    path += [1, -1]   # 到 12 電源櫃之後，往 13 BBU 看一格再回來
+    cur = int(start_no)
+    for d in path[:5]:
+        cur += d
+        a.click_now(f'#mSheet .mshnav button[data-d="{d}"]', f"抽屜「{'›' if d == 1 else '‹'}」：編號 {cur:02d}", ms=380, pause=100)
         a.lift(ms=90)
-        a.wait(600)
+        a.wait(560)
     a.settle()
+
+
+def pick_badge(pg, cands):
+    """挑「圓點中心點下去真的是它自己（最上層）、而且周圍 36px 內沒有別的圓點」的編號。"""
+    pg.wait_for_timeout(300)
+    L = pg.evaluate("""() => [...document.querySelectorAll('#prod3d .mnum')].map(e => { const r = e.getBoundingClientRect(); const x = r.x + r.width / 2, y = r.y + r.height / 2;
+      const h = document.elementFromPoint(x, y); const top = h && h.closest ? h.closest('.mnum') : null; return [e.dataset.no, x, y, !!top && top === e]; })""")
+    best = None
+    for no in cands:
+        me = [q for q in L if q[0] == no]
+        if not me or not me[0][3]:
+            continue
+        d = min([((me[0][1] - q[1]) ** 2 + (me[0][2] - q[2]) ** 2) ** 0.5 for q in L if q[0] != no] or [999])
+        if d >= 36:
+            return no
+        if best is None or d > best[0]:
+            best = (d, no)
+    return best[1] if best else cands[0]
 
 
 M_REL_SEGS = ("thermal", "power", "optical", "switch", "connector", "fpc", "assembly")
@@ -915,23 +996,19 @@ def m_rel_setup(pg):
     g = pg.evaluate("""() => { const q = s => document.querySelector(s).getBoundingClientRect();
       const t = q('#relSec .segbox[data-seg="thermal"]'), a = q('#relSec .segbox[data-seg="assembly"]'), m = q('#chainMap');
       return [t.left, a.right, m.top]; }""")
-    x0, x1, mt = g[0] - 20, g[1] + 20, g[2]
+    x0, x1, mt = g[0] - 12, g[1] + 12, g[2]
     w = x1 - x0
     h = w / (1000 / 1478)
     return f"rect:{x0:.1f},{mt - 7:.1f},{w:.1f},{h:.1f}"
 
 
 def m_rel(pg, a, start):
-    goto(pg, f"#industry/{CHAIN}")
-    pg.evaluate("() => document.querySelector('#dgBody .mnum[data-no=\"03\"]').click()")   # 選到 03 電源櫃（關聯圖的「電源」自動亮起）
-    pg.wait_for_timeout(900)
-    pg.evaluate("() => { const e = document.querySelector('#mSheetBack'); if (e) e.click(); }")
-    pg.wait_for_timeout(600)
+    goto(pg, f"#industry/{CHAIN}/overview")   # 族群總覽分頁：點環節後關聯圖不會被重畫、捲回原位（取景才能固定在中欄＋右欄）
     frame = m_rel_setup(pg)
     cols = "all:" + ", ".join(f'#relSec .segbox[data-seg="{x}"]' for x in M_REL_SEGS)
     a.x, a.y = 20, 500
     start()
-    a.cam([cols], 4, "關聯圖：中欄＋右欄", frame=frame, edges=M_EDGE, intro=[cols])
+    a.cam([cols], 0, "關聯圖：中欄＋右欄", frame=frame, minw=100, edges=M_EDGE, intro=[cols])
     a.say("電源櫃屬於「電源」環節", "talk_explain_v2")
     a.lift(ms=90)
     for s_, lab in (("power", "環節：電源"), ("thermal", "環節：散熱（上游）"), ("assembly", "環節：系統組裝（下游）")):
@@ -967,7 +1044,7 @@ def run(dev, shots, out, port):
                 if dev == "d":
                     cfg["device_scale_factor"] = DSF_D.get(sid, 2)
                     if sid == "d3d":
-                        cfg["viewport"] = {"width": 1280, "height": 800}
+                        cfg["viewport"] = {"width": 1280, "height": 900}
                 else:
                     cfg["device_scale_factor"] = DSF_M.get(sid, 3)
                     cfg["viewport"] = {"width": 390, "height": 640 if sid == "dg2d" else 844}
@@ -985,6 +1062,8 @@ def run(dev, shots, out, port):
                 ctx.add_init_script(BLUR_JS)
                 ctx.add_init_script(RIPPLE_JS)
                 ctx.add_init_script("try{localStorage.removeItem('tw.chainFold');localStorage.removeItem('tw.dg3d.exp')}catch(e){}")
+                if sid in ("d3d", "dg3d"):   # 3D 不自己轉（圓點／標籤位置固定，不互相蓋住）；使用者仍可拖曳旋轉
+                    ctx.add_init_script("try{localStorage.setItem('tw.dganim','0');localStorage.setItem('tw.m4.3danim','0')}catch(e){}")
                 if dev == "d" and sid != "guide":   # 桌機左側導覽收成圖示列：內容區更寬（導覽段維持展開的文字選單，看得到「產業地圖」字樣）
                     ctx.add_init_script("try{localStorage.setItem('tw.layout4.nav','mini')}catch(e){}")
                 ctx.add_init_script(C.CURSOR_JS % ("true" if dev == "m" else "false"))
@@ -1013,7 +1092,7 @@ def run(dev, shots, out, port):
                     content = [0, cfg["viewport"]["width"]] if (sid == "guide" or dev == "m") else pg.evaluate("() => { const e = document.querySelector('#v-industry'); const r = e.getBoundingClientRect(); return [r.left, r.right]; }")
                     occ = occ_check(rec, a.targets, a.cam_labels)
                     r.update(fabs=rec.fabs, edges=rec.edges, size=[W, H], dsf=a.dsf, content_x=[round(v * a.dsf) for v in content], says=a.says, marks=a.marks, cams=rec.cams, clicks=a.targets,
-                             steps=a.log, errs=errs[:5], data_date=site_meta.get("data_date"), occ=occ, cam_labels={str(k): v for k, v in a.cam_labels.items()})
+                             steps=a.log, errs=errs[:5], data_date=site_meta.get("data_date"), occ=occ, occ_raw=rec.occ, cam_labels={str(k): v for k, v in a.cam_labels.items()})
                     (out / f"{dev}_{sid}.json").write_text(json.dumps(r, ensure_ascii=False), encoding="utf-8")
                     miss = [s for s in a.log if "找不到" in s or "點不到" in s or "量不到" in s or "⚠" in s]
                     print(sid, r["dur"], "秒", len(a.says), "泡泡", len(a.targets), "點擊", "bad:", (r.get("bad") or [])[:3], "errs:", errs[:2], "缺:", miss[:6])

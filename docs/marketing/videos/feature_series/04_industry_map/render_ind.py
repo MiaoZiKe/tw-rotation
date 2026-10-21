@@ -437,7 +437,7 @@ def bubble_img(dev, text, tip_x, tip_y, side, zone):
 # 取景：錄影時每一格量到「介紹區塊」focus（元素本身的完整外框，不以視窗裁切）與取景框 cam。
 # 合成時鏡頭一律把 focus 整塊放進「最壞情況的實際裁切範圍」（鏡頭慢移＝裁切框內縮 2%、在內縮範圍內來回 → 四邊各留 2%）。
 # 手機版允許取景框比錄影畫面寬一點（≤8%）：超出的部分補網頁底色（整塊區塊完整入鏡，不是靠留白算沒切到 —— 檢查是拿區塊本身的外框比實際裁切）。
-DRIFT = 0.02       # 裁切框內縮比例（四邊各最多內縮 2%）
+DRIFT = 0.008      # 裁切框內縮比例（四邊各最多內縮 0.8%；手機取景上下緣離頂欄、面板只有幾 px，2% 會把被介紹的元素裁到）
 OUT_X = 0.08       # 手機取景最多比錄影畫面寬 8%
 
 
@@ -563,7 +563,7 @@ def cam_track(o, meta, sid=""):
     xlim = [cx_[0] - 30 * dsf, cx_[1] + 30 * dsf] if o.dev == "d" else None
     allow_out = o.dev == "m"
     o.out_px = W0 * OUT_X / 2 if allow_out else 0
-    ytop = (50 if o.dev == "d" else 56) * dsf   # 介紹區塊的取景一律在頂欄以下（不切到頂欄的按鈕）
+    ytop = (0 if sid == "guide" else (50 if o.dev == "d" else 56)) * dsf   # 介紹區塊的取景一律在頂欄以下（不切到頂欄的按鈕）；導覽段要框到頂欄的選單鈕
     ytop_full = 0 if sid == "guide" else ytop   # 引導段的整頁鏡頭要看得到頂欄的選單鈕
     out, tgts, focus, transit, beats = [], [], [], [], []
     cur = None
@@ -1006,7 +1006,7 @@ def render(dev, only=None, seg=None):
     if seg:
         (SCR / f"seg_v4/render_{dev}_{seg}.json").write_text(json.dumps(meta_out, ensure_ascii=False, indent=1), encoding="utf-8")
         (SCR / f"seg_v4/overlap_rows_{dev}_{seg}.md").write_text("\n".join(rows[:300] + ["", "問題："] + issues[:300]), encoding="utf-8")
-        sp = out_mp4.with_name(out_mp4.stem + "_x1.5.mp4")
+        sp = out_mp4.with_name(out_mp4.stem + f"_x{SPEED}.mp4")
         subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", str(out_mp4), "-filter:v", f"setpts=PTS/{SPEED}", "-r", str(FPS),
                         "-c:v", "libx264", "-crf", "28", "-pix_fmt", "yuv420p", str(sp)], check=True)
         real = [c for c in click_rows if c[2] == "點擊" and not c[6]]
