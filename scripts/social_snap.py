@@ -57,7 +57,8 @@ from urllib.parse import parse_qs, urlparse
 from urllib.request import urlopen
 
 DATE_LABEL = ""
-LOGO_MAP: dict = {}      # 代號→logo 相對路徑（site/data/logos.json）
+LOGO_MAP: dict = {}      # 代號→logo 網址（site/data/logos.json 的相對路徑，--data-url 時改成正式站的絕對網址）
+DATA_SRC = ""            # sync_data 實際採用的資料來源網址（logo 圖檔不下載到本機，直接讀這裡）
 DATE_BY: dict = {}       # 目標名稱→該張自己的資料日 MM/DD（取自資料檔本身，不借別的檔）
 NAME_MAP: dict = {}      # 代號→名稱（從網站資料 stocks.json 讀；頁面沒補到名稱的列用它補，不准只剩代號）
 ROOT = Path(__file__).resolve().parent.parent
@@ -141,7 +142,8 @@ ENRICH_JS = """async ([logos, names]) => {   // 每列前面放公司 LOGO（沒
   document.querySelectorAll('.mf-rk').forEach((r) => { const nm = r.querySelector('.mf-nm'); if (!nm || nm.querySelector('.snaplg')) return; const code = (/stock\\/(\\w+)/.exec(r.getAttribute('href') || '') || [])[1] || '';
     const m = /^(\\S+)\\s*(.*)$/.exec(nm.textContent.trim()) || []; const name = names[code] || m[2] || code; nm.innerHTML = ''; nm.appendChild(mk(code, name));
     const b = document.createElement('b'); b.textContent = name; const e = document.createElement('em'); e.textContent = code; nm.appendChild(b); nm.appendChild(e); rows.push([r, nm, r.querySelector('.mf-val')]); });
-  await Promise.all(rows.map(([, nm]) => nm.querySelector('img') ? new Promise((ok) => { const im = nm.querySelector('img'); if (im.complete) ok(); else { im.onload = ok; im.onerror = ok; } }) : 0));
+  await Promise.all(rows.map(([, nm]) => nm.querySelector('img') ? new Promise((ok) => { const im = nm.querySelector('img'); if (im.complete) ok(); else { im.addEventListener('load', ok); im.addEventListener('error', ok); setTimeout(ok, 8000); } }) : 0));
+  rows.forEach(([, nm]) => { const im = nm.querySelector('.snaplg img'); if (im && !(im.complete && im.naturalWidth > 0)) im.dispatchEvent(new Event('error')); });   // 沒載到的圖一律退回字標，不留破圖示
   const zm = parseFloat(getComputedStyle(document.body).zoom) || 1;
   let nw = 0, lw = 0;
   rows.forEach(([r, nm, val]) => { const o = nm.style.cssText; nm.style.cssText += ';width:max-content!important;flex:none!important'; nw = Math.max(nw, nm.getBoundingClientRect().width / zm); nm.style.cssText = o;
@@ -411,6 +413,8 @@ def sync_data(site_dir: Path, data_url: str) -> bool:
         try:
             (dst / "meta.json").write_bytes(_get(f"{c}/meta.json?_={int(time.time())}", 20))
             src = c
+            global DATA_SRC
+            DATA_SRC = c
             log(f"資料來源採用 {c}")
             break
         except Exception as exc:  # noqa: BLE001
@@ -1123,7 +1127,7 @@ def layout_html(mode: str, title: str, sub: str, img: str, top: list, bot: list,
 body{width:1080px;background:var(--bg);color:var(--ink);font-family:'Noto Sans CJK TC','Noto Sans TC','PingFang TC','Microsoft JhengHei','WenQuanYi Zen Hei',sans-serif;display:flex;flex-direction:column;padding:__PAD__}
 .brand{display:flex;align-items:center;gap:12px;height:__BH__px;flex:none}
 .brand img{width:__LG__px;height:__LG__px;border-radius:13px;display:block}
-.brand .nm{font-size:__BN__px;font-weight:800;letter-spacing:1px;white-space:nowrap}
+.brand .nm{font-size:__TT__px;font-weight:800;line-height:1.5;white-space:nowrap;min-width:0}   /* 10-22 Andy：品牌字改成標題，卡片內不再重複一行標題，右下網址拿掉，版面給圖 */
 .card{flex:1;min-height:0;display:flex;flex-direction:column;margin-top:8px;background:var(--panel);border:1.5px solid var(--line-2);border-radius:24px;padding:__CPAD__}
 .hd{flex:none;margin:0 6px 8px}
 .hd .t{font-size:__TT__px;font-weight:800;line-height:1.5;white-space:nowrap}   /* 1.5：Noto CJK 的文字框高約 1.45em，行高低於它 Range 量到的框會互相壓到（雲端 runner 字型踩過） */
@@ -1138,19 +1142,18 @@ body{width:1080px;background:var(--bg);color:var(--ink);font-family:'Noto Sans C
 .src{flex:none;text-align:right;margin-top:6px;font-size:26px;font-weight:700;color:var(--cyan);white-space:nowrap}
 """
     if story:
-        css = (css.replace("__PAD__", "24px 24px 18px").replace("__BH__", "62").replace("__LG__", "52").replace("__BN__", "36").replace("__CPAD__", "12px 12px 10px")
+        css = (css.replace("__PAD__", "24px 24px 18px").replace("__BH__", "72").replace("__LG__", "60").replace("__BN__", "36").replace("__CPAD__", "12px 12px 10px")
                .replace("__TT__", "44").replace("__QP__", "10px 14px 8px").replace("__QT__", "40").replace("__QF__", "36"))
         css += "body{height:1920px}"
     else:
-        css = (css.replace("__PAD__", "20px 20px 14px").replace("__BH__", "56").replace("__LG__", "46").replace("__BN__", "32").replace("__CPAD__", "12px 12px 10px")
+        css = (css.replace("__PAD__", "16px 20px 16px").replace("__BH__", "64").replace("__LG__", "54").replace("__BN__", "32").replace("__CPAD__", "12px 12px 10px")
                .replace("__TT__", "40").replace("__QP__", "8px 12px 6px").replace("__QT__", "30").replace("__QF__", "28"))
         css += ".card{flex:none}.shot{width:100%;max-height:none}.imgbox{flex:none;display:block}"
     logo = _logo_uri()
-    body = f"""<div class=brand>{'<img data-box=logo src="' + logo + '">' if logo else ''}<div class=nm data-box=brand>哩股哩股</div></div>
+    body = f"""<div class=brand>{'<img data-box=logo src="' + logo + '">' if logo else ''}<div class=nm data-box=title>{_esc(title)}</div></div>
 <div class=card>
-<div class=hd><div class=t data-box=title>{_esc(title)}</div>{("<div class=s data-box=sub>" + _esc(sub) + "</div>") if sub else ""}</div>
-{_blocks(top, "top")}<div class=imgbox><img class=shot data-box=shot src="{img}"></div>{_blocks(bot, "bot")}</div>
-<div class=src data-box=url>{SITE_HOST}</div>"""
+{("<div class=hd><div class=s data-box=sub>" + _esc(sub) + "</div></div>") if sub else ""}
+{_blocks(top, "top")}<div class=imgbox><img class=shot data-box=shot src="{img}"></div>{_blocks(bot, "bot")}</div>"""
     return f"<!doctype html><html><head><meta charset=utf-8><style>{css}</style></head><body>{body}</body></html>"
 
 
@@ -1350,7 +1353,9 @@ def main() -> int:
             DATE_BY.update({k: v for k, v in data_dates(Path(args.serve).resolve()).items() if v})
             log("各張資料日：", DATE_BY)
             log(f"個股名稱對照 {len(NAME_MAP)} 檔")
-            LOGO_MAP.update(json.loads((Path(args.serve).resolve() / "data" / "logos.json").read_text("utf-8")))
+            logos = json.loads((Path(args.serve).resolve() / "data" / "logos.json").read_text("utf-8"))
+            # 10-21 破圖事故：sync_data 只抓 JSON、不抓 data/logos/*.png，相對路徑在本機伺服器全部 404 → 改讀正式站的圖檔
+            LOGO_MAP.update({k: (f"{DATA_SRC}/{v[5:]}" if DATA_SRC and str(v).startswith("data/") else v) for k, v in logos.items()})
             log(f"logo {len(LOGO_MAP)} 檔")
         except Exception as exc:  # noqa: BLE001
             log("讀不到 stocks.json 名稱對照：", exc)
