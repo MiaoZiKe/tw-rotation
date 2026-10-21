@@ -56,6 +56,7 @@ from urllib.parse import parse_qs, urlparse
 from urllib.request import urlopen
 
 DATE_LABEL = ""
+LOGO_MAP: dict = {}      # 代號→logo 相對路徑（site/data/logos.json）
 NAME_MAP: dict = {}      # 代號→名稱（從網站資料 stocks.json 讀；頁面沒補到名稱的列用它補，不准只剩代號）
 ROOT = Path(__file__).resolve().parent.parent
 SITE_URL = "https://liguligu-puipui.com"
@@ -69,16 +70,17 @@ CHROMIUM = os.environ.get("TW_CHROMIUM") or ("/opt/pw-browsers/chromium" if Path
 # route：hash 路由；card：要截的元素（closest_card=True 表示往上找最近的 .card，才會帶到標題）
 # live：「即時」鈕的選擇器（None＝沒有鈕，頁面本身就是當下資料）；live_ok：判斷即時真的套上的 JS（回 true／false）
 # 連買賣排行：藏掉分頁列、「看全部」，每邊只留前 7 列（n+8）（字才放得夠大）；摘要與設定列保留
-STREAK_CSS = (".mktstreakbar,#instView,#instMode,#instSw,#streakView,#streakWho,#streakGroupDD,#streakDays,.howbtn,.howtxt,.srmore,.itrow .dys,.itrow .px{display:none!important}"
-              ".itrow{grid-template-columns:minmax(0,1.5fr) minmax(0,1.2fr) 6.4em!important;gap:10px!important}.itrow .nm{display:flex!important;gap:8px;align-items:baseline}.itrow .nm em{font-size:.8em;opacity:.75}"
-              ".itrow .nm,.itrow .nm b{white-space:nowrap!important;overflow:visible!important;text-overflow:clip!important;max-width:none!important}")
+STREAK_CSS = (".mktstreakbar,#instView,#instMode,#instSw,#streakView,#streakWho,#streakGroupDD,#streakDays,.howbtn,.howtxt,.srmore,.itrow .dys,.itrow .px,.itdh,.srh small,.ithead{display:none!important}"
+              ".itrow,.itrow.td,.itrow.td:has(.px.grp){grid-template-columns:var(--nmw,12em) minmax(0,1fr) var(--lw,5em)!important;gap:10px!important}"
+              ".itrow .lots{text-align:right;white-space:nowrap}.itrow .sbar b{white-space:nowrap}"
+              ".itrow .nm{display:flex!important;gap:8px;align-items:center}.itrow .nm b,.itrow .nm em{white-space:nowrap!important;overflow:visible!important;max-width:none!important}.itrow .nm em{font-size:.8em;opacity:.75}")
 # 連買賣排行：控制列（日報／個股、當日／連續、投信／外資、族群、天數、?）全藏，只留圖本身；每邊前 7 列，只留「股票、連續天數、當日」三欄（截圖用頁面狀態，不改 site/）
 STREAK_NAV = """(w) => { const c = (s) => { const b = document.querySelector(s); if (b) b.click(); };
   c('#instView button[data-v=streak]'); return new Promise(r => setTimeout(() => { c('#instMode button[data-m=today]');
     setTimeout(() => { c('#streakWho button[data-w=' + w + ']'); setTimeout(r, 900); }, 900); }, 900)); }"""
 def STREAK_PIECE(name, story=False):
     return dict(name=name, title="盤後法人",
-                css=STREAK_CSS + (".strank{display:grid!important;grid-template-columns:1fr!important;gap:14px!important}.itrow{padding-top:6px!important;padding-bottom:6px!important}" + STORY_Z(1.12) if story else ""))
+                css=STREAK_CSS + (".strank{display:grid!important;grid-template-columns:1fr!important;gap:14px!important}.itrow{padding-top:9px!important;padding-bottom:9px!important}" + STORY_Z(1.0) if story else ""))
 
 
 # m：手機版（IG 限動）要截的片段；每片 dict(name, hide=[CSS], hide_text=[正規式], start, end, pre=JS)
@@ -123,21 +125,46 @@ SANKEY_SCRUB = [["即時板塊合計.*", ""], ["\\s*[—-]\\s*\\(真實\\)", ""]
 SANKEY_PIECES = [dict(name="sankey-tree", sel="#sankeyWrap", title="資金分流樹", text="flows", root_sel="body",
                       
                       hide=["#sankeyLive", "#sankeyMotionBtn", ".ftbtn"], hide_exact=["~即時", "~^動態"], scrub=SANKEY_SCRUB)]
+ENRICH_JS = """async ([logos, names]) => {   // 每列前面放公司 LOGO（沒有圖＝名稱首字的圓形字標），名稱＋代號完整不截斷；量出名稱欄與數字欄的實際寬度
+  const COL = ['#3558c9', '#5b45c7', '#8a3fb0', '#1b6f99', '#9a5b12', '#4d5b73', '#7a5a3a', '#2f4f8f'];
+  const color = (c) => { let h = 7; for (const ch of c) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return COL[h % COL.length]; };
+  const SZ = 26, mk = (code, name) => { const w = document.createElement('span'); w.className = 'snaplg';
+    w.style.cssText = 'display:inline-flex;flex:none;width:' + SZ + 'px;height:' + SZ + 'px;border-radius:50%;overflow:hidden;align-items:center;justify-content:center;background:' + color(code) + ';color:#fff;font:700 16px sans-serif';
+    const letter = () => { w.textContent = Array.from((name || code).replace(/[\\s*＊\\-_.()（）]/g, ''))[0] || code[0]; w.style.background = color(code); };
+    if (logos[code]) { const im = new Image(); im.width = SZ; im.height = SZ; im.style.cssText = 'width:100%;height:100%;object-fit:contain;background:#fff'; im.onerror = () => { im.remove(); letter(); }; im.src = logos[code]; w.appendChild(im); w._im = im; } else letter();
+    return w; };
+  const rows = [];
+  document.querySelectorAll('.itrow[data-code]').forEach((r) => { const nm = r.querySelector('.nm'); if (!nm || nm.querySelector('.snaplg')) return; const code = r.dataset.code; const b = nm.querySelector('b');
+    if (b && names[code] && (b.textContent.trim() === code || !b.textContent.trim())) b.textContent = names[code]; nm.insertBefore(mk(code, b ? b.textContent : ''), nm.firstChild); rows.push([r, nm, r.querySelector('.lots')]); });
+  document.querySelectorAll('.mf-rk').forEach((r) => { const nm = r.querySelector('.mf-nm'); if (!nm || nm.querySelector('.snaplg')) return; const code = (/stock\\/(\\w+)/.exec(r.getAttribute('href') || '') || [])[1] || '';
+    const m = /^(\\S+)\\s*(.*)$/.exec(nm.textContent.trim()) || []; const name = names[code] || m[2] || code; nm.innerHTML = ''; nm.appendChild(mk(code, name));
+    const b = document.createElement('b'); b.textContent = name; const e = document.createElement('em'); e.textContent = code; nm.appendChild(b); nm.appendChild(e); rows.push([r, nm, r.querySelector('.mf-val')]); });
+  await Promise.all(rows.map(([, nm]) => nm.querySelector('img') ? new Promise((ok) => { const im = nm.querySelector('img'); if (im.complete) ok(); else { im.onload = ok; im.onerror = ok; } }) : 0));
+  const zm = parseFloat(getComputedStyle(document.body).zoom) || 1;
+  let nw = 0, lw = 0;
+  rows.forEach(([r, nm, val]) => { const o = nm.style.cssText; nm.style.cssText += ';width:max-content!important;flex:none!important'; nw = Math.max(nw, nm.getBoundingClientRect().width / zm); nm.style.cssText = o;
+    if (val) { const o2 = val.style.cssText; val.style.cssText += ';width:max-content!important;flex:none!important'; lw = Math.max(lw, val.getBoundingClientRect().width / zm); val.style.cssText = o2; } });
+  const root = document.documentElement; root.style.setProperty('--nmw', Math.ceil(nw + 4) + 'px'); root.style.setProperty('--lw', Math.ceil(lw + 14) + 'px');
+  return rows.length; }"""
+
+
 def STORY_Z(z):
     return f"body{{zoom:{z}}}"
 
 
 INST_CSS = (".mktstreakbar,.howtxt,.irgo,#instView,.howbtn,.irtri>.card:nth-child(n+2){display:none!important}.irtri{display:block!important}.irtop{margin-bottom:10px}")
 INST_1M = "() => { const b = document.querySelector('#instPer button[data-p=\"1m\"]'); if (b && !b.disabled) b.click(); return new Promise(r => setTimeout(r, 1200)); }"
-CREDIT_CSS = (".mf-bar,.mf-cseg,.mf-grid,.mf-tblbox,.howbtn{display:none!important}.mf-split{display:block!important}.mf-cbox,.mf-cbox[data-c=bal],.mf-cbox[data-c=ratio]{display:block!important;width:100%!important}.mf-charts{width:100%!important}")
-RANK_CSS = ".mf-bar,.mf-gsel,.howbtn,.howtxt{display:none!important}"
+CREDIT_CSS = (".mf-bar,.mf-cseg,.mf-tiles,.mf-part,.mf-tblbox,.howbtn{display:none!important}.mf-split{display:block!important}.mf-cbox,.mf-cbox[data-c=bal],.mf-cbox[data-c=ratio]{display:block!important;width:100%!important}.mf-charts{width:100%!important}")
+RANK_CSS = (".mf-bar,.mf-gsel,.howbtn,.howtxt,.mf-ranks>h4{display:none!important}.mf-ranks{margin-top:0!important}.mf-rank,.mf-rk{min-width:0!important}.mf-rkgrid{grid-template-columns:minmax(0,1fr)!important}"
+            ".mf-nm{display:flex!important;gap:8px;align-items:center;flex:0 0 var(--nmw,10em)!important;width:var(--nmw,10em)!important;overflow:visible!important}"
+            ".mf-nm b,.mf-nm em{white-space:nowrap}.mf-nm em{font-size:.8em;opacity:.75;font-style:normal}.mf-rk{display:grid!important;grid-template-columns:22px var(--nmw,10em) minmax(0,1fr) max-content;gap:10px;align-items:center}.mf-sb{min-width:0!important}.mf-val{width:auto!important;white-space:nowrap;flex:none!important}.mf-nm{flex:none!important}")
 FUT_CSS = ".fp-bar,.fp-per,.howbtn,.howtxt,.fp-tblcard,.fp-prodseg,.fp-hint,.fp-concl,.fp-top .sum{display:none!important}"
-FUT_D = FUT_CSS + ".fp-split{display:block!important}.fp-main,.fp-split>.card{width:100%!important;max-width:none!important}"
+FUT_D = FUT_CSS + ".snapbar{order:2}.fp-split{display:block!important}.fp-main,.fp-split>.card{width:100%!important;max-width:none!important}"
 RETAIL_CSS = (FUT_CSS + ".fp-hint,.fp-topgrid{display:none!important}.fp-hd{display:flex!important;flex-wrap:wrap;align-items:baseline;gap:4px 12px}"
-              ".snapkpi{flex:1 1 100%}.snapkpi b{font:700 22px/1.3 'JetBrains Mono',monospace;margin-right:10px}.snapkpi small{font-size:13px;color:var(--ink-2)}"
+              ".snapkpi{flex:1 1 100%}.snapkpi b{font:700 26px/1.3 'JetBrains Mono',monospace;margin-right:10px}.snapkpi small{font-size:15px;color:var(--ink-2)}"
               ".fp-split{display:block!important}.fp-main,.fp-split>.card{width:100%!important;max-width:none!important}")
 RETAIL_D = RETAIL_CSS + ".fp-chart{height:230px!important;min-height:0!important}"
-RETAIL_M = RETAIL_CSS + ".fp-chart{height:330px!important;min-height:0!important}"
+RETAIL_M = RETAIL_CSS + ".fp-chart{height:290px!important;min-height:0!important}"
 _RET_INJECT = (" const T = (q) => document.querySelector(q); const tx = ((T('#fpTop .bignum') || {}).textContent || '').replace(/\\s+/g, ''); const m = /([+\\-\u2212])?([\\d.]+)%/.exec(tx);"
                " const dl = ((T('#fpTop .delta') || {}).textContent || '').replace(/\\s+/g, ' ').trim(); const sub = (T('#fpSub') || {}).textContent || '';"
                " const prod = (/(大台|小台|微台)（\\w+）/.exec(sub) || [''])[0]; const neg = !!m && m[1] && m[1] !== '+'; const val = m ? Number(m[2]) : 0;"
@@ -152,11 +179,11 @@ def FUT_BARS(h):
             " const host = el.querySelector('.fp-split') || el;"
             " [['foreign', '外資'], ['trust', '投信'], ['dealer', '自營商']].forEach(([k, l]) => { const v = mk(k); const last = v[v.length - 1];"
             "  const c = document.createElement('div'); c.className = 'card snapbar'; c.style.cssText = 'padding:10px 12px;margin:0 0 10px;width:100%';"
-            "  c.innerHTML = '<div style=\"display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px\"><b style=\"font-size:16px\">' + l + ' 每日淨未平倉（口）</b><b style=\"font:700 18px monospace;color:' + (last >= 0 ? '#c81234' : '#07794f') + '\">' + (last >= 0 ? '+' : '\u2212') + Math.abs(last).toLocaleString('en-US') + '</b></div><div class=\"snapch\" style=\"height:%dpx\"></div>';"
+            "  c.innerHTML = '<div style=\"display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px\"><b style=\"font-size:16px\">' + l + ' 每日淨未平倉（口）</b><b style=\"font:700 18px monospace;color:' + (last >= 0 ? '#c81234' : '#07794f') + '\">' + (last >= 0 ? '+' : '\u2212') + Math.abs(last).toLocaleString('en-US') + '</b></div><div class=\"snapch\" style=\"height:__H__px\"></div>';"
             "  host.appendChild(c); const ch = echarts.init(c.querySelector('.snapch'), null, { renderer: 'canvas' });"
             "  ch.setOption({ animation: false, grid: { left: 8, right: 8, top: 8, bottom: 22, containLabel: true }, xAxis: { type: 'category', data: ds, axisLabel: { color: '#5F5A51', fontSize: 11, hideOverlap: true, formatter: (x) => x.slice(5).replace('-', '/') }, axisTick: { show: false } },"
             "   yAxis: { type: 'value', axisLabel: { color: '#5F5A51', fontSize: 11, formatter: (x) => Math.abs(x) >= 10000 ? (x / 10000) + '萬' : x }, splitLine: { lineStyle: { color: '#E9E6DF' } } },"
-            "   series: [{ type: 'bar', barMaxWidth: 8, data: v.map(x => ({ value: x, itemStyle: { color: x >= 0 ? '#c81234' : '#07794f' } })) }] }); }); return new Promise(r => setTimeout(r, 600)); }" % h)
+            "   series: [{ type: 'bar', barMaxWidth: 8, data: v.map(x => ({ value: x, itemStyle: { color: x >= 0 ? '#c81234' : '#07794f' } })) }] }); }); return new Promise(r => setTimeout(r, 600)); }").replace('__H__', str(h))
 READ_INST = "() => [...document.querySelectorAll('#instTiles .itile')].map(e => [(e.querySelector('.il') || {}).innerText || '', ((e.querySelector('.iv') || {}).innerText || '').replace(/\\s+/g, '')])"
 READ_RANK = ("() => { const g = (s) => [...document.querySelectorAll('.srcol.' + s + ' .itrow[data-code] .nm b')].slice(0, 3).map(e => e.innerText.trim());"
              " return { buy: g('buy'), sell: g('sell') }; }")
@@ -208,10 +235,10 @@ TARGETS = [
          m=[dict(name="credit-ratio", sel="#mf-credit", css=CREDIT_CSS + STORY_Z(1.2), fill=dict(frac=1.0, charts=["#mfChart", "#mfChart2"]))]),
     dict(name="credit-rank", snap="margin", kind="close", label="融資增減排行", route="market/credit", card="#mf-credit", attr_only=True, stale=".mf-stale", read=READ_RK,
          nav="() => { const b = document.querySelector('#mfTab button[data-k=rank]'); if (b) b.click(); return new Promise(r => setTimeout(r, 1200)); }",
-         story_vw=720, story_dsf=2.0, d=[dict(name="credit-rank", sel="#mf-credit", css=RANK_CSS)], m=[dict(name="credit-rank", sel="#mf-credit", css=RANK_CSS + ".mf-rkgrid{grid-template-columns:1fr!important;gap:26px!important}" + STORY_Z(1.3))]),
+         story_vw=720, story_dsf=2.0, d=[dict(name="credit-rank", sel="#mf-credit", css=RANK_CSS)], m=[dict(name="credit-rank", sel="#mf-credit", css=RANK_CSS + ".mf-rkgrid{grid-template-columns:minmax(0,1fr)!important;gap:26px!important}" + STORY_Z(1.3))]),
     dict(name="fut-oi", snap="fut-oi", kind="close", label="台指期三大法人未平倉", route="market/fut", card="[data-snap=fut-oi]", attr_only=True, stale=".fp-stale:not([hidden])", read=READ_FUT,
          story_vw=720, story_dsf=2.0, d=[dict(name="fut-oi", sel=".fp-block", css=FUT_D, pre=FUT_BARS(150))],
-         m=[dict(name="fut-oi", sel=".fp-block", css=FUT_CSS + ".fp-split{display:block!important}", pre=FUT_BARS(260))]),
+         m=[dict(name="fut-oi", sel=".fp-block", css=FUT_CSS + ".snapbar{order:2}.fp-split{display:block!important}", pre=FUT_BARS(260))]),
     dict(name="retail-ratio", snap="fut-oi", kind="close", label="台指散戶多空比", route="market/fut", card="[data-snap=fut-oi]", attr_only=True, stale=".fp-stale:not([hidden])",
          nav="() => { const b = document.querySelector('.fp-prod button[data-k=retail]'); if (b) b.click(); return new Promise(r => setTimeout(r, 1200)); }",
          story_vw=720, story_dsf=2.0, d=[dict(name="retail-ratio", sel=".fp-block", css=RETAIL_D, variants=RETAIL_VARIANTS, read=READ_RET)],
@@ -690,12 +717,14 @@ def _shoot_one(pg, card_el, pc: dict, raw_dir: Path, mode: str, dsf: float) -> d
         pg.evaluate("(c) => { const e = document.createElement('style'); e.id = 'snapcss'; e.textContent = c; document.head.appendChild(e); window.dispatchEvent(new Event('resize'));"
                     " if (window.echarts) document.querySelectorAll('[_echarts_instance_]').forEach(x => { const i = echarts.getInstanceByDom(x); if (i) i.resize(); }); }", pc["css"])
         pg.wait_for_timeout(900)
-    if NAME_MAP and tgt.query_selector(".itrow[data-code]"):
-        pg.evaluate("""(m) => document.querySelectorAll('.itrow[data-code]').forEach(r => { const b = r.querySelector('.nm b'); const c = r.dataset.code;
-            if (b && m[c] && (b.textContent.trim() === c || !b.textContent.trim())) b.textContent = m[c]; })""", NAME_MAP)
+    if tgt.query_selector(".itrow[data-code], .mf-rk"):
+        pg.evaluate(ENRICH_JS, [LOGO_MAP, NAME_MAP])
+        pg.wait_for_timeout(500)
     if pc.get("pre"):
         pg.evaluate(pc["pre"], tgt)
         pg.wait_for_timeout(900)
+        if pc.get("sel"):      # pre 可能讓頁面重畫（換期間），舊的元素失效 → 重抓
+            tgt = pg.query_selector(pc["sel"]) or tgt
     pg.evaluate(HIDE_JS, [pg.query_selector(pc["root_sel"]) if pc.get("root_sel") else tgt, {"css": pc.get("hide", []) + [".zbadge", ".echarts-tooltip"], "text": pc.get("hide_text", []), "exact": pc.get("hide_exact", []), "scrub": pc.get("scrub", [])}])
     pg.evaluate("() => { if (window.echarts) document.querySelectorAll('[_echarts_instance_]').forEach(e => { const c = echarts.getInstanceByDom(e); if (c) c.dispatchAction({ type: 'hideTip' }); }); }")
     if mode == "m" and pc.get("fill"):
@@ -724,7 +753,8 @@ def _shoot_one(pg, card_el, pc: dict, raw_dir: Path, mode: str, dsf: float) -> d
         tgt.screenshot(path=str(path))
     minpx = pg.evaluate(PIECE_RECT_JS, [tgt, {"start": None, "end": None}])["minpx"]
     jishi = pg.evaluate(SCAN_JS, tgt)
-    return {"jishi": jishi, "name": pc["name"], "raw": str(path), "dsf": dsf, "min_css_font": minpx, "title": pc.get("title", ""), "text": pc.get("text")}
+    texts = [x.strip() for x in (tgt.evaluate("e => e.innerText") or "").split("\n") if x.strip()]
+    return {"texts": texts, "jishi": jishi, "name": pc["name"], "raw": str(path), "dsf": dsf, "min_css_font": minpx, "title": pc.get("title", ""), "text": pc.get("text")}
 
 
 def shoot_piece(pg, card_el, pc: dict, raw_dir: Path, mode: str, dsf: float) -> dict:
@@ -749,7 +779,7 @@ def shoot_piece(pg, card_el, pc: dict, raw_dir: Path, mode: str, dsf: float) -> 
         y += im.height + gap
     path = raw_dir / f"{mode}_{pc['name']}.png"
     sheet.save(path)
-    return {"jishi": [x for r in recs for x in r["jishi"]], "name": pc["name"], "raw": str(path), "dsf": dsf,
+    return {"texts": [x for r in recs for x in r.get("texts", [])], "jishi": [x for r in recs for x in r["jishi"]], "name": pc["name"], "raw": str(path), "dsf": dsf,
             "min_css_font": min(r["min_css_font"] for r in recs), "title": pc.get("title", ""), "text": None, "reads": reads}
 
 
@@ -836,7 +866,7 @@ def snap_targets(args, base: str, out: Path, today_ymd: str) -> tuple[list[dict]
                         path = raw_dir / f"d_{t['name']}.png"
                         sheet.save(path)
                         rec = {"name": t["name"], "raw": str(path), "dsf": args.scale, "min_css_font": min(r["min_css_font"] for r in recs),
-                               "title": t["label"], "text": None, "jishi": [x for r in recs for x in r["jishi"]]}
+                               "title": t["label"], "text": None, "jishi": [x for r in recs for x in r["jishi"]], "texts": [x for r in recs for x in r.get("texts", [])]}
                         info["pieces_d"] = [rec]
                         info["pieces_m"] = [dict(rec)]       # 限動也用這張直式疊放的圖（等比放大填滿寬度）
                         info["ok"] = True
@@ -902,7 +932,7 @@ def snap_targets(args, base: str, out: Path, today_ymd: str) -> tuple[list[dict]
                     path = raw_dir / "m_heat.png"
                     sheet.save(path)
                     info["pieces_m"] = [{"name": "heat", "raw": str(path), "dsf": STORY_HEAT_DSF, "min_css_font": min(r["min_css_font"] for r in out_recs),
-                                         "title": t["label"], "text": None, "jishi": [x for r in out_recs for x in r["jishi"]]}]
+                                         "title": t["label"], "text": None, "jishi": [x for r in out_recs for x in r["jishi"]], "texts": [x for r in out_recs for x in r.get("texts", [])]}]
                     log("限動版截到 heat（窄視窗", STORY_HEAT_VW, "）")
                     sctx.close()
                 except Exception as exc:  # noqa: BLE001
@@ -1206,6 +1236,8 @@ def main() -> int:
                 if r_.get("code") and r_.get("name"):
                     NAME_MAP[str(r_["code"])] = r_["name"]
             log(f"個股名稱對照 {len(NAME_MAP)} 檔")
+            LOGO_MAP.update(json.loads((Path(args.serve).resolve() / "data" / "logos.json").read_text("utf-8")))
+            log(f"logo {len(LOGO_MAP)} 檔")
         except Exception as exc:  # noqa: BLE001
             log("讀不到 stocks.json 名稱對照：", exc)
         srv = serve_dir(Path(args.serve).resolve(), args.port)
@@ -1278,6 +1310,12 @@ def main() -> int:
         bad = [r for r in report if r["hits"] or r["out"] or r["cut"]]
         (out / "layout_report.json").write_text(json.dumps(report, ensure_ascii=False, indent=2), "utf-8")
         (out / "shots.json").write_text(json.dumps(shots, ensure_ascii=False, indent=2), "utf-8")
+        lines_ = ["# 各張卡片上出現的文字（DOM 文字；圖表畫布內的軸字、圖例不在此列）", ""]
+        for s_ in ok:
+            for mode_, key_ in (("Threads 版", "pieces_d"), ("限動版", "pieces_m")):
+                for rec_ in s_[key_]:
+                    lines_ += [f"## {rec_['name']}（{mode_}）", ""] + [f"- {x}" for x in rec_.get("texts", [])] + [""]
+        (out / "text_report.md").write_text("\n".join(lines_), "utf-8")
         log(f"重疊檢查：程式 {len(report)} 張版面（{sum(r['n'] for r in report)} 個框）{len(bad)} 張有問題")
         if bad:
             for r in bad:
