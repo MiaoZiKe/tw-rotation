@@ -57,6 +57,7 @@ from urllib.request import urlopen
 
 DATE_LABEL = ""
 LOGO_MAP: dict = {}      # 代號→logo 相對路徑（site/data/logos.json）
+DATE_BY: dict = {}       # 目標名稱→該張自己的資料日 MM/DD（取自資料檔本身，不借別的檔）
 NAME_MAP: dict = {}      # 代號→名稱（從網站資料 stocks.json 讀；頁面沒補到名稱的列用它補，不准只剩代號）
 ROOT = Path(__file__).resolve().parent.parent
 SITE_URL = "https://liguligu-puipui.com"
@@ -148,6 +149,16 @@ ENRICH_JS = """async ([logos, names]) => {   // 每列前面放公司 LOGO（沒
   return rows.length; }"""
 
 
+CTRL_CSS = ["button:not(.hmcell)", "select", "input", ".howbtn", ".seg", ".ovsum-nav", ".twms-btn", ".zreset", ".livetg", ".m4st", ":has(> select)", ".m3-bar"]
+CTRL_TEXT = ["~^走勢$", "~^›$", "~^‹$", "~^\\d+\\s*/\\s*\\d+$"]
+FIX_ECHARTS_JS = """(root) => { if (!window.echarts) return 0; let n = 0;   // 圖內畫布文字不含「即時」：軸名稱／標題裡的「・即時」拿掉（只改截圖瀏覽器）
+  const fix = (v) => (typeof v === 'string' ? v.replace(/\\s*[・·]\\s*即時/g, '') : v);
+  root.querySelectorAll('[_echarts_instance_]').forEach((e) => { const c = echarts.getInstanceByDom(e); if (!c) return; const o = c.getOption();
+    const up = {}; ['xAxis', 'yAxis'].forEach((k) => { if (o[k]) up[k] = o[k].map((a) => (a.name && fix(a.name) !== a.name ? { name: fix(a.name) } : {})); });
+    if (o.title) up.title = o.title.map((t) => ({ text: fix(t.text), subtext: fix(t.subtext) })); c.setOption(up); n++; });
+  return n; }"""
+
+
 def STORY_Z(z):
     return f"body{{zoom:{z}}}"
 
@@ -213,8 +224,8 @@ TARGETS = [
          live="#m3Frame .livetg-b",
          live_ok="() => { const b = document.querySelector('#m3Frame .livetg-b'); const f = document.querySelector('#m3Frame');"
                  " return !!b && !!f && (b.classList.contains('on') || b.getAttribute('aria-pressed') === 'true') && !/連不到|抓不到|失敗|逾時/.test(f.innerText); }",
-         headline=None, d=[dict(name="market-index", hide=[".howbtn"], hide_exact=["~即時"])],
-         m=[dict(name="market-index", hide=[".howbtn"], hide_exact=["~即時"], fill=dict(frac=1.0, charts=[".m3-chart", ".tv-lightweight-charts"]))]),
+         headline=None, d=[dict(name="market-index", hide=[".howbtn", ".mfilt", ".mpos", ".m4sico"], hide_exact=["~即時"])],
+         m=[dict(name="market-index", hide=[".howbtn", ".mfilt", ".mpos", ".m4sico"], hide_exact=["~即時"], fill=dict(frac=1.0, charts=[".m3-chart", ".tv-lightweight-charts"]))]),
     dict(name="market-breadth", kind="intraday", label="漲跌家數", route="market/updown", card=".mktdist", closest_card=True,
          live="#mktMode button[data-m=live]",
          live_ok="() => { const n = document.querySelector('#mktLive');"
@@ -261,6 +272,7 @@ PIECE_META = {
     "fut-oi": ("台指期三大法人未平倉 {d}", ""),
     "retail-ratio": ("台指散戶多空比（大台、小台、微台） {d}", ""),
 }
+PIECE_META = {k: (v[0], "") for k, v in PIECE_META.items()}      # 標題下的操作說明小字一律不放
 # 版型配色：直接取自 site/index.html 的 CSS 變數（淺色 :root[data-theme=light]、深色 :root）
 FRAME = {
     "light": dict(bg="#F4F3EF", panel="#ffffff", panel2="#FAF9F6", line="#E9E6DF", line2="#D6D2C8", ink="#1F1D19", ink2="#3E3A33",
@@ -706,6 +718,39 @@ def flow_notes(res: dict) -> list:
     return out
 
 
+def data_dates(serve: Path) -> dict:
+    """各張卡片標題的日期：直接讀資料檔裡那份資料自己的最後一天。"""
+    d = serve / "data"
+    out = {}
+
+    def rd(name):
+        try:
+            return json.loads((d / name).read_text("utf-8"))
+        except Exception:  # noqa: BLE001
+            return None
+
+    def md(x):
+        return str(x)[5:10].replace("-", "/") if x else ""
+    j = rd("inst_market.json")
+    if j and j.get("rows"):
+        out["inst-today"] = md(j["rows"][-1].get("d"))
+    j = rd("inst_today.json")
+    if j and j.get("date"):
+        out["streak-foreign"] = out["streak-trust"] = md(j["date"])
+    j = rd("market_fut.json")
+    if j and (j.get("margin") or {}).get("rows"):
+        out["credit-ratio"] = out["credit-rank"] = md(j["margin"]["rows"][-1].get("d"))
+    j = rd("fut_oi.json")
+    if j and j.get("dates"):
+        out["fut-oi"] = md(max(j["dates"]))
+    j = rd("retail_ratio.json")
+    if j:
+        ds = [x for o in (j.get("products") or {}).values() for x in (o.get("dates") or [])] or (j.get("dates") or [])
+        if ds:
+            out["retail-ratio"] = md(max(ds))
+    return out
+
+
 def _shoot_one(pg, card_el, pc: dict, raw_dir: Path, mode: str, dsf: float) -> dict:
     """截一片。mode＝'d'（桌機）或 'm'（手機）。有 sel 就只截那個元素；沒有 sel：桌機整張卡、手機依 start/end 切（連買賣、熱力圖）。"""
     pg.evaluate(UNHIDE_JS)
@@ -725,7 +770,9 @@ def _shoot_one(pg, card_el, pc: dict, raw_dir: Path, mode: str, dsf: float) -> d
         pg.wait_for_timeout(900)
         if pc.get("sel"):      # pre 可能讓頁面重畫（換期間），舊的元素失效 → 重抓
             tgt = pg.query_selector(pc["sel"]) or tgt
-    pg.evaluate(HIDE_JS, [pg.query_selector(pc["root_sel"]) if pc.get("root_sel") else tgt, {"css": pc.get("hide", []) + [".zbadge", ".echarts-tooltip"], "text": pc.get("hide_text", []), "exact": pc.get("hide_exact", []), "scrub": pc.get("scrub", [])}])
+    ctrl = [] if pc.get("css") else CTRL_CSS      # 盤中各卡：控制項（鈕、下拉、分段鈕、頁籤、分頁點、放大）一律不進圖；盤後各卡已用 css 自己處理
+    pg.evaluate(FIX_ECHARTS_JS, tgt)
+    pg.evaluate(HIDE_JS, [pg.query_selector(pc["root_sel"]) if pc.get("root_sel") else tgt, {"css": pc.get("hide", []) + ctrl + [".zbadge", ".echarts-tooltip"], "text": pc.get("hide_text", []), "exact": pc.get("hide_exact", []) + ([] if pc.get("css") else CTRL_TEXT), "scrub": pc.get("scrub", [])}])
     pg.evaluate("() => { if (window.echarts) document.querySelectorAll('[_echarts_instance_]').forEach(e => { const c = echarts.getInstanceByDom(e); if (c) c.dispatchAction({ type: 'hideTip' }); }); }")
     if mode == "m" and pc.get("fill"):
         bb = tgt.bounding_box()
@@ -1073,7 +1120,7 @@ def compose(browser, mode: str, rec: dict, top: list, bot: list, out_png: Path, 
     with Image.open(rec["raw"]) as im:
         iw, ih = im.size
     title, sub = PIECE_META.get(rec["name"], (rec.get("title") or rec["name"], ""))
-    title = title.replace("{d}", DATE_LABEL)
+    title = title.replace("{d}", DATE_BY.get(rec["name"]) or DATE_LABEL)
     html = layout_html(mode, title, sub, b64(rec["raw"]), top, bot, theme)
     pg = browser.new_page(viewport={"width": 1080, "height": 1920 if mode == "story" else 1200}, device_scale_factor=1)
     pg.set_content(html, wait_until="load")
@@ -1235,6 +1282,8 @@ def main() -> int:
             for r_ in json.loads((Path(args.serve).resolve() / "data" / "stocks.json").read_text("utf-8")):
                 if r_.get("code") and r_.get("name"):
                     NAME_MAP[str(r_["code"])] = r_["name"]
+            DATE_BY.update({k: v for k, v in data_dates(Path(args.serve).resolve()).items() if v})
+            log("各張資料日：", DATE_BY)
             log(f"個股名稱對照 {len(NAME_MAP)} 檔")
             LOGO_MAP.update(json.loads((Path(args.serve).resolve() / "data" / "logos.json").read_text("utf-8")))
             log(f"logo {len(LOGO_MAP)} 檔")
