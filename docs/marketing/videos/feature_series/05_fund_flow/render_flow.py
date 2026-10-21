@@ -109,6 +109,8 @@ def build_bubbles(meta, total_raw, end_start):
 
 def render(dev, only=None):
     o = layout(dev)
+    if dev == 'm':   # 手機排行在輪盤下方（最後才捲到）→ 標題與泡泡的講法對應
+        R.SEC.update({'s3': ('看強弱', '輪盤看資金強弱', '強弱'), 's6': ('一頁看懂', '排行看流入，一頁看懂', '一頁看懂')})
     meta = json.loads((RAW / f"{dev}_main.json").read_text(encoding="utf-8"))
     src = RAW / f"{dev}_main.mp4"
     fm = meta["fm"]

@@ -189,11 +189,16 @@ def pick_chain(a, pg, c, lab):
     row = pg.evaluate(C.RECT_JS, f'{F.CDD} .ddopt[data-c="{c}"]')
     a.off_click(row[0] + row[2] * 0.52, row[1] + row[3] / 2, lab, f'{F.CDD} .ddopt[data-c="{c}"]', dx=0, dy=0)   # 點完不再逗留（清單一秒內收掉）
     # 網站選完產業鏈會自動打開族群清單 → 立刻關掉（等同點空白處），不讓它蓋住輪盤
-    for _ in range(6):
+    quiet = 0
+    for _ in range(30):   # 族群清單會晚幾格才自動打開 → 連續 12 格都沒有面板才算收乾淨
         pg.evaluate("() => document.body.dispatchEvent(new MouseEvent('click', { bubbles: true }))")
         a.frame()
-        if not pg.evaluate("() => document.querySelectorAll('.rotdd .ddpanel:not([hidden])').length"):
-            break
+        if pg.evaluate("() => document.querySelectorAll('.rotdd .ddpanel:not([hidden])').length"):
+            quiet = 0
+        else:
+            quiet += 1
+            if quiet >= 12:
+                break
     if pg.evaluate("() => document.querySelectorAll('.rotdd .ddpanel:not([hidden])').length"):
         a.note("⚠ 族群清單沒收起")
     a.move(a.x + 40, a.y + 40, 150) if not a.mob else None
@@ -270,9 +275,9 @@ def run_m(pg, a, start):
     a.wait(700)
     # 往下捲一次，讓篩選列～輪盤整塊落在畫面框內（之後只往下捲）
     a.set_stage(3, "看強弱")
-    y = pg.evaluate("() => document.querySelector('#flowRotFilter').getBoundingClientRect().top + scrollY - 60")
+    y = pg.evaluate("() => document.querySelector('#flowRotFilter').getBoundingClientRect().top + scrollY - 56")
     a.scroll(to_y=y, ms=800)   # 先捲好（泡泡講輪盤時，輪盤已整個在畫面框內）
-    a.say("輪盤看強弱，排行看流入", "magnifier", ("clock",))
+    a.say("輪盤看資金強弱", "magnifier", ("clock",))
     a.idle(1500)
     a.settle()
     a.set_stage(4, "選產業鏈")
@@ -294,7 +299,7 @@ def run_m(pg, a, start):
     a.clear_say()
     rk = pg.evaluate("() => document.querySelector('#rankFlow').getBoundingClientRect().bottom + scrollY")
     a.scroll(to_y=rk - 600, ms=900)
-    a.say("排行、輪盤一頁看懂", "proud_shine", ("rank",))
+    a.say("排行看流入，一頁看懂", "proud_shine", ("rank",))
     a.idle(1500)
     a.settle()
 
