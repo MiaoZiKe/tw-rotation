@@ -56,6 +56,7 @@ from urllib.parse import parse_qs, urlparse
 from urllib.request import urlopen
 
 DATE_LABEL = ""
+NAME_MAP: dict = {}      # 代號→名稱（從網站資料 stocks.json 讀；頁面沒補到名稱的列用它補，不准只剩代號）
 ROOT = Path(__file__).resolve().parent.parent
 SITE_URL = "https://liguligu-puipui.com"
 SITE_HOST = "liguligu-puipui.com"
@@ -68,8 +69,8 @@ CHROMIUM = os.environ.get("TW_CHROMIUM") or ("/opt/pw-browsers/chromium" if Path
 # route：hash 路由；card：要截的元素（closest_card=True 表示往上找最近的 .card，才會帶到標題）
 # live：「即時」鈕的選擇器（None＝沒有鈕，頁面本身就是當下資料）；live_ok：判斷即時真的套上的 JS（回 true／false）
 # 連買賣排行：藏掉分頁列、「看全部」，每邊只留前 7 列（n+8）（字才放得夠大）；摘要與設定列保留
-STREAK_CSS = (".mktstreakbar,#instView,#instMode,#instSw,#streakView,#streakWho,#streakGroupDD,#streakDays,.howbtn,.howtxt,.srmore,.itrow .dys,.itrow .px,.itrow .nm em{display:none!important}"
-              ".itrow{grid-template-columns:minmax(0,1.15fr) minmax(0,1.6fr) 6.4em!important;gap:10px!important}"
+STREAK_CSS = (".mktstreakbar,#instView,#instMode,#instSw,#streakView,#streakWho,#streakGroupDD,#streakDays,.howbtn,.howtxt,.srmore,.itrow .dys,.itrow .px{display:none!important}"
+              ".itrow{grid-template-columns:minmax(0,1.5fr) minmax(0,1.2fr) 6.4em!important;gap:10px!important}.itrow .nm{display:flex!important;gap:8px;align-items:baseline}.itrow .nm em{font-size:.8em;opacity:.75}"
               ".itrow .nm,.itrow .nm b{white-space:nowrap!important;overflow:visible!important;text-overflow:clip!important;max-width:none!important}")
 # 連買賣排行：控制列（日報／個股、當日／連續、投信／外資、族群、天數、?）全藏，只留圖本身；每邊前 7 列，只留「股票、連續天數、當日」三欄（截圖用頁面狀態，不改 site/）
 STREAK_NAV = """(w) => { const c = (s) => { const b = document.querySelector(s); if (b) b.click(); };
@@ -126,15 +127,36 @@ def STORY_Z(z):
     return f"body{{zoom:{z}}}"
 
 
-INST_CSS = (".mktstreakbar,.howtxt,.irgo,#instView,.howbtn,.irtri>.card:nth-child(-n+2),.irtbl tr[data-d]:nth-child(n+11){display:none!important}.irtri{display:block!important}"
-            ".irtop{margin-bottom:10px}.irtbl,.irtri .tw{max-height:none!important;height:auto!important;overflow:visible!important}")
-CREDIT_CSS = (".mf-bar,.mf-cseg,.mf-cbox[data-c=bal],.mf-tblbox,.howbtn{display:none!important}.mf-split{display:block!important}.mf-cbox[data-c=ratio]{display:block!important;width:100%!important}")
+INST_CSS = (".mktstreakbar,.howtxt,.irgo,#instView,.howbtn,.irtri>.card:nth-child(n+2){display:none!important}.irtri{display:block!important}.irtop{margin-bottom:10px}")
+INST_1M = "() => { const b = document.querySelector('#instPer button[data-p=\"1m\"]'); if (b && !b.disabled) b.click(); return new Promise(r => setTimeout(r, 1200)); }"
+CREDIT_CSS = (".mf-bar,.mf-cseg,.mf-grid,.mf-tblbox,.howbtn{display:none!important}.mf-split{display:block!important}.mf-cbox,.mf-cbox[data-c=bal],.mf-cbox[data-c=ratio]{display:block!important;width:100%!important}.mf-charts{width:100%!important}")
 RANK_CSS = ".mf-bar,.mf-gsel,.howbtn,.howtxt{display:none!important}"
 FUT_CSS = ".fp-bar,.fp-per,.howbtn,.howtxt,.fp-tblcard,.fp-prodseg,.fp-hint,.fp-concl,.fp-top .sum{display:none!important}"
 FUT_D = FUT_CSS + ".fp-split{display:block!important}.fp-main,.fp-split>.card{width:100%!important;max-width:none!important}"
-RETAIL_CSS = FUT_CSS + ".fp-hint{display:inline!important}.fp-top .stats{display:none!important}.fp-chart{height:190px!important;min-height:0!important}.fp-topgrid{margin-bottom:6px}"
-RETAIL_D = FUT_D + ".fp-chart{height:240px!important;min-height:0!important}"
-RETAIL_VARIANTS = ["() => { const b = document.querySelector('#fpProdSeg button[data-p=%s]'); if (b) b.click(); return new Promise(r => setTimeout(r, 1500)); }" % k for k in ("TX", "MTX", "TMF")]
+RETAIL_CSS = (FUT_CSS + ".fp-hint,.fp-topgrid{display:none!important}.fp-hd{display:flex!important;flex-wrap:wrap;align-items:baseline;gap:4px 12px}"
+              ".snapkpi{flex:1 1 100%}.snapkpi b{font:700 22px/1.3 'JetBrains Mono',monospace;margin-right:10px}.snapkpi small{font-size:13px;color:var(--ink-2)}"
+              ".fp-split{display:block!important}.fp-main,.fp-split>.card{width:100%!important;max-width:none!important}")
+RETAIL_D = RETAIL_CSS + ".fp-chart{height:230px!important;min-height:0!important}"
+RETAIL_M = RETAIL_CSS + ".fp-chart{height:330px!important;min-height:0!important}"
+_RET_INJECT = (" const T = (q) => document.querySelector(q); const tx = ((T('#fpTop .bignum') || {}).textContent || '').replace(/\\s+/g, ''); const m = /([+\\-\u2212])?([\\d.]+)%/.exec(tx);"
+               " const dl = ((T('#fpTop .delta') || {}).textContent || '').replace(/\\s+/g, ' ').trim(); const sub = (T('#fpSub') || {}).textContent || '';"
+               " const prod = (/(大台|小台|微台)（\\w+）/.exec(sub) || [''])[0]; const neg = !!m && m[1] && m[1] !== '+'; const val = m ? Number(m[2]) : 0;"
+               " const old = T('.snapkpi'); if (old) old.remove(); const hd = T('.fp-main .fp-hd'); if (hd && m) { const e = document.createElement('div'); e.className = 'snapkpi';"
+               " e.innerHTML = '<b style=\"color:' + (neg ? 'var(--fall)' : 'var(--rise)') + '\">' + (neg ? '\u2212' : '+') + m[2] + '%</b><small>' + prod + '　散戶淨' + (neg ? '空' : '多') + '單占全市場未平倉 ' + val.toFixed(1) + '%' + (dl ? '・' + dl.replace(/^最新一日散戶多空比/, '') : '') + '</small>';"
+               " hd.appendChild(e); } window.__ret = { pct: m ? (neg ? '-' : '+') + m[2] + '%' : '', prod: (/(大台|小台|微台)/.exec(prod) || [''])[0] };")
+RETAIL_VARIANTS = ["() => { const b = document.querySelector('#fpProdSeg button[data-p=%s]'); if (b) b.click(); return new Promise(r => setTimeout(r, 1500)).then(() => {" % k + _RET_INJECT + "}); }" for k in ("TX", "MTX", "TMF")]
+def FUT_BARS(h):
+    return ("async (el) => { const j = await (await fetch('data/fut_oi.json')).json(); const rev = j.order === 'desc'; const n = j.dates.length; const idx = [...Array(n).keys()]; if (rev) idx.reverse();"
+            " const ds = idx.map(i => j.dates[i]).slice(-126); const mk = (k) => idx.map(i => { const o = j[k] || {}; return o.net && o.net[i] != null ? Number(o.net[i]) : (o.long && o.short ? o.long[i] - o.short[i] : null); }).slice(-126);"
+            " const main = el.querySelector('.fp-main'); if (main) main.style.setProperty('display', 'none', 'important'); document.querySelectorAll('.snapbar').forEach(e => e.remove());"
+            " const host = el.querySelector('.fp-split') || el;"
+            " [['foreign', '外資'], ['trust', '投信'], ['dealer', '自營商']].forEach(([k, l]) => { const v = mk(k); const last = v[v.length - 1];"
+            "  const c = document.createElement('div'); c.className = 'card snapbar'; c.style.cssText = 'padding:10px 12px;margin:0 0 10px;width:100%';"
+            "  c.innerHTML = '<div style=\"display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px\"><b style=\"font-size:16px\">' + l + ' 每日淨未平倉（口）</b><b style=\"font:700 18px monospace;color:' + (last >= 0 ? '#c81234' : '#07794f') + '\">' + (last >= 0 ? '+' : '\u2212') + Math.abs(last).toLocaleString('en-US') + '</b></div><div class=\"snapch\" style=\"height:%dpx\"></div>';"
+            "  host.appendChild(c); const ch = echarts.init(c.querySelector('.snapch'), null, { renderer: 'canvas' });"
+            "  ch.setOption({ animation: false, grid: { left: 8, right: 8, top: 8, bottom: 22, containLabel: true }, xAxis: { type: 'category', data: ds, axisLabel: { color: '#5F5A51', fontSize: 11, hideOverlap: true, formatter: (x) => x.slice(5).replace('-', '/') }, axisTick: { show: false } },"
+            "   yAxis: { type: 'value', axisLabel: { color: '#5F5A51', fontSize: 11, formatter: (x) => Math.abs(x) >= 10000 ? (x / 10000) + '萬' : x }, splitLine: { lineStyle: { color: '#E9E6DF' } } },"
+            "   series: [{ type: 'bar', barMaxWidth: 8, data: v.map(x => ({ value: x, itemStyle: { color: x >= 0 ? '#c81234' : '#07794f' } })) }] }); }); return new Promise(r => setTimeout(r, 600)); }" % h)
 READ_INST = "() => [...document.querySelectorAll('#instTiles .itile')].map(e => [(e.querySelector('.il') || {}).innerText || '', ((e.querySelector('.iv') || {}).innerText || '').replace(/\\s+/g, '')])"
 READ_RANK = ("() => { const g = (s) => [...document.querySelectorAll('.srcol.' + s + ' .itrow[data-code] .nm b')].slice(0, 3).map(e => e.innerText.trim());"
              " return { buy: g('buy'), sell: g('sell') }; }")
@@ -142,7 +164,7 @@ READ_CREDIT = "() => { const t = document.querySelector('#mf-credit').innerText.
 READ_RK = ("() => { const c = [...document.querySelectorAll('#mfRankBody > *')].map(e => [...e.querySelectorAll('.mf-rk, .mf-rkrow, li, tr')].slice(0, 3).map(r => r.innerText.replace(/\\s+/g, ' ').trim()));"
            " return { cols: c, raw: (document.querySelector('#mfRankBody') || {}).innerText || '' }; }")
 READ_FUT = "() => ((document.querySelector('#fpBig3') || {}).innerText || '').replace(/\\s+/g, ' ').trim()"
-READ_RET = "() => { const t = ((document.querySelector('#fpTop') || {}).innerText || '').replace(/\\s+/g, ' '); const m = /([+\\-−▲▼]?\\s*[\\d.]+\\s*%)/.exec(t); const h = ((document.querySelector('#fpSub') || {}).innerText || ''); return { pct: m && m[1].replace(/\\s/g, ''), prod: (/(大台|小台|微台)/.exec(h) || [])[1] || '' }; }"
+READ_RET = "() => window.__ret || { pct: '', prod: '' }"
 TARGETS = [
     dict(name="rotation", snap="rot-wheel", kind="intraday", label="資金輪盤／族群資金排行", route="flow/rotation",
          card="#flowRotCard", live="#rotLiveBtn",
@@ -158,11 +180,11 @@ TARGETS = [
     dict(name="heat", kind="intraday", label="資金熱力圖", route="heatmap/industry", card="#indTreeWrap",
          parts=[dict(name="heat-industry", route="heatmap/industry", card="#indTreeWrap", closest_card=True, live="auto", live_ok=None,
                      hide=[".howbtn"], fill=dict(frac=0.60, charts=["#indTreeWrap", "#indTree"])),
-                dict(name="heat-theme", route="heatmap/theme", card="#themeMapCard", live="auto", live_ok=None, hide=[".howbtn"], fill=dict(frac=0.40, charts=["#themeMap"]))],
+                dict(name="heat-theme", route="heatmap/theme", card="#themeMapCard", live="auto", live_ok=None, hide=[".howbtn"], optional=True, fill=dict(frac=0.40, charts=["#themeMap"]))],
          live="auto", live_ok=None, headline=None, d=[dict(name="heat", title="資金熱力圖")], m=[]),
     dict(name="market-index", kind="intraday", label="大盤走勢", route="overview", card="#m3Frame",
-         live=".livetg",
-         live_ok="() => { const b = document.querySelector('.livetg'); const f = document.querySelector('#m3Frame');"
+         live="#m3Frame .livetg-b",
+         live_ok="() => { const b = document.querySelector('#m3Frame .livetg-b'); const f = document.querySelector('#m3Frame');"
                  " return !!b && !!f && (b.classList.contains('on') || b.getAttribute('aria-pressed') === 'true') && !/連不到|抓不到|失敗|逾時/.test(f.innerText); }",
          headline=None, d=[dict(name="market-index", hide=[".howbtn"], hide_exact=["~即時"])],
          m=[dict(name="market-index", hide=[".howbtn"], hide_exact=["~即時"], fill=dict(frac=1.0, charts=[".m3-chart", ".tv-lightweight-charts"]))]),
@@ -173,8 +195,8 @@ TARGETS = [
          headline=None, d=[dict(name="market-breadth", hide=[".howbtn", "#mktLive"], hide_exact=["~即時"])], m=[dict(name="market-breadth", hide=[".howbtn", "#distFilter", "#mktLive"], hide_exact=["~即時"], fill=dict(frac=1.0, charts=["#chgDistBox", "#chgDist"]))]),
     # 盤後（法人資料要收盤後證交所公布才有，沒有即時版，所以另一篇發，不放進盤中那篇）
     dict(name="inst-today", kind="close", label="三大法人買賣超", route="market/inst", card="[data-snap=inst-today]", attr_only=True,
-         stale=".stale-tag", read=READ_INST, d=[dict(name="inst-today", sel="#instToday", css=INST_CSS)],
-         m=[dict(name="inst-today", sel="#instToday", css=INST_CSS + ".itile .iv{font-size:19px!important}.irtbl td,.irtbl th{padding:24px 8px!important}")], story_vw=720, story_dsf=2.0),
+         stale=".stale-tag", read=READ_INST, d=[dict(name="inst-today", sel="#instToday", css=INST_CSS, pre=INST_1M)],
+         m=[dict(name="inst-today", sel="#instToday", css=INST_CSS + ".itile .iv{font-size:19px!important}", pre=INST_1M, fill=dict(frac=1.0, charts=["#instBars"]))], story_vw=720, story_dsf=2.0),
     dict(name="streak-foreign", kind="close", label="外資個股買賣超排名", route="market/inst", card="#mktBody", closest_card=True, nav=STREAK_NAV, nav_arg="foreign",
          stale=".stale-tag", read=READ_RANK, story_vw=720, story_dsf=2.0,
          d=[STREAK_PIECE("streak-foreign")], m=[STREAK_PIECE("streak-foreign", True)]),
@@ -183,17 +205,17 @@ TARGETS = [
          d=[STREAK_PIECE("streak-trust")], m=[STREAK_PIECE("streak-trust", True)]),
     dict(name="credit-ratio", snap="margin", kind="close", label="融資維持率", route="market/credit", card="#mf-credit", attr_only=True, stale=".mf-stale", read=READ_CREDIT,
          story_vw=720, story_dsf=2.0, d=[dict(name="credit-ratio", sel="#mf-credit", css=CREDIT_CSS)],
-         m=[dict(name="credit-ratio", sel="#mf-credit", css=CREDIT_CSS + STORY_Z(1.2), fill=dict(frac=1.0, charts=["#mfChart"]))]),
+         m=[dict(name="credit-ratio", sel="#mf-credit", css=CREDIT_CSS + STORY_Z(1.2), fill=dict(frac=1.0, charts=["#mfChart", "#mfChart2"]))]),
     dict(name="credit-rank", snap="margin", kind="close", label="融資增減排行", route="market/credit", card="#mf-credit", attr_only=True, stale=".mf-stale", read=READ_RK,
          nav="() => { const b = document.querySelector('#mfTab button[data-k=rank]'); if (b) b.click(); return new Promise(r => setTimeout(r, 1200)); }",
          story_vw=720, story_dsf=2.0, d=[dict(name="credit-rank", sel="#mf-credit", css=RANK_CSS)], m=[dict(name="credit-rank", sel="#mf-credit", css=RANK_CSS + ".mf-rkgrid{grid-template-columns:1fr!important;gap:26px!important}" + STORY_Z(1.3))]),
     dict(name="fut-oi", snap="fut-oi", kind="close", label="台指期三大法人未平倉", route="market/fut", card="[data-snap=fut-oi]", attr_only=True, stale=".fp-stale:not([hidden])", read=READ_FUT,
-         story_vw=720, story_dsf=2.0, d=[dict(name="fut-oi", sel=".fp-block", css=FUT_D)],
-         m=[dict(name="fut-oi", sel=".fp-block", css=FUT_CSS + STORY_Z(1.25), fill=dict(frac=1.0, charts=["#fpChart-futoi"]))]),
+         story_vw=720, story_dsf=2.0, d=[dict(name="fut-oi", sel=".fp-block", css=FUT_D, pre=FUT_BARS(150))],
+         m=[dict(name="fut-oi", sel=".fp-block", css=FUT_CSS + ".fp-split{display:block!important}", pre=FUT_BARS(260))]),
     dict(name="retail-ratio", snap="fut-oi", kind="close", label="台指散戶多空比", route="market/fut", card="[data-snap=fut-oi]", attr_only=True, stale=".fp-stale:not([hidden])",
          nav="() => { const b = document.querySelector('.fp-prod button[data-k=retail]'); if (b) b.click(); return new Promise(r => setTimeout(r, 1200)); }",
          story_vw=720, story_dsf=2.0, d=[dict(name="retail-ratio", sel=".fp-block", css=RETAIL_D, variants=RETAIL_VARIANTS, read=READ_RET)],
-         m=[dict(name="retail-ratio", sel=".fp-block", css=RETAIL_CSS + STORY_Z(1.1), variants=RETAIL_VARIANTS, read=READ_RET)]),
+         m=[dict(name="retail-ratio", sel=".fp-block", css=RETAIL_M, variants=RETAIL_VARIANTS, read=READ_RET)]),
 ]
 
 # 每張的標題＝功能名稱本身（Andy 10-20：「標題就是這功能」），副標是小字；全部畫面與貼文不出現「即時」字樣
@@ -668,6 +690,9 @@ def _shoot_one(pg, card_el, pc: dict, raw_dir: Path, mode: str, dsf: float) -> d
         pg.evaluate("(c) => { const e = document.createElement('style'); e.id = 'snapcss'; e.textContent = c; document.head.appendChild(e); window.dispatchEvent(new Event('resize'));"
                     " if (window.echarts) document.querySelectorAll('[_echarts_instance_]').forEach(x => { const i = echarts.getInstanceByDom(x); if (i) i.resize(); }); }", pc["css"])
         pg.wait_for_timeout(900)
+    if NAME_MAP and tgt.query_selector(".itrow[data-code]"):
+        pg.evaluate("""(m) => document.querySelectorAll('.itrow[data-code]').forEach(r => { const b = r.querySelector('.nm b'); const c = r.dataset.code;
+            if (b && m[c] && (b.textContent.trim() === c || !b.textContent.trim())) b.textContent = m[c]; })""", NAME_MAP)
     if pc.get("pre"):
         pg.evaluate(pc["pre"], tgt)
         pg.wait_for_timeout(900)
@@ -786,11 +811,15 @@ def snap_targets(args, base: str, out: Path, today_ymd: str) -> tuple[list[dict]
                     recs = []
                     for part in t["parts"]:
                         pinfo = {}
-                        pel = prepare(pg, part, pinfo)
+                        pel = prepare(pg, part, pinfo) or prepare(pg, part, pinfo)      # 即時偶爾第一次沒套上：重進一次
                         if pel is None:
+                            if part.get("optional") and recs:      # 題材那半抓不到即時就只發產業那半（不拿收盤圖冒充）
+                                log("  ⚠", part["name"], "即時沒套上 → 這張只放產業熱力圖：", pinfo.get("why"))
+                                continue
                             info["why"] = f"{part['name']}：{pinfo.get('why')}"
                             recs = []
                             break
+                        info.setdefault("heat_parts", []).append(part["name"])
                         recs.append(shoot_piece(pg, pel, dict(name=part["name"], hide=part.get("hide", [])), raw_dir, "d", args.scale))
                         if part["name"] == "heat-industry":
                             info["heat"] = pg.evaluate(READ_HEAT_JS)
@@ -814,7 +843,7 @@ def snap_targets(args, base: str, out: Path, today_ymd: str) -> tuple[list[dict]
                         log("桌機截到", t["name"], "（產業＋題材合成）")
                     shots.append(info)
                     continue
-                el = prepare(pg, t, info)
+                el = prepare(pg, t, info) or prepare(pg, t, info)
                 if el is not None:
                     info["headline"] = read_headline(el, t)
                     for pc in (t.get("d") or [dict(name=t["name"], title=t["label"])]):
@@ -849,15 +878,16 @@ def snap_targets(args, base: str, out: Path, today_ymd: str) -> tuple[list[dict]
                     sctx, spg = open_ctx(browser, base, story_args, today_ymd, sniff, False, STORY_HEAT_DSF)
                     pw = None
                     out_recs = []
-                    for part in t["parts"]:          # 一張一張處理（換路由後前一張的元素就失效）
+                    act_parts = [x for x in t["parts"] if x["name"] in info.get("heat_parts", [x["name"] for x in t["parts"]])]
+                    for part in act_parts:          # 一張一張處理（換路由後前一張的元素就失效）
                         pinfo = {}
-                        pel = prepare(spg, part, pinfo)
+                        pel = prepare(spg, part, pinfo) or prepare(spg, part, pinfo)
                         if pel is None:
                             raise RuntimeError(f"{part['name']}：{pinfo.get('why')}")
                         pw = pw or pel.bounding_box()["width"]
                         total = pw * STORY_RATIO - 12
                         pel.evaluate("e => e.scrollIntoView({block: 'start'})")
-                        spg.evaluate(FILL_JS, [pel, {"want": total * part["fill"]["frac"], "charts": part["fill"]["charts"]}])
+                        spg.evaluate(FILL_JS, [pel, {"want": total * (1.0 if len(act_parts) == 1 else part["fill"]["frac"]), "charts": part["fill"]["charts"]}])
                         spg.wait_for_timeout(1500)
                         out_recs.append(shoot_piece(spg, pel, dict(name=part["name"], hide=part.get("hide", [])), raw_dir, "m", STORY_HEAT_DSF))
                     from PIL import Image
@@ -896,7 +926,7 @@ def snap_targets(args, base: str, out: Path, today_ymd: str) -> tuple[list[dict]
                         log("限動版截到", pc["name"], "（窄桌機視窗", s_vw, "）")
                     sctx.close()
                     continue
-                el = prepare(pg, t, {})
+                el = prepare(pg, t, {}) or prepare(pg, t, {})
                 if el is None:
                     info["story_why"] = "手機版沒截成"
                     continue
@@ -1171,6 +1201,13 @@ def main() -> int:
         if args.data_url:
             if not sync_data(Path(args.serve).resolve(), args.data_url):
                 return 2
+        try:
+            for r_ in json.loads((Path(args.serve).resolve() / "data" / "stocks.json").read_text("utf-8")):
+                if r_.get("code") and r_.get("name"):
+                    NAME_MAP[str(r_["code"])] = r_["name"]
+            log(f"個股名稱對照 {len(NAME_MAP)} 檔")
+        except Exception as exc:  # noqa: BLE001
+            log("讀不到 stocks.json 名稱對照：", exc)
         srv = serve_dir(Path(args.serve).resolve(), args.port)
         base = f"http://127.0.0.1:{args.port}/index.html"
         args.live_override = True
