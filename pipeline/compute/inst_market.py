@@ -5,7 +5,7 @@
     淨買賣超 ＝ buy − sell，換成億元。外資含外資自營商、自營商含自行買賣與避險。
   · 官方值還沒進湖的日子才用估算補：inst_daily（個股別，股）× 當日收盤價，**只加總上市（TWSE）個股**
     （官方值只有上市，上櫃混進來會對不上），每列標 est=True，前端畫面標「估算」。
-    估算只補涵蓋 ≥ 60% 的完整日（法人表上市上櫃分開落地，半套的日子不補）。
+    估算只補涵蓋 ≥ 60%（分母＝當天有收盤價的上市個股）的日子，半套的日子不補。
   · 加權指數收盤取自 index_ohlc（symbol=TSE）。
   · 只給最近 MAX_DAYS 個交易日（5 年），前端期間鈕自己切。
 """
@@ -15,6 +15,7 @@ import pandas as pd
 
 MAX_DAYS = 1300
 YI = 1e8
+COVER = 0.6      # 估算涵蓋門檻：有法人資料的上市個股 ≥ 當天上市個股的 60%
 
 
 def _official(mkt: pd.DataFrame) -> pd.DataFrame:
@@ -31,8 +32,15 @@ def _estimate(inst: pd.DataFrame, price: pd.DataFrame, skip: set, dates: list) -
     """官方值缺的完整日，用股數×收盤估算（只算上市）。"""
     if inst is None or inst.empty or price is None or price.empty or not dates:
         return pd.DataFrame(columns=["date", "f", "t", "d", "tot"])
-    cnt = inst.groupby("date").size()
-    full = set(cnt[cnt >= cnt.tail(250).max() * 0.6].index.astype(str))
+    # 涵蓋率＝當天有法人資料的上市個股數 ÷ 當天有收盤價的上市個股數（≥ 60% 才補）。
+    # 舊做法拿「近 250 天最多那天」當分母，上市上櫃混算，最新日只要法人表晚出就一直退回舊日。
+    pp = price
+    if "market" in pp.columns:
+        pp = pp[pp["market"].astype(str).str.upper() == "TWSE"]
+    denom = pp.drop_duplicates(["date", "code"]).groupby(pp["date"].astype(str)).size()
+    ii = inst.merge(pp[["date", "code"]].drop_duplicates(), on=["date", "code"], how="inner")
+    cnt = ii.drop_duplicates(["date", "code"]).groupby(ii["date"].astype(str)).size()
+    full = {d for d, n in cnt.items() if denom.get(d, 0) and n / denom[d] >= COVER}
     want = [d for d in dates if d in full and d not in skip]
     if not want:
         return pd.DataFrame(columns=["date", "f", "t", "d", "tot"])

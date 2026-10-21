@@ -1422,6 +1422,13 @@ def run_plan(name: str, limit: int | None, today: date | None = None) -> dict:
         backfill_mktfut(_progress())
     except Exception as exc:  # noqa: BLE001
         log.warning("市場明細融資／期貨回補失敗（不影響其他步驟）：%s", exc)
+    # 全市場三大法人金額官方值只要 1 次請求，放在個股步驟之前（2026-10-21 根因）：
+    # 原本掛在「整個計畫跑完（stopped_at is None）」之後，但個股步驟每輪都把額度燒光，
+    # 計畫從來沒跑完，所以 5 年歷史一直沒補（湖裡只有每日管線 40 天增量的 09/10 起）。
+    try:
+        backfill_inst_market(_progress())
+    except Exception as exc:  # noqa: BLE001
+        log.warning("三大法人全市場金額回補失敗（不影響其他步驟）：%s", exc)
     results: dict[str, bool] = {}
     stopped_at: str | None = None
     totals = {k: 0 for k in DATA_KEYS}
@@ -1451,10 +1458,6 @@ def run_plan(name: str, limit: int | None, today: date | None = None) -> dict:
             refresh_stale_inst(_progress(), today, limit)
         except Exception as exc:  # noqa: BLE001
             log.warning("法人每日續補失敗（不影響其他步驟）：%s", exc)
-        try:
-            backfill_inst_market(_progress())
-        except Exception as exc:  # noqa: BLE001
-            log.warning("三大法人全市場金額回補失敗（不影響其他步驟）：%s", exc)
     prog = _progress()
     prog.setdefault("complete", {})
     prog["complete"][f"plan:{name}"] = {
