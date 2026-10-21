@@ -56,7 +56,7 @@ def main():
             continue
         j = json.loads(jf.read_text(encoding="utf-8"))
         meta = {}
-        for sid in R.ORDER:
+        for sid in [s[0] for s in j["shots"]]:
             f = R.RAW / f"{dev}_{sid}.json"
             if f.exists():
                 meta[sid] = json.loads(f.read_text(encoding="utf-8"))

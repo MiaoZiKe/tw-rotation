@@ -728,7 +728,7 @@ def d_3d(pg, a, start):
     t3 = rect_css(pg, "#dg3d")
     db = rect_css(pg, "#dgBody")
     top3 = t3[1] - 4
-    fr3 = f"rect:{db[0]:.0f},{top3:.0f},{db[2]:.0f},{min(db[3], 700 - top3):.0f}"   # 工具列＋3D 畫布，底邊在客服鈕（頂 708）上方
+    fr3 = f"rect:{db[0]:.0f},{top3:.0f},{db[2]:.0f},{min(db[3], db[2] / 2.04 - 6):.0f}"   # 工具列＋3D 畫布，底邊在客服鈕（頂 708）上方
     a.cam([fr3], 0, "2D／3D 切換與 3D 圖", intro=["#dg3d"])
     a.say("同一個零件，切 3D 再看", "3dglasses")
     r = rect_css(pg, '#dg3d button[data-dm="3d"]')
@@ -740,20 +740,16 @@ def d_3d(pg, a, start):
     c = rect_css(pg, "#prod3d canvas")
     cx = c[0] + c[2] / 2
     rk = rack_rect(pg)
-    a.cam(["#prod3d canvas"], 4, "3D：機櫃＋兩側零件標籤", zoom=True, intro=[rk])
+    band = f"rect:{c[0]:.0f},{c[1] + c[3] * 0.1:.0f},{c[2]:.0f},{min(c[3] * 0.8, c[2] / 2.04 - 8):.0f}"   # 畫布中央一條（畫框比例 2.04：整張畫布比這個高，會裝不進去）
+    a.cam([band], 0, "3D：機櫃＋兩側零件標籤", zoom=True, intro=[rk])
     a.park(ms=300)
     a.drag(cx - 170, c[1] + 70, cx + 90, c[1] + 76, 1000)   # 在機櫃上方的空白處拖（不經過機櫃）
     a.wait(100)
     a.wait_still3d(pg)
     first = True
-    picked = ["12"]
-    for lab_i in range(3):
-        if lab_i < 2:
-            no = pick_label(pg, exclude=tuple(picked))
-            picked.append(no)
-        else:
-            no = "12"
-        lab = f"零件：{no} {'電源櫃' if no == '12' else '標籤'}"
+    # 點開會長高、會跟隔壁標籤短暫重疊（站內動畫）：只點同一欄「最下面」的 13 BBU 與 12 電源櫃（下面沒有鄰居），13 → 12 → 13 → 12
+    for no in ("13", "12", "13", "12"):
+        lab = f"零件：{no} {'電源櫃' if no == '12' else 'BBU 電池'}"
         rk = rack_rect(pg, lbl(no))
         a.cam([lbl(no), rk], 10, f"推近：{lab}", minw=ZMIN, zoom=True, intro=[lbl(no), rk])
         if first:
@@ -763,13 +759,13 @@ def d_3d(pg, a, start):
         lr = rect_css(pg, lbl(no))
         a.move(lr[0] + lr[2] + 40 if outer == "right" else lr[0] - 40, lr[1] + 18, 380)
         a.click_now(lbl(no), lab, ms=200, pause=90, dx=0.96, dy_px=14)   # 點標籤右上角空白處
-        a.wait(110)
+        a.wait(30)
         rk = rack_rect(pg, lbl(no))
         a.cam([lbl(no), rk], 10, f"{lab}＋說明", minw=ZMIN, zoom=True, intro=[lbl(no), rk])
         lr2 = rect_css(pg, lbl(no))
-        a.move(lr2[0] + lr2[2] * 0.96, c[1] + 44, 130)   # 先往上離開標籤（標籤點開會長高）
-        a.move(cx, c[1] + 44, 170)                       # 再沿畫布上緣移到中間空白處（不經過機櫃）
-        a.wait(450)
+        a.move(lr2[0] + lr2[2] * 0.96, c[1] + 44, 100)   # 先往上離開標籤（標籤點開會長高）
+        a.move(cx, c[1] + 44, 140)                       # 再沿畫布上緣移到中間空白處（不經過機櫃）
+        a.wait(500)
     a.settle()
 
 
@@ -884,7 +880,7 @@ def m_guide(pg, a, start):
     a.click('.m4item[data-v="industry"]', label="選單：產業地圖", ms=420, pause=100)
     a.lift(ms=90)
     a.wait(1200)
-    a.cam(["#chainSwitch"], 4, "產業鏈分頁", frame="rect:0,50,390,576")
+    a.cam(["#chainSwitch"], 0, "產業鏈分頁", frame="rect:0,60,390,576")
     a.say("選產業鏈，看剖析圖", "point_ur_v2")
     a.lift()
     a.click(chain_btn(CHAIN), label="產業鏈：AI 伺服器", ms=420, pause=100)
@@ -988,7 +984,7 @@ M_REL_SEGS = ("thermal", "power", "optical", "switch", "connector", "fpc", "asse
 
 def m_rel_setup(pg):
     """關聯圖橫向捲到「中欄＋右欄」整欄露出；頁尾下方墊空白（視窗外，點環節展開／收起時捲動位置不被夾）。回傳取景框（畫面框比例 1000:1478）。"""
-    pg.add_style_tag(content="body{padding-bottom:900px!important}")
+    pg.add_style_tag(content="body{padding-bottom:900px!important}#relSec{margin-bottom:360px!important}")   # 關聯圖下方墊空白：取景框底下不會露出頁尾字（頁尾推到框外）
     scroll_to(pg, "#relSec", 64)
     pg.evaluate("""() => { const m = document.querySelector('#chainMap'); const t = document.querySelector('#relSec .segbox[data-seg="thermal"]');
       m.scrollLeft += t.getBoundingClientRect().left - 42; }""")
