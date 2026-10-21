@@ -172,7 +172,7 @@ def header(o, im, reg, sid, data_date):
     pill, title, hl = SEC[sid]
     if o.dev == "d":
         fp, ft, fs = font(F_BOLD, 26), font(F_BLACK, 44), font(F_MED, 21)
-        px, py, ph = 40, 20, 50
+        px, py, ph = 40, 10, 46
         ty = 18
         tx_gap = 22
     else:

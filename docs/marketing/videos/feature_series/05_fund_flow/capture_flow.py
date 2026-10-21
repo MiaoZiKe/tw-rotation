@@ -35,13 +35,17 @@ SCR = Path(os.environ.get("FEAT_SCR", "/tmp/claude-0/-home-user-tw-rotation/3d7a
 FPS = 30
 CFG = {
     "d": dict(viewport={"width": 1280, "height": 620}, device_scale_factor=2),
-    "m": dict(viewport={"width": 390, "height": 844}, device_scale_factor=3, is_mobile=True, has_touch=True),
+    "m": dict(viewport={"width": 540, "height": 880}, device_scale_factor=2.5, is_mobile=True, has_touch=True),
 }
 # 網站畫面框（css，視窗座標）：網頁＝整個視窗寬、從頂欄下緣到卡片底；手機＝視窗寬、頂欄起 624 高（只往下捲）
-CROP = {"d": (0, 68, 1280, 548), "m": (0, 0, 390, 624)}
+CROP = {"d": (0, 52, 1072, 568), "m": (0, 0, 540, 864)}
 
 # 錄影專用：客服鈕移出畫面下緣（不入鏡）；細圈漣漪（只畫圈、不上色，不蓋字）
-REC_CSS = "html body #supFab,html body .supfab,html body #bibiRing,html body .bibiring{bottom:-200px!important}"
+REC_CSS = (".rotdd[data-dd=chain] .ddpanel{flex-direction:row!important;flex-wrap:nowrap;width:max-content!important;max-width:582px!important;max-height:none!important;gap:1px}"
+           ".rotdd[data-dd=chain] .ddpanel .ddopt{width:auto!important;white-space:nowrap;padding:3px 4px!important;font-size:11.5px!important}.rotdd[data-dd=chain] .ddpanel .ddopt em{margin-left:4px!important}"
+           ".rotdd[data-dd=group] .ddpanel{display:none!important}.rot-note{display:none!important}"
+           "@media (max-width:640px){#rotTools,.rotchead,#m4RotSet{display:none!important}.rotdd[data-dd=chain] .ddpanel{max-width:480px!important;flex-wrap:wrap!important}}"
+           "html body #supFab,html body .supfab,html body #bibiRing,html body .bibiring{bottom:-200px!important}")
 RING_JS = r"""
 (() => { const st = document.createElement('style'); st.textContent = '.__vr{background:transparent!important;border:2px solid rgba(37,99,235,.9)!important}'; document.head.appendChild(st);
   window.__vcRipple = (x, y) => { const r = document.createElement('div'); r.className = '__vr'; const s = 30; r.style.width = r.style.height = s + 'px';
@@ -122,7 +126,7 @@ class Rec(F.Rec):
 
 
 class A(F.A):
-    PARK_D = (770, 212)   # 左窗格「▶」右邊、輪盤上緣之上的空白處（不在圖上、不蓋字）
+    PARK_D = (770, 192)   # 左窗格「▶」右邊、輪盤上緣之上的空白處（不在圖上、不蓋字）
 
     def __init__(self, pg, mob, vw, vh):
         super().__init__(pg, mob, vw, vh)
@@ -187,7 +191,7 @@ def pick_chain(a, pg, c, lab):
     a.off_click(btn[0] + btn[2] - 9, btn[1] + btn[3] / 2, "產業鏈下拉清單", F.CDD + " .ddbtn", dx=24, dy=24)
     a.wait(260)
     row = pg.evaluate(C.RECT_JS, f'{F.CDD} .ddopt[data-c="{c}"]')
-    a.off_click(row[0] + row[2] * 0.52, row[1] + row[3] / 2, lab, f'{F.CDD} .ddopt[data-c="{c}"]', dx=0, dy=0)   # 點完不再逗留（清單一秒內收掉）
+    a.off_click(row[0] + row[2] * 0.5, row[1] + row[3] - 5, lab, f'{F.CDD} .ddopt[data-c="{c}"]', dx=0, dy=0)   # 點完不再逗留（清單一秒內收掉）
     # 網站選完產業鏈會自動打開族群清單 → 立刻關掉（等同點空白處），不讓它蓋住輪盤
     quiet = 0
     for _ in range(30):   # 族群清單會晚幾格才自動打開 → 連續 12 格都沒有面板才算收乾淨
@@ -225,7 +229,7 @@ def run_d(pg, a, start):
         a.off_click(sub[0] + sub[2] * 0.85, sub[1] + sub[3] / 2, "子分頁：資金輪動", '.l4subtab[data-l4sub="flow-rotation"]', dx=30, dy=30)
         a.until("() => !!document.querySelector('#rotClock canvas') && !!document.querySelector('#rankFlow canvas')", 8000)
     a.wait(900)
-    a.move(236, 214, 300)   # 先貼著側欄邊往上、再沿篩選列（UI 列，不是圖）移到空白處，不從輪盤／排行的字上掃過
+    a.move(236, 192, 300)   # 先貼著側欄邊往上、再沿篩選列（UI 列，不是圖）移到空白處，不從輪盤／排行的字上掃過
     a.away(450)
     # 3 輪盤看強弱、排行看流入（不點、不 hover 圖）
     a.set_stage(3, "看強弱")
@@ -296,10 +300,7 @@ def run_m(pg, a, start):
         a.wait(1100)
     a.settle()
     a.set_stage(6, "一頁看懂")
-    a.clear_say()
-    rk = pg.evaluate("() => document.querySelector('#rankFlow').getBoundingClientRect().bottom + scrollY")
-    a.scroll(to_y=rk - 600, ms=900)
-    a.say("排行看流入，一頁看懂", "proud_shine", ("rank",))
+    a.say("排行看流入，一頁看懂", "proud_shine", ("slider", "clock"))
     a.idle(1500)
     a.settle()
 

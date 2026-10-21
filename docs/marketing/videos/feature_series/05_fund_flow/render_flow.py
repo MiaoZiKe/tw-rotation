@@ -57,11 +57,11 @@ def layout(dev):
     o.dev = dev
     if dev == "d":
         o.W, o.H = 1920, 1080
-        o.panel = (26, 96, 1894, 896)
-        o.bibi_size = 170
-        o.bibi_foot = (1815, 1074)
+        o.panel = (20, 78, 1684, 960)
+        o.bibi_size = 190
+        o.bibi_foot = (1810, 1074)
         o.nav = None
-        o.bub_zone = (26, 918, None, 1070)
+        o.bub_zone = (20, 978, None, 1076)
         o.bub_font = 46
         o.flip_point = True
     else:
@@ -147,8 +147,25 @@ def render(dev, only=None):
     ImageDraw.Draw(mask).rounded_rectangle([0, 0, o.pw - 1, o.ph - 1], 20, fill=255)
     mask = (np.array(mask).astype(np.float32) / 255)[..., None]
     dsf = meta["dsf"]
-    cx, cy, cw, ch = meta["crop"]
-    crop_css = (cx, cy, cw, ch)
+    crop0 = tuple(meta["crop"])
+    zoom = None
+    if dev == "d":   # 網頁：引導段之後做「一次單向推近」，框只留資金輪動卡（輪盤＋排行），側欄裁掉
+        t3 = next(tt for tt, k_, _ in stages if k_ == 3)
+        card = fm[min(int((t3 + 1.0) * FPS), N0 - 1)]["el"]["card"]
+        mg = 2
+        hmax = float(np.percentile([f_["el"]["card"][3] for f_ in fm[int(t3 * FPS):] if "card" in f_["el"]] or [card[3]], 97))
+        Hc = hmax + 2 * mg
+        Wc = Hc * o.asp
+        tgt = (card[0] + card[2] / 2 - Wc / 2, card[1] - mg, Wc, Hc)
+        zoom = (t3 - 0.1, 0.7, tgt)
+
+    def crop_at(t):
+        if zoom is None or t <= zoom[0]:
+            return crop0
+        a = R.ease(min(1.0, (t - zoom[0]) / zoom[1]))
+        return tuple(c0 + (c1 - c0) * a for c0, c1 in zip(crop0, zoom[2]))
+    cx, cy, cw, ch = crop0
+    crop_css = crop0
     sx, sy = o.pw / cw, o.ph / ch
 
     def stage_at(t):
@@ -169,6 +186,7 @@ def render(dev, only=None):
                                "-c:v", "libx264", "-crf", "17", "-preset", "medium", "-pix_fmt", "yuv420p", str(out_sil)], stdin=subprocess.PIPE)
     last_k, last_img = -1, None
     rows, issues, occ_rows, strict_rows, cut_rows, slice_rows, ov_open, tip_frames = [], [], [], [], [], [], 0, 0
+    push_frames = 0
     still_run, still_max, prev_pv = 0, (0, 0.0), None
     for bb in bubbles:
         if bb["sid"] != "__end" and bb["t1"] - bb["t0"] < 1.45 - 1e-3:
@@ -179,6 +197,8 @@ def render(dev, only=None):
         in_end = t >= end_start + XF - 1e-6
         k = min(int(round(t * FPS)), N0 - 1)
         stg = 7 if in_end else stage_at(t)
+        cx, cy, cw, ch = crop_at(t)
+        crop_css = (cx, cy, cw, ch)
         base, items, iss = statics[stg]
         canvas = base.copy()
         for it in items:
@@ -197,7 +217,7 @@ def render(dev, only=None):
                     last_img = fr
             fr = last_img
             sx0, sy0 = int(round(cx * dsf)), int(round(cy * dsf))
-            sx1, sy1 = int(round((cx + cw) * dsf)), int(round((cy + ch) * dsf))
+            sx1, sy1 = sx0 + int(round(cw * dsf)), sy0 + int(round(ch * dsf))
             crop = fr[sy0:sy1, sx0:sx1]
             img = cv2.cvtColor(cv2.resize(crop, (o.pw, o.ph), interpolation=cv2.INTER_AREA), cv2.COLOR_BGR2RGB)
             pv = cv2.resize(crop, (o.pw // 4, o.ph // 4), interpolation=cv2.INTER_AREA).astype(np.int16)
@@ -228,7 +248,7 @@ def render(dev, only=None):
             for f, fr_ in foc_r.items():
                 if f not in ("clock", "rank", "slider", "filter", "chain", "tabs", "navflow", "burger", "m4flow"):
                     continue
-                if not contained(crop_in, fr_, 0.5) and f in ("clock", "rank", "slider", "filter"):
+                if not in_push and not contained(crop_in, fr_, 0.5) and f in ("clock", "rank", "slider", "filter"):
                     cut_rows.append(f"| {t:6.2f} | {f} 超出畫面框 |")
                 for n_, r_ in ovs:
                     if n_ == '頂欄' and f in ('tabs', 'navflow', 'burger', 'm4flow'):
@@ -252,7 +272,10 @@ def render(dev, only=None):
                     if rect_int(z[1:], cr) > 0:
                         strict_rows.append(f"| {t:6.2f} | 游標蓋住{'輪盤' if z[0] == 0 else '排行'}標籤 |")
                         break
-            chart_focus = any(f in ('clock', 'rank') for f in (bub['focus'] if bub else []))
+            in_push = zoom is not None and zoom[0] <= t <= zoom[0] + zoom[1] + 0.05   # 單向推近的移動中（約 0.75 秒），不算切字／裁切
+            if in_push:
+                push_frames += 1
+            chart_focus = (not in_push) and any(f in ('clock', 'rank') for f in (bub['focus'] if bub else []))
             want = {0 if f == 'clock' else 1 for f in (bub['focus'] if bub else []) if f in ('clock', 'rank')}
             for z in ([z for z in m["zt"] if z[0] in want] if chart_focus else []):   # 畫面框邊切過標籤文字（只算泡泡正在介紹輪盤／排行的幀；換頁載入中的幾幀不算）
                 zr = z[1:]
@@ -316,6 +339,8 @@ def render(dev, only=None):
         rc = c.get("rect_center")
         px, py = c["center"]
         err = math.hypot(px - rc[0], py - rc[1]) if rc else None
+        cx, cy, cw, ch = crop_at(c["t"])
+        sx, sy = o.pw / cw, o.ph / ch
         ox_ = x0 + (px / dsf - cx) * sx
         oy_ = y0 + (py / dsf - cy) * sy
         inside = x0 + 4 <= ox_ <= x1 - 4 and y0 + 4 <= oy_ <= y1 - 4
@@ -340,7 +365,7 @@ def render(dev, only=None):
     (SCR / f"occlusion_rows_{dev}.md").write_text("\n".join(["遮擋（泡泡正在講的元素 × 浮層）："] + occ_rows[:500] + ["", "嚴格遮擋（浮層／游標 × 圖表標籤文字）："] + strict_rows[:500]), encoding="utf-8")
     out = dict(dev=dev, frames=n_total, body_raw=round(body, 2), total_raw=round(total, 2), final_len=round(final_len, 2), speed=SPEED, end_final=end_final,
                overlaps=len(rows), issues=len(issues), occlusion=len(occ_rows), strict=len(strict_rows), cut=len(cut_rows), slice=len(slice_rows),
-               dd_open_frames=ov_open, tooltip_frames=tip_frames, still_max_s=round(still_max[0] / FPS, 2), still_at=round(still_max[1], 2),
+               dd_open_frames=ov_open, push_frames=push_frames, strict_panel=len([r for r in strict_rows if '面板' in r]), strict_cursor=len([r for r in strict_rows if '游標' in r]), strict_bar=len([r for r in strict_rows if '頂欄' in r]), tooltip_frames=tip_frames, still_max_s=round(still_max[0] / FPS, 2), still_at=round(still_max[1], 2),
                clicks=click_rows, bubbles=[(round(b["t0"], 2), round(b["t1"], 2), b["text"]) for b in bubbles], stages=stages, final=str(final),
                occ_detail=occ_rows[:40], strict_detail=strict_rows[:40], slice_detail=slice_rows[:40], cut_detail=cut_rows[:40], data_date=meta.get("data_date"))
     (SCR / f"render_{dev}.json").write_text(json.dumps(out, ensure_ascii=False, indent=1), encoding="utf-8")
