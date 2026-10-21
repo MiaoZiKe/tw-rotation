@@ -16,7 +16,9 @@ from PIL import Image, ImageDraw, ImageFilter
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
-import render_flow as R  # noqa: E402
+import renderlib_v2 as R  # noqa: E402
+import render_flow as RF  # noqa: E402
+R.RAW = RF.RAW
 
 PAPER = (255, 249, 239)
 INK = (50, 26, 20)
@@ -27,18 +29,18 @@ YEL = (255, 229, 165)
 
 
 def shot_crop():
-    """d_tree：資金分流樹整張卡（族群層級，沒有個股）。取第一次點「看哪一天」拉桿之後 0.6 秒那一格（游標停在右上角拉桿上、不壓到樹），
-    裁切範圍＝全圖定位那一拍量到的卡片外框。"""
-    js = json.loads((R.RAW / "d_tree.json").read_text(encoding="utf-8"))
-    card = js["cams"][int((js["says"][0]["t"] + 0.5) * 30)][6]
-    t = [c for c in js["clicks"] if "看哪一天" in (c.get("label") or "")][0]["t"] + 0.6
-    k = int(t * 30)
-    cap = cv2.VideoCapture(str(R.RAW / "d_tree.mp4"))
+    """v3：取一鏡到底網頁錄影（d_main）「輪盤看強弱，排行看流入」那一段的一格（4.8 秒），裁切＝當格量到的資金輪動卡外框
+    （族群層級，沒有個股；游標停在標題列空白處）。"""
+    js = json.loads((R.RAW / "d_main.json").read_text(encoding="utf-8"))
+    k = int(4.8 * 30)
+    card = js["fm"][k]["el"]["card"]
+    cap = cv2.VideoCapture(str(R.RAW / "d_main.mp4"))
     cap.set(cv2.CAP_PROP_POS_FRAMES, k)
     ok, fr = cap.read()
     im = Image.fromarray(cv2.cvtColor(fr, cv2.COLOR_BGR2RGB))
+    d = js["dsf"]
     x, y, w, h = card
-    return im.crop((int(x), int(y), int(x + w), int(y + h))), None
+    return im.crop((int(x * d), int(y * d), int((x + w) * d), int((y + h) * d))), None
 
 
 def sticker(im, w, radius=34, border=14):
