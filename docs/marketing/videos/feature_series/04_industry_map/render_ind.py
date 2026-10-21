@@ -33,27 +33,21 @@ REPO = HERE.parents[4]
 LIB = REPO / "docs" / "anim" / "bibi_library"
 SCR = Path(os.environ.get("FEAT_SCR", "/tmp/claude-0/-home-user-tw-rotation/3d7a42eb-0e07-50fa-8c50-cf31c62d682f/scratchpad/feat04"))
 FAST = True   # 第 2 支起一律快節奏
-SPEED = 1.5   # 成片整支 1.5 倍速（Andy 10-19：「控制 1min 內，可以載 x1.5 倍」）
-RAW = Path(os.environ.get("FEAT_RAW", str(SCR / "raw_v2")))
+SPEED = float(os.environ.get("FEAT_SPEED", "1.6"))   # 10-21 起：成片 ≤30 秒（含片尾）→ 1.6 倍速；每泡成片上仍要 ≥0.9 秒（原片 ≥1.45 秒）
+RAW = Path(os.environ.get("FEAT_RAW", str(SCR / "raw_v4")))
 FD = Path(os.environ.get("HBM_FONT_DIR", "/tmp/claude-0/-home-user-tw-rotation/3d7a42eb-0e07-50fa-8c50-cf31c62d682f/scratchpad/font"))
 F_BOLD = str(FD / "NotoSansTC-Bold.ttf")
 F_BLACK = str(FD / "NotoSansTC-Black.ttf")
 F_MED = str(FD / "NotoSansTC-Medium.ttf")
 FPS = 30
 PAD = 6
-XF = 12            # 鏡頭之間交叉淡化 0.4 秒
-END_DUR = 4.8      # 片尾卡原片 4.8 秒（1.5 倍後 3.2 秒 ≥ 3 秒）
+XF = 6             # 鏡頭之間交叉淡化 0.2 秒（10-21 稽核：轉場交疊 ≤0.2 秒）
+END_DUR = 3.2      # 片尾卡原片 3.2 秒 → 成片約 2 秒（10-21 稽核：片尾卡停 1.5～2 秒；與舊規「免責原始 ≥4.5 秒」衝突，依最新指示）
 
-ORDER = ["open", "guide", "chain", "rel", "3d", "end"]
-SEC = {   # 膠囊、標題、標題重點字
-    "open": ("產業地圖", "產品從上游到下游", "上游到下游"),
-    "guide": ("引導", "從首頁找到產業地圖", "產業地圖"),
-    "chain": ("功能 1", "選產業鏈＋產品剖析圖", "產品剖析圖"),
-    "rel": ("功能 2", "2D 供應鏈關聯圖", "關聯圖"),
-    "3d": ("功能 3", "3D 立體剖析圖", "立體剖析圖"),
-    "end": ("產業地圖", "上下游、台廠位置一次看", "一次看"),
-}
-NAV = [("chain", "產業鏈"), ("rel", "2D 關聯圖"), ("3d", "3D 剖析圖")]
+ORDER = [x for x in os.environ.get("FEAT_ORDER", "guide,dg2d,d3d,rel").split(",") if x]
+_ONE = ("產業地圖", "從零件看上下游", "上下游")   # 10-21（Andy：不亂跳）：整支一條主線、同一個標題，段落之間不換標題卡
+SEC = {k: _ONE for k in ("guide", "dg2d", "d3d", "dg3d", "rel", "end")}
+NAV = []
 DISC = "本內容為公開資料整理，不構成任何投資建議；投資有風險，請自行判斷。"
 
 BG = (253, 247, 236)
@@ -108,7 +102,7 @@ def layout(dev):
         o.panel = (26, 94, 1676, 904)
         o.bibi_size = 236
         o.bibi_foot = (1800, 1070)
-        o.nav = (1696, 94, 1900, 0)
+        o.nav = None
         o.bub_zone = (26, 918, None, 1068)     # 泡泡在畫面框下方，右邊接尾巴指向比比
         o.bub_font = 46
         o.flip_point = True
@@ -788,8 +782,8 @@ def render(dev, only=None, seg=None):
     cams = {s["sid"]: cam_track(o, s["meta"], s["sid"]) for s in shots}
     N = int(round(total * FPS))
     frames = [int(round(float(x) * FPS)) for x in only.split(",")] if only else range(N)
-    out_mp4 = SCR / (f"feat04_{dev}_silent_v3.mp4" if not seg else f"seg/feat04_{'web' if dev == 'd' else 'mobile'}_{ORDER.index(seg) + 1:02d}_{seg}.mp4")
-    out_mp4.parent.mkdir(exist_ok=True)
+    out_mp4 = SCR / (f"feat04_{dev}_silent_v4.mp4" if not seg else f"seg_v4/feat04_{'web' if dev == 'd' else 'mobile'}_{ORDER.index(seg) + 1:02d}_{seg}.mp4")
+    out_mp4.parent.mkdir(parents=True, exist_ok=True)
     ff = None
     if not only:
         ff = subprocess.Popen(["ffmpeg", "-y", "-loglevel", "error", "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{o.W}x{o.H}",
@@ -803,7 +797,7 @@ def render(dev, only=None, seg=None):
     prev_panel = None
     run = 0
     max_run = (0, 0.0)
-    samp = SCR / (f"samples_v3_{dev}" if not seg else f"seg/samples_{dev}_{seg}")
+    samp = SCR / (f"samples_v4_{dev}" if not seg else f"seg_v4/samples_{dev}_{seg}")
     samp.mkdir(parents=True, exist_ok=True)
     if not only:
         for old in samp.glob("*.png"):
@@ -874,17 +868,7 @@ def render(dev, only=None, seg=None):
             vy = min(fb[1] + fb[3], cy + ch) - max(fb[1], cy)
             if vx > 0 and vy > 0:
                 raw_view["fab_hit"] = int(vx * vy)
-        if f is not None:      # 介紹中的區塊以外淡化（奶油色 55%），區塊外圍一圈藍框
-            sx, sy = o.pw / cw, o.ph / ch
-            fx0, fy0 = int(round((f[0] - cx) * sx)), int(round((f[1] - cy) * sy))
-            fx1, fy1 = int(round((f[0] + f[2] - cx) * sx)), int(round((f[1] + f[3] - cy) * sy))
-            fx0, fy0, fx1, fy1 = max(0, fx0), max(0, fy0), min(o.pw, fx1), min(o.ph, fy1)
-            if (fx1 - fx0) * (fy1 - fy0) < 0.80 * o.pw * o.ph:
-                k_ = 0.82 if sid in EDGE_SIDS else 0.55   # 手機關聯圖：中欄＋右欄以外（頁尾字、圖下方的連線）淡到幾乎看不見，畫面只剩介紹的兩欄
-                dim = img.astype(np.float32) * (1 - k_) + np.array([255, 249, 239], np.float32) * k_
-                dim[fy0:fy1, fx0:fx1] = img[fy0:fy1, fx0:fx1]
-                img = dim.astype(np.uint8)
-                cv2.rectangle(img, (fx0 + 1, fy0 + 1), (fx1 - 2, fy1 - 2), (37, 131, 230), 3, cv2.LINE_AA)
+        # 10-21（Andy：不准遮擋）：取消框外淡化霧罩與藍色外框，框內任何內容都不被蓋住、不被淡掉
         return img
 
     for i in frames:
@@ -1020,8 +1004,8 @@ def render(dev, only=None, seg=None):
                     clicks=click_rows, bubbles=[(round(b["t0"], 2), round(b["t1"], 2), b["text"], b["sid"]) for b in bubbles],
                     shots=[(s["sid"], round(s["start"], 2), round(s["n"] / FPS, 2)) for s in shots], data_date=data_date)
     if seg:
-        (SCR / f"seg/render_{dev}_{seg}.json").write_text(json.dumps(meta_out, ensure_ascii=False, indent=1), encoding="utf-8")
-        (SCR / f"seg/overlap_rows_{dev}_{seg}.md").write_text("\n".join(rows[:300] + ["", "問題："] + issues[:300]), encoding="utf-8")
+        (SCR / f"seg_v4/render_{dev}_{seg}.json").write_text(json.dumps(meta_out, ensure_ascii=False, indent=1), encoding="utf-8")
+        (SCR / f"seg_v4/overlap_rows_{dev}_{seg}.md").write_text("\n".join(rows[:300] + ["", "問題："] + issues[:300]), encoding="utf-8")
         sp = out_mp4.with_name(out_mp4.stem + "_x1.5.mp4")
         subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", str(out_mp4), "-filter:v", f"setpts=PTS/{SPEED}", "-r", str(FPS),
                         "-c:v", "libx264", "-crf", "28", "-pix_fmt", "yuv420p", str(sp)], check=True)
@@ -1039,7 +1023,7 @@ def render(dev, only=None, seg=None):
     wav = SCR / f"bgm_{dev}.wav"
     subprocess.run([sys.executable, str(REPO / "docs/marketing/video_1010/make_music_v3.py"), "--length", f"{total / SPEED + 0.3:.2f}",
                     "--style", "cute", "--out", str(wav), "--cues", str(cj)], check=True)
-    name = "feat04_industry_map_web_v3.mp4" if dev == "d" else "feat04_industry_map_mobile_v3.mp4"
+    name = "feat04_industry_map_web_v4.mp4" if dev == "d" else "feat04_industry_map_mobile_v4.mp4"
     final = HERE / name
     subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", str(out_mp4), "-i", str(wav), "-filter:v", f"setpts=PTS/{SPEED}", "-r", str(FPS),
                     "-c:v", "libx264", "-crf", "18", "-preset", "medium", "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "160k",
