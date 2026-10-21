@@ -55,6 +55,7 @@ from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 from urllib.request import urlopen
 
+DATE_LABEL = ""
 ROOT = Path(__file__).resolve().parent.parent
 SITE_URL = "https://liguligu-puipui.com"
 SITE_HOST = "liguligu-puipui.com"
@@ -67,8 +68,16 @@ CHROMIUM = os.environ.get("TW_CHROMIUM") or ("/opt/pw-browsers/chromium" if Path
 # route：hash 路由；card：要截的元素（closest_card=True 表示往上找最近的 .card，才會帶到標題）
 # live：「即時」鈕的選擇器（None＝沒有鈕，頁面本身就是當下資料）；live_ok：判斷即時真的套上的 JS（回 true／false）
 # 連買賣排行：藏掉分頁列、「看全部」，每邊只留前 7 列（n+8）（字才放得夠大）；摘要與設定列保留
-def STREAK_PIECE(name):
-    return dict(name=name, hide=["#mktSeg2", ".srcol .srrow:nth-child(n+8)"], hide_text=[r"^看全部"], title="盤後法人")
+STREAK_CSS = (".mktstreakbar,#instView,#instMode,#instSw,#streakView,#streakWho,#streakGroupDD,#streakDays,.howbtn,.howtxt,.srmore,.itrow .dys,.itrow .px,.itrow .nm em{display:none!important}"
+              ".itrow{grid-template-columns:minmax(0,1.15fr) minmax(0,1.6fr) 6.4em!important;gap:10px!important}"
+              ".itrow .nm,.itrow .nm b{white-space:nowrap!important;overflow:visible!important;text-overflow:clip!important;max-width:none!important}")
+# 連買賣排行：控制列（日報／個股、當日／連續、投信／外資、族群、天數、?）全藏，只留圖本身；每邊前 7 列，只留「股票、連續天數、當日」三欄（截圖用頁面狀態，不改 site/）
+STREAK_NAV = """(w) => { const c = (s) => { const b = document.querySelector(s); if (b) b.click(); };
+  c('#instView button[data-v=streak]'); return new Promise(r => setTimeout(() => { c('#instMode button[data-m=today]');
+    setTimeout(() => { c('#streakWho button[data-w=' + w + ']'); setTimeout(r, 900); }, 900); }, 900)); }"""
+def STREAK_PIECE(name, story=False):
+    return dict(name=name, title="盤後法人",
+                css=STREAK_CSS + (".strank{display:grid!important;grid-template-columns:1fr!important;gap:14px!important}.itrow{padding-top:6px!important;padding-bottom:6px!important}" + STORY_Z(1.12) if story else ""))
 
 
 # m：手機版（IG 限動）要截的片段；每片 dict(name, hide=[CSS], hide_text=[正規式], start, end, pre=JS)
@@ -113,6 +122,27 @@ SANKEY_SCRUB = [["即時板塊合計.*", ""], ["\\s*[—-]\\s*\\(真實\\)", ""]
 SANKEY_PIECES = [dict(name="sankey-tree", sel="#sankeyWrap", title="資金分流樹", text="flows", root_sel="body",
                       
                       hide=["#sankeyLive", "#sankeyMotionBtn", ".ftbtn"], hide_exact=["~即時", "~^動態"], scrub=SANKEY_SCRUB)]
+def STORY_Z(z):
+    return f"body{{zoom:{z}}}"
+
+
+INST_CSS = (".mktstreakbar,.howtxt,.irgo,#instView,.howbtn,.irtri>.card:nth-child(-n+2),.irtbl tr[data-d]:nth-child(n+11){display:none!important}.irtri{display:block!important}"
+            ".irtop{margin-bottom:10px}.irtbl,.irtri .tw{max-height:none!important;height:auto!important;overflow:visible!important}")
+CREDIT_CSS = (".mf-bar,.mf-cseg,.mf-cbox[data-c=bal],.mf-tblbox,.howbtn{display:none!important}.mf-split{display:block!important}.mf-cbox[data-c=ratio]{display:block!important;width:100%!important}")
+RANK_CSS = ".mf-bar,.mf-gsel,.howbtn,.howtxt{display:none!important}"
+FUT_CSS = ".fp-bar,.fp-per,.howbtn,.howtxt,.fp-tblcard,.fp-prodseg,.fp-hint,.fp-concl,.fp-top .sum{display:none!important}"
+FUT_D = FUT_CSS + ".fp-split{display:block!important}.fp-main,.fp-split>.card{width:100%!important;max-width:none!important}"
+RETAIL_CSS = FUT_CSS + ".fp-hint{display:inline!important}.fp-top .stats{display:none!important}.fp-chart{height:190px!important;min-height:0!important}.fp-topgrid{margin-bottom:6px}"
+RETAIL_D = FUT_D + ".fp-chart{height:240px!important;min-height:0!important}"
+RETAIL_VARIANTS = ["() => { const b = document.querySelector('#fpProdSeg button[data-p=%s]'); if (b) b.click(); return new Promise(r => setTimeout(r, 1500)); }" % k for k in ("TX", "MTX", "TMF")]
+READ_INST = "() => [...document.querySelectorAll('#instTiles .itile')].map(e => [(e.querySelector('.il') || {}).innerText || '', ((e.querySelector('.iv') || {}).innerText || '').replace(/\\s+/g, '')])"
+READ_RANK = ("() => { const g = (s) => [...document.querySelectorAll('.srcol.' + s + ' .itrow[data-code] .nm b')].slice(0, 3).map(e => e.innerText.trim());"
+             " return { buy: g('buy'), sell: g('sell') }; }")
+READ_CREDIT = "() => { const t = document.querySelector('#mf-credit').innerText.replace(/\\s+/g, ' '); const a = /(\\d+\\.\\d+)\\s*%/.exec(t), b = /較前日\\s*([-+−]?\\s*[\\d.]+)\\s*pp/.exec(t); return { ratio: a && a[1], chg: b && b[1].replace(/\\s/g, '') }; }"
+READ_RK = ("() => { const c = [...document.querySelectorAll('#mfRankBody > *')].map(e => [...e.querySelectorAll('.mf-rk, .mf-rkrow, li, tr')].slice(0, 3).map(r => r.innerText.replace(/\\s+/g, ' ').trim()));"
+           " return { cols: c, raw: (document.querySelector('#mfRankBody') || {}).innerText || '' }; }")
+READ_FUT = "() => ((document.querySelector('#fpBig3') || {}).innerText || '').replace(/\\s+/g, ' ').trim()"
+READ_RET = "() => { const t = ((document.querySelector('#fpTop') || {}).innerText || '').replace(/\\s+/g, ' '); const m = /([+\\-−▲▼]?\\s*[\\d.]+\\s*%)/.exec(t); const h = ((document.querySelector('#fpSub') || {}).innerText || ''); return { pct: m && m[1].replace(/\\s/g, ''), prod: (/(大台|小台|微台)/.exec(h) || [])[1] || '' }; }"
 TARGETS = [
     dict(name="rotation", snap="rot-wheel", kind="intraday", label="資金輪盤／族群資金排行", route="flow/rotation",
          card="#flowRotCard", live="#rotLiveBtn",
@@ -142,18 +172,28 @@ TARGETS = [
                  " return !!n && !n.hidden && !/抓取中|抓不到|失敗|逾時|連不到/.test(n.innerText); }",
          headline=None, d=[dict(name="market-breadth", hide=[".howbtn"])], m=[dict(name="market-breadth", hide=[".howbtn", "#distFilter"], fill=dict(frac=1.0, charts=["#chgDistBox", "#chgDist"]))]),
     # 盤後（法人資料要收盤後證交所公布才有，沒有即時版，所以另一篇發，不放進盤中那篇）
-    dict(name="streak-trust", kind="close", label="法人連續買賣超｜投信", route="market/streak",
-         card="#mktBody", closest_card=True, live=None, live_ok=None, headline=None, streak_who="trust",
-         m=[STREAK_PIECE("streak-trust")]),
-    dict(name="streak-foreign", kind="close", label="法人連續買賣超｜外資", route="market/streak",
-         card="#mktBody", closest_card=True, live=None, live_ok=None, headline=None, streak_who="foreign",
-         m=[STREAK_PIECE("streak-foreign")]),
-    dict(name="streak-total", kind="close", label="法人連續買賣超｜合計", route="market/streak",
-         card="#mktBody", closest_card=True, live=None, live_ok=None, headline=None, streak_who="total",
-         m=[STREAK_PIECE("streak-total")]),
-    # 當日三大法人買賣超卡（另派人做，市場明細新增；data-snap="inst-today"）。卡片不存在就跳過。route 以 docs/social_snap_targets.md 為準。
-    dict(name="inst-today", kind="close", label="當日三大法人買賣超", route="market/inst", card="[data-snap=inst-today]",
-         attr_only=True, live=None, live_ok=None, headline=None, m=[dict(name="inst-today")]),
+    dict(name="inst-today", kind="close", label="三大法人買賣超", route="market/inst", card="[data-snap=inst-today]", attr_only=True,
+         stale=".stale-tag", read=READ_INST, d=[dict(name="inst-today", sel="#instToday", css=INST_CSS)],
+         m=[dict(name="inst-today", sel="#instToday", css=INST_CSS + ".itile .iv{font-size:19px!important}.irtbl td,.irtbl th{padding:24px 8px!important}")], story_vw=720, story_dsf=2.0),
+    dict(name="streak-foreign", kind="close", label="外資個股買賣超排名", route="market/inst", card="#mktBody", closest_card=True, nav=STREAK_NAV, nav_arg="foreign",
+         stale=".stale-tag", read=READ_RANK, story_vw=720, story_dsf=2.0,
+         d=[STREAK_PIECE("streak-foreign")], m=[STREAK_PIECE("streak-foreign", True)]),
+    dict(name="streak-trust", kind="close", label="投信個股買賣超排名", route="market/inst", card="#mktBody", closest_card=True, nav=STREAK_NAV, nav_arg="trust",
+         stale=".stale-tag", read=READ_RANK, story_vw=720, story_dsf=2.0,
+         d=[STREAK_PIECE("streak-trust")], m=[STREAK_PIECE("streak-trust", True)]),
+    dict(name="credit-ratio", snap="margin", kind="close", label="融資維持率", route="market/credit", card="#mf-credit", attr_only=True, stale=".mf-stale", read=READ_CREDIT,
+         story_vw=720, story_dsf=2.0, d=[dict(name="credit-ratio", sel="#mf-credit", css=CREDIT_CSS)],
+         m=[dict(name="credit-ratio", sel="#mf-credit", css=CREDIT_CSS + STORY_Z(1.2), fill=dict(frac=1.0, charts=["#mfChart"]))]),
+    dict(name="credit-rank", snap="margin", kind="close", label="融資增減排行", route="market/credit", card="#mf-credit", attr_only=True, stale=".mf-stale", read=READ_RK,
+         nav="() => { const b = document.querySelector('#mfTab button[data-k=rank]'); if (b) b.click(); return new Promise(r => setTimeout(r, 1200)); }",
+         story_vw=720, story_dsf=2.0, d=[dict(name="credit-rank", sel="#mf-credit", css=RANK_CSS)], m=[dict(name="credit-rank", sel="#mf-credit", css=RANK_CSS + ".mf-rkgrid{grid-template-columns:1fr!important;gap:26px!important}" + STORY_Z(1.3))]),
+    dict(name="fut-oi", snap="fut-oi", kind="close", label="台指期三大法人未平倉", route="market/fut", card="[data-snap=fut-oi]", attr_only=True, stale=".fp-stale:not([hidden])", read=READ_FUT,
+         story_vw=720, story_dsf=2.0, d=[dict(name="fut-oi", sel=".fp-block", css=FUT_D)],
+         m=[dict(name="fut-oi", sel=".fp-block", css=FUT_CSS + STORY_Z(1.25), fill=dict(frac=1.0, charts=["#fpChart-futoi"]))]),
+    dict(name="retail-ratio", snap="fut-oi", kind="close", label="台指散戶多空比", route="market/fut", card="[data-snap=fut-oi]", attr_only=True, stale=".fp-stale:not([hidden])",
+         nav="() => { const b = document.querySelector('.fp-prod button[data-k=retail]'); if (b) b.click(); return new Promise(r => setTimeout(r, 1200)); }",
+         story_vw=720, story_dsf=2.0, d=[dict(name="retail-ratio", sel=".fp-block", css=RETAIL_D, variants=RETAIL_VARIANTS, read=READ_RET)],
+         m=[dict(name="retail-ratio", sel=".fp-block", css=RETAIL_CSS + STORY_Z(1.1), variants=RETAIL_VARIANTS, read=READ_RET)]),
 ]
 
 # 每張的標題＝功能名稱本身（Andy 10-20：「標題就是這功能」），副標是小字；全部畫面與貼文不出現「即時」字樣
@@ -164,10 +204,13 @@ PIECE_META = {
     "heat": ("資金熱力圖", "產業一次看（上）、題材資金熱力（下）"),
     "market-index": ("大盤走勢", "加權指數、櫃買指數、台指期"),
     "market-breadth": ("漲跌家數", "全市場漲跌分佈"),
-    "streak-trust": ("法人連續買賣超", "投信"),
-    "streak-foreign": ("法人連續買賣超", "外資"),
-    "streak-total": ("法人連續買賣超", "三大法人合計"),
-    "inst-today": ("三大法人買賣超", "當日"),
+    "inst-today": ("三大法人買賣超 {d}", ""),
+    "streak-foreign": ("外資個股買賣超排名 {d}", ""),
+    "streak-trust": ("投信個股買賣超排名 {d}", ""),
+    "credit-ratio": ("融資維持率 {d}", ""),
+    "credit-rank": ("融資增減排行 {d}", ""),
+    "fut-oi": ("台指期三大法人未平倉 {d}", ""),
+    "retail-ratio": ("台指散戶多空比（大台、小台、微台） {d}", ""),
 }
 # 版型配色：直接取自 site/index.html 的 CSS 變數（淺色 :root[data-theme=light]、深色 :root）
 FRAME = {
@@ -379,6 +422,8 @@ def resolve_target(pg, t: dict, use_attr: str):
 
 
 def go_target(pg, base: str, t: dict) -> None:
+    if t.get("kind") == "close":      # 盤後各頁共用同一個單頁應用：先清空再進，免得上一張塞的樣式與頁內狀態帶過來
+        pg.goto("about:blank")
     pg.goto(f"{base}#{t['route']}", wait_until="networkidle")
     pg.wait_for_timeout(2500)
 
@@ -599,12 +644,17 @@ def flow_notes(res: dict) -> list:
     return out
 
 
-def shoot_piece(pg, card_el, pc: dict, raw_dir: Path, mode: str, dsf: float) -> dict:
+def _shoot_one(pg, card_el, pc: dict, raw_dir: Path, mode: str, dsf: float) -> dict:
     """截一片。mode＝'d'（桌機）或 'm'（手機）。有 sel 就只截那個元素；沒有 sel：桌機整張卡、手機依 start/end 切（連買賣、熱力圖）。"""
     pg.evaluate(UNHIDE_JS)
     tgt = pg.query_selector(pc["sel"]) if pc.get("sel") else card_el
     if tgt is None:
         raise RuntimeError(f"找不到 {pc.get('sel')}")
+    pg.evaluate("() => { const o = document.getElementById('snapcss'); if (o) o.remove(); }")
+    if pc.get("css"):     # 截圖用：只在這個瀏覽器分頁塞樣式藏控制列、調欄位，不改 site/
+        pg.evaluate("(c) => { const e = document.createElement('style'); e.id = 'snapcss'; e.textContent = c; document.head.appendChild(e); window.dispatchEvent(new Event('resize'));"
+                    " if (window.echarts) document.querySelectorAll('[_echarts_instance_]').forEach(x => { const i = echarts.getInstanceByDom(x); if (i) i.resize(); }); }", pc["css"])
+        pg.wait_for_timeout(900)
     if pc.get("pre"):
         pg.evaluate(pc["pre"], tgt)
         pg.wait_for_timeout(900)
@@ -639,6 +689,32 @@ def shoot_piece(pg, card_el, pc: dict, raw_dir: Path, mode: str, dsf: float) -> 
     return {"jishi": jishi, "name": pc["name"], "raw": str(path), "dsf": dsf, "min_css_font": minpx, "title": pc.get("title", ""), "text": pc.get("text")}
 
 
+def shoot_piece(pg, card_el, pc: dict, raw_dir: Path, mode: str, dsf: float) -> dict:
+    """有 variants（例：大台／小台／微台）就每個變體各截一張再由上到下疊成一張。"""
+    if not pc.get("variants"):
+        return _shoot_one(pg, card_el, pc, raw_dir, mode, dsf)
+    from PIL import Image
+    recs, reads = [], []
+    for i, js in enumerate(pc["variants"]):
+        pg.evaluate(js)
+        sub = dict(pc, name=f"{pc['name']}_v{i}", variants=None)
+        recs.append(_shoot_one(pg, card_el, sub, raw_dir, mode, dsf))
+        if pc.get("read"):
+            reads.append(pg.evaluate(pc["read"]))
+    ims = [Image.open(r["raw"]).convert("RGB") for r in recs]
+    W = max(i.width for i in ims)
+    gap = int(10 * dsf)
+    sheet = Image.new("RGB", (W, sum(i.height for i in ims) + gap * (len(ims) - 1)), (255, 255, 255))
+    y = 0
+    for im in ims:
+        sheet.paste(im, (0, y))
+        y += im.height + gap
+    path = raw_dir / f"{mode}_{pc['name']}.png"
+    sheet.save(path)
+    return {"jishi": [x for r in recs for x in r["jishi"]], "name": pc["name"], "raw": str(path), "dsf": dsf,
+            "min_css_font": min(r["min_css_font"] for r in recs), "title": pc.get("title", ""), "text": None, "reads": reads}
+
+
 def snap_targets(args, base: str, out: Path, today_ymd: str) -> tuple[list[dict], dict]:
     """每個目標：桌機寬截片段（Threads 用）＋手機版面截片段（IG 限動用）。"""
     from playwright.sync_api import sync_playwright
@@ -656,12 +732,12 @@ def snap_targets(args, base: str, out: Path, today_ymd: str) -> tuple[list[dict]
         if el is None:
             info["why"] = "找不到目標元素（頁面上沒有）→ 跳過"
             return None
-        if t.get("streak_who"):
-            pg.evaluate("""(w) => { const v = document.querySelector('#streakView button[data-v=rank]'); if (v) v.click();
-                                   const b = document.querySelector('#streakWho button[data-w=' + w + ']'); if (b) b.click(); }""",
-                        t["streak_who"])
-            pg.wait_for_timeout(1500)
-            info.setdefault("streak", read_streak(pg))
+        if t.get("nav"):
+            pg.evaluate(t["nav"], t.get("nav_arg"))
+            pg.wait_for_timeout(1200)
+        if args.kind == "close" and t.get("stale") and not args.force and pg.evaluate("(q) => [...document.querySelectorAll(q)].some(e => e.offsetParent !== null)", t["stale"]):
+            info["why"] = "頁面標示「資料未更新」（資料日不是最近交易日）→ 不發"
+            return None
         if args.kind == "intraday" and not (args.skip_live == "all" or t["name"] in args.skip_live.split(",")):
             if not click_live(pg, t, el):
                 info["why"] = "沒有即時鈕（這張還不能即時）→ 不發"
@@ -729,6 +805,11 @@ def snap_targets(args, base: str, out: Path, today_ymd: str) -> tuple[list[dict]
                         info["pieces_d"].append(shoot_piece(pg, el, pc, raw_dir, "d", args.scale))
                         log("桌機截到", pc["name"])
                     pg.evaluate(UNHIDE_JS)
+                    if t.get("read"):
+                        info["read"] = pg.evaluate(t["read"])
+                    for pc_ in info["pieces_d"]:
+                        if pc_.get("reads"):
+                            info["read"] = pc_["reads"]
                     if t["name"] == "market-breadth":
                         info["breadth"] = read_breadth(pg)
                     if any(pc.get("text") == "quad" for pc in t.get("d", [])):
@@ -782,19 +863,21 @@ def snap_targets(args, base: str, out: Path, today_ymd: str) -> tuple[list[dict]
                     info["story_why"] = f"限動熱力圖例外：{str(exc)[:100]}"
                 continue
             try:
-                if t["name"] == "sankey":   # 限動版分流樹：換成窄桌機視窗重畫（重畫、非拉伸），樹本身變寬
-                    sargs = argparse.Namespace(**{**vars(args), "width": SANKEY_STORY_VW, "height": SANKEY_STORY_VH, "scale": SANKEY_STORY_DSF})
-                    sctx, spg = open_ctx(browser, base, sargs, today_ymd, sniff, False, SANKEY_STORY_DSF)
-                    sctx.add_init_script(f"window.TW_SNAP_SLOT_MAX={SANKEY_STORY_SLOT_MAX};window.TW_SNAP_COLS={SANKEY_STORY_COLS};")
+                if t["name"] == "sankey" or t.get("story_vw"):   # 限動版分流樹／法人表：換窄桌機視窗重畫：換成窄桌機視窗重畫（重畫、非拉伸），樹本身變寬
+                    s_vw, s_dsf = t.get("story_vw", SANKEY_STORY_VW), t.get("story_dsf", SANKEY_STORY_DSF)
+                    sargs = argparse.Namespace(**{**vars(args), "width": s_vw, "height": t.get("story_vh", SANKEY_STORY_VH), "scale": s_dsf})
+                    sctx, spg = open_ctx(browser, base, sargs, today_ymd, sniff, False, s_dsf)
+                    if t["name"] == "sankey":
+                        sctx.add_init_script(f"window.TW_SNAP_SLOT_MAX={SANKEY_STORY_SLOT_MAX};window.TW_SNAP_COLS={SANKEY_STORY_COLS};")
                     el = prepare(spg, t, {})
                     if el is None:
-                        info["story_why"] = "限動分流樹沒截成"
+                        info["story_why"] = "限動版沒截成"
                         sctx.close()
                         continue
                     for pc in t.get("m", []):
-                        rec = shoot_piece(spg, el, pc, raw_dir, "m", SANKEY_STORY_DSF)
+                        rec = shoot_piece(spg, el, pc, raw_dir, "m", s_dsf)
                         info["pieces_m"].append(rec)
-                        log("限動版截到", pc["name"], "（窄桌機視窗", SANKEY_STORY_VW, "）")
+                        log("限動版截到", pc["name"], "（窄桌機視窗", s_vw, "）")
                     sctx.close()
                     continue
                 el = prepare(pg, t, {})
@@ -885,7 +968,7 @@ body{width:1080px;background:var(--bg);color:var(--ink);font-family:'Noto Sans C
     logo = _logo_uri()
     body = f"""<div class=brand>{'<img data-box=logo src="' + logo + '">' if logo else ''}<div class=nm data-box=brand>哩股哩股</div></div>
 <div class=card>
-<div class=hd><div class=t data-box=title>{_esc(title)}</div><div class=s data-box=sub>{_esc(sub)}</div></div>
+<div class=hd><div class=t data-box=title>{_esc(title)}</div>{("<div class=s data-box=sub>" + _esc(sub) + "</div>") if sub else ""}</div>
 {_blocks(top, "top")}<div class=imgbox><img class=shot data-box=shot src="{img}"></div>{_blocks(bot, "bot")}</div>
 <div class=src data-box=url>{SITE_HOST}</div>"""
     return f"<!doctype html><html><head><meta charset=utf-8><style>{css}</style></head><body>{body}</body></html>"
@@ -914,6 +997,7 @@ def compose(browser, mode: str, rec: dict, top: list, bot: list, out_png: Path, 
     with Image.open(rec["raw"]) as im:
         iw, ih = im.size
     title, sub = PIECE_META.get(rec["name"], (rec.get("title") or rec["name"], ""))
+    title = title.replace("{d}", DATE_LABEL)
     html = layout_html(mode, title, sub, b64(rec["raw"]), top, bot, theme)
     pg = browser.new_page(viewport={"width": 1080, "height": 1920 if mode == "story" else 1200}, device_scale_factor=1)
     pg.set_content(html, wait_until="load")
@@ -942,7 +1026,7 @@ def img_size(path: str) -> tuple[int, int]:
 # ---------------------------------------------------------------------------- 貼文文字
 # 文案（Threads 單則上限 500 字，含網址）。深連結用網站實際路由；hash 路由的 query 放在 # 前面
 THREADS_MAX = 480          # Threads 單則上限 500 字（網址以實際字元數計），留 20 字餘裕
-ROUTE_INST = "market/streak"      # 法人頁路由；日後改 market/inst 只改這個常數
+ROUTE_INST = "market/inst"      # 法人頁路由；日後改 market/inst 只改這個常數
 HASHTAGS = {"intraday": "#台股 #資金流向 #熱力圖 #族群輪動", "close": "#台股 #法人買賣超 #投信 #外資"}
 DISCLAIMER = "資料：證交所／櫃買公開資料整理，僅供參考，不構成投資建議"
 
@@ -991,14 +1075,27 @@ def caption_lines(kind: str, stamp: str, shots: list[dict], data_date: str, ymd:
         if s and s.get("breadth"):
             L.append(f"漲跌家數：上漲 {s['breadth']['up']} 家、下跌 {s['breadth']['down']} 家" + lk("market/updown", idx)); idx += 1
     else:
-        L.append(f"台股法人買賣超｜{data_date[5:].replace('-', '/')}")
-        parts = []
-        for who in ("trust", "foreign"):
-            buy = (ok.get(f"streak-{who}") or {}).get("streak", {}).get("buy") or []
-            if buy:
-                parts.append(f"{WHO_LABEL[who]}連買 " + _join(buy, n))
-        if parts:
-            L.append("；".join(parts) + f" → {deep_link(ROUTE_INST, kind, ymd)}")
+        L.append(f"台股盤後籌碼｜{data_date[5:].replace('-', '/')}")
+        yi = lambda x: x.replace("−", "-")
+        r = (ok.get("inst-today") or {}).get("read") or []
+        if r:
+            nm_ = {"外資": "外資", "投信": "投信", "自營商": "自營", "三大法人合計": "合計"}
+            L.append("三大法人當日買賣超：" + "、".join(f"{nm_.get(a, a)} {yi(b)}" for a, b in r) + f" → {deep_link('market/inst', kind, ymd)}")
+        for key, lab in (("streak-foreign", "外資"), ("streak-trust", "投信")):
+            r = (ok.get(key) or {}).get("read") or {}
+            if r.get("buy") and r.get("sell"):
+                L.append(f"{lab}買超 {_join(r['buy'], n)}；賣超 {_join(r['sell'], n)}")
+        r = (ok.get("credit-ratio") or {}).get("read") or {}
+        if r.get("ratio"):
+            L.append(f"融資維持率 {r['ratio']}%" + (f"（較前日 {yi(r['chg'])}pp）" if r.get("chg") else "") + f" → {deep_link('market/credit', kind, ymd)}")
+        r = (ok.get("fut-oi") or {}).get("read")
+        if r:
+            import re as _re
+            nets = "、".join(f"{a} {yi(b)}" for a, b in _re.findall(r"(外資|投信|自營商?)\s*([+\-−]?[\d,]{3,})", r))
+            L.append("台指期三大法人淨未平倉：" + nets + f" → {deep_link('market/fut', kind, ymd)}")
+        r = (ok.get("retail-ratio") or {}).get("read") or []
+        if r:
+            L.append("散戶多空比：" + "、".join(f"{x.get('prod') or '?'} {yi(x.get('pct') or '—')}" for x in r))
     L.append(DISCLAIMER)
     L.append(HASHTAGS[kind])
     return L
@@ -1012,6 +1109,8 @@ def build_text(kind: str, stamp: str, shots: list[dict], data_date: str, ymd: st
         txt = "\n".join(caption_lines(kind, stamp, shots, data_date, ymd, n, links))
         if len(txt) <= THREADS_MAX:
             break
+    if len(txt) > THREADS_MAX and kind == "close":      # 盤後連結多：先拿掉 utm_campaign
+        txt = txt.replace(f"&utm_campaign=close_{ymd[4:8]}", "")
     if len(txt) > THREADS_MAX:
         log(f"⚠ 文案 {len(txt)} 字仍超過 {THREADS_MAX}")
     return txt
@@ -1019,6 +1118,7 @@ def build_text(kind: str, stamp: str, shots: list[dict], data_date: str, ymd: st
 
 # ---------------------------------------------------------------------------- 主程式
 def main() -> int:
+    global DATE_LABEL
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--kind", choices=["intraday", "close"], required=True)
     ap.add_argument("--out", required=True, help="輸出資料夾（manifest.json 與圖片都放這裡）")
@@ -1061,6 +1161,7 @@ def main() -> int:
     try:
         meta = fetch_meta(base)
         data_date = meta.get("inst_date") or meta.get("data_date") or today
+        DATE_LABEL = data_date[5:].replace("-", "/")
         if args.kind == "close" and not args.force:
             if data_date != today:
                 log(f"盤後法人資料日 {data_date} ≠ 今天 {today}（非交易日或法人資料還沒更新）→ 不發")
