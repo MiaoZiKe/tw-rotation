@@ -456,8 +456,8 @@ def fit2(o, cam, f, W0, H0, minw, allow_out, ytop, xlim):
     x, y, w, h = cam
     cx, cy = x + w / 2, y + h / 2
     if f is not None:
-        w = max(w, f[2] / (1 - 2 * DRIFT) + 8)
-        h = max(h, f[3] / (1 - 2 * DRIFT) + 8)
+        w = max(w, f[2] / (1 - 2 * DRIFT) + 3)
+        h = max(h, f[3] / (1 - 2 * DRIFT) + 3)
     w = max(w, minw)
     if w / max(h, 1) < o.asp:
         w = h * o.asp
