@@ -119,9 +119,14 @@
       ? `<button type="button" data-k="${k}" class="${+k === +st.days ? 'on' : ''}">${l}</button>`
       : `<button type="button" data-k="${k}" disabled aria-disabled="true" title="資料自 ${md(all[0].d).replace('-', '/')} 起（${all.length} 個交易日），不足${l}">${l}</button>`).join('');
     const dlt = (a, b) => (a != null && b != null) ? a - b : null;
-    const dr = dlt(last.ratio, prev.ratio), dY = dlt(last.margin_yi, prev.margin_yi);
+    // 維持率要上市個股融資到齊才算得出來（常比整體市場融資晚一天）：最新一天沒有值時，大數字改顯示最近一個有值的日子並標日期，不顯示「—」
+    const rIdx = (() => { for (let i = all.length - 1; i >= 0; i--) if (all[i].ratio != null) return i; return -1; })();
+    const rLast = rIdx >= 0 ? all[rIdx] : last;
+    let rPrev = {}; for (let i = rIdx - 1; i >= 0; i--) if (all[i].ratio != null) { rPrev = all[i]; break; }
+    const rOld = rIdx >= 0 && rIdx < all.length - 1;
+    const dr = dlt(rLast.ratio, rPrev.ratio), dY = dlt(last.margin_yi, prev.margin_yi);
     const dayStale = !!(META && META.data_date && last.d && last.d < META.data_date);
-    const hero = `<div class="mf-top"><div class="mf-big"><span class="mf-l">上市融資維持率（估算）</span><b class="mf-bn ${cls(dr)}">${last.ratio == null ? '—' : num(last.ratio, 2) + '%'}${last.partial ? ' <small class="mf-part" title="當日部分個股資料尚未到齊，以前一日餘額補算">部分估算</small>' : ''}</b>
+    const hero = `<div class="mf-top"><div class="mf-big"><span class="mf-l">上市融資維持率（估算）${rOld ? ` <small class="mf-rd" title="${md(last.d).replace('-', '/')} 的上市個股融資還沒到齊，維持率先顯示最近一個算得出來的日子">${md(rLast.d).replace('-', '/')}</small>` : ''}</span><b class="mf-bn ${cls(dr)}">${rLast.ratio == null ? '—' : num(rLast.ratio, 2) + '%'}${rLast.partial ? ' <small class="mf-part" title="當日部分個股資料尚未到齊，以前一日餘額補算">部分估算</small>' : ''}</b>
         <span class="${cls(dr)}">較前日 ${dr == null ? '—' : sg(dr, 2) + ' pp'}</span></div>`;
     const tiles = `<div class="mf-tiles">` + tile('融資餘額（億元）', num(last.margin_yi, 1), '', '')
       + tile('較前日（億元）', sg(dY, 1), '', cls(dY))

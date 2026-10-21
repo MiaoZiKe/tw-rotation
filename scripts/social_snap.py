@@ -83,7 +83,8 @@ STREAK_NAV = """(w) => { const c = (s) => { const b = document.querySelector(s);
     setTimeout(() => { c('#streakWho button[data-w=' + w + ']'); setTimeout(r, 900); }, 900); }, 900)); }"""
 def STREAK_PIECE(name, story=False):
     return dict(name=name, title="盤後法人",
-                css=STREAK_CSS + (".strank{display:grid!important;grid-template-columns:1fr!important;gap:14px!important}.itrow{padding-top:9px!important;padding-bottom:9px!important}" + STORY_Z(1.0) if story else ""))
+                css=STREAK_CSS + (".strank{display:grid!important;grid-template-columns:1fr!important;gap:14px!important}.itrow{padding-top:9px!important;padding-bottom:9px!important}" + STORY_Z(1.0) if story else ""),
+                **({"fill_rows": ".itrow"} if story else {}))
 
 
 # m：手機版（IG 限動）要截的片段；每片 dict(name, hide=[CSS], hide_text=[正規式], start, end, pre=JS)
@@ -99,16 +100,41 @@ BREADTH_TALL = ("(el) => { const h = 820; ['#chgDistBox', '#chgDist'].forEach(i 
 HEAT_TALL = ("(el) => { const h = 660; const ch = document.querySelector('#indTree'); [document.querySelector('#indTreeWrap'), ch].forEach(e => e && e.style.setProperty('height', h + 'px', 'important'));"
              " const c = window.echarts && ch && echarts.getInstanceByDom(ch); if (c) c.resize(); }")
 FILL_JS = """([el, a]) => {   // 把卡片拉到 a.want（css px）高：差額加在 a.charts 的圖表容器上，echarts／lightweight-charts 都重畫（不是拉伸點陣圖）
-  const delta = a.want - el.getBoundingClientRect().height;
-  a.charts.forEach(sel => { const e = el.querySelector(sel) || document.querySelector(sel); if (!e) return;
-    const h = Math.max(120, Math.round(e.getBoundingClientRect().height + delta));
-    e.style.setProperty('height', h + 'px', 'important'); e.style.setProperty('min-height', h + 'px', 'important'); });
+  // a.split：多張獨立圖表，差額平分給每一張（不設＝每個選擇器都加滿，給「外框＋內層畫布」這種巢狀的用）
+  // 卡片有 CSS zoom 或巢狀容器時，加 1px 不等於卡片長 1px → 量一次實際增量再修正（最多 3 輪），免得超高變成左右留白
+  const found = a.charts.map(sel => el.querySelector(sel) || document.querySelector(sel)).filter(Boolean);
+  const k = a.split ? Math.max(1, found.length) : 1;
+  let gain = 1;
+  for (let it = 0; it < 3; it++) {
+    const h0 = el.getBoundingClientRect().height, need = a.want - h0;
+    if (Math.abs(need) < 2) break;
+    const step = need / gain / k;
+    found.forEach(e => { const h = Math.max(120, Math.round((e.offsetHeight || e.getBoundingClientRect().height) + step));
+      e.style.setProperty('height', h + 'px', 'important'); e.style.setProperty('min-height', h + 'px', 'important'); });
+    const h1 = el.getBoundingClientRect().height;
+    if (Math.abs(h1 - h0) > 1) gain = (h1 - h0) / (step * k); else break;
+  }
   if (window.echarts) document.querySelectorAll('[_echarts_instance_]').forEach(e => { const c = echarts.getInstanceByDom(e); if (c) c.resize(); });
   window.dispatchEvent(new Event('resize'));
   return el.getBoundingClientRect().height;
 }"""
 STORY_HEAT_VW, STORY_HEAT_DSF = 700, 2.4     # 熱力圖限動版：窄桌機視窗（>640 仍是桌機版面），方塊變大、字放大後更清楚
-STORY_RATIO = 1.6      # 限動截圖目標高寬比（1005×1608，剛好填滿卡片）
+STORY_RATIO = 1.76     # 限動截圖目標高寬比＝限動版型截圖區 1008×1776（2026-10-22 品牌列兼標題、拿掉右下網址後量的；舊值 1.6 會上下各空約 80px）
+FILL_ROWS_JS = """([el, a]) => {   // 沒有圖表可拉高的片段（排行清單）：把差額平均加在每一列的上下內距，列距拉開到 a.want 高（不是拉伸點陣圖）
+  for (let k = 0; k < 3; k++) {
+    const rows = [...el.querySelectorAll(a.rows)].filter(e => e.offsetParent !== null);
+    const delta = a.want - el.getBoundingClientRect().height;
+    if (Math.abs(delta) < 2 || !rows.length) break;
+    const z = (el.getBoundingClientRect().height / (el.offsetHeight || 1)) || 1;     // 卡片有 CSS zoom：內距是縮放前的 px
+    // 兩欄並排時同一橫列只算一次
+    const n = new Set(rows.map(e => Math.round(e.getBoundingClientRect().top))).size || rows.length;
+    const add = delta / z / n / 2;
+    rows.forEach(e => { const cs = getComputedStyle(e);
+      e.style.setProperty('padding-top', Math.max(0, parseFloat(cs.paddingTop) + add) + 'px', 'important');
+      e.style.setProperty('padding-bottom', Math.max(0, parseFloat(cs.paddingBottom) + add) + 'px', 'important'); });
+  }
+  return el.getBoundingClientRect().height;
+}"""
 ROT_UNCHECK = """async (el) => {   // 把「顯示軌跡／顯示腳印／水波／掃描」全部取消勾選，只留點與標籤
   const wait = ms => new Promise(r => setTimeout(r, ms));
   const find = () => [...document.querySelectorAll('input[type=checkbox]')].filter(i => /顯示軌跡|顯示腳印|水波|掃描/.test(((i.closest('label') || i.parentElement || {}).textContent) || ''));
@@ -203,7 +229,7 @@ READ_RANK = ("() => { const g = (s) => [...document.querySelectorAll('.srcol.' +
              " return { buy: g('buy'), sell: g('sell') }; }")
 READ_CREDIT = "() => { const t = document.querySelector('#mf-credit').innerText.replace(/\\s+/g, ' '); const a = /(\\d+\\.\\d+)\\s*%/.exec(t), b = /較前日\\s*([-+−]?\\s*[\\d.]+)\\s*pp/.exec(t); return { ratio: a && a[1], chg: b && b[1].replace(/\\s/g, '') }; }"
 READ_RK = ("() => { const c = [...document.querySelectorAll('#mfRankBody > *')].map(e => [...e.querySelectorAll('.mf-rk, .mf-rkrow, li, tr')].slice(0, 3).map(r => r.innerText.replace(/\\s+/g, ' ').trim()));"
-           " const nm = (k) => [...document.querySelectorAll('#mfRankBody .mf-rank:nth-child(' + k + ') .mf-rk .mf-nm')].map(e => e.innerText.trim().replace(/^\\S+\\s+/, '')).filter(Boolean);"
+           " const nm = (k) => [...document.querySelectorAll('#mfRankBody .mf-rank:nth-child(' + k + ') a.mf-rk')].map(e => (e.getAttribute('href') || '').split('/').pop()).filter(Boolean);"
            " return { cols: c, up: nm(1), down: nm(2), raw: (document.querySelector('#mfRankBody') || {}).innerText || '' }; }")
 READ_FUT = "() => ((document.querySelector('#fpBig3') || {}).innerText || '').replace(/\\s+/g, ' ').trim()"
 READ_RET = "() => window.__ret || { pct: '', prod: '' }"
@@ -251,10 +277,10 @@ TARGETS = [
     # 拆開後各自把關：這篇只在 market_fut.json 的融資資料日＝網站最新交易日、維持率算得出來、個股排行也是同一天時才發（credit_ready）。
     dict(name="credit-ratio", snap="margin", kind="credit", label="融資維持率", route="market/credit", card="#mf-credit", attr_only=True, stale=".mf-stale", read=READ_CREDIT,
          story_vw=720, story_dsf=2.0, d=[dict(name="credit-ratio", sel="#mf-credit", css=CREDIT_CSS)],
-         m=[dict(name="credit-ratio", sel="#mf-credit", css=CREDIT_CSS + STORY_Z(1.2), fill=dict(frac=1.0, charts=["#mfChart", "#mfChart2"]))]),
+         m=[dict(name="credit-ratio", sel="#mf-credit", css=CREDIT_CSS + STORY_Z(1.2), fill=dict(frac=1.0, charts=["#mfChart", "#mfChart2"], split=True))]),
     dict(name="credit-rank", snap="margin", kind="credit", label="融資增減排行", route="market/credit", card="#mf-credit", attr_only=True, stale=".mf-stale", read=READ_RK,
          nav="() => { const b = document.querySelector('#mfTab button[data-k=rank]'); if (b) b.click(); return new Promise(r => setTimeout(r, 1200)); }",
-         story_vw=720, story_dsf=2.0, d=[dict(name="credit-rank", sel="#mf-credit", css=RANK_CSS)], m=[dict(name="credit-rank", sel="#mf-credit", css=RANK_CSS + ".mf-rkgrid{grid-template-columns:minmax(0,1fr)!important;gap:26px!important}" + STORY_Z(1.3))]),
+         story_vw=720, story_dsf=2.0, d=[dict(name="credit-rank", sel="#mf-credit", css=RANK_CSS)], m=[dict(name="credit-rank", sel="#mf-credit", css=RANK_CSS + ".mf-rkgrid{grid-template-columns:minmax(0,1fr)!important;gap:26px!important}" + STORY_Z(1.3), fill_rows=".mf-rk")]),
     dict(name="fut-oi", snap="fut-oi", kind="close", label="台指期三大法人未平倉", route="market/fut", card="[data-snap=fut-oi]", attr_only=True, stale=".fp-stale:not([hidden])", read=READ_FUT,
          story_vw=720, story_dsf=2.0, d=[dict(name="fut-oi", sel=".fp-block", css=FUT_D, pre=FUT_BARS(150))],
          m=[dict(name="fut-oi", sel=".fp-block", css=FUT_CSS + ".snapbar{order:2}.fp-split{display:block!important}", pre=FUT_BARS(260))]),
@@ -800,7 +826,10 @@ def data_dates(serve: Path) -> dict:
         out["streak-foreign"] = out["streak-trust"] = md(j["date"])
     j = rd("market_fut.json")
     if j and (j.get("margin") or {}).get("rows"):
-        out["credit-ratio"] = out["credit-rank"] = md(j["margin"]["rows"][-1].get("d"))
+        # 維持率卡標的是「維持率有值的最後一天」（個股融資沒到齊的那天前端會退回前一個有值的日子）；排行卡標排行自己的日子
+        rs = j["margin"]["rows"]
+        out["credit-ratio"] = md(next((r.get("d") for r in reversed(rs) if r.get("ratio") is not None), rs[-1].get("d")))
+        out["credit-rank"] = md((j["margin"].get("rank") or {}).get("d") or rs[-1].get("d"))
     j = rd("fut_oi.json")
     if j and j.get("dates"):
         out["fut-oi"] = md(max(j["dates"]))
@@ -837,8 +866,12 @@ def _shoot_one(pg, card_el, pc: dict, raw_dir: Path, mode: str, dsf: float) -> d
     pg.evaluate("() => { if (window.echarts) document.querySelectorAll('[_echarts_instance_]').forEach(e => { const c = echarts.getInstanceByDom(e); if (c) c.dispatchAction({ type: 'hideTip' }); }); }")
     if mode == "m" and pc.get("fill"):
         bb = tgt.bounding_box()
-        pg.evaluate(FILL_JS, [tgt, {"want": bb["width"] * STORY_RATIO * pc["fill"]["frac"], "charts": pc["fill"]["charts"]}])
+        pg.evaluate(FILL_JS, [tgt, {"want": bb["width"] * STORY_RATIO * pc["fill"]["frac"], "charts": pc["fill"]["charts"], "split": pc["fill"].get("split", False)}])
         pg.wait_for_timeout(1200)
+    if mode == "m" and pc.get("fill_rows"):
+        bb = tgt.bounding_box()
+        pg.evaluate(FILL_ROWS_JS, [tgt, {"want": bb["width"] * STORY_RATIO, "rows": pc["fill_rows"]}])
+        pg.wait_for_timeout(600)
     if mode == "m" and pc.get("pre_m"):
         pg.evaluate(pc["pre_m"], tgt)
         pg.wait_for_timeout(900)
@@ -1265,8 +1298,9 @@ def caption_lines(kind: str, stamp: str, shots: list[dict], data_date: str, ymd:
         if r.get("ratio"):
             L.append(f"上市融資維持率（估算）{r['ratio']}%" + (f"（較前日 {yi(r['chg'])}pp）" if r.get("chg") else "") + f" → {deep_link('market/credit', kind, ymd)}")
         r = (ok.get("credit-rank") or {}).get("read") or {}
-        if r.get("up") and r.get("down"):
-            L.append(f"融資增加 {_join(r['up'], n)}；融資減少 {_join(r['down'], n)}")
+        if r.get("up") and r.get("down"):      # 讀到的是代號（列上的名稱已被 LOGO 排版改寫），換成簡稱
+            nm = lambda xs: [NAME_MAP.get(str(x), x) for x in xs]
+            L.append(f"融資增加 {_join(nm(r['up']), n)}；融資減少 {_join(nm(r['down']), n)}")
     else:
         L.append(f"台股盤後籌碼｜{data_date[5:].replace('-', '/')}")
         yi = lambda x: x.replace("−", "-")
