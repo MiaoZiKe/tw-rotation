@@ -81,3 +81,23 @@ def test_期間累計與逐檔身分_供個股元件用():
     assert p["all_by"]["foreign"] == [["2330", 2000, 4.0]]                    # 當日：2000 張 × 200 = 4 億
     assert p["win"]["5"]["foreign"] == [["2330", 3000, 5.0]]                  # 兩天：1 億（10/15）+ 4 億（10/16）
     assert p["win"]["5"]["total"][0][1] == 3000
+
+
+def test_估算涵蓋門檻_分母是當天上市有收盤價的檔數_六成就補():
+    """2026-10-21：最新日法人表只到 62% 也要補（舊規則用近 250 天最大值當分母，會退回舊日）；40% 不補。"""
+    codes = [str(1000 + i) for i in range(10)]
+    days = ["2026-10-19", "2026-10-20"]
+    ohlc = pd.DataFrame({"symbol": "TSE", "date": days, "close": [100.0, 101.0]})
+    price = pd.DataFrame([{"date": d, "code": c, "close": 10.0, "market": "TWSE"} for d in days for c in codes])
+    rows = [{"date": days[0], "code": c, "foreign_total": 1_000_000, "trust": 0, "dealer": 0} for c in codes[:6]]      # 60%
+    rows += [{"date": days[1], "code": c, "foreign_total": 1_000_000, "trust": 0, "dealer": 0} for c in codes[:4]]     # 40%
+    s = inst_market.series(pd.DataFrame(), pd.DataFrame(rows), price, ohlc)
+    assert [r["d"] for r in s["rows"]] == ["2026-10-19"] and s["rows"][0]["est"] is True
+
+
+def test_官方值回補排在個股步驟之前_計畫沒跑完也會補(monkeypatch):
+    """根因：backfill_inst_market 原本只在計畫跑完（stopped_at is None）才呼叫，計畫每輪燒光額度，5 年歷史從沒補。"""
+    import inspect
+    from pipeline import run_backfill
+    src = inspect.getsource(run_backfill.run_plan)
+    assert src.index("backfill_inst_market(") < src.index("for n, step in enumerate(steps, 1)")
