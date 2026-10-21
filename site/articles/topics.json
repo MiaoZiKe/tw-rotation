@@ -1,6 +1,114 @@
 {
- "updated": "2026-10-20",
+ "updated": "2026-10-21",
  "topics": [
+  {
+   "id": "n_rotate_out_ai",
+   "cat": "news",
+   "title": "資金離開 AI 股後，輪去了哪裡",
+   "why": "優分析 10/18 報導外資上週在集中市場大幅賣超、資金轉向非 AI 與中小型題材；金額未互證，寫稿時以本站族群資金流向實際數字為準",
+   "score": 4,
+   "format_hint": "貼文",
+   "added": "2026-10-21",
+   "site_links": [
+    "#flow"
+   ]
+  },
+  {
+   "id": "n_memory_shortage_dip",
+   "cat": "news",
+   "title": "記憶體缺貨還在，股價為何先修正",
+   "why": "三大原廠稱 2026 年 HBM 產能已被預訂，但報導指市場情緒因資本支出擴張與現貨漲勢放緩轉保守；漲幅數字僅單一來源，寫稿前須查 TrendForce 原文",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-10-21",
+   "site_links": [
+    "#heatmap/theme/hbm_memory"
+   ]
+  },
+  {
+   "id": "n_ai_capex_credit",
+   "cat": "news",
+   "title": "AI 蓋資料中心靠借錢，市場擔心什麼",
+   "why": "報導稱美國四大雲端業者資本支出預估上調，金融時報指投資人擔心支出跑在獲利前面；金額兩邊對不上，寫稿時不寫數字，避開 OpenAI 單一事件只講融資結構",
+   "score": 3,
+   "format_hint": "兩者",
+   "added": "2026-10-21",
+   "site_links": [
+    "#industry/ai_server"
+   ]
+  },
+  {
+   "id": "k_capacitor",
+   "cat": "know",
+   "title": "電容器是什麼？鋁電解電容縱剖開看",
+   "why": "電源與主機板都有電容，但少有人講清楚為何要用鋁電解；3D 圖用 capacitor「電容器：鋁電解縱剖開」",
+   "score": 4,
+   "format_hint": "文章＋3D 圖",
+   "added": "2026-10-21",
+   "site_links": [
+    "#industry/group/capacitor"
+   ]
+  },
+  {
+   "id": "k_inductor",
+   "cat": "know",
+   "title": "電感是什麼？電感、電阻、石英各切一半",
+   "why": "AI 伺服器電源與主機板大量使用電感，卻常與電阻、石英混為一談；3D 圖用 power_inductor「三顆各切一半」",
+   "score": 4,
+   "format_hint": "文章＋3D 圖",
+   "added": "2026-10-21",
+   "site_links": [
+    "#industry/group/power_inductor"
+   ]
+  },
+  {
+   "id": "k_machine_tool",
+   "cat": "know",
+   "title": "CNC 工具機是什麼？一台立式加工機拆開看",
+   "why": "工具機是台灣傳統強項，但多數人不知道主軸、刀庫、導軌怎麼配合；3D 圖用 machine_tool「立式綜合加工機」",
+   "score": 4,
+   "format_hint": "文章＋3D 圖",
+   "added": "2026-10-21",
+   "site_links": [
+    "#industry/group/machine_tool"
+   ]
+  },
+  {
+   "id": "i_wafer_chain",
+   "cat": "intro",
+   "title": "矽晶圓材料鏈：從長晶、切片到晶圓廠",
+   "why": "晶圓廠擴產先動到上游材料，讀者常分不清長晶、切磨拋與代工的分工；站內有矽晶圓族群頁與 3D 圖",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-10-21",
+   "site_links": [
+    "#industry/group/silicon_wafer"
+   ]
+  },
+  {
+   "id": "i_wide_bandgap_chain",
+   "cat": "intro",
+   "title": "第三代半導體鏈：基板、元件到電動車電源",
+   "why": "SiC／GaN 常與電動車、電源一起被討論，但上下游環節少有人拆開；站內有第三代半導體族群頁",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-10-21",
+   "site_links": [
+    "#industry/group/wide_bandgap"
+   ]
+  },
+  {
+   "id": "i_ic_test",
+   "cat": "intro",
+   "title": "封測產業鏈：晶圓測試、封裝到成品測試",
+   "why": "封測位在半導體鏈下游，讀者常把封裝與測試、測試介面混為一談；本站半導體產業鏈頁可對照各環節",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-10-21",
+   "site_links": [
+    "#industry/semiconductor"
+   ]
+  },
   {
    "id": "n_openai_rev",
    "cat": "news",
