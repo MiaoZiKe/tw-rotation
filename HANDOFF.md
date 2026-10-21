@@ -1,5 +1,13 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
+### 2026-10-22 凌晨 CEO：社群盤後圖修正（main 1de955be、6e6cafc0）
+- 公司 LOGO 破圖修好：social_snap 只抓 JSON 沒抓 data/logos/*.png → 改讀正式站圖檔；等圖改 addEventListener，不再蓋掉 onerror 字標退路。
+- Andy 10-22：「右下角訊息拿掉，上方LOGO 改標題 這樣讓版面擴大」→ 品牌列＝LOGO＋標題，卡內不重複標題，拿掉右下網址。
+- 融資兩張卡拆成獨立一篇 kind=credit（credit_ready 四條件把關、posted 鍵 credit-<資料日>）；news 輪也抓整體融資；信用交易頁維持率大數字退回最近有值日並標日期（marketfut.js）；限動 STORY_RATIO 1.76、排行列距撐滿。
+- 這批驗：pytest 全套 1224 passed；_uitest 桌機守門1008、大盤融資維持率1020、信用交易r3 0 問題；雲端 social-live close force dry-run 7 張逐張目視。
+- ⚠️ 未修：散戶多空比限動左右各空 ~79px；github.io meta.json 偶發 404 時退回 pages.dev 舊資料 → 該輪少發（建議 404 重試或取資料日最新的來源）。
+- 待 Andy：Meta 開發人員帳號被「異常活動」鎖、簡訊收不到（勿刪開發者帳號）；Threads 測試人員邀請已接受；之後做 Threads 權杖→IG 權杖→4 筆 Secrets。
+
 ### 2026-10-20 CEO 總結（主 session）
 - ✅ 上線：市場明細新增「三大法人（日報｜個股）」#market/inst、「信用交易」#market/credit、「期貨籌碼（台指期三大法人未平倉｜台指散戶多空比 大台/小台/微台）」#market/fut（合併 preview/market-1020，Andy：「新增功能排版 OK 先推上」）；舊 #market/streak 導向 #market/inst。
 - ✅ 熱力圖 4 張盤中即時＋族群資金排行與輪盤即時同步（只給站主／管理員）；site/snap.js 截圖目標＋TwSnapReady（docs/social_snap_targets.md）。
