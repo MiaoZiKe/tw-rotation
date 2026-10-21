@@ -170,7 +170,7 @@ TARGETS = [
          live="#mktMode button[data-m=live]",
          live_ok="() => { const n = document.querySelector('#mktLive');"
                  " return !!n && !n.hidden && !/抓取中|抓不到|失敗|逾時|連不到/.test(n.innerText); }",
-         headline=None, d=[dict(name="market-breadth", hide=[".howbtn"])], m=[dict(name="market-breadth", hide=[".howbtn", "#distFilter"], fill=dict(frac=1.0, charts=["#chgDistBox", "#chgDist"]))]),
+         headline=None, d=[dict(name="market-breadth", hide=[".howbtn", "#mktLive"], hide_exact=["~即時"])], m=[dict(name="market-breadth", hide=[".howbtn", "#distFilter", "#mktLive"], hide_exact=["~即時"], fill=dict(frac=1.0, charts=["#chgDistBox", "#chgDist"]))]),
     # 盤後（法人資料要收盤後證交所公布才有，沒有即時版，所以另一篇發，不放進盤中那篇）
     dict(name="inst-today", kind="close", label="三大法人買賣超", route="market/inst", card="[data-snap=inst-today]", attr_only=True,
          stale=".stale-tag", read=READ_INST, d=[dict(name="inst-today", sel="#instToday", css=INST_CSS)],
@@ -421,6 +421,17 @@ def resolve_target(pg, t: dict, use_attr: str):
     return el
 
 
+def diag(pg, t: dict) -> str:
+    """略過某張時把頁面狀態印出來（雲端 log 才查得到為什麼）。"""
+    try:
+        return json.dumps(pg.evaluate("""(a) => { const c = document.querySelector(a.card) || document.querySelector('[data-snap="' + a.n + '"]');
+            const lv = document.querySelector(a.live || '.livetg');
+            return { card: !!c, snapLive: c && c.getAttribute('data-snap-live'), liveBtn: lv ? [lv.className, lv.getAttribute('aria-pressed'), (lv.innerText || '').trim()] : null,
+                     text: c ? (c.innerText || '').replace(/\\s+/g, ' ').slice(0, 160) : '' }; }""", {"card": t["card"], "n": t.get("snap", t["name"]), "live": t.get("live") if t.get("live") != "auto" else None}), ensure_ascii=False)
+    except Exception as exc:  # noqa: BLE001
+        return f"diag 失敗 {exc}"
+
+
 def go_target(pg, base: str, t: dict) -> None:
     if t.get("kind") == "close":      # 盤後各頁共用同一個單頁應用：先清空再進，免得上一張塞的樣式與頁內狀態帶過來
         pg.goto("about:blank")
@@ -470,7 +481,9 @@ def click_live(pg, t: dict, el) -> bool:
         b = pg.query_selector(sel)
         if not b:
             return False
-    if (b.get_attribute("aria-pressed") or "") != "true":
+    # 站主即時預設已開：有的鈕用 aria-pressed、有的用 class「on」表示開著（熱力圖、大盤走勢）；已開就不要再按，免得被按成關
+    already = (b.get_attribute("aria-pressed") or "") == "true" or "on" in (b.get_attribute("class") or "").split()
+    if not already:
         b.click()
     pg.wait_for_timeout(1500)      # 讓「抓取中」狀態先出現，免得一開始就誤判成已套上
     return True
@@ -489,7 +502,7 @@ def live_confirmed(pg, t: dict, args) -> bool:
                     const c = document.querySelector('[data-snap="' + n + '"]');
                     if (c && c.getAttribute('data-snap-live') === '1') return true;
                     const b = c && [...c.querySelectorAll('button')].find(x => /即時/.test(x.innerText));
-                    return !!b && b.getAttribute('aria-pressed') === 'true' && !/抓不到|失敗|逾時/.test(c.innerText);
+                    return !!b && (b.getAttribute('aria-pressed') === 'true' || b.classList.contains('on')) && !/抓不到|失敗|逾時/.test(c.innerText);
                 }""", t["name"])
                 if ok:
                     return True
@@ -741,12 +754,15 @@ def snap_targets(args, base: str, out: Path, today_ymd: str) -> tuple[list[dict]
         if args.kind == "intraday" and not (args.skip_live == "all" or t["name"] in args.skip_live.split(",")):
             if not click_live(pg, t, el):
                 info["why"] = "沒有即時鈕（這張還不能即時）→ 不發"
+                log("  ✗", t["name"], info["why"], diag(pg, t))
                 return None
             if not live_confirmed(pg, t, args):
                 info["why"] = "即時沒套上（抓不到報價）→ 不發"
+                log("  ✗", t["name"], info["why"], diag(pg, t))
                 return None
-        if not wait_snap_ready(pg, t.get("snap", t["name"]), 20000):
+        if not wait_snap_ready(pg, t.get("snap", t["name"]), 80000 if args.kind == "intraday" else 20000):
             info["why"] = "TwSnapReady 逾時 → 不發"
+            log("  ✗", t["name"], info["why"], diag(pg, t))
             return None
         if args.kind == "intraday" and not (args.skip_live == "all" or t["name"] in args.skip_live.split(",")):
             st = pg.evaluate("""(n) => { const e = document.querySelector('[data-snap="' + n + '"]'); const h = e && (e.closest('[data-snap-live]') || e);
