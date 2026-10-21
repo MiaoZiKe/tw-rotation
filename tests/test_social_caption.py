@@ -22,3 +22,45 @@ def test_caption_full_four_lines_within_480():
     assert txt.splitlines()[0].startswith("台股資金地圖｜10/20 12:34")
     assert "utm_medium" not in txt and "即時" not in txt
     assert "utm_campaign=intraday_1020" in txt
+
+
+def _mf(d="2026-10-21", ratio=168.2, partial=False, rank_d=None):
+    return {"margin": {"rows": [{"d": "2026-10-20", "ratio": 170.0}, {"d": d, "ratio": ratio, "partial": partial}],
+                       "rank": {"d": rank_d or d, "rows": []}}}
+
+
+def test_盤後融資_資料到齊才發():
+    meta = {"data_date": "2026-10-21", "inst_date": "2026-10-21"}
+    assert ss.credit_ready(meta, _mf()) == (True, "2026-10-21", "")
+    # 整體市場融資還停在前一天（10/21 22:13 那輪實際狀況）
+    ok, d, why = ss.credit_ready(meta, _mf(d="2026-10-20"))
+    assert not ok and d == "2026-10-20" and "還沒更新" in why
+    # 整體市場到了、個股融資還沒到 → 維持率算不出來
+    assert not ss.credit_ready(meta, _mf(ratio=None))[0]
+    assert not ss.credit_ready(meta, _mf(partial=True))[0]
+    assert not ss.credit_ready(meta, _mf(rank_d="2026-10-20"))[0]
+    assert not ss.credit_ready(meta, {})[0]
+    # 隔天清晨（價量還沒換天）照樣可以發前一天的融資；隔天 15:30 價量換天後就不再發
+    assert ss.credit_ready({"data_date": "2026-10-21"}, _mf())[0]
+    assert not ss.credit_ready({"data_date": "2026-10-22"}, _mf())[0]
+
+
+def test_盤後融資文案_獨立一篇():
+    shots = [{"name": "credit-ratio", "ok": True, "read": {"ratio": "168.20", "chg": "−1.35"}},
+             {"name": "credit-rank", "ok": True, "read": {"up": ["長榮", "華邦電", "群創"], "down": ["台積電", "聯電", "鴻海"]}}]
+    txt = ss.build_text("credit", "10/22 05:10", shots, "2026-10-21", "20261022")
+    L = txt.splitlines()
+    assert L[0] == "台股融資籌碼｜10/21"
+    assert "上市融資維持率（估算）168.20%（較前日 -1.35pp）" in txt and "#market/credit" in txt
+    assert "融資增加 長榮、華邦電、群創；融資減少 台積電、聯電、鴻海" in txt
+    assert "utm_campaign=credit_1022" in txt and L[-1].startswith("#台股 #融資")
+    assert len(txt) <= 480
+    # 盤後法人那篇不再帶融資
+    close = ss.build_text("close", "10/21 17:20", shots, "2026-10-21", "20261021")
+    assert "融資" not in close
+
+
+def test_融資卡歸盤後融資那篇():
+    kinds = {t["name"]: t["kind"] for t in ss.TARGETS}
+    assert kinds["credit-ratio"] == kinds["credit-rank"] == "credit"
+    assert all(kinds[n] == "close" for n in ("inst-today", "streak-foreign", "streak-trust", "fut-oi", "retail-ratio"))

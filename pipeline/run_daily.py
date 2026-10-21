@@ -785,7 +785,14 @@ def main() -> int:
         since = (pd.Timestamp.now("UTC") - pd.Timedelta(days=40)).strftime("%Y-%m-%d")
         save("index_ohlc", step("finmind.index_ohlc", finmind.index_ohlc, since))
         save("index_ohlc", step("finmind.futures_ohlc", finmind.futures_ohlc, since))
-        # 市場明細三張卡（融資餘額／外資期貨口數／小台多空比，2026-10-20）：近 10 天增量，一共 4 次額度。
+        # 全市場三大法人買賣金額官方值（2026-10-20）：一次請求拉 40 天、1 次額度；store.append 依 date 去重
+        save("inst_market_daily", step("finmind.market_institutional", finmind.market_institutional, since))
+    # 市場明細三張卡（融資餘額／外資期貨口數／小台多空比，2026-10-20）：近 10 天增量，7 次額度。
+    # 2026-10-21 起 news 輪也抓（原本只在 price／full）：整體市場融資（FinMind TaiwanStockTotalMarginPurchaseShortSale）
+    # 約台北 21:30～22:00 才有當天，晚上最後一輪 full（21:37）常因 GitHub 排程提早／延遲而錯過，
+    # 以前就要等到隔天傍晚 → 社群「盤後融資」那篇整天等不到資料。清晨 05:07、盤中 09:07／12:07 的 news 輪補抓；
+    # store.append 依 date 去重，重抓無害。
+    if not args.skip_finmind:
         try:
             _mf = mktfut.collect((pd.Timestamp.now("UTC") - pd.Timedelta(days=10)).strftime("%Y-%m-%d"))
             for _t, _df in _mf.items():
@@ -793,8 +800,6 @@ def main() -> int:
                 RESULT["steps"]["mktfut." + _t] = {"ok": not _df.empty, "rows": int(len(_df))}
         except Exception as exc:  # noqa: BLE001
             log.warning("市場明細期貨／融資抓取失敗（不影響其他步驟）：%s", exc)
-        # 全市場三大法人買賣金額官方值（2026-10-20）：一次請求拉 40 天、1 次額度；store.append 依 date 去重
-        save("inst_market_daily", step("finmind.market_institutional", finmind.market_institutional, since))
 
     # 台指期 60 分 K（逐筆聚合，一天 1 次額度）。只在傍晚完整那輪做：15:30 時 FinMind 多半還沒出當天逐筆。
     if not light and not news_only and not args.skip_finmind and trade_date:

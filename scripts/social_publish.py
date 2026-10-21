@@ -167,6 +167,8 @@ def slot_key(m: dict) -> str:
     date = t[:10]
     if m.get("kind") == "close":
         return f"close-{date}"
+    if m.get("kind") == "credit":      # 盤後融資：以融資資料日為鍵（常在隔天清晨才到齊，用發文日會錯天）
+        return f"credit-{(m.get('data_date') or date)[:10]}"
     return f"{m.get('kind', 'intraday')}-{date}-{t[11:13]}"  # 同一小時算同一時段
 
 

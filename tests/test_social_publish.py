@@ -97,6 +97,18 @@ def test_不同時段與收盤各自獨立(tmp_path):
     assert sp.slot_key({"kind": "close", "taken_at": "2026-10-20T14:30:00+08:00"}) == "close-2026-10-20"
 
 
+def test_盤後融資以資料日為鍵_跟盤後法人分開():
+    # 融資常到隔天清晨才齊：10/21 的融資在 10/22 05:10 發，鍵要是 10/21，而且不能跟 close-10-21 撞在一起
+    m = {"kind": "credit", "taken_at": "2026-10-22T05:10:00+08:00", "data_date": "2026-10-21"}
+    assert sp.slot_key(m) == "credit-2026-10-21"
+    assert sp.slot_key(m) != sp.slot_key({"kind": "close", "taken_at": "2026-10-21T17:20:00+08:00"})
+    from scripts import social_snap as ss
+    assert ss.slot_key_for("credit", "2026-10-21", m["taken_at"]) == sp.slot_key(m)
+    assert ss.slot_key_for("close", "2026-10-21", "2026-10-21T17:20:00+08:00") == "close-2026-10-21"
+    assert ss.slot_key_for("intraday", "2026-10-21", "2026-10-21T11:05:00+08:00") == \
+        sp.slot_key({"kind": "intraday", "taken_at": "2026-10-21T11:05:00+08:00"})
+
+
 def test_失敗重試一次後成功(tmp_path, monkeypatch):
     f = Fake(fail_first_create=True); monkeypatch.setattr(sp, "http", f)
     assert sp.run(mk(tmp_path, story=()), BASE, env=ENV) == 0

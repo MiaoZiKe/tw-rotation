@@ -14,6 +14,11 @@ name: 社群即時貼文（Threads／IG 限動）
 #   盤中  台北 13:05 ＝ UTC 05:05
 #   盤後  不排固定時間，接在「每日盤後管線」每一輪結束（含部署）之後（workflow_run），
 #         只有網站 meta.json 的法人資料日（inst_date）＝今天才發，而且同一天只發一次（social-snaps 分支 state/posted.json 已有 close-日期 就跳過）。
+#   盤後融資 同樣接在每日管線每一輪之後（kind=credit，跟盤後法人分開兩篇，2026-10-21）：
+#         融資比法人晚很多才到齊 —— 整體市場融資（FinMind）約台北 21:30～22:00、上市個股融資要到隔天清晨。
+#         以前融資卡綁在法人那篇，法人一到那篇就發掉，融資卡一律「資料未更新」被略過（10/21 22:13 那輪就是這樣只剩 5 張）。
+#         現在融資自己一篇：market_fut.json 的融資日＝網站最新交易日、維持率算得出來、排行同一天才發（social_snap.py 的 credit_ready），
+#         鍵是 credit-<融資資料日>，同一天只發一次；隔天清晨 05:07、09:07、12:07 的管線（news）也會接到，資料晚到照樣補發。
 # ★ 即時閘門：不用任何登入權杖。本機站注入 TW_LIVE_OVERRIDE（site/livegate.js 只在 127.0.0.1／localhost 認的後門，正式站不受影響）；
 #   報價請求由 Playwright 補上正式站的 Origin（Worker 看 Origin）。即時沒套上就不發，不拿盤後圖冒充。
 #         為什麼不固定時間：三大法人傍晚才落地（daily.yml 台北 18:30 那輪 phase=full 才有；15:30 那輪只抓價量），
@@ -31,9 +36,9 @@ on:
   workflow_dispatch:
     inputs:
       kind:
-        description: "intraday（盤中）或 close（盤後法人）"
+        description: "intraday（盤中）、close（盤後法人）或 credit（盤後融資）"
         type: choice
-        options: [intraday, close]
+        options: [intraday, close, credit]
         default: intraday
       dry_run:
         description: "只演練：照常截圖排版，但不真的發布"
@@ -58,6 +63,13 @@ jobs:
     if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    # 管線接力（workflow_run）一次跑兩篇：盤後法人、盤後融資，各自把關、各自防重複。
+    # max-parallel: 1 —— 兩篇都要重建並 force push social-snaps 分支，同時跑會互相蓋掉對方的圖與發布紀錄。
+    strategy:
+      max-parallel: 1
+      fail-fast: false
+      matrix:
+        kind: ${{ fromJSON(github.event_name == 'workflow_run' && '["close","credit"]' || (github.event_name == 'workflow_dispatch' && format('["{0}"]', inputs.kind) || '["intraday"]')) }}
     env:
       TZ: Asia/Taipei
     steps:
@@ -66,22 +78,19 @@ jobs:
       - name: 決定這一輪是盤中還是盤後
         id: kind
         run: |
-          if [ "${{ github.event_name }}" = "workflow_run" ]; then
-            echo "kind=close" >> "$GITHUB_OUTPUT"
-          elif [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "kind=${{ inputs.kind }}" >> "$GITHUB_OUTPUT"
-          else
-            echo "kind=intraday" >> "$GITHUB_OUTPUT"
-          fi
+          echo "kind=${{ matrix.kind }}" >> "$GITHUB_OUTPUT"
           echo "stamp=$(date '+%Y%m%d-%H%M')" >> "$GITHUB_OUTPUT"
           echo "today=$(date '+%Y%m%d')" >> "$GITHUB_OUTPUT"
 
       - name: 盤後已經發過了就不重複（每日管線一天跑三輪都會接到這裡）
         id: done
-        if: steps.kind.outputs.kind == 'close' && github.event_name == 'workflow_run'
+        if: steps.kind.outputs.kind != 'intraday' && github.event_name == 'workflow_run'
         run: |
           if git ls-remote --exit-code --heads origin social-snaps >/dev/null 2>&1; then
             git fetch --depth=1 origin social-snaps
+            # 盤後融資的鍵是「融資資料日」，要截之前才知道 → 把發布紀錄交給 social_snap.py 的 --posted-json 自己比
+            git show FETCH_HEAD:state/posted.json > "$RUNNER_TEMP/posted.json" 2>/dev/null || echo '{}' > "$RUNNER_TEMP/posted.json"
+            if [ "${{ steps.kind.outputs.kind }}" != "close" ]; then exit 0; fi
             KEY="close-$(date '+%F')"
             if git show FETCH_HEAD:state/posted.json 2>/dev/null | grep -q "\"$KEY\""; then
               echo "今天的盤後法人已經發過（$KEY）→ 跳過"
@@ -109,21 +118,23 @@ jobs:
           echo "out=$OUT" >> "$GITHUB_OUTPUT"
           FORCE=""
           if [ "${{ inputs.force }}" = "true" ]; then FORCE="--force"; fi
+          POSTED=""
+          if [ -f "$RUNNER_TEMP/posted.json" ]; then POSTED="--posted-json $RUNNER_TEMP/posted.json"; fi
           set +e
           python scripts/social_snap.py --kind "${{ steps.kind.outputs.kind }}" --out "$OUT" \
-            --serve site --data-url https://miaozike.github.io/tw-rotation/data,https://tw-rotation.pages.dev/data,https://liguligu-puipui.com/data --spoof-origin $FORCE
+            --serve site --data-url https://miaozike.github.io/tw-rotation/data,https://tw-rotation.pages.dev/data,https://liguligu-puipui.com/data --spoof-origin $FORCE $POSTED
           RC=$?
           set -e
           echo "rc=$RC" >> "$GITHUB_OUTPUT"
           if [ "$RC" = "10" ]; then
-            echo "### 本輪刻意不發（法人資料未到／非交易日／不在盤中時段），正常結束" >> "$GITHUB_STEP_SUMMARY"
+            echo "### ${{ steps.kind.outputs.kind }}：本輪刻意不發（法人／融資資料未到齊、已發過、非交易日或不在盤中時段），正常結束" >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
           if [ "$RC" != "0" ]; then
             echo "::error::social_snap.py 結束碼 $RC（2＝一張都沒截成、3＝版面有重疊）"
             exit "$RC"
           fi
-          echo "### 本輪產出" >> "$GITHUB_STEP_SUMMARY"
+          echo "### ${{ steps.kind.outputs.kind }}：本輪產出" >> "$GITHUB_STEP_SUMMARY"
           cat "$OUT/manifest.json" >> "$GITHUB_STEP_SUMMARY"
 
       - name: 存成 Actions artifact（保留 7 天）

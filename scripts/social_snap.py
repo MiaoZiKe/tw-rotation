@@ -18,9 +18,10 @@ Andy 2026-10-20：「我需要在盤中發布當下即時狀況在 Threads 上�
 ----
     python scripts/social_snap.py --kind intraday --out snaps/20261020-0935
     python scripts/social_snap.py --kind close    --out snaps/20261020-close
+    python scripts/social_snap.py --kind credit   --out snaps/20261020-credit   # 盤後融資：資料到齊那輪才發
     python scripts/social_snap.py --kind intraday --base http://127.0.0.1:8791/index.html --serve site --mock-live --out /tmp/demo
 
-結束碼：0＝有產出；10＝今天不是交易日／不在盤中時段／法人資料還不是今天，刻意不發（不算失敗）；
+結束碼：0＝有產出；10＝今天不是交易日／不在盤中時段／法人資料還不是今天／融資資料還沒到齊／這一篇已發過，刻意不發（不算失敗）；
         2＝一張都沒截成；3＝版面有重疊（不准發）；4＝畫面上還有「即時」字樣（不准發）。
 
 誠實規則
@@ -200,7 +201,8 @@ READ_RANK = ("() => { const g = (s) => [...document.querySelectorAll('.srcol.' +
              " return { buy: g('buy'), sell: g('sell') }; }")
 READ_CREDIT = "() => { const t = document.querySelector('#mf-credit').innerText.replace(/\\s+/g, ' '); const a = /(\\d+\\.\\d+)\\s*%/.exec(t), b = /較前日\\s*([-+−]?\\s*[\\d.]+)\\s*pp/.exec(t); return { ratio: a && a[1], chg: b && b[1].replace(/\\s/g, '') }; }"
 READ_RK = ("() => { const c = [...document.querySelectorAll('#mfRankBody > *')].map(e => [...e.querySelectorAll('.mf-rk, .mf-rkrow, li, tr')].slice(0, 3).map(r => r.innerText.replace(/\\s+/g, ' ').trim()));"
-           " return { cols: c, raw: (document.querySelector('#mfRankBody') || {}).innerText || '' }; }")
+           " const nm = (k) => [...document.querySelectorAll('#mfRankBody .mf-rank:nth-child(' + k + ') .mf-rk .mf-nm')].map(e => e.innerText.trim().replace(/^\\S+\\s+/, '')).filter(Boolean);"
+           " return { cols: c, up: nm(1), down: nm(2), raw: (document.querySelector('#mfRankBody') || {}).innerText || '' }; }")
 READ_FUT = "() => ((document.querySelector('#fpBig3') || {}).innerText || '').replace(/\\s+/g, ' ').trim()"
 READ_RET = "() => window.__ret || { pct: '', prod: '' }"
 TARGETS = [
@@ -241,10 +243,14 @@ TARGETS = [
     dict(name="streak-trust", kind="close", label="投信個股買賣超排名", route="market/inst", card="#mktBody", closest_card=True, nav=STREAK_NAV, nav_arg="trust",
          stale=".stale-tag", read=READ_RANK, story_vw=720, story_dsf=2.0,
          d=[STREAK_PIECE("streak-trust")], m=[STREAK_PIECE("streak-trust", True)]),
-    dict(name="credit-ratio", snap="margin", kind="close", label="融資維持率", route="market/credit", card="#mf-credit", attr_only=True, stale=".mf-stale", read=READ_CREDIT,
+    # 盤後融資（kind=credit，2026-10-21 從盤後法人那篇拆出來）：融資資料比三大法人晚很多才到齊 ——
+    # 整體市場融資（FinMind）約台北 21:30～22:00 才有當天、上市個股融資（證交所 openapi＋FinMind 逐檔）要到隔天清晨。
+    # 跟法人綁同一篇時，法人一到（16:15～17:15）那篇就發掉、當天標成已發，融資卡永遠是「資料未更新」被略過。
+    # 拆開後各自把關：這篇只在 market_fut.json 的融資資料日＝網站最新交易日、維持率算得出來、個股排行也是同一天時才發（credit_ready）。
+    dict(name="credit-ratio", snap="margin", kind="credit", label="融資維持率", route="market/credit", card="#mf-credit", attr_only=True, stale=".mf-stale", read=READ_CREDIT,
          story_vw=720, story_dsf=2.0, d=[dict(name="credit-ratio", sel="#mf-credit", css=CREDIT_CSS)],
          m=[dict(name="credit-ratio", sel="#mf-credit", css=CREDIT_CSS + STORY_Z(1.2), fill=dict(frac=1.0, charts=["#mfChart", "#mfChart2"]))]),
-    dict(name="credit-rank", snap="margin", kind="close", label="融資增減排行", route="market/credit", card="#mf-credit", attr_only=True, stale=".mf-stale", read=READ_RK,
+    dict(name="credit-rank", snap="margin", kind="credit", label="融資增減排行", route="market/credit", card="#mf-credit", attr_only=True, stale=".mf-stale", read=READ_RK,
          nav="() => { const b = document.querySelector('#mfTab button[data-k=rank]'); if (b) b.click(); return new Promise(r => setTimeout(r, 1200)); }",
          story_vw=720, story_dsf=2.0, d=[dict(name="credit-rank", sel="#mf-credit", css=RANK_CSS)], m=[dict(name="credit-rank", sel="#mf-credit", css=RANK_CSS + ".mf-rkgrid{grid-template-columns:minmax(0,1fr)!important;gap:26px!important}" + STORY_Z(1.3))]),
     dict(name="fut-oi", snap="fut-oi", kind="close", label="台指期三大法人未平倉", route="market/fut", card="[data-snap=fut-oi]", attr_only=True, stale=".fp-stale:not([hidden])", read=READ_FUT,
@@ -327,6 +333,57 @@ def fetch_meta(base: str) -> dict:
     except Exception as exc:  # noqa: BLE001
         log("讀不到 meta.json：", exc)
         return {}
+
+
+def fetch_json(base: str, name: str) -> dict:
+    """讀網站的 data/<name>.json；讀不到回 {}。"""
+    root = base.rsplit("/", 1)[0] if base.endswith(".html") else base.rstrip("/")
+    try:
+        return json.loads(_get(f"{root}/data/{name}.json?_={int(time.time())}", 30).decode("utf-8"))
+    except Exception as exc:  # noqa: BLE001
+        log(f"讀不到 {name}.json：", exc)
+        return {}
+
+
+def credit_ready(meta: dict, mf: dict) -> tuple[bool, str, str]:
+    """盤後融資那篇能不能發：回 (能不能, 融資資料日, 不能的原因)。
+
+    四個條件都要成立（「資料到齊」的定義）：
+      1. market_fut.json 的融資最後一天 d ＝ 網站最新交易日（meta.data_date）—— 不是就代表整體市場融資還沒更新到當天；
+      2. 那天的維持率算得出來（ratio 不是空的）—— 上市個股融資還沒到，分子算不出來；
+      3. 那天不是「部分估算」（partial）—— 個股融資只到一部分，數字還會變；
+      4. 個股融資增減排行（rank.d）也是同一天 —— 不然第二張圖是前一天的。
+    用網站最新交易日比、不用「今天」：個股融資常到隔天清晨才齊，那時網站最新交易日仍是前一天，照樣可以發；
+    等隔天 15:30 價量進來、最新交易日換天，前一天的融資就不再發（不拿舊資料冒充）。
+    """
+    m = (mf or {}).get("margin") or {}
+    rows = m.get("rows") or []
+    if not rows:
+        return False, "", "market_fut.json 沒有融資資料"
+    last = rows[-1]
+    d = str(last.get("d") or "")[:10]
+    latest = str(meta.get("data_date") or "")[:10]
+    if not latest:
+        return False, d, "meta.json 沒有 data_date"
+    if d != latest:
+        return False, d, f"融資資料日 {d} ≠ 網站最新交易日 {latest}（整體市場融資還沒更新）"
+    if last.get("ratio") is None:
+        return False, d, f"{d} 的融資維持率還算不出來（上市個股融資還沒到）"
+    if last.get("partial"):
+        return False, d, f"{d} 的個股融資只到一部分（部分估算）"
+    rk = str((m.get("rank") or {}).get("d") or "")[:10]
+    if rk != d:
+        return False, d, f"融資增減排行的資料日 {rk or '—'} ≠ {d}"
+    return True, d, ""
+
+
+def slot_key_for(kind: str, data_date: str, taken_at: str) -> str:
+    """發布紀錄的時段鍵（跟 scripts/social_publish.py 的 slot_key 同一套規則）。"""
+    if kind == "close":
+        return f"close-{taken_at[:10]}"
+    if kind == "credit":
+        return f"credit-{data_date[:10]}"
+    return f"{kind}-{taken_at[:10]}-{taken_at[11:13]}"
 
 
 def _get(url: str, timeout: int = 40) -> bytes:
@@ -494,7 +551,7 @@ def diag(pg, t: dict) -> str:
 
 
 def go_target(pg, base: str, t: dict) -> None:
-    if t.get("kind") == "close":      # 盤後各頁共用同一個單頁應用：先清空再進，免得上一張塞的樣式與頁內狀態帶過來
+    if t.get("kind") in ("close", "credit"):      # 盤後各頁共用同一個單頁應用：先清空再進，免得上一張塞的樣式與頁內狀態帶過來
         pg.goto("about:blank")
     pg.goto(f"{base}#{t['route']}", wait_until="networkidle")
     pg.wait_for_timeout(2500)
@@ -850,7 +907,7 @@ def snap_targets(args, base: str, out: Path, today_ymd: str) -> tuple[list[dict]
         if t.get("nav"):
             pg.evaluate(t["nav"], t.get("nav_arg"))
             pg.wait_for_timeout(1200)
-        if args.kind == "close" and t.get("stale") and not args.force and pg.evaluate("(q) => [...document.querySelectorAll(q)].some(e => e.offsetParent !== null)", t["stale"]):
+        if args.kind in ("close", "credit") and t.get("stale") and not args.force and pg.evaluate("(q) => [...document.querySelectorAll(q)].some(e => e.offsetParent !== null)", t["stale"]):
             info["why"] = "頁面標示「資料未更新」（資料日不是最近交易日）→ 不發"
             return None
         if args.kind == "intraday" and not (args.skip_live == "all" or t["name"] in args.skip_live.split(",")):
@@ -1150,12 +1207,13 @@ def img_size(path: str) -> tuple[int, int]:
 # 文案（Threads 單則上限 500 字，含網址）。深連結用網站實際路由；hash 路由的 query 放在 # 前面
 THREADS_MAX = 480          # Threads 單則上限 500 字（網址以實際字元數計），留 20 字餘裕
 ROUTE_INST = "market/inst"      # 法人頁路由；日後改 market/inst 只改這個常數
-HASHTAGS = {"intraday": "#台股 #資金流向 #熱力圖 #族群輪動", "close": "#台股 #法人買賣超 #投信 #外資"}
+HASHTAGS = {"intraday": "#台股 #資金流向 #熱力圖 #族群輪動", "close": "#台股 #法人買賣超 #投信 #外資",
+            "credit": "#台股 #融資 #融資維持率 #信用交易"}
 DISCLAIMER = "資料：證交所／櫃買公開資料整理，僅供參考，不構成投資建議"
 
 
 def deep_link(route: str, kind: str, ymd: str) -> str:
-    camp = ("intraday_" if kind == "intraday" else "close_") + ymd[4:8]
+    camp = f"{kind}_" + ymd[4:8]
     return f"{SITE_URL}/?utm_source=threads&utm_campaign={camp}#{route}"
 
 
@@ -1197,6 +1255,15 @@ def caption_lines(kind: str, stamp: str, shots: list[dict], data_date: str, ymd:
         s = ok.get("market-breadth")
         if s and s.get("breadth"):
             L.append(f"漲跌家數：上漲 {s['breadth']['up']} 家、下跌 {s['breadth']['down']} 家" + lk("market/updown", idx)); idx += 1
+    elif kind == "credit":
+        yi = lambda x: x.replace("−", "-")
+        L.append(f"台股融資籌碼｜{data_date[5:].replace('-', '/')}")
+        r = (ok.get("credit-ratio") or {}).get("read") or {}
+        if r.get("ratio"):
+            L.append(f"上市融資維持率（估算）{r['ratio']}%" + (f"（較前日 {yi(r['chg'])}pp）" if r.get("chg") else "") + f" → {deep_link('market/credit', kind, ymd)}")
+        r = (ok.get("credit-rank") or {}).get("read") or {}
+        if r.get("up") and r.get("down"):
+            L.append(f"融資增加 {_join(r['up'], n)}；融資減少 {_join(r['down'], n)}")
     else:
         L.append(f"台股盤後籌碼｜{data_date[5:].replace('-', '/')}")
         yi = lambda x: x.replace("−", "-")
@@ -1208,9 +1275,6 @@ def caption_lines(kind: str, stamp: str, shots: list[dict], data_date: str, ymd:
             r = (ok.get(key) or {}).get("read") or {}
             if r.get("buy") and r.get("sell"):
                 L.append(f"{lab}買超 {_join(r['buy'], n)}；賣超 {_join(r['sell'], n)}")
-        r = (ok.get("credit-ratio") or {}).get("read") or {}
-        if r.get("ratio"):
-            L.append(f"融資維持率 {r['ratio']}%" + (f"（較前日 {yi(r['chg'])}pp）" if r.get("chg") else "") + f" → {deep_link('market/credit', kind, ymd)}")
         r = (ok.get("fut-oi") or {}).get("read")
         if r:
             import re as _re
@@ -1232,8 +1296,8 @@ def build_text(kind: str, stamp: str, shots: list[dict], data_date: str, ymd: st
         txt = "\n".join(caption_lines(kind, stamp, shots, data_date, ymd, n, links))
         if len(txt) <= THREADS_MAX:
             break
-    if len(txt) > THREADS_MAX and kind == "close":      # 盤後連結多：先拿掉 utm_campaign
-        txt = txt.replace(f"&utm_campaign=close_{ymd[4:8]}", "")
+    if len(txt) > THREADS_MAX and kind != "intraday":      # 盤後連結多：先拿掉 utm_campaign
+        txt = txt.replace(f"&utm_campaign={kind}_{ymd[4:8]}", "")
     if len(txt) > THREADS_MAX:
         log(f"⚠ 文案 {len(txt)} 字仍超過 {THREADS_MAX}")
     return txt
@@ -1243,7 +1307,7 @@ def build_text(kind: str, stamp: str, shots: list[dict], data_date: str, ymd: st
 def main() -> int:
     global DATE_LABEL
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--kind", choices=["intraday", "close"], required=True)
+    ap.add_argument("--kind", choices=["intraday", "close", "credit"], required=True, help="intraday＝盤中；close＝盤後法人；credit＝盤後融資（資料到齊那輪才發）")
     ap.add_argument("--out", required=True, help="輸出資料夾（manifest.json 與圖片都放這裡）")
     ap.add_argument("--base", default=SITE_URL + "/index.html", help="網站網址（本機例如 http://127.0.0.1:8791/index.html）")
     ap.add_argument("--serve", default="", help="給路徑就在本機起靜態伺服器（site 資料夾），--base 自動設成它")
@@ -1263,6 +1327,7 @@ def main() -> int:
     ap.add_argument("--use-snap-attr", action="store_true", help="只用 data-snap 屬性找目標")
     ap.add_argument("--no-snap-attr", action="store_true", help="不用 data-snap，只用現有選擇器")
     ap.add_argument("--force", action="store_true", help="略過「盤中時段／今天是不是交易日／法人資料是不是今天」的檢查（示範用）")
+    ap.add_argument("--posted-json", default="", help="發布紀錄 posted.json（social-snaps 分支 state/）；這一篇的時段鍵已在裡面就不截（結束碼 10）")
     ap.add_argument("--today", default="", help="覆寫「今天」（YYYY-MM-DD，示範／測試用）")
     args = ap.parse_args()
 
@@ -1295,7 +1360,22 @@ def main() -> int:
     try:
         meta = fetch_meta(base)
         data_date = meta.get("inst_date") or meta.get("data_date") or today
+        if args.kind == "credit":
+            ok_, d_, why_ = credit_ready(meta, fetch_json(base, "market_fut"))
+            data_date = d_ or data_date
+            if not ok_ and not args.force:
+                log(f"盤後融資：{why_} → 不發（等資料到齊的那一輪）")
+                return 10
         DATE_LABEL = data_date[5:].replace("-", "/")
+        if args.posted_json and not args.force:
+            key_ = slot_key_for(args.kind, data_date, now_tpe().isoformat(timespec="seconds"))
+            try:
+                done_ = json.loads(Path(args.posted_json).read_text("utf-8"))
+            except Exception:  # noqa: BLE001
+                done_ = {}
+            if key_ in done_:
+                log(f"{key_} 已經發過（{args.posted_json}）→ 不重複")
+                return 10
         if args.kind == "close" and not args.force:
             if data_date != today:
                 log(f"盤後法人資料日 {data_date} ≠ 今天 {today}（非交易日或法人資料還沒更新）→ 不發")
