@@ -16,7 +16,7 @@ from PIL import Image, ImageDraw, ImageFilter
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
-import render_etf as R  # noqa: E402
+import fcore_ren as R  # noqa: E402
 
 PAPER = (255, 249, 239)
 INK = (50, 26, 20)
@@ -27,18 +27,15 @@ YEL = (255, 229, 165)
 
 
 def shot_crop():
-    f = R.RAW / "d_cal.json"
-    meta = json.loads(f.read_text(encoding="utf-8")) if f.exists() else json.loads((R.RAW / "d_meta.json").read_text(encoding="utf-8"))["cal"]
-    # 點了日期之後、清單出現的那一刻（第 4 句泡泡出現後 1.5 秒）
-    t = (meta["says"][2]["t"] + 1.0) if R.FAST else (meta["says"][4]["t"] + 1.5)
-    cap = cv2.VideoCapture(str(R.RAW / "d_cal.mp4"))
+    RAW = Path("/tmp/claude-0/-home-user-tw-rotation/3d7a42eb-0e07-50fa-8c50-cf31c62d682f/scratchpad/redo/01/raw")
+    js = json.loads((RAW / "d_main.json").read_text(encoding="utf-8"))
+    t = [x for x in js["says"] if "點一檔" in x["text"]][0]["t"] - 0.6   # 行事曆＋歷年配息面板
+    cap = cv2.VideoCapture(str(RAW / "d_main.mp4"))
     cap.set(cv2.CAP_PROP_POS_FRAMES, int(t * 30))
     ok, fr = cap.read()
     im = Image.fromarray(cv2.cvtColor(fr, cv2.COLOR_BGR2RGB))
-    cx = meta.get("content_x") or [0, im.width]
-    # 配息行事曆卡片：左右用內容區、上下取卡片範圍（約 css 64～872）
-    asof = json.loads((R.REPO / "site" / "data" / "etf.json").read_text(encoding="utf-8")).get("asof")
-    return im.crop((cx[0] + 10, 2 * 64, cx[1] - 10, 2 * (798 if R.FAST else 836))), asof or meta.get("data_date")
+    cx = js.get("content_x") or [0, im.width]
+    return im.crop((cx[0] + 10, 2 * 70, cx[1] - 10, 2 * 700)), None
 
 
 def sticker(im, w, radius=34, border=14):
@@ -122,12 +119,7 @@ def make(kind):
     cv.alpha_composite(bimg, (bx, by))
     reg.add("比比", (bx + xs_.min(), by + ys_.min(), bx + xs_.max(), by + ys_.max()))
     # 註記
-    note = f"網站實際畫面・資料日 {data_date}｜歷史資料，不代表未來表現"
-    w_, h_, b_ = R.tsize(f_note, note)
-    nx = W - 70 - w_ if kind == "16x9" else (W - w_) // 2
-    ny = H - 70 if kind == "16x9" else H - 60
-    d.text((nx - b_[0], ny - b_[1]), note, font=f_note, fill=SUB)
-    reg.add("註記", (nx, ny, nx + w_, ny + h_))
+    # Andy 10-19：不放資料日／歷史資料角標
     for name, box in [(n, b) for (n, _g, b) in reg.items]:
         reg.text_in(name, box, (0, 0, W, H), 30)
     out = HERE / f"cover_{kind}.png"
