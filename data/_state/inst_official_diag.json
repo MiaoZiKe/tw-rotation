@@ -41,7 +41,7 @@
   "url": "https://openapi.twse.com.tw/v1/fund/TWT44U"
  },
  {
-  "head": "[ {\"IndustryCat\":\"ETF\",\"Numbers\":\"242\",\"ShareNumber\":\"260120905260\",\"ForeignMainlandAreaShare\":\"3514094077\",\"Percentage\":\"1.35\"}, {\"IndustryCat\":\"水泥工業\",\"Numbers\":\"8\",\"ShareNumber\":\"14107198706\",\"Forei",
+  "head": "[ {\"IndustryCat\":\"ETF\",\"Numbers\":\"242\",\"ShareNumber\":\"260629405260\",\"ForeignMainlandAreaShare\":\"3269893685\",\"Percentage\":\"1.25\"}, {\"IndustryCat\":\"水泥工業\",\"Numbers\":\"8\",\"ShareNumber\":\"14107198706\",\"Forei",
   "http": 200,
   "url": "https://openapi.twse.com.tw/v1/fund/MI_QFIIS_cat"
  },
@@ -57,7 +57,7 @@
   "url": "https://openapi.twse.com.tw/v1/fund/MI_QFIIS_cat"
  },
  {
-  "head": "[ {\"Rank\":\"1\",\"Code\":\"2923\",\"Name\":\"鼎固-KY\",\"ShareNumber\":\"1740296982\",\"AvailableShare\":\"8570363\",\"SharesHeld\":\"1731726619\",\"AvailableInvestPer\":\"0.49\",\"SharesHeldPer\":\"99.50\",\"Upperlimit\":\"100.00\"}, {",
+  "head": "[ {\"Rank\":\"1\",\"Code\":\"2923\",\"Name\":\"鼎固-KY\",\"ShareNumber\":\"1740296982\",\"AvailableShare\":\"8715363\",\"SharesHeld\":\"1731581619\",\"AvailableInvestPer\":\"0.50\",\"SharesHeldPer\":\"99.49\",\"Upperlimit\":\"100.00\"}, {",
   "http": 200,
   "url": "https://openapi.twse.com.tw/v1/fund/MI_QFIIS_sort_20"
  },
@@ -124,15 +124,15 @@
   "swagger_path": "/tpex_3insti_qfii_trading"
  },
  {
-  "head": "[ {\"Date\":\"1151020\",\"SecuritiesCompanyCode\":\"00411A\",\"CompanyName\":\"主動統一前沿科技\",\"Foreign Investors include Mainland Area Investors (Foreign Dealers excluded)-Total Buy\":\"569111\",\" Foreign Investors incl",
+  "head": "[ {\"Date\":\"1151021\",\"SecuritiesCompanyCode\":\"00411A\",\"CompanyName\":\"主動統一前沿科技\",\"Foreign Investors include Mainland Area Investors (Foreign Dealers excluded)-Total Buy\":\"4931700\",\" Foreign Investors inc",
   "http": 200,
   "url": "https://www.tpex.org.tw/openapi/v1/tpex_3insti_daily_trading"
  },
  {
   "market": "上櫃",
   "parts": [
-   879
+   900
   ],
-  "rows": 879
+  "rows": 900
  }
 ]
