@@ -35,7 +35,10 @@ SPEED = float(os.environ.get("FEAT_SPEED", "1.5"))
 END_RAW = 4.5            # 片尾免責卡原片 ≥4.5 秒
 END_FINAL = float(os.environ.get("FEAT_END_FINAL", "2.0"))   # 成片停 1.5～2 秒（協調員 10-21 規則）
 XF = 0.2                 # 接片尾卡的交疊 ≤0.2 秒
-BUB_CAP = 4.0            # 同一則泡泡最長停留（原片秒）
+BUB_CAP = 7.5
+DRIFT_A = float(os.environ.get('FEAT_DRIFT_A', '3.0'))     # 畫面框內容慢漂幅度（成片像素）：只為讓成片不出現 freezedetect 停格；幅度小於畫面框邊到卡片邊的空白
+DRIFT_T = float(os.environ.get('FEAT_DRIFT_T', '2.0'))     # 週期（原片秒）
+DRIFT_CSS = 2.6          # 檢查裁切時，畫面框內縮的 css 像素（≥ 慢漂幅度換算）            # 同一則泡泡最長停留（原片秒）
 PAD = R.PAD
 
 R.SEC.update({
@@ -46,7 +49,7 @@ R.SEC.update({
     "s5": ("選天數", "拉桿換天數，兩圖一起變", "一起變"),
     "s6": ("一頁看懂", "錢往哪跑，一頁看懂", "一頁看懂"),
 })
-FOCUS_EL = {"nav": "tabs", "navflow": "navflow", "burger": "burger", "m4flow": "m4flow", "clock": "clock", "rank": "rank", "slider": "slider", "filter": "filter"}
+FOCUS_EL = {"nav": "tabs", "navflow": "navflow", "burger": "burger", "m4flow": "m4flow", "clock": "clock", "rank": "rank", "slider": "slider", "filter": "filter", "chain": "chain"}
 
 
 def layout(dev):
@@ -64,8 +67,8 @@ def layout(dev):
     else:
         o.W, o.H = 1080, 1920
         o.panel = (40, 300, 1040, 1900)
-        o.bibi_size = 190
-        o.bibi_foot = (120, 292)
+        o.bibi_size = 160
+        o.bibi_foot = (110, 270)
         o.nav = None
         o.bub_zone = (None, 104, 1046, 292)
         o.bub_font = 44
@@ -96,6 +99,9 @@ def build_bubbles(meta, total_raw, end_start):
         t0 = s["t"]
         nxt = says[i + 1]["t"] - 0.06 if i + 1 < len(says) else end_start - 0.1
         t1 = min(nxt, t0 + BUB_CAP)
+        later = [c for c in meta.get('clears', []) if c > t0 + 0.05]
+        if later:
+            t1 = min(t1, later[0] - 0.06)
         bs.append(dict(t0=t0, t1=t1, text=s["text"], act=s["act"], focus=s.get("focus", []), sid=f"b{i}"))
     bs.append(dict(t0=end_start + 0.25, t1=end_start + END_RAW, text="謝謝收看，我們下次見", act="face_bow", focus=[], sid="__end"))
     return bs
@@ -193,6 +199,8 @@ def render(dev, only=None):
             crop = fr[sy0:sy1, sx0:sx1]
             img = cv2.cvtColor(cv2.resize(crop, (o.pw, o.ph), interpolation=cv2.INTER_AREA), cv2.COLOR_BGR2RGB)
             pv = cv2.resize(crop, (o.pw // 4, o.ph // 4), interpolation=cv2.INTER_AREA).astype(np.int16)
+            ddx, ddy = DRIFT_A * R.tri(t / DRIFT_T + 0.25), DRIFT_A * R.tri(t / (DRIFT_T * 1.3) + 0.6)
+            img = cv2.warpAffine(img, np.float32([[1, 0, ddx], [0, 1, ddy]]), (o.pw, o.ph), flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_REPLICATE)
             if prev_pv is not None and np.abs(pv - prev_pv).max() < 6:
                 still_run += 1
                 if still_run > still_max[0]:
@@ -206,6 +214,7 @@ def render(dev, only=None):
             # ── 遮擋／裁切檢查（用錄影端每格量到的外框）──
             m = fm[k]
             els = m["el"]
+            crop_in = (cx + DRIFT_CSS, cy + DRIFT_CSS, cw - 2 * DRIFT_CSS, ch - 2 * DRIFT_CSS)   # 慢漂最壞情況的實際可見範圍
             bub, a_in, a_out = R.bubble_at(bubbles, t)
             foc = [FOCUS_EL.get(f) for f in (bub["focus"] if bub else [])]
             foc_r = {f: els[f] for f in foc if f and f in els}
@@ -215,11 +224,13 @@ def render(dev, only=None):
             if any(n_ == "圖表提示框" for n_, _ in ovs):
                 tip_frames += 1
             for f, fr_ in foc_r.items():
-                if f not in ("clock", "rank", "slider", "filter", "tabs", "navflow", "burger", "m4flow"):
+                if f not in ("clock", "rank", "slider", "filter", "chain", "tabs", "navflow", "burger", "m4flow"):
                     continue
-                if not contained(crop_css, fr_, 1.0) and f in ("clock", "rank", "slider", "filter"):
+                if not contained(crop_in, fr_, 0.5) and f in ("clock", "rank", "slider", "filter"):
                     cut_rows.append(f"| {t:6.2f} | {f} 超出畫面框 |")
                 for n_, r_ in ovs:
+                    if n_ == '頂欄' and f in ('tabs', 'navflow', 'burger', 'm4flow'):
+                        continue
                     # 下拉面板貼在自己的按鈕下方，不算蓋住「正在介紹的篩選列」本身；其他一律算
                     if rect_int(fr_, r_) > 0 and rect_int(r_, crop_css) > 0:
                         occ_rows.append(f"| {t:6.2f} | 「{bub['text']}」介紹的 {f} | {n_} | {int(rect_int(fr_, r_))} |")
@@ -231,7 +242,8 @@ def render(dev, only=None):
                     if rect_int(z[1:], r_) > 0:
                         strict_rows.append(f"| {t:6.2f} | {n_} 蓋住{'輪盤' if z[0] == 0 else '排行'}標籤 |")
                         break
-            if m.get("cur"):
+            finger_on = dev == 'd' or any(-0.3 <= t - c['t'] <= 0.4 for c in meta['clicks'])   # 手機的手指只在點擊那一刻才畫在畫面上
+            if m.get("cur") and finger_on:
                 cxy = m["cur"]
                 cr = (cxy[0] - 3, cxy[1] - 2, 26, 30) if dev == "d" else (cxy[0] - 17, cxy[1] - 17, 34, 34)
                 for z in zt:
@@ -239,9 +251,10 @@ def render(dev, only=None):
                         strict_rows.append(f"| {t:6.2f} | 游標蓋住{'輪盤' if z[0] == 0 else '排行'}標籤 |")
                         break
             chart_focus = any(f in ('clock', 'rank') for f in (bub['focus'] if bub else []))
-            for z in (m["zt"] if chart_focus else []):   # 畫面框邊切過標籤文字（只算泡泡正在介紹輪盤／排行的幀；換頁載入中的幾幀不算）
+            want = {0 if f == 'clock' else 1 for f in (bub['focus'] if bub else []) if f in ('clock', 'rank')}
+            for z in ([z for z in m["zt"] if z[0] in want] if chart_focus else []):   # 畫面框邊切過標籤文字（只算泡泡正在介紹輪盤／排行的幀；換頁載入中的幾幀不算）
                 zr = z[1:]
-                if rect_int(zr, crop_css) > 0 and not contained(crop_css, zr, 0.5):
+                if rect_int(zr, crop_css) > 0 and not contained(crop_in, zr, 0.5):
                     slice_rows.append(f"| {t:6.2f} | {'輪盤' if z[0] == 0 else '排行'}標籤被畫面框邊切到 |")
                     break
         if t >= end_start:

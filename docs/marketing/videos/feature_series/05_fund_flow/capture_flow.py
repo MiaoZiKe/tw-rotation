@@ -56,6 +56,7 @@ META_JS = r"""() => {
   const ov = [];
   document.querySelectorAll('.ddpanel:not([hidden]), .hpanel:not([hidden]), [role=dialog], .toast, .howpop, #howPop, .qcov, .qcard').forEach(e => { const r = vis(e); if (r) ov.push(['面板' + (e.id ? '#' + e.id : '.' + String(e.className).split(' ')[0]), ...r]); });
   document.querySelectorAll('[_echarts_instance_] > div').forEach(e => { if (e.querySelector('canvas') || /rotbeam|rotquads/.test(e.className)) return; const r = vis(e); if (r && (e.textContent || '').trim()) ov.push(['圖表提示框', ...r]); });
+  const hd = vis(document.querySelector('header.topbar')); if (hd && innerWidth < 700) ov.push(['頂欄', ...hd]);
   const el = {}; for (const [k, s] of [['clock', '#rotClock'], ['rank', '#rankFlow'], ['slider', '#rotBack'], ['filter', '#flowRotFilter'], ['card', '#flowRotCard'],
       ['navflow', '#tabs .tab[data-view="flow"]'], ['burger', '#m4Burger'], ['m4flow', '.m4item[data-v="flow"]'], ['chain', '#flowRotFilter .rotdd[data-dd="chain"] .ddbtn'], ['tabs', '#tabs'], ['daylab', '#rotBack output, #rotBack .dv, #rotBack b']]) {
     const r = vis(document.querySelector(s)); if (r) el[k] = r; }
@@ -104,7 +105,7 @@ class Rec(F.Rec):
         except Exception:  # noqa: BLE001
             m = {"ov": [], "el": {}, "zt": [], "fab": [], "sy": 0}
         a = self.act
-        m["cur"] = [round(a.x, 1), round(a.y, 1)] if getattr(a, "cur_on", True) else None
+        m["cur"] = [round(getattr(a, "pcx", a.x), 1), round(getattr(a, "pcy", a.y), 1)]
         m["stage"] = a.stage
         self.fm.append(m)
 
@@ -121,17 +122,22 @@ class Rec(F.Rec):
 
 
 class A(F.A):
-    PARK_D = (1100, 100)
+    PARK_D = (770, 212)   # 左窗格「▶」右邊、輪盤上緣之上的空白處（不在圖上、不蓋字）
 
     def __init__(self, pg, mob, vw, vh):
         super().__init__(pg, mob, vw, vh)
         self.stage = 0
         self.stages: list = []
+        self.clears: list = []
         self.cur_on = True
 
+    def _put(self, x, y):
+        super()._put(x, y)
+        self.pcx, self.pcy = x, y   # 逐格真實游標位置（移動途中也記）
+
     def set_stage(self, n, name):
-        self.stage = n
-        self.stages.append([round(self.t, 3), n, name])
+        """大標題換字要跟泡泡同一刻：先記起來，下一句 say() 出現的那一幀才生效。"""
+        self.pend = (n, name)
 
     def cam(self, *a, **k):   # v3 不用錄影端鏡頭
         pass
@@ -139,9 +145,18 @@ class A(F.A):
     def cam_view(self, *a, **k):
         pass
 
+    def clear_say(self):
+        """目前這則泡泡此刻收起（接下來是捲動等過場，泡泡不跟著講）。"""
+        self.settle()
+        self.clears.append(round(self.t, 3))
+
     def say(self, text, act="talk_explain_v2", focus=()):
         assert len(text.replace(" ", "")) <= 14, text
         self.settle()
+        if getattr(self, "pend", None):
+            self.stage = self.pend[0]
+            self.stages.append([round(self.t, 3), self.pend[0], self.pend[1]])
+            self.pend = None
         self.says.append({"t": round(self.t, 3), "text": text, "act": act, "focus": list(focus)})
         self.say_t, self.say_need = self.t, F.bubble_dur(text) + 0.08
 
@@ -149,7 +164,7 @@ class A(F.A):
         """點 (x,y)（呼叫端選在字以外的空白處）→ 游標移到右下 (+dx,+dy)（離開文字）。"""
         self.click_xy(x, y, 300, 90, expect=sel)
         self.targets[-1]["label"] = label
-        if not self.mob:
+        if not self.mob and (dx or dy):
             self.move(x + dx, y + dy, 220)
 
     def away(self, ms=260):
@@ -172,15 +187,16 @@ def pick_chain(a, pg, c, lab):
     a.off_click(btn[0] + btn[2] - 9, btn[1] + btn[3] / 2, "產業鏈下拉清單", F.CDD + " .ddbtn", dx=24, dy=24)
     a.wait(260)
     row = pg.evaluate(C.RECT_JS, f'{F.CDD} .ddopt[data-c="{c}"]')
-    a.off_click(row[0] + row[2] * 0.52, row[1] + row[3] / 2, lab, f'{F.CDD} .ddopt[data-c="{c}"]', dx=12, dy=12)
-    a.wait(60)
-    pg.keyboard.press("Escape")   # 網站選完產業鏈會自動打開族群清單 → 立刻收起（不蓋住輪盤）
-    a.wait(120)
-    open_n = pg.evaluate("() => document.querySelectorAll('.rotdd .ddpanel:not([hidden])').length")
-    if open_n:   # Esc 沒收掉就點空白處
-        a.note("⚠ Esc 沒收起清單，改點空白處")
-        pg.evaluate("() => document.body.click()")
-        a.wait(120)
+    a.off_click(row[0] + row[2] * 0.52, row[1] + row[3] / 2, lab, f'{F.CDD} .ddopt[data-c="{c}"]', dx=0, dy=0)   # 點完不再逗留（清單一秒內收掉）
+    # 網站選完產業鏈會自動打開族群清單 → 立刻關掉（等同點空白處），不讓它蓋住輪盤
+    for _ in range(6):
+        pg.evaluate("() => document.body.dispatchEvent(new MouseEvent('click', { bubbles: true }))")
+        a.frame()
+        if not pg.evaluate("() => document.querySelectorAll('.rotdd .ddpanel:not([hidden])').length"):
+            break
+    if pg.evaluate("() => document.querySelectorAll('.rotdd .ddpanel:not([hidden])').length"):
+        a.note("⚠ 族群清單沒收起")
+    a.move(a.x + 40, a.y + 40, 150) if not a.mob else None
 
 
 def run_d(pg, a, start):
@@ -204,7 +220,8 @@ def run_d(pg, a, start):
         a.off_click(sub[0] + sub[2] * 0.85, sub[1] + sub[3] / 2, "子分頁：資金輪動", '.l4subtab[data-l4sub="flow-rotation"]', dx=30, dy=30)
         a.until("() => !!document.querySelector('#rotClock canvas') && !!document.querySelector('#rankFlow canvas')", 8000)
     a.wait(900)
-    a.away(500)
+    a.move(236, 214, 300)   # 先貼著側欄邊往上、再沿篩選列（UI 列，不是圖）移到空白處，不從輪盤／排行的字上掃過
+    a.away(450)
     # 3 輪盤看強弱、排行看流入（不點、不 hover 圖）
     a.set_stage(3, "看強弱")
     a.say("輪盤看強弱，排行看流入", "magnifier", ("clock", "rank"))
@@ -212,7 +229,7 @@ def run_d(pg, a, start):
     a.settle()
     # 4 選產業鏈（清單開著時泡泡只講清單）
     a.set_stage(4, "選產業鏈")
-    a.say("選產業鏈，只看那一條", "spotlight", ("filter",))
+    a.say("選產業鏈，只看那一條", "spotlight", ("chain",))
     for c, lab in F.CHAINS[:2]:
         pick_chain(a, pg, c, lab)
         a.away(220)
@@ -243,38 +260,41 @@ def run_m(pg, a, start):
     a.say("錢往哪個族群跑？", "face_think_v2", ("burger",))
     a.idle(500)
     a.set_stage(2, "引導")
-    a.say("點左上角選單", "point_ur_v2", ("burger",))
+    a.say("點選單，進資金流向", "point_ur_v2", ("burger", "m4flow"))
     bg = pg.evaluate(C.RECT_JS, "#m4Burger")
     a.off_click(bg[0] + bg[2] / 2, bg[1] + bg[3] / 2, "選單", "#m4Burger", dx=0, dy=0)
     a.wait(800)
-    a.say("點「資金流向」", "magnifier", ("m4flow",))
     it = pg.evaluate(C.RECT_JS, '.m4item[data-v="flow"]')
     a.off_click(it[0] + it[2] * 0.8, it[1] + it[3] / 2, "選單：資金流向", '.m4item[data-v="flow"]', dx=0, dy=0)
     a.until("() => !!document.querySelector('#rotClock canvas') && !!document.querySelector('#rankFlow canvas')", 8000)
     a.wait(700)
     # 往下捲一次，讓篩選列～輪盤整塊落在畫面框內（之後只往下捲）
     a.set_stage(3, "看強弱")
-    a.say("輪盤看強弱，排行看流入", "magnifier", ("clock",))
     y = pg.evaluate("() => document.querySelector('#flowRotFilter').getBoundingClientRect().top + scrollY - 60")
-    a.scroll(to_y=y, ms=800)
-    a.idle(900)
+    a.scroll(to_y=y, ms=800)   # 先捲好（泡泡講輪盤時，輪盤已整個在畫面框內）
+    a.say("輪盤看強弱，排行看流入", "magnifier", ("clock",))
+    a.idle(1500)
     a.settle()
     a.set_stage(4, "選產業鏈")
-    a.say("選產業鏈，只看那一條", "spotlight", ("filter",))
+    a.say("選產業鏈，只看那一條", "spotlight", ("chain",))
     for c, lab in F.CHAINS[:2]:
         pick_chain(a, pg, c, lab)
         a.wait(1000)
     a.settle()
     a.set_stage(5, "選天數")
+    a.clear_say()
+    y2 = pg.evaluate("() => document.querySelector('#rotBack').getBoundingClientRect().top + scrollY - 64")   # 選完產業鏈篩選列變長 → 再往下捲一次，讓拉桿＋整個輪盤落在畫面框內
+    a.scroll(to_y=y2, ms=700)
     a.say("拉桿換天數，兩圖同步變", "clock", ("slider", "clock"))
     for v in (5, 10, 30):
         F.slider_click(a, "#rotBack input", v, f"拉桿：{v} 天前")
         a.wait(1100)
     a.settle()
     a.set_stage(6, "一頁看懂")
-    a.say("排行、輪盤一頁看懂", "proud_shine", ("rank",))
+    a.clear_say()
     rk = pg.evaluate("() => document.querySelector('#rankFlow').getBoundingClientRect().bottom + scrollY")
     a.scroll(to_y=rk - 600, ms=900)
+    a.say("排行、輪盤一頁看懂", "proud_shine", ("rank",))
     a.idle(1500)
     a.settle()
 
@@ -343,7 +363,7 @@ def main():
             if not g.dry:
                 shutil.move(str(tmp), out / f"{dev}_main.mp4")
             shutil.rmtree(out / f".tmp_{dev}", ignore_errors=True)
-            r.update(size=[W, H], dsf=a.dsf, crop=CROP[dev], says=a.says, stages=a.stages, clicks=a.targets, steps=a.log, errs=errs[:5], fm=rec.fm,
+            r.update(size=[W, H], dsf=a.dsf, crop=CROP[dev], says=a.says, clears=a.clears, stages=a.stages, clicks=a.targets, steps=a.log, errs=errs[:5], fm=rec.fm,
                      timer_errs=getattr(rec, "timer_errs", []), data_date=site_meta.get("data_date"))
             (out / f"{dev}_main.json").write_text(json.dumps(r, ensure_ascii=False), encoding="utf-8")
             miss = [s for s in a.log if "找不到" in s or "點不到" in s or "⚠" in s]
