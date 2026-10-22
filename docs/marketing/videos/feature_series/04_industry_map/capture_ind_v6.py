@@ -69,6 +69,10 @@ META_JS = r"""([blurSel, named]) => {
   const fab = [...document.querySelectorAll('#supFab, .supfab, #bibiRing, .bibiring')].map(vis).filter(Boolean);
   return { el, ov, lb, txt, fab, sy: Math.round(scrollY), bf }; }"""
 
+RESOLVE_JS = """() => { const L = [...document.querySelectorAll('.lbl3d')].filter(e => getComputedStyle(e).visibility !== 'hidden').map(e => ({ e, r: e.getBoundingClientRect() }));
+  for (let i = 0; i < L.length; i++) for (let j = i + 1; j < L.length; j++) { const a = L[i].r, b = L[j].r;
+    if (Math.min(a.right, b.right) + 2 > Math.max(a.left, b.left) && Math.min(a.bottom, b.bottom) + 2 > Math.max(a.top, b.top)) { const big = a.height >= b.height ? i : j; L[big].e.style.setProperty('visibility', 'hidden', 'important'); } } }"""
+
 NAMED = {
     "burger": "#m4Burger",
     "m4ind": '.m4item[data-v="industry"]',
@@ -121,6 +125,11 @@ class Rec(F.Rec):
         self.pg.evaluate(C.ANIM_JS, ms)
         if self.n % 6 == 0:
             self._watch()
+        if self.act.stage == 4 and not self.act.mob:
+            try:   # 3D 標籤：任何兩張標籤只要相交，每一幀拍照前就把較高的那張收起（不相關的標籤隱藏）
+                self.pg.evaluate(RESOLVE_JS)
+            except Exception:  # noqa: BLE001
+                pass
         try:
             bf0 = self.pg.evaluate("() => window.__bfSweep ? window.__bfSweep() : null")   # 截圖前先掃一次：任何含 blur 的 filter／backdrop-filter 先關掉，再拍
         except Exception:  # noqa: BLE001
@@ -415,7 +424,7 @@ def run(a, pg, start, snap=False):
         px = pg.evaluate("""([s, x0, x1, y]) => { for (let x = x1; x >= x0; x -= 2) { const e = document.elementFromPoint(x, y); if (e && e.closest && e.closest(s)) return x; } return null; }""", [t, r[0], r[0] + r[2], r[1] + r[3] / 2])
         a.off_click(px if px else r[0] + r[2] * 0.5, r[1] + r[3] * 0.5, lab, t, dx=0, dy=0, pause=70)
         a.move(*PARK2, 120)
-        a.wait(60)
+        a.wait(800)      # 等展開動畫與版面跳動停穩，再量捲動位置（否則量完又長高，框緣切到字）
         y3, c3, fits3 = seg_scroll(pg, sg, CROP2)     # 點開後頁面會跳動／長高 → 重新捲動定位，成分公司整塊入鏡
         a.note(f"{sg} 展開後捲到 {y3}（切字 {c3}，放得下 {fits3}）")
         a.scroll(to_y=y3, ms=350)
@@ -446,8 +455,9 @@ def run_m(a, pg, start, snap=False):
     # 1 需求（2 則泡泡）
     a.set_stage(1, "需求")
     a.say("AI 伺服器熱，誰在供貨？", "face_think_v2", ("burger",))
-    a.idle(300)
+    a.scroll(to_y=260, ms=1500)      # 開頭不靜止：總覽頁慢慢往下帶一段，再回頂（選單鈕在最上面）
     a.say("一張圖看懂零件、上下游", "magnifier", ("burger",))
+    a.scroll(to_y=0, ms=1400)
     # 2 引導
     a.set_stage(2, "引導")
     a.say("點選單，選 AI 伺服器", "point_ur_v2", ("burger", "m4ind"))
@@ -467,6 +477,8 @@ def run_m(a, pg, start, snap=False):
     a.until("() => !!document.querySelector('#dgBody .mnum')", 8000)
     a.wait(500)
     # 3 剖析圖：點編號 05，再用面板「‹」換 04、03、02
+    add_css(pg, "#mSheet{box-shadow:none!important;border-top:2px solid #cbd5e1!important}")
+    pg.evaluate("() => { const s = document.createElement('style'); s.id = '__hidemap'; s.textContent = '#chainMap{visibility:hidden!important}'; document.head.appendChild(s); }")   # 底部面板開著時，面板上緣不留被切掉的關聯圖文字
     a.set_stage(3, "剖析圖")
     a.say("點編號，看零件說明", "magic_frame", ("dg",))
     a.scroll(to_y=pg.evaluate("() => document.querySelector('#dg3d').getBoundingClientRect().top + scrollY") - 60, ms=650)
@@ -509,6 +521,7 @@ def run_m(a, pg, start, snap=False):
     a.set_stage(5, "關聯圖")
     tap_blank(a, pg, 270, 560, "點空白處收起說明面板")
     a.wait(500)
+    pg.evaluate("() => { const s = document.getElementById('__hidemap'); if (s) s.remove(); }")
     a.say("點環節，看上下游與成分公司", "talk_explain_v2", ("seg_thermal", "seg_power", "seg_assembly"))
     pg.evaluate("""() => { const m = document.querySelector('#chainMap'); const t = document.querySelector('#relSec .segbox[data-seg="thermal"]'); m.scrollLeft += t.getBoundingClientRect().left - 42; }""")
     a.scroll(to_y=pg.evaluate("() => document.querySelector('#chainMap').getBoundingClientRect().top + scrollY") - 70, ms=700)

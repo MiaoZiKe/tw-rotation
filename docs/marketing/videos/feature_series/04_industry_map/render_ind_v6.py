@@ -110,8 +110,8 @@ def build_bubbles(meta, total_raw, end_start):
 
 def render(dev, only=None):
     o = layout(dev)
-    if dev == 'm':   # 手機排行在輪盤下方（最後才捲到）→ 標題與泡泡的講法對應
-        R.SEC.update({'s3': ('看強弱', '輪盤看資金強弱', '強弱'), 's6': ('一頁看懂', '排行看流入，一頁看懂', '一頁看懂')})
+    if dev == 'm':
+        R.SEC.update({'s3': ('剖析圖', '點編號，看零件說明', '零件說明'), 's4': ('3D', '切 3D，點編號看說明', '點編號')})
     meta = json.loads((RAW / f"{dev}_main.json").read_text(encoding="utf-8"))
     src = RAW / f"{dev}_main.mp4"
     fm = meta["fm"]
@@ -372,7 +372,7 @@ def render(dev, only=None):
     (SCR / f"occlusion_rows_{dev}.md").write_text("\n".join(["遮擋（泡泡正在講的元素 × 浮層）："] + occ_rows[:500] + ["", "嚴格遮擋（浮層／游標 × 圖表標籤文字）："] + strict_rows[:500]), encoding="utf-8")
     out = dict(dev=dev, frames=n_total, body_raw=round(body, 2), total_raw=round(total, 2), final_len=round(final_len, 2), speed=SPEED, end_final=end_final,
                overlaps=len(rows), issues=len(issues), occlusion=len(occ_rows), strict=len(strict_rows), cut=len(cut_rows), slice=len(slice_rows),
-               dd_open_frames=ov_open, blur_frames_bad=blur_left, blur_frames_neutralized=blur_fixed, blur_frames_svgblur=blur_fe, blur_seen=sorted(blur_seen), push_frames=push_frames, move_frames=move_frames, strict_cursor=len(strict_rows), tooltip_frames=tip_frames, still_max_s=round(still_max[0] / FPS, 2), still_at=round(still_max[1], 2),
+               dd_open_frames=ov_open, blur_frames_bad=blur_left, blur_frames_neutralized=blur_fixed, blur_svg_defs_frames=blur_fe, blur_seen=sorted(blur_seen), push_frames=push_frames, move_frames=move_frames, strict_cursor=len(strict_rows), tooltip_frames=tip_frames, still_max_s=round(still_max[0] / FPS, 2), still_at=round(still_max[1], 2),
                clicks=click_rows, bubbles=[(round(b["t0"], 2), round(b["t1"], 2), b["text"]) for b in bubbles], stages=stages, final=str(final),
                occ_detail=occ_rows[:40], strict_detail=strict_rows[:40], slice_detail=slice_rows[:40], cut_detail=cut_rows[:40], data_date=meta.get("data_date"))
     (SCR / f"slice_rows_{dev}.md").write_text("\n".join(slice_rows[:2000] + ["", "cursor:"] + strict_rows[:2000]), encoding="utf-8")
