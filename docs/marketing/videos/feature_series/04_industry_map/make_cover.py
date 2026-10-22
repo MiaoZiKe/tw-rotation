@@ -1,7 +1,7 @@
 """功能介紹影片 04 產業地圖：封面兩張（16:9 1920×1080、9:16 1080×1920）。
 
 視覺照 docs/social_handoff/style/LIGULIGU_IG_Threads_Style_Guide.md：奶油紙底 #FFF9EF、深咖啡字 #321A14、
-珊瑚 #F58C83／蜜桃 #FFD4BA／淡黃 #FFE5A5 強調；標題 ≤ 14 字；網站畫面用錄影當下的實際畫面（v3：AI 伺服器 3D 立體剖析圖推近後的那一拍——機櫃本體＋兩側零件標籤；公司小籤已在錄影瀏覽器模糊）。
+珊瑚 #F58C83／蜜桃 #FFD4BA／淡黃 #FFE5A5 強調；標題 ≤ 14 字；網站畫面用錄影當下的實際畫面（v3：AI 伺服器 3D 立體剖析圖推近後的那一拍——機櫃本體＋兩側零件標籤；v6 起不再模糊）。
 元素外框兩兩比對（外擴 6px），有重疊就印出來。
 """
 from __future__ import annotations
@@ -27,8 +27,8 @@ YEL = (255, 229, 165)
 
 
 def shot_crop():
-    """v5：取一鏡到底網頁錄影（raw_v5/d_main）3D 段「點電源櫃之後」的那一格，裁切＝推近後的取景框（只有機櫃、右側電源櫃說明卡與左側 BBU 標籤；公司小籤已模糊）。"""
-    raw = R.SCR / "raw_v5"
+    """v6：取一鏡到底網頁錄影（raw_v6/d_main）3D 段「點電源櫃之後」的那一格，裁切＝推近後的取景框（機櫃、被點開的零件說明與兩側編號標籤；全片不模糊，公司名稱照網站原樣）。"""
+    raw = R.SCR / "raw_v6"
     js = json.loads((raw / "d_main.json").read_text(encoding="utf-8"))
     t4 = next(tt for tt, k_, _ in js["stages"] if k_ == 4)
     clicks = [c["t"] for c in js["clicks"] if "電源櫃" in (c.get("label") or "") and c["t"] > t4]

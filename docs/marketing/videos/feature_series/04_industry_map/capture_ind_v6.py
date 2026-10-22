@@ -81,7 +81,7 @@ EDGE_JS = """([x0, y0, x1, y1]) => { document.querySelectorAll('[data-edgehid]')
     const rg = document.createRange(); rg.selectNodeContents(n);
     for (const r of rg.getClientRects()) { if (r.width < 2 || r.height < 2) continue;
       const inx = Math.min(r.right, x1) - Math.max(r.left, x0) > 0, iny = Math.min(r.bottom, y1) - Math.max(r.top, y0) > 0; if (!inx || !iny) continue;
-      const cut = (r.top < y0 - 0.5 && r.bottom > y0 + 0.5) || (r.top < y1 - 0.5 && r.bottom > y1 + 0.5) || (r.left < x0 - 0.5 && r.right > x0 + 0.5) || (r.left < x1 - 0.5 && r.right > x1 + 0.5);
+      const cut = !(r.left >= x0 + 2.1 && r.right <= x1 - 2.1 && r.top >= y0 + 2.1 && r.bottom <= y1 - 2.1) && Math.min(r.right, x1) - Math.max(r.left, x0) > 0.5 && Math.min(r.bottom, y1) - Math.max(r.top, y0) > 0.5;   // 沒有完整落在「取景框內縮 2.6px」之內、卻有一部分探進取景框 → 隱藏
       if (cut) { e.setAttribute('data-edgehid', '1'); hid++; break; } } }
   return hid; }"""
 
@@ -139,7 +139,7 @@ class Rec(F.Rec):
             self._watch()
         if self.act.stage == 5 and not self.act.mob:
             try:   # 關聯圖：被畫面框邊切過一半的字（框邊 = 取景 CROP1 內縮 2.6px）整段先隱藏，不讓半截字入鏡
-                self.edge_hid = self.pg.evaluate(EDGE_JS, [CROP1[0] + 2.6, CROP1[1] + 2.6, CROP1[0] + CROP1[2] - 2.6, CROP1[1] + CROP1[3] - 2.6])
+                self.edge_hid = self.pg.evaluate(EDGE_JS, [CROP1[0], CROP1[1], CROP1[0] + CROP1[2], CROP1[1] + CROP1[3]])
             except Exception:  # noqa: BLE001
                 pass
         if self.act.stage == 4 and not self.act.mob:
@@ -441,8 +441,8 @@ def run(a, pg, start, snap=False):
         a.off_click(px if px else r[0] + r[2] * 0.5, r[1] + r[3] * 0.5, lab, t, dx=0, dy=0, pause=70)
         y3, c3, fits3 = seg_scroll(pg, sg, CROP1)     # 展開是瞬間完成（關了 CSS 轉場）→ 馬上量、馬上捲，成分公司整塊入鏡
         a.note(f"{sg} 展開後捲到 {y3}（切字 {c3}，放得下 {fits3}）")
+        a.move(*PARK2, 60)       # 游標先離開標題文字，再捲動（捲動中游標已不在字上）
         a.scroll(to_y=y3, ms=300)
-        a.move(*PARK2, 60)
         a.wait(1100)
         a.snap("s5_" + sg)
     a.settle()
@@ -464,7 +464,7 @@ def run_m(a, pg, start, snap=False):
     pg.add_style_tag(content="body{padding-bottom:900px!important}")
     pg.evaluate("() => { location.hash = '#overview'; scrollTo(0, 0); }")
     pg.wait_for_timeout(3500)
-    a.x, a.y = 270, 300
+    a.x, a.y = 2, 60          # 滑鼠停在左上角（頂欄邊緣）：頁面捲動時圖表不會因為滑鼠停在上面而跳出提示框（start() 會把滑鼠放到 a.x,a.y）
     start()
     a.cursor(False)
     # 1 需求（2 則泡泡）
