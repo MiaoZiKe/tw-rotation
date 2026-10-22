@@ -199,6 +199,7 @@ def render(dev, only=None):
                                "-c:v", "libx264", "-crf", "17", "-preset", "medium", "-pix_fmt", "yuv420p", str(out_sil)], stdin=subprocess.PIPE)
     last_k, last_img = -1, None
     rows, issues, occ_rows, strict_rows, cut_rows, slice_rows, ov_open, tip_frames = [], [], [], [], [], [], 0, 0
+    transit_rows = []
     push_frames = 0
     move_frames = 0
     blur_left = blur_fixed = blur_fe = 0
@@ -288,7 +289,13 @@ def render(dev, only=None):
                 if rect_int(cr, crop_css) > 0 and not near_click:
                     for z in txs:
                         if rect_int(z, cr) > 0:
-                            strict_rows.append(f"| {t:6.2f} | 游標蓋住文字 |")
+                            def _still(dk):
+                                f2 = fm[min(N0 - 1, max(0, k + dk))].get('cur')
+                                return f2 is not None and math.hypot(f2[0] - cxy[0], f2[1] - cxy[1]) < 3
+                            if _still(-2) and _still(2):
+                                strict_rows.append(f"| {t:6.2f} | 游標靜止壓住文字 |")
+                            else:
+                                transit_rows.append(f"| {t:6.2f} | 游標移動途中掃過文字（單格） |")
                             break
             if dev == 'm' and stg >= 5 and not moving and m.get('cc', 0) > 0:
                 slice_rows.append(f"| {t:6.2f} | 關聯圖橫向捲動容器邊緣切到 {m['cc']} 段文字 |")
@@ -389,7 +396,7 @@ def render(dev, only=None):
     (SCR / f"occlusion_rows_{dev}.md").write_text("\n".join(["遮擋（泡泡正在講的元素 × 浮層）："] + occ_rows[:500] + ["", "嚴格遮擋（浮層／游標 × 圖表標籤文字）："] + strict_rows[:500]), encoding="utf-8")
     out = dict(dev=dev, frames=n_total, body_raw=round(body, 2), total_raw=round(total, 2), final_len=round(final_len, 2), speed=SPEED, end_final=end_final,
                overlaps=len(rows), issues=len(issues), occlusion=len(occ_rows), strict=len(strict_rows), cut=len(cut_rows), slice=len(slice_rows),
-               dd_open_frames=ov_open, blur_frames_bad=blur_left, blur_frames_neutralized=blur_fixed, blur_svg_defs_frames=blur_fe, blur_seen=sorted(blur_seen), push_frames=push_frames, move_frames=move_frames, strict_cursor=len(strict_rows), tooltip_frames=tip_frames, still_max_s=round(still_max[0] / FPS, 2), still_at=round(still_max[1], 2),
+               dd_open_frames=ov_open, blur_frames_bad=blur_left, blur_frames_neutralized=blur_fixed, blur_svg_defs_frames=blur_fe, blur_seen=sorted(blur_seen), push_frames=push_frames, move_frames=move_frames, strict_cursor=len(strict_rows), cursor_transit=len(transit_rows), tooltip_frames=tip_frames, still_max_s=round(still_max[0] / FPS, 2), still_at=round(still_max[1], 2),
                clicks=click_rows, bubbles=[(round(b["t0"], 2), round(b["t1"], 2), b["text"]) for b in bubbles], stages=stages, final=str(final),
                occ_detail=occ_rows[:40], strict_detail=strict_rows[:40], slice_detail=slice_rows[:40], cut_detail=cut_rows[:40], data_date=meta.get("data_date"))
     (SCR / f"slice_rows_{dev}.md").write_text("\n".join(slice_rows[:2000] + ["", "cursor:"] + strict_rows[:2000]), encoding="utf-8")

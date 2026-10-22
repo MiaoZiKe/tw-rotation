@@ -44,7 +44,8 @@ CFG = {
 CROP = {"d": (0, 0, 1280, 678.4), "m": (0, 0, 540, 864)}   # 網頁：整個視窗入鏡（左側選單與右側卡片都不被框邊切到），進輪動頁後才單向推近
 
 # 錄影專用：客服鈕移出畫面下緣（不入鏡）；細圈漣漪（只畫圈、不上色，不蓋字）
-REC_CSS = (".rotdd[data-dd=chain] .ddpanel{flex-direction:row!important;flex-wrap:nowrap;width:max-content!important;max-width:582px!important;max-height:none!important;gap:1px}"
+REC_CSS = ("#__vc>div{background:transparent!important;box-shadow:none!important;border:3px solid rgba(37,99,235,.95)!important}"   # 手機手指圈只畫空心環（不上灰底，圈下的字不被蓋）
+           ".rotdd[data-dd=chain] .ddpanel{flex-direction:row!important;flex-wrap:nowrap;width:max-content!important;max-width:582px!important;max-height:none!important;gap:1px}"
            ".rotdd[data-dd=chain] .ddpanel .ddopt{width:auto!important;white-space:nowrap;padding:3px 4px!important;font-size:11.5px!important}.rotdd[data-dd=chain] .ddpanel .ddopt em{margin-left:4px!important}"
            ".rotdd[data-dd=group] .ddpanel{display:none!important}.rot-note{display:none!important}"
            "@media (max-width:640px){#rotTools,.rotchead,#m4RotSet{display:none!important}.rotdd[data-dd=chain] .ddpanel{max-width:480px!important;flex-wrap:wrap!important}}"
@@ -222,8 +223,9 @@ def day_label_value(pg):
 def pick_chain(a, pg, c, lab):
     """產業鏈下拉：點按鈕右側箭頭（不壓字）→ 清單展開 0.5 秒 → 點該列中間空白 → 網站自動打開族群清單 → 按 Esc 立刻收起。"""
     btn = pg.evaluate(C.RECT_JS, F.CDD + " .ddbtn")
-    a.off_click(btn[0] + btn[2] - 9, btn[1] + btn[3] / 2, "產業鏈下拉清單", F.CDD + " .ddbtn", dx=24, dy=24)
-    a.wait(260)
+    a.off_click(btn[0] + btn[2] - 9, btn[1] + btn[3] / 2, "產業鏈下拉清單", F.CDD + " .ddbtn", dx=0, dy=0)
+    a.away(200)      # 點開清單後游標先離開按鈕與清單文字，停在空白處等清單展開
+    a.wait(200)
     row = pg.evaluate(C.RECT_JS, f'{F.CDD} .ddopt[data-c="{c}"]')
     a.off_click(row[0] + row[2] * 0.5, row[1] + row[3] - 5, lab, f'{F.CDD} .ddopt[data-c="{c}"]', dx=0, dy=0)   # 點完不再逗留（清單一秒內收掉）
     if not a.mob:
@@ -295,14 +297,22 @@ def run_d(pg, a, start):
     a.settle()
 
 
-def snap_scroll(pg, y0, lo=-16, hi=16, edges=(56, 864)):
-    """手機：在 y0 附近找「畫面上緣（頂欄下緣）與下緣都不切過輪盤／排行標籤文字」的捲動位置（排行最底下一列不被畫面框邊切一半）。回傳 (y, 切字數)。"""
+def _ink(pg, y, h=3):
+    """視窗內 y～y+h（css）這條橫帶裡有沒有「深色字」的像素（亮度 < 110）→ 有＝有字被畫面上／下緣切到（圖表畫布裡的字量不到外框，改用像素判斷）。"""
+    import io
+    from PIL import Image
+    im = Image.open(io.BytesIO(pg.screenshot(clip={"x": 0, "y": y, "width": 540, "height": h}))).convert("L")
+    return sum(1 for v in im.getdata() if v < 110)
+
+
+def snap_scroll(pg, y0, lo=-40, hi=40, edges=(56, 864)):
+    """手機：在 y0 附近找「畫面上緣（頂欄下緣）與下緣都不切過任何字」的捲動位置（輪盤／排行畫布的字用像素判斷；DOM 字用外框判斷）。回傳 (y, 切字數)。"""
     best = None
     sy0 = pg.evaluate("() => scrollY")
-    for d in range(lo, hi + 1):
+    for d in range(lo, hi + 1, 2):
         y = max(0, y0 + d)
         pg.evaluate("(y) => scrollTo({top: y, behavior: 'instant'})", y)
-        pg.wait_for_timeout(30)
+        pg.wait_for_timeout(25)
         m = pg.evaluate(META_JS)
         cut = 0
         for z in m["zt"]:
@@ -310,6 +320,7 @@ def snap_scroll(pg, y0, lo=-16, hi=16, edges=(56, 864)):
             for e in edges:
                 if top < e + 3 and bot > e - 3:
                     cut += 1
+        cut += (1 if _ink(pg, 57) else 0) + (1 if _ink(pg, 860, 4) else 0)
         sc = cut * 1000 + abs(d)
         if best is None or sc < best[0]:
             best = (sc, y, cut)

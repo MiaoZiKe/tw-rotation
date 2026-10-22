@@ -43,7 +43,8 @@ CROP1 = (250, 70, 1010, 535)
 CROP2 = (748, 100, 520, 317)        # 關聯圖連點環節時的第二次單向推近：只留「散熱／電源／系統組裝」那幾欄（其他欄的字不入鏡，框邊才不會切到字）        # 推近後取景（css，視窗座標）：只留內容區（側欄推出畫面）          # 開場取景（整個視窗寬，看得到左側選單）
 CHAIN = "ai_server"
 
-REC_CSS = ("#relTip,#relStick{display:none!important}"
+REC_CSS = ("#__vc>div{background:transparent!important;box-shadow:none!important;border:3px solid rgba(37,99,235,.95)!important}"   # 手機手指圈只畫空心環（不上灰底，圈下的字不被蓋）
+           "#relTip,#relStick{display:none!important}"
            "html body #supFab,html body .supfab,html body #bibiRing,html body .bibiring{bottom:-300px!important}"
            ".__vr{width:24px!important;height:24px!important;border-width:2px!important;background:transparent!important}"
            ".reltip{margin:18px 0 0 22px!important}"
@@ -71,8 +72,9 @@ META_JS = r"""([blurSel, named]) => {
     for (const r of rs) { if (r.width < 2 || r.height < 2) continue; if (r.bottom < 0 || r.top > vh || r.right < 0 || r.left > vw) continue; if (e.closest('svg') === null && !vis(e)) continue; { const cs = getComputedStyle(e); if (cs.visibility === 'hidden' || cs.display === 'none' || +cs.opacity < 0.05) continue; } txt.push([r.left, r.top, r.width, r.height]); } }
   let cc = 0; { const cm = document.querySelector('#chainMap'); if (cm && cm.getClientRects().length) { const cr = cm.getBoundingClientRect();
     for (const t of txt) { const r = { l: t[0], t: t[1], r: t[0] + t[2], b: t[1] + t[3] }; if (r.b < cr.top || r.t > cr.bottom) continue; if ((r.l < cr.left - 0.5 && r.r > cr.left + 0.5) || (r.l < cr.right - 0.5 && r.r > cr.right + 0.5)) cc++; } } }
+  const cv = [...document.querySelectorAll('#v-industry canvas, #app canvas')].filter(c => !c.closest('#prod3d')).map(vis).filter(Boolean);
   const fab = [...document.querySelectorAll('#supFab, .supfab, #bibiRing, .bibiring')].map(vis).filter(Boolean);
-  return { el, ov, lb, txt, fab, sy: Math.round(scrollY), bf, cc }; }"""
+  return { el, ov, lb, txt, fab, sy: Math.round(scrollY), bf, cc, cv }; }"""
 
 RESOLVE_JS = """() => { const L = [...document.querySelectorAll('.lbl3d')].filter(e => getComputedStyle(e).visibility !== 'hidden').map(e => ({ e, r: e.getBoundingClientRect() }));
   for (let i = 0; i < L.length; i++) for (let j = i + 1; j < L.length; j++) { const a = L[i].r, b = L[j].r;
@@ -257,7 +259,7 @@ class A(I.A):
             return super().move(x, y, ms)
         try:
             m = self.pg.evaluate(META_JS, [BLUR_SEL, {}])
-            rects = [tuple(z) for z in m["txt"]] + [tuple(z[1:]) for z in m["lb"]]
+            rects = [tuple(z) for z in m["txt"]] + [tuple(z[1:]) for z in m["lb"]] + [tuple(z) for z in m.get("cv", [])]   # 圖表畫布（ECharts 的字畫在畫布裡，量不到文字外框）整塊當障礙
         except Exception:  # noqa: BLE001
             rects = []
         path = BF.safe_path(rects, (self.x, self.y), (x, y), W=VP["width"], H=VP["height"])

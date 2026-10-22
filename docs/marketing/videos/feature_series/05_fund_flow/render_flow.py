@@ -197,6 +197,7 @@ def render(dev, only=None):
                                "-c:v", "libx264", "-crf", "17", "-preset", "medium", "-pix_fmt", "yuv420p", str(out_sil)], stdin=subprocess.PIPE)
     last_k, last_img = -1, None
     rows, issues, occ_rows, strict_rows, cut_rows, slice_rows, ov_open, tip_frames = [], [], [], [], [], [], 0, 0
+    transit_rows = []
     push_frames = 0
     still_run, still_max, prev_pv = 0, (0, 0.0), None
     blur_left = blur_fixed = blur_fe = 0
@@ -291,14 +292,17 @@ def render(dev, only=None):
                         strict_rows.append(f"| {t:6.2f} | 游標蓋住{'輪盤' if z[0] == 0 else '排行'}標籤 |")
                         break
             if dev == 'd' and m.get("cur") and m.get("txt") and not (zoom is not None and zoom[0] <= t <= zoom[0] + zoom[1] + 0.05):   # 游標壓到任何文字（不只圖表標籤）；游標滑向被點目標、點下去的那一刻（本來就在目標上）不算
-                near_click = any(-0.9 <= t - c['t'] <= 0.3 for c in meta['clicks'])
+                near_click = any(-0.35 <= t - c['t'] <= 0.3 for c in meta['clicks'])
                 cxy = m["cur"]
                 cr_ = (cxy[0] - 3, cxy[1] - 2, 26, 30)
                 still = all(math.hypot(fm[min(N0 - 1, max(0, k + dk))]["cur"][0] - cxy[0], fm[min(N0 - 1, max(0, k + dk))]["cur"][1] - cxy[1]) < 3 for dk in (-2, 2) if fm[min(N0 - 1, max(0, k + dk))].get("cur"))   # 只算「游標停著」壓到字；移動途中掃過（單格）不算
-                if not near_click and still and rect_int(cr_, crop_css) > 0:
+                if not near_click and rect_int(cr_, crop_css) > 0:
                     for z in m["txt"]:
                         if rect_int(z, cr_) > 0:
-                            strict_rows.append(f"| {t:6.2f} | 游標蓋住文字 {[round(v) for v in z]} |")
+                            if still:
+                                strict_rows.append(f"| {t:6.2f} | 游標蓋住文字 {[round(v) for v in z]} |")
+                            else:
+                                transit_rows.append(f"| {t:6.2f} | 游標移動途中掃過文字（單格） |")
                             break
             in_push = zoom is not None and zoom[0] <= t <= zoom[0] + zoom[1] + 0.05   # 單向推近的移動中（約 0.75 秒），不算切字／裁切
             if in_push:
@@ -407,7 +411,7 @@ def render(dev, only=None):
     (SCR / f"occlusion_rows_{dev}.md").write_text("\n".join(["遮擋（泡泡正在講的元素 × 浮層）："] + occ_rows[:500] + ["", "嚴格遮擋（浮層／游標 × 圖表標籤文字）："] + strict_rows[:500]), encoding="utf-8")
     out = dict(dev=dev, frames=n_total, body_raw=round(body, 2), total_raw=round(total, 2), final_len=round(final_len, 2), speed=SPEED, end_final=end_final,
                overlaps=len(rows), issues=len(issues), occlusion=len(occ_rows), strict=len(strict_rows), cut=len(cut_rows), slice=len(slice_rows),
-               blur_frames_bad=blur_left, blur_frames_neutralized=blur_fixed, blur_frames_svgblur=blur_fe, blur_seen=sorted(blur_seen), dd_open_frames=ov_open, push_frames=push_frames, strict_panel=len([r for r in strict_rows if '面板' in r]), strict_cursor=len([r for r in strict_rows if '游標' in r]), strict_bar=len([r for r in strict_rows if '頂欄' in r]), tooltip_frames=tip_frames, still_max_s=round(still_max[0] / FPS, 2), still_at=round(still_max[1], 2),
+               blur_frames_bad=blur_left, blur_frames_neutralized=blur_fixed, blur_frames_svgblur=blur_fe, blur_seen=sorted(blur_seen), cursor_transit=len(transit_rows), dd_open_frames=ov_open, push_frames=push_frames, strict_panel=len([r for r in strict_rows if '面板' in r]), strict_cursor=len([r for r in strict_rows if '游標' in r]), strict_bar=len([r for r in strict_rows if '頂欄' in r]), tooltip_frames=tip_frames, still_max_s=round(still_max[0] / FPS, 2), still_at=round(still_max[1], 2),
                clicks=click_rows, bubbles=[(round(b["t0"], 2), round(b["t1"], 2), b["text"]) for b in bubbles], stages=stages, final=str(final),
                occ_detail=occ_rows[:40], strict_detail=strict_rows[:40], slice_detail=slice_rows[:40], cut_detail=cut_rows[:40], data_date=meta.get("data_date"))
     (SCR / f"render_{dev}.json").write_text(json.dumps(out, ensure_ascii=False, indent=1), encoding="utf-8")
