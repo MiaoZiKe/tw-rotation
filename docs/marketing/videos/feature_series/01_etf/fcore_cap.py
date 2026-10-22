@@ -104,6 +104,10 @@ BLOCKS_JS = r"""() => { const vw = innerWidth, vh = innerHeight, out = [];
     out.push([r.left, r.top, r.width, r.height]); if (out.length > 400) break; }
   return out; }"""
 
+# 模糊檢查（10-22）：視窗內任何元素的 computed filter／backdrop-filter 含 blur 就算 1 筆
+BLUR_JS = r"""() => { let n = 0; for (const e of document.body.querySelectorAll('*')) { const r = e.getBoundingClientRect(); if (r.width < 1 || r.height < 1 || r.bottom < 0 || r.top > innerHeight || r.right < 0 || r.left > innerWidth) continue;
+  const cs = getComputedStyle(e); const f = (cs.filter || '') + ' ' + (cs.backdropFilter || cs.webkitBackdropFilter || ''); if (/blur/i.test(f)) n++; } return n; }"""
+
 # 主要文字字級：被介紹元素內可見文字，依字數加權的第 25 百分位（忽略少數極小的註記）與最小值
 FONT_JS = r"""(sels) => {
   const vh = innerHeight, vw = innerWidth; const arr = [];
@@ -123,13 +127,14 @@ FONT_JS = r"""(sels) => {
 # 錄影用：隱藏 ECharts 提示框（hover 浮出的方塊會蓋住圖）
 NOTIP_CSS = ("div[style*='z-index: 9999999'],div[style*='z-index:9999999']{display:none!important;visibility:hidden!important}"
              "html,body,*{scroll-behavior:auto!important;overflow-anchor:none!important}"
-             "i.m4thumb,.m4thumb,.m4rail,div.m4rail{display:none!important}")   # 手機頁面右緣的拖曳捲軸滑塊（半透明，會蓋住右欄內容）   # 逐格捲動：站上 html 有 scroll-behavior:smooth，設 scrollTop 會變成慢慢滑、跟不上每格的設定
+             "i.m4thumb,.m4thumb,.m4rail,div.m4rail{display:none!important}"
+             "*,*::before,*::after{filter:none!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important}")   # 10-22 Andy：不准有任何模糊（含網站自己的毛玻璃頂欄）   # 手機頁面右緣的拖曳捲軸滑塊（半透明，會蓋住右欄內容）   # 逐格捲動：站上 html 有 scroll-behavior:smooth，設 scrollTop 會變成慢慢滑、跟不上每格的設定
 NOTIP_JS = ("(() => { const go = () => { const st = document.createElement('style'); st.id = '__notip'; st.textContent = %s;"
             " (document.head || document.documentElement).appendChild(st); };"
             " document.readyState === 'loading' ? document.addEventListener('DOMContentLoaded', go) : go(); })();") % json.dumps(NOTIP_CSS)
 
 # 點擊漣漪縮短到 0.35 秒（落在點擊窗口內）
-CURSOR_JS = C.CURSOR_JS.replace(".55s", ".35s").replace("}, 700)", "}, 450)").replace("background:rgba(37,99,235,.18);", "background:transparent;")   # 漣漪只留外圈，不蓋住被點的字
+CURSOR_JS = C.CURSOR_JS.replace("background:rgba(30,41,59,.28);border:2px solid rgba(255,255,255,.95);box-shadow:0 2px 8px rgba(0,0,0,.25)", "background:transparent;border:3px solid rgba(37,99,235,.9);box-shadow:none").replace(".55s", ".35s").replace("}, 700)", "}, 450)").replace("background:rgba(37,99,235,.18);", "background:transparent;")   # 漣漪只留外圈，不蓋住被點的字
 
 # 網頁固定取景版（10-22）：錄影視窗較矮，客服鈕移到畫面下緣外（只動錄影瀏覽器的 CSS，不改 site/）
 HIDE_FAB_JS = ("(() => { const go = () => { const st = document.createElement('style'); st.textContent = 'html body #supFab,html body .supfab,html body #bibiRing,html body .bibiring{bottom:-260px!important}';"
@@ -149,6 +154,7 @@ class Rec(C.Recorder):
         self.edges: list = []
         self.fabs: list = []
         self.blocks_tbl: list = []
+        self.blurs: list = []
         self.blocks_idx: list = []
         self._blk = -1
         self.items: list = []
@@ -230,6 +236,10 @@ class Rec(C.Recorder):
             except Exception:  # noqa: BLE001
                 pass
         self.blocks_idx.append(self._blk)
+        try:
+            self.blurs.append(int(self.pg.evaluate(BLUR_JS)))
+        except Exception:  # noqa: BLE001
+            self.blurs.append(-1)
         self.cur.append([round(a._cx * k, 1), round(a._cy * k, 1), 1 if a._chide else 0])
         if self.n in self.snap:
             try:
@@ -355,6 +365,24 @@ class A(C.Act):
         if not ok:
             return None
         return min(ok, key=lambda c: (c[0] - self._cx) ** 2 + (c[1] - self._cy) ** 2)
+
+    def skip_ms(self, ms):
+        """頁面切換後的進場動畫（約 1～2 秒空白／半透明）不錄：暫停錄影、頁面時鐘與動畫照走，之後才繼續錄。"""
+        rec = self.rec
+        was = rec.on if rec else False
+        if rec:
+            rec.on = False
+        n = 0
+        while n < ms:
+            self.pg.clock.run_for(33)
+            try:
+                self.pg.evaluate(C.ANIM_JS, 33)
+            except Exception:  # noqa: BLE001
+                pass
+            n += 33
+        self.note(f"快轉 {n} ms（進場動畫不錄）")
+        if rec:
+            rec.on = was
 
     def away(self, ms=150):
         """把游標移出目前的介紹區塊（往視窗邊緣最近的、不在任何被介紹元素上的位置），移完隱藏。"""
@@ -622,7 +650,7 @@ def run(dev, shots, out, port, reg, content_sel):
                     mp4 = Path(out) / f"{dev}_{sid}.mp4"
                     r = rec.stop(mp4)
                     content = pg.evaluate("(s) => { const e = document.querySelector(s); if (!e) return [0, innerWidth]; const r = e.getBoundingClientRect(); return [r.left, r.right]; }", content_sel)
-                    r.update(fabs=rec.fabs, blocks_tbl=rec.blocks_tbl, blocks_idx=rec.blocks_idx, edges=rec.edges, items=rec.items, occ=rec.occ, cur=rec.cur, mob=(dev == "m"), size=[W, H], dsf=a.dsf,
+                    r.update(blurs=rec.blurs, fabs=rec.fabs, blocks_tbl=rec.blocks_tbl, blocks_idx=rec.blocks_idx, edges=rec.edges, items=rec.items, occ=rec.occ, cur=rec.cur, mob=(dev == "m"), size=[W, H], dsf=a.dsf,
                              content_x=[round(v * a.dsf) for v in content], says=a.says, marks=a.marks, cams=rec.cams, clicks=a.targets,
                              fonts=a.fonts, steps=a.log, errs=errs[:5], data_date=site_meta.get("data_date"))
                     occ_rows, cur_rows, wins = analyze(r, a.dsf)

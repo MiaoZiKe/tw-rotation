@@ -3,7 +3,7 @@
 主線（一口氣、單向往下走，不在分頁間來回跳）：
   需求一句 → 左側選單點「ETF」進配息行事曆 → 連點三個日期看當天清單、點一檔看歷年配息
   → 選單點「ETF 總覽」→ 連點三個類型分頁（下方卡片同步換）→ 看報酬率／殖利率前 5 的口徑
-  → 捲到報酬比較：「加入比較」搜尋勾選兩檔 → 看走勢與年化 → 含息／不含息連切。
+  → 捲到報酬比較：看走勢從 0% 一起比 → 年化報酬長條（網頁版另切含息／不含息）。
 一律「未登入訪客」真實畫面；ECharts 提示框關掉；不放任何浮層蓋住介紹中的元素（取景讓它落在旁邊，或分兩拍）。
 
 用法（repo 根目錄，先 SKIP_INTRADAY=1 python -m pipeline.build_payload）：
@@ -196,25 +196,6 @@ def m_main(pg, a, start):
     a.step("ret")
     a.cam_view("捲動")
     a.scroll_to_el("#etfRetCard", 100, 800)
-    a.cam(["#etfRetCard .row.spread", "#etfRetCtl"], 6, "加入比較")
-    a.say("挑兩檔進報酬比較", "talk_explain_v2")
-    DD = ["#etfCmpDD .ddbtn", "#etfCmpDD .ddpanel"]
-    a.on_up = lambda: a.cam(DD, 0, "下拉清單（只框清單）", exact=True, settle=False)
-    a.click("#etfCmpDD .ddbtn", label="加入比較")
-    a.wait(500)
-    a.click("#etfCmpDD .sndd-q", label="搜尋框")
-    a.type_text("00939", 130)
-    a.wait(400)
-    a.click('#etfCmpDD .ddopt[data-n^="00939"] label', label="勾選第一檔")
-    a.wait(500)
-    a.pg.locator("#etfCmpDD .sndd-q").first.fill("")
-    a.type_text("00940", 130)
-    a.wait(400)
-    a.click('#etfCmpDD .ddopt[data-n^="00940"] label', label="勾選第二檔")
-    a.wait(500)
-    a.on_up = lambda: a.cam_view("面板收起")
-    a.click("#etfCmpDD .ddbtn", label="收起清單")
-    a.wait(900)
     a.cam_view("捲動")
     a.scroll_to_el("#etfRetLine", 110, 700)
     a.cam(["#etfRetLineTtl", "#etfRetLine"], 6, "累積報酬走勢")
