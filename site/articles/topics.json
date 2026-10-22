@@ -1,6 +1,117 @@
 {
- "updated": "2026-10-21",
+ "updated": "2026-10-22",
  "topics": [
+  {
+   "id": "n_fed_hike_why",
+   "cat": "news",
+   "title": "通膨回升、Fed 為何一路升息到 12 月",
+   "why": "美國 9 月 CPI 年增 3.7%（預期 3.6%、8 月 3.4%），CME 顯示 12 月再升息機率約 94%（2026-10-14 前後，來源 Investing Live、RealEstateNews）；以因果解釋為主，避開與既有 FOMC 預告題重複。",
+   "score": 4,
+   "format_hint": "兩者",
+   "added": "2026-10-22",
+   "site_links": [
+    "#flow",
+    "#overview"
+   ]
+  },
+  {
+   "id": "n_50k_margin",
+   "cat": "news",
+   "title": "台股逼近 5 萬點：融資 3100 億代表什麼",
+   "why": "台股上週四收 49,313.44 點、50,000 點關卡在前；有分析指融資餘額超過 3,100 億元、指數本益比逾 17 倍（中央社 2026-10-11 等），大家想知道漲到這裡風險在哪。發稿前須補查本週最新數字。",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-10-22",
+   "site_links": [
+    "#overview",
+    "#flow"
+   ]
+  },
+  {
+   "id": "n_tsmc_2500",
+   "cat": "news",
+   "title": "台積電站穩 2500 元：權重股為何牽動整個大盤",
+   "why": "中央社 2026-10-11 報導台積電股價站穩 2,500 元、10/15 法說會為焦點；讀者常問為何大盤跟著台積電走。發稿前須補查最新股價與權重數字，並避開已有的法說會五個數字題。",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-10-22",
+   "site_links": [
+    "#overview",
+    "#industry/group/foundry"
+   ]
+  },
+  {
+   "id": "i_air_cooling",
+   "cat": "intro",
+   "title": "氣冷散熱鏈：風扇、鰭片到機殼風道",
+   "why": "站內已有氣冷 3D 場景與族群頁，AI 伺服器散熱常被問到「氣冷還能撐多久、何時換液冷」；講環節分工，不排受惠。",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-10-22",
+   "site_links": [
+    "#industry/group/air_cooling"
+   ]
+  },
+  {
+   "id": "i_foundry_chain",
+   "cat": "intro",
+   "title": "晶圓代工鏈：矽晶圓、設備到封測怎麼銜接",
+   "why": "站內有晶圓代工 3D 與族群頁；已上架「IC 代工是什麼」，本題改講上下游環節與銜接，需附供應鏈圖。",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-10-22",
+   "site_links": [
+    "#industry/group/foundry"
+   ]
+  },
+  {
+   "id": "i_connector_chain",
+   "cat": "intro",
+   "title": "高速傳輸鏈：連接器、線纜到伺服器內部走線",
+   "why": "站內有高速連接器 3D 與族群頁 ai_interconnect；AI 機櫃內部傳輸分工常被問，需附供應鏈圖，講環節不排受惠。",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-10-22",
+   "site_links": [
+    "#industry/group/ai_interconnect"
+   ]
+  },
+  {
+   "id": "k_air_cooling",
+   "cat": "know",
+   "title": "氣冷散熱是什麼？風扇拆開看熱怎麼交給空氣",
+   "why": "站內有氣冷 3D 場景 air_cooling（#industry/group/air_cooling），已有水冷知識題，本題補氣冷原理與極限；文章＋3D 圖。",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-10-22",
+   "site_links": [
+    "#industry/group/air_cooling"
+   ]
+  },
+  {
+   "id": "k_resistor_protect",
+   "cat": "know",
+   "title": "保護元件是什麼？四顆被動保護零件各切一半",
+   "why": "站內有被動保護 3D 場景 resistor_protect（#industry/group/resistor_protect），尚未有對應知識題；文章＋3D 圖。",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-10-22",
+   "site_links": [
+    "#industry/group/resistor_protect"
+   ]
+  },
+  {
+   "id": "k_motion_axis",
+   "cat": "know",
+   "title": "線性滑軌與伺服軸是什麼？一個會動的軸拆開",
+   "why": "站內有工業自動化 3D 場景 motion_axis（#industry/group/factory_automation），已有自動化產業鏈題，本題補零件原理；文章＋3D 圖。",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-10-22",
+   "site_links": [
+    "#industry/group/factory_automation"
+   ]
+  },
   {
    "id": "n_rotate_out_ai",
    "cat": "news",
