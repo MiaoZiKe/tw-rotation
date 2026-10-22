@@ -78,3 +78,7 @@ tw-backup/
 tw-restore/
 *.bak
 *.sql.gz
+
+# 2026-10-22 App 上架：簽章金鑰永遠不進 repo（app/android/README.md）
+*.keystore
+*.jks

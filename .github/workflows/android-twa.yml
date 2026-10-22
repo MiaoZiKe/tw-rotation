@@ -1,0 +1,129 @@
+name: Android App 打包（TWA，手動）
+
+# 2026-10-22 新增（docs/app_store_plan.md 第 ⑤ 節）：把 https://liguligu-puipui.com/ 用 Bubblewrap 包成 Google Play 要的 AAB。
+#
+# ★ 預設是關著的：要同時滿足下面兩件事才會真的跑
+#   1. repo 的 Actions「變數」（Settings → Secrets and variables → Actions → Variables）有 ANDROID_TWA_ENABLED = true
+#   2. 三個 Secret 都在：
+#        ANDROID_KEYSTORE_BASE64    上傳金鑰（.keystore 檔）的 base64
+#        ANDROID_KEYSTORE_PASSWORD  keystore 密碼
+#        ANDROID_KEY_PASSWORD       金鑰（alias＝liguligu）密碼
+#   沒設變數 → 整個 job 直接略過（灰色），不會變紅；設了變數但缺 Secret → 第一步就停並寫清楚缺哪一個。
+#
+# ⚠ 金鑰、密碼一律只放 GitHub Secrets，不准進 repo（這是 public repo）。產生方式見 app/android/README.md。
+# ⚠ 只會觸發在 workflow_dispatch（手動），不會因為 push 自動跑，也不會碰 pages.yml 的部署。
+# ⚠ 產物（AAB／APK）只放在這次 run 的 Artifacts，保留 7 天；不 commit 回 repo。
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_code:
+        description: "versionCode（整數，每次上傳 Play 都要比上一次大）"
+        required: true
+        default: "1"
+      version_name:
+        description: "versionName（顯示給使用者看的版號，例如 1.0.0）"
+        required: true
+        default: "1.0.0"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: android-twa
+  cancel-in-progress: false
+
+jobs:
+  build:
+    if: ${{ vars.ANDROID_TWA_ENABLED == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            app/android
+          sparse-checkout-cone-mode: true
+
+      - name: 檢查三個 Secret 都在
+        env:
+          KS_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KS_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_PASS: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          miss=""
+          [ -n "$KS_B64" ]  || miss="$miss ANDROID_KEYSTORE_BASE64"
+          [ -n "$KS_PASS" ] || miss="$miss ANDROID_KEYSTORE_PASSWORD"
+          [ -n "$KEY_PASS" ] || miss="$miss ANDROID_KEY_PASSWORD"
+          if [ -n "$miss" ]; then
+            echo "::error::缺 Secret：$miss（設定方式見 app/android/README.md）"
+            exit 1
+          fi
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: 安裝 Bubblewrap 1.27.0（targetSdk 36，符合 Play 2026-08-31 起的要求）
+        run: npm i -g @bubblewrap/cli@1.27.0
+
+      - name: 寫 Bubblewrap 設定（指到 runner 內建的 JDK 與 Android SDK，避免互動式安裝）
+        run: |
+          mkdir -p ~/.bubblewrap
+          python3 -c "import json,os; json.dump({'jdkPath': os.environ['JAVA_HOME'], 'androidSdkPath': os.environ['ANDROID_HOME']}, open(os.path.expanduser('~/.bubblewrap/config.json'),'w'))"
+          cat ~/.bubblewrap/config.json
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
+
+      - name: 準備建置資料夾（複製 twa-manifest、填版號、還原金鑰）
+        env:
+          KS_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          VCODE: ${{ inputs.version_code }}
+          VNAME: ${{ inputs.version_name }}
+        run: |
+          mkdir -p build
+          python3 - <<'PY'
+          import json, os
+          m = json.load(open('app/android/twa-manifest.json', encoding='utf-8'))
+          m['appVersionCode'] = int(os.environ['VCODE'])
+          m['appVersionName'] = os.environ['VNAME']
+          json.dump(m, open('build/twa-manifest.json', 'w', encoding='utf-8'), ensure_ascii=False, indent=2)
+          PY
+          echo "$KS_B64" | base64 -d > build/android.keystore
+          test -s build/android.keystore
+
+      - name: 產生 Android 專案
+        working-directory: build
+        run: bubblewrap update --skipVersionUpgrade --manifest=./twa-manifest.json --directory=.
+
+      - name: 建置並簽章（AAB ＋ APK）
+        working-directory: build
+        env:
+          BUBBLEWRAP_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          BUBBLEWRAP_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: bubblewrap build --skipPwaValidation --manifest=./twa-manifest.json --directory=.
+
+      - name: 印出上傳金鑰的 SHA-256（填 site/.well-known/assetlinks.json 用）
+        working-directory: build
+        env:
+          KS_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+        run: |
+          keytool -list -v -keystore android.keystore -alias liguligu -storepass "$KS_PASS" | grep -E "SHA256:" | sed 's/^/上傳金鑰 /'
+          echo "⚠ 正式上架後，Play 會用自己的「應用程式簽署金鑰」重簽；那把的 SHA-256 在 Play Console → 測試與發布 → 應用程式完整性，兩把都要填進 assetlinks.json。"
+
+      - name: 刪掉還原出來的金鑰（不留在 runner 上）
+        if: always()
+        run: rm -f build/android.keystore
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: liguligu-android-${{ inputs.version_name }}-${{ inputs.version_code }}
+          path: |
+            build/app-release-bundle.aab
+            build/app-release-signed.apk
+          retention-days: 7
+          if-no-files-found: error
