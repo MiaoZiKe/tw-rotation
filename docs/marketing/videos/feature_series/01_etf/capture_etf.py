@@ -27,8 +27,8 @@ from fcore_cap import goto, rel, scroll_to  # noqa: E402,F401
 SCR = Path(os.environ.get("FEAT_SCR", "/tmp/claude-0/-home-user-tw-rotation/3d7a42eb-0e07-50fa-8c50-cf31c62d682f/scratchpad/redo/01"))
 # ETF 一覽的分組預設全部收起 → 頁面太短、報酬比較卡捲不上來：錄影的瀏覽器預先把各分類的分組都展開（只動 localStorage，不改 site/）
 _FOLD = "try{localStorage.setItem('tw.etf.fold',JSON.stringify({'配息型':[],'市值型':[],'主題型':[],'主動式':[],'債券型':[],'槓桿反向':[],'其他':[]}))}catch(e){}"
-F.CFG.update(scr=SCR, vp_d={"width": 1680, "height": 900}, init=[_FOLD])
-F.DEVS["d"] = dict(viewport={"width": 1680, "height": 900}, device_scale_factor=2)
+F.CFG.update(scr=SCR, vp_d={"width": 1720, "height": 900}, init=[_FOLD])
+F.DEVS["d"] = dict(viewport={"width": 1720, "height": 900}, device_scale_factor=2)
 
 def cal_cell(d):
     return f'#etfCalGrid .cald[data-d="{d}"]'
@@ -53,7 +53,9 @@ def d_main(pg, a, start):
     a.say("哪天除息？哪檔配得多？", "face_think_v2")
     a.idle(1900)
     # ② 引導：左側選單點「ETF」（點下去直接進配息行事曆）
-    a.cam(['#tabs .tab[data-view="etf"]'], 6, "選單：ETF")
+    a.cam_view("側欄捲動")
+    a.side_mid('#tabs .tab[data-view="etf"]', 0.42, 400)
+    a.cam(['#tabs .tab[data-view="etf"]'], 6, "選單：ETF", minw=270)
     a.say("選單點「ETF」進專區", "point_r_v2")
     a.idle(500)
     a.click('#tabs .tab[data-view="etf"]', label="選單：ETF")
@@ -89,7 +91,9 @@ def d_main(pg, a, start):
     a.away(150)
     a.idle(1800)
     # ④ ETF 總覽：選單點「ETF 總覽」
-    a.cam([sub("配息行事曆"), sub("ETF 總覽")], 4, "選單：ETF 總覽")
+    a.cam_view("側欄捲動")
+    a.side_mid(sub("ETF 總覽"), 0.42, 400)
+    a.cam([sub("配息行事曆"), sub("ETF 總覽")], 4, "選單：ETF 總覽", minw=270)
     a.say("想比同類？點「ETF 總覽」", "talk_explain_v2")
     a.idle(300)
     a.click(sub("ETF 總覽"), label="選單：ETF 總覽")
@@ -117,8 +121,10 @@ def d_main(pg, a, start):
     a.scroll_to_el("#etfRetCard", 66, 800)
     a.note(f"頁高 {pg.evaluate('() => [document.scrollingElement.tagName, document.scrollingElement.scrollHeight, innerHeight, document.querySelector(\"#etfListCard\").getBoundingClientRect().height, getComputedStyle(document.documentElement).scrollBehavior]')}")
     a.note(f"捲到報酬比較：scrollY={pg.evaluate('() => scrollY')} 卡片上緣={pg.evaluate('() => document.querySelector(\"#etfRetCard\").getBoundingClientRect().top')}")
-    a.cam(["#etfRetCtl", "#etfCmpDD .ddpanel"], 8, "加入比較")
+    a.cam(["#etfCmpDD .ddbtn", "#etfBasisSeg"], 8, "加入比較")
     a.say("挑兩檔進報酬比較", "talk_explain_v2")
+    DD = ["#etfCmpDD .ddbtn", "#etfCmpDD .ddpanel", "#etfBasisSeg"]
+    a.on_up = lambda: a.cam(DD, 0, "下拉清單（只框清單）", exact=True, settle=False)   # 清單展開那一格就只框清單，圖不入鏡
     a.click("#etfCmpDD .ddbtn", label="加入比較")
     a.wait(500)
     a.click("#etfCmpDD .sndd-q", label="搜尋框")
@@ -131,9 +137,8 @@ def d_main(pg, a, start):
     a.wait(400)
     a.click('#etfCmpDD .ddopt[data-n^="00940"] label', label="勾選第二檔")
     a.wait(500)
+    a.on_up = lambda: a.cam(["#etfRetLineTtl", "#etfRetLine"], 8, "累積報酬走勢", settle=False)   # 收起那一格才拉回圖
     a.click("#etfCmpDD .ddbtn", label="收起清單")
-    a.wait(500)
-    a.cam(["#etfRetLineTtl", "#etfRetLine"], 8, "累積報酬走勢")
     a.say("走勢從 0% 一起比", "point_r_v2")
     a.idle(1500)
     a.cam(["#etfBasisSeg", "#etfRetBarTtl", "#etfRetBar"], 8, "含息切換與年化")
@@ -164,7 +169,7 @@ def m_main(pg, a, start):
     a.say("點左上角選單", "point_ur_v2")
     a.click("#m4Burger", label="選單", hold=300)
     a.wait(800)
-    a.cam(['.m4item[data-v="etf"]', '.m4item[data-v="industry"]'], 10, "選單抽屜")
+    a.cam(["#m4Drawer"], 0, "選單抽屜", exact=2)
     a.say("再點「ETF」進專區", "point_r_v2")
     a.idle(400)
     a.click('.m4item[data-v="etf"]', label="選單：ETF")
@@ -223,8 +228,10 @@ def m_main(pg, a, start):
     a.step("ret")
     a.cam_view("捲動")
     a.scroll_to_el("#etfRetCard", 100, 800)
-    a.cam(["#etfRetCard .row.spread", "#etfRetCtl", "#etfCmpDD .ddpanel"], 6, "加入比較")
+    a.cam(["#etfRetCard .row.spread", "#etfRetCtl"], 6, "加入比較")
     a.say("挑兩檔進報酬比較", "talk_explain_v2")
+    DD = ["#etfCmpDD .ddbtn", "#etfCmpDD .ddpanel"]
+    a.on_up = lambda: a.cam(DD, 0, "下拉清單（只框清單）", exact=True, settle=False)
     a.click("#etfCmpDD .ddbtn", label="加入比較")
     a.wait(500)
     a.click("#etfCmpDD .sndd-q", label="搜尋框")
@@ -237,8 +244,9 @@ def m_main(pg, a, start):
     a.wait(400)
     a.click('#etfCmpDD .ddopt[data-n^="00940"] label', label="勾選第二檔")
     a.wait(500)
+    a.on_up = lambda: a.cam_view("面板收起")
     a.click("#etfCmpDD .ddbtn", label="收起清單")
-    a.wait(500)
+    a.wait(900)
     a.cam_view("捲動")
     a.scroll_to_el("#etfRetLine", 110, 700)
     a.cam(["#etfRetLineTtl", "#etfRetLine"], 6, "累積報酬走勢")

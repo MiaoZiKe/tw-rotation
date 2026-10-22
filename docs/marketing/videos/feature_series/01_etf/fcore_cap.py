@@ -91,6 +91,19 @@ FRAME_JS = r"""([sels, pad, frame, edges, also]) => {
     if (x1 > x0) fab = [x0, y0, x1 - x0, y1 - y0]; }
   return { focus, cam, edges: ed, items, occ, fab }; }"""
 
+# 「卡片」外框：有邊框或陰影＋圓角、夠大的方塊（取景框的邊不准切過它；整頁級的大容器不算）
+BLOCKS_JS = r"""() => { const vw = innerWidth, vh = innerHeight, out = [];
+  const all = document.body.querySelectorAll('div,section,article,aside,nav,table,ul,form,main,header');
+  for (const e of all) { const r = e.getBoundingClientRect();
+    if (r.width < 180 || r.height < 30 || r.right < 0 || r.left > vw || r.bottom < 0 || r.top > vh) continue;
+    if (r.width >= vw * 0.97 && r.height >= vh * 0.9) continue;
+    const cs = getComputedStyle(e); if (cs.visibility === 'hidden' || cs.display === 'none') continue;
+    const rad = parseFloat(cs.borderTopLeftRadius) || 0; const bw = parseFloat(cs.borderTopWidth) || 0;
+    const sh = cs.boxShadow && cs.boxShadow !== 'none';
+    if (!((rad >= 4 && (bw >= 1 || sh)) || (sh && r.width > 200))) continue;
+    out.push([r.left, r.top, r.width, r.height]); if (out.length > 400) break; }
+  return out; }"""
+
 # 主要文字字級：被介紹元素內可見文字，依字數加權的第 25 百分位（忽略少數極小的註記）與最小值
 FONT_JS = r"""(sels) => {
   const vh = innerHeight, vw = innerWidth; const arr = [];
@@ -131,6 +144,9 @@ class Rec(C.Recorder):
         self.cams: list = []
         self.edges: list = []
         self.fabs: list = []
+        self.blocks_tbl: list = []
+        self.blocks_idx: list = []
+        self._blk = -1
         self.items: list = []
         self.occ: list = []
         self.cur: list = []
@@ -198,11 +214,18 @@ class Rec(C.Recorder):
             self.items.append([])
             self.occ.append([])
         else:
-            self.cams.append([a.cam_id] + sc(r["cam"]) + [round((spec[4] or 0) * k, 1), sc(r["focus"]), 1 if spec[6] else 0])
+            self.cams.append([a.cam_id] + sc(r["cam"]) + [round((spec[4] or 0) * k, 1), sc(r["focus"]), 1 if spec[6] else 0, int(spec[8]) if len(spec) > 8 and spec[8] else 0])
             self.edges.append([sc(e) for e in r["edges"]])
             self.items.append([sc(e) for e in r["items"]])
             self.occ.append(r["occ"])
         self.fabs.append(sc(r["fab"]) if r and r.get("fab") else None)
+        if self.n % 3 == 0 or self._blk < 0:
+            try:
+                self.blocks_tbl.append([sc(b) for b in self.pg.evaluate(BLOCKS_JS)])
+                self._blk = len(self.blocks_tbl) - 1
+            except Exception:  # noqa: BLE001
+                pass
+        self.blocks_idx.append(self._blk)
         self.cur.append([round(a._cx * k, 1), round(a._cy * k, 1), 1 if a._chide else 0])
         if self.n in self.snap:
             try:
@@ -239,14 +262,14 @@ class A(C.Act):
             if cur is None or f[0] < cur[1]:
                 self.fonts[self.cam_id] = [lab, f[0], f[1], f[2]]
 
-    def cam(self, sels, pad=12, label="", frame=None, minw=None, edges=None, zoom=False, also=None, settle=True):
+    def cam(self, sels, pad=12, label="", frame=None, minw=None, edges=None, zoom=False, also=None, settle=True, exact=False):
         """sels＝介紹的區塊（每個元素各自檢查遮擋）；frame＝取景框；minw＝取景最小寬（css）；edges＝不准被框邊切過的卡片；zoom＝推近拍。"""
         if settle:
             self.settle()
         self._probe_font()   # 上一拍結束時的畫面再量一次字級
         if isinstance(sels, str):
             sels = [sels]
-        self.cam_spec = ("sel", list(sels), pad, frame, minw, list(edges or []), zoom, list(also or []))
+        self.cam_spec = ("sel", list(sels), pad, frame, minw, list(edges or []), zoom, list(also or []), exact)
         self.cam_id += 1
         self._label = label or ",".join(sels)
         self.marks.append([round(self.t, 3), "cam", self._label])
@@ -401,7 +424,22 @@ class A(C.Act):
             cb()
         self.frame()
         self.pg.mouse.up()
+        cb2 = getattr(self, "on_up", None)
+        if cb2:   # 放開瞬間網站會收起／展開面板：取景在放開後的第一格就換
+            self.on_up = None
+            cb2()
         self.frame()
+
+    SIDE_MID_JS = r"""([sel, frac]) => { const e = document.querySelector(sel); if (!e) return null;
+      let p = e.parentElement; while (p && p !== document.body) { const cs = getComputedStyle(p); if (/(auto|scroll)/.test(cs.overflowY) && p.scrollHeight > p.clientHeight + 2) break; p = p.parentElement; }
+      if (!p || p === document.body) return null; const r = e.getBoundingClientRect(), pr = p.getBoundingClientRect();
+      const want = pr.top + pr.height * frac; if (!p.id) p.id = '__vside'; return ['#' + p.id, Math.max(0, p.scrollTop + r.top + r.height / 2 - want)]; }"""
+
+    def side_mid(self, sel, frac=0.4, ms=500):
+        """左側選單捲到讓目標項目落在選單高度的 frac 處（取景下緣才不會切到選單被裁掉的半行字）。"""
+        r = self.pg.evaluate(self.SIDE_MID_JS, [sel, frac])
+        if r:
+            self.scroll(to_y=r[1], ms=ms, el=r[0])
 
     def hscroll(self, sel, to_x=None, by=None, ms=900):
         x0, mx = self.pg.evaluate("(s) => { const e = document.querySelector(s); return e ? [e.scrollLeft, e.scrollWidth - e.clientWidth] : [0, 0]; }", sel)
@@ -580,7 +618,7 @@ def run(dev, shots, out, port, reg, content_sel):
                     mp4 = Path(out) / f"{dev}_{sid}.mp4"
                     r = rec.stop(mp4)
                     content = pg.evaluate("(s) => { const e = document.querySelector(s); if (!e) return [0, innerWidth]; const r = e.getBoundingClientRect(); return [r.left, r.right]; }", content_sel)
-                    r.update(fabs=rec.fabs, edges=rec.edges, items=rec.items, occ=rec.occ, cur=rec.cur, mob=(dev == "m"), size=[W, H], dsf=a.dsf,
+                    r.update(fabs=rec.fabs, blocks_tbl=rec.blocks_tbl, blocks_idx=rec.blocks_idx, edges=rec.edges, items=rec.items, occ=rec.occ, cur=rec.cur, mob=(dev == "m"), size=[W, H], dsf=a.dsf,
                              content_x=[round(v * a.dsf) for v in content], says=a.says, marks=a.marks, cams=rec.cams, clicks=a.targets,
                              fonts=a.fonts, steps=a.log, errs=errs[:5], data_date=site_meta.get("data_date"))
                     occ_rows, cur_rows, wins = analyze(r, a.dsf)

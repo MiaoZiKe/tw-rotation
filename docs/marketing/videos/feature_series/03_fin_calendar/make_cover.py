@@ -16,7 +16,8 @@ from PIL import Image, ImageDraw, ImageFilter
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
-import render_cal as R  # noqa: E402
+sys.path.insert(0, str(HERE.parent / '01_etf'))
+import fcore_ren as R  # noqa: E402
 
 PAPER = (255, 249, 239)
 INK = (50, 26, 20)
@@ -28,14 +29,16 @@ YEL = (255, 229, 165)
 
 def shot_crop():
     """d_fed：點完 CPI、面板出現說明卡的那一刻（FED 數據，畫面沒有個股）；裁月曆右半＋面板。"""
-    js = json.loads((R.RAW / "d_fed.json").read_text(encoding="utf-8"))
+    js = json.loads((Path('/tmp/claude-0/-home-user-tw-rotation/3d7a42eb-0e07-50fa-8c50-cf31c62d682f/scratchpad/redo/03/raw4') / 'd_main.json').read_text(encoding="utf-8"))
     t = [x for x in js["says"] if "是什麼" in x["text"]][0]["t"] + 0.9
-    cap = cv2.VideoCapture(str(R.RAW / "d_fed.mp4"))
+    cap = cv2.VideoCapture(str(Path('/tmp/claude-0/-home-user-tw-rotation/3d7a42eb-0e07-50fa-8c50-cf31c62d682f/scratchpad/redo/03/raw4') / 'd_main.mp4'))
     cap.set(cv2.CAP_PROP_POS_FRAMES, int(t * 30))
     ok, fr = cap.read()
     im = Image.fromarray(cv2.cvtColor(fr, cv2.COLOR_BGR2RGB))
     W, H = im.size
-    return im.crop((int(W * 0.30), int(H * 0.118), int(W * 0.985), int(H * 0.80))), None
+    k = min(int(t * 30), 10**6)
+    trk = json.loads((Path("/tmp/claude-0/-home-user-tw-rotation/3d7a42eb-0e07-50fa-8c50-cf31c62d682f/scratchpad/redo/03/raw4") / "d_trk.json").read_text())["cams"][k]
+    return im.crop((int(trk[0]), int(trk[1]), int(trk[0] + trk[2]), int(trk[1] + trk[3]))), None
 
 
 def sticker(im, w, radius=34, border=14):

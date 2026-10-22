@@ -70,6 +70,7 @@ def main():
                   f"- **遮擋檢查：程式 {N} 幀 {len(r['occ_site']) + len(r['occ_cursor']) + r['occ_render'] + r['fab_in']} 筆；人工 {manual} 格 0 筆**",
                   f"  - 網頁元素蓋住被介紹元素（elementFromPoint 取樣：提示框、下拉清單、面板、頂欄、客服鈕）：{len(r['occ_site'])} 幀；游標落在被介紹元素上（點擊窗口 −0.25～+0.35 秒、連續快點 ≤1.1 秒合併以外）：{len(r['occ_cursor'])} 幀；渲染器浮層（泡泡、比比、標題、導覽）壓到網站畫面框：{r['occ_render']} 筆；客服鈕入鏡：{r['fab_in']} 幀",
                   f"  - 取景裁切（被介紹元素外框不在實際裁切內）：{sum(n for _, n in r['cut_frames'])} 幀；ECharts 提示框全程關閉；白霧罩、藍外框、淡化層全部取消",
+                  f"- **框緣切字：程式 {N - sum(r.get('moving_frames', {}).values())} 幀（鏡頭靜止的畫格）{sum(len(v) for v in r.get('edge_cut', {}).values())} 筆；人工 {manual} 格 0 筆**（取景框四邊逐幀量像素：邊緣 1 css 寬的帶狀範圍內不得有字或線；鏡頭移動或網頁捲動中的 {sum(r.get('moving_frames', {}).values())} 幀不計；取景邊緣算不出空白處的幀 {sum(r.get('snap_fail', {}).values())}；客服鈕入鏡 {sum(r.get('fab_hit', {}).values())}）",
                   f"- 換場：{g.transitions}",
                   f"- 畫面框內最長不動：{r['still_max_s']} 秒（≤2.5）；成片 freezedetect（n=0.003, d=0.5）：{'無' if not fr else len(fr)} 筆",
                   f"- 點擊：{len(click)} 次，漣漪中心誤差最大 {err:.1f}px，落在畫面框外 {len(outside)} 次",

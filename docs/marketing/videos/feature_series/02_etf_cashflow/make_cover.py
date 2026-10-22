@@ -16,7 +16,8 @@ from PIL import Image, ImageDraw, ImageFilter
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
-import render_cf as R  # noqa: E402
+sys.path.insert(0, str(HERE.parent / '01_etf'))
+import fcore_ren as R  # noqa: E402
 
 PAPER = (255, 249, 239)
 INK = (50, 26, 20)
@@ -27,16 +28,17 @@ YEL = (255, 229, 165)
 
 
 def shot_crop():
-    meta = json.loads((R.RAW / "d_inc.json").read_text(encoding="utf-8"))
-    t = [x for x in meta["says"] if "切組合" in x["text"]][0]["t"] + 2.6   # 組合 B：圓餅＋12 個月時鐘＋明細
-    cap = cv2.VideoCapture(str(R.RAW / "d_inc.mp4"))
+    meta = json.loads((Path('/tmp/claude-0/-home-user-tw-rotation/3d7a42eb-0e07-50fa-8c50-cf31c62d682f/scratchpad/redo/02/raw4') / 'd_main.json').read_text(encoding="utf-8"))
+    t = [x for x in meta["says"] if "切組合" in x["text"]][0]["t"] + 1.5   # 組合 B：圓餅＋12 個月時鐘＋明細
+    cap = cv2.VideoCapture(str(Path('/tmp/claude-0/-home-user-tw-rotation/3d7a42eb-0e07-50fa-8c50-cf31c62d682f/scratchpad/redo/02/raw4') / 'd_main.mp4'))
     cap.set(cv2.CAP_PROP_POS_FRAMES, int(t * 30))
     ok, fr = cap.read()
     im = Image.fromarray(cv2.cvtColor(fr, cv2.COLOR_BGR2RGB))
-    js = json.loads((R.RAW / "d_inc.json").read_text(encoding="utf-8"))
+    js = json.loads((Path('/tmp/claude-0/-home-user-tw-rotation/3d7a42eb-0e07-50fa-8c50-cf31c62d682f/scratchpad/redo/02/raw4') / 'd_main.json').read_text(encoding="utf-8"))
     k = min(int(t * 30), len(js["cams"]) - 1)
-    _cid, x, y, w, h = js["cams"][k]   # 這一刻鏡頭框住的範圍（組合分頁＋圓餅＋時鐘），影片像素
-    return im.crop((int(x), int(y), int(x + w), int(y + h))), None
+    trk = json.loads((Path("/tmp/claude-0/-home-user-tw-rotation/3d7a42eb-0e07-50fa-8c50-cf31c62d682f/scratchpad/redo/02/raw4") / "d_trk.json").read_text())["cams"][k]
+    _cid, x, y, w, h = js["cams"][k][:5]   # 這一刻鏡頭框住的範圍（組合分頁＋圓餅＋時鐘），影片像素
+    return im.crop((int(trk[0]), int(trk[1]), int(trk[0] + trk[2]), int(trk[1] + trk[3]))), None
 
 
 def sticker(im, w, radius=34, border=14):
