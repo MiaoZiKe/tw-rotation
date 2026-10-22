@@ -28,6 +28,8 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
+sys.path.insert(0, str(HERE.parent / "04_industry_map"))
+import blurfree as BF  # noqa: E402
 import flowlib as F  # noqa: E402
 from flowlib import C  # noqa: E402
 
@@ -55,6 +57,7 @@ RING_JS = r"""
 
 # 每格量：浮層、被介紹元素、圖表標籤文字（先夾到圖表元素範圍內）
 META_JS = r"""() => {
+  const bf = window.__bfSweep ? window.__bfSweep() : { fixed: 0, left: -1, fe: 0, seen: [] };
   const vis = (e) => { if (!e || !e.getClientRects().length) return null; const cs = getComputedStyle(e); if (cs.visibility === 'hidden' || cs.display === 'none' || +cs.opacity < 0.05) return null;
     const r = e.getBoundingClientRect(); return (r.width < 2 || r.height < 2) ? null : [r.left, r.top, r.width, r.height]; };
   const ov = [];
@@ -72,7 +75,7 @@ META_JS = r"""() => {
       if (rr - l < 1 || bb - tp < 1) return; zt.push([nm === 'clock' ? 0 : 1, l, tp, rr - l, bb - tp]); }); }
   document.querySelectorAll('#rotClock .rotquads > *').forEach(e => { const r = vis(e); if (r) zt.push([0, ...r]); });
   const fab = [...document.querySelectorAll('#supFab, .supfab, #bibiRing, .bibiring')].map(vis).filter(Boolean);
-  return { ov, el, zt, fab, sy: Math.round(scrollY) }; }"""
+  return { ov, el, zt, fab, sy: Math.round(scrollY), bf }; }"""
 
 
 class Rec(F.Rec):
@@ -107,9 +110,9 @@ class Rec(F.Rec):
         try:
             m = self.pg.evaluate(META_JS)
         except Exception:  # noqa: BLE001
-            m = {"ov": [], "el": {}, "zt": [], "fab": [], "sy": 0}
+            m = {"ov": [], "el": {}, "zt": [], "fab": [], "sy": 0, "bf": {"fixed": 0, "left": -1, "fe": 0, "seen": []}}
         a = self.act
-        m["cur"] = [round(getattr(a, "pcx", a.x), 1), round(getattr(a, "pcy", a.y), 1)]
+        m["cur"] = [round(getattr(a, "pcx", a.x), 1), round(getattr(a, "pcy", a.y), 1)] if getattr(a, "cur_on", True) else None   # 手指／游標隱藏時不算位置
         m["stage"] = a.stage
         self.fm.append(m)
 
@@ -133,7 +136,11 @@ class A(F.A):
         self.stage = 0
         self.stages: list = []
         self.clears: list = []
-        self.cur_on = True
+        self.cur_on = not mob   # 手機：手指預設不在螢幕上
+
+    def cursor(self, show=True):
+        self.cur_on = bool(show)
+        super().cursor(show)
 
     def _put(self, x, y):
         super()._put(x, y)
@@ -205,7 +212,7 @@ def pick_chain(a, pg, c, lab):
                 break
     if pg.evaluate("() => document.querySelectorAll('.rotdd .ddpanel:not([hidden])').length"):
         a.note("⚠ 族群清單沒收起")
-    a.move(a.x + 40, a.y + 40, 150) if not a.mob else None
+    a.move(a.x + 40, a.y - 8, 150) if not a.mob else None   # 往右（不往下）：游標矩形不掃過輪盤上緣的標籤文字
 
 
 def run_d(pg, a, start):
@@ -249,7 +256,7 @@ def run_d(pg, a, start):
     a.say("拉桿換天數，兩圖同步變", "clock", ("slider", "clock", "rank"))
     for v in (5, 10, 30):
         F.slider_click(a, "#rotBack input", v, f"拉桿：{v} 天前")
-        a.move(a.x + 40, a.y + 40, 200)
+        a.move(a.x + 40, a.y - 30, 200)   # 往右上（遠離輪盤標籤）
         a.wait(300)
         a.away(260)
         a.wait(900)
@@ -336,7 +343,7 @@ def main():
             ctx.add_init_script(F.FONT_JS)
             ctx.add_init_script(C.PRESET)
             ctx.add_init_script(C.HIDE_B_JS)
-            ctx.add_init_script(F.BLUR_JS)
+            ctx.add_init_script(BF.INIT_JS)   # 全片不准有任何模糊（10-22）：不再模糊個股／公司，並關掉網站自己的毛玻璃
             ctx.add_init_script("try{['tw.rot.days','tw.sankey.day'].forEach(k=>localStorage.removeItem(k))}catch(e){}")
             ctx.add_init_script("(() => { const go = () => { const st = document.createElement('style'); st.textContent = %s; document.head.appendChild(st); }; document.readyState === 'loading' ? document.addEventListener('DOMContentLoaded', go) : go(); })();" % json.dumps(REC_CSS))
             ctx.add_init_script(C.CURSOR_JS % ("true" if dev == "m" else "false"))

@@ -188,6 +188,8 @@ def render(dev, only=None):
     rows, issues, occ_rows, strict_rows, cut_rows, slice_rows, ov_open, tip_frames = [], [], [], [], [], [], 0, 0
     push_frames = 0
     still_run, still_max, prev_pv = 0, (0, 0.0), None
+    blur_left = blur_fixed = blur_fe = 0
+    blur_seen = set()
     for bb in bubbles:
         if bb["sid"] != "__end" and bb["t1"] - bb["t0"] < 1.45 - 1e-3:
             issues.append(f"| {bb['t0']:6.2f} | 泡泡停留 {bb['t1'] - bb['t0']:.2f} 秒（<1.45）：{bb['text']} |")
@@ -236,6 +238,11 @@ def render(dev, only=None):
             # ── 遮擋／裁切檢查（用錄影端每格量到的外框）──
             m = fm[k]
             els = m["el"]
+            bf = m.get('bf') or {}
+            blur_left += 1 if bf.get('left', 0) != 0 else 0
+            blur_fixed += 1 if bf.get('fixed', 0) else 0
+            blur_fe += 1 if bf.get('fe', 0) else 0
+            blur_seen.update(bf.get('seen', []))
             crop_in = (cx + DRIFT_CSS, cy + DRIFT_CSS, cw - 2 * DRIFT_CSS, ch - 2 * DRIFT_CSS)   # 慢漂最壞情況的實際可見範圍
             bub, a_in, a_out = R.bubble_at(bubbles, t)
             foc = [FOCUS_EL.get(f) for f in (bub["focus"] if bub else [])]
@@ -354,7 +361,7 @@ def render(dev, only=None):
     cj.write_text(json.dumps(cues), encoding="utf-8")
     wav = SCR / f"bgm_{dev}.wav"
     subprocess.run([sys.executable, str(R.REPO / "docs/marketing/video_1010/make_music_v3.py"), "--length", f"{final_len + 0.3:.2f}", "--style", "cute", "--out", str(wav), "--cues", str(cj)], check=True)
-    name = "feat05_fund_flow_web_v3.mp4" if dev == "d" else "feat05_fund_flow_mobile_v3.mp4"
+    name = "feat05_fund_flow_web_v4.mp4" if dev == "d" else "feat05_fund_flow_mobile_v4.mp4"
     final = SCR / name
     tcut = end_start + XF
     flt = (f"[0:v]split[a][b];[a]trim=0:{tcut:.4f},setpts=(PTS-STARTPTS)/{SPEED}[v1];"
@@ -365,7 +372,7 @@ def render(dev, only=None):
     (SCR / f"occlusion_rows_{dev}.md").write_text("\n".join(["遮擋（泡泡正在講的元素 × 浮層）："] + occ_rows[:500] + ["", "嚴格遮擋（浮層／游標 × 圖表標籤文字）："] + strict_rows[:500]), encoding="utf-8")
     out = dict(dev=dev, frames=n_total, body_raw=round(body, 2), total_raw=round(total, 2), final_len=round(final_len, 2), speed=SPEED, end_final=end_final,
                overlaps=len(rows), issues=len(issues), occlusion=len(occ_rows), strict=len(strict_rows), cut=len(cut_rows), slice=len(slice_rows),
-               dd_open_frames=ov_open, push_frames=push_frames, strict_panel=len([r for r in strict_rows if '面板' in r]), strict_cursor=len([r for r in strict_rows if '游標' in r]), strict_bar=len([r for r in strict_rows if '頂欄' in r]), tooltip_frames=tip_frames, still_max_s=round(still_max[0] / FPS, 2), still_at=round(still_max[1], 2),
+               blur_frames_bad=blur_left, blur_frames_neutralized=blur_fixed, blur_frames_svgblur=blur_fe, blur_seen=sorted(blur_seen), dd_open_frames=ov_open, push_frames=push_frames, strict_panel=len([r for r in strict_rows if '面板' in r]), strict_cursor=len([r for r in strict_rows if '游標' in r]), strict_bar=len([r for r in strict_rows if '頂欄' in r]), tooltip_frames=tip_frames, still_max_s=round(still_max[0] / FPS, 2), still_at=round(still_max[1], 2),
                clicks=click_rows, bubbles=[(round(b["t0"], 2), round(b["t1"], 2), b["text"]) for b in bubbles], stages=stages, final=str(final),
                occ_detail=occ_rows[:40], strict_detail=strict_rows[:40], slice_detail=slice_rows[:40], cut_detail=cut_rows[:40], data_date=meta.get("data_date"))
     (SCR / f"render_{dev}.json").write_text(json.dumps(out, ensure_ascii=False, indent=1), encoding="utf-8")
