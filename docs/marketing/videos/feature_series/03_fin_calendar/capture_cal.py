@@ -21,10 +21,9 @@ sys.path.insert(0, str(HERE.parent / "01_etf"))
 sys.path.insert(0, str(HERE))
 import fcore_cap as F  # noqa: E402
 from fcore_cap import goto  # noqa: E402,F401
-import cal_blur  # noqa: E402
 
 SCR = Path(os.environ.get("FEAT_SCR", "/tmp/claude-0/-home-user-tw-rotation/3d7a42eb-0e07-50fa-8c50-cf31c62d682f/scratchpad/redo/03"))
-F.CFG.update(scr=SCR, vp_d={"width": 1280, "height": 600}, init=[F.HIDE_FAB_JS], blur_js=cal_blur.blur_js())
+F.CFG.update(scr=SCR, vp_d={"width": 1280, "height": 600}, init=[F.HIDE_FAB_JS])
 F.DEVS["d"] = dict(viewport={"width": 1280, "height": 600}, device_scale_factor=2)
 
 
@@ -112,7 +111,7 @@ def m_main(pg, a, start):
     a.say("點左上角選單", "point_ur_v2")
     a.click("#m4Burger", label="選單", hold=300)
     a.wait(800)
-    a.cam(["#m4Drawer"], 0, "選單抽屜", exact=2)
+    a.cam_view("選單抽屜")   # 用整頁取景：點「財經日曆」換頁時取景框不必再變，不會切到新頁面的字
     a.say("再點「財經日曆」", "point_r_v2")
     a.idle(400)
     a.click('.m4item[data-v="earnings"]', label="選單：財經日曆")
