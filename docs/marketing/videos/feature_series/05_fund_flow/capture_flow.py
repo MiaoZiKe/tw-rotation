@@ -17,6 +17,7 @@ from __future__ import annotations
 import argparse
 import datetime as _dt
 import json
+import math
 import os
 import shutil
 import subprocess
@@ -36,11 +37,11 @@ from flowlib import C  # noqa: E402
 SCR = Path(os.environ.get("FEAT_SCR", "/tmp/claude-0/-home-user-tw-rotation/3d7a42eb-0e07-50fa-8c50-cf31c62d682f/scratchpad/feat05v3"))
 FPS = 30
 CFG = {
-    "d": dict(viewport={"width": 1280, "height": 620}, device_scale_factor=2),
+    "d": dict(viewport={"width": 1280, "height": 720}, device_scale_factor=2),
     "m": dict(viewport={"width": 540, "height": 880}, device_scale_factor=2.5, is_mobile=True, has_touch=True),
 }
 # 網站畫面框（css，視窗座標）：網頁＝整個視窗寬、從頂欄下緣到卡片底；手機＝視窗寬、頂欄起 624 高（只往下捲）
-CROP = {"d": (0, 52, 1072, 568), "m": (0, 0, 540, 864)}
+CROP = {"d": (0, 0, 1280, 678.4), "m": (0, 0, 540, 864)}   # 網頁：整個視窗入鏡（左側選單與右側卡片都不被框邊切到），進輪動頁後才單向推近
 
 # 錄影專用：客服鈕移出畫面下緣（不入鏡）；細圈漣漪（只畫圈、不上色，不蓋字）
 REC_CSS = (".rotdd[data-dd=chain] .ddpanel{flex-direction:row!important;flex-wrap:nowrap;width:max-content!important;max-width:582px!important;max-height:none!important;gap:1px}"
@@ -74,8 +75,13 @@ META_JS = r"""() => {
       const l = Math.max(b.left, b.x + r.x), tp = Math.max(b.top, b.y + r.y), rr = Math.min(b.right, b.x + r.x + r.width), bb = Math.min(b.bottom, b.y + r.y + r.height);
       if (rr - l < 1 || bb - tp < 1) return; zt.push([nm === 'clock' ? 0 : 1, l, tp, rr - l, bb - tp]); }); }
   document.querySelectorAll('#rotClock .rotquads > *').forEach(e => { const r = vis(e); if (r) zt.push([0, ...r]); });
+  const txt = []; { const wk = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT); let n, k = 0;
+    while ((n = wk.nextNode()) && k < 9000) { k++; if (!n.nodeValue || !n.nodeValue.trim()) continue; const e = n.parentElement; if (!e || e.closest('script,style,canvas')) continue;
+      const cs = getComputedStyle(e); if (cs.visibility === 'hidden' || cs.display === 'none' || +cs.opacity < 0.05) continue;
+      const rg = document.createRange(); rg.selectNodeContents(n);
+      for (const r of rg.getClientRects()) { if (r.width < 2 || r.height < 2) continue; if (r.bottom < 0 || r.top > innerHeight || r.right < 0 || r.left > innerWidth) continue; txt.push([r.left, r.top, r.width, r.height]); } } }
   const fab = [...document.querySelectorAll('#supFab, .supfab, #bibiRing, .bibiring')].map(vis).filter(Boolean);
-  return { ov, el, zt, fab, sy: Math.round(scrollY), bf }; }"""
+  return { ov, el, zt, fab, sy: Math.round(scrollY), bf, txt }; }"""
 
 
 class Rec(F.Rec):
@@ -129,7 +135,7 @@ class Rec(F.Rec):
 
 
 class A(F.A):
-    PARK_D = (770, 192)   # 左窗格「▶」右邊、輪盤上緣之上的空白處（不在圖上、不蓋字）
+    PARK_D = (790, 148)   # 篩選列右側、輪盤上方的空白處（離排行標籤欄 100px 以上；不在圖上、不蓋字、不會跳圖表提示框）
 
     def __init__(self, pg, mob, vw, vh):
         super().__init__(pg, mob, vw, vh)
@@ -178,10 +184,31 @@ class A(F.A):
         if not self.mob and (dx or dy):
             self.move(x + dx, y + dy, 220)
 
+    def move(self, x, y, ms=600):
+        """桌機：游標一律走「避開所有文字外框」的路徑（外框＝網站文字＋圖表標籤）；找不到路才直走。手機照舊。"""
+        if self.mob or ms < 120 or abs(x - self.x) + abs(y - self.y) < 40:
+            return F.A.move(self, x, y, ms)
+        try:
+            m = self.pg.evaluate(META_JS)
+            rects = [tuple(z) for z in m["txt"]] + [tuple(z[1:]) for z in m["zt"]]
+        except Exception:  # noqa: BLE001
+            rects = []
+        path = safe_path(rects, (self.x, self.y), (x, y))
+        if not path or len(path) < 2:
+            return F.A.move(self, x, y, ms)
+        tot = sum(math.hypot(path[i + 1][0] - path[i][0], path[i + 1][1] - path[i][1]) for i in range(len(path) - 1)) or 1.0
+        for i in range(len(path) - 1):
+            seg = math.hypot(path[i + 1][0] - path[i][0], path[i + 1][1] - path[i][1])
+            last = i == len(path) - 2
+            F.A.move(self, x if last else path[i + 1][0], y if last else path[i + 1][1], max(40, int(ms * seg / tot)))
+
     def away(self, ms=260):
         """游標移到空白處（桌機）：圖表提示框消失用。"""
         if not self.mob:
             self.move(*self.PARK_D, ms)
+
+
+safe_path = BF.safe_path
 
 
 def is_flow_sub(pg):
@@ -199,6 +226,8 @@ def pick_chain(a, pg, c, lab):
     a.wait(260)
     row = pg.evaluate(C.RECT_JS, f'{F.CDD} .ddopt[data-c="{c}"]')
     a.off_click(row[0] + row[2] * 0.5, row[1] + row[3] - 5, lab, f'{F.CDD} .ddopt[data-c="{c}"]', dx=0, dy=0)   # 點完不再逗留（清單一秒內收掉）
+    if not a.mob:
+        a.away(200)   # 先把游標移到右上角空白處：收清單期間游標不停在原清單列（那裡底下是「顯示軌跡／腳印」的字）
     # 網站選完產業鏈會自動打開族群清單 → 立刻關掉（等同點空白處），不讓它蓋住輪盤
     quiet = 0
     for _ in range(30):   # 族群清單會晚幾格才自動打開 → 連續 12 格都沒有面板才算收乾淨
@@ -212,7 +241,7 @@ def pick_chain(a, pg, c, lab):
                 break
     if pg.evaluate("() => document.querySelectorAll('.rotdd .ddpanel:not([hidden])').length"):
         a.note("⚠ 族群清單沒收起")
-    a.move(a.x + 40, a.y - 8, 150) if not a.mob else None   # 往右（不往下）：游標矩形不掃過輪盤上緣的標籤文字
+    a.away(220)   # 游標移到右上角空白處（不停在任何文字上）
 
 
 def run_d(pg, a, start):
@@ -256,10 +285,8 @@ def run_d(pg, a, start):
     a.say("拉桿換天數，兩圖同步變", "clock", ("slider", "clock", "rank"))
     for v in (5, 10, 30):
         F.slider_click(a, "#rotBack input", v, f"拉桿：{v} 天前")
-        a.move(a.x + 40, a.y - 30, 200)   # 往右上（遠離輪盤標籤）
-        a.wait(300)
-        a.away(260)
-        a.wait(900)
+        a.away(300)    # 點完立刻離開（游標不在拉桿下方的「顯示軌跡」字上停留）
+        a.wait(1100)
     a.settle()
     # 6 收尾
     a.set_stage(6, "一頁看懂")
@@ -370,6 +397,7 @@ def main():
             ctx.clock.install(time=_dt.datetime(day.year, day.month, day.day, 14, 30, tzinfo=tpe))   # 錄影時鐘固定台北白天（亮色主題）
             F.route_fonts(ctx)
             ctx.add_init_script(F.FONT_JS)
+            ctx.add_init_script("(() => { const patch = () => { const E = window.echarts; if (!E || E.__np) return; const oi = E.init; E.init = function (...a) { const c = oi.apply(this, a); const so = c.setOption; c.setOption = function (o, ...r) { try { if (o && typeof o === 'object' && !Array.isArray(o)) { o.animation = false; o.animationDuration = 0; o.animationDurationUpdate = 0; } } catch (e) {} return so.call(this, o, ...r); }; return c; }; E.__np = 1; }; setInterval(patch, 30); })();")   # 排行長條圖換資料時不做轉場動畫：標籤不會在換資料途中互相疊到
             ctx.add_init_script(C.PRESET)
             ctx.add_init_script(C.HIDE_B_JS)
             ctx.add_init_script(BF.INIT_JS)   # 全片不准有任何模糊（10-22）：不再模糊個股／公司，並關掉網站自己的毛玻璃

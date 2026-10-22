@@ -28,6 +28,17 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 import renderlib_v2 as R  # noqa: E402
 
+_bubble_at0 = R.bubble_at
+
+
+def _bubble_at_solid(bubbles, t):
+    """泡泡不淡入淡出（10-22 全片每個字都要清楚看見）：出現就是完全不透明、換句直接切換。"""
+    b, a_in, a_out = _bubble_at0(bubbles, t)
+    return (b, 1.0, 1.0) if b is not None else (b, a_in, a_out)
+
+
+R.bubble_at = _bubble_at_solid
+
 SCR = Path(os.environ.get("FEAT_SCR", "/tmp/claude-0/-home-user-tw-rotation/3d7a42eb-0e07-50fa-8c50-cf31c62d682f/scratchpad/feat05v3"))
 RAW = SCR / "raw"
 FPS = 30
@@ -156,7 +167,7 @@ def render(dev, only=None):
         hmax = float(np.percentile([f_["el"]["card"][3] for f_ in fm[int(t3 * FPS):] if "card" in f_["el"]] or [card[3]], 97))
         Hc = hmax + 2 * mg
         Wc = Hc * o.asp
-        tgt = (card[0] + card[2] / 2 - Wc / 2, card[1] - mg, Wc, Hc)
+        tgt = (card[0] - mg, card[1] - mg, Wc, Hc)   # 左緣貼著卡片（側欄的字不入鏡）；右邊多出來的幾 px 是頁面空白
         zoom = (t3 - 0.1, 0.7, tgt)
 
     def crop_at(t):
@@ -279,6 +290,16 @@ def render(dev, only=None):
                     if rect_int(z[1:], cr) > 0:
                         strict_rows.append(f"| {t:6.2f} | 游標蓋住{'輪盤' if z[0] == 0 else '排行'}標籤 |")
                         break
+            if dev == 'd' and m.get("cur") and m.get("txt") and not (zoom is not None and zoom[0] <= t <= zoom[0] + zoom[1] + 0.05):   # 游標壓到任何文字（不只圖表標籤）；游標滑向被點目標、點下去的那一刻（本來就在目標上）不算
+                near_click = any(-0.9 <= t - c['t'] <= 0.3 for c in meta['clicks'])
+                cxy = m["cur"]
+                cr_ = (cxy[0] - 3, cxy[1] - 2, 26, 30)
+                still = all(math.hypot(fm[min(N0 - 1, max(0, k + dk))]["cur"][0] - cxy[0], fm[min(N0 - 1, max(0, k + dk))]["cur"][1] - cxy[1]) < 3 for dk in (-2, 2) if fm[min(N0 - 1, max(0, k + dk))].get("cur"))   # 只算「游標停著」壓到字；移動途中掃過（單格）不算
+                if not near_click and still and rect_int(cr_, crop_css) > 0:
+                    for z in m["txt"]:
+                        if rect_int(z, cr_) > 0:
+                            strict_rows.append(f"| {t:6.2f} | 游標蓋住文字 {[round(v) for v in z]} |")
+                            break
             in_push = zoom is not None and zoom[0] <= t <= zoom[0] + zoom[1] + 0.05   # 單向推近的移動中（約 0.75 秒），不算切字／裁切
             if in_push:
                 push_frames += 1
@@ -290,6 +311,11 @@ def render(dev, only=None):
                     zy0, zy1 = z[2], z[2] + z[4]
                     if (zy0 < t_top - 0.5 and zy1 > t_top + 0.5) or (zy0 < t_bot - 0.5 and zy1 > t_bot + 0.5):
                         slice_rows.append(f"| {t:6.2f} | 標籤被畫面框上下緣切過一半 y={zy0:.0f}-{zy1:.0f} |")
+                        break
+            if not in_push and stg >= 3 and not moving and dev == 'd':   # 網頁：畫面上任何一段文字（不只輪盤／排行標籤）被畫面框邊切到 → 記一筆
+                for z in m.get("txt", []):
+                    if rect_int(z, crop_css) > 0 and not contained(crop_in, z, 0.5) and min(z[0] + z[2], crop_css[0] + crop_css[2]) - max(z[0], crop_css[0]) >= 1.5 and min(z[1] + z[3], crop_css[1] + crop_css[3]) - max(z[1], crop_css[1]) >= 1.5:
+                        slice_rows.append(f"| {t:6.2f} | 文字被畫面框邊切到 {[round(v) for v in z]} |")
                         break
             chart_focus = (not in_push) and any(f in ('clock', 'rank') for f in (bub['focus'] if bub else []))
             want = {0 if f == 'clock' else 1 for f in (bub['focus'] if bub else []) if f in ('clock', 'rank')}

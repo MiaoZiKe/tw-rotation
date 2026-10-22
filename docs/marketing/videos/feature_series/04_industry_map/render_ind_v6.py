@@ -41,6 +41,17 @@ DRIFT_T = float(os.environ.get('FEAT_DRIFT_T', '2.0'))     # 週期（原片秒�
 DRIFT_CSS = 2.6          # 檢查裁切時，畫面框內縮的 css 像素（≥ 慢漂幅度換算）            # 同一則泡泡最長停留（原片秒）
 PAD = R.PAD
 
+_bubble_at0 = R.bubble_at
+
+
+def _bubble_at_solid(bubbles, t):
+    """泡泡不淡入淡出（10-22 全片每個字都要清楚看見）：出現就是完全不透明、換句直接切換。"""
+    b, a_in, a_out = _bubble_at0(bubbles, t)
+    return (b, 1.0, 1.0) if b is not None else (b, a_in, a_out)
+
+
+R.bubble_at = _bubble_at_solid
+
 R.END_SUB = "產品剖析圖・3D 剖析圖・供應鏈關聯圖"
 R.SEC.update({
     "s1": ("為什麼看", "AI 伺服器熱，誰在供貨？", "誰在供貨"),
@@ -273,18 +284,20 @@ def render(dev, only=None):
             if m.get("cur") and stg >= 3 and dev == "d":
                 cxy = m["cur"]
                 cr = (cxy[0] - 3, cxy[1] - 2, 26, 30)
-                near_click = any(-0.9 <= t - c['t'] <= 0.3 for c in meta['clicks'])   # 游標滑向被點目標、點下去的那一刻（游標本來就在被點的元素上）
+                near_click = any(-0.35 <= t - c['t'] <= 0.3 for c in meta['clicks'])   # 只放行「點下去前 0.35 秒到點下後 0.3 秒」（游標本來就在被點的元素上）
                 if rect_int(cr, crop_css) > 0 and not near_click:
                     for z in txs:
                         if rect_int(z, cr) > 0:
                             strict_rows.append(f"| {t:6.2f} | 游標蓋住文字 |")
                             break
-            if not in_push and not moving and stg >= 3:
+            if dev == 'm' and stg >= 5 and not moving and m.get('cc', 0) > 0:
+                slice_rows.append(f"| {t:6.2f} | 關聯圖橫向捲動容器邊緣切到 {m['cc']} 段文字 |")
+            if not in_push and not moving and stg >= 1:
                 for z in txs:
                     if dev == 'm' and z[1] + z[3] <= top_off + 2:
                         continue
-                    if dev == 'm' and (z[0] + z[2] <= 20 or z[0] >= 514):
-                        continue   # 關聯圖橫向捲動容器左緣之外的文字：整段被網站容器裁掉、畫面上看不到任何字（已逐格目視確認只剩節點外框的邊角，沒有字）
+                    if dev == 'm' and (z[0] < 0 or z[0] >= 538):
+                        continue   # 起點在螢幕左緣之外的文字屬於橫向捲動容器：是否被容器邊切到改由「容器邊緣切字 cc」逐格檢查（錄影端量容器外框與每段文字外框）
                     if not contained(crop_in, z, 0.5):
                         if min(z[0] + z[2], crop_css[0] + crop_css[2]) - max(z[0], crop_css[0]) < 1.5 or min(z[1] + z[3], crop_css[1] + crop_css[3]) - max(z[1], crop_css[1]) < 1.5:
                             continue   # 只有不到 1.5 css 像素探進畫面框（肉眼看不到）的不算

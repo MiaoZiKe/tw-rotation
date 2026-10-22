@@ -48,7 +48,8 @@ REC_CSS = ("#relTip,#relStick{display:none!important}"
            ".__vr{width:24px!important;height:24px!important;border-width:2px!important;background:transparent!important}"
            ".reltip{margin:18px 0 0 22px!important}"
            "#relSec *,#chainMap *{transition:none!important}"          # 環節展開瞬間完成（不經過「長高中」的版面，框緣不會在展開途中切到字）
-           ".lbl3d[data-hid],[data-edgehid]{visibility:hidden!important}")            # 被收起的 3D 標籤用屬性標記（網站每幀重設 style.visibility 蓋不掉屬性選擇器）
+           ".lbl3d[data-hid],[data-edgehid]{visibility:hidden!important}"
+           ".fxb-glow,.fxb-glow *{filter:none!important}")                # 剖析圖連線高亮的發光（SVG 濾鏡含高斯模糊）：整個關掉            # 被收起的 3D 標籤用屬性標記（網站每幀重設 style.visibility 蓋不掉屬性選擇器）
 BLUR_SEL = ""
 
 META_JS = r"""([blurSel, named]) => {
@@ -68,14 +69,16 @@ META_JS = r"""([blurSel, named]) => {
   while ((n = wk.nextNode()) && k < 6000) { k++; const t = n.nodeValue; if (!t || !t.trim()) continue; const e = n.parentElement; if (!e || e.closest('script,style')) continue;
     if (skip(e)) continue; const rg = document.createRange(); rg.selectNodeContents(n); const rs = rg.getClientRects();
     for (const r of rs) { if (r.width < 2 || r.height < 2) continue; if (r.bottom < 0 || r.top > vh || r.right < 0 || r.left > vw) continue; if (e.closest('svg') === null && !vis(e)) continue; { const cs = getComputedStyle(e); if (cs.visibility === 'hidden' || cs.display === 'none' || +cs.opacity < 0.05) continue; } txt.push([r.left, r.top, r.width, r.height]); } }
+  let cc = 0; { const cm = document.querySelector('#chainMap'); if (cm && cm.getClientRects().length) { const cr = cm.getBoundingClientRect();
+    for (const t of txt) { const r = { l: t[0], t: t[1], r: t[0] + t[2], b: t[1] + t[3] }; if (r.b < cr.top || r.t > cr.bottom) continue; if ((r.l < cr.left - 0.5 && r.r > cr.left + 0.5) || (r.l < cr.right - 0.5 && r.r > cr.right + 0.5)) cc++; } } }
   const fab = [...document.querySelectorAll('#supFab, .supfab, #bibiRing, .bibiring')].map(vis).filter(Boolean);
-  return { el, ov, lb, txt, fab, sy: Math.round(scrollY), bf }; }"""
+  return { el, ov, lb, txt, fab, sy: Math.round(scrollY), bf, cc }; }"""
 
 RESOLVE_JS = """() => { const L = [...document.querySelectorAll('.lbl3d')].filter(e => getComputedStyle(e).visibility !== 'hidden').map(e => ({ e, r: e.getBoundingClientRect() }));
   for (let i = 0; i < L.length; i++) for (let j = i + 1; j < L.length; j++) { const a = L[i].r, b = L[j].r;
     if (Math.min(a.right, b.right) + 2 > Math.max(a.left, b.left) && Math.min(a.bottom, b.bottom) + 2 > Math.max(a.top, b.top)) { const big = a.height >= b.height ? i : j; L[big].e.setAttribute('data-hid', '1'); } } }"""
 
-EDGE_JS = """([x0, y0, x1, y1]) => { document.querySelectorAll('[data-edgehid]').forEach(e => e.removeAttribute('data-edgehid'));
+EDGE_JS = """([x0, y0, x1, y1]) => { document.querySelectorAll('[data-edgehid="1"]').forEach(e => e.removeAttribute('data-edgehid'));
   const root = document.querySelector('#v-industry') || document.body; const wk = document.createTreeWalker(root, NodeFilter.SHOW_TEXT); let n, k = 0, hid = 0;
   while ((n = wk.nextNode()) && k < 8000) { k++; if (!n.nodeValue || !n.nodeValue.trim()) continue; const e = n.parentElement; if (!e || e.closest('script,style')) continue;
     const rg = document.createRange(); rg.selectNodeContents(n);
@@ -83,6 +86,24 @@ EDGE_JS = """([x0, y0, x1, y1]) => { document.querySelectorAll('[data-edgehid]')
       const inx = Math.min(r.right, x1) - Math.max(r.left, x0) > 0, iny = Math.min(r.bottom, y1) - Math.max(r.top, y0) > 0; if (!inx || !iny) continue;
       const cut = !(r.left >= x0 + 2.1 && r.right <= x1 - 2.1 && r.top >= y0 + 2.1 && r.bottom <= y1 - 2.1) && Math.min(r.right, x1) - Math.max(r.left, x0) > 0.5 && Math.min(r.bottom, y1) - Math.max(r.top, y0) > 0.5;   // 沒有完整落在「取景框內縮 2.6px」之內、卻有一部分探進取景框 → 隱藏
       if (cut) { e.setAttribute('data-edgehid', '1'); hid++; break; } } }
+  return hid; }"""
+
+EDGE_X_JS = """() => { document.querySelectorAll('[data-edgehid="1"]').forEach(e => e.removeAttribute('data-edgehid'));
+  const cm = document.querySelector('#chainMap'); if (!cm || !cm.getClientRects().length) return 0; const cr = cm.getBoundingClientRect(); let hid = 0, n, k = 0;
+  const wk = document.createTreeWalker(cm, NodeFilter.SHOW_TEXT);
+  while ((n = wk.nextNode()) && k < 6000) { k++; if (!n.nodeValue || !n.nodeValue.trim()) continue; const e = n.parentElement; if (!e) continue;
+    const rg = document.createRange(); rg.selectNodeContents(n);
+    for (const r of rg.getClientRects()) { if (r.width < 2 || r.height < 2 || r.bottom < cr.top || r.top > cr.bottom) continue;
+      if ((r.left < cr.left + 0.5 && r.right > cr.left + 0.5) || (r.left < cr.right - 0.5 && r.right > cr.right - 0.5) || (r.right <= cr.left + 0.5 && r.right > cr.left - 40)) { e.setAttribute('data-edgehid', '1'); hid++; break; } } }
+  return hid; }"""
+
+EDGE_V_JS = """() => { document.querySelectorAll('[data-edgehid="v"]').forEach(e => e.removeAttribute('data-edgehid'));
+  const wk = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT); let n, k = 0, hid = 0; const vw = innerWidth, vh = innerHeight;
+  while ((n = wk.nextNode()) && k < 9000) { k++; if (!n.nodeValue || !n.nodeValue.trim()) continue; const e = n.parentElement; if (!e || e.closest('script,style,#mSheet,header.topbar,#m4Drawer,.m4drawer,canvas')) continue;
+    const cs = getComputedStyle(e); if (cs.visibility === 'hidden' || cs.display === 'none' || +cs.opacity < 0.05) continue;
+    const rg = document.createRange(); rg.selectNodeContents(n);
+    for (const r of rg.getClientRects()) { if (r.width < 2 || r.height < 2 || r.bottom < 56 || r.top > vh) continue;
+      if ((r.left < 3 && r.right > 3) || (r.left < vw - 3 && r.right > vw - 3) || (r.top < vh - 1 && r.bottom > vh - 1)) { e.setAttribute('data-edgehid', 'v'); hid++; break; } } }
   return hid; }"""
 
 NAMED = {
@@ -137,9 +158,20 @@ class Rec(F.Rec):
         self.pg.evaluate(C.ANIM_JS, ms)
         if self.n % 6 == 0:
             self._watch()
-        if self.act.stage == 5 and not self.act.mob:
-            try:   # 關聯圖：被畫面框邊切過一半的字（框邊 = 取景 CROP1 內縮 2.6px）整段先隱藏，不讓半截字入鏡
-                self.edge_hid = self.pg.evaluate(EDGE_JS, [CROP1[0], CROP1[1], CROP1[0] + CROP1[2], CROP1[1] + CROP1[3]])
+        if self.act.stage >= 1 and not self.act.mob:
+            try:   # 被畫面框邊切過一半的字整段先隱藏，不讓半截字入鏡（引導段框＝整個視窗 CROP0，剖析圖／3D／關聯圖段框＝推近後的 CROP1）
+                cr_ = CROP0 if self.act.stage < 3 else CROP1
+                self.edge_hid = self.pg.evaluate(EDGE_JS, [cr_[0], cr_[1], cr_[0] + cr_[2], cr_[1] + cr_[3]])
+            except Exception:  # noqa: BLE001
+                pass
+        if self.act.stage >= 1 and self.act.mob:
+            try:   # 手機：畫面左右緣、底緣切過一半的字整段隱藏（不讓半截字入鏡）
+                self.pg.evaluate(EDGE_V_JS)
+            except Exception:  # noqa: BLE001
+                pass
+        if self.act.stage == 5 and self.act.mob:
+            try:   # 手機關聯圖：被橫向捲動容器左右邊切過一半的字整段隱藏（只剩節點外框的圓角邊，不留半截字）
+                self.pg.evaluate(EDGE_X_JS)
             except Exception:  # noqa: BLE001
                 pass
         if self.act.stage == 4 and not self.act.mob:
@@ -218,6 +250,24 @@ class A(I.A):
 
     def occ_now(self):
         return None
+
+    def move(self, x, y, ms=600):
+        """桌機：游標走「避開所有文字外框」的路徑（外框＝畫面上看得到的文字＋3D 標籤）；找不到路才直走。手機照舊。"""
+        if self.mob or ms < 120 or abs(x - self.x) + abs(y - self.y) < 40:
+            return super().move(x, y, ms)
+        try:
+            m = self.pg.evaluate(META_JS, [BLUR_SEL, {}])
+            rects = [tuple(z) for z in m["txt"]] + [tuple(z[1:]) for z in m["lb"]]
+        except Exception:  # noqa: BLE001
+            rects = []
+        path = BF.safe_path(rects, (self.x, self.y), (x, y), W=VP["width"], H=VP["height"])
+        if not path or len(path) < 2:
+            return super().move(x, y, ms)
+        tot = sum(math.hypot(path[i + 1][0] - path[i][0], path[i + 1][1] - path[i][1]) for i in range(len(path) - 1)) or 1.0
+        for i in range(len(path) - 1):
+            seg = math.hypot(path[i + 1][0] - path[i][0], path[i + 1][1] - path[i][1])
+            last = i == len(path) - 2
+            super().move(x if last else path[i + 1][0], y if last else path[i + 1][1], max(40, int(ms * seg / tot)))
 
     def go(self, x, y, ms=420):
         self.move(x, y, ms)
@@ -338,7 +388,7 @@ def run(a, pg, start, snap=False):
     I.anim_off(pg)
     pg.evaluate("() => { location.hash = '#overview'; scrollTo(0, 0); }")
     pg.wait_for_timeout(3500)
-    a.x, a.y = 900, 24     # 開場游標停在頂欄空白處
+    a.x, a.y = 600, 24     # 開場游標停在頂欄空白處（導覽鈕與日期之間，不壓字）
     start()
     # 1 需求：為什麼要看這個功能（2 則泡泡、約 3 秒）
     a.set_stage(1, "需求")
@@ -495,7 +545,7 @@ def run_m(a, pg, start, snap=False):
     add_css(pg, "#mSheet{box-shadow:none!important;border-top:2px solid #cbd5e1!important}")
     pg.evaluate("() => { const s = document.createElement('style'); s.id = '__hidemap'; s.textContent = '#chainMap{visibility:hidden!important}'; document.head.appendChild(s); }")   # 底部面板開著時，面板上緣不留被切掉的關聯圖文字
     a.set_stage(3, "剖析圖")
-    a.say("點編號，看零件說明", "magic_frame", ("dg",))
+    a.say("點編號，看零件說明", "spotlight", ("dg",))
     a.scroll(to_y=pg.evaluate("() => document.querySelector('#dg3d').getBoundingClientRect().top + scrollY") - 60, ms=650)
     a.snap("m3a")
     a.click_now('#dgBody .mnum[data-no="05"]', "編號 05 板上供電", ms=120, pause=80)
@@ -538,7 +588,8 @@ def run_m(a, pg, start, snap=False):
     a.wait(500)
     pg.evaluate("() => { const s = document.getElementById('__hidemap'); if (s) s.remove(); }")
     a.say("點環節，看上下游與成分公司", "talk_explain_v2", ("seg_thermal", "seg_power", "seg_assembly"))
-    pg.evaluate("""() => { const m = document.querySelector('#chainMap'); const t = document.querySelector('#relSec .segbox[data-seg="thermal"]'); m.scrollLeft += t.getBoundingClientRect().left - 42; }""")
+    pg.evaluate("""() => { const m = document.querySelector('#chainMap'); const t = document.querySelector('#relSec .segbox[data-seg="thermal"]'); m.style.scrollBehavior = 'auto'; m.scrollLeft += t.getBoundingClientRect().left - (m.getBoundingClientRect().left + 6); }""")
+    a.wait(150)
     a.scroll(to_y=pg.evaluate("() => document.querySelector('#chainMap').getBoundingClientRect().top + scrollY") - 70, ms=700)
     a.snap("m5a")
     CM = (0, 56, 540, 808)

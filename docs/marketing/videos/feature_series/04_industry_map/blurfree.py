@@ -33,3 +33,61 @@ INIT_JS = r"""
   document.readyState === 'loading' ? document.addEventListener('DOMContentLoaded', go) : go();
 })();
 """
+
+
+import math  # noqa: E402
+
+
+def safe_path(rects, p0, p1, cell=6, W=1280, H=680):
+    """格點最短路徑：游標矩形 (x-3,y-2,26,30) 不與任何外框相交；起點、終點即使在字上也放行。回傳拐點（已簡化）。"""
+    import heapq
+    gx, gy = W // cell, H // cell
+
+    def blocked(cx, cy):
+        x, y = cx * cell, cy * cell
+        for (rx, ry, rw, rh) in rects:
+            if x - 3 < rx + rw + 1 and x + 23 > rx - 1 and y - 2 < ry + rh + 1 and y + 28 > ry - 1:
+                return True
+        return False
+    s = (int(p0[0] // cell), int(p0[1] // cell))
+    g = (int(p1[0] // cell), int(p1[1] // cell))
+    s = (max(0, min(gx - 1, s[0])), max(0, min(gy - 1, s[1])))
+    g = (max(0, min(gx - 1, g[0])), max(0, min(gy - 1, g[1])))
+    dist = {s: 0.0}
+    prev = {}
+    pq = [(0.0, s)]
+    while pq:
+        d, u = heapq.heappop(pq)
+        if u == g:
+            break
+        if d > dist.get(u, 1e18):
+            continue
+        for dx in (-1, 0, 1):
+            for dy in (-1, 0, 1):
+                if not dx and not dy:
+                    continue
+                v = (u[0] + dx, u[1] + dy)
+                if not (0 <= v[0] < gx and 0 <= v[1] < gy):
+                    continue
+                if v != g and max(abs(v[0] - s[0]), abs(v[1] - s[1])) > 3 and blocked(*v):   # 起點附近 3 格放行（游標本來就壓在字邊上時要能離開）
+                    continue
+                nd = d + math.hypot(dx, dy) + (0.0 if u == s else 0.0)
+                if nd < dist.get(v, 1e18):
+                    dist[v] = nd
+                    prev[v] = u
+                    heapq.heappush(pq, (nd, v))
+    if g not in prev and g != s:
+        return None
+    pts = [g]
+    while pts[-1] != s:
+        pts.append(prev[pts[-1]])
+    pts.reverse()
+    pts = [(c[0] * cell, c[1] * cell) for c in pts]
+    # 簡化：去掉共線點
+    out = [pts[0]]
+    for i in range(1, len(pts) - 1):
+        a_, b_, c_ = out[-1], pts[i], pts[i + 1]
+        if (b_[0] - a_[0]) * (c_[1] - b_[1]) != (b_[1] - a_[1]) * (c_[0] - b_[0]):
+            out.append(b_)
+    out.append(pts[-1])
+    return out[1:] and out
