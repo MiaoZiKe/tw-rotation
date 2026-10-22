@@ -27,9 +27,9 @@ ELS = {"evbell": "#evToggle", "navart": '#tabs .tab[data-view="articles"]', "evc
        "artcats": "#artCats", "artq": "#artQ", "artflt": ".artflt", "artlist": "#artList", "burger": "#m4Burger",
        "m4ev": '.m4item[data-act="events"]', "m4art": '.m4item[data-v="articles"]'}
 # 網頁錄影：每組文章只露第一排卡（取景下緣落在乾淨的空白處）、不開「全文需 Plus」字樣
-EXTRA_CSS_D = "#artList .artgrid .artc:nth-child(n+4){display:none!important}body.__vnb #l4NavBtn{visibility:hidden!important}"
+EXTRA_CSS_D = "#side{width:740px!important;max-width:none!important}#artList .artgrid .artc:nth-child(n+4){display:none!important}body.__vnb #l4NavBtn{visibility:hidden!important}body.__vnb .topbar,body.__vnb .topbar *,body.__vnb #l4Head,body.__vnb #l4Head *{opacity:0!important;visibility:hidden!important;background:transparent!important}"
 EXTRA_CSS_M = "#artList .artgrid .artc:nth-child(n+3){display:none!important}"
-ZOOM_D = (72, 0, 928, 491.8)   # 單向推近的目標畫面框（css，視窗座標）：把左側圖示列推出畫面（頁面先往下捲 60px，卡片下緣落在框內）
+ZOOM_D = (72, 0, 928, 529)   # 單向推近的目標畫面框（css，視窗座標）：把左側圖示列推出畫面（頁面先往下捲 60px，卡片下緣落在框內）
 
 
 def warm_articles(pg):
@@ -60,12 +60,12 @@ def run_d(pg, a, start):
     a.set_stage(2, "引導")
     a.say("點鈴鐺，開今日事件", "point_r_v2", ("evbell",))
     a.wait(300)
-    a.fit = [["#evList .ev"], 522]   # 抽屜一出現清單就只留放得進畫面框的列（不在滑入時露出被切到的半截字）
+    a.fit = [["#evList .ev"], 568]   # 抽屜一出現清單就只留放得進畫面框的列（不在滑入時露出被切到的半截字）
     a.tap("#evToggle", "選單：事件（鈴鐺）")
     a.wait(150)
     a.park(ms=300, prefer=(a.x + 40, a.y + 40))   # 點完游標離開按鈕（往右下找空白）
     a.until("() => document.querySelectorAll('#evList .ev').length > 3", 8000)
-    a.fit = [["#evList .ev"], 522]
+    a.fit = [["#evList .ev"], 568]
     a.wait(500)
     a.park(region=head_region(pg))
     a.wait(300)
@@ -95,7 +95,7 @@ def run_d(pg, a, start):
     pg.evaluate("() => document.body.classList.add('__vnb')")   # 推近後左側圖示列已在畫面外，把展開鈕也藏掉（只在錄影時）
     a.say("點頁籤，挑文章類別", "magnifier", ("artcats", "artlist"))
     a.scroll(to_y=60, ms=600)
-    a.fit = [["#artList .artc"], 486]
+    a.fit = [["#artList .artc", "#artList .artsech"], 518]
     a.wait(900)
     a.park(region=ZOOM_D, prefer=(900, 120))
     for cat, lab in (("news", "快訊"), ("know", "知識"), ("intro", "產業鏈")):

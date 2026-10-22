@@ -17,7 +17,7 @@ CFG = dict(
     focus_el={"evbell": "evbell", "navart": "navart", "evcats": "evcats", "evlist": "evlist", "artcats": "artcats", "artq": "artq", "artlist": "artlist",
               "burger": "burger", "m4ev": "m4ev", "m4art": "m4art"},
     cut=["evbell", "navart", "artcats", "artq", "burger", "m4ev", "m4art"],
-    zoom={"d": dict(stage=5, dur=0.7, tgt=(72, 0, 928, 491.8))},
+    zoom={"d": dict(stage=5, dur=0.7, tgt=(72, 0, 928, 529))},
 )
 if __name__ == "__main__":
     render3.main(CFG)

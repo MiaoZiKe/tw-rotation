@@ -52,6 +52,7 @@ def make(CFG, manual_d=0, manual_m=0, extra=None):
         rep += [f"## {name}（成片 {D:.1f} 秒；原片逐幀 {j['frames']} 幀）", "",
                 f"- 重疊檢查：程式 {j['frames']} 幀 {j['overlaps']} 筆；人工 {M} 格 {extra.get(dev + '_manual_overlap', 0)} 筆。（元素＝膠囊、標題、網站畫面框、泡泡含尾巴、比比；外擴 {6}px 兩兩比對；其他問題〔泡泡字出框、尾巴離比比、超過 14 字、停留不足〕{j['issues']} 筆）",
                 f"- 遮擋檢查：程式 {j['frames']} 幀 {j['occlusion'] + j['strict'] + j['cursor_text']} 筆；人工 {M} 格 {extra.get(dev + '_manual_occ', 0)} 筆。分項：泡泡講的元素 × 浮層 {j['occlusion']}；浮層／自繪清單／提示框／客服鈕 × 畫面內任何文字 {j['strict']}；游標與點擊波紋 × 任何文字 {j['cursor_text']}。",
+                f"- 模糊檢查：程式 {j['frames']} 幀 {j['blur_frames']} 筆（錄影時每一幀查 DOM 所有元素的 computed filter／backdrop-filter 含 blur）；人工 {M} 格 {extra.get(dev + '_manual_blur', 0)} 筆。",
                 f"- 裁切檢查：介紹元素超出畫面框 {j['cut']} 幀；畫面框邊切到任何文字 {j['slice']} 幀（正在推近／捲動的幀不計，共 {j['push_frames']} 幀推近）。",
                 f"- 換場次數：0。{extra.get(dev + '_motion', '')}",
                 f"- 停格：成片 ffmpeg freezedetect（n=0.003、d=0.5）{len([x for x in fz if 'freeze_start' in x])} 筆；畫面框內來源畫面連續不動最長 {j['still_max_s']} 秒（{j['still_at']} 秒附近；網站畫面框內容另有 3px 慢漂避免停格）。",

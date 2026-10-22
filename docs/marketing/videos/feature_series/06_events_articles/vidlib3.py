@@ -29,10 +29,10 @@ F = CF.F
 C = CF.C
 FPS = 30
 CFG_DEV = {
-    "d": dict(viewport={"width": 1000, "height": 530}, device_scale_factor=2),
+    "d": dict(viewport={"width": 1000, "height": 570}, device_scale_factor=2),
     "m": dict(viewport={"width": 540, "height": 880}, device_scale_factor=2.5, is_mobile=True, has_touch=True),
 }
-CROP0 = {"d": (0, 0, 1000, 530), "m": (0, 0, 540, 864)}
+CROP0 = {"d": (0, 0, 1000, 570), "m": (0, 0, 540, 864)}
 
 # ---------------------------------------------------------------- 頁面端工具
 LIB_JS = r"""
@@ -106,6 +106,7 @@ window.__vtexts = (roots, ovSel) => {
 
 # 錄影專用樣式：客服鈕移出畫面；細圈漣漪；圖表提示框關掉；手機手指只畫細圈
 REC_CSS_BASE = (
+    "*,*::before,*::after{backdrop-filter:none!important;-webkit-backdrop-filter:none!important;filter:none!important}"
     "html body #supFab,html body .supfab,html body #bibiRing,html body .bibiring{bottom:-200px!important}"
     "[_echarts_instance_]>div:not(:first-child){display:none!important}body>div[style*=\"9999999\"]{display:none!important}.__vmob #__vc{transition:none!important}"
     "#__vc>div:not(svg){background:transparent!important;border:3px solid #2563eb!important;width:8px!important;height:8px!important;margin:-7px 0 0 -7px!important;box-shadow:0 0 0 2px #fff!important}"
@@ -127,10 +128,11 @@ META_JS = r"""() => {
   const el = {}; for (const [k, s] of Object.entries(CFG.els)) { const r = vis(document.querySelector(s)); if (r) el[k] = r; }
   const zt = window.__vtexts(CFG.roots, CFG.ovsel).map(a => ['t', ...a]);
   zt.push(...window.__vcharttexts(CFG.zcharts));
+  let blur = 0; for (const e of document.querySelectorAll('*')) { const cs = getComputedStyle(e); if ((cs.filter && cs.filter.indexOf('blur') >= 0) || (cs.backdropFilter && cs.backdropFilter.indexOf('blur') >= 0) || (cs.webkitBackdropFilter && cs.webkitBackdropFilter.indexOf('blur') >= 0)) blur++; }
   const ui = window.__vui();
   const fab = [...document.querySelectorAll('#supFab, .supfab, #bibiRing, .bibiring')].map(vis).filter(Boolean);
   const cv = document.getElementById('__vc'); const cop = cv ? +getComputedStyle(cv).opacity : 1;
-  return { ov, el, zt, fab, ui, sy: Math.round(scrollY), cop }; }"""
+  return { ov, el, zt, fab, ui, blur, sy: Math.round(scrollY), cop }; }"""
 
 FIT_JS = r"""([sels, limit]) => { for (const s of sels) document.querySelectorAll(s).forEach(e => { const r = e.getBoundingClientRect(); if (r.height > 1 && r.bottom > limit) e.style.display = 'none'; }); }"""
 
@@ -395,8 +397,7 @@ def guest_api(ctx):
 
 # 法遵模糊＋會員額度字樣（只在錄影的瀏覽器裡；公司名單取自網站自己的 data/stocks.json）
 def blur_js(css_extra: str, text_sel: str) -> str:
-    css = ("a[href^='#stock/'],.scode,.__vblur{filter:blur(7px)!important}.__vblurrow{filter:blur(6px)!important}"
-           "#artQuota,#evQuota{display:none!important}.__vquota{visibility:hidden!important}.sitefoot,.sitefoot *{visibility:hidden!important}") + css_extra
+    css = ("#artQuota,#evQuota{display:none!important}.__vquota{visibility:hidden!important}.sitefoot,.sitefoot *{visibility:hidden!important}") + css_extra   # 2026-10-22：不再模糊任何東西
     return r"""
 (() => { const css = %s; let RX = null; const TEXT_SEL = %s;
   const sweep = () => {
@@ -404,9 +405,6 @@ def blur_js(css_extra: str, text_sel: str) -> str:
     if (root) { const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT); let n; while ((n = w.nextNode())) { const v = n.nodeValue;
       if (v.indexOf('不佔額度') >= 0) n.nodeValue = v.replace(/[・·]?\s*不佔額度/, '');
       else if (/全文需\s*Plus/.test(v) && n.parentElement) (n.parentElement.closest('.lk') || n.parentElement).classList.add('__vquota'); } }
-    document.querySelectorAll('#evList .ev').forEach(r => { const c = r.querySelector('.cat'); if (c && c.textContent.trim() === '券商') r.classList.add('__vblurrow'); });
-    if (!RX) return;
-    document.querySelectorAll(TEXT_SEL).forEach(e => { const t = e.textContent || ''; if (RX.test(t) || /[(（]\s*\d{4,6}\s*[)）]/.test(t)) e.classList.add('__vblur'); else e.classList.remove('__vblur'); });
   };
   const go = () => { const st = document.createElement('style'); st.id = '__blurco'; st.textContent = css; (document.head || document.documentElement).appendChild(st);
     new MutationObserver(sweep).observe(document.documentElement, { childList: true, subtree: true, characterData: true });

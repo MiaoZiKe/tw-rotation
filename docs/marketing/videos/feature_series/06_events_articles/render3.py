@@ -177,7 +177,7 @@ def render(dev, CFG, only=None):
                                "-c:v", "libx264", "-crf", "17", "-preset", "medium", "-pix_fmt", "yuv420p", str(out_sil)], stdin=subprocess.PIPE)
     last_k, last_img = -1, None
     rows, issues, occ_rows, strict_rows, cut_rows, slice_rows, slicef_rows = [], [], [], [], [], [], []
-    ov_open = tip_frames = push_frames = 0
+    ov_open = tip_frames = push_frames = blur_frames = 0
     cur_rows = []
     still_run, still_max, prev_pv = 0, (0, 0.0), None
     for bb in bubbles:
@@ -230,6 +230,8 @@ def render(dev, CFG, only=None):
             # ── 遮擋／裁切／切字／游標檢查（錄影端每格量到的外框；畫面內＝與畫面框相交）──
             m = fm[k]
             els = m["el"]
+            if m.get("blur", 0) > 0:
+                blur_frames += 1
             crop_in = (cx + DRIFT_CSS, cy + DRIFT_CSS, cw - 2 * DRIFT_CSS, ch - 2 * DRIFT_CSS)
             bub, a_in, a_out = R.bubble_at(bubbles, t)
             foc = []
@@ -378,7 +380,7 @@ def render(dev, CFG, only=None):
                                                           + ["", "游標／波紋 × 文字："] + cur_rows[:500] + ["", "畫面框邊切到文字（全部）："] + slice_rows[:500] + ["", "裁切（介紹的元素超出畫面框）："] + cut_rows[:200]), encoding="utf-8")
     out = dict(dev=dev, frames=n_total, body_raw=round(body, 2), total_raw=round(total, 2), final_len=round(final_len, 2), speed=SPEED, end_final=end_final,
                overlaps=len(rows), issues=len(issues), occlusion=len(occ_rows), strict=len(strict_rows), cursor_text=len(cur_rows), cut=len(cut_rows), slice=len(slice_rows), slice_focus=len(slicef_rows),
-               dd_open_frames=ov_open, push_frames=push_frames, tooltip_frames=tip_frames, still_max_s=round(still_max[0] / FPS, 2), still_at=round(still_max[1], 2),
+               blur_frames=blur_frames, dd_open_frames=ov_open, push_frames=push_frames, tooltip_frames=tip_frames, still_max_s=round(still_max[0] / FPS, 2), still_at=round(still_max[1], 2),
                clicks=click_rows, bubbles=[(round(b["t0"], 2), round(b["t1"], 2), b["text"]) for b in bubbles], stages=stages, final=str(final),
                occ_detail=occ_rows[:40], strict_detail=strict_rows[:40], cursor_detail=cur_rows[:40], slice_detail=slice_rows[:60], cut_detail=cut_rows[:40], data_date=meta.get("data_date"), warns=meta.get("warns"))
     (SCR / f"render_{dev}.json").write_text(json.dumps(out, ensure_ascii=False, indent=1), encoding="utf-8")
