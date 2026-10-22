@@ -1,61 +1,65 @@
 {
   "steps": {
     "mis.index_minute": {
-      "ok": false,
-      "rows": 0,
-      "seconds": 1.0
-    },
-    "taifex.futures_minute": {
       "ok": true,
-      "rows": 831,
-      "seconds": 1.5
+      "rows": 840,
+      "seconds": 3.2
     },
     "index_intraday": {
-      "stored": 831
+      "stored": 840
+    },
+    "taifex.futures_minute": {
+      "ok": false,
+      "rows": 0,
+      "seconds": 0.1
     },
     "news.collect": {
       "ok": true,
-      "rows": 142,
-      "seconds": 4.2
+      "rows": 140,
+      "seconds": 5.0
     },
     "news": {
-      "stored": 21
+      "stored": 99
     },
     "news.broker_views": {
       "ok": true,
-      "rows": 1,
+      "rows": 5,
       "seconds": 0.0
     },
     "broker_views": {
-      "stored": 0
+      "stored": 5
     },
     "mops.material_news": {
       "ok": true,
       "rows": 79,
-      "seconds": 2.1
+      "seconds": 2.2
     },
     "material_news": {
-      "stored": 79
+      "stored": 0
     },
     "macro.intl": {
       "ok": true,
-      "rows": 1761,
-      "seconds": 2.2
+      "rows": 1762,
+      "seconds": 1.8
     },
     "intl_daily": {
-      "stored": 1
+      "stored": 2
     },
     "macro.fred": {
-      "ok": false,
-      "rows": 0,
-      "seconds": 1.2,
-      "error": "FRED 序列 12/12 個失敗：連線失敗、或重試後仍是 429／5xx（細節見 Actions 日誌）（FEDFUNDS、CPIAUCSL、PAYEMS、DGS10…）"
+      "ok": true,
+      "rows": 15555,
+      "seconds": 4.3
+    },
+    "macro": {
+      "stored": 2
     },
     "macro.fred_calendar": {
-      "ok": false,
-      "rows": 0,
-      "seconds": 0.3,
-      "error": "FRED 公布日程 4/4 個失敗：連線失敗、或重試後仍是 429／5xx（細節見 Actions 日誌）（cpi、nfp、gdp、pce）"
+      "ok": true,
+      "rows": 26,
+      "seconds": 1.6
+    },
+    "macro_calendar": {
+      "stored": 0
     },
     "margin_total": {
       "stored": 0
@@ -83,20 +87,22 @@
     }
   },
   "errors": [],
-  "empty": [
-    "macro.fred",
-    "macro.fred_calendar"
-  ],
+  "empty": [],
   "phase": "news",
-  "taifex_minute_days": {
-    "FUT_N": [
-      "2026-10-21",
+  "index_minute_days": {
+    "FUT": [
+      "2026-10-22"
+    ],
+    "OTC": [
+      "2026-10-22"
+    ],
+    "TSE": [
       "2026-10-22"
     ]
   },
-  "started_at": "2026-10-22T00:00:39.594054+00:00",
-  "finished_at": "2026-10-22T00:12:35.658980+00:00",
-  "duration_seconds": 716.1,
+  "started_at": "2026-10-22T06:06:07.892619+00:00",
+  "finished_at": "2026-10-22T06:22:39.891444+00:00",
+  "duration_seconds": 992.0,
   "trade_date": null,
   "complete": true,
   "freshness": {
@@ -105,10 +111,10 @@
       "inst_daily": {
         "label": "個股三大法人",
         "latest": "2026-10-21",
-        "rows": 1438,
+        "rows": 1550,
         "median": 1924.0,
-        "status": "warn",
-        "reason": "thin"
+        "status": "ok",
+        "reason": null
       },
       "inst_market_daily": {
         "label": "全市場三大法人金額",
@@ -143,16 +149,10 @@
         "reason": null
       }
     },
-    "warn": [
-      "inst_daily"
-    ],
-    "warn_labels": [
-      "個股三大法人"
-    ]
+    "warn": [],
+    "warn_labels": []
   },
-  "warn": [
-    "inst_daily"
-  ],
+  "warn": [],
   "finmind_budget_left": 453,
   "tables": [
     {
@@ -167,7 +167,7 @@
     },
     {
       "table": "margin_daily",
-      "rows": 2677126,
+      "rows": 2677988,
       "latest": "2026-10-21"
     },
     {
@@ -197,7 +197,7 @@
     },
     {
       "table": "inst_daily",
-      "rows": 4004781,
+      "rows": 4004893,
       "latest": "2026-10-21"
     },
     {
@@ -237,22 +237,22 @@
     },
     {
       "table": "news",
-      "rows": 7057,
+      "rows": 7156,
       "latest": "2026-10-22"
     },
     {
       "table": "broker_views",
-      "rows": 167,
-      "latest": "2026-10-21"
+      "rows": 172,
+      "latest": "2026-10-22"
     },
     {
       "table": "intl_daily",
-      "rows": 1978,
+      "rows": 1980,
       "latest": "2026-10-22"
     },
     {
       "table": "macro",
-      "rows": 15553,
+      "rows": 15555,
       "latest": "2026-10-21"
     },
     {
@@ -297,7 +297,7 @@
     },
     {
       "table": "index_intraday",
-      "rows": 230209,
+      "rows": 231049,
       "latest": "—"
     },
     {
@@ -312,13 +312,13 @@
     },
     {
       "table": "daytrade_daily",
-      "rows": 721872,
-      "latest": "2026-10-21"
+      "rows": 722219,
+      "latest": "2026-10-22"
     },
     {
       "table": "sbl_daily",
-      "rows": 791200,
-      "latest": "2026-10-20"
+      "rows": 793069,
+      "latest": "2026-10-21"
     },
     {
       "table": "insider_holding",
