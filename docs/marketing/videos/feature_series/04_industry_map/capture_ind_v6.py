@@ -46,7 +46,9 @@ CHAIN = "ai_server"
 REC_CSS = ("#relTip,#relStick{display:none!important}"
            "html body #supFab,html body .supfab,html body #bibiRing,html body .bibiring{bottom:-300px!important}"
            ".__vr{width:24px!important;height:24px!important;border-width:2px!important;background:transparent!important}"
-           ".reltip{margin:18px 0 0 22px!important}")
+           ".reltip{margin:18px 0 0 22px!important}"
+           "#relSec *,#chainMap *{transition:none!important}"          # 環節展開瞬間完成（不經過「長高中」的版面，框緣不會在展開途中切到字）
+           ".lbl3d[data-hid],[data-edgehid]{visibility:hidden!important}")            # 被收起的 3D 標籤用屬性標記（網站每幀重設 style.visibility 蓋不掉屬性選擇器）
 BLUR_SEL = ""
 
 META_JS = r"""([blurSel, named]) => {
@@ -71,7 +73,17 @@ META_JS = r"""([blurSel, named]) => {
 
 RESOLVE_JS = """() => { const L = [...document.querySelectorAll('.lbl3d')].filter(e => getComputedStyle(e).visibility !== 'hidden').map(e => ({ e, r: e.getBoundingClientRect() }));
   for (let i = 0; i < L.length; i++) for (let j = i + 1; j < L.length; j++) { const a = L[i].r, b = L[j].r;
-    if (Math.min(a.right, b.right) + 2 > Math.max(a.left, b.left) && Math.min(a.bottom, b.bottom) + 2 > Math.max(a.top, b.top)) { const big = a.height >= b.height ? i : j; L[big].e.style.setProperty('visibility', 'hidden', 'important'); } } }"""
+    if (Math.min(a.right, b.right) + 2 > Math.max(a.left, b.left) && Math.min(a.bottom, b.bottom) + 2 > Math.max(a.top, b.top)) { const big = a.height >= b.height ? i : j; L[big].e.setAttribute('data-hid', '1'); } } }"""
+
+EDGE_JS = """([x0, y0, x1, y1]) => { document.querySelectorAll('[data-edgehid]').forEach(e => e.removeAttribute('data-edgehid'));
+  const root = document.querySelector('#v-industry') || document.body; const wk = document.createTreeWalker(root, NodeFilter.SHOW_TEXT); let n, k = 0, hid = 0;
+  while ((n = wk.nextNode()) && k < 8000) { k++; if (!n.nodeValue || !n.nodeValue.trim()) continue; const e = n.parentElement; if (!e || e.closest('script,style')) continue;
+    const rg = document.createRange(); rg.selectNodeContents(n);
+    for (const r of rg.getClientRects()) { if (r.width < 2 || r.height < 2) continue;
+      const inx = Math.min(r.right, x1) - Math.max(r.left, x0) > 0, iny = Math.min(r.bottom, y1) - Math.max(r.top, y0) > 0; if (!inx || !iny) continue;
+      const cut = (r.top < y0 - 0.5 && r.bottom > y0 + 0.5) || (r.top < y1 - 0.5 && r.bottom > y1 + 0.5) || (r.left < x0 - 0.5 && r.right > x0 + 0.5) || (r.left < x1 - 0.5 && r.right > x1 + 0.5);
+      if (cut) { e.setAttribute('data-edgehid', '1'); hid++; break; } } }
+  return hid; }"""
 
 NAMED = {
     "burger": "#m4Burger",
@@ -125,6 +137,11 @@ class Rec(F.Rec):
         self.pg.evaluate(C.ANIM_JS, ms)
         if self.n % 6 == 0:
             self._watch()
+        if self.act.stage == 5 and not self.act.mob:
+            try:   # 關聯圖：被畫面框邊切過一半的字（框邊 = 取景 CROP1 內縮 2.6px）整段先隱藏，不讓半截字入鏡
+                self.edge_hid = self.pg.evaluate(EDGE_JS, [CROP1[0] + 2.6, CROP1[1] + 2.6, CROP1[0] + CROP1[2] - 2.6, CROP1[1] + CROP1[3] - 2.6])
+            except Exception:  # noqa: BLE001
+                pass
         if self.act.stage == 4 and not self.act.mob:
             try:   # 3D 標籤：任何兩張標籤只要相交，每一幀拍照前就把較高的那張收起（不相關的標籤隱藏）
                 self.pg.evaluate(RESOLVE_JS)
@@ -264,7 +281,7 @@ def tab_pt(pg, sel, dx=0.5):
 
 
 def set_labels_hidden(pg, nos):
-    pg.evaluate("(nos) => { document.querySelectorAll('.lbl3d').forEach(e => { e.style.removeProperty('visibility'); }); nos.forEach(n => { const e = document.querySelector('.lbl3d[data-dgno=\"' + n + '\"]'); if (e) e.style.setProperty('visibility', 'hidden', 'important'); }); }", nos)
+    pg.evaluate("(nos) => { document.querySelectorAll('.lbl3d').forEach(e => { e.removeAttribute('data-hid'); }); nos.forEach(n => { const e = document.querySelector('.lbl3d[data-dgno=\"' + n + '\"]'); if (e) e.setAttribute('data-hid', '1'); }); }", nos)
 
 
 def neighbors_below(pg, no, span=150):
@@ -277,7 +294,7 @@ def resolve_label_overlaps(pg):
     """點開後：任何跟「已展開標籤」相交的其他可見標籤一律收起（互相壓到也算遮擋）。"""
     return pg.evaluate("""() => { const L = [...document.querySelectorAll('.lbl3d')].filter(e => getComputedStyle(e).visibility !== 'hidden').map(e => ({ e, r: e.getBoundingClientRect(), no: e.dataset.dgno }));
       let hid = 0; for (let i = 0; i < L.length; i++) for (let j = i + 1; j < L.length; j++) { const a = L[i].r, b = L[j].r;
-        if (Math.min(a.right, b.right) > Math.max(a.left, b.left) && Math.min(a.bottom, b.bottom) > Math.max(a.top, b.top)) { const big = a.height >= b.height ? j : i; L[big].e.style.setProperty('visibility', 'hidden', 'important'); hid++; } }
+        if (Math.min(a.right, b.right) > Math.max(a.left, b.left) && Math.min(a.bottom, b.bottom) > Math.max(a.top, b.top)) { const big = a.height >= b.height ? j : i; L[big].e.setAttribute('data-hid', '1'); hid++; } }
       return hid; }""")
 
 
@@ -411,10 +428,9 @@ def run(a, pg, start, snap=False):
     a.snap("s5a")
     a.wait(900)
     set_labels_hidden(pg, [])
-    a.mark('zoom2')   # 從這一刻起鏡頭做第二次單向推近（CROP1 → CROP2）
     PARK2 = (1275, 120)
     for sg, lab in (("thermal", "環節：散熱（上游）"), ("power", "環節：電源"), ("assembly", "環節：系統組裝（下游）")):
-        y2, c2, fits = seg_scroll(pg, sg, CROP2)
+        y2, c2, fits = seg_scroll(pg, sg, CROP1)
         a.note(f"{sg} 點前捲到 {y2}（切字 {c2}，放得下 {fits}）")
         if abs(y2 - pg.evaluate("() => scrollY")) > 1:
             a.scroll(to_y=y2, ms=600)
@@ -423,11 +439,10 @@ def run(a, pg, start, snap=False):
         a.move(r[0] + r[2] + 30, r[1] - 24, 320)
         px = pg.evaluate("""([s, x0, x1, y]) => { for (let x = x1; x >= x0; x -= 2) { const e = document.elementFromPoint(x, y); if (e && e.closest && e.closest(s)) return x; } return null; }""", [t, r[0], r[0] + r[2], r[1] + r[3] / 2])
         a.off_click(px if px else r[0] + r[2] * 0.5, r[1] + r[3] * 0.5, lab, t, dx=0, dy=0, pause=70)
-        a.move(*PARK2, 120)
-        a.wait(800)      # 等展開動畫與版面跳動停穩，再量捲動位置（否則量完又長高，框緣切到字）
-        y3, c3, fits3 = seg_scroll(pg, sg, CROP2)     # 點開後頁面會跳動／長高 → 重新捲動定位，成分公司整塊入鏡
+        y3, c3, fits3 = seg_scroll(pg, sg, CROP1)     # 展開是瞬間完成（關了 CSS 轉場）→ 馬上量、馬上捲，成分公司整塊入鏡
         a.note(f"{sg} 展開後捲到 {y3}（切字 {c3}，放得下 {fits3}）")
-        a.scroll(to_y=y3, ms=350)
+        a.scroll(to_y=y3, ms=300)
+        a.move(*PARK2, 60)
         a.wait(1100)
         a.snap("s5_" + sg)
     a.settle()

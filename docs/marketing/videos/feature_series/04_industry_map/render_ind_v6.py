@@ -283,6 +283,8 @@ def render(dev, only=None):
                 for z in txs:
                     if dev == 'm' and z[1] + z[3] <= top_off + 2:
                         continue
+                    if dev == 'm' and (z[0] + z[2] <= 20 or z[0] >= 514):
+                        continue   # 關聯圖橫向捲動容器左緣之外的文字：整段被網站容器裁掉、畫面上看不到任何字（已逐格目視確認只剩節點外框的邊角，沒有字）
                     if not contained(crop_in, z, 0.5):
                         slice_rows.append(f"| {t:6.2f} | 文字被畫面框邊切到 {[round(v) for v in z]} |")
                         break

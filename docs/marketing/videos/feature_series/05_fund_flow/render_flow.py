@@ -282,6 +282,15 @@ def render(dev, only=None):
             in_push = zoom is not None and zoom[0] <= t <= zoom[0] + zoom[1] + 0.05   # 單向推近的移動中（約 0.75 秒），不算切字／裁切
             if in_push:
                 push_frames += 1
+            moving = fm[max(0, k - 4)]["sy"] != m["sy"] or fm[min(N0 - 1, k + 4)]["sy"] != m["sy"]
+            if not in_push and not moving and stg >= 3:   # 任何輪盤／排行標籤文字被畫面框上下邊（手機：頂欄下緣與畫面底緣）切過一半 → 記一筆
+                t_top = 56 if dev == 'm' else cy
+                t_bot = cy + ch
+                for z in zt:
+                    zy0, zy1 = z[2], z[2] + z[4]
+                    if (zy0 < t_top - 0.5 and zy1 > t_top + 0.5) or (zy0 < t_bot - 0.5 and zy1 > t_bot + 0.5):
+                        slice_rows.append(f"| {t:6.2f} | 標籤被畫面框上下緣切過一半 y={zy0:.0f}-{zy1:.0f} |")
+                        break
             chart_focus = (not in_push) and any(f in ('clock', 'rank') for f in (bub['focus'] if bub else []))
             want = {0 if f == 'clock' else 1 for f in (bub['focus'] if bub else []) if f in ('clock', 'rank')}
             for z in ([z for z in m["zt"] if z[0] in want] if chart_focus else []):   # 畫面框邊切過標籤文字（只算泡泡正在介紹輪盤／排行的幀；換頁載入中的幾幀不算）

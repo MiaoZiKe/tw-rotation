@@ -268,6 +268,28 @@ def run_d(pg, a, start):
     a.settle()
 
 
+def snap_scroll(pg, y0, lo=-16, hi=16, edges=(56, 864)):
+    """手機：在 y0 附近找「畫面上緣（頂欄下緣）與下緣都不切過輪盤／排行標籤文字」的捲動位置（排行最底下一列不被畫面框邊切一半）。回傳 (y, 切字數)。"""
+    best = None
+    sy0 = pg.evaluate("() => scrollY")
+    for d in range(lo, hi + 1):
+        y = max(0, y0 + d)
+        pg.evaluate("(y) => scrollTo({top: y, behavior: 'instant'})", y)
+        pg.wait_for_timeout(30)
+        m = pg.evaluate(META_JS)
+        cut = 0
+        for z in m["zt"]:
+            top, bot = z[2], z[2] + z[4]
+            for e in edges:
+                if top < e + 3 and bot > e - 3:
+                    cut += 1
+        sc = cut * 1000 + abs(d)
+        if best is None or sc < best[0]:
+            best = (sc, y, cut)
+    pg.evaluate("(y) => scrollTo({top: y, behavior: 'instant'})", sy0)
+    return best[1], best[2]
+
+
 def run_m(pg, a, start):
     F.goto(pg, "#overview", 3500)
     a.x, a.y = 360, 300
@@ -287,6 +309,8 @@ def run_m(pg, a, start):
     # 往下捲一次，讓篩選列～輪盤整塊落在畫面框內（之後只往下捲）
     a.set_stage(3, "看強弱")
     y = pg.evaluate("() => document.querySelector('#flowRotFilter').getBoundingClientRect().top + scrollY - 56")
+    y, cuts = snap_scroll(pg, y)
+    a.note(f"手機輪盤捲動位置 {y}，框緣切字 {cuts}")
     a.scroll(to_y=y, ms=800)   # 先捲好（泡泡講輪盤時，輪盤已整個在畫面框內）
     a.say("輪盤看資金強弱", "magnifier", ("clock",))
     a.idle(1500)
@@ -295,11 +319,16 @@ def run_m(pg, a, start):
     a.say("選產業鏈，只看那一條", "spotlight", ("chain",))
     for c, lab in F.CHAINS[:2]:
         pick_chain(a, pg, c, lab)
-        a.wait(1000)
+        y4, cuts = snap_scroll(pg, pg.evaluate("() => scrollY"))
+        a.note(f"手機選鏈後捲動位置 {y4}，框緣切字 {cuts}")
+        a.scroll(to_y=y4, ms=250)
+        a.wait(800)
     a.settle()
     a.set_stage(5, "選天數")
     a.clear_say()
     y2 = pg.evaluate("() => document.querySelector('#rotBack').getBoundingClientRect().top + scrollY - 64")   # 選完產業鏈篩選列變長 → 再往下捲一次，讓拉桿＋整個輪盤落在畫面框內
+    y2, cuts = snap_scroll(pg, y2)
+    a.note(f"手機拉桿捲動位置 {y2}，框緣切字 {cuts}")
     a.scroll(to_y=y2, ms=700)
     a.say("拉桿換天數，兩圖同步變", "clock", ("slider", "clock"))
     for v in (5, 10, 30):
