@@ -27,18 +27,19 @@ YEL = (255, 229, 165)
 
 
 def shot_crop():
-    """v4：用成片同一套鏡頭（render_ind.cam_track）取 d_d3d「3D：機櫃＋兩側零件標籤」那一拍（機櫃＋兩側標籤、沒有任何浮層蓋住；零件標籤上的公司小籤已在錄影瀏覽器模糊）。"""
-    js = json.loads((R.RAW / "d_d3d.json").read_text(encoding="utf-8"))
-    t = [m[0] for m in js["marks"] if m[1] == "cam" and m[2].startswith("3D：機櫃＋兩側零件標籤")][0] + 0.4
-    k = int(t * 30)
-    o = R.layout("d")
-    x, y, w, h = R.cam_track(o, js, "d3d")["focus"][k][0]
-    x, y, w, h = x + 12, y + 12, w - 24, h - 24
-    cap = cv2.VideoCapture(str(R.RAW / "d_d3d.mp4"))
+    """v5：取一鏡到底網頁錄影（raw_v5/d_main）3D 段「點電源櫃之後」的那一格，裁切＝推近後的取景框（只有機櫃、右側電源櫃說明卡與左側 BBU 標籤；公司小籤已模糊）。"""
+    raw = R.SCR / "raw_v5"
+    js = json.loads((raw / "d_main.json").read_text(encoding="utf-8"))
+    t4 = next(tt for tt, k_, _ in js["stages"] if k_ == 4)
+    clicks = [c["t"] for c in js["clicks"] if "電源櫃" in (c.get("label") or "") and c["t"] > t4]
+    k = int((clicks[-1] + 0.9) * 30)
+    cap = cv2.VideoCapture(str(raw / "d_main.mp4"))
     cap.set(cv2.CAP_PROP_POS_FRAMES, k)
     ok, fr = cap.read()
     im = Image.fromarray(cv2.cvtColor(fr, cv2.COLOR_BGR2RGB))
-    return im.crop((int(x), int(y), int(x + w), int(y + h))), None
+    d = js["dsf"]
+    x, y, w, h = 250, 70, 1010, 535
+    return im.crop((int(x * d), int(y * d), int((x + w) * d), int((y + h) * d))), None
 
 
 def sticker(im, w, radius=34, border=14):

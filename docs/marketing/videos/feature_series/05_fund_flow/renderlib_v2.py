@@ -54,6 +54,7 @@ SEC = {   # 膠囊、標題、標題重點字
     "end": ("資金流向", "錢往哪跑，一頁看懂", "一頁看懂"),
 }
 NAV = [("days", "選天數"), ("pick", "選產業鏈"), ("tree", "分流樹")]
+END_SUB = "資金輪盤・族群排行・產業鏈篩選"   # 片尾卡的功能說明（各支影片的渲染腳本自行覆蓋）
 DISC = "本內容為公開資料整理，不構成任何投資建議；投資有風險，請自行判斷。"
 
 BG = (253, 247, 236)
@@ -704,7 +705,7 @@ def end_card(o, base, reg, a):
     d.text((cx - w_ / 2 - b_[0], cy - h_ / 2 - b_[1]), s1, font=big, fill=WHITE + (int(255 * a),))
     reg.add("搜尋鈕", (bx0, by0, bx1, by1 + 10))
     f2 = font(F_BOLD, 40 if o.dev == "d" else 40)
-    s2 = "資金輪盤・族群排行・產業鏈篩選"
+    s2 = END_SUB
     s2b = ""
     yy = by1 + 60
     for s in [s2]:

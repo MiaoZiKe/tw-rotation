@@ -116,7 +116,7 @@ BLUR_JS = r"""
 # 點擊漣漪縮小（直徑 24px）：不壓在被點的字上（10-21 稽核：波紋不准壓在被點的字上）；手機另外把站內的底部面板遮罩（#mSheetBack 的半透明深色）在錄影裡設成透明，不把圖淡掉
 RIPPLE_JS = r"""
 (() => { const go = () => { const st = document.createElement('style'); st.id = '__vrcss';
-  st.textContent = '.reltip{margin:18px 0 0 22px!important}.__vr{width:24px!important;height:24px!important;border-width:2px!important}#mSheetBack,.mshback,.msheet-back{background:transparent!important;backdrop-filter:none!important}'; (document.head || document.documentElement).appendChild(st); };
+  st.textContent = '.reltip{margin:18px 0 0 22px!important}.__vr{width:24px!important;height:24px!important;border-width:2px!important}#mSheetBack,.mshback,.msheet-back{background:transparent!important;backdrop-filter:none!important}#siteFoot{display:none!important}#prod3d .mnum[data-no="16"]{visibility:hidden!important}'; (document.head || document.documentElement).appendChild(st); };
   document.readyState === 'loading' ? document.addEventListener('DOMContentLoaded', go) : go(); })();
 """
 
