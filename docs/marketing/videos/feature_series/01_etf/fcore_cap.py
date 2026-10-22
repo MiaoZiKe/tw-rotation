@@ -131,6 +131,10 @@ NOTIP_JS = ("(() => { const go = () => { const st = document.createElement('styl
 # 點擊漣漪縮短到 0.35 秒（落在點擊窗口內）
 CURSOR_JS = C.CURSOR_JS.replace(".55s", ".35s").replace("}, 700)", "}, 450)").replace("background:rgba(37,99,235,.18);", "background:transparent;")   # 漣漪只留外圈，不蓋住被點的字
 
+# 網頁固定取景版（10-22）：錄影視窗較矮，客服鈕移到畫面下緣外（只動錄影瀏覽器的 CSS，不改 site/）
+HIDE_FAB_JS = ("(() => { const go = () => { const st = document.createElement('style'); st.textContent = 'html body #supFab,html body .supfab,html body #bibiRing,html body .bibiring{bottom:-260px!important}';"
+               " (document.head || document.documentElement).appendChild(st); }; document.readyState === 'loading' ? document.addEventListener('DOMContentLoaded', go) : go(); })();")
+
 CURSOR_BOX_D = (-3, -2, 26, 30)     # 桌機箭頭游標外框（相對於游標座標：dx, dy, w, h）
 CURSOR_BOX_M = (-17, -17, 34, 34)   # 手機指尖圓點
 

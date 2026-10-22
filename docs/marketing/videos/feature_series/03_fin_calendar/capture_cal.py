@@ -24,8 +24,8 @@ from fcore_cap import goto  # noqa: E402,F401
 import cal_blur  # noqa: E402
 
 SCR = Path(os.environ.get("FEAT_SCR", "/tmp/claude-0/-home-user-tw-rotation/3d7a42eb-0e07-50fa-8c50-cf31c62d682f/scratchpad/redo/03"))
-F.CFG.update(scr=SCR, vp_d={"width": 1680, "height": 900}, blur_js=cal_blur.blur_js())
-F.DEVS["d"] = dict(viewport={"width": 1680, "height": 900}, device_scale_factor=2)
+F.CFG.update(scr=SCR, vp_d={"width": 1280, "height": 600}, init=[F.HIDE_FAB_JS], blur_js=cal_blur.blur_js())
+F.DEVS["d"] = dict(viewport={"width": 1280, "height": 600}, device_scale_factor=2)
 
 
 def chip(k):
@@ -45,61 +45,53 @@ def panel_to(a, sel, off=6, ms=600):
     return True
 
 
-# ------------------------------------------------------------------ 網頁版
+# ------------------------------------------------------------------ 網頁版（10-22 改版：視窗 1280×660，取景框固定尺寸；引導後框在功能卡上）
 def d_main(pg, a, start):
     goto(pg, "#overview", 3500)
     start()
     a.cam_view("需求：總覽首頁")
     a.say("重要數據哪天公布？", "face_think_v2")
-    a.idle(1900)
-    a.cam_view("側欄捲動")
+    a.idle(1250)
     a.side_mid('#tabs .tab[data-view="earnings"]', 0.42, 400)
-    a.cam(['#tabs .tab[data-view="earnings"]'], 6, "選單：財經日曆", minw=270)
+    a.cam(['#tabs .tab[data-view="earnings"]'], 6, "選單：財經日曆")
     a.say("選單點「財經日曆」", "point_r_v2")
     a.idle(400)
     a.click('#tabs .tab[data-view="earnings"]', label="選單：財經日曆")
     a.wait(1500)
     pg.evaluate("() => scrollTo(0, 0)")
-    # 切到 FED 消息分頁
+    # 功能卡第一個畫面：三個分頁＋月曆＋右欄，一起出現
     a.step("tab")
-    a.cam(['#earnFilt button[data-v="fed"]'], 8, "分頁：FED 消息")
+    a.cam(['#earnFilt button[data-v="fed"]', '#earnFilt button[data-v="conf"]', "#earnPanel .ph"], 8, "功能卡：分頁＋月曆＋右欄")
     a.say("再點「FED 消息」分頁", "calendar")
     a.idle(300)
     a.click('#earnFilt button[data-v="fed"]', label="分頁：FED 消息")
     a.wait(900)
-    # 連點三個事件：右側面板同步換成那項數據的說明
     a.step("evt")
-    g = pg.evaluate("() => { const r = document.querySelector('#earnGrid').getBoundingClientRect(); return [r.left, r.width]; }")
-    fx = g[0] + 3 * g[1] / 7 - 6
-    a.cam([chip("nfp"), chip("minutes"), chip("cpi")], 8, "事件標籤＋右側面板", frame=f"rect:{fx:.0f},150,990,500", also=["#earnPanel .ph"])
     a.say("點事件，右側出現分析", "point_r_v2")
     a.idle(300)
+    a.cam([chip("nfp"), chip("minutes"), chip("cpi"), "#earnPanel .ph"], 8, "月曆事件＋右欄分析", settle=False)
     a.click(chip("nfp"), label="事件：非農", keep=True)
     a.wait(800)
     a.click(chip("minutes"), label="事件：FOMC 紀要", keep=True)
     a.wait(800)
     a.click(chip("cpi"), label="事件：CPI")
-    a.wait(900)
-    # 面板：是什麼／怎麼看／影響
-    a.cam(["#earnPanel .ph", "#earnPanel .fcard"], 8, "CPI 說明卡", frame=f"rect:{g[0] + 4.5 * g[1] / 7:.0f},150,830,430")
+    a.wait(500)
     a.say("是什麼、怎麼看、影響", "talk_explain_v2")
-    a.idle(1500)
-    # 面板往下：近期數值走勢
+    a.cam(["#earnPanel .ph", "#earnPanel .fcard"], 8, "CPI 說明卡")
+    a.idle(450)
     a.cam_view("面板捲動")
-    panel_to(a, "[data-sec=spark]", 6, 600)
-    a.cam(["#earnPanel [data-sec=spark]"], 8, "近期數值走勢", frame=f"rect:{g[0] + 4.5 * g[1] / 7:.0f},150,830,430")
+    panel_to(a, "[data-sec=spark]", 58, 600)
     a.say("近期數值走勢一看就懂", "magnifier")
-    a.idle(1500)
-    # 再往下：關注點與多空規則
+    a.cam(["#earnPanel [data-sec=spark]"], 8, "近期數值走勢")
+    a.idle(450)
     a.cam_view("面板捲動")
     panel_to(a, "[data-sec=rule]", 260, 600)
-    a.cam(["#earnPanel [data-sec=rule]"], 8, "關注點與多空規則", frame=f"rect:{g[0] + 4.5 * g[1] / 7:.0f},150,830,430")
     a.say("關注點、多空規則寫好", "bulb")
-    a.idle(1500)
+    a.cam(["#earnPanel [data-sec=rule]"], 8, "關注點與多空規則")
+    a.idle(450)
     a.step("more")
-    a.cam_view("面板捲動")
-    a.cam(['#earnFilt button[data-v="rep"]', '#earnFilt button[data-v="conf"]'], 8, "分頁：公司財報、公司法說")
     a.say("公司財報、法說也在這", "news")
+    a.cam(['#earnFilt button[data-v="rep"]', '#earnFilt button[data-v="conf"]', '#earnFilt button[data-v="fed"]'], 8, "公司財報、法說分頁")
     a.idle(300)
     a.click('#earnFilt button[data-v="rep"]', label="分頁：公司財報", keep=True)
     a.wait(600)

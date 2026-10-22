@@ -51,6 +51,7 @@ XF = 6             # 轉場交疊 0.2 秒（10-21 稽核：最多 0.2 秒）
 END_DUR = 3.2      # 片尾卡原片 3.2 秒（成片約 2.0 秒；10-21 指示：片尾卡成片停 1.5～2 秒）
 
 ORDER = ["main"]
+FIXED_BOX = None   # 網頁版固定取景（10-22）：dict(bw=css 寬, y0=css 上緣, card_x=功能卡左緣 css)；取景框尺寸整支不變，只在側欄／功能卡兩個位置之間平移，空白處用底色補
 SEC = {   # 膠囊、標題、標題重點字
     "open": ("產業地圖", "產品從上游到下游", "上游到下游"),
     "guide": ("引導", "從首頁找到產業地圖", "產業地圖"),
@@ -917,6 +918,144 @@ def cam_track2(o, meta, path, sid=""):
     return dict(cams=out, tgts=tgts, focus=focus, transit=transit, beats=beats, snaps=0, viol=viol, fabhit=fabhit, fails=fails_l)
 
 
+
+def cam_track3(o, meta, path, sid=""):
+    """固定尺寸取景（網頁 10-22）：取景框大小＝FIXED_BOX 定死（放大倍率整支不變）；只有位置（側欄／功能卡）、
+    下緣與右緣依「最近的空白處」收短（剩下的用底色補）。回傳格式同 cam_track2，另附 'fill'。"""
+    W0, H0 = meta["size"]
+    dsf = meta["dsf"]
+    FB = FIXED_BOX
+    BWp = int(round(FB["bw"] * dsf))
+    BHp = int(round(BWp / o.asp))
+    y_base = int(round(FB["y0"] * dsf))
+    x_card = int(round(FB["card_x"] * dsf))
+    bw = 2   # 邊緣帶寬 1 css：只要求框緣上一條線沒有字
+    bwc = 2
+    cams_in = list(meta["cams"])
+    first = next((i for i, c in enumerate(cams_in[:6]) if c[0] != 0), None)
+    if first:
+        cams_in[:first] = [cams_in[first]] * first
+    fbs = meta.get("fabs") or []
+    curs = meta.get("cur") or []
+    rd = Reader(path)
+    T1 = []
+    mode = "side"
+    for k, c in enumerate(cams_in):
+        fr = rd.get(k)
+        I = _ink_integral(fr, curs[k] if k < len(curs) else None, dsf)
+        cid, r = c[0], c[1:5]
+        f = np.array(c[6], np.float64) if len(c) > 6 and c[6] else None
+        if f is not None:
+            f = np.array([max(0.0, f[0]), max(float(y_base), f[1]), min(W0, f[0] + f[2]) - max(0.0, f[0]), min(H0, f[1] + f[3]) - max(float(y_base), f[1])], np.float64)
+            mode = "card" if f[0] > (FB["card_x"] - 8) * dsf else "side"
+        hold = f is None and k > 0
+        tgt = None
+        fl = 0
+        if not hold:
+            x0 = 0 if mode == "side" else x_card
+            # 上緣：y_base 往上下找整條空白（f 的上緣以上）
+            ftop = f[1] - 1 * dsf if f is not None else H0
+            fleft = f[0] - 3 * dsf if f is not None else W0
+            xe = min(W0, x0 + BWp)
+            cand_y = [y_base + i for i in range(0, int(40 * dsf)) if y_base + i <= ftop] + [y_base - i for i in range(1, int(14 * dsf))]
+            ny, cy_ = _scan(cand_y, lambda y: _cnt(I, x0, y, xe, y + 2))
+            y0 = ny if ny is not None else y_base
+            if cy_:
+                fl += 1
+            x0b = x0
+            if mode == "card":
+                cand_x = [x_card + i for i in range(0, int(12 * dsf)) if x_card + i <= fleft] + [x_card - i for i in range(1, int(8 * dsf))]
+                nx, cx_ = _scan(cand_x, lambda x: _cnt(I, x, y0, x + 2, y0 + BHp))
+                x0b = nx if nx is not None else x_card
+                if cx_:
+                    fl += 1
+            x1 = min(W0, x0b + BWp)
+            y1 = min(H0, y0 + BHp)
+            fbot = (f[1] + f[3] + 1 * dsf) if f is not None else y0 + 60 * dsf
+            fright = (f[0] + f[2] + 1 * dsf) if f is not None else x0b + 60 * dsf
+            cand_b = [y1 - i for i in range(0, int(190 * dsf)) if y1 - i >= fbot]
+            bwb = 1
+            nb, cb = _scan(cand_b, lambda y: _cnt(I, x0b, y - 2, x1, y))
+            if nb is not None:
+                y1 = nb
+            if cb:
+                fl += 1
+            cand_r = [x1 - i for i in range(0, int((800 if mode == 'side' else 260) * dsf)) if x1 - i >= fright]
+            nr, cr = _scan(cand_r, lambda x: _cnt(I, x - 2, y0, x, y1))
+            if nr is not None:
+                x1 = nr
+            if cr:
+                fl += 1
+            fb = fbs[k] if k < len(fbs) else None
+            fh = 0
+            if fb and not (x1 <= fb[0] - 6 or x0b >= fb[0] + fb[2] + 6 or y1 <= fb[1] - 6 or y0 >= fb[1] + fb[3] + 6):
+                fh = 1
+            tgt = np.array([x0b, y0, x1 - x0b, y1 - y0], np.float64)
+        T1.append(dict(cid=cid, f=f, hold=hold, tgt=tgt, fl=fl, fh=(fh if not hold else 0), zoom=bool(c[7]) if len(c) > 7 else False))
+    # 每一拍開頭 45 格（圖表動畫、版面尚未定位）改用「45 格之後」的目標，避免取景下緣在動畫期間跟著抖
+    i = 0
+    while i < len(T1):
+        j = i
+        while j + 1 < len(T1) and T1[j + 1]["cid"] == T1[i]["cid"] and not T1[j + 1]["hold"]:
+            j += 1
+        lab_i = next((m_[2] for m_ in reversed([m_ for m_ in meta["marks"] if m_[1] == "cam"]) if m_[0] <= i / FPS + 1e-6), "")
+        if not T1[i]["hold"] and j > i and "圓餅" in lab_i:
+            ref = T1[min(i + 45, j)]["tgt"]
+            for q in range(i, min(i + 45, j + 1)):
+                if T1[q]["tgt"] is not None and ref is not None:
+                    T1[q]["tgt"] = ref.copy()
+        i = j + 1
+    out, tgts, focus, transit, beats, viol, fabhit, fails_l = [], [], [], [], [], [], [], []
+    cur = None
+    last_id = None
+    rd = Reader(path)
+    for k, t1 in enumerate(T1):
+        cid, f = t1["cid"], t1["f"]
+        if t1["hold"] and cur is not None:
+            out.append(cur.copy())
+            tgts.append(tgts[-1].copy())
+            focus.append((None, None))
+            transit.append(True)
+            beats.append((cid, t1["zoom"]))
+            viol.append(0)
+            fabhit.append(0)
+            fails_l.append(0)
+            last_id = cid
+            continue
+        tgt = t1["tgt"]
+        if cur is None:
+            cur = tgt.copy()
+        else:
+            cur = cur + (tgt - cur) * (0.2 if cid == last_id else 0.12)
+            if np.abs(cur - tgt).max() < 3.0:
+                cur = tgt.copy()
+        if f is not None and not contains(tuple(cur), f, 1) and np.abs(cur - tgt).max() < 0.2 * BWp:
+            pass
+        moving = bool(np.abs(cur - tgt).max() > 0.5)
+        v = 0
+        if not moving:
+            fr = rd.get(k)
+            I = _ink_integral(fr, curs[k] if k < len(curs) else None, dsf)
+            x, y, w, h = [int(round(q)) for q in cur]
+            v = int(_cnt(I, x, y, x + w, y + bwc) > 0)
+            if y + h < H0 - 2:
+                v += int(_cnt(I, x, y + h - bwc, x + w, y + h) > 0)
+            if x > 2:
+                v += int(_cnt(I, x, y, x + bwc, y + h) > 0)
+            if x + w < W0 - 2:
+                v += int(_cnt(I, x + w - bwc, y, x + w, y + h) > 0)
+        last_id = cid
+        out.append(cur.copy())
+        tgts.append(tgt.copy())
+        focus.append((None if f is None else f.copy(), None if f is None else f.copy()))
+        transit.append(moving)
+        beats.append((cid, t1["zoom"]))
+        viol.append(v)
+        fabhit.append(t1["fh"])
+        fails_l.append(t1["fl"])
+    return dict(cams=out, tgts=tgts, focus=focus, transit=transit, beats=beats, snaps=0, viol=viol, fabhit=fabhit, fails=fails_l, fixed=True)
+
+
 def disp_rect(o, crop):
     """畫面框：依取景框比例縮放、置中於畫面框區域。回傳（x, y, w, h, 縮放倍率）。"""
     cx, cy, cw, ch = crop
@@ -1097,7 +1236,8 @@ def render(dev, only=None, seg=None):
             _masks[(w_, h_)] = (np.array(m_).astype(np.float32) / 255)[..., None]
         return _masks[(w_, h_)]
     disp_rect.dsf = shots[0]["meta"]["dsf"]
-    cams = {s["sid"]: cam_track2(o, s["meta"], s["path"], s["sid"]) for s in shots}
+    _ct = cam_track3 if (FIXED_BOX and dev == "d") else cam_track2
+    cams = {s["sid"]: _ct(o, s["meta"], s["path"], s["sid"]) for s in shots}
     N = int(round(total * FPS))
     frames = [int(round(float(x) * FPS)) for x in only.split(",")] if only else range(N)
     out_mp4 = SCR / (f"{NAME}_{dev}_silent.mp4" if not seg else f"seg/{NAME}_{dev}_{seg}.mp4")
@@ -1158,8 +1298,19 @@ def render(dev, only=None, seg=None):
         tt = s["start"] + k / FPS
         cx, cy, cw, ch = [float(q) for q in c0]
         crop = crop_px(fr, cx, cy, cw, ch)
-        drect = disp_rect(o, (cx, cy, cw, ch))
-        img = cv2.resize(crop, (drect[2], drect[3]), interpolation=cv2.INTER_AREA if cw > drect[2] else cv2.INTER_CUBIC)
+        if T.get("fixed"):
+            scf = o.pw / (FIXED_BOX["bw"] * s["meta"]["dsf"])
+            wi, hi = min(o.pw, int(round(cw * scf))), min(o.ph, int(round(ch * scf)))
+            small = cv2.resize(crop, (wi, hi), interpolation=cv2.INTER_AREA if scf < 1 else cv2.INTER_CUBIC)
+            img = np.empty((o.ph, o.pw, 3), np.uint8)
+            img[:] = np.median(small[-3:, :, :].reshape(-1, 3), axis=0).astype(np.uint8)
+            if wi < o.pw:
+                img[:hi, wi:] = np.median(small[:, -3:, :].reshape(-1, 3), axis=0).astype(np.uint8)
+            img[:hi, :wi] = small
+            drect = (o.panel[0], o.panel[1], o.pw, o.ph, scf)
+        else:
+            drect = disp_rect(o, (cx, cy, cw, ch))
+            img = cv2.resize(crop, (drect[2], drect[3]), interpolation=cv2.INTER_AREA if cw > drect[2] else cv2.INTER_CUBIC)
         img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
         f_raw, f = T["focus"][kk]
         cid, zoom = T["beats"][kk]
@@ -1314,7 +1465,12 @@ def render(dev, only=None, seg=None):
                 kind = "點擊"
             k = min(int(round(c["t"] * FPS)), len(cams_s) - 1)
             cx, cy, cw, ch = [float(q) for q in cams_s[k]]
-            dxr, dyr, dwr, dhr, scr = disp_rect(o, (cx, cy, cw, ch))
+            if cams[s["sid"]].get("fixed"):
+                scr = o.pw / (FIXED_BOX["bw"] * s["meta"]["dsf"])
+                dxr, dyr = o.panel[0], o.panel[1]
+                dwr, dhr = int(cw * scr), int(ch * scr)
+            else:
+                dxr, dyr, dwr, dhr, scr = disp_rect(o, (cx, cy, cw, ch))
             px, py = c["center"]
             ox_ = dxr + (px - cx) * scr
             oy_ = dyr + (py - cy) * scr

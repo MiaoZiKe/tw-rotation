@@ -24,6 +24,7 @@ def asof():
 
 
 R.configure(
+    FIXED_BOX=dict(bw=1030, y0=50, card_x=233),
     SCR=SCR, RAW=Path(os.environ.get("FEAT_RAW", str(SCR / "raw"))), NAME="feat01_etf", ORDER=["main"], DATA_ASOF=asof,
     SEC={"main": ("ETF 專區", "挑 ETF：配息、類型、報酬", "挑 ETF"), "end": ("ETF 專區", "一頁完成 ETF 功課", "一頁完成")},
     NAV=[("cal", "配息行事曆"), ("types", "類型與分類卡"), ("ret", "報酬比較")],

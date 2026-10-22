@@ -27,8 +27,8 @@ from fcore_cap import goto, rel, scroll_to  # noqa: E402,F401
 SCR = Path(os.environ.get("FEAT_SCR", "/tmp/claude-0/-home-user-tw-rotation/3d7a42eb-0e07-50fa-8c50-cf31c62d682f/scratchpad/redo/01"))
 # ETF 一覽的分組預設全部收起 → 頁面太短、報酬比較卡捲不上來：錄影的瀏覽器預先把各分類的分組都展開（只動 localStorage，不改 site/）
 _FOLD = "try{localStorage.setItem('tw.etf.fold',JSON.stringify({'配息型':[],'市值型':[],'主題型':[],'主動式':[],'債券型':[],'槓桿反向':[],'其他':[]}))}catch(e){}"
-F.CFG.update(scr=SCR, vp_d={"width": 1720, "height": 900}, init=[_FOLD])
-F.DEVS["d"] = dict(viewport={"width": 1720, "height": 900}, device_scale_factor=2)
+F.CFG.update(scr=SCR, vp_d={"width": 1280, "height": 600}, init=[_FOLD, F.HIDE_FAB_JS])
+F.DEVS["d"] = dict(viewport={"width": 1280, "height": 600}, device_scale_factor=2)
 
 def cal_cell(d):
     return f'#etfCalGrid .cald[data-d="{d}"]'
@@ -44,63 +44,55 @@ def sub(label):
     return SUB[label]
 
 
-# ------------------------------------------------------------------ 網頁版（單一連續錄影）
+# ------------------------------------------------------------------ 網頁版（10-22 改版：視窗 1280×660，取景框固定尺寸；引導後框在功能卡上，只往下捲）
+CELLS_JS = """() => [...document.querySelectorAll('#etfCalGrid .cald.has')].map(c => { const r = c.getBoundingClientRect(); return [c.dataset.d, r.top, r.bottom]; })"""
+
+
 def d_main(pg, a, start):
     goto(pg, "#overview", 3500)
     start()
-    # ① 需求（2～3 秒）：停在總覽首頁
+    # ① 需求（側欄＋總覽左半；比比泡泡講需求）
     a.cam_view("需求：總覽首頁")
     a.say("哪天除息？哪檔配得多？", "face_think_v2")
-    a.idle(1900)
-    # ② 引導：左側選單點「ETF」（點下去直接進配息行事曆）
-    a.cam_view("側欄捲動")
+    a.idle(1250)
+    # ② 引導：側欄點「ETF」
     a.side_mid('#tabs .tab[data-view="etf"]', 0.42, 400)
-    a.cam(['#tabs .tab[data-view="etf"]'], 6, "選單：ETF", minw=270)
+    a.cam(['#tabs .tab[data-view="etf"]'], 6, "選單：ETF")
     a.say("選單點「ETF」進專區", "point_r_v2")
     a.idle(500)
     a.click('#tabs .tab[data-view="etf"]', label="選單：ETF")
     a.wait(1500)
     pg.evaluate("() => scrollTo(0, 0)")
-    # ③ 配息行事曆：連點三個日期，右側清單跟著換；再點一檔看歷年配息
+    # ③ 配息行事曆：連點三個日期、再點一檔
     a.step("cal")
-    ds = pg.evaluate(HAS_JS)
-    a.note(f"有除息的日期：{ds}")
-    # 取景：日曆格右半（週四～週六）＋右側清單左半同框（日期格點下去，清單就在旁邊換）
-    g = pg.evaluate("() => { const r = document.querySelector('#etfCalGrid').getBoundingClientRect(); const h = document.querySelector('#etfCalCard .calhd').getBoundingClientRect(); return [r.left, r.width, h.top]; }")
-    colw = g[1] / 7
-    fx = g[0] + 4 * colw - 4
-    col = pg.evaluate("() => Object.fromEntries([...document.querySelectorAll('#etfCalGrid .cald')].map((c, i) => [c.dataset.d, i % 7]))")
-    right = [d for d in ds if col.get(d, 0) >= 4]
-    a.note(f"週四以後有除息的日期：{right}")
-    d3 = (right + right)[:3]
-    a.cam([cal_cell(d) for d in d3], 8, "配息行事曆（右半）＋清單", frame=f"rect:{fx:.0f},{g[2] - 4:.0f},930,480", also=["#etfCalList"])
+    cells = [c for c in pg.evaluate(CELLS_JS) if c[1] > 70 and c[2] < 560]
+    a.note(f"取景內有除息的日期：{cells}")
+    ds = [c[0] for c in cells][-4:]
+    d3 = ds[:3] if len(ds) >= 3 else ds
+    a.cam([cal_cell(d) for d in d3] + ["#etfCalList .ph"], 8, "配息行事曆＋清單")
     a.say("格子＝當天除息的 ETF", "calendar")
     a.idle(500)
     a.say("點日期，右側列出清單", "point_r_v2")
-    a.click(cal_cell(right[0]), label=f"日期：{right[0]}", keep=True)
-    a.wait(800)
-    a.click(cal_cell(right[1]), label=f"日期：{right[1]}", keep=True)
-    a.wait(800)
-    a.click(cal_cell(right[-1]), label=f"日期：{right[-1]}")
-    a.wait(600)
-    a.cam(["#etfCalList .ph", "#etfDayTbl thead", "all:#etfDayTbl tbody tr:nth-child(-n+4)"], 8, "當天清單", frame=f"rect:{g[0] + 6 * colw - 4:.0f},{g[2] - 4:.0f},832,490", also=["#etfCalGrid"])
+    for i, d in enumerate(d3):
+        a.click(cal_cell(d), label=f"日期：{d}", keep=(i < len(d3) - 1))
+        a.wait(800 if i < len(d3) - 1 else 600)
+    a.cam(["#etfCalList .ph", "#etfDayTbl thead", "all:#etfDayTbl tbody tr:nth-child(-n+4)"], 8, "當天清單")
     a.say("點一檔，看歷年配息", "magnifier")
     a.idle(300)
     a.click("#etfDayTbl tbody tr:nth-child(2)", label="清單：一檔 ETF", keep=True)
-    a.cam(["#etfCalList .ph", "#etfCalList .kpis", "#etfCalList .mini"], 8, "單檔歷年配息", frame=f"rect:{g[0] + 6 * colw - 4:.0f},{g[2] - 4:.0f},832,490", also=["#etfCodeTbl"], settle=False)
+    a.cam(["#etfCalList .ph", "#etfCalList .kpis", "#etfCalList .mini"], 8, "單檔歷年配息", settle=False)
     a.away(150)
     a.idle(1800)
-    # ④ ETF 總覽：選單點「ETF 總覽」
-    a.cam_view("側欄捲動")
+    # ④ 回側欄點「ETF 總覽」（取景平移到側欄再平移回功能卡，尺寸不變）
     a.side_mid(sub("ETF 總覽"), 0.42, 400)
-    a.cam([sub("配息行事曆"), sub("ETF 總覽")], 4, "選單：ETF 總覽", minw=270)
+    a.cam([sub("配息行事曆"), sub("ETF 總覽")], 4, "選單：ETF 總覽")
     a.say("想比同類？點「ETF 總覽」", "talk_explain_v2")
     a.idle(300)
     a.click(sub("ETF 總覽"), label="選單：ETF 總覽")
     a.wait(1600)
     pg.evaluate("() => scrollTo(0, 0)")
     a.step("types")
-    a.cam(["#etfCatSeg", "#etfPopCard"], 4, "類型分頁＋最受歡迎卡", also=["#etfRetTopCard", "#etfYldCard"])
+    a.cam(["#etfCatSeg", "#etfPopCard", "#etfRetTopCard", "#etfYldCard"], 4, "類型分頁＋三張卡")
     a.say("七類分頁，卡片跟著換", "point_ur_v2")
     a.idle(300)
     a.click('#etfCatSeg button[data-v="市值型"]', label="類型：市值型", keep=True)
@@ -109,49 +101,25 @@ def d_main(pg, a, start):
     a.wait(700)
     a.click('#etfCatSeg button[data-v="配息型"]', label="類型：配息型")
     a.wait(600)
-    a.cam(["#etfRetTopCard"], 8, "報酬率前 5")
-    a.say("報酬率：依含息年化排", "face_thinking_bulb")
-    a.idle(300)
-    a.cam(["#etfYldCard"], 8, "殖利率前 5")
-    a.say("殖利率：配息÷收盤價", "magnifier")
-    a.idle(300)
-    # ⑤ 報酬比較：加入兩檔 → 看走勢與年化 → 含息／不含息
+    a.say("報酬率、殖利率同步換", "face_thinking_bulb")
+    a.idle(400)
+    # ⑤ 報酬比較：往下捲一次，走勢線切含息／不含息（走勢標題與線都會變）
     a.step("ret")
     a.cam_view("捲動")
-    a.scroll_to_el("#etfRetCard", 66, 800)
-    a.note(f"頁高 {pg.evaluate('() => [document.scrollingElement.tagName, document.scrollingElement.scrollHeight, innerHeight, document.querySelector(\"#etfListCard\").getBoundingClientRect().height, getComputedStyle(document.documentElement).scrollBehavior]')}")
-    a.note(f"捲到報酬比較：scrollY={pg.evaluate('() => scrollY')} 卡片上緣={pg.evaluate('() => document.querySelector(\"#etfRetCard\").getBoundingClientRect().top')}")
-    a.cam(["#etfCmpDD .ddbtn", "#etfBasisSeg"], 8, "加入比較")
-    a.say("挑兩檔進報酬比較", "talk_explain_v2")
-    DD = ["#etfCmpDD .ddbtn", "#etfCmpDD .ddpanel", "#etfBasisSeg"]
-    a.on_up = lambda: a.cam(DD, 0, "下拉清單（只框清單）", exact=True, settle=False)   # 清單展開那一格就只框清單，圖不入鏡
-    a.click("#etfCmpDD .ddbtn", label="加入比較")
-    a.wait(500)
-    a.click("#etfCmpDD .sndd-q", label="搜尋框")
-    a.type_text("00939", 130)
-    a.wait(400)
-    a.click('#etfCmpDD .ddopt[data-n^="00939"] label', label="勾選第一檔")
-    a.wait(500)
-    a.pg.locator("#etfCmpDD .sndd-q").first.fill("")
-    a.type_text("00940", 130)
-    a.wait(400)
-    a.click('#etfCmpDD .ddopt[data-n^="00940"] label', label="勾選第二檔")
-    a.wait(500)
-    a.on_up = lambda: a.cam(["#etfRetLineTtl", "#etfRetLine"], 8, "累積報酬走勢", settle=False)   # 收起那一格才拉回圖
-    a.click("#etfCmpDD .ddbtn", label="收起清單")
+    a.scroll_to_el("#etfRetCard", 62, 800)
+    a.cam(["#etfBasisSeg", "#etfRetLineTtl", "#etfRetLine"], 8, "報酬比較走勢")
     a.say("走勢從 0% 一起比", "point_r_v2")
-    a.idle(1500)
-    a.cam(["#etfBasisSeg", "#etfRetBarTtl", "#etfRetBar"], 8, "含息切換與年化")
+    a.idle(500)
     a.say("切含息／不含息看差距", "talk_explain_v2")
-    a.click('#etfBasisSeg button[data-v="price"]', label="不含息", keep=True)
+    a.click('#etfBasisSeg button[data-v="price"]', label="不含息")
+    a.wait(600)
+    a.click('#etfBasisSeg button[data-v="tr"]', label="含息")
     a.wait(800)
-    a.click('#etfBasisSeg button[data-v="tr"]', label="含息", keep=True)
-    a.wait(500)
     a.say("一頁完成 ETF 功課", "proud_shine")
     a.click('#etfBasisSeg button[data-v="price"]', label="不含息")
-    a.wait(500)
+    a.wait(700)
     a.settle()
-    a.idle(300)   # 最後一泡：片尾轉場 0.2 秒前仍要停滿
+    a.idle(300)
 
 
 # ------------------------------------------------------------------ 手機版（390 寬 m4 版面，單一連續錄影）

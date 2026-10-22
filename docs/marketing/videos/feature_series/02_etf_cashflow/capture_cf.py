@@ -22,8 +22,8 @@ import fcore_cap as F  # noqa: E402
 from fcore_cap import goto, tap_slice  # noqa: E402,F401
 
 SCR = Path(os.environ.get("FEAT_SCR", "/tmp/claude-0/-home-user-tw-rotation/3d7a42eb-0e07-50fa-8c50-cf31c62d682f/scratchpad/redo/02"))
-F.CFG.update(scr=SCR, vp_d={"width": 1680, "height": 900})
-F.DEVS["d"] = dict(viewport={"width": 1680, "height": 900}, device_scale_factor=2)
+F.CFG.update(scr=SCR, vp_d={"width": 1280, "height": 700}, init=[F.HIDE_FAB_JS])
+F.DEVS["d"] = dict(viewport={"width": 1280, "height": 700}, device_scale_factor=2)
 
 SUBTAB = '#tabs .l4subtab[data-l4sub="etf-inc"]'
 SIDE_JS = r"""(sel) => { const e = document.querySelector(sel); if (!e) return null;
@@ -32,31 +32,30 @@ SIDE_JS = r"""(sel) => { const e = document.querySelector(sel); if (!e) return n
   const need = r.bottom + 24 - Math.min(pr.bottom, innerHeight); if (!p.id) p.id = '__vside'; return need > 0 ? ['#' + p.id, p.scrollTop + need] : null; }"""
 
 
-# ------------------------------------------------------------------ 網頁版
+# ------------------------------------------------------------------ 網頁版（10-22 改版：視窗 1280×660，取景框固定尺寸；引導後框在功能卡上，只往下捲）
 def d_main(pg, a, start):
     goto(pg, "#overview", 3500)
     start()
     a.cam_view("需求：總覽首頁")
     a.say("想每月都有現金流？", "face_think_v2")
-    a.idle(1900)
-    a.cam_view("側欄捲動")
+    a.idle(1250)
     a.side_mid('#tabs .tab[data-view="etf"]', 0.42, 400)
-    a.cam(['#tabs .tab[data-view="etf"]'], 6, "選單：ETF", minw=270)
+    a.cam(['#tabs .tab[data-view="etf"]'], 6, "選單：ETF")
     a.say("選單點「ETF」", "point_r_v2")
     a.idle(400)
     a.click('#tabs .tab[data-view="etf"]', label="選單：ETF")
     a.wait(1200)
-    a.cam_view("側欄捲動")
     a.side_mid(SUBTAB, 0.42, 400)
-    a.cam([SUBTAB], 4, "選單：現金流試算", minw=270)
+    a.cam([SUBTAB], 4, "選單：現金流試算")
     a.say("再點「現金流試算」", "magnifier")
     a.idle(300)
     a.click(SUBTAB, label="選單：現金流試算")
     a.wait(1500)
     pg.evaluate("() => scrollTo(0, 0)")
-    # 設目標：月領＋金額（下方直條跟著變）
+    # 設目標：月領＋金額（整張功能卡第一個畫面：分頁、目標列、組合分頁、「要買幾張」結果一起出現）
     a.step("set")
-    a.cam(["#incMode", "#incAmtSeg"], 6, "目標列", also=["#incBar"])
+    sq = F.text_rect(pg, "#incSQ") or "#incSQ"
+    a.cam(["#incMode", "#incAmtSeg", "#incTabs", sq], 6, "目標列＋要買幾張", also=["#incMain [role=tablist]"])
     a.say("設目標：月領＋金額", "calc")
     a.idle(300)
     a.click('#incMode button[data-v="m"]', label="月領", keep=True)
@@ -64,40 +63,27 @@ def d_main(pg, a, start):
     a.click('#incAmtSeg button[data-v="10000"]', label="金額：1 萬", keep=True)
     a.wait(800)
     a.click('#incAmtSeg button[data-v="30000"]', label="金額：3 萬")
-    a.wait(600)
-    # 結果：要買幾張、每月入帳直條（頁面往下捲一小段，清單整張在客服鈕上方）
-    a.cam_view("捲動")
-    a.scroll(by=130, ms=500)
-    sq = F.text_rect(pg, "#incSQ") or "#incSQ"
-    a.cam([sq], 4, "要買幾張", also=["#incSQ", "#incChips", "#incBar"])
-    a.say("直條＝每月入帳金額", "surprise_jump")
-    a.idle(1500)
-    # 勾選／取消（直條跟著變）
-    a.step("pick")
-    lb = pg.evaluate("() => { const r = document.querySelector('#incListBox').getBoundingClientRect(); return [r.left, r.top, r.width]; }")
-    a.cam([f"rect:{lb[0]:.0f},{lb[1]:.0f},{lb[2]:.0f},300"], 4, "右側清單", also=["#incListBox", "#incBar"])
-    a.say("取消、勾選，直條跟著變", "calendar")
-    a.idle(300)
-    a.click("#incList input[type=checkbox]:checked", label="取消一檔", keep=True)
-    a.wait(800)
-    a.click("#incList input[type=checkbox]:checked", label="再取消一檔", keep=True)
-    a.wait(800)
-    a.click("#incList input[type=checkbox]:not(:checked):not(:disabled)", label="勾選一檔")
     a.wait(700)
-    # 組合 A／B／C（圓餅、時鐘一起換）
+    a.say("「要買幾張」跟著算出來", "surprise_jump")
+    a.idle(1300)
+    # 切組合 A／B／C（往下捲一點：組合分頁在上緣、圓餅與時鐘在下）
     a.step("combo")
+    a.cam_view("捲動")
+    a.scroll(by=130, ms=600)
     a.cam(['#incTabs button[data-i="0"]', '#incTabs button[data-i="1"]', '#incTabs button[data-i="2"]'], 6, "組合分頁")
     a.say("切組合，圓餅時鐘一起換", "happy_spin")
     a.idle(300)
+    a.on_up = lambda: a.cam_view("捲動", settle=False)
     a.click('#incTabs button[data-i="0"]', label="組合 A", keep=True)
     a.wait(500)
-    a.cam(['#incTabs button[data-i="0"]', '#incTabs button[data-i="1"]', '#incTabs button[data-i="2"]', "#incCdn", "#incClk"], 6, "組合：圓餅＋時鐘", settle=False)
+    a.scroll(to_y=181, ms=600)
+    a.wait(900)
+    a.cam(['#incTabs button[data-i="0"]', '#incTabs button[data-i="1"]', '#incTabs button[data-i="2"]', "#incCdn", "#incClk"], 0, "組合分頁＋圓餅＋時鐘", settle=False)
     a.wait(500)
     a.click('#incTabs button[data-i="1"]', label="組合 B", keep=True)
-    a.wait(800)
+    a.wait(900)
     a.click('#incTabs button[data-i="2"]', label="組合 C")
-    a.wait(600)
-    a.cam(["#incClk", "#incCTbl"], 6, "時鐘＋各檔明細")
+    a.wait(700)
     a.say("點時鐘某月，標出那檔", "clock")
     a.idle(300)
     F.tap_slice(a, "#incClk", 0, "時鐘第 1 格", keep=True)
@@ -106,25 +92,25 @@ def d_main(pg, a, start):
     a.wait(800)
     F.tap_slice(a, "#incClk", 8, "時鐘第 9 格")
     a.wait(700)
-    # 複利試算表：切 1／3／5 年
-    a.step("cx")
-    a.cam(["#incMain [role=tablist]"], 6, "分頁：複利試算表")
-    a.say("再看「複利試算表」", "point_r_v2")
-    a.idle(300)
-    a.click('button[role=tab][data-v="x"]', label="分頁：複利試算表")
-    a.wait(1300)
-    a.cam(["#cxQuick", "#cxTbl"], 6, "年數與期末資產表", also=["#cxChart"])
-    a.say("切 1、3、5 年，表跟著變", "face_thinking_bulb")
-    a.idle(300)
-    a.click("#cxQuick button:nth-child(1)", label="1 年", keep=True)
+    # 回單檔 ETF：往下捲一次，直條與右側清單同屏；取消、勾選，直條跟著變
+    a.step("pick")
+    a.say("回單檔，取消勾選看直條", "calendar")
+    a.cam_view("切回單檔")
+    a.click('#incTabs button[data-v="s"]', label="單檔 ETF")
+    a.wait(900)
+    a.cam_view("捲動")
+    a.scroll_to_el("#incBar", 141, 800)
+    a.cam(["#incBar", "#incListBox > .ilhd"], 0, "直條＋右側清單", also=["#incListBox"])
+    a.idle(500)
+    a.click("#incList input[type=checkbox]:checked", label="取消一檔", keep=True)
     a.wait(800)
-    a.click("#cxQuick button:nth-child(2)", label="3 年", keep=True)
+    a.click("#incList input[type=checkbox]:checked", label="再取消一檔", keep=True)
     a.wait(800)
     a.say("試算，不代表未來報酬", "face_wink")
-    a.click("#cxQuick button:nth-child(3)", label="5 年")
-    a.wait(600)
+    a.click("#incList input[type=checkbox]:not(:checked):not(:disabled)", label="勾選一檔")
+    a.wait(900)
     a.settle()
-    a.idle(300)
+    a.idle(200)
 
 
 # ------------------------------------------------------------------ 手機版

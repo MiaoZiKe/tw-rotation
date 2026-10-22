@@ -24,6 +24,7 @@ def asof():
 
 
 R.configure(
+    FIXED_BOX=dict(bw=1030, y0=50, card_x=233),
     SCR=SCR, RAW=Path(os.environ.get("FEAT_RAW", str(SCR / "raw"))), NAME="feat03_fin_calendar", ORDER=["main"], DATA_ASOF=asof,
     SEC={"main": ("財經日曆", "重要數據何時公布", "何時公布"), "end": ("財經日曆", "財報、法說、FED 一頁掌握", "一頁掌握")},
     NAV=[("tab", "FED 消息分頁"), ("evt", "點事件看分析"), ("more", "財報・法說")],
