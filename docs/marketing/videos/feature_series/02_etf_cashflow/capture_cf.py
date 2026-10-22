@@ -35,6 +35,16 @@ SIDE_JS = r"""(sel) => { const e = document.querySelector(sel); if (!e) return n
 # ------------------------------------------------------------------ 網頁版（10-22 改版：視窗 1280×660，取景框固定尺寸；引導後框在功能卡上，只往下捲）
 def d_main(pg, a, start):
     goto(pg, "#overview", 3500)
+    # 預熱（錄影開始前）：先進一次現金流試算頁，頁面資料與圖表載入後回總覽，錄影時點進去才不會出現空白等待
+    pg.evaluate("(h) => { location.hash = h; }", "#etf")
+    pg.wait_for_timeout(1500)
+    pg.evaluate("() => { const b = document.querySelector('[data-l4sub=etf-inc], .m4subtabs button[data-sub=etf-inc]'); if (b) b.click(); }")
+    pg.wait_for_timeout(3500)
+    goto(pg, "#overview", 3500)
+    # 首頁走勢圖的十字線時間標籤（10:41）會壓到座標軸文字：開拍前把所有圖的提示收掉
+    pg.evaluate("() => { document.querySelectorAll('div').forEach(el => { try { const c = echarts.getInstanceByDom(el); if (c) { c.dispatchAction({ type: 'updateAxisPointer', currTrigger: 'leave' }); c.dispatchAction({ type: 'hideTip' }); c.setOption({ tooltip: { show: false }, axisPointer: { show: false } }); } } catch (e) {} }); }")
+    pg.mouse.move(600, 8)   # 真滑鼠移到頂欄空白處，圖上的十字線標籤才會消失
+    pg.wait_for_timeout(600)
     start()
     a.cam_view("需求：總覽首頁")
     a.say("想每月都有現金流？", "face_think_v2")
@@ -49,8 +59,11 @@ def d_main(pg, a, start):
     a.cam([SUBTAB], 4, "選單：現金流試算")
     a.say("再點「現金流試算」", "magnifier")
     a.idle(300)
-    a.click(SUBTAB, label="選單：現金流試算")
-    a.wait(1500)
+    a.on_up = lambda: a.cam(["#incMode", "#incAmtSeg"], 6, "功能卡：目標列", settle=False)   # 點下去那一格就把取景移到功能卡，不拍側欄窄框加空白
+    a.click(SUBTAB, label="選單：現金流試算", keep=True)
+    a.skip_ms(2200)   # 進場動畫不錄（頁面時鐘照走）
+    a.away(150)
+    a.wait(300)
     pg.evaluate("() => scrollTo(0, 0)")
     # 設目標：月領＋金額（整張功能卡第一個畫面：分頁、目標列、組合分頁、「要買幾張」結果一起出現）
     a.step("set")
@@ -75,7 +88,8 @@ def d_main(pg, a, start):
     a.idle(300)
     a.on_up = lambda: a.cam_view("捲動", settle=False)
     a.click('#incTabs button[data-i="0"]', label="組合 A", keep=True)
-    a.wait(500)
+    a.skip_ms(1200)   # 圓餅／時鐘的進場動畫與版面長高不錄（頁面時鐘照走），避免畫面下半空白
+    a.wait(300)
     a.scroll(to_y=181, ms=600)
     a.wait(900)
     a.cam(['#incTabs button[data-i="0"]', '#incTabs button[data-i="1"]', '#incTabs button[data-i="2"]', "#incCdn", "#incClk"], 0, "組合分頁＋圓餅＋時鐘", settle=False)
@@ -116,6 +130,12 @@ def d_main(pg, a, start):
 # ------------------------------------------------------------------ 手機版
 def m_main(pg, a, start):
     goto(pg, "#overview", 3500)
+    # 預熱（錄影開始前）：先進一次現金流試算頁，頁面資料與圖表載入後回總覽，錄影時點進去才不會出現空白等待
+    pg.evaluate("(h) => { location.hash = h; }", "#etf")
+    pg.wait_for_timeout(1500)
+    pg.evaluate("() => { const b = document.querySelector('[data-l4sub=etf-inc], .m4subtabs button[data-sub=etf-inc]'); if (b) b.click(); }")
+    pg.wait_for_timeout(3500)
+    goto(pg, "#overview", 3500)
     start()
     a.cam_view("需求：總覽首頁")
     a.say("想每月都有現金流？", "face_think_v2")
@@ -132,7 +152,8 @@ def m_main(pg, a, start):
     a.say("上方點「月配試算」", "magnifier")
     a.idle(300)
     a.click('.m4subtabs button[data-sub="etf-inc"]', label="分頁：月配試算")
-    a.wait(1600)
+    a.skip_ms(2200)
+    a.wait(300)
     pg.evaluate("() => scrollTo(0, 0)")
     # 設定抽屜（面板開著只講面板，選完立刻關掉再看圖）
     a.step("set")
