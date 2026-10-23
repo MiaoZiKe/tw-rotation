@@ -3,44 +3,44 @@
     "mis.index_minute": {
       "ok": true,
       "rows": 840,
-      "seconds": 1.2
+      "seconds": 2.1
     },
     "index_intraday": {
-      "stored": 838
+      "stored": 0
     },
     "taifex.futures_minute": {
-      "ok": true,
-      "rows": 838,
-      "seconds": 2.7
+      "ok": false,
+      "rows": 0,
+      "seconds": 0.1
     },
     "news.collect": {
       "ok": true,
       "rows": 136,
-      "seconds": 2.3
+      "seconds": 4.4
     },
     "news": {
-      "stored": 22
+      "stored": 58
     },
     "news.broker_views": {
       "ok": true,
-      "rows": 1,
+      "rows": 7,
       "seconds": 0.0
     },
     "broker_views": {
-      "stored": 0
+      "stored": 6
     },
     "mops.material_news": {
       "ok": true,
       "rows": 120,
-      "seconds": 1.2
+      "seconds": 2.2
     },
     "material_news": {
-      "stored": 120
+      "stored": 0
     },
     "macro.intl": {
       "ok": true,
       "rows": 1761,
-      "seconds": 1.5
+      "seconds": 1.2
     },
     "intl_daily": {
       "stored": 1
@@ -48,15 +48,15 @@
     "macro.fred": {
       "ok": true,
       "rows": 15559,
-      "seconds": 29.1
+      "seconds": 31.1
     },
     "macro": {
-      "stored": 2
+      "stored": 0
     },
     "macro.fred_calendar": {
       "ok": true,
       "rows": 26,
-      "seconds": 8.9
+      "seconds": 2.0
     },
     "macro_calendar": {
       "stored": 0
@@ -100,15 +100,9 @@
       "2026-10-22"
     ]
   },
-  "taifex_minute_days": {
-    "FUT_N": [
-      "2026-10-22",
-      "2026-10-23"
-    ]
-  },
-  "started_at": "2026-10-23T00:00:58.038282+00:00",
-  "finished_at": "2026-10-23T00:16:15.039685+00:00",
-  "duration_seconds": 917.0,
+  "started_at": "2026-10-23T06:02:44.306311+00:00",
+  "finished_at": "2026-10-23T06:25:39.042358+00:00",
+  "duration_seconds": 1374.7,
   "trade_date": null,
   "complete": true,
   "freshness": {
@@ -117,7 +111,7 @@
       "inst_daily": {
         "label": "個股三大法人",
         "latest": "2026-10-22",
-        "rows": 1896,
+        "rows": 2033,
         "median": 1925.5,
         "status": "ok",
         "reason": null
@@ -173,7 +167,7 @@
     },
     {
       "table": "margin_daily",
-      "rows": 2679264,
+      "rows": 2680320,
       "latest": "2026-10-22"
     },
     {
@@ -203,7 +197,7 @@
     },
     {
       "table": "inst_daily",
-      "rows": 4007767,
+      "rows": 4007911,
       "latest": "2026-10-22"
     },
     {
@@ -243,17 +237,17 @@
     },
     {
       "table": "news",
-      "rows": 7283,
+      "rows": 7341,
       "latest": "2026-10-23"
     },
     {
       "table": "broker_views",
-      "rows": 173,
-      "latest": "2026-10-22"
+      "rows": 179,
+      "latest": "2026-10-23"
     },
     {
       "table": "intl_daily",
-      "rows": 1985,
+      "rows": 1986,
       "latest": "2026-10-23"
     },
     {
@@ -323,8 +317,8 @@
     },
     {
       "table": "sbl_daily",
-      "rows": 793069,
-      "latest": "2026-10-21"
+      "rows": 794938,
+      "latest": "2026-10-22"
     },
     {
       "table": "insider_holding",
