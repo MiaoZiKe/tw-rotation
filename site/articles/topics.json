@@ -1,6 +1,116 @@
 {
- "updated": "2026-10-22",
+ "updated": "2026-10-23",
  "topics": [
+  {
+   "id": "n_trade_truce_2month",
+   "title": "美中休戰只延兩個月，供應鏈在擔心什麼",
+   "why": "原訂 11/10 到期的美中貿易休戰，據世界日報、工商時報（2026-09）報導延到 2027/1/10；稀土管制是否同步延長尚無可核對資訊（信心度中，發文前須再查）；讀者想知道短休戰期對電子供應鏈是變數還是利多。",
+   "score": 3,
+   "format_hint": "兩者",
+   "site_links": [
+    "#flow",
+    "#overview"
+   ],
+   "added": "2026-10-23"
+  },
+  {
+   "id": "n_panel_price_foreign",
+   "title": "面板報價回溫，外資為何先買這一族",
+   "why": "據 uanalyze（2026-09-22）、鉅亨網（2026-09）報導外資買超面板雙虎，原因是年底備貨與陸廠同步漲價，集邦 9 月預測價格持平轉積極；10 月最新數字須用站內資金流向補近 5 日資料。",
+   "score": 3,
+   "format_hint": "文章",
+   "site_links": [
+    "#flow",
+    "#overview"
+   ],
+   "added": "2026-10-23"
+  },
+  {
+   "id": "n_earnings_beat_but_fall",
+   "title": "財報都超標股價仍跌，市場在算什麼",
+   "why": "wistock（2026-10-19）整理 10/19-21 逾 50 家美企公布季報含 Meta、Tesla、Netflix，並提到前季微軟營收與雲端超標仍隔日大跌；讀者想知道賺錢為何還跌。數字待站內資料核對後才用。",
+   "score": 4,
+   "format_hint": "兩者",
+   "site_links": [
+    "#flow",
+    "#overview"
+   ],
+   "added": "2026-10-23"
+  },
+  {
+   "id": "k_switch_800g",
+   "cat": "know",
+   "title": "800G 交換器是什麼？板卡與光模組拆開看",
+   "why": "AI 叢集網路升級到 800G，交換器板卡、光模組與 CPO 的關係少有人講清楚；站內有網通 3D 圖 switch_wireless（交換器板卡＋800G 光模組＋CPO），文章＋3D 圖，已上架 CPO 文可銜接",
+   "score": 4,
+   "format_hint": "文章＋3D 圖",
+   "site_links": [
+    "#industry/group/switch_wireless"
+   ],
+   "added": "2026-10-23"
+  },
+  {
+   "id": "k_glass_substrate",
+   "cat": "know",
+   "title": "玻璃基板是什麼？為何被當成下一代封裝載板",
+   "why": "先進封裝載板材料從有機轉向玻璃的討論增加；站內有 2.5D 圖 glass_substrate（玻璃基板：下一代封裝載板），可銜接已上架 IC 載板與 CoWoS 文；只講原理與取捨，不排受惠",
+   "score": 3,
+   "format_hint": "文章",
+   "site_links": [
+    "#industry/group/glass_substrate",
+    "#heatmap/theme/glass_substrate"
+   ],
+   "added": "2026-10-23"
+  },
+  {
+   "id": "k_asic_ip",
+   "cat": "know",
+   "title": "ASIC 與矽智財是什麼？一顆客製晶片的組成",
+   "why": "雲端大廠自研晶片討論度高，但 ASIC、IP、設計服務的分工常被混為一談；站內有 2.5D 圖 asic_ip（一顆客製晶片的組成）",
+   "score": 3,
+   "format_hint": "文章",
+   "site_links": [
+    "#heatmap/theme/asic_ip",
+    "#industry/group/ip_asic"
+   ],
+   "added": "2026-10-23"
+  },
+  {
+   "id": "i_apple_chain",
+   "cat": "intro",
+   "title": "蘋果供應鏈：一支手機怎麼組起來",
+   "why": "秋季新機出貨期，讀者常分不清鏡頭、面板、組裝、零組件各環節；站內有 2.5D 圖 apple_chain 可畫出環節分工，需附供應鏈圖，講環節不排受惠",
+   "score": 3,
+   "format_hint": "文章",
+   "site_links": [
+    "#industry"
+   ],
+   "added": "2026-10-23"
+  },
+  {
+   "id": "i_defense_chain",
+   "cat": "intro",
+   "title": "軍工國防鏈：預算怎麼變成載具與零組件",
+   "why": "國防預算與無人機議題常見於新聞，但環節分工少有人整理；站內有 2.5D 圖 defense（預算變成哪些載具），需附供應鏈圖，講環節不排受惠",
+   "score": 3,
+   "format_hint": "文章",
+   "site_links": [
+    "#industry"
+   ],
+   "added": "2026-10-23"
+  },
+  {
+   "id": "i_petrochem_chain",
+   "cat": "intro",
+   "title": "石化塑化鏈：輕油怎麼變成塑膠",
+   "why": "油價在高檔震盪，讀者想知道石化上中下游怎麼接；站內有 2.5D 圖 petrochemical（輕油怎麼變塑膠），需附供應鏈圖，講環節不排受惠",
+   "score": 3,
+   "format_hint": "文章",
+   "site_links": [
+    "#industry"
+   ],
+   "added": "2026-10-23"
+  },
   {
    "id": "n_fed_hike_why",
    "cat": "news",
