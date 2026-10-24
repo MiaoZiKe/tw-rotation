@@ -201,7 +201,7 @@
       ${card({ seg: 'foundry', part: 'sp_pic', no: 5, side: 'l', color: C.si, ax: 205, ay: Y(340), title: 'PIC 光子晶片（下層）', sub: ['把光分路、調變、偵測；外緣伸出 EIC 之外，露出耦合邊給 FAU。'] })}
       ${card({ seg: 'ic_design', part: 'sp_eic', alias: 'sp_hb', no: 6, side: 'r', color: C.die, ax: 485, ay: Y(309), title: 'EIC 電子晶片（上層）＋ 混合鍵合', sub: ['疊在 PIC 上、只蓋內側：驅動器（Driver）與 TIA；兩層之間只有銅墊對銅墊，沒有凸塊。'] })}
       ${card({ seg: 'optical', part: 'sp_fau', alias: 'sp_fiber', no: 7, side: 'l', color: C.glass, ax: 128, ay: Y(329), title: 'FAU ＋ 資料光纖', sub: ['FAU 接在 PIC 外緣（遠離 ASIC 那邊），光纖水平向外，到封裝外才彎向前面板。'] })}
-      ${card({ seg: 'optical', part: 'sp_elsfp', alias: 'sp_pm', no: 8, side: 'l', color: C.met, ax: 96, ay: Y(252), title: 'ELSFP 外置雷射 ＋ PM 光纖', sub: ['雷射在前面板，不在載板上；保偏光纖把連續光送進 PIC（箭頭指向 PIC）。'] })}
+      ${card({ seg: 'optical', part: 'sp_elsfp', alias: 'sp_pm', no: 8, side: 'l', color: C.met, ax: 106, ay: Y(247), title: 'ELSFP 外置雷射 ＋ PM 光纖', sub: ['雷射在前面板，不在載板上；保偏光纖把連續光送進 PIC（箭頭指向 PIC）。'] })}
       ${card({ seg: 'thermal', part: 'sp_lid', alias: 'sp_tim', no: 9, side: 'r', color: C.met, ax: 412, ay: Y(262), title: 'TIM1 ＋ 冷板', sub: ['只壓在 ASIC 上；光引擎與 FAU 邊讓開，頂面比 ASIC 低。'] })}
       ${card({ seg: 'connector', part: 'sp_face', no: 10, side: 'l', color: C.met, ax: 23, ay: Y(290), title: '前面板與光纖連接器', sub: ['光纖終止在連接器（不是可插拔收發模組）；ELSFP 插在同一面板。'] })}
       ${note({ side: 'r', order: 0, warn: true, title: '★ 誰做的（結論）', lines: ['PIC／COUPE：台積電、聯電；FAU／光纖套件：上詮、波若威、光聖；外置雷射：眾達-KY、聯鈞；EIC 設計：聯發科；交換 ASIC 設計者為外商。逐段名單見下面第 ④ 段。'] })}
@@ -215,7 +215,7 @@
 
   /* ================================================================ 圖 B */
   const nd = (x, y, w, h, t, t2, seg, id, on) => part(id, R(x, y, w, h, 'var(--dg-step-f)', 'nd' + (on ? ' hl' : ''), 5)
-    + T(x + w / 2, y + (t2 ? 15 : 19), t, 'lbl', 'middle') + (t2 ? T(x + w / 2, y + 30, t2, 'sub', 'middle') : ''), seg);
+    + T(x + w / 2, y + (t2 ? 15 : 19), t, 'lbl', 'middle') + (t2 ? T(x + w / 2, y + 31, t2, 'sub', 'middle') : ''), seg);
   const arr = (x1, y1, x2, y2, cls) => `<path class="${cls || 'wg'}" d="M${x1},${y1} L${x2},${y2}" marker-end="url(#spm)"/>`;
   function pathBand() {
     const w = 84, gp = 8, y1 = 40, y2 = 108, g = [];
@@ -244,10 +244,10 @@
     g.push(nd(X(5), r2 + 14, W, H + 22, '⑫ 交換器整機', '雷射在此相遇', 'switch', 'spc_n12', true));
     g.push(arr(X(4) + W, r2 + 29, X(5), r2 + 29));
     g.push(part('spc_test', R(X(1), rb, 4 * W + 3 * G, 22, 'var(--dg-step-f)', 'nd', 4) + T(X(1) + 8, rb + 15, '測試橫帶：晶圓級光電測試 ▸ 光引擎測試 ▸ 整機測試（示意）', 'sub'), 'test_interface'));
-    g.push(nd(X(0), r3, W, H, '⑩ ASIC 設計', '外商', 'ic_design', 'spc_n10'), nd(X(1), r3, W, H, '⑪ 晶圓製造', '', 'foundry', 'spc_n11'));
+    g.push(nd(X(0), r3, W, H + 10, '⑩ ASIC 設計', '外商', 'ic_design', 'spc_n10'), nd(X(1), r3, W, H, '⑪ 晶圓製造', '', 'foundry', 'spc_n11'));
     g.push(arr(X(0) + W, r3 + 15, X(1), r3 + 15));
     g.push(`<path class="wg" d="M${X(1) + W},${r3 + 15} H${X(4) + W / 2} V${r2 + 14 + H}" marker-end="url(#spm)"/>`);
-    g.push(nd(X(5), r3 + 6, W, H, '⑬ 機櫃佈線', '', 'connector', 'spc_n13'), nd(X(5), r3 + 52, W, H, '雲端業者', '終端需求', 'hyperscaler', 'spc_n14'));
+    g.push(nd(X(5), r3 + 6, W, H, '⑬ 機櫃佈線', '', 'connector', 'spc_n13'), nd(X(5), r3 + 52, W, H + 10, '雲端業者', '終端需求', 'hyperscaler', 'spc_n14'));
     g.push(`<path class="wg" d="M${X(5) + W / 2},${r2 + 14 + H + 22} V${r3 + 6}" marker-end="url(#spm)"/><path class="wg" d="M${X(5) + W / 2},${r3 + 6 + H} V${r3 + 52}" marker-end="url(#spm)"/>`);
     g.push(T(16, r3 + 112, '時程：FAU 2026Q3 微量、2027 才放量；ELSFP 2026–2027 才是第一波大量導入；', 'cap') + T(16, r3 + 128, '光纖套件 2026Q4 才放量（照供應鏈資料，皆為目標、非現在式）。', 'cap'));
     return g.join('');
@@ -296,6 +296,11 @@
       ${pathBand()}${lanes()}
       ${note({ side: 'r', order: 0, warn: true, title: '為什麼不是一條直線', lines: ['雷射晶粒不進 PIC，也不進封裝：外置的 ELSFP 插在前面板，與光引擎在整機才相遇。畫成單線會暗示「雷射先進了 PIC」，結構上是錯的。'] })}
       ${note({ side: 'r', order: 98, title: '示意圖，非實物比例', lines: ['功耗為區間條、非同基準比較；時程一律是目標；NPO 無獨立數字。節點只寫段落名，公司見下面台股段。'] })}
+      ${note({ side: 'r', order: 10, title: '① 可插拔（DSP）：光在前面板模組', lines: ['電氣路徑長（公分～數十公分）；功耗約 15–20 pJ/bit（模組級，廠商引述）；前面板直接抽換；現行主流。'] })}
+      ${note({ side: 'r', order: 11, title: '② LPO：拿掉模組內 DSP', lines: ['位置不變、省的是 DSP 不是距離；約 5–10 pJ/bit（模組級）；前面板抽換；小量、部分採用，未全面取代 DSP。'] })}
+      ${note({ side: 'r', order: 12, title: '③ NPO：板上、ASIC 旁的光引擎', lines: ['電氣路徑公分級；可拆、單顆可換；功耗介於 LPO 與 CPO 之間（定性，未取得獨立數字、不畫數字）；過渡方案，標準推進中（目標）。'] })}
+      ${note({ side: 'r', order: 13, title: '④ CPO：同封裝、同載板', lines: ['電氣路徑毫米級；約 5–10 pJ/bit（廠商系統級宣稱）；光引擎難換（ELSFP 可前面板換）；預期 2027 前後大量導入（目標）。'] })}
+      ${note({ side: 'r', order: 14, warn: true, title: '功耗口徑不同', lines: ['可插拔／LPO 為模組級，CPO 為廠商系統級宣稱；非同基準比較，數字僅示意量級。CPO 的優勢是省電與高密度，代價是維修與散熱。'] })}
       ${fold('spc2', '② 四種架構差在哪', '光在哪、電氣路徑、功耗區間、維修、時程', arch())}
       ${fold('spc3', '③ 數字從哪來', '來源與口徑、為什麼有些數字不用', srcs())}
       ${fold('spc4', '④ 節點的台股', '八段各是誰（高／中信心），時程為目標', twBand())}
