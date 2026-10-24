@@ -1,0 +1,370 @@
+"""功能介紹影片 08 資金流向三合一（資金輪動＋資金分流樹＋族群×法人）—— 一口氣錄完（1.0 倍速、一鏡到底）。
+
+Andy 10-24：「資金輪動＋資金分流樹＋族群×法人 組成一起做一隻影片，節奏太快了，點擊步驟不用那麼多……步調正常，真的有使用功能的感覺」。
+CEO 裁示：① 訪客的時間列是反灰（flow.play 對訪客關）→ 照原樣入鏡，不示範拉桿與回放，改用「切產業鏈」示範兩圖同步變；
+② 不勾族群下拉（族群→公司卡片會蓋排行）；選完產業鏈自動彈出的族群清單錄影端隱藏；③ 零模糊；④ 字級盡量 ≥20px。
+
+錄法：vidlib8.py（逐格算圖、每格記錄所有文字外框／浮層外框，游標只落在不壓字的空白處）；一律未登入訪客真實畫面。
+用法：FEAT_SITE=<main worktree>/site python capture_trio.py --dev d|m [--dry]
+"""
+from __future__ import annotations
+
+import argparse
+import os
+import sys
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
+sys.path.insert(0, str(HERE))
+import vidlib8 as V  # noqa: E402
+
+F, C = V.F, V.C
+SCR = Path(os.environ.get("FEAT_SCR", "/tmp/claude-0/-home-user-tw-rotation/3d7a42eb-0e07-50fa-8c50-cf31c62d682f/scratchpad/feat08"))
+SITE = Path(os.environ.get("FEAT_SITE", "/tmp/claude-0/-home-user-tw-rotation/3d7a42eb-0e07-50fa-8c50-cf31c62d682f/scratchpad/feat06/main_wt/site"))
+OVERLAYS = ['.ddpanel:not([hidden])', '.twms-pan', '#__vsel', '[role=dialog]', '.toast', '#howPop', '.qcov', '.qcard', '.fttip.on']
+ELS = {
+    "navflow": '#tabs .tab[data-view="flow"]', "subsankey": '.l4subtab[data-l4sub="flow-sankey"]', "subinst": '.l4subtab[data-l4sub="flow-inst"]',
+    "clock": "#rotClock", "rank": "#rankFlow", "slider": "#rotBack", "chainr": '#flowRotFilter .rotdd[data-dd="chain"] .ddbtn',
+    "sk": "#sankey", "sklist": "#sankeyPanel", "skchain": '#flowSankeyCard .rotdd[data-dd="chain"] .ddbtn',
+    "inst": "#instGroups", "instleg": "#instLegend", "instchain": '#flowInstCard .rotdd[data-dd="chain"] .ddbtn', "instdays": "#instDays",
+    "burger": "#m4Burger", "m4flow": '.m4item[data-v="flow"]', "tabsk": '.m4subtabs button[data-sub="flow-sankey"]', "tabinst": '.m4subtabs button[data-sub="flow-inst"]', "tabrot": '.m4subtabs button[data-sub="flow-rotation"]',
+}
+# 錄影專用樣式（只在錄影的瀏覽器裡，不改 site/）：
+#   · 族群下拉清單一律隱藏（CEO：不勾族群；選完產業鏈自動彈出的那一次也不入鏡）
+#   · 頂欄改不透明（內容從頂欄下面捲過時不會透出字）
+EXTRA_CSS = (".rotdd[data-dd=group] .ddpanel{display:none!important}"
+             "header.topbar{background:#f4f8fc!important}"
+             ".sitefoot,.sitefoot *{visibility:hidden!important}")
+EXTRA_CSS_M = EXTRA_CSS + "@media (max-width:640px){.plknote{display:none!important}}"   # 手機：「Plus 以上可調整」那行小字在捲動後會飄到排行長條的列標上（網站本身的排版問題），錄影端隱藏；時間列仍是反灰原樣
+CHAIN_LAB = {"semiconductor": "半導體", "ai_server": "AI 伺服器", "electronics": "一般電子"}
+
+# 看得到的圖表長條（排行／族群×法人）：頁面座標
+BARS_JS = r"""(sel) => { const el = document.querySelector(sel); const c = el && window.echarts && echarts.getInstanceByDom(el); if (!c) return [];
+  const o = c.getOption(); const ya = o.yAxis[0].data, sd = o.series[0].data; const b = el.getBoundingClientRect(); const out = [];
+  const step = ya.length > 1 ? Math.abs(c.convertToPixel({ yAxisIndex: 0 }, ya[1]) - c.convertToPixel({ yAxisIndex: 0 }, ya[0])) : 30;
+  for (let i = 0; i < ya.length; i++) { const nm = String(ya[i]).replace(/\s*\d*[↑↓]?\s*$/, '').replace(/\s+\d+(\.\d+)?%$/, '').trim();
+    const py = c.convertToPixel({ yAxisIndex: 0 }, ya[i]); const x0 = c.convertToPixel({ xAxisIndex: 0 }, 0);
+    let v = sd[i] && typeof sd[i] === 'object' && !Array.isArray(sd[i]) ? sd[i].value : sd[i]; if (Array.isArray(v)) v = v[0];
+    out.push({ name: nm, v, x0: b.left + x0, x1: b.left + c.convertToPixel({ xAxisIndex: 0 }, v), y: b.top + py, h: step }); }
+  return out; }"""
+SK_JS = r"""
+window.__vsk = () => { const out = []; const host = document.querySelector('#sankey');
+  if (!host || !window.FlowTopo || !FlowTopo.has(host) || !host.getClientRects().length) return out;
+  const cv = host.querySelector('canvas.ftlab'); if (!cv) return out; const b = cv.getBoundingClientRect(); let p; try { p = FlowTopo.probe(host); } catch (e) { return out; }
+  for (const n of p.nodes) { if (!n.lab || n.vis < 0.3) continue; const l = Math.max(b.left, b.left + n.lab.x), t = Math.max(b.top, b.top + n.lab.y), r = Math.min(b.right, b.left + n.lab.x + n.lab.w), bt = Math.min(b.bottom, b.top + n.lab.y + n.lab.h);
+    if (r - l < 1 || bt - t < 1) continue; const hy = (t + bt) / 2, hx = (l + r) / 2; if (hx < 0 || hy < 0 || hx >= innerWidth || hy >= innerHeight) continue;
+    const e2 = document.elementFromPoint(hx, hy); if (e2 && !host.contains(e2)) continue; out.push(['sk', l, t, r - l, bt - t, 0, 0, 0]); }
+  return out; };
+"""
+
+
+class A8(V.A3):
+    def bars(self, sel):
+        return self.pg.evaluate(BARS_JS, sel)
+
+    def bar(self, sel, name):
+        for b in self.bars(sel):
+            if b["name"] == name:
+                return b
+        return None
+
+    def row_rect(self, sel, b, hh=11):
+        """被 hover 的那一列（含列標、長條、數值）的外框：提示框不可蓋到它（提示框離游標下緣 ≥12px，列高取 ±11px）。"""
+        r = self.pg.evaluate("(s) => { const r = document.querySelector(s).getBoundingClientRect(); return [r.left, r.right]; }", sel)
+        return [r[0], b["y"] - hh, r[1] - r[0], 2 * hh]
+
+    def set_hov(self, row):
+        self.pg.evaluate("(r) => { window.__vhov = r; }", row)
+
+    def clear_hov(self):
+        self.pg.evaluate("() => { window.__vhov = null; }")
+
+    def sk_nodes(self):
+        return self.pg.evaluate("() => { const h = document.querySelector('#sankey'); const p = FlowTopo.probe(h); return p.nodes.map(n => ({ key: n.key, lv: n.lv, text: n.text, x: n.cx, y: n.cy, r: n.r })); }")
+
+    def hover_xy(self, x, y, label, hold_ms, pre=260, row=None):
+        """游標緩移到 (x,y)（路徑不壓字）並停住（hover，不點）；記錄成一次 hover 目標。"""
+        texts = self.texts()
+        self.glide(x, y, texts, 520)
+        self.wait(pre)
+        self.note(f"hover {label}")
+        self.record_target(x, y, "hover", label=label)
+        if row:
+            self.pg.evaluate("(r) => { window.__vhov = r; }", row)
+        self.wait(hold_ms)
+        self.pg.evaluate("() => { window.__vhov = null; }")
+
+    def press_xy(self, x, y, label, hold_ms):
+        """手機：手指按住（細圈＋滑鼠按下），停 hold_ms 後放開。"""
+        self.cursor(False)
+        self._put(x, y)
+        self.x, self.y = x, y
+        self.cursor(True)
+        self.wait(220)
+        self.note(f"按住 {label}")
+        self.pg.evaluate("([x,y]) => window.__vcRipple && window.__vcRipple(x,y)", [x, y])
+        self.record_target(x, y, "click", label=label)
+        self.pg.mouse.down()
+        self.frame()
+        self.cursor(False)
+        self.wait(hold_ms)
+        self.pg.mouse.up()
+        self.frame()
+        self.pg.mouse.move(*self.PARK)
+        self.x, self.y = self.PARK
+
+
+def open_chain_and_pick(a, pg, card, chain, label, hold_open=1100, hold_after=2200, park=None, mob=False):
+    """點產業鏈鈕 → 清單開著停一下 → 點選項 → 清掉自動彈出的族群清單（錄影端本來就隱藏，這裡再保險點一次空白）→ 結果停 hold_after。"""
+    sel = f'{card} .rotdd[data-dd="chain"] .ddbtn'
+    a.tap(sel, "產業鏈下拉鈕")
+    a.park(region=park, ms=320) if (park and not mob) else None
+    a.wait(hold_open)
+    opt = f'{card} .rotdd[data-dd="chain"] .ddopt[data-c="{chain}"]'
+    a.tap(opt, label)
+    pg.evaluate("() => document.body.dispatchEvent(new MouseEvent('click', { bubbles: true }))")
+    if park and not mob:
+        a.park(region=park, ms=300)
+    a.wait(hold_after)
+
+
+def run_d(pg, a, start):
+    CROP = V.CROP0["d"]
+    F.goto(pg, "#overview", 3500)
+    a.crop = CROP
+    a.x, a.y = 700, 330
+    a.park(region=(300, 280, 400, 200))
+    start()
+    # 開場：需求（泡泡 1）
+    a.set_stage(1, "需求")
+    a.say("錢到底往哪個族群跑？", "face_think", ("navflow",))
+    a.idle(3000)
+    a.set_stage(2, "三頁")
+    a.say("三頁接著看，就有答案", "face_curious", ("navflow",))
+    a.idle(1500)
+    # 導覽：點左側「資金流向」
+    a.set_stage(3, "導覽")
+    a.say("點選單，進資金輪動", "point_r", ("navflow",))
+    a.wait(300)
+    a.tap('#tabs .tab[data-view="flow"]', "選單：資金流向")
+    a.until("() => !!document.querySelector('#rotClock canvas') && !!document.querySelector('#rankFlow canvas')", 10000)
+    a.wait(500)
+    a.park(region=(580, 140, 80, 34), ms=400)
+    a.wait(1800)
+    # 功能一：資金輪動
+    a.set_stage(4, "看強弱")
+    a.say("輪盤看強弱，排行看流入", "magnifier", ("clock", "rank"))
+    a.idle(3300)
+    a.settle()
+    a.set_stage(5, "滑過長條")
+    a.say("滑過長條，看占比變化", "spotlight", ("hov",))
+    bars = a.bars("#rankFlow")
+    top = max(bars, key=lambda b: b["v"])   # 全部族群裡占比增加最多的一條（提示框往下展開，落在較短的長條旁）
+    a.hover_xy(top["x1"] - 8, top["y"], f"排行長條：{top['name']}", 2600, row=a.row_rect("#rankFlow", top))
+    a.park(region=(580, 140, 80, 34), ms=360)
+    a.wait(500)
+    a.settle()
+    a.set_stage(6, "切產業鏈")
+    a.say("換條產業鏈，兩圖同步變", "folder", ("chainr", "clock", "rank"))
+    open_chain_and_pick(a, pg, '#flowRotFilter', "ai_server", "產業鏈：AI 伺服器", park=(580, 140, 80, 34))
+    open_chain_and_pick(a, pg, '#flowRotFilter', "semiconductor", "產業鏈：半導體", park=(580, 140, 80, 34))
+    a.settle()
+    a.set_stage(7, "追晶圓代工")
+    a.say("看半導體，先記下晶圓代工", "face_thinking_bulb", ("clock", "rank"))
+    a.idle(2600)
+    a.settle()
+    # 功能二：資金分流樹
+    a.set_stage(8, "分流樹")
+    a.say("接著看，錢怎麼分下去", "point_r", ("subsankey",))
+    a.wait(300)
+    a.tap('.l4subtab[data-l4sub="flow-sankey"]', "子選單：資金分流樹")
+    a.until("() => !!document.querySelector('#sankey canvas.ftlab') && window.FlowTopo && FlowTopo.has(document.querySelector('#sankey'))", 10000)
+    a.wait(900)
+    a.park(region=(930, 270, 120, 260), ms=400)
+    a.wait(1100)
+    a.set_stage(9, "一條主幹")
+    a.say("一條主幹，分到各產業", "talk_explain", ("sk",))
+    a.idle(3000)
+    a.settle()
+    a.set_stage(10, "點半導體")
+    a.say("點半導體，看它分給誰", "spotlight", ("sk",))
+    node = next(n for n in a.sk_nodes() if n["lv"] == 1 and n["text"].startswith("半導體"))
+    a.tap_rect([node["x"] - node["r"] + 1, node["y"] - node["r"] + 1, 2 * node["r"] - 2, 2 * node["r"] - 2], "點節點：半導體")
+    a.park(region=(930, 270, 120, 260), ms=400)
+    a.wait(2200)
+    a.settle()
+    a.set_stage(11, "看名單")
+    a.say("晶圓代工，占這條鏈最大", "face_nod", ("sklist",))
+    a.until("() => !!document.querySelector('#sankeyPanel') && document.querySelector('#sankeyPanel').getClientRects().length > 0", 5000)
+    y = pg.evaluate("() => document.querySelector('#sankeyPanel').getBoundingClientRect().top + scrollY - 78")
+    a.scroll(to_y=y, ms=900)
+    a.wait(2000)
+    a.settle()
+    # 功能三：族群×法人
+    a.set_stage(12, "法人")
+    a.say("最後看法人動向", "point_r", ("subinst",))
+    a.wait(300)
+    a.tap('.l4subtab[data-l4sub="flow-inst"]', "子選單：族群×法人")
+    a.until("() => !!document.querySelector('#instGroups canvas')", 10000)
+    a.wait(900)
+    a.park(region=(405, 100, 160, 30), ms=400)
+    a.wait(1200)
+    a.set_stage(13, "三色")
+    a.say("外資、投信、自營三色", "magnifier", ("instleg", "inst"))
+    a.idle(2700)
+    a.settle()
+    a.set_stage(14, "只看半導體")
+    a.say("同樣只看半導體", "folder", ("instchain", "inst"))
+    open_chain_and_pick(a, pg, '#flowInstCard', "semiconductor", "產業鏈：半導體", park=(405, 100, 160, 30), hold_after=2200)
+    a.settle()
+    a.set_stage(15, "滑過長條")
+    a.say("滑過長條，看三種法人", "spotlight", ("hov",))
+    b = a.bar("#instGroups", "晶圓代工") or a.bars("#instGroups")[-1]
+    a.hover_xy((b["x0"] + b["x1"]) / 2 if abs(b["x1"] - b["x0"]) > 20 else b["x1"], b["y"], f"法人長條：{b['name']}", 2600, row=a.row_rect("#instGroups", b))
+    a.park(region=(405, 100, 160, 30), ms=360)
+    a.wait(400)
+    a.settle()
+    a.set_stage(16, "點圖例")
+    a.say("拿掉外資，看投信與自營", "talk_explain", ("instleg", "inst"))
+    leg = '#instLegend button:nth-child(1)'
+    a.tap(leg, "圖例：外資（隱藏）")
+    a.park(region=(405, 100, 160, 30), ms=300)
+    a.wait(2000)
+    a.tap(leg, "圖例：外資（還原）")
+    a.park(region=(405, 100, 160, 30), ms=300)
+    a.wait(1300)
+    a.settle()
+    a.set_stage(17, "串成一線")
+    a.say("輪動、分流、法人，串成一線", "face_proud", ("inst",))
+    a.idle(3300)
+    a.settle()
+
+
+def run_m(pg, a, start):
+    CROP = V.CROP0["m"]
+    F.goto(pg, "#overview", 3500)
+    a.crop = CROP
+    start()
+    a.set_stage(1, "需求")
+    a.say("錢到底往哪個族群跑？", "face_think", ("burger",))
+    a.idle(3000)
+    a.set_stage(2, "三頁")
+    a.say("三頁接著看，就有答案", "face_curious", ("burger",))
+    a.idle(1500)
+    a.set_stage(3, "導覽")
+    a.say("點選單，進資金輪動", "point_ur", ("burger", "m4flow"))
+    a.wait(300)
+    a.tap("#m4Burger", "選單")
+    a.wait(900)
+    a.tap('.m4item[data-v="flow"]', "選單：資金流向")
+    a.until("() => !!document.querySelector('#rotClock canvas') && !!document.querySelector('#rankFlow canvas')", 10000)
+    a.wait(1800)
+    # 功能一：資金輪動（手機：先在頁首看輪盤＋切產業鏈，再往下捲到排行）
+    a.set_stage(4, "看強弱")
+    a.say("輪盤看資金強弱", "magnifier", ("clock",))
+    a.idle(2800)
+    a.settle()
+    a.set_stage(6, "切產業鏈")
+    a.say("換條產業鏈，輪盤跟著變", "folder", ("chainr", "clock"))
+    open_chain_and_pick(a, pg, '#flowRotFilter', "ai_server", "產業鏈：AI 伺服器", mob=True, hold_after=2000)
+    open_chain_and_pick(a, pg, '#flowRotFilter', "semiconductor", "產業鏈：半導體", mob=True, hold_after=2200)
+    a.settle()
+    a.set_stage(5, "看排行")
+    a.say("排行跟著變，按住長條看", "spotlight", ("hov",))
+    y = pg.evaluate("() => document.querySelector('#rankFlow').getBoundingClientRect().top + scrollY - 110")
+    a.scroll(to_y=y, ms=900)
+    a.wait(900)
+    bars = a.bars("#rankFlow")
+    top = max(bars, key=lambda b: b["v"])
+    a.set_hov(a.row_rect("#rankFlow", top, 14))
+    a.press_xy(top["x1"] - 8, top["y"], f"排行長條：{top['name']}", 2600)
+    a.clear_hov()
+    a.wait(300)
+    a.settle()
+    a.set_stage(7, "追晶圓代工")
+    a.say("看半導體，先記下晶圓代工", "face_thinking_bulb", ("rank",))
+    a.idle(2200)
+    a.settle()
+    # 功能二：資金分流樹
+    a.set_stage(8, "分流樹")
+    a.say("接著看，錢怎麼分下去", "point_ur", ("tabsk",))
+    a.scroll(to_y=0, ms=800)
+    a.wait(400)
+    a.tap('.m4subtabs button[data-sub="flow-sankey"]', "分頁：資金分流樹")
+    a.until("() => !!document.querySelector('#sankey canvas.ftlab') && window.FlowTopo && FlowTopo.has(document.querySelector('#sankey'))", 10000)
+    a.wait(1600)
+    a.set_stage(9, "一條主幹")
+    a.say("一條主幹，分到各產業", "talk_explain", ("sk",))
+    a.idle(3000)
+    a.settle()
+    a.set_stage(10, "點半導體")
+    a.say("點半導體，看它分給誰", "spotlight", ("sk",))
+    node = next(n for n in a.sk_nodes() if n["lv"] == 1 and n["text"].startswith("半"))
+    a.tap_rect([node["x"] - node["r"] + 1, node["y"] - node["r"] + 1, 2 * node["r"] - 2, 2 * node["r"] - 2], "點節點：半導體")
+    a.wait(2200)
+    a.settle()
+    a.set_stage(11, "看名單")
+    a.say("晶圓代工，占這條鏈最大", "face_nod", ("sklist",))
+    a.until("() => !!document.querySelector('#sankeyPanel') && document.querySelector('#sankeyPanel').getClientRects().length > 0", 5000)
+    y = pg.evaluate("() => document.querySelector('#sankeyPanel').getBoundingClientRect().top + scrollY - 70")
+    a.scroll(to_y=y, ms=900)
+    a.wait(2200)
+    a.settle()
+    # 功能三：族群×法人
+    a.set_stage(12, "法人")
+    a.say("最後看法人動向", "point_ur", ("tabinst",))
+    a.scroll(to_y=0, ms=800)
+    a.wait(400)
+    a.tap('.m4subtabs button[data-sub="flow-inst"]', "分頁：族群×法人")
+    a.until("() => !!document.querySelector('#instGroups canvas')", 10000)
+    a.wait(1600)
+    a.set_stage(13, "三色")
+    a.say("外資、投信、自營三色", "magnifier", ("instleg", "inst"))
+    a.idle(2700)
+    a.settle()
+    a.set_stage(14, "只看半導體")
+    a.say("同樣只看半導體", "folder", ("instchain", "inst"))
+    open_chain_and_pick(a, pg, '#flowInstCard', "semiconductor", "產業鏈：半導體", mob=True, hold_after=2200)
+    a.settle()
+    a.set_stage(15, "按住長條")
+    a.say("按住長條，看三種法人", "spotlight", ("hov",))
+    b = a.bar("#instGroups", "晶圓代工") or a.bars("#instGroups")[-1]
+    a.wait(300)
+    b = a.bar("#instGroups", "晶圓代工") or a.bars("#instGroups")[-1]
+    a.set_hov(a.row_rect("#instGroups", b, 14))
+    a.press_xy((b["x0"] + b["x1"]) / 2 if abs(b["x1"] - b["x0"]) > 20 else b["x1"], b["y"], f"法人長條：{b['name']}", 2600)
+    a.clear_hov()
+    a.wait(300)
+    a.settle()
+    a.set_stage(16, "點圖例")
+    a.say("拿掉外資，看投信與自營", "talk_explain", ("instleg", "inst"))
+    leg = '#instLegend button:nth-child(1)'
+    a.tap(leg, "圖例：外資（隱藏）")
+    a.wait(2000)
+    a.tap(leg, "圖例：外資（還原）")
+    a.wait(1300)
+    a.settle()
+    a.set_stage(17, "串成一線")
+    a.say("輪動、分流、法人，串成一線", "face_proud", ("inst",))
+    a.idle(3300)
+    a.settle()
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--dev", default="d", choices=["d", "m"])
+    ap.add_argument("--out", default=str(SCR / "raw"))
+    ap.add_argument("--port", type=int, default=8817)
+    ap.add_argument("--dry", action="store_true")
+    g = ap.parse_args()
+    if g.dry:
+        os.environ["FEAT_DRY"] = "1"
+    cfg = dict(actor=A8, site=str(SITE), overlays=OVERLAYS, els=ELS, roots=["body"], blur_sel="#__none", extra_css=EXTRA_CSS if g.dev == "d" else EXTRA_CSS_M, dry=g.dry,
+               dev={"d": dict(viewport={"width": 1100, "height": 720}, device_scale_factor=2)},
+               crop0={"d": (0, 0, 1100, 627)}, ovsel="#__vsel,.fttip.on,.ddpanel,body > div[style*='border-style: solid']",
+               init=(["try{localStorage.setItem('tw.layout4.nav','mini')}catch(e){}"] if g.dev == "d" else []) + [SK_JS])
+    V.run(g.dev, run_d if g.dev == "d" else run_m, g.out, cfg, g.port)
+
+
+if __name__ == "__main__":
+    main()
