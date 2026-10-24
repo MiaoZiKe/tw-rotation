@@ -774,7 +774,7 @@
      「傳產與內需／基礎建設與能源／其他產業別」）。下面這張只是 App 還沒好時的備援，名稱照抄 app.js CHAIN_NAME，不另取短名。
      分段鍵也照網頁 maSections：groups_today 的 chain，沒有 chain 的歸 industry；groups_today 查不到的 ind_ 開頭歸 industry、其餘 other。*/
   const CHAIN = { semiconductor: '半導體', ai_server: 'AI 伺服器', electronics: '一般電子', software: '軟體與資訊服務', financial: '金融',
-    traditional: '傳產', infrastructure: '基礎建設', industry: '其他產業別', other: '其他族群' };
+    traditional: '傳產', infrastructure: '基礎建設', siph_cpo: '矽光子／CPO', industry: '其他產業別', other: '其他族群' };
   const CHAIN_ORDER = Object.keys(CHAIN);
   const chainName = (k) => { const A = window.App, t = A && A.chainLabel ? A.chainLabel(k) : null; return t && t !== k ? t : (CHAIN[k] || k); };
   const maPct20 = (c) => { const m = /MA20\s*([\d.]+)%/.exec(($('.v', c) || {}).textContent || ''); return m ? +m[1] : NaN; };

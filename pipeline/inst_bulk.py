@@ -23,7 +23,7 @@ log = logging.getLogger(__name__)
 def site_codes() -> list[str]:
     """網站用到的個股（族群成分）。逐檔補抓時要排在最前面，頁面才不會缺。"""
     try:
-        m = loader.membership()
+        m = loader.membership(include_overlay=True)
         return sorted(set(m["code"].astype(str))) if not m.empty else []
     except Exception as exc:  # noqa: BLE001
         log.warning("讀族群成分失敗：%s", exc)

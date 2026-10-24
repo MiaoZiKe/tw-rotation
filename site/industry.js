@@ -27,7 +27,7 @@
   /* ★ 2026-09-21：中文名一律先讀 payload（`A.L.chains`，來源是 groups.yaml 的 chains.<id>.name），
      這張表只當「payload 裡沒有的虛擬鍵」與 L 還沒 init 完的 fallback ——
      以前它是第二份對照表，新增的 software / financial 沒補進來就直接印英文 id 上畫面。*/
-  const CHAIN_NAME = { semiconductor: '半導體', ai_server: 'AI 伺服器', electronics: '一般電子', software: '軟體與資訊服務', financial: '金融', traditional: '傳產', infrastructure: '基礎建設', _other: '其他族群', industry: '法定產業別' };
+  const CHAIN_NAME = { semiconductor: '半導體', ai_server: 'AI 伺服器', electronics: '一般電子', software: '軟體與資訊服務', financial: '金融', traditional: '傳產', infrastructure: '基礎建設', siph_cpo: '矽光子／CPO', _other: '其他族群', industry: '法定產業別' };
   const SEG_COLORS = ['#3ee0ff', '#8b7bff', '#ffb454', '#c3ff5b', '#ff8fab', '#5ec8ff', '#f9f871', '#7ee8c7', '#ff9f68', '#b39dff', '#6ee7b7', '#fca5a5', '#93c5fd', '#fde68a'];
   let kchart = null, miniCharts = [];
   // 分時走勢（週期「分時」）的圖：跟 kchart 不會同時存在（見 setupChart 的 applyTick）
@@ -164,9 +164,13 @@
   }
   let fitHeatT = 0;
   window.addEventListener('resize', () => { clearTimeout(fitHeatT); fitHeatT = setTimeout(fitHeat, 120); });
+  /* 疊加鏈（矽光子／CPO，payload 的 chains[].overlay）的成交值跟別的鏈重疊（台積電同時在晶圓代工），
+     「全市場」的熱力圖、族群總覽、分頁檔數加總一律不收，否則全市場的量會被重複計算。 */
+  const noOverlay = (im) => (im && im.chains && im.chains.some(c => c.overlay)) ? Object.assign({}, im, { chains: im.chains.filter(c => !c.overlay) }) : im;
   function renderHeat(im, soft) {
     const el = document.getElementById('indHeat');
     if (!el) return;
+    im = noOverlay(im);
     if (!im || !im.chains) { el.innerHTML = '<div class="empty">尚無產業資料</div>'; return; }
     if (heatGroup === null) heatGroup = A.hmLS('tw.hmGroup', 'chain') === 'flat' ? 'flat' : 'chain';
     /* ★ 2026-10-20 熱力圖即時（app.js HL）：盤中每輪只換圖上的資料（soft），卡片、下拉、滾輪放大的狀態都不動；
@@ -243,7 +247,7 @@
      id 沿用 `chainSwitch`：產業地圖與產業鏈頁各畫一份，但兩者互斥
      （renderMap 會清掉 #indChain、renderChain 會清掉 #indMap），所以同一時間只有一個。*/
   function chainTabsHtml(im, cur) {
-    const tabs = [{ id: '_all', name: '全市場', n: (im.chains || []).reduce((s, c) => s + c.groups.reduce((t, g) => t + (g.n || 0), 0), 0) }]
+    const tabs = [{ id: '_all', name: '全市場', n: (im.chains || []).filter(c => !c.overlay).reduce((s, c) => s + c.groups.reduce((t, g) => t + (g.n || 0), 0), 0) }]
       .concat((im.chains || []).map(c => ({ id: c.id, name: c.name, n: c.groups.reduce((s, g) => s + (g.n || 0), 0) })))
       .concat([{ id: 'industry', name: '法定產業別', n: (im.industries || []).reduce((s, g) => s + (g.n || 0), 0) }]);
     return `<div class="chainsw nbsw" id="chainSwitch" role="tablist">${tabs.map(t => `<button data-c="${t.id}" role="tab" aria-selected="${t.id === cur}" class="${t.id === cur ? 'on' : ''}"${t.id !== '_all' && HAS_DIAGRAM(t.id) ? ' data-dg="1"' : ''}>${A.fmt.esc(t.name)}<em>${t.n}</em></button>`).join('')}</div>`;
@@ -308,7 +312,7 @@
     disposeCharts(el);
     if (!im || !im.chains) { el.innerHTML = '<div class="empty">尚無產業資料</div>'; return; }
     const groups = [];
-    (im.chains || []).forEach(c => (c.groups || []).forEach(g => groups.push(g)));
+    (im.chains || []).filter(c => !c.overlay).forEach(c => (c.groups || []).forEach(g => groups.push(g)));
     /* 活頁簿：分頁列在**卡片外面**、卡片就是那一頁的內容 ——
        分頁列放在卡片裡面的話，上面還壓著一層卡片的內距與邊框，看起來就只是「卡片裡的一排鈕」，
        不是 Excel 那種「分頁貼著內容上緣、連成一片」。產業鏈頁用的是同一套（見 renderChain）。*/
@@ -1011,6 +1015,37 @@
   }
   // （`median` / `wavg` 已移除：它們只服務標題下那排標籤，W3-6 把那排整排拿掉了）
 
+  /* ---------------------------------------------------------------- 疊加鏈（矽光子／CPO）的成員表
+     ★ 2026-10-24。這個題材的成員幾乎都在「試產、送樣、驗證」階段，信心高低差很多，而且載板／PCB／材料那一組
+       對 CPO 是「間接或風險」不是受益。這些資訊不能只靠一句 note —— 讀者要在每一檔旁邊直接看到：
+       階段（時程原話）、信心、影響（受益／中性／風險，只有載板那組有標）。
+       資料來源是 groups.yaml 的 member_tags，build_payload.overlay_detail 原樣帶到 members[].tag。
+       說明文字一律進標題旁的「?」（Andy 10-20 規矩 #2），這裡只放資料表，限高、框內捲。 */
+  function renderOverlayMembers(host, ch) {
+    if (!host) return;
+    const esc = A.fmt.esc;
+    const rows = [];
+    (ch.groups || []).forEach(g => {
+      const ms = (g.members || []).slice();
+      if (!ms.length) return;
+      rows.push(`<tr class="siphg"><th colspan="4">${A.L.group(g.id, g.name)}<small>${ms.length} 檔</small></th></tr>`);
+      ms.forEach(m => {
+        const t = m.tag || {};
+        const st = t.stance ? `<span class="siphst st-${esc(t.stance)}">${esc(t.stance)}</span>` : '';
+        rows.push(`<tr data-code="${esc(m.code)}"><td>${A.L.stock(m.code, m.name, { codeFirst: true })}</td>`
+          + `<td class="stage">${esc(t.stage || '')}</td>`
+          + `<td><span class="siphconf cf-${esc(t.conf || '')}">${esc(t.conf || '—')}</span></td><td>${st}</td></tr>`);
+      });
+    });
+    if (!rows.length) { host.innerHTML = ''; return; }
+    host.innerHTML = `<div class="card siphcard"><div class="row spread"><h4>成員與階段<button class="howbtn pop" data-how="siphm" data-ttl="成員與階段" type="button" aria-label="成員與階段怎麼看">?</button></h4></div>
+      <div class="howtxt" id="how-siphm" hidden>${A.howHTML('每一檔旁邊直接標出它現在走到哪、這個說法有多可信。', [
+        '階段＝公司或媒體的原話與目標時程，不是量產',
+        '信心：高＝公司自述加獨立來源互相印證；中＝單一來源或只有公司自述；低＝線索',
+        '影響只在載板／PCB／材料那組標：受益、中性、風險（CPO 可能取代它的需求）',
+      ], '查證日 2026-10-24；證據與取捨見 docs/siph_cpo_chain_notes.md。')}</div>
+      <div class="siphwrap"><table class="siphtbl"><thead><tr><th>個股</th><th>階段（時程為目標）</th><th>信心</th><th>影響</th></tr></thead><tbody>${rows.join('')}</tbody></table></div></div>`;
+  }
   // ================================================================ Level 1：單一產業鏈
   function chainData(im, cid) {
     if (!im) return null;
@@ -1092,6 +1127,17 @@
        ★ 已知副作用：會一併帶進緯穎 6669（純雲端，最突兀）與 NVIDIA／AMD／Broadcom／
          Marvell。廣達與英業達本來就是筆電 EMS 巨頭，不算誤導；緯穎是接受的代價。 */
     electronics: ['ic_design', 'switch', 'assembly'],
+    /* ★ 2026-10-24 矽光子／CPO（題材分頁）：這條鏈自己的環節只有「ELSFP、FAU 零件、光引擎封裝、可插拔對照、設備、測試、分析、國際夥伴」，
+       其餘都是既有環節裡的公司（同一檔台股不准有兩個節點），所以把它們所在的環節拉進來：
+         ic_design／ip_eda／foundry／osat_test ＝ 設計、代工（台積電 COUPE、聯電）、封測（日月光、力成）
+         optical_epi／optical／compound_semi   ＝ 磊晶雷射、光引擎、FAU、光纖套件（聯亞、眾達、上詮、波若威、穩懋…）
+         test_interface／pkg_equipment         ＝ 探針卡與測試介面（旺矽、穎崴）、萬潤的 FAU 耦合設備
+         switch／abf_pcb                       ＝ 智邦、載板（景碩、欣興）
+       ★ 已知副作用（跟 electronics 拉 ic_design 同一種）：這些環節裡與 CPO 無關的同業（京元電、弘塑、辛耘…）也會出現在關聯圖上。
+         它們在族群頁與「矽光子／CPO」的 12 組成分裡都沒有，關聯圖不代表它們有 CPO 業務。
+       ★ 刻意不拉 hdi_pcb／ccl：華通、臻鼎、CCL 三家在這個題材裡是「風險」，畫進關聯圖會被讀成供應關係。 */
+    siph_cpo: ['ic_design', 'ip_eda', 'foundry', 'osat_test', 'optical_epi', 'optical', 'compound_semi',
+               'test_interface', 'pkg_equipment', 'switch', 'abf_pcb'],
   };
   function chainSegments(sc, cid) {
     if (!sc) return [];
@@ -1265,7 +1311,14 @@
           ${/* ★ 2026-09-24（審查 R3）：這段說明以前還在講退版前的「關聯圖大圓點／個股小點」，
                  而且沒有關聯圖的鏈（傳產、基礎建設）也照樣講關聯圖與色標。改成照這一頁真的有什麼來講：
                  有剖析圖 × 有關聯圖三種組合各一份，不提畫面上沒有的東西。*/ ''}
-          ${hasSlots || hasMap ? `<div class="howtxt" id="how-nb" hidden><div id="nbIntro">${hasSlots && hasMap
+          ${hasSlots || hasMap || ch.overlay ? `<div class="howtxt" id="how-nb" hidden><div id="nbIntro">${ch.overlay
+            ? A.howHTML('這是題材分頁：把散在各產業族群裡、跟這個題材有實證關係的台股，依環節重新排一次。', [
+              '成員同時留在原本的產業族群，成交值不拆分，也不計入全市場的資金佔比',
+              '各組成交值是成員完整金額加總，組與組之間會重疊（例如台積電），占比只在這一頁內比較',
+              '階段與時程是公司或媒體的目標，不是量產；信心高低寫在成員表',
+              ...(hasMap ? ['關聯圖含整個環節的公司，不代表每一家都有此題材業務'] : []),
+            ], ch.note || '')
+            : hasSlots && hasMap
             ? A.howHTML('這條鏈由哪些環節組成、每一格有誰。', [
               '零件、環節選單、關聯圖公司卡同一套顏色',
             ])
@@ -1279,6 +1332,7 @@
         ${dgTabsHtml()}
         <div class="nbbody">
         <div id="gpSec" data-howsec></div>
+        ${ch.overlay ? '<div id="siphSec" class="siphsec"></div>' : ''}
         ${hasSlots ? `<div style="margin-top:2px" id="dgSec" data-howsec><div class="row spread dgsechead">
           <!-- ★ 2026-09-23 第十批 C1（Andy：「幫我將 產品剖析圖、族群總覽、配色拿掉、另外收合圖 移動到上方同一排」）
                ⚠ 這段註解住在樣板字串裡，所以**不能出現反引號**（會把字串提早結束掉）。
@@ -1539,6 +1593,7 @@
       // 族群總覽（第一個分頁）與剖析圖互斥：沒有選任何一張圖的時候就是它
       const gp = $('#gpSec', el);
       if (gp) gp.hidden = on;
+      const sp = $('#siphSec', el); if (sp) sp.hidden = on;       // 疊加鏈的成員表跟族群總覽同進退
       /* ★ C1：「← 族群總覽」`#dgBack` 已移除 —— 分頁列第一格就是族群總覽，
          同一個目的地留一顆鈕就好（跟上一批移除「← 返回」同一個理由）。*/
       paintTabs();
@@ -2036,6 +2091,7 @@
        · drillGid：從 `#industry/group/<gid>` 或關聯圖進來時，直接展開那個族群的個股長條圖
        · onGroup：點長條＝原地展開，同時把選取狀態換成這個族群（跟點關聯圖的大圓點同一條路）
        · onBack：回到族群層級，篩選一起還原 */
+    if (ch.overlay) renderOverlayMembers($('#siphSec', el), ch);
     renderGroupPanel($('#gpSec', el), {
       scope: ch.name, groups: groups, asOf: (im && im.date) || '',
       drillGid: state.group || null,

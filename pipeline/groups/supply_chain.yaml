@@ -302,6 +302,34 @@ segments:
   - {id: rf_frontend,   name: "射頻前端 IDM（外商）", layer: 3, chain: semiconductor,
      note: "手機射頻前端（PA／濾波器／開關）大廠，穩懋與宏捷科的 GaAs 代工客戶。台股沒有對應的大廠，這一格只有外商"}
 
+  # ================================================================ 矽光子／CPO 鏈（2026-10-24 新增）
+  # 證據：docs/siph_cpo_semi_evidence.md、siph_cpo_optics_evidence.md、siph_cpo_substrate_evidence.md；
+  #      兩份報告衝突處的裁決：docs/siph_cpo_chain_notes.md。
+  # ★ 加在尾端 → 既有環節的 color_idx 不動，全站環節顏色不被洗掉。
+  # ★ 只新增「既有 59 格放不下」的環節；磊晶（optical_epi）、光引擎／FAU／光纖套件（optical）、
+  #   代工（foundry）、設計服務（ip_eda）、封測（osat_test）、測試介面（test_interface）、載板（abf_pcb）
+  #   一律沿用既有格子，由 site/industry.js 的 CHAIN_EXTRA.siph_cpo 拉進這條鏈的關聯圖 ——
+  #   同一檔台股不准有兩個節點（tw_code 唯一），搬動既有節點又會洗掉 ai_server 剖析圖的 data-seg。
+  # ★ 本鏈大多數公司查不到具名客戶 → 只有節點沒有邊，圖上會掛「?」，是誠實不是漏畫（見 siph_cpo_chain_notes.md）。
+  #   這些新節點全在 siph_cpo 自己的環節裡，不會進 ai_server／semiconductor 的孤立節點棘輪（SC_ISO_MAX）。
+  - {id: siph_ref,     name: "國際夥伴（參考）",   layer: 1, chain: siph_cpo,
+     note: "光學 I/O 小晶片與矽光子 fabless 設計商，沒有台股：Ayar Labs（TeraPHY 光學小晶片，聯發科、世芯為股東）、Lightmatter（Passage 3D CPO，2026-01 與創意宣布合作）、SILITH（新加坡矽光子 fabless，聯電為其代工）。只當參考節點；與台廠的『合作』在圖上用最細的線表示，不等於已有量產供貨"}
+  - {id: siph_els,     name: "外置光源 ELSFP",     layer: 3, chain: siph_cpo,
+     note: "外置雷射光源（ELS）封成面板可插拔模組（ELSFP），一個模組供多個光引擎共用。眾達-KY 的 ELSFP 在『光通訊模組 / 矽光子』那一格（同一檔不開兩個節點）。台廠階段多為工程試產、送樣或設計導入，客戶均未具名"}
+  - {id: siph_fau,     name: "光纖耦合元件 FAU",   layer: 3, chain: siph_cpo,
+     note: "光纖陣列單元（FAU）的光學零件：MT 插芯、V 型槽、稜鏡、微透鏡、光學插槽，直接供 FAU 廠。FAU 本體在『光通訊模組 / 矽光子』（上詮、波若威），大立光在『手機光學鏡頭』（同一檔不開兩個節點）。放量時程全在 2027～2028，不是現在式"}
+  - {id: siph_engine,  name: "光引擎封裝整合",     layer: 3, chain: siph_cpo,
+     note: "晶圓後的光學引擎後段整合（光子晶片＋電子晶片＋FAU）。台積電 COUPE 的堆疊本身在『晶圓代工』，日月光／力成在『封測』。這一格目前只有訊芯-KY"}
+  - {id: siph_module,  name: "可插拔模組（對照）", layer: 4, chain: siph_cpo,
+     note: "對照組，不是 CPO 受益：目前主流仍是可插拔光模組，CPO 是潛在替代。華星光在『光通訊模組 / 矽光子』、貿聯-KY 在『連接器 / 線材』（同一檔不開兩個節點）"}
+  # ---- 設備／測試／分析（營收驅動是客戶資本支出，role: equipment 灰細線）
+  - {id: siph_coupling_equip, name: "耦合 / 封裝設備", layer: 3, chain: siph_cpo, role: equipment,
+     note: "光纖與光子晶片的主動對準耦合、貼合、封裝殘留處理設備。萬潤的 FAU 耦合設備在『封裝設備 / 濕製程』（同一檔不開兩個節點）。弘塑、辛耘與 COUPE 只有間接關係（SoIC 濕製程），沒有 CPO 專屬機台或訂單，不畫 CPO 邊"}
+  - {id: siph_test_equip, name: "光電測試設備",     layer: 3, chain: siph_cpo, role: equipment,
+     note: "CPO 四站測試（Insertion 1～4：光子晶片、電子晶片堆疊後、光引擎、光進光出＋誤碼率）的測試機台。旺矽（雙面晶圓探針）、穎崴（測試介面）在『測試介面 探針卡』。設備→客戶在本輪幾乎都查不到具名客戶，用環節表達、不畫公司對公司的線"}
+  - {id: siph_analysis, name: "檢測 / 材料分析",   layer: 4, chain: siph_cpo, role: equipment,
+     note: "光子晶片的光學缺陷檢測、光損偵測與第三方失效分析。三家都有專利訴訟或公司自述數字（光焱與汎銓互告），客戶均未具名"}
+
 # ---------------------------------------------------------------- 產品 / 技術
 products:
   - id: cowos
@@ -1126,6 +1154,67 @@ companies:
      tech: [半導體廠 AMHS／OHT／EFEM, 光電面板自動化, 智慧物流],
      note: "客戶含台積電（CoWoS 先進封裝 EFEM、OHT）、友達、群創（媒體）；2026 年產品組合半導體設備系統約 57%。★ 台積電在半導體鏈、跨鏈的邊畫不出來，所以邊只畫友達與群創"}
 
+  # ================================ 矽光子／CPO 鏈（2026-10-24，證據見 docs/siph_cpo_*_evidence.md）
+  # ---- 磊晶／雷射晶粒
+  - {id: truelight, ticker: "3234", name: 光環, segment: optical_epi,
+     tech: [雷射晶粒後段代工, 自有 VCSEL／PD 陣列],
+     note: "通過聯亞 CW 雷射後端製程驗證，報導稱 2026-06 起正式出貨，代工占營收約 19%（technews 2026-08-18 摘要）。自有 100G VCSEL／PD 仍在客戶認證或送樣，本業一度虧損"}
+  # ---- 外置光源
+  - {id: lianjun, ticker: "3450", name: 聯鈞, segment: siph_els,
+     tech: [雷射二極體封測 EMS, EML／CW 封裝, ELSFP],
+     note: "全球前 3 大雷射二極體封測 EMS。ELSFP 2026-09 報導為工程試產與小量、design-in 階段；客戶均未具名，所以不連邊。證交所產業別是半導體業，不是光模組廠"}
+  - {id: authenx, ticker: "6442", name: 光聖, segment: siph_fau,
+     tech: [資料中心光被動元件, 子公司合聖 CPO-ELS 與 FAU],
+     note: "北美大型資料中心客戶未具名（第三方稱 Google 概念股，法說未點名，不寫 Google）。合聖 FAU 2026Q4 試產、2027 下半年正式出貨為公司計畫；與英特磊換股結盟是否完成未能確認，不寫比例"}
+  # ---- FAU 光學零件
+  - {id: youngoptics, ticker: "3504", name: 揚明光, segment: siph_fau,
+     tech: [MT 插芯, 模造玻璃 Lens Array],
+     note: "2026-07-24 法說：MT 插芯 5 案開發、2 案試產，量產目標 2027 年初；Lens Array 與光收發器為概念驗證。上半年稅後淨利僅 1,121 萬元"}
+  - {id: genius_eo, ticker: "3406", name: 玉晶光, segment: siph_fau,
+     tech: [V 型槽, 稜鏡, 光學插槽, MT 插芯],
+     note: "多項已送樣、認證中；公司稱 2026 全年 CPO 相關營收占比低於 5%，放量落在 2027～2028。報導稱與上詮合作，只有單篇、信心低，不畫邊"}
+  # ---- 光引擎封裝整合
+  - {id: xunxin, ticker: "6451", name: 訊芯-KY, segment: siph_engine,
+     tech: [光學引擎後段整合, FAU 與光柵耦合, 矽光子模組封裝],
+     note: "光寶集團。董事長在股東會稱與台積電合作 COUPE、負責晶圓後的光引擎後段整合；51.2T CPO 小量生產出貨中國與北美客戶、102.4T 已完成樣品（客戶均未具名）。需 Andy 校訂；母公司光寶科 2301 另稱預期 2027 年出貨給 CPO 交換機廠"}
+  # ---- 可插拔模組（對照）
+  - {id: qianding, ticker: "4908", name: 前鼎, segment: siph_module,
+     tech: [100G～400G 光收發模組, 雷射 CoC 封裝],
+     note: "實際營收主要是 100G～400G 光收發模組；ELSFP 屬評估／開發中，雷射 CoC 產線規劃 2026Q3 底完工。「已打入輝達供應鏈」僅見股市新聞單一說法，查不到公司或具名 NVIDIA 資料佐證，所以不畫到 NVIDIA 的邊"}
+  # ---- 耦合／封裝設備
+  - {id: huite, ticker: "6706", name: 惠特, segment: siph_coupling_equip,
+     tech: [矽光子元件貼合機, 光纖貼合, 單晶點測, FAU 測試, 雷射元件代工],
+     note: "貼合機通過客戶驗證並小量出貨，主要客戶為美系廠商（未具名）；本業仍虧損、2026Q2 目標轉盈。證據來源為法說的多篇同源報導，無第二獨立來源"}
+  - {id: taisheng, ticker: "8027", name: 鈦昇, segment: siph_coupling_equip,
+     tech: [雷射微加工平台, 電漿切割, 玻璃基板 TGV, FOPLP 設備],
+     note: "2026-07 法說稱 CPO 測試平台規劃 2026Q3 建立（計畫，是否已完成查不到）；雷射微加工平台精度 ±0.5μm，鎖定 3.2T／6.4T 高密度 2D FAU，送樣中；目前尚無 CPO 營收，獲利仍虧損。★ 兩份調查報告衝突：半導體端搜尋不到、載板端有法說備忘錄與優分析兩個來源，裁決見 docs/siph_cpo_chain_notes.md"}
+  - {id: yinneng, ticker: "7734", name: 印能科技, segment: siph_coupling_equip,
+     tech: [真空高壓除泡, 助焊劑殘留處理, EvoRTS],
+     note: "公司稱第四代 EvoRTS 已切入矽光子封裝應用；CPO 實質放量待終端。客戶只以『晶圓代工大廠』『一線封測大廠』泛稱，無第二獨立來源"}
+  # ---- 光電測試設備
+  - {id: chroma, ticker: "2360", name: 致茂, segment: siph_test_equip,
+     tech: [光電測試設備, PIC／E-PIC／光引擎測試, 光進光出與 BER 測試],
+     note: "2026-04-30 法說：四階段測試 PIC、E-PIC、光引擎測試已取得採購訂單，第四階段光進光出已接單、BER 6 月試產；CPO 2026 試產、最快 2027 全面量產。客戶未具名。花旗對光電營收的預估（2026／2027 約 77 億／254 億）是外資數字，不是公司揭露"}
+  # ---- 檢測／材料分析
+  - {id: guangyan, ticker: "7728", name: 光焱科技, segment: siph_analysis,
+     tech: [PIC 光學缺陷檢測機 Night Jar-H],
+     note: "2026 上櫃。與『國際一線大廠』完成概念驗證（未點名）；與汎銓有專利訴訟（2026-03 提告）"}
+  - {id: msscorps, ticker: "6830", name: 汎銓, segment: siph_analysis,
+     tech: [第三方材料分析, 光損偵測設備 MSS HG],
+     note: "持有台美日韓光損偵測專利；稱服務 4 家以上晶圓廠與一家 Tier-1 AI 客戶（公司自述，未具名）。銷售版設備預計 2026 年底啟動銷售。專利訴訟中"}
+  - {id: matek, ticker: "3587", name: 閎康, segment: siph_analysis,
+     tech: [第三方失效分析, 矽光子晶圓與晶片光電分析],
+     note: "稱已在全球主要矽光子供應鏈有逾 50% 客戶覆蓋（公司自述，未揭露客戶）；CPO 封裝模組檢測平台預計 2027Q2 前部署"}
+  # ---- 國際夥伴（參考節點，沒有台股）
+  - {id: ayar, name: "Ayar Labs", segment: siph_ref, foreign: true,
+     tech: [TeraPHY 光學 I/O 小晶片], note: "2026 募資 6.5 億美元；聯發科（約 2.4% 股權）、世芯為股東。非上市公司"}
+  - {id: lightmatter, name: Lightmatter, segment: siph_ref, foreign: true,
+     tech: [Passage 3D CPO 光子中介層], note: "2026-01-26 與創意宣布合作量產 CPO 方案。非上市公司"}
+  - {id: silith, name: SILITH, segment: siph_ref, foreign: true,
+     tech: [矽光子 fabless 設計], note: "新加坡 fabless，聯電新加坡 12 吋廠為其代工；2026-07-14 聯電公告交付首批 1.6T 矽光子量產晶圓。非上市公司"}
+  - {id: lumentum, ticker: "NASDAQ:LITE", name: Lumentum, segment: siph_ref, foreign: true,
+     tech: [CW／外置光源雷射], note: "NVIDIA 官方 CPO 夥伴名單之一；穩懋為其雷射晶片代工廠僅見單一報導，所以不畫穩懋→Lumentum"}
+
 # ---------------------------------------------------------------- 邊
 # 2026-09-19 由三位 industry-analyst 查證後重寫。每條標了 confidence：
 #   verified  官方文件／重訊等級（公司官網、優良供應商名單、採購金額揭露）
@@ -1210,9 +1299,10 @@ edges:
      note: "聯電是智原最大股東（13.77%→14.13%），智原原為聯電 IP／NRE 部門切分而來。智原另走三星／Intel／GlobalFoundries 多元代工，不是台積電陣營"}  # 待補來源：媒體報導／官方揭露但還沒找到可附的原文網址（2026-09-25）
   - {from: umc,     to: novatek,  rel: supplies, item: "28/22nm 高壓製程晶圓", strength: 4, confidence: reported,
      note: "聯電在 28nm 小尺寸面板 DDIC 的全球純代工市占 >90%；OLED DDIC 已用 22nm 高壓製程量產"}  # 待補來源：媒體報導／官方揭露但還沒找到可附的原文網址（2026-09-25）
-  - {from: tsmc,    to: nvidia,   rel: supplies, item: "GPU 晶圓 + CoWoS", strength: 5, confidence: verified, note: "獨家代工"}  # 待補來源：媒體報導／官方揭露但還沒找到可附的原文網址（2026-09-25）
+  - {from: tsmc,    to: nvidia,   rel: supplies, item: "GPU 晶圓 + CoWoS", strength: 5, confidence: verified, note: "獨家代工。另：NVIDIA Quantum-X／Spectrum-X Photonics 的光引擎用台積電 COUPE（矽光子 PIC＋SoIC 堆疊），NVIDIA 稱 2026 量產、出貨時程各來源互相矛盾，不寫成現在式（矽光子／CPO 分頁）"}  # 待補來源：媒體報導／官方揭露但還沒找到可附的原文網址（2026-09-25）
   - {from: tsmc,    to: amd,      rel: supplies, item: "晶圓 + 封裝", strength: 4, confidence: reported}  # 待補來源：媒體報導／官方揭露但還沒找到可附的原文網址（2026-09-25）
-  - {from: tsmc,    to: broadcom, rel: supplies, item: "ASIC 晶圓", strength: 4, confidence: reported}  # 待補來源：媒體報導／官方揭露但還沒找到可附的原文網址（2026-09-25）
+  - {from: tsmc,    to: broadcom, rel: supplies, item: "ASIC 晶圓", strength: 4, confidence: reported,
+     note: "另：Broadcom 2025-10-08 公告 Tomahawk 6 Davisson（102.4T）出貨（實為送樣早期客戶），16 顆 6.4T 矽光子引擎各用台積電 COUPE（Broadcom 新聞稿，矽光子／CPO 分頁）"}  # 待補來源：媒體報導／官方揭露但還沒找到可附的原文網址（2026-09-25）
   - {from: tsmc,    to: marvell,  rel: supplies, item: "ASIC 晶圓（3nm，roadmap 到 A14）+ CoWoS", strength: 4, confidence: reported,
      note: "2026-09-19 補上。以前沒有這條，但 products.cowos 的需求分配已經寫了 marvell 8% —— 檔案自己跟自己矛盾"}  # 待補來源：媒體報導／官方揭露但還沒找到可附的原文網址（2026-09-25）
   - {from: tsmc,    to: mtk,      rel: supplies, item: "晶圓", strength: 4, confidence: reported}  # 待補來源：媒體報導／官方揭露但還沒找到可附的原文網址（2026-09-25）
@@ -1447,11 +1537,19 @@ edges:
   - {from: lpc,      to: innolight, rel: supplies, item: "CW Laser 磊晶片 / InP 磊晶", strength: 2, confidence: estimated,
      note: "推論依據：聯亞是矽光模組 CW Laser 磊晶的主要供應商，中際旭創是全球最大 800G/1.6T 光模組廠，兩段接起來推測有供貨。缺的是：公司或具名媒體點名中際旭創為客戶；聯亞自己公告的長約對象是『美國客戶』（2027～2030 年 4 年期），未指名。",
      source: "MoneyDJ", source_url: "https://www.moneydj.com/kmdj/news/newsviewer.aspx?a=600a927c-818e-45d6-9bda-8021508a6f48"}
-  - {from: lpc,      to: coherent,  rel: supplies, item: "InP / GaAs 磊晶", strength: 3, confidence: reported}  # 待補來源：媒體報導／官方揭露但還沒找到可附的原文網址（2026-09-25）
+  # ★ 2026-10-24 降級 reported → estimated、strength 3 → 2：矽光子／CPO 查證（docs/siph_cpo_optics_evidence.md）
+  #   本輪查不到任何摘要點名『聯亞供貨給 Coherent』（原本標 reported 但從來沒有出處）。
+  - {from: lpc,      to: coherent,  rel: supplies, item: "InP / GaAs 磊晶", strength: 2, confidence: estimated,
+     note: "推論依據：聯亞是 InP／GaAs 磊晶與 CW 雷射晶粒廠，客戶數由 7～8 家增至 10 家以上（uanalyze 摘要），Coherent 是全球主要光通訊雷射／模組大廠，產業上接得起來。缺的是：公司或具名媒體點名 Coherent 為聯亞客戶；聯亞 2026-08-26 重訊公告的長約對象只寫『美國大廠』，未指名",
+     source: "uanalyze", source_url: "https://uanalyze.com.tw/articles/2769454097"}
   - {from: lpc,      to: luxnet,    rel: outsources_to, item: "CW Laser 晶粒後段製程代工", strength: 2, confidence: estimated,
      note: "★ 方向跟直覺相反：錢是聯亞付給華星光的。推論依據：① MoneyDJ 把台廠定位拆成「CW 磊晶供應商聯亞、CW 晶片代工廠華星光與光環」② 聯亞 2026Q2 法說自承「CW Laser 代工廠產能遠遠不足公司需求，有些訂單委由外面代工廠代工」。缺的是：沒有任何一篇把「華星光是聯亞的代工廠」這個雙方具名的組合講出來",
      source_url: "https://www.moneydj.com/kmdj/news/newsviewer.aspx?a=67534107-733a-4e9a-9559-cd6a84018ea6"}
-  - {from: luxnet,   to: accton,  rel: supplies, item: "光收發模組", strength: 2, confidence: reported}  # 待補來源：媒體報導／官方揭露但還沒找到可附的原文網址（2026-09-25）
+  # ★ 2026-10-24 降級 reported → estimated、strength 2 → 1：矽光子／CPO 查證本輪找不到任何摘要支持這條，
+  #   反而查到華星光最大客戶是邁威爾（見下一條）。保留是因為模組廠→白牌交換器廠在產業上接得起來，但它是推論。
+  - {from: luxnet,   to: accton,  rel: supplies, item: "光收發模組", strength: 1, confidence: estimated,
+     note: "推論依據：華星光是 800G／ZR 光收發模組廠，智邦是 800G／1.6T 白牌交換器廠，兩段在產業上接得起來。缺的是：任何公司或具名媒體講『華星光供貨給智邦』的原文，本輪三組關鍵字都沒有找到",
+     source: "uanalyze", source_url: "https://uanalyze.com.tw/articles/2374955634"}
   - {from: browave,  to: nvidia,  rel: supplies, item: "CPO 用 800G/1.6T 光纖套件（Fiber Harness / Shuffle Box）",
      strength: 2, confidence: reported, note: "2026 量產、2026Q4 才放量 —— 現在畫粗線會誇大",
      source: "科技新報", source_url: "https://technews.tw/2026/08/24/browave-shuffle-box-set-to-ramp-up-in-q4"}
@@ -1678,6 +1776,36 @@ edges:
      note: "★ 『Azure 在台市占接近五成』只有單一投資內容平台的來源，所以寫進 item 的是
        『主要服務商』這個定性說法，不寫那個百分比。
        ⚠ 證據等級：WebSearch 摘要（優分析、vocus、公司簡介），沒有讀過原文。"}  # 待補來源：媒體報導／官方揭露但還沒找到可附的原文網址（2026-09-25）
+
+  # ================================ 矽光子／CPO 鏈（2026-10-24，docs/siph_cpo_*_evidence.md；高／中信心才畫，低信心只寫在節點 note）
+  # ★ 方向規則同上：supplies＝錢從下游流向上游；outsources_to＝錢是 from 付給 to。設計服務（創意、世芯）
+  #   向晶圓廠買產能，所以是 tsmc → 創意／世芯（前面已有），不是反過來。
+  # ★ 設備／測試／分析→客戶 在本輪幾乎都查不到具名客戶（法說只寫『美系大廠』『指標龍頭』），一律不畫邊；
+  #   『指標龍頭』不等於台積電。
+  - {from: lpc,      to: truelight, rel: outsources_to, item: "CW 雷射晶粒後段代工（光環已通過聯亞後端製程驗證）", strength: 2, confidence: reported,
+     note: "★ 方向跟直覺相反：錢是聯亞付給光環的。報導稱光環 2026-06 起正式出貨；聯亞 2026Q2 法說自承 CW 代工產能不足、部分訂單委外。與 lpc→luxnet 同一種關係",
+     source: "科技新報", source_url: "https://technews.tw/2026/08/18/truelight-2026-july-and-q2-financial-report/"}
+  - {from: luxnet,   to: marvell, rel: supplies, item: "光收發模組（報導稱邁威爾為最大客戶）", strength: 2, confidence: reported,
+     note: "只有 2025-11 工商時報單篇摘要，客戶占比與品項細節未能核對；華星光另有 3 家以上美系雲端客戶（媒體說法，未具名），不畫"}  # 待補來源：單篇摘要，找不到可附的原文網址（2026-10-24）
+  - {from: umc,      to: silith,  rel: supplies, item: "矽光子 1.6T 晶圓（新加坡 12 吋廠，首批量產晶圓）", strength: 3, confidence: verified,
+     note: "2026-07-14 聯電公告交付首批量產晶圓並獲一家大型雲端客戶認證；新加坡廠目標 2027 量產 CPO 基地。SILITH 是 fabless、非台股",
+     source: "Focus Taiwan", source_url: "https://focustaiwan.tw/business/202607140015"}
+  - {from: ayar,     to: mtk,     rel: supplies, item: "光學 I/O 小晶片與 PIC（共同開發 CPO 樣品）", strength: 1, confidence: reported,
+     note: "★ 合作展示，不是買賣：聯發科 Q1 法說自述投資 Ayar Labs 約 9,000 萬美元（約 2.4%），Computex 2026 展示 CPO 樣品，EIC 聯發科自研、PIC 與 Ayar 共同開發；量產時程未揭露",
+     source: "科技新報", source_url: "https://finance.technews.tw/2026/02/06/mediatek-is-fully-committed-to-the-development-of-silicon-photonics-and-co-packaging-optics/"}
+  - {from: ayar,     to: alchip,  rel: supplies, item: "TeraPHY 光學小晶片（CPO 參考設計）", strength: 1, confidence: reported,
+     note: "★ 合作展示，不是買賣：2025-09 台積電 OIP 展示 2 顆 full-reticle 加速器＋8 HBM＋8 個 TeraPHY 引擎的參考設計；世芯為 Ayar Labs 投資人。展示／驗證階段",
+     source: "InsideHPC", source_url: "https://insidehpc.com/2025/09/alchip-and-ayar-labs-unveil-co-packaged-optics-for-ai-datacenter/"}
+  - {from: lightmatter, to: gud,  rel: supplies, item: "Passage 3D CPO 光子中介層（整合進創意 ASIC 方案）", strength: 1, confidence: reported,
+     note: "★ 合作宣布，不是量產供貨：2026-01-26 Lightmatter 與創意宣布合作量產 CPO 方案，創意出 ASIC 設計與先進封裝。外資稱新專案 2027 下半年帶來約 5～6 億美元營收是外資預估、不是公司揭露",
+     source: "BusinessWire", source_url: "https://www.businesswire.com/news/home/20260126496882/en/Lightmatter-and-GUC-Partner-to-Produce-Co-Packaged-Optics-CPO-Solutions-for-AI-Hyperscalers"}
+  - {from: nvidia,   to: ase,     rel: outsources_to, item: "CPO 多晶片模組封裝（矽品 SPIL）", strength: 1, confidence: reported,
+     note: "★ 錢是 NVIDIA 付給日月光：NVIDIA 官方 CPO 夥伴名單列 SPIL，NAND Research 稱做 CPO 多晶片模組封裝（單一研究公司）；日月光自架試產線、客戶驗證階段，公司稱 2027 小規模量產，CPO 營收暫不揭露（約兩季後才提供），所以線畫最細",
+     source: "數位時代", source_url: "https://www.bnext.com.tw/article/91677/ase_leap_revenue_2027_capex"}
+  - {from: lumentum, to: nvidia,  rel: supplies, item: "CW／外置光源雷射（CPO 交換器）", strength: 2, confidence: reported,
+     note: "NVIDIA 官方 CPO 夥伴名單列 Lumentum（名單未說各自貢獻）；optics.org 稱 Lumentum 為 Spectrum-X 雷射供應商。國際參考節點"}  # 待補來源：夥伴名單與單篇報導，未附可點的原文網址（2026-10-24）
+  - {from: coherent, to: nvidia,  rel: supplies, item: "CW／外置光源雷射（CPO 交換器）", strength: 1, confidence: reported,
+     note: "只有 NVIDIA 官方 CPO 夥伴名單列 Coherent，名單沒說各自貢獻，所以線畫最細。國際參考節點"}  # 待補來源：夥伴名單，未附可點的原文網址（2026-10-24）
 
 # ---------------------------------------------------------------- 競爭關係
 # 2026-09-19：從 edges 搬出來。圖十不畫競爭關係（那不是上下游，畫了會被誤讀成供貨），
