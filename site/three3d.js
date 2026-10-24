@@ -80,6 +80,70 @@
     return mods;
   }
 
+  /* ================================================================ 矽光子／CPO 交換器封裝：幾何佈局（2026-10-24，圖 A 的 3D）
+     規格書 docs/diagram_specs/siph_cpo.md §2、§3。這一段只算「座標」，場景（SCENES.siph_pkg）與建造函式（sp*）共用同一份，
+     所以光引擎擺在哪裡、光纖從哪裡出去只有一個來源，不會 3D 畫了一個位置、流線走另一個位置。
+     ★ 結構硬約束（規格書 §2-D、§6）全部在這裡落地：
+       · 光引擎（OE）環繞 ASIC，同一片載板、同一個高度基準（S3），8 顆示意（顆數與排列依各家方案而異，U4）
+       · 每顆 OE 的徑向（local +x）朝外：PIC 在下、EIC 疊在 PIC 的**內側**，外側那一截 PIC 露出來給 FAU（F1、F3）
+       · FAU 在 PIC 外緣，光纖沿徑向向外，到封裝外才彎向前面板（D3）
+       · PM 光纖從前面板的 ELSFP 後端出發、**進** PIC（L1、L2）；資料光纖 TX 出、RX 進，兩條反向（L4）
+     單位與 SCENES 一致（1 ≈ 1 公分的感覺）；y 是絕對高度，各層的 y 由下往上寫死在 Y。*/
+  function siphLayout() {
+    if (siphLayout.c) return siphLayout.c;
+    const Y = { pcb: 0, pcbH: 2.4, ballC: 1.66, subC: 3.52, subH: 2.8, c4C: 5.28, c4H: 0.5,
+      asicC: 7.23, asicH: 3.4, picC: 5.98, picH: 0.9, bondC: 6.48, bondH: 0.1, eicC: 6.93, eicH: 0.8,
+      timC: 9.08, lidC: 10.95, stiffC: 6.0, fibY: 6.0 };
+    const R = 11.8, TT = 4.6;                  // OE 中心離 ASIC 中心、沿邊的位移
+    const PIC = { L: 4.8, W: 5.0 }, EIC = { L: 2.8, W: 4.6 }, FAU = { L: 2.4, W: 4.2 };
+    const sides = [[0, 1], [0, -1], [1, 0], [-1, 0]];       // 出光方向 (dx, dz)：前（面板那一側）、後、右、左
+    const oes = [];
+    sides.forEach((o, si) => [-1, 1].forEach((s, k) => {
+      const dx = o[0], dz = o[1], tx = -dz, tz = dx;
+      oes.push({ side: si, k, dx, dz, x: dx * R + tx * s * TT, z: dz * R + tz * s * TT, rot: Math.atan2(-dz, dx) });
+    }));
+    // 前面板：站在載板前方（+z），資料光纖的連接器排成兩列；ELSFP 插在左端
+    const FACE = { z: 28.2, t: 1.2, w: 66, h: 13, y: 5.5, els: { x: -26.5, y: 5.6, z: 22.0, d: 14.2, w: 4.6, h: 2.6 } };
+    const conn = [];                                          // 16 個資料光纖連接器（TX、RX 各一）
+    for (let r = 0; r < 2; r++) for (let i = 0; i < 8; i++) conn.push({ x: -13 + i * 4.2, y: 3.4 + r * 3.2, z: FACE.z - FACE.t / 2 - 0.9 });
+    const data = [], pm = [];
+    const P3 = (x, y, z) => [+x.toFixed(2), +y.toFixed(2), +z.toFixed(2)];
+    oes.forEach((e, i) => {
+      // 光纖從 FAU 外緣（徑向 R + 2.4 + FAU.L）穿出；起點放在 PIC 邊緣上（在 FAU 玻璃塊裡面，爆炸時 FAU 往外拉，光纖仍穿過它）
+      for (let f = 0; f < 2; f++) {                           // f=0 TX（出）、f=1 RX（進）
+        const lat = (f ? 1 : -1) * 0.5;
+        const px = e.dx ? 0 : lat, pz = e.dz ? 0 : lat;      // 兩條光纖在切線方向錯開 0.5
+        const sx = e.x + e.dx * (PIC.L / 2 + 0.35) + px, sz = e.z + e.dz * (PIC.L / 2 + 0.35) + pz;
+        const out1 = [sx + e.dx * 4.2, 4.2, sz + e.dz * 4.2];
+        const c = conn[i * 2 + f];
+        const lane = 22.7 + (i % 2) * 0.45 + (e.side === 1 ? 0.7 : 0), hy = 3.0 + (i % 4) * 0.4;
+        let mid;
+        if (e.side === 0) mid = [[(out1[0] + c.x) / 2, 4.0, 21.0]];                       // 前：直接往前
+        else if (e.side === 1) { const ls = e.x < 0 ? -1 : 1; mid = [[ls * lane, hy, -20], [ls * lane, hy, 14]]; }     // 後：繞到側邊走廊再往前
+        else { const ls = e.dx; mid = [[ls * lane, hy, e.z + (e.z < 0 ? -1.5 : 1.5)], [ls * lane, hy, 15]]; }          // 左右：直接出側邊
+        const tgt = [c.x, c.y, c.z], pre = [c.x, c.y + 0.6, c.z - 2.6];
+        const pts = [P3(sx, Y.fibY, sz), P3(sx + e.dx * 2.6, Y.fibY, sz + e.dz * 2.6), P3(...out1)]
+          .concat(mid.map((m) => P3(m[0], m[1], m[2]))).concat([P3(pre[0], pre[1], pre[2]), P3(tgt[0], tgt[1], tgt[2])]);
+        data.push({ pts, a: [e.dx * 2.2, 12, e.dz * 2.2], b: [0, 0, 4], dir: f ? -1 : 1 });    // TX 往面板、RX 反向
+      }
+      // PM 光纖：ELSFP 後端 → 繞到該顆 OE 外側 → 從 FAU 外緣進 PIC
+      const E = FACE.els, rx = E.x - E.w / 2 + 0.7 + (i % 4) * 1.06, ry = E.y - 0.5 + Math.floor(i / 4) * 1.0;
+      const rz = E.z - E.d / 2 - 0.2;
+      const ex = e.x + e.dx * (PIC.L / 2 + 0.6), ez = e.z + e.dz * (PIC.L / 2 + 0.6);
+      const wayA = [E.x + 1.5, 5.0 + (i % 4) * 0.3, 10.5];
+      let way;
+      if (e.side === 3) way = [[-20.5, 5.6, e.z]];
+      else if (e.side === 0) way = [[e.x, 5.6, 19.0]];
+      else if (e.side === 2) way = [[0, 5.2, 24.4], [20.5, 5.6, 21.0], [20.5, 5.6, e.z]];
+      else way = [[-27.5, 5.2, -8], [-27.5, 5.4, -22.5], [e.x, 5.6, -21.0]];
+      const pts = [P3(E.x - E.w / 2 + 0.7 + (i % 4) * 1.06, ry, rz), P3(wayA[0], wayA[1], wayA[2])]
+        .concat(way.map((m) => P3(m[0], m[1], m[2]))).concat([P3(ex + e.dx * 3.2, 6.2, ez + e.dz * 3.2), P3(ex + e.dx * 1.0, Y.fibY + 0.55, ez + e.dz * 1.0)]);
+      pm.push({ pts, a: [0, 0, 9], b: [e.dx * 2.2, 12, e.dz * 2.2], dir: 1 });
+    });
+    siphLayout.c = { Y, R, TT, PIC, EIC, FAU, oes, FACE, conn, data, pm };
+    return siphLayout.c;
+  }
+
   /* ---------------------------------------------------------------- 場景資料
      單位：1 = 1 公分左右的感覺，機櫃高 42U 畫成 84。
      每個零件：{ seg, part, alias, name, note, kind, box:[w,h,d], at:[x,y,z], n:重複幾個, gap, axis }
@@ -467,6 +531,76 @@
       /* 訊號穿層：核心晶粒 → 微凸塊 → TSV → base die → 中介層 → 運算晶粒，一顆一顆接力點亮 */
       pulses: [{ parts: ['hb_core', 'hb_ubump', 'hb_tsv', 'hb_base', 'hb_interposer', 'hb_gpu'], period: 2.6, kind: 'sig' }],
     },
+    /* ===== 矽光子／CPO：CPO 交換器封裝（2026-10-24，掛在 siph_cpo 鏈的 siph_pkg 族群）=====
+       2D 是 `site/dg/siph_cpo.js`（圖 A）。規格書 docs/diagram_specs/siph_cpo.md §2、§3；調查依據 docs/siph_cpo_*_evidence.md。
+       為什麼這張要 3D（AGENTS §11「轉一圈真的能多理解一件事」）：光引擎**環繞**在 ASIC 四周（平面配置）、每顆引擎內部又是**垂直**堆疊
+       （EIC 在 PIC 上），兩個方向同時要看；光纖是從引擎**外緣向外**、不是向上 —— 2D 剖面只切得到一個方向。
+       幾何佈局（光引擎擺哪、光纖怎麼走）全部來自 siphLayout()，場景與建造函式共用同一份。
+       ⚠ 示意（規格書 §7-F）：U1 PIC 內是否有 TSV、U2 載板直接共封（本圖）或經中介層、U3 冷板讓位形狀、U4 光引擎顆數與排列、
+         U5 一個 ELSFP 供幾顆引擎、U6 面板連接器種類（畫面只寫「光纖連接器」）。
+       ⚠ 不畫：Davisson 102.4T、NVIDIA 四 ASIC×六 OSA×三引擎（單一來源，規格書 §7-C）；PIC 製程細節、任何廠商產品外觀。
+       台股標示（codes）只放調查報告裡高／中信心的公司，單一來源與低信心不上畫面（CEO 2026-10-24）。*/
+    siph_pkg: (() => {
+      const L = siphLayout();
+      const keep = [[0, 0, 16, 16]].concat(L.oes.map((e) => (e.dx ? [e.x, e.z, L.PIC.L, L.PIC.W] : [e.x, e.z, L.PIC.W, L.PIC.L])));
+      const cn = { 3450: '聯鈞', 6442: '光聖', 2360: '致茂', 3234: '光環', 6451: '訊芯-KY' };
+      return {
+        title: 'CPO 交換器封裝：ASIC 與光引擎共封裝（立體爆炸）',
+        sub: 'ASIC 居中、周圍一圈光引擎（PIC 在下、EIC 疊在上，混合鍵合），同在一片載板上；光纖從引擎外緣向外、不是向上；雷射（ELSFP）不在封裝裡，插在前面板。示意圖，非實物比例：光引擎顆數／排列、層厚與尺寸均為概念示意',
+        camera: [46, 50, -62], target: [0, 8, 2], fit: 1.0, hk: 0.58,
+        parts: [
+          { seg: 'hdi_pcb', part: 'sp_pcb', name: '主板 PCB（host board）', note: '全圖最大的平面，載板、前面板都站在它上面；交換器主板屬 800G→1.6T 通用的高層數板，CPO 專屬的台股證據查不到',
+            kind: 'swboard', box: [66, 2.4, 52], at: [0, 0, 0], codes: [], mat: 'pcb' },
+          { seg: 'abf_pcb', part: 'sp_bga', name: 'BGA 錫球', note: '載板底下整片的錫球，把載板接到主板；比 C4 大一個量級（示意）',
+            kind: 'balls', field: [38, 38], pitch: 2.2, box: [2, 1.4, 2], at: [0, 1.66, 0], ex: [0, 2.5, 0], codes: [] },
+          { seg: 'abf_pcb', part: 'sp_sub', name: '封裝載板（ABF 增層基板）', note: '平面上最大的封裝件：ASIC 與全部光引擎共用這一片，比一般 AI 封裝更大（相對大小示意）；表面是蛇行等長的走線',
+            kind: 'substrate', box: [44, 2.8, 44], at: [0, 3.52, 0], ex: [0, 5.5, 0], codes: ['3037', '3189'],
+            chipnote: 'ABF 載板廠；供貨 CPO 封裝的具名證據查不到（景碩 2025-08：長期機會、貢獻有限）' },
+          { seg: 'adv_pkg', part: 'sp_stiff', name: '補強環（stiffener）', note: '圍住載板邊緣的一圈金屬框，大尺寸封裝防翹曲；不碰晶粒、不蓋住光纖出口',
+            kind: 'stiffring', box: [44, 2.2, 44], ring: 2.0, at: [0, 6.0, 0], ex: [0, 7.5, 0], codes: ['3711', '6239'], mat: 'metal',
+            chipnote: 'CPO 封裝（日月光：NVIDIA 名單、2027 小量；力成：Broadcom 光引擎封裝，2026 年底小量）' },
+          { seg: 'adv_pkg', part: 'sp_c4', name: 'C4 凸塊（晶粒 ↔ 載板）', note: '只長在晶粒正下方：ASIC 與每顆 PIC 各站在自己的凸塊上；迴焊後塌成鼓形，節距 150–200 µm 級（示意）',
+            kind: 'bump', v: 'c4', nx: 20, nz: 20, keep, box: [36, 0.5, 36], at: [0, 5.28, 0], ex: [0, 8.5, 0], codes: ['3711', '6239'],
+            chipnote: 'CPO 封裝組裝' },
+          { seg: 'ic_design', part: 'sp_asic', name: '交換 ASIC 晶粒', note: '居中、全封裝面積最大也最厚的晶粒；光引擎都在它旁邊、不疊在它上面，電訊號只走毫米級的短路。晶粒版圖是通用示意',
+            kind: 'die', box: [16, 3.4, 16], at: [0, 7.23, 0], ex: [0, 12, 0], codes: ['2330'],
+            chipnote: '先進製程晶圓代工（這一格講「誰代工」；交換 ASIC 的設計者為外商，如 Broadcom、NVIDIA）' },
+          { seg: 'foundry', part: 'sp_pic', name: 'PIC 光子晶片（光引擎的下層）', note: '把光分路、調變、偵測的晶片：頂面細線是波導，兩條並行臂是調變器（MZM，另一種微環 MRM 亦存在），小方塊是鍺光偵測器；外緣露出來給 FAU，上面沒有 EIC、蓋或 TIM。8 顆為示意',
+            kind: 'sppic', box: [4.8, 0.9, 5.0], at: [0, 0, 0], ex: [0, 12, 0], codes: ['2330', '2303'],
+            chipnote: 'PIC 晶圓製造（矽光子，SOI）：台積電（COUPE）、聯電（首批 1.6T 量產晶圓，2026-07）' },
+          { seg: 'adv_pkg', part: 'sp_hb', name: '混合鍵合界面（EIC ↔ PIC）', note: '兩層之間只有一層銅墊對銅墊，沒有凸塊 —— 接點更密、路徑更短（SoIC-X）',
+            kind: 'spbond', box: [2.8, 0.1, 4.6], at: [0, 0, 0], ex: [0, 15, 0], codes: ['2330'], chipnote: 'SoIC 堆疊（台積電 COUPE）' },
+          { seg: 'ic_design', part: 'sp_eic', name: 'EIC 電子晶片（光引擎的上層）', note: '疊在 PIC 上、比 PIC 小，只蓋住內側：驅動調變器（Driver），並把光偵測器的微小電流放大（TIA）。台積電 COUPE 的 EIC 用 65 奈米級製程（來源：產業媒體 2024）',
+            kind: 'speic', box: [2.8, 0.8, 4.6], at: [0, 0, 0], ex: [0, 18, 0], codes: ['2454', '2330'],
+            chipnote: 'EIC：聯發科自家設計（CPO 樣品展示，2026-06）；製造：台積電' },
+          { seg: 'optical', part: 'sp_fau', name: 'FAU 光纖陣列單元', note: '一塊玻璃 V 槽塊把一排光纖對準、黏在 PIC 的外緣（遠離 ASIC 的那一邊）；對準誤差是次微米級，要主動對準。爆炸時沿徑向往外拉',
+            kind: 'spfau', box: [2.4, 1.1, 4.2], at: [0, 0, 0], codes: ['3363', '3163', '6442', '3008'],
+            chipnote: 'FAU（2026–2028 才放量）：上詮、波若威、光聖（合聖）、大立光（時程兩說）' },
+          { seg: 'optical', part: 'sp_fiber', name: '資料光纖（TX 出／RX 進）', note: '從 FAU 水平向外拉出，到封裝外才彎向前面板，終止在面板的光纖連接器；TX 與 RX 箭頭反向。不穿過冷板',
+            kind: 'spfib', fibers: L.data, box: [1, 1, 1], at: [0, 0, 0], codes: ['3163', '3665', '6442'],
+            chipnote: '光纖套件／跳線（波若威 CPO 光纖套件 2026Q3 小量；貿聯-KY 光纖跳線）' },
+          { seg: 'optical', part: 'sp_pm', name: '保偏光纖（PM fiber，雷射輸入）', note: '把外置雷射的連續光送進 PIC，光的偏振方向要維持不變；箭頭指向 PIC，帶色環，跟資料光纖是兩種線。條數與一個 ELSFP 供幾顆引擎為示意',
+            kind: 'spfib', pm: true, fibers: L.pm, box: [1, 1, 1], at: [0, 0, 0], codes: [] },
+          { seg: 'optical', part: 'sp_elsfp', name: 'ELSFP 外置雷射模組', note: '插在前面板、不在封裝裡：雷射怕熱，所以放在遠離幾百瓦交換晶片的地方，壞了前面板直接換。沒有資料光口，只有光源輸出（後端盲插、8 條 PM 光纖）',
+            kind: 'spels', box: [4.6, 2.6, 14.2], at: [-26.5, 5.6, 22.0], ex: [0, 0, 9], codes: ['4977', '3450', '4979', '3081'], cnames: cn,
+            chipnote: 'ELS／雷射封裝與磊晶：眾達-KY（配合 Broadcom）、聯鈞（design-in）、華星光（CW 後段）、聯亞（磊晶）' },
+          { seg: 'thermal', part: 'sp_tim', name: 'TIM1 導熱介面材料', note: '極薄一層，只夾在 ASIC 頂面與冷板之間；光引擎上面沒有',
+            kind: 'timlay', box: [16, 0.3, 16], at: [0, 9.08, 0], ex: [0, 15.5, 0], codes: [] },
+          { seg: 'thermal', part: 'sp_lid', name: '冷板／散熱蓋', note: '只壓在 ASIC 上（經 TIM1），上表面是全圖最高的一層；對光引擎與 FAU 邊讓開，光纖邊不可被蓋住',
+            kind: 'cplate', box: [17, 3.4, 17], at: [0, 10.95, 0], ex: [0, 20, 0], codes: [], mat: 'cu' },
+          { seg: 'connector', part: 'sp_face', name: '前面板與光纖連接器', note: '資料光纖終止在這裡的是光纖連接器，不是可插拔收發模組；ELSFP 插在同一面板的另一個槽。連接器種類不指定（示意）',
+            kind: 'spface', box: [66, 13, 1.2], at: [0, 5.5, 28.2], ex: [0, 0, 4], codes: ['2345', '3665', '3163'],
+            chipnote: '整機與連接器：智邦（Tomahawk 交換器；CPO 款最快 2026H2）、貿聯-KY（光纖跳線）、波若威（MPO）' },
+        ],
+        /* 電訊號：ASIC ↔ EIC 的毫米級短路（L5）—— 沿載板表面、在 ASIC 側壁與 EIC 之間的縫裡走（藍＝訊號）。
+           光流線（CW 光進 PIC、資料光出 FAU）不在這裡：光纖的粒子由 spfib 自己帶，爆炸時跟著光纖一起重新彎。*/
+        flows: L.oes.map((e) => {
+          const P = (r, y) => [e.x + e.dx * (r - L.R), y, e.z + e.dz * (r - L.R)];
+          return { kind: 'sig', part: 'sp_sub', r: 0.18, per: 4, speed: 0.5, pts: [P(7.1, 6.4), P(8.5, 5.45), P(9.7, 5.45), P(10.9, 6.0)] };
+        }),
+        pulses: [{ parts: ['sp_elsfp', 'sp_pm', 'sp_pic', 'sp_eic', 'sp_asic'], period: 2.6, kind: 'opt' }],
+      };
+    })(),
     /* ===== 半導體鏈：第三代半導體 ===== */
     /* 2D 是 `site/dg/wide_bandgap.js`。兩顆元件並排、切掉同一個角：
        左邊 SiC MOSFET 是**垂直**元件（汲極在背面），右邊 GaN HEMT 是**橫向**元件
@@ -1590,6 +1724,8 @@
        ⚠ 這幾支的建造函式幾乎每一塊都自己明講模組色 token，所以這裡的材質族主要是在決定
           PBR 手感（金屬度／粗糙度）與沒寫顏色那幾塊的底色，不是在決定主色。*/
     hsasic: 'si', hscage: 'metal', hstongue: 'plastic', hspin: 'organic', hsfly: 'emc', hsslot: 'plastic',
+    /* 矽光子／CPO 交換器封裝（2026-10-24）：PIC／EIC 走矽、混合鍵合走銅、FAU 走玻璃、前面板與 ELSFP 走金屬 */
+    sppic: 'si', speic: 'si', spbond: 'cu', spfau: 'glass', spfib: 'plastic', spface: 'metal', spels: 'metal',
     /* SSD（2026-10-19）：板子走 pcb（墨綠），晶片走 emc（石墨灰模封），晶粒走 si，散熱片走 alu，插槽走 plastic */
     ssdpcb: 'pcb', ssdfinger: 'cu', ssdpkg: 'emc', ssdnand: 'emc', ssdstack: 'si', ssdind: 'emc', ssdhs: 'alu', ssdsock: 'plastic',
   };
@@ -1709,6 +1845,11 @@
     cage_body: 'EMI shielding cage', gold_finger: 'Paddle card & gold fingers (differential pairs)',
     cage_pressfit: 'Press-fit pins', slot_housing: 'Receptacle housing & cantilever beams',
     twinax: 'Flyover twinax cable', optic_module: 'Pluggable optical module',
+    /* 矽光子／CPO 交換器封裝（2026-10-24）*/
+    sp_pcb: 'Host board (PCB)', sp_bga: 'BGA solder balls', sp_sub: 'Package substrate (ABF)', sp_stiff: 'Stiffener ring',
+    sp_c4: 'C4 bumps (die to substrate)', sp_asic: 'Switch ASIC die', sp_pic: 'PIC (photonic IC)', sp_hb: 'Hybrid bonding interface',
+    sp_eic: 'EIC (driver / TIA)', sp_fau: 'FAU (fiber array unit)', sp_fiber: 'Data fiber (TX / RX)', sp_pm: 'PM fiber (laser in)',
+    sp_elsfp: 'ELSFP external laser', sp_tim: 'TIM1', sp_lid: 'Cold plate / lid', sp_face: 'Faceplate & fiber connectors',
   };
 
   /* ================================================================ 微表面（2026-09-26，Andy：「光滑平面沒有材質」）
@@ -3343,10 +3484,13 @@
          依據：規格 `ic_package.md`（C4 150–200 µm 級、微凸塊 30–60 µm 級，差一個數量級）；密度仍是示意（真的差 3～5 倍，畫不出來）。*/
       if (p.v === 'c4') {
         const r = Math.min(px, pz) * 0.33;
+        /* p.keep（2026-10-24 加）：只在這幾塊矩形 [cx, cz, w, d] 底下長 C4 —— 光引擎與 ASIC 各自站在自己的凸塊上，晶粒之間的空地沒有。
+           沒傳 keep 的場景（CoWoS、HBM）整片鋪滿，跟以前逐位元相同。*/
+        const inC = (a) => !p.keep || p.keep.some(([cx, cz, kw, kd]) => Math.abs(a[0] - cx) <= kw / 2 && Math.abs(a[2] - cz) <= kd / 2);
         const bg = new T.SphereGeometry(r, 8, 6); bg.scale(1, (h * 0.46) / r, 1);
-        g.add(instOf(bg, sn, gridXZ(nx, nz, px, pz, 0)));
+        g.add(instOf(bg, sn, gridXZ(nx, nz, px, pz, 0).filter(inC)));
         const pad = new T.CylinderGeometry(r * 0.78, r * 0.78, h * 0.08, 8, 1, true);
-        g.add(instOf(pad, cu, gridXZ(nx, nz, px, pz, -h * 0.46).concat(gridXZ(nx, nz, px, pz, h * 0.46))));
+        g.add(instOf(pad, cu, gridXZ(nx, nz, px, pz, -h * 0.46).filter(inC).concat(gridXZ(nx, nz, px, pz, h * 0.46).filter(inC))));
         return g;
       }
       const r = Math.min(px, pz) * 0.27;
@@ -8826,6 +8970,183 @@
       return g;
     }
 
+    /* ================================================================ 矽光子／CPO 交換器封裝的零件字彙（2026-10-24，SCENES.siph_pkg）
+       規格書 docs/diagram_specs/siph_cpo.md §2-A、§3。同樣是**多出來的詞**，舊的 kind 一個都沒有動；
+       載板／BGA／C4／ASIC／TIM／冷板／主板直接用既有的 substrate／balls／bump／die／timlay／cplate／swboard。
+       新的只有七支，全部是「環繞 ASIC 的 8 顆光引擎」與前面板那一側，一支一種零件、8 顆收成 InstancedMesh（一種材質一個 draw call）：
+         sppic   PIC（光子晶片）：矽 ＋ 頂面波導／調變器電極／鍺光偵測器／邊緣耦合器 —— 識別特徵是「細線＋兩條並行臂」，不是一塊方塊
+         speic   EIC（電子晶片）：比 PIC 小、只蓋在 PIC 的**內側**，外側那一截 PIC 露出來（FAU 要接在那裡）
+         spbond  混合鍵合界面：EIC 與 PIC 之間**一層銅墊對銅墊**，沒有凸塊（畫成一排平的小方墊，不用球或柱）
+         spfau   光纖陣列單元：一塊透明玻璃（V 槽塊）黏在 PIC 外緣，上面一排 V 槽脊線；每顆各自掛在子群組上，爆炸時**沿徑向往外**拉
+         spfib   光纖：細管 ＋ 方向箭頭 ＋ 粒子；爆炸時兩端各跟著自己接的零件走（FAU 往外、面板往前），中間的管子重新彎過去，不會斷開
+         spface  前面板：鈑金板 ＋ 兩排光纖連接器（資料光纖終止在這裡）＋ ELSFP 的插槽
+         spels   ELSFP 外置雷射模組：金屬殼 ＋ 前端拉環 ＋ 後端盲插光連接器（8 個套管）；**沒有資料光口，只有光源輸出**
+       ⚠ 全部走材質族 token，沒有寫死色碼（fallback 只在讀不到 CSS 時用）。*/
+    const spOe = (L, y, off) => L.oes.map((e) => [e.x + e.dx * off, y, e.z + e.dz * off, 0, e.rot, 0]);
+    const spSlab = (w, h, d, x, y, z) => { const b = chamferGeo(w, h, d); b.translate(x, y, z); return b; };
+
+    function spPic(p, K) {
+      const g = new T.Group(), L = siphLayout(), { PIC, Y } = L;
+      const si = K.mat(0.02, { rough: 0.3, metal: 0.34 });
+      const wgM = K.mat(0.62, { rough: 0.28, metal: 0.55 });
+      const elM = K.mat(0, { color: K.css('--dg-m-trace', '#E6B95C'), metal: 0.9, rough: 0.28 });
+      const pdM = K.mat(0, { color: K.css('--dg-m-graphite', '#3A3F47'), rough: 0.5, metal: 0.2 });
+      const it = spOe(L, Y.picC, 0);
+      g.add(instOf(chamferGeo(PIC.L, Y.picH, PIC.W), si, it));
+      const yT = Y.picH / 2;
+      // 局部座標：x＝徑向（+x 朝外、PIC 邊緣在 +2.4）、z＝切向。波導一律比 FAU 光纖細很多（P3）
+      const wg = [], el = [], pd = [];
+      const line = (x0, x1, z) => wg.push(spSlab(Math.abs(x1 - x0), 0.05, 0.1, (x0 + x1) / 2, yT + 0.025, z));
+      line(0.55, 2.4, -1.9);                                    // TX：CW 光進來（輸入耦合器 → 分光）
+      wg.push(spSlab(0.3, 0.05, 0.5, 0.4, yT + 0.025, -1.9));    // 分光器
+      line(-1.7, 0.25, -2.15); line(-1.7, 0.25, -1.65);         // 調變器的兩條並行臂（MZM；另一種是微環 MRM，亦存在）
+      wg.push(spSlab(0.3, 0.05, 0.5, -1.85, yT + 0.025, -1.9)); // 合光器
+      wg.push(spSlab(0.1, 0.05, 1.05, -1.95, yT + 0.025, -1.375));
+      line(-1.95, 2.4, -0.85);                                  // TX：調變後的資料光出去（輸出耦合器）
+      [1.0, 2.0].forEach((z) => { line(-0.9, 2.4, z); pd.push(spSlab(0.42, 0.07, 0.42, -1.1, yT + 0.035, z)); });  // RX：耦合器 → 波導 → Ge 光偵測器
+      [-1.9, -0.85, 1.0, 2.0].forEach((z) => wg.push(spSlab(0.36, 0.05, 0.3, 2.22, yT + 0.025, z)));         // 邊緣耦合器（錐形放大）
+      [-2.42, -1.9, -1.38].forEach((z) => el.push(spSlab(1.7, 0.06, 0.1, -0.8, yT + 0.03, z)));              // 調變器電極（朝上，對著 EIC）
+      g.add(instOf(mergeGeos(wg), wgM, it));
+      g.add(instOf(mergeGeos(el), elM, it));
+      g.add(instOf(mergeGeos(pd), pdM, it));
+      return g;
+    }
+
+    function spEic(p, K) {
+      const g = new T.Group(), L = siphLayout(), { EIC, Y } = L;
+      const si = K.mat(0.08, { rough: 0.32, metal: 0.35 });
+      const cellM = K.mat(0.4, { rough: 0.34, metal: 0.36 });
+      const it = spOe(L, Y.eicC, -1.0);                         // EIC 的中心在徑向 −1.0（蓋住 PIC 內側 x∈[−2.4,0.4]）
+      g.add(instOf(chamferGeo(EIC.L, Y.eicH, EIC.W), si, it));
+      const cells = [], yT = Y.eicH / 2 + 0.025;
+      for (let r = 0; r < 2; r++) for (let c = 0; c < 5; c++) cells.push(spSlab(0.38, 0.05, 0.62, -0.1 + (c - 2) * 0.46, yT, (r ? 1 : -1) * 1.0));
+      cells.push(spSlab(2.3, 0.05, 0.12, 0, yT, 0));            // 中間一條匯流排：ASIC 側的短路從這裡進來
+      g.add(instOf(mergeGeos(cells), cellM, it));
+      return g;
+    }
+
+    function spBond(p, K) {
+      const g = new T.Group(), L = siphLayout(), { Y } = L;
+      const cu = K.mat(0, { color: K.css('--dg-cu', '#b0743a'), metal: 0.86, rough: 0.28 });
+      const pads = [];
+      for (let ix = 0; ix < 8; ix++) for (let iz = 0; iz < 12; iz++) pads.push(spSlab(0.2, Y.bondH, 0.2, -2.1 + ix * 0.34, 0, (iz - 5.5) * 0.37));
+      g.add(instOf(mergeGeos(pads), cu, spOe(L, Y.bondC, 0)));
+      return g;
+    }
+
+    function spFau(p, K) {
+      const g = new T.Group(), L = siphLayout(), { FAU, PIC, Y } = L;
+      const gl = K.mat(0, { glass: true });
+      const lidM = K.mat(-0.15, { rough: 0.5, metal: 0.3 });
+      const ridge = K.mat(0.45, { rough: 0.3, metal: 0.6 });
+      const epoxy = K.mat(0, { color: K.css('--dg-organic', '#8a6636'), rough: 0.7, metal: 0.05 });
+      L.oes.forEach((e) => {
+        const r = PIC.L / 2 + FAU.L / 2, x0 = e.x + e.dx * r, z0 = e.z + e.dz * r;
+        const c = new T.Group();
+        c.position.set(x0, Y.fibY, z0); c.rotation.y = e.rot;
+        c.userData = { exv: [e.dx * 2.2, 12, e.dz * 2.2], p0: [x0, Y.fibY, z0] };   // 爆炸：沿徑向往外拉（水平），高度跟著 PIC 一起升（FAU 黏在 PIC 邊緣）
+        c.add(box(FAU.L, 1.1, FAU.W, gl));
+        c.add(put(box(FAU.L * 0.55, 0.22, FAU.W * 0.96, lidM), FAU.L * 0.2, 0.62, 0));         // 蓋板（壓住光纖）
+        const rg = []; for (let k = 0; k < 8; k++) rg.push(spSlab(FAU.L * 0.92, 0.05, 0.1, 0, 0.58, (k - 3.5) * 0.46));
+        c.add(new T.Mesh(mergeGeos(rg), ridge));                                                  // V 槽脊線
+        c.add(put(box(0.18, 0.9, FAU.W * 1.02, epoxy), -FAU.L / 2 + 0.02, 0, 0));                 // 與 PIC 邊緣的膠線
+        g.add(c);
+      });
+      return g;
+    }
+
+    function spFib(p, K) {
+      const g = new T.Group(), items = p.fibers || [], pm = !!p.pm;
+      const colHex = K.css(pm ? '--dg-sw-fiber' : '--dg-fl-opt', pm ? '#f2c14e' : '#22E5C8');
+      const mat = K.mat(0, { color: colHex, glow: 0.3, rough: 0.5, metal: 0.05 });
+      const r = pm ? 0.2 : 0.12;
+      const mesh = new T.Mesh(new T.BufferGeometry(), mat);
+      g.add(mesh);
+      const dirs = Array.from(new Set(items.map((i) => i.dir || 1)));
+      const pointsOf = dirs.map((dir) => {
+        const per = 5, arr = new Float32Array(per * 3 * items.filter((i) => (i.dir || 1) === dir).length);
+        const geo = new T.BufferGeometry(); geo.setAttribute('position', new T.BufferAttribute(arr, 3));
+        const pmat = K.reg(new T.PointsMaterial({ size: r * 2.6 + 0.9, color: new T.Color(colHex), transparent: true, opacity: 0.9,
+          depthWrite: false, sizeAttenuation: true, map: spriteTex() || null }));
+        pmat.userData = { dgvar: pm ? '--dg-sw-fiber' : '--dg-fl-opt', flowPts: true };
+        const pt = new T.Points(geo, pmat);
+        pt.userData.flow = { paths: [], per, t: 0, dir, speed: 0.22, bidir: 0, gate: null, age: 0 };
+        g.add(pt);
+        return pt;
+      });
+      const up = new T.Vector3(0, 1, 0);
+      const oriented = (geo, pt, tg) => {
+        const q = new T.Quaternion().setFromUnitVectors(up, tg), e = new T.Euler().setFromQuaternion(q);
+        const o3 = new T.Object3D(); o3.position.copy(pt); o3.rotation.copy(e); o3.updateMatrix(); geo.applyMatrix4(o3.matrix);
+        return geo;
+      };
+      function rebuild(t) {
+        const geos = [], pathsBy = dirs.map(() => []);
+        items.forEach((it) => {
+          const n = it.pts.length;
+          const pts = it.pts.map((q, i) => {
+            const w = i / (n - 1), s = w * w * (3 - 2 * w);        // 兩端各跟著自己接的零件走，中間平滑過渡
+            return new T.Vector3(q[0] + (it.a[0] * (1 - s) + it.b[0] * s) * t, q[1] + (it.a[1] * (1 - s) + it.b[1] * s) * t,
+              q[2] + (it.a[2] * (1 - s) + it.b[2] * s) * t);
+          });
+          const curve = new T.CatmullRomCurve3(pts);
+          geos.push(new T.TubeGeometry(curve, 44, r, 5, false));
+          const alen = Math.max(r * 6, 0.8), sgn = (it.dir || 1) < 0 ? -1 : 1;
+          [0.3, 0.62, 0.86].forEach((u) => {
+            geos.push(oriented(new T.ConeGeometry(Math.max(r * 2.4, 0.22), alen, 8), curve.getPointAt(u),
+              curve.getTangentAt(u).normalize().multiplyScalar(sgn)));
+          });
+          if (pm) {                                                // PM 光纖：每隔一段一圈色環（跟資料光纖分得開）
+            for (let k = 1; k <= 6; k++) {
+              const u = k / 7;
+              geos.push(oriented(new T.CylinderGeometry(r * 1.8, r * 1.8, 0.34, 8), curve.getPointAt(u), curve.getTangentAt(u).normalize()));
+            }
+          }
+          pathsBy[dirs.indexOf(it.dir || 1)].push(curve.getPoints(48));
+        });
+        if (mesh.geometry) mesh.geometry.dispose();
+        mesh.geometry = mergeGeos(geos);
+        pointsOf.forEach((pt, di) => { pt.userData.flow.paths = pathsBy[di]; });
+      }
+      const hook = new T.Group();
+      hook.userData.exfn = rebuild;
+      g.add(hook);
+      rebuild(0);
+      return g;
+    }
+
+    function spFace(p, K) {
+      const g = new T.Group(), L = siphLayout(), F = L.FACE;
+      const sheet = K.mat(-0.05, { metal: 0.8, rough: 0.4 });
+      const dark = K.mat(-0.6, { rough: 0.9, metal: 0.05 });
+      const gold = K.mat(0.4, { color: K.css('--dg-sw-gold', '#d8b25a'), metal: 0.88, rough: 0.24 });
+      g.add(mboxes([[F.w, F.h, F.t, 0, 0, 0], [3, F.h, F.t, -(F.w / 2 + 1.5), 0, 0], [3, F.h, F.t, F.w / 2 + 1.5, 0, 0]], sheet));
+      // 連接器：內側是配接器（光纖終止處），外側是一個個方形開口 —— CPO 面板是「光纖連接器」，不是可插拔收發模組
+      g.add(instOf(new T.BoxGeometry(2.0, 1.1, 1.8), gold, L.conn.map((c) => [c.x, c.y - F.y, -(F.t / 2 + 0.9)])));
+      g.add(instOf(new T.BoxGeometry(1.5, 0.75, 0.12), dark, L.conn.map((c) => [c.x, c.y - F.y, F.t / 2 + 0.02])));
+      // ELSFP 的插槽：一個稍大的暗框（模組從這裡插進來）
+      const E = F.els;
+      g.add(mboxes([[E.w + 0.8, E.h + 0.8, 0.24, E.x, E.y - F.y, F.t / 2 + 0.05]], dark));
+      return g;
+    }
+
+    function spEls(p, K) {
+      const g = new T.Group();
+      const [w, h, d] = p.box;
+      const metal = K.mat(0.02, { metal: 0.84, rough: 0.34 });
+      const dark = K.mat(-0.55, { rough: 0.9, metal: 0.05 });
+      g.add(mboxes([[w, h, d * 0.9, 0, 0, -d * 0.05], [w * 1.1, h * 1.1, d * 0.08, 0, 0, d * 0.46]], metal));   // 殼 ＋ 前端凸緣
+      g.add(mboxes([[w * 0.5, h * 0.18, d * 0.06, 0, -h * 0.32, d * 0.52], [w * 0.16, h * 0.5, d * 0.05, w * 0.22, 0, d * 0.53]], dark));   // 拉環／卡榫
+      const vents = []; for (let k = 0; k < 5; k++) vents.push([w * 0.6, h * 0.04, d * 0.05, 0, h * 0.5 + 0.005, -d * 0.3 + k * d * 0.1]);
+      g.add(mboxes(vents, dark));
+      // 後端盲插光連接器：一塊深色座 ＋ 兩排 4 個套管（8 條 PM 光纖從這裡出去）
+      g.add(mboxes([[w * 0.8, h * 0.62, d * 0.04, 0, 0, -d / 2 - d * 0.01]], dark));
+      const fer = []; for (let r = 0; r < 2; r++) for (let c = 0; c < 4; c++) fer.push([-w * 0.34 + c * w * 0.226, -h * 0.17 + r * h * 0.34, -d / 2 - d * 0.04, Math.PI / 2, 0, 0]);
+      g.add(instOf(new T.CylinderGeometry(0.2, 0.2, 0.5, 8), K.mat(0.5, { color: K.css('--dg-sw-fiber', '#f2c14e'), metal: 0.7, rough: 0.3 }), fer));
+      g.add(put(box(w * 0.14, h * 0.1, d * 0.03, K.mat(0, { led: true })), -w * 0.28, h * 0.28, d * 0.55));      // 電源指示燈（唯一發光的東西）
+      return g;
+    }
+
     return { plain, rack, backplane, tray, gpu, chip, hbm, pcb, laminate, cdu, uqd, fan, psu, battery,
       optic, switch: switchBox, substrate, balls, rdl, bridge, die, probe, lid,
       // 兩種模式（DECISIONS #238）的共用件：圓角方塊、流線、粒子貼圖
@@ -8888,6 +9209,8 @@
       mtmoty: mtMotY, mtbear: mtBear,
       /* ---- SSD（M.2 2280 NVMe，2026-10-19）。同樣是**多出來的詞**，舊的一個都沒有動。*/
       ssdpcb: ssdPcb, ssdfinger: ssdFinger, ssdpkg: ssdPkg, ssdnand: ssdNand, ssdstack: ssdStack, ssdind: ssdInd, ssdhs: ssdHs, ssdsock: ssdSock,
+      /* ---- 矽光子／CPO 交換器封裝（2026-10-24）。同樣是**多出來的詞**，舊的一個都沒有動。*/
+      sppic: spPic, speic: spEic, spbond: spBond, spfau: spFau, spfib: spFib, spface: spFace, spels: spEls,
       _cylX: cylX, _halfBore: halfBore, _halfTubeY: halfTubeY, _halfTubeX: halfTubeX };
   }
 
@@ -9165,6 +9488,10 @@
          進場一律 expT = 0（看起來是組裝好的成品），游標移進容器才補間到 1、移開再收回 0。*/
     let expT = 0;
     const explodable = [];
+    /* 2026-10-24（矽光子／CPO）：兩種「不是整個 group 一起搬」的拆法。
+       exKids＝子群組自己帶 userData.exv（各自往不同方向拉，例如 8 顆 FAU 各自沿徑向往外）；
+       exFns＝零件自己提供 exfn(t)（例如光纖：兩端跟著零件走、中間重新彎）。收攏（t=0）時兩者都回到原位。*/
+    const exKids = [], exFns = [];
     /* 2026-09-26：流線跟著它掛的那個零件一起拆開（以前流線是寫死的世界座標，零件一拆開它就懸在半空中，
        看起來就是 Andy 說的「隨便拉的管線」）。收攏時位移是 0，跟以前一模一樣。*/
     const flowGroups = [];
@@ -9195,6 +9522,8 @@
     const applyExplode = (t) => {
       expT = Math.max(0, Math.min(1, t));
       explodable.forEach(place);
+      exKids.forEach(c => { const u = c.userData; c.position.set(u.p0[0] + u.exv[0] * expT, u.p0[1] + u.exv[1] * expT, u.p0[2] + u.exv[2] * expT); });
+      exFns.forEach(f => f(expT));
       flowGroups.forEach(fg => { const e = fg.userData.ex; fg.position.set(e[0] * expT, e[1] * expT, e[2] * expT); });
       bumpShadow();     // 零件真的移動了 → 這一幀要重畫陰影貼圖（見 shadowMap.autoUpdate）
       markDirty();      // #245：補間的每一幀都要真的畫出來，不能被「沒變就不畫」擋掉
@@ -9244,6 +9573,8 @@
             flowSeen.add(x.geometry); flowPts.push(x);
           }
           if (x.isPoints && x.userData && x.userData.flow) flowAll.push(x);
+          if (x.userData && x.userData.exv && x !== g) exKids.push(x);
+          if (x.userData && x.userData.exfn) exFns.push(x.userData.exfn);
         });
         root.add(g); groups.push(g);
         if (!p.frame) picks.push(g); else frames.push(g);
@@ -9311,7 +9642,7 @@
          判斷改成「有沒有給 codes 這個欄位」：給了空陣列就照它，卡片顯示「台股無直接對應」。
          既有場景一個都沒受影響（它們的 codes 從來沒有空陣列）。*/
       const mem = p.codes
-        ? { list: p.codes.slice(0, 4).map(c => ({ code: c, name: (window.Link && window.Link.cname[c]) || c })), total: p.codes.length }
+        ? { list: p.codes.slice(0, 4).map(c => ({ code: c, name: (window.Link && window.Link.cname[c]) || (p.cnames && p.cnames[c]) || c })), total: p.codes.length }
         : (o.members ? (o.members(p.seg) || { list: [], total: 0 }) : { list: [], total: 0 });
       // A5-b：晶片上方一行小字，講清楚這排台股是「哪一群」，不要讓它貼著零件說明被讀成「這幾家做這個零件」
       if (p.chipnote && mem.list.length) {
