@@ -1,5 +1,12 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
+### 2026-10-24 科技產業分析師：產業地圖新增「矽光子／CPO」題材分頁（分支 claude/siph-chain，未推 main）
+- 資料：groups.yaml 新增鏈 `siph_cpo` 12 組（疊加族群 `overlay: true`，不進 M1，見 DECISIONS #362）；昇達科 3491 移到 satellite、萊德光電 7717 移出 optical_module；
+  supply_chain.yaml 新增 8 個環節、約 20 個節點、9 條邊，降級 lpc→coherent、luxnet→accton。裁決紀錄 docs/siph_cpo_chain_notes.md。
+- 前端：industry.js（CHAIN_EXTRA、全市場排除疊加鏈、「成員與階段」表）、m4/20261024-siph-chain.css、features.json 公告。2D/3D 圖由 tech-illustrator 另做（site/dg/siph_cpo.js）。
+- 驗收段落：scripts/uitest_sections/20261024_siph_chain.py（矽光子CPO1024）；pytest tests/test_overlay_groups.py。
+- 待：Andy 校訂訊芯-KY 等需校訂成員；themes.yaml 既有題材「矽光子 / CPO」含宏捷科 8086（查無實證）未動。
+
 ### 2026-10-22 凌晨 CEO：社群盤後圖修正（main 1de955be、6e6cafc0）
 - 公司 LOGO 破圖修好：social_snap 只抓 JSON 沒抓 data/logos/*.png → 改讀正式站圖檔；等圖改 addEventListener，不再蓋掉 onerror 字標退路。
 - Andy 10-22：「右下角訊息拿掉，上方LOGO 改標題 這樣讓版面擴大」→ 品牌列＝LOGO＋標題，卡內不重複標題，拿掉右下網址。

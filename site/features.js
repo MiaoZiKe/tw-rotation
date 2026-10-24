@@ -469,7 +469,7 @@
     return 'grp.' + k;
   }
   /* groups：[{ group_id, group_name, chain }]（groups_today.json 的列）。重複呼叫只補沒有的；回傳這次新增幾個 */
-  var CHAIN = { semiconductor: '半導體', ai_server: 'AI 伺服器', electronics: '電子', traditional: '傳產', infrastructure: '基礎建設', software: '軟體', financial: '金融', industry: '法定產業別' };
+  var CHAIN = { semiconductor: '半導體', ai_server: 'AI 伺服器', electronics: '電子', traditional: '傳產', infrastructure: '基礎建設', siph_cpo: '矽光子／CPO', software: '軟體', financial: '金融', industry: '法定產業別' };
   function addGroups(groups) {
     var n = 0;
     (groups || []).forEach(function (g) {

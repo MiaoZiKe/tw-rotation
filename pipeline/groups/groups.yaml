@@ -341,16 +341,21 @@ groups:
     name: 高速光模組
     tier: midstream
     chain: ai_server
-    note: "光收發模組的組裝與出貨（800G／1.6T）：買晶粒做模組，營收看模組出貨量。"
-    codes: ["4979", "3163", "4977", "6442", "6426", "3234", "7717", "6588"]
-    # 4979 華星光、3163 波若威、4977 眾達-KY、6442 光聖、6426 統新、3234 光環、7717 萊德光電-KY、6588 東典光電
+    note: "光收發模組的組裝與出貨（800G／1.6T）：買晶粒做模組，營收看模組出貨量。群內除華星光外多為光被動元件（波若威、光聖、統新、東典）、光引擎／ELS（眾達-KY）與雷射晶粒後段（光環），各家實際角色與 CPO 階段請看「矽光子／CPO」產業鏈分頁（siph_cpo）。"
+    codes: ["4979", "3163", "4977", "6442", "6426", "3234", "6588"]
+    # 4979 華星光、3163 波若威、4977 眾達-KY、6442 光聖、6426 統新、3234 光環、6588 東典光電
+    # ★ 2026-10-24 拿掉 7717 萊德光電-KY：它不是模組廠 —— 業務是光纖被動元件轉衛星雷射通訊、高功率光纖合束器，
+    #   客戶集中歐美，查不到 CPO 產品或客戶（docs/siph_cpo_optics_evidence.md）。拿掉後落入「通信網路業・其他」收容桶。
   silicon_photonics:
     name: 矽光子與 CPO
     tier: upstream
     chain: ai_server
-    note: "共同封裝光學（CPO）與矽光子的上游：InP／GaAs 磊晶、雷射晶粒、光纖陣列（FAU）對準接合與被動光學元件。不含模組組裝。"
-    codes: ["3081", "2455", "3450", "3363", "4908", "3491"]
-    # 3081 聯亞、2455 全新、3450 聯鈞、3363 上詮、4908 前鼎、3491 昇達科
+    note: "共同封裝光學（CPO）與矽光子的上游：InP／GaAs 磊晶、雷射晶粒、光纖陣列（FAU）對準接合與被動光學元件。前鼎的營收主體其實是可插拔光模組、聯鈞是雷射封測（EMS），細分與各家階段請看「矽光子／CPO」產業鏈分頁（siph_cpo）。"
+    codes: ["3081", "2455", "3450", "3363", "4908"]
+    # 3081 聯亞、2455 全新、3450 聯鈞、3363 上詮、4908 前鼎
+    # ★ 2026-10-24 拿掉 3491 昇達科：主力是低軌衛星的毫米波／波導被動元件（LEO 營收占 69.9～80%），
+    #   兩篇獨立摘要都明說「沒有 CPO 或矽光子產品布局」（docs/siph_cpo_optics_evidence.md 第三節）。
+    #   移到 satellite（低軌衛星）；題材 themes.yaml 的 satellite 本來就收它。
   ic_substrate:
     name: PCB 載板
     tier: midstream
@@ -553,8 +558,8 @@ groups:
     tier: midstream
     chain: electronics
     note: "低軌衛星（LEO）的地面終端、用戶端設備與天線／射頻元件。"
-    codes: ["2367", "6285", "5388"]
-    # 2367 燿華、6285 啟碁、5388 中磊
+    codes: ["2367", "6285", "5388", "3491"]
+    # 2367 燿華、6285 啟碁、5388 中磊、3491 昇達科（2026-10-24 從矽光子與 CPO 移來：毫米波／波導被動元件，LEO 營收占約 7～8 成）
   precision_parts:
     name: 精密機構件
     tier: midstream
@@ -785,6 +790,172 @@ groups:
     codes: ["4739", "4721"]
     # 4739 康普、4721 美琪瑪
 
+  # ====================================================================================
+  # 矽光子／CPO 題材分頁（2026-10-24，Andy：「產業地圖幫我新增矽光子CPO題材分頁」）
+  # 證據與裁決：docs/siph_cpo_semi_evidence.md、siph_cpo_optics_evidence.md、siph_cpo_substrate_evidence.md、
+  #            docs/siph_cpo_chain_notes.md（兩份報告衝突處的裁決寫在最後一份）。
+  #
+  # ★ 這 12 組全部標 `overlay: true`（疊加族群）：同一檔股票可以出現在這裡、也留在原本的產業族群，
+  #   但它在這裡的成交值**不拆分、不進 M1 資金佔比**。理由與機制見 pipeline/groups/loader.py 的 overlay_ids()。
+  #   （不這樣做的話，台積電掛進來，晶圓代工族群的資金佔比會被腰斬。）
+  # ★ 只收「有實證」的台股，寧可少列。每檔的信心與階段寫在 member_tags（conf／stage），網站成員列會顯示。
+  # ★ 本題材大部分是「預期、送樣、驗證」而不是量產：note 與 stage 一律照公司或媒體原話寫計畫時程，
+  #   不寫成現在式。CPO 大量出貨時點業界分歧（SemiAnalysis 認為可能延到 2028～2029，
+  #   Yole 稱 2028 全面量產），整條鏈的受惠金額都建立在這個前提上。
+  # ★ group id 固定，2D／3D 剖析圖的掛載點（site/dg/siph_cpo.js）會用到，不要改名。
+  # ====================================================================================
+  siph_laser:
+    name: 磊晶與雷射晶粒
+    tier: upstream
+    chain: siph_cpo
+    overlay: true
+    note: "矽不會發光，CPO 的光源要靠磷化銦（InP）／砷化鎵（GaAs）化合物半導體：磊晶片 → 連續波（CW）雷射晶粒。InP 基板缺料是全鏈共同瓶頸。聯亞公告與美國大廠簽 4 年 CW 雷射長約（約 2027～2030，客戶未具名）；後段代工另有光環等。全新的 CW 量產時程報導有三說（已量產／下半年量產／下半年小量），不寫成單一現在式。信心：定位高、客戶具名中。"
+    codes: ["3081", "2455", "3234", "3105"]
+    # 3081 聯亞、2455 全新、3234 光環、3105 穩懋
+    member_tags:
+      "3081": {conf: 高, stage: "磊晶；4 年長約 2027～2030（公告）"}
+      "2455": {conf: 中, stage: "磊晶；CW 量產時程報導三說，客戶未具名"}
+      "3234": {conf: 中高, stage: "雷射晶粒後段代工，2026-06 起出貨（報導）"}
+      "3105": {conf: 中, stage: "InP 雷射晶片代工（單一媒體稱 Lumentum 長期代工）"}
+  siph_els:
+    name: 外置光源 ELS／ELSFP
+    tier: upstream
+    chain: siph_cpo
+    overlay: true
+    note: "外置雷射光源（ELS），封成面板可插拔的模組（ELSFP），一個光源模組供多個光引擎共用，是 NVIDIA 與 Broadcom 路線的共同設計。眾達-KY 配合 Broadcom 的 Bailly 平台，公司稱 2026～2027 才是第一波大量導入、2026 年業績貢獻有限；聯鈞、光聖（合聖）仍在工程試產、送樣或後期驗證，客戶皆未具名。「每台 CPO 設備約 32 顆 ELSFP」是法人推估，不是公司數字。信心：眾達高，其餘中。"
+    codes: ["4977", "3450", "6442", "4979"]
+    # 4977 眾達-KY、3450 聯鈞、6442 光聖、4979 華星光
+    member_tags:
+      "4977": {conf: 高, stage: "Broadcom Bailly 光引擎＋ELSFP；2026～2027 首波導入"}
+      "3450": {conf: 中, stage: "ELSFP 工程試產／小量，design-in 階段"}
+      "6442": {conf: 中, stage: "子公司合聖 CPO-ELS 後期驗證，最快 2026 量產（市場消息）"}
+      "4979": {conf: 中, stage: "CW 雷射後段代工＋ELS；1.6T NPO 開發中（兩說）"}
+  siph_foundry:
+    name: 矽光子晶圓代工
+    tier: midstream
+    chain: siph_cpo
+    overlay: true
+    note: "光子晶片（PIC）用 SOI 矽晶圓、成熟製程（65nm 級）製造，再與先進製程的電子晶片（EIC）疊成光引擎。台積電是 COUPE 平台（SoIC-X 堆疊），Broadcom 稱 Davisson 光引擎採用，NVIDIA 稱 2026 量產；聯電於 2026-07-14 公告交付首批 1.6T 矽光子量產晶圓（客戶為新加坡 SILITH）。世界先進僅查到經濟部計畫的製程元件庫，無量產與客戶，未收。NVIDIA 光子交換器出貨時程各來源互相矛盾，請用「宣布／預計」解讀。信心：高。"
+    codes: ["2330", "2303"]
+    # 2330 台積電、2303 聯電
+    member_tags:
+      "2330": {conf: 高, stage: "COUPE 光引擎（Broadcom、NVIDIA 公開引用）；2026 量產目標"}
+      "2303": {conf: 高, stage: "新加坡 12 吋廠；2026-07-14 交付首批 1.6T 量產晶圓"}
+  siph_design:
+    name: IC 設計與設計服務
+    tier: upstream
+    chain: siph_cpo
+    overlay: true
+    note: "光引擎裡的電子晶片（驅動、放大、控制）與 CPO 版 ASIC 的設計。聯發科投資 Ayar Labs（約 2.4%）並在 Computex 2026 展示 CPO 樣品；世芯與 Ayar Labs 在台積電 OIP 展示 CPO 參考設計；創意與 Lightmatter 於 2026-01 宣布合作。三者都在展示或合作宣布階段，量產時程未揭露。設計服務是向晶圓廠買產能，所以台積電在上游、創意／世芯在下游。信心：高（皆有雙方新聞稿）。"
+    codes: ["2454", "3661", "3443"]
+    # 2454 聯發科、3661 世芯-KY、3443 創意
+    member_tags:
+      "2454": {conf: 高, stage: "EIC 自研、PIC 與 Ayar Labs 共同；Computex 2026 展示"}
+      "3661": {conf: 高, stage: "與 Ayar Labs 的 CPO 參考設計；展示／驗證階段"}
+      "3443": {conf: 高, stage: "與 Lightmatter 合作 Passage 3D CPO；2026-01 宣布"}
+  siph_pkg:
+    name: 3D 堆疊與 CPO 封裝
+    tier: midstream
+    chain: siph_cpo
+    overlay: true
+    note: "把光引擎與交換器晶片封進同一個基板。台積電的 COUPE 堆疊在晶圓代工那組；這一組是其餘的封裝廠：日月光投控（旗下矽品 SPIL 列 NVIDIA 官方 CPO 夥伴名單，試產線客戶驗證中，公司稱 2027 小規模量產，CPO 營收暫不揭露）、力成（與 Broadcom 合作 FOPLP，董事長稱 2026 年底小量、2027 量產）、訊芯-KY（光寶集團，光引擎後段整合；51.2T 小量、102.4T 樣品，客戶未具名）。信心：中高。"
+    codes: ["3711", "6239", "6451"]
+    # 3711 日月光投控、6239 力成、6451 訊芯-KY
+    member_tags:
+      "3711": {conf: 中高, stage: "NVIDIA 官方名單列 SPIL；2027 小量產（公司說法），貢獻未揭露"}
+      "6239": {conf: 中高, stage: "FOPLP＋光學引擎元件，2026 年底小量、2027 量產（董事長）"}
+      "6451": {conf: 中, stage: "與台積電合作 COUPE 後段整合；51.2T 小量（需校訂）"}
+  siph_fiber:
+    name: 光纖耦合 FAU／MPO
+    tier: midstream
+    chain: siph_cpo
+    overlay: true
+    note: "把光纖陣列單元（FAU）對準接合到光子晶片，對位精度要 0.1 微米等級，被視為量產瓶頸之一；周邊有 MT 插芯、V 型槽、微透鏡、MPO 連接與 Shuffle Box。全組時程都在試產到 2028 之間，不可寫成現在式：波若威（NVIDIA CPO 夥伴名單；CPO 光纖套件 2026Q3 小量試產、2027Q1 萬顆級，為公司時程）、上詮（2025-11 公司稱 2026 進入初期驗證、2027～2028 大規模放量）、光聖（FAU 2026Q4 試產）、大立光（試量產與「2028 前才小量」兩說並列）、揚明光（MT 插芯 2 案試產、量產目標 2027 年初）、玉晶光（2026 全年 CPO 營收占比低於 5%）。亞光僅董事長說法預計 2026 年底送樣超穎透鏡，證據不足未收。所有「獨家」說法都是單一分析師觀點，不採用。信心：中到中高。"
+    codes: ["3363", "3163", "6442", "3008", "3504", "3406"]
+    # 3363 上詮、3163 波若威、6442 光聖、3008 大立光、3504 揚明光、3406 玉晶光
+    member_tags:
+      "3363": {conf: 中高, stage: "FAU；2027～2028 大規模放量（公司 2025-11 說法）"}
+      "3163": {conf: 中高, stage: "Shuffle Box／FAU；2026Q3 小量試產、2027Q1 萬顆級（公司時程）"}
+      "6442": {conf: 中, stage: "FAU 2026Q4 試產、2027 下半年正式出貨（計畫）"}
+      "3008": {conf: 中, stage: "FAU 試量產與「2028 前才小量」兩說並列"}
+      "3504": {conf: 中, stage: "MT 插芯 2 案試產，量產目標 2027 年初"}
+      "3406": {conf: 中, stage: "V 型槽／稜鏡／MT 插芯送樣認證；放量 2027～2028"}
+  siph_test:
+    name: 測試與測試介面
+    tier: midstream
+    chain: siph_cpo
+    overlay: true
+    note: "CPO 要在四個站（Insertion）測：光子晶片、電子晶片堆疊後、光引擎、光進光出＋誤碼率。營收來自客戶的資本支出與耗材，不是封測服務。致茂（2026-04 法說稱四階段測試已有採購訂單，客戶未具名）、旺矽（探針卡＋自有雙面晶圓探針系統，高盛預估通過驗證後 2026 下半年起貢獻；與 Technoprobe 有專利訴訟）、穎崴（晶圓級 CPO 測試介面，客戶以美系為主、未具名）。漢測、鴻勁僅單一來源，未收。外資對致茂光電營收的預估是外資數字，不是公司揭露。信心：高。"
+    codes: ["2360", "6223", "6515"]
+    # 2360 致茂、6223 旺矽、6515 穎崴
+    member_tags:
+      "2360": {conf: 高, stage: "四階段測試已接單（法說）；2026 試產、最快 2027 全面量產"}
+      "6223": {conf: 高, stage: "雙面晶圓探針；2026 下半年起貢獻（高盛預估）"}
+      "6515": {conf: 高, stage: "晶圓級 CPO 測試介面，驗證中；客戶未具名"}
+  siph_equip:
+    name: 耦合與封裝設備
+    tier: upstream
+    chain: siph_cpo
+    overlay: true
+    note: "光纖與光子晶片的主動對準耦合、貼合、封裝殘留處理等製程設備，營收看客戶資本支出。萬潤（FAU 與光電晶片耦合設備，報導稱 2026Q3 交機，客戶只稱「指標龍頭」，不等於台積電）、惠特（貼合機小量出貨，美系客戶，本業仍虧損）、鈦昇（雷射微加工平台送樣中、CPO 測試平台計畫 2026Q3 建立，目前尚無 CPO 營收）、印能（真空高壓除泡，公司稱已切入矽光子封裝）。天虹資訊互有出入、高明鐵為興櫃，未收。弘塑、辛耘與 COUPE 只有間接關係（SoIC 濕製程），未收。信心：中。"
+    codes: ["6187", "6706", "8027", "7734"]
+    # 6187 萬潤、6706 惠特、8027 鈦昇、7734 印能科技
+    member_tags:
+      "6187": {conf: 中, stage: "FAU／光電晶片耦合設備，2026Q3 交機（報導，客戶未具名）"}
+      "6706": {conf: 中, stage: "貼合機通過驗證、小量出貨；美系客戶"}
+      "8027": {conf: 中, stage: "雷射微加工送樣中；CPO 測試平台 2026Q3 為計畫，尚無營收"}
+      "7734": {conf: 中, stage: "封裝除泡／殘留處理，放量待終端"}
+  siph_analysis:
+    name: 檢測與材料分析
+    tier: midstream
+    chain: siph_cpo
+    overlay: true
+    note: "光子晶片的光學缺陷檢測、光損偵測與第三方失效分析。光焱（PIC 缺陷檢測機，與國際一線大廠完成概念驗證，客戶未具名）、汎銓（光損偵測專利、分析服務；設備銷售預計 2026 年底啟動）、閎康（稱矽光子客戶覆蓋逾五成，為公司自述）。光焱與汎銓之間有專利訴訟，三家的客戶都未具名，數字皆為公司自述。信心：中。"
+    codes: ["7728", "6830", "3587"]
+    # 7728 光焱科技、6830 汎銓、3587 閎康
+    member_tags:
+      "7728": {conf: 中, stage: "PIC 光學缺陷檢測機；年底前完成設備驗證（預計）"}
+      "6830": {conf: 中, stage: "光損偵測；設備銷售 2026 年底啟動（預計），訴訟中"}
+      "3587": {conf: 中, stage: "第三方分析；CPO 封裝模組檢測平台 2027Q2 前部署（計畫）"}
+  siph_switch:
+    name: CPO 交換器與系統
+    tier: downstream
+    chain: siph_cpo
+    overlay: true
+    note: "終端產品：Broadcom Tomahawk 6 Davisson（102.4T，2025-10 公告出貨，實為送樣早期客戶）、NVIDIA Quantum-X／Spectrum-X Photonics 等；台股只收智邦（Tomahawk 交換器已出貨，CPO 與光交換（OCS）屬規劃與驗證，最快 2026 下半年，實際出貨未確認）。鴻海本體沒有 CPO 光學的直接證據：NVIDIA 夥伴名單上的「Foxconn」分不出是鴻海還是子公司鴻騰（港股 6088，非台股），故不收鴻海。Micas Networks 的 Davisson 機種是 Micas 不是智邦。廣達、英業達、Cisco、Arista 查無 CPO 角色。信心：智邦 Tomahawk 高、CPO 中。"
+    codes: ["2345"]
+    # 2345 智邦
+    member_tags:
+      "2345": {conf: 中, stage: "Tomahawk 6 交換器展示；CPO／OCS 最快 2026 下半年（規劃）"}
+  siph_module:
+    name: 可插拔模組與線纜（對照）
+    tier: downstream
+    chain: siph_cpo
+    overlay: true
+    note: "對照組，不是 CPO 受益：目前主流仍是可插拔光模組（800G 已量產，1.6T 放量中），CPO 是潛在的替代。華星光（800G／ZR 模組、CW 後段，美系雲端客戶未具名）、前鼎（營收主體是 100G～400G 模組，ELSFP 仍在評估／開發，「打入輝達」僅單一新聞說法）、貿聯-KY（800G 銅纜 AEC 已量產，光互連 2026-09 展示階段，管理層稱 CPO 插拔接頭還要一兩年）。信心：中。"
+    codes: ["4979", "4908", "3665"]
+    # 4979 華星光、4908 前鼎、3665 貿聯-KY
+    member_tags:
+      "4979": {conf: 高, stage: "800G／ZR 模組量產；1.6T NPO 開發中、2027H2 量產（兩說）"}
+      "4908": {conf: 中, stage: "100G～400G 模組；ELSFP 評估中"}
+      "3665": {conf: 高, stage: "800G AEC 銅纜量產；光互連展示階段"}
+  siph_substrate:
+    name: 載板／PCB／材料（間接或風險）
+    tier: midstream
+    chain: siph_cpo
+    overlay: true
+    note: "這一組不是 CPO 受益股清單，而是要誠實標出 CPO 對這一段的影響多半是「間接」或「風險」。成員逐檔標受益／中性／風險（member_tags.stance）：景碩（公司自述 CPO 為長期機會、一到兩年貢獻有限）與欣興（ABF 載板龍頭，查不到供應 COUPE 載板的證據）為中性；華通、臻鼎量產的是可插拔 800G／1.6T 光模組用 mSAP 板，CPO 是它們的需求替代風險；台燿、台光電、聯茂的 CCL 在 2026-09-17 因「CPO 讓 M8／M9 降規」傳言單日重挫，摩根士丹利認為 2028 年前影響有限，降規本身沒有技術文件證實，列風險。南電、金像電、健鼎、金居與玻纖布等查不到 CPO 證據，屬泛 AI 伺服器題材，不收。玻璃基板與 CPO 的連結最快 2028 年之後。信心：低到中。"
+    codes: ["3189", "3037", "2313", "4958", "6274", "2383", "6213"]
+    # 3189 景碩、3037 欣興、2313 華通、4958 臻鼎-KY、6274 台燿、2383 台光電、6213 聯茂
+    member_tags:
+      "3189": {conf: 中, stance: 中性, stage: "公司自述 CPO 長期機會，2025-08 稱一到兩年貢獻有限"}
+      "3037": {conf: 低, stance: 中性, stage: "ABF 龍頭；查不到 COUPE 載板供貨證據；玻璃載板 2028 後"}
+      "2313": {conf: 中, stance: 風險, stage: "量產的是可插拔光模組 mSAP 板；CPO 為替代風險"}
+      "4958": {conf: 中, stance: 風險, stage: "可插拔 800G／1.6T 光模組板；CPO 為需求替代變數"}
+      "6274": {conf: 中, stance: 風險, stage: "媒體稱曝險 CPO 最高；2026-09-17 降規傳言重挫"}
+      "2383": {conf: 中, stance: 風險, stage: "M9 CCL；2026-09-17 降規傳言單日 -7.67%，大摩稱 2028 前影響有限"}
+      "6213": {conf: 中, stance: 風險, stage: "2026-09-17 跌停；與 CPO 無具名正向證據"}
+
 # 供應鏈上下游關係：用來畫產業鏈頁，也用來判斷「上游先漲，下游會不會跟」。
 # ★ order 沒列到的板塊在產業鏈頁上排不出來，新增板塊一定要回來補這裡。
 chains:
@@ -794,6 +965,11 @@ chains:
   ai_server:
     name: AI 伺服器
     order: [ai_server_odm, chassis_rail, liquid_cooling, air_cooling, server_psu, bbu, switch_wireless, optical_module, silicon_photonics, ic_substrate, pcb_rigid, flex_pcb, ccl, copper_foil, glass_fiber, glass_substrate, ai_interconnect, connector_ind, connector_auto]
+  # 矽光子／CPO：題材型分頁，12 組全部是疊加族群（overlay，不進 M1 資金佔比，見 loader.overlay_ids）
+  siph_cpo:
+    name: 矽光子／CPO
+    overlay_note: "題材分頁：成員同時留在原本的產業族群，成交值不拆分、不計入全市場資金佔比。多數環節仍在試產、送樣或驗證階段，時程皆為公司或媒體的目標，不是量產。"
+    order: [siph_laser, siph_els, siph_foundry, siph_design, siph_pkg, siph_fiber, siph_test, siph_equip, siph_analysis, siph_switch, siph_module, siph_substrate]
   electronics:
     name: 一般電子
     order: [ai_pc, ems, edge_ai, smartphone, optical_lens, ar_vr_optics, panel, microled, mlcc, resistor_protect, jp_passive, capacitor, power_inductor, crystal, satellite, precision_parts, factory_automation, machine_tool]
@@ -831,6 +1007,17 @@ benchmarks:
   air_cooling: "^IXIC"
   optical_module: "^IXIC"
   silicon_photonics: "^IXIC"
+  # 矽光子／CPO 題材（疊加族群，只給「連動說得出口」的方向：晶片端看費半、光與系統端看那斯達克）
+  siph_laser: "^SOX"
+  siph_foundry: "^SOX"
+  siph_design: "^SOX"
+  siph_pkg: "^SOX"
+  siph_test: "^SOX"
+  siph_equip: "^SOX"
+  siph_els: "^IXIC"
+  siph_fiber: "^IXIC"
+  siph_switch: "^IXIC"
+  siph_module: "^IXIC"
   switch_wireless: "^IXIC"
   server_psu: "^IXIC"
   bbu: "^IXIC"

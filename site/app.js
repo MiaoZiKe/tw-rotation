@@ -5289,7 +5289,7 @@
        · `L` 還沒 init 完就被讀到時的暫時值（實務上不會發生，但不要讓畫面出現英文 id）。*/
   const CHAIN_NAME = { semiconductor: '半導體', ai_server: 'AI 伺服器', electronics: '一般電子',
     software: '軟體與資訊服務', financial: '金融',
-    traditional: '傳產', infrastructure: '基礎建設', industry: '其他產業別' };
+    traditional: '傳產', infrastructure: '基礎建設', siph_cpo: '矽光子／CPO', industry: '其他產業別' };
   const chainLabel = (cid) => L.chains[cid] || CHAIN_NAME[cid] || cid;
   let heatChain = null;
 

@@ -504,6 +504,7 @@ def build() -> None:
     _write("candidates", shortlist(cand_rows))
     gdetail = group_detail(price, company, inst, latest, cand_rows, names, markets)
     _write("groups_detail", gdetail)
+    odetail = overlay_detail(price, inst, latest, cand_rows, names, markets)   # 疊加族群（矽光子／CPO）成員，不進 groups_detail
     heat.update({"breadth": breadth})
     _write("market_heat", heat)
 
@@ -603,7 +604,7 @@ def build() -> None:
         log.warning("題材熱力產出失敗：%s", exc)
         _write("themes", {"date": latest, "themes": [], "series": {}})
     try:
-        _write("industry_map", industry_map(today, gdetail, fund_rows, gval, latest))
+        _write("industry_map", industry_map(today, gdetail, fund_rows, gval, latest, odetail))
     except Exception as exc:  # noqa: BLE001
         log.warning("產業地圖產出失敗：%s", exc)
         _write("industry_map", {"date": latest, "chains": [], "industries": [], "segments_pe": {}})
@@ -1740,6 +1741,77 @@ def shortlist(rows: list[dict], per_facet: int = CAND_PER_FACET) -> list[dict]:
     return out
 
 
+def _member_ctx(day_px: pd.DataFrame, inst: pd.DataFrame, latest: str, cand_rows: list[dict],
+                names: dict, markets: dict | None) -> dict:
+    """成分股明細共用的查表（當日價量、法人、個股頁摘要）。"""
+    return {
+        "day": day_px.set_index("code"),
+        "inst_today": inst[inst["date"] == latest].set_index("code") if not inst.empty else pd.DataFrame(),
+        "cand_idx": {r["code"]: r for r in cand_rows},
+        "names": names, "markets": markets,
+    }
+
+
+def _member_rows(codes, ctx: dict) -> list[dict]:
+    """一個族群的成分股明細，依成交值由大到小。group_detail 與 overlay_detail 共用。"""
+    day, inst_today, cand_idx = ctx["day"], ctx["inst_today"], ctx["cand_idx"]
+    names, markets = ctx["names"], ctx["markets"]
+    members = []
+    for c in codes:
+        if c not in day.index:
+            continue
+        r = day.loc[c]
+        if isinstance(r, pd.DataFrame):
+            r = r.iloc[0]
+        prev = r["close"] - (r["change"] if pd.notna(r["change"]) else 0)
+        cr = cand_idx.get(c, {})
+        it = inst_today.loc[c] if (len(inst_today) and c in inst_today.index) else None
+        if isinstance(it, pd.DataFrame):
+            it = it.iloc[0]
+        members.append({
+            "code": c, "name": names.get(c) or r.get("name") or c,
+            # 市場別要寫進來，前端「上市／上櫃」切換才過濾得掉（Andy 2026-09-12 回報）
+            "market": (markets or {}).get(c) or (r.get("market") if isinstance(r.get("market"), str) else None),
+            "close": _clean(r["close"]),
+            "chg_pct": _clean((r["change"] / prev * 100) if prev else None),
+            "turnover": _clean(r["turnover"]),
+            "foreign": _clean(it["foreign_total"]) if it is not None else None,
+            "trust": _clean(it["trust"]) if it is not None else None,
+            "dealer": _clean(it["dealer"]) if it is not None else None,
+            "tech_score": cr.get("tech_score"), "grade": cr.get("grade"),
+            "verdict": cr.get("verdict"), "pe_percentile": cr.get("pe_percentile"),
+            "rev_yoy": cr.get("rev_yoy"), "has_page": c in cand_idx,
+        })
+    members.sort(key=lambda x: -(x["turnover"] or 0))
+    return members
+
+
+def overlay_detail(price: pd.DataFrame, inst: pd.DataFrame, latest: str, cand_rows: list[dict],
+                   names: dict, markets: dict | None = None) -> dict:
+    """疊加族群（groups.yaml 標 `overlay: true`，例如矽光子／CPO）的成分股明細。
+
+    ★ 刻意跟 group_detail 分開、而且不寫進 groups_detail.json：那份檔案的族群會被桑基圖、
+      RRG 成員等拿去跟 M1 的族群資金表對帳，疊加族群不在那張表裡（見 loader.overlay_ids）。
+      成員的 `stance`（受益／中性／風險）等標記來自 groups.yaml 的 `member_tags`，原樣帶出。
+    """
+    ids = loader.overlay_ids()
+    if not ids:
+        return {}
+    m = loader.membership(include_overlay=True)
+    m = m[m["group_id"].isin(ids)][["code", "group_id"]].drop_duplicates()
+    ctx = _member_ctx(price[price["date"] == latest], inst, latest, cand_rows, names, markets)
+    tags = {gid: (g.get("member_tags") or {}) for gid, g in (loader.load().get("groups") or {}).items()}
+    out = {}
+    for gid, g in m.groupby("group_id"):
+        rows = _member_rows(g["code"], ctx)
+        for r in rows:
+            t = tags.get(gid, {}).get(r["code"])
+            if t:
+                r["tag"] = t
+        out[gid] = rows
+    return out
+
+
 def group_detail(price: pd.DataFrame, company: pd.DataFrame, inst: pd.DataFrame,
                  latest: str, cand_rows: list[dict], names: dict,
                  markets: dict | None = None) -> dict:
@@ -1754,44 +1826,15 @@ def group_detail(price: pd.DataFrame, company: pd.DataFrame, inst: pd.DataFrame,
     if m.empty:
         m = loader.membership()
     m = m[["code", "group_id", "group_name"]].drop_duplicates()
-    day = day_px.set_index("code")
-    inst_today = inst[inst["date"] == latest].set_index("code") if not inst.empty else pd.DataFrame()
-    cand_idx = {r["code"]: r for r in cand_rows}
+    ctx = _member_ctx(day_px, inst, latest, cand_rows, names, markets)
     out = {}
     for gid, g in m.groupby("group_id"):
-        members = []
-        for c in g["code"]:
-            if c not in day.index:
-                continue
-            r = day.loc[c]
-            if isinstance(r, pd.DataFrame):
-                r = r.iloc[0]
-            prev = r["close"] - (r["change"] if pd.notna(r["change"]) else 0)
-            cr = cand_idx.get(c, {})
-            it = inst_today.loc[c] if (len(inst_today) and c in inst_today.index) else None
-            if isinstance(it, pd.DataFrame):
-                it = it.iloc[0]
-            members.append({
-                "code": c, "name": names.get(c) or r.get("name") or c,
-                # 市場別要寫進來，前端「上市／上櫃」切換才過濾得掉（Andy 2026-09-12 回報）
-                "market": (markets or {}).get(c) or (r.get("market") if isinstance(r.get("market"), str) else None),
-                "close": _clean(r["close"]),
-                "chg_pct": _clean((r["change"] / prev * 100) if prev else None),
-                "turnover": _clean(r["turnover"]),
-                "foreign": _clean(it["foreign_total"]) if it is not None else None,
-                "trust": _clean(it["trust"]) if it is not None else None,
-                "dealer": _clean(it["dealer"]) if it is not None else None,
-                "tech_score": cr.get("tech_score"), "grade": cr.get("grade"),
-                "verdict": cr.get("verdict"), "pe_percentile": cr.get("pe_percentile"),
-                "rev_yoy": cr.get("rev_yoy"), "has_page": c in cand_idx,
-            })
-        members.sort(key=lambda x: -(x["turnover"] or 0))
-        out[gid] = {"group_name": g["group_name"].iloc[0], "members": members}
+        out[gid] = {"group_name": g["group_name"].iloc[0], "members": _member_rows(g["code"], ctx)}
     return out
 
 
 def industry_map(today: pd.DataFrame, gdetail: dict, fund_rows: list[dict],
-                 gval: pd.DataFrame, latest: str) -> dict:
+                 gval: pd.DataFrame, latest: str, odetail: dict | None = None) -> dict:
     """產業地圖（v3 合併頁的總覽）：產業鏈 → 族群 → 成分股，附本益比中位數與資金流向。"""
     chains = loader.chains()
     fund_idx = {f["code"]: f for f in (fund_rows or [])}
@@ -1802,7 +1845,36 @@ def industry_map(today: pd.DataFrame, gdetail: dict, fund_rows: list[dict],
                                  "n": int(r["group_n"]) if pd.notna(r.get("group_n")) else None}
     t = today.set_index("group_id") if today is not None and not today.empty else pd.DataFrame()
 
+    overlay = set(loader.overlay_ids())
+    odetail = odetail or {}
+
+    def _overlay_group(gid: str, name: str, chain: str | None) -> dict:
+        """疊加族群（矽光子／CPO）：成員各自完整的成交值加總（量能不拆分），不算資金佔比、不算估值。
+
+        turnover_share 刻意給 None —— 這個族群的成交值跟別的族群重疊（台積電同時在晶圓代工），
+        拿去除以全市場會讓排行加總超過 100%，前端看到 None 會顯示「—」並把整條鏈排除在加總之外。"""
+        members = []
+        for mmb in odetail.get(gid, []):
+            fx = fund_idx.get(mmb["code"], {})
+            members.append({**mmb, "pe": fx.get("pe"), "pe_percentile": fx.get("percentile"),
+                            "market_cap": fx.get("market_cap"), "momentum": fx.get("momentum_score")})
+        tv = sum((m_["turnover"] or 0) for m_ in members)
+        w = [(m_["turnover"] or 0, m_["chg_pct"]) for m_ in members if m_.get("chg_pct") is not None]
+        wt = sum(a for a, _ in w)
+        chg = (sum(a * b for a, b in w) / wt) if wt > 0 else None
+        fo = [m_["foreign"] for m_ in members if m_.get("foreign") is not None]
+        tr = [m_["trust"] for m_ in members if m_.get("trust") is not None]
+        return {
+            "id": gid, "name": name, "chain": chain, "n": len(members), "overlay": True,
+            "turnover": _clean(tv) if members else None, "turnover_share": None,
+            "chg_pct": _clean(chg), "foreign": _clean(sum(fo)) if fo else None,
+            "trust": _clean(sum(tr)) if tr else None,
+            "valuation": None, "members": members,
+        }
+
     def _group(gid: str, name: str, chain: str | None) -> dict:
+        if gid in overlay:
+            return _overlay_group(gid, name, chain)
         d = gdetail.get(gid, {})
         members = []
         for mmb in d.get("members", []):
@@ -1828,8 +1900,11 @@ def industry_map(today: pd.DataFrame, gdetail: dict, fund_rows: list[dict],
     for cid, c in chains.items():
         groups = [_group(gid, cfg_groups.get(gid, {}).get("name", gid), cid) for gid in c.get("order", [])
                   if gid in cfg_groups]
+        # 整條鏈都是疊加族群 → 標 overlay：前端的全市場熱力圖與加總會把它排除（成交值跟別的鏈重疊）
+        is_ov = bool(groups) and all(g.get("overlay") for g in groups)
         out_chains.append({"id": cid, "name": c.get("name", cid), "groups": groups,
-                           "turnover": sum((g["turnover"] or 0) for g in groups)})
+                           "turnover": 0 if is_ov else sum((g["turnover"] or 0) for g in groups),
+                           **({"overlay": True, "note": c.get("overlay_note")} if is_ov else {})})
     # 沒排進 chains.order 的族群
     placed = {gid for c in chains.values() for gid in c.get("order", [])}
     orphan = [_group(gid, g.get("name", gid), g.get("chain")) for gid, g in cfg_groups.items() if gid not in placed]

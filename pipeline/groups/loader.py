@@ -20,11 +20,33 @@ def load(path: Path | None = None) -> dict:
         return yaml.safe_load(fh) or {}
 
 
-def membership(cfg: dict | None = None) -> pd.DataFrame:
-    """展開成一列一個 (code, group) 的長格式。一檔股票可以屬於多個族群。"""
+def overlay_ids(cfg: dict | None = None) -> list[str]:
+    """標了 `overlay: true` 的族群 id（題材型分頁，例如矽光子／CPO）。
+
+    ★ 2026-10-24 為什麼要有「疊加族群」：
+       M1 資金面把一檔股票的成交值「平均分給它所屬的每個族群」（flow._attach_groups），
+       所以每多掛一個族群，原族群的資金佔比就被攤薄一份。矽光子／CPO 這種題材型分頁
+       要放台積電、日月光、聯發科（各自在晶圓代工／封測／IC 設計裡佔最大塊成交值），
+       若照一般族群掛，晶圓代工的資金佔比會被腰斬 —— 「錢往哪個族群跑」這個主結論就失真了。
+       Andy 的規矩是「題材量能不拆分」，所以疊加族群：
+         · 不參與 M1／RRG／季節性／估值等所有「族群加總」的運算（membership() 預設不收）
+         · 只在產業地圖的分頁顯示成分股與當日行情（build_payload.overlay_detail）
+         · 成交值是成員各自的完整金額加總（不拆分），不算佔比
+       要抓價量歷史的地方（回補、法人逐檔）用 membership(include_overlay=True)，成員才有資料。
+    """
+    return [gid for gid, g in ((cfg or load()).get("groups") or {}).items() if g.get("overlay")]
+
+
+def membership(cfg: dict | None = None, include_overlay: bool = False) -> pd.DataFrame:
+    """展開成一列一個 (code, group) 的長格式。一檔股票可以屬於多個族群。
+
+    疊加族群（`overlay: true`）預設不收，理由見 overlay_ids()。
+    """
     cfg = cfg or load()
     rows = []
     for gid, g in (cfg.get("groups") or {}).items():
+        if g.get("overlay") and not include_overlay:
+            continue
         for code in g.get("codes") or []:
             rows.append({
                 "code": str(code).strip(),
@@ -32,6 +54,7 @@ def membership(cfg: dict | None = None) -> pd.DataFrame:
                 "group_name": g.get("name", gid),
                 "tier": g.get("tier", "standalone"),
                 "chain": g.get("chain", "other"),
+                "overlay": bool(g.get("overlay")),
             })
     return pd.DataFrame(rows)
 
@@ -167,7 +190,9 @@ def supply_chain(path: Path | None = None) -> dict:
             return True
         return (today - d).days > SHARE_STALE_DAYS
 
-    m = membership()
+    # 疊加族群（矽光子／CPO）也要掛到公司節點上：產業鏈圖的環節色、環節→族群清單、個股頁的族群連結
+    # 都吃 companies[].groups。順序是 groups.yaml 的順序，疊加族群排在原本的產業族群後面，不搶主族群。
+    m = membership(include_overlay=True)
     group_lookup = (m.groupby("code")["group_name"].agg(lambda x: list(dict.fromkeys(x))).to_dict()
                     if not m.empty else {})
 

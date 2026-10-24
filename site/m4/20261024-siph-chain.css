@@ -1,0 +1,28 @@
+/* 2026-10-24 矽光子／CPO 題材分頁的「成員與階段」表（只在 #industry/siph_cpo 那一頁才有 .siphsec，其他頁完全不受影響）。
+   桌機與手機共用一份：表格限高、框內捲；手機只把「階段」欄縮成單行省略，欄位不增不減。
+   顏色一律走既有 token（--ink／--cyan／--amber／--line），亮暗主題跟著換；受益／風險不用紅綠
+   （紅漲綠跌是漲跌專用，這裡的「風險」若用紅會被誤讀成上漲）。 */
+.siphsec{margin-top:12px}
+.siphsec .siphcard{padding:12px 16px}
+.siphsec .siphwrap{max-height:340px;overflow:auto;margin-top:8px;border-top:1px solid var(--line, rgba(255,255,255,.08))}
+.siphtbl{width:100%;border-collapse:collapse;font-size:13px}
+.siphtbl th,.siphtbl td{padding:6px 8px;text-align:left;vertical-align:top;border-bottom:1px solid var(--line, rgba(255,255,255,.06))}
+.siphtbl thead th{position:sticky;top:0;background:var(--panel, #121a2e);z-index:1;color:var(--ink-2);font-weight:600;font-size:12px}
+.siphtbl tr.siphg th{background:var(--panel-2, rgba(255,255,255,.04));color:var(--ink);font-size:13px;font-weight:600;position:static}
+.siphtbl tr.siphg th small{margin-left:8px;color:var(--ink-3);font-weight:400}
+.siphtbl td.stage{color:var(--ink-2);min-width:16em;white-space:normal}
+.siphconf,.siphst{display:inline-block;padding:1px 8px;border-radius:999px;font-size:12px;line-height:18px;border:1px solid currentColor;white-space:nowrap}
+.siphconf.cf-高,.siphconf.cf-中高{color:var(--cyan)}
+.siphconf.cf-中{color:var(--ink-2)}
+.siphconf.cf-低,.siphconf.cf-中低{color:var(--amber)}
+.siphst.st-受益{color:var(--cyan)}
+.siphst.st-中性{color:var(--ink-2)}
+.siphst.st-風險{color:var(--amber)}
+@media (max-width:640px){
+  .siphtbl td.stage{min-width:0;white-space:normal;word-break:break-word}
+  .siphtbl{table-layout:fixed}
+  .siphtbl th:nth-child(1),.siphtbl td:nth-child(1){width:6.5em}
+  .siphtbl th:nth-child(3),.siphtbl td:nth-child(3){width:3.4em}
+  .siphtbl th:nth-child(4),.siphtbl td:nth-child(4){width:3.4em}
+  .siphtbl th:nth-child(4),.siphtbl td:nth-child(4){padding-left:2px}
+}

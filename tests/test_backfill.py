@@ -228,7 +228,7 @@ def two_step_plan(monkeypatch):
     # 健檢另外有專屬測試（test_token_掛掉時整輪不跑…），這裡直接當作通。
     monkeypatch.setattr(run_backfill, "finmind_reachable", lambda prog: True)
     monkeypatch.setattr(run_backfill.loader, "membership",
-                        lambda cfg=None: pd.DataFrame({"code": ["2330", "2330", "3034"], "group_id": ["a", "b", "a"]}))
+                        lambda cfg=None, **k: pd.DataFrame({"code": ["2330", "2330", "3034"], "group_id": ["a", "b", "a"]}))
     # run_plan 現在第一件事是補指數歷史（3 次請求）。這幾個計畫測試驗的是逐檔那幾步，
     # 不要讓它真的去打 FinMind —— 給一份最小的假資料，讓它一次就補完。
     monkeypatch.setattr(run_backfill.finmind, "index_ohlc",

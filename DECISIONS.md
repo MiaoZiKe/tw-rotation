@@ -7034,3 +7034,18 @@ Andy 原話（10-20，錄「今日事件＋精選文章」功能影片時的選�
 - `margin_total.margin_money`（FinMind MarginPurchaseMoney）實測單位是**元**（2026-10-19 = 640,618,432,000 ＝ 6,406 億），不是仟元。融資金額（億）＝ ÷1e8，維持率＝ 融資股票市值(元) ÷ margin_money(元) × 100。舊版當仟元，造成金額差 1000 倍、維持率貼 0%。
 - 最新一天個股融資只到一部分（逐檔回補未跟上）時，缺的檔順延前次餘額 × 當日收盤，列標 `partial`；檔數不到中位數一半仍留白。驗證：10/16 隨機拿掉一半檔數誤差 0.35pp；10/19 估 181.02%（參考站 181.31%）。
 - 回歸測試：`tests/test_mktfut.py::test_margin_block_20261019_lake_regression`。
+
+## #362 題材型產業分頁用「疊加族群」（overlay）：成員同時留在原族群、成交值不拆分、不進 M1（科技產業分析師，2026-10-24；合併時若撞號請改號）
+- 起因：Andy 要在產業地圖新增「矽光子／CPO」題材分頁。這個分頁要放台積電、聯電、日月光、聯發科等大型股，它們已在晶圓代工、封測、IC 設計各佔最大塊成交值；
+  M1 的 `flow._attach_groups` 會把一檔股票的成交值平均分給它所屬的每個族群，照一般族群掛會把原族群的資金佔比攤薄（台積電掛 2 個就少一半），「錢往哪個族群跑」失真。
+- 決定：`groups.yaml` 的族群可標 `overlay: true`。
+  - `loader.membership()` 預設不收（M1／RRG／季節性／估值／集中度全部不變）；回補價量、法人逐檔、供應鏈公司節點用 `include_overlay=True`。
+  - `build_payload.overlay_detail()` 另外算疊加族群的成分股行情，不寫進 `groups_detail.json`（桑基圖、RRG 成員會拿那份跟 M1 對帳）。
+  - `industry_map` 把整條都是疊加族群的鏈標 `overlay: true`、成交值＝成員完整金額加總（不拆分）、`turnover_share` 為 None；前端「全市場」熱力圖、族群總覽、分頁檔數都排除它。
+  - 成員的階段／信心／影響（受益、中性、風險）寫在 `member_tags`，前端「成員與階段」表顯示。載板／PCB／材料那組逐檔標影響：CCL 在 CPO 題材是風險（2026-09-17 降規傳言），不可畫成受益。
+- 12 個族群 id 固定（`siph_laser／els／foundry／design／pkg／fiber／test／equip／analysis／switch／module／substrate`），2D／3D 剖析圖的掛載點會用到，不要改名。
+- 兩份調查報告衝突的裁決（鈦昇、鴻海、前鼎、穩懋…）與邊的取捨：`docs/siph_cpo_chain_notes.md`。
+### 別順手改回去
+- 不要把疊加族群改成一般族群（會攤薄晶圓代工／封測／IC 設計的資金佔比）。
+- 不要把 `hdi_pcb`／`ccl` 加進 `CHAIN_EXTRA.siph_cpo`（華通、臻鼎、CCL 在這個題材是風險，畫進關聯圖會被讀成供應關係）。
+- 不要把設備／測試／分析廠連到具名客戶，除非有具名來源（「指標龍頭」不等於台積電）。

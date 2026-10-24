@@ -244,7 +244,7 @@ def target_codes(limit: int | None) -> list[str]:
     再依近期成交值補其他流動性好的標的。"""
     picks: list[str] = []
 
-    m = loader.membership()
+    m = loader.membership(include_overlay=True)
     if not m.empty:
         picks.extend(dict.fromkeys(m["code"].tolist()))
 
@@ -1278,7 +1278,7 @@ def backfill_logos(prog: dict, limit: int | None = None, today: date | None = No
 
     # ② Logo 本身（族群成分股優先）
     try:
-        m = _loader.membership()
+        m = _loader.membership(include_overlay=True)
         prio = list(dict.fromkeys(m["code"].astype(str).tolist())) if not m.empty else []
     except Exception:  # noqa: BLE001
         prio = []
@@ -1368,7 +1368,7 @@ def plan_steps(name: str, today: date | None = None) -> list[dict]:
 
 def _codes_for_scope(scope: str, limit: int | None) -> list[str]:
     if scope == "groups":
-        m = loader.membership()
+        m = loader.membership(include_overlay=True)
         if m.empty:
             log.warning("groups.yaml 沒有任何成分股，這一步沒有目標")
             return []

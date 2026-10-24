@@ -62,7 +62,7 @@ def test_market_scope_取全市場普通股_不吃limit_濾掉非普通股(sandb
         "name": ["台積電", "環球晶", "台泥", "某興櫃", "停牌股"],
         "market": ["TWSE", "TPEX", "TWSE", "EMERGING", "TWSE"]}))
     # target_codes 的 limit 會把名單砍成 1 檔；market 不能受影響
-    monkeypatch.setattr(run_backfill.loader, "membership", lambda cfg=None: pd.DataFrame(columns=["code"]))
+    monkeypatch.setattr(run_backfill.loader, "membership", lambda cfg=None, **k: pd.DataFrame(columns=["code"]))
     assert run_backfill._codes_for_scope("universe", 1) == ["2330"]
     codes = run_backfill._codes_for_scope("market", 1)
     assert codes == ["2330", "1101", "6488", "8888"], "成交值排序、停牌股接在後面、非普通股與興櫃都不收"
