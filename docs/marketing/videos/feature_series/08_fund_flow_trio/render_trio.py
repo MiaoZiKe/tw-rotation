@@ -39,7 +39,7 @@ CFG = dict(
               "tabsk": "tabsk", "tabinst": "tabinst", "tabrot": "tabrot", "skchain": "skchain"},
     cut=["navflow", "subsankey", "subinst", "chainr", "instleg", "instchain", "burger", "m4flow", "tabsk", "tabinst", "tabrot"],
     occ_skip=["clock", "rank", "inst", "sk", "sklist"],
-    zoom={"d": dict(stage=12, dur=0.7, tgt=(0, 75, 1100, 627))},
+    zoom={"d": dict(stage=4, dur=0.7, tgt=(0, 75, 1100, 627))},
 )
 if __name__ == "__main__":
     render8.main(CFG)

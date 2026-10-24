@@ -151,6 +151,8 @@ def render(dev, CFG, only=None):
     crop0 = tuple(meta["crop"])
     zoom = None
     zc = CFG.get("zoom", {}).get(dev)
+    if zc and (meta.get("extra") or {}).get("pan_y"):   # 錄影端量過所有頁面狀態後挑出的推近目標（框緣不切字）
+        zc = dict(zc, tgt=(zc["tgt"][0], meta["extra"]["pan_y"], zc["tgt"][2], zc["tgt"][3]))
     if zc:   # 單向推近：該段第一句泡泡出現前 0.1 秒開始、0.7 秒推完
         tz = next(tt for tt, k_, _ in stages if k_ == zc["stage"])
         zoom = (tz - 0.1, zc.get("dur", 0.7), tuple(zc["tgt"]))
@@ -383,7 +385,7 @@ def render(dev, CFG, only=None):
     (SCR / f"occlusion_rows_{dev}.md").write_text("\n".join(["遮擋（泡泡正在講的元素 × 浮層）："] + occ_rows[:500] + ["", "嚴格遮擋（浮層／清單／提示框／客服鈕 × 文字）："] + strict_rows[:500]
                                                           + ["", "提示框／下拉清單蓋到非介紹對象文字（網站原樣）："] + nb_rows[:500] + ["", "游標／波紋 × 文字："] + cur_rows[:500] + ["", "畫面框邊切到文字（全部）："] + slice_rows[:500] + ["", "裁切（介紹的元素超出畫面框）："] + cut_rows[:200]), encoding="utf-8")
     out = dict(dev=dev, frames=n_total, body_raw=round(body, 2), total_raw=round(total, 2), final_len=round(final_len, 2), speed=SPEED, end_final=end_final,
-               overlaps=len(rows), issues=len(issues), occlusion=len(occ_rows), strict=len(strict_rows), nb=len(nb_rows), nb_detail=nb_rows[:40], cursor_text=len(cur_rows), cut=len(cut_rows), slice=len(slice_rows), slice_focus=len(slicef_rows),
+               overlaps=len(rows), issues=len(issues), occlusion=len(occ_rows), strict=len(strict_rows), nb=len(nb_rows), nb_tip=len([r for r in nb_rows if '提示框' in r or 'fttip' in r]), nb_dd=len([r for r in nb_rows if 'ddpanel' in r]), nb_detail=nb_rows[:40], cursor_text=len(cur_rows), cut=len(cut_rows), slice=len(slice_rows), slice_focus=len(slicef_rows),
                blur_frames=blur_frames, dd_open_frames=ov_open, push_frames=push_frames, tooltip_frames=tip_frames, still_max_s=round(still_max[0] / FPS, 2), still_at=round(still_max[1], 2),
                clicks=click_rows, bubbles=[(round(b["t0"], 2), round(b["t1"], 2), b["text"]) for b in bubbles], stages=stages, final=str(final),
                occ_detail=occ_rows[:40], strict_detail=strict_rows[:40], cursor_detail=cur_rows[:40], slice_detail=slice_rows[:60], cut_detail=cut_rows[:40], data_date=meta.get("data_date"), warns=meta.get("warns"))

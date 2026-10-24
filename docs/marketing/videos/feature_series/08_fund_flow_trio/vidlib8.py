@@ -132,7 +132,9 @@ META_JS = r"""() => {
   const zt = window.__vtexts(CFG.roots, CFG.ovsel).map(a => ['t', ...a]);
   zt.push(...window.__vcharttexts(CFG.zcharts));
   if (window.__vsk) zt.push(...window.__vsk().map(a => ['t', ...a.slice(1)]));
-  let blur = 0; for (const e of document.querySelectorAll('*')) { const cs = getComputedStyle(e); if ((cs.filter && cs.filter.indexOf('blur') >= 0) || (cs.backdropFilter && cs.backdropFilter.indexOf('blur') >= 0) || (cs.webkitBackdropFilter && cs.webkitBackdropFilter.indexOf('blur') >= 0)) blur++; }
+  let blur = 0; for (const e of document.querySelectorAll('*')) { const cs = getComputedStyle(e);
+    if (cs.filter && cs.filter.indexOf('url(') >= 0) { const m = cs.filter.match(/url\(["']?#([^"')]+)/); const fe = m && document.getElementById(m[1]); const g = fe && fe.querySelector && fe.querySelector('feGaussianBlur'); if (g && parseFloat(g.getAttribute('stdDeviation') || '0') > 0) blur++; }   // SVG 高斯模糊實際套用
+    if ((cs.filter && cs.filter.indexOf('blur') >= 0) || (cs.backdropFilter && cs.backdropFilter.indexOf('blur') >= 0) || (cs.webkitBackdropFilter && cs.webkitBackdropFilter.indexOf('blur') >= 0)) blur++; }
   const ui = window.__vui();
   const fab = [...document.querySelectorAll('#supFab, .supfab, #bibiRing, .bibiring')].map(vis).filter(Boolean);
   const cv = document.getElementById('__vc'); const cop = cv ? +getComputedStyle(cv).opacity : 1;
@@ -489,7 +491,7 @@ def run(dev, flow, out, cfgx, port=8820):
                 shutil.move(str(tmp), out / f"{dev}_main.mp4")
             shutil.rmtree(out / f".tmp_{dev}", ignore_errors=True)
             r.update(size=[W, H], dsf=k, crop=cfgx.get("crop0", {}).get(dev) or CROP0[dev], says=a.says, clears=a.clears, stages=a.stages, clicks=a.targets, steps=a.log,
-                     errs=errs[:5], fm=rec.fm, timer_errs=getattr(rec, "timer_errs", []), data_date=site_meta.get("data_date"), warns=a.warns, vp=cfg["viewport"])
+                     errs=errs[:5], fm=rec.fm, timer_errs=getattr(rec, "timer_errs", []), data_date=site_meta.get("data_date"), warns=a.warns, vp=cfg["viewport"], extra=getattr(a, "extra", {}))
             (out / f"{dev}_main.json").write_text(json.dumps(r, ensure_ascii=False), encoding="utf-8")
             miss = [s for s in a.log if "找不到" in s or "點不到" in s or "⚠" in s]
             print(dev, r["dur"], "秒", len(a.says), "泡泡", len(a.targets), "點擊", "bad:", (r.get("bad") or [])[:3], "errs:", errs[:2], "缺:", miss[:6], "警告:", a.warns[:8], flush=True)
