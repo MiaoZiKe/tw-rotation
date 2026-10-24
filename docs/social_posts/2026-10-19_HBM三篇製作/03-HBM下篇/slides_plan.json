@@ -1,0 +1,149 @@
+{
+  "title": "一顆HBM，誰一起完成？",
+  "part": "下篇",
+  "pages": [
+    {
+      "page": 1,
+      "title": "一顆HBM，誰一起完成？",
+      "points": [
+        "記憶體、邏輯與封裝，各有角色。",
+        "看懂分工，別把整條鏈混成一件事。"
+      ],
+      "supplement": "從晶粒到系統，跟比比一起拆。",
+      "scene": "Exploded generic supplychain objects: DRAM wafer, four pale-blue coredies above peach basedie, then HBM and GPU SIDE-BY-SIDE on interposer/carrysubstrate. This is a role map not corporationlogo. Bibi RIGHT tilted surprised looking at assembly, two shortpaws hold researchnotebook.",
+      "sources": [
+        1,
+        2,
+        3
+      ]
+    },
+    {
+      "page": 2,
+      "title": "核心晶粒，原廠的基本功",
+      "points": [
+        "HBM裡的DRAM晶粒，需要設計與製造。",
+        "記憶體原廠，是這一段的重要主角。"
+      ],
+      "supplement": "SK hynix、Micron是例子，不是完整名單。",
+      "scene": "Detailed DRAM wafer and several singulated memorydies oncarrier, labeled『core die／DRAM晶粒』, small papernameplates SK hynix／Micron as text only notlogos. Bibi LEFT crouch looking through magnifier onepaw holdingmagnifier otherrestscarrier.",
+      "sources": [
+        1,
+        2
+      ]
+    },
+    {
+      "page": 3,
+      "title": "底層角色，別算錯帳",
+      "points": [
+        "本文示意的base die，負責底層介面。",
+        "它與上方儲存資料的core die不同。"
+      ],
+      "supplement": "實際配置，依產品與世代而變。",
+      "scene": "Clear tiltedcutaway HBM with FOUR identical thin pale-blue DRAMcorelayers onTOP of ONE distinctpeachbase atBOTTOM, microbumps in gaps/TSV aligned. Labels『core die：記憶體』『base die：底層介面』correctendpoints. Bibi RIGHT looking down towardbottom with shortpointer onepaw otheronnotebook.",
+      "sources": [
+        1,
+        2
+      ]
+    },
+    {
+      "page": 4,
+      "title": "合作，要看清楚範圍",
+      "points": [
+        "SK hynix曾公告與台積電合作HBM4。",
+        "重點包括base die與CoWoS整合。"
+      ],
+      "supplement": "合作一部分，不等於承作整套HBM。",
+      "scene": "Researchdocument HERO labeled『2024年合作公告』, SK hynix／台積電 textnames connected to two highlighted scopeobjects『HBM4 base die』『CoWoS整合』. HBMstack smallshows peachbasehighlight, nextpackagemodel HBMbyGPU. No factorydeliveryclaims no12nm, no companylogos. Bibi LEFT readingdocument with smallglasses and two shortpaws gentlyturnpage.",
+      "sources": [
+        3
+      ]
+    },
+    {
+      "page": 5,
+      "title": "堆疊，是另一道功課",
+      "points": [
+        "晶粒要精準對位，接成可用的堆疊。",
+        "接合與封裝製程，會影響產品品質。"
+      ],
+      "supplement": "各家路線不同，不能只看堆了幾層。",
+      "scene": "Genericprecisionbondingequipment head above individual DRAMdie alignedlowerstack, FOURcore layers abovepeachbase, tiny alignedbumpcontacts. Labels『對位』『接合』only. Bibi RIGHT wears tinygoggles curvedbody leaningtoobserve, two shortpaws resttableedge natural no unsafehandling.",
+      "sources": [
+        1,
+        2
+      ]
+    },
+    {
+      "page": 6,
+      "title": "測試，不是最後才出場",
+      "points": [
+        "組裝前，先篩選合格的晶粒。",
+        "堆疊完成後，還要確認連接與功能。"
+      ],
+      "supplement": "單顆合格，不代表整疊自然過關。",
+      "scene": "Two-stage testinghero linkedarrow: leftwafer onprobingstage smallprobes actuallycontactdie pads『組裝前測試』, rightHBM stack ontestfixture『堆疊後測試』. No numericalyield, no fakegreenallpass. Bibi LEFT holdingclipboard withEMPTYcheckboxes, focusedface headtiltedright, onepawclipboard otherpencil.",
+      "sources": [
+        2
+      ]
+    },
+    {
+      "page": 7,
+      "title": "先進封裝，把夥伴接起來",
+      "points": [
+        "HBM還要與運算晶粒完成系統整合。",
+        "CoWoS是台積電的先進封裝技術之一。"
+      ],
+      "supplement": "做HBM堆疊，和整合進系統不是同一步。",
+      "scene": "Accurate educationalCoWoSstyle cutaway: frombottom carrierboard substrate, abovesiliconinterposerwithdensecopperwires, TOPGPUcentral and oneHBMstack EACHside, HBM NOT ontopGPU. Label『HBM』『運算晶粒』『中介層』. Bibi RIGHT shortpaws support nearbody oneopenedmodelbaseedge, gaze followsinterconnect.",
+      "sources": [
+        1,
+        3,
+        4
+      ]
+    },
+    {
+      "page": 8,
+      "title": "台灣角色，要說到哪一段",
+      "points": [
+        "先進封裝與特定邏輯晶粒合作，可分開看。",
+        "已查證的台積電角色，不是HBM記憶體原廠。"
+      ],
+      "supplement": "每家公司，都要回到產品與公告。",
+      "scene": "One workbench researchmap 台積電 atcenter splitto『特定base die合作』 smallpeachdie/documentand『CoWoS整合』GPUHBMpackage. Noothercompanies orTaiwanflag maps, noclaim allbase outsourced. Bibi LEFT seatedwritingcarefully comparing two scopes onopenbook, shortpencilandpaw.",
+      "sources": [
+        3,
+        4
+      ]
+    },
+    {
+      "page": 9,
+      "title": "族群分類，不等於訂單",
+      "points": [
+        "同屬記憶體或封測，業務未必相同。",
+        "列在概念族群，不等於已有HBM供貨。"
+      ],
+      "supplement": "看角色、產品，再核對合作證據。",
+      "scene": "Researchclassification notebook onegenericfolder『族群分類』and separatefirmdocument『產品／合作公告』, magnifier between; no namedTaiwancompanies no tickers no fakeorders. Bibi RIGHT contemplative tilt, one shortpawtoucheschin otherholds magnifier lookingatdocument.",
+      "sources": [
+        1,
+        3,
+        4
+      ]
+    },
+    {
+      "page": 10,
+      "title": "問清楚角色，再看新聞",
+      "points": [
+        "誰做記憶體？誰做邏輯與系統整合？",
+        "角色說清楚，研究才不只剩公司名字。"
+      ],
+      "supplement": "你最想讓比比再拆解哪一段分工？",
+      "scene": "Concludingdetailed researchnotebook onpartialtable with three meaningfulobjects/labels『記憶體』『邏輯』『系統整合』: corestack, separatebasechip, GPUHBMsidebysidepackage. ONEBibi LEFT smilinglittlewave withshortpaw otherrestsnotebook, no checkedbuylist. NoURL,QR,sourcefooter,disclaimer.",
+      "sources": [
+        1,
+        2,
+        3,
+        4
+      ]
+    }
+  ]
+}

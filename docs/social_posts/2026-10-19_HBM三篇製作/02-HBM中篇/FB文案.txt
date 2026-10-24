@@ -1,0 +1,35 @@
+🔍 AI越強，記憶體壓力就一定越大？比比想先把這句話拆開。
+
+記憶體不是只有一個規格。容量，問的是能放多少；帶寬（也稱頻寬），問的是每秒能搬多少。資料放得下，仍可能來不及送到運算單元；所以只看GPU峰值運算，也看不出完整瓶頸。
+
+🧩 第一個差異，是工作負載。
+訓練需要更新模型，也會保存中間結果。推論則使用模型處理輸入並生成輸出；即使同屬推論，處理輸入與逐步輸出也有不同節奏。哪個資源先吃緊，要看模型、批次、精度與實作，不是所有AI都卡在同一處。
+
+📌 第二個差異，是同時要保留多少資料。
+KV暫存會重用先前計算的鍵值結果。上下文更長、同時處理的請求更多，暫存需求可能增加。多個請求可以共用模型權重，卻仍各有暫存；不能把併發數增加，想成速度無限增加。
+
+🛠️ 第三個差異，是整套系統怎麼配。
+HBM與GPU並排在封裝內，透過高密度連線搬運資料。它不取代所有記憶體與儲存，也不會自動解決運算、通訊或軟體問題。高密度整合還要測試、散熱，並符合系統與成本條件。
+
+這篇談的是技術需求的判讀方法，沒有推估當期出貨、良率或獲利。先看工作負載，再看記憶體與系統條件，比把AI成長直接畫成某家公司訂單更可靠。
+
+💬 你讀到HBM新聞時，最想先弄懂哪一種限制？
+
+官網：https://liguligu-puipui.com/?utm_source=facebook&utm_medium=social&utm_campaign=hbm_series_20261019&utm_content=hbm-middle#overview
+
+資料查核：2026/10/19（台北）；架構與流程為示意，依模型與系統而異。
+來源：
+MiaoZiKe/tw-rotation｜本站結構圖解
+https://github.com/MiaoZiKe/tw-rotation/blob/6dc0601e1c7c1575b9b5a0683382b862dd8e4cb5/site/dg/hbm.js
+Micron｜容量/帶寬與製造
+https://www.micron.com/products/memory/hbm/hbm4
+Micron｜AI記憶體/儲存
+https://www.micron.com/markets-industries/ai
+NVIDIA Technical Blog｜推論與KV暫存
+https://developer.nvidia.com/blog/mastering-llm-techniques-inference-optimization/
+NVIDIA Megatron Bridge官方文件｜訓練記憶體
+https://docs.nvidia.com/nemo/megatron-bridge/0.5.0/apidocs/bridge/bridge.training.utils.theoretical_memory_utils.html
+NVIDIA官方文件｜運算/搬運瓶頸
+https://docs.nvidia.com/deeplearning/performance/dl-performance-gpu-background/
+
+整理公開資訊，非投顧，投資請自行判斷。
