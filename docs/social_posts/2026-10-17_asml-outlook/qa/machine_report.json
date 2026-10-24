@@ -1,0 +1,137 @@
+{
+  "machine_status": "pass",
+  "issues": [],
+  "pages": [
+    {
+      "page": 1,
+      "size": [
+        1080,
+        1350
+      ],
+      "text_count": 8,
+      "illustrations": 1,
+      "bounds_checked": true
+    },
+    {
+      "page": 2,
+      "size": [
+        1080,
+        1350
+      ],
+      "text_count": 8,
+      "illustrations": 3,
+      "bounds_checked": true
+    },
+    {
+      "page": 3,
+      "size": [
+        1080,
+        1350
+      ],
+      "text_count": 15,
+      "illustrations": 4,
+      "bounds_checked": true
+    },
+    {
+      "page": 4,
+      "size": [
+        1080,
+        1350
+      ],
+      "text_count": 13,
+      "illustrations": 1,
+      "bounds_checked": true
+    },
+    {
+      "page": 5,
+      "size": [
+        1080,
+        1350
+      ],
+      "text_count": 20,
+      "illustrations": 1,
+      "bounds_checked": true
+    },
+    {
+      "page": 6,
+      "size": [
+        1080,
+        1350
+      ],
+      "text_count": 17,
+      "illustrations": 1,
+      "bounds_checked": true
+    },
+    {
+      "page": 7,
+      "size": [
+        1080,
+        1350
+      ],
+      "text_count": 14,
+      "illustrations": 5,
+      "bounds_checked": true
+    },
+    {
+      "page": 8,
+      "size": [
+        1080,
+        1350
+      ],
+      "text_count": 15,
+      "illustrations": 1,
+      "bounds_checked": true
+    },
+    {
+      "page": 9,
+      "size": [
+        1080,
+        1350
+      ],
+      "text_count": 12,
+      "illustrations": 1,
+      "bounds_checked": true
+    },
+    {
+      "page": 10,
+      "size": [
+        1080,
+        1350
+      ],
+      "text_count": 13,
+      "illustrations": 1,
+      "bounds_checked": true
+    }
+  ],
+  "human_review": [
+    {
+      "item": "角色造型一致、無尾巴及多餘肢體",
+      "status": "needs_human_review"
+    },
+    {
+      "item": "角色與道具200～400%放大接觸合理",
+      "status": "needs_human_review"
+    },
+    {
+      "item": "科技示意與來源符合、沒有不合理光路",
+      "status": "needs_human_review"
+    },
+    {
+      "item": "360px手機縮圖閱讀與圖卡精緻度",
+      "status": "needs_human_review"
+    },
+    {
+      "item": "逐項數字日期單位與來源核對",
+      "status": "needs_human_review"
+    },
+    {
+      "item": "無第三方浮水印、帳號與Logo",
+      "status": "needs_human_review"
+    },
+    {
+      "item": "全篇主持動作與視線至少變化兩項",
+      "status": "needs_human_review"
+    }
+  ],
+  "release_status": "needs_human_review"
+}
