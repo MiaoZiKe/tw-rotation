@@ -1,0 +1,209 @@
+{
+  "slug": "04-hbm-upper",
+  "topic": "HBM",
+  "part": "上",
+  "title": "GPU很快為何還在等",
+  "angle": "用運算等待資料的情境介紹 HBM，分清容量與頻寬，不把記憶體誤當儲存裝置。",
+  "next_hook": "下一篇：AI 越忙，為什麼記憶體需求不只看容量？",
+  "slides": [
+    {
+      "page": 1,
+      "title": "GPU很快為何還在等",
+      "points": [
+        "算得再快，資料沒到也得等",
+        "HBM 解決的是大量資料搬運問題"
+      ],
+      "bubble": "廚師快，也要有食材。",
+      "visual": "memory_road",
+      "diagram_labels": [
+        "資料",
+        "HBM",
+        "GPU"
+      ],
+      "host": {
+        "expression": "微笑解說",
+        "gaze": "看左側提示板",
+        "action": "短掌握短指示棒",
+        "prop": "空白提示板",
+        "intent": "指讀本頁的GPU很快為何還在等",
+        "contact": "短掌接觸所列道具，身體與腳受地面支撐；無道具頁以視線和短掌邀請讀者。",
+        "asset_id": "bibi_semiconductor_host_02",
+        "version": "v001"
+      }
+    },
+    {
+      "page": 2,
+      "title": "HBM先翻成白話",
+      "points": [
+        "HBM就是高頻寬記憶體",
+        "把動態記憶體堆疊，提供寬資料通道"
+      ],
+      "bubble": "先看路有多寬。",
+      "visual": "hbm",
+      "diagram_labels": [
+        "記憶體堆疊",
+        "底部邏輯晶粒",
+        "資料通道"
+      ],
+      "host": {
+        "expression": "專注",
+        "gaze": "看放大鏡",
+        "action": "短掌握鏡柄",
+        "prop": "放大鏡",
+        "intent": "指讀本頁的HBM先翻成白話",
+        "contact": "短掌接觸所列道具，身體與腳受地面支撐；無道具頁以視線和短掌邀請讀者。",
+        "asset_id": "bibi_semiconductor_host_03",
+        "version": "v001"
+      }
+    },
+    {
+      "page": 3,
+      "title": "容量和頻寬別混在一起",
+      "points": [
+        "容量是能放多少資料",
+        "頻寬是每段時間能搬多少資料"
+      ],
+      "bubble": "倉庫大，不等於出貨快。",
+      "visual": "compare",
+      "diagram_labels": [
+        "容量：放多少",
+        "頻寬：搬多快"
+      ],
+      "host": {
+        "expression": "開心記錄",
+        "gaze": "看左下筆記",
+        "action": "短掌靠筆記",
+        "prop": "空白筆記本",
+        "intent": "指讀本頁的容量和頻寬別混在一起",
+        "contact": "短掌接觸所列道具，身體與腳受地面支撐；無道具頁以視線和短掌邀請讀者。",
+        "asset_id": "bibi_semiconductor_host_05",
+        "version": "v001"
+      }
+    },
+    {
+      "page": 4,
+      "title": "為什麼要往上疊",
+      "points": [
+        "多層記憶體晶粒垂直堆疊",
+        "穿矽孔等連接形成資料路徑"
+      ],
+      "bubble": "不是單純疊高而已。",
+      "visual": "hbm",
+      "diagram_labels": [
+        "記憶體晶粒",
+        "穿矽孔",
+        "底部晶粒"
+      ],
+      "host": {
+        "expression": "思考",
+        "gaze": "看右側樣品",
+        "action": "雙短掌靠桌",
+        "prop": "兩種樣品與矮桌",
+        "intent": "指讀本頁的為什麼要往上疊",
+        "contact": "短掌接觸所列道具，身體與腳受地面支撐；無道具頁以視線和短掌邀請讀者。",
+        "asset_id": "bibi_semiconductor_host_04",
+        "version": "v001"
+      }
+    },
+    {
+      "page": 5,
+      "title": "它通常站在GPU旁邊",
+      "points": [
+        "以本篇的中介層封裝為例",
+        "GPU 與 HBM 並排，不是上下相疊"
+      ],
+      "bubble": "這是位置關係。",
+      "visual": "package",
+      "diagram_labels": [
+        "HBM",
+        "GPU",
+        "中介層",
+        "載板"
+      ],
+      "host": {
+        "expression": "微笑解說",
+        "gaze": "看左側提示板",
+        "action": "短掌握短指示棒",
+        "prop": "空白提示板",
+        "intent": "指讀本頁的它通常站在GPU旁邊",
+        "contact": "短掌接觸所列道具，身體與腳受地面支撐；無道具頁以視線和短掌邀請讀者。",
+        "asset_id": "bibi_semiconductor_host_02",
+        "version": "v001"
+      }
+    },
+    {
+      "page": 6,
+      "title": "也不是硬碟的替身",
+      "points": [
+        "HBM 服務運算時的資料存取",
+        "長期保存資料，仍有儲存裝置分工"
+      ],
+      "bubble": "記憶體和儲存分開看。",
+      "visual": "compare",
+      "diagram_labels": [
+        "運算記憶體",
+        "長期儲存"
+      ],
+      "host": {
+        "expression": "擔心檢查",
+        "gaze": "看左下警示牌",
+        "action": "短掌扶牌",
+        "prop": "無字警示牌",
+        "intent": "指讀本頁的也不是硬碟的替身",
+        "contact": "短掌接觸所列道具，身體與腳受地面支撐；無道具頁以視線和短掌邀請讀者。",
+        "asset_id": "bibi_semiconductor_host_06",
+        "version": "v001"
+      }
+    },
+    {
+      "page": 7,
+      "title": "高頻寬也有工程代價",
+      "points": [
+        "堆疊、連接、測試與散熱都要配合",
+        "整體表現不能只看一顆零件"
+      ],
+      "bubble": "快，要整套一起快。",
+      "visual": "checklist",
+      "diagram_labels": [
+        "連接",
+        "測試",
+        "散熱"
+      ],
+      "host": {
+        "expression": "點頭理解",
+        "gaze": "看右上",
+        "action": "短掌靠紙卡",
+        "prop": "三張筆記卡",
+        "intent": "指讀本頁的高頻寬也有工程代價",
+        "contact": "短掌接觸所列道具，身體與腳受地面支撐；無道具頁以視線和短掌邀請讀者。",
+        "asset_id": "bibi_semiconductor_host_07",
+        "version": "v001"
+      }
+    },
+    {
+      "page": 8,
+      "title": "AI為何特別在意它",
+      "points": [
+        "本篇先懂：容量與搬運是兩件事",
+        "下一篇，看AI工作如何吃記憶體"
+      ],
+      "bubble": "你會先加倉庫還是拓路？",
+      "visual": "cta",
+      "diagram_labels": [
+        "容量",
+        "頻寬",
+        "工作負載"
+      ],
+      "host": {
+        "expression": "微笑邀請",
+        "gaze": "看讀者",
+        "action": "短掌貼身揮手",
+        "prop": "無",
+        "intent": "指讀本頁的AI為何特別在意它",
+        "contact": "短掌接觸所列道具，身體與腳受地面支撐；無道具頁以視線和短掌邀請讀者。",
+        "asset_id": "bibi_semiconductor_host_08",
+        "version": "v001"
+      }
+    }
+  ]
+}

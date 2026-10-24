@@ -1,0 +1,405 @@
+[
+  {
+    "asset_id": "bibi_semiconductor_cover_02-foundry-middle",
+    "中文名稱": "晶圓代工・中篇封面情境",
+    "category": "author_unverified",
+    "original_author": "unknown",
+    "illustration_author": "OpenAI imagegen",
+    "processed_by": "Codex",
+    "tool": "OpenAI imagegen；Codex正式文字後製",
+    "provenance_evidence": "本對話內建image_gen生成；角色參考為Andy提供跳跳.gif；原檔路徑與SHA256可核對。",
+    "parent_asset_id": "bibi_user_jump_gif",
+    "版本": "v001",
+    "尺寸": [
+      1536,
+      1024
+    ],
+    "是否透明底": true,
+    "姿勢表情道具": "小開關，越來越難管。",
+    "可用用途": "哩股哩股半導體介紹主持插畫；依情境使用，不作技術數據圖",
+    "權利狀態": "unknown：角色母版原作者權利未核實；新情境生成不覆蓋原畫歸屬",
+    "品管狀態": "review：待逐頁發布前核稿",
+    "prompt_summary": "由漏電控制切入 Planar、FinFET 與 GAA 的結構變化，不用奈米數字比大小。；暖白粉彩研究情境，單隻比比，不生成正式文字或數字，技術物件為概念示意。",
+    "sha256": "f1835be8f87bf99c1325d70d88f2d99ce45f70d4595c147c3581db0dec195b3d",
+    "source_file": "C:\\Users\\user\\.codex\\generated_images\\01a14c4f-1a7f-71e3-883c-de2d2fcd98b9\\exec-8b2a0489-5156-45f4-a7fd-6e7bce1acbc8.png"
+  },
+  {
+    "asset_id": "slide_02-foundry-middle_01",
+    "中文名稱": "電晶體為何站起來",
+    "category": "codex_original",
+    "original_author": "Codex（文字與技術圖）",
+    "processed_by": "Codex",
+    "tool": "Pillow後製；OpenAI imagegen角色圖層",
+    "provenance_evidence": "slides_content.json、production.md、qa/layout_boxes.json；由GitHub底稿改寫並官方交叉查核",
+    "parent_asset_id": "bibi_semiconductor_cover_02-foundry-middle",
+    "版本": "v001",
+    "尺寸": [
+      1080,
+      1350
+    ],
+    "是否透明底": false,
+    "姿勢表情道具": {},
+    "可用用途": "IG輪播／Threads配圖",
+    "權利狀態": "文案與圖解為Codex整理；角色權利unknown保留",
+    "品管狀態": "審閱版",
+    "file": "slides/01.png",
+    "sha256": "4cda1e29ad8d9555c45504ccba6f9885959ed428e6608fc0dd950722aad2848e"
+  },
+  {
+    "asset_id": "bibi_semiconductor_host_03",
+    "中文名稱": "比比半導體主持・專注",
+    "category": "author_unverified",
+    "original_author": "unknown",
+    "illustration_author": "OpenAI imagegen",
+    "processed_by": "Codex",
+    "tool": "OpenAI imagegen；Codex等比排版",
+    "provenance_evidence": "本對話內建image_gen生成；角色參考為Andy提供跳跳.gif；原檔路徑與SHA256可核對。",
+    "parent_asset_id": "bibi_user_jump_gif",
+    "版本": "v001",
+    "尺寸": [
+      1254,
+      1254
+    ],
+    "是否透明底": true,
+    "姿勢表情道具": [
+      "專注",
+      "看放大鏡",
+      "短掌握鏡柄",
+      "放大鏡"
+    ],
+    "可用用途": "哩股哩股半導體介紹主持插畫；依情境使用，不作技術數據圖",
+    "權利狀態": "unknown：角色母版原作者權利未核實；新情境生成不覆蓋原畫歸屬",
+    "品管狀態": "review：待逐頁發布前核稿",
+    "prompt_summary": "奶白圓扁毛球；黑點眼；短掌、無尾巴；('專注', '看放大鏡', '短掌握鏡柄', '放大鏡')；透明底，不生成文字。",
+    "sha256": "5551b8a1883dff92dc19d5062600e665e92599adacf6619520fd5c4f15b90d9a",
+    "source_file": "C:\\Users\\user\\.codex\\generated_images\\01a14c4f-1a7f-71e3-883c-de2d2fcd98b9\\exec-993b9ea7-fba5-4609-a8a1-aea48b22841b.png"
+  },
+  {
+    "asset_id": "slide_02-foundry-middle_02",
+    "中文名稱": "先把它想成可控開關",
+    "category": "codex_original",
+    "original_author": "Codex（文字與技術圖）",
+    "processed_by": "Codex",
+    "tool": "Pillow後製；OpenAI imagegen角色圖層",
+    "provenance_evidence": "slides_content.json、production.md、qa/layout_boxes.json；由GitHub底稿改寫並官方交叉查核",
+    "parent_asset_id": "bibi_semiconductor_host_03",
+    "版本": "v001",
+    "尺寸": [
+      1080,
+      1350
+    ],
+    "是否透明底": false,
+    "姿勢表情道具": {},
+    "可用用途": "IG輪播／Threads配圖",
+    "權利狀態": "文案與圖解為Codex整理；角色權利unknown保留",
+    "品管狀態": "審閱版",
+    "file": "slides/02.png",
+    "sha256": "70bc487b047c02b8b9f763c4a632bc70d830b1c5e24febaa38d2c8cb374404c5"
+  },
+  {
+    "asset_id": "bibi_semiconductor_host_05",
+    "中文名稱": "比比半導體主持・開心記錄",
+    "category": "author_unverified",
+    "original_author": "unknown",
+    "illustration_author": "OpenAI imagegen",
+    "processed_by": "Codex",
+    "tool": "OpenAI imagegen；Codex等比排版",
+    "provenance_evidence": "本對話內建image_gen生成；角色參考為Andy提供跳跳.gif；原檔路徑與SHA256可核對。",
+    "parent_asset_id": "bibi_user_jump_gif",
+    "版本": "v001",
+    "尺寸": [
+      1254,
+      1254
+    ],
+    "是否透明底": true,
+    "姿勢表情道具": [
+      "開心記錄",
+      "看左下筆記",
+      "短掌靠筆記",
+      "空白筆記本"
+    ],
+    "可用用途": "哩股哩股半導體介紹主持插畫；依情境使用，不作技術數據圖",
+    "權利狀態": "unknown：角色母版原作者權利未核實；新情境生成不覆蓋原畫歸屬",
+    "品管狀態": "review：待逐頁發布前核稿",
+    "prompt_summary": "奶白圓扁毛球；黑點眼；短掌、無尾巴；('開心記錄', '看左下筆記', '短掌靠筆記', '空白筆記本')；透明底，不生成文字。",
+    "sha256": "9635e75ddb6978f1792e544b52f4010a5cb80f35bf4206f03a9d86f66083fff2",
+    "source_file": "C:\\Users\\user\\.codex\\generated_images\\01a14c4f-1a7f-71e3-883c-de2d2fcd98b9\\exec-bf236ab4-8834-40ec-917f-0c185e26d927.png"
+  },
+  {
+    "asset_id": "slide_02-foundry-middle_03",
+    "中文名稱": "平面只從上方控制",
+    "category": "codex_original",
+    "original_author": "Codex（文字與技術圖）",
+    "processed_by": "Codex",
+    "tool": "Pillow後製；OpenAI imagegen角色圖層",
+    "provenance_evidence": "slides_content.json、production.md、qa/layout_boxes.json；由GitHub底稿改寫並官方交叉查核",
+    "parent_asset_id": "bibi_semiconductor_host_05",
+    "版本": "v001",
+    "尺寸": [
+      1080,
+      1350
+    ],
+    "是否透明底": false,
+    "姿勢表情道具": {},
+    "可用用途": "IG輪播／Threads配圖",
+    "權利狀態": "文案與圖解為Codex整理；角色權利unknown保留",
+    "品管狀態": "審閱版",
+    "file": "slides/03.png",
+    "sha256": "b0edb15e50aa292bd30fa6bbf43219fdcc4a5e70e6deb010923393c29e7cd7af"
+  },
+  {
+    "asset_id": "bibi_semiconductor_host_04",
+    "中文名稱": "比比半導體主持・思考",
+    "category": "author_unverified",
+    "original_author": "unknown",
+    "illustration_author": "OpenAI imagegen",
+    "processed_by": "Codex",
+    "tool": "OpenAI imagegen；Codex等比排版",
+    "provenance_evidence": "本對話內建image_gen生成；角色參考為Andy提供跳跳.gif；原檔路徑與SHA256可核對。",
+    "parent_asset_id": "bibi_user_jump_gif",
+    "版本": "v001",
+    "尺寸": [
+      1254,
+      1254
+    ],
+    "是否透明底": true,
+    "姿勢表情道具": [
+      "思考",
+      "看右側樣品",
+      "雙短掌靠桌",
+      "兩種樣品與矮桌"
+    ],
+    "可用用途": "哩股哩股半導體介紹主持插畫；依情境使用，不作技術數據圖",
+    "權利狀態": "unknown：角色母版原作者權利未核實；新情境生成不覆蓋原畫歸屬",
+    "品管狀態": "review：待逐頁發布前核稿",
+    "prompt_summary": "奶白圓扁毛球；黑點眼；短掌、無尾巴；('思考', '看右側樣品', '雙短掌靠桌', '兩種樣品與矮桌')；透明底，不生成文字。",
+    "sha256": "cd01ab672a5ca71ec7fd02131f19c13d96a6e7d5ad4537c624c5b269f1d5c829",
+    "source_file": "C:\\Users\\user\\.codex\\generated_images\\01a14c4f-1a7f-71e3-883c-de2d2fcd98b9\\exec-7805406f-46fe-4cc2-9039-683ac81015d6.png"
+  },
+  {
+    "asset_id": "slide_02-foundry-middle_04",
+    "中文名稱": "把通道立成一片鰭",
+    "category": "codex_original",
+    "original_author": "Codex（文字與技術圖）",
+    "processed_by": "Codex",
+    "tool": "Pillow後製；OpenAI imagegen角色圖層",
+    "provenance_evidence": "slides_content.json、production.md、qa/layout_boxes.json；由GitHub底稿改寫並官方交叉查核",
+    "parent_asset_id": "bibi_semiconductor_host_04",
+    "版本": "v001",
+    "尺寸": [
+      1080,
+      1350
+    ],
+    "是否透明底": false,
+    "姿勢表情道具": {},
+    "可用用途": "IG輪播／Threads配圖",
+    "權利狀態": "文案與圖解為Codex整理；角色權利unknown保留",
+    "品管狀態": "審閱版",
+    "file": "slides/04.png",
+    "sha256": "7b3eba9e3cccb422407655bdffaa6abd070158aef124fbef8a09f0fcf5519c59"
+  },
+  {
+    "asset_id": "bibi_semiconductor_host_02",
+    "中文名稱": "比比半導體主持・微笑解說",
+    "category": "author_unverified",
+    "original_author": "unknown",
+    "illustration_author": "OpenAI imagegen",
+    "processed_by": "Codex",
+    "tool": "OpenAI imagegen；Codex等比排版",
+    "provenance_evidence": "本對話內建image_gen生成；角色參考為Andy提供跳跳.gif；原檔路徑與SHA256可核對。",
+    "parent_asset_id": "bibi_user_jump_gif",
+    "版本": "v001",
+    "尺寸": [
+      1254,
+      1254
+    ],
+    "是否透明底": true,
+    "姿勢表情道具": [
+      "微笑解說",
+      "看左側提示板",
+      "短掌握短指示棒",
+      "空白提示板"
+    ],
+    "可用用途": "哩股哩股半導體介紹主持插畫；依情境使用，不作技術數據圖",
+    "權利狀態": "unknown：角色母版原作者權利未核實；新情境生成不覆蓋原畫歸屬",
+    "品管狀態": "review：待逐頁發布前核稿",
+    "prompt_summary": "奶白圓扁毛球；黑點眼；短掌、無尾巴；('微笑解說', '看左側提示板', '短掌握短指示棒', '空白提示板')；透明底，不生成文字。",
+    "sha256": "037a8dc1b19855eed69bd9d51ac0de67af639d4196401aee50bf301323a345c1",
+    "source_file": "C:\\Users\\user\\.codex\\generated_images\\01a14c4f-1a7f-71e3-883c-de2d2fcd98b9\\exec-b336cc37-8e59-4407-abcf-1ac8aa4fb47a.png"
+  },
+  {
+    "asset_id": "slide_02-foundry-middle_05",
+    "中文名稱": "再把通道整圈包住",
+    "category": "codex_original",
+    "original_author": "Codex（文字與技術圖）",
+    "processed_by": "Codex",
+    "tool": "Pillow後製；OpenAI imagegen角色圖層",
+    "provenance_evidence": "slides_content.json、production.md、qa/layout_boxes.json；由GitHub底稿改寫並官方交叉查核",
+    "parent_asset_id": "bibi_semiconductor_host_02",
+    "版本": "v001",
+    "尺寸": [
+      1080,
+      1350
+    ],
+    "是否透明底": false,
+    "姿勢表情道具": {},
+    "可用用途": "IG輪播／Threads配圖",
+    "權利狀態": "文案與圖解為Codex整理；角色權利unknown保留",
+    "品管狀態": "審閱版",
+    "file": "slides/05.png",
+    "sha256": "85ab94d3a1c16dd5c059dad286cea644230870b56ad39899082f49ad243748da"
+  },
+  {
+    "asset_id": "bibi_semiconductor_host_06",
+    "中文名稱": "比比半導體主持・擔心檢查",
+    "category": "author_unverified",
+    "original_author": "unknown",
+    "illustration_author": "OpenAI imagegen",
+    "processed_by": "Codex",
+    "tool": "OpenAI imagegen；Codex等比排版",
+    "provenance_evidence": "本對話內建image_gen生成；角色參考為Andy提供跳跳.gif；原檔路徑與SHA256可核對。",
+    "parent_asset_id": "bibi_user_jump_gif",
+    "版本": "v001",
+    "尺寸": [
+      1254,
+      1254
+    ],
+    "是否透明底": true,
+    "姿勢表情道具": [
+      "擔心檢查",
+      "看左下警示牌",
+      "短掌扶牌",
+      "無字警示牌"
+    ],
+    "可用用途": "哩股哩股半導體介紹主持插畫；依情境使用，不作技術數據圖",
+    "權利狀態": "unknown：角色母版原作者權利未核實；新情境生成不覆蓋原畫歸屬",
+    "品管狀態": "review：待逐頁發布前核稿",
+    "prompt_summary": "奶白圓扁毛球；黑點眼；短掌、無尾巴；('擔心檢查', '看左下警示牌', '短掌扶牌', '無字警示牌')；透明底，不生成文字。",
+    "sha256": "742cd8b147a48fdab3c28889889c5204b1b85c6d86a8c7e243e00b58659b506c",
+    "source_file": "C:\\Users\\user\\.codex\\generated_images\\01a14c4f-1a7f-71e3-883c-de2d2fcd98b9\\exec-0f9b9537-ff41-4bab-8bee-dc7e251d19d4.png"
+  },
+  {
+    "asset_id": "slide_02-foundry-middle_06",
+    "中文名稱": "多包住不等於沒代價",
+    "category": "codex_original",
+    "original_author": "Codex（文字與技術圖）",
+    "processed_by": "Codex",
+    "tool": "Pillow後製；OpenAI imagegen角色圖層",
+    "provenance_evidence": "slides_content.json、production.md、qa/layout_boxes.json；由GitHub底稿改寫並官方交叉查核",
+    "parent_asset_id": "bibi_semiconductor_host_06",
+    "版本": "v001",
+    "尺寸": [
+      1080,
+      1350
+    ],
+    "是否透明底": false,
+    "姿勢表情道具": {},
+    "可用用途": "IG輪播／Threads配圖",
+    "權利狀態": "文案與圖解為Codex整理；角色權利unknown保留",
+    "品管狀態": "審閱版",
+    "file": "slides/06.png",
+    "sha256": "61dfbc9848928e16f08e31d87396f9f847ac232622d4021308e347528fdd571f"
+  },
+  {
+    "asset_id": "bibi_semiconductor_host_07",
+    "中文名稱": "比比半導體主持・點頭理解",
+    "category": "author_unverified",
+    "original_author": "unknown",
+    "illustration_author": "OpenAI imagegen",
+    "processed_by": "Codex",
+    "tool": "OpenAI imagegen；Codex等比排版",
+    "provenance_evidence": "本對話內建image_gen生成；角色參考為Andy提供跳跳.gif；原檔路徑與SHA256可核對。",
+    "parent_asset_id": "bibi_user_jump_gif",
+    "版本": "v001",
+    "尺寸": [
+      1254,
+      1254
+    ],
+    "是否透明底": true,
+    "姿勢表情道具": [
+      "點頭理解",
+      "看右上",
+      "短掌靠紙卡",
+      "三張筆記卡"
+    ],
+    "可用用途": "哩股哩股半導體介紹主持插畫；依情境使用，不作技術數據圖",
+    "權利狀態": "unknown：角色母版原作者權利未核實；新情境生成不覆蓋原畫歸屬",
+    "品管狀態": "review：待逐頁發布前核稿",
+    "prompt_summary": "奶白圓扁毛球；黑點眼；短掌、無尾巴；('點頭理解', '看右上', '短掌靠紙卡', '三張筆記卡')；透明底，不生成文字。",
+    "sha256": "e1f902563a3720fbe3a58fbab967ec107723c2853036efa4c541600b89132b14",
+    "source_file": "C:\\Users\\user\\.codex\\generated_images\\01a14c4f-1a7f-71e3-883c-de2d2fcd98b9\\exec-a0053c63-a013-4a93-87e4-ca3fbdade37e.png"
+  },
+  {
+    "asset_id": "slide_02-foundry-middle_07",
+    "中文名稱": "奈米名稱不是尺規",
+    "category": "codex_original",
+    "original_author": "Codex（文字與技術圖）",
+    "processed_by": "Codex",
+    "tool": "Pillow後製；OpenAI imagegen角色圖層",
+    "provenance_evidence": "slides_content.json、production.md、qa/layout_boxes.json；由GitHub底稿改寫並官方交叉查核",
+    "parent_asset_id": "bibi_semiconductor_host_07",
+    "版本": "v001",
+    "尺寸": [
+      1080,
+      1350
+    ],
+    "是否透明底": false,
+    "姿勢表情道具": {},
+    "可用用途": "IG輪播／Threads配圖",
+    "權利狀態": "文案與圖解為Codex整理；角色權利unknown保留",
+    "品管狀態": "審閱版",
+    "file": "slides/07.png",
+    "sha256": "887f0e4a77ff47e8806046c4fae9af6865723447f93c52aead82f3e88871c9b0"
+  },
+  {
+    "asset_id": "bibi_semiconductor_host_08",
+    "中文名稱": "比比半導體主持・微笑邀請",
+    "category": "author_unverified",
+    "original_author": "unknown",
+    "illustration_author": "OpenAI imagegen",
+    "processed_by": "Codex",
+    "tool": "OpenAI imagegen；Codex等比排版",
+    "provenance_evidence": "本對話內建image_gen生成；角色參考為Andy提供跳跳.gif；原檔路徑與SHA256可核對。",
+    "parent_asset_id": "bibi_user_jump_gif",
+    "版本": "v001",
+    "尺寸": [
+      1254,
+      1254
+    ],
+    "是否透明底": true,
+    "姿勢表情道具": [
+      "微笑邀請",
+      "看讀者",
+      "短掌貼身揮手",
+      "無"
+    ],
+    "可用用途": "哩股哩股半導體介紹主持插畫；依情境使用，不作技術數據圖",
+    "權利狀態": "unknown：角色母版原作者權利未核實；新情境生成不覆蓋原畫歸屬",
+    "品管狀態": "review：待逐頁發布前核稿",
+    "prompt_summary": "奶白圓扁毛球；黑點眼；短掌、無尾巴；('微笑邀請', '看讀者', '短掌貼身揮手', '無')；透明底，不生成文字。",
+    "sha256": "745969518c0e06b764efecc64b7c74fe485ca34bfeca60b556f5e62d5e2bd14c",
+    "source_file": "C:\\Users\\user\\.codex\\generated_images\\01a14c4f-1a7f-71e3-883c-de2d2fcd98b9\\exec-5f840aa7-111e-465b-a8c9-263202e328be.png"
+  },
+  {
+    "asset_id": "slide_02-foundry-middle_08",
+    "中文名稱": "新技術會取代全部嗎",
+    "category": "codex_original",
+    "original_author": "Codex（文字與技術圖）",
+    "processed_by": "Codex",
+    "tool": "Pillow後製；OpenAI imagegen角色圖層",
+    "provenance_evidence": "slides_content.json、production.md、qa/layout_boxes.json；由GitHub底稿改寫並官方交叉查核",
+    "parent_asset_id": "bibi_semiconductor_host_08",
+    "版本": "v001",
+    "尺寸": [
+      1080,
+      1350
+    ],
+    "是否透明底": false,
+    "姿勢表情道具": {},
+    "可用用途": "IG輪播／Threads配圖",
+    "權利狀態": "文案與圖解為Codex整理；角色權利unknown保留",
+    "品管狀態": "審閱版",
+    "file": "slides/08.png",
+    "sha256": "248efa12d1266aa67cc1df3cd235e29a997d4a2b87e9d745ef0e36ec3beb487f"
+  }
+]

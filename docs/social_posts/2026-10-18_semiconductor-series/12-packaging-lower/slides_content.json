@@ -1,0 +1,210 @@
+{
+  "slug": "12-packaging-lower",
+  "topic": "先進封裝",
+  "part": "下",
+  "title": "封裝熱誰在忙什麼",
+  "angle": "用封裝結構對應產業職能，補上材料設備、測試與散熱，不把合作或驗證當成確定營收。",
+  "next_hook": "下一組：第三代半導體，省電為何也要換材料？",
+  "slides": [
+    {
+      "page": 1,
+      "title": "封裝熱誰在忙什麼",
+      "points": [
+        "一個封裝體背後，有多種專業",
+        "從結構出發，比背名單更容易懂"
+      ],
+      "bubble": "先看工作，再認公司。",
+      "visual": "chain",
+      "diagram_labels": [
+        "材料",
+        "製造設備",
+        "封裝測試"
+      ],
+      "host": {
+        "expression": "微笑解說",
+        "gaze": "看左側提示板",
+        "action": "短掌握短指示棒",
+        "prop": "空白提示板",
+        "intent": "指讀本頁的封裝熱誰在忙什麼",
+        "contact": "短掌接觸所列道具，身體與腳受地面支撐；無道具頁以視線和短掌邀請讀者。",
+        "asset_id": "bibi_semiconductor_host_02",
+        "version": "v001"
+      }
+    },
+    {
+      "page": 2,
+      "title": "第一隊先備好材料",
+      "points": [
+        "載板、介電材料與互連材料各司其職",
+        "規格要對應封裝設計與製程"
+      ],
+      "bubble": "材料不是全部都能互換。",
+      "visual": "layers",
+      "diagram_labels": [
+        "互連材料",
+        "介電材料",
+        "載板"
+      ],
+      "host": {
+        "expression": "專注",
+        "gaze": "看放大鏡",
+        "action": "短掌握鏡柄",
+        "prop": "放大鏡",
+        "intent": "指讀本頁的第一隊先備好材料",
+        "contact": "短掌接觸所列道具，身體與腳受地面支撐；無道具頁以視線和短掌邀請讀者。",
+        "asset_id": "bibi_semiconductor_host_03",
+        "version": "v001"
+      }
+    },
+    {
+      "page": 3,
+      "title": "第二隊把精密工序做好",
+      "points": [
+        "貼合、沉積、加工與檢測需要設備",
+        "不同封裝路線，設備組合會改變"
+      ],
+      "bubble": "同是設備，任務不同。",
+      "visual": "process",
+      "diagram_labels": [
+        "貼合",
+        "加工",
+        "檢測"
+      ],
+      "host": {
+        "expression": "開心記錄",
+        "gaze": "看左下筆記",
+        "action": "短掌靠筆記",
+        "prop": "空白筆記本",
+        "intent": "指讀本頁的第二隊把精密工序做好",
+        "contact": "短掌接觸所列道具，身體與腳受地面支撐；無道具頁以視線和短掌邀請讀者。",
+        "asset_id": "bibi_semiconductor_host_05",
+        "version": "v001"
+      }
+    },
+    {
+      "page": 4,
+      "title": "第三隊負責系統整合",
+      "points": [
+        "台積電有CoWoS，日月光有VIPack",
+        "兩者提供不同先進封裝技術組合"
+      ],
+      "bubble": "不是只有一家一條路。",
+      "visual": "package",
+      "diagram_labels": [
+        "晶粒",
+        "互連",
+        "載板"
+      ],
+      "host": {
+        "expression": "思考",
+        "gaze": "看右側樣品",
+        "action": "雙短掌靠桌",
+        "prop": "兩種樣品與矮桌",
+        "intent": "指讀本頁的第三隊負責系統整合",
+        "contact": "短掌接觸所列道具，身體與腳受地面支撐；無道具頁以視線和短掌邀請讀者。",
+        "asset_id": "bibi_semiconductor_host_04",
+        "version": "v001"
+      }
+    },
+    {
+      "page": 5,
+      "title": "第四隊驗證能不能用",
+      "points": [
+        "晶粒、連接與封裝完成後都要把關",
+        "測試策略依產品與工藝調整"
+      ],
+      "bubble": "做完整，還要測完整。",
+      "visual": "inspect",
+      "diagram_labels": [
+        "晶粒測試",
+        "連接檢查",
+        "成品驗證"
+      ],
+      "host": {
+        "expression": "微笑解說",
+        "gaze": "看左側提示板",
+        "action": "短掌握短指示棒",
+        "prop": "空白提示板",
+        "intent": "指讀本頁的第四隊驗證能不能用",
+        "contact": "短掌接觸所列道具，身體與腳受地面支撐；無道具頁以視線和短掌邀請讀者。",
+        "asset_id": "bibi_semiconductor_host_02",
+        "version": "v001"
+      }
+    },
+    {
+      "page": 6,
+      "title": "散熱也在同一張考卷",
+      "points": [
+        "運算晶粒與記憶體集中，熱管理重要",
+        "封裝設計與外部散熱需協調"
+      ],
+      "bubble": "熱不能留到最後才想。",
+      "visual": "balance",
+      "diagram_labels": [
+        "功耗",
+        "散熱路徑",
+        "可靠度"
+      ],
+      "host": {
+        "expression": "擔心檢查",
+        "gaze": "看左下警示牌",
+        "action": "短掌扶牌",
+        "prop": "無字警示牌",
+        "intent": "指讀本頁的散熱也在同一張考卷",
+        "contact": "短掌接觸所列道具，身體與腳受地面支撐；無道具頁以視線和短掌邀請讀者。",
+        "asset_id": "bibi_semiconductor_host_06",
+        "version": "v001"
+      }
+    },
+    {
+      "page": 7,
+      "title": "讀新聞先分三種進度",
+      "points": [
+        "合作開發、客戶驗證、量產供貨不同",
+        "沒有證據，不畫確定訂單箭頭"
+      ],
+      "bubble": "進度用詞要看清楚。",
+      "visual": "checklist",
+      "diagram_labels": [
+        "開發",
+        "驗證",
+        "量產供貨"
+      ],
+      "host": {
+        "expression": "點頭理解",
+        "gaze": "看右上",
+        "action": "短掌靠紙卡",
+        "prop": "三張筆記卡",
+        "intent": "指讀本頁的讀新聞先分三種進度",
+        "contact": "短掌接觸所列道具，身體與腳受地面支撐；無道具頁以視線和短掌邀請讀者。",
+        "asset_id": "bibi_semiconductor_host_07",
+        "version": "v001"
+      }
+    },
+    {
+      "page": 8,
+      "title": "收藏這張角色地圖",
+      "points": [
+        "把產品、製程與進度連在一起看",
+        "留言：你以前最容易漏掉哪一隊？"
+      ],
+      "bubble": "看懂分工，再讀產業。",
+      "visual": "cta",
+      "diagram_labels": [
+        "產品",
+        "製程",
+        "進度"
+      ],
+      "host": {
+        "expression": "微笑邀請",
+        "gaze": "看讀者",
+        "action": "短掌貼身揮手",
+        "prop": "無",
+        "intent": "指讀本頁的收藏這張角色地圖",
+        "contact": "短掌接觸所列道具，身體與腳受地面支撐；無道具頁以視線和短掌邀請讀者。",
+        "asset_id": "bibi_semiconductor_host_08",
+        "version": "v001"
+      }
+    }
+  ]
+}

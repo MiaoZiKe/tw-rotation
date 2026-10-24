@@ -1,0 +1,210 @@
+{
+  "slug": "05-hbm-middle",
+  "topic": "HBM",
+  "part": "中",
+  "title": "AI變強只靠多買GPU",
+  "angle": "從工作負載串起容量、頻寬與功耗，說明需求驅動，但不宣稱所有 AI 都受同一瓶頸限制。",
+  "next_hook": "下一篇：HBM 熱門，究竟哪些環節真的在做 HBM？",
+  "slides": [
+    {
+      "page": 1,
+      "title": "AI變強只靠多買GPU",
+      "points": [
+        "運算能力之外，資料也要跟得上",
+        "記憶體是系統效能的一環"
+      ],
+      "bubble": "先看看誰在等誰。",
+      "visual": "memory_road",
+      "diagram_labels": [
+        "運算",
+        "資料搬運",
+        "記憶體"
+      ],
+      "host": {
+        "expression": "微笑解說",
+        "gaze": "看左側提示板",
+        "action": "短掌握短指示棒",
+        "prop": "空白提示板",
+        "intent": "指讀本頁的AI變強只靠多買GPU",
+        "contact": "短掌接觸所列道具，身體與腳受地面支撐；無道具頁以視線和短掌邀請讀者。",
+        "asset_id": "bibi_semiconductor_host_02",
+        "version": "v001"
+      }
+    },
+    {
+      "page": 2,
+      "title": "模型參數也要被讀取",
+      "points": [
+        "模型運作需要讀取權重等資料",
+        "推論過程也會產生暫存內容"
+      ],
+      "bubble": "不是算完一次就放下。",
+      "visual": "flow",
+      "diagram_labels": [
+        "讀取資料",
+        "執行運算",
+        "保存中間結果"
+      ],
+      "host": {
+        "expression": "專注",
+        "gaze": "看放大鏡",
+        "action": "短掌握鏡柄",
+        "prop": "放大鏡",
+        "intent": "指讀本頁的模型參數也要被讀取",
+        "contact": "短掌接觸所列道具，身體與腳受地面支撐；無道具頁以視線和短掌邀請讀者。",
+        "asset_id": "bibi_semiconductor_host_03",
+        "version": "v001"
+      }
+    },
+    {
+      "page": 3,
+      "title": "資料多先考驗容量",
+      "points": [
+        "模型與暫存內容需要可用空間",
+        "放不下時，可能需要其他配置"
+      ],
+      "bubble": "能裝下，是第一道題。",
+      "visual": "storage",
+      "diagram_labels": [
+        "模型",
+        "暫存",
+        "可用容量"
+      ],
+      "host": {
+        "expression": "開心記錄",
+        "gaze": "看左下筆記",
+        "action": "短掌靠筆記",
+        "prop": "空白筆記本",
+        "intent": "指讀本頁的資料多先考驗容量",
+        "contact": "短掌接觸所列道具，身體與腳受地面支撐；無道具頁以視線和短掌邀請讀者。",
+        "asset_id": "bibi_semiconductor_host_05",
+        "version": "v001"
+      }
+    },
+    {
+      "page": 4,
+      "title": "搬得動再考驗頻寬",
+      "points": [
+        "頻繁存取資料，會占用記憶體頻寬",
+        "頻寬不足時，增加算力未必解決"
+      ],
+      "bubble": "有廚師，也要有補給。",
+      "visual": "memory_road",
+      "diagram_labels": [
+        "記憶體",
+        "資料通道",
+        "運算"
+      ],
+      "host": {
+        "expression": "思考",
+        "gaze": "看右側樣品",
+        "action": "雙短掌靠桌",
+        "prop": "兩種樣品與矮桌",
+        "intent": "指讀本頁的搬得動再考驗頻寬",
+        "contact": "短掌接觸所列道具，身體與腳受地面支撐；無道具頁以視線和短掌邀請讀者。",
+        "asset_id": "bibi_semiconductor_host_04",
+        "version": "v001"
+      }
+    },
+    {
+      "page": 5,
+      "title": "每種AI不會同樣卡住",
+      "points": [
+        "訓練、推論與不同模型需求各異",
+        "瓶頸可能在運算、記憶體或通訊"
+      ],
+      "bubble": "先找真正的瓶頸。",
+      "visual": "compare",
+      "diagram_labels": [
+        "運算",
+        "記憶體",
+        "通訊"
+      ],
+      "host": {
+        "expression": "微笑解說",
+        "gaze": "看左側提示板",
+        "action": "短掌握短指示棒",
+        "prop": "空白提示板",
+        "intent": "指讀本頁的每種AI不會同樣卡住",
+        "contact": "短掌接觸所列道具，身體與腳受地面支撐；無道具頁以視線和短掌邀請讀者。",
+        "asset_id": "bibi_semiconductor_host_02",
+        "version": "v001"
+      }
+    },
+    {
+      "page": 6,
+      "title": "快之外還要顧電與熱",
+      "points": [
+        "搬資料與做運算都需要能量",
+        "選記憶體也得看功耗與散熱"
+      ],
+      "bubble": "系統不是只比峰值。",
+      "visual": "balance",
+      "diagram_labels": [
+        "效能",
+        "能耗",
+        "散熱"
+      ],
+      "host": {
+        "expression": "擔心檢查",
+        "gaze": "看左下警示牌",
+        "action": "短掌扶牌",
+        "prop": "無字警示牌",
+        "intent": "指讀本頁的快之外還要顧電與熱",
+        "contact": "短掌接觸所列道具，身體與腳受地面支撐；無道具頁以視線和短掌邀請讀者。",
+        "asset_id": "bibi_semiconductor_host_06",
+        "version": "v001"
+      }
+    },
+    {
+      "page": 7,
+      "title": "需求故事要落到產品",
+      "points": [
+        "看模型用途、平台配置與採用情況",
+        "熱門趨勢不等於每家供應商都贏"
+      ],
+      "bubble": "先問它賣的是哪一段。",
+      "visual": "checklist",
+      "diagram_labels": [
+        "工作負載",
+        "平台設計",
+        "採用情況"
+      ],
+      "host": {
+        "expression": "點頭理解",
+        "gaze": "看右上",
+        "action": "短掌靠紙卡",
+        "prop": "三張筆記卡",
+        "intent": "指讀本頁的需求故事要落到產品",
+        "contact": "短掌接觸所列道具，身體與腳受地面支撐；無道具頁以視線和短掌邀請讀者。",
+        "asset_id": "bibi_semiconductor_host_07",
+        "version": "v001"
+      }
+    },
+    {
+      "page": 8,
+      "title": "最後把產業鏈拆開",
+      "points": [
+        "AI 需求說明了為何需要高頻寬",
+        "下一篇分清顆粒、堆疊與封裝"
+      ],
+      "bubble": "誰做記憶體，誰做連接？",
+      "visual": "cta",
+      "diagram_labels": [
+        "顆粒",
+        "堆疊",
+        "系統封裝"
+      ],
+      "host": {
+        "expression": "微笑邀請",
+        "gaze": "看讀者",
+        "action": "短掌貼身揮手",
+        "prop": "無",
+        "intent": "指讀本頁的最後把產業鏈拆開",
+        "contact": "短掌接觸所列道具，身體與腳受地面支撐；無道具頁以視線和短掌邀請讀者。",
+        "asset_id": "bibi_semiconductor_host_08",
+        "version": "v001"
+      }
+    }
+  ]
+}
