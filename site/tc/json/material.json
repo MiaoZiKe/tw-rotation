@@ -59,18 +59,26 @@
             2,
             6
           ],
-          "annual_months": null,
+          "annual_months": [
+            16,
+            20
+          ],
           "annual_total_wan": null,
           "weekly_hours": null,
-          "overtime": null,
-          "travel": null,
+          "overtime": "經常",
+          "travel": "偶爾（可能外派）",
           "n": 1,
-          "note": "GoodJob 2026-07 只提發放結構無金額；2025-04 品保自述 7.5 萬含人民幣津貼（外派）不採",
+          "note": "GoodJob 2026-07 只提發放結構無金額；2025-04 品保自述 7.5 萬含人民幣津貼（外派）不採；GoodJob：年終固定 2 個月＋績效與留任獎金，有人理解為年薪 16～20 個月；平均每週 51 小時、44% 幾乎每天加班；面試會問能否外派（2026-03）",
           "sources": [
             {
               "site": "GoodJob",
               "url": "https://www.goodjob.life/companies/臻鼎科技股份有限公司/work-experiences/薪資福利",
               "date": "2026-07"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/69c9c4ec18b49866695d85b3",
+              "date": "2026-03"
             }
           ],
           "confidence": "低"
@@ -223,7 +231,7 @@
           "overtime": null,
           "travel": null,
           "n": 1,
-          "note": "招募文件列碩士工程師起薪 4.7～6.5 萬（文件無日期，可能較舊）；比薪水近期金額需解鎖",
+          "note": "招募文件列碩士工程師起薪 4.7～6.5 萬（文件無日期，可能較舊）；比薪水近期金額需解鎖；2026-10 查 GoodJob 南電加班／分紅無結果，維持 null",
           "sources": [
             {
               "site": "長庚大學公告",
@@ -264,7 +272,10 @@
           "degree": "碩士",
           "years": "0-2",
           "base_month_k": null,
-          "bonus_months": null,
+          "bonus_months": [
+            2,
+            6
+          ],
           "annual_months": [
             14,
             18
@@ -274,15 +285,20 @@
             80
           ],
           "weekly_hours": null,
-          "overtime": null,
+          "overtime": "偶爾～經常",
           "travel": null,
           "n": 1,
-          "note": "GoodJob 2025-11 面試回報：底薪未知，整年 16～18 個月、新人約 14～16 個月，年薪約 80 萬",
+          "note": "GoodJob 2025-11 面試回報：底薪未知，整年 16～18 個月、新人約 14～16 個月，年薪約 80 萬；GoodJob：平均每週 48 小時、21% 幾乎每天加班；年終 2 個月＋9 月分紅；分紅月數下緣為年終，上緣依年薪 18 個月推算",
           "sources": [
             {
               "site": "GoodJob",
               "url": "https://www.goodjob.life/experiences/69319c82b075493d7f6894c7",
               "date": "2025-11"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台光電子材料股份有限公司",
+              "date": "2026-03"
             }
           ],
           "confidence": "低"
