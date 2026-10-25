@@ -71,7 +71,7 @@
           "overtime": null,
           "travel": "需要",
           "n": 0,
-          "note": "Dcard 引 2023 碩士年薪 64～72 萬＋車補 16.6 萬，已超出一年期不採；查無可用數字；查過關鍵字：KLA Lam Research 台灣 工程師 薪水 2026／科磊 KLA 科林研發 GoodJob 工程師 月薪 年薪 出差",
+          "note": "Dcard 引 2023 碩士年薪 64～72 萬＋車補 16.6 萬，已超出一年期不採；查無可用數字；查過關鍵字：KLA Lam Research 台灣 工程師 薪水 2026／科磊 KLA 科林研發 GoodJob 工程師 月薪 年薪 出差；比薪水新竹／台中／台南多筆應用工程師（年資 1～2 年）金額需解鎖",
           "sources": [
             {
               "site": "Dcard",
@@ -88,10 +88,10 @@
       "name": "Lam Research",
       "code": "LRCX",
       "heat": "Dcard 熱度：低",
-      "benefits": "本輪未查到",
-      "stock_plan": "本輪未查到",
+      "benefits": "第一年 20 天年假＋生日假、4 個月全薪育兒假、購屋利息補助（2026 招募新聞）",
+      "stock_plan": "股票認購權利（招募新聞）",
       "bonus_timing": "本輪未查到",
-      "culture": "Dcard 比較文稱第一年薪資科林研發最高（未註日期）",
+      "culture": "比薪水自述日均 9～12 小時、常加班",
       "interview": "本輪未查到",
       "roles": [
         {
@@ -221,10 +221,10 @@
       "name": "漢磊",
       "code": "3707",
       "heat": "Dcard 熱度：低",
-      "benefits": "本輪未查到",
+      "benefits": "免費午餐、伙食津貼、三節禮券",
       "stock_plan": "本輪未查到",
-      "bonus_timing": "本輪未查到",
-      "culture": "2024 自述常常加班、日均 9 小時",
+      "bonus_timing": "保 14 個月；分紅不要抱期待（自述）",
+      "culture": "GoodJob 評分 3.7（71 筆），薪資福利 3.3；常態加班 1～2 小時、假日值班",
       "interview": "本輪未查到",
       "roles": [
         {
@@ -232,20 +232,29 @@
           "role": "製程工程師",
           "degree": "碩士",
           "years": "0-2",
-          "base_month_k": null,
+          "base_month_k": [
+            50,
+            54
+          ],
           "bonus_months": null,
-          "annual_months": null,
+          "annual_months": [
+            14,
+            14
+          ],
           "annual_total_wan": null,
-          "weekly_hours": null,
-          "overtime": null,
-          "travel": null,
-          "n": 0,
-          "note": "比薪水只有 2020～2024 資料且金額需解鎖；查無可用數字；查過關鍵字：漢磊 工程師 薪水 月薪 年終 2026 GoodJob",
+          "weekly_hours": [
+            43,
+            50
+          ],
+          "overtime": "經常",
+          "travel": "不用",
+          "n": 2,
+          "note": "GoodJob 製程工程師 5.4 萬、面試回報 5 萬；另一則年薪 95 萬年資未明不採",
           "sources": [
             {
-              "site": "比薪水",
-              "url": "https://salary.tw/salary/6662c8e583681b92ea073233",
-              "date": "2024"
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/漢磊科技股份有限公司/work-experiences/",
+              "date": "2026"
             }
           ],
           "confidence": "低"

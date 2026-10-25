@@ -8,11 +8,11 @@
       "name": "台積電",
       "code": "2330",
       "heat": "Dcard 熱度：高",
-      "benefits": "三節、運動會獎金、員工旅遊與健康中心",
-      "stock_plan": "員工持股信託（公司提撥）；細節本輪未查證",
-      "bonus_timing": "分紅按季發放，GoodJob 自述另有 7 月整季分紅",
+      "benefits": "三節、運動會獎金、健康中心；人均薪資福利費用 433 萬（114 年度永續報告書）",
+      "stock_plan": "員工購股計畫，逾 85% 員工參與；2025-07 起擴及海外子公司並補助 15%",
+      "bonus_timing": "業績獎金每季季後發放；酬勞（分紅）每年 7 月發放（2025 年度合計約 2,061 億，各半）",
       "culture": "高薪高工時；GoodJob 工時狀況平均 2.6／5（109 筆）",
-      "interview": "本輪未查到近一年面試流程摘要",
+      "interview": "約兩個月：線上面試→適性／英文測驗→主管面（論文為主）＋人資面（問能否輪班）→資歷查核→電子聘書；題目多出自「台積 24 問」",
       "roles": [
         {
           "unit": "晶圓廠 Fab",
@@ -110,6 +110,43 @@
             }
           ],
           "confidence": "低"
+        },
+        {
+          "unit": "晶圓廠 Fab",
+          "role": "製程整合工程師（PIE）",
+          "degree": "碩士",
+          "years": "0-2",
+          "base_month_k": [
+            60,
+            64
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": [
+            200,
+            240
+          ],
+          "weekly_hours": [
+            48,
+            60
+          ],
+          "overtime": "經常",
+          "travel": "不用",
+          "n": 3,
+          "note": "GoodJob 製程整合職稱頁台積電回報多在 6～6.4 萬；PTT／Dcard 未找到 PIE 專屬 offer 數字；年薪沿用公司公布碩士平均 220 萬以上",
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/job-titles/製程整合/work-experiences",
+              "date": "2026"
+            },
+            {
+              "site": "台積電徵才",
+              "url": "https://careers.tsmc.com/zh_TW/careers/JobDetail/2026-TSMC-Campus-Recruitment-Process-Integration-Engineer-PIE/19037",
+              "date": "2026-03"
+            }
+          ],
+          "confidence": "中"
         }
       ],
       "mops": {
@@ -126,10 +163,10 @@
       "code": "2303",
       "heat": "Dcard 熱度：中",
       "benefits": "育兒津貼、彈性工時、南科獎金（約 2 個月，自述）",
-      "stock_plan": "本輪未查到",
-      "bonus_timing": "自述保底約 16 個月，1／4／7／10 月發放；額外分紅看營運",
+      "stock_plan": "過去曾發行限制員工權利新股留才（2022 報導）；近一年員工持股方案未查到",
+      "bonus_timing": "自述 1／4／7／10 月發放（保底約 16.2 個月含三節）；額外分紅看營運",
       "culture": "GoodJob 薪資福利 3.9／5（33 筆）；普遍認為不如台積但穩",
-      "interview": "本輪未查到；有自述簽約金 10 萬需待滿兩年",
+      "interview": "兩位主管線上面試：自我介紹→論文／專案追問→半導體專業題→人格與情境題；元件開發會考元件物理",
       "roles": [
         {
           "unit": "晶圓廠 Fab",
@@ -199,6 +236,64 @@
             }
           ],
           "confidence": "低"
+        },
+        {
+          "unit": "研發 R&D",
+          "role": "元件開發／微影模組研發工程師",
+          "degree": "碩士",
+          "years": "0-2",
+          "base_month_k": [
+            67,
+            67
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": [
+            150,
+            180
+          ],
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": "偶爾",
+          "n": 3,
+          "note": "GoodJob 2026-04～05 面試回報月薪 6.7 萬（黃光、元件開發），微影研發年薪 180 萬（未錄取者）；學歷未標",
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯華電子股份有限公司/interview-experiences",
+              "date": "2026-05"
+            }
+          ],
+          "confidence": "中"
+        },
+        {
+          "unit": "晶圓廠 Fab",
+          "role": "製程整合工程師",
+          "degree": "碩士",
+          "years": "0-2",
+          "base_month_k": [
+            67,
+            70
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": [
+            48,
+            60
+          ],
+          "overtime": "經常",
+          "travel": "不用",
+          "n": 2,
+          "note": "GoodJob 2026-03 月薪 6.7 萬、工時 60 小時／週；2025-08 一則 7 萬，分紅與加薪看考績",
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/job-titles/製程整合/work-experiences",
+              "date": "2026-03"
+            }
+          ],
+          "confidence": "中"
         }
       ],
       "mops": {
@@ -218,7 +313,7 @@
       "stock_plan": "本輪未查到",
       "bonus_timing": "本輪未查到",
       "culture": "比薪水稱年薪高於半導體業平均；2025-10 一則資深自述「保障 16 個月、不太推薦」",
-      "interview": "本輪未查到",
+      "interview": "GoodJob 面試回報少：筆試算術＋英文、二面人資（舊資料）；整合工程師面試回報月薪 5.8 萬（未通知）",
       "roles": [
         {
           "unit": "晶圓廠 Fab",
@@ -256,7 +351,56 @@
         },
         {
           "unit": "晶圓廠 Fab",
-          "role": "製程工程師",
+          "role": "製程整合工程師",
+          "degree": "碩士",
+          "years": "0-2",
+          "base_month_k": [
+            58,
+            58
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n": 1,
+          "note": "GoodJob 面試回報單筆 5.8 萬（未通知、年資不完整）；Dcard／PTT 查無世界先進 offer。查過：世界先進 offer 碩士 月薪 分紅 面試 2026（Dcard）／世界先進 GoodJob 面試經驗 製程整合 設備工程師 月薪",
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/世界先進積體電路股份有限公司/interview-experiences?p=3",
+              "date": "2026"
+            }
+          ],
+          "confidence": "低"
+        },
+        {
+          "unit": "晶圓廠 Fab",
+          "role": "設備工程師",
+          "degree": "碩士",
+          "years": "0-2",
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": "不用",
+          "n": 0,
+          "note": "僅有 2018 年設備助理工程師 3.8 萬（太舊不採）",
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/世界先進積體電路股份有限公司/interview-experiences?p=3",
+              "date": "2018"
+            }
+          ],
+          "confidence": "低"
+        },
+        {
+          "unit": "研發 R&D",
+          "role": "元件／製程研發工程師",
           "degree": "碩士",
           "years": "0-2",
           "base_month_k": null,
@@ -267,7 +411,7 @@
           "overtime": null,
           "travel": null,
           "n": 0,
-          "note": "查無可用數字；查過關鍵字：世界先進 碩士 薪水 年薪 2026 Dcard／世界先進 工程師 月薪 分紅 季獎金 2026 GoodJob 製程／世界先進 力積電 碩士 薪水",
+          "note": "查無；關鍵字同上＋世界先進 製程 月薪 分紅 季獎金 2026",
           "sources": [
             {
               "site": "GoodJob",
@@ -291,11 +435,11 @@
       "name": "力積電",
       "code": "6770",
       "heat": "Dcard 熱度：中",
-      "benefits": "產線績效獎金約每月 1,500 元（自述）",
+      "benefits": "陽明交大合辦碩士預聘獎學金每年 20 萬（需簽服務契約）；產線績效獎金約每月 1,500 元（自述）",
       "stock_plan": "自述員工認股 5 折（2025）",
       "bonus_timing": "保 14 個月（含年終 2 個月）；季獎金與分紅近一年自述多未發",
       "culture": "底薪在代工廠中不差，但分紅「可以當作沒有」是常見說法",
-      "interview": "本輪未查到",
+      "interview": "兩位副理＋一位經理主管面（罐頭題、碩論、背景）→英文與心理測驗→人資面；interview.tw 面試評價 3.7／5、難度 2.7／5",
       "roles": [
         {
           "unit": "晶圓廠 Fab",
@@ -406,6 +550,40 @@
               "site": "GoodJob",
               "url": "https://www.goodjob.life/companies/力晶積成電子製造股份有限公司(力積電) PSMC/work-experiences/薪資福利?p=3",
               "date": "2025"
+            }
+          ],
+          "confidence": "低"
+        },
+        {
+          "unit": "研發 R&D",
+          "role": "元件模型技術／製程開發工程師",
+          "degree": "碩士",
+          "years": "0-2",
+          "base_month_k": [
+            62,
+            62
+          ],
+          "bonus_months": null,
+          "annual_months": [
+            14,
+            14
+          ],
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": "不用",
+          "n": 1,
+          "note": "GoodJob 面試回報月薪 6.2 萬（面試時間 2023-09，發文 2026-04，時效偏舊）；Dcard／PTT 查無",
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/力晶積成電子製造股份有限公司(力積電) PSMC/interview-experiences?p=2",
+              "date": "2026-04"
+            },
+            {
+              "site": "面試趣",
+              "url": "https://interview.tw/c/a9q4/info",
+              "date": "未明"
             }
           ],
           "confidence": "低"

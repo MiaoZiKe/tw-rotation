@@ -146,9 +146,9 @@
       "name": "景碩",
       "code": "3189",
       "heat": "Dcard 熱度：低",
-      "benefits": "本輪未查到",
+      "benefits": "三節禮券、加班費另計",
       "stock_plan": "本輪未查到",
-      "bonus_timing": "本輪未查到",
+      "bonus_timing": "年終約 2 個月；實習有季獎金（招募文件）",
       "culture": "自述「除了工程師以外不太建議」",
       "interview": "本輪未查到",
       "roles": [
@@ -157,23 +157,35 @@
           "role": "製程工程師",
           "degree": "碩士",
           "years": "0-2",
-          "base_month_k": null,
-          "bonus_months": null,
-          "annual_months": null,
+          "base_month_k": [
+            50,
+            60
+          ],
+          "bonus_months": [
+            2,
+            2
+          ],
+          "annual_months": [
+            14,
+            15
+          ],
           "annual_total_wan": null,
-          "weekly_hours": null,
-          "overtime": null,
-          "travel": null,
-          "n": 0,
-          "note": "比薪水 2026 有 2 筆但金額需解鎖；查無可用數字；查過關鍵字：景碩 南電 台光電 工程師 月薪 2026 GoodJob 年終／欣興 景碩 南電 載板 碩士 年薪 Dcard 2026",
+          "weekly_hours": [
+            40,
+            46
+          ],
+          "overtime": "偶爾",
+          "travel": "不用",
+          "n": 2,
+          "note": "GoodJob 2026-01 不到 1 年 6 萬、2025-09 三年 5 萬；學歷未標",
           "sources": [
             {
-              "site": "比薪水",
-              "url": "https://salary.tw/salary/6a574953da9cdc42fb0a64e7",
-              "date": "2026-07"
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/景碩科技股份有限公司/work-experiences/薪資福利",
+              "date": "2026-01"
             }
           ],
-          "confidence": "低"
+          "confidence": "中"
         }
       ],
       "mops": {
@@ -189,10 +201,10 @@
       "name": "南電",
       "code": "8046",
       "heat": "Dcard 熱度：低",
-      "benefits": "本輪未查到",
+      "benefits": "長庚就醫優待、免費健檢、員工餐廳與宿舍（招募文件）",
       "stock_plan": "本輪未查到",
-      "bonus_timing": "本輪未查到",
-      "culture": "本輪未查到",
+      "bonus_timing": "每季依經營績效發放季激勵獎金（招募文件）",
+      "culture": "比薪水自述日均 11～12 小時、加班多，也有人說制度完善",
       "interview": "本輪未查到",
       "roles": [
         {
@@ -200,19 +212,27 @@
           "role": "製程工程師",
           "degree": "碩士",
           "years": "0-2",
-          "base_month_k": null,
+          "base_month_k": [
+            47,
+            65
+          ],
           "bonus_months": null,
           "annual_months": null,
           "annual_total_wan": null,
           "weekly_hours": null,
           "overtime": null,
           "travel": null,
-          "n": 0,
-          "note": "查無可用數字；查過關鍵字：景碩 南電 台光電 工程師 月薪 2026 GoodJob 年終／南亞電路板 台光電 工程師 薪水 GoodJob 年終 分紅／欣興 景碩 南電 載板 碩士 年薪 Dcard 2026",
+          "n": 1,
+          "note": "招募文件列碩士工程師起薪 4.7～6.5 萬（文件無日期，可能較舊）；比薪水近期金額需解鎖",
           "sources": [
             {
-              "site": "GoodJob",
-              "url": "https://www.goodjob.life/",
+              "site": "長庚大學公告",
+              "url": "https://cguas.cgu.edu.tw/var/file/50/1050/img/2209/350316054.pdf",
+              "date": "未明"
+            },
+            {
+              "site": "比薪水",
+              "url": "https://salary.tw/salary/6a1656f430605e3a4b0c0aba",
               "date": "2026"
             }
           ],
@@ -232,31 +252,37 @@
       "name": "台光電",
       "code": "2383",
       "heat": "Dcard 熱度：低",
-      "benefits": "本輪未查到",
+      "benefits": "研究加給、交通補助",
       "stock_plan": "本輪未查到",
-      "bonus_timing": "本輪未查到",
+      "bonus_timing": "自述一年四次：第一季年終、第二季績效、第三季管理獎金、第四季分紅",
       "culture": "舊資料（2021～22）日均 9～12 小時",
       "interview": "本輪未查到",
       "roles": [
         {
           "unit": "CCL 廠",
-          "role": "製程工程師",
+          "role": "產品測試工程師",
           "degree": "碩士",
           "years": "0-2",
           "base_month_k": null,
           "bonus_months": null,
-          "annual_months": null,
-          "annual_total_wan": null,
+          "annual_months": [
+            14,
+            18
+          ],
+          "annual_total_wan": [
+            80,
+            80
+          ],
           "weekly_hours": null,
           "overtime": null,
           "travel": null,
-          "n": 0,
-          "note": "比薪水只有 2020～2022 年資料且金額需解鎖；查無可用數字；查過關鍵字：南亞電路板 台光電 工程師 薪水 GoodJob 年終 分紅／景碩 南電 台光電 工程師 月薪 2026 GoodJob",
+          "n": 1,
+          "note": "GoodJob 2025-11 面試回報：底薪未知，整年 16～18 個月、新人約 14～16 個月，年薪約 80 萬",
           "sources": [
             {
-              "site": "比薪水",
-              "url": "https://salary.tw/salary/61fc98109b3b5f543e699db2",
-              "date": "2022"
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/69319c82b075493d7f6894c7",
+              "date": "2025-11"
             }
           ],
           "confidence": "低"
