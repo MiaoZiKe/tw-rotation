@@ -1608,6 +1608,23 @@
     },
   };
 
+  /* 矽光子／CPO：交換器機箱（圖 B 的 3D，2026-10-25）。零件全部沿用 siph_pkg（同一組 sp_* 身分，2D↔3D 選取連動），
+     另加兩件對照用的：一排半透明的「傳統可插拔光模組」（CPO 款把它拿掉）與 ASIC 到前面板的那一條「長電走線」。*/
+  SCENES.siph_module = (() => {
+    const b = SCENES.siph_pkg;
+    const parts = b.parts.map((p) => Object.assign({}, p));
+    parts.push({ seg: 'optical', part: 'spm_plug', name: '傳統作法：前面板的可插拔光模組（半透明）', note: '可插拔把光放在前面板的模組裡，ASIC 的電訊號要沿主板走一長段（公分～數十公分）才到這裡；CPO 款把這一排拿掉，光引擎搬到 ASIC 旁。示意',
+      kind: 'optic', box: [3.6, 2.2, 10], at: [-4.5, 5.5, 36], n: 8, gap: 4.4, axis: 'x', ghost: true, ex: [0, 0, 12], codes: ['4979', '3450'], cnames: { 3450: '聯鈞' },
+      chipnote: '可插拔光模組（800G 已量產；1.6T 未全面）：華星光、聯鈞' });
+    return {
+      title: 'CPO 交換器機箱：光離 ASIC 只剩毫米（半透明＝傳統可插拔）',
+      sub: '前面板只剩光纖連接器與外置雷射 ELSFP；光引擎環繞 ASIC、同在一片載板上。半透明那一排是傳統可插拔光模組的位置（CPO 款拿掉）。示意圖，非實物比例',
+      camera: b.camera, target: b.target, fit: b.fit, hk: b.hk, parts,
+      flows: b.flows.concat([{ kind: 'sig', part: 'spm_plug', r: 0.18, per: 8, speed: 0.4, pts: [[0, 1.4, 6], [0, 1.4, 20], [0, 1.4, 27]] }]),
+      pulses: b.pulses,
+    };
+  })();
+
   function hasScene(id) { return !!SCENES[id]; }
 
   /* ================================================================ E3：零件建造函式
