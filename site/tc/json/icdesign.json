@@ -3480,13 +3480,18 @@
           "weekly_hours": null,
           "overtime": null,
           "travel": null,
-          "n": 1,
+          "n": 2,
           "note": "僅查到 2025 年非主管員工薪資中位數 453.7 萬（全體非碩士起薪口徑，不填入）；WebSearch 查「信驊 碩士 薪資 2026」「GoodJob 信驊」「PTT Tech_Job offer 信驊」「Dcard offer 信驊」「104 ESG 薪資中位數」，摘要未出現 2025-10 後碩士職位數字；2026-10 查 GoodJob（與晶豪科、達發、祥碩同批）未見信驊資料，維持 null",
           "sources": [
             {
               "site": "證交所／櫃買中心公告（新聞摘要）",
               "url": "https://www.1111.com.tw/news/jobns/164778",
               "date": "2026"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/%E4%BF%A1%E9%A9%8A%E7%A7%91%E6%8A%80%E8%82%A1%E4%BB%BD%E6%9C%89%E9%99%90%E5%85%AC%E5%8F%B8",
+              "date": "2026-04"
             }
           ],
           "confidence": "低",
@@ -3507,6 +3512,25 @@
               "overtime": null,
               "travel": null,
               "quote_free_note": null
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/%E4%BF%A1%E9%A9%8A%E7%A7%91%E6%8A%80%E8%82%A1%E4%BB%BD%E6%9C%89%E9%99%90%E5%85%AC%E5%8F%B8",
+              "date": "2026-04",
+              "unit_detail": null,
+              "years": null,
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "數位 IC 面試短評：人資介紹工作環境、環境舒適，給 5 分，無數字",
+              "date_confirmed": true,
+              "in_window": true,
+              "date_note": "GoodJob 摘要標 2026 年 4 月"
             }
           ]
         },
@@ -3725,12 +3749,38 @@
           "weekly_hours": null,
           "overtime": "偶爾",
           "travel": null,
-          "n": 0,
+          "n": 1,
           "note": "WebSearch 查「祥碩 碩士 薪資 2026」「GoodJob 祥碩」「PTT Tech_Job offer 祥碩」「Dcard offer 祥碩」「104 ESG 薪資中位數」，摘要未出現 2025-10 後碩士職位數字",
-          "sources": [],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/%E7%A5%A5%E7%A2%A9%E7%A7%91%E6%8A%80%E8%82%A1%E4%BB%BD%E6%9C%89%E9%99%90%E5%85%AC%E5%8F%B8/interview-experiences",
+              "date": "2026-08"
+            }
+          ],
           "confidence": "低",
           "grade": null,
-          "samples": []
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/%E7%A5%A5%E7%A2%A9%E7%A7%91%E6%8A%80%E8%82%A1%E4%BB%BD%E6%9C%89%E9%99%90%E5%85%AC%E5%8F%B8/interview-experiences",
+              "date": "2026-08",
+              "unit_detail": null,
+              "years": null,
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "數位 IC 面試只有一位主管，問 timing violation、CDC 與投影片內容，未錄取，無數字",
+              "date_confirmed": true,
+              "in_window": true,
+              "date_note": "GoodJob 面試心得列表摘要標 2026 年 8 月"
+            }
+          ]
         },
         {
           "unit": "研發 R&D",
