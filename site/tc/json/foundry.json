@@ -20,8 +20,8 @@
           "degree": "不限",
           "years": "0-2",
           "base_month_k": [
-            62.4,
-            130
+            65,
+            65
           ],
           "bonus_months": [
             4.22,
@@ -29,11 +29,11 @@
           ],
           "annual_months": null,
           "annual_total_wan": [
-            112,
+            220,
             250
           ],
           "weekly_hours": [
-            55,
+            60,
             60
           ],
           "overtime": "經常",
@@ -135,7 +135,9 @@
               "weekly_hours": null,
               "overtime": "經常",
               "travel": "不用",
-              "quote_free_note": "碩士新進月薪約 6.5 萬以上"
+              "quote_free_note": "碩士新進月薪約 6.5 萬以上",
+              "date_confirmed": true,
+              "in_window": true
             },
             {
               "site": "聯合新聞網",
@@ -151,7 +153,9 @@
               "weekly_hours": null,
               "overtime": "經常",
               "travel": "不用",
-              "quote_free_note": "公司口徑碩士新進平均年薪 220 萬"
+              "quote_free_note": "公司口徑碩士新進平均年薪 220 萬",
+              "date_confirmed": true,
+              "in_window": true
             },
             {
               "site": "財報狗",
@@ -167,7 +171,9 @@
               "weekly_hours": null,
               "overtime": "經常",
               "travel": "不用",
-              "quote_free_note": "摘要無個人數字，僅作制度／口徑參考"
+              "quote_free_note": "摘要無個人數字，僅作制度／口徑參考",
+              "date_confirmed": true,
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -183,7 +189,10 @@
               "weekly_hours": null,
               "overtime": "經常",
               "travel": "不用",
-              "quote_free_note": "碩士以上新進平均起薪 65,130（公開觀測站口徑）"
+              "quote_free_note": "碩士以上新進平均起薪 65,130（公開觀測站口徑）",
+              "date_confirmed": false,
+              "in_window": false,
+              "date_note": "日期未確認：依文章編號推估，錨點：Dcard 258703494 與 PTT 2025-05 同則新聞、261413813 與今周刊 2026-05 同則個案，推估約每月 25 萬號；仍屬推估"
             },
             {
               "site": "PTT",
@@ -199,7 +208,9 @@
               "weekly_hours": null,
               "overtime": "經常",
               "travel": "不用",
-              "quote_free_note": "同上新聞轉貼"
+              "quote_free_note": "同上新聞轉貼",
+              "date_confirmed": true,
+              "in_window": false
             },
             {
               "site": "Dcard",
@@ -215,7 +226,10 @@
               "weekly_hours": null,
               "overtime": "經常",
               "travel": "不用",
-              "quote_free_note": "31 職等以上工程師平均年薪討論，無個人數字"
+              "quote_free_note": "31 職等以上工程師平均年薪討論，無個人數字",
+              "date_confirmed": false,
+              "in_window": false,
+              "date_note": "日期未確認：依文章編號推估，錨點：Dcard 258703494 與 PTT 2025-05 同則新聞、261413813 與今周刊 2026-05 同則個案，推估約每月 25 萬號；仍屬推估"
             },
             {
               "site": "GoodJob",
@@ -231,7 +245,9 @@
               "weekly_hours": 55,
               "overtime": "經常",
               "travel": "不用",
-              "quote_free_note": "自述月薪 6.24 萬、55 小時／週"
+              "quote_free_note": "自述月薪 6.24 萬、55 小時／週",
+              "date_confirmed": true,
+              "in_window": false
             },
             {
               "site": "GoodJob",
@@ -247,7 +263,9 @@
               "weekly_hours": 60,
               "overtime": "經常",
               "travel": "不用",
-              "quote_free_note": "自述年薪約 250 萬、60 小時／週"
+              "quote_free_note": "自述年薪約 250 萬、60 小時／週",
+              "date_confirmed": true,
+              "in_window": true
             },
             {
               "site": "PTT",
@@ -263,7 +281,9 @@
               "weekly_hours": null,
               "overtime": "經常",
               "travel": "不用",
-              "quote_free_note": "碩士 31 職等考績 S 推算年薪約 218 萬"
+              "quote_free_note": "碩士 31 職等考績 S 推算年薪約 218 萬",
+              "date_confirmed": true,
+              "in_window": false
             },
             {
               "site": "PTT",
@@ -279,7 +299,9 @@
               "weekly_hours": null,
               "overtime": "經常",
               "travel": "不用",
-              "quote_free_note": "31 職等 S 季分紅約 4.22 個月（單季）"
+              "quote_free_note": "31 職等 S 季分紅約 4.22 個月（單季）",
+              "date_confirmed": true,
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -295,7 +317,10 @@
               "weekly_hours": null,
               "overtime": "經常",
               "travel": "不用",
-              "quote_free_note": "四大碩畢 PE 第一年約 120 萬、二年 140～150、三年 160～180"
+              "quote_free_note": "四大碩畢 PE 第一年約 120 萬、二年 140～150、三年 160～180",
+              "date_confirmed": false,
+              "in_window": false,
+              "date_note": "日期未確認：依文章編號推估，錨點：Dcard 258703494 與 PTT 2025-05 同則新聞、261413813 與今周刊 2026-05 同則個案，推估約每月 25 萬號；仍屬推估"
             },
             {
               "site": "Dcard",
@@ -311,7 +336,10 @@
               "weekly_hours": null,
               "overtime": "經常",
               "travel": "不用",
-              "quote_free_note": "碩士新人推算第一年約 112 萬（範圍外）"
+              "quote_free_note": "碩士新人推算第一年約 112 萬（範圍外）",
+              "date_confirmed": false,
+              "in_window": false,
+              "date_note": "日期未確認：依文章編號推估，錨點：Dcard 258703494 與 PTT 2025-05 同則新聞、261413813 與今周刊 2026-05 同則個案，推估約每月 25 萬號；仍屬推估"
             },
             {
               "site": "GoodJob",
@@ -327,7 +355,9 @@
               "weekly_hours": 60,
               "overtime": "經常",
               "travel": "不用",
-              "quote_free_note": "碩士 5 年月薪 13 萬（2022，範圍外）"
+              "quote_free_note": "碩士 5 年月薪 13 萬（2022，範圍外）",
+              "date_confirmed": true,
+              "in_window": false
             },
             {
               "site": "GoodJob",
@@ -343,7 +373,9 @@
               "weekly_hours": null,
               "overtime": "經常",
               "travel": "不用",
-              "quote_free_note": "封裝製程工程師評價，摘要無金額"
+              "quote_free_note": "封裝製程工程師評價，摘要無金額",
+              "date_confirmed": true,
+              "in_window": false
             },
             {
               "site": "GoodJob",
@@ -359,9 +391,12 @@
               "weekly_hours": null,
               "overtime": "經常",
               "travel": "不用",
-              "quote_free_note": "PE 評價 2026-06，摘要無金額"
+              "quote_free_note": "PE 評價 2026-06，摘要無金額",
+              "date_confirmed": true,
+              "in_window": true
             }
-          ]
+          ],
+          "n_in_window": 6
         },
         {
           "unit": "晶圓廠 Fab",
@@ -374,17 +409,14 @@
           ],
           "bonus_months": null,
           "annual_months": null,
-          "annual_total_wan": [
-            140,
-            172
-          ],
+          "annual_total_wan": null,
           "weekly_hours": [
             57,
             57
           ],
           "overtime": "經常",
           "travel": "不用",
-          "n": 9,
+          "n": 14,
           "note": "GoodJob 2026-03 兩則自述（台中、高雄，不到 1 年），工時 55～60 小時／週、需輪班；學歷未標；分紅與年薪月數查 GoodJob／媒體未見設備職專屬數字，維持 null；可參考製程職推算 30～37 個月；2026-10-25 補：Dcard 碩士設備新人第一年自述 120～160 萬（第一年分紅未滿，試用期 3 個月不算），第三年 230～250 萬為單一匿名說法未採",
           "sources": [
             {
@@ -431,6 +463,31 @@
               "site": "PTT",
               "url": "https://www.ptt.cc/bbs/Tech_Job/M.1634317938.A.350.html",
               "date": "2021-10（範圍外）"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/260690920",
+              "date": "依文章編號推估"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/job/p/253568837",
+              "date": "依文章編號推估"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/job/p/233758898",
+              "date": "依文章編號推估"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/238778054",
+              "date": "依文章編號推估"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/235498350",
+              "date": "依文章編號推估"
             }
           ],
           "confidence": "中",
@@ -451,7 +508,9 @@
               "weekly_hours": 57,
               "overtime": "經常",
               "travel": "不用",
-              "quote_free_note": "2026-03 兩則設備自述月薪約 6.3～6.5 萬、55～60 小時、輪班"
+              "quote_free_note": "2026-03 兩則設備自述月薪約 6.3～6.5 萬、55～60 小時、輪班",
+              "date_confirmed": true,
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -467,7 +526,10 @@
               "weekly_hours": null,
               "overtime": "經常",
               "travel": "不用",
-              "quote_free_note": "碩士設備新人第一年約 120～160 萬（取中）"
+              "quote_free_note": "碩士設備新人第一年約 120～160 萬（取中）",
+              "date_confirmed": false,
+              "in_window": false,
+              "date_note": "日期未確認：依文章編號推估，錨點：Dcard 258703494 與 PTT 2025-05 同則新聞、261413813 與今周刊 2026-05 同則個案，推估約每月 25 萬號；仍屬推估"
             },
             {
               "site": "Dcard",
@@ -483,7 +545,10 @@
               "weekly_hours": null,
               "overtime": "經常",
               "travel": "不用",
-              "quote_free_note": "摘要無個人數字，僅作制度／口徑參考"
+              "quote_free_note": "摘要無個人數字，僅作制度／口徑參考",
+              "date_confirmed": false,
+              "in_window": false,
+              "date_note": "日期未確認：依文章編號推估，錨點：Dcard 258703494 與 PTT 2025-05 同則新聞、261413813 與今周刊 2026-05 同則個案，推估約每月 25 萬號；仍屬推估"
             },
             {
               "site": "Dcard",
@@ -499,7 +564,10 @@
               "weekly_hours": null,
               "overtime": "經常",
               "travel": "不用",
-              "quote_free_note": "季分紅工程師約 3～6 個月／季"
+              "quote_free_note": "季分紅工程師約 3～6 個月／季",
+              "date_confirmed": false,
+              "in_window": false,
+              "date_note": "日期未確認：依文章編號推估，錨點：Dcard 258703494 與 PTT 2025-05 同則新聞、261413813 與今周刊 2026-05 同則個案，推估約每月 25 萬號；仍屬推估"
             },
             {
               "site": "GoodJob",
@@ -515,7 +583,9 @@
               "weekly_hours": null,
               "overtime": "經常",
               "travel": "不用",
-              "quote_free_note": "面試心得：底薪 6.5 萬＋季分紅，主要問能否輪班"
+              "quote_free_note": "面試心得：底薪 6.5 萬＋季分紅，主要問能否輪班",
+              "date_confirmed": true,
+              "in_window": true
             },
             {
               "site": "GoodJob",
@@ -531,7 +601,9 @@
               "weekly_hours": null,
               "overtime": "經常",
               "travel": "不用",
-              "quote_free_note": "設備面試 2025-11，摘要無金額"
+              "quote_free_note": "設備面試 2025-11，摘要無金額",
+              "date_confirmed": true,
+              "in_window": true
             },
             {
               "site": "GoodJob",
@@ -547,7 +619,9 @@
               "weekly_hours": null,
               "overtime": "經常",
               "travel": "不用",
-              "quote_free_note": "設備面試 2024-06（範圍外）"
+              "quote_free_note": "設備面試 2024-06（範圍外）",
+              "date_confirmed": true,
+              "in_window": false
             },
             {
               "site": "PTT",
@@ -563,7 +637,9 @@
               "weekly_hours": null,
               "overtime": "經常",
               "travel": "不用",
-              "quote_free_note": "設備第一年 172 萬說法，串內多人質疑（範圍外）"
+              "quote_free_note": "設備第一年 172 萬說法，串內多人質疑（範圍外）",
+              "date_confirmed": true,
+              "in_window": false
             },
             {
               "site": "PTT",
@@ -579,9 +655,107 @@
               "weekly_hours": null,
               "overtime": "經常",
               "travel": "不用",
-              "quote_free_note": "回文稱第二年約 160～180（範圍外）"
+              "quote_free_note": "回文稱第二年約 160～180（範圍外）",
+              "date_confirmed": true,
+              "in_window": false
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/260690920",
+              "date": "依文章編號推估",
+              "unit_detail": "晶圓廠 Fab",
+              "years": "0-2",
+              "degree": "不限",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": "經常",
+              "travel": "不用",
+              "quote_free_note": "台積 PAE 與力積電設備比較請益，摘要無台積設備金額",
+              "date_confirmed": false,
+              "in_window": false,
+              "date_note": "日期未確認：依文章編號推估，錨點：Dcard 258703494 與 PTT 2025-05 同則新聞、261413813 與今周刊 2026-05 同則個案，推估約每月 25 萬號；仍屬推估"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/job/p/253568837",
+              "date": "依文章編號推估",
+              "unit_detail": "晶圓廠 Fab",
+              "years": "0-2",
+              "degree": "不限",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": "經常",
+              "travel": "不用",
+              "quote_free_note": "技術員與設備工程師差異：設備需輪大小夜、負責故障排除，第二年年薪技術員不到設備一半",
+              "date_confirmed": false,
+              "in_window": false,
+              "date_note": "日期未確認：依文章編號推估，錨點：Dcard 258703494 與 PTT 2025-05 同則新聞、261413813 與今周刊 2026-05 同則個案，推估約每月 25 萬號；仍屬推估"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/job/p/233758898",
+              "date": "依文章編號推估",
+              "unit_detail": "晶圓廠 Fab",
+              "years": "0-2",
+              "degree": "不限",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": "經常",
+              "travel": "不用",
+              "quote_free_note": "設備二休二、約半年換一次日夜班",
+              "date_confirmed": false,
+              "in_window": false,
+              "date_note": "日期未確認：依文章編號推估，錨點：Dcard 258703494 與 PTT 2025-05 同則新聞、261413813 與今周刊 2026-05 同則個案，推估約每月 25 萬號；仍屬推估"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/238778054",
+              "date": "依文章編號推估",
+              "unit_detail": "晶圓廠 Fab",
+              "years": "0-2",
+              "degree": "不限",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 80,
+              "overtime": "經常",
+              "travel": "不用",
+              "quote_free_note": "舊文：新廠夜鷹時期一週近 80 小時，近年較嚴守工時上限",
+              "date_confirmed": false,
+              "in_window": false,
+              "date_note": "日期未確認：依文章編號推估，錨點：Dcard 258703494 與 PTT 2025-05 同則新聞、261413813 與今周刊 2026-05 同則個案，推估約每月 25 萬號；仍屬推估"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/235498350",
+              "date": "依文章編號推估",
+              "unit_detail": "晶圓廠 Fab",
+              "years": "0-2",
+              "degree": "不限",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": "經常",
+              "travel": "不用",
+              "quote_free_note": "設備輪班方式請益，摘要無金額",
+              "date_confirmed": false,
+              "in_window": false,
+              "date_note": "日期未確認：依文章編號推估，錨點：Dcard 258703494 與 PTT 2025-05 同則新聞、261413813 與今周刊 2026-05 同則個案，推估約每月 25 萬號；仍屬推估"
             }
-          ]
+          ],
+          "n_in_window": 3
         },
         {
           "unit": "智慧製造 IT",
@@ -594,10 +768,7 @@
           ],
           "bonus_months": null,
           "annual_months": null,
-          "annual_total_wan": [
-            145,
-            145
-          ],
+          "annual_total_wan": null,
           "weekly_hours": [
             45,
             45
@@ -641,7 +812,9 @@
               "weekly_hours": 45,
               "overtime": "偶爾",
               "travel": "不用",
-              "quote_free_note": "IT 2026-04 自述底薪 6 萬"
+              "quote_free_note": "IT 2026-04 自述底薪 6 萬",
+              "date_confirmed": true,
+              "in_window": true
             },
             {
               "site": "Threads（Dcard 科技業轉貼）",
@@ -657,7 +830,10 @@
               "weekly_hours": null,
               "overtime": "偶爾",
               "travel": "不用",
-              "quote_free_note": "IT 自述第一年約 145 萬、第二年約 300 萬、加班少"
+              "quote_free_note": "IT 自述第一年約 145 萬、第二年約 300 萬、加班少",
+              "date_confirmed": false,
+              "in_window": false,
+              "date_note": "日期未確認：依文章編號推估，錨點：Dcard 258703494 與 PTT 2025-05 同則新聞、261413813 與今周刊 2026-05 同則個案，推估約每月 25 萬號；仍屬推估"
             },
             {
               "site": "salary.tw",
@@ -673,9 +849,12 @@
               "weekly_hours": null,
               "overtime": "偶爾",
               "travel": "不用",
-              "quote_free_note": "摘要無個人數字，僅作制度／口徑參考"
+              "quote_free_note": "摘要無個人數字，僅作制度／口徑參考",
+              "date_confirmed": true,
+              "in_window": true
             }
-          ]
+          ],
+          "n_in_window": 2
         },
         {
           "unit": "晶圓廠 Fab",
@@ -683,7 +862,7 @@
           "degree": "不限",
           "years": "0-2",
           "base_month_k": [
-            45,
+            62,
             62
           ],
           "bonus_months": null,
@@ -695,7 +874,7 @@
           "weekly_hours": null,
           "overtime": "經常",
           "travel": "不用",
-          "n": 5,
+          "n": 12,
           "note": "GoodJob 製程整合職稱頁台積電回報多在 6～6.4 萬；PTT／Dcard 未找到 PIE 專屬 offer 數字；年薪沿用公司公布碩士平均 220 萬以上；年薪月數為推算（220 萬以上 ÷ 底薪 6～6.4 萬），分紅月數＝推算扣 13 個月，非個人實領；撤回：annual_months、bonus_months 原為沿用／推算／暫填值，無直接證據，已改回原值；2026-10-25 補：PTT 轉貼新聞碩畢 2 年 31 職等年薪約 280 萬（未標職位，僅作工程師整體參考）",
           "sources": [
             {
@@ -722,6 +901,41 @@
               "site": "GoodJob",
               "url": "https://www.goodjob.life/experiences/5ecca2af400ede0012ed9e18",
               "date": "2020-05（範圍外）"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/252904748",
+              "date": "依文章編號推估"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/259859431",
+              "date": "依文章編號推估"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/256948550",
+              "date": "依文章編號推估"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/6733186e5f0364c7bcdab881",
+              "date": "2024-11"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/671bd0f8a420c218ccc618b9",
+              "date": "2024-10"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/6138f2016fcbb2001935bbff",
+              "date": "2021-09"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/62126b9d935b8500122baf50",
+              "date": "2022-02"
             }
           ],
           "confidence": "中",
@@ -742,7 +956,9 @@
               "weekly_hours": null,
               "overtime": "經常",
               "travel": "不用",
-              "quote_free_note": "製程整合職稱頁台積電回報多在 6～6.4 萬"
+              "quote_free_note": "製程整合職稱頁台積電回報多在 6～6.4 萬",
+              "date_confirmed": true,
+              "in_window": true
             },
             {
               "site": "台積電徵才",
@@ -758,7 +974,9 @@
               "weekly_hours": null,
               "overtime": "經常",
               "travel": "不用",
-              "quote_free_note": "徵才頁（公司口徑）"
+              "quote_free_note": "徵才頁（公司口徑）",
+              "date_confirmed": true,
+              "in_window": true
             },
             {
               "site": "PTT",
@@ -774,7 +992,9 @@
               "weekly_hours": null,
               "overtime": "經常",
               "travel": "不用",
-              "quote_free_note": "碩畢 2 年 31 職等約 280 萬（新聞）"
+              "quote_free_note": "碩畢 2 年 31 職等約 280 萬（新聞）",
+              "date_confirmed": true,
+              "in_window": true
             },
             {
               "site": "PTT",
@@ -790,7 +1010,9 @@
               "weekly_hours": null,
               "overtime": "經常",
               "travel": "不用",
-              "quote_free_note": "季分紅新聞，工程師年薪說法"
+              "quote_free_note": "季分紅新聞，工程師年薪說法",
+              "date_confirmed": true,
+              "in_window": false
             },
             {
               "site": "GoodJob",
@@ -806,31 +1028,154 @@
               "weekly_hours": null,
               "overtime": "經常",
               "travel": "不用",
-              "quote_free_note": "PIE 面試 2020，月薪 4.5 萬、慣性加班到 21 點（範圍外）"
+              "quote_free_note": "PIE 面試 2020，月薪 4.5 萬、慣性加班到 21 點（範圍外）",
+              "date_confirmed": true,
+              "in_window": false
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/252904748",
+              "date": "依文章編號推估",
+              "unit_detail": "研發 R&D 整合",
+              "years": "0-2",
+              "degree": "不限",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 57,
+              "overtime": "經常",
+              "travel": "不用",
+              "quote_free_note": "RD 整合 offer N×14＋分紅，工時約 7:30～19:00",
+              "date_confirmed": false,
+              "in_window": false,
+              "date_note": "日期未確認：依文章編號推估，錨點：Dcard 258703494 與 PTT 2025-05 同則新聞、261413813 與今周刊 2026-05 同則個案，推估約每月 25 萬號；仍屬推估"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/259859431",
+              "date": "依文章編號推估",
+              "unit_detail": "Fab12",
+              "years": "0-2",
+              "degree": "不限",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": "經常",
+              "travel": "不用",
+              "quote_free_note": "F12 整合（研替）面試分享，約 17 天拿 offer，無金額",
+              "date_confirmed": false,
+              "in_window": false,
+              "date_note": "日期未確認：依文章編號推估，錨點：Dcard 258703494 與 PTT 2025-05 同則新聞、261413813 與今周刊 2026-05 同則個案，推估約每月 25 萬號；仍屬推估"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/256948550",
+              "date": "依文章編號推估",
+              "unit_detail": "晶圓廠 Fab",
+              "years": "0-2",
+              "degree": "不限",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": "經常",
+              "travel": "不用",
+              "quote_free_note": "ISP PIE 工時請益，無答案",
+              "date_confirmed": false,
+              "in_window": false,
+              "date_note": "日期未確認：依文章編號推估，錨點：Dcard 258703494 與 PTT 2025-05 同則新聞、261413813 與今周刊 2026-05 同則個案，推估約每月 25 萬號；仍屬推估"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/6733186e5f0364c7bcdab881",
+              "date": "2024-11",
+              "unit_detail": "Fab15A",
+              "years": "0-2",
+              "degree": "不限",
+              "base_k": 62,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": "經常",
+              "travel": "不用",
+              "quote_free_note": "F15A 製程整合月薪約 6.2 萬",
+              "date_confirmed": true,
+              "in_window": false
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/671bd0f8a420c218ccc618b9",
+              "date": "2024-10",
+              "unit_detail": "先進封裝 APOD",
+              "years": "0-2",
+              "degree": "不限",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": "經常",
+              "travel": "不用",
+              "quote_free_note": "APOD（先進封裝）PIE 面試，摘要無金額",
+              "date_confirmed": true,
+              "in_window": false
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/6138f2016fcbb2001935bbff",
+              "date": "2021-09",
+              "unit_detail": "晶圓廠 Fab",
+              "years": "0-2",
+              "degree": "不限",
+              "base_k": 56,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": "經常",
+              "travel": "不用",
+              "quote_free_note": "2020 錄取製程整合月薪約 5.6 萬",
+              "date_confirmed": true,
+              "in_window": false
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/62126b9d935b8500122baf50",
+              "date": "2022-02",
+              "unit_detail": "晶圓廠 Fab",
+              "years": "0-2",
+              "degree": "不限",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": "經常",
+              "travel": "不用",
+              "quote_free_note": "製程整合面試，摘要無金額",
+              "date_confirmed": true,
+              "in_window": false
             }
-          ]
+          ],
+          "n_in_window": 3
         },
         {
           "unit": "晶圓廠 Fab",
           "degree": "不限",
           "years": "0-2",
-          "base_month_k": [
-            38,
-            58
-          ],
+          "base_month_k": null,
           "bonus_months": null,
           "annual_months": null,
-          "annual_total_wan": [
-            100,
-            150
-          ],
-          "weekly_hours": [
-            50,
-            50
-          ],
+          "annual_total_wan": null,
+          "weekly_hours": null,
           "overtime": "經常",
           "travel": "不用",
-          "confidence": "高",
+          "confidence": "低",
           "role": "模組副工程師（MAE）",
           "note": "Dcard 多篇：徵才頁 MAE 起薪 38,700 起（需最多 12 個月訓練認證），新人價談薪空間小；年資約兩年自述『滿三年 150～180、五年約 200』、每月加班 10～20 小時、一個月 2～3 個週末加班；『做六休一＋on call』為轉述未採；職等 2X（碩士工程師為 3X）；年薪為網友推估非官方",
           "sources": [
@@ -908,7 +1253,10 @@
               "weekly_hours": null,
               "overtime": "經常",
               "travel": "不用",
-              "quote_free_note": "MAE 起薪 38,700 起"
+              "quote_free_note": "MAE 起薪 38,700 起",
+              "date_confirmed": false,
+              "in_window": false,
+              "date_note": "日期未確認：依文章編號推估，錨點：Dcard 258703494 與 PTT 2025-05 同則新聞、261413813 與今周刊 2026-05 同則個案，推估約每月 25 萬號；仍屬推估"
             },
             {
               "site": "Dcard",
@@ -924,7 +1272,10 @@
               "weekly_hours": null,
               "overtime": "經常",
               "travel": "不用",
-              "quote_free_note": "一年半自述，滿三年 150～180、五年約 200"
+              "quote_free_note": "一年半自述，滿三年 150～180、五年約 200",
+              "date_confirmed": false,
+              "in_window": false,
+              "date_note": "日期未確認：依文章編號推估，錨點：Dcard 258703494 與 PTT 2025-05 同則新聞、261413813 與今周刊 2026-05 同則個案，推估約每月 25 萬號；仍屬推估"
             },
             {
               "site": "Dcard",
@@ -940,7 +1291,10 @@
               "weekly_hours": null,
               "overtime": "經常",
               "travel": "不用",
-              "quote_free_note": "MAE 多久到 300 萬，無一致答案"
+              "quote_free_note": "MAE 多久到 300 萬，無一致答案",
+              "date_confirmed": false,
+              "in_window": false,
+              "date_note": "日期未確認：依文章編號推估，錨點：Dcard 258703494 與 PTT 2025-05 同則新聞、261413813 與今周刊 2026-05 同則個案，推估約每月 25 萬號；仍屬推估"
             },
             {
               "site": "Dcard",
@@ -956,7 +1310,10 @@
               "weekly_hours": null,
               "overtime": "經常",
               "travel": "不用",
-              "quote_free_note": "AP 廠年薪破百、要值班"
+              "quote_free_note": "AP 廠年薪破百、要值班",
+              "date_confirmed": false,
+              "in_window": false,
+              "date_note": "日期未確認：依文章編號推估，錨點：Dcard 258703494 與 PTT 2025-05 同則新聞、261413813 與今周刊 2026-05 同則個案，推估約每月 25 萬號；仍屬推估"
             },
             {
               "site": "Dcard",
@@ -972,7 +1329,10 @@
               "weekly_hours": null,
               "overtime": "經常",
               "travel": "不用",
-              "quote_free_note": "MAE 撐不住，壓力大"
+              "quote_free_note": "MAE 撐不住，壓力大",
+              "date_confirmed": false,
+              "in_window": false,
+              "date_note": "日期未確認：依文章編號推估，錨點：Dcard 258703494 與 PTT 2025-05 同則新聞、261413813 與今周刊 2026-05 同則個案，推估約每月 25 萬號；仍屬推估"
             },
             {
               "site": "Dcard",
@@ -988,7 +1348,10 @@
               "weekly_hours": null,
               "overtime": "經常",
               "travel": "不用",
-              "quote_free_note": "新人價約 3.8 萬、難談"
+              "quote_free_note": "新人價約 3.8 萬、難談",
+              "date_confirmed": false,
+              "in_window": false,
+              "date_note": "日期未確認：依文章編號推估，錨點：Dcard 258703494 與 PTT 2025-05 同則新聞、261413813 與今周刊 2026-05 同則個案，推估約每月 25 萬號；仍屬推估"
             },
             {
               "site": "Dcard",
@@ -1004,7 +1367,10 @@
               "weekly_hours": null,
               "overtime": "經常",
               "travel": "不用",
-              "quote_free_note": "摘要無個人數字，僅作制度／口徑參考"
+              "quote_free_note": "摘要無個人數字，僅作制度／口徑參考",
+              "date_confirmed": false,
+              "in_window": false,
+              "date_note": "日期未確認：依文章編號推估，錨點：Dcard 258703494 與 PTT 2025-05 同則新聞、261413813 與今周刊 2026-05 同則個案，推估約每月 25 萬號；仍屬推估"
             },
             {
               "site": "Dcard",
@@ -1020,7 +1386,10 @@
               "weekly_hours": null,
               "overtime": "經常",
               "travel": "不用",
-              "quote_free_note": "摘要無個人數字，僅作制度／口徑參考"
+              "quote_free_note": "摘要無個人數字，僅作制度／口徑參考",
+              "date_confirmed": false,
+              "in_window": false,
+              "date_note": "日期未確認：依文章編號推估，錨點：Dcard 258703494 與 PTT 2025-05 同則新聞、261413813 與今周刊 2026-05 同則個案，推估約每月 25 萬號；仍屬推估"
             },
             {
               "site": "GoodJob",
@@ -1036,7 +1405,9 @@
               "weekly_hours": null,
               "overtime": "經常",
               "travel": "不用",
-              "quote_free_note": "儲備 MAE 面試 2026-05"
+              "quote_free_note": "儲備 MAE 面試 2026-05",
+              "date_confirmed": true,
+              "in_window": true
             },
             {
               "site": "GoodJob",
@@ -1052,7 +1423,9 @@
               "weekly_hours": null,
               "overtime": "經常",
               "travel": "不用",
-              "quote_free_note": "MAE 面試 2025-02，月薪約 3.95 萬（範圍外）"
+              "quote_free_note": "MAE 面試 2025-02，月薪約 3.95 萬（範圍外）",
+              "date_confirmed": true,
+              "in_window": false
             },
             {
               "site": "GoodJob",
@@ -1068,9 +1441,12 @@
               "weekly_hours": 50,
               "overtime": "經常",
               "travel": "不用",
-              "quote_free_note": "2 年月薪 5.8 萬、50 小時（範圍外）"
+              "quote_free_note": "2 年月薪 5.8 萬、50 小時（範圍外）",
+              "date_confirmed": true,
+              "in_window": false
             }
-          ]
+          ],
+          "n_in_window": 1
         },
         {
           "unit": "晶圓廠 Fab",
@@ -1079,14 +1455,11 @@
           "base_month_k": null,
           "bonus_months": null,
           "annual_months": null,
-          "annual_total_wan": [
-            150,
-            150
-          ],
+          "annual_total_wan": null,
           "weekly_hours": null,
           "overtime": "經常",
           "travel": "不用",
-          "confidence": "中",
+          "confidence": "低",
           "role": "模組副工程師（MAE）",
           "note": "同上 Dcard 年資自述推估：滿三年 150～180 萬、五年約 200 萬；『多久摸到 300 萬』討論串無一致答案",
           "sources": [
@@ -1119,7 +1492,10 @@
               "weekly_hours": null,
               "overtime": "經常",
               "travel": "不用",
-              "quote_free_note": "一年半自述，滿三年 150～180、五年約 200"
+              "quote_free_note": "一年半自述，滿三年 150～180、五年約 200",
+              "date_confirmed": false,
+              "in_window": false,
+              "date_note": "日期未確認：依文章編號推估，錨點：Dcard 258703494 與 PTT 2025-05 同則新聞、261413813 與今周刊 2026-05 同則個案，推估約每月 25 萬號；仍屬推估"
             },
             {
               "site": "Dcard",
@@ -1135,9 +1511,13 @@
               "weekly_hours": null,
               "overtime": "經常",
               "travel": "不用",
-              "quote_free_note": "MAE 多久到 300 萬，無一致答案"
+              "quote_free_note": "MAE 多久到 300 萬，無一致答案",
+              "date_confirmed": false,
+              "in_window": false,
+              "date_note": "日期未確認：依文章編號推估，錨點：Dcard 258703494 與 PTT 2025-05 同則新聞、261413813 與今周刊 2026-05 同則個案，推估約每月 25 萬號；仍屬推估"
             }
-          ]
+          ],
+          "n_in_window": 0
         },
         {
           "unit": "晶圓廠 Fab",
@@ -1147,7 +1527,7 @@
           "bonus_months": null,
           "annual_months": null,
           "annual_total_wan": [
-            70,
+            150,
             150
           ],
           "weekly_hours": null,
@@ -1186,9 +1566,39 @@
               "site": "今周刊",
               "url": "https://www.businesstoday.com.tw/article/category/183034/post/202605060028/",
               "date": "2026-05"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/663ef52d9c2172d068a9540a",
+              "date": "2024-05"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/6656bc1176dadf330591afc9",
+              "date": "2024-05"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/670e76dc4530cd2605619a8a",
+              "date": "2024-10"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/6035198b33dedf00124b900c",
+              "date": "2021-02"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/254705264",
+              "date": "依文章編號推估"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/job/p/235902889",
+              "date": "依文章編號推估"
             }
           ],
-          "n": 6,
+          "n": 12,
           "grade": "6X 職等",
           "busyness": "低：不加班週工時約 35 小時，年薪差在加班與夜班",
           "samples": [
@@ -1206,7 +1616,10 @@
               "weekly_hours": null,
               "overtime": "偶爾",
               "travel": "不用",
-              "quote_free_note": "前五年約 70／80／90／95／100 萬"
+              "quote_free_note": "前五年約 70／80／90／95／100 萬",
+              "date_confirmed": false,
+              "in_window": false,
+              "date_note": "日期未確認：依文章編號推估，錨點：Dcard 258703494 與 PTT 2025-05 同則新聞、261413813 與今周刊 2026-05 同則個案，推估約每月 25 萬號；仍屬推估"
             },
             {
               "site": "Dcard",
@@ -1222,7 +1635,10 @@
               "weekly_hours": null,
               "overtime": "偶爾",
               "travel": "不用",
-              "quote_free_note": "第 1 年 60～70、第 4 年約 110 萬"
+              "quote_free_note": "第 1 年 60～70、第 4 年約 110 萬",
+              "date_confirmed": false,
+              "in_window": false,
+              "date_note": "日期未確認：依文章編號推估，錨點：Dcard 258703494 與 PTT 2025-05 同則新聞、261413813 與今周刊 2026-05 同則個案，推估約每月 25 萬號；仍屬推估"
             },
             {
               "site": "Dcard",
@@ -1238,7 +1654,10 @@
               "weekly_hours": null,
               "overtime": "偶爾",
               "travel": "不用",
-              "quote_free_note": "摘要無個人數字，僅作制度／口徑參考"
+              "quote_free_note": "摘要無個人數字，僅作制度／口徑參考",
+              "date_confirmed": false,
+              "in_window": false,
+              "date_note": "日期未確認：依文章編號推估，錨點：Dcard 258703494 與 PTT 2025-05 同則新聞、261413813 與今周刊 2026-05 同則個案，推估約每月 25 萬號；仍屬推估"
             },
             {
               "site": "PTT",
@@ -1254,7 +1673,9 @@
               "weekly_hours": null,
               "overtime": "偶爾",
               "travel": "不用",
-              "quote_free_note": "徵才年薪 70 萬"
+              "quote_free_note": "徵才年薪 70 萬",
+              "date_confirmed": true,
+              "in_window": false
             },
             {
               "site": "PTT",
@@ -1270,7 +1691,9 @@
               "weekly_hours": null,
               "overtime": "偶爾",
               "travel": "不用",
-              "quote_free_note": "日夜班基本差約 1.4 萬"
+              "quote_free_note": "日夜班基本差約 1.4 萬",
+              "date_confirmed": true,
+              "in_window": true
             },
             {
               "site": "今周刊",
@@ -1286,28 +1709,135 @@
               "weekly_hours": null,
               "overtime": "偶爾",
               "travel": "不用",
-              "quote_free_note": "高職 6 年年收 150 萬；首年平均 75 萬"
+              "quote_free_note": "高職 6 年年收 150 萬；首年平均 75 萬",
+              "date_confirmed": true,
+              "in_window": true
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/663ef52d9c2172d068a9540a",
+              "date": "2024-05",
+              "unit_detail": "晶圓廠 Fab",
+              "years": "0-2",
+              "degree": "不限",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": "偶爾",
+              "travel": "不用",
+              "quote_free_note": "技術員面試，平台頁年薪多在 60～80 萬",
+              "date_confirmed": true,
+              "in_window": false
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/6656bc1176dadf330591afc9",
+              "date": "2024-05",
+              "unit_detail": "晶圓廠 Fab",
+              "years": "0-2",
+              "degree": "不限",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": "偶爾",
+              "travel": "不用",
+              "quote_free_note": "技術員面試，摘要無金額",
+              "date_confirmed": true,
+              "in_window": false
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/670e76dc4530cd2605619a8a",
+              "date": "2024-10",
+              "unit_detail": "晶圓廠 Fab",
+              "years": "0-2",
+              "degree": "不限",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": "偶爾",
+              "travel": "不用",
+              "quote_free_note": "技術員面試，摘要無金額",
+              "date_confirmed": true,
+              "in_window": false
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/6035198b33dedf00124b900c",
+              "date": "2021-02",
+              "unit_detail": "晶圓廠 Fab",
+              "years": "0-2",
+              "degree": "不限",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 80,
+              "weekly_hours": null,
+              "overtime": "偶爾",
+              "travel": "不用",
+              "quote_free_note": "2021 新竹錄取年薪約 80 萬",
+              "date_confirmed": true,
+              "in_window": false
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/254705264",
+              "date": "依文章編號推估",
+              "unit_detail": "晶圓廠 Fab",
+              "years": "0-2",
+              "degree": "不限",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": "偶爾",
+              "travel": "不用",
+              "quote_free_note": "GG 心得 Q&A：一月年終約 6 萬、十月輪班＋運動會獎金約 5 萬",
+              "date_confirmed": false,
+              "in_window": false,
+              "date_note": "日期未確認：依文章編號推估，錨點：Dcard 258703494 與 PTT 2025-05 同則新聞、261413813 與今周刊 2026-05 同則個案，推估約每月 25 萬號；仍屬推估"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/job/p/235902889",
+              "date": "依文章編號推估",
+              "unit_detail": "晶圓廠 Fab",
+              "years": "0-2",
+              "degree": "不限",
+              "base_k": 36,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": "偶爾",
+              "travel": "不用",
+              "quote_free_note": "日班含津貼約 3.6 萬、約半年換一次日夜",
+              "date_confirmed": false,
+              "in_window": false,
+              "date_note": "日期未確認：依文章編號推估，錨點：Dcard 258703494 與 PTT 2025-05 同則新聞、261413813 與今周刊 2026-05 同則個案，推估約每月 25 萬號；仍屬推估"
             }
-          ]
+          ],
+          "n_in_window": 2
         },
         {
           "unit": "晶圓廠 Fab",
           "degree": "不限",
           "years": "0-2",
-          "base_month_k": [
-            43,
-            43
-          ],
+          "base_month_k": null,
           "bonus_months": null,
           "annual_months": null,
-          "annual_total_wan": [
-            100,
-            100
-          ],
+          "annual_total_wan": null,
           "weekly_hours": null,
           "overtime": "偶爾",
           "travel": "不用",
-          "confidence": "中",
+          "confidence": "低",
           "role": "技術員（DL／TE，夜班）",
           "note": "徵才口徑夜班約 4.3 萬；網友夜班含津貼約 4.5 萬；PTT 自述日夜班基本差距約 1.4 萬（夜班津貼約 8 千＋輪班獎金）",
           "sources": [
@@ -1325,9 +1855,39 @@
               "site": "PTT",
               "url": "https://www.ptt.cc/bbs/Stock/M.1736148947.A.9E9.html",
               "date": "2025-01（範圍外參考）"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/job/p/235902889",
+              "date": "依文章編號推估"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/254705264",
+              "date": "依文章編號推估"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/238778054",
+              "date": "依文章編號推估"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/job/p/236755626",
+              "date": "依文章編號推估"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/job/p/231766795",
+              "date": "依文章編號推估"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/254922413",
+              "date": "依文章編號推估"
             }
           ],
-          "n": 3,
+          "n": 9,
           "grade": "6X 職等",
           "busyness": "中：夜班津貼與輪班獎金，月薪比日班多約 1.4 萬",
           "samples": [
@@ -1345,7 +1905,10 @@
               "weekly_hours": null,
               "overtime": "偶爾",
               "travel": "不用",
-              "quote_free_note": "前五年約 70／80／90／95／100 萬"
+              "quote_free_note": "前五年約 70／80／90／95／100 萬",
+              "date_confirmed": false,
+              "in_window": false,
+              "date_note": "日期未確認：依文章編號推估，錨點：Dcard 258703494 與 PTT 2025-05 同則新聞、261413813 與今周刊 2026-05 同則個案，推估約每月 25 萬號；仍屬推估"
             },
             {
               "site": "PTT",
@@ -1361,7 +1924,9 @@
               "weekly_hours": null,
               "overtime": "偶爾",
               "travel": "不用",
-              "quote_free_note": "日夜班基本差約 1.4 萬"
+              "quote_free_note": "日夜班基本差約 1.4 萬",
+              "date_confirmed": true,
+              "in_window": true
             },
             {
               "site": "PTT",
@@ -1377,9 +1942,126 @@
               "weekly_hours": null,
               "overtime": "偶爾",
               "travel": "不用",
-              "quote_free_note": "徵才夜班約 4.3 萬"
+              "quote_free_note": "徵才夜班約 4.3 萬",
+              "date_confirmed": true,
+              "in_window": false
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/job/p/235902889",
+              "date": "依文章編號推估",
+              "unit_detail": "晶圓廠 Fab",
+              "years": "0-2",
+              "degree": "不限",
+              "base_k": 45,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": "偶爾",
+              "travel": "不用",
+              "quote_free_note": "夜班含津貼約 4.5 萬",
+              "date_confirmed": false,
+              "in_window": false,
+              "date_note": "日期未確認：依文章編號推估，錨點：Dcard 258703494 與 PTT 2025-05 同則新聞、261413813 與今周刊 2026-05 同則個案，推估約每月 25 萬號；仍屬推估"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/254705264",
+              "date": "依文章編號推估",
+              "unit_detail": "晶圓廠 Fab",
+              "years": "0-2",
+              "degree": "不限",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": "偶爾",
+              "travel": "不用",
+              "quote_free_note": "大夜津貼約津貼基數×輪班天數比×0.30、保底 8 千",
+              "date_confirmed": false,
+              "in_window": false,
+              "date_note": "日期未確認：依文章編號推估，錨點：Dcard 258703494 與 PTT 2025-05 同則新聞、261413813 與今周刊 2026-05 同則個案，推估約每月 25 萬號；仍屬推估"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/238778054",
+              "date": "依文章編號推估",
+              "unit_detail": "晶圓廠 Fab",
+              "years": "0-2",
+              "degree": "不限",
+              "base_k": 50,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": "偶爾",
+              "travel": "不用",
+              "quote_free_note": "舊文：夜班月薪約 5 萬（含加班費約 1.3 萬）",
+              "date_confirmed": false,
+              "in_window": false,
+              "date_note": "日期未確認：依文章編號推估，錨點：Dcard 258703494 與 PTT 2025-05 同則新聞、261413813 與今周刊 2026-05 同則個案，推估約每月 25 萬號；仍屬推估"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/job/p/236755626",
+              "date": "依文章編號推估",
+              "unit_detail": "晶圓廠 Fab",
+              "years": "0-2",
+              "degree": "不限",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": "偶爾",
+              "travel": "不用",
+              "quote_free_note": "做四休二夜班技術員行情請益，摘要無台積數字",
+              "date_confirmed": false,
+              "in_window": false,
+              "date_note": "日期未確認：依文章編號推估，錨點：Dcard 258703494 與 PTT 2025-05 同則新聞、261413813 與今周刊 2026-05 同則個案，推估約每月 25 萬號；仍屬推估"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/job/p/231766795",
+              "date": "依文章編號推估",
+              "unit_detail": "晶圓廠 Fab",
+              "years": "0-2",
+              "degree": "不限",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": "偶爾",
+              "travel": "不用",
+              "quote_free_note": "台積電技術員討論，摘要無金額",
+              "date_confirmed": false,
+              "in_window": false,
+              "date_note": "日期未確認：依文章編號推估，錨點：Dcard 258703494 與 PTT 2025-05 同則新聞、261413813 與今周刊 2026-05 同則個案，推估約每月 25 萬號；仍屬推估"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/254922413",
+              "date": "依文章編號推估",
+              "unit_detail": "晶圓廠 Fab",
+              "years": "0-2",
+              "degree": "不限",
+              "base_k": 45,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": "偶爾",
+              "travel": "不用",
+              "quote_free_note": "三年技術員：夜班含津貼約 4.5 萬",
+              "date_confirmed": false,
+              "in_window": false,
+              "date_note": "日期未確認：依文章編號推估，錨點：Dcard 258703494 與 PTT 2025-05 同則新聞、261413813 與今周刊 2026-05 同則個案，推估約每月 25 萬號；仍屬推估"
             }
-          ]
+          ],
+          "n_in_window": 1
         },
         {
           "unit": "晶圓廠 Fab",
@@ -1389,7 +2071,7 @@
           "bonus_months": null,
           "annual_months": null,
           "annual_total_wan": [
-            100,
+            95,
             150
           ],
           "weekly_hours": null,
@@ -1423,9 +2105,34 @@
               "site": "今周刊",
               "url": "https://www.businesstoday.com.tw/article/category/183034/post/202605060028/",
               "date": "2026-05"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/255351578",
+              "date": "依文章編號推估"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261185367",
+              "date": "依文章編號推估"
+            },
+            {
+              "site": "PTT",
+              "url": "https://www.ptt.cc/bbs/Tech_Job/M.1776821960.A.EFF.html",
+              "date": "2026-04"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/238778054",
+              "date": "依文章編號推估"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/job/p/255794183",
+              "date": "依文章編號推估"
             }
           ],
-          "n": 5,
+          "n": 10,
           "grade": "6X 職等（ETE 助工／TE）",
           "busyness": "中：年收 90～150 萬的落差主要來自加班多寡",
           "samples": [
@@ -1443,7 +2150,10 @@
               "weekly_hours": null,
               "overtime": "偶爾",
               "travel": "不用",
-              "quote_free_note": "前五年約 70／80／90／95／100 萬"
+              "quote_free_note": "前五年約 70／80／90／95／100 萬",
+              "date_confirmed": false,
+              "in_window": false,
+              "date_note": "日期未確認：依文章編號推估，錨點：Dcard 258703494 與 PTT 2025-05 同則新聞、261413813 與今周刊 2026-05 同則個案，推估約每月 25 萬號；仍屬推估"
             },
             {
               "site": "Dcard",
@@ -1459,7 +2169,10 @@
               "weekly_hours": null,
               "overtime": "偶爾",
               "travel": "不用",
-              "quote_free_note": "年收 150 萬個案"
+              "quote_free_note": "年收 150 萬個案",
+              "date_confirmed": false,
+              "in_window": false,
+              "date_note": "日期未確認：依文章編號推估，錨點：Dcard 258703494 與 PTT 2025-05 同則新聞、261413813 與今周刊 2026-05 同則個案，推估約每月 25 萬號；仍屬推估"
             },
             {
               "site": "Dcard",
@@ -1475,7 +2188,10 @@
               "weekly_hours": null,
               "overtime": "偶爾",
               "travel": "不用",
-              "quote_free_note": "第 1 年 60～70、第 4 年約 110 萬"
+              "quote_free_note": "第 1 年 60～70、第 4 年約 110 萬",
+              "date_confirmed": false,
+              "in_window": false,
+              "date_note": "日期未確認：依文章編號推估，錨點：Dcard 258703494 與 PTT 2025-05 同則新聞、261413813 與今周刊 2026-05 同則個案，推估約每月 25 萬號；仍屬推估"
             },
             {
               "site": "PTT",
@@ -1491,7 +2207,9 @@
               "weekly_hours": null,
               "overtime": "偶爾",
               "travel": "不用",
-              "quote_free_note": "2025 技術員薪資分享，靠分紅與加班"
+              "quote_free_note": "2025 技術員薪資分享，靠分紅與加班",
+              "date_confirmed": true,
+              "in_window": true
             },
             {
               "site": "今周刊",
@@ -1507,9 +2225,106 @@
               "weekly_hours": null,
               "overtime": "偶爾",
               "travel": "不用",
-              "quote_free_note": "高職 6 年年收 150 萬；首年平均 75 萬"
+              "quote_free_note": "高職 6 年年收 150 萬；首年平均 75 萬",
+              "date_confirmed": true,
+              "in_window": true
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/255351578",
+              "date": "依文章編號推估",
+              "unit_detail": "晶圓廠 Fab",
+              "years": "3-5",
+              "degree": "不限",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": "偶爾",
+              "travel": "不用",
+              "quote_free_note": "台積電真的是台灣奇蹟，資深技術員年薪討論，摘要無具體數字",
+              "date_confirmed": false,
+              "in_window": false,
+              "date_note": "日期未確認：依文章編號推估，錨點：Dcard 258703494 與 PTT 2025-05 同則新聞、261413813 與今周刊 2026-05 同則個案，推估約每月 25 萬號；仍屬推估"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261185367",
+              "date": "依文章編號推估",
+              "unit_detail": "晶圓廠 Fab",
+              "years": "3-5",
+              "degree": "不限",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": "偶爾",
+              "travel": "不用",
+              "quote_free_note": "台積技術員 vs 矽品工程師比較，摘要無具體數字",
+              "date_confirmed": false,
+              "in_window": false,
+              "date_note": "日期未確認：依文章編號推估，錨點：Dcard 258703494 與 PTT 2025-05 同則新聞、261413813 與今周刊 2026-05 同則個案，推估約每月 25 萬號；仍屬推估"
+            },
+            {
+              "site": "PTT",
+              "url": "https://www.ptt.cc/bbs/Tech_Job/M.1776821960.A.EFF.html",
+              "date": "2026-04",
+              "unit_detail": "晶圓廠 Fab",
+              "years": "2",
+              "degree": "不限",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 95,
+              "weekly_hours": null,
+              "overtime": "偶爾",
+              "travel": "不用",
+              "quote_free_note": "有加班第二年約 90 多萬；不加班約 5 年近百萬",
+              "date_confirmed": true,
+              "in_window": true
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/238778054",
+              "date": "依文章編號推估",
+              "unit_detail": "晶圓廠 Fab",
+              "years": "10+",
+              "degree": "不限",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 120,
+              "weekly_hours": null,
+              "overtime": "偶爾",
+              "travel": "不用",
+              "quote_free_note": "舊文：五年有機會百萬、十年以上 120 萬",
+              "date_confirmed": false,
+              "in_window": false,
+              "date_note": "日期未確認：依文章編號推估，錨點：Dcard 258703494 與 PTT 2025-05 同則新聞、261413813 與今周刊 2026-05 同則個案，推估約每月 25 萬號；仍屬推估"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/job/p/255794183",
+              "date": "依文章編號推估",
+              "unit_detail": "晶圓廠 Fab",
+              "years": "5",
+              "degree": "不限",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 100,
+              "weekly_hours": null,
+              "overtime": "偶爾",
+              "travel": "不用",
+              "quote_free_note": "技術員年薪請益，回覆前五年約 70～100 萬",
+              "date_confirmed": false,
+              "in_window": false,
+              "date_note": "日期未確認：依文章編號推估，錨點：Dcard 258703494 與 PTT 2025-05 同則新聞、261413813 與今周刊 2026-05 同則個案，推估約每月 25 萬號；仍屬推估"
             }
-          ]
+          ],
+          "n_in_window": 3
         },
         {
           "unit": "海外廠",
@@ -1518,10 +2333,7 @@
           "base_month_k": null,
           "bonus_months": null,
           "annual_months": null,
-          "annual_total_wan": [
-            75,
-            75
-          ],
+          "annual_total_wan": null,
           "weekly_hours": null,
           "overtime": "經常",
           "travel": "需要",
@@ -1553,9 +2365,13 @@
               "weekly_hours": null,
               "overtime": "經常",
               "travel": "需要",
-              "quote_free_note": "外派平均 75 萬以上"
+              "quote_free_note": "外派平均 75 萬以上",
+              "date_confirmed": false,
+              "in_window": false,
+              "date_note": "日期未確認：依文章編號推估，錨點：Dcard 258703494 與 PTT 2025-05 同則新聞、261413813 與今周刊 2026-05 同則個案，推估約每月 25 萬號；仍屬推估"
             }
-          ]
+          ],
+          "n_in_window": 0
         },
         {
           "unit": "廠務",
@@ -1568,7 +2384,7 @@
           "weekly_hours": null,
           "overtime": "經常",
           "travel": "不用",
-          "confidence": "中",
+          "confidence": "低",
           "role": "廠務工程師／廠務助理工程師",
           "note": "salary.tw 廠務工程師回報平均月薪約 5.33 萬（自填，樣本少）；Dcard 廠務助理工程師（裝機）面試文未給薪；年薪無可靠數字",
           "sources": [
@@ -1601,7 +2417,9 @@
               "weekly_hours": null,
               "overtime": "經常",
               "travel": "不用",
-              "quote_free_note": "摘要無個人數字，僅作制度／口徑參考"
+              "quote_free_note": "摘要無個人數字，僅作制度／口徑參考",
+              "date_confirmed": true,
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -1617,9 +2435,13 @@
               "weekly_hours": null,
               "overtime": "經常",
               "travel": "不用",
-              "quote_free_note": "摘要無個人數字，僅作制度／口徑參考"
+              "quote_free_note": "摘要無個人數字，僅作制度／口徑參考",
+              "date_confirmed": false,
+              "in_window": false,
+              "date_note": "日期未確認：依文章編號推估，錨點：Dcard 258703494 與 PTT 2025-05 同則新聞、261413813 與今周刊 2026-05 同則個案，推估約每月 25 萬號；仍屬推估"
             }
-          ]
+          ],
+          "n_in_window": 1
         },
         {
           "unit": "品保",
@@ -1660,9 +2482,12 @@
               "weekly_hours": null,
               "overtime": "經常",
               "travel": "不用",
-              "quote_free_note": "摘要無個人數字，僅作制度／口徑參考"
+              "quote_free_note": "摘要無個人數字，僅作制度／口徑參考",
+              "date_confirmed": true,
+              "in_window": true
             }
-          ]
+          ],
+          "n_in_window": 1
         },
         {
           "unit": "研發 R&D",
@@ -1675,7 +2500,7 @@
           "weekly_hours": null,
           "overtime": "經常",
           "travel": "不用",
-          "confidence": "中",
+          "confidence": "低",
           "role": "研發工程師（R&D）",
           "note": "Dcard 多篇：研發／製程新人第一年約 120 萬上下、二三年 150～200 萬；資深 R&D 高薪文屬單一個案；碩士起薪同公司碩士口徑 6.5 萬；未見 R&D 專屬 offer 拆解",
           "sources": [
@@ -1713,7 +2538,10 @@
               "weekly_hours": null,
               "overtime": "經常",
               "travel": "不用",
-              "quote_free_note": "摘要無個人數字，僅作制度／口徑參考"
+              "quote_free_note": "摘要無個人數字，僅作制度／口徑參考",
+              "date_confirmed": false,
+              "in_window": false,
+              "date_note": "日期未確認：依文章編號推估，錨點：Dcard 258703494 與 PTT 2025-05 同則新聞、261413813 與今周刊 2026-05 同則個案，推估約每月 25 萬號；仍屬推估"
             },
             {
               "site": "Dcard",
@@ -1729,7 +2557,10 @@
               "weekly_hours": null,
               "overtime": "經常",
               "travel": "不用",
-              "quote_free_note": "摘要無個人數字，僅作制度／口徑參考"
+              "quote_free_note": "摘要無個人數字，僅作制度／口徑參考",
+              "date_confirmed": false,
+              "in_window": false,
+              "date_note": "日期未確認：依文章編號推估，錨點：Dcard 258703494 與 PTT 2025-05 同則新聞、261413813 與今周刊 2026-05 同則個案，推估約每月 25 萬號；仍屬推估"
             },
             {
               "site": "Dcard",
@@ -1745,9 +2576,13 @@
               "weekly_hours": null,
               "overtime": "經常",
               "travel": "不用",
-              "quote_free_note": "摘要無個人數字，僅作制度／口徑參考"
+              "quote_free_note": "摘要無個人數字，僅作制度／口徑參考",
+              "date_confirmed": false,
+              "in_window": false,
+              "date_note": "日期未確認：依文章編號推估，錨點：Dcard 258703494 與 PTT 2025-05 同則新聞、261413813 與今周刊 2026-05 同則個案，推估約每月 25 萬號；仍屬推估"
             }
-          ]
+          ],
+          "n_in_window": 0
         },
         {
           "unit": "管理處",
@@ -1788,9 +2623,12 @@
               "weekly_hours": null,
               "overtime": "偶爾",
               "travel": "不用",
-              "quote_free_note": "摘要無個人數字，僅作制度／口徑參考"
+              "quote_free_note": "摘要無個人數字，僅作制度／口徑參考",
+              "date_confirmed": true,
+              "in_window": true
             }
-          ]
+          ],
+          "n_in_window": 1
         }
       ],
       "mops": {
@@ -1897,10 +2735,7 @@
           "role": "製程工程師",
           "degree": "碩士",
           "years": "0-2",
-          "base_month_k": [
-            65,
-            65
-          ],
+          "base_month_k": null,
           "bonus_months": null,
           "annual_months": null,
           "annual_total_wan": null,
@@ -1951,7 +2786,7 @@
               "date": "約2025～2026（依文章編號推估，未讀原文）"
             }
           ],
-          "confidence": "高",
+          "confidence": "低",
           "grade": "6E（碩士新人）",
           "samples": [
             {
@@ -1968,7 +2803,9 @@
               "weekly_hours": null,
               "overtime": "偶爾～經常（依部門）",
               "travel": "不用",
-              "quote_free_note": "摘要無個人數字，僅作制度／口徑參考"
+              "quote_free_note": "摘要無個人數字，僅作制度／口徑參考",
+              "date_confirmed": true,
+              "in_window": true
             },
             {
               "site": "比薪水",
@@ -1984,7 +2821,9 @@
               "weekly_hours": null,
               "overtime": "偶爾～經常（依部門）",
               "travel": "不用",
-              "quote_free_note": "摘要無個人數字，僅作制度／口徑參考"
+              "quote_free_note": "摘要無個人數字，僅作制度／口徑參考",
+              "date_confirmed": true,
+              "in_window": false
             },
             {
               "site": "Dcard",
@@ -2000,7 +2839,10 @@
               "weekly_hours": null,
               "overtime": "偶爾～經常（依部門）",
               "travel": "不用",
-              "quote_free_note": "摘要無個人數字，僅作制度／口徑參考"
+              "quote_free_note": "摘要無個人數字，僅作制度／口徑參考",
+              "date_confirmed": false,
+              "in_window": false,
+              "date_note": "日期未確認：依文章編號推估，錨點：Dcard 258703494 與 PTT 2025-05 同則新聞、261413813 與今周刊 2026-05 同則個案，推估約每月 25 萬號；仍屬推估"
             },
             {
               "site": "Dcard",
@@ -2016,7 +2858,10 @@
               "weekly_hours": null,
               "overtime": "偶爾～經常（依部門）",
               "travel": "不用",
-              "quote_free_note": "摘要無個人數字，僅作制度／口徑參考"
+              "quote_free_note": "摘要無個人數字，僅作制度／口徑參考",
+              "date_confirmed": false,
+              "in_window": false,
+              "date_note": "日期未確認：依文章編號推估，錨點：Dcard 258703494 與 PTT 2025-05 同則新聞、261413813 與今周刊 2026-05 同則個案，推估約每月 25 萬號；仍屬推估"
             },
             {
               "site": "Dcard",
@@ -2032,7 +2877,10 @@
               "weekly_hours": null,
               "overtime": "偶爾～經常（依部門）",
               "travel": "不用",
-              "quote_free_note": "2026 碩士新人約 65k 上下"
+              "quote_free_note": "2026 碩士新人約 65k 上下",
+              "date_confirmed": false,
+              "in_window": false,
+              "date_note": "日期未確認：依文章編號推估，錨點：Dcard 258703494 與 PTT 2025-05 同則新聞、261413813 與今周刊 2026-05 同則個案，推估約每月 25 萬號；仍屬推估"
             },
             {
               "site": "Dcard",
@@ -2048,7 +2896,10 @@
               "weekly_hours": null,
               "overtime": "偶爾～經常（依部門）",
               "travel": "不用",
-              "quote_free_note": "摘要無個人數字，僅作制度／口徑參考"
+              "quote_free_note": "摘要無個人數字，僅作制度／口徑參考",
+              "date_confirmed": false,
+              "in_window": false,
+              "date_note": "日期未確認：依文章編號推估，錨點：Dcard 258703494 與 PTT 2025-05 同則新聞、261413813 與今周刊 2026-05 同則個案，推估約每月 25 萬號；仍屬推估"
             },
             {
               "site": "Dcard",
@@ -2064,7 +2915,10 @@
               "weekly_hours": null,
               "overtime": "偶爾～經常（依部門）",
               "travel": "不用",
-              "quote_free_note": "摘要無個人數字，僅作制度／口徑參考"
+              "quote_free_note": "摘要無個人數字，僅作制度／口徑參考",
+              "date_confirmed": false,
+              "in_window": false,
+              "date_note": "日期未確認：依文章編號推估，錨點：Dcard 258703494 與 PTT 2025-05 同則新聞、261413813 與今周刊 2026-05 同則個案，推估約每月 25 萬號；仍屬推估"
             },
             {
               "site": "Dcard",
@@ -2080,9 +2934,13 @@
               "weekly_hours": null,
               "overtime": "偶爾～經常（依部門）",
               "travel": "不用",
-              "quote_free_note": "摘要無個人數字，僅作制度／口徑參考"
+              "quote_free_note": "摘要無個人數字，僅作制度／口徑參考",
+              "date_confirmed": false,
+              "in_window": false,
+              "date_note": "日期未確認：依文章編號推估，錨點：Dcard 258703494 與 PTT 2025-05 同則新聞、261413813 與今周刊 2026-05 同則個案，推估約每月 25 萬號；仍屬推估"
             }
-          ]
+          ],
+          "n_in_window": 1
         },
         {
           "unit": "晶圓廠 Fab",
@@ -2102,7 +2960,7 @@
           "weekly_hours": null,
           "overtime": "偶爾～經常",
           "travel": "不用",
-          "n": 4,
+          "n": 8,
           "note": "GoodJob 單筆月薪 7.7 萬，年資未明，疑非新人；比薪水網 2025-09 設備職回報偶爾加班、日均工時約 12 小時（範圍外參考含 2023 年 22 筆整理）；分紅月數沿用同公司製程職區間；撤回：bonus_months 原為沿用／推算／暫填值，無直接證據，已改回原值；2026-10-25 補：GoodJob 2026-04 臺南設備月薪約 7.7 萬、年薪約月薪×18；GoodJob 另一則稱南科加給約 2 個月、含分紅全年 18～24 個月",
           "sources": [
             {
@@ -2124,9 +2982,29 @@
               "site": "salary.tw",
               "url": "https://salary.tw/c/L4z2/positions/%E8%A8%AD%E5%82%99%E5%B7%A5%E7%A8%8B%E5%B8%AB",
               "date": "2026"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/6a7752ac8e8d075c29ea9e38",
+              "date": "2026-08"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/630270fdda83e80012b7980e",
+              "date": "2022-08"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/236045958",
+              "date": "依文章編號推估"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/65009a4af9e28100129fa604",
+              "date": "2023-09"
             }
           ],
-          "confidence": "中",
+          "confidence": "高",
           "grade": "6E（碩士新人）",
           "samples": [
             {
@@ -2143,7 +3021,9 @@
               "weekly_hours": null,
               "overtime": "偶爾～經常",
               "travel": "不用",
-              "quote_free_note": "摘要無個人數字，僅作制度／口徑參考"
+              "quote_free_note": "摘要無個人數字，僅作制度／口徑參考",
+              "date_confirmed": true,
+              "in_window": true
             },
             {
               "site": "比薪水 salary.tw",
@@ -2159,7 +3039,9 @@
               "weekly_hours": null,
               "overtime": "偶爾～經常",
               "travel": "不用",
-              "quote_free_note": "摘要無個人數字，僅作制度／口徑參考"
+              "quote_free_note": "摘要無個人數字，僅作制度／口徑參考",
+              "date_confirmed": true,
+              "in_window": true
             },
             {
               "site": "GoodJob",
@@ -2175,7 +3057,9 @@
               "weekly_hours": null,
               "overtime": "偶爾～經常",
               "travel": "不用",
-              "quote_free_note": "月薪約 7.7 萬、年薪約月薪×18"
+              "quote_free_note": "月薪約 7.7 萬、年薪約月薪×18",
+              "date_confirmed": true,
+              "in_window": true
             },
             {
               "site": "salary.tw",
@@ -2191,32 +3075,124 @@
               "weekly_hours": null,
               "overtime": "偶爾～經常",
               "travel": "不用",
-              "quote_free_note": "摘要無個人數字，僅作制度／口徑參考"
+              "quote_free_note": "摘要無個人數字，僅作制度／口徑參考",
+              "date_confirmed": true,
+              "in_window": true
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/6a7752ac8e8d075c29ea9e38",
+              "date": "2026-08",
+              "unit_detail": "晶圓廠 Fab",
+              "years": "0-1",
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": "偶爾～經常",
+              "travel": "不用",
+              "quote_free_note": "設備未滿一年，底薪稍好但整包不比他廠多",
+              "date_confirmed": true,
+              "in_window": true
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/630270fdda83e80012b7980e",
+              "date": "2022-08",
+              "unit_detail": "晶圓廠 Fab",
+              "years": "未明",
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": "偶爾～經常",
+              "travel": "不用",
+              "quote_free_note": "值班每週約 3 天、8～12 小時",
+              "date_confirmed": true,
+              "in_window": false
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/236045958",
+              "date": "依文章編號推估",
+              "unit_detail": "晶圓廠 Fab",
+              "years": "未明",
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": 15.5,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": "偶爾～經常",
+              "travel": "不用",
+              "quote_free_note": "設備 EE 月薪 N+2500、約 15.5 個月",
+              "date_confirmed": false,
+              "in_window": false,
+              "date_note": "日期未確認：依文章編號推估，錨點：Dcard 258703494 與 PTT 2025-05 同則新聞、261413813 與今周刊 2026-05 同則個案，推估約每月 25 萬號；仍屬推估"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/65009a4af9e28100129fa604",
+              "date": "2023-09",
+              "unit_detail": "晶圓廠 Fab",
+              "years": "7",
+              "degree": "碩士",
+              "base_k": 86,
+              "bonus_months": null,
+              "annual_months": 21,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": "偶爾～經常",
+              "travel": "不用",
+              "quote_free_note": "設備碩士 7 年月薪 8.6 萬、含分紅全年 18～24 個月",
+              "date_confirmed": true,
+              "in_window": false
             }
-          ]
+          ],
+          "n_in_window": 5
         },
         {
           "unit": "研發 R&D",
           "role": "元件開發／微影模組研發工程師",
           "degree": "碩士",
           "years": "0-2",
-          "base_month_k": null,
+          "base_month_k": [
+            67,
+            67
+          ],
           "bonus_months": null,
           "annual_months": null,
           "annual_total_wan": null,
-          "weekly_hours": null,
+          "weekly_hours": [
+            52,
+            52
+          ],
           "overtime": null,
           "travel": "偶爾",
-          "n": 1,
+          "n": 3,
           "note": "GoodJob 2026-04～05 面試回報月薪 6.7 萬（黃光、元件開發），微影研發年薪 180 萬（未錄取者）；學歷未標；研發職加班查比薪水、Dcard 未見專屬回報，沿用公司整體區間（低信心）；撤回：overtime 原為沿用／推算／暫填值，無直接證據，已改回原值",
           "sources": [
             {
               "site": "GoodJob",
               "url": "https://www.goodjob.life/companies/聯華電子股份有限公司/interview-experiences",
               "date": "2026-05"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/696632c96f0fb3ba497f3e7f",
+              "date": "2026-01"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/254549075",
+              "date": "依文章編號推估"
             }
           ],
-          "confidence": "低",
+          "confidence": "中",
           "grade": "6E（碩士新人）",
           "samples": [
             {
@@ -2233,9 +3209,49 @@
               "weekly_hours": null,
               "overtime": null,
               "travel": "偶爾",
-              "quote_free_note": "摘要無個人數字，僅作制度／口徑參考"
+              "quote_free_note": "摘要無個人數字，僅作制度／口徑參考",
+              "date_confirmed": true,
+              "in_window": true
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/696632c96f0fb3ba497f3e7f",
+              "date": "2026-01",
+              "unit_detail": "臺南",
+              "years": "0-2",
+              "degree": "碩士",
+              "base_k": 67,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 52,
+              "overtime": null,
+              "travel": "偶爾",
+              "quote_free_note": "良率提升工程師臺南月薪 6.7 萬、52 小時",
+              "date_confirmed": true,
+              "in_window": true
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/254549075",
+              "date": "依文章編號推估",
+              "unit_detail": "研發 R&D",
+              "years": "0-2",
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": "偶爾",
+              "quote_free_note": "二線晶圓廠薪水比較，摘要無聯電研發數字",
+              "date_confirmed": false,
+              "in_window": false,
+              "date_note": "日期未確認：依文章編號推估，錨點：Dcard 258703494 與 PTT 2025-05 同則新聞、261413813 與今周刊 2026-05 同則個案，推估約每月 25 萬號；仍屬推估"
             }
-          ]
+          ],
+          "n_in_window": 2
         },
         {
           "unit": "晶圓廠 Fab",
@@ -2245,14 +3261,11 @@
           "base_month_k": null,
           "bonus_months": null,
           "annual_months": null,
-          "annual_total_wan": [
-            150,
-            150
-          ],
+          "annual_total_wan": null,
           "weekly_hours": null,
           "overtime": "經常",
           "travel": "不用",
-          "n": 3,
+          "n": 4,
           "note": "GoodJob 2026-03 月薪 6.7 萬、工時 60 小時／週；2025-08 一則 7 萬，分紅與加薪看考績；年薪與分紅月數沿用同公司製程職區間；撤回：annual_months、bonus_months 原為沿用／推算／暫填值，無直接證據，已改回原值；2026-10-25 補：南科整合：四大碩士三年 150 萬常見、五年 180～200 萬（網友說法）；屬產線需輪班",
           "sources": [
             {
@@ -2269,9 +3282,14 @@
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/259890347",
               "date": "約2025～2026（依文章編號推估，未讀原文）"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/236440684",
+              "date": "依文章編號推估"
             }
           ],
-          "confidence": "中",
+          "confidence": "低",
           "grade": "6E（碩士新人）",
           "samples": [
             {
@@ -2288,7 +3306,9 @@
               "weekly_hours": null,
               "overtime": "經常",
               "travel": "不用",
-              "quote_free_note": "摘要無個人數字，僅作制度／口徑參考"
+              "quote_free_note": "摘要無個人數字，僅作制度／口徑參考",
+              "date_confirmed": true,
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -2304,7 +3324,10 @@
               "weekly_hours": null,
               "overtime": "經常",
               "travel": "不用",
-              "quote_free_note": "四大碩士三年約 150 萬"
+              "quote_free_note": "四大碩士三年約 150 萬",
+              "date_confirmed": false,
+              "in_window": false,
+              "date_note": "日期未確認：依文章編號推估，錨點：Dcard 258703494 與 PTT 2025-05 同則新聞、261413813 與今周刊 2026-05 同則個案，推估約每月 25 萬號；仍屬推估"
             },
             {
               "site": "Dcard",
@@ -2320,9 +3343,32 @@
               "weekly_hours": null,
               "overtime": "經常",
               "travel": "不用",
-              "quote_free_note": "摘要無個人數字，僅作制度／口徑參考"
+              "quote_free_note": "摘要無個人數字，僅作制度／口徑參考",
+              "date_confirmed": false,
+              "in_window": false,
+              "date_note": "日期未確認：依文章編號推估，錨點：Dcard 258703494 與 PTT 2025-05 同則新聞、261413813 與今周刊 2026-05 同則個案，推估約每月 25 萬號；仍屬推估"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/236440684",
+              "date": "依文章編號推估",
+              "unit_detail": "晶圓廠 Fab",
+              "years": "0-2",
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": "經常",
+              "travel": "不用",
+              "quote_free_note": "整合 offer：碩士約 6 職等",
+              "date_confirmed": false,
+              "in_window": false,
+              "date_note": "日期未確認：依文章編號推估，錨點：Dcard 258703494 與 PTT 2025-05 同則新聞、261413813 與今周刊 2026-05 同則個案，推估約每月 25 萬號；仍屬推估"
             }
-          ]
+          ],
+          "n_in_window": 1
         }
       ],
       "mops": {
@@ -2393,7 +3439,7 @@
               "date": "2026"
             }
           ],
-          "confidence": "高",
+          "confidence": "中",
           "grade": "31 職等",
           "samples": [
             {
@@ -2410,7 +3456,9 @@
               "weekly_hours": null,
               "overtime": "經常（需值班）",
               "travel": "不用",
-              "quote_free_note": "摘要無個人數字，僅作制度／口徑參考"
+              "quote_free_note": "摘要無個人數字，僅作制度／口徑參考",
+              "date_confirmed": true,
+              "in_window": true
             },
             {
               "site": "比薪水",
@@ -2426,7 +3474,9 @@
               "weekly_hours": null,
               "overtime": "經常（需值班）",
               "travel": "不用",
-              "quote_free_note": "摘要無個人數字，僅作制度／口徑參考"
+              "quote_free_note": "摘要無個人數字，僅作制度／口徑參考",
+              "date_confirmed": true,
+              "in_window": true
             },
             {
               "site": "GoodJob",
@@ -2442,7 +3492,9 @@
               "weekly_hours": null,
               "overtime": "經常（需值班）",
               "travel": "不用",
-              "quote_free_note": "摘要無個人數字，僅作制度／口徑參考"
+              "quote_free_note": "摘要無個人數字，僅作制度／口徑參考",
+              "date_confirmed": true,
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -2458,7 +3510,10 @@
               "weekly_hours": null,
               "overtime": "經常（需值班）",
               "travel": "不用",
-              "quote_free_note": "摘要無個人數字，僅作制度／口徑參考"
+              "quote_free_note": "摘要無個人數字，僅作制度／口徑參考",
+              "date_confirmed": false,
+              "in_window": false,
+              "date_note": "日期未確認：依文章編號推估，錨點：Dcard 258703494 與 PTT 2025-05 同則新聞、261413813 與今周刊 2026-05 同則個案，推估約每月 25 萬號；仍屬推估"
             },
             {
               "site": "getcareers",
@@ -2474,28 +3529,22 @@
               "weekly_hours": null,
               "overtime": "經常（需值班）",
               "travel": "不用",
-              "quote_free_note": "摘要無個人數字，僅作制度／口徑參考"
+              "quote_free_note": "摘要無個人數字，僅作制度／口徑參考",
+              "date_confirmed": true,
+              "in_window": true
             }
-          ]
+          ],
+          "n_in_window": 4
         },
         {
           "unit": "晶圓廠 Fab",
           "role": "製程整合工程師",
           "degree": "碩士",
           "years": "0-2",
-          "base_month_k": [
-            57,
-            57
-          ],
+          "base_month_k": null,
           "bonus_months": null,
-          "annual_months": [
-            16,
-            16
-          ],
-          "annual_total_wan": [
-            118,
-            118
-          ],
+          "annual_months": null,
+          "annual_total_wan": null,
           "weekly_hours": null,
           "overtime": "經常（需值班）",
           "travel": "不用",
@@ -2528,7 +3577,7 @@
               "date": "約2025～2026（依文章編號推估，未讀原文）"
             }
           ],
-          "confidence": "高",
+          "confidence": "中",
           "grade": "31 職等",
           "samples": [
             {
@@ -2545,7 +3594,9 @@
               "weekly_hours": null,
               "overtime": "經常（需值班）",
               "travel": "不用",
-              "quote_free_note": "摘要無個人數字，僅作制度／口徑參考"
+              "quote_free_note": "摘要無個人數字，僅作制度／口徑參考",
+              "date_confirmed": true,
+              "in_window": true
             },
             {
               "site": "GoodJob",
@@ -2561,7 +3612,9 @@
               "weekly_hours": null,
               "overtime": "經常（需值班）",
               "travel": "不用",
-              "quote_free_note": "摘要無個人數字，僅作制度／口徑參考"
+              "quote_free_note": "摘要無個人數字，僅作制度／口徑參考",
+              "date_confirmed": true,
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -2577,7 +3630,10 @@
               "weekly_hours": null,
               "overtime": "經常（需值班）",
               "travel": "不用",
-              "quote_free_note": "31 職等第二年約 110～125 萬（取中）"
+              "quote_free_note": "31 職等第二年約 110～125 萬（取中）",
+              "date_confirmed": false,
+              "in_window": false,
+              "date_note": "日期未確認：依文章編號推估，錨點：Dcard 258703494 與 PTT 2025-05 同則新聞、261413813 與今周刊 2026-05 同則個案，推估約每月 25 萬號；仍屬推估"
             },
             {
               "site": "Dcard",
@@ -2593,7 +3649,10 @@
               "weekly_hours": null,
               "overtime": "經常（需值班）",
               "travel": "不用",
-              "quote_free_note": "研替 57k×16"
+              "quote_free_note": "研替 57k×16",
+              "date_confirmed": false,
+              "in_window": false,
+              "date_note": "日期未確認：依文章編號推估，錨點：Dcard 258703494 與 PTT 2025-05 同則新聞、261413813 與今周刊 2026-05 同則個案，推估約每月 25 萬號；仍屬推估"
             },
             {
               "site": "Dcard",
@@ -2609,9 +3668,13 @@
               "weekly_hours": null,
               "overtime": "經常（需值班）",
               "travel": "不用",
-              "quote_free_note": "摘要無個人數字，僅作制度／口徑參考"
+              "quote_free_note": "摘要無個人數字，僅作制度／口徑參考",
+              "date_confirmed": false,
+              "in_window": false,
+              "date_note": "日期未確認：依文章編號推估，錨點：Dcard 258703494 與 PTT 2025-05 同則新聞、261413813 與今周刊 2026-05 同則個案，推估約每月 25 萬號；仍屬推估"
             }
-          ]
+          ],
+          "n_in_window": 2
         },
         {
           "unit": "晶圓廠 Fab",
@@ -2631,7 +3694,7 @@
           ],
           "overtime": "偶爾～經常（輪班／值班津貼）",
           "travel": "不用",
-          "n": 4,
+          "n": 5,
           "note": "僅有 2018 年設備助理工程師 3.8 萬（太舊不採）；GoodJob 多則回報公司保障 16 個月（含年終與節金），另 7 月依營運發分紅、4 月調薪；分紅月數未見具體數字（2026-10 查 GoodJob、媒體）；2026-10-25 補：GoodJob 2026-03 生產設備工程師 6 年年薪約 150 萬、55 小時／週；設備助理工程師面試文（2026-07）",
           "sources": [
             {
@@ -2653,6 +3716,11 @@
               "site": "GoodJob",
               "url": "https://www.goodjob.life/experiences/6a4939fbe3262eeb604e40e8",
               "date": "2026-07"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/60a7d58a6fcbb20019f4885d",
+              "date": "2021-05"
             }
           ],
           "confidence": "中",
@@ -2672,7 +3740,9 @@
               "weekly_hours": null,
               "overtime": "偶爾～經常（輪班／值班津貼）",
               "travel": "不用",
-              "quote_free_note": "摘要無個人數字，僅作制度／口徑參考"
+              "quote_free_note": "摘要無個人數字，僅作制度／口徑參考",
+              "date_confirmed": true,
+              "in_window": false
             },
             {
               "site": "GoodJob",
@@ -2688,7 +3758,9 @@
               "weekly_hours": null,
               "overtime": "偶爾～經常（輪班／值班津貼）",
               "travel": "不用",
-              "quote_free_note": "摘要無個人數字，僅作制度／口徑參考"
+              "quote_free_note": "摘要無個人數字，僅作制度／口徑參考",
+              "date_confirmed": true,
+              "in_window": true
             },
             {
               "site": "GoodJob",
@@ -2704,7 +3776,9 @@
               "weekly_hours": 55,
               "overtime": "偶爾～經常（輪班／值班津貼）",
               "travel": "不用",
-              "quote_free_note": "6 年年薪約 150 萬"
+              "quote_free_note": "6 年年薪約 150 萬",
+              "date_confirmed": true,
+              "in_window": true
             },
             {
               "site": "GoodJob",
@@ -2720,23 +3794,50 @@
               "weekly_hours": null,
               "overtime": "偶爾～經常（輪班／值班津貼）",
               "travel": "不用",
-              "quote_free_note": "摘要無個人數字，僅作制度／口徑參考"
+              "quote_free_note": "摘要無個人數字，僅作制度／口徑參考",
+              "date_confirmed": true,
+              "in_window": true
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/60a7d58a6fcbb20019f4885d",
+              "date": "2021-05",
+              "unit_detail": "晶圓廠 Fab",
+              "years": "6",
+              "degree": "碩士",
+              "base_k": 108,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": "偶爾～經常（輪班／值班津貼）",
+              "travel": "不用",
+              "quote_free_note": "資深設備 6 年月薪 10.8 萬、不推薦",
+              "date_confirmed": true,
+              "in_window": false
             }
-          ]
+          ],
+          "n_in_window": 3
         },
         {
           "unit": "研發 R&D",
           "role": "元件／製程研發工程師",
           "degree": "碩士",
           "years": "0-2",
-          "base_month_k": null,
+          "base_month_k": [
+            57,
+            57
+          ],
           "bonus_months": null,
           "annual_months": null,
           "annual_total_wan": null,
-          "weekly_hours": null,
+          "weekly_hours": [
+            40,
+            40
+          ],
           "overtime": null,
           "travel": null,
-          "n": 2,
+          "n": 5,
           "note": "查無；關鍵字同上＋世界先進 製程 月薪 分紅 季獎金 2026；GoodJob 多則回報公司保障 16 個月（含年終與節金），另 7 月依營運發分紅、4 月調薪；分紅月數未見具體數字（2026-10 查 GoodJob、媒體）；研發出差頻率未見具體回報，暫填偶爾（低信心）；撤回：travel 原為沿用／推算／暫填值，無直接證據，已改回原值",
           "sources": [
             {
@@ -2748,6 +3849,21 @@
               "site": "GoodJob",
               "url": "https://www.goodjob.life/companies/世界先進積體電路股份有限公司/work-experiences/薪資福利?p=2",
               "date": "2026"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/69192e199e12aa91bd04bb97",
+              "date": "2025-11"
+            },
+            {
+              "site": "PTT",
+              "url": "https://www.ptt.cc/bbs/Tech_Job/M.1737618608.A.2C7.html",
+              "date": "2025-01"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/238600302",
+              "date": "依文章編號推估"
             }
           ],
           "confidence": "中",
@@ -2767,7 +3883,9 @@
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
-              "quote_free_note": "摘要無個人數字，僅作制度／口徑參考"
+              "quote_free_note": "摘要無個人數字，僅作制度／口徑參考",
+              "date_confirmed": true,
+              "in_window": true
             },
             {
               "site": "GoodJob",
@@ -2783,9 +3901,67 @@
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
-              "quote_free_note": "摘要無個人數字，僅作制度／口徑參考"
+              "quote_free_note": "摘要無個人數字，僅作制度／口徑參考",
+              "date_confirmed": true,
+              "in_window": true
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/69192e199e12aa91bd04bb97",
+              "date": "2025-11",
+              "unit_detail": "研發 R&D",
+              "years": "0-2",
+              "degree": "碩士",
+              "base_k": 57,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 40,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "技術開發新竹縣月薪約 5.7 萬、40 小時",
+              "date_confirmed": true,
+              "in_window": true
+            },
+            {
+              "site": "PTT",
+              "url": "https://www.ptt.cc/bbs/Tech_Job/M.1737618608.A.2C7.html",
+              "date": "2025-01",
+              "unit_detail": "研發 R&D",
+              "years": "0-2",
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "二廠技術開發 offer 約 N、簽約金 10 萬綁兩年",
+              "date_confirmed": true,
+              "in_window": false
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/238600302",
+              "date": "依文章編號推估",
+              "unit_detail": "研發 R&D",
+              "years": "0-2",
+              "degree": "碩士",
+              "base_k": 46,
+              "bonus_months": null,
+              "annual_months": 16,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "舊制研發底薪 45～47k、保 16",
+              "date_confirmed": false,
+              "in_window": false,
+              "date_note": "日期未確認：依文章編號推估，錨點：Dcard 258703494 與 PTT 2025-05 同則新聞、261413813 與今周刊 2026-05 同則個案，推估約每月 25 萬號；仍屬推估"
             }
-          ]
+          ],
+          "n_in_window": 3
         }
       ],
       "mops": {
@@ -2820,20 +3996,14 @@
           "role": "製程工程師",
           "degree": "碩士",
           "years": "0-2",
-          "base_month_k": [
-            60,
-            60
-          ],
+          "base_month_k": null,
           "bonus_months": null,
-          "annual_months": [
-            14,
-            14
-          ],
+          "annual_months": null,
           "annual_total_wan": null,
           "weekly_hours": null,
           "overtime": "偶爾（良率問題時加班）",
           "travel": "不用",
-          "n": 4,
+          "n": 5,
           "note": "GoodJob 2026-01 自述月薪 6 萬、近一年無季獎金；另 2025 一筆 8 萬為 6 年年資已排除；力積電近一年虧損，分紅月數依同公司製程／整合職回報為 0；2026-10-25 補：Dcard 2025 碩士新人起薪 58～62k、保 14 個月，分紅不宜期待",
           "sources": [
             {
@@ -2855,6 +4025,11 @@
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/260197379",
               "date": "約2025～2026（依文章編號推估，未讀原文）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/6a931c1684e35a66ed23662c",
+              "date": "2026-08"
             }
           ],
           "confidence": "中",
@@ -2874,7 +4049,9 @@
               "weekly_hours": null,
               "overtime": "偶爾（良率問題時加班）",
               "travel": "不用",
-              "quote_free_note": "摘要無個人數字，僅作制度／口徑參考"
+              "quote_free_note": "摘要無個人數字，僅作制度／口徑參考",
+              "date_confirmed": true,
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -2890,7 +4067,10 @@
               "weekly_hours": null,
               "overtime": "偶爾（良率問題時加班）",
               "travel": "不用",
-              "quote_free_note": "碩士新人 58～62k（取中）"
+              "quote_free_note": "碩士新人 58～62k（取中）",
+              "date_confirmed": false,
+              "in_window": false,
+              "date_note": "日期未確認：依文章編號推估，錨點：Dcard 258703494 與 PTT 2025-05 同則新聞、261413813 與今周刊 2026-05 同則個案，推估約每月 25 萬號；仍屬推估"
             },
             {
               "site": "Dcard",
@@ -2906,7 +4086,10 @@
               "weekly_hours": null,
               "overtime": "偶爾（良率問題時加班）",
               "travel": "不用",
-              "quote_free_note": "摘要無個人數字，僅作制度／口徑參考"
+              "quote_free_note": "摘要無個人數字，僅作制度／口徑參考",
+              "date_confirmed": false,
+              "in_window": false,
+              "date_note": "日期未確認：依文章編號推估，錨點：Dcard 258703494 與 PTT 2025-05 同則新聞、261413813 與今周刊 2026-05 同則個案，推估約每月 25 萬號；仍屬推估"
             },
             {
               "site": "Dcard",
@@ -2922,9 +4105,31 @@
               "weekly_hours": null,
               "overtime": "偶爾（良率問題時加班）",
               "travel": "不用",
-              "quote_free_note": "摘要無個人數字，僅作制度／口徑參考"
+              "quote_free_note": "摘要無個人數字，僅作制度／口徑參考",
+              "date_confirmed": false,
+              "in_window": false,
+              "date_note": "日期未確認：依文章編號推估，錨點：Dcard 258703494 與 PTT 2025-05 同則新聞、261413813 與今周刊 2026-05 同則個案，推估約每月 25 萬號；仍屬推估"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/6a931c1684e35a66ed23662c",
+              "date": "2026-08",
+              "unit_detail": "晶圓廠 Fab",
+              "years": "0-2",
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": "偶爾（良率問題時加班）",
+              "travel": "不用",
+              "quote_free_note": "生產技術／製程，主任工程師職稱，摘要無金額",
+              "date_confirmed": true,
+              "in_window": true
             }
-          ]
+          ],
+          "n_in_window": 2
         },
         {
           "unit": "晶圓廠 Fab",
@@ -2932,7 +4137,7 @@
           "degree": "碩士",
           "years": "0-2",
           "base_month_k": [
-            74.9,
+            70,
             74.9
           ],
           "bonus_months": null,
@@ -2944,7 +4149,7 @@
           ],
           "overtime": "很少",
           "travel": "不用",
-          "n": 3,
+          "n": 5,
           "note": "GoodJob 2026-02 自述只有 14 個月、無分紅；比薪水 2026-01 整合工程師日均 9 小時（金額需解鎖）；力積電近一年虧損，分紅月數依同公司製程／整合職回報為 0；2026-10-25 補：GoodJob 2026-08 新竹整合 4 年月薪約 7.49 萬、40 小時／週，近年分紅少、購股金 2 千",
           "sources": [
             {
@@ -2961,6 +4166,16 @@
               "site": "GoodJob",
               "url": "https://www.goodjob.life/experiences/6a91c0a784e35a66ed126331",
               "date": "2026-08"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/258252850",
+              "date": "依文章編號推估"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/job-titles/%E8%A3%BD%E7%A8%8B%E6%95%B4%E5%90%88%E5%B7%A5%E7%A8%8B%E5%B8%AB",
+              "date": "2026"
             }
           ],
           "confidence": "中",
@@ -2980,7 +4195,9 @@
               "weekly_hours": null,
               "overtime": "很少",
               "travel": "不用",
-              "quote_free_note": "摘要無個人數字，僅作制度／口徑參考"
+              "quote_free_note": "摘要無個人數字，僅作制度／口徑參考",
+              "date_confirmed": true,
+              "in_window": true
             },
             {
               "site": "比薪水",
@@ -2996,7 +4213,9 @@
               "weekly_hours": null,
               "overtime": "很少",
               "travel": "不用",
-              "quote_free_note": "摘要無個人數字，僅作制度／口徑參考"
+              "quote_free_note": "摘要無個人數字，僅作制度／口徑參考",
+              "date_confirmed": true,
+              "in_window": true
             },
             {
               "site": "GoodJob",
@@ -3012,32 +4231,60 @@
               "weekly_hours": 40,
               "overtime": "很少",
               "travel": "不用",
-              "quote_free_note": "4 年月薪 7.49 萬"
+              "quote_free_note": "4 年月薪 7.49 萬",
+              "date_confirmed": true,
+              "in_window": true
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/258252850",
+              "date": "依文章編號推估",
+              "unit_detail": "晶圓廠 Fab",
+              "years": "0-2",
+              "degree": "碩士",
+              "base_k": 64,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": "很少",
+              "travel": "不用",
+              "quote_free_note": "製程整合 offer 起薪 6.4 萬、常日班常加班、每月一次假日值班",
+              "date_confirmed": false,
+              "in_window": false,
+              "date_note": "日期未確認：依文章編號推估，錨點：Dcard 258703494 與 PTT 2025-05 同則新聞、261413813 與今周刊 2026-05 同則個案，推估約每月 25 萬號；仍屬推估"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/job-titles/%E8%A3%BD%E7%A8%8B%E6%95%B4%E5%90%88%E5%B7%A5%E7%A8%8B%E5%B8%AB",
+              "date": "2026",
+              "unit_detail": "晶圓廠 Fab",
+              "years": "0-2",
+              "degree": "碩士",
+              "base_k": 70,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": "很少",
+              "travel": "不用",
+              "quote_free_note": "PSMC 整合月薪約 7 萬（開發單位）",
+              "date_confirmed": true,
+              "in_window": true
             }
-          ]
+          ],
+          "n_in_window": 4
         },
         {
           "unit": "晶圓廠 Fab",
           "role": "設備工程師",
           "degree": "碩士",
           "years": "0-2",
-          "base_month_k": [
-            50,
-            50
-          ],
+          "base_month_k": null,
           "bonus_months": null,
-          "annual_months": [
-            14,
-            14
-          ],
-          "annual_total_wan": [
-            80,
-            80
-          ],
-          "weekly_hours": [
-            48,
-            48
-          ],
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
           "overtime": "偶爾",
           "travel": "不用",
           "n": 5,
@@ -3069,7 +4316,7 @@
               "date": "約2025～2026（依文章編號推估，未讀原文）"
             }
           ],
-          "confidence": "中",
+          "confidence": "低",
           "grade": null,
           "samples": [
             {
@@ -3086,7 +4333,9 @@
               "weekly_hours": null,
               "overtime": "偶爾",
               "travel": "不用",
-              "quote_free_note": "摘要無個人數字，僅作制度／口徑參考"
+              "quote_free_note": "摘要無個人數字，僅作制度／口徑參考",
+              "date_confirmed": true,
+              "in_window": false
             },
             {
               "site": "GoodJob",
@@ -3102,7 +4351,9 @@
               "weekly_hours": 48,
               "overtime": "偶爾",
               "travel": "不用",
-              "quote_free_note": "年薪約 80 萬（範圍外）"
+              "quote_free_note": "年薪約 80 萬（範圍外）",
+              "date_confirmed": true,
+              "in_window": false
             },
             {
               "site": "Dcard",
@@ -3118,7 +4369,10 @@
               "weekly_hours": null,
               "overtime": "偶爾",
               "travel": "不用",
-              "quote_free_note": "竹科設備約 5 萬×保 14"
+              "quote_free_note": "竹科設備約 5 萬×保 14",
+              "date_confirmed": false,
+              "in_window": false,
+              "date_note": "日期未確認：依文章編號推估，錨點：Dcard 258703494 與 PTT 2025-05 同則新聞、261413813 與今周刊 2026-05 同則個案，推估約每月 25 萬號；仍屬推估"
             },
             {
               "site": "Dcard",
@@ -3134,7 +4388,10 @@
               "weekly_hours": null,
               "overtime": "偶爾",
               "travel": "不用",
-              "quote_free_note": "摘要無個人數字，僅作制度／口徑參考"
+              "quote_free_note": "摘要無個人數字，僅作制度／口徑參考",
+              "date_confirmed": false,
+              "in_window": false,
+              "date_note": "日期未確認：依文章編號推估，錨點：Dcard 258703494 與 PTT 2025-05 同則新聞、261413813 與今周刊 2026-05 同則個案，推估約每月 25 萬號；仍屬推估"
             },
             {
               "site": "Dcard",
@@ -3150,9 +4407,13 @@
               "weekly_hours": null,
               "overtime": "偶爾",
               "travel": "不用",
-              "quote_free_note": "摘要無個人數字，僅作制度／口徑參考"
+              "quote_free_note": "摘要無個人數字，僅作制度／口徑參考",
+              "date_confirmed": false,
+              "in_window": false,
+              "date_note": "日期未確認：依文章編號推估，錨點：Dcard 258703494 與 PTT 2025-05 同則新聞、261413813 與今周刊 2026-05 同則個案，推估約每月 25 萬號；仍屬推估"
             }
-          ]
+          ],
+          "n_in_window": 0
         },
         {
           "unit": "研發 R&D",
@@ -3172,7 +4433,7 @@
           ],
           "overtime": null,
           "travel": "不用",
-          "n": 4,
+          "n": 5,
           "note": "GoodJob 面試回報月薪 6.2 萬（面試時間 2023-09，發文 2026-04，時效偏舊）；Dcard／PTT 查無；力積電近一年虧損，分紅月數依同公司製程／整合職回報為 0；撤回：bonus_months、overtime 原為沿用／推算／暫填值，無直接證據，已改回原值；2026-10-25 補：GoodJob 2026-09 苗栗技術開發 1 年年薪約 100 萬、基本不加班；Dcard 碩士研發 offer（N-4 千）×14",
           "sources": [
             {
@@ -3194,6 +4455,11 @@
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/258766864",
               "date": "約2025～2026（依文章編號推估，未讀原文）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/6a83004a1d70fc5d446abb48",
+              "date": "2026-08"
             }
           ],
           "confidence": "中",
@@ -3213,7 +4479,9 @@
               "weekly_hours": null,
               "overtime": null,
               "travel": "不用",
-              "quote_free_note": "摘要無個人數字，僅作制度／口徑參考"
+              "quote_free_note": "摘要無個人數字，僅作制度／口徑參考",
+              "date_confirmed": true,
+              "in_window": true
             },
             {
               "site": "面試趣",
@@ -3229,7 +4497,10 @@
               "weekly_hours": null,
               "overtime": null,
               "travel": "不用",
-              "quote_free_note": "摘要無個人數字，僅作制度／口徑參考"
+              "quote_free_note": "摘要無個人數字，僅作制度／口徑參考",
+              "date_confirmed": false,
+              "in_window": false,
+              "date_note": "日期未確認"
             },
             {
               "site": "GoodJob",
@@ -3245,7 +4516,9 @@
               "weekly_hours": 40,
               "overtime": null,
               "travel": "不用",
-              "quote_free_note": "1 年年薪約 100 萬、不加班"
+              "quote_free_note": "1 年年薪約 100 萬、不加班",
+              "date_confirmed": true,
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -3261,9 +4534,31 @@
               "weekly_hours": null,
               "overtime": null,
               "travel": "不用",
-              "quote_free_note": "摘要無個人數字，僅作制度／口徑參考"
+              "quote_free_note": "摘要無個人數字，僅作制度／口徑參考",
+              "date_confirmed": false,
+              "in_window": false,
+              "date_note": "日期未確認：依文章編號推估，錨點：Dcard 258703494 與 PTT 2025-05 同則新聞、261413813 與今周刊 2026-05 同則個案，推估約每月 25 萬號；仍屬推估"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/6a83004a1d70fc5d446abb48",
+              "date": "2026-08",
+              "unit_detail": "研發 R&D",
+              "years": "0-2",
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": "不用",
+              "quote_free_note": "技術開發面試 2026-08，摘要無金額",
+              "date_confirmed": true,
+              "in_window": true
             }
-          ]
+          ],
+          "n_in_window": 3
         }
       ],
       "mops": {
