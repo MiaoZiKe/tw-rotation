@@ -10,7 +10,7 @@
       "heat": "中",
       "benefits": null,
       "stock_plan": null,
-      "bonus_timing": "分紅每年 10～11 月發放、依部門與考績（2020 媒體報導，範圍外參考）",
+      "bonus_timing": "員工分紅每年 10～11 月入帳、依部門與考核；年終獎金農曆年前（2 月前後）另發，兩者分開計算",
       "culture": "加班普遍，硬體測試回報每日加班常態",
       "interview": null,
       "roles": [
@@ -393,7 +393,43 @@
         "url": "https://money.udn.com/money/story/5612/8841090"
       },
       "mops_note": "查「廣達 非主管 薪資 平均 中位數 2025」與 104 職場力 2026 上市中位數榜，摘要未列此公司；需至公開資訊觀測站彙總報表查",
-      "grade_system": null
+      "grade_system": null,
+      "bonus_structure": [
+        {
+          "type": "員工分紅",
+          "rule": "每年 10～11 月入帳，各部門額度不同",
+          "months": null,
+          "sources": [
+            {
+              "site": "104職場力",
+              "url": "https://blog.104.com.tw/quantatw-employee-dividend-growth/",
+              "date": "2024"
+            },
+            {
+              "site": "ETtoday",
+              "url": "https://finance.ettoday.net/news/1839292",
+              "date": "2020-10"
+            }
+          ]
+        },
+        {
+          "type": "年終獎金",
+          "rule": "農曆年前發；2024 年初發 2.5～7 個月（依到職日與表現）",
+          "months": null,
+          "sources": [
+            {
+              "site": "ETtoday",
+              "url": "https://finance.ettoday.net/news/2676898",
+              "date": "2024-02"
+            },
+            {
+              "site": "旺得富",
+              "url": "https://wantrich.chinatimes.com/news/20240202900116-420101",
+              "date": "2024-02"
+            }
+          ]
+        }
+      ]
     },
     {
       "name": "鴻海",
@@ -401,7 +437,7 @@
       "heat": "中",
       "benefits": null,
       "stock_plan": null,
-      "bonus_timing": "年度分紅 2026-09-30 入帳（2025 年度約 88 億，依事業群與個人績效分配，非平均發放）；另有季分紅",
+      "bonus_timing": "月薪＋12 月固定年終（原則 2 個月）＋農曆年前績效獎金＋每年 9 月年度員工分紅（依事業群與個人績效，非平均）",
       "culture": null,
       "interview": null,
       "roles": [
@@ -690,7 +726,55 @@
       ],
       "mops": null,
       "mops_note": "查「鴻海 非主管 薪資 平均 中位數 2025」與 104 職場力 2026 上市中位數榜，摘要未列此公司；需至公開資訊觀測站彙總報表查",
-      "grade_system": "師級：學士師二、碩士師三，約兩年一半升師四（Dcard）"
+      "grade_system": "師級：學士師二、碩士師三，約兩年一半升師四（Dcard）",
+      "bonus_structure": [
+        {
+          "type": "年終獎金",
+          "rule": "每年 12 月發，原則 2 個月",
+          "months": 2,
+          "sources": [
+            {
+              "site": "104職場力",
+              "url": "https://blog.104.com.tw/foxconn-employees-bonuses/",
+              "date": "2026-09"
+            }
+          ]
+        },
+        {
+          "type": "績效獎金",
+          "rule": "農曆春節前發放，依績效",
+          "months": null,
+          "sources": [
+            {
+              "site": "104職場力",
+              "url": "https://blog.104.com.tw/foxconn-employees-bonuses/",
+              "date": "2026-09"
+            }
+          ]
+        },
+        {
+          "type": "年度員工分紅",
+          "rule": "每年 9 月發（2026-09-30 入帳，俗稱秋節大禮包）；2025 年度員工酬勞 117.52 億元，依事業群與個人績效分配。原記「另有季分紅」本輪查無來源，已移除",
+          "months": null,
+          "sources": [
+            {
+              "site": "中央社",
+              "url": "https://www.cna.com.tw/news/afe/202609300025.aspx",
+              "date": "2026-09"
+            },
+            {
+              "site": "聯合新聞網",
+              "url": "https://udn.com/news/amp/story/7240/9786912",
+              "date": "2026-09"
+            },
+            {
+              "site": "風傳媒",
+              "url": "https://www.storm.mg/article/11168506",
+              "date": "2026-09"
+            }
+          ]
+        }
+      ]
     },
     {
       "name": "智邦",
@@ -698,7 +782,7 @@
       "heat": null,
       "benefits": null,
       "stock_plan": null,
-      "bonus_timing": "未查到；上市櫃員工酬勞多於股東會後年中發放（一般流程，非該公司確認）",
+      "bonus_timing": "查不到公開的獎金發放月份與月數",
       "culture": null,
       "interview": null,
       "roles": [
@@ -837,7 +921,8 @@
       ],
       "mops": null,
       "mops_note": "查「智邦 非主管 薪資 平均 中位數 2025」與 104 職場力 2026 上市中位數榜，摘要未列此公司；需至公開資訊觀測站彙總報表查",
-      "grade_system": null
+      "grade_system": null,
+      "bonus_structure": []
     },
     {
       "name": "台達電",
@@ -845,7 +930,7 @@
       "heat": null,
       "benefits": null,
       "stock_plan": null,
-      "bonus_timing": "未查到；上市櫃員工酬勞多於股東會後年中發放（一般流程，非該公司確認）",
+      "bonus_timing": "分紅兩次：4 月員工現金獎金（約 40%）＋8 月員工現金酬勞（約 60%）；考績獎金 6 月；年終農曆年前",
       "culture": "GoodJob：薪資福利評分相對高；分紅看部門表現，工時評價不一",
       "interview": null,
       "roles": [
@@ -1089,7 +1174,50 @@
       ],
       "mops": null,
       "mops_note": "查「台達電 非主管 薪資 平均 中位數 2025」與 104 職場力 2026 上市中位數榜，摘要未列此公司；需至公開資訊觀測站彙總報表查",
-      "grade_system": "S1～S4（S2 資深、S4 主任工程師；每高一等約多 0.5～1 個月）"
+      "grade_system": "S1～S4（S2 資深、S4 主任工程師；每高一等約多 0.5～1 個月）",
+      "bonus_structure": [
+        {
+          "type": "員工分紅／酬勞",
+          "rule": "自 106 年度起 4 月先發員工現金獎金、8 月發員工現金酬勞（公司說明，2018）；網友 2023 稱 4 月 40%、8 月 60%",
+          "months": null,
+          "sources": [
+            {
+              "site": "今周刊",
+              "url": "https://www.businesstoday.com.tw/article/category/80392/post/201809030019/",
+              "date": "2018-09"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/243488448",
+              "date": "依文章編號推估 2023"
+            }
+          ]
+        },
+        {
+          "type": "考績獎金",
+          "rule": "6 月發（網友說法）",
+          "months": null,
+          "sources": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/243488448",
+              "date": "依文章編號推估 2023"
+            }
+          ]
+        },
+        {
+          "type": "年終獎金",
+          "rule": "農曆年前（1 月底或 2 月初），月數查不到",
+          "months": null,
+          "sources": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/243488448",
+              "date": "依文章編號推估 2023"
+            }
+          ]
+        }
+      ]
     },
     {
       "name": "華碩",
@@ -1097,7 +1225,7 @@
       "heat": null,
       "benefits": null,
       "stock_plan": null,
-      "bonus_timing": "未查到；上市櫃員工酬勞多於股東會後年中發放（一般流程，非該公司確認）",
+      "bonus_timing": "年終＋績效獎金（約 1 月公布）；年中分紅舊報導稱 8 月底、占總分紅約七成；歲末派對曾加發 2～3 個月",
       "culture": null,
       "interview": null,
       "roles": [
@@ -1303,7 +1431,50 @@
         "url": "https://money.udn.com/money/story/5612/8841090"
       },
       "mops_note": "查「華碩 非主管 薪資 平均 中位數 2025」與 104 職場力 2026 上市中位數榜，摘要未列此公司；需至公開資訊觀測站彙總報表查",
-      "grade_system": "工程師 4／高級 5／主任 6／副理 7 職等"
+      "grade_system": "工程師 4／高級 5／主任 6／副理 7 職等",
+      "bonus_structure": [
+        {
+          "type": "年終獎金",
+          "rule": "按比例約 1 個月（網友 2025 單一分享）；歲末派對曾宣布平均加發 2～3 個月（特例）",
+          "months": null,
+          "sources": [
+            {
+              "site": "鉅亨網",
+              "url": "https://news.cnyes.com/news/id/4804788",
+              "date": "2021-12"
+            },
+            {
+              "site": "Threads 網友",
+              "url": "https://www.threads.com/@career.honesttree/post/DFAa5hmy3jq",
+              "date": "2025-01"
+            }
+          ]
+        },
+        {
+          "type": "績效獎金",
+          "rule": "約 1 月下旬公布（網友 2025）",
+          "months": null,
+          "sources": [
+            {
+              "site": "Threads 網友",
+              "url": "https://www.threads.com/@career.honesttree/post/DFAa5hmy3jq",
+              "date": "2025-01"
+            }
+          ]
+        },
+        {
+          "type": "員工分紅",
+          "rule": "2010 年報導：8 月底公布、年中分紅占七成；近年月份未確認",
+          "months": null,
+          "sources": [
+            {
+              "site": "今周刊",
+              "url": "https://www.businesstoday.com.tw/article/category/80392/post/201009020034/",
+              "date": "2010-09（範圍外）"
+            }
+          ]
+        }
+      ]
     },
     {
       "name": "群光",
@@ -1311,7 +1482,7 @@
       "heat": null,
       "benefits": null,
       "stock_plan": null,
-      "bonus_timing": "未查到；上市櫃員工酬勞多於股東會後年中發放（一般流程，非該公司確認）",
+      "bonus_timing": "查不到公開的獎金發放月份與月數",
       "culture": "GoodJob 調查平均日工時 8.5～10 小時（uptogo 轉述）",
       "interview": null,
       "roles": [
@@ -1387,7 +1558,8 @@
       ],
       "mops": null,
       "mops_note": "查「群光 非主管 薪資 平均 中位數 2025」與 104 職場力 2026 上市中位數榜，摘要未列此公司；需至公開資訊觀測站彙總報表查",
-      "grade_system": null
+      "grade_system": null,
+      "bonus_structure": []
     },
     {
       "name": "和碩",
@@ -1395,7 +1567,7 @@
       "heat": null,
       "benefits": null,
       "stock_plan": null,
-      "bonus_timing": "未查到；上市櫃員工酬勞多於股東會後年中發放（一般流程，非該公司確認）",
+      "bonus_timing": "查不到公開的獎金發放月份與月數",
       "culture": "GoodJob 平均每週 47 小時（個別 40～60）；底薪普通、三節＋年終約 14 個月＋少量分紅",
       "interview": "評價分歧，有人稱流程透明完整（GoodJob 2026）",
       "roles": [
@@ -1603,7 +1775,8 @@
       ],
       "mops": null,
       "mops_note": "查「和碩 非主管 薪資 平均 中位數 2025」與 104 職場力 2026 上市中位數榜，摘要未列此公司；需至公開資訊觀測站彙總報表查",
-      "grade_system": "數字職等（例：23 職等）"
+      "grade_system": "數字職等（例：23 職等）",
+      "bonus_structure": []
     },
     {
       "name": "光寶",
@@ -1611,7 +1784,7 @@
       "heat": null,
       "benefits": "育兒津貼優厚（GoodJob 高雄分公司評價）",
       "stock_plan": "員工自購股票、公司配合出資（GoodJob 評價）",
-      "bonus_timing": "未查到；上市櫃員工酬勞多於股東會後年中發放（一般流程，非該公司確認）",
+      "bonus_timing": "查不到公開的獎金發放月份與月數",
       "culture": "GoodJob 平均每週 45 小時、41% 偶爾加班、9% 幾乎每天；趕案才加班",
       "interview": null,
       "roles": [
@@ -1708,7 +1881,8 @@
       ],
       "mops": null,
       "mops_note": "查「光寶 非主管 薪資 平均 中位數 2025」與 104 職場力 2026 上市中位數榜，摘要未列此公司；需至公開資訊觀測站彙總報表查",
-      "grade_system": null
+      "grade_system": null,
+      "bonus_structure": []
     },
     {
       "name": "仁寶",
@@ -1716,7 +1890,7 @@
       "heat": null,
       "benefits": null,
       "stock_plan": null,
-      "bonus_timing": "未查到；上市櫃員工酬勞多於股東會後年中發放（一般流程，非該公司確認）",
+      "bonus_timing": "查不到公開的獎金發放月份與月數",
       "culture": "GoodJob 平均每週 47 小時、15% 幾乎每天加班；加班費可申請但超過 46 小時會被關切；每年調薪幅度不固定",
       "interview": null,
       "roles": [
@@ -1810,7 +1984,8 @@
       ],
       "mops": null,
       "mops_note": "查「仁寶 非主管 薪資 平均 中位數 2025」與 104 職場力 2026 上市中位數榜，摘要未列此公司；需至公開資訊觀測站彙總報表查",
-      "grade_system": null
+      "grade_system": null,
+      "bonus_structure": []
     },
     {
       "name": "英業達",
@@ -1818,7 +1993,7 @@
       "heat": null,
       "benefits": null,
       "stock_plan": null,
-      "bonus_timing": "未查到；上市櫃員工酬勞多於股東會後年中發放（一般流程，非該公司確認）",
+      "bonus_timing": "查不到公開的獎金發放月份與月數",
       "culture": "GoodJob 薪資福利 3.2、工時 3.6；平均每週 46 小時、17% 幾乎每天加班；評價稱分紅年終少於同業、彈性工時佳",
       "interview": null,
       "roles": [
@@ -1957,7 +2132,8 @@
       ],
       "mops": null,
       "mops_note": "查「英業達 非主管 薪資 平均 中位數 2025」與 104 職場力 2026 上市中位數榜，摘要未列此公司；需至公開資訊觀測站彙總報表查",
-      "grade_system": null
+      "grade_system": null,
+      "bonus_structure": []
     },
     {
       "name": "技嘉",
@@ -1965,7 +2141,7 @@
       "heat": null,
       "benefits": null,
       "stock_plan": null,
-      "bonus_timing": "未查到；上市櫃員工酬勞多於股東會後年中發放（一般流程，非該公司確認）",
+      "bonus_timing": "查不到公開的獎金發放月份與月數",
       "culture": "GoodJob 平均每週 46 小時、19% 幾乎每天加班",
       "interview": null,
       "roles": [
@@ -2080,7 +2256,8 @@
       ],
       "mops": null,
       "mops_note": "查「技嘉 非主管 薪資 平均 中位數 2025」與 104 職場力 2026 上市中位數榜，摘要未列此公司；需至公開資訊觀測站彙總報表查",
-      "grade_system": null
+      "grade_system": null,
+      "bonus_structure": []
     },
     {
       "name": "智易",
@@ -2088,7 +2265,7 @@
       "heat": null,
       "benefits": null,
       "stock_plan": null,
-      "bonus_timing": "未查到；上市櫃員工酬勞多於股東會後年中發放（一般流程，非該公司確認）",
+      "bonus_timing": "查不到公開的獎金發放月份與月數",
       "culture": null,
       "interview": null,
       "roles": [
@@ -2185,7 +2362,8 @@
       ],
       "mops": null,
       "mops_note": "查「智易 非主管 薪資 平均 中位數 2025」與 104 職場力 2026 上市中位數榜，摘要未列此公司；需至公開資訊觀測站彙總報表查",
-      "grade_system": null
+      "grade_system": null,
+      "bonus_structure": []
     },
     {
       "name": "緯穎",
@@ -2193,7 +2371,7 @@
       "heat": null,
       "benefits": null,
       "stock_plan": null,
-      "bonus_timing": "未查到；上市櫃員工酬勞多於股東會後年中發放（一般流程，非該公司確認）",
+      "bonus_timing": "網友稱年終約 1 個月、分紅約 2～3 個月；發放月份查不到",
       "culture": "GoodJob：加薪分紅偏大鍋飯、開會長、新人多自學",
       "interview": null,
       "roles": [
@@ -2575,7 +2753,33 @@
       ],
       "mops": null,
       "mops_note": "查「緯穎 非主管 薪資 平均 中位數 2025」與 104 職場力 2026 上市中位數榜，摘要未列此公司；需至公開資訊觀測站彙總報表查",
-      "grade_system": "數字職等（研發新人約 9 職等）"
+      "grade_system": "數字職等（研發新人約 9 職等）",
+      "bonus_structure": [
+        {
+          "type": "年終獎金",
+          "rule": "約 1 個月（網友說法）",
+          "months": 1,
+          "sources": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/255435967",
+              "date": "依文章編號推估 2024"
+            }
+          ]
+        },
+        {
+          "type": "員工分紅",
+          "rule": "約 2～3 個月（網友說法），月份查不到",
+          "months": null,
+          "sources": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/255435967",
+              "date": "依文章編號推估 2024"
+            }
+          ]
+        }
+      ]
     },
     {
       "name": "緯創",
@@ -2583,7 +2787,7 @@
       "heat": null,
       "benefits": null,
       "stock_plan": null,
-      "bonus_timing": "未查到；上市櫃員工酬勞多於股東會後年中發放（一般流程，非該公司確認）",
+      "bonus_timing": "查不到公開的獎金發放月份與月數",
       "culture": "GoodJob 609 筆：平均每週 46 小時，多數偶爾或經常加班；薪資評價差強人意",
       "interview": null,
       "roles": [
@@ -2749,7 +2953,8 @@
       ],
       "mops": null,
       "mops_note": "查「緯創 非主管 薪資 平均 中位數 2025」與 104 職場力 2026 上市中位數榜，摘要未列此公司；需至公開資訊觀測站彙總報表查",
-      "grade_system": "數字職等（伺服器硬體研發 8 職等、7 職等）"
+      "grade_system": "數字職等（伺服器硬體研發 8 職等、7 職等）",
+      "bonus_structure": []
     },
     {
       "name": "明基",
@@ -2757,7 +2962,7 @@
       "heat": null,
       "benefits": null,
       "stock_plan": null,
-      "bonus_timing": "未查到；上市櫃員工酬勞多於股東會後年中發放（一般流程，非該公司確認）",
+      "bonus_timing": "查不到公開的獎金發放月份與月數",
       "culture": null,
       "interview": null,
       "roles": [
@@ -2830,7 +3035,8 @@
       ],
       "mops": null,
       "mops_note": "查「明基 非主管 薪資 平均 中位數 2025」與 104 職場力 2026 上市中位數榜，摘要未列此公司；需至公開資訊觀測站彙總報表查",
-      "grade_system": null
+      "grade_system": null,
+      "bonus_structure": []
     },
     {
       "name": "趨勢科技",
@@ -2938,7 +3144,15 @@
       ],
       "mops": null,
       "mops_note": "查「趨勢科技 非主管 薪資 平均 中位數 2025」與 104 職場力 2026 上市中位數榜，摘要未列此公司；需至公開資訊觀測站彙總報表查",
-      "grade_system": null
+      "grade_system": null,
+      "bonus_structure": [
+        {
+          "type": "既有說法（本輪未再查證）",
+          "rule": "每半年發獎金（GoodJob 2025 自述）",
+          "months": null,
+          "sources": []
+        }
+      ]
     }
   ]
 }
