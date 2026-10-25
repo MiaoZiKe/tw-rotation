@@ -19,7 +19,7 @@
 #v-tc .tc-cnt{color:var(--ink-3);font-size:13px;margin-bottom:var(--sp-2)}
 #v-tc .tc-cnt b{color:var(--cyan)}
 #v-tc .tc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:var(--sp-3)}
-#v-tc .tc-co{display:flex;flex-direction:column;gap:var(--sp-2);padding:var(--sp-3);border:1px solid var(--line);border-radius:var(--r-sm);background:var(--panel-2);color:var(--ink);text-decoration:none;height:152px;overflow:hidden}
+#v-tc .tc-co{display:flex;flex-direction:column;gap:var(--sp-2);padding:var(--sp-3);border:1px solid var(--line);border-radius:var(--r-sm);background:var(--panel-2);color:var(--ink);text-decoration:none;min-height:152px;overflow:hidden}
 #v-tc .tc-co:hover{border-color:var(--cyan)}
 #v-tc .tc-coh{display:flex;align-items:baseline;gap:var(--sp-2);white-space:nowrap}
 #v-tc .tc-coh b{font-size:16px}
@@ -79,3 +79,14 @@
   #v-tc .tc-unit td{display:block;background:none;padding:0}
   #v-tc .tc-grid{grid-template-columns:1fr}
 }
+
+/* 2026-10-25 只限管理者：html 沒有 .tc-adm 時，側欄／手機導覽的入口一律藏（路由本身在 tc.js 導回總覽） */
+html:not(.tc-adm) .tab[data-view="tc"],html:not(.tc-adm) a[href="#tc"],html:not(.tc-adm) [data-v="tc"]{display:none!important}
+#v-tc .tc-kvs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px var(--sp-3)}
+#v-tc .tc-kv{display:flex;justify-content:space-between;gap:6px;font-size:13px;min-width:0}
+#v-tc .tc-kv span{color:var(--ink-3);white-space:nowrap}
+#v-tc .tc-kv b{font-weight:600;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+#v-tc .tc-sms{display:flex;flex-direction:column;gap:2px;border-top:1px solid var(--line);padding-top:var(--sp-2)}
+#v-tc .tc-sm{font-size:12px;color:var(--ink-2);line-height:1.5;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#v-tc .tc-sm span{color:var(--ink-3);margin-right:6px}
+#v-tc .tc-deg small{display:block;color:var(--ink-3);font-size:12px}

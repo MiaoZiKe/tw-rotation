@@ -15,7 +15,7 @@ def t_tc_1025(b, base, code):
     T = "科技透明圈1025"
     errs: list[str] = []
     c = b.new_context(viewport={"width": 1440, "height": 900})
-    c.add_init_script("try{localStorage.setItem('tw.tour','done')}catch(e){}")
+    c.add_init_script("window.TW_TC_OVERRIDE=true;try{localStorage.setItem('tw.tour','done')}catch(e){}")
     pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)))
     pg.goto(base + "#tc/foundry", wait_until="load"); pg.wait_for_timeout(1800)
     if not pg.evaluate("() => document.querySelectorAll('#v-tc .tc-co').length"):
@@ -24,7 +24,9 @@ def t_tc_1025(b, base, code):
     n0 = cnt()
     ok(f"{T}：#tc/foundry 畫出公司卡與五組篩選", n0 >= 1 and pg.evaluate("() => document.querySelectorAll('#v-tc .tc-fbar .seg').length") == 5, n0)
     ok(f"{T}：頁尾免責字樣在", "GoodJob、Dcard、PTT" in pg.inner_text("#v-tc .tc-foot"))
-    ok(f"{T}：側欄/分頁列有「科技透明圈」入口", pg.evaluate("() => !!document.querySelector('.tab[data-view=tc]')"))
+        # ⑤ 2026-10-25 公司卡新資訊：六格摘要＋福利／認股／風氣一行；缺值顯示「—」（不留空白）
+    ok(f"{T}：公司卡有 底薪／分紅月數／年薪總月數／分紅發放／加班／出差 六格", pg.evaluate("() => [...document.querySelectorAll('#v-tc .tc-co')].every(c => { const t=[...c.querySelectorAll('.tc-kv span')].map(e=>e.innerText).join('|'); return ['底薪','分紅月數','年薪總月數','分紅發放','加班','出差'].every(k=>t.includes(k)); })"))
+    ok(f"{T}：公司卡有 福利／認股／風氣 摘要且沒有空格子", pg.evaluate("() => [...document.querySelectorAll('#v-tc .tc-co')].every(c => c.querySelectorAll('.tc-sm').length===3 && [...c.querySelectorAll('.tc-kv b')].every(b=>b.innerText.trim()))"))
     # ① 每組篩選：點最嚴格那顆，數字必須 <= 原本，且至少有一組真的讓筆數變少；點完 .on 真的移動
     shrunk = 0
     for k in ["hours", "base", "bonus", "annual", "ot"]:
@@ -43,6 +45,8 @@ def t_tc_1025(b, base, code):
     r0 = rows()
     ok(f"{T}：點公司卡 → 路由變 #tc/foundry/<公司>、出現職位表", "#tc/foundry/" in pg.url and r0 >= 1, (pg.url, r0))
     ok(f"{T}：每一列都有來源與信心度", pg.evaluate("() => [...document.querySelectorAll('#v-tc .tc-row')].every(r => r.querySelector('.tc-src').innerText.trim().length > 2 && r.querySelector('.tc-conf').innerText.trim())"))
+    ok(f"{T}：職位表有 學歷／年薪總月數／分紅發放／出差 欄", pg.evaluate("() => { const t=[...document.querySelectorAll('#v-tc .tc-tbl th')].map(e=>e.innerText).join('|'); return ['學歷','年薪總月數','分紅發放','出差'].every(k=>t.includes(k)); }"))
+    ok(f"{T}：每一列的學歷欄有值（碩士或「—」）", pg.evaluate("() => [...document.querySelectorAll('#v-tc .tc-row .tc-deg')].every(e => e.innerText.trim().length>0)"))
     pg.click("#v-tc .seg[data-fk=ot] button[data-i='3']"); pg.wait_for_timeout(250)
     r1 = rows()
     ok(f"{T}：公司頁篩選加班「經常」→ 職位數真的變少且每列都是經常", 0 <= r1 < r0 and pg.evaluate("() => [...document.querySelectorAll('#v-tc .tc-row .tc-ot')].every(e => e.innerText.includes('經常'))"), (r0, r1))
@@ -67,7 +71,7 @@ def t_tc_1025(b, base, code):
     c.close()
     # ④ 手機
     c2 = b.new_context(viewport={"width": 390, "height": 844}, is_mobile=True, has_touch=True)
-    c2.add_init_script("try{localStorage.setItem('tw.tour','done')}catch(e){}")
+    c2.add_init_script("window.TW_TC_OVERRIDE=true;try{localStorage.setItem('tw.tour','done')}catch(e){}")
     p2 = c2.new_page(); p2.on("pageerror", lambda e: errs.append(str(e)))
     p2.goto(base + "#tc/foundry", wait_until="load"); p2.wait_for_timeout(2000)
     ok(f"{T}（390）：不橫向捲動", p2.evaluate("() => document.documentElement.scrollWidth - window.innerWidth") <= 1)
@@ -77,8 +81,23 @@ def t_tc_1025(b, base, code):
     p2.click("#v-tc .tc-co >> nth=0"); p2.wait_for_timeout(600)
     ok(f"{T}（390）：公司頁職位轉卡片、無橫向捲動", p2.evaluate("() => getComputedStyle(document.querySelector('#v-tc .tc-row')).display") == "grid" and p2.evaluate("() => document.documentElement.scrollWidth - window.innerWidth") <= 1)
     ok(f"{T}（390）：字級不小於 11px", p2.evaluate("() => [...document.querySelectorAll('#v-tc .tc-row *, #v-tc .tc-foot')].every(e => !e.childElementCount && !e.innerText.trim() || parseFloat(getComputedStyle(e).fontSize) >= 11)"))
-    ok(f"{T}：整段沒有 JS 錯誤", not errs, errs[:4])
     c2.close()
+    # ⑥ 只限管理者：非管理者（訪客／Free／Plus／Pro 都是 admin 不成立）看不到入口、#tc 被導回總覽
+    for tag, vp, mob in [("桌機", {"width": 1440, "height": 900}, False), ("手機", {"width": 390, "height": 844}, True)]:
+        c3 = b.new_context(viewport=vp, is_mobile=mob, has_touch=mob)
+        c3.add_init_script("window.TW_TC_OVERRIDE=false;try{localStorage.setItem('tw.tour','done')}catch(e){}")
+        p3 = c3.new_page(); p3.on("pageerror", lambda e: errs.append(str(e)))
+        p3.goto(base + "#tc/foundry", wait_until="load"); p3.wait_for_timeout(1800)
+        ok(f"{T}（非管理者・{tag}）：#tc 被導回總覽", p3.evaluate("() => location.hash") == "#overview", p3.url)
+        ok(f"{T}（非管理者・{tag}）：導覽列看不到「科技透明圈」", p3.evaluate("() => [...document.querySelectorAll('.tab[data-view=tc], a[href=\"#tc\"]')].every(e => e.offsetParent === null)"))
+        ok(f"{T}（非管理者・{tag}）：頁面沒畫公司卡", p3.evaluate("() => document.querySelectorAll('#v-tc .tc-co').length") == 0)
+        c3.close()
+    c4 = b.new_context(viewport={"width": 1440, "height": 900})
+    c4.add_init_script("window.TW_TC_OVERRIDE=true;try{localStorage.setItem('tw.tour','done')}catch(e){}")
+    p4 = c4.new_page(); p4.goto(base + "#overview", wait_until="load"); p4.wait_for_timeout(1500)
+    ok(f"{T}（管理者）：導覽列看得到「科技透明圈」", p4.evaluate("() => [...document.querySelectorAll('.tab[data-view=tc]')].some(e => e.offsetParent !== null)"))
+    c4.close()
+    ok(f"{T}：整段沒有 JS 錯誤", not errs, errs[:4])
 
 
 register("科技透明圈1025", lambda pg, b, base, code: t_tc_1025(b, base, code))
