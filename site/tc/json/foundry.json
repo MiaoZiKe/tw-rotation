@@ -5777,9 +5777,20 @@
         },
         {
           "type": "運動會獎金",
-          "rule": "不固定，依當年公司決定",
+          "rule": "金額由公司每年決定，發給基層員工；2026 年每人 3 萬元（2025 年 2.5 萬元），發給 2026-05-31 前到職者，10-24 運動會因颱風取消仍照發",
           "months": null,
-          "sources": []
+          "sources": [
+            {
+              "site": "中央社",
+              "url": "https://www.cna.com.tw/news/afe/202610230240.aspx",
+              "date": "2026-10"
+            },
+            {
+              "site": "自由財經",
+              "url": "https://ec.ltn.com.tw/article/breakingnews/5616838",
+              "date": "2026-10"
+            }
+          ]
         }
       ]
     },
