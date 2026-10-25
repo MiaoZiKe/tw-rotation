@@ -104,3 +104,13 @@ html:not(.tc-adm) .tab[data-view="tc"],html:not(.tc-adm) a[href="#tc"],html:not(
 @media (max-width:640px){#v-tc .tc-st summary,#v-tc .tc-st.leaf{grid-template-columns:1fr 1fr;font-size:12px}#v-tc .tc-st .tc-st{margin-left:8px}}
 #v-tc .tc-smrow[hidden]{display:none}
 #v-tc .tc-out td{opacity:.5}#v-tc .tc-out em{color:var(--ink-3);font-style:normal}
+@media (min-width:641px){
+#v-tc .tc-tw{max-height:none;overflow-x:hidden}
+#v-tc .tc-tbl{font-size:12.5px;table-layout:auto}
+#v-tc .tc-tbl th{padding:6px 3px;font-size:12px}
+#v-tc .tc-tbl td{padding:6px 3px}
+#v-tc .tc-tbl td.tc-role{white-space:normal;text-align:left;min-width:90px}
+#v-tc .tc-tbl td.tc-src{min-width:0;font-size:11.5px;white-space:normal;max-width:130px}
+#v-tc .tc-tbl td.tc-src small{display:block;color:var(--ink-3)}
+#v-tc .tc-tbl td:nth-child(7){white-space:normal;max-width:70px}
+}

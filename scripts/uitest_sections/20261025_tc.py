@@ -47,6 +47,7 @@ def t_tc_1025(b, base, code):
     ok(f"{T}：每一列都有來源與信心度", pg.evaluate("() => [...document.querySelectorAll('#v-tc .tc-row')].every(r => r.querySelector('.tc-src').innerText.trim().length > 2 && r.querySelector('.tc-conf').innerText.trim())"))
     ok(f"{T}：職位表有 學歷／年薪總月數／分紅發放／出差 欄", pg.evaluate("() => { const t=[...document.querySelectorAll('#v-tc .tc-tbl > thead th')].map(e=>e.innerText).join('|'); return ['年薪總月數','分紅發放','出差'].every(k=>t.includes(k)) && (t.includes('學歷') || t.includes('單位繁忙度')); }"))
     ok(f"{T}：每一列的學歷欄有值（碩士或「—」）", pg.evaluate("() => [...document.querySelectorAll('#v-tc .tc-row .tc-deg')].every(e => e.innerText.trim().length>0)") or "2330" in pg.evaluate("() => document.querySelector('#v-tc .tc-code')?.innerText||''"))
+    ok(f"{T}：1440 職位表不橫向捲動、來源欄只顯示「N 筆」", pg.evaluate("() => { const w=document.querySelector('#v-tc .tc-tw'); return w.scrollWidth<=w.clientWidth+1 && [...document.querySelectorAll('#v-tc .tc-row .tc-src')].every(e=>/筆|–/.test(e.innerText) && !e.querySelector('a')); }"))
     # ⑦ 2026-10-25 職等與台積電繁忙度
     ok(f"{T}：職位表有「職等」欄且每列有值或「—」", pg.evaluate("() => [...document.querySelectorAll('#v-tc .tc-tbl > thead th')].some(e=>e.innerText==='職等') && [...document.querySelectorAll('#v-tc .tc-row .tc-grade')].every(e=>e.innerText.trim())"))
     is_tsmc = "2330" in pg.evaluate("() => (document.querySelector('#v-tc .tc-code')||{}).innerText||''")
@@ -104,13 +105,22 @@ def t_tc_1025(b, base, code):
     # ⑥ 只限管理者：非管理者（訪客／Free／Plus／Pro 都是 admin 不成立）看不到入口、#tc 被導回總覽
     for tag, vp, mob in [("桌機", {"width": 1440, "height": 900}, False), ("手機", {"width": 390, "height": 844}, True)]:
         c3 = b.new_context(viewport=vp, is_mobile=mob, has_touch=mob)
-        c3.add_init_script("window.TW_TC_OVERRIDE=false;try{localStorage.setItem('tw.tour','done')}catch(e){}")
+        c3.add_init_script("window.TW_TC_OVERRIDE=false;try{localStorage.setItem('tw.tour','done')}catch(e){};setTimeout(function(){window.dispatchEvent(new Event('tw:account'))},1000)")
         p3 = c3.new_page(); p3.on("pageerror", lambda e: errs.append(str(e)))
         p3.goto(base + "#tc/foundry", wait_until="load"); p3.wait_for_timeout(1800)
         ok(f"{T}（非管理者・{tag}）：#tc 被導回總覽", p3.evaluate("() => location.hash") == "#overview", p3.url)
         ok(f"{T}（非管理者・{tag}）：導覽列看不到「科技透明圈」", p3.evaluate("() => [...document.querySelectorAll('.tab[data-view=tc], a[href=\"#tc\"]')].every(e => e.offsetParent === null)"))
         ok(f"{T}（非管理者・{tag}）：頁面沒畫公司卡", p3.evaluate("() => document.querySelectorAll('#v-tc .tc-co').length") == 0)
         c3.close()
+    # ⑨ 身分晚 2 秒才到：管理者仍看得到內容（以前開頁當下 isAdm=false 就導走不畫）
+    c5 = b.new_context(viewport={"width": 1440, "height": 900})
+    c5.add_init_script("window.TW_TC_OVERRIDE=false;try{localStorage.setItem('tw.tour','done')}catch(e){};setTimeout(function(){window.TW_TC_OVERRIDE=true;window.dispatchEvent(new Event('tw:account'))},2000)")
+    p5 = c5.new_page(); p5.on("pageerror", lambda e: errs.append(str(e)))
+    p5.goto(base + "#tc/foundry", wait_until="load"); p5.wait_for_timeout(800)
+    ok(f"{T}（身分未到）：不被導走、顯示確認中", "#tc/foundry" in p5.url, p5.url)
+    p5.wait_for_timeout(2800)
+    ok(f"{T}（身分晚 2 秒才到）：管理者仍看到公司卡", p5.evaluate("() => document.querySelectorAll('#v-tc .tc-co').length") >= 1 and "#tc/foundry" in p5.url, p5.url)
+    c5.close()
     c4 = b.new_context(viewport={"width": 1440, "height": 900})
     c4.add_init_script("window.TW_TC_OVERRIDE=true;try{localStorage.setItem('tw.tour','done')}catch(e){}")
     p4 = c4.new_page(); p4.goto(base + "#overview", wait_until="load"); p4.wait_for_timeout(1500)

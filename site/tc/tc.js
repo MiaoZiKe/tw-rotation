@@ -19,6 +19,7 @@
      本機驗收用 window.TW_TC_OVERRIDE（只在 localhost／127.0.0.1 生效）。 */
   function isAdm() {
     try {
+      if (window.TW_PREVIEW) return true;   // 預覽版全開（DECISIONS #343），正式站沒有這個旗標
       const h = location.hostname;
       if ((h === '127.0.0.1' || h === 'localhost') && (window.TW_TC_OVERRIDE === true || window.TW_TC_OVERRIDE === false)) return window.TW_TC_OVERRIDE;
       const A = window.TwAccount; let u = null;
@@ -27,14 +28,22 @@
       return !!(u && (u.admin === true || u.owner === true));
     } catch (e) { return false; }
   }
+  /* 10-25 修（Andy：預覽版登入後「點擊後沒東西」）：開頁時 /v1/me 還沒回來，isAdm() 一定是 false，
+     以前就當場導回總覽、內容也不畫。現在等身分確定（第一次 tw:account 或 6 秒逾時）才判定要不要導走；
+     確定是管理者而且停在 #tc，就重跑一次路由把內容畫出來。 */
+  let known = false;
   function gate() {
     const on = isAdm();
     document.documentElement.classList.toggle('tc-adm', on);
-    if (!on && /^#tc(\/|$)/.test(location.hash || '')) location.replace('#overview');
+    if (!on && known && /^#tc(\/|$)/.test(location.hash || '')) location.replace('#overview');
     return on;
   }
   gate();
-  window.addEventListener('tw:account', gate);
+  window.addEventListener('tw:account', () => {
+    known = true;
+    if (gate() && /^#tc(\/|$)/.test(location.hash || '')) window.dispatchEvent(new HashChangeEvent('hashchange'));
+  });
+  setTimeout(() => { if (!known) { known = true; gate(); } }, 6000);
   window.addEventListener('hashchange', gate);
 
   const FOOT = '資料整理自 GoodJob、Dcard、PTT 等公開分享，僅供參考';
@@ -99,11 +108,11 @@
       '<button class="tc-clear" type="button"' + (n ? '' : ' hidden') + '>清除篩選</button></div></div>';
   }
 
+  /* 來源欄只放統計「N 筆（Dcard x／GoodJob y／PTT z）」，明細看 ▸ 展開的逐筆樣本 */
   function srcHtml(r) {
-    return (r.sources || []).map((s) => {
-      const t = esc(s.site) + (s.date ? ' ' + esc(s.date) : '');
-      return /^https?:\/\//.test(s.url || '') ? '<a href="' + esc(s.url) + '" target="_blank" rel="noopener noreferrer">' + t + '</a>' : '<span>' + t + '</span>';
-    }).join('、') || '–';
+    const ss = r.sources || []; if (!ss.length) return '–';
+    const m = {}; ss.forEach((x) => { m[x.site] = (m[x.site] || 0) + 1; });
+    return ss.length + ' 筆<small>（' + Object.keys(m).map((k) => esc(k) + ' ' + m[k]).join('／') + '）</small>';
   }
   const confCls = (c) => (c === '高' ? 'hi' : c === '中' ? 'mid' : 'lo');
 
@@ -218,7 +227,7 @@
 
   async function show(head, rest) {
     const root = $('#v-tc'); if (!root) return;
-    if (!gate()) return;   // 非管理者：gate() 已導回總覽
+    if (!gate()) { if (!known) { const v = document.getElementById('v-tc'); if (v) v.innerHTML = '<div class="empty">確認登入身分中…</div>'; } return; }   // 非管理者：gate() 已導回總覽；身分還沒確定先顯示確認中
     const ids = INDS.map((x) => x[0]);
     const ind = rest[0] === 'stats' ? 'stats' : ids.includes(rest[0]) ? rest[0] : ids[0];
     const co = rest[1] ? decodeURIComponent(rest[1]) : '';
