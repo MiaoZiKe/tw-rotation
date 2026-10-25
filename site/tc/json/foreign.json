@@ -10,7 +10,7 @@
       "heat": null,
       "benefits": "健康保險、員工優惠、訓練資源（GoodJob 新竹產品職自述）",
       "stock_plan": "RSU（NSU）四年歸屬，每季歸屬",
-      "bonus_timing": null,
+      "bonus_timing": "薪資以底薪＋RSU（四年歸屬）為主；年度現金獎金說法互相矛盾（2～6 個月 vs 無績效獎金），未確認",
       "culture": "GoodJob：薪資結構透明（固定薪＋年終＋績效獎金），新竹產品職自述每週約 40 小時",
       "interview": "軟體職：線上 OA（HackerRank，約 7 題 105 分鐘）→ 連續四關面試、需現場 coding（GoodJob 2024～2025）",
       "roles": [
@@ -199,7 +199,38 @@
         }
       ],
       "mops": null,
-      "grade_system": "IC1～IC6（台灣硬體測試開 IC4～IC5）"
+      "grade_system": "IC1～IC6（台灣硬體測試開 IC4～IC5）",
+      "bonus_structure": [
+        {
+          "type": "RSU",
+          "rule": "四年期；台灣頁面列第一年 25%、之後每月約 2.08%；美國歸屬日為 3／6／9 月第三個週三與 12 月第二個週三，台灣是否相同未確認",
+          "months": null,
+          "sources": [
+            {
+              "site": "levels.fyi",
+              "url": "https://www.levels.fyi/zh-tw/companies/nvidia/salaries/software-engineer/locations/taiwan",
+              "date": "2026"
+            },
+            {
+              "site": "方格子",
+              "url": "https://vocus.cc/article/67d8e309fd897800014d3019",
+              "date": "2025"
+            }
+          ]
+        },
+        {
+          "type": "年度獎金",
+          "rule": "衝突：一說 2～6 個月依績效與營收，另一說不含績效獎金，無公司公告可判定",
+          "months": null,
+          "sources": [
+            {
+              "site": "方格子",
+              "url": "https://vocus.cc/article/67d8e309fd897800014d3019",
+              "date": "2025"
+            }
+          ]
+        }
+      ]
     },
     {
       "name": "Google",
@@ -207,7 +238,7 @@
       "heat": null,
       "benefits": null,
       "stock_plan": "RSU",
-      "bonus_timing": null,
+      "bonus_timing": "底薪＋年度獎金＋RSU（四年、常見每季 6.25%）；年度獎金月數與發放月份查不到",
       "culture": null,
       "interview": "線上演算法 coding → 第二輪五場（兩場 coding、一場人格特質），難度約 LeetCode 中偏難（GoodJob 2022，範圍外參考）",
       "roles": [
@@ -279,7 +310,27 @@
         }
       ],
       "mops": null,
-      "grade_system": "L3（新鮮人）～L5"
+      "grade_system": "L3（新鮮人）～L5",
+      "bonus_structure": [
+        {
+          "type": "RSU",
+          "rule": "四年期，平台列每年 25%、每季 6.25%，實際依個人 offer",
+          "months": null,
+          "sources": [
+            {
+              "site": "levels.fyi",
+              "url": "https://www.levels.fyi/zh-tw/companies/google/salaries/software-engineer/locations/taiwan",
+              "date": "2026"
+            }
+          ]
+        },
+        {
+          "type": "年度獎金",
+          "rule": "查不到台灣月數與月份",
+          "months": null,
+          "sources": []
+        }
+      ]
     },
     {
       "name": "Dell",
@@ -287,7 +338,7 @@
       "heat": null,
       "benefits": null,
       "stock_plan": null,
-      "bonus_timing": null,
+      "bonus_timing": "查不到公開的獎金發放月份與月數",
       "culture": null,
       "interview": null,
       "roles": [
@@ -359,7 +410,8 @@
         }
       ],
       "mops": null,
-      "grade_system": "I 職級（網友提到 I6）"
+      "grade_system": "I 職級（網友提到 I6）",
+      "bonus_structure": []
     },
     {
       "name": "Apple",
@@ -367,7 +419,7 @@
       "heat": null,
       "benefits": null,
       "stock_plan": null,
-      "bonus_timing": null,
+      "bonus_timing": "查不到公開的獎金發放月份與月數",
       "culture": null,
       "interview": null,
       "roles": [
@@ -415,7 +467,8 @@
         }
       ],
       "mops": null,
-      "grade_system": "ICT2～ICT5"
+      "grade_system": "ICT2～ICT5",
+      "bonus_structure": []
     },
     {
       "name": "HP",
@@ -423,7 +476,7 @@
       "heat": null,
       "benefits": null,
       "stock_plan": null,
-      "bonus_timing": null,
+      "bonus_timing": "查不到公開的獎金發放月份與月數",
       "culture": null,
       "interview": null,
       "roles": [
@@ -495,7 +548,8 @@
         }
       ],
       "mops": null,
-      "grade_system": null
+      "grade_system": null,
+      "bonus_structure": []
     },
     {
       "name": "微軟",
@@ -503,7 +557,7 @@
       "heat": null,
       "benefits": null,
       "stock_plan": null,
-      "bonus_timing": null,
+      "bonus_timing": "查不到公開的獎金發放月份與月數",
       "culture": "GoodJob 平均每週 35 小時、13% 幾乎每天加班、40% 偶爾；薪資分 Local pay／Global pay",
       "interview": null,
       "roles": [
@@ -573,7 +627,8 @@
         }
       ],
       "mops": null,
-      "grade_system": null
+      "grade_system": null,
+      "bonus_structure": []
     },
     {
       "name": "Meta",
@@ -581,7 +636,7 @@
       "heat": null,
       "benefits": null,
       "stock_plan": null,
-      "bonus_timing": null,
+      "bonus_timing": "查不到公開的獎金發放月份與月數",
       "culture": null,
       "interview": null,
       "roles": [
@@ -654,7 +709,8 @@
         }
       ],
       "mops": null,
-      "grade_system": "E3～E6"
+      "grade_system": "E3～E6",
+      "bonus_structure": []
     },
     {
       "name": "高通",
@@ -662,7 +718,7 @@
       "heat": null,
       "benefits": null,
       "stock_plan": null,
-      "bonus_timing": null,
+      "bonus_timing": "查不到公開的獎金發放月份與月數",
       "culture": "GoodJob 平均每週 43 小時、偶爾加班為主（薪資樣本多為 2020～2022，範圍外參考）",
       "interview": "內推後一面了解背景與專案；軟體職兩輪，含 LeetCode 題與多位主管面談（GoodJob）",
       "roles": [
@@ -758,7 +814,8 @@
         }
       ],
       "mops": null,
-      "grade_system": "Engineer／Senior／Staff"
+      "grade_system": "Engineer／Senior／Staff",
+      "bonus_structure": []
     },
     {
       "name": "博通",
@@ -766,7 +823,7 @@
       "heat": null,
       "benefits": null,
       "stock_plan": null,
-      "bonus_timing": null,
+      "bonus_timing": "查不到公開的獎金發放月份與月數",
       "culture": "GoodJob 2025-08 新竹工程師單筆：公司給得大方、年薪約 180 萬、每週 45 小時（樣本極少）",
       "interview": null,
       "roles": [
@@ -833,7 +890,8 @@
         }
       ],
       "mops": null,
-      "grade_system": null
+      "grade_system": null,
+      "bonus_structure": []
     },
     {
       "name": "AMD",
@@ -841,7 +899,7 @@
       "heat": null,
       "benefits": null,
       "stock_plan": null,
-      "bonus_timing": null,
+      "bonus_timing": "查不到公開的獎金發放月份與月數",
       "culture": null,
       "interview": null,
       "roles": [
@@ -940,7 +998,8 @@
         }
       ],
       "mops": null,
-      "grade_system": "MTS／SMTS；新鮮人 L4、資深 L6（網友說法）"
+      "grade_system": "MTS／SMTS；新鮮人 L4、資深 L6（網友說法）",
+      "bonus_structure": []
     }
   ]
 }
