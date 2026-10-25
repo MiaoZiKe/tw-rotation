@@ -1156,6 +1156,102 @@
           ]
         }
       ]
+    },
+    {
+      "name": "泰瑞達",
+      "code": "Teradyne",
+      "heat": null,
+      "benefits": null,
+      "stock_plan": null,
+      "bonus_timing": null,
+      "bonus_structure": [],
+      "culture": null,
+      "interview": null,
+      "grade_system": null,
+      "mops": null,
+      "roles": [
+        {
+          "unit": "竹北 / 支援台積產線（UltraFlex）",
+          "role": "FAE",
+          "degree": "碩士",
+          "samples": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261875934",
+              "date": "2026-07",
+              "page_date": "2026-07-25",
+              "date_confirmed": true,
+              "role": "FAE",
+              "grade": null,
+              "unit_detail": "竹北 / 支援台積產線（UltraFlex）",
+              "years": "3",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": 13,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "N＝現職月薪；月薪 N+48（未寫單位）×13，另有車補與約底薪 8～10% 的分紅",
+              "in_window": true,
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-07-25"
+            }
+          ],
+          "n": 1,
+          "sources": [],
+          "confidence": "低",
+          "note": "2026-10-26 由 Dcard 樣本新增的公司"
+        }
+      ]
+    },
+    {
+      "name": "愛德萬",
+      "code": "Advantest",
+      "heat": null,
+      "benefits": null,
+      "stock_plan": null,
+      "bonus_timing": null,
+      "bonus_structure": [],
+      "culture": null,
+      "interview": null,
+      "grade_system": null,
+      "mops": null,
+      "roles": [
+        {
+          "unit": "竹北 / ATE 測試程式（93K）",
+          "role": "AE",
+          "degree": "碩士",
+          "samples": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261875934",
+              "date": "2026-07",
+              "page_date": "2026-07-25",
+              "date_confirmed": true,
+              "role": "AE",
+              "grade": null,
+              "unit_detail": "竹北 / ATE 測試程式（93K）",
+              "years": "3",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": 14,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "月薪 N+10（未寫單位）×14，另有車補、手機補；網路查分紅約 4 個月",
+              "in_window": true,
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-07-25"
+            }
+          ],
+          "n": 1,
+          "sources": [],
+          "confidence": "低",
+          "note": "2026-10-26 由 Dcard 樣本新增的公司"
+        }
+      ]
     }
   ]
 }

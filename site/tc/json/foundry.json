@@ -1301,7 +1301,7 @@
           ],
           "overtime": "經常",
           "travel": "不用",
-          "n": 38,
+          "n": 39,
           "note": "GoodJob 2026-03 兩則自述（台中、高雄，不到 1 年），工時 55～60 小時／週、需輪班；學歷未標；分紅與年薪月數查 GoodJob／媒體未見設備職專屬數字，維持 null；可參考製程職推算 30～37 個月；2026-10-25 補：Dcard 碩士設備新人第一年自述 120～160 萬（第一年分紅未滿，試用期 3 個月不算），第三年 230～250 萬為單一匿名說法未採",
           "sources": [
             {
@@ -2208,6 +2208,28 @@
               "quote_free_note": "私立非產線碩、無相關經驗；一面到 e-offer 約兩個月，薪資未透露",
               "in_window": true,
               "date_note": "Andy 桌面版＋Chrome 親眼讀文章頁面發文日期"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261750232",
+              "date": "2026-06",
+              "page_date": "2026-06-30",
+              "date_confirmed": true,
+              "role": "設備工程師（黃光）",
+              "grade": null,
+              "unit_detail": "黃光",
+              "years": "0-1",
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "產線碩去年畢業；發文者認為錢多，但需租屋；數字未透露",
+              "in_window": true,
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-06-30"
             }
           ],
           "n_in_window": 3
@@ -2230,7 +2252,7 @@
           ],
           "overtime": "偶爾",
           "travel": "不用",
-          "n": 19,
+          "n": 21,
           "note": "GoodJob 2026-04 單筆（台南，不到 1 年），自述底薪 6 萬＋三節＋分紅＋運動會獎金；分紅與年薪月數查 GoodJob／媒體未見 IT 職專屬數字，維持 null；2026-10-25 補：Dcard 轉貼 IT 自述第一年約 145 萬、第二年吃到完整分紅約 300 萬、加班少（單筆）；salary.tw IT 回報以 MES 開發為主；資料科學／SRE 未找到專屬數字",
           "sources": [
             {
@@ -2685,6 +2707,50 @@
               "quote_free_note": "非應屆，第三次應徵才拿到；一面到 offer 約兩個半月，薪資未透露",
               "in_window": true,
               "date_note": "Andy 桌面版＋Chrome 親眼讀文章頁面發文日期"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261782851",
+              "date": "2026-07",
+              "page_date": "2026-07-07",
+              "date_confirmed": true,
+              "role": "IT 工程師",
+              "grade": null,
+              "unit_detail": "BSID",
+              "years": "0",
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "面試問過出國出差意願；HR 電話核薪當晚 e-offer，數字未透露",
+              "in_window": true,
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-07-07"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261712021",
+              "date": "2026-07",
+              "page_date": "2026-07-30",
+              "date_confirmed": true,
+              "role": "IT 工程師",
+              "grade": null,
+              "unit_detail": "TSID",
+              "years": "0",
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "資工碩應屆，暑期實習過免廠測；新人訓一年後再分部門；數字未透露",
+              "in_window": true,
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-07-30"
             }
           ],
           "n_in_window": 2
@@ -5842,6 +5908,38 @@
             }
           ],
           "n_in_window": 1
+        },
+        {
+          "unit": "矽光晶圓測試",
+          "role": "晶圓測試工程師",
+          "degree": "不限",
+          "samples": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261688920",
+              "date": "2026-06",
+              "page_date": "2026-06-19",
+              "date_confirmed": true,
+              "role": "晶圓測試工程師（矽光）",
+              "grade": null,
+              "unit_detail": "矽光晶圓測試",
+              "years": "0",
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": 33.5,
+              "annual_wan": null,
+              "weekly_hours": 60,
+              "overtime": "經常",
+              "travel": "不用",
+              "quote_free_note": "月薪 N；HR 說全年 32～35 個月（取中值 33.5）；每天 12+，要穿全套無塵衣",
+              "in_window": true,
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-06-19"
+            }
+          ],
+          "sources": [],
+          "confidence": "低",
+          "n": 1
         }
       ],
       "mops": {
