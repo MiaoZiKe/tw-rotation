@@ -345,7 +345,9 @@ def build() -> None:
         _it["latest"] = latest      # 價量最新交易日；前端用它判斷「法人表是不是還沒出齊」
         _write("inst_today", _it)
         # 三大法人買賣超日報（Andy 2026-10-20）：全市場每日金額序列（官方值為主，缺的日子上市估算補），口徑見 compute/inst_market.py
-        _im = inst_market.series(store.read("inst_market_daily"), inst, price, store.read("index_ohlc"))
+        # 首次公布版（證交所 15:00＝新聞口徑）優先，晚間修訂版放 rev（2026-10-25，見 compute/inst_market.py）
+        _im = inst_market.series(store.read("inst_market_daily"), inst, price, store.read("index_ohlc"),
+                                 first=inst_market.with_seed(store.read("inst_market_first")))
         _im["latest"] = latest
         _write("inst_market", _im)
     except Exception as exc:  # noqa: BLE001
