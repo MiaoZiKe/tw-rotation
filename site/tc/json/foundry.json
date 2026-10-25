@@ -23,14 +23,8 @@
             63,
             68
           ],
-          "bonus_months": [
-            17,
-            24
-          ],
-          "annual_months": [
-            30,
-            37
-          ],
+          "bonus_months": null,
+          "annual_months": null,
           "annual_total_wan": [
             200,
             240
@@ -42,7 +36,7 @@
           "overtime": "經常",
           "travel": "不用",
           "n": 3,
-          "note": "公司徵才稱碩士新進平均年薪 220 萬以上（含分紅，公司口徑）；GoodJob 自述碩士新進月薪約 6.5 萬以上；分紅月數無可靠區間；年薪月數為推算：公司公布碩士新進整體年薪 220 萬以上 ÷ 底薪 6.3～6.8 萬；分紅月數＝推算總月數扣 12 個月本薪與年終約 1 個月，非個人實領，2026-10 再查 PTT／GoodJob 未見新人逐月拆解",
+          "note": "公司徵才稱碩士新進平均年薪 220 萬以上（含分紅，公司口徑）；GoodJob 自述碩士新進月薪約 6.5 萬以上；分紅月數無可靠區間；年薪月數為推算：公司公布碩士新進整體年薪 220 萬以上 ÷ 底薪 6.3～6.8 萬；分紅月數＝推算總月數扣 12 個月本薪與年終約 1 個月，非個人實領，2026-10 再查 PTT／GoodJob 未見新人逐月拆解；撤回：annual_months、bonus_months 原為沿用／推算／暫填值，無直接證據，已改回原值",
           "sources": [
             {
               "site": "GoodJob",
@@ -126,14 +120,8 @@
             60,
             64
           ],
-          "bonus_months": [
-            18,
-            27
-          ],
-          "annual_months": [
-            31,
-            40
-          ],
+          "bonus_months": null,
+          "annual_months": null,
           "annual_total_wan": [
             200,
             240
@@ -145,7 +133,7 @@
           "overtime": "經常",
           "travel": "不用",
           "n": 3,
-          "note": "GoodJob 製程整合職稱頁台積電回報多在 6～6.4 萬；PTT／Dcard 未找到 PIE 專屬 offer 數字；年薪沿用公司公布碩士平均 220 萬以上；年薪月數為推算（220 萬以上 ÷ 底薪 6～6.4 萬），分紅月數＝推算扣 13 個月，非個人實領",
+          "note": "GoodJob 製程整合職稱頁台積電回報多在 6～6.4 萬；PTT／Dcard 未找到 PIE 專屬 offer 數字；年薪沿用公司公布碩士平均 220 萬以上；年薪月數為推算（220 萬以上 ÷ 底薪 6～6.4 萬），分紅月數＝推算扣 13 個月，非個人實領；撤回：annual_months、bonus_months 原為沿用／推算／暫填值，無直接證據，已改回原值",
           "sources": [
             {
               "site": "GoodJob",
@@ -229,10 +217,7 @@
             70,
             78
           ],
-          "bonus_months": [
-            2,
-            4
-          ],
+          "bonus_months": null,
           "annual_months": [
             14,
             16.2
@@ -242,7 +227,7 @@
           "overtime": "偶爾～經常",
           "travel": "不用",
           "n": 1,
-          "note": "GoodJob 單筆月薪 7.7 萬，年資未明，疑非新人；比薪水網 2025-09 設備職回報偶爾加班、日均工時約 12 小時（範圍外參考含 2023 年 22 筆整理）；分紅月數沿用同公司製程職區間",
+          "note": "GoodJob 單筆月薪 7.7 萬，年資未明，疑非新人；比薪水網 2025-09 設備職回報偶爾加班、日均工時約 12 小時（範圍外參考含 2023 年 22 筆整理）；分紅月數沿用同公司製程職區間；撤回：bonus_months 原為沿用／推算／暫填值，無直接證據，已改回原值",
           "sources": [
             {
               "site": "GoodJob",
@@ -273,10 +258,10 @@
             180
           ],
           "weekly_hours": null,
-          "overtime": "偶爾～經常",
+          "overtime": null,
           "travel": "偶爾",
           "n": 3,
-          "note": "GoodJob 2026-04～05 面試回報月薪 6.7 萬（黃光、元件開發），微影研發年薪 180 萬（未錄取者）；學歷未標；研發職加班查比薪水、Dcard 未見專屬回報，沿用公司整體區間（低信心）",
+          "note": "GoodJob 2026-04～05 面試回報月薪 6.7 萬（黃光、元件開發），微影研發年薪 180 萬（未錄取者）；學歷未標；研發職加班查比薪水、Dcard 未見專屬回報，沿用公司整體區間（低信心）；撤回：overtime 原為沿用／推算／暫填值，無直接證據，已改回原值",
           "sources": [
             {
               "site": "GoodJob",
@@ -295,14 +280,8 @@
             67,
             70
           ],
-          "bonus_months": [
-            2,
-            4
-          ],
-          "annual_months": [
-            14,
-            16.2
-          ],
+          "bonus_months": null,
+          "annual_months": null,
           "annual_total_wan": null,
           "weekly_hours": [
             48,
@@ -311,7 +290,7 @@
           "overtime": "經常",
           "travel": "不用",
           "n": 2,
-          "note": "GoodJob 2026-03 月薪 6.7 萬、工時 60 小時／週；2025-08 一則 7 萬，分紅與加薪看考績；年薪與分紅月數沿用同公司製程職區間",
+          "note": "GoodJob 2026-03 月薪 6.7 萬、工時 60 小時／週；2025-08 一則 7 萬，分紅與加薪看考績；年薪與分紅月數沿用同公司製程職區間；撤回：annual_months、bonus_months 原為沿用／推算／暫填值，無直接證據，已改回原值",
           "sources": [
             {
               "site": "GoodJob",
@@ -459,9 +438,9 @@
           "annual_total_wan": null,
           "weekly_hours": null,
           "overtime": null,
-          "travel": "偶爾",
+          "travel": null,
           "n": 0,
-          "note": "查無；關鍵字同上＋世界先進 製程 月薪 分紅 季獎金 2026；GoodJob 多則回報公司保障 16 個月（含年終與節金），另 7 月依營運發分紅、4 月調薪；分紅月數未見具體數字（2026-10 查 GoodJob、媒體）；研發出差頻率未見具體回報，暫填偶爾（低信心）",
+          "note": "查無；關鍵字同上＋世界先進 製程 月薪 分紅 季獎金 2026；GoodJob 多則回報公司保障 16 個月（含年終與節金），另 7 月依營運發分紅、4 月調薪；分紅月數未見具體數字（2026-10 查 GoodJob、媒體）；研發出差頻率未見具體回報，暫填偶爾（低信心）；撤回：travel 原為沿用／推算／暫填值，無直接證據，已改回原值",
           "sources": [
             {
               "site": "GoodJob",
@@ -586,10 +565,7 @@
             62,
             62
           ],
-          "bonus_months": [
-            0,
-            0
-          ],
+          "bonus_months": null,
           "annual_months": [
             14,
             14
@@ -602,7 +578,7 @@
           "overtime": "偶爾",
           "travel": "不用",
           "n": 1,
-          "note": "資料為 2025 年，略早於期間起點，僅供參考；力積電近一年虧損，分紅月數依同公司製程／整合職回報為 0",
+          "note": "資料為 2025 年，略早於期間起點，僅供參考；力積電近一年虧損，分紅月數依同公司製程／整合職回報為 0；撤回：bonus_months 原為沿用／推算／暫填值，無直接證據，已改回原值",
           "sources": [
             {
               "site": "GoodJob",
@@ -621,20 +597,17 @@
             62,
             62
           ],
-          "bonus_months": [
-            0,
-            0
-          ],
+          "bonus_months": null,
           "annual_months": [
             14,
             14
           ],
           "annual_total_wan": null,
           "weekly_hours": null,
-          "overtime": "偶爾",
+          "overtime": null,
           "travel": "不用",
           "n": 1,
-          "note": "GoodJob 面試回報月薪 6.2 萬（面試時間 2023-09，發文 2026-04，時效偏舊）；Dcard／PTT 查無；力積電近一年虧損，分紅月數依同公司製程／整合職回報為 0",
+          "note": "GoodJob 面試回報月薪 6.2 萬（面試時間 2023-09，發文 2026-04，時效偏舊）；Dcard／PTT 查無；力積電近一年虧損，分紅月數依同公司製程／整合職回報為 0；撤回：bonus_months、overtime 原為沿用／推算／暫填值，無直接證據，已改回原值",
           "sources": [
             {
               "site": "GoodJob",
