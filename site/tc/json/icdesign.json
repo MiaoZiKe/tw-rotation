@@ -998,11 +998,33 @@
               "quote_free_note": "四家 offer 比較之一；面試官說工時正常、偶爾加班；薪資未透露",
               "in_window": true,
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-08-17"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/259872738",
+              "date": "2025-11",
+              "page_date": "2025-11-02",
+              "date_confirmed": true,
+              "role": "通訊演算法工程師（傳送端）",
+              "grade": null,
+              "unit_detail": "RSS / AST",
+              "years": "0",
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "口頭 offer；工時聽起來正常；數字未透露",
+              "in_window": true,
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2025-11-02"
             }
           ],
           "sources": [],
           "confidence": "低",
-          "n": 1
+          "n": 2
         },
         {
           "unit": "其他",
@@ -1158,6 +1180,38 @@
               "quote_free_note": "現職是聯詠 SoC（月薪 N，約 9 小時）；聯發科底薪 N+6k，工時主管說看專案",
               "in_window": true,
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2025-10-22"
+            }
+          ],
+          "sources": [],
+          "confidence": "低",
+          "n": 1
+        },
+        {
+          "unit": "新竹",
+          "role": "IT 工程師",
+          "degree": "碩士",
+          "samples": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/259622347",
+              "date": "2025-08",
+              "page_date": "2025-08-25",
+              "date_confirmed": true,
+              "role": "IT 工程師（ERP SAP：CO、FIN、PP）",
+              "grade": null,
+              "unit_detail": "新竹",
+              "years": "3",
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "設備商軟體工程師三年；N＝現職月薪，聯發科給 N+12（未寫單位）",
+              "in_window": true,
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2025-08-25"
             }
           ],
           "sources": [],
@@ -2086,7 +2140,7 @@
           "weekly_hours": 48,
           "overtime": "經常（責任制、無加班費）",
           "travel": null,
-          "n": 7,
+          "n": 8,
           "note": "網友自述未經查證；GoodJob 一筆新人月薪 8.2 萬（學歷未載）；GoodJob 頁面平均週工時 48 小時；年薪 150～300 萬的筆數年資不一（含 24 年）不採；第二輪：Dcard 數位 IC offer 多為 (N±x)×13～14＋分紅，CN 事業群分紅傳一兩百萬起跳；PTT 2026-02 開獎情報分 CN／非 CN／RDC；分紅一年兩包（1、4 月與 10、隔年 7 月各半），新人第一年不完整；GoodJob 多則稱責任制無加班費；base_month_k 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples；未逐筆對應的舊彙整：{\"base_month_k\": [82, 82]}",
           "sources": [
             {
@@ -2243,6 +2297,28 @@
               "quote_free_note": "分紅一向很有競爭力，但要待滿三年才領得完整；發文者擔心工時長；薪資未透露",
               "in_window": true,
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-09-02"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/259872738",
+              "date": "2025-11",
+              "page_date": "2025-11-02",
+              "date_confirmed": true,
+              "role": "數位 IC 設計（DD，偏 IP 設計）",
+              "grade": null,
+              "unit_detail": "CN2 / Switch",
+              "years": "0",
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 52,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "口頭 offer；約 7～8 點下班；發文者爬文覺得不操、分紅不錯",
+              "in_window": true,
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2025-11-02"
             }
           ]
         },
@@ -2767,6 +2843,38 @@
           "sources": [],
           "confidence": "低",
           "n": 1
+        },
+        {
+          "unit": "其他",
+          "role": "工程師",
+          "degree": "碩士",
+          "samples": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/259758561",
+              "date": "2025-09",
+              "page_date": "2025-09-10",
+              "date_confirmed": true,
+              "role": "工程師（職稱未寫）",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "二面後主管電話給口頭 offer 並說明核薪大概範圍；數字未透露",
+              "in_window": true,
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2025-09-10"
+            }
+          ],
+          "sources": [],
+          "confidence": "低",
+          "n": 1
         }
       ],
       "mops": {
@@ -3267,11 +3375,33 @@
               "quote_free_note": "同人面了三個部門共 8 場，流程約兩個月後 HR 電話核薪；數字未透露",
               "in_window": true,
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-08-19"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261823012",
+              "date": "2026-07",
+              "page_date": "2026-07-14",
+              "date_confirmed": true,
+              "role": "SoC 架構設計工程師",
+              "grade": null,
+              "unit_detail": "8100",
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 52,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "發文者說可能拿到（未確定是正式 offer）；約 7～8 點下班",
+              "in_window": true,
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-07-14"
             }
           ],
           "sources": [],
           "confidence": "低",
-          "n": 1
+          "n": 2
         },
         {
           "unit": "AIAlgo",
@@ -3321,11 +3451,33 @@
               "quote_free_note": "月薪＝群聯新人價×14＋分紅；約 10～20 點",
               "in_window": true,
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-04-21"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261391359",
+              "date": "2026-04",
+              "page_date": "2026-04-29",
+              "date_confirmed": true,
+              "role": "AI 系統全端工程師",
+              "grade": null,
+              "unit_detail": "苗栗竹南",
+              "years": "0",
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 50,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "月薪＝群聯碩士新人價；9～18 點，平均加班 1～2 小時",
+              "in_window": true,
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-04-29"
             }
           ],
           "sources": [],
           "confidence": "低",
-          "n": 2
+          "n": 3
         },
         {
           "unit": "竹南",
@@ -3353,6 +3505,82 @@
               "quote_free_note": "三面後拿到 offer，最後婉拒",
               "in_window": true,
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-05-07"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261514003",
+              "date": "2026-05",
+              "page_date": "2026-05-19",
+              "date_confirmed": true,
+              "role": "AI 應用軟體工程師",
+              "grade": null,
+              "unit_detail": "AI application",
+              "years": "0",
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "面試時聽說工時偏長、壓力大；用 API 開發網站或系統交付客戶；數字未透露",
+              "in_window": true,
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-05-19"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261470227",
+              "date": "2026-05",
+              "page_date": "2026-05-24",
+              "date_confirmed": true,
+              "role": "AI 軟體工程師",
+              "grade": null,
+              "unit_detail": "竹南",
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "發文者說板上分享的薪水好像很高；自身數字未透露",
+              "in_window": true,
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-05-24"
+            }
+          ],
+          "sources": [],
+          "confidence": "低",
+          "n": 3
+        },
+        {
+          "unit": "其他",
+          "role": "非揮發性記憶體元件工程師",
+          "degree": "碩士",
+          "samples": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261723851",
+              "date": "2026-06",
+              "page_date": "2026-06-25",
+              "date_confirmed": true,
+              "role": "非揮發性記憶體元件工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "0",
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "上下班時間彈性、工作地點可選；發文者說月薪和分紅是三家中最高",
+              "in_window": true,
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-06-25"
             }
           ],
           "sources": [],
@@ -6544,6 +6772,38 @@
           "sources": [],
           "confidence": "低",
           "n": 1
+        },
+        {
+          "unit": "其他",
+          "role": "研究員",
+          "degree": "碩士",
+          "samples": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261676542",
+              "date": "2026-07",
+              "page_date": "2026-07-23",
+              "date_confirmed": true,
+              "role": "研究員（資通所）",
+              "grade": null,
+              "unit_detail": null,
+              "years": "0",
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "口頭 offer，婉拒；數字未透露",
+              "in_window": true,
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-07-23"
+            }
+          ],
+          "sources": [],
+          "confidence": "低",
+          "n": 1
         }
       ]
     },
@@ -6641,6 +6901,251 @@
           "sources": [],
           "confidence": "低",
           "note": "2026-10-26 Andy 確認代稱後加入"
+        }
+      ]
+    },
+    {
+      "name": "聯陽",
+      "code": "3014",
+      "heat": null,
+      "benefits": null,
+      "stock_plan": null,
+      "bonus_timing": null,
+      "bonus_structure": [],
+      "culture": null,
+      "interview": null,
+      "grade_system": null,
+      "mops": null,
+      "roles": [
+        {
+          "unit": "其他",
+          "role": "工程師",
+          "degree": "碩士",
+          "grade": null,
+          "samples": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/259697091",
+              "date": "2025-09",
+              "page_date": "2025-09-03",
+              "date_confirmed": true,
+              "role": "工程師（職稱未寫）",
+              "grade": null,
+              "unit_detail": null,
+              "years": "0",
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "同篇；數字未透露",
+              "in_window": true,
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2025-09-03"
+            }
+          ],
+          "n": 1,
+          "sources": [],
+          "confidence": "低",
+          "note": "2026-10-26 由 Dcard 樣本新增的公司"
+        }
+      ]
+    },
+    {
+      "name": "威鋒",
+      "code": "6756",
+      "heat": null,
+      "benefits": null,
+      "stock_plan": null,
+      "bonus_timing": null,
+      "bonus_structure": [],
+      "culture": null,
+      "interview": null,
+      "grade_system": null,
+      "mops": null,
+      "roles": [
+        {
+          "unit": "其他",
+          "role": "Digital Logic Designer",
+          "degree": "不限",
+          "grade": null,
+          "samples": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261823012",
+              "date": "2026-07",
+              "page_date": "2026-07-14",
+              "date_confirmed": true,
+              "role": "Digital Logic Designer（USB IP）",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 47,
+              "overtime": "幾乎不",
+              "travel": null,
+              "quote_free_note": "發文者說可能拿到（未確定是正式 offer）；約 6:30～7 點下班",
+              "in_window": true,
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-07-14"
+            }
+          ],
+          "n": 1,
+          "sources": [],
+          "confidence": "低",
+          "note": "2026-10-26 由 Dcard 樣本新增的公司"
+        }
+      ]
+    },
+    {
+      "name": "鈺創",
+      "code": "5351",
+      "heat": null,
+      "benefits": null,
+      "stock_plan": null,
+      "bonus_timing": null,
+      "bonus_structure": [],
+      "culture": null,
+      "interview": null,
+      "grade_system": null,
+      "mops": null,
+      "roles": [
+        {
+          "unit": "台北內湖",
+          "role": "SRAM 設計工程師",
+          "degree": "碩士",
+          "grade": null,
+          "samples": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261723851",
+              "date": "2026-06",
+              "page_date": "2026-06-25",
+              "date_confirmed": true,
+              "role": "SRAM 設計工程師（pathfinding）",
+              "grade": null,
+              "unit_detail": "台北內湖",
+              "years": "0",
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "美國碩士應屆回台；會和台大教授合作；數字未透露",
+              "in_window": true,
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-06-25"
+            }
+          ],
+          "n": 1,
+          "sources": [],
+          "confidence": "低",
+          "note": "2026-10-26 由 Dcard 樣本新增的公司"
+        }
+      ]
+    },
+    {
+      "name": "敦泰",
+      "code": "3545",
+      "heat": null,
+      "benefits": null,
+      "stock_plan": null,
+      "bonus_timing": null,
+      "bonus_structure": [],
+      "culture": null,
+      "interview": null,
+      "grade_system": null,
+      "mops": null,
+      "roles": [
+        {
+          "unit": "竹北台元",
+          "role": "類比 IP 設計",
+          "degree": "碩士",
+          "grade": null,
+          "samples": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261723851",
+              "date": "2026-06",
+              "page_date": "2026-06-25",
+              "date_confirmed": true,
+              "role": "類比 IP 設計（Memory IP）",
+              "grade": null,
+              "unit_detail": "竹北台元",
+              "years": "0",
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "SRAM IP 維護與良率提升；數字未透露",
+              "in_window": true,
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-06-25"
+            }
+          ],
+          "n": 1,
+          "sources": [],
+          "confidence": "低",
+          "note": "2026-10-26 由 Dcard 樣本新增的公司"
+        }
+      ]
+    },
+    {
+      "name": "點序",
+      "code": "6485",
+      "heat": null,
+      "benefits": null,
+      "stock_plan": null,
+      "bonus_timing": null,
+      "bonus_structure": [],
+      "culture": null,
+      "interview": null,
+      "grade_system": null,
+      "mops": null,
+      "roles": [
+        {
+          "unit": "其他",
+          "role": "韌體工程師",
+          "degree": "碩士",
+          "grade": null,
+          "samples": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/260695860",
+              "date": "2026-01",
+              "page_date": "2026-01-20",
+              "date_confirmed": true,
+              "role": "韌體工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "0",
+              "degree": "碩士",
+              "base_k": 57,
+              "bonus_months": null,
+              "annual_months": 14,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "口頭 offer：底薪 57k×14，另有 3k×12 津貼；分紅看 EPS（發文者提到 2021 年 18～20 個月、2023～2024 年 0）；婉拒",
+              "in_window": true,
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-01-20"
+            }
+          ],
+          "n": 1,
+          "sources": [],
+          "confidence": "低",
+          "note": "2026-10-26 由 Dcard 樣本新增的公司"
         }
       ]
     }

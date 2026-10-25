@@ -2363,7 +2363,7 @@
           ],
           "overtime": "偶爾",
           "travel": "不用",
-          "n": 23,
+          "n": 24,
           "note": "GoodJob 2026-04 單筆（台南，不到 1 年），自述底薪 6 萬＋三節＋分紅＋運動會獎金；分紅與年薪月數查 GoodJob／媒體未見 IT 職專屬數字，維持 null；2026-10-25 補：Dcard 轉貼 IT 自述第一年約 145 萬、第二年吃到完整分紅約 300 萬、加班少（單筆）；salary.tw IT 回報以 MES 開發為主；資料科學／SRE 未找到專屬數字",
           "sources": [
             {
@@ -2906,6 +2906,28 @@
               "quote_free_note": "打聽到部門平均 6 點多下班；數字未透露",
               "in_window": true,
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-05-17"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261761048",
+              "date": "2026-07",
+              "page_date": "2026-07-02",
+              "date_confirmed": true,
+              "role": "IT 工程師",
+              "grade": null,
+              "unit_detail": "TSID / 台南或台中",
+              "years": "0-1",
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "設備商 RD 半年後轉職；第一個部門感謝信，第二個部門約三個月後拿到 offer；數字未透露",
+              "in_window": true,
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-07-02"
             }
           ],
           "n_in_window": 2
@@ -8062,6 +8084,38 @@
               "quote_free_note": "同期台積兩個部門都發感謝信；聯電面試到 e-offer 約三週半；數字未透露",
               "in_window": true,
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-10-09"
+            }
+          ],
+          "sources": [],
+          "confidence": "低",
+          "n": 1
+        },
+        {
+          "unit": "新竹",
+          "role": "Modeling 工程師",
+          "degree": "碩士",
+          "samples": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/262012814",
+              "date": "2026-08",
+              "page_date": "2026-08-23",
+              "date_confirmed": true,
+              "role": "Modeling 工程師",
+              "grade": null,
+              "unit_detail": "新竹",
+              "years": "0",
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "文中寫「已拿到 offer／面試中」，未確定是正式 offer；發文者說除台積外各家條件差不多",
+              "in_window": true,
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-08-23"
             }
           ],
           "sources": [],
