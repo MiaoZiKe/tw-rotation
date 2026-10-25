@@ -8,11 +8,11 @@
    "name": "NVIDIA",
    "code": null,
    "heat": null,
-   "benefits": null,
+   "benefits": "健康保險、員工優惠、訓練資源（GoodJob 新竹產品職自述）",
    "stock_plan": "RSU（NSU）四年歸屬，每季歸屬",
    "bonus_timing": null,
-   "culture": null,
-   "interview": null,
+   "culture": "GoodJob：薪資結構透明（固定薪＋年終＋績效獎金），新竹產品職自述每週約 40 小時",
+   "interview": "軟體職：線上 OA（HackerRank，約 7 題 105 分鐘）→ 連續四關面試、需現場 coding（GoodJob 2024～2025）",
    "roles": [
     {
      "unit": "台灣研發",
@@ -27,10 +27,10 @@
       200
      ],
      "weekly_hours": null,
-     "overtime": null,
+     "overtime": "偶爾",
      "travel": null,
      "n": null,
-     "note": "平台自述統計（未轉貼原文）；2025-06 媒體引網傳招募資料，非官方，窗口前；含 RSU（NSU，4 年歸屬，3/6/9/12 月）",
+     "note": "平台自述統計（未轉貼原文）；2025-06 媒體引網傳招募資料，非官方，窗口前；含 RSU（NSU，4 年歸屬，3/6/9/12 月）；GoodJob 新竹產品職單筆每週約 40 小時、年薪約 150 萬（2024-10，範圍外參考）",
      "sources": [
       {
        "site": "TechNews",
@@ -53,10 +53,10 @@
       null
      ],
      "weekly_hours": null,
-     "overtime": null,
+     "overtime": "偶爾",
      "travel": null,
      "n": null,
-     "note": "平台自述統計（未轉貼原文）；Levels.fyi 台灣硬體工程師中位總薪酬約 240 萬（含股票，不限新鮮人），非碩士新人口徑",
+     "note": "平台自述統計（未轉貼原文）；Levels.fyi 台灣硬體工程師中位總薪酬約 240 萬（含股票，不限新鮮人），非碩士新人口徑；GoodJob 新竹產品職單筆每週約 40 小時、年薪約 150 萬（2024-10，範圍外參考）",
      "sources": [
       {
        "site": "Levels.fyi",
@@ -77,7 +77,7 @@
    "stock_plan": "RSU",
    "bonus_timing": null,
    "culture": null,
-   "interview": null,
+   "interview": "線上演算法 coding → 第二輪五場（兩場 coding、一場人格特質），難度約 LeetCode 中偏難（GoodJob 2022，範圍外參考）",
    "roles": [
     {
      "unit": "台灣研發",
@@ -134,7 +134,7 @@
      "overtime": null,
      "travel": null,
      "n": null,
-     "note": "平台自述統計（未轉貼原文）；Levels.fyi 台灣硬體工程師 L6 約 146 萬起、中位 230 萬（不限新人）",
+     "note": "平台自述統計（未轉貼原文）；Levels.fyi 台灣硬體工程師 L6 約 146 萬起、中位 230 萬（不限新人）；2026-10 查詢未見台灣 Dell 資料",
      "sources": [
       {
        "site": "Levels.fyi",
@@ -170,7 +170,7 @@
      "overtime": null,
      "travel": null,
      "n": null,
-     "note": "平台自述統計（未轉貼原文）；Levels.fyi 有台灣 ICT3 頁面但摘要未給台幣數字；美國數據不採用",
+     "note": "平台自述統計（未轉貼原文）；Levels.fyi 有台灣 ICT3 頁面但摘要未給台幣數字；美國數據不採用；2026-10 查 GoodJob／媒體未見台灣 Apple 工時與獎金資料；媒體僅談外商以 RSU 搶才",
      "sources": [
       {
        "site": "Levels.fyi",
@@ -209,7 +209,7 @@
      "overtime": null,
      "travel": null,
      "n": 1,
-     "note": "平台自述統計（未轉貼原文）；範圍外參考：2023～2024 面試回報年薪約 120 萬",
+     "note": "平台自述統計（未轉貼原文）；範圍外參考：2023～2024 面試回報年薪約 120 萬；2026-10 查詢未見台灣 HP 資料",
      "sources": [
       {
        "site": "GoodJob",
@@ -235,7 +235,7 @@
      "overtime": null,
      "travel": null,
      "n": 1,
-     "note": "平台自述統計（未轉貼原文）；範圍外參考：2023～2024",
+     "note": "平台自述統計（未轉貼原文）；範圍外參考：2023～2024；2026-10 查詢未見台灣 HP 資料",
      "sources": [
       {
        "site": "GoodJob",
@@ -255,7 +255,7 @@
    "benefits": null,
    "stock_plan": null,
    "bonus_timing": null,
-   "culture": null,
+   "culture": "GoodJob 平均每週 35 小時、13% 幾乎每天加班、40% 偶爾；薪資分 Local pay／Global pay",
    "interview": null,
    "roles": [
     {
@@ -268,10 +268,10 @@
      "annual_months": null,
      "annual_total_wan": null,
      "weekly_hours": null,
-     "overtime": null,
+     "overtime": "偶爾",
      "travel": null,
      "n": null,
-     "note": "WebSearch 以「微軟 台灣 碩士 起薪／年薪／GoodJob／Dcard 2026」查詢，摘要未給出近一年碩士數字；待補；補查：GoodJob、PTT Tech_Job、面試趣、Levels.fyi Taiwan 皆無台灣數字（微軟、博通只見美元排行榜不採用）",
+     "note": "WebSearch 以「微軟 台灣 碩士 起薪／年薪／GoodJob／Dcard 2026」查詢，摘要未給出近一年碩士數字；待補；補查：GoodJob、PTT Tech_Job、面試趣、Levels.fyi Taiwan 皆無台灣數字（微軟、博通只見美元排行榜不採用）；GoodJob 台灣微軟工時統計；軟體職單筆每週 40 小時、年薪 150 萬",
      "sources": [],
      "confidence": "低"
     },
@@ -285,10 +285,10 @@
      "annual_months": null,
      "annual_total_wan": null,
      "weekly_hours": null,
-     "overtime": null,
+     "overtime": "偶爾",
      "travel": null,
      "n": null,
-     "note": "WebSearch 以「微軟 台灣 碩士 起薪／年薪／GoodJob／Dcard 2026」查詢，摘要未給出近一年碩士數字；待補；補查：GoodJob、PTT Tech_Job、面試趣、Levels.fyi Taiwan 皆無台灣數字（微軟、博通只見美元排行榜不採用）",
+     "note": "WebSearch 以「微軟 台灣 碩士 起薪／年薪／GoodJob／Dcard 2026」查詢，摘要未給出近一年碩士數字；待補；補查：GoodJob、PTT Tech_Job、面試趣、Levels.fyi Taiwan 皆無台灣數字（微軟、博通只見美元排行榜不採用）；GoodJob 台灣微軟工時統計；軟體職單筆每週 40 小時、年薪 150 萬",
      "sources": [],
      "confidence": "低"
     }
@@ -318,7 +318,7 @@
      "overtime": null,
      "travel": null,
      "n": null,
-     "note": "WebSearch 以「Meta 台灣 碩士 起薪／年薪／GoodJob／Dcard 2026」查詢，摘要未給出近一年碩士數字；待補；補查：GoodJob、PTT Tech_Job、面試趣、Levels.fyi Taiwan 皆無台灣數字（微軟、博通只見美元排行榜不採用）",
+     "note": "WebSearch 以「Meta 台灣 碩士 起薪／年薪／GoodJob／Dcard 2026」查詢，摘要未給出近一年碩士數字；待補；補查：GoodJob、PTT Tech_Job、面試趣、Levels.fyi Taiwan 皆無台灣數字（微軟、博通只見美元排行榜不採用）；2026-10 查詢未見台灣 Meta 資料",
      "sources": [],
      "confidence": "低"
     },
@@ -335,7 +335,7 @@
      "overtime": null,
      "travel": null,
      "n": null,
-     "note": "WebSearch 以「Meta 台灣 碩士 起薪／年薪／GoodJob／Dcard 2026」查詢，摘要未給出近一年碩士數字；待補；補查：GoodJob、PTT Tech_Job、面試趣、Levels.fyi Taiwan 皆無台灣數字（微軟、博通只見美元排行榜不採用）",
+     "note": "WebSearch 以「Meta 台灣 碩士 起薪／年薪／GoodJob／Dcard 2026」查詢，摘要未給出近一年碩士數字；待補；補查：GoodJob、PTT Tech_Job、面試趣、Levels.fyi Taiwan 皆無台灣數字（微軟、博通只見美元排行榜不採用）；2026-10 查詢未見台灣 Meta 資料",
      "sources": [],
      "confidence": "低"
     }
@@ -349,8 +349,8 @@
    "benefits": null,
    "stock_plan": null,
    "bonus_timing": null,
-   "culture": null,
-   "interview": null,
+   "culture": "GoodJob 平均每週 43 小時、偶爾加班為主（薪資樣本多為 2020～2022，範圍外參考）",
+   "interview": "內推後一面了解背景與專案；軟體職兩輪，含 LeetCode 題與多位主管面談（GoodJob）",
    "roles": [
     {
      "unit": "台灣研發",
@@ -365,7 +365,7 @@
       210
      ],
      "weekly_hours": null,
-     "overtime": null,
+     "overtime": "偶爾",
      "travel": null,
      "n": 1,
      "note": "平台自述統計（未轉貼原文）；2026-01 新竹 4 年年薪 210 萬含股票獎金；面試趣有 2021 AE 視訊面試心得（範圍外）",
@@ -388,7 +388,7 @@
    "benefits": null,
    "stock_plan": null,
    "bonus_timing": null,
-   "culture": null,
+   "culture": "GoodJob 2025-08 新竹工程師單筆：公司給得大方、年薪約 180 萬、每週 45 小時（樣本極少）",
    "interview": null,
    "roles": [
     {
@@ -401,11 +401,17 @@
      "annual_months": null,
      "annual_total_wan": null,
      "weekly_hours": null,
-     "overtime": null,
+     "overtime": "偶爾",
      "travel": null,
      "n": null,
-     "note": "WebSearch 以「博通 台灣 碩士 起薪／年薪／GoodJob／Dcard 2026」查詢，摘要未給出近一年碩士數字；待補；補查：GoodJob、PTT Tech_Job、面試趣、Levels.fyi Taiwan 皆無台灣數字（微軟、博通只見美元排行榜不採用）",
-     "sources": [],
+     "note": "WebSearch 以「博通 台灣 碩士 起薪／年薪／GoodJob／Dcard 2026」查詢，摘要未給出近一年碩士數字；待補；補查：GoodJob、PTT Tech_Job、面試趣、Levels.fyi Taiwan 皆無台灣數字（微軟、博通只見美元排行榜不採用）；GoodJob 單筆",
+     "sources": [
+      {
+       "site": "GoodJob",
+       "url": "https://www.goodjob.life/experiences/68ad4b2d8e2b98ac9f2aea59",
+       "date": "2025-08"
+      }
+     ],
      "confidence": "低"
     },
     {
@@ -454,7 +460,7 @@
      "overtime": null,
      "travel": null,
      "n": null,
-     "note": "平台自述統計（未轉貼原文）；Levels.fyi 台灣 L5～L9，中位約 331 萬，2025-12 更新，不限新人",
+     "note": "平台自述統計（未轉貼原文）；Levels.fyi 台灣 L5～L9，中位約 331 萬，2025-12 更新，不限新人；2026-10 查 GoodJob（超微／AMD 關鍵字）只撈到美超微，AMD 台灣無資料",
      "sources": [
       {
        "site": "Levels.fyi",
