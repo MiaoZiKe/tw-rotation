@@ -47,6 +47,7 @@
     all: '<rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/>',
     news: '<path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/>',
     intro: '<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>',
+    premarket: '<path d="M12 2v6"/><path d="m4.93 10.93 1.41 1.41"/><path d="M2 18h2"/><path d="M20 18h2"/><path d="m19.07 10.93-1.41 1.41"/><path d="M22 22H2"/><path d="m8 6 4-4 4 4"/><path d="M16 18a4 4 0 0 0-8 0"/>',
     know: '<path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/>',
   };
   const icon = (k, sz) => `<svg class="artic" viewBox="0 0 24 24" width="${sz || 16}" height="${sz || 16}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${CAT_IC[k] || CAT_IC.all}</svg>`;
@@ -54,7 +55,7 @@
   const CATS = { news: { t: '比比快訊' }, intro: { t: '比比產業鏈' }, know: { t: '比比知識' } };
   /* 手機（≤640）分頁用的短名（mobile4.css 檔尾「精選文章分頁」那節用 attr(data-s) 換上）：
      2026-10-16 Andy「手機版的分頁需要適當調整寬度」—— 360 寬四格各只有 ~84px，「比比產業鏈＋篇數」塞不下，短名才能四格等寬、不換行、不被切 */
-  const CAT_S = { all: '全部', news: '快訊', intro: '產業鏈', know: '知識' };
+  const CAT_S = { all: '全部', news: '快訊', intro: '產業鏈', know: '知識', premarket: '盤前' };
   const ALL_T = '全部文章';
   const CAT_KEYS = Object.keys(CATS);
   const okId = (id) => /^[\w.-]{1,120}$/.test(String(id || ''));
@@ -91,25 +92,51 @@
     if (document.getElementById('artCss')) return;
     const s = document.createElement('style'); s.id = 'artCss';
     s.textContent = `
-:root{--art-all:var(--ink-2);--art-news:#ff9d4a;--art-intro:#2fd1c1;--art-know:#b99bff;--art-hl:#f5c842;
+:root{--art-all:var(--ink-2);--art-pre:#5b9cff;--art-news:#ff9d4a;--art-intro:#2fd1c1;--art-know:#b99bff;--art-hl:#f5c842;
   --art-t-chip:#5b9cff;--art-t-mem:#2ec4b6;--art-t-interposer:#f2c14e;--art-t-substrate:#ff8a65;--art-t-board:#a88bff;--art-t-bump:#c6cfdf;--art-t-other:#9aa6c0;--art-t-ink:#0b1220;
   /* 文章說明圖調色盤（Andy 10-16：「圖表色彩需要豐富點且多樣，不要太單一」）：只給這一頁的區塊用，全站其他圖不吃這一組。
      ⚠ 10-17 起 ECharts 圖表不吃這一組（改用網站 --cat-*，Andy：「圖表風格需要 Follow 我網頁內的風格」），只剩數字卡／關係圖／流程圖等說明圖。
      刻意避開紅、綠（紅漲綠跌保留給漲跌）與標註用的金色（--art-hl）；彩度壓在不刺眼的範圍。深淺主題各一組，淺色每色都 ≥ 3:1。 */
   --art-p1:#5b9cff;--art-p2:#2ec4b6;--art-p3:#a88bff;--art-p4:#ff8a65;--art-p5:#ec74b5;--art-p6:#d39b5b;--art-p7:#4cc3ef;
   --art-tn-neutral:#8e9bb8;--art-tn-accent:#5b9cff;--art-tn-warn:#f2a93b;--art-tn-good:#2ec4b6}
-:root[data-theme="light"]{--art-news:#b45309;--art-intro:#0f766e;--art-know:#7e22ce;--art-hl:#a36d00;
+:root[data-theme="light"]{--art-pre:#2563c9;--art-news:#b45309;--art-intro:#0f766e;--art-know:#7e22ce;--art-hl:#a36d00;
   --art-t-chip:#2f5fb3;--art-t-mem:#0f7d72;--art-t-interposer:#946200;--art-t-substrate:#c0461e;--art-t-board:#6d4bd1;--art-t-bump:#6b7385;--art-t-other:#5d6b88;--art-t-ink:#ffffff;
   --art-p1:#2563c9;--art-p2:#0e8a74;--art-p3:#6e44d6;--art-p4:#c9502b;--art-p5:#b83a7f;--art-p6:#8a5a1e;--art-p7:#0f7fa8;
   --art-tn-neutral:#5d6b88;--art-tn-accent:#2563c9;--art-tn-warn:#a86400;--art-tn-good:#0e8a74}
 .pc1{--pc:var(--art-p1)}.pc2{--pc:var(--art-p2)}.pc3{--pc:var(--art-p3)}.pc4{--pc:var(--art-p4)}.pc5{--pc:var(--art-p5)}.pc6{--pc:var(--art-p6)}.pc7{--pc:var(--art-p7)}
-.k-all{--k:var(--art-all)}.k-news{--k:var(--art-news)}.k-intro{--k:var(--art-intro)}.k-know{--k:var(--art-know)}
+.k-all{--k:var(--art-all)}.k-premarket{--k:var(--art-pre)}.k-news{--k:var(--art-news)}.k-intro{--k:var(--art-intro)}.k-know{--k:var(--art-know)}
 .artic{flex:none;display:block}
+/* 10-26 盤前消息：每天一張卡（5 則、依分類色塊、可點連結）＋「複製整包」。分類色用 --art-p*／--art-tn-*（不用紅綠，紅綠留給漲跌）。 */
+#artCard #artPre{display:none}
+#artCard.pre #artPre{display:block}
+#artCard.pre :is(.artflt,.artmain,#artQuota){display:none!important}
+#artPre .pmday{border:1px solid var(--line);border-radius:var(--r-md,10px);background:var(--panel-2,var(--panel));margin-bottom:var(--sp-2);min-width:0;overflow:hidden}
+#artPre .pmh{display:flex;align-items:center;gap:var(--sp-2);padding:var(--sp-2) var(--sp-3);min-height:44px}
+#artPre .pmh>button.pmt{all:unset;box-sizing:border-box;flex:1;min-width:0;display:flex;align-items:center;gap:var(--sp-2);cursor:pointer;min-height:32px;color:var(--ink)}
+#artPre .pmt:focus-visible{outline:2px solid var(--accent,#3b82f6);outline-offset:2px;border-radius:4px}
+#artPre .pmt .pd{font-family:var(--mono);font-variant-numeric:tabular-nums;font-weight:600;font-size:var(--fs-base,14px)}
+#artPre .pmt .pn{font-size:var(--fs-min);color:var(--ink-3)}
+#artPre .pmt .pc{margin-left:auto;color:var(--ink-3);transition:transform .15s}
+#artPre .pmday.open .pmt .pc{transform:rotate(90deg)}
+#artPre .pmcp{flex:none;min-height:32px}
+#artPre .pmcp.done{border-color:var(--art-tn-good);color:var(--art-tn-good)}
+#artPre .pmbody{display:none;border-top:1px solid var(--line);padding:var(--sp-1) var(--sp-3) var(--sp-2)}
+#artPre .pmday.open .pmbody{display:block}
+#artPre .pmi{display:flex;align-items:flex-start;gap:var(--sp-2);padding:var(--sp-2) 0;border-bottom:1px solid var(--line);min-width:0}
+#artPre .pmi:last-child{border-bottom:0}
+#artPre .pmk{flex:none;width:44px;text-align:center;font-size:12px;font-weight:600;line-height:20px;border-radius:4px;color:var(--art-t-ink);background:var(--pk)}
+#artPre .pmk.c-新聞{--pk:var(--art-p1)}#artPre .pmk.c-事件{--pk:var(--art-tn-warn)}#artPre .pmk.c-科技{--pk:var(--art-p2)}#artPre .pmk.c-總經{--pk:var(--art-p3)}
+#artPre .pmi .tt{flex:1;min-width:0;font-size:14px;line-height:1.5;color:var(--ink);overflow-wrap:anywhere}
+#artPre a.tt{text-decoration:none}#artPre a.tt:hover{color:var(--accent,#3b82f6);text-decoration:underline}
+#artPre .pmi .sm{flex:none;font-size:var(--fs-min);color:var(--ink-3);white-space:nowrap;line-height:20px}
+#artPre .pmmore{margin:var(--sp-1) 0 var(--sp-2)}
+@media (max-width:640px){#artPre .pmi{flex-wrap:wrap}#artPre .pmi .sm{flex-basis:100%;padding-left:calc(44px + var(--sp-2));line-height:16px}#artPre .pmh{padding:var(--sp-2)}}
 #v-articles .artcard{display:flex;flex-direction:column}
 @media (min-width:821px){#v-articles .artcard{min-height:calc(100vh - 110px);box-sizing:border-box}}
+@media (min-width:821px){#v-articles .artcard.pre{min-height:0}}   /* 盤前消息一天只有 5 列，卡片不撐滿一屏（不留大空白） */
 #v-articles .artcard h3{display:flex;align-items:baseline;gap:var(--sp-2);flex-wrap:wrap}
 #v-articles .artcard h3 small{font-size:var(--fs-sm);color:var(--ink-3);font-weight:400}
-#artCats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));align-items:end;margin-top:var(--sp-2)}
+#artCats{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));align-items:end;margin-top:var(--sp-2)}
 #artCats>button{min-width:0;overflow:hidden;text-overflow:ellipsis;gap:6px}
 #artCats>button .artic{color:var(--k)}
 #artCats>button.on{color:var(--k);box-shadow:inset 0 3px 0 var(--k)}
@@ -856,7 +883,7 @@
   }
 
   /* ------------------------------------------------------------------ 共用小片段 */
-  const catT = (k) => (CATS[k] ? CATS[k].t : ALL_T);
+  const catT = (k) => (CATS[k] ? CATS[k].t : k === 'premarket' ? '盤前消息' : ALL_T);
   const badge = (cat) => `<span class="artbadge k-${CATS[cat] ? cat : 'all'}">${icon(CATS[cat] ? cat : 'all', 13)}${esc(catT(cat))}</span>`;
   const tagsHTML = (tags) => (Array.isArray(tags) && tags.length ? `<div class="arttags">${tags.slice(0, 8).map((t) => `<span>${esc(t)}</span>`).join('')}</div>` : '');
   const EYE = '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>';
@@ -967,15 +994,24 @@
     const A = window.App;
     return A && A.howHTML ? A.howHTML(q, li) : `<b class="howq">${esc(q)}</b><ul>${li.map((t) => `<li>${esc(t)}</li>`).join('')}</ul>`;
   })();
+  const HOW_PRE = (() => {
+    const q = '這一頁回答：開盤前最受關注的 5 則消息是什麼';
+    const li = ['每天一張卡：5 則標題，色塊＝分類（新聞、事件、科技、總經）', '點標題直接開原文；較早的日子點日期列就在原地展開', '右上「複製整包」＝一段純文字（分類｜標題＋連結）',
+      '所以：開盤前先掃這 5 則，要轉給別人就按複製貼上', '消息只是背景，進出場仍看資金流向與技術面'];
+    const A = window.App;
+    return A && A.howHTML ? A.howHTML(q, li) : `<b class="howq">${esc(q)}</b><ul>${li.map((t) => `<li>${esc(t)}</li>`).join('')}</ul>`;
+  })();
   function skeletonList(root) {
     root.innerHTML = `
 <div class="card artcard" id="artCard">
   <div class="row spread"><h3>精選文章 <small id="artUpd"></small> <button class="howbtn pop" data-how="artlist" data-ttl="精選文章怎麼看" type="button" aria-label="精選文章怎麼看">?</button></h3></div>
   <div class="howtxt" id="how-artlist" hidden>${HOW_ART}</div>
+  <div class="howtxt" id="how-artpre" hidden>${HOW_PRE}</div>
   <div class="nbsw" id="artCats" role="tablist" aria-label="文章分類">
-    ${['all'].concat(CAT_KEYS).map((k) => `<button type="button" role="tab" class="k-${k}" data-cat="${k}" data-s="${esc(CAT_S[k])}" title="${esc(catT(k))}">${icon(k, 15)}<span>${esc(catT(k))}</span><em></em></button>`).join('')}
+    ${['all'].concat(CAT_KEYS, ['premarket']).map((k) => `<button type="button" role="tab" class="k-${k}" data-cat="${k}" data-s="${esc(CAT_S[k])}" title="${esc(catT(k))}">${icon(k, 15)}<span>${esc(catT(k))}</span><em></em></button>`).join('')}
   </div>
   <div class="nbbody">
+    <div id="artPre"></div>
     <div id="artQuota" hidden></div>
     <div class="artflt">
       <input type="search" id="artQ" placeholder="搜尋標題關鍵字" aria-label="搜尋標題關鍵字" autocomplete="off">
@@ -1065,8 +1101,12 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
     $$('#artCats>button', root).forEach((b) => {
       const on = b.dataset.cat === S.cat;
       b.classList.toggle('on', on); b.setAttribute('aria-selected', on ? 'true' : 'false');
-      const em = $('em', b); if (em) em.textContent = S.idx ? String(filtered(b.dataset.cat).length) : '';
+      const em = $('em', b); if (em) em.textContent = S.idx && b.dataset.cat !== 'premarket' ? String(filtered(b.dataset.cat).length) : '';
     });
+    const isPre = S.cat === 'premarket';
+    const card = $('#artCard', root); if (card) card.classList.toggle('pre', isPre);
+    const hb = $('.howbtn', card || root); if (hb) { hb.dataset.how = isPre ? 'artpre' : 'artlist'; hb.dataset.ttl = isPre ? '盤前消息怎麼看' : '精選文章怎麼看'; hb.setAttribute('aria-label', hb.dataset.ttl); }
+    if (isPre) { paintPre(root); return; }
     const box = $('#artList', root), cnt = $('#artCount', root);
     if (!S.idx) {
       box.innerHTML = S.idxErr ? '<div class="artempty">文章清單暫時讀不到，請稍後重新整理。</div>' : '<div class="artempty">載入中…</div>';
@@ -1094,10 +1134,86 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
     const c3 = $('[data-wide]', box); if (c3) c3.onclick = () => { S.from = ''; S.to = ''; paintList(); };
     paintSide(root);
   }
+  /* ------------------------------------------------------------------ 盤前消息（10-26）
+     資料：articles/premarket.json（pipeline/premarket_news.py 寫入）{updated, days:[{date, items:[{cat,title,url,source,time}]}]}，新到舊。
+     預設只有最新一天展開（其餘一列一天、點日期在原地展開）；一次先列 7 天，「看更早」再多 7 天。 */
+  const PM_CATS = ['新聞', '事件', '科技', '總經'];
+  const PM_STEP = 7;
+  function loadPre() {
+    if (S.pre) return Promise.resolve(S.pre);
+    if (!S.preP) {
+      S.preP = fetchJson('articles/premarket.json').then((j) => {
+        const days = (j && Array.isArray(j.days) ? j.days : []).filter((d) => d && okDate(d.date) && Array.isArray(d.items))
+          .map((d) => ({ date: d.date, items: d.items.filter((i) => i && i.title && PM_CATS.includes(i.cat)).slice(0, 8)
+            .map((i) => ({ cat: i.cat, title: String(i.title).slice(0, 160), url: okUrl(i.url) ? i.url : '', source: String(i.source || '').slice(0, 20), time: String(i.time || '') })) }))
+          .filter((d) => d.items.length);
+        days.sort((a, b) => (a.date < b.date ? 1 : -1));
+        S.pre = { updated: j && j.updated, days }; return S.pre;
+      }).catch(() => { S.preP = null; S.pre = { updated: '', days: [] }; return S.pre; });   // 讀不到＝當作還沒有資料，不報錯
+    }
+    return S.preP;
+  }
+  const mdDate = (d) => d.slice(5).replace('-', '/');
+  const hhmm = (t) => { const m = /T(\d\d:\d\d)/.exec(t || ''); const d = /^\d{4}-(\d\d)-(\d\d)/.exec(t || ''); return m && d ? `${d[1]}/${d[2]} ${m[1]}` : ''; };
+  /* 複製整包：日期標題＋每則「分類｜標題」換行接連結（沒有連結就只有標題），貼到哪都是純文字 */
+  function preText(day) {
+    return `【台股盤前消息｜${day.date}】\n` + day.items.map((i, n) => `${n + 1}. ${i.cat}｜${i.title}${i.url ? '\n' + i.url : ''}`).join('\n');
+  }
+  function copyText(txt) {
+    if (navigator.clipboard && navigator.clipboard.writeText) return navigator.clipboard.writeText(txt).then(() => true).catch(() => legacyCopy(txt));
+    return Promise.resolve(legacyCopy(txt));
+  }
+  function legacyCopy(txt) {
+    try { const ta = document.createElement('textarea'); ta.value = txt; ta.setAttribute('readonly', ''); ta.style.cssText = 'position:fixed;left:-9999px;top:0';
+      document.body.appendChild(ta); ta.select(); const r = document.execCommand('copy'); ta.remove(); return !!r; } catch (e) { return false; }
+  }
+  function dayHTML(d, open) {
+    const items = d.items.map((i) => {
+      const t = i.url ? `<a class="tt" href="${esc(i.url)}" target="_blank" rel="noopener noreferrer">${esc(i.title)}</a>` : `<span class="tt">${esc(i.title)}</span>`;
+      const sm = [i.source, hhmm(i.time)].filter(Boolean).join('・');
+      return `<div class="pmi"><span class="pmk c-${esc(i.cat)}">${esc(i.cat)}</span>${t}${sm ? `<span class="sm">${esc(sm)}</span>` : ''}</div>`;
+    }).join('');
+    return `<section class="pmday${open ? ' open' : ''}" data-date="${esc(d.date)}"><div class="pmh"><button type="button" class="pmt" aria-expanded="${open ? 'true' : 'false'}"><span class="pd">${esc(d.date)}</span><span class="pn">${d.items.length} 則</span><span class="pc" aria-hidden="true">›</span></button>`
+      + `<button type="button" class="btn small pmcp" data-copy="${esc(d.date)}" title="複製成純文字：日期標題＋每則「分類｜標題」與連結">複製整包</button></div><div class="pmbody">${items}</div></section>`;
+  }
+  function paintPre(root) {
+    const box = $('#artPre', root); if (!box) return;
+    if (!S.pre) {
+      box.innerHTML = '<div class="artempty">載入中…</div>';
+      loadPre().then(() => { if (S.cat === 'premarket') paintPre(root); });
+      return;
+    }
+    const days = S.pre.days, upd = $('#artUpd', root);
+    if (upd) upd.textContent = S.pre.updated ? '更新 ' + S.pre.updated : '';
+    if (!days.length) { box.innerHTML = `<div class="artempty k-premarket" id="artPreEmpty">${icon('premarket', 40)}<div>尚無盤前消息，交易日開盤前會更新。</div></div>`; return; }
+    const shown = Math.min(days.length, S.preN || PM_STEP);
+    const opened = S.preOpen || (S.preOpen = new Set([days[0].date]));
+    box.innerHTML = days.slice(0, shown).map((d) => dayHTML(d, opened.has(d.date))).join('')
+      + (shown < days.length ? `<button type="button" class="btn small pmmore" id="artPreMore">看更早（還有 ${days.length - shown} 天）</button>` : '');
+    $$('.pmt', box).forEach((b) => {
+      b.onclick = () => {
+        const sec = b.closest('.pmday'), on = !sec.classList.contains('open'), dte = sec.dataset.date;
+        sec.classList.toggle('open', on); b.setAttribute('aria-expanded', on ? 'true' : 'false');
+        if (on) opened.add(dte); else opened.delete(dte);
+      };
+    });
+    $$('.pmcp', box).forEach((b) => {
+      b.onclick = () => {
+        const d = days.find((x) => x.date === b.dataset.copy); if (!d) return;
+        const txt = preText(d);
+        copyText(txt).then((okc) => {
+          b.dataset.copied = txt; b.classList.toggle('done', !!okc);
+          b.textContent = okc ? '已複製' : '複製失敗，請長按選取';
+          setTimeout(() => { b.textContent = '複製整包'; b.classList.remove('done'); }, 1800);
+        });
+      };
+    });
+    const more = $('#artPreMore', box); if (more) more.onclick = () => { S.preN = shown + PM_STEP; paintPre(root); };
+  }
   async function showList(cat) {
     css();
     const root = document.getElementById('v-articles'); if (!root) return;
-    S.cat = CATS[cat] ? cat : 'all';
+    S.cat = CATS[cat] || cat === 'premarket' ? cat : 'all';
     S.cur = ''; S.curData = null;
     ensureRange();
     markSub(S.cat);
