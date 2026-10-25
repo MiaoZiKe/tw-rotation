@@ -33,7 +33,7 @@ ELS = {
 #   · 族群下拉清單一律隱藏（CEO：不勾族群；選完產業鏈自動彈出的那一次也不入鏡）
 #   · 頂欄改不透明（內容從頂欄下面捲過時不會透出字）
 EXTRA_CSS = (".rotdd[data-dd=group] .ddpanel{display:none!important}"
-             "header.topbar{background:#f4f8fc!important}"
+             "header.topbar,#l4Head{background:#f8fbfd!important}"
              ".sitefoot,.sitefoot *{visibility:hidden!important}")
 EXTRA_CSS_M = EXTRA_CSS + "@media (max-width:640px){.plknote{display:none!important}}"   # 手機：「Plus 以上可調整」那行小字在捲動後會飄到排行長條的列標上（網站本身的排版問題），錄影端隱藏；時間列仍是反灰原樣
 PARK_R = (560, 208, 90, 48)    # 資金輪動：時間列右側、輪盤上方的空白（游標不經過排行長條，下拉清單才不會被圖表連動重畫收掉）
@@ -208,7 +208,7 @@ def run_d(pg, a, start):
     a.pg = pg
     pg2.close()
     F.goto(pg, "#overview", 3500)
-    ov_y, ov_cut = best_scroll(a, pg, 24, CROP, span=30)
+    ov_y, ov_cut = best_scroll(a, pg, 24, (0, 52, 1100, 575), span=30)
     pg.evaluate("(y) => scrollTo({top: y, behavior: 'instant'})", ov_y)
     pg.wait_for_timeout(400)
     a.extra = {"pan_y": pan_y, "pan_cut": pan_cut, "ov_scroll": ov_y, "ov_cut": ov_cut}
@@ -242,7 +242,7 @@ def run_d(pg, a, start):
     a.say("滑過長條，看占比變化", "spotlight", ("hov",))
     bars = a.bars("#rankFlow")
     top = max(bars, key=lambda b: b["v"])   # 全部族群裡占比增加最多的一條（提示框往下展開，落在較短的長條旁）
-    a.hover_xy(top["x1"] - 30, top["y"] - 4, f"排行長條：{top['name']}", 2300, row=a.row_rect("#rankFlow", top))
+    a.hover_xy(top["x1"] - 30, top["y"], f"排行長條：{top['name']}", 2300, row=a.row_rect("#rankFlow", top))
     a.park(region=PARK_R, ms=360)
     a.wait(500)
     a.settle()
@@ -445,7 +445,7 @@ def run_m(pg, a, start):
     a.settle()
     a.set_stage(17, "串成一線")
     a.say("輪動、分流、法人，串成一線", "face_proud", ("inst",))
-    a.idle(3300)
+    a.scroll(to_y=pg.evaluate("() => scrollY") + 36, ms=2300)   # 手機沒有游標可晃：收尾拍讓畫面慢慢往下滑一點，不整段靜止
     a.settle()
 
 
