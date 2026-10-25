@@ -682,8 +682,8 @@ def act_at(bubbles, t):
 def bubble_at(bubbles, t):
     for b in bubbles:
         if b["t0"] <= t < b["t1"]:
-            a_in = clamp((t - b["t0"]) / 0.2)
-            a_out = clamp((b["t1"] - t) / 0.12)
+            a_in = 1.0   # 泡泡出現就完全不透明（Andy：字不能變淡）
+            a_out = 1.0
             return b, a_in, a_out
     return None, 0, 0
 

@@ -32,12 +32,13 @@ ELS = {
 # 錄影專用樣式（只在錄影的瀏覽器裡，不改 site/）：
 #   · 族群下拉清單一律隱藏（CEO：不勾族群；選完產業鏈自動彈出的那一次也不入鏡）
 #   · 頂欄改不透明（內容從頂欄下面捲過時不會透出字）
-EXTRA_CSS = ("@media (min-width:900px){#tabs .l4subtab[data-l4sub=\"flow-inst\"]~*{display:none!important}.rotright{height:640px!important;max-height:640px!important;align-self:start!important}}"   # 網頁：排行欄縮到畫面框放得下（15 條長條＋座標軸全部完整入鏡，下緣不再切到最後一條）
+EXTRA_CSS = ("#v-overview .ovmain,#v-overview .ovlow,#v-overview .m3~*{display:none!important}"
+             "@media (min-width:900px){#tabs .l4subtab[data-l4sub=\"flow-inst\"]~*{display:none!important}.rotright{height:640px!important;max-height:640px!important;align-self:start!important}}"   # 網頁：排行欄縮到畫面框放得下（15 條長條＋座標軸全部完整入鏡，下緣不再切到最後一條）
              "div[style*=\"border-style: solid\"]{transition:none!important}.rotdd .ddpanel{display:none!important}.rotnums{display:none!important}"
              "header.topbar,#l4Head{background:#f8fbfd!important}"
              "#ovSumTrack>.osc:nth-child(4),.ovsum-nav{display:none!important}"   # 總覽摘要列第 4 張卡（熱門題材）在右緣被站內輪播切半，與本片無關，錄影端不放
              ".sitefoot,.sitefoot *{visibility:hidden!important}")
-EXTRA_CSS_M = EXTRA_CSS + "@media (max-width:640px){.plknote{display:none!important}}main{margin-top:calc(var(--vo, 0px) * -1)!important}body.__vhide #rankFlow,body.__vhide #instGroups{opacity:0!important}"   # 手機：「Plus 以上可調整」那行小字在捲動後會飄到排行長條的列標上（網站本身的排版問題），錄影端隱藏；時間列仍是反灰原樣
+EXTRA_CSS_M = EXTRA_CSS + "@media (max-width:640px){#m3c-TSE{height:210px!important;min-height:0!important}.plknote{display:none!important}}main{margin-top:calc(var(--vo, 0px) * -1)!important}body.__vhide #rankFlow,body.__vhide #instGroups{opacity:0!important}"   # 手機：「Plus 以上可調整」那行小字在捲動後會飄到排行長條的列標上（網站本身的排版問題），錄影端隱藏；時間列仍是反灰原樣
 PARK_R = (560, 208, 90, 48)    # 資金輪動：時間列右側、輪盤上方的空白（游標不經過排行長條，下拉清單才不會被圖表連動重畫收掉）
 PARK_S = (540, 78, 140, 26)      # 資金分流樹：卡片標題列中間的空白（不在畫布上，不會觸發節點提示與代表股展開）
 PARK_I = (530, 190, 35, 380)     # 族群×法人：長條圖右側空白欄
@@ -49,7 +50,7 @@ NOLEAF_JS = ("(() => { const p = () => { const F = window.FlowTopo; if (!F || F.
              "F.render = function (host, tree, opts) { try { if (tree && tree.children) tree = Object.assign({}, tree, { children: tree.children.map(c => Object.assign({}, c, "
              "{ children: (c.children || []).map(g => Object.assign({}, g, { children: [] })) })) }); } catch (e) {} return orig.call(this, host, tree, opts); }; F.__nl8 = 1; }; setInterval(p, 30); })();")   # 手機：不畫代表股那一欄，族群名稱才不被截成「晶…」
 TT_JS = ("(() => { const patch = () => { const E = window.echarts; if (!E || E.__tt8) return; const oi = E.init; E.init = function (...a) { const c = oi.apply(this, a); const so = c.setOption; "
-         "c.setOption = function (o, ...r) { try { if (o && typeof o === 'object' && !Array.isArray(o) && o.tooltip && !Array.isArray(o.tooltip)) { o.tooltip.transitionDuration = 0; "
+         "c.setOption = function (o, ...r) { try { if (o && typeof o === 'object' && !Array.isArray(o)) { o.animation = false; const d0 = c.getDom(); if (d0 && d0.id === 'instGroups' && o.xAxis) { (Array.isArray(o.xAxis) ? o.xAxis : [o.xAxis]).forEach(x => { x.axisLabel = Object.assign({}, x.axisLabel || {}, { showMaxLabel: false, hideOverlap: true }); }); } } } catch (e) {} try { if (o && typeof o === 'object' && !Array.isArray(o) && o.tooltip && !Array.isArray(o.tooltip)) { o.tooltip.transitionDuration = 0; "
          "const dom = c.getDom(); if (dom && dom.id === 'rankFlow') { o.tooltip.extraCssText = 'white-space:normal;width:122px;box-sizing:border-box;'; "
          "o.tooltip.position = function (pt, p, el, rect, size) { const ax = c.convertToPixel({ xAxisIndex: 0 }, 0); const H = size.viewSize[1], ch = size.contentSize[1]; "
          "let y = Math.min(pt[1] - 20, H - ch - 52); return [ax + 8, Math.max(4, y)]; }; } else { o.tooltip.position = function (pt, p, el, rect, size) { "
@@ -255,7 +256,7 @@ STRIP_JS = r"""([opts, x, y, cols, cw, ch]) => { const d = document.createElemen
   const st = document.createElement('style'); st.textContent = '#__vsel .hv{background:#2563eb!important;color:#fff!important}'; d.appendChild(st); document.body.appendChild(d); }"""
 
 
-def find_blank(a, region, w, h, prefer, pad=5, step=4):
+def find_blank(a, region, w, h, prefer, pad=14, step=4):
     """region（css）內找一塊 w×h 的空白（外擴 pad 都不碰任何文字／控制項）；回傳離 prefer 最近的左上角，找不到回 None。"""
     boxes = a.texts() + a.ui_boxes()
     rx, ry, rw, rh = region
@@ -341,7 +342,7 @@ def sp_mob(a, pg, card, chain, label, hold_after=3000):
     """手機：自繪清單（4 欄 2 列）放在篩選列下方的空白處。"""
     b = _rect(pg, f'{card} .rotdd[data-dd="chain"] .ddbtn')
     region, prefer = (30, b[1] + b[3] + 2, 480, 190), (330, b[1] + b[3] + 6)
-    strip_pick(a, pg, card, chain, label, region, None, prefer, cols=4, cw=72, ch=30, hold_after=hold_after, post=lambda: snap(a, pg, instant=True))
+    strip_pick(a, pg, card, chain, label, region, None, prefer, cols=3, cw=104, ch=30, hold_after=hold_after, post=lambda: snap(a, pg, instant=True))
 
 
 def open_chain_and_pick(a, pg, card, chain, label, hold_open=1100, hold_after=2200, park=None, mob=False):
@@ -374,7 +375,7 @@ def run_d(pg, a, start):
     ov_y, ov_cut = 8, 0   # 總覽只往下 8px：卡片標題列留在頂欄下面、下緣的卡片標題整個在畫面框內（用 24px 時標題列會被頂欄切掉半截）
     pg.evaluate("(y) => scrollTo({top: y, behavior: 'instant'})", ov_y)
     pg.wait_for_timeout(400)
-    a.extra = {"pans": [{"click": "選單：資金流向", "y": pans["rot"][0], "cut": pans["rot"][1]}, {"click": "子選單：資金分流樹", "y": pans["sk"][0], "cut": pans["sk"][1]}, {"click": "子選單：族群×法人", "y": pans["inst"][0], "cut": pans["inst"][1]}], "ov_scroll": ov_y, "ov_cut": ov_cut}
+    a.extra = {"pans": [{"dur": 0.03, "click": "選單：資金流向", "y": pans["rot"][0], "cut": pans["rot"][1]}, {"dur": 0.03, "click": "子選單：資金分流樹", "y": pans["sk"][0], "cut": pans["sk"][1]}, {"dur": 0.03, "click": "子選單：族群×法人", "y": pans["inst"][0], "cut": pans["inst"][1]}], "ov_scroll": ov_y, "ov_cut": ov_cut}
     a.note(f"量測：各頁框位置 {pans}；總覽捲動 {ov_y}（切字 {ov_cut}）")
     a.crop = CROP
     a.x, a.y = 700, 330
@@ -394,6 +395,7 @@ def run_d(pg, a, start):
     a.tap('#tabs .tab[data-view="flow"]', "選單：資金流向")
     a.park(region=PARK_R, ms=300, prefer=(a.x, a.y))
     a.until("() => !!document.querySelector('#rotClock canvas') && !!document.querySelector('#rankFlow canvas')", 10000)
+    pg.evaluate("() => scrollTo({ top: 0, behavior: 'instant' })")
     a.park(region=PARK_R, ms=400)
     a.wait(1500)
     # 功能一：資金輪動
@@ -426,6 +428,7 @@ def run_d(pg, a, start):
     a.tap('.l4subtab[data-l4sub="flow-sankey"]', "子選單：資金分流樹")
     a.park(region=PARK_S, ms=300)
     a.until("() => !!document.querySelector('#sankey canvas.ftlab') && window.FlowTopo && FlowTopo.has(document.querySelector('#sankey'))", 10000)
+    pg.evaluate("() => scrollTo({ top: 0, behavior: 'instant' })")
     a.wait(900)
     a.park(region=PARK_S, ms=400)
     a.wait(1100)
@@ -448,7 +451,7 @@ def run_d(pg, a, start):
     y, _c = best_scroll(a, pg, y, (0, pan_y, 1100, 627), span=90, step=1)
     a.note(f"網頁名單捲動 {y}，框緣切字 {_c}")
     a.cursor(False)   # 捲動期間游標先收起（不讓游標從捲動中的字上掃過）
-    a.scroll(to_y=y, ms=900)
+    a.scroll(to_y=y, ms=34)   # 一格內到位（硬切），不出現捲動途中被畫面框上緣切半的字
     a.park(region=(600, 120, 300, 300), ms=10)
     a.cursor(True)
     a.wait(1700)
@@ -460,6 +463,7 @@ def run_d(pg, a, start):
     a.tap('.l4subtab[data-l4sub="flow-inst"]', "子選單：族群×法人")
     a.park(region=PARK_I, ms=300)
     a.until("() => !!document.querySelector('#instGroups canvas')", 10000)
+    pg.evaluate("() => scrollTo({ top: 0, behavior: 'instant' })")
     a.wait(900)
     a.park(region=PARK_I, ms=400)
     a.wait(1200)
@@ -504,7 +508,7 @@ def snap(a, pg, span=150, margin=6, instant=False):
             pg.evaluate("(y) => scrollTo({top: y, behavior: 'instant'})", y)
             a.frame()
         else:
-            a.scroll(to_y=y, ms=600)
+            a.scroll(to_y=y, ms=34)
     return c
 
 
@@ -518,11 +522,22 @@ def reveal_snap(a, pg, hold=400):
 
 
 def drift(a, pg, ms):
-    """手機沒有游標可晃：長停留拍讓畫面慢慢往下滑一點點（落點挑不切字的位置），不整段靜止。"""
+    """手機沒有游標可晃：長停留拍讓畫面慢慢往下滑一點點；只在「目標位置框緣切字為 0」時才滑，否則原地不動。"""
     cur = pg.evaluate("() => scrollY")
-    y, c = best_scroll(a, pg, cur + 16, MCROP, span=14, step=2, margin=6)
-    if y <= cur + 1:
-        y, c = best_scroll(a, pg, cur - 12, MCROP, span=12, step=2, margin=6)
+    y, c = best_scroll(a, pg, cur + 16, MCROP, span=14, step=2, margin=8)
+    if c == 0 and y > cur + 1:
+        sy0 = pg.evaluate("() => scrollY")
+        for yy in range(int(cur) + 1, int(y) + 1):   # 慢滑途中每一個位置都要乾淨（不讓字從頂欄下面半截滑過）
+            pg.evaluate("(v) => scrollTo({top: v, behavior: 'instant'})", yy)
+            pg.wait_for_timeout(20)
+            if straddles(a.texts(), MCROP, 8) > 0 or edge_ink(pg, (0, 57, 640, 8), x0=0, x1=632) > 2:
+                c = 1
+                break
+        pg.evaluate("(v) => scrollTo({top: v, behavior: 'instant'})", sy0)
+    if c > 0 or y <= cur + 1:
+        a.note(f"手機慢滑取消（{cur:.0f}→{y:.0f} 切字 {c}）")
+        a.idle(ms)
+        return
     a.note(f"手機慢滑 {cur:.0f}→{y:.0f}，框緣切字 {c}")
     a.scroll(to_y=y, ms=ms)
 
@@ -533,18 +548,17 @@ MCROP = (0, 56, 640, 968)   # 手機畫面框：扣掉頂欄（0～56 是不透�
 def run_m(pg, a, start):
     CROP = V.CROP0["m"]
     F.goto(pg, "#overview", 3500)
-    y0_, _c0 = best_scroll(a, pg, 20, MCROP, span=60, margin=6)
-    pg.evaluate("(y) => scrollTo({top: y, behavior: 'instant'})", y0_)
+    y0_, _c0 = best_scroll(a, pg, 0, MCROP, span=90, margin=6)   # 總覽從頁首開始（標題「總覽」完整在頂列下方），之後才慢慢往下滑
     pg.wait_for_timeout(300)
     a.crop = CROP
     start()
     a.set_stage(1, "需求")
     a.say("錢到底往哪個族群跑？", "face_think", ("burger",))
-    a.scroll(to_y=40, ms=3000)   # 總覽慢慢往下滑一點（手機沒有游標可晃，畫面才不會整段靜止）
+    a.idle(4000)
     a.set_stage(2, "三頁")
     a.say("三頁接著看，就有答案", "face_curious", ("burger",))
-    y80, _c = best_scroll(a, pg, 80, MCROP, span=24)
-    a.scroll(to_y=y80, ms=1500)
+    y80, _c = best_scroll(a, pg, 60, MCROP, span=30, margin=8)
+    a.scroll(to_y=y80, ms=34)
     a.set_stage(3, "導覽")
     a.say("點選單，進資金輪動", "point_ur", ("burger", "m4flow"))
     a.wait(300)
@@ -558,7 +572,7 @@ def run_m(pg, a, start):
     # 功能一：資金輪動（手機：先在頁首看輪盤＋切產業鏈，再往下捲到排行）
     a.set_stage(4, "看強弱")
     a.say("輪盤看資金強弱", "magnifier", ("clock",))
-    drift(a, pg, 3400)
+    drift(a, pg, 4200)
     a.settle()
     a.set_stage(6, "切產業鏈")
     a.say("換條產業鏈，輪盤跟著變", "folder", ("chainr", "clock"))
@@ -567,20 +581,49 @@ def run_m(pg, a, start):
     a.set_stage(5, "看排行")
     a.say("排行跟著變，看占比增減", "spotlight", ("rank",))
     y = pg.evaluate("() => document.querySelector('#rankFlow').getBoundingClientRect().top + scrollY - 250")
-    y, _c = best_scroll(a, pg, y, MCROP, span=110, margin=8)
+    y, _c = best_scroll(a, pg, y, MCROP, span=220, margin=8)
     a.note(f"手機排行捲動 {y}，框緣切字 {_c}")
-    a.scroll(to_y=y, ms=900)
-    drift(a, pg, 3400)   # 手機上點長條會直接跳去產業地圖頁（手機沒有 hover），所以不點、不按，只看排行
+    a.scroll(to_y=y, ms=34)
+    a.wait(300)
+    cur_ = pg.evaluate("() => scrollY")
+    # 輪盤整張捲到頂欄上方（輪盤裡的字是畫布，頂欄會把最上面一排字蓋掉半截）：再往下捲到輪盤底緣在頂欄之上，捲不動就取頁尾
+    need_ = pg.evaluate("() => { const r = document.querySelector('#rotClock').getBoundingClientRect(); const mx = document.documentElement.scrollHeight - innerHeight; return [scrollY + r.bottom - 64, mx, r.bottom]; }")
+    a.note(f"輪盤底緣 {need_[2]:.0f}，需捲到 {need_[0]:.0f}，可捲上限 {need_[1]:.0f}")
+    if need_[0] > cur_ and need_[1] > cur_:
+        a.scroll(to_y=min(need_[0], need_[1]), ms=34)
+        a.wait(200)
+        cur_ = pg.evaluate("() => scrollY")
+    y2_, c2_ = best_scroll(a, pg, cur_, MCROP, span=40, step=1, margin=8)
+    bestk = None
+    inks_ = []
+    for yy_ in range(int(y2_) + 6, int(y2_) - 150, -2):   # 輪盤上緣的字（畫布字，量不到外框）不被頂欄切半：用像素找頂欄下緣 3px 帶沒有深色的位置
+        if yy_ < 0 or yy_ > need_[1]:
+            continue
+        pg.evaluate("(v) => scrollTo({top: v, behavior: 'instant'})", yy_)
+        pg.wait_for_timeout(40)
+        ink_ = edge_ink(pg, (0, 57, 640, 8), x0=0, x1=632)
+        n_ = straddles(a.texts(), MCROP, 8)
+        inks_.append((ink_ + 100 * n_, abs(yy_ - y2_), yy_))
+    inks_.sort()
+    bestk = inks_[0][2] if inks_ and inks_[0][0] <= 3 else None
+    a.note(f"手機排行像素定位 {y2_}→{bestk}；前三名 {inks_[:3]}")
+    if bestk is not None:
+        y2_, c2_ = bestk, 0
+    pg.evaluate("(v) => scrollTo({top: v, behavior: 'instant'})", cur_)   # 實際捲到的位置再量一次（頁面可捲範圍比預期短時，換成真的乾淨的位置）
+    a.note(f"手機排行再定位 {cur_:.0f}→{y2_}，框緣切字 {c2_}")
+    if abs(y2_ - cur_) > 0.5:
+        a.scroll(to_y=y2_, ms=34)
+    drift(a, pg, 4200)   # 手機上點長條會直接跳去產業地圖頁（手機沒有 hover），所以不點、不按，只看排行
     a.settle()
     a.set_stage(7, "追晶圓代工")
     a.say("看半導體，先記下晶圓代工", "face_thinking_bulb", ("rank",))
-    drift(a, pg, 3000)
+    drift(a, pg, 3800)
     a.settle()
     # 功能二：資金分流樹
     a.set_stage(8, "分流樹")
     a.say("接著看，錢怎麼分下去", "point_ur", ("tabsk",))
     yt, _c = best_scroll(a, pg, 16, MCROP, span=8, margin=5)
-    a.scroll(to_y=yt, ms=800)   # 回到分頁列看得到的位置（挑不切字的那一格，不回到 0）
+    a.scroll(to_y=yt, ms=34)   # 回到分頁列看得到的位置（一格到位）
     a.wait(400)
     a.next_vo = 10
     a.tap('.m4subtabs button[data-sub="flow-sankey"]', "分頁：資金分流樹", bias=(0.14, 0.3))
@@ -598,7 +641,7 @@ def run_m(pg, a, start):
     a.wait(900)
     ysn, _c = best_scroll(a, pg, pg.evaluate("() => scrollY"), MCROP, span=80, margin=6)   # 點下去後下方名單面板長出來，內容位置改變 → 再挑一次不切字的捲動位置
     a.note(f"手機點節點後捲動 {ysn}，框緣切字 {_c}")
-    a.scroll(to_y=ysn, ms=500)
+    a.scroll(to_y=ysn, ms=34)
     a.wait(2000)
     a.settle()
     a.set_stage(11, "看名單")
@@ -607,14 +650,14 @@ def run_m(pg, a, start):
     y = pg.evaluate("() => document.querySelector('#sankeyPanel').getBoundingClientRect().top + scrollY - 70")
     y, _c = best_scroll(a, pg, y, MCROP, span=140)
     a.note(f"手機名單捲動 {y}，框緣切字 {_c}")
-    a.scroll(to_y=y, ms=900)
+    a.scroll(to_y=y, ms=34)
     a.wait(3000)
     a.settle()
     # 功能三：族群×法人
     a.set_stage(12, "法人")
     a.say("最後看法人動向", "point_ur", ("tabinst",))
     yt, _c = best_scroll(a, pg, 16, MCROP, span=8, margin=5)
-    a.scroll(to_y=yt, ms=800)   # 回到分頁列看得到的位置（挑不切字的那一格，不回到 0）
+    a.scroll(to_y=yt, ms=34)   # 回到分頁列看得到的位置（一格到位）
     a.wait(400)
     a.next_vo = 0
     a.tap('.m4subtabs button[data-sub="flow-inst"]', "分頁：族群×法人", bias=(0.14, 0.3))

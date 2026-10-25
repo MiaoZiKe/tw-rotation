@@ -30,6 +30,7 @@ FPS = 30
 SPEED = float(os.environ.get("FEAT_SPEED", "1.5"))
 END_RAW = 4.5
 END_FINAL = float(os.environ.get("FEAT_END_FINAL", "2.0"))
+HOLD = 0.3
 XF = 0.04   # 片尾卡接正片：近乎硬切（一幀交疊），不留長時間的疊影
 BUB_CAP = 7.5
 DRIFT_A = float(os.environ.get("FEAT_DRIFT_A", "3.0"))
@@ -155,8 +156,10 @@ def render(dev, CFG, only=None):
     for pn in pans:
         c_ = [c for c in meta["clicks"] if c["kind"] == "click" and c.get("label") == pn["click"]]
         if c_:
-            segs.append((c_[0]["t"] - 0.05, pn.get("dur", 0.4), (0, pn["y"], crop0[2], crop0[3])))
+            segs.append((c_[0]["t"] + pn.get("lag", 0.3), pn.get("dur", 0.4), (0, pn["y"], crop0[2], crop0[3])))
     segs.sort()
+
+    holds = [(c["t"] + 0.02, c["t"] + 0.6) for c in meta["clicks"] if c["kind"] == "click" and ((c.get("label") or "").startswith("產業鏈：") or (c.get("label") or "").startswith("圖例："))]
 
     def crop_at(t):
         cur = crop0
@@ -196,6 +199,12 @@ def render(dev, CFG, only=None):
         reg = R.Reg()
         in_end = t >= end_start + XF - 1e-6
         k = min(int(round(t * FPS)), N0 - 1)
+        for ch_ in holds:   # 換產業鏈／點圖例後圖表換資料的動畫途中（約 0.5 秒）標籤會互相疊在一起：停在點下去那一刻，動畫跑完才切到結果
+            if ch_[0] <= t < ch_[1]:
+                k = min(int(round(ch_[0] * FPS)), N0 - 1)
+        for ts_, du_, _tg in segs:   # 換頁後的排版途中（約 0.3 秒）不入鏡：停在換頁前一刻的畫面，到頁面穩定才一次切過去（硬切，不顯示半成品的版面）
+            if ts_ - HOLD <= t < ts_:
+                k = min(int(round((ts_ - HOLD) * FPS)), N0 - 1)
         stg = 99 if in_end else stage_at(t)
         cx, cy, cw, ch = crop_at(t)
         crop_css = (cx, cy, cw, ch)
@@ -289,7 +298,7 @@ def render(dev, CFG, only=None):
                         cur_rows.append(f"| {t:6.2f} | 游標／波紋壓字 |")
                         break
             # 游標（等候時）壓到可操作元件（按鈕／輸入框／下拉／連結）：點擊前後（-1.0～+0.4 秒）游標本來就在那個元件上，不算
-            if cxy and not any(-1.0 <= t - ct <= 0.4 for ct in click_ts) and (dev == "d" and m.get("cop", 1) >= 0.25):
+            if cxy and not any(-1.0 <= t - ct <= 0.8 for ct in click_ts) and (dev == "d" and m.get("cop", 1) >= 0.25):
                 for u in m.get("ui", []):
                     if rect_int(u[:4], crop_css) > 0 and rect_int((cxy[0], cxy[1], 18, 26), u[:4]) > 0:
                         cur_rows.append(f"| {t:6.2f} | 游標壓到控制項（x={u[0]:.0f},y={u[1]:.0f},w={u[2]:.0f}） |")
@@ -302,6 +311,9 @@ def render(dev, CFG, only=None):
                     foc_rects.append(dr)
                 for z in zt:
                     zr = z[1:5]
+                    if dev == "m" and zr[1] < 53 and zr[1] + zr[3] > 59 and zr[3] < 40 and not dr:   # 手機：被頂欄（0～56）蓋掉一半的字
+                        slice_rows.append(f"| {t:6.2f} | 頂欄蓋住半個字（{z[0]}）y={zr[1]:.0f} h={zr[3]:.0f} |")
+                        break
                     if rect_int(zr, crop_css) > 0 and not contained(crop_in, zr, 0.5):
                         slice_rows.append(f"| {t:6.2f} | 畫面框邊切到文字（{z[0]}）x={zr[0]:.0f} y={zr[1]:.0f} w={zr[2]:.0f} |")
                         if any(rect_int(zr, fr2) > 0 for fr2 in foc_rects):
