@@ -32,7 +32,7 @@ ELS = {
 # 錄影專用樣式（只在錄影的瀏覽器裡，不改 site/）：
 #   · 族群下拉清單一律隱藏（CEO：不勾族群；選完產業鏈自動彈出的那一次也不入鏡）
 #   · 頂欄改不透明（內容從頂欄下面捲過時不會透出字）
-EXTRA_CSS = ("@media (min-width:900px){.rotright{height:640px!important;max-height:640px!important;align-self:start!important}}"   # 網頁：排行欄縮到畫面框放得下（15 條長條＋座標軸全部完整入鏡，下緣不再切到最後一條）
+EXTRA_CSS = ("@media (min-width:900px){#tabs .l4subtab[data-l4sub=\"flow-inst\"]~*{display:none!important}.rotright{height:640px!important;max-height:640px!important;align-self:start!important}}"   # 網頁：排行欄縮到畫面框放得下（15 條長條＋座標軸全部完整入鏡，下緣不再切到最後一條）
              "div[style*=\"border-style: solid\"]{transition:none!important}.rotdd .ddpanel{display:none!important}.rotnums{display:none!important}"
              "header.topbar,#l4Head{background:#f8fbfd!important}"
              "#ovSumTrack>.osc:nth-child(4),.ovsum-nav{display:none!important}"   # 總覽摘要列第 4 張卡（熱門題材）在右緣被站內輪播切半，與本片無關，錄影端不放
