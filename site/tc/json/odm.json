@@ -24,7 +24,10 @@
             60
           ],
           "bonus_months": null,
-          "annual_months": null,
+          "annual_months": [
+            21,
+            21
+          ],
           "annual_total_wan": null,
           "weekly_hours": 60,
           "overtime": "經常",
@@ -257,7 +260,7 @@
           "weekly_hours": null,
           "overtime": "偶爾",
           "travel": "偶爾～需要（中國／東南亞廠）",
-          "n": 2,
+          "n": 3,
           "note": "平台自述統計（未轉貼原文）；GoodJob 2026-05 一筆碩畢 2 年經驗年薪 100 萬、有加班費；另一則稱分紅年終 2～2.5 個月（個人說法）；GoodJob 機構職面試與 2026-07 評價：需出差中國或東南亞，出差期間加班依產品進度；bonus_months、annual_total_wan 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples；未逐筆對應的舊彙整：{\"bonus_months\": [2, 2.5], \"annual_total_wan\": [100, 100]}",
           "sources": [
             {
@@ -269,6 +272,11 @@
               "site": "GoodJob",
               "url": "https://www.goodjob.life/experiences/6a6859d4c7730f27ddb9a8c8",
               "date": "2026-07"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/69d4b33c2d3b4264e25d168f",
+              "date": "2026-04"
             }
           ],
           "confidence": "低",
@@ -305,6 +313,25 @@
               "overtime": null,
               "travel": null,
               "quote_free_note": null
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/69d4b33c2d3b4264e25d168f",
+              "date": "2026-04",
+              "unit_detail": "自動化（面試）",
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "產線 debug、需穿靜電服，感覺常加班",
+              "date_confirmed": true,
+              "date_note": "GoodJob 標題 2026-04",
+              "in_window": true
             }
           ]
         },
@@ -459,7 +486,7 @@
           "weekly_hours": null,
           "overtime": "偶爾",
           "travel": null,
-          "n": 11,
+          "n": 12,
           "note": "平台自述統計（未轉貼原文）；起薪 5.2 萬為 2024 校徵公告（超出一年窗口，僅參考）；Dcard 整理碩士整包 83～120 萬；無近一年 GoodJob 數字；比薪水 2026-02 單筆：偶爾加班、日均 8 小時；分紅月數無可靠區間；base_month_k、annual_months、annual_total_wan 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples",
           "sources": [
             {
@@ -516,6 +543,11 @@
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/258331608",
               "date": "2025"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/68d1496c614d002d5275364b",
+              "date": "2025-09"
             }
           ],
           "confidence": "中",
@@ -720,6 +752,25 @@
               "overtime": null,
               "travel": null,
               "quote_free_note": "X5K、保 14，第三年才有績效與分紅"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/68d1496c614d002d5275364b",
+              "date": "2025-09",
+              "unit_detail": "資深工程師（面試）",
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "資深工程師（面試），摘要無個別數字",
+              "date_confirmed": true,
+              "date_note": "GoodJob 標題 2025-09",
+              "in_window": true
             }
           ]
         }
@@ -1066,7 +1117,7 @@
           "weekly_hours": null,
           "overtime": null,
           "travel": null,
-          "n": 9,
+          "n": 13,
           "note": "平台自述統計（未轉貼原文）；碩士起薪最高 7.5 萬為 2023 工商時報（超出窗口）；2026 校徵招 1,700 人未公布薪資；base_month_k 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples",
           "sources": [
             {
@@ -1113,6 +1164,26 @@
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/257356445",
               "date": "2025"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/6a7a76f3b25d25ff8c8b431a",
+              "date": "2026-08"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/6998814af25428b1d184c2c6",
+              "date": "2026-02"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/6a03e86bffd8238a3489d58b",
+              "date": "2026-05"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/6984dc37be3b09226a909b2a",
+              "date": "2026-02"
             }
           ],
           "confidence": "高",
@@ -1282,6 +1353,82 @@
               "overtime": null,
               "travel": null,
               "quote_free_note": "N+12，12＋年終2＋分紅，主管說約 17 個月"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/6a7a76f3b25d25ff8c8b431a",
+              "date": "2026-08",
+              "unit_detail": "資深研發（研究院）",
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 120,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "資深研發評價：底薪七萬多、年薪約 120 萬、有餐補",
+              "date_confirmed": true,
+              "date_note": "GoodJob 標題 2026-08",
+              "in_window": true
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/6998814af25428b1d184c2c6",
+              "date": "2026-02",
+              "unit_detail": "AI 工程師（面試）",
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "AI 工程師（面試），摘要無個別數字",
+              "date_confirmed": true,
+              "date_note": "GoodJob 標題 2026-02",
+              "in_window": true
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/6a03e86bffd8238a3489d58b",
+              "date": "2026-05",
+              "unit_detail": "PLM 應用程式開發（面試）",
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "PLM 應用程式開發（面試），摘要無個別數字",
+              "date_confirmed": true,
+              "date_note": "GoodJob 標題 2026-05",
+              "in_window": true
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/6984dc37be3b09226a909b2a",
+              "date": "2026-02",
+              "unit_detail": "硬體系統電源（面試）",
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "硬體系統電源（面試），摘要無個別數字",
+              "date_confirmed": true,
+              "date_note": "GoodJob 標題 2026-02",
+              "in_window": true
             }
           ]
         }
@@ -1349,7 +1496,7 @@
           "degree": "碩士",
           "years": "0-2",
           "base_month_k": [
-            62,
+            61,
             68
           ],
           "bonus_months": null,
@@ -1361,7 +1508,7 @@
           "weekly_hours": null,
           "overtime": null,
           "travel": null,
-          "n": 7,
+          "n": 12,
           "note": "平台自述統計（未轉貼原文）；社群回報月薪×14 保底＋績效分紅，無碩士起薪數字；2026-10 查比薪水有逾千筆但摘要無分紅／工時細節；annual_months 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples",
           "sources": [
             {
@@ -1398,6 +1545,31 @@
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/255714789",
               "date": "2024"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/69d7185b0f7fdbe383b5d4a7",
+              "date": "2026-04"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/6a75fee48e8d075c29ca3e37",
+              "date": "2026-08"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/69eeed37619fa9c62f83ab53",
+              "date": "2026-04"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/6a854dd4c43855f6403d4a03",
+              "date": "2026-08"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/69799286747f93effa02d3b5",
+              "date": "2026-01"
             }
           ],
           "confidence": "高",
@@ -1532,6 +1704,101 @@
               "overtime": "幾乎不",
               "travel": null,
               "quote_free_note": "(N-4)×14＋分紅；工時 8～9 小時"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/69d7185b0f7fdbe383b5d4a7",
+              "date": "2026-04",
+              "unit_detail": "硬體研發",
+              "years": null,
+              "degree": null,
+              "base_k": 61,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "月薪約 6.1 萬，保 14 個月、有加班費、每年分紅",
+              "date_confirmed": true,
+              "date_note": "GoodJob 標題 2026-04",
+              "in_window": true
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/6a75fee48e8d075c29ca3e37",
+              "date": "2026-08",
+              "unit_detail": "工程師",
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "工程師，摘要無個別數字",
+              "date_confirmed": true,
+              "date_note": "GoodJob 標題 2026-08",
+              "in_window": true
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/69eeed37619fa9c62f83ab53",
+              "date": "2026-04",
+              "unit_detail": "軟體",
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "軟體，摘要無個別數字",
+              "date_confirmed": true,
+              "date_note": "GoodJob 標題 2026-04",
+              "in_window": true
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/6a854dd4c43855f6403d4a03",
+              "date": "2026-08",
+              "unit_detail": "前端（面試）",
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "前端（面試），摘要無個別數字",
+              "date_confirmed": true,
+              "date_note": "GoodJob 標題 2026-08",
+              "in_window": true
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/69799286747f93effa02d3b5",
+              "date": "2026-01",
+              "unit_detail": "軟體開發（面試）",
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "軟體開發（面試），摘要無個別數字",
+              "date_confirmed": true,
+              "date_note": "GoodJob 標題 2026-01",
+              "in_window": true
             }
           ]
         }
