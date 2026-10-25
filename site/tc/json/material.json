@@ -10,7 +10,7 @@
       "heat": "Dcard 熱度：中",
       "benefits": "績效獎金、留任獎金",
       "stock_plan": "本輪未查到",
-      "bonus_timing": "10 月分紅；隔年初年終固定 2 個月＋績效獎金",
+      "bonus_timing": "網友稱工程師年終約保 2 個月，其餘看績效；人資說年終＋分紅約 6～8 個月、不保年終（說法不一）；發放月份查不到",
       "culture": "工時長（自述 60～72 小時／週）、現場人力不足、可能外派中國；面試評分 3.3／5（45 筆）",
       "interview": "面試自述：結構含底薪、年終 2 個月、績效與留任獎金，無定期調薪",
       "roles": [
@@ -142,10 +142,33 @@
       "grade_system": null,
       "bonus_structure": [
         {
-          "type": "既有說法（本輪未再查證）",
-          "rule": "10 月分紅；隔年初年終固定 2 個月＋績效獎金",
+          "type": "年終獎金",
+          "rule": "衝突：網友稱約保 2 個月；另一人資說法為不保年終",
           "months": null,
-          "sources": []
+          "sources": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/258285884",
+              "date": "依文章編號推估 2025"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/259554221",
+              "date": "依文章編號推估 2025"
+            }
+          ]
+        },
+        {
+          "type": "員工分紅／績效",
+          "rule": "年終＋分紅約 6～8 個月（人資說法），依職位、考績與所屬法人；原記「10 月分紅」查無來源，已移除",
+          "months": null,
+          "sources": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/259554221",
+              "date": "依文章編號推估 2025"
+            }
+          ]
         }
       ]
     },
@@ -155,7 +178,7 @@
       "heat": "Dcard 熱度：中",
       "benefits": "本輪未查到",
       "stock_plan": "本輪未查到",
-      "bonus_timing": "年終約 2 個月（自述）",
+      "bonus_timing": "人資稱年終約 1 個月＋4 月績效獎金＋農曆年與中秋節慶獎金；滿兩年約 8 月有員工酬勞",
       "culture": "工作量大；分紅沒保障、升等制度不明確，但每年都加薪",
       "interview": "本輪未查到",
       "roles": [
@@ -263,10 +286,52 @@
       "grade_system": null,
       "bonus_structure": [
         {
-          "type": "既有說法（本輪未再查證）",
-          "rule": "年終約 2 個月（自述）",
+          "type": "年終獎金",
+          "rule": "約 1 個月，以底薪計（人資說法轉述）",
+          "months": 1,
+          "sources": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/job/p/258243502",
+              "date": "依文章編號推估 2025"
+            }
+          ]
+        },
+        {
+          "type": "績效獎金",
+          "rule": "4 月發（人資說法轉述）",
           "months": null,
-          "sources": []
+          "sources": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/job/p/258243502",
+              "date": "依文章編號推估 2025"
+            }
+          ]
+        },
+        {
+          "type": "節慶獎金",
+          "rule": "農曆年與中秋",
+          "months": null,
+          "sources": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/job/p/258243502",
+              "date": "依文章編號推估 2025"
+            }
+          ]
+        },
+        {
+          "type": "員工酬勞",
+          "rule": "約 8 月發，約滿兩年才有，金額看前一年績效",
+          "months": null,
+          "sources": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261963093",
+              "date": "依文章編號推估 2026"
+            }
+          ]
         }
       ]
     },
@@ -419,7 +484,7 @@
       "heat": "Dcard 熱度：低",
       "benefits": "長庚就醫優待、免費健檢、員工餐廳與宿舍（招募文件）",
       "stock_plan": "本輪未查到",
-      "bonus_timing": "每季依經營績效發放季激勵獎金（招募文件）",
+      "bonus_timing": "徵才列年終、端午／中秋勤勉與三節獎金、個人績效獎金、季激勵獎金；年終依經營績效盈增虧減（2016 年至少 2.1 個月）",
       "culture": "比薪水自述日均 11～12 小時、加班多，也有人說制度完善",
       "interview": "本輪未查到",
       "roles": [
@@ -503,10 +568,57 @@
       "grade_system": null,
       "bonus_structure": [
         {
-          "type": "既有說法（本輪未再查證）",
-          "rule": "每季依經營績效發放季激勵獎金（招募文件）",
+          "type": "季激勵獎金",
+          "rule": "每季發（104 徵才、2021 面試分享），金額查不到",
           "months": null,
-          "sources": []
+          "sources": [
+            {
+              "site": "104人力銀行",
+              "url": "https://www.104.com.tw/job/cvh4",
+              "date": "2026"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/238883064",
+              "date": "2021"
+            }
+          ]
+        },
+        {
+          "type": "年終獎金",
+          "rule": "依年度實際經營績效、盈增虧減；2016 年度至少 2.1 個月（舊）",
+          "months": null,
+          "sources": [
+            {
+              "site": "中時（中央社）",
+              "url": "https://www.chinatimes.com/realtimenews/20170112003032-260410",
+              "date": "2017-01"
+            }
+          ]
+        },
+        {
+          "type": "三節與勤勉獎金",
+          "rule": "端午、中秋勤勉獎金與三節節慶獎金（徵才資料）",
+          "months": null,
+          "sources": [
+            {
+              "site": "104人力銀行",
+              "url": "https://www.104.com.tw/job/cvh4",
+              "date": "2026"
+            }
+          ]
+        },
+        {
+          "type": "個人績效獎金",
+          "rule": "徵才資料列有",
+          "months": null,
+          "sources": [
+            {
+              "site": "104人力銀行",
+              "url": "https://www.104.com.tw/job/cvh4",
+              "date": "2026"
+            }
+          ]
         }
       ]
     },
@@ -516,7 +628,7 @@
       "heat": "Dcard 熱度：低",
       "benefits": "研究加給、交通補助",
       "stock_plan": "本輪未查到",
-      "bonus_timing": "自述一年四次：第一季年終、第二季績效、第三季管理獎金、第四季分紅",
+      "bonus_timing": "永續報告書列管理獎金、員工酬勞、年度績效獎金；網友稱年終 2～3 個月、9 月分紅、三節；原記「一年四次」查無來源已移除",
       "culture": "舊資料（2021～22）日均 9～12 小時",
       "interview": "本輪未查到",
       "roles": [
@@ -600,10 +712,45 @@
       "grade_system": null,
       "bonus_structure": [
         {
-          "type": "既有說法（本輪未再查證）",
-          "rule": "自述一年四次：第一季年終、第二季績效、第三季管理獎金、第四季分紅",
+          "type": "管理獎金／員工酬勞／績效獎金",
+          "rule": "依管理獎金給付辦法與員工酬勞辦法（永續報告書）",
           "months": null,
-          "sources": []
+          "sources": [
+            {
+              "site": "台光電永續報告書",
+              "url": "https://www.emctw.com/upload/media/New_CSR/csr_report/2024_EMC_ESG%20report_TW.pdf",
+              "date": "2025"
+            }
+          ]
+        },
+        {
+          "type": "年終獎金",
+          "rule": "衝突：GoodJob 稱 2 個月，Indeed 評論稱 2～3 個月",
+          "months": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/%E5%8F%B0%E5%85%89%E9%9B%BB%E5%AD%90%E6%9D%90%E6%96%99%E8%82%A1%E4%BB%BD%E6%9C%89%E9%99%90%E5%85%AC%E5%8F%B8",
+              "date": "2026"
+            },
+            {
+              "site": "Indeed",
+              "url": "https://tw.indeed.com/cmp/%E5%8F%B0%E5%85%89%E9%9B%BB%E5%AD%90%E6%9D%90%E6%96%99/reviews",
+              "date": "2026"
+            }
+          ]
+        },
+        {
+          "type": "員工分紅",
+          "rule": "9 月（GoodJob 網友）",
+          "months": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/%E5%8F%B0%E5%85%89%E9%9B%BB%E5%AD%90%E6%9D%90%E6%96%99%E8%82%A1%E4%BB%BD%E6%9C%89%E9%99%90%E5%85%AC%E5%8F%B8",
+              "date": "2026"
+            }
+          ]
         }
       ]
     }
