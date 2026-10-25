@@ -2,7 +2,7 @@
   "industry": "memory",
   "name": "記憶體",
   "updated": "2026-10-25",
-  "window": "2025-10-25～2026-10-25",
+  "window": "2025-08-01～2026-10-25",
   "companies": [
     {
       "name": "美光台灣",
@@ -20,7 +20,7 @@
           "degree": "碩士",
           "years": "0-2",
           "base_month_k": [
-            55,
+            61,
             74
           ],
           "bonus_months": [
@@ -29,7 +29,7 @@
           ],
           "annual_months": [
             14,
-            18
+            14
           ],
           "annual_total_wan": [
             80,
@@ -87,7 +87,7 @@
               "date": "2026-03"
             }
           ],
-          "confidence": "高",
+          "confidence": "中",
           "grade": "EA／EB（輪班）",
           "samples": [
             {
@@ -104,7 +104,9 @@
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
-              "quote_free_note": null
+              "quote_free_note": null,
+              "date_confirmed": false,
+              "date_note": "日期為推估或僅年份，不進統計"
             },
             {
               "site": "ETtoday",
@@ -120,7 +122,9 @@
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
-              "quote_free_note": null
+              "quote_free_note": null,
+              "date_confirmed": false,
+              "date_note": "日期為推估或僅年份，不進統計"
             },
             {
               "site": "Dcard",
@@ -136,7 +140,9 @@
               "weekly_hours": null,
               "overtime": "輪班",
               "travel": null,
-              "quote_free_note": "后里輪班設備 5.5 萬×14＋分紅"
+              "quote_free_note": "后里輪班設備 5.5 萬×14＋分紅",
+              "date_confirmed": false,
+              "date_note": "日期為推估或僅年份，不進統計"
             },
             {
               "site": "Dcard",
@@ -152,7 +158,9 @@
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
-              "quote_free_note": "台南輪班設備 5.5 萬起、保 14＋分紅（內推文）"
+              "quote_free_note": "台南輪班設備 5.5 萬起、保 14＋分紅（內推文）",
+              "date_confirmed": false,
+              "date_note": "日期為推估或僅年份，不進統計"
             },
             {
               "site": "Dcard",
@@ -168,7 +176,9 @@
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
-              "quote_free_note": "台南職缺 5.5～11 萬（徵才文）"
+              "quote_free_note": "台南職缺 5.5～11 萬（徵才文）",
+              "date_confirmed": false,
+              "date_note": "日期為推估或僅年份，不進統計"
             },
             {
               "site": "Dcard",
@@ -184,7 +194,9 @@
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
-              "quote_free_note": "內推文稱年薪約 18 個月"
+              "quote_free_note": "內推文稱年薪約 18 個月",
+              "date_confirmed": false,
+              "date_note": "日期為推估或僅年份，不進統計"
             },
             {
               "site": "PTT",
@@ -200,7 +212,9 @@
               "weekly_hours": null,
               "overtime": "輪班",
               "travel": null,
-              "quote_free_note": "台南 TCP Probe 輪班設備 7.4 萬、保 14"
+              "quote_free_note": "台南 TCP Probe 輪班設備 7.4 萬、保 14",
+              "date_confirmed": true,
+              "date_note": "PTT 文章代碼即發文時間（Unix 時間）"
             },
             {
               "site": "PTT",
@@ -216,7 +230,9 @@
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
-              "quote_free_note": "擴散設備保 14、分紅另計／矽品測試職保 14、做二休二"
+              "quote_free_note": "擴散設備保 14、分紅另計／矽品測試職保 14、做二休二",
+              "date_confirmed": true,
+              "date_note": "PTT 文章代碼即發文時間（Unix 時間）"
             },
             {
               "site": "GoodJob",
@@ -232,9 +248,12 @@
               "weekly_hours": 50,
               "overtime": "輪班",
               "travel": null,
-              "quote_free_note": "台中約 1 年 6.1 萬、每週約 50 小時"
+              "quote_free_note": "台中約 1 年 6.1 萬、每週約 50 小時",
+              "date_confirmed": true,
+              "date_note": "GoodJob 標題附分享日期"
             }
-          ]
+          ],
+          "n_stat": 3
         },
         {
           "unit": "台中／桃園廠",
@@ -268,7 +287,7 @@
               "date": "2026"
             }
           ],
-          "confidence": "中",
+          "confidence": "低",
           "grade": "E1～E3（常日）",
           "samples": [
             {
@@ -285,7 +304,9 @@
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
-              "quote_free_note": null
+              "quote_free_note": null,
+              "date_confirmed": false,
+              "date_note": "日期為推估或僅年份，不進統計"
             },
             {
               "site": "Dcard",
@@ -301,9 +322,12 @@
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
-              "quote_free_note": "台南常日班工程師 6.4 萬起（徵才文）"
+              "quote_free_note": "台南常日班工程師 6.4 萬起（徵才文）",
+              "date_confirmed": false,
+              "date_note": "日期為推估或僅年份，不進統計"
             }
-          ]
+          ],
+          "n_stat": 0
         }
       ],
       "mops": null,
@@ -325,7 +349,7 @@
           "degree": "碩士",
           "years": "0-2",
           "base_month_k": [
-            60,
+            68,
             68
           ],
           "bonus_months": null,
@@ -376,7 +400,7 @@
               "date": "2026-06"
             }
           ],
-          "confidence": "高",
+          "confidence": "中",
           "grade": null,
           "samples": [
             {
@@ -393,7 +417,9 @@
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
-              "quote_free_note": null
+              "quote_free_note": null,
+              "date_confirmed": false,
+              "date_note": "日期為推估或僅年份，不進統計"
             },
             {
               "site": "GoodJob",
@@ -409,7 +435,9 @@
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
-              "quote_free_note": null
+              "quote_free_note": null,
+              "date_confirmed": false,
+              "date_note": "日期為推估或僅年份，不進統計"
             },
             {
               "site": "Dcard",
@@ -425,7 +453,9 @@
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
-              "quote_free_note": "四大碩製程面試喊 5.8 萬談到 6 字頭；RD 約 8 萬多"
+              "quote_free_note": "四大碩製程面試喊 5.8 萬談到 6 字頭；RD 約 8 萬多",
+              "date_confirmed": false,
+              "date_note": "日期為推估或僅年份，不進統計"
             },
             {
               "site": "Dcard",
@@ -441,7 +471,9 @@
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
-              "quote_free_note": null
+              "quote_free_note": null,
+              "date_confirmed": false,
+              "date_note": "日期為推估或僅年份，不進統計"
             },
             {
               "site": "Dcard",
@@ -457,7 +489,9 @@
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
-              "quote_free_note": null
+              "quote_free_note": null,
+              "date_confirmed": true,
+              "date_note": "摘要／標題可見日期"
             },
             {
               "site": "Dcard",
@@ -473,7 +507,9 @@
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
-              "quote_free_note": null
+              "quote_free_note": null,
+              "date_confirmed": false,
+              "date_note": "日期為推估或僅年份，不進統計"
             },
             {
               "site": "GoodJob",
@@ -489,9 +525,12 @@
               "weekly_hours": 50,
               "overtime": null,
               "travel": null,
-              "quote_free_note": "製程 6.8 萬、每週約 50 小時"
+              "quote_free_note": "製程 6.8 萬、每週約 50 小時",
+              "date_confirmed": true,
+              "date_note": "GoodJob 標題附分享日期"
             }
-          ]
+          ],
+          "n_stat": 2
         },
         {
           "unit": "研發 R&D",
@@ -499,7 +538,7 @@
           "degree": "碩士",
           "years": "0-2",
           "base_month_k": [
-            60,
+            82,
             82
           ],
           "bonus_months": null,
@@ -532,7 +571,7 @@
               "date": "2026-08"
             }
           ],
-          "confidence": "中",
+          "confidence": "低",
           "grade": null,
           "samples": [
             {
@@ -549,7 +588,9 @@
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
-              "quote_free_note": null
+              "quote_free_note": null,
+              "date_confirmed": false,
+              "date_note": "日期為推估或僅年份，不進統計"
             },
             {
               "site": "GoodJob",
@@ -565,7 +606,9 @@
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
-              "quote_free_note": null
+              "quote_free_note": null,
+              "date_confirmed": false,
+              "date_note": "日期為推估或僅年份，不進統計"
             },
             {
               "site": "Dcard",
@@ -581,7 +624,9 @@
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
-              "quote_free_note": "四大碩製程面試喊 5.8 萬談到 6 字頭；RD 約 8 萬多"
+              "quote_free_note": "四大碩製程面試喊 5.8 萬談到 6 字頭；RD 約 8 萬多",
+              "date_confirmed": false,
+              "date_note": "日期為推估或僅年份，不進統計"
             },
             {
               "site": "GoodJob",
@@ -597,9 +642,12 @@
               "weekly_hours": 45,
               "overtime": null,
               "travel": null,
-              "quote_free_note": "類比 IC 2 年 8.2 萬"
+              "quote_free_note": "類比 IC 2 年 8.2 萬",
+              "date_confirmed": true,
+              "date_note": "GoodJob 標題附分享日期"
             }
-          ]
+          ],
+          "n_stat": 1
         }
       ],
       "mops": {
@@ -665,7 +713,7 @@
               "date": "2026"
             }
           ],
-          "confidence": "中",
+          "confidence": "低",
           "grade": "E6（碩士新人，範圍外參考）",
           "samples": [
             {
@@ -682,7 +730,9 @@
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
-              "quote_free_note": null
+              "quote_free_note": null,
+              "date_confirmed": false,
+              "date_note": "日期為推估或僅年份，不進統計"
             },
             {
               "site": "GoodJob",
@@ -698,7 +748,9 @@
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
-              "quote_free_note": null
+              "quote_free_note": null,
+              "date_confirmed": false,
+              "date_note": "日期為推估或僅年份，不進統計"
             },
             {
               "site": "GoodJob",
@@ -714,9 +766,12 @@
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
-              "quote_free_note": "設備職回報 4.85～5.9 萬"
+              "quote_free_note": "設備職回報 4.85～5.9 萬",
+              "date_confirmed": false,
+              "date_note": "日期為推估或僅年份，不進統計"
             }
-          ]
+          ],
+          "n_stat": 0
         },
         {
           "unit": "晶圓廠 Fab",
@@ -823,7 +878,9 @@
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
-              "quote_free_note": null
+              "quote_free_note": null,
+              "date_confirmed": false,
+              "date_note": "日期為推估或僅年份，不進統計"
             },
             {
               "site": "Dcard",
@@ -839,7 +896,9 @@
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
-              "quote_free_note": "製程值班 offer 保 15、人資口頭約 17 個月"
+              "quote_free_note": "製程值班 offer 保 15、人資口頭約 17 個月",
+              "date_confirmed": false,
+              "date_note": "日期為推估或僅年份，不進統計"
             },
             {
               "site": "Dcard",
@@ -855,7 +914,9 @@
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
-              "quote_free_note": null
+              "quote_free_note": null,
+              "date_confirmed": false,
+              "date_note": "日期為推估或僅年份，不進統計"
             },
             {
               "site": "Dcard",
@@ -871,7 +932,9 @@
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
-              "quote_free_note": "2026-08 激勵獎金約 2 個月"
+              "quote_free_note": "2026-08 激勵獎金約 2 個月",
+              "date_confirmed": true,
+              "date_note": "摘要／標題可見日期"
             },
             {
               "site": "Dcard",
@@ -887,7 +950,9 @@
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
-              "quote_free_note": null
+              "quote_free_note": null,
+              "date_confirmed": false,
+              "date_note": "日期為推估或僅年份，不進統計"
             },
             {
               "site": "Dcard",
@@ -903,7 +968,9 @@
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
-              "quote_free_note": null
+              "quote_free_note": null,
+              "date_confirmed": false,
+              "date_note": "日期為推估或僅年份，不進統計"
             },
             {
               "site": "Dcard",
@@ -919,7 +986,9 @@
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
-              "quote_free_note": null
+              "quote_free_note": null,
+              "date_confirmed": false,
+              "date_note": "日期為推估或僅年份，不進統計"
             },
             {
               "site": "PTT",
@@ -935,7 +1004,9 @@
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
-              "quote_free_note": "新聞：碩士新進月薪調到 6.2 萬"
+              "quote_free_note": "新聞：碩士新進月薪調到 6.2 萬",
+              "date_confirmed": true,
+              "date_note": "PTT 文章代碼即發文時間（Unix 時間）"
             },
             {
               "site": "GoodJob",
@@ -951,7 +1022,9 @@
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
-              "quote_free_note": "製程整合 3 年 6.8 萬"
+              "quote_free_note": "製程整合 3 年 6.8 萬",
+              "date_confirmed": true,
+              "date_note": "GoodJob 標題附分享日期"
             },
             {
               "site": "GoodJob",
@@ -967,7 +1040,9 @@
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
-              "quote_free_note": "製程面試 6.25 萬"
+              "quote_free_note": "製程面試 6.25 萬",
+              "date_confirmed": true,
+              "date_note": "GoodJob 標題附分享日期"
             },
             {
               "site": "GoodJob",
@@ -983,7 +1058,9 @@
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
-              "quote_free_note": null
+              "quote_free_note": null,
+              "date_confirmed": true,
+              "date_note": "GoodJob 標題附分享日期"
             },
             {
               "site": "GoodJob",
@@ -999,9 +1076,12 @@
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
-              "quote_free_note": null
+              "quote_free_note": null,
+              "date_confirmed": true,
+              "date_note": "GoodJob 標題附分享日期"
             }
-          ]
+          ],
+          "n_stat": 6
         }
       ],
       "mops": {

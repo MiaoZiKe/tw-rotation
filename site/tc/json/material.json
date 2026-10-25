@@ -2,7 +2,7 @@
   "industry": "material",
   "name": "材料／PCB",
   "updated": "2026-10-25",
-  "window": "2025-10-25～2026-10-25",
+  "window": "2025-08-01～2026-10-25",
   "companies": [
     {
       "name": "臻鼎",
@@ -64,9 +64,12 @@
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
-              "quote_free_note": null
+              "quote_free_note": null,
+              "date_confirmed": false,
+              "date_note": "日期為推估或僅年份，不進統計"
             }
-          ]
+          ],
+          "n_stat": 0
         },
         {
           "unit": "桃園總部",
@@ -100,7 +103,7 @@
               "date": "2026-03"
             }
           ],
-          "confidence": "中",
+          "confidence": "低",
           "grade": null,
           "samples": [
             {
@@ -117,7 +120,9 @@
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
-              "quote_free_note": null
+              "quote_free_note": null,
+              "date_confirmed": false,
+              "date_note": "日期為推估或僅年份，不進統計"
             },
             {
               "site": "GoodJob",
@@ -133,9 +138,12 @@
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
-              "quote_free_note": null
+              "quote_free_note": null,
+              "date_confirmed": true,
+              "date_note": "GoodJob 標題附分享日期"
             }
-          ]
+          ],
+          "n_stat": 1
         }
       ],
       "mops": {
@@ -198,7 +206,7 @@
               "date": "2026"
             }
           ],
-          "confidence": "中",
+          "confidence": "低",
           "grade": null,
           "samples": [
             {
@@ -215,7 +223,9 @@
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
-              "quote_free_note": null
+              "quote_free_note": null,
+              "date_confirmed": false,
+              "date_note": "日期為推估或僅年份，不進統計"
             },
             {
               "site": "比薪水",
@@ -231,7 +241,9 @@
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
-              "quote_free_note": null
+              "quote_free_note": null,
+              "date_confirmed": false,
+              "date_note": "日期為推估或僅年份，不進統計"
             },
             {
               "site": "Dcard",
@@ -247,9 +259,12 @@
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
-              "quote_free_note": null
+              "quote_free_note": null,
+              "date_confirmed": false,
+              "date_note": "日期為推估或僅年份，不進統計"
             }
-          ]
+          ],
+          "n_stat": 0
         }
       ],
       "mops": {
@@ -310,7 +325,7 @@
               "date": "2026"
             }
           ],
-          "confidence": "中",
+          "confidence": "低",
           "grade": null,
           "samples": [
             {
@@ -327,7 +342,9 @@
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
-              "quote_free_note": null
+              "quote_free_note": null,
+              "date_confirmed": false,
+              "date_note": "日期為推估或僅年份，不進統計"
             },
             {
               "site": "Dcard",
@@ -343,9 +360,12 @@
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
-              "quote_free_note": null
+              "quote_free_note": null,
+              "date_confirmed": false,
+              "date_note": "日期為推估或僅年份，不進統計"
             }
-          ]
+          ],
+          "n_stat": 0
         }
       ],
       "mops": {
@@ -397,7 +417,7 @@
               "date": "2026"
             }
           ],
-          "confidence": "中",
+          "confidence": "低",
           "grade": null,
           "samples": [
             {
@@ -414,7 +434,9 @@
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
-              "quote_free_note": null
+              "quote_free_note": null,
+              "date_confirmed": false,
+              "date_note": "日期為推估或僅年份，不進統計"
             },
             {
               "site": "比薪水",
@@ -430,9 +452,12 @@
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
-              "quote_free_note": null
+              "quote_free_note": null,
+              "date_confirmed": false,
+              "date_note": "日期為推估或僅年份，不進統計"
             }
-          ]
+          ],
+          "n_stat": 0
         }
       ],
       "mops": {
@@ -487,7 +512,7 @@
               "date": "2026-03"
             }
           ],
-          "confidence": "中",
+          "confidence": "低",
           "grade": null,
           "samples": [
             {
@@ -504,7 +529,9 @@
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
-              "quote_free_note": null
+              "quote_free_note": null,
+              "date_confirmed": true,
+              "date_note": "GoodJob 標題附分享日期"
             },
             {
               "site": "GoodJob",
@@ -520,9 +547,12 @@
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
-              "quote_free_note": null
+              "quote_free_note": null,
+              "date_confirmed": false,
+              "date_note": "日期為推估或僅年份，不進統計"
             }
-          ]
+          ],
+          "n_stat": 1
         }
       ],
       "mops": {

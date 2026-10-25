@@ -2,7 +2,7 @@
   "industry": "osat",
   "name": "封測",
   "updated": "2026-10-25",
-  "window": "2025-10-25～2026-10-25",
+  "window": "2025-08-01～2026-10-25",
   "companies": [
     {
       "name": "日月光",
@@ -80,7 +80,7 @@
               "date": "2026-08"
             }
           ],
-          "confidence": "高",
+          "confidence": "中",
           "grade": "5 職等（碩士新人）",
           "samples": [
             {
@@ -97,7 +97,9 @@
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
-              "quote_free_note": null
+              "quote_free_note": null,
+              "date_confirmed": false,
+              "date_note": "日期為推估或僅年份，不進統計"
             },
             {
               "site": "GoodJob",
@@ -113,7 +115,9 @@
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
-              "quote_free_note": null
+              "quote_free_note": null,
+              "date_confirmed": false,
+              "date_note": "日期為推估或僅年份，不進統計"
             },
             {
               "site": "GoodJob",
@@ -129,7 +133,9 @@
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
-              "quote_free_note": null
+              "quote_free_note": null,
+              "date_confirmed": false,
+              "date_note": "日期為推估或僅年份，不進統計"
             },
             {
               "site": "Dcard",
@@ -145,7 +151,9 @@
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
-              "quote_free_note": null
+              "quote_free_note": null,
+              "date_confirmed": false,
+              "date_note": "日期為推估或僅年份，不進統計"
             },
             {
               "site": "Dcard",
@@ -161,7 +169,9 @@
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
-              "quote_free_note": null
+              "quote_free_note": null,
+              "date_confirmed": false,
+              "date_note": "日期為推估或僅年份，不進統計"
             },
             {
               "site": "PTT",
@@ -177,7 +187,9 @@
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
-              "quote_free_note": null
+              "quote_free_note": null,
+              "date_confirmed": true,
+              "date_note": "PTT 文章代碼即發文時間（Unix 時間）"
             },
             {
               "site": "GoodJob",
@@ -193,9 +205,12 @@
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
-              "quote_free_note": "高雄碩士 2 年年薪約 75 萬"
+              "quote_free_note": "高雄碩士 2 年年薪約 75 萬",
+              "date_confirmed": true,
+              "date_note": "GoodJob 標題附分享日期"
             }
-          ]
+          ],
+          "n_stat": 2
         },
         {
           "unit": "封裝廠",
@@ -244,7 +259,7 @@
               "date": "2026-09"
             }
           ],
-          "confidence": "高",
+          "confidence": "中",
           "grade": "4～5 職等",
           "samples": [
             {
@@ -261,7 +276,9 @@
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
-              "quote_free_note": null
+              "quote_free_note": null,
+              "date_confirmed": false,
+              "date_note": "日期為推估或僅年份，不進統計"
             },
             {
               "site": "Yahoo 股市／比薪水",
@@ -277,7 +294,9 @@
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
-              "quote_free_note": null
+              "quote_free_note": null,
+              "date_confirmed": false,
+              "date_note": "日期為推估或僅年份，不進統計"
             },
             {
               "site": "PTT",
@@ -293,7 +312,9 @@
               "weekly_hours": null,
               "overtime": "輪班",
               "travel": null,
-              "quote_free_note": "中壢設備 12 小時二休二，日班含加班 4～4.6 萬"
+              "quote_free_note": "中壢設備 12 小時二休二，日班含加班 4～4.6 萬",
+              "date_confirmed": true,
+              "date_note": "PTT 文章代碼即發文時間（Unix 時間）"
             },
             {
               "site": "GoodJob",
@@ -309,7 +330,9 @@
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
-              "quote_free_note": "設備職評價"
+              "quote_free_note": "設備職評價",
+              "date_confirmed": true,
+              "date_note": "GoodJob 標題附分享日期"
             },
             {
               "site": "GoodJob",
@@ -325,9 +348,12 @@
               "weekly_hours": null,
               "overtime": "輪班",
               "travel": null,
-              "quote_free_note": "高雄錄取月薪 5 萬（含津貼）"
+              "quote_free_note": "高雄錄取月薪 5 萬（含津貼）",
+              "date_confirmed": true,
+              "date_note": "GoodJob 標題附分享日期"
             }
-          ]
+          ],
+          "n_stat": 3
         }
       ],
       "mops": {
@@ -396,7 +422,7 @@
               "date": "2025-12"
             }
           ],
-          "confidence": "中",
+          "confidence": "低",
           "grade": null,
           "samples": [
             {
@@ -413,7 +439,9 @@
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
-              "quote_free_note": null
+              "quote_free_note": null,
+              "date_confirmed": false,
+              "date_note": "日期為推估或僅年份，不進統計"
             },
             {
               "site": "Dcard",
@@ -429,7 +457,9 @@
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
-              "quote_free_note": null
+              "quote_free_note": null,
+              "date_confirmed": false,
+              "date_note": "日期為推估或僅年份，不進統計"
             },
             {
               "site": "Dcard",
@@ -445,9 +475,12 @@
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
-              "quote_free_note": null
+              "quote_free_note": null,
+              "date_confirmed": false,
+              "date_note": "日期為推估或僅年份，不進統計"
             }
-          ]
+          ],
+          "n_stat": 0
         },
         {
           "unit": "測試廠",
@@ -501,7 +534,7 @@
               "date": "2026-05"
             }
           ],
-          "confidence": "高",
+          "confidence": "中",
           "grade": null,
           "samples": [
             {
@@ -518,7 +551,9 @@
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
-              "quote_free_note": null
+              "quote_free_note": null,
+              "date_confirmed": false,
+              "date_note": "日期為推估或僅年份，不進統計"
             },
             {
               "site": "比薪水",
@@ -534,7 +569,9 @@
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
-              "quote_free_note": null
+              "quote_free_note": null,
+              "date_confirmed": false,
+              "date_note": "日期為推估或僅年份，不進統計"
             },
             {
               "site": "Dcard",
@@ -550,7 +587,9 @@
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
-              "quote_free_note": null
+              "quote_free_note": null,
+              "date_confirmed": false,
+              "date_note": "日期為推估或僅年份，不進統計"
             },
             {
               "site": "Dcard",
@@ -566,7 +605,9 @@
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
-              "quote_free_note": null
+              "quote_free_note": null,
+              "date_confirmed": false,
+              "date_note": "日期為推估或僅年份，不進統計"
             },
             {
               "site": "GoodJob",
@@ -582,7 +623,9 @@
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
-              "quote_free_note": "測試設備面試"
+              "quote_free_note": "測試設備面試",
+              "date_confirmed": true,
+              "date_note": "GoodJob 標題附分享日期"
             },
             {
               "site": "GoodJob",
@@ -598,9 +641,12 @@
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
-              "quote_free_note": "配件工程師面試；工程師保 14"
+              "quote_free_note": "配件工程師面試；工程師保 14",
+              "date_confirmed": true,
+              "date_note": "GoodJob 標題附分享日期"
             }
-          ]
+          ],
+          "n_stat": 2
         }
       ],
       "mops": {
@@ -683,7 +729,7 @@
               "date": "2025-11"
             }
           ],
-          "confidence": "高",
+          "confidence": "中",
           "grade": "30 職等（碩士新人）",
           "samples": [
             {
@@ -700,7 +746,9 @@
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
-              "quote_free_note": null
+              "quote_free_note": null,
+              "date_confirmed": false,
+              "date_note": "日期為推估或僅年份，不進統計"
             },
             {
               "site": "比薪水",
@@ -716,7 +764,9 @@
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
-              "quote_free_note": null
+              "quote_free_note": null,
+              "date_confirmed": false,
+              "date_note": "日期為推估或僅年份，不進統計"
             },
             {
               "site": "Dcard",
@@ -732,7 +782,9 @@
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
-              "quote_free_note": null
+              "quote_free_note": null,
+              "date_confirmed": false,
+              "date_note": "日期為推估或僅年份，不進統計"
             },
             {
               "site": "Dcard",
@@ -748,7 +800,9 @@
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
-              "quote_free_note": null
+              "quote_free_note": null,
+              "date_confirmed": false,
+              "date_note": "日期為推估或僅年份，不進統計"
             },
             {
               "site": "PTT",
@@ -764,7 +818,9 @@
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
-              "quote_free_note": "擴散設備保 14、分紅另計／矽品測試職保 14、做二休二"
+              "quote_free_note": "擴散設備保 14、分紅另計／矽品測試職保 14、做二休二",
+              "date_confirmed": true,
+              "date_note": "PTT 文章代碼即發文時間（Unix 時間）"
             },
             {
               "site": "GoodJob",
@@ -780,7 +836,9 @@
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
-              "quote_free_note": "製程技術錄取 5.4 萬、保 14"
+              "quote_free_note": "製程技術錄取 5.4 萬、保 14",
+              "date_confirmed": true,
+              "date_note": "GoodJob 標題附分享日期"
             },
             {
               "site": "GoodJob",
@@ -796,9 +854,12 @@
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
-              "quote_free_note": "分紅一年 4 次（2、5、8、11 月）"
+              "quote_free_note": "分紅一年 4 次（2、5、8、11 月）",
+              "date_confirmed": true,
+              "date_note": "GoodJob 標題附分享日期"
             }
-          ]
+          ],
+          "n_stat": 3
         }
       ],
       "mops": {

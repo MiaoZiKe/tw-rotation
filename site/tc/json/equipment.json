@@ -2,7 +2,7 @@
   "industry": "equipment",
   "name": "設備商",
   "updated": "2026-10-25",
-  "window": "2025-10-25～2026-10-25",
+  "window": "2025-08-01～2026-10-25",
   "companies": [
     {
       "name": "ASML",
@@ -73,7 +73,9 @@
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
-              "quote_free_note": null
+              "quote_free_note": null,
+              "date_confirmed": false,
+              "date_note": "日期為推估或僅年份，不進統計"
             },
             {
               "site": "GoodJob",
@@ -89,7 +91,9 @@
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
-              "quote_free_note": null
+              "quote_free_note": null,
+              "date_confirmed": false,
+              "date_note": "日期為推估或僅年份，不進統計"
             },
             {
               "site": "GoodJob",
@@ -105,7 +109,9 @@
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
-              "quote_free_note": null
+              "quote_free_note": null,
+              "date_confirmed": true,
+              "date_note": "GoodJob 標題附分享日期"
             },
             {
               "site": "Dcard",
@@ -121,9 +127,12 @@
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
-              "quote_free_note": "媒體：碩畢年薪上看 200 萬"
+              "quote_free_note": "媒體：碩畢年薪上看 200 萬",
+              "date_confirmed": true,
+              "date_note": "摘要／標題可見日期"
             }
-          ]
+          ],
+          "n_stat": 2
         }
       ],
       "mops": null,
@@ -168,7 +177,7 @@
               "date": "2026-02"
             }
           ],
-          "confidence": "中",
+          "confidence": "低",
           "grade": null,
           "samples": [
             {
@@ -185,7 +194,9 @@
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
-              "quote_free_note": null
+              "quote_free_note": null,
+              "date_confirmed": false,
+              "date_note": "日期為推估或僅年份，不進統計"
             },
             {
               "site": "GoodJob",
@@ -201,9 +212,12 @@
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
-              "quote_free_note": null
+              "quote_free_note": null,
+              "date_confirmed": true,
+              "date_note": "GoodJob 標題附分享日期"
             }
-          ]
+          ],
+          "n_stat": 1
         }
       ],
       "mops": null,
@@ -250,7 +264,7 @@
               "date": "2026-08"
             }
           ],
-          "confidence": "中",
+          "confidence": "低",
           "grade": null,
           "samples": [
             {
@@ -267,7 +281,9 @@
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
-              "quote_free_note": null
+              "quote_free_note": null,
+              "date_confirmed": false,
+              "date_note": "日期為推估或僅年份，不進統計"
             },
             {
               "site": "Dcard",
@@ -283,7 +299,9 @@
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
-              "quote_free_note": null
+              "quote_free_note": null,
+              "date_confirmed": false,
+              "date_note": "日期為推估或僅年份，不進統計"
             },
             {
               "site": "GoodJob",
@@ -299,9 +317,12 @@
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
-              "quote_free_note": null
+              "quote_free_note": null,
+              "date_confirmed": true,
+              "date_note": "GoodJob 標題附分享日期"
             }
-          ]
+          ],
+          "n_stat": 1
         }
       ],
       "mops": null,
@@ -349,7 +370,7 @@
               "date": "2026-04"
             }
           ],
-          "confidence": "中",
+          "confidence": "低",
           "grade": null,
           "samples": [
             {
@@ -366,7 +387,9 @@
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
-              "quote_free_note": null
+              "quote_free_note": null,
+              "date_confirmed": false,
+              "date_note": "日期為推估或僅年份，不進統計"
             },
             {
               "site": "台師大資工公告",
@@ -382,9 +405,12 @@
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
-              "quote_free_note": null
+              "quote_free_note": null,
+              "date_confirmed": false,
+              "date_note": "日期為推估或僅年份，不進統計"
             }
-          ]
+          ],
+          "n_stat": 0
         }
       ],
       "mops": null,
@@ -447,9 +473,12 @@
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
-              "quote_free_note": null
+              "quote_free_note": null,
+              "date_confirmed": false,
+              "date_note": "日期為推估或僅年份，不進統計"
             }
-          ]
+          ],
+          "n_stat": 0
         }
       ],
       "mops": null,
@@ -505,7 +534,7 @@
               "date": "2025-12"
             }
           ],
-          "confidence": "中",
+          "confidence": "低",
           "grade": null,
           "samples": [
             {
@@ -522,7 +551,9 @@
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
-              "quote_free_note": null
+              "quote_free_note": null,
+              "date_confirmed": false,
+              "date_note": "日期為推估或僅年份，不進統計"
             },
             {
               "site": "Dcard",
@@ -538,7 +569,9 @@
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
-              "quote_free_note": null
+              "quote_free_note": null,
+              "date_confirmed": false,
+              "date_note": "日期為推估或僅年份，不進統計"
             },
             {
               "site": "Dcard",
@@ -554,9 +587,12 @@
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
-              "quote_free_note": null
+              "quote_free_note": null,
+              "date_confirmed": false,
+              "date_note": "日期為推估或僅年份，不進統計"
             }
-          ]
+          ],
+          "n_stat": 0
         }
       ],
       "mops": {
