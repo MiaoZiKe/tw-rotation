@@ -160,7 +160,7 @@ def survey_web(a, pg):
     pool = []
     F.goto(pg, "#flow/rotation", 5000)
     pool.append(a.texts())
-    for c in ("ai_server", "semiconductor"):
+    for c in ("industry", "semiconductor"):
         set_chain_js(pg, "#flowRotFilter", c)
         pool.append(a.texts())
     set_chain_js(pg, "#flowRotFilter", "")
@@ -172,10 +172,13 @@ def survey_web(a, pg):
     pool.append(a.texts())
     set_chain_js(pg, "#flowInstCard", "")
     res = []
-    for y in range(60, 96):
-        res.append((sum(straddles(t, (0, y, 1100, 627)) for t in pool), abs(y - 78), y))
+    W = [10, 4, 8, 14, 7, 13]   # 各狀態在片中停留的大約秒數（輪動全部、AI、半導體、分流樹、法人全部、法人半導體）：切字多半在久留的狀態就更要避開
+    for y in range(58, 104):
+        per = [straddles(t, (0, y, 1100, 627)) for t in pool]
+        res.append((sum(w * n for w, n in zip(W, per)), abs(y - 78), y, per))
     res.sort()
-    return res[0][2], res[0][0]
+    print("推近目標候選", [(r[2], r[3]) for r in res[:6]], flush=True)
+    return res[0][2], sum(res[0][3])
 
 
 def open_chain_and_pick(a, pg, card, chain, label, hold_open=1100, hold_after=2200, park=None, mob=False):
@@ -239,13 +242,13 @@ def run_d(pg, a, start):
     a.say("滑過長條，看占比變化", "spotlight", ("hov",))
     bars = a.bars("#rankFlow")
     top = max(bars, key=lambda b: b["v"])   # 全部族群裡占比增加最多的一條（提示框往下展開，落在較短的長條旁）
-    a.hover_xy(top["x1"] - 30, top["y"], f"排行長條：{top['name']}", 2300, row=a.row_rect("#rankFlow", top))
+    a.hover_xy(top["x1"] - 30, top["y"] - 4, f"排行長條：{top['name']}", 2300, row=a.row_rect("#rankFlow", top))
     a.park(region=PARK_R, ms=360)
     a.wait(500)
     a.settle()
     a.set_stage(6, "切產業鏈")
     a.say("換條產業鏈，兩圖同步變", "folder", ("chainr", "clock", "rank"))
-    open_chain_and_pick(a, pg, '#flowRotFilter', "ai_server", "產業鏈：AI 伺服器", park=PARK_R)
+    open_chain_and_pick(a, pg, '#flowRotFilter', "industry", "產業鏈：其他產業別", park=PARK_R)
     open_chain_and_pick(a, pg, '#flowRotFilter', "semiconductor", "產業鏈：半導體", park=PARK_R)
     a.settle()
     a.set_stage(7, "追晶圓代工")
@@ -277,7 +280,7 @@ def run_d(pg, a, start):
     a.say("晶圓代工，占這條鏈最大", "face_nod", ("sklist",))
     a.until("() => !!document.querySelector('#sankeyPanel') && document.querySelector('#sankeyPanel').getClientRects().length > 0", 5000)
     y = pg.evaluate("(py) => document.querySelector('#sankeyPanel').getBoundingClientRect().top + scrollY - py - 22", pan_y)
-    y, _c = best_scroll(a, pg, y, (0, pan_y, 1100, 627), span=24)
+    y, _c = best_scroll(a, pg, y, (0, pan_y, 1100, 627), span=70, step=1)
     a.note(f"網頁名單捲動 {y}，框緣切字 {_c}")
     a.scroll(to_y=y, ms=900)
     a.park(region=(600, 120, 300, 300), ms=400)
@@ -304,7 +307,7 @@ def run_d(pg, a, start):
     a.set_stage(15, "滑過長條")
     a.say("滑過長條，看三種法人", "spotlight", ("hov",))
     b = a.bar("#instGroups", "晶圓代工") or a.bars("#instGroups")[-1]
-    a.hover_xy(b["x0"] - 40, b["y"], f"法人長條：{b['name']}", 2300, row=a.row_rect("#instGroups", b))
+    a.hover_xy(b["x0"] - 40, b["y"] - 7, f"法人長條：{b['name']}", 2300, row=a.row_rect("#instGroups", b))
     a.park(region=PARK_I, ms=360)
     a.wait(400)
     a.settle()
@@ -382,7 +385,7 @@ def run_m(pg, a, start):
     a.wait(400)
     a.tap('.m4subtabs button[data-sub="flow-sankey"]', "分頁：資金分流樹")
     a.until("() => !!document.querySelector('#sankey canvas.ftlab') && window.FlowTopo && FlowTopo.has(document.querySelector('#sankey'))", 10000)
-    a.wait(900)
+    a.wait(150)
     ysk, _c = best_scroll(a, pg, 0, MCROP, span=60)
     a.note(f"手機分流樹捲動 {ysk}，框緣切字 {_c}")
     a.scroll(to_y=ysk, ms=600)

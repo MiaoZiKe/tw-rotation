@@ -151,11 +151,33 @@ def render(dev, CFG, only=None):
     crop0 = tuple(meta["crop"])
     zoom = None
     zc = CFG.get("zoom", {}).get(dev)
-    if zc and (meta.get("extra") or {}).get("pan_y"):   # 錄影端量過所有頁面狀態後挑出的推近目標（框緣不切字）
+    if zc and zc.get("auto_pan"):   # 用錄到的每一格實際文字外框，挑「畫面框上下緣切到字的幀數最少」的推近目標 y（量測在錄影前、這裡用整支實錄再挑一次）
+        sy_ = fm[0].get("sy", 0)
+        best_ = None
+        for yy in range(zc["auto_pan"][0], zc["auto_pan"][1] + 1):
+            cnt_ = 0
+            crop_ = (0, yy, zc["tgt"][2], zc["tgt"][3])
+            for kk in range(int(zc["from_t"] * FPS) if zc.get("from_t") else 0, N0, 3):
+                f_ = fm[kk]
+                if kk and fm[kk - 1].get("sy") != f_.get("sy"):
+                    continue
+                for z_ in f_["zt"]:
+                    x_, y_, w_, h_ = z_[1:5]
+                    inter_ = x_ < crop_[0] + crop_[2] and x_ + w_ > crop_[0] and y_ < crop_[1] + crop_[3] and y_ + h_ > crop_[1]
+                    ins_ = x_ >= crop_[0] + 2.1 and y_ >= crop_[1] + 2.1 and x_ + w_ <= crop_[0] + crop_[2] - 2.1 and y_ + h_ <= crop_[1] + crop_[3] - 2.1
+                    if inter_ and not ins_:
+                        cnt_ += 1
+            if best_ is None or (cnt_, abs(yy - 76)) < best_[0]:
+                best_ = ((cnt_, abs(yy - 76)), yy)
+        print("自動推近目標 y =", best_[1], "切字（每 3 格抽樣）", best_[0][0], flush=True)
+        zc = dict(zc, tgt=(zc["tgt"][0], best_[1], zc["tgt"][2], zc["tgt"][3]))
+    elif zc and (meta.get("extra") or {}).get("pan_y"):   # 錄影端量過所有頁面狀態後挑出的推近目標（框緣不切字）
         zc = dict(zc, tgt=(zc["tgt"][0], meta["extra"]["pan_y"], zc["tgt"][2], zc["tgt"][3]))
     if zc:   # 單向推近：該段第一句泡泡出現前 0.1 秒開始、0.7 秒推完
         tz = next(tt for tt, k_, _ in stages if k_ == zc["stage"])
         zoom = (tz - 0.1, zc.get("dur", 0.7), tuple(zc["tgt"]))
+        if zc.get("at_click") is not None:   # 推近跟著第 N 次點擊走（換頁的那一刻推，頁面框邊就不會在換頁後被切到字）
+            zoom = (meta["clicks"][zc["at_click"]]["t"] - 0.05, zc.get("dur", 0.7), tuple(zc["tgt"]))
 
     def crop_at(t):
         if zoom is None or t <= zoom[0]:
@@ -271,7 +293,7 @@ def render(dev, CFG, only=None):
             if dev == "m":   # 手機：手指細圈只在點擊那一刻畫在「點擊落點」上
                 cl = [c_ for c_ in meta["clicks"] if c_["kind"] == "click" and -0.2 <= t - c_["t"] <= 0.12]
                 cxy = cl[0]["css_point"] if cl else None
-            if cxy and rect_int((cxy[0] - 12, cxy[1] - 12, 40, 44), crop_css) > 0 and not any(-0.25 <= t - ct <= 0.35 for ct in click_ts):   # 游標只在點下去的瞬間（前 0.25 秒到後 0.35 秒）可以落在被點的目標上
+            if cxy and rect_int((cxy[0] - 12, cxy[1] - 12, 40, 44), crop_css) > 0 and not any(-0.3 <= t - ct <= 0.35 for ct in click_ts):   # 游標只在點下去的瞬間（前 0.25 秒到後 0.35 秒）可以落在被點的目標上
                 ring = any(-0.05 <= t - ct <= 0.65 for ct in click_ts)
                 rr = 7
                 arrow = dev == "d" and m.get("cop", 1) >= 0.25
