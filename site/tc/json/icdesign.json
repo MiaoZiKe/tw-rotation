@@ -1926,7 +1926,7 @@
       "heat": "Dcard 熱度：低",
       "benefits": null,
       "stock_plan": null,
-      "bonus_timing": "分紅分兩次：當年 10 月 2/3、隔年 7 月 1/3（PTT 2023，範圍外參考）",
+      "bonus_timing": null,
       "culture": "GoodJob 薪資福利 4.3、工時 2.9；分紅被形容等於加班費",
       "interview": "筆試＋多輪面試，進行速度快（GoodJob 2025-09 韌體職）",
       "roles": [
@@ -2110,14 +2110,7 @@
         "note": "查「瑞鼎 非主管 薪資 平均 中位數 2025」，媒體摘要未列此公司數字，待查公開資訊觀測站彙總報表"
       },
       "grade_system": null,
-      "bonus_structure": [
-        {
-          "type": "既有說法（本輪未再查證）",
-          "rule": "分紅分兩次：當年 10 月 2/3、隔年 7 月 1/3（PTT 2023，範圍外參考）",
-          "months": null,
-          "sources": []
-        }
-      ]
+      "bonus_structure": []
     },
     {
       "name": "立錡",
@@ -2323,7 +2316,7 @@
       "heat": "Dcard 熱度：低",
       "benefits": null,
       "stock_plan": null,
-      "bonus_timing": "查不到公開的獎金發放月份與月數",
+      "bonus_timing": null,
       "culture": "GoodJob 平均每週 41 小時、0% 幾乎每天加班；時間到能下班",
       "interview": null,
       "roles": [
@@ -2430,7 +2423,7 @@
       "heat": "Dcard 熱度：中",
       "benefits": null,
       "stock_plan": null,
-      "bonus_timing": "13 個月薪；分紅不確定，有評價稱近幾年為零（GoodJob 2025）",
+      "bonus_timing": "保障 13 或 14 個月（說法不一）；現金分紅近年面試心得稱為 0；另有年度 RSU 分紅",
       "culture": "評價稱待遇不及一線、調薪升等慢且不透明，但每年有結構性調薪",
       "interview": "一關筆試＋專業測驗，主管請介紹論文；二面偏聊天；SE 職需準備學經歷投影片，約兩週通知二面（GoodJob）",
       "roles": [
@@ -2583,10 +2576,50 @@
       "grade_system": null,
       "bonus_structure": [
         {
-          "type": "既有說法（本輪未再查證）",
-          "rule": "13 個月薪；分紅不確定，有評價稱近幾年為零（GoodJob 2025）",
+          "type": "保障月數",
+          "rule": "衝突：yes123 公司資料寫保障 14 個月，2026-01 面試心得寫保 13 個月",
           "months": null,
-          "sources": []
+          "sources": [
+            {
+              "site": "yes123",
+              "url": "https://www.yes123.com.tw/wk_index/comp_info.asp?p_id=31890_16130970",
+              "date": "2026"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/%E5%A5%87%E6%99%AF%E5%85%89%E9%9B%BB%E8%82%A1%E4%BB%BD%E6%9C%89%E9%99%90%E5%85%AC%E5%8F%B8/interview-experiences",
+              "date": "2026-01"
+            }
+          ]
+        },
+        {
+          "type": "員工分紅",
+          "rule": "面試心得稱現金分紅這幾年都是 0；比薪水統計 2024 分紅年減 31.4%",
+          "months": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/%E5%A5%87%E6%99%AF%E5%85%89%E9%9B%BB%E8%82%A1%E4%BB%BD%E6%9C%89%E9%99%90%E5%85%AC%E5%8F%B8/interview-experiences",
+              "date": "2026-01"
+            },
+            {
+              "site": "工商時報",
+              "url": "https://www.ctee.com.tw/news/20250328701106-430503",
+              "date": "2025-03"
+            }
+          ]
+        },
+        {
+          "type": "RSU 分紅",
+          "rule": "年度 RSU 分紅，當年度到職新人可參與（公司徵才資料）",
+          "months": null,
+          "sources": [
+            {
+              "site": "yes123",
+              "url": "https://www.yes123.com.tw/wk_index/comp_info.asp?p_id=31890_16130970",
+              "date": "2026"
+            }
+          ]
         }
       ]
     },
@@ -2596,7 +2629,7 @@
       "heat": "Dcard 熱度：低",
       "benefits": null,
       "stock_plan": null,
-      "bonus_timing": "查不到公開的獎金發放月份與月數",
+      "bonus_timing": "網友稱底薪保 14 個月（含年終），分紅依獲利與績效；發放月份查不到",
       "culture": "GoodJob 平均每週 51 小時、25% 幾乎每天加班；2026 面試心得稱可能早 9 到晚 9、假日偶爾支援",
       "interview": null,
       "roles": [
@@ -2721,7 +2754,37 @@
         "note": "查「奕力 非主管 薪資 平均 中位數 2025」，媒體摘要未列此公司數字，待查公開資訊觀測站彙總報表"
       },
       "grade_system": null,
-      "bonus_structure": []
+      "bonus_structure": [
+        {
+          "type": "保障月數",
+          "rule": "保 14 個月（GoodJob 網友、UpToGo 整理）",
+          "months": 14,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/%E5%A5%95%E5%8A%9B%E7%A7%91%E6%8A%80%E8%82%A1%E4%BB%BD%E6%9C%89%E9%99%90%E5%85%AC%E5%8F%B8",
+              "date": "2026"
+            },
+            {
+              "site": "UpToGo",
+              "url": "https://uptogo.com.tw/%E8%81%B7%E5%A0%B4/%E5%A5%95%E5%8A%9B-%E8%B5%B7%E8%96%AA%EF%BC%9F/",
+              "date": "2025"
+            }
+          ]
+        },
+        {
+          "type": "員工分紅",
+          "rule": "依公司獲利與個人績效，月份查不到",
+          "months": null,
+          "sources": [
+            {
+              "site": "UpToGo",
+              "url": "https://uptogo.com.tw/%E8%81%B7%E5%A0%B4/%E5%A5%95%E5%8A%9B-%E8%B5%B7%E8%96%AA%EF%BC%9F/",
+              "date": "2025"
+            }
+          ]
+        }
+      ]
     },
     {
       "name": "力旺",
@@ -2729,7 +2792,7 @@
       "heat": "Dcard 熱度：低",
       "benefits": null,
       "stock_plan": null,
-      "bonus_timing": "查不到公開的獎金發放月份與月數",
+      "bonus_timing": "董事會按季核定經營團隊季分紅與團隊營運獎金（2026-07 通過 115 年 Q2）；一般員工發放月份查不到",
       "culture": "GoodJob 平均每週 43 小時，多數幾乎不加班，部分職位有補休；2025 年非主管薪資中位數約 269 萬",
       "interview": "一面線上約 2.5 小時，需準備自我介紹簡報（GoodJob）",
       "roles": [
@@ -2862,7 +2925,32 @@
         "note": "查「力旺 非主管 薪資 平均 中位數 2025」，媒體摘要未列此公司數字，待查公開資訊觀測站彙總報表"
       },
       "grade_system": null,
-      "bonus_structure": []
+      "bonus_structure": [
+        {
+          "type": "季分紅（經營團隊）",
+          "rule": "2026-07-29 董事會通過 115 年第二季經營團隊季分紅及團隊營運獎金分配案",
+          "months": null,
+          "sources": [
+            {
+              "site": "MoneyDJ",
+              "url": "https://www.moneydj.com/kmdj/news/newsviewer.aspx?a=6300a2c4-00d3-4f6c-906d-eebca1e27f26",
+              "date": "2026-07"
+            }
+          ]
+        },
+        {
+          "type": "員工年薪（含獎金）",
+          "rule": "114 年非主管全時員工薪資中位數約 268.9 萬元（含年終與獎金），月數不詳",
+          "months": null,
+          "sources": [
+            {
+              "site": "mypr 整理公開資訊觀測站",
+              "url": "https://mypr.tw/company/3529-%E5%8A%9B%E6%97%BA",
+              "date": "2026"
+            }
+          ]
+        }
+      ]
     },
     {
       "name": "天鈺",
@@ -2870,7 +2958,7 @@
       "heat": "Dcard 熱度：低",
       "benefits": null,
       "stock_plan": null,
-      "bonus_timing": "保證 14 個月：端午、中秋各半個月＋年終 1 個月（GoodJob 2026）",
+      "bonus_timing": null,
       "culture": "GoodJob 平均每週 46 小時、26% 幾乎每天加班",
       "interview": null,
       "roles": [
@@ -3037,14 +3125,7 @@
         "note": "查「天鈺 非主管 薪資 平均 中位數 2025」，媒體摘要未列此公司數字，待查公開資訊觀測站彙總報表"
       },
       "grade_system": null,
-      "bonus_structure": [
-        {
-          "type": "既有說法（本輪未再查證）",
-          "rule": "保證 14 個月：端午、中秋各半個月＋年終 1 個月（GoodJob 2026）",
-          "months": null,
-          "sources": []
-        }
-      ]
+      "bonus_structure": []
     },
     {
       "name": "晶豪科",
@@ -3052,7 +3133,7 @@
       "heat": "Dcard 熱度：低",
       "benefits": null,
       "stock_plan": null,
-      "bonus_timing": "查不到公開的獎金發放月份與月數",
+      "bonus_timing": null,
       "culture": "GoodJob 平均每週 41 小時、0% 幾乎每天加班；評價稱工時正常、壓力小；2025 年員工薪資平均 209 萬",
       "interview": null,
       "roles": [
@@ -3164,7 +3245,7 @@
       "heat": "Dcard 熱度：中",
       "benefits": null,
       "stock_plan": null,
-      "bonus_timing": "查不到公開的獎金發放月份與月數",
+      "bonus_timing": null,
       "culture": null,
       "interview": null,
       "roles": [
@@ -3274,7 +3355,7 @@
       "heat": "Dcard 熱度：中",
       "benefits": null,
       "stock_plan": null,
-      "bonus_timing": "查不到公開的獎金發放月份與月數",
+      "bonus_timing": "網友稱 12 個月＋年終 2 個月，分紅看績效；發放月份查不到",
       "culture": "GoodJob 平均每週 43 小時、7% 幾乎每天加班、47% 偶爾",
       "interview": null,
       "roles": [
@@ -3376,7 +3457,32 @@
         "note": "查「達發 非主管 薪資 平均 中位數 2025」，媒體摘要未列此公司數字，待查公開資訊觀測站彙總報表"
       },
       "grade_system": null,
-      "bonus_structure": []
+      "bonus_structure": [
+        {
+          "type": "年終獎金",
+          "rule": "2 個月（Dcard 網友）",
+          "months": 2,
+          "sources": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/search?query=%E9%81%94%E7%99%BC+%E5%88%86%E7%B4%85",
+              "date": "2026"
+            }
+          ]
+        },
+        {
+          "type": "員工分紅",
+          "rule": "看績效，網友稱偏低；月份查不到",
+          "months": null,
+          "sources": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/search?query=%E9%81%94%E7%99%BC+%E5%88%86%E7%B4%85",
+              "date": "2026"
+            }
+          ]
+        }
+      ]
     },
     {
       "name": "祥碩",
@@ -3384,7 +3490,7 @@
       "heat": "Dcard 熱度：中",
       "benefits": null,
       "stock_plan": null,
-      "bonus_timing": "查不到公開的獎金發放月份與月數",
+      "bonus_timing": null,
       "culture": "GoodJob 平均每週 45 小時、20% 幾乎每天加班；評價稱底薪普通但近年年終分紅很高；2023 員工薪資平均 344 萬（範圍外參考）",
       "interview": null,
       "roles": [
@@ -3468,7 +3574,7 @@
       "heat": "Dcard 熱度：低",
       "benefits": null,
       "stock_plan": null,
-      "bonus_timing": "保障 14 個月＋分紅（GoodJob 自述），分紅偏平均分配",
+      "bonus_timing": "保障 13 或 14 個月（說法不一）＋分紅看績效，網友稱偏平均、約 1 個月；發放月份查不到",
       "culture": "GoodJob 平均每週 49 小時、近半數幾乎每天加班；底薪屬 IC 業普通水準",
       "interview": "韌體職筆試：C 語言、記憶體、組合語言（GoodJob）",
       "roles": [
@@ -3572,10 +3678,33 @@
       "grade_system": null,
       "bonus_structure": [
         {
-          "type": "既有說法（本輪未再查證）",
-          "rule": "保障 14 個月＋分紅（GoodJob 自述），分紅偏平均分配",
+          "type": "保障月數",
+          "rule": "衝突：GoodJob 評價寫保障 14 個月，salary.tw 2026 分享寫 13 個月",
           "months": null,
-          "sources": []
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/%E7%BE%A9%E9%9A%86%E9%9B%BB%E5%AD%90%E8%82%A1%E4%BB%BD%E6%9C%89%E9%99%90%E5%85%AC%E5%8F%B8",
+              "date": "2026"
+            },
+            {
+              "site": "比薪水",
+              "url": "https://salary.tw/c/vbhn",
+              "date": "2026"
+            }
+          ]
+        },
+        {
+          "type": "員工分紅",
+          "rule": "看個人績效，網友稱大鍋飯平均約 1 個月（個人說法）",
+          "months": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/%E7%BE%A9%E9%9A%86%E9%9B%BB%E5%AD%90%E8%82%A1%E4%BB%BD%E6%9C%89%E9%99%90%E5%85%AC%E5%8F%B8",
+              "date": "2026"
+            }
+          ]
         }
       ]
     },
@@ -3705,7 +3834,7 @@
       "heat": "Dcard 熱度：中",
       "benefits": null,
       "stock_plan": null,
-      "bonus_timing": "查不到公開的獎金發放月份與月數",
+      "bonus_timing": "公司介紹列一年一次績效獎金或季度獎金、三節禮金、員工認股／PSU／RSU；月數查不到",
       "culture": null,
       "interview": null,
       "roles": [
@@ -3807,7 +3936,32 @@
         "note": "查「MPS 台灣 非主管 薪資 平均 中位數 2025」，媒體摘要未列此公司數字，待查公開資訊觀測站彙總報表"
       },
       "grade_system": null,
-      "bonus_structure": []
+      "bonus_structure": [
+        {
+          "type": "績效／季度獎金",
+          "rule": "一年一次績效獎金或季度獎金（公司介紹文件，年份不明）",
+          "months": null,
+          "sources": [
+            {
+              "site": "明志科大徵才資料",
+              "url": "https://en.mcut.edu.tw/var/file/51/1051/img/1534/507662255.pdf",
+              "date": "年份不明"
+            }
+          ]
+        },
+        {
+          "type": "股票獎酬",
+          "rule": "員工股票認購計畫、PSU、RSU",
+          "months": null,
+          "sources": [
+            {
+              "site": "明志科大徵才資料",
+              "url": "https://en.mcut.edu.tw/var/file/51/1051/img/1534/507662255.pdf",
+              "date": "年份不明"
+            }
+          ]
+        }
+      ]
     },
     {
       "name": "円星",
@@ -3815,7 +3969,7 @@
       "heat": "Dcard 熱度：低（補）",
       "benefits": null,
       "stock_plan": null,
-      "bonus_timing": "查不到公開的獎金發放月份與月數",
+      "bonus_timing": null,
       "culture": null,
       "interview": null,
       "roles": [
@@ -3904,7 +4058,7 @@
       "heat": "Dcard 熱度：中（補）",
       "benefits": "三節獎金給得夠（GoodJob）",
       "stock_plan": null,
-      "bonus_timing": "查不到公開的獎金發放月份與月數",
+      "bonus_timing": "網友稱新人約 14 個月不含分紅（另一說 16～18 個月）；發放月份查不到",
       "culture": "GoodJob 平均每週 42 小時、50% 偶爾加班；有人嫌調薪資訊公布慢",
       "interview": null,
       "roles": [
@@ -4022,7 +4176,20 @@
         "note": "查「世芯-KY 非主管 薪資 平均 中位數 2025」，媒體摘要未列此公司數字，待查公開資訊觀測站彙總報表"
       },
       "grade_system": null,
-      "bonus_structure": []
+      "bonus_structure": [
+        {
+          "type": "保障月數",
+          "rule": "網友稱約 14 個月、不含分紅；另一留言稱年薪 16～18 個月，兩說不一",
+          "months": null,
+          "sources": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/242692867",
+              "date": "依文章編號推估 2023"
+            }
+          ]
+        }
+      ]
     }
   ]
 }
