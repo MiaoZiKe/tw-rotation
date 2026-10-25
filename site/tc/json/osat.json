@@ -394,6 +394,70 @@
           "sources": [],
           "confidence": "低",
           "n": 1
+        },
+        {
+          "unit": "高雄",
+          "role": "IE 工程師",
+          "degree": "碩士",
+          "samples": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261758851",
+              "date": "2026-07",
+              "page_date": "2026-07-01",
+              "date_confirmed": true,
+              "role": "IE 工程師（智慧製造）",
+              "grade": null,
+              "unit_detail": "高雄",
+              "years": "10",
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": 18,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "全薪 N+3K，另加 13K 小白單，年薪 18 個月；常日班；發文者暫不考慮",
+              "in_window": true,
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-07-01"
+            }
+          ],
+          "sources": [],
+          "confidence": "低",
+          "n": 1
+        },
+        {
+          "unit": "其他",
+          "role": "MES 工程師",
+          "degree": "碩士",
+          "samples": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261635434",
+              "date": "2026-06",
+              "page_date": "2026-06-10",
+              "date_confirmed": true,
+              "role": "MES 工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "6",
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "面板廠 6 年轉職，在職碩；N＝面板廠學士新人價×1.7；主管嫌 N 太高，HR 爭取後給 N+1k",
+              "in_window": true,
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-06-10"
+            }
+          ],
+          "sources": [],
+          "confidence": "低",
+          "n": 1
         }
       ],
       "mops": {
@@ -779,7 +843,7 @@
           ],
           "overtime": "偶爾～經常",
           "travel": "不用",
-          "n": 7,
+          "n": 8,
           "note": "GoodJob 2026-01 彰化 5 萬、台中測試 4.3 萬；保 14 個月出自 salary.tw 單則；學歷未標；年薪 14 個月扣本薪 12 個月推算，含年終；撤回：bonus_months 原為沿用／推算／暫填值，無直接證據，已改回原值；第二輪：GoodJob 2026-08 製程技術錄取 5.4 萬（本薪＋伙食 3,000＋工作加給）、保 14、年調 2～5%；2025-11 評價稱分紅一年 4 次（2、5、8、11 月）；Dcard 稱國立碩約 30 職等 4.8～5 萬、加班常態每月約 50 小時；PTT 2026-04 測試職保 14＋分紅、做二休二",
           "sources": [
             {
@@ -948,9 +1012,63 @@
               "quote_free_note": "分紅一年 4 次（2、5、8、11 月）",
               "date_confirmed": true,
               "date_note": "GoodJob 標題附分享日期"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261985228",
+              "date": "2026-08",
+              "page_date": "2026-08-18",
+              "date_confirmed": true,
+              "role": "製程工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "0",
+              "degree": "學士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "面試後三天 HR 電話核薪就發 offer；班別做二休二；婉拒",
+              "in_window": true,
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-08-18"
             }
           ],
           "n_stat": 3
+        },
+        {
+          "unit": "台南",
+          "role": "測試工程師",
+          "degree": "碩士",
+          "samples": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/262340574",
+              "date": "2026-10",
+              "page_date": "2026-10-24",
+              "date_confirmed": true,
+              "role": "測試工程師",
+              "grade": null,
+              "unit_detail": "台南",
+              "years": "1",
+              "degree": "碩士",
+              "base_k": 46.5,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "e-offer，核薪約 45K～48K（取中值），發文者覺得偏低",
+              "in_window": true,
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-10-24"
+            }
+          ],
+          "sources": [],
+          "confidence": "低",
+          "n": 1
         }
       ],
       "mops": {
@@ -1056,6 +1174,187 @@
           "sources": [],
           "confidence": "低",
           "note": "2026-10-26 Andy 指示加入"
+        }
+      ]
+    },
+    {
+      "name": "力成",
+      "code": "6239",
+      "heat": null,
+      "benefits": null,
+      "stock_plan": null,
+      "bonus_timing": null,
+      "bonus_structure": [],
+      "culture": null,
+      "interview": null,
+      "grade_system": null,
+      "mops": null,
+      "roles": [
+        {
+          "unit": "湖口",
+          "role": "生產主任",
+          "degree": "不限",
+          "grade": null,
+          "samples": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261961126",
+              "date": "2026-08",
+              "page_date": "2026-08-15",
+              "date_confirmed": true,
+              "role": "生產主任",
+              "grade": null,
+              "unit_detail": "湖口",
+              "years": null,
+              "degree": null,
+              "base_k": 61,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "發文者註明 N＝61K；力成給 N；已拒絕",
+              "in_window": true,
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-08-15"
+            }
+          ],
+          "n": 1,
+          "sources": [],
+          "confidence": "低",
+          "note": "2026-10-26 由 Dcard 樣本新增的公司"
+        },
+        {
+          "unit": "新竹 P11",
+          "role": "製程設備開發工程師",
+          "degree": "碩士",
+          "grade": null,
+          "samples": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261758851",
+              "date": "2026-07",
+              "page_date": "2026-07-01",
+              "date_confirmed": true,
+              "role": "製程設備開發工程師（先進封裝）",
+              "grade": null,
+              "unit_detail": "新竹 P11",
+              "years": "10",
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": 17,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": "幾乎不",
+              "travel": null,
+              "quote_free_note": "N＝台積新人價；全薪 N+10K，年薪 16～18 個月（取中值）；常日班；發文者傾向此家",
+              "in_window": true,
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-07-01"
+            }
+          ],
+          "n": 1,
+          "sources": [],
+          "confidence": "低",
+          "note": "2026-10-26 由 Dcard 樣本新增的公司"
+        }
+      ]
+    },
+    {
+      "name": "雍智",
+      "code": "6683",
+      "heat": null,
+      "benefits": null,
+      "stock_plan": null,
+      "bonus_timing": null,
+      "bonus_structure": [],
+      "culture": null,
+      "interview": null,
+      "grade_system": null,
+      "mops": null,
+      "roles": [
+        {
+          "unit": "新竹",
+          "role": "電路設計工程師",
+          "degree": "碩士",
+          "grade": null,
+          "samples": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/262340574",
+              "date": "2026-10",
+              "page_date": "2026-10-24",
+              "date_confirmed": true,
+              "role": "電路設計工程師",
+              "grade": null,
+              "unit_detail": "新竹",
+              "years": "1",
+              "degree": "碩士",
+              "base_k": 46.5,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "e-offer，核薪約 45K～48K（取中值）",
+              "in_window": true,
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-10-24"
+            }
+          ],
+          "n": 1,
+          "sources": [],
+          "confidence": "低",
+          "note": "2026-10-26 由 Dcard 樣本新增的公司"
+        }
+      ]
+    },
+    {
+      "name": "漢測",
+      "code": "7856",
+      "heat": null,
+      "benefits": null,
+      "stock_plan": null,
+      "bonus_timing": null,
+      "bonus_structure": [],
+      "culture": null,
+      "interview": null,
+      "grade_system": null,
+      "mops": null,
+      "roles": [
+        {
+          "unit": "新竹",
+          "role": "PCB 應用工程師",
+          "degree": "碩士",
+          "grade": null,
+          "samples": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/262340574",
+              "date": "2026-10",
+              "page_date": "2026-10-24",
+              "date_confirmed": true,
+              "role": "PCB 應用工程師",
+              "grade": null,
+              "unit_detail": "新竹",
+              "years": "1",
+              "degree": "碩士",
+              "base_k": 47.5,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "e-offer，核薪約 46K～49K（取中值）",
+              "in_window": true,
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-10-24"
+            }
+          ],
+          "n": 1,
+          "sources": [],
+          "confidence": "低",
+          "note": "2026-10-26 由 Dcard 樣本新增的公司"
         }
       ]
     }

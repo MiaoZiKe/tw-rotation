@@ -203,6 +203,38 @@
           "sources": [],
           "confidence": "低",
           "n": 1
+        },
+        {
+          "unit": "其他",
+          "role": "UIR Engineer",
+          "degree": "碩士",
+          "samples": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261928640",
+              "date": "2026-08",
+              "page_date": "2026-08-07",
+              "date_confirmed": true,
+              "role": "UIR Engineer",
+              "grade": null,
+              "unit_detail": null,
+              "years": "0",
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "技職電資碩，多益 800+；e-offer，數字未透露",
+              "in_window": true,
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-08-07"
+            }
+          ],
+          "sources": [],
+          "confidence": "低",
+          "n": 1
         }
       ],
       "mops": null,
@@ -347,6 +379,38 @@
             }
           ],
           "n_stat": 1
+        },
+        {
+          "unit": "台南 / 客戶台積",
+          "role": "Apps 工程師",
+          "degree": "碩士",
+          "samples": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/262014209",
+              "date": "2026-08",
+              "page_date": "2026-08-23",
+              "date_confirmed": true,
+              "role": "Apps 工程師（Rapid）",
+              "grade": null,
+              "unit_detail": "台南 / 客戶台積",
+              "years": "0",
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "產線碩應屆；喜歡面試時的氣氛，但看到評價有點猶豫；薪資未透露",
+              "in_window": true,
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-08-23"
+            }
+          ],
+          "sources": [],
+          "confidence": "低",
+          "n": 1
         }
       ],
       "mops": null,
@@ -627,6 +691,38 @@
             }
           ],
           "n_stat": 5
+        },
+        {
+          "unit": "台南",
+          "role": "FSE",
+          "degree": "碩士",
+          "samples": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261928640",
+              "date": "2026-08",
+              "page_date": "2026-08-07",
+              "date_confirmed": true,
+              "role": "FSE",
+              "grade": null,
+              "unit_detail": "台南",
+              "years": "0",
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "需輪班；婉拒；數字未透露",
+              "in_window": true,
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-08-07"
+            }
+          ],
+          "sources": [],
+          "confidence": "低",
+          "n": 1
         }
       ],
       "mops": null,
@@ -839,6 +935,70 @@
             }
           ],
           "n_stat": 1
+        },
+        {
+          "unit": "高雄 / CVD，客戶台積",
+          "role": "CE",
+          "degree": "碩士",
+          "samples": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/262178607",
+              "date": "2026-09",
+              "page_date": "2026-09-29",
+              "date_confirmed": true,
+              "role": "CE",
+              "grade": null,
+              "unit_detail": "高雄 / CVD，客戶台積",
+              "years": "0",
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "N＝華邦電給的月薪；月薪 N+20（未寫單位）；有 4 年非相關工作經驗；最後選了這家",
+              "in_window": true,
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-09-29"
+            }
+          ],
+          "sources": [],
+          "confidence": "低",
+          "n": 1
+        },
+        {
+          "unit": "中科",
+          "role": "MDP",
+          "degree": "碩士",
+          "samples": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261961126",
+              "date": "2026-08",
+              "page_date": "2026-08-15",
+              "date_confirmed": true,
+              "role": "MDP（Iteam）",
+              "grade": null,
+              "unit_detail": "中科",
+              "years": null,
+              "degree": null,
+              "base_k": 78,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "N+17K＝78K",
+              "in_window": true,
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-08-15"
+            }
+          ],
+          "sources": [],
+          "confidence": "低",
+          "n": 1
         }
       ],
       "mops": null,
@@ -955,6 +1115,38 @@
             }
           ],
           "n_stat": 1
+        },
+        {
+          "unit": "南科 / 蝕刻，客戶非台積",
+          "role": "FE",
+          "degree": "碩士",
+          "samples": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/262178607",
+              "date": "2026-09",
+              "page_date": "2026-09-29",
+              "date_confirmed": true,
+              "role": "FE",
+              "grade": null,
+              "unit_detail": "南科 / 蝕刻，客戶非台積",
+              "years": "0",
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "全薪 N+18（未寫單位）；第一年有宿舍補助每月 5000",
+              "in_window": true,
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-09-29"
+            }
+          ],
+          "sources": [],
+          "confidence": "低",
+          "n": 1
         }
       ],
       "mops": null,
@@ -1244,6 +1436,104 @@
               "quote_free_note": "月薪 N+10（未寫單位）×14，另有車補、手機補；網路查分紅約 4 個月",
               "in_window": true,
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-07-25"
+            }
+          ],
+          "n": 1,
+          "sources": [],
+          "confidence": "低",
+          "note": "2026-10-26 由 Dcard 樣本新增的公司"
+        }
+      ]
+    },
+    {
+      "name": "Quest Global",
+      "code": null,
+      "heat": null,
+      "benefits": null,
+      "stock_plan": null,
+      "bonus_timing": null,
+      "bonus_structure": [],
+      "culture": null,
+      "interview": null,
+      "grade_system": null,
+      "mops": null,
+      "roles": [
+        {
+          "unit": "日本 TEL 受訓一年後駐點新竹台積",
+          "role": "設備工程師",
+          "degree": "不限",
+          "grade": null,
+          "samples": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/262240257",
+              "date": "2026-10",
+              "page_date": "2026-10-02",
+              "date_confirmed": true,
+              "role": "設備工程師（約聘）",
+              "grade": null,
+              "unit_detail": "日本 TEL 受訓一年後駐點新竹台積",
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 100,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": "需要",
+              "quote_free_note": "日本受訓期間年薪 400 萬日圓，另有每月 5 萬日圓租屋補助；回台後年薪原開 80 萬、談到 100 萬，要綁約兩年；發文者覺得面試過短",
+              "in_window": true,
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-10-02"
+            }
+          ],
+          "n": 1,
+          "sources": [],
+          "confidence": "低",
+          "note": "2026-10-26 由 Dcard 樣本新增的公司"
+        }
+      ]
+    },
+    {
+      "name": "SCREEN（DNS）",
+      "code": null,
+      "heat": null,
+      "benefits": null,
+      "stock_plan": null,
+      "bonus_timing": null,
+      "bonus_structure": [],
+      "culture": null,
+      "interview": null,
+      "grade_system": null,
+      "mops": null,
+      "roles": [
+        {
+          "unit": "裝機／客服，地點跟著台積擴廠",
+          "role": "EE 設備工程師",
+          "degree": "碩士",
+          "grade": null,
+          "samples": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261928640",
+              "date": "2026-08",
+              "page_date": "2026-08-07",
+              "date_confirmed": true,
+              "role": "EE 設備工程師",
+              "grade": null,
+              "unit_detail": "裝機／客服，地點跟著台積擴廠",
+              "years": "0",
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": "需要",
+              "quote_free_note": "發文者說薪資不輸四大設備商；婉拒",
+              "in_window": true,
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-08-07"
             }
           ],
           "n": 1,
