@@ -56,10 +56,14 @@ from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 from urllib.request import urlopen
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import social_gate as gate  # noqa: E402  資料日／交易日把關（2026-10-26）
+
 DATE_LABEL = ""
 LOGO_MAP: dict = {}      # 代號→logo 網址（site/data/logos.json 的相對路徑，--data-url 時改成正式站的絕對網址）
 DATA_SRC = ""            # sync_data 實際採用的資料來源網址（logo 圖檔不下載到本機，直接讀這裡）
 DATE_BY: dict = {}       # 目標名稱→該張自己的資料日 MM/DD（取自資料檔本身，不借別的檔）
+DATE_ISO: dict = {}      # 目標名稱→該張自己的資料日 YYYY-MM-DD（日期把關用；圖上日期、文案、manifest 都從這裡來）
 NAME_MAP: dict = {}      # 代號→名稱（從網站資料 stocks.json 讀；頁面沒補到名稱的列用它補，不准只剩代號）
 ROOT = Path(__file__).resolve().parent.parent
 SITE_URL = "https://liguligu-puipui.com"
@@ -195,7 +199,7 @@ def STORY_Z(z):
 INST_CSS = (".mktstreakbar,.howtxt,.irgo,#instView,.howbtn,.irtri>.card:nth-child(n+2){display:none!important}.irtri{display:block!important}.irtop{margin-bottom:10px}")
 INST_1M = "() => { const b = document.querySelector('#instPer button[data-p=\"1m\"]'); if (b && !b.disabled) b.click(); return new Promise(r => setTimeout(r, 1200)); }"
 CREDIT_CSS = (".mf-bar,.mf-cseg,.mf-tiles,.mf-part,.mf-tblbox,.howbtn{display:none!important}.mf-split{display:block!important}.mf-cbox,.mf-cbox[data-c=bal],.mf-cbox[data-c=ratio]{display:block!important;width:100%!important}.mf-charts{width:100%!important}")
-RANK_CSS = (".mf-bar,.mf-gsel,.howbtn,.howtxt,.mf-ranks>h4{display:none!important}.mf-ranks{margin-top:0!important}.mf-rank,.mf-rk{min-width:0!important}.mf-rkgrid{grid-template-columns:minmax(0,1fr)!important}"
+RANK_CSS = (".mf-bar,.mf-gsel,.howbtn,.howtxt,.mf-ranks>h4,.mf-rkhead{display:none!important}.mf-ranks{margin-top:0!important}.mf-rank,.mf-rk{min-width:0!important}.mf-rkgrid{grid-template-columns:minmax(0,1fr)!important}"
             ".mf-nm{display:flex!important;gap:8px;align-items:center;flex:0 0 var(--nmw,10em)!important;width:var(--nmw,10em)!important;overflow:visible!important}"
             ".mf-nm b,.mf-nm em{white-space:nowrap}.mf-nm em{font-size:.8em;opacity:.75;font-style:normal}.mf-rk{display:grid!important;grid-template-columns:22px var(--nmw,10em) minmax(0,1fr) max-content;gap:10px;align-items:center}.mf-sb{min-width:0!important}.mf-val{width:auto!important;white-space:nowrap;flex:none!important}.mf-nm{flex:none!important}")
 FUT_CSS = ".fp-bar,.fp-per,.howbtn,.howtxt,.fp-tblcard,.fp-prodseg,.fp-hint,.fp-concl,.fp-top .sum{display:none!important}"
@@ -281,6 +285,11 @@ TARGETS = [
     dict(name="credit-rank", snap="margin", kind="credit", label="融資增減排行", route="market/credit", card="#mf-credit", attr_only=True, stale=".mf-stale", read=READ_RK,
          nav="() => { const b = document.querySelector('#mfTab button[data-k=rank]'); if (b) b.click(); return new Promise(r => setTimeout(r, 1200)); }",
          story_vw=720, story_dsf=2.0, d=[dict(name="credit-rank", sel="#mf-credit", css=RANK_CSS)], m=[dict(name="credit-rank", sel="#mf-credit", css=RANK_CSS + ".mf-rkgrid{grid-template-columns:minmax(0,1fr)!important;gap:26px!important}" + STORY_Z(1.3), fill_rows=".mf-rk")]),
+    # 融券增減排行（2026-10-26 Andy：「需要新增一個融券的」）：同一頁「個股排行」分頁的「融券」分段，版面同融資增減排行
+    dict(name="credit-short", snap="margin", kind="credit", label="融券增減排行", route="market/credit", card="#mf-credit", attr_only=True, stale=".mf-stale", read=READ_RK,
+         nav="() => { const b = document.querySelector('#mfTab button[data-k=rank]'); if (b) b.click(); return new Promise(r => setTimeout(() => { const s = document.querySelector('#mfRkSeg button[data-k=short]:not([disabled])'); if (s) s.click(); setTimeout(() => r(!!s), 1000); }, 1000)); }",
+         need_nav=True,
+         story_vw=720, story_dsf=2.0, d=[dict(name="credit-short", sel="#mf-credit", css=RANK_CSS)], m=[dict(name="credit-short", sel="#mf-credit", css=RANK_CSS + ".mf-rkgrid{grid-template-columns:minmax(0,1fr)!important;gap:26px!important}" + STORY_Z(1.3), fill_rows=".mf-rk")]),
     dict(name="fut-oi", snap="fut-oi", kind="close", label="台指期三大法人未平倉", route="market/fut", card="[data-snap=fut-oi]", attr_only=True, stale=".fp-stale:not([hidden])", read=READ_FUT,
          story_vw=720, story_dsf=2.0, d=[dict(name="fut-oi", sel=".fp-block", css=FUT_D, pre=FUT_BARS(150))],
          m=[dict(name="fut-oi", sel=".fp-block", css=FUT_CSS + ".snapbar{order:2}.fp-split{display:block!important}", pre=FUT_BARS(260))]),
@@ -303,6 +312,7 @@ PIECE_META = {
     "streak-trust": ("投信個股買賣超排名 {d}", ""),
     "credit-ratio": ("融資維持率 {d}", ""),
     "credit-rank": ("融資增減排行 {d}", ""),
+    "credit-short": ("融券增減排行 {d}", ""),
     "fut-oi": ("台指期三大法人未平倉 {d}", ""),
     "retail-ratio": ("台指散戶多空比（大台、小台、微台） {d}", ""),
 }
@@ -380,7 +390,8 @@ def credit_ready(meta: dict, mf: dict) -> tuple[bool, str, str]:
       1. market_fut.json 的融資最後一天 d ＝ 網站最新交易日（meta.data_date）—— 不是就代表整體市場融資還沒更新到當天；
       2. 那天的維持率算得出來（ratio 不是空的）—— 上市個股融資還沒到，分子算不出來；
       3. 那天不是「部分估算」（partial）—— 個股融資只到一部分，數字還會變；
-      4. 個股融資增減排行（rank.d）也是同一天 —— 不然第二張圖是前一天的。
+      4. 個股融資增減排行（rank.d）與融券增減排行（short_rank.d）也是同一天 —— 不然第二、三張圖是前一天的。
+    另外 main() 再用 social_gate.credit_gate 卡時間：只在資料日收盤後、下一個交易日 09:00 開盤前發（過了就不發舊的）。
     用網站最新交易日比、不用「今天」：個股融資常到隔天清晨才齊，那時網站最新交易日仍是前一天，照樣可以發；
     等隔天 15:30 價量進來、最新交易日換天，前一天的融資就不再發（不拿舊資料冒充）。
     """
@@ -402,6 +413,9 @@ def credit_ready(meta: dict, mf: dict) -> tuple[bool, str, str]:
     rk = str((m.get("rank") or {}).get("d") or "")[:10]
     if rk != d:
         return False, d, f"融資增減排行的資料日 {rk or '—'} ≠ {d}"
+    sr = str((m.get("short_rank") or {}).get("d") or "")[:10]
+    if sr != d:      # 2026-10-26 第三張「融券增減排行」：也要同一天
+        return False, d, f"融券增減排行的資料日 {sr or '—'} ≠ {d}"
     return True, d, ""
 
 
@@ -411,6 +425,9 @@ def slot_key_for(kind: str, data_date: str, taken_at: str) -> str:
         return f"close-{taken_at[:10]}"
     if kind == "credit":
         return f"credit-{data_date[:10]}"
+    if kind == "intraday":      # 盤中以時段起點為鍵（09／11／13），跟 social_publish.slot_key 一致
+        h = int(taken_at[11:13] or 0)
+        return f"intraday-{taken_at[:10]}-{'09' if h < 11 else '11' if h < 13 else '13'}"
     return f"{kind}-{taken_at[:10]}-{taken_at[11:13]}"
 
 
@@ -805,40 +822,52 @@ def flow_notes(res: dict) -> list:
     return out
 
 
-def data_dates(serve: Path) -> dict:
-    """各張卡片標題的日期：直接讀資料檔裡那份資料自己的最後一天。"""
-    d = serve / "data"
+def data_dates(serve: Path | None = None, reader=None) -> dict:
+    """各張卡片自己的資料日（YYYY-MM-DD）：直接讀資料檔裡那份資料自己的最後一天，不借 meta 或執行日。
+
+    serve＝本機 site 資料夾（讀 data/*.json）；reader＝讀不到本機時改用的函式 name -> dict（例如從網站抓）。
+    圖上標題的日期、文案日期、manifest 的 data_date 都從這裡來，三者一致（2026-10-26：10/22 那篇文案寫 10/22、數字是 10/21）。
+    """
+    d = (serve / "data") if serve else None
     out = {}
 
     def rd(name):
         try:
-            return json.loads((d / name).read_text("utf-8"))
+            if d is not None and (d / name).exists():
+                return json.loads((d / name).read_text("utf-8"))
+            return reader(name[:-5]) if reader else None
         except Exception:  # noqa: BLE001
             return None
 
-    def md(x):
-        return str(x)[5:10].replace("-", "/") if x else ""
+    def iso(x):
+        return gate._iso(x)
     j = rd("inst_market.json")
     if j and j.get("rows"):
-        out["inst-today"] = md(j["rows"][-1].get("d"))
+        out["inst-today"] = iso(j["rows"][-1].get("d"))
     j = rd("inst_today.json")
     if j and j.get("date"):
-        out["streak-foreign"] = out["streak-trust"] = md(j["date"])
+        out["streak-foreign"] = out["streak-trust"] = iso(j["date"])
     j = rd("market_fut.json")
     if j and (j.get("margin") or {}).get("rows"):
         # 維持率卡標的是「維持率有值的最後一天」（個股融資沒到齊的那天前端會退回前一個有值的日子）；排行卡標排行自己的日子
         rs = j["margin"]["rows"]
-        out["credit-ratio"] = md(next((r.get("d") for r in reversed(rs) if r.get("ratio") is not None), rs[-1].get("d")))
-        out["credit-rank"] = md((j["margin"].get("rank") or {}).get("d") or rs[-1].get("d"))
+        out["credit-ratio"] = iso(next((r.get("d") for r in reversed(rs) if r.get("ratio") is not None), rs[-1].get("d")))
+        out["credit-rank"] = iso((j["margin"].get("rank") or {}).get("d") or rs[-1].get("d"))
+        if (j["margin"].get("short_rank") or {}).get("d"):
+            out["credit-short"] = iso(j["margin"]["short_rank"]["d"])
     j = rd("fut_oi.json")
     if j and j.get("dates"):
-        out["fut-oi"] = md(max(j["dates"]))
+        out["fut-oi"] = iso(max(j["dates"]))
     j = rd("retail_ratio.json")
     if j:
         ds = [x for o in (j.get("products") or {}).values() for x in (o.get("dates") or [])] or (j.get("dates") or [])
         if ds:
-            out["retail-ratio"] = md(max(ds))
-    return out
+            out["retail-ratio"] = iso(max(ds))
+    return {k: v for k, v in out.items() if v}
+
+
+def mmdd(x: str) -> str:
+    return str(x)[5:10].replace("-", "/") if x else ""
 
 
 def _shoot_one(pg, card_el, pc: dict, raw_dir: Path, mode: str, dsf: float) -> dict:
@@ -942,8 +971,11 @@ def snap_targets(args, base: str, out: Path, today_ymd: str) -> tuple[list[dict]
             info["why"] = "找不到目標元素（頁面上沒有）→ 跳過"
             return None
         if t.get("nav"):
-            pg.evaluate(t["nav"], t.get("nav_arg"))
+            nav_ok = pg.evaluate(t["nav"], t.get("nav_arg"))
             pg.wait_for_timeout(1200)
+            if t.get("need_nav") and not nav_ok:
+                info["why"] = "頁面上沒有這個分段（例如融券排行還沒產出）→ 跳過"
+                return None
         if args.kind in ("close", "credit") and t.get("stale") and not args.force and pg.evaluate("(q) => [...document.querySelectorAll(q)].some(e => e.offsetParent !== null)", t["stale"]):
             info["why"] = "頁面標示「資料未更新」（資料日不是最近交易日）→ 不發"
             return None
@@ -1244,7 +1276,7 @@ def img_size(path: str) -> tuple[int, int]:
 THREADS_MAX = 480          # Threads 單則上限 500 字（網址以實際字元數計），留 20 字餘裕
 ROUTE_INST = "market/inst"      # 法人頁路由；日後改 market/inst 只改這個常數
 HASHTAGS = {"intraday": "#台股 #資金流向 #熱力圖 #族群輪動", "close": "#台股 #法人買賣超 #投信 #外資",
-            "credit": "#台股 #融資 #融資維持率 #信用交易"}
+            "credit": "#台股 #融資 #融券 #融資維持率 #信用交易"}
 DISCLAIMER = "資料：證交所／櫃買公開資料整理，僅供參考，不構成投資建議"
 
 
@@ -1301,6 +1333,10 @@ def caption_lines(kind: str, stamp: str, shots: list[dict], data_date: str, ymd:
         if r.get("up") and r.get("down"):      # 讀到的是代號（列上的名稱已被 LOGO 排版改寫），換成簡稱
             nm = lambda xs: [NAME_MAP.get(str(x), x) for x in xs]
             L.append(f"融資增加 {_join(nm(r['up']), n)}；融資減少 {_join(nm(r['down']), n)}")
+        r = (ok.get("credit-short") or {}).get("read") or {}
+        if r.get("up") and r.get("down"):
+            nm = lambda xs: [NAME_MAP.get(str(x), x) for x in xs]
+            L.append(f"融券增加 {_join(nm(r['up']), n)}；融券減少 {_join(nm(r['down']), n)}")
     else:
         L.append(f"台股盤後籌碼｜{data_date[5:].replace('-', '/')}")
         yi = lambda x: x.replace("−", "-")
@@ -1340,6 +1376,60 @@ def build_text(kind: str, stamp: str, shots: list[dict], data_date: str, ymd: st
     return txt
 
 
+# ---------------------------------------------------------------------------- 發不發（資料日把關，2026-10-26）
+MIS_URL = "https://mis.twse.com.tw/stock/api/getStockInfo.jsp?ex_ch=tse_t00.tw&json=1&delay=0"   # CLAUDE.md 白名單內的即時報價端點（DECISIONS #108）
+
+
+def fetch_last_trade() -> dict:
+    """證交所 mis 即時報價（加權指數）的成交日 d ＝ 現在最新的交易日。颱風等臨時休市靜態表沒有，靠這個判斷（2026-10-26）。
+    回 {"last_trade": "YYYY-MM-DD", "live": True}；查不到回 {"last_trade": None, "live": False}（之後只用休市日表、保守不發）。"""
+    try:
+        from urllib.request import Request
+        req = Request(MIS_URL, headers={"User-Agent": "Mozilla/5.0 (tw-rotation social_snap)", "Referer": "https://mis.twse.com.tw/stock/index.jsp"})
+        with urlopen(req, timeout=12) as r:
+            j = json.loads(r.read().decode("utf-8"))
+        d = gate._iso(str(((j.get("msgArray") or [{}])[0]).get("d") or ""))
+        if d:
+            return {"last_trade": d, "live": True}
+    except Exception as exc:  # noqa: BLE001
+        log("查不到即時成交日（mis）：", exc)
+    return {"last_trade": None, "live": False}
+
+
+def decide(kind: str, now: datetime, meta: dict, mf: dict, card_dates: dict, names: list, holidays: dict,
+           ev: dict | None = None) -> tuple[bool, str, str]:
+    """回 (發不發, 這一篇的資料日, 不發的原因)。資料日一律取卡片自己的資料日，不用執行日或 meta 的日期硬套。
+
+    · close：names 裡每張卡的資料日都＝今天（台北）且今天是交易日；任何一張不是 → 不發，原因寫哪張是哪天。
+    · credit：credit_ready（融資最後一天＝網站最新交易日、維持率算得出來、不是部分估算、兩個排行同一天）
+              ＋ social_gate.credit_gate（資料日收盤後、下一個交易日 09:00 開盤前）。
+    · intraday：交易日 09:00～13:30（截圖前先看時段與休市日表；報價成交日在截圖後再驗）。
+    ev＝{"last_trade": 即時成交日, "live": 是否真的查到}（fetch_last_trade）；颱風等臨時休市靠它判斷。
+    """
+    today = now.astimezone(gate.TPE).date().isoformat()
+    ev = ev or {}
+    lt, live = ev.get("last_trade"), bool(ev.get("live"))
+    if kind == "close":
+        cd = {n: card_dates.get(n, "") for n in names}
+        ok, why = gate.close_gate(today, cd, holidays, lt, live, now)
+        log("盤後法人各張資料日：" + "、".join(f"{k}＝{v or '沒有日期'}" for k, v in cd.items()))
+        return ok, today if ok else "", why
+    if kind == "credit":
+        ok, d, why = credit_ready(meta, mf)
+        if not ok:
+            return False, d, why
+        cd = {n: card_dates.get(n, "") for n in names}
+        bad = {k: v for k, v in cd.items() if v and v != d}
+        if bad:
+            return False, d, "這幾張的資料日跟融資資料日 " + d + " 不同：" + "、".join(f"{k}＝{v}" for k, v in bad.items())
+        ok, why = gate.credit_gate(now, d, holidays, lt, live)
+        if ok:
+            log(f"盤後融資資料日 {d}：{why}")
+        return ok, d, ("" if ok else why)
+    ok, why = gate.intraday_gate(now, [], holidays, check_quotes=False)
+    return ok, today, why
+
+
 # ---------------------------------------------------------------------------- 主程式
 def main() -> int:
     global DATE_LABEL
@@ -1366,11 +1456,14 @@ def main() -> int:
     ap.add_argument("--force", action="store_true", help="略過「盤中時段／今天是不是交易日／法人資料是不是今天」的檢查（示範用）")
     ap.add_argument("--posted-json", default="", help="發布紀錄 posted.json（social-snaps 分支 state/）；這一篇的時段鍵已在裡面就不截（結束碼 10）")
     ap.add_argument("--today", default="", help="覆寫「今天」（YYYY-MM-DD，示範／測試用）")
+    ap.add_argument("--no-mis", action="store_true", help="不查 mis 即時成交日（離線測試用；臨時休市就只能靠休市日表）")
+    ap.add_argument("--now", default="", help="覆寫「現在」（台北，YYYY-MM-DDTHH:MM，測試日期把關用；會連帶覆寫 --today）")
     args = ap.parse_args()
 
     out = Path(args.out).resolve()
     out.mkdir(parents=True, exist_ok=True)
-    today = args.today or now_tpe().strftime("%Y-%m-%d")
+    now_ = datetime.fromisoformat(args.now).replace(tzinfo=TPE) if args.now else now_tpe()
+    today = args.today or now_.strftime("%Y-%m-%d")
     today_ymd = today.replace("-", "")
     stamp_now = now_tpe().strftime("%H:%M")
 
@@ -1384,8 +1477,8 @@ def main() -> int:
             for r_ in json.loads((Path(args.serve).resolve() / "data" / "stocks.json").read_text("utf-8")):
                 if r_.get("code") and r_.get("name"):
                     NAME_MAP[str(r_["code"])] = r_["name"]
-            DATE_BY.update({k: v for k, v in data_dates(Path(args.serve).resolve()).items() if v})
-            log("各張資料日：", DATE_BY)
+            DATE_ISO.update(data_dates(Path(args.serve).resolve()))
+            log("各張資料日：", DATE_ISO)
             log(f"個股名稱對照 {len(NAME_MAP)} 檔")
             logos = json.loads((Path(args.serve).resolve() / "data" / "logos.json").read_text("utf-8"))
             # 10-21 破圖事故：sync_data 只抓 JSON、不抓 data/logos/*.png，相對路徑在本機伺服器全部 404 → 改讀正式站的圖檔
@@ -1398,16 +1491,27 @@ def main() -> int:
         args.live_override = True
     try:
         meta = fetch_meta(base)
-        data_date = meta.get("inst_date") or meta.get("data_date") or today
-        if args.kind == "credit":
-            ok_, d_, why_ = credit_ready(meta, fetch_json(base, "market_fut"))
-            data_date = d_ or data_date
-            if not ok_ and not args.force:
-                log(f"盤後融資：{why_} → 不發（等資料到齊的那一輪）")
+        if not DATE_ISO:      # 沒有 --serve：從網站讀各張的資料檔
+            DATE_ISO.update(data_dates(None, lambda n: fetch_json(base, n)))
+        names_ = [t["name"] for t in TARGETS if t["kind"] == args.kind and (not args.only or t["name"] in args.only.split(","))]
+        holidays_ = gate.load_holidays()
+        mf_ = fetch_json(base, "market_fut") if args.kind == "credit" else {}
+        ev_ = fetch_last_trade() if args.kind in ("close", "credit") and not args.no_mis else {}
+        if ev_:
+            log(f"即時成交日（mis 加權指數）：{ev_.get('last_trade') or '查不到'}")
+        go_, data_date, why_ = decide(args.kind, now_, meta, mf_, DATE_ISO, names_, holidays_, ev_)
+        if not go_:
+            if not args.force:
+                log(f"{args.kind}：{why_} → 不發")
                 return 10
-        DATE_LABEL = data_date[5:].replace("-", "/")
+            log(f"⚠ --force：{why_}（照樣產出，只供測試，不可發布）")
+        if not data_date:      # 只有 --force 才會走到這裡：拿各張實際資料日裡最新的一天，不拿執行日硬套
+            data_date = max([DATE_ISO.get(n, "") for n in names_] + [""]) or today
+        # 圖上日期一律＝該卡自己的資料日（close、credit 通過把關時本來就都＝data_date）
+        DATE_BY.update({k: mmdd(v) for k, v in DATE_ISO.items()})
+        DATE_LABEL = mmdd(data_date)
         if args.posted_json and not args.force:
-            key_ = slot_key_for(args.kind, data_date, now_tpe().isoformat(timespec="seconds"))
+            key_ = slot_key_for(args.kind, data_date, now_.isoformat(timespec="seconds"))
             try:
                 done_ = json.loads(Path(args.posted_json).read_text("utf-8"))
             except Exception:  # noqa: BLE001
@@ -1415,24 +1519,15 @@ def main() -> int:
             if key_ in done_:
                 log(f"{key_} 已經發過（{args.posted_json}）→ 不重複")
                 return 10
-        if args.kind == "close" and not args.force:
-            if data_date != today:
-                log(f"盤後法人資料日 {data_date} ≠ 今天 {today}（非交易日或法人資料還沒更新）→ 不發")
-                return 10
-        if args.kind == "intraday" and not args.force:
-            hhmm = now_tpe().strftime("%H:%M")
-            if not ("09:00" <= hhmm <= "13:35"):
-                log(f"現在台北 {hhmm} 不在盤中時段（09:00～13:35；排程被 GitHub 延遲到收盤後會走這裡）→ 不發")
-                return 10
         if args.from_shots:      # 只換版型配色：沿用另一輪已截好的圖（示範用）
             shots = json.loads((Path(args.from_shots) / "shots.json").read_text("utf-8"))
             sniff = {"quote_dates": set(), "errors": []}
         else:
             shots, sniff = snap_targets(args, base, out, today_ymd)
         if args.kind == "intraday" and not args.force:
-            qd = sniff["quote_dates"]
-            if qd and today_ymd not in qd:
-                log(f"即時報價的成交日 {sorted(qd)} 不是今天 {today_ymd}（休市日）→ 不發")
+            ok_q, why_q = gate.intraday_gate(now_, sniff["quote_dates"], holidays_)
+            if not ok_q:
+                log(f"盤中：{why_q} → 不發")
                 return 10
         ok = [s for s in shots if s.get("ok")]
         bad_words = [(rec["name"], rec["jishi"]) for s in ok for rec in s["pieces_d"] + s["pieces_m"] if rec.get("jishi")]

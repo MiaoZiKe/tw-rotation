@@ -32,6 +32,10 @@ TABLES: dict[str, list[str]] = {
     # v17（2026-10-20，三大法人買賣超日報）：全市場（上市）三大法人買賣「金額」官方值，一天一列，單位元。
     #   來源 FinMind TaiwanStockTotalInstitutionalInvestors；欄位 {foreign,trust,dealer,total}_{buy,sell}。
     "inst_market_daily":  ["date"],
+    # 2026-10-25：同一份官方值的「首次公布版」（當天第一次抓到的那版，之後不覆寫）。
+    #   證交所 15:00 公布的「三大法人買賣金額統計表」＝新聞引用的數字；FinMind 晚間會換成含盤後成交的修訂版
+    #   （inst_market_daily 後到覆蓋，存的是修訂版）。網站主數字用首次公布版，與新聞同口徑。欄位同上＋fetched_at、src。
+    "inst_market_first":  ["date"],
     "revenue_monthly":    ["ym", "code"],     # 月營收
     "financial_q":        ["year", "quarter", "code"],  # EPS / 損益（單季值）
     "balance_q":          ["year", "quarter", "code"],  # 股本 / 淨值 / 總資產
@@ -339,6 +343,9 @@ INTL_SYMBOLS = {
     "^SOX":   "費城半導體",
     "^IXIC":  "那斯達克",
     "^GSPC":  "標普500",
+    # 2026-10-26 盤前貼文（Andy：「昨日或上週美股狀況…台積電ADR 狀況 那斯達克 費半 標普」）：補道瓊與台積電 ADR
+    "^DJI":   "道瓊工業",
+    "TSM":    "台積電ADR",
     "^TWII":  "台灣加權",
     "DX-Y.NYB": "美元指數",
     "^VIX":   "波動率指數",

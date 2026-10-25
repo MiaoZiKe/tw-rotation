@@ -91,6 +91,41 @@ def save(table: str, df: pd.DataFrame) -> int:
         return 0
 
 
+INST_FIRST_SEED = config.ROOT / "pipeline" / "seeds" / "inst_market_first_seed.csv"
+
+
+def first_published_rows(df: pd.DataFrame | None, now: str | None = None, seed_path=None) -> pd.DataFrame:
+    """把這一輪抓到的全市場三大法人金額標上抓取時間，併上種子檔，之後交給 only_new_keys（先到的贏）。
+
+    種子檔 pipeline/seeds/inst_market_first_seed.csv：這張表建立前就已經被修訂版蓋掉的日子，
+    從 git 歷史（當天台北 16:00 那輪 commit 的 parquet）還原的首次公布值。
+    ★ 種子排在這一輪前面：同一天兩邊都有時以種子為準（種子是當天 16:00 抓到的，這一輪可能已是修訂版）。
+    ⚠ 首次公布版只在「當天第一輪就抓到」時才真的是 15:00 版；那天 15:30 那輪失敗、晚上才第一次抓到，存到的可能已是修訂版 ——
+    所以每列帶 fetched_at（UTC），要查證時看得出是幾點抓的。
+    """
+    now = now or pd.Timestamp.now("UTC").strftime("%Y-%m-%dT%H:%M:%SZ")
+    parts = []
+    sp = seed_path if seed_path is not None else INST_FIRST_SEED
+    if sp is not None:
+        try:
+            seed = pd.read_csv(sp, dtype={"date": str, "fetched_at": str, "src": str})
+            if not seed.empty:
+                parts.append(seed)
+        except Exception:  # noqa: BLE001 —— 種子檔讀不到不影響每日抓取
+            log.warning("讀不到首次公布版種子檔 %s", sp)
+    if df is not None and not df.empty:
+        # 只收這一輪「最新那一天」：40 天回看裡更早的日子，抓到的一定是隔天以後的修訂版，不能冒充首次公布值
+        d = df.assign(date=df["date"].astype(str))
+        d = d[d["date"] == d["date"].max()]
+        # 而且要是「台北當天」抓到的：隔天才第一次抓到（例如颱風假、或表剛建立）的那天，拿到的已是修訂版，寧可不收
+        tpe = pd.Timestamp(now).tz_convert("Asia/Taipei").strftime("%Y-%m-%d")
+        d = d[d["date"] == tpe]
+        parts.append(d.assign(fetched_at=now, src="finmind"))
+    if not parts:
+        return pd.DataFrame()
+    return pd.concat(parts, ignore_index=True).drop_duplicates("date", keep="first").reset_index(drop=True)
+
+
 def only_new_keys(table: str, df: pd.DataFrame) -> pd.DataFrame:
     """只留下資料湖裡還沒有這組 key 的列（store.append 是後到覆蓋，這裡反過來讓先到的贏）。"""
     if df is None or df.empty:
@@ -786,7 +821,11 @@ def main() -> int:
         save("index_ohlc", step("finmind.index_ohlc", finmind.index_ohlc, since))
         save("index_ohlc", step("finmind.futures_ohlc", finmind.futures_ohlc, since))
         # 全市場三大法人買賣金額官方值（2026-10-20）：一次請求拉 40 天、1 次額度；store.append 依 date 去重
-        save("inst_market_daily", step("finmind.market_institutional", finmind.market_institutional, since))
+        _imk = step("finmind.market_institutional", finmind.market_institutional, since)
+        save("inst_market_daily", _imk)
+        # 首次公布版（2026-10-25）：同一天 FinMind 會先給證交所 15:00 公布值（＝新聞數字），晚間再換成含盤後成交的修訂版。
+        # inst_market_daily 是後到覆蓋，所以另存一份「先到的贏」，網站主數字用它（口徑見 compute/inst_market.py）。
+        save("inst_market_first", only_new_keys("inst_market_first", first_published_rows(_imk)))
     # 市場明細三張卡（融資餘額／外資期貨口數／小台多空比，2026-10-20）：近 10 天增量，7 次額度。
     # 2026-10-21 起 news 輪也抓（原本只在 price／full）：整體市場融資（FinMind TaiwanStockTotalMarginPurchaseShortSale）
     # 約台北 21:30～22:00 才有當天，晚上最後一輪 full（21:37）常因 GitHub 排程提早／延遲而錯過，

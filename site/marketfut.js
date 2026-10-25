@@ -7,7 +7,7 @@
 (function () {
   const KINDS = { credit: '信用交易' };
   const SNAP = { credit: 'margin' };
-  const st = { days: 126, who: 'foreign', view: 'bal', tab: 'mkt', chart: 'ratio' };
+  const st = { days: 126, who: 'foreign', view: 'bal', tab: 'mkt', chart: 'ratio', rk: 'margin' };   // rk＝個股排行看融資（margin）或融券（short）
   let H = null, DATA = null, META = null;
   const txColor = () => css('--c-tx', document.documentElement.getAttribute('data-theme') !== 'light' ? '#E2E8F0' : '#0F172A');
 
@@ -23,7 +23,7 @@
       <b>大盤融資維持率是什麼？</b> 向券商借錢買股票（融資）時，股票現值對借款的比例。比例越高越安全；大盤整體的數字能看出槓桿部位的「安全墊」還剩多厚。<br><br>
       <b>130% 追繳門檻是什麼意思？</b> 個別融資帳戶的擔保品現值跌到借款的 130% 以下，券商會通知補錢（追繳），補不上就可能被強制賣出。這條線是個別帳戶的規則；大盤整體數字接近 130% 不代表全面斷頭，因為各戶成本不同（圖上虛線）。<br><br>
       <b>和證交所公布的維持率一樣嗎？</b> 不一樣。證交所自 2026/07/29 起暫停公布官方整體維持率，這裡自行推算：用上市個股融資餘額 × 當日收盤價加總，除以整體市場融資金額。證交所的整戶擔保維持率要有每戶的借款與擔保品，沒有公開的逐戶資料，所以這裡只能當趨勢參考。<br><br>
-      <b>部分估算</b>：維持率旁若標「部分估算」，代表當日部分個股資料尚未到齊，以前一日餘額補算。<br><br><b>限制</b>：只含上市、不含上櫃；融資成本與市值有時間差；當日資料不足八成檔數的日子不收。融資增加標紅、減少標綠（台股慣例）。個股排行的範圍是上市個股。想看個股層級請到<a href="#stock">個股頁</a>看融資融券。資料來源：證交所公開資料。`,
+      <b>部分估算</b>：維持率旁若標「部分估算」，代表當日部分個股資料尚未到齊，以前一日餘額補算。<br><br><b>限制</b>：只含上市、不含上櫃；融資成本與市值有時間差；當日資料不足八成檔數的日子不收。融資增加標紅、減少標綠（台股慣例）。<br><br><b>個股排行</b>：分段開關切「融資／融券」。融資增減排行＝當日融資餘額增減（千張）；融券增減排行＝當日融券餘額增減（千張），融券增加代表放空的人變多（同樣增加標紅、減少標綠）。兩個排行是同一個資料日，範圍是上市個股。想看個股層級請到<a href="#stock">個股頁</a>看融資融券。資料來源：證交所公開資料。`,
   };
 
   function howBtn(kind) {
@@ -135,8 +135,12 @@
     const sorted = tail(all).sort((a, b) => { const x = a[sortSt.k], y = b[sortSt.k]; return ((x == null ? -Infinity : x) > (y == null ? -Infinity : y) ? 1 : -1) * sortSt.dir; });
     const tb = `<div class="tw mf-scroll"><table id="mfTbl"><thead><tr>${MCOLS.map(c => `<th class="${c[3] === 'l' ? 'l' : ''} mf-sort${sortSt.k === c[0] ? ' on' : ''}" data-s="${c[0]}">${c[1]}${sortSt.k === c[0] ? (sortSt.dir > 0 ? ' ▲' : ' ▼') : ''}</th>`).join('')}</tr></thead><tbody>${
       sorted.map(r => `<tr data-d="${r.d}">${MCOLS.map(c => `<td class="${c[3] === 'l' ? 'l' : 'num'} ${c[3] === 'chg' ? cls(r[c[0]]) : ''}">${c[2](r)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
-    const rk = m.rank;
-    const rankHtml = rk ? `<div class="mf-ranks"><h4 style="margin:0 0 6px">融資增減排行</h4>
+    // 個股排行：分段開關切「融資／融券」（2026-10-26 Andy：「需要新增一個融券的」）；同一位置換內容，不上下堆兩區（andy_ui_rules 〇-6）
+    if (st.rk === 'short' && !m.short_rank) st.rk = 'margin';
+    const rk = st.rk === 'short' ? m.short_rank : m.rank;
+    const rkSeg = `<div class="seg tiny" id="mfRkSeg" role="group" aria-label="排行"><button type="button" data-k="margin" class="${st.rk === 'short' ? '' : 'on'}">融資</button>`
+      + (m.short_rank ? `<button type="button" data-k="short" class="${st.rk === 'short' ? 'on' : ''}">融券</button>` : `<button type="button" data-k="short" disabled aria-disabled="true" title="融券排行資料尚未產出">融券</button>`) + `</div>`;
+    const rankHtml = rk ? `<div class="mf-ranks"><div class="mf-rkhead"><h4 style="margin:0">${st.rk === 'short' ? '融券增減排行' : '融資增減排行'} <small class="muted">${md(rk.d).replace('-', '/')}</small></h4>${rkSeg}</div>
         <div class="mf-gsel"><div class="rotdd wide msdd" id="mfGroupDD" data-dd="mfgroup">
           <button type="button" class="ddbtn" aria-haspopup="true" aria-expanded="false" title="只看某些族群的個股">族群：<b>全市場</b><i aria-hidden="true">▾</i></button>
           <div class="ddpanel" aria-label="族群（可複選）" hidden>
@@ -175,6 +179,7 @@
     linkCharts(body, cs, () => tail(all).map(r => r.d));
     wireRank(body, rk); 
     body.querySelectorAll('#mfTab button').forEach(b => b.onclick = () => { if (b.dataset.k === st.tab) return; st.tab = b.dataset.k; render('credit', body); });
+    body.querySelectorAll('#mfRkSeg button').forEach(b => b.onclick = () => { if (b.disabled || b.dataset.k === st.rk) return; st.rk = b.dataset.k; render('credit', body); });
     body.querySelectorAll('#mfCSeg button').forEach(b => b.onclick = () => { st.chart = b.dataset.k; render('credit', body); });
     // 換期間：整頁重畫（圖、明細表、區間一起換；圖實例沿用，事件在 linkCharts 先拆再綁）
     body.querySelectorAll('#mfDays button').forEach(b => b.onclick = () => { if (b.disabled) return; st.days = +b.dataset.k; render('credit', body); });
@@ -205,7 +210,7 @@
 @media (max-width:640px){.mf-cseg{display:block;margin:0 0 6px}.mf-split[data-chart="ratio"] .mf-cbox[data-c="bal"],.mf-split[data-chart="bal"] .mf-cbox[data-c="ratio"]{display:none}}
 @media (max-width:900px){.mf-top{grid-template-columns:1fr}.mf-split{display:flex;flex-direction:column}.mf-tblbox{contain:none;display:block}.mf-split .mf-tblbox .mf-scroll{max-height:320px!important}.mf-ch{height:220px}}
 #mfTbl tr.hl td{background:color-mix(in srgb,var(--cyan,#3ee0ff) 14%,transparent)}#mfTbl tr.lk td{background:color-mix(in srgb,var(--cyan,#3ee0ff) 26%,transparent)}#mfTbl td,#mfTbl th{text-align:center!important}#mfTbl td.l,#mfTbl th.l{text-align:left!important}
-.mf-ranks{margin-top:14px}.mf-gsel{margin:0 0 8px}.mf-rkgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.mf-rank{display:flex;flex-direction:column;gap:4px}
+.mf-ranks{margin-top:14px}.mf-rkhead{display:flex;align-items:center;gap:10px;margin:0 0 6px;flex-wrap:wrap}.mf-gsel{margin:0 0 8px}.mf-rkgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.mf-rank{display:flex;flex-direction:column;gap:4px}
 .mf-rk{display:flex;gap:8px;align-items:center;padding:3px 6px;border-radius:6px;text-decoration:none;color:inherit}.mf-rk:hover{background:rgba(142,160,196,.12)}.mf-n{width:16px;color:var(--ink-3,#8ea0c4)}.mf-nm{flex:0 0 9em;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .mf-sb{flex:1 1 auto;min-width:40px;display:flex}.mf-sb .trk{flex:1;height:12px;border-radius:3px;background:color-mix(in srgb,var(--ink-3,#8ea0c4) 16%,transparent);overflow:hidden}.mf-sb i{display:block;height:12px;border-radius:3px}
 .mf-sb i.up{background:linear-gradient(90deg,color-mix(in srgb,var(--rise) 45%,transparent),var(--rise))}.mf-sb i.down{background:linear-gradient(90deg,color-mix(in srgb,var(--fall) 45%,transparent),var(--fall))}

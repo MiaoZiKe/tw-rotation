@@ -14,6 +14,8 @@ Andy 2026-10-20：「也需要在盤後提供當天即時的法人買賣超狀�
 - **全市場金額（億元）以官方值為主**：新表 `inst_market_daily`（config.TABLES，key=date；欄位 `{foreign,trust,dealer,total}_{buy,sell}`，單位元），
   來源 FinMind `TaiwanStockTotalInstitutionalInvestors`（上市），解析在 `pipeline/sources/finmind.py::parse_market_institutional`；
   每日管線（run_daily，40 天增量）＋回補 5 年（`run_backfill.backfill_inst_market`，1 次額度，回空／402 不標 done）。
+- **★ 2026-10-25 首次公布版優先**（DECISIONS #363）：FinMind 同一天晚間會把官方值換成含盤後成交的修訂版，跟新聞（證交所 15:00 公布值）對不上。
+  另存 `inst_market_first`（先到的贏、只收台北當天抓到的最新日、帶 fetched_at），有首次版就用它，晚間版不同時放 `rev:{f,t,dl,tot}`。
 - 官方值還沒進湖的日子，`compute/inst_market.py` 用 inst_daily×收盤價補，**只加總上市個股**（官方只有上市），每列 `est=True`，畫面標「估」。
   資料湖價量歷史較短，估算目前只涵蓋最近 ~23 個交易日；雲端回補官方值後長期間才會有資料，資料不足的期間鈕反灰。
 - payload：`inst_market.json`（rows: d, f, t, dl, tot, tw, est；近 1300 個交易日）、`inst_today.json`（個股合計 `all`，供排行與族群篩選）。

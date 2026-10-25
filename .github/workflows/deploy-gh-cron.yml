@@ -1,0 +1,76 @@
+name: 部署 Worker（準時派工 gh-cron）
+
+# 把 workers/gh-cron/ 部署到 Cloudflare。這支 Worker 用 Cron Trigger 準時呼叫 GitHub 的 workflow_dispatch，
+# 取代不準的 GitHub schedule（2026-10-20～10-23 daily 兩輪完全沒觸發、social-live 盤中被延後約 5 小時）。
+# 設定文件：docs/gh_cron_setup.md。
+#
+# 用到的 repo Secret：
+#   CLOUDFLARE_API_TOKEN / CLOUDFLARE_ACCOUNT_ID —— 沿用
+#   GH_DISPATCH_TOKEN —— GitHub fine-grained 金鑰（只限本 repo、Actions: Read and write），部署時寫進 Worker Secret
+# ★ 沒設金鑰時「跳過並印出待辦」，不要紅燈（同 deploy-worker.yml 的三態原則）。
+
+on:
+  push:
+    branches: [main]
+    paths: ['workers/gh-cron/**', '.github/workflows/deploy-gh-cron.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-gh-cron
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: 排程判斷測試（紅了就不准部署）
+        run: node --test workers/gh-cron/test/schedule.test.mjs
+
+      - id: guard
+        name: 檢查 Cloudflare 金鑰
+        env:
+          CF_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CF_ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          miss=""
+          [ -z "$CF_TOKEN" ] && miss="$miss CLOUDFLARE_API_TOKEN"
+          [ -z "$CF_ACCOUNT" ] && miss="$miss CLOUDFLARE_ACCOUNT_ID"
+          if [ -n "$miss" ]; then
+            echo "ok=false" >> "$GITHUB_OUTPUT"
+            { echo "### gh-cron 尚未部署"; echo ""; echo "**缺少這些 Secret：**$miss"; } >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "ok=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: 部署
+        if: steps.guard.outputs.ok == 'true'
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: workers/gh-cron
+
+      # 沒有 GH_DISPATCH_TOKEN 就跳過並警告（Worker 會醒來但派不出工，log 會印「GH_DISPATCH_TOKEN 未設定」）
+      - name: 寫入 Worker Secret：GH_DISPATCH_TOKEN
+        if: steps.guard.outputs.ok == 'true'
+        working-directory: workers/gh-cron
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          GH_TOKEN_VALUE: ${{ secrets.GH_DISPATCH_TOKEN }}
+        run: |
+          if [ -z "$GH_TOKEN_VALUE" ]; then
+            echo "::warning::repo Secret GH_DISPATCH_TOKEN 還沒設，Worker 已部署但派不出工；步驟見 docs/gh_cron_setup.md"
+            { echo "### ⚠ GH_DISPATCH_TOKEN 還沒設"; echo ""; echo "Worker 已部署，但沒有金鑰就派不出工。步驟見 docs/gh_cron_setup.md。"; } >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          printf '%s' "$GH_TOKEN_VALUE" | npx --yes wrangler@4 secret put GH_DISPATCH_TOKEN
+          echo "### gh-cron 已部署，GH_DISPATCH_TOKEN 已寫入 Worker" >> "$GITHUB_STEP_SUMMARY"

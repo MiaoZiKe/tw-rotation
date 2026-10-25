@@ -24,9 +24,9 @@ def test_caption_full_four_lines_within_480():
     assert "utm_campaign=intraday_1020" in txt
 
 
-def _mf(d="2026-10-21", ratio=168.2, partial=False, rank_d=None):
+def _mf(d="2026-10-21", ratio=168.2, partial=False, rank_d=None, short_d=None):
     return {"margin": {"rows": [{"d": "2026-10-20", "ratio": 170.0}, {"d": d, "ratio": ratio, "partial": partial}],
-                       "rank": {"d": rank_d or d, "rows": []}}}
+                       "rank": {"d": rank_d or d, "rows": []}, "short_rank": {"d": short_d or d, "rows": []}}}
 
 
 def test_盤後融資_資料到齊才發():
@@ -39,6 +39,7 @@ def test_盤後融資_資料到齊才發():
     assert not ss.credit_ready(meta, _mf(ratio=None))[0]
     assert not ss.credit_ready(meta, _mf(partial=True))[0]
     assert not ss.credit_ready(meta, _mf(rank_d="2026-10-20"))[0]
+    assert not ss.credit_ready(meta, _mf(short_d="2026-10-20"))[0]      # 2026-10-26 第三張融券排行也要同一天
     assert not ss.credit_ready(meta, {})[0]
     # 隔天清晨（價量還沒換天）照樣可以發前一天的融資；隔天 15:30 價量換天後就不再發
     assert ss.credit_ready({"data_date": "2026-10-21"}, _mf())[0]
@@ -47,12 +48,14 @@ def test_盤後融資_資料到齊才發():
 
 def test_盤後融資文案_獨立一篇():
     shots = [{"name": "credit-ratio", "ok": True, "read": {"ratio": "168.20", "chg": "−1.35"}},
-             {"name": "credit-rank", "ok": True, "read": {"up": ["長榮", "華邦電", "群創"], "down": ["台積電", "聯電", "鴻海"]}}]
+             {"name": "credit-rank", "ok": True, "read": {"up": ["長榮", "華邦電", "群創"], "down": ["台積電", "聯電", "鴻海"]}},
+             {"name": "credit-short", "ok": True, "read": {"up": ["友達", "力積電", "南亞科"], "down": ["英業達", "廣達", "緯創"]}}]
     txt = ss.build_text("credit", "10/22 05:10", shots, "2026-10-21", "20261022")
     L = txt.splitlines()
     assert L[0] == "台股融資籌碼｜10/21"
     assert "上市融資維持率（估算）168.20%（較前日 -1.35pp）" in txt and "#market/credit" in txt
     assert "融資增加 長榮、華邦電、群創；融資減少 台積電、聯電、鴻海" in txt
+    assert "融券增加 友達、力積電、南亞科；融券減少 英業達、廣達、緯創" in txt
     assert "utm_campaign=credit_1022" in txt and L[-1].startswith("#台股 #融資")
     assert len(txt) <= 480
     # 盤後法人那篇不再帶融資
