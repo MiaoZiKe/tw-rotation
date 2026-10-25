@@ -129,6 +129,8 @@
   :root.l4 .tab[data-view="earnings"]{order:1;--l4-ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3.5' y='5' width='17' height='15.5' rx='2'/%3E%3Cpath d='M3.5 10h17M8 3v4M16 3v4'/%3E%3Cpath d='M8 14h2M14 14h2M8 17.2h2' stroke-width='2'/%3E%3C/svg%3E")}
   /* 2026-10-14 精選文章（Andy 截圖標在總覽與財經日曆之間）：同 order 1、DOM 在財經日曆前面 → 總覽、精選文章、財經日曆。圖示＝打開的書頁 */
   :root.l4 .tab[data-view="articles"]{order:1;--l4-ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 4.5h6a2 2 0 0 1 2 2V20a1.6 1.6 0 0 0-1.6-1.6H4z'/%3E%3Cpath d='M20 4.5h-6a2 2 0 0 0-2 2V20a1.6 1.6 0 0 1 1.6-1.6H20z'/%3E%3Cpath d='M6.5 8.5h3M6.5 11.5h3M14.5 8.5h3M14.5 11.5h3'/%3E%3C/svg%3E")}
+  /* 2026-10-25 科技透明圈：同「今日市場」組、order 1，圖示＝兩個人 */
+  :root.l4 .tab[data-view="tc"]{order:1;--l4-ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='9' cy='8' r='3.2'/%3E%3Cpath d='M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6'/%3E%3Ccircle cx='17' cy='9' r='2.4'/%3E%3Cpath d='M17 14c2.5 0 4.5 2 4.5 4.5'/%3E%3C/svg%3E")}
   :root.l4 .tab[data-view="flow"]{order:2}
   :root.l4 .tab[data-view="heatmap"]{order:3}
   :root.l4 .tab[data-view="industry"]{order:4}
@@ -518,7 +520,7 @@
   /* 收起：群組裡除了「目前所在頁」以外的格子都藏（目前那格照樣看得到） */
   /* 2026-10-06（Andy：「收合後應該只會出現母分頁」）：拿掉 :not(.on)，收起就整組全藏、只剩群組標題（目前頁由標題的點提示）。
      根因修正：財經日曆加進今日市場時這裡漏列（它從來不會被收），ETF 改到族群與個股。 */
-  :root.l4.l4g:not(.l4-mini) .tabs[data-cg~="today"]>:is(.tab[data-view="overview"],.tab[data-view="earnings"],.tab[data-view="articles"]),
+  :root.l4.l4g:not(.l4-mini) .tabs[data-cg~="today"]>:is(.tab[data-view="overview"],.tab[data-view="earnings"],.tab[data-view="articles"],.tab[data-view="tc"]),
   :root.l4.l4g:not(.l4-mini) .tabs[data-cg~="today"]>.l4subtab[data-parent="articles"],
   :root.l4.l4g:not(.l4-mini) .tabs[data-cs~="articles"]>.l4subtab[data-parent="articles"],
   :root.l4.l4g:not(.l4-mini) .tabs[data-cg~="money"]>:is(.tab[data-view="flow"],.tab[data-view="heatmap"]),
