@@ -140,8 +140,9 @@
               "overtime": "輪班",
               "travel": null,
               "quote_free_note": "后里輪班設備 5.5 萬×14＋分紅",
-              "date_confirmed": false,
-              "date_note": "日期為推估或僅年份，不進統計"
+              "date_confirmed": true,
+              "date_note": "日期為推估或僅年份，不進統計；依 docs/tc/dcard_id_calibration.md 文章編號≥259537767 確認晚於 2025-08-01",
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -194,8 +195,9 @@
               "overtime": null,
               "travel": null,
               "quote_free_note": "內推文稱年薪約 18 個月",
-              "date_confirmed": false,
-              "date_note": "日期為推估或僅年份，不進統計"
+              "date_confirmed": true,
+              "date_note": "日期為推估或僅年份，不進統計；依 docs/tc/dcard_id_calibration.md 文章編號≥259537767 確認晚於 2025-08-01",
+              "in_window": true
             },
             {
               "site": "PTT",
@@ -334,8 +336,9 @@
               "overtime": null,
               "travel": null,
               "quote_free_note": "台南常日班工程師 6.4 萬起（徵才文）",
-              "date_confirmed": false,
-              "date_note": "日期為推估或僅年份，不進統計"
+              "date_confirmed": true,
+              "date_note": "日期為推估或僅年份，不進統計；依 docs/tc/dcard_id_calibration.md 文章編號≥259537767 確認晚於 2025-08-01",
+              "in_window": true
             }
           ],
           "n_stat": 0
@@ -462,8 +465,9 @@
               "overtime": null,
               "travel": null,
               "quote_free_note": "四大碩製程面試喊 5.8 萬談到 6 字頭；RD 約 8 萬多",
-              "date_confirmed": false,
-              "date_note": "日期為推估或僅年份，不進統計"
+              "date_confirmed": true,
+              "date_note": "日期為推估或僅年份，不進統計；依 docs/tc/dcard_id_calibration.md 文章編號≥259537767 確認晚於 2025-08-01",
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -480,8 +484,9 @@
               "overtime": null,
               "travel": null,
               "quote_free_note": null,
-              "date_confirmed": false,
-              "date_note": "日期為推估或僅年份，不進統計"
+              "date_confirmed": true,
+              "date_note": "日期為推估或僅年份，不進統計；依 docs/tc/dcard_id_calibration.md 文章編號≥259537767 確認晚於 2025-08-01",
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -516,8 +521,9 @@
               "overtime": null,
               "travel": null,
               "quote_free_note": null,
-              "date_confirmed": false,
-              "date_note": "日期為推估或僅年份，不進統計"
+              "date_confirmed": true,
+              "date_note": "日期為推估或僅年份，不進統計；依 docs/tc/dcard_id_calibration.md 文章編號≥259537767 確認晚於 2025-08-01",
+              "in_window": true
             },
             {
               "site": "GoodJob",
@@ -633,8 +639,9 @@
               "overtime": null,
               "travel": null,
               "quote_free_note": "四大碩製程面試喊 5.8 萬談到 6 字頭；RD 約 8 萬多",
-              "date_confirmed": false,
-              "date_note": "日期為推估或僅年份，不進統計"
+              "date_confirmed": true,
+              "date_note": "日期為推估或僅年份，不進統計；依 docs/tc/dcard_id_calibration.md 文章編號≥259537767 確認晚於 2025-08-01",
+              "in_window": true
             },
             {
               "site": "GoodJob",
@@ -887,8 +894,9 @@
               "overtime": null,
               "travel": null,
               "quote_free_note": "製程值班 offer 保 15、人資口頭約 17 個月",
-              "date_confirmed": false,
-              "date_note": "日期為推估或僅年份，不進統計"
+              "date_confirmed": true,
+              "date_note": "日期為推估或僅年份，不進統計；依 docs/tc/dcard_id_calibration.md 文章編號≥259537767 確認晚於 2025-08-01",
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -905,8 +913,9 @@
               "overtime": null,
               "travel": null,
               "quote_free_note": null,
-              "date_confirmed": false,
-              "date_note": "日期為推估或僅年份，不進統計"
+              "date_confirmed": true,
+              "date_note": "日期為推估或僅年份，不進統計；依 docs/tc/dcard_id_calibration.md 文章編號≥259537767 確認晚於 2025-08-01",
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -941,8 +950,9 @@
               "overtime": null,
               "travel": null,
               "quote_free_note": null,
-              "date_confirmed": false,
-              "date_note": "日期為推估或僅年份，不進統計"
+              "date_confirmed": true,
+              "date_note": "日期為推估或僅年份，不進統計；依 docs/tc/dcard_id_calibration.md 文章編號≥259537767 確認晚於 2025-08-01",
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -959,8 +969,9 @@
               "overtime": null,
               "travel": null,
               "quote_free_note": null,
-              "date_confirmed": false,
-              "date_note": "日期為推估或僅年份，不進統計"
+              "date_confirmed": true,
+              "date_note": "日期為推估或僅年份，不進統計；依 docs/tc/dcard_id_calibration.md 文章編號≥259537767 確認晚於 2025-08-01",
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -977,8 +988,9 @@
               "overtime": null,
               "travel": null,
               "quote_free_note": null,
-              "date_confirmed": false,
-              "date_note": "日期為推估或僅年份，不進統計"
+              "date_confirmed": true,
+              "date_note": "日期為推估或僅年份，不進統計；依 docs/tc/dcard_id_calibration.md 文章編號≥259537767 確認晚於 2025-08-01",
+              "in_window": true
             },
             {
               "site": "PTT",

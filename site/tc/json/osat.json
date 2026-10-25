@@ -143,8 +143,9 @@
               "overtime": null,
               "travel": null,
               "quote_free_note": null,
-              "date_confirmed": false,
-              "date_note": "日期為推估或僅年份，不進統計"
+              "date_confirmed": true,
+              "date_note": "日期為推估或僅年份，不進統計；依 docs/tc/dcard_id_calibration.md 文章編號≥259537767 確認晚於 2025-08-01",
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -161,8 +162,9 @@
               "overtime": null,
               "travel": null,
               "quote_free_note": null,
-              "date_confirmed": false,
-              "date_note": "日期為推估或僅年份，不進統計"
+              "date_confirmed": true,
+              "date_note": "日期為推估或僅年份，不進統計；依 docs/tc/dcard_id_calibration.md 文章編號≥259537767 確認晚於 2025-08-01",
+              "in_window": true
             },
             {
               "site": "PTT",
@@ -584,8 +586,9 @@
               "overtime": null,
               "travel": null,
               "quote_free_note": null,
-              "date_confirmed": false,
-              "date_note": "日期為推估或僅年份，不進統計"
+              "date_confirmed": true,
+              "date_note": "日期為推估或僅年份，不進統計；依 docs/tc/dcard_id_calibration.md 文章編號≥259537767 確認晚於 2025-08-01",
+              "in_window": true
             },
             {
               "site": "GoodJob",
@@ -779,8 +782,9 @@
               "overtime": null,
               "travel": null,
               "quote_free_note": null,
-              "date_confirmed": false,
-              "date_note": "日期為推估或僅年份，不進統計"
+              "date_confirmed": true,
+              "date_note": "日期為推估或僅年份，不進統計；依 docs/tc/dcard_id_calibration.md 文章編號≥259537767 確認晚於 2025-08-01",
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -797,8 +801,9 @@
               "overtime": null,
               "travel": null,
               "quote_free_note": null,
-              "date_confirmed": false,
-              "date_note": "日期為推估或僅年份，不進統計"
+              "date_confirmed": true,
+              "date_note": "日期為推估或僅年份，不進統計；依 docs/tc/dcard_id_calibration.md 文章編號≥259537767 確認晚於 2025-08-01",
+              "in_window": true
             },
             {
               "site": "PTT",
