@@ -2139,11 +2139,33 @@
               "quote_free_note": "做二休二，每四個月換班，有夜班加給；發文者說薪水比日月光高",
               "in_window": true,
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-07-21"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/262240738",
+              "date": "2026-10",
+              "page_date": "2026-10-02",
+              "date_confirmed": true,
+              "role": "製程工程師 PE（bumping）",
+              "grade": "30",
+              "unit_detail": "虎尾",
+              "years": "0",
+              "degree": "碩士",
+              "base_k": 59,
+              "bonus_months": null,
+              "annual_months": 14,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "59K 保 14；做二休二，輪班津貼 +8600；要進 fab",
+              "in_window": true,
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-10-02"
             }
           ],
           "sources": [],
           "confidence": "低",
-          "n": 4
+          "n": 5
         },
         {
           "unit": "南科",
