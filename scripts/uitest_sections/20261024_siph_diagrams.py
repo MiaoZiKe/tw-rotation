@@ -87,17 +87,30 @@ def t_siph_diagrams_1024(b, base, code):
         ok(f"{T}：3D 標籤兩兩沒有互蓋", ov == 0, ov)
     # ⑤ 圖 B
     pg.goto(base + "#industry/siph_cpo/dg/siph_module", wait_until="load"); pg.wait_for_timeout(2500)
-    pg.locator('.dgfold').nth(0).click(); pg.wait_for_timeout(600)
+    if pg.evaluate("() => !!document.querySelector('#prod3d canvas')"):
+        pg.click('#dg3d button[data-dm="2d"]'); pg.wait_for_timeout(800)
     xs = pg.evaluate("() => [0,1,2,3].map(i => { const g = document.querySelector('#prodDiagram [data-part=spc_a' + i + '] rect'); return g ? Math.round(g.getBoundingClientRect().left) : -1; })")
     ok(f"{T}：圖 B 四欄由左到右（可插拔→LPO→NPO→CPO）", xs == sorted(xs) and xs[0] > 0, xs)
     d = pg.evaluate("""() => { const w = [0,1,2,3].map(i => { const g = [...document.querySelectorAll('#prodDiagram [data-part=spc_a' + i + '] ~ *')]; return 0; }); 
       const bars = [...document.querySelectorAll('#prodDiagram rect.rb')].map(r => { const b = r.getBoundingClientRect(); return [Math.round(b.left), Math.round(b.width)]; });
       return bars; }""")
     # 三條有數字的區間條：可插拔、LPO、CPO；NPO 是虛線空框（不畫數字）。LPO 與 CPO 條寬相同＝同一個 5–10 區間
-    rel = [b_ for b_ in d if b_[1] > 5]
+    rel = [b_ for b_ in d if b_[1] > 20]
     ok(f"{T}：功耗區間條 LPO 與 CPO 寬度相同（重疊、不畫成 CPO 明顯更低）", len(rel) >= 4 and abs(rel[1][1] - rel[3][1]) <= 1 if len(rel) >= 4 else False, d)
     pg.click('#prodDiagram [data-part="spc_n3"]'); pg.wait_for_timeout(400)
     ok(f"{T}：圖 B 點節點 → 亮起", pg.evaluate("() => document.querySelectorAll('#prodDiagram [data-part=spc_n3].sel-part').length") >= 1)
+    # 圖 B 的 3D（交換器機箱）：可切、真的有 canvas、17 張標籤、爆炸真的拉開
+    pg.click('#dg3d button[data-dm="3d"]')
+    got2 = wait_until(pg, "() => !!document.querySelector('#prod3d canvas')", 25000)
+    ok(f"{T}：圖 B 切 3D → 真的有 canvas", got2)
+    if got2:
+        pg.wait_for_timeout(2500)
+        bx = pg.locator('#prod3d').bounding_box()
+        m0 = pg.locator('#prod3d canvas').screenshot()
+        pg.mouse.move(bx["x"] + bx["width"] / 2, bx["y"] + bx["height"] / 2); pg.wait_for_timeout(2500)
+        m1 = pg.locator('#prod3d canvas').screenshot()
+        ok(f"{T}：圖 B 的 3D 游標移入 → 零件真的拉開", m0 != m1)
+        ok(f"{T}：圖 B 的 3D 有 17 張標籤（含傳統可插拔對照）", pg.evaluate("() => document.querySelectorAll('#prod3d .lbl3d').length") == 17)
     # ⑥ 手機
     c2 = b.new_context(viewport={"width": 390, "height": 844}, is_mobile=True, has_touch=True)
     c2.add_init_script("try{localStorage.setItem('tw.tour','done')}catch(e){}")
