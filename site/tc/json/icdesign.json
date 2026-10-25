@@ -6595,6 +6595,54 @@
           "note": "2026-10-26 由 Dcard 樣本新增的公司"
         }
       ]
+    },
+    {
+      "name": "愛普",
+      "code": "6531",
+      "heat": null,
+      "benefits": null,
+      "stock_plan": null,
+      "bonus_timing": null,
+      "bonus_structure": [],
+      "culture": null,
+      "interview": null,
+      "grade_system": null,
+      "mops": null,
+      "roles": [
+        {
+          "unit": "台中",
+          "role": "韌體工程師",
+          "degree": "碩士",
+          "samples": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/259571651",
+              "date": "2025-08",
+              "page_date": "2025-08-23",
+              "date_confirmed": true,
+              "role": "韌體工程師",
+              "grade": null,
+              "unit_detail": "台中",
+              "years": "0",
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": 14,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "薪資去識別化：(N-12)×14，N 沒說明（原文「愛普智科技」，Andy 確認＝愛普）",
+              "in_window": true,
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2025-08-23"
+            }
+          ],
+          "n": 1,
+          "sources": [],
+          "confidence": "低",
+          "note": "2026-10-26 Andy 確認代稱後加入"
+        }
+      ]
     }
   ]
 }

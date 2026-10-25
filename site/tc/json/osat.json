@@ -458,6 +458,39 @@
           "sources": [],
           "confidence": "低",
           "n": 1
+        },
+        {
+          "unit": "Chiplet／CPO 產品",
+          "role": "客戶工程整合 CEI",
+          "degree": "碩士",
+          "samples": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261997587",
+              "date": "2026-08",
+              "page_date": "2026-08-19",
+              "date_confirmed": true,
+              "role": "客戶工程整合 CEI",
+              "grade": null,
+              "unit_detail": "Chiplet／CPO 產品",
+              "years": "0",
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 45,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "固定薪資含車補約為台積月薪 N 少 3k，激勵獎金不明；主管說每月加班約 20 小時（原文「日月光集團（暱稱「北神轎」，依標籤推測）」，Andy 確認＝日月光）",
+              "in_window": true,
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-08-19"
+            }
+          ],
+          "n": 1,
+          "sources": [],
+          "confidence": "低",
+          "note": "2026-10-26 Andy 確認代稱後加入"
         }
       ],
       "mops": {
