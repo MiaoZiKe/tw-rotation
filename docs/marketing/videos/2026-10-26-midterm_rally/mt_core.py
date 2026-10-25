@@ -255,11 +255,9 @@ class Canvas:
             ink_x0 = x
         if p <= 0:
             return (ink_x0, y, ink_x0, y + ih)
-        sl = (1 - ease_out(p)) * slide
-        vis = iw if p >= 1 else int(iw * ease_out(p))
-        if clip_x is not None:
-            vis = int(clamp(clip_x - ink_x0, 0, iw))
-        if vis < iw:
+        sl = (1 - ease_out(p)) * slide if p < 1 else 0.0
+        vis = iw
+        if False:
             # 只露出完整的字（不切半個字）
             best = 0
             for i in range(1, len(s) + 1):
