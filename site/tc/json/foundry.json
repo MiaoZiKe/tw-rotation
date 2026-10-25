@@ -23,8 +23,14 @@
             63,
             68
           ],
-          "bonus_months": null,
-          "annual_months": null,
+          "bonus_months": [
+            17,
+            24
+          ],
+          "annual_months": [
+            30,
+            37
+          ],
           "annual_total_wan": [
             200,
             240
@@ -36,7 +42,7 @@
           "overtime": "經常",
           "travel": "不用",
           "n": 3,
-          "note": "公司徵才稱碩士新進平均年薪 220 萬以上（含分紅，公司口徑）；GoodJob 自述碩士新進月薪約 6.5 萬以上；分紅月數無可靠區間",
+          "note": "公司徵才稱碩士新進平均年薪 220 萬以上（含分紅，公司口徑）；GoodJob 自述碩士新進月薪約 6.5 萬以上；分紅月數無可靠區間；年薪月數為推算：公司公布碩士新進整體年薪 220 萬以上 ÷ 底薪 6.3～6.8 萬；分紅月數＝推算總月數扣 12 個月本薪與年終約 1 個月，非個人實領，2026-10 再查 PTT／GoodJob 未見新人逐月拆解",
           "sources": [
             {
               "site": "GoodJob",
@@ -75,7 +81,7 @@
           "overtime": "經常",
           "travel": "不用",
           "n": 2,
-          "note": "GoodJob 2026-03 兩則自述（台中、高雄，不到 1 年），工時 55～60 小時／週、需輪班；學歷未標",
+          "note": "GoodJob 2026-03 兩則自述（台中、高雄，不到 1 年），工時 55～60 小時／週、需輪班；學歷未標；分紅與年薪月數查 GoodJob／媒體未見設備職專屬數字，維持 null；可參考製程職推算 30～37 個月",
           "sources": [
             {
               "site": "GoodJob",
@@ -101,7 +107,7 @@
           "overtime": "偶爾",
           "travel": "不用",
           "n": 1,
-          "note": "GoodJob 2026-04 單筆（台南，不到 1 年），自述底薪 6 萬＋三節＋分紅＋運動會獎金",
+          "note": "GoodJob 2026-04 單筆（台南，不到 1 年），自述底薪 6 萬＋三節＋分紅＋運動會獎金；分紅與年薪月數查 GoodJob／媒體未見 IT 職專屬數字，維持 null",
           "sources": [
             {
               "site": "GoodJob",
@@ -120,8 +126,14 @@
             60,
             64
           ],
-          "bonus_months": null,
-          "annual_months": null,
+          "bonus_months": [
+            18,
+            27
+          ],
+          "annual_months": [
+            31,
+            40
+          ],
           "annual_total_wan": [
             200,
             240
@@ -133,7 +145,7 @@
           "overtime": "經常",
           "travel": "不用",
           "n": 3,
-          "note": "GoodJob 製程整合職稱頁台積電回報多在 6～6.4 萬；PTT／Dcard 未找到 PIE 專屬 offer 數字；年薪沿用公司公布碩士平均 220 萬以上",
+          "note": "GoodJob 製程整合職稱頁台積電回報多在 6～6.4 萬；PTT／Dcard 未找到 PIE 專屬 offer 數字；年薪沿用公司公布碩士平均 220 萬以上；年薪月數為推算（220 萬以上 ÷ 底薪 6～6.4 萬），分紅月數＝推算扣 13 個月，非個人實領",
           "sources": [
             {
               "site": "GoodJob",
@@ -217,22 +229,30 @@
             70,
             78
           ],
-          "bonus_months": null,
+          "bonus_months": [
+            2,
+            4
+          ],
           "annual_months": [
             14,
             16.2
           ],
           "annual_total_wan": null,
           "weekly_hours": null,
-          "overtime": null,
+          "overtime": "偶爾～經常",
           "travel": "不用",
           "n": 1,
-          "note": "GoodJob 單筆月薪 7.7 萬，年資未明，疑非新人",
+          "note": "GoodJob 單筆月薪 7.7 萬，年資未明，疑非新人；比薪水網 2025-09 設備職回報偶爾加班、日均工時約 12 小時（範圍外參考含 2023 年 22 筆整理）；分紅月數沿用同公司製程職區間",
           "sources": [
             {
               "site": "GoodJob",
               "url": "https://www.goodjob.life/companies/聯華電子股份有限公司/work-experiences/?p=2",
               "date": "2026"
+            },
+            {
+              "site": "比薪水 salary.tw",
+              "url": "https://salary.tw/salary/68bfb84bbe4f3b3bde0828dc",
+              "date": "2025-09"
             }
           ],
           "confidence": "低"
@@ -253,10 +273,10 @@
             180
           ],
           "weekly_hours": null,
-          "overtime": null,
+          "overtime": "偶爾～經常",
           "travel": "偶爾",
           "n": 3,
-          "note": "GoodJob 2026-04～05 面試回報月薪 6.7 萬（黃光、元件開發），微影研發年薪 180 萬（未錄取者）；學歷未標",
+          "note": "GoodJob 2026-04～05 面試回報月薪 6.7 萬（黃光、元件開發），微影研發年薪 180 萬（未錄取者）；學歷未標；研發職加班查比薪水、Dcard 未見專屬回報，沿用公司整體區間（低信心）",
           "sources": [
             {
               "site": "GoodJob",
@@ -275,8 +295,14 @@
             67,
             70
           ],
-          "bonus_months": null,
-          "annual_months": null,
+          "bonus_months": [
+            2,
+            4
+          ],
+          "annual_months": [
+            14,
+            16.2
+          ],
           "annual_total_wan": null,
           "weekly_hours": [
             48,
@@ -285,7 +311,7 @@
           "overtime": "經常",
           "travel": "不用",
           "n": 2,
-          "note": "GoodJob 2026-03 月薪 6.7 萬、工時 60 小時／週；2025-08 一則 7 萬，分紅與加薪看考績",
+          "note": "GoodJob 2026-03 月薪 6.7 萬、工時 60 小時／週；2025-08 一則 7 萬，分紅與加薪看考績；年薪與分紅月數沿用同公司製程職區間",
           "sources": [
             {
               "site": "GoodJob",
@@ -331,10 +357,10 @@
           ],
           "annual_total_wan": null,
           "weekly_hours": null,
-          "overtime": null,
+          "overtime": "經常（需值班）",
           "travel": "不用",
           "n": 1,
-          "note": "GoodJob 2026 單筆月薪 6.06 萬；QC 自述 12＋4 個月；學歷年資未標",
+          "note": "GoodJob 2026 單筆月薪 6.06 萬；QC 自述 12＋4 個月；學歷年資未標；GoodJob 多則回報公司保障 16 個月（含年終與節金），另 7 月依營運發分紅、4 月調薪；分紅月數未見具體數字（2026-10 查 GoodJob、媒體）",
           "sources": [
             {
               "site": "GoodJob",
@@ -345,6 +371,11 @@
               "site": "比薪水",
               "url": "https://salary.tw/salary/68ddb4dbe1da1b9e520fbc24",
               "date": "2025-10"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/世界先進積體電路股份有限公司/work-experiences/薪資福利?p=2",
+              "date": "2026"
             }
           ],
           "confidence": "低"
@@ -359,17 +390,25 @@
             58
           ],
           "bonus_months": null,
-          "annual_months": null,
+          "annual_months": [
+            16,
+            16
+          ],
           "annual_total_wan": null,
           "weekly_hours": null,
-          "overtime": null,
-          "travel": null,
+          "overtime": "經常（需值班）",
+          "travel": "不用",
           "n": 1,
-          "note": "GoodJob 面試回報單筆 5.8 萬（未通知、年資不完整）；Dcard／PTT 查無世界先進 offer。查過：世界先進 offer 碩士 月薪 分紅 面試 2026（Dcard）／世界先進 GoodJob 面試經驗 製程整合 設備工程師 月薪",
+          "note": "GoodJob 面試回報單筆 5.8 萬（未通知、年資不完整）；Dcard／PTT 查無世界先進 offer。查過：世界先進 offer 碩士 月薪 分紅 面試 2026（Dcard）／世界先進 GoodJob 面試經驗 製程整合 設備工程師 月薪；GoodJob 多則回報公司保障 16 個月（含年終與節金），另 7 月依營運發分紅、4 月調薪；分紅月數未見具體數字（2026-10 查 GoodJob、媒體）；GoodJob 製程職回報工時偏長、需值班；出差未見回報（廠內職）",
           "sources": [
             {
               "site": "GoodJob",
               "url": "https://www.goodjob.life/companies/世界先進積體電路股份有限公司/interview-experiences?p=3",
+              "date": "2026"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/世界先進積體電路股份有限公司/work-experiences/薪資福利?p=2",
               "date": "2026"
             }
           ],
@@ -382,18 +421,26 @@
           "years": "0-2",
           "base_month_k": null,
           "bonus_months": null,
-          "annual_months": null,
+          "annual_months": [
+            16,
+            16
+          ],
           "annual_total_wan": null,
           "weekly_hours": null,
-          "overtime": null,
+          "overtime": "偶爾～經常（輪班／值班津貼）",
           "travel": "不用",
           "n": 0,
-          "note": "僅有 2018 年設備助理工程師 3.8 萬（太舊不採）",
+          "note": "僅有 2018 年設備助理工程師 3.8 萬（太舊不採）；GoodJob 多則回報公司保障 16 個月（含年終與節金），另 7 月依營運發分紅、4 月調薪；分紅月數未見具體數字（2026-10 查 GoodJob、媒體）",
           "sources": [
             {
               "site": "GoodJob",
               "url": "https://www.goodjob.life/companies/世界先進積體電路股份有限公司/interview-experiences?p=3",
               "date": "2018"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/世界先進積體電路股份有限公司/work-experiences/薪資福利?p=2",
+              "date": "2026"
             }
           ],
           "confidence": "低"
@@ -405,17 +452,25 @@
           "years": "0-2",
           "base_month_k": null,
           "bonus_months": null,
-          "annual_months": null,
+          "annual_months": [
+            16,
+            16
+          ],
           "annual_total_wan": null,
           "weekly_hours": null,
           "overtime": null,
-          "travel": null,
+          "travel": "偶爾",
           "n": 0,
-          "note": "查無；關鍵字同上＋世界先進 製程 月薪 分紅 季獎金 2026",
+          "note": "查無；關鍵字同上＋世界先進 製程 月薪 分紅 季獎金 2026；GoodJob 多則回報公司保障 16 個月（含年終與節金），另 7 月依營運發分紅、4 月調薪；分紅月數未見具體數字（2026-10 查 GoodJob、媒體）；研發出差頻率未見具體回報，暫填偶爾（低信心）",
           "sources": [
             {
               "site": "GoodJob",
               "url": "https://www.goodjob.life/companies/世界先進積體電路股份有限公司/work-experiences/薪資福利",
+              "date": "2026"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/世界先進積體電路股份有限公司/work-experiences/薪資福利?p=2",
               "date": "2026"
             }
           ],
@@ -469,7 +524,7 @@
           "overtime": "偶爾（良率問題時加班）",
           "travel": "不用",
           "n": 2,
-          "note": "GoodJob 2026-01 自述月薪 6 萬、近一年無季獎金；另 2025 一筆 8 萬為 6 年年資已排除",
+          "note": "GoodJob 2026-01 自述月薪 6 萬、近一年無季獎金；另 2025 一筆 8 萬為 6 年年資已排除；力積電近一年虧損，分紅月數依同公司製程／整合職回報為 0",
           "sources": [
             {
               "site": "GoodJob",
@@ -507,7 +562,7 @@
           "overtime": "很少",
           "travel": "不用",
           "n": 2,
-          "note": "GoodJob 2026-02 自述只有 14 個月、無分紅；比薪水 2026-01 整合工程師日均 9 小時（金額需解鎖）",
+          "note": "GoodJob 2026-02 自述只有 14 個月、無分紅；比薪水 2026-01 整合工程師日均 9 小時（金額需解鎖）；力積電近一年虧損，分紅月數依同公司製程／整合職回報為 0",
           "sources": [
             {
               "site": "GoodJob",
@@ -531,7 +586,10 @@
             62,
             62
           ],
-          "bonus_months": null,
+          "bonus_months": [
+            0,
+            0
+          ],
           "annual_months": [
             14,
             14
@@ -544,7 +602,7 @@
           "overtime": "偶爾",
           "travel": "不用",
           "n": 1,
-          "note": "資料為 2025 年，略早於期間起點，僅供參考",
+          "note": "資料為 2025 年，略早於期間起點，僅供參考；力積電近一年虧損，分紅月數依同公司製程／整合職回報為 0",
           "sources": [
             {
               "site": "GoodJob",
@@ -563,17 +621,20 @@
             62,
             62
           ],
-          "bonus_months": null,
+          "bonus_months": [
+            0,
+            0
+          ],
           "annual_months": [
             14,
             14
           ],
           "annual_total_wan": null,
           "weekly_hours": null,
-          "overtime": null,
+          "overtime": "偶爾",
           "travel": "不用",
           "n": 1,
-          "note": "GoodJob 面試回報月薪 6.2 萬（面試時間 2023-09，發文 2026-04，時效偏舊）；Dcard／PTT 查無",
+          "note": "GoodJob 面試回報月薪 6.2 萬（面試時間 2023-09，發文 2026-04，時效偏舊）；Dcard／PTT 查無；力積電近一年虧損，分紅月數依同公司製程／整合職回報為 0",
           "sources": [
             {
               "site": "GoodJob",
