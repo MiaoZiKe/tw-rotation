@@ -3,7 +3,7 @@
     "mis.index_minute": {
       "ok": true,
       "rows": 840,
-      "seconds": 2.0
+      "seconds": 1.7
     },
     "index_intraday": {
       "stored": 0
@@ -11,15 +11,15 @@
     "taifex.futures_minute": {
       "ok": false,
       "rows": 0,
-      "seconds": 2.4
+      "seconds": 2.7
     },
     "news.collect": {
       "ok": true,
-      "rows": 130,
-      "seconds": 2.6
+      "rows": 128,
+      "seconds": 3.7
     },
     "news": {
-      "stored": 3
+      "stored": 5
     },
     "news.broker_views": {
       "ok": true,
@@ -31,19 +31,19 @@
     },
     "mops.material_news": {
       "ok": true,
-      "rows": 5,
-      "seconds": 2.1
+      "rows": 1,
+      "seconds": 1.9
     },
     "material_news": {
-      "stored": 0
+      "stored": 1
     },
     "macro.intl": {
       "ok": true,
-      "rows": 2262,
-      "seconds": 1.5
+      "rows": 4516,
+      "seconds": 1.7
     },
     "intl_daily": {
-      "stored": 502
+      "stored": 2035
     },
     "macro.fred": {
       "ok": true,
@@ -56,10 +56,31 @@
     "macro.fred_calendar": {
       "ok": true,
       "rows": 24,
-      "seconds": 1.4
+      "seconds": 1.8
     },
     "macro_calendar": {
       "stored": 0
+    },
+    "margin_total": {
+      "stored": 0
+    },
+    "mktfut.margin_total": {
+      "ok": true,
+      "rows": 6
+    },
+    "fut_inst": {
+      "stored": 0
+    },
+    "mktfut.fut_inst": {
+      "ok": true,
+      "rows": 54
+    },
+    "fut_oi": {
+      "stored": 0
+    },
+    "mktfut.fut_oi": {
+      "ok": true,
+      "rows": 18
     },
     "build_payload": {
       "ok": true
@@ -79,9 +100,9 @@
       "2026-10-22"
     ]
   },
-  "started_at": "2026-10-25T19:39:15.674319+00:00",
-  "finished_at": "2026-10-25T19:54:34.008332+00:00",
-  "duration_seconds": 918.3,
+  "started_at": "2026-10-25T23:14:57.934431+00:00",
+  "finished_at": "2026-10-25T23:36:57.904772+00:00",
+  "duration_seconds": 1320.0,
   "trade_date": null,
   "complete": true,
   "freshness": {
@@ -132,7 +153,7 @@
     "warn_labels": []
   },
   "warn": [],
-  "finmind_budget_left": 460,
+  "finmind_budget_left": 453,
   "tables": [
     {
       "table": "price_daily",
@@ -221,7 +242,7 @@
     },
     {
       "table": "news",
-      "rows": 7571,
+      "rows": 7576,
       "latest": "2026-10-26"
     },
     {
@@ -231,7 +252,7 @@
     },
     {
       "table": "intl_daily",
-      "rows": 2493,
+      "rows": 4528,
       "latest": "2026-10-25"
     },
     {
@@ -286,8 +307,8 @@
     },
     {
       "table": "material_news",
-      "rows": 2016,
-      "latest": "2026-10-24"
+      "rows": 2017,
+      "latest": "2026-10-25"
     },
     {
       "table": "company_website",
