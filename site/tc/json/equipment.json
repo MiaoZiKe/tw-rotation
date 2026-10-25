@@ -26,14 +26,14 @@
           ],
           "annual_months": null,
           "annual_total_wan": [
-            160,
+            200,
             200
           ],
           "weekly_hours": null,
           "overtime": "輪班者常態",
           "travel": "需要",
-          "n": 2,
-          "note": "udn 2026 報導估碩士新進年薪 200 萬起（引比薪水，去年平均 134.7 萬、平均分紅 38.6 萬）；GoodJob 應用工程師 2 年 160 萬；GoodJob 2026-08 UIR 面試：三休三班、兩週輪一次大夜，底薪＋車補，分紅 5～7.5 個月＋年終；安裝工程師 2026-05 面試年薪約 180 萬",
+          "n": 4,
+          "note": "udn 2026 報導估碩士新進年薪 200 萬起（引比薪水，去年平均 134.7 萬、平均分紅 38.6 萬）；GoodJob 應用工程師 2 年 160 萬；GoodJob 2026-08 UIR 面試：三休三班、兩週輪一次大夜，底薪＋車補，分紅 5～7.5 個月＋年終；安裝工程師 2026-05 面試年薪約 180 萬；第二輪：Dcard 轉媒體 2026-10：在台徵才千人、碩畢年薪上看 200 萬、分紅增 10%；bonus_months 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples",
           "sources": [
             {
               "site": "聯合新聞網",
@@ -49,12 +49,85 @@
               "site": "GoodJob",
               "url": "https://www.goodjob.life/experiences/6a83fe49c43855f64019e450",
               "date": "2026-08"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261674566",
+              "date": "2026-10"
             }
           ],
-          "confidence": "中"
+          "confidence": "中",
+          "grade": null,
+          "samples": [
+            {
+              "site": "聯合新聞網",
+              "url": "https://udn.com/news/story/7240/9543125",
+              "date": "2026",
+              "unit_detail": null,
+              "years": "0-2",
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": null
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/ASML/work-experiences/薪資福利",
+              "date": "2026",
+              "unit_detail": null,
+              "years": "0-2",
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": null
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/6a83fe49c43855f64019e450",
+              "date": "2026-08",
+              "unit_detail": null,
+              "years": "0-2",
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": null
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261674566",
+              "date": "2026-10",
+              "unit_detail": null,
+              "years": "0-2",
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 200,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "媒體：碩畢年薪上看 200 萬"
+            }
+          ]
         }
       ],
-      "mops": null
+      "mops": null,
+      "grade_system": null
     },
     {
       "name": "KLA",
@@ -81,8 +154,8 @@
           "weekly_hours": null,
           "overtime": "偶爾（日班為主）",
           "travel": "需要",
-          "n": 0,
-          "note": "Dcard 引 2023 碩士年薪 64～72 萬＋車補 16.6 萬，已超出一年期不採；查無可用數字；查過關鍵字：KLA Lam Research 台灣 工程師 薪水 2026／科磊 KLA 科林研發 GoodJob 工程師 月薪 年薪 出差；比薪水新竹／台中／台南多筆應用工程師（年資 1～2 年）金額需解鎖；GoodJob 2026-02 CSE：年薪約 135 萬、每週 44 小時、日班偶爾調班；2026-04 客服面試年薪約 120 萬",
+          "n": 2,
+          "note": "Dcard 引 2023 碩士年薪 64～72 萬＋車補 16.6 萬，已超出一年期不採；查無可用數字；查過關鍵字：KLA Lam Research 台灣 工程師 薪水 2026／科磊 KLA 科林研發 GoodJob 工程師 月薪 年薪 出差；比薪水新竹／台中／台南多筆應用工程師（年資 1～2 年）金額需解鎖；GoodJob 2026-02 CSE：年薪約 135 萬、每週 44 小時、日班偶爾調班；2026-04 客服面試年薪約 120 萬；annual_total_wan 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples",
           "sources": [
             {
               "site": "Dcard",
@@ -95,10 +168,46 @@
               "date": "2026-02"
             }
           ],
-          "confidence": "低"
+          "confidence": "中",
+          "grade": null,
+          "samples": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/259061718/b/5",
+              "date": "2023",
+              "unit_detail": null,
+              "years": "0-2",
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": null
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/699eddd40a1f7b0ab9cac01a",
+              "date": "2026-02",
+              "unit_detail": null,
+              "years": "0-2",
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": null
+            }
+          ]
         }
       ],
-      "mops": null
+      "mops": null,
+      "grade_system": null
     },
     {
       "name": "Lam Research",
@@ -122,7 +231,7 @@
           "weekly_hours": null,
           "overtime": "經常（輪班＋on call）",
           "travel": "需要",
-          "n": 0,
+          "n": 3,
           "note": "比薪水 2026-03 新竹設備工程師有分享但金額需解鎖；GoodJob 2026-08 設備職面試：無塵室、三到四週輪一次班、需 on call 與出差支援",
           "sources": [
             {
@@ -141,10 +250,62 @@
               "date": "2026-08"
             }
           ],
-          "confidence": "低"
+          "confidence": "中",
+          "grade": null,
+          "samples": [
+            {
+              "site": "比薪水",
+              "url": "https://salary.tw/salary/6a5796420eeefc8e5205b81e",
+              "date": "2026-03",
+              "unit_detail": null,
+              "years": "0-2",
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": null
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/241052158",
+              "date": "未明",
+              "unit_detail": null,
+              "years": "0-2",
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": null
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/6a85db4cc43855f64051bc04",
+              "date": "2026-08",
+              "unit_detail": null,
+              "years": "0-2",
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": null
+            }
+          ]
         }
       ],
-      "mops": null
+      "mops": null,
+      "grade_system": null
     },
     {
       "name": "應用材料",
@@ -175,7 +336,7 @@
           "overtime": null,
           "travel": "需要",
           "n": 2,
-          "note": "招募文案保 14 個月；GoodJob 製程 4 年自述年終＋分紅 5.5 個月、年薪 150 萬（非新人），客戶支援助理 110 萬；2026-10 查 GoodJob 設備商批次未見應材加班與分紅月數具體數字",
+          "note": "招募文案保 14 個月；GoodJob 製程 4 年自述年終＋分紅 5.5 個月、年薪 150 萬（非新人），客戶支援助理 110 萬；2026-10 查 GoodJob 設備商批次未見應材加班與分紅月數具體數字；annual_months、annual_total_wan 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples",
           "sources": [
             {
               "site": "GoodJob",
@@ -188,10 +349,46 @@
               "date": "2026-04"
             }
           ],
-          "confidence": "低"
+          "confidence": "中",
+          "grade": null,
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台灣應用材料股份有限公司/work-experiences/薪資福利",
+              "date": "2026-01",
+              "unit_detail": null,
+              "years": "0-4",
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": null
+            },
+            {
+              "site": "台師大資工公告",
+              "url": "https://www.csie.ntnu.edu.tw/wp-content/uploads/2026/04/ATTCH1.pdf",
+              "date": "2026-04",
+              "unit_detail": null,
+              "years": "0-4",
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": null
+            }
+          ]
         }
       ],
-      "mops": null
+      "mops": null,
+      "grade_system": null
     },
     {
       "name": "TEL",
@@ -224,8 +421,8 @@
           "weekly_hours": null,
           "overtime": null,
           "travel": "需要",
-          "n": 2,
-          "note": "GoodJob 2026 台中 6 年 140 萬、台南 3 年 120 萬，非新人；保 14＋分紅 5～8 個月",
+          "n": 1,
+          "note": "GoodJob 2026 台中 6 年 140 萬、台南 3 年 120 萬，非新人；保 14＋分紅 5～8 個月；bonus_months、annual_months、annual_total_wan 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples",
           "sources": [
             {
               "site": "GoodJob",
@@ -233,10 +430,30 @@
               "date": "2026"
             }
           ],
-          "confidence": "中"
+          "confidence": "低",
+          "grade": null,
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/東京威力科創股份有限公司/work-experiences/薪資福利",
+              "date": "2026",
+              "unit_detail": null,
+              "years": "3-6",
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": null
+            }
+          ]
         }
       ],
-      "mops": null
+      "mops": null,
+      "grade_system": null
     },
     {
       "name": "漢磊",
@@ -269,16 +486,77 @@
           ],
           "overtime": "經常",
           "travel": "不用",
-          "n": 2,
-          "note": "GoodJob 製程工程師 5.4 萬、面試回報 5 萬；另一則年薪 95 萬年資未明不採",
+          "n": 3,
+          "note": "GoodJob 製程工程師 5.4 萬、面試回報 5 萬；另一則年薪 95 萬年資未明不採；第二輪：Dcard offer 比較：擴散製程約 N+5（需輪班）、蝕刻約 N-10；年薪約 15～16 個月含分紅（日期依文章編號推估）；base_month_k、annual_months 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples",
           "sources": [
             {
               "site": "GoodJob",
               "url": "https://www.goodjob.life/companies/漢磊科技股份有限公司/work-experiences/",
               "date": "2026"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/259879289",
+              "date": "2025-12"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/259985962",
+              "date": "2025-12"
             }
           ],
-          "confidence": "低"
+          "confidence": "中",
+          "grade": null,
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/漢磊科技股份有限公司/work-experiences/",
+              "date": "2026",
+              "unit_detail": null,
+              "years": "0-2",
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": null
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/259879289",
+              "date": "2025-12",
+              "unit_detail": null,
+              "years": "0-2",
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": null
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/259985962",
+              "date": "2025-12",
+              "unit_detail": null,
+              "years": "0-2",
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": null
+            }
+          ]
         }
       ],
       "mops": {
@@ -288,7 +566,8 @@
         "n": null,
         "source": "未取得；查過：<公司> 非主管 薪資 平均 中位數 2025／非主管 平均薪資 2025 萬元 證交所；新聞只列前十名，需至公開資訊觀測站彙總報表查",
         "url": "https://mops.twse.com.tw/"
-      }
+      },
+      "grade_system": null
     }
   ]
 }

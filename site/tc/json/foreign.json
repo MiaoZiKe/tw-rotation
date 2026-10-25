@@ -29,8 +29,8 @@
      "weekly_hours": null,
      "overtime": "偶爾",
      "travel": null,
-     "n": null,
-     "note": "平台自述統計（未轉貼原文）；2025-06 媒體引網傳招募資料，非官方，窗口前；含 RSU（NSU，4 年歸屬，3/6/9/12 月）；GoodJob 新竹產品職單筆每週約 40 小時、年薪約 150 萬（2024-10，範圍外參考）",
+     "n": 1,
+     "note": "平台自述統計（未轉貼原文）；2025-06 媒體引網傳招募資料，非官方，窗口前；含 RSU（NSU，4 年歸屬，3/6/9/12 月）；GoodJob 新竹產品職單筆每週約 40 小時、年薪約 150 萬（2024-10，範圍外參考）；annual_total_wan 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples",
      "sources": [
       {
        "site": "TechNews",
@@ -38,7 +38,26 @@
        "date": "2025-06"
       }
      ],
-     "confidence": "低"
+     "confidence": "低",
+     "grade": null,
+     "samples": [
+      {
+       "site": "TechNews",
+       "url": "https://technews.tw/?p=1398359",
+       "date": "2025-06",
+       "unit_detail": null,
+       "years": "0-2",
+       "degree": "碩士",
+       "base_k": null,
+       "bonus_months": null,
+       "annual_months": null,
+       "annual_wan": null,
+       "weekly_hours": null,
+       "overtime": null,
+       "travel": null,
+       "quote_free_note": null
+      }
+     ]
     },
     {
      "unit": "台灣研發",
@@ -49,25 +68,66 @@
      "bonus_months": null,
      "annual_months": null,
      "annual_total_wan": [
-      null,
-      null
+      600,
+      600
      ],
      "weekly_hours": null,
      "overtime": "偶爾",
      "travel": null,
-     "n": null,
-     "note": "平台自述統計（未轉貼原文）；Levels.fyi 台灣硬體工程師中位總薪酬約 240 萬（含股票，不限新鮮人），非碩士新人口徑；GoodJob 新竹產品職單筆每週約 40 小時、年薪約 150 萬（2024-10，範圍外參考）",
+     "n": 2,
+     "note": "平台自述統計（未轉貼原文）；Levels.fyi 台灣硬體工程師中位總薪酬約 240 萬（含股票，不限新鮮人），非碩士新人口徑；GoodJob 新竹產品職單筆每週約 40 小時、年薪約 150 萬（2024-10，範圍外參考）；第二輪：Dcard 討論 3 年年資年薪約 600 萬（含股），NVIDIA 為底薪＋RSU、無分紅；股價影響大",
      "sources": [
       {
        "site": "Levels.fyi",
        "url": "https://www.levels.fyi/companies/nvidia/salaries/hardware-engineer/locations/taiwan",
        "date": "未確認"
+      },
+      {
+       "site": "Dcard",
+       "url": "https://www.dcard.tw/f/tech_job/p/259668770",
+       "date": "2025-12"
       }
      ],
-     "confidence": "低"
+     "confidence": "中",
+     "grade": null,
+     "samples": [
+      {
+       "site": "Levels.fyi",
+       "url": "https://www.levels.fyi/companies/nvidia/salaries/hardware-engineer/locations/taiwan",
+       "date": "未確認",
+       "unit_detail": null,
+       "years": "不限",
+       "degree": "碩士",
+       "base_k": null,
+       "bonus_months": null,
+       "annual_months": null,
+       "annual_wan": null,
+       "weekly_hours": null,
+       "overtime": null,
+       "travel": null,
+       "quote_free_note": null
+      },
+      {
+       "site": "Dcard",
+       "url": "https://www.dcard.tw/f/tech_job/p/259668770",
+       "date": "2025-12",
+       "unit_detail": null,
+       "years": "3",
+       "degree": "碩士",
+       "base_k": null,
+       "bonus_months": null,
+       "annual_months": null,
+       "annual_wan": 600,
+       "weekly_hours": null,
+       "overtime": null,
+       "travel": null,
+       "quote_free_note": "3 年年薪約 600 萬（含股）"
+      }
+     ]
     }
    ],
-   "mops": null
+   "mops": null,
+   "grade_system": null
   },
   {
    "name": "Google",
@@ -94,8 +154,8 @@
      "weekly_hours": null,
      "overtime": null,
      "travel": null,
-     "n": null,
-     "note": "平台自述統計（未轉貼原文）；NOWnews 引 Levels.fyi：台灣 L3 含股票獎金平均月約 18 萬、年 186 萬以上；日期未確認",
+     "n": 1,
+     "note": "平台自述統計（未轉貼原文）；NOWnews 引 Levels.fyi：台灣 L3 含股票獎金平均月約 18 萬、年 186 萬以上；日期未確認；annual_total_wan 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples",
      "sources": [
       {
        "site": "NOWnews",
@@ -103,10 +163,30 @@
        "date": "未確認"
       }
      ],
-     "confidence": "低"
+     "confidence": "低",
+     "grade": null,
+     "samples": [
+      {
+       "site": "NOWnews",
+       "url": "https://www.nownews.com/news/6729882",
+       "date": "未確認",
+       "unit_detail": null,
+       "years": "0-2",
+       "degree": "碩士",
+       "base_k": null,
+       "bonus_months": null,
+       "annual_months": null,
+       "annual_wan": null,
+       "weekly_hours": null,
+       "overtime": null,
+       "travel": null,
+       "quote_free_note": null
+      }
+     ]
     }
    ],
-   "mops": null
+   "mops": null,
+   "grade_system": null
   },
   {
    "name": "Dell",
@@ -133,8 +213,8 @@
      "weekly_hours": null,
      "overtime": null,
      "travel": null,
-     "n": null,
-     "note": "平台自述統計（未轉貼原文）；Levels.fyi 台灣硬體工程師 L6 約 146 萬起、中位 230 萬（不限新人）；2026-10 查詢未見台灣 Dell 資料",
+     "n": 1,
+     "note": "平台自述統計（未轉貼原文）；Levels.fyi 台灣硬體工程師 L6 約 146 萬起、中位 230 萬（不限新人）；2026-10 查詢未見台灣 Dell 資料；annual_total_wan 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples",
      "sources": [
       {
        "site": "Levels.fyi",
@@ -142,10 +222,30 @@
        "date": "未確認"
       }
      ],
-     "confidence": "低"
+     "confidence": "低",
+     "grade": null,
+     "samples": [
+      {
+       "site": "Levels.fyi",
+       "url": "https://www.levels.fyi/zh-tw/companies/dell-technologies/salaries/hardware-engineer/locations/taiwan",
+       "date": "未確認",
+       "unit_detail": null,
+       "years": "不限",
+       "degree": "碩士",
+       "base_k": null,
+       "bonus_months": null,
+       "annual_months": null,
+       "annual_wan": null,
+       "weekly_hours": null,
+       "overtime": null,
+       "travel": null,
+       "quote_free_note": null
+      }
+     ]
     }
    ],
-   "mops": null
+   "mops": null,
+   "grade_system": null
   },
   {
    "name": "Apple",
@@ -169,7 +269,7 @@
      "weekly_hours": null,
      "overtime": null,
      "travel": null,
-     "n": null,
+     "n": 1,
      "note": "平台自述統計（未轉貼原文）；Levels.fyi 有台灣 ICT3 頁面但摘要未給台幣數字；美國數據不採用；2026-10 查 GoodJob／媒體未見台灣 Apple 工時與獎金資料；媒體僅談外商以 RSU 搶才",
      "sources": [
       {
@@ -178,10 +278,30 @@
        "date": "未確認"
       }
      ],
-     "confidence": "低"
+     "confidence": "低",
+     "grade": null,
+     "samples": [
+      {
+       "site": "Levels.fyi",
+       "url": "https://www.levels.fyi/companies/apple/salaries/hardware-engineer/levels/ict3/locations/taiwan",
+       "date": "未確認",
+       "unit_detail": null,
+       "years": "0-2",
+       "degree": "碩士",
+       "base_k": null,
+       "bonus_months": null,
+       "annual_months": null,
+       "annual_wan": null,
+       "weekly_hours": null,
+       "overtime": null,
+       "travel": null,
+       "quote_free_note": null
+      }
+     ]
     }
    ],
-   "mops": null
+   "mops": null,
+   "grade_system": null
   },
   {
    "name": "HP",
@@ -217,36 +337,30 @@
        "date": "2023-2024"
       }
      ],
-     "confidence": "低"
-    },
-    {
-     "unit": "台灣",
-     "role": "軟體專案經理",
-     "degree": "碩士（未標學歷）",
-     "years": "不限",
-     "base_month_k": null,
-     "bonus_months": null,
-     "annual_months": null,
-     "annual_total_wan": [
-      150,
-      150
-     ],
-     "weekly_hours": null,
-     "overtime": null,
-     "travel": null,
-     "n": 1,
-     "note": "平台自述統計（未轉貼原文）；範圍外參考：2023～2024；2026-10 查詢未見台灣 HP 資料",
-     "sources": [
+     "confidence": "低",
+     "grade": null,
+     "samples": [
       {
        "site": "GoodJob",
        "url": "https://www.goodjob.life/companies/HP INC./work-experiences",
-       "date": "2023-2024"
+       "date": "2023-2024",
+       "unit_detail": null,
+       "years": "不限",
+       "degree": "碩士（未標學歷）",
+       "base_k": null,
+       "bonus_months": null,
+       "annual_months": null,
+       "annual_wan": 120,
+       "weekly_hours": null,
+       "overtime": null,
+       "travel": null,
+       "quote_free_note": null
       }
-     ],
-     "confidence": "低"
+     ]
     }
    ],
-   "mops": null
+   "mops": null,
+   "grade_system": null
   },
   {
    "name": "微軟",
@@ -270,10 +384,12 @@
      "weekly_hours": null,
      "overtime": "偶爾",
      "travel": null,
-     "n": null,
+     "n": 0,
      "note": "WebSearch 以「微軟 台灣 碩士 起薪／年薪／GoodJob／Dcard 2026」查詢，摘要未給出近一年碩士數字；待補；補查：GoodJob、PTT Tech_Job、面試趣、Levels.fyi Taiwan 皆無台灣數字（微軟、博通只見美元排行榜不採用）；GoodJob 台灣微軟工時統計；軟體職單筆每週 40 小時、年薪 150 萬",
      "sources": [],
-     "confidence": "低"
+     "confidence": "低",
+     "grade": null,
+     "samples": []
     },
     {
      "unit": "台灣",
@@ -287,13 +403,16 @@
      "weekly_hours": null,
      "overtime": "偶爾",
      "travel": null,
-     "n": null,
+     "n": 0,
      "note": "WebSearch 以「微軟 台灣 碩士 起薪／年薪／GoodJob／Dcard 2026」查詢，摘要未給出近一年碩士數字；待補；補查：GoodJob、PTT Tech_Job、面試趣、Levels.fyi Taiwan 皆無台灣數字（微軟、博通只見美元排行榜不採用）；GoodJob 台灣微軟工時統計；軟體職單筆每週 40 小時、年薪 150 萬",
      "sources": [],
-     "confidence": "低"
+     "confidence": "低",
+     "grade": null,
+     "samples": []
     }
    ],
-   "mops": null
+   "mops": null,
+   "grade_system": null
   },
   {
    "name": "Meta",
@@ -317,10 +436,12 @@
      "weekly_hours": null,
      "overtime": null,
      "travel": null,
-     "n": null,
+     "n": 0,
      "note": "WebSearch 以「Meta 台灣 碩士 起薪／年薪／GoodJob／Dcard 2026」查詢，摘要未給出近一年碩士數字；待補；補查：GoodJob、PTT Tech_Job、面試趣、Levels.fyi Taiwan 皆無台灣數字（微軟、博通只見美元排行榜不採用）；2026-10 查詢未見台灣 Meta 資料",
      "sources": [],
-     "confidence": "低"
+     "confidence": "低",
+     "grade": null,
+     "samples": []
     },
     {
      "unit": "台灣",
@@ -334,13 +455,16 @@
      "weekly_hours": null,
      "overtime": null,
      "travel": null,
-     "n": null,
+     "n": 0,
      "note": "WebSearch 以「Meta 台灣 碩士 起薪／年薪／GoodJob／Dcard 2026」查詢，摘要未給出近一年碩士數字；待補；補查：GoodJob、PTT Tech_Job、面試趣、Levels.fyi Taiwan 皆無台灣數字（微軟、博通只見美元排行榜不採用）；2026-10 查詢未見台灣 Meta 資料",
      "sources": [],
-     "confidence": "低"
+     "confidence": "低",
+     "grade": null,
+     "samples": []
     }
    ],
-   "mops": null
+   "mops": null,
+   "grade_system": null
   },
   {
    "name": "高通",
@@ -376,10 +500,30 @@
        "date": "2026-01"
       }
      ],
-     "confidence": "低"
+     "confidence": "低",
+     "grade": null,
+     "samples": [
+      {
+       "site": "GoodJob",
+       "url": "https://www.goodjob.life/companies/高通半導體有限公司/work-experiences/薪資福利",
+       "date": "2026-01",
+       "unit_detail": null,
+       "years": "4",
+       "degree": "碩士（未標學歷）",
+       "base_k": null,
+       "bonus_months": null,
+       "annual_months": null,
+       "annual_wan": 210,
+       "weekly_hours": null,
+       "overtime": null,
+       "travel": null,
+       "quote_free_note": null
+      }
+     ]
     }
    ],
-   "mops": null
+   "mops": null,
+   "grade_system": null
   },
   {
    "name": "博通",
@@ -403,7 +547,7 @@
      "weekly_hours": null,
      "overtime": "偶爾",
      "travel": null,
-     "n": null,
+     "n": 1,
      "note": "WebSearch 以「博通 台灣 碩士 起薪／年薪／GoodJob／Dcard 2026」查詢，摘要未給出近一年碩士數字；待補；補查：GoodJob、PTT Tech_Job、面試趣、Levels.fyi Taiwan 皆無台灣數字（微軟、博通只見美元排行榜不採用）；GoodJob 單筆",
      "sources": [
       {
@@ -412,7 +556,26 @@
        "date": "2025-08"
       }
      ],
-     "confidence": "低"
+     "confidence": "低",
+     "grade": null,
+     "samples": [
+      {
+       "site": "GoodJob",
+       "url": "https://www.goodjob.life/experiences/68ad4b2d8e2b98ac9f2aea59",
+       "date": "2025-08",
+       "unit_detail": null,
+       "years": "0-2",
+       "degree": "碩士",
+       "base_k": null,
+       "bonus_months": null,
+       "annual_months": null,
+       "annual_wan": null,
+       "weekly_hours": null,
+       "overtime": null,
+       "travel": null,
+       "quote_free_note": null
+      }
+     ]
     },
     {
      "unit": "台灣",
@@ -426,13 +589,16 @@
      "weekly_hours": null,
      "overtime": null,
      "travel": null,
-     "n": null,
+     "n": 0,
      "note": "WebSearch 以「博通 台灣 碩士 起薪／年薪／GoodJob／Dcard 2026」查詢，摘要未給出近一年碩士數字；待補；補查：GoodJob、PTT Tech_Job、面試趣、Levels.fyi Taiwan 皆無台灣數字（微軟、博通只見美元排行榜不採用）",
      "sources": [],
-     "confidence": "低"
+     "confidence": "低",
+     "grade": null,
+     "samples": []
     }
    ],
-   "mops": null
+   "mops": null,
+   "grade_system": null
   },
   {
    "name": "AMD",
@@ -459,8 +625,8 @@
      "weekly_hours": null,
      "overtime": null,
      "travel": null,
-     "n": null,
-     "note": "平台自述統計（未轉貼原文）；Levels.fyi 台灣 L5～L9，中位約 331 萬，2025-12 更新，不限新人；2026-10 查 GoodJob（超微／AMD 關鍵字）只撈到美超微，AMD 台灣無資料",
+     "n": 1,
+     "note": "平台自述統計（未轉貼原文）；Levels.fyi 台灣 L5～L9，中位約 331 萬，2025-12 更新，不限新人；2026-10 查 GoodJob（超微／AMD 關鍵字）只撈到美超微，AMD 台灣無資料；annual_total_wan 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples",
      "sources": [
       {
        "site": "Levels.fyi",
@@ -468,10 +634,30 @@
        "date": "2025-12"
       }
      ],
-     "confidence": "低"
+     "confidence": "低",
+     "grade": null,
+     "samples": [
+      {
+       "site": "Levels.fyi",
+       "url": "https://www.levels.fyi/ja-jp/companies/amd/salaries/software-engineer/locations/taiwan",
+       "date": "2025-12",
+       "unit_detail": null,
+       "years": "不限",
+       "degree": "碩士（未標學歷）",
+       "base_k": null,
+       "bonus_months": null,
+       "annual_months": null,
+       "annual_wan": null,
+       "weekly_hours": null,
+       "overtime": null,
+       "travel": null,
+       "quote_free_note": null
+      }
+     ]
     }
    ],
-   "mops": null
+   "mops": null,
+   "grade_system": null
   }
  ]
 }
