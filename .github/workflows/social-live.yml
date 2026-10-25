@@ -23,7 +23,8 @@ name: 社群即時貼文（Threads／IG 限動）
 #   報價請求由 Playwright 補上正式站的 Origin（Worker 看 Origin）。即時沒套上就不發，不拿盤後圖冒充。
 #         為什麼不固定時間：三大法人傍晚才落地（daily.yml 台北 18:30 那輪 phase=full 才有；15:30 那輪只抓價量），
 #         GitHub 排程又常延遲數十分鐘；接在管線後面，資料一定已經部署到網站，再用資料日期把關，延遲多久都不會發到舊資料。
-# ★ 非交易日不發：看「資料」不看執行當下的星期幾 —— 盤中看即時報價回應裡的成交日、盤後看 inst_date。
+# ★ 非交易日不發：看「資料」＋休市日表（pipeline/calendar/tw_holidays.yaml），不看執行當下的星期幾（scripts/social_gate.py，2026-10-26）：
+#   盤後法人＝每張卡的資料日都要是今天；盤後融資＝最近一個已收盤交易日、下一個交易日 09:00 前才發；盤中＝交易日 09:00～13:30 且報價成交日是今天。
 # ★ 即時沒套上（抓不到報價）的那張不發，不拿盤後舊圖冒充即時。
 on:
   schedule:
@@ -178,7 +179,9 @@ jobs:
           echo "base=https://raw.githubusercontent.com/${{ github.repository }}/social-snaps/snaps/$NAME" >> "$GITHUB_OUTPUT"
           echo "圖片公開網址前綴：https://raw.githubusercontent.com/${{ github.repository }}/social-snaps/snaps/$NAME/"
 
-      - name: 發布（沒有金鑰會自動 dry-run）
+      # ★ 總開關（2026-10-26）：repo 檔 docs/marketing/social_unit/LIVE_ENABLED 存在才真的發；不存在＝一律 dry-run（即使 Secrets 有金鑰）。
+      #   THREADS_USER_ID／IG_USER_ID 空白時，social_publish.py 會用權杖自動查帳號編號（log 只印末 4 碼）。
+      - name: 發布（總開關關閉或沒有金鑰會自動 dry-run）
         id: post
         if: steps.snap.outputs.rc == '0'
         env:
@@ -189,6 +192,11 @@ jobs:
         run: |
           DRY=""
           if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.dry_run }}" = "true" ]; then DRY="--dry-run"; fi
+          if [ ! -f docs/marketing/social_unit/LIVE_ENABLED ]; then
+            echo "總開關關閉（docs/marketing/social_unit/LIVE_ENABLED 不存在）→ dry-run，不真的發布"
+            echo "### 總開關關閉 → dry-run（要開始真的發，在 repo 建立 docs/marketing/social_unit/LIVE_ENABLED）" >> "$GITHUB_STEP_SUMMARY"
+            DRY="--dry-run"
+          fi
           # 真發布失敗 exit 1（這一步會紅）；dry-run、缺金鑰 exit 0
           python scripts/social_publish.py --manifest "${{ steps.snap.outputs.out }}/manifest.json" \
             --base-url "${{ steps.pub.outputs.base }}" $DRY

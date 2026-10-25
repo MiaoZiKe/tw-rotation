@@ -3,8 +3,14 @@
 用法：
   python scripts/social_publish.py --manifest <資料夾>/manifest.json --base-url <圖片公開網址前綴> [--dry-run]
 
-金鑰只從環境變數讀（缺任何一個，該平台改 dry-run、不報錯）：
+金鑰只從環境變數讀（缺權杖的平台改 dry-run、不報錯）：
   THREADS_USER_ID  THREADS_ACCESS_TOKEN  IG_USER_ID  IG_ACCESS_TOKEN
+  USER_ID 空白但有權杖時，用權杖自動查帳號編號（2026-10-26）：
+    Threads  GET https://graph.threads.net/v1.0/me?fields=id
+    IG       GET https://graph.instagram.com/v24.0/me?fields=user_id,username（取 user_id）
+  查到的編號只在 log 印末 4 碼。
+★ 總開關（2026-10-26）：repo 檔 docs/marketing/social_unit/LIVE_ENABLED 存在才真的發；不存在＝一律 dry-run（即使有金鑰）。
+  Andy 說「開始發」之前不建立這個檔。
 權杖絕不寫檔、不進 log（輸出一律先過 redact）。
 防重複：manifest 旁的 posted.json（工作流會把它留在 social-snaps 分支）。
 官方做法與來源見 docs/marketing/social_unit/meta_api_setup.md。
@@ -22,6 +28,9 @@ from urllib.parse import quote
 import requests
 
 THREADS_HOST = "https://graph.threads.net"
+THREADS_ME = "https://graph.threads.net/v1.0/me"
+IG_ME = "https://graph.instagram.com/v24.0/me"
+LIVE_FLAG = Path(__file__).resolve().parents[1] / "docs" / "marketing" / "social_unit" / "LIVE_ENABLED"
 IG_HOST = "https://graph.instagram.com/v24.0"
 THREADS_TEXT_MAX = 500
 POLL_EVERY = 5      # 秒
@@ -83,6 +92,42 @@ def wait_ready(host, token, cid, label, field):
             raise RuntimeError(f"{label} 媒體處理逾時（{POLL_TIMEOUT} 秒）狀態={st}")
         _sleep(POLL_EVERY)
         waited += POLL_EVERY
+
+
+# ---------- 總開關與帳號編號 ----------
+def live_enabled(flag: Path | None = None) -> bool:
+    """總開關：repo 檔 LIVE_ENABLED 存在＝可以真的發；不存在＝一律 dry-run。"""
+    return Path(flag or LIVE_FLAG).exists()
+
+
+def mask_id(x) -> str:
+    x = str(x or "")
+    return ("…" + x[-4:]) if len(x) > 4 else "…"
+
+
+def resolve_user_id(platform: str, env_id: str, token: str) -> str:
+    """USER_ID 有填就用；空白但有權杖 → 用權杖查（Threads /me?fields=id、IG /me?fields=user_id,username）。查不到回 ''。
+    查到的編號不印全文（只印末 4 碼），並加進遮蔽清單與 ::add-mask::。"""
+    if env_id:
+        return env_id
+    if not token:
+        return ""
+    try:
+        if platform == "threads":
+            uid = str(http("GET", THREADS_ME, params={"fields": "id", "access_token": token}).get("id") or "")
+        else:
+            uid = str(http("GET", IG_ME, params={"fields": "user_id,username", "access_token": token}).get("user_id") or "")
+    except Exception as e:  # noqa: BLE001
+        log(f"[{platform}] 用權杖查帳號編號失敗：{redact(e)}")
+        return ""
+    if not uid:
+        log(f"[{platform}] 用權杖查帳號編號：回應裡沒有編號")
+        return ""
+    print("::add-mask::" + uid, flush=True)
+    if len(uid) >= 6:
+        _SECRETS.append(uid)
+    log(f"[{platform}] USER_ID 沒填，已用權杖查到帳號編號（末 4 碼 {mask_id(uid)}）")
+    return uid
 
 
 # ---------- 權杖延長（每次發文前；失敗不中斷）----------
@@ -179,8 +224,12 @@ def load_posted(p: Path) -> dict:
         return {}
 
 
-def run(manifest_path, base_url, dry_run=False, env=None) -> int:
+def run(manifest_path, base_url, dry_run=False, env=None, flag=None) -> int:
     env = os.environ if env is None else env
+    live = live_enabled(flag)
+    if not live and not dry_run:
+        log(f"總開關關閉（{Path(flag or LIVE_FLAG).name} 不存在）→ dry-run，不真的發布")
+    off = dry_run or not live
     mp = Path(manifest_path)
     m = json.loads(mp.read_text(encoding="utf-8"))
     for k in ("THREADS_ACCESS_TOKEN", "IG_ACCESS_TOKEN"):
@@ -200,20 +249,28 @@ def run(manifest_path, base_url, dry_run=False, env=None) -> int:
     st_urls = [pub(i) for i in m.get("story", [])]
     fail = False
     log(f"時段 {key}（{m.get('taken_at')}）")
+    # 帳號編號：只有真的要發（總開關開、不是 dry-run、有權杖）才去查
+    th_uid = ig_uid = ""
+    if not off:
+        th_uid = resolve_user_id("threads", env.get("THREADS_USER_ID", ""), env.get("THREADS_ACCESS_TOKEN", ""))
+        ig_uid = resolve_user_id("ig", env.get("IG_USER_ID", ""), env.get("IG_ACCESS_TOKEN", ""))
 
     # Threads
     if not th.get("text"):
         pass
     elif "threads" in done:
         log(f"[threads] 已發過（{done['threads'].get('link') or done['threads'].get('id')}），略過")
-    elif dry_run or not (env.get("THREADS_USER_ID") and env.get("THREADS_ACCESS_TOKEN")):
-        why = "--dry-run" if dry_run else "缺 THREADS_USER_ID／THREADS_ACCESS_TOKEN"
+    elif off or not (th_uid and env.get("THREADS_ACCESS_TOKEN")):
+        why = "--dry-run" if dry_run else ("總開關關閉" if not live else
+               ("缺 THREADS_ACCESS_TOKEN" if not env.get("THREADS_ACCESS_TOKEN") else "查不到 Threads 帳號編號"))
+        if live and not dry_run and env.get("THREADS_ACCESS_TOKEN"):
+            fail = True      # 有權杖、開關也開了卻查不到編號 → 讓工作流變紅，不要默默不發
         mode = "單圖" if len(th_urls) == 1 else ("輪播" if th_urls else "純文字")
         log(f"[threads] dry-run（{why}）{mode}，圖 {th_urls}\n文字：\n{th['text']}")
     else:
         try:
             tok = refresh_token("threads", env["THREADS_ACCESS_TOKEN"])
-            done["threads"] = publish_threads(env["THREADS_USER_ID"], tok, th["text"], th_urls)
+            done["threads"] = publish_threads(th_uid, tok, th["text"], th_urls)
             log(f"[threads] 已發布 id={done['threads']['id']} {done['threads']['link']}")
         except Exception as e:  # noqa: BLE001
             fail = True
@@ -224,21 +281,24 @@ def run(manifest_path, base_url, dry_run=False, env=None) -> int:
         pass
     elif "story" in done and len(done["story"]) >= len(st_urls):
         log("[ig] 限動已發過，略過")
-    elif dry_run or not (env.get("IG_USER_ID") and env.get("IG_ACCESS_TOKEN")):
-        why = "--dry-run" if dry_run else "缺 IG_USER_ID／IG_ACCESS_TOKEN"
+    elif off or not (ig_uid and env.get("IG_ACCESS_TOKEN")):
+        why = "--dry-run" if dry_run else ("總開關關閉" if not live else
+               ("缺 IG_ACCESS_TOKEN" if not env.get("IG_ACCESS_TOKEN") else "查不到 IG 帳號編號"))
+        if live and not dry_run and env.get("IG_ACCESS_TOKEN"):
+            fail = True
         log(f"[ig] dry-run（{why}）限動 {len(st_urls)} 張：{st_urls}")
     else:
         try:
             tok = refresh_token("ig", env["IG_ACCESS_TOKEN"])
             res = done.setdefault("story", [])
             for u in st_urls[len(res):]:  # 中途失敗重跑時，只補沒發的
-                res.append(publish_story(env["IG_USER_ID"], tok, u))
+                res.append(publish_story(ig_uid, tok, u))
                 log(f"[ig] 限動已發布 id={res[-1]['id']} {res[-1]['link']}")
         except Exception as e:  # noqa: BLE001
             fail = True
             log(f"[ig] 發布失敗：{redact(e)}")
 
-    if done and not dry_run:
+    if done and not off:
         posted[key] = done
         posted_file.write_text(json.dumps(posted, ensure_ascii=False, indent=1), encoding="utf-8")
     return 1 if fail else 0

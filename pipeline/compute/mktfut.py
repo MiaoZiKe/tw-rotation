@@ -24,21 +24,22 @@ def _f(v):
 
 def margin_block(mt: pd.DataFrame, md: pd.DataFrame, company: pd.DataFrame, price: pd.DataFrame,
                  idx: pd.DataFrame | None = None, members: pd.DataFrame | None = None) -> dict:
-    """上市大盤融資維持率（估算）＋融資／融券餘額＋加權指數＋個股融資增減排行。
+    """上市大盤融資維持率（估算）＋融資／融券餘額＋加權指數＋個股融資增減排行＋個股融券增減排行（short_rank，同一天）。
 
     維持率 ＝ Σ(各上市股融資餘額張數×1000×當日收盤價) ÷ 融資總餘額(元，整體市場 MarginPurchaseMoney，單位元) × 100。
     分子是「融資買進股票的現值」、分母是「借款餘額」，所以是整體市場的估算，**不是**證交所法定的整戶擔保維持率。
     """
-    out = {"rows": [], "asof": None, "rank": None}
+    out = {"rows": [], "asof": None, "rank": None, "short_rank": None}
     if mt is None or mt.empty:
         return out
     mt = mt.sort_values("date").drop_duplicates("date", keep="last")
     first = mt["date"].tail(MARGIN_DAYS + 1).iloc[0]
-    caps, rank, partial_days = {}, None, set()
+    caps, rank, srank, partial_days = {}, None, None, set()
     if md is not None and not md.empty and company is not None and not company.empty and price is not None and not price.empty:
         tw = company[company["market"] == "TWSE"].drop_duplicates("code", keep="last")
         codes = set(tw["code"].astype(str))
-        m = md[(md["date"].astype(str) >= first) & md["code"].astype(str).isin(codes)][["date", "code", "margin_balance", "margin_change"]].copy()
+        scol = [c for c in ("short_balance", "short_change") if c in md.columns]
+        m = md[(md["date"].astype(str) >= first) & md["code"].astype(str).isin(codes)][["date", "code", "margin_balance", "margin_change"] + scol].copy()
         px = price[price["date"].astype(str) >= first][["date", "code", "close"]]
         m = m.merge(px, on=["date", "code"], how="left")
         # 當天個股融資只到一部分（FinMind 逐檔回補還沒跟上）時，缺的檔用「前一次有資料的餘額」順延再乘當日收盤價：
@@ -66,6 +67,14 @@ def margin_block(mt: pd.DataFrame, md: pd.DataFrame, company: pd.DataFrame, pric
             x = pd.concat([x.nlargest(400, "margin_change"), x.nsmallest(400, "margin_change")]).drop_duplicates("code")
             rank = {"d": d, "rows": [{"code": str(r.code), "name": names.get(r.code), "chg": float(r.margin_change),
                                       "g": gmap.get(str(r.code), [])} for r in x.itertuples()]}
+            # 融券增減排行（2026-10-26 Andy：「需要新增一個融券的」）：同一天、同一批上市個股，short_change 單位張（前端 ÷1000 顯示千張）
+            if "short_change" in m.columns:
+                y = m[m["date"] == d].dropna(subset=["short_change"])
+                y = y[y["short_change"] != 0]
+                y = pd.concat([y.nlargest(400, "short_change"), y.nsmallest(400, "short_change")]).drop_duplicates("code")
+                srank = {"d": d, "rows": [{"code": str(r.code), "name": names.get(r.code), "chg": float(r.short_change),
+                                           "bal": _f(getattr(r, "short_balance", None)), "g": gmap.get(str(r.code), [])}
+                                          for r in y.itertuples()]}
     tx = {}
     if idx is not None and not idx.empty:
         t = idx[idx["symbol"] == "TSE"]
@@ -86,6 +95,7 @@ def margin_block(mt: pd.DataFrame, md: pd.DataFrame, company: pd.DataFrame, pric
     out["rows"] = rows[-MARGIN_DAYS:]
     out["asof"] = rows[-1]["d"]
     out["rank"] = rank
+    out["short_rank"] = srank
     return out
 
 

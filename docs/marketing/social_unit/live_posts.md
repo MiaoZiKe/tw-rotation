@@ -35,7 +35,8 @@ Andy 2026-10-20 原話：「我需要在盤中發布當下即時狀況在 Thread
 ### 盤後（kind=close）：法人連續買賣超
 法人資料要收盤後證交所公布才有，沒有即時版，所以另一篇發，不放進盤中那篇。投信、外資、合計各一張（手機版切「排行」畫法，買超、賣超各留前 7 列）。`inst-today`（當日三大法人買賣超卡，另派人做，`data-snap="inst-today"`）頁面上沒有就跳過。
 
-### 盤後融資（kind=credit）：融資維持率、融資增減排行（2026-10-21 從盤後法人拆出來，自己一篇）
+### 盤後融資（kind=credit）：融資維持率、融資增減排行、融券增減排行（2026-10-21 從盤後法人拆出來，自己一篇；10-26 加第三張融券）
+三張圖（Threads 輪播與 IG 限動各一）：`credit-ratio` 融資維持率、`credit-rank` 融資增減排行、`credit-short` 融券增減排行（網站「信用交易 → 個股排行」的「融券」分段，版面同融資排行：LOGO＋標題列、每列公司 LOGO、名稱、代號、數字）。文案多一行「融券增加 前三名；融券減少 前三名」。
 **為什麼拆**：融資比三大法人晚很多才到齊 —— 整體市場融資（FinMind `TaiwanStockTotalMarginPurchaseShortSale`）約台北 21:30～22:00 才有當天；
 上市個股融資（維持率的分子、增減排行）要到隔天清晨（回補工作流逐檔補進來）。綁在法人那篇時，法人一到那篇就發掉、當天標成已發，
 融資卡一律顯示「資料未更新」被略過（2026-10-21 22:13 那輪只產出 5 張就是這樣：融資資料日 10/20、法人 10/21）。
@@ -44,16 +45,35 @@ Andy 2026-10-20 原話：「我需要在盤中發布當下即時狀況在 Thread
 1. `market_fut.json` 的融資最後一天＝網站最新交易日（`meta.json` 的 `data_date`）；
 2. 那天的融資維持率算得出來（個股融資到了）；
 3. 不是「部分估算」（個股融資只到一部分時數字還會變）；
-4. 融資增減排行也是同一天。
+4. 融資增減排行、融券增減排行也是同一天；
+5. （2026-10-26）時間窗：只在該資料日收盤（13:30）後、**下一個交易日 09:00 開盤前**發（`social_gate.credit_gate`）；過了就不發舊的。
 
 比的是「網站最新交易日」不是「今天」：個股融資常在隔天清晨才齊，那時最新交易日還是前一天，照樣發（實際多半是隔天 05:07／09:07／12:07 那幾輪 news 管線後發出）；
 隔天 15:30 價量進來、最新交易日換天後，前一天的融資就不再發。防重複的鍵是 `credit-<融資資料日>`。
 配套：`run_daily.py` 的 news 輪也補抓整體市場融資（以前只有 price／full 抓，晚上最後一輪錯過就要等隔天傍晚）。
 
+## ★ 資料一定要是當天（2026-10-26，Andy：「確保數據都是當天訊息」；程式 `scripts/social_gate.py`，測試 `tests/test_social_gate.py`）
+事故：`snaps/close-20261022-2302` 文案寫 10/22、數字是 10/21；融資篇 10/26 凌晨還在發 10/22。
+| 篇 | 什麼時候才發 | 日期取哪裡 |
+|---|---|---|
+| 盤後法人 close | 每張卡（inst-today、streak-foreign、streak-trust、fut-oi、retail-ratio）的資料日都＝今天（台北），且今天是交易日；任何一張不是 → 結束碼 10，log 寫「哪張＝哪天」 | 每張卡自己的資料檔最後一天（`data_dates()`）；圖上日期、文案日期、manifest `data_date` 三者一致 |
+| 盤後融資 credit | 上面五個條件 | 融資資料日（三張卡都要同一天） |
+| 盤中 intraday | 交易日 09:00～13:30，且即時報價回應的成交日＝今天（沒讀到任何成交日也不發） | 今天 |
+交易日判斷：**休市日表 `pipeline/calendar/tw_holidays.yaml`（在表上一定不開，例 2026-10-26 光復節補假）＋資料本身有沒有今天**，不用 weekday 硬猜；
+只有「下一個交易日幾點開盤」要往未來推，才用「休市日表＋週六日不開」。
+**臨時休市（颱風等）**：例 2026-10-23（五）颱風全日休市、10/26 光復節補假、10/27 復市 —— 這種事前不在表上，所以以 **mis 即時報價（加權指數 `tse_t00.tw`）的成交日** 為準（`fetch_last_trade()`）：
+排定開盤日過了 09:30 即時成交日還停在更早的日子 → 判定臨時休市（盤後法人 log 寫「臨時休市…不是資料缺漏」、不發；融資篇的「下一個交易日」往後順延，10/22 的融資在 10/26 仍可發）；
+09:00～09:30 分不出「還沒成交」與「休市」→ 先不發；查不到 mis → 只靠休市日表，保守不發。事後把那天補登進 `tw_holidays.yaml`（10/23 已補）。`--force` 略過全部把關（只供測試，不可發布）；`--now YYYY-MM-DDTHH:MM` 可模擬時間。
+
+## ★ 總開關 LIVE_ENABLED（2026-10-26）
+repo 檔 `docs/marketing/social_unit/LIVE_ENABLED` **存在才真的發**；不存在＝一律 dry-run（即使 Secrets 有金鑰），workflow 與 `social_publish.py` 都會讀，log 寫「總開關關閉 → dry-run」。
+Andy 說「開始發」之前**不建立**這個檔（`tests/test_social_publish.py` 有一條測試確認它不存在；開始發時連那條測試一起刪）。
+`THREADS_USER_ID`／`IG_USER_ID` 空白但有權杖時，自動用權杖查帳號編號（Threads `GET https://graph.threads.net/v1.0/me?fields=id`；IG `GET https://graph.instagram.com/v24.0/me?fields=user_id,username` 取 `user_id`），log 只印末 4 碼、權杖不印。
+
 ## 規矩
 - 亮色主題；同意橫幅、導覽、客服比比等固定浮動元素截圖前一律藏起來，截圖保留頁面上原有的免責字樣。
 - **即時沒套上就不發**：盤中那幾張要等狀態字不再是「抓取中／抓不到」才截；沒套上的略過，不拿盤後舊圖冒充。
-- **非交易日看資料判斷**：盤中看即時報價回應裡的成交日 `d` 是否＝今天，並限定台北 09:00～13:35；盤後看網站 `meta.json` 的 `inst_date` 是否＝今天。不用執行當下的星期幾。
+- **非交易日看資料判斷**：見上面「資料一定要是當天」那節（2026-10-26 起盤中時段是 09:00～13:30；盤後改成逐張比對每張卡自己的資料日，不再只看 `meta.json` 的 `inst_date`）。不用執行當下的星期幾。
 - 貼文文字 4 行：標題與時間、重點一句（從頁面讀「資金佔比增加最多／減少最多」那行，或連買前三名，原文照抄）、免責一句、網址。
 - 版面元素（標題、截圖、免責、網址）兩兩不得相交，超出畫布也不行；程式用瀏覽器量實際框與文字範圍，有一筆就結束碼 3、不發。
 
@@ -72,7 +92,12 @@ Andy 2026-10-20 原話：「我需要在盤中發布當下即時狀況在 Thread
 即時是管理者功能（`site/livegate.js`）。Actions 裡的做法：checkout 的 `site/` 在 `127.0.0.1` 起靜態伺服器，注入 `window.TW_LIVE_OVERRIDE = true`（只有 localhost 認的後門，正式站不受影響）；網站要讀的 JSON 用 `--data-url https://liguligu-puipui.com/data` 從正式站下載到本機 `site/data/`；報價請求（Worker／Deno 代理）由 Playwright 攔截，補上 `Origin: https://liguligu-puipui.com` 再轉發，回應補 CORS 標頭。即時沒套上就不發。
 
 ## 需要的 Secrets（只放 GitHub Secrets，不進 repo）
-`THREADS_USER_ID`、`THREADS_ACCESS_TOKEN`、`IG_USER_ID`、`IG_ACCESS_TOKEN`（沒填＝發布程式自動 dry-run）。
+`THREADS_ACCESS_TOKEN`、`IG_ACCESS_TOKEN`（必填）；`THREADS_USER_ID`、`IG_USER_ID`（可空白，空白時用權杖自動查）。沒權杖或總開關關閉＝自動 dry-run。
+
+### 跟 `scripts/ig_post.py`／`scripts/threads_post.py`（排程發文）會不會重複發？
+不會發到同一則：那兩支是讀 `social/ig/queue/`、`social/threads/queue/` 裡 **人工核准（status: approved）** 的貼文檔，發 IG 一般貼文（單張／輪播）與 Threads 貼文；
+這支 `social_publish.py` 發的是 `social_snap.py` 自動截的盤中／盤後圖（Threads 輪播＋IG **限動**），兩邊來源不同、防重複紀錄也分開（queue 檔的 status vs. `social-snaps` 的 `state/posted.json`）。
+只有人把 snaps 的圖再手動放進 queue 才會「同一張圖發兩次」。總開關只管這支，不管排程發文那兩支。
 
 ## 發布與防重複
 workflow 先把圖推到 `social-snaps`，再呼叫 `python scripts/social_publish.py --manifest <資料夾>/manifest.json --base-url <該輪資料夾的 raw 網址>`；發布程式把防重複紀錄寫在 manifest 旁的 `posted.json`，workflow 事前從 `social-snaps` 的 `state/posted.json` 帶進來、事後寫回去。真發布失敗該步驟 exit 1；dry-run／缺金鑰 exit 0。

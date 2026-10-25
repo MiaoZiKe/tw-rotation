@@ -11,9 +11,13 @@ BASE = "https://x.test/snaps/2026-10-20"
 
 
 @pytest.fixture(autouse=True)
-def _fast(monkeypatch):
+def _fast(monkeypatch, tmp_path_factory):
     monkeypatch.setattr(sp, "_sleep", lambda s: None)
     sp._SECRETS.clear()
+    # 既有測試驗「真的發」的流程 → 預設把總開關指到一個存在的暫存檔；總開關關閉的情況在下面另外測
+    on = tmp_path_factory.mktemp("flag") / "LIVE_ENABLED"
+    on.write_text("", encoding="utf-8")
+    monkeypatch.setattr(sp, "LIVE_FLAG", on)
 
 
 def mk(tmp_path, images=("a.png",), story=("s1.png", "s2.png"), kind="intraday", t="2026-10-20T10:35:00+08:00"):
@@ -155,3 +159,71 @@ def test_中途失敗重跑只補沒發的限動(tmp_path, monkeypatch):
         {"intraday-2026-10-20-10": {"story": [{"id": "old", "link": ""}]}}), encoding="utf-8")
     sp.run(m, BASE, env=ENV)
     assert len(posts(f, "/22/media_publish")) == 1  # 只補第 2 張
+
+
+# ---------- 2026-10-26：總開關 LIVE_ENABLED、USER_ID 空白時用權杖自動查 ----------
+ENV_NOID = {"THREADS_USER_ID": "", "THREADS_ACCESS_TOKEN": TOK_T, "IG_USER_ID": "", "IG_ACCESS_TOKEN": TOK_I}
+TH_ID, IG_ID = "17841400000098765", "17841400000054321"
+
+
+class FakeMe(Fake):
+    def __call__(self, method, url, **kw):
+        if method == "GET" and url == sp.THREADS_ME:
+            self.calls.append((method, url, kw))
+            assert kw["params"]["fields"] == "id"
+            return {"id": TH_ID}
+        if method == "GET" and url == sp.IG_ME:
+            self.calls.append((method, url, kw))
+            assert kw["params"]["fields"] == "user_id,username"
+            return {"user_id": IG_ID, "username": "x", "id": "OTHER_APP_SCOPED_ID"}
+        return super().__call__(method, url, **kw)
+
+
+def test_總開關檔不存在_有金鑰也只_dry_run(tmp_path, monkeypatch, capsys):
+    f = Fake(); monkeypatch.setattr(sp, "http", f)
+    monkeypatch.setattr(sp, "LIVE_FLAG", tmp_path / "nope" / "LIVE_ENABLED")
+    assert sp.run(mk(tmp_path), BASE, env=ENV) == 0
+    assert f.calls == []                      # 連查編號、延長權杖都不打
+    out = capsys.readouterr().out
+    assert "總開關關閉" in out and "dry-run" in out
+    assert not (tmp_path / "posted.json").exists()
+
+
+def test_repo_的總開關這次沒有建立():
+    # Andy 還沒說開始發：repo 裡不能有 LIVE_ENABLED（這條測試在他說開始發、建立檔案時一起刪）
+    from pathlib import Path
+    assert not (Path(sp.__file__).resolve().parents[1] / "docs/marketing/social_unit/LIVE_ENABLED").exists()
+
+
+def test_USER_ID_空白時用權杖查_IG_用_user_id(tmp_path, monkeypatch, capsys):
+    f = FakeMe(); monkeypatch.setattr(sp, "http", f)
+    assert sp.run(mk(tmp_path), BASE, env=ENV_NOID) == 0
+    assert len(posts(f, f"/{TH_ID}/threads_publish")) == 1
+    assert len(posts(f, f"/{IG_ID}/media_publish")) == 2       # 用 user_id，不是 id
+    out = capsys.readouterr().out
+    assert TH_ID not in out.replace("::add-mask::" + TH_ID, "") and IG_ID not in out.replace("::add-mask::" + IG_ID, "")
+    assert TH_ID[-4:] in out and IG_ID[-4:] in out             # 只印末 4 碼
+    assert TOK_T not in out and TOK_I not in out
+
+
+def test_有填_USER_ID_就不查(tmp_path, monkeypatch):
+    f = FakeMe(); monkeypatch.setattr(sp, "http", f)
+    sp.run(mk(tmp_path), BASE, env=ENV)
+    assert not [c for c in f.calls if c[1] in (sp.THREADS_ME, sp.IG_ME)]
+
+
+def test_查不到編號_回1不發(tmp_path, monkeypatch, capsys):
+    def h(method, url, **kw):
+        if url in (sp.THREADS_ME, sp.IG_ME):
+            raise RuntimeError("HTTP 400 bad token " + TOK_T)
+        raise AssertionError("查不到編號就不該打其他 API：" + url)
+    monkeypatch.setattr(sp, "http", h)
+    assert sp.run(mk(tmp_path), BASE, env=ENV_NOID) == 1
+    out = capsys.readouterr().out
+    assert "查不到" in out and TOK_T not in out
+
+
+def test_工作流讀總開關():
+    from pathlib import Path
+    y = (Path(sp.__file__).resolve().parents[1] / ".github/workflows/social-live.yml").read_text(encoding="utf-8")
+    assert "docs/marketing/social_unit/LIVE_ENABLED" in y and "總開關關閉" in y
