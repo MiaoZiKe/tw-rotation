@@ -295,7 +295,7 @@ SUB_BAR = (48, 1236, 900, 1346)
 
 def subtitle(cv, t):
     x0, y0, x1, y1 = SUB_BAR
-    if t < SUBS[0][2] - 0.2:
+    if t < SUBS[0][2] - 0.04:
         return
     cv.rrect(x0, y0 + 8, x1 - x0, y1 - y0, 22, CARD_EDGE)
     cv.rrect(x0, y0, x1 - x0, y1 - y0, 22, (20, 30, 46))
@@ -461,13 +461,14 @@ def sc_taiex(cv, t, S):
         ytop, ybot = pk[1], en[1]
         yb = lerp(ytop, ybot, ease_out(bp))
         cv.line([(bx, ytop), (bx, yb)], DOWN, 6)
-        if bp >= 1:
+        if bp > 0.15:
             cv.line([(bx - 12, yb - 16), (bx, yb), (bx + 12, yb - 16)], DOWN, 6)
+        if bp >= 1:
             cv.line([(bx - 20, ybot), (en[0] + 14, ybot)], MUTED, 2, dash=[8, 8])
     # 標題與數字列
     t_pick = cur(t, [(0, 0), (L2.at("先校正") - 0.05, 1), (L3.at("十月六日") - 0.1, 2)])[1]
     t0s = [0, L2.at("先校正") - 0.05, L3.at("十月六日") - 0.1][t_pick]
-    tp_ = 1.0 if t_pick == 0 and t < 0.6 else clamp((t - t0s) / 0.3) if t_pick else 1.0
+    tp_ = 1.0 if t_pick == 0 else clamp((t - t0s) / 0.18)
     if t_pick == 0:
         title(cv, "還有選舉行情嗎？", "選舉行情", 1.0, "台灣加權指數・近兩個月收盤")
         i_ = min(NPT - 1, reach)
@@ -595,13 +596,13 @@ def sc_q4(cv, t, S):
         yy = 420 - (1 - ap_) * 24
         cv.card(f"卡{k}", x, yy, 410, 640, depth=16, edge=UP, grp=f"卡{k}")
         cv.text(f"卡標{k}", lab, x + 36, yy + 34, font(F_BOLD, 40), MUTED, ap_, grp=f"卡{k}", reg=False)
-        pn = ap(t, t_in, 0.4)
+        pn = ap(t, L.start - 0.1 + k * 0.12, 0.4)
         f = font(F_BLACK, 112)
         cv.text(f"卡數{k}", num, x + 36, yy + 100, f, UP, pn, grp=f"卡{k}", reg=False)
         cv.reg.inside(f"卡數{k}", (x + 36, yy + 100, x + 36 + f.getlength(num), yy + 210), (x, yy, x + 410, yy + 640), inset=16)
         if k == 0 and pn > 0:
             ax, ay = x + 205, yy + 250
-            gp = ease_out((t - (L.at("平均漲") + 0.1)) / 0.8)
+            gp = ease_out((t - (L.start + 0.1)) / 0.8)
             if gp > 0:
                 hgt = 330 * gp
                 bot = ay + 330
@@ -701,7 +702,7 @@ def sc_vars(cv, t, S):
         cv.card("變數卡1", 60, yy, 840, 440, depth=16, edge=ORANGE)
         cv.text("變數1標", "① 通膨與升息", 100, yy + 28, font(F_BLACK, 44), TEAL, a1, grp="變數卡1", reg=False)
         cv.text("CPI標", "美國 9 月 CPI 年增", 100, yy + 98, font(F_MED, 32), MUTED, a1, grp="變數卡1", reg=False)
-        pn = ap(t, L13.at("三點七") - 0.1, 0.4)
+        pn = ap(t, L13.at("九月") - 0.1, 0.4)
         f100 = font(F_BLACK, 128)
         cv.text("CPI數", "3.7%", 100, yy + 142, f100, ORANGE, pn, grp="變數卡1", reg=False)
         pe = ap(t, L14.start, 0.4)
@@ -776,14 +777,14 @@ def sc_limits(cv, t, S):
         yy = 420 - (1 - a1) * 22
         cv.card("限制1", 60, yy, 840, 310, depth=16, edge=TEAL)
         cv.text("限制1標", "樣本僅 19 次", 100, yy + 30, font(F_BLACK, 72), TEAL, a1, grp="限制1", reg=False)
-        cv.text("限制1字", "起算年份不同，平均也不同：", 100, yy + 142, font(F_MED, 36), TXT, ap(t, L10.at("起算") - 0.1, 0.4), grp="限制1", reg=False)
-        cv.text("限制1數", "15.4%～18.2%", 100, yy + 200, font(F_BLACK, 76), UP, ap(t, L10.at("起算") + 0.4, 0.4), grp="限制1", reg=False)
+        cv.text("限制1字", "起算年份不同，平均也不同：", 100, yy + 142, font(F_MED, 36), TXT, ap(t, L10.start + 0.1, 0.4), grp="限制1", reg=False)
+        cv.text("限制1數", "15.4%～18.2%", 100, yy + 200, font(F_BLACK, 76), UP, ap(t, L10.at("起算") - 0.2, 0.4), grp="限制1", reg=False)
     a2 = ap(t, L11.start - 0.1, 0.5)
     if a2 > 0:
         yy = 780 - (1 - a2) * 22
         cv.card("限制2", 60, yy, 840, 290, depth=16, edge=ORANGE)
         cv.text("限制2標", "2018 年：選後仍續跌", 100, yy + 30, font(F_BLACK, 62), ORANGE, a2, grp="限制2", reg=False)
-        cv.text("限制2字", "11/06 選舉後，跌到 12 月底", 100, yy + 132, font(F_MED, 36), TXT, ap(t, L11.at("選後") - 0.1, 0.4), grp="限制2", reg=False)
+        cv.text("限制2字", "11/06 選舉後，跌到 12 月底", 100, yy + 132, font(F_MED, 36), TXT, ap(t, L11.start + 0.1, 0.4), grp="限制2", reg=False)
         f = font(F_BOLD, 38)
         s_ = "9/20 高點→12/24 低點 約 −19.4%"
         cv.text("限制2數", s_, 100, yy + 214, f, DOWN, ap(t, L11.at("跌到") + 0.1, 0.4), grp="限制2", reg=False)
@@ -803,15 +804,27 @@ def sc_end(cv, t, S):
         f = font(F_BLACK, 92)
         cv.text("搜尋字", "哩股哩股", 236, yy + 36, f, (22, 30, 44), a, grp="搜尋框", reg=False)
         cv.reg.inside("搜尋字", (236, yy + 36, 236 + f.getlength("哩股哩股"), yy + 130), (60, yy, 900, yy + 170), inset=14)
+    chips = ["資金流向", "產業地圖", "題材熱度", "季節性"]
+    fc = font(F_BOLD, 34)
+    cx = 60
+    for j, c_ in enumerate(chips):
+        cp_ = ap(t, L20.start + 0.35 + j * 0.2, 0.35)
+        w_ = fc.getlength(c_) + 44
+        if cp_ > 0:
+            cv.rrect(cx, 640 - (1 - cp_) * 10, w_, 64, 32, (30, 44, 64))
+            cv.reg.add(f"晶片{j}", (cx, 640 - (1 - cp_) * 10, cx + w_, 704 - (1 - cp_) * 10), f"晶片{j}")
+            cv.text(f"晶片字{j}", c_, cx + 22, 656 - (1 - cp_) * 10, fc, TEAL, cp_, grp=f"晶片{j}", reg=False)
+        cx += w_ + 18
+    cv.reg.inside("晶片列", (60, 640, cx - 18, 704), (60, 0, 900, H))
     b = ap(t, L21.start - 0.2, 0.5)
     if b > 0:
-        yy = 700 - (1 - b) * 20
-        cv.card("免責卡", 60, yy, 840, 400, depth=16, edge=ORANGE)
+        yy = 740 - (1 - b) * 20
+        cv.card("免責卡", 60, yy, 840, 380, depth=16, edge=ORANGE)
         cv.text("免責標", "免責聲明", 100, yy + 28, font(F_BOLD, 38), ORANGE, b, grp="免責卡", reg=False)
         f = font(F_BOLD, 48)
         for j, (lid, s) in enumerate([("S21", "本內容為公開資料整理，"), ("S22", "不構成任何投資建議；"), ("S23", "投資有風險，請自行判斷。")]):
             cv.text(f"免責{j}", s, 100, yy + 104 + j * 90, f, TXT, ap(t, S[lid].start - 0.05, 0.35), grp="免責卡", reg=False)
-        cv.reg.inside("免責行", (100, yy + 104, 100 + f.getlength("投資有風險，請自行判斷。"), yy + 104 + 2 * 90 + 56), (60, yy, 900, yy + 400), inset=14)
+        cv.reg.inside("免責行", (100, yy + 104, 100 + f.getlength("投資有風險，請自行判斷。"), yy + 104 + 2 * 90 + 56), (60, yy, 900, yy + 380), inset=14)
 
 
 SCENE_FN = {"L": sc_limits, "A": sc_taiex, "B": sc_drops, "C": sc_world, "D": sc_stats, "E": sc_q4, "F": sc_dip, "G": sc_tw,
