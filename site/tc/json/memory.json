@@ -32,7 +32,7 @@
           "weekly_hours": null,
           "overtime": "輪班者常態",
           "travel": "不用",
-          "n": 12,
+          "n": 14,
           "note": "比薪水統計中位數 5.5 萬（2025 資料）；PTT 傳碩士 5.5 萬起未經公司證實；比薪水 2026 有 4 年 120 萬、6 年 105 萬自述（非新人）；第二輪（Dcard／PTT／GoodJob 各分開搜）：輪班設備起薪 5.5 萬起、台南 TCP Probe 7.4 萬、台中一年經驗 6.1 萬；保 14 個月（含年終 2 個月）＋分紅 0～4 個月（11 月發），內推文稱年薪約 18 個月；夜班津貼 +20%；FY26 公司另發每人 100 萬感謝金（工會質疑）；內推文數字可能偏樂觀；Dcard 日期依文章編號推估；bonus_months、annual_total_wan 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples；未逐筆對應的舊彙整：bonus_months=[2, 4]；未逐筆對應的舊彙整：annual_total_wan=[80, 100]",
           "sources": [
             {
@@ -313,6 +313,50 @@
               "quote_free_note": "N＝緯穎產品管理 offer 的月薪；美光月薪 N+19（未寫單位）；同篇的緯穎、廣達是管理職，不收",
               "in_window": true,
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-07-28"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261516348",
+              "date": "2026-05",
+              "page_date": "2026-05-24",
+              "date_confirmed": true,
+              "role": "TCP 輪班設備工程師",
+              "grade": "EA",
+              "unit_detail": "台南",
+              "years": "0",
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "「光光」＝美光；薪資為 EA 職等的一般行情；四三輪",
+              "in_window": true,
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-05-24"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261419657",
+              "date": "2026-05",
+              "page_date": "2026-05-04",
+              "date_confirmed": true,
+              "role": "設備輪班工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "0",
+              "degree": "學士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "面了 3 次；薪資只說是美光學士新人的一般行情；HR 核薪當晚 e-offer",
+              "in_window": true,
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-05-04"
             }
           ],
           "n_stat": 5
@@ -1028,7 +1072,7 @@
           "weekly_hours": null,
           "overtime": "偶爾（有加班費）",
           "travel": "不用",
-          "n": 4,
+          "n": 5,
           "note": "GoodJob 2026 薄膜設備自述獎金算多；月薪 4.5～7 萬區間跨學歷年資；保 15 個月常被提及；第二輪：GoodJob 2026 設備職回報 4.85～5.9 萬；Dcard／PTT 未見設備專屬 offer；bonus_months、annual_months、annual_total_wan 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples；未逐筆對應的舊彙整：base_month_k=[49, 49]；未逐筆對應的舊彙整：bonus_months=[0, 3]；未逐筆對應的舊彙整：annual_months=[15, 18]；未逐筆對應的舊彙整：annual_total_wan=[90, 110]",
           "sources": [
             {
@@ -1122,6 +1166,28 @@
               "date_confirmed": true,
               "date_note": "GoodJob 標題年月",
               "in_window": true
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261549592",
+              "date": "2026-05",
+              "page_date": "2026-05-26",
+              "date_confirmed": true,
+              "role": "黃光設備工程師",
+              "grade": "e05",
+              "unit_detail": "新北泰山",
+              "years": "0",
+              "degree": "學士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": 15,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "N＝台積碩士新人底薪；月薪 N-13（未寫單位）保 15；常日班，4～6 週輪一次假日值班",
+              "in_window": true,
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-05-26"
             }
           ],
           "n_stat": 0
@@ -1144,7 +1210,7 @@
           "weekly_hours": null,
           "overtime": null,
           "travel": "不用",
-          "n": 17,
+          "n": 18,
           "note": "2025-02 自述年薪 100 萬（含職等津貼、季獎金、分紅）；有人說近年虧損無分紅年薪不到百萬；沿用同公司設備職回報；撤回：overtime 原為沿用／推算／暫填值，無直接證據，已改回原值；第二輪：2025-11 新聞碩士新進月薪由 4.5 萬調到 6.2 萬（公司稱正常調幅）；GoodJob 2026-05 製程 6.25 萬、3 年整合 6.8 萬；Dcard 製程值班 offer 保 15、人資口頭約 17 個月；2026-08 發激勵獎金約 2 個月（有人稱會從分紅扣回）；GoodJob 2026-08 評價稱分紅有上限；annual_total_wan 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples；未逐筆對應的舊彙整：annual_months=[17, 17]；未逐筆對應的舊彙整：annual_total_wan=[90, 100]",
           "sources": [
             {
@@ -1532,6 +1598,28 @@
               "quote_free_note": "月薪 N-3k，15 個月＋季獎金＋分紅；8～17 點，偶爾加班",
               "in_window": true,
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-10-17"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261518461",
+              "date": "2026-05",
+              "page_date": "2026-05-20",
+              "date_confirmed": true,
+              "role": "製程工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "0",
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": 15,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "「牙科」＝南亞科；月薪 (N-2.5)×15＋三節＋分紅；前期四班二輪，之後可能轉常日",
+              "in_window": true,
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-05-20"
             }
           ],
           "n_stat": 6

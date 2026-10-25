@@ -3678,7 +3678,7 @@
               "date": "2026-06"
             }
           ],
-          "n": 24,
+          "n": 25,
           "grade": "2X 職等（副工程師）",
           "busyness": "高：每月加班 10～20 小時、每月 2～3 個週末加班（Dcard 自述）",
           "samples": [
@@ -4135,6 +4135,28 @@
               "quote_free_note": "科大產學班；面邀到 e-offer 約七週，主管問能否配合加班與調派，薪資未透露",
               "in_window": true,
               "date_note": "Andy 桌面版＋Chrome 親眼讀文章頁面發文日期"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261419657",
+              "date": "2026-05",
+              "page_date": "2026-05-04",
+              "date_confirmed": true,
+              "role": "MAE（設備，輪班）",
+              "grade": null,
+              "unit_detail": "F22",
+              "years": "0",
+              "degree": "學士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "學士應屆；面了 7 次才拿到 offer；薪資只說是台積 MAE 的一般行情",
+              "in_window": true,
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-05-04"
             }
           ],
           "n_in_window": 1,
@@ -8740,7 +8762,7 @@
           "weekly_hours": null,
           "overtime": "經常（需值班）",
           "travel": "不用",
-          "n": 12,
+          "n": 13,
           "note": "GoodJob 面試回報單筆 5.8 萬（未通知、年資不完整）；Dcard／PTT 查無世界先進 offer。查過：世界先進 offer 碩士 月薪 分紅 面試 2026（Dcard）／世界先進 GoodJob 面試經驗 製程整合 設備工程師 月薪；GoodJob 多則回報公司保障 16 個月（含年終與節金），另 7 月依營運發分紅、4 月調薪；分紅月數未見具體數字（2026-10 查 GoodJob、媒體）；GoodJob 製程職回報工時偏長、需值班；出差未見回報（廠內職）；2026-10-25 補：Dcard 碩士 31 職等第二年領滿約 110～125 萬（網友）、第一年保 16 領不滿；研替 offer 57k×16、另簽約金 10 萬；研替同職等有 57／62 兩種價",
           "sources": [
             {
@@ -9027,6 +9049,28 @@
               "date_confirmed": true,
               "date_note": "GoodJob 標題年月",
               "in_window": true
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261491674",
+              "date": "2026-05",
+              "page_date": "2026-05-16",
+              "date_confirmed": true,
+              "role": "擴散製程工程師",
+              "grade": null,
+              "unit_detail": "桃園",
+              "years": "0",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": 16,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "N＝台積新人價；月薪約 N，保 16；常態加班，要假日值班",
+              "in_window": true,
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-05-16"
             }
           ],
           "n_in_window": 2
@@ -10004,7 +10048,7 @@
           ],
           "overtime": "很少",
           "travel": "不用",
-          "n": 11,
+          "n": 12,
           "note": "GoodJob 2026-02 自述只有 14 個月、無分紅；比薪水 2026-01 整合工程師日均 9 小時（金額需解鎖）；力積電近一年虧損，分紅月數依同公司製程／整合職回報為 0；2026-10-25 補：GoodJob 2026-08 新竹整合 4 年月薪約 7.49 萬、40 小時／週，近年分紅少、購股金 2 千",
           "sources": [
             {
@@ -10265,6 +10309,28 @@
               "date_confirmed": true,
               "date_note": "GoodJob 標題年月",
               "in_window": true
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261491674",
+              "date": "2026-05",
+              "page_date": "2026-05-16",
+              "date_confirmed": true,
+              "role": "製程整合工程師 PIE",
+              "grade": null,
+              "unit_detail": "新竹",
+              "years": "0",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "月薪約 N；不輪小夜大夜，但常態加班、假日值班；發文者說分紅少，不加班不容易破百",
+              "in_window": true,
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-05-16"
             }
           ],
           "n_in_window": 4
@@ -10843,6 +10909,38 @@
               "quote_free_note": "原以為是 TD，HR 更正為元件開發；月薪 N+1（未寫單位），應該保 14；要輪假日班",
               "in_window": true,
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-08-24"
+            }
+          ],
+          "sources": [],
+          "confidence": "低",
+          "n": 1
+        },
+        {
+          "unit": "其他",
+          "role": "黃光 TD 工程師",
+          "degree": "碩士",
+          "samples": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/262022557",
+              "date": "2026-08",
+              "page_date": "2026-08-25",
+              "date_confirmed": true,
+              "role": "黃光 TD 工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "3",
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "「假 G」推測是力積電；拿到 offer，但發文者說是文中各家最低的數字",
+              "in_window": true,
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-08-25"
             }
           ],
           "sources": [],
