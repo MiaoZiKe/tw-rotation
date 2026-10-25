@@ -51,3 +51,15 @@ GoodJob 為主、Dcard／PTT／其他做交叉比對，對不起來就寫進 not
 2. 公司層加 `grade_system`：該公司職等制度一句話（例：台積電 工程師職等 31/32/33…、經理 41…；聯發科 職級名稱…），查不到 null。
    職位層加 `grade`：該職位對應的公司職等名稱（例：「31 職等」「E1」），查不到 null。
 3. 台積電：不分學歷（degree 寫「不限」），職位層加 `busyness`（單位繁忙程度：高／中／低＋一句依據），錢差異以單位繁忙度說明，不以學歷說明。其他公司照舊以碩士為主。
+
+## 逐筆樣本（2026-10-25，Andy：「必須把樣本給上去，並且需要幫我做全部樣本統計，依產業、公司、單位、職位區分」）
+職位層加 `samples`：每一篇文章／每一筆分享就是一筆，**n 必須等於 samples 的筆數**。
+```json
+"samples": [{"site":"Dcard","url":"https://www.dcard.tw/f/tech_job/p/...","date":"2026-05",
+  "unit_detail":"Fab18 / 先進製程","years":"0-2","degree":"碩士",
+  "base_k":65,"bonus_months":null,"annual_months":null,"annual_wan":220,
+  "weekly_hours":55,"overtime":"經常","travel":"不用","quote_free_note":"自己的話摘要，不貼原文"}]
+```
+- 只記數字與短摘要，不貼原文、不放帳號。查不到的欄位 null。
+- 職位層的區間（base_month_k、annual_total_wan…）由 samples 算出（最小～最大），不再手填。
+- 前端：每個職位可展開看逐筆樣本；另有「樣本統計」頁，依產業→公司→單位→職位列筆數、底薪／年薪中位數與區間。
