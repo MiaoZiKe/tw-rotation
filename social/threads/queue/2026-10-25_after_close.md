@@ -1,7 +1,9 @@
 ---
-status: approved
+status: posted
 publish_at: 2026-10-25T23:50+08:00
 title: 盤後狀況（資料到 10/22 台股、10/23 美股）
+posted_at: 2026-10-25T23:47+08:00
+urls: https://www.threads.com/@liguligu0818/post/De7EGciEfP8
 ---
 📊 盤後狀況｜資料到台股 10/22 收盤
 📉 加權指數 46,041.43 點，-846.34（-1.8%）
