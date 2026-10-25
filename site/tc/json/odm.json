@@ -4369,6 +4369,54 @@
           "note": "2026-10-26 由 Dcard 樣本新增的公司"
         }
       ]
+    },
+    {
+      "name": "友達",
+      "code": "2409",
+      "heat": null,
+      "benefits": null,
+      "stock_plan": null,
+      "bonus_timing": null,
+      "bonus_structure": [],
+      "culture": null,
+      "interview": null,
+      "grade_system": null,
+      "mops": null,
+      "roles": [
+        {
+          "unit": "GRC",
+          "role": "數位設計 DD（GRC）",
+          "degree": "碩士",
+          "samples": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261702734",
+              "date": "2026-06",
+              "page_date": "2026-06-21",
+              "date_confirmed": true,
+              "role": "數位設計 DD（GRC）",
+              "grade": null,
+              "unit_detail": "GRC",
+              "years": "0",
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": 14,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "月薪 N×14，簽約金 20（未寫單位），聽說分紅不多；同篇聯發科因兵役未收（原文代稱「戀人」，Andy 確認＝友達）",
+              "in_window": true,
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-06-21"
+            }
+          ],
+          "n": 1,
+          "sources": [],
+          "confidence": "低",
+          "note": "2026-10-26 Andy 指示加入"
+        }
+      ]
     }
   ]
 }
