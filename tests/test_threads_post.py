@@ -85,3 +85,17 @@ def test_repo_queue_files_valid():
         if meta["status"] == "approved":
             assert errs == [], (f.name, errs)
         assert meta["status"] != "posted" or meta.get("urls")
+
+
+def test_emoji_counts_as_utf8_bytes():
+    assert tp._tlen("🐹") == 4
+    assert tp._tlen("abc") == 3
+    assert tp._tlen("📊") > 1
+    # 499 個字 + 1 個 emoji（4 位元組）→ 超過 500，必須被擋
+    assert tp.validate(*tp.parse(doc(body="字" * 499 + "🐹")))
+
+
+def test_repo_drafts_within_limit_by_bytes():
+    for f in sorted(tp.QUEUE.glob("*.md")):
+        meta, posts = tp.parse(f.read_text(encoding="utf-8"))
+        assert all(tp._tlen(p) <= tp.MAX_LEN for p in posts), f.name

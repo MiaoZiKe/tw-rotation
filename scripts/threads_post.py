@@ -50,9 +50,15 @@ class PostError(Exception):
     pass
 
 
+def _is_emoji(c: str) -> bool:
+    o = ord(c)
+    return o >= 0x1F000 or 0x2190 <= o <= 0x2BFF or o in (0xFE0F, 0x200D, 0x20E3)
+
+
 def _tlen(s: str) -> int:
-    """Threads 以字元數計；表情符號算 1 個（保守起見用 Python len 即可）。"""
-    return len(s)
+    """Threads 官方文件：表情符號以 UTF-8 位元組數計入 500 上限（一個 emoji 常占 3～4）。
+    這裡對 emoji 一律用 UTF-8 位元組數，其他字元算 1，寧可高估也不要發不出去。"""
+    return sum(len(c.encode("utf-8")) if _is_emoji(c) else 1 for c in s)
 
 
 def parse(text: str) -> tuple[dict, list[str]]:
@@ -138,8 +144,16 @@ def publish_chain(posts: list[str], token: str) -> list[dict]:
             params["reply_to_id"] = reply_to
         c = _call("POST", f"/{uid}/threads", token, params)
         cid = c["id"]
-        time.sleep(4)  # 讓容器建好；文字貼文通常很快
-        p = _call("POST", f"/{uid}/threads_publish", token, {"creation_id": cid})
+        time.sleep(8)  # 讓容器建好；官方建議等候，文字貼文通常很快
+        p = None
+        for wait in (0, 10, 20, 30):  # 容器尚未就緒時重試「發布」；發布前重試不會重複發
+            time.sleep(wait)
+            try:
+                p = _call("POST", f"/{uid}/threads_publish", token, {"creation_id": cid})
+                break
+            except PostError as e:
+                if wait == 30 or "HTTP 4" not in str(e) or "190" in str(e):
+                    raise
         mid = p["id"]
         link = ""
         try:
