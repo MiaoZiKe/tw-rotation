@@ -593,15 +593,14 @@ def candle_svg(ks: dict, w: int, h: int, c: dict, theme: str, *, fs: int = 0, ma
     gap = int(fs * 0.5) if rsi else 0
     ph = (h - T - B - gap) * (0.78 if rsi else 1.0)        # 價格區高
     rh = (h - T - B - gap) - ph if rsi else 0
-    # 縱軸：K 棒＋5～60 日均線全包；半年線、年線離太遠時最多再放寬 15%，超出的部分裁掉（不然 K 棒會被壓扁）
+    # 縱軸以 K 棒為主：K 棒的高低點全包，5～60 日均線最多再各放寬 K 棒區間的 25%（超出就裁掉），半年線、年線完全不影響縱軸
+    # （離太遠就截掉該段，不然 K 棒被壓扁）；這樣 K 棒至少佔主圖高度的 60%（1/(1+0.5+0.08)＝63%）。
+    kl, kh = min(x["l"] for x in b), max(x["h"] for x in b)
+    ksp = (kh - kl) or 1
     short = [x[f"ma{p}"] for x in b for p in (5, 10, 20, 60) if ma and x.get(f"ma{p}") is not None]
-    long_ = [x[f"ma{p}"] for x in b for p in (120, 240) if ma and x.get(f"ma{p}") is not None]
-    lo, hi = min([x["l"] for x in b] + short), max([x["h"] for x in b] + short)
+    lo = max(min([kl] + short), kl - ksp * 0.25)
+    hi = min(max([kh] + short), kh + ksp * 0.25)
     sp = (hi - lo) or 1
-    if long_:
-        lo = max(min([lo] + long_), lo - sp * 0.15)
-        hi = min(max([hi] + long_), hi + sp * 0.15)
-        sp = hi - lo
     lo, hi = lo - sp * 0.04, hi + sp * 0.04
     n = len(b)
     step = (w - L - R) / n
@@ -713,8 +712,10 @@ body{{font-variant-numeric:tabular-nums}}
 .news{{flex:1;min-height:0;display:flex;flex-direction:column;gap:{S(12, 16)}px}}
 .it{{flex:1;min-height:0;display:flex;align-items:center;gap:{S(18, 20)}px;border-radius:10px;padding:{S('8px 20px 8px 16px', '12px 22px 12px 18px')};
   background:var(--panel2);border:1.5px solid var(--line);border-left:8px solid var(--c)}}
-.it .tg{{flex:none;background:var(--c);color:{tg_ink};font-size:{S(28, 34)}px;font-weight:800;line-height:1.4;border-radius:12px;padding:{S('8px 14px', '10px 16px')};white-space:nowrap}}
-.it .tt{{flex:1;min-width:0;font-size:{S(44, 48)}px;line-height:1.4;font-weight:800;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:{S(3, 4)};overflow:hidden}}
+.it .ix{{flex:none;width:{S(100, 112)}px;font-size:{S(56, 64)}px;font-weight:800;line-height:1.35;color:var(--c);font-family:Inter,'Roboto Mono',monospace;font-variant-numeric:tabular-nums}}
+.it .bd{{flex:1;min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:{S(8, 10)}px}}
+.it .tg{{flex:none;background:var(--c);color:{tg_ink};font-size:{S(26, 30)}px;font-weight:800;line-height:1.4;border-radius:8px;padding:{S('2px 14px', '2px 16px')};white-space:nowrap}}
+.it .tt{{min-width:0;align-self:stretch;font-size:{S(44, 42)}px;line-height:1.38;font-weight:800;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden}}
 .sumt{{flex:1;min-height:0;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr}}
 .sumt .tile{{display:flex;flex-direction:column;justify-content:center}}
 .sumt .v{{font-size:{S(84, 100)}px}}.sumt .k{{font-size:{S(34, 42)}px}}
@@ -805,8 +806,8 @@ def build_pages(D: dict, mode: str, theme: str = "light") -> list[dict]:
 
     # 4 今日焦點：分類色塊＋大標題，無來源無時間
     if D["news"]:
-        items = "".join(f'<div class="it cat-{n["category"]}"><div class=tg data-box=tg{i}>{n["category"]}</div>'
-                        f'<div class=tt data-box=tt{i}>{_e(n["title"])}</div></div>' for i, n in enumerate(D["news"]))
+        items = "".join(f'<div class="it cat-{n["category"]}"><div class=ix data-box=ix{i}>{i + 1:02d}</div><div class=bd><div class=tg data-box=tg{i}>{n["category"]}</div>'
+                        f'<div class=tt data-box=tt{i}>{_e(n["title"])}</div></div></div>' for i, n in enumerate(D["news"]))
         pages.append({"name": "news", "title": "今日焦點", "inner": f'<div class=news>{items}</div>', "charts": {}})
 
     # 5 一句話總結：四格數字＋一句話（缺的格子換成可得的：標普、VIX）

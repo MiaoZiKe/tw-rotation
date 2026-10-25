@@ -125,6 +125,7 @@ FILL_JS = """([el, a]) => {   // 把卡片拉到 a.want（css px）高：差額�
   return el.getBoundingClientRect().height;
 }"""
 STORY_HEAT_VW, STORY_HEAT_DSF = 700, 2.4     # 熱力圖限動版：窄桌機視窗（>640 仍是桌機版面），方塊變大、字放大後更清楚
+THREADS_MAX_H = 1350       # Threads 輪播圖高度上限（4:5）
 STORY_RATIO = 1.76     # 限動截圖目標高寬比＝限動版型截圖區 1008×1776（2026-10-22 品牌列兼標題、拿掉右下網址後量的；舊值 1.6 會上下各空約 80px）
 FILL_ROWS_JS = """([el, a]) => {   // 沒有圖表可拉高的片段（排行清單）：把差額平均加在每一列的上下內距，列距拉開到 a.want 高（不是拉伸點陣圖）
   for (let k = 0; k < 3; k++) {
@@ -899,7 +900,8 @@ def _shoot_one(pg, card_el, pc: dict, raw_dir: Path, mode: str, dsf: float) -> d
     tgt = pg.query_selector(pc["sel"]) if pc.get("sel") else card_el
     if tgt is None:
         raise RuntimeError(f"找不到 {pc.get('sel')}")
-    pg.evaluate("() => { const o = document.getElementById('snapcss'); if (o) o.remove(); }")
+    pg.evaluate("() => { const o = document.getElementById('snapcss'); if (o) o.remove(); if (!document.getElementById('snapbr')) { const e = document.createElement('style'); e.id = 'snapbr';"
+                " e.textContent = '[data-theme4] .card,[data-theme4] .card::before,[data-theme4] .card::after{background-image:none!important}'; document.head.appendChild(e); } }")   # 網站卡片自帶的四角括角截圖時藏掉（貼文版型自己有括角，不要雙層）
     if pc.get("css"):     # 截圖用：只在這個瀏覽器分頁塞樣式藏控制列、調欄位，不改 site/
         pg.evaluate("(c) => { const e = document.createElement('style'); e.id = 'snapcss'; e.textContent = c; document.head.appendChild(e); window.dispatchEvent(new Event('resize'));"
                     " if (window.echarts) document.querySelectorAll('[_echarts_instance_]').forEach(x => { const i = echarts.getInstanceByDom(x); if (i) i.resize(); }); }", pc["css"])
@@ -1221,7 +1223,7 @@ def layout_html(mode: str, title: str, sub: str, img: str, top: list, bot: list,
 .grid.top{{margin-bottom:10px}}.grid.bot{{margin-top:10px}}
 .q{{border-radius:10px;border:1.5px solid color-mix(in srgb,var(--c) 45%,var(--panel));background:color-mix(in srgb,var(--c) 9%,var(--panel));padding:{'10px 14px 8px' if story else '8px 12px 6px'};text-align:left;min-width:0}}
 .q b{{display:block;color:var(--c);font-size:{round(30*k)}px;font-weight:800;line-height:1.4;margin-bottom:2px}}
-.q ul{{list-style:none}}.q li{{font-size:{round(28*k) if not story else 32}px;line-height:1.4;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:clip}}
+.q ul{{list-style:none;display:flex;flex-wrap:wrap;gap:0 18px}}.q li::before{{content:'';display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--c);margin-right:8px;vertical-align:middle}}.q li{{font-size:{round(26*k) if not story else 30}px;line-height:1.4;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:clip}}
 .imgbox{{flex:1;min-height:0;display:flex;align-items:center;justify-content:center}}
 .shot{{max-width:100%;max-height:100%;display:block;border-radius:6px}}
 """
@@ -1253,8 +1255,24 @@ OVERLAP_JS = """() => {
 }"""
 
 
+def trim_margin(path: str, pad: int = 2, thr: int = 28) -> str:
+    """把截圖四周的空白（跟角落同色的部分）裁掉，圓盤才放得大（2026-10-26：輪盤圓盤要佔卡片寬 80% 以上）。"""
+    from PIL import Image, ImageChops
+    im = Image.open(path).convert("RGB")
+    bg = Image.new("RGB", im.size, im.getpixel((3, 3)))
+    box = ImageChops.difference(im, bg).convert("L").point(lambda v: 255 if v > thr else 0).getbbox()
+    if not box:
+        return path
+    x0, y0, x1, y1 = max(0, box[0] - pad), max(0, box[1] - pad), min(im.width, box[2] + pad), min(im.height, box[3] + pad)
+    out = path[:-4] + "_t.png"
+    im.crop((x0, y0, x1, y1)).save(out)
+    return out
+
+
 def compose(browser, mode: str, rec: dict, top: list, bot: list, out_png: Path, report: list, theme: str) -> None:
     from PIL import Image
+    if rec["name"] == "rotation-wheel":
+        rec["raw"] = trim_margin(rec["raw"])
     with Image.open(rec["raw"]) as im:
         iw, ih = im.size
     title, sub = PIECE_META.get(rec["name"], (rec.get("title") or rec["name"], ""))
@@ -1267,6 +1285,11 @@ def compose(browser, mode: str, rec: dict, top: list, bot: list, out_png: Path, 
     pg.set_content(html, wait_until="load")
     pg.wait_for_timeout(400)
     H = 1920 if mode == "story" else int(pg.evaluate("document.body.offsetHeight"))
+    if mode != "story" and H > THREADS_MAX_H and rec["name"] in ("rotation-wheel", "sankey-tree"):      # 圓盤與樹縮小仍清楚：限在 4:5（1080×1350）；其他長圖（熱力圖、多張疊圖）縮了字會看不見，維持原高度
+        sh = pg.evaluate("document.querySelector('.shot').getBoundingClientRect().height")
+        pg.evaluate("(m) => { const e = document.querySelector('.shot'); e.style.cssText += ';width:auto;max-width:100%;max-height:' + m + 'px;margin:0 auto'; document.querySelector('.imgbox').style.textAlign = 'center'; }", int(sh - (H - THREADS_MAX_H)))
+        pg.wait_for_timeout(200)
+        H = int(pg.evaluate("document.body.offsetHeight"))
     if mode != "story":
         pg.set_viewport_size({"width": 1080, "height": H})
         pg.wait_for_timeout(200)
@@ -1455,7 +1478,7 @@ def main() -> int:
     ap.add_argument("--base", default=SITE_URL + "/index.html", help="網站網址（本機例如 http://127.0.0.1:8791/index.html）")
     ap.add_argument("--serve", default="", help="給路徑就在本機起靜態伺服器（site 資料夾），--base 自動設成它")
     ap.add_argument("--port", type=int, default=8791)
-    ap.add_argument("--width", type=int, default=1440)
+    ap.add_argument("--width", type=int, default=840, help="桌機截圖視窗寬（Threads 用）。2026-10-26 由 1440 改 840：截圖放進 1000px 卡片時內文放大約 1.25 倍（>820 才維持桌機版面）")
     ap.add_argument("--height", type=int, default=1000)
     ap.add_argument("--scale", type=float, default=2.0, help="截圖解析度倍率")
     ap.add_argument("--only", default="", help="只做這幾個目標（逗號分隔 name）")
@@ -1587,6 +1610,8 @@ def main() -> int:
                     compose(browser, "threads", rec, tp, bt, out / f"threads_{rec['name']}.png", report, args.frame)
                     threads_imgs.append(f"threads_{rec['name']}.png")
                 for rec in s["pieces_m"]:
+                    if rec["name"] == "rotation-wheel":     # 手機版圓盤只佔卡片寬約 68%（標籤留白）；改用桌機窄視窗那張（約 96%），2026-10-26 Andy 要 ≥80%
+                        rec = next((x for x in s["pieces_d"] if x["name"] == "rotation-wheel"), rec)
                     tp, bt = texts(s, rec)
                     compose(browser, "story", rec, tp, bt, out / f"story_{rec['name']}.png", report, args.frame)
                     stories.append(f"story_{rec['name']}.png")
