@@ -512,7 +512,7 @@ def page_html(mode: str, theme: str, title: str, sub: str, inner: str) -> str:
     logo = ss._logo_uri()
     body = (f'<div class=brand>{"<img data-box=logo src=" + chr(34) + logo + chr(34) + ">" if logo else ""}'
             f'<div class=nm data-box=title>{_e(title)}</div></div>'
-            f'<div class=card><div class=sub data-box=sub>{_e(sub)}</div><div class=body>{inner}</div></div>')
+            f'<div class=card><div class=body>{inner}</div></div>')      # 2026-10-26 Andy：圖上不放任何備註與來源 → 副標（資料日、說明）不畫，日期只留在標題列
     return f"<!doctype html><html><head><meta charset=utf-8><style>{page_css(mode, theme)}</style></head><body>{body}</body></html>"
 
 
@@ -541,7 +541,7 @@ def build_pages(D: dict, mode: str) -> list[dict]:
                     f'<div class=sp><div class=chartbox data-box={key} data-chart={key} style="position:absolute;inset:0"></div></div></div>')
         charts[key] = (lambda vals, t: (lambda w, h, c: spark_svg(vals, w, h, c[t] if t in c else c["cyan"])))(r["spark"], tn if tn != "ink3" else "cyan")
     miss = [r["label"] for r in us["rows"] if r["missing"]]
-    inner = "".join(rows) + (f'<div class="note ink3" data-box=note-miss>{_e("、".join(miss))}{PENDING_NOTE}</div>' if miss else "")
+    inner = "".join(rows)      # 缺的那格只寫「查證中」，不加說明句（2026-10-26：圖上不放備註）
     pages.append(dict(name="us-close", title=f"{head}｜美股收盤", sub=f"資料日：美股 {mdw(pd.Timestamp(us['date']).date()) if us['date'] else '—'} 美東收盤・小圖＝近 {SPARK_N} 日",
                       inner=inner, charts=charts))
 
@@ -552,25 +552,21 @@ def build_pages(D: dict, mode: str) -> list[dict]:
                 + (f'<div class=px data-box=d{i}>{d}</div>' if d else "") + f'</div><div class="pct {cls}" data-box=v{i}>{v}</div>{sp}</div>')
     charts = {}
     tw = fmt_num(adr["tw_close"], 0) if adr.get("tw_close") else "—"
-    twd = f'{md(adr["tw_date"])} 收盤' if adr.get("tw_date") else ""
     if adr["missing"]:
-        rows = [kv(1, "ADR 收盤（美元）", "TSM・美東收盤", PENDING, "ink3"),
-                kv(2, "換算台股價（元）", f"ADR × 匯率 ÷ {ADR_RATIO}", PENDING, "ink3"),
-                kv(3, "台積電前一日收盤（元）", twd, tw),
-                kv(4, "溢價／折價", "換算價 vs 台積電前收", PENDING, "ink3")]
+        rows = [kv(1, "ADR 收盤（美元）", "", PENDING, "ink3"),
+                kv(2, "換算台股價（元）", "", PENDING, "ink3"),
+                kv(3, "台積電前一日收盤（元）", "", tw),
+                kv(4, "溢價／折價", "", PENDING, "ink3")]
     else:
         tn = tone(adr["chg"])
         p = adr.get("prem")
         rows = [kv(1, "ADR 收盤（美元）", f'<span class={tn}>{fmt_signed(adr["chg"])}（{fmt_signed(adr["pct"], 2, "%")}）</span>',
                    fmt_num(adr["close"]), "", spark=True),
-                kv(2, "換算台股價（元）", f'ADR × {adr.get("fx", 0):.3f} ÷ {ADR_RATIO}', fmt_num(adr.get("conv", 0), 1) if adr.get("conv") else "—"),
-                kv(3, "台積電前一日收盤（元）", twd, tw),
-                kv(4, f'{"溢價" if (p or 0) >= 0 else "折價"}（對台積電前收）', "換算價 vs 台積電前收", fmt_signed(p, 2, "%") if p is not None else "—", tone(p))]
+                kv(2, "換算台股價（元）", "", fmt_num(adr.get("conv", 0), 1) if adr.get("conv") else "—"),
+                kv(3, "台積電前一日收盤（元）", "", tw),
+                kv(4, f'{"溢價" if (p or 0) >= 0 else "折價"}（對台積電前收）', "", fmt_signed(p, 2, "%") if p is not None else "—", tone(p))]
         charts["adrsp"] = (lambda vals, t: (lambda w, h, c: spark_svg(vals, w, h, c[t])))(adr.get("spark") or [], tn if tn != "ink3" else "cyan")
-    notes = [f'<div class=note data-box=n1>換算台股價＝ADR × 美元兌台幣 ÷ {ADR_RATIO}（1 股 ADR＝{ADR_RATIO} 股普通股）'
-             + (f'；匯率 {adr["fx"]:.3f}（{md(adr["fx_date"])}，Yahoo Finance TWD=X）' if adr.get("fx") else "") + '</div>']
-    if adr["missing"]:
-        notes.append(f'<div class="note warn" data-box=n3>台積電 ADR（TSM）{PENDING_NOTE}</div>')
+    notes = []      # 換算公式、匯率來源只放文案（2026-10-26：圖上不放備註與來源）
     pages.append(dict(name="tsm-adr", title=f"{head}｜台積電 ADR",
                       sub=f"資料日：ADR {mdw(pd.Timestamp(adr['date']).date()) if adr.get('date') else '—'} 美東收盤・台積電 {md(adr['tw_date']) if adr.get('tw_date') else '—'}",
                       inner="".join(rows) + "".join(notes), charts=charts))
@@ -578,44 +574,39 @@ def build_pages(D: dict, mode: str) -> list[dict]:
     # 3 台指期夜盤
     charts = {}
     if night["missing"]:
-        inner = f'<div class="note warn" data-box=nm>台指期夜盤{PENDING_NOTE}</div>'
+        inner = f'<div class=grid2 style="flex:none"><div class=tile><div class=k data-box=k1>夜盤收盤</div><div class="v ink3" data-box=v1>{PENDING}</div></div></div>'
         nsub = "資料日：—"
     else:
         sess = pd.Timestamp(night["session"]).date()
         dc = night.get("day_close")
         tn = tone(night.get("diff"))
         tiles = (f'<div class=tile><div class=k data-box=k1>夜盤收盤</div><div class=v data-box=v1>{fmt_num(night["close"], 0)}</div>'
-                 + (f'<div class="d {tone(night["official_chg"])}" data-box=d1>漲跌 {fmt_signed(night["official_chg"], 0)} 點（期交所）</div>' if night.get("official_chg") is not None else "")
+                 + (f'<div class="d {tone(night["official_chg"])}" data-box=d1>漲跌 {fmt_signed(night["official_chg"], 0)} 點</div>' if night.get("official_chg") is not None else "")
                  + '</div>'
                  f'<div class=tile><div class=k data-box=k2>較日盤收盤 {fmt_num(dc, 0) if dc else "—"}</div>'
                  f'<div class="v {tn}" data-box=v2>{fmt_signed(night["diff"], 0) if dc else "—"}<small>點</small></div>'
                  f'<div class="d {tn}" data-box=d2>{fmt_signed(night["diff_pct"], 2, "%") if dc else ""}</div></div>')
         inner = (f'<div class=grid2 style="flex:none">{tiles}</div>'
-                 f'<div class=legend><span data-box=lg1>━ 夜盤走勢（1 分 K）</span><span data-box=lg2>┅ 日盤收盤</span></div>'
+                 f'<div class=legend><span data-box=lg1>━ 夜盤走勢</span><span data-box=lg2>┅ 日盤收盤</span></div>'
                  f'<div class=chartbox data-box=chart data-chart=night></div>')
         bars, ref = night["bars"], dc
         charts["night"] = lambda w, h, c: night_svg(bars, ref, w, h, c, 30 if story else 24)
-        e = pd.Timestamp(night["end"])
-        inner += f'<div class=note data-box=n1>時段：{md(sess)} 15:00～{md(e.date())} {"05:00" if not night.get("partial") else e.strftime("%H:%M") + "（資料到這裡為止）"}（對應美股 {md(sess)} 交易時段）</div>'
-        if D.get("closure"):
-            inner += f'<div class="note warn" data-box=n2>{_e(D["closure"]["text"])}</div>'
+        # 時段說明、休市天數只放文案與總結句（2026-10-26：圖上不放備註）
         nsub = f"資料日：{mdw(sess)} 夜盤・最近一個已收盤的夜盤"
     pages.append(dict(name="tx-night", title=f"{head}｜台指期夜盤", sub=nsub, inner=inner, charts=charts))
 
     # 4 大事件與科技新聞
     items = []
     for i, n in enumerate(D["news"]):
-        t = pd.Timestamp(n["time"])
         col = "amber" if n["kind"] == "大事件" else "cyan"
         items.append(f'<div class=it style="--c:var(--{col})"><div class=tg data-box=tg{i}>{n["kind"]}</div>'
-                     f'<div class=tt data-box=tt{i}>{_e(n["title"])}</div>'
-                     f'<div class=ms data-box=ms{i}>{_e(n["source"])}・{mdw(t.date())} {t:%H:%M}</div></div>')
+                     f'<div class=tt data-box=tt{i}>{_e(n["title"])}</div></div>')      # 來源、時間不上圖（2026-10-26）
     if not items:
-        items.append('<div class="note ink3" data-box=none>這段時間沒有符合條件的重大新聞</div>')
+        items.append('<div class="note ink3" data-box=none>無重大新聞</div>')
     cal = ""
     if D["events"]:
         lines = "".join(f'<div data-box=ev{i}>{_e(e["label"])}　{_e(e["name"])}</div>' for i, e in enumerate(D["events"][:3]))
-        cal = f'<div class=cal><b data-box=calh>本週已排定（台北時間）</b>{lines}</div>'
+        cal = f'<div class=cal><b data-box=calh>本週已排定</b>{lines}</div>'
     w0, w1 = pd.Timestamp(D["news_window"][0]), pd.Timestamp(D["news_window"][1])
     pages.append(dict(name="news", title=f"{head}｜大事件與科技新聞", sub=f"美股收盤後 {md(w0.date())} {w0:%H:%M}～{md(w1.date())} {w1:%H:%M}・只列標題",
                       inner=f'<div class=news>{"".join(items)}</div>{cal}', charts={}))
@@ -633,7 +624,7 @@ def build_pages(D: dict, mode: str) -> list[dict]:
     pages.append(dict(name="summary", title=f"{head}｜一句話總結",
                       sub=f"資料日：美股 {md(us['date']) if us['date'] else '—'}・夜盤 {md(night['session']) if not night['missing'] else '—'}・台北 {md(tgt)} 開盤前",
                       inner=(f'<div class="grid2 tiles sumt" style="grid-template-rows:1fr 1fr">{th}</div>'
-                             f'<div class=bigbox><div class=big data-box=sum>{_e(D["summary"])}</div></div><div class=disc data-box=disc>{DISCLAIMER}</div>'), charts={}))
+                             f'<div class=bigbox><div class=big data-box=sum>{_e(D["summary"])}</div></div>'), charts={}))      # 免責只放文案最後一行
     return pages
 
 
@@ -708,7 +699,7 @@ def caption(D: dict, ymd: str, max_len: int = ss.THREADS_MAX) -> str:
     ev = [n for n in D["news"] if n["kind"] == "大事件"]
     te = [n for n in D["news"] if n["kind"] == "科技"]
     cal = "；".join(f"{e['name']} {e['label']}" for e in D["events"][:2])
-    tail = [f"看更多 {link('overview')}", DISCLAIMER, HASHTAGS]
+    tail = [f"看更多 {link('overview')}", HASHTAGS, DISCLAIMER]      # 免責與來源只放文案最後一行（2026-10-26）
     for ne, nt, use_cal in ((len(ev), len(te), True), (1, 2, True), (1, 1, True), (1, 1, False), (1, 0, False), (0, 0, False)):
         lines = [L1] + seg
         if ne and ev:

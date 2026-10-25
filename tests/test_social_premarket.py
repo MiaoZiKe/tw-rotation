@@ -135,3 +135,23 @@ def test_caption_and_summary_facts_only():
     assert "休市 4 天" in D["summary"]
     for bad in ("買進", "賣出", "建議買", "看多", "看空"):
         assert bad not in D["summary"]
+    assert txt.splitlines()[-1] == sp.DISCLAIMER          # 免責與來源只放文案最後一行（2026-10-26）
+    # 2026-10-26 Andy「所有的備註都不要顯示、不包含來源」：每張圖的 HTML 不准有副標、備註、免責、新聞來源
+    for mode in ("threads", "story"):
+        for p in sp.build_pages(D, mode):
+            html = sp.page_html(mode, "light", p["title"], p["sub"], p["inner"])
+            body = html.split("</style>", 1)[1]
+            assert "class=sub" not in body and "class=note" not in body.replace('class="note ink3" data-box=none', "")
+            assert "class=disc" not in body and sp.DISCLAIMER not in body and sp.PENDING_NOTE not in body
+            for bad in ("資料日", "來源", "Yahoo", "期交所", "鉅亨", "科技新報", "聯合新聞網", "（台北時間）"):
+                assert bad not in body, (p["name"], mode, bad)
+
+
+def test_snap_note_regex_catches_notes():
+    import re
+    import social_snap as ss
+    rx = re.compile(ss.NOTE_RE)
+    for bad in ("資料來源：證交所", "僅供參考", "不構成投資建議", "部分估算", "上市融資維持率（估算）", "資料日：10/22", "計算方式"):
+        assert rx.search(bad), bad
+    for ok in ("融資增減排行", "增加 Top 8", "+2.71 千張", "外資", "130%", "較前日 -5.85 pp"):
+        assert not rx.search(ok), ok

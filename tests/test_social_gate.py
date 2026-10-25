@@ -149,3 +149,16 @@ def test_data_dates_回完整日期且含融券():
         d = ss.data_dates(Path(td))
     assert d["credit-short"] == "2026-10-23" and d["credit-rank"] == "2026-10-23"
     assert d["streak-trust"] == "2026-10-22" and ss.mmdd(d["streak-trust"]) == "10/22"
+
+
+def test_融資融券_當天晚上就發():
+    # 2026-10-26 Andy「盤後也需要新增融資融券」：21:38 full 那輪後資料日＝今天 → 當晚就發
+    meta, mf = _mf("2026-10-22")
+    cd = {k: "2026-10-22" for k in CREDIT}
+    ok, d, why = ss.decide("credit", T("2026-10-22T22:05"), meta, mf, cd, CREDIT, H, {"last_trade": "2026-10-22", "live": True})
+    assert ok is True and d == "2026-10-22"
+
+
+def test_文案標題_盤後融資融券():
+    txt = ss.build_text("credit", "10/22 22:05", [{"name": "credit-ratio", "ok": True, "read": {"ratio": "176.99", "chg": "-5.85"}}], "2026-10-22", "20261022")
+    assert txt.splitlines()[0] == "台股盤後融資融券｜10/22"
