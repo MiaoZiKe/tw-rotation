@@ -420,7 +420,7 @@
           "weekly_hours": null,
           "overtime": "偶爾",
           "travel": "不用",
-          "n": 7,
+          "n": 8,
           "note": "GoodJob 兩筆不到 1 年自述月薪 6.5／6.8 萬；5 年記憶體開發 8 萬已排除；學歷未標；GoodJob 公司頁平均每週 45 小時、42% 偶爾加班、5% 幾乎每天；2026 多則評價稱分紅少或改半年一次，分紅月數無可靠區間；第二輪：Dcard 四大碩製程面試喊 5.8 萬、談到 6 字頭；GoodJob 2026-06 製程 6.8 萬、每週約 50 小時；保 14 個月，2022Q4 起長期無分紅、2026 景氣好轉傳分紅大增（未證實）；annual_months 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples；未逐筆對應的舊彙整：annual_months=[14, 14]",
           "sources": [
             {
@@ -457,6 +457,11 @@
               "site": "GoodJob",
               "url": "https://www.goodjob.life/experiences/6a1efbf2ddfd7c22feb5d228",
               "date": "2026-06"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261933659",
+              "date": "2026-08"
             }
           ],
           "confidence": "中",
@@ -590,9 +595,27 @@
               "quote_free_note": "製程 6.8 萬、每週約 50 小時",
               "date_confirmed": true,
               "date_note": "GoodJob 標題附分享日期"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261933659",
+              "date": "2026-08",
+              "unit_detail": null,
+              "years": null,
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "南亞科／華邦 比較，碩士；華邦製程工程師報價寫 N+5，南部算不錯",
+              "date_confirmed": true,
+              "date_note": "依 docs/tc/dcard_id_calibration.md：編號 261933659 ≥ 259537767，晚於 2025-08-01；月份為校準表內插"
             }
           ],
-          "n_stat": 2
+          "n_stat": 6
         },
         {
           "unit": "研發 R&D",
