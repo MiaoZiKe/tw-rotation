@@ -106,6 +106,9 @@ def fmt_signed(v: float, nd: int = 2, suffix: str = "") -> str:
     return ("+" if v > 0 else "−" if v < 0 else "±") + s
 
 
+DATE_TXT = ""      # 標題列右側日期（main 設定），例 10/27 週二
+
+
 def md(d: date | str) -> str:
     d = pd.Timestamp(d).date() if not isinstance(d, date) else d
     return f"{d.month}/{d.day}"
@@ -554,7 +557,7 @@ def load_lake(target: date) -> tuple:
 # ============================================================================ 圖（SVG，量好實際框再畫，不拉伸）
 FONT = "Noto Sans CJK TC,Noto Sans TC,WenQuanYi Zen Hei,sans-serif"
 # 均線六色＋RSI：避開紅綠（K 棒用），由短到長從暖到冷再到深灰
-MA_COL = {"light": {"ma5": "#e08a00", "ma10": "#c9a400", "ma20": "#7b4fd6", "ma60": "#1f6fd1", "ma120": "#8a5a3c", "ma240": "#4a4f5c", "rsi": "#0a8aa8"},
+MA_COL = {"light": {**{f"ma{n}": c for n, c in zip((5, 10, 20, 60, 120, 240), ss.TH.MA_COLORS)}, "rsi": "#0A6A86"},   # 亮色 HUD 六色（social_theme.MA_COLORS）
           "dark": {"ma5": "#ffb454", "ma10": "#f2dc5d", "ma20": "#b49bff", "ma60": "#6aa8ff", "ma120": "#d0a07a", "ma240": "#c8cdd8", "rsi": "#3ee0ff"}}
 
 
@@ -588,18 +591,16 @@ def candle_svg(ks: dict, w: int, h: int, c: dict, theme: str, *, fs: int = 0, ma
     R, T = 6, (int(fs * 0.6) if fs else 4)
     B = int(fs * 1.8) if fs else 4
     gap = int(fs * 0.5) if rsi else 0
-    ph = (h - T - B - gap) * (0.78 if rsi else 1.0)        # 價格區高
-    rh = (h - T - B - gap) - ph if rsi else 0
-    # 縱軸：K 棒＋5～60 日均線全包；半年線、年線離太遠時最多再放寬 15%，超出的部分裁掉（不然 K 棒會被壓扁）
-    short = [x[f"ma{p}"] for x in b for p in (5, 10, 20, 60) if ma and x.get(f"ma{p}") is not None]
-    long_ = [x[f"ma{p}"] for x in b for p in (120, 240) if ma and x.get(f"ma{p}") is not None]
-    lo, hi = min([x["l"] for x in b] + short), max([x["h"] for x in b] + short)
+    tot = h - T - B - gap
+    rh = max(80.0, tot * 0.2) if rsi else 0          # RSI 副圖至少 80px（30／70 兩條線相距 ≥ 32px，標籤不擠在一起）
+    ph = tot - rh                                    # 價格區（主圖）取剩下的
+    # 縱軸只依 K 棒高低＋MA5／10／20，上下各留 8%；MA60／120／240 超出就被 clip-path 截掉不畫，完全不影響縱軸
+    kl, kh = min(x["l"] for x in b), max(x["h"] for x in b)
+    near = [x[f"ma{p}"] for x in b for p in (5, 10, 20) if ma and x.get(f"ma{p}") is not None]
+    lo, hi = min([kl] + near), max([kh] + near)
     sp = (hi - lo) or 1
-    if long_:
-        lo = max(min([lo] + long_), lo - sp * 0.15)
-        hi = min(max([hi] + long_), hi + sp * 0.15)
-        sp = hi - lo
-    lo, hi = lo - sp * 0.04, hi + sp * 0.04
+    lo, hi = lo - sp * 0.08, hi + sp * 0.08
+    sp = hi - lo
     n = len(b)
     step = (w - L - R) / n
 
@@ -655,7 +656,7 @@ def svg_uri(svg: str) -> str:
 
 
 # ============================================================================ 版型
-CAT_COL = {"light": {"新聞": "#0a6b8a", "事件": "#b35c00", "科技": "#6a4bc4", "總經": "#2f6f3e"},
+CAT_COL = {"light": dict(ss.TH.CATEGORY),
            "dark": {"新聞": "#3ee0ff", "事件": "#ffb454", "科技": "#b49bff", "總經": "#7ddc8f"}}
 
 
@@ -673,62 +674,62 @@ def page_css(mode: str, theme: str) -> str:
     mc = MA_COL[theme]
     cats = "".join(f".cat-{k}{{--c:{v}}}" for k, v in CAT_COL[theme].items())
     tg_ink = "#fff" if theme == "light" else "#070b16"
-    return (":root{" + "".join(f"--{k}:{v};" for k, v in c.items()) + "".join(f"--{k}:{v};" for k, v in mc.items()) + "}" + cats + f"""
-*{{box-sizing:border-box;margin:0;padding:0}}
-html,body{{width:1080px;height:{H}px;overflow:hidden}}
-body{{background:var(--bg);color:var(--ink);font-family:'Noto Sans CJK TC','Noto Sans TC','PingFang TC','Microsoft JhengHei','WenQuanYi Zen Hei',sans-serif;
-  display:flex;flex-direction:column;padding:{S('16px 20px 16px', '24px 24px 20px')};font-variant-numeric:tabular-nums}}
-.brand{{display:flex;align-items:center;gap:12px;height:{S(64, 72)}px;flex:none}}
-.brand img{{width:{S(54, 60)}px;height:{S(54, 60)}px;border-radius:13px;display:block}}
-.brand .nm{{font-size:{S(40, 44)}px;font-weight:800;line-height:1.5;white-space:nowrap}}
-.card{{flex:1;min-height:0;display:flex;flex-direction:column;gap:{S(10, 14)}px;margin-top:8px;background:var(--panel);border:1.5px solid var(--line2);border-radius:24px;padding:{S('14px 18px', '18px 20px')}}}
+    return (ss.TH.base_css(mode).replace("body{width:1080px;", f"html,body{{height:{H}px;overflow:hidden}}\nbody{{width:1080px;height:{H}px;", 1)
+            + ":root{" + "".join(f"--{k}:{v};" for k, v in mc.items()) + "}" + cats + f"""
+body{{font-variant-numeric:tabular-nums}}
+.card{{flex:1;min-height:0;display:flex;flex-direction:column;gap:{S(10, 14)}px;padding:{S('14px 18px', '18px 20px')}}}
 .rise{{color:var(--rise)}}.fall{{color:var(--fall)}}.ink3{{color:var(--ink3)}}
 .row{{flex:1;min-height:0;display:grid;grid-template-columns:{S('290px 1fr 380px', '1fr 1fr')};grid-template-rows:{S('1fr', 'auto 1fr')};align-items:center;column-gap:16px;
-  border:1.5px solid var(--line);border-radius:16px;padding:{S('8px 16px', '12px 20px')};background:var(--panel2)}}
+  border:1.5px solid var(--line);border-radius:10px;padding:{S('8px 16px', '12px 20px')};background:var(--panel2)}}
 .row .nm{{font-size:{S(34, 42)}px;font-weight:800;line-height:1.5;white-space:nowrap}}
 .row .px{{font-size:{S(30, 38)}px;line-height:1.5;color:var(--ink2);white-space:nowrap}}
 .row .pct{{font-size:{S(46, 56)}px;font-weight:800;line-height:1.4;white-space:nowrap;text-align:right}}
 .row .pts{{font-size:{S(28, 34)}px;line-height:1.5;white-space:nowrap;text-align:right}}
 .row .sp{{align-self:stretch;min-height:0;position:relative;{S('', 'grid-column:1 / span 2;margin-top:8px;')}}}
 .grid{{flex:none;display:grid;gap:{S(12, 14)}px}}
-.tile{{min-width:0;border:1.5px solid var(--line);border-radius:16px;background:var(--panel2);padding:{S('10px 18px', '14px 20px')}}}
+.tile{{min-width:0;border:1.5px solid var(--line);border-radius:10px;background:var(--panel2);padding:{S('10px 18px', '14px 20px')}}}
 .tile .k{{font-size:{S(26, 32)}px;line-height:1.5;color:var(--ink3);white-space:nowrap}}
 .tile .v{{font-size:{S(50, 58)}px;font-weight:800;line-height:1.3;white-space:nowrap}}
 .tile .d{{font-size:{S(26, 32)}px;line-height:1.5;white-space:nowrap}}
-.legend{{flex:none;display:flex;flex-wrap:wrap;column-gap:{S(18, 22)}px;row-gap:2px;font-size:{S(23, 28)}px;line-height:1.45;color:var(--ink2);white-space:nowrap}}
+.legend{{flex:none;display:flex;flex-wrap:wrap;column-gap:{S(18, 22)}px;row-gap:2px;font-size:{S(23, 24)}px;line-height:1.4;color:var(--ink2);white-space:nowrap}}
 .legend i{{display:inline-block;width:{S(24, 30)}px;height:5px;border-radius:3px;vertical-align:middle;margin-right:6px;background:var(--lc)}}
-.sec{{flex:1;min-height:0;display:flex;flex-direction:column;gap:{S(8, 12)}px}}
+.sec{{flex:1;min-height:0;display:flex;flex-direction:row;gap:{S(12, 14)}px}}
 .sec + .sec{{border-top:1.5px solid var(--line);padding-top:{S(10, 14)}px}}
-.sec .grid .tile{{padding:{S('6px 14px', '10px 18px')}}}
-.sec .tile .k{{font-size:{S(22, 28)}px}}.sec .tile .v{{font-size:{S(38, 46)}px}}.sec .tile .d{{font-size:{S(22, 28)}px}}
-.sec .tile.nmt{{display:flex;align-items:center;background:none;border:none;padding-left:0}}
-.sec .tile.nmt .v{{font-size:{S(34, 44)}px}}
-.tat{{flex:none;display:grid;grid-template-columns:auto auto 1fr;column-gap:{S(28, 32)}px;border:1.5px solid var(--line);border-radius:14px;background:var(--panel2);padding:{S('4px 18px', '8px 20px')}}}
-.tat > div{{font-size:{S(25, 31)}px;line-height:1.5;white-space:nowrap;padding:{S('2px 0', '4px 0')}}}
-.tat .tk{{color:var(--ink3)}}.tat .tv{{text-align:right;font-weight:700;font-variant-numeric:tabular-nums;font-family:'Roboto Mono','DejaVu Sans Mono',monospace}}
-.tat .ts{{color:var(--ink2)}}
-.tat > div:nth-child(n+4){{border-top:1px dashed var(--line)}}
+.sec .chartbox{{flex:1;min-width:0}}
+.side{{flex:none;width:{S(330, 360)}px;display:flex;flex-direction:column;gap:{S(4, 6)}px;justify-content:space-between}}
+.side .tile{{padding:{S("3px 12px", "5px 14px")}}}
+.side .tile .k{{font-size:{S(22, 25)}px;line-height:1.35}}.side .tile .v{{font-size:{S(34, 38)}px;line-height:1.3}}.side .tile .d{{font-size:{S(22, 25)}px;line-height:1.35}}
+.side .tile.nmt{{display:flex;align-items:center;background:none;border:none;padding:0}}
+.side .tile.nmt .v{{font-size:{S(32, 36)}px}}
+.tat{{flex:none;display:grid;border:1.5px solid var(--line);border-radius:10px;background:var(--panel2)}}
+.tat .tk{{color:var(--ink3)}}.tat .tv{{font-weight:700;font-family:'Roboto Mono','DejaVu Sans Mono',monospace}}.tat .ts{{color:var(--ink2)}}
+.side .tat{{grid-template-columns:auto 1fr;column-gap:12px;padding:{S('2px 12px', '4px 14px')}}}
+.side .tat > div{{font-size:{S(23, 25)}px;line-height:1.35;padding:1px 0;border-top:none}}
+.side .tat .tv{{text-align:right}}
+.side .tat .ts{{grid-column:1 / -1;border-bottom:1px dashed var(--line);padding-bottom:3px;white-space:normal}}
+.side .tat .ts:last-child{{border-bottom:none}}
 .chartbox{{flex:1;min-height:0;position:relative}}
 .chartbox img{{position:absolute;left:0;top:0;display:block}}
-.ta{{flex:none;border:1.5px solid var(--line);border-radius:16px;background:var(--panel2);padding:{S('10px 18px', '14px 20px')}}}
+.ta{{flex:none;border:1.5px solid var(--line);border-radius:10px;background:var(--panel2);padding:{S('10px 18px', '14px 20px')}}}
 .ta div{{font-size:{S(30, 34)}px;line-height:1.55}}
 .news{{flex:1;min-height:0;display:flex;flex-direction:column;gap:{S(12, 16)}px}}
-.it{{flex:1;min-height:0;display:flex;align-items:center;gap:{S(18, 20)}px;border-radius:16px;padding:{S('8px 20px 8px 16px', '12px 22px 12px 18px')};
-  background:color-mix(in srgb,var(--c) 8%,var(--panel));border:1.5px solid color-mix(in srgb,var(--c) 40%,var(--panel))}}
-.it .tg{{flex:none;background:var(--c);color:{tg_ink};font-size:{S(28, 34)}px;font-weight:800;line-height:1.4;border-radius:12px;padding:{S('8px 14px', '10px 16px')};white-space:nowrap}}
-.it .tt{{flex:1;min-width:0;font-size:{S(38, 46)}px;line-height:1.42;font-weight:800;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:{S(3, 4)};overflow:hidden}}
+.it{{flex:1;min-height:0;display:flex;align-items:center;gap:{S(18, 20)}px;border-radius:10px;padding:{S('8px 20px 8px 16px', '12px 22px 12px 18px')};
+  background:var(--panel2);border:1.5px solid var(--line);border-left:8px solid var(--c)}}
+.it .ix{{flex:none;width:{S(100, 112)}px;font-size:{S(56, 64)}px;font-weight:800;line-height:1.35;color:var(--c);font-family:Inter,'Roboto Mono',monospace;font-variant-numeric:tabular-nums}}
+.it .bd{{flex:1;min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:{S(8, 10)}px}}
+.it .tg{{flex:none;background:var(--c);color:{tg_ink};font-size:{S(26, 30)}px;font-weight:800;line-height:1.4;border-radius:8px;padding:{S('2px 14px', '2px 16px')};white-space:nowrap}}
+.it .tt{{min-width:0;align-self:stretch;font-size:{S(44, 42)}px;line-height:1.38;font-weight:800;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden}}
 .sumt{{flex:1;min-height:0;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr}}
 .sumt .tile{{display:flex;flex-direction:column;justify-content:center}}
 .sumt .v{{font-size:{S(84, 100)}px}}.sumt .k{{font-size:{S(34, 42)}px}}
-.bigbox{{flex:none;border:1.5px solid var(--line);border-radius:16px;background:var(--panel2);padding:{S('16px 28px', '24px 32px')}}}
+.bigbox{{flex:none;border:1.5px solid var(--line);border-radius:10px;background:var(--panel2);padding:{S('16px 28px', '24px 32px')}}}
 .big{{font-size:{S(46, 56)}px;line-height:1.6;font-weight:700}}
 """)
 
 
-def page_html(mode: str, theme: str, title: str, inner: str) -> str:
-    logo = ss._logo_uri()
-    img = f'<img data-box=logo src="{logo}">' if logo else ""
-    body = f'<div class=brand>{img}<div class=nm data-box=title>{_e(title)}</div></div><div class=card>{inner}</div>'
+def page_html(mode: str, theme: str, title: str, inner: str, date: str = "") -> str:
+    """標題列走 social_theme（LOGO｜時段膠囊｜標題｜靠右日期），日期只在標題列。"""
+    body = f'{ss.TH.header_html("premarket", _e(title), _e(date))}<div class=card>{inner}</div>'
     return f"<!doctype html><html><head><meta charset=utf-8><style>{page_css(mode, theme)}</style></head><body>{body}</body></html>"
 
 
@@ -749,19 +750,19 @@ def _ksec(key: str, name: str, tiles: list[str], ks: dict, story: bool, theme: s
     tat = ('<div class=tat>' + "".join(f'<div class=tk data-box={key}-tk{i}>{_e(a)}</div><div class=tv data-box={key}-tv{i}>{_e(b)}</div>'
                                        f'<div class=ts data-box={key}-ts{i}>{_e(c)}</div>' for i, (a, b, c) in enumerate(rows)) + '</div>') if rows else ""
     nm = f'<div class="tile nmt"><div class=v data-box={key}-nm>{_e(name)}</div></div>'
-    cols = "auto " + " ".join(["1fr"] * len(tiles))
-    grid = f'<div class=grid style="grid-template-columns:{cols}">{nm}{"".join(tiles)}</div>'
 
     def draw(w, h, c):
-        return candle_svg(ks, w, h, c, theme, fs=26 if story else 21, ma=True, rsi=True)
-    html = f'<div class=sec>{grid}<div class=chartbox data-box={key}-chart data-chart={key}></div>{tat}</div>'
+        return candle_svg(ks, w, h, c, theme, fs=26 if story else 22, ma=True, rsi=True)
+    # 版面：左＝圖（吃滿整段高度，主圖 ≥330px、RSI ≥80px）、右＝名稱＋數字卡＋技術面表格直排（2026-10-26 CEO：K 棒不能被壓扁）
+    html = (f'<div class=sec><div class=chartbox data-box={key}-chart data-chart={key}></div>'
+            f'<div class=side>{nm}{"".join(tiles)}{tat}</div></div>')
     return html, {key: draw}, rows
 
 
 def build_pages(D: dict, mode: str, theme: str = "light") -> list[dict]:
     """每張回 {name, title, inner, charts:{key: 畫圖函式(w,h,c)}}。圖上不放任何備註（資料日只在標題列）。"""
     story = mode == "story"
-    head = f"台股盤前｜{md(pd.Timestamp(D['target']).date())}"
+    head = ""   # 日期與「盤前」改放標題列的日期／膠囊（render 傳 date），標題只留頁名
     us, adr, tx, night = D["us"], D["adr"], D["tx"], D["night"]
     night_ok = not night["missing"] and night.get("diff") is not None and not night.get("partial")
     pages = []
@@ -783,7 +784,7 @@ def build_pages(D: dict, mode: str, theme: str = "light") -> list[dict]:
         else:
             charts[key] = (lambda ks: (lambda w, h, c: candle_svg(ks, w, h, c, theme)))(r["k"])
     if rows:
-        pages.append({"name": "us-close", "title": f"{head}｜美股", "inner": "".join(rows), "charts": charts})
+        pages.append({"name": "us-close", "title": "美股", "inner": "".join(rows), "charts": charts})
 
     # 2 台指期（上）＋台積電 ADR（下）同一頁；ADR 沒進資料庫 → 下段不畫（Andy 10-26：台積電現貨那頁改回 ADR）
     secs, charts, ta = [], {}, {}
@@ -804,13 +805,13 @@ def build_pages(D: dict, mode: str, theme: str = "light") -> list[dict]:
         secs.append(h); charts.update(ch); ta["adr"] = rows
     if secs:
         sub = "台指期・台積電 ADR" if len(secs) == 2 else ("台指期" if not tx["missing"] else "台積電 ADR")
-        pages.append({"name": "tx", "title": f"{head}｜{sub}", "inner": ma_legend() + "".join(secs), "charts": charts, "ta": ta})
+        pages.append({"name": "tx", "title": sub, "inner": ma_legend() + "".join(secs), "charts": charts, "ta": ta})
 
     # 4 今日焦點：分類色塊＋大標題，無來源無時間
     if D["news"]:
-        items = "".join(f'<div class="it cat-{n["category"]}"><div class=tg data-box=tg{i}>{n["category"]}</div>'
-                        f'<div class=tt data-box=tt{i}>{_e(n["title"])}</div></div>' for i, n in enumerate(D["news"]))
-        pages.append({"name": "news", "title": f"{head}｜今日焦點", "inner": f'<div class=news>{items}</div>', "charts": {}})
+        items = "".join(f'<div class="it cat-{n["category"]}"><div class=ix data-box=ix{i}>{i + 1:02d}</div><div class=bd><div class=tg data-box=tg{i}>{n["category"]}</div>'
+                        f'<div class=tt data-box=tt{i}>{_e(n["title"])}</div></div></div>' for i, n in enumerate(D["news"]))
+        pages.append({"name": "news", "title": "今日焦點", "inner": f'<div class=news>{items}</div>', "charts": {}})
 
     # 5 一句話總結：四格數字＋一句話（缺的格子換成可得的：標普、VIX）
     tiles = []
@@ -831,7 +832,7 @@ def build_pages(D: dict, mode: str, theme: str = "light") -> list[dict]:
                  for i, (k, v, t) in enumerate(tiles[:4]))
     if th:
         big = f'<div class=bigbox><div class=big data-box=sum>{_e(D["summary"])}</div></div>' if D["summary"] else ""
-        pages.append({"name": "summary", "title": f"{head}｜一句話總結", "inner": f'<div class="grid sumt">{th}</div>{big}', "charts": {}})
+        pages.append({"name": "summary", "title": "一句話總結", "inner": f'<div class="grid sumt">{th}</div>{big}', "charts": {}})
     return pages
 
 
@@ -846,7 +847,7 @@ CHECK_JS = """() => {   // 每個 [data-box] 的框：兩兩不得相交、不�
   const W = document.documentElement.clientWidth, H = document.documentElement.clientHeight;
   const out = R.filter(b => b.x < -0.5 || b.y < -0.5 || b.x + b.w > W + 0.5 || b.y + b.h > H + 0.5).map(b => b.n);
   const card = document.querySelector('.card').getBoundingClientRect();
-  return { hits, out, cut: R.filter(r => r.cut).map(r => r.n), n: R.length, content_ratio: (card.bottom - document.querySelector('.brand').getBoundingClientRect().top) / H };
+  return { hits, out, cut: R.filter(r => r.cut).map(r => r.n), n: R.length, content_ratio: (card.bottom - document.querySelector('.hd').getBoundingClientRect().top) / H };
 }"""
 
 
@@ -856,7 +857,7 @@ def render(pages: list[dict], mode: str, theme: str, out: Path, browser, report:
     c = ss.FRAME[theme]
     for p in pages:
         pg = browser.new_page(viewport={"width": 1080, "height": H}, device_scale_factor=1)
-        pg.set_content(page_html(mode, theme, p["title"], p["inner"]), wait_until="load")
+        pg.set_content(page_html(mode, theme, p["title"], p["inner"], DATE_TXT), wait_until="load")
         pg.wait_for_timeout(250)
         for key, fn in p["charts"].items():
             w, h = pg.evaluate("(k) => { const r = document.querySelector('[data-chart=\"' + k + '\"]').getBoundingClientRect(); return [Math.floor(r.width), Math.floor(r.height)]; }", key)
@@ -959,6 +960,9 @@ def main() -> int:
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
     (out / "data.json").write_text(json.dumps(D, ensure_ascii=False, indent=1, default=str), "utf-8")
+    global DATE_TXT
+    _t = pd.Timestamp(D['target']).date()
+    DATE_TXT = f"{md(_t)} 週{WEEK[_t.weekday()]}"
     pn = premarket_news(D)
     (out / "premarket_news.json").write_text(json.dumps(pn, ensure_ascii=False, indent=1), "utf-8")
     from playwright.sync_api import sync_playwright
