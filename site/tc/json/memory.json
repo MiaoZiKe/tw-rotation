@@ -63,17 +63,20 @@
             54,
             58
           ],
-          "bonus_months": null,
+          "bonus_months": [
+            2,
+            4
+          ],
           "annual_months": [
             14,
             14
           ],
           "annual_total_wan": null,
           "weekly_hours": null,
-          "overtime": null,
+          "overtime": "偶爾",
           "travel": "不用",
           "n": 1,
-          "note": "整理文稱常日班 5.4 萬起、輪班 4.6 萬起，依學歷科系核敘；未區分碩士",
+          "note": "整理文稱常日班 5.4 萬起、輪班 4.6 萬起，依學歷科系核敘；未區分碩士；常日班加班與分紅沿用同公司設備職回報（低信心）",
           "sources": [
             {
               "site": "比薪水",
@@ -109,14 +112,19 @@
           "annual_months": null,
           "annual_total_wan": null,
           "weekly_hours": null,
-          "overtime": null,
+          "overtime": "偶爾",
           "travel": "不用",
           "n": 2,
-          "note": "GoodJob 兩筆不到 1 年自述月薪 6.5／6.8 萬；5 年記憶體開發 8 萬已排除；學歷未標",
+          "note": "GoodJob 兩筆不到 1 年自述月薪 6.5／6.8 萬；5 年記憶體開發 8 萬已排除；學歷未標；GoodJob 公司頁平均每週 45 小時、42% 偶爾加班、5% 幾乎每天；2026 多則評價稱分紅少或改半年一次，分紅月數無可靠區間",
           "sources": [
             {
               "site": "GoodJob",
               "url": "https://www.goodjob.life/companies/華邦電子股份有限公司/work-experiences/",
+              "date": "2026"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/華邦電子股份有限公司/work-experiences",
               "date": "2026"
             }
           ],
@@ -132,14 +140,19 @@
           "annual_months": null,
           "annual_total_wan": null,
           "weekly_hours": null,
-          "overtime": null,
-          "travel": null,
+          "overtime": "偶爾",
+          "travel": "偶爾",
           "n": 0,
-          "note": "比薪水 2026 有分享但金額需解鎖；查無可用數字；查過關鍵字：華邦電 南亞科 碩士 年薪 2026 分紅／華邦電 GoodJob",
+          "note": "比薪水 2026 有分享但金額需解鎖；查無可用數字；查過關鍵字：華邦電 南亞科 碩士 年薪 2026 分紅／華邦電 GoodJob；GoodJob 公司頁平均每週 45 小時、42% 偶爾加班、5% 幾乎每天；2026 多則評價稱分紅少或改半年一次，分紅月數無可靠區間；研發出差未見具體回報，暫填偶爾（低信心）",
           "sources": [
             {
               "site": "比薪水",
               "url": "https://salary.tw/salary/6979f9e9e690c4ab670ffb04",
+              "date": "2026"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/華邦電子股份有限公司/work-experiences",
               "date": "2026"
             }
           ],
@@ -227,10 +240,10 @@
             100
           ],
           "weekly_hours": null,
-          "overtime": null,
+          "overtime": "偶爾（有加班費）",
           "travel": "不用",
           "n": 2,
-          "note": "2025-02 自述年薪 100 萬（含職等津貼、季獎金、分紅）；有人說近年虧損無分紅年薪不到百萬",
+          "note": "2025-02 自述年薪 100 萬（含職等津貼、季獎金、分紅）；有人說近年虧損無分紅年薪不到百萬；沿用同公司設備職回報",
           "sources": [
             {
               "site": "GoodJob",
