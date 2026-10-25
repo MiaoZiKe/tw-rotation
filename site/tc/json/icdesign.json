@@ -645,7 +645,7 @@
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/259440112",
               "date": "不明",
-              "date_confirmed": false,
+              "date_confirmed": true,
               "unit_detail": "CDG 驗證",
               "years": "0",
               "degree": "碩士",
@@ -657,7 +657,8 @@
               "overtime": null,
               "travel": null,
               "quote_free_note": "應屆生收到 CDG 驗證面試，詢問內容與風氣；無數字",
-              "in_window": false
+              "in_window": true,
+              "date_note": "依 docs/tc/dcard_id_calibration.md：編號 ≥ 258870385（2025-05-21 錨點）→ 確認晚於 2025-01-01"
             }
           ],
           "grade": "E7（新人碩士，Dcard 多則）"
@@ -1183,7 +1184,7 @@
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/259440833",
               "date": "不明",
-              "date_confirmed": false,
+              "date_confirmed": true,
               "unit_detail": "IC layout",
               "years": "0",
               "degree": "碩士",
@@ -1195,7 +1196,8 @@
               "overtime": null,
               "travel": null,
               "quote_free_note": "瑞昱 IC layout vs 台積助工 offer：底薪以學士計；無數字",
-              "in_window": false
+              "in_window": true,
+              "date_note": "依 docs/tc/dcard_id_calibration.md：編號 ≥ 258870385（2025-05-21 錨點）→ 確認晚於 2025-01-01"
             }
           ]
         },
@@ -1306,7 +1308,7 @@
               "overtime": null,
               "travel": null,
               "quote_free_note": "面試經驗：月薪 8.1 萬；保 13、分紅一年兩次（2 月、10 月）至少約 2 個月（早於期間）",
-              "in_window": false
+              "in_window": true
             }
           ],
           "grade": null
@@ -1971,7 +1973,7 @@
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/259359749",
               "date": "不明",
-              "date_confirmed": false,
+              "date_confirmed": true,
               "unit_detail": "文化／薪水長文",
               "years": "不明",
               "degree": "碩士",
@@ -1983,7 +1985,8 @@
               "overtime": null,
               "travel": null,
               "quote_free_note": "結構調薪 5Xk→72k→90～91k，每年 8 月調 4～7%，分紅一年兩次",
-              "in_window": false
+              "in_window": true,
+              "date_note": "依 docs/tc/dcard_id_calibration.md：編號 ≥ 258870385（2025-05-21 錨點）→ 確認晚於 2025-01-01"
             },
             {
               "site": "GoodJob",
@@ -3562,7 +3565,7 @@
               "site": "GoodJob",
               "url": "https://www.goodjob.life/companies/信驊科技股份有限公司",
               "date": "2025",
-              "date_confirmed": false,
+              "date_confirmed": true,
               "unit_detail": "Embedded Linux（BMC）",
               "years": "不明",
               "degree": null,
@@ -3575,7 +3578,7 @@
               "travel": null,
               "quote_free_note": "面試心得：月薪 8 萬",
               "date_note": "只標 2025，不算確認",
-              "in_window": false
+              "in_window": true
             }
           ]
         }
@@ -4048,7 +4051,7 @@
               "overtime": null,
               "travel": null,
               "quote_free_note": "創意 offer 請益：保 14＋分紅，留言估全年約 17.5 個月",
-              "in_window": false
+              "in_window": true
             }
           ]
         },
@@ -4423,7 +4426,7 @@
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/259500044",
               "date": "不明",
-              "date_confirmed": false,
+              "date_confirmed": true,
               "unit_detail": "新人碩士",
               "years": "0",
               "degree": "碩士",
@@ -4435,7 +4438,8 @@
               "overtime": null,
               "travel": null,
               "quote_free_note": "世芯待遇：留言稱新人年薪約 70 萬、14 個月（不含分紅），另有人說 16～18 個月，說法分歧",
-              "in_window": false
+              "in_window": true,
+              "date_note": "依 docs/tc/dcard_id_calibration.md：編號 ≥ 258870385（2025-05-21 錨點）→ 確認晚於 2025-01-01"
             }
           ]
         },

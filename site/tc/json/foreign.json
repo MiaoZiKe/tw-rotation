@@ -924,7 +924,7 @@
               "date": "2025",
               "date_confirmed": false,
               "date_note": "Dcard 文章編號推估（錨點：260858478＝標題 2026/02、261274960＝摘要 2026-04、261389213＝摘要 2026-04 底）；推估不進統計；摘要「約兩個月前」",
-              "in_window": false,
+              "in_window": true,
               "unit_detail": "台北 SW",
               "years": "—",
               "degree": null,

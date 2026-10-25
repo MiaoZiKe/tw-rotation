@@ -373,7 +373,7 @@
               "travel": "不用",
               "quote_free_note": "碩士以上新進平均起薪 65,130（公開觀測站口徑）",
               "date_confirmed": false,
-              "in_window": false,
+              "in_window": true,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計"
             },
             {
@@ -392,7 +392,7 @@
               "travel": "不用",
               "quote_free_note": "同上新聞轉貼",
               "date_confirmed": true,
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -410,7 +410,7 @@
               "travel": "不用",
               "quote_free_note": "31 職等以上工程師平均年薪討論，無個人數字",
               "date_confirmed": false,
-              "in_window": false,
+              "in_window": true,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計"
             },
             {
@@ -429,7 +429,7 @@
               "travel": "不用",
               "quote_free_note": "自述月薪 6.24 萬、55 小時／週",
               "date_confirmed": true,
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "GoodJob",
@@ -501,7 +501,7 @@
               "travel": "不用",
               "quote_free_note": "四大碩畢 PE 第一年約 120 萬、二年 140～150、三年 160～180",
               "date_confirmed": false,
-              "in_window": false,
+              "in_window": true,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計"
             },
             {
@@ -520,7 +520,7 @@
               "travel": "不用",
               "quote_free_note": "碩士新人推算第一年約 112 萬（範圍外）",
               "date_confirmed": false,
-              "in_window": false,
+              "in_window": true,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計"
             },
             {
@@ -557,7 +557,7 @@
               "travel": "不用",
               "quote_free_note": "封裝製程工程師評價，摘要無金額",
               "date_confirmed": true,
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "GoodJob",
@@ -611,9 +611,9 @@
               "overtime": "經常",
               "travel": "不用",
               "quote_free_note": "碩士起薪請益，摘要無金額",
-              "date_confirmed": false,
-              "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "date_confirmed": true,
+              "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計；依 docs/tc/dcard_id_calibration.md：編號 ≥ 258870385（2025-05-21 錨點）→ 確認晚於 2025-01-01",
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -668,9 +668,9 @@
               "overtime": "經常",
               "travel": "不用",
               "quote_free_note": "端午季分紅新聞：基層工程師約 3.5 個月（單季，原填 3.5 個月非全年）",
-              "date_confirmed": false,
-              "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "date_confirmed": true,
+              "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計；依 docs/tc/dcard_id_calibration.md：編號 ≥ 258870385（2025-05-21 錨點）→ 確認晚於 2025-01-01",
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -689,7 +689,7 @@
               "quote_free_note": "台積製程 vs 矽品品管請益",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -708,7 +708,7 @@
               "quote_free_note": "製程是否很操討論",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -727,7 +727,7 @@
               "quote_free_note": "F18B DIF1 製程請益：月 1～2 次假日值班、2～3 個月一週小夜",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -746,7 +746,7 @@
               "quote_free_note": "黃光／蝕刻製程選擇請益",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -765,7 +765,7 @@
               "quote_free_note": "F20 寶山 PE 面試：主要跑研發晶圓",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -841,7 +841,7 @@
               "quote_free_note": "先進封裝製程請益：封裝一個月加班近百小時（留言）",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -858,9 +858,9 @@
               "overtime": "經常",
               "travel": "不用",
               "quote_free_note": "offer 請益（台積／力成／京元）",
-              "date_confirmed": false,
-              "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "date_confirmed": true,
+              "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計；依 docs/tc/dcard_id_calibration.md：編號 ≥ 258870385（2025-05-21 錨點）→ 確認晚於 2025-01-01",
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -879,7 +879,7 @@
               "quote_free_note": "蝕刻製程請益（範圍外）",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -917,7 +917,7 @@
               "quote_free_note": "新人薪資結構：年終 2 個月，依在職月數折算",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -936,7 +936,7 @@
               "quote_free_note": "32 職等平均底薪請益：32 底薪 75～80k 約 304 萬（估算）",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -991,9 +991,9 @@
               "overtime": "經常",
               "travel": "不用",
               "quote_free_note": "GG 開獎總整理",
-              "date_confirmed": false,
-              "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "date_confirmed": true,
+              "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計；依 docs/tc/dcard_id_calibration.md：編號 ≥ 258870385（2025-05-21 錨點）→ 確認晚於 2025-01-01",
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -1012,7 +1012,7 @@
               "quote_free_note": "33／34／35 年薪討論（範圍外）",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -1031,7 +1031,7 @@
               "quote_free_note": "黃光製程：18 廠黃光 PE 要輪大夜、15B 黃光約 8:30～19:00／20:00、六週一次小夜",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -1088,7 +1088,7 @@
               "quote_free_note": "下山三年心得：第一年約 120、第三年約 230～250 萬",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -1105,9 +1105,9 @@
               "overtime": "經常",
               "travel": "不用",
               "quote_free_note": "離職後悔討論",
-              "date_confirmed": false,
-              "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "date_confirmed": true,
+              "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計；依 docs/tc/dcard_id_calibration.md：編號 ≥ 258870385（2025-05-21 錨點）→ 確認晚於 2025-01-01",
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -1145,7 +1145,7 @@
               "quote_free_note": "2025 預聘時程（EE）",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -1164,7 +1164,7 @@
               "quote_free_note": "F14B LIT1 PE 熊本派任請益",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -1183,7 +1183,7 @@
               "quote_free_note": "美國台積 32 職等約 13 萬美元（留言）",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -1202,7 +1202,7 @@
               "quote_free_note": "學士／碩士／博士起薪（範圍外）",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -1221,7 +1221,7 @@
               "quote_free_note": "設備 vs 製程 CP 值：製程經常加班 14 小時起跳、設備約 12 小時（範圍外）",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -1240,7 +1240,7 @@
               "quote_free_note": "關於台積電（GG）討論（範圍外）",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -1523,7 +1523,7 @@
               "travel": "不用",
               "quote_free_note": "碩士設備新人第一年約 120～160 萬（取中）",
               "date_confirmed": false,
-              "in_window": false,
+              "in_window": true,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計"
             },
             {
@@ -1542,7 +1542,7 @@
               "travel": "不用",
               "quote_free_note": "摘要無個人數字，僅作制度／口徑參考",
               "date_confirmed": false,
-              "in_window": false,
+              "in_window": true,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計"
             },
             {
@@ -1689,7 +1689,7 @@
               "travel": "不用",
               "quote_free_note": "技術員與設備工程師差異：設備需輪大小夜、負責故障排除，第二年年薪技術員不到設備一半",
               "date_confirmed": false,
-              "in_window": false,
+              "in_window": true,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計"
             },
             {
@@ -1708,7 +1708,7 @@
               "travel": "不用",
               "quote_free_note": "設備二休二、約半年換一次日夜班",
               "date_confirmed": false,
-              "in_window": false,
+              "in_window": true,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計"
             },
             {
@@ -1727,7 +1727,7 @@
               "travel": "不用",
               "quote_free_note": "舊文：新廠夜鷹時期一週近 80 小時，近年較嚴守工時上限",
               "date_confirmed": false,
-              "in_window": false,
+              "in_window": true,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計"
             },
             {
@@ -1746,7 +1746,7 @@
               "travel": "不用",
               "quote_free_note": "設備輪班方式請益，摘要無金額",
               "date_confirmed": false,
-              "in_window": false,
+              "in_window": true,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計"
             },
             {
@@ -1842,7 +1842,7 @@
               "quote_free_note": "AP7 先進封裝設備 offer：薪資 N，先竹南受訓",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -1861,7 +1861,7 @@
               "quote_free_note": "封裝設備請益",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -1880,7 +1880,7 @@
               "quote_free_note": "台積 offer 請益",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -1937,7 +1937,7 @@
               "quote_free_note": "台積／建興 offer：設備 N×14＋分紅、10～12 小時需輪班（範圍外）",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -1956,7 +1956,7 @@
               "quote_free_note": "14A ETC2 蝕刻 EE 請益（範圍外）",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -1994,7 +1994,7 @@
               "quote_free_note": "設備是否都很操：薄膜 EE 約 19:00 下班、六週輪一週大夜；網友排序蝕刻＞黃光＞擴散＞薄膜（範圍外）",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -2032,7 +2032,7 @@
               "quote_free_note": "設備轉職分享（範圍外）",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -2051,7 +2051,7 @@
               "quote_free_note": "研替第二階段年資請益：研替薪水與正職相同（獎金補）",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -2070,7 +2070,7 @@
               "quote_free_note": "熊本 GG vs 系統廠：熊本設備 offer 年薪約 120 萬",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -2089,7 +2089,7 @@
               "quote_free_note": "GG／設備外商 offer 請益",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -2108,7 +2108,7 @@
               "quote_free_note": "EE 設備工作內容（31→32）：每天 PM 多個 chamber",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -2125,9 +2125,9 @@
               "overtime": "經常",
               "travel": "不用",
               "quote_free_note": "產線工作心得：一天處理 100～200 個 alarm",
-              "date_confirmed": false,
-              "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "date_confirmed": true,
+              "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計；依 docs/tc/dcard_id_calibration.md：編號 ≥ 258870385（2025-05-21 錨點）→ 確認晚於 2025-01-01",
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -2144,9 +2144,9 @@
               "overtime": "經常",
               "travel": "不用",
               "quote_free_note": "在台積的一點心得",
-              "date_confirmed": false,
-              "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "date_confirmed": true,
+              "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計；依 docs/tc/dcard_id_calibration.md：編號 ≥ 258870385（2025-05-21 錨點）→ 確認晚於 2025-01-01",
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -2165,7 +2165,7 @@
               "quote_free_note": "工程師生活心得",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             }
           ],
           "n_in_window": 3
@@ -2315,7 +2315,7 @@
               "travel": "不用",
               "quote_free_note": "IT 自述第一年約 145 萬、第二年約 300 萬、加班少",
               "date_confirmed": false,
-              "in_window": false,
+              "in_window": true,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計"
             },
             {
@@ -2353,7 +2353,7 @@
               "quote_free_note": "預聘智慧製造工程師請益",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -2408,9 +2408,9 @@
               "overtime": "偶爾",
               "travel": "不用",
               "quote_free_note": "瑞昱／台積 offer 比較",
-              "date_confirmed": false,
-              "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "date_confirmed": true,
+              "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計；依 docs/tc/dcard_id_calibration.md：編號 ≥ 258870385（2025-05-21 錨點）→ 確認晚於 2025-01-01",
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -2429,7 +2429,7 @@
               "quote_free_note": "IT offer：第一年比預期低",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -2448,7 +2448,7 @@
               "quote_free_note": "CIM offer 月薪約 5.3 萬、年薪約 80 萬、on call（範圍外）",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -2486,7 +2486,7 @@
               "quote_free_note": "IT 研替",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -2505,7 +2505,7 @@
               "quote_free_note": "AI & Data Analysis Engineer 請益：至少碩士",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -2562,7 +2562,7 @@
               "quote_free_note": "預聘 IPCS AI／ML 請益",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -2579,9 +2579,9 @@
               "overtime": "偶爾",
               "travel": "不用",
               "quote_free_note": "IT 半年心得",
-              "date_confirmed": false,
-              "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "date_confirmed": true,
+              "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計；依 docs/tc/dcard_id_calibration.md：編號 ≥ 258870385（2025-05-21 錨點）→ 確認晚於 2025-01-01",
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -2816,7 +2816,7 @@
               "travel": "不用",
               "quote_free_note": "季分紅新聞，工程師年薪說法",
               "date_confirmed": true,
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "GoodJob",
@@ -2852,7 +2852,7 @@
               "travel": "不用",
               "quote_free_note": "RD 整合 offer N×14＋分紅，工時約 7:30～19:00",
               "date_confirmed": false,
-              "in_window": false,
+              "in_window": true,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計"
             },
             {
@@ -2890,7 +2890,7 @@
               "travel": "不用",
               "quote_free_note": "ISP PIE 工時請益，無答案",
               "date_confirmed": false,
-              "in_window": false,
+              "in_window": true,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計"
             },
             {
@@ -3001,7 +3001,7 @@
               "quote_free_note": "F22 良率工程師面邀：需輪小夜、有假日班無大夜",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -3020,7 +3020,7 @@
               "quote_free_note": "竹南製程整合現況請益",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -3039,7 +3039,7 @@
               "quote_free_note": "2024 PE＋YED 面試心得：F18B YED offer",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -3077,7 +3077,7 @@
               "quote_free_note": "二哥與神山製程整合分享（範圍外）",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -3096,7 +3096,7 @@
               "quote_free_note": "RD PIE 職務請益（範圍外）",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -3134,7 +3134,7 @@
               "quote_free_note": "PIE 與 PID 差別整理（範圍外）",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -3172,7 +3172,7 @@
               "quote_free_note": "DNA 計畫製程整合實習心得",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             }
           ],
           "n_in_window": 3
@@ -3328,7 +3328,7 @@
               "travel": "不用",
               "quote_free_note": "MAE 起薪 38,700 起",
               "date_confirmed": false,
-              "in_window": false,
+              "in_window": true,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計"
             },
             {
@@ -3347,7 +3347,7 @@
               "travel": "不用",
               "quote_free_note": "一年半自述，滿三年 150～180、五年約 200",
               "date_confirmed": false,
-              "in_window": false,
+              "in_window": true,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計"
             },
             {
@@ -3366,7 +3366,7 @@
               "travel": "不用",
               "quote_free_note": "MAE 多久到 300 萬，無一致答案",
               "date_confirmed": false,
-              "in_window": false,
+              "in_window": true,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計"
             },
             {
@@ -3385,7 +3385,7 @@
               "travel": "不用",
               "quote_free_note": "AP 廠年薪破百、要值班",
               "date_confirmed": false,
-              "in_window": false,
+              "in_window": true,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計"
             },
             {
@@ -3423,7 +3423,7 @@
               "travel": "不用",
               "quote_free_note": "新人價約 3.8 萬、難談",
               "date_confirmed": false,
-              "in_window": false,
+              "in_window": true,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計"
             },
             {
@@ -3442,7 +3442,7 @@
               "travel": "不用",
               "quote_free_note": "摘要無個人數字，僅作制度／口徑參考",
               "date_confirmed": false,
-              "in_window": false,
+              "in_window": true,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計"
             },
             {
@@ -3461,7 +3461,7 @@
               "travel": "不用",
               "quote_free_note": "摘要無個人數字，僅作制度／口徑參考",
               "date_confirmed": false,
-              "in_window": false,
+              "in_window": true,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計"
             },
             {
@@ -3498,7 +3498,7 @@
               "travel": "不用",
               "quote_free_note": "MAE 面試 2025-02，月薪約 3.95 萬（範圍外）",
               "date_confirmed": true,
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "GoodJob",
@@ -3535,7 +3535,7 @@
               "quote_free_note": "MAE 面試流程分享",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -3668,7 +3668,7 @@
               "quote_free_note": "F22 PVD1 MAE 請益：一個月約一次大夜",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -3706,7 +3706,7 @@
               "quote_free_note": "MAE 與技術員差異",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -3795,7 +3795,7 @@
               "travel": "不用",
               "quote_free_note": "一年半自述，滿三年 150～180、五年約 200",
               "date_confirmed": false,
-              "in_window": false,
+              "in_window": true,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計"
             },
             {
@@ -3814,7 +3814,7 @@
               "travel": "不用",
               "quote_free_note": "MAE 多久到 300 萬，無一致答案",
               "date_confirmed": false,
-              "in_window": false,
+              "in_window": true,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計"
             }
           ],
@@ -3963,9 +3963,9 @@
               "overtime": "偶爾",
               "travel": "不用",
               "quote_free_note": "前五年約 70／80／90／95／100 萬",
-              "date_confirmed": false,
-              "in_window": false,
-              "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計"
+              "date_confirmed": true,
+              "in_window": true,
+              "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計；依 docs/tc/dcard_id_calibration.md：編號 ≥ 258870385（2025-05-21 錨點）→ 確認晚於 2025-01-01"
             },
             {
               "site": "Dcard",
@@ -3983,7 +3983,7 @@
               "travel": "不用",
               "quote_free_note": "第 1 年 60～70、第 4 年約 110 萬",
               "date_confirmed": false,
-              "in_window": false,
+              "in_window": true,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計"
             },
             {
@@ -4002,7 +4002,7 @@
               "travel": "不用",
               "quote_free_note": "摘要無個人數字，僅作制度／口徑參考",
               "date_confirmed": false,
-              "in_window": false,
+              "in_window": true,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計"
             },
             {
@@ -4021,7 +4021,7 @@
               "travel": "不用",
               "quote_free_note": "徵才年薪 70 萬",
               "date_confirmed": true,
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "PTT",
@@ -4147,7 +4147,7 @@
               "travel": "不用",
               "quote_free_note": "GG 心得 Q&A：一月年終約 6 萬、十月輪班＋運動會獎金約 5 萬",
               "date_confirmed": false,
-              "in_window": false,
+              "in_window": true,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計"
             },
             {
@@ -4166,7 +4166,7 @@
               "travel": "不用",
               "quote_free_note": "日班含津貼約 3.6 萬、約半年換一次日夜",
               "date_confirmed": false,
-              "in_window": false,
+              "in_window": true,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計"
             },
             {
@@ -4222,9 +4222,9 @@
               "overtime": "偶爾",
               "travel": "不用",
               "quote_free_note": "AP8 APOD2 技術員面試：英文＋數學筆試",
-              "date_confirmed": false,
-              "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "date_confirmed": true,
+              "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計；依 docs/tc/dcard_id_calibration.md：編號 ≥ 258870385（2025-05-21 錨點）→ 確認晚於 2025-01-01",
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -4262,7 +4262,7 @@
               "quote_free_note": "技術員面試心得",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -4300,7 +4300,7 @@
               "quote_free_note": "舊文：起薪 3～3.6 萬、新人約第 6 個月參與分紅",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -4319,7 +4319,7 @@
               "quote_free_note": "作業員年薪是否 70 萬以上（範圍外）",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -4338,7 +4338,7 @@
               "quote_free_note": "AP8 技術員討論",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             }
           ],
           "n_in_window": 4
@@ -4433,9 +4433,9 @@
               "overtime": "偶爾",
               "travel": "不用",
               "quote_free_note": "前五年約 70／80／90／95／100 萬",
-              "date_confirmed": false,
-              "in_window": false,
-              "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計"
+              "date_confirmed": true,
+              "in_window": true,
+              "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計；依 docs/tc/dcard_id_calibration.md：編號 ≥ 258870385（2025-05-21 錨點）→ 確認晚於 2025-01-01"
             },
             {
               "site": "PTT",
@@ -4471,7 +4471,7 @@
               "travel": "不用",
               "quote_free_note": "徵才夜班約 4.3 萬",
               "date_confirmed": true,
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -4489,7 +4489,7 @@
               "travel": "不用",
               "quote_free_note": "夜班含津貼約 4.5 萬",
               "date_confirmed": false,
-              "in_window": false,
+              "in_window": true,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計"
             },
             {
@@ -4508,7 +4508,7 @@
               "travel": "不用",
               "quote_free_note": "大夜津貼約津貼基數×輪班天數比×0.30、保底 8 千",
               "date_confirmed": false,
-              "in_window": false,
+              "in_window": true,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計"
             },
             {
@@ -4527,7 +4527,7 @@
               "travel": "不用",
               "quote_free_note": "舊文：夜班月薪約 5 萬（含加班費約 1.3 萬）",
               "date_confirmed": false,
-              "in_window": false,
+              "in_window": true,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計"
             },
             {
@@ -4546,7 +4546,7 @@
               "travel": "不用",
               "quote_free_note": "做四休二夜班技術員行情請益，摘要無台積數字",
               "date_confirmed": false,
-              "in_window": false,
+              "in_window": true,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計"
             },
             {
@@ -4565,7 +4565,7 @@
               "travel": "不用",
               "quote_free_note": "台積電技術員討論，摘要無金額",
               "date_confirmed": false,
-              "in_window": false,
+              "in_window": true,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計"
             },
             {
@@ -4584,7 +4584,7 @@
               "travel": "不用",
               "quote_free_note": "三年技術員：夜班含津貼約 4.5 萬",
               "date_confirmed": false,
-              "in_window": false,
+              "in_window": true,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計"
             },
             {
@@ -4604,7 +4604,7 @@
               "quote_free_note": "新進技術員心得：夜班二休二、每班約 12 小時",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -4623,7 +4623,7 @@
               "quote_free_note": "技術員請益",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             }
           ],
           "n_in_window": 1
@@ -4726,9 +4726,9 @@
               "overtime": "偶爾",
               "travel": "不用",
               "quote_free_note": "前五年約 70／80／90／95／100 萬",
-              "date_confirmed": false,
-              "in_window": false,
-              "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計"
+              "date_confirmed": true,
+              "in_window": true,
+              "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計；依 docs/tc/dcard_id_calibration.md：編號 ≥ 258870385（2025-05-21 錨點）→ 確認晚於 2025-01-01"
             },
             {
               "site": "Dcard",
@@ -4765,7 +4765,7 @@
               "travel": "不用",
               "quote_free_note": "第 1 年 60～70、第 4 年約 110 萬",
               "date_confirmed": false,
-              "in_window": false,
+              "in_window": true,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計"
             },
             {
@@ -4820,7 +4820,7 @@
               "travel": "不用",
               "quote_free_note": "台積電真的是台灣奇蹟，資深技術員年薪討論，摘要無具體數字",
               "date_confirmed": false,
-              "in_window": false,
+              "in_window": true,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計"
             },
             {
@@ -4876,7 +4876,7 @@
               "travel": "不用",
               "quote_free_note": "舊文：五年有機會百萬、十年以上 120 萬",
               "date_confirmed": false,
-              "in_window": false,
+              "in_window": true,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計"
             },
             {
@@ -4895,7 +4895,7 @@
               "travel": "不用",
               "quote_free_note": "技術員年薪請益，回覆前五年約 70～100 萬",
               "date_confirmed": false,
-              "in_window": false,
+              "in_window": true,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計"
             },
             {
@@ -4915,7 +4915,7 @@
               "quote_free_note": "助工：二休二、本薪約 4 萬、第一年約 70～80 萬",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -4934,7 +4934,7 @@
               "quote_free_note": "技術員與助工差別請益（範圍外）",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             }
           ],
           "n_in_window": 3
@@ -5005,7 +5005,7 @@
               "quote_free_note": "熊本作業員職缺（留言疑似詐騙）",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             }
           ],
           "n_in_window": 0
@@ -5129,7 +5129,7 @@
               "quote_free_note": "廠務工程師 offer 請益",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -5167,7 +5167,7 @@
               "quote_free_note": "製程 vs 廠務：2022 廠務加班約 400 小時、製程約 750～800 小時",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -5205,7 +5205,7 @@
               "quote_free_note": "廠務面試：主管反覆強調輪班",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -5224,7 +5224,7 @@
               "quote_free_note": "廠務助工年薪幾個月：第一年約 70 萬、第二年 85～100 萬（推估，範圍外）",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -5337,7 +5337,7 @@
               "quote_free_note": "品保技術員請益",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             }
           ],
           "n_in_window": 1
@@ -5423,7 +5423,7 @@
               "travel": "不用",
               "quote_free_note": "摘要無個人數字，僅作制度／口徑參考",
               "date_confirmed": false,
-              "in_window": false,
+              "in_window": true,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計"
             },
             {
@@ -5481,7 +5481,7 @@
               "quote_free_note": "DTP 研發 offer 請益（範圍外）",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -5538,7 +5538,7 @@
               "quote_free_note": "RD Process Engineer 請益",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -5557,7 +5557,7 @@
               "quote_free_note": "寶山研發面試請益",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -5651,7 +5651,7 @@
               "quote_free_note": "財務部職缺請益：留言稱財務有分紅",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -5670,7 +5670,7 @@
               "quote_free_note": "採購 offer N×14＋分紅（範圍外）",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             }
           ],
           "n_in_window": 1
@@ -5990,8 +5990,8 @@
               "overtime": "偶爾～經常（依部門）",
               "travel": "不用",
               "quote_free_note": "摘要無個人數字，僅作制度／口徑參考",
-              "date_confirmed": false,
-              "in_window": false,
+              "date_confirmed": true,
+              "in_window": true,
               "date_note": "只寫年份 2025，無法確認是否在 2025-08 後"
             },
             {
@@ -6029,7 +6029,7 @@
               "travel": "不用",
               "quote_free_note": "摘要無個人數字，僅作制度／口徑參考",
               "date_confirmed": false,
-              "in_window": false,
+              "in_window": true,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計"
             },
             {
@@ -6067,7 +6067,7 @@
               "travel": "不用",
               "quote_free_note": "摘要無個人數字，僅作制度／口徑參考",
               "date_confirmed": false,
-              "in_window": false,
+              "in_window": true,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計"
             },
             {
@@ -6086,7 +6086,7 @@
               "travel": "不用",
               "quote_free_note": "摘要無個人數字，僅作制度／口徑參考",
               "date_confirmed": false,
-              "in_window": false,
+              "in_window": true,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計"
             },
             {
@@ -6125,7 +6125,7 @@
               "quote_free_note": "多家 offer：聯電約 N+1（留言，範圍外）",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -6142,9 +6142,9 @@
               "overtime": "偶爾～經常（依部門）",
               "travel": "不用",
               "quote_free_note": "2025 四大新人價：約 6～6.7 萬，另簽約金 20 萬",
-              "date_confirmed": false,
-              "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "date_confirmed": true,
+              "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計；依 docs/tc/dcard_id_calibration.md：編號 ≥ 258870385（2025-05-21 錨點）→ 確認晚於 2025-01-01",
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -6201,7 +6201,7 @@
               "quote_free_note": "聯電／台積／美光面試心得",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -6239,7 +6239,7 @@
               "quote_free_note": "面試時程分享",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -6258,7 +6258,7 @@
               "quote_free_note": "新人結構：2023 碩士 58～64k、分紅 3～8 個月（1／7 月）、簽約金 1～3.5 個月（範圍外）",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -6315,7 +6315,7 @@
               "quote_free_note": "南科製程面試歷程（範圍外）",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -6334,7 +6334,7 @@
               "quote_free_note": "南科面試歷程（範圍外）",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -6372,7 +6372,7 @@
               "quote_free_note": "112 年碩士起薪整理（範圍外）",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             }
           ],
           "n_in_window": 1
@@ -6616,7 +6616,7 @@
               "travel": "不用",
               "quote_free_note": "設備 EE 月薪 N+2500、約 15.5 個月",
               "date_confirmed": false,
-              "in_window": false,
+              "in_window": true,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計"
             },
             {
@@ -6654,7 +6654,7 @@
               "quote_free_note": "設備 offer 請益（範圍外）",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -6671,9 +6671,9 @@
               "overtime": "偶爾～經常",
               "travel": "不用",
               "quote_free_note": "新加坡 TF 設備面試期程",
-              "date_confirmed": false,
-              "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "date_confirmed": true,
+              "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計；依 docs/tc/dcard_id_calibration.md：編號 ≥ 258870385（2025-05-21 錨點）→ 確認晚於 2025-01-01",
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -6692,7 +6692,7 @@
               "quote_free_note": "設備底薪討論（範圍外）",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -6711,7 +6711,7 @@
               "quote_free_note": "聯電設備 vs 中鋼（範圍外）",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -6730,7 +6730,7 @@
               "quote_free_note": "竹科：底薪×14＋加班費（上限 46 小時／月）；設備 6E 年薪含加班約 134 萬（留言）",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -6747,9 +6747,9 @@
               "overtime": "偶爾～經常",
               "travel": "不用",
               "quote_free_note": "聯電 vs 台達",
-              "date_confirmed": false,
-              "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "date_confirmed": true,
+              "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計；依 docs/tc/dcard_id_calibration.md：編號 ≥ 258870385（2025-05-21 錨點）→ 確認晚於 2025-01-01",
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -6768,7 +6768,7 @@
               "quote_free_note": "設備底薪請教（範圍外）",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -6787,7 +6787,7 @@
               "quote_free_note": "設備工程師面試",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -6806,7 +6806,7 @@
               "quote_free_note": "新加坡 offer：設備高級工程師起薪約 4000 新幣（範圍外）",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -6825,7 +6825,7 @@
               "quote_free_note": "新加坡廠討論（範圍外）",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             }
           ],
           "n_in_window": 5
@@ -6952,7 +6952,7 @@
               "travel": "偶爾",
               "quote_free_note": "二線晶圓廠薪水比較，摘要無聯電研發數字",
               "date_confirmed": false,
-              "in_window": false,
+              "in_window": true,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計"
             },
             {
@@ -6991,7 +6991,7 @@
               "quote_free_note": "竹科部門比較：同職等底薪相同（範圍外）",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -7029,7 +7029,7 @@
               "quote_free_note": "產品工程師請益（範圍外）",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -7067,7 +7067,7 @@
               "quote_free_note": "研替／預聘名額詢問（範圍外）",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             }
           ],
           "n_in_window": 2
@@ -7198,7 +7198,7 @@
               "travel": "不用",
               "quote_free_note": "整合 offer：碩士約 6 職等",
               "date_confirmed": false,
-              "in_window": false,
+              "in_window": true,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計"
             },
             {
@@ -7237,7 +7237,7 @@
               "quote_free_note": "良率提升工程師請益",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -7574,7 +7574,7 @@
               "quote_free_note": "Offer 請益：PE 三廠（N-8）×16",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -7593,7 +7593,7 @@
               "quote_free_note": "先進／GG 面試與時程",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -7612,7 +7612,7 @@
               "quote_free_note": "臺積／世界先進面試時程：D+10 口頭 offer、D+13 紙本",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -7631,7 +7631,7 @@
               "quote_free_note": "面試分享（範圍外）",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -7669,7 +7669,7 @@
               "quote_free_note": "面試心得分享",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -7688,7 +7688,7 @@
               "quote_free_note": "面試請益",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -7707,7 +7707,7 @@
               "quote_free_note": "新人結構：2023 碩士 50～53k、保 16、分紅 31 職等約 1 個月（範圍外）",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -7726,7 +7726,7 @@
               "quote_free_note": "VIS 新人薪水請益",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -7745,7 +7745,7 @@
               "quote_free_note": "2025 三角調薪分紅開獎（標題有年份）",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -7783,7 +7783,7 @@
               "quote_free_note": "工作請益（範圍外）",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -7802,7 +7802,7 @@
               "quote_free_note": "待遇討論（範圍外）",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -7821,7 +7821,7 @@
               "quote_free_note": "面試時程",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -7840,7 +7840,7 @@
               "quote_free_note": "三廠產品工程師請益",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -7859,7 +7859,7 @@
               "quote_free_note": "一廠產品工程師 32 職等 offer，保 16 個月，年薪約 150 萬為門檻（留言）",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             }
           ],
           "n_in_window": 4
@@ -8009,7 +8009,7 @@
               "travel": "不用",
               "quote_free_note": "研替 57k×16",
               "date_confirmed": false,
-              "in_window": false,
+              "in_window": true,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計"
             },
             {
@@ -8028,7 +8028,7 @@
               "travel": "不用",
               "quote_free_note": "摘要無個人數字，僅作制度／口徑參考",
               "date_confirmed": false,
-              "in_window": false,
+              "in_window": true,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計"
             },
             {
@@ -8048,7 +8048,7 @@
               "quote_free_note": "世界先進 vs 力積電 offer：一廠整合 N-7×16＋分紅",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -8067,7 +8067,7 @@
               "quote_free_note": "多家 offer 比較（範圍外）",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -8086,7 +8086,7 @@
               "quote_free_note": "GG／世界先進 offer 請益",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -8105,7 +8105,7 @@
               "quote_free_note": "時程分享：三廠製程整合，D+9 核薪、D+15 紙本 offer；整合分車用與功率元件",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -8345,7 +8345,7 @@
               "quote_free_note": "設備助工請益",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -8362,9 +8362,9 @@
               "overtime": "偶爾～經常（輪班／值班津貼）",
               "travel": "不用",
               "quote_free_note": "聯電／南亞／世界先進 offer：薄膜設備（N-5）×16＋分紅",
-              "date_confirmed": false,
-              "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "date_confirmed": true,
+              "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計；依 docs/tc/dcard_id_calibration.md：編號 ≥ 258870385（2025-05-21 錨點）→ 確認晚於 2025-01-01",
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -8383,7 +8383,7 @@
               "quote_free_note": "桃園爐管設備 N-9（保 16）（範圍外）",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             }
           ],
           "n_in_window": 3
@@ -8538,7 +8538,7 @@
               "travel": null,
               "quote_free_note": "二廠技術開發 offer 約 N、簽約金 10 萬綁兩年",
               "date_confirmed": true,
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -8556,7 +8556,7 @@
               "travel": null,
               "quote_free_note": "舊制研發底薪 45～47k、保 16",
               "date_confirmed": false,
-              "in_window": false,
+              "in_window": true,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計"
             },
             {
@@ -8576,7 +8576,7 @@
               "quote_free_note": "研替請益",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -8595,7 +8595,7 @@
               "quote_free_note": "研替面試心得",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -8633,7 +8633,7 @@
               "quote_free_note": "GaN 技術研發（桃園廠）請益",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -8652,7 +8652,7 @@
               "quote_free_note": "研替請益與日程",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -8671,7 +8671,7 @@
               "quote_free_note": "二廠技術開發：準時上下班、偶爾 on call",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             }
           ],
           "n_in_window": 3
@@ -8869,9 +8869,9 @@
               "overtime": "偶爾（良率問題時加班）",
               "travel": "不用",
               "quote_free_note": "碩士新人 58～62k（取中）",
-              "date_confirmed": false,
-              "in_window": false,
-              "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計"
+              "date_confirmed": true,
+              "in_window": true,
+              "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計；依 docs/tc/dcard_id_calibration.md：編號 ≥ 258870385（2025-05-21 錨點）→ 確認晚於 2025-01-01"
             },
             {
               "site": "Dcard",
@@ -8889,7 +8889,7 @@
               "travel": "不用",
               "quote_free_note": "摘要無個人數字，僅作制度／口徑參考",
               "date_confirmed": false,
-              "in_window": false,
+              "in_window": true,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計"
             },
             {
@@ -8946,7 +8946,7 @@
               "quote_free_note": "矽品／力積電／景碩 offer 比較",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -8965,7 +8965,7 @@
               "quote_free_note": "力積電 vs 南電 offer",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -8984,7 +8984,7 @@
               "quote_free_note": "面試心得（含力積電）",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -9003,7 +9003,7 @@
               "quote_free_note": "面試時程分享",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -9022,7 +9022,7 @@
               "quote_free_note": "面試流程：適性＋英文測驗、主管面",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -9041,7 +9041,7 @@
               "quote_free_note": "力積電請益（範圍外）",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -9060,7 +9060,7 @@
               "quote_free_note": "待遇：季獎金約 0.3～0.5 個月、一年約 16～18 個月（2022，範圍外）",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -9079,7 +9079,7 @@
               "quote_free_note": "銅鑼 RD 製程值班工程師",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -9248,7 +9248,7 @@
               "travel": "不用",
               "quote_free_note": "製程整合 offer 起薪 6.4 萬、常日班常加班、每月一次假日值班",
               "date_confirmed": false,
-              "in_window": false,
+              "in_window": true,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計"
             },
             {
@@ -9286,7 +9286,7 @@
               "quote_free_note": "職缺請益：竹南 8B 整合面邀",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -9305,7 +9305,7 @@
               "quote_free_note": "新人結構：2023 碩士 58～62k、保 14（範圍外）",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -9324,7 +9324,7 @@
               "quote_free_note": "製程工程師討論（範圍外）",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -9343,7 +9343,7 @@
               "quote_free_note": "竹南 8B 製程整合面試請益",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -9362,7 +9362,7 @@
               "quote_free_note": "良率檢測輪班工程師請益",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             }
           ],
           "n_in_window": 4
@@ -9451,8 +9451,8 @@
               "overtime": "偶爾",
               "travel": "不用",
               "quote_free_note": "摘要無個人數字，僅作制度／口徑參考",
-              "date_confirmed": false,
-              "in_window": false,
+              "date_confirmed": true,
+              "in_window": true,
               "date_note": "只寫年份 2025，無法確認是否在 2025-08 後"
             },
             {
@@ -9471,7 +9471,7 @@
               "travel": "不用",
               "quote_free_note": "年薪約 80 萬（範圍外）",
               "date_confirmed": true,
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -9488,9 +9488,9 @@
               "overtime": "偶爾",
               "travel": "不用",
               "quote_free_note": "竹科設備約 5 萬×保 14",
-              "date_confirmed": false,
-              "in_window": false,
-              "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計"
+              "date_confirmed": true,
+              "in_window": true,
+              "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計；依 docs/tc/dcard_id_calibration.md：編號 ≥ 258870385（2025-05-21 錨點）→ 確認晚於 2025-01-01"
             },
             {
               "site": "Dcard",
@@ -9547,7 +9547,7 @@
               "quote_free_note": "假 G／采鈺 offer（範圍外）",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -9566,7 +9566,7 @@
               "quote_free_note": "力積／聯電新鮮人請益",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -9585,7 +9585,7 @@
               "quote_free_note": "力積電 offer（範圍外）",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -9623,7 +9623,7 @@
               "quote_free_note": "設備 EE 轉職職缺選擇",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             }
           ],
           "n_in_window": 0
@@ -9737,7 +9737,7 @@
               "travel": "不用",
               "quote_free_note": "摘要無個人數字，僅作制度／口徑參考",
               "date_confirmed": false,
-              "in_window": false,
+              "in_window": true,
               "date_note": "日期未確認"
             },
             {
@@ -9774,7 +9774,7 @@
               "travel": "不用",
               "quote_free_note": "摘要無個人數字，僅作制度／口徑參考",
               "date_confirmed": false,
-              "in_window": false,
+              "in_window": true,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計"
             },
             {
@@ -9812,7 +9812,7 @@
               "quote_free_note": "力積電 vs Garmin：研發（N-4）×14，銅鑼",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -9831,7 +9831,7 @@
               "quote_free_note": "技術開發（RD 薄膜 CMP）面試",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -9850,7 +9850,7 @@
               "quote_free_note": "offer 請益：技術開發整合（N+3）×14＋分紅，新竹 P1／P2",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -9888,7 +9888,7 @@
               "quote_free_note": "銅鑼製程技術開發：先竹科受訓半年、常日＋假日輪值，廠區津貼 1 萬／月",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": true
             }
           ],
           "n_in_window": 3

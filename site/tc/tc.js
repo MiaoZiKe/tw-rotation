@@ -138,8 +138,8 @@
   }
   const confCls = (c) => (c === '高' ? 'hi' : c === '中' ? 'mid' : 'lo');
 
-  /* 只有 date_confirmed:true 且 date ≥ 2025-08 的樣本進統計；日期未確認標「日期未確認」、範圍外標「範圍外參考」，都照列但標灰 */
-  const smSt = (x) => (x.date_confirmed !== true ? 'unc' : (x.in_window === false || !x.date || String(x.date) < '2025-08' ? 'out' : 'in'));
+  /* 只有 date_confirmed:true 且 date ≥ 2025-01 的樣本進統計；日期未確認標「日期未確認」、範圍外標「範圍外參考」，都照列但標灰 */
+  const smSt = (x) => (x.date_confirmed !== true ? 'unc' : (x.in_window === false || !x.date || String(x.date).slice(0, 4) < '2025' ? 'out' : 'in'));
   const inWin = (x) => smSt(x) === 'in';
   const nv = (v) => (v == null ? '—' : v);
   function smRow(r) {
@@ -167,7 +167,7 @@
       const isan = [].concat(...cs.map((c) => c[1])); all += isan.length;
       return node(n, isan, cs.map((c) => node(c[0], c[1], c[2], 2, cs.length === 1)).join(''), 1, false);
     }).filter(Boolean);
-    return '<div class="tc-cnt">全部樣本 進統計 <b id="tcAll">' + all + '</b> 筆／未確認 ' + unc + ' 筆／範圍外 ' + outc + ' 筆（統計只算日期確認且 2025-08 起；依產業→公司→單位→職位；底薪／年薪為中位數，括號是區間）</div>' + (inds.length ? '<div class="tc-stats">' + inds.join('') + '</div>' : '<div class="empty isempty tc-empty">尚無逐筆樣本</div>');
+    return '<div class="tc-cnt">全部樣本 進統計 <b id="tcAll">' + all + '</b> 筆／未確認 ' + unc + ' 筆／範圍外 ' + outc + ' 筆（統計只算日期確認且 2025-01 起；依產業→公司→單位→職位；底薪／年薪為中位數，括號是區間）</div>' + (inds.length ? '<div class="tc-stats">' + inds.join('') + '</div>' : '<div class="empty isempty tc-empty">尚無逐筆樣本</div>');
   }
 
   function rolesTable(roles, bt, tsmc) {
