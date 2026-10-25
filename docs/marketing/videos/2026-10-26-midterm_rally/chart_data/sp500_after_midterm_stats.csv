@@ -1,0 +1,11 @@
+metric,value,unit,sample_range,n,provider,source_url,source_date,confidence,note
+選後12個月平均報酬,15.4,%,1950–2022,19,Capital Group,https://www.capitalgroup.com/apac/capitalideas/en/articles/how-us-midterm-elections-affect-the-markets.html,2026年搜尋摘要（原文日期未核）,中,"同一來源稱此期間無任何一次為負；原文未能直接開啟，數字來自搜尋摘要"
+選後12個月平均報酬,16.6,%,1950–2022,19,BNY / BIT 轉述 Carson,https://www.bny.com/content/dam/im/im-na/articles/pdf/how-do-midterm-elections-impact-markets-over-time.pdf,2026年搜尋摘要,中,"起算點為10月底，與 Capital Group 起算點不同，所以平均值不同"
+選後12個月平均報酬,18.2,%,1954–2022,18,LPL Research（Benzinga/Webull 轉述）,https://www.webull.com/news/15278198026363904,2026-07-23,中,"二手轉述，未核 LPL 原文；18次皆為正"
+選後6個月平均報酬,13.89,%,1950–2018（Schaeffer's 2022年稿寫18次）,18,Schaeffer's Research,https://www.schaeffersresearch.com/content/analysis/2022/10/26/what-election-day-means-for-the-s-p-500,2022-10-26,中,"18次皆為正"
+選後6個月平均報酬,15.0,%,1950–2022（自10/31起算）,19,The Trading Tools,https://www.thetrading.tools/insights/stock-market-after-midterm-elections,2026-10,低,"單一小站；與 Schaeffer's 起算點不同"
+選後3個月平均報酬,7.5,%,1950–2022（自10/31起算）,19,The Trading Tools,https://www.thetrading.tools/insights/stock-market-after-midterm-elections,2026-10,低,"單一來源，未交叉；僅供參考不上圖主數字"
+期中選舉年第四季平均報酬,6.6,%,1950–2022,18,Truist（Keith Lerner）；J.P. Morgan 經 Barchart 同值,https://www.cabotwealth.com/daily/stock-market/midterms-stock-market-what-to-expect,2026,中,"上漲機率84%；另有來源給4.6%（IG）、5.6%（BofA 自1930）、7.8%（MoneyShow），區間不同"
+期中選舉年Q4上漲機率,84,%,1950–2022,18,Truist（Keith Lerner）,https://www.thewealthadvisor.com/article/deutsche-bank-says-midterm-rally-could-start-anyone-votes,2026,中,"同上"
+期中選舉年盤中最大回檔平均,17.5,%,1950起,,Carson Group / Motley Fool,https://www.fool.com/investing/2026/07/13/stock-market-crash-2026-may-happen-this-event/,2026-07-13,中,"另有來源寫約18%；起算年不同"
+期中選舉年全年平均報酬,4.6,%,1954–2022,,LPL Research（轉述）,https://www.webull.com/news/15278198026363904,2026-07-23,中,"四年循環中最低"
