@@ -710,7 +710,7 @@
       "heat": "Dcard 熱度：中",
       "benefits": "三節、分紅",
       "stock_plan": "本輪未查到",
-      "bonus_timing": "查不到公開的獎金發放月份與月數",
+      "bonus_timing": "網友稱保 14 個月：年終 1.5 個月（過年）、端午與中秋各 0.25 個月；季獎金與分紅合併於 3、6、8、11 月發，新人可能要滿一年才有",
       "culture": "有自述私立碩士與學士待遇差不多",
       "interview": "本輪未查到",
       "roles": [
@@ -918,7 +918,54 @@
         "url": "https://mops.twse.com.tw/"
       },
       "grade_system": "數字職等：學士約 29 職等、碩士約 30 職等（Dcard 2025 整理）",
-      "bonus_structure": []
+      "bonus_structure": [
+        {
+          "type": "年終獎金",
+          "rule": "1.5 個月、過年發（Dcard 整理）；Threads 稱 1.5～2 個月不一定",
+          "months": 1.5,
+          "sources": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/258009182",
+              "date": "依文章編號推估 2025"
+            }
+          ]
+        },
+        {
+          "type": "三節獎金",
+          "rule": "端午、中秋各 0.25 個月（Dcard）；Threads 稱全年合計約 1 個月，兩說不一",
+          "months": null,
+          "sources": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/258009182",
+              "date": "依文章編號推估 2025"
+            },
+            {
+              "site": "Threads 網友",
+              "url": "https://www.threads.com/@chunvenovich/post/DMiQJgnzwFW",
+              "date": "2025"
+            }
+          ]
+        },
+        {
+          "type": "季獎金／分紅",
+          "rule": "3、6、8、11 月合併發布；季獎全年合計約 1 個月，新人通常要滿一年",
+          "months": null,
+          "sources": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/258009182",
+              "date": "依文章編號推估 2025"
+            },
+            {
+              "site": "Threads 網友",
+              "url": "https://www.threads.com/@chunvenovich/post/DMiQJgnzwFW",
+              "date": "2025"
+            }
+          ]
+        }
+      ]
     }
   ]
 }
