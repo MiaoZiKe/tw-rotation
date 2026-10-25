@@ -85,7 +85,15 @@
           ],
           "confidence": "低"
         }
-      ]
+      ],
+      "mops": {
+        "year": 2025,
+        "avg_wan": null,
+        "median_wan": null,
+        "n": null,
+        "source": "未取得；查過：<公司> 非主管 薪資 平均 中位數 2025／非主管 平均薪資 2025 萬元 證交所；新聞只列前十名，需至公開資訊觀測站彙總報表查",
+        "url": "https://mops.twse.com.tw/"
+      }
     },
     {
       "name": "京元電子",
@@ -171,7 +179,15 @@
           ],
           "confidence": "低"
         }
-      ]
+      ],
+      "mops": {
+        "year": 2025,
+        "avg_wan": null,
+        "median_wan": null,
+        "n": null,
+        "source": "未取得；查過：<公司> 非主管 薪資 平均 中位數 2025／非主管 平均薪資 2025 萬元 證交所；新聞只列前十名，需至公開資訊觀測站彙總報表查",
+        "url": "https://mops.twse.com.tw/"
+      }
     },
     {
       "name": "矽品",
@@ -220,7 +236,15 @@
           ],
           "confidence": "低"
         }
-      ]
+      ],
+      "mops": {
+        "year": 2025,
+        "avg_wan": null,
+        "median_wan": null,
+        "n": null,
+        "source": "未取得；查過：<公司> 非主管 薪資 平均 中位數 2025／非主管 平均薪資 2025 萬元 證交所；新聞只列前十名，需至公開資訊觀測站彙總報表查（矽品為日月光投控子公司、非上市，無個別揭露）",
+        "url": "https://mops.twse.com.tw/"
+      }
     }
   ]
 }

@@ -111,7 +111,15 @@
           ],
           "confidence": "低"
         }
-      ]
+      ],
+      "mops": {
+        "year": 2025,
+        "avg_wan": 407.2,
+        "median_wan": 316.2,
+        "n": null,
+        "source": "證交所非主管全時員工薪資（聯合新聞網轉述）",
+        "url": "https://money.udn.com/money/story/5607/9598746"
+      }
     },
     {
       "name": "聯電",
@@ -192,7 +200,15 @@
           ],
           "confidence": "低"
         }
-      ]
+      ],
+      "mops": {
+        "year": 2025,
+        "avg_wan": null,
+        "median_wan": null,
+        "n": null,
+        "source": "未取得；查過：<公司> 非主管 薪資 平均 中位數 2025／非主管 平均薪資 2025 萬元 證交所；新聞只列前十名，需至公開資訊觀測站彙總報表查",
+        "url": "https://mops.twse.com.tw/"
+      }
     },
     {
       "name": "世界先進",
@@ -261,7 +277,15 @@
           ],
           "confidence": "低"
         }
-      ]
+      ],
+      "mops": {
+        "year": 2025,
+        "avg_wan": null,
+        "median_wan": null,
+        "n": null,
+        "source": "未取得；查過：<公司> 非主管 薪資 平均 中位數 2025／非主管 平均薪資 2025 萬元 證交所；新聞只列前十名，需至公開資訊觀測站彙總報表查",
+        "url": "https://mops.twse.com.tw/"
+      }
     },
     {
       "name": "力積電",
@@ -386,7 +410,15 @@
           ],
           "confidence": "低"
         }
-      ]
+      ],
+      "mops": {
+        "year": 2025,
+        "avg_wan": null,
+        "median_wan": null,
+        "n": null,
+        "source": "未取得；查過：<公司> 非主管 薪資 平均 中位數 2025／非主管 平均薪資 2025 萬元 證交所；新聞只列前十名，需至公開資訊觀測站彙總報表查",
+        "url": "https://mops.twse.com.tw/"
+      }
     }
   ]
 }
