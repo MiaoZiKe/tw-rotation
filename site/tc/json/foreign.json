@@ -338,7 +338,7 @@
       "heat": null,
       "benefits": null,
       "stock_plan": null,
-      "bonus_timing": "查不到公開的獎金發放月份與月數",
+      "bonus_timing": null,
       "culture": null,
       "interview": null,
       "roles": [
@@ -419,7 +419,7 @@
       "heat": null,
       "benefits": null,
       "stock_plan": null,
-      "bonus_timing": "查不到公開的獎金發放月份與月數",
+      "bonus_timing": "底薪＋年度獎金＋RSU（四年，首年 25%）；股票占比高於獎金；台灣年終月數查不到",
       "culture": null,
       "interview": null,
       "roles": [
@@ -468,7 +468,32 @@
       ],
       "mops": null,
       "grade_system": "ICT2～ICT5",
-      "bonus_structure": []
+      "bonus_structure": [
+        {
+          "type": "RSU",
+          "rule": "四年歸屬，第一年 25%，之後按月或半年（平台描述不一）",
+          "months": null,
+          "sources": [
+            {
+              "site": "levels.fyi",
+              "url": "https://www.levels.fyi/zh-tw/companies/apple/salaries/hardware-engineer/locations/taiwan",
+              "date": "2026"
+            }
+          ]
+        },
+        {
+          "type": "年度獎金",
+          "rule": "有，金額遠低於股票（平台資料），月數與月份查不到",
+          "months": null,
+          "sources": [
+            {
+              "site": "levels.fyi",
+              "url": "https://www.levels.fyi/zh-tw/companies/apple/salaries/hardware-engineer/locations/taiwan",
+              "date": "2026"
+            }
+          ]
+        }
+      ]
     },
     {
       "name": "HP",
@@ -476,7 +501,7 @@
       "heat": null,
       "benefits": null,
       "stock_plan": null,
-      "bonus_timing": "查不到公開的獎金發放月份與月數",
+      "bonus_timing": null,
       "culture": null,
       "interview": null,
       "roles": [
@@ -557,7 +582,7 @@
       "heat": null,
       "benefits": null,
       "stock_plan": null,
-      "bonus_timing": "查不到公開的獎金發放月份與月數",
+      "bonus_timing": "底薪＋現金獎金＋RSU（多為四年，部分五年）；台灣年終月數查不到",
       "culture": "GoodJob 平均每週 35 小時、13% 幾乎每天加班、40% 偶爾；薪資分 Local pay／Global pay",
       "interview": null,
       "roles": [
@@ -628,7 +653,32 @@
       ],
       "mops": null,
       "grade_system": null,
-      "bonus_structure": []
+      "bonus_structure": [
+        {
+          "type": "RSU",
+          "rule": "通常四年歸屬，部分職位五年",
+          "months": null,
+          "sources": [
+            {
+              "site": "levels.fyi",
+              "url": "https://www.levels.fyi/zh-tw/companies/microsoft/salaries/software-engineer/locations/taiwan",
+              "date": "2026"
+            }
+          ]
+        },
+        {
+          "type": "年度獎金",
+          "rule": "有現金獎金，台灣月數與月份查不到",
+          "months": null,
+          "sources": [
+            {
+              "site": "levels.fyi",
+              "url": "https://www.levels.fyi/zh-tw/companies/microsoft/salaries/software-engineer/locations/taiwan",
+              "date": "2026"
+            }
+          ]
+        }
+      ]
     },
     {
       "name": "Meta",
@@ -636,7 +686,7 @@
       "heat": null,
       "benefits": null,
       "stock_plan": null,
-      "bonus_timing": "查不到公開的獎金發放月份與月數",
+      "bonus_timing": null,
       "culture": null,
       "interview": null,
       "roles": [
@@ -718,7 +768,7 @@
       "heat": null,
       "benefits": null,
       "stock_plan": null,
-      "bonus_timing": "查不到公開的獎金發放月份與月數",
+      "bonus_timing": "網友 2023 稱保 13 個月＋bonus 約 1.3～1.5 個月＋RSU；發放月份查不到",
       "culture": "GoodJob 平均每週 43 小時、偶爾加班為主（薪資樣本多為 2020～2022，範圍外參考）",
       "interview": "內推後一面了解背景與專案；軟體職兩輪，含 LeetCode 題與多位主管面談（GoodJob）",
       "roles": [
@@ -815,7 +865,44 @@
       ],
       "mops": null,
       "grade_system": "Engineer／Senior／Staff",
-      "bonus_structure": []
+      "bonus_structure": [
+        {
+          "type": "保障月數",
+          "rule": "保 13 個月（網友）",
+          "months": 13,
+          "sources": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/241392808",
+              "date": "依文章編號推估 2023"
+            }
+          ]
+        },
+        {
+          "type": "年度獎金",
+          "rule": "約 1.3～1.5 個月（網友）",
+          "months": null,
+          "sources": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/241392808",
+              "date": "依文章編號推估 2023"
+            }
+          ]
+        },
+        {
+          "type": "RSU",
+          "rule": "有，三年或四年歸屬（平台資料）",
+          "months": null,
+          "sources": [
+            {
+              "site": "levels.fyi",
+              "url": "https://www.levels.fyi/zh-tw/companies/qualcomm/salaries",
+              "date": "2026"
+            }
+          ]
+        }
+      ]
     },
     {
       "name": "博通",
@@ -823,7 +910,7 @@
       "heat": null,
       "benefits": null,
       "stock_plan": null,
-      "bonus_timing": "查不到公開的獎金發放月份與月數",
+      "bonus_timing": null,
       "culture": "GoodJob 2025-08 新竹工程師單筆：公司給得大方、年薪約 180 萬、每週 45 小時（樣本極少）",
       "interview": null,
       "roles": [
@@ -899,7 +986,7 @@
       "heat": null,
       "benefits": null,
       "stock_plan": null,
-      "bonus_timing": "查不到公開的獎金發放月份與月數",
+      "bonus_timing": "RSU 三年或四年歸屬（每季或每月）；台灣年終與分紅月數查不到",
       "culture": null,
       "interview": null,
       "roles": [
@@ -999,7 +1086,32 @@
       ],
       "mops": null,
       "grade_system": "MTS／SMTS；新鮮人 L4、資深 L6（網友說法）",
-      "bonus_structure": []
+      "bonus_structure": [
+        {
+          "type": "RSU",
+          "rule": "三年或四年歸屬，每季或每月（平台資料）",
+          "months": null,
+          "sources": [
+            {
+              "site": "levels.fyi",
+              "url": "https://www.levels.fyi/zh-tw/companies/amd/salaries",
+              "date": "2026"
+            }
+          ]
+        },
+        {
+          "type": "年終／分紅",
+          "rule": "薪資網站列有項目，月數查不到",
+          "months": null,
+          "sources": [
+            {
+              "site": "比薪水",
+              "url": "https://salary.tw/c/gaX0",
+              "date": "2026"
+            }
+          ]
+        }
+      ]
     }
   ]
 }
