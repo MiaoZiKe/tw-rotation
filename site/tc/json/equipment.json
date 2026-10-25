@@ -315,7 +315,7 @@
       "heat": "Dcard 熱度：低",
       "benefits": "第一年 20 天年假＋生日假、4 個月全薪育兒假、購屋利息補助（2026 招募新聞）",
       "stock_plan": "股票認購權利（招募新聞）",
-      "bonus_timing": "查不到公開的獎金發放月份與月數",
+      "bonus_timing": "網友 2023 稱保 14 個月：年終 2 個月分 6 月與 12 月發，分紅 2 月發（3.5 個月 × 公司績效）；近兩年數字未確認",
       "culture": "比薪水自述日均 9～12 小時、常加班",
       "interview": "本輪未查到",
       "roles": [
@@ -413,7 +413,32 @@
       ],
       "mops": null,
       "grade_system": null,
-      "bonus_structure": []
+      "bonus_structure": [
+        {
+          "type": "年終獎金",
+          "rule": "2 個月，6 月與 12 月發（Dcard 2023）",
+          "months": 2,
+          "sources": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/242466968",
+              "date": "依文章編號推估 2023"
+            }
+          ]
+        },
+        {
+          "type": "員工分紅",
+          "rule": "2 月發，3.5 個月 × 公司績效（Dcard 2023）",
+          "months": null,
+          "sources": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/242466968",
+              "date": "依文章編號推估 2023"
+            }
+          ]
+        }
+      ]
     },
     {
       "name": "應用材料",
@@ -421,7 +446,7 @@
       "heat": "Dcard 熱度：低",
       "benefits": "年度旅遊津貼最高 6 萬（招募文案）",
       "stock_plan": "績效獎金及股票（招募文案）",
-      "bonus_timing": "查不到公開的獎金發放月份與月數",
+      "bonus_timing": "網友稱保 14 個月：年終 2 個月分 6 月與 12 月發，分紅約 12 月發（3.5 個月 × 公司績效）",
       "culture": "本輪未查到",
       "interview": "本輪未查到",
       "roles": [
@@ -522,7 +547,37 @@
       ],
       "mops": null,
       "grade_system": null,
-      "bonus_structure": []
+      "bonus_structure": [
+        {
+          "type": "年終獎金",
+          "rule": "固定 2 個月，6 月與 12 月各發一部分（Dcard 2023 整理）；UpToGo 另稱可能年前發，兩說不一",
+          "months": 2,
+          "sources": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/242389922",
+              "date": "依文章編號推估 2023"
+            },
+            {
+              "site": "UpToGo",
+              "url": "https://uptogo.com.tw/%E8%B2%A1%E7%B6%93/%E5%8F%B0%E7%81%A3%E6%87%89%E7%94%A8%E6%9D%90%E6%96%99-%E5%B9%B4%E8%96%AA%EF%BC%9F/",
+              "date": "2025"
+            }
+          ]
+        },
+        {
+          "type": "員工分紅",
+          "rule": "約 12 月發，3.5 個月 × 公司績效係數（網友整理）",
+          "months": null,
+          "sources": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/242389922",
+              "date": "依文章編號推估 2023"
+            }
+          ]
+        }
+      ]
     },
     {
       "name": "TEL",
@@ -530,7 +585,7 @@
       "heat": "Dcard 熱度：低",
       "benefits": "免費午餐、員工宿舍、年度健檢（2023 報導）",
       "stock_plan": "本輪未查到",
-      "bonus_timing": "查不到公開的獎金發放月份與月數",
+      "bonus_timing": "公司稱保障年薪 14 個月＋依個人績效的績效獎金（近 3 年平均 8～12 個月）；網友稱 6 月發分紅",
       "culture": "每年固定調薪至少 5%（自述）",
       "interview": "本輪未查到",
       "roles": [
@@ -608,7 +663,37 @@
       ],
       "mops": null,
       "grade_system": null,
-      "bonus_structure": []
+      "bonus_structure": [
+        {
+          "type": "保障月數",
+          "rule": "保障年薪 14 個月（公司徵才新聞）",
+          "months": 14,
+          "sources": [
+            {
+              "site": "鉅亨網",
+              "url": "https://news.cnyes.com/news/id/4834267",
+              "date": "2022"
+            }
+          ]
+        },
+        {
+          "type": "績效獎金／分紅",
+          "rule": "公司稱過去 3 年平均 8～12 個月；網友 2023 稱 6 月發、近兩年約 7～9 個月；另有評論稱 5～8 個月，以公司說法為準",
+          "months": null,
+          "sources": [
+            {
+              "site": "鉅亨網",
+              "url": "https://news.cnyes.com/news/id/4834267",
+              "date": "2022"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/242602744",
+              "date": "依文章編號推估 2023"
+            }
+          ]
+        }
+      ]
     },
     {
       "name": "漢磊",
@@ -616,7 +701,7 @@
       "heat": "Dcard 熱度：低",
       "benefits": "免費午餐、伙食津貼、三節禮券",
       "stock_plan": "本輪未查到",
-      "bonus_timing": "保 14 個月；分紅不要抱期待（自述）",
+      "bonus_timing": "薪資網站稱 14 個月（含三節），加分紅與激勵獎金約 20 個月；發放月份查不到",
       "culture": "GoodJob 評分 3.7（71 筆），薪資福利 3.3；常態加班 1～2 小時、假日值班",
       "interview": "本輪未查到",
       "roles": [
@@ -728,10 +813,28 @@
       "grade_system": null,
       "bonus_structure": [
         {
-          "type": "既有說法（本輪未再查證）",
-          "rule": "保 14 個月；分紅不要抱期待（自述）",
+          "type": "保障月數",
+          "rule": "14 個月含三節（比薪水整理）",
+          "months": 14,
+          "sources": [
+            {
+              "site": "比薪水",
+              "url": "https://salary.tw/c/aVsP/ptt",
+              "date": "2026"
+            }
+          ]
+        },
+        {
+          "type": "分紅／激勵獎金",
+          "rule": "合計可到約 20 個月（網站整理，未說明樣本）",
           "months": null,
-          "sources": []
+          "sources": [
+            {
+              "site": "比薪水",
+              "url": "https://salary.tw/c/aVsP/ptt",
+              "date": "2026"
+            }
+          ]
         }
       ]
     }
