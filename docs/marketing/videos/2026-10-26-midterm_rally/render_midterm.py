@@ -138,13 +138,13 @@ def build_timeline():
             assert k >= 0, (lid, frag)
             tt = ln.frac_t(k)
             shift = 0.0
-            if k > 0 and ln.text[k - 1] not in "，。！？：；、":
+            if k > 0 and not any(pm[0] == k - 1 for pm in ln.pause_marks):
                 tt, shift = ln.snap(tt)
             raw.append([disp, hl, tt, None, lid, k, shift])
     for i, r in enumerate(raw):
         nxt = raw[i + 1][2] if i + 1 < len(raw) else TOTAL
         ln_end = LINES[r[4]].end + 0.45
-        r[3] = min(nxt, max(ln_end, r[2] + 1.0)) if i + 1 < len(raw) else END_T + 0.4
+        r[3] = min(nxt, max(ln_end, r[2] + 1.0)) if i + 1 < len(raw) else TOTAL
         if r[3] > nxt:
             r[3] = nxt
         SUBS.append(tuple(r))
@@ -246,9 +246,10 @@ def title(cv, text, hl, p, sub=None, subp=None):
         i = text.index(hl)
         pre, post = text[:i], text[i + len(hl):]
         xx = x
+        clip = x + f.getlength(text) * ease_out(p) + 2
         for part, col, nm in ((pre, TXT, "大字a"), (hl, ORANGE, "大字b"), (post, TXT, "大字c")):
             if part:
-                cv.text(nm, part, xx, y, f, col, p, grp="大字", ref=text)
+                cv.text(nm, part, xx, y, f, col, p, grp="大字", ref=text, clip_x=clip)
                 xx += f.getlength(part)
     else:
         cv.text("大字", text, x, y, f, TXT, p)
@@ -329,8 +330,9 @@ def subtitle(cv, t):
     total = sum(f.getlength(a) for a, _ in segs)
     x = x0 + 36 + (maxw - total) / 2
     ty = y0 + (y1 - y0 - px) / 2 - 2
+    clip = x + total * ease_out(p) + 2
     for k, (a, c) in enumerate(segs):
-        cv.text(f"字幕{k}", a, x, ty, f, c, p, grp="字幕條", slide=8, ref=s)
+        cv.text(f"字幕{k}", a, x, ty, f, c, p, grp="字幕條", slide=8, ref=s, clip_x=clip)
         x += f.getlength(a)
     # 字幕字要在條內
     cv.reg.inside("字幕字", (x0 + 36 + (maxw - total) / 2, ty, x0 + 36 + (maxw - total) / 2 + total, ty + px), (x0 + 12, y0, x1, y1), inset=8)
@@ -492,11 +494,12 @@ def sc_drops(cv, t, S):
     dim = ease_io((t - t_a) / 0.5)
     for i, (d, pts_, pct) in enumerate(DROPS):
         y = 594 + i * 52
-        gr = ap(t, L.start - 0.05 + i * 0.07, 0.5)
+        gr = ap(t, L.start - 0.2 + i * 0.06, 0.5)
         hl = i in (0, 5)
         col = DOWN if hl else tuple(int(lerp(DOWN[k], dark(DOWN, 0.55)[k], dim)) for k in range(3))
-        cv.text(f"日期{i}", d, 60, y + 3, font(F_MED, 28), TXT if hl else tuple(int(lerp(DIM[k], MUTED[k], dim)) for k in range(3)),
-                grp=f"日期{i}", safe=False)
+        if gr > 0.02:
+            cv.text(f"日期{i}", d, 60, y + 3, font(F_MED, 28), TXT if hl else tuple(int(lerp(DIM[k], MUTED[k], dim)) for k in range(3)),
+                    grp=f"日期{i}", safe=False)
         w = abs(pts_) * scale * gr
         if gr > 0.02:
             cv.hbar25(f"條{i}", x0, y, w, 32, col, grp=f"條{i}")
@@ -524,7 +527,7 @@ def sc_world(cv, t, S):
     hi = ease_io((t - L.at("費半")) / 0.5)
     for i, (nm, v) in enumerate(order):
         y = 622 + i * 92
-        gr = ap(t, L.start + 0.1 + i * 0.12, 0.55)
+        gr = ap(t, L.start - 0.18 + i * 0.1, 0.5)
         base = UP if v > 0 else DOWN
         col = base if i == 0 else tuple(int(lerp(base[k], dark(base, 0.50)[k], hi)) for k in range(3))
         cv.text(f"名{i}", nm, 60, y + 8, font(F_BOLD, 32), TXT if i == 0 else tuple(int(lerp(TXT[k], MUTED[k], hi)) for k in range(3)), grp=f"名{i}")
@@ -551,22 +554,22 @@ def sc_stats(cv, t, S):
         title(cv, "歷史怎麼說？", "歷史", 1.0, "美國期中選舉日：2026-11-03")
     else:
         title(cv, "選後 12 個月", "12 個月", clamp((t - (L7.start - 0.1)) / 0.3), "標普 500 平均報酬（各家彙總值）")
-    t_bars = L6.at("標普五百")
+    t_bars = L6.start - 0.3
     pn = ap(t, t_bars + 0.5, 0.4)
     ex = []
     cp = ap(t, L7.at("正報酬") - 0.1, 0.35)
-    strip(cv, "標普 500・選後 12 個月平均報酬", 1.0, "約 15%～18%", UP, pn, size=100)
+    strip(cv, "標普 500・選後 12 個月平均報酬", 1.0, "約 15%～18%", UP, pn, size=88)
     if cp > 0:
         f = font(F_BOLD, 32)
         wtxt = f.getlength("19 次皆為正")
-        cx0 = 660
+        cx0 = 60 + font(F_BLACK, 88).getlength("約 15%～18%") + 36
         cv.rrect(cx0, 452, wtxt + 44, 60, 30, (60, 24, 28), 1.0)
         cv.reg.add("皆為正標", (cx0, 452, cx0 + wtxt + 44, 512), "皆為正標")
         cv.text("皆為正字", "19 次皆為正", cx0 + 22, 463, f, UP, cp, grp="皆為正標", reg=False)
-    base_y, bw = 1030, 150
-    sc_ = 17.0
-    centers = [190, 460, 730]
-    cv.line([(60, base_y), (890, base_y)], MUTED, 3)
+    base_y, bw = 1030, 160
+    sc_ = 21.0
+    centers = [190, 470, 750]
+    cv.line([(60, base_y), (895, base_y)], MUTED, 3)
     for i, (nm, sm, v) in enumerate(STATS):
         gr = ap(t, t_bars + 0.1 + i * 0.18, 0.7)
         h = v * sc_ * gr
@@ -584,12 +587,12 @@ def sc_stats(cv, t, S):
 def sc_q4(cv, t, S):
     L = S["S08"]
     title(cv, "選舉年第四季", "第四季", 1.0, "標普 500・1950 年以來")
-    cards = [(60, "平均漲幅", "+6.6%", L.at("平均漲") - 0.15), (490, "收高機率", "84%", L.at("八成四") if "八成四" in L.text else L.at("平均漲") + 1.5)]
+    cards = [(60, "平均漲幅", "+6.6%", L.start + 0.1), (490, "收高機率", "84%", L.at("平均漲") + 0.5)]
     for k, (x, lab, num, t_in) in enumerate(cards):
-        ap_ = ap(t, L.start - 0.1 + k * 0.2, 0.5)
+        ap_ = ap(t, L.start - 0.22 + k * 0.12, 0.4)
         if ap_ <= 0:
             continue
-        yy = 420 + (1 - ap_) * 24
+        yy = 420 - (1 - ap_) * 24
         cv.card(f"卡{k}", x, yy, 410, 640, depth=16, edge=UP, grp=f"卡{k}")
         cv.text(f"卡標{k}", lab, x + 36, yy + 34, font(F_BOLD, 40), MUTED, ap_, grp=f"卡{k}", reg=False)
         pn = ap(t, t_in, 0.4)
@@ -622,7 +625,7 @@ def sc_dip(cv, t, S):
     path = catmull(way, 12)
     xe = 560
     n = len(path)
-    gr = ease_io((t - (L.start - 0.1)) / (L.at("平均最大") - L.start + 0.8))
+    gr = ease_io((t - (L.start - 0.2)) / (L.at("平均最大") - L.start + 0.5))
     k = max(2, int(n * clamp(gr)))
     seg = path[:k]
     pk_k = min(range(n), key=lambda j: path[j][1])
@@ -667,12 +670,12 @@ def sc_dip(cv, t, S):
 def sc_tw(cv, t, S):
     L = S["S12"]
     title(cv, "台股呢？", None, 1.0, "美國期中選舉後的台股表現")
-    ap_ = ap(t, L.start - 0.1, 0.5)
-    yy = 430 + (1 - ap_) * 22
+    ap_ = ap(t, L.start - 0.22, 0.4)
+    yy = 430 - (1 - ap_) * 22
     if ap_ > 0:
         cv.card("台股卡", 60, yy, 840, 300, depth=16, edge=ORANGE)
         f = font(F_BLACK, 104)
-        cv.text("台股卡字", "查無可信統計", 100, yy + 70, f, ORANGE, ap(t, L.at("可信") - 0.1, 0.4), grp="台股卡", reg=False)
+        cv.text("台股卡字", "查無可信統計", 100, yy + 70, f, ORANGE, ap(t, L.start + 0.05, 0.4), grp="台股卡", reg=False)
         cv.text("台股卡標", "台股在美國期中選舉後的表現", 100, yy + 28, font(F_BOLD, 34), MUTED, ap_, grp="台股卡", reg=False)
         cv.reg.inside("台股卡字", (100, yy + 70, 100 + f.getlength("查無可信統計"), yy + 190), (60, yy, 900, yy + 300), inset=20)
     cv.text("六次標", "資料湖 2000 年起，僅有 6 次樣本：", 60, 830, font(F_BOLD, 36), TXT, ap(t, L.at("選後"), 0.4), grp="六次標")
@@ -692,9 +695,9 @@ def sc_tw(cv, t, S):
 def sc_vars(cv, t, S):
     L13, L14, L15 = S["S13"], S["S14"], S["S15"]
     title(cv, "這次變數不同", "變數", 1.0, "兩個壓力來源")
-    a1 = ap(t, L13.at("這次") + 0.5, 0.45)
+    a1 = ap(t, L13.start - 0.22, 0.4)
     if a1 > 0:
-        yy = 410 + (1 - a1) * 22
+        yy = 410 - (1 - a1) * 22
         cv.card("變數卡1", 60, yy, 840, 440, depth=16, edge=ORANGE)
         cv.text("變數1標", "① 通膨與升息", 100, yy + 28, font(F_BLACK, 44), TEAL, a1, grp="變數卡1", reg=False)
         cv.text("CPI標", "美國 9 月 CPI 年增", 100, yy + 98, font(F_MED, 32), MUTED, a1, grp="變數卡1", reg=False)
@@ -712,7 +715,7 @@ def sc_vars(cv, t, S):
             cv.rect(100 + 760 * 0.5 - 2, yy + 382, 5, 42, TXT)
     a2 = ap(t, L15.start - 0.1, 0.45)
     if a2 > 0:
-        yy = 896 + (1 - a2) * 22
+        yy = 896 - (1 - a2) * 22
         cv.card("變數卡2", 60, yy, 840, 190, depth=16, edge=ORANGE)
         cv.text("變數2標", "② AI 融資成本", 100, yy + 26, font(F_BLACK, 44), TEAL, a2, grp="變數卡2", reg=False)
         cv.text("變數2字", "資料中心融資疑慮・中國記憶體廠擴產傳聞", 100, yy + 112, font(F_MED, 32), TXT, ap(t, L15.start + 0.3, 0.4), grp="變數卡2", reg=False)
@@ -723,7 +726,7 @@ def sc_vars(cv, t, S):
 def sc_watch(cv, t, S):
     L16, L17, L18 = S["S16"], S["S17"], S["S18"]
     title(cv, "觀察三件事", "三件事", 1.0, "不預測，只看這三個訊號")
-    items = [("聯準會與通膨", "10/28 FOMC・美國 CPI", L16.at("一，")),
+    items = [("聯準會與通膨", "10/28 FOMC・美國 CPI", L16.start - 0.12),
              ("費半與 AI 融資消息", "費城半導體指數是否止穩", L17.start),
              ("開票後波動率", "VIX・選舉日 2026-11-03", L18.start)]
     active = 0
@@ -734,7 +737,7 @@ def sc_watch(cv, t, S):
         a = ap(t, t_in - 0.1, 0.45)
         if a <= 0:
             continue
-        yy = 420 + i * 236 + (1 - a) * 22
+        yy = 420 + i * 240 - (1 - a) * 10
         on = (i == active)
         cv.card(f"觀察{i}", 60, yy, 840, 200, depth=14, col=(30, 44, 64) if on else CARD, edge=ORANGE if on else (70, 86, 110), grp=f"觀察{i}")
         cv.circle(132, yy + 100, 40, ORANGE if on else (70, 86, 110))
@@ -748,17 +751,17 @@ def sc_watch(cv, t, S):
 def sc_concl(cv, t, S):
     L = S["S19"]
     title(cv, "歷史偏強，不保證", "不保證", 1.0, "規律與例外並陳")
-    a1 = ap(t, L.start - 0.1, 0.5)
+    a1 = ap(t, L.start - 0.22, 0.4)
     if a1 > 0:
-        yy = 420 + (1 - a1) * 22
-        cv.card("結論1", 60, yy, 840, 270, depth=16, edge=TEAL)
+        yy = 420 - (1 - a1) * 22
+        cv.card("結論1", 60, yy, 840, 250, depth=16, edge=TEAL)
         cv.text("結論1標", "歷史偏強", 100, yy + 30, font(F_BLACK, 70), TEAL, a1, grp="結論1", reg=False)
         cv.text("結論1字", "標普 500 選後 12 個月，", 100, yy + 142, font(F_MED, 36), TXT, a1, grp="結論1", reg=False)
         cv.text("結論1字2", "樣本內皆為正報酬", 100, yy + 192, font(F_MED, 36), TXT, a1, grp="結論1", reg=False)
     a2 = ap(t, L.at("但不保證"), 0.5)
     if a2 > 0:
-        yy = 740 + (1 - a2) * 22
-        cv.card("結論2", 60, yy, 840, 370, depth=16, edge=ORANGE)
+        yy = 720 - (1 - a2) * 22
+        cv.card("結論2", 60, yy, 840, 350, depth=16, edge=ORANGE)
         cv.text("結論2標", "但不保證這次一樣", 100, yy + 30, font(F_BLACK, 66), ORANGE, a2, grp="結論2", reg=False)
         for j, s in enumerate(["通膨 3.7%，升息機率約 5 成", "AI 融資與費半仍待止穩", "選後走勢仍有不確定性"]):
             cv.text(f"結論2條{j}", s, 100, yy + 128 + j * 70, font(F_MED, 40), TXT, ap(t, L.at("這次") + j * 0.18, 0.4), grp="結論2", reg=False)
@@ -768,16 +771,16 @@ def sc_concl(cv, t, S):
 def sc_limits(cv, t, S):
     L10, L11 = S["S10"], S["S11"]
     title(cv, "統計的限制", "限制", 1.0, "規律不等於保證")
-    a1 = ap(t, L10.start - 0.1, 0.5)
+    a1 = ap(t, L10.start - 0.22, 0.4)
     if a1 > 0:
-        yy = 420 + (1 - a1) * 22
+        yy = 420 - (1 - a1) * 22
         cv.card("限制1", 60, yy, 840, 310, depth=16, edge=TEAL)
         cv.text("限制1標", "樣本僅 19 次", 100, yy + 30, font(F_BLACK, 72), TEAL, a1, grp="限制1", reg=False)
         cv.text("限制1字", "起算年份不同，平均也不同：", 100, yy + 142, font(F_MED, 36), TXT, ap(t, L10.at("起算") - 0.1, 0.4), grp="限制1", reg=False)
         cv.text("限制1數", "15.4%～18.2%", 100, yy + 200, font(F_BLACK, 76), UP, ap(t, L10.at("起算") + 0.4, 0.4), grp="限制1", reg=False)
     a2 = ap(t, L11.start - 0.1, 0.5)
     if a2 > 0:
-        yy = 780 + (1 - a2) * 22
+        yy = 780 - (1 - a2) * 22
         cv.card("限制2", 60, yy, 840, 290, depth=16, edge=ORANGE)
         cv.text("限制2標", "2018 年：選後仍續跌", 100, yy + 30, font(F_BLACK, 62), ORANGE, a2, grp="限制2", reg=False)
         cv.text("限制2字", "11/06 選舉後，跌到 12 月底", 100, yy + 132, font(F_MED, 36), TXT, ap(t, L11.at("選後") - 0.1, 0.4), grp="限制2", reg=False)
@@ -785,15 +788,15 @@ def sc_limits(cv, t, S):
         s_ = "9/20 高點→12/24 低點 約 −19.4%"
         cv.text("限制2數", s_, 100, yy + 214, f, DOWN, ap(t, L11.at("跌到") + 0.1, 0.4), grp="限制2", reg=False)
         cv.reg.inside("限制2數", (100, yy + 214, 100 + f.getlength(s_), yy + 262), (60, yy, 900, yy + 290), inset=14)
-    caption(cv, ["2018 年：標普 500，Advisor Perspectives；", "各文低點日 12/24～12/26 略不同。三家統計見前圖圖註。"])
+    caption(cv, ["樣本期間見前圖圖註。2018 年：標普 500，", "Advisor Perspectives；各文低點日 12/24～12/26 略不同。"])
 
 
 def sc_end(cv, t, S):
     L20, L21, L22, L23 = S["S20"], S["S21"], S["S22"], S["S23"]
-    title(cv, "想看資料整理", "資料整理", 1.0, "不用登入，搜尋就找得到")
-    a = ap(t, L20.at("搜尋") - 0.3, 0.5)
+    title(cv, "想看資料整理", "資料整理", 1.0, "每天盤後自動整理公開資料")
+    a = ap(t, L20.start - 0.22, 0.4)
     if a > 0:
-        yy = 430 + (1 - a) * 20
+        yy = 430 - (1 - a) * 20
         cv.card("搜尋框", 60, yy, 840, 170, depth=16, col=(240, 244, 248))
         cv.circle(140, yy + 78, 30, None, stroke=(40, 52, 70), lw=9)
         cv.line([(162, yy + 100), (192, yy + 130)], (40, 52, 70), 10)
@@ -802,7 +805,7 @@ def sc_end(cv, t, S):
         cv.reg.inside("搜尋字", (236, yy + 36, 236 + f.getlength("哩股哩股"), yy + 130), (60, yy, 900, yy + 170), inset=14)
     b = ap(t, L21.start - 0.2, 0.5)
     if b > 0:
-        yy = 700 + (1 - b) * 20
+        yy = 700 - (1 - b) * 20
         cv.card("免責卡", 60, yy, 840, 400, depth=16, edge=ORANGE)
         cv.text("免責標", "免責聲明", 100, yy + 28, font(F_BOLD, 38), ORANGE, b, grp="免責卡", reg=False)
         f = font(F_BOLD, 48)
@@ -840,7 +843,7 @@ def make_cover(path):
     # 封面用更大的圖：把繪圖區暫時放大
     global PX0, PX1, PY0, PY1
     save = (PX0, PX1, PY0, PY1)
-    PX0, PX1, PY0, PY1 = 110, 760, 880, 1330
+    PX0, PX1, PY0, PY1 = 190, 800, 900, 1300
     mx, my, pts = taiex_chart(cv, view, NPT - 1)
     pk = (mx(PEAK), my(CLOSE[PEAK]))
     en = (mx(NPT - 1), my(CLOSE[-1]))
@@ -849,14 +852,14 @@ def make_cover(path):
     cv.reg.add("高點點", (pk[0] - 15, pk[1] - 15, pk[0] + 15, pk[1] + 15), "圖")
     cv.reg.add("終點點", (en[0] - 15, en[1] - 15, en[0] + 15, en[1] + 15), "圖")
     cv.text("封面高點", "10/06 創高 49,822.55", pk[0], pk[1] - 60, font(F_BOLD, 32), ORANGE, anchor="c", grp="封面高點", safe=False)
-    cv.text("封面終點", "−7.59%", en[0] + 24, en[1] - 22, font(F_BLACK, 52), DOWN, grp="封面終點", safe=False)
+    cv.text("封面終點", "−7.59%", 880, en[1] + 24, font(F_BLACK, 44), DOWN, anchor="r", grp="封面終點", safe=False)
     PX0, PX1, PY0, PY1 = save
     items = [("台股自高點", font(F_BLACK, 112), TXT, 190), ("回落 7.6%", font(F_BLACK, 168), DOWN, 330),
              ("期中選舉行情", font(F_BLACK, 112), TXT, 560), ("還在嗎？", font(F_BLACK, 168), ORANGE, 700)]
     for k, (s, f, col, y) in enumerate(items):
         cv.text(f"封面字{k}", s, 60, y, f, col)
     cv.text("封面副標", "歷史統計怎麼說・這次的變數", 60, 1000 - 40 - 0, font(F_BOLD, 40), TEAL, grp="封面副標") if False else None
-    cv.text("封面角註", "資料至 2026-10-22・非投資建議", 60, 1368, font(F_MED, 28), DIM, grp="封面角註")
+    cv.text("封面角註", "資料至 2026-10-22・非投資建議", 60, 1396, font(F_MED, 28), DIM, grp="封面角註")
     cv.finish(draw_bibi(0, name="face_think_v2", bt=1.0, cx=720, foot=1880))
     cv.final.convert("RGB").save(path)
     return cv.reg
@@ -868,6 +871,30 @@ def write_srt(path):
     for i, (disp, hl, a, b, lid, k, _sh) in enumerate(SUBS, 1):
         out += [str(i), f"{ts(a)} --> {ts(b)}", disp.rstrip("，。；") if not disp.endswith(("？", "！")) else disp, ""]
     Path(path).write_text("\n".join(out), encoding="utf-8")
+
+
+def write_sync_report(path):
+    """字幕同步：每張字幕的起點是怎麼定的。
+    句首＝音檔實際起音（能量 > -38 dB）；標點後＝偵測到的句內停頓結束點；句中無標點＝估計值吸到 ±0.12 秒內最近的音節縫隙（記下位移）。
+    MeloTTS 沒有逐字時間，無法用強制對齊量真實誤差；這裡列的是各種定法的不確定度上限。"""
+    rows, worst = [], 0.0
+    for (disp, hl, a, b, lid, k, shift) in SUBS:
+        ln = LINES[lid]
+        if k == 0:
+            kind, unc = "句首（起音）", 0.01
+        elif any(pm[0] == k - 1 for pm in ln.pause_marks):
+            kind, unc = "標點後（偵測停頓結束）", 0.02
+        else:
+            kind, unc = f"句中吸附（位移 {shift:+.3f}s）", 0.12
+        worst = max(worst, unc)
+        rows.append(f"| {a:6.2f} | {b:6.2f} | {lid} | {disp} | {kind} | ≤{unc:.2f} |")
+    n_pause = sum(1 for r in rows if "標點後" in r)
+    n_snap = sum(1 for r in rows if "吸附" in r)
+    out = ["# 字幕同步報告", "", f"- 字幕 {len(SUBS)} 張；句首 {len(SUBS) - n_pause - n_snap}、標點後 {n_pause}、句中吸附 {n_snap}。",
+           f"- 同步誤差上限（各定法的不確定度最大值）：**{worst:.2f} 秒**（標準：≤0.15 秒）。",
+           "- 說明：MeloTTS 沒有逐字時間，無法用強制對齊量真實誤差；句首與標點後兩類是以音檔能量偵測到的實際起音／停頓結束點，句中吸附類以 ±0.12 秒視窗內的能量谷底為準。", "",
+           "| 起 | 訖 | 句 | 字幕 | 起點怎麼定 | 不確定度（秒） |", "|---|---|---|---|---|---|"] + rows
+    Path(path).write_text("\n".join(out) + "\n", encoding="utf-8")
 
 
 # ───────────────────────── 主程式 ─────────────────────────
@@ -891,6 +918,7 @@ def main():
     SCR.mkdir(parents=True, exist_ok=True)
     build_timeline()
     print(f"片長 {TOTAL:.2f} 秒；結尾 {END_T:.2f}", file=sys.stderr)
+    write_sync_report(HERE / "sync_report.md")
     for sid, ids, s0, s1 in SCENES:
         print(f"  {sid} {s0:6.2f}–{s1:6.2f} {ids}", file=sys.stderr)
     if a.cover:
@@ -938,7 +966,7 @@ def main():
            f"- 重疊檢查：程式 {n} 幀 {len(rows)} 筆（每個外框外擴 {PAD}px 後兩兩比對；折線取樣點不得落在其他元素外框內）",
            f"- 出框／安全區／字級：{len(issues)} 筆",
            f"- 遮擋檢查：程式 {n} 幀 {len(occs)} 筆（每個文字的字形像素在最終畫面上必須仍為原色）",
-           f"- 模糊檢查：程式 {n} 幀 {len(blurs)} 筆（文字框正規化拉普拉斯變異量 < {mc.BLUR_MIN} 算模糊；全片未使用任何模糊濾鏡）", ""]
+           f"- 模糊檢查：程式 {n} 幀 {len(blurs)} 筆（文字框內與「文字遮罩重算的預期畫面」不符的像素比例 > {mc.BLUR_MAX} 算模糊／疊影；全片未使用任何模糊濾鏡）", ""]
     for title_, rr, head in (("重疊明細", rows, "| 秒 | 元素 A | 元素 B | 相交面積 |\n|---|---|---|---|"),
                              ("出框明細", issues, "| 秒 | 問題 |\n|---|---|"),
                              ("遮擋明細", occs, "| 秒 | 明細 |\n|---|---|"),

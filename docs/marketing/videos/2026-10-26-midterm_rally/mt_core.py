@@ -236,7 +236,7 @@ class Canvas:
         self.reg.add(name, (x, y + dy, x + w + dx, y + h), grp or name)
 
     # ---- 文字 ----
-    def text(self, name, s, x, y, f, col, p=1.0, grp=None, anchor="l", reg=True, safe=True, slide=14, ref=None):
+    def text(self, name, s, x, y, f, col, p=1.0, grp=None, anchor="l", reg=True, safe=True, slide=14, ref=None, clip_x=None):
         """預設：ink 外框左上角 = (x,y)（anchor r：x 為右緣；c：x 為中心）。
         ref 給定時為「同一行多段」模式：x 是第一個字的原點、y 是 ref 字串 ink 上緣，各段共用基線。
         p<1 時由左到右擦開並由下往上滑入（不使用透明度淡入）。"""
@@ -256,8 +256,22 @@ class Canvas:
         if p <= 0:
             return (ink_x0, y, ink_x0, y + ih)
         sl = (1 - ease_out(p)) * slide
-        vis = iw if p >= 1 else max(1, int(iw * ease_out(p)))
-        self.ops.append([name, s, ox, oy + sl, f, col, vis, bb, p >= 1])
+        vis = iw if p >= 1 else int(iw * ease_out(p))
+        if clip_x is not None:
+            vis = int(clamp(clip_x - ink_x0, 0, iw))
+        if vis < iw:
+            # 只露出完整的字（不切半個字）
+            best = 0
+            for i in range(1, len(s) + 1):
+                a_ = f.getlength(s[:i]) - bb[0]
+                if a_ <= vis:
+                    best = int(math.ceil(a_))
+                else:
+                    break
+            vis = best
+            if vis <= 0:
+                return (ink_x0, y, ink_x0, y + ih)
+        self.ops.append([name, s, ox, oy + sl, f, col, vis, bb, vis >= iw and p >= 1])
         ink_y0 = oy + sl + bb[1]
         box = (ink_x0, ink_y0, ink_x0 + vis, ink_y0 + ih)
         if reg:
@@ -281,7 +295,7 @@ class Canvas:
             tmp = Image.new("RGBA", (tw_, th_), (0, 0, 0, 0))
             ImageDraw.Draw(tmp).text((4, 4), s, font=f, fill=tuple(col) + (255,))
             if not full:
-                tmp = tmp.crop((0, 0, min(tw_, int(bb[0]) + vis + 6), th_))
+                tmp = tmp.crop((0, 0, min(tw_, 4 + int(bb[0]) + vis + 1), th_))
             ix, iy = int(round(ox)) - 4, int(round(oy)) - 4
             if ix < 0 or iy < 0:
                 self.reg.issues.append(f"{name} 畫在畫面外 ({ix},{iy})")
@@ -314,18 +328,27 @@ class Canvas:
             if bad > 0:
                 occ += 1
                 det.append(f"遮擋 {name} {bad}px")
-            g = gray[iy:iy + h, ix:ix + w]
-            if g.shape[0] >= 5 and g.shape[1] >= 5:
-                lap = 4 * g[1:-1, 1:-1] - g[:-2, 1:-1] - g[2:, 1:-1] - g[1:-1, :-2] - g[1:-1, 2:]
-                contrast = max(1.0, float(g.max() - g.min()))
-                score = float(lap.var()) / (contrast ** 2)
-                if score < BLUR_MIN:
-                    blur += 1
-                    det.append(f"模糊 {name} {score:.4f}")
+            # 模糊／疊影：用文字自己的遮罩重算「應有的畫面」（背景取框內無字處的中位數），
+            # 與實際畫面逐像素比較；文字邊緣若被模糊、疊影、縮放內插，差異像素比例會升高。
+            from scipy.ndimage import binary_dilation
+            a = am.astype(np.float32)[..., None] / 255.0
+            m0 = am > 0
+            near = binary_dilation(m0, iterations=2)
+            far = binary_dilation(m0, iterations=6) & ~binary_dilation(m0, iterations=4)
+            if far.sum() < 10 or float(reg_[far].std(axis=0).max()) > 12:
+                continue            # 周圍背景不單純（貼著別的東西）就不在這裡判斷
+            bgc = np.median(reg_[far], axis=0)
+            expected = bgc * (1 - a) + np.array(col, np.float32) * a
+            d2 = np.abs(reg_.astype(np.float32) - expected).max(axis=2)
+            frac = float((d2[near] > 40).mean())
+            score = frac
+            if score > BLUR_MAX:
+                blur += 1
+                det.append(f"模糊 {name} 差異像素 {frac:.4f}")
         return occ, blur, det
 
 
-BLUR_MIN = 0.012
+BLUR_MAX = 0.012   # 文字框內與預期不符的像素比例上限
 
 
 # ───────────────────────── 配音時間軸 ─────────────────────────

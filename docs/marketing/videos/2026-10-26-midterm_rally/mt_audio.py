@@ -94,6 +94,9 @@ def main():
     end_i = int(total * SR)
     bgm[end_i - fo:end_i] *= np.linspace(1, 0, fo)[:, None]
     mix = bgm + voice[:, None]
+    seg = act & (env > 0.98)
+    ratio = 20 * np.log10(float(np.sqrt(np.mean(voice[seg] ** 2))) / float(np.sqrt(np.mean(bgm[seg] ** 2))))
+    print(f"配音與底樂 RMS 差（說話中）：{ratio:.1f} dB；配音峰值 {np.max(np.abs(voice)):.2f}")
     # 音效（最多 8 個，峰值比配音低 ≥12 dB）
     sfx_peak = 0.89 * 10 ** (-12 / 20)
     marks = []
@@ -128,7 +131,7 @@ def main():
     r = subprocess.run(["ffmpeg", "-hide_banner", "-i", out, "-af", "ebur128=peak=true", "-f", "null", "-"], capture_output=True, text=True)
     tail = r.stderr[r.stderr.rindex("Integrated loudness"):]
     print(tail)
-    info = {"voice_rms_dbfs": 20 * np.log10(v_rms), "bgm_gain_speech_db": duck_db, "sfx": [(round(t, 2), k) for t, k in marks],
+    info = {"voice_over_bgm_db": ratio, "voice_rms_dbfs": 20 * np.log10(v_rms), "bgm_gain_speech_db": duck_db, "sfx": [(round(t, 2), k) for t, k in marks],
             "loudnorm_in": js}
     (SCR / "audio_info.json").write_text(json.dumps(info, ensure_ascii=False, indent=1))
 
