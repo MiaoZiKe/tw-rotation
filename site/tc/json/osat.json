@@ -19,18 +19,9 @@
           "role": "製程工程師",
           "degree": "碩士",
           "years": "0-2",
-          "base_month_k": [
-            46,
-            63
-          ],
-          "bonus_months": [
-            2,
-            4
-          ],
-          "annual_months": [
-            14,
-            16
-          ],
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": null,
           "annual_total_wan": [
             75,
             75
@@ -42,7 +33,7 @@
           "overtime": "經常（輪值）",
           "travel": "不用",
           "n": 7,
-          "note": "Dcard 封測整理文（未註日期）碩士 4.6～6.3 萬；GoodJob 2026-06 中壢 1 年資深工程師 8 萬（職等高已排除）、2026-07 高雄 G5 5.1 萬；第二輪：Dcard 製程 offer 多為月薪×14＋績效分紅＋每月小白單（新人約 1 年後才有）；GoodJob 2026-08 高雄碩士 2 年年薪約 75 萬；評價稱碩畢底薪偏低、靠加班費；base_month_k、bonus_months、annual_months 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples",
+          "note": "Dcard 封測整理文（未註日期）碩士 4.6～6.3 萬；GoodJob 2026-06 中壢 1 年資深工程師 8 萬（職等高已排除）、2026-07 高雄 G5 5.1 萬；第二輪：Dcard 製程 offer 多為月薪×14＋績效分紅＋每月小白單（新人約 1 年後才有）；GoodJob 2026-08 高雄碩士 2 年年薪約 75 萬；評價稱碩畢底薪偏低、靠加班費；base_month_k、bonus_months、annual_months 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples；未逐筆對應的舊彙整：base_month_k=[46, 63]；未逐筆對應的舊彙整：bonus_months=[2, 4]；未逐筆對應的舊彙整：annual_months=[14, 16]",
           "sources": [
             {
               "site": "Dcard",
@@ -222,16 +213,13 @@
             50
           ],
           "bonus_months": null,
-          "annual_months": [
-            14,
-            14
-          ],
+          "annual_months": null,
           "annual_total_wan": null,
           "weekly_hours": null,
           "overtime": "經常（需輪班）",
           "travel": "不用",
           "n": 5,
-          "note": "查無可用數字；查過關鍵字：日月光 京元電子 碩士 薪水 2026／日月光 碩士 製程工程師 月薪 2026 GoodJob 分紅 月份；Yahoo 徵才報導：設備工程師需輪班、另加輪班津貼，頂大碩畢起薪約 5 萬；比薪水 2026-05 中壢回報日均工時 10～12 小時；分紅與年薪月數沿用同公司製程職區間；撤回：bonus_months、annual_months 原為沿用／推算／暫填值，無直接證據，已改回原值；第二輪：PTT 2026-03 中壢設備 12 小時二休二，含加班日班 4～4.6 萬、夜班 5～7 萬；GoodJob 2026-09 高雄錄取月薪 5 萬（底薪＋津貼約 4 萬、夜班津貼約 1.5 萬、每月變動獎金 <1 萬）；保 14 個月＋年中發前一年分紅（GoodJob 評價）；學歷多為學士可進；annual_months 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples",
+          "note": "查無可用數字；查過關鍵字：日月光 京元電子 碩士 薪水 2026／日月光 碩士 製程工程師 月薪 2026 GoodJob 分紅 月份；Yahoo 徵才報導：設備工程師需輪班、另加輪班津貼，頂大碩畢起薪約 5 萬；比薪水 2026-05 中壢回報日均工時 10～12 小時；分紅與年薪月數沿用同公司製程職區間；撤回：bonus_months、annual_months 原為沿用／推算／暫填值，無直接證據，已改回原值；第二輪：PTT 2026-03 中壢設備 12 小時二休二，含加班日班 4～4.6 萬、夜班 5～7 萬；GoodJob 2026-09 高雄錄取月薪 5 萬（底薪＋津貼約 4 萬、夜班津貼約 1.5 萬、每月變動獎金 <1 萬）；保 14 個月＋年中發前一年分紅（GoodJob 評價）；學歷多為學士可進；annual_months 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples；未逐筆對應的舊彙整：annual_months=[14, 14]",
           "sources": [
             {
               "site": "GoodJob",
@@ -381,22 +369,10 @@
           "role": "生產技術／製程工程師",
           "degree": "碩士",
           "years": "0-2",
-          "base_month_k": [
-            42,
-            50
-          ],
-          "bonus_months": [
-            1,
-            4
-          ],
-          "annual_months": [
-            15,
-            18
-          ],
-          "annual_total_wan": [
-            63,
-            85
-          ],
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
           "weekly_hours": [
             45,
             55
@@ -404,7 +380,7 @@
           "overtime": "經常",
           "travel": "不用",
           "n": 3,
-          "note": "GoodJob 2026 自述 4.8 萬；Dcard 整理文碩士 4.2～4.8 萬、15～18 個月；3.3 萬一筆疑學士已排除；第二輪：Dcard 面試心得一篇；Dcard 日期依文章編號推估；base_month_k、bonus_months、annual_months、annual_total_wan 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples",
+          "note": "GoodJob 2026 自述 4.8 萬；Dcard 整理文碩士 4.2～4.8 萬、15～18 個月；3.3 萬一筆疑學士已排除；第二輪：Dcard 面試心得一篇；Dcard 日期依文章編號推估；base_month_k、bonus_months、annual_months、annual_total_wan 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples；未逐筆對應的舊彙整：base_month_k=[42, 50]；未逐筆對應的舊彙整：bonus_months=[1, 4]；未逐筆對應的舊彙整：annual_months=[15, 18]；未逐筆對應的舊彙整：annual_total_wan=[63, 85]",
           "sources": [
             {
               "site": "GoodJob",
@@ -487,10 +463,7 @@
           "role": "IC 測試工程師",
           "degree": "碩士",
           "years": "0-2",
-          "base_month_k": [
-            42,
-            50
-          ],
+          "base_month_k": null,
           "bonus_months": null,
           "annual_months": [
             14,
@@ -500,8 +473,8 @@
           "weekly_hours": null,
           "overtime": null,
           "travel": "不用",
-          "n": 6,
-          "note": "GoodJob 2026 自述 5 萬與 4.2 萬（配件工程師）；學歷未標；加班與月數沿用同公司生產技術職回報（低信心）；撤回：overtime、bonus_months、annual_months 原為沿用／推算／暫填值，無直接證據，已改回原值；第二輪：Dcard IC 測試開發 offer N-13×14＋分紅、另一則月薪約 4.7 萬；GoodJob 2026 工程師多在 3.5～5 萬；工程師保 14 個月（端午、中秋各 0.5＋年終 1）；PTT 舊文稱年度分紅 10～12 月分三次發（範圍外參考）；base_month_k 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples",
+          "n": 7,
+          "note": "GoodJob 2026 自述 5 萬與 4.2 萬（配件工程師）；學歷未標；加班與月數沿用同公司生產技術職回報（低信心）；撤回：overtime、bonus_months、annual_months 原為沿用／推算／暫填值，無直接證據，已改回原值；第二輪：Dcard IC 測試開發 offer N-13×14＋分紅、另一則月薪約 4.7 萬；GoodJob 2026 工程師多在 3.5～5 萬；工程師保 14 個月（端午、中秋各 0.5＋年終 1）；PTT 舊文稱年度分紅 10～12 月分三次發（範圍外參考）；base_month_k 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples；未逐筆對應的舊彙整：base_month_k=[42, 50]",
           "sources": [
             {
               "site": "GoodJob",
@@ -531,6 +504,11 @@
             {
               "site": "GoodJob",
               "url": "https://www.goodjob.life/experiences/6a0140c9ccd0de14ad4c8146",
+              "date": "2026-05"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261533966",
               "date": "2026-05"
             }
           ],
@@ -644,9 +622,27 @@
               "quote_free_note": "配件工程師面試；工程師保 14",
               "date_confirmed": true,
               "date_note": "GoodJob 標題附分享日期"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261533966",
+              "date": "2026-05",
+              "unit_detail": null,
+              "years": "0-2",
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "摘要標 2026-05：遠距視訊面試，人資後主管，難度低（無薪資數字；文章由標題推定）",
+              "date_confirmed": true,
+              "date_note": "摘要／標題可見日期"
             }
           ],
-          "n_stat": 2
+          "n_stat": 3
         }
       ],
       "mops": {
