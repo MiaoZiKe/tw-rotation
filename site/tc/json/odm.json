@@ -2,7 +2,7 @@
  "industry": "odm",
  "name": "系統廠 ODM/OEM",
  "updated": "2026-10-25",
- "window": "2025-10-25～2026-10-25",
+ "window": "2025-08-01～2026-10-25",
  "companies": [
   {
    "name": "廣達",
@@ -20,22 +20,16 @@
      "degree": "碩士",
      "years": "0-2",
      "base_month_k": [
-      57,
-      65
+      58,
+      60
      ],
      "bonus_months": null,
-     "annual_months": [
-      21,
-      21
-     ],
-     "annual_total_wan": [
-      100,
-      160
-     ],
+     "annual_months": null,
+     "annual_total_wan": null,
      "weekly_hours": 60,
      "overtime": "經常",
      "travel": "偶爾～需要（中國／東南亞廠）",
-     "n": 6,
+     "n": 9,
      "note": "平台自述統計（未轉貼原文）；GoodJob 2026-01～07 三筆月薪 5.7～6.5 萬（含 2 年經驗、未標學歷）；評價提年保 12 個月＋績效年終；Dcard 整理碩士整包 100～160 萬（16～24 個月）為網友估算；GoodJob 機構職面試與 2026-07 評價：需出差中國或東南亞，出差期間加班依產品進度；第二輪：Dcard BU9 伺服器硬體 12＋分紅看績效、整年約 20～22 個月；工時常 9～9；base_month_k、annual_total_wan 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples",
      "sources": [
       {
@@ -67,9 +61,24 @@
        "site": "Dcard",
        "url": "https://www.dcard.tw/f/tech_job/p/260452130",
        "date": "2026"
+      },
+      {
+       "site": "GoodJob",
+       "url": "https://www.goodjob.life/experiences/6918aa465d2dad0a8afdc9fb",
+       "date": "2025-11"
+      },
+      {
+       "site": "GoodJob",
+       "url": "https://www.goodjob.life/experiences/6a90411fddfa07d242d91fb9",
+       "date": "2026-08"
+      },
+      {
+       "site": "PTT",
+       "url": "https://www.ptt.cc/bbs/Tech_Job/M.1761664332.A.07D.html",
+       "date": "2025-10"
       }
      ],
-     "confidence": "高",
+     "confidence": "中",
      "grade": null,
      "samples": [
       {
@@ -167,6 +176,63 @@
        "overtime": null,
        "travel": null,
        "quote_free_note": null
+      },
+      {
+       "site": "GoodJob",
+       "url": "https://www.goodjob.life/experiences/6918aa465d2dad0a8afdc9fb",
+       "date": "2025-11",
+       "date_confirmed": true,
+       "date_note": "GoodJob 標題 2025.11.15",
+       "in_window": true,
+       "unit_detail": "硬體",
+       "years": "2",
+       "degree": null,
+       "base_k": 60,
+       "bonus_months": null,
+       "annual_months": null,
+       "annual_wan": null,
+       "weekly_hours": 45,
+       "overtime": "偶爾",
+       "travel": null,
+       "quote_free_note": "有年終、分紅、三節"
+      },
+      {
+       "site": "GoodJob",
+       "url": "https://www.goodjob.life/experiences/6a90411fddfa07d242d91fb9",
+       "date": "2026-08",
+       "date_confirmed": true,
+       "date_note": "GoodJob 標題 2026.8.27",
+       "in_window": true,
+       "unit_detail": "FPGA（面試）",
+       "years": "—",
+       "degree": null,
+       "base_k": 58,
+       "bonus_months": null,
+       "annual_months": null,
+       "annual_wan": null,
+       "weekly_hours": null,
+       "overtime": null,
+       "travel": null,
+       "quote_free_note": "面試報價；結果未通知"
+      },
+      {
+       "site": "PTT",
+       "url": "https://www.ptt.cc/bbs/Tech_Job/M.1761664332.A.07D.html",
+       "date": "2025-10",
+       "date_confirmed": true,
+       "date_note": "PTT 代碼 1761664332＝2025-10-28",
+       "in_window": true,
+       "unit_detail": "廣達與鴻海比較",
+       "years": "—",
+       "degree": null,
+       "base_k": null,
+       "bonus_months": null,
+       "annual_months": null,
+       "annual_wan": null,
+       "weekly_hours": null,
+       "overtime": null,
+       "travel": null,
+       "quote_free_note": "摘要提到廣達底薪 N+5、可報加班費（無法確定是哪一篇）"
       }
      ]
     },
@@ -176,20 +242,14 @@
      "degree": "碩士",
      "years": "0-2",
      "base_month_k": null,
-     "bonus_months": [
-      2,
-      2.5
-     ],
+     "bonus_months": null,
      "annual_months": null,
-     "annual_total_wan": [
-      100,
-      100
-     ],
+     "annual_total_wan": null,
      "weekly_hours": null,
      "overtime": "偶爾",
      "travel": "偶爾～需要（中國／東南亞廠）",
      "n": 2,
-     "note": "平台自述統計（未轉貼原文）；GoodJob 2026-05 一筆碩畢 2 年經驗年薪 100 萬、有加班費；另一則稱分紅年終 2～2.5 個月（個人說法）；GoodJob 機構職面試與 2026-07 評價：需出差中國或東南亞，出差期間加班依產品進度；bonus_months、annual_total_wan 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples",
+     "note": "平台自述統計（未轉貼原文）；GoodJob 2026-05 一筆碩畢 2 年經驗年薪 100 萬、有加班費；另一則稱分紅年終 2～2.5 個月（個人說法）；GoodJob 機構職面試與 2026-07 評價：需出差中國或東南亞，出差期間加班依產品進度；bonus_months、annual_total_wan 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples；未逐筆對應的舊彙整：{\"bonus_months\": [2, 2.5], \"annual_total_wan\": [100, 100]}",
      "sources": [
       {
        "site": "GoodJob",
@@ -202,7 +262,7 @@
        "date": "2026-07"
       }
      ],
-     "confidence": "中",
+     "confidence": "低",
      "grade": null,
      "samples": [
       {
@@ -238,6 +298,81 @@
        "quote_free_note": null
       }
      ]
+    },
+    {
+     "unit": "研發 RD",
+     "role": "機構工程師",
+     "degree": "碩士",
+     "years": "0-2",
+     "base_month_k": [
+      58,
+      58
+     ],
+     "bonus_months": null,
+     "annual_months": null,
+     "annual_total_wan": [
+      100,
+      100
+     ],
+     "weekly_hours": null,
+     "overtime": null,
+     "travel": null,
+     "n": 2,
+     "note": "",
+     "sources": [
+      {
+       "site": "GoodJob",
+       "url": "https://www.goodjob.life/experiences/6a6859d4c7730f27ddb9a8c8",
+       "date": "2026-07"
+      },
+      {
+       "site": "GoodJob",
+       "url": "https://www.goodjob.life/experiences/6a843a4bc43855f640213bce",
+       "date": "2026-08"
+      }
+     ],
+     "confidence": "中",
+     "grade": null,
+     "samples": [
+      {
+       "site": "GoodJob",
+       "url": "https://www.goodjob.life/experiences/6a6859d4c7730f27ddb9a8c8",
+       "date": "2026-07",
+       "date_confirmed": true,
+       "date_note": "GoodJob 標題 2026.7.28",
+       "in_window": true,
+       "unit_detail": "機構",
+       "years": "—",
+       "degree": null,
+       "base_k": 58,
+       "bonus_months": null,
+       "annual_months": null,
+       "annual_wan": null,
+       "weekly_hours": 40,
+       "overtime": "幾乎不",
+       "travel": null,
+       "quote_free_note": "桃園；除出差外基本不加班"
+      },
+      {
+       "site": "GoodJob",
+       "url": "https://www.goodjob.life/experiences/6a843a4bc43855f640213bce",
+       "date": "2026-08",
+       "date_confirmed": true,
+       "date_note": "GoodJob 標題 2026.8.18",
+       "in_window": true,
+       "unit_detail": "機構",
+       "years": "4",
+       "degree": null,
+       "base_k": null,
+       "bonus_months": null,
+       "annual_months": null,
+       "annual_wan": 100,
+       "weekly_hours": 55,
+       "overtime": "經常",
+       "travel": null,
+       "quote_free_note": "年薪約百萬、週 55 小時"
+      }
+     ]
     }
    ],
    "mops": {
@@ -267,22 +402,19 @@
      "degree": "碩士",
      "years": "0-2",
      "base_month_k": [
-      52,
-      60
+      56,
+      56
      ],
      "bonus_months": null,
-     "annual_months": [
-      16,
-      16
-     ],
+     "annual_months": null,
      "annual_total_wan": [
-      83,
-      120
+      110,
+      110
      ],
      "weekly_hours": null,
      "overtime": "偶爾",
      "travel": null,
-     "n": 3,
+     "n": 11,
      "note": "平台自述統計（未轉貼原文）；起薪 5.2 萬為 2024 校徵公告（超出一年窗口，僅參考）；Dcard 整理碩士整包 83～120 萬；無近一年 GoodJob 數字；比薪水 2026-02 單筆：偶爾加班、日均 8 小時；分紅月數無可靠區間；base_month_k、annual_months、annual_total_wan 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples",
      "sources": [
       {
@@ -299,6 +431,46 @@
        "site": "科技新報",
        "url": "https://finance.technews.tw/2026/09/30/2026-foxconn-annual-bonus/",
        "date": "2026-09"
+      },
+      {
+       "site": "GoodJob",
+       "url": "https://www.goodjob.life/experiences/6a8714980ac1ff26f8666e20",
+       "date": "2026-08"
+      },
+      {
+       "site": "GoodJob",
+       "url": "https://www.goodjob.life/companies/鴻海精密工業股份有限公司/work-experiences",
+       "date": "2026-02"
+      },
+      {
+       "site": "GoodJob",
+       "url": "https://www.goodjob.life/experiences/6a7c403db25d25ff8cb4d0bf",
+       "date": "2026-08"
+      },
+      {
+       "site": "GoodJob",
+       "url": "https://www.goodjob.life/experiences/6a7c8fb8b25d25ff8cbbc615",
+       "date": "2026-08"
+      },
+      {
+       "site": "GoodJob",
+       "url": "https://www.goodjob.life/experiences/68ad0d4b8e2b98ac9f266cd5",
+       "date": "2025-08"
+      },
+      {
+       "site": "Dcard",
+       "url": "https://www.dcard.tw/f/tech_job/p/259391056",
+       "date": "2025"
+      },
+      {
+       "site": "Dcard",
+       "url": "https://www.dcard.tw/f/tech_job/p/261172160",
+       "date": "2026-03"
+      },
+      {
+       "site": "Dcard",
+       "url": "https://www.dcard.tw/f/tech_job/p/258331608",
+       "date": "2025"
       }
      ],
      "confidence": "中",
@@ -351,6 +523,158 @@
        "overtime": null,
        "travel": null,
        "quote_free_note": null
+      },
+      {
+       "site": "GoodJob",
+       "url": "https://www.goodjob.life/experiences/6a8714980ac1ff26f8666e20",
+       "date": "2026-08",
+       "date_confirmed": true,
+       "date_note": "GoodJob 標題 2026.8.20",
+       "in_window": true,
+       "unit_detail": "可靠度工程師",
+       "years": "—",
+       "degree": null,
+       "base_k": null,
+       "bonus_months": null,
+       "annual_months": null,
+       "annual_wan": 110,
+       "weekly_hours": 50,
+       "overtime": "經常",
+       "travel": null,
+       "quote_free_note": "年薪約 110 萬、週 50 小時"
+      },
+      {
+       "site": "GoodJob",
+       "url": "https://www.goodjob.life/companies/鴻海精密工業股份有限公司/work-experiences",
+       "date": "2026-02",
+       "date_confirmed": true,
+       "date_note": "摘要寫「評價·2026 年 2 月」",
+       "in_window": true,
+       "unit_detail": "AI 工程師",
+       "years": "—",
+       "degree": null,
+       "base_k": 56,
+       "bonus_months": null,
+       "annual_months": null,
+       "annual_wan": null,
+       "weekly_hours": null,
+       "overtime": "經常",
+       "travel": null,
+       "quote_free_note": "底薪 52K 起、滿一年才有分紅與績效；幾乎每天加班"
+      },
+      {
+       "site": "GoodJob",
+       "url": "https://www.goodjob.life/experiences/6a7c403db25d25ff8cb4d0bf",
+       "date": "2026-08",
+       "date_confirmed": true,
+       "date_note": "GoodJob 標題 2026.8.12",
+       "in_window": true,
+       "unit_detail": "結構模擬與測試（面試）",
+       "years": "—",
+       "degree": null,
+       "base_k": null,
+       "bonus_months": null,
+       "annual_months": null,
+       "annual_wan": null,
+       "weekly_hours": null,
+       "overtime": null,
+       "travel": null,
+       "quote_free_note": "面試心得，摘要沒有數字"
+      },
+      {
+       "site": "GoodJob",
+       "url": "https://www.goodjob.life/experiences/6a7c8fb8b25d25ff8cbbc615",
+       "date": "2026-08",
+       "date_confirmed": true,
+       "date_note": "GoodJob 標題 2026.8.12",
+       "in_window": true,
+       "unit_detail": "車用軟體測試（面試）",
+       "years": "—",
+       "degree": null,
+       "base_k": null,
+       "bonus_months": null,
+       "annual_months": null,
+       "annual_wan": null,
+       "weekly_hours": null,
+       "overtime": null,
+       "travel": null,
+       "quote_free_note": "面試心得，摘要沒有數字"
+      },
+      {
+       "site": "GoodJob",
+       "url": "https://www.goodjob.life/experiences/68ad0d4b8e2b98ac9f266cd5",
+       "date": "2025-08",
+       "date_confirmed": true,
+       "date_note": "GoodJob 標題 2025.8.26",
+       "in_window": true,
+       "unit_detail": "電子工程師（面試）",
+       "years": "—",
+       "degree": null,
+       "base_k": null,
+       "bonus_months": null,
+       "annual_months": null,
+       "annual_wan": null,
+       "weekly_hours": null,
+       "overtime": null,
+       "travel": null,
+       "quote_free_note": "面試心得，摘要沒有數字"
+      },
+      {
+       "site": "Dcard",
+       "url": "https://www.dcard.tw/f/tech_job/p/259391056",
+       "date": "2025",
+       "date_confirmed": false,
+       "date_note": "Dcard 文章編號推估（錨點：260858478＝標題 2026/02、261274960＝摘要 2026-04、261389213＝摘要 2026-04 底）；推估不進統計",
+       "in_window": false,
+       "unit_detail": "RD",
+       "years": "2",
+       "degree": "碩士",
+       "base_k": 60,
+       "bonus_months": null,
+       "annual_months": 14,
+       "annual_wan": null,
+       "weekly_hours": null,
+       "overtime": null,
+       "travel": null,
+       "quote_free_note": "對方開師3 60k；另有人說師3 頂約 60k"
+      },
+      {
+       "site": "Dcard",
+       "url": "https://www.dcard.tw/f/tech_job/p/261172160",
+       "date": "2026-03",
+       "date_confirmed": false,
+       "date_note": "Dcard 文章編號推估（錨點：260858478＝標題 2026/02、261274960＝摘要 2026-04、261389213＝摘要 2026-04 底）；推估不進統計",
+       "in_window": false,
+       "unit_detail": "A 事業群 硬體研發（桃園自貿港）",
+       "years": "0-2",
+       "degree": null,
+       "base_k": null,
+       "bonus_months": null,
+       "annual_months": null,
+       "annual_wan": null,
+       "weekly_hours": null,
+       "overtime": null,
+       "travel": null,
+       "quote_free_note": "詢問環境與風氣，摘要無數字"
+      },
+      {
+       "site": "Dcard",
+       "url": "https://www.dcard.tw/f/tech_job/p/258331608",
+       "date": "2025",
+       "date_confirmed": false,
+       "date_note": "Dcard 文章編號推估（錨點：260858478＝標題 2026/02、261274960＝摘要 2026-04、261389213＝摘要 2026-04 底）；推估不進統計",
+       "in_window": false,
+       "unit_detail": "伺服器熱傳",
+       "years": "0-2",
+       "degree": "碩士",
+       "base_k": null,
+       "bonus_months": null,
+       "annual_months": 14,
+       "annual_wan": null,
+       "weekly_hours": null,
+       "overtime": null,
+       "travel": null,
+       "quote_free_note": "X5K、保 14，第三年才有績效與分紅"
       }
      ]
     }
@@ -374,26 +698,30 @@
      "role": "韌體工程師",
      "degree": "碩士",
      "years": "0-2",
-     "base_month_k": [
-      70,
-      70
-     ],
+     "base_month_k": null,
      "bonus_months": null,
      "annual_months": null,
-     "annual_total_wan": [
-      130,
-      130
-     ],
+     "annual_total_wan": null,
      "weekly_hours": null,
      "overtime": null,
      "travel": null,
-     "n": 1,
-     "note": "平台自述統計（未轉貼原文）；GoodJob 2025-05 韌體不到 1 年年薪 130 萬（窗口前、未標學歷）；2026-01 面試經驗軟韌體 2 年月薪 7 萬；2026-10 GoodJob、Dcard 查詢未見智邦分紅與工時資料",
+     "n": 3,
+     "note": "平台自述統計（未轉貼原文）；GoodJob 2025-05 韌體不到 1 年年薪 130 萬（窗口前、未標學歷）；2026-01 面試經驗軟韌體 2 年月薪 7 萬；2026-10 GoodJob、Dcard 查詢未見智邦分紅與工時資料；未逐筆對應的舊彙整：{\"base_month_k\": [70, 70], \"annual_total_wan\": [130, 130]}",
      "sources": [
       {
        "site": "GoodJob",
        "url": "https://www.goodjob.life/companies/智邦科技股份有限公司/interview-experiences",
        "date": "2026-01"
+      },
+      {
+       "site": "Dcard",
+       "url": "https://www.dcard.tw/f/tech_job/p/259355292",
+       "date": "2025"
+      },
+      {
+       "site": "Dcard",
+       "url": "https://www.dcard.tw/f/tech_job/p/259260657",
+       "date": "2025"
       }
      ],
      "confidence": "低",
@@ -414,6 +742,44 @@
        "overtime": null,
        "travel": null,
        "quote_free_note": null
+      },
+      {
+       "site": "Dcard",
+       "url": "https://www.dcard.tw/f/tech_job/p/259355292",
+       "date": "2025",
+       "date_confirmed": false,
+       "date_note": "Dcard 文章編號推估（錨點：260858478＝標題 2026/02、261274960＝摘要 2026-04、261389213＝摘要 2026-04 底）；推估不進統計",
+       "in_window": false,
+       "unit_detail": "系統廠／網通廠新鮮人",
+       "years": "0-2",
+       "degree": null,
+       "base_k": null,
+       "bonus_months": null,
+       "annual_months": 17,
+       "annual_wan": null,
+       "weekly_hours": null,
+       "overtime": null,
+       "travel": null,
+       "quote_free_note": "第一年難到 20 個月，約 16～18 個月"
+      },
+      {
+       "site": "Dcard",
+       "url": "https://www.dcard.tw/f/tech_job/p/259260657",
+       "date": "2025",
+       "date_confirmed": false,
+       "date_note": "Dcard 文章編號推估（錨點：260858478＝標題 2026/02、261274960＝摘要 2026-04、261389213＝摘要 2026-04 底）；推估不進統計",
+       "in_window": false,
+       "unit_detail": "offer（新竹）",
+       "years": "0-2",
+       "degree": null,
+       "base_k": null,
+       "bonus_months": 3,
+       "annual_months": 14,
+       "annual_wan": null,
+       "weekly_hours": null,
+       "overtime": null,
+       "travel": null,
+       "quote_free_note": "N+3.75K、保 14，一年兩次分紅約 2～4 個月"
       }
      ]
     },
@@ -422,10 +788,7 @@
      "role": "硬體研發工程師",
      "degree": "碩士",
      "years": "0-2",
-     "base_month_k": [
-      67,
-      67
-     ],
+     "base_month_k": null,
      "bonus_months": null,
      "annual_months": null,
      "annual_total_wan": null,
@@ -433,7 +796,7 @@
      "overtime": null,
      "travel": null,
      "n": 1,
-     "note": "平台自述統計（未轉貼原文）；GoodJob 2025-07 新竹 1 年經驗月薪 6.7 萬（窗口前）；2026-10 GoodJob、Dcard 查詢未見智邦分紅與工時資料",
+     "note": "平台自述統計（未轉貼原文）；GoodJob 2025-07 新竹 1 年經驗月薪 6.7 萬（窗口前）；2026-10 GoodJob、Dcard 查詢未見智邦分紅與工時資料；未逐筆對應的舊彙整：{\"base_month_k\": [67, 67]}",
      "sources": [
       {
        "site": "GoodJob",
@@ -482,17 +845,20 @@
      "role": "電源／散熱研發",
      "degree": "碩士",
      "years": "0-2",
-     "base_month_k": [
-      null,
-      75
+     "base_month_k": null,
+     "bonus_months": [
+      2,
+      2
      ],
-     "bonus_months": null,
      "annual_months": null,
-     "annual_total_wan": null,
+     "annual_total_wan": [
+      100,
+      180
+     ],
      "weekly_hours": null,
      "overtime": null,
      "travel": null,
-     "n": 2,
+     "n": 9,
      "note": "平台自述統計（未轉貼原文）；碩士起薪最高 7.5 萬為 2023 工商時報（超出窗口）；2026 校徵招 1,700 人未公布薪資；base_month_k 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples",
      "sources": [
       {
@@ -504,10 +870,45 @@
        "site": "豹投資",
        "url": "https://uanalyze.com.tw/articles/3248548574",
        "date": "2026"
+      },
+      {
+       "site": "Dcard",
+       "url": "https://www.dcard.tw/f/tech_job/p/261218379",
+       "date": "2026-04"
+      },
+      {
+       "site": "PTT",
+       "url": "https://www.ptt.cc/bbs/Tech_Job/M.1775093497.A.488.html",
+       "date": "2026-04"
+      },
+      {
+       "site": "PTT",
+       "url": "https://www.ptt.cc/bbs/Tech_Job/M.1778687459.A.09E.html",
+       "date": "2026-05"
+      },
+      {
+       "site": "Dcard",
+       "url": "https://www.dcard.tw/f/tech_job/p/261274960",
+       "date": "2026-04"
+      },
+      {
+       "site": "GoodJob",
+       "url": "https://www.goodjob.life/experiences/6a7560e881c219ae63cfad5e",
+       "date": "2026-08"
+      },
+      {
+       "site": "GoodJob",
+       "url": "https://www.goodjob.life/experiences/6a8da094c43855f64016edb1",
+       "date": "2026-08"
+      },
+      {
+       "site": "Dcard",
+       "url": "https://www.dcard.tw/f/tech_job/p/257356445",
+       "date": "2025"
       }
      ],
-     "confidence": "中",
-     "grade": null,
+     "confidence": "高",
+     "grade": "S1",
      "samples": [
       {
        "site": "工商時報",
@@ -540,13 +941,146 @@
        "overtime": null,
        "travel": null,
        "quote_free_note": null
+      },
+      {
+       "site": "Dcard",
+       "url": "https://www.dcard.tw/f/tech_job/p/261218379",
+       "date": "2026-04",
+       "date_confirmed": true,
+       "date_note": "摘要寫「主要討論串（2026年4月）」",
+       "in_window": true,
+       "unit_detail": "資深機構工程師（桃園）",
+       "years": "0-2",
+       "degree": "碩士",
+       "base_k": null,
+       "bonus_months": null,
+       "annual_months": null,
+       "annual_wan": 110,
+       "weekly_hours": null,
+       "overtime": null,
+       "travel": null,
+       "quote_free_note": "年薪約 110 萬以上；與應材 CE 比較"
+      },
+      {
+       "site": "PTT",
+       "url": "https://www.ptt.cc/bbs/Tech_Job/M.1775093497.A.488.html",
+       "date": "2026-04",
+       "date_confirmed": true,
+       "date_note": "PTT 代碼 1775093497＝2026-04-02",
+       "in_window": true,
+       "unit_detail": "同上一篇的 PTT 版",
+       "years": "0-2",
+       "degree": "碩士",
+       "base_k": null,
+       "bonus_months": null,
+       "annual_months": null,
+       "annual_wan": 110,
+       "weekly_hours": null,
+       "overtime": null,
+       "travel": null,
+       "quote_free_note": "PTT 同主題（可能同一人），年薪 110 萬出頭"
+      },
+      {
+       "site": "PTT",
+       "url": "https://www.ptt.cc/bbs/Tech_Job/M.1778687459.A.09E.html",
+       "date": "2026-05",
+       "date_confirmed": true,
+       "date_note": "PTT 代碼 1778687459＝2026-05-13",
+       "in_window": true,
+       "unit_detail": "台達／日月光 offer",
+       "years": "—",
+       "degree": null,
+       "base_k": null,
+       "bonus_months": null,
+       "annual_months": null,
+       "annual_wan": null,
+       "weekly_hours": null,
+       "overtime": null,
+       "travel": null,
+       "quote_free_note": "摘要無具體數字"
+      },
+      {
+       "site": "Dcard",
+       "url": "https://www.dcard.tw/f/tech_job/p/261274960",
+       "date": "2026-04",
+       "date_confirmed": true,
+       "date_note": "標題「2026 三角調薪 分紅開獎」",
+       "in_window": true,
+       "unit_detail": "分紅開獎（S1 考績 C）",
+       "years": "—",
+       "degree": null,
+       "base_k": null,
+       "bonus_months": 2,
+       "annual_months": null,
+       "annual_wan": null,
+       "weekly_hours": null,
+       "overtime": null,
+       "travel": null,
+       "quote_free_note": "S1 分紅約 1.5～2.5 個月、調薪 4.5～5.5%；S4 分紅 6～12 個月"
+      },
+      {
+       "site": "GoodJob",
+       "url": "https://www.goodjob.life/experiences/6a7560e881c219ae63cfad5e",
+       "date": "2026-08",
+       "date_confirmed": true,
+       "date_note": "GoodJob 標題 2026.8.7",
+       "in_window": true,
+       "unit_detail": "軟體工程師（面試）",
+       "years": "3",
+       "degree": null,
+       "base_k": null,
+       "bonus_months": null,
+       "annual_months": null,
+       "annual_wan": 100,
+       "weekly_hours": null,
+       "overtime": null,
+       "travel": null,
+       "quote_free_note": "摘要列職務經驗 3 年、年薪 100 萬（無法確定對應哪一篇）"
+      },
+      {
+       "site": "GoodJob",
+       "url": "https://www.goodjob.life/experiences/6a8da094c43855f64016edb1",
+       "date": "2026-08",
+       "date_confirmed": true,
+       "date_note": "GoodJob 標題 2026.8.25",
+       "in_window": true,
+       "unit_detail": "IE 工程師（台中）",
+       "years": "5",
+       "degree": null,
+       "base_k": null,
+       "bonus_months": null,
+       "annual_months": null,
+       "annual_wan": 180,
+       "weekly_hours": null,
+       "overtime": null,
+       "travel": null,
+       "quote_free_note": "年薪 180 萬、5 年"
+      },
+      {
+       "site": "Dcard",
+       "url": "https://www.dcard.tw/f/tech_job/p/257356445",
+       "date": "2025",
+       "date_confirmed": false,
+       "date_note": "Dcard 文章編號推估（錨點：260858478＝標題 2026/02、261274960＝摘要 2026-04、261389213＝摘要 2026-04 底）；推估不進統計",
+       "in_window": false,
+       "unit_detail": "電源設計（電器設備產品部）",
+       "years": "—",
+       "degree": null,
+       "base_k": null,
+       "bonus_months": null,
+       "annual_months": 17,
+       "annual_wan": null,
+       "weekly_hours": null,
+       "overtime": null,
+       "travel": null,
+       "quote_free_note": "N+12，12＋年終2＋分紅，主管說約 17 個月"
       }
      ]
     }
    ],
    "mops": null,
    "mops_note": "查「台達電 非主管 薪資 平均 中位數 2025」與 104 職場力 2026 上市中位數榜，摘要未列此公司；需至公開資訊觀測站彙總報表查",
-   "grade_system": null
+   "grade_system": "S1～S4（S2 資深、S4 主任工程師；每高一等約多 0.5～1 個月）"
   },
   {
    "name": "華碩",
@@ -563,27 +1097,60 @@
      "role": "硬體／軟體 RD",
      "degree": "碩士",
      "years": "0-2",
-     "base_month_k": null,
-     "bonus_months": null,
-     "annual_months": [
-      14,
-      null
+     "base_month_k": [
+      62,
+      68
      ],
-     "annual_total_wan": null,
+     "bonus_months": null,
+     "annual_months": null,
+     "annual_total_wan": [
+      95,
+      100
+     ],
      "weekly_hours": null,
      "overtime": null,
      "travel": null,
-     "n": 1,
+     "n": 7,
      "note": "平台自述統計（未轉貼原文）；社群回報月薪×14 保底＋績效分紅，無碩士起薪數字；2026-10 查比薪水有逾千筆但摘要無分紅／工時細節；annual_months 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples",
      "sources": [
       {
        "site": "1111",
        "url": "https://www.1111.com.tw/news/jobns/164783",
        "date": "未確認"
+      },
+      {
+       "site": "GoodJob",
+       "url": "https://www.goodjob.life/experiences/69c2a0c2087133b2d7badebc",
+       "date": "2026-03"
+      },
+      {
+       "site": "GoodJob",
+       "url": "https://www.goodjob.life/experiences/69934e8d3e57cb3d8b4737a8",
+       "date": "2026-02"
+      },
+      {
+       "site": "GoodJob",
+       "url": "https://www.goodjob.life/experiences/6a8706a6c43855f6407572d5",
+       "date": "2026-08"
+      },
+      {
+       "site": "GoodJob",
+       "url": "https://www.goodjob.life/experiences/6895f815183cb57956f761e0",
+       "date": "2025-08"
+      },
+      {
+       "site": "Dcard",
+       "url": "https://www.dcard.tw/f/tech_job/p/260876410",
+       "date": "2026-02"
+      },
+      {
+       "site": "Dcard",
+       "url": "https://www.dcard.tw/f/tech_job/p/255714789",
+       "date": "2024"
       }
      ],
-     "confidence": "低",
-     "grade": null,
+     "confidence": "高",
+     "grade": "高級工程師（5 職等）",
      "samples": [
       {
        "site": "1111",
@@ -600,6 +1167,120 @@
        "overtime": null,
        "travel": null,
        "quote_free_note": null
+      },
+      {
+       "site": "GoodJob",
+       "url": "https://www.goodjob.life/experiences/69c2a0c2087133b2d7badebc",
+       "date": "2026-03",
+       "date_confirmed": true,
+       "date_note": "GoodJob 標題 2026.3.24",
+       "in_window": true,
+       "unit_detail": "BIOS 工程師（面試）",
+       "years": "—",
+       "degree": null,
+       "base_k": 62,
+       "bonus_months": null,
+       "annual_months": null,
+       "annual_wan": null,
+       "weekly_hours": null,
+       "overtime": "經常",
+       "travel": null,
+       "quote_free_note": "旺季一週加班 4～5 天"
+      },
+      {
+       "site": "GoodJob",
+       "url": "https://www.goodjob.life/experiences/69934e8d3e57cb3d8b4737a8",
+       "date": "2026-02",
+       "date_confirmed": true,
+       "date_note": "GoodJob 標題 2026.2.16",
+       "in_window": true,
+       "unit_detail": "工程師（臺北）",
+       "years": "3",
+       "degree": null,
+       "base_k": 68,
+       "bonus_months": null,
+       "annual_months": null,
+       "annual_wan": null,
+       "weekly_hours": 40,
+       "overtime": "幾乎不",
+       "travel": null,
+       "quote_free_note": "摘要：3 年、週 40 小時、月 6.8 萬（無法確定對應哪一篇 2026 評價）"
+      },
+      {
+       "site": "GoodJob",
+       "url": "https://www.goodjob.life/experiences/6a8706a6c43855f6407572d5",
+       "date": "2026-08",
+       "date_confirmed": true,
+       "date_note": "GoodJob 標題 2026.8.20",
+       "in_window": true,
+       "unit_detail": "軟體工程師",
+       "years": "—",
+       "degree": null,
+       "base_k": null,
+       "bonus_months": null,
+       "annual_months": null,
+       "annual_wan": 100,
+       "weekly_hours": null,
+       "overtime": null,
+       "travel": null,
+       "quote_free_note": "年薪約 100 萬"
+      },
+      {
+       "site": "GoodJob",
+       "url": "https://www.goodjob.life/experiences/6895f815183cb57956f761e0",
+       "date": "2025-08",
+       "date_confirmed": true,
+       "date_note": "GoodJob 標題 2025.8.8",
+       "in_window": true,
+       "unit_detail": "高級工程師",
+       "years": "—",
+       "degree": null,
+       "base_k": null,
+       "bonus_months": null,
+       "annual_months": null,
+       "annual_wan": 95,
+       "weekly_hours": null,
+       "overtime": null,
+       "travel": null,
+       "quote_free_note": "年薪 95 萬、分紅看部門"
+      },
+      {
+       "site": "Dcard",
+       "url": "https://www.dcard.tw/f/tech_job/p/260876410",
+       "date": "2026-02",
+       "date_confirmed": true,
+       "date_note": "摘要寫「2026 年 2 月的文章」",
+       "in_window": true,
+       "unit_detail": "新鮮人 offer 比較",
+       "years": "0-2",
+       "degree": null,
+       "base_k": null,
+       "bonus_months": null,
+       "annual_months": null,
+       "annual_wan": null,
+       "weekly_hours": null,
+       "overtime": null,
+       "travel": null,
+       "quote_free_note": "華碩年薪比另外三家少約 10 萬，無絕對值"
+      },
+      {
+       "site": "Dcard",
+       "url": "https://www.dcard.tw/f/tech_job/p/255714789",
+       "date": "2024",
+       "date_confirmed": false,
+       "date_note": "Dcard 文章編號推估（錨點：260858478＝標題 2026/02、261274960＝摘要 2026-04、261389213＝摘要 2026-04 底）；推估不進統計；摘要寫「兩年多前」，早於期間",
+       "in_window": false,
+       "unit_detail": "軟韌體 RD（主機板）",
+       "years": "0-2",
+       "degree": null,
+       "base_k": null,
+       "bonus_months": null,
+       "annual_months": 14,
+       "annual_wan": null,
+       "weekly_hours": 45,
+       "overtime": "幾乎不",
+       "travel": null,
+       "quote_free_note": "(N-4)×14＋分紅；工時 8～9 小時"
       }
      ]
     }
@@ -613,7 +1294,7 @@
     "url": "https://money.udn.com/money/story/5612/8841090"
    },
    "mops_note": "查「華碩 非主管 薪資 平均 中位數 2025」與 104 職場力 2026 上市中位數榜，摘要未列此公司；需至公開資訊觀測站彙總報表查",
-   "grade_system": null
+   "grade_system": "工程師 4／高級 5／主任 6／副理 7 職等"
   },
   {
    "name": "群光",
@@ -637,12 +1318,62 @@
      "weekly_hours": null,
      "overtime": null,
      "travel": null,
-     "n": 0,
+     "n": 2,
      "note": "WebSearch 以「群光 碩士 起薪／年薪／GoodJob／Dcard 2026」查詢，摘要未給出近一年碩士數字；待補；2026-10 GoodJob 批次查詢未見群光工時／分紅資料",
-     "sources": [],
+     "sources": [
+      {
+       "site": "Dcard",
+       "url": "https://www.dcard.tw/f/tech_job/p/254965557",
+       "date": "2024"
+      },
+      {
+       "site": "Dcard",
+       "url": "https://www.dcard.tw/f/tech_job/p/254177258",
+       "date": "2024"
+      }
+     ],
      "confidence": "低",
      "grade": null,
-     "samples": []
+     "samples": [
+      {
+       "site": "Dcard",
+       "url": "https://www.dcard.tw/f/tech_job/p/254965557",
+       "date": "2024",
+       "date_confirmed": false,
+       "date_note": "Dcard 文章編號推估（錨點：260858478＝標題 2026/02、261274960＝摘要 2026-04、261389213＝摘要 2026-04 底）；推估不進統計",
+       "in_window": false,
+       "unit_detail": "FW 嵌入式視訊",
+       "years": "—",
+       "degree": null,
+       "base_k": null,
+       "bonus_months": null,
+       "annual_months": 19,
+       "annual_wan": null,
+       "weekly_hours": null,
+       "overtime": "經常",
+       "travel": null,
+       "quote_free_note": "(N-5)×18～20，常態加班可報加班費"
+      },
+      {
+       "site": "Dcard",
+       "url": "https://www.dcard.tw/f/tech_job/p/254177258",
+       "date": "2024",
+       "date_confirmed": false,
+       "date_note": "Dcard 文章編號推估（錨點：260858478＝標題 2026/02、261274960＝摘要 2026-04、261389213＝摘要 2026-04 底）；推估不進統計",
+       "in_window": false,
+       "unit_detail": "RD 電源（應屆碩）",
+       "years": "0-2",
+       "degree": "碩士",
+       "base_k": 70,
+       "bonus_months": null,
+       "annual_months": null,
+       "annual_wan": null,
+       "weekly_hours": null,
+       "overtime": null,
+       "travel": null,
+       "quote_free_note": "面試開 70k，人資說稍高"
+      }
+     ]
     }
    ],
    "mops": null,
@@ -664,21 +1395,15 @@
      "role": "硬體研發",
      "degree": "碩士（未標學歷）",
      "years": "5",
-     "base_month_k": [
-      64,
-      64
-     ],
+     "base_month_k": null,
      "bonus_months": null,
-     "annual_months": [
-      14,
-      15
-     ],
+     "annual_months": null,
      "annual_total_wan": null,
      "weekly_hours": null,
      "overtime": "偶爾～經常",
      "travel": null,
-     "n": 2,
-     "note": "平台自述統計（未轉貼原文）；2026 一筆 5 年經驗月薪 6.4 萬、有三節獎金；非新人；GoodJob 2025-11／2026-01 評價：約 14 個月再加少量分紅；base_month_k、annual_months 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples",
+     "n": 3,
+     "note": "平台自述統計（未轉貼原文）；2026 一筆 5 年經驗月薪 6.4 萬、有三節獎金；非新人；GoodJob 2025-11／2026-01 評價：約 14 個月再加少量分紅；base_month_k、annual_months 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples；未逐筆對應的舊彙整：{\"base_month_k\": [64, 64], \"annual_months\": [14, 15]}",
      "sources": [
       {
        "site": "GoodJob",
@@ -689,10 +1414,15 @@
        "site": "GoodJob",
        "url": "https://www.goodjob.life/experiences/6967434255bea4f9eda5198d",
        "date": "2026-01"
+      },
+      {
+       "site": "Dcard",
+       "url": "https://www.dcard.tw/f/tech_job/p/259197788",
+       "date": "2025"
       }
      ],
-     "confidence": "中",
-     "grade": null,
+     "confidence": "低",
+     "grade": "23 職等",
      "samples": [
       {
        "site": "GoodJob",
@@ -725,6 +1455,25 @@
        "overtime": null,
        "travel": null,
        "quote_free_note": null
+      },
+      {
+       "site": "Dcard",
+       "url": "https://www.dcard.tw/f/tech_job/p/259197788",
+       "date": "2025",
+       "date_confirmed": false,
+       "date_note": "Dcard 文章編號推估（錨點：260858478＝標題 2026/02、261274960＝摘要 2026-04、261389213＝摘要 2026-04 底）；推估不進統計",
+       "in_window": false,
+       "unit_detail": "職等 23（SMT 程式）",
+       "years": "—",
+       "degree": null,
+       "base_k": 57,
+       "bonus_months": 7,
+       "annual_months": null,
+       "annual_wan": null,
+       "weekly_hours": null,
+       "overtime": null,
+       "travel": null,
+       "quote_free_note": "月 57K、年終紅利預估 6～8 個月（存疑）"
       }
      ]
     },
@@ -733,20 +1482,17 @@
      "role": "通訊軟韌體／PM",
      "degree": "碩士（未標學歷）",
      "years": "0-2",
-     "base_month_k": [
-      38,
-      60
-     ],
+     "base_month_k": null,
      "bonus_months": null,
      "annual_months": [
       14,
-      15
+      14
      ],
      "annual_total_wan": null,
      "weekly_hours": null,
      "overtime": "偶爾～經常",
      "travel": null,
-     "n": 2,
+     "n": 4,
      "note": "平台自述統計（未轉貼原文）；2026 軟韌體月薪 6 萬、PM 3.8 萬；GoodJob 2025-11／2026-01 評價：約 14 個月再加少量分紅；base_month_k、annual_months 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples",
      "sources": [
       {
@@ -758,6 +1504,16 @@
        "site": "GoodJob",
        "url": "https://www.goodjob.life/experiences/6967434255bea4f9eda5198d",
        "date": "2026-01"
+      },
+      {
+       "site": "Dcard",
+       "url": "https://www.dcard.tw/f/tech_job/p/260984059",
+       "date": "2026-03"
+      },
+      {
+       "site": "Dcard",
+       "url": "https://www.dcard.tw/f/tech_job/p/260876410#pegatron",
+       "date": "2026-02"
       }
      ],
      "confidence": "中",
@@ -794,13 +1550,51 @@
        "overtime": null,
        "travel": null,
        "quote_free_note": null
+      },
+      {
+       "site": "Dcard",
+       "url": "https://www.dcard.tw/f/tech_job/p/260984059",
+       "date": "2026-03",
+       "date_confirmed": true,
+       "date_note": "摘要寫「2026 年 3 月」（趨勢 vs 和碩）",
+       "in_window": true,
+       "unit_detail": "AI 開發工程師",
+       "years": "0-2",
+       "degree": null,
+       "base_k": null,
+       "bonus_months": null,
+       "annual_months": 14,
+       "annual_wan": null,
+       "weekly_hours": 45,
+       "overtime": "幾乎不",
+       "travel": null,
+       "quote_free_note": "N×14，8:30～5:30"
+      },
+      {
+       "site": "Dcard",
+       "url": "https://www.dcard.tw/f/tech_job/p/260876410#pegatron",
+       "date": "2026-02",
+       "date_confirmed": true,
+       "date_note": "摘要寫「2026 年 2 月」",
+       "in_window": true,
+       "unit_detail": "Digital Twin（Python／K8s／Omniverse）",
+       "years": "0-2",
+       "degree": null,
+       "base_k": null,
+       "bonus_months": null,
+       "annual_months": null,
+       "annual_wan": null,
+       "weekly_hours": null,
+       "overtime": null,
+       "travel": null,
+       "quote_free_note": "薪資與其他家差不多，無絕對值"
       }
      ]
     }
    ],
    "mops": null,
    "mops_note": "查「和碩 非主管 薪資 平均 中位數 2025」與 104 職場力 2026 上市中位數榜，摘要未列此公司；需至公開資訊觀測站彙總報表查",
-   "grade_system": null
+   "grade_system": "數字職等（例：23 職等）"
   },
   {
    "name": "光寶",
@@ -820,15 +1614,12 @@
      "base_month_k": null,
      "bonus_months": null,
      "annual_months": null,
-     "annual_total_wan": [
-      140,
-      140
-     ],
+     "annual_total_wan": null,
      "weekly_hours": null,
      "overtime": "偶爾",
      "travel": null,
-     "n": 2,
-     "note": "平台自述統計（未轉貼原文）；2026-05 一筆 8 年經驗年薪 140 萬，非新人；第二輪：Dcard 2026 福利風氣討論一篇；annual_total_wan 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples",
+     "n": 3,
+     "note": "平台自述統計（未轉貼原文）；2026-05 一筆 8 年經驗年薪 140 萬，非新人；第二輪：Dcard 2026 福利風氣討論一篇；annual_total_wan 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples；未逐筆對應的舊彙整：{\"annual_total_wan\": [140, 140]}",
      "sources": [
       {
        "site": "GoodJob",
@@ -839,9 +1630,14 @@
        "site": "Dcard",
        "url": "https://www.dcard.tw/f/tech_job/p/260438713",
        "date": "2026"
+      },
+      {
+       "site": "Dcard",
+       "url": "https://www.dcard.tw/f/tech_job/p/256139873",
+       "date": "2024"
       }
      ],
-     "confidence": "中",
+     "confidence": "低",
      "grade": null,
      "samples": [
       {
@@ -875,6 +1671,25 @@
        "overtime": null,
        "travel": null,
        "quote_free_note": null
+      },
+      {
+       "site": "Dcard",
+       "url": "https://www.dcard.tw/f/tech_job/p/256139873",
+       "date": "2024",
+       "date_confirmed": false,
+       "date_note": "Dcard 文章編號推估（錨點：260858478＝標題 2026/02、261274960＝摘要 2026-04、261389213＝摘要 2026-04 底）；推估不進統計",
+       "in_window": false,
+       "unit_detail": "EE RD（碩士新鮮人）",
+       "years": "0-2",
+       "degree": "碩士",
+       "base_k": null,
+       "bonus_months": null,
+       "annual_months": 14.5,
+       "annual_wan": null,
+       "weekly_hours": 50,
+       "overtime": "偶爾",
+       "travel": null,
+       "quote_free_note": "(N+11)×14～15，新人無分紅，出差越南兩週"
       }
      ]
     }
@@ -898,18 +1713,15 @@
      "role": "RD／韌體工程師",
      "degree": "碩士（未標學歷）",
      "years": "0-2",
-     "base_month_k": [
-      67,
-      70
-     ],
+     "base_month_k": null,
      "bonus_months": null,
      "annual_months": null,
      "annual_total_wan": null,
      "weekly_hours": null,
      "overtime": "偶爾",
      "travel": null,
-     "n": 2,
-     "note": "平台自述統計（未轉貼原文）；2025 一筆 RD 2 年月薪 6.7 萬（提有分紅、高工以上簽約金）、韌體 3 年 6.98 萬；日期可能在範圍外；GoodJob 2026-03 硬體職單筆：每週 48 小時、年薪約 120 萬；base_month_k 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples",
+     "n": 3,
+     "note": "平台自述統計（未轉貼原文）；2025 一筆 RD 2 年月薪 6.7 萬（提有分紅、高工以上簽約金）、韌體 3 年 6.98 萬；日期可能在範圍外；GoodJob 2026-03 硬體職單筆：每週 48 小時、年薪約 120 萬；base_month_k 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples；未逐筆對應的舊彙整：{\"base_month_k\": [67, 70]}",
      "sources": [
       {
        "site": "GoodJob",
@@ -920,9 +1732,14 @@
        "site": "GoodJob",
        "url": "https://www.goodjob.life/experiences/69ae247023e1b8a8b0b178e0",
        "date": "2026-03"
+      },
+      {
+       "site": "Dcard",
+       "url": "https://www.dcard.tw/f/tech_job/p/258668147",
+       "date": "2025"
       }
      ],
-     "confidence": "中",
+     "confidence": "低",
      "grade": null,
      "samples": [
       {
@@ -956,6 +1773,25 @@
        "overtime": null,
        "travel": null,
        "quote_free_note": null
+      },
+      {
+       "site": "Dcard",
+       "url": "https://www.dcard.tw/f/tech_job/p/258668147",
+       "date": "2025",
+       "date_confirmed": false,
+       "date_note": "Dcard 文章編號推估（錨點：260858478＝標題 2026/02、261274960＝摘要 2026-04、261389213＝摘要 2026-04 底）；推估不進統計；摘要「98 天前」為相對時間",
+       "in_window": false,
+       "unit_detail": "整理文",
+       "years": "0-2",
+       "degree": "碩士",
+       "base_k": null,
+       "bonus_months": null,
+       "annual_months": null,
+       "annual_wan": null,
+       "weekly_hours": null,
+       "overtime": null,
+       "travel": null,
+       "quote_free_note": "碩士估 4.4～5.8 萬、年薪 70～116 萬（網友估算）"
       }
      ]
     }
@@ -982,20 +1818,27 @@
      "base_month_k": null,
      "bonus_months": null,
      "annual_months": null,
-     "annual_total_wan": [
-      90,
-      90
-     ],
+     "annual_total_wan": null,
      "weekly_hours": null,
      "overtime": "偶爾",
      "travel": null,
-     "n": 1,
-     "note": "平台自述統計（未轉貼原文）；桃園 1 年年薪 90 萬，自評系統廠偏低；日期未確認",
+     "n": 3,
+     "note": "平台自述統計（未轉貼原文）；桃園 1 年年薪 90 萬，自評系統廠偏低；日期未確認；未逐筆對應的舊彙整：{\"annual_total_wan\": [90, 90]}",
      "sources": [
       {
        "site": "GoodJob",
        "url": "https://www.goodjob.life/companies/英業達股份有限公司/work-experiences/薪資福利",
        "date": "未確認"
+      },
+      {
+       "site": "Dcard",
+       "url": "https://www.dcard.tw/f/tech_job/p/239640401",
+       "date": "2026"
+      },
+      {
+       "site": "Dcard",
+       "url": "https://www.dcard.tw/f/tech_job/p/259575567",
+       "date": "2025"
       }
      ],
      "confidence": "低",
@@ -1016,6 +1859,44 @@
        "overtime": null,
        "travel": null,
        "quote_free_note": null
+      },
+      {
+       "site": "Dcard",
+       "url": "https://www.dcard.tw/f/tech_job/p/239640401",
+       "date": "2026",
+       "date_confirmed": false,
+       "date_note": "Dcard 文章編號推估（錨點：260858478＝標題 2026/02、261274960＝摘要 2026-04、261389213＝摘要 2026-04 底）；推估不進統計；摘要「64 天前」為相對時間",
+       "in_window": false,
+       "unit_detail": "研發起薪整理",
+       "years": "0-2",
+       "degree": null,
+       "base_k": 59,
+       "bonus_months": null,
+       "annual_months": null,
+       "annual_wan": null,
+       "weekly_hours": null,
+       "overtime": null,
+       "travel": null,
+       "quote_free_note": "研發起薪 5.7～6.1 萬（網友整理）"
+      },
+      {
+       "site": "Dcard",
+       "url": "https://www.dcard.tw/f/tech_job/p/259575567",
+       "date": "2025",
+       "date_confirmed": false,
+       "date_note": "Dcard 文章編號推估（錨點：260858478＝標題 2026/02、261274960＝摘要 2026-04、261389213＝摘要 2026-04 底）；推估不進統計；摘要「198 天前」",
+       "in_window": false,
+       "unit_detail": "散熱工程師",
+       "years": "—",
+       "degree": null,
+       "base_k": null,
+       "bonus_months": null,
+       "annual_months": 15,
+       "annual_wan": null,
+       "weekly_hours": null,
+       "overtime": null,
+       "travel": null,
+       "quote_free_note": "(N-3)×15，午晚餐免費"
       }
      ]
     },
@@ -1024,21 +1905,15 @@
      "role": "韌體／軟體工程師",
      "degree": "碩士（未標學歷）",
      "years": "0-2",
-     "base_month_k": [
-      110,
-      110
-     ],
+     "base_month_k": null,
      "bonus_months": null,
      "annual_months": null,
-     "annual_total_wan": [
-      70,
-      70
-     ],
+     "annual_total_wan": null,
      "weekly_hours": null,
      "overtime": "偶爾",
      "travel": null,
      "n": 1,
-     "note": "平台自述統計（未轉貼原文）；韌體不到 1 年年薪 70 萬；軟體 1 年月薪 11 萬（落差大）",
+     "note": "平台自述統計（未轉貼原文）；韌體不到 1 年年薪 70 萬；軟體 1 年月薪 11 萬（落差大）；未逐筆對應的舊彙整：{\"base_month_k\": [110, 110], \"annual_total_wan\": [70, 70]}",
      "sources": [
       {
        "site": "GoodJob",
@@ -1087,10 +1962,7 @@
      "role": "硬體研發／超頻研發",
      "degree": "碩士（未標學歷）",
      "years": "0-2",
-     "base_month_k": [
-      47,
-      50
-     ],
+     "base_month_k": null,
      "bonus_months": null,
      "annual_months": null,
      "annual_total_wan": null,
@@ -1098,7 +1970,7 @@
      "overtime": "偶爾～經常",
      "travel": null,
      "n": 1,
-     "note": "平台自述統計（未轉貼原文）；月薪 4.7～5 萬；日期未確認，可能範圍外；base_month_k 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples",
+     "note": "平台自述統計（未轉貼原文）；月薪 4.7～5 萬；日期未確認，可能範圍外；base_month_k 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples；未逐筆對應的舊彙整：{\"base_month_k\": [47, 50]}",
      "sources": [
       {
        "site": "GoodJob",
@@ -1135,20 +2007,22 @@
      "base_month_k": null,
      "bonus_months": null,
      "annual_months": null,
-     "annual_total_wan": [
-      56,
-      95
-     ],
+     "annual_total_wan": null,
      "weekly_hours": null,
      "overtime": "偶爾～經常",
      "travel": null,
-     "n": 1,
-     "note": "平台自述統計（未轉貼原文）；兩筆差距大；annual_total_wan 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples",
+     "n": 2,
+     "note": "平台自述統計（未轉貼原文）；兩筆差距大；annual_total_wan 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples；未逐筆對應的舊彙整：{\"annual_total_wan\": [56, 95]}",
      "sources": [
       {
        "site": "GoodJob",
        "url": "https://www.goodjob.life/companies/技嘉科技股份有限公司/work-experiences/工時狀況",
        "date": "未確認"
+      },
+      {
+       "site": "Dcard",
+       "url": "https://www.dcard.tw/f/tech_job/p/257721955",
+       "date": "2025"
       }
      ],
      "confidence": "低",
@@ -1169,6 +2043,25 @@
        "overtime": null,
        "travel": null,
        "quote_free_note": null
+      },
+      {
+       "site": "Dcard",
+       "url": "https://www.dcard.tw/f/tech_job/p/257721955",
+       "date": "2025",
+       "date_confirmed": false,
+       "date_note": "Dcard 文章編號推估（錨點：260858478＝標題 2026/02、261274960＝摘要 2026-04、261389213＝摘要 2026-04 底）；推估不進統計",
+       "in_window": false,
+       "unit_detail": "韌體（台科碩）",
+       "years": "0-2",
+       "degree": "碩士",
+       "base_k": null,
+       "bonus_months": null,
+       "annual_months": 14,
+       "annual_wan": null,
+       "weekly_hours": null,
+       "overtime": null,
+       "travel": null,
+       "quote_free_note": "(N-4)×14＋分紅績效"
       }
      ]
     }
@@ -1192,23 +2085,30 @@
      "role": "韌體工程師",
      "degree": "碩士（未標學歷）",
      "years": "0-2",
-     "base_month_k": [
-      52,
-      52
-     ],
+     "base_month_k": null,
      "bonus_months": null,
      "annual_months": null,
      "annual_total_wan": null,
      "weekly_hours": 42,
      "overtime": "偶爾",
      "travel": null,
-     "n": 1,
-     "note": "平台自述統計（未轉貼原文）；範圍外參考：2022 面試月薪 5.2 萬；平台統計每週約 42 小時；2026-10 GoodJob 批次查詢未見智易資料",
+     "n": 3,
+     "note": "平台自述統計（未轉貼原文）；範圍外參考：2022 面試月薪 5.2 萬；平台統計每週約 42 小時；2026-10 GoodJob 批次查詢未見智易資料；未逐筆對應的舊彙整：{\"base_month_k\": [52, 52]}",
      "sources": [
       {
        "site": "GoodJob",
        "url": "https://www.goodjob.life/companies/智易科技股份有限公司/interview-experiences",
        "date": "2022"
+      },
+      {
+       "site": "Dcard",
+       "url": "https://www.dcard.tw/f/tech_job/p/260709824",
+       "date": "2026-01"
+      },
+      {
+       "site": "Dcard",
+       "url": "https://www.dcard.tw/f/tech_job/p/260479313",
+       "date": "2026-01"
       }
      ],
      "confidence": "低",
@@ -1229,6 +2129,44 @@
        "overtime": null,
        "travel": null,
        "quote_free_note": null
+      },
+      {
+       "site": "Dcard",
+       "url": "https://www.dcard.tw/f/tech_job/p/260709824",
+       "date": "2026-01",
+       "date_confirmed": false,
+       "date_note": "Dcard 文章編號推估（錨點：260858478＝標題 2026/02、261274960＝摘要 2026-04、261389213＝摘要 2026-04 底）；推估不進統計",
+       "in_window": false,
+       "unit_detail": "保底討論",
+       "years": "—",
+       "degree": null,
+       "base_k": null,
+       "bonus_months": null,
+       "annual_months": 13,
+       "annual_wan": null,
+       "weekly_hours": null,
+       "overtime": null,
+       "travel": null,
+       "quote_free_note": "內部公告保 12.5、人資說保 13"
+      },
+      {
+       "site": "Dcard",
+       "url": "https://www.dcard.tw/f/tech_job/p/260479313",
+       "date": "2026-01",
+       "date_confirmed": false,
+       "date_note": "Dcard 文章編號推估（錨點：260858478＝標題 2026/02、261274960＝摘要 2026-04、261389213＝摘要 2026-04 底）；推估不進統計",
+       "in_window": false,
+       "unit_detail": "嵌入式系統軟體研發",
+       "years": "—",
+       "degree": null,
+       "base_k": null,
+       "bonus_months": null,
+       "annual_months": 19,
+       "annual_wan": null,
+       "weekly_hours": null,
+       "overtime": null,
+       "travel": null,
+       "quote_free_note": "該部門一年約 18～20 個月"
       }
      ]
     }
@@ -1253,22 +2191,22 @@
      "degree": "碩士（未標學歷）",
      "years": "0-2",
      "base_month_k": [
-      56,
-      56
+      52,
+      75
      ],
-     "bonus_months": null,
+     "bonus_months": [
+      6.5,
+      6.5
+     ],
      "annual_months": [
-      30,
-      30
+      19,
+      19
      ],
-     "annual_total_wan": [
-      120,
-      120
-     ],
+     "annual_total_wan": null,
      "weekly_hours": null,
      "overtime": "經常",
      "travel": null,
-     "n": 3,
+     "n": 8,
      "note": "平台自述統計（未轉貼原文）；2 年年薪 120 萬；新人面試月薪 5.6 萬；2022 評價稱約 20 個月（範圍外）；GoodJob 2025-12 評價：近幾年約 18～20 個月（保 14 個月＋分紅），依職級而異；GoodJob 硬體職評價每週約 50 小時（2024-11，範圍外參考）；第二輪：PTT 2026-08 開獎串傳年薪 30 個月起（未證實），留言稱底薪近期大方調高；base_month_k、annual_total_wan 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples",
      "sources": [
       {
@@ -1285,10 +2223,35 @@
        "site": "PTT",
        "url": "https://www.ptt.cc/bbs/Tech_Job/M.1786705828.A.588.html",
        "date": "2026-08"
+      },
+      {
+       "site": "Dcard",
+       "url": "https://www.dcard.tw/f/tech_job/p/260858478",
+       "date": "2026-02"
+      },
+      {
+       "site": "PTT",
+       "url": "https://www.ptt.cc/bbs/Tech_Job/M.1778081046.A.9F5.html",
+       "date": "2026-05"
+      },
+      {
+       "site": "GoodJob",
+       "url": "https://www.goodjob.life/companies/緯穎科技服務股份有限公司/work-experiences#2026-04-14",
+       "date": "2026-04"
+      },
+      {
+       "site": "GoodJob",
+       "url": "https://www.goodjob.life/companies/緯穎科技服務股份有限公司/work-experiences#2026-01-06",
+       "date": "2026-01"
+      },
+      {
+       "site": "GoodJob",
+       "url": "https://www.goodjob.life/companies/緯穎科技服務股份有限公司/work-experiences#2025-12-10",
+       "date": "2025-12"
       }
      ],
-     "confidence": "中",
-     "grade": null,
+     "confidence": "高",
+     "grade": "9 職等",
      "samples": [
       {
        "site": "GoodJob",
@@ -1337,6 +2300,101 @@
        "overtime": null,
        "travel": null,
        "quote_free_note": "傳年薪 30 個月起（未證實）"
+      },
+      {
+       "site": "Dcard",
+       "url": "https://www.dcard.tw/f/tech_job/p/260858478",
+       "date": "2026-02",
+       "date_confirmed": true,
+       "date_note": "標題「2026/02 小w(北)開獎」",
+       "in_window": true,
+       "unit_detail": "開獎（台北）",
+       "years": "—",
+       "degree": null,
+       "base_k": null,
+       "bonus_months": 6.5,
+       "annual_months": null,
+       "annual_wan": null,
+       "weekly_hours": null,
+       "overtime": null,
+       "travel": null,
+       "quote_free_note": "網友回報分紅 6.5 個月；另一則 9 月分紅 4.5 個月"
+      },
+      {
+       "site": "PTT",
+       "url": "https://www.ptt.cc/bbs/Tech_Job/M.1778081046.A.9F5.html",
+       "date": "2026-05",
+       "date_confirmed": true,
+       "date_note": "PTT 代碼 1778081046＝2026-05-06",
+       "in_window": true,
+       "unit_detail": "研發調薪",
+       "years": "0-2",
+       "degree": "碩士",
+       "base_k": 75,
+       "bonus_months": null,
+       "annual_months": null,
+       "annual_wan": null,
+       "weekly_hours": null,
+       "overtime": null,
+       "travel": null,
+       "quote_free_note": "碩士研發起薪約 75K；調薪 1～30%"
+      },
+      {
+       "site": "GoodJob",
+       "url": "https://www.goodjob.life/companies/緯穎科技服務股份有限公司/work-experiences#2026-04-14",
+       "date": "2026-04",
+       "date_confirmed": true,
+       "date_note": "摘要「SI ENGINEER 評價 2026.4.14」",
+       "in_window": true,
+       "unit_detail": "SI 工程師",
+       "years": "—",
+       "degree": null,
+       "base_k": 72,
+       "bonus_months": null,
+       "annual_months": null,
+       "annual_wan": null,
+       "weekly_hours": null,
+       "overtime": null,
+       "travel": null,
+       "quote_free_note": "月 7.2 萬，當年獎金好"
+      },
+      {
+       "site": "GoodJob",
+       "url": "https://www.goodjob.life/companies/緯穎科技服務股份有限公司/work-experiences#2026-01-06",
+       "date": "2026-01",
+       "date_confirmed": true,
+       "date_note": "摘要「可靠度工程師 評價 2026.1.6」",
+       "in_window": true,
+       "unit_detail": "可靠度工程師",
+       "years": "—",
+       "degree": null,
+       "base_k": 52,
+       "bonus_months": null,
+       "annual_months": null,
+       "annual_wan": null,
+       "weekly_hours": null,
+       "overtime": null,
+       "travel": null,
+       "quote_free_note": "月 5.2 萬"
+      },
+      {
+       "site": "GoodJob",
+       "url": "https://www.goodjob.life/companies/緯穎科技服務股份有限公司/work-experiences#2025-12-10",
+       "date": "2025-12",
+       "date_confirmed": true,
+       "date_note": "摘要「研發品質驗證工程師 評價 2025.12.10」",
+       "in_window": true,
+       "unit_detail": "研發品質驗證",
+       "years": "—",
+       "degree": null,
+       "base_k": 64,
+       "bonus_months": null,
+       "annual_months": 19,
+       "annual_wan": null,
+       "weekly_hours": null,
+       "overtime": null,
+       "travel": null,
+       "quote_free_note": "底薪偏低靠分紅，約 18～20 個月"
       }
      ]
     },
@@ -1346,19 +2404,16 @@
      "degree": "碩士（未標學歷）",
      "years": "0-2",
      "base_month_k": [
-      50,
-      70
+      60,
+      75
      ],
      "bonus_months": null,
-     "annual_months": [
-      18,
-      20
-     ],
+     "annual_months": null,
      "annual_total_wan": null,
      "weekly_hours": null,
      "overtime": "幾乎不",
      "travel": null,
-     "n": 2,
+     "n": 6,
      "note": "平台自述統計（未轉貼原文）；2026-06 軟體 1 年月薪 7 萬稱分紅多；新人 5～5.2 萬；GoodJob 2025-12 評價：近幾年約 18～20 個月（保 14 個月＋分紅），依職級而異；GoodJob 2025-07 軟體職每週 40 小時；base_month_k、annual_months 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples",
      "sources": [
       {
@@ -1370,6 +2425,26 @@
        "site": "GoodJob",
        "url": "https://www.goodjob.life/experiences/694a420fa6caa45037499042",
        "date": "2025-12"
+      },
+      {
+       "site": "GoodJob",
+       "url": "https://www.goodjob.life/experiences/6a58fa1907141cefd9c45ad3",
+       "date": "2026-07"
+      },
+      {
+       "site": "GoodJob",
+       "url": "https://www.goodjob.life/companies/緯穎科技服務股份有限公司/work-experiences",
+       "date": "2026-06"
+      },
+      {
+       "site": "GoodJob",
+       "url": "https://www.goodjob.life/companies/緯穎科技服務股份有限公司/work-experiences#2026-04-08",
+       "date": "2026-04"
+      },
+      {
+       "site": "Dcard",
+       "url": "https://www.dcard.tw/f/tech_job/p/256086282",
+       "date": "2025"
       }
      ],
      "confidence": "中",
@@ -1406,13 +2481,89 @@
        "overtime": null,
        "travel": null,
        "quote_free_note": null
+      },
+      {
+       "site": "GoodJob",
+       "url": "https://www.goodjob.life/experiences/6a58fa1907141cefd9c45ad3",
+       "date": "2026-07",
+       "date_confirmed": true,
+       "date_note": "GoodJob 標題 2026.7.16",
+       "in_window": true,
+       "unit_detail": "測試工程師（Python、GPU）",
+       "years": "—",
+       "degree": null,
+       "base_k": 75,
+       "bonus_months": null,
+       "annual_months": null,
+       "annual_wan": null,
+       "weekly_hours": null,
+       "overtime": null,
+       "travel": null,
+       "quote_free_note": "錄取，月 7.5 萬"
+      },
+      {
+       "site": "GoodJob",
+       "url": "https://www.goodjob.life/companies/緯穎科技服務股份有限公司/work-experiences",
+       "date": "2026-06",
+       "date_confirmed": true,
+       "date_note": "摘要「軟體工程師 評價 2026.6.26」",
+       "in_window": true,
+       "unit_detail": "軟體工程師",
+       "years": "—",
+       "degree": null,
+       "base_k": 70,
+       "bonus_months": null,
+       "annual_months": null,
+       "annual_wan": null,
+       "weekly_hours": null,
+       "overtime": null,
+       "travel": null,
+       "quote_free_note": "月 7 萬"
+      },
+      {
+       "site": "GoodJob",
+       "url": "https://www.goodjob.life/companies/緯穎科技服務股份有限公司/work-experiences#2026-04-08",
+       "date": "2026-04",
+       "date_confirmed": true,
+       "date_note": "摘要「軟體工程師 評價 2026.4.8」",
+       "in_window": true,
+       "unit_detail": "軟體工程師",
+       "years": "—",
+       "degree": null,
+       "base_k": 60,
+       "bonus_months": null,
+       "annual_months": null,
+       "annual_wan": null,
+       "weekly_hours": null,
+       "overtime": null,
+       "travel": null,
+       "quote_free_note": "月 6 萬"
+      },
+      {
+       "site": "Dcard",
+       "url": "https://www.dcard.tw/f/tech_job/p/256086282",
+       "date": "2025",
+       "date_confirmed": false,
+       "date_note": "Dcard 文章編號推估（錨點：260858478＝標題 2026/02、261274960＝摘要 2026-04、261389213＝摘要 2026-04 底）；推估不進統計",
+       "in_window": false,
+       "unit_detail": "BMC 工程師（汐止）",
+       "years": "0-2",
+       "degree": null,
+       "base_k": null,
+       "bonus_months": null,
+       "annual_months": 20,
+       "annual_wan": null,
+       "weekly_hours": null,
+       "overtime": null,
+       "travel": null,
+       "quote_free_note": "N-5、保 14，主管說一年約 20 個月"
       }
      ]
     }
    ],
    "mops": null,
    "mops_note": "查「緯穎 非主管 薪資 平均 中位數 2025」與 104 職場力 2026 上市中位數榜，摘要未列此公司；需至公開資訊觀測站彙總報表查",
-   "grade_system": null
+   "grade_system": "數字職等（研發新人約 9 職等）"
   },
   {
    "name": "緯創",
@@ -1429,17 +2580,17 @@
      "role": "工程師",
      "degree": "碩士（未標學歷）",
      "years": "2",
-     "base_month_k": [
-      50,
-      50
-     ],
+     "base_month_k": null,
      "bonus_months": null,
-     "annual_months": null,
+     "annual_months": [
+      17,
+      17
+     ],
      "annual_total_wan": null,
      "weekly_hours": null,
      "overtime": "偶爾～經常",
      "travel": null,
-     "n": 2,
+     "n": 4,
      "note": "平台自述統計（未轉貼原文）；2026-01 台北 2 年月薪約 5 萬、有全年分紅、碩士有優勢；第二輪：Dcard 2026 廣達／鴻佰／緯創 offer 比較一篇；base_month_k 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples",
      "sources": [
       {
@@ -1451,10 +2602,20 @@
        "site": "Dcard",
        "url": "https://www.dcard.tw/f/tech_job/p/261066490",
        "date": "2026"
+      },
+      {
+       "site": "Dcard",
+       "url": "https://www.dcard.tw/f/tech_job/p/261389213",
+       "date": "2026-04"
+      },
+      {
+       "site": "Dcard",
+       "url": "https://www.dcard.tw/f/tech_job/p/261624960",
+       "date": "2026"
       }
      ],
      "confidence": "中",
-     "grade": null,
+     "grade": "7 職等",
      "samples": [
       {
        "site": "GoodJob",
@@ -1487,6 +2648,44 @@
        "overtime": null,
        "travel": null,
        "quote_free_note": null
+      },
+      {
+       "site": "Dcard",
+       "url": "https://www.dcard.tw/f/tech_job/p/261389213",
+       "date": "2026-04",
+       "date_confirmed": true,
+       "date_note": "標題「緯創資通 調薪開獎 2026」",
+       "in_window": true,
+       "unit_detail": "調薪開獎",
+       "years": "—",
+       "degree": null,
+       "base_k": null,
+       "bonus_months": null,
+       "annual_months": null,
+       "annual_wan": null,
+       "weekly_hours": null,
+       "overtime": null,
+       "travel": null,
+       "quote_free_note": "回報調幅 0～10%（例 7 職等 0.5 年 0%）"
+      },
+      {
+       "site": "Dcard",
+       "url": "https://www.dcard.tw/f/tech_job/p/261624960",
+       "date": "2026",
+       "date_confirmed": true,
+       "date_note": "標題「緯創 2026 薪資行情?」",
+       "in_window": true,
+       "unit_detail": "薪資行情",
+       "years": "—",
+       "degree": null,
+       "base_k": null,
+       "bonus_months": null,
+       "annual_months": 17,
+       "annual_wan": null,
+       "weekly_hours": null,
+       "overtime": null,
+       "travel": null,
+       "quote_free_note": "X7K、無保 14 但通常有，整年約 16～18 個月（無法確定對應這一篇）"
       }
      ]
     },
@@ -1497,19 +2696,13 @@
      "years": "3",
      "base_month_k": null,
      "bonus_months": null,
-     "annual_months": [
-      18,
-      null
-     ],
-     "annual_total_wan": [
-      85,
-      85
-     ],
+     "annual_months": null,
+     "annual_total_wan": null,
      "weekly_hours": null,
      "overtime": "偶爾～經常",
      "travel": null,
      "n": 1,
-     "note": "平台自述統計（未轉貼原文）；範圍外參考：2025-09 高雄 3 年年薪 85 萬，績效好 18 個月以上；annual_months 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples",
+     "note": "平台自述統計（未轉貼原文）；範圍外參考：2025-09 高雄 3 年年薪 85 萬，績效好 18 個月以上；annual_months 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples；未逐筆對應的舊彙整：{\"annual_months\": [18, null], \"annual_total_wan\": [85, 85]}",
      "sources": [
       {
        "site": "GoodJob",
@@ -1541,7 +2734,7 @@
    ],
    "mops": null,
    "mops_note": "查「緯創 非主管 薪資 平均 中位數 2025」與 104 職場力 2026 上市中位數榜，摘要未列此公司；需至公開資訊觀測站彙總報表查",
-   "grade_system": null
+   "grade_system": "數字職等（伺服器硬體研發 8 職等、7 職等）"
   },
   {
    "name": "明基",
@@ -1561,20 +2754,22 @@
      "base_month_k": null,
      "bonus_months": null,
      "annual_months": null,
-     "annual_total_wan": [
-      70,
-      75
-     ],
+     "annual_total_wan": null,
      "weekly_hours": null,
      "overtime": null,
      "travel": null,
-     "n": 1,
-     "note": "平台自述統計（未轉貼原文）；不加班、薪水不高；日期未確認；2026-10 GoodJob 批次查詢未見明基資料；annual_total_wan 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples",
+     "n": 2,
+     "note": "平台自述統計（未轉貼原文）；不加班、薪水不高；日期未確認；2026-10 GoodJob 批次查詢未見明基資料；annual_total_wan 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples；未逐筆對應的舊彙整：{\"annual_total_wan\": [70, 75]}",
      "sources": [
       {
        "site": "GoodJob",
        "url": "https://www.goodjob.life/companies/明基電通股份有限公司/work-experiences/薪資福利",
        "date": "未確認"
+      },
+      {
+       "site": "Dcard",
+       "url": "https://www.dcard.tw/f/tech_job/p/259065333",
+       "date": "2025"
       }
      ],
      "confidence": "低",
@@ -1595,6 +2790,25 @@
        "overtime": null,
        "travel": null,
        "quote_free_note": null
+      },
+      {
+       "site": "Dcard",
+       "url": "https://www.dcard.tw/f/tech_job/p/259065333",
+       "date": "2025",
+       "date_confirmed": false,
+       "date_note": "Dcard 文章編號推估（錨點：260858478＝標題 2026/02、261274960＝摘要 2026-04、261389213＝摘要 2026-04 底）；推估不進統計",
+       "in_window": false,
+       "unit_detail": "分紅請益",
+       "years": "6",
+       "degree": null,
+       "base_k": null,
+       "bonus_months": 1,
+       "annual_months": null,
+       "annual_wan": 105,
+       "weekly_hours": null,
+       "overtime": null,
+       "travel": null,
+       "quote_free_note": "年資 6 年估年薪約 105 萬，分紅 0.5～1.5 個月"
       }
      ]
     }
@@ -1621,26 +2835,33 @@
      "base_month_k": null,
      "bonus_months": null,
      "annual_months": [
-      13,
+      14,
       14
      ],
-     "annual_total_wan": [
-      95,
-      110
-     ],
+     "annual_total_wan": null,
      "weekly_hours": null,
      "overtime": "偶爾",
      "travel": null,
-     "n": 1,
+     "n": 3,
      "note": "平台自述統計（未轉貼原文）；範圍外參考 2025-01/03 新人 95～100 萬；2026-04 4 年 110 萬；固定約 14 個月獎金空間小；annual_months、annual_total_wan 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples",
      "sources": [
       {
        "site": "GoodJob",
        "url": "https://www.goodjob.life/companies/趨勢科技股份有限公司/work-experiences/薪資福利",
        "date": "2026-04"
+      },
+      {
+       "site": "Dcard",
+       "url": "https://www.dcard.tw/f/tech_job/p/260984059#trend",
+       "date": "2026-03"
+      },
+      {
+       "site": "Dcard",
+       "url": "https://www.dcard.tw/f/tech_job/p/260741746",
+       "date": "2025-10"
       }
      ],
-     "confidence": "低",
+     "confidence": "中",
      "grade": null,
      "samples": [
       {
@@ -1658,6 +2879,44 @@
        "overtime": null,
        "travel": null,
        "quote_free_note": null
+      },
+      {
+       "site": "Dcard",
+       "url": "https://www.dcard.tw/f/tech_job/p/260984059#trend",
+       "date": "2026-03",
+       "date_confirmed": true,
+       "date_note": "摘要寫「2026 年 3 月」",
+       "in_window": true,
+       "unit_detail": "軟體工程師（新鮮人）",
+       "years": "0-2",
+       "degree": null,
+       "base_k": null,
+       "bonus_months": null,
+       "annual_months": 14,
+       "annual_wan": null,
+       "weekly_hours": 45,
+       "overtime": "偶爾",
+       "travel": null,
+       "quote_free_note": "(N+9)×14，9～6 點，需常 on-call"
+      },
+      {
+       "site": "Dcard",
+       "url": "https://www.dcard.tw/f/tech_job/p/260741746",
+       "date": "2025-10",
+       "date_confirmed": true,
+       "date_note": "摘要寫「2025 年 10 月的 Dcard 討論」",
+       "in_window": true,
+       "unit_detail": "薪水討論",
+       "years": "—",
+       "degree": null,
+       "base_k": null,
+       "bonus_months": null,
+       "annual_months": null,
+       "annual_wan": null,
+       "weekly_hours": null,
+       "overtime": null,
+       "travel": null,
+       "quote_free_note": "普遍認為錢不高但 WLB 好"
       }
      ]
     }
