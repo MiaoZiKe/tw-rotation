@@ -638,7 +638,7 @@
       "heat": "Dcard 熱度：中",
       "benefits": "育兒津貼、彈性工時、南科獎金（約 2 個月，自述）",
       "stock_plan": "過去曾發行限制員工權利新股留才（2022 報導）；近一年員工持股方案未查到",
-      "bonus_timing": "自述 1／4／7／10 月發放（保底約 16.2 個月含三節）；額外分紅看營運",
+      "bonus_timing": "自述 1／4／7／10 月發放（保底約 16.2 個月含三節）；額外分紅看營運；Dcard 2026：去年員工酬勞約 34.38 億，網友以約 1.3 萬人估每人約 26 萬，較前年縮水",
       "culture": "GoodJob 薪資福利 3.9／5（33 筆）；普遍認為不如台積但穩",
       "interview": "兩位主管線上面試：自我介紹→論文／專案追問→半導體專業題→人格與情境題；元件開發會考元件物理",
       "roles": [
@@ -666,8 +666,8 @@
           ],
           "overtime": "偶爾～經常（依部門）",
           "travel": "不用",
-          "n": 3,
-          "note": "GoodJob 自述月薪多落在 5～7 萬；salary.tw 台南製程有日均 14～15 小時自述（2025）；學歷未標，區間寬疑含學士／年資差",
+          "n": 8,
+          "note": "GoodJob 自述月薪多落在 5～7 萬；salary.tw 台南製程有日均 14～15 小時自述（2025）；學歷未標，區間寬疑含學士／年資差；2026-10-25 補：碩士起薪 Dcard 2026 討論約 6.0～6.7 萬（四大一類另有價）；新人約 6 萬、前三年調薪 3～5%、約第三年升 7 職等後年薪約 200 萬上下（自述）；南科製程（薄膜）需輪班，全薪約台積新人價減 1，年薪 100～120 萬（單筆，範圍外）",
           "sources": [
             {
               "site": "GoodJob",
@@ -678,6 +678,36 @@
               "site": "比薪水",
               "url": "https://salary.tw/salary/681b812e0c26c70ecf0089c9",
               "date": "2025"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/260497760",
+              "date": "約2025～2026（依文章編號推估，未讀原文）"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/257444718",
+              "date": "約2025～2026（依文章編號推估，未讀原文）"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261895271",
+              "date": "約2025～2026（依文章編號推估，未讀原文）"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/256872604",
+              "date": "範圍外參考（依文章編號推估 2021～2024）"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/240454137",
+              "date": "範圍外參考（依文章編號推估 2021～2024）"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/260954477",
+              "date": "約2025～2026（依文章編號推估，未讀原文）"
             }
           ],
           "confidence": "低"
@@ -700,8 +730,8 @@
           "weekly_hours": null,
           "overtime": "偶爾～經常",
           "travel": "不用",
-          "n": 1,
-          "note": "GoodJob 單筆月薪 7.7 萬，年資未明，疑非新人；比薪水網 2025-09 設備職回報偶爾加班、日均工時約 12 小時（範圍外參考含 2023 年 22 筆整理）；分紅月數沿用同公司製程職區間；撤回：bonus_months 原為沿用／推算／暫填值，無直接證據，已改回原值",
+          "n": 4,
+          "note": "GoodJob 單筆月薪 7.7 萬，年資未明，疑非新人；比薪水網 2025-09 設備職回報偶爾加班、日均工時約 12 小時（範圍外參考含 2023 年 22 筆整理）；分紅月數沿用同公司製程職區間；撤回：bonus_months 原為沿用／推算／暫填值，無直接證據，已改回原值；2026-10-25 補：GoodJob 2026-04 臺南設備月薪約 7.7 萬、年薪約月薪×18；GoodJob 另一則稱南科加給約 2 個月、含分紅全年 18～24 個月",
           "sources": [
             {
               "site": "GoodJob",
@@ -712,6 +742,16 @@
               "site": "比薪水 salary.tw",
               "url": "https://salary.tw/salary/68bfb84bbe4f3b3bde0828dc",
               "date": "2025-09"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/69d66a250f7fdbe383a82c43",
+              "date": "2026-04"
+            },
+            {
+              "site": "salary.tw",
+              "url": "https://salary.tw/c/L4z2/positions/%E8%A8%AD%E5%82%99%E5%B7%A5%E7%A8%8B%E5%B8%AB",
+              "date": "2026"
             }
           ],
           "confidence": "低"
@@ -763,16 +803,65 @@
           ],
           "overtime": "經常",
           "travel": "不用",
-          "n": 2,
-          "note": "GoodJob 2026-03 月薪 6.7 萬、工時 60 小時／週；2025-08 一則 7 萬，分紅與加薪看考績；年薪與分紅月數沿用同公司製程職區間；撤回：annual_months、bonus_months 原為沿用／推算／暫填值，無直接證據，已改回原值",
+          "n": 3,
+          "note": "GoodJob 2026-03 月薪 6.7 萬、工時 60 小時／週；2025-08 一則 7 萬，分紅與加薪看考績；年薪與分紅月數沿用同公司製程職區間；撤回：annual_months、bonus_months 原為沿用／推算／暫填值，無直接證據，已改回原值；2026-10-25 補：南科整合：四大碩士三年 150 萬常見、五年 180～200 萬（網友說法）；屬產線需輪班",
           "sources": [
             {
               "site": "GoodJob",
               "url": "https://www.goodjob.life/job-titles/製程整合/work-experiences",
               "date": "2026-03"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/260319382",
+              "date": "約2025～2026（依文章編號推估，未讀原文）"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/259890347",
+              "date": "約2025～2026（依文章編號推估，未讀原文）"
             }
           ],
           "confidence": "中"
+        },
+        {
+          "unit": "晶圓廠 Fab",
+          "degree": "高中職／大專",
+          "years": "0-2",
+          "base_month_k": [
+            32,
+            53
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": [
+            40,
+            48
+          ],
+          "overtime": "經常",
+          "travel": "不用",
+          "confidence": "低",
+          "role": "技術員（含 MAE 類輪班人力）",
+          "note": "GoodJob 2025-06 新竹技術員月薪約 3.2 萬、40 小時／週；salary.tw 技術員平均月薪約 5.3 萬（含津貼，自填）；Dcard 技術員自述分紅一年兩次（1 月、7 月底），夜班與加班影響大；MAE 專屬數字未找到",
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/684152978a209dfd75d038aa",
+              "date": "2025-06"
+            },
+            {
+              "site": "salary.tw",
+              "url": "https://salary.tw/c/L4z2/positions/%E6%8A%80%E8%A1%93%E5%93%A1",
+              "date": "2026"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/252740000",
+              "date": "範圍外參考（依文章編號推估 2021～2024）"
+            }
+          ],
+          "n": 3
         }
       ],
       "mops": {
