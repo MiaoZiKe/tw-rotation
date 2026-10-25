@@ -411,6 +411,9 @@ def slot_key_for(kind: str, data_date: str, taken_at: str) -> str:
         return f"close-{taken_at[:10]}"
     if kind == "credit":
         return f"credit-{data_date[:10]}"
+    if kind == "intraday":      # 盤中以時段起點為鍵（09／11／13），跟 social_publish.slot_key 一致
+        h = int(taken_at[11:13] or 0)
+        return f"intraday-{taken_at[:10]}-{'09' if h < 11 else '11' if h < 13 else '13'}"
     return f"{kind}-{taken_at[:10]}-{taken_at[11:13]}"
 
 

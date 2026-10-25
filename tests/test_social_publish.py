@@ -88,13 +88,24 @@ def test_同時段不重複發(tmp_path, monkeypatch):
     n = len(f.calls)
     sp.run(m, BASE, env=ENV)
     assert len(f.calls) == n  # 第二次完全沒打 API
-    assert "intraday-2026-10-20-10" in json.loads((tmp_path / "posted.json").read_text())
+    assert "intraday-2026-10-20-09" in json.loads((tmp_path / "posted.json").read_text())
 
 
 def test_不同時段與收盤各自獨立(tmp_path):
     assert sp.slot_key({"kind": "intraday", "taken_at": "2026-10-20T11:05:00+08:00"}) != \
         sp.slot_key({"kind": "intraday", "taken_at": "2026-10-20T10:35:00+08:00"})
     assert sp.slot_key({"kind": "close", "taken_at": "2026-10-20T14:30:00+08:00"}) == "close-2026-10-20"
+
+
+def test_盤中同一時段跨整點仍同一鍵_Worker與GitHub備援不重複發():
+    k = lambda hhmm: sp.slot_key({"kind": "intraday", "taken_at": f"2026-10-26T{hhmm}:00+08:00"})
+    assert k("09:36") == k("09:40") == k("10:45") == "intraday-2026-10-26-09"   # 備援晚到跨整點
+    assert k("11:06") == k("12:30") == "intraday-2026-10-26-11"
+    assert k("13:06") == "intraday-2026-10-26-13"
+    assert len({k("09:36"), k("11:06"), k("13:06")}) == 3
+    from scripts import social_snap as ss
+    for hhmm in ("09:36", "10:45", "11:06", "12:30", "13:06"):
+        assert ss.slot_key_for("intraday", "2026-10-26", f"2026-10-26T{hhmm}:00+08:00") == k(hhmm)
 
 
 def test_盤後融資以資料日為鍵_跟盤後法人分開():
@@ -152,6 +163,6 @@ def test_中途失敗重跑只補沒發的限動(tmp_path, monkeypatch):
     f = Fake(); monkeypatch.setattr(sp, "http", f)
     m = mk(tmp_path, images=())
     (tmp_path / "posted.json").write_text(json.dumps(
-        {"intraday-2026-10-20-10": {"story": [{"id": "old", "link": ""}]}}), encoding="utf-8")
+        {"intraday-2026-10-20-09": {"story": [{"id": "old", "link": ""}]}}), encoding="utf-8")
     sp.run(m, BASE, env=ENV)
     assert len(posts(f, "/22/media_publish")) == 1  # 只補第 2 張
