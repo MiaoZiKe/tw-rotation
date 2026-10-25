@@ -33,7 +33,7 @@ CFG_DEV = {
     "d": dict(viewport={"width": 1000, "height": 570}, device_scale_factor=2),
     "m": dict(viewport={"width": 540, "height": 880}, device_scale_factor=2.5, is_mobile=True, has_touch=True),
 }
-CROP0 = {"d": (0, 0, 1000, 570), "m": (0, 0, 540, 864)}
+CROP0 = {"d": (0, 0, 1000, 570), "m": (0, 0, 640, 1024)}
 
 # ---------------------------------------------------------------- 頁面端工具
 LIB_JS = r"""
@@ -49,12 +49,12 @@ window.__vclip = (pe, b) => { const c = { l: b.left, t: b.top, r: b.right, b: b.
   return c; };
 window.__vcharttexts = (zc) => { const zt = [];
   const list = (zc && zc.length) ? zc : [...document.querySelectorAll('[_echarts_instance_]')].map((e, i) => ['c' + i, e]);
-  for (const [nm, sel] of list) { const h = typeof sel === 'string' ? document.querySelector(sel) : sel; const inst = h && window.echarts && echarts.getInstanceByDom(h); if (!inst) continue; const b = h.getBoundingClientRect();
+  for (const [nm, sel] of list) { const h = typeof sel === 'string' ? document.querySelector(sel) : sel; const inst = h && window.echarts && echarts.getInstanceByDom(h); if (!inst) continue; if (h.checkVisibility && !h.checkVisibility({ opacityProperty: true, visibilityProperty: true })) continue; const b = h.getBoundingClientRect();
     inst.getZr().storage.getDisplayList().forEach(d => { if (d.invisible || d.ignore || !(d.type === 'tspan' || d.type === 'text')) return; const t = d.style && d.style.text;
       if (!t || !String(t).trim() || (d.style.opacity ?? 1) < 0.05) return; const r = d.getBoundingRect().clone(); if (d.transform) r.applyTransform(d.transform);
       const l = Math.max(b.left, b.x + r.x), tp = Math.max(b.top, b.y + r.y), rr = Math.min(b.right, b.x + r.x + r.width), bb = Math.min(b.bottom, b.y + r.y + r.height);
       if (rr - l < 1 || bb - tp < 1) return;
-      const hx = (l + rr) / 2, hy = (tp + bb) / 2; if (hx >= 0 && hy >= 0 && hx < innerWidth && hy < innerHeight) { const e2 = document.elementFromPoint(hx, hy); if (e2 && !h.contains(e2)) return; }   // 被抽屜／霧罩／浮層蓋住的圖表文字不算（看不到）
+      const hx = Math.min(innerWidth - 1, Math.max(0, (l + rr) / 2)), hy = Math.min(innerHeight - 1, Math.max(0, (Math.max(tp, 0) + Math.min(bb, innerHeight)) / 2)); if (bb <= 0 || tp >= innerHeight) return; { const e2 = document.elementFromPoint(hx, hy); if (e2 && !h.contains(e2)) return; }   // 被抽屜／霧罩／浮層蓋住的圖表文字不算（看不到）
       zt.push([nm, l, tp, rr - l, bb - tp, 0, 0, 0]); }); }
   return zt; };
 // 看得到的可操作元件外框（按鈕、輸入框、下拉、連結、頁籤）：游標停靠時也要避開（不蓋住任何控制項的圖示）

@@ -30,7 +30,7 @@ FPS = 30
 SPEED = float(os.environ.get("FEAT_SPEED", "1.5"))
 END_RAW = 4.5
 END_FINAL = float(os.environ.get("FEAT_END_FINAL", "2.0"))
-XF = 0.2
+XF = 0.04   # 片尾卡接正片：近乎硬切（一幀交疊），不留長時間的疊影
 BUB_CAP = 7.5
 DRIFT_A = float(os.environ.get("FEAT_DRIFT_A", "3.0"))
 DRIFT_T = float(os.environ.get("FEAT_DRIFT_T", "2.0"))
@@ -149,41 +149,23 @@ def render(dev, CFG, only=None):
     mask = (np.array(mask).astype(np.float32) / 255)[..., None]
     dsf = meta["dsf"]
     crop0 = tuple(meta["crop"])
-    zoom = None
-    zc = CFG.get("zoom", {}).get(dev)
-    if zc and zc.get("auto_pan"):   # 用錄到的每一格實際文字外框，挑「畫面框上下緣切到字的幀數最少」的推近目標 y（量測在錄影前、這裡用整支實錄再挑一次）
-        sy_ = fm[0].get("sy", 0)
-        best_ = None
-        for yy in range(zc["auto_pan"][0], zc["auto_pan"][1] + 1):
-            cnt_ = 0
-            crop_ = (0, yy, zc["tgt"][2], zc["tgt"][3])
-            for kk in range(int(zc["from_t"] * FPS) if zc.get("from_t") else 0, N0, 3):
-                f_ = fm[kk]
-                if kk and fm[kk - 1].get("sy") != f_.get("sy"):
-                    continue
-                for z_ in f_["zt"]:
-                    x_, y_, w_, h_ = z_[1:5]
-                    inter_ = x_ < crop_[0] + crop_[2] and x_ + w_ > crop_[0] and y_ < crop_[1] + crop_[3] and y_ + h_ > crop_[1]
-                    ins_ = x_ >= crop_[0] + 2.1 and y_ >= crop_[1] + 2.1 and x_ + w_ <= crop_[0] + crop_[2] - 2.1 and y_ + h_ <= crop_[1] + crop_[3] - 2.1
-                    if inter_ and not ins_:
-                        cnt_ += 1
-            if best_ is None or (cnt_, abs(yy - 76)) < best_[0]:
-                best_ = ((cnt_, abs(yy - 76)), yy)
-        print("自動推近目標 y =", best_[1], "切字（每 3 格抽樣）", best_[0][0], flush=True)
-        zc = dict(zc, tgt=(zc["tgt"][0], best_[1], zc["tgt"][2], zc["tgt"][3]))
-    elif zc and (meta.get("extra") or {}).get("pan_y"):   # 錄影端量過所有頁面狀態後挑出的推近目標（框緣不切字）
-        zc = dict(zc, tgt=(zc["tgt"][0], meta["extra"]["pan_y"], zc["tgt"][2], zc["tgt"][3]))
-    if zc:   # 單向推近：該段第一句泡泡出現前 0.1 秒開始、0.7 秒推完
-        tz = next(tt for tt, k_, _ in stages if k_ == zc["stage"])
-        zoom = (tz - 0.1, zc.get("dur", 0.7), tuple(zc["tgt"]))
-        if zc.get("at_click") is not None:   # 推近跟著第 N 次點擊走（換頁的那一刻推，頁面框邊就不會在換頁後被切到字）
-            zoom = (meta["clicks"][zc["at_click"]]["t"] - 0.05, zc.get("dur", 0.7), tuple(zc["tgt"]))
+    # 推近／平移排程：錄影端量好「每一頁各自的框位置」（extra.pans），在換頁點擊的當下單向平移過去（0.4 秒）
+    segs = []
+    pans = (meta.get("extra") or {}).get("pans") or []
+    for pn in pans:
+        c_ = [c for c in meta["clicks"] if c["kind"] == "click" and c.get("label") == pn["click"]]
+        if c_:
+            segs.append((c_[0]["t"] - 0.05, pn.get("dur", 0.4), (0, pn["y"], crop0[2], crop0[3])))
+    segs.sort()
 
     def crop_at(t):
-        if zoom is None or t <= zoom[0]:
-            return crop0
-        a = R.ease(min(1.0, (t - zoom[0]) / zoom[1]))
-        return tuple(c0 + (c1 - c0) * a for c0, c1 in zip(crop0, zoom[2]))
+        cur = crop0
+        for ts, du, tg in segs:
+            if t <= ts:
+                break
+            a = R.ease(min(1.0, (t - ts) / du))
+            cur = tuple(c0 + (c1 - c0) * a for c0, c1 in zip(cur, tg))
+        return cur
 
     def stage_at(t):
         n = 1
@@ -222,7 +204,7 @@ def render(dev, CFG, only=None):
         for it in items:
             reg.items.append(it)
         issues += [f"| {t:6.2f} | {x} |" for x in iss]
-        in_push = zoom is not None and zoom[0] <= t <= zoom[0] + zoom[1] + 0.05
+        in_push = any(ts <= t <= ts + du + 0.05 for ts, du, _tg in segs)
         if not in_end or t < end_start + XF:
             if k != last_k:
                 while k > last_k + 1 and last_k + 1 < N0 and not only:
