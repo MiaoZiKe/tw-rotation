@@ -61,6 +61,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import social_gate as gate  # noqa: E402  資料日／交易日把關（2026-10-26）
 
 DATE_LABEL = ""
+KIND = ""             # 本輪種類（intraday／close／credit），版型標題列的時段膠囊用
 LOGO_MAP: dict = {}      # 代號→logo 網址（site/data/logos.json 的相對路徑，--data-url 時改成正式站的絕對網址）
 DATA_SRC = ""            # sync_data 實際採用的資料來源網址（logo 圖檔不下載到本機，直接讀這裡）
 DATE_BY: dict = {}       # 目標名稱→該張自己的資料日 MM/DD（取自資料檔本身，不借別的檔）
@@ -323,13 +324,13 @@ PIECE_META = {
     "credit-rank": ("融資增減排行 {d}", ""),
     "credit-short": ("融券增減排行 {d}", ""),
     "fut-oi": ("台指期三大法人未平倉 {d}", ""),
-    "retail-ratio": ("台指散戶多空比（大台、小台、微台） {d}", ""),
+    "retail-ratio": ("台指散戶多空比 {d}", ""),
 }
 PIECE_META = {k: (v[0], "") for k, v in PIECE_META.items()}      # 標題下的操作說明小字一律不放
 # 版型配色：直接取自 site/index.html 的 CSS 變數（淺色 :root[data-theme=light]、深色 :root）
+import social_theme as TH   # 2026-10-26：版型色票與標題列抽到 social_theme.py（亮色 HUD，規範 docs/marketing/social_unit/post_design_system.md）
 FRAME = {
-    "light": dict(bg="#F4F3EF", panel="#ffffff", panel2="#FAF9F6", line="#E9E6DF", line2="#D6D2C8", ink="#1F1D19", ink2="#3E3A33",
-                  ink3="#5F5A51", cyan="#0a6b8a", rise="#c81234", fall="#07794f", amber="#8f5600"),
+    "light": dict(TH.TOKENS),
     "dark": dict(bg="#070b16", panel="#0f172b", panel2="#141e36", line="#1e2a48", line2="#2a3860", ink="#e8eeff", ink2="#a9b6d6",
                  ink3="#8493b8", cyan="#3ee0ff", rise="#ff4d6d", fall="#2ee59d", amber="#ffb454"),
 }
@@ -1204,43 +1205,32 @@ def _blocks(items: list, cls: str) -> str:
     return f'<div class="grid {cls}">{"".join(out)}</div>' if out else ""
 
 
-def layout_html(mode: str, title: str, sub: str, img: str, top: list, bot: list, theme: str) -> str:
-    """財經終端／券商 App 風版型：品牌列（比比＋哩股哩股）→ 圓角細框卡片（標題＋副標、2×2 文字塊、截圖、備註塊）→ 右下網址。
-    邊距與內距壓到最小，空間全給內容；flex 直排，元素天生不重疊，之後仍用瀏覽器量框檢查。"""
-    c = FRAME[theme]
-    var = ":root{" + "".join(f"--{k}:{v};" for k, v in c.items()) + "}"
+def layout_html(mode: str, title: str, sub: str, img: str, top: list, bot: list, theme: str, date: str = "") -> str:
+    """亮色 HUD 版型（規範 docs/marketing/social_unit/post_design_system.md）：標題列（LOGO＋時段膠囊＋標題＋靠右日期）→ HUD 卡片（四角括角：
+    2×2 文字塊、截圖、備註塊）。圖上不放備註、來源、網址；日期只在標題列。flex 直排，元素天生不重疊，之後仍用瀏覽器量框檢查。"""
     story = mode == "story"
-    css = var + """
-*{box-sizing:border-box;margin:0;padding:0}
-body{width:1080px;background:var(--bg);color:var(--ink);font-family:'Noto Sans CJK TC','Noto Sans TC','PingFang TC','Microsoft JhengHei','WenQuanYi Zen Hei',sans-serif;display:flex;flex-direction:column;padding:__PAD__}
-.brand{display:flex;align-items:center;gap:12px;height:__BH__px;flex:none}
-.brand img{width:__LG__px;height:__LG__px;border-radius:13px;display:block}
-.brand .nm{font-size:__TT__px;font-weight:800;line-height:1.5;white-space:nowrap;min-width:0}   /* 10-22 Andy：品牌字改成標題，卡片內不再重複一行標題，右下網址拿掉，版面給圖 */
-.card{flex:1;min-height:0;display:flex;flex-direction:column;margin-top:8px;background:var(--panel);border:1.5px solid var(--line-2);border-radius:24px;padding:__CPAD__}
-.hd{flex:none;margin:0 6px 8px}
-.hd .t{font-size:__TT__px;font-weight:800;line-height:1.5;white-space:nowrap}   /* 1.5：Noto CJK 的文字框高約 1.45em，行高低於它 Range 量到的框會互相壓到（雲端 runner 字型踩過） */
-.hd .s{font-size:22px;line-height:1.5;color:var(--ink3);margin-top:2px;white-space:nowrap}
-.grid{flex:none;display:grid;grid-template-columns:1fr 1fr;gap:10px;font-variant-numeric:tabular-nums}
-.grid.top{margin-bottom:10px}.grid.bot{margin-top:10px}
-.q{border-radius:14px;border:1.5px solid color-mix(in srgb,var(--c) 45%,var(--panel));background:color-mix(in srgb,var(--c) 9%,var(--panel));padding:__QP__;text-align:left;min-width:0}
-.q b{display:block;color:var(--c);font-size:__QT__px;font-weight:800;line-height:1.5;margin-bottom:4px}
-.q ul{list-style:none}.q li{font-size:__QF__px;line-height:1.5;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:clip}
-.imgbox{flex:1;min-height:0;display:flex;align-items:center;justify-content:center}
-.shot{max-width:100%;max-height:100%;display:block;border-radius:12px}
-.src{flex:none;text-align:right;margin-top:6px;font-size:26px;font-weight:700;color:var(--cyan);white-space:nowrap}
+    k = TH.CANVAS[mode]["s"]
+    css = TH.base_css(mode)
+    if theme == "dark":      # 舊深色配色（備用，不維護）
+        css += ":root{" + "".join(f"--{k_}:{v};" for k_, v in FRAME["dark"].items()) + "}"
+    css += f"""
+.card{{flex:1;min-height:0;display:flex;flex-direction:column;padding:{'14px' if story else '12px'}}}
+.hd2{{flex:none;margin:0 6px 8px}}
+.hd2 .s{{font-size:26px;line-height:1.5;color:var(--ink3);white-space:nowrap}}
+.grid{{flex:none;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;font-variant-numeric:tabular-nums}}
+.grid.top{{margin-bottom:10px}}.grid.bot{{margin-top:10px}}
+.q{{border-radius:10px;border:1.5px solid color-mix(in srgb,var(--c) 45%,var(--panel));background:color-mix(in srgb,var(--c) 9%,var(--panel));padding:{'10px 14px 8px' if story else '8px 12px 6px'};text-align:left;min-width:0}}
+.q b{{display:block;color:var(--c);font-size:{round(30*k)}px;font-weight:800;line-height:1.4;margin-bottom:2px}}
+.q ul{{list-style:none}}.q li{{font-size:{round(28*k) if not story else 32}px;line-height:1.4;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:clip}}
+.imgbox{{flex:1;min-height:0;display:flex;align-items:center;justify-content:center}}
+.shot{{max-width:100%;max-height:100%;display:block;border-radius:6px}}
 """
-    if story:
-        css = (css.replace("__PAD__", "24px 24px 18px").replace("__BH__", "72").replace("__LG__", "60").replace("__BN__", "36").replace("__CPAD__", "12px 12px 10px")
-               .replace("__TT__", "44").replace("__QP__", "10px 14px 8px").replace("__QT__", "40").replace("__QF__", "36"))
-        css += "body{height:1920px}"
-    else:
-        css = (css.replace("__PAD__", "16px 20px 16px").replace("__BH__", "64").replace("__LG__", "54").replace("__BN__", "32").replace("__CPAD__", "12px 12px 10px")
-               .replace("__TT__", "40").replace("__QP__", "8px 12px 6px").replace("__QT__", "30").replace("__QF__", "28"))
+    if not story:
         css += ".card{flex:none}.shot{width:100%;max-height:none}.imgbox{flex:none;display:block}"
-    logo = _logo_uri()
-    body = f"""<div class=brand>{'<img data-box=logo src="' + logo + '">' if logo else ''}<div class=nm data-box=title>{_esc(title)}</div></div>
+    kind = "intraday" if KIND not in TH.SLOT else KIND
+    body = f"""{TH.header_html(kind, _esc(title), _esc(date))}
 <div class=card>
-{("<div class=hd><div class=s data-box=sub>" + _esc(sub) + "</div></div>") if sub else ""}
+{("<div class=hd2><div class=s data-box=sub>" + _esc(sub) + "</div></div>") if sub else ""}
 {_blocks(top, "top")}<div class=imgbox><img class=shot data-box=shot src="{img}"></div>{_blocks(bot, "bot")}</div>"""
     return f"<!doctype html><html><head><meta charset=utf-8><style>{css}</style></head><body>{body}</body></html>"
 
@@ -1268,8 +1258,11 @@ def compose(browser, mode: str, rec: dict, top: list, bot: list, out_png: Path, 
     with Image.open(rec["raw"]) as im:
         iw, ih = im.size
     title, sub = PIECE_META.get(rec["name"], (rec.get("title") or rec["name"], ""))
-    title = title.replace("{d}", DATE_BY.get(rec["name"]) or DATE_LABEL)
-    html = layout_html(mode, title, sub, b64(rec["raw"]), top, bot, theme)
+    dlabel = DATE_BY.get(rec["name"]) or DATE_LABEL
+    title = re.sub(r"\s*\{d\}", "", title)            # 日期只放標題列右側（規範 post_design_system.md 第五節）
+    if KIND == "intraday":
+        dlabel = f"{dlabel} {now_tpe().strftime('%H:%M')}".strip()
+    html = layout_html(mode, title, sub, b64(rec["raw"]), top, bot, theme, dlabel)
     pg = browser.new_page(viewport={"width": 1080, "height": 1920 if mode == "story" else 1200}, device_scale_factor=1)
     pg.set_content(html, wait_until="load")
     pg.wait_for_timeout(400)
@@ -1455,7 +1448,7 @@ def decide(kind: str, now: datetime, meta: dict, mf: dict, card_dates: dict, nam
 
 # ---------------------------------------------------------------------------- 主程式
 def main() -> int:
-    global DATE_LABEL
+    global DATE_LABEL, KIND
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--kind", choices=["intraday", "close", "credit"], required=True, help="intraday＝盤中；close＝盤後法人；credit＝盤後融資（資料到齊那輪才發）")
     ap.add_argument("--out", required=True, help="輸出資料夾（manifest.json 與圖片都放這裡）")
@@ -1482,6 +1475,7 @@ def main() -> int:
     ap.add_argument("--no-mis", action="store_true", help="不查 mis 即時成交日（離線測試用；臨時休市就只能靠休市日表）")
     ap.add_argument("--now", default="", help="覆寫「現在」（台北，YYYY-MM-DDTHH:MM，測試日期把關用；會連帶覆寫 --today）")
     args = ap.parse_args()
+    KIND = args.kind
 
     out = Path(args.out).resolve()
     out.mkdir(parents=True, exist_ok=True)

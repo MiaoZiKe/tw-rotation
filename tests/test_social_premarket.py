@@ -225,12 +225,12 @@ def test_pages_have_no_notes_and_skip_missing():
     for mode in ("threads", "story"):
         pages = sp.build_pages(D, mode)
         assert [p["name"] for p in pages] == ["us-close", "tx", "news", "summary"]   # ADR 沒資料 → 下段不畫、不換成現貨
-        assert pages[1]["title"] == "台股盤前｜10/27｜台指期" and "台積電" not in pages[1]["inner"]
+        assert pages[1]["title"] == "台指期" and "台積電" not in pages[1]["inner"]
         assert "年線240" in pages[1]["inner"] and "class=tat" in pages[1]["inner"]
         html = "".join(p["inner"] + p["title"] for p in pages)
         for bad in ("查證中", "資料日", "休市", "時段", "本週", "資料：", "不構成投資建議", "道瓊"):
             assert bad not in html, bad
-        assert pages[0]["title"] == "台股盤前｜10/27｜美股"
+        assert pages[0]["title"] == "美股"
 
 
 def test_tx_page_has_adr_section_when_available():
@@ -240,7 +240,7 @@ def test_tx_page_has_adr_section_when_available():
     D = sp.collect(date(2026, 10, 27), _intl(), price, intra, ohlc, pd.DataFrame(), pd.DataFrame())
     pages = sp.build_pages(D, "threads")
     tx = pages[[p["name"] for p in pages].index("tx")]
-    assert tx["title"] == "台股盤前｜10/27｜台指期・台積電 ADR" and set(tx["charts"]) == {"ktx", "kadr"}
+    assert tx["title"] == "台指期・台積電 ADR" and set(tx["charts"]) == {"ktx", "kadr"}
     assert tx["inner"].index("台指期") < tx["inner"].index("台積電 ADR") and "換算台股價" in tx["inner"]
     assert "tsmc" not in [p["name"] for p in pages] and set(D["ta"]) == {"tx", "adr"}
 
