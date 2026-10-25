@@ -33,7 +33,7 @@ SEC = {
 CFG = dict(
     name="feat08", scr=SCR, out_web="feat08_fund_flow_trio_web.mp4", out_mobile="feat08_fund_flow_trio_mobile.mp4",
     end_sub="資金輪動・資金分流樹・族群×法人",
-    sec=SEC, sec_m={},
+    sec=SEC, sec_m={"s5": ("資金輪動", "排行跟著變，看占比增減", "占比增減"), "s15": ("族群×法人", "三色長條，各站一邊", "各站一邊")},
     focus_el={"navflow": "navflow", "subsankey": "subsankey", "subinst": "subinst", "clock": "clock", "rank": "rank", "chainr": "chainr", "sk": "sk",
               "sklist": "sklist", "inst": "inst", "instleg": "instleg", "instchain": "instchain", "hov": "hov", "burger": "burger", "m4flow": "m4flow",
               "tabsk": "tabsk", "tabinst": "tabinst", "tabrot": "tabrot", "skchain": "skchain"},

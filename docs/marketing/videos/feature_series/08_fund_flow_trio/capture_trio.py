@@ -160,7 +160,7 @@ def survey_web(a, pg):
     pool = []
     F.goto(pg, "#flow/rotation", 5000)
     pool.append(a.texts())
-    for c in ("industry", "semiconductor"):
+    for c in ("ai_server", "semiconductor"):
         set_chain_js(pg, "#flowRotFilter", c)
         pool.append(a.texts())
     set_chain_js(pg, "#flowRotFilter", "")
@@ -208,7 +208,7 @@ def run_d(pg, a, start):
     a.pg = pg
     pg2.close()
     F.goto(pg, "#overview", 3500)
-    ov_y, ov_cut = best_scroll(a, pg, 24, (0, 52, 1100, 575), span=30)
+    ov_y, ov_cut = 8, 0   # 總覽只往下 8px：卡片標題列留在頂欄下面、下緣的卡片標題整個在畫面框內（用 24px 時標題列會被頂欄切掉半截）
     pg.evaluate("(y) => scrollTo({top: y, behavior: 'instant'})", ov_y)
     pg.wait_for_timeout(400)
     a.extra = {"pan_y": pan_y, "pan_cut": pan_cut, "ov_scroll": ov_y, "ov_cut": ov_cut}
@@ -248,7 +248,7 @@ def run_d(pg, a, start):
     a.settle()
     a.set_stage(6, "切產業鏈")
     a.say("換條產業鏈，兩圖同步變", "folder", ("chainr", "clock", "rank"))
-    open_chain_and_pick(a, pg, '#flowRotFilter', "industry", "產業鏈：其他產業別", park=PARK_R)
+    open_chain_and_pick(a, pg, '#flowRotFilter', "ai_server", "產業鏈：AI 伺服器", park=PARK_R)
     open_chain_and_pick(a, pg, '#flowRotFilter', "semiconductor", "產業鏈：半導體", park=PARK_R)
     a.settle()
     a.set_stage(7, "追晶圓代工")
@@ -279,8 +279,8 @@ def run_d(pg, a, start):
     a.set_stage(11, "看名單")
     a.say("晶圓代工，占這條鏈最大", "face_nod", ("sklist",))
     a.until("() => !!document.querySelector('#sankeyPanel') && document.querySelector('#sankeyPanel').getClientRects().length > 0", 5000)
-    y = pg.evaluate("(py) => document.querySelector('#sankeyPanel').getBoundingClientRect().top + scrollY - py - 22", pan_y)
-    y, _c = best_scroll(a, pg, y, (0, pan_y, 1100, 627), span=70, step=1)
+    y = pg.evaluate("(py) => document.querySelector('#sankeyPanel').getBoundingClientRect().top + scrollY - py - 4", pan_y)
+    y, _c = best_scroll(a, pg, y, (0, pan_y, 1100, 627), span=10, step=1)
     a.note(f"網頁名單捲動 {y}，框緣切字 {_c}")
     a.scroll(to_y=y, ms=900)
     a.park(region=(600, 120, 300, 300), ms=400)
@@ -361,18 +361,12 @@ def run_m(pg, a, start):
     open_chain_and_pick(a, pg, '#flowRotFilter', "semiconductor", "產業鏈：半導體", mob=True, hold_after=2200)
     a.settle()
     a.set_stage(5, "看排行")
-    a.say("排行跟著變，按住長條看", "spotlight", ("hov",))
-    y = pg.evaluate("() => document.querySelector('#rankFlow').getBoundingClientRect().top + scrollY - 110")
-    y, _c = best_scroll(a, pg, y, MCROP)
+    a.say("排行跟著變，看占比增減", "spotlight", ("rank",))
+    y = pg.evaluate("() => document.querySelector('#rankFlow').getBoundingClientRect().top + scrollY - 250")
+    y, _c = best_scroll(a, pg, y, MCROP, span=40)
     a.note(f"手機排行捲動 {y}，框緣切字 {_c}")
     a.scroll(to_y=y, ms=900)
-    a.wait(900)
-    bars = a.bars("#rankFlow")
-    top = max(bars, key=lambda b: b["v"])
-    a.set_hov(a.row_rect("#rankFlow", top, 9))
-    a.press_xy(top["x1"] - 8, top["y"], f"排行長條：{top['name']}", 2600)
-    a.clear_hov()
-    a.wait(300)
+    a.idle(2800)   # 手機上點長條會直接跳去產業地圖頁（手機沒有 hover），所以不點、不按，只看排行
     a.settle()
     a.set_stage(7, "追晶圓代工")
     a.say("看半導體，先記下晶圓代工", "face_thinking_bulb", ("rank",))
@@ -425,15 +419,9 @@ def run_m(pg, a, start):
     a.say("同樣只看半導體", "folder", ("instchain", "inst"))
     open_chain_and_pick(a, pg, '#flowInstCard', "semiconductor", "產業鏈：半導體", mob=True, hold_after=2200)
     a.settle()
-    a.set_stage(15, "按住長條")
-    a.say("按住長條，看三種法人", "spotlight", ("hov",))
-    b = a.bar("#instGroups", "晶圓代工") or a.bars("#instGroups")[-1]
-    a.wait(300)
-    b = a.bar("#instGroups", "晶圓代工") or a.bars("#instGroups")[-1]
-    a.set_hov(a.row_rect("#instGroups", b, 9))
-    a.press_xy(b["x0"] - 60, b["y"], f"法人長條：{b['name']}", 2600)
-    a.clear_hov()
-    a.wait(300)
+    a.set_stage(15, "三色長條")
+    a.say("三色長條，各站一邊", "spotlight", ("inst",))
+    a.idle(2600)   # 手機點族群×法人的長條會直接跳去產業地圖頁，所以只看圖與圖例
     a.settle()
     a.set_stage(16, "點圖例")
     a.say("拿掉外資，看投信與自營", "talk_explain", ("instleg", "inst"))
