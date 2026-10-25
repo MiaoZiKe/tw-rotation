@@ -18,9 +18,9 @@ on:
         type: boolean
         default: false
 
-# 與其他會 commit 回 main 的流程共用同一個 group，避免同時 push 互相被拒；不取消進行中的。
+# 發文流程自己一個 group（不要和每日資料管線共用鎖，否則會被它卡住好幾十分鐘）；寫回 queue 時用 pull --rebase 重試處理 push 衝突。
 concurrency:
-  group: tw-rotation-data-write
+  group: social-post
   cancel-in-progress: false
 
 permissions:
