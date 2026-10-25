@@ -2,7 +2,7 @@
    科技透明圈（#tc → #tc/<產業id> → #tc/<產業id>/<公司>）—— 2026-10-25 建
    這一頁回答的問題：「科技業各產業、各公司、各單位的職位，實際工時／底薪／分紅／年薪／加班長怎樣？」
    怎麼用：先挑產業，用上面五組篩選縮小（篩選對公司卡與職位表同時生效），點公司卡看單位→職位表。
-   資料：site/tc/data/<產業id>.json（格式見 docs/tc/schema.md，由他人產出、前端只讀）。檔案還不存在的產業照樣有分頁，內容顯示「尚無資料」。
+   資料：site/tc/json/<產業id>.json（格式見 docs/tc/schema.md，由他人產出、前端只讀）。檔案還不存在的產業照樣有分頁，內容顯示「尚無資料」。
    數字全是區間，篩選一律拿區間中點比；工時、加班是單一值／分類。
    ⚠ 所有文字用 textContent／esc 輸出，不收 HTML。
    ============================================================================ */
@@ -37,7 +37,7 @@
   async function loadAll() {
     if (S.loaded) return;
     await Promise.all(INDS.map(async ([id]) => {
-      try { const r = await fetch('tc/data/' + id + '.json', { cache: 'no-cache' }); S.data[id] = r.ok ? await r.json() : null; }
+      try { const r = await fetch('tc/json/' + id + '.json', { cache: 'no-cache' }); S.data[id] = r.ok ? await r.json() : null; }
       catch (e) { S.data[id] = null; }
     }));
     S.loaded = true;
