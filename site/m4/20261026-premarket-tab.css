@@ -1,0 +1,7 @@
+/* site/m4/20261026-premarket-tab.css —— 精選文章第五個分頁「盤前消息」：手機分頁列由四格改五格等寬（只在 ≤640＋:root.m4，桌機不吃）。
+   五格各約 70px：圖示縮到 13、間距收到 2px，短名「盤前」沒有篇數所以最窄。 */
+@media (max-width:640px){
+  :root.m4 #v-articles.view.on #artCats#artCats.nbsw{grid-template-columns:repeat(5,minmax(0,1fr))!important}
+  :root.m4 #v-articles.view.on #artCats#artCats.nbsw>button{padding:0 2px!important;gap:2px!important;font-size:12.5px!important}
+  :root.m4 #v-articles.view.on #artCats#artCats.nbsw>button>svg{width:13px;height:13px}
+}

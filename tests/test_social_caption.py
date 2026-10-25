@@ -52,11 +52,11 @@ def test_盤後融資文案_獨立一篇():
              {"name": "credit-short", "ok": True, "read": {"up": ["友達", "力積電", "南亞科"], "down": ["英業達", "廣達", "緯創"]}}]
     txt = ss.build_text("credit", "10/22 05:10", shots, "2026-10-21", "20261022")
     L = txt.splitlines()
-    assert L[0] == "台股融資籌碼｜10/21"
+    assert L[0] == "台股盤後融資融券｜10/21"
     assert "上市融資維持率（估算）168.20%（較前日 -1.35pp）" in txt and "#market/credit" in txt
     assert "融資增加 長榮、華邦電、群創；融資減少 台積電、聯電、鴻海" in txt
     assert "融券增加 友達、力積電、南亞科；融券減少 英業達、廣達、緯創" in txt
-    assert "utm_campaign=credit_1022" in txt and L[-1].startswith("#台股 #融資")
+    assert "utm_campaign=credit_1022" in txt and L[-2].startswith("#台股 #融資") and L[-1] == ss.DISCLAIMER   # 免責只放最後一行（2026-10-26）
     assert len(txt) <= 480
     # 盤後法人那篇不再帶融資
     close = ss.build_text("close", "10/21 17:20", shots, "2026-10-21", "20261021")

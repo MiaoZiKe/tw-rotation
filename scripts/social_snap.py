@@ -22,7 +22,8 @@ Andy 2026-10-20：「我需要在盤中發布當下即時狀況在 Threads 上�
     python scripts/social_snap.py --kind intraday --base http://127.0.0.1:8791/index.html --serve site --mock-live --out /tmp/demo
 
 結束碼：0＝有產出；10＝今天不是交易日／不在盤中時段／法人資料還不是今天／融資資料還沒到齊／這一篇已發過，刻意不發（不算失敗）；
-        2＝一張都沒截成；3＝版面有重疊（不准發）；4＝畫面上還有「即時」字樣（不准發）。
+        2＝一張都沒截成；3＝版面有重疊（不准發）；4＝畫面上還有「即時」字樣（不准發）；
+        5＝畫面上還有備註／來源／免責字樣（2026-10-26 Andy：圖上不放任何備註與來源，不准發）。
 
 誠實規則
 --------
@@ -182,8 +183,13 @@ ENRICH_JS = """async ([logos, names]) => {   // 每列前面放公司 LOGO（沒
   return rows.length; }"""
 
 
-CTRL_CSS = ["button:not(.hmcell)", "select", "input", ".howbtn", ".seg", ".ovsum-nav", ".twms-btn", ".zreset", ".livetg", ".m4st", ":has(> select)", ".m3-bar"]
+CTRL_CSS = ["button:not(.hmcell)", "select", "input", "label:has(> input)", ".howbtn", ".seg", ".ovsum-nav", ".twms-btn", ".zreset", ".livetg", ".m4st", ":has(> select)", ".m3-bar"]
 CTRL_TEXT = ["~^走勢$", "~^›$", "~^‹$", "~^\\d+\\s*/\\s*\\d+$"]
+# 2026-10-26 Andy：「所有的備註都不要顯示、不包含來源」—— 社群圖上不准有資料來源、說明小字、註腳、免責小字；
+# 免責與來源只放文案最後一行，估算用標題括號標（例：上市融資維持率（估））。每一片都套：
+NOTE_CSS = [".howtxt", ".mf-part", ".mf-rd", ".mf-sub", ".mf-stale", ".stale-tag", ".fp-hint", ".fp-stale", ".fp-concl", ".disclaimer", ".disc", ".src-note", ".srcnote", ".note", ".foot", ".footnote", "small.muted", ".muted.small"]
+NOTE_TEXT = ["~(資料來源|來源[：:]|^資料[：:]|僅供參考|不構成投資建議|免責|^註[：:]|^※|計算方式|怎麼看|部分估算|資料到這裡|資料自 ?\\d|資料日[：:])"]
+NOTE_RE = r"資料來源|來源[：:]|^資料[：:]|僅供參考|不構成|投資建議|免責|^註[：:]|^※|計算方式|怎麼看|部分估算|估算|資料到這裡|資料日[：:]|資料未更新|更新於|截至\s*\d"
 FIX_ECHARTS_JS = """(root) => { if (!window.echarts) return 0; let n = 0;   // 圖內畫布文字不含「即時」：軸名稱／標題裡的「・即時」拿掉（只改截圖瀏覽器）
   const fix = (v) => (typeof v === 'string' ? v.replace(/\\s*[・·]\\s*即時/g, '') : v);
   root.querySelectorAll('[_echarts_instance_]').forEach((e) => { const c = echarts.getInstanceByDom(e); if (!c) return; const o = c.getOption();
@@ -198,7 +204,10 @@ def STORY_Z(z):
 
 INST_CSS = (".mktstreakbar,.howtxt,.irgo,#instView,.howbtn,.irtri>.card:nth-child(n+2){display:none!important}.irtri{display:block!important}.irtop{margin-bottom:10px}")
 INST_1M = "() => { const b = document.querySelector('#instPer button[data-p=\"1m\"]'); if (b && !b.disabled) b.click(); return new Promise(r => setTimeout(r, 1200)); }"
-CREDIT_CSS = (".mf-bar,.mf-cseg,.mf-tiles,.mf-part,.mf-tblbox,.howbtn{display:none!important}.mf-split{display:block!important}.mf-cbox,.mf-cbox[data-c=bal],.mf-cbox[data-c=ratio]{display:block!important;width:100%!important}.mf-charts{width:100%!important}")
+# 圖內 130% 線的說明字「130% 個別帳戶追繳線」只留「130%」（2026-10-26：圖上不放說明句；畫布內的字 DOM 掃不到，這裡直接改）
+CREDIT_PRE = ("() => { const e = document.getElementById('mfChart'); const c = e && window.echarts && echarts.getInstanceByDom(e); if (!c) return 0;"
+              " const o = c.getOption(); c.setOption({ series: o.series.map((x) => (x.markLine ? { markLine: Object.assign({}, x.markLine, { label: Object.assign({}, x.markLine.label || {}, { formatter: '130%' }) }) } : {})) }); return 1; }")
+CREDIT_CSS = (".mf-bar,.mf-cseg,.mf-tiles,.mf-part,.mf-tblbox,.howbtn,.mf-big>.mf-l{display:none!important}.mf-split{display:block!important}.mf-cbox,.mf-cbox[data-c=bal],.mf-cbox[data-c=ratio]{display:block!important;width:100%!important}.mf-charts{width:100%!important}")
 RANK_CSS = (".mf-bar,.mf-gsel,.howbtn,.howtxt,.mf-ranks>h4,.mf-rkhead{display:none!important}.mf-ranks{margin-top:0!important}.mf-rank,.mf-rk{min-width:0!important}.mf-rkgrid{grid-template-columns:minmax(0,1fr)!important}"
             ".mf-nm{display:flex!important;gap:8px;align-items:center;flex:0 0 var(--nmw,10em)!important;width:var(--nmw,10em)!important;overflow:visible!important}"
             ".mf-nm b,.mf-nm em{white-space:nowrap}.mf-nm em{font-size:.8em;opacity:.75;font-style:normal}.mf-rk{display:grid!important;grid-template-columns:22px var(--nmw,10em) minmax(0,1fr) max-content;gap:10px;align-items:center}.mf-sb{min-width:0!important}.mf-val{width:auto!important;white-space:nowrap;flex:none!important}.mf-nm{flex:none!important}")
@@ -213,7 +222,7 @@ _RET_INJECT = (" const T = (q) => document.querySelector(q); const tx = ((T('#fp
                " const dl = ((T('#fpTop .delta') || {}).textContent || '').replace(/\\s+/g, ' ').trim(); const sub = (T('#fpSub') || {}).textContent || '';"
                " const prod = (/(大台|小台|微台)（\\w+）/.exec(sub) || [''])[0]; const neg = !!m && m[1] && m[1] !== '+'; const val = m ? Number(m[2]) : 0;"
                " const old = T('.snapkpi'); if (old) old.remove(); const hd = T('.fp-main .fp-hd'); if (hd && m) { const e = document.createElement('div'); e.className = 'snapkpi';"
-               " e.innerHTML = '<b style=\"color:' + (neg ? 'var(--fall)' : 'var(--rise)') + '\">' + (neg ? '\u2212' : '+') + m[2] + '%</b><small>' + prod + '　散戶淨' + (neg ? '空' : '多') + '單占全市場未平倉 ' + val.toFixed(1) + '%' + (dl ? '・' + dl.replace(/^最新一日散戶多空比/, '') : '') + '</small>';"
+               " e.innerHTML = '<b style=\"color:' + (neg ? 'var(--fall)' : 'var(--rise)') + '\">' + (neg ? '\u2212' : '+') + m[2] + '%</b><small>' + prod + (dl ? '　' + dl.replace(/^最新一日散戶多空比/, '').replace(/較前一交易日/, '較前日').trim() : '') + '</small>';"
                " hd.appendChild(e); } window.__ret = { pct: m ? (neg ? '-' : '+') + m[2] + '%' : '', prod: (/(大台|小台|微台)/.exec(prod) || [''])[0] };")
 RETAIL_VARIANTS = ["() => { const b = document.querySelector('#fpProdSeg button[data-p=%s]'); if (b) b.click(); return new Promise(r => setTimeout(r, 1500)).then(() => {" % k + _RET_INJECT + "}); }" for k in ("TX", "MTX", "TMF")]
 def FUT_BARS(h):
@@ -264,7 +273,7 @@ TARGETS = [
          live="#mktMode button[data-m=live]",
          live_ok="() => { const n = document.querySelector('#mktLive');"
                  " return !!n && !n.hidden && !/抓取中|抓不到|失敗|逾時|連不到/.test(n.innerText); }",
-         headline=None, d=[dict(name="market-breadth", hide=[".howbtn", "#mktLive"], hide_exact=["~即時"])], m=[dict(name="market-breadth", hide=[".howbtn", "#distFilter", "#mktLive"], hide_exact=["~即時"], fill=dict(frac=1.0, charts=["#chgDistBox", "#chgDist"]))]),
+         headline=None, d=[dict(name="market-breadth", hide=[".howbtn", "#distFilter", "#mktLive"], hide_exact=["~即時"])], m=[dict(name="market-breadth", hide=[".howbtn", "#distFilter", "#mktLive"], hide_exact=["~即時"], fill=dict(frac=1.0, charts=["#chgDistBox", "#chgDist"]))]),
     # 盤後（法人資料要收盤後證交所公布才有，沒有即時版，所以另一篇發，不放進盤中那篇）
     dict(name="inst-today", kind="close", label="三大法人買賣超", route="market/inst", card="[data-snap=inst-today]", attr_only=True,
          stale=".stale-tag", read=READ_INST, d=[dict(name="inst-today", sel="#instToday", css=INST_CSS, pre=INST_1M)],
@@ -280,8 +289,8 @@ TARGETS = [
     # 跟法人綁同一篇時，法人一到（16:15～17:15）那篇就發掉、當天標成已發，融資卡永遠是「資料未更新」被略過。
     # 拆開後各自把關：這篇只在 market_fut.json 的融資資料日＝網站最新交易日、維持率算得出來、個股排行也是同一天時才發（credit_ready）。
     dict(name="credit-ratio", snap="margin", kind="credit", label="融資維持率", route="market/credit", card="#mf-credit", attr_only=True, stale=".mf-stale", read=READ_CREDIT,
-         story_vw=720, story_dsf=2.0, d=[dict(name="credit-ratio", sel="#mf-credit", css=CREDIT_CSS)],
-         m=[dict(name="credit-ratio", sel="#mf-credit", css=CREDIT_CSS + STORY_Z(1.2), fill=dict(frac=1.0, charts=["#mfChart", "#mfChart2"], split=True))]),
+         story_vw=720, story_dsf=2.0, d=[dict(name="credit-ratio", sel="#mf-credit", css=CREDIT_CSS, pre=CREDIT_PRE)],
+         m=[dict(name="credit-ratio", sel="#mf-credit", css=CREDIT_CSS + STORY_Z(1.2), pre=CREDIT_PRE, fill=dict(frac=1.0, charts=["#mfChart", "#mfChart2"], split=True))]),
     dict(name="credit-rank", snap="margin", kind="credit", label="融資增減排行", route="market/credit", card="#mf-credit", attr_only=True, stale=".mf-stale", read=READ_RK,
          nav="() => { const b = document.querySelector('#mfTab button[data-k=rank]'); if (b) b.click(); return new Promise(r => setTimeout(r, 1200)); }",
          story_vw=720, story_dsf=2.0, d=[dict(name="credit-rank", sel="#mf-credit", css=RANK_CSS)], m=[dict(name="credit-rank", sel="#mf-credit", css=RANK_CSS + ".mf-rkgrid{grid-template-columns:minmax(0,1fr)!important;gap:26px!important}" + STORY_Z(1.3), fill_rows=".mf-rk")]),
@@ -310,7 +319,7 @@ PIECE_META = {
     "inst-today": ("三大法人買賣超 {d}", ""),
     "streak-foreign": ("外資個股買賣超排名 {d}", ""),
     "streak-trust": ("投信個股買賣超排名 {d}", ""),
-    "credit-ratio": ("融資維持率 {d}", ""),
+    "credit-ratio": ("上市融資維持率（估） {d}", ""),      # 估算標在標題括號（2026-10-26：圖上不放說明句）
     "credit-rank": ("融資增減排行 {d}", ""),
     "credit-short": ("融券增減排行 {d}", ""),
     "fut-oi": ("台指期三大法人未平倉 {d}", ""),
@@ -739,6 +748,19 @@ SCAN_JS = """(root) => {   // 掃畫面上看得到的 DOM 文字有沒有「即
   }
   return out;
 }"""
+NOTE_SCAN_JS = """([root, rx]) => {   // 掃畫面上看得到的 DOM 文字有沒有備註／來源／免責（畫布內的字掃不到）
+  const re = new RegExp(rx), out = [], w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  let t;
+  while ((t = w.nextNode())) {
+    const v = (t.nodeValue || '').trim();
+    if (!v || !re.test(v)) continue;
+    const e = t.parentElement;
+    if (!e || !e.getClientRects().length || e.closest('[data-snap-hid]')) continue;
+    const cs = getComputedStyle(e); if (cs.display === 'none' || cs.visibility === 'hidden') continue;
+    out.push(v.slice(0, 40) + ' @' + e.tagName + '.' + (e.className.baseVal ?? e.className));
+  }
+  return out;
+}"""
 UNHIDE_JS = """() => { if (window.__snapObs) { window.__snapObs.disconnect(); window.__snapObs = null; } document.querySelectorAll('[data-snap-hid]').forEach(e => {
   const v = e.getAttribute('data-snap-hid'); e.style.removeProperty('display'); if (v.trim()) e.style.display = v; e.removeAttribute('data-snap-hid'); }); }"""
 
@@ -891,7 +913,7 @@ def _shoot_one(pg, card_el, pc: dict, raw_dir: Path, mode: str, dsf: float) -> d
             tgt = pg.query_selector(pc["sel"]) or tgt
     ctrl = [] if pc.get("css") else CTRL_CSS      # 盤中各卡：控制項（鈕、下拉、分段鈕、頁籤、分頁點、放大）一律不進圖；盤後各卡已用 css 自己處理
     pg.evaluate(FIX_ECHARTS_JS, tgt)
-    pg.evaluate(HIDE_JS, [pg.query_selector(pc["root_sel"]) if pc.get("root_sel") else tgt, {"css": pc.get("hide", []) + ctrl + [".zbadge", ".echarts-tooltip"], "text": pc.get("hide_text", []), "exact": pc.get("hide_exact", []) + ([] if pc.get("css") else CTRL_TEXT), "scrub": pc.get("scrub", [])}])
+    pg.evaluate(HIDE_JS, [pg.query_selector(pc["root_sel"]) if pc.get("root_sel") else tgt, {"css": pc.get("hide", []) + ctrl + NOTE_CSS + [".zbadge", ".echarts-tooltip"], "text": pc.get("hide_text", []), "exact": pc.get("hide_exact", []) + NOTE_TEXT + ([] if pc.get("css") else CTRL_TEXT), "scrub": pc.get("scrub", [])}])
     pg.evaluate("() => { if (window.echarts) document.querySelectorAll('[_echarts_instance_]').forEach(e => { const c = echarts.getInstanceByDom(e); if (c) c.dispatchAction({ type: 'hideTip' }); }); }")
     if mode == "m" and pc.get("fill"):
         bb = tgt.bounding_box()
@@ -923,8 +945,9 @@ def _shoot_one(pg, card_el, pc: dict, raw_dir: Path, mode: str, dsf: float) -> d
         tgt.screenshot(path=str(path))
     minpx = pg.evaluate(PIECE_RECT_JS, [tgt, {"start": None, "end": None}])["minpx"]
     jishi = pg.evaluate(SCAN_JS, tgt)
+    notes = pg.evaluate(NOTE_SCAN_JS, [tgt, NOTE_RE])      # 備註／來源／免責字樣（2026-10-26）：有就不准發
     texts = [x.strip() for x in (tgt.evaluate("e => e.innerText") or "").split("\n") if x.strip()]
-    return {"texts": texts, "jishi": jishi, "name": pc["name"], "raw": str(path), "dsf": dsf, "min_css_font": minpx, "title": pc.get("title", ""), "text": pc.get("text")}
+    return {"texts": texts, "jishi": jishi, "notes": notes, "name": pc["name"], "raw": str(path), "dsf": dsf, "min_css_font": minpx, "title": pc.get("title", ""), "text": pc.get("text")}
 
 
 def shoot_piece(pg, card_el, pc: dict, raw_dir: Path, mode: str, dsf: float) -> dict:
@@ -949,7 +972,7 @@ def shoot_piece(pg, card_el, pc: dict, raw_dir: Path, mode: str, dsf: float) -> 
         y += im.height + gap
     path = raw_dir / f"{mode}_{pc['name']}.png"
     sheet.save(path)
-    return {"texts": [x for r in recs for x in r.get("texts", [])], "jishi": [x for r in recs for x in r["jishi"]], "name": pc["name"], "raw": str(path), "dsf": dsf,
+    return {"texts": [x for r in recs for x in r.get("texts", [])], "jishi": [x for r in recs for x in r["jishi"]], "notes": [x for r in recs for x in r.get("notes", [])], "name": pc["name"], "raw": str(path), "dsf": dsf,
             "min_css_font": min(r["min_css_font"] for r in recs), "title": pc.get("title", ""), "text": None, "reads": reads}
 
 
@@ -1325,7 +1348,7 @@ def caption_lines(kind: str, stamp: str, shots: list[dict], data_date: str, ymd:
             L.append(f"漲跌家數：上漲 {s['breadth']['up']} 家、下跌 {s['breadth']['down']} 家" + lk("market/updown", idx)); idx += 1
     elif kind == "credit":
         yi = lambda x: x.replace("−", "-")
-        L.append(f"台股融資籌碼｜{data_date[5:].replace('-', '/')}")
+        L.append(f"台股盤後融資融券｜{data_date[5:].replace('-', '/')}")      # 2026-10-26 Andy：「盤後也需要新增融資融券」
         r = (ok.get("credit-ratio") or {}).get("read") or {}
         if r.get("ratio"):
             L.append(f"上市融資維持率（估算）{r['ratio']}%" + (f"（較前日 {yi(r['chg'])}pp）" if r.get("chg") else "") + f" → {deep_link('market/credit', kind, ymd)}")
@@ -1356,8 +1379,8 @@ def caption_lines(kind: str, stamp: str, shots: list[dict], data_date: str, ymd:
         r = (ok.get("retail-ratio") or {}).get("read") or []
         if r:
             L.append("散戶多空比：" + "、".join(f"{x.get('prod') or '?'} {yi(x.get('pct') or '—')}" for x in r))
-    L.append(DISCLAIMER)
     L.append(HASHTAGS[kind])
+    L.append(DISCLAIMER)      # 2026-10-26 Andy：免責與來源只放文案最後一行（圖上不放）
     return L
 
 
@@ -1537,6 +1560,13 @@ def main() -> int:
                 log("  ✗", n_, h_)
             (out / "shots.json").write_text(json.dumps(shots, ensure_ascii=False, indent=2), "utf-8")
             return 4
+        bad_notes = [(rec["name"], rec["notes"]) for s in ok for rec in s["pieces_d"] + s["pieces_m"] if rec.get("notes")]
+        log(f"備註／來源字樣掃描：{sum(len(s['pieces_d']) + len(s['pieces_m']) for s in ok)} 片，{sum(len(h) for _, h in bad_notes)} 筆")
+        if bad_notes:
+            for n_, h_ in bad_notes:
+                log("  ✗", n_, h_)
+            (out / "shots.json").write_text(json.dumps(shots, ensure_ascii=False, indent=2), "utf-8")
+            return 5
         for s in shots:
             if not s.get("ok"):
                 log("略過", s["name"], "：", s.get("why"))
