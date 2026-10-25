@@ -36,10 +36,15 @@ def intl_daily(period: str = "1y") -> pd.DataFrame:
             log.warning("yfinance %s 回傳空白", symbol)
             continue
         hist = hist.reset_index()
+        # 2026-10-26 盤前貼文要畫日 K（Andy：「改成日K」）：多存 open／high／low。
+        # 舊列沒有這三欄，store.append 合併後是 NaN；每次抓一年，所以一年內的列會被新抓的（keep=last）補齊。
         frames.append(pd.DataFrame({
             "date": pd.to_datetime(hist["Date"]).dt.date.astype(str),
             "symbol": symbol,
             "label": label,
+            "open": pd.to_numeric(hist.get("Open"), errors="coerce"),
+            "high": pd.to_numeric(hist.get("High"), errors="coerce"),
+            "low": pd.to_numeric(hist.get("Low"), errors="coerce"),
             "close": pd.to_numeric(hist["Close"], errors="coerce"),
             "volume": pd.to_numeric(hist.get("Volume"), errors="coerce"),
         }).dropna(subset=["close"]))
