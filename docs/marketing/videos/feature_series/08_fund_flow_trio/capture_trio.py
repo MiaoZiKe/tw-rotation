@@ -21,7 +21,7 @@ import vidlib8 as V  # noqa: E402
 F, C = V.F, V.C
 SCR = Path(os.environ.get("FEAT_SCR", "/tmp/claude-0/-home-user-tw-rotation/3d7a42eb-0e07-50fa-8c50-cf31c62d682f/scratchpad/feat08"))
 SITE = Path(os.environ.get("FEAT_SITE", "/tmp/claude-0/-home-user-tw-rotation/3d7a42eb-0e07-50fa-8c50-cf31c62d682f/scratchpad/feat06/main_wt/site"))
-OVERLAYS = ['.ddpanel:not([hidden])', '.twms-pan', '#__vsel', '[role=dialog]', '.toast', '#howPop', '.qcov', '.qcard', '.fttip.on']
+OVERLAYS = ['.ddpanel:not([hidden])', '.twms-pan', '#__vsel', '[role=dialog]', '.toast', '#howPop', '.qcov', '.qcard', '.fttip.on', '#lgBanner', '#lgReAccept']
 ELS = {
     "navflow": '#tabs .tab[data-view="flow"]', "subsankey": '.l4subtab[data-l4sub="flow-sankey"]', "subinst": '.l4subtab[data-l4sub="flow-inst"]',
     "clock": "#rotClock", "rank": "#rankFlow", "slider": "#rotBack", "chainr": '#flowRotFilter .rotdd[data-dd="chain"] .ddbtn',
@@ -199,7 +199,9 @@ def run_d(pg, a, start):
     pg2.wait_for_timeout(2500)
     a.pg = pg2
     pan_y, pan_cut = survey_web(a, pg2)
-    pg2.evaluate("() => { localStorage.clear(); sessionStorage.clear(); }")   # 量測用掉的免費額度（網站對訪客的使用次數）一併清掉，錄影用的頁面維持第一次來的狀態
+    pg2.evaluate("() => { localStorage.clear(); sessionStorage.clear(); }")
+    pg2.evaluate(C.PRESET)   # 錄影的預設值（同意紀錄等，不讓同意橫幅入鏡）
+    pg2.evaluate("() => { try { localStorage.setItem('tw.layout4.nav', 'mini'); } catch (e) {} }")   # 量測用掉的免費額度（網站對訪客的使用次數）一併清掉，錄影用的頁面維持第一次來的狀態
     a.pg = pg
     pg2.close()
     F.goto(pg, "#overview", 3500)

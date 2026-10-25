@@ -245,11 +245,11 @@ class A3(CF.A):
             self.move(x, y, ms)
             return
         self.cursor(False)
-        self.wait(220)
+        self.wait(110)
         self._put(x, y)
         self.x, self.y = x, y
         self.cursor(True)
-        self.wait(220)
+        self.wait(110)
 
     def park(self, region=None, texts=None, ms=300, prefer=None):
         """游標停到「附近最近」的空白處（外框外擴 14px 都不碰字），idle 小晃也不壓字。"""
@@ -281,7 +281,7 @@ class A3(CF.A):
         except Exception:  # noqa: BLE001
             return []
 
-    def tap(self, sel, label, pause=140, region_pad=0, nth=None, texts=None, bias=None):
+    def tap(self, sel, label, pause=100, region_pad=0, nth=None, texts=None, bias=None):
         """游標移到元素內「不壓字」的一點 → 點下（細圈漣漪）。回傳 True/False。"""
         b = self.box(sel, scroll=False)
         if not b:
