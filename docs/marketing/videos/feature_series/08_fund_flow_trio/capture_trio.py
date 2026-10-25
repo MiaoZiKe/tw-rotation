@@ -36,7 +36,7 @@ EXTRA_CSS = (".rotdd[data-dd=group] .ddpanel{display:none!important}"
              "header.topbar{background:#f4f8fc!important}"
              ".sitefoot,.sitefoot *{visibility:hidden!important}")
 EXTRA_CSS_M = EXTRA_CSS + "@media (max-width:640px){.plknote{display:none!important}}"   # 手機：「Plus 以上可調整」那行小字在捲動後會飄到排行長條的列標上（網站本身的排版問題），錄影端隱藏；時間列仍是反灰原樣
-PARK_R = (1038, 210, 40, 380)    # 資金輪動：排行長條數值標籤右側的空白欄（沒有長條，不會跳提示框）
+PARK_R = (560, 208, 90, 48)    # 資金輪動：時間列右側、輪盤上方的空白（游標不經過排行長條，下拉清單才不會被圖表連動重畫收掉）
 PARK_S = (540, 78, 140, 26)      # 資金分流樹：卡片標題列中間的空白（不在畫布上，不會觸發節點提示與代表股展開）
 PARK_I = (530, 190, 35, 380)     # 族群×法人：長條圖右側空白欄
 CHAIN_LAB = {"semiconductor": "半導體", "ai_server": "AI 伺服器", "electronics": "一般電子"}
@@ -185,7 +185,6 @@ def open_chain_and_pick(a, pg, card, chain, label, hold_open=1100, hold_after=22
     a.park(region=park, ms=320) if (park and not mob) else None
     a.wait(hold_open)
     opt = f'{card} .rotdd[data-dd="chain"] .ddopt[data-c="{chain}"]'
-    a.note("DEBUG 面板：" + str(pg.evaluate("(card) => [...document.querySelectorAll(card + ' .ddpanel')].map(e => getComputedStyle(e).display + '|' + e.parentElement.dataset.dd + '|' + e.querySelectorAll('.ddopt').length)", card)))
     a.tap(opt, label)
     pg.evaluate("() => document.body.dispatchEvent(new MouseEvent('click', { bubbles: true }))")
     if park and not mob:
@@ -195,7 +194,14 @@ def open_chain_and_pick(a, pg, card, chain, label, hold_open=1100, hold_after=22
 
 def run_d(pg, a, start):
     CROP = V.CROP0["d"]
-    pan_y, pan_cut = survey_web(a, pg)
+    pg2 = pg.context.new_page()   # 量測在另一個分頁做（不碰錄影用的頁面狀態；做完關掉）
+    pg2.goto(pg.url.split("#")[0] + "#overview", wait_until="networkidle")
+    pg2.wait_for_timeout(2500)
+    a.pg = pg2
+    pan_y, pan_cut = survey_web(a, pg2)
+    pg2.evaluate("() => { localStorage.clear(); sessionStorage.clear(); }")   # 量測用掉的免費額度（網站對訪客的使用次數）一併清掉，錄影用的頁面維持第一次來的狀態
+    a.pg = pg
+    pg2.close()
     F.goto(pg, "#overview", 3500)
     ov_y, ov_cut = best_scroll(a, pg, 24, CROP, span=30)
     pg.evaluate("(y) => scrollTo({top: y, behavior: 'instant'})", ov_y)
