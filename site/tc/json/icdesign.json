@@ -21,18 +21,24 @@
           "years": "0-2",
           "base_month_k": [
             80,
-            80
+            82
           ],
-          "bonus_months": null,
-          "annual_months": null,
+          "bonus_months": [
+            5,
+            5
+          ],
+          "annual_months": [
+            14,
+            14
+          ],
           "annual_total_wan": [
             100,
-            160
+            200
           ],
           "weekly_hours": null,
           "overtime": "依部門",
           "travel": "偶爾",
-          "n": 17,
+          "n": 18,
           "note": "網友自述未經查證；Dcard 新鮮人 offer 文預估月薪約 80K、保 14 個月＋分紅；GoodJob 2026-03 一筆 9 萬為年資 3 年已排除；2026-04 一筆 3 萬疑為實習已排除；新聞『碩士年薪上看 200 萬』未標日期不採；總年薪不確定填 null；出差：GoodJob 未見固定出差回報，研發職偶有客戶／海外支援，暫填偶爾（低信心）；撤回：travel 原為沿用／推算／暫填值，無直接證據，已改回原值；第二輪：Dcard offer 約 80K 保 14＋分紅、第一年非 I- 分紅約 4～6 個月；E7 第一年試算約 200 萬（含加班）；2026-02 下半年分紅平均每人約 95 萬（媒體估）；GoodJob 2026-08 面試 8 萬、DV 9.5 萬（每週 50 小時，年資未標，上緣可能非新人）",
           "sources": [
             {
@@ -410,6 +416,25 @@
               "travel": null,
               "quote_free_note": "薪資頁：年資 3 年、年薪 160 萬",
               "in_window": true
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261004881",
+              "date": "2025-08 之後（依編號）",
+              "unit_detail": null,
+              "years": null,
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 150,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "標題稱聯發科 IC 設計新人一年約 150 萬，詢問他家行情",
+              "date_confirmed": true,
+              "in_window": true,
+              "date_note": "依 docs/tc/dcard_id_calibration.md 文章編號≥259537767 確認晚於 2025-08-01"
             }
           ]
         },
@@ -462,7 +487,7 @@
           "years": "0-2",
           "base_month_k": [
             81,
-            81
+            82
           ],
           "bonus_months": null,
           "annual_months": [
@@ -473,7 +498,7 @@
           "weekly_hours": null,
           "overtime": "經常（有加班費）",
           "travel": null,
-          "n": 2,
+          "n": 4,
           "note": "WebSearch 查「聯發科 碩士 薪資 2026」「GoodJob 聯發科」「PTT Tech_Job offer 聯發科」「Dcard offer 聯發科」「104 ESG 薪資中位數」，摘要未出現 2025-10 後碩士職位數字；出差：GoodJob 未見固定出差回報，研發職偶有客戶／海外支援，暫填偶爾（低信心）；撤回：travel 原為沿用／推算／暫填值，無直接證據，已改回原值；第二輪：Dcard 討論稱軟韌普遍要加班、加班費計入後 I- 新人年收也可能逾 120 萬",
           "sources": [
             {
@@ -526,6 +551,44 @@
               "travel": null,
               "quote_free_note": "面試經驗：月薪 8.1 萬、保 14、2／8 月績效獎金；先考線上 C 語言",
               "in_window": true
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/696082c6a6e71688276c04bd",
+              "date": "2026-01",
+              "unit_detail": null,
+              "years": null,
+              "degree": "碩士",
+              "base_k": 82,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "韌體設計在職評價，月薪 8.2 萬，新人期後主要看分紅",
+              "date_confirmed": true,
+              "in_window": true,
+              "date_note": "GoodJob 標題附 2026.1.9"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/259998199",
+              "date": "2025-08 之後（依編號）",
+              "unit_detail": "2026 軟韌體預聘",
+              "years": null,
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "2026 軟韌體預聘研替部門討論，摘要未給數字",
+              "date_confirmed": true,
+              "in_window": true,
+              "date_note": "依 docs/tc/dcard_id_calibration.md 文章編號≥259537767 確認晚於 2025-08-01"
             }
           ]
         },
@@ -669,16 +732,22 @@
           "degree": "碩士",
           "years": "0-2",
           "base_month_k": [
-            85,
+            80,
             85
           ],
-          "bonus_months": null,
-          "annual_months": null,
+          "bonus_months": [
+            5,
+            5
+          ],
+          "annual_months": [
+            14,
+            14
+          ],
           "annual_total_wan": null,
           "weekly_hours": 50,
           "overtime": "依部門",
           "travel": null,
-          "n": 8,
+          "n": 9,
           "note": "網友自述未經查證；僅 Dcard 一篇 offer 文預估 85K 保 14＋分紅，日期不明；舊報導『碩士起薪 4.5 萬、年薪 60～70 萬』明顯過時不採；GoodJob 工時狀況 2.3／5，多則評價稱工時長；第二輪：Dcard VD/DD1 預估 85K 保 14＋分紅、爬文稱常態早 9 晚 9；GoodJob 2025-12 月薪 8.5 萬、每週 45 小時，新人簽約金兩年 50 萬、前兩年年薪約 144 萬；評價稱第一年幾乎沒分紅、分紅很吃景氣",
           "sources": [
             {
@@ -851,6 +920,25 @@
               "travel": null,
               "quote_free_note": "2026 年初新鮮人求職分享：建議準備投影片（碩論、作品）；無數字",
               "in_window": true
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/259579352",
+              "date": "2025-08 之後（依編號）",
+              "unit_detail": null,
+              "years": null,
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "緯穎 vs 聯詠 offer 比較，聯詠數位 IC，摘要稱部門分紅佳但工時長；數字無法確定出自本篇，未填",
+              "date_confirmed": true,
+              "in_window": true,
+              "date_note": "依 docs/tc/dcard_id_calibration.md 文章編號≥259537767 確認晚於 2025-08-01"
             }
           ]
         },
@@ -1338,14 +1426,17 @@
           "role": "韌體",
           "degree": "碩士",
           "years": "0-2",
-          "base_month_k": null,
+          "base_month_k": [
+            92,
+            92
+          ],
           "bonus_months": null,
           "annual_months": null,
           "annual_total_wan": null,
           "weekly_hours": null,
           "overtime": "經常",
           "travel": null,
-          "n": 9,
+          "n": 11,
           "note": "網友自述未經查證；GoodJob 2026-01 FW 月薪 9.2 萬（週 60 小時）、2025-10 韌體 9.2～10.4 萬；年資 3～7 年的筆數已排除，學歷未載，起薪可能更低；GoodJob 自述每週 50～60 小時；分紅月數自述差異大（一則稱 14 個月），不填區間；第二輪：PTT 2026-02 開獎串：2 年 B+ 分紅約 4 個月、5 年 B+ 約 3.5 個月（含年終 2 個月）；尾牙串稱工程師底薪 9 萬多起；GoodJob 2025-12 韌體稱至少 8 萬以上、可報加班費；Dcard 稱 N×14＋簽約金＋分紅、分紅 50% 隔年發；未逐筆對應的舊彙整：{\"base_month_k\": [80, 90], \"bonus_months\": [4, 4], \"annual_total_wan\": [120, 120]}",
           "sources": [
             {
@@ -1551,6 +1642,44 @@
               "travel": null,
               "quote_free_note": "2026 預聘面試分享：拿到 offer、薪資感受偏低標；線上程式題＋主管面；無數字",
               "in_window": true
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/6a85324cc43855f64039a9f1",
+              "date": "2026-08",
+              "unit_detail": null,
+              "years": null,
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "韌體面試經驗，摘要未對應到薪資",
+              "date_confirmed": true,
+              "in_window": true,
+              "date_note": "GoodJob 標題附 2026.8.19"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/69aee70e23e1b8a8b0c168e8",
+              "date": "2026-03",
+              "unit_detail": "軟體工程師（線上面試）",
+              "years": null,
+              "degree": "碩士",
+              "base_k": 92,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "線上面試先白板題再問答，填月薪 9.2 萬，結果未通知",
+              "date_confirmed": true,
+              "in_window": true,
+              "date_note": "GoodJob 標題附 2026.3.9（面試 2026-01）"
             }
           ]
         },
@@ -1717,7 +1846,7 @@
           "weekly_hours": null,
           "overtime": "偶爾",
           "travel": null,
-          "n": 6,
+          "n": 7,
           "note": "網友自述未經查證；GoodJob 韌體設計 2026-04 月薪 9.2 萬（未滿 1 年）、韌體 9.5 萬（1 年）；2025-04 一筆 7 萬早於區間不採；公司頁平均週工時 47、42% 偶爾加班；年資 4～5 年 180～300 萬已排除；第二輪：Dcard 稱碩士起薪已調到約 9 萬、offer 不明寫保 14 但基本會達標；PTT 2026-02 開獎串 3 年 FW 年終 2＋分紅 5 個月（年薪近 300 萬）；GoodJob 韌體 2025-08～10 月薪 9.5～11 萬（範圍外參考）；未逐筆對應的舊彙整：{\"base_month_k\": [90, 90], \"bonus_months\": [5, 5], \"annual_total_wan\": [300, 300]}",
           "sources": [
             {
@@ -1850,6 +1979,25 @@
               "travel": null,
               "quote_free_note": "結構調薪 5Xk→72k→90～91k，每年 8 月調 4～7%，分紅一年兩次",
               "in_window": false
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/68b166a3cd9de388f4c7fb5b",
+              "date": "2025-08",
+              "unit_detail": null,
+              "years": null,
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "韌體在職評價，摘要未明確對應薪資",
+              "date_confirmed": true,
+              "in_window": true,
+              "date_note": "GoodJob 標題附 2025.8.29"
             }
           ]
         },
@@ -1940,7 +2088,10 @@
             80
           ],
           "bonus_months": null,
-          "annual_months": null,
+          "annual_months": [
+            14,
+            14
+          ],
           "annual_total_wan": [
             200,
             200
@@ -2232,14 +2383,20 @@
           "role": "數位 IC 設計",
           "degree": "碩士",
           "years": "0-2",
-          "base_month_k": null,
+          "base_month_k": [
+            86,
+            86
+          ],
           "bonus_months": null,
-          "annual_months": null,
+          "annual_months": [
+            15,
+            15
+          ],
           "annual_total_wan": null,
           "weekly_hours": null,
           "overtime": null,
           "travel": null,
-          "n": 1,
+          "n": 3,
           "note": "",
           "sources": [
             {
@@ -2268,6 +2425,44 @@
               "quote_free_note": "同篇 offer 比較：立錡 86K 保 15＋分紅，學長第一年分紅約 40～50 萬",
               "date_note": "此篇摘要一次說 2025、一次說 2026 年初，互相矛盾，不算確認；依 docs/tc/dcard_id_calibration.md 文章編號≥259537767 確認晚於 2025-08-01",
               "in_window": true
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/6a7c8413b25d25ff8cbabf6c",
+              "date": "2026-08",
+              "unit_detail": null,
+              "years": null,
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "數位 IC 面試，主管問投影片與架構、CDC，摘要未給薪資",
+              "date_confirmed": true,
+              "in_window": true,
+              "date_note": "GoodJob 標題附 2026.8.12"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/6a7e8b59b25d25ff8cdac9c6",
+              "date": "2026-08",
+              "unit_detail": null,
+              "years": null,
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "數位 IC 面試經驗，摘要未對應到薪資數字",
+              "date_confirmed": true,
+              "in_window": true,
+              "date_note": "GoodJob 標題附 2026.8.14"
             }
           ],
           "grade": null
