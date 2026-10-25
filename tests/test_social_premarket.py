@@ -217,3 +217,13 @@ def test_caption_and_premarket_news():
     assert it["source"] == "科技新報" and it["url"] == "https://x/1" and it["published_at"].startswith("2026-10-24T09:18")
     for bad in ("買進", "賣出", "建議買", "看多", "看空"):
         assert bad not in D["summary"]
+
+
+def test_snap_note_regex_catches_notes():
+    import re
+    import social_snap as ss
+    rx = re.compile(ss.NOTE_RE)
+    for bad in ("資料來源：證交所", "僅供參考", "不構成投資建議", "部分估算", "上市融資維持率（估算）", "資料日：10/22", "計算方式"):
+        assert rx.search(bad), bad
+    for ok in ("融資增減排行", "增加 Top 8", "+2.71 千張", "外資", "130%", "較前日 -5.85 pp"):
+        assert not rx.search(ok), ok
