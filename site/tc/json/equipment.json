@@ -153,6 +153,37 @@
             }
           ],
           "n_stat": 3
+        },
+        {
+          "unit": "升級裝機",
+          "role": "UIR 工程師",
+          "degree": "碩士",
+          "samples": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/262349470",
+              "date": "2026-10",
+              "date_confirmed": true,
+              "role": "UIR Engineer",
+              "grade": "JG5",
+              "unit_detail": "EUV 升級裝機／遷移",
+              "years": "2",
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": 14,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "機械碩從國營轉職；N×14 加車補與輪班津貼，底薪未透露",
+              "in_window": true,
+              "date_note": "Andy 桌面版＋Chrome 親眼讀文章頁面發文日期"
+            }
+          ],
+          "sources": [],
+          "confidence": "低",
+          "n": 1
         }
       ],
       "mops": null,
@@ -557,7 +588,7 @@
           "weekly_hours": null,
           "overtime": null,
           "travel": "需要",
-          "n": 3,
+          "n": 4,
           "note": "招募文案保 14 個月；GoodJob 製程 4 年自述年終＋分紅 5.5 個月、年薪 150 萬（非新人），客戶支援助理 110 萬；2026-10 查 GoodJob 設備商批次未見應材加班與分紅月數具體數字；annual_months、annual_total_wan 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples；未逐筆對應的舊彙整：annual_months=[14, 20]；未逐筆對應的舊彙整：annual_total_wan=[110, 150]",
           "sources": [
             {
@@ -632,6 +663,27 @@
               "quote_free_note": "2026 求職文：AMAT 客戶技術支援工程師 offer 月薪 8.5 萬",
               "date_confirmed": true,
               "date_note": "摘要／標題可見日期"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/262347785",
+              "date": "2026-10",
+              "date_confirmed": true,
+              "role": "CE（客戶工程師）",
+              "grade": null,
+              "unit_detail": null,
+              "years": "2",
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "機械碩、半導體約2年經驗；投遞到口頭 offer 約兩個月，薪資未透露",
+              "in_window": true,
+              "date_note": "Andy 桌面版＋Chrome 親眼讀文章頁面發文日期"
             }
           ],
           "n_stat": 1

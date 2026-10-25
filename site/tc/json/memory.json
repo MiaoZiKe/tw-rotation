@@ -32,7 +32,7 @@
           "weekly_hours": null,
           "overtime": "輪班者常態",
           "travel": "不用",
-          "n": 10,
+          "n": 11,
           "note": "比薪水統計中位數 5.5 萬（2025 資料）；PTT 傳碩士 5.5 萬起未經公司證實；比薪水 2026 有 4 年 120 萬、6 年 105 萬自述（非新人）；第二輪（Dcard／PTT／GoodJob 各分開搜）：輪班設備起薪 5.5 萬起、台南 TCP Probe 7.4 萬、台中一年經驗 6.1 萬；保 14 個月（含年終 2 個月）＋分紅 0～4 個月（11 月發），內推文稱年薪約 18 個月；夜班津貼 +20%；FY26 公司另發每人 100 萬感謝金（工會質疑）；內推文數字可能偏樂觀；Dcard 日期依文章編號推估；bonus_months、annual_total_wan 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples；未逐筆對應的舊彙整：bonus_months=[2, 4]；未逐筆對應的舊彙整：annual_total_wan=[80, 100]",
           "sources": [
             {
@@ -270,6 +270,27 @@
               "quote_free_note": "標題標 2026：輪班工程師學畢月薪 5.5 萬起、保 14＋分紅",
               "date_confirmed": true,
               "date_note": "摘要／標題可見日期"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/262296994",
+              "date": "2026-10",
+              "date_confirmed": true,
+              "role": "輪班設備工程師",
+              "grade": "EA",
+              "unit_detail": "銅鑼廠 / 乾蝕刻",
+              "years": "0",
+              "degree": "學士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "電機學士應屆退伍；投遞到 offer 約兩週半，薪資未透露",
+              "in_window": true,
+              "date_note": "Andy 桌面版＋Chrome 親眼讀文章頁面發文日期"
             }
           ],
           "n_stat": 5
@@ -632,7 +653,7 @@
           "weekly_hours": null,
           "overtime": "偶爾",
           "travel": null,
-          "n": 4,
+          "n": 5,
           "note": "比薪水 2026 有分享但金額需解鎖；查無可用數字；查過關鍵字：華邦電 南亞科 碩士 年薪 2026 分紅／華邦電 GoodJob；GoodJob 公司頁平均每週 45 小時、42% 偶爾加班、5% 幾乎每天；2026 多則評價稱分紅少或改半年一次，分紅月數無可靠區間；研發出差未見具體回報，暫填偶爾（低信心）；撤回：travel 原為沿用／推算／暫填值，無直接證據，已改回原值；第二輪：Dcard 四大碩 RD 起薪約 8 萬多；GoodJob 2026-08 類比 IC 2 年經驗 8.2 萬、每週 45 小時（年資 2 年非新人）",
           "sources": [
             {
@@ -731,6 +752,27 @@
               "quote_free_note": "類比 IC 2 年 8.2 萬",
               "date_confirmed": true,
               "date_note": "GoodJob 標題附分享日期"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/262304509",
+              "date": "2026-10",
+              "date_confirmed": true,
+              "role": "設備副工程師",
+              "grade": null,
+              "unit_detail": "設備",
+              "years": "3+",
+              "degree": "學士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "底薪寫 N+10，比同人台積 23 職等高，但沒寫單位",
+              "in_window": true,
+              "date_note": "Andy 桌面版＋Chrome 親眼讀文章頁面發文日期"
             }
           ],
           "n_stat": 1
