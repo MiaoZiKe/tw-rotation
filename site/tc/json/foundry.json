@@ -2950,7 +2950,7 @@
           "weekly_hours": null,
           "overtime": "經常",
           "travel": "不用",
-          "n": 25,
+          "n": 26,
           "note": "GoodJob 製程整合職稱頁台積電回報多在 6～6.4 萬；PTT／Dcard 未找到 PIE 專屬 offer 數字；年薪沿用公司公布碩士平均 220 萬以上；年薪月數為推算（220 萬以上 ÷ 底薪 6～6.4 萬），分紅月數＝推算扣 13 個月，非個人實領；撤回：annual_months、bonus_months 原為沿用／推算／暫填值，無直接證據，已改回原值；2026-10-25 補：PTT 轉貼新聞碩畢 2 年 31 職等年薪約 280 萬（未標職位，僅作工程師整體參考）",
           "sources": [
             {
@@ -3543,6 +3543,28 @@
               "quote_free_note": "同篇與瑞昱 CAD 比較；薪資只說和網路查到的一樣",
               "in_window": true,
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-08-26"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/262336080",
+              "date": "2026-10",
+              "page_date": "2026-10-22",
+              "date_confirmed": true,
+              "role": "製程整合工程師 PIE",
+              "grade": null,
+              "unit_detail": "中科",
+              "years": "0",
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "HR 已在資料審核，預計 11 月中給 offer（發文時還沒正式 offer）；數字未透露",
+              "in_window": true,
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-10-22"
             }
           ],
           "n_in_window": 3
@@ -10941,6 +10963,38 @@
               "quote_free_note": "「假 G」推測是力積電；拿到 offer，但發文者說是文中各家最低的數字",
               "in_window": true,
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-08-25"
+            }
+          ],
+          "sources": [],
+          "confidence": "低",
+          "n": 1
+        },
+        {
+          "unit": "苗栗銅鑼",
+          "role": "水處理輪班工程師",
+          "degree": "碩士",
+          "samples": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/260197379",
+              "date": "2025-11",
+              "page_date": "2025-11-06",
+              "date_confirmed": true,
+              "role": "水處理輪班工程師（廠務）",
+              "grade": null,
+              "unit_detail": "苗栗銅鑼",
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": "幾乎不",
+              "travel": null,
+              "quote_free_note": "友人代發，現職日月光水務輪班工程師（N-15k，加津貼約 N）；力積月薪 N+2k，加輪班津貼約 N+15；做二休二，有加班費",
+              "in_window": true,
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2025-11-06"
             }
           ],
           "sources": [],
