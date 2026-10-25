@@ -1,0 +1,78 @@
+name: Instagram 排程發文
+
+# 每 15 分鐘看一次 social/ig/queue/：只發「status: approved 且 publish_at 已到」的檔案。
+# 金鑰只用 GitHub Secret IG_ACCESS_TOKEN，不寫進任何檔案或 log。
+# 失敗不重發（避免重複貼文）：檔案標成 status: error，工作流程以失敗結束，GitHub 會寄通知。
+# GitHub 的排程可能延遲數分鐘到十幾分鐘，這是平台特性，不是 bug。
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+    inputs:
+      file:
+        description: "只處理這個檔名（queue 內，例如 2026-10-26_test.md）；留空＝全部到點的"
+        type: string
+        default: ""
+      now:
+        description: "忽略 publish_at，立刻發（檔案仍須是 status: approved）"
+        type: boolean
+        default: false
+
+# 與其他會 commit 回 main 的流程共用同一個 group，避免同時 push 互相被拒；不取消進行中的。
+concurrency:
+  group: tw-rotation-data-write
+  cancel-in-progress: false
+
+permissions:
+  contents: write     # 只為了把發文結果（status: posted／error）寫回 queue 檔
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: 先檢查格式（不連外）
+        run: python scripts/ig_post.py --check
+
+      - name: 發出到點且已核准的貼文
+        id: post
+        continue-on-error: true
+        env:
+          IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
+          IN_FILE: ${{ inputs.file }}
+          IN_NOW: ${{ inputs.now }}
+        run: |
+          args=""
+          if [ -n "$IN_FILE" ]; then args="$args --file $IN_FILE"; fi
+          if [ "$IN_NOW" = "true" ]; then args="$args --now"; fi
+          python scripts/ig_post.py $args
+
+      - name: 回寫發文結果（只 add queue）
+        if: always()
+        run: |
+          git config user.name  "tw-rotation-bot"
+          git config user.email "actions@github.com"
+          git add social/ig/queue
+          if git diff --staged --quiet; then
+            echo "沒有變動，跳過 commit"
+            exit 0
+          fi
+          git commit -m "Instagram 發文結果 $(TZ=Asia/Taipei date '+%Y-%m-%d %H:%M')"
+          for i in 1 2 3 4; do
+            git pull --rebase --autostash origin main && git push origin HEAD:main && break
+            sleep $((i*2))
+          done
+
+      - name: 發文失敗就讓整個流程失敗（會收到 GitHub 通知）
+        if: steps.post.outcome == 'failure'
+        run: |
+          echo "發文失敗，請看上一步的訊息；檔案已標 status: error"
+          exit 1
