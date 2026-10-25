@@ -343,7 +343,10 @@
           "role": "客戶技術支援工程師",
           "degree": "碩士",
           "years": "0-4",
-          "base_month_k": null,
+          "base_month_k": [
+            85,
+            85
+          ],
           "bonus_months": null,
           "annual_months": [
             14,
@@ -356,7 +359,7 @@
           "weekly_hours": null,
           "overtime": null,
           "travel": "需要",
-          "n": 2,
+          "n": 3,
           "note": "招募文案保 14 個月；GoodJob 製程 4 年自述年終＋分紅 5.5 個月、年薪 150 萬（非新人），客戶支援助理 110 萬；2026-10 查 GoodJob 設備商批次未見應材加班與分紅月數具體數字；annual_months、annual_total_wan 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples",
           "sources": [
             {
@@ -368,6 +371,11 @@
               "site": "台師大資工公告",
               "url": "https://www.csie.ntnu.edu.tw/wp-content/uploads/2026/04/ATTCH1.pdf",
               "date": "2026-04"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/job/p/261411279",
+              "date": "2026"
             }
           ],
           "confidence": "低",
@@ -408,9 +416,27 @@
               "quote_free_note": null,
               "date_confirmed": false,
               "date_note": "日期為推估或僅年份，不進統計"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/job/p/261411279",
+              "date": "2026",
+              "unit_detail": null,
+              "years": "0-2",
+              "degree": "碩士",
+              "base_k": 85,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "2026 求職文：AMAT 客戶技術支援工程師 offer 月薪 8.5 萬",
+              "date_confirmed": true,
+              "date_note": "摘要／標題可見日期"
             }
           ],
-          "n_stat": 0
+          "n_stat": 1
         }
       ],
       "mops": null,
@@ -431,7 +457,10 @@
           "role": "設備工程師",
           "degree": "碩士",
           "years": "3-6",
-          "base_month_k": null,
+          "base_month_k": [
+            77,
+            77
+          ],
           "bonus_months": [
             5,
             8
@@ -447,12 +476,17 @@
           "weekly_hours": null,
           "overtime": null,
           "travel": "需要",
-          "n": 1,
+          "n": 2,
           "note": "GoodJob 2026 台中 6 年 140 萬、台南 3 年 120 萬，非新人；保 14＋分紅 5～8 個月；bonus_months、annual_months、annual_total_wan 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples",
           "sources": [
             {
               "site": "GoodJob",
               "url": "https://www.goodjob.life/companies/東京威力科創股份有限公司/work-experiences/薪資福利",
+              "date": "2026"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/job/p/261411279",
               "date": "2026"
             }
           ],
@@ -476,9 +510,27 @@
               "quote_free_note": null,
               "date_confirmed": false,
               "date_note": "日期為推估或僅年份，不進統計"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/job/p/261411279",
+              "date": "2026",
+              "unit_detail": null,
+              "years": "0-2",
+              "degree": "碩士",
+              "base_k": 77,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "2026 求職文：TEL offer 月薪 7.7 萬",
+              "date_confirmed": true,
+              "date_note": "摘要／標題可見日期"
             }
           ],
-          "n_stat": 0
+          "n_stat": 1
         }
       ],
       "mops": null,

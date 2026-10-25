@@ -20,7 +20,7 @@
           "degree": "碩士",
           "years": "0-2",
           "base_month_k": [
-            61,
+            55,
             74
           ],
           "bonus_months": [
@@ -38,7 +38,7 @@
           "weekly_hours": null,
           "overtime": "輪班者常態",
           "travel": "不用",
-          "n": 9,
+          "n": 10,
           "note": "比薪水統計中位數 5.5 萬（2025 資料）；PTT 傳碩士 5.5 萬起未經公司證實；比薪水 2026 有 4 年 120 萬、6 年 105 萬自述（非新人）；第二輪（Dcard／PTT／GoodJob 各分開搜）：輪班設備起薪 5.5 萬起、台南 TCP Probe 7.4 萬、台中一年經驗 6.1 萬；保 14 個月（含年終 2 個月）＋分紅 0～4 個月（11 月發），內推文稱年薪約 18 個月；夜班津貼 +20%；FY26 公司另發每人 100 萬感謝金（工會質疑）；內推文數字可能偏樂觀；Dcard 日期依文章編號推估；bonus_months、annual_total_wan 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples",
           "sources": [
             {
@@ -85,9 +85,14 @@
               "site": "GoodJob",
               "url": "https://www.goodjob.life/experiences/69c9e9a718b49866696185d7",
               "date": "2026-03"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/job/p/260599222",
+              "date": "2026"
             }
           ],
-          "confidence": "中",
+          "confidence": "高",
           "grade": "EA／EB（輪班）",
           "samples": [
             {
@@ -177,8 +182,8 @@
               "overtime": null,
               "travel": null,
               "quote_free_note": "台南職缺 5.5～11 萬（徵才文）",
-              "date_confirmed": false,
-              "date_note": "日期為推估或僅年份，不進統計"
+              "date_confirmed": true,
+              "date_note": "摘要／標題可見日期"
             },
             {
               "site": "Dcard",
@@ -251,9 +256,27 @@
               "quote_free_note": "台中約 1 年 6.1 萬、每週約 50 小時",
               "date_confirmed": true,
               "date_note": "GoodJob 標題附分享日期"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/job/p/260599222",
+              "date": "2026",
+              "unit_detail": null,
+              "years": "0-2",
+              "degree": "學士",
+              "base_k": 55,
+              "bonus_months": null,
+              "annual_months": 14,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": "輪班",
+              "travel": null,
+              "quote_free_note": "標題標 2026：輪班工程師學畢月薪 5.5 萬起、保 14＋分紅",
+              "date_confirmed": true,
+              "date_note": "摘要／標題可見日期"
             }
           ],
-          "n_stat": 3
+          "n_stat": 5
         },
         {
           "unit": "台中／桃園廠",
