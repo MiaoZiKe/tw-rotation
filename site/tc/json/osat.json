@@ -32,7 +32,7 @@
           ],
           "overtime": "經常（輪值）",
           "travel": "不用",
-          "n": 7,
+          "n": 8,
           "note": "Dcard 封測整理文（未註日期）碩士 4.6～6.3 萬；GoodJob 2026-06 中壢 1 年資深工程師 8 萬（職等高已排除）、2026-07 高雄 G5 5.1 萬；第二輪：Dcard 製程 offer 多為月薪×14＋績效分紅＋每月小白單（新人約 1 年後才有）；GoodJob 2026-08 高雄碩士 2 年年薪約 75 萬；評價稱碩畢底薪偏低、靠加班費；base_month_k、bonus_months、annual_months 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples；未逐筆對應的舊彙整：base_month_k=[46, 63]；未逐筆對應的舊彙整：bonus_months=[2, 4]；未逐筆對應的舊彙整：annual_months=[14, 16]",
           "sources": [
             {
@@ -201,6 +201,25 @@
               "quote_free_note": "高雄碩士 2 年年薪約 75 萬",
               "date_confirmed": true,
               "date_note": "GoodJob 標題附分享日期"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/6a8c272bc43855f640f0c0ac",
+              "date": "2026-08",
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "產品測試工程師評價，無薪資數字",
+              "date_confirmed": true,
+              "date_note": "GoodJob 標題年月",
+              "in_window": true
             }
           ],
           "n_stat": 2
