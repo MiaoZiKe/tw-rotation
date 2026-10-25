@@ -1117,7 +1117,7 @@
           "weekly_hours": null,
           "overtime": null,
           "travel": null,
-          "n": 13,
+          "n": 14,
           "note": "平台自述統計（未轉貼原文）；碩士起薪最高 7.5 萬為 2023 工商時報（超出窗口）；2026 校徵招 1,700 人未公布薪資；base_month_k 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples",
           "sources": [
             {
@@ -1428,6 +1428,25 @@
               "quote_free_note": "硬體系統電源（面試），摘要無個別數字",
               "date_confirmed": true,
               "date_note": "GoodJob 標題 2026-02",
+              "in_window": true
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/6a7bddb0b25d25ff8ca9902c",
+              "date": "2026-08",
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "ML 工程師面試，追問碩論實作細節",
+              "date_confirmed": true,
+              "date_note": "GoodJob 標題年月",
               "in_window": true
             }
           ]
@@ -2658,7 +2677,7 @@
           "weekly_hours": null,
           "overtime": "偶爾",
           "travel": null,
-          "n": 5,
+          "n": 6,
           "note": "平台自述統計（未轉貼原文）；桃園 1 年年薪 90 萬，自評系統廠偏低；日期未確認；未逐筆對應的舊彙整：{\"annual_total_wan\": [90, 90]}",
           "sources": [
             {
@@ -2780,6 +2799,25 @@
               "quote_free_note": "電子研發工程師評價，摘要提年薪約 70 萬",
               "date_confirmed": true,
               "date_note": "GoodJob 標題 2026-01",
+              "in_window": true
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/6a94291fdcbe5be0a1d90155",
+              "date": "2026-08",
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "硬體研發工程師面試經驗，無薪資數字",
+              "date_confirmed": true,
+              "date_note": "GoodJob 標題年月",
               "in_window": true
             }
           ]
@@ -3992,7 +4030,7 @@
           "weekly_hours": null,
           "overtime": null,
           "travel": null,
-          "n": 2,
+          "n": 3,
           "note": "平台自述統計（未轉貼原文）；不加班、薪水不高；日期未確認；2026-10 GoodJob 批次查詢未見明基資料；annual_total_wan 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples；未逐筆對應的舊彙整：{\"annual_total_wan\": [70, 75]}",
           "sources": [
             {
@@ -4043,6 +4081,25 @@
               "overtime": null,
               "travel": null,
               "quote_free_note": "年資 6 年估年薪約 105 萬，分紅 0.5～1.5 個月"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/6a8ef217ddfa07d242c19f6b",
+              "date": "2026-08",
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "明基電通軟體開發工程師面試，先考英聽與閱讀，未錄取",
+              "date_confirmed": true,
+              "date_note": "GoodJob 標題年月",
+              "in_window": true
             }
           ]
         }
