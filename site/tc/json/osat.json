@@ -10,7 +10,7 @@
       "heat": "Dcard 熱度：高",
       "benefits": "每月績效分紅、三節",
       "stock_plan": "本輪未查到",
-      "bonus_timing": "每月績效獎金＋每年 8 月分紅（中壢廠自述）",
+      "bonus_timing": "網友稱每月績效獎金＋每年 8 月分紅、年終近 2 個月；均為自述，公司未公開",
       "culture": "廠區差異大；高雄輪值加班多",
       "interview": "本輪未查到",
       "roles": [
@@ -354,7 +354,39 @@
         "source": "未取得；查過：<公司> 非主管 薪資 平均 中位數 2025／非主管 平均薪資 2025 萬元 證交所；新聞只列前十名，需至公開資訊觀測站彙總報表查",
         "url": "https://mops.twse.com.tw/"
       },
-      "grade_system": "數字職等：學士 4 職等、碩士 5 職等（Dcard 多則）"
+      "grade_system": "數字職等：學士 4 職等、碩士 5 職等（Dcard 多則）",
+      "bonus_structure": [
+        {
+          "type": "員工分紅",
+          "rule": "網友稱每年約 8 月發（中壢廠自述）",
+          "months": null,
+          "sources": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/255720333",
+              "date": "依文章編號推估 2024"
+            }
+          ]
+        },
+        {
+          "type": "年終獎金",
+          "rule": "網友稱近 2 個月（單一說法）",
+          "months": null,
+          "sources": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/255720333",
+              "date": "依文章編號推估 2024"
+            }
+          ]
+        },
+        {
+          "type": "績效獎金",
+          "rule": "每月發放（自述，未再查證）",
+          "months": null,
+          "sources": []
+        }
+      ]
     },
     {
       "name": "京元電子",
@@ -362,7 +394,7 @@
       "heat": "Dcard 熱度：中",
       "benefits": "三節、分紅",
       "stock_plan": "本輪未查到",
-      "bonus_timing": "本輪未查到",
+      "bonus_timing": "員工酬勞總額 2026 年度約 12 億元（股利資料庫）；發放月份與年終月數查不到",
       "culture": "常被說薪資獎金比同業低、下班後常還要處理事情",
       "interview": "自述面試會先問最低可接受薪資",
       "roles": [
@@ -656,7 +688,21 @@
         "source": "未取得；查過：<公司> 非主管 薪資 平均 中位數 2025／非主管 平均薪資 2025 萬元 證交所；新聞只列前十名，需至公開資訊觀測站彙總報表查",
         "url": "https://mops.twse.com.tw/"
       },
-      "grade_system": null
+      "grade_system": null,
+      "bonus_structure": [
+        {
+          "type": "員工酬勞",
+          "rule": "總額約 12 億元（115 年資料），發放月份未標明",
+          "months": null,
+          "sources": [
+            {
+              "site": "聚財網",
+              "url": "https://stock.wearn.com/dividend.asp?kind=2449",
+              "date": "2026"
+            }
+          ]
+        }
+      ]
     },
     {
       "name": "矽品",
@@ -664,7 +710,7 @@
       "heat": "Dcard 熱度：中",
       "benefits": "三節、分紅",
       "stock_plan": "本輪未查到",
-      "bonus_timing": "本輪未查到",
+      "bonus_timing": "查不到公開的獎金發放月份與月數",
       "culture": "有自述私立碩士與學士待遇差不多",
       "interview": "本輪未查到",
       "roles": [
@@ -871,7 +917,8 @@
         "source": "未取得；查過：<公司> 非主管 薪資 平均 中位數 2025／非主管 平均薪資 2025 萬元 證交所；新聞只列前十名，需至公開資訊觀測站彙總報表查（矽品為日月光投控子公司、非上市，無個別揭露）",
         "url": "https://mops.twse.com.tw/"
       },
-      "grade_system": "數字職等：學士約 29 職等、碩士約 30 職等（Dcard 2025 整理）"
+      "grade_system": "數字職等：學士約 29 職等、碩士約 30 職等（Dcard 2025 整理）",
+      "bonus_structure": []
     }
   ]
 }
