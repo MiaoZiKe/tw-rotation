@@ -901,8 +901,8 @@
           "weekly_hours": null,
           "overtime": "經常（需值班）",
           "travel": "不用",
-          "n": 1,
-          "note": "GoodJob 2026 單筆月薪 6.06 萬；QC 自述 12＋4 個月；學歷年資未標；GoodJob 多則回報公司保障 16 個月（含年終與節金），另 7 月依營運發分紅、4 月調薪；分紅月數未見具體數字（2026-10 查 GoodJob、媒體）",
+          "n": 5,
+          "note": "GoodJob 2026 單筆月薪 6.06 萬；QC 自述 12＋4 個月；學歷年資未標；GoodJob 多則回報公司保障 16 個月（含年終與節金），另 7 月依營運發分紅、4 月調薪；分紅月數未見具體數字（2026-10 查 GoodJob、媒體）；2026-10-25 補：整體平台估算年薪 73～158 萬；工程師保 16 個月＋7 月分紅（HR 稱往年 1～2 個月）",
           "sources": [
             {
               "site": "GoodJob",
@@ -918,6 +918,16 @@
               "site": "GoodJob",
               "url": "https://www.goodjob.life/companies/世界先進積體電路股份有限公司/work-experiences/薪資福利?p=2",
               "date": "2026"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/260679383",
+              "date": "約2025～2026（依文章編號推估，未讀原文）"
+            },
+            {
+              "site": "getcareers",
+              "url": "https://getcareers.app/company/vis/",
+              "date": "2026"
             }
           ],
           "confidence": "低"
@@ -928,20 +938,23 @@
           "degree": "碩士",
           "years": "0-2",
           "base_month_k": [
-            58,
-            58
+            57,
+            62
           ],
           "bonus_months": null,
           "annual_months": [
             16,
-            16
+            18
           ],
-          "annual_total_wan": null,
+          "annual_total_wan": [
+            91,
+            125
+          ],
           "weekly_hours": null,
           "overtime": "經常（需值班）",
           "travel": "不用",
-          "n": 1,
-          "note": "GoodJob 面試回報單筆 5.8 萬（未通知、年資不完整）；Dcard／PTT 查無世界先進 offer。查過：世界先進 offer 碩士 月薪 分紅 面試 2026（Dcard）／世界先進 GoodJob 面試經驗 製程整合 設備工程師 月薪；GoodJob 多則回報公司保障 16 個月（含年終與節金），另 7 月依營運發分紅、4 月調薪；分紅月數未見具體數字（2026-10 查 GoodJob、媒體）；GoodJob 製程職回報工時偏長、需值班；出差未見回報（廠內職）",
+          "n": 5,
+          "note": "GoodJob 面試回報單筆 5.8 萬（未通知、年資不完整）；Dcard／PTT 查無世界先進 offer。查過：世界先進 offer 碩士 月薪 分紅 面試 2026（Dcard）／世界先進 GoodJob 面試經驗 製程整合 設備工程師 月薪；GoodJob 多則回報公司保障 16 個月（含年終與節金），另 7 月依營運發分紅、4 月調薪；分紅月數未見具體數字（2026-10 查 GoodJob、媒體）；GoodJob 製程職回報工時偏長、需值班；出差未見回報（廠內職）；2026-10-25 補：Dcard 碩士 31 職等第二年領滿約 110～125 萬（網友）、第一年保 16 領不滿；研替 offer 57k×16、另簽約金 10 萬；研替同職等有 57／62 兩種價",
           "sources": [
             {
               "site": "GoodJob",
@@ -952,6 +965,21 @@
               "site": "GoodJob",
               "url": "https://www.goodjob.life/companies/世界先進積體電路股份有限公司/work-experiences/薪資福利?p=2",
               "date": "2026"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/job/p/260450914",
+              "date": "約2025～2026（依文章編號推估，未讀原文）"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/258373046",
+              "date": "約2025～2026（依文章編號推估，未讀原文）"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/257797462",
+              "date": "約2025～2026（依文章編號推估，未讀原文）"
             }
           ],
           "confidence": "低"
@@ -960,19 +988,22 @@
           "unit": "晶圓廠 Fab",
           "role": "設備工程師",
           "degree": "碩士",
-          "years": "0-2",
+          "years": "0-6",
           "base_month_k": null,
           "bonus_months": null,
           "annual_months": [
             16,
             16
           ],
-          "annual_total_wan": null,
-          "weekly_hours": null,
+          "annual_total_wan": [
+            82,
+            150
+          ],
+          "weekly_hours": 55,
           "overtime": "偶爾～經常（輪班／值班津貼）",
           "travel": "不用",
-          "n": 0,
-          "note": "僅有 2018 年設備助理工程師 3.8 萬（太舊不採）；GoodJob 多則回報公司保障 16 個月（含年終與節金），另 7 月依營運發分紅、4 月調薪；分紅月數未見具體數字（2026-10 查 GoodJob、媒體）",
+          "n": 4,
+          "note": "僅有 2018 年設備助理工程師 3.8 萬（太舊不採）；GoodJob 多則回報公司保障 16 個月（含年終與節金），另 7 月依營運發分紅、4 月調薪；分紅月數未見具體數字（2026-10 查 GoodJob、媒體）；2026-10-25 補：GoodJob 2026-03 生產設備工程師 6 年年薪約 150 萬、55 小時／週；設備助理工程師面試文（2026-07）",
           "sources": [
             {
               "site": "GoodJob",
@@ -983,6 +1014,16 @@
               "site": "GoodJob",
               "url": "https://www.goodjob.life/companies/世界先進積體電路股份有限公司/work-experiences/薪資福利?p=2",
               "date": "2026"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/69a95e0b814bdd2a2b9c0b27",
+              "date": "2026-03"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/6a4939fbe3262eeb604e40e8",
+              "date": "2026-07"
             }
           ],
           "confidence": "低"
@@ -1017,6 +1058,51 @@
             }
           ],
           "confidence": "低"
+        },
+        {
+          "unit": "晶圓廠 Fab",
+          "degree": "高中職／大專",
+          "years": "0-2",
+          "base_month_k": [
+            28,
+            45
+          ],
+          "bonus_months": null,
+          "annual_months": [
+            16,
+            17
+          ],
+          "annual_total_wan": [
+            60,
+            100
+          ],
+          "weekly_hours": [
+            40,
+            48
+          ],
+          "overtime": "偶爾",
+          "travel": "不用",
+          "confidence": "低",
+          "role": "技術員（日班／夜班）",
+          "note": "GoodJob 2026-03 面試文：新竹技術員底薪 2.8 萬、夜班津貼 8 千、早班保 16 個月、夜班保 17 個月、年薪約 60 萬；另一則約 5 年女性技術員年薪約 100 萬（2026-07）；2023 年月薪 4.5 萬一則為範圍外；Dcard 技術員自述 7 月分紅約 1 個月（範圍外）",
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/69b64087df2a23e97c7f56e7",
+              "date": "2026-03"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/657aed131413e4c913a62af1",
+              "date": "2023-12（範圍外參考）"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/job/p/238508792",
+              "date": "範圍外參考（依文章編號推估 2021～2024）"
+            }
+          ],
+          "n": 3
         }
       ],
       "mops": {
