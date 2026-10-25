@@ -1,0 +1,20 @@
+name = "tw-gh-cron"
+main = "src/index.js"
+compatibility_date = "2026-09-14"
+
+# 準時派工的 Worker：GitHub Actions 的 schedule 會延遲數小時甚至整輪不觸發（2026-10-20～10-23 實測），
+# 所以改由 Cloudflare Cron Trigger 準時呼叫 GitHub 的 workflow_dispatch。設定步驟見 docs/gh_cron_setup.md。
+# 只有排程，不對外開 HTTP（任何請求都回 404）。
+workers_dev = false
+
+[triggers]
+# 每分鐘醒一次，由 src/schedule.js 依「台北時間＋交易日」決定這一分鐘要不要派工。
+# 一個 cron 就夠（免費方案整個帳號最多 5 個，account-api 已用 2 個，這裡只佔 1 個）。
+crons = ["* * * * *"]
+
+[vars]
+GH_REPO = "MiaoZiKe/tw-rotation"
+GH_REF = "main"
+# 盤前貼文（social-live.yml 的 kind=premarket）：workflow 還沒有這個選項時派過去會被 GitHub 回 422，
+# 所以預設關。另一位同事的 premarket 合進 main 之後，把這個改成 "1" 再推即可。
+ENABLE_PREMARKET = "0"
