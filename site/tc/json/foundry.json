@@ -128,14 +128,14 @@
               "unit_detail": "晶圓廠 Fab",
               "years": "0-2",
               "degree": "不限",
-              "base_k": null,
+              "base_k": 65,
               "bonus_months": null,
               "annual_months": null,
               "annual_wan": null,
               "weekly_hours": null,
               "overtime": "經常",
               "travel": "不用",
-              "quote_free_note": "摘要無個人數字，僅作制度／口徑參考"
+              "quote_free_note": "碩士新進月薪約 6.5 萬以上"
             },
             {
               "site": "聯合新聞網",
@@ -147,11 +147,11 @@
               "base_k": null,
               "bonus_months": null,
               "annual_months": null,
-              "annual_wan": null,
+              "annual_wan": 220,
               "weekly_hours": null,
               "overtime": "經常",
               "travel": "不用",
-              "quote_free_note": "摘要無個人數字，僅作制度／口徑參考"
+              "quote_free_note": "公司口徑碩士新進平均年薪 220 萬"
             },
             {
               "site": "財報狗",
@@ -369,7 +369,7 @@
           "degree": "不限",
           "years": "0-2",
           "base_month_k": [
-            65,
+            63,
             65
           ],
           "bonus_months": null,
@@ -378,7 +378,10 @@
             140,
             172
           ],
-          "weekly_hours": null,
+          "weekly_hours": [
+            57,
+            57
+          ],
           "overtime": "經常",
           "travel": "不用",
           "n": 9,
@@ -441,14 +444,14 @@
               "unit_detail": "晶圓廠 Fab",
               "years": "0-2",
               "degree": "不限",
-              "base_k": null,
+              "base_k": 63,
               "bonus_months": null,
               "annual_months": null,
               "annual_wan": null,
-              "weekly_hours": null,
+              "weekly_hours": 57,
               "overtime": "經常",
               "travel": "不用",
-              "quote_free_note": "摘要無個人數字，僅作制度／口徑參考"
+              "quote_free_note": "2026-03 兩則設備自述月薪約 6.3～6.5 萬、55～60 小時、輪班"
             },
             {
               "site": "Dcard",
@@ -585,11 +588,20 @@
           "role": "智慧製造／IT 工程師",
           "degree": "不限",
           "years": "0-2",
-          "base_month_k": null,
+          "base_month_k": [
+            60,
+            60
+          ],
           "bonus_months": null,
           "annual_months": null,
-          "annual_total_wan": null,
-          "weekly_hours": null,
+          "annual_total_wan": [
+            145,
+            145
+          ],
+          "weekly_hours": [
+            45,
+            45
+          ],
           "overtime": "偶爾",
           "travel": "不用",
           "n": 3,
@@ -622,14 +634,14 @@
               "unit_detail": "智慧製造 IT",
               "years": "0-2",
               "degree": "不限",
-              "base_k": null,
+              "base_k": 60,
               "bonus_months": null,
               "annual_months": null,
               "annual_wan": null,
-              "weekly_hours": null,
+              "weekly_hours": 45,
               "overtime": "偶爾",
               "travel": "不用",
-              "quote_free_note": "摘要無個人數字，僅作制度／口徑參考"
+              "quote_free_note": "IT 2026-04 自述底薪 6 萬"
             },
             {
               "site": "Threads（Dcard 科技業轉貼）",
@@ -641,11 +653,11 @@
               "base_k": null,
               "bonus_months": null,
               "annual_months": null,
-              "annual_wan": null,
+              "annual_wan": 145,
               "weekly_hours": null,
               "overtime": "偶爾",
               "travel": "不用",
-              "quote_free_note": "摘要無個人數字，僅作制度／口徑參考"
+              "quote_free_note": "IT 自述第一年約 145 萬、第二年約 300 萬、加班少"
             },
             {
               "site": "salary.tw",
@@ -672,12 +684,12 @@
           "years": "0-2",
           "base_month_k": [
             45,
-            45
+            62
           ],
           "bonus_months": null,
           "annual_months": null,
           "annual_total_wan": [
-            280,
+            220,
             280
           ],
           "weekly_hours": null,
@@ -723,14 +735,14 @@
               "unit_detail": "晶圓廠 Fab",
               "years": "0-2",
               "degree": "不限",
-              "base_k": null,
+              "base_k": 62,
               "bonus_months": null,
               "annual_months": null,
               "annual_wan": null,
               "weekly_hours": null,
               "overtime": "經常",
               "travel": "不用",
-              "quote_free_note": "摘要無個人數字，僅作制度／口徑參考"
+              "quote_free_note": "製程整合職稱頁台積電回報多在 6～6.4 萬"
             },
             {
               "site": "台積電徵才",
@@ -742,11 +754,11 @@
               "base_k": null,
               "bonus_months": null,
               "annual_months": null,
-              "annual_wan": null,
+              "annual_wan": 220,
               "weekly_hours": null,
               "overtime": "經常",
               "travel": "不用",
-              "quote_free_note": "摘要無個人數字，僅作制度／口徑參考"
+              "quote_free_note": "徵才頁（公司口徑）"
             },
             {
               "site": "PTT",
