@@ -12,6 +12,7 @@
 #   ⑥ 成員表旁「?」點得開、內文真的寫了信心與階段
 #   ⑦ 390 手機：沒有橫向捲軸、成員表可框內捲
 #   ⑧ 其他鏈（AI 伺服器）的分頁照常，族群數沒被改
+#   ⑨ 關聯圖只畫成員（Andy 10-25）：圖上沒有任何非成員台股、成員至少 35 檔出現、國際節點都跟成員有邊、其他鏈的關聯圖照舊含非成員
 
 _SIPH_ST = """() => {
   const sec = document.getElementById('siphSec');
@@ -92,6 +93,29 @@ def t_siph_chain_1024(pg, b, base, code):
     ai = next((t for t in pg.evaluate(_TABS_ST) if t["c"] == "ai_server"), None)
     ok(f"{T}：AI 伺服器分頁檔數照常（>0 且為 on）", bool(ai) and ai["n"] > 0 and ai["on"], ai)
     ok(f"{T}：AI 伺服器頁沒有成員與階段表（只有疊加鏈才有）", pg.evaluate("() => !document.getElementById('siphSec')"))
+
+    # ⑨ 關聯圖只畫成員（1440 與 /overview 兩個入口各量一次）
+    for hz in ("#industry/siph_cpo", "#industry/siph_cpo/overview"):
+        pg.set_viewport_size({"width": 1440, "height": 900})
+        pg.goto(base + hz, wait_until="networkidle")
+        wait_until(pg, "() => document.querySelectorAll('#chainMap .co').length > 10 && document.querySelectorAll('#siphSec tr[data-code]').length > 30", 10000)
+        g = pg.evaluate("""async () => {
+          const members = [...new Set([...document.querySelectorAll('#siphSec tr[data-code]')].map(r => r.dataset.code))];
+          const nodes = [...document.querySelectorAll('#chainMap .co')].map(n => ({ id: n.dataset.id, code: n.dataset.code || '', foreign: n.classList.contains('foreign') }));
+          const sc = await (await fetch('data/supply_chain.json')).json();
+          const edges = sc.edges, tw = {}; sc.companies.forEach(c => { tw[c.id] = c.tw_code || ''; });
+          const mset = new Set(members);
+          const foreignOk = nodes.filter(n => n.foreign).map(n => ({ id: n.id, ok: edges.some(e => (e.from === n.id && mset.has(tw[e.to])) || (e.to === n.id && mset.has(tw[e.from]))) }));
+          return { members, shown: nodes.filter(n => n.code).map(n => n.code), nonMember: nodes.filter(n => n.code && !mset.has(n.code)).map(n => n.code),
+                   foreignOk, nForeign: nodes.filter(n => n.foreign).length }; }""")
+        ok(f"{T}（{hz}）：關聯圖沒有任何非成員台股", not g["nonMember"], g["nonMember"])
+        ok(f"{T}（{hz}）：成員至少 35 檔出現在關聯圖（{len(set(g['shown']))}／{len(g['members'])}）", len(set(g["shown"])) >= 35, sorted(set(g["members"]) - set(g["shown"])))
+        ok(f"{T}（{hz}）：國際節點（{g['nForeign']} 個）都和成員有邊", g["nForeign"] > 0 and all(x["ok"] for x in g["foreignOk"]), [x for x in g["foreignOk"] if not x["ok"]])
+    # 其他鏈不受影響：AI 伺服器的關聯圖照舊含非成員（例如京元電 2449）
+    pg.goto(base + "#industry/ai_server/overview", wait_until="networkidle")
+    wait_until(pg, "() => document.querySelectorAll('#chainMap .co').length > 10", 10000)
+    ai_codes = pg.evaluate("() => [...document.querySelectorAll('#chainMap .co[data-code]')].map(n => n.dataset.code)")
+    ok(f"{T}：AI 伺服器關聯圖不受影響（仍有京元電 2449、共 {len(ai_codes)} 檔）", "2449" in ai_codes and len(ai_codes) > 40, len(ai_codes))
     # ⑦ 390
     ctx = b.new_context(viewport={"width": 390, "height": 844}, is_mobile=True, has_touch=True, device_scale_factor=2)
     ctx.add_init_script("try{localStorage.setItem('tw.tour','done');localStorage.setItem('tw.live.on','0')}catch(e){}")

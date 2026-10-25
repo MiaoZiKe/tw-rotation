@@ -1604,7 +1604,7 @@
   }
   window.freqBadge = freqBadge;
   const L = {
-    gname: {}, gid: {}, gchain: {}, gcolor: {}, gidx: {}, cname: {}, cgroup: {}, cmarket: {}, ctheme: {}, chains: {}, scolor: {}, sidx: {}, gsegs: {}, sgroups: {}, all: [], ready: false,
+    gname: {}, gid: {}, gchain: {}, gcolor: {}, gidx: {}, cname: {}, cgroup: {}, cmarket: {}, ctheme: {}, chains: {}, overlay: {}, scolor: {}, sidx: {}, gsegs: {}, sgroups: {}, all: [], ready: false,
     // 環節色：讀的當下才從 PALETTE 取，這樣切主題就會跟著換
     segColor(id) { const i = this.sidx[id]; return i == null ? '#8ea0c4' : PALETTE[i % PALETTE.length]; },
     /* 族群色被十幾個地方直接讀 L.gcolor[gid]，一個個改成函式風險太大，
@@ -1619,12 +1619,12 @@
        畫總覽，首屏畫完再抓整份 industry_map／supply_chain／candidates 重新 init 一次。第二次要從空白重建
        （init 裡有「已經有就不覆蓋」的判斷，疊上去結果會跟一次 init 不同），所以先原地清空（不換物件，別處拿著參照也沒事）。*/
     reset() {
-      ['gname', 'gid', 'gchain', 'gcolor', 'gidx', 'cname', 'cgroup', 'cmarket', 'ctheme', 'chains', 'scolor', 'sidx', 'gsegs', 'sgroups']
+      ['gname', 'gid', 'gchain', 'gcolor', 'gidx', 'cname', 'cgroup', 'cmarket', 'ctheme', 'chains', 'overlay', 'scolor', 'sidx', 'gsegs', 'sgroups']
         .forEach(k => { const o = L[k]; Object.keys(o).forEach(x => { delete o[x]; }); });
     },
     init(im, gt, cands, th, sc, all) {
       const gs = [];
-      if (im) { (im.chains || []).forEach(c => { L.chains[c.id] = c.name; (c.groups || []).forEach(g => gs.push({ ...g, chain: c.id })); }); (im.industries || []).forEach(g => gs.push({ ...g, chain: 'industry' })); }
+      if (im) { (im.chains || []).forEach(c => { L.chains[c.id] = c.name; if (c.overlay) L.overlay[c.id] = 1; (c.groups || []).forEach(g => gs.push({ ...g, chain: c.id })); }); (im.industries || []).forEach(g => gs.push({ ...g, chain: 'industry' })); }
       (gt || []).forEach(g => gs.push({ id: g.group_id, name: g.group_name, chain: g.chain, members: [] }));
       gs.forEach((g, i) => { if (!L.gname[g.id]) { L.gname[g.id] = g.name; L.gid[g.name] = g.id; L.gchain[g.id] = g.chain; L.gidx[g.id] = i; L.gcolor[g.id] = PALETTE[i % PALETTE.length]; } (g.members || []).forEach(m => { if (!L.cname[m.code]) { L.cname[m.code] = m.name; L.cgroup[m.code] = g.id; } if (m.market) L.cmarket[m.code] = m.market; }); });
       (cands || []).forEach(c => { L.cname[c.code] = c.name; if (c.group_id) L.cgroup[c.code] = c.group_id; if (c.market) L.cmarket[c.code] = c.market; });

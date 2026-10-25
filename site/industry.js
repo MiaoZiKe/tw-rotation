@@ -1136,10 +1136,45 @@
          switch／abf_pcb                       ＝ 智邦、載板（景碩、欣興）
        ★ 已知副作用（跟 electronics 拉 ic_design 同一種）：這些環節裡與 CPO 無關的同業（京元電、弘塑、辛耘…）也會出現在關聯圖上。
          它們在族群頁與「矽光子／CPO」的 12 組成分裡都沒有，關聯圖不代表它們有 CPO 業務。
-       ★ 刻意不拉 hdi_pcb／ccl：華通、臻鼎、CCL 三家在這個題材裡是「風險」，畫進關聯圖會被讀成供應關係。 */
+       ★ 2026-10-25：關聯圖改成只畫成員（scFor），這個副作用已消除；hdi_pcb／ccl 也拉進來（成員裡標「風險」的華通、臻鼎、CCL 三家），
+         它們沒有任何指向 CPO 成員的邊，成員表的「影響」欄才是它們對 CPO 的判斷。 */
     siph_cpo: ['ic_design', 'ip_eda', 'foundry', 'osat_test', 'optical_epi', 'optical', 'compound_semi',
-               'test_interface', 'pkg_equipment', 'switch', 'abf_pcb'],
+               'test_interface', 'pkg_equipment', 'switch', 'abf_pcb',
+               // 2026-10-25 起關聯圖只畫成員（scFor），不再怕帶出無關同業，所以補上成員所在的其餘環節：
+               // handset_optics＝大立光、connector＝貿聯-KY、hdi_pcb／ccl＝華通、臻鼎、台燿、台光電、聯茂（題材裡標「風險」，圖上只有節點、沒有指向 CPO 成員的邊）
+               'handset_optics', 'connector', 'hdi_pcb', 'ccl'],
   };
+  /* ★ 2026-10-25 題材分頁（疊加鏈，payload chains[].overlay）的關聯圖只畫「這條鏈的成員」（Andy：「關聯圖只顯示矽光子成員」）。
+     CHAIN_EXTRA 是整個環節拉進來，會帶出京元電、宏捷科這些不是成員的同業；這裡把 supply_chain 濾成「成員視圖」：
+       · 台股：公司節點的 groups 含這條鏈任一族群才留（groups 由 loader.supply_chain 帶，疊加族群也算）
+       · 外商／國際節點：只在跟「留下的台股成員」有邊時才留
+       · 邊：兩端都留下才留；環節：濾空的整格不畫
+     其他鏈（沒有 L.overlay 旗標）原樣回傳同一個物件，行為完全不變。結果依 (sc, cid) 記起來，同一份 sc 永遠回同一個視圖。 */
+  const _scView = new WeakMap();
+  function scFor(sc, cid) {
+    if (!sc || !cid || !(A.L.overlay && A.L.overlay[cid])) return sc;
+    let m = _scView.get(sc); if (!m) { m = {}; _scView.set(sc, m); }
+    if (m[cid] && m[cid].key === (sc.companies || []).length) return m[cid].v;
+    const names = new Set(Object.keys(A.L.gid).filter(n => A.L.gchain[A.L.gid[n]] === cid));
+    const mem = new Set((sc.companies || []).filter(c => c.tw_code && (c.groups || []).some(g => names.has(g))).map(c => c.id));
+    const keep = new Set(mem);
+    (sc.edges || []).forEach(e => {
+      if (e.rel === 'competes') return;
+      const a = (sc.companies || []).find(c => c.id === e.from), b = (sc.companies || []).find(c => c.id === e.to);
+      if (!a || !b) return;
+      if (mem.has(e.from) && b.foreign) keep.add(e.to);
+      if (mem.has(e.to) && a.foreign) keep.add(e.from);
+    });
+    const companies = (sc.companies || []).filter(c => keep.has(c.id));
+    const segIds = new Set(companies.map(c => c.segment));
+    const v = Object.assign({}, sc, {
+      companies, segments: (sc.segments || []).filter(s => segIds.has(s.id)),
+      edges: (sc.edges || []).filter(e => keep.has(e.from) && keep.has(e.to)),
+      competitors: (sc.competitors || []).filter(x => keep.has(x.a) && keep.has(x.b)),
+    });
+    m[cid] = { key: (sc.companies || []).length, v };
+    return v;
+  }
   function chainSegments(sc, cid) {
     if (!sc) return [];
     const extra = CHAIN_EXTRA[cid] || [];
@@ -1183,6 +1218,7 @@
     opts = opts || {};
     const ch = chainData(im, state.chain);
     if (!ch) { show(true, false, false); renderMap(im); return; }
+    sc = scFor(sc, ch.id);                 // 疊加鏈（矽光子／CPO）只畫成員；其他鏈原樣
     show(false, true, false); crumbs([{ label: '產業地圖', href: '#industry' }, { label: ch.name }]);
     const el = $('#indChain');
     /* 重畫這一頁之前先把上一個 3D 場景收掉。
@@ -3450,6 +3486,7 @@
      清單上沒有線，上下游就靠這裡補回來。
      只在有滑鼠的裝置掛（hover:hover）；觸控裝置沒有「滑過」，點下去本來就會選起那一格。*/
   function segTipHtml(sc, chainId, seg) {
+    sc = scFor(sc, chainId);
     const s = (sc && sc.segments.find(x => x.id === seg)) || null; if (!s) return '';
     const segs = chainSegments(sc, chainId), ids = new Set(segs.map(x => x.id));
     const coSeg = {}; sc.companies.forEach(c => { if (ids.has(c.segment)) coSeg[c.id] = c.segment; });
@@ -3509,6 +3546,7 @@
        不用點任何東西，就看得到每一格的「上游 ← 哪幾格、下游 → 哪幾格」與底下的個股標籤。
      退版自 a846f16；行為一模一樣，只有註解與 `#segBox` 預設收起那條規則是這次補的。*/
   function drawSegList(host, sc, chainId, im, handlers) {
+    sc = scFor(sc, chainId);
     if (!host) return { nSeg: 0, nTw: 0, nEdge: 0 };
     // 依 layer 排序＝由上游排到下游；同一層維持 YAML 的順序（那是人工校訂過的）
     /* handlers.focus()：要反亮的環節（上方剖析圖畫到的那幾格，見 renderChain 的 relScopeNow）；null／空＝沒有反亮。
@@ -3748,6 +3786,7 @@
   }
   let m4OpenSeg = null;   // 手機 v2 關聯圖：目前展開的那一格（一次一格）
   function drawChainMap(host, sc, chainId, im, handlers) {
+    sc = scFor(sc, chainId);
     if (!host) return;
     /* ★ 2026-10-03 晚（Andy：「下方的關聯圖為何其他的都不見了，需要有對應那族群的所有關聯圖，並且反亮那族群」，DECISIONS #317）：
        一律畫整條鏈。handlers.focus() 回傳「上方這張剖析圖上真的出現的環節」—— 那幾格反亮（亮框亮底）、其餘淡一點（paintRelFocus）。
