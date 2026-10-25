@@ -271,7 +271,7 @@ def render(dev, CFG, only=None):
             if dev == "m":   # 手機：手指細圈只在點擊那一刻畫在「點擊落點」上
                 cl = [c_ for c_ in meta["clicks"] if c_["kind"] == "click" and -0.2 <= t - c_["t"] <= 0.12]
                 cxy = cl[0]["css_point"] if cl else None
-            if cxy and rect_int((cxy[0] - 12, cxy[1] - 12, 40, 44), crop_css) > 0:
+            if cxy and rect_int((cxy[0] - 12, cxy[1] - 12, 40, 44), crop_css) > 0 and not any(-0.25 <= t - ct <= 0.35 for ct in click_ts):   # 游標只在點下去的瞬間（前 0.25 秒到後 0.35 秒）可以落在被點的目標上
                 ring = any(-0.05 <= t - ct <= 0.65 for ct in click_ts)
                 rr = 7
                 arrow = dev == "d" and m.get("cop", 1) >= 0.25
