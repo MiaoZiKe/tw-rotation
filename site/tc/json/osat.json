@@ -991,6 +991,54 @@
           ]
         }
       ]
+    },
+    {
+      "name": "精材",
+      "code": "3374",
+      "heat": null,
+      "benefits": null,
+      "stock_plan": null,
+      "bonus_timing": null,
+      "bonus_structure": [],
+      "culture": null,
+      "interview": null,
+      "grade_system": null,
+      "mops": null,
+      "roles": [
+        {
+          "unit": "廠務",
+          "role": "廠務工程師",
+          "degree": "碩士",
+          "grade": null,
+          "samples": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/262256627",
+              "date": "2026-10",
+              "date_confirmed": true,
+              "role": "廠務工程師（水氣化）",
+              "grade": null,
+              "unit_detail": "廠務",
+              "years": "3+",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": 14,
+              "annual_wan": 110,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "底薪＝台積碩士新人價減 7 千，保 14，做二休二；年收自估約 110 萬",
+              "in_window": true,
+              "date_note": "Andy 桌面版＋Chrome 親眼讀文章頁面發文日期"
+            }
+          ],
+          "n": 1,
+          "sources": [],
+          "confidence": "低",
+          "note": "2026-10-26 Andy 指示加入"
+        }
+      ]
     }
   ]
 }
