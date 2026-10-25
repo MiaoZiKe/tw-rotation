@@ -45,8 +45,15 @@ def t_tc_1025(b, base, code):
     r0 = rows()
     ok(f"{T}：點公司卡 → 路由變 #tc/foundry/<公司>、出現職位表", "#tc/foundry/" in pg.url and r0 >= 1, (pg.url, r0))
     ok(f"{T}：每一列都有來源與信心度", pg.evaluate("() => [...document.querySelectorAll('#v-tc .tc-row')].every(r => r.querySelector('.tc-src').innerText.trim().length > 2 && r.querySelector('.tc-conf').innerText.trim())"))
-    ok(f"{T}：職位表有 學歷／年薪總月數／分紅發放／出差 欄", pg.evaluate("() => { const t=[...document.querySelectorAll('#v-tc .tc-tbl th')].map(e=>e.innerText).join('|'); return ['學歷','年薪總月數','分紅發放','出差'].every(k=>t.includes(k)); }"))
-    ok(f"{T}：每一列的學歷欄有值（碩士或「—」）", pg.evaluate("() => [...document.querySelectorAll('#v-tc .tc-row .tc-deg')].every(e => e.innerText.trim().length>0)"))
+    ok(f"{T}：職位表有 學歷／年薪總月數／分紅發放／出差 欄", pg.evaluate("() => { const t=[...document.querySelectorAll('#v-tc .tc-tbl > thead th')].map(e=>e.innerText).join('|'); return ['年薪總月數','分紅發放','出差'].every(k=>t.includes(k)) && (t.includes('學歷') || t.includes('單位繁忙度')); }"))
+    ok(f"{T}：每一列的學歷欄有值（碩士或「—」）", pg.evaluate("() => [...document.querySelectorAll('#v-tc .tc-row .tc-deg')].every(e => e.innerText.trim().length>0)") or "2330" in pg.evaluate("() => document.querySelector('#v-tc .tc-code')?.innerText||''"))
+    # ⑦ 2026-10-25 職等與台積電繁忙度
+    ok(f"{T}：職位表有「職等」欄且每列有值或「—」", pg.evaluate("() => [...document.querySelectorAll('#v-tc .tc-tbl > thead th')].some(e=>e.innerText==='職等') && [...document.querySelectorAll('#v-tc .tc-row .tc-grade')].every(e=>e.innerText.trim())"))
+    is_tsmc = "2330" in pg.evaluate("() => (document.querySelector('#v-tc .tc-code')||{}).innerText||''")
+    if is_tsmc:
+        ok(f"{T}：台積電頁不顯示學歷欄、改顯示單位繁忙度與說明句", pg.evaluate("() => { const t=[...document.querySelectorAll('#v-tc .tc-tbl > thead th')].map(e=>e.innerText).join('|'); return !t.includes('學歷') && t.includes('單位繁忙度') && document.body.innerText.includes('台積電不分學歷，薪資差異主要來自單位繁忙度'); }"))
+    gsys = pg.evaluate("() => !!document.querySelector('#v-tc .tc-gs b')")
+    ok(f"{T}：公司頁頂端職等制度（資料有才顯示；有則標題為職等制度）", (not gsys) or pg.evaluate("() => document.querySelector('#v-tc .tc-gs b').innerText==='職等制度'"))
     pg.click("#v-tc .seg[data-fk=ot] button[data-i='3']"); pg.wait_for_timeout(250)
     r1 = rows()
     ok(f"{T}：公司頁篩選加班「經常」→ 職位數真的變少且每列都是經常", 0 <= r1 < r0 and pg.evaluate("() => [...document.querySelectorAll('#v-tc .tc-row .tc-ot')].every(e => e.innerText.includes('經常'))"), (r0, r1))
@@ -67,6 +74,18 @@ def t_tc_1025(b, base, code):
     pg.click("#v-tc .seg[data-fk=hours] button[data-i='1']"); pg.wait_for_timeout(200)
     pg.click("#v-tc .tc-tabs a[data-ind=memory]"); pg.wait_for_timeout(600)
     ok(f"{T}：切產業 → 篩選回 Default（沒有反白的非『全部』鈕）", pg.evaluate("() => document.querySelectorAll('#v-tc .seg button.on:not([data-i=\"0\"])').length") == 0 and "#tc/memory" in pg.url)
+    # ⑧ 逐筆樣本與樣本統計（資料有 samples 才驗；沒有就只驗分頁存在）
+    pg.click("#v-tc .tc-tabs a[data-ind=stats]"); pg.wait_for_timeout(600)
+    ok(f"{T}：「樣本統計」分頁在產業分頁列最前面", pg.evaluate("() => document.querySelector('#v-tc .tc-tabs a').dataset.ind") == "stats" and "#tc/stats" in pg.url)
+    tot = pg.evaluate("() => +document.querySelector('#tcAll')?.innerText || 0")
+    if tot:
+        ok(f"{T}：樣本統計樹狀預設收起，點產業後展開子層", pg.evaluate("() => document.querySelectorAll('#v-tc details.l1[open]').length") == 0 or pg.evaluate("() => document.querySelectorAll('#v-tc details.l1').length") == 1)
+        pg.click("#v-tc .tc-st.l1 > summary"); pg.wait_for_timeout(200)
+        ok(f"{T}：點產業列 → 公司層真的展開", pg.evaluate("() => document.querySelectorAll('#v-tc details.l1[open]').length") >= 1)
+    pg.goto(base + "#tc/foundry", wait_until="load"); pg.wait_for_timeout(800)
+    pg.click("#v-tc .tc-co >> nth=0"); pg.wait_for_timeout(600)
+    if pg.evaluate("() => document.querySelectorAll('#v-tc .tc-exp').length"):
+        ok(f"{T}：點 ▸ 展開逐筆樣本", (pg.click("#v-tc .tc-exp >> nth=0"), pg.wait_for_timeout(200), pg.is_visible("#v-tc .tc-smrow"))[2])
     errs_pg = list(errs)
     c.close()
     # ④ 手機
