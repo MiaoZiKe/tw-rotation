@@ -10,7 +10,7 @@
    "heat": "Dcard 熱度：高",
    "benefits": null,
    "stock_plan": null,
-   "bonus_timing": "GoodJob 摘要：分紅一年兩次（月份未載明）",
+   "bonus_timing": "分紅一年兩次：上半年 8 月底、下半年隔年 2 月底隨薪發放（媒體報導）；提撥稅前淨利約 20%",
    "culture": "分紅依部門紅度與考績差異大；Dcard 傳聞每處約 10% 末位考績（未證實）",
    "interview": null,
    "roles": [
@@ -33,7 +33,7 @@
      "overtime": "依部門",
      "travel": "偶爾",
      "n": 3,
-     "note": "Dcard 新鮮人 offer 文預估月薪約 80K、保 14 個月＋分紅；GoodJob 2026-03 一筆 9 萬為年資 3 年已排除；2026-04 一筆 3 萬疑為實習已排除；新聞『碩士年薪上看 200 萬』未標日期不採；總年薪不確定填 null",
+     "note": "網友自述未經查證；Dcard 新鮮人 offer 文預估月薪約 80K、保 14 個月＋分紅；GoodJob 2026-03 一筆 9 萬為年資 3 年已排除；2026-04 一筆 3 萬疑為實習已排除；新聞『碩士年薪上看 200 萬』未標日期不採；總年薪不確定填 null",
      "sources": [
       {
        "site": "Dcard",
@@ -44,6 +44,11 @@
        "site": "GoodJob",
        "url": "https://www.goodjob.life/companies/聯發科技股份有限公司/work-experiences?p=3",
        "date": "2026-03～04"
+      },
+      {
+       "site": "104 職場力（媒體）",
+       "url": "https://blog.104.com.tw/mediatek-employee-dividends-y24/",
+       "date": "不明"
       }
      ],
      "confidence": "低"
@@ -82,7 +87,16 @@
      "sources": [],
      "confidence": "低"
     }
-   ]
+   ],
+   "mops": {
+    "year": "114年度",
+    "avg_wan": 446.5,
+    "median_wan": 355.2,
+    "n": null,
+    "source": "公開資訊觀測站 非擔任主管全時員工薪資（經媒體報導）",
+    "url": "https://finance.technews.tw/2026/06/30/mediatek-tops-non-executive-average-pay-for-fifth-straight-year/",
+    "note": null
+   }
   },
   {
    "name": "聯詠",
@@ -113,7 +127,7 @@
      "overtime": "依部門",
      "travel": null,
      "n": 1,
-     "note": "僅 Dcard 一篇 offer 文預估 85K 保 14＋分紅，日期不明；舊報導『碩士起薪 4.5 萬、年薪 60～70 萬』明顯過時不採",
+     "note": "網友自述未經查證；僅 Dcard 一篇 offer 文預估 85K 保 14＋分紅，日期不明；舊報導『碩士起薪 4.5 萬、年薪 60～70 萬』明顯過時不採",
      "sources": [
       {
        "site": "Dcard",
@@ -140,7 +154,16 @@
      "sources": [],
      "confidence": "低"
     }
-   ]
+   ],
+   "mops": {
+    "year": "114年度",
+    "avg_wan": 324.6,
+    "median_wan": null,
+    "n": null,
+    "source": "公開資訊觀測站 非擔任主管全時員工薪資（經媒體報導）",
+    "url": "https://finance.technews.tw/2026/06/30/mediatek-tops-non-executive-average-pay-for-fifth-straight-year/",
+    "note": "中位數各報導說法不一（僅知落在 229.7～266.7 萬區間的前十名內），暫填 null"
+   }
   },
   {
    "name": "瑞昱",
@@ -168,7 +191,7 @@
      "overtime": null,
      "travel": null,
      "n": 1,
-     "note": "GoodJob 一筆新人月薪 8.2 萬（學歷未載）；GoodJob 頁面平均週工時 48 小時；年薪 150～300 萬的筆數年資不一（含 24 年）不採",
+     "note": "網友自述未經查證；GoodJob 一筆新人月薪 8.2 萬（學歷未載）；GoodJob 頁面平均週工時 48 小時；年薪 150～300 萬的筆數年資不一（含 24 年）不採",
      "sources": [
       {
        "site": "GoodJob",
@@ -195,7 +218,16 @@
      "sources": [],
      "confidence": "低"
     }
-   ]
+   ],
+   "mops": {
+    "year": "114年度",
+    "avg_wan": 387.1,
+    "median_wan": 319.3,
+    "n": null,
+    "source": "公開資訊觀測站 非擔任主管全時員工薪資（經媒體報導）",
+    "url": "https://finance.technews.tw/2026/06/30/mediatek-tops-non-executive-average-pay-for-fifth-straight-year/",
+    "note": null
+   }
   },
   {
    "name": "群聯",
@@ -241,7 +273,16 @@
      "sources": [],
      "confidence": "低"
     }
-   ]
+   ],
+   "mops": {
+    "year": "114年度",
+    "avg_wan": null,
+    "median_wan": null,
+    "n": null,
+    "source": "公開資訊觀測站 非擔任主管全時員工薪資（經媒體報導）",
+    "url": null,
+    "note": "查「群聯 非主管 薪資 平均 中位數 2025」，媒體摘要未列此公司數字，待查公開資訊觀測站彙總報表"
+   }
   },
   {
    "name": "慧榮",
@@ -287,7 +328,16 @@
      "sources": [],
      "confidence": "低"
     }
-   ]
+   ],
+   "mops": {
+    "year": "114年度",
+    "avg_wan": null,
+    "median_wan": null,
+    "n": null,
+    "source": "公開資訊觀測站 非擔任主管全時員工薪資（經媒體報導）",
+    "url": null,
+    "note": "查「慧榮 非主管 薪資 平均 中位數 2025」，媒體摘要未列此公司數字，待查公開資訊觀測站彙總報表"
+   }
   },
   {
    "name": "瑞鼎",
@@ -333,7 +383,16 @@
      "sources": [],
      "confidence": "低"
     }
-   ]
+   ],
+   "mops": {
+    "year": "114年度",
+    "avg_wan": null,
+    "median_wan": null,
+    "n": null,
+    "source": "公開資訊觀測站 非擔任主管全時員工薪資（經媒體報導）",
+    "url": null,
+    "note": "查「瑞鼎 非主管 薪資 平均 中位數 2025」，媒體摘要未列此公司數字，待查公開資訊觀測站彙總報表"
+   }
   },
   {
    "name": "立錡",
@@ -379,7 +438,16 @@
      "sources": [],
      "confidence": "低"
     }
-   ]
+   ],
+   "mops": {
+    "year": "114年度",
+    "avg_wan": null,
+    "median_wan": null,
+    "n": null,
+    "source": "公開資訊觀測站 非擔任主管全時員工薪資（經媒體報導）",
+    "url": null,
+    "note": "查「立錡 非主管 薪資 平均 中位數 2025」，媒體摘要未列此公司數字，待查公開資訊觀測站彙總報表"
+   }
   },
   {
    "name": "聯陽(ITE)",
@@ -425,7 +493,16 @@
      "sources": [],
      "confidence": "低"
     }
-   ]
+   ],
+   "mops": {
+    "year": "114年度",
+    "avg_wan": null,
+    "median_wan": null,
+    "n": null,
+    "source": "公開資訊觀測站 非擔任主管全時員工薪資（經媒體報導）",
+    "url": null,
+    "note": "查「聯陽(ITE) 非主管 薪資 平均 中位數 2025」，媒體摘要未列此公司數字，待查公開資訊觀測站彙總報表"
+   }
   },
   {
    "name": "奇景",
@@ -471,7 +548,16 @@
      "sources": [],
      "confidence": "低"
     }
-   ]
+   ],
+   "mops": {
+    "year": "114年度",
+    "avg_wan": null,
+    "median_wan": null,
+    "n": null,
+    "source": "公開資訊觀測站 非擔任主管全時員工薪資（經媒體報導）",
+    "url": null,
+    "note": "查「奇景 非主管 薪資 平均 中位數 2025」，媒體摘要未列此公司數字，待查公開資訊觀測站彙總報表"
+   }
   },
   {
    "name": "奕力",
@@ -517,7 +603,16 @@
      "sources": [],
      "confidence": "低"
     }
-   ]
+   ],
+   "mops": {
+    "year": "114年度",
+    "avg_wan": null,
+    "median_wan": null,
+    "n": null,
+    "source": "公開資訊觀測站 非擔任主管全時員工薪資（經媒體報導）",
+    "url": null,
+    "note": "查「奕力 非主管 薪資 平均 中位數 2025」，媒體摘要未列此公司數字，待查公開資訊觀測站彙總報表"
+   }
   },
   {
    "name": "力旺",
@@ -563,7 +658,16 @@
      "sources": [],
      "confidence": "低"
     }
-   ]
+   ],
+   "mops": {
+    "year": "114年度",
+    "avg_wan": null,
+    "median_wan": null,
+    "n": null,
+    "source": "公開資訊觀測站 非擔任主管全時員工薪資（經媒體報導）",
+    "url": null,
+    "note": "查「力旺 非主管 薪資 平均 中位數 2025」，媒體摘要未列此公司數字，待查公開資訊觀測站彙總報表"
+   }
   },
   {
    "name": "天鈺",
@@ -609,7 +713,16 @@
      "sources": [],
      "confidence": "低"
     }
-   ]
+   ],
+   "mops": {
+    "year": "114年度",
+    "avg_wan": null,
+    "median_wan": null,
+    "n": null,
+    "source": "公開資訊觀測站 非擔任主管全時員工薪資（經媒體報導）",
+    "url": null,
+    "note": "查「天鈺 非主管 薪資 平均 中位數 2025」，媒體摘要未列此公司數字，待查公開資訊觀測站彙總報表"
+   }
   },
   {
    "name": "晶豪科",
@@ -655,7 +768,16 @@
      "sources": [],
      "confidence": "低"
     }
-   ]
+   ],
+   "mops": {
+    "year": "114年度",
+    "avg_wan": null,
+    "median_wan": null,
+    "n": null,
+    "source": "公開資訊觀測站 非擔任主管全時員工薪資（經媒體報導）",
+    "url": null,
+    "note": "查「晶豪科 非主管 薪資 平均 中位數 2025」，媒體摘要未列此公司數字，待查公開資訊觀測站彙總報表"
+   }
   },
   {
    "name": "信驊",
@@ -707,7 +829,16 @@
      "sources": [],
      "confidence": "低"
     }
-   ]
+   ],
+   "mops": {
+    "year": "114年度",
+    "avg_wan": null,
+    "median_wan": 453.7,
+    "n": null,
+    "source": "公開資訊觀測站 非擔任主管全時員工薪資（經媒體報導）",
+    "url": "https://wantrich.chinatimes.com/news/20260630900421-420101",
+    "note": "上櫃第一；另有報導平均員工薪資 593.4 萬，但口徑可能是全體員工，未填入 avg"
+   }
   },
   {
    "name": "達發",
@@ -753,7 +884,16 @@
      "sources": [],
      "confidence": "低"
     }
-   ]
+   ],
+   "mops": {
+    "year": "114年度",
+    "avg_wan": null,
+    "median_wan": null,
+    "n": null,
+    "source": "公開資訊觀測站 非擔任主管全時員工薪資（經媒體報導）",
+    "url": null,
+    "note": "查「達發 非主管 薪資 平均 中位數 2025」，媒體摘要未列此公司數字，待查公開資訊觀測站彙總報表"
+   }
   },
   {
    "name": "祥碩",
@@ -799,7 +939,16 @@
      "sources": [],
      "confidence": "低"
     }
-   ]
+   ],
+   "mops": {
+    "year": "114年度",
+    "avg_wan": null,
+    "median_wan": 337.4,
+    "n": null,
+    "source": "公開資訊觀測站 非擔任主管全時員工薪資（經媒體報導）",
+    "url": "https://wantrich.chinatimes.com/news/20260630900421-420101",
+    "note": null
+   }
   },
   {
    "name": "義隆",
@@ -845,7 +994,16 @@
      "sources": [],
      "confidence": "低"
     }
-   ]
+   ],
+   "mops": {
+    "year": "114年度",
+    "avg_wan": null,
+    "median_wan": null,
+    "n": null,
+    "source": "公開資訊觀測站 非擔任主管全時員工薪資（經媒體報導）",
+    "url": null,
+    "note": "查「義隆 非主管 薪資 平均 中位數 2025」，媒體摘要未列此公司數字，待查公開資訊觀測站彙總報表"
+   }
   },
   {
    "name": "創意",
@@ -891,7 +1049,16 @@
      "sources": [],
      "confidence": "低"
     }
-   ]
+   ],
+   "mops": {
+    "year": "114年度",
+    "avg_wan": null,
+    "median_wan": null,
+    "n": null,
+    "source": "公開資訊觀測站 非擔任主管全時員工薪資（經媒體報導）",
+    "url": null,
+    "note": "查「創意 非主管 薪資 平均 中位數 2025」，媒體摘要未列此公司數字，待查公開資訊觀測站彙總報表"
+   }
   },
   {
    "name": "MPS 台灣",
@@ -937,7 +1104,16 @@
      "sources": [],
      "confidence": "低"
     }
-   ]
+   ],
+   "mops": {
+    "year": "114年度",
+    "avg_wan": null,
+    "median_wan": null,
+    "n": null,
+    "source": "公開資訊觀測站 非擔任主管全時員工薪資（經媒體報導）",
+    "url": null,
+    "note": "查「MPS 台灣 非主管 薪資 平均 中位數 2025」，媒體摘要未列此公司數字，待查公開資訊觀測站彙總報表"
+   }
   },
   {
    "name": "円星",
@@ -983,7 +1159,16 @@
      "sources": [],
      "confidence": "低"
     }
-   ]
+   ],
+   "mops": {
+    "year": "114年度",
+    "avg_wan": null,
+    "median_wan": null,
+    "n": null,
+    "source": "公開資訊觀測站 非擔任主管全時員工薪資（經媒體報導）",
+    "url": null,
+    "note": "查「円星 非主管 薪資 平均 中位數 2025」，媒體摘要未列此公司數字，待查公開資訊觀測站彙總報表"
+   }
   },
   {
    "name": "世芯-KY",
@@ -1029,7 +1214,16 @@
      "sources": [],
      "confidence": "低"
     }
-   ]
+   ],
+   "mops": {
+    "year": "114年度",
+    "avg_wan": null,
+    "median_wan": null,
+    "n": null,
+    "source": "公開資訊觀測站 非擔任主管全時員工薪資（經媒體報導）",
+    "url": null,
+    "note": "查「世芯-KY 非主管 薪資 平均 中位數 2025」，媒體摘要未列此公司數字，待查公開資訊觀測站彙總報表"
+   }
   }
  ]
 }

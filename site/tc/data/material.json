@@ -1,0 +1,235 @@
+{
+  "industry": "material",
+  "name": "材料／PCB",
+  "updated": "2026-10-25",
+  "window": "2025-10-25～2026-10-25",
+  "companies": [
+    {
+      "name": "臻鼎",
+      "code": "4958",
+      "heat": "Dcard 熱度：中",
+      "benefits": "績效獎金、留任獎金",
+      "stock_plan": "本輪未查到",
+      "bonus_timing": "10 月分紅；隔年初年終固定 2 個月＋績效獎金",
+      "culture": "工時長（自述 60～72 小時／週）、現場人力不足、可能外派中國；面試評分 3.3／5（45 筆）",
+      "interview": "面試自述：結構含底薪、年終 2 個月、績效與留任獎金，無定期調薪",
+      "roles": [
+        {
+          "unit": "製造廠",
+          "role": "製造工程師",
+          "degree": "碩士",
+          "years": "0-2",
+          "base_month_k": [
+            48,
+            48
+          ],
+          "bonus_months": [
+            2,
+            4
+          ],
+          "annual_months": [
+            14,
+            16
+          ],
+          "annual_total_wan": null,
+          "weekly_hours": [
+            60,
+            72
+          ],
+          "overtime": "經常",
+          "travel": "偶爾（可能外派中國）",
+          "n": 1,
+          "note": "GoodJob 2026-03 高雄單筆；學歷未標",
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/臻鼎科技股份有限公司/work-experiences/薪資福利",
+              "date": "2026-03"
+            }
+          ],
+          "confidence": "低"
+        },
+        {
+          "unit": "桃園總部",
+          "role": "產品系統工程師",
+          "degree": "碩士",
+          "years": "0-2",
+          "base_month_k": null,
+          "bonus_months": [
+            2,
+            6
+          ],
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n": 1,
+          "note": "GoodJob 2026-07 只提發放結構無金額；2025-04 品保自述 7.5 萬含人民幣津貼（外派）不採",
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/臻鼎科技股份有限公司/work-experiences/薪資福利",
+              "date": "2026-07"
+            }
+          ],
+          "confidence": "低"
+        }
+      ]
+    },
+    {
+      "name": "欣興",
+      "code": "3037",
+      "heat": "Dcard 熱度：中",
+      "benefits": "本輪未查到",
+      "stock_plan": "本輪未查到",
+      "bonus_timing": "年終約 2 個月（自述）",
+      "culture": "工作量大；分紅沒保障、升等制度不明確，但每年都加薪",
+      "interview": "本輪未查到",
+      "roles": [
+        {
+          "unit": "載板廠",
+          "role": "製程工程師",
+          "degree": "碩士",
+          "years": "0-2",
+          "base_month_k": [
+            55,
+            60
+          ],
+          "bonus_months": [
+            2,
+            2
+          ],
+          "annual_months": [
+            14,
+            15
+          ],
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": "經常",
+          "travel": "不用",
+          "n": 2,
+          "note": "GoodJob 不到 1 年 5.9 萬；salary.tw 2026-06 桃園年終約 2 個月；學歷未標",
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/欣興電子股份有限公司/work-experiences/薪資福利",
+              "date": "2026"
+            },
+            {
+              "site": "比薪水",
+              "url": "https://salary.tw/salary/6a1e46659efe80e53205c8a7",
+              "date": "2026-06"
+            }
+          ],
+          "confidence": "低"
+        }
+      ]
+    },
+    {
+      "name": "景碩",
+      "code": "3189",
+      "heat": "Dcard 熱度：低",
+      "benefits": "本輪未查到",
+      "stock_plan": "本輪未查到",
+      "bonus_timing": "本輪未查到",
+      "culture": "自述「除了工程師以外不太建議」",
+      "interview": "本輪未查到",
+      "roles": [
+        {
+          "unit": "載板廠",
+          "role": "製程工程師",
+          "degree": "碩士",
+          "years": "0-2",
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n": 0,
+          "note": "比薪水 2026 有 2 筆但金額需解鎖；查無可用數字；查過關鍵字：景碩 南電 台光電 工程師 月薪 2026 GoodJob 年終／欣興 景碩 南電 載板 碩士 年薪 Dcard 2026",
+          "sources": [
+            {
+              "site": "比薪水",
+              "url": "https://salary.tw/salary/6a574953da9cdc42fb0a64e7",
+              "date": "2026-07"
+            }
+          ],
+          "confidence": "低"
+        }
+      ]
+    },
+    {
+      "name": "南電",
+      "code": "8046",
+      "heat": "Dcard 熱度：低",
+      "benefits": "本輪未查到",
+      "stock_plan": "本輪未查到",
+      "bonus_timing": "本輪未查到",
+      "culture": "本輪未查到",
+      "interview": "本輪未查到",
+      "roles": [
+        {
+          "unit": "載板廠",
+          "role": "製程工程師",
+          "degree": "碩士",
+          "years": "0-2",
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n": 0,
+          "note": "查無可用數字；查過關鍵字：景碩 南電 台光電 工程師 月薪 2026 GoodJob 年終／南亞電路板 台光電 工程師 薪水 GoodJob 年終 分紅／欣興 景碩 南電 載板 碩士 年薪 Dcard 2026",
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/",
+              "date": "2026"
+            }
+          ],
+          "confidence": "低"
+        }
+      ]
+    },
+    {
+      "name": "台光電",
+      "code": "2383",
+      "heat": "Dcard 熱度：低",
+      "benefits": "本輪未查到",
+      "stock_plan": "本輪未查到",
+      "bonus_timing": "本輪未查到",
+      "culture": "舊資料（2021～22）日均 9～12 小時",
+      "interview": "本輪未查到",
+      "roles": [
+        {
+          "unit": "CCL 廠",
+          "role": "製程工程師",
+          "degree": "碩士",
+          "years": "0-2",
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n": 0,
+          "note": "比薪水只有 2020～2022 年資料且金額需解鎖；查無可用數字；查過關鍵字：南亞電路板 台光電 工程師 薪水 GoodJob 年終 分紅／景碩 南電 台光電 工程師 月薪 2026 GoodJob",
+          "sources": [
+            {
+              "site": "比薪水",
+              "url": "https://salary.tw/salary/61fc98109b3b5f543e699db2",
+              "date": "2022"
+            }
+          ],
+          "confidence": "低"
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,237 @@
+{
+  "industry": "memory",
+  "name": "記憶體",
+  "updated": "2026-10-25",
+  "window": "2025-10-25～2026-10-25",
+  "companies": [
+    {
+      "name": "美光台灣",
+      "code": "Micron",
+      "heat": "Dcard 熱度：中",
+      "benefits": "保 14 個月（12＋年終 2）",
+      "stock_plan": "外商員工購股計畫，細節本輪未查證",
+      "bonus_timing": "本輪未查到",
+      "culture": "外商制度、台中桃園廠輪班多",
+      "interview": "本輪未查到",
+      "roles": [
+        {
+          "unit": "台中／桃園廠",
+          "role": "設備工程師",
+          "degree": "碩士",
+          "years": "0-2",
+          "base_month_k": [
+            48,
+            63
+          ],
+          "bonus_months": [
+            2,
+            4
+          ],
+          "annual_months": [
+            14,
+            16
+          ],
+          "annual_total_wan": [
+            80,
+            100
+          ],
+          "weekly_hours": null,
+          "overtime": "輪班者常態",
+          "travel": "不用",
+          "n": 3,
+          "note": "比薪水統計中位數 5.5 萬（2025 資料）；PTT 傳碩士 5.5 萬起未經公司證實；比薪水 2026 有 4 年 120 萬、6 年 105 萬自述（非新人）",
+          "sources": [
+            {
+              "site": "比薪水",
+              "url": "https://salary.tw/insights/article/2026-micron-salary",
+              "date": "2026"
+            },
+            {
+              "site": "ETtoday",
+              "url": "https://finance.ettoday.net/news/1076048",
+              "date": "未明"
+            }
+          ],
+          "confidence": "低"
+        },
+        {
+          "unit": "台中／桃園廠",
+          "role": "製程工程師（常日）",
+          "degree": "碩士",
+          "years": "0-2",
+          "base_month_k": [
+            54,
+            58
+          ],
+          "bonus_months": null,
+          "annual_months": [
+            14,
+            14
+          ],
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": "不用",
+          "n": 1,
+          "note": "整理文稱常日班 5.4 萬起、輪班 4.6 萬起，依學歷科系核敘；未區分碩士",
+          "sources": [
+            {
+              "site": "比薪水",
+              "url": "https://salary.tw/insights/article/2026-micron-salary",
+              "date": "2026"
+            }
+          ],
+          "confidence": "低"
+        }
+      ]
+    },
+    {
+      "name": "華邦電",
+      "code": "2344",
+      "heat": "Dcard 熱度：低",
+      "benefits": "本輪未查到",
+      "stock_plan": "本輪未查到",
+      "bonus_timing": "本輪未查到",
+      "culture": "對分紅評價分歧：有人說不清楚，有人說不值得期待",
+      "interview": "本輪未查到",
+      "roles": [
+        {
+          "unit": "晶圓廠 Fab",
+          "role": "製程工程師",
+          "degree": "碩士",
+          "years": "0-2",
+          "base_month_k": [
+            65,
+            68
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": "不用",
+          "n": 2,
+          "note": "GoodJob 兩筆不到 1 年自述月薪 6.5／6.8 萬；5 年記憶體開發 8 萬已排除；學歷未標",
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/華邦電子股份有限公司/work-experiences/",
+              "date": "2026"
+            }
+          ],
+          "confidence": "低"
+        },
+        {
+          "unit": "研發 R&D",
+          "role": "數位 IC 設計／設備工程師",
+          "degree": "碩士",
+          "years": "0-2",
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n": 0,
+          "note": "比薪水 2026 有分享但金額需解鎖；查無可用數字；查過關鍵字：華邦電 南亞科 碩士 年薪 2026 分紅／華邦電 GoodJob",
+          "sources": [
+            {
+              "site": "比薪水",
+              "url": "https://salary.tw/salary/6979f9e9e690c4ab670ffb04",
+              "date": "2026"
+            }
+          ],
+          "confidence": "低"
+        }
+      ]
+    },
+    {
+      "name": "南亞科",
+      "code": "2408",
+      "heat": "Dcard 熱度：中",
+      "benefits": "三節、加班費、季獎金、特殊獎金",
+      "stock_plan": "景氣好時有公司股票認股（自述）",
+      "bonus_timing": "年終 2 個月；分紅分四季，另每年 7 月一次大的（自述）",
+      "culture": "分紅隨 DRAM 景氣大起大落；虧損年只剩保障薪資",
+      "interview": "本輪未查到",
+      "roles": [
+        {
+          "unit": "晶圓廠 Fab",
+          "role": "設備工程師（薄膜）",
+          "degree": "碩士",
+          "years": "0-2",
+          "base_month_k": [
+            45,
+            70
+          ],
+          "bonus_months": [
+            0,
+            3
+          ],
+          "annual_months": [
+            15,
+            18
+          ],
+          "annual_total_wan": [
+            90,
+            110
+          ],
+          "weekly_hours": null,
+          "overtime": "偶爾（有加班費）",
+          "travel": "不用",
+          "n": 2,
+          "note": "GoodJob 2026 薄膜設備自述獎金算多；月薪 4.5～7 萬區間跨學歷年資；保 15 個月常被提及",
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/南亞科技股份有限公司/work-experiences/薪資福利",
+              "date": "2026"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/南亞科技股份有限公司/work-experiences/薪資福利?p=2",
+              "date": "2025"
+            }
+          ],
+          "confidence": "低"
+        },
+        {
+          "unit": "晶圓廠 Fab",
+          "role": "製程／整合工程師",
+          "degree": "碩士",
+          "years": "0-2",
+          "base_month_k": [
+            50,
+            65
+          ],
+          "bonus_months": [
+            0,
+            3
+          ],
+          "annual_months": [
+            15,
+            18
+          ],
+          "annual_total_wan": [
+            90,
+            100
+          ],
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": "不用",
+          "n": 2,
+          "note": "2025-02 自述年薪 100 萬（含職等津貼、季獎金、分紅）；有人說近年虧損無分紅年薪不到百萬",
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/南亞科技股份有限公司/work-experiences/薪資福利?p=4",
+              "date": "2025"
+            }
+          ],
+          "confidence": "低"
+        }
+      ]
+    }
+  ]
+}

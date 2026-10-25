@@ -1,1 +1,392 @@
-{"industry": "foundry", "name": "IC 晶圓代工", "updated": "2026-10-25", "window": "2025-10-25～2026-10-25", "companies": [{"name": "測試甲", "code": "0000", "heat": "高", "benefits": "福利一句", "stock_plan": "員工持股信託", "bonus_timing": "每年 3 月", "culture": "風氣一句", "interview": "兩關面試", "roles": [{"unit": "晶圓廠 Fab", "role": "製程工程師", "degree": "碩士", "years": "0-2", "base_month_k": [55, 65], "bonus_months": [8, 12], "annual_months": [20, 26], "annual_total_wan": [150, 200], "weekly_hours": 50, "overtime": "經常", "travel": "不用", "n": 12, "note": "", "sources": [{"site": "GoodJob", "url": "https://www.goodjob.life/", "date": "2026-09"}, {"site": "Dcard", "url": "https://www.dcard.tw/", "date": "2026-10"}], "confidence": "高"}, {"unit": "晶圓廠 Fab", "role": "設備工程師", "degree": "碩士", "years": "0-2", "base_month_k": [50, 60], "bonus_months": [6, 9], "annual_months": [18, 22], "annual_total_wan": [110, 140], "weekly_hours": 56, "overtime": "經常", "travel": "不用", "n": 9, "note": "", "sources": [{"site": "GoodJob", "url": "https://www.goodjob.life/", "date": "2026-09"}, {"site": "Dcard", "url": "https://www.dcard.tw/", "date": "2026-10"}], "confidence": "中"}, {"unit": "研發 R&D", "role": "研發工程師", "degree": "碩士", "years": "0-2", "base_month_k": [65, 80], "bonus_months": [9, 12], "annual_months": [22, 28], "annual_total_wan": [180, 240], "weekly_hours": 45, "overtime": "偶爾", "travel": "不用", "n": 7, "note": "", "sources": [{"site": "GoodJob", "url": "https://www.goodjob.life/", "date": "2026-09"}, {"site": "Dcard", "url": "https://www.dcard.tw/", "date": "2026-10"}], "confidence": "高"}]}, {"name": "測試乙", "code": "0001", "heat": "中", "benefits": "x", "stock_plan": "x", "bonus_timing": "每年 6 月", "culture": "x", "interview": "x", "roles": [{"unit": "行銷", "role": "業務", "degree": "碩士", "years": "0-2", "base_month_k": [45, 52], "bonus_months": [2, 4], "annual_months": [14, 16], "annual_total_wan": [70, 90], "weekly_hours": 42, "overtime": "幾乎不", "travel": "不用", "n": 5, "note": "", "sources": [{"site": "GoodJob", "url": "https://www.goodjob.life/", "date": "2026-09"}, {"site": "Dcard", "url": "https://www.dcard.tw/", "date": "2026-10"}], "confidence": "低"}, {"unit": "研發 R&D", "role": "研發工程師", "degree": "碩士", "years": "0-2", "base_month_k": [60, 70], "bonus_months": [4, 6], "annual_months": [16, 19], "annual_total_wan": [100, 130], "weekly_hours": 46, "overtime": "偶爾", "travel": "不用", "n": 6, "note": "", "sources": [{"site": "GoodJob", "url": "https://www.goodjob.life/", "date": "2026-09"}, {"site": "Dcard", "url": "https://www.dcard.tw/", "date": "2026-10"}], "confidence": "高"}]}]}
+{
+  "industry": "foundry",
+  "name": "IC 晶圓代工",
+  "updated": "2026-10-25",
+  "window": "2025-10-25～2026-10-25",
+  "companies": [
+    {
+      "name": "台積電",
+      "code": "2330",
+      "heat": "Dcard 熱度：高",
+      "benefits": "三節、運動會獎金、員工旅遊與健康中心",
+      "stock_plan": "員工持股信託（公司提撥）；細節本輪未查證",
+      "bonus_timing": "分紅按季發放，GoodJob 自述另有 7 月整季分紅",
+      "culture": "高薪高工時；GoodJob 工時狀況平均 2.6／5（109 筆）",
+      "interview": "本輪未查到近一年面試流程摘要",
+      "roles": [
+        {
+          "unit": "晶圓廠 Fab",
+          "role": "製程工程師",
+          "degree": "碩士",
+          "years": "0-2",
+          "base_month_k": [
+            63,
+            68
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": [
+            200,
+            240
+          ],
+          "weekly_hours": [
+            50,
+            60
+          ],
+          "overtime": "經常",
+          "travel": "不用",
+          "n": 3,
+          "note": "公司徵才稱碩士新進平均年薪 220 萬以上（含分紅，公司口徑）；GoodJob 自述碩士新進月薪約 6.5 萬以上；分紅月數無可靠區間",
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台灣積體電路製造股份有限公司(台積電) TSMC/work-experiences/薪資福利?p=3",
+              "date": "2026"
+            },
+            {
+              "site": "聯合新聞網",
+              "url": "https://udn.com/news/story/7240/9366095",
+              "date": "2026-04"
+            },
+            {
+              "site": "財報狗",
+              "url": "https://statementdog.com/news/17537",
+              "date": "2026-08"
+            }
+          ],
+          "confidence": "中"
+        },
+        {
+          "unit": "晶圓廠 Fab",
+          "role": "設備工程師",
+          "degree": "碩士",
+          "years": "0-2",
+          "base_month_k": [
+            63,
+            65
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": [
+            55,
+            60
+          ],
+          "overtime": "經常",
+          "travel": "不用",
+          "n": 2,
+          "note": "GoodJob 2026-03 兩則自述（台中、高雄，不到 1 年），工時 55～60 小時／週、需輪班；學歷未標",
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台灣積體電路製造股份有限公司(台積電) TSMC/work-experiences?p=6",
+              "date": "2026-03"
+            }
+          ],
+          "confidence": "低"
+        },
+        {
+          "unit": "智慧製造 IT",
+          "role": "智慧製造工程師",
+          "degree": "碩士",
+          "years": "0-2",
+          "base_month_k": [
+            60,
+            64
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": 45,
+          "overtime": "偶爾",
+          "travel": "不用",
+          "n": 1,
+          "note": "GoodJob 2026-04 單筆（台南，不到 1 年），自述底薪 6 萬＋三節＋分紅＋運動會獎金",
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台灣積體電路製造股份有限公司(台積電) TSMC/work-experiences/薪資福利?p=4",
+              "date": "2026-04"
+            }
+          ],
+          "confidence": "低"
+        }
+      ]
+    },
+    {
+      "name": "聯電",
+      "code": "2303",
+      "heat": "Dcard 熱度：中",
+      "benefits": "育兒津貼、彈性工時、南科獎金（約 2 個月，自述）",
+      "stock_plan": "本輪未查到",
+      "bonus_timing": "自述保底約 16 個月，1／4／7／10 月發放；額外分紅看營運",
+      "culture": "GoodJob 薪資福利 3.9／5（33 筆）；普遍認為不如台積但穩",
+      "interview": "本輪未查到；有自述簽約金 10 萬需待滿兩年",
+      "roles": [
+        {
+          "unit": "晶圓廠 Fab",
+          "role": "製程工程師",
+          "degree": "碩士",
+          "years": "0-2",
+          "base_month_k": [
+            50,
+            70
+          ],
+          "bonus_months": [
+            2,
+            4
+          ],
+          "annual_months": [
+            14,
+            16.2
+          ],
+          "annual_total_wan": null,
+          "weekly_hours": [
+            45,
+            75
+          ],
+          "overtime": "偶爾～經常（依部門）",
+          "travel": "不用",
+          "n": 3,
+          "note": "GoodJob 自述月薪多落在 5～7 萬；salary.tw 台南製程有日均 14～15 小時自述（2025）；學歷未標，區間寬疑含學士／年資差",
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯華電子股份有限公司/work-experiences/薪資福利",
+              "date": "2026"
+            },
+            {
+              "site": "比薪水",
+              "url": "https://salary.tw/salary/681b812e0c26c70ecf0089c9",
+              "date": "2025"
+            }
+          ],
+          "confidence": "低"
+        },
+        {
+          "unit": "晶圓廠 Fab",
+          "role": "設備工程師",
+          "degree": "碩士",
+          "years": "未明",
+          "base_month_k": [
+            70,
+            78
+          ],
+          "bonus_months": null,
+          "annual_months": [
+            14,
+            16.2
+          ],
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": "不用",
+          "n": 1,
+          "note": "GoodJob 單筆月薪 7.7 萬，年資未明，疑非新人",
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯華電子股份有限公司/work-experiences/?p=2",
+              "date": "2026"
+            }
+          ],
+          "confidence": "低"
+        }
+      ]
+    },
+    {
+      "name": "世界先進",
+      "code": "5347",
+      "heat": "Dcard 熱度：低",
+      "benefits": "本輪未查到",
+      "stock_plan": "本輪未查到",
+      "bonus_timing": "本輪未查到",
+      "culture": "比薪水稱年薪高於半導體業平均；2025-10 一則資深自述「保障 16 個月、不太推薦」",
+      "interview": "本輪未查到",
+      "roles": [
+        {
+          "unit": "晶圓廠 Fab",
+          "role": "生產線工程師",
+          "degree": "碩士",
+          "years": "0-2",
+          "base_month_k": [
+            60,
+            61
+          ],
+          "bonus_months": null,
+          "annual_months": [
+            16,
+            16
+          ],
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": "不用",
+          "n": 1,
+          "note": "GoodJob 2026 單筆月薪 6.06 萬；QC 自述 12＋4 個月；學歷年資未標",
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/世界先進積體電路股份有限公司/work-experiences/薪資福利",
+              "date": "2026"
+            },
+            {
+              "site": "比薪水",
+              "url": "https://salary.tw/salary/68ddb4dbe1da1b9e520fbc24",
+              "date": "2025-10"
+            }
+          ],
+          "confidence": "低"
+        },
+        {
+          "unit": "晶圓廠 Fab",
+          "role": "製程工程師",
+          "degree": "碩士",
+          "years": "0-2",
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n": 0,
+          "note": "查無可用數字；查過關鍵字：世界先進 碩士 薪水 年薪 2026 Dcard／世界先進 工程師 月薪 分紅 季獎金 2026 GoodJob 製程／世界先進 力積電 碩士 薪水",
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/世界先進積體電路股份有限公司/work-experiences/薪資福利",
+              "date": "2026"
+            }
+          ],
+          "confidence": "低"
+        }
+      ]
+    },
+    {
+      "name": "力積電",
+      "code": "6770",
+      "heat": "Dcard 熱度：中",
+      "benefits": "產線績效獎金約每月 1,500 元（自述）",
+      "stock_plan": "自述員工認股 5 折（2025）",
+      "bonus_timing": "保 14 個月（含年終 2 個月）；季獎金與分紅近一年自述多未發",
+      "culture": "底薪在代工廠中不差，但分紅「可以當作沒有」是常見說法",
+      "interview": "本輪未查到",
+      "roles": [
+        {
+          "unit": "晶圓廠 Fab",
+          "role": "製程工程師",
+          "degree": "碩士",
+          "years": "0-2",
+          "base_month_k": [
+            60,
+            62
+          ],
+          "bonus_months": [
+            0,
+            0
+          ],
+          "annual_months": [
+            14,
+            14
+          ],
+          "annual_total_wan": [
+            84,
+            87
+          ],
+          "weekly_hours": [
+            40,
+            48
+          ],
+          "overtime": "偶爾（良率問題時加班）",
+          "travel": "不用",
+          "n": 2,
+          "note": "GoodJob 2026-01 自述月薪 6 萬、近一年無季獎金；另 2025 一筆 8 萬為 6 年年資已排除",
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/力晶積成電子製造股份有限公司(力積電) PSMC/work-experiences/薪資福利",
+              "date": "2026-01"
+            }
+          ],
+          "confidence": "中"
+        },
+        {
+          "unit": "晶圓廠 Fab",
+          "role": "整合工程師",
+          "degree": "碩士",
+          "years": "0-2",
+          "base_month_k": [
+            62,
+            62
+          ],
+          "bonus_months": [
+            0,
+            0
+          ],
+          "annual_months": [
+            14,
+            14
+          ],
+          "annual_total_wan": [
+            86,
+            88
+          ],
+          "weekly_hours": [
+            40,
+            45
+          ],
+          "overtime": "很少",
+          "travel": "不用",
+          "n": 2,
+          "note": "GoodJob 2026-02 自述只有 14 個月、無分紅；比薪水 2026-01 整合工程師日均 9 小時（金額需解鎖）",
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/力晶積成電子製造股份有限公司(力積電) PSMC/work-experiences/薪資福利?p=2",
+              "date": "2026-02"
+            },
+            {
+              "site": "比薪水",
+              "url": "https://salary.tw/salary/695889a4948f7b278a0a1c66",
+              "date": "2026-01"
+            }
+          ],
+          "confidence": "中"
+        },
+        {
+          "unit": "晶圓廠 Fab",
+          "role": "設備工程師",
+          "degree": "碩士",
+          "years": "0-2",
+          "base_month_k": [
+            62,
+            62
+          ],
+          "bonus_months": null,
+          "annual_months": [
+            14,
+            14
+          ],
+          "annual_total_wan": null,
+          "weekly_hours": [
+            40,
+            48
+          ],
+          "overtime": "偶爾",
+          "travel": "不用",
+          "n": 1,
+          "note": "資料為 2025 年，略早於期間起點，僅供參考",
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/力晶積成電子製造股份有限公司(力積電) PSMC/work-experiences/薪資福利?p=3",
+              "date": "2025"
+            }
+          ],
+          "confidence": "低"
+        }
+      ]
+    }
+  ]
+}

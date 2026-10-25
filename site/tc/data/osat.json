@@ -1,0 +1,226 @@
+{
+  "industry": "osat",
+  "name": "封測",
+  "updated": "2026-10-25",
+  "window": "2025-10-25～2026-10-25",
+  "companies": [
+    {
+      "name": "日月光",
+      "code": "3711",
+      "heat": "Dcard 熱度：高",
+      "benefits": "每月績效分紅、三節",
+      "stock_plan": "本輪未查到",
+      "bonus_timing": "每月績效獎金＋每年 8 月分紅（中壢廠自述）",
+      "culture": "廠區差異大；高雄輪值加班多",
+      "interview": "本輪未查到",
+      "roles": [
+        {
+          "unit": "封裝廠",
+          "role": "製程工程師",
+          "degree": "碩士",
+          "years": "0-2",
+          "base_month_k": [
+            46,
+            63
+          ],
+          "bonus_months": [
+            2,
+            4
+          ],
+          "annual_months": [
+            14,
+            16
+          ],
+          "annual_total_wan": [
+            64,
+            100
+          ],
+          "weekly_hours": [
+            45,
+            55
+          ],
+          "overtime": "經常（輪值）",
+          "travel": "不用",
+          "n": 3,
+          "note": "Dcard 封測整理文（未註日期）碩士 4.6～6.3 萬；GoodJob 2026-06 中壢 1 年資深工程師 8 萬（職等高已排除）、2026-07 高雄 G5 5.1 萬",
+          "sources": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/258759370",
+              "date": "未明"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/日月光半導體製造股份有限公司（中壢廠）/work-experiences/薪資福利",
+              "date": "2026-06"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/日月光半導體製造股份有限公司 ASE/work-experiences/薪資福利?p=2",
+              "date": "2026-07"
+            }
+          ],
+          "confidence": "中"
+        },
+        {
+          "unit": "封裝廠",
+          "role": "設備工程師",
+          "degree": "碩士",
+          "years": "0-2",
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n": 0,
+          "note": "查無可用數字；查過關鍵字：日月光 京元電子 碩士 薪水 2026／日月光 碩士 製程工程師 月薪 2026 GoodJob 分紅 月份",
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/日月光半導體製造股份有限公司 ASE/work-experiences/薪資福利",
+              "date": "2026"
+            }
+          ],
+          "confidence": "低"
+        }
+      ]
+    },
+    {
+      "name": "京元電子",
+      "code": "2449",
+      "heat": "Dcard 熱度：中",
+      "benefits": "三節、分紅",
+      "stock_plan": "本輪未查到",
+      "bonus_timing": "本輪未查到",
+      "culture": "常被說薪資獎金比同業低、下班後常還要處理事情",
+      "interview": "自述面試會先問最低可接受薪資",
+      "roles": [
+        {
+          "unit": "測試廠",
+          "role": "生產技術／製程工程師",
+          "degree": "碩士",
+          "years": "0-2",
+          "base_month_k": [
+            42,
+            50
+          ],
+          "bonus_months": [
+            1,
+            4
+          ],
+          "annual_months": [
+            15,
+            18
+          ],
+          "annual_total_wan": [
+            63,
+            85
+          ],
+          "weekly_hours": [
+            45,
+            55
+          ],
+          "overtime": "經常",
+          "travel": "不用",
+          "n": 3,
+          "note": "GoodJob 2026 自述 4.8 萬；Dcard 整理文碩士 4.2～4.8 萬、15～18 個月；3.3 萬一筆疑學士已排除",
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/京元電子股份有限公司/work-experiences/薪資福利",
+              "date": "2026"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/258759370",
+              "date": "未明"
+            }
+          ],
+          "confidence": "中"
+        },
+        {
+          "unit": "測試廠",
+          "role": "IC 測試工程師",
+          "degree": "碩士",
+          "years": "0-2",
+          "base_month_k": [
+            42,
+            50
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": "不用",
+          "n": 2,
+          "note": "GoodJob 2026 自述 5 萬與 4.2 萬（配件工程師）；學歷未標",
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/京元電子股份有限公司/work-experiences/薪資福利",
+              "date": "2026"
+            },
+            {
+              "site": "比薪水",
+              "url": "https://salary.tw/salary/6a68d3089b2c7900a50d9265",
+              "date": "2026"
+            }
+          ],
+          "confidence": "低"
+        }
+      ]
+    },
+    {
+      "name": "矽品",
+      "code": "SPIL（日月光投控子公司）",
+      "heat": "Dcard 熱度：中",
+      "benefits": "三節、分紅",
+      "stock_plan": "本輪未查到",
+      "bonus_timing": "本輪未查到",
+      "culture": "有自述私立碩士與學士待遇差不多",
+      "interview": "本輪未查到",
+      "roles": [
+        {
+          "unit": "封裝廠",
+          "role": "製程工程師",
+          "degree": "碩士",
+          "years": "0-2",
+          "base_month_k": [
+            43,
+            50
+          ],
+          "bonus_months": null,
+          "annual_months": [
+            14,
+            14
+          ],
+          "annual_total_wan": null,
+          "weekly_hours": [
+            40,
+            50
+          ],
+          "overtime": "偶爾",
+          "travel": "不用",
+          "n": 2,
+          "note": "GoodJob 2026-01 彰化 5 萬、台中測試 4.3 萬；保 14 個月出自 salary.tw 單則；學歷未標",
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/矽品精密工業股份有限公司/work-experiences/薪資福利?p=3",
+              "date": "2026-01"
+            },
+            {
+              "site": "比薪水",
+              "url": "https://salary.tw/salary/6a033e2c1110ca9e780922d3",
+              "date": "2026"
+            }
+          ],
+          "confidence": "低"
+        }
+      ]
+    }
+  ]
+}
