@@ -58,6 +58,7 @@ from urllib.parse import parse_qs, urlparse
 from urllib.request import urlopen
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import social_native as NAT  # noqa: E402  原生繪製的卡片（2026-10-26）
 import social_gate as gate  # noqa: E402  資料日／交易日把關（2026-10-26）
 
 DATE_LABEL = ""
@@ -950,7 +951,13 @@ def _shoot_one(pg, card_el, pc: dict, raw_dir: Path, mode: str, dsf: float) -> d
     jishi = pg.evaluate(SCAN_JS, tgt)
     notes = pg.evaluate(NOTE_SCAN_JS, [tgt, NOTE_RE])      # 備註／來源／免責字樣（2026-10-26）：有就不准發
     texts = [x.strip() for x in (tgt.evaluate("e => e.innerText") or "").split("\n") if x.strip()]
-    return {"texts": texts, "jishi": jishi, "notes": notes, "name": pc["name"], "raw": str(path), "dsf": dsf, "min_css_font": minpx, "title": pc.get("title", ""), "text": pc.get("text")}
+    dump = {}
+    if mode == "d" and pc["name"] in NAT.DUMP_JS:      # 原生繪製要的資料：在套上即時資料的頁面上讀（截圖之後才讀，免得點分頁改到截圖）
+        try:
+            dump = pg.evaluate(NAT.DUMP_JS[pc["name"]]) or {}
+        except Exception as exc:  # noqa: BLE001
+            log("  讀不到原生繪製資料", pc["name"], str(exc)[:80])
+    return {"texts": texts, "jishi": jishi, "notes": notes, "name": pc["name"], "raw": str(path), "dsf": dsf, "min_css_font": minpx, "title": pc.get("title", ""), "text": pc.get("text"), "dump": dump}
 
 
 def shoot_piece(pg, card_el, pc: dict, raw_dir: Path, mode: str, dsf: float) -> dict:
@@ -1488,6 +1495,7 @@ def main() -> int:
     ap.add_argument("--data-url", default="", help="先從這些網址（逗號分隔，依序試）下載網站要用的 JSON 到 --serve 的 data/，例如 https://miaozike.github.io/tw-rotation/data,https://tw-rotation.pages.dev/data")
     ap.add_argument("--spoof-origin", action="store_true", help="報價請求補上正式站 Origin（本機站打正式報價代理用）")
     ap.add_argument("--skip-live", nargs="?", const="all", default="", help="只測版面：不要求即時（all 或逗號分隔的目標名；會截到盤後畫面，絕不可用在發布）")
+    ap.add_argument("--no-native", action="store_true", help="不用原生繪製，全部用網站截圖（除錯用）")
     ap.add_argument("--from-shots", default="", help="沿用另一個輸出資料夾已截好的圖（只換 --frame 配色，示範用）")
     ap.add_argument("--frame", choices=["light", "dark"], default="light", help="版型配色（預設淺色，跟截圖一致）")
     ap.add_argument("--use-snap-attr", action="store_true", help="只用 data-snap 屬性找目標")
@@ -1604,16 +1612,40 @@ def main() -> int:
             def texts(s, rec):
                 return (s.get("lines", []) if rec.get("text") == "quad" else []), (s.get("notes", []) if rec.get("text") == "flows" else [])
 
+            def native(mode_, rec):
+                """原生繪製（規範第十五節）：成功回 True；資料讀不到或畫失敗就退回網站截圖，並在 log 講明。"""
+                if rec["name"] not in NAT.NATIVE or args.no_native:
+                    return False
+                drec = next((x for x in [x for s_ in ok for x in s_["pieces_d"]] if x["name"] == rec["name"]), rec)
+                title_ = re.sub(r"\s*\{d\}", "", PIECE_META.get(rec["name"], (rec["name"], ""))[0])
+                dlabel_ = DATE_BY.get(rec["name"]) or DATE_LABEL
+                if KIND == "intraday":
+                    dlabel_ = f"{dlabel_} {now_tpe().strftime('%H:%M')}".strip()
+                ctx_ = dict(kind=KIND, title=title_, date=dlabel_, jget=lambda n: fetch_json(base, n), site=Path(args.serve).resolve() if args.serve else Path("."),
+                            logos=LOGO_MAP, dump=drec.get("dump") or {})
+                if rec["name"] in NAT.DUMP_JS and not ctx_["dump"]:
+                    log("  ⚠ 原生繪製讀不到資料 → 退回網站截圖：", rec["name"])
+                    return False
+                try:
+                    rep_ = NAT.render(browser, rec["name"], mode_, ctx_, out / f"{'story' if mode_ == 'story' else 'threads'}_{rec['name']}.png")
+                except Exception as exc:  # noqa: BLE001
+                    log("  ⚠ 原生繪製失敗 → 退回網站截圖：", rec["name"], str(exc)[:120])
+                    return False
+                report.append(rep_)
+                return True
+
             for s in ok:
                 for rec in s["pieces_d"]:
                     tp, bt = texts(s, rec)
-                    compose(browser, "threads", rec, tp, bt, out / f"threads_{rec['name']}.png", report, args.frame)
+                    if not native("threads", rec):
+                        compose(browser, "threads", rec, tp, bt, out / f"threads_{rec['name']}.png", report, args.frame)
                     threads_imgs.append(f"threads_{rec['name']}.png")
                 for rec in s["pieces_m"]:
                     if rec["name"] == "rotation-wheel":     # 手機版圓盤只佔卡片寬約 68%（標籤留白）；改用桌機窄視窗那張（約 96%），2026-10-26 Andy 要 ≥80%
                         rec = next((x for x in s["pieces_d"] if x["name"] == "rotation-wheel"), rec)
                     tp, bt = texts(s, rec)
-                    compose(browser, "story", rec, tp, bt, out / f"story_{rec['name']}.png", report, args.frame)
+                    if not native("story", rec):
+                        compose(browser, "story", rec, tp, bt, out / f"story_{rec['name']}.png", report, args.frame)
                     stories.append(f"story_{rec['name']}.png")
             browser.close()
         for r in report:
