@@ -1612,7 +1612,7 @@
           "weekly_hours": null,
           "overtime": null,
           "travel": null,
-          "n": 2,
+          "n": 3,
           "note": "WebSearch 以「群光 碩士 起薪／年薪／GoodJob／Dcard 2026」查詢，摘要未給出近一年碩士數字；待補；2026-10 GoodJob 批次查詢未見群光工時／分紅資料",
           "sources": [
             {
@@ -1624,6 +1624,11 @@
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/254177258",
               "date": "2024"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/6923c9ad235074c85ba082b1",
+              "date": "2025-11"
             }
           ],
           "confidence": "低",
@@ -1666,6 +1671,25 @@
               "overtime": null,
               "travel": null,
               "quote_free_note": "面試開 70k，人資說稍高"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/6923c9ad235074c85ba082b1",
+              "date": "2025-11",
+              "unit_detail": "韌體設計",
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "韌體設計工程師面試三關，人資背景調查久",
+              "date_confirmed": true,
+              "date_note": "GoodJob 標題 2025-11",
+              "in_window": true
             }
           ]
         }
@@ -2672,13 +2696,18 @@
           "weekly_hours": null,
           "overtime": "偶爾～經常",
           "travel": null,
-          "n": 1,
+          "n": 2,
           "note": "平台自述統計（未轉貼原文）；月薪 4.7～5 萬；日期未確認，可能範圍外；base_month_k 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples；未逐筆對應的舊彙整：{\"base_month_k\": [47, 50]}",
           "sources": [
             {
               "site": "GoodJob",
               "url": "https://www.goodjob.life/companies/技嘉科技股份有限公司/work-experiences/工時狀況",
               "date": "未確認"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/260211891",
+              "date": "2025-11"
             }
           ],
           "confidence": "低",
@@ -2699,6 +2728,25 @@
               "overtime": null,
               "travel": null,
               "quote_free_note": null
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/260211891",
+              "date": "2025-11",
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "石頭／技嘉 offer 請益，摘要無數字",
+              "date_confirmed": true,
+              "date_note": "依 docs/tc/dcard_id_calibration.md 文章編號 260211891 ≥259537767，確認晚於 2025-08-01",
+              "in_window": true
             }
           ]
         },
@@ -2816,12 +2864,15 @@
           "years": "0-2",
           "base_month_k": null,
           "bonus_months": null,
-          "annual_months": null,
+          "annual_months": [
+            13,
+            19
+          ],
           "annual_total_wan": null,
           "weekly_hours": 42,
           "overtime": "偶爾",
           "travel": null,
-          "n": 3,
+          "n": 6,
           "note": "平台自述統計（未轉貼原文）；範圍外參考：2022 面試月薪 5.2 萬；平台統計每週約 42 小時；2026-10 GoodJob 批次查詢未見智易資料；未逐筆對應的舊彙整：{\"base_month_k\": [52, 52]}",
           "sources": [
             {
@@ -2838,6 +2889,21 @@
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/260479313",
               "date": "2026-01"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/259573685",
+              "date": "2025-08"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/259859818",
+              "date": "2025-09"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261488026",
+              "date": "2026-05"
             }
           ],
           "confidence": "低",
@@ -2896,6 +2962,63 @@
               "overtime": null,
               "travel": null,
               "quote_free_note": "該部門一年約 18～20 個月"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/259573685",
+              "date": "2025-08",
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "詢問公司評價，無數字",
+              "date_confirmed": true,
+              "date_note": "依 docs/tc/dcard_id_calibration.md 文章編號 259573685 ≥259537767，確認晚於 2025-08-01",
+              "in_window": true
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/259859818",
+              "date": "2025-09",
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "韌體新鮮人薪水討論，摘要無智易個別數字",
+              "date_confirmed": true,
+              "date_note": "依 docs/tc/dcard_id_calibration.md 文章編號 259859818 ≥259537767，確認晚於 2025-08-01",
+              "in_window": true
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261488026",
+              "date": "2026-05",
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "多家面試分享含智易，無薪資數字",
+              "date_confirmed": true,
+              "date_note": "依 docs/tc/dcard_id_calibration.md 文章編號 261488026 ≥259537767，確認晚於 2025-08-01",
+              "in_window": true
             }
           ]
         }

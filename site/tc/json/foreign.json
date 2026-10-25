@@ -254,7 +254,7 @@
           "weekly_hours": null,
           "overtime": null,
           "travel": null,
-          "n": 2,
+          "n": 4,
           "note": "平台自述統計（未轉貼原文）；NOWnews 引 Levels.fyi：台灣 L3 含股票獎金平均月約 18 萬、年 186 萬以上；日期未確認；annual_total_wan 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples；未逐筆對應的舊彙整：{\"annual_total_wan\": [186, null]}",
           "sources": [
             {
@@ -266,6 +266,16 @@
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/260414847",
               "date": "2025"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/260130501",
+              "date": "2025-10"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261452355",
+              "date": "2026-05"
             }
           ],
           "confidence": "低",
@@ -305,6 +315,44 @@
               "overtime": null,
               "travel": null,
               "quote_free_note": "建議參考 levels.fyi 談本薪／股票／簽約金"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/260130501",
+              "date": "2025-10",
+              "unit_detail": "SDE L4",
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "L4 討論，摘要無數字",
+              "date_confirmed": true,
+              "date_note": "依 docs/tc/dcard_id_calibration.md 文章編號 260130501 ≥259537767，確認晚於 2025-08-01",
+              "in_window": true
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261452355",
+              "date": "2026-05",
+              "unit_detail": "New Grad SWE",
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "2026 新鮮人 SWE 拿到 Google offer，三關 coding",
+              "date_confirmed": true,
+              "date_note": "依 docs/tc/dcard_id_calibration.md 文章編號 261452355 ≥259537767，確認晚於 2025-08-01",
+              "in_window": true
             }
           ]
         }
@@ -598,13 +646,18 @@
           "weekly_hours": null,
           "overtime": "偶爾",
           "travel": null,
-          "n": 1,
+          "n": 2,
           "note": "WebSearch 以「微軟 台灣 碩士 起薪／年薪／GoodJob／Dcard 2026」查詢，摘要未給出近一年碩士數字；待補；補查：GoodJob、PTT Tech_Job、面試趣、Levels.fyi Taiwan 皆無台灣數字（微軟、博通只見美元排行榜不採用）；GoodJob 台灣微軟工時統計；軟體職單筆每週 40 小時、年薪 150 萬",
           "sources": [
             {
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/253340993",
               "date": "2024"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/260470988",
+              "date": "2025-12"
             }
           ],
           "confidence": "低",
@@ -628,6 +681,25 @@
               "overtime": null,
               "travel": null,
               "quote_free_note": "比現職高 30～40%，偏 FAE"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/260470988",
+              "date": "2025-12",
+              "unit_detail": "資料中心機電（輪班）",
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "Microsoft offer，核薪約與現職相當，需輪班",
+              "date_confirmed": true,
+              "date_note": "依 docs/tc/dcard_id_calibration.md 文章編號 260470988 ≥259537767，確認晚於 2025-08-01",
+              "in_window": true
             }
           ]
         },
@@ -784,7 +856,7 @@
           "weekly_hours": null,
           "overtime": "偶爾",
           "travel": null,
-          "n": 3,
+          "n": 4,
           "note": "平台自述統計（未轉貼原文）；2026-01 新竹 4 年年薪 210 萬含股票獎金；面試趣有 2021 AE 視訊面試心得（範圍外）；未逐筆對應的舊彙整：{\"annual_total_wan\": [210, 210]}",
           "sources": [
             {
@@ -801,6 +873,11 @@
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/258668664",
               "date": "2025"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/259940349",
+              "date": "2025-10"
             }
           ],
           "confidence": "低",
@@ -859,6 +936,25 @@
               "overtime": null,
               "travel": null,
               "quote_free_note": "N+45K 保 13，含 RSU 年薪 200 萬以上"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/259940349",
+              "date": "2025-10",
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "Amazon vs Qualcomm offer 請益，摘要無數字",
+              "date_confirmed": true,
+              "date_note": "依 docs/tc/dcard_id_calibration.md 文章編號 259940349 ≥259537767，確認晚於 2025-08-01",
+              "in_window": true
             }
           ]
         }
