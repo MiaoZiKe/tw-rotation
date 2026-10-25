@@ -10,7 +10,7 @@
       "heat": "Dcard 熱度：中",
       "benefits": "保 14 個月（12＋年終 2）",
       "stock_plan": "外商員工購股計畫，細節本輪未查證",
-      "bonus_timing": "本輪未查到",
+      "bonus_timing": "新制：季度分紅（現金與股票各半，現金於每季財報後發、股票歸屬一年）＋年度 IPP 激勵獎金；FY26 另發每人 100 萬元一次性感謝金",
       "culture": "外商制度、台中桃園廠輪班多",
       "interview": "本輪未查到",
       "roles": [
@@ -345,7 +345,55 @@
         }
       ],
       "mops": null,
-      "grade_system": "輪班工程師 EA/EB，常日工程師 E1～E5（Dcard 2026 徵才文：常日 E1～E3 起薪 6.4 萬、輪班 EA/EB 5.6 萬）"
+      "grade_system": "輪班工程師 EA/EB，常日工程師 E1～E5（Dcard 2026 徵才文：常日 E1～E3 起薪 6.4 萬、輪班 EA/EB 5.6 萬）",
+      "bonus_structure": [
+        {
+          "type": "季度分紅",
+          "rule": "2026 新制，與獲利連動；現金 50% 於每季財報公布後發放，股票 50% 歸屬一年（媒體報導，未見官方原文）",
+          "months": null,
+          "sources": [
+            {
+              "site": "Yahoo 新聞",
+              "url": "https://tw.news.yahoo.com/%E5%8F%B0%E7%81%A3%E7%BE%8E%E5%85%892%E5%B7%A5%E6%9C%83%E4%BF%83%E6%88%90%E5%85%A8%E7%90%83%E8%96%AA%E9%85%AC%E6%94%B9%E9%9D%A9-%E5%AD%A3%E5%BA%A6%E5%88%86%E7%B4%85-ipp%E7%8D%8E%E9%87%91%E6%96%B0%E5%88%B6-%E6%AC%A1%E7%9C%8B-084400247.html",
+              "date": "2026-09"
+            }
+          ]
+        },
+        {
+          "type": "年度激勵獎金（IPP）",
+          "rule": "年度績效獎金，最高達基本目標 500%；新制改為只看策略目標",
+          "months": null,
+          "sources": [
+            {
+              "site": "數位時代",
+              "url": "https://www.bnext.com.tw/article/92206/micron-fy26-record-rewards-taiwan-union-strike",
+              "date": "2026-09"
+            },
+            {
+              "site": "今周刊",
+              "url": "https://www.businesstoday.com.tw/article/category/183015/post/202609160037/",
+              "date": "2026-09"
+            }
+          ]
+        },
+        {
+          "type": "感謝獎金（一次性）",
+          "rule": "FY26 台灣 2025-08-29 前到職員工每人 100 萬元；加計股票後產線整體約 35～68 個月薪資（報導換算）",
+          "months": null,
+          "sources": [
+            {
+              "site": "聯合新聞網",
+              "url": "https://udn.com/news/story/7240/9747973",
+              "date": "2026-09"
+            },
+            {
+              "site": "鏡週刊",
+              "url": "https://www.mirrormedia.mg/story/20260911-180fin-111457",
+              "date": "2026-09"
+            }
+          ]
+        }
+      ]
     },
     {
       "name": "華邦電",
@@ -353,7 +401,7 @@
       "heat": "Dcard 熱度：低",
       "benefits": "本輪未查到",
       "stock_plan": "本輪未查到",
-      "bonus_timing": "本輪未查到",
+      "bonus_timing": "季獎金（依季提列；網傳部分獎金隔年再發）；年終月數與正式發放月份查不到",
       "culture": "對分紅評價分歧：有人說不清楚，有人說不值得期待",
       "interview": "本輪未查到",
       "roles": [
@@ -673,7 +721,32 @@
         "source": "未取得；查過：<公司> 非主管 薪資 平均 中位數 2025／非主管 平均薪資 2025 萬元 證交所；新聞只列前十名，需至公開資訊觀測站彙總報表查",
         "url": "https://mops.twse.com.tw/"
       },
-      "grade_system": null
+      "grade_system": null,
+      "bonus_structure": [
+        {
+          "type": "季獎金",
+          "rule": "2026-09 底第二季獎金開獎，網傳單季 50～100 萬元；部分獎金預計隔年發放（匿名社群說法）",
+          "months": null,
+          "sources": [
+            {
+              "site": "工商時報",
+              "url": "https://www.ctee.com.tw/news/20260930700983-430501",
+              "date": "2026-09"
+            },
+            {
+              "site": "科技新報",
+              "url": "https://technews.tw/2026/09/29/memory-winbond/",
+              "date": "2026-09"
+            }
+          ]
+        },
+        {
+          "type": "年終獎金",
+          "rule": "查不到",
+          "months": null,
+          "sources": []
+        }
+      ]
     },
     {
       "name": "南亞科",
@@ -681,7 +754,7 @@
       "heat": "Dcard 熱度：中",
       "benefits": "三節、加班費、季獎金、特殊獎金",
       "stock_plan": "景氣好時有公司股票認股（自述）",
-      "bonus_timing": "年終 2 個月；分紅分四季，另每年 7 月一次大的（自述）",
+      "bonus_timing": "獎金與酬勞每季依制度提列（總經理說法）；章程提撥稅前利益 1%～12% 為員工酬勞；另有年終、三節、端午／中秋勤勉獎金，月數未公開",
       "culture": "分紅隨 DRAM 景氣大起大落；虧損年只剩保障薪資",
       "interview": "本輪未查到",
       "roles": [
@@ -1094,7 +1167,55 @@
         "source": "未取得；查過：<公司> 非主管 薪資 平均 中位數 2025／非主管 平均薪資 2025 萬元 證交所；新聞只列前十名，需至公開資訊觀測站彙總報表查",
         "url": "https://mops.twse.com.tw/"
       },
-      "grade_system": "E 職等：學士 E5、碩士 E6（Dcard 2023 整理，範圍外參考）"
+      "grade_system": "E 職等：學士 E5、碩士 E6（Dcard 2023 整理，範圍外參考）",
+      "bonus_structure": [
+        {
+          "type": "季獎金／員工酬勞",
+          "rule": "每季依制度提列（總經理李培瑛）；章程：稅前利益 1%～12% 為員工酬勞；網友另稱每年 7 月一次大包，未證實",
+          "months": null,
+          "sources": [
+            {
+              "site": "新頭殼",
+              "url": "https://www.peoplenews.tw/articles/economic-news/60917",
+              "date": "2026"
+            },
+            {
+              "site": "南亞科官網",
+              "url": "https://www.nanya.com/tw/Jobs/56",
+              "date": "2026"
+            }
+          ]
+        },
+        {
+          "type": "年終獎金",
+          "rule": "官網列有，月數未公開；面試心得稱 2 個月（單一說法）",
+          "months": null,
+          "sources": [
+            {
+              "site": "南亞科官網",
+              "url": "https://www.nanya.com/tw/Jobs/56",
+              "date": "2026"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/%E5%8D%97%E4%BA%9E%E7%A7%91%E6%8A%80%E8%82%A1%E4%BB%BD%E6%9C%89%E9%99%90%E5%85%AC%E5%8F%B8",
+              "date": "2026"
+            }
+          ]
+        },
+        {
+          "type": "三節與勤勉獎金",
+          "rule": "官網列三節節慶獎金、端午／中秋勤勉獎金、激勵獎金，月數未公開",
+          "months": null,
+          "sources": [
+            {
+              "site": "南亞科官網",
+              "url": "https://www.nanya.com/tw/Jobs/56",
+              "date": "2026"
+            }
+          ]
+        }
+      ]
     }
   ]
 }
