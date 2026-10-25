@@ -1608,19 +1608,31 @@
     },
   };
 
-  /* 矽光子／CPO：交換器機箱（圖 B 的 3D，2026-10-25）。零件全部沿用 siph_pkg（同一組 sp_* 身分，2D↔3D 選取連動），
-     另加兩件對照用的：一排半透明的「傳統可插拔光模組」（CPO 款把它拿掉）與 ASIC 到前面板的那一條「長電走線」。*/
+  /* 矽光子／CPO：交換器機箱（圖 B 的 3D，2026-10-25 重做）。
+     跟圖 A 的差別：A 講「一顆封裝裡」，B 講「整台機箱」——外殼、前面板、主板、封裝（縮小、周圍光引擎）、光纖到前面板，
+     而且同一片前面板左半畫**傳統可插拔**（暖色模組插在前面板、ASIC 到模組一條長電走線）、右半畫 **CPO**（光纖連接器＋ELSFP），
+     光離 ASIC 的距離差一眼看得到。對照畫法是示意：真實機箱不會同時有兩種。封裝零件沿用 sp_*（2D↔3D 選取連動）。
+     爆炸：機箱蓋往上、底盤往下、前面板模組往前拉出、封裝各層沿 Z 拆開。*/
   SCENES.siph_module = (() => {
-    const b = SCENES.siph_pkg;
-    const parts = b.parts.map((p) => Object.assign({}, p));
-    parts.push({ seg: 'optical', part: 'spm_plug', name: '傳統作法：前面板的可插拔光模組（半透明）', note: '可插拔把光放在前面板的模組裡，ASIC 的電訊號要沿主板走一長段（公分～數十公分）才到這裡；CPO 款把這一排拿掉，光引擎搬到 ASIC 旁。示意',
-      kind: 'optic', box: [3.6, 2.2, 10], at: [-4.5, 5.5, 36], n: 8, gap: 4.4, axis: 'x', ghost: true, ex: [0, 0, 12], codes: ['4979', '3450'], cnames: { 3450: '聯鈞' },
+    const b = SCENES.siph_pkg, L = siphLayout();
+    const drop = { sp_pcb: 1, sp_bga: 1, sp_stiff: 1, sp_c4: 1, sp_hb: 1, sp_tim: 1 };
+    const parts = [
+      { seg: 'hdi_pcb', part: 'spm_tray', name: '機箱底盤與側板', note: '鈑金底盤，四周矮牆；主板與前面板都固定在上面。示意', kind: 'spmtray', box: [112, 8, 62], at: [-17, 1.9, -1], ex: [0, -9, 0], codes: [] },
+      { seg: 'hdi_pcb', part: 'spm_board', name: '交換器主板', note: '高層數主板：ASIC 封裝站在中間；傳統作法的電訊號要沿這片板子走一長段才到前面板。交換器主板屬 800G→1.6T 通用段，CPO 專屬的台股證據查不到',
+        kind: 'swboard', box: [96, 2.4, 52], at: [-17, 0, 0], codes: [], mat: 'pcb' },
+    ].concat(b.parts.filter((p) => !drop[p.part]).map((p) => Object.assign({}, p)));
+    parts.push({ seg: 'connector', part: 'spm_front', name: '前面板（傳統可插拔區）', note: '左半是傳統作法的光模組籠；右半（sp_face）是 CPO 的光纖連接器與 ELSFP 插槽。對照示意：真實機箱不會同時有兩種',
+      kind: 'spmfront', box: [34, 13, 1.2], at: [-50, 5.5, 28.2], ex: [0, 0, 4], codes: [] });
+    parts.push({ seg: 'optical', part: 'spm_plug', name: '傳統：前面板的可插拔光模組（暖色）', note: '傳統交換器把光放在前面板的模組裡，ASIC 的電訊號要沿主板走一長段（公分～數十公分）才到這裡；CPO 款拿掉這一排，光引擎搬到 ASIC 旁。示意',
+      kind: 'optic', box: [3.6, 2.2, 10], at: [-50, 5.6, 31], n: 7, gap: 4.4, axis: 'x', mat: 'cu', ex: [0, 0, 14], codes: ['4979', '3450'], cnames: { 3450: '聯鈞' },
       chipnote: '可插拔光模組（800G 已量產；1.6T 未全面）：華星光、聯鈞' });
+    parts.push({ seg: 'thermal', part: 'spm_cover', name: '機箱蓋（半透明）', note: '蓋住整台機箱，前面空著給前面板。爆炸時往上掀開才看得到裡面。示意',
+      kind: 'spmcover', box: [114, 14, 62], at: [-17, 11.5, -1], ex: [0, 26, 0], codes: [], mat: 'glass' });
     return {
-      title: 'CPO 交換器機箱：光離 ASIC 只剩毫米（半透明＝傳統可插拔）',
-      sub: '前面板只剩光纖連接器與外置雷射 ELSFP；光引擎環繞 ASIC、同在一片載板上。半透明那一排是傳統可插拔光模組的位置（CPO 款拿掉）。示意圖，非實物比例',
-      camera: b.camera, target: b.target, fit: b.fit, hk: b.hk, parts,
-      flows: b.flows.concat([{ kind: 'sig', part: 'spm_plug', r: 0.18, per: 8, speed: 0.4, pts: [[0, 1.4, 6], [0, 1.4, 20], [0, 1.4, 27]] }]),
+      title: 'CPO 交換器機箱：光離 ASIC 只剩毫米（左半＝傳統可插拔對照）',
+      sub: '同一片前面板：左半是傳統可插拔（暖色模組、ASIC 到模組一條長電走線），右半是 CPO（光纖連接器＋ELSFP，光引擎環繞 ASIC）。對照畫法為示意，非實物比例',
+      camera: [46, 54, 80], target: [-17, 6, 2], fit: 1.0, hk: 0.58, parts,
+      flows: b.flows.concat([{ kind: 'sig', part: 'spm_board', r: 0.22, per: 10, speed: 0.4, pts: [[-9, 1.5, 3], [-26, 1.5, 9], [-48, 1.5, 14], [-50, 1.5, 25]] }]),
       pulses: b.pulses,
     };
   })();
@@ -1742,7 +1754,7 @@
           PBR 手感（金屬度／粗糙度）與沒寫顏色那幾塊的底色，不是在決定主色。*/
     hsasic: 'si', hscage: 'metal', hstongue: 'plastic', hspin: 'organic', hsfly: 'emc', hsslot: 'plastic',
     /* 矽光子／CPO 交換器封裝（2026-10-24）：PIC／EIC 走矽、混合鍵合走銅、FAU 走玻璃、前面板與 ELSFP 走金屬 */
-    sppic: 'si', speic: 'si', spbond: 'cu', spfau: 'glass', spfib: 'plastic', spface: 'metal', spels: 'metal',
+    sppic: 'si', speic: 'si', spbond: 'cu', spfau: 'glass', spfib: 'plastic', spface: 'metal', spels: 'metal', spmtray: 'metal', spmcover: 'glass', spmfront: 'metal',
     /* SSD（2026-10-19）：板子走 pcb（墨綠），晶片走 emc（石墨灰模封），晶粒走 si，散熱片走 alu，插槽走 plastic */
     ssdpcb: 'pcb', ssdfinger: 'cu', ssdpkg: 'emc', ssdnand: 'emc', ssdstack: 'si', ssdind: 'emc', ssdhs: 'alu', ssdsock: 'plastic',
   };
@@ -9132,6 +9144,33 @@
       return g;
     }
 
+
+    /* 機箱（圖 B 的 3D，2026-10-25）：底盤＋矮牆、半透明機箱蓋、前面板的模組籠。*/
+    function spmTray(p, K) {
+      const g = new T.Group(), [w, h, d] = p.box, t = 0.8;
+      const m = K.mat(0, { color: K.css('--dg-steel-2', '#6b7683'), metal: 0.56, rough: 0.44 });
+      g.add(mboxes([[w, t, d, 0, -h / 2 + t / 2, 0], [t, h, d, -w / 2 + t / 2, 0, 0], [t, h, d, w / 2 - t / 2, 0, 0], [w, h, t, 0, 0, -d / 2 + t / 2]], m));
+      return g;
+    }
+    function spmCover(p, K) {
+      const g = new T.Group(), [w, h, d] = p.box, t = 0.6;
+      const m = K.mat(0, { glass: true });
+      const mesh = new T.Mesh(mergeGeos([[w, t, d, 0, h / 2 - t / 2, 0], [t, h, d, -w / 2 + t / 2, 0, 0], [t, h, d, w / 2 - t / 2, 0, 0], [w, h, t, 0, 0, -d / 2 + t / 2]]
+        .map(([a, b2, c, x, y, z]) => { const q = chamferGeo(a, b2, c); q.translate(x, y, z); return q; })), m);
+      edge(mesh, K, 0.45);
+      g.add(mesh);
+      return g;
+    }
+    function spmFront(p, K) {
+      const g = new T.Group(), [w, h, d] = p.box;
+      const sheet = K.mat(-0.05, { metal: 0.8, rough: 0.4 });
+      const dark = K.mat(-0.6, { rough: 0.9, metal: 0.05 });
+      g.add(mboxes([[w, h, d, 0, 0, 0]], sheet));
+      const cage = []; for (let i = 0; i < 7; i++) cage.push([4.0, 2.6, 0.2, (i - 3) * 4.4, 0.1, d / 2 + 0.02]);
+      g.add(mboxes(cage, dark));
+      return g;
+    }
+
     function spFace(p, K) {
       const g = new T.Group(), L = siphLayout(), F = L.FACE;
       const sheet = K.mat(-0.05, { metal: 0.8, rough: 0.4 });
@@ -9227,7 +9266,7 @@
       /* ---- SSD（M.2 2280 NVMe，2026-10-19）。同樣是**多出來的詞**，舊的一個都沒有動。*/
       ssdpcb: ssdPcb, ssdfinger: ssdFinger, ssdpkg: ssdPkg, ssdnand: ssdNand, ssdstack: ssdStack, ssdind: ssdInd, ssdhs: ssdHs, ssdsock: ssdSock,
       /* ---- 矽光子／CPO 交換器封裝（2026-10-24）。同樣是**多出來的詞**，舊的一個都沒有動。*/
-      sppic: spPic, speic: spEic, spbond: spBond, spfau: spFau, spfib: spFib, spface: spFace, spels: spEls,
+      sppic: spPic, speic: spEic, spbond: spBond, spfau: spFau, spfib: spFib, spface: spFace, spels: spEls, spmtray: spmTray, spmcover: spmCover, spmfront: spmFront,
       _cylX: cylX, _halfBore: halfBore, _halfTubeY: halfTubeY, _halfTubeX: halfTubeX };
   }
 

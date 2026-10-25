@@ -224,9 +224,9 @@
   const SUB = (x, y, w, h, fill, cls, rx) => R(x, y, w, h, fill, cls, rx);
 
   /* ---- B1 光路 ---- */
+  const KB = 1.4, SB = (x, y) => [+(x * KB).toFixed(1), +(20 + (y - 20) * KB).toFixed(1)];
   function pathFig() {
     const g = [];
-    g.push(T(16, 20, '① 光怎麼走：雷射 → PIC → 光纖 → 前面板', 'hd'));
     g.push(R(150, 56, 300, 150, 'var(--dg-frame-f)', '', 6));                         // 載板（俯視）
     // 前面板（左）與 ELSFP
     g.push(part('sp_face', R(16, 96, 12, 108, C.met, 'part', 1) + [112, 130, 164, 184].map((y) => R(20, y - 4, 14, 8, C.au, '', 1)).join(''), 'connector'));
@@ -253,16 +253,16 @@
     g.push(part('sp_eic', `<g opacity=".88">${R(236, 92, 112, 100, C.die, 'part', 3)}</g>`
       + [0, 1, 2, 3, 4].map((i) => R(244 + i * 20, 100, 14, 22, 'var(--dg-void)', '', 1)).join('')
       + [0, 1, 2, 3, 4].map((i) => R(244 + i * 20, 160, 14, 22, 'var(--dg-void)', '', 1)).join(''), 'ic_design'));
-    g.push(part('sp_asic', fx.glass(366, 84, 72, 116, { fill: C.die, cls: 'part', rx: 3 })
-      + [0, 1, 2].map((r) => [0, 1].map((c) => R(374 + c * 32, 94 + r * 34, 26, 26, 'var(--dg-void)', '', 2)).join('')).join(''), 'ic_design'));
-    g.push(LN('M348,142 H366', 'elc') + T(357, 134, 'mm', 'cap', 'middle'));
+    g.push(part('sp_asic', fx.glass(366, 98, 72, 102, { fill: C.die, cls: 'part', rx: 3 })
+      + [0, 1, 2].map((r) => [0, 1].map((c) => R(374 + c * 32, 106 + r * 30, 26, 24, 'var(--dg-void)', '', 2)).join('')).join(''), 'ic_design'));
+    g.push(LN('M348,142 H366', 'elc'));
     g.push(`<g fill="var(--dg-accent-2d)"><path d="M232,182 l-1,0"/></g>`);
-    return g.join('');
+    return `<g transform="translate(0,${20 - 20 * KB}) scale(${KB})">${g.join('')}</g>`;
   }
 
   /* ---- B3 四張機箱側視小圖 ---- */
   function archFig() {
-    const y0 = 238, cw = 150, gap = 8, g = [];
+    const y0 = 318, cw = 150, gap = 8, g = [];
     g.push(T(16, y0 - 12, '② 光離 ASIC 由遠到近：可插拔 → LPO → NPO → CPO（機箱側視）', 'hd'));
     const names = ['可插拔', 'LPO', 'NPO', 'CPO'];
     for (let i = 0; i < 4; i++) {
@@ -316,7 +316,7 @@
   const node = (x, y, w, ic, label, seg, id, on) => part(id, R(x, y, w, 58, 'var(--dg-step-f)', 'nd' + (on ? ' hl' : ''), 6)
     + IC[ic](x + w / 2, y + 22) + T(x + w / 2, y + 51, label, 'lbl', 'middle'), seg);
   function laneFig() {
-    const W = 92, G = 12, X = (c) => 16 + c * (W + G), y0 = 492, g = [];
+    const W = 92, G = 12, X = (c) => 16 + c * (W + G), y0 = 572, g = [];
     const arr = (d) => `<path class="wg" d="${d}" marker-end="url(#spm)"/>`;
     g.push(T(16, y0 - 22, '③ 供應鏈：三條並行的道（錢與貨由上游往下游），雷射在「整機」才與光引擎相遇', 'hd'));
     const r1 = y0 + 8, r2 = y0 + 80, r3 = y0 + 250;
@@ -341,7 +341,7 @@
     return g.join('');
   }
   function srcs() {
-    const y0 = 900; const L = ['數字從哪來（來源皆為搜尋摘要，原文未讀）：', '可插拔約 15–20、CPO 約 5–10 pJ/bit：廠商引述', '（NADDOD、SENKO，2025–2026），來源間有出入。', 'LPO 800G 約 4–8 W、DSP 模組 12–16 W：Semtech', '摘要（2025）；CPO 比可插拔低 70% 為 Broadcom 宣稱。', 'NPO：光引擎為板上獨立可拆單元，電氣路徑公分級', '（業界定義摘要，2026）；未取得獨立 pJ/bit。', '不採用：NPO／LPO 約 1 pJ/bit（單一廠商宣稱）；', '102.4T Davisson 與 NVIDIA 引擎配置（單一來源）。'];
+    const y0 = 980; const L = ['數字從哪來（來源皆為搜尋摘要，原文未讀）：', '可插拔約 15–20、CPO 約 5–10 pJ/bit：廠商引述', '（NADDOD、SENKO，2025–2026），來源間有出入。', 'LPO 800G 約 4–8 W、DSP 模組 12–16 W：Semtech', '摘要（2025）；CPO 比可插拔低 70% 為 Broadcom 宣稱。', 'NPO：光引擎為板上獨立可拆單元，電氣路徑公分級', '（業界定義摘要，2026）；未取得獨立 pJ/bit。', '不採用：NPO／LPO 約 1 pJ/bit（單一廠商宣稱）；', '102.4T Davisson 與 NVIDIA 引擎配置（單一來源）。'];
     return `<g>${L.map((t, i) => T(16, y0 + i * 20, t, i ? 'sub' : 'hd')).join('')}</g>`;
   }
   const TWB = [['① InP 磊晶、② 雷射晶粒', 'optical_epi', '聯亞 3081、全新 2455；後段代工：光環 3234、華星光 4979'], ['③ ELS／ELSFP 模組', 'optical', '眾達-KY 4977、聯鈞 3450、華星光 4979'],
@@ -349,25 +349,25 @@
     ['⑦ 光學耦合', 'optical', '上詮 3363、波若威 3163、光聖 6442、大立光 3008（兩說）'], ['⑧ 測試（晶圓級／光引擎／整機）', 'test_interface', '致茂 2360、旺矽 6223、穎崴 6515（驗證與接單階段）'],
     ['⑨ 共封裝', 'osat_test', '日月光投控 3711（2027 小量）、力成 6239（2026 年底小量）'], ['⑫ 交換器整機', 'switch', '智邦 2345（CPO 款最快 2026H2）']];
   function twBand() {
-    const y0 = 1130;
+    const y0 = 1210;
     let g = T(16, y0 - 20, '每個節點的台股（調查報告 2026-10-24；只放高／中信心，時程為目標）', 'hd');
     TWB.forEach((b, i) => { const y = y0 + i * 52; g += part('spc_tw' + i, R(16, y, 628, 46, 'var(--dg-step-f)', 'row', 7) + T(30, y + 20, b[0], 'lbl') + T(30, y + 38, b[2], 'sub'), b[1]); });
     return `<g>${g}</g>`;
   }
   function figB() {
-    return `<svg class="dg dgm rs dgsp" viewBox="0 0 ${CW} 1480" width="100%" style="display:block">${D.STYLE}${VARS}
+    return `<svg class="dg dgm rs dgsp" viewBox="0 0 ${CW} 1560" width="100%" style="display:block">${D.STYLE}${VARS}
       <defs><marker id="spm" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L8,4 L0,8z" fill="var(--dg-accent-2d)"/></marker></defs>
       <text class="ttl ext" x="0" y="0">光訊號路徑與四種光互連架構</text>
       <text class="cap ext" x="0" y="0">光從外置雷射出發，經保偏光纖進矽光子晶片，調變後從光纖陣列出去；四種架構差在光離 ASIC 多遠。細節點「?」。</text>
-      ${pathFig()}${archFig()}${laneFig()}
-      ${card({ seg: 'optical', part: 'sp_elsfp', no: 1, side: 'l', color: C.met, ax: 84, ay: 40, title: 'ELSFP 外置雷射', sub: ['在前面板，不在封裝裡；只有光源輸出。'] })}
-      ${card({ seg: 'optical', part: 'sp_pm', no: 2, side: 'l', color: C.warm, ax: 147, ay: 82, title: '保偏光纖（虛線）', sub: ['連續光進 PIC，箭頭指向 PIC。'] })}
-      ${card({ seg: 'optical', part: 'sp_fau', no: 3, side: 'l', color: C.glass, ax: 147, ay: 170, title: 'FAU 光纖陣列', sub: ['玻璃塊把光纖對準黏在 PIC 外緣。'] })}
-      ${card({ seg: 'optical', part: 'sp_fiber', no: 4, side: 'l', color: C.acc, ax: 52, ay: 126, title: '資料光纖', sub: ['TX 出、RX 進，反向；終止於前面板連接器。'] })}
-      ${card({ seg: 'connector', part: 'sp_face', no: 5, side: 'l', color: C.met, ax: 22, ay: 100, title: '前面板連接器', sub: ['光纖連接器，不是可插拔收發模組。'] })}
-      ${card({ seg: 'foundry', part: 'sp_pic', no: 6, side: 'r', color: C.si, ax: 330, ay: 176, title: 'PIC 光子晶片', sub: ['波導、並行臂調變器、耦合器、鍺光偵測器。'] })}
-      ${card({ seg: 'ic_design', part: 'sp_eic', no: 7, side: 'r', color: C.die, ax: 300, ay: 100, title: 'EIC 電子晶片', sub: ['疊在 PIC 內側：驅動器與 TIA。'] })}
-      ${card({ seg: 'ic_design', part: 'sp_asic', no: 8, side: 'r', color: C.die, ax: 430, ay: 90, title: '交換 ASIC', sub: ['外商設計；與 EIC 只隔毫米。'] })}
+      ${T(16, 20, '① 光怎麼走：雷射 → PIC → 光纖 → 前面板', 'hd')}${pathFig()}${archFig()}${laneFig()}
+      ${card({ seg: 'optical', part: 'sp_elsfp', no: 1, side: 'l', color: C.met, ax: SB(84, 32)[0], ay: SB(84, 32)[1], title: 'ELSFP 外置雷射', sub: ['在前面板，不在封裝裡；只有光源輸出。'] })}
+      ${card({ seg: 'optical', part: 'sp_pm', no: 2, side: 'l', color: C.warm, ax: SB(147, 80)[0], ay: SB(147, 80)[1], title: '保偏光纖（虛線）', sub: ['連續光進 PIC，箭頭指向 PIC。'] })}
+      ${card({ seg: 'optical', part: 'sp_fau', no: 3, side: 'l', color: C.glass, ax: SB(158, 98)[0], ay: SB(158, 98)[1], title: 'FAU 光纖陣列', sub: ['玻璃塊把光纖對準黏在 PIC 外緣。'] })}
+      ${card({ seg: 'optical', part: 'sp_fiber', no: 4, side: 'l', color: C.acc, ax: SB(58, 126)[0], ay: SB(58, 126)[1], title: '資料光纖', sub: ['TX 出、RX 進，反向；終止於前面板連接器。'] })}
+      ${card({ seg: 'connector', part: 'sp_face', no: 5, side: 'l', color: C.met, ax: SB(22, 86)[0], ay: SB(22, 86)[1], title: '前面板連接器', sub: ['光纖連接器，不是可插拔收發模組。'] })}
+      ${card({ seg: 'foundry', part: 'sp_pic', no: 6, side: 'l', color: C.si, ax: SB(190, 92)[0], ay: SB(190, 92)[1], title: 'PIC 光子晶片', sub: ['波導、並行臂調變器、耦合器、鍺光偵測器。'] })}
+      ${card({ seg: 'ic_design', part: 'sp_eic', no: 7, side: 'r', color: C.die, ax: SB(292, 80)[0], ay: SB(292, 80)[1], title: 'EIC 電子晶片', sub: ['疊在 PIC 內側：驅動器與 TIA。'] })}
+      ${card({ seg: 'ic_design', part: 'sp_asic', no: 8, side: 'r', color: C.die, ax: SB(402, 90)[0], ay: SB(402, 90)[1], title: '交換 ASIC', sub: ['外商設計；與 EIC 只隔毫米。'] })}
       ${note({ side: 'r', order: 90, title: '圖例', lines: ['實線＝資料光纖（TX／RX）；虛線＝保偏光纖（CW 光）；藍線＝電（毫米級）。雷射不進封裝，在整機才與光引擎相遇。'] })}
       ${fold('spc3', '④ 數字從哪來', '來源與口徑、為什麼有些數字不用', srcs())}
       ${fold('spc4', '⑤ 節點的台股', '八段各是誰（高／中信心），時程為目標', twBand())}
