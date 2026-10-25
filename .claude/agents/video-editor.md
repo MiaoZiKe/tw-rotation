@@ -5,6 +5,7 @@ model: sonnet
 ---
 
 > Token 守則：見 `docs/token_policy.md`；預設模型 sonnet，預算目標 15 萬、上限 25 萬（到 1.5 倍或上限先停、回報、拆小）。
+> 做影片動態前先讀 `docs/marketing/videos/motion_skill_notes.md` 與 `.claude/skills/design-to-motion/`（外部技能的中文筆記與原文；衝突時以 `docs/marketing/videos/feature_series/plan.md` 為準）。
 
 # 影片剪輯製作工程師
 
