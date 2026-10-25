@@ -51,6 +51,11 @@ def t_siph_chain_1024(pg, b, base, code):
     wait_until(pg, "() => location.hash.indexOf('siph_cpo') >= 0 && !!document.getElementById('siphSec') && document.querySelectorAll('#siphSec tr.siphg').length > 0", 10000)
     st = pg.evaluate(_SIPH_ST)
     ok(f"{T}：點分頁 → 網址換成 #industry/siph_cpo", "#industry/siph_cpo" in st["hash"], st["hash"])
+    # 10-25 合併剖析圖後：有剖析圖的鏈，預設頁是第一張剖析圖（industry.js 規則），族群總覽搬到 /overview
+    ok(f"{T}：分頁預設先看剖析圖（CPO 封裝圖有畫出來）", bool(wait_until(pg, "() => !!document.querySelector('[data-part^=\"sp_\"], svg [data-part^=\"sp_\"]') ? 1 : 0", 10000)))
+    pg.goto(base + "#industry/siph_cpo/overview", wait_until="networkidle")
+    wait_until(pg, "() => !!document.getElementById('siphSec') && document.querySelectorAll('#siphSec tr.siphg').length > 0", 10000)
+    st = pg.evaluate(_SIPH_ST)
     ok(f"{T}：成員表有 12 組", len(st["groups"]) == 12, st["groups"])
     wait_until(pg, "() => { const e = document.getElementById('gpBar'); const c = e && window.echarts && echarts.getInstanceByDom(e); return !!c; }", 8000)
     st = pg.evaluate(_SIPH_ST)
@@ -75,7 +80,7 @@ def t_siph_chain_1024(pg, b, base, code):
     names = " ".join(str(x) for x in (st2["cats"] or []))
     ok(f"{T}：點「矽光子晶圓代工」→ 個股長條圖是台積電＋聯電（2 條）", "台積電" in names and "聯電" in names and len(st2["cats"]) == 2, st2["cats"])
     # ⑥ 「?」
-    pg.goto(base + "#industry/siph_cpo", wait_until="networkidle")
+    pg.goto(base + "#industry/siph_cpo/overview", wait_until="networkidle")
     wait_until(pg, "() => !!document.querySelector('#siphSec .howbtn')", 8000)
     pg.locator('#siphSec .howbtn').first.click()
     shown = wait_until(pg, "() => { const t = document.body.innerText; return t.indexOf('信心') >= 0 && t.indexOf('受益、中性、風險') >= 0; }", 4000)
@@ -93,7 +98,7 @@ def t_siph_chain_1024(pg, b, base, code):
     ctx.route("**/fonts.googleapis.com/**", lambda r: r.abort())
     mp = ctx.new_page()
     try:
-        mp.goto(base + "#industry/siph_cpo", wait_until="networkidle")
+        mp.goto(base + "#industry/siph_cpo/overview", wait_until="networkidle")
         wait_until(mp, "() => document.querySelectorAll('#siphSec tr.siphg').length === 12", 10000)
         ms = mp.evaluate(_SIPH_ST)
         ok(f"{T}（390）：成員表 12 組、沒有橫向捲軸", len(ms["groups"]) == 12 and ms["sw"] <= ms["iw"] + 1, [len(ms["groups"]), ms["sw"], ms["iw"]])

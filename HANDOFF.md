@@ -1,5 +1,13 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
+### 2026-10-25 CEO：產業地圖新增「矽光子／CPO」分頁上線（合併 claude/siph-chain＋claude/siph-diagrams）
+- Andy 10-24：「產業地圖幫我新增矽光子CPO題材分頁…有哪些設備 產業 他們之間的關係…同樣風格的繪製2D/3D 風格圖」。
+- 調查 docs/siph_cpo_{semi,optics,substrate}_evidence.md；裁決 docs/siph_cpo_chain_notes.md；疊加族群 DECISIONS #362；規格 docs/diagram_specs/siph_cpo.md。
+- 新鏈 siph_cpo 12 組（overlay，不進 M1 佔比）；圖 A 掛 siph_pkg（3D/2D 封裝剖析）、圖 B 掛 siph_module（光路＋三條道＋四架構）。有剖析圖的鏈預設先看第一張圖，族群總覽在 #industry/siph_cpo/overview（uitest 段已跟著改）。
+- 這批驗：pytest 1231 passed；_uitest 桌機守門1008、產業、產業鏈導覽、矽光子CPO1024、矽光子CPO剖析圖1024 全 0；_preview 只剩 main 既有的 ai_server 800px 卡片文字交疊（非本批）。
+- 待辦：關聯圖會帶出非 CPO 同業（例如宏捷科、京元電在既有環節裡），之後可改成只顯示 siph 成員；3D 效能（三角形／draw call）未量。
+
+
 ### 2026-10-24 科技產業分析師：產業地圖新增「矽光子／CPO」題材分頁（分支 claude/siph-chain，未推 main）
 - 資料：groups.yaml 新增鏈 `siph_cpo` 12 組（疊加族群 `overlay: true`，不進 M1，見 DECISIONS #362）；昇達科 3491 移到 satellite、萊德光電 7717 移出 optical_module；
   supply_chain.yaml 新增 8 個環節、約 20 個節點、9 條邊，降級 lpc→coherent、luxnet→accton。裁決紀錄 docs/siph_cpo_chain_notes.md。
