@@ -591,17 +591,16 @@ def candle_svg(ks: dict, w: int, h: int, c: dict, theme: str, *, fs: int = 0, ma
     R, T = 6, (int(fs * 0.6) if fs else 4)
     B = int(fs * 1.8) if fs else 4
     gap = int(fs * 0.5) if rsi else 0
-    ph = (h - T - B - gap) * (0.78 if rsi else 1.0)        # 價格區高
-    rh = (h - T - B - gap) - ph if rsi else 0
-    # 縱軸以 K 棒為主：K 棒的高低點全包，5～60 日均線最多再各放寬 K 棒區間的 25%（超出就裁掉），半年線、年線完全不影響縱軸
-    # （離太遠就截掉該段，不然 K 棒被壓扁）；這樣 K 棒至少佔主圖高度的 60%（1/(1+0.5+0.08)＝63%）。
+    tot = h - T - B - gap
+    rh = max(80.0, tot * 0.2) if rsi else 0          # RSI 副圖至少 80px（30／70 兩條線相距 ≥ 32px，標籤不擠在一起）
+    ph = tot - rh                                    # 價格區（主圖）取剩下的
+    # 縱軸只依 K 棒高低＋MA5／10／20，上下各留 8%；MA60／120／240 超出就被 clip-path 截掉不畫，完全不影響縱軸
     kl, kh = min(x["l"] for x in b), max(x["h"] for x in b)
-    ksp = (kh - kl) or 1
-    short = [x[f"ma{p}"] for x in b for p in (5, 10, 20, 60) if ma and x.get(f"ma{p}") is not None]
-    lo = max(min([kl] + short), kl - ksp * 0.25)
-    hi = min(max([kh] + short), kh + ksp * 0.25)
+    near = [x[f"ma{p}"] for x in b for p in (5, 10, 20) if ma and x.get(f"ma{p}") is not None]
+    lo, hi = min([kl] + near), max([kh] + near)
     sp = (hi - lo) or 1
-    lo, hi = lo - sp * 0.04, hi + sp * 0.04
+    lo, hi = lo - sp * 0.08, hi + sp * 0.08
+    sp = hi - lo
     n = len(b)
     step = (w - L - R) / n
 
@@ -694,17 +693,21 @@ body{{font-variant-numeric:tabular-nums}}
 .tile .d{{font-size:{S(26, 32)}px;line-height:1.5;white-space:nowrap}}
 .legend{{flex:none;display:flex;flex-wrap:wrap;column-gap:{S(18, 22)}px;row-gap:2px;font-size:{S(23, 24)}px;line-height:1.4;color:var(--ink2);white-space:nowrap}}
 .legend i{{display:inline-block;width:{S(24, 30)}px;height:5px;border-radius:3px;vertical-align:middle;margin-right:6px;background:var(--lc)}}
-.sec{{flex:1;min-height:0;display:flex;flex-direction:column;gap:{S(8, 12)}px}}
+.sec{{flex:1;min-height:0;display:flex;flex-direction:row;gap:{S(12, 14)}px}}
 .sec + .sec{{border-top:1.5px solid var(--line);padding-top:{S(10, 14)}px}}
-.sec .grid .tile{{padding:{S('6px 14px', '6px 16px')}}}
-.sec .tile .k{{font-size:{S(22, 25)}px}}.sec .tile .v{{font-size:{S(38, 40)}px}}.sec .tile .d{{font-size:{S(22, 25)}px}}
-.sec .tile.nmt{{display:flex;align-items:center;background:none;border:none;padding-left:0}}
-.sec .tile.nmt .v{{font-size:{S(34, 36)}px}}
-.tat{{flex:none;display:grid;grid-template-columns:auto auto 1fr;column-gap:{S(28, 32)}px;border:1.5px solid var(--line);border-radius:10px;background:var(--panel2);padding:{S('4px 18px', '8px 20px')}}}
-.tat > div{{font-size:{S(25, 27)}px;line-height:1.45;white-space:nowrap;padding:{S('2px 0', '2px 0')}}}
-.tat .tk{{color:var(--ink3)}}.tat .tv{{text-align:right;font-weight:700;font-variant-numeric:tabular-nums;font-family:'Roboto Mono','DejaVu Sans Mono',monospace}}
-.tat .ts{{color:var(--ink2)}}
-.tat > div:nth-child(n+4){{border-top:1px dashed var(--line)}}
+.sec .chartbox{{flex:1;min-width:0}}
+.side{{flex:none;width:{S(330, 360)}px;display:flex;flex-direction:column;gap:{S(4, 6)}px;justify-content:space-between}}
+.side .tile{{padding:{S("3px 12px", "5px 14px")}}}
+.side .tile .k{{font-size:{S(22, 25)}px;line-height:1.35}}.side .tile .v{{font-size:{S(34, 38)}px;line-height:1.3}}.side .tile .d{{font-size:{S(22, 25)}px;line-height:1.35}}
+.side .tile.nmt{{display:flex;align-items:center;background:none;border:none;padding:0}}
+.side .tile.nmt .v{{font-size:{S(32, 36)}px}}
+.tat{{flex:none;display:grid;border:1.5px solid var(--line);border-radius:10px;background:var(--panel2)}}
+.tat .tk{{color:var(--ink3)}}.tat .tv{{font-weight:700;font-family:'Roboto Mono','DejaVu Sans Mono',monospace}}.tat .ts{{color:var(--ink2)}}
+.side .tat{{grid-template-columns:auto 1fr;column-gap:12px;padding:{S('2px 12px', '4px 14px')}}}
+.side .tat > div{{font-size:{S(23, 25)}px;line-height:1.35;padding:1px 0;border-top:none}}
+.side .tat .tv{{text-align:right}}
+.side .tat .ts{{grid-column:1 / -1;border-bottom:1px dashed var(--line);padding-bottom:3px;white-space:normal}}
+.side .tat .ts:last-child{{border-bottom:none}}
 .chartbox{{flex:1;min-height:0;position:relative}}
 .chartbox img{{position:absolute;left:0;top:0;display:block}}
 .ta{{flex:none;border:1.5px solid var(--line);border-radius:10px;background:var(--panel2);padding:{S('10px 18px', '14px 20px')}}}
@@ -747,12 +750,12 @@ def _ksec(key: str, name: str, tiles: list[str], ks: dict, story: bool, theme: s
     tat = ('<div class=tat>' + "".join(f'<div class=tk data-box={key}-tk{i}>{_e(a)}</div><div class=tv data-box={key}-tv{i}>{_e(b)}</div>'
                                        f'<div class=ts data-box={key}-ts{i}>{_e(c)}</div>' for i, (a, b, c) in enumerate(rows)) + '</div>') if rows else ""
     nm = f'<div class="tile nmt"><div class=v data-box={key}-nm>{_e(name)}</div></div>'
-    cols = "auto " + " ".join(["1fr"] * len(tiles))
-    grid = f'<div class=grid style="grid-template-columns:{cols}">{nm}{"".join(tiles)}</div>'
 
     def draw(w, h, c):
-        return candle_svg(ks, w, h, c, theme, fs=26 if story else 21, ma=True, rsi=True)
-    html = f'<div class=sec>{grid}<div class=chartbox data-box={key}-chart data-chart={key}></div>{tat}</div>'
+        return candle_svg(ks, w, h, c, theme, fs=26 if story else 22, ma=True, rsi=True)
+    # 版面：左＝圖（吃滿整段高度，主圖 ≥330px、RSI ≥80px）、右＝名稱＋數字卡＋技術面表格直排（2026-10-26 CEO：K 棒不能被壓扁）
+    html = (f'<div class=sec><div class=chartbox data-box={key}-chart data-chart={key}></div>'
+            f'<div class=side>{nm}{"".join(tiles)}{tat}</div></div>')
     return html, {key: draw}, rows
 
 
