@@ -139,7 +139,15 @@
         "source": "未取得；查過：<公司> 非主管 薪資 平均 中位數 2025／非主管 平均薪資 2025 萬元 證交所；新聞只列前十名，需至公開資訊觀測站彙總報表查",
         "url": "https://mops.twse.com.tw/"
       },
-      "grade_system": null
+      "grade_system": null,
+      "bonus_structure": [
+        {
+          "type": "既有說法（本輪未再查證）",
+          "rule": "10 月分紅；隔年初年終固定 2 個月＋績效獎金",
+          "months": null,
+          "sources": []
+        }
+      ]
     },
     {
       "name": "欣興",
@@ -252,7 +260,15 @@
         "source": "未取得；查過：<公司> 非主管 薪資 平均 中位數 2025／非主管 平均薪資 2025 萬元 證交所；新聞只列前十名，需至公開資訊觀測站彙總報表查",
         "url": "https://mops.twse.com.tw/"
       },
-      "grade_system": null
+      "grade_system": null,
+      "bonus_structure": [
+        {
+          "type": "既有說法（本輪未再查證）",
+          "rule": "年終約 2 個月（自述）",
+          "months": null,
+          "sources": []
+        }
+      ]
     },
     {
       "name": "景碩",
@@ -260,7 +276,7 @@
       "heat": "Dcard 熱度：低",
       "benefits": "三節禮券、加班費另計",
       "stock_plan": "本輪未查到",
-      "bonus_timing": "年終約 2 個月；實習有季獎金（招募文件）",
+      "bonus_timing": "網友 2026 稱季獎金（固定底標）＋分紅（第二年起）＋年終 2 個月；發放月份查不到",
       "culture": "自述「除了工程師以外不太建議」",
       "interview": "本輪未查到",
       "roles": [
@@ -345,7 +361,57 @@
         "source": "未取得；查過：<公司> 非主管 薪資 平均 中位數 2025／非主管 平均薪資 2025 萬元 證交所；新聞只列前十名，需至公開資訊觀測站彙總報表查",
         "url": "https://mops.twse.com.tw/"
       },
-      "grade_system": null
+      "grade_system": null,
+      "bonus_structure": [
+        {
+          "type": "季獎金",
+          "rule": "每季發，固定底標（網友說法）",
+          "months": null,
+          "sources": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/260504002",
+              "date": "2026"
+            }
+          ]
+        },
+        {
+          "type": "員工分紅",
+          "rule": "第二年起才計，近年獲利不佳僅底標（網友說法）",
+          "months": null,
+          "sources": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/260504002",
+              "date": "2026"
+            }
+          ]
+        },
+        {
+          "type": "年終獎金",
+          "rule": "2 個月（網友說法）",
+          "months": 2,
+          "sources": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/260504002",
+              "date": "2026"
+            }
+          ]
+        },
+        {
+          "type": "限制型股票",
+          "rule": "2021 年度起發行留才，分三年給予",
+          "months": null,
+          "sources": [
+            {
+              "site": "MoneyDJ",
+              "url": "https://www.moneydj.com/kmdj/news/newsviewer.aspx?a=fc34a302-a9f7-4669-96df-d032679d8f6c",
+              "date": "2022"
+            }
+          ]
+        }
+      ]
     },
     {
       "name": "南電",
@@ -434,7 +500,15 @@
         "source": "未取得；查過：<公司> 非主管 薪資 平均 中位數 2025／非主管 平均薪資 2025 萬元 證交所；新聞只列前十名，需至公開資訊觀測站彙總報表查",
         "url": "https://mops.twse.com.tw/"
       },
-      "grade_system": null
+      "grade_system": null,
+      "bonus_structure": [
+        {
+          "type": "既有說法（本輪未再查證）",
+          "rule": "每季依經營績效發放季激勵獎金（招募文件）",
+          "months": null,
+          "sources": []
+        }
+      ]
     },
     {
       "name": "台光電",
@@ -523,7 +597,15 @@
         "source": "未取得；查過：<公司> 非主管 薪資 平均 中位數 2025／非主管 平均薪資 2025 萬元 證交所；新聞只列前十名，需至公開資訊觀測站彙總報表查",
         "url": "https://mops.twse.com.tw/"
       },
-      "grade_system": null
+      "grade_system": null,
+      "bonus_structure": [
+        {
+          "type": "既有說法（本輪未再查證）",
+          "rule": "自述一年四次：第一季年終、第二季績效、第三季管理獎金、第四季分紅",
+          "months": null,
+          "sources": []
+        }
+      ]
     }
   ]
 }
