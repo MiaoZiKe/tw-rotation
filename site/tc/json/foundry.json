@@ -8040,11 +8040,14 @@
           "base_month_k": null,
           "bonus_months": null,
           "annual_months": null,
-          "annual_total_wan": null,
+          "annual_total_wan": [
+            118,
+            118
+          ],
           "weekly_hours": null,
           "overtime": "經常（需值班）",
           "travel": "不用",
-          "n": 11,
+          "n": 12,
           "note": "GoodJob 面試回報單筆 5.8 萬（未通知、年資不完整）；Dcard／PTT 查無世界先進 offer。查過：世界先進 offer 碩士 月薪 分紅 面試 2026（Dcard）／世界先進 GoodJob 面試經驗 製程整合 設備工程師 月薪；GoodJob 多則回報公司保障 16 個月（含年終與節金），另 7 月依營運發分紅、4 月調薪；分紅月數未見具體數字（2026-10 查 GoodJob、媒體）；GoodJob 製程職回報工時偏長、需值班；出差未見回報（廠內職）；2026-10-25 補：Dcard 碩士 31 職等第二年領滿約 110～125 萬（網友）、第一年保 16 領不滿；研替 offer 57k×16、另簽約金 10 萬；研替同職等有 57／62 兩種價",
           "sources": [
             {
@@ -8311,6 +8314,25 @@
               "quote_free_note": "時程請益",
               "date_confirmed": true,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計；依 docs/tc/dcard_id_calibration.md 文章編號≥259537767 確認晚於 2025-08-01",
+              "in_window": true
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/6a964d6684e35a66ed4fc5e1",
+              "date": "2026-09",
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "資深助理工程師面試，主管加同仁面談約 2 小時，未錄取",
+              "date_confirmed": true,
+              "date_note": "GoodJob 標題年月",
               "in_window": true
             }
           ],
@@ -9289,7 +9311,7 @@
           ],
           "overtime": "很少",
           "travel": "不用",
-          "n": 10,
+          "n": 11,
           "note": "GoodJob 2026-02 自述只有 14 個月、無分紅；比薪水 2026-01 整合工程師日均 9 小時（金額需解鎖）；力積電近一年虧損，分紅月數依同公司製程／整合職回報為 0；2026-10-25 補：GoodJob 2026-08 新竹整合 4 年月薪約 7.49 萬、40 小時／週，近年分紅少、購股金 2 千",
           "sources": [
             {
@@ -9531,6 +9553,25 @@
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
               "in_window": false
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/6a181dd1f47f85d0ff1362f4",
+              "date": "2026-05",
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "製程整合工程師面試，英文與人格測驗→人資→主管",
+              "date_confirmed": true,
+              "date_note": "GoodJob 標題年月",
+              "in_window": true
             }
           ],
           "n_in_window": 4
