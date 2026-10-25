@@ -1,0 +1,459 @@
+{
+ "industry": "foreign",
+ "name": "外商（台灣據點）",
+ "updated": "2026-10-25",
+ "window": "2025-10-25～2026-10-25",
+ "companies": [
+  {
+   "name": "NVIDIA",
+   "code": null,
+   "heat": null,
+   "benefits": null,
+   "stock_plan": "RSU（NSU）四年歸屬，每季歸屬",
+   "bonus_timing": null,
+   "culture": null,
+   "interview": null,
+   "roles": [
+    {
+     "unit": "台灣研發",
+     "role": "硬體／軟體工程師（新鮮人）",
+     "degree": "碩士",
+     "years": "0-2",
+     "base_month_k": null,
+     "bonus_months": null,
+     "annual_months": null,
+     "annual_total_wan": [
+      150,
+      200
+     ],
+     "weekly_hours": null,
+     "overtime": null,
+     "travel": null,
+     "n": null,
+     "note": "2025-06 媒體引網傳招募資料，非官方，窗口前；含 RSU（NSU，4 年歸屬，3/6/9/12 月）",
+     "sources": [
+      {
+       "site": "TechNews",
+       "url": "https://technews.tw/?p=1398359",
+       "date": "2025-06"
+      }
+     ],
+     "confidence": "低"
+    },
+    {
+     "unit": "台灣研發",
+     "role": "硬體工程師（全職級）",
+     "degree": "碩士",
+     "years": "不限",
+     "base_month_k": null,
+     "bonus_months": null,
+     "annual_months": null,
+     "annual_total_wan": [
+      null,
+      null
+     ],
+     "weekly_hours": null,
+     "overtime": null,
+     "travel": null,
+     "n": null,
+     "note": "Levels.fyi 台灣硬體工程師中位總薪酬約 240 萬（含股票，不限新鮮人），非碩士新人口徑",
+     "sources": [
+      {
+       "site": "Levels.fyi",
+       "url": "https://www.levels.fyi/companies/nvidia/salaries/hardware-engineer/locations/taiwan",
+       "date": "未確認"
+      }
+     ],
+     "confidence": "低"
+    }
+   ]
+  },
+  {
+   "name": "Google",
+   "code": null,
+   "heat": null,
+   "benefits": null,
+   "stock_plan": "RSU",
+   "bonus_timing": null,
+   "culture": null,
+   "interview": null,
+   "roles": [
+    {
+     "unit": "台灣研發",
+     "role": "軟體工程師 L3",
+     "degree": "碩士",
+     "years": "0-2",
+     "base_month_k": null,
+     "bonus_months": null,
+     "annual_months": null,
+     "annual_total_wan": [
+      186,
+      null
+     ],
+     "weekly_hours": null,
+     "overtime": null,
+     "travel": null,
+     "n": null,
+     "note": "NOWnews 引 Levels.fyi：台灣 L3 含股票獎金平均月約 18 萬、年 186 萬以上；日期未確認",
+     "sources": [
+      {
+       "site": "NOWnews",
+       "url": "https://www.nownews.com/news/6729882",
+       "date": "未確認"
+      }
+     ],
+     "confidence": "低"
+    }
+   ]
+  },
+  {
+   "name": "Dell",
+   "code": null,
+   "heat": null,
+   "benefits": null,
+   "stock_plan": null,
+   "bonus_timing": null,
+   "culture": null,
+   "interview": null,
+   "roles": [
+    {
+     "unit": "台灣研發",
+     "role": "硬體工程師",
+     "degree": "碩士",
+     "years": "不限",
+     "base_month_k": null,
+     "bonus_months": null,
+     "annual_months": null,
+     "annual_total_wan": [
+      146,
+      230
+     ],
+     "weekly_hours": null,
+     "overtime": null,
+     "travel": null,
+     "n": null,
+     "note": "Levels.fyi 台灣硬體工程師 L6 約 146 萬起、中位 230 萬（不限新人）",
+     "sources": [
+      {
+       "site": "Levels.fyi",
+       "url": "https://www.levels.fyi/zh-tw/companies/dell-technologies/salaries/hardware-engineer/locations/taiwan",
+       "date": "未確認"
+      }
+     ],
+     "confidence": "低"
+    }
+   ]
+  },
+  {
+   "name": "Apple",
+   "code": null,
+   "heat": null,
+   "benefits": null,
+   "stock_plan": null,
+   "bonus_timing": null,
+   "culture": null,
+   "interview": null,
+   "roles": [
+    {
+     "unit": "台灣研發",
+     "role": "硬體工程師 ICT3",
+     "degree": "碩士",
+     "years": "0-2",
+     "base_month_k": null,
+     "bonus_months": null,
+     "annual_months": null,
+     "annual_total_wan": null,
+     "weekly_hours": null,
+     "overtime": null,
+     "travel": null,
+     "n": null,
+     "note": "Levels.fyi 有台灣 ICT3 頁面但摘要未給台幣數字；美國數據不採用",
+     "sources": [
+      {
+       "site": "Levels.fyi",
+       "url": "https://www.levels.fyi/companies/apple/salaries/hardware-engineer/levels/ict3/locations/taiwan",
+       "date": "未確認"
+      }
+     ],
+     "confidence": "低"
+    }
+   ]
+  },
+  {
+   "name": "HP",
+   "code": null,
+   "heat": null,
+   "benefits": null,
+   "stock_plan": null,
+   "bonus_timing": null,
+   "culture": null,
+   "interview": null,
+   "roles": [
+    {
+     "unit": "台灣研發",
+     "role": "硬體／軟體工程師",
+     "degree": "碩士",
+     "years": "0-2",
+     "base_month_k": null,
+     "bonus_months": null,
+     "annual_months": null,
+     "annual_total_wan": null,
+     "weekly_hours": null,
+     "overtime": null,
+     "travel": null,
+     "n": null,
+     "note": "WebSearch 以「HP 台灣 碩士 起薪／年薪／GoodJob／Dcard 2026」查詢，摘要未給出近一年碩士數字；待補",
+     "sources": [],
+     "confidence": "低"
+    },
+    {
+     "unit": "台灣",
+     "role": "PM／應用工程師",
+     "degree": "碩士",
+     "years": "0-2",
+     "base_month_k": null,
+     "bonus_months": null,
+     "annual_months": null,
+     "annual_total_wan": null,
+     "weekly_hours": null,
+     "overtime": null,
+     "travel": null,
+     "n": null,
+     "note": "WebSearch 以「HP 台灣 碩士 起薪／年薪／GoodJob／Dcard 2026」查詢，摘要未給出近一年碩士數字；待補",
+     "sources": [],
+     "confidence": "低"
+    }
+   ]
+  },
+  {
+   "name": "微軟",
+   "code": null,
+   "heat": null,
+   "benefits": null,
+   "stock_plan": null,
+   "bonus_timing": null,
+   "culture": null,
+   "interview": null,
+   "roles": [
+    {
+     "unit": "台灣研發",
+     "role": "硬體／軟體工程師",
+     "degree": "碩士",
+     "years": "0-2",
+     "base_month_k": null,
+     "bonus_months": null,
+     "annual_months": null,
+     "annual_total_wan": null,
+     "weekly_hours": null,
+     "overtime": null,
+     "travel": null,
+     "n": null,
+     "note": "WebSearch 以「微軟 台灣 碩士 起薪／年薪／GoodJob／Dcard 2026」查詢，摘要未給出近一年碩士數字；待補",
+     "sources": [],
+     "confidence": "低"
+    },
+    {
+     "unit": "台灣",
+     "role": "PM／應用工程師",
+     "degree": "碩士",
+     "years": "0-2",
+     "base_month_k": null,
+     "bonus_months": null,
+     "annual_months": null,
+     "annual_total_wan": null,
+     "weekly_hours": null,
+     "overtime": null,
+     "travel": null,
+     "n": null,
+     "note": "WebSearch 以「微軟 台灣 碩士 起薪／年薪／GoodJob／Dcard 2026」查詢，摘要未給出近一年碩士數字；待補",
+     "sources": [],
+     "confidence": "低"
+    }
+   ]
+  },
+  {
+   "name": "Meta",
+   "code": null,
+   "heat": null,
+   "benefits": null,
+   "stock_plan": null,
+   "bonus_timing": null,
+   "culture": null,
+   "interview": null,
+   "roles": [
+    {
+     "unit": "台灣研發",
+     "role": "硬體／軟體工程師",
+     "degree": "碩士",
+     "years": "0-2",
+     "base_month_k": null,
+     "bonus_months": null,
+     "annual_months": null,
+     "annual_total_wan": null,
+     "weekly_hours": null,
+     "overtime": null,
+     "travel": null,
+     "n": null,
+     "note": "WebSearch 以「Meta 台灣 碩士 起薪／年薪／GoodJob／Dcard 2026」查詢，摘要未給出近一年碩士數字；待補",
+     "sources": [],
+     "confidence": "低"
+    },
+    {
+     "unit": "台灣",
+     "role": "PM／應用工程師",
+     "degree": "碩士",
+     "years": "0-2",
+     "base_month_k": null,
+     "bonus_months": null,
+     "annual_months": null,
+     "annual_total_wan": null,
+     "weekly_hours": null,
+     "overtime": null,
+     "travel": null,
+     "n": null,
+     "note": "WebSearch 以「Meta 台灣 碩士 起薪／年薪／GoodJob／Dcard 2026」查詢，摘要未給出近一年碩士數字；待補",
+     "sources": [],
+     "confidence": "低"
+    }
+   ]
+  },
+  {
+   "name": "高通",
+   "code": null,
+   "heat": null,
+   "benefits": null,
+   "stock_plan": null,
+   "bonus_timing": null,
+   "culture": null,
+   "interview": null,
+   "roles": [
+    {
+     "unit": "台灣研發",
+     "role": "硬體／軟體工程師",
+     "degree": "碩士",
+     "years": "0-2",
+     "base_month_k": null,
+     "bonus_months": null,
+     "annual_months": null,
+     "annual_total_wan": null,
+     "weekly_hours": null,
+     "overtime": null,
+     "travel": null,
+     "n": null,
+     "note": "WebSearch 以「高通 台灣 碩士 起薪／年薪／GoodJob／Dcard 2026」查詢，摘要未給出近一年碩士數字；待補",
+     "sources": [],
+     "confidence": "低"
+    },
+    {
+     "unit": "台灣",
+     "role": "PM／應用工程師",
+     "degree": "碩士",
+     "years": "0-2",
+     "base_month_k": null,
+     "bonus_months": null,
+     "annual_months": null,
+     "annual_total_wan": null,
+     "weekly_hours": null,
+     "overtime": null,
+     "travel": null,
+     "n": null,
+     "note": "WebSearch 以「高通 台灣 碩士 起薪／年薪／GoodJob／Dcard 2026」查詢，摘要未給出近一年碩士數字；待補",
+     "sources": [],
+     "confidence": "低"
+    }
+   ]
+  },
+  {
+   "name": "博通",
+   "code": null,
+   "heat": null,
+   "benefits": null,
+   "stock_plan": null,
+   "bonus_timing": null,
+   "culture": null,
+   "interview": null,
+   "roles": [
+    {
+     "unit": "台灣研發",
+     "role": "硬體／軟體工程師",
+     "degree": "碩士",
+     "years": "0-2",
+     "base_month_k": null,
+     "bonus_months": null,
+     "annual_months": null,
+     "annual_total_wan": null,
+     "weekly_hours": null,
+     "overtime": null,
+     "travel": null,
+     "n": null,
+     "note": "WebSearch 以「博通 台灣 碩士 起薪／年薪／GoodJob／Dcard 2026」查詢，摘要未給出近一年碩士數字；待補",
+     "sources": [],
+     "confidence": "低"
+    },
+    {
+     "unit": "台灣",
+     "role": "PM／應用工程師",
+     "degree": "碩士",
+     "years": "0-2",
+     "base_month_k": null,
+     "bonus_months": null,
+     "annual_months": null,
+     "annual_total_wan": null,
+     "weekly_hours": null,
+     "overtime": null,
+     "travel": null,
+     "n": null,
+     "note": "WebSearch 以「博通 台灣 碩士 起薪／年薪／GoodJob／Dcard 2026」查詢，摘要未給出近一年碩士數字；待補",
+     "sources": [],
+     "confidence": "低"
+    }
+   ]
+  },
+  {
+   "name": "AMD",
+   "code": null,
+   "heat": null,
+   "benefits": null,
+   "stock_plan": null,
+   "bonus_timing": null,
+   "culture": null,
+   "interview": null,
+   "roles": [
+    {
+     "unit": "台灣研發",
+     "role": "硬體／軟體工程師",
+     "degree": "碩士",
+     "years": "0-2",
+     "base_month_k": null,
+     "bonus_months": null,
+     "annual_months": null,
+     "annual_total_wan": null,
+     "weekly_hours": null,
+     "overtime": null,
+     "travel": null,
+     "n": null,
+     "note": "WebSearch 以「AMD 台灣 碩士 起薪／年薪／GoodJob／Dcard 2026」查詢，摘要未給出近一年碩士數字；待補",
+     "sources": [],
+     "confidence": "低"
+    },
+    {
+     "unit": "台灣",
+     "role": "PM／應用工程師",
+     "degree": "碩士",
+     "years": "0-2",
+     "base_month_k": null,
+     "bonus_months": null,
+     "annual_months": null,
+     "annual_total_wan": null,
+     "weekly_hours": null,
+     "overtime": null,
+     "travel": null,
+     "n": null,
+     "note": "WebSearch 以「AMD 台灣 碩士 起薪／年薪／GoodJob／Dcard 2026」查詢，摘要未給出近一年碩士數字；待補",
+     "sources": [],
+     "confidence": "低"
+    }
+   ]
+  }
+ ]
+}

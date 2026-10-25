@@ -1,0 +1,772 @@
+{
+ "industry": "odm",
+ "name": "系統廠 ODM/OEM",
+ "updated": "2026-10-25",
+ "window": "2025-10-25～2026-10-25",
+ "companies": [
+  {
+   "name": "廣達",
+   "code": "2382",
+   "heat": "中",
+   "benefits": null,
+   "stock_plan": null,
+   "bonus_timing": null,
+   "culture": "加班普遍，硬體測試回報每日加班常態",
+   "interview": null,
+   "roles": [
+    {
+     "unit": "研發 RD",
+     "role": "硬體研發工程師",
+     "degree": "碩士",
+     "years": "0-2",
+     "base_month_k": [
+      57,
+      65
+     ],
+     "bonus_months": null,
+     "annual_months": [
+      16,
+      24
+     ],
+     "annual_total_wan": [
+      100,
+      160
+     ],
+     "weekly_hours": 60,
+     "overtime": "經常",
+     "travel": null,
+     "n": 3,
+     "note": "GoodJob 2026-01～07 三筆月薪 5.7～6.5 萬（含 2 年經驗、未標學歷）；評價提年保 12 個月＋績效年終；Dcard 整理碩士整包 100～160 萬（16～24 個月）為網友估算",
+     "sources": [
+      {
+       "site": "GoodJob",
+       "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/work-experiences",
+       "date": "2026-07"
+      },
+      {
+       "site": "Dcard",
+       "url": "https://www.dcard.tw/f/tech_job/p/258747332",
+       "date": "未確認"
+      }
+     ],
+     "confidence": "中"
+    },
+    {
+     "unit": "研發 RD",
+     "role": "軟體研發工程師",
+     "degree": "碩士",
+     "years": "0-2",
+     "base_month_k": null,
+     "bonus_months": [
+      2,
+      2.5
+     ],
+     "annual_months": null,
+     "annual_total_wan": [
+      100,
+      100
+     ],
+     "weekly_hours": null,
+     "overtime": "偶爾",
+     "travel": null,
+     "n": 1,
+     "note": "GoodJob 2026-05 一筆碩畢 2 年經驗年薪 100 萬、有加班費；另一則稱分紅年終 2～2.5 個月（個人說法）",
+     "sources": [
+      {
+       "site": "GoodJob",
+       "url": "https://www.goodjob.life/job-titles/軟體研發/work-experiences",
+       "date": "2026-05"
+      }
+     ],
+     "confidence": "低"
+    }
+   ]
+  },
+  {
+   "name": "鴻海",
+   "code": "2317",
+   "heat": "中",
+   "benefits": null,
+   "stock_plan": null,
+   "bonus_timing": null,
+   "culture": null,
+   "interview": null,
+   "roles": [
+    {
+     "unit": "研發 RD",
+     "role": "硬體／軟體 RD",
+     "degree": "碩士",
+     "years": "0-2",
+     "base_month_k": [
+      52,
+      60
+     ],
+     "bonus_months": null,
+     "annual_months": [
+      16,
+      16
+     ],
+     "annual_total_wan": [
+      83,
+      120
+     ],
+     "weekly_hours": null,
+     "overtime": null,
+     "travel": null,
+     "n": null,
+     "note": "起薪 5.2 萬為 2024 校徵公告（超出一年窗口，僅參考）；Dcard 整理碩士整包 83～120 萬；無近一年 GoodJob 數字",
+     "sources": [
+      {
+       "site": "自由時報",
+       "url": "https://ec.ltn.com.tw/article/breakingnews/4595512",
+       "date": "2024"
+      },
+      {
+       "site": "Dcard",
+       "url": "https://www.dcard.tw/f/tech_job/p/258747332",
+       "date": "未確認"
+      }
+     ],
+     "confidence": "低"
+    }
+   ]
+  },
+  {
+   "name": "智邦",
+   "code": "2345",
+   "heat": null,
+   "benefits": null,
+   "stock_plan": null,
+   "bonus_timing": null,
+   "culture": null,
+   "interview": null,
+   "roles": [
+    {
+     "unit": "研發 RD",
+     "role": "韌體工程師",
+     "degree": "碩士",
+     "years": "0-2",
+     "base_month_k": [
+      70,
+      70
+     ],
+     "bonus_months": null,
+     "annual_months": null,
+     "annual_total_wan": [
+      130,
+      130
+     ],
+     "weekly_hours": null,
+     "overtime": null,
+     "travel": null,
+     "n": 2,
+     "note": "GoodJob 2025-05 韌體不到 1 年年薪 130 萬（窗口前、未標學歷）；2026-01 面試經驗軟韌體 2 年月薪 7 萬",
+     "sources": [
+      {
+       "site": "GoodJob",
+       "url": "https://www.goodjob.life/companies/智邦科技股份有限公司/interview-experiences",
+       "date": "2026-01"
+      }
+     ],
+     "confidence": "低"
+    },
+    {
+     "unit": "研發 RD",
+     "role": "硬體研發工程師",
+     "degree": "碩士",
+     "years": "0-2",
+     "base_month_k": [
+      67,
+      67
+     ],
+     "bonus_months": null,
+     "annual_months": null,
+     "annual_total_wan": null,
+     "weekly_hours": null,
+     "overtime": null,
+     "travel": null,
+     "n": 1,
+     "note": "GoodJob 2025-07 新竹 1 年經驗月薪 6.7 萬（窗口前）",
+     "sources": [
+      {
+       "site": "GoodJob",
+       "url": "https://www.goodjob.life/companies/智邦科技股份有限公司/work-experiences?p=2",
+       "date": "2025-07"
+      }
+     ],
+     "confidence": "低"
+    }
+   ]
+  },
+  {
+   "name": "台達電",
+   "code": "2308",
+   "heat": null,
+   "benefits": null,
+   "stock_plan": null,
+   "bonus_timing": null,
+   "culture": null,
+   "interview": null,
+   "roles": [
+    {
+     "unit": "研發 RD",
+     "role": "電源／散熱研發",
+     "degree": "碩士",
+     "years": "0-2",
+     "base_month_k": [
+      null,
+      75
+     ],
+     "bonus_months": null,
+     "annual_months": null,
+     "annual_total_wan": null,
+     "weekly_hours": null,
+     "overtime": null,
+     "travel": null,
+     "n": null,
+     "note": "碩士起薪最高 7.5 萬為 2023 工商時報（超出窗口）；2026 校徵招 1,700 人未公布薪資",
+     "sources": [
+      {
+       "site": "工商時報",
+       "url": "https://www.ctee.com.tw/news/20230304700296-430502",
+       "date": "2023-03"
+      },
+      {
+       "site": "豹投資",
+       "url": "https://uanalyze.com.tw/articles/3248548574",
+       "date": "2026"
+      }
+     ],
+     "confidence": "低"
+    }
+   ]
+  },
+  {
+   "name": "華碩",
+   "code": "2357",
+   "heat": null,
+   "benefits": null,
+   "stock_plan": null,
+   "bonus_timing": null,
+   "culture": null,
+   "interview": null,
+   "roles": [
+    {
+     "unit": "研發 RD",
+     "role": "硬體／軟體 RD",
+     "degree": "碩士",
+     "years": "0-2",
+     "base_month_k": null,
+     "bonus_months": null,
+     "annual_months": [
+      14,
+      null
+     ],
+     "annual_total_wan": null,
+     "weekly_hours": null,
+     "overtime": null,
+     "travel": null,
+     "n": null,
+     "note": "社群回報月薪×14 保底＋績效分紅，無碩士起薪數字",
+     "sources": [
+      {
+       "site": "1111",
+       "url": "https://www.1111.com.tw/news/jobns/164783",
+       "date": "未確認"
+      }
+     ],
+     "confidence": "低"
+    }
+   ]
+  },
+  {
+   "name": "群光",
+   "code": "2385",
+   "heat": null,
+   "benefits": null,
+   "stock_plan": null,
+   "bonus_timing": null,
+   "culture": "GoodJob 調查平均日工時 8.5～10 小時（uptogo 轉述）",
+   "interview": null,
+   "roles": [
+    {
+     "unit": "研發 RD",
+     "role": "硬體研發",
+     "degree": "碩士",
+     "years": "0-2",
+     "base_month_k": null,
+     "bonus_months": null,
+     "annual_months": null,
+     "annual_total_wan": null,
+     "weekly_hours": null,
+     "overtime": null,
+     "travel": null,
+     "n": null,
+     "note": "WebSearch 以「群光 碩士 起薪／年薪／GoodJob／Dcard 2026」查詢，摘要未給出近一年碩士數字；待補",
+     "sources": [],
+     "confidence": "低"
+    }
+   ]
+  },
+  {
+   "name": "和碩",
+   "code": "4938",
+   "heat": null,
+   "benefits": null,
+   "stock_plan": null,
+   "bonus_timing": null,
+   "culture": null,
+   "interview": null,
+   "roles": [
+    {
+     "unit": "研發 RD",
+     "role": "硬體研發工程師",
+     "degree": "碩士",
+     "years": "0-2",
+     "base_month_k": null,
+     "bonus_months": null,
+     "annual_months": null,
+     "annual_total_wan": null,
+     "weekly_hours": null,
+     "overtime": null,
+     "travel": null,
+     "n": null,
+     "note": "WebSearch 以「和碩 碩士 起薪／年薪／GoodJob／Dcard 2026」查詢，摘要未給出近一年碩士數字；待補",
+     "sources": [],
+     "confidence": "低"
+    },
+    {
+     "unit": "研發 RD",
+     "role": "軟體／韌體工程師",
+     "degree": "碩士",
+     "years": "0-2",
+     "base_month_k": null,
+     "bonus_months": null,
+     "annual_months": null,
+     "annual_total_wan": null,
+     "weekly_hours": null,
+     "overtime": null,
+     "travel": null,
+     "n": null,
+     "note": "WebSearch 以「和碩 碩士 起薪／年薪／GoodJob／Dcard 2026」查詢，摘要未給出近一年碩士數字；待補",
+     "sources": [],
+     "confidence": "低"
+    }
+   ]
+  },
+  {
+   "name": "光寶",
+   "code": "2301",
+   "heat": null,
+   "benefits": null,
+   "stock_plan": null,
+   "bonus_timing": null,
+   "culture": null,
+   "interview": null,
+   "roles": [
+    {
+     "unit": "研發 RD",
+     "role": "硬體研發工程師",
+     "degree": "碩士",
+     "years": "0-2",
+     "base_month_k": null,
+     "bonus_months": null,
+     "annual_months": null,
+     "annual_total_wan": null,
+     "weekly_hours": null,
+     "overtime": null,
+     "travel": null,
+     "n": null,
+     "note": "WebSearch 以「光寶 碩士 起薪／年薪／GoodJob／Dcard 2026」查詢，摘要未給出近一年碩士數字；待補",
+     "sources": [],
+     "confidence": "低"
+    },
+    {
+     "unit": "研發 RD",
+     "role": "軟體／韌體工程師",
+     "degree": "碩士",
+     "years": "0-2",
+     "base_month_k": null,
+     "bonus_months": null,
+     "annual_months": null,
+     "annual_total_wan": null,
+     "weekly_hours": null,
+     "overtime": null,
+     "travel": null,
+     "n": null,
+     "note": "WebSearch 以「光寶 碩士 起薪／年薪／GoodJob／Dcard 2026」查詢，摘要未給出近一年碩士數字；待補",
+     "sources": [],
+     "confidence": "低"
+    }
+   ]
+  },
+  {
+   "name": "仁寶",
+   "code": "2324",
+   "heat": null,
+   "benefits": null,
+   "stock_plan": null,
+   "bonus_timing": null,
+   "culture": null,
+   "interview": null,
+   "roles": [
+    {
+     "unit": "研發 RD",
+     "role": "硬體研發工程師",
+     "degree": "碩士",
+     "years": "0-2",
+     "base_month_k": null,
+     "bonus_months": null,
+     "annual_months": null,
+     "annual_total_wan": null,
+     "weekly_hours": null,
+     "overtime": null,
+     "travel": null,
+     "n": null,
+     "note": "WebSearch 以「仁寶 碩士 起薪／年薪／GoodJob／Dcard 2026」查詢，摘要未給出近一年碩士數字；待補",
+     "sources": [],
+     "confidence": "低"
+    },
+    {
+     "unit": "研發 RD",
+     "role": "軟體／韌體工程師",
+     "degree": "碩士",
+     "years": "0-2",
+     "base_month_k": null,
+     "bonus_months": null,
+     "annual_months": null,
+     "annual_total_wan": null,
+     "weekly_hours": null,
+     "overtime": null,
+     "travel": null,
+     "n": null,
+     "note": "WebSearch 以「仁寶 碩士 起薪／年薪／GoodJob／Dcard 2026」查詢，摘要未給出近一年碩士數字；待補",
+     "sources": [],
+     "confidence": "低"
+    }
+   ]
+  },
+  {
+   "name": "英業達",
+   "code": "2356",
+   "heat": null,
+   "benefits": null,
+   "stock_plan": null,
+   "bonus_timing": null,
+   "culture": null,
+   "interview": null,
+   "roles": [
+    {
+     "unit": "研發 RD",
+     "role": "硬體研發工程師",
+     "degree": "碩士",
+     "years": "0-2",
+     "base_month_k": null,
+     "bonus_months": null,
+     "annual_months": null,
+     "annual_total_wan": null,
+     "weekly_hours": null,
+     "overtime": null,
+     "travel": null,
+     "n": null,
+     "note": "WebSearch 以「英業達 碩士 起薪／年薪／GoodJob／Dcard 2026」查詢，摘要未給出近一年碩士數字；待補",
+     "sources": [],
+     "confidence": "低"
+    },
+    {
+     "unit": "研發 RD",
+     "role": "軟體／韌體工程師",
+     "degree": "碩士",
+     "years": "0-2",
+     "base_month_k": null,
+     "bonus_months": null,
+     "annual_months": null,
+     "annual_total_wan": null,
+     "weekly_hours": null,
+     "overtime": null,
+     "travel": null,
+     "n": null,
+     "note": "WebSearch 以「英業達 碩士 起薪／年薪／GoodJob／Dcard 2026」查詢，摘要未給出近一年碩士數字；待補",
+     "sources": [],
+     "confidence": "低"
+    }
+   ]
+  },
+  {
+   "name": "技嘉",
+   "code": "2376",
+   "heat": null,
+   "benefits": null,
+   "stock_plan": null,
+   "bonus_timing": null,
+   "culture": null,
+   "interview": null,
+   "roles": [
+    {
+     "unit": "研發 RD",
+     "role": "硬體研發工程師",
+     "degree": "碩士",
+     "years": "0-2",
+     "base_month_k": null,
+     "bonus_months": null,
+     "annual_months": null,
+     "annual_total_wan": null,
+     "weekly_hours": null,
+     "overtime": null,
+     "travel": null,
+     "n": null,
+     "note": "WebSearch 以「技嘉 碩士 起薪／年薪／GoodJob／Dcard 2026」查詢，摘要未給出近一年碩士數字；待補",
+     "sources": [],
+     "confidence": "低"
+    },
+    {
+     "unit": "研發 RD",
+     "role": "軟體／韌體工程師",
+     "degree": "碩士",
+     "years": "0-2",
+     "base_month_k": null,
+     "bonus_months": null,
+     "annual_months": null,
+     "annual_total_wan": null,
+     "weekly_hours": null,
+     "overtime": null,
+     "travel": null,
+     "n": null,
+     "note": "WebSearch 以「技嘉 碩士 起薪／年薪／GoodJob／Dcard 2026」查詢，摘要未給出近一年碩士數字；待補",
+     "sources": [],
+     "confidence": "低"
+    }
+   ]
+  },
+  {
+   "name": "智易",
+   "code": "3596",
+   "heat": null,
+   "benefits": null,
+   "stock_plan": null,
+   "bonus_timing": null,
+   "culture": null,
+   "interview": null,
+   "roles": [
+    {
+     "unit": "研發 RD",
+     "role": "硬體研發工程師",
+     "degree": "碩士",
+     "years": "0-2",
+     "base_month_k": null,
+     "bonus_months": null,
+     "annual_months": null,
+     "annual_total_wan": null,
+     "weekly_hours": null,
+     "overtime": null,
+     "travel": null,
+     "n": null,
+     "note": "WebSearch 以「智易 碩士 起薪／年薪／GoodJob／Dcard 2026」查詢，摘要未給出近一年碩士數字；待補",
+     "sources": [],
+     "confidence": "低"
+    },
+    {
+     "unit": "研發 RD",
+     "role": "軟體／韌體工程師",
+     "degree": "碩士",
+     "years": "0-2",
+     "base_month_k": null,
+     "bonus_months": null,
+     "annual_months": null,
+     "annual_total_wan": null,
+     "weekly_hours": null,
+     "overtime": null,
+     "travel": null,
+     "n": null,
+     "note": "WebSearch 以「智易 碩士 起薪／年薪／GoodJob／Dcard 2026」查詢，摘要未給出近一年碩士數字；待補",
+     "sources": [],
+     "confidence": "低"
+    }
+   ]
+  },
+  {
+   "name": "緯穎",
+   "code": "6669",
+   "heat": null,
+   "benefits": null,
+   "stock_plan": null,
+   "bonus_timing": null,
+   "culture": null,
+   "interview": null,
+   "roles": [
+    {
+     "unit": "研發 RD",
+     "role": "硬體研發工程師",
+     "degree": "碩士",
+     "years": "0-2",
+     "base_month_k": null,
+     "bonus_months": null,
+     "annual_months": null,
+     "annual_total_wan": null,
+     "weekly_hours": null,
+     "overtime": null,
+     "travel": null,
+     "n": null,
+     "note": "WebSearch 以「緯穎 碩士 起薪／年薪／GoodJob／Dcard 2026」查詢，摘要未給出近一年碩士數字；待補",
+     "sources": [],
+     "confidence": "低"
+    },
+    {
+     "unit": "研發 RD",
+     "role": "軟體／韌體工程師",
+     "degree": "碩士",
+     "years": "0-2",
+     "base_month_k": null,
+     "bonus_months": null,
+     "annual_months": null,
+     "annual_total_wan": null,
+     "weekly_hours": null,
+     "overtime": null,
+     "travel": null,
+     "n": null,
+     "note": "WebSearch 以「緯穎 碩士 起薪／年薪／GoodJob／Dcard 2026」查詢，摘要未給出近一年碩士數字；待補",
+     "sources": [],
+     "confidence": "低"
+    }
+   ]
+  },
+  {
+   "name": "緯創",
+   "code": "3231",
+   "heat": null,
+   "benefits": null,
+   "stock_plan": null,
+   "bonus_timing": null,
+   "culture": null,
+   "interview": null,
+   "roles": [
+    {
+     "unit": "研發 RD",
+     "role": "硬體研發工程師",
+     "degree": "碩士",
+     "years": "0-2",
+     "base_month_k": null,
+     "bonus_months": null,
+     "annual_months": null,
+     "annual_total_wan": null,
+     "weekly_hours": null,
+     "overtime": null,
+     "travel": null,
+     "n": null,
+     "note": "WebSearch 以「緯創 碩士 起薪／年薪／GoodJob／Dcard 2026」查詢，摘要未給出近一年碩士數字；待補",
+     "sources": [],
+     "confidence": "低"
+    },
+    {
+     "unit": "研發 RD",
+     "role": "軟體／韌體工程師",
+     "degree": "碩士",
+     "years": "0-2",
+     "base_month_k": null,
+     "bonus_months": null,
+     "annual_months": null,
+     "annual_total_wan": null,
+     "weekly_hours": null,
+     "overtime": null,
+     "travel": null,
+     "n": null,
+     "note": "WebSearch 以「緯創 碩士 起薪／年薪／GoodJob／Dcard 2026」查詢，摘要未給出近一年碩士數字；待補",
+     "sources": [],
+     "confidence": "低"
+    }
+   ]
+  },
+  {
+   "name": "明基",
+   "code": "2352",
+   "heat": null,
+   "benefits": null,
+   "stock_plan": null,
+   "bonus_timing": null,
+   "culture": null,
+   "interview": null,
+   "roles": [
+    {
+     "unit": "研發 RD",
+     "role": "硬體研發工程師",
+     "degree": "碩士",
+     "years": "0-2",
+     "base_month_k": null,
+     "bonus_months": null,
+     "annual_months": null,
+     "annual_total_wan": null,
+     "weekly_hours": null,
+     "overtime": null,
+     "travel": null,
+     "n": null,
+     "note": "WebSearch 以「明基 碩士 起薪／年薪／GoodJob／Dcard 2026」查詢，摘要未給出近一年碩士數字；待補",
+     "sources": [],
+     "confidence": "低"
+    },
+    {
+     "unit": "研發 RD",
+     "role": "軟體／韌體工程師",
+     "degree": "碩士",
+     "years": "0-2",
+     "base_month_k": null,
+     "bonus_months": null,
+     "annual_months": null,
+     "annual_total_wan": null,
+     "weekly_hours": null,
+     "overtime": null,
+     "travel": null,
+     "n": null,
+     "note": "WebSearch 以「明基 碩士 起薪／年薪／GoodJob／Dcard 2026」查詢，摘要未給出近一年碩士數字；待補",
+     "sources": [],
+     "confidence": "低"
+    }
+   ]
+  },
+  {
+   "name": "趨勢科技",
+   "code": "4704",
+   "heat": null,
+   "benefits": null,
+   "stock_plan": null,
+   "bonus_timing": null,
+   "culture": null,
+   "interview": null,
+   "roles": [
+    {
+     "unit": "研發 RD",
+     "role": "硬體研發工程師",
+     "degree": "碩士",
+     "years": "0-2",
+     "base_month_k": null,
+     "bonus_months": null,
+     "annual_months": null,
+     "annual_total_wan": null,
+     "weekly_hours": null,
+     "overtime": null,
+     "travel": null,
+     "n": null,
+     "note": "WebSearch 以「趨勢科技 碩士 起薪／年薪／GoodJob／Dcard 2026」查詢，摘要未給出近一年碩士數字；待補",
+     "sources": [],
+     "confidence": "低"
+    },
+    {
+     "unit": "研發 RD",
+     "role": "軟體／韌體工程師",
+     "degree": "碩士",
+     "years": "0-2",
+     "base_month_k": null,
+     "bonus_months": null,
+     "annual_months": null,
+     "annual_total_wan": null,
+     "weekly_hours": null,
+     "overtime": null,
+     "travel": null,
+     "n": null,
+     "note": "WebSearch 以「趨勢科技 碩士 起薪／年薪／GoodJob／Dcard 2026」查詢，摘要未給出近一年碩士數字；待補",
+     "sources": [],
+     "confidence": "低"
+    }
+   ]
+  }
+ ]
+}
