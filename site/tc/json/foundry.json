@@ -17,7 +17,7 @@
         {
           "unit": "晶圓廠 Fab",
           "role": "製程工程師",
-          "degree": "碩士",
+          "degree": "不限",
           "years": "0-2",
           "base_month_k": [
             63,
@@ -90,12 +90,13 @@
             }
           ],
           "confidence": "高",
-          "degree_diff": "學士：公開觀測站大專新進平均起薪約 4.37 萬，比碩士少約 2.1 萬；學士年薪無可靠數字"
+          "grade": "31 職等",
+          "busyness": "高：Dcard 稱製程經常性加班一天 14 小時起跳；先進製程廠區加班更多；同職等底薪相同，年薪差主要來自加班與廠區"
         },
         {
           "unit": "晶圓廠 Fab",
           "role": "設備工程師",
-          "degree": "碩士",
+          "degree": "不限",
           "years": "0-2",
           "base_month_k": [
             63,
@@ -137,12 +138,14 @@
               "date": "約2025～2026（依文章編號推估，未讀原文）"
             }
           ],
-          "confidence": "低"
+          "confidence": "低",
+          "grade": "31 職等",
+          "busyness": "高：值班與 PM 保養量大，Dcard 稱設備一天約 12 小時；薄膜等設備評價較輕"
         },
         {
           "unit": "智慧製造 IT",
           "role": "智慧製造／IT 工程師",
-          "degree": "碩士",
+          "degree": "不限",
           "years": "0-2",
           "base_month_k": [
             60,
@@ -176,12 +179,14 @@
               "date": "2026"
             }
           ],
-          "confidence": "低"
+          "confidence": "低",
+          "grade": "31 職等",
+          "busyness": "低：自述加班少、45 小時／週"
         },
         {
           "unit": "晶圓廠 Fab",
           "role": "製程整合工程師（PIE）",
-          "degree": "碩士",
+          "degree": "不限",
           "years": "0-2",
           "base_month_k": [
             60,
@@ -223,11 +228,13 @@
               "date": "2025-03"
             }
           ],
-          "confidence": "中"
+          "confidence": "中",
+          "grade": "31 職等",
+          "busyness": "高：GoodJob 自述 48～60 小時／週"
         },
         {
           "unit": "晶圓廠 Fab",
-          "degree": "碩士／學士",
+          "degree": "不限",
           "years": "0-2",
           "base_month_k": [
             38.7,
@@ -290,11 +297,13 @@
               "date": "範圍外參考（依文章編號推估 2021～2024）"
             }
           ],
-          "n": 8
+          "n": 8,
+          "grade": "2X 職等（副工程師）",
+          "busyness": "高：每月加班 10～20 小時、每月 2～3 個週末加班（Dcard 自述）"
         },
         {
           "unit": "晶圓廠 Fab",
-          "degree": "碩士／學士",
+          "degree": "不限",
           "years": "3-5",
           "base_month_k": null,
           "bonus_months": null,
@@ -324,11 +333,13 @@
               "date": "約2025～2026（依文章編號推估，未讀原文）"
             }
           ],
-          "n": 2
+          "n": 2,
+          "grade": "2X 職等（副工程師）",
+          "busyness": "高：每月加班 10～20 小時、每月 2～3 個週末加班（Dcard 自述）"
         },
         {
           "unit": "晶圓廠 Fab",
-          "degree": "高中職／大專",
+          "degree": "不限",
           "years": "0-2",
           "base_month_k": [
             32,
@@ -384,11 +395,13 @@
               "date": "2026-05"
             }
           ],
-          "n": 6
+          "n": 6,
+          "grade": "6X 職等",
+          "busyness": "低：不加班週工時約 35 小時，年薪差在加班與夜班"
         },
         {
           "unit": "晶圓廠 Fab",
-          "degree": "高中職／大專",
+          "degree": "不限",
           "years": "0-2",
           "base_month_k": [
             43,
@@ -426,11 +439,13 @@
               "date": "2025-01（範圍外參考）"
             }
           ],
-          "n": 3
+          "n": 3,
+          "grade": "6X 職等",
+          "busyness": "中：夜班津貼與輪班獎金，月薪比日班多約 1.4 萬"
         },
         {
           "unit": "晶圓廠 Fab",
-          "degree": "高中職／大專",
+          "degree": "不限",
           "years": "3-5",
           "base_month_k": null,
           "bonus_months": null,
@@ -475,11 +490,13 @@
               "date": "2026-05"
             }
           ],
-          "n": 5
+          "n": 5,
+          "grade": "6X 職等（ETE 助工／TE）",
+          "busyness": "中：年收 90～150 萬的落差主要來自加班多寡"
         },
         {
           "unit": "海外廠",
-          "degree": "高中職／大專",
+          "degree": "不限",
           "years": "0-2",
           "base_month_k": null,
           "bonus_months": null,
@@ -501,11 +518,13 @@
               "date": "約2025～2026（依文章編號推估，未讀原文）"
             }
           ],
-          "n": 1
+          "n": 1,
+          "grade": "6X 職等",
+          "busyness": null
         },
         {
           "unit": "廠務",
-          "degree": "碩士／學士",
+          "degree": "不限",
           "years": "0-2",
           "base_month_k": [
             45,
@@ -532,11 +551,13 @@
               "date": "約2025～2026（依文章編號推估，未讀原文）"
             }
           ],
-          "n": 2
+          "n": 2,
+          "grade": null,
+          "busyness": null
         },
         {
           "unit": "品保",
-          "degree": "學士",
+          "degree": "不限",
           "years": "0-2",
           "base_month_k": null,
           "bonus_months": null,
@@ -555,11 +576,13 @@
               "date": "2026-09"
             }
           ],
-          "n": 1
+          "n": 1,
+          "grade": null,
+          "busyness": "中：salary.tw 自述日均約 12 小時（單筆）"
         },
         {
           "unit": "研發 R&D",
-          "degree": "碩士",
+          "degree": "不限",
           "years": "0-2",
           "base_month_k": [
             63,
@@ -597,11 +620,13 @@
               "date": "約2025～2026（依文章編號推估，未讀原文）"
             }
           ],
-          "n": 3
+          "n": 3,
+          "grade": "31 職等",
+          "busyness": "高：新製程開發期加班到深夜常見"
         },
         {
           "unit": "管理處",
-          "degree": "碩士／學士",
+          "degree": "不限",
           "years": "0-2",
           "base_month_k": null,
           "bonus_months": null,
@@ -620,7 +645,9 @@
               "date": "2026"
             }
           ],
-          "n": 1
+          "n": 1,
+          "grade": null,
+          "busyness": null
         }
       ],
       "mops": {
@@ -630,7 +657,87 @@
         "n": null,
         "source": "證交所非主管全時員工薪資（聯合新聞網轉述）",
         "url": "https://money.udn.com/money/story/5607/9598746"
-      }
+      },
+      "grade_system": "工程師 31 工程師／32 資深工程師／33 主任工程師／34 副理／35 經理；2X＝MAE、AE（副工程師），6X＝ETE 助工、TE 技術員（Dcard、PTT 網友整理，非官方）",
+      "grade_sources": [
+        {
+          "site": "Dcard",
+          "url": "https://www.dcard.tw/f/tech_job/p/241058915",
+          "date": "範圍外參考"
+        },
+        {
+          "site": "Dcard",
+          "url": "https://www.dcard.tw/f/tech_job/p/260348421",
+          "date": "約2025～2026（依文章編號推估）"
+        },
+        {
+          "site": "Dcard",
+          "url": "https://www.dcard.tw/f/tech_job/p/260625820",
+          "date": "約2025～2026（依文章編號推估）"
+        }
+      ],
+      "busyness_units": [
+        {
+          "unit": "Fab18（南科，3／5 奈米先進製程）",
+          "busyness": "高",
+          "basis": "Dcard 多篇稱前幾年 F18 評價最差、F18B 每天可能超過 12 小時；也有人說 F18 黃光製程較輕鬆，意見分歧",
+          "sources": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/257548503",
+              "date": "約2025～2026（依文章編號推估）"
+            }
+          ]
+        },
+        {
+          "unit": "先進製程廠區（5／4／3／2 奈米）",
+          "busyness": "高",
+          "basis": "Dcard 網友稱先進製程廠區每月加班破百是常態（單篇說法）",
+          "sources": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/252967358",
+              "date": "範圍外參考"
+            }
+          ]
+        },
+        {
+          "unit": "Fab12／Fab14／Fab15",
+          "busyness": null,
+          "basis": "查 Dcard／PTT 未見可靠比較；F15B 只有面試者詢問輪班的文章，F12B 準時下班說法網友自己都不信",
+          "sources": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/260246547",
+              "date": "約2025～2026（依文章編號推估）"
+            }
+          ]
+        },
+        {
+          "unit": "成熟製程廠區",
+          "busyness": null,
+          "basis": "未找到成熟製程廠區專屬工時；PTT 指先進／成熟界定各說各話",
+          "sources": [
+            {
+              "site": "PTT",
+              "url": "https://www.ptt.cc/bbs/Tech_Job/M.1718888633.A.52C.html",
+              "date": "2024-06（範圍外參考）"
+            }
+          ]
+        },
+        {
+          "unit": "研發 R&D",
+          "busyness": "高",
+          "basis": "新製程開發期加班到半夜常見（舊報導夜鷹計畫）；RD 整合職自述約 7:30～19:00",
+          "sources": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/252904748",
+              "date": "範圍外參考"
+            }
+          ]
+        }
+      ]
     },
     {
       "name": "聯電",
@@ -710,7 +817,8 @@
               "date": "約2025～2026（依文章編號推估，未讀原文）"
             }
           ],
-          "confidence": "低"
+          "confidence": "低",
+          "grade": "6E（碩士新人）"
         },
         {
           "unit": "晶圓廠 Fab",
@@ -754,7 +862,8 @@
               "date": "2026"
             }
           ],
-          "confidence": "低"
+          "confidence": "低",
+          "grade": "6E（碩士新人）"
         },
         {
           "unit": "研發 R&D",
@@ -783,7 +892,8 @@
               "date": "2026-05"
             }
           ],
-          "confidence": "中"
+          "confidence": "中",
+          "grade": "6E（碩士新人）"
         },
         {
           "unit": "晶圓廠 Fab",
@@ -822,46 +932,8 @@
               "date": "約2025～2026（依文章編號推估，未讀原文）"
             }
           ],
-          "confidence": "中"
-        },
-        {
-          "unit": "晶圓廠 Fab",
-          "degree": "高中職／大專",
-          "years": "0-2",
-          "base_month_k": [
-            32,
-            53
-          ],
-          "bonus_months": null,
-          "annual_months": null,
-          "annual_total_wan": null,
-          "weekly_hours": [
-            40,
-            48
-          ],
-          "overtime": "經常",
-          "travel": "不用",
-          "confidence": "低",
-          "role": "技術員（含 MAE 類輪班人力）",
-          "note": "GoodJob 2025-06 新竹技術員月薪約 3.2 萬、40 小時／週；salary.tw 技術員平均月薪約 5.3 萬（含津貼，自填）；Dcard 技術員自述分紅一年兩次（1 月、7 月底），夜班與加班影響大；MAE 專屬數字未找到",
-          "sources": [
-            {
-              "site": "GoodJob",
-              "url": "https://www.goodjob.life/experiences/684152978a209dfd75d038aa",
-              "date": "2025-06"
-            },
-            {
-              "site": "salary.tw",
-              "url": "https://salary.tw/c/L4z2/positions/%E6%8A%80%E8%A1%93%E5%93%A1",
-              "date": "2026"
-            },
-            {
-              "site": "Dcard",
-              "url": "https://www.dcard.tw/f/tech_job/p/252740000",
-              "date": "範圍外參考（依文章編號推估 2021～2024）"
-            }
-          ],
-          "n": 3
+          "confidence": "中",
+          "grade": "6E（碩士新人）"
         }
       ],
       "mops": {
@@ -871,7 +943,15 @@
         "n": null,
         "source": "未取得；查過：<公司> 非主管 薪資 平均 中位數 2025／非主管 平均薪資 2025 萬元 證交所；新聞只列前十名，需至公開資訊觀測站彙總報表查",
         "url": "https://mops.twse.com.tw/"
-      }
+      },
+      "grade_system": "U 職等：5（學士新人）／6E 高級工程師（碩士新人）／6ES 資深高級工程師／7E 主任工程師／7ES 資深主任工程師／8E，再上為經理（Dcard 網友整理）",
+      "grade_sources": [
+        {
+          "site": "Dcard",
+          "url": "https://www.dcard.tw/f/tech_job/p/242304638",
+          "date": "範圍外參考"
+        }
+      ]
     },
     {
       "name": "世界先進",
@@ -930,7 +1010,8 @@
               "date": "2026"
             }
           ],
-          "confidence": "低"
+          "confidence": "低",
+          "grade": "31 職等"
         },
         {
           "unit": "晶圓廠 Fab",
@@ -982,7 +1063,8 @@
               "date": "約2025～2026（依文章編號推估，未讀原文）"
             }
           ],
-          "confidence": "低"
+          "confidence": "低",
+          "grade": "31 職等"
         },
         {
           "unit": "晶圓廠 Fab",
@@ -1026,7 +1108,8 @@
               "date": "2026-07"
             }
           ],
-          "confidence": "低"
+          "confidence": "低",
+          "grade": "31 職等"
         },
         {
           "unit": "研發 R&D",
@@ -1057,52 +1140,8 @@
               "date": "2026"
             }
           ],
-          "confidence": "低"
-        },
-        {
-          "unit": "晶圓廠 Fab",
-          "degree": "高中職／大專",
-          "years": "0-2",
-          "base_month_k": [
-            28,
-            45
-          ],
-          "bonus_months": null,
-          "annual_months": [
-            16,
-            17
-          ],
-          "annual_total_wan": [
-            60,
-            100
-          ],
-          "weekly_hours": [
-            40,
-            48
-          ],
-          "overtime": "偶爾",
-          "travel": "不用",
           "confidence": "低",
-          "role": "技術員（日班／夜班）",
-          "note": "GoodJob 2026-03 面試文：新竹技術員底薪 2.8 萬、夜班津貼 8 千、早班保 16 個月、夜班保 17 個月、年薪約 60 萬；另一則約 5 年女性技術員年薪約 100 萬（2026-07）；2023 年月薪 4.5 萬一則為範圍外；Dcard 技術員自述 7 月分紅約 1 個月（範圍外）",
-          "sources": [
-            {
-              "site": "GoodJob",
-              "url": "https://www.goodjob.life/experiences/69b64087df2a23e97c7f56e7",
-              "date": "2026-03"
-            },
-            {
-              "site": "GoodJob",
-              "url": "https://www.goodjob.life/experiences/657aed131413e4c913a62af1",
-              "date": "2023-12（範圍外參考）"
-            },
-            {
-              "site": "Dcard",
-              "url": "https://www.dcard.tw/f/job/p/238508792",
-              "date": "範圍外參考（依文章編號推估 2021～2024）"
-            }
-          ],
-          "n": 3
+          "grade": "31 職等"
         }
       ],
       "mops": {
@@ -1112,7 +1151,15 @@
         "n": null,
         "source": "未取得；查過：<公司> 非主管 薪資 平均 中位數 2025／非主管 平均薪資 2025 萬元 證交所；新聞只列前十名，需至公開資訊觀測站彙總報表查",
         "url": "https://mops.twse.com.tw/"
-      }
+      },
+      "grade_system": "31 工程師／32 資深工程師／33 主任工程師／34 副理／35 經理／36 部經理（GoodJob 2025-11 評價）",
+      "grade_sources": [
+        {
+          "site": "GoodJob",
+          "url": "https://www.goodjob.life/experiences/69192e199e12aa91bd04bb97",
+          "date": "2025-11"
+        }
+      ]
     },
     {
       "name": "力積電",
@@ -1175,7 +1222,8 @@
               "date": "約2025～2026（依文章編號推估，未讀原文）"
             }
           ],
-          "confidence": "中"
+          "confidence": "中",
+          "grade": null
         },
         {
           "unit": "晶圓廠 Fab",
@@ -1223,7 +1271,8 @@
               "date": "2026-08"
             }
           ],
-          "confidence": "中"
+          "confidence": "中",
+          "grade": null
         },
         {
           "unit": "晶圓廠 Fab",
@@ -1278,7 +1327,8 @@
               "date": "約2025～2026（依文章編號推估，未讀原文）"
             }
           ],
-          "confidence": "低"
+          "confidence": "低",
+          "grade": null
         },
         {
           "unit": "研發 R&D",
@@ -1322,30 +1372,8 @@
               "date": "約2025～2026（依文章編號推估，未讀原文）"
             }
           ],
-          "confidence": "低"
-        },
-        {
-          "unit": "晶圓廠 Fab",
-          "degree": "高中職／大專",
-          "years": "0-2",
-          "base_month_k": null,
-          "bonus_months": null,
-          "annual_months": null,
-          "annual_total_wan": null,
-          "weekly_hours": null,
-          "overtime": "偶爾",
-          "travel": "不用",
           "confidence": "低",
-          "role": "技術員",
-          "note": "Dcard／GoodJob 未找到近一年力積電技術員薪資數字；設備輪班做二休二、夜班另有大夜補助約 1.3 萬（Dcard 設備 offer 提及）",
-          "sources": [
-            {
-              "site": "Dcard",
-              "url": "https://www.dcard.tw/f/tech_job/p/260548064",
-              "date": "約2025～2026（依文章編號推估，未讀原文）"
-            }
-          ],
-          "n": 1
+          "grade": null
         }
       ],
       "mops": {
@@ -1355,7 +1383,16 @@
         "n": null,
         "source": "未取得；查過：<公司> 非主管 薪資 平均 中位數 2025／非主管 平均薪資 2025 萬元 證交所；新聞只列前十名，需至公開資訊觀測站彙總報表查",
         "url": "https://mops.twse.com.tw/"
-      }
+      },
+      "grade_system": null,
+      "grade_sources": [
+        {
+          "site": "Dcard",
+          "url": "https://www.dcard.tw/f/tech_job/p/240131464",
+          "date": "範圍外參考"
+        }
+      ],
+      "grade_note": "未找到完整職等表；Dcard 2022 提到新人「E4」、GoodJob 2026-08 有「主任工程師」職稱，皆單筆，未採"
     }
   ]
 }
