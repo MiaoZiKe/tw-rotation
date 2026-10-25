@@ -1846,7 +1846,7 @@
           "weekly_hours": null,
           "overtime": "偶爾",
           "travel": null,
-          "n": 7,
+          "n": 8,
           "note": "網友自述未經查證；GoodJob 韌體設計 2026-04 月薪 9.2 萬（未滿 1 年）、韌體 9.5 萬（1 年）；2025-04 一筆 7 萬早於區間不採；公司頁平均週工時 47、42% 偶爾加班；年資 4～5 年 180～300 萬已排除；第二輪：Dcard 稱碩士起薪已調到約 9 萬、offer 不明寫保 14 但基本會達標；PTT 2026-02 開獎串 3 年 FW 年終 2＋分紅 5 個月（年薪近 300 萬）；GoodJob 韌體 2025-08～10 月薪 9.5～11 萬（範圍外參考）；未逐筆對應的舊彙整：{\"base_month_k\": [90, 90], \"bonus_months\": [5, 5], \"annual_total_wan\": [300, 300]}",
           "sources": [
             {
@@ -1873,6 +1873,11 @@
               "site": "GoodJob",
               "url": "https://www.goodjob.life/experiences/68a7eaabb1c5ce9a77fb785c",
               "date": "2025-08"
+            },
+            {
+              "site": "PTT",
+              "url": "https://www.ptt.cc/bbs/Soft_Job/M.1787585584.A.9D9.html",
+              "date": "2026-08"
             }
           ],
           "confidence": "中",
@@ -1998,6 +2003,25 @@
               "date_confirmed": true,
               "in_window": true,
               "date_note": "GoodJob 標題附 2025.8.29"
+            },
+            {
+              "site": "PTT",
+              "url": "https://www.ptt.cc/bbs/Soft_Job/M.1787585584.A.9D9.html",
+              "date": "2026-08",
+              "unit_detail": "SSD 韌體",
+              "years": null,
+              "degree": "不明",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "2026 新鮮人面試紀錄：慧榮 SSD 韌體先筆試再兩個 team 面試、HR 確認志願序；作者未錄取，無數字",
+              "date_confirmed": true,
+              "in_window": true,
+              "date_note": "PTT 代碼 M.1787585584 換算 2026-08（UTC）"
             }
           ]
         },
@@ -4183,13 +4207,18 @@
           "weekly_hours": null,
           "overtime": null,
           "travel": null,
-          "n": 1,
+          "n": 2,
           "note": "WebSearch 查「円星 碩士 薪資 2026」「GoodJob 円星」「PTT Tech_Job offer 円星」「Dcard offer 円星」「104 ESG 薪資中位數」，摘要未出現 2025-10 後碩士職位數字；第二輪（換 GoodJob 公司頁／職稱頁／salary.tw）：GoodJob、salary.tw 皆無資料；2026-10 以「円星」查 GoodJob 無結果，維持 null",
           "sources": [
             {
               "site": "GoodJob",
               "url": "https://www.goodjob.life/companies/M31/interview-experiences",
               "date": "2026-05"
+            },
+            {
+              "site": "PTT",
+              "url": "https://www.ptt.cc/bbs/Tech_Job/M.1765462960.A.1FD.html",
+              "date": "2025-12"
             }
           ],
           "confidence": "低",
@@ -4212,6 +4241,25 @@
               "travel": null,
               "quote_free_note": "面經：月薪 7.5 萬，自評二線廠一般水準",
               "in_window": true
+            },
+            {
+              "site": "PTT",
+              "url": "https://www.ptt.cc/bbs/Tech_Job/M.1765462960.A.1FD.html",
+              "date": "2025-12",
+              "unit_detail": "數位整合 IC 設計（IP 整合，竹北台元）",
+              "years": null,
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": "幾乎不",
+              "travel": null,
+              "quote_free_note": "2025 新鮮人面試分享：M31 數位整合職工時正常、薪資比新唐高一些，無具體數字",
+              "date_confirmed": true,
+              "in_window": true,
+              "date_note": "PTT 代碼 M.1765462960 換算 2025-12-11（UTC）；Dcard 260446030 為同作者同文，不重複計"
             }
           ]
         },
