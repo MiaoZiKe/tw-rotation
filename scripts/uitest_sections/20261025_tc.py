@@ -55,6 +55,8 @@ def t_tc_1025(b, base, code):
         ok(f"{T}：台積電頁不顯示學歷欄、改顯示單位繁忙度與說明句", pg.evaluate("() => { const t=[...document.querySelectorAll('#v-tc .tc-tbl > thead th')].map(e=>e.innerText).join('|'); return !t.includes('學歷') && t.includes('單位繁忙度') && document.body.innerText.includes('台積電不分學歷，薪資差異主要來自單位繁忙度'); }"))
     gsys = pg.evaluate("() => !!document.querySelector('#v-tc .tc-gs b')")
     ok(f"{T}：公司頁頂端職等制度（資料有才顯示；有則標題為職等制度）", (not gsys) or pg.evaluate("() => document.querySelector('#v-tc .tc-gs b').innerText==='職等制度'"))
+    if is_tsmc:
+        ok(f"{T}：台積電頁頂端分紅結構顯示 3 種獎金、每種有規則", pg.evaluate("() => { const r=[...document.querySelectorAll('#v-tc .tc-bs .tc-bsr')]; return r.length===3 && r.every(e=>e.querySelector('span').innerText.trim().length>1); }"))
     pg.click("#v-tc .seg[data-fk=ot] button[data-i='3']"); pg.wait_for_timeout(250)
     r1 = rows()
     ok(f"{T}：公司頁篩選加班「經常」→ 職位數真的變少且每列都是經常", 0 <= r1 < r0 and pg.evaluate("() => [...document.querySelectorAll('#v-tc .tc-row .tc-ot')].every(e => e.innerText.includes('經常'))"), (r0, r1))

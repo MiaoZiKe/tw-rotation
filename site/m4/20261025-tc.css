@@ -129,3 +129,13 @@ html:not(.tc-adm) .tab[data-view="tc"],html:not(.tc-adm) a[href="#tc"],html:not(
   #v-tc .tc-row .tc-conf{white-space:nowrap}
   #v-tc .tc-smrow td{display:block}
 }
+
+/* 分紅結構（2026-10-25）：每種獎金一行 */
+#v-tc .tc-bs{margin-bottom:var(--sp-2);font-size:13px;color:var(--ink-2)}
+#v-tc .tc-bs h5{margin:0 0 4px;font-size:14px;color:var(--cyan)}
+#v-tc .tc-bs summary{cursor:pointer;color:var(--cyan);font-size:14px;min-height:32px}
+#v-tc .tc-bsr{display:grid;grid-template-columns:minmax(120px,1.2fr) 3fr 90px 2fr;gap:8px;padding:4px 0;border-top:1px solid var(--line,rgba(128,128,128,.2))}
+#v-tc .tc-bsr em{font-style:normal;color:var(--ink)}
+#v-tc .tc-bsr small{font-size:11px;opacity:.8}
+#v-tc .tc-bsr small a{color:inherit;text-decoration:underline}
+@media (max-width:640px){#v-tc .tc-bsr{grid-template-columns:1fr 90px}#v-tc .tc-bsr span,#v-tc .tc-bsr small{grid-column:1/-1}}
