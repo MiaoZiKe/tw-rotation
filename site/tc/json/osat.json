@@ -67,20 +67,34 @@
           "role": "設備工程師",
           "degree": "碩士",
           "years": "0-2",
-          "base_month_k": null,
-          "bonus_months": null,
-          "annual_months": null,
+          "base_month_k": [
+            45,
+            50
+          ],
+          "bonus_months": [
+            2,
+            4
+          ],
+          "annual_months": [
+            14,
+            16
+          ],
           "annual_total_wan": null,
           "weekly_hours": null,
-          "overtime": null,
-          "travel": null,
+          "overtime": "經常（需輪班）",
+          "travel": "不用",
           "n": 0,
-          "note": "查無可用數字；查過關鍵字：日月光 京元電子 碩士 薪水 2026／日月光 碩士 製程工程師 月薪 2026 GoodJob 分紅 月份",
+          "note": "查無可用數字；查過關鍵字：日月光 京元電子 碩士 薪水 2026／日月光 碩士 製程工程師 月薪 2026 GoodJob 分紅 月份；Yahoo 徵才報導：設備工程師需輪班、另加輪班津貼，頂大碩畢起薪約 5 萬；比薪水 2026-05 中壢回報日均工時 10～12 小時；分紅與年薪月數沿用同公司製程職區間",
           "sources": [
             {
               "site": "GoodJob",
               "url": "https://www.goodjob.life/companies/日月光半導體製造股份有限公司 ASE/work-experiences/薪資福利",
               "date": "2026"
+            },
+            {
+              "site": "Yahoo 股市／比薪水",
+              "url": "https://salary.tw/insights/article/8df58677-2e9e-44b9-8028-5cd93f518e9e",
+              "date": "2026-05"
             }
           ],
           "confidence": "低"
@@ -157,14 +171,20 @@
             42,
             50
           ],
-          "bonus_months": null,
-          "annual_months": null,
+          "bonus_months": [
+            1,
+            4
+          ],
+          "annual_months": [
+            15,
+            18
+          ],
           "annual_total_wan": null,
           "weekly_hours": null,
-          "overtime": null,
+          "overtime": "經常",
           "travel": "不用",
           "n": 2,
-          "note": "GoodJob 2026 自述 5 萬與 4.2 萬（配件工程師）；學歷未標",
+          "note": "GoodJob 2026 自述 5 萬與 4.2 萬（配件工程師）；學歷未標；加班與月數沿用同公司生產技術職回報（低信心）",
           "sources": [
             {
               "site": "GoodJob",
@@ -208,7 +228,10 @@
             43,
             50
           ],
-          "bonus_months": null,
+          "bonus_months": [
+            1,
+            2
+          ],
           "annual_months": [
             14,
             14
@@ -221,7 +244,7 @@
           "overtime": "偶爾",
           "travel": "不用",
           "n": 2,
-          "note": "GoodJob 2026-01 彰化 5 萬、台中測試 4.3 萬；保 14 個月出自 salary.tw 單則；學歷未標",
+          "note": "GoodJob 2026-01 彰化 5 萬、台中測試 4.3 萬；保 14 個月出自 salary.tw 單則；學歷未標；年薪 14 個月扣本薪 12 個月推算，含年終",
           "sources": [
             {
               "site": "GoodJob",
