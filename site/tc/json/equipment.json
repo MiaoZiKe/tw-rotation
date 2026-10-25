@@ -331,7 +331,7 @@
           "weekly_hours": null,
           "overtime": "經常（輪班＋on call）",
           "travel": "需要",
-          "n": 3,
+          "n": 7,
           "note": "比薪水 2026-03 新竹設備工程師有分享但金額需解鎖；GoodJob 2026-08 設備職面試：無塵室、三到四週輪一次班、需 on call 與出差支援",
           "sources": [
             {
@@ -348,6 +348,26 @@
               "site": "GoodJob",
               "url": "https://www.goodjob.life/experiences/6a85db4cc43855f64051bc04",
               "date": "2026-08"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/259727378",
+              "date": "2025-09"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/260669902",
+              "date": "2026-01"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/260581005",
+              "date": "2026-01"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/260978734",
+              "date": "2026-03"
             }
           ],
           "confidence": "低",
@@ -406,9 +426,81 @@
               "quote_free_note": null,
               "date_confirmed": true,
               "date_note": "GoodJob 標題附分享日期"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/259727378",
+              "date": "2025-09",
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "Lam 薪水請益，摘要未給可歸屬數字",
+              "date_confirmed": true,
+              "date_note": "依 docs/tc/dcard_id_calibration.md：編號 259727378 ≥ 259537767，晚於 2025-08-01；月份為校準表內插"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/260669902",
+              "date": "2026-01",
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "台中 FSE offer，(N+13)×14＋車補＋分紅，留言估月約 8.5 萬含車補 1.5 萬",
+              "date_confirmed": true,
+              "date_note": "依 docs/tc/dcard_id_calibration.md：編號 260669902 ≥ 259537767，晚於 2025-08-01；月份為校準表內插"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/260581005",
+              "date": "2026-01",
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "ASML 與 Lam 工作比較，摘要未給數字",
+              "date_confirmed": true,
+              "date_note": "依 docs/tc/dcard_id_calibration.md：編號 260581005 ≥ 259537767，晚於 2025-08-01；月份為校準表內插"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/260978734",
+              "date": "2026-03",
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "Lam／TEL 職缺請益，摘要未給數字",
+              "date_confirmed": true,
+              "date_note": "依 docs/tc/dcard_id_calibration.md：編號 260978734 ≥ 259537767，晚於 2025-08-01；月份為校準表內插"
             }
           ],
-          "n_stat": 1
+          "n_stat": 5
         }
       ],
       "mops": null,
@@ -720,7 +812,7 @@
           ],
           "overtime": "經常",
           "travel": "不用",
-          "n": 3,
+          "n": 4,
           "note": "GoodJob 製程工程師 5.4 萬、面試回報 5 萬；另一則年薪 95 萬年資未明不採；第二輪：Dcard offer 比較：擴散製程約 N+5（需輪班）、蝕刻約 N-10；年薪約 15～16 個月含分紅（日期依文章編號推估）；base_month_k、annual_months 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples；未逐筆對應的舊彙整：base_month_k=[50, 54]；未逐筆對應的舊彙整：annual_months=[14, 14]",
           "sources": [
             {
@@ -737,6 +829,11 @@
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/259985962",
               "date": "2025-12"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/259623357",
+              "date": "2025-08"
             }
           ],
           "confidence": "低",
@@ -797,9 +894,27 @@
               "date_confirmed": true,
               "date_note": "日期為推估或僅年份，不進統計；依 docs/tc/dcard_id_calibration.md 文章編號≥259537767 確認晚於 2025-08-01",
               "in_window": true
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/259623357",
+              "date": "2025-08",
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "漢磊／景碩工作請益，摘要未給數字",
+              "date_confirmed": true,
+              "date_note": "依 docs/tc/dcard_id_calibration.md：編號 259623357 ≥ 259537767，晚於 2025-08-01；月份為校準表內插"
             }
           ],
-          "n_stat": 0
+          "n_stat": 3
         }
       ],
       "mops": {
