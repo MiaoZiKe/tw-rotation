@@ -3508,6 +3508,19 @@
    ],
    "sha1": "645b71bcf3064b36509c240ada3fea0a9a355e8f"
   },
+  "2249": {
+   "status": "ok",
+   "domain": "www.young-shine.com.tw",
+   "fetched": "2026-10-26",
+   "strategy": 4,
+   "src": "site:icon",
+   "url": "https://www.young-shine.com.tw/favicon.ico",
+   "orig": [
+    156,
+    156
+   ],
+   "sha1": "0000261efa4b04d186c9b2d6718cba51ffd7da0f"
+  },
   "2250": {
    "status": "ok",
    "domain": "www.ikka.com.tw",
@@ -11450,15 +11463,16 @@
   },
   "4530": {
    "status": "ok",
-   "domain": "www.honyigroup.com",
-   "fetched": "2026-09-26",
-   "src": "site:apple-touch-icon",
-   "url": "https://www.twes.com.tw/favicon/apple-touch-icon.png",
+   "domain": "www.twes.com.tw",
+   "fetched": "2026-10-26",
+   "strategy": 4,
+   "src": "site:icon",
+   "url": "https://www.twes.com.tw/favicon/favicon-512.png",
    "orig": [
-    180,
-    180
+    512,
+    512
    ],
-   "sha1": "ada756c93b1e1157f1e1209e04377812e51a8acc"
+   "sha1": "4c04f782bc109f4eb74dc931e58961498d6a1956"
   },
   "4532": {
    "status": "ok",
@@ -17912,6 +17926,19 @@
    ],
    "sha1": "af242064dc2b9da3911e3fffeaab4d93b47d0937"
   },
+  "6604": {
+   "status": "ok",
+   "domain": "www.juoku.com.tw",
+   "fetched": "2026-10-26",
+   "strategy": 4,
+   "src": "google_s2",
+   "url": "https://www.google.com/s2/favicons?domain=www.juoku.com.tw&sz=128",
+   "orig": [
+    96,
+    96
+   ],
+   "sha1": "ab7b02448d5c1bbe8f5d41cb855e6a31e6d96a1f"
+  },
   "6605": {
    "status": "ok",
    "domain": "www.depoautolamp.com",
@@ -20870,6 +20897,19 @@
    ],
    "sha1": "1debed4fab227d5763d48ff67ed28c6fde91b20f"
   },
+  "7806": {
+   "status": "ok",
+   "domain": "www.gin-hwa.com",
+   "fetched": "2026-10-26",
+   "strategy": 4,
+   "src": "site:icon",
+   "url": "https://www.gin-hwa.com/images/project/643/favicon.ico",
+   "orig": [
+    100,
+    100
+   ],
+   "sha1": "0bfc0d6d53d43656b3f9f0e09c4c536db2d1f514"
+  },
   "7810": {
    "status": "ok",
    "domain": "www.jtron-tech.com",
@@ -23727,7 +23767,7 @@
    "sha1": "a401f1b89092fbbb927aad9ab95e4c9ad76b9da0"
   }
  },
- "updated_at": "2026-10-24T18:11:51.952548+00:00",
+ "updated_at": "2026-10-25T16:26:03.571831+00:00",
  "generic_sha1": [
   "07667b594c83945d9d47a47b7abc7b6018ac3d50",
   "4cc17acf317825a6e9f40d28712ec3af511e80a3",
