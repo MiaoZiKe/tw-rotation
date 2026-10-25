@@ -12,7 +12,7 @@
    "stock_plan": null,
    "bonus_timing": "分紅一年兩次：上半年 8 月底、下半年隔年 2 月底隨薪發放（媒體報導）；提撥稅前淨利約 20%",
    "culture": "分紅依部門紅度與考績差異大；Dcard 傳聞每處約 10% 末位考績（未證實）",
-   "interview": null,
+   "interview": "常見 2～3 關：線上測驗（C 語言、仿多益英文、人格）→ 一面二級主管（報論文／簡報）→ 二面處長→人資，核薪約兩週（GoodJob 多則，部門差異大）",
    "roles": [
     {
      "unit": "研發 R&D",
@@ -33,7 +33,7 @@
      "overtime": "依部門",
      "travel": "偶爾",
      "n": 3,
-     "note": "網友自述未經查證；Dcard 新鮮人 offer 文預估月薪約 80K、保 14 個月＋分紅；GoodJob 2026-03 一筆 9 萬為年資 3 年已排除；2026-04 一筆 3 萬疑為實習已排除；新聞『碩士年薪上看 200 萬』未標日期不採；總年薪不確定填 null",
+     "note": "網友自述未經查證；Dcard 新鮮人 offer 文預估月薪約 80K、保 14 個月＋分紅；GoodJob 2026-03 一筆 9 萬為年資 3 年已排除；2026-04 一筆 3 萬疑為實習已排除；新聞『碩士年薪上看 200 萬』未標日期不採；總年薪不確定填 null；出差：GoodJob 未見固定出差回報，研發職偶有客戶／海外支援，暫填偶爾（低信心）",
      "sources": [
       {
        "site": "Dcard",
@@ -63,10 +63,10 @@
      "annual_months": null,
      "annual_total_wan": null,
      "weekly_hours": null,
-     "overtime": null,
-     "travel": null,
+     "overtime": "依部門",
+     "travel": "偶爾",
      "n": 0,
-     "note": "WebSearch 查「聯發科 碩士 薪資 2026」「GoodJob 聯發科」「PTT Tech_Job offer 聯發科」「Dcard offer 聯發科」「104 ESG 薪資中位數」，摘要未出現 2025-10 後碩士職位數字",
+     "note": "WebSearch 查「聯發科 碩士 薪資 2026」「GoodJob 聯發科」「PTT Tech_Job offer 聯發科」「Dcard offer 聯發科」「104 ESG 薪資中位數」，摘要未出現 2025-10 後碩士職位數字；出差：GoodJob 未見固定出差回報，研發職偶有客戶／海外支援，暫填偶爾（低信心）",
      "sources": [],
      "confidence": "低"
     },
@@ -80,10 +80,10 @@
      "annual_months": null,
      "annual_total_wan": null,
      "weekly_hours": null,
-     "overtime": null,
-     "travel": null,
+     "overtime": "依部門",
+     "travel": "偶爾",
      "n": 0,
-     "note": "WebSearch 查「聯發科 碩士 薪資 2026」「GoodJob 聯發科」「PTT Tech_Job offer 聯發科」「Dcard offer 聯發科」「104 ESG 薪資中位數」，摘要未出現 2025-10 後碩士職位數字",
+     "note": "WebSearch 查「聯發科 碩士 薪資 2026」「GoodJob 聯發科」「PTT Tech_Job offer 聯發科」「Dcard offer 聯發科」「104 ESG 薪資中位數」，摘要未出現 2025-10 後碩士職位數字；出差：GoodJob 未見固定出差回報，研發職偶有客戶／海外支援，暫填偶爾（低信心）",
      "sources": [],
      "confidence": "低"
     }
@@ -104,7 +104,7 @@
    "heat": "Dcard 熱度：高",
    "benefits": null,
    "stock_plan": null,
-   "bonus_timing": null,
+   "bonus_timing": "獎金依個人績效，於 3、6、9、12 月底發放、須在職（2022 年報導，範圍外參考）",
    "culture": "Dcard：與聯發科同有末位考績傳聞；分紅大但工時長",
    "interview": null,
    "roles": [
@@ -127,7 +127,7 @@
      "overtime": "依部門",
      "travel": null,
      "n": 1,
-     "note": "網友自述未經查證；僅 Dcard 一篇 offer 文預估 85K 保 14＋分紅，日期不明；舊報導『碩士起薪 4.5 萬、年薪 60～70 萬』明顯過時不採",
+     "note": "網友自述未經查證；僅 Dcard 一篇 offer 文預估 85K 保 14＋分紅，日期不明；舊報導『碩士起薪 4.5 萬、年薪 60～70 萬』明顯過時不採；GoodJob 工時狀況 2.3／5，多則評價稱工時長",
      "sources": [
       {
        "site": "Dcard",
@@ -147,10 +147,10 @@
      "annual_months": null,
      "annual_total_wan": null,
      "weekly_hours": null,
-     "overtime": null,
+     "overtime": "經常",
      "travel": null,
      "n": 0,
-     "note": "Dcard 有人列聯詠類比研替薪資公式，摘要無數字；WebSearch 查「聯詠 碩士 薪資 2026」「GoodJob 聯詠」「PTT Tech_Job offer 聯詠」「Dcard offer 聯詠」「104 ESG 薪資中位數」，摘要未出現 2025-10 後碩士職位數字",
+     "note": "Dcard 有人列聯詠類比研替薪資公式，摘要無數字；WebSearch 查「聯詠 碩士 薪資 2026」「GoodJob 聯詠」「PTT Tech_Job offer 聯詠」「Dcard offer 聯詠」「104 ESG 薪資中位數」，摘要未出現 2025-10 後碩士職位數字；GoodJob 工時狀況 2.3／5，多則評價稱工時長",
      "sources": [],
      "confidence": "低"
     }
@@ -171,7 +171,7 @@
    "heat": "Dcard 熱度：高",
    "benefits": null,
    "stock_plan": null,
-   "bonus_timing": null,
+   "bonus_timing": "分紅分兩筆、四次發放：第一筆 1 月與 4 月，第二筆 10 月與隔年 7 月（經濟日報 2023，範圍外參考）",
    "culture": "GoodJob 整體約 3.9、薪資福利 4.1／5；Dcard：近年分紅多但也操",
    "interview": null,
    "roles": [
@@ -233,11 +233,11 @@
    "name": "群聯",
    "code": "8299",
    "heat": "Dcard 熱度：中",
-   "benefits": null,
+   "benefits": "三節、生日禮金、旅遊補助約 2～2.5 萬、每年調薪（GoodJob 自述）",
    "stock_plan": null,
-   "bonus_timing": null,
-   "culture": null,
-   "interview": null,
+   "bonus_timing": "績效分紅 4、7、10 月各約 1 個月，農曆年前另發數個月（GoodJob 自述，個人說法）",
+   "culture": "GoodJob 4.3 分但僅 7 筆；底薪高、工時偏長（50～60 小時／週），2026 年獲利大增",
+   "interview": "人格測驗＋準備簡報接受工程師提問；韌體職有 C 語言測驗（GoodJob）",
    "roles": [
     {
      "unit": "研發 R&D",
@@ -255,12 +255,17 @@
      "overtime": "經常",
      "travel": null,
      "n": 2,
-     "note": "網友自述未經查證；GoodJob 2026-01 FW 月薪 9.2 萬（週 60 小時）、2025-10 韌體 9.2～10.4 萬；年資 3～7 年的筆數已排除，學歷未載，起薪可能更低",
+     "note": "網友自述未經查證；GoodJob 2026-01 FW 月薪 9.2 萬（週 60 小時）、2025-10 韌體 9.2～10.4 萬；年資 3～7 年的筆數已排除，學歷未載，起薪可能更低；GoodJob 自述每週 50～60 小時；分紅月數自述差異大（一則稱 14 個月），不填區間",
      "sources": [
       {
        "site": "GoodJob",
        "url": "https://www.goodjob.life/companies/群聯電子股份有限公司 PHISON/work-experiences/薪資福利",
        "date": "2025-10～2026-01"
+      },
+      {
+       "site": "GoodJob",
+       "url": "https://www.goodjob.life/companies/群聯電子股份有限公司 PHISON/work-experiences/薪資福利",
+       "date": "2026"
       }
      ],
      "confidence": "低"
@@ -275,11 +280,17 @@
      "annual_months": null,
      "annual_total_wan": null,
      "weekly_hours": null,
-     "overtime": null,
+     "overtime": "經常",
      "travel": null,
      "n": 0,
-     "note": "WebSearch 查「群聯 碩士 薪資 2026」「GoodJob 群聯」「PTT Tech_Job offer 群聯」「Dcard offer 群聯」「104 ESG 薪資中位數」，摘要未出現 2025-10 後碩士職位數字",
-     "sources": [],
+     "note": "WebSearch 查「群聯 碩士 薪資 2026」「GoodJob 群聯」「PTT Tech_Job offer 群聯」「Dcard offer 群聯」「104 ESG 薪資中位數」，摘要未出現 2025-10 後碩士職位數字；GoodJob 自述每週 50～60 小時；分紅月數自述差異大（一則稱 14 個月），不填區間",
+     "sources": [
+      {
+       "site": "GoodJob",
+       "url": "https://www.goodjob.life/companies/群聯電子股份有限公司 PHISON/work-experiences/薪資福利",
+       "date": "2026"
+      }
+     ],
      "confidence": "低"
     }
    ],
@@ -297,11 +308,11 @@
    "name": "慧榮",
    "code": "SIMO",
    "heat": "Dcard 熱度：中",
-   "benefits": null,
-   "stock_plan": null,
+   "benefits": "研發新鮮人起薪稱優於業界、購股補助（公司 2026 校徵說法）",
+   "stock_plan": "員工購股計畫（ESPP）＋高額購股補助（2026-03 清大校徵）；GoodJob 有人嫌綁年資太久",
    "bonus_timing": null,
    "culture": "GoodJob 4.0 分、薪資福利 4.3；底薪高，但有人說分紅與績效股票近年沒成長",
-   "interview": null,
+   "interview": "韌體職：手寫題＋30 分鐘 C 語言測驗，題型近網路考古題（GoodJob）",
    "roles": [
     {
      "unit": "研發 R&D",
@@ -339,10 +350,10 @@
      "annual_months": null,
      "annual_total_wan": null,
      "weekly_hours": null,
-     "overtime": null,
+     "overtime": "偶爾",
      "travel": null,
      "n": 0,
-     "note": "WebSearch 查「慧榮 碩士 薪資 2026」「GoodJob 慧榮」「PTT Tech_Job offer 慧榮」「Dcard offer 慧榮」「104 ESG 薪資中位數」，摘要未出現 2025-10 後碩士職位數字",
+     "note": "WebSearch 查「慧榮 碩士 薪資 2026」「GoodJob 慧榮」「PTT Tech_Job offer 慧榮」「Dcard offer 慧榮」「104 ESG 薪資中位數」，摘要未出現 2025-10 後碩士職位數字；GoodJob：責任制、平日加班無加班費",
      "sources": [],
      "confidence": "低"
     }
@@ -365,7 +376,7 @@
    "stock_plan": null,
    "bonus_timing": null,
    "culture": "GoodJob 薪資福利 4.3、工時 2.9；分紅被形容等於加班費",
-   "interview": null,
+   "interview": "筆試＋多輪面試，進行速度快（GoodJob 2025-09 韌體職）",
    "roles": [
     {
      "unit": "研發 R&D",
@@ -406,10 +417,10 @@
      "annual_months": null,
      "annual_total_wan": null,
      "weekly_hours": null,
-     "overtime": null,
+     "overtime": "經常（不能報加班）",
      "travel": null,
      "n": 0,
-     "note": "WebSearch 查「瑞鼎 碩士 薪資 2026」「GoodJob 瑞鼎」「PTT Tech_Job offer 瑞鼎」「Dcard offer 瑞鼎」「104 ESG 薪資中位數」，摘要未出現 2025-10 後碩士職位數字",
+     "note": "WebSearch 查「瑞鼎 碩士 薪資 2026」「GoodJob 瑞鼎」「PTT Tech_Job offer 瑞鼎」「Dcard offer 瑞鼎」「104 ESG 薪資中位數」，摘要未出現 2025-10 後碩士職位數字；沿用公司評價：加班無加班費、分紅等於加班費",
      "sources": [],
      "confidence": "低"
     }
@@ -428,10 +439,10 @@
    "name": "立錡",
    "code": "6286",
    "heat": "Dcard 熱度：中",
-   "benefits": null,
+   "benefits": "簡易健身房、圖書室（GoodJob 面試心得）",
    "stock_plan": null,
    "bonus_timing": null,
-   "culture": null,
+   "culture": "GoodJob 平均每週 47 小時、18% 幾乎每天加班；評價稱分紅不錯、重視工作生活平衡（2025）",
    "interview": null,
    "roles": [
     {
@@ -444,11 +455,17 @@
      "annual_months": null,
      "annual_total_wan": null,
      "weekly_hours": null,
-     "overtime": null,
+     "overtime": "偶爾",
      "travel": null,
      "n": 0,
-     "note": "WebSearch 查「立錡 碩士 薪資 2026」「GoodJob 立錡」「PTT Tech_Job offer 立錡」「Dcard offer 立錡」「104 ESG 薪資中位數」，摘要未出現 2025-10 後碩士職位數字",
-     "sources": [],
+     "note": "WebSearch 查「立錡 碩士 薪資 2026」「GoodJob 立錡」「PTT Tech_Job offer 立錡」「Dcard offer 立錡」「104 ESG 薪資中位數」，摘要未出現 2025-10 後碩士職位數字；GoodJob 2025-04 類比 IC 單筆：每週 45 小時、約六點下班",
+     "sources": [
+      {
+       "site": "GoodJob",
+       "url": "https://www.goodjob.life/experiences/67f4b017933f65a66770ebf0",
+       "date": "2025-04"
+      }
+     ],
      "confidence": "低"
     },
     {
@@ -464,15 +481,20 @@
       160
      ],
      "weekly_hours": null,
-     "overtime": null,
-     "travel": null,
+     "overtime": "經常（忙季）",
+     "travel": "偶爾",
      "n": 1,
-     "note": "網友自述未經查證；GoodJob AE 一筆年薪 160 萬（年資 2 年）；另一筆月薪 5 萬（未滿 1 年）與類比 2025 一筆 3.6 萬差距過大，疑實習或學士，已排除",
+     "note": "網友自述未經查證；GoodJob AE 一筆年薪 160 萬（年資 2 年）；另一筆月薪 5 萬（未滿 1 年）與類比 2025 一筆 3.6 萬差距過大，疑實習或學士，已排除；GoodJob 2025-02 AE 單筆：每週約 60 小時、忙時假日進公司；年薪約 160 萬（日期在範圍外參考邊緣）",
      "sources": [
       {
        "site": "GoodJob",
        "url": "https://www.goodjob.life/companies/立錡科技股份有限公司/work-experiences?p=2",
        "date": "2025"
+      },
+      {
+       "site": "GoodJob",
+       "url": "https://www.goodjob.life/experiences/67a2348c2d1a7ca9f7903082",
+       "date": "2025-02"
       }
      ],
      "confidence": "低"
@@ -495,7 +517,7 @@
    "benefits": null,
    "stock_plan": null,
    "bonus_timing": null,
-   "culture": null,
+   "culture": "GoodJob 平均每週 41 小時、0% 幾乎每天加班；時間到能下班",
    "interview": null,
    "roles": [
     {
@@ -505,14 +527,23 @@
      "years": "0-2",
      "base_month_k": null,
      "bonus_months": null,
-     "annual_months": null,
+     "annual_months": [
+      15,
+      15
+     ],
      "annual_total_wan": null,
      "weekly_hours": null,
-     "overtime": null,
+     "overtime": "幾乎不",
      "travel": null,
      "n": 0,
-     "note": "WebSearch 查「聯陽(ITE) 碩士 薪資 2026」「GoodJob 聯陽(ITE)」「PTT Tech_Job offer 聯陽(ITE)」「Dcard offer 聯陽(ITE)」「104 ESG 薪資中位數」，摘要未出現 2025-10 後碩士職位數字；第二輪（換 GoodJob 公司頁／職稱頁／salary.tw）：GoodJob 搜不到聯陽頁；salary.tw 數字鎖住；2021 心得說錢比一線少但工時較輕",
-     "sources": [],
+     "note": "WebSearch 查「聯陽(ITE) 碩士 薪資 2026」「GoodJob 聯陽(ITE)」「PTT Tech_Job offer 聯陽(ITE)」「Dcard offer 聯陽(ITE)」「104 ESG 薪資中位數」，摘要未出現 2025-10 後碩士職位數字；第二輪（換 GoodJob 公司頁／職稱頁／salary.tw）：GoodJob 搜不到聯陽頁；salary.tw 數字鎖住；2021 心得說錢比一線少但工時較輕；GoodJob 面試者稱新人第一年約 15 個月；公司 2023 年員工薪資平均 263 萬（範圍外參考）",
+     "sources": [
+      {
+       "site": "GoodJob",
+       "url": "https://www.goodjob.life/companies/聯陽半導體股份有限公司/salary-work-times",
+       "date": "2026"
+      }
+     ],
      "confidence": "低"
     },
     {
@@ -522,14 +553,23 @@
      "years": "0-2",
      "base_month_k": null,
      "bonus_months": null,
-     "annual_months": null,
+     "annual_months": [
+      15,
+      15
+     ],
      "annual_total_wan": null,
      "weekly_hours": null,
-     "overtime": null,
+     "overtime": "幾乎不",
      "travel": null,
      "n": 0,
-     "note": "WebSearch 查「聯陽(ITE) 碩士 薪資 2026」「GoodJob 聯陽(ITE)」「PTT Tech_Job offer 聯陽(ITE)」「Dcard offer 聯陽(ITE)」「104 ESG 薪資中位數」，摘要未出現 2025-10 後碩士職位數字；第二輪（換 GoodJob 公司頁／職稱頁／salary.tw）：GoodJob 搜不到聯陽頁；salary.tw 數字鎖住；2021 心得說錢比一線少但工時較輕",
-     "sources": [],
+     "note": "WebSearch 查「聯陽(ITE) 碩士 薪資 2026」「GoodJob 聯陽(ITE)」「PTT Tech_Job offer 聯陽(ITE)」「Dcard offer 聯陽(ITE)」「104 ESG 薪資中位數」，摘要未出現 2025-10 後碩士職位數字；第二輪（換 GoodJob 公司頁／職稱頁／salary.tw）：GoodJob 搜不到聯陽頁；salary.tw 數字鎖住；2021 心得說錢比一線少但工時較輕；GoodJob 面試者稱新人第一年約 15 個月；公司 2023 年員工薪資平均 263 萬（範圍外參考）",
+     "sources": [
+      {
+       "site": "GoodJob",
+       "url": "https://www.goodjob.life/companies/聯陽半導體股份有限公司/salary-work-times",
+       "date": "2026"
+      }
+     ],
      "confidence": "低"
     }
    ],
@@ -549,9 +589,9 @@
    "heat": "Dcard 熱度：中",
    "benefits": null,
    "stock_plan": null,
-   "bonus_timing": null,
-   "culture": null,
-   "interview": null,
+   "bonus_timing": "13 個月薪；分紅不確定，有評價稱近幾年為零（GoodJob 2025）",
+   "culture": "評價稱待遇不及一線、調薪升等慢且不透明，但每年有結構性調薪",
+   "interview": "一關筆試＋專業測驗，主管請介紹論文；二面偏聊天；SE 職需準備學經歷投影片，約兩週通知二面（GoodJob）",
    "roles": [
     {
      "unit": "研發 R&D",
@@ -595,10 +635,10 @@
       120
      ],
      "weekly_hours": 42,
-     "overtime": null,
+     "overtime": "經常（不能報加班）",
      "travel": null,
      "n": 1,
-     "note": "網友自述未經查證；GoodJob 2026-03 臺南類比一筆年薪 120 萬，年資 3 年（超出 0-2）",
+     "note": "網友自述未經查證；GoodJob 2026-03 臺南類比一筆年薪 120 萬，年資 3 年（超出 0-2）；加班沿用同公司數位職",
      "sources": [
       {
        "site": "GoodJob",
@@ -626,7 +666,7 @@
    "benefits": null,
    "stock_plan": null,
    "bonus_timing": null,
-   "culture": null,
+   "culture": "GoodJob 平均每週 51 小時、25% 幾乎每天加班；2026 面試心得稱可能早 9 到晚 9、假日偶爾支援",
    "interview": null,
    "roles": [
     {
@@ -636,14 +676,23 @@
      "years": "0-2",
      "base_month_k": null,
      "bonus_months": null,
-     "annual_months": null,
+     "annual_months": [
+      14,
+      14
+     ],
      "annual_total_wan": null,
      "weekly_hours": null,
-     "overtime": null,
+     "overtime": "經常",
      "travel": null,
      "n": 0,
-     "note": "WebSearch 查「奕力 碩士 薪資 2026」「GoodJob 奕力」「PTT Tech_Job offer 奕力」「Dcard offer 奕力」「104 ESG 薪資中位數」，摘要未出現 2025-10 後碩士職位數字；第二輪（換 GoodJob 公司頁／職稱頁／salary.tw）：salary.tw 數字鎖住；GoodJob 無",
-     "sources": [],
+     "note": "WebSearch 查「奕力 碩士 薪資 2026」「GoodJob 奕力」「PTT Tech_Job offer 奕力」「Dcard offer 奕力」「104 ESG 薪資中位數」，摘要未出現 2025-10 後碩士職位數字；第二輪（換 GoodJob 公司頁／職稱頁／salary.tw）：salary.tw 數字鎖住；GoodJob 無；GoodJob 評價稱底薪保障 14 個月、分紅不確定",
+     "sources": [
+      {
+       "site": "GoodJob",
+       "url": "https://www.goodjob.life/companies/奕力科技股份有限公司",
+       "date": "2026"
+      }
+     ],
      "confidence": "低"
     },
     {
@@ -653,14 +702,23 @@
      "years": "0-2",
      "base_month_k": null,
      "bonus_months": null,
-     "annual_months": null,
+     "annual_months": [
+      14,
+      14
+     ],
      "annual_total_wan": null,
      "weekly_hours": null,
-     "overtime": null,
+     "overtime": "經常",
      "travel": null,
      "n": 0,
-     "note": "WebSearch 查「奕力 碩士 薪資 2026」「GoodJob 奕力」「PTT Tech_Job offer 奕力」「Dcard offer 奕力」「104 ESG 薪資中位數」，摘要未出現 2025-10 後碩士職位數字；第二輪（換 GoodJob 公司頁／職稱頁／salary.tw）：salary.tw 數字鎖住；GoodJob 無",
-     "sources": [],
+     "note": "WebSearch 查「奕力 碩士 薪資 2026」「GoodJob 奕力」「PTT Tech_Job offer 奕力」「Dcard offer 奕力」「104 ESG 薪資中位數」，摘要未出現 2025-10 後碩士職位數字；第二輪（換 GoodJob 公司頁／職稱頁／salary.tw）：salary.tw 數字鎖住；GoodJob 無；GoodJob 評價稱底薪保障 14 個月、分紅不確定",
+     "sources": [
+      {
+       "site": "GoodJob",
+       "url": "https://www.goodjob.life/companies/奕力科技股份有限公司",
+       "date": "2026"
+      }
+     ],
      "confidence": "低"
     }
    ],
@@ -681,8 +739,8 @@
    "benefits": null,
    "stock_plan": null,
    "bonus_timing": null,
-   "culture": null,
-   "interview": null,
+   "culture": "GoodJob 平均每週 43 小時，多數幾乎不加班，部分職位有補休；2025 年非主管薪資中位數約 269 萬",
+   "interview": "一面線上約 2.5 小時，需準備自我介紹簡報（GoodJob）",
    "roles": [
     {
      "unit": "研發 R&D",
@@ -694,7 +752,7 @@
      "annual_months": null,
      "annual_total_wan": null,
      "weekly_hours": null,
-     "overtime": null,
+     "overtime": "幾乎不",
      "travel": null,
      "n": 0,
      "note": "WebSearch 查「力旺 碩士 薪資 2026」「GoodJob 力旺」「PTT Tech_Job offer 力旺」「Dcard offer 力旺」「104 ESG 薪資中位數」，摘要未出現 2025-10 後碩士職位數字；第二輪（換 GoodJob 公司頁／職稱頁／salary.tw）：GoodJob 只有 2025-05 主任工程師年資 5 年月薪 9 萬，超出 0-2 不填",
@@ -711,7 +769,7 @@
      "annual_months": null,
      "annual_total_wan": null,
      "weekly_hours": null,
-     "overtime": null,
+     "overtime": "幾乎不",
      "travel": null,
      "n": 0,
      "note": "WebSearch 查「力旺 碩士 薪資 2026」「GoodJob 力旺」「PTT Tech_Job offer 力旺」「Dcard offer 力旺」「104 ESG 薪資中位數」，摘要未出現 2025-10 後碩士職位數字；第二輪（換 GoodJob 公司頁／職稱頁／salary.tw）：GoodJob 只有 2025-05 主任工程師年資 5 年月薪 9 萬，超出 0-2 不填",
@@ -735,8 +793,8 @@
    "heat": "Dcard 熱度：低",
    "benefits": null,
    "stock_plan": null,
-   "bonus_timing": null,
-   "culture": null,
+   "bonus_timing": "保證 14 個月：端午、中秋各半個月＋年終 1 個月（GoodJob 2026）",
+   "culture": "GoodJob 平均每週 46 小時、26% 幾乎每天加班",
    "interview": null,
    "roles": [
     {
@@ -755,15 +813,20 @@
       150
      ],
      "weekly_hours": null,
-     "overtime": null,
+     "overtime": "偶爾～經常",
      "travel": null,
      "n": 1,
-     "note": "網友自述未經查證；GoodJob 臺南數位 IC 未滿 1 年年薪 150 萬、保 14 個月（端午中秋各 0.5、年終 1）；日期未載",
+     "note": "網友自述未經查證；GoodJob 臺南數位 IC 未滿 1 年年薪 150 萬、保 14 個月（端午中秋各 0.5、年終 1）；日期未載；GoodJob 工時統計 46 小時／週",
      "sources": [
       {
        "site": "GoodJob",
        "url": "https://www.goodjob.life/companies/天鈺科技股份有限公司/work-experiences",
        "date": "2023～2026"
+      },
+      {
+       "site": "GoodJob",
+       "url": "https://www.goodjob.life/companies/天鈺科技股份有限公司/work-experiences",
+       "date": "2026"
       }
      ],
      "confidence": "低"
@@ -775,14 +838,23 @@
      "years": "0-2",
      "base_month_k": null,
      "bonus_months": null,
-     "annual_months": null,
+     "annual_months": [
+      14,
+      14
+     ],
      "annual_total_wan": null,
      "weekly_hours": null,
-     "overtime": null,
+     "overtime": "偶爾～經常",
      "travel": null,
      "n": 0,
-     "note": "WebSearch 查「天鈺 碩士 薪資 2026」「GoodJob 天鈺」「PTT Tech_Job offer 天鈺」「Dcard offer 天鈺」「104 ESG 薪資中位數」，摘要未出現 2025-10 後碩士職位數字",
-     "sources": [],
+     "note": "WebSearch 查「天鈺 碩士 薪資 2026」「GoodJob 天鈺」「PTT Tech_Job offer 天鈺」「Dcard offer 天鈺」「104 ESG 薪資中位數」，摘要未出現 2025-10 後碩士職位數字；GoodJob 工時統計 46 小時／週",
+     "sources": [
+      {
+       "site": "GoodJob",
+       "url": "https://www.goodjob.life/companies/天鈺科技股份有限公司/work-experiences",
+       "date": "2026"
+      }
+     ],
      "confidence": "低"
     }
    ],
@@ -803,7 +875,7 @@
    "benefits": null,
    "stock_plan": null,
    "bonus_timing": null,
-   "culture": null,
+   "culture": "GoodJob 平均每週 41 小時、0% 幾乎每天加班；評價稱工時正常、壓力小；2025 年員工薪資平均 209 萬",
    "interview": null,
    "roles": [
     {
@@ -816,10 +888,10 @@
      "annual_months": null,
      "annual_total_wan": null,
      "weekly_hours": null,
-     "overtime": null,
+     "overtime": "幾乎不",
      "travel": null,
      "n": 0,
-     "note": "WebSearch 查「晶豪科 碩士 薪資 2026」「GoodJob 晶豪科」「PTT Tech_Job offer 晶豪科」「Dcard offer 晶豪科」「104 ESG 薪資中位數」，摘要未出現 2025-10 後碩士職位數字",
+     "note": "WebSearch 查「晶豪科 碩士 薪資 2026」「GoodJob 晶豪科」「PTT Tech_Job offer 晶豪科」「Dcard offer 晶豪科」「104 ESG 薪資中位數」，摘要未出現 2025-10 後碩士職位數字；沿用公司 GoodJob 工時統計",
      "sources": [],
      "confidence": "低"
     },
@@ -883,7 +955,7 @@
      "overtime": null,
      "travel": null,
      "n": 0,
-     "note": "僅查到 2025 年非主管員工薪資中位數 453.7 萬（全體非碩士起薪口徑，不填入）；WebSearch 查「信驊 碩士 薪資 2026」「GoodJob 信驊」「PTT Tech_Job offer 信驊」「Dcard offer 信驊」「104 ESG 薪資中位數」，摘要未出現 2025-10 後碩士職位數字",
+     "note": "僅查到 2025 年非主管員工薪資中位數 453.7 萬（全體非碩士起薪口徑，不填入）；WebSearch 查「信驊 碩士 薪資 2026」「GoodJob 信驊」「PTT Tech_Job offer 信驊」「Dcard offer 信驊」「104 ESG 薪資中位數」，摘要未出現 2025-10 後碩士職位數字；2026-10 查 GoodJob（與晶豪科、達發、祥碩同批）未見信驊資料，維持 null",
      "sources": [
       {
        "site": "證交所／櫃買中心公告（新聞摘要）",
@@ -906,7 +978,7 @@
      "overtime": null,
      "travel": null,
      "n": 0,
-     "note": "WebSearch 查「信驊 碩士 薪資 2026」「GoodJob 信驊」「PTT Tech_Job offer 信驊」「Dcard offer 信驊」「104 ESG 薪資中位數」，摘要未出現 2025-10 後碩士職位數字",
+     "note": "WebSearch 查「信驊 碩士 薪資 2026」「GoodJob 信驊」「PTT Tech_Job offer 信驊」「Dcard offer 信驊」「104 ESG 薪資中位數」，摘要未出現 2025-10 後碩士職位數字；2026-10 查 GoodJob（與晶豪科、達發、祥碩同批）未見信驊資料，維持 null",
      "sources": [],
      "confidence": "低"
     }
@@ -928,7 +1000,7 @@
    "benefits": null,
    "stock_plan": null,
    "bonus_timing": null,
-   "culture": null,
+   "culture": "GoodJob 平均每週 43 小時、7% 幾乎每天加班、47% 偶爾",
    "interview": null,
    "roles": [
     {
@@ -944,7 +1016,7 @@
      "annual_months": null,
      "annual_total_wan": null,
      "weekly_hours": null,
-     "overtime": null,
+     "overtime": "偶爾",
      "travel": null,
      "n": 2,
      "note": "網友自述未經查證；GoodJob 2026-03 數位 IC 月薪 8.4 萬、2025-07 軟體未滿 1 年 8.2 萬（後者早於區間僅參考）；有簽約金說法",
@@ -967,7 +1039,7 @@
      "annual_months": null,
      "annual_total_wan": null,
      "weekly_hours": null,
-     "overtime": null,
+     "overtime": "偶爾",
      "travel": null,
      "n": 0,
      "note": "WebSearch 查「達發 碩士 薪資 2026」「GoodJob 達發」「PTT Tech_Job offer 達發」「Dcard offer 達發」「104 ESG 薪資中位數」，摘要未出現 2025-10 後碩士職位數字",
@@ -992,7 +1064,7 @@
    "benefits": null,
    "stock_plan": null,
    "bonus_timing": null,
-   "culture": null,
+   "culture": "GoodJob 平均每週 45 小時、20% 幾乎每天加班；評價稱底薪普通但近年年終分紅很高；2023 員工薪資平均 344 萬（範圍外參考）",
    "interview": null,
    "roles": [
     {
@@ -1005,7 +1077,7 @@
      "annual_months": null,
      "annual_total_wan": null,
      "weekly_hours": null,
-     "overtime": null,
+     "overtime": "偶爾",
      "travel": null,
      "n": 0,
      "note": "WebSearch 查「祥碩 碩士 薪資 2026」「GoodJob 祥碩」「PTT Tech_Job offer 祥碩」「Dcard offer 祥碩」「104 ESG 薪資中位數」，摘要未出現 2025-10 後碩士職位數字",
@@ -1025,7 +1097,7 @@
      "annual_months": null,
      "annual_total_wan": null,
      "weekly_hours": null,
-     "overtime": null,
+     "overtime": "偶爾",
      "travel": null,
      "n": 1,
      "note": "網友自述未經查證；GoodJob 2025-10 類比面試紀錄月薪 7.5 萬；評價稱底薪普通但年終分紅高",
@@ -1055,9 +1127,9 @@
    "heat": "Dcard 熱度：低",
    "benefits": null,
    "stock_plan": null,
-   "bonus_timing": null,
-   "culture": null,
-   "interview": null,
+   "bonus_timing": "保障 14 個月＋分紅（GoodJob 自述），分紅偏平均分配",
+   "culture": "GoodJob 平均每週 49 小時、近半數幾乎每天加班；底薪屬 IC 業普通水準",
+   "interview": "韌體職筆試：C 語言、記憶體、組合語言（GoodJob）",
    "roles": [
     {
      "unit": "研發 R&D",
@@ -1069,13 +1141,16 @@
       78
      ],
      "bonus_months": null,
-     "annual_months": null,
+     "annual_months": [
+      14,
+      14
+     ],
      "annual_total_wan": null,
      "weekly_hours": 49,
      "overtime": "偶爾",
      "travel": null,
      "n": 1,
-     "note": "網友自述未經查證；GoodJob 2026-06 數位工程師月薪 7.8 萬（年資未載）；分紅說法不一（約 1 個月／保 14＋分紅）",
+     "note": "網友自述未經查證；GoodJob 2026-06 數位工程師月薪 7.8 萬（年資未載）；分紅說法不一（約 1 個月／保 14＋分紅）；GoodJob 自述保障 14 個月，分紅另計",
      "sources": [
       {
        "site": "GoodJob",
@@ -1092,13 +1167,16 @@
      "years": "0-2",
      "base_month_k": null,
      "bonus_months": null,
-     "annual_months": null,
+     "annual_months": [
+      14,
+      14
+     ],
      "annual_total_wan": null,
      "weekly_hours": null,
-     "overtime": null,
+     "overtime": "經常",
      "travel": null,
      "n": 0,
-     "note": "WebSearch 查「義隆 碩士 薪資 2026」「GoodJob 義隆」「PTT Tech_Job offer 義隆」「Dcard offer 義隆」「104 ESG 薪資中位數」，摘要未出現 2025-10 後碩士職位數字",
+     "note": "WebSearch 查「義隆 碩士 薪資 2026」「GoodJob 義隆」「PTT Tech_Job offer 義隆」「Dcard offer 義隆」「104 ESG 薪資中位數」，摘要未出現 2025-10 後碩士職位數字；GoodJob 自述保障 14 個月，分紅另計",
      "sources": [],
      "confidence": "低"
     }
@@ -1120,8 +1198,8 @@
    "benefits": null,
    "stock_plan": null,
    "bonus_timing": null,
-   "culture": null,
-   "interview": null,
+   "culture": "GoodJob 平均每週 44 小時、偶爾加班居多，APR 專案期可能連續數月週一到六",
+   "interview": "二面偏人資溝通，重視表達與決心（GoodJob）",
    "roles": [
     {
      "unit": "研發 R&D",
@@ -1136,7 +1214,7 @@
       100
      ],
      "weekly_hours": 44,
-     "overtime": null,
+     "overtime": "偶爾（專案期經常）",
      "travel": null,
      "n": 1,
      "note": "網友自述未經查證；GoodJob 2025-11 LAYOUT 面試心得：第一年約 80 萬、第二年約 100 萬（佈局職，非數位設計，僅參考）",
@@ -1159,7 +1237,7 @@
      "annual_months": null,
      "annual_total_wan": null,
      "weekly_hours": null,
-     "overtime": null,
+     "overtime": "偶爾（專案期經常）",
      "travel": null,
      "n": 0,
      "note": "WebSearch 查「創意 碩士 薪資 2026」「GoodJob 創意」「PTT Tech_Job offer 創意」「Dcard offer 創意」「104 ESG 薪資中位數」，摘要未出現 2025-10 後碩士職位數字",
@@ -1212,13 +1290,22 @@
      "base_month_k": null,
      "bonus_months": null,
      "annual_months": null,
-     "annual_total_wan": null,
+     "annual_total_wan": [
+      160,
+      160
+     ],
      "weekly_hours": null,
      "overtime": null,
      "travel": null,
      "n": 0,
-     "note": "WebSearch 查「MPS 台灣 碩士 薪資 2026」「GoodJob MPS 台灣」「PTT Tech_Job offer MPS 台灣」「Dcard offer MPS 台灣」「104 ESG 薪資中位數」，摘要未出現 2025-10 後碩士職位數字；第二輪（換 GoodJob 公司頁／職稱頁／salary.tw）：GoodJob 無台灣資料，只找到美國職缺薪資，不適用",
-     "sources": [],
+     "note": "WebSearch 查「MPS 台灣 碩士 薪資 2026」「GoodJob MPS 台灣」「PTT Tech_Job offer MPS 台灣」「Dcard offer MPS 台灣」「104 ESG 薪資中位數」，摘要未出現 2025-10 後碩士職位數字；第二輪（換 GoodJob 公司頁／職稱頁／salary.tw）：GoodJob 無台灣資料，只找到美國職缺薪資，不適用；GoodJob 2026-04 AE 面試心得年薪約 160 萬（單筆）",
+     "sources": [
+      {
+       "site": "GoodJob",
+       "url": "https://www.goodjob.life/experiences/69d6399b37c69c65d16c0ed2",
+       "date": "2026-04"
+      }
+     ],
      "confidence": "低"
     }
    ],
@@ -1255,7 +1342,7 @@
      "overtime": null,
      "travel": null,
      "n": 0,
-     "note": "WebSearch 查「円星 碩士 薪資 2026」「GoodJob 円星」「PTT Tech_Job offer 円星」「Dcard offer 円星」「104 ESG 薪資中位數」，摘要未出現 2025-10 後碩士職位數字；第二輪（換 GoodJob 公司頁／職稱頁／salary.tw）：GoodJob、salary.tw 皆無資料",
+     "note": "WebSearch 查「円星 碩士 薪資 2026」「GoodJob 円星」「PTT Tech_Job offer 円星」「Dcard offer 円星」「104 ESG 薪資中位數」，摘要未出現 2025-10 後碩士職位數字；第二輪（換 GoodJob 公司頁／職稱頁／salary.tw）：GoodJob、salary.tw 皆無資料；2026-10 以「円星」查 GoodJob 無結果，維持 null",
      "sources": [],
      "confidence": "低"
     },
@@ -1272,7 +1359,7 @@
      "overtime": null,
      "travel": null,
      "n": 0,
-     "note": "WebSearch 查「円星 碩士 薪資 2026」「GoodJob 円星」「PTT Tech_Job offer 円星」「Dcard offer 円星」「104 ESG 薪資中位數」，摘要未出現 2025-10 後碩士職位數字；第二輪（換 GoodJob 公司頁／職稱頁／salary.tw）：GoodJob、salary.tw 皆無資料",
+     "note": "WebSearch 查「円星 碩士 薪資 2026」「GoodJob 円星」「PTT Tech_Job offer 円星」「Dcard offer 円星」「104 ESG 薪資中位數」，摘要未出現 2025-10 後碩士職位數字；第二輪（換 GoodJob 公司頁／職稱頁／salary.tw）：GoodJob、salary.tw 皆無資料；2026-10 以「円星」查 GoodJob 無結果，維持 null",
      "sources": [],
      "confidence": "低"
     }
@@ -1291,10 +1378,10 @@
    "name": "世芯-KY",
    "code": "3661",
    "heat": "Dcard 熱度：中（補）",
-   "benefits": null,
+   "benefits": "三節獎金給得夠（GoodJob）",
    "stock_plan": null,
    "bonus_timing": null,
-   "culture": null,
+   "culture": "GoodJob 平均每週 42 小時、50% 偶爾加班；有人嫌調薪資訊公布慢",
    "interview": null,
    "roles": [
     {
@@ -1307,10 +1394,10 @@
      "annual_months": null,
      "annual_total_wan": null,
      "weekly_hours": null,
-     "overtime": null,
+     "overtime": "偶爾",
      "travel": null,
      "n": 0,
-     "note": "WebSearch 查「世芯-KY 碩士 薪資 2026」「GoodJob 世芯-KY」「PTT Tech_Job offer 世芯-KY」「Dcard offer 世芯-KY」「104 ESG 薪資中位數」，摘要未出現 2025-10 後碩士職位數字；第二輪（換 GoodJob 公司頁／職稱頁／salary.tw）：GoodJob 寫『尚未有薪水資料』，只有一筆生管 4.6 萬，非研發不採",
+     "note": "WebSearch 查「世芯-KY 碩士 薪資 2026」「GoodJob 世芯-KY」「PTT Tech_Job offer 世芯-KY」「Dcard offer 世芯-KY」「104 ESG 薪資中位數」，摘要未出現 2025-10 後碩士職位數字；第二輪（換 GoodJob 公司頁／職稱頁／salary.tw）：GoodJob 寫『尚未有薪水資料』，只有一筆生管 4.6 萬，非研發不採；GoodJob 僅 2 筆薪資，樣本少",
      "sources": [],
      "confidence": "低"
     },
@@ -1324,10 +1411,10 @@
      "annual_months": null,
      "annual_total_wan": null,
      "weekly_hours": null,
-     "overtime": null,
+     "overtime": "偶爾",
      "travel": null,
      "n": 0,
-     "note": "WebSearch 查「世芯-KY 碩士 薪資 2026」「GoodJob 世芯-KY」「PTT Tech_Job offer 世芯-KY」「Dcard offer 世芯-KY」「104 ESG 薪資中位數」，摘要未出現 2025-10 後碩士職位數字；第二輪（換 GoodJob 公司頁／職稱頁／salary.tw）：GoodJob 寫『尚未有薪水資料』，只有一筆生管 4.6 萬，非研發不採",
+     "note": "WebSearch 查「世芯-KY 碩士 薪資 2026」「GoodJob 世芯-KY」「PTT Tech_Job offer 世芯-KY」「Dcard offer 世芯-KY」「104 ESG 薪資中位數」，摘要未出現 2025-10 後碩士職位數字；第二輪（換 GoodJob 公司頁／職稱頁／salary.tw）：GoodJob 寫『尚未有薪水資料』，只有一筆生管 4.6 萬，非研發不採；GoodJob 僅 2 筆薪資，樣本少",
      "sources": [],
      "confidence": "低"
     }
