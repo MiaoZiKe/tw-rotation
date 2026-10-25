@@ -29,7 +29,7 @@
           "weekly_hours": null,
           "overtime": "輪班者常態",
           "travel": "需要",
-          "n": 5,
+          "n": 6,
           "note": "udn 2026 報導估碩士新進年薪 200 萬起（引比薪水，去年平均 134.7 萬、平均分紅 38.6 萬）；GoodJob 應用工程師 2 年 160 萬；GoodJob 2026-08 UIR 面試：三休三班、兩週輪一次大夜，底薪＋車補，分紅 5～7.5 個月＋年終；安裝工程師 2026-05 面試年薪約 180 萬；第二輪：Dcard 轉媒體 2026-10：在台徵才千人、碩畢年薪上看 200 萬、分紅增 10%；bonus_months 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples；未逐筆對應的舊彙整：bonus_months=[5, 7.5]",
           "sources": [
             {
@@ -150,6 +150,25 @@
               "quote_free_note": "標題標 2026：面試時程分享（無薪資數字）",
               "date_confirmed": true,
               "date_note": "摘要／標題可見日期"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/6a0fd115dc929e179f8d7fdf",
+              "date": "2026-05",
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "安裝工程師面試，問輪班與無塵室接受度",
+              "date_confirmed": true,
+              "date_note": "GoodJob 標題年月",
+              "in_window": true
             }
           ],
           "n_stat": 3
@@ -254,7 +273,7 @@
           "weekly_hours": null,
           "overtime": "偶爾（日班為主）",
           "travel": "需要",
-          "n": 2,
+          "n": 3,
           "note": "Dcard 引 2023 碩士年薪 64～72 萬＋車補 16.6 萬，已超出一年期不採；查無可用數字；查過關鍵字：KLA Lam Research 台灣 工程師 薪水 2026／科磊 KLA 科林研發 GoodJob 工程師 月薪 年薪 出差；比薪水新竹／台中／台南多筆應用工程師（年資 1～2 年）金額需解鎖；GoodJob 2026-02 CSE：年薪約 135 萬、每週 44 小時、日班偶爾調班；2026-04 客服面試年薪約 120 萬；annual_total_wan 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples；未逐筆對應的舊彙整：annual_total_wan=[120, 135]",
           "sources": [
             {
@@ -306,6 +325,25 @@
               "quote_free_note": null,
               "date_confirmed": true,
               "date_note": "GoodJob 標題附分享日期"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/69de938d84c3ea8a291bfb45",
+              "date": "2026-04",
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "客服工程師面試，重人格特質與動機",
+              "date_confirmed": true,
+              "date_note": "GoodJob 標題年月",
+              "in_window": true
             }
           ],
           "n_stat": 1
@@ -362,7 +400,7 @@
           "weekly_hours": null,
           "overtime": "經常（輪班＋on call）",
           "travel": "需要",
-          "n": 7,
+          "n": 10,
           "note": "比薪水 2026-03 新竹設備工程師有分享但金額需解鎖；GoodJob 2026-08 設備職面試：無塵室、三到四週輪一次班、需 on call 與出差支援",
           "sources": [
             {
@@ -529,6 +567,63 @@
               "quote_free_note": "Lam／TEL 職缺請益，摘要未給數字",
               "date_confirmed": true,
               "date_note": "依 docs/tc/dcard_id_calibration.md：編號 260978734 ≥ 259537767，晚於 2025-08-01；月份為校準表內插"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/69c9ee98685c188a2af5cb13",
+              "date": "2026-03",
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "全球裝機工程師面試，英文自介約 10 分鐘",
+              "date_confirmed": true,
+              "date_note": "GoodJob 標題年月",
+              "in_window": true
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/6986093f9fe3708ec3e640c9",
+              "date": "2026-02",
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "設備工程師面試經驗，無薪資數字",
+              "date_confirmed": true,
+              "date_note": "GoodJob 標題年月",
+              "in_window": true
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/69ad2fe0be3a5d8b4e73ccd1",
+              "date": "2026-03",
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "設備工程師面試，需簡報、氣氛友善",
+              "date_confirmed": true,
+              "date_note": "GoodJob 標題年月",
+              "in_window": true
             }
           ],
           "n_stat": 5
@@ -588,7 +683,7 @@
           "weekly_hours": null,
           "overtime": null,
           "travel": "需要",
-          "n": 4,
+          "n": 7,
           "note": "招募文案保 14 個月；GoodJob 製程 4 年自述年終＋分紅 5.5 個月、年薪 150 萬（非新人），客戶支援助理 110 萬；2026-10 查 GoodJob 設備商批次未見應材加班與分紅月數具體數字；annual_months、annual_total_wan 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples；未逐筆對應的舊彙整：annual_months=[14, 20]；未逐筆對應的舊彙整：annual_total_wan=[110, 150]",
           "sources": [
             {
@@ -684,6 +779,63 @@
               "quote_free_note": "機械碩、半導體約2年經驗；投遞到口頭 offer 約兩個月，薪資未透露",
               "in_window": true,
               "date_note": "Andy 桌面版＋Chrome 親眼讀文章頁面發文日期"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/6ab13bed497a7417672dcf0f",
+              "date": "2026-09",
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "ITEAM 面試（6 年經驗，未錄取），出差約七成",
+              "date_confirmed": true,
+              "date_note": "GoodJob 標題年月",
+              "in_window": true
+            },
+            {
+              "site": "PTT",
+              "url": "https://www.ptt.cc/bbs/Tech_Job/M.1775093497.A.488.html",
+              "date": "2026-04",
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "offer 請益（台達電／台灣應材），網友傾向應材，現場支援可能有加班費與待命津貼",
+              "date_confirmed": true,
+              "date_note": "PTT 代碼 M.1775093497 換算 2026-04",
+              "in_window": true
+            },
+            {
+              "site": "PTT",
+              "url": "https://www.ptt.cc/bbs/Salary/M.1778292754.A.832.html",
+              "date": "2026-05",
+              "unit_detail": "蝕刻設備 CE",
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "美光 PQA 對比應材蝕刻 CE 的 offer 請益",
+              "date_confirmed": true,
+              "date_note": "PTT 代碼 M.1778292754 換算 2026-05",
+              "in_window": true
             }
           ],
           "n_stat": 1
