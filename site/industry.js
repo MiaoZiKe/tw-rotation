@@ -1028,23 +1028,24 @@
     (ch.groups || []).forEach(g => {
       const ms = (g.members || []).slice();
       if (!ms.length) return;
-      rows.push(`<tr class="siphg"><th colspan="4">${A.L.group(g.id, g.name)}<small>${ms.length} 檔</small></th></tr>`);
+      rows.push(`<tr class="siphg"><th colspan="3">${A.L.group(g.id, g.name)}<small>${ms.length} 檔</small></th></tr>`);
       ms.forEach(m => {
         const t = m.tag || {};
         const st = t.stance ? `<span class="siphst st-${esc(t.stance)}">${esc(t.stance)}</span>` : '';
         rows.push(`<tr data-code="${esc(m.code)}"><td>${A.L.stock(m.code, m.name, { codeFirst: true })}</td>`
-          + `<td class="stage">${esc(t.stage || '')}</td>`
-          + `<td><span class="siphconf cf-${esc(t.conf || '')}">${esc(t.conf || '—')}</span></td><td>${st}</td></tr>`);
+          + `<td class="siphstage">${esc(t.stage || '')}</td>`
+          + `<td class="siphcf"><span class="siphconf cf-${esc(t.conf || '')}">${esc(t.conf || '—')}</span>${st}</td></tr>`);
       });
     });
     if (!rows.length) { host.innerHTML = ''; return; }
+    const hasSt = (ch.groups || []).some(g => (g.members || []).some(m => m.tag && m.tag.stance));   // 影響標記只有載板那組有：整張表都沒有才不放欄名
     host.innerHTML = `<div class="card siphcard"><div class="row spread"><h4>成員與階段<button class="howbtn pop" data-how="siphm" data-ttl="成員與階段" type="button" aria-label="成員與階段怎麼看">?</button></h4></div>
       <div class="howtxt" id="how-siphm" hidden>${A.howHTML('每一檔旁邊直接標出它現在走到哪、這個說法有多可信。', [
         '階段＝公司或媒體的原話與目標時程，不是量產',
         '信心：高＝公司自述加獨立來源互相印證；中＝單一來源或只有公司自述；低＝線索',
         '影響只在載板／PCB／材料那組標：受益、中性、風險（CPO 可能取代它的需求）',
       ], '查證日 2026-10-24；證據與取捨見 docs/siph_cpo_chain_notes.md。')}</div>
-      <div class="siphwrap"><table class="siphtbl"><thead><tr><th>個股</th><th>階段（時程為目標）</th><th>信心</th><th>影響</th></tr></thead><tbody>${rows.join('')}</tbody></table></div></div>`;
+      <div class="siphwrap"><table class="siphtbl"><thead><tr><th>個股</th><th>階段（時程為目標）</th><th>${hasSt ? '信心／影響' : '信心'}</th></tr></thead><tbody>${rows.join('')}</tbody></table></div></div>`;
   }
   // ================================================================ Level 1：單一產業鏈
   function chainData(im, cid) {

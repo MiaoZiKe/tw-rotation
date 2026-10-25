@@ -19,7 +19,7 @@ _SIPH_ST = """() => {
   const stance = {}; let cur = '';
   if (sec) sec.querySelectorAll('tbody tr').forEach(r => {
     if (r.classList.contains('siphg')) { cur = r.textContent.replace(/\\s+/g, ''); stance[cur] = []; return; }
-    const st = r.querySelector('.siphst'); stance[cur].push([r.dataset.code, st ? st.textContent : '', (r.querySelector('.stage') || {}).textContent || '']);
+    const st = r.querySelector('.siphst'); stance[cur].push([r.dataset.code, st ? st.textContent : '', (r.querySelector('.siphstage') || {}).textContent || '']);
   });
   const el = document.getElementById('gpBar'), c = el && window.echarts && echarts.getInstanceByDom(el);
   const cats = c ? ((c.getOption().yAxis && c.getOption().yAxis[0] && c.getOption().yAxis[0].data) || (c.getOption().xAxis && c.getOption().xAxis[0] && c.getOption().xAxis[0].data) || []) : null;

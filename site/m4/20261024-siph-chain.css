@@ -10,7 +10,9 @@
 .siphtbl thead th{position:sticky;top:0;background:var(--panel, #121a2e);z-index:1;color:var(--ink-2);font-weight:600;font-size:12px}
 .siphtbl tr.siphg th{background:var(--panel-2, rgba(255,255,255,.04));color:var(--ink);font-size:13px;font-weight:600;position:static}
 .siphtbl tr.siphg th small{margin-left:8px;color:var(--ink-3);font-weight:400}
-.siphtbl td.stage{color:var(--ink-2);min-width:16em;white-space:normal}
+.siphtbl td.siphstage{color:var(--ink-2);min-width:16em;white-space:normal}
+.siphcf{white-space:nowrap}
+.siphcf .siphst{margin-left:4px}
 .siphconf,.siphst{display:inline-block;padding:1px 8px;border-radius:999px;font-size:12px;line-height:18px;border:1px solid currentColor;white-space:nowrap}
 .siphconf.cf-高,.siphconf.cf-中高{color:var(--cyan)}
 .siphconf.cf-中{color:var(--ink-2)}
@@ -19,10 +21,9 @@
 .siphst.st-中性{color:var(--ink-2)}
 .siphst.st-風險{color:var(--amber)}
 @media (max-width:640px){
-  .siphtbl td.stage{min-width:0;white-space:normal;word-break:break-word}
+  .siphtbl td.siphstage{min-width:0;white-space:normal;word-break:break-word}
   .siphtbl{table-layout:fixed}
   .siphtbl th:nth-child(1),.siphtbl td:nth-child(1){width:6.5em}
-  .siphtbl th:nth-child(3),.siphtbl td:nth-child(3){width:3.4em}
-  .siphtbl th:nth-child(4),.siphtbl td:nth-child(4){width:3.4em}
-  .siphtbl th:nth-child(4),.siphtbl td:nth-child(4){padding-left:2px}
+  .siphtbl th:nth-child(3),.siphtbl td:nth-child(3){width:7.2em}
+  .siphcf{white-space:normal}
 }
