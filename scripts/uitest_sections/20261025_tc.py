@@ -100,6 +100,8 @@ def t_tc_1025(b, base, code):
     ok(f"{T}（390）：展開後五組篩選看得到", p2.is_visible("#v-tc .tc-fgrp") and p2.evaluate("() => document.querySelectorAll('#v-tc .tc-fgrp .seg').length") == 5)
     p2.click("#v-tc .tc-co >> nth=0"); p2.wait_for_timeout(600)
     ok(f"{T}（390）：公司頁職位轉卡片、無橫向捲動", p2.evaluate("() => getComputedStyle(document.querySelector('#v-tc .tc-row')).display") == "grid" and p2.evaluate("() => document.documentElement.scrollWidth - window.innerWidth") <= 1)
+    p2.wait_for_timeout(200)
+    ok(f"{T}（390）：公司頁整頁 ≤4 屏、職位列精簡、點列才展開全部欄位", p2.evaluate("() => document.documentElement.scrollHeight") <= 844*4 and p2.evaluate("() => getComputedStyle(document.querySelector('#v-tc .tc-row td:nth-child(4)')).display") == "none" and (p2.click("#v-tc .tc-row >> nth=0 >> .tc-role b"), p2.wait_for_timeout(200), p2.evaluate("() => getComputedStyle(document.querySelector('#v-tc .tc-row td:nth-child(4)')).display"))[2] != "none")
     ok(f"{T}（390）：字級不小於 11px", p2.evaluate("() => [...document.querySelectorAll('#v-tc .tc-row *, #v-tc .tc-foot')].every(e => !e.childElementCount && !e.innerText.trim() || parseFloat(getComputedStyle(e).fontSize) >= 11)"))
     c2.close()
     # ⑥ 只限管理者：非管理者（訪客／Free／Plus／Pro 都是 admin 不成立）看不到入口、#tc 被導回總覽

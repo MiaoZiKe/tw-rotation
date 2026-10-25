@@ -114,3 +114,18 @@ html:not(.tc-adm) .tab[data-view="tc"],html:not(.tc-adm) a[href="#tc"],html:not(
 #v-tc .tc-tbl td.tc-src small{display:block;color:var(--ink-3)}
 #v-tc .tc-tbl td:nth-child(7){white-space:normal;max-width:70px}
 }
+#v-tc .tc-info>summary{display:none}
+@media (max-width:640px){
+  #v-tc .tc-info>summary{display:block;cursor:pointer;color:var(--ink-2);font-size:13px;min-height:40px;line-height:40px;list-style:none}
+  #v-tc .tc-info>summary::before{content:"▸ "}
+  #v-tc .tc-info[open]>summary::before{content:"▾ "}
+  #v-tc .tc-row td:not(.tc-role):not(.tc-big):not([data-l="樣本"]):not([data-l="信心"]){display:none}
+  #v-tc .tc-row.mo td:not(.x):not(.y):not(.z):not([x]):not([y]){display:flex}
+  #v-tc .tc-row{cursor:pointer;grid-template-columns:repeat(3,1fr);padding:6px var(--sp-2);margin-bottom:6px}
+  #v-tc .tc-row.mo{grid-template-columns:1fr 1fr}
+  #v-tc .tc-row td{font-size:12px;padding:0}
+  #v-tc .tc-row .tc-role small{display:inline;margin-left:6px}
+  #v-tc #tcCnt::after{content:"・點職位列看全部欄位";color:var(--ink-3)}
+  #v-tc .tc-row .tc-conf{white-space:nowrap}
+  #v-tc .tc-smrow td{display:block}
+}
