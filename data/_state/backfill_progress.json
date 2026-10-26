@@ -43066,11 +43066,11 @@
     "financial@2012-01-01:2376": true,
     "balance@2012-01-01:2376": true
   },
-  "updated_at": "2026-10-26T15:43:38.044989+00:00",
+  "updated_at": "2026-10-26T15:45:21.406442+00:00",
   "complete": {
     "balance+financial+revenue": {
-      "done": true,
-      "at": "2026-10-26T15:39:22.774277+00:00",
+      "done": false,
+      "at": "2026-10-26T15:45:21.375477+00:00",
       "codes": 500,
       "remaining": {
         "balance": 0,
@@ -43085,18 +43085,13 @@
     },
     "plan:default": {
       "done": false,
-      "at": "2026-10-26T15:43:38.009521+00:00",
+      "at": "2026-10-26T15:45:21.406412+00:00",
       "month": "2026-10",
       "week": "w2026-44a",
       "steps": {
-        "balance+financial+revenue": true,
-        "dividend+divresult": true,
-        "holding+margin@2021-01-01": true,
-        "price@2000-01-01": true,
-        "inst@2012-01-01": true,
-        "balance+financial+revenue@2012-01-01": false
+        "balance+financial+revenue": false
       },
-      "stopped_at": "balance+financial+revenue@2012-01-01"
+      "stopped_at": "balance+financial+revenue"
     },
     "index_ohlc": {
       "done": true,
@@ -43323,7 +43318,7 @@
         "marked_from_lake": 0
       },
       "stopped": null,
-      "at": "2026-10-26T15:39:16.486718+00:00"
+      "at": "2026-10-26T15:45:19.687659+00:00"
     },
     "dividend+divresult@m2026-10": {
       "done": true,
@@ -44153,7 +44148,7 @@
       }
     },
     "opt_pc": {
-      "next": "2008-02-01",
+      "next": "2008-03-01",
       "at": "2026-10-26",
       "done": false
     }
