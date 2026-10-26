@@ -66,7 +66,11 @@ WIKI_FIRST = frozenset({"nvidia.com", "asml.com", "amd.com", "qualcomm.com", "sy
                         "uicpaymentsinc.com", "itri.org.tw", "ami.com"})
 # 人工排除：抓得到的圖不是該公司自己的 Logo（寧可退字標也不要放錯公司的）
 DENY = {"carmax.com.tw": "官網頁首圖是母集團「和泰集團」的標誌，不是車美仕自己的 Logo",
-        "kinsus.com.tw": "官網只有 48px、內容糊成一片的 favicon，放大後認不出是什麼"}
+        "kinsus.com.tw": "官網只有 48px、內容糊成一片的 favicon，放大後認不出是什麼",
+        "eternal-group.com": "白色字標，白底上看不見（CEO 10-27 目視）",
+        "himax.com.tw": "淺灰字標，白底上看不清（CEO 10-27 目視）",
+        "kneron.com": "淺灰紋理字標，白底上看不清（CEO 10-27 目視）",
+        "solartech.com.tw": "彩虹圓環大半空白，疑為裁切圖示、無法確認是正確標誌（CEO 10-27 目視）"}
 S2_DENY = frozenset({"uicpaymentsinc.com"})    # Google s2 對這個網域只回通用地球圖示
 # 網址帶這些字樣＝分享圖示、宣傳橫幅、前端框架預設圖示，不是公司標誌
 _BAD_URL = re.compile(r"og-image|teaser|hero|banner|share[-_]?icon|sharing|social[-_]|clientlib-react|/icon/ai-|/ai-(?:black|white)", re.I)
