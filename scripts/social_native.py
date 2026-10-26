@@ -716,13 +716,17 @@ def _tree_block(title, col, rows, w, h, s):
     rh = (h - th - 8) / max(len(rows), 1)
     mx = max([abs(r["dpp"]) for r in rows] + [0.01])
     # 鏈 → 族群：同一條產業鏈的列相鄰，左邊用括線連到鏈名（兩層簡化樹）
-    chains: dict = {}
+    # 只把「相鄰」的同鏈列併成一組：排行是依 pp 排序，同一條鏈可能被隔開；不相鄰還硬併，兩個鏈名會疊在同一個位置（2026-10-27 盤中分流樹「其他電子」壓到「傳產與內需」）
+    runs: list = []
     for i, r in enumerate(rows):
-        chains.setdefault(r["chain"], []).append(i)
+        if runs and runs[-1][0] == r["chain"]:
+            runs[-1][1].append(i)
+        else:
+            runs.append((r["chain"], [i]))
     cw = round(150 * s)
     g = [svg_open(w, h), svg_t(8, th - 12, title, f + 2, col, weight=800)]
     root_x, chain_x = 8, 24
-    for ch, idxs in chains.items():
+    for ch, idxs in runs:
         ys = [th + rh * (i + 0.5) for i in idxs]
         cy = sum(ys) / len(ys)
         tot = sum(rows[i]["amt"] for i in idxs)
