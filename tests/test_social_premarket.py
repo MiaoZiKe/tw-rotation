@@ -53,7 +53,7 @@ def test_us_close_rows_candles_and_missing_dji():
     by = {r["sym"]: r for r in us["rows"]}
     assert by["^DJI"]["missing"] is True and "close" not in by["^DJI"]     # 沒資料就不給數字（圖上整列不畫）
     k = by["^IXIC"]["k"]
-    assert by["^IXIC"]["chg"] == 1 and len(k["bars"]) == sp.K_N and k["has_ohlc"] is True
+    assert by["^IXIC"]["chg"] == 1 and len(k["bars"]) == min(sp.K_LONG, 60) and k["has_ohlc"] is True
     assert sp.us_close(_intl(ohlc=False), date(2026, 10, 27))["rows"][0]["k"]["has_ohlc"] is False   # 舊資料沒開高低 → 折線
 
 
@@ -224,9 +224,9 @@ def test_pages_have_no_notes_and_skip_missing():
     D = _collect()
     for mode in ("threads", "story"):
         pages = sp.build_pages(D, mode)
-        assert [p["name"] for p in pages] == ["us-close", "tx", "news", "summary"]   # ADR 沒資料 → 下段不畫、不換成現貨
+        assert [p["name"] for p in pages] == ["us-close", "tx", "news"]      # 2026-10-26 Andy：「就這三張」   # ADR 沒資料 → 下段不畫、不換成現貨
         assert pages[1]["title"] == "台指期" and "台積電" not in pages[1]["inner"]
-        assert "年線240" in pages[1]["inner"] and "class=tat" in pages[1]["inner"]
+        assert "年線240" in pages[1]["inner"] and "class=tat" not in pages[1]["inner"] and "RSI" not in pages[1]["inner"]      # 10-26 拿掉技術面表格與 RSI
         html = "".join(p["inner"] + p["title"] for p in pages)
         for bad in ("查證中", "資料日", "休市", "時段", "本週", "資料：", "不構成投資建議", "道瓊"):
             assert bad not in html, bad
@@ -241,7 +241,7 @@ def test_tx_page_has_adr_section_when_available():
     pages = sp.build_pages(D, "threads")
     tx = pages[[p["name"] for p in pages].index("tx")]
     assert tx["title"] == "台指期・台積電 ADR" and set(tx["charts"]) == {"ktx", "kadr"}
-    assert tx["inner"].index("台指期") < tx["inner"].index("台積電 ADR") and "換算台股價" in tx["inner"]
+    assert tx["inner"].index("台指期") < tx["inner"].index("台積電 ADR") and "換算 " in tx["inner"] and "RSI" not in tx["inner"]
     assert "tsmc" not in [p["name"] for p in pages] and set(D["ta"]) == {"tx", "adr"}
 
 
@@ -250,7 +250,8 @@ def test_caption_and_premarket_news():
     txt = sp.caption(D, "20261027")
     lines = txt.splitlines()
     assert lines[0] == "🌅 台股盤前 10/27" and lines[-1] == "💬 想看完整內容，留言『消息』"      # 2026-10-26 盤前文案改成盤中盤後同格式
-    assert "🇺🇸 美股 10/23：" in lines and "📰 今日焦點：" in lines and "資料：" not in txt
+    assert "🧭 昨日盤面（美股 10/23）：" in lines and "📰 昨日事件：" in lines and "資料：" not in txt
+    assert lines.index("🧭 昨日盤面（美股 10/23）：") < lines.index("📰 昨日事件：")      # 先盤面分析、再事件標題
     assert len(txt) <= 480 and "👉 更多詳細資料可以點擊以下連結：\nhttps://liguligu-puipui.com/\n" in txt
     assert any(x.startswith("・【總經】") for x in lines) and "查證中" not in txt
     pn = sp.premarket_news(D)

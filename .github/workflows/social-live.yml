@@ -111,7 +111,7 @@ jobs:
         run: |
           pip install playwright pillow requests
           python -m playwright install --with-deps chromium
-          sudo apt-get install -y fonts-noto-cjk
+          sudo apt-get install -y fonts-noto-cjk fonts-noto-color-emoji
 
       - name: 截圖＋排版＋產 manifest
         id: snap
