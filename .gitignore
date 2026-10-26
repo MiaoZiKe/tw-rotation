@@ -85,3 +85,4 @@ tw-restore/
 docs/strategy_lab/_cache_*.pkl
 docs/strategy_lab/round2/_runs.pkl
 docs/strategy_lab/round3/_runs.pkl
+docs/strategy_lab/round5/_registry.pkl

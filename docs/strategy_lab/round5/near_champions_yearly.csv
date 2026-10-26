@@ -1,0 +1,91 @@
+﻿spec,pool,年,策略,0050,贏
+"{""N"": 5, ""buf"": true, ""fam"": ""riskmom"", ""mf"": ""br200"", ""rebal"": ""Q"", ""withnh"": true}",200,2012,0.2601,0.1247,True
+"{""N"": 5, ""buf"": true, ""fam"": ""riskmom"", ""mf"": ""br200"", ""rebal"": ""Q"", ""withnh"": true}",200,2013,0.4126,0.1168,True
+"{""N"": 5, ""buf"": true, ""fam"": ""riskmom"", ""mf"": ""br200"", ""rebal"": ""Q"", ""withnh"": true}",200,2014,0.1784,0.1666,True
+"{""N"": 5, ""buf"": true, ""fam"": ""riskmom"", ""mf"": ""br200"", ""rebal"": ""Q"", ""withnh"": true}",200,2015,0.5199,-0.0628,True
+"{""N"": 5, ""buf"": true, ""fam"": ""riskmom"", ""mf"": ""br200"", ""rebal"": ""Q"", ""withnh"": true}",200,2016,0.1858,0.1965,False
+"{""N"": 5, ""buf"": true, ""fam"": ""riskmom"", ""mf"": ""br200"", ""rebal"": ""Q"", ""withnh"": true}",200,2017,0.3493,0.1814,True
+"{""N"": 5, ""buf"": true, ""fam"": ""riskmom"", ""mf"": ""br200"", ""rebal"": ""Q"", ""withnh"": true}",200,2018,0.2418,-0.0494,True
+"{""N"": 5, ""buf"": true, ""fam"": ""riskmom"", ""mf"": ""br200"", ""rebal"": ""Q"", ""withnh"": true}",200,2019,0.0555,0.3352,False
+"{""N"": 5, ""buf"": true, ""fam"": ""riskmom"", ""mf"": ""br200"", ""rebal"": ""Q"", ""withnh"": true}",200,2020,-0.1956,0.3069,False
+"{""N"": 5, ""buf"": true, ""fam"": ""riskmom"", ""mf"": ""br200"", ""rebal"": ""Q"", ""withnh"": true}",200,2021,0.4765,0.2168,True
+"{""N"": 5, ""buf"": true, ""fam"": ""riskmom"", ""mf"": ""br200"", ""rebal"": ""Q"", ""withnh"": true}",200,2022,-0.0195,-0.2137,True
+"{""N"": 5, ""buf"": true, ""fam"": ""riskmom"", ""mf"": ""br200"", ""rebal"": ""Q"", ""withnh"": true}",200,2023,0.5011,0.2752,True
+"{""N"": 5, ""buf"": true, ""fam"": ""riskmom"", ""mf"": ""br200"", ""rebal"": ""Q"", ""withnh"": true}",200,2024,0.0639,0.4864,False
+"{""N"": 5, ""buf"": true, ""fam"": ""riskmom"", ""mf"": ""br200"", ""rebal"": ""Q"", ""withnh"": true}",200,2025,0.2531,0.3569,False
+"{""N"": 5, ""buf"": true, ""fam"": ""riskmom"", ""mf"": ""br200"", ""rebal"": ""Q"", ""withnh"": true}",200,2026,0.9546,0.6569,True
+"{""N"": 5, ""buf"": true, ""fam"": ""riskmom"", ""mf"": ""br200"", ""rebal"": ""Q"", ""withnh"": true}",100,2012,0.079,0.1247,False
+"{""N"": 5, ""buf"": true, ""fam"": ""riskmom"", ""mf"": ""br200"", ""rebal"": ""Q"", ""withnh"": true}",100,2013,0.1671,0.1168,True
+"{""N"": 5, ""buf"": true, ""fam"": ""riskmom"", ""mf"": ""br200"", ""rebal"": ""Q"", ""withnh"": true}",100,2014,-0.0011,0.1666,False
+"{""N"": 5, ""buf"": true, ""fam"": ""riskmom"", ""mf"": ""br200"", ""rebal"": ""Q"", ""withnh"": true}",100,2015,-0.2203,-0.0628,False
+"{""N"": 5, ""buf"": true, ""fam"": ""riskmom"", ""mf"": ""br200"", ""rebal"": ""Q"", ""withnh"": true}",100,2016,0.1912,0.1965,False
+"{""N"": 5, ""buf"": true, ""fam"": ""riskmom"", ""mf"": ""br200"", ""rebal"": ""Q"", ""withnh"": true}",100,2017,0.3481,0.1814,True
+"{""N"": 5, ""buf"": true, ""fam"": ""riskmom"", ""mf"": ""br200"", ""rebal"": ""Q"", ""withnh"": true}",100,2018,0.332,-0.0494,True
+"{""N"": 5, ""buf"": true, ""fam"": ""riskmom"", ""mf"": ""br200"", ""rebal"": ""Q"", ""withnh"": true}",100,2019,0.0931,0.3352,False
+"{""N"": 5, ""buf"": true, ""fam"": ""riskmom"", ""mf"": ""br200"", ""rebal"": ""Q"", ""withnh"": true}",100,2020,-0.1133,0.3069,False
+"{""N"": 5, ""buf"": true, ""fam"": ""riskmom"", ""mf"": ""br200"", ""rebal"": ""Q"", ""withnh"": true}",100,2021,0.9892,0.2168,True
+"{""N"": 5, ""buf"": true, ""fam"": ""riskmom"", ""mf"": ""br200"", ""rebal"": ""Q"", ""withnh"": true}",100,2022,-0.1207,-0.2137,True
+"{""N"": 5, ""buf"": true, ""fam"": ""riskmom"", ""mf"": ""br200"", ""rebal"": ""Q"", ""withnh"": true}",100,2023,0.2479,0.2752,False
+"{""N"": 5, ""buf"": true, ""fam"": ""riskmom"", ""mf"": ""br200"", ""rebal"": ""Q"", ""withnh"": true}",100,2024,0.0943,0.4864,False
+"{""N"": 5, ""buf"": true, ""fam"": ""riskmom"", ""mf"": ""br200"", ""rebal"": ""Q"", ""withnh"": true}",100,2025,0.24,0.3569,False
+"{""N"": 5, ""buf"": true, ""fam"": ""riskmom"", ""mf"": ""br200"", ""rebal"": ""Q"", ""withnh"": true}",100,2026,0.6203,0.6569,False
+"{""N"": 15, ""above200"": true, ""buf"": false, ""fam"": ""nh"", ""mf"": ""br200"", ""nhmin"": 0.0, ""rebal"": ""Q"", ""withmom"": true}",200,2012,0.2531,0.1247,True
+"{""N"": 15, ""above200"": true, ""buf"": false, ""fam"": ""nh"", ""mf"": ""br200"", ""nhmin"": 0.0, ""rebal"": ""Q"", ""withmom"": true}",200,2013,0.4027,0.1168,True
+"{""N"": 15, ""above200"": true, ""buf"": false, ""fam"": ""nh"", ""mf"": ""br200"", ""nhmin"": 0.0, ""rebal"": ""Q"", ""withmom"": true}",200,2014,-0.0083,0.1666,False
+"{""N"": 15, ""above200"": true, ""buf"": false, ""fam"": ""nh"", ""mf"": ""br200"", ""nhmin"": 0.0, ""rebal"": ""Q"", ""withmom"": true}",200,2015,0.1462,-0.0628,True
+"{""N"": 15, ""above200"": true, ""buf"": false, ""fam"": ""nh"", ""mf"": ""br200"", ""nhmin"": 0.0, ""rebal"": ""Q"", ""withmom"": true}",200,2016,0.0803,0.1965,False
+"{""N"": 15, ""above200"": true, ""buf"": false, ""fam"": ""nh"", ""mf"": ""br200"", ""nhmin"": 0.0, ""rebal"": ""Q"", ""withmom"": true}",200,2017,0.5939,0.1814,True
+"{""N"": 15, ""above200"": true, ""buf"": false, ""fam"": ""nh"", ""mf"": ""br200"", ""nhmin"": 0.0, ""rebal"": ""Q"", ""withmom"": true}",200,2018,0.1473,-0.0494,True
+"{""N"": 15, ""above200"": true, ""buf"": false, ""fam"": ""nh"", ""mf"": ""br200"", ""nhmin"": 0.0, ""rebal"": ""Q"", ""withmom"": true}",200,2019,0.0977,0.3352,False
+"{""N"": 15, ""above200"": true, ""buf"": false, ""fam"": ""nh"", ""mf"": ""br200"", ""nhmin"": 0.0, ""rebal"": ""Q"", ""withmom"": true}",200,2020,-0.158,0.3069,False
+"{""N"": 15, ""above200"": true, ""buf"": false, ""fam"": ""nh"", ""mf"": ""br200"", ""nhmin"": 0.0, ""rebal"": ""Q"", ""withmom"": true}",200,2021,0.7793,0.2168,True
+"{""N"": 15, ""above200"": true, ""buf"": false, ""fam"": ""nh"", ""mf"": ""br200"", ""nhmin"": 0.0, ""rebal"": ""Q"", ""withmom"": true}",200,2022,-0.2964,-0.2137,False
+"{""N"": 15, ""above200"": true, ""buf"": false, ""fam"": ""nh"", ""mf"": ""br200"", ""nhmin"": 0.0, ""rebal"": ""Q"", ""withmom"": true}",200,2023,0.3036,0.2752,True
+"{""N"": 15, ""above200"": true, ""buf"": false, ""fam"": ""nh"", ""mf"": ""br200"", ""nhmin"": 0.0, ""rebal"": ""Q"", ""withmom"": true}",200,2024,0.1075,0.4864,False
+"{""N"": 15, ""above200"": true, ""buf"": false, ""fam"": ""nh"", ""mf"": ""br200"", ""nhmin"": 0.0, ""rebal"": ""Q"", ""withmom"": true}",200,2025,0.3881,0.3569,True
+"{""N"": 15, ""above200"": true, ""buf"": false, ""fam"": ""nh"", ""mf"": ""br200"", ""nhmin"": 0.0, ""rebal"": ""Q"", ""withmom"": true}",200,2026,0.973,0.6569,True
+"{""N"": 15, ""above200"": true, ""buf"": false, ""fam"": ""nh"", ""mf"": ""br200"", ""nhmin"": 0.0, ""rebal"": ""Q"", ""withmom"": true}",100,2012,0.0309,0.1247,False
+"{""N"": 15, ""above200"": true, ""buf"": false, ""fam"": ""nh"", ""mf"": ""br200"", ""nhmin"": 0.0, ""rebal"": ""Q"", ""withmom"": true}",100,2013,0.2524,0.1168,True
+"{""N"": 15, ""above200"": true, ""buf"": false, ""fam"": ""nh"", ""mf"": ""br200"", ""nhmin"": 0.0, ""rebal"": ""Q"", ""withmom"": true}",100,2014,0.0083,0.1666,False
+"{""N"": 15, ""above200"": true, ""buf"": false, ""fam"": ""nh"", ""mf"": ""br200"", ""nhmin"": 0.0, ""rebal"": ""Q"", ""withmom"": true}",100,2015,-0.0472,-0.0628,True
+"{""N"": 15, ""above200"": true, ""buf"": false, ""fam"": ""nh"", ""mf"": ""br200"", ""nhmin"": 0.0, ""rebal"": ""Q"", ""withmom"": true}",100,2016,0.0248,0.1965,False
+"{""N"": 15, ""above200"": true, ""buf"": false, ""fam"": ""nh"", ""mf"": ""br200"", ""nhmin"": 0.0, ""rebal"": ""Q"", ""withmom"": true}",100,2017,0.5679,0.1814,True
+"{""N"": 15, ""above200"": true, ""buf"": false, ""fam"": ""nh"", ""mf"": ""br200"", ""nhmin"": 0.0, ""rebal"": ""Q"", ""withmom"": true}",100,2018,0.1933,-0.0494,True
+"{""N"": 15, ""above200"": true, ""buf"": false, ""fam"": ""nh"", ""mf"": ""br200"", ""nhmin"": 0.0, ""rebal"": ""Q"", ""withmom"": true}",100,2019,0.188,0.3352,False
+"{""N"": 15, ""above200"": true, ""buf"": false, ""fam"": ""nh"", ""mf"": ""br200"", ""nhmin"": 0.0, ""rebal"": ""Q"", ""withmom"": true}",100,2020,-0.1266,0.3069,False
+"{""N"": 15, ""above200"": true, ""buf"": false, ""fam"": ""nh"", ""mf"": ""br200"", ""nhmin"": 0.0, ""rebal"": ""Q"", ""withmom"": true}",100,2021,0.7615,0.2168,True
+"{""N"": 15, ""above200"": true, ""buf"": false, ""fam"": ""nh"", ""mf"": ""br200"", ""nhmin"": 0.0, ""rebal"": ""Q"", ""withmom"": true}",100,2022,-0.2709,-0.2137,False
+"{""N"": 15, ""above200"": true, ""buf"": false, ""fam"": ""nh"", ""mf"": ""br200"", ""nhmin"": 0.0, ""rebal"": ""Q"", ""withmom"": true}",100,2023,0.2514,0.2752,False
+"{""N"": 15, ""above200"": true, ""buf"": false, ""fam"": ""nh"", ""mf"": ""br200"", ""nhmin"": 0.0, ""rebal"": ""Q"", ""withmom"": true}",100,2024,0.2228,0.4864,False
+"{""N"": 15, ""above200"": true, ""buf"": false, ""fam"": ""nh"", ""mf"": ""br200"", ""nhmin"": 0.0, ""rebal"": ""Q"", ""withmom"": true}",100,2025,0.346,0.3569,False
+"{""N"": 15, ""above200"": true, ""buf"": false, ""fam"": ""nh"", ""mf"": ""br200"", ""nhmin"": 0.0, ""rebal"": ""Q"", ""withmom"": true}",100,2026,1.026,0.6569,True
+"{""N"": 10, ""above200"": true, ""buf"": false, ""fam"": ""nh"", ""mf"": ""br200"", ""nhmin"": 0.0, ""rebal"": ""Q"", ""withmom"": true}",200,2012,0.2898,0.1247,True
+"{""N"": 10, ""above200"": true, ""buf"": false, ""fam"": ""nh"", ""mf"": ""br200"", ""nhmin"": 0.0, ""rebal"": ""Q"", ""withmom"": true}",200,2013,0.4261,0.1168,True
+"{""N"": 10, ""above200"": true, ""buf"": false, ""fam"": ""nh"", ""mf"": ""br200"", ""nhmin"": 0.0, ""rebal"": ""Q"", ""withmom"": true}",200,2014,0.0022,0.1666,False
+"{""N"": 10, ""above200"": true, ""buf"": false, ""fam"": ""nh"", ""mf"": ""br200"", ""nhmin"": 0.0, ""rebal"": ""Q"", ""withmom"": true}",200,2015,0.2319,-0.0628,True
+"{""N"": 10, ""above200"": true, ""buf"": false, ""fam"": ""nh"", ""mf"": ""br200"", ""nhmin"": 0.0, ""rebal"": ""Q"", ""withmom"": true}",200,2016,0.1264,0.1965,False
+"{""N"": 10, ""above200"": true, ""buf"": false, ""fam"": ""nh"", ""mf"": ""br200"", ""nhmin"": 0.0, ""rebal"": ""Q"", ""withmom"": true}",200,2017,0.4772,0.1814,True
+"{""N"": 10, ""above200"": true, ""buf"": false, ""fam"": ""nh"", ""mf"": ""br200"", ""nhmin"": 0.0, ""rebal"": ""Q"", ""withmom"": true}",200,2018,0.2453,-0.0494,True
+"{""N"": 10, ""above200"": true, ""buf"": false, ""fam"": ""nh"", ""mf"": ""br200"", ""nhmin"": 0.0, ""rebal"": ""Q"", ""withmom"": true}",200,2019,0.0531,0.3352,False
+"{""N"": 10, ""above200"": true, ""buf"": false, ""fam"": ""nh"", ""mf"": ""br200"", ""nhmin"": 0.0, ""rebal"": ""Q"", ""withmom"": true}",200,2020,-0.1178,0.3069,False
+"{""N"": 10, ""above200"": true, ""buf"": false, ""fam"": ""nh"", ""mf"": ""br200"", ""nhmin"": 0.0, ""rebal"": ""Q"", ""withmom"": true}",200,2021,0.7074,0.2168,True
+"{""N"": 10, ""above200"": true, ""buf"": false, ""fam"": ""nh"", ""mf"": ""br200"", ""nhmin"": 0.0, ""rebal"": ""Q"", ""withmom"": true}",200,2022,-0.262,-0.2137,False
+"{""N"": 10, ""above200"": true, ""buf"": false, ""fam"": ""nh"", ""mf"": ""br200"", ""nhmin"": 0.0, ""rebal"": ""Q"", ""withmom"": true}",200,2023,0.3615,0.2752,True
+"{""N"": 10, ""above200"": true, ""buf"": false, ""fam"": ""nh"", ""mf"": ""br200"", ""nhmin"": 0.0, ""rebal"": ""Q"", ""withmom"": true}",200,2024,0.0951,0.4864,False
+"{""N"": 10, ""above200"": true, ""buf"": false, ""fam"": ""nh"", ""mf"": ""br200"", ""nhmin"": 0.0, ""rebal"": ""Q"", ""withmom"": true}",200,2025,0.4064,0.3569,True
+"{""N"": 10, ""above200"": true, ""buf"": false, ""fam"": ""nh"", ""mf"": ""br200"", ""nhmin"": 0.0, ""rebal"": ""Q"", ""withmom"": true}",200,2026,0.7236,0.6569,True
+"{""N"": 10, ""above200"": true, ""buf"": false, ""fam"": ""nh"", ""mf"": ""br200"", ""nhmin"": 0.0, ""rebal"": ""Q"", ""withmom"": true}",100,2012,0.0515,0.1247,False
+"{""N"": 10, ""above200"": true, ""buf"": false, ""fam"": ""nh"", ""mf"": ""br200"", ""nhmin"": 0.0, ""rebal"": ""Q"", ""withmom"": true}",100,2013,0.3673,0.1168,True
+"{""N"": 10, ""above200"": true, ""buf"": false, ""fam"": ""nh"", ""mf"": ""br200"", ""nhmin"": 0.0, ""rebal"": ""Q"", ""withmom"": true}",100,2014,0.0456,0.1666,False
+"{""N"": 10, ""above200"": true, ""buf"": false, ""fam"": ""nh"", ""mf"": ""br200"", ""nhmin"": 0.0, ""rebal"": ""Q"", ""withmom"": true}",100,2015,-0.0598,-0.0628,True
+"{""N"": 10, ""above200"": true, ""buf"": false, ""fam"": ""nh"", ""mf"": ""br200"", ""nhmin"": 0.0, ""rebal"": ""Q"", ""withmom"": true}",100,2016,0.021,0.1965,False
+"{""N"": 10, ""above200"": true, ""buf"": false, ""fam"": ""nh"", ""mf"": ""br200"", ""nhmin"": 0.0, ""rebal"": ""Q"", ""withmom"": true}",100,2017,0.6157,0.1814,True
+"{""N"": 10, ""above200"": true, ""buf"": false, ""fam"": ""nh"", ""mf"": ""br200"", ""nhmin"": 0.0, ""rebal"": ""Q"", ""withmom"": true}",100,2018,0.2546,-0.0494,True
+"{""N"": 10, ""above200"": true, ""buf"": false, ""fam"": ""nh"", ""mf"": ""br200"", ""nhmin"": 0.0, ""rebal"": ""Q"", ""withmom"": true}",100,2019,0.1526,0.3352,False
+"{""N"": 10, ""above200"": true, ""buf"": false, ""fam"": ""nh"", ""mf"": ""br200"", ""nhmin"": 0.0, ""rebal"": ""Q"", ""withmom"": true}",100,2020,-0.0924,0.3069,False
+"{""N"": 10, ""above200"": true, ""buf"": false, ""fam"": ""nh"", ""mf"": ""br200"", ""nhmin"": 0.0, ""rebal"": ""Q"", ""withmom"": true}",100,2021,1.0554,0.2168,True
+"{""N"": 10, ""above200"": true, ""buf"": false, ""fam"": ""nh"", ""mf"": ""br200"", ""nhmin"": 0.0, ""rebal"": ""Q"", ""withmom"": true}",100,2022,-0.2465,-0.2137,False
+"{""N"": 10, ""above200"": true, ""buf"": false, ""fam"": ""nh"", ""mf"": ""br200"", ""nhmin"": 0.0, ""rebal"": ""Q"", ""withmom"": true}",100,2023,0.2665,0.2752,False
+"{""N"": 10, ""above200"": true, ""buf"": false, ""fam"": ""nh"", ""mf"": ""br200"", ""nhmin"": 0.0, ""rebal"": ""Q"", ""withmom"": true}",100,2024,0.1203,0.4864,False
+"{""N"": 10, ""above200"": true, ""buf"": false, ""fam"": ""nh"", ""mf"": ""br200"", ""nhmin"": 0.0, ""rebal"": ""Q"", ""withmom"": true}",100,2025,0.33,0.3569,False
+"{""N"": 10, ""above200"": true, ""buf"": false, ""fam"": ""nh"", ""mf"": ""br200"", ""nhmin"": 0.0, ""rebal"": ""Q"", ""withmom"": true}",100,2026,1.2281,0.6569,True
