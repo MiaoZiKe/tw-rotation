@@ -3407,8 +3407,8 @@
           ]
         }
       ],
-      "culture": null,
-      "interview": null,
+      "culture": "GoodJob 平均每週約 50 小時，18% 幾乎每天加班、45% 偶爾加班；有評價說準時下班要看主管",
+      "interview": "電路設計職先筆試（性向、邏輯、電路學）再面談；Layout 職偏聊天式（面試趣，錄取率約 58%、難度低）",
       "grade_system": null,
       "mops": null,
       "roles": [
@@ -3439,30 +3439,85 @@
               "quote_free_note": "e-offer，核薪約 45K～48K（取中值）",
               "in_window": true,
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-10-24"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/雍智科技股份有限公司/salary-work-times",
+              "date": "2026-03",
+              "date_confirmed": true,
+              "role": "電路設計工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 100,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "GoodJob 2026-03 薪資回報，年薪 100 萬",
+              "in_window": true,
+              "date_note": "GoodJob 標題／列表附年月，算確認"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/雍智科技股份有限公司/interview-experiences",
+              "date": "2026-01",
+              "date_confirmed": true,
+              "role": "電路設計工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 50,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "GoodJob 2026-01 面試經驗，月薪 5 萬",
+              "in_window": true,
+              "date_note": "GoodJob 標題／列表附年月，算確認"
             }
           ],
-          "n": 1,
+          "n": 3,
           "sources": [
             {
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/262340574",
               "date": "2026-10"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/雍智科技股份有限公司/salary-work-times",
+              "date": "2026-03"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/雍智科技股份有限公司/interview-experiences",
+              "date": "2026-01"
             }
           ],
           "confidence": "低",
           "note": "2026-10-26 由 Dcard 樣本新增的公司",
           "base_month_k": [
             46.5,
-            46.5
+            50
           ],
           "years": null,
           "bonus_months": null,
           "annual_months": null,
-          "annual_total_wan": null,
+          "annual_total_wan": [
+            100,
+            100
+          ],
           "weekly_hours": null,
           "overtime": null,
           "travel": null,
-          "n_stat": 1
+          "n_stat": 3
         }
       ]
     },
@@ -3541,8 +3596,8 @@
       "stock_plan": null,
       "bonus_timing": null,
       "bonus_structure": [],
-      "culture": null,
-      "interview": null,
+      "culture": "GoodJob 彙整：平均每週約 45 小時，19% 幾乎每天加班、44% 偶爾加班；有評價說面試講假日不用值班，實際每週多約 15 小時",
+      "interview": "自我介紹→說明工作流程與輪班制度；龍潭廠要先換證（GoodJob／面試趣）",
       "grade_system": null,
       "mops": null,
       "roles": [
