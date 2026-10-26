@@ -1406,7 +1406,25 @@ def backfill_logos(prog: dict, limit: int | None = None, today: date | None = No
         prio = list(dict.fromkeys(m["code"].astype(str).tolist())) if not m.empty else []
     except Exception:  # noqa: BLE001
         prio = []
-    return logos.run(limit, today=today, priority=prio)
+    summary = logos.run(limit, today=today, priority=prio)
+
+    # ③ 科技透明圈沒有台股代號的公司（外商、未上市）：以官網網域為鍵，data/logos/tc/<網域>.png（DECISIONS #364）。
+    # 放在個股 Logo 之後、各自有時間上限；壞了不影響個股 Logo。到期日併進 logo_progress.json，
+    # 這樣 backfill.yml 的守門（只看那一份）在計畫補齊後也會放行，不必另外改工作流。
+    try:
+        from .sources import tc_logos
+        tc = tc_logos.run(today=today)
+        if isinstance(summary, dict) and not tc.get("skipped"):
+            summary["tc"] = {k: tc.get(k) for k in ("domains", "have", "coverage", "pending", "next_due", "counts")}
+            if tc.get("pending"):
+                summary["done"] = False
+            nd = tc.get("next_due")
+            if nd and (not summary.get("next_due") or nd < summary["next_due"]):
+                summary["next_due"] = nd
+            logos._write_state(summary)
+    except Exception as exc:  # noqa: BLE001
+        log.warning("科技透明圈 Logo 步驟失敗（不影響個股 Logo）：%s", exc)
+    return summary
 
 
 # 不吃 FinMind 額度、放在健檢之前跑的資料集（`--datasets` 只給這幾個時，整輪不碰 FinMind）

@@ -1,0 +1,383 @@
+{
+ "_說明": "科技透明圈（site/tc/json）沒有台股代號的公司網域；來源＝site/tc/logos.js 的對照表（2026-10-27）。en＝Wikidata 搜尋用的英文名，空字串＝不查 Wikimedia。",
+ "domains": [
+  {
+   "domain": "advantest.com",
+   "names": [
+    "愛德萬"
+   ],
+   "en": "Advantest"
+  },
+  {
+   "domain": "amd.com",
+   "names": [
+    "AMD"
+   ],
+   "en": "Advanced Micro Devices"
+  },
+  {
+   "domain": "ami.com",
+   "names": [
+    "AMI"
+   ],
+   "en": "American Megatrends"
+  },
+  {
+   "domain": "amkor.com",
+   "names": [
+    "艾克爾（Amkor）"
+   ],
+   "en": "Amkor Technology"
+  },
+  {
+   "domain": "apple.com",
+   "names": [
+    "Apple"
+   ],
+   "en": "Apple Inc."
+  },
+  {
+   "domain": "appliedmaterials.com",
+   "names": [
+    "應用材料"
+   ],
+   "en": "Applied Materials"
+  },
+  {
+   "domain": "asml.com",
+   "names": [
+    "ASML"
+   ],
+   "en": "ASML"
+  },
+  {
+   "domain": "asrockrack.com",
+   "names": [
+    "永擎電子"
+   ],
+   "en": "ASRock Rack"
+  },
+  {
+   "domain": "broadcom.com",
+   "names": [
+    "博通"
+   ],
+   "en": "Broadcom Inc."
+  },
+  {
+   "domain": "carmax.com.tw",
+   "names": [
+    "車美仕"
+   ],
+   "en": ""
+  },
+  {
+   "domain": "castlestech.com",
+   "names": [
+    "虹堡"
+   ],
+   "en": "Castles Technology"
+  },
+  {
+   "domain": "dell.com",
+   "names": [
+    "Dell"
+   ],
+   "en": "Dell"
+  },
+  {
+   "domain": "entegris.com",
+   "names": [
+    "英特格（Entegris）"
+   ],
+   "en": "Entegris"
+  },
+  {
+   "domain": "fihmobile.com",
+   "names": [
+    "富智康"
+   ],
+   "en": "FIH Mobile"
+  },
+  {
+   "domain": "formfactor.com",
+   "names": [
+    "FormFactor"
+   ],
+   "en": "FormFactor"
+  },
+  {
+   "domain": "foxconn.com",
+   "names": [
+    "鴻運科"
+   ],
+   "en": "Foxconn"
+  },
+  {
+   "domain": "garmin.com.tw",
+   "names": [
+    "Garmin"
+   ],
+   "en": "Garmin"
+  },
+  {
+   "domain": "google.com",
+   "names": [
+    "Google"
+   ],
+   "en": "Google"
+  },
+  {
+   "domain": "himax.com.tw",
+   "names": [
+    "奇景"
+   ],
+   "en": "Himax Technologies"
+  },
+  {
+   "domain": "hitachi-hightech.com",
+   "names": [
+    "日立先端（Hitachi High-Tech）"
+   ],
+   "en": "Hitachi High-Tech"
+  },
+  {
+   "domain": "hp.com",
+   "names": [
+    "HP"
+   ],
+   "en": "HP Inc."
+  },
+  {
+   "domain": "ingrasys.com",
+   "names": [
+    "鴻佰"
+   ],
+   "en": "Ingrasys"
+  },
+  {
+   "domain": "itri.org.tw",
+   "names": [
+    "工研院"
+   ],
+   "en": "Industrial Technology Research Institute"
+  },
+  {
+   "domain": "kaikutek.com",
+   "names": [
+    "開酷"
+   ],
+   "en": "Kaikutek"
+  },
+  {
+   "domain": "kla.com",
+   "names": [
+    "KLA"
+   ],
+   "en": "KLA Corporation"
+  },
+  {
+   "domain": "kneron.com",
+   "names": [
+    "耐能智慧"
+   ],
+   "en": "Kneron"
+  },
+  {
+   "domain": "lamresearch.com",
+   "names": [
+    "Lam Research"
+   ],
+   "en": "Lam Research"
+  },
+  {
+   "domain": "lasertec.co.jp",
+   "names": [
+    "Lasertec"
+   ],
+   "en": "Lasertec"
+  },
+  {
+   "domain": "merckgroup.com",
+   "names": [
+    "Merck"
+   ],
+   "en": "Merck Group"
+  },
+  {
+   "domain": "meta.com",
+   "names": [
+    "Meta"
+   ],
+   "en": "Meta Platforms"
+  },
+  {
+   "domain": "micron.com",
+   "names": [
+    "美光台灣"
+   ],
+   "en": "Micron Technology"
+  },
+  {
+   "domain": "microsoft.com",
+   "names": [
+    "微軟"
+   ],
+   "en": "Microsoft"
+  },
+  {
+   "domain": "mitaccomputing.com",
+   "names": [
+    "神雲科技"
+   ],
+   "en": "Mitac Computing Technology"
+  },
+  {
+   "domain": "monolithicpower.com",
+   "names": [
+    "MPS 台灣"
+   ],
+   "en": "Monolithic Power Systems"
+  },
+  {
+   "domain": "moxa.com",
+   "names": [
+    "四零四科技（Moxa）"
+   ],
+   "en": "Moxa"
+  },
+  {
+   "domain": "nvidia.com",
+   "names": [
+    "NVIDIA"
+   ],
+   "en": "Nvidia"
+  },
+  {
+   "domain": "phihongtech.com",
+   "names": [
+    "馳諾瓦"
+   ],
+   "en": "Phihong Technology"
+  },
+  {
+   "domain": "qualcomm.com",
+   "names": [
+    "高通"
+   ],
+   "en": "Qualcomm"
+  },
+  {
+   "domain": "questglobal.com",
+   "names": [
+    "Quest Global"
+   ],
+   "en": "Quest Global"
+  },
+  {
+   "domain": "raritan.com",
+   "names": [
+    "瑞力登 Raritan"
+   ],
+   "en": "Raritan"
+  },
+  {
+   "domain": "screen.co.jp",
+   "names": [
+    "SCREEN（DNS）"
+   ],
+   "en": "Screen Holdings"
+  },
+  {
+   "domain": "siliconmotion.com",
+   "names": [
+    "慧榮"
+   ],
+   "en": "Silicon Motion"
+  },
+  {
+   "domain": "speed-hz.com",
+   "names": [
+    "碩貝德"
+   ],
+   "en": "Speed Wireless Technology"
+  },
+  {
+   "domain": "spil.com.tw",
+   "names": [
+    "矽品"
+   ],
+   "en": "Siliconware Precision Industries"
+  },
+  {
+   "domain": "ssmc.com",
+   "names": [
+    "SSMC（新加坡）"
+   ],
+   "en": "Systems on Silicon Manufacturing Company"
+  },
+  {
+   "domain": "ssstc.com",
+   "names": [
+    "建興儲存"
+   ],
+   "en": "Solid State Storage Technology"
+  },
+  {
+   "domain": "synopsys.com",
+   "names": [
+    "Synopsys"
+   ],
+   "en": "Synopsys"
+  },
+  {
+   "domain": "syntecclub.com",
+   "names": [
+    "新代"
+   ],
+   "en": "Syntec"
+  },
+  {
+   "domain": "tel.com",
+   "names": [
+    "TEL"
+   ],
+   "en": "Tokyo Electron"
+  },
+  {
+   "domain": "teradyne.com",
+   "names": [
+    "泰瑞達"
+   ],
+   "en": "Teradyne"
+  },
+  {
+   "domain": "uicpaymentsinc.com",
+   "names": [
+    "連宇"
+   ],
+   "en": "UIC Payments"
+  },
+  {
+   "domain": "unabiz.com",
+   "names": [
+    "Unabiz"
+   ],
+   "en": "UnaBiz"
+  },
+  {
+   "domain": "wellell.com",
+   "names": [
+    "雃博"
+   ],
+   "en": "Wellell"
+  },
+  {
+   "domain": "wipro.com",
+   "names": [
+    "Wipro"
+   ],
+   "en": "Wipro"
+  }
+ ]
+}

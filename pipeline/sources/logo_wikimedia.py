@@ -430,3 +430,127 @@ def _download(lg, info: dict):
         return lg.normalize_image(body, allow_lowres=False)
     except lg.LogoReject as rej:
         return rej
+
+
+# ------------------------------------------------------------------ 依「官網網域」找 Logo（科技透明圈外商，2026-10-27）
+# 外商沒有台股代號，Wikidata 的台灣條目查詢（上面）幫不上忙。改用公司英文名搜尋 Wikidata，
+# 再用條目的「官方網站」（P856）比對我們手上的網域 —— 網域對得上才收，名字像不算
+# （同名公司很多：Apple 水果、Meta 前綴詞、Merck 美國 MSD 與德國 Merck KGaA；寧缺勿濫，掛錯別家 Logo 比沒有更糟）。
+
+def _wd_api(params: dict):
+    """Wikidata 的 wbsearchentities／wbgetentities。429／503／maxlag 丟 Throttled，其餘壞掉回 None。"""
+    url = config.LOGO_WIKIDATA_API + "?" + urlencode({**params, "format": "json", "maxlag": "5"})
+    res = http.get_bytes(url, headers=_headers(), timeout=20, max_bytes=5_000_000)
+    if res is None:
+        return None
+    status, body, _ct, _final = res
+    if status in (429, 503):
+        raise Throttled(f"Wikidata API 回 HTTP {status}")
+    try:
+        d = json.loads(body.decode("utf-8"))
+    except (ValueError, UnicodeDecodeError):
+        log.warning("Wikidata API 回應解析失敗（HTTP %s，回應前 200 字）：%s", status,
+                    body[:200].decode("utf-8", errors="replace"))
+        return None
+    if isinstance(d, dict) and (d.get("error") or {}).get("code") == "maxlag":
+        raise Throttled("Wikidata API maxlag")
+    return d
+
+
+def _claim_values(claims: dict, prop: str) -> list[str]:
+    out = []
+    for c in (claims or {}).get(prop) or []:
+        if c.get("rank") == "deprecated":
+            continue
+        v = ((c.get("mainsnak") or {}).get("datavalue") or {}).get("value")
+        if isinstance(v, str) and v:
+            out.append(v)
+    return out
+
+
+def logo_by_website(name_en: str, domain: str) -> dict | None:
+    """英文名 → Wikidata 候選條目 → 官方網站網域對得上、且有 P154 標誌圖的那一個。回 {file, item, match} 或 None。
+
+    候選最多看 5 個。對得上的條目若有兩個以上不同圖檔就放棄（不猜）。
+    """
+    from . import logos as lg
+
+    d = _wd_api({"action": "wbsearchentities", "search": name_en, "language": "en", "type": "item", "limit": "5"})
+    ids = [h.get("id") for h in ((d or {}).get("search") or []) if h.get("id")]
+    if not ids:
+        return None
+    time.sleep(config.LOGO_WIKIMEDIA_PAUSE_SEC)
+    e = _wd_api({"action": "wbgetentities", "ids": "|".join(ids), "props": "claims"})
+    hits = []
+    for qid in ids:
+        claims = (((e or {}).get("entities") or {}).get(qid) or {}).get("claims") or {}
+        logos_ = _claim_values(claims, "P154")
+        if not logos_:
+            continue
+        for url in _claim_values(claims, "P856"):
+            host = (re.sub(r"^[a-z]+://", "", url.strip().lower()).split("/")[0]).split(":")[0]
+            if lg.same_company(host, domain):
+                hits.append((logos_[0], qid))
+                break
+    files = sorted({h[0] for h in hits})
+    if len(files) != 1:
+        if len(files) > 1:
+            log.info("Wikidata：%s（%s）官網對得上的條目有 %d 個不同圖檔，不猜", name_en, domain, len(files))
+        return None
+    f = files[0]
+    return {"file": f if f.startswith("File:") else "File:" + f, "item": hits[0][1], "match": "website"}
+
+
+def fetch_by_website(rows: list[dict], reject=frozenset(), deadline: float | None = None) -> dict[str, dict]:
+    """rows＝[{domain, en}] → {網域: 結果}（格式同 fetch_many，多半 status＝ok／none）。絕不拋例外；被限流就整段收手。"""
+    from . import logos as lg
+
+    out: dict[str, dict] = {}
+    try:
+        for r in rows:
+            dom, name = r["domain"], r.get("en")
+            if not name:
+                continue
+            if deadline and time.time() >= deadline:
+                break
+            try:
+                hit = logo_by_website(name, dom)
+                time.sleep(config.LOGO_WIKIMEDIA_PAUSE_SEC)
+                if not hit:
+                    out[dom] = {"status": "none", "domain": dom, "detail": f"Wikidata 查不到官網是 {dom} 的 {name}／沒有標誌圖"}
+                    continue
+                infos = commons_info([hit["file"]])
+                info = infos.get(hit["file"])
+                if not info:
+                    out[dom] = {"status": "none", "domain": dom, "detail": f"Commons 查不到 {hit['file']}"}
+                    continue
+                kind, short = license_of(info["ext"])
+                if not kind:
+                    out[dom] = {"status": "none", "domain": dom, "detail": f"{short}（{hit['file']}）"[:200]}
+                    continue
+                if kind in ("CC BY", "CC BY-SA") and not config.LOGO_WIKIMEDIA_ALLOW_BY:
+                    out[dom] = {"status": "none", "domain": dom,
+                                "detail": f"{short} 需要署名，前端還沒有出處連結，暫不收（{hit['file']}）"[:200]}
+                    continue
+                time.sleep(config.LOGO_WIKIMEDIA_PAUSE_SEC)
+                res = _download(lg, info)
+                if isinstance(res, Throttled):
+                    raise res
+                if isinstance(res, lg.LogoReject):
+                    out[dom] = {"status": "none", "domain": dom, "detail": f"Commons {res.reason} {res.detail}"[:200]}
+                    continue
+                png, orig = res
+                if lg.sha1(png) in reject:
+                    out[dom] = {"status": "generic", "domain": dom, "detail": f"預設圖 {hit['file']}"}
+                    continue
+                out[dom] = {"status": "ok", "domain": dom, "src": "wikimedia", "url": info.get("page") or hit["file"],
+                            "png": png, "orig": list(orig),
+                            "attribution": attribution(hit["file"], info, kind, short, hit)}
+            except Throttled as exc:
+                log.warning("Wikimedia（依網域）：%s，這輪收手", exc)
+                break
+            except Exception as exc:  # noqa: BLE001 —— 一家壞掉不影響下一家
+                out[dom] = {"status": "error", "domain": dom, "detail": str(exc)[:200]}
+    except Exception as exc:  # noqa: BLE001
+        log.warning("Wikimedia（依網域）失敗（不影響官網那條路）：%s", exc)
+    return out

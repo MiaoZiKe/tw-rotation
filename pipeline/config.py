@@ -441,3 +441,12 @@ LOGO_WIKIMEDIA_PAUSE_SEC = 1.0        # Commons 請求之間的間隔（序列�
 # CC BY／CC BY-SA 的圖要在「顯示的地方」署名。網站畫面目前沒有出處連結（只有 repo 裡的 data/logos/ATTRIBUTION.md），
 # 所以預設只收公有領域與 CC0。前端在搜尋下拉／個股頁補上「Logo 出處」連結之後，把這個打開（設 1）。
 LOGO_WIKIMEDIA_ALLOW_BY = os.environ.get("LOGO_WIKIMEDIA_ALLOW_BY", "0").strip() in ("1", "true", "True")
+
+# ---------------------------------------------------------------- 科技透明圈「沒有台股代號」公司的 Logo（2026-10-27，DECISIONS #364）
+# 外商與未上市公司沒有代號，吃不到 data/logos/<代號>.png；改用「網域」當鍵，存 data/logos/tc/<網域>.png。
+TC_LOGO_SUBDIR = "tc"                  # data/logos/tc/<網域>.png ＋ _index.json
+TC_LOGO_PX = 128                       # 輸出 PNG 邊長（外商 Logo 多是向量，128 比個股的 64 清楚；前端顯示 24～48px，2x 螢幕夠用）
+TC_LOGO_MIN_PX = 64                    # 原圖長邊 < 這個 ＝ 不收（Andy 要求 ≥64px，16／32px 的 favicon 放大會糊）；SVG 算向量不受限
+TC_LOGO_BUDGET_SEC = 420               # 這一步最多花 7 分鐘，時間到收手、下一輪接續
+TC_LOGO_S2 = "https://www.google.com/s2/favicons?domain={domain}&sz=256"
+LOGO_WIKIDATA_API = "https://www.wikidata.org/w/api.php"

@@ -23,6 +23,7 @@ from .groups import loader
 # TechNews 的分類在讀取端重跑（見下面 news_df 那一段的註解），所以要 import 抓取層的分類器
 from .sources import news as news_src
 from .sources import logos as logos_src
+from .sources import tc_logos as tc_logos_src
 from .util import freshness, store
 from .util.roc import is_common_stock, is_tradable_security, limit_down_price, limit_up_price, norm_industry
 
@@ -178,6 +179,36 @@ def _write(name: str, payload) -> None:
     log.info("寫出 %s（%.1f KB）", path.name, path.stat().st_size / 1024)
 
 
+def export_tc_logos() -> dict:
+    """科技透明圈沒有台股代號公司的 Logo：複製 data/logos/tc/*.png 到 site/data/tc_logos/，
+    並寫 site/data/tc_logos.json（{官網網域: 相對路徑}，例 {"nvidia.com": "data/tc_logos/nvidia.com.png"}）。
+
+    只讀資料湖、不抓網路（DECISIONS #155）；每次先清掉舊的 site/data/tc_logos/（理由同 export_logos）；
+    LOGOS_ENABLED 關閉或一張都沒有 → 輸出 `{}`，前端退回 Google 小圖示／字標。
+    """
+    out_dir = config.SITE_DATA / "tc_logos"
+    shutil.rmtree(out_dir, ignore_errors=True)
+    mapping: dict[str, str] = {}
+    if config.LOGOS_ENABLED:
+        try:
+            usable = tc_logos_src.usable()
+        except Exception as exc:  # noqa: BLE001 —— 裝飾資料，壞了不能拖垮整份 payload
+            log.warning("科技透明圈 Logo 索引讀取失敗，這次不輸出：%s", exc)
+            usable = {}
+        if usable:
+            out_dir.mkdir(parents=True, exist_ok=True)
+        for dom, fname in sorted(usable.items()):
+            try:
+                shutil.copyfile(tc_logos_src.tc_dir() / fname, out_dir / fname)
+            except OSError as exc:
+                log.warning("科技透明圈 Logo %s 複製失敗：%s", dom, exc)
+                continue
+            mapping[dom] = f"data/tc_logos/{fname}"
+    config.SITE_DATA.mkdir(parents=True, exist_ok=True)
+    _write("tc_logos", mapping)
+    return mapping
+
+
 def export_logos() -> dict:
     """把資料湖的公司 Logo 複製到 site/data/logos/，並寫 site/data/logos.json（{代號: 相對路徑}）。
 
@@ -243,6 +274,7 @@ def build() -> None:
         _write("meta", {"status": "empty", "generated_at":
                         datetime.now(timezone.utc).isoformat()})
         export_logos()
+        export_tc_logos()
         return
 
     company = store.read("company_info")
@@ -768,6 +800,7 @@ def build() -> None:
     # 且如實完成」）。原話逐字放到網站上，他自己就驗得了 —— 不必相信我在對話裡列的清單。
     _write("delivery", delivery_log.build(config.ROOT))
     export_logos()
+    export_tc_logos()
     _meta = meta_payload(latest, history_days)
     # 2026-10-07：前端只在 meta 寫著「這幾份小檔有產出」時才去抓（沒列就走舊流程，不發一個會 404 的請求）
     _meta["lite_files"] = [n for n in LITE_FILES if (config.SITE_DATA / f"{n}.json").exists()]

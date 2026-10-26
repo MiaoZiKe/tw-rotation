@@ -7058,3 +7058,11 @@ Andy 原話（10-20，錄「今日事件＋精選文章」功能影片時的選�
   10/21 的首次版從 git 歷史還原進 `pipeline/seeds/inst_market_first_seed.csv`。表建立前的歷史日（例如 10/19 投信 241.42 vs 新聞 230.51）只有晚間版，照用、不標 first。
 - 別順手改回去：不要把 `inst_market_first` 改成後到覆蓋，也不要把舊日子（40 天回看）塞進首次版 —— 那些一定是修訂版。
 - 同批查證：信用交易「10/22 維持率 176.99%、較前日 −5.85pp」日期沒有錯位（融資餘額日＝收盤日；10/21 182.84%、10/22 大盤 −1.80%），−5.85 是對 10/21 不是對 10/20。
+
+## #364 科技透明圈「沒有台股代號」公司的 Logo：以官網網域為鍵、≥64px、官網→Wikimedia→Google s2 256（爬蟲專家，2026-10-27；合併時若撞號請改號）
+- 需求（Andy 2026-10-27 原話）：「科技透明圈還是很多外商沒有 LOGO，確保 8 成都有」。成因：台灣上市櫃公司有 `data/logos/<代號>.png`，外商（NVIDIA、ASML、AMD、Meta、Google、Apple、KLA、Lam、TEL、應材、美光、博通、高通、Dell、HP、Synopsys、Garmin…）與未上市公司沒有代號，前端只能臨時向 Google s2 要小圖示，原圖 <64px 就被退成字標。
+- 做法：沿用既有 Logo 管線與白名單規則，只把鍵從「代號」換成「網域」。清單＝`pipeline/groups/tc_logo_domains.json`（科技透明圈 `site/tc/json/*.json` 裡 code 為空的公司，網域取自 `site/tc/logos.js` 對照表；`en` 是 Wikidata 搜尋用英文名）。新增 `pipeline/sources/tc_logos.py`，接在 `run_backfill.backfill_logos` 個股 Logo 之後（失敗不影響個股 Logo）。
+- 來源順序（每個網域要求原圖長邊 ≥64px，SVG 轉 128px PNG）：①官網（`logos.fetch_logo`，首頁 icon／apple-touch-icon／manifest／頁首 Logo，robots 規矩與預設圖拒收原封不動）②Wikimedia Commons（`logo_wikimedia.fetch_by_website`：英文名搜尋 Wikidata，**條目官方網站網域對得上才收**，授權只收 PD／CC0）③Google s2 `sz=256`（官網 robots 禁止或擋雲端存取時不問，同 #264／#267）。**不用 DuckDuckGo、Clearbit 等商用 API。** 三者都 <64px 就判失敗，不存小圖。
+- 存放：`data/logos/tc/<網域>.png`（128×128）＋`_index.json`＋`ATTRIBUTION.md`；增量（有圖 90 天、沒圖 30 天重試；舊圖遇失敗保留；雜湊一樣不寫檔），絕不碰 `data/logos/<代號>.png` 與任何 Parquet。進度＋到期日並進 `logo_progress.json`（守門只看那一份，不用改 backfill.yml）。
+- 輸出：`build_payload.export_tc_logos()` → `site/data/tc_logos.json`（`{網域: "data/tc_logos/<網域>.png"}`）＋ `site/data/tc_logos/`。
+- 別順手改回去：不要為了拉高覆蓋率把 `TC_LOGO_MIN_PX` 降回 16／32（小圖前端本來就退字標）；不要拿「名字像」的 Wikidata 條目當 Logo（Apple、Meta、Merck 同名公司多，一定要官網網域比對）。
