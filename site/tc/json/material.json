@@ -443,7 +443,12 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "base_month_k": [
+            50,
+            50
+          ],
+          "overtime": "經常"
         }
       ],
       "mops": {
@@ -1011,7 +1016,13 @@
           "n": 1,
           "sources": [],
           "confidence": "低",
-          "note": "2026-10-26 由 Dcard 樣本新增的公司"
+          "note": "2026-10-26 由 Dcard 樣本新增的公司",
+          "annual_months": [
+            14,
+            14
+          ],
+          "weekly_hours": 45,
+          "overtime": "偶爾"
         },
         {
           "unit": "其他",
@@ -1091,7 +1102,11 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "annual_total_wan": [
+            80,
+            80
+          ]
         }
       ]
     },
@@ -1139,7 +1154,12 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "annual_total_wan": [
+            90,
+            90
+          ],
+          "travel": "需要"
         }
       ]
     },
@@ -1187,7 +1207,11 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "annual_total_wan": [
+            90,
+            90
+          ]
         },
         {
           "unit": "台南",
@@ -1219,7 +1243,13 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "annual_months": [
+            15,
+            15
+          ],
+          "weekly_hours": 45,
+          "overtime": "幾乎不"
         }
       ]
     },
@@ -1267,7 +1297,11 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "annual_total_wan": [
+            135,
+            135
+          ]
         }
       ]
     }
