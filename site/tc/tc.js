@@ -63,7 +63,11 @@
   const S = { ind: '', co: '', f: {}, sort: { k: '', d: -1 }, fopen: false, data: {}, loaded: false, chm: 'base', rk: { m: 'ann', ind: 'all', all: false }, agg: null };
 
   /* 分紅發放欄只放「幾月」：從公司層 bonus_timing 抓出所有「N 月」，抓不到顯示「—」（完整說明留在公司頁頂端） */
-  const btMonths = (t) => { const m = String(t || '').match(/\d{1,2}\s*月/g); return m ? Array.from(new Set(m.map((x) => x.replace(/\s/g, '')))).join('、') : '—'; };
+  /* 展開「2、5、8、11 月」「2／5／8 月」這種列表＋單獨的「7 月」，去重後依數字排序輸出「2月、5月、…」；(?<!\d) 避免把 114 年的「14」當月份 */
+  const btMonths = (t) => { const set = new Set(); String(t || '').replace(/(?<!\d)(\d{1,2}(?:\s*[、／\/,，]\s*\d{1,2})*)\s*月/g, (_, g) => { g.split(/[、／\/,，]/).forEach((x) => { const n = +x.trim(); if (n >= 1 && n <= 12) set.add(n); }); return _; }); return set.size ? Array.from(set).sort((x, y) => x - y).map((n) => n + '月').join('、') : '—'; };
+  /* 沒有任何數字的職位（底薪、分紅月數、年薪總月數、年薪、週工時全空）→ 反灰並排在同單位有數據的列後面 */
+  const hasNum = (v) => fl(v).length > 0;
+  const roleHasData = (r) => hasNum(r.base_month_k) || hasNum(r.bonus_months) || hasNum(r.annual_months) || hasNum(r.annual_total_wan) || hasNum(r.weekly_hours);
   /* 分紅結構：公司層 bonus_structure（每種獎金一筆）。摘要與頂端區塊都從它組；沒有就退回 bonus_timing */
   const bsum = (c) => {
     const bs = Array.isArray(c.bonus_structure) ? c.bonus_structure : [];
@@ -253,13 +257,14 @@
     const units = [];
     roles.forEach((r) => { let u = units.find((x) => x.u === r.unit); if (!u) { u = { u: r.unit, rows: [] }; units.push(u); } u.rows.push(r); });
     if (sk && sortVal[sk]) units.forEach((u) => u.rows.sort((a, b) => ((sortVal[sk](a) || 0) - (sortVal[sk](b) || 0)) * sd));
+    units.forEach((u) => { const y = u.rows.filter(roleHasData), n = u.rows.filter((r) => !roleHasData(r)); u.rows = y.concat(n); });
     const head = '<tr>' + cols.map(([k, n]) => '<th data-sk="' + (sortVal[k] ? k : '') + '" class="' + (sortVal[k] ? 'srt' : '') + (sk === k ? ' on' : '') + '">' + n + (sk === k ? (sd < 0 ? ' ▼' : ' ▲') : '') + '</th>').join('') + '</tr>';
     const body = units.map((u) => '<tr class="tc-unit"><td colspan="14"><i></i>' + esc(u.u) + '<small>' + u.rows.length + ' 個職位</small></td></tr>' + u.rows.map((r) =>
-      '<tr class="tc-row"><td data-l="職位" class="tc-role">' + ((r.samples || []).length ? '<button type="button" class="tc-exp" aria-expanded="false" title="展開逐筆樣本">▸</button>' : '') + '<b>' + esc(r.role) + '</b><small>' + esc(r.years ? r.years + ' 年經驗' : '') + '</small></td>' +
+      '<tr class="tc-row' + (roleHasData(r) ? '' : ' tc-nod') + '"><td data-l="職位" class="tc-role">' + ((r.samples || []).length ? '<button type="button" class="tc-exp" aria-expanded="false" title="展開逐筆樣本">▸</button>' : '') + '<b>' + esc(r.role) + '</b><small>' + esc(r.years ? r.years + ' 年經驗' : '') + '</small></td>' +
       '<td data-l="職等" class="tc-grade">' + esc(r.grade || '—') + '</td>' +
       (tsmc ? '<td data-l="單位繁忙度" class="tc-busy">' + (r.busyness ? '<span class="tc-conf ' + (String(r.busyness).charAt(0) === '高' ? 'lo' : String(r.busyness).charAt(0) === '中' ? 'mid' : 'hi') + '" title="' + esc(r.busyness) + '">' + esc(String(r.busyness).charAt(0)) + '</span>' : '—') + '</td>'
         : '<td data-l="學歷" class="tc-deg">' + esc(r.degree || '—') + (r.degree_diff ? '<small>學士：' + esc(r.degree_diff) + '</small>' : '') + '</td>') +
-      '<td data-l="底薪(K/月)">' + rng(r.base_month_k) + '</td><td data-l="分紅月數">' + rng(r.bonus_months) + '</td><td data-l="年薪總月數">' + dash(rng(r.annual_months)) + '</td><td data-l="分紅發放">' + esc(r.bonus_timing_month || btMonths(bt)) + '</td><td data-l="年薪(萬)" class="tc-big">' + rng(r.annual_total_wan) + '</td>' +
+      '<td data-l="底薪(K/月)">' + rng(r.base_month_k) + '</td><td data-l="分紅月數">' + rng(r.bonus_months) + '</td><td data-l="年薪總月數">' + dash(rng(r.annual_months)) + '</td><td data-l="分紅發放">' + esc(r.bonus_timing_month ? (btMonths(r.bonus_timing_month) !== '—' ? btMonths(r.bonus_timing_month) : r.bonus_timing_month) : btMonths(bt)) + '</td><td data-l="年薪(萬)" class="tc-big">' + rng(r.annual_total_wan) + '</td>' +
       '<td data-l="週工時">' + rng(r.weekly_hours) + '</td><td data-l="加班"><span class="tc-ot ot-' + esc(r.overtime) + '">' + esc(r.overtime || '—') + '</span></td><td data-l="出差">' + esc(r.travel || '—') + '</td>' +
       '<td data-l="樣本">' + (r.n != null ? r.n : '–') + '</td><td data-l="信心"><span class="tc-conf ' + confCls(r.confidence) + '" title="' + esc(r.note || '') + '">' + esc(r.confidence || '–') + '</span></td>' +
       '<td data-l="來源・日期" class="tc-src">' + srcHtml(r) + '</td></tr>' + smRow(r)).join('')).join('');
@@ -276,7 +281,7 @@
     const avg = (a) => (a.length ? Math.round(a.reduce((x, y) => x + y, 0) / a.length) : '–');
     const kv = (k, v) => '<div class="tc-kv"><span>' + k + '</span><b title="' + esc(v) + '">' + esc(v) + '</b></div>';
     const sum = [['福利', c.benefits], ['認股', c.stock_plan], ['風氣', c.culture]].map((x) => '<div class="tc-sm"><span>' + x[0] + '</span>' + esc(x[1] ? clip(x[1], 38) : '—') + '</div>').join('');
-    return '<a class="tc-co" href="#tc/' + ind + '/' + encodeURIComponent(c.name) + '" data-co="' + esc(c.name) + '">' +
+    return '<a class="tc-co' + (matched.some(roleHasData) ? '' : ' tc-nod') + '" href="#tc/' + ind + '/' + encodeURIComponent(c.name) + '" data-co="' + esc(c.name) + '">' +
       '<div class="tc-coh">' + TL(c.name, ind, 28) + '<b>' + esc(c.name) + '</b>' + (c.code ? '<small>' + esc(c.code) + '</small>' : '') + (c.heat ? '<span class="tc-heat">' + esc(c.heat) + '</span>' : '') + '</div>' +
       '<div class="tc-cok"><div><em>' + matched.length + '</em><span>符合職位</span></div><div><em>' + avg(mids) + '</em><span>年薪中點(萬)</span></div><div><em>' + avg(hrs) + '</em><span>平均週工時</span></div></div>' +
       '<div class="tc-kvs">' + kv('底薪(K/月)', span(matched.map((r) => r.base_month_k))) + kv('分紅月數', span(matched.map((r) => r.bonus_months))) +
@@ -318,6 +323,7 @@
     h += '</div></div><div class="tc-foot">' + esc(FOOT) + '</div>';
     root.innerHTML = h;
     bindHow(root);
+    $$('.tc-tbl td', root).forEach((td) => { if (td.textContent.trim() === '—') td.classList.add('tc-dash'); });
     if (S.ind === 'stats') { drawStats(); bindRank(root); }
     $$('.tc-fbar .seg', root).forEach((sg) => $$('button', sg).forEach((b) => b.onclick = () => { S.f[sg.dataset.fk] = +b.dataset.i; paint(); }));
     /* 手機：職位列超過 10 列先收起，按「看全部」才展開（整頁 ≤4 屏準則）；桌機不動 */

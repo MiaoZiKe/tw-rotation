@@ -16,6 +16,7 @@ def t_tc_charts_1026(b, base, code):
     r0 = rows()
     ok(f"{T}：公司排行有列，每列有 LOGO 圖或字標", len(r0) >= 1 and pg.evaluate("()=>[...document.querySelectorAll('#tcRank .tc-rkr')].every(r=>r.querySelector('.tc-lg i').innerText.trim()&&r.querySelector('.tc-lg'))"), len(r0))
     ok(f"{T}：有網域的列 img 帶 alt／lazy／no-referrer", pg.evaluate("()=>[...document.querySelectorAll('#tcRank .tc-lg img')].every(i=>i.alt&&i.loading==='lazy'&&i.referrerPolicy==='no-referrer')"))
+    ok(f"{T}：LOGO 主來源為 gstatic faviconV2 size=256", pg.evaluate("()=>{const i=document.querySelector('#tcRank .tc-lg img, #tcRank .tc-lg');return !i||[...document.querySelectorAll('#tcRank .tc-lg img')].every(i=>/faviconV2.*size=256|s2\\/favicons.*sz=128/.test(i.src))}"))
     pg.click("#tcRank .seg[data-rk=m] button[data-v=base]"); pg.wait_for_timeout(300)
     r1 = rows()
     ok(f"{T}：切「底薪」→ 排行數字真的變", r1 != r0 and pg.evaluate("()=>document.querySelector('#tcRank .seg[data-rk=m] button.on').dataset.v")=="base", (r0[:2], r1[:2]))
@@ -29,7 +30,7 @@ def t_tc_charts_1026(b, base, code):
     pg.goto(base + "#tc/foundry", wait_until="domcontentloaded"); pg.wait_for_timeout(1500)
     ok(f"{T}：公司卡有 LOGO", pg.evaluate("()=>[...document.querySelectorAll('#v-tc .tc-co')].every(c=>c.querySelector('.tc-lg'))"))
     # 圖片全擋 → 退成字標
-    pg.route("**/s2/favicons**", lambda r: r.abort())
+    pg.route("**/s2/favicons**", lambda r: r.abort()); pg.route("**/faviconV2**", lambda r: r.abort())
     pg.goto(base + "#tc/foundry", wait_until="domcontentloaded"); pg.reload(wait_until="domcontentloaded"); pg.wait_for_timeout(2000)
     ok(f"{T}：LOGO 載入失敗 → 圖被移除、字標仍在", pg.evaluate("()=>document.querySelectorAll('#v-tc .tc-lg img').length===0 && [...document.querySelectorAll('#v-tc .tc-lg')].every(l=>l.querySelector('i').innerText.trim())"))
     # 區間陣列樣本：用 TwTc 內部不外露，改驗畫面——注入一筆陣列樣本資料後逐筆表要顯示 a–b 而不是 a,b
@@ -46,6 +47,17 @@ def t_tc_charts_1026(b, base, code):
     p2.evaluate("()=>{const e=document.querySelector('#v-tc .tc-exp'); if(e) e.click();}"); p2.wait_for_timeout(300)
     tx = p2.evaluate("()=>[...document.querySelectorAll('#v-tc .tc-smt td')].map(e=>e.innerText).join('|')")
     ok(f"{T}：區間陣列樣本顯示「a–b」、不出現「1,5」", "1–5" in tx and "92–115" in tx and "1,5" not in tx, tx[:120])
+    # 分紅發放欄：台積電 → 去重排序「2月、5月、7月、8月、11月」；與公司層文字一致
+    p3 = c2.new_page(); p3.goto(base + "#tc/foundry/%E5%8F%B0%E7%A9%8D%E9%9B%BB", wait_until="domcontentloaded"); p3.wait_for_timeout(1500)
+    bts = p3.evaluate("()=>[...new Set([...document.querySelectorAll('#v-tc .tc-row td[data-l=分紅發放]')].map(e=>e.innerText.trim()))]")
+    ok(f"{T}：分紅發放欄展開並排序「2月、5月、7月、8月、11月」", bts == ["2月、5月、7月、8月、11月"], bts)
+    # 反灰：無數據列有 tc-nod、且同單位排在有數據列之後；「—」格淡灰
+    chk = p3.evaluate("""()=>{const out={nod:0,order:true,dash:0};let seen=false;[...document.querySelectorAll('#v-tc .tc-tbl tbody tr')].forEach(tr=>{if(tr.classList.contains('tc-unit')){seen=false;return}if(!tr.classList.contains('tc-row'))return;if(tr.classList.contains('tc-nod')){out.nod++;seen=true}else if(seen)out.order=false});out.dash=document.querySelectorAll('#v-tc td.tc-dash').length;return out}""")
+    ok(f"{T}：反灰列（若有）排在同單位有數據列後、「—」格有 tc-dash", chk["order"] and chk["dash"] >= 1, chk)
+    p4 = c2.new_page(); p4.route("**/tc/json/foundry.json", lambda rt: (lambda r: (lambda d: (d["companies"][0]["roles"].append({"unit": d["companies"][0]["roles"][0]["unit"], "role": "測試空列", "overtime": None}), rt.fulfill(response=r, json=d)))(r.json()))(rt.fetch()))
+    p4.goto(base + "#tc/foundry/%E5%8F%B0%E7%A9%8D%E9%9B%BB", wait_until="domcontentloaded"); p4.wait_for_timeout(1500)
+    nd = p4.evaluate("()=>{const r=[...document.querySelectorAll('#v-tc .tc-row.tc-nod')];return {n:r.length,col:r[0]?getComputedStyle(r[0].querySelector('td.tc-role b')).color:'',norm:getComputedStyle(document.querySelector('#v-tc .tc-row:not(.tc-nod) td.tc-role b')).color,last:r[0]?!r[0].nextElementSibling||r[0].nextElementSibling.classList.contains('tc-unit')||r[0].nextElementSibling.classList.contains('tc-nod')||r[0].nextElementSibling.classList.contains('tc-smrow'):false}}")
+    ok(f"{T}：注入全空職位 → 該列反灰（顏色與一般列不同）且排在單位最後", nd["n"] >= 1 and nd["col"] != nd["norm"] and nd["last"], nd)
     c2.close()
     c.close()
     m = b.new_context(viewport={"width": 390, "height": 844}); m.add_init_script("window.TW_TC_OVERRIDE=true;try{localStorage.setItem('tw.tour','done')}catch(e){}")

@@ -38,3 +38,10 @@
 #v-tc .tc-rkr .tc-rkn{grid-area:n}#v-tc .tc-rkr .tc-lg{grid-area:l}#v-tc .tc-rkr .tc-rkt{grid-area:t}#v-tc .tc-rkr .tc-rkb{grid-area:b}#v-tc .tc-rkr .tc-rkv{grid-area:v}
 #v-tc .tc-rkbar{gap:var(--sp-2)}
 }
+
+/* 沒有數據的職位列／公司卡反灰（Andy 10-26）：用 --ink-3 變數、深淺主題都看得清楚但明顯變淡 */
+#v-tc .tc-row.tc-nod td,#v-tc .tc-row.tc-nod td b,#v-tc .tc-row.tc-nod .tc-big,#v-tc .tc-row.tc-nod small{color:var(--ink-3);font-weight:400}
+#v-tc .tc-row.tc-nod{opacity:.6}
+#v-tc .tc-tbl td.tc-dash{color:var(--ink-3);opacity:.55}
+#v-tc .tc-co.tc-nod{opacity:.6}
+#v-tc .tc-co.tc-nod em,#v-tc .tc-co.tc-nod b{color:var(--ink-3)}
