@@ -70,7 +70,7 @@ def test_快速路徑組出的_shots_可以直接產文案():
     assert by["streak-foreign"]["read"]["buy"] == ["2330"] and by["credit-rank"]["read"]["up"] == ["2330"]      # 只列個股（排除 ETF）
     txt = ss.build_text("close", "10/22 18:00", shots, "2026-10-22", "20261022")
     L = txt.splitlines()
-    assert L[0] == "🌙 盤後消息"
+    assert L[0] == "🌙 盤後3分鐘"
     assert "・外資 -41,345 口、投信 +40,234 口；" in L and "・自營商 -1,500 口" in L
     assert "・大台 -2.35%、小台 +0.13%；" in L and "・微台 +20.00%" in L
     assert "・外資 -815.8億、投信 +94.9億；" in L

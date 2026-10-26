@@ -1088,7 +1088,7 @@ def caption(D: dict, ymd: str, max_len: int = ss.THREADS_MAX) -> str:
     tail = [HASHTAGS, *ss.LINK_LINES, ASK_LINE]
     txt = ""
     for kn, tl, rk in ((5, 22, 9), (4, 20, 9), (3, 18, 9), (3, 16, 3), (3, 14, 2), (2, 14, 2)):
-        body = [f"🌅 台股盤前 {md(pd.Timestamp(D['target']).date())}"]
+        body = [f"🌅 盤前3分鐘 {md(pd.Timestamp(D['target']).date())}"]      # 2026-10-26 Andy：「標題盤前改盤前3分鐘」
         if reads:
             body += [f"🧭 昨日盤面（美股 {us_d}{part}）："] + [f"・{trim(x, rk)}" for x in reads]
         if news[:kn]:

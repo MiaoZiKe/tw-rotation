@@ -249,7 +249,7 @@ def test_caption_and_premarket_news():
     D = _collect()
     txt = sp.caption(D, "20261027")
     lines = txt.splitlines()
-    assert lines[0] == "🌅 台股盤前 10/27" and lines[-1] == "💬 想看完整內容，留言『消息』"      # 2026-10-26 盤前文案改成盤中盤後同格式
+    assert lines[0] == "🌅 盤前3分鐘 10/27" and lines[-1] == "💬 想看完整內容，留言『消息』"      # 2026-10-26 盤前文案改成盤中盤後同格式
     assert "🧭 昨日盤面（美股 10/23）：" in lines and "📰 昨日事件：" in lines and "資料：" not in txt
     assert lines.index("🧭 昨日盤面（美股 10/23）：") < lines.index("📰 昨日事件：")      # 先盤面分析、再事件標題
     assert len(txt) <= 480 and "👉 更多詳細資料可以點擊以下連結：\nhttps://liguligu-puipui.com/\n" in txt
