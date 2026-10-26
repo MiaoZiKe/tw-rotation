@@ -160,3 +160,23 @@
 #v-tc .tc-cof{display:flex;flex-wrap:wrap;gap:4px var(--sp-3);font-size:12px;color:var(--ink-3);border-top:1px solid var(--line);padding-top:var(--sp-2)}
 #v-tc .tc-cof b{color:var(--ink);font-weight:600}
 @media (max-width:640px){#v-tc .tc-mini{display:flex}#v-tc .tc-cok.has-pay{grid-template-columns:1fr 48px}#v-tc .tc-grid{grid-template-columns:1fr 1fr;gap:var(--sp-2)}#v-tc .tc-bigv em{font-size:26px}#v-tc .tc-heat{display:none}}
+
+/* 退件修正 10-26：小橫條獨立一行、不壓數字 */
+#v-tc .tc-tbl td .tc-nv{display:block;line-height:1.3}
+#v-tc .tc-mb{margin:4px auto 0}
+#v-tc .tc-two{align-items:start}
+@media (max-width:640px){
+#v-tc .tc-row:not(.mo){grid-template-columns:1fr auto auto;align-items:center}
+#v-tc .tc-row:not(.mo) .tc-role{grid-column:1/-1}
+#v-tc .tc-row:not(.mo) td.tc-big{grid-column:1;font-size:20px;white-space:nowrap;justify-content:flex-start}
+#v-tc .tc-row:not(.mo) td.tc-big::before{display:none}
+#v-tc .tc-row:not(.mo) td.tc-big .tc-nv::after{content:' 萬';font-size:12px;color:var(--ink-3);font-weight:400}
+#v-tc .tc-row:not(.mo) td[data-l="樣本"]::before,#v-tc .tc-row:not(.mo) td[data-l="信心"]::before{display:none}
+#v-tc .tc-row:not(.mo) td[data-l="樣本"]::after{content:' 筆';color:var(--ink-3)}
+#v-tc .tc-row:not(.mo) td[data-l="樣本"]{justify-self:end;font-size:12px;color:var(--ink-3)}
+#v-tc .tc-row .tc-mb{display:none}
+#v-tc .tc-row.tc-nod:not(.mo) td:not(.tc-role){display:none}
+#v-tc .tc-row.tc-nod:not(.mo) .tc-role::after{content:'無數據';margin-left:8px;font-size:12px;color:var(--ink-3)}
+}
+@media (min-width:641px){#v-tc .tc-tbl td.tc-btm{min-width:104px}#v-tc .tc-tbl td.tc-big{min-width:92px}}
+@media (max-width:640px){#v-tc .tc-row:not(.mo) td[data-l="信心"]{align-self:center}#v-tc .tc-row:not(.mo) td[data-l="信心"] .tc-conf{padding:1px 8px;line-height:1.5}}

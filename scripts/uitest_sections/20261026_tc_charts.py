@@ -41,6 +41,7 @@ def t_tc_charts_1026(b, base, code):
     pp = c.new_page(); pp.goto(base + "#tc/foundry/%E5%8F%B0%E7%A9%8D%E9%9B%BB", wait_until="domcontentloaded"); pp.wait_for_timeout(1800)
     pay = pp.evaluate("()=>{const e=document.getElementById('tcPay');const c=e&&echarts.getInstanceByDom(e);if(!c)return null;const d=c.getOption().series[0].data;return {n:d.length,names:d.map(x=>x.name),lg:document.querySelectorAll('#tcPayLg .tc-pl').length,sel:document.querySelectorAll('#tcPaySel option').length}}")
     ok(f"{T}：台積電頁有薪資組成甜甜圈（底薪 12 月＋其他塊）與圖例", pay and pay["n"] >= 2 and "底薪" in pay["names"] and pay["lg"] == pay["n"], pay)
+    ok(f"{T}：組成圖預設選資料最完整的職位（年薪總月數 > 底薪＋年終時畫出「其餘獎金」塊）", pp.evaluate("()=>/其餘獎金/.test(document.getElementById('tcPayLg').innerText)"))
     if pay and pay["sel"] > 1:
         before = pp.evaluate("()=>document.getElementById('tcPayLg').innerText")
         pp.select_option("#tcPaySel", index=pay["sel"] - 1); pp.wait_for_timeout(400)
@@ -51,6 +52,8 @@ def t_tc_charts_1026(b, base, code):
     ok(f"{T}：完全沒數字的公司 → 灰色空環＋「資料不足」（不捏造）", "資料不足" in pe.inner_text("#v-tc .tc-pay"))
     # 一眼看懂區：KPI、獎金月曆、量表、短標籤＋「?」、獎金卡、小橫條、摘要截斷
     ok(f"{T}：公司頁 KPI 數字卡 ≥5 張、年薪中位數有數字", pp.evaluate("()=>document.querySelectorAll('#v-tc .tc-kpi').length>=5 && /\\d/.test(document.querySelector('#v-tc .tc-kpi b').innerText)"))
+    ok(f"{T}：職位表數字欄的小橫條在數字下方、不與數字相交", pp.evaluate("()=>[...document.querySelectorAll('#v-tc .tc-row td.tc-big')].every(td=>{const n=td.querySelector('.tc-nv'),b=td.querySelector('.tc-mb');if(!b)return true;return b.getBoundingClientRect().top>=n.getBoundingClientRect().bottom-1})"))
+    ok(f"{T}：KPI 信心依樣本數（台積電 135 筆＝高）", pp.evaluate("()=>[...document.querySelectorAll('#v-tc .tc-kpi')].some(k=>/信心/.test(k.innerText)&&/高/.test(k.innerText))"))
     lit = pp.evaluate("()=>[...document.querySelectorAll('#v-tc .tc-cm.lit b')].map(e=>+e.innerText)")
     ok(f"{T}：台積電獎金月曆點亮 2/5/7/8/11 月", lit == [2, 5, 7, 8, 11], lit)
     ok(f"{T}：加班／出差三段量表存在", pp.evaluate("()=>document.querySelectorAll('#v-tc .tc-g3').length===2"))

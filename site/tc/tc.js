@@ -94,12 +94,13 @@
   function kpiOf(co) {
     const rs = co.roles || [], col = (f) => rs.map((r) => mdp(r[f])).filter((x) => x != null), r1 = (a) => (a.length ? Math.round(med(a) * 10) / 10 : null), cf = {};
     rs.forEach((r) => { if (r.confidence) cf[r.confidence] = (cf[r.confidence] || 0) + 1; });
-    return { ann: r1(col('annual_total_wan')), base: r1(col('base_month_k')), am: r1(col('annual_months')), n: rs.reduce((x, r) => x + (r.n || 0), 0), conf: Object.keys(cf).sort((x, y) => cf[y] - cf[x])[0] || '—' };
+    return { ann: r1(col('annual_total_wan')), base: r1(col('base_month_k')), am: r1(col('annual_months')), n: rs.reduce((x, r) => x + (r.n || 0), 0), conf: '—' };
   }
   function topHtml(co) {
-    const K = kpiOf(co), mo = co.mops && co.mops.avg_wan != null ? co.mops : null;
+    const K = kpiOf(co); K.conf = K.n >= 30 ? '高' : K.n >= 10 ? '中' : K.n > 0 ? '低' : '—';   // 依全公司樣本數：≥30 高、10～29 中、<10 低
+    const mo = co.mops && co.mops.avg_wan != null ? co.mops : null;
     const kp = (l, v, u) => '<div class="tc-kpi' + (v == null ? ' na' : '') + '"><span>' + l + '</span><b>' + (v == null ? '—' : esc(v)) + (v != null && u ? '<small>' + u + '</small>' : '') + '</b></div>';
-    return '<div class="tc-kpis">' + kp('年薪中位數', K.ann, '萬') + kp('底薪中位數', K.base, 'K/月') + kp('年薪總月數', K.am, '月') + kp('樣本數', K.n, '筆') + kp('信心', K.conf === '—' ? null : K.conf) + (mo ? kp('全體員工平均年薪（' + mo.year + '）', mo.avg_wan, '萬') : '') + '</div>';
+    return '<div class="tc-kpis">' + kp('年薪中位數', K.ann, '萬') + kp('底薪中位數', K.base, 'K/月') + kp('年薪總月數', K.am, '月') + kp('樣本數', K.n, '筆') + kp('信心（依樣本數）', K.conf === '—' ? null : K.conf) + (mo ? kp('全體員工平均年薪（' + mo.year + '）', mo.avg_wan, '萬') : '') + '</div>';
   }
   function calHtml(co) {
     const bs = Array.isArray(co.bonus_structure) ? co.bonus_structure : [], by = {};
@@ -314,14 +315,15 @@
     if (bonus != null) parts.push({ k: 'bonus', name: '分紅', m: bonus, c: PAL.bonus }); else miss.push('分紅月數查無資料');
     if (other != null) parts.push({ k: 'other', name: '三節／其他獎金', m: other, c: PAL.other }); else miss.push('三節／其他獎金月數查無資料');
     const known = parts.reduce((s, p) => s + p.m, 0);
-    if (annM != null && annM > 0) { const rest = annM - known; if (rest > 0.4 && parts.length) parts.push({ k: 'rest', name: '其餘（年薪總月數推算）', m: Math.round(rest * 10) / 10, c: PAL.rest }); if (annM > 0 && !parts.length) miss.push('只有年薪總月數'); } else miss.push('年薪總月數查無資料');
+    if (annM != null && annM > 0) { const rest = annM - known; if (rest > 0.4 && parts.length) parts.push({ k: 'rest', name: '其餘獎金（分紅／季獎金等，未細分）', m: Math.round(rest * 10) / 10, c: PAL.rest }); if (annM > 0 && !parts.length) miss.push('只有年薪總月數'); } else miss.push('年薪總月數查無資料');
     return { parts, miss, baseK, annM, annW, known };
   }
   const payRoles = (co) => (co.roles || []).filter((r) => hasNum(r.base_month_k) || hasNum(r.annual_months) || hasNum(r.annual_total_wan) || hasNum(r.bonus_months));
   function payHtml(co) {
     const rs = payRoles(co);
     if (!rs.length) return '<div class="tc-pay"><h5>薪資組成</h5><div id="tcPay" class="tc-paych"></div><div class="tc-paynote">資料不足：這家公司還沒有可用的底薪／年薪數字</div></div>';
-    let bi = 0; rs.forEach((r, i) => { if ((r.n || 0) > (rs[bi].n || 0)) bi = i; });
+    const fullness = (r) => ['base_month_k', 'bonus_months', 'annual_months', 'annual_total_wan'].filter((k) => hasNum(r[k])).length;
+    let bi = 0; rs.forEach((r, i) => { const b = rs[bi]; if (fullness(r) > fullness(b) || (fullness(r) === fullness(b) && (r.n || 0) > (b.n || 0))) bi = i; });   // 預設：資料最完整的職位，同分取樣本多的
     S.payI = S.payI != null && S.payI < rs.length ? S.payI : bi;
     return '<div class="tc-pay"><div class="tc-payh"><h5>薪資組成（以月數計）</h5><select id="tcPaySel" aria-label="選職位">' + rs.map((r, i) => '<option value="' + i + '"' + (i === S.payI ? ' selected' : '') + '>' + esc((r.unit || '') + '・' + (r.role || '') + '（' + (r.n || 0) + ' 筆）') + '</option>').join('') + '</select></div>' +
       '<div class="tc-paybody"><div id="tcPay" class="tc-paych"></div><div id="tcPayLg" class="tc-paylg"></div></div><div id="tcPayNote" class="tc-paynote"></div></div>';
@@ -329,12 +331,12 @@
   function drawPay(co) {
     const ch = window.App && window.App.chart, el = document.getElementById('tcPay'); if (!el || !ch) return;
     const rs = payRoles(co), lg = document.getElementById('tcPayLg'), nt = document.getElementById('tcPayNote');
-    el.style.height = (mob() ? 180 : 200) + 'px';
+    el.style.height = (mob() ? 190 : 200) + 'px';
     const r = rs[S.payI || 0], P = r ? payOf(co, r) : { parts: [], miss: [], baseK: null, annM: null, annW: null };
     const W = el.clientWidth || 200, H = el.clientHeight, cx = W / 2, cy = H / 2;
     const amt = (m) => (P.baseK != null ? '約 ' + (m * P.baseK / 10).toFixed(1) + ' 萬' : '');
     const empty = !P.parts.length, tot = P.annM != null ? P.annM : P.known;
-    const t1 = empty ? '資料不足' : (P.annM != null ? '年薪總月數' : '已知月數'), t2 = empty ? '' : String(Math.round(tot * 10) / 10), t3 = P.annW != null ? '年薪中位 ' + P.annW + ' 萬' : '';
+    const t1 = empty ? '資料不足' : (P.annM != null ? '年薪總月數' : '已知月數'), t2 = empty ? '' : String(Math.round(tot * 10) / 10), t3 = P.annW != null && H >= 190 ? '年薪中位 ' + P.annW + ' 萬' : '';
     const c = ch(el, { tooltip: { trigger: 'item', confine: true, formatter: (p) => (p.data && p.data.k ? esc(p.name) + '：<b>' + p.value + '</b> 個月' + (amt(p.value) ? '（' + amt(p.value) + '）' : '') : '') },
       graphic: [{ id: 'c1', type: 'text', silent: true, x: cx, y: cy - 24, style: { text: t1, fill: INK3(), fontSize: 12, textAlign: 'center' } }, { id: 'c2', type: 'text', silent: true, x: cx, y: cy - 10, style: { text: t2, fill: INK1(), fontSize: 26, fontWeight: 700, textAlign: 'center' } }, { id: 'c3', type: 'text', silent: true, x: cx, y: cy + 26, style: { text: t3, fill: INK3(), fontSize: 12, textAlign: 'center' } }],
       series: [{ type: 'pie', radius: ['62%', '90%'], center: ['50%', '50%'], label: { show: false }, labelLine: { show: false }, padAngle: 1, itemStyle: { borderRadius: 5 }, emphasis: { scale: true, scaleSize: 4, itemStyle: { borderColor: cv('--cyan', '#3ee0ff'), borderWidth: 3 } },
@@ -381,7 +383,7 @@
       '<td data-l="職等" class="tc-grade">' + esc(r.grade || '—') + '</td>' +
       (tsmc ? '<td data-l="單位繁忙度" class="tc-busy">' + (r.busyness ? '<span class="tc-conf ' + (String(r.busyness).charAt(0) === '高' ? 'lo' : String(r.busyness).charAt(0) === '中' ? 'mid' : 'hi') + '" title="' + esc(r.busyness) + '">' + esc(String(r.busyness).charAt(0)) + '</span>' : '—') + '</td>'
         : '<td data-l="學歷" class="tc-deg">' + esc(r.degree || '—') + (r.degree_diff ? '<small>學士：' + esc(r.degree_diff) + '</small>' : '') + '</td>') +
-      '<td data-l="底薪(K/月)">' + rng(r.base_month_k) + mb(mdp(r.base_month_k), IM.b) + '</td><td data-l="分紅月數">' + rng(r.bonus_months) + '</td><td data-l="年薪總月數">' + dash(rng(r.annual_months)) + '</td><td data-l="分紅發放" class="tc-btm"' + btTitle(r, bt) + '>' + esc(btShort(r.bonus_timing_month ? (btMonths(r.bonus_timing_month) !== '—' ? btMonths(r.bonus_timing_month) : r.bonus_timing_month) : btMonths(bt))) + '</td><td data-l="年薪(萬)" class="tc-big">' + rng(r.annual_total_wan) + mb(mdp(r.annual_total_wan), IM.a) + '</td>' +
+      '<td data-l="底薪(K/月)">' + '<span class="tc-nv">' + rng(r.base_month_k) + '</span>' + mb(mdp(r.base_month_k), IM.b) + '</td><td data-l="分紅月數">' + rng(r.bonus_months) + '</td><td data-l="年薪總月數">' + dash(rng(r.annual_months)) + '</td><td data-l="分紅發放" class="tc-btm"' + btTitle(r, bt) + '>' + esc(btShort(r.bonus_timing_month ? (btMonths(r.bonus_timing_month) !== '—' ? btMonths(r.bonus_timing_month) : r.bonus_timing_month) : btMonths(bt))) + '</td><td data-l="年薪(萬)" class="tc-big">' + '<span class="tc-nv">' + rng(r.annual_total_wan) + '</span>' + mb(mdp(r.annual_total_wan), IM.a) + '</td>' +
       '<td data-l="週工時">' + rng(r.weekly_hours) + '</td><td data-l="加班"><span class="tc-ot ot-' + esc(r.overtime) + '">' + esc(r.overtime || '—') + '</span></td><td data-l="出差">' + esc(r.travel || '—') + '</td>' +
       '<td data-l="樣本">' + (r.n != null ? r.n : '–') + '</td><td data-l="信心"><span class="tc-conf ' + confCls(r.confidence) + '" title="' + esc(r.note || '') + '">' + esc(r.confidence || '–') + '</span></td>' +
       '<td data-l="來源・日期" class="tc-src">' + srcHtml(r) + '</td></tr>' + smRow(r)).join('')).join('');
