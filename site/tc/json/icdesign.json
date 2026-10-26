@@ -2760,7 +2760,7 @@
       "name": "瑞昱",
       "code": "2379",
       "heat": "Dcard 熱度：高",
-      "benefits": null,
+      "benefits": "廠內便利商店、星巴克、水果店，元氣活力館、EAP 舒壓按摩、員工關懷中心；福委會附設幼兒園員工子女優先、自助式福利金（104 企業頁）",
       "stock_plan": null,
       "bonus_timing": "分紅每半年一次、依績效（公司發言人）；報導稱分兩筆四次：1 與 4 月、10 月與隔年 7 月；另有年初年終",
       "culture": "GoodJob 整體約 3.9、薪資福利 4.1／5；Dcard：近年分紅多但也操",
@@ -3201,7 +3201,10 @@
           "role": "系統設計",
           "degree": "碩士",
           "years": "0-2",
-          "base_month_k": null,
+          "base_month_k": [
+            82,
+            82
+          ],
           "bonus_months": null,
           "annual_months": null,
           "annual_total_wan": [
@@ -3211,7 +3214,7 @@
           "weekly_hours": null,
           "overtime": null,
           "travel": null,
-          "n": 2,
+          "n": 3,
           "note": "",
           "sources": [
             {
@@ -3259,10 +3262,29 @@
               "date_confirmed": true,
               "date_note": "GoodJob 標題年月",
               "in_window": true
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/瑞昱半導體股份有限公司/work-experiences/薪資福利#系統設計2026",
+              "date": "2026",
+              "unit_detail": "系統設計",
+              "years": "0-2",
+              "degree": "碩士",
+              "base_k": 82,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "工作不到一年，月薪 8.2 萬",
+              "date_confirmed": true,
+              "date_note": null,
+              "in_window": true
             }
           ],
           "grade": null,
-          "n_stat": 2
+          "n_stat": 3
         },
         {
           "unit": "ML team",
@@ -3953,7 +3975,7 @@
       "code": "8299",
       "heat": "Dcard 熱度：中",
       "benefits": "三節、生日禮金、旅遊補助約 2～2.5 萬、每年調薪（GoodJob 自述）",
-      "stock_plan": null,
+      "stock_plan": "限制員工權利新股：113 年度 100 萬股無償、分三年既得（33%／33%／34%），114 年度 30 萬股；另 114 年度員工認股權憑證 500 萬單位（鉅亨網轉載重訊）",
       "bonus_timing": "分紅每半年一次（執行長說法，網友稱約 4 月與 10 月）；年終約 2 個月；績效獎金隔年 1、7 月；2026-05 加發 1 個月特別獎金",
       "culture": "GoodJob 4.3 分但僅 7 筆；底薪高、工時偏長（50～60 小時／週），2026 年獲利大增",
       "interview": "人格測驗＋準備簡報接受工程師提問；韌體職有 C 語言測驗（GoodJob）",
@@ -3973,7 +3995,7 @@
           "weekly_hours": null,
           "overtime": null,
           "travel": null,
-          "n": 15,
+          "n": 16,
           "note": "網友自述未經查證；GoodJob 2026-01 FW 月薪 9.2 萬（週 60 小時）、2025-10 韌體 9.2～10.4 萬；年資 3～7 年的筆數已排除，學歷未載，起薪可能更低；GoodJob 自述每週 50～60 小時；分紅月數自述差異大（一則稱 14 個月），不填區間；第二輪：PTT 2026-02 開獎串：2 年 B+ 分紅約 4 個月、5 年 B+ 約 3.5 個月（含年終 2 個月）；尾牙串稱工程師底薪 9 萬多起；GoodJob 2025-12 韌體稱至少 8 萬以上、可報加班費；Dcard 稱 N×14＋簽約金＋分紅、分紅 50% 隔年發；未逐筆對應的舊彙整：{\"base_month_k\": [80, 90], \"bonus_months\": [4, 4], \"annual_total_wan\": [120, 120]}；未逐筆對應的舊彙整：overtime=經常；部分年薪／年薪月數由同一筆樣本的「底薪×月數」推算（樣本標 derived）",
           "sources": [
             {
@@ -4324,9 +4346,28 @@
               "quote_free_note": "同上，offer 或面邀未區分；數字未透露",
               "in_window": false,
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2025-03-30"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/群聯電子股份有限公司 PHISON#interview-2026-07",
+              "date": "2026-07",
+              "unit_detail": "韌體（面試）",
+              "years": null,
+              "degree": "碩士",
+              "base_k": 92,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "面試經驗，月薪 9.2 萬",
+              "date_confirmed": true,
+              "date_note": null,
+              "in_window": true
             }
           ],
-          "n_stat": 10
+          "n_stat": 11
         },
         {
           "unit": "研發 R&D",
@@ -4656,6 +4697,25 @@
               "quote_free_note": "發文者說板上分享的薪水好像很高；自身數字未透露",
               "in_window": true,
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-05-24"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/群聯電子股份有限公司 PHISON/work-experiences/薪資福利#sw-2026-03",
+              "date": "2026-03",
+              "unit_detail": "軟體工程師",
+              "years": "0-2",
+              "degree": "碩士",
+              "base_k": 92,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "年資 1 年，月薪 9.2 萬（可能與面試同人）",
+              "date_confirmed": true,
+              "date_note": null,
+              "in_window": true
             }
           ],
           "sources": [
@@ -4676,16 +4736,19 @@
             }
           ],
           "confidence": "低",
-          "n": 3,
+          "n": 4,
           "overtime": "經常",
           "years": null,
-          "base_month_k": null,
+          "base_month_k": [
+            92,
+            92
+          ],
           "bonus_months": null,
           "annual_months": null,
           "annual_total_wan": null,
           "weekly_hours": null,
           "travel": null,
-          "n_stat": 3,
+          "n_stat": 4,
           "note": null,
           "grade": null
         },
@@ -9695,7 +9758,9 @@
           "note": null,
           "grade": null
         }
-      ]
+      ],
+      "culture": "GoodJob：平均每週約 43 小時，25% 幾乎每天加班（4 筆）；為智微子公司，114 年底累積虧損達實收資本額二分之一（公告）",
+      "interview": "GoodJob 2024-05 測試職：問測試手法、測試機台，從 IO 談到功能測試"
     },
     {
       "name": "力林",
@@ -9749,7 +9814,9 @@
           "note": null,
           "grade": null
         }
-      ]
+      ],
+      "culture": "GoodJob 3.7 分（3 則），平均每週約 48 小時、偶爾加班；2022 應用工程師評價環境不錯",
+      "interview": "兩輪：經理＋研發副總→處長（2019 類比 IC）；應用工程師白板畫電源架構（flyback）；主管職二面到竹北談電源規格（GoodJob）"
     }
   ]
 }
