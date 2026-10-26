@@ -175,11 +175,13 @@ def layer2(frames, codes, mem, gnames, idx):
     mkt20 = ret.mean(axis=1).rolling(20).apply(lambda x: np.prod(1 + x) - 1, raw=True)
     tot_val = val.sum(axis=1)
     G = len(gid_list)
+    gret = np.zeros((T, G))
     rs = np.full((T, G), np.nan); inst = np.full((T, G), np.nan)
     share = np.full((T, G), np.nan); rev = np.full((T, G), np.nan)
     for j, gid in enumerate(gid_list):
         m = members[gid]
         g_ret = ret[m].mean(axis=1)
+        gret[:, j] = g_ret.to_numpy()
         rs[:, j] = (g_ret.rolling(20).apply(lambda x: np.prod(1 + x) - 1, raw=True) - mkt20).to_numpy()
         gv = val[m].sum(axis=1)
         inst[:, j] = (NETV[m].sum(axis=1).rolling(5).sum() / gv.rolling(5).sum().replace(0, np.nan)).to_numpy()
@@ -191,7 +193,7 @@ def layer2(frames, codes, mem, gnames, idx):
         return pd.DataFrame(a).rank(axis=1, pct=True).to_numpy()
     score = 3 * pr(rs) + 3 * pr(inst) + 2 * pr(share) + 2 * np.clip(np.nan_to_num(rev) / 0.30, 0, 1)
     score[np.isnan(rs)] = np.nan
-    return dict(gids=gid_list, names=[gnames.get(g, g) for g in gid_list], members=members,
+    return dict(gids=gid_list, names=[gnames.get(g, g) for g in gid_list], members=members, gret=gret, mkt_ret=ret.mean(axis=1).to_numpy(),
                 rs=rs, inst=inst, share=share, rev=rev, score=score)
 
 
