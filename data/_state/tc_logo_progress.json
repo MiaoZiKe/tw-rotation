@@ -1,13 +1,334 @@
 {
- "at": "2026-10-26T20:23:41.612702+00:00",
+ "at": "2026-10-26T20:44:38.582616+00:00",
  "done": true,
  "pending": 0,
- "attempted": 0,
- "counts": {},
- "domains": 54,
- "have": 47,
- "coverage": 0.87,
+ "attempted": 58,
+ "counts": {
+  "ok": 24,
+  "none": 12,
+  "too_small": 12,
+  "not_logo": 9,
+  "robots": 1
+ },
+ "domains": 101,
+ "have": 60,
+ "coverage": 0.594,
  "next_due": "2026-11-26",
- "seconds": 0.0,
- "failures": []
+ "seconds": 256.9,
+ "failures": [
+  {
+   "domain": "zdtco.com",
+   "status": "none",
+   "tried": {
+    "site": "none HTTP 404 https://www.google.com/s2/favicons?domain=zdtco.com&sz=128",
+    "wikimedia": "none Wikidata 查不到官網是 zdtco.com 的 Zhen Ding Technology／沒有標誌圖",
+    "google_s2": "none none HTTP 404 https://www.google.com/s2/favicons?domain=zdtco.com&sz=256"
+   }
+  },
+  {
+   "domain": "unimicron.com",
+   "status": "none",
+   "tried": {
+    "site": "none HTTP 404 https://www.google.com/s2/favicons?domain=unimicron.com&sz=128",
+    "wikimedia": "none Wikidata 查不到官網是 unimicron.com 的 Unimicron Technology／沒有標誌圖",
+    "google_s2": "none none HTTP 404 https://www.google.com/s2/favicons?domain=unimicron.com&sz=256"
+   }
+  },
+  {
+   "domain": "kinsus.com.tw",
+   "status": "too_small",
+   "tried": {
+    "site": "ok [48, 48]",
+    "wikimedia": "none Wikidata 查不到官網是 kinsus.com.tw 的 Kinsus Interconnect Technology／沒有標誌圖",
+    "google_s2": "none none HTTP 404 https://www.google.com/s2/favicons?domain=kinsus.com.tw&sz=256"
+   }
+  },
+  {
+   "domain": "nantex.com.tw",
+   "status": "none",
+   "tried": {
+    "site": "none HTTP 404 https://www.google.com/s2/favicons?domain=nantex.com.tw&sz=128",
+    "wikimedia": "none Wikidata 查不到官網是 nantex.com.tw 的 Nantex Industry／沒有標誌圖",
+    "google_s2": "none none HTTP 404 https://www.google.com/s2/favicons?domain=nantex.com.tw&sz=256"
+   }
+  },
+  {
+   "domain": "chicony.com",
+   "status": "none",
+   "tried": {
+    "site": "none 首頁 HTTP 403 https://www.chicony.com/",
+    "wikimedia": "none Wikidata 查不到官網是 chicony.com 的 Chicony Electronics／沒有標誌圖",
+    "google_s2": "none none HTTP 404 https://www.google.com/s2/favicons?domain=chicony.com&sz=256"
+   }
+  },
+  {
+   "domain": "pegatroncorp.com",
+   "status": "too_small",
+   "tried": {
+    "site": "ok [48, 48]",
+    "wikimedia": "none Commons too_wide 250x39",
+    "google_s2": "none none HTTP 404 https://www.google.com/s2/favicons?domain=pegatroncorp.com&sz=256"
+   }
+  },
+  {
+   "domain": "wiwynn.com",
+   "status": "not_logo",
+   "tried": {
+    "site": "ok [1200, 630]",
+    "wikimedia": "none Wikidata 查不到官網是 wiwynn.com 的 Wiwynn／沒有標誌圖",
+    "quality": "og-image 一律不收（社群分享圖，常是橫幅照片）",
+    "google_s2": "too_small too_small 16x16 https://www.google.com/s2/favicons?domain=wiwynn.com&sz=256"
+   }
+  },
+  {
+   "domain": "wistron.com",
+   "status": "none",
+   "tried": {
+    "site": "none robots.txt 與首頁都回 HTTP 403（對方擋雲端存取），圖檔與 Google 備援都不抓 https://www.wistron.com/",
+    "wikimedia": "none Commons too_wide 250x49",
+    "google_s2": "官網禁止或擋雲端存取，不問 Google"
+   }
+  },
+  {
+   "domain": "eink.com",
+   "status": "not_logo",
+   "tried": {
+    "site": "ok [600, 600]",
+    "wikimedia": "none Wikidata 查不到官網是 eink.com 的 E Ink Holdings／沒有標誌圖",
+    "quality": "og-image 一律不收（社群分享圖，常是橫幅照片）",
+    "google_s2": "ok [32, 32]"
+   }
+  },
+  {
+   "domain": "senaonetworks.com",
+   "status": "none",
+   "tried": {
+    "site": "none robots.txt 與首頁都回 HTTP 403（對方擋雲端存取），圖檔與 Google 備援都不抓 https://senaonetworks.com/",
+    "wikimedia": "none Wikidata 查不到官網是 senaonetworks.com 的 Senao Networks／沒有標誌圖",
+    "google_s2": "官網禁止或擋雲端存取，不問 Google"
+   }
+  },
+  {
+   "domain": "avc.co",
+   "status": "too_small",
+   "tried": {
+    "site": "ok [16, 16]",
+    "wikimedia": "none Wikidata 查不到官網是 avc.co 的 Asia Vital Components／沒有標誌圖",
+    "google_s2": "too_small too_small 16x16 https://www.google.com/s2/favicons?domain=avc.co&sz=256"
+   }
+  },
+  {
+   "domain": "winbond.com",
+   "status": "too_small",
+   "tried": {
+    "site": "ok [32, 32]",
+    "wikimedia": "none Commons too_wide 250x35",
+    "google_s2": "ok [32, 32]"
+   }
+  },
+  {
+   "domain": "stl-tech.com",
+   "status": "too_small",
+   "tried": {
+    "site": "ok [32, 32]",
+    "wikimedia": "none Wikidata 查不到官網是 stl-tech.com 的 Simplo Technology／沒有標誌圖",
+    "google_s2": "none none HTTP 404 https://www.google.com/s2/favicons?domain=stl-tech.com&sz=256"
+   }
+  },
+  {
+   "domain": "foxtronev.com",
+   "status": "not_logo",
+   "tried": {
+    "site": "ok [1200, 630]",
+    "wikimedia": "none Wikidata 查不到官網是 foxtronev.com 的 Foxtron Vehicle Technologies／沒有標誌圖",
+    "quality": "og-image 一律不收（社群分享圖，常是橫幅照片）",
+    "google_s2": "ok [48, 48]"
+   }
+  },
+  {
+   "domain": "xintec.com.tw",
+   "status": "none",
+   "tried": {
+    "site": "none HTTP 404 https://www.xintec.com.tw/apple-touch-icon.png",
+    "wikimedia": "none Wikidata 查不到官網是 xintec.com.tw 的 Xintec／沒有標誌圖",
+    "google_s2": "none none HTTP 404 https://www.google.com/s2/favicons?domain=xintec.com.tw&sz=256"
+   }
+  },
+  {
+   "domain": "ksmt.com.tw",
+   "status": "none",
+   "tried": {
+    "site": "none HTTP 404 https://www.google.com/s2/favicons?domain=ksmt.com.tw&sz=128",
+    "wikimedia": "none Wikidata 查不到官網是 ksmt.com.tw 的 KSMT／沒有標誌圖",
+    "google_s2": "none none HTTP 404 https://www.google.com/s2/favicons?domain=ksmt.com.tw&sz=256"
+   }
+  },
+  {
+   "domain": "winwayglobal.com",
+   "status": "too_small",
+   "tried": {
+    "site": "ok [48, 48]",
+    "wikimedia": "none Wikidata 查不到官網是 winwayglobal.com 的 WinWay Technology／沒有標誌圖",
+    "google_s2": "none none HTTP 404 https://www.google.com/s2/favicons?domain=winwayglobal.com&sz=256"
+   }
+  },
+  {
+   "domain": "innolux.com",
+   "status": "none",
+   "tried": {
+    "site": "none robots.txt 與首頁都回 HTTP 403（對方擋雲端存取），圖檔與 Google 備援都不抓 https://www.innolux.com/",
+    "wikimedia": "none Commons too_wide 250x44",
+    "google_s2": "官網禁止或擋雲端存取，不問 Google"
+   }
+  },
+  {
+   "domain": "largan.com.tw",
+   "status": "too_small",
+   "tried": {
+    "site": "ok [32, 32]",
+    "wikimedia": "none Wikidata 查不到官網是 largan.com.tw 的 Largan Precision／沒有標誌圖",
+    "google_s2": "none none HTTP 404 https://www.google.com/s2/favicons?domain=largan.com.tw&sz=256"
+   }
+  },
+  {
+   "domain": "rad-ic.com",
+   "status": "too_small",
+   "tried": {
+    "site": "ok [48, 48]",
+    "wikimedia": "none Wikidata 查不到官網是 rad-ic.com 的 Raydium Semiconductor／沒有標誌圖",
+    "google_s2": "none none HTTP 404 https://www.google.com/s2/favicons?domain=rad-ic.com&sz=256"
+   }
+  },
+  {
+   "domain": "fitipower.com",
+   "status": "not_logo",
+   "tried": {
+    "site": "ok [256, 67]",
+    "wikimedia": "none Wikidata 查不到官網是 fitipower.com 的 Fitipower Integrated Technology／沒有標誌圖",
+    "quality": "頁首圖長寬比 3.8:1 > 3:1，縮小後看不清",
+    "google_s2": "none none HTTP 404 https://www.google.com/s2/favicons?domain=fitipower.com&sz=256"
+   }
+  },
+  {
+   "domain": "aspeedtech.com",
+   "status": "too_small",
+   "tried": {
+    "site": "too_small 16x16 https://www.google.com/s2/favicons?domain=aspeedtech.com&sz=128",
+    "wikimedia": "none Wikidata 查不到官網是 aspeedtech.com 的 ASPEED Technology／沒有標誌圖",
+    "google_s2": "too_small too_small 16x16 https://www.google.com/s2/favicons?domain=aspeedtech.com&sz=256"
+   }
+  },
+  {
+   "domain": "airoha.com",
+   "status": "too_small",
+   "tried": {
+    "site": "ok [32, 32]",
+    "wikimedia": "none Wikidata 查不到官網是 airoha.com 的 Airoha Technology／沒有標誌圖",
+    "google_s2": "none none HTTP 404 https://www.google.com/s2/favicons?domain=airoha.com&sz=256"
+   }
+  },
+  {
+   "domain": "emc.com.tw",
+   "status": "none",
+   "tried": {
+    "site": "none robots.txt 與首頁都回 HTTP 403（對方擋雲端存取），圖檔與 Google 備援都不抓 https://www.emc.com.tw/",
+    "wikimedia": "none Wikidata 查不到官網是 emc.com.tw 的 Elan Microelectronics／沒有標誌圖",
+    "google_s2": "官網禁止或擋雲端存取，不問 Google"
+   }
+  },
+  {
+   "domain": "princeton.com.tw",
+   "status": "none",
+   "tried": {
+    "site": "none HTTP 404 https://www.google.com/s2/favicons?domain=princeton.com.tw&sz=128",
+    "wikimedia": "none Wikidata 查不到官網是 princeton.com.tw 的 Princeton Technology／沒有標誌圖",
+    "google_s2": "none none HTTP 404 https://www.google.com/s2/favicons?domain=princeton.com.tw&sz=256"
+   }
+  },
+  {
+   "domain": "soinc.com.tw",
+   "status": "robots",
+   "tried": {
+    "site": "robots https://soinc.com.tw/ robots.txt 的 Disallow 規則不允許 —— 尊重它，也不走 Google 備援",
+    "wikimedia": "none Wikidata 查不到官網是 soinc.com.tw 的 Silicon Optronics／沒有標誌圖",
+    "google_s2": "官網禁止或擋雲端存取，不問 Google"
+   }
+  },
+  {
+   "domain": "apmemory.com",
+   "status": "too_small",
+   "tried": {
+    "site": "ok [32, 28]",
+    "wikimedia": "none Wikidata 查不到官網是 apmemory.com 的 AP Memory Technology／沒有標誌圖",
+    "google_s2": "ok [32, 28]"
+   }
+  },
+  {
+   "domain": "focaltech-electronics.com",
+   "status": "too_small",
+   "tried": {
+    "site": "ok [32, 32]",
+    "wikimedia": "none Wikidata 查不到官網是 focaltech-electronics.com 的 FocalTech Systems／沒有標誌圖",
+    "google_s2": "ok [32, 32]"
+   }
+  },
+  {
+   "domain": "carmax.com.tw",
+   "status": "not_logo",
+   "tried": {
+    "site": "ok [256, 237]",
+    "quality": "人工排除：官網頁首圖是母集團「和泰集團」的標誌，不是車美仕自己的 Logo",
+    "google_s2": "人工排除（s2 只回通用圖示／官網圖不是自家標誌）"
+   }
+  },
+  {
+   "domain": "entegris.com",
+   "status": "not_logo",
+   "tried": {
+    "site": "ok [1200, 699]",
+    "quality": "og-image 一律不收（社群分享圖，常是橫幅照片）",
+    "wikimedia": "none Wikidata 查不到官網是 entegris.com 的 Entegris／沒有標誌圖",
+    "google_s2": "ok [33, 33]"
+   }
+  },
+  {
+   "domain": "itri.org.tw",
+   "status": "not_logo",
+   "tried": {
+    "site": "ok [256, 59]",
+    "wikimedia": "none Wikidata 查不到官網是 itri.org.tw 的 Industrial Technology Research Institute／沒有標誌圖",
+    "quality": "頁首圖長寬比 4.3:1 > 3:1，縮小後看不清",
+    "google_s2": "none none HTTP 404 https://www.google.com/s2/favicons?domain=itri.org.tw&sz=256"
+   }
+  },
+  {
+   "domain": "nvidia.com",
+   "status": "not_logo",
+   "tried": {
+    "site": "ok [1200, 674]",
+    "wikimedia": "none 授權不在白名單：Apache License 2.0（File:NVIDIA logo.svg）",
+    "quality": "網址像分享圖示／橫幅／框架預設圖，不是公司標誌 https://www.nvidia.com/content/dam/en-zz/Solutions/homepage/v2/sfg/nvidia-corpor",
+    "google_s2": "ok [48, 48]"
+   }
+  },
+  {
+   "domain": "qualcomm.com",
+   "status": "not_logo",
+   "tried": {
+    "site": "ok [512, 512]",
+    "wikimedia": "none Commons too_wide 250x46",
+    "quality": "網址像分享圖示／橫幅／框架預設圖，不是公司標誌 https://www.qualcomm.com/etc.clientlibs/qcomm-martech/clientlibs/clientlib-react",
+    "google_s2": "ok [32, 32]"
+   }
+  },
+  {
+   "domain": "uicpaymentsinc.com",
+   "status": "none",
+   "tried": {
+    "site": "none robots.txt 與首頁都回 HTTP 403（對方擋雲端存取），圖檔與 Google 備援都不抓 https://uicpaymentsinc.com/",
+    "wikimedia": "none Wikidata 查不到官網是 uicpaymentsinc.com 的 UIC Payments／沒有標誌圖",
+    "google_s2": "人工排除（s2 只回通用圖示／官網圖不是自家標誌）"
+   }
+  }
+ ]
 }

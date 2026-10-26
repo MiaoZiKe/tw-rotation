@@ -18,6 +18,38 @@
    ],
    "sha1": "3c1ae2df40ecc6ec414487b43da3cb8f2bab2c44"
   },
+  "airoha.com": {
+   "status": "too_small",
+   "fetched": "2026-10-27",
+   "names": [
+    "達發"
+   ],
+   "tried": {
+    "site": "ok [32, 32]",
+    "wikimedia": "none Wikidata 查不到官網是 airoha.com 的 Airoha Technology／沒有標誌圖",
+    "google_s2": "none none HTTP 404 https://www.google.com/s2/favicons?domain=airoha.com&sz=256"
+   },
+   "detail": ""
+  },
+  "alchip.com": {
+   "status": "ok",
+   "fetched": "2026-10-27",
+   "names": [
+    "世芯-KY"
+   ],
+   "tried": {
+    "site": "ok [70, 70]",
+    "wikimedia": "none Wikidata 查不到官網是 alchip.com 的 Alchip Technologies／沒有標誌圖"
+   },
+   "src": "site:icon",
+   "url": "https://www.alchip.com/logo-1.png",
+   "orig": [
+    70,
+    70
+   ],
+   "qv": 2,
+   "sha1": "9d88c56c03a177959666aab81f720fc2874c7293"
+  },
   "amd.com": {
    "status": "ok",
    "fetched": "2026-10-27",
@@ -25,15 +57,27 @@
     "AMD"
    ],
    "tried": {
-    "site": "ok [1200, 675]"
+    "wikimedia": "ok [250, 60]"
    },
-   "src": "site:header-img",
-   "url": "https://www.amd.com/content/dam/amd/en/images/logos/products/5329784-agentic-ai-ross-teaser.jpg",
+   "src": "wikimedia",
+   "url": "https://commons.wikimedia.org/wiki/File:AMD_Logo.svg",
    "orig": [
-    1200,
-    675
+    250,
+    60
    ],
-   "sha1": "a791f0c74c3d47d2175ab9726c58640c02520197"
+   "qv": 2,
+   "sha1": "ba0c0ff86fa647dff0a553bb7f967782690d039d",
+   "attribution": {
+    "file": "File:AMD Logo.svg",
+    "page": "https://commons.wikimedia.org/wiki/File:AMD_Logo.svg",
+    "license": "Public domain",
+    "license_kind": "PD",
+    "artist": "Advanced Micro Devices, Inc.",
+    "credit": "amd.com",
+    "wikidata": "Q128896",
+    "match": "website",
+    "restrictions": "trademarked"
+   }
   },
   "ami.com": {
    "status": "ok",
@@ -42,15 +86,27 @@
     "AMI"
    ],
    "tried": {
-    "site": "ok [192, 192]"
+    "wikimedia": "ok [250, 67]"
    },
-   "src": "site:icon",
-   "url": "https://www.ami.com/wp-content/uploads/2026/07/cropped-AMI-trapezoid-red_200x200-1-192x192.png",
+   "src": "wikimedia",
+   "url": "https://commons.wikimedia.org/wiki/File:American_Megatrends_logo.svg",
    "orig": [
-    192,
-    192
+    250,
+    67
    ],
-   "sha1": "ccdcb43172372726474b9efe1a1a500938f9f608"
+   "qv": 2,
+   "sha1": "bac08f533750e63018ce88d5eecbafb3d8aeabae",
+   "attribution": {
+    "file": "File:American Megatrends logo.svg",
+    "page": "https://commons.wikimedia.org/wiki/File:American_Megatrends_logo.svg",
+    "license": "Public domain",
+    "license_kind": "PD",
+    "artist": "American Megatrends",
+    "credit": "Vektordaten: http://www.ami.com/ami_images/mediakit/ami-logo-rgb.zip → EPS Farbinfo: http://www.ami.com/ami_images/mediakit/ami-logo-rgb.gif",
+    "wikidata": "Q465692",
+    "match": "website",
+    "restrictions": "trademarked"
+   }
   },
   "amkor.com": {
    "status": "ok",
@@ -68,6 +124,19 @@
     512
    ],
    "sha1": "a32964a677766b5f5daa6dff995fb33a97c9041c"
+  },
+  "apmemory.com": {
+   "status": "too_small",
+   "fetched": "2026-10-27",
+   "names": [
+    "愛普"
+   ],
+   "tried": {
+    "site": "ok [32, 28]",
+    "wikimedia": "none Wikidata 查不到官網是 apmemory.com 的 AP Memory Technology／沒有標誌圖",
+    "google_s2": "ok [32, 28]"
+   },
+   "detail": ""
   },
   "apple.com": {
    "status": "ok",
@@ -122,15 +191,40 @@
     "ASML"
    ],
    "tried": {
-    "site": "ok [1920, 958]"
+    "wikimedia": "ok [250, 70]"
    },
-   "src": "site:og-image",
-   "url": "https://edge.sitecorecloud.io/asmlnetherlaaea-asmlcom-prd-5369/media/project/asmlcom/asmlcom/asml/images/home/asml-tv-image-1920-x-958-asml_high_na_still_oi_f0_01.jpg?h=958&iar=0&w=1920",
+   "src": "wikimedia",
+   "url": "https://commons.wikimedia.org/wiki/File:ASML_Logo.svg",
    "orig": [
-    1920,
-    958
+    250,
+    70
    ],
-   "sha1": "776af1941a57963f6b9a718ecdf88c21b4a543e5"
+   "qv": 2,
+   "sha1": "68dc54fdf8d58580e1151450248e117dea6e57a9",
+   "attribution": {
+    "file": "File:ASML Logo.svg",
+    "page": "https://commons.wikimedia.org/wiki/File:ASML_Logo.svg",
+    "license": "Public domain",
+    "license_kind": "PD",
+    "artist": "Unknown author Unknown author",
+    "credit": "SVG erstellt durch de:Benutzer:Afrank99",
+    "wikidata": "Q297879",
+    "match": "website",
+    "restrictions": "trademarked"
+   }
+  },
+  "aspeedtech.com": {
+   "status": "too_small",
+   "fetched": "2026-10-27",
+   "names": [
+    "信驊"
+   ],
+   "tried": {
+    "site": "too_small 16x16 https://www.google.com/s2/favicons?domain=aspeedtech.com&sz=128",
+    "wikimedia": "none Wikidata 查不到官網是 aspeedtech.com 的 ASPEED Technology／沒有標誌圖",
+    "google_s2": "too_small too_small 16x16 https://www.google.com/s2/favicons?domain=aspeedtech.com&sz=256"
+   },
+   "detail": "16x16 https://www.google.com/s2/favicons?domain=aspeedtech.com&sz=128"
   },
   "asrockrack.com": {
    "status": "ok",
@@ -148,6 +242,77 @@
     64
    ],
    "sha1": "9b4c1e4038a338c0c02db262def5efd810220424"
+  },
+  "auo.com": {
+   "status": "ok",
+   "fetched": "2026-10-27",
+   "names": [
+    "友達"
+   ],
+   "tried": {
+    "wikimedia": "ok [250, 90]"
+   },
+   "src": "wikimedia",
+   "url": "https://commons.wikimedia.org/wiki/File:AU-Optronics-Logo.svg",
+   "orig": [
+    250,
+    90
+   ],
+   "qv": 2,
+   "sha1": "54f696a7c88e9938c7f2734a56de59c0918d9955",
+   "attribution": {
+    "file": "File:AU-Optronics-Logo.svg",
+    "page": "https://commons.wikimedia.org/wiki/File:AU-Optronics-Logo.svg",
+    "license": "Public domain",
+    "license_kind": "PD",
+    "artist": "AUO Corporation",
+    "credit": "AU-Optronics-PDF",
+    "wikidata": "Q300120",
+    "match": "website",
+    "restrictions": "trademarked"
+   }
+  },
+  "avc.co": {
+   "status": "too_small",
+   "fetched": "2026-10-27",
+   "names": [
+    "奇鋐"
+   ],
+   "tried": {
+    "site": "ok [16, 16]",
+    "wikimedia": "none Wikidata 查不到官網是 avc.co 的 Asia Vital Components／沒有標誌圖",
+    "google_s2": "too_small too_small 16x16 https://www.google.com/s2/favicons?domain=avc.co&sz=256"
+   },
+   "detail": ""
+  },
+  "benq.com": {
+   "status": "ok",
+   "fetched": "2026-10-27",
+   "names": [
+    "明基"
+   ],
+   "tried": {
+    "wikimedia": "ok [250, 72]"
+   },
+   "src": "wikimedia",
+   "url": "https://commons.wikimedia.org/wiki/File:BenQ_wordmark.svg",
+   "orig": [
+    250,
+    72
+   ],
+   "qv": 2,
+   "sha1": "6d74c66a1cf901551671caacd3213f98d7defcea",
+   "attribution": {
+    "file": "File:BenQ wordmark.svg",
+    "page": "https://commons.wikimedia.org/wiki/File:BenQ_wordmark.svg",
+    "license": "Public domain",
+    "license_kind": "PD",
+    "artist": "BenQ",
+    "credit": "BenQ Corporation 2005 Annual Report , Page 6 (first version)",
+    "wikidata": "Q714335",
+    "match": "website",
+    "restrictions": "trademarked"
+   }
   },
   "broadcom.com": {
    "status": "ok",
@@ -167,21 +332,17 @@
    "sha1": "1dad0029f45635ce376fed1bef1d19ca78e2ab01"
   },
   "carmax.com.tw": {
-   "status": "ok",
+   "status": "not_logo",
    "fetched": "2026-10-27",
    "names": [
     "車美仕"
    ],
    "tried": {
-    "site": "ok [256, 237]"
+    "site": "ok [256, 237]",
+    "quality": "人工排除：官網頁首圖是母集團「和泰集團」的標誌，不是車美仕自己的 Logo",
+    "google_s2": "人工排除（s2 只回通用圖示／官網圖不是自家標誌）"
    },
-   "src": "site:header-img",
-   "url": "https://www.carmax.com.tw/dist/images/common/hotai_logo.svg",
-   "orig": [
-    256,
-    237
-   ],
-   "sha1": "ae62dff660c5fe017dca581a115ab9009969e311"
+   "detail": "人工排除：官網頁首圖是母集團「和泰集團」的標誌，不是車美仕自己的 Logo"
   },
   "castlestech.com": {
    "status": "ok",
@@ -200,6 +361,38 @@
    ],
    "sha1": "596871ea58d82c3fcf18023c9638bcec46d51695"
   },
+  "chicony.com": {
+   "status": "none",
+   "fetched": "2026-10-27",
+   "names": [
+    "群光"
+   ],
+   "tried": {
+    "site": "none 首頁 HTTP 403 https://www.chicony.com/",
+    "wikimedia": "none Wikidata 查不到官網是 chicony.com 的 Chicony Electronics／沒有標誌圖",
+    "google_s2": "none none HTTP 404 https://www.google.com/s2/favicons?domain=chicony.com&sz=256"
+   },
+   "detail": "首頁 HTTP 403 https://www.chicony.com/"
+  },
+  "cyntec.com": {
+   "status": "ok",
+   "fetched": "2026-10-27",
+   "names": [
+    "乾坤科技"
+   ],
+   "tried": {
+    "site": "ok [64, 64]",
+    "wikimedia": "none Wikidata 查不到官網是 cyntec.com 的 Cyntec／沒有標誌圖"
+   },
+   "src": "site:conventional",
+   "url": "https://www.cyntec.com/favicon.ico",
+   "orig": [
+    64,
+    64
+   ],
+   "qv": 2,
+   "sha1": "6c8de2f806737b49fcd173e5b3fd7292c1169815"
+  },
   "dell.com": {
    "status": "ok",
    "fetched": "2026-10-27",
@@ -217,22 +410,113 @@
    ],
    "sha1": "10b43160acc14eef181df0f65b1a420bd01fb857"
   },
-  "entegris.com": {
+  "deltaww.com": {
    "status": "ok",
+   "fetched": "2026-10-27",
+   "names": [
+    "台達電"
+   ],
+   "tried": {
+    "wikimedia": "ok [250, 77]"
+   },
+   "src": "wikimedia",
+   "url": "https://commons.wikimedia.org/wiki/File:DELTA_Electronics_Logo.png",
+   "orig": [
+    250,
+    77
+   ],
+   "qv": 2,
+   "sha1": "202790e8c4ace0027593da83d8dda54f0a56fc0d",
+   "attribution": {
+    "file": "File:DELTA Electronics Logo.png",
+    "page": "https://commons.wikimedia.org/wiki/File:DELTA_Electronics_Logo.png",
+    "license": "Public domain",
+    "license_kind": "PD",
+    "artist": "Unknown author Unknown author",
+    "credit": "http://www.delta.com.tw/index.asp",
+    "wikidata": "Q5254620",
+    "match": "website",
+    "restrictions": "trademarked"
+   }
+  },
+  "eink.com": {
+   "status": "not_logo",
+   "fetched": "2026-10-27",
+   "names": [
+    "元太"
+   ],
+   "tried": {
+    "site": "ok [600, 600]",
+    "wikimedia": "none Wikidata 查不到官網是 eink.com 的 E Ink Holdings／沒有標誌圖",
+    "quality": "og-image 一律不收（社群分享圖，常是橫幅照片）",
+    "google_s2": "ok [32, 32]"
+   },
+   "detail": "og-image 一律不收（社群分享圖，常是橫幅照片）"
+  },
+  "emc.com.tw": {
+   "status": "none",
+   "fetched": "2026-10-27",
+   "names": [
+    "義隆"
+   ],
+   "tried": {
+    "site": "none robots.txt 與首頁都回 HTTP 403（對方擋雲端存取），圖檔與 Google 備援都不抓 https://www.emc.com.tw/",
+    "wikimedia": "none Wikidata 查不到官網是 emc.com.tw 的 Elan Microelectronics／沒有標誌圖",
+    "google_s2": "官網禁止或擋雲端存取，不問 Google"
+   },
+   "detail": "robots.txt 與首頁都回 HTTP 403（對方擋雲端存取），圖檔與 Google 備援都不抓 https://www.emc.com.tw/"
+  },
+  "entegris.com": {
+   "status": "not_logo",
    "fetched": "2026-10-27",
    "names": [
     "英特格（Entegris）"
    ],
    "tried": {
-    "site": "ok [1200, 699]"
+    "site": "ok [1200, 699]",
+    "quality": "og-image 一律不收（社群分享圖，常是橫幅照片）",
+    "wikimedia": "none Wikidata 查不到官網是 entegris.com 的 Entegris／沒有標誌圖",
+    "google_s2": "ok [33, 33]"
    },
-   "src": "site:og-image",
-   "url": "https://www.entegris.com/content/dam/web/open-graph/Entegris_OpenGraph.png",
-   "orig": [
-    1200,
-    699
+   "detail": "og-image 一律不收（社群分享圖，常是橫幅照片）"
+  },
+  "episil.com": {
+   "status": "ok",
+   "fetched": "2026-10-27",
+   "names": [
+    "漢磊"
    ],
-   "sha1": "8cb686e48586ec943e39ecc7f4cbb3f6495bad1f"
+   "tried": {
+    "site": "ok [64, 64]",
+    "wikimedia": "none Wikidata 查不到官網是 episil.com 的 Episil Technologies／沒有標誌圖"
+   },
+   "src": "site:icon",
+   "url": "https://www.episil.com/img/icon/EPISIL.ico",
+   "orig": [
+    64,
+    64
+   ],
+   "qv": 2,
+   "sha1": "a9c84c268db189dc276d43faa45aa38d32fd0139"
+  },
+  "eternal-group.com": {
+   "status": "ok",
+   "fetched": "2026-10-27",
+   "names": [
+    "長興材料"
+   ],
+   "tried": {
+    "site": "ok [64, 64]",
+    "wikimedia": "none Wikidata 查不到官網是 eternal-group.com 的 Eternal Materials／沒有標誌圖"
+   },
+   "src": "site:conventional",
+   "url": "https://eternal-group.com/favicon.ico",
+   "orig": [
+    64,
+    64
+   ],
+   "qv": 2,
+   "sha1": "6c8de2f806737b49fcd173e5b3fd7292c1169815"
   },
   "fihmobile.com": {
    "status": "ok",
@@ -250,6 +534,33 @@
     196
    ],
    "sha1": "31e4baf7dd3d4f7a9186e88001f379e9cc8e4d2e"
+  },
+  "fitipower.com": {
+   "status": "not_logo",
+   "fetched": "2026-10-27",
+   "names": [
+    "天鈺"
+   ],
+   "tried": {
+    "site": "ok [256, 67]",
+    "wikimedia": "none Wikidata 查不到官網是 fitipower.com 的 Fitipower Integrated Technology／沒有標誌圖",
+    "quality": "頁首圖長寬比 3.8:1 > 3:1，縮小後看不清",
+    "google_s2": "none none HTTP 404 https://www.google.com/s2/favicons?domain=fitipower.com&sz=256"
+   },
+   "detail": "頁首圖長寬比 3.8:1 > 3:1，縮小後看不清"
+  },
+  "focaltech-electronics.com": {
+   "status": "too_small",
+   "fetched": "2026-10-27",
+   "names": [
+    "敦泰"
+   ],
+   "tried": {
+    "site": "ok [32, 32]",
+    "wikimedia": "none Wikidata 查不到官網是 focaltech-electronics.com 的 FocalTech Systems／沒有標誌圖",
+    "google_s2": "ok [32, 32]"
+   },
+   "detail": ""
   },
   "formfactor.com": {
    "status": "ok",
@@ -285,6 +596,20 @@
    ],
    "sha1": "aee111228cae386797399deb27cc15044ea144da"
   },
+  "foxtronev.com": {
+   "status": "not_logo",
+   "fetched": "2026-10-27",
+   "names": [
+    "鴻華先進"
+   ],
+   "tried": {
+    "site": "ok [1200, 630]",
+    "wikimedia": "none Wikidata 查不到官網是 foxtronev.com 的 Foxtron Vehicle Technologies／沒有標誌圖",
+    "quality": "og-image 一律不收（社群分享圖，常是橫幅照片）",
+    "google_s2": "ok [48, 48]"
+   },
+   "detail": "og-image 一律不收（社群分享圖，常是橫幅照片）"
+  },
   "garmin.com.tw": {
    "status": "ok",
    "fetched": "2026-10-27",
@@ -302,6 +627,35 @@
    ],
    "sha1": "1e55e5496d25e7f414ebc6d2429c69e4a2c4ca6f"
   },
+  "gigabyte.com": {
+   "status": "ok",
+   "fetched": "2026-10-27",
+   "names": [
+    "技嘉"
+   ],
+   "tried": {
+    "wikimedia": "ok [250, 54]"
+   },
+   "src": "wikimedia",
+   "url": "https://commons.wikimedia.org/wiki/File:Gigabyte_Technology_Logo.svg",
+   "orig": [
+    250,
+    54
+   ],
+   "qv": 2,
+   "sha1": "2bba43fbf1a863023c14f50c45d5c3d350793413",
+   "attribution": {
+    "file": "File:Gigabyte Technology Logo.svg",
+    "page": "https://commons.wikimedia.org/wiki/File:Gigabyte_Technology_Logo.svg",
+    "license": "Public domain",
+    "license_kind": "PD",
+    "artist": "Unknown author Unknown author",
+    "credit": "en:Image:Gigabyte_Technology_Logo.svg",
+    "wikidata": "Q697675",
+    "match": "website",
+    "restrictions": "trademarked"
+   }
+  },
   "google.com": {
    "status": "robots",
    "fetched": "2026-10-27",
@@ -314,6 +668,25 @@
     "google_s2": "官網禁止或擋雲端存取，不問 Google"
    },
    "detail": "https://google.com/ robots.txt 的 Disallow 規則不允許 —— 尊重它，也不走 Google 備援"
+  },
+  "guc-asic.com": {
+   "status": "ok",
+   "fetched": "2026-10-27",
+   "names": [
+    "創意"
+   ],
+   "tried": {
+    "site": "ok [153, 60]",
+    "wikimedia": "none Wikidata 查不到官網是 guc-asic.com 的 Global Unichip／沒有標誌圖"
+   },
+   "src": "site:header-img",
+   "url": "https://www.guc-asic.com/dist/assets/img/logo_150x60.png",
+   "orig": [
+    153,
+    60
+   ],
+   "qv": 2,
+   "sha1": "166d302d649000d7b8e79e104b4516ac44a0ede0"
   },
   "himax.com.tw": {
    "status": "ok",
@@ -391,22 +764,90 @@
    ],
    "sha1": "13c21dbc1d52836b87eb1bf7419276780a70eba1"
   },
-  "itri.org.tw": {
+  "innolux.com": {
+   "status": "none",
+   "fetched": "2026-10-27",
+   "names": [
+    "群創"
+   ],
+   "tried": {
+    "site": "none robots.txt 與首頁都回 HTTP 403（對方擋雲端存取），圖檔與 Google 備援都不抓 https://www.innolux.com/",
+    "wikimedia": "none Commons too_wide 250x44",
+    "google_s2": "官網禁止或擋雲端存取，不問 Google"
+   },
+   "detail": "robots.txt 與首頁都回 HTTP 403（對方擋雲端存取），圖檔與 Google 備援都不抓 https://www.innolux.com/"
+  },
+  "inventec.com": {
    "status": "ok",
+   "fetched": "2026-10-27",
+   "names": [
+    "英業達"
+   ],
+   "tried": {
+    "wikimedia": "ok [110, 30]"
+   },
+   "src": "wikimedia",
+   "url": "https://commons.wikimedia.org/wiki/File:Inventec_logo.gif",
+   "orig": [
+    110,
+    30
+   ],
+   "qv": 2,
+   "sha1": "817c3ee86bde7930c8eab5bf274851b742bb1253",
+   "attribution": {
+    "file": "File:Inventec logo.gif",
+    "page": "https://commons.wikimedia.org/wiki/File:Inventec_logo.gif",
+    "license": "Public domain",
+    "license_kind": "PD",
+    "artist": "Inventec Corporation",
+    "credit": "http://www.inventec.com/",
+    "wikidata": "Q6059838",
+    "match": "website",
+    "restrictions": "trademarked"
+   }
+  },
+  "ite.com.tw": {
+   "status": "ok",
+   "fetched": "2026-10-27",
+   "names": [
+    "聯陽(ITE)"
+   ],
+   "tried": {
+    "wikimedia": "ok [250, 133]"
+   },
+   "src": "wikimedia",
+   "url": "https://commons.wikimedia.org/wiki/File:ITE_Tech_logo_20140131.svg",
+   "orig": [
+    250,
+    133
+   ],
+   "qv": 2,
+   "sha1": "8ffcc337999dce48e1a8166221d95a02937c4c04",
+   "attribution": {
+    "file": "File:ITE Tech logo 20140131.svg",
+    "page": "https://commons.wikimedia.org/wiki/File:ITE_Tech_logo_20140131.svg",
+    "license": "Public domain",
+    "license_kind": "PD",
+    "artist": "ITE Tech. Inc.",
+    "credit": "http://www.ite.com.tw/",
+    "wikidata": "Q15693256",
+    "match": "website",
+    "restrictions": "trademarked"
+   }
+  },
+  "itri.org.tw": {
+   "status": "not_logo",
    "fetched": "2026-10-27",
    "names": [
     "工研院"
    ],
    "tried": {
-    "site": "ok [256, 59]"
+    "site": "ok [256, 59]",
+    "wikimedia": "none Wikidata 查不到官網是 itri.org.tw 的 Industrial Technology Research Institute／沒有標誌圖",
+    "quality": "頁首圖長寬比 4.3:1 > 3:1，縮小後看不清",
+    "google_s2": "none none HTTP 404 https://www.google.com/s2/favicons?domain=itri.org.tw&sz=256"
    },
-   "src": "site:header-img",
-   "url": "https://itrisdgs.itri.org.tw/chi/images/logo-invert.svg",
-   "orig": [
-    256,
-    59
-   ],
-   "sha1": "842182f49fcafd695aab77f56d40301b6b132a59"
+   "detail": "頁首圖長寬比 4.3:1 > 3:1，縮小後看不清"
   },
   "kaikutek.com": {
    "status": "too_small",
@@ -418,6 +859,19 @@
     "site": "ok [57, 57]",
     "wikimedia": "none Wikidata 查不到官網是 kaikutek.com 的 Kaikutek／沒有標誌圖",
     "google_s2": "none none HTTP 404 https://www.google.com/s2/favicons?domain=kaikutek.com&sz=256"
+   },
+   "detail": ""
+  },
+  "kinsus.com.tw": {
+   "status": "too_small",
+   "fetched": "2026-10-27",
+   "names": [
+    "景碩"
+   ],
+   "tried": {
+    "site": "ok [48, 48]",
+    "wikimedia": "none Wikidata 查不到官網是 kinsus.com.tw 的 Kinsus Interconnect Technology／沒有標誌圖",
+    "google_s2": "none none HTTP 404 https://www.google.com/s2/favicons?domain=kinsus.com.tw&sz=256"
    },
    "detail": ""
   },
@@ -455,6 +909,19 @@
    ],
    "sha1": "6e663f30ee320cdab9949f88232a3f94de997310"
   },
+  "ksmt.com.tw": {
+   "status": "none",
+   "fetched": "2026-10-27",
+   "names": [
+    "雍智"
+   ],
+   "tried": {
+    "site": "none HTTP 404 https://www.google.com/s2/favicons?domain=ksmt.com.tw&sz=128",
+    "wikimedia": "none Wikidata 查不到官網是 ksmt.com.tw 的 KSMT／沒有標誌圖",
+    "google_s2": "none none HTTP 404 https://www.google.com/s2/favicons?domain=ksmt.com.tw&sz=256"
+   },
+   "detail": "HTTP 404 https://www.google.com/s2/favicons?domain=ksmt.com.tw&sz=128"
+  },
   "lamresearch.com": {
    "status": "ok",
    "fetched": "2026-10-27",
@@ -472,6 +939,19 @@
    ],
    "sha1": "4f5708cb82daaa30dace274a80df59eb6cc10522"
   },
+  "largan.com.tw": {
+   "status": "too_small",
+   "fetched": "2026-10-27",
+   "names": [
+    "大立光"
+   ],
+   "tried": {
+    "site": "ok [32, 32]",
+    "wikimedia": "none Wikidata 查不到官網是 largan.com.tw 的 Largan Precision／沒有標誌圖",
+    "google_s2": "none none HTTP 404 https://www.google.com/s2/favicons?domain=largan.com.tw&sz=256"
+   },
+   "detail": ""
+  },
   "lasertec.co.jp": {
    "status": "ok",
    "fetched": "2026-10-27",
@@ -488,6 +968,35 @@
     192
    ],
    "sha1": "dda565386873b01168769fd6c537153f105d6270"
+  },
+  "liteon.com": {
+   "status": "ok",
+   "fetched": "2026-10-27",
+   "names": [
+    "光寶"
+   ],
+   "tried": {
+    "wikimedia": "ok [250, 53]"
+   },
+   "src": "wikimedia",
+   "url": "https://commons.wikimedia.org/wiki/File:Liteon_logo.svg",
+   "orig": [
+    250,
+    53
+   ],
+   "qv": 2,
+   "sha1": "d27c061ef28fe0115ab0e0af87e0a0c6eb33e7d2",
+   "attribution": {
+    "file": "File:Liteon logo.svg",
+    "page": "https://commons.wikimedia.org/wiki/File:Liteon_logo.svg",
+    "license": "Public domain",
+    "license_kind": "PD",
+    "artist": "Lite-On Technology",
+    "credit": "PDF",
+    "wikidata": "Q34534",
+    "match": "website",
+    "restrictions": "trademarked"
+   }
   },
   "merckgroup.com": {
    "status": "none",
@@ -612,22 +1121,45 @@
    ],
    "sha1": "b060e8b869e9b71d24aa41038bb8b5d901043966"
   },
+  "nantex.com.tw": {
+   "status": "none",
+   "fetched": "2026-10-27",
+   "names": [
+    "南帝化工"
+   ],
+   "tried": {
+    "site": "none HTTP 404 https://www.google.com/s2/favicons?domain=nantex.com.tw&sz=128",
+    "wikimedia": "none Wikidata 查不到官網是 nantex.com.tw 的 Nantex Industry／沒有標誌圖",
+    "google_s2": "none none HTTP 404 https://www.google.com/s2/favicons?domain=nantex.com.tw&sz=256"
+   },
+   "detail": "HTTP 404 https://www.google.com/s2/favicons?domain=nantex.com.tw&sz=128"
+  },
   "nvidia.com": {
-   "status": "ok",
+   "status": "not_logo",
    "fetched": "2026-10-27",
    "names": [
     "NVIDIA"
    ],
    "tried": {
-    "site": "ok [1200, 674]"
+    "site": "ok [1200, 674]",
+    "wikimedia": "none 授權不在白名單：Apache License 2.0（File:NVIDIA logo.svg）",
+    "quality": "網址像分享圖示／橫幅／框架預設圖，不是公司標誌 https://www.nvidia.com/content/dam/en-zz/Solutions/homepage/v2/sfg/nvidia-corpor",
+    "google_s2": "ok [48, 48]"
    },
-   "src": "site:og-image",
-   "url": "https://www.nvidia.com/content/dam/en-zz/Solutions/homepage/v2/sfg/nvidia-corporate-og-image-1200x630.jpg",
-   "orig": [
-    1200,
-    674
+   "detail": "網址像分享圖示／橫幅／框架預設圖，不是公司標誌 https://www.nvidia.com/content/dam/en-zz/Solutions/homepage/v2/sfg/nvidia-corpor"
+  },
+  "pegatroncorp.com": {
+   "status": "too_small",
+   "fetched": "2026-10-27",
+   "names": [
+    "和碩"
    ],
-   "sha1": "773e2703b35ebbbb8456130afbd879aea2a635be"
+   "tried": {
+    "site": "ok [48, 48]",
+    "wikimedia": "none Commons too_wide 250x39",
+    "google_s2": "none none HTTP 404 https://www.google.com/s2/favicons?domain=pegatroncorp.com&sz=256"
+   },
+   "detail": ""
   },
   "phihongtech.com": {
    "status": "ok",
@@ -646,22 +1178,61 @@
    ],
    "sha1": "d848283ca001774d335ae6f051db89beb3fa81ce"
   },
-  "qualcomm.com": {
+  "powerchip.com": {
    "status": "ok",
+   "fetched": "2026-10-27",
+   "names": [
+    "力積電"
+   ],
+   "tried": {
+    "wikimedia": "ok [250, 63]"
+   },
+   "src": "wikimedia",
+   "url": "https://commons.wikimedia.org/wiki/File:Powerchip_logo.svg",
+   "orig": [
+    250,
+    63
+   ],
+   "qv": 2,
+   "sha1": "324fcb9756a0105b421722f3d5425a23ebba3563",
+   "attribution": {
+    "file": "File:Powerchip logo.svg",
+    "page": "https://commons.wikimedia.org/wiki/File:Powerchip_logo.svg",
+    "license": "Public domain",
+    "license_kind": "PD",
+    "artist": "Powerchip Semiconductor Manufacturing Corporation",
+    "credit": "www.powerchip.com",
+    "wikidata": "Q701636",
+    "match": "website",
+    "restrictions": "trademarked"
+   }
+  },
+  "princeton.com.tw": {
+   "status": "none",
+   "fetched": "2026-10-27",
+   "names": [
+    "普誠"
+   ],
+   "tried": {
+    "site": "none HTTP 404 https://www.google.com/s2/favicons?domain=princeton.com.tw&sz=128",
+    "wikimedia": "none Wikidata 查不到官網是 princeton.com.tw 的 Princeton Technology／沒有標誌圖",
+    "google_s2": "none none HTTP 404 https://www.google.com/s2/favicons?domain=princeton.com.tw&sz=256"
+   },
+   "detail": "HTTP 404 https://www.google.com/s2/favicons?domain=princeton.com.tw&sz=128"
+  },
+  "qualcomm.com": {
+   "status": "not_logo",
    "fetched": "2026-10-27",
    "names": [
     "高通"
    ],
    "tried": {
-    "site": "ok [512, 512]"
+    "site": "ok [512, 512]",
+    "wikimedia": "none Commons too_wide 250x46",
+    "quality": "網址像分享圖示／橫幅／框架預設圖，不是公司標誌 https://www.qualcomm.com/etc.clientlibs/qcomm-martech/clientlibs/clientlib-react",
+    "google_s2": "ok [32, 32]"
    },
-   "src": "site:manifest",
-   "url": "https://www.qualcomm.com/etc.clientlibs/qcomm-martech/clientlibs/clientlib-react/resources/logo512.png",
-   "orig": [
-    512,
-    512
-   ],
-   "sha1": "206b5f6b15666386530585a4c028c8c4ae9c422f"
+   "detail": "網址像分享圖示／橫幅／框架預設圖，不是公司標誌 https://www.qualcomm.com/etc.clientlibs/qcomm-martech/clientlibs/clientlib-react"
   },
   "questglobal.com": {
    "status": "ok",
@@ -680,6 +1251,19 @@
    ],
    "sha1": "c6b762bb5a5738880d985eeb3c062af157f8014a"
   },
+  "rad-ic.com": {
+   "status": "too_small",
+   "fetched": "2026-10-27",
+   "names": [
+    "瑞鼎"
+   ],
+   "tried": {
+    "site": "ok [48, 48]",
+    "wikimedia": "none Wikidata 查不到官網是 rad-ic.com 的 Raydium Semiconductor／沒有標誌圖",
+    "google_s2": "none none HTTP 404 https://www.google.com/s2/favicons?domain=rad-ic.com&sz=256"
+   },
+   "detail": ""
+  },
   "raritan.com": {
    "status": "ok",
    "fetched": "2026-10-27",
@@ -696,6 +1280,35 @@
     512
    ],
    "sha1": "b9b75a65723d2e9ec5dbb3586b94bba977a47f9c"
+  },
+  "richtek.com": {
+   "status": "ok",
+   "fetched": "2026-10-27",
+   "names": [
+    "立錡"
+   ],
+   "tried": {
+    "wikimedia": "ok [250, 92]"
+   },
+   "src": "wikimedia",
+   "url": "https://commons.wikimedia.org/wiki/File:Richtek_logo.PNG",
+   "orig": [
+    250,
+    92
+   ],
+   "qv": 2,
+   "sha1": "b56210b7fc7ec7a40894b960394dfeeff7f50704",
+   "attribution": {
+    "file": "File:Richtek logo.PNG",
+    "page": "https://commons.wikimedia.org/wiki/File:Richtek_logo.PNG",
+    "license": "Public domain",
+    "license_kind": "PD",
+    "artist": "Richtek",
+    "credit": "Richtek",
+    "wikidata": "Q17031047",
+    "match": "website",
+    "restrictions": "trademarked"
+   }
   },
   "screen.co.jp": {
    "status": "ok",
@@ -714,6 +1327,19 @@
    ],
    "sha1": "39f5b8f16f87abe66d18ea0014ca7b265158dc8b"
   },
+  "senaonetworks.com": {
+   "status": "none",
+   "fetched": "2026-10-27",
+   "names": [
+    "神準"
+   ],
+   "tried": {
+    "site": "none robots.txt 與首頁都回 HTTP 403（對方擋雲端存取），圖檔與 Google 備援都不抓 https://senaonetworks.com/",
+    "wikimedia": "none Wikidata 查不到官網是 senaonetworks.com 的 Senao Networks／沒有標誌圖",
+    "google_s2": "官網禁止或擋雲端存取，不問 Google"
+   },
+   "detail": "robots.txt 與首頁都回 HTTP 403（對方擋雲端存取），圖檔與 Google 備援都不抓 https://senaonetworks.com/"
+  },
   "siliconmotion.com": {
    "status": "ok",
    "fetched": "2026-10-27",
@@ -730,6 +1356,57 @@
     144
    ],
    "sha1": "6a91d0a535de0fe462cb753402565ccba318aafe"
+  },
+  "soinc.com.tw": {
+   "status": "robots",
+   "fetched": "2026-10-27",
+   "names": [
+    "晶相光電"
+   ],
+   "tried": {
+    "site": "robots https://soinc.com.tw/ robots.txt 的 Disallow 規則不允許 —— 尊重它，也不走 Google 備援",
+    "wikimedia": "none Wikidata 查不到官網是 soinc.com.tw 的 Silicon Optronics／沒有標誌圖",
+    "google_s2": "官網禁止或擋雲端存取，不問 Google"
+   },
+   "detail": "https://soinc.com.tw/ robots.txt 的 Disallow 規則不允許 —— 尊重它，也不走 Google 備援"
+  },
+  "solartech.com.tw": {
+   "status": "ok",
+   "fetched": "2026-10-27",
+   "names": [
+    "光洋應材"
+   ],
+   "tried": {
+    "site": "ok [152, 152]",
+    "wikimedia": "none Wikidata 查不到官網是 solartech.com.tw 的 Solar Applied Materials Technology／沒有標誌圖"
+   },
+   "src": "site:apple-touch-icon",
+   "url": "https://www.solartech.com.tw/images/touch-icon/apple-icon-152x152.png",
+   "orig": [
+    152,
+    152
+   ],
+   "qv": 2,
+   "sha1": "8621eceb31b9e2d72aa8691aa32cace1e4359608"
+  },
+  "sonix.com.tw": {
+   "status": "ok",
+   "fetched": "2026-10-27",
+   "names": [
+    "松翰"
+   ],
+   "tried": {
+    "site": "ok [64, 64]",
+    "wikimedia": "none Wikidata 查不到官網是 sonix.com.tw 的 Sonix Technology／沒有標誌圖"
+   },
+   "src": "site:icon",
+   "url": "https://www.sonix.com.tw/favicon.ico",
+   "orig": [
+    64,
+    64
+   ],
+   "qv": 2,
+   "sha1": "6093feca7d861fcd0ebf23ec7816a9fa03b7e883"
   },
   "speed-hz.com": {
    "status": "ok",
@@ -795,6 +1472,19 @@
    ],
    "sha1": "ca30a84b2120a64be401a5bcbfe6f2ffd54473b9"
   },
+  "stl-tech.com": {
+   "status": "too_small",
+   "fetched": "2026-10-27",
+   "names": [
+    "新盛力科技"
+   ],
+   "tried": {
+    "site": "ok [32, 32]",
+    "wikimedia": "none Wikidata 查不到官網是 stl-tech.com 的 Simplo Technology／沒有標誌圖",
+    "google_s2": "none none HTTP 404 https://www.google.com/s2/favicons?domain=stl-tech.com&sz=256"
+   },
+   "detail": ""
+  },
   "synopsys.com": {
    "status": "ok",
    "fetched": "2026-10-27",
@@ -802,15 +1492,27 @@
     "Synopsys"
    ],
    "tried": {
-    "site": "ok [256, 256]"
+    "wikimedia": "ok [250, 57]"
    },
-   "src": "site:header-img",
-   "url": "https://www.synopsys.com/content/dam/synopsys/icon/ai-black.svg",
+   "src": "wikimedia",
+   "url": "https://commons.wikimedia.org/wiki/File:Synopsys_Logo.svg",
    "orig": [
-    256,
-    256
+    250,
+    57
    ],
-   "sha1": "91c28ba577b0fd6d9d9b9335bb2200de0d2eb7ac"
+   "qv": 2,
+   "sha1": "42fdada0aafd70c0ffeea7922e5d2362cc107f3b",
+   "attribution": {
+    "file": "File:Synopsys Logo.svg",
+    "page": "https://commons.wikimedia.org/wiki/File:Synopsys_Logo.svg",
+    "license": "Public domain",
+    "license_kind": "PD",
+    "artist": "™/®Synopsys, Inc.",
+    "credit": "Vectorised by Vulphere from https://www.synopsys.com/content/dam/synopsys/logos/synopsys-logo-color.svg",
+    "wikidata": "Q2303478",
+    "match": "website",
+    "restrictions": "trademarked"
+   }
   },
   "syntecclub.com": {
    "status": "ok",
@@ -859,22 +1561,76 @@
    },
    "detail": "robots.txt 與首頁都回 HTTP 403（對方擋雲端存取），圖檔與 Google 備援都不抓 https://teradyne.com/"
   },
-  "uicpaymentsinc.com": {
+  "trendmicro.com": {
    "status": "ok",
+   "fetched": "2026-10-27",
+   "names": [
+    "趨勢科技"
+   ],
+   "tried": {
+    "wikimedia": "ok [250, 86]"
+   },
+   "src": "wikimedia",
+   "url": "https://commons.wikimedia.org/wiki/File:Trend_Micro_logo.svg",
+   "orig": [
+    250,
+    86
+   ],
+   "qv": 2,
+   "sha1": "01b7f39c47f05d0aa8f5f1067fab23a546262c94",
+   "attribution": {
+    "file": "File:Trend Micro logo.svg",
+    "page": "https://commons.wikimedia.org/wiki/File:Trend_Micro_logo.svg",
+    "license": "Public domain",
+    "license_kind": "PD",
+    "artist": "Trend Micro",
+    "credit": "Официальный сайт Trend Micro",
+    "wikidata": "Q700974",
+    "match": "website",
+    "restrictions": "trademarked"
+   }
+  },
+  "uicpaymentsinc.com": {
+   "status": "none",
    "fetched": "2026-10-27",
    "names": [
     "連宇"
    ],
    "tried": {
-    "site": "ok [128, 128]"
+    "site": "none robots.txt 與首頁都回 HTTP 403（對方擋雲端存取），圖檔與 Google 備援都不抓 https://uicpaymentsinc.com/",
+    "wikimedia": "none Wikidata 查不到官網是 uicpaymentsinc.com 的 UIC Payments／沒有標誌圖",
+    "google_s2": "人工排除（s2 只回通用圖示／官網圖不是自家標誌）"
    },
-   "src": "google_s2",
-   "url": "https://www.google.com/s2/favicons?domain=uicpaymentsinc.com&sz=128",
-   "orig": [
-    128,
-    128
+   "detail": "robots.txt 與首頁都回 HTTP 403（對方擋雲端存取），圖檔與 Google 備援都不抓 https://uicpaymentsinc.com/"
+  },
+  "umc.com": {
+   "status": "ok",
+   "fetched": "2026-10-27",
+   "names": [
+    "聯電"
    ],
-   "sha1": "fc436340f1cbda384f8d4634a69a457317ff4162"
+   "tried": {
+    "wikimedia": "ok [250, 57]"
+   },
+   "src": "wikimedia",
+   "url": "https://commons.wikimedia.org/wiki/File:UMC-Logo.svg",
+   "orig": [
+    250,
+    57
+   ],
+   "qv": 2,
+   "sha1": "bc60539db77bb1b8041a23c9704466865e3f7f27",
+   "attribution": {
+    "file": "File:UMC-Logo.svg",
+    "page": "https://commons.wikimedia.org/wiki/File:UMC-Logo.svg",
+    "license": "Public domain",
+    "license_kind": "PD",
+    "artist": "Unknown author Unknown author",
+    "credit": "nicht angegeben",
+    "wikidata": "Q143616",
+    "match": "website",
+    "restrictions": "trademarked"
+   }
   },
   "unabiz.com": {
    "status": "ok",
@@ -893,6 +1649,48 @@
    ],
    "sha1": "78564b57acc13d023073fdafb97d77244263cd26"
   },
+  "unimicron.com": {
+   "status": "none",
+   "fetched": "2026-10-27",
+   "names": [
+    "欣興"
+   ],
+   "tried": {
+    "site": "none HTTP 404 https://www.google.com/s2/favicons?domain=unimicron.com&sz=128",
+    "wikimedia": "none Wikidata 查不到官網是 unimicron.com 的 Unimicron Technology／沒有標誌圖",
+    "google_s2": "none none HTTP 404 https://www.google.com/s2/favicons?domain=unimicron.com&sz=256"
+   },
+   "detail": "HTTP 404 https://www.google.com/s2/favicons?domain=unimicron.com&sz=128"
+  },
+  "vis.com.tw": {
+   "status": "ok",
+   "fetched": "2026-10-27",
+   "names": [
+    "世界先進"
+   ],
+   "tried": {
+    "wikimedia": "ok [250, 141]"
+   },
+   "src": "wikimedia",
+   "url": "https://commons.wikimedia.org/wiki/File:Vanguard_International_Semiconductor_logo.svg",
+   "orig": [
+    250,
+    141
+   ],
+   "qv": 2,
+   "sha1": "b615603f9ea4a4b7e7a5c8ea5a9213f4dd19d4a9",
+   "attribution": {
+    "file": "File:Vanguard International Semiconductor logo.svg",
+    "page": "https://commons.wikimedia.org/wiki/File:Vanguard_International_Semiconductor_logo.svg",
+    "license": "Public domain",
+    "license_kind": "PD",
+    "artist": "Vanguard International Semiconductor Corporation",
+    "credit": "www.vis.com.tw",
+    "wikidata": "Q1539149",
+    "match": "website",
+    "restrictions": "trademarked"
+   }
+  },
   "wellell.com": {
    "status": "ok",
    "fetched": "2026-10-27",
@@ -910,6 +1708,32 @@
    ],
    "sha1": "fa983f7ca0576f2ee8347a434bf0bc16f10c3c7e"
   },
+  "winbond.com": {
+   "status": "too_small",
+   "fetched": "2026-10-27",
+   "names": [
+    "華邦電"
+   ],
+   "tried": {
+    "site": "ok [32, 32]",
+    "wikimedia": "none Commons too_wide 250x35",
+    "google_s2": "ok [32, 32]"
+   },
+   "detail": ""
+  },
+  "winwayglobal.com": {
+   "status": "too_small",
+   "fetched": "2026-10-27",
+   "names": [
+    "穎崴"
+   ],
+   "tried": {
+    "site": "ok [48, 48]",
+    "wikimedia": "none Wikidata 查不到官網是 winwayglobal.com 的 WinWay Technology／沒有標誌圖",
+    "google_s2": "none none HTTP 404 https://www.google.com/s2/favicons?domain=winwayglobal.com&sz=256"
+   },
+   "detail": ""
+  },
   "wipro.com": {
    "status": "ok",
    "fetched": "2026-10-27",
@@ -917,16 +1741,73 @@
     "Wipro"
    ],
    "tried": {
-    "site": "ok [113, 104]"
+    "site": "ok [113, 104]",
+    "wikimedia": "none CC BY-SA 4.0 需要署名，前端還沒有出處連結，暫不收（File:Wipro new logo.svg）",
+    "quality": "網址像分享圖示／橫幅／框架預設圖，不是公司標誌 https://www.wipro.com/content/dam/nexus/images/share-icons/share-icon.png",
+    "google_s2": "ok [90, 70]"
    },
-   "src": "site:header-img",
-   "url": "https://www.wipro.com/content/dam/nexus/images/share-icons/share-icon.png",
+   "src": "google_s2",
+   "url": "https://www.google.com/s2/favicons?domain=wipro.com&sz=256",
    "orig": [
-    113,
-    104
+    90,
+    70
    ],
-   "sha1": "d3cf07ca3766028a94fa312c2d9f1c92f152c9f4"
+   "qv": 2,
+   "sha1": "667fddaf7b72df35f6e54242200db055f30676eb"
+  },
+  "wistron.com": {
+   "status": "none",
+   "fetched": "2026-10-27",
+   "names": [
+    "緯創"
+   ],
+   "tried": {
+    "site": "none robots.txt 與首頁都回 HTTP 403（對方擋雲端存取），圖檔與 Google 備援都不抓 https://www.wistron.com/",
+    "wikimedia": "none Commons too_wide 250x49",
+    "google_s2": "官網禁止或擋雲端存取，不問 Google"
+   },
+   "detail": "robots.txt 與首頁都回 HTTP 403（對方擋雲端存取），圖檔與 Google 備援都不抓 https://www.wistron.com/"
+  },
+  "wiwynn.com": {
+   "status": "not_logo",
+   "fetched": "2026-10-27",
+   "names": [
+    "緯穎"
+   ],
+   "tried": {
+    "site": "ok [1200, 630]",
+    "wikimedia": "none Wikidata 查不到官網是 wiwynn.com 的 Wiwynn／沒有標誌圖",
+    "quality": "og-image 一律不收（社群分享圖，常是橫幅照片）",
+    "google_s2": "too_small too_small 16x16 https://www.google.com/s2/favicons?domain=wiwynn.com&sz=256"
+   },
+   "detail": "og-image 一律不收（社群分享圖，常是橫幅照片）"
+  },
+  "xintec.com.tw": {
+   "status": "none",
+   "fetched": "2026-10-27",
+   "names": [
+    "精材"
+   ],
+   "tried": {
+    "site": "none HTTP 404 https://www.xintec.com.tw/apple-touch-icon.png",
+    "wikimedia": "none Wikidata 查不到官網是 xintec.com.tw 的 Xintec／沒有標誌圖",
+    "google_s2": "none none HTTP 404 https://www.google.com/s2/favicons?domain=xintec.com.tw&sz=256"
+   },
+   "detail": "HTTP 404 https://www.xintec.com.tw/apple-touch-icon.png"
+  },
+  "zdtco.com": {
+   "status": "none",
+   "fetched": "2026-10-27",
+   "names": [
+    "臻鼎"
+   ],
+   "tried": {
+    "site": "none HTTP 404 https://www.google.com/s2/favicons?domain=zdtco.com&sz=128",
+    "wikimedia": "none Wikidata 查不到官網是 zdtco.com 的 Zhen Ding Technology／沒有標誌圖",
+    "google_s2": "none none HTTP 404 https://www.google.com/s2/favicons?domain=zdtco.com&sz=256"
+   },
+   "detail": "HTTP 404 https://www.google.com/s2/favicons?domain=zdtco.com&sz=128"
   }
  },
- "updated_at": "2026-10-26T18:36:40.530330+00:00"
+ "updated_at": "2026-10-26T20:48:55.539173+00:00"
 }
