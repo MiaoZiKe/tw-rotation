@@ -449,6 +449,65 @@
           "travel": null,
           "n": 2,
           "n_stat": 2
+        },
+        {
+          "unit": "其他",
+          "role": "廠務工程師",
+          "degree": "碩士",
+          "years": null,
+          "base_month_k": [
+            59,
+            59
+          ],
+          "bonus_months": null,
+          "annual_months": [
+            14,
+            14
+          ],
+          "annual_total_wan": [
+            82.6,
+            82.6
+          ],
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n": 1,
+          "n_stat": 1,
+          "note": null,
+          "grade": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/69a862e3dd685c59a8a129e8",
+              "date": "2026-03"
+            }
+          ],
+          "confidence": "低",
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/69a862e3dd685c59a8a129e8",
+              "date": "2026-03",
+              "page_date": "2026-03-04",
+              "date_confirmed": true,
+              "role": "廠務工程師",
+              "grade": null,
+              "unit_detail": "台中",
+              "years": null,
+              "degree": null,
+              "base_k": 59,
+              "bonus_months": null,
+              "annual_months": 14,
+              "annual_wan": 82.6,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "保 14 個月",
+              "in_window": true,
+              "date_note": "GoodJob 標題日期 2026.3.4",
+              "annual_wan_derived": true
+            }
+          ]
         }
       ]
     },
@@ -576,6 +635,65 @@
           "n_stat": 1,
           "note": null,
           "grade": null
+        },
+        {
+          "unit": "其他",
+          "role": "主任工程師",
+          "degree": "碩士",
+          "years": null,
+          "base_month_k": [
+            100,
+            100
+          ],
+          "bonus_months": null,
+          "annual_months": [
+            14,
+            14
+          ],
+          "annual_total_wan": [
+            140.0,
+            140.0
+          ],
+          "weekly_hours": null,
+          "overtime": "幾乎不",
+          "travel": null,
+          "n": 1,
+          "n_stat": 1,
+          "note": null,
+          "grade": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/692c6374e042fb6760d751d8",
+              "date": "2025-11"
+            }
+          ],
+          "confidence": "低",
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/692c6374e042fb6760d751d8",
+              "date": "2025-11",
+              "page_date": "2025-11-30",
+              "date_confirmed": true,
+              "role": "主任工程師",
+              "grade": null,
+              "unit_detail": "台南",
+              "years": null,
+              "degree": null,
+              "base_k": 100,
+              "bonus_months": null,
+              "annual_months": 14,
+              "annual_wan": 140.0,
+              "weekly_hours": null,
+              "overtime": "幾乎不",
+              "travel": null,
+              "quote_free_note": "保 14 個月，前兩年另加 2 個月",
+              "in_window": true,
+              "date_note": "GoodJob 標題日期 2025.11.30",
+              "annual_wan_derived": true
+            }
+          ]
         }
       ]
     },
@@ -833,6 +951,58 @@
           "travel": null,
           "n": 2,
           "n_stat": 2
+        },
+        {
+          "unit": "其他",
+          "role": "AI演算法工程師",
+          "degree": "碩士",
+          "years": null,
+          "base_month_k": [
+            55,
+            55
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": "經常",
+          "travel": null,
+          "n": 1,
+          "n_stat": 1,
+          "note": null,
+          "grade": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/69eb4e534c2b808ffb4523f6",
+              "date": "2026-04"
+            }
+          ],
+          "confidence": "低",
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/69eb4e534c2b808ffb4523f6",
+              "date": "2026-04",
+              "page_date": "2026-04-24",
+              "date_confirmed": true,
+              "role": "AI演算法工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 55,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "面試：筆試＋兩位主管面試；RD 責任制隨 call 隨到",
+              "in_window": true,
+              "date_note": "GoodJob 標題日期 2026.4.24"
+            }
+          ]
         }
       ]
     },

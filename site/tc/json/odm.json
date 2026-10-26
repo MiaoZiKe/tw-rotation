@@ -959,6 +959,28 @@
               "comment_sample": true,
               "in_window": false,
               "date_note": "Dcard 頁面發文日期 2025-02-06（2026-10-26 2056 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/6895d542929b88f1d9356b5d",
+              "date": "2025-08",
+              "page_date": "2025-08-08",
+              "date_confirmed": true,
+              "role": "工程師",
+              "grade": null,
+              "unit_detail": "BU9",
+              "years": null,
+              "degree": null,
+              "base_k": 68,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 50,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "BU9 分紅多但工時長",
+              "in_window": true,
+              "date_note": "GoodJob 標題日期 2025.8.8"
             }
           ],
           "sources": [
@@ -986,19 +1008,30 @@
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/257914980",
               "date": "2025-02"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/6895d542929b88f1d9356b5d",
+              "date": "2025-08"
             }
           ],
-          "confidence": "低",
-          "n": 6,
+          "confidence": "中",
+          "n": 7,
           "years": "轉職",
-          "base_month_k": null,
+          "base_month_k": [
+            68,
+            68
+          ],
           "bonus_months": null,
           "annual_months": null,
           "annual_total_wan": null,
-          "weekly_hours": null,
+          "weekly_hours": [
+            50,
+            50
+          ],
           "overtime": null,
           "travel": null,
-          "n_stat": 2,
+          "n_stat": 3,
           "note": null,
           "grade": null
         },
@@ -2073,6 +2106,58 @@
             }
           ],
           "n_stat": 1
+        },
+        {
+          "unit": "其他",
+          "role": "自動化工程師",
+          "degree": "碩士",
+          "years": null,
+          "base_month_k": [
+            57,
+            57
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n": 1,
+          "n_stat": 1,
+          "note": null,
+          "grade": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/6a87ebd6ddfa07d2424b75da",
+              "date": "2026-08"
+            }
+          ],
+          "confidence": "低",
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/6a87ebd6ddfa07d2424b75da",
+              "date": "2026-08",
+              "page_date": "2026-08-21",
+              "date_confirmed": true,
+              "role": "自動化工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 57,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "面試錄取，產線導入新技術",
+              "in_window": true,
+              "date_note": "GoodJob 標題日期 2026.8.21"
+            }
+          ]
         }
       ],
       "mops": {
@@ -5750,6 +5835,28 @@
               "quote_free_note": "更新後說拿到 offer；產品種類多、工時較長；數字未透露",
               "in_window": true,
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2025-09-18"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/job/p/261384313",
+              "date": "2026-05",
+              "page_date": null,
+              "date_confirmed": true,
+              "role": "IE工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "0",
+              "degree": "碩士",
+              "base_k": 54,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "私立工工碩畢面試心得：HR 表示碩士新人頂多約 54K；網友回文 60～62K 為估計未收",
+              "in_window": true,
+              "date_note": "Dcard 編號 261384313 ≥259537767，依 docs/tc/dcard_id_calibration.md 確認晚於 2025-08-01；搜尋摘要約 167 天前"
             }
           ],
           "sources": [
@@ -5757,19 +5864,27 @@
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/259807180",
               "date": "2025-09"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/job/p/261384313",
+              "date": "2026-05"
             }
           ],
-          "confidence": "低",
-          "n": 1,
+          "confidence": "中",
+          "n": 2,
           "overtime": "經常",
           "years": "0",
-          "base_month_k": null,
+          "base_month_k": [
+            54,
+            54
+          ],
           "bonus_months": null,
           "annual_months": null,
           "annual_total_wan": null,
           "weekly_hours": null,
           "travel": null,
-          "n_stat": 1,
+          "n_stat": 2,
           "note": null,
           "grade": null
         },
@@ -7251,6 +7366,58 @@
           "confidence": "低",
           "note": "2026-10-26 2056 批由 Dcard 樣本新增的職位",
           "n_stat": 0
+        },
+        {
+          "unit": "其他",
+          "role": "韌體工程師",
+          "degree": "碩士",
+          "years": null,
+          "base_month_k": [
+            62,
+            62
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n": 1,
+          "n_stat": 1,
+          "note": null,
+          "grade": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/695e5bd2db61e76748805467",
+              "date": "2026-01"
+            }
+          ],
+          "confidence": "低",
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/695e5bd2db61e76748805467",
+              "date": "2026-01",
+              "page_date": "2026-01-07",
+              "date_confirmed": true,
+              "role": "韌體工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "0",
+              "degree": null,
+              "base_k": 62,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "面試：新鮮人底薪約 62K，可再談",
+              "in_window": true,
+              "date_note": "GoodJob 標題日期 2026.1.7"
+            }
+          ]
         }
       ],
       "mops": {
@@ -7621,7 +7788,7 @@
           "years": "5",
           "base_month_k": [
             36,
-            64
+            70
           ],
           "bonus_months": null,
           "annual_months": null,
@@ -7629,7 +7796,7 @@
           "weekly_hours": null,
           "overtime": null,
           "travel": null,
-          "n": 4,
+          "n": 6,
           "note": "平台自述統計（未轉貼原文）；2026 一筆 5 年經驗月薪 6.4 萬、有三節獎金；非新人；GoodJob 2025-11／2026-01 評價：約 14 個月再加少量分紅；base_month_k、annual_months 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples；未逐筆對應的舊彙整：{\"base_month_k\": [64, 64], \"annual_months\": [14, 15]}；未逐筆對應的舊彙整：overtime=偶爾～經常",
           "sources": [
             {
@@ -7651,9 +7818,19 @@
               "site": "GoodJob",
               "url": "https://www.goodjob.life/companies/和碩聯合科技股份有限公司/work-experiences/薪資福利",
               "date": "2025-09"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/6a870a76c43855f64076174d",
+              "date": "2026-08"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/6a7635cc42c5a1070e9007a0",
+              "date": "2026-08"
             }
           ],
-          "confidence": "低",
+          "confidence": "中",
           "grade": "23 職等",
           "samples": [
             {
@@ -7733,9 +7910,53 @@
               "in_window": true,
               "role": "硬體工程師（在職評價）",
               "quote_free_note": "起薪偏低但福利與學習環境不錯；不到 1 年、月薪 3.6 萬"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/6a870a76c43855f64076174d",
+              "date": "2026-08",
+              "page_date": "2026-08-20",
+              "date_confirmed": true,
+              "role": "硬體研發工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "2",
+              "degree": null,
+              "base_k": 70,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "連兩年調薪 10%，含分紅全年仍不多",
+              "in_window": true,
+              "date_note": "GoodJob 標題日期 2026.8.20"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/6a7635cc42c5a1070e9007a0",
+              "date": "2026-08",
+              "page_date": "2026-08-07",
+              "date_confirmed": true,
+              "role": "硬體研發工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 52,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "面試",
+              "in_window": true,
+              "date_note": "GoodJob 標題日期 2026.8.7"
             }
           ],
-          "n_stat": 3
+          "n_stat": 5
         },
         {
           "unit": "研發 RD",
@@ -8410,6 +8631,28 @@
               "in_window": true,
               "role": "韌體工程師（在職評價）",
               "quote_free_note": "新人前三個月加班是常態；不到 1 年、月薪 6.5 萬"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/690b7cb83ff118a0acf55f5b",
+              "date": "2025-11",
+              "page_date": "2025-11-05",
+              "date_confirmed": true,
+              "role": "韌體工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "0-1",
+              "degree": null,
+              "base_k": 60,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 60,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "保底 14 個月＋分紅",
+              "in_window": true,
+              "date_note": "GoodJob 標題日期 2025.11.5"
             }
           ],
           "sources": [
@@ -8417,24 +8660,84 @@
               "site": "GoodJob",
               "url": "https://www.goodjob.life/companies/和碩聯合科技股份有限公司/work-experiences/工時狀況",
               "date": "2026-03"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/690b7cb83ff118a0acf55f5b",
+              "date": "2025-11"
             }
           ],
-          "confidence": "低",
+          "confidence": "中",
           "note": "2026-10-26 依搜尋摘要新增",
           "grade": null,
           "base_month_k": [
-            65,
+            60,
             65
           ],
           "bonus_months": null,
           "annual_months": null,
           "annual_total_wan": null,
-          "weekly_hours": null,
+          "weekly_hours": [
+            60,
+            60
+          ],
           "overtime": "經常",
           "travel": null,
           "years": "0",
+          "n": 2,
+          "n_stat": 2
+        },
+        {
+          "unit": "其他",
+          "role": "AI應用工程師",
+          "degree": "碩士",
+          "years": null,
+          "base_month_k": [
+            55,
+            55
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
           "n": 1,
-          "n_stat": 1
+          "n_stat": 1,
+          "note": null,
+          "grade": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/6a8d93e9c43855f640155d6b",
+              "date": "2026-08"
+            }
+          ],
+          "confidence": "低",
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/6a8d93e9c43855f640155d6b",
+              "date": "2026-08",
+              "page_date": "2026-08-25",
+              "date_confirmed": true,
+              "role": "AI應用工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 55,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "面試",
+              "in_window": true,
+              "date_note": "GoodJob 標題日期 2026.8.25"
+            }
+          ]
         }
       ],
       "mops": null,
@@ -9516,6 +9819,61 @@
             }
           ],
           "n_stat": 1
+        },
+        {
+          "unit": "其他",
+          "role": "BIOS工程師",
+          "degree": "碩士",
+          "years": null,
+          "base_month_k": [
+            48,
+            48
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": [
+            64,
+            64
+          ],
+          "overtime": "經常",
+          "travel": null,
+          "n": 1,
+          "n_stat": 1,
+          "note": null,
+          "grade": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/6969db9994aa62653a363d62",
+              "date": "2026-01"
+            }
+          ],
+          "confidence": "低",
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/6969db9994aa62653a363d62",
+              "date": "2026-01",
+              "page_date": "2026-01-16",
+              "date_confirmed": true,
+              "role": "BIOS工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 48,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 64,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "薪水靠加班費疊",
+              "in_window": true,
+              "date_note": "GoodJob 標題日期 2026.1.16"
+            }
+          ]
         }
       ],
       "mops": null,
@@ -10335,6 +10693,58 @@
           "travel": null,
           "n": 1,
           "n_stat": 1
+        },
+        {
+          "unit": "其他",
+          "role": "品質工程師",
+          "degree": "碩士",
+          "years": null,
+          "base_month_k": [
+            65,
+            65
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n": 1,
+          "n_stat": 1,
+          "note": null,
+          "grade": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/6a7e63a8b25d25ff8cd84874",
+              "date": "2026-08"
+            }
+          ],
+          "confidence": "低",
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/6a7e63a8b25d25ff8cd84874",
+              "date": "2026-08",
+              "page_date": "2026-08-14",
+              "date_confirmed": true,
+              "role": "品質工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 65,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": null,
+              "in_window": true,
+              "date_note": "GoodJob 標題日期 2026.8.14"
+            }
+          ]
         }
       ],
       "mops": null,
@@ -13009,7 +13419,10 @@
           "role": "軟體工程師",
           "degree": "碩士（未標學歷）",
           "years": "3",
-          "base_month_k": null,
+          "base_month_k": [
+            40.5,
+            40.5
+          ],
           "bonus_months": null,
           "annual_months": null,
           "annual_total_wan": [
@@ -13019,7 +13432,7 @@
           "weekly_hours": null,
           "overtime": "幾乎不",
           "travel": null,
-          "n": 2,
+          "n": 3,
           "note": "平台自述統計（未轉貼原文）；範圍外參考：2025-09 高雄 3 年年薪 85 萬，績效好 18 個月以上；annual_months 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples；未逐筆對應的舊彙整：{\"annual_months\": [18, null], \"annual_total_wan\": [85, 85]}；未逐筆對應的舊彙整：overtime=偶爾～經常",
           "sources": [
             {
@@ -13031,9 +13444,14 @@
               "site": "GoodJob",
               "url": "https://www.goodjob.life/companies/緯創資通股份有限公司 WISTRON/work-experiences/薪資福利?p=2",
               "date": "2026"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/6a7b3e82b25d25ff8c9d4938",
+              "date": "2026-08"
             }
           ],
-          "confidence": "低",
+          "confidence": "中",
           "grade": null,
           "samples": [
             {
@@ -13075,9 +13493,31 @@
               "in_window": true,
               "role": "軟體設計工程師（台北評價）",
               "quote_free_note": "部門年資偏高、通常不加班；1 年經驗、年薪 70 萬"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/6a7b3e82b25d25ff8c9d4938",
+              "date": "2026-08",
+              "page_date": "2026-08-11",
+              "date_confirmed": true,
+              "role": "軟體工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 40.5,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": null,
+              "in_window": true,
+              "date_note": "GoodJob 標題日期 2026.8.11"
             }
           ],
-          "n_stat": 2
+          "n_stat": 3
         },
         {
           "unit": "汐止 / switch 與 server",
@@ -13619,6 +14059,110 @@
           "n_stat": 0,
           "note": "未逐筆對應的舊彙整：annual_months=[17, 17]、overtime=經常",
           "grade": null
+        },
+        {
+          "unit": "其他",
+          "role": "LAYOUT 工程師",
+          "degree": "碩士",
+          "years": null,
+          "base_month_k": [
+            55,
+            55
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n": 1,
+          "n_stat": 1,
+          "note": null,
+          "grade": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/6a8267a50ac1ff26f80aac76",
+              "date": "2026-08"
+            }
+          ],
+          "confidence": "低",
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/6a8267a50ac1ff26f80aac76",
+              "date": "2026-08",
+              "page_date": "2026-08-17",
+              "date_confirmed": true,
+              "role": "LAYOUT 工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 55,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": null,
+              "in_window": true,
+              "date_note": "GoodJob 標題日期 2026.8.17"
+            }
+          ]
+        },
+        {
+          "unit": "其他",
+          "role": "GPU產測工程師",
+          "degree": "碩士",
+          "years": null,
+          "base_month_k": [
+            58,
+            58
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n": 1,
+          "n_stat": 1,
+          "note": null,
+          "grade": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/69b31b7922e2b57dbb4f0ceb",
+              "date": "2026-03"
+            }
+          ],
+          "confidence": "低",
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/69b31b7922e2b57dbb4f0ceb",
+              "date": "2026-03",
+              "page_date": "2026-03-12",
+              "date_confirmed": true,
+              "role": "GPU產測工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 58,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "面試",
+              "in_window": true,
+              "date_note": "GoodJob 標題日期 2026.3.12"
+            }
+          ]
         }
       ],
       "mops": null,
@@ -14795,6 +15339,58 @@
           "years": "7",
           "n": 1,
           "n_stat": 1
+        },
+        {
+          "unit": "其他",
+          "role": "企業軟體工程師",
+          "degree": "碩士",
+          "years": null,
+          "base_month_k": [
+            60,
+            60
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n": 1,
+          "n_stat": 1,
+          "note": null,
+          "grade": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/6a8fa9cdf24ab660527cb3b8",
+              "date": "2026-08"
+            }
+          ],
+          "confidence": "低",
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/6a8fa9cdf24ab660527cb3b8",
+              "date": "2026-08",
+              "page_date": "2026-08-27",
+              "date_confirmed": true,
+              "role": "企業軟體工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 60,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "面試",
+              "in_window": true,
+              "date_note": "GoodJob 標題日期 2026.8.27"
+            }
+          ]
         }
       ]
     },
