@@ -448,24 +448,35 @@ def _bars_svg(W, H, vals, dates, fs, pos_col=None, ypad=0.08, month_labels=True,
 
 
 def b_fut_oi(mode, w, h, ctx):
+    """三張面板：標題列（身分＋淨未平倉）→ 每日淨未平倉長條 → 多空比例條（照網站總覽「漲跌家數」那種：細長比例條＋兩端百分比與口數）。
+    2026-10-26 Andy：「上方多空比用圖二方式呈現，長條比例圖新增在下方」→ 拿掉最上面的總覽，多空口數改成每張面板下方的比例條。"""
     j = ctx["jget"]("fut_oi")
     s = S_(mode)
     dates = j["dates"][-126:]
     pn = []
     n = 3
-    foot_h = round(140 * s)
-    ph = (h - foot_h - 10 * n - 4) / n
-    for key, lab in (("foreign", "外資"), ("trust", "投信"), ("dealer", "自營商")):
+    ud_h = round(104 * s)       # 比例條區高度
+    ph = (h - 10 * (n - 1)) / n
+    for i, (key, lab) in enumerate((("foreign", "外資"), ("trust", "投信"), ("dealer", "自營商"))):
         net = [float(x) if x is not None else 0.0 for x in j[key]["net"][-126:]]
         last = net[-1]
-        svg = "".join(_bars_svg(w - 6, ph - round(74 * s), net, dates, round(24 * s))) + "</svg>"
-        pn.append(f'<div class=sub style="height:{ph:.0f}px;margin-top:10px"><div class=ptitle>{lab} 每日淨未平倉（口）<span class=rt style="font-size:{round(36 * s)}px;font-weight:800;color:{tone(last)}">{sgn(last, 0)}</span></div>{svg}</div>')
-    foot = []
-    for key, lab in (("foreign", "外資"), ("trust", "投信"), ("dealer", "自營商")):
-        lg, sh = j[key]["long"][-1], j[key]["short"][-1]
-        foot.append(f'<div class=k style="padding:4px 10px"><div class=l>{lab}</div><div class=vv style="font-size:{round(34 * s)}px;color:{tone(lg - sh)}">{sgn(lg - sh, 0)}</div><div class=ss>多 {lg:,.0f}／空 {sh:,.0f}</div></div>')
-    # 總覽（外資／投信／自營商 淨額＋多空口數）放最上面（2026-10-26 Andy：「圖一紅框移動到上方」）
-    return f'<div class=sub style="height:{foot_h}px;display:grid;grid-template-columns:repeat(3,1fr);align-items:center">{"".join(foot)}</div>' + "".join(pn)
+        lg, sh = float(j[key]["long"][-1]), float(j[key]["short"][-1])
+        tot = (lg + sh) or 1
+        pl, ps = lg / tot * 100, sh / tot * 100
+        svg = "".join(_bars_svg(w - 6, ph - round(74 * s) - ud_h, net, dates, round(24 * s))) + "</svg>"
+        lf, nf = round(24 * s), round(34 * s)
+        ud = (f'<div style="height:{ud_h}px;padding:6px 12px 0;border-top:1px dashed var(--line)">'
+              f'<div style="display:flex;height:{round(10 * s)}px;border-radius:5px;overflow:hidden;margin-top:6px">'
+              f'<span style="width:{pl:.2f}%;background:{T["rise"]};opacity:.85"></span><span style="flex:1;background:{T["fall"]};opacity:.85"></span></div>'
+              f'<div style="display:flex;justify-content:space-between;margin-top:6px;line-height:1.25">'
+              f'<div><div style="font-size:{lf}px;color:var(--ink2)">多單 <span style="font-family:{NUMF}">{pl:.1f}%</span></div>'
+              f'<div style="font-size:{nf}px;font-weight:800;color:{T["rise"]};font-family:{NUMF}">{lg:,.0f}<small style="font-size:{lf}px;font-weight:600;color:var(--ink2);margin-left:4px">口</small></div></div>'
+              f'<div style="text-align:right"><div style="font-size:{lf}px;color:var(--ink2)">空單 <span style="font-family:{NUMF}">{ps:.1f}%</span></div>'
+              f'<div style="font-size:{nf}px;font-weight:800;color:{T["fall"]};font-family:{NUMF}">{sh:,.0f}<small style="font-size:{lf}px;font-weight:600;color:var(--ink2);margin-left:4px">口</small></div></div>'
+              f'</div></div>')
+        pn.append(f'<div class=sub style="height:{ph:.0f}px;{"margin-top:10px;" if i else ""}display:flex;flex-direction:column">'
+                  f'<div class=ptitle>{lab} 每日淨未平倉（口）<span class=rt style="font-size:{round(36 * s)}px;font-weight:800;color:{tone(last)}">{sgn(last, 0)}</span></div>{svg}{ud}</div>')
+    return "".join(pn)
 
 
 # ---- 散戶多空比
