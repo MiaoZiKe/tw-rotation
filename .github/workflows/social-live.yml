@@ -38,9 +38,9 @@ on:
   workflow_dispatch:
     inputs:
       kind:
-        description: "intraday（盤中）、close（盤後法人）或 credit（盤後融資）"
+        description: "premarket（盤前）、intraday（盤中）、close（盤後）或 credit（舊：盤後融資）"
         type: choice
-        options: [intraday, close, credit]
+        options: [premarket, intraday, close, credit]
         default: intraday
       dry_run:
         description: "只演練：照常截圖排版，但不真的發布"
@@ -48,6 +48,10 @@ on:
         default: true
       force:
         description: "略過盤中時段／交易日／資料日期檢查（測試用）"
+        type: boolean
+        default: false
+      live_test:
+        description: "測試真發一篇（2026-10-27 Andy：「全部發一篇測試」）：不管總開關、用最近一次資料、不寫發布紀錄（不會擋掉當天正式那篇）"
         type: boolean
         default: false
 
@@ -110,6 +114,7 @@ jobs:
         if: steps.done.outputs.skip != '1'
         run: |
           pip install playwright pillow requests
+          if [ "${{ steps.kind.outputs.kind }}" = "premarket" ]; then pip install -r requirements.txt; fi      # 盤前要讀資料湖（pandas／pyarrow）
           python -m playwright install --with-deps chromium
           sudo apt-get install -y fonts-noto-cjk fonts-noto-color-emoji
 
@@ -120,12 +125,19 @@ jobs:
           OUT="snaps/${{ steps.kind.outputs.kind }}-${{ steps.kind.outputs.stamp }}"
           echo "out=$OUT" >> "$GITHUB_OUTPUT"
           FORCE=""
-          if [ "${{ inputs.force }}" = "true" ]; then FORCE="--force"; fi
+          if [ "${{ inputs.force }}" = "true" ] || [ "${{ inputs.live_test }}" = "true" ]; then FORCE="--force"; fi
           POSTED=""
-          if [ -f "$RUNNER_TEMP/posted.json" ]; then POSTED="--posted-json $RUNNER_TEMP/posted.json"; fi
+          if [ -f "$RUNNER_TEMP/posted.json" ] && [ "${{ inputs.live_test }}" != "true" ]; then POSTED="--posted-json $RUNNER_TEMP/posted.json"; fi
           set +e
-          python scripts/social_snap.py --kind "${{ steps.kind.outputs.kind }}" --out "$OUT" \
-            --serve site --data-url https://miaozike.github.io/tw-rotation/data,https://tw-rotation.pages.dev/data,https://liguligu-puipui.com/data --spoof-origin $FORCE $POSTED
+          if [ "${{ steps.kind.outputs.kind }}" = "premarket" ]; then
+            # 盤前：讀 checkout 的資料湖（data/），不需要網站；融資 3 張讀正式站 market_fut.json
+            python scripts/social_premarket.py --out "$OUT" $FORCE
+          else
+            SKIP=""
+            if [ "${{ inputs.live_test }}" = "true" ]; then SKIP="--skip-live"; fi      # 測試在盤後時段跑，沒有即時報價
+            python scripts/social_snap.py --kind "${{ steps.kind.outputs.kind }}" --out "$OUT" \
+              --serve site --data-url https://miaozike.github.io/tw-rotation/data,https://tw-rotation.pages.dev/data,https://liguligu-puipui.com/data --spoof-origin $FORCE $POSTED $SKIP
+          fi
           RC=$?
           set -e
           echo "rc=$RC" >> "$GITHUB_OUTPUT"
@@ -194,7 +206,7 @@ jobs:
         run: |
           DRY=""
           if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.dry_run }}" = "true" ]; then DRY="--dry-run"; fi
-          if [ ! -f docs/marketing/social_unit/LIVE_ENABLED ]; then
+          if [ ! -f docs/marketing/social_unit/LIVE_ENABLED ] && [ "${{ inputs.live_test }}" != "true" ]; then
             echo "總開關關閉（docs/marketing/social_unit/LIVE_ENABLED 不存在）→ dry-run，不真的發布"
             echo "### 總開關關閉 → dry-run（要開始真的發，在 repo 建立 docs/marketing/social_unit/LIVE_ENABLED）" >> "$GITHUB_STEP_SUMMARY"
             DRY="--dry-run"
@@ -203,6 +215,7 @@ jobs:
           python scripts/social_publish.py --manifest "${{ steps.snap.outputs.out }}/manifest.json" \
             --base-url "${{ steps.pub.outputs.base }}" $DRY
           if [ -z "$DRY" ] && [ -f "${{ steps.snap.outputs.out }}/posted.json" ]; then echo "save=1" >> "$GITHUB_OUTPUT"; fi
+          if [ "${{ inputs.live_test }}" = "true" ]; then rm -f "${{ steps.snap.outputs.out }}/posted.json"; fi      # 測試不寫發布紀錄
 
       # 發布程式的防重複紀錄 posted.json 要寫回 social-snaps，下一輪（含盤後那三次接力）才知道發過了；
       # 發布失敗也要寫（已成功的那一半不能重發）
