@@ -1,0 +1,46 @@
+﻿候選,輪,參數
+R1 A只多 全家族,1,
+R1 A只多 REG,1,
+R1 A只多 BRK,1,
+R1 A只多 PB,1,
+R1 A只多 MA,1,
+R1 A只多 RO,1,
+R1 A只多 DMA,1,
+R1 A只多 BAS,1,
+R1 B多空 全家族,1,
+R1 B多空 REG,1,
+R1 B多空 BRK,1,
+R1 B多空 PB,1,
+R1 B多空 MA,1,
+R1 B多空 RO,1,
+R1 B多空 DMA,1,
+R1 B多空 BAS,1,
+R2 優化版,2,"ICHI[D](t=9,k=22,b=52) | 濾網BC | 停損99ATR"
+R2 預設參數版,2,"ICHI[D](t=9,k=26,b=52) | 濾網BC | 停損3ATR"
+R3 優化版,3,OBV[W](n=26) & MA[D](n=30) | 濾網BC | 停損3ATR
+R3 預設參數版,3,OBV[W](n=26) & MA[D](n=60) | 濾網BC | 停損3ATR
+R4 T,4,T|k=1|n=150|m=3|base=1.2|boost=0|gap=1
+R4 T+V,4,T+V|k=1|n=250|vix=35|m=1|base=1.2|boost=0|gap=1
+R4 T+B,4,T+B|k=2|n=150|bas=0.003|m=3|base=1.2|boost=0|gap=1
+R4 T+V+B,4,T+V+B|k=2|n=150|vix=35|bas=0.003|m=5|base=1.2|boost=0|gap=1
+R4 W,4,W|k=1|m=1|base=1.2|boost=1|gap=1
+R4 W+V,4,W+V|k=2|vix=35|m=5|base=1.2|boost=0|gap=1
+R4 DD,4,DD|k=1|dd=0.1|m=5|base=1.2|boost=0|gap=1
+R4 V,4,V|k=1|vix=35|m=5|base=1.2|boost=0|gap=1
+R4 T+DD,4,T+DD|k=2|n=150|dd=0.1|m=3|base=1.2|boost=0|gap=1
+R4 T+FN,4,T+FN|k=1|n=150|m=3|base=1.2|boost=0|gap=1
+R4 T+SM,4,T+SM|k=2|n=150|m=3|base=1.2|boost=0|gap=1
+R4 T+V+SM,4,T+V+SM|k=2|n=150|vix=35|m=3|base=1.2|boost=0|gap=1
+R4 T+U,4,T+U|k=1|n=200|m=1|base=1.2|boost=1|gap=1
+R4 T+V+FN,4,T+V+FN|k=1|n=250|vix=35|m=1|base=1.2|boost=0|gap=1
+R4 W+DD,4,W+DD|k=2|dd=0.1|m=1|base=1.2|boost=1|gap=1
+基準 台指期持有1x(修正),0,基準 台指期持有1x(修正)
+基準 台指期持有1.2x(修正),0,基準 台指期持有1.2x(修正)
+組合 W gap=0,4,W|k=1|m=1|base=1.2|boost=1|gap=0
+組合 W gap=1,4,W|k=1|m=1|base=1.2|boost=1|gap=1
+組合 T+SM gap=0,4,T+SM|k=2|n=150|m=3|base=1.2|boost=0|gap=0
+組合 T+SM gap=1,4,T+SM|k=2|n=150|m=3|base=1.2|boost=0|gap=1
+組合 T+V+SM gap=0,4,T+V+SM|k=2|n=150|vix=35|m=3|base=1.2|boost=0|gap=0
+組合 T+V+SM gap=1,4,T+V+SM|k=2|n=150|vix=35|m=3|base=1.2|boost=0|gap=1
+組合 W+DD gap=0,4,W+DD|k=2|dd=0.1|m=1|base=1.2|boost=1|gap=0
+組合 W+DD gap=1,4,W+DD|k=2|dd=0.1|m=1|base=1.2|boost=1|gap=1
