@@ -1589,6 +1589,13 @@ def main() -> int:
     if only_extras:
         return 0
 
+    # 2026-10-26（台指期第四輪）：臺指選擇權每日買賣權比（opt_pc），按月游標、每輪最多補 3 個月；只要 3 次請求，所以放在個股計畫「之前」：計畫每輪都把 FinMind 額度燒光，放後面會永遠拿不到額度。失敗只記 log。
+    if args.plan:
+        try:
+            from .sources import optpc
+            optpc.backfill_opt_pc(_progress(), _save_progress)
+        except Exception as exc:  # noqa: BLE001
+            log.warning("opt_pc 回補失敗（不影響其他步驟）：%s", exc)
     if args.plan:
         summary = run_plan(args.plan, limit)
     else:
@@ -1600,13 +1607,6 @@ def main() -> int:
         summary = run(args.datasets or "price+inst", limit, args.start)
     total = sum(summary[k] for k in DATA_KEYS)
     log.info("本輪共寫入 %d 列", total)
-    # 2026-10-26（台指期第四輪）：臺指選擇權每日買賣權比（opt_pc），按月游標、每輪最多補 3 個月；失敗只記 log，不影響前面的回補。
-    if args.plan:
-        try:
-            from .sources import optpc
-            optpc.backfill_opt_pc(_progress(), _save_progress)
-        except Exception as exc:  # noqa: BLE001
-            log.warning("opt_pc 回補失敗（不影響其他步驟）：%s", exc)
     return 0
 
 
