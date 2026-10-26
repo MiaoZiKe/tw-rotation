@@ -37,6 +37,12 @@ CANVAS = {
 }
 
 
+# 標題字級統一（2026-10-26 Andy：「標題字體大小風格都不同，請調整」）：
+# 頁首標題 52px、時段膠囊 28px、日期 34px —— Threads 與限動同一套，不再依畫布倍率放大；
+# 卡片內的區塊標題（每張小圖的名稱列）一律 SEC_FS、粗 800、深色字。
+SEC_FS = {"threads": 30, "story": 32}
+
+
 def logo_uri() -> str:
     f = ROOT / "site" / "brand" / "icon-192.png"
     return "data:image/png;base64," + base64.b64encode(f.read_bytes()).decode() if f.exists() else ""
@@ -59,9 +65,9 @@ radial-gradient(900px 520px at 12% -10%,rgba(55,200,255,.24),rgba(55,200,255,0) 
 .num{{font-family:{NUM_FONT};font-variant-numeric:tabular-nums;letter-spacing:-.01em}}
 .hd{{display:flex;align-items:center;height:88px;gap:18px;flex:none}}
 .hd img{{width:72px;height:72px;border-radius:17px;flex:none;display:block}}
-.hd .chip{{font-size:{round(28*s)}px;font-weight:800;line-height:1.5;padding:2px 18px;border-radius:12px;color:#0A1B2A;flex:none;white-space:nowrap}}
-.hd .nm{{font-size:{round(54*s)}px;font-weight:800;line-height:1.5;white-space:nowrap;min-width:0}}
-.hd .dt{{margin-left:auto;font-size:{round(36*s)}px;font-weight:600;line-height:1.5;color:var(--ink2);white-space:nowrap;font-family:{NUM_FONT};font-variant-numeric:tabular-nums}}
+.hd .chip{{font-size:28px;font-weight:800;line-height:1.5;padding:2px 18px;border-radius:12px;color:#0A1B2A;flex:none;white-space:nowrap}}
+.hd .nm{{font-size:52px;font-weight:800;line-height:1.5;white-space:nowrap;min-width:0}}
+.hd .dt{{margin-left:auto;font-size:34px;font-weight:600;line-height:1.5;color:var(--ink2);white-space:nowrap;font-family:{NUM_FONT};font-variant-numeric:tabular-nums}}
 .rule{{height:2px;flex:none;margin:14px 0 14px;background:linear-gradient(90deg,#06B6D4,rgba(6,182,212,0));border-radius:2px}}
 .card,.q{{position:relative}}
 .card{{background:var(--panel);border:1.5px solid var(--line);border-radius:10px;box-shadow:inset 0 1px 0 rgba(255,255,255,.9),0 10px 26px -18px rgba(10,40,60,.45)}}

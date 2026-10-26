@@ -617,9 +617,22 @@ def market_reads(us: dict, adr: dict, night: dict, partial: bool = False) -> lis
             out.append(x)
     if "^VIX" in by:
         v = by["^VIX"]
-        lvl = "低檔" if v["close"] < 15 else "平穩區" if v["close"] < 20 else "偏高區" if v["close"] < 30 else "恐慌區"
-        mood = "，恐慌情緒升溫" if v["pct"] >= VIX_MOVE else "，恐慌情緒降溫" if v["pct"] <= -VIX_MOVE else ""
-        out.append(f"VIX {fmt_num(v['close'])}（{fmt_signed(v['pct'], 1, '%')}），位於{lvl}{mood}")
+        # 2026-10-26 Andy：「VIX 怎麼可能叫做平穩區」→ 不再只看絕對水位；加上一個月變化與 20 警戒線距離。
+        # 水位：<15 低檔、15–20「逼近 20 警戒線」、20–30「站上 20 警戒線」、≥30「恐慌區」（CBOE／媒體常用 20、30 兩條線）
+        lvl = ("處於低檔" if v["close"] < 15 else f"逼近 20 警戒線" if v["close"] < 20 else
+               "站上 20 警戒線" if v["close"] < 30 else "進入 30 以上恐慌區")
+        kb = (v.get("k") or {}).get("bars") or []
+        m1 = ""
+        if len(kb) >= 15 and kb[0]["c"]:      # 圖上這一個月（K_LONG 根）的第一天
+            ch = (v["close"] / kb[0]["c"] - 1) * 100
+            if ch >= 15:
+                m1 = f"，一個月內從 {fmt_num(kb[0]['c'])} 升到 {fmt_num(v['close'])}（{fmt_signed(ch, 0, '%')}），避險情緒明顯升溫"
+            elif ch <= -15:
+                m1 = f"，一個月內從 {fmt_num(kb[0]['c'])} 降到 {fmt_num(v['close'])}（{fmt_signed(ch, 0, '%')}），避險情緒降溫"
+        hi = max((b["h"] or b["c"]) for b in kb[-10:]) if kb else 0
+        spike = f"，近 10 日盤中最高 {fmt_num(hi)}" if hi >= 20 and v["close"] < 20 else ""
+        mood = "，單日急升" if v["pct"] >= VIX_MOVE else "，單日回落" if v["pct"] <= -VIX_MOVE else ""
+        out.append(f"VIX {fmt_num(v['close'])}（{fmt_signed(v['pct'], 1, '%')}），{lvl}{mood}{m1}{spike}")
     if not night.get("missing") and night.get("diff") is not None and not night.get("partial"):
         out.append(f"台指期夜盤 {fmt_num(night['close'], 0)}，較日盤 {fmt_signed(night['diff'], 0)} 點（{fmt_signed(night['diff_pct'], 2, '%')}）")
     return out
@@ -860,13 +873,13 @@ body{{font-variant-numeric:tabular-nums}}
 .rdg{{display:grid;grid-template-columns:auto auto 1fr;column-gap:{S(18, 20)}px;align-items:baseline}}
 .rdg > div{{font-size:{S(25, 28)}px;line-height:1.5;padding:2px 0;border-bottom:1px dashed var(--line);white-space:nowrap}}
 .rdg > div:nth-last-child(-n+3){{border-bottom:none}}
-.rdn{{font-weight:800;color:var(--ink)}}.rdv{{font-weight:800;text-align:right;font-variant-numeric:tabular-nums}}.rdt{{color:var(--ink2);font-weight:600}}
+.rdn{{font-weight:800;color:var(--ink)}}.rdv{{font-weight:800;text-align:right;font-variant-numeric:tabular-nums}}.rdg > .rdt{{color:var(--ink2);font-weight:600;white-space:normal;min-width:0}}
 .kps{{flex:1;min-height:0;display:flex;flex-direction:column;gap:{S(10, 14)}px}}
 .kp{{flex:1;min-height:0;display:flex;flex-direction:column;border:1.5px solid var(--line);border-radius:10px;background:var(--panel2);padding:{S('6px 14px 4px', '10px 16px 6px')}}}
 .kph{{flex:none;display:flex;align-items:baseline;justify-content:space-between;gap:12px;line-height:1.35}}
-.kpn{{font-size:{S(32, 38)}px;font-weight:800;white-space:nowrap}}
+.kpn{{font-size:{ss.TH.SEC_FS[mode]}px;font-weight:800;white-space:nowrap}}
 .kpr{{display:flex;align-items:baseline;gap:{S(12, 14)}px;white-space:nowrap;font-size:{S(28, 32)}px}}
-.kpr b{{font-size:{S(32, 38)}px;font-weight:800}}.kpr span{{font-weight:800}}.kpr .sm{{font-size:{S(23, 26)}px;font-weight:600}}.ink2{{color:var(--ink2)}}
+.kpr b{{font-size:{ss.TH.SEC_FS[mode]}px;font-weight:800}}.kpr span{{font-weight:800}}.kpr .sm{{font-size:{S(23, 26)}px;font-weight:600}}.ink2{{color:var(--ink2)}}
 .kp .chartbox{{margin-top:4px}}
 .it .ic{{flex:none;width:{S(110, 120)}px;height:{S(110, 120)}px;border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:{S(64, 70)}px;line-height:1;
   background:color-mix(in srgb,var(--c) 14%,var(--panel));font-family:'Noto Color Emoji','Apple Color Emoji',sans-serif}}

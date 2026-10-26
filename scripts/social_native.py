@@ -103,7 +103,7 @@ svg text{{font-family:{FONTS};font-variant-numeric:tabular-nums}}
 .sub{{border:1.5px solid var(--line);border-radius:10px;background:var(--panel2);position:relative}}
 .rl{{height:100%;display:flex;flex-direction:column;gap:10px}}
 .rl .sec{{display:flex;flex-direction:column;min-height:0}}
-.rl .sh{{flex:none;font-size:{round(30 * s)}px;font-weight:800;line-height:1.4;padding:2px 6px 4px}}
+.rl .sh{{flex:none;font-size:{TH.SEC_FS[mode]}px;font-weight:800;line-height:1.4;padding:2px 6px 4px}}
 .rl .rows{{flex:1;min-height:0;display:flex;flex-direction:column;border-top:1.5px solid var(--line)}}
 .rl .r{{flex:1;min-height:0;display:flex;align-items:center;gap:12px;padding:0 8px;border-bottom:1px dashed var(--line)}}
 .rl .r:last-child{{border-bottom:none}}
@@ -120,7 +120,7 @@ svg text{{font-family:{FONTS};font-variant-numeric:tabular-nums}}
 .k .vv{{font-size:{round(44 * s)}px;font-weight:800;line-height:1.2;white-space:nowrap;font-family:{NUMF}}}
 .k .vv u{{text-decoration:none;font-size:{round(26 * s)}px;font-weight:600;color:var(--ink2);margin-left:4px}}
 .k .ss{{font-size:{round(25 * s)}px;color:var(--ink3);white-space:nowrap;line-height:1.35}}
-.ptitle{{display:flex;align-items:baseline;gap:14px;font-size:{round(30 * s)}px;font-weight:800;line-height:1.35;white-space:nowrap;padding:6px 10px 0}}
+.ptitle{{display:flex;align-items:baseline;gap:14px;font-size:{TH.SEC_FS[mode]}px;font-weight:800;line-height:1.35;white-space:nowrap;padding:6px 10px 0}}
 .ptitle i{{font-style:normal;font-size:{round(44 * s)}px;font-weight:800;font-family:{NUMF}}}
 .ptitle em{{font-style:normal;font-size:{round(26 * s)}px;font-weight:600;color:var(--ink2)}}
 .ptitle .rt{{margin-left:auto;font-size:{round(26 * s)}px;font-weight:600;color:var(--ink3)}}
