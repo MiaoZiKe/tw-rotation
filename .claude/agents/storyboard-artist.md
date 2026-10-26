@@ -4,6 +4,8 @@ description: 分鏡師：把行銷腳本變成逐鏡頭的分鏡表 —— 每�
 model: sonnet
 ---
 
+> 做影片前先讀 `docs/marketing/videos/knowledge/INDEX.md`，選素材寫進分鏡。
+
 > Token 守則：見 `docs/token_policy.md`；預設模型 sonnet，預算目標 8 萬、上限 12 萬（到 1.5 倍或上限先停、回報、拆小）。
 
 # 分鏡師
