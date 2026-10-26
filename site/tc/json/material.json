@@ -396,7 +396,7 @@
         },
         {
           "type": "員工分紅／績效",
-          "rule": "年終＋分紅約 6～8 個月（人資說法），依職位、考績與所屬法人；原記「10 月分紅」查無來源，已移除",
+          "rule": "年終＋分紅約 6～8 個月（人資說法），依職位、考績與所屬法人",
           "months": null,
           "sources": [
             {
@@ -445,7 +445,7 @@
           "weekly_hours": null,
           "overtime": null,
           "travel": null,
-          "n": 9,
+          "n": 8,
           "note": "GoodJob 不到 1 年 5.9 萬；salary.tw 2026-06 桃園年終約 2 個月；學歷未標；第二輪：Dcard 2026 薪酬分佈與分紅一篇；舊文稱分紅多到第三年才有（範圍外參考）；base_month_k、bonus_months、annual_months 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples；未逐筆對應的舊彙整：base_month_k=[55, 60]；未逐筆對應的舊彙整：bonus_months=[2, 2]；未逐筆對應的舊彙整：annual_months=[14, 15]；未逐筆對應的舊彙整：overtime=經常、travel=不用",
           "sources": [
             {
@@ -501,8 +501,8 @@
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
-              "quote_free_note": null,
-              "date_confirmed": false,
+              "quote_free_note": "不到 1 年月薪 5.9 萬",
+              "date_confirmed": true,
               "date_note": "日期為推估或僅年份，不進統計",
               "in_window": true
             },
@@ -618,25 +618,6 @@
               "quote_free_note": "整合工程師評價，無薪資數字",
               "date_confirmed": true,
               "date_note": "GoodJob 標題年月",
-              "in_window": true
-            },
-            {
-              "site": "GoodJob",
-              "url": "https://www.goodjob.life/companies/欣興電子股份有限公司/work-experiences/薪資福利",
-              "date": "2026",
-              "unit_detail": null,
-              "years": "0",
-              "degree": null,
-              "base_k": 59,
-              "bonus_months": null,
-              "annual_months": null,
-              "annual_wan": null,
-              "weekly_hours": null,
-              "overtime": null,
-              "travel": null,
-              "quote_free_note": "不到 1 年月薪 5.9 萬",
-              "date_confirmed": true,
-              "date_note": "GoodJob 搜尋摘要標分享年月：2026 整年在期間內",
               "in_window": true
             },
             {
@@ -2448,14 +2429,17 @@
               "degree": null,
               "base_k": null,
               "bonus_months": null,
-              "annual_months": 15,
+              "annual_months": [
+                14,
+                16
+              ],
               "annual_wan": null,
               "weekly_hours": 45,
               "overtime": "幾乎不",
               "travel": null,
-              "quote_free_note": "月薪 N+11（未寫單位），年薪約 14～16 個月（取中值）；8～17 點，客戶是台積",
+              "quote_free_note": "月薪 N+11（未寫單位），年薪約 14～16 個月；8～17 點，客戶是台積",
               "in_window": true,
-              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-03-12"
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-03-12；10-26 稽核：annual_months 由中值 15 改填區間 [14, 16]"
             }
           ],
           "sources": [
@@ -2468,8 +2452,8 @@
           "confidence": "低",
           "n": 1,
           "annual_months": [
-            15,
-            15
+            14,
+            16
           ],
           "weekly_hours": [
             45,
@@ -2694,13 +2678,16 @@
               "base_k": null,
               "bonus_months": null,
               "annual_months": null,
-              "annual_wan": 135,
+              "annual_wan": [
+                130,
+                140
+              ],
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
-              "quote_free_note": "年薪約 130～140 萬（取中值）",
+              "quote_free_note": "年薪約 130～140 萬",
               "in_window": true,
-              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-10-17"
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-10-17；10-26 稽核：annual_wan 由中值 135 改填區間 [130, 140]"
             }
           ],
           "sources": [
@@ -2713,8 +2700,8 @@
           "confidence": "低",
           "n": 1,
           "annual_total_wan": [
-            135,
-            135
+            130,
+            140
           ],
           "years": null,
           "base_month_k": null,

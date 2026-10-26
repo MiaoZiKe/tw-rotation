@@ -10,7 +10,7 @@
       "heat": "Dcard 熱度：高",
       "benefits": "三節、運動會獎金、健康中心；人均薪資福利費用 433 萬（114 年度永續報告書）",
       "stock_plan": "員工購股計畫，逾 85% 員工參與；2025-07 起擴及海外子公司並補助 15%",
-      "bonus_timing": "分紅 2 月、5 月、7 月、8 月、11 月發放（季業績獎金 2／5／8／11 月各發該季 50%，另 50% 隔年 7 月發）；年終 2 個月於 2 月發放",
+      "bonus_timing": "分紅 2 月、5 月、7 月、8 月、11 月發放（季業績獎金 2 月、5 月、8 月、11 月各發該季 50%，另 50% 隔年 7 月發）；年終 2 個月於 2 月發放",
       "culture": "高薪高工時；GoodJob 工時狀況平均 2.6／5（109 筆）",
       "interview": "約兩個月：線上面試→適性／英文測驗→主管面（論文為主）＋人資面（問能否輪班）→資歷查核→電子聘書；題目多出自「台積 24 問」",
       "roles": [
@@ -1348,7 +1348,7 @@
             }
           ],
           "n_stat": 21,
-          "bonus_timing_month": "2月、5月、7月、8月、11月"
+          "bonus_timing_month": "2 月、5 月、7 月、8 月、11 月"
         },
         {
           "unit": "晶圓廠 Fab",
@@ -1371,7 +1371,7 @@
           ],
           "overtime": "經常",
           "travel": "不用",
-          "n": 49,
+          "n": 46,
           "note": "GoodJob 2026-03 兩則自述（台中、高雄，不到 1 年），工時 55～60 小時／週、需輪班；學歷未標；分紅與年薪月數查 GoodJob／媒體未見設備職專屬數字，維持 null；可參考製程職推算 30～37 個月；2026-10-25 補：Dcard 碩士設備新人第一年自述 120～160 萬（第一年分紅未滿，試用期 3 個月不算），第三年 230～250 萬為單一匿名說法未採；未逐筆對應的舊彙整：annual_total_wan=[170, 172]",
           "sources": [
             {
@@ -1588,14 +1588,17 @@
               "base_k": null,
               "bonus_months": null,
               "annual_months": null,
-              "annual_wan": 140,
+              "annual_wan": [
+                120,
+                160
+              ],
               "weekly_hours": null,
               "overtime": "經常",
               "travel": "不用",
-              "quote_free_note": "碩士設備新人第一年約 120～160 萬（取中）",
+              "quote_free_note": "碩士設備新人第一年約 120～160 萬",
               "date_confirmed": false,
               "in_window": false,
-              "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計"
+              "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計；10-26 稽核：annual_wan 由中值 140 改填區間 [120, 160]"
             },
             {
               "site": "Dcard",
@@ -1877,10 +1880,11 @@
               "weekly_hours": null,
               "overtime": "經常",
               "travel": "不用",
-              "quote_free_note": "2027 預聘中科 15B EE 時程，D+19 e-offer",
+              "quote_free_note": "2027 預聘中科 15B EE 時程，D+19 e-offer；預聘；面試到 e-offer 約三週，資歷查核後 HR 電話核薪，數字未透露",
               "date_confirmed": true,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計；依 docs/tc/dcard_id_calibration.md 文章編號≥259537767 確認晚於 2025-08-01",
-              "in_window": true
+              "in_window": true,
+              "role": "EE 設備工程師（2027 預聘）"
             },
             {
               "site": "Dcard",
@@ -1915,10 +1919,12 @@
               "weekly_hours": null,
               "overtime": "經常",
               "travel": "不用",
-              "quote_free_note": "AP7 先進封裝設備 offer：薪資 N，先竹南受訓",
-              "date_confirmed": false,
+              "quote_free_note": "AP7 先進封裝設備 offer：薪資 N，先竹南受訓；原面 F14 PE 與 RDPC EE，被轉到先進封裝 EE 後拿到 offer；數字未透露；busyness 未提",
+              "date_confirmed": true,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": false,
+              "page_date": "2025-03-19",
+              "role": "設備工程師 EE（先進封裝 3DIC／CoWoS）"
             },
             {
               "site": "Dcard",
@@ -1991,10 +1997,12 @@
               "weekly_hours": null,
               "overtime": "經常",
               "travel": "不用",
-              "quote_free_note": "offer 請益：N 為 2026 台積新人價",
+              "quote_free_note": "offer 請益：N 為 2026 台積新人價；產線碩去年畢業；發文者認為錢多，但需租屋；數字未透露",
               "date_confirmed": true,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計；依 docs/tc/dcard_id_calibration.md 文章編號≥259537767 確認晚於 2025-08-01",
-              "in_window": true
+              "in_window": true,
+              "page_date": "2026-06-30",
+              "role": "設備工程師（黃光）"
             },
             {
               "site": "Dcard",
@@ -2245,27 +2253,6 @@
             },
             {
               "site": "Dcard",
-              "url": "https://www.dcard.tw/f/tech_job/p/262299445",
-              "date": "2026-10",
-              "date_confirmed": true,
-              "role": "EE 設備工程師（2027 預聘）",
-              "grade": null,
-              "unit_detail": "中科 F15B",
-              "years": "0",
-              "degree": null,
-              "base_k": null,
-              "bonus_months": null,
-              "annual_months": null,
-              "annual_wan": null,
-              "weekly_hours": null,
-              "overtime": null,
-              "travel": null,
-              "quote_free_note": "預聘；面試到 e-offer 約三週，資歷查核後 HR 電話核薪，數字未透露",
-              "in_window": true,
-              "date_note": "Andy 桌面版＋Chrome 親眼讀文章頁面發文日期"
-            },
-            {
-              "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/262276781",
               "date": "2026-10",
               "date_confirmed": true,
@@ -2284,28 +2271,6 @@
               "quote_free_note": "私立非產線碩、無相關經驗；一面到 e-offer 約兩個月，薪資未透露",
               "in_window": true,
               "date_note": "Andy 桌面版＋Chrome 親眼讀文章頁面發文日期"
-            },
-            {
-              "site": "Dcard",
-              "url": "https://www.dcard.tw/f/tech_job/p/261750232",
-              "date": "2026-06",
-              "page_date": "2026-06-30",
-              "date_confirmed": true,
-              "role": "設備工程師（黃光）",
-              "grade": null,
-              "unit_detail": "黃光",
-              "years": "0-1",
-              "degree": "碩士",
-              "base_k": null,
-              "bonus_months": null,
-              "annual_months": null,
-              "annual_wan": null,
-              "weekly_hours": null,
-              "overtime": null,
-              "travel": null,
-              "quote_free_note": "產線碩去年畢業；發文者認為錢多，但需租屋；數字未透露",
-              "in_window": true,
-              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-06-30"
             },
             {
               "site": "Dcard",
@@ -2505,32 +2470,10 @@
               "quote_free_note": "四大 CS 學碩、AI 背景；忙時要加班可報加班費；busyness=中；數字未透露；留言 B26 說比聯發科早下班",
               "in_window": false,
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2025-05-13"
-            },
-            {
-              "site": "Dcard",
-              "url": "https://www.dcard.tw/f/tech_job/p/258305389",
-              "date": "2025-03",
-              "page_date": "2025-03-19",
-              "date_confirmed": true,
-              "role": "設備工程師 EE（先進封裝 3DIC／CoWoS）",
-              "grade": null,
-              "unit_detail": "AP7（先竹南訓練後派嘉義）",
-              "years": null,
-              "degree": null,
-              "base_k": null,
-              "bonus_months": null,
-              "annual_months": null,
-              "annual_wan": null,
-              "weekly_hours": null,
-              "overtime": null,
-              "travel": null,
-              "quote_free_note": "原面 F14 PE 與 RDPC EE，被轉到先進封裝 EE 後拿到 offer；數字未透露；busyness 未提",
-              "date_note": "Dcard 頁面發文日期 2025-03-19（2026-10-26 1923 批，非 Andy 親眼讀）",
-              "in_window": false
             }
           ],
-          "n_stat": 24,
-          "bonus_timing_month": "2月、5月、7月、8月、11月"
+          "n_stat": 22,
+          "bonus_timing_month": "2 月、5 月、7 月、8 月、11 月"
         },
         {
           "unit": "智慧製造 IT",
@@ -3190,7 +3133,7 @@
             }
           ],
           "n_stat": 17,
-          "bonus_timing_month": "2月、5月、7月、8月、11月"
+          "bonus_timing_month": "2 月、5 月、7 月、8 月、11 月"
         },
         {
           "unit": "晶圓廠 Fab",
@@ -3837,7 +3780,7 @@
             }
           ],
           "n_stat": 11,
-          "bonus_timing_month": "2月、5月、7月、8月、11月"
+          "bonus_timing_month": "2 月、5 月、7 月、8 月、11 月"
         },
         {
           "unit": "晶圓廠 Fab",
@@ -4528,7 +4471,7 @@
             }
           ],
           "n_stat": 14,
-          "bonus_timing_month": "2月、5月、7月、8月、11月"
+          "bonus_timing_month": "2 月、5 月、7 月、8 月、11 月"
         },
         {
           "unit": "晶圓廠 Fab",
@@ -4621,7 +4564,7 @@
             }
           ],
           "n_stat": 1,
-          "bonus_timing_month": "2月、5月、7月、8月、11月"
+          "bonus_timing_month": "2 月、5 月、7 月、8 月、11 月"
         },
         {
           "unit": "晶圓廠 Fab",
@@ -5221,7 +5164,7 @@
             }
           ],
           "n_stat": 9,
-          "bonus_timing_month": "2月、5月、7月、8月、11月"
+          "bonus_timing_month": "2 月、5 月、7 月、8 月、11 月"
         },
         {
           "unit": "晶圓廠 Fab",
@@ -5509,7 +5452,7 @@
             }
           ],
           "n_stat": 1,
-          "bonus_timing_month": "2月、5月、7月、8月、11月"
+          "bonus_timing_month": "2 月、5 月、7 月、8 月、11 月"
         },
         {
           "unit": "晶圓廠 Fab",
@@ -5827,7 +5770,7 @@
             }
           ],
           "n_stat": 5,
-          "bonus_timing_month": "2月、5月、7月、8月、11月"
+          "bonus_timing_month": "2 月、5 月、7 月、8 月、11 月"
         },
         {
           "unit": "海外廠",
@@ -5902,7 +5845,7 @@
             }
           ],
           "n_stat": 1,
-          "bonus_timing_month": "2月、5月、7月、8月、11月"
+          "bonus_timing_month": "2 月、5 月、7 月、8 月、11 月"
         },
         {
           "unit": "廠務",
@@ -5968,7 +5911,7 @@
               "date": "依文章編號推估"
             }
           ],
-          "n": 15,
+          "n": 14,
           "grade": null,
           "busyness": null,
           "samples": [
@@ -6024,10 +5967,12 @@
               "weekly_hours": null,
               "overtime": "經常",
               "travel": "不用",
-              "quote_free_note": "廠務工程師 offer 請益",
-              "date_confirmed": false,
+              "quote_free_note": "廠務工程師 offer 請益；現職工研院（月薪 N-3、8 小時）；台積核薪 N（N 未說明）；需輪大小夜（8 週內小夜、大夜各 1 週）；busyness=高",
+              "date_confirmed": true,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": false,
+              "page_date": "2025-03-13",
+              "role": "廠務工程師（氣化課）"
             },
             {
               "site": "Dcard",
@@ -6218,28 +6163,6 @@
               "date": "2025-03",
               "page_date": "2025-03-13",
               "date_confirmed": true,
-              "role": "廠務工程師（氣化課）",
-              "grade": null,
-              "unit_detail": "新竹 / F20",
-              "years": "1",
-              "degree": "碩士",
-              "base_k": null,
-              "bonus_months": null,
-              "annual_months": null,
-              "annual_wan": null,
-              "weekly_hours": null,
-              "overtime": "經常",
-              "travel": null,
-              "quote_free_note": "現職工研院（月薪 N-3、8 小時）；台積核薪 N（N 未說明）；需輪大小夜（8 週內小夜、大夜各 1 週）；busyness=高",
-              "date_note": "Dcard 頁面發文日期 2025-03-13（2026-10-26 1923 批，非 Andy 親眼讀）",
-              "in_window": false
-            },
-            {
-              "site": "Dcard",
-              "url": "https://www.dcard.tw/f/tech_job/p/258254089",
-              "date": "2025-03",
-              "page_date": "2025-03-13",
-              "date_confirmed": true,
               "role": "廠務工程師（留言）",
               "grade": null,
               "unit_detail": null,
@@ -6280,7 +6203,7 @@
             }
           ],
           "n_stat": 8,
-          "bonus_timing_month": "2月、5月、7月、8月、11月"
+          "bonus_timing_month": "2 月、5 月、7 月、8 月、11 月"
         },
         {
           "unit": "品保",
@@ -6376,7 +6299,7 @@
             }
           ],
           "n_stat": 2,
-          "bonus_timing_month": "2月、5月、7月、8月、11月"
+          "bonus_timing_month": "2 月、5 月、7 月、8 月、11 月"
         },
         {
           "unit": "研發 R&D",
@@ -6616,7 +6539,7 @@
             }
           ],
           "n_stat": 5,
-          "bonus_timing_month": "2月、5月、7月、8月、11月"
+          "bonus_timing_month": "2 月、5 月、7 月、8 月、11 月"
         },
         {
           "unit": "管理處",
@@ -6733,7 +6656,7 @@
             }
           ],
           "n_stat": 2,
-          "bonus_timing_month": "2月、5月、7月、8月、11月"
+          "bonus_timing_month": "2 月、5 月、7 月、8 月、11 月"
         },
         {
           "unit": "矽光晶圓測試",
@@ -6753,14 +6676,17 @@
               "degree": "碩士",
               "base_k": null,
               "bonus_months": null,
-              "annual_months": 33.5,
+              "annual_months": [
+                32,
+                35
+              ],
               "annual_wan": null,
               "weekly_hours": 60,
               "overtime": "經常",
               "travel": "不用",
-              "quote_free_note": "月薪 N；HR 說全年 32～35 個月（取中值 33.5）；每天 12+，要穿全套無塵衣",
+              "quote_free_note": "月薪 N；HR 說全年 32～35 個月；每天 12+，要穿全套無塵衣",
               "in_window": true,
-              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-06-19"
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-06-19；10-26 稽核：annual_months 由中值 33.5 改填區間 [32, 35]"
             },
             {
               "site": "Dcard",
@@ -6882,8 +6808,8 @@
           "confidence": "低",
           "n": 5,
           "annual_months": [
-            33.5,
-            33.5
+            32,
+            35
           ],
           "weekly_hours": [
             60,
@@ -6898,7 +6824,7 @@
           "n_stat": 5,
           "note": null,
           "grade": null,
-          "bonus_timing_month": "2月、5月、7月、8月、11月"
+          "bonus_timing_month": "2 月、5 月、7 月、8 月、11 月"
         },
         {
           "unit": "其他",
@@ -6948,7 +6874,7 @@
           "n_stat": 1,
           "note": null,
           "grade": null,
-          "bonus_timing_month": "2月、5月、7月、8月、11月"
+          "bonus_timing_month": "2 月、5 月、7 月、8 月、11 月"
         },
         {
           "unit": "APOD2",
@@ -6998,7 +6924,7 @@
           "n_stat": 1,
           "note": null,
           "grade": null,
-          "bonus_timing_month": "2月、5月、7月、8月、11月"
+          "bonus_timing_month": "2 月、5 月、7 月、8 月、11 月"
         },
         {
           "unit": "南科",
@@ -7049,7 +6975,7 @@
           "n_stat": 1,
           "note": null,
           "grade": null,
-          "bonus_timing_month": "2月、5月、7月、8月、11月"
+          "bonus_timing_month": "2 月、5 月、7 月、8 月、11 月"
         },
         {
           "unit": "竹科",
@@ -7099,7 +7025,7 @@
           "n_stat": 1,
           "note": null,
           "grade": null,
-          "bonus_timing_month": "2月、5月、7月、8月、11月"
+          "bonus_timing_month": "2 月、5 月、7 月、8 月、11 月"
         },
         {
           "unit": "南科／高雄 / 成品倉儲",
@@ -7149,7 +7075,7 @@
           "n_stat": 1,
           "note": null,
           "grade": null,
-          "bonus_timing_month": "2月、5月、7月、8月、11月"
+          "bonus_timing_month": "2 月、5 月、7 月、8 月、11 月"
         },
         {
           "unit": "DTP",
@@ -7199,7 +7125,7 @@
           "n_stat": 1,
           "note": null,
           "grade": null,
-          "bonus_timing_month": "2月、5月、7月、8月、11月"
+          "bonus_timing_month": "2 月、5 月、7 月、8 月、11 月"
         },
         {
           "unit": "新竹",
@@ -7253,7 +7179,7 @@
           "n_stat": 1,
           "note": null,
           "grade": null,
-          "bonus_timing_month": "2月、5月、7月、8月、11月"
+          "bonus_timing_month": "2 月、5 月、7 月、8 月、11 月"
         },
         {
           "unit": "其他",
@@ -7303,7 +7229,7 @@
           "n_stat": 0,
           "note": null,
           "grade": null,
-          "bonus_timing_month": "2月、5月、7月、8月、11月"
+          "bonus_timing_month": "2 月、5 月、7 月、8 月、11 月"
         },
         {
           "unit": "其他",
@@ -7328,7 +7254,7 @@
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
-              "quote_free_note": "清大碩；數月前收到正式 offer，offer 上月薪約 63XXX（以 63k 記），入職日延到明年服役後；問是否適用調薪後的 64XXX；busyness 未提",
+              "quote_free_note": "清大碩；數月前收到正式 offer，offer 上月薪約 63XXX（以 63k 記），入職日延到明年服役後；問是否適用調薪後的 64XXX；busyness 未提；同文：調薪後新人月薪約 64XXX（以 64k 記，另立一筆）",
               "date_note": "Dcard 頁面發文日期 2025-06-06（2026-10-26 1923 批，非 Andy 親眼讀）",
               "in_window": false
             }
@@ -7343,47 +7269,8 @@
           "confidence": "低",
           "n": 1,
           "n_stat": 0,
-          "bonus_timing_month": "2月、5月、7月、8月、11月"
-        },
-        {
-          "unit": "其他",
-          "role": "工程師",
-          "degree": "不限",
-          "samples": [
-            {
-              "site": "Dcard",
-              "url": "https://www.dcard.tw/f/tech_job/p/259009016",
-              "date": "2025-06",
-              "page_date": "2025-06-06",
-              "date_confirmed": true,
-              "role": "工程師（碩士新人，調薪後）",
-              "grade": null,
-              "unit_detail": null,
-              "years": "0",
-              "degree": "碩士",
-              "base_k": 64,
-              "bonus_months": null,
-              "annual_months": null,
-              "annual_wan": null,
-              "weekly_hours": null,
-              "overtime": null,
-              "travel": null,
-              "quote_free_note": "同文：調薪後新人月薪約 64XXX（以 64k 記，另立一筆）",
-              "date_note": "Dcard 頁面發文日期 2025-06-06（2026-10-26 1923 批，非 Andy 親眼讀）",
-              "in_window": false
-            }
-          ],
-          "sources": [
-            {
-              "site": "Dcard",
-              "url": "https://www.dcard.tw/f/tech_job/p/259009016",
-              "date": "2025-06"
-            }
-          ],
-          "confidence": "低",
-          "n": 1,
-          "n_stat": 0,
-          "bonus_timing_month": "2月、5月、7月、8月、11月"
+          "bonus_timing_month": "2 月、5 月、7 月、8 月、11 月",
+          "years": null
         },
         {
           "unit": "其他",
@@ -7411,25 +7298,7 @@
               "quote_free_note": "頁面日期為編輯後日期（留言始於 5/21）；意願排序後約兩週收到核薪與 e-offer；職缺、數字未透露；busyness 未提",
               "date_note": "Dcard 頁面發文日期 2025-06-28（2026-10-26 1923 批，非 Andy 親眼讀）",
               "in_window": false
-            }
-          ],
-          "sources": [
-            {
-              "site": "Dcard",
-              "url": "https://www.dcard.tw/f/tech_job/p/258869524",
-              "date": "2025-06"
-            }
-          ],
-          "confidence": "低",
-          "n": 1,
-          "n_stat": 0,
-          "bonus_timing_month": "2月、5月、7月、8月、11月"
-        },
-        {
-          "unit": "其他",
-          "role": "職缺未寫",
-          "degree": "不限",
-          "samples": [
+            },
             {
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/258332096",
@@ -7456,14 +7325,20 @@
           "sources": [
             {
               "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/258869524",
+              "date": "2025-06"
+            },
+            {
+              "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/258332096",
               "date": "2025-03"
             }
           ],
           "confidence": "低",
-          "n": 1,
+          "n": 2,
           "n_stat": 0,
-          "bonus_timing_month": "2月、5月、7月、8月、11月"
+          "bonus_timing_month": "2 月、5 月、7 月、8 月、11 月",
+          "years": null
         }
       ],
       "mops": {
@@ -11028,17 +10903,23 @@
               "unit_detail": "晶圓廠 Fab",
               "years": "0-2",
               "degree": "碩士",
-              "base_k": 60,
+              "base_k": [
+                58,
+                62
+              ],
               "bonus_months": null,
               "annual_months": 14,
-              "annual_wan": 84.0,
+              "annual_wan": [
+                81.2,
+                86.8
+              ],
               "weekly_hours": null,
               "overtime": null,
               "travel": "不用",
-              "quote_free_note": "碩士新人 58～62k（取中）；加班：偶爾（良率問題時加班）",
+              "quote_free_note": "碩士新人 58～62k；加班：偶爾（良率問題時加班）",
               "date_confirmed": false,
               "in_window": false,
-              "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
+              "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計；10-26 稽核：base_k 由中值 60 改填區間 [58, 62]",
               "derived": [
                 "annual_wan"
               ]
@@ -11642,7 +11523,7 @@
           "years": "0-2",
           "base_month_k": [
             53,
-            58
+            60
           ],
           "bonus_months": null,
           "annual_months": [
@@ -11920,16 +11801,19 @@
               "unit_detail": "新竹",
               "years": "1",
               "degree": "碩士",
-              "base_k": 58,
+              "base_k": [
+                56,
+                60
+              ],
               "bonus_months": null,
               "annual_months": null,
               "annual_wan": null,
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
-              "quote_free_note": "核薪約 56K～60K（取中值）；要輪班",
+              "quote_free_note": "核薪約 56K～60K；要輪班",
               "in_window": true,
-              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-10-24"
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-10-24；10-26 稽核：base_k 由中值 58 改填區間 [56, 60]"
             },
             {
               "site": "Dcard",

@@ -1322,34 +1322,7 @@
               "quote_free_note": "傳產 RD 1 年加設備外商 2 年；經背景審查後拿到 offer；數字未透露；最後去台積",
               "in_window": true,
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-08-25"
-            }
-          ],
-          "sources": [
-            {
-              "site": "Dcard",
-              "url": "https://www.dcard.tw/f/tech_job/p/262022557",
-              "date": "2026-08"
-            }
-          ],
-          "confidence": "低",
-          "n": 1,
-          "years": null,
-          "base_month_k": null,
-          "bonus_months": null,
-          "annual_months": null,
-          "annual_total_wan": null,
-          "weekly_hours": null,
-          "overtime": null,
-          "travel": null,
-          "n_stat": 1,
-          "note": null,
-          "grade": null
-        },
-        {
-          "unit": "其他",
-          "role": "FSE",
-          "degree": "碩士",
-          "samples": [
+            },
             {
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/260887445",
@@ -1371,17 +1344,49 @@
               "quote_free_note": "HR 電話核薪（文中寫到核薪階段）；數字未透露",
               "in_window": true,
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-02-16"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261448554",
+              "date": "2026-05",
+              "page_date": "2026-05-09",
+              "date_confirmed": true,
+              "role": "FSE（現場服務工程師）",
+              "grade": null,
+              "unit_detail": null,
+              "years": "4",
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "實體面試當天口頭 offer，約 38 天正式 offer；數字未透露",
+              "in_window": true,
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-05-09"
             }
           ],
           "sources": [
             {
               "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/262022557",
+              "date": "2026-08"
+            },
+            {
+              "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/260887445",
               "date": "2026-02"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261448554",
+              "date": "2026-05"
             }
           ],
           "confidence": "低",
-          "n": 1,
+          "n": 3,
           "years": null,
           "base_month_k": null,
           "bonus_months": null,
@@ -1390,7 +1395,7 @@
           "weekly_hours": null,
           "overtime": null,
           "travel": null,
-          "n_stat": 1,
+          "n_stat": 3,
           "note": null,
           "grade": null
         },
@@ -1427,55 +1432,6 @@
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/261761266",
               "date": "2026-07"
-            }
-          ],
-          "confidence": "低",
-          "n": 1,
-          "years": null,
-          "base_month_k": null,
-          "bonus_months": null,
-          "annual_months": null,
-          "annual_total_wan": null,
-          "weekly_hours": null,
-          "overtime": null,
-          "travel": null,
-          "n_stat": 1,
-          "note": null,
-          "grade": null
-        },
-        {
-          "unit": "其他",
-          "role": "FSE",
-          "degree": "碩士",
-          "samples": [
-            {
-              "site": "Dcard",
-              "url": "https://www.dcard.tw/f/tech_job/p/261448554",
-              "date": "2026-05",
-              "page_date": "2026-05-09",
-              "date_confirmed": true,
-              "role": "FSE（現場服務工程師）",
-              "grade": null,
-              "unit_detail": null,
-              "years": "4",
-              "degree": "碩士",
-              "base_k": null,
-              "bonus_months": null,
-              "annual_months": null,
-              "annual_wan": null,
-              "weekly_hours": null,
-              "overtime": null,
-              "travel": null,
-              "quote_free_note": "實體面試當天口頭 offer，約 38 天正式 offer；數字未透露",
-              "in_window": true,
-              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-05-09"
-            }
-          ],
-          "sources": [
-            {
-              "site": "Dcard",
-              "url": "https://www.dcard.tw/f/tech_job/p/261448554",
-              "date": "2026-05"
             }
           ],
           "confidence": "低",
@@ -1881,7 +1837,7 @@
               "annual_wan": null,
               "weekly_hours": null,
               "overtime": null,
-              "travel": "經常",
+              "travel": "需要",
               "quote_free_note": "月薪 N+17（未寫單位）；常出差",
               "in_window": true,
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-08-06"
@@ -1896,7 +1852,7 @@
           ],
           "confidence": "低",
           "n": 1,
-          "travel": "經常",
+          "travel": "需要",
           "years": null,
           "base_month_k": null,
           "bonus_months": null,
@@ -3443,7 +3399,7 @@
               "annual_wan": null,
               "weekly_hours": null,
               "overtime": "偶爾",
-              "travel": "經常",
+              "travel": "需要",
               "quote_free_note": "中字尾電資學碩、剛役畢；正常上下班、加班無加班費但可補休；主管說每週三天進台積廠 8 小時且有小夜班；數字未透露",
               "date_note": "Dcard 頁面發文日期 2025-07-21（2026-10-26 1923 批，非 Andy 親眼讀）",
               "in_window": false
@@ -4024,36 +3980,7 @@
               "quote_free_note": "保 13，30 天有薪病假、12 天特休；員工認股（月薪 10%，85 折）；HR 說年薪偏月薪高、分紅低，具體數字未給",
               "in_window": true,
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-10-13"
-            }
-          ],
-          "n": 1,
-          "sources": [
-            {
-              "site": "Dcard",
-              "url": "https://www.dcard.tw/f/tech_job/p/262289716",
-              "date": "2026-10"
-            }
-          ],
-          "confidence": "低",
-          "note": "2026-10-26 由 Dcard 樣本新增的公司",
-          "annual_months": [
-            13,
-            13
-          ],
-          "years": null,
-          "base_month_k": null,
-          "bonus_months": null,
-          "annual_total_wan": null,
-          "weekly_hours": null,
-          "overtime": null,
-          "travel": null,
-          "n_stat": 1
-        },
-        {
-          "unit": "其他",
-          "role": "CSE",
-          "degree": "碩士",
-          "samples": [
+            },
             {
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/261448554",
@@ -4077,7 +4004,13 @@
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-05-09"
             }
           ],
+          "n": 2,
           "sources": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/262289716",
+              "date": "2026-10"
+            },
             {
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/261448554",
@@ -4085,18 +4018,19 @@
             }
           ],
           "confidence": "低",
-          "n": 1,
+          "note": "2026-10-26 由 Dcard 樣本新增的公司",
+          "annual_months": [
+            13,
+            13
+          ],
           "years": null,
           "base_month_k": null,
           "bonus_months": null,
-          "annual_months": null,
           "annual_total_wan": null,
           "weekly_hours": null,
           "overtime": null,
           "travel": null,
-          "n_stat": 1,
-          "note": null,
-          "grade": null
+          "n_stat": 2
         }
       ]
     },
@@ -4245,16 +4179,13 @@
               "years": "2",
               "degree": null,
               "base_k": 51,
-              "bonus_months": [
-                4,
-                6
-              ],
+              "bonus_months": null,
               "annual_months": null,
               "annual_wan": null,
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
-              "quote_free_note": "GoodJob 2026-06-25 湖口廠，年資 2 年，月薪 5.1 萬；年終加分紅合計約 4～6 個月，每年調薪",
+              "quote_free_note": "GoodJob 2026-06-25 湖口廠，年資 2 年，月薪 5.1 萬；年終加分紅合計約 4～6 個月，每年調薪；數值待查：原 bonus_months [4, 6] 是年終＋分紅合計，拆不出分紅",
               "in_window": true,
               "date_note": "GoodJob 標題／列表附年月，算確認"
             }
@@ -4282,16 +4213,13 @@
             51,
             51
           ],
-          "bonus_months": [
-            4,
-            6
-          ],
+          "bonus_months": null,
           "annual_total_wan": null,
           "weekly_hours": null,
           "overtime": null,
           "travel": null,
           "n_stat": 2,
-          "note": null
+          "note": "未逐筆對應的舊彙整：bonus_months=[4, 6]"
         },
         {
           "unit": "客服",
@@ -4302,10 +4230,7 @@
             54,
             54
           ],
-          "bonus_months": [
-            4,
-            6
-          ],
+          "bonus_months": null,
           "annual_months": null,
           "annual_total_wan": [
             100,
@@ -4315,7 +4240,7 @@
           "overtime": null,
           "travel": null,
           "n": 2,
-          "note": "",
+          "note": "未逐筆對應的舊彙整：bonus_months=[4, 6]",
           "sources": [
             {
               "site": "GoodJob",
@@ -4363,16 +4288,13 @@
               "years": null,
               "degree": null,
               "base_k": null,
-              "bonus_months": [
-                4,
-                6
-              ],
+              "bonus_months": null,
               "annual_months": null,
               "annual_wan": 100,
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
-              "quote_free_note": "GoodJob 2026-02 台中，年薪 100 萬；年終加分紅約 4～6 個月，每年調薪",
+              "quote_free_note": "GoodJob 2026-02 台中，年薪 100 萬；年終加分紅約 4～6 個月，每年調薪；數值待查：原 bonus_months [4, 6] 是年終＋分紅合計，拆不出分紅",
               "in_window": true,
               "date_note": "GoodJob 標題／列表附年月，算確認"
             }

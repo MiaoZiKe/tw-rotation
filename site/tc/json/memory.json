@@ -38,7 +38,7 @@
           ],
           "overtime": "偶爾",
           "travel": null,
-          "n": 21,
+          "n": 20,
           "note": "比薪水統計中位數 5.5 萬（2025 資料）；PTT 傳碩士 5.5 萬起未經公司證實；比薪水 2026 有 4 年 120 萬、6 年 105 萬自述（非新人）；第二輪（Dcard／PTT／GoodJob 各分開搜）：輪班設備起薪 5.5 萬起、台南 TCP Probe 7.4 萬、台中一年經驗 6.1 萬；保 14 個月（含年終 2 個月）＋分紅 0～4 個月（11 月發），內推文稱年薪約 18 個月；夜班津貼 +20%；FY26 公司另發每人 100 萬感謝金（工會質疑）；內推文數字可能偏樂觀；Dcard 日期依文章編號推估；bonus_months、annual_total_wan 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples；未逐筆對應的舊彙整：bonus_months=[2, 4]；未逐筆對應的舊彙整：annual_total_wan=[80, 100]；未逐筆對應的舊彙整：travel=不用；部分年薪／年薪月數由同一筆樣本的「底薪×月數」推算（樣本標 derived）",
           "sources": [
             {
@@ -170,8 +170,8 @@
               "overtime": null,
               "travel": null,
               "quote_free_note": "台南輪班設備 5.5 萬起、保 14＋分紅（內推文）",
-              "date_confirmed": false,
-              "date_note": "日期為推估或僅年份，不進統計",
+              "date_confirmed": true,
+              "date_note": "日期為推估或僅年份，不進統計；10-26 稽核：Dcard 編號 ≥259537767，依 docs/tc/dcard_id_calibration.md 確認晚於 2025-08-01",
               "in_window": true,
               "derived": [
                 "annual_wan"
@@ -402,7 +402,7 @@
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
-              "quote_free_note": "2025 碩士新人價（發文者網路查的），保 14＋分紅＋輪班津貼",
+              "quote_free_note": "2025 碩士新人價（發文者網路查的），保 14＋分紅＋輪班津貼；offer：月薪約 2025 碩士新人價（發文者網路查得），保 14＋分紅＋輪班津貼；面試問輪班接受度",
               "in_window": true,
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-04-07"
             },
@@ -515,28 +515,6 @@
               "quote_free_note": "台商設備商 RD 轉職；校園博覽會現場面試後拿到 offer，但沒去；數字未透露（同篇面台達電技術服務工程師未錄取）",
               "in_window": true,
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-06-10"
-            },
-            {
-              "site": "Dcard",
-              "url": "https://www.dcard.tw/f/tech_job/p/260940720",
-              "date": "2026-04",
-              "page_date": "2026-04-07",
-              "date_confirmed": true,
-              "role": "設備工程師 EE",
-              "grade": null,
-              "unit_detail": null,
-              "years": null,
-              "degree": "碩士",
-              "base_k": null,
-              "bonus_months": null,
-              "annual_months": 14,
-              "annual_wan": null,
-              "weekly_hours": null,
-              "overtime": null,
-              "travel": null,
-              "quote_free_note": "offer：月薪約 2025 碩士新人價（發文者網路查得），保 14＋分紅＋輪班津貼；面試問輪班接受度",
-              "in_window": true,
-              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-04-07"
             }
           ],
           "n_stat": 18,
@@ -1063,6 +1041,26 @@
               "quote_free_note": "新鮮人；核薪和矽品差不多（N 沒說明）",
               "in_window": true,
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-09-11"
+            },
+            {
+              "role": "工程師",
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/68aec85420bff89e4925543c",
+              "date": "2025-08",
+              "date_confirmed": true,
+              "date_note": "GoodJob 標題附年月日",
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 90,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "底薪偏低，有獎金分紅年終",
+              "in_window": true
             }
           ],
           "sources": [
@@ -1070,19 +1068,27 @@
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/262122290",
               "date": "2026-09"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/68aec85420bff89e4925543c",
+              "date": "2025-08"
             }
           ],
           "confidence": "低",
-          "n": 1,
+          "n": 2,
           "years": null,
           "base_month_k": null,
           "bonus_months": null,
           "annual_months": null,
-          "annual_total_wan": null,
+          "annual_total_wan": [
+            90,
+            90
+          ],
           "weekly_hours": null,
           "overtime": null,
           "travel": null,
-          "n_stat": 1,
+          "n_stat": 2,
           "note": null,
           "grade": null
         },
@@ -1227,56 +1233,6 @@
           "annual_months": null,
           "annual_total_wan": null,
           "weekly_hours": null,
-          "overtime": null,
-          "travel": null,
-          "n_stat": 1,
-          "note": null,
-          "grade": null
-        },
-        {
-          "unit": "其他",
-          "role": "工程師",
-          "degree": "碩士",
-          "samples": [
-            {
-              "role": "工程師",
-              "site": "GoodJob",
-              "url": "https://www.goodjob.life/experiences/68aec85420bff89e4925543c",
-              "date": "2025-08",
-              "date_confirmed": true,
-              "date_note": "GoodJob 標題附年月日",
-              "unit_detail": null,
-              "years": null,
-              "degree": null,
-              "base_k": null,
-              "bonus_months": null,
-              "annual_months": null,
-              "annual_wan": 90,
-              "weekly_hours": null,
-              "overtime": null,
-              "travel": null,
-              "quote_free_note": "底薪偏低，有獎金分紅年終",
-              "in_window": true
-            }
-          ],
-          "sources": [
-            {
-              "site": "GoodJob",
-              "url": "https://www.goodjob.life/experiences/68aec85420bff89e4925543c",
-              "date": "2025-08"
-            }
-          ],
-          "confidence": "低",
-          "n": 1,
-          "base_month_k": null,
-          "bonus_months": null,
-          "annual_months": null,
-          "annual_total_wan": [
-            90,
-            90
-          ],
-          "weekly_hours": null,
-          "years": null,
           "overtime": null,
           "travel": null,
           "n_stat": 1,
@@ -1759,16 +1715,19 @@
               "unit_detail": "路竹",
               "years": "0",
               "degree": "碩士",
-              "base_k": 62.5,
+              "base_k": [
+                60,
+                65
+              ],
               "bonus_months": null,
               "annual_months": null,
               "annual_wan": null,
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
-              "quote_free_note": "月薪 60～65k（取中值）＋輪班津貼；要輪班",
+              "quote_free_note": "月薪 60～65k＋輪班津貼；要輪班",
               "in_window": true,
-              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-03-03"
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-03-03；10-26 稽核：base_k 由中值 62.5 改填區間 [60, 65]"
             },
             {
               "site": "GoodJob",
@@ -1874,7 +1833,7 @@
           ]
         },
         {
-          "type": "年終獎金",
+          "type": "年終＋三節獎金",
           "rule": "春節 1 個月＋端午 0.5＋中秋 0.5，一年確定 14 個月（GoodJob 製程評價）；2026-04 廠務評價稱保證 16 個月，說法不一",
           "months": 2,
           "sources": [
