@@ -2989,6 +2989,36 @@
           "base_month_k": null,
           "overtime": "經常",
           "travel": "偶爾"
+        },
+        {
+          "unit": "其他",
+          "role": "IC封裝/測試工程師",
+          "degree": "碩士",
+          "samples": [
+            {
+              "role": "IC封裝/測試工程師",
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/6965e9066f0fb3ba49747172",
+              "date": "2026-01",
+              "date_confirmed": true,
+              "date_note": "GoodJob 標題附年月日",
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 85,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "年終分紅占比高、月薪偏低",
+              "in_window": true
+            }
+          ],
+          "sources": [],
+          "confidence": "低",
+          "n": 1
         }
       ],
       "mops": {

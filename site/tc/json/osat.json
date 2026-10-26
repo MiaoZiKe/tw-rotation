@@ -839,11 +839,31 @@
               "quote_free_note": "N 是比較用的基準（不是新人價）；月薪 N 保 14，加班有加班費",
               "in_window": true,
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2025-09-03"
+            },
+            {
+              "role": "廠務工程師",
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/6a5e461f40ce2ed7e9eb2533",
+              "date": "2026-07",
+              "date_confirmed": true,
+              "date_note": "GoodJob 標題附年月日",
+              "unit_detail": "高雄",
+              "years": null,
+              "degree": null,
+              "base_k": 45,
+              "bonus_months": null,
+              "annual_months": 14,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "保 14（含年終三節）＋績效獎金",
+              "in_window": true
             }
           ],
           "sources": [],
           "confidence": "低",
-          "n": 3,
+          "n": 4,
           "annual_months": [
             14,
             14
@@ -2995,6 +3015,66 @@
           "confidence": "低",
           "n": 1,
           "overtime": "偶爾"
+        },
+        {
+          "unit": "新竹縣",
+          "role": "工程師",
+          "degree": "碩士",
+          "samples": [
+            {
+              "role": "工程師（面試）",
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/6a8533030ac1ff26f8422e2d",
+              "date": "2026-08",
+              "date_confirmed": true,
+              "date_note": "GoodJob 標題附年月日",
+              "unit_detail": "新竹縣",
+              "years": null,
+              "degree": null,
+              "base_k": 45,
+              "bonus_months": null,
+              "annual_months": 14,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "保 14、有宿舍",
+              "in_window": true
+            }
+          ],
+          "sources": [],
+          "confidence": "低",
+          "n": 1
+        },
+        {
+          "unit": "其他",
+          "role": "MES工程師",
+          "degree": "碩士",
+          "samples": [
+            {
+              "role": "MES工程師（面試）",
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/69627036b2e1e2880c463acb",
+              "date": "2026-01",
+              "date_confirmed": true,
+              "date_note": "GoodJob 標題附年月日",
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 75,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "",
+              "in_window": true
+            }
+          ],
+          "sources": [],
+          "confidence": "低",
+          "n": 1
         }
       ],
       "note": "2026-10-26 由 Dcard 樣本新增的公司"

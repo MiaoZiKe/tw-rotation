@@ -614,6 +614,36 @@
           "n": 1,
           "weekly_hours": 49,
           "overtime": "經常"
+        },
+        {
+          "unit": "其他",
+          "role": "CSE",
+          "degree": "碩士",
+          "samples": [
+            {
+              "unit_detail": null,
+              "years": "9",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 170,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "面試頁所列年薪",
+              "date_confirmed": true,
+              "role": "CSE（面試）",
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/6958ca4f5075d84c8b96148f",
+              "date": "2026-01",
+              "date_note": "GoodJob 標題附年月日",
+              "in_window": true
+            }
+          ],
+          "sources": [],
+          "confidence": "低",
+          "n": 1
         }
       ],
       "mops": null,
@@ -1520,6 +1550,36 @@
             130
           ],
           "overtime": "經常"
+        },
+        {
+          "unit": "新竹",
+          "role": "iTeam 工程師",
+          "degree": "碩士",
+          "samples": [
+            {
+              "role": "iTeam 工程師",
+              "site": "PTT",
+              "url": "https://www.ptt.cc/bbs/Tech_Job/M.1787370733.A.2BB.html",
+              "date": "2026-08",
+              "date_confirmed": true,
+              "date_note": "PTT 文章代碼 M.1787370733 換算 2026-08-22（台北）",
+              "unit_detail": "新竹",
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": 3.5,
+              "annual_months": 14,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "底薪寫成 N+5，保 14、分紅通常 3.5 個月",
+              "in_window": true
+            }
+          ],
+          "sources": [],
+          "confidence": "低",
+          "n": 1
         }
       ],
       "mops": null,
@@ -2136,9 +2196,29 @@
               "quote_free_note": "發文者說薪資不輸四大設備商；婉拒",
               "in_window": true,
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-08-07"
+            },
+            {
+              "unit_detail": "新竹",
+              "years": null,
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "底薪寫成台積 2026 新人 N 減 2K，自估年薪 100～110 萬（區間不填單值）",
+              "date_confirmed": true,
+              "role": "設備工程師",
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261070806",
+              "date": "2025-08以後",
+              "date_note": "Dcard 文章編號 ≥259537767，依 docs/tc/dcard_id_calibration.md 確認晚於 2025-08-01",
+              "in_window": true
             }
           ],
-          "n": 1,
+          "n": 2,
           "sources": [],
           "confidence": "低",
           "note": "2026-10-26 由 Dcard 樣本新增的公司",

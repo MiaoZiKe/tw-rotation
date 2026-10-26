@@ -85,6 +85,36 @@
           "sources": [],
           "confidence": "低",
           "n": 1
+        },
+        {
+          "unit": "其他",
+          "role": "製程設備工程師",
+          "degree": "碩士",
+          "samples": [
+            {
+              "role": "製程設備工程師（面試）",
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/695f046971ffd5cf11a2ab86",
+              "date": "2026-01",
+              "date_confirmed": true,
+              "date_note": "GoodJob 標題附年月日",
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 78,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "面試錄取",
+              "in_window": true
+            }
+          ],
+          "sources": [],
+          "confidence": "低",
+          "n": 1
         }
       ]
     },
@@ -141,6 +171,36 @@
             14,
             14
           ]
+        },
+        {
+          "unit": "其他",
+          "role": "機構工程師",
+          "degree": "碩士",
+          "samples": [
+            {
+              "role": "機構工程師",
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/6a7ed3ef641f2917853e897f",
+              "date": "2026-08",
+              "date_confirmed": true,
+              "date_note": "GoodJob 標題附年月日",
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 66,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "年終 1 個月＋三節＋分紅",
+              "in_window": true
+            }
+          ],
+          "sources": [],
+          "confidence": "低",
+          "n": 1
         }
       ]
     },

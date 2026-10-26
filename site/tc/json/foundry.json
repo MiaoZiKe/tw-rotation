@@ -2463,7 +2463,7 @@
           ],
           "overtime": "偶爾",
           "travel": "不用",
-          "n": 25,
+          "n": 26,
           "note": "GoodJob 2026-04 單筆（台南，不到 1 年），自述底薪 6 萬＋三節＋分紅＋運動會獎金；分紅與年薪月數查 GoodJob／媒體未見 IT 職專屬數字，維持 null；2026-10-25 補：Dcard 轉貼 IT 自述第一年約 145 萬、第二年吃到完整分紅約 300 萬、加班少（單筆）；salary.tw IT 回報以 MES 開發為主；資料科學／SRE 未找到專屬數字",
           "sources": [
             {
@@ -3050,6 +3050,26 @@
               "quote_free_note": "成大資工碩、AI 實驗室；主管面到 offer 約 44 天；busyness 未提；數字未透露；同篇 NVIDIA 多個職缺（GPU FW 等）皆未錄取",
               "in_window": true,
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-01-08"
+            },
+            {
+              "role": "IT工程師",
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/6aa79ec898b540845110e9fd",
+              "date": "2026-09",
+              "date_confirmed": true,
+              "date_note": "GoodJob 標題附年月日",
+              "unit_detail": null,
+              "years": null,
+              "degree": "不限",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 160,
+              "weekly_hours": 45,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "",
+              "in_window": true
             }
           ],
           "n_in_window": 2
@@ -3825,7 +3845,7 @@
               "date": "2026-06"
             }
           ],
-          "n": 25,
+          "n": 26,
           "grade": "2X 職等（副工程師）",
           "busyness": "高：每月加班 10～20 小時、每月 2～3 個週末加班（Dcard 自述）",
           "samples": [
@@ -4304,6 +4324,26 @@
               "quote_free_note": "學士應屆；面了 7 次才拿到 offer；薪資只說是台積 MAE 的一般行情",
               "in_window": true,
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-05-04"
+            },
+            {
+              "role": "設備副工程師（MAE）",
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/6a6a1bb1e0166fbfd02f98e9",
+              "date": "2026-07",
+              "date_confirmed": true,
+              "date_note": "GoodJob 標題附年月日",
+              "unit_detail": "新竹",
+              "years": null,
+              "degree": "不限",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 65,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "三班輪、每月加班約 100 小時，薪資分紅高",
+              "in_window": true
             }
           ],
           "n_in_window": 1,
@@ -6745,6 +6785,36 @@
           "bonus_months": null,
           "annual_months": null,
           "base_month_k": null
+        },
+        {
+          "unit": "新竹",
+          "role": "軟體工程師",
+          "degree": "不限",
+          "samples": [
+            {
+              "role": "軟體工程師",
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/6a7c1f62b25d25ff8cb16e85",
+              "date": "2026-08",
+              "date_confirmed": true,
+              "date_note": "GoodJob 標題附年月日",
+              "unit_detail": "新竹",
+              "years": "3",
+              "degree": "不限",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 70,
+              "weekly_hours": 40,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "福利與補助佳",
+              "in_window": true
+            }
+          ],
+          "sources": [],
+          "confidence": "低",
+          "n": 1
         }
       ],
       "mops": {

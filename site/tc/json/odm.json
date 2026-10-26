@@ -5056,6 +5056,36 @@
             19,
             19
           ]
+        },
+        {
+          "unit": "其他",
+          "role": "系統整合工程師",
+          "degree": "碩士",
+          "samples": [
+            {
+              "unit_detail": null,
+              "years": "8",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 180,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "",
+              "date_confirmed": true,
+              "role": "系統整合工程師",
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/6a855964c43855f6403f1792",
+              "date": "2026-08",
+              "date_note": "GoodJob 標題附年月日",
+              "in_window": true
+            }
+          ],
+          "sources": [],
+          "confidence": "低",
+          "n": 1
         }
       ],
       "mops": null,

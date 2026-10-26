@@ -614,6 +614,36 @@
             }
           ],
           "n_stat": 0
+        },
+        {
+          "unit": "其他",
+          "role": "製造工程師",
+          "degree": "碩士",
+          "samples": [
+            {
+              "role": "製造工程師（面試）",
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/6a8e9daaddfa07d242bb0aab",
+              "date": "2026-08",
+              "date_confirmed": true,
+              "date_note": "GoodJob 標題附年月日",
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 55,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "年終不保證",
+              "in_window": true
+            }
+          ],
+          "sources": [],
+          "confidence": "低",
+          "n": 1
         }
       ],
       "mops": {

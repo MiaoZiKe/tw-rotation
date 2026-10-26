@@ -1085,6 +1085,36 @@
           "sources": [],
           "confidence": "低",
           "n": 1
+        },
+        {
+          "unit": "其他",
+          "role": "工程師",
+          "degree": "碩士",
+          "samples": [
+            {
+              "role": "工程師",
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/68aec85420bff89e4925543c",
+              "date": "2025-08",
+              "date_confirmed": true,
+              "date_note": "GoodJob 標題附年月日",
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 90,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "底薪偏低，有獎金分紅年終",
+              "in_window": true
+            }
+          ],
+          "sources": [],
+          "confidence": "低",
+          "n": 1
         }
       ],
       "mops": null,
@@ -2312,6 +2342,66 @@
           "sources": [],
           "confidence": "低",
           "n": 1
+        },
+        {
+          "unit": "其他",
+          "role": "生產工程師",
+          "degree": "碩士",
+          "samples": [
+            {
+              "role": "生產工程師（面試）",
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/6a79d2ea8e8d075c292acb9e",
+              "date": "2026-08",
+              "date_confirmed": true,
+              "date_note": "GoodJob 標題附年月日",
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 55,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": "輪班",
+              "travel": null,
+              "quote_free_note": "二班二休二輪班",
+              "in_window": true
+            }
+          ],
+          "sources": [],
+          "confidence": "低",
+          "n": 1
+        },
+        {
+          "unit": "其他",
+          "role": "測試工程師",
+          "degree": "碩士",
+          "samples": [
+            {
+              "role": "測試工程師（後段）",
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/6965b2365c4ab6c2088339d6",
+              "date": "2026-01",
+              "date_confirmed": true,
+              "date_note": "GoodJob 標題附年月日",
+              "unit_detail": null,
+              "years": "2",
+              "degree": null,
+              "base_k": 60,
+              "bonus_months": null,
+              "annual_months": 15,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "15 個月＋年度調薪，另有分紅",
+              "in_window": true
+            }
+          ],
+          "sources": [],
+          "confidence": "低",
+          "n": 1
         }
       ],
       "mops": {
@@ -2524,9 +2614,29 @@
               "quote_free_note": "傳產 2 年多後讀碩；大致是兩班制，輪班頻率看部門，每月值班約兩次；數字未透露",
               "in_window": true,
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-03-27"
+            },
+            {
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 110,
+              "weekly_hours": 45,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "年終＋分紅＋三節，依績效調整",
+              "date_confirmed": true,
+              "role": "半導體製程工程師",
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/6a2091bf5694b101701001d2",
+              "date": "2026-06",
+              "date_note": "GoodJob 標題附年月日",
+              "in_window": true
             }
           ],
-          "n": 1,
+          "n": 2,
           "sources": [],
           "confidence": "低",
           "note": "2026-10-26 由 Dcard 樣本新增的公司",
