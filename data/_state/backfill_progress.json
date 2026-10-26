@@ -42496,14 +42496,117 @@
     "inst@2012-01-01:1216": true,
     "inst@2012-01-01:00415A": true,
     "inst@2012-01-01:2413": true,
-    "inst@2012-01-01:00878": true
+    "inst@2012-01-01:00878": true,
+    "inst@2012-01-01:00764B": true,
+    "inst@2012-01-01:6148": true,
+    "inst@2012-01-01:00405A": true,
+    "inst@2012-01-01:8227": true,
+    "inst@2012-01-01:00400A": true,
+    "inst@2012-01-01:00687B": true,
+    "inst@2012-01-01:4720": true,
+    "inst@2012-01-01:1711": true,
+    "inst@2012-01-01:2406": true,
+    "inst@2012-01-01:6727": true,
+    "inst@2012-01-01:7610": true,
+    "inst@2012-01-01:00637L": true,
+    "inst@2012-01-01:2027": true,
+    "inst@2012-01-01:6179": true,
+    "inst@2012-01-01:00935": true,
+    "inst@2012-01-01:006208": true,
+    "inst@2012-01-01:5871": true,
+    "inst@2012-01-01:5314": true,
+    "inst@2012-01-01:00663L": true,
+    "inst@2012-01-01:2493": true,
+    "inst@2012-01-01:6234": true,
+    "inst@2012-01-01:6620": true,
+    "inst@2012-01-01:00982A": true,
+    "inst@2012-01-01:00662": true,
+    "inst@2012-01-01:6277": true,
+    "inst@2012-01-01:00985A": true,
+    "inst@2012-01-01:4927": true,
+    "inst@2012-01-01:6538": true,
+    "inst@2012-01-01:1102": true,
+    "inst@2012-01-01:00753L": true,
+    "inst@2012-01-01:2912": true,
+    "inst@2012-01-01:00922": true,
+    "inst@2012-01-01:4971": true,
+    "inst@2012-01-01:1727": true,
+    "inst@2012-01-01:00407A": true,
+    "inst@2012-01-01:2316": true,
+    "inst@2012-01-01:2305": true,
+    "inst@2012-01-01:9933": true,
+    "inst@2012-01-01:3305": true,
+    "inst@2012-01-01:2542": true,
+    "inst@2012-01-01:5228": true,
+    "inst@2012-01-01:5904": true,
+    "inst@2012-01-01:8213": true,
+    "inst@2012-01-01:4903": true,
+    "inst@2012-01-01:7717": true,
+    "inst@2012-01-01:4760": true,
+    "inst@2012-01-01:00708L": true,
+    "inst@2012-01-01:5309": true,
+    "inst@2012-01-01:009829": true,
+    "inst@2012-01-01:6668": true,
+    "inst@2012-01-01:8464": true,
+    "inst@2012-01-01:2069": true,
+    "inst@2012-01-01:3701": true,
+    "inst@2012-01-01:2254": true,
+    "inst@2012-01-01:2030": true,
+    "inst@2012-01-01:2385": true,
+    "inst@2012-01-01:6902": true,
+    "inst@2012-01-01:7795": true,
+    "inst@2012-01-01:00675L": true,
+    "inst@2012-01-01:9904": true,
+    "inst@2012-01-01:00947": true,
+    "inst@2012-01-01:00751B": true,
+    "inst@2012-01-01:5465": true,
+    "inst@2012-01-01:1714": true,
+    "inst@2012-01-01:00953B": true,
+    "inst@2012-01-01:6127": true,
+    "inst@2012-01-01:3147": true,
+    "inst@2012-01-01:3029": true,
+    "inst@2012-01-01:00412A": true,
+    "inst@2012-01-01:1476": true,
+    "inst@2012-01-01:9921": true,
+    "inst@2012-01-01:2476": true,
+    "inst@2012-01-01:2355": true,
+    "inst@2012-01-01:7788": true,
+    "inst@2012-01-01:6226": true,
+    "inst@2012-01-01:1718": true,
+    "inst@2012-01-01:00722B": true,
+    "inst@2012-01-01:00931B": true,
+    "inst@2012-01-01:6782": true,
+    "inst@2012-01-01:6831": true,
+    "inst@2012-01-01:00735": true,
+    "inst@2012-01-01:2033": true,
+    "inst@2012-01-01:00715L": true,
+    "inst@2012-01-01:2371": true,
+    "inst@2012-01-01:6108": true,
+    "inst@2012-01-01:00713": true,
+    "inst@2012-01-01:5439": true,
+    "inst@2012-01-01:9914": true,
+    "inst@2012-01-01:6467": true,
+    "inst@2012-01-01:6418": true,
+    "inst@2012-01-01:00988A": true,
+    "inst@2012-01-01:2006": true,
+    "inst@2012-01-01:8240": true,
+    "inst@2012-01-01:00725B": true,
+    "inst@2012-01-01:00665L": true,
+    "inst@2012-01-01:6919": true,
+    "inst@2012-01-01:6957": true,
+    "inst@2012-01-01:4949": true,
+    "inst@2012-01-01:1402": true,
+    "inst@2012-01-01:00877": true,
+    "inst@2012-01-01:7828": true,
+    "inst@2012-01-01:2402": true,
+    "inst@2012-01-01:6141": true
   },
-  "updated_at": "2026-10-26T12:46:44.627800+00:00",
+  "updated_at": "2026-10-26T13:21:19.139216+00:00",
   "complete": {
     "balance+financial+revenue": {
       "done": true,
-      "at": "2026-10-26T12:19:54.361421+00:00",
-      "codes": 500,
+      "at": "2026-10-26T13:14:53.570437+00:00",
+      "codes": 2340,
       "remaining": {
         "balance": 0,
         "financial": 0,
@@ -42517,7 +42620,7 @@
     },
     "plan:default": {
       "done": false,
-      "at": "2026-10-26T12:46:44.627762+00:00",
+      "at": "2026-10-26T13:21:19.139187+00:00",
       "month": "2026-10",
       "week": "w2026-44a",
       "steps": {
@@ -42525,10 +42628,9 @@
         "dividend+divresult": true,
         "holding+margin@2021-01-01": true,
         "price@2000-01-01": true,
-        "inst@2012-01-01": true,
-        "balance+financial+revenue@2012-01-01": false
+        "inst@2012-01-01": false
       },
-      "stopped_at": "balance+financial+revenue@2012-01-01"
+      "stopped_at": "inst@2012-01-01"
     },
     "index_ohlc": {
       "done": true,
@@ -42538,33 +42640,33 @@
     },
     "dividend+divresult": {
       "done": true,
-      "at": "2026-10-26T12:19:59.973682+00:00",
-      "codes": 500,
+      "at": "2026-10-26T13:15:15.441745+00:00",
+      "codes": 2340,
       "remaining": {
         "dividend": 0,
         "divresult": 0
       },
       "no_data": {
-        "dividend": 1,
-        "divresult": 1
+        "dividend": 5,
+        "divresult": 7
       }
     },
     "holding+margin@2021-01-01": {
       "done": true,
-      "at": "2026-10-26T12:20:10.725944+00:00",
-      "codes": 500,
+      "at": "2026-10-26T13:15:49.717088+00:00",
+      "codes": 2340,
       "remaining": {
-        "holding": 500,
+        "holding": 2340,
         "margin": 0
       },
       "no_data": {
         "holding": 0,
-        "margin": 0
+        "margin": 4
       }
     },
     "price@2000-01-01": {
       "done": true,
-      "at": "2026-10-26T12:20:14.629498+00:00",
+      "at": "2026-10-26T13:15:53.592751+00:00",
       "codes": 445,
       "remaining": {
         "price": 0
@@ -42755,7 +42857,7 @@
         "marked_from_lake": 0
       },
       "stopped": null,
-      "at": "2026-10-26T12:19:44.255602+00:00"
+      "at": "2026-10-26T13:14:31.093414+00:00"
     },
     "dividend+divresult@m2026-10": {
       "done": true,
@@ -43559,11 +43661,11 @@
       "earliest": "2018-06-05"
     },
     "inst@2012-01-01": {
-      "done": true,
-      "at": "2026-10-26T12:46:39.839482+00:00",
-      "codes": 500,
+      "done": false,
+      "at": "2026-10-26T13:21:19.104257+00:00",
+      "codes": 2340,
       "remaining": {
-        "inst": 0
+        "inst": 1737
       },
       "no_data": {
         "inst": 0
@@ -43587,7 +43689,7 @@
   },
   "finmind_health": {
     "ok": true,
-    "at": "2026-10-26T12:19:44.849684+00:00",
+    "at": "2026-10-26T13:14:31.731014+00:00",
     "probe": "TaiwanStockPrice/2330 since 2026-10-16",
     "detail": ""
   },
