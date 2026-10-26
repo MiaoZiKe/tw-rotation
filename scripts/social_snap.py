@@ -73,7 +73,7 @@ SITE_URL = "https://liguligu-puipui.com"
 # 文案最底下的連結（2026-10-26 Andy：「連結部分要改成：更多詳細資料可以點擊以下連結：https://liguligu-puipui.com/」——首頁網址，不帶追蹤參數與分頁）
 LINK_LINES = ["👉 更多詳細資料可以點擊以下連結：", SITE_URL + "/"]
 # 標題與段名前的表情符號（2026-10-26 Andy：「搭配些表情符號，除了個股」→ 只加在標題／段名，列股票名稱的「・」行不加）
-EMOJI = {"盤面分析：": "🧭", "盤中消息": "🕛", "盤後3分鐘": "🌙", "盤後融資融券": "💳",
+EMOJI = {"盤面分析：": "🧭", "盤中3分鐘": "🕛", "盤後3分鐘": "🌙", "盤後融資融券": "💳",
          "資金輪盤：": "🎡", "資金分流樹：": "🌳", "熱力圖：": "🔥",
          "台指期法人淨未平倉：": "📊", "散戶多空比：": "⚖️", "三大法人買賣超：": "🏦", "外資：": "🌏", "投信：": "🏢",
          "ETF 買超：": "📦", "融資維持率：": "🛡️", "融資：": "📈", "融券：": "📉"}
@@ -1644,7 +1644,7 @@ def _caption_lines(kind: str, stamp: str, shots: list[dict], data_date: str, ymd
         return f" → {deep_link(route, kind, ymd)}" if links == "all" or (links == "two" and idx < 2) else ""
     if kind == "intraday":
         # 2026-10-26 Andy 指定格式：標題「盤中消息」、每段標題一行＋「・」條列；Andy：「連結只需要附在最底下就好」→ 只在最後一行放一個網址；文案末不放資料來源／免責
-        L.append("盤中消息")
+        L.append("盤中3分鐘")      # 2026-10-27 Andy：「盤中也要改成盤中3分鐘」
         n = min(n, 2)      # Andy 範例每項列 2 個
         ar = intraday_reads(ok)
         if ar and links != "none":
