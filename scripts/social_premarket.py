@@ -615,7 +615,7 @@ def market_reads(us: dict, adr: dict, night: dict, partial: bool = False) -> lis
         x = bar_read("台積電 ADR", adr["k"], partial)
         if x:
             out.append(x)
-    if "^VIX" in by:
+    if False and "^VIX" in by:      # 2026-10-26 Andy：「vix 拿掉」——盤前貼文與文案都不再提 VIX（下方規則保留備查）
         v = by["^VIX"]
         # 2026-10-26 Andy：「VIX 怎麼可能叫做平穩區」→ 不再只看絕對水位；加上一個月變化與 20 警戒線距離。
         # 水位：<15 低檔、15–20「逼近 20 警戒線」、20–30「站上 20 警戒線」、≥30「恐慌區」（CBOE／媒體常用 20、30 兩條線）
