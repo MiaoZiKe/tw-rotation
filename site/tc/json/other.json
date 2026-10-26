@@ -1018,6 +1018,159 @@
           ]
         }
       ]
+    },
+    {
+      "name": "Unabiz",
+      "code": null,
+      "heat": null,
+      "benefits": null,
+      "stock_plan": null,
+      "bonus_timing": null,
+      "bonus_structure": [],
+      "culture": null,
+      "interview": null,
+      "grade_system": null,
+      "mops": null,
+      "roles": [
+        {
+          "unit": "其他",
+          "role": "韌體工程師",
+          "degree": "碩士",
+          "samples": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/262249054",
+              "date": "2026-10",
+              "page_date": "2026-10-05",
+              "date_confirmed": true,
+              "role": "韌體工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "3",
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "拿到 offer；薪資未公開",
+              "in_window": true,
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-10-05"
+            }
+          ],
+          "sources": [],
+          "confidence": "低",
+          "n": 1,
+          "bonus_months": null,
+          "annual_months": null,
+          "base_month_k": null
+        }
+      ],
+      "note": "2026-10-26 由 Dcard 樣本新增的公司"
+    },
+    {
+      "name": "瑞力登 Raritan",
+      "code": null,
+      "heat": null,
+      "benefits": null,
+      "stock_plan": null,
+      "bonus_timing": null,
+      "bonus_structure": [],
+      "culture": null,
+      "interview": null,
+      "grade_system": null,
+      "mops": null,
+      "roles": [
+        {
+          "unit": "其他",
+          "role": "Sr. Software Engineer",
+          "degree": "碩士",
+          "samples": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/262249054",
+              "date": "2026-10",
+              "page_date": "2026-10-05",
+              "date_confirmed": true,
+              "role": "Sr. Software Engineer",
+              "grade": null,
+              "unit_detail": null,
+              "years": "3",
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "拿到 offer；薪資未公開",
+              "in_window": true,
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-10-05"
+            }
+          ],
+          "sources": [],
+          "confidence": "低",
+          "n": 1,
+          "bonus_months": null,
+          "annual_months": null,
+          "base_month_k": null
+        }
+      ],
+      "note": "2026-10-26 由 Dcard 樣本新增的公司"
+    },
+    {
+      "name": "虹堡",
+      "code": null,
+      "heat": null,
+      "benefits": null,
+      "stock_plan": null,
+      "bonus_timing": null,
+      "bonus_structure": [],
+      "culture": null,
+      "interview": null,
+      "grade_system": null,
+      "mops": null,
+      "roles": [
+        {
+          "unit": "其他",
+          "role": "Linux 韌體設計工程師",
+          "degree": "碩士",
+          "samples": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/262249054",
+              "date": "2026-10",
+              "page_date": "2026-10-05",
+              "date_confirmed": true,
+              "role": "Linux 韌體設計工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "3",
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "拿到 offer；薪資未公開",
+              "in_window": true,
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-10-05"
+            }
+          ],
+          "sources": [],
+          "confidence": "低",
+          "n": 1,
+          "bonus_months": null,
+          "annual_months": null,
+          "base_month_k": null
+        }
+      ],
+      "note": "2026-10-26 由 Dcard 樣本新增的公司"
     }
   ]
 }
