@@ -59,11 +59,15 @@ def test_盤後法人_缺日期也不發_休市日不發():
 
 
 def test_decide_close_資料日取卡片自己的():
-    cd = {k: "2026-10-22" for k in CLOSE}
-    ok, d, why = ss.decide("close", T("2026-10-22T18:40"), {"inst_date": "2026-10-22"}, {}, cd, CLOSE, H)
-    assert ok and d == "2026-10-22"
-    ok, d, why = ss.decide("close", T("2026-10-23T00:10"), {"inst_date": "2026-10-22"}, {}, cd, CLOSE, H)
-    assert not ok and "2026-10-23" in why       # 過了午夜，22 號的資料不是「今天」→ 不發
+    # 2026-10-26 盤後一篇＝法人＋融資融券：融資到齊才發；資料日之後到下一個交易日 09:00 前都可以發
+    cd = {k: "2026-10-22" for k in CLOSE + CREDIT}
+    meta, mf = _mf("2026-10-22")
+    ok, d, why = ss.decide("close", T("2026-10-22T21:40"), meta, mf, cd, CLOSE + CREDIT, H)
+    assert ok and d == "2026-10-22", why
+    ok, d, why = ss.decide("close", T("2026-10-22T18:40"), *_mf("2026-10-21", meta_d="2026-10-22"), cd, CLOSE + CREDIT, H)
+    assert not ok and "融資融券還沒到齊" in why      # 法人到了、融資還沒 → 等下一輪
+    ok, d, why = ss.decide("close", T("2026-10-22T21:40"), meta, mf, {**cd, "inst-today": "2026-10-21"}, CLOSE + CREDIT, H)
+    assert not ok and "inst-today" in why
 
 
 # ---------- 盤後融資 ----------

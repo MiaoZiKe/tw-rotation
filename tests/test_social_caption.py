@@ -58,24 +58,24 @@ def test_盤後融資文案_獨立一篇():
     L = txt.splitlines()
     assert L[0] == "盤後融資融券" and L[1] == "融資維持率："      # 2026-10-26 Andy 盤中格式套用到盤後
     assert "・上市（估算）168.20%，較前日 -1.35pp" in L
-    assert L[L.index("融資：") + 1] == "・增加 長榮、華邦電、群創；" and L[L.index("融資：") + 2] == "・減少 台積電、聯電、鴻海"
-    assert L[L.index("融券：") + 1] == "・增加 友達、力積電、南亞科；" and L[L.index("融券：") + 2] == "・減少 英業達、廣達、緯創"
+    assert L[L.index("融資：") + 1] == "・增加 長榮、華邦電；" and L[L.index("融資：") + 2] == "・減少 台積電、聯電"
+    assert L[L.index("融券：") + 1] == "・增加 友達、力積電；" and L[L.index("融券：") + 2] == "・減少 英業達、廣達"
     assert L[-2].startswith("#台股 #融資") and L[-1].endswith("#market/credit") and "utm_campaign=credit_1022" in L[-1]
     assert txt.count("https://") == 1 and ss.DISCLAIMER not in txt      # 網址只在最底下、不放免責
     assert len(txt) <= 480
-    # 盤後法人那篇不再帶融資
-    close = ss.build_text("close", "10/21 17:20", shots, "2026-10-21", "20261021")
-    assert "融資" not in close
+    # 2026-10-26 起盤後那篇也帶融資融券（合併）
+    close = ss.build_text("close", "10/21 21:40", shots, "2026-10-21", "20261021")
+    assert close.splitlines()[0] == "盤後消息" and "融資：" in close and "融券：" in close and close.count("https://") == 1
 
 
 def test_盤後文案_照盤中格式():
     shots = [{"name": "inst-today", "ok": True, "read": [["外資", "−815.8億"], ["投信", "+94.9億"], ["自營商", "−273.8億"], ["三大法人合計", "−994.7億"]]},
-             {"name": "streak-foreign", "ok": True, "read": {"buy": ["緯穎", "廣達"], "sell": ["台積電", "聯發科"]}},
+             {"name": "streak-foreign", "ok": True, "read": {"buy": ["緯穎", "廣達", "精材"], "sell": ["台積電", "國巨*", "南亞"]}},
              {"name": "fut-oi", "ok": True, "read": "外資 -87,297 投信 +83,601 自營商 +3,260"}]
     txt = ss.build_text("close", "10/22 17:20", shots, "2026-10-22", "20261022")
     L = txt.splitlines()
     assert L[0] == "盤後消息" and L[1] == "三大法人買賣超：" and L[2] == "・外資 -815.8億、投信 +94.9億；" and L[3] == "・自營 -273.8億、合計 -994.7億"
-    assert "外資：" in L and "・買超 緯穎、廣達；" in L and "台指期法人淨未平倉：" in L
+    assert "外資：" in L and "・買超 緯穎、廣達；" in L and "・賣超 台積電、國巨" in L and "台指期法人淨未平倉：" in L   # 統一兩個、星號拿掉
     assert L[-2].startswith("#台股") and L[-1].endswith("#market/inst") and txt.count("https://") == 1
     assert " → " not in txt and ss.DISCLAIMER not in txt and len(txt) <= 480
 
@@ -84,3 +84,15 @@ def test_融資卡歸盤後融資那篇():
     kinds = {t["name"]: t["kind"] for t in ss.TARGETS}
     assert kinds["credit-ratio"] == kinds["credit-rank"] == "credit"
     assert all(kinds[n] == "close" for n in ("inst-today", "streak-foreign", "streak-trust", "fut-oi", "retail-ratio"))
+    assert kinds["market-index"] == kinds["market-breadth"] == "off"      # 2026-10-26 Andy：大盤走勢、漲跌家數拿掉
+    assert set(ss.KIND_SET["close"]) == {"close", "credit"}               # 盤後一篇含融資融券
+
+
+def test_融資排行只列個股():
+    import social_native as nat
+    assert nat.is_stock("2330") and not nat.is_stock("00631L") and not nat.is_stock("0050") and not nat.is_stock("020011")
+    m = {"rank": {"rows": [{"code": "00686R", "name": "反1", "chg": 9}, {"code": "2409", "name": "友達", "chg": 3},
+                           {"code": "1802", "name": "台玻", "chg": -6}, {"code": "00671R", "name": "反1", "chg": -9}]}}
+    up, dn = nat.credit_top(m, "rank")
+    assert [r["code"] for r in up] == ["2409"] and [r["code"] for r in dn] == ["1802"]
+    assert nat.clean_name("國巨*") == "國巨"

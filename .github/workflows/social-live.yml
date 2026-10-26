@@ -16,6 +16,7 @@ name: 社群即時貼文（Threads／IG 限動）
 #   盤中  台北 12:01 ＝ UTC 04:01（一天一篇，2026-10-26 Andy：「時間都需要固定中午 12:00」）
 #   盤後  不排固定時間，接在「每日盤後管線」每一輪結束（含部署）之後（workflow_run），
 #         只有網站 meta.json 的法人資料日（inst_date）＝今天才發，而且同一天只發一次（social-snaps 分支 state/posted.json 已有 close-日期 就跳過）。
+#   ★ 2026-10-26 Andy：盤後法人與融資融券合成一篇（kind=close），融資到齊那輪才發；kind=credit 只留手動用。以下為舊說明：
 #   盤後融資 同樣接在每日管線每一輪之後（kind=credit，跟盤後法人分開兩篇，2026-10-21）：
 #         融資比法人晚很多才到齊 —— 整體市場融資（FinMind）約台北 21:30～22:00、上市個股融資要到隔天清晨。
 #         以前融資卡綁在法人那篇，法人一到那篇就發掉，融資卡一律「資料未更新」被略過（10/21 22:13 那輪就是這樣只剩 5 張）。
@@ -70,7 +71,7 @@ jobs:
       max-parallel: 1
       fail-fast: false
       matrix:
-        kind: ${{ fromJSON(github.event_name == 'workflow_run' && '["close","credit"]' || (github.event_name == 'workflow_dispatch' && format('["{0}"]', inputs.kind) || '["intraday"]')) }}
+        kind: ${{ fromJSON(github.event_name == 'workflow_run' && '["close"]' || (github.event_name == 'workflow_dispatch' && format('["{0}"]', inputs.kind) || '["intraday"]')) }}
     env:
       TZ: Asia/Taipei
     steps:

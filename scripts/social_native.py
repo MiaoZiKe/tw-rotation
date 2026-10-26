@@ -221,6 +221,26 @@ def b_rotation_rank(mode, w, h, ctx):
 
 
 # ---- 排行清單（個股：外資／投信／融資／融券）
+def is_stock(code) -> bool:
+    """個股＝4 碼數字、首碼非 0（排除 ETF 00xxx、ETN 02xxxx、權證等）。2026-10-26 Andy：「排除ETF只列個股」"""
+    c = str(code)
+    return len(c) == 4 and c.isdigit() and c[0] != "0"
+
+
+def clean_name(name) -> str:
+    """證交所簡稱的「*」拿掉（例：國巨* → 國巨）。2026-10-26 Andy：「星號拿掉」"""
+    return str(name or "").replace("*", "").replace("＊", "").strip()
+
+
+def credit_top(m: dict, which: str, n: int = 8):
+    """融資（rank）／融券（short）增減前 n 名，只列個股。回 (增加, 減少)。"""
+    rk = (m.get("short_rank") if which == "short" else m.get("rank")) or {}
+    rows = [r for r in (rk.get("rows") or []) if is_stock(r.get("code"))]
+    up = sorted([r for r in rows if r["chg"] > 0], key=lambda r: -r["chg"])[:n]
+    dn = sorted([r for r in rows if r["chg"] < 0], key=lambda r: r["chg"])[:n]
+    return up, dn
+
+
 def rank_list(mode, w, h, ctx, sections, vw=190):
     """sections＝[(標題, 色, [dict(code,name,frac,val,sub)], 顏色)]"""
     s = S_(mode)
@@ -232,7 +252,7 @@ def rank_list(mode, w, h, ctx, sections, vw=190):
             nmw = round(w * 0.45)
             out.append(
                 f'<div class=r><span class=rk>{i + 1}</span>{logo_html(r["code"], r["name"], ctx, round(46 * s))}'
-                f'<span class=nm style="max-width:{nmw}px"><b>{esc(r["name"])}</b><i>{esc(r["code"])}</i></span>'
+                f'<span class=nm style="max-width:{nmw}px"><b>{esc(clean_name(r["name"]))}</b><i>{esc(r["code"])}</i></span>'
                 f'<span class=bar><u style="width:{max(r["frac"] * 100, 3):.1f}%;background:{col};opacity:.85"></u></span>'
                 f'<span class=v style="color:{col};min-width:{vw}px">{esc(r["val"])}<small>{esc(r.get("unit", ""))}</small></span></div>')
         out.append("</div></div>")
@@ -258,10 +278,7 @@ def _streak(side):
 def _credit(which):
     def b(mode, w, h, ctx):
         m = ctx["jget"]("market_fut")["margin"]
-        rk = (m.get("short_rank") if which == "short" else m.get("rank")) or {}
-        rows = rk.get("rows") or []
-        up = sorted([r for r in rows if r["chg"] > 0], key=lambda r: -r["chg"])[:8]
-        dn = sorted([r for r in rows if r["chg"] < 0], key=lambda r: r["chg"])[:8]
+        up, dn = credit_top(m, which)      # 只列個股（排除 ETF）
         mx = max([abs(r["chg"]) for r in up + dn] + [1])
         what = "融券" if which == "short" else "融資"
         mk = lambda rs: [dict(code=r["code"], name=r["name"], frac=abs(r["chg"]) / mx, val=sgn(r["chg"] / 1000, 2), unit="千張") for r in rs]

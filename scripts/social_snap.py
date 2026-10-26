@@ -267,13 +267,14 @@ TARGETS = [
                      hide=[".howbtn", ".livetg"], fill=dict(frac=0.60, charts=["#indTreeWrap", "#indTree"])),
                 dict(name="heat-theme", route="heatmap/theme", card="#themeMapCard", live="auto", live_ok=None, hide=[".howbtn", ".livetg"], optional=True, fill=dict(frac=0.40, charts=["#themeMap"]))],
          live="auto", live_ok=None, headline=None, d=[dict(name="heat", title="資金熱力圖")], m=[]),
-    dict(name="market-index", kind="close", label="大盤走勢（收盤全日）", route="overview", card="#m3Frame",
+    # 2026-10-26 Andy：「大盤走勢 & 漲跌家數拿掉」→ kind="off"（保留設定，不發）
+    dict(name="market-index", kind="off", label="大盤走勢（收盤全日）", route="overview", card="#m3Frame",
          live="#m3Frame .livetg-b",
          live_ok="() => { const b = document.querySelector('#m3Frame .livetg-b'); const f = document.querySelector('#m3Frame');"
                  " return !!b && !!f && (b.classList.contains('on') || b.getAttribute('aria-pressed') === 'true') && !/連不到|抓不到|失敗|逾時/.test(f.innerText); }",
          headline=None, d=[dict(name="market-index", hide=[".howbtn", ".mfilt", ".mpos", ".m4sico"], hide_exact=["~即時"])],
          m=[dict(name="market-index", hide=[".howbtn", ".mfilt", ".mpos", ".m4sico"], hide_exact=["~即時"], fill=dict(frac=1.0, charts=[".m3-chart", ".tv-lightweight-charts"]))]),
-    dict(name="market-breadth", kind="close", label="漲跌家數", route="market/updown", card=".mktdist", closest_card=True,
+    dict(name="market-breadth", kind="off", label="漲跌家數", route="market/updown", card=".mktdist", closest_card=True,
          live="#mktMode button[data-m=live]",
          live_ok="() => { const n = document.querySelector('#mktLive');"
                  " return !!n && !n.hidden && !/抓取中|抓不到|失敗|逾時|連不到/.test(n.innerText); }",
@@ -396,6 +397,10 @@ def fetch_json(base: str, name: str) -> dict:
         return {}
 
 
+# 2026-10-26 Andy：「盤後 Threads 7 張 & 融資融券 Threads 3 張應該是要一起的」→ 盤後一篇＝法人卡＋融資融券卡
+KIND_SET = {"close": ("close", "credit"), "credit": ("credit",), "intraday": ("intraday",)}
+
+
 def credit_ready(meta: dict, mf: dict) -> tuple[bool, str, str]:
     """盤後融資那篇能不能發：回 (能不能, 融資資料日, 不能的原因)。
 
@@ -434,8 +439,8 @@ def credit_ready(meta: dict, mf: dict) -> tuple[bool, str, str]:
 
 def slot_key_for(kind: str, data_date: str, taken_at: str) -> str:
     """發布紀錄的時段鍵（跟 scripts/social_publish.py 的 slot_key 同一套規則）。"""
-    if kind == "close":
-        return f"close-{taken_at[:10]}"
+    if kind == "close":      # 合併後以資料日為鍵（可能隔天清晨才發）
+        return f"close-{(data_date or taken_at)[:10]}"
     if kind == "credit":
         return f"credit-{data_date[:10]}"
     if kind == "intraday":      # 盤中一天一篇（台北 12:00），跟 social_publish.slot_key 一致
@@ -1003,7 +1008,7 @@ def snap_targets(args, base: str, out: Path, today_ymd: str) -> tuple[list[dict]
     raw_dir.mkdir(parents=True, exist_ok=True)
     shots: list[dict] = []
     sniff = {"quote_dates": set(), "errors": []}
-    wanted = [t for t in TARGETS if t["kind"] == args.kind and (not args.only or t["name"] in args.only.split(","))]
+    wanted = [t for t in TARGETS if t["kind"] in KIND_SET[args.kind] and (not args.only or t["name"] in args.only.split(","))]
     attr_mode = "only" if args.use_snap_attr else ("never" if args.no_snap_attr else "prefer")
     m_dsf = 1080 / 374.0          # 手機卡片寬 374 css px（390 − 左右各 8）→ 輸出剛好 1080 寬
 
@@ -1328,7 +1333,7 @@ def img_size(path: str) -> tuple[int, int]:
 # 文案（Threads 單則上限 500 字，含網址）。深連結用網站實際路由；hash 路由的 query 放在 # 前面
 THREADS_MAX = 480          # Threads 單則上限 500 字（網址以實際字元數計），留 20 字餘裕
 ROUTE_INST = "market/inst"      # 法人頁路由；日後改 market/inst 只改這個常數
-HASHTAGS = {"intraday": "#台股 #資金流向 #熱力圖 #族群輪動", "close": "#台股 #法人買賣超 #投信 #外資",
+HASHTAGS = {"intraday": "#台股 #資金流向 #熱力圖 #族群輪動", "close": "#台股 #法人買賣超 #外資 #投信 #融資融券",
             "credit": "#台股 #融資 #融券 #融資維持率 #信用交易"}
 DISCLAIMER = "資料：證交所／櫃買公開資料整理，僅供參考，不構成投資建議"
 
@@ -1339,11 +1344,28 @@ def deep_link(route: str, kind: str, ymd: str) -> str:
 
 
 def _join(names: list, n: int) -> str:
-    return "、".join(names[:n])
+    return "、".join(NAT.clean_name(x) for x in names[:n])
 
 
 # 降級順序：(每行名稱數, 附網址的模式)；all＝每行都附、two＝只有前兩行（輪盤、分流樹）附、one＝只在第一行附一個
 LADDER = [(3, "all"), (2, "all"), (2, "two"), (1, "two"), (1, "one")]
+
+
+def credit_lines(ok: dict, n: int) -> list[str]:
+    """融資維持率／融資／融券三段（盤後那篇與單獨的融資篇共用）。"""
+    yi = lambda x: x.replace("−", "-")
+    nm = lambda xs: [NAME_MAP.get(str(x), x) for x in xs]      # 讀到的是代號（列上的名稱已被 LOGO 排版改寫），換成簡稱
+    L = []
+    r = (ok.get("credit-ratio") or {}).get("read") or {}
+    if r.get("ratio"):
+        L += ["融資維持率：", f"・上市（估算）{r['ratio']}%" + (f"，較前日 {yi(r['chg'])}pp" if r.get("chg") else "")]
+    r = (ok.get("credit-rank") or {}).get("read") or {}
+    if r.get("up") and r.get("down"):
+        L += ["融資：", f"・增加 {_join(nm(r['up']), n)}；", f"・減少 {_join(nm(r['down']), n)}"]
+    r = (ok.get("credit-short") or {}).get("read") or {}
+    if r.get("up") and r.get("down"):
+        L += ["融券：", f"・增加 {_join(nm(r['up']), n)}；", f"・減少 {_join(nm(r['down']), n)}"]
+    return L
 
 
 def caption_lines(kind: str, stamp: str, shots: list[dict], data_date: str, ymd: str, n: int, links: str = "all") -> list[str]:
@@ -1379,24 +1401,16 @@ def caption_lines(kind: str, stamp: str, shots: list[dict], data_date: str, ymd:
         return L
     elif kind == "credit":
         # 2026-10-26 Andy：盤中格式確認 OK、「以後 Follow 這格式」→ 標題一行、每段「標題：」＋「・」條列、網址只放最底下一行、不放資料來源／免責
-        yi = lambda x: x.replace("−", "-")
-        nm = lambda xs: [NAME_MAP.get(str(x), x) for x in xs]      # 讀到的是代號（列上的名稱已被 LOGO 排版改寫），換成簡稱
+        n = min(n, 2)      # 2026-10-26 Andy：「統一兩個」
         L.append("盤後融資融券")
-        r = (ok.get("credit-ratio") or {}).get("read") or {}
-        if r.get("ratio"):
-            L += ["融資維持率：", f"・上市（估算）{r['ratio']}%" + (f"，較前日 {yi(r['chg'])}pp" if r.get("chg") else "")]
-        r = (ok.get("credit-rank") or {}).get("read") or {}
-        if r.get("up") and r.get("down"):
-            L += ["融資：", f"・增加 {_join(nm(r['up']), n)}；", f"・減少 {_join(nm(r['down']), n)}"]
-        r = (ok.get("credit-short") or {}).get("read") or {}
-        if r.get("up") and r.get("down"):
-            L += ["融券：", f"・增加 {_join(nm(r['up']), n)}；", f"・減少 {_join(nm(r['down']), n)}"]
+        L += credit_lines(ok, n)
         L.append(HASHTAGS[kind])
         if links != "none":
             L.append(deep_link("market/credit", kind, ymd))
         return L
     else:
         # 同上：Andy 盤中格式套到盤後
+        n = min(n, 2)      # 2026-10-26 Andy：「統一兩個」
         L.append("盤後消息")
         yi = lambda x: x.replace("−", "-")
         r = (ok.get("inst-today") or {}).get("read") or []
@@ -1418,14 +1432,7 @@ def caption_lines(kind: str, stamp: str, shots: list[dict], data_date: str, ymd:
         if r:
             it = [f"{x.get('prod') or '?'} {yi(x.get('pct') or '—')}" for x in r]
             L += ["散戶多空比："] + ([f"・{'、'.join(it[:2])}；", f"・{'、'.join(it[2:])}"] if len(it) > 2 else [f"・{'、'.join(it)}"])
-        pn = (((ok.get("market-index") or {}).get("pieces_d") or [{}])[0].get("dump") or {}).get("panels") or []
-        bd = (ok.get("market-breadth") or {}).get("breadth") or {}
-        if pn or bd:      # 2026-10-26：大盤走勢與漲跌家數從盤中移到盤後（Andy）
-            L.append("大盤：")
-            if pn:
-                L.append(f"・加權收盤 {pn[0]['price']}（{pn[0]['chgtxt'].replace('  ', ' ')}）" + ("；" if bd.get("up") else ""))
-            if bd.get("up"):
-                L.append(f"・上漲 {bd['up']} 家、下跌 {bd['down']} 家")
+        L += credit_lines(ok, n)      # 2026-10-26 Andy：融資融券併進盤後同一篇；大盤走勢、漲跌家數拿掉
         L.append(HASHTAGS[kind])
         if links != "none":
             L.append(deep_link("market/inst", kind, ymd))
@@ -1481,10 +1488,18 @@ def decide(kind: str, now: datetime, meta: dict, mf: dict, card_dates: dict, nam
     ev = ev or {}
     lt, live = ev.get("last_trade"), bool(ev.get("live"))
     if kind == "close":
+        # 盤後一篇（法人＋融資融券，2026-10-26 Andy 合併）：融資到齊才發，資料日＝融資資料日，每張卡都要是同一天；
+        # 時間窗跟融資一樣：資料日收盤後～下一個交易日 09:00（融資常到深夜或隔天清晨才齊）
+        ok, d, why = credit_ready(meta, mf)
         cd = {n: card_dates.get(n, "") for n in names}
-        ok, why = gate.close_gate(today, cd, holidays, lt, live, now)
-        log("盤後法人各張資料日：" + "、".join(f"{k}＝{v or '沒有日期'}" for k, v in cd.items()))
-        return ok, today if ok else "", why
+        log("盤後各張資料日：" + "、".join(f"{k}＝{v or '沒有日期'}" for k, v in cd.items()))
+        if not ok:
+            return False, d, "融資融券還沒到齊：" + why
+        bad = {k: (v or "沒有日期") for k, v in cd.items() if v != d}
+        if bad:
+            return False, d, "這幾張的資料日跟 " + d + " 不同：" + "、".join(f"{k}＝{v}" for k, v in bad.items())
+        ok, why = gate.credit_gate(now, d, holidays, lt, live)
+        return ok, d if ok else "", why
     if kind == "credit":
         ok, d, why = credit_ready(meta, mf)
         if not ok:
@@ -1566,9 +1581,9 @@ def main() -> int:
         meta = fetch_meta(base)
         if not DATE_ISO:      # 沒有 --serve：從網站讀各張的資料檔
             DATE_ISO.update(data_dates(None, lambda n: fetch_json(base, n)))
-        names_ = [t["name"] for t in TARGETS if t["kind"] == args.kind and (not args.only or t["name"] in args.only.split(","))]
+        names_ = [t["name"] for t in TARGETS if t["kind"] in KIND_SET[args.kind] and (not args.only or t["name"] in args.only.split(","))]
         holidays_ = gate.load_holidays()
-        mf_ = fetch_json(base, "market_fut") if args.kind == "credit" else {}
+        mf_ = fetch_json(base, "market_fut") if args.kind in ("close", "credit") else {}
         ev_ = fetch_last_trade() if args.kind in ("close", "credit") and not args.no_mis else {}
         if ev_:
             log(f"即時成交日（mis 加權指數）：{ev_.get('last_trade') or '查不到'}")
@@ -1665,7 +1680,7 @@ def main() -> int:
                 return True
 
             ORDER = {"intraday": ["rotation-wheel", "sankey-tree", "rotation-rank", "heat"],
-                     "close": ["inst-today", "streak-foreign", "streak-trust", "fut-oi", "retail-ratio", "market-index", "market-breadth"]}.get(args.kind, [])
+                     "close": ["inst-today", "streak-foreign", "streak-trust", "fut-oi", "retail-ratio", "credit-ratio", "credit-rank", "credit-short"]}.get(args.kind, [])
             rk = lambda r: ORDER.index(r["name"]) if r["name"] in ORDER else len(ORDER)
             pd_ = sorted([(s, r) for s in ok for r in s["pieces_d"]], key=lambda t: rk(t[1]))      # Threads 輪播順序＝這裡的順序
             pm_ = sorted([(s, r) for s in ok for r in s["pieces_m"]], key=lambda t: rk(t[1]))
@@ -1709,6 +1724,12 @@ def main() -> int:
                 log("  ✗", r["file"], r["hits"], r["out"], r["cut"])
             return 3
 
+        if args.kind in ("close", "credit"):      # 融資／融券文案改讀資料檔、只列個股（跟圖同一份：social_native.credit_top），2026-10-26 Andy「排除ETF只列個股」
+            mf_ = (fetch_json(base, "market_fut") or {}).get("margin") or {}
+            for s_ in ok:
+                if s_["name"] in ("credit-rank", "credit-short") and mf_:
+                    up_, dn_ = NAT.credit_top(mf_, "short" if s_["name"] == "credit-short" else "rank")
+                    s_["read"] = {**(s_.get("read") or {}), "up": [r["code"] for r in up_], "down": [r["code"] for r in dn_]}
         manifest = {
             "kind": args.kind,
             "taken_at": now_tpe().isoformat(timespec="seconds"),

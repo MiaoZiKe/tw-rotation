@@ -112,7 +112,7 @@ def test_盤後融資以資料日為鍵_跟盤後法人分開():
     # 融資常到隔天清晨才齊：10/21 的融資在 10/22 05:10 發，鍵要是 10/21，而且不能跟 close-10-21 撞在一起
     m = {"kind": "credit", "taken_at": "2026-10-22T05:10:00+08:00", "data_date": "2026-10-21"}
     assert sp.slot_key(m) == "credit-2026-10-21"
-    assert sp.slot_key(m) != sp.slot_key({"kind": "close", "taken_at": "2026-10-21T17:20:00+08:00"})
+    assert sp.slot_key({"kind": "close", "taken_at": "2026-10-22T05:10:00+08:00", "data_date": "2026-10-21"}) == "close-2026-10-21"   # 合併後以資料日為鍵
     from scripts import social_snap as ss
     assert ss.slot_key_for("credit", "2026-10-21", m["taken_at"]) == sp.slot_key(m)
     assert ss.slot_key_for("close", "2026-10-21", "2026-10-21T17:20:00+08:00") == "close-2026-10-21"
