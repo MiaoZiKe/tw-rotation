@@ -193,6 +193,8 @@ def add_factor_features(P):
     info = pd.read_parquet(ROOT / "data" / "company_info" / "year=0" / "part.parquet")
     fin = set(info.loc[info["industry"].isin(["金融保險", "金融業"]), "code"])
     P["is_fin"] = np.array([c in fin for c in cols])
+    ind = dict(zip(info["code"], info["industry"].fillna("")))
+    P["ind"] = np.array([ind.get(c) or f"_{c}" for c in cols])
     return P
 
 
@@ -255,7 +257,19 @@ def pick_f(P, spec, t, pool, nret=None):
     cand = np.where(ok)[0]
     if len(cand) == 0:
         return [], {}
-    top = cand[np.argsort(-sc[cand])[:nret or spec["N"]]]
+    order = cand[np.argsort(-sc[cand])]
+    n = nret or spec["N"]
+    if spec.get("ind_cap"):                          # 單一產業最多 k 檔：依分數由高到低，超過上限的跳過
+        cnt, pick = {}, []
+        for i in order:
+            g = P["ind"][i]
+            if cnt.get(g, 0) < spec["ind_cap"]:
+                pick.append(i); cnt[g] = cnt.get(g, 0) + 1
+            if len(pick) >= n:
+                break
+        top = np.array(pick, int)
+    else:
+        top = order[:n]
     return list(top), {int(i): float(sc[i]) for i in top}
 
 
