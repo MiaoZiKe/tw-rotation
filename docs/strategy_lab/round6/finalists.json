@@ -1,0 +1,5 @@
+[
+ "{\"N\": 5, \"fam\": \"nh6\", \"mf\": \"br200\", \"rebal\": \"Q\", \"size\": \"equal\", \"sl\": null}",
+ "{\"N\": 5, \"fam\": \"nh6\", \"mf\": \"br200\", \"rebal\": \"Q\", \"size\": \"invvol\", \"sl\": null}",
+ "{\"N\": 5, \"fam\": \"nh6\", \"mf\": \"br200\", \"rebal\": \"Q\", \"size\": \"invvol\", \"sl\": 0.25}"
+]
