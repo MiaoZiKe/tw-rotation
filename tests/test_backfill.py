@@ -781,3 +781,16 @@ def test_futlab2_三塊各自標旗標_回空不標_補過不重抓(monkeypatch)
     assert set(prog["complete"]) == {"futlab2_intl", "futlab2_dgs10", "futlab2_fut"}
     assert calls["intl"] == 1                                    # 補過的不重抓
     assert "macro" in appended and "fut_inst" in appended
+
+
+def test_pit名單依各年當時成交值前N檔且旗標獨立(monkeypatch):
+    """事後選股偏誤：2013 年的龍頭（現已掉出榜）要在名單內；旗標與 universe 那步錯開。"""
+    import pandas as pd
+    rows = []
+    for y, big in ((2012, "1101"), (2013, "2002")):
+        for c, tv in (("2330", 1.0), (big, 9.0), ("1234", 5.0), ("00878", 99.0)):
+            rows.append({"date": f"{y}-03-01", "code": c, "turnover": tv})
+    monkeypatch.setattr(run_backfill.store, "read", lambda t: pd.DataFrame(rows))
+    assert run_backfill.pit_codes(years=[2012, 2013], top=2) == ["1101", "1234", "2002"]   # ETF 排除、依年聯集
+    assert run_backfill.datasets_key_of("inst", "2012-01-01", None, "pit") == "inst@2012-01-01@pit"
+    assert run_backfill._codes_for_scope("pit", None) is not None

@@ -83,6 +83,11 @@ PLAN_DEFAULT = [
     #   放在 groups 價量之後、全市場各步之前：這批量小，先補完才不被後面的大步驟的額度擠掉。
     {"datasets": "inst",                      "start": "2012-01-01", "scope": "universe"},
     {"datasets": "revenue+financial+balance", "start": "2012-01-01", "scope": "universe"},
+    # ★ 2026-10-26（回測事後選股偏誤）：上面 universe 用的是「現在」的成交值前 500，2013 年有資料的股票裡
+    #   只有 54% 是當年的前 500 檔。這一步 scope=pit：2012～2015 每一年各取當年 price_daily 成交值前 500，
+    #   聯集後補 inst。完成旗標 inst@2012-01-01@pit 與上面 universe 那步（inst@2012-01-01）錯開；
+    #   逐檔 done 鍵與 already_covered 刻意共用 2012 那組，所以上面補過的檔不重抓（不用 tag，tag 會關掉 already_covered）。
+    {"datasets": "inst",                      "start": "2012-01-01", "scope": "pit"},
     # ★ 2026-09-27（個股頁數據普查）：三大法人**從來不在計畫裡**。每日管線只補成交值前 500 檔
     #   （run_daily.fetch_institutional，UNIVERSE_SIZE），更早的一次性回補也只跑到 401 檔 ——
     #   實測 1,980 檔普通股裡 1,626 檔的 inst_daily 一列都沒有，個股頁「三大法人」整張不出現。
@@ -424,7 +429,7 @@ def datasets_key_of(datasets: str, start: str, tag: str | None = None,
         key = base
     else:
         key = f"{base}@{start}"
-    return f"{key}@{scope}" if scope in ("market", "etf") else key
+    return f"{key}@{scope}" if scope in ("market", "etf", "pit") else key
 
 
 def run(datasets: str, limit: int | None, start: str, *,
@@ -1440,6 +1445,35 @@ def plan_steps(name: str, today: date | None = None) -> list[dict]:
     return [dict(s) for s in PLANS[name]] + [m, etf_month, etf_week]
 
 
+PIT_YEARS = range(2012, 2016)
+PIT_TOP = 500
+
+
+def pit_codes(years=PIT_YEARS, top: int = PIT_TOP) -> list[str]:
+    """point-in-time 名單：每一年各取該年 price_daily 成交值前 top 檔普通股，聯集（依年份先後、名次排序）。
+
+    為什麼：用「現在」的流動性前 500 補歷史，會漏掉當年是大型股、現在掉出榜的（事後選股偏誤）。
+    成交值取該年 turnover 加總；沒有 turnover 欄時退回 close×volume。只用資料裡的日期，不用執行當下日期。
+    ⚠ 限制：只看得到 price_daily 裡有的股票，已下市且沒補過價量的拿不到。"""
+    from .util.roc import is_common_stock
+    px = store.read("price_daily")
+    if px.empty:
+        return []
+    px = px.assign(code=px["code"].astype(str), year=px["date"].astype(str).str[:4])
+    if "turnover" in px.columns and pd.to_numeric(px["turnover"], errors="coerce").notna().any():
+        px["_tv"] = pd.to_numeric(px["turnover"], errors="coerce").fillna(0.0)
+    else:
+        px["_tv"] = (pd.to_numeric(px.get("close"), errors="coerce") * pd.to_numeric(px.get("volume"), errors="coerce")).fillna(0.0)
+    out: list[str] = []
+    for y in years:
+        sub = px[px["year"] == str(y)]
+        if sub.empty:
+            continue
+        rank = sub.groupby("code")["_tv"].sum().sort_values(ascending=False)
+        out += [c for c in rank.index if is_common_stock(c)][:top]
+    return list(dict.fromkeys(out))
+
+
 def _codes_for_scope(scope: str, limit: int | None) -> list[str]:
     if scope == "groups":
         m = loader.membership(include_overlay=True)
@@ -1451,6 +1485,8 @@ def _codes_for_scope(scope: str, limit: int | None) -> list[str]:
         return market_codes()          # 刻意不吃 limit（見 market_codes）
     if scope == "etf":
         return etf_codes()
+    if scope == "pit":
+        return pit_codes()
     return target_codes(limit)
 
 
