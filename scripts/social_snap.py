@@ -1745,11 +1745,11 @@ def main() -> int:
                 if s_["name"] in ("streak-foreign", "streak-trust") and it_:      # 法人排行也只列個股（2026-10-26 Andy「法人也排除ETF」）
                     b_, s2_ = NAT.inst_top(it_, "foreign" if s_["name"] == "streak-foreign" else "trust", 10, dict(NAME_MAP))
                     s_["read"] = {**(s_.get("read") or {}), "buy": [r["name"] for r in b_], "sell": [r["name"] for r in s2_]}
-            if it_:
-                ok.append({"name": "etf-buy", "ok": True, "read": {k_: [r["name"] for r in NAT.etf_buy(it_, k_, 10, dict(NAME_MAP))] for k_ in ("foreign", "trust")}})
                 if s_["name"] in ("credit-rank", "credit-short") and mf_:
                     up_, dn_ = NAT.credit_top(mf_, "short" if s_["name"] == "credit-short" else "rank")
                     s_["read"] = {**(s_.get("read") or {}), "up": [r["code"] for r in up_], "down": [r["code"] for r in dn_]}
+            if it_:
+                ok.append({"name": "etf-buy", "ok": True, "read": {k_: [r["name"] for r in NAT.etf_buy(it_, k_, 10, dict(NAME_MAP))] for k_ in ("foreign", "trust")}})
         manifest = {
             "kind": args.kind,
             "taken_at": now_tpe().isoformat(timespec="seconds"),
