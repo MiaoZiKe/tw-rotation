@@ -6035,7 +6035,7 @@
       "name": "奇景",
       "code": "HIMX",
       "heat": "Dcard 熱度：中",
-      "benefits": null,
+      "benefits": "月薪為底薪加各種津貼，三節獎金以底薪計算（GoodJob 評價）",
       "stock_plan": null,
       "bonus_timing": "保障 13 或 14 個月（說法不一）；現金分紅近年面試心得稱為 0；另有年度 RSU 分紅",
       "culture": "評價稱待遇不及一線、調薪升等慢且不透明，但每年有結構性調薪",
@@ -6254,8 +6254,8 @@
       "name": "奕力",
       "code": "6962",
       "heat": "Dcard 熱度：低",
-      "benefits": null,
-      "stock_plan": null,
+      "benefits": "三節福利、生日假（GoodJob SA 面試心得）",
+      "stock_plan": "2012 年董事會曾決議發行限制員工權利新股上限 100 萬股、無償配發（鉅亨網，舊資料）；近年案件查不到",
       "bonus_timing": "網友稱底薪保 14 個月（含年終），分紅依獲利與績效；發放月份查不到",
       "culture": "GoodJob 平均每週 51 小時、25% 幾乎每天加班；2026 面試心得稱可能早 9 到晚 9、假日偶爾支援",
       "interview": "網友說法：多為線上面試，先做性向測驗與限時線上專業題（每題約 30 秒～2 分鐘），再由主管面談、報約 20 分鐘簡報並追問，數位 IC 會寫 RTL（GoodJob 2026 多則、Dcard 軟韌體面試心得）",
@@ -6449,6 +6449,63 @@
               "quote_free_note": "私立中字電碩、2026 年 4 月畢業；拿到 offer；薪資不公開",
               "in_window": true,
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-08-05"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/奕力科技股份有限公司#fw-82k-2026",
+              "date": "2026",
+              "unit_detail": "韌體",
+              "years": "0-2",
+              "degree": "碩士",
+              "base_k": 82,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "工作不到 1 年，月薪 8.2 萬",
+              "date_confirmed": true,
+              "date_note": null,
+              "in_window": true
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/奕力科技股份有限公司#fw-78k-2026",
+              "date": "2026",
+              "unit_detail": "韌體",
+              "years": "0-2",
+              "degree": "碩士",
+              "base_k": 78,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "工作不到 1 年，月薪 7.8 萬，加班無加班費",
+              "date_confirmed": true,
+              "date_note": null,
+              "in_window": true
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/奕力科技股份有限公司/work-experiences#fw-2026-05",
+              "date": "2026-05",
+              "unit_detail": "韌體",
+              "years": null,
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 55,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "每週約 55 小時、常加班無加班費，團隊氣氛不錯",
+              "date_confirmed": true,
+              "date_note": null,
+              "in_window": true
             }
           ],
           "sources": [
@@ -6469,19 +6526,22 @@
             }
           ],
           "confidence": "低",
-          "n": 3,
+          "n": 6,
           "weekly_hours": [
-            60,
+            55,
             60
           ],
           "overtime": "經常",
           "years": null,
-          "base_month_k": null,
+          "base_month_k": [
+            78,
+            82
+          ],
           "bonus_months": null,
           "annual_months": null,
           "annual_total_wan": null,
           "travel": null,
-          "n_stat": 3,
+          "n_stat": 6,
           "note": null,
           "grade": null
         }
@@ -6532,7 +6592,7 @@
       "name": "力旺",
       "code": "3529",
       "heat": "Dcard 熱度：低",
-      "benefits": null,
+      "benefits": "免費零食、飲料櫃，午休 1.5 小時，員工旅遊補助、外訓補助，彈性上下班半小時（GoodJob 2025-05）",
       "stock_plan": null,
       "bonus_timing": "董事會按季核定經營團隊季分紅與團隊營運獎金（2026-07 通過 115 年 Q2）；一般員工發放月份查不到",
       "culture": "GoodJob 平均每週 43 小時，多數幾乎不加班，部分職位有補休；2025 年非主管薪資中位數約 269 萬",
@@ -6550,8 +6610,11 @@
           "bonus_months": null,
           "annual_months": null,
           "annual_total_wan": null,
-          "weekly_hours": null,
-          "overtime": null,
+          "weekly_hours": [
+            40,
+            40
+          ],
+          "overtime": "幾乎不",
           "travel": null,
           "n": 2,
           "note": "WebSearch 查「力旺 碩士 薪資 2026」「GoodJob 力旺」「PTT Tech_Job offer 力旺」「Dcard offer 力旺」「104 ESG 薪資中位數」，摘要未出現 2025-10 後碩士職位數字；第二輪（換 GoodJob 公司頁／職稱頁／salary.tw）：GoodJob 只有 2025-05 主任工程師年資 5 年月薪 9 萬，超出 0-2 不填；第二輪：Dcard 2026 稱四月調薪很少、分紅與去年差不多；未逐筆對應的舊彙整：overtime=幾乎不",
@@ -6601,8 +6664,8 @@
               "bonus_months": null,
               "annual_months": null,
               "annual_wan": null,
-              "weekly_hours": null,
-              "overtime": null,
+              "weekly_hours": 40,
+              "overtime": "幾乎不",
               "travel": null,
               "quote_free_note": "薪資頁：月薪 7.5 萬",
               "in_window": true,
@@ -7588,8 +7651,8 @@
       "name": "義隆",
       "code": "2458",
       "heat": "Dcard 熱度：低",
-      "benefits": null,
-      "stock_plan": null,
+      "benefits": "用餐補助（比薪水心得）",
+      "stock_plan": "章程第五條之二允許發行限制員工權利新股與員工認股權憑證；實際發行案查不到",
       "bonus_timing": "保障 13 或 14 個月（說法不一）＋分紅看績效，網友稱偏平均、約 1 個月；發放月份查不到",
       "culture": "GoodJob 平均每週 49 小時、近半數幾乎每天加班；底薪屬 IC 業普通水準",
       "interview": "韌體職筆試：C 語言、記憶體、組合語言（GoodJob）",
@@ -8233,10 +8296,10 @@
       "code": "3661",
       "heat": "Dcard 熱度：中（補）",
       "benefits": "三節獎金給得夠（GoodJob）",
-      "stock_plan": null,
+      "stock_plan": "2022-04 董事會決議發行員工認股權憑證 800 單位（80 萬股），認股價不低於發行日收盤價、存續十年（鉅亨網轉載重訊）",
       "bonus_timing": "網友稱新人約 14 個月不含分紅（另一說 16～18 個月）；發放月份查不到",
       "culture": "GoodJob 平均每週 42 小時、50% 偶爾加班；有人嫌調薪資訊公布慢",
-      "interview": null,
+      "interview": "面試趣：難度普通、錄取率約 9%",
       "roles": [
         {
           "unit": "研發 R&D",
@@ -8349,6 +8412,18 @@
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/242692867",
               "date": "依文章編號推估 2023"
+            }
+          ]
+        },
+        {
+          "type": "三節＋年終",
+          "rule": "中秋、端午各 0.5 個月，年終 1 個月，每年調薪約 5%（GoodJob 2025-04 生管面試，單筆）",
+          "months": 2,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/世芯電子",
+              "date": "2025-04"
             }
           ]
         }
