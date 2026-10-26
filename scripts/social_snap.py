@@ -1731,7 +1731,7 @@ def _caption_lines(kind: str, stamp: str, shots: list[dict], data_date: str, ymd
         for key, lab in (("streak-foreign", "外資"), ("streak-trust", "投信")):
             r = (ok.get(key) or {}).get("read") or {}
             if r.get("buy") and r.get("sell"):
-                L += [f"{lab}：", f"・買超 {_join(r['buy'], n)}；", f"・賣超 {_join(r['sell'], n)}"]
+                L += [f"{lab}：", f"・買超 {_join(r['buy'], 5)}；", f"・賣超 {_join(r['sell'], 5)}"]      # 2026-10-27 Andy：「買賣超至少前五名要寫」
         r = (ok.get("etf-buy") or {}).get("read") or {}
         if r.get("foreign") or r.get("trust"):      # 2026-10-26 Andy：ETF 買超排名
             L += ["ETF 買超："] + [f"・{lab} {_join(r[k], n)}" + ("；" if k == "foreign" and r.get("trust") else "") for k, lab in (("foreign", "外資"), ("trust", "投信")) if r.get(k)]

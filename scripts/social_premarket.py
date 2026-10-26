@@ -1100,7 +1100,8 @@ def caption(D: dict, ymd: str, max_len: int = ss.THREADS_MAX) -> str:
     news = D["news"]
     tail = [HASHTAGS, *ss.LINK_LINES, ASK_LINE]
     txt = ""
-    for kn, tl, rk in ((5, 22, 9), (4, 20, 9), (3, 18, 9), (3, 16, 3), (3, 14, 2), (2, 14, 2)):
+    # 先縮事件則數與標題長度，再把每檔解讀縮成「漲跌＋走勢」一段（距 60 日高點等細節圖上有），融資前五名一定保留（Andy 10-27）
+    for kn, tl, rk in ((5, 22, 9), (4, 20, 9), (3, 18, 9), (5, 20, 1), (4, 18, 1), (3, 18, 1), (3, 16, 1), (3, 14, 1), (2, 14, 1)):
         body = [f"🌅 盤前3分鐘 {md(pd.Timestamp(D['target']).date())}"]      # 2026-10-26 Andy：「標題盤前改盤前3分鐘」
         if reads:
             body += [f"🧭 昨日盤面（美股 {us_d}{part}）："] + [f"・{trim(x, rk)}" for x in reads]
@@ -1110,8 +1111,10 @@ def caption(D: dict, ymd: str, max_len: int = ss.THREADS_MAX) -> str:
         if cr:      # 前一日融資融券接在最後（2026-10-27 Andy）
             body += [f"💳 融資融券（{md(cr['date'])}）："]
             body.append(f"・上市融資維持率（估算）{cr['ratio']:.2f}%" + (f"，單日{'下降' if cr['chg'] < 0 else '上升'} {abs(cr['chg']):.2f} 個百分點" if cr.get("chg") is not None else ""))
-            if kn >= 4 and cr["up"] and cr["dn"]:
-                body.append(f"・融資增加 {'、'.join(cr['up'])}；減少 {'、'.join(cr['dn'])}")
+            # Andy 10-27 格式：融資／融券各一行標題，底下「增加」「減少」各一行、各列前五名
+            for nm_, a_, b_ in (("融資", cr["up"], cr["dn"]), ("融券", cr["sup"], cr["sdn"])):
+                if a_ or b_:
+                    body += [f"・{nm_}："] + ([f"　增加 {'、'.join(a_)}"] if a_ else []) + ([f"　減少 {'、'.join(b_)}"] if b_ else [])
         txt = "\n".join(body + tail)
         if len(txt) <= max_len:
             return txt
@@ -1145,8 +1148,8 @@ def credit_info(mf: dict, last_td: str | None) -> dict | None:
     if str((m.get("rank") or {}).get("d") or "")[:10] != d or str((m.get("short_rank") or {}).get("d") or "")[:10] != d:
         return None
     chg = rows[-1]["ratio"] - rows[-2]["ratio"] if len(rows) >= 2 else None
-    up, dn = ss.NAT.credit_top(m, "rank", 2)
-    sup, sdn = ss.NAT.credit_top(m, "short", 2)
+    up, dn = ss.NAT.credit_top(m, "rank", 5)      # 2026-10-27 Andy：「買賣超至少前五名要寫」
+    sup, sdn = ss.NAT.credit_top(m, "short", 5)
     nm = lambda rs: [ss.NAT.clean_name(r["name"]) for r in rs]
     return {"date": d, "ratio": rows[-1]["ratio"], "chg": chg, "up": nm(up), "dn": nm(dn), "sup": nm(sup), "sdn": nm(sdn)}
 
@@ -1219,7 +1222,7 @@ def main() -> int:
             for name, title in CREDIT_CARDS:
                 for mode, lst in (("threads", threads), ("story", stories)):
                     fn = f"{mode}_{name}.png"
-                    r = ss.NAT.render(browser, name, mode, dict(kind=KIND, title=title, date=md(D["credit"]["date"]), jget=lambda n: site_json(n), logos=site_json("logos")), out / fn)
+                    r = ss.NAT.render(browser, name, mode, dict(kind=KIND, title=title, date=md(D["credit"]["date"]), jget=lambda n: site_json(n), logos=site_json("logos"), site=ROOT / "site"), out / fn)
                     r.setdefault("content_ratio", 1.0)
                     report.append(r)
                     lst.append(fn)

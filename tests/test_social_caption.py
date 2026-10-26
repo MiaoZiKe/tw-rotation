@@ -77,7 +77,7 @@ def test_盤後文案_照盤中格式():
     assert L[0] == "🌙 盤後3分鐘" and L[1] == "📊 台指期法人淨未平倉："      # 2026-10-26 Andy：第一頁法人未平倉
     i = L.index("🏦 三大法人買賣超：")
     assert L[i + 1] == "・外資 -815.8億、投信 +94.9億；" and L[i + 2] == "・自營 -273.8億、合計 -994.7億" and i > L.index("📊 台指期法人淨未平倉：")
-    assert "🌏 外資：" in L and "・買超 緯穎、廣達；" in L and "・賣超 台積電、國巨" in L and "📊 台指期法人淨未平倉：" in L   # 統一兩個、星號拿掉
+    assert "🌏 外資：" in L and "・買超 緯穎、廣達、精材；" in L and "・賣超 台積電、國巨、南亞" in L and "📊 台指期法人淨未平倉：" in L   # 10-27 起買賣超列前五名（測資只有 3 個）、星號拿掉
     assert L[-3].startswith("#台股") and L[-2:] == ss.LINK_LINES and txt.count("https://") == 1
     assert " → " not in txt and ss.DISCLAIMER not in txt and len(txt) <= 480
 
