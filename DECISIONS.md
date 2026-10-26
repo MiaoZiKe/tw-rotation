@@ -7073,3 +7073,4 @@ Andy 原話（10-20，錄「今日事件＋精選文章」功能影片時的選�
 - `WIKI_FIRST`（9 個 Andy 目視確認抓錯的網域）與代號補強網域改 Wikimedia 優先；`S2_DENY`（連宇）不問 Google。舊索引每輪開頭 `revalidate()`：沒有 `qv>=2` 且過不了關卡的 ok 紀錄標成 `bad` 重抓；新存的紀錄蓋 `qv=2`。
 - 代號補強：科技透明圈有台股代號、但 `data/logos/<代號>.png` 原圖 <96px／空白／目視是照片或圖形太小的 48 家（`pipeline/groups/tc_code_domains.json`，網域取自 `site/tc/logos.js`），走同一套、輸出併入同一份索引與 `tc_logos.json`（鍵＝網域），前端在代號圖低解析時改用網域圖（前端另案）。
 - 別順手改回去：不要為了覆蓋率重新放行 og-image；不要把代號補強改成覆寫 `data/logos/<代號>.png`（那條路徑不碰）。
+- 補（同日第一輪回補後）：①`TC_LOGO_MIN_PX` 64→48（Andy 的低解析線；NVIDIA 官網 favicon 與 s2 都剛好 48，不放寬就只剩字標；16／32px 仍不收，#364「別降回 16／32」不變）。②兩個以上網域存到同一張圖（非 Wikimedia）＝預設圖（Cyntec、長興都收到灰色瀏覽器視窗圖示），`shared_hashes()` 標 bad 並加進拒收雜湊。③長寬比 >5:1 的 Wikimedia 字標（高通、和碩、華邦、緯創、群創）仍不收：縮進 128 畫布只剩 24px 高，前端顯示出來看不清（工研院同理）。

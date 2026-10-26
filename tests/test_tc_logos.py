@@ -105,9 +105,9 @@ def test_robots_blocks_google_and_marks_failure(sandbox):
     assert not (tc.tc_dir() / "c.com.png").exists()
 
 
-def test_sub64_everywhere_is_rejected_not_stored(sandbox):
+def test_sub48_everywhere_is_rejected_not_stored(sandbox):
     dom = [{"domain": "d.com", "names": ["丁"], "en": ""}]
-    s2 = lambda d, r: {"status": "ok", "domain": d, "src": "google_s2", "url": "u", "png": _png((48, 48)), "orig": [48, 48]}
+    s2 = lambda d, r: {"status": "ok", "domain": d, "src": "google_s2", "url": "u", "png": _png((40, 40)), "orig": [40, 40]}
     s = tc.run(domains=dom, today=TODAY, site_fetcher=_ok((40, 40)), wiki_fetcher=lambda *a: {}, s2_fetcher=s2)
     assert s["have"] == 0 and tc.read_index()["items"]["d.com"]["status"] == "too_small"
     assert not (tc.tc_dir() / "d.com.png").exists()
@@ -314,3 +314,23 @@ def test_code_supplement_merged_into_domain_list():
     sup = json.loads(tc.CODE_DOMAINS_FILE.read_text(encoding="utf-8"))["codes"]
     assert {"2303", "3017", "2385"} <= {r["code"] for r in sup}
     assert all(r["domain"] in ds for r in sup)
+
+
+def test_shared_hash_default_icon_is_marked_bad_and_rejected(sandbox):
+    d = tc.tc_dir()
+    d.mkdir(parents=True)
+    same = lg.normalize_image(_png())[0]
+    other = lg.normalize_image(_png(fg=(10, 120, 200, 255)))[0]
+    for k, b in (("a.com", same), ("b.com", same), ("c.com", other)):
+        (d / f"{k}.png").write_bytes(b)
+    it = {k: {"status": "ok", "src": "site:conventional", "url": "u", "orig": [64, 64], "qv": 2, "sha1": lg.sha1(b), "fetched": "2026-10-20"}
+          for k, b in (("a.com", same), ("b.com", same), ("c.com", other))}
+    doms = [{"domain": k, "names": [k], "en": ""} for k in it]
+    assert tc.shared_hashes(it) == {lg.sha1(same)}
+    assert set(tc.revalidate(it, doms)) == {"a.com", "b.com"}
+
+
+def test_min_px_is_48(sandbox):
+    assert config.TC_LOGO_MIN_PX == 48
+    assert tc.big_enough({"status": "ok", "png": b"x", "orig": [48, 48]})
+    assert not tc.big_enough({"status": "ok", "png": b"x", "orig": [32, 32]})

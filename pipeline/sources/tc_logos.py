@@ -8,7 +8,7 @@
 - 抓圖本體（官網首頁 icon／apple-touch-icon／manifest／頁首 Logo／SVG、robots 規則、預設圖雜湊、Google s2）完全沿用
   `logos.fetch_logo()`，不重寫、白名單與 robots 規矩一條都沒放寬 —— 只是輸入從「代號＋官網」換成「網域」。
 
-來源順序（每個網域，要求原圖長邊 ≥ `config.TC_LOGO_MIN_PX`＝64，SVG 算向量不受限）
+來源順序（每個網域，要求原圖長邊 ≥ `config.TC_LOGO_MIN_PX`＝48（Andy 的低解析線；#365 由 64 放寬到 48），SVG 算向量不受限）
 -----------------------------------------------------------------------------------
 1. 官網（logos.fetch_logo）：首頁 icon／apple-touch-icon／manifest／頁首 Logo／og:image。
 2. Wikimedia Commons（logo_wikimedia.fetch_by_website）：公司英文名搜尋 Wikidata、**官方網站網域對得上**才收，
@@ -16,7 +16,7 @@
 3. Google s2 `sz=256`：只在官網沒有 robots 禁止、也沒有「對方擋雲端存取」時才問（同 #264／#267：不繞過對方的存取控制）。
    不用 DuckDuckGo、Clearbit 等任何商用 API。
 
-三個來源都拿不到 ≥64px 就判失敗（不存 16／32px 小圖：Andy 要的是清楚的 LOGO，小圖前端本來就會退字標）。
+三個來源都拿不到 ≥48px 就判失敗（不存 16／32px 小圖：Andy 要的是清楚的 LOGO，小圖前端本來就會退字標）。
 
 存放（DECISIONS #155、只增不改的精神）
 --------------------------------------
@@ -199,7 +199,7 @@ def _px(px: int):
 
 
 def big_enough(res: dict) -> bool:
-    """成功、且原圖長邊 ≥ 64（SVG 的 orig 是我們自己算繪的 256，天然過關）。"""
+    """成功、且原圖長邊 ≥ TC_LOGO_MIN_PX（48；SVG 的 orig 是我們自己算繪的 256，天然過關）。"""
     return res.get("status") == "ok" and bool(res.get("png")) and max(res.get("orig") or [0]) >= config.TC_LOGO_MIN_PX
 
 
@@ -439,18 +439,32 @@ def run(limit: int | None = None, *, today: date | None = None, time_budget: flo
         return summary
 
 
+def shared_hashes(items: dict) -> set[str]:
+    """兩個以上網域存到同一張圖（非 Wikimedia）＝站長沒設圖示時瀏覽器／主機商的預設圖（例如灰色視窗圖示）。"""
+    cnt: dict[str, int] = {}
+    for rec in items.values():
+        if rec.get("status") == "ok" and rec.get("src") != "wikimedia" and rec.get("sha1"):
+            cnt[rec["sha1"]] = cnt.get(rec["sha1"], 0) + 1
+    return {h for h, n in cnt.items() if n >= 2}
+
+
 def revalidate(items: dict, domains: list[dict]) -> list[str]:
     """舊索引裡過不了品質關卡的 ok 紀錄 → 標成 bad（前端不再輸出、這輪重抓）。回被標的網域。
     已有 qv>=2 的是這道關卡之後存的，不重驗；Wikimedia 來源不驗；WIKI_FIRST 的網域 qv<2 一律重抓
     （它們的舊圖是 Andy 目視確認錯的，就算指標看起來正常）。"""
     want = {d["domain"] for d in domains}
+    dup = shared_hashes(items)
     out = []
     for dom, rec in items.items():
-        if dom not in want or rec.get("status") != "ok" or int(rec.get("qv") or 0) >= QV or rec.get("src") == "wikimedia":
+        if dom not in want or rec.get("status") != "ok" or rec.get("src") == "wikimedia":
             continue
         f = tc_dir() / png_name(dom)
         why = None
-        if dom in WIKI_FIRST:
+        if rec.get("sha1") in dup:
+            why = "多個網域同一張圖，是預設圖不是該公司的標誌"
+        elif int(rec.get("qv") or 0) >= QV:
+            continue
+        elif dom in WIKI_FIRST:
             why = "Andy 目視確認這個網域的舊圖是錯的，改 Wikimedia 優先重抓"
         elif f.exists():
             why = quality({"domain": dom, "src": rec.get("src"), "url": rec.get("url"), "orig": rec.get("orig"),
@@ -466,6 +480,7 @@ def _run(summary, limit, today, time_budget, domains, site_fetcher, wiki_fetcher
     domains = load_domains() if domains is None else domains
     idx = read_index()
     items = idx.setdefault("items", {})
+    dup = shared_hashes(items)
     marked = revalidate(items, domains)
     if marked:
         log.info("科技透明圈 Logo：%d 個舊圖過不了品質關卡，標成 bad 重抓：%s", len(marked), ",".join(marked))
@@ -475,7 +490,7 @@ def _run(summary, limit, today, time_budget, domains, site_fetcher, wiki_fetcher
         lg._pil()
     t0 = time.time()
     deadline = t0 + (config.TC_LOGO_BUDGET_SEC if time_budget is None else time_budget)
-    reject = frozenset(lg.known_generic(lg.read_index()))     # 個股那邊已確認的預設圖（地球、架站商圖示）一律跳過
+    reject = frozenset(lg.known_generic(lg.read_index())) | frozenset(dup)     # 個股那邊已確認的預設圖＋這邊共用同一張的預設圖，一律跳過
     log.info("科技透明圈 Logo：清單 %d 個網域、已有紀錄 %d、這輪抓 %d", len(domains), len(items), len(todo))
 
     results: dict[str, dict] = {}
