@@ -7016,11 +7016,11 @@
       "name": "信驊",
       "code": "5274",
       "heat": "Dcard 熱度：中",
-      "benefits": null,
+      "benefits": "20 週年家庭日每人加發 6 萬元（媒體報導）",
       "stock_plan": null,
-      "bonus_timing": null,
-      "culture": null,
-      "interview": null,
+      "bonus_timing": "中央社報導年薪 15 個月；分紅發放月份查不到",
+      "culture": "面試趣使用者填報：每日平均約 8 小時、偶爾加班；董事長稱以招資深人才為主",
+      "interview": "面試趣：軟韌體／嵌入式職，題目含 MCU 開發經驗、C 語言 struct，平均難度 2.8／5",
       "roles": [
         {
           "unit": "研發 R&D",
@@ -7149,7 +7149,20 @@
         "note": "上櫃第一（平均 561.7、中位數 453.7）"
       },
       "grade_system": null,
-      "bonus_structure": []
+      "bonus_structure": [
+        {
+          "type": "保障月數",
+          "rule": "年薪 15 個月，比一般科技業 14 個月多 1 個月（中央社 2025-03）",
+          "months": null,
+          "sources": [
+            {
+              "site": "中央社",
+              "url": "https://www.cna.com.tw/news/afe/202503020027.aspx",
+              "date": "2025-03"
+            }
+          ]
+        }
+      ]
     },
     {
       "name": "達發",
@@ -8286,8 +8299,8 @@
       "stock_plan": null,
       "bonus_timing": null,
       "bonus_structure": [],
-      "culture": null,
-      "interview": null,
+      "culture": "面試趣：日均約 8.4 小時、很少加班；公司評分 2.6／5、升遷 1.9；2025 年 EPS −1.09 虧損",
+      "interview": "面試趣 2026-06 IC 佈局職：面試官詢問離職原因（單筆）",
       "grade_system": null,
       "mops": null,
       "roles": [
@@ -8351,10 +8364,23 @@
       "heat": null,
       "benefits": null,
       "stock_plan": null,
-      "bonus_timing": null,
-      "bonus_structure": [],
-      "culture": null,
-      "interview": null,
+      "bonus_timing": "網友稱年終＋績效約 3～4 個月；發放月份查不到",
+      "bonus_structure": [
+        {
+          "type": "年終＋績效獎金",
+          "rule": "網友稱合計約 3～4 個月，碩士起薪約 5.5 萬、年調 3～5%（GoodJob 評價，日期不明）",
+          "months": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/財團法人工業技術研究院/work-experiences/薪資福利",
+              "date": "不明"
+            }
+          ]
+        }
+      ],
+      "culture": "GoodJob 4.0 分（476 則），平均每週約 40 小時；比薪水多數職位日均 8 小時、少加班",
+      "interview": "先繳履歷、成績單，面試前一天交約 15 分鐘簡報；通常兩關（經理→組長／更多主管），問碩論貢獻與動機（GoodJob 2026）",
       "grade_system": null,
       "mops": null,
       "roles": [
@@ -8534,6 +8560,44 @@
               "quote_free_note": "口頭 offer，婉拒；數字未透露",
               "in_window": true,
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-07-23"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/job-titles/副研究員/salary-work-times#2026-03",
+              "date": "2026-03",
+              "unit_detail": "副研究員",
+              "years": null,
+              "degree": "碩士",
+              "base_k": 57,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "副研究員月薪約 5.7 萬",
+              "date_confirmed": true,
+              "date_note": null,
+              "in_window": true
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/job-titles/副研究員/salary-work-times#2026-02",
+              "date": "2026-02",
+              "unit_detail": "副研究員",
+              "years": null,
+              "degree": "碩士",
+              "base_k": 57,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "副研究員月薪約 5.7 萬",
+              "date_confirmed": true,
+              "date_note": null,
+              "in_window": true
             }
           ],
           "sources": [
@@ -8544,16 +8608,19 @@
             }
           ],
           "confidence": "低",
-          "n": 1,
+          "n": 3,
           "years": null,
-          "base_month_k": null,
+          "base_month_k": [
+            57,
+            57
+          ],
           "bonus_months": null,
           "annual_months": null,
           "annual_total_wan": null,
           "weekly_hours": null,
           "overtime": null,
           "travel": null,
-          "n_stat": 1,
+          "n_stat": 3,
           "note": null,
           "grade": null
         }
@@ -8633,9 +8700,22 @@
       "benefits": null,
       "stock_plan": null,
       "bonus_timing": null,
-      "bonus_structure": [],
-      "culture": null,
-      "interview": null,
+      "bonus_structure": [
+        {
+          "type": "員工酬勞",
+          "rule": "章程：不低於稅前利益 1%；112 年度擬 3,605.7 萬元（2.17%）全數現金",
+          "months": null,
+          "sources": [
+            {
+              "site": "愛普股東會議事錄",
+              "url": "https://www.apmemory.com/tw/news",
+              "date": "2024"
+            }
+          ]
+        }
+      ],
+      "culture": "GoodJob：平均每週約 50 小時、偶爾加班（筆數未達 5）",
+      "interview": "一面部門主管視訊→二面到公司與高層面談；類比職考電路尺寸選擇，RD 職依簡報追問；官網稱面談＋專業測驗、2～3 週通知",
       "grade_system": null,
       "mops": null,
       "roles": [
