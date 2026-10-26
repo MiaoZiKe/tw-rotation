@@ -22209,7 +22209,7 @@
           "weekly_hours": null,
           "overtime": null,
           "travel": "需要",
-          "n": 9,
+          "n": 11,
           "note": "平台自述統計（未轉貼原文）；2 年年薪 120 萬；新人面試月薪 5.6 萬；2022 評價稱約 20 個月（範圍外）；GoodJob 2025-12 評價：近幾年約 18～20 個月（保 14 個月＋分紅），依職級而異；GoodJob 硬體職評價每週約 50 小時（2024-11，範圍外參考）；第二輪：PTT 2026-08 開獎串傳年薪 30 個月起（未證實），留言稱底薪近期大方調高；base_month_k、annual_total_wan 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples；未逐筆對應的舊彙整：overtime=經常；部分年薪／年薪月數由同一筆樣本的「底薪×月數」推算（樣本標 derived）",
           "sources": [
             {
@@ -22251,6 +22251,21 @@
               "site": "GoodJob",
               "url": "https://www.goodjob.life/companies/緯穎科技服務股份有限公司/work-experiences#2025-12-10",
               "date": "2025-12"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/262022794",
+              "date": "2026-08"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/緯穎科技服務股份有限公司/salary-work-times?p=3",
+              "date": "2025-03"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/緯穎科技服務股份有限公司/salary-work-times?p=4",
+              "date": "2025-03"
             }
           ],
           "confidence": "高",
@@ -22432,6 +22447,50 @@
               "quote_free_note": "國外電機碩應屆；口頭 offer；每年出差墨西哥 1～3 個月；留言多說緯穎薪水較高，但無具體數字",
               "in_window": true,
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-08-24"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/緯穎科技服務股份有限公司/salary-work-times?p=3",
+              "date": "2025-03",
+              "page_date": "2025-03",
+              "date_confirmed": true,
+              "role": "硬體研發工程師 HQ",
+              "grade": null,
+              "unit_detail": "HQ",
+              "years": "2",
+              "degree": null,
+              "base_k": 58,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 40,
+              "overtime": "幾乎不",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8 / 8",
+              "in_window": false,
+              "date_note": "GoodJob 頁面標示年月 2025-03（Andy 桌面版 2026-10-26 2330 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/緯穎科技服務股份有限公司/salary-work-times?p=4",
+              "date": "2025-03",
+              "page_date": "2025-03",
+              "date_confirmed": true,
+              "role": "硬體研發工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "1",
+              "degree": null,
+              "base_k": 55,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 40,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8 / 8",
+              "in_window": false,
+              "date_note": "GoodJob 頁面標示年月 2025-03（Andy 桌面版 2026-10-26 2330 批）"
             }
           ],
           "n_stat": 8
@@ -23589,6 +23648,28 @@
               "in_window": true,
               "date_note": "Dcard 頁面發文日期 2025-09-06（2026-10-26 2122 批）",
               "comment_sample": true
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/緯穎科技服務股份有限公司/salary-work-times?p=1",
+              "date": "2026-09",
+              "page_date": "2026-09",
+              "date_confirmed": true,
+              "role": "工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "2",
+              "degree": null,
+              "base_k": 81,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 40.5,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8 / 8.5",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-09（Andy 桌面版 2026-10-26 2330 批）"
             }
           ],
           "sources": [
@@ -23611,22 +23692,33 @@
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/259430510",
               "date": "2025-07"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/緯穎科技服務股份有限公司/salary-work-times?p=1",
+              "date": "2026-09"
             }
           ],
           "confidence": "低",
-          "n": 22,
+          "n": 23,
           "annual_months": [
             24,
             26
           ],
           "years": "1",
-          "base_month_k": null,
+          "base_month_k": [
+            81,
+            81
+          ],
           "bonus_months": null,
           "annual_total_wan": null,
-          "weekly_hours": null,
-          "overtime": null,
+          "weekly_hours": [
+            40.5,
+            40.5
+          ],
+          "overtime": "偶爾",
           "travel": null,
-          "n_stat": 5,
+          "n_stat": 6,
           "note": null,
           "grade": null
         },
@@ -24000,13 +24092,18 @@
           "weekly_hours": null,
           "overtime": null,
           "travel": null,
-          "n": 1,
+          "n": 2,
           "note": "網友自述樣本（2025-08 之後）",
           "sources": [
             {
               "site": "GoodJob",
               "url": "https://www.goodjob.life/companies/緯穎科技服務股份有限公司/work-experiences/薪資福利",
               "date": "2025-12"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/緯穎科技服務股份有限公司/salary-work-times?p=4",
+              "date": "2025-01"
             }
           ],
           "confidence": "低",
@@ -24039,9 +24136,1238 @@
               "derived": [
                 "annual_wan"
               ]
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/緯穎科技服務股份有限公司/salary-work-times?p=4",
+              "date": "2025-01",
+              "page_date": "2025-01",
+              "date_confirmed": true,
+              "role": "研發品質驗證工程師 WYHQ",
+              "grade": null,
+              "unit_detail": "WYHQ",
+              "years": "3",
+              "degree": null,
+              "base_k": 53,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 45,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8 / 9",
+              "in_window": false,
+              "date_note": "GoodJob 頁面標示年月 2025-01（Andy 桌面版 2026-10-26 2330 批）"
             }
           ],
           "n_stat": 1
+        },
+        {
+          "unit": "其他",
+          "role": "電源工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": [
+            77.3,
+            78
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": [
+            48,
+            48
+          ],
+          "overtime": "經常",
+          "travel": null,
+          "n": 4,
+          "n_stat": 2,
+          "note": null,
+          "grade": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/緯穎科技服務股份有限公司/salary-work-times?p=1",
+              "date": "2026-08"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/緯穎科技服務股份有限公司/salary-work-times?p=3",
+              "date": "2025-03"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/緯穎科技服務股份有限公司/salary-work-times?p=4",
+              "date": "2025-01"
+            }
+          ],
+          "confidence": "中",
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/緯穎科技服務股份有限公司/salary-work-times?p=1",
+              "date": "2026-08",
+              "page_date": "2026-08",
+              "date_confirmed": true,
+              "role": "電源工程師 WYHQ",
+              "grade": null,
+              "unit_detail": "WYHQ",
+              "years": "2",
+              "degree": null,
+              "base_k": 77.3,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 48,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8 / 10",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-08（Andy 桌面版 2026-10-26 2330 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/緯穎科技服務股份有限公司/salary-work-times?p=1",
+              "date": "2026-07",
+              "page_date": "2026-07",
+              "date_confirmed": true,
+              "role": "電源工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "1",
+              "degree": null,
+              "base_k": 78,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 48,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8 / 9",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-07（Andy 桌面版 2026-10-26 2330 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/緯穎科技服務股份有限公司/salary-work-times?p=3",
+              "date": "2025-03",
+              "page_date": "2025-03",
+              "date_confirmed": true,
+              "role": "電源工程師 汐止",
+              "grade": null,
+              "unit_detail": "汐止",
+              "years": "5",
+              "degree": null,
+              "base_k": 77,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 40,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8 / 8",
+              "in_window": false,
+              "date_note": "GoodJob 頁面標示年月 2025-03（Andy 桌面版 2026-10-26 2330 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/緯穎科技服務股份有限公司/salary-work-times?p=4",
+              "date": "2025-01",
+              "page_date": "2025-01",
+              "date_confirmed": true,
+              "role": "電源工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "5",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 123.5,
+              "weekly_hours": 50,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8 / 10",
+              "in_window": false,
+              "date_note": "GoodJob 頁面標示年月 2025-01（Andy 桌面版 2026-10-26 2330 批）"
+            }
+          ]
+        },
+        {
+          "unit": "其他",
+          "role": "SIT工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": [
+            110,
+            110
+          ],
+          "weekly_hours": [
+            40,
+            40
+          ],
+          "overtime": "幾乎不",
+          "travel": null,
+          "n": 1,
+          "n_stat": 1,
+          "note": null,
+          "grade": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/緯穎科技服務股份有限公司/salary-work-times?p=1",
+              "date": "2026-06"
+            }
+          ],
+          "confidence": "低",
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/緯穎科技服務股份有限公司/salary-work-times?p=1",
+              "date": "2026-06",
+              "page_date": "2026-06",
+              "date_confirmed": true,
+              "role": "SIT工程師 汐止",
+              "grade": null,
+              "unit_detail": "汐止",
+              "years": "2",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 110,
+              "weekly_hours": 40,
+              "overtime": "幾乎不",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8 / 8",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-06（Andy 桌面版 2026-10-26 2330 批）"
+            }
+          ]
+        },
+        {
+          "unit": "其他",
+          "role": "資深工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": [
+            81,
+            81
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": [
+            50,
+            50
+          ],
+          "overtime": "經常",
+          "travel": null,
+          "n": 1,
+          "n_stat": 1,
+          "note": null,
+          "grade": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/緯穎科技服務股份有限公司/salary-work-times?p=1",
+              "date": "2026-04"
+            }
+          ],
+          "confidence": "低",
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/緯穎科技服務股份有限公司/salary-work-times?p=1",
+              "date": "2026-04",
+              "page_date": "2026-04",
+              "date_confirmed": true,
+              "role": "資深工程師 HQ",
+              "grade": null,
+              "unit_detail": "HQ",
+              "years": "5",
+              "degree": null,
+              "base_k": 81,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 50,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8 / 10",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-04（Andy 桌面版 2026-10-26 2330 批）"
+            }
+          ]
+        },
+        {
+          "unit": "其他",
+          "role": "韌體設計工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": [
+            68,
+            68
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": [
+            40,
+            40
+          ],
+          "overtime": "偶爾",
+          "travel": null,
+          "n": 1,
+          "n_stat": 1,
+          "note": null,
+          "grade": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/緯穎科技服務股份有限公司/salary-work-times?p=1",
+              "date": "2026-03"
+            }
+          ],
+          "confidence": "低",
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/緯穎科技服務股份有限公司/salary-work-times?p=1",
+              "date": "2026-03",
+              "page_date": "2026-03",
+              "date_confirmed": true,
+              "role": "韌體設計工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "1",
+              "degree": null,
+              "base_k": 68,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 40,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8 / 8",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-03（Andy 桌面版 2026-10-26 2330 批）"
+            }
+          ]
+        },
+        {
+          "unit": "其他",
+          "role": "軟體工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": [
+            53,
+            70
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": [
+            130,
+            130
+          ],
+          "weekly_hours": [
+            40,
+            40
+          ],
+          "overtime": "幾乎不",
+          "travel": null,
+          "n": 4,
+          "n_stat": 3,
+          "note": null,
+          "grade": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/緯穎科技服務股份有限公司/salary-work-times?p=1",
+              "date": "2026-03"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/緯穎科技服務股份有限公司/salary-work-times?p=2",
+              "date": "2026-02"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/緯穎科技服務股份有限公司/salary-work-times?p=3",
+              "date": "2025-03"
+            }
+          ],
+          "confidence": "中",
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/緯穎科技服務股份有限公司/salary-work-times?p=1",
+              "date": "2026-03",
+              "page_date": "2026-03",
+              "date_confirmed": true,
+              "role": "軟體工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 70,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 40,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8 / 8",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-03（Andy 桌面版 2026-10-26 2330 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/緯穎科技服務股份有限公司/salary-work-times?p=2",
+              "date": "2026-02",
+              "page_date": "2026-02",
+              "date_confirmed": true,
+              "role": "軟體工程師 汐止",
+              "grade": null,
+              "unit_detail": "汐止",
+              "years": "1",
+              "degree": null,
+              "base_k": 53,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 40,
+              "overtime": "幾乎不",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8 / 8",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-02（Andy 桌面版 2026-10-26 2330 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/緯穎科技服務股份有限公司/salary-work-times?p=2",
+              "date": "2025-08",
+              "page_date": "2025-08",
+              "date_confirmed": true,
+              "role": "軟體工程師 汐止",
+              "grade": null,
+              "unit_detail": "汐止",
+              "years": "3",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 130,
+              "weekly_hours": 40,
+              "overtime": "幾乎不",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8 / 8",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2025-08（Andy 桌面版 2026-10-26 2330 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/緯穎科技服務股份有限公司/salary-work-times?p=3",
+              "date": "2025-03",
+              "page_date": "2025-03",
+              "date_confirmed": true,
+              "role": "軟體工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 55,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 50,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 10 / 12",
+              "in_window": false,
+              "date_note": "GoodJob 頁面標示年月 2025-03（Andy 桌面版 2026-10-26 2330 批）"
+            }
+          ]
+        },
+        {
+          "unit": "其他",
+          "role": "通訊軟體工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": [
+            100,
+            100
+          ],
+          "weekly_hours": [
+            40,
+            40
+          ],
+          "overtime": "偶爾",
+          "travel": null,
+          "n": 1,
+          "n_stat": 1,
+          "note": null,
+          "grade": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/緯穎科技服務股份有限公司/salary-work-times?p=1",
+              "date": "2026-03"
+            }
+          ],
+          "confidence": "低",
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/緯穎科技服務股份有限公司/salary-work-times?p=1",
+              "date": "2026-03",
+              "page_date": "2026-03",
+              "date_confirmed": true,
+              "role": "通訊軟體工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 100,
+              "weekly_hours": 40,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8 / 8",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-03（Andy 桌面版 2026-10-26 2330 批）"
+            }
+          ]
+        },
+        {
+          "unit": "其他",
+          "role": "軟韌體測試工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": [
+            50,
+            50
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": [
+            42,
+            42
+          ],
+          "overtime": "偶爾",
+          "travel": null,
+          "n": 2,
+          "n_stat": 1,
+          "note": null,
+          "grade": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/緯穎科技服務股份有限公司/salary-work-times?p=2",
+              "date": "2025-12"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/緯穎科技服務股份有限公司/salary-work-times?p=3",
+              "date": "2025-05"
+            }
+          ],
+          "confidence": "低",
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/緯穎科技服務股份有限公司/salary-work-times?p=2",
+              "date": "2025-12",
+              "page_date": "2025-12",
+              "date_confirmed": true,
+              "role": "軟韌體測試工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 50,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 42,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8 / 9",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2025-12（Andy 桌面版 2026-10-26 2330 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/緯穎科技服務股份有限公司/salary-work-times?p=3",
+              "date": "2025-05",
+              "page_date": "2025-05",
+              "date_confirmed": true,
+              "role": "軟韌體測試工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 50,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 40,
+              "overtime": "幾乎不",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8 / 8",
+              "in_window": false,
+              "date_note": "GoodJob 頁面標示年月 2025-05（Andy 桌面版 2026-10-26 2330 批）"
+            }
+          ]
+        },
+        {
+          "unit": "其他",
+          "role": "CPLD ENGINEER",
+          "degree": null,
+          "years": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": [
+            138,
+            138
+          ],
+          "weekly_hours": [
+            40,
+            40
+          ],
+          "overtime": "偶爾",
+          "travel": null,
+          "n": 1,
+          "n_stat": 1,
+          "note": null,
+          "grade": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/緯穎科技服務股份有限公司/salary-work-times?p=2",
+              "date": "2025-12"
+            }
+          ],
+          "confidence": "低",
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/緯穎科技服務股份有限公司/salary-work-times?p=2",
+              "date": "2025-12",
+              "page_date": "2025-12",
+              "date_confirmed": true,
+              "role": "CPLD ENGINEER",
+              "grade": null,
+              "unit_detail": null,
+              "years": "2",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 138,
+              "weekly_hours": 40,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8 / 8",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2025-12（Andy 桌面版 2026-10-26 2330 批）"
+            }
+          ]
+        },
+        {
+          "unit": "其他",
+          "role": "測試工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": [
+            63,
+            63
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": [
+            45,
+            45
+          ],
+          "overtime": "偶爾",
+          "travel": null,
+          "n": 1,
+          "n_stat": 1,
+          "note": null,
+          "grade": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/緯穎科技服務股份有限公司/salary-work-times?p=2",
+              "date": "2025-10"
+            }
+          ],
+          "confidence": "低",
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/緯穎科技服務股份有限公司/salary-work-times?p=2",
+              "date": "2025-10",
+              "page_date": "2025-10",
+              "date_confirmed": true,
+              "role": "測試工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 63,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 45,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 9 / 9",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2025-10（Andy 桌面版 2026-10-26 2330 批）"
+            }
+          ]
+        },
+        {
+          "unit": "其他",
+          "role": "SAP工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": [
+            85,
+            85
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": [
+            45,
+            45
+          ],
+          "overtime": "偶爾",
+          "travel": null,
+          "n": 1,
+          "n_stat": 1,
+          "note": null,
+          "grade": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/緯穎科技服務股份有限公司/salary-work-times?p=2",
+              "date": "2025-09"
+            }
+          ],
+          "confidence": "低",
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/緯穎科技服務股份有限公司/salary-work-times?p=2",
+              "date": "2025-09",
+              "page_date": "2025-09",
+              "date_confirmed": true,
+              "role": "SAP工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "7",
+              "degree": null,
+              "base_k": 85,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 45,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8 / 8.5",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2025-09（Andy 桌面版 2026-10-26 2330 批）"
+            }
+          ]
+        },
+        {
+          "unit": "其他",
+          "role": "AI工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": [
+            65,
+            65
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": [
+            46,
+            46
+          ],
+          "overtime": "經常",
+          "travel": null,
+          "n": 1,
+          "n_stat": 1,
+          "note": null,
+          "grade": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/緯穎科技服務股份有限公司/salary-work-times?p=2",
+              "date": "2025-08"
+            }
+          ],
+          "confidence": "低",
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/緯穎科技服務股份有限公司/salary-work-times?p=2",
+              "date": "2025-08",
+              "page_date": "2025-08",
+              "date_confirmed": true,
+              "role": "AI工程師 汐止",
+              "grade": null,
+              "unit_detail": "汐止",
+              "years": null,
+              "degree": null,
+              "base_k": 65,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 46,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8 / 9.5",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2025-08（Andy 桌面版 2026-10-26 2330 批）"
+            }
+          ]
+        },
+        {
+          "unit": "其他",
+          "role": "產品工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": [
+            47,
+            47
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": [
+            40,
+            40
+          ],
+          "overtime": "幾乎不",
+          "travel": null,
+          "n": 1,
+          "n_stat": 1,
+          "note": null,
+          "grade": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/緯穎科技服務股份有限公司/salary-work-times?p=2",
+              "date": "2025-08"
+            }
+          ],
+          "confidence": "低",
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/緯穎科技服務股份有限公司/salary-work-times?p=2",
+              "date": "2025-08",
+              "page_date": "2025-08",
+              "date_confirmed": true,
+              "role": "產品工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 47,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 40,
+              "overtime": "幾乎不",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8 / 8.2",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2025-08（Andy 桌面版 2026-10-26 2330 批）"
+            }
+          ]
+        },
+        {
+          "unit": "其他",
+          "role": "BIOS工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n": 1,
+          "n_stat": 0,
+          "note": null,
+          "grade": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/緯穎科技服務股份有限公司/salary-work-times?p=2",
+              "date": "2025-07"
+            }
+          ],
+          "confidence": "低",
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/緯穎科技服務股份有限公司/salary-work-times?p=2",
+              "date": "2025-07",
+              "page_date": "2025-07",
+              "date_confirmed": true,
+              "role": "BIOS工程師 台北",
+              "grade": null,
+              "unit_detail": "台北",
+              "years": "6",
+              "degree": null,
+              "base_k": 82,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 40,
+              "overtime": "幾乎不",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8 / 8",
+              "in_window": false,
+              "date_note": "GoodJob 頁面標示年月 2025-07（Andy 桌面版 2026-10-26 2330 批）"
+            }
+          ]
+        },
+        {
+          "unit": "其他",
+          "role": "產品維修工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n": 1,
+          "n_stat": 0,
+          "note": null,
+          "grade": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/緯穎科技服務股份有限公司/salary-work-times?p=3",
+              "date": "2025-05"
+            }
+          ],
+          "confidence": "低",
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/緯穎科技服務股份有限公司/salary-work-times?p=3",
+              "date": "2025-05",
+              "page_date": "2025-05",
+              "date_confirmed": true,
+              "role": "產品維修工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "1",
+              "degree": null,
+              "base_k": 53,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 54,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 10 / 10",
+              "in_window": false,
+              "date_note": "GoodJob 頁面標示年月 2025-05（Andy 桌面版 2026-10-26 2330 批）"
+            }
+          ]
+        },
+        {
+          "unit": "其他",
+          "role": "硬體工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n": 4,
+          "n_stat": 0,
+          "note": null,
+          "grade": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/緯穎科技服務股份有限公司/salary-work-times?p=3",
+              "date": "2025-04"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/緯穎科技服務股份有限公司/salary-work-times?p=4",
+              "date": "2025-03"
+            }
+          ],
+          "confidence": "低",
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/緯穎科技服務股份有限公司/salary-work-times?p=3",
+              "date": "2025-04",
+              "page_date": "2025-04",
+              "date_confirmed": true,
+              "role": "硬體工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "3",
+              "degree": null,
+              "base_k": 63,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 50,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8 / 9",
+              "in_window": false,
+              "date_note": "GoodJob 頁面標示年月 2025-04（Andy 桌面版 2026-10-26 2330 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/緯穎科技服務股份有限公司/salary-work-times?p=3",
+              "date": "2025-03",
+              "page_date": "2025-03",
+              "date_confirmed": true,
+              "role": "硬體工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "2",
+              "degree": null,
+              "base_k": 63,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 50,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8 / 9",
+              "in_window": false,
+              "date_note": "GoodJob 頁面標示年月 2025-03（Andy 桌面版 2026-10-26 2330 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/緯穎科技服務股份有限公司/salary-work-times?p=4",
+              "date": "2025-03",
+              "page_date": "2025-03",
+              "date_confirmed": true,
+              "role": "硬體",
+              "grade": null,
+              "unit_detail": null,
+              "years": "2",
+              "degree": null,
+              "base_k": 63,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 45,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8 / 9",
+              "in_window": false,
+              "date_note": "GoodJob 頁面標示年月 2025-03（Andy 桌面版 2026-10-26 2330 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/緯穎科技服務股份有限公司/salary-work-times?p=4",
+              "date": "2025-01",
+              "page_date": "2025-01",
+              "date_confirmed": true,
+              "role": "硬體",
+              "grade": null,
+              "unit_detail": null,
+              "years": "5",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 130,
+              "weekly_hours": 55,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8 / 10",
+              "in_window": false,
+              "date_note": "GoodJob 頁面標示年月 2025-01（Andy 桌面版 2026-10-26 2330 批）"
+            }
+          ]
+        },
+        {
+          "unit": "其他",
+          "role": "維修工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n": 1,
+          "n_stat": 0,
+          "note": null,
+          "grade": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/緯穎科技服務股份有限公司/salary-work-times?p=4",
+              "date": "2025-03"
+            }
+          ],
+          "confidence": "低",
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/緯穎科技服務股份有限公司/salary-work-times?p=4",
+              "date": "2025-03",
+              "page_date": "2025-03",
+              "date_confirmed": true,
+              "role": "維修工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 46,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 46,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 11 / 11",
+              "in_window": false,
+              "date_note": "GoodJob 頁面標示年月 2025-03（Andy 桌面版 2026-10-26 2330 批）"
+            }
+          ]
+        },
+        {
+          "unit": "其他",
+          "role": "軟韌體工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n": 1,
+          "n_stat": 0,
+          "note": null,
+          "grade": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/緯穎科技服務股份有限公司/salary-work-times?p=4",
+              "date": "2025-02"
+            }
+          ],
+          "confidence": "低",
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/緯穎科技服務股份有限公司/salary-work-times?p=4",
+              "date": "2025-02",
+              "page_date": "2025-02",
+              "date_confirmed": true,
+              "role": "軟韌體工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 53,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 40,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8 / 8",
+              "in_window": false,
+              "date_note": "GoodJob 頁面標示年月 2025-02（Andy 桌面版 2026-10-26 2330 批）"
+            }
+          ]
+        },
+        {
+          "unit": "其他",
+          "role": "FPGA/CPLD ENGINNER",
+          "degree": null,
+          "years": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n": 1,
+          "n_stat": 0,
+          "note": null,
+          "grade": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/緯穎科技服務股份有限公司/salary-work-times?p=5",
+              "date": "2025-01"
+            }
+          ],
+          "confidence": "低",
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/緯穎科技服務股份有限公司/salary-work-times?p=5",
+              "date": "2025-01",
+              "page_date": "2025-01",
+              "date_confirmed": true,
+              "role": "FPGA/CPLD ENGINNER 汐科",
+              "grade": null,
+              "unit_detail": "汐科",
+              "years": "2",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 110,
+              "weekly_hours": 42,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8 / 8.5",
+              "in_window": false,
+              "date_note": "GoodJob 頁面標示年月 2025-01（Andy 桌面版 2026-10-26 2330 批）"
+            }
+          ]
         }
       ],
       "mops": null,

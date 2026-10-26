@@ -1199,6 +1199,61 @@
           "confidence": "低",
           "n": 4,
           "n_stat": 0
+        },
+        {
+          "unit": "其他",
+          "role": "產品工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": [
+            400,
+            400
+          ],
+          "weekly_hours": [
+            40,
+            40
+          ],
+          "overtime": "幾乎不",
+          "travel": null,
+          "n": 1,
+          "n_stat": 1,
+          "note": null,
+          "grade": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/NVIDIA/salary-work-times",
+              "date": "2026-02"
+            }
+          ],
+          "confidence": "低",
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/NVIDIA/salary-work-times",
+              "date": "2026-02",
+              "page_date": "2026-02",
+              "date_confirmed": true,
+              "role": "產品工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "5",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 400,
+              "weekly_hours": 40,
+              "overtime": "幾乎不",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8 / 8；GoodJob NVIDIA 頁 2025 後僅此一筆全職（另一筆為實習清潔，不收；「 輝達」頁兩筆均早於2025）",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-02（Andy 桌面版 2026-10-26 2330 批）"
+            }
+          ]
         }
       ],
       "mops": null,
