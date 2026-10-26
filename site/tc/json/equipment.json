@@ -662,12 +662,15 @@
           "years": "0-2",
           "base_month_k": null,
           "bonus_months": null,
-          "annual_months": null,
+          "annual_months": [
+            17,
+            17
+          ],
           "annual_total_wan": null,
           "weekly_hours": null,
           "overtime": "經常（輪班＋on call）",
           "travel": "需要",
-          "n": 11,
+          "n": 12,
           "note": "比薪水 2026-03 新竹設備工程師有分享但金額需解鎖；GoodJob 2026-08 設備職面試：無塵室、三到四週輪一次班、需 on call 與出差支援",
           "sources": [
             {
@@ -913,6 +916,28 @@
               "quote_free_note": "發文者說薪資大幅優於台達電，但擔心發展性；數字未透露",
               "in_window": true,
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-05-05"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261706218",
+              "date": "2026-06",
+              "page_date": "2026-06-23",
+              "date_confirmed": true,
+              "role": "FSE（CVD 設備）",
+              "grade": null,
+              "unit_detail": "嘉義",
+              "years": "1",
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": 17,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "(N+28k)×17；要輪班；留言 B11（Lam 嘉義 etch 新人）說目前還不忙但大家都說幾個月後就知道",
+              "in_window": true,
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-06-23"
             }
           ],
           "n_stat": 5
@@ -2323,6 +2348,64 @@
         }
       ],
       "note": "2026-10-26 由 Dcard 樣本新增的公司"
+    },
+    {
+      "name": "日立先端（Hitachi High-Tech）",
+      "code": null,
+      "heat": null,
+      "benefits": null,
+      "stock_plan": null,
+      "bonus_timing": null,
+      "bonus_structure": [],
+      "culture": null,
+      "interview": null,
+      "grade_system": null,
+      "mops": null,
+      "note": "2026-10-26 由 Dcard 樣本新增的公司",
+      "roles": [
+        {
+          "unit": "南科",
+          "role": "CDSEM 設備工程師",
+          "degree": "碩士",
+          "grade": null,
+          "samples": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/262332324",
+              "date": "2026-10",
+              "page_date": "2026-10-21",
+              "date_confirmed": true,
+              "role": "CDSEM 設備工程師",
+              "grade": null,
+              "unit_detail": "南科",
+              "years": null,
+              "degree": null,
+              "base_k": 75,
+              "bonus_months": null,
+              "annual_months": 12,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "面完尚未正式 offer；月薪×12＋分紅 40～50 萬；學長說每日工時不高",
+              "in_window": true,
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-10-21"
+            }
+          ],
+          "n": 1,
+          "sources": [],
+          "confidence": "低",
+          "note": "2026-10-26 由 Dcard 樣本新增的公司",
+          "annual_months": [
+            12,
+            12
+          ],
+          "base_month_k": [
+            75,
+            75
+          ]
+        }
+      ]
     }
   ]
 }

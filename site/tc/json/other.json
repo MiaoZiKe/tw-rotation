@@ -863,6 +863,161 @@
         }
       ],
       "note": "2026-10-26 由 Dcard 樣本新增的公司"
+    },
+    {
+      "name": "馳諾瓦",
+      "code": null,
+      "heat": null,
+      "benefits": null,
+      "stock_plan": null,
+      "bonus_timing": null,
+      "bonus_structure": [],
+      "culture": null,
+      "interview": null,
+      "grade_system": null,
+      "mops": null,
+      "note": "2026-10-26 由 Dcard 樣本新增的公司",
+      "roles": [
+        {
+          "unit": "台南",
+          "role": "機構設計工程師",
+          "degree": "碩士",
+          "grade": null,
+          "samples": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/262008905",
+              "date": "2026-08",
+              "page_date": "2026-08-21",
+              "date_confirmed": true,
+              "role": "機構設計工程師",
+              "grade": null,
+              "unit_detail": "台南",
+              "years": "5",
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "四大碩、5 年工程師經驗、待業 1 年多後求職；拿到 offer；數字未透露；同篇緯穎智造測試機構工程師未錄取",
+              "in_window": true,
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-08-21"
+            }
+          ],
+          "n": 1,
+          "sources": [],
+          "confidence": "低",
+          "note": "2026-10-26 由 Dcard 樣本新增的公司"
+        }
+      ]
+    },
+    {
+      "name": "新代",
+      "code": null,
+      "heat": null,
+      "benefits": null,
+      "stock_plan": null,
+      "bonus_timing": null,
+      "bonus_structure": [],
+      "culture": null,
+      "interview": null,
+      "grade_system": null,
+      "mops": null,
+      "note": "2026-10-26 由 Dcard 樣本新增的公司",
+      "roles": [
+        {
+          "unit": "新竹",
+          "role": "製造品質工程師",
+          "degree": "碩士",
+          "grade": null,
+          "samples": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261947882",
+              "date": "2026-08",
+              "page_date": "2026-08-09",
+              "date_confirmed": true,
+              "role": "製造品質工程師",
+              "grade": null,
+              "unit_detail": "新竹",
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": "幾乎不",
+              "travel": null,
+              "quote_free_note": "初階工程師職等；彈性上下班，聽說不用加班；數字未透露",
+              "in_window": true,
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-08-09"
+            }
+          ],
+          "n": 1,
+          "sources": [],
+          "confidence": "低",
+          "note": "2026-10-26 由 Dcard 樣本新增的公司",
+          "overtime": "幾乎不"
+        }
+      ]
+    },
+    {
+      "name": "四零四科技（Moxa）",
+      "code": null,
+      "heat": null,
+      "benefits": null,
+      "stock_plan": null,
+      "bonus_timing": null,
+      "bonus_structure": [],
+      "culture": null,
+      "interview": null,
+      "grade_system": null,
+      "mops": null,
+      "note": "2026-10-26 由 Dcard 樣本新增的公司",
+      "roles": [
+        {
+          "unit": "其他",
+          "role": "工業乙太網路軟體工程師",
+          "degree": "碩士",
+          "grade": null,
+          "samples": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261074827",
+              "date": "2026-03",
+              "page_date": "2026-03-13",
+              "date_confirmed": true,
+              "role": "工業乙太網路軟體工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "0",
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": 15,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "(N-2)×14～16（取中值）；發文者說福利部分現金改為點數",
+              "in_window": true,
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-03-13"
+            }
+          ],
+          "n": 1,
+          "sources": [],
+          "confidence": "低",
+          "note": "2026-10-26 由 Dcard 樣本新增的公司",
+          "annual_months": [
+            15,
+            15
+          ]
+        }
+      ]
     }
   ]
 }

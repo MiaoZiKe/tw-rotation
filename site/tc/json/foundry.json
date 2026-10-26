@@ -6656,6 +6656,38 @@
           "sources": [],
           "confidence": "低",
           "n": 1
+        },
+        {
+          "unit": "南科／高雄 / 成品倉儲",
+          "role": "助理工程師",
+          "degree": "不限",
+          "samples": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/262243691",
+              "date": "2026-10",
+              "page_date": "2026-10-05",
+              "date_confirmed": true,
+              "role": "助理工程師（成品倉儲管理）",
+              "grade": "23T",
+              "unit_detail": "南科／高雄 / 成品倉儲",
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "從日月光轉職；拿到 e-offer；數字未透露；長期想轉供應鏈；busyness 未提",
+              "in_window": true,
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-10-05"
+            }
+          ],
+          "sources": [],
+          "confidence": "低",
+          "n": 1
         }
       ],
       "mops": {

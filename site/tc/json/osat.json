@@ -21,12 +21,12 @@
           "years": "0-2",
           "base_month_k": [
             45,
-            63
+            65
           ],
           "bonus_months": null,
           "annual_months": [
             14,
-            14
+            20
           ],
           "annual_total_wan": [
             75,
@@ -36,9 +36,9 @@
             45,
             55
           ],
-          "overtime": "經常（輪值）",
+          "overtime": "經常",
           "travel": "不用",
-          "n": 22,
+          "n": 23,
           "note": "Dcard 封測整理文（未註日期）碩士 4.6～6.3 萬；GoodJob 2026-06 中壢 1 年資深工程師 8 萬（職等高已排除）、2026-07 高雄 G5 5.1 萬；第二輪：Dcard 製程 offer 多為月薪×14＋績效分紅＋每月小白單（新人約 1 年後才有）；GoodJob 2026-08 高雄碩士 2 年年薪約 75 萬；評價稱碩畢底薪偏低、靠加班費；base_month_k、bonus_months、annual_months 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples；未逐筆對應的舊彙整：base_month_k=[46, 63]；未逐筆對應的舊彙整：bonus_months=[2, 4]；未逐筆對應的舊彙整：annual_months=[14, 16]",
           "sources": [
             {
@@ -534,6 +534,28 @@
               "quote_free_note": "底薪加津貼每月約 63k，另有每月獎金預估約 10k，三節共 2 個月，分紅未知",
               "in_window": true,
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2025-09-07"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/262332324",
+              "date": "2026-10",
+              "page_date": "2026-10-21",
+              "date_confirmed": true,
+              "role": "製程工程師",
+              "grade": null,
+              "unit_detail": "南科",
+              "years": null,
+              "degree": null,
+              "base_k": 65,
+              "bonus_months": null,
+              "annual_months": 20,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "年 20 個月以上是請內部朋友保守估計；不含加班費",
+              "in_window": true,
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-10-21"
             }
           ],
           "n_stat": 2
