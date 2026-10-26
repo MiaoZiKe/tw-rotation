@@ -6963,7 +6963,7 @@
       "name": "仁寶",
       "code": "2324",
       "heat": null,
-      "benefits": null,
+      "benefits": "網友說法：每生一個小孩有 6 萬津貼，育嬰假復職沒問題；保底 15 個月＋三節，賺錢部門可到 20 個月（GoodJob 評價）",
       "stock_plan": "員工福利持股信託：2026-07 起與中國信託合作，自願參加、員工每月自提，公司提存等額獎勵金；金額上限與鎖定期未公布（工商時報 2026-07-28 ctee.com.tw/news/20260728701594-430201、1111 人力銀行）",
       "bonus_timing": "年終統一 2 個月全薪、農曆年前發（2025 年 1 月 22 日或 28 日，報導不一）；端午、中秋各半個月",
       "culture": "GoodJob 平均每週 47 小時、15% 幾乎每天加班；加班費可申請但超過 46 小時會被關切；每年調薪幅度不固定",
@@ -7501,11 +7501,14 @@
             12,
             12
           ],
-          "annual_total_wan": null,
+          "annual_total_wan": [
+            70,
+            70
+          ],
           "weekly_hours": null,
           "overtime": null,
           "travel": "需要",
-          "n": 5,
+          "n": 6,
           "note": "平台自述統計（未轉貼原文）；韌體不到 1 年年薪 70 萬；軟體 1 年月薪 11 萬（落差大）；未逐筆對應的舊彙整：{\"base_month_k\": [110, 110], \"annual_total_wan\": [70, 70]}；未逐筆對應的舊彙整：overtime=偶爾；部分年薪／年薪月數由同一筆樣本的「底薪×月數」推算（樣本標 derived）",
           "sources": [
             {
@@ -7527,6 +7530,11 @@
               "site": "GoodJob",
               "url": "https://www.goodjob.life/experiences/69002ddd63ddee8d44c869c6",
               "date": "2025-10"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/英業達股份有限公司/work-experiences/薪資福利",
+              "date": "2026-07"
             }
           ],
           "confidence": "低",
@@ -7632,9 +7640,30 @@
               "quote_free_note": "月薪 N，保 12；彈性工時；要出差",
               "in_window": true,
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-09-01"
+            },
+            {
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 70,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/英業達股份有限公司/work-experiences/薪資福利",
+              "date": "2026-07",
+              "date_confirmed": true,
+              "date_note": "GoodJob 標示 2026 年 7 月（搜尋摘要）",
+              "in_window": true,
+              "role": "韌體設計工程師（總公司評價）",
+              "quote_free_note": "認為平均薪資偏低；年薪 70 萬"
             }
           ],
-          "n_stat": 4
+          "n_stat": 5
         },
         {
           "unit": "士林 / 客戶 ASUS",
@@ -7852,6 +7881,208 @@
           "n_stat": 1,
           "note": null,
           "grade": null
+        },
+        {
+          "unit": "研發 RD",
+          "role": "測試工程師",
+          "degree": null,
+          "samples": [
+            {
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 60,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/英業達（桃園廠）/work-experiences",
+              "date": "2026-07",
+              "date_confirmed": true,
+              "date_note": "GoodJob 標示 2026 年 7 月（搜尋摘要）",
+              "in_window": true,
+              "role": "測試工程師（桃園廠評價）",
+              "quote_free_note": "部門氣氛佳；月薪 6 萬"
+            },
+            {
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 51,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": "偶爾",
+              "travel": null,
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/英業達（桃園廠）/work-experiences/工時狀況",
+              "date": "2026-02",
+              "date_confirmed": true,
+              "date_note": "GoodJob 標示 2026 年 2 月（搜尋摘要）",
+              "in_window": true,
+              "role": "軟韌體測試工程師（桃園廠評價）",
+              "quote_free_note": "分紅看公司、加班較少；月薪 5.1 萬"
+            }
+          ],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/英業達（桃園廠）/work-experiences",
+              "date": "2026-07"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/英業達（桃園廠）/work-experiences/工時狀況",
+              "date": "2026-02"
+            }
+          ],
+          "confidence": "低",
+          "note": "2026-10-26 依搜尋摘要新增",
+          "grade": null,
+          "base_month_k": [
+            51,
+            60
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": "偶爾",
+          "travel": null,
+          "n": 2,
+          "n_stat": 2
+        },
+        {
+          "unit": "研發 RD",
+          "role": "治具工程師",
+          "degree": null,
+          "samples": [
+            {
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 46,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/英業達（桃園廠）/work-experiences",
+              "date": "2026-06",
+              "date_confirmed": true,
+              "date_note": "GoodJob 標示 2026 年 6 月（搜尋摘要）",
+              "in_window": true,
+              "role": "治具工程師（桃園廠評價）",
+              "quote_free_note": "初期多做維修；月薪 4.6 萬"
+            },
+            {
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 45,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/英業達（桃園廠）/work-experiences/薪資福利",
+              "date": "2026-06",
+              "date_confirmed": true,
+              "date_note": "GoodJob 標示 2026 年 6 月（搜尋摘要）",
+              "in_window": true,
+              "role": "治具工程師（桃園廠評價）",
+              "quote_free_note": "福利獎金不錯；月薪 4.5 萬"
+            }
+          ],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/英業達（桃園廠）/work-experiences",
+              "date": "2026-06"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/英業達（桃園廠）/work-experiences/薪資福利",
+              "date": "2026-06"
+            }
+          ],
+          "confidence": "低",
+          "note": "2026-10-26 依搜尋摘要新增",
+          "grade": null,
+          "base_month_k": [
+            45,
+            46
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n": 2,
+          "n_stat": 2
+        },
+        {
+          "unit": "研發 RD",
+          "role": "軟體工程師",
+          "degree": null,
+          "samples": [
+            {
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 110,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/英業達股份有限公司/work-experiences/薪資福利",
+              "date": "2026-07",
+              "date_confirmed": true,
+              "date_note": "GoodJob 標示 2026 年 7 月（搜尋摘要）",
+              "in_window": true,
+              "role": "軟體工程師（總公司評價）",
+              "quote_free_note": "底薪不高、建議面試爭取；月薪 11 萬"
+            }
+          ],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/英業達股份有限公司/work-experiences/薪資福利",
+              "date": "2026-07"
+            }
+          ],
+          "confidence": "低",
+          "note": "2026-10-26 依搜尋摘要新增",
+          "grade": null,
+          "base_month_k": [
+            110,
+            110
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n": 1,
+          "n_stat": 1
         }
       ],
       "mops": null,
@@ -11032,7 +11263,7 @@
       "heat": null,
       "benefits": null,
       "stock_plan": null,
-      "bonus_timing": null,
+      "bonus_timing": "網友評價：一年分紅四次（GoodJob 2026-04），發放月份未寫",
       "bonus_structure": [],
       "culture": "網友說法：韌體／軟體工程師評分多在 3.5～4；有人反映開會占工時近四成（單一意見，GoodJob）",
       "interview": "網友說法：人資先聊過往經驗，再由部門主管說明與深入追問專案做了什麼、如何規劃；有人覺得氣氛和善（GoodJob 2026-03、2026-08 面試分享，面試時間有的較舊）",
@@ -11092,6 +11323,238 @@
           "annual_total_wan": null,
           "weekly_hours": null,
           "overtime": null,
+          "n_stat": 1
+        },
+        {
+          "unit": "研發 RD",
+          "role": "軟體工程師",
+          "degree": null,
+          "samples": [
+            {
+              "grade": null,
+              "unit_detail": null,
+              "years": "0",
+              "degree": null,
+              "base_k": 34,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/微星科技股份有限公司 MSI/work-experiences",
+              "date": "2026-04",
+              "date_confirmed": true,
+              "date_note": "GoodJob 標示 2026 年 4 月（搜尋摘要）",
+              "in_window": true,
+              "role": "軟體工程師（新北評價）",
+              "quote_free_note": "經驗不到 1 年；月薪 3.4 萬"
+            },
+            {
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 38,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/微星科技股份有限公司 MSI/work-experiences?p=2",
+              "date": "2026-07",
+              "date_confirmed": true,
+              "date_note": "GoodJob 標示 2026 年 7 月（搜尋摘要）",
+              "in_window": true,
+              "role": "通訊軟體工程師（在職評價）",
+              "quote_free_note": "月薪 3.8 萬"
+            }
+          ],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/微星科技股份有限公司 MSI/work-experiences",
+              "date": "2026-04"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/微星科技股份有限公司 MSI/work-experiences?p=2",
+              "date": "2026-07"
+            }
+          ],
+          "confidence": "低",
+          "note": "2026-10-26 依搜尋摘要新增",
+          "grade": null,
+          "base_month_k": [
+            34,
+            38
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "years": "0",
+          "n": 2,
+          "n_stat": 2
+        },
+        {
+          "unit": "研發 RD",
+          "role": "工程師",
+          "degree": null,
+          "samples": [
+            {
+              "grade": null,
+              "unit_detail": null,
+              "years": "2",
+              "degree": null,
+              "base_k": 45,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/微星科技股份有限公司 MSI/work-experiences/薪資福利",
+              "date": "2026-04",
+              "date_confirmed": true,
+              "date_note": "GoodJob 標示 2026 年 4 月（搜尋摘要）",
+              "in_window": true,
+              "role": "工程師（在職評價）",
+              "quote_free_note": "底薪不高但一年分紅四次；月薪 4.5 萬"
+            }
+          ],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/微星科技股份有限公司 MSI/work-experiences/薪資福利",
+              "date": "2026-04"
+            }
+          ],
+          "confidence": "低",
+          "note": "2026-10-26 依搜尋摘要新增",
+          "grade": null,
+          "base_month_k": [
+            45,
+            45
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "years": "2",
+          "n": 1,
+          "n_stat": 1
+        },
+        {
+          "unit": "研發 RD",
+          "role": "韌體工程師",
+          "degree": null,
+          "samples": [
+            {
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 70,
+              "weekly_hours": 50,
+              "overtime": null,
+              "travel": null,
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/微星科技股份有限公司 MSI/work-experiences/工時狀況",
+              "date": "2026-01",
+              "date_confirmed": true,
+              "date_note": "GoodJob 標示 2026 年 1 月（搜尋摘要）",
+              "in_window": true,
+              "role": "韌體工程師（在職評價）",
+              "quote_free_note": "年薪 70 萬、每週約 50 小時"
+            }
+          ],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/微星科技股份有限公司 MSI/work-experiences/工時狀況",
+              "date": "2026-01"
+            }
+          ],
+          "confidence": "低",
+          "note": "2026-10-26 依搜尋摘要新增",
+          "grade": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": [
+            70,
+            70
+          ],
+          "weekly_hours": [
+            50,
+            50
+          ],
+          "overtime": null,
+          "travel": null,
+          "n": 1,
+          "n_stat": 1
+        },
+        {
+          "unit": "研發 RD",
+          "role": "BIOS 工程師",
+          "degree": null,
+          "samples": [
+            {
+              "grade": null,
+              "unit_detail": null,
+              "years": "7",
+              "degree": null,
+              "base_k": 34.5,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/微星科技股份有限公司 MSI/interview-experiences?p=2",
+              "date": "2026-03",
+              "date_confirmed": true,
+              "date_note": "GoodJob 標示 2026 年 3 月（搜尋摘要）",
+              "in_window": true,
+              "role": "BIOS 工程師（面試錄取）",
+              "quote_free_note": "職務經驗 7 年；月薪 3.45 萬（數字照摘要，偏低存疑）"
+            }
+          ],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/微星科技股份有限公司 MSI/interview-experiences?p=2",
+              "date": "2026-03"
+            }
+          ],
+          "confidence": "低",
+          "note": "2026-10-26 依搜尋摘要新增",
+          "grade": null,
+          "base_month_k": [
+            34.5,
+            34.5
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "years": "7",
+          "n": 1,
           "n_stat": 1
         }
       ]
@@ -11813,6 +12276,246 @@
           "n_stat": 1,
           "note": null,
           "grade": null
+        },
+        {
+          "unit": "研發 RD",
+          "role": "硬體工程師",
+          "degree": null,
+          "samples": [
+            {
+              "grade": null,
+              "unit_detail": null,
+              "years": "0",
+              "degree": null,
+              "base_k": 70,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 40,
+              "overtime": null,
+              "travel": null,
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/啟碁科技股份有限公司/work-experiences/薪資福利",
+              "date": "2026-06",
+              "date_confirmed": true,
+              "date_note": "GoodJob 標示 2026.6.2（搜尋摘要）",
+              "in_window": true,
+              "role": "硬體工程師（在職評價）",
+              "quote_free_note": "經驗不到一年；月薪 7 萬、每週 40 小時"
+            }
+          ],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/啟碁科技股份有限公司/work-experiences/薪資福利",
+              "date": "2026-06"
+            }
+          ],
+          "confidence": "低",
+          "note": "2026-10-26 依搜尋摘要新增",
+          "grade": null,
+          "base_month_k": [
+            70,
+            70
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": [
+            40,
+            40
+          ],
+          "overtime": null,
+          "travel": null,
+          "years": "0",
+          "n": 1,
+          "n_stat": 1
+        },
+        {
+          "unit": "研發 RD",
+          "role": "軟體工程師",
+          "degree": null,
+          "samples": [
+            {
+              "grade": null,
+              "unit_detail": null,
+              "years": "3",
+              "degree": null,
+              "base_k": 68,
+              "bonus_months": null,
+              "annual_months": 14,
+              "annual_wan": 95.2,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/啟碁科技股份有限公司/work-experiences/薪資福利",
+              "date": "2025-10",
+              "date_confirmed": true,
+              "date_note": "GoodJob 標示 2025.10.17（搜尋摘要）",
+              "in_window": true,
+              "role": "軟體工程師（在職評價）",
+              "quote_free_note": "三節和年終共 14 個月；月薪 6.8 萬",
+              "derived": [
+                "annual_wan"
+              ]
+            },
+            {
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 65,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": "經常",
+              "travel": null,
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/啟碁科技股份有限公司/work-experiences/薪資福利?p=2",
+              "date": "2025-05",
+              "date_confirmed": true,
+              "date_note": "GoodJob 標示 2025.5.31（搜尋摘要）",
+              "in_window": false,
+              "role": "軟體工程師（在職評價）",
+              "quote_free_note": "早於期間；評 1 分，加班多、會議多；月薪 6.5 萬"
+            }
+          ],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/啟碁科技股份有限公司/work-experiences/薪資福利",
+              "date": "2025-10"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/啟碁科技股份有限公司/work-experiences/薪資福利?p=2",
+              "date": "2025-05"
+            }
+          ],
+          "confidence": "低",
+          "note": "2026-10-26 依搜尋摘要新增",
+          "grade": null,
+          "base_month_k": [
+            68,
+            68
+          ],
+          "bonus_months": null,
+          "annual_months": [
+            14,
+            14
+          ],
+          "annual_total_wan": [
+            95.2,
+            95.2
+          ],
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "years": "3",
+          "n": 2,
+          "n_stat": 1
+        },
+        {
+          "unit": "研發 RD",
+          "role": "SMT 工程師",
+          "degree": null,
+          "samples": [
+            {
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 98,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/啟碁科技股份有限公司/work-experiences",
+              "date": "2026-07",
+              "date_confirmed": true,
+              "date_note": "GoodJob 標示 2026.7.9（搜尋摘要）",
+              "in_window": true,
+              "role": "SMT 工程師（在職評價）",
+              "quote_free_note": "年薪 98 萬"
+            }
+          ],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/啟碁科技股份有限公司/work-experiences",
+              "date": "2026-07"
+            }
+          ],
+          "confidence": "低",
+          "note": "2026-10-26 依搜尋摘要新增",
+          "grade": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": [
+            98,
+            98
+          ],
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n": 1,
+          "n_stat": 1
+        },
+        {
+          "unit": "研發 RD",
+          "role": "RF 工程師",
+          "degree": null,
+          "samples": [
+            {
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 60,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/啟碁科技股份有限公司/work-experiences?p=1",
+              "date": "2026-08",
+              "date_confirmed": true,
+              "date_note": "GoodJob 標示 2026.8.17（搜尋摘要）",
+              "in_window": true,
+              "role": "RF 通訊工程師（在職評價）",
+              "quote_free_note": "月薪 6 萬"
+            }
+          ],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/啟碁科技股份有限公司/work-experiences?p=1",
+              "date": "2026-08"
+            }
+          ],
+          "confidence": "低",
+          "note": "2026-10-26 依搜尋摘要新增",
+          "grade": null,
+          "base_month_k": [
+            60,
+            60
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n": 1,
+          "n_stat": 1
         }
       ],
       "note": "2026-10-26 由 Dcard 樣本新增的公司"
