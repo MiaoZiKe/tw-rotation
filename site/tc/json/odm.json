@@ -9826,6 +9826,138 @@
               "travel_raw": null,
               "in_window": false,
               "date_note": "Dcard 頁面發文日期 2025-03-26（2026-10-26 2056 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台達電子工業股份有限公司/salary-work-times?p=1",
+              "date": "2026-09",
+              "page_date": "2026-09",
+              "date_confirmed": true,
+              "role": "機構工程師 CL5",
+              "grade": null,
+              "unit_detail": "CL5",
+              "years": "3",
+              "degree": null,
+              "base_k": 70,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 41,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8 / 9",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-09（Andy 桌面版 2026-10-26 2225_a 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台達電子工業股份有限公司/salary-work-times?p=2",
+              "date": "2026-08",
+              "page_date": "2026-08",
+              "date_confirmed": true,
+              "role": "機構工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "3",
+              "degree": null,
+              "base_k": 76.4,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 45,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 10 / 10",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-08（Andy 桌面版 2026-10-26 2225_a 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台達電子工業股份有限公司/salary-work-times?p=2",
+              "date": "2026-08",
+              "page_date": "2026-08",
+              "date_confirmed": true,
+              "role": "機構工程師 桃二",
+              "grade": null,
+              "unit_detail": "桃二",
+              "years": "6",
+              "degree": null,
+              "base_k": 72,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 50,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8 / 10",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-08（Andy 桌面版 2026-10-26 2225_a 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台達電子工業股份有限公司/salary-work-times?p=5",
+              "date": "2026-03",
+              "page_date": "2026-03",
+              "date_confirmed": true,
+              "role": "機構工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 75,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 50,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8 / 10",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-03（Andy 桌面版 2026-10-26 2225_a 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台達電子工業股份有限公司/salary-work-times?p=5",
+              "date": "2026-03",
+              "page_date": "2026-03",
+              "date_confirmed": true,
+              "role": "機構工程師 桃二",
+              "grade": null,
+              "unit_detail": "桃二",
+              "years": "2",
+              "degree": null,
+              "base_k": 77,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 50,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 12 / 10",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-03（Andy 桌面版 2026-10-26 2225_a 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台達電子工業股份有限公司/salary-work-times?p=7",
+              "date": "2026-01",
+              "page_date": "2026-01",
+              "date_confirmed": true,
+              "role": "機構工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "12",
+              "degree": null,
+              "base_k": 90,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 41,
+              "overtime": "幾乎不",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8 / 9",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-01（Andy 桌面版 2026-10-26 2225_a 批）"
             }
           ],
           "sources": [
@@ -9838,22 +9970,45 @@
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/258369776",
               "date": "2025-03"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台達電子工業股份有限公司/salary-work-times?p=1",
+              "date": "2026-09"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台達電子工業股份有限公司/salary-work-times?p=2",
+              "date": "2026-08"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台達電子工業股份有限公司/salary-work-times?p=5",
+              "date": "2026-03"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台達電子工業股份有限公司/salary-work-times?p=7",
+              "date": "2026-01"
             }
           ],
           "confidence": "低",
-          "n": 2,
+          "n": 8,
           "weekly_hours": [
-            49,
-            49
+            41,
+            50
           ],
           "overtime": "經常",
           "years": "0",
-          "base_month_k": null,
+          "base_month_k": [
+            70,
+            90
+          ],
           "bonus_months": null,
           "annual_months": null,
           "annual_total_wan": null,
           "travel": null,
-          "n_stat": 1,
+          "n_stat": 7,
           "note": null,
           "grade": null
         },
@@ -10386,6 +10541,28 @@
               "quote_free_note": "口頭 offer；需出差；三家中薪水最高；數字未透露",
               "in_window": true,
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2025-10-15"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台達電子工業股份有限公司/salary-work-times?p=1",
+              "date": "2026-09",
+              "page_date": "2026-09",
+              "date_confirmed": true,
+              "role": "電子設計資深工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 63,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 45,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 12 / 12",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-09（Andy 桌面版 2026-10-26 2225_a 批）"
             }
           ],
           "sources": [
@@ -10393,19 +10570,30 @@
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/260042254",
               "date": "2025-10"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台達電子工業股份有限公司/salary-work-times?p=1",
+              "date": "2026-09"
             }
           ],
           "confidence": "低",
-          "n": 1,
+          "n": 2,
           "travel": "偶爾",
           "years": "0",
-          "base_month_k": null,
+          "base_month_k": [
+            63,
+            63
+          ],
           "bonus_months": null,
           "annual_months": null,
           "annual_total_wan": null,
-          "weekly_hours": null,
-          "overtime": null,
-          "n_stat": 1,
+          "weekly_hours": [
+            45,
+            45
+          ],
+          "overtime": "經常",
+          "n_stat": 2,
           "note": null,
           "grade": null
         },
@@ -10457,6 +10645,50 @@
               "quote_free_note": "私立工工碩畢面試心得：HR 表示碩士新人頂多約 54K；網友回文 60～62K 為估計未收",
               "in_window": true,
               "date_note": "Dcard 編號 261384313 ≥259537767，依 docs/tc/dcard_id_calibration.md 確認晚於 2025-08-01；搜尋摘要約 167 天前"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台達電子工業股份有限公司/salary-work-times?p=3",
+              "date": "2026-07",
+              "page_date": "2026-07",
+              "date_confirmed": true,
+              "role": "IE 中壢",
+              "grade": null,
+              "unit_detail": "中壢",
+              "years": "7",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 100,
+              "weekly_hours": 50,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8 / 12",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-07（Andy 桌面版 2026-10-26 2225_a 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台達電子工業股份有限公司/salary-work-times?p=6",
+              "date": "2026-01",
+              "page_date": "2026-01",
+              "date_confirmed": true,
+              "role": "IE工程師 台南廠",
+              "grade": null,
+              "unit_detail": "台南廠",
+              "years": "6",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 150,
+              "weekly_hours": 50,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8 / 10",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-01（Andy 桌面版 2026-10-26 2225_a 批）"
             }
           ],
           "sources": [
@@ -10469,10 +10701,20 @@
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/job/p/261384313",
               "date": "2026-05"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台達電子工業股份有限公司/salary-work-times?p=3",
+              "date": "2026-07"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台達電子工業股份有限公司/salary-work-times?p=6",
+              "date": "2026-01"
             }
           ],
           "confidence": "中",
-          "n": 2,
+          "n": 4,
           "overtime": "經常",
           "years": "0",
           "base_month_k": [
@@ -10481,10 +10723,16 @@
           ],
           "bonus_months": null,
           "annual_months": null,
-          "annual_total_wan": null,
-          "weekly_hours": null,
+          "annual_total_wan": [
+            100,
+            150
+          ],
+          "weekly_hours": [
+            50,
+            50
+          ],
           "travel": null,
-          "n_stat": 2,
+          "n_stat": 4,
           "note": null,
           "grade": null
         },
@@ -10606,6 +10854,1984 @@
             }
           ],
           "n_stat": 1
+        },
+        {
+          "unit": "其他",
+          "role": "QE",
+          "degree": null,
+          "years": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": [
+            150,
+            150
+          ],
+          "weekly_hours": [
+            40,
+            40
+          ],
+          "overtime": "幾乎不",
+          "travel": null,
+          "n": 1,
+          "n_stat": 1,
+          "note": null,
+          "grade": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台達電子工業股份有限公司/salary-work-times?p=1",
+              "date": "2026-09"
+            }
+          ],
+          "confidence": "低",
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台達電子工業股份有限公司/salary-work-times?p=1",
+              "date": "2026-09",
+              "page_date": "2026-09",
+              "date_confirmed": true,
+              "role": "QE",
+              "grade": null,
+              "unit_detail": null,
+              "years": "8",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 150,
+              "weekly_hours": 40,
+              "overtime": "幾乎不",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8 / 8",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-09（Andy 桌面版 2026-10-26 2225_a 批）"
+            }
+          ]
+        },
+        {
+          "unit": "其他",
+          "role": "生技工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": [
+            130,
+            130
+          ],
+          "weekly_hours": [
+            45,
+            45
+          ],
+          "overtime": "經常",
+          "travel": null,
+          "n": 1,
+          "n_stat": 1,
+          "note": null,
+          "grade": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台達電子工業股份有限公司/salary-work-times?p=1",
+              "date": "2026-09"
+            }
+          ],
+          "confidence": "低",
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台達電子工業股份有限公司/salary-work-times?p=1",
+              "date": "2026-09",
+              "page_date": "2026-09",
+              "date_confirmed": true,
+              "role": "生技工程師 台南二廠",
+              "grade": null,
+              "unit_detail": "台南二廠",
+              "years": "3",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 130,
+              "weekly_hours": 45,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8 / 9",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-09（Andy 桌面版 2026-10-26 2225_a 批）"
+            }
+          ]
+        },
+        {
+          "unit": "其他",
+          "role": "韌體設計工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": [
+            80.7,
+            89
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": [
+            46,
+            50
+          ],
+          "overtime": "經常",
+          "travel": null,
+          "n": 2,
+          "n_stat": 2,
+          "note": null,
+          "grade": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台達電子工業股份有限公司/salary-work-times?p=1",
+              "date": "2026-09"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台達電子工業股份有限公司/salary-work-times?p=5",
+              "date": "2026-03"
+            }
+          ],
+          "confidence": "中",
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台達電子工業股份有限公司/salary-work-times?p=1",
+              "date": "2026-09",
+              "page_date": "2026-09",
+              "date_confirmed": true,
+              "role": "韌體設計工程師 中壢五廠",
+              "grade": null,
+              "unit_detail": "中壢五廠",
+              "years": "2",
+              "degree": null,
+              "base_k": 80.7,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 46,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8 / 9.5",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-09（Andy 桌面版 2026-10-26 2225_a 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台達電子工業股份有限公司/salary-work-times?p=5",
+              "date": "2026-03",
+              "page_date": "2026-03",
+              "date_confirmed": true,
+              "role": "韌體設計工程師 中壢廠",
+              "grade": null,
+              "unit_detail": "中壢廠",
+              "years": "5",
+              "degree": null,
+              "base_k": 89,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 50,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 10 / 10",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-03（Andy 桌面版 2026-10-26 2225_a 批）"
+            }
+          ]
+        },
+        {
+          "unit": "其他",
+          "role": "機械工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": [
+            150,
+            150
+          ],
+          "weekly_hours": [
+            50,
+            50
+          ],
+          "overtime": "經常",
+          "travel": null,
+          "n": 1,
+          "n_stat": 1,
+          "note": null,
+          "grade": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台達電子工業股份有限公司/salary-work-times?p=1",
+              "date": "2026-09"
+            }
+          ],
+          "confidence": "低",
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台達電子工業股份有限公司/salary-work-times?p=1",
+              "date": "2026-09",
+              "page_date": "2026-09",
+              "date_confirmed": true,
+              "role": "機械工程師 中壢",
+              "grade": null,
+              "unit_detail": "中壢",
+              "years": "5",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 150,
+              "weekly_hours": 50,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8.5 / 10",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-09（Andy 桌面版 2026-10-26 2225_a 批）"
+            }
+          ]
+        },
+        {
+          "unit": "其他",
+          "role": "機構設計資深工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": [
+            73,
+            73
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": [
+            53.8,
+            53.8
+          ],
+          "overtime": "偶爾",
+          "travel": null,
+          "n": 1,
+          "n_stat": 1,
+          "note": null,
+          "grade": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台達電子工業股份有限公司/salary-work-times?p=2",
+              "date": "2026-08"
+            }
+          ],
+          "confidence": "低",
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台達電子工業股份有限公司/salary-work-times?p=2",
+              "date": "2026-08",
+              "page_date": "2026-08",
+              "date_confirmed": true,
+              "role": "機構設計資深工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 73,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 53.8,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8 / 9",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-08（Andy 桌面版 2026-10-26 2225_a 批）"
+            }
+          ]
+        },
+        {
+          "unit": "其他",
+          "role": "硬體研發工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": [
+            65,
+            100
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": [
+            130,
+            130
+          ],
+          "weekly_hours": [
+            48,
+            52
+          ],
+          "overtime": "經常",
+          "travel": null,
+          "n": 4,
+          "n_stat": 4,
+          "note": null,
+          "grade": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台達電子工業股份有限公司/salary-work-times?p=2",
+              "date": "2026-08"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台達電子工業股份有限公司/salary-work-times?p=4",
+              "date": "2026-05"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台達電子工業股份有限公司/salary-work-times?p=5",
+              "date": "2026-03"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台達電子工業股份有限公司/salary-work-times?p=6",
+              "date": "2026-02"
+            }
+          ],
+          "confidence": "中",
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台達電子工業股份有限公司/salary-work-times?p=2",
+              "date": "2026-08",
+              "page_date": "2026-08",
+              "date_confirmed": true,
+              "role": "硬體研發工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "12",
+              "degree": null,
+              "base_k": 100,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 50,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8 / 10",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-08（Andy 桌面版 2026-10-26 2225_a 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台達電子工業股份有限公司/salary-work-times?p=4",
+              "date": "2026-05",
+              "page_date": "2026-05",
+              "date_confirmed": true,
+              "role": "硬體研發工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "15",
+              "degree": null,
+              "base_k": 77,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 52,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 9 / 10",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-05（Andy 桌面版 2026-10-26 2225_a 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台達電子工業股份有限公司/salary-work-times?p=5",
+              "date": "2026-03",
+              "page_date": "2026-03",
+              "date_confirmed": true,
+              "role": "硬體研發工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "1",
+              "degree": null,
+              "base_k": 65,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 48,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8 / 10",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-03（Andy 桌面版 2026-10-26 2225_a 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台達電子工業股份有限公司/salary-work-times?p=6",
+              "date": "2026-02",
+              "page_date": "2026-02",
+              "date_confirmed": true,
+              "role": "硬體研發工程師 中壢",
+              "grade": null,
+              "unit_detail": "中壢",
+              "years": "3",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 130,
+              "weekly_hours": 50,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8 / 11",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-02（Andy 桌面版 2026-10-26 2225_a 批）"
+            }
+          ]
+        },
+        {
+          "unit": "其他",
+          "role": "研發工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": [
+            80,
+            80
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": [
+            41,
+            41
+          ],
+          "overtime": "偶爾",
+          "travel": null,
+          "n": 1,
+          "n_stat": 1,
+          "note": null,
+          "grade": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台達電子工業股份有限公司/salary-work-times?p=2",
+              "date": "2026-07"
+            }
+          ],
+          "confidence": "低",
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台達電子工業股份有限公司/salary-work-times?p=2",
+              "date": "2026-07",
+              "page_date": "2026-07",
+              "date_confirmed": true,
+              "role": "研發工程師 中壢六廠",
+              "grade": null,
+              "unit_detail": "中壢六廠",
+              "years": "5",
+              "degree": null,
+              "base_k": 80,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 41,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8 / 8.5",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-07（Andy 桌面版 2026-10-26 2225_a 批）"
+            }
+          ]
+        },
+        {
+          "unit": "其他",
+          "role": "軟體驗證",
+          "degree": null,
+          "years": null,
+          "base_month_k": [
+            71,
+            71
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": [
+            40,
+            40
+          ],
+          "overtime": "幾乎不",
+          "travel": null,
+          "n": 1,
+          "n_stat": 1,
+          "note": null,
+          "grade": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台達電子工業股份有限公司/salary-work-times?p=2",
+              "date": "2026-07"
+            }
+          ],
+          "confidence": "低",
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台達電子工業股份有限公司/salary-work-times?p=2",
+              "date": "2026-07",
+              "page_date": "2026-07",
+              "date_confirmed": true,
+              "role": "軟體驗證",
+              "grade": null,
+              "unit_detail": null,
+              "years": "3",
+              "degree": null,
+              "base_k": 71,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 40,
+              "overtime": "幾乎不",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8 / 8",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-07（Andy 桌面版 2026-10-26 2225_a 批）"
+            }
+          ]
+        },
+        {
+          "unit": "其他",
+          "role": "電子工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": [
+            60,
+            76
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": [
+            150,
+            150
+          ],
+          "weekly_hours": [
+            40,
+            55
+          ],
+          "overtime": "經常",
+          "travel": null,
+          "n": 6,
+          "n_stat": 6,
+          "note": null,
+          "grade": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台達電子工業股份有限公司/salary-work-times?p=2",
+              "date": "2026-07"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台達電子工業股份有限公司/salary-work-times?p=3",
+              "date": "2026-07"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台達電子工業股份有限公司/salary-work-times?p=4",
+              "date": "2026-05"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台達電子工業股份有限公司/salary-work-times?p=5",
+              "date": "2026-03"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台達電子工業股份有限公司/salary-work-times?p=8",
+              "date": "2025-11"
+            }
+          ],
+          "confidence": "中",
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台達電子工業股份有限公司/salary-work-times?p=2",
+              "date": "2026-07",
+              "page_date": "2026-07",
+              "date_confirmed": true,
+              "role": "電子工程師 psbg",
+              "grade": null,
+              "unit_detail": "psbg",
+              "years": null,
+              "degree": null,
+              "base_k": 68,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 45,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8 / 8",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-07（Andy 桌面版 2026-10-26 2225_a 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台達電子工業股份有限公司/salary-work-times?p=3",
+              "date": "2026-07",
+              "page_date": "2026-07",
+              "date_confirmed": true,
+              "role": "電子工程師 桃園",
+              "grade": null,
+              "unit_detail": "桃園",
+              "years": null,
+              "degree": null,
+              "base_k": 60,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 55,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8 / 11",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-07（Andy 桌面版 2026-10-26 2225_a 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台達電子工業股份有限公司/salary-work-times?p=4",
+              "date": "2026-05",
+              "page_date": "2026-05",
+              "date_confirmed": true,
+              "role": "電子工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 76,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 42,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8 / 9",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-05（Andy 桌面版 2026-10-26 2225_a 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台達電子工業股份有限公司/salary-work-times?p=5",
+              "date": "2026-03",
+              "page_date": "2026-03",
+              "date_confirmed": true,
+              "role": "電子工程師 中壢",
+              "grade": null,
+              "unit_detail": "中壢",
+              "years": "3",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 150,
+              "weekly_hours": 40,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8 / 8",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-03（Andy 桌面版 2026-10-26 2225_a 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台達電子工業股份有限公司/salary-work-times?p=8",
+              "date": "2025-11",
+              "page_date": "2025-11",
+              "date_confirmed": true,
+              "role": "電子工程師 中壢",
+              "grade": null,
+              "unit_detail": "中壢",
+              "years": "2",
+              "degree": null,
+              "base_k": 66,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 55,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8 / 11",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2025-11（Andy 桌面版 2026-10-26 2225_a 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台達電子工業股份有限公司/salary-work-times?p=8",
+              "date": "2025-11",
+              "page_date": "2025-11",
+              "date_confirmed": true,
+              "role": "電子工程師 桃三",
+              "grade": null,
+              "unit_detail": "桃三",
+              "years": null,
+              "degree": null,
+              "base_k": 70,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 50,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8 / 10.5",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2025-11（Andy 桌面版 2026-10-26 2225_a 批）"
+            }
+          ]
+        },
+        {
+          "unit": "其他",
+          "role": "電源工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": [
+            100,
+            100
+          ],
+          "weekly_hours": [
+            50,
+            50
+          ],
+          "overtime": "經常",
+          "travel": null,
+          "n": 1,
+          "n_stat": 1,
+          "note": null,
+          "grade": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台達電子工業股份有限公司/salary-work-times?p=2",
+              "date": "2026-07"
+            }
+          ],
+          "confidence": "低",
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台達電子工業股份有限公司/salary-work-times?p=2",
+              "date": "2026-07",
+              "page_date": "2026-07",
+              "date_confirmed": true,
+              "role": "電源工程師 中壢",
+              "grade": null,
+              "unit_detail": "中壢",
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 100,
+              "weekly_hours": 50,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 10 / 10",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-07（Andy 桌面版 2026-10-26 2225_a 批）"
+            }
+          ]
+        },
+        {
+          "unit": "其他",
+          "role": "韌體工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": [
+            70,
+            90
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": [
+            160,
+            180
+          ],
+          "weekly_hours": [
+            40,
+            50
+          ],
+          "overtime": "偶爾",
+          "travel": null,
+          "n": 11,
+          "n_stat": 11,
+          "note": null,
+          "grade": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台達電子工業股份有限公司/salary-work-times?p=2",
+              "date": "2026-07"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台達電子工業股份有限公司/salary-work-times?p=3",
+              "date": "2026-05"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台達電子工業股份有限公司/salary-work-times?p=4",
+              "date": "2026-04"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台達電子工業股份有限公司/salary-work-times?p=5",
+              "date": "2026-03"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台達電子工業股份有限公司/salary-work-times?p=6",
+              "date": "2026-03"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台達電子工業股份有限公司/salary-work-times?p=7",
+              "date": "2026-01"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台達電子工業股份有限公司/salary-work-times?p=8",
+              "date": "2025-12"
+            }
+          ],
+          "confidence": "中",
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台達電子工業股份有限公司/salary-work-times?p=2",
+              "date": "2026-07",
+              "page_date": "2026-07",
+              "date_confirmed": true,
+              "role": "韌體工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 75,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 45,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8 / 9",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-07（Andy 桌面版 2026-10-26 2225_a 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台達電子工業股份有限公司/salary-work-times?p=3",
+              "date": "2026-05",
+              "page_date": "2026-05",
+              "date_confirmed": true,
+              "role": "韌體工程師 中壢",
+              "grade": null,
+              "unit_detail": "中壢",
+              "years": "2",
+              "degree": null,
+              "base_k": 80,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 45,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8.5 / 9",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-05（Andy 桌面版 2026-10-26 2225_a 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台達電子工業股份有限公司/salary-work-times?p=4",
+              "date": "2026-04",
+              "page_date": "2026-04",
+              "date_confirmed": true,
+              "role": "韌體工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "3",
+              "degree": null,
+              "base_k": 81.1,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 48,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 9.5 / 6.5",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-04（Andy 桌面版 2026-10-26 2225_a 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台達電子工業股份有限公司/salary-work-times?p=5",
+              "date": "2026-03",
+              "page_date": "2026-03",
+              "date_confirmed": true,
+              "role": "韌體工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "5",
+              "degree": null,
+              "base_k": 89,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 50,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 10 / 10",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-03（Andy 桌面版 2026-10-26 2225_a 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台達電子工業股份有限公司/salary-work-times?p=5",
+              "date": "2026-03",
+              "page_date": "2026-03",
+              "date_confirmed": true,
+              "role": "韌體工程師 南科",
+              "grade": null,
+              "unit_detail": "南科",
+              "years": null,
+              "degree": null,
+              "base_k": 72,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 50,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8 / 8.5",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-03（Andy 桌面版 2026-10-26 2225_a 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台達電子工業股份有限公司/salary-work-times?p=6",
+              "date": "2026-03",
+              "page_date": "2026-03",
+              "date_confirmed": true,
+              "role": "韌體工程師 中壢",
+              "grade": null,
+              "unit_detail": "中壢",
+              "years": "10",
+              "degree": null,
+              "base_k": 90,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 50,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 9.5 / 9.5",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-03（Andy 桌面版 2026-10-26 2225_a 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台達電子工業股份有限公司/salary-work-times?p=6",
+              "date": "2026-02",
+              "page_date": "2026-02",
+              "date_confirmed": true,
+              "role": "韌體工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "2",
+              "degree": null,
+              "base_k": 75,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 45,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8 / 9",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-02（Andy 桌面版 2026-10-26 2225_a 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台達電子工業股份有限公司/salary-work-times?p=7",
+              "date": "2026-01",
+              "page_date": "2026-01",
+              "date_confirmed": true,
+              "role": "韌體工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "10",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 180,
+              "weekly_hours": 45,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 9 / 9",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-01（Andy 桌面版 2026-10-26 2225_a 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台達電子工業股份有限公司/salary-work-times?p=7",
+              "date": "2025-12",
+              "page_date": "2025-12",
+              "date_confirmed": true,
+              "role": "韌體工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 70,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 40,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8 / 8",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2025-12（Andy 桌面版 2026-10-26 2225_a 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台達電子工業股份有限公司/salary-work-times?p=8",
+              "date": "2025-12",
+              "page_date": "2025-12",
+              "date_confirmed": true,
+              "role": "韌體工程師 台南",
+              "grade": null,
+              "unit_detail": "台南",
+              "years": "2",
+              "degree": null,
+              "base_k": 76,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 50,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8.5 / 8.5",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2025-12（Andy 桌面版 2026-10-26 2225_a 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台達電子工業股份有限公司/salary-work-times?p=8",
+              "date": "2025-11",
+              "page_date": "2025-11",
+              "date_confirmed": true,
+              "role": "韌體工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "6",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 160,
+              "weekly_hours": 50,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 10 / 10",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2025-11（Andy 桌面版 2026-10-26 2225_a 批）"
+            }
+          ]
+        },
+        {
+          "unit": "其他",
+          "role": "軟體工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": [
+            60,
+            81
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": [
+            100,
+            100
+          ],
+          "weekly_hours": [
+            40,
+            60
+          ],
+          "overtime": "偶爾",
+          "travel": null,
+          "n": 5,
+          "n_stat": 5,
+          "note": null,
+          "grade": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台達電子工業股份有限公司/salary-work-times?p=3",
+              "date": "2026-07"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台達電子工業股份有限公司/salary-work-times?p=4",
+              "date": "2026-04"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台達電子工業股份有限公司/salary-work-times?p=6",
+              "date": "2026-02"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台達電子工業股份有限公司/salary-work-times?p=8",
+              "date": "2025-12"
+            }
+          ],
+          "confidence": "中",
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台達電子工業股份有限公司/salary-work-times?p=3",
+              "date": "2026-07",
+              "page_date": "2026-07",
+              "date_confirmed": true,
+              "role": "軟體工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "1",
+              "degree": null,
+              "base_k": 67,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 40,
+              "overtime": "幾乎不",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8 / 8",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-07（Andy 桌面版 2026-10-26 2225_a 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台達電子工業股份有限公司/salary-work-times?p=4",
+              "date": "2026-04",
+              "page_date": "2026-04",
+              "date_confirmed": true,
+              "role": "軟體工程師 中壢",
+              "grade": null,
+              "unit_detail": "中壢",
+              "years": "3",
+              "degree": null,
+              "base_k": 60,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 60,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 12 / 10",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-04（Andy 桌面版 2026-10-26 2225_a 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台達電子工業股份有限公司/salary-work-times?p=6",
+              "date": "2026-02",
+              "page_date": "2026-02",
+              "date_confirmed": true,
+              "role": "軟體工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 70,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 40,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8 / 8",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-02（Andy 桌面版 2026-10-26 2225_a 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台達電子工業股份有限公司/salary-work-times?p=8",
+              "date": "2025-12",
+              "page_date": "2025-12",
+              "date_confirmed": true,
+              "role": "軟體工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "6",
+              "degree": null,
+              "base_k": 81,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 45,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8 / 8.5",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2025-12（Andy 桌面版 2026-10-26 2225_a 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台達電子工業股份有限公司/salary-work-times?p=8",
+              "date": "2025-12",
+              "page_date": "2025-12",
+              "date_confirmed": true,
+              "role": "軟體工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 100,
+              "weekly_hours": 40,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8 / 8",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2025-12（Andy 桌面版 2026-10-26 2225_a 批）"
+            }
+          ]
+        },
+        {
+          "unit": "其他",
+          "role": "資料工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": [
+            83,
+            83
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": [
+            43,
+            43
+          ],
+          "overtime": "幾乎不",
+          "travel": null,
+          "n": 1,
+          "n_stat": 1,
+          "note": null,
+          "grade": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台達電子工業股份有限公司/salary-work-times?p=3",
+              "date": "2026-06"
+            }
+          ],
+          "confidence": "低",
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台達電子工業股份有限公司/salary-work-times?p=3",
+              "date": "2026-06",
+              "page_date": "2026-06",
+              "date_confirmed": true,
+              "role": "資料工程師 台北",
+              "grade": null,
+              "unit_detail": "台北",
+              "years": "6",
+              "degree": null,
+              "base_k": 83,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 43,
+              "overtime": "幾乎不",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8 / 9",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-06（Andy 桌面版 2026-10-26 2225_a 批）"
+            }
+          ]
+        },
+        {
+          "unit": "其他",
+          "role": "生產設備工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": [
+            70,
+            70
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": [
+            45,
+            45
+          ],
+          "overtime": "偶爾",
+          "travel": null,
+          "n": 1,
+          "n_stat": 1,
+          "note": null,
+          "grade": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台達電子工業股份有限公司/salary-work-times?p=4",
+              "date": "2026-04"
+            }
+          ],
+          "confidence": "低",
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台達電子工業股份有限公司/salary-work-times?p=4",
+              "date": "2026-04",
+              "page_date": "2026-04",
+              "date_confirmed": true,
+              "role": "生產設備工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 70,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 45,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8.5 / 8.5",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-04（Andy 桌面版 2026-10-26 2225_a 批）"
+            }
+          ]
+        },
+        {
+          "unit": "其他",
+          "role": "熱流資深工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": [
+            75,
+            75
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": [
+            55,
+            55
+          ],
+          "overtime": "經常",
+          "travel": null,
+          "n": 1,
+          "n_stat": 1,
+          "note": null,
+          "grade": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台達電子工業股份有限公司/salary-work-times?p=4",
+              "date": "2026-04"
+            }
+          ],
+          "confidence": "低",
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台達電子工業股份有限公司/salary-work-times?p=4",
+              "date": "2026-04",
+              "page_date": "2026-04",
+              "date_confirmed": true,
+              "role": "熱流資深工程師 桃園",
+              "grade": null,
+              "unit_detail": "桃園",
+              "years": "2",
+              "degree": null,
+              "base_k": 75,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 55,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8 / 11",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-04（Andy 桌面版 2026-10-26 2225_a 批）"
+            }
+          ]
+        },
+        {
+          "unit": "其他",
+          "role": "硬體測試工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": [
+            100,
+            100
+          ],
+          "weekly_hours": [
+            45,
+            45
+          ],
+          "overtime": "偶爾",
+          "travel": null,
+          "n": 1,
+          "n_stat": 1,
+          "note": null,
+          "grade": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台達電子工業股份有限公司/salary-work-times?p=4",
+              "date": "2026-03"
+            }
+          ],
+          "confidence": "低",
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台達電子工業股份有限公司/salary-work-times?p=4",
+              "date": "2026-03",
+              "page_date": "2026-03",
+              "date_confirmed": true,
+              "role": "硬體測試工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "2",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 100,
+              "weekly_hours": 45,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 9 / 10",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-03（Andy 桌面版 2026-10-26 2225_a 批）"
+            }
+          ]
+        },
+        {
+          "unit": "其他",
+          "role": "電子資深工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": [
+            65,
+            65
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": [
+            48,
+            48
+          ],
+          "overtime": "經常",
+          "travel": null,
+          "n": 1,
+          "n_stat": 1,
+          "note": null,
+          "grade": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台達電子工業股份有限公司/salary-work-times?p=5",
+              "date": "2026-03"
+            }
+          ],
+          "confidence": "低",
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台達電子工業股份有限公司/salary-work-times?p=5",
+              "date": "2026-03",
+              "page_date": "2026-03",
+              "date_confirmed": true,
+              "role": "電子資深工程師 中壢五廠",
+              "grade": null,
+              "unit_detail": "中壢五廠",
+              "years": "1",
+              "degree": null,
+              "base_k": 65,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 48,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8 / 10",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-03（Andy 桌面版 2026-10-26 2225_a 批）"
+            }
+          ]
+        },
+        {
+          "unit": "其他",
+          "role": "系統工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": [
+            69,
+            69
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": [
+            40,
+            40
+          ],
+          "overtime": "幾乎不",
+          "travel": null,
+          "n": 1,
+          "n_stat": 1,
+          "note": null,
+          "grade": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台達電子工業股份有限公司/salary-work-times?p=6",
+              "date": "2026-03"
+            }
+          ],
+          "confidence": "低",
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台達電子工業股份有限公司/salary-work-times?p=6",
+              "date": "2026-03",
+              "page_date": "2026-03",
+              "date_confirmed": true,
+              "role": "系統工程師 台南",
+              "grade": null,
+              "unit_detail": "台南",
+              "years": "1",
+              "degree": null,
+              "base_k": 69,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 40,
+              "overtime": "幾乎不",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8 / 8.5",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-03（Andy 桌面版 2026-10-26 2225_a 批）"
+            }
+          ]
+        },
+        {
+          "unit": "其他",
+          "role": "軟韌體工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": [
+            80,
+            80
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": [
+            45,
+            45
+          ],
+          "overtime": "經常",
+          "travel": null,
+          "n": 1,
+          "n_stat": 1,
+          "note": null,
+          "grade": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台達電子工業股份有限公司/salary-work-times?p=6",
+              "date": "2026-02"
+            }
+          ],
+          "confidence": "低",
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台達電子工業股份有限公司/salary-work-times?p=6",
+              "date": "2026-02",
+              "page_date": "2026-02",
+              "date_confirmed": true,
+              "role": "軟韌體工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "7",
+              "degree": null,
+              "base_k": 80,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 45,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8 / 9",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-02（Andy 桌面版 2026-10-26 2225_a 批）"
+            }
+          ]
+        },
+        {
+          "unit": "其他",
+          "role": "軟韌體測試工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": [
+            120,
+            120
+          ],
+          "weekly_hours": [
+            50,
+            50
+          ],
+          "overtime": "經常",
+          "travel": null,
+          "n": 1,
+          "n_stat": 1,
+          "note": null,
+          "grade": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台達電子工業股份有限公司/salary-work-times?p=7",
+              "date": "2026-01"
+            }
+          ],
+          "confidence": "低",
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台達電子工業股份有限公司/salary-work-times?p=7",
+              "date": "2026-01",
+              "page_date": "2026-01",
+              "date_confirmed": true,
+              "role": "軟韌體測試工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "2",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 120,
+              "weekly_hours": 50,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8 / 10",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-01（Andy 桌面版 2026-10-26 2225_a 批）"
+            }
+          ]
+        },
+        {
+          "unit": "其他",
+          "role": "資深工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": [
+            90,
+            90
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": [
+            46,
+            46
+          ],
+          "overtime": "經常",
+          "travel": null,
+          "n": 1,
+          "n_stat": 1,
+          "note": null,
+          "grade": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台達電子工業股份有限公司/salary-work-times?p=7",
+              "date": "2026-01"
+            }
+          ],
+          "confidence": "低",
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台達電子工業股份有限公司/salary-work-times?p=7",
+              "date": "2026-01",
+              "page_date": "2026-01",
+              "date_confirmed": true,
+              "role": "資深工程師 桃園/中壢",
+              "grade": null,
+              "unit_detail": "桃園/中壢",
+              "years": "10",
+              "degree": null,
+              "base_k": 90,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 46,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8 / 12",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-01（Andy 桌面版 2026-10-26 2225_a 批）"
+            }
+          ]
+        },
+        {
+          "unit": "其他",
+          "role": "EE",
+          "degree": null,
+          "years": null,
+          "base_month_k": [
+            70,
+            70
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": [
+            30,
+            30
+          ],
+          "overtime": "經常",
+          "travel": null,
+          "n": 1,
+          "n_stat": 1,
+          "note": null,
+          "grade": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台達電子工業股份有限公司/salary-work-times?p=7",
+              "date": "2026-01"
+            }
+          ],
+          "confidence": "低",
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台達電子工業股份有限公司/salary-work-times?p=7",
+              "date": "2026-01",
+              "page_date": "2026-01",
+              "date_confirmed": true,
+              "role": "EE 台中",
+              "grade": null,
+              "unit_detail": "台中",
+              "years": null,
+              "degree": null,
+              "base_k": 70,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 30,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8 / 8",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-01（Andy 桌面版 2026-10-26 2225_a 批）"
+            }
+          ]
+        },
+        {
+          "unit": "其他",
+          "role": "品管╱品保工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": [
+            100,
+            100
+          ],
+          "weekly_hours": [
+            48,
+            48
+          ],
+          "overtime": "偶爾",
+          "travel": null,
+          "n": 1,
+          "n_stat": 1,
+          "note": null,
+          "grade": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台達電子工業股份有限公司/salary-work-times?p=7",
+              "date": "2026-01"
+            }
+          ],
+          "confidence": "低",
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台達電子工業股份有限公司/salary-work-times?p=7",
+              "date": "2026-01",
+              "page_date": "2026-01",
+              "date_confirmed": true,
+              "role": "品管╱品保工程師 桃園中壢",
+              "grade": null,
+              "unit_detail": "桃園中壢",
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 100,
+              "weekly_hours": 48,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8 / 10",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-01（Andy 桌面版 2026-10-26 2225_a 批）"
+            }
+          ]
+        },
+        {
+          "unit": "其他",
+          "role": "電子設計工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": [
+            66,
+            66
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": [
+            52,
+            52
+          ],
+          "overtime": "經常",
+          "travel": null,
+          "n": 1,
+          "n_stat": 1,
+          "note": null,
+          "grade": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台達電子工業股份有限公司/salary-work-times?p=8",
+              "date": "2025-11"
+            }
+          ],
+          "confidence": "低",
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台達電子工業股份有限公司/salary-work-times?p=8",
+              "date": "2025-11",
+              "page_date": "2025-11",
+              "date_confirmed": true,
+              "role": "電子設計工程師 中壢",
+              "grade": null,
+              "unit_detail": "中壢",
+              "years": "2",
+              "degree": null,
+              "base_k": 66,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 52,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8 / 11",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2025-11（Andy 桌面版 2026-10-26 2225_a 批）"
+            }
+          ]
+        },
+        {
+          "unit": "其他",
+          "role": "整合工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": [
+            70,
+            70
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": [
+            40,
+            40
+          ],
+          "overtime": "偶爾",
+          "travel": null,
+          "n": 1,
+          "n_stat": 1,
+          "note": null,
+          "grade": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台達電子工業股份有限公司/salary-work-times?p=9",
+              "date": "2025-11"
+            }
+          ],
+          "confidence": "低",
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台達電子工業股份有限公司/salary-work-times?p=9",
+              "date": "2025-11",
+              "page_date": "2025-11",
+              "date_confirmed": true,
+              "role": "整合工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "2",
+              "degree": null,
+              "base_k": 70,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 40,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8 / 8",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2025-11（Andy 桌面版 2026-10-26 2225_a 批）"
+            }
+          ]
         }
       ],
       "mops": null,
