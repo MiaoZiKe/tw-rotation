@@ -163,4 +163,4 @@ def test_融資融券_當天晚上就發():
 
 def test_文案標題_盤後融資融券():
     txt = ss.build_text("credit", "10/22 22:05", [{"name": "credit-ratio", "ok": True, "read": {"ratio": "176.99", "chg": "-5.85"}}], "2026-10-22", "20261022")
-    assert txt.splitlines()[0] == "台股盤後融資融券｜10/22"
+    assert txt.splitlines()[0] == "盤後融資融券"      # 2026-10-26 Andy 盤中格式套到盤後（標題不帶日期）

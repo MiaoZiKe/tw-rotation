@@ -561,7 +561,12 @@ def b_market_breadth(mode, w, h, ctx):
     up = sum(v for c, v in zip(cats, vals) if _cat_sign(c) > 0)
     dn = sum(v for c, v in zip(cats, vals) if _cat_sign(c) < 0)
     flat = sum(vals) - up - dn
-    tot = sum(vals) or 1
+    # 2026-10-26：三格改用網站同一份官方家數（market_heat.json；網站總覽「漲跌家數」也是它）。
+    # 原本用直方圖分箱加總，-2~0 那箱含平盤，平盤變 0、跟文案「上漲 530、下跌 1620」對不起來
+    mh = (ctx.get("jget") or (lambda n: {}))("market_heat") or {}
+    if mh.get("advancers") is not None and mh.get("decliners") is not None:
+        up, dn, flat = int(mh["advancers"]), int(mh["decliners"]), int(mh.get("unchanged") or 0)
+    tot = (up + dn + flat) or 1
     kp = "".join(
         f'<div class="k sub"><div class=l>{lab}</div><div class=vv style="color:{c}">{v:,}<u>檔</u></div><div class=ss>{v / tot * 100:.1f}%</div></div>'
         for lab, v, c in (("上漲", up, T["rise"]), ("平盤", flat, T["flat"]), ("下跌", dn, T["fall"])))
@@ -660,7 +665,20 @@ def _tree_block(title, col, rows, w, h, s):
     return f'<div class=sub style="height:{h:.0f}px">{"".join(g)}</div>'
 
 
+# ---- 限動結尾頁（2026-10-26 Andy 選 C：IG 限動 API 不能加連結貼紙 → 最後一張請讀者點個人簡介連結；圖上不放網址）
+def b_outro(mode, w, h, ctx):
+    s = S_(mode)
+    big, mid = round(76 * s), round(40 * s)
+    arrow = (f'<svg data-box="arrow" width="{round(150 * s)}" height="{round(150 * s)}" viewBox="0 0 100 100">'
+             f'<circle cx="50" cy="50" r="46" fill="none" stroke="{T["cyan"]}" stroke-width="4"/>'
+             f'<path d="M50 72V30M32 47l18-18 18 18" fill="none" stroke="{T["cyan"]}" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg>')
+    return (f'<div class=sub style="height:{h:.0f}px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:{round(44 * s)}px;text-align:center">'
+            f'{arrow}<div data-box="t1" style="font-size:{big}px;font-weight:800;line-height:1.25">看完整資料</div>'
+            f'<div data-box="t2" style="font-size:{mid}px;font-weight:700;color:{T["ink2"]};line-height:1.5">點個人簡介的連結<br>進入網站看即時更新</div></div>')
+
+
 BUILDERS = {
+    "outro": b_outro,
     "rotation-rank": b_rotation_rank,
     "sankey-tree": b_sankey,
     "market-index": b_market_index,

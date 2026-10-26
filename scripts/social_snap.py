@@ -1378,47 +1378,58 @@ def caption_lines(kind: str, stamp: str, shots: list[dict], data_date: str, ymd:
             L.append(deep_link("flow/rotation", kind, ymd))
         return L
     elif kind == "credit":
+        # 2026-10-26 Andy：盤中格式確認 OK、「以後 Follow 這格式」→ 標題一行、每段「標題：」＋「・」條列、網址只放最底下一行、不放資料來源／免責
         yi = lambda x: x.replace("−", "-")
-        L.append(f"台股盤後融資融券｜{data_date[5:].replace('-', '/')}")      # 2026-10-26 Andy：「盤後也需要新增融資融券」
+        nm = lambda xs: [NAME_MAP.get(str(x), x) for x in xs]      # 讀到的是代號（列上的名稱已被 LOGO 排版改寫），換成簡稱
+        L.append("盤後融資融券")
         r = (ok.get("credit-ratio") or {}).get("read") or {}
         if r.get("ratio"):
-            L.append(f"上市融資維持率（估算）{r['ratio']}%" + (f"（較前日 {yi(r['chg'])}pp）" if r.get("chg") else "") + f" → {deep_link('market/credit', kind, ymd)}")
+            L += ["融資維持率：", f"・上市（估算）{r['ratio']}%" + (f"，較前日 {yi(r['chg'])}pp" if r.get("chg") else "")]
         r = (ok.get("credit-rank") or {}).get("read") or {}
-        if r.get("up") and r.get("down"):      # 讀到的是代號（列上的名稱已被 LOGO 排版改寫），換成簡稱
-            nm = lambda xs: [NAME_MAP.get(str(x), x) for x in xs]
-            L.append(f"融資增加 {_join(nm(r['up']), n)}；融資減少 {_join(nm(r['down']), n)}")
+        if r.get("up") and r.get("down"):
+            L += ["融資：", f"・增加 {_join(nm(r['up']), n)}；", f"・減少 {_join(nm(r['down']), n)}"]
         r = (ok.get("credit-short") or {}).get("read") or {}
         if r.get("up") and r.get("down"):
-            nm = lambda xs: [NAME_MAP.get(str(x), x) for x in xs]
-            L.append(f"融券增加 {_join(nm(r['up']), n)}；融券減少 {_join(nm(r['down']), n)}")
+            L += ["融券：", f"・增加 {_join(nm(r['up']), n)}；", f"・減少 {_join(nm(r['down']), n)}"]
+        L.append(HASHTAGS[kind])
+        if links != "none":
+            L.append(deep_link("market/credit", kind, ymd))
+        return L
     else:
-        L.append(f"台股盤後籌碼｜{data_date[5:].replace('-', '/')}")
+        # 同上：Andy 盤中格式套到盤後
+        L.append("盤後消息")
         yi = lambda x: x.replace("−", "-")
         r = (ok.get("inst-today") or {}).get("read") or []
         if r:
             nm_ = {"外資": "外資", "投信": "投信", "自營商": "自營", "三大法人合計": "合計"}
-            L.append("三大法人當日買賣超：" + "、".join(f"{nm_.get(a, a)} {yi(b)}" for a, b in r) + f" → {deep_link('market/inst', kind, ymd)}")
+            it = [f"{nm_.get(a, a)} {yi(b)}" for a, b in r]
+            L += ["三大法人買賣超："] + ([f"・{'、'.join(it[:2])}；", f"・{'、'.join(it[2:])}"] if len(it) > 2 else [f"・{'、'.join(it)}"])
         for key, lab in (("streak-foreign", "外資"), ("streak-trust", "投信")):
             r = (ok.get(key) or {}).get("read") or {}
             if r.get("buy") and r.get("sell"):
-                L.append(f"{lab}買超 {_join(r['buy'], n)}；賣超 {_join(r['sell'], n)}")
+                L += [f"{lab}：", f"・買超 {_join(r['buy'], n)}；", f"・賣超 {_join(r['sell'], n)}"]
         r = (ok.get("fut-oi") or {}).get("read")
         if r:
             import re as _re
-            nets = "、".join(f"{a} {yi(b)}" for a, b in _re.findall(r"(外資|投信|自營商?)\s*([+\-−]?[\d,]{3,})", r))
-            L.append("台指期三大法人淨未平倉：" + nets + f" → {deep_link('market/fut', kind, ymd)}")
+            it = [f"{a} {yi(b)} 口" for a, b in _re.findall(r"(外資|投信|自營商?)\s*([+\-−]?[\d,]{3,})", r)]
+            if it:
+                L += ["台指期法人淨未平倉："] + ([f"・{'、'.join(it[:2])}；", f"・{'、'.join(it[2:])}"] if len(it) > 2 else [f"・{'、'.join(it)}"])
         r = (ok.get("retail-ratio") or {}).get("read") or []
         if r:
-            L.append("散戶多空比：" + "、".join(f"{x.get('prod') or '?'} {yi(x.get('pct') or '—')}" for x in r))
+            it = [f"{x.get('prod') or '?'} {yi(x.get('pct') or '—')}" for x in r]
+            L += ["散戶多空比："] + ([f"・{'、'.join(it[:2])}；", f"・{'、'.join(it[2:])}"] if len(it) > 2 else [f"・{'、'.join(it)}"])
         pn = (((ok.get("market-index") or {}).get("pieces_d") or [{}])[0].get("dump") or {}).get("panels") or []
         bd = (ok.get("market-breadth") or {}).get("breadth") or {}
         if pn or bd:      # 2026-10-26：大盤走勢與漲跌家數從盤中移到盤後（Andy）
-            a = f"加權收盤 {pn[0]['price']}（{pn[0]['chgtxt'].replace('  ', ' ')}）" if pn else ""
-            b = f"上漲 {bd['up']} 家、下跌 {bd['down']} 家" if bd.get("up") else ""
-            L.append("大盤：" + "；".join(x for x in (a, b) if x) + f" → {deep_link('overview', kind, ymd)}")
-    L.append(HASHTAGS[kind])
-    L.append(DISCLAIMER)      # 2026-10-26 Andy：免責與來源只放文案最後一行（圖上不放）
-    return L
+            L.append("大盤：")
+            if pn:
+                L.append(f"・加權收盤 {pn[0]['price']}（{pn[0]['chgtxt'].replace('  ', ' ')}）" + ("；" if bd.get("up") else ""))
+            if bd.get("up"):
+                L.append(f"・上漲 {bd['up']} 家、下跌 {bd['down']} 家")
+        L.append(HASHTAGS[kind])
+        if links != "none":
+            L.append(deep_link("market/inst", kind, ymd))
+        return L
 
 
 def build_text(kind: str, stamp: str, shots: list[dict], data_date: str, ymd: str = "") -> str:
@@ -1672,6 +1683,13 @@ def main() -> int:
                     if not native("story", rec):
                         compose(browser, "story", rec, tp, bt, out / f"story_{rec['name']}.png", report, args.frame)
                     stories.append(f"story_{rec['name']}.png")
+            if stories and not args.no_native:     # 限動最後一張：「點個人簡介的連結」（API 不能加連結貼紙，2026-10-26 Andy 選 C）
+                try:
+                    dl_ = (f"{DATE_LABEL} 12:00".strip() if KIND == "intraday" else DATE_LABEL)
+                    report.append(NAT.render(browser, "outro", "story", dict(kind=KIND, title="完整資料在網站", date=dl_), out / "story_outro.png"))
+                    stories.append("story_outro.png")
+                except Exception as exc:  # noqa: BLE001
+                    log("  ⚠ 限動結尾頁畫失敗（不擋發文）：", str(exc)[:120])
             browser.close()
         for r in report:
             if r["file"].startswith("story_") and r["shot_ratio"] < 0.75 and r["h"] == 1920:

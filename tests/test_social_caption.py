@@ -56,15 +56,28 @@ def test_盤後融資文案_獨立一篇():
              {"name": "credit-short", "ok": True, "read": {"up": ["友達", "力積電", "南亞科"], "down": ["英業達", "廣達", "緯創"]}}]
     txt = ss.build_text("credit", "10/22 05:10", shots, "2026-10-21", "20261022")
     L = txt.splitlines()
-    assert L[0] == "台股盤後融資融券｜10/21"
-    assert "上市融資維持率（估算）168.20%（較前日 -1.35pp）" in txt and "#market/credit" in txt
-    assert "融資增加 長榮、華邦電、群創；融資減少 台積電、聯電、鴻海" in txt
-    assert "融券增加 友達、力積電、南亞科；融券減少 英業達、廣達、緯創" in txt
-    assert "utm_campaign=credit_1022" in txt and L[-2].startswith("#台股 #融資") and L[-1] == ss.DISCLAIMER   # 免責只放最後一行（2026-10-26）
+    assert L[0] == "盤後融資融券" and L[1] == "融資維持率："      # 2026-10-26 Andy 盤中格式套用到盤後
+    assert "・上市（估算）168.20%，較前日 -1.35pp" in L
+    assert L[L.index("融資：") + 1] == "・增加 長榮、華邦電、群創；" and L[L.index("融資：") + 2] == "・減少 台積電、聯電、鴻海"
+    assert L[L.index("融券：") + 1] == "・增加 友達、力積電、南亞科；" and L[L.index("融券：") + 2] == "・減少 英業達、廣達、緯創"
+    assert L[-2].startswith("#台股 #融資") and L[-1].endswith("#market/credit") and "utm_campaign=credit_1022" in L[-1]
+    assert txt.count("https://") == 1 and ss.DISCLAIMER not in txt      # 網址只在最底下、不放免責
     assert len(txt) <= 480
     # 盤後法人那篇不再帶融資
     close = ss.build_text("close", "10/21 17:20", shots, "2026-10-21", "20261021")
     assert "融資" not in close
+
+
+def test_盤後文案_照盤中格式():
+    shots = [{"name": "inst-today", "ok": True, "read": [["外資", "−815.8億"], ["投信", "+94.9億"], ["自營商", "−273.8億"], ["三大法人合計", "−994.7億"]]},
+             {"name": "streak-foreign", "ok": True, "read": {"buy": ["緯穎", "廣達"], "sell": ["台積電", "聯發科"]}},
+             {"name": "fut-oi", "ok": True, "read": "外資 -87,297 投信 +83,601 自營商 +3,260"}]
+    txt = ss.build_text("close", "10/22 17:20", shots, "2026-10-22", "20261022")
+    L = txt.splitlines()
+    assert L[0] == "盤後消息" and L[1] == "三大法人買賣超：" and L[2] == "・外資 -815.8億、投信 +94.9億；" and L[3] == "・自營 -273.8億、合計 -994.7億"
+    assert "外資：" in L and "・買超 緯穎、廣達；" in L and "台指期法人淨未平倉：" in L
+    assert L[-2].startswith("#台股") and L[-1].endswith("#market/inst") and txt.count("https://") == 1
+    assert " → " not in txt and ss.DISCLAIMER not in txt and len(txt) <= 480
 
 
 def test_融資卡歸盤後融資那篇():
