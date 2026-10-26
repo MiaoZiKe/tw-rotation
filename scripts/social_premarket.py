@@ -65,7 +65,8 @@ US_ROWS = [("^IXIC", "那斯達克"), ("^SOX", "費城半導體"), ("^GSPC", "�
 ADR_SYM, FX_SYM, TSMC = "TSM", "TWD=X", "2330"
 ADR_RATIO = 5                     # 1 股 ADR＝5 股台積電普通股
 K_N = 25                          # 美股那頁每列的日 K 根數（小圖）
-K_LONG = 125                      # 台指期／ADR 主圖的日 K 根數（約半年交易日；Andy 10-26：「K 棒期間至少半年」）
+K_LONG = 63                       # 日 K 根數：約 3 個月交易日（Andy 10-26 晚：「所有的日K只要前面3個月數據」；早先是半年 125）
+DRAW_MAS = (5, 10, 20, 60)        # 圖上只畫這四條（Andy 10-26 晚：「只要留下5 10 20 60均線」；120／240 仍照算，給解讀用）
 MAS = [(5, "5日"), (10, "10日"), (20, "月線20"), (60, "季線60"), (120, "半年線120"), (240, "年線240")]
 SRC_NAME = {"cnyes": "鉅亨", "udn": "聯合新聞網", "technews": "科技新報"}
 DISCLAIMER = "資料：Yahoo Finance、期交所公開資料、新聞媒體整理，僅供參考，不構成投資建議"
@@ -713,7 +714,7 @@ def candle_svg(ks: dict, w: int, h: int, c: dict, theme: str, *, fs: int = 0, ma
         return line_svg([x["c"] for x in b], w, h, c["cyan"])
     mc = MA_COL[theme]
     L = int(fs * 4.0) if fs else 4
-    R, T = 6, (int(fs * 0.6) if fs else 4)
+    R, T = 6, (int(fs * 1.3) if fs else 4)      # 上方留一行給「昨日」日期標籤
     B = int(fs * 1.8) if fs else 4
     gap = int(fs * 0.5) if rsi else 0
     tot = h - T - B - gap
@@ -748,13 +749,18 @@ def candle_svg(ks: dict, w: int, h: int, c: dict, theme: str, *, fs: int = 0, ma
             x = X(i) - step / 2 if anchor == "start" else X(i) + step / 2 if anchor == "end" else X(i)
             g.append(f'<text x="{x:.1f}" y="{h - fs * 0.35:.1f}" font-size="{fs}" fill="{c["ink3"]}" text-anchor="{anchor}">{md(b[i]["date"])}</text>')
     bw = max(2.0, step * 0.62)
+    if fs:      # 最後一根（昨日）特別標出：底色帶＋上方日期標籤（Andy 10-26 晚）
+        lx = X(n - 1)
+        g.append(f'<rect x="{lx - step * 0.75:.1f}" y="{T}" width="{step * 1.5:.1f}" height="{ph:.1f}" fill="{c["cyan"]}" opacity=".14" rx="4"/>')
+        g.append(f'<text x="{min(lx, w - R - fs * 1.4):.1f}" y="{T + fs * 0.95:.1f}" font-size="{fs * 0.9:.0f}" font-weight="800" fill="{c["cyan"]}" text-anchor="middle">{md(b[-1]["date"])}</text>')
     for i, x in enumerate(b):
         col = c["rise"] if x["c"] >= x["o"] else c["fall"]
         top, bot = Y(max(x["o"], x["c"])), Y(min(x["o"], x["c"]))
         g.append(f'<line x1="{X(i):.1f}" y1="{Y(x["h"]):.1f}" x2="{X(i):.1f}" y2="{Y(x["l"]):.1f}" stroke="{col}" stroke-width="{max(1.5, bw / 6):.1f}"/>')
-        g.append(f'<rect x="{X(i) - bw / 2:.1f}" y="{top:.1f}" width="{bw:.1f}" height="{max(1.5, bot - top):.1f}" fill="{col}"/>')
+        g.append(f'<rect x="{X(i) - bw / 2:.1f}" y="{top:.1f}" width="{bw:.1f}" height="{max(1.5, bot - top):.1f}" fill="{col}"'
+                 + (f' stroke="{c["ink"]}" stroke-width="2"' if fs and i == n - 1 else "") + '/>')
     if ma:
-        for p, _ in reversed(MAS):          # 長均線先畫、短的疊在上面
+        for p, _ in reversed([m for m in MAS if m[0] in DRAW_MAS]):          # 長均線先畫、短的疊在上面
             k = f"ma{p}"
             pts = [f"{X(i):.1f},{Y(x[k]):.1f}" for i, x in enumerate(b) if x.get(k) is not None]
             if len(pts) >= 2:
@@ -849,6 +855,9 @@ body{{font-variant-numeric:tabular-nums}}
 .sumt .v{{font-size:{S(84, 100)}px}}.sumt .k{{font-size:{S(34, 42)}px}}
 .bigbox{{flex:none;border:1.5px solid var(--line);border-radius:10px;background:var(--panel2);padding:{S('16px 28px', '24px 32px')}}}
 .big{{font-size:{S(46, 56)}px;line-height:1.6;font-weight:700}}
+.rdb{{flex:none;border:1.5px solid var(--line);border-left:6px solid var(--cyan);border-radius:10px;background:var(--panel2);padding:{S('6px 16px', '10px 18px')}}}
+.rdl{{font-size:{S(25, 29)}px;line-height:1.45;font-weight:600;color:var(--ink)}}
+.rdl + .rdl{{border-top:1px dashed var(--line)}}
 .kps{{flex:1;min-height:0;display:flex;flex-direction:column;gap:{S(10, 14)}px}}
 .kp{{flex:1;min-height:0;display:flex;flex-direction:column;border:1.5px solid var(--line);border-radius:10px;background:var(--panel2);padding:{S('6px 14px 4px', '10px 16px 6px')}}}
 .kph{{flex:none;display:flex;align-items:baseline;justify-content:space-between;gap:12px;line-height:1.35}}
@@ -878,7 +887,7 @@ def _tile(i: int, k: str, v: str, cls: str = "", d: str = "", dcls: str = "") ->
 
 def ma_legend(rsi: bool = False) -> str:
     """圖例：中文均線名稱（一張圖只放一次，各段共用同一套顏色）。2026-10-26 Andy：拿掉 RSI。"""
-    items = "".join(f'<span data-box=lg{p}><i style="--lc:var(--ma{p})"></i>{name}</span>' for p, name in MAS)
+    items = "".join(f'<span data-box=lg{p}><i style="--lc:var(--ma{p})"></i>{name}</span>' for p, name in MAS if p in DRAW_MAS)
     return f'<div class=legend>{items}' + ('<span data-box=lgrsi><i style="--lc:var(--rsi)"></i>RSI(14)</span>' if rsi else "") + '</div>'
 
 
@@ -932,19 +941,37 @@ def build_pages(D: dict, mode: str, theme: str = "light") -> list[dict]:
     night_ok = not night["missing"] and night.get("diff") is not None and not night.get("partial")
     pages = []
 
-    # 1 美股：那斯達克、費半、標普、道瓊（拿掉 VIX）；每格＝標題列（名稱｜收盤 漲跌幅 點數）＋半年日 K
-    secs, charts = [], {}
-    for r in us["rows"]:
-        if r["missing"] or r["sym"] == "^VIX":
-            continue
-        key = "k" + re.sub(r"\W", "", r["sym"])
-        h, ch = _kpanel(key, r["label"], _right(fmt_num(r["close"]), r["chg"], fmt_signed(r["pct"], 2, "%"), fmt_signed(r["chg"]) + " 點"), r["k"], story, theme)
-        secs.append(h); charts.update(ch)
-    if secs:
-        pages.append({"name": "us-close", "title": "美股", "inner": ma_legend() + f'<div class=kps>{"".join(secs)}</div>', "charts": charts})
+    part = bool(D.get("us_partial"))
+    by = {r["sym"]: r for r in us["rows"] if not r["missing"]}
 
-    # 2 台指期＋台積電 ADR：同樣的格式（圖與格同寬、不放 RSI）
+    def box(lines: list[str], key: str) -> str:
+        """頁首的盤面解析（Andy 10-26 晚：「圖一圖二上方都需要補充說明盤面解析」）：每檔一句，最多前兩段（漲跌＋走勢、再一個重點）。"""
+        ls = ["；".join(x.split("；")[:2]) for x in lines if x]
+        return ('<div class=rdb>' + "".join(f'<div class=rdl data-box={key}{i}>{_e(x)}</div>' for i, x in enumerate(ls)) + '</div>') if ls else ""
+
+    def us_panel(sym: str):
+        r = by[sym]
+        key = "k" + re.sub(r"\W", "", sym)
+        return _kpanel(key, r["label"], _right(fmt_num(r["close"]), r["chg"], fmt_signed(r["pct"], 2, "%"), fmt_signed(r["chg"]) + " 點"), r["k"], story, theme)
+
+    # 1 美股：那斯達克、標普、道瓊（費半移到第二張；拿掉 VIX）＋上方盤面解析
     secs, charts = [], {}
+    for sym in ("^IXIC", "^GSPC", "^DJI"):
+        if sym in by:
+            h, ch = us_panel(sym)
+            secs.append(h); charts.update(ch)
+    if secs:
+        rd = [x for x in (D.get("reads") or []) if x.startswith("美股")]
+        rd += [bar_read(lab, by[k]["k"], part) for k, lab in (("^IXIC", "那斯達克"), ("^GSPC", "標普")) if k in by]
+        rd += [x for x in (D.get("reads") or []) if x.startswith("VIX")]
+        pages.append({"name": "us-close", "title": "美股", "inner": box(rd, "ra") + ma_legend() + f'<div class=kps>{"".join(secs)}</div>', "charts": charts})
+
+    # 2 費半＋台指期＋台積電 ADR：三張日 K（圖同寬、不放 RSI）＋上方盤面解析
+    secs, charts, rd = [], {}, []
+    if "^SOX" in by:
+        h, ch = us_panel("^SOX")
+        secs.append(h); charts.update(ch)
+        rd.append(bar_read("費半", by["^SOX"]["k"], part))
     if not tx["missing"]:
         ex = f'夜盤 {fmt_num(night["close"], 0)}（{fmt_signed(night["diff"], 0)}）' if night_ok else ""
         h, ch = _kpanel("ktx", "台指期", _right(fmt_num(tx["close"], 0), tx["chg"], fmt_signed(tx["pct"], 2, "%"), fmt_signed(tx["chg"], 0) + " 點", ex), tx["k"], story, theme)
@@ -953,9 +980,11 @@ def build_pages(D: dict, mode: str, theme: str = "light") -> list[dict]:
         ex = (f'換算 {fmt_num(adr["conv"], 1)}・{"溢價" if adr["prem"] >= 0 else "折價"} {abs(adr["prem"]):.2f}%' if adr.get("prem") is not None else "")
         h, ch = _kpanel("kadr", "台積電 ADR", _right(fmt_num(adr["close"]), adr["chg"], fmt_signed(adr["pct"], 2, "%"), "", ex), adr["k"], story, theme)
         secs.append(h); charts.update(ch)
+        rd.append(bar_read("台積電 ADR", adr["k"], part))
+    rd += [x for x in (D.get("reads") or []) if x.startswith("台指期夜盤")]
     if secs:
-        sub = "台指期・台積電 ADR" if len(secs) == 2 else ("台指期" if not tx["missing"] else "台積電 ADR")
-        pages.append({"name": "tx", "title": sub, "inner": ma_legend() + f'<div class=kps>{"".join(secs)}</div>', "charts": charts})
+        names = (["費半"] if "^SOX" in by else []) + (["台指期"] if not tx["missing"] else []) + (["ADR"] if not adr["missing"] else [])
+        pages.append({"name": "tx", "title": "・".join(names), "inner": box(rd, "rb") + ma_legend() + f'<div class=kps>{"".join(secs)}</div>', "charts": charts})
 
     # 3 昨日事件（原「今日焦點」；Andy：給剛起床的讀者馬上接收昨天發生的事）＋配圖示＋一句摘要
     if D["news"]:

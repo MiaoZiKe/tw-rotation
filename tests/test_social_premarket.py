@@ -70,7 +70,7 @@ def test_k_series_long_has_six_mas():
     df = pd.DataFrame({"date": days, "open": 99.0, "high": 102.0, "low": 98.0, "close": [100.0 + i for i in range(len(days))], "volume": 1.0})
     ks = sp.k_series(df, sp.K_LONG)
     b = ks["bars"]
-    assert len(b) == sp.K_LONG >= 120 and [n for _, n in sp.MAS] == ["5日", "10日", "月線20", "季線60", "半年線120", "年線240"]
+    assert len(b) == sp.K_LONG and 60 <= sp.K_LONG <= 66 and sp.DRAW_MAS == (5, 10, 20, 60) and [n for _, n in sp.MAS] == ["5日", "10日", "月線20", "季線60", "半年線120", "年線240"]
     assert all(x["ma240"] is not None for x in b)                  # 歷史夠長，半年 K 棒的年線全程都有
     assert abs(b[-1]["ma240"] - (sum(range(len(days) - 240, len(days))) / 240 + 100)) < 1e-6
 
@@ -225,8 +225,8 @@ def test_pages_have_no_notes_and_skip_missing():
     for mode in ("threads", "story"):
         pages = sp.build_pages(D, mode)
         assert [p["name"] for p in pages] == ["us-close", "tx", "news"]      # 2026-10-26 Andy：「就這三張」   # ADR 沒資料 → 下段不畫、不換成現貨
-        assert pages[1]["title"] == "台指期" and "台積電" not in pages[1]["inner"]
-        assert "年線240" in pages[1]["inner"] and "class=tat" not in pages[1]["inner"] and "RSI" not in pages[1]["inner"]      # 10-26 拿掉技術面表格與 RSI
+        assert pages[1]["title"] == "費半・台指期" and "台積電" not in pages[1]["inner"]      # 10-26 晚：費半移到第二張
+        assert "季線60" in pages[1]["inner"] and "年線240" not in pages[1]["inner"] and "class=rdb" in pages[1]["inner"] and "class=tat" not in pages[1]["inner"] and "RSI" not in pages[1]["inner"]      # 10-26 拿掉技術面表格與 RSI
         html = "".join(p["inner"] + p["title"] for p in pages)
         for bad in ("查證中", "資料日", "休市", "時段", "本週", "資料：", "不構成投資建議", "道瓊"):
             assert bad not in html, bad
@@ -240,8 +240,8 @@ def test_tx_page_has_adr_section_when_available():
     D = sp.collect(date(2026, 10, 27), _intl(), price, intra, ohlc, pd.DataFrame(), pd.DataFrame())
     pages = sp.build_pages(D, "threads")
     tx = pages[[p["name"] for p in pages].index("tx")]
-    assert tx["title"] == "台指期・台積電 ADR" and set(tx["charts"]) == {"ktx", "kadr"}
-    assert tx["inner"].index("台指期") < tx["inner"].index("台積電 ADR") and "換算 " in tx["inner"] and "RSI" not in tx["inner"]
+    assert tx["title"] == "費半・台指期・ADR" and {"ktx", "kadr"} <= set(tx["charts"])
+    assert tx["inner"].index("data-box=ktx-nm") < tx["inner"].index("data-box=kadr-nm") and "換算 " in tx["inner"] and "RSI" not in tx["inner"]
     assert "tsmc" not in [p["name"] for p in pages] and set(D["ta"]) == {"tx", "adr"}
 
 
