@@ -4257,14 +4257,17 @@
           "base_month_k": null,
           "bonus_months": null,
           "annual_months": null,
-          "annual_total_wan": null,
+          "annual_total_wan": [
+            200,
+            302
+          ],
           "weekly_hours": [
-            52,
+            42,
             52
           ],
-          "overtime": "經常",
+          "overtime": "偶爾",
           "travel": null,
-          "n": 11,
+          "n": 13,
           "note": "網友自述未經查證；GoodJob 一筆新人月薪 8.2 萬（學歷未載）；GoodJob 頁面平均週工時 48 小時；年薪 150～300 萬的筆數年資不一（含 24 年）不採；第二輪：Dcard 數位 IC offer 多為 (N±x)×13～14＋分紅，CN 事業群分紅傳一兩百萬起跳；PTT 2026-02 開獎情報分 CN／非 CN／RDC；分紅一年兩包（1、4 月與 10、隔年 7 月各半），新人第一年不完整；GoodJob 多則稱責任制無加班費；base_month_k 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples；未逐筆對應的舊彙整：{\"base_month_k\": [82, 82]}",
           "sources": [
             {
@@ -4296,6 +4299,16 @@
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/257856975",
               "date": "2025-01"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/瑞昱半導體股份有限公司/work-experiences#dic-2026-03-200",
+              "date": "2026-03"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/瑞昱半導體股份有限公司/salary-work-times#dic-2026-03-5y",
+              "date": "2026-03"
             }
           ],
           "confidence": "高",
@@ -4533,9 +4546,49 @@
               "quote_free_note": "留言者自述年資1.4年，這包年終整包約85–95萬，主管說領滿",
               "date_note": "Dcard 頁面發文日期 2025-01-29（2026-10-26 1943 批，非 Andy 親眼讀）",
               "in_window": false
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/瑞昱半導體股份有限公司/work-experiences#dic-2026-03-200",
+              "date": "2026-03",
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 200,
+              "weekly_hours": 50,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "GoodJob 評價列表 2026-03：數位 IC 設計工程師年薪 200 萬、每週 50 小時；不同部門薪資差異大，建議先問部門分紅",
+              "date_confirmed": true,
+              "in_window": true,
+              "date_note": "GoodJob 列表標示 2026 年 3 月",
+              "role": "數位 IC 設計"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/瑞昱半導體股份有限公司/salary-work-times#dic-2026-03-5y",
+              "date": "2026-03",
+              "unit_detail": null,
+              "years": "5",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 302,
+              "weekly_hours": 42,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "GoodJob 薪水＆加班列表 2026-03：數位 IC 設計工程師全職、經驗 5 年、年薪 302 萬、每週 42 小時、偶爾加班",
+              "date_confirmed": true,
+              "in_window": true,
+              "date_note": "GoodJob 列表標示 2026 年 3 月",
+              "role": "數位 IC 設計"
             }
           ],
-          "n_stat": 5
+          "n_stat": 7
         },
         {
           "unit": "研發 R&D",
@@ -8769,6 +8822,59 @@
           "n_stat": 0,
           "note": null,
           "grade": null
+        },
+        {
+          "unit": "研發 R&D",
+          "role": "驗證工程師",
+          "degree": "碩士",
+          "years": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": [
+            140,
+            140
+          ],
+          "weekly_hours": [
+            48,
+            48
+          ],
+          "overtime": null,
+          "travel": null,
+          "n": 1,
+          "note": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/68db09d01ca7fb0b064b6dd6",
+              "date": "2025-09"
+            }
+          ],
+          "confidence": "低",
+          "grade": null,
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/68db09d01ca7fb0b064b6dd6",
+              "date": "2025-09",
+              "unit_detail": "新竹縣",
+              "years": "0-1",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 140,
+              "weekly_hours": 48,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "GoodJob 評價 2025.9.29：新竹縣驗證工程師，經驗不到一年，年薪約 140 萬、每週 48 小時；每年 7 月調薪，忙時 11～12 小時",
+              "date_confirmed": true,
+              "in_window": true,
+              "date_note": "GoodJob 標題日期 2025.9.29",
+              "role": "驗證工程師"
+            }
+          ],
+          "n_stat": 1
         }
       ],
       "mops": {

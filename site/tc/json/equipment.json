@@ -203,6 +203,26 @@
               "quote_free_note": "機械碩從國營轉職；N×14 加車補與輪班津貼，底薪未透露",
               "in_window": true,
               "date_note": "Andy 桌面版＋Chrome 親眼讀文章頁面發文日期"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/ASML/interview-experiences#uir-2026-03",
+              "date": "2026-03",
+              "unit_detail": "新竹",
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 130,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "GoodJob ASML 面試心得列表：UIR（新竹）2026-03 面試、錄取，年薪 130 萬；英文電訪→新竹面試→約 30 天 positive letter→e-offer",
+              "date_confirmed": true,
+              "in_window": true,
+              "date_note": "GoodJob 列表標示面試時間 2026-03",
+              "role": "UIR 工程師"
             }
           ],
           "sources": [
@@ -210,10 +230,15 @@
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/262349470",
               "date": "2026-10"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/ASML/interview-experiences#uir-2026-03",
+              "date": "2026-03"
             }
           ],
-          "confidence": "低",
-          "n": 1,
+          "confidence": "中",
+          "n": 2,
           "annual_months": [
             14,
             14
@@ -221,11 +246,14 @@
           "years": null,
           "base_month_k": null,
           "bonus_months": null,
-          "annual_total_wan": null,
+          "annual_total_wan": [
+            130,
+            130
+          ],
           "weekly_hours": null,
           "overtime": null,
           "travel": null,
-          "n_stat": 1,
+          "n_stat": 2,
           "note": null,
           "grade": null
         },
@@ -405,6 +433,26 @@
               "quote_free_note": "要輪班，加上輪班費後總額比 KLA 高",
               "in_window": true,
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-08-28"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/ASML/interview-experiences#cs-2026-05",
+              "date": "2026-05",
+              "unit_detail": "台中",
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 140,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "GoodJob ASML 面試心得列表：CS（台中）2026-05 面試、錄取，年薪 140 萬",
+              "date_confirmed": true,
+              "in_window": true,
+              "date_note": "GoodJob 列表標示面試時間 2026-05",
+              "role": "CSE"
             }
           ],
           "sources": [
@@ -412,19 +460,27 @@
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/262041038",
               "date": "2026-08"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/ASML/interview-experiences#cs-2026-05",
+              "date": "2026-05"
             }
           ],
-          "confidence": "低",
-          "n": 1,
+          "confidence": "中",
+          "n": 2,
           "years": null,
           "base_month_k": null,
           "bonus_months": null,
           "annual_months": null,
-          "annual_total_wan": null,
+          "annual_total_wan": [
+            140,
+            140
+          ],
           "weekly_hours": null,
           "overtime": null,
           "travel": null,
-          "n_stat": 1,
+          "n_stat": 2,
           "note": null,
           "grade": null
         },
@@ -454,6 +510,26 @@
               "quote_free_note": "機械碩，廠務設備商下包約 3.5 年＋專任助理半年；約 46 天拿到 offer；數字未透露",
               "in_window": true,
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-05-09"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/6a37c8e63a3373a23da5d35e",
+              "date": "2026-06",
+              "unit_detail": "新竹 / HMI（已併入 ASML）",
+              "years": "1",
+              "degree": null,
+              "base_k": 86.5,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 52,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "GoodJob 評價 2026.6.21：HMI（ASML 併入）新竹 CSE，經驗 1 年，月薪 8.65 萬、每週 52 小時；福利與 ASML 看齊，下班接電話被視為義務、流動率高",
+              "date_confirmed": true,
+              "in_window": true,
+              "date_note": "GoodJob 標題日期 2026.6.21",
+              "role": "CSE"
             }
           ],
           "sources": [
@@ -461,21 +537,132 @@
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/261448554",
               "date": "2026-05"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/6a37c8e63a3373a23da5d35e",
+              "date": "2026-06"
+            }
+          ],
+          "confidence": "中",
+          "n": 2,
+          "years": null,
+          "base_month_k": [
+            86.5,
+            86.5
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": [
+            52,
+            52
+          ],
+          "overtime": "經常",
+          "travel": null,
+          "n_stat": 2,
+          "note": null,
+          "grade": null
+        },
+        {
+          "unit": "其他",
+          "role": "AE",
+          "degree": "碩士",
+          "years": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": [
+            150,
+            150
+          ],
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n": 1,
+          "note": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/ASML/interview-experiences#ae-2026-06",
+              "date": "2026-06"
             }
           ],
           "confidence": "低",
-          "n": 1,
+          "grade": null,
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/ASML/interview-experiences#ae-2026-06",
+              "date": "2026-06",
+              "unit_detail": "新北",
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 150,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "GoodJob ASML 面試心得列表：AE（新北）2026-06 面試、錄取，年薪 150 萬",
+              "date_confirmed": true,
+              "in_window": true,
+              "date_note": "GoodJob 列表標示面試時間 2026-06",
+              "role": "AE"
+            }
+          ],
+          "n_stat": 1
+        },
+        {
+          "unit": "其他",
+          "role": "Manufacturing 工程師",
+          "degree": "碩士",
           "years": null,
-          "base_month_k": null,
+          "base_month_k": [
+            70,
+            70
+          ],
           "bonus_months": null,
           "annual_months": null,
           "annual_total_wan": null,
           "weekly_hours": null,
           "overtime": null,
           "travel": null,
-          "n_stat": 1,
+          "n": 1,
           "note": null,
-          "grade": null
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/ASML/interview-experiences#mfg-2026-02",
+              "date": "2026-02"
+            }
+          ],
+          "confidence": "低",
+          "grade": null,
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/ASML/interview-experiences#mfg-2026-02",
+              "date": "2026-02",
+              "unit_detail": "桃園",
+              "years": null,
+              "degree": null,
+              "base_k": 70,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "GoodJob ASML 面試心得列表：Manufacturing 相關（桃園）2026-02 面試、錄取，月薪 7 萬；HR 電訪約 35 分鐘含英文自介",
+              "date_confirmed": true,
+              "in_window": true,
+              "date_note": "GoodJob 列表標示面試時間 2026-02",
+              "role": "Manufacturing 工程師"
+            }
+          ],
+          "n_stat": 1
         }
       ],
       "mops": null,
@@ -858,6 +1045,26 @@
               "date": "2026-01",
               "date_note": "GoodJob 標題附年月日",
               "in_window": true
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/68b479af66c91780c699739e",
+              "date": "2025-08",
+              "unit_detail": "台中",
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 145,
+              "weekly_hours": 40,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "GoodJob 評價 2025.8.31：台中 CSE 年薪 145 萬、每週 40 小時；底薪穩定、有年終與分紅，另有車補與餐費補助",
+              "date_confirmed": true,
+              "in_window": true,
+              "date_note": "GoodJob 標題日期 2025.8.31",
+              "role": "CSE"
             }
           ],
           "sources": [
@@ -865,24 +1072,82 @@
               "site": "GoodJob",
               "url": "https://www.goodjob.life/experiences/6958ca4f5075d84c8b96148f",
               "date": "2026-01"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/68b479af66c91780c699739e",
+              "date": "2025-08"
             }
           ],
-          "confidence": "低",
-          "n": 1,
+          "confidence": "中",
+          "n": 2,
           "base_month_k": null,
           "bonus_months": null,
           "annual_months": null,
           "annual_total_wan": [
-            170,
+            145,
             170
           ],
-          "weekly_hours": null,
+          "weekly_hours": [
+            40,
+            40
+          ],
           "years": null,
           "overtime": null,
           "travel": null,
-          "n_stat": 1,
+          "n_stat": 2,
           "note": null,
           "grade": null
+        },
+        {
+          "unit": "台中",
+          "role": "半導體設備工程師",
+          "degree": "碩士",
+          "years": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": [
+            140,
+            140
+          ],
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n": 1,
+          "note": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/699da5440a1f7b0ab9afd35c",
+              "date": "2026-01"
+            }
+          ],
+          "confidence": "低",
+          "grade": null,
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/699da5440a1f7b0ab9afd35c",
+              "date": "2026-01",
+              "unit_detail": "台中",
+              "years": "2",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 140,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "GoodJob 面試經驗（2026-01 面試、錄取）：台中、相關經驗 2 年、年薪 140 萬；電訪→一面→二面→口頭 offer，流程快",
+              "date_confirmed": true,
+              "in_window": true,
+              "date_note": "GoodJob 標題 2026.2.24、面試時間 2026-01",
+              "role": "半導體設備工程師"
+            }
+          ],
+          "n_stat": 1
         }
       ],
       "mops": null,
@@ -2238,6 +2503,56 @@
             }
           ],
           "n_stat": 2
+        },
+        {
+          "unit": "其他",
+          "role": "PSE",
+          "degree": "碩士",
+          "years": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": [
+            150,
+            150
+          ],
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n": 1,
+          "note": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/6a170c34f47f85d0fffdabe8",
+              "date": "2026-04"
+            }
+          ],
+          "confidence": "低",
+          "grade": null,
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/6a170c34f47f85d0fffdabe8",
+              "date": "2026-04",
+              "unit_detail": null,
+              "years": "0",
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 150,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "GoodJob 面試經驗 2026.5.27（2026-04 線上面試、未錄取）：先做線上英語檢測，碩士新鮮人開價年薪 150 萬、多項補助",
+              "date_confirmed": true,
+              "in_window": true,
+              "date_note": "GoodJob 標題 2026.5.27、面試時間 2026-04",
+              "role": "PSE"
+            }
+          ],
+          "n_stat": 1
         }
       ],
       "mops": null,

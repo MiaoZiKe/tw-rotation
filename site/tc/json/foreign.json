@@ -2723,27 +2723,83 @@
               "quote_free_note": "兩面，約 40 天拿到 offer；數字未透露",
               "in_window": true,
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-04-14"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/GARMIN 台灣國際航電股份有限公司/interview-experiences#sw-2026-07-01",
+              "date": "2026-07",
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 84,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "GoodJob 面試心得列表 2026.7.1：軟體工程師錄取，月薪 8.4 萬；一面約 30 分鐘線上、二面實體",
+              "date_confirmed": true,
+              "in_window": true,
+              "date_note": "GoodJob 列表標示 2026.7.1",
+              "role": "Software Engineer"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/GARMIN 台灣國際航電股份有限公司/salary-work-times#sw-2026-06",
+              "date": "2026-06",
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 140,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "GoodJob 薪水＆加班列表 2026-06：全職軟體工程師年薪 140 萬",
+              "date_confirmed": true,
+              "in_window": true,
+              "date_note": "GoodJob 列表標示 2026.06",
+              "role": "Software Engineer"
             }
           ],
-          "n": 1,
+          "n": 3,
           "sources": [
             {
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/261300200",
               "date": "2026-04"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/GARMIN 台灣國際航電股份有限公司/interview-experiences#sw-2026-07-01",
+              "date": "2026-07"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/GARMIN 台灣國際航電股份有限公司/salary-work-times#sw-2026-06",
+              "date": "2026-06"
             }
           ],
-          "confidence": "低",
+          "confidence": "中",
           "note": "2026-10-26 由 Dcard 樣本新增的公司",
           "years": null,
-          "base_month_k": null,
+          "base_month_k": [
+            84,
+            84
+          ],
           "bonus_months": null,
           "annual_months": null,
-          "annual_total_wan": null,
+          "annual_total_wan": [
+            140,
+            140
+          ],
           "weekly_hours": null,
           "overtime": null,
           "travel": null,
-          "n_stat": 1
+          "n_stat": 3
         },
         {
           "unit": "其他",
@@ -2902,6 +2958,56 @@
           "n_stat": 1,
           "note": null,
           "grade": null
+        },
+        {
+          "unit": "其他",
+          "role": "製程工程師",
+          "degree": "碩士",
+          "years": null,
+          "base_month_k": [
+            70,
+            70
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n": 1,
+          "note": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/6a748b900f1e83fde6f76a97",
+              "date": "2026-08"
+            }
+          ],
+          "confidence": "低",
+          "grade": null,
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/6a748b900f1e83fde6f76a97",
+              "date": "2026-08",
+              "unit_detail": null,
+              "years": "4",
+              "degree": null,
+              "base_k": 70,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "GoodJob 面試經驗 2026.8.6（線上、未錄取）：製程工程師，職務經驗 4 年，月薪 7 萬；HR 說明職務後主管要求簡報提問",
+              "date_confirmed": true,
+              "in_window": true,
+              "date_note": "GoodJob 標題日期 2026.8.6",
+              "role": "製程工程師"
+            }
+          ],
+          "n_stat": 1
         }
       ]
     },
