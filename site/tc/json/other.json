@@ -339,7 +339,7 @@
       "name": "乾坤科技",
       "code": "2452",
       "heat": null,
-      "benefits": null,
+      "benefits": "網友說法：生育補助、旅遊津貼（GoodJob 2026-02 資深工程師評價）",
       "stock_plan": null,
       "bonus_timing": null,
       "bonus_structure": [
@@ -423,6 +423,140 @@
           "weekly_hours": null,
           "overtime": null,
           "travel": null,
+          "n_stat": 1
+        },
+        {
+          "unit": "研發 RD",
+          "role": "工程師",
+          "degree": null,
+          "samples": [
+            {
+              "grade": null,
+              "unit_detail": null,
+              "years": "0",
+              "degree": null,
+              "base_k": 88,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 45,
+              "overtime": null,
+              "travel": null,
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/乾坤科技股份有限公司/work-experiences",
+              "date": "2026-03",
+              "date_confirmed": true,
+              "date_note": "GoodJob 標示 2026.3.13（搜尋摘要）",
+              "in_window": true,
+              "role": "工程師（桃園評價）",
+              "quote_free_note": "評 1 分，抱怨團隊氛圍；不到 1 年、月薪 8.8 萬、每週 45 小時"
+            },
+            {
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 65,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 45,
+              "overtime": "經常",
+              "travel": null,
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/job-titles/資深工程師/salary-work-times?p=3",
+              "date": "2026-03",
+              "date_confirmed": true,
+              "date_note": "GoodJob 標示 2026.03（薪資工時表）（搜尋摘要）",
+              "in_window": true,
+              "role": "工程師（台南）",
+              "quote_free_note": "經常加班、每週 45 小時；月薪 6.5 萬"
+            }
+          ],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/乾坤科技股份有限公司/work-experiences",
+              "date": "2026-03"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/job-titles/資深工程師/salary-work-times?p=3",
+              "date": "2026-03"
+            }
+          ],
+          "confidence": "低",
+          "note": "2026-10-26 依搜尋摘要新增",
+          "grade": null,
+          "base_month_k": [
+            65,
+            88
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": [
+            45,
+            45
+          ],
+          "overtime": "經常",
+          "travel": null,
+          "years": "0",
+          "n": 2,
+          "n_stat": 2
+        },
+        {
+          "unit": "研發 RD",
+          "role": "資深工程師",
+          "degree": null,
+          "samples": [
+            {
+              "grade": null,
+              "unit_detail": null,
+              "years": "6",
+              "degree": null,
+              "base_k": 90,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 50,
+              "overtime": null,
+              "travel": null,
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/乾坤科技股份有限公司/work-experiences/薪資福利",
+              "date": "2026-02",
+              "date_confirmed": true,
+              "date_note": "GoodJob 標示 2026.2.7（搜尋摘要）",
+              "in_window": true,
+              "role": "資深工程師（新竹評價）",
+              "quote_free_note": "提到生育補助與旅遊津貼；6 年經驗、月薪 9 萬、每週 50 小時"
+            }
+          ],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/乾坤科技股份有限公司/work-experiences/薪資福利",
+              "date": "2026-02"
+            }
+          ],
+          "confidence": "低",
+          "note": "2026-10-26 依搜尋摘要新增",
+          "grade": null,
+          "base_month_k": [
+            90,
+            90
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": [
+            50,
+            50
+          ],
+          "overtime": null,
+          "travel": null,
+          "years": "6",
+          "n": 1,
           "n_stat": 1
         }
       ]
@@ -1594,6 +1728,186 @@
           "weekly_hours": null,
           "travel": null,
           "n_stat": 1
+        },
+        {
+          "unit": "研發 RD",
+          "role": "產品工程師",
+          "degree": null,
+          "samples": [
+            {
+              "grade": null,
+              "unit_detail": null,
+              "years": "0",
+              "degree": null,
+              "base_k": 75,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 40,
+              "overtime": null,
+              "travel": null,
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/新代科技股份有限公司/work-experiences",
+              "date": "2026-07",
+              "date_confirmed": true,
+              "date_note": "GoodJob 標示 2026 年 7 月（搜尋摘要）",
+              "in_window": true,
+              "role": "產品工程師（在職評價）",
+              "quote_free_note": "不到 1 年、月薪 7.5 萬、每週 40 小時"
+            },
+            {
+              "grade": null,
+              "unit_detail": null,
+              "years": "7",
+              "degree": null,
+              "base_k": 98,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 50,
+              "overtime": null,
+              "travel": null,
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/新代科技股份有限公司/work-experiences?p=1",
+              "date": "2026-08",
+              "date_confirmed": true,
+              "date_note": "GoodJob 標示 2026 年 8 月（搜尋摘要）",
+              "in_window": true,
+              "role": "資深產品工程師（在職評價）",
+              "quote_free_note": "7 年經驗、月薪 9.8 萬、每週 50 小時"
+            }
+          ],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/新代科技股份有限公司/work-experiences",
+              "date": "2026-07"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/新代科技股份有限公司/work-experiences?p=1",
+              "date": "2026-08"
+            }
+          ],
+          "confidence": "低",
+          "note": "2026-10-26 依搜尋摘要新增",
+          "grade": null,
+          "base_month_k": [
+            75,
+            98
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": [
+            40,
+            50
+          ],
+          "overtime": null,
+          "travel": null,
+          "years": "0",
+          "n": 2,
+          "n_stat": 2
+        },
+        {
+          "unit": "研發 RD",
+          "role": "軟體工程師",
+          "degree": null,
+          "samples": [
+            {
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 190,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/新代科技股份有限公司/work-experiences/工時狀況",
+              "date": "2026-05",
+              "date_confirmed": true,
+              "date_note": "GoodJob 標示 2026 年 5 月（搜尋摘要）",
+              "in_window": true,
+              "role": "軟體工程師（在職評價）",
+              "quote_free_note": "年薪 190 萬"
+            }
+          ],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/新代科技股份有限公司/work-experiences/工時狀況",
+              "date": "2026-05"
+            }
+          ],
+          "confidence": "低",
+          "note": "2026-10-26 依搜尋摘要新增",
+          "grade": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": [
+            190,
+            190
+          ],
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n": 1,
+          "n_stat": 1
+        },
+        {
+          "unit": "研發 RD",
+          "role": "機器人應用開發工程師",
+          "degree": null,
+          "samples": [
+            {
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 100,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/新代科技股份有限公司/work-experiences?p=2",
+              "date": "2026-03",
+              "date_confirmed": true,
+              "date_note": "GoodJob 標示 2026 年 3 月（搜尋摘要）",
+              "in_window": true,
+              "role": "機器人應用開發工程師（在職評價）",
+              "quote_free_note": "年薪 100 萬"
+            }
+          ],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/新代科技股份有限公司/work-experiences?p=2",
+              "date": "2026-03"
+            }
+          ],
+          "confidence": "低",
+          "note": "2026-10-26 依搜尋摘要新增",
+          "grade": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": [
+            100,
+            100
+          ],
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n": 1,
+          "n_stat": 1
         }
       ]
     },
@@ -1689,6 +2003,57 @@
           "weekly_hours": null,
           "overtime": null,
           "travel": null,
+          "n_stat": 1
+        },
+        {
+          "unit": "研發 RD",
+          "role": "軟體工程師",
+          "degree": null,
+          "samples": [
+            {
+              "grade": null,
+              "unit_detail": null,
+              "years": "4",
+              "degree": null,
+              "base_k": 80,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/四零四科技股份有限公司/work-experiences?p=2",
+              "date": "2026-06",
+              "date_confirmed": true,
+              "date_note": "GoodJob 標示 2026.6.9（搜尋摘要）",
+              "in_window": true,
+              "role": "資深軟體工程師（新北評價）",
+              "quote_free_note": "居家辦公縮到每月 2 天；4 年經驗、月薪 8 萬"
+            }
+          ],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/四零四科技股份有限公司/work-experiences?p=2",
+              "date": "2026-06"
+            }
+          ],
+          "confidence": "低",
+          "note": "2026-10-26 依搜尋摘要新增",
+          "grade": null,
+          "base_month_k": [
+            80,
+            80
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "years": "4",
+          "n": 1,
           "n_stat": 1
         }
       ]
