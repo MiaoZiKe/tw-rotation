@@ -11684,6 +11684,29 @@
               "in_window": true,
               "date_note": "Dcard 頁面發文日期 2026-10-23（20261027_0126_b 批）",
               "comment_sample": true
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/258055477",
+              "date": "2025-02",
+              "page_date": "2025-02-21",
+              "date_confirmed": true,
+              "role": "工程師（未說明）",
+              "grade": null,
+              "unit_detail": null,
+              "years": "4",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 345,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "留言B10：「08在台積第四年領了345萬」（2025/2留言，推測為2024年度；「08」含義未說明）",
+              "in_window": false,
+              "date_note": "Dcard 頁面發文日期 2025-02-21（20261027_0144 批）",
+              "comment_sample": true
             }
           ],
           "sources": [
@@ -11821,10 +11844,15 @@
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/262341364",
               "date": "2026-10"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/258055477",
+              "date": "2025-02"
             }
           ],
           "confidence": "低",
-          "n": 48,
+          "n": 49,
           "n_stat": 37,
           "bonus_timing_month": "2 月、5 月、7 月、8 月、11 月",
           "years": null,
