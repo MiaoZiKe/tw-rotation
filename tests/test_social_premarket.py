@@ -250,7 +250,7 @@ def test_caption_and_premarket_news():
     txt = sp.caption(D, "20261027")
     lines = txt.splitlines()
     assert lines[0] == "台股盤前｜10/27" and lines[-1] == "想看完整內容，留言『消息』"
-    assert len(txt) <= 480 and "utm_campaign=premarket_1027" in txt
+    assert len(txt) <= 480 and "👉 更多詳細資料可以點擊以下連結：\nhttps://liguligu-puipui.com/\n" in txt
     assert any(x.startswith("【總經】") for x in lines) and "查證中" not in txt
     pn = sp.premarket_news(D)
     assert pn["version"] == 1 and pn["target_date"] == "2026-10-27" and pn["categories"] == ["新聞", "事件", "科技", "總經"]

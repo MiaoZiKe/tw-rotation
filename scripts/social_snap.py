@@ -70,6 +70,17 @@ DATE_ISO: dict = {}      # 目標名稱→該張自己的資料日 YYYY-MM-DD（
 NAME_MAP: dict = {}      # 代號→名稱（從網站資料 stocks.json 讀；頁面沒補到名稱的列用它補，不准只剩代號）
 ROOT = Path(__file__).resolve().parent.parent
 SITE_URL = "https://liguligu-puipui.com"
+# 文案最底下的連結（2026-10-26 Andy：「連結部分要改成：更多詳細資料可以點擊以下連結：https://liguligu-puipui.com/」——首頁網址，不帶追蹤參數與分頁）
+LINK_LINES = ["👉 更多詳細資料可以點擊以下連結：", SITE_URL + "/"]
+# 標題與段名前的表情符號（2026-10-26 Andy：「搭配些表情符號，除了個股」→ 只加在標題／段名，列股票名稱的「・」行不加）
+EMOJI = {"盤中消息": "🕛", "盤後消息": "🌙", "盤後融資融券": "💳",
+         "資金輪盤：": "🎡", "資金分流樹：": "🌳", "熱力圖：": "🔥",
+         "台指期法人淨未平倉：": "📊", "散戶多空比：": "⚖️", "三大法人買賣超：": "🏦", "外資：": "🌏", "投信：": "🏢",
+         "ETF 買超：": "📦", "融資維持率：": "🛡️", "融資：": "📈", "融券：": "📉"}
+
+
+def _emo(L: list[str]) -> list[str]:
+    return [f"{EMOJI[x]} {x}" if x in EMOJI else x for x in L]
 SITE_HOST = "liguligu-puipui.com"
 TPE = timezone(timedelta(hours=8))
 DISCLAIMER = "資料：證交所／櫃買公開資料，僅供參考，不構成投資建議"
@@ -1530,6 +1541,10 @@ def credit_lines(ok: dict, n: int) -> list[str]:
 
 
 def caption_lines(kind: str, stamp: str, shots: list[dict], data_date: str, ymd: str, n: int, links: str = "all") -> list[str]:
+    return _emo(_caption_lines(kind, stamp, shots, data_date, ymd, n, links))
+
+
+def _caption_lines(kind: str, stamp: str, shots: list[dict], data_date: str, ymd: str, n: int, links: str = "all") -> list[str]:
     ok = {s["name"]: s for s in shots if s.get("ok")}
     L = []
 
@@ -1558,7 +1573,7 @@ def caption_lines(kind: str, stamp: str, shots: list[dict], data_date: str, ymd:
             L += ["熱力圖：", f"・漲最多 {ups}；", f"・跌最多 {dns}"]
         L.append(HASHTAGS[kind])
         if links != "none":
-            L.append(deep_link("flow/rotation", kind, ymd))
+            L += LINK_LINES
         return L
     elif kind == "credit":
         # 2026-10-26 Andy：盤中格式確認 OK、「以後 Follow 這格式」→ 標題一行、每段「標題：」＋「・」條列、網址只放最底下一行、不放資料來源／免責
@@ -1567,7 +1582,7 @@ def caption_lines(kind: str, stamp: str, shots: list[dict], data_date: str, ymd:
         L += credit_lines(ok, n)
         L.append(HASHTAGS[kind])
         if links != "none":
-            L.append(deep_link("market/credit", kind, ymd))
+            L += LINK_LINES
         return L
     else:
         # 同上：Andy 盤中格式套到盤後
@@ -1599,7 +1614,7 @@ def caption_lines(kind: str, stamp: str, shots: list[dict], data_date: str, ymd:
         L += credit_lines(ok, n)      # 2026-10-26 Andy：融資融券併進盤後同一篇；大盤走勢、漲跌家數拿掉
         L.append(HASHTAGS[kind])
         if links != "none":
-            L.append(deep_link("market/inst", kind, ymd))
+            L += LINK_LINES
         return L
 
 

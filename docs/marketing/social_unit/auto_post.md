@@ -39,7 +39,8 @@
 ・漲最多 ○○ +x.x%、○○ +x.x%；
 ・跌最多 ○○ -x.x%、○○ -x.x%
 #台股 #資金流向 #熱力圖 #族群輪動
-https://liguligu-puipui.com/?utm_source=threads&utm_campaign=intraday_MMDD#flow/rotation
+👉 更多詳細資料可以點擊以下連結：
+https://liguligu-puipui.com/
 ```
 
 規則（盤中、盤後、融資融券一體適用）：
@@ -81,7 +82,8 @@ ETF 買超：
 ・增加 群創、友達；
 ・減少 誠美材、佳龍
 #台股 #法人買賣超 #外資 #投信 #融資融券
-https://liguligu-puipui.com/?utm_source=threads&utm_campaign=close_MMDD#market/inst
+👉 更多詳細資料可以點擊以下連結：
+https://liguligu-puipui.com/
 ```
 
 ## 四、IG 限動
@@ -101,6 +103,7 @@ https://liguligu-puipui.com/?utm_source=threads&utm_campaign=close_MMDD#market/i
 ## 修改紀錄
 
 - 2026-10-26：盤中 4 張與文案格式 Andy 確認；網址只放最底下；限動用 C 方案結尾頁；同一格式套到盤後與融資融券。
+- 2026-10-26：文案最底下改成「👉 更多詳細資料可以點擊以下連結：」＋首頁網址 https://liguligu-puipui.com/（不帶追蹤參數）；標題與段名前加表情符號（🕛盤中 🌙盤後 🎡輪盤 🌳分流樹 🔥熱力圖 📊未平倉 ⚖️散戶 🏦法人 🌏外資 🏢投信 📦ETF 🛡️維持率 📈融資 📉融券），列股票名稱的「・」行不加（Andy：「搭配些表情符號，除了個股」）。程式表在 social_snap.py 的 EMOJI。
 - 2026-10-26：法人排行也排除 ETF；順序改成未平倉第一、散戶多空比第二；新增 ETF 買超排名（外資、投信上下兩張）。
 - 2026-10-26：每點統一 2 個名稱；融資融券排除 ETF；名稱星號拿掉；盤後與融資融券合成一篇（8 張）；拿掉大盤走勢與漲跌家數。
 

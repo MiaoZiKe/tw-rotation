@@ -909,7 +909,7 @@ def caption(D: dict, ymd: str, max_len: int = ss.THREADS_MAX) -> str:
     if D.get("closure"):
         num.append(D["closure"]["text"])
     news = [f"【{n['category']}】{n['title']}" for n in D["news"]]
-    tail = [f"看更多 {ss.deep_link('overview', KIND, ymd)}", DISCLAIMER, HASHTAGS, ASK_LINE]
+    tail = [*ss.LINK_LINES, DISCLAIMER, HASHTAGS, ASK_LINE]      # 連結格式同盤中盤後（2026-10-26 Andy）
     txt = ""
     for keep_num, keep_news, keep_disc in ((len(num), len(news), True), (3, len(news), True), (2, len(news), True), (1, len(news), True),
                                            (1, len(news), False), (0, len(news), False), (0, 4, False), (0, 3, False)):
