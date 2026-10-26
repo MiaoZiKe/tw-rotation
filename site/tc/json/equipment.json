@@ -3420,6 +3420,123 @@
             }
           ],
           "n_stat": 2
+        },
+        {
+          "unit": "台元",
+          "role": "AE 應用工程師",
+          "degree": "碩士",
+          "samples": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/259343449",
+              "date": "2025-07",
+              "page_date": "2025-07-21",
+              "date_confirmed": true,
+              "role": "AE 應用工程師",
+              "grade": null,
+              "unit_detail": "台元",
+              "years": "0",
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": "偶爾",
+              "travel": "經常",
+              "quote_free_note": "中字尾電資學碩、剛役畢；正常上下班、加班無加班費但可補休；主管說每週三天進台積廠 8 小時且有小夜班；數字未透露",
+              "date_note": "Dcard 頁面發文日期 2025-07-21（2026-10-26 1923 批，非 Andy 親眼讀）",
+              "in_window": false
+            }
+          ],
+          "sources": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/259343449",
+              "date": "2025-07"
+            }
+          ],
+          "confidence": "低",
+          "n": 1,
+          "n_stat": 0
+        },
+        {
+          "unit": "其他",
+          "role": "工程師",
+          "degree": "碩士",
+          "samples": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/259343449",
+              "date": "2025-07",
+              "page_date": "2025-07-19",
+              "date_confirmed": true,
+              "role": "工程師（職稱未寫）",
+              "grade": null,
+              "unit_detail": null,
+              "years": "5",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 160,
+              "weekly_hours": null,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "留言 B16-2（非發文者）轉述朋友：年資 5 年，含補助年薪約 160 萬；工時不高，客戶趕案時偶爾半夜遠端",
+              "date_note": "Dcard 頁面發文日期 2025-07-19（2026-10-26 1923 批，非 Andy 親眼讀）",
+              "in_window": false
+            }
+          ],
+          "sources": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/259343449",
+              "date": "2025-07"
+            }
+          ],
+          "confidence": "低",
+          "n": 1,
+          "n_stat": 0
+        },
+        {
+          "unit": "其他",
+          "role": "AE 應用工程師",
+          "degree": "碩士",
+          "samples": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/259343449",
+              "date": "2025-07",
+              "page_date": "2025-07-18",
+              "date_confirmed": true,
+              "role": "AE 應用工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "留言 B10（非發文者，清大電機所）：也拿到愛德萬 offer 但婉拒；數字未透露",
+              "date_note": "Dcard 頁面發文日期 2025-07-18（2026-10-26 1923 批，非 Andy 親眼讀）",
+              "in_window": false
+            }
+          ],
+          "sources": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/259343449",
+              "date": "2025-07"
+            }
+          ],
+          "confidence": "低",
+          "n": 1,
+          "n_stat": 0
         }
       ]
     },
