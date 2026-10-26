@@ -13440,6 +13440,25 @@
               "in_window": true,
               "role": "通訊軟體工程師（在職評價）",
               "quote_free_note": "月薪 3.8 萬"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/微星科技股份有限公司 MSI/work-experiences/公司%2F團隊文化",
+              "date": "2026",
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 34,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": null,
+              "date_confirmed": true,
+              "date_note": "GoodJob 評價標示 2026 年",
+              "in_window": true
             }
           ],
           "sources": [
@@ -13452,6 +13471,11 @@
               "site": "GoodJob",
               "url": "https://www.goodjob.life/companies/微星科技股份有限公司 MSI/work-experiences?p=2",
               "date": "2026-07"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/微星科技股份有限公司 MSI/work-experiences/公司%2F團隊文化",
+              "date": "2026"
             }
           ],
           "confidence": "低",
@@ -13468,8 +13492,8 @@
           "overtime": null,
           "travel": null,
           "years": "0",
-          "n": 2,
-          "n_stat": 2
+          "n": 3,
+          "n_stat": 3
         },
         {
           "unit": "研發 RD",
@@ -13496,6 +13520,25 @@
               "in_window": true,
               "role": "工程師（在職評價）",
               "quote_free_note": "底薪不高但一年分紅四次；月薪 4.5 萬"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/微星科技股份有限公司 MSI/work-experiences/薪資福利",
+              "date": "2026",
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 45,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "底薪不高，一年分紅四次",
+              "date_confirmed": true,
+              "date_note": "GoodJob 評價標示 2026 年",
+              "in_window": true
             }
           ],
           "sources": [
@@ -13519,8 +13562,8 @@
           "overtime": null,
           "travel": null,
           "years": "2",
-          "n": 1,
-          "n_stat": 1
+          "n": 2,
+          "n_stat": 2
         },
         {
           "unit": "研發 RD",
@@ -13739,6 +13782,21 @@
               "date": "2025-09"
             }
           ]
+        },
+        {
+          "type": "保障月數＋分紅",
+          "rule": "網友說法：保 14 個月，分紅 0～3 個月、常約 1 個月；另有三節與年終（GoodJob 2025-09、2026 評價）",
+          "months": [
+            0,
+            3
+          ],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/合勤科技股份有限公司 ZYXEL/work-experiences/薪資福利",
+              "date": "2026"
+            }
+          ]
         }
       ],
       "culture": "網友說法：面試趣公司評價 3.4／5；兆勤生活平衡 4.5 高於合勤 3.3",
@@ -13871,6 +13929,53 @@
               "in_window": true,
               "role": "軟體工程師（在職評價）",
               "quote_free_note": "有底薪、獎金與三節；3 年經驗、年薪 80 萬"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/合勤科技股份有限公司 ZYXEL/work-experiences/薪資福利",
+              "date": "2025-09",
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": [
+                54,
+                58
+              ],
+              "bonus_months": [
+                0,
+                3
+              ],
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "面試分享：底薪依學歷 5.4～5.8 萬，保 14 個月，分紅 0～3 個月",
+              "date_confirmed": true,
+              "date_note": "來源標示年月，晚於 2025-08-01",
+              "in_window": true
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/合勤科技股份有限公司 ZYXEL/work-experiences/薪資福利",
+              "date": "2026",
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": [
+                1,
+                1
+              ],
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "分紅比其他科技業低，常只有 1 個月左右",
+              "date_confirmed": true,
+              "date_note": "GoodJob 評價標示 2026 年",
+              "in_window": true
             }
           ],
           "sources": [
@@ -13894,8 +13999,8 @@
           "note": "2026-10-26 依搜尋摘要新增",
           "grade": null,
           "base_month_k": [
-            55,
-            57
+            54,
+            58
           ],
           "bonus_months": [
             0,
@@ -13916,8 +14021,8 @@
           "overtime": null,
           "travel": null,
           "years": "3",
-          "n": 3,
-          "n_stat": 3
+          "n": 5,
+          "n_stat": 5
         },
         {
           "unit": "研發 RD",
@@ -14190,6 +14295,18 @@
               "date": null
             }
           ]
+        },
+        {
+          "type": "保障月數＋分紅",
+          "rule": "網友說法：底薪＋保 14（中秋端午各 0.5、年終 1 個月）（GoodJob 2025-04）；分紅要滿 3 年才領得到、制度不透明（GoodJob 2025-07、2025-08）",
+          "months": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/鴻運科技有限公司/work-experiences/薪資福利",
+              "date": "2025-08"
+            }
+          ]
         }
       ],
       "culture": "網友說法：不會每年調薪、營運好才調；有人認為分紅制度不透明（GoodJob 機構工程師評價）",
@@ -14346,6 +14463,64 @@
           "n_stat": 0,
           "note": "未逐筆對應的舊彙整：overtime=幾乎不",
           "grade": null
+        },
+        {
+          "unit": "其他",
+          "role": "伺服器相關職缺（應屆碩士 offer）",
+          "degree": "碩士",
+          "years": "0",
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": [
+            14,
+            14
+          ],
+          "annual_total_wan": null,
+          "weekly_hours": [
+            45,
+            50
+          ],
+          "overtime": null,
+          "travel": "偶爾",
+          "n": 1,
+          "note": "網友自述樣本（2025-08 之後）",
+          "sources": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/260353474",
+              "date": "2025-2026"
+            }
+          ],
+          "confidence": "低",
+          "grade": null,
+          "samples": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/260353474",
+              "date": "2025-2026",
+              "unit_detail": null,
+              "years": "0",
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": [
+                14,
+                14
+              ],
+              "annual_wan": null,
+              "weekly_hours": [
+                45,
+                50
+              ],
+              "overtime": null,
+              "travel": "偶爾",
+              "quote_free_note": "薪資 (N-9)×14，集團第三年才領滿；每天約 9～10 小時，需出差越南",
+              "date_confirmed": true,
+              "date_note": "Dcard 文章編號 260353474 ≥259537767，確認晚於 2025-08-01",
+              "in_window": true
+            }
+          ],
+          "n_stat": 1
         }
       ]
     },
@@ -15030,6 +15205,18 @@
               "date": "2026-07"
             }
           ]
+        },
+        {
+          "type": "年終",
+          "rule": "網友說法：年終固定 2 個月（比薪水 2026 年分享）",
+          "months": null,
+          "sources": [
+            {
+              "site": "比薪水",
+              "url": "https://salary.tw/salary/69ec3574d4640e011f0b5ad8",
+              "date": "2026"
+            }
+          ]
         }
       ],
       "culture": "網友說法：GoodJob 評分 3.7，文化 2.7、工時 3.3、薪資福利 3.5",
@@ -15134,7 +15321,20 @@
       "benefits": null,
       "stock_plan": null,
       "bonus_timing": null,
-      "bonus_structure": [],
+      "bonus_structure": [
+        {
+          "type": "保障月數",
+          "rule": "網友說法：研替職位 (N-6)×14（Dcard offer 分享，日期未確認）",
+          "months": null,
+          "sources": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/241562124",
+              "date": "未確認"
+            }
+          ]
+        }
+      ],
       "culture": "網友說法：面試趣生活平衡、內部溝通分數高於廣達、華碩，升遷 3 分；和碩集團孫公司，台灣約 370 人、研發占八成（工商時報 2025-10）",
       "interview": "網友說法：面試趣統計 121 則心得、面試評價 4／5、錄取率 34%、難度低",
       "grade_system": null,
@@ -15214,6 +15414,28 @@
               "travel": null,
               "quote_free_note": "評價 5 分，稱新人底薪算很好；月薪 6.5 萬",
               "in_window": true
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/永擎電子股份有限公司/work-experiences/薪資福利",
+              "date": "2026",
+              "unit_detail": null,
+              "years": "0-1",
+              "degree": null,
+              "base_k": 65,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": [
+                40,
+                40
+              ],
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "臺北市",
+              "date_confirmed": true,
+              "date_note": "GoodJob 評價標示 2026 年",
+              "in_window": true
             }
           ],
           "sources": [
@@ -15233,10 +15455,68 @@
           "bonus_months": null,
           "annual_months": null,
           "annual_total_wan": null,
-          "weekly_hours": null,
+          "weekly_hours": [
+            40,
+            40
+          ],
+          "overtime": null,
+          "travel": null,
+          "n": 2,
+          "n_stat": 2
+        },
+        {
+          "unit": "研發 RD",
+          "role": "韌體工程師",
+          "degree": null,
+          "years": "0-1",
+          "base_month_k": [
+            60,
+            60
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": [
+            40,
+            40
+          ],
           "overtime": null,
           "travel": null,
           "n": 1,
+          "note": "網友自述樣本（2025-08 之後）",
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/永擎電子股份有限公司/work-experiences/薪資福利",
+              "date": "2026"
+            }
+          ],
+          "confidence": "低",
+          "grade": null,
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/永擎電子股份有限公司/work-experiences/薪資福利",
+              "date": "2026",
+              "unit_detail": null,
+              "years": "0-1",
+              "degree": null,
+              "base_k": 60,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": [
+                40,
+                40
+              ],
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "臺北市",
+              "date_confirmed": true,
+              "date_note": "GoodJob 評價標示 2026 年",
+              "in_window": true
+            }
+          ],
           "n_stat": 1
         }
       ],
