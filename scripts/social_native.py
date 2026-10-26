@@ -370,8 +370,7 @@ def _inst_chart(W, H, d, fs, mode):
     ups = [max(0, x["f"]) + max(0, x["t"]) + max(0, x["dl"]) for x in d]
     dns = [min(0, x["f"]) + min(0, x["t"]) + min(0, x["dl"]) for x in d]
     top = max(ups + [1]); bot = min(dns + [-1])
-    step = 10 ** math.floor(math.log10(max(top - bot, 1) / 4))
-    stp = next(m * step for m in (1, 2, 2.5, 5, 10) if m * step >= (top - bot) / 5)
+    stp = 500      # 左軸固定每 500 億一格，每格有虛線對應（2026-10-26 Andy：「旁邊的刻度 500 為單位，並且有虛線對應」）
     # 刻度先用原始範圍定，再上下各留 2% 取整：最高／最低那根不貼圖框（2026-10-26 Andy：「圖表不要出現被截圖狀況」，−4,000 那根壓在底線上）
     pad_ = (top - bot) * .02
     hi, lo = math.ceil((top + (pad_ if top > 1 else 0)) / stp) * stp, math.floor((bot - pad_) / stp) * stp
@@ -391,7 +390,7 @@ def _inst_chart(W, H, d, fs, mode):
         lx += 36 + est_w(nm, fs) + 26
     v = lo
     while v <= hi + 1e-6:
-        g.append(f'<line x1="{L}" x2="{W - Rr}" y1="{Y(v):.1f}" y2="{Y(v):.1f}" stroke="{T["line2"] if v == 0 else T["line"]}" stroke-width="{2 if v == 0 else 1.2}"/>')
+        g.append(f'<line x1="{L}" x2="{W - Rr}" y1="{Y(v):.1f}" y2="{Y(v):.1f}" stroke="{T["line2"]}" stroke-width="{2 if v == 0 else 1.2}"{"" if v == 0 else ' stroke-dasharray="6 6"'}/>')      # 刻度對應虛線（0 軸實線），2026-10-26 Andy
         g.append(svg_t(L - 10, Y(v) + fs * .35, f'{"−" if v < 0 else ""}{abs(v):,.0f}', fs, T["ink3"], "end"))
         v += stp
     tv = t_lo
@@ -433,7 +432,7 @@ def _bars_svg(W, H, vals, dates, fs, pos_col=None, ypad=0.08, month_labels=True,
     g = [svg_open(W, H)]
     v = math.ceil(lo / stp) * stp
     while v <= hi:
-        g.append(f'<line x1="{L}" x2="{W - Rr}" y1="{Y(v):.1f}" y2="{Y(v):.1f}" stroke="{T["line2"] if v == 0 else T["line"]}" stroke-width="{2 if v == 0 else 1.2}"/>')
+        g.append(f'<line x1="{L}" x2="{W - Rr}" y1="{Y(v):.1f}" y2="{Y(v):.1f}" stroke="{T["line2"]}" stroke-width="{2 if v == 0 else 1.2}"{"" if v == 0 else ' stroke-dasharray="6 6"'}/>')      # 刻度對應虛線（0 軸實線），2026-10-26 Andy
         lab = fmt(v) if fmt else (f'{"−" if v < 0 else ""}{abs(v) / 10000:g}萬' if abs(v) >= 10000 else f'{"−" if v < 0 else ""}{abs(v):g}')
         g.append(svg_t(L - 8, Y(v) + fs * .35, lab, fs, T["ink3"], "end"))
         v += stp
@@ -502,7 +501,7 @@ def _dual_svg(W, H, dates, bars, line, fs, bar_col=None):
     stp = next(m * mag for m in (1, 2, 2.5, 5, 10) if m * mag >= raw)
     v = math.ceil(lo / stp) * stp
     while v <= hi:
-        g.append(f'<line x1="{L}" x2="{W - Rr}" y1="{Y(v):.1f}" y2="{Y(v):.1f}" stroke="{T["line2"] if v == 0 else T["line"]}" stroke-width="{2 if v == 0 else 1.2}"/>')
+        g.append(f'<line x1="{L}" x2="{W - Rr}" y1="{Y(v):.1f}" y2="{Y(v):.1f}" stroke="{T["line2"]}" stroke-width="{2 if v == 0 else 1.2}"{"" if v == 0 else ' stroke-dasharray="6 6"'}/>')      # 刻度對應虛線（0 軸實線），2026-10-26 Andy
         g.append(svg_t(L - 8, Y(v) + fs * .35, f'{"−" if v < 0 else ""}{abs(v):g}%', fs, T["ink3"], "end"))
         v += stp
     traw = (thi - tlo) / 4; tm = 10 ** math.floor(math.log10(traw)); tstp = next(m * tm for m in (1, 2, 2.5, 5, 10) if m * tm >= traw)
