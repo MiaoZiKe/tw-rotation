@@ -237,3 +237,8 @@
 #v-tc .tc-cinfo h4 .tc-lg{width:40px!important;height:40px!important;font-size:20px!important}
 #v-tc .tc-lg img{background:#fff;border:1px solid rgba(0,0,0,.18);padding:3px;image-rendering:auto}
 #v-tc .tc-lg[data-un] i svg{display:block}
+/* 2026-10-27 站內 LOGO：載到圖後白底圓＋細框由外圈負責；解析不足 ×2 的圖以原尺寸縮小置中（.sm），不放大 */
+#v-tc .tc-lg.has{background:#fff;border:1px solid rgba(0,0,0,.18)}
+#v-tc .tc-lg.has i{visibility:hidden}
+#v-tc .tc-lg img{background:transparent;border:0;border-radius:50%;object-fit:contain;padding:3px;box-sizing:border-box}
+#v-tc .tc-lg img.sm{position:static;inset:auto;padding:0;max-width:calc(100% - 8px);max-height:calc(100% - 8px)}

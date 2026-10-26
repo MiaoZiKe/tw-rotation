@@ -73,40 +73,79 @@
   // 產業色：與圖表分類色同系，字標底色用
   const IC = { foundry: '#3ee0ff', memory: '#8b7bff', osat: '#ffb454', material: '#2ec4b6', equipment: '#ff7a45', icdesign: '#4d8dff', odm: '#c3ff5b', panel: '#e56bd0', foreign: '#9aa7b8', other: '#7c8aa0' };
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-  // 圖源三段：gstatic faviconV2 256px → 失敗或 <32px 退 DuckDuckGo ip3 → 再失敗退字標（未具名公司直接畫中性建築圖示）；2x 以上來源，顯示尺寸不變
-  /* 2026-10-27 Andy：「需確保 LOGO 都清楚」。來源依序試，載入後 naturalWidth < 64（只有 16/32px 小圖、放大會糊）就換下一個；
-     全部不夠清楚才退字標。每個網域成功的來源記在 localStorage（tc.lgsrc，-1＝全失敗），下次直接用、不重試。 */
+  /* 2026-10-27 Andy：「之前建立搜尋功能、個股資訊時做過查找 LOGO 功能」→ 優先用站內個股 Logo（DECISIONS #264、#267）。
+     來源順序：① 公司在 tc/json 有數字代號（4～6 碼）且 data/logos.json 有該代號 → 站內 data/logos/<代號>.png（管線抓的官網圖，與個股頁同一份）；
+     ② 沒代號／站內沒圖（外商、未上市、外商台灣子公司）→ gstatic faviconV2 256 → Google s2 256（#267 決議不用 DuckDuckGo，已移除）；
+     ③ 都不夠清楚 → 字標。外部來源載入後 naturalWidth < 64 一律換下一個、不放大糊圖。
+     站內圖不放大：原圖 < 容器內徑×2 時以原尺寸（≤ 內徑）置中顯示；原圖 < 16px 才退字標。
+     不改 app.js：app.js 的 logoSrc 沒掛在 window，這裡讀同一支 data/logos.json（同一個檔、同一個版本）；預覽版由 preview_boot.js 把 data/ 改寫到正式站，路徑一併改寫。 */
   const SRC = [
     (dm) => 'https://t1.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=' + encodeURIComponent('https://' + dm) + '&size=256',
-    (dm) => 'https://www.google.com/s2/favicons?domain=' + encodeURIComponent(dm) + '&sz=256',
-    (dm) => 'https://icons.duckduckgo.com/ip3/' + encodeURIComponent(dm) + '.ico',
-    (dm) => 'https://' + dm + '/apple-touch-icon.png'
+    (dm) => 'https://www.google.com/s2/favicons?domain=' + encodeURIComponent(dm) + '&sz=256'
   ];
-  const MINW = 64, LSK = 'tc.lgsrc';
+  const MINW = 64, STMIN = 16, LSK = 'tc.lgsrc2';
   let MEM = {};
   try { MEM = JSON.parse(localStorage.getItem(LSK) || '{}') || {}; } catch (e) { MEM = {}; }
   function remember(dm, i) { MEM[dm] = i; try { localStorage.setItem(LSK, JSON.stringify(MEM)); } catch (e) { /* 私密視窗等：不記也照常運作 */ } }
-  function toTxt(t) { if (t.parentNode) t.parentNode.dataset.lg = 'txt'; t.remove(); }
-  function failImg(t) {
-    const n = +t.dataset.st + 1;
-    if (n < SRC.length) { t.dataset.st = String(n); t.src = SRC[n](t.dataset.dm); return; }
-    remember(t.dataset.dm, -1); toTxt(t);
+  // 站內 Logo 對照（與 app.js 同一支 logos.json）；名稱→代號由 tc.js 載完 json 後登記
+  let LG = null; const CODE = {};
+  const okPath = (s) => typeof s === 'string' && /^[\w./:-]+\.(png|webp|jpg|jpeg|svg)$/i.test(s) && !s.includes('..');
+  const LGP = fetch('data/logos.json', { cache: 'no-cache' }).then(async (r) => { const t = await r.text(); if (!r.ok) return {}; try { return JSON.parse(t); } catch (e) { return {}; } }).catch(() => ({}))
+    .then((m) => { LG = m && typeof m === 'object' ? m : {}; upgrade(document); return LG; });
+  const isCode = (c) => /^\d{4,6}$/.test(String(c || ''));
+  function station(name) { const c = CODE[name]; return (LG && isCode(c) && okPath(LG[c])) ? LG[c] : ''; }
+  function reg(name, code) { if (name && isCode(code)) CODE[name] = String(code); }
+  function toTxt(t) { if (t.parentNode) { t.parentNode.dataset.lg = 'txt'; t.parentNode.classList.remove('has'); } t.remove(); }
+  function cand(t) { const L = []; if (t.dataset.s) L.push(t.dataset.s); if (t.dataset.dm) SRC.forEach((f) => L.push(f(t.dataset.dm))); return L; }
+  function nextImg(t) {
+    const n = +t.dataset.st + 1, L = cand(t);
+    if (n < L.length) { t.dataset.st = String(n); t.classList.remove('sm'); t.style.width = t.style.height = ''; t.src = L[n]; return; }
+    if (t.dataset.dm && !t.dataset.s) remember(t.dataset.dm, -1);
+    toTxt(t);
   }
   function domain(name) { return D[name] || ''; }
   // 未具名／類別名：不是一家可查官網的公司，字標改中性建築圖示
   const GEN = new Set(['設備商', '外商（台灣據點）', 'IC 晶圓代工', 'IC 設計', '記憶體', '封測', '材料／PCB', '系統廠 ODM/OEM', '其他科技', '面板／光學']);
   const unnamed = (n) => GEN.has(n) || /未具名|派遣 [A-Z]/.test(String(n || ''));
   const BLD = '<svg viewBox="0 0 24 24" width="62%" height="62%" fill="currentColor" aria-hidden="true"><path d="M4 21V5l8-3v6l8 3v10h-6v-4h-4v4zm3-13h2V6H7zm0 4h2v-2H7zm0 4h2v-2H7zm8 0h2v-2h-2zm0-4h2v-2h-2z"/></svg>';
-  /* 回傳 HTML 字串：字標先畫在底層，有網域才疊 <img>，img 失敗由下面的全域 error 監聽移除，字標自然露出 */
+  // 站內圖：st=0 用站內路徑；沒站內圖時從外部來源開始（記住的來源索引用 MEM）
+  function imgTag(name, dm, sz, st) {
+    const s = st ? station(name) : '';
+    const i = s ? 0 : (dm && MEM[dm] > 0 ? Math.min(MEM[dm], SRC.length - 1) : 0);
+    const src = s || SRC[i](dm);
+    return '<img src="' + esc(src) + '" data-dm="' + esc(dm) + '" data-s="' + esc(s) + '" data-st="' + (s ? 0 : i) + '" alt="' + esc(name) + '" loading="lazy" referrerpolicy="no-referrer" width="' + sz + '" height="' + sz + '">';
+  }
+  /* 回傳 HTML 字串：字標先畫在底層，有圖來源才疊 <img>；LG 還沒載好的短暫空檔，data-pend 標起來，載好後 upgrade() 補圖 */
   function html(name, ind, size) {
     const col = IC[ind] || IC.other, un = unnamed(name), ch = Array.from(String(name || '?'))[0] || '?', dm = un ? '' : domain(name), sz = size || 24;
-    return '<span class="tc-lg" data-lg="' + (dm && MEM[dm] !== -1 ? 'img' : 'txt') + '" style="--lg:' + col + ';--lz:' + sz + 'px"' + (un ? ' data-un="1" title="未具名公司"' : '') + '><i>' + (un ? BLD : esc(ch)) + '</i>' +
-      (dm && MEM[dm] !== -1 ? '<img src="' + SRC[MEM[dm] > 0 ? MEM[dm] : 0](dm) + '" data-dm="' + esc(dm) + '" data-st="' + (MEM[dm] > 0 ? MEM[dm] : 0) + '" alt="' + esc(name) + '" loading="lazy" referrerpolicy="no-referrer" width="' + sz + '" height="' + sz + '">' : '') + '</span>';
+    const hasSt = !un && !!station(name), pend = !un && !LG && isCode(CODE[name]);
+    const useExt = !!dm && MEM[dm] !== -1 && !hasSt;
+    const img = hasSt ? imgTag(name, dm, sz, true) : (useExt && !pend ? imgTag(name, dm, sz, false) : '');
+    return '<span class="tc-lg" data-co="' + esc(name) + '" data-lg="' + (img ? 'img' : 'txt') + '"' + (pend ? ' data-pend="1"' : '') + ' style="--lg:' + col + ';--lz:' + sz + 'px"' + (un ? ' data-un="1" title="未具名公司"' : '') + '><i>' + (un ? BLD : esc(ch)) + '</i>' + img + '</span>';
   }
-  // error 不冒泡，用捕獲階段接；失敗就拔掉圖，露出下面的字標
-  // 圖載好才蓋上字標；naturalWidth<32（含 16×16 預設地球）視同失敗；error 不冒泡所以用捕獲階段
+  // LG 晚到：把已畫好的字標補上圖
+  function upgrade(root) {
+    Array.from(root.querySelectorAll('.tc-lg[data-pend]')).forEach((el) => {
+      el.removeAttribute('data-pend');
+      const name = el.dataset.co, dm = domain(name), sz = parseInt(el.style.getPropertyValue('--lz'), 10) || 24;
+      const hasSt = !!station(name);
+      if (!hasSt && !(dm && MEM[dm] !== -1)) return;
+      el.dataset.lg = 'img'; el.insertAdjacentHTML('beforeend', imgTag(name, dm, sz, hasSt));
+    });
+  }
+  // error 不冒泡，用捕獲階段接。站內圖 ≥16px 收；外部圖 ≥64px 才收（16／32px 的小 favicon 放大會糊）；收下後依容器尺寸決定要不要縮小置中
   const isLg = (t) => t && t.tagName === 'IMG' && t.parentNode && t.parentNode.classList && t.parentNode.classList.contains('tc-lg');
-  document.addEventListener('load', (e) => { const t = e.target; if (!isLg(t)) return; if (!t.naturalWidth || t.naturalWidth < MINW) failImg(t); else { remember(t.dataset.dm, +t.dataset.st); t.classList.add('ok'); } }, true);
-  document.addEventListener('error', (e) => { const t = e.target; if (isLg(t)) failImg(t); }, true);
-  window.TcLogo = { html, domain, unnamed, sources: SRC, MINW, color: (ind) => IC[ind] || IC.other, map: D };
+  document.addEventListener('load', (e) => {
+    const t = e.target; if (!isLg(t)) return;
+    const st = t.dataset.s && +t.dataset.st === 0, nw = t.naturalWidth;
+    if (!nw || nw < (st ? STMIN : MINW)) { nextImg(t); return; }
+    const box = t.parentNode.clientWidth || parseInt(t.parentNode.style.getPropertyValue('--lz'), 10) || 24, inner = Math.max(8, box - 8);
+    if (nw < inner * 2) { const z = Math.min(nw, inner); t.classList.add('sm'); t.style.width = t.style.height = z + 'px'; }   // 解析不夠 ×2：不放大，原尺寸（不超過內徑）置中
+    if (!st) remember(t.dataset.dm, +t.dataset.st);
+    t.parentNode.classList.add('has'); t.classList.add('ok');
+  }, true);
+  document.addEventListener('error', (e) => { const t = e.target; if (isLg(t)) nextImg(t); }, true);
+  // 統計用：每家預定來源（station＝站內、ext＝Google s2/gstatic、txt＝字標）
+  function plan(name) { if (unnamed(name)) return 'txt'; if (station(name)) return 'station'; return domain(name) ? 'ext' : 'txt'; }
+  window.TcLogo = { html, domain, unnamed, reg, plan, ready: LGP, station, upgrade, sources: SRC, MINW, color: (ind) => IC[ind] || IC.other, map: D };
 })();

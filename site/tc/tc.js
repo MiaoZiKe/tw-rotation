@@ -148,6 +148,8 @@
       try { const r = await fetch('tc/json/' + id + '.json', { cache: 'no-cache' }); S.data[id] = r.ok ? await r.json() : null; }
       catch (e) { S.data[id] = null; }
     }));
+    /* 2026-10-27 站內 Logo：把「公司名→股票代號」登記給 TcLogo，由它對 data/logos.json 找站內圖（外商／沒代號的才走 Google 來源） */
+    Object.values(S.data).forEach((d) => d && (d.companies || []).forEach((c) => window.TcLogo && window.TcLogo.reg(c.name, c.code)));
     /* 職位區間若有 samples 就由 samples 算（最小～最大），沒有才用手填值 */
     const mm = (a) => { a = [].concat(...a.map(fl)); return a.length ? [Math.min(...a), Math.max(...a)] : null; };
     Object.values(S.data).forEach((d) => d && (d.companies || []).forEach((c) => (c.roles || []).forEach((r) => {
