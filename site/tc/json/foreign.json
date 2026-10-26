@@ -91,7 +91,10 @@
           "base_month_k": null,
           "bonus_months": null,
           "annual_months": null,
-          "annual_total_wan": null,
+          "annual_total_wan": [
+            600,
+            600
+          ],
           "weekly_hours": null,
           "overtime": "偶爾",
           "travel": null,
@@ -1194,8 +1197,8 @@
           "bonus_months": null,
           "annual_months": null,
           "annual_total_wan": null,
-          "weekly_hours": null,
-          "overtime": null,
+          "weekly_hours": 40,
+          "overtime": "幾乎不",
           "travel": null,
           "n": 3,
           "note": "平台自述統計（未轉貼原文）；Levels.fyi 台灣 L5～L9，中位約 331 萬，2025-12 更新，不限新人；2026-10 查 GoodJob（超微／AMD 關鍵字）只撈到美超微，AMD 台灣無資料；annual_total_wan 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples",
@@ -1382,7 +1385,11 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "annual_total_wan": [
+            155,
+            155
+          ]
         },
         {
           "unit": "新店 / 製造處",
@@ -1414,7 +1421,12 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "annual_months": [
+            16,
+            16
+          ],
+          "travel": "偶爾"
         }
       ]
     },
@@ -1463,7 +1475,11 @@
           "n": 1,
           "sources": [],
           "confidence": "低",
-          "note": "2026-10-26 由 Dcard 樣本新增的公司"
+          "note": "2026-10-26 由 Dcard 樣本新增的公司",
+          "annual_months": [
+            13,
+            13
+          ]
         }
       ]
     },
@@ -1511,7 +1527,11 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "annual_months": [
+            13,
+            13
+          ]
         }
       ],
       "note": "2026-10-26 由 Dcard 樣本新增的公司"
@@ -1560,7 +1580,11 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "annual_months": [
+            15.5,
+            15.5
+          ]
         }
       ],
       "note": "2026-10-26 由 Dcard 樣本新增的公司"
