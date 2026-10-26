@@ -897,24 +897,19 @@
    "sha1": "3b059ed2d21bee2f5588e57e185892ba6a79150c"
   },
   "kinsus.com.tw": {
-   "status": "ok",
+   "status": "not_logo",
    "fetched": "2026-10-27",
    "names": [
     "景碩"
    ],
    "tried": {
     "site": "ok [48, 48]",
-    "wikimedia": "沒回應"
+    "wikimedia": "none Wikidata 查不到官網是 kinsus.com.tw 的 Kinsus Interconnect Technology／沒有標誌圖",
+    "quality": "人工排除：官網只有 48px、內容糊成一片的 favicon，放大後認不出是什麼",
+    "google_s2": "人工排除（s2 只回通用圖示／官網圖不是自家標誌）"
    },
    "rv": 2,
-   "src": "site:icon",
-   "url": "https://www.kinsus.com.tw/favicon.ico?v=lGa0MlsWxrcOGDHVDAaiwhVp7t8WMmcP5GLVVxArkf0",
-   "orig": [
-    48,
-    48
-   ],
-   "qv": 2,
-   "sha1": "c5aa11989c2e8188e9620a95bd39af705c5f9a83"
+   "detail": "人工排除：官網只有 48px、內容糊成一片的 favicon，放大後認不出是什麼"
   },
   "kla.com": {
    "status": "ok",
@@ -1674,24 +1669,19 @@
    }
   },
   "uicpaymentsinc.com": {
-   "status": "ok",
+   "status": "not_logo",
    "fetched": "2026-10-27",
    "names": [
     "連宇"
    ],
    "tried": {
     "site": "ok [128, 128]",
-    "wikimedia": "沒回應"
+    "wikimedia": "none Wikidata 查不到官網是 uicpaymentsinc.com 的 UIC Payments／沒有標誌圖",
+    "quality": "Google s2 對這個網域只回通用圖示（地球）",
+    "google_s2": "人工排除（s2 只回通用圖示／官網圖不是自家標誌）"
    },
    "rv": 2,
-   "src": "google_s2",
-   "url": "https://www.google.com/s2/favicons?domain=uicpaymentsinc.com&sz=128",
-   "orig": [
-    128,
-    128
-   ],
-   "qv": 2,
-   "sha1": "fc436340f1cbda384f8d4634a69a457317ff4162"
+   "detail": "Google s2 對這個網域只回通用圖示（地球）"
   },
   "umc.com": {
    "status": "ok",
@@ -1912,5 +1902,5 @@
    "detail": "HTTP 404 https://www.google.com/s2/favicons?domain=zdtco.com&sz=128"
   }
  },
- "updated_at": "2026-10-26T20:54:29.830334+00:00"
+ "updated_at": "2026-10-26T20:56:39.947506+00:00"
 }
