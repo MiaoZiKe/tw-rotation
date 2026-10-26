@@ -45,3 +45,9 @@
 #v-tc .tc-tbl td.tc-dash{color:var(--ink-3);opacity:.55}
 #v-tc .tc-co.tc-nod{opacity:.6}
 #v-tc .tc-co.tc-nod em,#v-tc .tc-co.tc-nod b{color:var(--ink-3)}
+
+/* 職位列整列可點展開（Andy 10-26） */
+#v-tc .tc-row{cursor:pointer}
+#v-tc .tc-row:hover td{background:var(--panel-2)}
+#v-tc .tc-row:focus-visible{outline:2px solid var(--cyan);outline-offset:-2px}
+#v-tc .tc-row.tc-open td{background:var(--panel-2)}

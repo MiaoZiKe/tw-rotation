@@ -341,8 +341,18 @@
     }
     const cl = $('.tc-clear', root); if (cl) cl.onclick = () => { S.f = {}; paint(); };
     const tg = $('.tc-ftog', root); if (tg) tg.onclick = () => { S.fopen = !S.fopen; paint(); };
-    $$('.tc-row', root).forEach((tr) => tr.addEventListener('click', (e) => { if (e.target.closest('a,button')) return; if (matchMedia('(max-width:640px)').matches) tr.classList.toggle('mo'); }));
-    $$('.tc-exp', root).forEach((b) => b.onclick = () => { const tr = b.closest('tr').nextElementSibling; const o = tr.hidden; tr.hidden = !o; b.textContent = o ? '▾' : '▸'; b.setAttribute('aria-expanded', String(o)); });
+    /* 點整列任何地方（連結／按鈕除外）展開／收合逐筆樣本；手機同時切「顯示更多欄位」；鍵盤 Enter／空白鍵也可 */
+    const togRow = (tr) => {
+      if (mob()) tr.classList.toggle('mo');
+      const sm = tr.nextElementSibling; if (!sm || !sm.classList.contains('tc-smrow')) return;
+      const o = sm.hidden; sm.hidden = !o; tr.classList.toggle('tc-open', o); tr.setAttribute('aria-expanded', String(o));
+      const b = $('.tc-exp', tr); if (b) { b.textContent = o ? '▾' : '▸'; b.setAttribute('aria-expanded', String(o)); }
+    };
+    $$('.tc-row', root).forEach((tr) => {
+      tr.tabIndex = 0; tr.setAttribute('role', 'button'); tr.setAttribute('aria-expanded', 'false');
+      tr.addEventListener('click', (e) => { if (e.target.closest('a') || (e.target.closest('button') && !e.target.closest('.tc-exp'))) return; togRow(tr); });
+      tr.addEventListener('keydown', (e) => { if (e.target !== tr) return; if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); togRow(tr); } });
+    });
     $$('th.srt', root).forEach((th) => th.onclick = () => { const k = th.dataset.sk; S.sort = S.sort.k === k ? { k, d: -S.sort.d } : { k, d: -1 }; paint(); });
   }
 

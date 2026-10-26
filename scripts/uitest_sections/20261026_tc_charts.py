@@ -58,6 +58,17 @@ def t_tc_charts_1026(b, base, code):
     p4.goto(base + "#tc/foundry/%E5%8F%B0%E7%A9%8D%E9%9B%BB", wait_until="domcontentloaded"); p4.wait_for_timeout(1500)
     nd = p4.evaluate("()=>{const r=[...document.querySelectorAll('#v-tc .tc-row.tc-nod')];return {n:r.length,col:r[0]?getComputedStyle(r[0].querySelector('td.tc-role b')).color:'',norm:getComputedStyle(document.querySelector('#v-tc .tc-row:not(.tc-nod) td.tc-role b')).color,last:r[0]?!r[0].nextElementSibling||r[0].nextElementSibling.classList.contains('tc-unit')||r[0].nextElementSibling.classList.contains('tc-nod')||r[0].nextElementSibling.classList.contains('tc-smrow'):false}}")
     ok(f"{T}：注入全空職位 → 該列反灰（顏色與一般列不同）且排在單位最後", nd["n"] >= 1 and nd["col"] != nd["norm"] and nd["last"], nd)
+    # 整列可點：點數字格展開逐筆樣本、再點收合；點來源連結不展開；Enter 也可
+    p3.bring_to_front()
+    ix = p3.evaluate("()=>[...document.querySelectorAll('#v-tc .tc-row')].findIndex(r=>r.nextElementSibling&&r.nextElementSibling.classList.contains('tc-smrow'))")
+    vis = lambda: p3.evaluate("(i)=>!document.querySelectorAll('#v-tc .tc-row')[i].nextElementSibling.hidden", ix)
+    cell = f"#v-tc .tc-row >> nth={ix} >> td[data-l='底薪(K/月)']"
+    ok(f"{T}：點職位列中間的數字格 → 展開逐筆樣本", ix >= 0 and (p3.click(cell), p3.wait_for_timeout(150), vis())[-1])
+    ok(f"{T}：再點同一格 → 收合", (p3.click(cell), p3.wait_for_timeout(150), not vis())[-1])
+    p3.focus(f"#v-tc .tc-row >> nth={ix}"); p3.keyboard.press("Enter"); p3.wait_for_timeout(150)
+    ok(f"{T}：鍵盤 Enter 也能展開", vis())
+    p3.keyboard.press("Space"); p3.wait_for_timeout(150)
+    ok(f"{T}：鍵盤空白鍵收合", not vis())
     c2.close()
     c.close()
     m = b.new_context(viewport={"width": 390, "height": 844}); m.add_init_script("window.TW_TC_OVERRIDE=true;try{localStorage.setItem('tw.tour','done')}catch(e){}")
