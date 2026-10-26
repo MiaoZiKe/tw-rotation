@@ -877,7 +877,7 @@
           "base_month_k": null,
           "bonus_months": null,
           "annual_months": [
-            17,
+            14,
             17
           ],
           "annual_total_wan": null,
@@ -1011,7 +1011,7 @@
               "degree": null,
               "base_k": null,
               "bonus_months": null,
-              "annual_months": null,
+              "annual_months": 14,
               "annual_wan": null,
               "weekly_hours": null,
               "overtime": null,
@@ -2402,10 +2402,23 @@
       "name": "泰瑞達",
       "code": "Teradyne",
       "heat": null,
-      "benefits": null,
+      "benefits": "車補；FAE 以居家辦公為主（Dcard 2026-07）",
       "stock_plan": null,
       "bonus_timing": null,
-      "bonus_structure": [],
+      "bonus_structure": [
+        {
+          "type": "員工分紅",
+          "rule": "網友稱約底薪 8～10%（Dcard 2026-07 單篇）",
+          "months": null,
+          "sources": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261875934",
+              "date": "2026-07"
+            }
+          ]
+        }
+      ],
       "culture": null,
       "interview": null,
       "grade_system": null,
@@ -2521,10 +2534,23 @@
       "name": "愛德萬",
       "code": "Advantest",
       "heat": null,
-      "benefits": null,
+      "benefits": "固定年薪 14 個月；年資滿 3 年有忠勤獎金（官方招募頁）",
       "stock_plan": null,
       "bonus_timing": null,
-      "bonus_structure": [],
+      "bonus_structure": [
+        {
+          "type": "年度營運獎金",
+          "rule": "依營運獲利與個人績效發放，月數未公開（官方招募頁）",
+          "months": null,
+          "sources": [
+            {
+              "site": "Advantest 官網",
+              "url": "https://www.advantest.com/tw/careers/benefits.html",
+              "date": "2026"
+            }
+          ]
+        }
+      ],
       "culture": null,
       "interview": null,
       "grade_system": null,
@@ -2655,7 +2681,7 @@
       "name": "SCREEN（DNS）",
       "code": null,
       "heat": null,
-      "benefits": null,
+      "benefits": "海外員工旅遊、勞基法外多 7 天假、每年 6 天全薪病假、年度健檢、海外研修（公司自述，2022 校園說明）",
       "stock_plan": null,
       "bonus_timing": null,
       "bonus_structure": [],
@@ -2811,10 +2837,23 @@
       "name": "Lasertec",
       "code": null,
       "heat": null,
-      "benefits": null,
-      "stock_plan": null,
+      "benefits": "30 天有薪病假、12 天特休（Dcard 2026-10）",
+      "stock_plan": "員工認股：月薪 10%，85 折（Dcard 2026-10 單篇）",
       "bonus_timing": null,
-      "bonus_structure": [],
+      "bonus_structure": [
+        {
+          "type": "保障月數",
+          "rule": "保 13；HR 說年薪偏月薪高、分紅低（Dcard 2026-10）",
+          "months": null,
+          "sources": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/262289716",
+              "date": "2026-10"
+            }
+          ]
+        }
+      ],
       "culture": null,
       "interview": null,
       "grade_system": null,
@@ -2998,7 +3037,20 @@
       "benefits": null,
       "stock_plan": null,
       "bonus_timing": null,
-      "bonus_structure": [],
+      "bonus_structure": [
+        {
+          "type": "年薪結構",
+          "rule": "網友稱常態 16 個月＝保 12＋年終 2＋分紅（Dcard 2026-03 單篇）",
+          "months": null,
+          "sources": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261165250",
+              "date": "2026-03"
+            }
+          ]
+        }
+      ],
       "culture": null,
       "interview": null,
       "grade_system": null,
@@ -3066,7 +3118,20 @@
       "benefits": null,
       "stock_plan": null,
       "bonus_timing": null,
-      "bonus_structure": [],
+      "bonus_structure": [
+        {
+          "type": "員工分紅",
+          "rule": "網友稱月薪×12＋分紅 40～50 萬（Dcard 2026-10 單篇，尚未正式 offer）",
+          "months": null,
+          "sources": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/262332324",
+              "date": "2026-10"
+            }
+          ]
+        }
+      ],
       "culture": null,
       "interview": null,
       "grade_system": null,

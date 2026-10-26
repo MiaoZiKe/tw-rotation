@@ -23,7 +23,10 @@
             45,
             65
           ],
-          "bonus_months": null,
+          "bonus_months": [
+            2,
+            2
+          ],
           "annual_months": [
             13.3,
             20
@@ -266,7 +269,7 @@
               "years": "2",
               "degree": "碩士",
               "base_k": null,
-              "bonus_months": null,
+              "bonus_months": 2,
               "annual_months": 14,
               "annual_wan": null,
               "weekly_hours": 57,
@@ -2314,6 +2317,18 @@
               "date": "2026"
             }
           ]
+        },
+        {
+          "type": "季獎金",
+          "rule": "網友稱每季都有、金額不多；另有分紅、端午／中秋與年終，年薪約 16～17 個月（GoodJob 2025）",
+          "months": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/京元電子股份有限公司/work-experiences/薪資福利",
+              "date": "2025"
+            }
+          ]
         }
       ]
     },
@@ -3022,12 +3037,37 @@
       "name": "精材",
       "code": "3374",
       "heat": null,
-      "benefits": null,
+      "benefits": "年終、三節、分紅、員工旅遊（GoodJob 匿名評價）",
       "stock_plan": null,
-      "bonus_timing": null,
-      "bonus_structure": [],
+      "bonus_timing": "網友稱每年 7 月發分紅（約 2～3 個月），年終保底約 2 個月；GoodJob 匿名評價，公司未公開",
+      "bonus_structure": [
+        {
+          "type": "員工分紅",
+          "rule": "網友稱每年 7 月發，約 2～3 個月（單一評價）",
+          "months": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/精材科技股份有限公司/work-experiences/薪資福利",
+              "date": "未明"
+            }
+          ]
+        },
+        {
+          "type": "年終獎金",
+          "rule": "網友稱保底 2 個月",
+          "months": 2,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/精材科技股份有限公司/work-experiences/薪資福利",
+              "date": "未明"
+            }
+          ]
+        }
+      ],
       "culture": null,
-      "interview": null,
+      "interview": "語文邏輯測驗約半小時→人資約半小時→單位主管約一小時；HR 會說明分紅分法（GoodJob 多則）",
       "grade_system": null,
       "mops": null,
       "roles": [
@@ -3091,11 +3131,48 @@
       "name": "力成",
       "code": "6239",
       "heat": null,
-      "benefits": null,
+      "benefits": "保 14 個月＋每季季獎金＋每年分紅＋端午／中秋獎金（GoodJob）",
       "stock_plan": null,
-      "bonus_timing": null,
-      "bonus_structure": [],
-      "culture": null,
+      "bonus_timing": "季獎金 1 月、4 月、7 月、10 月發（2025 年有一季未發）；分紅一年兩次、月份查不到（GoodJob 2026 評價）",
+      "bonus_structure": [
+        {
+          "type": "季獎金",
+          "rule": "每年 1／4／7／10 月發，看公司營運；2025 年有一季沒發",
+          "months": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/力成科技股份有限公司/work-experiences/薪資福利",
+              "date": "2026"
+            }
+          ]
+        },
+        {
+          "type": "員工分紅",
+          "rule": "一年兩次，看公司營運與個人績效；月份查不到",
+          "months": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/力成科技股份有限公司/work-experiences/薪資福利",
+              "date": "2026"
+            }
+          ]
+        },
+        {
+          "type": "年終獎金",
+          "rule": "保 14 內含年終與三節；月數查不到",
+          "months": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/力成科技股份有限公司/work-experiences/薪資福利",
+              "date": "2025"
+            }
+          ]
+        }
+      ],
+      "culture": "評價分歧：資深員工說獎金項目多，2025 起不少人抱怨獎金縮減（GoodJob）",
       "interview": "網友說法：線上英文與專業（電子學）測驗，再由主管與人資面談；也有部門略過測驗直接主管面（GoodJob 2025-12、2026）",
       "grade_system": null,
       "mops": null,
@@ -3316,7 +3393,20 @@
       "benefits": null,
       "stock_plan": null,
       "bonus_timing": null,
-      "bonus_structure": [],
+      "bonus_structure": [
+        {
+          "type": "年終獎金",
+          "rule": "網友稱約 2 個月、另有獎金約 1 個月（GoodJob 2025 單一評價）；另一則 2024 評價說沒有保 14",
+          "months": 2,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/雍智科技股份有限公司/work-experiences/薪資福利",
+              "date": "2025"
+            }
+          ]
+        }
+      ],
       "culture": null,
       "interview": null,
       "grade_system": null,
@@ -3563,11 +3653,48 @@
       "name": "穎崴",
       "code": "6515",
       "heat": null,
-      "benefits": null,
-      "stock_plan": null,
-      "bonus_timing": null,
-      "bonus_structure": [],
-      "culture": null,
+      "benefits": "保障年薪 14 個月＋四季業績獎金＋員工分紅＋員工持股信託（公司尾牙公布）",
+      "stock_plan": "員工持股信託，公司每月提撥（董事長尾牙說明，2026-02）",
+      "bonus_timing": "每年固定四季業績獎金＋依營運發員工分紅；發放月份查不到",
+      "bonus_structure": [
+        {
+          "type": "季業績獎金",
+          "rule": "每年固定發四季",
+          "months": null,
+          "sources": [
+            {
+              "site": "104 職場力",
+              "url": "https://blog.104.com.tw/winway-2025-bonus/",
+              "date": "2026-02"
+            }
+          ]
+        },
+        {
+          "type": "員工分紅",
+          "rule": "依營運成果發放；2025 年績效獎金與分紅合計 8 億元，含保 14 平均 35 個月",
+          "months": null,
+          "sources": [
+            {
+              "site": "今周刊",
+              "url": "https://www.businesstoday.com.tw/article/category/183015/post/202602100015/",
+              "date": "2026-02"
+            }
+          ]
+        },
+        {
+          "type": "員工持股信託",
+          "rule": "每月提撥",
+          "months": null,
+          "sources": [
+            {
+              "site": "104 職場力",
+              "url": "https://blog.104.com.tw/winway-2025-bonus/",
+              "date": "2026-02"
+            }
+          ]
+        }
+      ],
+      "culture": "獲利高、獎酬制度化；2025 年員工平均年薪 35 個月以上，約一成達 50 個月（媒體報導）",
       "interview": null,
       "grade_system": null,
       "mops": null,
@@ -3639,11 +3766,36 @@
       "name": "頎邦",
       "code": "6147",
       "heat": null,
-      "benefits": null,
+      "benefits": "保 14（底薪×14）、有宿舍（GoodJob）",
       "stock_plan": null,
-      "bonus_timing": null,
-      "bonus_structure": [],
-      "culture": null,
+      "bonus_timing": "網友稱 2024～2025 年未發季獎金、年終約 1 個月，分紅看考績；發放月份查不到",
+      "bonus_structure": [
+        {
+          "type": "季獎金",
+          "rule": "網友稱 2024～2025 年未發（GoodJob 2026-03 單一評價）",
+          "months": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/頎邦科技股份有限公司/work-experiences/薪資福利",
+              "date": "2026-03"
+            }
+          ]
+        },
+        {
+          "type": "年終獎金",
+          "rule": "網友稱約 1 個月（同一評價）",
+          "months": 1,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/頎邦科技股份有限公司/work-experiences/薪資福利",
+              "date": "2026-03"
+            }
+          ]
+        }
+      ],
+      "culture": "每年依營運與績效調薪約 3% 起；有評價說近兩年沒發季獎金（GoodJob 2026）",
       "interview": null,
       "grade_system": null,
       "mops": null,
