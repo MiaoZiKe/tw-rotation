@@ -1,0 +1,932 @@
+{
+ "version": 1,
+ "items": {
+  "advantest.com": {
+   "status": "ok",
+   "fetched": "2026-10-27",
+   "names": [
+    "愛德萬"
+   ],
+   "tried": {
+    "site": "ok [192, 192]"
+   },
+   "src": "site:apple-touch-icon",
+   "url": "https://www.advantest.com/img/common/apple-touch-icon.png",
+   "orig": [
+    192,
+    192
+   ],
+   "sha1": "3c1ae2df40ecc6ec414487b43da3cb8f2bab2c44"
+  },
+  "amd.com": {
+   "status": "ok",
+   "fetched": "2026-10-27",
+   "names": [
+    "AMD"
+   ],
+   "tried": {
+    "site": "ok [1200, 675]"
+   },
+   "src": "site:header-img",
+   "url": "https://www.amd.com/content/dam/amd/en/images/logos/products/5329784-agentic-ai-ross-teaser.jpg",
+   "orig": [
+    1200,
+    675
+   ],
+   "sha1": "a791f0c74c3d47d2175ab9726c58640c02520197"
+  },
+  "ami.com": {
+   "status": "ok",
+   "fetched": "2026-10-27",
+   "names": [
+    "AMI"
+   ],
+   "tried": {
+    "site": "ok [192, 192]"
+   },
+   "src": "site:icon",
+   "url": "https://www.ami.com/wp-content/uploads/2026/07/cropped-AMI-trapezoid-red_200x200-1-192x192.png",
+   "orig": [
+    192,
+    192
+   ],
+   "sha1": "ccdcb43172372726474b9efe1a1a500938f9f608"
+  },
+  "amkor.com": {
+   "status": "ok",
+   "fetched": "2026-10-27",
+   "names": [
+    "艾克爾（Amkor）"
+   ],
+   "tried": {
+    "site": "ok [512, 512]"
+   },
+   "src": "site:manifest",
+   "url": "https://amkor.com/android-chrome-512x512.png",
+   "orig": [
+    512,
+    512
+   ],
+   "sha1": "a32964a677766b5f5daa6dff995fb33a97c9041c"
+  },
+  "apple.com": {
+   "status": "ok",
+   "fetched": "2026-10-27",
+   "names": [
+    "Apple"
+   ],
+   "tried": {
+    "site": "ok [152, 152]"
+   },
+   "src": "site:conventional",
+   "url": "https://www.apple.com/apple-touch-icon.png",
+   "orig": [
+    152,
+    152
+   ],
+   "sha1": "8d0b75183f36b366d54448a2bd0775f7627aeaa1"
+  },
+  "appliedmaterials.com": {
+   "status": "ok",
+   "fetched": "2026-10-27",
+   "names": [
+    "應用材料"
+   ],
+   "tried": {
+    "site": "none robots.txt 與首頁都回 HTTP 403（對方擋雲端存取），圖檔與 Google 備援都不抓 https://www.appliedmaterials.com/",
+    "wikimedia": "ok [250, 72]"
+   },
+   "src": "wikimedia",
+   "url": "https://commons.wikimedia.org/wiki/File:Applied_Materials_Logo.svg",
+   "orig": [
+    250,
+    72
+   ],
+   "sha1": "9c15878399b7a284969534591e90f5f9d8274b98",
+   "attribution": {
+    "file": "File:Applied Materials Logo.svg",
+    "page": "https://commons.wikimedia.org/wiki/File:Applied_Materials_Logo.svg",
+    "license": "Public domain",
+    "license_kind": "PD",
+    "artist": "Unknown author Unknown author",
+    "credit": "Unknown source Unknown source",
+    "wikidata": "Q621610",
+    "match": "website",
+    "restrictions": "trademarked"
+   }
+  },
+  "asml.com": {
+   "status": "ok",
+   "fetched": "2026-10-27",
+   "names": [
+    "ASML"
+   ],
+   "tried": {
+    "site": "ok [1920, 958]"
+   },
+   "src": "site:og-image",
+   "url": "https://edge.sitecorecloud.io/asmlnetherlaaea-asmlcom-prd-5369/media/project/asmlcom/asmlcom/asml/images/home/asml-tv-image-1920-x-958-asml_high_na_still_oi_f0_01.jpg?h=958&iar=0&w=1920",
+   "orig": [
+    1920,
+    958
+   ],
+   "sha1": "776af1941a57963f6b9a718ecdf88c21b4a543e5"
+  },
+  "asrockrack.com": {
+   "status": "ok",
+   "fetched": "2026-10-27",
+   "names": [
+    "永擎電子"
+   ],
+   "tried": {
+    "site": "ok [64, 64]"
+   },
+   "src": "site:icon",
+   "url": "https://www.asrockrack.com/favicon.ico",
+   "orig": [
+    64,
+    64
+   ],
+   "sha1": "9b4c1e4038a338c0c02db262def5efd810220424"
+  },
+  "broadcom.com": {
+   "status": "ok",
+   "fetched": "2026-10-27",
+   "names": [
+    "博通"
+   ],
+   "tried": {
+    "site": "ok [96, 96]"
+   },
+   "src": "site:icon",
+   "url": "https://www.broadcom.com/favicon-96x96.png",
+   "orig": [
+    96,
+    96
+   ],
+   "sha1": "1dad0029f45635ce376fed1bef1d19ca78e2ab01"
+  },
+  "carmax.com.tw": {
+   "status": "ok",
+   "fetched": "2026-10-27",
+   "names": [
+    "車美仕"
+   ],
+   "tried": {
+    "site": "ok [256, 237]"
+   },
+   "src": "site:header-img",
+   "url": "https://www.carmax.com.tw/dist/images/common/hotai_logo.svg",
+   "orig": [
+    256,
+    237
+   ],
+   "sha1": "ae62dff660c5fe017dca581a115ab9009969e311"
+  },
+  "castlestech.com": {
+   "status": "ok",
+   "fetched": "2026-10-27",
+   "names": [
+    "虹堡"
+   ],
+   "tried": {
+    "site": "ok [192, 192]"
+   },
+   "src": "site:icon",
+   "url": "https://www.castlestech.com/wp-content/uploads/2023/07/cropped-favicon-castles-technology-192x192.png",
+   "orig": [
+    192,
+    192
+   ],
+   "sha1": "596871ea58d82c3fcf18023c9638bcec46d51695"
+  },
+  "dell.com": {
+   "status": "ok",
+   "fetched": "2026-10-27",
+   "names": [
+    "Dell"
+   ],
+   "tried": {
+    "site": "ok [180, 180]"
+   },
+   "src": "site:conventional",
+   "url": "https://www.dell.com/apple-touch-icon.png",
+   "orig": [
+    180,
+    180
+   ],
+   "sha1": "10b43160acc14eef181df0f65b1a420bd01fb857"
+  },
+  "entegris.com": {
+   "status": "ok",
+   "fetched": "2026-10-27",
+   "names": [
+    "英特格（Entegris）"
+   ],
+   "tried": {
+    "site": "ok [1200, 699]"
+   },
+   "src": "site:og-image",
+   "url": "https://www.entegris.com/content/dam/web/open-graph/Entegris_OpenGraph.png",
+   "orig": [
+    1200,
+    699
+   ],
+   "sha1": "8cb686e48586ec943e39ecc7f4cbb3f6495bad1f"
+  },
+  "fihmobile.com": {
+   "status": "ok",
+   "fetched": "2026-10-27",
+   "names": [
+    "富智康"
+   ],
+   "tried": {
+    "site": "ok [196, 196]"
+   },
+   "src": "site:icon",
+   "url": "https://www.fihmobile.com/assets/images/favicon.png",
+   "orig": [
+    196,
+    196
+   ],
+   "sha1": "31e4baf7dd3d4f7a9186e88001f379e9cc8e4d2e"
+  },
+  "formfactor.com": {
+   "status": "ok",
+   "fetched": "2026-10-27",
+   "names": [
+    "FormFactor"
+   ],
+   "tried": {
+    "site": "ok [192, 192]"
+   },
+   "src": "site:icon",
+   "url": "https://www.formfactor.com/wp-content/uploads/cropped-FFFavicon_wht-1-192x192.png",
+   "orig": [
+    192,
+    192
+   ],
+   "sha1": "5fab07f70713d6bdc46a7891194af99bb932f906"
+  },
+  "foxconn.com": {
+   "status": "ok",
+   "fetched": "2026-10-27",
+   "names": [
+    "鴻運科"
+   ],
+   "tried": {
+    "site": "ok [64, 64]"
+   },
+   "src": "site:conventional",
+   "url": "https://www.foxconn.com/favicon.ico",
+   "orig": [
+    64,
+    64
+   ],
+   "sha1": "aee111228cae386797399deb27cc15044ea144da"
+  },
+  "garmin.com.tw": {
+   "status": "ok",
+   "fetched": "2026-10-27",
+   "names": [
+    "Garmin"
+   ],
+   "tried": {
+    "site": "ok [114, 114]"
+   },
+   "src": "site:conventional",
+   "url": "https://www.garmin.com.tw/apple-touch-icon.png",
+   "orig": [
+    114,
+    114
+   ],
+   "sha1": "1e55e5496d25e7f414ebc6d2429c69e4a2c4ca6f"
+  },
+  "google.com": {
+   "status": "robots",
+   "fetched": "2026-10-27",
+   "names": [
+    "Google"
+   ],
+   "tried": {
+    "site": "robots https://google.com/ robots.txt 的 Disallow 規則不允許 —— 尊重它，也不走 Google 備援",
+    "wikimedia": "none Wikidata 查不到官網是 google.com 的 Google／沒有標誌圖",
+    "google_s2": "官網禁止或擋雲端存取，不問 Google"
+   },
+   "detail": "https://google.com/ robots.txt 的 Disallow 規則不允許 —— 尊重它，也不走 Google 備援"
+  },
+  "himax.com.tw": {
+   "status": "ok",
+   "fetched": "2026-10-27",
+   "names": [
+    "奇景"
+   ],
+   "tried": {
+    "site": "ok [180, 75]"
+   },
+   "src": "site:header-img",
+   "url": "https://www.himax.com.tw/wp-content/uploads/2015/07/himax-v2-light.png",
+   "orig": [
+    180,
+    75
+   ],
+   "sha1": "435b887270fce54909dc52298fab105258c9619a"
+  },
+  "hitachi-hightech.com": {
+   "status": "none",
+   "fetched": "2026-10-27",
+   "names": [
+    "日立先端（Hitachi High-Tech）"
+   ],
+   "tried": {
+    "site": "none robots.txt 與首頁都回 HTTP 403（對方擋雲端存取），圖檔與 Google 備援都不抓 https://www.hitachi-hightech.com/",
+    "wikimedia": "none Commons too_wide 250x40",
+    "google_s2": "官網禁止或擋雲端存取，不問 Google"
+   },
+   "detail": "robots.txt 與首頁都回 HTTP 403（對方擋雲端存取），圖檔與 Google 備援都不抓 https://www.hitachi-hightech.com/"
+  },
+  "hp.com": {
+   "status": "ok",
+   "fetched": "2026-10-27",
+   "names": [
+    "HP"
+   ],
+   "tried": {
+    "site": "error robots.txt 回 HTTP 503（RFC 9309 §2.3.1.4：伺服器錯誤視為暫時全站禁止，這輪不抓）https://www8.hp.com/",
+    "wikimedia": "ok [250, 250]"
+   },
+   "src": "wikimedia",
+   "url": "https://commons.wikimedia.org/wiki/File:HP_logo_2012.svg",
+   "orig": [
+    250,
+    250
+   ],
+   "sha1": "e0db51e19396084f3f352216ce57de228d24feab",
+   "attribution": {
+    "file": "File:HP logo 2012.svg",
+    "page": "https://commons.wikimedia.org/wiki/File:HP_logo_2012.svg",
+    "license": "Public domain",
+    "license_kind": "PD",
+    "artist": "HP Inc.",
+    "credit": "https://web.archive.org/web/20220409040937/http://h10032.www1.hp.com/ctg/Manual/c02716792.pdf",
+    "wikidata": "Q21404084",
+    "match": "website",
+    "restrictions": "trademarked"
+   }
+  },
+  "ingrasys.com": {
+   "status": "ok",
+   "fetched": "2026-10-27",
+   "names": [
+    "鴻佰"
+   ],
+   "tried": {
+    "site": "ok [152, 152]"
+   },
+   "src": "site:apple-touch-icon",
+   "url": "https://www.ingrasys.com/images/touch-icon/apple-icon-152x152.png",
+   "orig": [
+    152,
+    152
+   ],
+   "sha1": "13c21dbc1d52836b87eb1bf7419276780a70eba1"
+  },
+  "itri.org.tw": {
+   "status": "ok",
+   "fetched": "2026-10-27",
+   "names": [
+    "工研院"
+   ],
+   "tried": {
+    "site": "ok [256, 59]"
+   },
+   "src": "site:header-img",
+   "url": "https://itrisdgs.itri.org.tw/chi/images/logo-invert.svg",
+   "orig": [
+    256,
+    59
+   ],
+   "sha1": "842182f49fcafd695aab77f56d40301b6b132a59"
+  },
+  "kaikutek.com": {
+   "status": "too_small",
+   "fetched": "2026-10-27",
+   "names": [
+    "開酷"
+   ],
+   "tried": {
+    "site": "ok [57, 57]",
+    "wikimedia": "none Wikidata 查不到官網是 kaikutek.com 的 Kaikutek／沒有標誌圖",
+    "google_s2": "none none HTTP 404 https://www.google.com/s2/favicons?domain=kaikutek.com&sz=256"
+   },
+   "detail": ""
+  },
+  "kla.com": {
+   "status": "ok",
+   "fetched": "2026-10-27",
+   "names": [
+    "KLA"
+   ],
+   "tried": {
+    "site": "ok [256, 256]"
+   },
+   "src": "site:ms-tile",
+   "url": "https://www.kla.com/wp-content/uploads/android-chrome-256x256.png",
+   "orig": [
+    256,
+    256
+   ],
+   "sha1": "6e5de7aae4dcb40bbab37c5404d53af2fbac5d67"
+  },
+  "kneron.com": {
+   "status": "ok",
+   "fetched": "2026-10-27",
+   "names": [
+    "耐能智慧"
+   ],
+   "tried": {
+    "site": "ok [375, 150]"
+   },
+   "src": "site:header-img",
+   "url": "https://www.kneron.com/v2/media/logo-kneron.png",
+   "orig": [
+    375,
+    150
+   ],
+   "sha1": "6e663f30ee320cdab9949f88232a3f94de997310"
+  },
+  "lamresearch.com": {
+   "status": "ok",
+   "fetched": "2026-10-27",
+   "names": [
+    "Lam Research"
+   ],
+   "tried": {
+    "site": "ok [192, 192]"
+   },
+   "src": "site:icon",
+   "url": "https://www.lamresearch.com/wp-content/uploads/2021/07/cropped-Favicon_512-192x192.png",
+   "orig": [
+    192,
+    192
+   ],
+   "sha1": "4f5708cb82daaa30dace274a80df59eb6cc10522"
+  },
+  "lasertec.co.jp": {
+   "status": "ok",
+   "fetched": "2026-10-27",
+   "names": [
+    "Lasertec"
+   ],
+   "tried": {
+    "site": "ok [192, 192]"
+   },
+   "src": "site:apple-touch-icon",
+   "url": "https://www.lasertec.co.jp/app-files/img/symbol/apple-touch-icon.png",
+   "orig": [
+    192,
+    192
+   ],
+   "sha1": "dda565386873b01168769fd6c537153f105d6270"
+  },
+  "merckgroup.com": {
+   "status": "none",
+   "fetched": "2026-10-27",
+   "names": [
+    "Merck"
+   ],
+   "tried": {
+    "site": "none robots.txt 與首頁都回 HTTP 403（對方擋雲端存取），圖檔與 Google 備援都不抓 https://www.merckgroup.com/",
+    "wikimedia": "none Commons too_wide 250x43",
+    "google_s2": "官網禁止或擋雲端存取，不問 Google"
+   },
+   "detail": "robots.txt 與首頁都回 HTTP 403（對方擋雲端存取），圖檔與 Google 備援都不抓 https://www.merckgroup.com/"
+  },
+  "meta.com": {
+   "status": "ok",
+   "fetched": "2026-10-27",
+   "names": [
+    "Meta"
+   ],
+   "tried": {
+    "site": "ok [128, 128]"
+   },
+   "src": "google_s2",
+   "url": "https://www.google.com/s2/favicons?domain=meta.com&sz=128",
+   "orig": [
+    128,
+    128
+   ],
+   "sha1": "8564cce1136c1193cc8aa5f2905a21c3740fdee1"
+  },
+  "micron.com": {
+   "status": "ok",
+   "fetched": "2026-10-27",
+   "names": [
+    "美光台灣"
+   ],
+   "tried": {
+    "site": "ok [180, 180]"
+   },
+   "src": "site:apple-touch-icon",
+   "url": "https://www.micron.com/content/dam/micron/global/favicon/apple-icon-180x180.png",
+   "orig": [
+    180,
+    180
+   ],
+   "sha1": "a63c7cc872b8985b2a008d6eded96efb75715324"
+  },
+  "microsoft.com": {
+   "status": "ok",
+   "fetched": "2026-10-27",
+   "names": [
+    "微軟"
+   ],
+   "tried": {
+    "site": "ok [128, 128]"
+   },
+   "src": "site:icon",
+   "url": "https://www.microsoft.com/favicon.ico?v2",
+   "orig": [
+    128,
+    128
+   ],
+   "sha1": "ee0276bdac452a6c257273ed300892864b83c76d"
+  },
+  "mitaccomputing.com": {
+   "status": "too_small",
+   "fetched": "2026-10-27",
+   "names": [
+    "神雲科技"
+   ],
+   "tried": {
+    "site": "ok [48, 48]",
+    "wikimedia": "none Wikidata 查不到官網是 mitaccomputing.com 的 Mitac Computing Technology／沒有標誌圖",
+    "google_s2": "ok [48, 48]"
+   },
+   "detail": ""
+  },
+  "monolithicpower.com": {
+   "status": "ok",
+   "fetched": "2026-10-27",
+   "names": [
+    "MPS 台灣"
+   ],
+   "tried": {
+    "site": "ok [32, 32]",
+    "wikimedia": "ok [250, 73]"
+   },
+   "src": "wikimedia",
+   "url": "https://commons.wikimedia.org/wiki/File:Monolithic_Power_Systems_Logo.svg",
+   "orig": [
+    250,
+    73
+   ],
+   "sha1": "01cce2fd2127e7ca319dace23484c417caa3109d",
+   "attribution": {
+    "file": "File:Monolithic Power Systems Logo.svg",
+    "page": "https://commons.wikimedia.org/wiki/File:Monolithic_Power_Systems_Logo.svg",
+    "license": "Public domain",
+    "license_kind": "PD",
+    "artist": "Monolithic Power Systems, Inc.",
+    "credit": "https://www.monolithicpower.com/pub/media/cms_document/product_literature/Motor_Driver_Catalog_Q3_2018-digital_02.pdf",
+    "wikidata": "Q22058448",
+    "match": "website",
+    "restrictions": "trademarked"
+   }
+  },
+  "moxa.com": {
+   "status": "ok",
+   "fetched": "2026-10-27",
+   "names": [
+    "四零四科技（Moxa）"
+   ],
+   "tried": {
+    "site": "ok [512, 512]"
+   },
+   "src": "site:manifest",
+   "url": "https://cdn-cms-frontdoor-dfc8ebanh6bkb3hs.a02.azurefd.net/App_Themes/Moxa/SiteMeta/android-chrome-512x512.png",
+   "orig": [
+    512,
+    512
+   ],
+   "sha1": "b060e8b869e9b71d24aa41038bb8b5d901043966"
+  },
+  "nvidia.com": {
+   "status": "ok",
+   "fetched": "2026-10-27",
+   "names": [
+    "NVIDIA"
+   ],
+   "tried": {
+    "site": "ok [1200, 674]"
+   },
+   "src": "site:og-image",
+   "url": "https://www.nvidia.com/content/dam/en-zz/Solutions/homepage/v2/sfg/nvidia-corporate-og-image-1200x630.jpg",
+   "orig": [
+    1200,
+    674
+   ],
+   "sha1": "773e2703b35ebbbb8456130afbd879aea2a635be"
+  },
+  "phihongtech.com": {
+   "status": "ok",
+   "fetched": "2026-10-27",
+   "names": [
+    "馳諾瓦"
+   ],
+   "tried": {
+    "site": "ok [128, 128]"
+   },
+   "src": "google_s2",
+   "url": "https://www.google.com/s2/favicons?domain=phihongtech.com&sz=128",
+   "orig": [
+    128,
+    128
+   ],
+   "sha1": "d848283ca001774d335ae6f051db89beb3fa81ce"
+  },
+  "qualcomm.com": {
+   "status": "ok",
+   "fetched": "2026-10-27",
+   "names": [
+    "高通"
+   ],
+   "tried": {
+    "site": "ok [512, 512]"
+   },
+   "src": "site:manifest",
+   "url": "https://www.qualcomm.com/etc.clientlibs/qcomm-martech/clientlibs/clientlib-react/resources/logo512.png",
+   "orig": [
+    512,
+    512
+   ],
+   "sha1": "206b5f6b15666386530585a4c028c8c4ae9c422f"
+  },
+  "questglobal.com": {
+   "status": "ok",
+   "fetched": "2026-10-27",
+   "names": [
+    "Quest Global"
+   ],
+   "tried": {
+    "site": "ok [192, 192]"
+   },
+   "src": "site:manifest",
+   "url": "https://www.questglobal.com/wp-content/themes/questglobalwpthemevone/android-icon-192x192.png",
+   "orig": [
+    192,
+    192
+   ],
+   "sha1": "c6b762bb5a5738880d985eeb3c062af157f8014a"
+  },
+  "raritan.com": {
+   "status": "ok",
+   "fetched": "2026-10-27",
+   "names": [
+    "瑞力登 Raritan"
+   ],
+   "tried": {
+    "site": "ok [512, 512]"
+   },
+   "src": "site:manifest",
+   "url": "https://www.raritan.com/images/site/logo-512x512.png",
+   "orig": [
+    512,
+    512
+   ],
+   "sha1": "b9b75a65723d2e9ec5dbb3586b94bba977a47f9c"
+  },
+  "screen.co.jp": {
+   "status": "ok",
+   "fetched": "2026-10-27",
+   "names": [
+    "SCREEN（DNS）"
+   ],
+   "tried": {
+    "site": "ok [180, 180]"
+   },
+   "src": "site:apple-touch-icon",
+   "url": "https://hdjp-corporateweb-files.screen.co.jp/2817/1921/6198/apple-touch-icon.png",
+   "orig": [
+    180,
+    180
+   ],
+   "sha1": "39f5b8f16f87abe66d18ea0014ca7b265158dc8b"
+  },
+  "siliconmotion.com": {
+   "status": "ok",
+   "fetched": "2026-10-27",
+   "names": [
+    "慧榮"
+   ],
+   "tried": {
+    "site": "ok [144, 144]"
+   },
+   "src": "site:apple-touch-icon",
+   "url": "https://www.siliconmotion.com/images/touch-icon-144.png",
+   "orig": [
+    144,
+    144
+   ],
+   "sha1": "6a91d0a535de0fe462cb753402565ccba318aafe"
+  },
+  "speed-hz.com": {
+   "status": "ok",
+   "fetched": "2026-10-27",
+   "names": [
+    "碩貝德"
+   ],
+   "tried": {
+    "site": "ok [400, 400]"
+   },
+   "src": "site:icon",
+   "url": "https://speed-hz.com/local_upload/20260509/2052985687740899328.png",
+   "orig": [
+    400,
+    400
+   ],
+   "sha1": "6b18e8e438bd6801e496fc329e33a9bcec5eb75d"
+  },
+  "spil.com.tw": {
+   "status": "error",
+   "fetched": "2026-10-27",
+   "names": [
+    "矽品"
+   ],
+   "tried": {
+    "site": "error robots.txt 回 HTTP 500（RFC 9309 §2.3.1.4：伺服器錯誤視為暫時全站禁止，這輪不抓）https://spil.com.tw/",
+    "wikimedia": "none Wikidata 查不到官網是 spil.com.tw 的 Siliconware Precision Industries／沒有標誌圖",
+    "google_s2": "none none HTTP 404 https://www.google.com/s2/favicons?domain=spil.com.tw&sz=256"
+   },
+   "detail": "robots.txt 回 HTTP 500（RFC 9309 §2.3.1.4：伺服器錯誤視為暫時全站禁止，這輪不抓）https://spil.com.tw/"
+  },
+  "ssmc.com": {
+   "status": "ok",
+   "fetched": "2026-10-27",
+   "names": [
+    "SSMC（新加坡）"
+   ],
+   "tried": {
+    "site": "ok [64, 64]"
+   },
+   "src": "site:icon",
+   "url": "https://www.ssmc.com/img/ssmc_ico.ico",
+   "orig": [
+    64,
+    64
+   ],
+   "sha1": "ad6ec8fa6b74caa8c2ef275d1d967728872b7496"
+  },
+  "ssstc.com": {
+   "status": "ok",
+   "fetched": "2026-10-27",
+   "names": [
+    "建興儲存"
+   ],
+   "tried": {
+    "site": "ok [152, 152]"
+   },
+   "src": "site:apple-touch-icon",
+   "url": "https://www.ssstc.com/images/touch-icon/apple-icon-152x152.png",
+   "orig": [
+    152,
+    152
+   ],
+   "sha1": "ca30a84b2120a64be401a5bcbfe6f2ffd54473b9"
+  },
+  "synopsys.com": {
+   "status": "ok",
+   "fetched": "2026-10-27",
+   "names": [
+    "Synopsys"
+   ],
+   "tried": {
+    "site": "ok [256, 256]"
+   },
+   "src": "site:header-img",
+   "url": "https://www.synopsys.com/content/dam/synopsys/icon/ai-black.svg",
+   "orig": [
+    256,
+    256
+   ],
+   "sha1": "91c28ba577b0fd6d9d9b9335bb2200de0d2eb7ac"
+  },
+  "syntecclub.com": {
+   "status": "ok",
+   "fetched": "2026-10-27",
+   "names": [
+    "新代"
+   ],
+   "tried": {
+    "site": "ok [114, 114]"
+   },
+   "src": "site:apple-touch-icon",
+   "url": "https://www.syntecclub.com/images/common/Icon@2.png",
+   "orig": [
+    114,
+    114
+   ],
+   "sha1": "7351e2866cf2bf066e64f28d750c1d0bf2b876af"
+  },
+  "tel.com": {
+   "status": "ok",
+   "fetched": "2026-10-27",
+   "names": [
+    "TEL"
+   ],
+   "tried": {
+    "site": "ok [144, 144]"
+   },
+   "src": "site:apple-touch-icon",
+   "url": "https://www.tel.com/irta3a00000001ah-img/irta3a00000001as.png",
+   "orig": [
+    144,
+    144
+   ],
+   "sha1": "ec3918bb155d4fcca980daef54a9d875beb6d5af"
+  },
+  "teradyne.com": {
+   "status": "none",
+   "fetched": "2026-10-27",
+   "names": [
+    "泰瑞達"
+   ],
+   "tried": {
+    "site": "none robots.txt 與首頁都回 HTTP 403（對方擋雲端存取），圖檔與 Google 備援都不抓 https://teradyne.com/",
+    "wikimedia": "none Commons too_wide 250x38",
+    "google_s2": "官網禁止或擋雲端存取，不問 Google"
+   },
+   "detail": "robots.txt 與首頁都回 HTTP 403（對方擋雲端存取），圖檔與 Google 備援都不抓 https://teradyne.com/"
+  },
+  "uicpaymentsinc.com": {
+   "status": "ok",
+   "fetched": "2026-10-27",
+   "names": [
+    "連宇"
+   ],
+   "tried": {
+    "site": "ok [128, 128]"
+   },
+   "src": "google_s2",
+   "url": "https://www.google.com/s2/favicons?domain=uicpaymentsinc.com&sz=128",
+   "orig": [
+    128,
+    128
+   ],
+   "sha1": "fc436340f1cbda384f8d4634a69a457317ff4162"
+  },
+  "unabiz.com": {
+   "status": "ok",
+   "fetched": "2026-10-27",
+   "names": [
+    "Unabiz"
+   ],
+   "tried": {
+    "site": "ok [192, 192]"
+   },
+   "src": "site:icon",
+   "url": "https://www.unabiz.com/wp-content/uploads/2020/01/cropped-white-bg-512-192x192.jpg",
+   "orig": [
+    192,
+    192
+   ],
+   "sha1": "78564b57acc13d023073fdafb97d77244263cd26"
+  },
+  "wellell.com": {
+   "status": "ok",
+   "fetched": "2026-10-27",
+   "names": [
+    "雃博"
+   ],
+   "tried": {
+    "site": "ok [128, 128]"
+   },
+   "src": "site:icon",
+   "url": "https://us.wellell.com/frontend/images/favicon.ico",
+   "orig": [
+    128,
+    128
+   ],
+   "sha1": "fa983f7ca0576f2ee8347a434bf0bc16f10c3c7e"
+  },
+  "wipro.com": {
+   "status": "ok",
+   "fetched": "2026-10-27",
+   "names": [
+    "Wipro"
+   ],
+   "tried": {
+    "site": "ok [113, 104]"
+   },
+   "src": "site:header-img",
+   "url": "https://www.wipro.com/content/dam/nexus/images/share-icons/share-icon.png",
+   "orig": [
+    113,
+    104
+   ],
+   "sha1": "d3cf07ca3766028a94fa312c2d9f1c92f152c9f4"
+  }
+ },
+ "updated_at": "2026-10-26T18:36:40.530330+00:00"
+}
