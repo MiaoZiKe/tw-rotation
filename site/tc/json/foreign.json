@@ -9,10 +9,10 @@
       "code": null,
       "heat": null,
       "benefits": "健康保險、員工優惠、訓練資源（GoodJob 新竹產品職自述）",
-      "stock_plan": "RSU（NSU）四年歸屬，每季歸屬",
+      "stock_plan": "RSU（NSU）四年歸屬，每季歸屬；Levels.fyi：RSU（內部稱 NSU）四年歸屬 40%／30%／20%／10%，歸屬日 3、6、9 月第三個週三與 12 月第二個週三；Blind 稱 ESPP 15% 折扣＋回溯期（說法不一，未證實）",
       "bonus_timing": "薪資以底薪＋RSU（四年歸屬）為主；年度現金獎金說法互相矛盾（2～6 個月 vs 無績效獎金），未確認",
-      "culture": "GoodJob：薪資結構透明（固定薪＋年終＋績效獎金），新竹產品職自述每週約 40 小時",
-      "interview": "軟體職：線上 OA（HackerRank，約 7 題 105 分鐘）→ 連續四關面試、需現場 coding（GoodJob 2024～2025）",
+      "culture": "GoodJob：薪資結構透明（固定薪＋年終＋績效獎金），新竹產品職自述每週約 40 小時；GoodJob 輝達頁 2 筆：平均每週 50 小時、50% 幾乎每天加班；ETtoday 引 Dcard 員工文：壓力大、工時長、面試時主管提醒「非常操」",
+      "interview": "軟體職：線上 OA（HackerRank，約 7 題 105 分鐘）→ 連續四關面試、需現場 coding（GoodJob 2024～2025）；Dcard（tech_job 259654840，台灣硬體／半導體職）：除 HR 外全英文，電話初篩→視訊多輪車輪戰→最後大老闆一關",
       "roles": [
         {
           "unit": "台灣研發",
@@ -864,10 +864,10 @@
       "name": "Google",
       "code": null,
       "heat": null,
-      "benefits": null,
-      "stock_plan": "RSU",
-      "bonus_timing": "底薪＋年度獎金＋RSU（四年、常見每季 6.25%）；年度獎金月數與發放月份查不到",
-      "culture": null,
+      "benefits": "板橋辦公室設員工餐廳（多元三餐）、健身房、按摩房、Nap room、哺乳室（中央社 2021，是否免費未說明）",
+      "stock_plan": "RSU；uptogo 整理：RSU 四年 38%／32%／20%／10%",
+      "bonus_timing": "底薪＋年度獎金＋RSU（四年、常見每季 6.25%）；年度獎金月數與發放月份查不到；TechBang：2023 起年度獎金統一於 3 月發放（全球政策，台灣未單獨證實）；LeetCode 2021 台灣 L3 offer 獎金目標 15%",
+      "culture": "2026-09 傳台灣裁員（板橋為主），Google 台灣回應為例行人力微調、外傳 3～5 成「完全背離事實」",
       "interview": "線上演算法 coding → 第二輪五場（兩場 coding、一場人格特質），難度約 LeetCode 中偏難（GoodJob 2022，範圍外參考）",
       "roles": [
         {
@@ -1031,6 +1031,18 @@
           "rule": "查不到台灣月數與月份",
           "months": null,
           "sources": []
+        },
+        {
+          "type": "年度獎金",
+          "rule": "台灣 L3 新鮮人 offer 列獎金目標為底薪 15%（LeetCode 匿名，2021）",
+          "months": null,
+          "sources": [
+            {
+              "site": "LeetCode",
+              "url": "https://leetcode.com/discuss/compensation/1292340/google-swe-l3-new-grad-taiwan",
+              "date": "2021"
+            }
+          ]
         }
       ]
     },
@@ -1038,11 +1050,11 @@
       "name": "Dell",
       "code": null,
       "heat": null,
-      "benefits": null,
+      "benefits": "GoodJob 軟體職：可混合遠距辦公（2024-12）；104：校園徵才 2026-09-12 世貿",
       "stock_plan": null,
       "bonus_timing": "網友 2026 稱獎金約 1.5～2 個月底薪（資深職）；發放月份查不到",
-      "culture": "GoodJob：績效獎金制度透明；也有評價稱福利變差、工時長、升遷不易（2026）",
-      "interview": "GoodJob 2025～2026：HR 電話初篩、追問離職原因，再主管面談",
+      "culture": "GoodJob：績效獎金制度透明；也有評價稱福利變差、工時長、升遷不易（2026）；GoodJob 多則：升遷制度不明、加薪幅度低、約聘轉正困難",
+      "interview": "GoodJob 2025～2026：HR 電話初篩、追問離職原因，再主管面談；GoodJob 2026-03 伺服器硬體（PjM team）線上面試：要會看圖、能快速適應；2024 BIOS 職：C 語言指標題→主管談經歷",
       "roles": [
         {
           "unit": "台灣研發",
@@ -1053,10 +1065,13 @@
           "bonus_months": null,
           "annual_months": null,
           "annual_total_wan": null,
-          "weekly_hours": null,
+          "weekly_hours": [
+            45,
+            45
+          ],
           "overtime": null,
           "travel": null,
-          "n": 2,
+          "n": 3,
           "note": "平台自述統計（未轉貼原文）；Levels.fyi 台灣硬體工程師 L6 約 146 萬起、中位 230 萬（不限新人）；2026-10 查詢未見台灣 Dell 資料；annual_total_wan 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples",
           "sources": [
             {
@@ -1068,6 +1083,11 @@
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/259885681",
               "date": "2026"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/荷蘭商台灣戴爾股份有限公司/work-experiences/工時狀況",
+              "date": "2025-11"
             }
           ],
           "confidence": "低",
@@ -1110,9 +1130,30 @@
               "overtime": null,
               "travel": null,
               "quote_free_note": "網友問是否約 150，無確認數字"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/荷蘭商台灣戴爾股份有限公司/work-experiences/工時狀況",
+              "date": "2025-11",
+              "date_confirmed": true,
+              "role": "Electrical Engineer 2",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 45,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "每週 45 小時，上班時間彈性但總工時長",
+              "in_window": true,
+              "date_note": "WebSearch 摘要標示 2025-11（2026-10-26 補齊批）"
             }
           ],
-          "n_stat": 1
+          "n_stat": 2
         },
         {
           "unit": "其他",
@@ -1162,6 +1203,78 @@
           "n_stat": 1,
           "note": null,
           "grade": null
+        },
+        {
+          "unit": "其他",
+          "role": "PJM",
+          "degree": null,
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/荷蘭商台灣戴爾股份有限公司/work-experiences/工時狀況",
+              "date": "2026-06",
+              "date_confirmed": true,
+              "role": "PJM",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 42,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "每週 42 小時，稱工作與生活難平衡",
+              "in_window": true,
+              "date_note": "WebSearch 摘要標示 2026-06（2026-10-26 補齊批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/荷蘭商台灣戴爾股份有限公司/work-experiences/工時狀況",
+              "date": "2026-02",
+              "date_confirmed": true,
+              "role": "PJM",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 50,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "每週 50 小時",
+              "in_window": true,
+              "date_note": "WebSearch 摘要標示 2026-02（2026-10-26 補齊批）"
+            }
+          ],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/荷蘭商台灣戴爾股份有限公司/work-experiences/工時狀況",
+              "date": "2026-06"
+            }
+          ],
+          "confidence": "低",
+          "n": 2,
+          "years": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": [
+            42,
+            50
+          ],
+          "overtime": null,
+          "travel": null,
+          "n_stat": 2,
+          "note": null,
+          "grade": null
         }
       ],
       "mops": null,
@@ -1185,10 +1298,10 @@
       "name": "Apple",
       "code": null,
       "heat": null,
-      "benefits": null,
-      "stock_plan": null,
+      "benefits": "產品員工折扣約 25%、親友折扣約 15%（美國第三方整理，台灣未證實）",
+      "stock_plan": "ESPP：15% 折扣、約 6 個月回溯，一年報名兩次（美國第三方／Blind，台灣未證實）；RSU 四年",
       "bonus_timing": "底薪＋年度獎金＋RSU（四年，首年 25%）；股票占比高於獎金；台灣年終月數查不到",
-      "culture": null,
+      "culture": "GoodJob「蘋果」公司頁僅 2 則面試評價、無薪資工時資料；台灣分公司加班狀況查不到",
       "interview": null,
       "roles": [
         {
@@ -1264,6 +1377,18 @@
               "date": "2026"
             }
           ]
+        },
+        {
+          "type": "年度獎金",
+          "rule": "財年 10 月～隔年 9 月；ICT4 獎金目標約 10%，依個人與公司績效（Blind 美國，未證實）",
+          "months": null,
+          "sources": [
+            {
+              "site": "Blind",
+              "url": "https://www.teamblind.com/post/apple-ict4-hw-offer-evaluation-jb2lf015",
+              "date": "未確認"
+            }
+          ]
         }
       ]
     },
@@ -1272,9 +1397,9 @@
       "code": null,
       "heat": null,
       "benefits": null,
-      "stock_plan": null,
+      "stock_plan": "HP Inc. ESPP（SEC 2011 年資料：提撥上限底薪 10%、購價 95% 市價；EEA 子公司文件），台灣是否適用未證實",
       "bonus_timing": null,
-      "culture": null,
+      "culture": "GoodJob 4.1 分（43 則），平均每週 37 小時、0% 幾乎每天、32% 偶爾加班；2026-06 軟韌體測試：工時短、彈性、事情做完可走；2026-05 驗證工程師：基本無轉正機會；比薪水有人稱「假外商真台商」",
       "interview": "線上溝通→主管面試（GoodJob 2024-03）；實習生為團體面試",
       "roles": [
         {
@@ -1356,25 +1481,31 @@
       "name": "微軟",
       "code": null,
       "heat": null,
-      "benefits": null,
-      "stock_plan": null,
+      "benefits": "2017 公布：產假 20 週、陪產假 6 週、領養假 6 週、家庭照顧假 4 週全薪（newtalk 2017，可能已變動）",
+      "stock_plan": "GoodJob 2026 評價：ESPP 可提撥 0～15% 薪資、九折買股（自述）",
       "bonus_timing": "底薪＋現金獎金＋RSU（多為四年，部分五年）；台灣年終月數查不到",
       "culture": "GoodJob 平均每週 35 小時、13% 幾乎每天加班、40% 偶爾；薪資分 Local pay／Global pay",
-      "interview": null,
+      "interview": "GoodJob：2021 線上兩輪 LeetCode＋行為題；2024 技術面考資料結構與平行運算，另有 HR 英文面；內推者先線上 coding 測驗",
       "roles": [
         {
           "unit": "台灣研發",
           "role": "硬體／軟體工程師",
           "degree": "碩士",
           "years": "0-2",
-          "base_month_k": null,
+          "base_month_k": [
+            150,
+            150
+          ],
           "bonus_months": null,
           "annual_months": null,
           "annual_total_wan": null,
-          "weekly_hours": null,
+          "weekly_hours": [
+            40,
+            40
+          ],
           "overtime": null,
           "travel": null,
-          "n": 2,
+          "n": 3,
           "note": "WebSearch 以「微軟 台灣 碩士 起薪／年薪／GoodJob／Dcard 2026」查詢，摘要未給出近一年碩士數字；待補；補查：GoodJob、PTT Tech_Job、面試趣、Levels.fyi Taiwan 皆無台灣數字（微軟、博通只見美元排行榜不採用）；GoodJob 台灣微軟工時統計；軟體職單筆每週 40 小時、年薪 150 萬；未逐筆對應的舊彙整：overtime=偶爾",
           "sources": [
             {
@@ -1386,6 +1517,11 @@
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/260470988",
               "date": "2025-12"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台灣微軟股份有限公司",
+              "date": "2025-11"
             }
           ],
           "confidence": "低",
@@ -1428,9 +1564,30 @@
               "date_confirmed": true,
               "date_note": "依 docs/tc/dcard_id_calibration.md 文章編號 260470988 ≥259537767，確認晚於 2025-08-01",
               "in_window": true
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台灣微軟股份有限公司",
+              "date": "2025-11",
+              "date_confirmed": true,
+              "role": "軟體工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "6",
+              "degree": null,
+              "base_k": 150,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 40,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "六年經驗，月薪 15 萬，每週 40 小時；外商管理自由",
+              "in_window": true,
+              "date_note": "WebSearch 摘要標示 2025-11（2026-10-26 補齊批）"
             }
           ],
-          "n_stat": 1
+          "n_stat": 2
         },
         {
           "unit": "台灣",
@@ -1451,6 +1608,60 @@
           "grade": null,
           "samples": [],
           "n_stat": 0
+        },
+        {
+          "unit": "其他",
+          "role": "技術支援",
+          "degree": null,
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台灣微軟股份有限公司",
+              "date": "2026-04",
+              "date_confirmed": true,
+              "role": "Tech Support",
+              "grade": null,
+              "unit_detail": null,
+              "years": "3",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 190,
+              "weekly_hours": 40,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "三年經驗，年薪 190 萬，每週 40 小時",
+              "in_window": true,
+              "date_note": "WebSearch 摘要標示 2026-04（2026-10-26 補齊批）"
+            }
+          ],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台灣微軟股份有限公司",
+              "date": "2026-04"
+            }
+          ],
+          "confidence": "低",
+          "n": 1,
+          "years": "3",
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": [
+            190,
+            190
+          ],
+          "weekly_hours": [
+            40,
+            40
+          ],
+          "overtime": null,
+          "travel": null,
+          "n_stat": 1,
+          "note": null,
+          "grade": null
         }
       ],
       "mops": null,
@@ -1489,8 +1700,8 @@
       "benefits": null,
       "stock_plan": "RSU 四年歸屬，首年 25%、之後每月約 2.08%（Levels.fyi，美國資料）",
       "bonus_timing": null,
-      "culture": null,
-      "interview": null,
+      "culture": "GoodJob 1 筆：每週 50 小時；TechBang：持續裁員、要證明自己在努力的壓力、停止免費洗衣、差旅嚴控；2026-07 CTO 回應員工要求恢復 Meta Days「別再問」",
+      "interview": "2025-07 宣布部分 coding 面試允許使用 AI 助理（全公司政策）；面試趣 SW 視訊面試難度超高（台灣樣本極少）",
       "roles": [
         {
           "unit": "台灣研發",
@@ -1564,7 +1775,20 @@
       ],
       "mops": null,
       "grade_system": "E3～E6",
-      "bonus_structure": []
+      "bonus_structure": [
+        {
+          "type": "年度獎金",
+          "rule": "E4 目標約 10～15%、E5 約 15～20%（JobRise 美國整理，未證實）",
+          "months": null,
+          "sources": [
+            {
+              "site": "JobRise",
+              "url": "https://jobrise.io/en/blog/meta-e4-e5-e6-salary-levels-2026/",
+              "date": "2026"
+            }
+          ]
+        }
+      ]
     },
     {
       "name": "高通",
@@ -1573,8 +1797,8 @@
       "benefits": null,
       "stock_plan": null,
       "bonus_timing": "網友 2023 稱保 13 個月＋bonus 約 1.3～1.5 個月＋RSU；發放月份查不到",
-      "culture": "GoodJob 平均每週 43 小時、偶爾加班為主（薪資樣本多為 2020～2022，範圍外參考）",
-      "interview": "內推後一面了解背景與專案；軟體職兩輪，含 LeetCode 題與多位主管面談（GoodJob）",
+      "culture": "GoodJob 平均每週 43 小時、偶爾加班為主（薪資樣本多為 2020～2022，範圍外參考）；GoodJob 美商高通國際 4.4 分（31 則）平均每週 41 小時、7% 幾乎每天、29% 偶爾；2026-06 一則每週 50 小時、主管給彈性；高通半導體 2026-03 顧問職稱讚請假制度、無明確升遷制度",
+      "interview": "內推後一面了解背景與專案；軟體職兩輪，含 LeetCode 題與多位主管面談（GoodJob）；GoodJob 硬體測試（2026-08 發文、2023-10 面試）：一面線上、二面現場兩位面試官；2025 面試圍繞投影片與遇到困難怎麼解決",
       "roles": [
         {
           "unit": "台灣研發",
@@ -1584,11 +1808,17 @@
           "base_month_k": null,
           "bonus_months": null,
           "annual_months": null,
-          "annual_total_wan": null,
-          "weekly_hours": null,
+          "annual_total_wan": [
+            210,
+            210
+          ],
+          "weekly_hours": [
+            42,
+            42
+          ],
           "overtime": null,
           "travel": null,
-          "n": 4,
+          "n": 5,
           "note": "平台自述統計（未轉貼原文）；2026-01 新竹 4 年年薪 210 萬含股票獎金；面試趣有 2021 AE 視訊面試心得（範圍外）；未逐筆對應的舊彙整：{\"annual_total_wan\": [210, 210]}；未逐筆對應的舊彙整：overtime=偶爾",
           "sources": [
             {
@@ -1690,9 +1920,30 @@
               "date_confirmed": true,
               "date_note": "依 docs/tc/dcard_id_calibration.md 文章編號 259940349 ≥259537767，確認晚於 2025-08-01",
               "in_window": true
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/高通半導體有限公司/work-experiences/薪資福利",
+              "date": "2026-01",
+              "date_confirmed": true,
+              "role": "軟體工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "4",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 210,
+              "weekly_hours": 42,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "新竹，約 4 年經驗，年薪 210 萬，每週 42 小時；底薪＋股票＋Bonus",
+              "in_window": true,
+              "date_note": "WebSearch 摘要標示 2026-01（2026-10-26 補齊批）"
             }
           ],
-          "n_stat": 2
+          "n_stat": 3
         },
         {
           "unit": "其他",
@@ -1841,9 +2092,9 @@
       "name": "博通",
       "code": null,
       "heat": null,
-      "benefits": null,
+      "benefits": "104 安華高（Broadcom）台灣分公司：週休二日、勞健保與團保、定期健檢",
       "stock_plan": "RSU 四年歸屬，首年 25%、之後每月；每年有 refresher（Levels.fyi、Blind 網友）",
-      "bonus_timing": null,
+      "bonus_timing": "Blind 2022：年度獎金 12 月發、7 月前後調薪（美國員工說法，台灣未證實）",
       "culture": "GoodJob 2025-08 新竹工程師單筆：公司給得大方、年薪約 180 萬、每週 45 小時（樣本極少）",
       "interview": "網友稱博通通常不太議價，初始 offer 多為最終條件（Blind，未證實）",
       "roles": [
@@ -1916,16 +2167,29 @@
       ],
       "mops": null,
       "grade_system": null,
-      "bonus_structure": []
+      "bonus_structure": [
+        {
+          "type": "年度獎金",
+          "rule": "IC3 目標約底薪 15～20%，每升一級約 +5%；實發 50%～225% 不等（Blind，說法互相矛盾）",
+          "months": null,
+          "sources": [
+            {
+              "site": "Blind",
+              "url": "https://www.teamblind.com/post/when-does-the-annual-hike-happen-at-broadcom-zcm4uojm",
+              "date": "2022"
+            }
+          ]
+        }
+      ]
     },
     {
       "name": "AMD",
       "code": null,
       "heat": null,
       "benefits": null,
-      "stock_plan": null,
+      "stock_plan": "ESPP：任職滿 1 個月可參加，4 月與 10 月登記，提撥上限 15%，以期初／期末較低價 85% 購股（AMD 他國福利文件，台灣未證實）",
       "bonus_timing": "RSU 三年或四年歸屬（每季或每月）；台灣年終與分紅月數查不到",
-      "culture": null,
+      "culture": "GoodJob 4.1 分（8 則）：2026 實習每週 40 小時、無打卡；2025-08 硬體每週 50 小時；AMD 獲經濟部 A+ 計畫在台南、高雄設研發中心，預計聘約 400 人",
       "interview": null,
       "roles": [
         {
@@ -2027,6 +2291,111 @@
             }
           ],
           "n_stat": 2
+        },
+        {
+          "unit": "台灣研發",
+          "role": "硬體工程師",
+          "degree": null,
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/AMD/work-experiences",
+              "date": "2025-08",
+              "date_confirmed": true,
+              "role": "硬體工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "5",
+              "degree": null,
+              "base_k": 120,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 50,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "新竹，5 年經驗，月薪 12 萬，每週 50 小時；底薪＋獎金＋限制型股票",
+              "in_window": true,
+              "date_note": "WebSearch 摘要標示 2025-08（2026-10-26 補齊批）"
+            }
+          ],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/AMD/work-experiences",
+              "date": "2025-08"
+            }
+          ],
+          "confidence": "低",
+          "n": 1,
+          "years": "5",
+          "base_month_k": [
+            120,
+            120
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": [
+            50,
+            50
+          ],
+          "overtime": null,
+          "travel": null,
+          "n_stat": 1,
+          "note": null,
+          "grade": null
+        },
+        {
+          "unit": "台灣研發",
+          "role": "IC 佈局工程師",
+          "degree": null,
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/AMD/work-experiences",
+              "date": "2026-04",
+              "date_confirmed": true,
+              "role": "IC 佈局工程師（面試）",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 200,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "面試紀錄標年薪 200 萬",
+              "in_window": true,
+              "date_note": "WebSearch 摘要標示 2026-04（2026-10-26 補齊批）"
+            }
+          ],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/AMD/work-experiences",
+              "date": "2026-04"
+            }
+          ],
+          "confidence": "低",
+          "n": 1,
+          "years": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": [
+            200,
+            200
+          ],
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n_stat": 1,
+          "note": null,
+          "grade": null
         }
       ],
       "mops": null,
@@ -2055,6 +2424,18 @@
               "date": "2026"
             }
           ]
+        },
+        {
+          "type": "年度獎金",
+          "rule": "offer 列初始目標約底薪 10～15%，依到職日按比例；網友稱近年實發常低於目標（Blind）",
+          "months": null,
+          "sources": [
+            {
+              "site": "Blind",
+              "url": "https://www.teamblind.com/post/bonus-percentage-and-rsu-at-amd-zlj8dxgg",
+              "date": "未確認"
+            }
+          ]
         }
       ]
     },
@@ -2062,7 +2443,7 @@
       "name": "Garmin",
       "code": null,
       "heat": null,
-      "benefits": "午餐固定免費額度約 85 元（GoodJob 2025-04）",
+      "benefits": "午餐固定免費額度約 85 元（GoodJob 2025-04）；比薪水心得：提供午餐、免費零食水果、員工聚餐旅遊、三節獎金（2020 前後自述）",
       "stock_plan": null,
       "bonus_timing": "保 14 個月：年終 1 個月（農曆年前）＋端午 1 個月（約 6 月）（GoodJob 2025-04、2026-06）",
       "bonus_structure": [
@@ -2091,8 +2472,8 @@
           ]
         }
       ],
-      "culture": "GoodJob 2026-06 電子工程師：年薪不錯、加班少、環境友善；薪資福利 3.8／5（24 筆）",
-      "interview": "線上英文考卷→人資線上情境題→主管線上面談（會問能否出差）（GoodJob 2025-04）",
+      "culture": "GoodJob 2026-06 電子工程師：年薪不錯、加班少、環境友善；薪資福利 3.8／5（24 筆）；GoodJob 3.8 分（359 則）：平均每週 43 小時、7% 幾乎每天、40% 偶爾加班；機構工程師稱不強迫加班；比薪水 2026-04 稱年終約一個月",
+      "interview": "線上英文考卷→人資線上情境題→主管線上面談（會問能否出差）（GoodJob 2025-04）；GoodJob 2026-04 嵌入式戶外產品軟體：線上面試、筆試 C/C++（記憶體配置、OOP、位元運算），面談介紹 wearable OS；2026-07 車載藍牙軟體筆試以 C 為主",
       "grade_system": null,
       "mops": null,
       "roles": [
@@ -2248,6 +2629,108 @@
           "n_stat": 1,
           "note": null,
           "grade": null
+        },
+        {
+          "unit": "其他",
+          "role": "電子工程師",
+          "degree": null,
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/GARMIN 台灣國際航電股份有限公司/work-experiences/薪資福利",
+              "date": "2026-06",
+              "date_confirmed": true,
+              "role": "電子工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 70,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "年薪約 70 萬，保 14 個月、加班少",
+              "in_window": true,
+              "date_note": "WebSearch 摘要標示 2026-06（2026-10-26 補齊批）"
+            }
+          ],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/GARMIN 台灣國際航電股份有限公司/work-experiences/薪資福利",
+              "date": "2026-06"
+            }
+          ],
+          "confidence": "低",
+          "n": 1,
+          "years": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": [
+            70,
+            70
+          ],
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n_stat": 1,
+          "note": null,
+          "grade": null
+        },
+        {
+          "unit": "其他",
+          "role": "工程經理",
+          "degree": null,
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/GARMIN 台灣國際航電股份有限公司/work-experiences/薪資福利",
+              "date": "2026-05",
+              "date_confirmed": true,
+              "role": "工程經理",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 800,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "自述年薪約 800 萬，年終與端午各發一次",
+              "in_window": true,
+              "date_note": "WebSearch 摘要標示 2026-05（2026-10-26 補齊批）"
+            }
+          ],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/GARMIN 台灣國際航電股份有限公司/work-experiences/薪資福利",
+              "date": "2026-05"
+            }
+          ],
+          "confidence": "低",
+          "n": 1,
+          "years": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": [
+            800,
+            800
+          ],
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n_stat": 1,
+          "note": null,
+          "grade": null
         }
       ]
     },
@@ -2258,9 +2741,22 @@
       "benefits": null,
       "stock_plan": null,
       "bonus_timing": null,
-      "bonus_structure": [],
-      "culture": "GoodJob 3.3 分（85 則），平均每週約 40 小時；入職後薪水很少調整",
-      "interview": "HR→Wipro 主管→客戶端團隊（GoodJob）；面試趣難度標示低",
+      "bonus_structure": [
+        {
+          "type": "保障月數＋獎金",
+          "rule": "保 13 個月，另有獎金但一年合計不到 1 個月（GoodJob 2026-03 專案管理主管）",
+          "months": 13,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/印度商威普羅股份有限公司",
+              "date": "2026-03"
+            }
+          ]
+        }
+      ],
+      "culture": "GoodJob 3.3 分（85 則），平均每週約 40 小時；入職後薪水很少調整；PTT 2022：派駐 Google 的測試工程師為派遣，板友多認為職涯發展有限",
+      "interview": "HR→Wipro 主管→客戶端團隊（GoodJob）；面試趣難度標示低；面試趣 2026：台北前端、SDE 視訊面試，兩位面試官；難度低、錄取率 62%（平台統計）",
       "grade_system": null,
       "mops": null,
       "roles": [
@@ -2386,6 +2882,111 @@
           "n_stat": 0,
           "note": null,
           "grade": null
+        },
+        {
+          "unit": "其他",
+          "role": "職位未寫",
+          "degree": null,
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/印度商威普羅股份有限公司",
+              "date": "2026-07",
+              "date_confirmed": true,
+              "role": "職位未寫",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 65,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "年薪約 65 萬，彈性工時、加班不多",
+              "in_window": true,
+              "date_note": "WebSearch 摘要標示 2026-07（2026-10-26 補齊批）"
+            }
+          ],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/印度商威普羅股份有限公司",
+              "date": "2026-07"
+            }
+          ],
+          "confidence": "低",
+          "n": 1,
+          "years": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": [
+            65,
+            65
+          ],
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n_stat": 1,
+          "note": null,
+          "grade": null
+        },
+        {
+          "unit": "其他",
+          "role": "專案管理主管",
+          "degree": null,
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/印度商威普羅股份有限公司",
+              "date": "2026-03",
+              "date_confirmed": true,
+              "role": "專案管理主管",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": 13,
+              "annual_wan": 60,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "年薪約 60 萬，保 13，獎金一年加起來不到一個月",
+              "in_window": true,
+              "date_note": "WebSearch 摘要標示 2026-03（2026-10-26 補齊批）"
+            }
+          ],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/印度商威普羅股份有限公司",
+              "date": "2026-03"
+            }
+          ],
+          "confidence": "低",
+          "n": 1,
+          "years": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": [
+            13,
+            13
+          ],
+          "annual_total_wan": [
+            60,
+            60
+          ],
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n_stat": 1,
+          "note": null,
+          "grade": null
         }
       ]
     },
@@ -2393,12 +2994,25 @@
       "name": "Merck",
       "code": null,
       "heat": null,
-      "benefits": null,
+      "benefits": "招募頁（Cake）：年薪保障 13 個月、年度績效獎金（AIP）、Spot／Impact Award、久任獎勵、三節／生日／五一禮金、社團補助；台灣 11 個據點、逾 1,100 人",
       "stock_plan": null,
-      "bonus_timing": null,
-      "bonus_structure": [],
+      "bonus_timing": "Dcard（高雄廠員工文，編號 258905536 早於 2025-08）：第 13 個月＋年度績效獎金 4 月發，金額看公司與個人等第",
+      "bonus_structure": [
+        {
+          "type": "保障月數＋AIP",
+          "rule": "保障 13 個月＋年度績效獎金 AIP（招募頁）",
+          "months": 13,
+          "sources": [
+            {
+              "site": "Cake",
+              "url": "https://www.cake.me/companies/merck?locale=en",
+              "date": "未確認"
+            }
+          ]
+        }
+      ],
       "culture": "GoodJob：制度完整、團隊友善（桃園工程師單筆，年薪約 90 萬）",
-      "interview": null,
+      "interview": "2026 暑期實習（Cake 職缺頁）：HR 電話／視訊面試（3/16～4/17）→主管面試→5/31 前發錄取通知；2025-04 實習第一關 HR 會問是否同時投其他公司",
       "grade_system": null,
       "mops": null,
       "roles": [
@@ -2463,9 +3077,9 @@
       "heat": null,
       "benefits": null,
       "stock_plan": null,
-      "bonus_timing": null,
+      "bonus_timing": "PTT 2024 徵才文留言：舊廠一年約十幾個月薪水、新廠分紅未定（網友估算，早於 2025-08）",
       "bonus_structure": [],
-      "culture": null,
+      "culture": "NXP 與台積電合資，位於新加坡 Pasir Ris，員工 1,001～5,000 人（JobStreet）；新加坡法規：輪班每日最多 12 小時、三週平均每週 ≤44 小時",
       "interview": null,
       "grade_system": null,
       "mops": null,
@@ -2529,7 +3143,7 @@
       "name": "AMI",
       "code": null,
       "heat": null,
-      "benefits": null,
+      "benefits": "GoodJob 評價：固定 14 個月、年度分紅、彈性休假；Dcard Full Stack offer 稱上手後可 WFH",
       "stock_plan": null,
       "bonus_timing": "固定年薪 14 個月（年資滿一年）＋年度分紅；發放月份查不到",
       "bonus_structure": [
@@ -2546,8 +3160,8 @@
           ]
         }
       ],
-      "culture": null,
-      "interview": "C/C++ 筆試約 50 題一小時、含 Linux 題，再技術主管面談（GoodJob 2026）",
+      "culture": "GoodJob 3.8 分（79 則）：平均每週 43 小時、偶爾加班，工時 4.4、升遷 2.0；評價稱無加班費、晚上 9 點後可申請補休；2026-04 稱升遷看主管與部門",
+      "interview": "C/C++ 筆試約 50 題一小時、含 Linux 題，再技術主管面談（GoodJob 2026）；GoodJob 2026-03（台北）：筆試後主管依履歷提問，要求英文作答",
       "grade_system": null,
       "mops": null,
       "roles": [
@@ -2657,10 +3271,23 @@
       "code": null,
       "heat": null,
       "benefits": "生活津貼、公司負擔勞健保員工自付額（GoodJob 評價）",
-      "stock_plan": null,
-      "bonus_timing": null,
-      "bonus_structure": [],
-      "culture": "GoodJob 4.5 分（63 則）；年薪中等、福利不錯",
+      "stock_plan": "官方福利頁：ESPP 每六個月購股，提撥 1～15%，以兩年期入場價與購買日較低者 85% 計（台灣是否適用需確認）；RSU 三年各約 33.3%（Levels.fyi）",
+      "bonus_timing": "GoodJob 2025 評價：一年 12 個月＋約 11% 獎金；發放月份查不到",
+      "bonus_structure": [
+        {
+          "type": "年度獎金",
+          "rule": "GoodJob 2025：12 個月＋約 11% 獎金；Blind：R&D 目標約 12～20%，依職級",
+          "months": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/新思科技/work-experiences/工時狀況",
+              "date": "2025"
+            }
+          ]
+        }
+      ],
+      "culture": "GoodJob 4.5 分（63 則）；年薪中等、福利不錯；GoodJob 工時狀況 4.8 分（8 筆）多為每週 40 小時，R&D 稱不用打卡、看交付；管理方式 3.3 分",
       "interview": "一面線上測驗→二面合作工程師依履歷提問；R&D 職需 30 分鐘簡報＋白板題、OS、C++（GoodJob 2025-12、2026）",
       "grade_system": null,
       "mops": null,
