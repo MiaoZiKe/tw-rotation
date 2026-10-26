@@ -663,6 +663,59 @@
             }
           ],
           "n_stat": 1
+        },
+        {
+          "unit": "其他",
+          "role": "職位未寫",
+          "degree": "碩士",
+          "years": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": [
+            18,
+            20
+          ],
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n": 1,
+          "note": null,
+          "sources": [
+            {
+              "site": "PTT",
+              "url": "https://www.ptt.cc/bbs/Tech_Job/M.1777292206.A.5B2.html",
+              "date": "2026-04"
+            }
+          ],
+          "confidence": "低",
+          "grade": null,
+          "samples": [
+            {
+              "site": "PTT",
+              "url": "https://www.ptt.cc/bbs/Tech_Job/M.1777292206.A.5B2.html",
+              "date": "2026-04",
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": [
+                18,
+                20
+              ],
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "PTT offer 請益（ASML vs 台積）：ASML 開 N+10（N＝台積新人價，未寫絕對數字）、年薪約 18～20 個月，需輪班",
+              "date_confirmed": true,
+              "in_window": true,
+              "date_note": "PTT 文章代碼 M.1777292206 換算 2026-04-27",
+              "role": "職位未寫"
+            }
+          ],
+          "n_stat": 1
         }
       ],
       "mops": null,
@@ -3808,6 +3861,56 @@
           "confidence": "低",
           "n": 1,
           "n_stat": 0
+        },
+        {
+          "unit": "其他",
+          "role": "硬體工程師",
+          "degree": "碩士",
+          "years": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": [
+            120,
+            120
+          ],
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n": 1,
+          "note": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/愛德萬測試股份有限公司/interview-experiences#hw-2026-01",
+              "date": "2026-01"
+            }
+          ],
+          "confidence": "低",
+          "grade": null,
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/愛德萬測試股份有限公司/interview-experiences#hw-2026-01",
+              "date": "2026-01",
+              "unit_detail": "新竹市",
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 120,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "GoodJob 愛德萬面試心得列表：硬體工程師（新竹市）2026-01 面試，年薪 120 萬，結果沒通知",
+              "date_confirmed": true,
+              "in_window": true,
+              "date_note": "GoodJob 列表標示面試時間 2026-01",
+              "role": "硬體工程師"
+            }
+          ],
+          "n_stat": 1
         }
       ]
     },
