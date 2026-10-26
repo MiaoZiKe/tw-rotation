@@ -202,7 +202,11 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "annual_months": [
+            14,
+            14
+          ]
         },
         {
           "unit": "其他",
@@ -266,7 +270,11 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "annual_total_wan": [
+            150,
+            150
+          ]
         },
         {
           "unit": "其他",
@@ -298,7 +306,8 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "overtime": "經常"
         },
         {
           "unit": "台中",
@@ -602,7 +611,9 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "weekly_hours": 49,
+          "overtime": "經常"
         }
       ],
       "mops": null,
@@ -1340,7 +1351,11 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "base_month_k": [
+            78,
+            78
+          ]
         },
         {
           "unit": "其他",
@@ -1372,7 +1387,8 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "travel": "經常"
         },
         {
           "unit": "其他",
@@ -1436,7 +1452,12 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "annual_months": [
+            14,
+            14
+          ],
+          "weekly_hours": 45
         },
         {
           "unit": "台南（對台積）",
@@ -1468,7 +1489,12 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "annual_total_wan": [
+            130,
+            130
+          ],
+          "overtime": "經常"
         }
       ],
       "mops": null,
@@ -1895,7 +1921,11 @@
           "n": 1,
           "sources": [],
           "confidence": "低",
-          "note": "2026-10-26 由 Dcard 樣本新增的公司"
+          "note": "2026-10-26 由 Dcard 樣本新增的公司",
+          "annual_months": [
+            13,
+            13
+          ]
         }
       ]
     },
@@ -1943,7 +1973,11 @@
           "n": 1,
           "sources": [],
           "confidence": "低",
-          "note": "2026-10-26 由 Dcard 樣本新增的公司"
+          "note": "2026-10-26 由 Dcard 樣本新增的公司",
+          "annual_months": [
+            14,
+            14
+          ]
         }
       ]
     },
@@ -1992,7 +2026,12 @@
           "n": 1,
           "sources": [],
           "confidence": "低",
-          "note": "2026-10-26 由 Dcard 樣本新增的公司"
+          "note": "2026-10-26 由 Dcard 樣本新增的公司",
+          "annual_total_wan": [
+            100,
+            100
+          ],
+          "travel": "需要"
         }
       ]
     },
@@ -2041,7 +2080,8 @@
           "n": 1,
           "sources": [],
           "confidence": "低",
-          "note": "2026-10-26 由 Dcard 樣本新增的公司"
+          "note": "2026-10-26 由 Dcard 樣本新增的公司",
+          "travel": "需要"
         }
       ]
     },
@@ -2139,7 +2179,11 @@
           "n": 1,
           "sources": [],
           "confidence": "低",
-          "note": "2026-10-26 由 Dcard 樣本新增的公司"
+          "note": "2026-10-26 由 Dcard 樣本新增的公司",
+          "annual_months": [
+            13,
+            13
+          ]
         },
         {
           "unit": "其他",
@@ -2218,7 +2262,11 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "annual_months": [
+            14,
+            14
+          ]
         }
       ],
       "note": "2026-10-26 由 Dcard 樣本新增的公司"
@@ -2267,7 +2315,11 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "annual_months": [
+            16,
+            16
+          ]
         }
       ],
       "note": "2026-10-26 由 Dcard 樣本新增的公司"
