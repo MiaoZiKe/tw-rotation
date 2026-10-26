@@ -26,28 +26,37 @@ background:{T['bg']};background-image:linear-gradient(rgba(10,106,134,.05) 1px,t
 .pill{{background:#F5B73B;color:{T['ink']};font-weight:800;font-size:28px;padding:6px 18px;border-radius:12px}}
 .ht{{font-size:52px;font-weight:800}}
 .hdate{{margin-left:auto;font-size:34px;font-weight:600;color:{T['ink2']}}}
-.card{{flex:1;background:{T['panel']};border:1.5px solid {T['line']};border-radius:10px;padding:48px 44px;display:flex;flex-direction:column;justify-content:center;gap:28px;position:relative;box-shadow:inset 0 1px 0 rgba(255,255,255,.9)}}
-.big{{font-size:92px;font-weight:800;line-height:1.25}}
-.mid{{font-size:60px;font-weight:800;line-height:1.3}}
-.sub{{font-size:36px;font-weight:600;color:{T['ink2']};line-height:1.5}}
+.card{{flex:1;background:{T['panel']};border:1.5px solid {T['line']};border-radius:10px;padding:48px 44px;display:flex;flex-direction:column;justify-content:space-between;gap:24px;position:relative;overflow:hidden;box-shadow:inset 0 1px 0 rgba(255,255,255,.9)}}
+.blk{{flex:1;display:flex;flex-direction:column;justify-content:center;gap:30px}}
+.bibi{{align-self:center;object-fit:contain}}
+.big{{font-size:112px;font-weight:800;line-height:1.25}}
+.mid{{font-size:68px;font-weight:800;line-height:1.3}}
+.sub{{font-size:44px;font-weight:600;color:{T['ink2']};line-height:1.5}}
 .acc{{color:{T['accent']}}}
-.row{{display:flex;align-items:center;gap:20px;height:120px}}
-.rk{{font-size:60px;font-weight:800;width:70px;color:{T['accent']}}}
-.nm{{font-size:44px;font-weight:800;width:190px}}
-.track{{flex:1;height:44px;background:{T['panel2']};border:1.5px solid {T['line']};border-radius:6px}}
+.row{{display:flex;align-items:center;gap:22px;height:132px}}
+.rk{{font-size:72px;font-weight:800;width:84px;color:{T['accent']}}}
+.nm{{font-size:52px;font-weight:800;width:220px}}
+.track{{flex:1;height:52px;background:{T['panel2']};border:1.5px solid {T['line']};border-radius:6px}}
 .bar{{height:100%;background:{T['accent']};border-radius:5px}}
 .bar.b2{{background:#7BB3C6}}
-.val{{font-size:48px;font-weight:800;width:150px;text-align:right}}
-.unit{{font-size:30px;font-weight:600;color:{T['ink3']}}}
+.val{{font-size:58px;font-weight:800;width:170px;text-align:right}}
+.unit{{font-size:32px;font-weight:600;color:{T['ink3']}}}
 .cmp{{display:flex;flex-direction:column;gap:12px}}
-.cmp .t{{font-size:44px;font-weight:800}}
-.line{{display:flex;align-items:center;gap:16px;height:72px}}
-.line .l{{font-size:32px;font-weight:700;width:130px;color:{T['ink2']}}}
+.cmp .t{{font-size:52px;font-weight:800}}
+.line{{display:flex;align-items:center;gap:16px;height:84px}}
+.line .l{{font-size:36px;font-weight:700;width:150px;color:{T['ink2']}}}
 .line .track{{height:40px}}
-.line .val{{font-size:44px;width:130px}}
+.line .val{{font-size:52px;width:150px}}
 .tag{{font-size:32px;font-weight:800;background:{T['accent']};color:#fff;padding:6px 20px;border-radius:12px;align-self:flex-start}}
-.disc{{font-size:30px;font-weight:600;color:{T['ink3']};line-height:1.5}}
+.disc{{font-size:34px;font-weight:600;color:{T['ink3']};line-height:1.5}}
 """
+
+import base64
+def bibi(name, h):
+    f = ROOT/'docs'/'anim'/'bibi_library'/name/'key.png'
+    im = Image.open(f).convert('RGBA'); im = im.crop(im.getchannel('A').point(lambda a: 255 if a > 8 else 0).getbbox())   # 去掉透明留白，才放得大
+    buf = io.BytesIO(); im.save(buf, 'PNG')
+    return f'<img class="bibi" style="height:{h}px" src="data:image/png;base64,{base64.b64encode(buf.getvalue()).decode()}">'
 
 def hd():
     return f'<div class="hd"><img src="{logo_uri()}"><div class="pill">薪資</div><div class="ht">薪水榜</div><div class="hdate num">114 年度</div></div>'
@@ -63,16 +72,20 @@ def cmpblock(name, avg, med, mx):
             f'<div class="line"><div class="l">中位數</div><div class="track"><div class="bar b2" style="width:{med/mx*100:.1f}%"></div></div><div class="val num">{med}</div></div></div>')
 
 s5 = cmpblock("聯發科", 446.5, 355.2, 600) + (cmpblock("信驊（上櫃）", 561.7, 453.7, 600) if XIN else "")
-slides = [
+slides_raw = [
  ('<div class="mid acc">114 年度非主管全時員工</div><div class="big">去年薪水最高的<br>公司，這次換誰？</div><div class="sub">證交所、櫃買中心 6/30 公布</div>'),
  ('<div class="mid">上市平均前三</div>' + row(1,"聯發科",446.5,500) + row(2,"祥碩",428.1,500) + row(3,"台積電",407.2,500) + '<div class="unit">單位：萬元</div>'),
  ('<div class="big">平均數，<br>不等於你的同事</div><div class="sub">平均數會被少數高薪拉高</div>'),
  ('<div class="mid">中位數看中間那位</div>' + row(1,"聯發科",355.2,400,"b2") + row(2,"祥碩",337.4,400,"b2") + row(3,"瑞昱",319.3,400,"b2") + row(4,"台積電",316.2,400,"b2") + '<div class="unit">單位：萬元</div>'),
  ('<div class="mid">同一家公司，兩個數字</div>' + s5 + '<div class="unit">單位：萬元</div>'),
- ('<div class="big">前十名全是半導體業</div><div class="sub">上市中位數前十名同一個產業</div>'),
+ ('<div class="big">前十名全是<br>半導體業</div><div class="sub">上市中位數前十名同一個產業</div>'),
  ('<div class="tag">轉折</div><div class="big">資金有沒有<br>流進這個族群？</div><div class="sub">薪水高 ≠ 股價漲，兩件事分開看</div>'),
  ('<div class="big">看完整資料：<br>點個人簡介的連結</div><div class="sub">族群資金流向</div><div class="disc">本內容為公開資料整理，不構成任何投資建議；投資有風險，請自行判斷。</div>'),
 ]
+
+BIBI = [("wave",620),("coins",430),("face_think",620),("magnifier",340),("face_nod",330),("wow",640),("tilt",620),("point_ur",560)]
+DATA = {1, 3, 4}
+slides = [f'<div class="blk" style="justify-content:{"space-evenly" if k in DATA else "center"}">{b}</div>' + bibi(n, h) for k,(b,(n,h)) in enumerate(zip(slides_raw,BIBI))]
 
 CHECK = """() => {
  const els=[...document.body.querySelectorAll('*')].filter(e=>{
