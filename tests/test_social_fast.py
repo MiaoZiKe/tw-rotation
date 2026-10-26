@@ -61,18 +61,18 @@ def test_read_寫法跟網站畫面一致():
 def test_快速路徑組出的_shots_可以直接產文案():
     shots = ss.fast_targets(_args(), lambda n: DATA.get(n, {}))
     by = {s["name"]: s for s in shots}
-    assert by["credit-short"]["ok"] is False      # 沒有融券排行 → 跳過（等同舊流程「頁面上沒有這個分段」）
-    for n in ("fut-oi", "retail-ratio", "inst-today", "streak-foreign", "streak-trust", "credit-ratio", "credit-rank"):
+    assert "credit-short" not in by and "credit-ratio" not in by      # 2026-10-27 融資移到盤前
+    for n in ("fut-oi", "retail-ratio", "inst-today", "streak-foreign", "streak-trust"):
         s = by[n]
         assert s["ok"], n
         assert [p["name"] for p in s["pieces_d"]] == [n] and [p["name"] for p in s["pieces_m"]] == [n]
         assert all(p.get("fast") for p in s["pieces_d"] + s["pieces_m"])
-    assert by["streak-foreign"]["read"]["buy"] == ["2330"] and by["credit-rank"]["read"]["up"] == ["2330"]      # 只列個股（排除 ETF）
+    assert by["streak-foreign"]["read"]["buy"] == ["2330"]      # 只列個股（排除 ETF）
     txt = ss.build_text("close", "10/22 18:00", shots, "2026-10-22", "20261022")
     L = txt.splitlines()
     assert L[0] == "🌙 盤後3分鐘"
     assert "・外資 -41,345 口、投信 +40,234 口；" in L and "・自營商 -1,500 口" in L
     assert "・大台 -2.35%、小台 +0.13%；" in L and "・微台 +20.00%" in L
     assert "・外資 -815.8億、投信 +94.9億；" in L
-    assert "・上市（估算）170.38%，較前日 -0.12pp" in L
+    assert "・上市（估算）170.38%，較前日 -0.12pp" not in L
     assert L[-2:] == ss.LINK_LINES and txt.count("https://") == 1

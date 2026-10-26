@@ -409,7 +409,8 @@ def fetch_json(base: str, name: str) -> dict:
 
 
 # 2026-10-26 Andy：「盤後 Threads 7 張 & 融資融券 Threads 3 張應該是要一起的」→ 盤後一篇＝法人卡＋融資融券卡
-KIND_SET = {"close": ("close", "credit"), "credit": ("credit",), "intraday": ("intraday",)}
+KIND_SET = {"close": ("close",),      # 2026-10-27 Andy：融資維持率與融資融券排行移到隔天盤前（scripts/social_premarket.py）
+             "credit": ("credit",), "intraday": ("intraday",)}
 
 
 def credit_ready(meta: dict, mf: dict) -> tuple[bool, str, str]:
@@ -1505,7 +1506,7 @@ def img_size(path: str) -> tuple[int, int]:
 # 文案（Threads 單則上限 500 字，含網址）。深連結用網站實際路由；hash 路由的 query 放在 # 前面
 THREADS_MAX = 480          # Threads 單則上限 500 字（網址以實際字元數計），留 20 字餘裕
 ROUTE_INST = "market/inst"      # 法人頁路由；日後改 market/inst 只改這個常數
-HASHTAGS = {"intraday": "#台股 #資金流向 #熱力圖 #族群輪動", "close": "#台股 #法人買賣超 #外資 #投信 #融資融券",
+HASHTAGS = {"intraday": "#台股 #資金流向 #熱力圖 #族群輪動", "close": "#台股 #法人買賣超 #外資 #投信 #台指期",
             "credit": "#台股 #融資 #融券 #融資維持率 #信用交易"}
 DISCLAIMER = "資料：證交所／櫃買公開資料整理，僅供參考，不構成投資建議"
 
@@ -1734,7 +1735,7 @@ def _caption_lines(kind: str, stamp: str, shots: list[dict], data_date: str, ymd
         r = (ok.get("etf-buy") or {}).get("read") or {}
         if r.get("foreign") or r.get("trust"):      # 2026-10-26 Andy：ETF 買超排名
             L += ["ETF 買超："] + [f"・{lab} {_join(r[k], n)}" + ("；" if k == "foreign" and r.get("trust") else "") for k, lab in (("foreign", "外資"), ("trust", "投信")) if r.get(k)]
-        L += credit_lines(ok, n)      # 2026-10-26 Andy：融資融券併進盤後同一篇；大盤走勢、漲跌家數拿掉
+        # 2026-10-27 Andy：融資融券移到隔天盤前，盤後不再列
         L.append(HASHTAGS[kind])
         if links != "none":
             L += LINK_LINES
@@ -1809,18 +1810,11 @@ def decide(kind: str, now: datetime, meta: dict, mf: dict, card_dates: dict, nam
     ev = ev or {}
     lt, live = ev.get("last_trade"), bool(ev.get("live"))
     if kind == "close":
-        # 盤後一篇（法人＋融資融券，2026-10-26 Andy 合併）：融資到齊才發，資料日＝融資資料日，每張卡都要是同一天；
-        # 時間窗跟融資一樣：資料日收盤後～下一個交易日 09:00（融資常到深夜或隔天清晨才齊）
-        ok, d, why = credit_ready(meta, mf)
+        # 盤後：法人＋期貨＋散戶＋ETF（2026-10-27 起融資移到盤前）→ 每張卡都要是今天、今天是交易日；下午資料到齊那輪就發
         cd = {n: card_dates.get(n, "") for n in names}
+        ok, why = gate.close_gate(today, cd, holidays, lt, live, now)
         log("盤後各張資料日：" + "、".join(f"{k}＝{v or '沒有日期'}" for k, v in cd.items()))
-        if not ok:
-            return False, d, "融資融券還沒到齊：" + why
-        bad = {k: (v or "沒有日期") for k, v in cd.items() if v != d}
-        if bad:
-            return False, d, "這幾張的資料日跟 " + d + " 不同：" + "、".join(f"{k}＝{v}" for k, v in bad.items())
-        ok, why = gate.credit_gate(now, d, holidays, lt, live)
-        return ok, d if ok else "", why
+        return ok, today if ok else "", why
     if kind == "credit":
         ok, d, why = credit_ready(meta, mf)
         if not ok:
@@ -1905,7 +1899,7 @@ def main() -> int:
             DATE_ISO.update(data_dates(None, lambda n: fetch_json(base, n)))
         names_ = [t["name"] for t in TARGETS if t["kind"] in KIND_SET[args.kind] and (not args.only or t["name"] in args.only.split(","))]
         holidays_ = gate.load_holidays()
-        mf_ = fetch_json(base, "market_fut") if args.kind in ("close", "credit") else {}
+        mf_ = fetch_json(base, "market_fut") if args.kind == "credit" else {}
         ev_ = fetch_last_trade() if args.kind in ("close", "credit") and not args.no_mis else {}
         if ev_:
             log(f"即時成交日（mis 加權指數）：{ev_.get('last_trade') or '查不到'}")
@@ -2009,7 +2003,7 @@ def main() -> int:
                 return True
 
             ORDER = {"intraday": ["rotation-wheel", "sankey-tree", "rotation-rank", "heat"],
-                     "close": ["fut-oi", "retail-ratio", "inst-today", "streak-foreign", "streak-trust", "credit-ratio", "credit-rank", "credit-short"]}.get(args.kind, [])
+                     "close": ["fut-oi", "retail-ratio", "inst-today", "streak-foreign", "streak-trust"]}.get(args.kind, [])
             rk = lambda r: ORDER.index(r["name"]) if r["name"] in ORDER else len(ORDER)
             pd_ = sorted([(s, r) for s in ok for r in s["pieces_d"]], key=lambda t: rk(t[1]))      # Threads 輪播順序＝這裡的順序
             pm_ = sorted([(s, r) for s in ok for r in s["pieces_m"]], key=lambda t: rk(t[1]))
@@ -2093,7 +2087,7 @@ def main() -> int:
             if args.kind == "close":
                 try:
                     rr_ = next((x.get("read") for x in ok if x["name"] == "retail-ratio"), None) or []
-                    cr_ = next((x.get("read") for x in ok if x["name"] == "credit-ratio"), None) or {}
+                    cr_ = {}      # 融資移到盤前
                     ok.append({"name": "analysis", "ok": True, "read": close_reads(fetch_json(base, "inst_market") or {}, fetch_json(base, "fut_oi") or {},
                                                                                    it_ or {}, fetch_json(base, "market_heat") or {}, rr_, cr_)})
                 except Exception as exc:  # noqa: BLE001

@@ -65,7 +65,7 @@ def test_盤後融資文案_獨立一篇():
     assert len(txt) <= 480
     # 2026-10-26 起盤後那篇也帶融資融券（合併）
     close = ss.build_text("close", "10/21 21:40", shots, "2026-10-21", "20261021")
-    assert close.splitlines()[0] == "🌙 盤後3分鐘" and "📈 融資：" in close and "📉 融券：" in close and close.count("https://") == 1
+    assert close.splitlines()[0] == "🌙 盤後3分鐘" and "📈 融資：" not in close and close.count("https://") == 1      # 10-27 融資移到盤前
 
 
 def test_盤後文案_照盤中格式():
@@ -87,7 +87,7 @@ def test_融資卡歸盤後融資那篇():
     assert kinds["credit-ratio"] == kinds["credit-rank"] == "credit"
     assert all(kinds[n] == "close" for n in ("inst-today", "streak-foreign", "streak-trust", "fut-oi", "retail-ratio"))
     assert kinds["market-index"] == kinds["market-breadth"] == "off"      # 2026-10-26 Andy：大盤走勢、漲跌家數拿掉
-    assert set(ss.KIND_SET["close"]) == {"close", "credit"}               # 盤後一篇含融資融券
+    assert set(ss.KIND_SET["close"]) == {"close"}               # 2026-10-27 Andy：融資移到隔天盤前
 
 
 def test_融資排行只列個股():
@@ -112,7 +112,7 @@ def test_法人排行只列個股():
 def test_盤後圖順序_未平倉第一_散戶第二():
     import inspect
     src = inspect.getsource(ss)
-    assert '"close": ["fut-oi", "retail-ratio", "inst-today", "streak-foreign", "streak-trust", "credit-ratio", "credit-rank", "credit-short"]' in src
+    assert '"close": ["fut-oi", "retail-ratio", "inst-today", "streak-foreign", "streak-trust"]' in src
 
 
 def test_ETF買超含槓桿型_附張數():

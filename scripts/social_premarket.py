@@ -1106,10 +1106,49 @@ def caption(D: dict, ymd: str, max_len: int = ss.THREADS_MAX) -> str:
             body += [f"🧭 昨日盤面（美股 {us_d}{part}）："] + [f"・{trim(x, rk)}" for x in reads]
         if news[:kn]:
             body += ["📰 昨日事件："] + [f"・【{n['category']}】{short_title(n['title'], tl)}" for n in news[:kn]]
+        cr = D.get("credit")
+        if cr:      # 前一日融資融券接在最後（2026-10-27 Andy）
+            body += [f"💳 融資融券（{md(cr['date'])}）："]
+            body.append(f"・上市融資維持率（估算）{cr['ratio']:.2f}%" + (f"，單日{'下降' if cr['chg'] < 0 else '上升'} {abs(cr['chg']):.2f} 個百分點" if cr.get("chg") is not None else ""))
+            if kn >= 4 and cr["up"] and cr["dn"]:
+                body.append(f"・融資增加 {'、'.join(cr['up'])}；減少 {'、'.join(cr['dn'])}")
         txt = "\n".join(body + tail)
         if len(txt) <= max_len:
             return txt
     return txt
+
+
+# ============================================================================ 前一日融資融券（2026-10-27 Andy：從盤後移到盤前，接在最後面）
+CREDIT_CARDS = [("credit-ratio", "上市融資維持率（估）"), ("credit-rank", "融資增減排行"), ("credit-short", "融券增減排行")]
+
+
+def site_json(name: str, site_dir: str = "") -> dict:
+    """讀網站資料：有本機 site/data 就讀本機，沒有就讀正式站（GitHub Actions 盤前那輪沒有建網站資料）。"""
+    p = Path(site_dir or ROOT / "site" / "data") / f"{name}.json"
+    if p.exists():
+        try:
+            return json.loads(p.read_text("utf-8"))
+        except ValueError:
+            return {}
+    return ss.fetch_json(ss.SITE_URL + "/index.html", name)
+
+
+def credit_info(mf: dict, last_td: str | None) -> dict | None:
+    """融資資料日＝目標日前最後一個交易日、維持率算得出來、兩個排行同一天 → 回 {date, ratio, chg, up, dn, sup, sdn}；否則 None（不放這 3 張）。"""
+    m = (mf or {}).get("margin") or {}
+    rows = [r for r in (m.get("rows") or []) if r.get("ratio") is not None and not r.get("partial")]
+    if not rows:
+        return None
+    d = str(rows[-1].get("d") or "")[:10]
+    if last_td and d != last_td:
+        return None
+    if str((m.get("rank") or {}).get("d") or "")[:10] != d or str((m.get("short_rank") or {}).get("d") or "")[:10] != d:
+        return None
+    chg = rows[-1]["ratio"] - rows[-2]["ratio"] if len(rows) >= 2 else None
+    up, dn = ss.NAT.credit_top(m, "rank", 2)
+    sup, sdn = ss.NAT.credit_top(m, "short", 2)
+    nm = lambda rs: [ss.NAT.clean_name(r["name"]) for r in rs]
+    return {"date": d, "ratio": rows[-1]["ratio"], "chg": chg, "up": nm(up), "dn": nm(dn), "sup": nm(sup), "sdn": nm(sdn)}
 
 
 # ============================================================================ 主程式
@@ -1160,6 +1199,9 @@ def main() -> int:
     global DATE_TXT
     _t = pd.Timestamp(D['target']).date()
     DATE_TXT = f"{md(_t)} 週{WEEK[_t.weekday()]}"
+    D["credit"] = credit_info(site_json("market_fut"), D.get("last_td"))
+    if not D["credit"]:
+        print("[premarket] 前一日融資融券還沒到齊（或不是前一個交易日）→ 這次不放融資 3 張")
     pn = premarket_news(D)
     (out / "premarket_news.json").write_text(json.dumps(pn, ensure_ascii=False, indent=1), "utf-8")
     if args.save_site and pn["items"]:      # 2026-10-26 Andy：「標題內資訊需要存到我說的地方」＝精選文章「盤前消息」
@@ -1173,6 +1215,14 @@ def main() -> int:
         browser = p.chromium.launch(executable_path=ss.CHROMIUM) if ss.CHROMIUM else p.chromium.launch()
         threads = render(build_pages(D, "threads", args.frame), "threads", args.frame, out, browser, report)
         stories = render(build_pages(D, "story", args.frame), "story", args.frame, out, browser, report)
+        if D["credit"]:      # 融資 3 張：沿用盤後的原生卡片（social_native），標題膠囊改成盤前、日期＝融資資料日
+            for name, title in CREDIT_CARDS:
+                for mode, lst in (("threads", threads), ("story", stories)):
+                    fn = f"{mode}_{name}.png"
+                    r = ss.NAT.render(browser, name, mode, dict(kind=KIND, title=title, date=md(D["credit"]["date"]), jget=lambda n: site_json(n), logos=site_json("logos")), out / fn)
+                    r.setdefault("content_ratio", 1.0)
+                    report.append(r)
+                    lst.append(fn)
         browser.close()
     (out / "layout_report.json").write_text(json.dumps(report, ensure_ascii=False, indent=1), "utf-8")
     bad = [r for r in report if r["hits"] or r["out"] or r["cut"]]
