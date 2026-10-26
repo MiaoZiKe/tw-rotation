@@ -54,7 +54,7 @@
             }
           ],
           "confidence": "低",
-          "years": null,
+          "years": "0",
           "base_month_k": null,
           "bonus_months": null,
           "annual_months": null,
@@ -119,7 +119,7 @@
             }
           ],
           "confidence": "低",
-          "years": null,
+          "years": "0",
           "base_month_k": null,
           "bonus_months": null,
           "annual_months": null,
@@ -184,7 +184,7 @@
             }
           ],
           "confidence": "低",
-          "years": null,
+          "years": "0",
           "base_month_k": null,
           "bonus_months": null,
           "annual_months": null,
@@ -249,7 +249,7 @@
             }
           ],
           "confidence": "低",
-          "years": null,
+          "years": "3",
           "base_month_k": null,
           "bonus_months": null,
           "annual_months": null,
@@ -318,7 +318,7 @@
             60,
             60
           ],
-          "years": null,
+          "years": "0",
           "bonus_months": null,
           "annual_months": null,
           "annual_total_wan": null,
@@ -388,7 +388,7 @@
             16,
             16
           ],
-          "years": null,
+          "years": "轉職",
           "base_month_k": null,
           "bonus_months": null,
           "annual_total_wan": null,
@@ -449,7 +449,7 @@
           ],
           "confidence": "低",
           "n": 1,
-          "years": null,
+          "years": "4",
           "base_month_k": null,
           "bonus_months": null,
           "annual_months": null,
@@ -571,7 +571,7 @@
             150
           ],
           "overtime": "偶爾",
-          "years": null,
+          "years": "0",
           "base_month_k": null,
           "bonus_months": null,
           "annual_months": null,
@@ -601,12 +601,15 @@
               "bonus_months": null,
               "annual_months": null,
               "annual_wan": 160,
-              "weekly_hours": null,
+              "weekly_hours": 40,
               "overtime": "幾乎不",
               "travel": null,
               "quote_free_note": "月薪 N+22＋車補，預估年薪約 160 萬（發文者不確定）；工時約 8 小時",
               "in_window": false,
-              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2025-01-12"
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2025-01-12；weekly_hours 由摘要「工時約 8 小時」×5 天換算（10-26 補）",
+              "derived": [
+                "weekly_hours"
+              ]
             }
           ],
           "sources": [
@@ -694,7 +697,7 @@
             13,
             13
           ],
-          "years": null,
+          "years": "5",
           "bonus_months": null,
           "annual_total_wan": [
             169.0,
@@ -771,7 +774,7 @@
             13,
             13
           ],
-          "years": null,
+          "years": "5",
           "bonus_months": null,
           "annual_total_wan": [
             156.0,
@@ -849,7 +852,7 @@
             14,
             14
           ],
-          "years": null,
+          "years": "0",
           "bonus_months": null,
           "annual_total_wan": [
             70.0,
@@ -915,7 +918,7 @@
           ],
           "confidence": "低",
           "n": 1,
-          "years": null,
+          "years": "12",
           "base_month_k": null,
           "bonus_months": null,
           "annual_months": null,
@@ -991,7 +994,7 @@
             86.5,
             86.5
           ],
-          "years": null,
+          "years": "12",
           "bonus_months": null,
           "annual_months": [
             14.9,
@@ -1037,7 +1040,7 @@
               "years": "12",
               "degree": "碩士",
               "base_k": null,
-              "bonus_months": null,
+              "bonus_months": 3,
               "annual_months": 18,
               "annual_wan": null,
               "weekly_hours": null,
@@ -1045,7 +1048,10 @@
               "travel": null,
               "quote_free_note": "最終 offer：月薪比現職高約 10%、年薪高約 30%，保 15＋分紅 1～5 個月（取中值約 18）",
               "in_window": true,
-              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2025-08-15"
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2025-08-15；bonus_months 由摘要「分紅 1～5 個月」取中值換算（10-26 補）",
+              "derived": [
+                "bonus_months"
+              ]
             }
           ],
           "sources": [
@@ -1061,9 +1067,12 @@
             18,
             18
           ],
-          "years": null,
+          "years": "12",
           "base_month_k": null,
-          "bonus_months": null,
+          "bonus_months": [
+            3,
+            3
+          ],
           "annual_total_wan": null,
           "weekly_hours": null,
           "overtime": null,
@@ -1190,7 +1199,7 @@
           ],
           "confidence": "低",
           "n": 1,
-          "years": null,
+          "years": "0",
           "base_month_k": null,
           "bonus_months": null,
           "annual_months": null,
@@ -1257,7 +1266,7 @@
           ],
           "confidence": "低",
           "note": "2026-10-26 由 Dcard 樣本新增的公司",
-          "years": null,
+          "years": "5",
           "base_month_k": null,
           "bonus_months": null,
           "annual_months": null,
@@ -1391,7 +1400,7 @@
             15,
             15
           ],
-          "years": null,
+          "years": "0",
           "base_month_k": null,
           "bonus_months": null,
           "annual_total_wan": null,
@@ -1455,7 +1464,7 @@
           "bonus_months": null,
           "annual_months": null,
           "base_month_k": null,
-          "years": null,
+          "years": "3",
           "annual_total_wan": null,
           "weekly_hours": null,
           "overtime": null,
@@ -1520,7 +1529,7 @@
           "bonus_months": null,
           "annual_months": null,
           "base_month_k": null,
-          "years": null,
+          "years": "3",
           "annual_total_wan": null,
           "weekly_hours": null,
           "overtime": null,
@@ -1585,7 +1594,7 @@
           "bonus_months": null,
           "annual_months": null,
           "base_month_k": null,
-          "years": null,
+          "years": "3",
           "annual_total_wan": null,
           "weekly_hours": null,
           "overtime": null,

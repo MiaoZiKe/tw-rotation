@@ -13,7 +13,7 @@
       "bonus_timing": null,
       "bonus_structure": [],
       "culture": null,
-      "interview": null,
+      "interview": "網友說法：製程／設備工程師面試含英文測驗、適性測驗、主管面談聊論文，有人當場錄取（GoodJob 2026 分享）；microLED 新產線職缺第一面由副理說明輪班方式（GoodJob 2023）",
       "grade_system": null,
       "mops": null,
       "roles": [
@@ -59,7 +59,7 @@
             14,
             14
           ],
-          "years": null,
+          "years": "0",
           "base_month_k": null,
           "bonus_months": null,
           "annual_total_wan": null,
@@ -106,7 +106,7 @@
           ],
           "confidence": "低",
           "n": 1,
-          "years": null,
+          "years": "0",
           "base_month_k": null,
           "bonus_months": null,
           "annual_months": null,
@@ -178,8 +178,8 @@
       "stock_plan": null,
       "bonus_timing": null,
       "bonus_structure": [],
-      "culture": null,
-      "interview": null,
+      "culture": "網友說法：專案生產或重大異常時才加班、其餘尚可，但各部門差異大，也有人填每週 60 小時；有人反映加班沒有加班費（GoodJob 工時評價）",
+      "interview": "網友說法：製程／設備類主管會強調需輪班、on call，並問能否加班；有人提到 12 小時做二休二（GoodJob 面試分享，年份多為 2023 前後）",
       "grade_system": null,
       "mops": null,
       "note": "2026-10-26 由 Dcard 樣本新增的公司",
@@ -232,7 +232,7 @@
             14,
             14
           ],
-          "years": null,
+          "years": "0",
           "bonus_months": null,
           "annual_total_wan": [
             77.0,
@@ -302,11 +302,60 @@
       "code": "3008",
       "heat": null,
       "benefits": null,
-      "stock_plan": null,
+      "stock_plan": "2026 年 4 月 20 日董事會決議、6 月 9 日股東會通過首度發行限制員工權利新股約 700 張（經濟日報／聯合新聞網報導）",
       "bonus_timing": null,
-      "bonus_structure": [],
-      "culture": null,
-      "interview": null,
+      "bonus_structure": [
+        {
+          "type": "年終獎金",
+          "rule": "網友評價稱年終 2 個月（品管員評價，年份未標）",
+          "months": 2,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/大立光電股份有限公司/work-experiences/薪資福利",
+              "date": null
+            }
+          ]
+        },
+        {
+          "type": "季獎金",
+          "rule": "網友評價稱每季有獎金、視表現高低；金額與月份未寫",
+          "months": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/大立光電股份有限公司/work-experiences/薪資福利",
+              "date": null
+            }
+          ]
+        },
+        {
+          "type": "三節獎金",
+          "rule": "網友評價稱端午、中秋各半個月",
+          "months": 1,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/大立光電股份有限公司/work-experiences/薪資福利",
+              "date": null
+            }
+          ]
+        },
+        {
+          "type": "限制員工權利新股",
+          "rule": "2026 年首度發行約 700 張（股東會 6 月 9 日通過）",
+          "months": null,
+          "sources": [
+            {
+              "site": "聯合新聞網",
+              "url": "https://udn.com/news/story/7240/9554395",
+              "date": "2026-06"
+            }
+          ]
+        }
+      ],
+      "culture": "網友說法：GoodJob 統計平均每週上班約 56 小時、64% 幾乎每天加班；評價兩極，有人說加班費給得多、底薪不錯，也有人批評工作強度高（GoodJob 公司評分 3.2）",
+      "interview": "網友說法：面試約 6 小時，含數學、專業測驗與多位主管面談；薪資要確定錄取才知道（GoodJob 面試分享）",
       "grade_system": null,
       "mops": null,
       "note": "2026-10-26 由 Dcard 樣本新增的公司",
@@ -357,7 +406,7 @@
             65
           ],
           "overtime": "經常",
-          "years": null,
+          "years": "0",
           "base_month_k": null,
           "bonus_months": null,
           "annual_total_wan": null,
@@ -421,10 +470,40 @@
       "name": "瑞儀光電",
       "code": "6176",
       "heat": null,
-      "benefits": null,
+      "benefits": "網友說法：福利在業界算不錯，但沒有三節獎金（GoodJob 2025 評價）",
       "stock_plan": null,
       "bonus_timing": null,
-      "bonus_structure": [],
+      "bonus_structure": [
+        {
+          "type": "員工分紅",
+          "rule": "官方招募說明：每年依公司營運績效及個人工作表現實施員工分紅；發放月份未寫",
+          "months": null,
+          "sources": [
+            {
+              "site": "Cake 公司頁",
+              "url": "https://www.cake.me/companies/radiant",
+              "date": null
+            },
+            {
+              "site": "104",
+              "url": "https://program.104.com.tw/NCKU/job/14364311",
+              "date": null
+            }
+          ]
+        },
+        {
+          "type": "年終獎金",
+          "rule": "官方招募說明有年終獎金；網友稱底薪不高但年終與分紅可觀（GoodJob 2025）",
+          "months": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/瑞儀光電股份有限公司/work-experiences/公司%2F團隊文化",
+              "date": "2025"
+            }
+          ]
+        }
+      ],
       "culture": null,
       "interview": null,
       "grade_system": null,
@@ -473,7 +552,7 @@
             14,
             14
           ],
-          "years": null,
+          "years": "轉職",
           "base_month_k": null,
           "bonus_months": null,
           "annual_total_wan": null,
