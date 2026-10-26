@@ -29,7 +29,7 @@
             18
           ],
           "annual_total_wan": [
-            77,
+            110,
             110
           ],
           "weekly_hours": [
@@ -38,7 +38,7 @@
           ],
           "overtime": "偶爾",
           "travel": null,
-          "n": 25,
+          "n": 24,
           "note": "比薪水統計中位數 5.5 萬（2025 資料）；PTT 傳碩士 5.5 萬起未經公司證實；比薪水 2026 有 4 年 120 萬、6 年 105 萬自述（非新人）；第二輪（Dcard／PTT／GoodJob 各分開搜）：輪班設備起薪 5.5 萬起、台南 TCP Probe 7.4 萬、台中一年經驗 6.1 萬；保 14 個月（含年終 2 個月）＋分紅 0～4 個月（11 月發），內推文稱年薪約 18 個月；夜班津貼 +20%；FY26 公司另發每人 100 萬感謝金（工會質疑）；內推文數字可能偏樂觀；Dcard 日期依文章編號推估；bonus_months、annual_total_wan 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples；未逐筆對應的舊彙整：bonus_months=[2, 4]；未逐筆對應的舊彙整：annual_total_wan=[80, 100]；未逐筆對應的舊彙整：travel=不用；部分年薪／年薪月數由同一筆樣本的「底薪×月數」推算（樣本標 derived）",
           "sources": [
             {
@@ -134,11 +134,6 @@
             {
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/262039038",
-              "date": "2026-08"
-            },
-            {
-              "site": "Dcard",
-              "url": "https://www.dcard.tw/f/tech_job/p/262012805",
               "date": "2026-08"
             },
             {
@@ -549,28 +544,6 @@
             },
             {
               "site": "Dcard",
-              "url": "https://www.dcard.tw/f/tech_job/p/262012805",
-              "date": "2026-08",
-              "page_date": "2026-08-22",
-              "date_confirmed": true,
-              "role": "輪班設備助理工程師（蝕刻）",
-              "grade": "EA",
-              "unit_detail": "后里",
-              "years": "0",
-              "degree": "碩士",
-              "base_k": null,
-              "bonus_months": null,
-              "annual_months": 14,
-              "annual_wan": null,
-              "weekly_hours": null,
-              "overtime": null,
-              "travel": null,
-              "quote_free_note": "N＝台積今年新人價；底薪 N-10，12＋2 個月＋IPP 分紅；四三輪",
-              "in_window": true,
-              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-08-22"
-            },
-            {
-              "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/261641585",
               "date": "2026-06",
               "page_date": "2026-06-10",
@@ -703,7 +676,7 @@
               "in_window": true
             }
           ],
-          "n_stat": 21,
+          "n_stat": 20,
           "degree_diff": "樣本中位數：學士底薪約 55K、碩士約 58K（差約 3K；學士 1 筆、碩士 4 筆）"
         },
         {
@@ -721,13 +694,13 @@
             14
           ],
           "annual_total_wan": [
-            100.8,
+            130.0,
             130.0
           ],
           "weekly_hours": null,
           "overtime": null,
           "travel": null,
-          "n": 17,
+          "n": 16,
           "note": "整理文稱常日班 5.4 萬起、輪班 4.6 萬起，依學歷科系核敘；未區分碩士；常日班加班與分紅沿用同公司設備職回報（低信心）；撤回：overtime、bonus_months 原為沿用／推算／暫填值，無直接證據，已改回原值；第二輪：Dcard 台南徵才文常日班工程師月薪 6.4 萬起；annual_months 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples；未逐筆對應的舊彙整：base_month_k=[64, 64]；未逐筆對應的舊彙整：annual_months=[14, 14]；未逐筆對應的舊彙整：travel=不用",
           "sources": [
             {
@@ -804,11 +777,6 @@
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/262097462",
               "date": "2026-09"
-            },
-            {
-              "site": "Dcard",
-              "url": "https://www.dcard.tw/f/tech_job/p/262034250",
-              "date": "2026-08"
             },
             {
               "site": "Dcard",
@@ -1076,28 +1044,6 @@
             },
             {
               "site": "Dcard",
-              "url": "https://www.dcard.tw/f/tech_job/p/262034250",
-              "date": "2026-08",
-              "page_date": "2026-08-26",
-              "date_confirmed": true,
-              "role": "製程助理工程師（AATT TNR）",
-              "grade": "T2",
-              "unit_detail": null,
-              "years": "0",
-              "degree": null,
-              "base_k": null,
-              "bonus_months": null,
-              "annual_months": null,
-              "annual_wan": null,
-              "weekly_hours": null,
-              "overtime": null,
-              "travel": null,
-              "quote_free_note": "現職剛進矽品；美光起薪和矽品差不多；數字未透露",
-              "in_window": true,
-              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-08-26"
-            },
-            {
-              "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/258580564",
               "date": "2025-04",
               "page_date": "2025-04-18",
@@ -1187,7 +1133,7 @@
               "date_note": "Dcard 頁面發文日期 2025-04-01（2026-10-26 2037 批）"
             }
           ],
-          "n_stat": 12
+          "n_stat": 11
         },
         {
           "unit": "Global team",
@@ -1864,55 +1810,6 @@
           "overtime": null,
           "travel": null,
           "n_stat": 3,
-          "note": null,
-          "grade": null
-        },
-        {
-          "unit": "其他",
-          "role": "廠務助理工程師",
-          "degree": "碩士",
-          "samples": [
-            {
-              "site": "Dcard",
-              "url": "https://www.dcard.tw/f/tech_job/p/262118258",
-              "date": "2026-09",
-              "page_date": "2026-09-10",
-              "date_confirmed": true,
-              "role": "廠務助理工程師",
-              "grade": null,
-              "unit_detail": null,
-              "years": null,
-              "degree": null,
-              "base_k": null,
-              "bonus_months": null,
-              "annual_months": null,
-              "annual_wan": null,
-              "weekly_hours": null,
-              "overtime": null,
-              "travel": null,
-              "quote_free_note": "發文者說起薪比矽品高；數字未透露",
-              "in_window": true,
-              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-09-10"
-            }
-          ],
-          "sources": [
-            {
-              "site": "Dcard",
-              "url": "https://www.dcard.tw/f/tech_job/p/262118258",
-              "date": "2026-09"
-            }
-          ],
-          "confidence": "低",
-          "n": 1,
-          "years": null,
-          "base_month_k": null,
-          "bonus_months": null,
-          "annual_months": null,
-          "annual_total_wan": null,
-          "weekly_hours": null,
-          "overtime": null,
-          "travel": null,
-          "n_stat": 1,
           "note": null,
           "grade": null
         },

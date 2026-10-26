@@ -7186,56 +7186,6 @@
           "bonus_timing_month": "2 月、5 月、7 月、8 月、11 月"
         },
         {
-          "unit": "南科／高雄 / 成品倉儲",
-          "role": "助理工程師",
-          "degree": "不限",
-          "samples": [
-            {
-              "site": "Dcard",
-              "url": "https://www.dcard.tw/f/tech_job/p/262243691",
-              "date": "2026-10",
-              "page_date": "2026-10-05",
-              "date_confirmed": true,
-              "role": "助理工程師（成品倉儲管理）",
-              "grade": "23T",
-              "unit_detail": "南科／高雄 / 成品倉儲",
-              "years": null,
-              "degree": null,
-              "base_k": null,
-              "bonus_months": null,
-              "annual_months": null,
-              "annual_wan": null,
-              "weekly_hours": null,
-              "overtime": null,
-              "travel": null,
-              "quote_free_note": "從日月光轉職；拿到 e-offer；數字未透露；長期想轉供應鏈；busyness 未提",
-              "in_window": true,
-              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-10-05"
-            }
-          ],
-          "sources": [
-            {
-              "site": "Dcard",
-              "url": "https://www.dcard.tw/f/tech_job/p/262243691",
-              "date": "2026-10"
-            }
-          ],
-          "confidence": "低",
-          "n": 1,
-          "years": null,
-          "base_month_k": null,
-          "bonus_months": null,
-          "annual_months": null,
-          "annual_total_wan": null,
-          "weekly_hours": null,
-          "overtime": null,
-          "travel": null,
-          "n_stat": 1,
-          "note": null,
-          "grade": null,
-          "bonus_timing_month": "2 月、5 月、7 月、8 月、11 月"
-        },
-        {
           "unit": "DTP",
           "role": "工程師",
           "degree": "不限",
@@ -7335,56 +7285,6 @@
           "overtime": null,
           "travel": null,
           "n_stat": 1,
-          "note": null,
-          "grade": null,
-          "bonus_timing_month": "2 月、5 月、7 月、8 月、11 月"
-        },
-        {
-          "unit": "其他",
-          "role": "AMHS 助理工程師",
-          "degree": "不限",
-          "samples": [
-            {
-              "site": "Dcard",
-              "url": "https://www.dcard.tw/f/tech_job/p/259440833",
-              "date": "2025-07",
-              "page_date": "2025-07-31",
-              "date_confirmed": true,
-              "role": "AMHS 助理工程師",
-              "grade": null,
-              "unit_detail": null,
-              "years": "0",
-              "degree": "學士",
-              "base_k": null,
-              "bonus_months": null,
-              "annual_months": null,
-              "annual_wan": 100,
-              "weekly_hours": null,
-              "overtime": null,
-              "travel": null,
-              "quote_free_note": "年薪破百（以 100 萬記）；常日非輪班，不確定是否 on call；一年後外派國外廠、需穿無塵衣；busyness=中",
-              "in_window": false,
-              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2025-07-31"
-            }
-          ],
-          "sources": [
-            {
-              "site": "Dcard",
-              "url": "https://www.dcard.tw/f/tech_job/p/259440833",
-              "date": "2025-07"
-            }
-          ],
-          "confidence": "低",
-          "n": 1,
-          "years": null,
-          "base_month_k": null,
-          "bonus_months": null,
-          "annual_months": null,
-          "annual_total_wan": null,
-          "weekly_hours": null,
-          "overtime": null,
-          "travel": null,
-          "n_stat": 0,
           "note": null,
           "grade": null,
           "bonus_timing_month": "2 月、5 月、7 月、8 月、11 月"
