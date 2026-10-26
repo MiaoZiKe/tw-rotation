@@ -10710,12 +10710,25 @@
       "name": "系微",
       "code": "6231",
       "heat": null,
-      "benefits": null,
+      "benefits": "網友說法：端午、中秋只發禮品沒有獎金（GoodJob 2026 評價）",
       "stock_plan": null,
       "bonus_timing": null,
-      "bonus_structure": [],
-      "culture": null,
-      "interview": null,
+      "bonus_structure": [
+        {
+          "type": "年終＋分紅",
+          "rule": "網友評價：薪資結構為底薪＋年終＋分紅，調薪慢；月數與發放月份未寫",
+          "months": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/系微股份有限公司/work-experiences/薪資福利",
+              "date": "2025"
+            }
+          ]
+        }
+      ],
+      "culture": "網友說法：GoodJob 評分 3.7，工時分數高（4.6）、薪資福利（2.1）與升遷（2.0）低；加班看部門，案子燒起來常加班，也有 BMC 工程師說幾乎不加班",
+      "interview": "網友說法：第一輪要考英文、專業科目、性向等多份試卷（GoodJob 2023 BIOS 工程師分享）；面試趣統計 3.8／5、難度低",
       "grade_system": null,
       "mops": null,
       "roles": [
@@ -10882,8 +10895,8 @@
       "stock_plan": null,
       "bonus_timing": null,
       "bonus_structure": [],
-      "culture": null,
-      "interview": null,
+      "culture": "網友說法：韌體／軟體工程師評分多在 3.5～4；有人反映開會占工時近四成（單一意見，GoodJob）",
+      "interview": "網友說法：人資先聊過往經驗，再由部門主管說明與深入追問專案做了什麼、如何規劃；有人覺得氣氛和善（GoodJob 2026-03、2026-08 面試分享，面試時間有的較舊）",
       "grade_system": null,
       "mops": null,
       "roles": [
@@ -10945,12 +10958,25 @@
       "name": "元太",
       "code": "8069",
       "heat": null,
-      "benefits": null,
+      "benefits": "官網：年度績效獎金、工作獎金、三節獎金，員工旅遊與部門聚餐補助、生日節慶禮金，陪產假、家庭照顧假、志工假",
       "stock_plan": null,
       "bonus_timing": null,
-      "bonus_structure": [],
-      "culture": null,
-      "interview": null,
+      "bonus_structure": [
+        {
+          "type": "績效獎金／工作獎金／三節獎金",
+          "rule": "官網列有年度績效獎金、工作獎金、三節獎金；月數與月份未公布",
+          "months": null,
+          "sources": [
+            {
+              "site": "元太官網",
+              "url": "https://tw.eink.com/about/employee",
+              "date": null
+            }
+          ]
+        }
+      ],
+      "culture": "網友說法：面試趣彙整多為偶爾或很少加班、日均約 8.5～8.8 小時；升遷與內部溝通評分偏低",
+      "interview": "網友說法：面試前或中常有英文測驗（單字翻譯等），常問離職原因、為何想來；2025 顯示控制工程師分享三位主管都追問能否加班（面試趣）",
       "grade_system": null,
       "mops": null,
       "roles": [
@@ -11016,8 +11042,8 @@
       "stock_plan": null,
       "bonus_timing": null,
       "bonus_structure": [],
-      "culture": null,
-      "interview": null,
+      "culture": "網友說法：面試趣公司評價 3.4／5；兆勤生活平衡 4.5 高於合勤 3.3",
+      "interview": "網友說法：面試趣統計合勤面試評價 3.7／5（子公司兆勤 Zyxel 4／5、錄取率 38%）；具體題目查不到",
       "grade_system": null,
       "mops": null,
       "roles": [
@@ -11079,12 +11105,37 @@
       "name": "神準",
       "code": "3558",
       "heat": null,
-      "benefits": null,
+      "benefits": "網友說法：三節只有禮券，聽說年終越發越少（GoodJob 2026 評價）",
       "stock_plan": null,
-      "bonus_timing": null,
-      "bonus_structure": [],
-      "culture": null,
-      "interview": null,
+      "bonus_timing": "網友評價：年終約 1 個月；分紅 9 月發、約 1～2 個月（GoodJob 硬體工程師評價，指 2020～2023 年）",
+      "bonus_structure": [
+        {
+          "type": "年終獎金",
+          "rule": "網友評價：2020～2023 年約 1 個月；2026 評價稱越發越少",
+          "months": 1,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/神準科技股份有限公司/work-experiences/薪資福利",
+              "date": "2023"
+            }
+          ]
+        },
+        {
+          "type": "員工分紅",
+          "rule": "網友評價：每年 9 月發，約 1～2 個月（2020～2023 年）",
+          "months": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/神準科技股份有限公司/work-experiences/薪資福利",
+              "date": "2023"
+            }
+          ]
+        }
+      ],
+      "culture": "網友說法：GoodJob 統計平均每週約 44 小時、12% 幾乎每天加班、39% 偶爾；忙時一週加班可超過 20 小時；面試趣公司評價 2.5／5",
+      "interview": "網友說法：主管先電話面試再安排面談；部分韌體職缺面試前有英文測驗，多益 650 以上可免測（GoodJob）",
       "grade_system": null,
       "mops": null,
       "roles": [
@@ -11195,9 +11246,34 @@
       "benefits": null,
       "stock_plan": null,
       "bonus_timing": null,
-      "bonus_structure": [],
-      "culture": null,
-      "interview": null,
+      "bonus_structure": [
+        {
+          "type": "保障年薪",
+          "rule": "集團徵才文宣：保障年薪 14 個月；網友 BIOS 面試分享亦稱固定 14 個月",
+          "months": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/鴻運科技有限公司/interview-experiences",
+              "date": null
+            }
+          ]
+        },
+        {
+          "type": "員工分紅",
+          "rule": "依公司經營績效及個人考績；網友說法不一：滿 1 年才有（BIOS 面試分享）或撐滿 3 年才拿得到（硬體工程師評價）；發放月份查不到",
+          "months": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/鴻運科技有限公司/work-experiences/薪資福利",
+              "date": null
+            }
+          ]
+        }
+      ],
+      "culture": "網友說法：不會每年調薪、營運好才調；有人認為分紅制度不透明（GoodJob 機構工程師評價）",
+      "interview": "網友說法：先與人資約時間再與部門主管面談，有些為線上面試（GoodJob）",
       "grade_system": null,
       "mops": null,
       "roles": [
@@ -11360,9 +11436,22 @@
       "benefits": null,
       "stock_plan": null,
       "bonus_timing": null,
-      "bonus_structure": [],
-      "culture": null,
-      "interview": null,
+      "bonus_structure": [
+        {
+          "type": "年終獎金",
+          "rule": "網友評價：看部門約 1.5～2 個月（GoodJob 2025 機構工程師）；發放月份查不到",
+          "months": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/奇鋐科技股份有限公司/work-experiences/薪資福利",
+              "date": "2025"
+            }
+          ]
+        }
+      ],
+      "culture": "網友說法：評價兩極，2026 有機構工程師說加班很多、無加班費與分紅、週工時 80 小時；也有人說準時下班約 8 小時（比薪水 2026-07）",
+      "interview": "網友說法：機構職缺事前線上英文測驗，現場另有視圖、模具、塑膠、流體試卷再主管面試；熱傳職缺先考基本熱傳；風扇職缺問電路分析（GoodJob 2024 分享）",
       "grade_system": null,
       "mops": null,
       "roles": [
@@ -11431,8 +11520,8 @@
       "stock_plan": null,
       "bonus_timing": null,
       "bonus_structure": [],
-      "culture": null,
-      "interview": null,
+      "culture": "網友說法：面試趣統計日均工時約 9 小時、偶爾加班；有軟體工程師說專案偏責任制、沒有加班費（GoodJob 工時評價）",
+      "interview": "網友說法：面試趣統計面試評價 3.7／5、難度低、錄取率約 50%；近期心得多寫流程愉快、難度普通",
       "grade_system": null,
       "mops": null,
       "roles": [
@@ -11592,9 +11681,22 @@
       "heat": null,
       "benefits": null,
       "stock_plan": null,
-      "bonus_timing": null,
-      "bonus_structure": [],
-      "culture": null,
+      "bonus_timing": "網友評價：分紅大致 4 月和 10 月發，金額看個人績效、單位獲利與職等（GoodJob 2026-07）；分紅要隔一年才能領（GoodJob 2025-02 面試分享）",
+      "bonus_structure": [
+        {
+          "type": "員工分紅",
+          "rule": "約 4 月、10 月兩次；依個人績效、單位獲利、職等；新人隔一年才能領",
+          "months": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/FIH/work-experiences",
+              "date": "2026-07"
+            }
+          ]
+        }
+      ],
+      "culture": "網友說法：GoodJob 評分 3.7，文化 2.7、工時 3.3、薪資福利 3.5",
       "interview": null,
       "grade_system": null,
       "mops": null,
@@ -11662,8 +11764,8 @@
       "stock_plan": null,
       "bonus_timing": null,
       "bonus_structure": [],
-      "culture": null,
-      "interview": null,
+      "culture": "網友說法：面試趣生活平衡、內部溝通分數高於廣達、華碩，升遷 3 分；和碩集團孫公司，台灣約 370 人、研發占八成（工商時報 2025-10）",
+      "interview": "網友說法：面試趣統計 121 則心得、面試評價 4／5、錄取率 34%、難度低",
       "grade_system": null,
       "mops": null,
       "roles": [
@@ -11715,6 +11817,56 @@
           "n_stat": 0,
           "note": "未逐筆對應的舊彙整：annual_months=[15, 15]",
           "grade": null
+        },
+        {
+          "unit": "研發 RD",
+          "role": "硬體研發工程師",
+          "degree": "碩士",
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/永擎電子股份有限公司/work-experiences/薪資福利",
+              "date": "2026-03",
+              "date_confirmed": true,
+              "date_note": "GoodJob 評價標示 2026.3.3（搜尋摘要）",
+              "role": "硬體研發工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 65,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "評價 5 分，稱新人底薪算很好；月薪 6.5 萬",
+              "in_window": true
+            }
+          ],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/永擎電子股份有限公司/work-experiences/薪資福利",
+              "date": "2026-03"
+            }
+          ],
+          "confidence": "低",
+          "note": "2026-10-26 依 GoodJob 評價摘要新增；學歷未寫",
+          "grade": null,
+          "base_month_k": [
+            65,
+            65
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n": 1,
+          "n_stat": 1
         }
       ],
       "note": "2026-10-26 由 Dcard 樣本新增的公司"
@@ -11726,9 +11878,46 @@
       "benefits": null,
       "stock_plan": null,
       "bonus_timing": null,
-      "bonus_structure": [],
-      "culture": null,
-      "interview": null,
+      "bonus_structure": [
+        {
+          "type": "三節獎金",
+          "rule": "中秋、端午各 0.5 個月（GoodJob 2025 評價）",
+          "months": 1,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/瑞軒科技股份有限公司/work-experiences",
+              "date": "2025"
+            }
+          ]
+        },
+        {
+          "type": "年終績效",
+          "rule": "約 1.5 個月（GoodJob 2025 評價）；無保證年薪",
+          "months": 1.5,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/瑞軒科技股份有限公司/work-experiences",
+              "date": "2025"
+            }
+          ]
+        },
+        {
+          "type": "員工分紅",
+          "rule": "約 2～4 個月，要待到第三年、看個人表現（GoodJob 2025）；韌體工程師評價稱約 2 個月；發放月份查不到",
+          "months": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/瑞軒科技股份有限公司/work-experiences",
+              "date": "2025"
+            }
+          ]
+        }
+      ],
+      "culture": "網友說法：工時偏長常見每週 50 小時，工廠案子出問題會加班到十點或假日加班；有加班費與晚餐、彈性上下班；管理偏家族式（GoodJob）",
+      "interview": "網友說法：面試趣統計約 221 則心得、評價 3.6／5、難度低",
       "grade_system": null,
       "mops": null,
       "roles": [
@@ -11791,9 +11980,22 @@
       "benefits": null,
       "stock_plan": null,
       "bonus_timing": null,
-      "bonus_structure": [],
-      "culture": null,
-      "interview": null,
+      "bonus_structure": [
+        {
+          "type": "保底年薪＋年終",
+          "rule": "網友說法：保底 14 個月，分年中與年終兩次發；年終依營運與個人績效約 1～3 個月（GoodJob 2021 分享，偏舊）",
+          "months": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/神雲科技股份有限公司/interview-experiences",
+              "date": "2021"
+            }
+          ]
+        }
+      ],
+      "culture": "網友說法：GoodJob 綜合 3.9（34 筆）、工時 4.5；2025 桃園評價基本不加班，2026 新竹評價每週約 45 小時；DVT／PVT 階段加班難免",
+      "interview": "網友說法：人資曾問能否接受約聘；技術面問熱力學等基礎題（面試趣）；2026 PL 職缺分享主管與人資強調重視工作生活平衡（GoodJob）",
       "grade_system": null,
       "mops": null,
       "roles": [
