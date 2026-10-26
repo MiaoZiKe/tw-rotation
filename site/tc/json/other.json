@@ -1102,7 +1102,10 @@
               "years": "12",
               "degree": "碩士",
               "base_k": null,
-              "bonus_months": 3,
+              "bonus_months": [
+                1,
+                5
+              ],
               "annual_months": 18,
               "annual_wan": null,
               "weekly_hours": null,
@@ -1110,10 +1113,8 @@
               "travel": null,
               "quote_free_note": "最終 offer：月薪比現職高約 10%、年薪高約 30%，保 15＋分紅 1～5 個月（取中值約 18）",
               "in_window": true,
-              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2025-08-15；bonus_months 由摘要「分紅 1～5 個月」取中值換算（10-26 補）",
-              "derived": [
-                "bonus_months"
-              ]
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2025-08-15；bonus_months 依摘要「分紅 1～5 個月」填區間（10-26 補）",
+              "derived": []
             }
           ],
           "sources": [
@@ -1132,8 +1133,8 @@
           "years": "12",
           "base_month_k": null,
           "bonus_months": [
-            3,
-            3
+            1,
+            5
           ],
           "annual_total_wan": null,
           "weekly_hours": null,
