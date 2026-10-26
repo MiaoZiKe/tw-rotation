@@ -53,6 +53,11 @@
       (dm ? '<img src="https://www.google.com/s2/favicons?domain=' + encodeURIComponent(dm) + '&sz=64" alt="' + esc(name) + '" loading="lazy" referrerpolicy="no-referrer" width="' + sz + '" height="' + sz + '">' : '') + '</span>';
   }
   // error 不冒泡，用捕獲階段接；失敗就拔掉圖，露出下面的字標
+  // 圖載好才蓋上字標；Google 對查不到的網域回 16px 預設圖示（真圖是 64px），那種視同失敗，露出字標
+  document.addEventListener('load', (e) => {
+    const t = e.target; if (!(t && t.tagName === 'IMG' && t.parentNode && t.parentNode.classList && t.parentNode.classList.contains('tc-lg'))) return;
+    if (t.naturalWidth && t.naturalWidth < 32) { t.parentNode.dataset.lg = 'txt'; t.remove(); } else t.classList.add('ok');
+  }, true);
   document.addEventListener('error', (e) => {
     const t = e.target; if (t && t.tagName === 'IMG' && t.parentNode && t.parentNode.classList && t.parentNode.classList.contains('tc-lg')) { t.parentNode.dataset.lg = 'txt'; t.remove(); }
   }, true);

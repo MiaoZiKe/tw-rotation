@@ -60,7 +60,7 @@
     { k: 'annual', t: '年薪', opts: [['全部'], ['≥100萬', (r) => has(mid(r.annual_total_wan)) && mid(r.annual_total_wan) >= 100], ['≥150萬', (r) => has(mid(r.annual_total_wan)) && mid(r.annual_total_wan) >= 150], ['≥200萬', (r) => has(mid(r.annual_total_wan)) && mid(r.annual_total_wan) >= 200], ['≥300萬', (r) => has(mid(r.annual_total_wan)) && mid(r.annual_total_wan) >= 300]], tip: '年薪總額（萬）區間的中點' },
     { k: 'ot', t: '加班', opts: [['全部'], ['幾乎不', (r) => otIs(r, '幾乎不')], ['偶爾', (r) => otIs(r, '偶爾')], ['經常', (r) => otIs(r, '經常')]], tip: '加班狀況' },
   ];
-  const S = { ind: '', co: '', f: {}, sort: { k: '', d: -1 }, fopen: false, data: {}, loaded: false, rk: { m: 'ann', ind: 'all', all: false }, agg: null };
+  const S = { ind: '', co: '', f: {}, sort: { k: '', d: -1 }, fopen: false, data: {}, loaded: false, chm: 'base', rk: { m: 'ann', ind: 'all', all: false }, agg: null };
 
   /* 分紅發放欄只放「幾月」：從公司層 bonus_timing 抓出所有「N 月」，抓不到顯示「—」（完整說明留在公司頁頂端） */
   const btMonths = (t) => { const m = String(t || '').match(/\d{1,2}\s*月/g); return m ? Array.from(new Set(m.map((x) => x.replace(/\s/g, '')))).join('、') : '—'; };
@@ -166,11 +166,11 @@
     });
     return { inds, cos };
   }
-  const RK_SHOW = 15;
+  const RK_SHOW_D = 15, RK_SHOW_M = 10, mob = () => matchMedia('(max-width:640px)').matches;
   function rankHtml(A) {
     const m = S.rk.m, key = m === 'base' ? 'base' : 'ann', unit = m === 'base' ? 'K/月' : '萬/年';
     const list = A.cos.filter((c) => c[key] && (S.rk.ind === 'all' || c.ind === S.rk.ind)).sort((a, b) => b[key].med - a[key].med);
-    const top = S.rk.all ? list : list.slice(0, RK_SHOW), mx = Math.max(1, ...list.map((c) => c[key].max));
+    const top = S.rk.all ? list : list.slice(0, (mob() ? RK_SHOW_M : RK_SHOW_D)), mx = Math.max(1, ...list.map((c) => c[key].max));
     const seg = (k, arr) => '<div class="seg" data-rk="' + k + '">' + arr.map(([v, t]) => '<button type="button" data-v="' + v + '" class="' + (String(S.rk[k]) === v ? 'on' : '') + '">' + esc(t) + '</button>').join('') + '</div>';
     const indOpts = [['all', '全部產業']].concat(A.inds.map((x) => [x.id, x.name]));
     return '<div class="tc-rkbar"><span class="tc-fl">排行依</span>' + seg('m', [['ann', '年薪'], ['base', '底薪']]) + '<span class="tc-fl">產業</span>' + seg('ind', indOpts) + '</div>' +
@@ -179,10 +179,11 @@
         return '<a class="tc-rkr" href="#tc/' + c.ind + '/' + encodeURIComponent(c.name) + '" data-co="' + esc(c.name) + '"><span class="tc-rkn">' + (i + 1) + '</span>' + TL(c.name, c.ind, 24) + '<span class="tc-rkt">' + esc(c.name) + '<small>' + esc(c.indName) + '・' + c.n + ' 筆</small></span>' +
           '<span class="tc-rkb"><i class="tc-rkbar" style="width:' + w.toFixed(1) + '%"></i><i class="tc-rkrg" style="left:' + l.toFixed(1) + '%;width:' + Math.max(0.5, r - l).toFixed(1) + '%"></i></span>' +
           '<span class="tc-rkv"><b>' + v.med + '</b><small>' + v.min + '–' + v.max + '</small></span></a>'; }).join('') + '</div>' +
-        (list.length > RK_SHOW ? '<button type="button" class="tc-rkmore">' + (S.rk.all ? '只看前 ' + RK_SHOW : '看全部 ' + list.length + ' 家') + '</button>' : '') : '<div class="empty isempty tc-empty">這個產業沒有樣本</div>');
+        (list.length > (mob() ? RK_SHOW_M : RK_SHOW_D) ? '<button type="button" class="tc-rkmore">' + (S.rk.all ? '只看前 ' + RK_SHOW : '看全部 ' + list.length + ' 家') + '</button>' : '') : '<div class="empty isempty tc-empty">這個產業沒有樣本</div>');
   }
   const TL = (name, ind, sz) => (window.TcLogo ? window.TcLogo.html(name, ind, sz) : '');
   function bindRank(root) {
+    $$('.seg[data-chm] button', root).forEach((b) => b.onclick = () => { S.chm = b.dataset.v; $$('.seg[data-chm] button', root).forEach((x) => x.classList.toggle('on', x === b)); const g = $('.tc-gr', root); if (g) g.dataset.m = S.chm; window.dispatchEvent(new Event('resize')); });
     const A = S.agg, box = $('#tcRank', root); if (!box) return;
     $$('.seg[data-rk] button', box).forEach((b) => b.onclick = () => { const k = b.parentNode.dataset.rk; S.rk[k] = b.dataset.v; S.rk.all = false; box.innerHTML = rankHtml(A); bindRank(root); });
     const mo = $('.tc-rkmore', box); if (mo) mo.onclick = () => { S.rk.all = !S.rk.all; box.innerHTML = rankHtml(A); bindRank(root); };
@@ -220,7 +221,8 @@
   }
   function chartsHtml(A) {
     if (!A.inds.length) return '';
-    return '<div class="tc-gr"><div class="tc-gc"><h5>各產業底薪（K/月）</h5><div id="tcChBase" class="tc-ch"></div></div><div class="tc-gc"><h5>各產業年薪（萬/年）</h5><div id="tcChAnn" class="tc-ch"></div></div><div class="tc-gc"><h5>各產業樣本筆數</h5><div id="tcChN" class="tc-ch"></div></div></div>' +
+    return '<div class="tc-chm"><div class="seg" data-chm="1">' + [['base', '底薪'], ['ann', '年薪'], ['n', '筆數']].map(([v, t]) => '<button type="button" data-v="' + v + '" class="' + (S.chm === v ? 'on' : '') + '">' + t + '</button>').join('') + '</div></div>' +
+      '<div class="tc-gr" data-m="' + S.chm + '"><div class="tc-gc" data-c="base"><h5>各產業底薪（K/月）</h5><div id="tcChBase" class="tc-ch"></div></div><div class="tc-gc" data-c="ann"><h5>各產業年薪（萬/年）</h5><div id="tcChAnn" class="tc-ch"></div></div><div class="tc-gc" data-c="n"><h5>各產業樣本筆數</h5><div id="tcChN" class="tc-ch"></div></div></div>' +
       '<div class="tc-rkw"><h5>公司排行</h5><div id="tcRank">' + rankHtml(A) + '</div></div>';
   }
   /* 樣本統計：產業→公司→單位→職位，每層 <details> 預設收起，只有一組時展開 */
@@ -318,6 +320,19 @@
     bindHow(root);
     if (S.ind === 'stats') { drawStats(); bindRank(root); }
     $$('.tc-fbar .seg', root).forEach((sg) => $$('button', sg).forEach((b) => b.onclick = () => { S.f[sg.dataset.fk] = +b.dataset.i; paint(); }));
+    /* 手機：職位列超過 10 列先收起，按「看全部」才展開（整頁 ≤4 屏準則）；桌機不動 */
+    const tw = $('.tc-tw', root);
+    if (tw && mob() && !S.rowsAll) {
+      const trs = $$('tbody > tr', tw); let n = 0, cut = -1;
+      trs.forEach((tr, i) => { if (tr.classList.contains('tc-row')) { n++; if (n === 11 && cut < 0) cut = i; } });
+      if (cut >= 0) {
+        trs.slice(cut).forEach((tr) => tr.classList.add('tc-hmore'));
+        const all = trs.filter((t) => t.classList.contains('tc-row')).length;
+        const bt = document.createElement('button'); bt.type = 'button'; bt.className = 'tc-rkmore tc-rowmore'; bt.textContent = '看全部 ' + all + ' 個職位';
+        bt.onclick = () => { S.rowsAll = true; $$('.tc-hmore', tw).forEach((t) => t.classList.remove('tc-hmore')); bt.remove(); };
+        tw.parentNode.insertBefore(bt, tw.nextSibling);
+      }
+    }
     const cl = $('.tc-clear', root); if (cl) cl.onclick = () => { S.f = {}; paint(); };
     const tg = $('.tc-ftog', root); if (tg) tg.onclick = () => { S.fopen = !S.fopen; paint(); };
     $$('.tc-row', root).forEach((tr) => tr.addEventListener('click', (e) => { if (e.target.closest('a,button')) return; if (matchMedia('(max-width:640px)').matches) tr.classList.toggle('mo'); }));
@@ -331,6 +346,7 @@
     const ids = INDS.map((x) => x[0]);
     const ind = rest[0] === 'stats' ? 'stats' : ids.includes(rest[0]) ? rest[0] : ids[0];
     const co = rest[1] ? decodeURIComponent(rest[1]) : '';
+    if (ind !== S.ind || co !== S.co) S.rowsAll = false;
     if (ind !== S.ind) { S.f = {}; S.sort = { k: '', d: -1 }; S.fopen = false; }   // 換產業回 Default（Andy 規矩 C7）
     S.ind = ind; S.co = co;
     await loadAll();

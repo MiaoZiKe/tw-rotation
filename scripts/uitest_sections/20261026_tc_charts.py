@@ -51,6 +51,13 @@ def t_tc_charts_1026(b, base, code):
     m = b.new_context(viewport={"width": 390, "height": 844}); m.add_init_script("window.TW_TC_OVERRIDE=true;try{localStorage.setItem('tw.tour','done')}catch(e){}")
     mp = m.new_page(); mp.goto(base + "#tc/stats", wait_until="domcontentloaded"); mp.wait_for_timeout(2500)
     ok(f"{T}：手機 390 不橫向捲動、排行列存在", mp.evaluate("()=>document.documentElement.scrollWidth<=innerWidth+1 && document.querySelectorAll('#tcRank .tc-rkr').length>0"))
+    vis = lambda: mp.evaluate("()=>[...document.querySelectorAll('#v-tc .tc-gc')].filter(e=>e.offsetHeight>0).map(e=>e.dataset.c)")
+    ok(f"{T}：手機只顯示一張產業圖（底薪）、排行預設 ≤10 列", vis() == ["base"] and mp.evaluate("()=>document.querySelectorAll('#tcRank .tc-rkr').length")<=10, vis())
+    mp.click("#v-tc .seg[data-chm] button[data-v=ann]"); mp.wait_for_timeout(500)
+    ok(f"{T}：手機切「年薪」→ 只顯示年薪圖且已畫出", vis() == ["ann"] and mp.evaluate("()=>document.getElementById('tcChAnn').offsetHeight>100"), vis())
+    ok(f"{T}：手機樣本統計整頁 ≤3 屏", mp.evaluate("()=>document.documentElement.scrollHeight")<=844*3, mp.evaluate("()=>document.documentElement.scrollHeight"))
+    mp.goto(base + "#tc/foundry/" + "%E5%8F%B0%E7%A9%8D%E9%9B%BB", wait_until="domcontentloaded"); mp.wait_for_timeout(1500)
+    ok(f"{T}：手機公司頁職位列預設收起、按「看全部」才全展開", mp.evaluate("()=>document.querySelectorAll('#v-tc .tc-row').length")>=0 and (mp.evaluate("()=>[...document.querySelectorAll('#v-tc .tc-row')].filter(e=>e.offsetHeight>0).length")<=10) and (not mp.query_selector('.tc-rowmore') or (mp.click('.tc-rowmore'), mp.wait_for_timeout(200), mp.evaluate("()=>document.querySelectorAll('.tc-hmore').length"))[-1]==0))
     m.close()
     ok(f"{T}：無 JS 錯誤", not errs, errs[:2])
 
