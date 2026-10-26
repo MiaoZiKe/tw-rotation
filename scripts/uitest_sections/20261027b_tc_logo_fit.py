@@ -51,6 +51,10 @@ def t_tc_logo_fit(b, base, code):
     c, pg = mk(ER + [("**/data/logos/2303.png", png(64, 64))]); go(pg); r = q(pg)
     ok(f"{T}：站內代號圖 64px（≥48）→ 用站內圖且 contain", bool(r) and "data/logos/2303" in r["src"] and r["fit"] == "contain", r)
     c.close()
+    # 5) 排除清單：2385 群光的站內代號圖是鍵盤照片 → 不用站內圖
+    c, pg = mk(ER); go(pg, None, "#tc/odm/%E7%BE%A4%E5%85%89"); r = q(pg)
+    ok(f"{T}：2385 群光不用站內代號圖（改 Google／字標）", (not r) or "data/logos/2385" not in r["src"], r)
+    c.close()
     ok(f"{T}：無 JS 錯誤", not errs, errs[:2])
 
 register("科技透明圈LOGO不裁切", lambda pg, b, base, code: t_tc_logo_fit(b, base, code))

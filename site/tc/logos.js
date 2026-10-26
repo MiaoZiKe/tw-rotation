@@ -101,7 +101,9 @@
   const TLP = fetch('data/tc_logos.json', { cache: 'no-cache' }).then(async (r) => { const t = await r.text(); if (!r.ok) return {}; try { return JSON.parse(t); } catch (e) { return {}; } }).catch(() => ({}))
     .then((m) => { TLG = m && typeof m === 'object' ? m : {}; TDONE = true; upgrade(document); return TLG; });
   function dstation(name) { const dm = domain(name), p = dm && TLG[dm]; return okPath(p) ? fixP(p) : ''; }
-  function station(name) { const c = CODE[name]; return (LG && isCode(c) && okPath(LG[c])) ? LG[c] : ''; }
+  /* 2026-10-27 站內代號圖不是 LOGO（例如 2385 群光是一張鍵盤照片）的代號：不用站內代號圖，直接往下一來源（網域圖→s2→字標） */
+  const NOSTATION = new Set(['2385']);
+  function station(name) { const c = CODE[name]; return (LG && isCode(c) && !NOSTATION.has(String(c)) && okPath(LG[c])) ? LG[c] : ''; }
   function reg(name, code) { if (name && isCode(code)) CODE[name] = String(code); }
   function toTxt(t) { if (t.parentNode) { t.parentNode.dataset.lg = 'txt'; t.parentNode.classList.remove('has'); } t.remove(); }
   function cand(t) { const L = []; if (t.dataset.s) t.dataset.s.split('|').forEach((x) => L.push(x)); if (t.dataset.dm) SRC.forEach((f) => L.push(f(t.dataset.dm))); return L; }
