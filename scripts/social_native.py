@@ -246,15 +246,22 @@ def rank_list(mode, w, h, ctx, sections, vw=190):
     s = S_(mode)
     out = ['<div class=rl>']
     tot = sum(len(r) for _, _, r, *_ in sections) or 1
+    # 名稱欄固定寬（取這張卡最長的名稱＋代號，上限 42%），長條一律從同一條線開始（2026-10-26 Andy：「長條圖幫我靠左對齊」）
+    allr = [r for _, _, rows, *_ in sections for r in rows]
+    nmw = min(max([est_w(clean_name(r["name"]), 30 * s) + est_w(str(r["code"]), 24 * s) + 14 for r in allr] + [120]), w * 0.42)
+    lotw = max([est_w(f'{r["lots"]:+,}張', 24 * s) * 0.92 for r in allr if r.get("lots") is not None] + [0])
+    # 數字欄固定寬（量最長的「數字＋單位＋張數」），每列長條的右端也對齊
+    vw = max([vw] + [est_w(r["val"], 30 * s) * 0.9 + est_w(r.get("unit", ""), 24 * s) + 6 + ((lotw + 14) if r.get("lots") is not None else 0) for r in allr])
     for title, col, rows in [(a, b, c) for a, b, c, *_ in sections]:
         out.append(f'<div class=sec style="flex:{len(rows) + 1.3}"><div class=sh style="color:{col}">{esc(title)}</div><div class=rows>')
         for i, r in enumerate(rows):
-            nmw = round(w * 0.45)
+            lots = (f'<em style="display:inline-block;width:{lotw + 14:.0f}px;font-style:normal;font-size:{round(24 * s)}px;font-weight:600;color:var(--ink2);text-align:right">'
+                    f'{r["lots"]:+,}張</em>' if r.get("lots") is not None else "")       # 2026-10-26 Andy：「需要備註買多少張」
             out.append(
                 f'<div class=r><span class=rk>{i + 1}</span>{logo_html(r["code"], r["name"], ctx, round(46 * s))}'
-                f'<span class=nm style="max-width:{nmw}px"><b>{esc(clean_name(r["name"]))}</b><i>{esc(r["code"])}</i></span>'
+                f'<span class=nm style="width:{nmw:.0f}px"><b>{esc(clean_name(r["name"]))}</b><i>{esc(r["code"])}</i></span>'
                 f'<span class=bar><u style="width:{max(r["frac"] * 100, 3):.1f}%;background:{col};opacity:.85"></u></span>'
-                f'<span class=v style="color:{col};min-width:{vw}px">{esc(r["val"])}<small>{esc(r.get("unit", ""))}</small></span></div>')
+                f'<span class=v style="color:{col};width:{vw:.0f}px;flex:none">{esc(r["val"])}<small>{esc(r.get("unit", ""))}</small>{lots}</span></div>')
         out.append("</div></div>")
     out.append("</div>")
     return "".join(out)
@@ -269,10 +276,10 @@ def inst_top(j: dict, side: str, n: int = 10, names: dict | None = None):
         names.setdefault(str(r["code"]), r["name"])
     rows = (j.get("all_by") or {}).get(side)
     if rows:
-        rs = [dict(code=str(c), name=names.get(str(c), str(c)), amt=float(y) * 1e8) for c, _l, y in rows if is_stock(c)]
+        rs = [dict(code=str(c), name=names.get(str(c), str(c)), amt=float(y) * 1e8, lots=int(l)) for c, l, y in rows if is_stock(c)]
     else:
         t = (j.get("top") or {}).get(side) or {}
-        rs = [dict(code=str(r["code"]), name=r["name"], amt=float(r["amt"])) for r in t.get("buy", []) + t.get("sell", []) if is_stock(r["code"])]
+        rs = [dict(code=str(r["code"]), name=r["name"], amt=float(r["amt"]), lots=int(r.get("lots") or 0)) for r in t.get("buy", []) + t.get("sell", []) if is_stock(r["code"])]
     buy = sorted([r for r in rs if r["amt"] > 0], key=lambda r: -r["amt"])[:n]
     sell = sorted([r for r in rs if r["amt"] < 0], key=lambda r: r["amt"])[:n]
     return buy, sell
@@ -282,7 +289,8 @@ def etf_buy(j: dict, side: str, n: int = 10, names: dict | None = None):
     """外資／投信當日 ETF 買超前 n 名（代號 00 開頭；2026-10-26 Andy「新增一個 ETF 買超排名，外資、投信上下兩張」）。"""
     names = names or {}
     rows = (j.get("all_by") or {}).get(side) or []
-    rs = [dict(code=str(c), name=names.get(str(c), str(c)), amt=float(y) * 1e8) for c, _l, y in rows if str(c).startswith("00") and float(y) > 0]
+    # 含槓桿型／反向型（00631L、00632R…，代號一樣 00 開頭；2026-10-26 Andy「ETF 需要包含槓桿型ETF」）
+    rs = [dict(code=str(c), name=names.get(str(c), str(c)), amt=float(y) * 1e8, lots=int(l)) for c, l, y in rows if str(c).startswith("00") and float(y) > 0]
     return sorted(rs, key=lambda r: -r["amt"])[:n]
 
 
@@ -293,7 +301,7 @@ def b_etf_buy(mode, w, h, ctx):
     for side, title in (("foreign", "外資 ETF 買超"), ("trust", "投信 ETF 買超")):
         rows = etf_buy(j, side, 10, nm)
         mx = max([abs(r["amt"]) for r in rows] + [1])
-        secs.append((title, T["rise"], [dict(code=r["code"], name=r["name"], frac=abs(r["amt"]) / mx, val=sgn(r["amt"] / 1e8, 2), unit="億") for r in rows]))
+        secs.append((title, T["rise"], [dict(code=r["code"], name=r["name"], frac=abs(r["amt"]) / mx, val=sgn(r["amt"] / 1e8, 2), unit="億", lots=r["lots"]) for r in rows]))
     return rank_list(mode, w, h, ctx, secs, vw=round(150 * S_(mode)))
 
 
@@ -313,7 +321,7 @@ def _streak(side):
         for rows, title, col in ((buy, "當日買超", T["rise"]), (sell, "當日賣超", T["fall"])):
             mx = max([abs(r["amt"]) for r in rows] + [1])
             secs.append((title, col, [dict(code=r["code"], name=r["name"], frac=abs(r["amt"]) / mx,
-                                           val=sgn(r["amt"] / 1e8, 1), unit="億") for r in rows]))
+                                           val=sgn(r["amt"] / 1e8, 1), unit="億", lots=r["lots"]) for r in rows]))
         return rank_list(mode, w, h, ctx, secs, vw=round(150 * s))
     return b
 

@@ -113,3 +113,10 @@ def test_盤後圖順序_未平倉第一_散戶第二():
     import inspect
     src = inspect.getsource(ss)
     assert '"close": ["fut-oi", "retail-ratio", "inst-today", "streak-foreign", "streak-trust", "credit-ratio", "credit-rank", "credit-short"]' in src
+
+
+def test_ETF買超含槓桿型_附張數():
+    import social_native as nat
+    j = {"all_by": {"foreign": [["00631L", 900, 0.5], ["00632R", 999, 0.1], ["2330", 10, 9.0], ["00687B", 16132, 4.36]]}}
+    rows = nat.etf_buy(j, "foreign", 10, {})
+    assert [r["code"] for r in rows] == ["00687B", "00631L", "00632R"] and rows[1]["lots"] == 900
