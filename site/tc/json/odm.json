@@ -17706,6 +17706,143 @@
         }
       ],
       "note": "2026-10-26 由 Dcard 樣本新增的公司"
+    },
+    {
+      "name": "神基",
+      "code": "3005",
+      "heat": null,
+      "benefits": null,
+      "stock_plan": null,
+      "bonus_timing": null,
+      "bonus_structure": [],
+      "culture": null,
+      "interview": null,
+      "grade_system": null,
+      "mops": null,
+      "roles": [
+        {
+          "unit": "研發 RD",
+          "role": "硬體研發工程師",
+          "degree": "碩士",
+          "years": null,
+          "base_month_k": [
+            80,
+            80
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": [
+            40,
+            40
+          ],
+          "overtime": "偶爾",
+          "travel": null,
+          "n": 1,
+          "n_stat": 1,
+          "note": null,
+          "grade": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/6a758db48e8d075c29bbe19a",
+              "date": "2026-08"
+            }
+          ],
+          "confidence": "低",
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/6a758db48e8d075c29bbe19a",
+              "date": "2026-08",
+              "page_date": "2026-08-07",
+              "date_confirmed": true,
+              "role": "硬體研發工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 80,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 40,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "工作自主性高、主管少干預",
+              "in_window": true,
+              "date_note": "GoodJob 標題日期 2026.8.7"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "鴻佰",
+      "code": null,
+      "heat": null,
+      "benefits": null,
+      "stock_plan": null,
+      "bonus_timing": null,
+      "bonus_structure": [],
+      "culture": null,
+      "interview": null,
+      "grade_system": null,
+      "mops": null,
+      "roles": [
+        {
+          "unit": "其他",
+          "role": "RMA 工程師",
+          "degree": "碩士",
+          "years": null,
+          "base_month_k": [
+            45,
+            45
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n": 1,
+          "n_stat": 1,
+          "note": null,
+          "grade": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/69d8fd45947eae831e4cda8a",
+              "date": "2026-04"
+            }
+          ],
+          "confidence": "低",
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/69d8fd45947eae831e4cda8a",
+              "date": "2026-04",
+              "page_date": "2026-04-10",
+              "date_confirmed": true,
+              "role": "RMA 工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 45,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "面試未錄取；開價月薪",
+              "in_window": true,
+              "date_note": "GoodJob 標題日期 2026.4.10"
+            }
+          ]
+        }
+      ]
     }
   ]
 }
