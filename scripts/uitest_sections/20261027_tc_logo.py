@@ -53,6 +53,12 @@ def t_tc_logo_1027(b, base, code):
     q2.goto(base + "#tc/foundry/%E5%8F%B0%E7%A9%8D%E9%9B%BB", wait_until="domcontentloaded"); q2.wait_for_timeout(2500)
     ok(f"{T}：站內圖只有 10px 且外部也失敗 → 字標", q2.evaluate("()=>{const l=document.querySelector('#v-tc .tc-cinfo h4 .tc-lg');return !!l&&!l.querySelector('img')&&l.dataset.lg==='txt'}"))
     q2.close()
+    # 第二層：站內網域圖 tc_logos.json（模擬資料同事的產出）
+    d2 = c.new_page(); d2.route("**/data/tc_logos.json*", lambda r: r.fulfill(body='{"asml.com":"data/logos/2454.png"}', content_type="application/json"))
+    d2.goto(base + "#tc/stats", wait_until="domcontentloaded"); d2.wait_for_timeout(2500)
+    r2 = d2.evaluate("""async()=>{await TcLogo.ready;const d=document.createElement('div');d.innerHTML=TcLogo.html('ASML','equipment',28);const i=d.querySelector('img');return [i&&i.getAttribute('src'),TcLogo.plan('ASML'),TcLogo.plan('NVIDIA')]}""")
+    ok(f"{T}：網域圖（tc_logos.json）有就用、排在 Google 之前", r2[0] and "data/logos/2454.png" in r2[0] and r2[1] == "domain" and r2[2] == "ext", r2)
+    d2.close()
     ok(f"{T}：無 JS 錯誤", not errs, errs[:2])
     c.close()
 

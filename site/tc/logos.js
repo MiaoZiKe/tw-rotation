@@ -93,10 +93,18 @@
   const LGP = fetch('data/logos.json', { cache: 'no-cache' }).then(async (r) => { const t = await r.text(); if (!r.ok) return {}; try { return JSON.parse(t); } catch (e) { return {}; } }).catch(() => ({}))
     .then((m) => { LG = m && typeof m === 'object' ? m : {}; upgrade(document); return LG; });
   const isCode = (c) => /^\d{4,6}$/.test(String(c || ''));
+  /* 第二層：站內網域圖 data/tc_logos.json（{網域: 路徑}，資料同事抓進資料湖）；檔案不存在或 404 就是空物件，晚到也自動生效。
+     預覽版 preview_boot 只改寫 logos.json 的路徑，這支檔名不同，所以路徑在這裡自己改到正式站的 data/ */
+  let TLG = {}, TDONE = false;
+  const prevRoot = (location.pathname.match(/^(.*?\/)preview\/[^/]+\//) || [])[1];
+  const fixP = (p) => (prevRoot && /^data\//.test(p) ? prevRoot + p : p);
+  const TLP = fetch('data/tc_logos.json', { cache: 'no-cache' }).then(async (r) => { const t = await r.text(); if (!r.ok) return {}; try { return JSON.parse(t); } catch (e) { return {}; } }).catch(() => ({}))
+    .then((m) => { TLG = m && typeof m === 'object' ? m : {}; TDONE = true; upgrade(document); return TLG; });
+  function dstation(name) { const dm = domain(name), p = dm && TLG[dm]; return okPath(p) ? fixP(p) : ''; }
   function station(name) { const c = CODE[name]; return (LG && isCode(c) && okPath(LG[c])) ? LG[c] : ''; }
   function reg(name, code) { if (name && isCode(code)) CODE[name] = String(code); }
   function toTxt(t) { if (t.parentNode) { t.parentNode.dataset.lg = 'txt'; t.parentNode.classList.remove('has'); } t.remove(); }
-  function cand(t) { const L = []; if (t.dataset.s) L.push(t.dataset.s); if (t.dataset.dm) SRC.forEach((f) => L.push(f(t.dataset.dm))); return L; }
+  function cand(t) { const L = []; if (t.dataset.s) t.dataset.s.split('|').forEach((x) => L.push(x)); if (t.dataset.dm) SRC.forEach((f) => L.push(f(t.dataset.dm))); return L; }
   function nextImg(t) {
     const n = +t.dataset.st + 1, L = cand(t);
     if (n < L.length) { t.dataset.st = String(n); t.classList.remove('sm'); t.style.width = t.style.height = ''; t.src = L[n]; return; }
@@ -110,15 +118,15 @@
   const BLD = '<svg viewBox="0 0 24 24" width="62%" height="62%" fill="currentColor" aria-hidden="true"><path d="M4 21V5l8-3v6l8 3v10h-6v-4h-4v4zm3-13h2V6H7zm0 4h2v-2H7zm0 4h2v-2H7zm8 0h2v-2h-2zm0-4h2v-2h-2z"/></svg>';
   // 站內圖：st=0 用站內路徑；沒站內圖時從外部來源開始（記住的來源索引用 MEM）
   function imgTag(name, dm, sz, st) {
-    const s = st ? station(name) : '';
-    const i = s ? 0 : (dm && MEM[dm] > 0 ? Math.min(MEM[dm], SRC.length - 1) : 0);
-    const src = s || SRC[i](dm);
-    return '<img src="' + esc(src) + '" data-dm="' + esc(dm) + '" data-s="' + esc(s) + '" data-st="' + (s ? 0 : i) + '" alt="' + esc(name) + '" loading="lazy" referrerpolicy="no-referrer" width="' + sz + '" height="' + sz + '">';
+    const loc = [station(name), dstation(name)].filter(Boolean), s = loc.join('|');
+    const i = loc.length ? 0 : (dm && MEM[dm] > 0 ? Math.min(MEM[dm], SRC.length - 1) : 0);
+    const src = loc.length ? loc[0] : SRC[i](dm);
+    return '<img src="' + esc(src) + '" data-dm="' + esc(dm) + '" data-s="' + esc(s) + '" data-st="' + i + '" alt="' + esc(name) + '" loading="lazy" referrerpolicy="no-referrer" width="' + sz + '" height="' + sz + '">';
   }
   /* 回傳 HTML 字串：字標先畫在底層，有圖來源才疊 <img>；LG 還沒載好的短暫空檔，data-pend 標起來，載好後 upgrade() 補圖 */
   function html(name, ind, size) {
     const col = IC[ind] || IC.other, un = unnamed(name), ch = Array.from(String(name || '?'))[0] || '?', dm = un ? '' : domain(name), sz = size || 24;
-    const hasSt = !un && !!station(name), pend = !un && !LG && isCode(CODE[name]);
+    const hasSt = !un && !!(station(name) || dstation(name)), pend = !un && (!LG || !TDONE) && !!(isCode(CODE[name]) || dm);
     const useExt = !!dm && MEM[dm] !== -1 && !hasSt;
     const img = hasSt ? imgTag(name, dm, sz, true) : (useExt && !pend ? imgTag(name, dm, sz, false) : '');
     return '<span class="tc-lg" data-co="' + esc(name) + '" data-lg="' + (img ? 'img' : 'txt') + '"' + (pend ? ' data-pend="1"' : '') + ' style="--lg:' + col + ';--lz:' + sz + 'px"' + (un ? ' data-un="1" title="未具名公司"' : '') + '><i>' + (un ? BLD : esc(ch)) + '</i>' + img + '</span>';
@@ -126,9 +134,10 @@
   // LG 晚到：把已畫好的字標補上圖
   function upgrade(root) {
     Array.from(root.querySelectorAll('.tc-lg[data-pend]')).forEach((el) => {
+      if (!LG || !TDONE) return;
       el.removeAttribute('data-pend');
       const name = el.dataset.co, dm = domain(name), sz = parseInt(el.style.getPropertyValue('--lz'), 10) || 24;
-      const hasSt = !!station(name);
+      const hasSt = !!(station(name) || dstation(name));
       if (!hasSt && !(dm && MEM[dm] !== -1)) return;
       el.dataset.lg = 'img'; el.insertAdjacentHTML('beforeend', imgTag(name, dm, sz, hasSt));
     });
@@ -137,7 +146,7 @@
   const isLg = (t) => t && t.tagName === 'IMG' && t.parentNode && t.parentNode.classList && t.parentNode.classList.contains('tc-lg');
   document.addEventListener('load', (e) => {
     const t = e.target; if (!isLg(t)) return;
-    const st = t.dataset.s && +t.dataset.st === 0, nw = t.naturalWidth;
+    const nloc = t.dataset.s ? t.dataset.s.split('|').length : 0, st = +t.dataset.st < nloc, nw = t.naturalWidth;
     if (!nw || nw < (st ? STMIN : MINW)) { nextImg(t); return; }
     const box = t.parentNode.clientWidth || parseInt(t.parentNode.style.getPropertyValue('--lz'), 10) || 24, inner = Math.max(8, box - 8);
     if (nw < inner * 2) { const z = Math.min(nw, inner); t.classList.add('sm'); t.style.width = t.style.height = z + 'px'; }   // 解析不夠 ×2：不放大，原尺寸（不超過內徑）置中
@@ -146,6 +155,6 @@
   }, true);
   document.addEventListener('error', (e) => { const t = e.target; if (isLg(t)) nextImg(t); }, true);
   // 統計用：每家預定來源（station＝站內、ext＝Google s2/gstatic、txt＝字標）
-  function plan(name) { if (unnamed(name)) return 'txt'; if (station(name)) return 'station'; return domain(name) ? 'ext' : 'txt'; }
-  window.TcLogo = { html, domain, unnamed, reg, plan, ready: LGP, station, upgrade, sources: SRC, MINW, color: (ind) => IC[ind] || IC.other, map: D };
+  function plan(name) { if (unnamed(name)) return 'txt'; if (station(name)) return 'station'; if (dstation(name)) return 'domain'; return domain(name) ? 'ext' : 'txt'; }
+  window.TcLogo = { html, domain, unnamed, reg, plan, ready: Promise.all([LGP, TLP]), station, upgrade, sources: SRC, MINW, color: (ind) => IC[ind] || IC.other, map: D };
 })();
