@@ -593,7 +593,7 @@
           ],
           "overtime": "幾乎不",
           "travel": null,
-          "n": 2,
+          "n": 4,
           "note": "",
           "sources": [
             {
@@ -605,6 +605,16 @@
               "site": "GoodJob",
               "url": "https://www.goodjob.life/experiences/6a843a4bc43855f640213bce",
               "date": "2026-08"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/258369776",
+              "date": "2025-03"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/257825364",
+              "date": "2025-01"
             }
           ],
           "confidence": "中",
@@ -647,6 +657,54 @@
               "overtime": "經常",
               "travel": null,
               "quote_free_note": "年薪約百萬、週 55 小時"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/258369776",
+              "date": "2025-03",
+              "page_date": "2025-03-26",
+              "date_confirmed": true,
+              "role": "機構設計工程師",
+              "grade": null,
+              "unit_detail": "桃園龜山，Server 機櫃",
+              "years": "0",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "應屆畢業offer，未揭露薪資；同時有台達、和碩機構offer",
+              "overtime_raw": "原PO聽說加班可能較多",
+              "travel_raw": null,
+              "in_window": false,
+              "date_note": "Dcard 頁面發文日期 2025-03-26（2026-10-26 2056 批）"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/257825364",
+              "date": "2025-01",
+              "page_date": "2025-01-23",
+              "date_confirmed": true,
+              "role": "機構工程師（研替）",
+              "grade": null,
+              "unit_detail": "車用電腦，林口",
+              "years": "0",
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "四大碩研替，面試後第2天電話核薪、第9天收到offer；未揭露薪資",
+              "overtime_raw": null,
+              "travel_raw": null,
+              "in_window": false,
+              "date_note": "Dcard 頁面發文日期 2025-01-23（2026-10-26 2056 批）"
             }
           ],
           "n_stat": 2
@@ -803,6 +861,104 @@
               "quote_free_note": "5 月面試、6 月初收到跑核薪通知，一個多月仍未拿到 offer；留言 B1、B8 說 BU9 從面試到 offer 約 2～3 週，B3 說上層常擋、口頭 offer 可能被取消",
               "in_window": true,
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-07-09"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/258369776",
+              "date": "2025-03",
+              "page_date": "2025-03-26",
+              "date_confirmed": true,
+              "role": "工程師（職稱未註明）",
+              "grade": null,
+              "unit_detail": "BU9",
+              "years": "0",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "留言者剛拿廣達BU9 offer，核薪與台積新人價N差不多；留言稱今年BU9為特調，升二專不一定補上",
+              "overtime_raw": null,
+              "travel_raw": null,
+              "comment_sample": true,
+              "in_window": false,
+              "date_note": "Dcard 頁面發文日期 2025-03-26（2026-10-26 2056 批）"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/258018456",
+              "date": "2025-02",
+              "page_date": "2025-02-18",
+              "date_confirmed": true,
+              "role": "工程師（伺服器）",
+              "grade": "二專",
+              "unit_detail": "BU9，客戶含Meta、Google",
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": 20,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "轉職offer；月薪N為調薪前數字，HR稱會跟著調薪；年薪N×20以上；留言稱近期BU9大特調20–40%，二專以上過年另有專員獎金",
+              "overtime_raw": "常態加班；留言稱一個月基本80小時起，加班費每月上限46小時",
+              "travel_raw": null,
+              "in_window": false,
+              "date_note": "Dcard 頁面發文日期 2025-02-18（2026-10-26 2056 批）"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/257914980",
+              "date": "2025-02",
+              "page_date": "2025-02-05",
+              "date_confirmed": true,
+              "role": "工程師（新成立部門，職稱未註明）",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": 16,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "有經驗轉職者收到口頭offer；年薪N×16，午餐補助55元、交通補助600元，有福利點數與三節禮金；留言稱實際保12、一般至少14個月，福利點數一年約1萬",
+              "overtime_raw": "可報加班，主管稱不會擋",
+              "travel_raw": null,
+              "in_window": false,
+              "date_note": "Dcard 頁面發文日期 2025-02-05（2026-10-26 2056 批）"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/257914980",
+              "date": "2025-02",
+              "page_date": "2025-02-06",
+              "date_confirmed": true,
+              "role": "工程師",
+              "grade": null,
+              "unit_detail": "BU7",
+              "years": "0",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "留言者也收到廣達offer，稱核薪時主管說保16",
+              "overtime_raw": null,
+              "travel_raw": null,
+              "comment_sample": true,
+              "in_window": false,
+              "date_note": "Dcard 頁面發文日期 2025-02-06（2026-10-26 2056 批）"
             }
           ],
           "sources": [
@@ -815,10 +971,25 @@
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/261795402",
               "date": "2026-07"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/258369776",
+              "date": "2025-03"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/258018456",
+              "date": "2025-02"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/257914980",
+              "date": "2025-02"
             }
           ],
           "confidence": "低",
-          "n": 2,
+          "n": 6,
           "years": "轉職",
           "base_month_k": null,
           "bonus_months": null,
@@ -857,6 +1028,33 @@
               "quote_free_note": "口頭 offer；留言說新人薪水較低但 QCT 較不操；數字未透露",
               "in_window": true,
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-08-24"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/258542352",
+              "date": "2025-04",
+              "page_date": "2025-04-14",
+              "date_confirmed": true,
+              "role": "EE 硬體工程師",
+              "grade": null,
+              "unit_detail": "AR/VR 部門",
+              "years": "0",
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": [
+                16,
+                20
+              ],
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "碩士新人offer；月薪寫成N減1K未給絕對數；年薪16–20個月取中18；同時有華碩offer",
+              "overtime_raw": null,
+              "travel_raw": null,
+              "in_window": false,
+              "date_note": "Dcard 頁面發文日期 2025-04-14（2026-10-26 2056 批）"
             }
           ],
           "sources": [
@@ -864,10 +1062,15 @@
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/262022794",
               "date": "2026-08"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/258542352",
+              "date": "2025-04"
             }
           ],
           "confidence": "低",
-          "n": 1,
+          "n": 2,
           "years": "0",
           "base_month_k": null,
           "bonus_months": null,
@@ -1122,6 +1325,81 @@
               "date_confirmed": true,
               "date_note": "GoodJob 評價標示年月，晚於 2025-08-01",
               "in_window": true
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/258558564",
+              "date": "2025-05",
+              "page_date": "2025-05-28",
+              "date_confirmed": true,
+              "role": "NB BIOS 韌體工程師",
+              "grade": null,
+              "unit_detail": "桃園龜山",
+              "years": "0",
+              "degree": "碩士",
+              "base_k": [
+                58,
+                69
+              ],
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "原PO後來入職，留言回報月薪區間約58K至6X（取約61K）；同時有緯創、富智康offer（N約60K）；留言稱目前無保14，年終1加中秋端午各0.5",
+              "overtime_raw": "每月加班20小時以上，可報加班費",
+              "travel_raw": null,
+              "in_window": false,
+              "date_note": "Dcard 頁面發文日期 2025-05-28（2026-10-26 2056 批）"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/258364003",
+              "date": "2025-03",
+              "page_date": "2025-03-25",
+              "date_confirmed": true,
+              "role": "BMC 韌體工程師",
+              "grade": null,
+              "unit_detail": "桃園龜山",
+              "years": "0",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "新鮮人offer，未揭露薪資；留言稱與神準月薪差不多但廣達整年較高",
+              "overtime_raw": "可報加班費",
+              "travel_raw": null,
+              "in_window": false,
+              "date_note": "Dcard 頁面發文日期 2025-03-25（2026-10-26 2056 批）"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/257883748",
+              "date": "2025-02",
+              "page_date": "2025-02-01",
+              "date_confirmed": true,
+              "role": "筆電 EC 韌體工程師",
+              "grade": null,
+              "unit_detail": "RDC",
+              "years": "0",
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "台科碩新人offer；月薪寫成N減1K另有津貼，未給絕對數；工時9–18點，週工時以每月加班25小時換算約51；同時有緯穎offer；發文日依搜尋列表為2025-02-01（頁面顯示為後來編輯日期）（週工時 51 為換算推估，未填）",
+              "overtime_raw": "有加班費不會擋，每月加班約20–30小時",
+              "travel_raw": null,
+              "in_window": false,
+              "date_note": "Dcard 頁面發文日期 2025-02-01（2026-10-26 2056 批）"
             }
           ],
           "sources": [
@@ -1144,10 +1422,25 @@
               "site": "GoodJob",
               "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/work-experiences/薪資福利",
               "date": "2025-09"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/258558564",
+              "date": "2025-05"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/258364003",
+              "date": "2025-03"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/257883748",
+              "date": "2025-02"
             }
           ],
           "confidence": "低",
-          "n": 4,
+          "n": 7,
           "years": "0",
           "base_month_k": [
             65,
@@ -4672,6 +4965,58 @@
               "in_window": true,
               "role": "工程師（台北評價）",
               "quote_free_note": "2 年經驗、月薪 7 萬"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/258018456",
+              "date": "2025-02",
+              "page_date": "2025-02-18",
+              "date_confirmed": true,
+              "role": "工程師",
+              "grade": "S2",
+              "unit_detail": "EISBG 固態變壓器（NBD新事業）",
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": [
+                18,
+                19
+              ],
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "同篇另一offer；月薪為廣達N加16K未給絕對數；HR稱保16；留言稱考績不在倒數15%才是16（12+2+2），S2全年約18–19個月，NBD分紅不確定",
+              "overtime_raw": "留言稱可報加班上限每月46小時",
+              "travel_raw": null,
+              "in_window": false,
+              "date_note": "Dcard 頁面發文日期 2025-02-18（2026-10-26 2056 批）"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/257825364",
+              "date": "2025-01",
+              "page_date": "2025-01-23",
+              "date_confirmed": true,
+              "role": "工程師（職稱未註明）",
+              "grade": null,
+              "unit_detail": null,
+              "years": "0",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "留言者稱台達與原PO同期面試，前幾天發offer給他；未揭露薪資",
+              "overtime_raw": null,
+              "travel_raw": null,
+              "comment_sample": true,
+              "in_window": false,
+              "date_note": "Dcard 頁面發文日期 2025-01-23（2026-10-26 2056 批）"
             }
           ],
           "sources": [
@@ -4689,10 +5034,20 @@
               "site": "GoodJob",
               "url": "https://www.goodjob.life/companies/台達電子工業股份有限公司/work-experiences/薪資福利?p=2",
               "date": "2026-01"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/258018456",
+              "date": "2025-02"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/257825364",
+              "date": "2025-01"
             }
           ],
           "confidence": "低",
-          "n": 3,
+          "n": 5,
           "years": "1",
           "base_month_k": [
             70,
@@ -4734,6 +5089,30 @@
               "quote_free_note": "成大、剛退伍；N 未說明；月薪 N+5（未寫單位）；每月加班約 40 小時、不輪班（週工時依此估）",
               "in_window": true,
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-07-23"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/258369776",
+              "date": "2025-03",
+              "page_date": "2025-03-26",
+              "date_confirmed": true,
+              "role": "機構設計工程師",
+              "grade": null,
+              "unit_detail": "桃園龜山，Server 散熱風扇設計",
+              "years": "0",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "同篇另一offer，未揭露薪資",
+              "overtime_raw": null,
+              "travel_raw": null,
+              "in_window": false,
+              "date_note": "Dcard 頁面發文日期 2025-03-26（2026-10-26 2056 批）"
             }
           ],
           "sources": [
@@ -4741,10 +5120,15 @@
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/261865232",
               "date": "2026-07"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/258369776",
+              "date": "2025-03"
             }
           ],
           "confidence": "低",
-          "n": 1,
+          "n": 2,
           "weekly_hours": [
             49,
             49
@@ -4936,6 +5320,33 @@
               "quote_free_note": "北科碩應屆；N＝台達這份月薪；年薪 110 萬以上；留言 B10 說以為台達新人有 72k",
               "in_window": true,
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-04-01"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/258527452",
+              "date": "2025-04",
+              "page_date": "2025-04-12",
+              "date_confirmed": true,
+              "role": "機械設計資深工程師",
+              "grade": "S2",
+              "unit_detail": "工廠端",
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": [
+                18,
+                20
+              ],
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": "需要",
+              "quote_free_note": "轉職offer；月薪為現職加30K（含外派津貼），未給絕對數；保16，平均18–20個月含外派津貼，取中19；同時有鴻海子公司結構工程師offer（非鴻海本體，未另記）",
+              "overtime_raw": "無加班費",
+              "travel_raw": "需海外派駐",
+              "in_window": false,
+              "date_note": "Dcard 頁面發文日期 2025-04-12（2026-10-26 2056 批）"
             }
           ],
           "sources": [
@@ -4943,10 +5354,15 @@
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/261218379",
               "date": "2026-04"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/258527452",
+              "date": "2025-04"
             }
           ],
           "confidence": "低",
-          "n": 1,
+          "n": 2,
           "annual_total_wan": [
             110,
             110
@@ -5384,13 +5800,18 @@
           "weekly_hours": null,
           "overtime": null,
           "travel": null,
-          "n": 1,
+          "n": 2,
           "note": "網友自述樣本（2025-08 之後）",
           "sources": [
             {
               "site": "GoodJob",
               "url": "https://www.goodjob.life/companies/台達電子工業股份有限公司/work-experiences/薪資福利",
               "date": "2025-12"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/258761446",
+              "date": "2025-05"
             }
           ],
           "confidence": "低",
@@ -5414,6 +5835,31 @@
               "date_confirmed": true,
               "date_note": "來源標示年月，晚於 2025-08-01",
               "in_window": true
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/258761446",
+              "date": "2025-05",
+              "page_date": "2025-05-09",
+              "date_confirmed": true,
+              "role": "RD（職稱未細分）",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 88,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "同一可疑帳號留言稱台達月薪8萬8、沒保14、常裁員；可信度存疑",
+              "overtime_raw": null,
+              "travel_raw": null,
+              "comment_sample": true,
+              "in_window": false,
+              "date_note": "Dcard 頁面發文日期 2025-05-09（2026-10-26 2056 批）"
             }
           ],
           "n_stat": 1
@@ -5500,7 +5946,7 @@
           ],
           "overtime": "經常",
           "travel": null,
-          "n": 15,
+          "n": 19,
           "note": "平台自述統計（未轉貼原文）；社群回報月薪×14 保底＋績效分紅，無碩士起薪數字；2026-10 查比薪水有逾千筆但摘要無分紅／工時細節；annual_months 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples；部分年薪／年薪月數由同一筆樣本的「底薪×月數」推算（樣本標 derived）",
           "sources": [
             {
@@ -5577,6 +6023,21 @@
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/259437281",
               "date": "2025-07"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/258542352",
+              "date": "2025-04"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/258761446",
+              "date": "2025-05"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/258165664",
+              "date": "2025-03"
             }
           ],
           "confidence": "高",
@@ -5882,6 +6343,112 @@
               "travel_raw": null,
               "in_window": false,
               "date_note": "Dcard 頁面發文日期 2025-07-30（2026-10-26 2037 批）"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/258542352",
+              "date": "2025-04",
+              "page_date": "2025-04-14",
+              "date_confirmed": true,
+              "role": "EE 硬體工程師",
+              "grade": null,
+              "unit_detail": "主機板部門",
+              "years": "0",
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": [
+                16,
+                18
+              ],
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "同篇另一offer；月薪N未給絕對數；年薪16–18個月取中17",
+              "overtime_raw": null,
+              "travel_raw": null,
+              "in_window": false,
+              "date_note": "Dcard 頁面發文日期 2025-04-14（2026-10-26 2056 批）"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/258761446",
+              "date": "2025-05",
+              "page_date": "2025-05-09",
+              "date_confirmed": true,
+              "role": "RD（職稱未細分）",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 105,
+              "bonus_months": null,
+              "annual_months": 14,
+              "annual_wan": 147,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "留言稱華碩月薪10萬5、保14、可換單位；留言帳號被標示為可疑帳號，可信度存疑；原文主題為非工程職offer",
+              "overtime_raw": null,
+              "travel_raw": null,
+              "comment_sample": true,
+              "in_window": false,
+              "date_note": "Dcard 頁面發文日期 2025-05-09（2026-10-26 2056 批）",
+              "derived": "annual_wan 由 base_k×annual_months 推算"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/258165664",
+              "date": "2025-03",
+              "page_date": "2025-03-05",
+              "date_confirmed": true,
+              "role": "RD（一般研發）",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": "碩士",
+              "base_k": [
+                60,
+                69
+              ],
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "留言者稱華碩體系（可能含子公司）找其面試，四中碩、約30歲，核薪6X（取約65K）；並稱華碩5–14職等月薪約6–8萬",
+              "overtime_raw": null,
+              "travel_raw": null,
+              "comment_sample": true,
+              "in_window": false,
+              "date_note": "Dcard 頁面發文日期 2025-03-05（2026-10-26 2056 批）"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/258165664",
+              "date": "2025-03",
+              "page_date": "2025-03-04",
+              "date_confirmed": true,
+              "role": "研發部門（職稱未註明）",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": 14,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "留言稱研發部門保14個月但年薪未破百萬",
+              "overtime_raw": null,
+              "travel_raw": null,
+              "comment_sample": true,
+              "in_window": false,
+              "date_note": "Dcard 頁面發文日期 2025-03-04（2026-10-26 2056 批）"
             }
           ],
           "n_stat": 12
@@ -6142,6 +6709,31 @@
               "quote_free_note": "轉職；offer 整包比前一份工作多約 10%；留言 B6 說 5 職等含工程師／高工兩個職稱，變動薪 15% 多為新人核薪；B3 也收到 5 職等",
               "in_window": true,
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-03-17"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/258542352",
+              "date": "2025-04",
+              "page_date": "2025-04-14",
+              "date_confirmed": true,
+              "role": "工程師（前華碩，職稱未註明）",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": 16.5,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "留言者以前待華碩、現在廣達BU9，稱華碩時期年薪約16.5個月、午休長、氣氛自由；廣達BU9 RD正常情況不少於20個月",
+              "overtime_raw": "無加班費",
+              "travel_raw": null,
+              "comment_sample": true,
+              "in_window": false,
+              "date_note": "Dcard 頁面發文日期 2025-04-14（2026-10-26 2056 批）"
             }
           ],
           "sources": [
@@ -6159,10 +6751,15 @@
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/261105904",
               "date": "2026-03"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/258542352",
+              "date": "2025-04"
             }
           ],
           "confidence": "低",
-          "n": 3,
+          "n": 4,
           "base_month_k": [
             65,
             65
@@ -6329,6 +6926,30 @@
               "quote_free_note": "留言 B6（非發文者，交大）：已錄取、在等紙本 offer；數字未透露",
               "in_window": true,
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-01-28"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/258617052",
+              "date": "2025-04",
+              "page_date": "2025-04-22",
+              "date_confirmed": true,
+              "role": "BMC 韌體工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "0",
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": 16.6,
+              "annual_wan": 95,
+              "weekly_hours": null,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "HR電話口頭offer；月薪為2024台積碩新人價N減4K、保14，HR稱分紅約15%，整包約95萬、16.6個月（由此可推月薪約57K）",
+              "overtime_raw": "平常不太加班，趕出貨時加班到晚上7–8點",
+              "travel_raw": null,
+              "in_window": false,
+              "date_note": "Dcard 頁面發文日期 2025-04-22（2026-10-26 2056 批）"
             }
           ],
           "sources": [
@@ -6336,10 +6957,15 @@
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/260755306",
               "date": "2026-01"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/258617052",
+              "date": "2025-04"
             }
           ],
           "confidence": "低",
-          "n": 1,
+          "n": 2,
           "years": null,
           "base_month_k": null,
           "bonus_months": null,
@@ -6526,6 +7152,49 @@
             }
           ],
           "n_stat": 1
+        },
+        {
+          "unit": "北投，消費性產品（電競筆電、掌機）",
+          "role": "韌體研發工程師",
+          "degree": "碩士",
+          "grade": null,
+          "samples": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/257721955",
+              "date": "2025-01",
+              "page_date": "2025-01-10",
+              "date_confirmed": true,
+              "role": "韌體研發工程師",
+              "grade": null,
+              "unit_detail": "北投，消費性產品（電競筆電、掌機）",
+              "years": "1",
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": 14,
+              "annual_wan": 100,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "台科碩offer；月薪為台積新人價N乘14加分紅績效，核薪說明第一年約100萬出頭；碩前約一年軟韌測試經驗，核薪仍以新人價",
+              "overtime_raw": null,
+              "travel_raw": null,
+              "in_window": false,
+              "date_note": "Dcard 頁面發文日期 2025-01-10（2026-10-26 2056 批）"
+            }
+          ],
+          "n": 1,
+          "sources": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/257721955",
+              "date": "2025-01"
+            }
+          ],
+          "confidence": "低",
+          "note": "2026-10-26 2056 批由 Dcard 樣本新增的職位",
+          "n_stat": 0
         }
       ],
       "mops": {
@@ -10496,7 +11165,7 @@
           "weekly_hours": null,
           "overtime": null,
           "travel": null,
-          "n": 10,
+          "n": 11,
           "note": "平台自述統計（未轉貼原文）；2026-06 軟體 1 年月薪 7 萬稱分紅多；新人 5～5.2 萬；GoodJob 2025-12 評價：近幾年約 18～20 個月（保 14 個月＋分紅），依職級而異；GoodJob 2025-07 軟體職每週 40 小時；base_month_k、annual_months 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples；未逐筆對應的舊彙整：overtime=幾乎不",
           "sources": [
             {
@@ -10528,6 +11197,31 @@
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/256086282",
               "date": "2025"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/262329455",
+              "date": "2026-10"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/262231485",
+              "date": "2026-09"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/262031551",
+              "date": "2026-08"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261672478",
+              "date": "2026-06"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/257883748",
+              "date": "2025-02"
             }
           ],
           "confidence": "中",
@@ -10737,6 +11431,30 @@
               "quote_free_note": "之前做純軟 AI 約 2 年；拿到 offer；數字未透露",
               "in_window": true,
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-06-16"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/257883748",
+              "date": "2025-02",
+              "page_date": "2025-02-01",
+              "date_confirmed": true,
+              "role": "Server BMC 韌體工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "0",
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "同篇另一offer；月薪寫成N減5K另有簽約金，未給絕對數",
+              "overtime_raw": "有加班費，工時9–18點",
+              "travel_raw": null,
+              "in_window": false,
+              "date_note": "Dcard 頁面發文日期 2025-02-01（2026-10-26 2056 批）"
             }
           ],
           "n_stat": 9
@@ -11095,6 +11813,31 @@
               "quote_free_note": "發文者現職：月薪 N，第一年年薪破百，整年可上看 24 個月；留言 B24 說台達 CNBU 薪水不差但很操",
               "in_window": true,
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-03-06"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/257883748",
+              "date": "2025-04",
+              "page_date": "2025-04-04",
+              "date_confirmed": true,
+              "role": "工程師（職稱未註明）",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": 24,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "留言稱緯穎去年（2024）領24個月",
+              "overtime_raw": null,
+              "travel_raw": null,
+              "comment_sample": true,
+              "in_window": false,
+              "date_note": "Dcard 頁面發文日期 2025-04-04（2026-10-26 2056 批）"
             }
           ],
           "sources": [
@@ -11102,10 +11845,15 @@
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/260549543",
               "date": "2026-03"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/257883748",
+              "date": "2025-04"
             }
           ],
           "confidence": "低",
-          "n": 1,
+          "n": 2,
           "annual_months": [
             24,
             24

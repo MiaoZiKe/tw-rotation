@@ -1371,7 +1371,7 @@
           ],
           "overtime": "經常",
           "travel": "不用",
-          "n": 46,
+          "n": 47,
           "note": "GoodJob 2026-03 兩則自述（台中、高雄，不到 1 年），工時 55～60 小時／週、需輪班；學歷未標；分紅與年薪月數查 GoodJob／媒體未見設備職專屬數字，維持 null；可參考製程職推算 30～37 個月；2026-10-25 補：Dcard 碩士設備新人第一年自述 120～160 萬（第一年分紅未滿，試用期 3 個月不算），第三年 230～250 萬為單一匿名說法未採；未逐筆對應的舊彙整：annual_total_wan=[170, 172]",
           "sources": [
             {
@@ -1553,6 +1553,61 @@
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/job/p/253752036",
               "date": "依文章編號推估"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/262276781",
+              "date": "2026-10"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/262194686",
+              "date": "2026-09"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261997587",
+              "date": "2026-08"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261928640",
+              "date": "2026-08"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/260827290",
+              "date": "2026-05"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/262012805",
+              "date": "2026-08"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261831232",
+              "date": "2026-07"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261767287",
+              "date": "2026-07"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261448554",
+              "date": "2026-05"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/258798110",
+              "date": "2025-05"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/257825364",
+              "date": "2025-01"
             }
           ],
           "confidence": "中",
@@ -2470,6 +2525,30 @@
               "quote_free_note": "四大 CS 學碩、AI 背景；忙時要加班可報加班費；busyness=中；數字未透露；留言 B26 說比聯發科早下班",
               "in_window": false,
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2025-05-13"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/257825364",
+              "date": "2025-01",
+              "page_date": "2025-01-23",
+              "date_confirmed": true,
+              "role": "設備工程師（預聘研替）",
+              "grade": null,
+              "unit_detail": "新竹",
+              "years": "0",
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "同篇另一offer，未揭露薪資；同篇台達機構面試後感謝信",
+              "overtime_raw": null,
+              "travel_raw": null,
+              "in_window": false,
+              "date_note": "Dcard 頁面發文日期 2025-01-23（2026-10-26 2056 批）"
             }
           ],
           "n_stat": 22,
