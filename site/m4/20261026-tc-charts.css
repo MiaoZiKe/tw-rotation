@@ -231,3 +231,9 @@
 #v-tc .tc-rkb::before{content:'';position:absolute;left:0;right:0;top:0;height:10px;border-radius:3px;background:var(--panel-3)}
 #v-tc .tc-rkb .tc-rkbar{height:10px;bottom:auto}
 #v-tc .tc-rkb .tc-rkrg{top:13px;height:2px;background:#ffb454;opacity:.55}
+
+/* 2026-10-27 LOGO 清晰度：列表 28px、公司頁 40px 固定；白圓底＋細邊框（深色主題也看得清）；來源 <64px 已在 logos.js 退字標，不放大糊圖 */
+#v-tc .tc-rkr .tc-lg,#v-tc .tc-co .tc-lg{width:28px!important;height:28px!important;font-size:14px!important}
+#v-tc .tc-cinfo h4 .tc-lg{width:40px!important;height:40px!important;font-size:20px!important}
+#v-tc .tc-lg img{background:#fff;border:1px solid rgba(0,0,0,.18);padding:3px;image-rendering:auto}
+#v-tc .tc-lg[data-un] i svg{display:block}

@@ -74,11 +74,23 @@
   const IC = { foundry: '#3ee0ff', memory: '#8b7bff', osat: '#ffb454', material: '#2ec4b6', equipment: '#ff7a45', icdesign: '#4d8dff', odm: '#c3ff5b', panel: '#e56bd0', foreign: '#9aa7b8', other: '#7c8aa0' };
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   // 圖源三段：gstatic faviconV2 256px → 失敗或 <32px 退 DuckDuckGo ip3 → 再失敗退字標（未具名公司直接畫中性建築圖示）；2x 以上來源，顯示尺寸不變
-  const src1 = (dm) => 'https://t1.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=' + encodeURIComponent('https://' + dm) + '&size=256';
-  const src2 = (dm) => 'https://icons.duckduckgo.com/ip3/' + encodeURIComponent(dm) + '.ico';
+  /* 2026-10-27 Andy：「需確保 LOGO 都清楚」。來源依序試，載入後 naturalWidth < 64（只有 16/32px 小圖、放大會糊）就換下一個；
+     全部不夠清楚才退字標。每個網域成功的來源記在 localStorage（tc.lgsrc，-1＝全失敗），下次直接用、不重試。 */
+  const SRC = [
+    (dm) => 'https://t1.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=' + encodeURIComponent('https://' + dm) + '&size=256',
+    (dm) => 'https://www.google.com/s2/favicons?domain=' + encodeURIComponent(dm) + '&sz=256',
+    (dm) => 'https://icons.duckduckgo.com/ip3/' + encodeURIComponent(dm) + '.ico',
+    (dm) => 'https://' + dm + '/apple-touch-icon.png'
+  ];
+  const MINW = 64, LSK = 'tc.lgsrc';
+  let MEM = {};
+  try { MEM = JSON.parse(localStorage.getItem(LSK) || '{}') || {}; } catch (e) { MEM = {}; }
+  function remember(dm, i) { MEM[dm] = i; try { localStorage.setItem(LSK, JSON.stringify(MEM)); } catch (e) { /* 私密視窗等：不記也照常運作 */ } }
+  function toTxt(t) { if (t.parentNode) t.parentNode.dataset.lg = 'txt'; t.remove(); }
   function failImg(t) {
-    if (t.dataset.st === '0') { t.dataset.st = '1'; t.src = src2(t.dataset.dm); return; }
-    if (t.parentNode) t.parentNode.dataset.lg = 'txt'; t.remove();
+    const n = +t.dataset.st + 1;
+    if (n < SRC.length) { t.dataset.st = String(n); t.src = SRC[n](t.dataset.dm); return; }
+    remember(t.dataset.dm, -1); toTxt(t);
   }
   function domain(name) { return D[name] || ''; }
   // 未具名／類別名：不是一家可查官網的公司，字標改中性建築圖示
@@ -88,13 +100,13 @@
   /* 回傳 HTML 字串：字標先畫在底層，有網域才疊 <img>，img 失敗由下面的全域 error 監聽移除，字標自然露出 */
   function html(name, ind, size) {
     const col = IC[ind] || IC.other, un = unnamed(name), ch = Array.from(String(name || '?'))[0] || '?', dm = un ? '' : domain(name), sz = size || 24;
-    return '<span class="tc-lg" data-lg="' + (dm ? 'img' : 'txt') + '" style="--lg:' + col + ';--lz:' + sz + 'px"' + (un ? ' data-un="1" title="未具名公司"' : '') + '><i>' + (un ? BLD : esc(ch)) + '</i>' +
-      (dm ? '<img src="' + src1(dm) + '" data-dm="' + esc(dm) + '" data-st="0" alt="' + esc(name) + '" loading="lazy" referrerpolicy="no-referrer" width="' + sz + '" height="' + sz + '">' : '') + '</span>';
+    return '<span class="tc-lg" data-lg="' + (dm && MEM[dm] !== -1 ? 'img' : 'txt') + '" style="--lg:' + col + ';--lz:' + sz + 'px"' + (un ? ' data-un="1" title="未具名公司"' : '') + '><i>' + (un ? BLD : esc(ch)) + '</i>' +
+      (dm && MEM[dm] !== -1 ? '<img src="' + SRC[MEM[dm] > 0 ? MEM[dm] : 0](dm) + '" data-dm="' + esc(dm) + '" data-st="' + (MEM[dm] > 0 ? MEM[dm] : 0) + '" alt="' + esc(name) + '" loading="lazy" referrerpolicy="no-referrer" width="' + sz + '" height="' + sz + '">' : '') + '</span>';
   }
   // error 不冒泡，用捕獲階段接；失敗就拔掉圖，露出下面的字標
   // 圖載好才蓋上字標；naturalWidth<32（含 16×16 預設地球）視同失敗；error 不冒泡所以用捕獲階段
   const isLg = (t) => t && t.tagName === 'IMG' && t.parentNode && t.parentNode.classList && t.parentNode.classList.contains('tc-lg');
-  document.addEventListener('load', (e) => { const t = e.target; if (!isLg(t)) return; if (t.dataset.st === '0' && t.naturalWidth && t.naturalWidth < 32) failImg(t); else t.classList.add('ok'); }, true);
+  document.addEventListener('load', (e) => { const t = e.target; if (!isLg(t)) return; if (!t.naturalWidth || t.naturalWidth < MINW) failImg(t); else { remember(t.dataset.dm, +t.dataset.st); t.classList.add('ok'); } }, true);
   document.addEventListener('error', (e) => { const t = e.target; if (isLg(t)) failImg(t); }, true);
-  window.TcLogo = { html, domain, unnamed, color: (ind) => IC[ind] || IC.other, map: D };
+  window.TcLogo = { html, domain, unnamed, sources: SRC, MINW, color: (ind) => IC[ind] || IC.other, map: D };
 })();
