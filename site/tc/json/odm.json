@@ -9588,6 +9588,21 @@
               "date": "2025"
             }
           ]
+        },
+        {
+          "type": "保障月數＋分紅",
+          "rule": "網友說法：14 個月＋分紅，分紅約 1～2 個月、比其他系統廠少；有三節與免費午餐（GoodJob 2025 評價）",
+          "months": [
+            1,
+            2
+          ],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/英業達股份有限公司/work-experiences/薪資福利",
+              "date": "2025"
+            }
+          ]
         }
       ]
     },
@@ -9778,7 +9793,7 @@
       "heat": null,
       "benefits": null,
       "stock_plan": null,
-      "bonus_timing": "官方：盈餘分紅（依營運與個人績效）、年終、端午中秋春節三節獎金、專案與專利獎金，每年兩次考核；月數與月份未公開",
+      "bonus_timing": "官方：盈餘分紅（依營運與個人績效）、年終、端午中秋春節三節獎金、專案與專利獎金，每年兩次考核；月數與月份未公開；網友說法：8 月領績效獎金、農曆年前（1～2 月）領分紅，保 12.5 個月（GoodJob 2025-06 RF 工程師評價）；2026 年評價稱主管說基本上不低於 16 個月",
       "culture": "網友說法：GoodJob 評分 3.7（74 筆），平均每週約 42 小時、14% 幾乎每天加班、28% 偶爾；不同部門差距大",
       "interview": "網友說法：軟體職缺會大量追問 project 與論文，建議熟 C 指標、bitwise 與 TCP/IP（GoodJob 2025-04）；系統整合職缺先考英文再問讀寫檔案（2026-03）；嵌入式職缺依自我介紹逐項追問（2026-04）",
       "roles": [
@@ -10028,6 +10043,55 @@
           "overtime": null,
           "travel": null,
           "n": 2,
+          "n_stat": 1
+        },
+        {
+          "unit": "研發 RD",
+          "role": "軟體設計工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": [
+            105,
+            105
+          ],
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n": 1,
+          "note": "網友自述樣本（2025-08 之後）",
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/智易科技股份有限公司/interview-experiences",
+              "date": "2025-12"
+            }
+          ],
+          "confidence": "低",
+          "grade": null,
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/智易科技股份有限公司/interview-experiences",
+              "date": "2025-12",
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 105,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "面試錄取回報",
+              "date_confirmed": true,
+              "date_note": "來源標示年月，晚於 2025-08-01",
+              "in_window": true
+            }
+          ],
           "n_stat": 1
         }
       ],
@@ -11333,6 +11397,122 @@
           "n_stat": 1,
           "note": null,
           "grade": null
+        },
+        {
+          "unit": "其他",
+          "role": "Automation",
+          "degree": null,
+          "years": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": [
+            18,
+            20
+          ],
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n": 1,
+          "note": "網友自述樣本（2025-08 之後）",
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/緯穎科技服務股份有限公司/work-experiences/薪資福利",
+              "date": "2025-12"
+            }
+          ],
+          "confidence": "低",
+          "grade": null,
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/緯穎科技服務股份有限公司/work-experiences/薪資福利",
+              "date": "2025-12",
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": [
+                18,
+                20
+              ],
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "保 14＋分紅，近幾年整年約 18～20 個月",
+              "date_confirmed": true,
+              "date_note": "來源標示年月，晚於 2025-08-01",
+              "in_window": true
+            }
+          ],
+          "n_stat": 1
+        },
+        {
+          "unit": "研發 RD",
+          "role": "研發品質驗證工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": [
+            64,
+            64
+          ],
+          "bonus_months": null,
+          "annual_months": [
+            18,
+            20
+          ],
+          "annual_total_wan": [
+            115.2,
+            128
+          ],
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n": 1,
+          "note": "網友自述樣本（2025-08 之後）",
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/緯穎科技服務股份有限公司/work-experiences/薪資福利",
+              "date": "2025-12"
+            }
+          ],
+          "confidence": "低",
+          "grade": null,
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/緯穎科技服務股份有限公司/work-experiences/薪資福利",
+              "date": "2025-12",
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 64,
+              "bonus_months": null,
+              "annual_months": [
+                18,
+                20
+              ],
+              "annual_wan": [
+                115.2,
+                128
+              ],
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "底薪偏低、靠分紅，約 18～20 個月",
+              "date_confirmed": true,
+              "date_note": "來源標示年月，晚於 2025-08-01",
+              "in_window": true,
+              "derived": [
+                "annual_wan"
+              ]
+            }
+          ],
+          "n_stat": 1
         }
       ],
       "mops": null,
@@ -11370,7 +11550,7 @@
       "code": "3231",
       "heat": null,
       "benefits": "網友說法：有年終＋端午中秋；整年保 14 個月＋約 2 個月分紅，表現極好者可到 20 個月但稀少（GoodJob 2026 評價）；有人說主管不讓報加班費",
-      "stock_plan": null,
+      "stock_plan": "網友說法：員工可半價認購股票（GoodJob 2025-06 軟體工程師評價）",
       "bonus_timing": "網友稱年終約 1 個月，分紅依 BU 差異大（傳統單位全年約 15～17 個月、AI 伺服器可達 20 個月）；月份查不到",
       "culture": "GoodJob 609 筆：平均每週 46 小時，多數偶爾或經常加班；薪資評價差強人意",
       "interview": "網友說法：常見先做適性、英文閱讀與專業科目（C、計組）測驗，主管面針對自介與 PPT 提問，伺服器職會問元件與 Linux；面試官會主動談加班、出差與夜班（GoodJob 2026、Dcard 2025 末～2026 面試分享）",
@@ -12275,6 +12455,18 @@
               "date": "2025"
             }
           ]
+        },
+        {
+          "type": "年中分紅＋績效＋年終",
+          "rule": "網友說法：底薪＋伙食津貼、年中分紅、績效獎金、端午中秋節金、年終；14 個月不保證、需達績效，一年約 16～18 個月（GoodJob 2025 評價）",
+          "months": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/緯創資通股份有限公司 WISTRON/work-experiences/薪資福利",
+              "date": "2025"
+            }
+          ]
         }
       ]
     },
@@ -12282,8 +12474,8 @@
       "name": "明基",
       "code": "2352",
       "heat": null,
-      "benefits": null,
-      "stock_plan": null,
+      "benefits": "網友說法：保 14、KPI 績效一年兩次、營運分紅、福利金；員工餐約 40 元吃到飽、晚餐免費（GoodJob 評價）",
+      "stock_plan": "網友說法：有信託持股（GoodJob 品質工程師評價）",
       "bonus_timing": "網友稱有端午、中秋、年節獎金，分紅約 0.5～1.5 個月、無獲利幾乎沒有；月份查不到",
       "culture": "網友說法：面試趣多標示很少加班、日均約 7.8 小時；2026 GoodJob 評價說準時上下班、加班不多但薪水也不高；升遷 2.3／5",
       "interview": "網友說法：面試趣評價約 4／5、難度約 2.8／5、錄取率約 54%；GoodJob 2026-04 有產品管理師負評說主管問題與職位無關",
@@ -12492,7 +12684,7 @@
       "name": "趨勢科技",
       "code": "4704",
       "heat": null,
-      "benefits": "每年免費健檢、每半年發獎金（GoodJob 2025）",
+      "benefits": "每年免費健檢、每半年發獎金（GoodJob 2025）；彈性上下班、家庭日、優於勞基法的休假、內部培訓與 AI Hackathon（1111 人力銀行 2026-03 校徵報導）",
       "stock_plan": "虛擬配股（GoodJob 2025）",
       "bonus_timing": "只查到舊報導：每人 2 個月年終、3 月依部門績效加發紅利；近年制度查不到",
       "culture": "網友說法：比薪水 2020～2023 心得加班不一（常常加班日均 9 小時，也有準時下班 8 小時）；有人說工程師文化好、內部轉調自由",
@@ -12756,6 +12948,116 @@
           "n_stat": 1,
           "note": null,
           "grade": null
+        },
+        {
+          "unit": "研發 RD",
+          "role": "Sr. Engineer",
+          "degree": null,
+          "years": null,
+          "base_month_k": [
+            130,
+            130
+          ],
+          "bonus_months": null,
+          "annual_months": [
+            14,
+            14
+          ],
+          "annual_total_wan": [
+            182.0,
+            182.0
+          ],
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n": 1,
+          "note": "網友自述樣本（2025-08 之後）",
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/趨勢科技股份有限公司/work-experiences/薪資福利",
+              "date": "2026-01"
+            }
+          ],
+          "confidence": "低",
+          "grade": null,
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/趨勢科技股份有限公司/work-experiences/薪資福利",
+              "date": "2026-01",
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 130,
+              "bonus_months": null,
+              "annual_months": [
+                14,
+                14
+              ],
+              "annual_wan": 182.0,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "固定 14 個月、偶爾有獎金",
+              "date_confirmed": true,
+              "date_note": "來源標示年月，晚於 2025-08-01",
+              "in_window": true,
+              "derived": [
+                "annual_wan"
+              ]
+            }
+          ],
+          "n_stat": 1
+        },
+        {
+          "unit": "研發 RD",
+          "role": "資深工程師",
+          "degree": null,
+          "years": "11",
+          "base_month_k": [
+            105,
+            105
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n": 1,
+          "note": "網友自述樣本（2025-08 之後）",
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/趨勢科技股份有限公司/work-experiences/薪資福利",
+              "date": "2025-08"
+            }
+          ],
+          "confidence": "低",
+          "grade": null,
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/趨勢科技股份有限公司/work-experiences/薪資福利",
+              "date": "2025-08",
+              "unit_detail": null,
+              "years": "11",
+              "degree": null,
+              "base_k": 105,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": null,
+              "date_confirmed": true,
+              "date_note": "來源標示年月，晚於 2025-08-01",
+              "in_window": true
+            }
+          ],
+          "n_stat": 1
         }
       ],
       "mops": null,
