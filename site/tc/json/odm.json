@@ -1860,7 +1860,7 @@
           ],
           "overtime": "經常",
           "travel": null,
-          "n": 12,
+          "n": 16,
           "note": "平台自述統計（未轉貼原文）；起薪 5.2 萬為 2024 校徵公告（超出一年窗口，僅參考）；Dcard 整理碩士整包 83～120 萬；無近一年 GoodJob 數字；比薪水 2026-02 單筆：偶爾加班、日均 8 小時；分紅月數無可靠區間；base_month_k、annual_months、annual_total_wan 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples；部分年薪／年薪月數由同一筆樣本的「底薪×月數」推算（樣本標 derived）",
           "sources": [
             {
@@ -1922,6 +1922,26 @@
               "site": "GoodJob",
               "url": "https://www.goodjob.life/experiences/68d1496c614d002d5275364b",
               "date": "2025-09"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/259437281",
+              "date": "2025-07"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/259282098",
+              "date": "2025-07"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/257820950",
+              "date": "2025-01"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/258617187",
+              "date": "2025-04"
             }
           ],
           "confidence": "中",
@@ -2157,6 +2177,102 @@
               "date_confirmed": true,
               "date_note": "GoodJob 標題 2025-09",
               "in_window": true
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/259437281",
+              "date": "2025-07",
+              "page_date": "2025-07-30",
+              "date_confirmed": true,
+              "role": "AI Server RD 硬體工程師",
+              "grade": null,
+              "unit_detail": "E事業群，土城",
+              "years": "2",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "現職硬體工程師2年，同時拿鴻海、華碩、祥碩offer，未揭露薪資；留言稱鴻海9月分紅需滿兩年、未滿一年無績效獎金，第一年約14個月",
+              "overtime_raw": "看案子，平常正常上下班",
+              "travel_raw": null,
+              "in_window": false,
+              "date_note": "Dcard 頁面發文日期 2025-07-30（2026-10-26 2037 批）"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/259282098",
+              "date": "2025-07",
+              "page_date": "2025-07-10",
+              "date_confirmed": true,
+              "role": "軟體工程師（外派印度）",
+              "grade": "師3",
+              "unit_detail": "印度班加羅爾，蘋果手機製造系統開發",
+              "years": "3",
+              "degree": "學士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": "需要",
+              "quote_free_note": "三年軟工經驗，已接受offer；原PO稱含外派後與現職含年終薪水差不多甚至更少，未給數字",
+              "overtime_raw": null,
+              "travel_raw": "外派印度",
+              "in_window": false,
+              "date_note": "Dcard 頁面發文日期 2025-07-10（2026-10-26 2037 批）"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/257820950",
+              "date": "2025-01",
+              "page_date": "2025-01-23",
+              "date_confirmed": true,
+              "role": "硬體工程師",
+              "grade": "師五",
+              "unit_detail": "FII（工業富聯）",
+              "years": "10",
+              "degree": null,
+              "base_k": 80,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "現職某系統廠硬體十年，鴻海FII核薪師五月薪80K；無留言",
+              "overtime_raw": null,
+              "travel_raw": null,
+              "in_window": false,
+              "date_note": "Dcard 頁面發文日期 2025-01-23（2026-10-26 2037 批）"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/258617187",
+              "date": "2025-04",
+              "page_date": "2025-04-22",
+              "date_confirmed": true,
+              "role": "EE 硬體工程師（外派中國）",
+              "grade": null,
+              "unit_detail": "客戶為蘋果",
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": 14,
+              "annual_wan": null,
+              "weekly_hours": 60,
+              "overtime": "經常",
+              "travel": "需要",
+              "quote_free_note": "同篇另一offer，月薪寫成N減3K乘14另有外派津貼、績效與分紅（分紅後年才領）；N依留言約63K，推約60K（推估）",
+              "overtime_raw": "一週上六天",
+              "travel_raw": "外派中國，35天返台7天",
+              "in_window": false,
+              "date_note": "Dcard 頁面發文日期 2025-04-22（2026-10-26 2037 批）"
             }
           ],
           "n_stat": 8
@@ -2744,6 +2860,61 @@
               "quote_free_note": "口頭告知職稱與薪資後簽核一再拖延，發文時還沒收到正式 offer；數字未透露",
               "in_window": true,
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-04-14"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/258910725",
+              "date": "2025-05",
+              "page_date": "2025-05-26",
+              "date_confirmed": true,
+              "role": "工程師（外派深圳）",
+              "grade": null,
+              "unit_detail": "iPEBG",
+              "years": "5.5",
+              "degree": "碩士",
+              "base_k": [
+                60,
+                69
+              ],
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": "需要",
+              "quote_free_note": "核薪為鴻海碩畢新人價N加14K另加外派津貼與績效（滿一年才有）；留言據此稱月薪才6萬多，base_k以6X取約65；留言稱結構約14+2（績效）+外派+分紅+生產獎金，混得好年收約200萬（原文 6X，base_k 改填區間 [60,69]）",
+              "overtime_raw": null,
+              "travel_raw": "外派深圳",
+              "in_window": false,
+              "date_note": "Dcard 頁面發文日期 2025-05-26（2026-10-26 2037 批）"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/257980153",
+              "date": "2025-02",
+              "page_date": "2025-02-14",
+              "date_confirmed": true,
+              "role": "工程師（職稱未註明）",
+              "grade": null,
+              "unit_detail": null,
+              "years": "3",
+              "degree": null,
+              "base_k": [
+                60,
+                69
+              ],
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "留言稱海邊三年經驗月薪大概6X（六萬多，取約65K）；另一留言稱四年年資談不到9X K；三年內是否調薪看集團是否統一調薪（原文 6X，base_k 改填區間 [60,69]）",
+              "overtime_raw": null,
+              "travel_raw": null,
+              "comment_sample": true,
+              "in_window": false,
+              "date_note": "Dcard 頁面發文日期 2025-02-14（2026-10-26 2037 批）"
             }
           ],
           "sources": [
@@ -2751,10 +2922,20 @@
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/261298481",
               "date": "2026-04"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/258910725",
+              "date": "2025-05"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/257980153",
+              "date": "2025-02"
             }
           ],
           "confidence": "低",
-          "n": 1,
+          "n": 3,
           "years": "轉職",
           "base_month_k": null,
           "bonus_months": null,
@@ -2876,6 +3057,230 @@
           "n_stat": 1,
           "note": "部分年薪／年薪月數由同一筆樣本的「底薪×月數」推算（樣本標 derived）",
           "grade": null
+        },
+        {
+          "unit": "深圳，iPhone RF 量產模組測試",
+          "role": "RF 測試工程師",
+          "degree": "碩士",
+          "grade": null,
+          "samples": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/259344630",
+              "date": "2025-07",
+              "page_date": "2025-07-18",
+              "date_confirmed": true,
+              "role": "RF Test Engineer",
+              "grade": null,
+              "unit_detail": "深圳，iPhone RF 量產模組測試",
+              "years": "0",
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": 14,
+              "annual_wan": null,
+              "weekly_hours": 60,
+              "overtime": "經常",
+              "travel": "需要",
+              "quote_free_note": "碩士新人offer；月薪寫成台積碩新人價N減1K乘14，另有出差費與獎金，未給絕對數",
+              "overtime_raw": "每日約12小時，量產期一週休一日",
+              "travel_raw": "外派深圳，另有出差費",
+              "in_window": false,
+              "date_note": "Dcard 頁面發文日期 2025-07-18（2026-10-26 2037 批）"
+            }
+          ],
+          "n": 1,
+          "sources": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/259344630",
+              "date": "2025-07"
+            }
+          ],
+          "confidence": "低",
+          "note": "2026-10-26 2037 批由 Dcard 樣本新增的職位",
+          "n_stat": 0
+        },
+        {
+          "unit": "其他",
+          "role": "FAE",
+          "degree": "不限",
+          "grade": null,
+          "samples": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/259282098",
+              "date": "2025-08",
+              "page_date": "2025-08-04",
+              "date_confirmed": true,
+              "role": "FAE（外派印度）",
+              "grade": "師5",
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 170,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": "需要",
+              "quote_free_note": "留言者面試中，一面稱年薪約170萬；外派津貼另存印度帳戶，台幣薪資只算底薪加伙食津貼；尚非正式offer",
+              "overtime_raw": null,
+              "travel_raw": "外派印度",
+              "comment_sample": true,
+              "in_window": true,
+              "date_note": "Dcard 頁面發文日期 2025-08-04（2026-10-26 2037 批）"
+            }
+          ],
+          "n": 1,
+          "sources": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/259282098",
+              "date": "2025-08"
+            }
+          ],
+          "confidence": "低",
+          "note": "2026-10-26 2037 批由 Dcard 樣本新增的職位",
+          "annual_total_wan": [
+            170,
+            170
+          ],
+          "travel": "需要",
+          "n_stat": 1
+        },
+        {
+          "unit": "鴻海集團 CESBG（原PO留言稱非正海本體）",
+          "role": "BMC 韌體工程師",
+          "degree": "碩士",
+          "grade": null,
+          "samples": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/259136013",
+              "date": "2025-06",
+              "page_date": "2025-06-21",
+              "date_confirmed": true,
+              "role": "BMC 韌體工程師",
+              "grade": null,
+              "unit_detail": "鴻海集團 CESBG（原PO留言稱非正海本體）",
+              "years": "0",
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "中字電資碩新鮮人offer；月薪比兆勤韌體offer低約1萬，未給絕對數",
+              "overtime_raw": null,
+              "travel_raw": null,
+              "in_window": false,
+              "date_note": "Dcard 頁面發文日期 2025-06-21（2026-10-26 2037 批）"
+            }
+          ],
+          "n": 1,
+          "sources": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/259136013",
+              "date": "2025-06"
+            }
+          ],
+          "confidence": "低",
+          "note": "2026-10-26 2037 批由 Dcard 樣本新增的職位",
+          "n_stat": 0
+        },
+        {
+          "unit": "自動化單位，客戶為蘋果",
+          "role": "自動化工程師",
+          "degree": "不限",
+          "grade": null,
+          "samples": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/258454387",
+              "date": "2025-04",
+              "page_date": "2025-04-04",
+              "date_confirmed": true,
+              "role": "自動化工程師（外派越南）",
+              "grade": null,
+              "unit_detail": "自動化單位，客戶為蘋果",
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 180,
+              "weekly_hours": 60,
+              "overtime": "經常",
+              "travel": "需要",
+              "quote_free_note": "稅前整包約180萬，比現職多約30萬；留言稱外派津貼一年約40–43萬，扣除後本薪約140萬；有經驗工程師外派東南亞一般200萬以上",
+              "overtime_raw": "無加班費，一週上班六天",
+              "travel_raw": "常駐越南",
+              "in_window": false,
+              "date_note": "Dcard 頁面發文日期 2025-04-04（2026-10-26 2037 批）"
+            }
+          ],
+          "n": 1,
+          "sources": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/258454387",
+              "date": "2025-04"
+            }
+          ],
+          "confidence": "低",
+          "note": "2026-10-26 2037 批由 Dcard 樣本新增的職位",
+          "n_stat": 0
+        },
+        {
+          "unit": "AR眼鏡相關單位",
+          "role": "封裝製程工程師",
+          "degree": "不限",
+          "grade": null,
+          "samples": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/259246744",
+              "date": "2025-07",
+              "page_date": "2025-07-05",
+              "date_confirmed": true,
+              "role": "資深封裝製程工程師 SR. PEE",
+              "grade": null,
+              "unit_detail": "AR眼鏡相關單位",
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": [
+                40,
+                45
+              ],
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "轉職offer；月薪為前一份工作月薪減10K，未給絕對數；第三年才拿到分紅；留言稱可能是新創單位不穩",
+              "overtime_raw": "每日8–9小時",
+              "travel_raw": null,
+              "in_window": false,
+              "date_note": "Dcard 頁面發文日期 2025-07-05（2026-10-26 2037 批）"
+            }
+          ],
+          "n": 1,
+          "sources": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/259246744",
+              "date": "2025-07"
+            }
+          ],
+          "confidence": "低",
+          "note": "2026-10-26 2037 批由 Dcard 樣本新增的職位",
+          "n_stat": 0
         }
       ],
       "mops": null,
@@ -5095,7 +5500,7 @@
           ],
           "overtime": "經常",
           "travel": null,
-          "n": 14,
+          "n": 15,
           "note": "平台自述統計（未轉貼原文）；社群回報月薪×14 保底＋績效分紅，無碩士起薪數字；2026-10 查比薪水有逾千筆但摘要無分紅／工時細節；annual_months 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples；部分年薪／年薪月數由同一筆樣本的「底薪×月數」推算（樣本標 derived）",
           "sources": [
             {
@@ -5157,6 +5562,21 @@
               "site": "GoodJob",
               "url": "https://www.goodjob.life/experiences/69799286747f93effa02d3b5",
               "date": "2026-01"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/262329455",
+              "date": "2026-10"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/262084665",
+              "date": "2026-09"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/259437281",
+              "date": "2025-07"
             }
           ],
           "confidence": "高",
@@ -5438,6 +5858,30 @@
               "quote_free_note": "留言 B4（非發文者，私立碩）：年資 5 年談到 72K",
               "in_window": true,
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-09-06"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/259437281",
+              "date": "2025-07",
+              "page_date": "2025-07-30",
+              "date_confirmed": true,
+              "role": "硬體研發工程師（Server）",
+              "grade": null,
+              "unit_detail": "ODM server，北投",
+              "years": "2",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "同篇另一份offer，未揭露薪資",
+              "overtime_raw": "看案子",
+              "travel_raw": null,
+              "in_window": false,
+              "date_note": "Dcard 頁面發文日期 2025-07-30（2026-10-26 2037 批）"
             }
           ],
           "n_stat": 12
