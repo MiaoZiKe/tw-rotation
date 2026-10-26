@@ -53,3 +53,28 @@
 #v-tc .tc-row.tc-open td{background:var(--panel-2)}
 
 #v-tc .tc-tbl td.tc-btm{white-space:nowrap}
+
+/* 薪資組成甜甜圈＋樣本統計環組（2026-10-26） */
+#v-tc .tc-chm .seg[data-chm]{display:none}
+#v-tc .tc-chm{display:flex;flex-wrap:wrap;gap:var(--sp-2) var(--sp-3);margin-bottom:var(--sp-2)}
+#v-tc .tc-pay{border:1px solid var(--line);border-radius:var(--r-sm);background:var(--panel-2);padding:var(--sp-3);margin:var(--sp-3) 0}
+#v-tc .tc-payh{display:flex;flex-wrap:wrap;align-items:center;gap:var(--sp-2) var(--sp-3);margin-bottom:var(--sp-2)}
+#v-tc .tc-pay h5{margin:0;font-size:14px;color:var(--ink-2)}
+#v-tc .tc-payh select{max-width:100%;height:32px;border:1px solid var(--line-2);background:var(--panel-3);color:var(--ink);border-radius:var(--r-sm);font-size:13px;padding:0 var(--sp-2)}
+#v-tc .tc-paybody{display:grid;grid-template-columns:220px minmax(0,1fr);gap:var(--sp-4);align-items:center}
+#v-tc .tc-paych{width:100%;min-height:120px}
+#v-tc .tc-paylg{display:flex;flex-direction:column;gap:6px}
+#v-tc .tc-pl{display:grid;grid-template-columns:12px 1fr auto auto;gap:var(--sp-2);align-items:center;font-size:13.5px}
+#v-tc .tc-pl i{width:10px;height:10px;border-radius:3px;display:block}
+#v-tc .tc-pl b{color:var(--ink)}#v-tc .tc-pl small{color:var(--ink-3);min-width:64px;text-align:right}
+#v-tc .tc-paynote{margin-top:var(--sp-2);font-size:12px;color:var(--ink-3)}
+#v-tc .tc-cok.has-pay{grid-template-columns:repeat(3,1fr) 44px;align-items:center}
+#v-tc .tc-mini{display:flex;justify-content:center}
+@media (max-width:640px){
+#v-tc .tc-chm .seg[data-chm]{display:inline-flex}
+#v-tc .tc-gr[data-m=share] .tc-gc[data-c=share]{display:block}
+#v-tc .tc-paybody{grid-template-columns:1fr}
+#v-tc .tc-cok.has-pay{grid-template-columns:repeat(3,1fr)}
+#v-tc .tc-mini{display:none}
+}
+#v-tc .tc-paylg{max-width:380px}

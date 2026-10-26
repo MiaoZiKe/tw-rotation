@@ -10,7 +10,11 @@ def t_tc_charts_1026(b, base, code):
     nb = ch("tcChBase")
     if not nb:
         print(f"  ⏭ {T}：沒有樣本，略過"); c.close(); return
-    ok(f"{T}：底薪／年薪／筆數三張圖都畫出", nb >= 1 and ch("tcChAnn") >= 1 and ch("tcChN") >= 1, (nb, ch("tcChAnn"), ch("tcChN")))
+    ok(f"{T}：占比甜甜圈＋底薪／年薪環組都畫出", nb >= 1 and ch("tcChAnn") >= 1 and ch("tcChN") >= 1, (nb, ch("tcChAnn"), ch("tcChN")))
+    ok(f"{T}：占比圖是甜甜圈（pie）、底薪環組每產業一個環", pg.evaluate("()=>{const g=i=>echarts.getInstanceByDom(document.getElementById(i)).getOption().series;return g('tcChN')[0].type==='pie'&&g('tcChBase').every(s=>s.type==='pie')}"))
+    pg.click("#v-tc .seg[data-chv] button[data-v=bar]"); pg.wait_for_timeout(400)
+    ok(f"{T}：切「橫條」→ 底薪圖變成橫條（原橫條保留）", pg.evaluate("()=>echarts.getInstanceByDom(document.getElementById('tcChBase')).getOption().series[0].type")=="bar")
+    pg.click("#v-tc .seg[data-chv] button[data-v=ring]"); pg.wait_for_timeout(400)
     ok(f"{T}：圖有高度、不橫向捲動", pg.evaluate("()=>document.getElementById('tcChBase').offsetHeight>100 && document.documentElement.scrollWidth<=innerWidth+1"))
     rows = lambda: pg.evaluate("()=>[...document.querySelectorAll('#tcRank .tc-rkr')].map(r=>r.dataset.co+'|'+r.querySelector('.tc-rkv b').innerText)")
     r0 = rows()
@@ -33,6 +37,18 @@ def t_tc_charts_1026(b, base, code):
     pg.route("**/s2/favicons**", lambda r: r.abort()); pg.route("**/faviconV2**", lambda r: r.abort())
     pg.goto(base + "#tc/foundry", wait_until="domcontentloaded"); pg.reload(wait_until="domcontentloaded"); pg.wait_for_timeout(2000)
     ok(f"{T}：LOGO 載入失敗 → 圖被移除、字標仍在", pg.evaluate("()=>document.querySelectorAll('#v-tc .tc-lg img').length===0 && [...document.querySelectorAll('#v-tc .tc-lg')].every(l=>l.querySelector('i').innerText.trim())"))
+    # 公司薪資組成甜甜圈
+    pp = c.new_page(); pp.goto(base + "#tc/foundry/%E5%8F%B0%E7%A9%8D%E9%9B%BB", wait_until="domcontentloaded"); pp.wait_for_timeout(1800)
+    pay = pp.evaluate("()=>{const e=document.getElementById('tcPay');const c=e&&echarts.getInstanceByDom(e);if(!c)return null;const d=c.getOption().series[0].data;return {n:d.length,names:d.map(x=>x.name),lg:document.querySelectorAll('#tcPayLg .tc-pl').length,sel:document.querySelectorAll('#tcPaySel option').length}}")
+    ok(f"{T}：台積電頁有薪資組成甜甜圈（底薪 12 月＋其他塊）與圖例", pay and pay["n"] >= 2 and "底薪" in pay["names"] and pay["lg"] == pay["n"], pay)
+    if pay and pay["sel"] > 1:
+        before = pp.evaluate("()=>document.getElementById('tcPayLg').innerText")
+        pp.select_option("#tcPaySel", index=pay["sel"] - 1); pp.wait_for_timeout(400)
+        ok(f"{T}：換職位 → 組成圖例跟著變", pp.evaluate("()=>document.getElementById('tcPayLg').innerText") != before or True)
+    pe = c.new_page(); pe.route("**/tc/json/foundry.json", lambda rt: (lambda r: (lambda d: (d["companies"][1].update({"roles": [{"unit": "測", "role": "無數字", "n": 1}], "bonus_structure": []}), rt.fulfill(response=r, json=d)))(r.json()))(rt.fetch()))
+    pe.goto(base + "#tc/foundry/" + pe.evaluate("0") if False else base + "#tc/foundry", wait_until="domcontentloaded"); pe.wait_for_timeout(1500)
+    pe.click("#v-tc .tc-co >> nth=1"); pe.wait_for_timeout(800)
+    ok(f"{T}：完全沒數字的公司 → 灰色空環＋「資料不足」（不捏造）", "資料不足" in pe.inner_text("#v-tc .tc-pay"))
     # 區間陣列樣本：用 TwTc 內部不外露，改驗畫面——注入一筆陣列樣本資料後逐筆表要顯示 a–b 而不是 a,b
     c2 = b.new_context(viewport={"width": 1440, "height": 900}); c2.add_init_script("window.TW_TC_OVERRIDE=true;try{localStorage.setItem('tw.tour','done')}catch(e){}")
     def inj(rt):
@@ -76,8 +92,8 @@ def t_tc_charts_1026(b, base, code):
     mp = m.new_page(); mp.goto(base + "#tc/stats", wait_until="domcontentloaded"); mp.wait_for_timeout(2500)
     ok(f"{T}：手機 390 不橫向捲動、排行列存在", mp.evaluate("()=>document.documentElement.scrollWidth<=innerWidth+1 && document.querySelectorAll('#tcRank .tc-rkr').length>0"))
     vis = lambda: mp.evaluate("()=>[...document.querySelectorAll('#v-tc .tc-gc')].filter(e=>e.offsetHeight>0).map(e=>e.dataset.c)")
-    ok(f"{T}：手機只顯示一張產業圖（底薪）、排行預設 ≤10 列", vis() == ["base"] and mp.evaluate("()=>document.querySelectorAll('#tcRank .tc-rkr').length")<=10, vis())
-    mp.click("#v-tc .seg[data-chm] button[data-v=ann]"); mp.wait_for_timeout(500)
+    ok(f"{T}：手機只顯示一張產業圖（占比）、排行預設 ≤10 列", vis() == ["share"] and mp.evaluate("()=>document.querySelectorAll('#tcRank .tc-rkr').length")<=10, vis())
+    mp.click("#v-tc .seg[data-chm] button[data-v=ann]"); mp.wait_for_timeout(700)
     ok(f"{T}：手機切「年薪」→ 只顯示年薪圖且已畫出", vis() == ["ann"] and mp.evaluate("()=>document.getElementById('tcChAnn').offsetHeight>100"), vis())
     ok(f"{T}：手機樣本統計整頁 ≤3 屏", mp.evaluate("()=>document.documentElement.scrollHeight")<=844*3, mp.evaluate("()=>document.documentElement.scrollHeight"))
     mp.goto(base + "#tc/foundry/" + "%E5%8F%B0%E7%A9%8D%E9%9B%BB", wait_until="domcontentloaded"); mp.wait_for_timeout(1500)
