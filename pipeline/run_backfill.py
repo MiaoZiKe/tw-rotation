@@ -1522,6 +1522,13 @@ def main() -> int:
         summary = run(args.datasets or "price+inst", limit, args.start)
     total = sum(summary[k] for k in DATA_KEYS)
     log.info("本輪共寫入 %d 列", total)
+    # 2026-10-26（台指期第四輪）：臺指選擇權每日買賣權比（opt_pc），按月游標、每輪最多補幾個月；失敗只記 log，不影響前面的回補。
+    if args.plan:
+        try:
+            from .sources import optpc
+            optpc.backfill_opt_pc(_progress(), _save_progress)
+        except Exception as exc:  # noqa: BLE001
+            log.warning("opt_pc 回補失敗（不影響其他步驟）：%s", exc)
     return 0
 
 
