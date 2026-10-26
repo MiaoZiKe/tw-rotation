@@ -35,7 +35,7 @@
           ],
           "overtime": "偶爾",
           "travel": "偶爾",
-          "n": 14,
+          "n": 15,
           "note": "平台自述統計（未轉貼原文）；GoodJob 2026-01～07 三筆月薪 5.7～6.5 萬（含 2 年經驗、未標學歷）；評價提年保 12 個月＋績效年終；Dcard 整理碩士整包 100～160 萬（16～24 個月）為網友估算；GoodJob 機構職面試與 2026-07 評價：需出差中國或東南亞，出差期間加班依產品進度；第二輪：Dcard BU9 伺服器硬體 12＋分紅看績效、整年約 20～22 個月；工時常 9～9；base_month_k、annual_total_wan 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples",
           "sources": [
             {
@@ -87,6 +87,11 @@
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/257825031",
               "date": "2025-01"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/work-experiences/薪資福利",
+              "date": "2025-11"
             }
           ],
           "confidence": "中",
@@ -381,9 +386,28 @@
               "quote_free_note": "前電源廠FAE一年轉EE，口頭offer簽核中；薪資為現職月薪減12K、年薪16–20個月，未給絕對金額；同篇聯詠DDR硬體工程師面試後感謝函；加班：可報加班費",
               "date_note": "Dcard 頁面發文日期 2025-01-23（2026-10-26 1943 批，非 Andy 親眼讀）",
               "in_window": false
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/work-experiences/薪資福利",
+              "date": "2025-11",
+              "unit_detail": null,
+              "years": "2",
+              "degree": null,
+              "base_k": 60,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": null,
+              "date_confirmed": true,
+              "date_note": "GoodJob 評價標示年月，晚於 2025-08-01",
+              "in_window": true
             }
           ],
-          "n_stat": 10
+          "n_stat": 11
         },
         {
           "unit": "研發 RD",
@@ -1071,6 +1095,25 @@
               "quote_free_note": "常態加班可報加班費、下班可能要接電話；發文者說薪水似乎沒吃到結構調薪；簽核流程約一個月；數字未透露",
               "in_window": false,
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2025-02-07"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/work-experiences/薪資福利",
+              "date": "2025-09",
+              "unit_detail": null,
+              "years": "0-1",
+              "degree": null,
+              "base_k": 65,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": null,
+              "date_confirmed": true,
+              "date_note": "GoodJob 評價標示年月，晚於 2025-08-01",
+              "in_window": true
             }
           ],
           "sources": [
@@ -1088,19 +1131,27 @@
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/257930495",
               "date": "2025-02"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/work-experiences/薪資福利",
+              "date": "2025-09"
             }
           ],
           "confidence": "低",
-          "n": 3,
+          "n": 4,
           "years": "0",
-          "base_month_k": null,
+          "base_month_k": [
+            65,
+            65
+          ],
           "bonus_months": null,
           "annual_months": null,
           "annual_total_wan": null,
           "weekly_hours": null,
           "overtime": null,
           "travel": null,
-          "n_stat": 2,
+          "n_stat": 3,
           "note": null,
           "grade": null
         },
@@ -1654,6 +1705,171 @@
           "n": 1,
           "n_stat": 0,
           "overtime": null
+        },
+        {
+          "unit": "其他",
+          "role": "生產技術工程師",
+          "degree": null,
+          "years": "3",
+          "base_month_k": [
+            67,
+            67
+          ],
+          "bonus_months": [
+            6,
+            6
+          ],
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n": 1,
+          "note": "GoodJob 評價（2025-08 之後）",
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/work-experiences/薪資福利",
+              "date": "2025-10"
+            }
+          ],
+          "confidence": "低",
+          "grade": null,
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/work-experiences/薪資福利",
+              "date": "2025-10",
+              "unit_detail": null,
+              "years": "3",
+              "degree": null,
+              "base_k": 67,
+              "bonus_months": [
+                6,
+                6
+              ],
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "考績甲：年終 4 個月、分紅 2 個月、三節各 1000 元",
+              "date_confirmed": true,
+              "date_note": "GoodJob 評價標示年月，晚於 2025-08-01",
+              "in_window": true
+            }
+          ],
+          "n_stat": 1
+        },
+        {
+          "unit": "其他",
+          "role": "雲端伺服器硬體工程師",
+          "degree": null,
+          "years": "1",
+          "base_month_k": [
+            73,
+            73
+          ],
+          "bonus_months": null,
+          "annual_months": [
+            20,
+            20
+          ],
+          "annual_total_wan": [
+            146.0,
+            146.0
+          ],
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n": 1,
+          "note": "GoodJob 評價（2025-08 之後）",
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/work-experiences/薪資福利",
+              "date": "2025-10"
+            }
+          ],
+          "confidence": "低",
+          "grade": null,
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/work-experiences/薪資福利",
+              "date": "2025-10",
+              "unit_detail": null,
+              "years": "1",
+              "degree": null,
+              "base_k": 73,
+              "bonus_months": null,
+              "annual_months": [
+                20,
+                20
+              ],
+              "annual_wan": 146.0,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "自述含年終一年約 20 個月",
+              "date_confirmed": true,
+              "date_note": "GoodJob 評價標示年月，晚於 2025-08-01",
+              "in_window": true,
+              "derived": [
+                "annual_wan"
+              ]
+            }
+          ],
+          "n_stat": 1
+        },
+        {
+          "unit": "其他",
+          "role": "光學工程師",
+          "degree": null,
+          "years": "9",
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": [
+            170,
+            170
+          ],
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n": 1,
+          "note": "GoodJob 評價（2025-08 之後）",
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/work-experiences/薪資福利",
+              "date": "2025-11"
+            }
+          ],
+          "confidence": "低",
+          "grade": null,
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/work-experiences/薪資福利",
+              "date": "2025-11",
+              "unit_detail": null,
+              "years": "9",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 170,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": null,
+              "date_confirmed": true,
+              "date_note": "GoodJob 評價標示年月，晚於 2025-08-01",
+              "in_window": true
+            }
+          ],
+          "n_stat": 1
         }
       ],
       "mops": {
@@ -1709,7 +1925,7 @@
       "heat": "中",
       "benefits": "「0 到 6 歲公司養」育兒補助（獲 HR Asia 雇主關懷獎，媒體報導已逾 2,100 名受惠）、準媽媽預產期交通補助（中時新聞網 wantrich 2025～2026 報導）",
       "stock_plan": null,
-      "bonus_timing": "月薪＋12 月固定年終（原則 2 個月）＋農曆年前績效獎金＋每年 9 月年度員工分紅（依事業群與個人績效，非平均）",
+      "bonus_timing": "月薪＋12 月固定年終（原則 2 個月）＋農曆年前績效獎金＋每年 9 月年度員工分紅（依事業群與個人績效，非平均）；2026 年度分紅 9 月 30 日入帳（科技新報、104 職場力 2026-09-30 報導）",
       "culture": "網友說法：GoodJob 評分約 3.6～3.7，文化 2.6、工時 2.8 偏低、成長 4.1 偏高；加班與職場政治高度依事業群與主管而異",
       "interview": "網友說法：先填鴻海格式履歷並做性向、英文測驗，再由主管面談追問專案細節，關數因事業群而異（有人多達七關）；面試官態度評價兩極（GoodJob 2025-08～2026-08、Dcard 2026）",
       "roles": [
@@ -2848,6 +3064,23 @@
               "site": "風傳媒",
               "url": "https://www.storm.mg/article/11168506",
               "date": "2026-09"
+            }
+          ]
+        },
+        {
+          "type": "年度員工分紅",
+          "rule": "2026 年 9 月 30 日入帳，依事業群營運績效與個人績效分配、非平均；2025 年總額 88.34 億元",
+          "months": null,
+          "sources": [
+            {
+              "site": "科技新報",
+              "url": "https://finance.technews.tw/2026/09/30/2026-foxconn-annual-bonus/",
+              "date": "2026-09-30"
+            },
+            {
+              "site": "1111 人力銀行",
+              "url": "https://www.1111.com.tw/news/jobns/162575",
+              "date": "2025-09"
             }
           ]
         }
@@ -7766,7 +7999,7 @@
           "years": "0-2",
           "base_month_k": [
             58,
-            58
+            69.8
           ],
           "bonus_months": null,
           "annual_months": null,
@@ -7774,7 +8007,7 @@
           "weekly_hours": null,
           "overtime": null,
           "travel": null,
-          "n": 5,
+          "n": 6,
           "note": "平台自述統計（未轉貼原文）；2025 一筆 RD 2 年月薪 6.7 萬（提有分紅、高工以上簽約金）、韌體 3 年 6.98 萬；日期可能在範圍外；GoodJob 2026-03 硬體職單筆：每週 48 小時、年薪約 120 萬；base_month_k 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples；未逐筆對應的舊彙整：{\"base_month_k\": [67, 70]}；未逐筆對應的舊彙整：overtime=偶爾",
           "sources": [
             {
@@ -7796,6 +8029,11 @@
               "site": "GoodJob",
               "url": "https://www.goodjob.life/experiences/6a4b3e48b65877df80449964",
               "date": "2026-07"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/仁寶電腦工業股份有限公司 COMPAL/work-experiences/薪資福利",
+              "date": "2025-08"
             }
           ],
           "confidence": "低",
@@ -7898,9 +8136,28 @@
               "quote_free_note": "學士；拿到 offer；數字未透露（廣達 BU9 EA 還在流程中，不收）",
               "in_window": true,
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-08-06"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/仁寶電腦工業股份有限公司 COMPAL/work-experiences/薪資福利",
+              "date": "2025-08",
+              "unit_detail": null,
+              "years": "3",
+              "degree": null,
+              "base_k": 69.8,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": null,
+              "date_confirmed": true,
+              "date_note": "GoodJob 評價標示年月，晚於 2025-08-01",
+              "in_window": true
             }
           ],
-          "n_stat": 2
+          "n_stat": 3
         },
         {
           "unit": "客戶 Dell",
@@ -8054,6 +8311,153 @@
           "n_stat": 1,
           "note": null,
           "grade": null
+        },
+        {
+          "unit": "研發 RD",
+          "role": "硬體工程師",
+          "degree": null,
+          "years": "1",
+          "base_month_k": [
+            38,
+            38
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n": 1,
+          "note": "GoodJob 評價（2025-08 之後）",
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/仁寶電腦工業股份有限公司 COMPAL/work-experiences/薪資福利",
+              "date": "2025-12"
+            }
+          ],
+          "confidence": "低",
+          "grade": null,
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/仁寶電腦工業股份有限公司 COMPAL/work-experiences/薪資福利",
+              "date": "2025-12",
+              "unit_detail": null,
+              "years": "1",
+              "degree": null,
+              "base_k": 38,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": null,
+              "date_confirmed": true,
+              "date_note": "GoodJob 評價標示年月，晚於 2025-08-01",
+              "in_window": true
+            }
+          ],
+          "n_stat": 1
+        },
+        {
+          "unit": "其他",
+          "role": "高級工程師",
+          "degree": null,
+          "years": "3",
+          "base_month_k": [
+            56,
+            56
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n": 1,
+          "note": "GoodJob 評價（2025-08 之後）",
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/仁寶電腦工業股份有限公司 COMPAL/work-experiences/薪資福利",
+              "date": "2025-09"
+            }
+          ],
+          "confidence": "低",
+          "grade": null,
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/仁寶電腦工業股份有限公司 COMPAL/work-experiences/薪資福利",
+              "date": "2025-09",
+              "unit_detail": null,
+              "years": "3",
+              "degree": null,
+              "base_k": 56,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": null,
+              "date_confirmed": true,
+              "date_note": "GoodJob 評價標示年月，晚於 2025-08-01",
+              "in_window": true
+            }
+          ],
+          "n_stat": 1
+        },
+        {
+          "unit": "其他",
+          "role": "SA",
+          "degree": null,
+          "years": "2",
+          "base_month_k": [
+            35,
+            35
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n": 1,
+          "note": "GoodJob 評價（2025-08 之後）",
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/仁寶電腦工業股份有限公司 COMPAL/work-experiences/薪資福利",
+              "date": "2025-10"
+            }
+          ],
+          "confidence": "低",
+          "grade": null,
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/仁寶電腦工業股份有限公司 COMPAL/work-experiences/薪資福利",
+              "date": "2025-10",
+              "unit_detail": null,
+              "years": "2",
+              "degree": null,
+              "base_k": 35,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": null,
+              "date_confirmed": true,
+              "date_note": "GoodJob 評價標示年月，晚於 2025-08-01",
+              "in_window": true
+            }
+          ],
+          "n_stat": 1
         }
       ],
       "mops": null,

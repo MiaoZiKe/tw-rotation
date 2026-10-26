@@ -11,8 +11,21 @@
       "benefits": null,
       "stock_plan": null,
       "bonus_timing": null,
-      "bonus_structure": [],
-      "culture": null,
+      "bonus_structure": [
+        {
+          "type": "三節＋保障月數",
+          "rule": "網友說法：端午 0.5、中秋 0.5、春節 1 個月，保障 14 個月；近年分紅少（GoodJob 2025～2026 評價）",
+          "months": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/友達光電股份有限公司/work-experiences/薪資福利",
+              "date": "2025"
+            }
+          ]
+        }
+      ],
+      "culture": "網友說法：公司近年獲利差、分紅少、調薪約 2～3%，分紅與部門、主管關係大（GoodJob 2025～2026 評價）",
       "interview": "網友說法：製程／設備工程師面試含英文測驗、適性測驗、主管面談聊論文，有人當場錄取（GoodJob 2026 分享）；microLED 新產線職缺第一面由副理說明輪班方式（GoodJob 2023）",
       "grade_system": null,
       "mops": null,
@@ -443,7 +456,7 @@
       "name": "群創",
       "code": "3481",
       "heat": null,
-      "benefits": null,
+      "benefits": "網友說法：三節獎金與年終穩定發放、有輪班津貼；多則評價稱分紅少或沒有（GoodJob 2025 評價）",
       "stock_plan": null,
       "bonus_timing": null,
       "bonus_structure": [],
