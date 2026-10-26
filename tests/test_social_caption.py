@@ -126,11 +126,13 @@ def test_盤面分析_盤中與盤後():
     ok = {"heat": {"heat": [["A", 3.0], ["B", 2.0], ["C", -1.0], ["D", 1.5]]},
           "sankey": {"notes": [["流入前五", ["A", "C"]], ["流出前五", ["B", "晶圓代工"]]]}}
     r = ss.intraday_reads(ok)
-    assert r[0].startswith("族群普漲") and any("資金與股價同向：A" in x for x in r) and any("資金流入但股價收黑：C" in x for x in r) \
-        and any("漲幅逾 1% 但資金流出：B" in x for x in r)
+    assert r[0].startswith("族群普漲") and "族群平均" in r[0] and any("成交比重增加且漲幅居前：A" in x for x in r) \
+        and any("成交比重增加但族群走低：C" in x for x in r) and not any("收黑" in x for x in r)      # 12:00 還沒收盤
     im = {"rows": [{"d": "1", "f": 10, "t": 5}, {"d": "2", "f": -3, "t": 6}, {"d": "3", "f": -4, "t": 7}]}
     r = ss.close_reads(im, {"foreign": {"net": [-100, -150]}}, {}, {"taiex": 100, "change": -2, "advancers": 100, "decliners": 300}, [{"prod": "小台", "pct": "+25%"}], {"ratio": "170", "chg": "-1.2"})
-    assert r[0].startswith("加權指數跌 2 點") and "跌家數是漲家數的 3.0 倍" in r[0]
-    assert "外資連 2 日賣超，累計 -7.0 億" in r and "投信連 3 日買超，累計 +18.0 億" in r
-    assert "外資台指期淨空單 150 口，較前日增加 50 口" in r and any("與外資期貨淨空方向相反" in x for x in r)
-    assert not any(w in "".join(r) for w in ("可望", "將", "建議", "布局"))      # 只寫事實（投顧法）
+    assert r[0].startswith("加權指數跌 2 點") and "上市櫃（含 ETF）" in r[0]
+    assert "外資賣超 4.0 億，已連 2 日賣超，累計 7.0 億" in r and "投信買超 7.0 億，已連 3 日買超，累計 18.0 億" in r
+    assert "外資加空台指期 50 口，未平倉淨空單升至 150 口" in r and any("（多方部位較多），與外資期貨淨空方向相反" in x for x in r)
+    r2 = ss.close_reads({"rows": [{"f": -500}] * 8 + [{"f": 22}, {"f": -815.8}]}, {}, {}, {}, [], {})
+    assert r2[0].startswith("外資賣超 815.8 億，近 10 日 9 日賣超")      # 前一天只小買 → 不寫「轉賣」
+    assert not any(w in "".join(r + r2) for w in ("可望", "將", "建議", "布局", "明顯偏多", "收黑"))
