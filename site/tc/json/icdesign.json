@@ -1024,7 +1024,8 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 2
+          "n": 2,
+          "overtime": "偶爾"
         },
         {
           "unit": "其他",
@@ -1088,7 +1089,13 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "annual_months": [
+            14,
+            14
+          ],
+          "weekly_hours": 60,
+          "overtime": "經常"
         },
         {
           "unit": "SPD1",
@@ -1120,7 +1127,9 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "weekly_hours": 52,
+          "overtime": "偶爾"
         },
         {
           "unit": "SPD1",
@@ -1152,7 +1161,9 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "weekly_hours": 52,
+          "overtime": "偶爾"
         },
         {
           "unit": "WiFi",
@@ -1288,7 +1299,7 @@
           "degree": "碩士",
           "years": "0-2",
           "base_month_k": [
-            80,
+            85,
             85
           ],
           "bonus_months": [
@@ -1303,8 +1314,8 @@
           "weekly_hours": 50,
           "overtime": "依部門",
           "travel": null,
-          "n": 13,
-          "note": "網友自述未經查證；僅 Dcard 一篇 offer 文預估 85K 保 14＋分紅，日期不明；舊報導『碩士起薪 4.5 萬、年薪 60～70 萬』明顯過時不採；GoodJob 工時狀況 2.3／5，多則評價稱工時長；第二輪：Dcard VD/DD1 預估 85K 保 14＋分紅、爬文稱常態早 9 晚 9；GoodJob 2025-12 月薪 8.5 萬、每週 45 小時，新人簽約金兩年 50 萬、前兩年年薪約 144 萬；評價稱第一年幾乎沒分紅、分紅很吃景氣",
+          "n": 12,
+          "note": "網友自述未經查證；僅 Dcard 一篇 offer 文預估 85K 保 14＋分紅，日期不明；舊報導『碩士起薪 4.5 萬、年薪 60～70 萬』明顯過時不採；GoodJob 工時狀況 2.3／5，多則評價稱工時長；第二輪：Dcard VD/DD1 預估 85K 保 14＋分紅、爬文稱常態早 9 晚 9；GoodJob 2025-12 月薪 8.5 萬、每週 45 小時，新人簽約金兩年 50 萬、前兩年年薪約 144 萬；評價稱第一年幾乎沒分紅、分紅很吃景氣；已移除一筆誤植（同篇 80K 為聯發科數字）",
           "sources": [
             {
               "site": "Dcard",
@@ -1335,25 +1346,6 @@
           "confidence": "中",
           "grade": null,
           "samples": [
-            {
-              "site": "Dcard",
-              "url": "https://www.dcard.tw/f/tech_job/p/261103764",
-              "date": "不明",
-              "unit_detail": null,
-              "years": "0-2",
-              "degree": "碩士",
-              "base_k": 80,
-              "bonus_months": 5,
-              "annual_months": 14,
-              "annual_wan": null,
-              "weekly_hours": null,
-              "overtime": null,
-              "travel": null,
-              "quote_free_note": "聯發科 80K 保 14＋分紅約 4～6 個月；聯詠預估 85K 保 14",
-              "date_confirmed": true,
-              "in_window": true,
-              "date_note": "依 docs/tc/dcard_id_calibration.md 文章編號≥259537767 確認晚於 2025-08-01"
-            },
             {
               "site": "GoodJob",
               "url": "https://www.goodjob.life/experiences/693719c461652db034032e5f",
@@ -1590,7 +1582,10 @@
           "years": "0-2",
           "base_month_k": null,
           "bonus_months": null,
-          "annual_months": null,
+          "annual_months": [
+            14,
+            14
+          ],
           "annual_total_wan": null,
           "weekly_hours": null,
           "overtime": "經常",
@@ -1677,7 +1672,13 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "annual_months": [
+            14,
+            14
+          ],
+          "weekly_hours": 55,
+          "overtime": "經常"
         },
         {
           "unit": "新竹",
@@ -1741,7 +1742,9 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "weekly_hours": 52,
+          "overtime": "經常"
         },
         {
           "unit": "iVoT",
@@ -1773,7 +1776,13 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "annual_months": [
+            14,
+            14
+          ],
+          "weekly_hours": 60,
+          "overtime": "經常"
         },
         {
           "unit": "其他",
@@ -2083,7 +2092,11 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "annual_months": [
+            14,
+            14
+          ]
         }
       ],
       "mops": {
@@ -2351,7 +2364,10 @@
           "years": "0-2",
           "base_month_k": null,
           "bonus_months": null,
-          "annual_months": null,
+          "annual_months": [
+            13,
+            13
+          ],
           "annual_total_wan": null,
           "weekly_hours": 50,
           "overtime": "經常",
@@ -2420,8 +2436,8 @@
           "bonus_months": null,
           "annual_months": null,
           "annual_total_wan": null,
-          "weekly_hours": null,
-          "overtime": null,
+          "weekly_hours": 60,
+          "overtime": "經常",
           "travel": null,
           "n": 4,
           "note": "",
@@ -2618,7 +2634,8 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "overtime": "偶爾"
         },
         {
           "unit": "CM",
@@ -2672,7 +2689,8 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 2
+          "n": 2,
+          "overtime": "幾乎不"
         },
         {
           "unit": "新竹 / CAD",
@@ -2704,7 +2722,8 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "overtime": "幾乎不"
         },
         {
           "unit": "其他",
@@ -2736,7 +2755,9 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "weekly_hours": 50,
+          "overtime": "偶爾"
         },
         {
           "unit": "MM / USB、HDMI",
@@ -2768,7 +2789,9 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "weekly_hours": 55,
+          "overtime": "經常"
         },
         {
           "unit": "CM",
@@ -2800,7 +2823,9 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "weekly_hours": 50,
+          "overtime": "偶爾"
         },
         {
           "unit": "CTC",
@@ -2832,7 +2857,9 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "weekly_hours": 45,
+          "overtime": "幾乎不"
         },
         {
           "unit": "CN",
@@ -3423,7 +3450,9 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 2
+          "n": 2,
+          "weekly_hours": 52,
+          "overtime": "偶爾"
         },
         {
           "unit": "AIAlgo",
@@ -3499,7 +3528,13 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 3
+          "n": 3,
+          "annual_months": [
+            14,
+            14
+          ],
+          "weekly_hours": 50,
+          "overtime": "經常"
         },
         {
           "unit": "竹南",
@@ -3575,7 +3610,8 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 3
+          "n": 3,
+          "overtime": "經常"
         },
         {
           "unit": "其他",
@@ -3607,7 +3643,8 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "overtime": "偶爾"
         }
       ],
       "mops": {
@@ -4187,7 +4224,12 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "annual_months": [
+            14,
+            14
+          ],
+          "weekly_hours": 50
         },
         {
           "unit": "竹科 / BU2",
@@ -4219,7 +4261,14 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "annual_months": [
+            20,
+            20
+          ],
+          "weekly_hours": 60,
+          "overtime": "經常",
+          "travel": "偶爾"
         }
       ],
       "mops": {
@@ -4365,7 +4414,7 @@
           ],
           "annual_total_wan": null,
           "weekly_hours": null,
-          "overtime": null,
+          "overtime": "偶爾",
           "travel": null,
           "n": 4,
           "note": "",
@@ -5017,7 +5066,9 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 2
+          "n": 2,
+          "weekly_hours": 60,
+          "overtime": "經常"
         }
       ],
       "mops": {
@@ -5975,7 +6026,13 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "annual_months": [
+            20,
+            20
+          ],
+          "overtime": "偶爾",
+          "travel": "不用"
         }
       ],
       "mops": {
@@ -6147,7 +6204,10 @@
           "years": "0-2",
           "base_month_k": null,
           "bonus_months": null,
-          "annual_months": null,
+          "annual_months": [
+            14,
+            14
+          ],
           "annual_total_wan": null,
           "weekly_hours": 44,
           "overtime": "偶爾（專案期經常）",
@@ -6430,7 +6490,7 @@
           "annual_months": null,
           "annual_total_wan": null,
           "weekly_hours": null,
-          "overtime": null,
+          "overtime": "幾乎不",
           "travel": null,
           "n": 2,
           "note": "WebSearch 查「円星 碩士 薪資 2026」「GoodJob 円星」「PTT Tech_Job offer 円星」「Dcard offer 円星」「104 ESG 薪資中位數」，摘要未出現 2025-10 後碩士職位數字；第二輪（換 GoodJob 公司頁／職稱頁／salary.tw）：GoodJob、salary.tw 皆無資料；2026-10 以「円星」查 GoodJob 無結果，維持 null",
@@ -6539,7 +6599,11 @@
           "n": 1,
           "sources": [],
           "confidence": "低",
-          "note": "2026-10-26 由 Dcard 樣本新增的公司"
+          "note": "2026-10-26 由 Dcard 樣本新增的公司",
+          "annual_months": [
+            14,
+            14
+          ]
         }
       ],
       "mops": {
@@ -6759,7 +6823,11 @@
           "n": 2,
           "sources": [],
           "confidence": "低",
-          "note": "2026-10-26 由 Dcard 樣本新增的公司"
+          "note": "2026-10-26 由 Dcard 樣本新增的公司",
+          "annual_months": [
+            12,
+            12
+          ]
         }
       ]
     },
@@ -6807,7 +6875,11 @@
           "n": 1,
           "sources": [],
           "confidence": "低",
-          "note": "2026-10-26 Andy 指示加入"
+          "note": "2026-10-26 Andy 指示加入",
+          "annual_months": [
+            12,
+            12
+          ]
         },
         {
           "unit": "其他",
@@ -6952,7 +7024,12 @@
           "n": 1,
           "sources": [],
           "confidence": "低",
-          "note": "2026-10-26 由 Dcard 樣本新增的公司"
+          "note": "2026-10-26 由 Dcard 樣本新增的公司",
+          "base_month_k": [
+            52,
+            52
+          ],
+          "overtime": "幾乎不"
         }
       ]
     },
@@ -7000,7 +7077,11 @@
           "n": 1,
           "sources": [],
           "confidence": "低",
-          "note": "2026-10-26 Andy 確認代稱後加入"
+          "note": "2026-10-26 Andy 確認代稱後加入",
+          "annual_months": [
+            14,
+            14
+          ]
         }
       ]
     },
@@ -7049,7 +7130,9 @@
           "n": 1,
           "sources": [],
           "confidence": "低",
-          "note": "2026-10-26 由 Dcard 樣本新增的公司"
+          "note": "2026-10-26 由 Dcard 樣本新增的公司",
+          "weekly_hours": 47,
+          "overtime": "幾乎不"
         }
       ]
     },
@@ -7196,7 +7279,15 @@
           "n": 1,
           "sources": [],
           "confidence": "低",
-          "note": "2026-10-26 由 Dcard 樣本新增的公司"
+          "note": "2026-10-26 由 Dcard 樣本新增的公司",
+          "base_month_k": [
+            57,
+            57
+          ],
+          "annual_months": [
+            14,
+            14
+          ]
         }
       ]
     },
@@ -7244,7 +7335,12 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "annual_total_wan": [
+            160,
+            160
+          ],
+          "overtime": "偶爾"
         },
         {
           "unit": "客戶台積",
@@ -7276,7 +7372,8 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "overtime": "經常"
         },
         {
           "unit": "新竹",
@@ -7355,7 +7452,8 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "overtime": "幾乎不"
         }
       ],
       "note": "2026-10-26 由 Dcard 樣本新增的公司"
@@ -7405,7 +7503,11 @@
           "n": 1,
           "sources": [],
           "confidence": "低",
-          "note": "2026-10-26 由 Dcard 樣本新增的公司"
+          "note": "2026-10-26 由 Dcard 樣本新增的公司",
+          "annual_months": [
+            14,
+            14
+          ]
         }
       ]
     }
