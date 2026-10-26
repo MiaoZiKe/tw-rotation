@@ -1,34 +1,54 @@
 {
- "at": "2026-10-26T20:56:32.687750+00:00",
+ "at": "2026-10-26T21:03:00.358204+00:00",
  "done": true,
  "pending": 0,
- "attempted": 2,
+ "attempted": 4,
  "counts": {
-  "not_logo": 2
+  "not_logo": 4
  },
  "domains": 101,
- "have": 69,
- "coverage": 0.683,
+ "have": 65,
+ "coverage": 0.644,
  "next_due": "2026-11-26",
- "seconds": 7.2,
+ "seconds": 20.4,
  "failures": [
   {
-   "domain": "uicpaymentsinc.com",
+   "domain": "himax.com.tw",
    "status": "not_logo",
    "tried": {
-    "site": "ok [128, 128]",
-    "wikimedia": "none Wikidata 查不到官網是 uicpaymentsinc.com 的 UIC Payments／沒有標誌圖",
-    "quality": "Google s2 對這個網域只回通用圖示（地球）",
+    "site": "ok [180, 75]",
+    "quality": "人工排除：淺灰字標，白底上看不清（CEO 10-27 目視）",
+    "wikimedia": "none Wikidata 查不到官網是 himax.com.tw 的 Himax Technologies／沒有標誌圖",
     "google_s2": "人工排除（s2 只回通用圖示／官網圖不是自家標誌）"
    }
   },
   {
-   "domain": "kinsus.com.tw",
+   "domain": "kneron.com",
    "status": "not_logo",
    "tried": {
-    "site": "ok [48, 48]",
-    "wikimedia": "none Wikidata 查不到官網是 kinsus.com.tw 的 Kinsus Interconnect Technology／沒有標誌圖",
-    "quality": "人工排除：官網只有 48px、內容糊成一片的 favicon，放大後認不出是什麼",
+    "site": "ok [375, 150]",
+    "quality": "人工排除：淺灰紋理字標，白底上看不清（CEO 10-27 目視）",
+    "wikimedia": "none Wikidata 查不到官網是 kneron.com 的 Kneron／沒有標誌圖",
+    "google_s2": "人工排除（s2 只回通用圖示／官網圖不是自家標誌）"
+   }
+  },
+  {
+   "domain": "solartech.com.tw",
+   "status": "not_logo",
+   "tried": {
+    "site": "ok [152, 152]",
+    "wikimedia": "none Wikidata 查不到官網是 solartech.com.tw 的 Solar Applied Materials Technology／沒有標誌圖",
+    "quality": "人工排除：彩虹圓環大半空白，疑為裁切圖示、無法確認是正確標誌（CEO 10-27 目視）",
+    "google_s2": "人工排除（s2 只回通用圖示／官網圖不是自家標誌）"
+   }
+  },
+  {
+   "domain": "eternal-group.com",
+   "status": "not_logo",
+   "tried": {
+    "site": "ok [64, 64]",
+    "wikimedia": "none Wikidata 查不到官網是 eternal-group.com 的 Eternal Materials／沒有標誌圖",
+    "quality": "人工排除：白色字標，白底上看不見（CEO 10-27 目視）",
     "google_s2": "人工排除（s2 只回通用圖示／官網圖不是自家標誌）"
    }
   }

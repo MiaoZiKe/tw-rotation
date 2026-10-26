@@ -515,24 +515,19 @@
    "sha1": "a9c84c268db189dc276d43faa45aa38d32fd0139"
   },
   "eternal-group.com": {
-   "status": "ok",
+   "status": "not_logo",
    "fetched": "2026-10-27",
    "names": [
     "長興材料"
    ],
    "tried": {
-    "site": "ok [256, 117]",
-    "wikimedia": "沒回應"
+    "site": "ok [64, 64]",
+    "wikimedia": "none Wikidata 查不到官網是 eternal-group.com 的 Eternal Materials／沒有標誌圖",
+    "quality": "人工排除：白色字標，白底上看不見（CEO 10-27 目視）",
+    "google_s2": "人工排除（s2 只回通用圖示／官網圖不是自家標誌）"
    },
    "rv": 2,
-   "src": "site:header-img",
-   "url": "https://eternal-group.com/images/logo.svg",
-   "orig": [
-    256,
-    117
-   ],
-   "qv": 2,
-   "sha1": "bcef103fa61ba835c0015a899be9ac9cce04d1b5"
+   "detail": "人工排除：白色字標，白底上看不見（CEO 10-27 目視）"
   },
   "fihmobile.com": {
    "status": "ok",
@@ -715,21 +710,19 @@
    "sha1": "166d302d649000d7b8e79e104b4516ac44a0ede0"
   },
   "himax.com.tw": {
-   "status": "ok",
+   "status": "not_logo",
    "fetched": "2026-10-27",
    "names": [
     "奇景"
    ],
    "tried": {
-    "site": "ok [180, 75]"
+    "site": "ok [180, 75]",
+    "quality": "人工排除：淺灰字標，白底上看不清（CEO 10-27 目視）",
+    "wikimedia": "none Wikidata 查不到官網是 himax.com.tw 的 Himax Technologies／沒有標誌圖",
+    "google_s2": "人工排除（s2 只回通用圖示／官網圖不是自家標誌）"
    },
-   "src": "site:header-img",
-   "url": "https://www.himax.com.tw/wp-content/uploads/2015/07/himax-v2-light.png",
-   "orig": [
-    180,
-    75
-   ],
-   "sha1": "435b887270fce54909dc52298fab105258c9619a"
+   "rv": 2,
+   "detail": "人工排除：淺灰字標，白底上看不清（CEO 10-27 目視）"
   },
   "hitachi-hightech.com": {
    "status": "none",
@@ -929,21 +922,19 @@
    "sha1": "6e5de7aae4dcb40bbab37c5404d53af2fbac5d67"
   },
   "kneron.com": {
-   "status": "ok",
+   "status": "not_logo",
    "fetched": "2026-10-27",
    "names": [
     "耐能智慧"
    ],
    "tried": {
-    "site": "ok [375, 150]"
+    "site": "ok [375, 150]",
+    "quality": "人工排除：淺灰紋理字標，白底上看不清（CEO 10-27 目視）",
+    "wikimedia": "none Wikidata 查不到官網是 kneron.com 的 Kneron／沒有標誌圖",
+    "google_s2": "人工排除（s2 只回通用圖示／官網圖不是自家標誌）"
    },
-   "src": "site:header-img",
-   "url": "https://www.kneron.com/v2/media/logo-kneron.png",
-   "orig": [
-    375,
-    150
-   ],
-   "sha1": "6e663f30ee320cdab9949f88232a3f94de997310"
+   "rv": 2,
+   "detail": "人工排除：淺灰紋理字標，白底上看不清（CEO 10-27 目視）"
   },
   "ksmt.com.tw": {
    "status": "none",
@@ -1448,23 +1439,19 @@
    "detail": "https://soinc.com.tw/ robots.txt 的 Disallow 規則不允許 —— 尊重它，也不走 Google 備援"
   },
   "solartech.com.tw": {
-   "status": "ok",
+   "status": "not_logo",
    "fetched": "2026-10-27",
    "names": [
     "光洋應材"
    ],
    "tried": {
     "site": "ok [152, 152]",
-    "wikimedia": "none Wikidata 查不到官網是 solartech.com.tw 的 Solar Applied Materials Technology／沒有標誌圖"
+    "wikimedia": "none Wikidata 查不到官網是 solartech.com.tw 的 Solar Applied Materials Technology／沒有標誌圖",
+    "quality": "人工排除：彩虹圓環大半空白，疑為裁切圖示、無法確認是正確標誌（CEO 10-27 目視）",
+    "google_s2": "人工排除（s2 只回通用圖示／官網圖不是自家標誌）"
    },
-   "src": "site:apple-touch-icon",
-   "url": "https://www.solartech.com.tw/images/touch-icon/apple-icon-152x152.png",
-   "orig": [
-    152,
-    152
-   ],
-   "qv": 2,
-   "sha1": "8621eceb31b9e2d72aa8691aa32cace1e4359608"
+   "rv": 2,
+   "detail": "人工排除：彩虹圓環大半空白，疑為裁切圖示、無法確認是正確標誌（CEO 10-27 目視）"
   },
   "sonix.com.tw": {
    "status": "ok",
@@ -1902,5 +1889,5 @@
    "detail": "HTTP 404 https://www.google.com/s2/favicons?domain=zdtco.com&sz=128"
   }
  },
- "updated_at": "2026-10-26T20:56:39.947506+00:00"
+ "updated_at": "2026-10-26T21:03:20.733692+00:00"
 }
