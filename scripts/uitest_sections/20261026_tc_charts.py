@@ -22,9 +22,9 @@ def t_tc_charts_1026(b, base, code):
     ok(f"{T}：圖有高度、不橫向捲動", pg.evaluate("()=>document.getElementById('tcChBar').offsetHeight>100 && document.documentElement.scrollWidth<=innerWidth+1"))
     rows = lambda: pg.evaluate("()=>[...document.querySelectorAll('#tcRank .tc-rkr')].map(r=>r.dataset.co+'|'+r.querySelector('.tc-rkv b').innerText)")
     r0 = rows()
-    ok(f"{T}：公司排行有列，每列有 LOGO 圖或字標", len(r0) >= 1 and pg.evaluate("()=>[...document.querySelectorAll('#tcRank .tc-rkr')].every(r=>r.querySelector('.tc-lg i').innerText.trim()&&r.querySelector('.tc-lg'))"), len(r0))
+    ok(f"{T}：公司排行有列，每列有 LOGO 圖或字標", len(r0) >= 1 and pg.evaluate("()=>[...document.querySelectorAll('#tcRank .tc-rkr')].every(r=>(r.querySelector('.tc-lg i').innerText.trim()||r.querySelector('.tc-lg i svg')))"), len(r0))
     ok(f"{T}：有網域的列 img 帶 alt／lazy／no-referrer", pg.evaluate("()=>[...document.querySelectorAll('#tcRank .tc-lg img')].every(i=>i.alt&&i.loading==='lazy'&&i.referrerPolicy==='no-referrer')"))
-    ok(f"{T}：LOGO 主來源為 gstatic faviconV2 size=256", pg.evaluate("()=>{const i=document.querySelector('#tcRank .tc-lg img, #tcRank .tc-lg');return !i||[...document.querySelectorAll('#tcRank .tc-lg img')].every(i=>/faviconV2.*size=256|s2\\/favicons.*sz=128/.test(i.src))}"))
+    ok(f"{T}：LOGO 主來源為 gstatic faviconV2 size=256", pg.evaluate("()=>{const i=document.querySelector('#tcRank .tc-lg img, #tcRank .tc-lg');return !i||[...document.querySelectorAll('#tcRank .tc-lg img')].every(i=>/faviconV2.*size=256|icons\\.duckduckgo\\.com\\/ip3\\//.test(i.src))}"))
     pg.click("#tcRank .seg[data-rk=m] button[data-v=base]"); pg.wait_for_timeout(300)
     r1 = rows()
     ok(f"{T}：切「底薪」→ 排行數字真的變", r1 != r0 and pg.evaluate("()=>document.querySelector('#tcRank .seg[data-rk=m] button.on').dataset.v")=="base", (r0[:2], r1[:2]))
@@ -38,9 +38,17 @@ def t_tc_charts_1026(b, base, code):
     pg.goto(base + "#tc/foundry", wait_until="domcontentloaded"); pg.wait_for_timeout(1500)
     ok(f"{T}：公司卡有 LOGO", pg.evaluate("()=>[...document.querySelectorAll('#v-tc .tc-co')].every(c=>c.querySelector('.tc-lg'))"))
     # 圖片全擋 → 退成字標
-    pg.route("**/s2/favicons**", lambda r: r.abort()); pg.route("**/faviconV2**", lambda r: r.abort())
+    pg.route("**/ip3/**", lambda r: r.abort()); pg.route("**/faviconV2**", lambda r: r.abort())
     pg.goto(base + "#tc/foundry", wait_until="domcontentloaded"); pg.reload(wait_until="domcontentloaded"); pg.wait_for_timeout(2000)
-    ok(f"{T}：LOGO 載入失敗 → 圖被移除、字標仍在", pg.evaluate("()=>document.querySelectorAll('#v-tc .tc-lg img').length===0 && [...document.querySelectorAll('#v-tc .tc-lg')].every(l=>l.querySelector('i').innerText.trim())"))
+    ok(f"{T}：LOGO 載入失敗 → 圖被移除、字標仍在", pg.evaluate("()=>document.querySelectorAll('#v-tc .tc-lg img').length===0 && [...document.querySelectorAll('#v-tc .tc-lg')].every(l=>l.querySelector('i').innerText.trim()||l.querySelector('i svg'))"))
+    cov = pg.evaluate("""async()=>{const fs=['equipment','foreign','foundry','icdesign','material','memory','odm','osat','other','panel'];const miss=[],un=[];let n=0;
+      for(const f of fs){const d=await (await fetch('tc/json/'+f+'.json')).json();for(const c of (d.companies||[])){n++;if(TcLogo.unnamed(c.name)){un.push(c.name);continue}if(!TcLogo.domain(c.name))miss.push(c.name)}}return {n,miss,un}}""")
+    ALLOW = {"鴻運科": "只查到新加坡商專利資料", "立元科技": "「立元科技 官網」查無", "科傳": "「科傳 官網／科傳 資訊」查無", "碩貝德": "speed-hz.com 僅為信箱網域未證實", "馳諾瓦": "「馳諾瓦 官網／科技」查無", "開酷": "「開酷科技 KaiKuTek 官網」查無官網", "力林": "「力林科技 官網」查無"}
+    bad = [m for m in cov["miss"] if m not in ALLOW]
+    for m in cov["miss"]:
+        if m in ALLOW: print(f"  ℹ {T}：{m} 無網域（{ALLOW[m]}）")
+    ok(f"{T}：有名公司都有官網網域（未具名 {len(cov['un'])} 家改畫建築圖示，查無官網 {len(cov['miss'])-len(bad)} 家已列原因）", not bad, bad)
+    ok(f"{T}：未具名公司 LOGO 是建築圖示不是首字", pg.evaluate("()=>{const h=TcLogo.html('未具名科技業','other',24);return /<svg/.test(h)&&!/<img/.test(h)}"))
     # 公司薪資組成甜甜圈
     pp = c.new_page(); pp.goto(base + "#tc/foundry/%E5%8F%B0%E7%A9%8D%E9%9B%BB", wait_until="domcontentloaded"); pp.wait_for_timeout(1800)
     pay = pp.evaluate("()=>{const e=document.querySelector('#tcPayDn .tcdnc');const c=e&&echarts.getInstanceByDom(e);if(!c)return null;const d=c.getOption().series[0].data;return {n:d.length,names:d.map(x=>x.name),lg:document.querySelectorAll('#tcPayDn ul.tclg li').length,sel:document.querySelectorAll('#tcPaySel option').length}}")
