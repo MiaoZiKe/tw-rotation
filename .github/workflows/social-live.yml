@@ -8,12 +8,15 @@ name: 社群即時貼文（Threads／IG 限動）
 #         → 圖推到孤兒分支 social-snaps（Meta 要公開網址才抓得到圖）→ scripts/social_publish.py 發布。
 # 說明文件：docs/marketing/social_unit/live_posts.md
 #
+# ★ 2026-10-25：準時派工改由 Cloudflare Worker（workers/gh-cron，docs/gh_cron_setup.md）呼叫 workflow_dispatch（kind=intraday、dry_run=false）；
+#   下面這些 GitHub 排程留作備援（GitHub 的 schedule 實測會延遲數小時或整輪不觸發）。
+#   防重複：盤中一天一個時段鍵 intraday-YYYY-MM-DD（scripts/social_publish.py slot_key）。
+#
 # 排程（GitHub 的 cron 一律用 UTC；週一到週五）：
-#   盤中  台北 09:35 ＝ UTC 01:35
-#   盤中  台北 11:05 ＝ UTC 03:05
-#   盤中  台北 13:05 ＝ UTC 05:05
+#   盤中  台北 12:01 ＝ UTC 04:01（一天一篇，2026-10-26 Andy：「時間都需要固定中午 12:00」）
 #   盤後  不排固定時間，接在「每日盤後管線」每一輪結束（含部署）之後（workflow_run），
 #         只有網站 meta.json 的法人資料日（inst_date）＝今天才發，而且同一天只發一次（social-snaps 分支 state/posted.json 已有 close-日期 就跳過）。
+#   ★ 2026-10-26 Andy：盤後法人與融資融券合成一篇（kind=close），融資到齊那輪才發；kind=credit 只留手動用。以下為舊說明：
 #   盤後融資 同樣接在每日管線每一輪之後（kind=credit，跟盤後法人分開兩篇，2026-10-21）：
 #         融資比法人晚很多才到齊 —— 整體市場融資（FinMind）約台北 21:30～22:00、上市個股融資要到隔天清晨。
 #         以前融資卡綁在法人那篇，法人一到那篇就發掉，融資卡一律「資料未更新」被略過（10/21 22:13 那輪就是這樣只剩 5 張）。
@@ -23,13 +26,12 @@ name: 社群即時貼文（Threads／IG 限動）
 #   報價請求由 Playwright 補上正式站的 Origin（Worker 看 Origin）。即時沒套上就不發，不拿盤後圖冒充。
 #         為什麼不固定時間：三大法人傍晚才落地（daily.yml 台北 18:30 那輪 phase=full 才有；15:30 那輪只抓價量），
 #         GitHub 排程又常延遲數十分鐘；接在管線後面，資料一定已經部署到網站，再用資料日期把關，延遲多久都不會發到舊資料。
-# ★ 非交易日不發：看「資料」不看執行當下的星期幾 —— 盤中看即時報價回應裡的成交日、盤後看 inst_date。
+# ★ 非交易日不發：看「資料」＋休市日表（pipeline/calendar/tw_holidays.yaml），不看執行當下的星期幾（scripts/social_gate.py，2026-10-26）：
+#   盤後法人＝每張卡的資料日都要是今天；盤後融資＝最近一個已收盤交易日、下一個交易日 09:00 前才發；盤中＝交易日 09:00～13:30 且報價成交日是今天。
 # ★ 即時沒套上（抓不到報價）的那張不發，不拿盤後舊圖冒充即時。
 on:
   schedule:
-    - cron: "35 1 * * 1-5"    # 台北 09:35 盤中
-    - cron: "5 3 * * 1-5"     # 台北 11:05 盤中
-    - cron: "5 5 * * 1-5"     # 台北 13:05 盤中
+    - cron: "1 4 * * 1-5"     # 台北 12:01 盤中（一天一篇，備援；準時由 Cloudflare Worker 12:00 派）
   workflow_run:
     workflows: ["每日盤後管線"]
     types: [completed]        # 每日管線跑完（含部署）→ 盤後法人；資料日不是今天就自己跳過
@@ -69,7 +71,7 @@ jobs:
       max-parallel: 1
       fail-fast: false
       matrix:
-        kind: ${{ fromJSON(github.event_name == 'workflow_run' && '["close","credit"]' || (github.event_name == 'workflow_dispatch' && format('["{0}"]', inputs.kind) || '["intraday"]')) }}
+        kind: ${{ fromJSON(github.event_name == 'workflow_run' && '["close"]' || (github.event_name == 'workflow_dispatch' && format('["{0}"]', inputs.kind) || '["intraday"]')) }}
     env:
       TZ: Asia/Taipei
     steps:
@@ -84,7 +86,8 @@ jobs:
 
       - name: 盤後已經發過了就不重複（每日管線一天跑三輪都會接到這裡）
         id: done
-        if: steps.kind.outputs.kind != 'intraday' && github.event_name == 'workflow_run'
+        # 盤中也要讀發布紀錄（2026-10-25）：Cloudflare Worker 準時派的與 GitHub 備援排程晚到的，同一時段只發一次
+        if: steps.kind.outputs.kind == 'intraday' || (steps.kind.outputs.kind != 'intraday' && github.event_name == 'workflow_run')
         run: |
           if git ls-remote --exit-code --heads origin social-snaps >/dev/null 2>&1; then
             git fetch --depth=1 origin social-snaps
@@ -108,7 +111,7 @@ jobs:
         run: |
           pip install playwright pillow requests
           python -m playwright install --with-deps chromium
-          sudo apt-get install -y fonts-noto-cjk
+          sudo apt-get install -y fonts-noto-cjk fonts-noto-color-emoji
 
       - name: 截圖＋排版＋產 manifest
         id: snap
@@ -178,7 +181,9 @@ jobs:
           echo "base=https://raw.githubusercontent.com/${{ github.repository }}/social-snaps/snaps/$NAME" >> "$GITHUB_OUTPUT"
           echo "圖片公開網址前綴：https://raw.githubusercontent.com/${{ github.repository }}/social-snaps/snaps/$NAME/"
 
-      - name: 發布（沒有金鑰會自動 dry-run）
+      # ★ 總開關（2026-10-26）：repo 檔 docs/marketing/social_unit/LIVE_ENABLED 存在才真的發；不存在＝一律 dry-run（即使 Secrets 有金鑰）。
+      #   THREADS_USER_ID／IG_USER_ID 空白時，social_publish.py 會用權杖自動查帳號編號（log 只印末 4 碼）。
+      - name: 發布（總開關關閉或沒有金鑰會自動 dry-run）
         id: post
         if: steps.snap.outputs.rc == '0'
         env:
@@ -189,6 +194,11 @@ jobs:
         run: |
           DRY=""
           if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.dry_run }}" = "true" ]; then DRY="--dry-run"; fi
+          if [ ! -f docs/marketing/social_unit/LIVE_ENABLED ]; then
+            echo "總開關關閉（docs/marketing/social_unit/LIVE_ENABLED 不存在）→ dry-run，不真的發布"
+            echo "### 總開關關閉 → dry-run（要開始真的發，在 repo 建立 docs/marketing/social_unit/LIVE_ENABLED）" >> "$GITHUB_STEP_SUMMARY"
+            DRY="--dry-run"
+          fi
           # 真發布失敗 exit 1（這一步會紅）；dry-run、缺金鑰 exit 0
           python scripts/social_publish.py --manifest "${{ steps.snap.outputs.out }}/manifest.json" \
             --base-url "${{ steps.pub.outputs.base }}" $DRY

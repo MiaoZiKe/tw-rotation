@@ -26,12 +26,18 @@ TABLES: dict[str, list[str]] = {
     "margin_total":       ["date"],           # 整體市場融資融券（上市）：張數與融資金額（元）
     "fut_inst":           ["date", "futures_id", "who"],   # 期貨三大法人未平倉口數（TX 大台／TMF 微台；foreign／trust／dealer）
     "fut_oi":             ["date", "futures_id"],          # 微台全市場未平倉口數（各月份加總）
+    # 2026-10-26（台指期第四輪，選擇權情緒資料）：臺指選擇權（TXO）每日買賣權比；來源 sources/optpc.py（FinMind TaiwanOptionDaily 逐契約加總）。
+    "opt_pc":             ["date"],
     "index_daily":        ["date", "index"],  # 各類股指數
     "market_daily":       ["date"],           # 大盤成交統計
     "inst_daily":         ["date", "code"],   # 三大法人買賣超（個股別）
     # v17（2026-10-20，三大法人買賣超日報）：全市場（上市）三大法人買賣「金額」官方值，一天一列，單位元。
     #   來源 FinMind TaiwanStockTotalInstitutionalInvestors；欄位 {foreign,trust,dealer,total}_{buy,sell}。
     "inst_market_daily":  ["date"],
+    # 2026-10-25：同一份官方值的「首次公布版」（當天第一次抓到的那版，之後不覆寫）。
+    #   證交所 15:00 公布的「三大法人買賣金額統計表」＝新聞引用的數字；FinMind 晚間會換成含盤後成交的修訂版
+    #   （inst_market_daily 後到覆蓋，存的是修訂版）。網站主數字用首次公布版，與新聞同口徑。欄位同上＋fetched_at、src。
+    "inst_market_first":  ["date"],
     "revenue_monthly":    ["ym", "code"],     # 月營收
     "financial_q":        ["year", "quarter", "code"],  # EPS / 損益（單季值）
     "balance_q":          ["year", "quarter", "code"],  # 股本 / 淨值 / 總資產
@@ -339,6 +345,9 @@ INTL_SYMBOLS = {
     "^SOX":   "費城半導體",
     "^IXIC":  "那斯達克",
     "^GSPC":  "標普500",
+    # 2026-10-26 盤前貼文（Andy：「昨日或上週美股狀況…台積電ADR 狀況 那斯達克 費半 標普」）：補道瓊與台積電 ADR
+    "^DJI":   "道瓊工業",
+    "TSM":    "台積電ADR",
     "^TWII":  "台灣加權",
     "DX-Y.NYB": "美元指數",
     "^VIX":   "波動率指數",

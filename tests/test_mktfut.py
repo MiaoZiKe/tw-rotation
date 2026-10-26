@@ -182,3 +182,53 @@ def test_margin_block_20261019_lake_regression():
     assert abs(r["2026-10-19"]["margin_yi"] - r["2026-10-16"]["margin_yi"] + 49.8) < 0.1
     assert r["2026-10-19"]["short_lots"] == 201916 and r["2026-10-19"]["short_chg"] == -31686
     assert abs(r["2026-10-19"]["ratio"] - 181.31) < 3
+
+
+def test_short_rank_same_day_twse_only():
+    """融券增減排行（2026-10-26）：跟融資排行同一天、只收上市、略過 0、帶餘額；舊資料沒有融券欄位也不壞。"""
+    mt = pd.DataFrame({"date": ["2026-10-16", "2026-10-19"], "margin_lots": [100.0, 110.0], "margin_lots_prev": [99.0, 100.0],
+                       "short_lots": [5.0, 6.0], "short_lots_prev": [5.0, 5.0], "margin_money": [1e9, 1e9]})
+    company = pd.DataFrame({"code": ["A", "B", "C", "D"], "name": ["甲", "乙", "丙", "丁"], "market": ["TWSE", "TWSE", "TPEX", "TWSE"]})
+    rows = []
+    for i, d in enumerate(mt["date"]):
+        rows += [{"date": d, "code": "A", "margin_balance": 10000.0, "margin_change": 300.0, "short_balance": 800.0 + i, "short_change": 120.0 + i},
+                 {"date": d, "code": "B", "margin_balance": 20000.0, "margin_change": -500.0, "short_balance": 50.0, "short_change": -40.0},
+                 {"date": d, "code": "C", "margin_balance": 1.0, "margin_change": 1.0, "short_balance": 9e9, "short_change": 9e9},
+                 {"date": d, "code": "D", "margin_balance": 1.0, "margin_change": 1.0, "short_balance": 7.0, "short_change": 0.0}]
+    md = pd.DataFrame(rows)
+    px = pd.DataFrame({"date": list(mt["date"]) * 4, "code": sum([[k] * 2 for k in "ABCD"], []), "close": [100.0] * 8})
+    r = c.margin_block(mt, md, company, px)
+    sr = r["short_rank"]
+    assert sr["d"] == r["rank"]["d"] == "2026-10-19"
+    got = {x["code"]: x for x in sr["rows"]}
+    assert set(got) == {"A", "B"}                       # 上櫃 C 不計、0 張的 D 略過
+    assert got["A"]["chg"] == 121.0 and got["A"]["bal"] == 801.0 and got["A"]["name"] == "甲"
+    assert got["B"]["chg"] == -40.0
+    old = md.drop(columns=["short_balance", "short_change"])
+    assert c.margin_block(mt, old, company, px)["short_rank"] is None
+def test_margin_ratio_date_alignment_1022():
+    """2026-10-25 查證（社群貼文 10/22 維持率 176.99%、較前日 −5.85pp，被懷疑日期錯位）：
+    維持率那一列的日期＝融資餘額日＝收盤價日（同一天 merge），沒有錯位。
+    10/21 大盤 +1.28% → 維持率上升；10/22 大盤 −1.80% → 下降；−5.85pp 是對 10/21（182.84%），不是對 10/20。
+    這裡用合成資料鎖住：某一天收盤價跳動，只有「那一天」的維持率跟著動。"""
+    days = ["2026-10-20", "2026-10-21", "2026-10-22"]
+    mt = pd.DataFrame({"date": days, "margin_lots": [1.0] * 3, "margin_lots_prev": [1.0] * 3,
+                       "short_lots": [1.0] * 3, "short_lots_prev": [1.0] * 3,
+                       "margin_money": [1e6] * 3, "margin_money_prev": [1e6] * 3})
+    co = pd.DataFrame({"code": ["A"], "name": ["a"], "market": ["TWSE"]})
+    md = pd.DataFrame([{"date": d, "code": "A", "margin_balance": 1.0, "margin_change": 0.0} for d in days])
+    px = pd.DataFrame({"date": days, "code": "A", "close": [1000.0, 1100.0, 1000.0]})
+    rows = {r["d"]: round(r["ratio"], 6) for r in c.margin_block(mt, md, co, px)["rows"]}
+    assert rows == {"2026-10-20": 100.0, "2026-10-21": 110.0, "2026-10-22": 100.0}
+
+
+def test_margin_block_20261022_lake_regression():
+    """資料湖真實值：10/21 182.84%、10/22 176.99%（差 −5.85pp），兩天都不是 partial。湖裡沒有就跳過。"""
+    import pytest
+    mt, md, co, px = (_lake(t) for t in ("margin_total", "margin_daily", "company_info", "price_daily"))
+    if mt.empty or md.empty or "2026-10-22" not in set(mt["date"].astype(str)):
+        pytest.skip("資料湖沒有 10/22")
+    rows = {r["d"]: r for r in c.margin_block(mt, md, co, px)["rows"]}
+    a, b = rows["2026-10-21"], rows["2026-10-22"]
+    assert abs(a["ratio"] - 182.84) < 0.05 and abs(b["ratio"] - 176.99) < 0.05
+    assert abs((b["ratio"] - a["ratio"]) + 5.85) < 0.05 and not a["partial"] and not b["partial"]

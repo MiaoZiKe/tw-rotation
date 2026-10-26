@@ -17,7 +17,7 @@ from ..util import http
 log = logging.getLogger(__name__)
 
 
-def intl_daily(period: str = "1y") -> pd.DataFrame:
+def intl_daily(period: str = "2y", start: str | None = None) -> pd.DataFrame:
     """費半、那斯達克、美元指數、VIX、台幣匯率等，M4 國際連動盤的原料。"""
     try:
         import yfinance as yf
@@ -28,7 +28,8 @@ def intl_daily(period: str = "1y") -> pd.DataFrame:
     frames = []
     for symbol, label in config.INTL_SYMBOLS.items():
         try:
-            hist = yf.Ticker(symbol).history(period=period, auto_adjust=False)
+            hist = (yf.Ticker(symbol).history(start=start, auto_adjust=False) if start
+                    else yf.Ticker(symbol).history(period=period, auto_adjust=False))
         except Exception as exc:
             log.warning("yfinance %s 抓取失敗：%s", symbol, exc)
             continue
@@ -36,10 +37,15 @@ def intl_daily(period: str = "1y") -> pd.DataFrame:
             log.warning("yfinance %s 回傳空白", symbol)
             continue
         hist = hist.reset_index()
+        # 2026-10-26 盤前貼文要畫日 K（Andy：「改成日K」）：多存 open／high／low。
+        # 舊列沒有這三欄，store.append 合併後是 NaN；每次抓兩年（盤前日 K 的年線 MA240 要約一年歷史＋半年 K 棒），所以兩年內的列會被新抓的（keep=last）補齊。
         frames.append(pd.DataFrame({
             "date": pd.to_datetime(hist["Date"]).dt.date.astype(str),
             "symbol": symbol,
             "label": label,
+            "open": pd.to_numeric(hist.get("Open"), errors="coerce"),
+            "high": pd.to_numeric(hist.get("High"), errors="coerce"),
+            "low": pd.to_numeric(hist.get("Low"), errors="coerce"),
             "close": pd.to_numeric(hist["Close"], errors="coerce"),
             "volume": pd.to_numeric(hist.get("Volume"), errors="coerce"),
         }).dropna(subset=["close"]))

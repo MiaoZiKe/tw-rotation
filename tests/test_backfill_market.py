@@ -191,6 +191,11 @@ def _all_done_complete() -> dict:
           "dividend+divresult@2009-01-01": {"done": True},
           # 2026-09-30：個股 60 分 K 全市場回補（Yahoo，不在 PLAN_DEFAULT 裡，守門另外看）
           "intraday_60m": {"done": True, "remaining": {"intraday_60m": 0}}}
+    # 2026-10-26：2012 起法人／財報（universe）與台指期研究 2008 起三塊，守門也要看
+    for k in ("inst@2012-01-01", "balance+financial+revenue@2012-01-01",
+              "inst@2012-01-01@pit",
+              "futlab2_intl", "futlab2_dgs10", "futlab2_fut", "opt_pc"):
+        cp[k] = {"done": True}
     for s in run_backfill.PLAN_DEFAULT:
         if s.get("scope") in ("market", "etf"):   # 2026-10-05 起多了 ETF 兩步
             cp[run_backfill.datasets_key_of(s["datasets"], s["start"], s.get("tag"), s["scope"])] = {"done": True}

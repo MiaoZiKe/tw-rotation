@@ -66,7 +66,7 @@ def t_feature_notices_1019(b, base, code):
         if shot_dir:
             pg.screenshot(path=os.path.join(shot_dir, f"ntf_drop_{W}.png"))
         # ② 點一則（第二則，避免剛好是置頂那一則）→ 展開、紅點 −1、localStorage
-        fid = pg.evaluate("() => document.querySelectorAll('#ntDrop .ntitem')[1].dataset.id")
+        fid = pg.evaluate("() => (document.querySelector('#ntDrop .ntitem:not([data-route])') || document.querySelectorAll('#ntDrop .ntitem')[1]).dataset.id")   # 10-27 起有路由的卡點了會跳頁，② 驗展開要挑沒路由的
         h0 = pg.evaluate(f"() => document.querySelector(\"#ntDrop .ntitem[data-id='{fid}'] .bd\").getBoundingClientRect().height")
         pg.click(f"#ntDrop .ntitem[data-id='{fid}'] .ttl")
         got = wait_until(pg, f"() => document.getElementById('ntDot').textContent === '{n0 - 1}'", 3000)
@@ -88,8 +88,7 @@ def t_feature_notices_1019(b, base, code):
           return a ? { id: a.closest('.ntitem').dataset.id, href: a.getAttribute('href'), tx: a.textContent } : null; }""")
         ok(f"{T}（{W}）④ 內文的站內路由變成連結（顯示文字、href 是 #路由）", bool(lk) and not lk["tx"].startswith("#"), lk)
         if lk:
-            pg.click(f"#ntDrop .ntitem[data-id='{lk['id']}'] .ttl"); pg.wait_for_timeout(200)   # 先展開（兩行截斷時連結可能被藏住）
-            pg.locator(f"#ntDrop .ntitem[data-id='{lk['id']}'] .bd a.ntin[href='{lk['href']}']").first.click()
+            pg.locator(f"#ntDrop .ntitem[data-id='{lk['id']}'] .bd a.ntin[href='{lk['href']}']").first.dispatch_event('click')
             moved = wait_until(pg, f"() => location.hash.startsWith('{lk['href']}')", 4000)
             shut = pg.evaluate("() => { const d = document.getElementById('ntDrop'); return !d || d.hidden; }")
             ok(f"{T}（{W}）④ 點「{lk['tx']}」→ 換到 {lk['href']}、下拉收起、那則已讀", bool(moved) and shut and lk["id"] in pg.evaluate(_FN_ST)["read"], pg.evaluate("() => location.hash"))

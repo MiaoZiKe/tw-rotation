@@ -73,6 +73,21 @@ PLAN_DEFAULT = [
     {"datasets": "dividend+divresult",        "start": "2016-01-01", "scope": "universe"},
     {"datasets": "margin+holding",            "start": "2021-01-01", "scope": "universe"},
     {"datasets": "price",                     "start": "2000-01-01", "scope": "groups"},
+    # ★ 2026-10-26（策略回測：法人籌碼動能最有希望，但 inst_daily 只到 2016、訓練窗不夠）：
+    #   三大法人與月營收／季財報／資產負債表往前補到 2012-01-01。
+    #   scope=universe（groups 成分股＋成交值前段班，手動觸發 limit 預設 500，涵蓋流動性前 300 檔綽綽有餘）；
+    #   不用 market，是因為全市場 1,980 檔 × 4 資料集會把額度吃光、擋住後面的步驟，回測只需要流動性好的標的。
+    #   完成旗標 inst@2012-01-01、financial+balance+revenue@2012-01-01，逐檔 done 鍵帶 @2012-01-01，
+    #   與 2016 那一步（inst@market、done 鍵 inst:<代號>）互不衝突；已補到 2012 之前的檔 already_covered 會直接跳過。
+    #   請求數：約 500 檔 × (inst 1 + revenue/financial/balance 3) ＝ 2,000 次 ÷ 每輪約 450～500 次 ≈ 4～5 輪，約 5 小時。
+    #   放在 groups 價量之後、全市場各步之前：這批量小，先補完才不被後面的大步驟的額度擠掉。
+    {"datasets": "inst",                      "start": "2012-01-01", "scope": "universe"},
+    {"datasets": "revenue+financial+balance", "start": "2012-01-01", "scope": "universe"},
+    # ★ 2026-10-26（回測事後選股偏誤）：上面 universe 用的是「現在」的成交值前 500，2013 年有資料的股票裡
+    #   只有 54% 是當年的前 500 檔。這一步 scope=pit：2012～2015 每一年各取當年 price_daily 成交值前 500，
+    #   聯集後補 inst。完成旗標 inst@2012-01-01@pit 與上面 universe 那步（inst@2012-01-01）錯開；
+    #   逐檔 done 鍵與 already_covered 刻意共用 2012 那組，所以上面補過的檔不重抓（不用 tag，tag 會關掉 already_covered）。
+    {"datasets": "inst",                      "start": "2012-01-01", "scope": "pit"},
     # ★ 2026-09-27（個股頁數據普查）：三大法人**從來不在計畫裡**。每日管線只補成交值前 500 檔
     #   （run_daily.fetch_institutional，UNIVERSE_SIZE），更早的一次性回補也只跑到 401 檔 ——
     #   實測 1,980 檔普通股裡 1,626 檔的 inst_daily 一列都沒有，個股頁「三大法人」整張不出現。
@@ -414,7 +429,7 @@ def datasets_key_of(datasets: str, start: str, tag: str | None = None,
         key = base
     else:
         key = f"{base}@{start}"
-    return f"{key}@{scope}" if scope in ("market", "etf") else key
+    return f"{key}@{scope}" if scope in ("market", "etf", "pit") else key
 
 
 def run(datasets: str, limit: int | None, start: str, *,
@@ -946,6 +961,70 @@ def backfill_mktfut(prog: dict, start: str = "2021-01-01") -> bool:
                     [t for t, d in got.items() if d.empty])
     return ok
 
+def backfill_futlab2(prog: dict, start: str = "2008-01-01") -> bool:
+    """台指期研究（2026-10-26）：2008 起的美股消息面與外資期貨部位，全部走 store.append()。
+
+    · intl_daily  ← yfinance（每日管線 macro.intl_daily 用的同一個來源，不吃 FinMind 額度）：
+                    S&P500／Nasdaq／費半／VIX／美元指數／TSM ADR 等 config.INTL_SYMBOLS 全部。
+    · macro DGS10 ← FRED（FRED_API_KEY），美債 10Y 殖利率，跟每日管線同一張 macro 表。
+    · fut_inst    ← FinMind TaiwanFuturesInstitutionalInvestors，TX 大台 1 次請求（外資期貨淨部位）。
+                    FinMind 實際最早從哪年有資料未實測：回空或只到較晚年份時如實 log、不猜，
+                    旗標記下實際最早日期，方便研究端知道訓練窗到哪。
+    三塊各自一個旗標（futlab2_intl／futlab2_dgs10／futlab2_fut），缺的下一輪重試；補過就不再補。"""
+    from .sources import macro as macro_src
+    comp = prog.setdefault("complete", {})
+
+    def _done(k: str) -> bool:
+        f = comp.get(k)
+        return isinstance(f, dict) and f.get("done") and f.get("start") == start
+
+    def _mark(k: str, rows: int, **extra) -> None:
+        comp[k] = {"done": True, "start": start, "rows": rows,
+                   "at": datetime.now(timezone.utc).isoformat(), **extra}
+        _save_progress(prog)
+
+    ok = True
+    if not _done("futlab2_intl"):
+        try:
+            df = macro_src.intl_daily(start=start)
+        except Exception as exc:  # noqa: BLE001
+            log.warning("2008 起國際指數回補失敗：%s", exc)
+            df = pd.DataFrame()
+        if df.empty:
+            ok = False
+        else:
+            _mark("futlab2_intl", store.append("intl_daily", df), earliest=str(df["date"].min()))
+    if not _done("futlab2_dgs10"):
+        try:
+            df = macro_src.fred_series("DGS10", start)
+        except Exception as exc:  # noqa: BLE001
+            log.warning("2008 起 DGS10 回補失敗：%s", exc)
+            df = pd.DataFrame()
+        if df.empty:
+            log.warning("DGS10 回空（多半是 FRED_API_KEY 問題）—— 不標 done，下一輪重試")
+            ok = False
+        else:
+            _mark("futlab2_dgs10", store.append("macro", df), earliest=str(df["date"].min()))
+    if not _done("futlab2_fut"):
+        if http.finmind_budget_left() <= 3:
+            log.warning("額度不足，外資期貨 2008 起這一輪先不補")
+            return False
+        try:
+            raw = http.finmind_get("TaiwanFuturesInstitutionalInvestors", data_id="TX",
+                                   start_date=start, end_date=None, wait_when_exhausted=False)
+            df = mktfut.parse_fut_inst(raw, "TX")
+        except Exception as exc:  # noqa: BLE001
+            log.warning("2008 起 fut_inst 回補失敗：%s", exc)
+            df = pd.DataFrame()
+        if df.empty:
+            log.warning("fut_inst 2008 起回空 —— 不標 done，下一輪重試")
+            ok = False
+        else:
+            _mark("futlab2_fut", store.append("fut_inst", df), earliest=str(df["date"].min()))
+            log.info("fut_inst 最早資料日 %s（FinMind 實際起點）", df["date"].min())
+    return ok
+
+
 INST_MARKET_START = "2021-01-01"   # 5 年；日報頁最長期間鈕要撐到這裡
 
 
@@ -1366,6 +1445,35 @@ def plan_steps(name: str, today: date | None = None) -> list[dict]:
     return [dict(s) for s in PLANS[name]] + [m, etf_month, etf_week]
 
 
+PIT_YEARS = range(2012, 2016)
+PIT_TOP = 500
+
+
+def pit_codes(years=PIT_YEARS, top: int = PIT_TOP) -> list[str]:
+    """point-in-time 名單：每一年各取該年 price_daily 成交值前 top 檔普通股，聯集（依年份先後、名次排序）。
+
+    為什麼：用「現在」的流動性前 500 補歷史，會漏掉當年是大型股、現在掉出榜的（事後選股偏誤）。
+    成交值取該年 turnover 加總；沒有 turnover 欄時退回 close×volume。只用資料裡的日期，不用執行當下日期。
+    ⚠ 限制：只看得到 price_daily 裡有的股票，已下市且沒補過價量的拿不到。"""
+    from .util.roc import is_common_stock
+    px = store.read("price_daily")
+    if px.empty:
+        return []
+    px = px.assign(code=px["code"].astype(str), year=px["date"].astype(str).str[:4])
+    if "turnover" in px.columns and pd.to_numeric(px["turnover"], errors="coerce").notna().any():
+        px["_tv"] = pd.to_numeric(px["turnover"], errors="coerce").fillna(0.0)
+    else:
+        px["_tv"] = (pd.to_numeric(px.get("close"), errors="coerce") * pd.to_numeric(px.get("volume"), errors="coerce")).fillna(0.0)
+    out: list[str] = []
+    for y in years:
+        sub = px[px["year"] == str(y)]
+        if sub.empty:
+            continue
+        rank = sub.groupby("code")["_tv"].sum().sort_values(ascending=False)
+        out += [c for c in rank.index if is_common_stock(c)][:top]
+    return list(dict.fromkeys(out))
+
+
 def _codes_for_scope(scope: str, limit: int | None) -> list[str]:
     if scope == "groups":
         m = loader.membership(include_overlay=True)
@@ -1377,6 +1485,8 @@ def _codes_for_scope(scope: str, limit: int | None) -> list[str]:
         return market_codes()          # 刻意不吃 limit（見 market_codes）
     if scope == "etf":
         return etf_codes()
+    if scope == "pit":
+        return pit_codes()
     return target_codes(limit)
 
 
@@ -1422,6 +1532,10 @@ def run_plan(name: str, limit: int | None, today: date | None = None) -> dict:
         backfill_mktfut(_progress())
     except Exception as exc:  # noqa: BLE001
         log.warning("市場明細融資／期貨回補失敗（不影響其他步驟）：%s", exc)
+    try:
+        backfill_futlab2(_progress())
+    except Exception as exc:  # noqa: BLE001
+        log.warning("台指期研究 2008 起資料回補失敗（不影響其他步驟）：%s", exc)
     # 全市場三大法人金額官方值只要 1 次請求，放在個股步驟之前（2026-10-21 根因）：
     # 原本掛在「整個計畫跑完（stopped_at is None）」之後，但個股步驟每輪都把額度燒光，
     # 計畫從來沒跑完，所以 5 年歷史一直沒補（湖裡只有每日管線 40 天增量的 09/10 起）。
@@ -1511,6 +1625,13 @@ def main() -> int:
     if only_extras:
         return 0
 
+    # 2026-10-26（台指期第四輪）：臺指選擇權每日買賣權比（opt_pc），按月游標、每輪最多補 3 個月；只要 3 次請求，所以放在個股計畫「之前」：計畫每輪都把 FinMind 額度燒光，放後面會永遠拿不到額度。失敗只記 log。
+    if args.plan:
+        try:
+            from .sources import optpc
+            optpc.backfill_opt_pc(_progress(), _save_progress)
+        except Exception as exc:  # noqa: BLE001
+            log.warning("opt_pc 回補失敗（不影響其他步驟）：%s", exc)
     if args.plan:
         summary = run_plan(args.plan, limit)
     else:
