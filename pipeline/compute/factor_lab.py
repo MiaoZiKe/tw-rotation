@@ -36,6 +36,7 @@ OUT = ROOT / "docs" / "strategy_lab" / "factor_lab"
 TRAIN = ("2012-01-02", "2018-12-31")
 INNER = ("2019-01-02", "2022-12-30")
 FINAL = ("2023-01-02", "2026-10-22")
+NEW = ("2013-02-01", "2016-12-09")        # 營收／財報補完後才有的乾淨窗口（S2 凍結規則只跑一次）
 MIN_TRAIN_YEARS = 2.5
 PRIOR_TRIALS = 858
 LOG = OUT / "holdout_log.csv"
@@ -546,7 +547,7 @@ def holdout(P, spec_json, pool, window):
     hit = log[(log["spec"] == spec_json) & (log["pool"] == pool) & (log["window"] == window)]
     if len(hit):
         return hit.iloc[0].to_dict()
-    lo, hi = {"內部保留": INNER, "最終保留": FINAL}[window]
+    lo, hi = {"內部保留": INNER, "最終保留": FINAL, "新資料2013-2016": NEW}[window]
     m = metrics_row(P, json.loads(spec_json), pool, lo, hi)
     row = dict(spec=spec_json, pool=pool, window=window, lo=lo, hi=hi, 執行時間=time.strftime("%Y-%m-%d %H:%M:%S"), **m)
     pd.concat([log, pd.DataFrame([row])], ignore_index=True).to_csv(LOG, index=False, encoding="utf-8-sig")
