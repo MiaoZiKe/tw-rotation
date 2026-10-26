@@ -24,7 +24,10 @@
             65
           ],
           "bonus_months": null,
-          "annual_months": null,
+          "annual_months": [
+            40,
+            40
+          ],
           "annual_total_wan": [
             220,
             250
@@ -1315,8 +1318,14 @@
             65
           ],
           "bonus_months": null,
-          "annual_months": null,
-          "annual_total_wan": null,
+          "annual_months": [
+            14,
+            14
+          ],
+          "annual_total_wan": [
+            170,
+            172
+          ],
           "weekly_hours": [
             57,
             57
@@ -2444,7 +2453,10 @@
           ],
           "bonus_months": null,
           "annual_months": null,
-          "annual_total_wan": null,
+          "annual_total_wan": [
+            250,
+            250
+          ],
           "weekly_hours": [
             45,
             45
@@ -3661,11 +3673,14 @@
           "unit": "晶圓廠 Fab",
           "degree": "不限",
           "years": "0-2",
-          "base_month_k": null,
+          "base_month_k": [
+            39.5,
+            58
+          ],
           "bonus_months": null,
           "annual_months": null,
           "annual_total_wan": null,
-          "weekly_hours": null,
+          "weekly_hours": 50,
           "overtime": "經常",
           "travel": "不用",
           "confidence": "低",
@@ -4958,7 +4973,10 @@
           "unit": "晶圓廠 Fab",
           "degree": "不限",
           "years": "0-2",
-          "base_month_k": null,
+          "base_month_k": [
+            43,
+            43
+          ],
           "bonus_months": null,
           "annual_months": null,
           "annual_total_wan": null,
@@ -5557,7 +5575,10 @@
           "base_month_k": null,
           "bonus_months": null,
           "annual_months": null,
-          "annual_total_wan": null,
+          "annual_total_wan": [
+            75,
+            75
+          ],
           "weekly_hours": null,
           "overtime": "經常",
           "travel": "需要",
@@ -5625,7 +5646,10 @@
           "unit": "廠務",
           "degree": "不限",
           "years": "0-2",
-          "base_month_k": null,
+          "base_month_k": [
+            33.8,
+            33.8
+          ],
           "bonus_months": null,
           "annual_months": null,
           "annual_total_wan": null,
@@ -6495,7 +6519,14 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 5
+          "n": 5,
+          "annual_months": [
+            33.5,
+            33.5
+          ],
+          "weekly_hours": 60,
+          "overtime": "經常",
+          "travel": "不用"
         },
         {
           "unit": "其他",
@@ -6784,7 +6815,10 @@
           "role": "製程工程師",
           "degree": "碩士",
           "years": "0-2",
-          "base_month_k": null,
+          "base_month_k": [
+            65,
+            65
+          ],
           "bonus_months": null,
           "annual_months": null,
           "annual_total_wan": null,
@@ -8031,7 +8065,10 @@
           "base_month_k": null,
           "bonus_months": null,
           "annual_months": null,
-          "annual_total_wan": null,
+          "annual_total_wan": [
+            150,
+            150
+          ],
           "weekly_hours": null,
           "overtime": "經常",
           "travel": "不用",
@@ -8886,7 +8923,10 @@
           "years": "0-2",
           "base_month_k": null,
           "bonus_months": null,
-          "annual_months": null,
+          "annual_months": [
+            16,
+            16
+          ],
           "annual_total_wan": [
             118,
             118
@@ -9256,7 +9296,10 @@
           "role": "設備工程師",
           "degree": "碩士",
           "years": "0-6",
-          "base_month_k": null,
+          "base_month_k": [
+            108,
+            108
+          ],
           "bonus_months": null,
           "annual_months": null,
           "annual_total_wan": [
@@ -10516,11 +10559,20 @@
           "role": "設備工程師",
           "degree": "碩士",
           "years": "0-2",
-          "base_month_k": null,
+          "base_month_k": [
+            53,
+            58
+          ],
           "bonus_months": null,
-          "annual_months": null,
-          "annual_total_wan": null,
-          "weekly_hours": null,
+          "annual_months": [
+            14,
+            14
+          ],
+          "annual_total_wan": [
+            80,
+            80
+          ],
+          "weekly_hours": 48,
           "overtime": "偶爾",
           "travel": "不用",
           "n": 12,
@@ -11111,7 +11163,11 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "annual_months": [
+            14,
+            14
+          ]
         },
         {
           "unit": "其他",
@@ -11175,7 +11231,8 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "overtime": "幾乎不"
         }
       ],
       "mops": {
