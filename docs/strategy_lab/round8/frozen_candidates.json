@@ -1,0 +1,306 @@
+{
+ "frozen_at": "2026-10-26 17:32:55",
+ "train": [
+  "2016-12-12",
+  "2018-12-31"
+ ],
+ "note": "凍結後不得修改；最終驗證在營收補齊後的 2013-02～2016-12 窗口各跑一次",
+ "candidates": [
+  {
+   "name": "S2 原版（參照）",
+   "reason": "參照",
+   "spec": {
+    "comps": [
+     "rv312"
+    ],
+    "N": 10,
+    "rebal": "R",
+    "mf": null,
+    "gt": {
+     "rv312": 1.0
+    },
+    "ge": {
+     "ma3": 1
+    },
+    "axes": {
+     "cond": "rv312",
+     "rank": "rv312",
+     "x2": null,
+     "N": 10,
+     "rebal": "R",
+     "hold60": false,
+     "mf": null,
+     "cap": null,
+     "ns": false
+    }
+   }
+  },
+  {
+   "name": "x2=nh95",
+   "reason": "單軸入選",
+   "spec": {
+    "comps": [
+     "rv312"
+    ],
+    "N": 10,
+    "rebal": "R",
+    "mf": null,
+    "gt": {
+     "rv312": 1.0
+    },
+    "ge": {
+     "ma3": 1,
+     "nh": 0.95
+    },
+    "axes": {
+     "cond": "rv312",
+     "rank": "rv312",
+     "x2": "nh95",
+     "N": 10,
+     "rebal": "R",
+     "hold60": false,
+     "mf": null,
+     "cap": null,
+     "ns": false
+    }
+   }
+  },
+  {
+   "name": "cond=st6",
+   "reason": "單軸入選",
+   "spec": {
+    "comps": [
+     "rv312"
+    ],
+    "N": 10,
+    "rebal": "R",
+    "mf": null,
+    "gt": {},
+    "ge": {
+     "st6": 1,
+     "ma3": 1
+    },
+    "axes": {
+     "cond": "st6",
+     "rank": "rv312",
+     "x2": null,
+     "N": 10,
+     "rebal": "R",
+     "hold60": false,
+     "mf": null,
+     "cap": null,
+     "ns": false
+    }
+   }
+  },
+  {
+   "name": "cap=2",
+   "reason": "單軸入選",
+   "spec": {
+    "comps": [
+     "rv312"
+    ],
+    "N": 10,
+    "rebal": "R",
+    "mf": null,
+    "gt": {
+     "rv312": 1.0
+    },
+    "ge": {
+     "ma3": 1
+    },
+    "axes": {
+     "cond": "rv312",
+     "rank": "rv312",
+     "x2": null,
+     "N": 10,
+     "rebal": "R",
+     "hold60": false,
+     "mf": null,
+     "cap": 2,
+     "ns": false
+    },
+    "ind_cap": 2
+   }
+  },
+  {
+   "name": "x2=nh85",
+   "reason": "單軸入選",
+   "spec": {
+    "comps": [
+     "rv312"
+    ],
+    "N": 10,
+    "rebal": "R",
+    "mf": null,
+    "gt": {
+     "rv312": 1.0
+    },
+    "ge": {
+     "ma3": 1,
+     "nh": 0.85
+    },
+    "axes": {
+     "cond": "rv312",
+     "rank": "rv312",
+     "x2": "nh85",
+     "N": 10,
+     "rebal": "R",
+     "hold60": false,
+     "mf": null,
+     "cap": null,
+     "ns": false
+    }
+   }
+  },
+  {
+   "name": "疊加：x2=nh95、cond=st6、cap=2、rebal=M",
+   "reason": "疊加",
+   "spec": {
+    "comps": [
+     "rv312"
+    ],
+    "N": 10,
+    "rebal": "M",
+    "mf": null,
+    "gt": {},
+    "ge": {
+     "st6": 1,
+     "ma3": 1,
+     "nh": 0.95
+    },
+    "axes": {
+     "cond": "st6",
+     "rank": "rv312",
+     "x2": "nh95",
+     "N": 10,
+     "rebal": "M",
+     "hold60": false,
+     "mf": null,
+     "cap": 2,
+     "ns": false
+    },
+    "ind_cap": 2
+   }
+  },
+  {
+   "name": "疊加（不含 x2）：cond=st6、cap=2、rebal=M",
+   "reason": "疊加留一",
+   "spec": {
+    "comps": [
+     "rv312"
+    ],
+    "N": 10,
+    "rebal": "M",
+    "mf": null,
+    "gt": {},
+    "ge": {
+     "st6": 1,
+     "ma3": 1
+    },
+    "axes": {
+     "cond": "st6",
+     "rank": "rv312",
+     "x2": null,
+     "N": 10,
+     "rebal": "M",
+     "hold60": false,
+     "mf": null,
+     "cap": 2,
+     "ns": false
+    },
+    "ind_cap": 2
+   }
+  },
+  {
+   "name": "疊加（不含 cond）：x2=nh95、cap=2、rebal=M",
+   "reason": "疊加留一",
+   "spec": {
+    "comps": [
+     "rv312"
+    ],
+    "N": 10,
+    "rebal": "M",
+    "mf": null,
+    "gt": {
+     "rv312": 1.0
+    },
+    "ge": {
+     "ma3": 1,
+     "nh": 0.95
+    },
+    "axes": {
+     "cond": "rv312",
+     "rank": "rv312",
+     "x2": "nh95",
+     "N": 10,
+     "rebal": "M",
+     "hold60": false,
+     "mf": null,
+     "cap": 2,
+     "ns": false
+    },
+    "ind_cap": 2
+   }
+  },
+  {
+   "name": "疊加（不含 cap）：x2=nh95、cond=st6、rebal=M",
+   "reason": "疊加留一",
+   "spec": {
+    "comps": [
+     "rv312"
+    ],
+    "N": 10,
+    "rebal": "M",
+    "mf": null,
+    "gt": {},
+    "ge": {
+     "st6": 1,
+     "ma3": 1,
+     "nh": 0.95
+    },
+    "axes": {
+     "cond": "st6",
+     "rank": "rv312",
+     "x2": "nh95",
+     "N": 10,
+     "rebal": "M",
+     "hold60": false,
+     "mf": null,
+     "cap": null,
+     "ns": false
+    }
+   }
+  },
+  {
+   "name": "疊加（不含 rebal）：x2=nh95、cond=st6、cap=2",
+   "reason": "疊加留一",
+   "spec": {
+    "comps": [
+     "rv312"
+    ],
+    "N": 10,
+    "rebal": "R",
+    "mf": null,
+    "gt": {},
+    "ge": {
+     "st6": 1,
+     "ma3": 1,
+     "nh": 0.95
+    },
+    "axes": {
+     "cond": "st6",
+     "rank": "rv312",
+     "x2": "nh95",
+     "N": 10,
+     "rebal": "R",
+     "hold60": false,
+     "mf": null,
+     "cap": 2,
+     "ns": false
+    },
+    "ind_cap": 2
+   }
+  }
+ ]
+}
