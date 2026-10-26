@@ -2136,11 +2136,11 @@
               "base_k": null,
               "bonus_months": null,
               "annual_months": null,
-              "annual_wan": 1000,
+              "annual_wan": null,
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
-              "quote_free_note": "留言B45：E3 R3調薪13%，RSU 40000（含off-cycle），今年年收大概1000萬（自稱，可信度待查）",
+              "quote_free_note": "留言B45：E3 R3調薪13%，RSU 40000（含off-cycle），今年年收大概1000萬（自稱，可信度待查）；數字未入統計（自稱、可信度待查）",
               "in_window": true,
               "date_note": "Dcard 頁面發文日期 2026-10-09（b28 批）",
               "comment_sample": true
@@ -2577,14 +2577,11 @@
               "base_k": null,
               "bonus_months": null,
               "annual_months": null,
-              "annual_wan": [
-                90,
-                130
-              ],
+              "annual_wan": null,
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
-              "quote_free_note": "留言B16-2：含RSU年薪參考E1 90-130（含簽約金，取110）、E2 120-180、E3 170-270、E4 270-400，剛升等偏下限；約為台積7折；年薪約月薪×16.8+RSU",
+              "quote_free_note": "留言B16-2：含RSU年薪參考E1 90-130（含簽約金，取110）、E2 120-180、E3 170-270、E4 270-400，剛升等偏下限；約為台積7折；年薪約月薪×16.8+RSU；這是職等參考區間不是個人樣本，數字未入統計，已記在公司職等制度",
               "in_window": true,
               "date_note": "Dcard 頁面發文日期 2025-12-02（b28 批）",
               "comment_sample": true
@@ -2603,14 +2600,11 @@
               "base_k": null,
               "bonus_months": null,
               "annual_months": null,
-              "annual_wan": [
-                120,
-                180
-              ],
+              "annual_wan": null,
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
-              "quote_free_note": "留言B16-2：E2 120-180（取150）",
+              "quote_free_note": "留言B16-2：E2 120-180（取150）；這是職等參考區間不是個人樣本，數字未入統計，已記在公司職等制度",
               "in_window": true,
               "date_note": "Dcard 頁面發文日期 2025-12-02（b28 批）",
               "comment_sample": true
@@ -2629,14 +2623,11 @@
               "base_k": null,
               "bonus_months": null,
               "annual_months": null,
-              "annual_wan": [
-                170,
-                270
-              ],
+              "annual_wan": null,
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
-              "quote_free_note": "留言B16-2：E3 170-270（取220）",
+              "quote_free_note": "留言B16-2：E3 170-270（取220）；這是職等參考區間不是個人樣本，數字未入統計，已記在公司職等制度",
               "in_window": true,
               "date_note": "Dcard 頁面發文日期 2025-12-02（b28 批）",
               "comment_sample": true
@@ -2655,14 +2646,11 @@
               "base_k": null,
               "bonus_months": null,
               "annual_months": null,
-              "annual_wan": [
-                270,
-                400
-              ],
+              "annual_wan": null,
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
-              "quote_free_note": "留言B16-2：E4 270-400（取335）",
+              "quote_free_note": "留言B16-2：E4 270-400（取335）；這是職等參考區間不是個人樣本，數字未入統計，已記在公司職等制度",
               "in_window": true,
               "date_note": "Dcard 頁面發文日期 2025-12-02（b28 批）",
               "comment_sample": true
@@ -2782,7 +2770,7 @@
           ],
           "annual_total_wan": [
             90,
-            1000
+            600
           ],
           "weekly_hours": null,
           "overtime": null,
