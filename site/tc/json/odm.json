@@ -8,7 +8,7 @@
       "name": "廣達",
       "code": "2382",
       "heat": "中",
-      "benefits": null,
+      "benefits": "網友說法：福利主要是公司點數、偏少；平常有福利金，年終與分紅依考績與在職時間；有生理假、產假（GoodJob 2025～2026 評價，薪資福利 4.1）",
       "stock_plan": null,
       "bonus_timing": "員工分紅每年 10～11 月入帳、依部門與考核；年終獎金農曆年前（2 月前後）另發，兩者分開計算",
       "culture": "加班普遍，硬體測試回報每日加班常態",
@@ -5713,7 +5713,7 @@
       "stock_plan": null,
       "bonus_timing": "網友稱 12＋2 個月（端午、中秋、年終合計）＋平均約 2 個月分紅，分紅約 11 月發；部門差異大",
       "culture": "GoodJob 調查平均日工時 8.5～10 小時（uptogo 轉述）",
-      "interview": null,
+      "interview": "網友說法：韌體職缺三關（用人主管 → 副總 → 人資），前兩關做自我介紹簡報、問 Linux 經驗與能否接受出差加班（GoodJob 2025-06）；機構職缺建議準備專題與挫折改善經驗（2025-04）；GoodJob 平均每週 47 小時",
       "roles": [
         {
           "unit": "研發 RD",
@@ -5849,7 +5849,7 @@
       "name": "和碩",
       "code": "4938",
       "heat": null,
-      "benefits": null,
+      "benefits": "網友說法：保障 14 個月、三節獎金、年終或分紅，午晚餐補助、員工餐廳、健身房、停車場（GoodJob 評價）",
       "stock_plan": null,
       "bonus_timing": "分紅 9 月 30 日發（公司回應，舊報導）、每年 2～4 個月，保障 14 個月；網友稱年終約 1 個月",
       "culture": "GoodJob 平均每週 47 小時（個別 40～60）；底薪普通、三節＋年終約 14 個月＋少量分紅",
@@ -8039,8 +8039,8 @@
       "benefits": null,
       "stock_plan": null,
       "bonus_timing": "官方：盈餘分紅（依營運與個人績效）、年終、端午中秋春節三節獎金、專案與專利獎金，每年兩次考核；月數與月份未公開",
-      "culture": null,
-      "interview": null,
+      "culture": "網友說法：GoodJob 評分 3.7（74 筆），平均每週約 42 小時、14% 幾乎每天加班、28% 偶爾；不同部門差距大",
+      "interview": "網友說法：軟體職缺會大量追問 project 與論文，建議熟 C 指標、bitwise 與 TCP/IP（GoodJob 2025-04）；系統整合職缺先考英文再問讀寫檔案（2026-03）；嵌入式職缺依自我介紹逐項追問（2026-04）",
       "roles": [
         {
           "unit": "研發 RD",
@@ -8210,6 +8210,85 @@
             }
           ],
           "n_stat": 5
+        },
+        {
+          "unit": "研發 RD",
+          "role": "軟體研發工程師",
+          "degree": null,
+          "samples": [
+            {
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 60,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/智易科技股份有限公司/interview-experiences",
+              "date": "2026-03",
+              "date_confirmed": true,
+              "date_note": "GoodJob 面試分享標示 2026.03（搜尋摘要）",
+              "in_window": true,
+              "role": "系統整合軟體研發（面試）",
+              "quote_free_note": "現場面試，先考英文，技術題與讀寫檔案有關；月薪 6 萬"
+            },
+            {
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 59,
+              "bonus_months": null,
+              "annual_months": 14,
+              "annual_wan": 82.6,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/智易科技股份有限公司/interview-experiences",
+              "date": "2025-04",
+              "date_confirmed": true,
+              "date_note": "GoodJob 面試分享標示 2025.04，早於期間",
+              "in_window": false,
+              "role": "軟體工程師（面試錄取）",
+              "quote_free_note": "線上面試，追問 project／論文，C 指標、bitwise、TCP/IP；月薪 5.9 萬，HR 說保底 14 個月",
+              "derived": [
+                "annual_wan"
+              ]
+            }
+          ],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/智易科技股份有限公司/interview-experiences",
+              "date": "2026-03"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/智易科技股份有限公司/interview-experiences",
+              "date": "2025-04"
+            }
+          ],
+          "confidence": "低",
+          "note": "2026-10-26 依搜尋摘要新增",
+          "grade": null,
+          "base_month_k": [
+            60,
+            60
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n": 2,
+          "n_stat": 1
         }
       ],
       "mops": null,
@@ -8275,7 +8354,7 @@
       "name": "緯穎",
       "code": "6669",
       "heat": null,
-      "benefits": null,
+      "benefits": "網友說法：保 14 個月＋分紅與績效，近年整年約 18～20 個月；台南分公司每年多 7 天活力假（GoodJob 2025～2026）",
       "stock_plan": null,
       "bonus_timing": "網友稱年終約 1 個月、分紅約 2～3 個月；發放月份查不到",
       "culture": "GoodJob：加薪分紅偏大鍋飯、開會長、新人多自學",
@@ -9541,7 +9620,7 @@
       "name": "緯創",
       "code": "3231",
       "heat": null,
-      "benefits": null,
+      "benefits": "網友說法：有年終＋端午中秋；整年保 14 個月＋約 2 個月分紅，表現極好者可到 20 個月但稀少（GoodJob 2026 評價）；有人說主管不讓報加班費",
       "stock_plan": null,
       "bonus_timing": "網友稱年終約 1 個月，分紅依 BU 差異大（傳統單位全年約 15～17 個月、AI 伺服器可達 20 個月）；月份查不到",
       "culture": "GoodJob 609 筆：平均每週 46 小時，多數偶爾或經常加班；薪資評價差強人意",
@@ -10523,7 +10602,7 @@
       "benefits": "每年免費健檢、每半年發獎金（GoodJob 2025）",
       "stock_plan": "虛擬配股（GoodJob 2025）",
       "bonus_timing": "只查到舊報導：每人 2 個月年終、3 月依部門績效加發紅利；近年制度查不到",
-      "culture": null,
+      "culture": "網友說法：比薪水 2020～2023 心得加班不一（常常加班日均 9 小時，也有準時下班 8 小時）；有人說工程師文化好、內部轉調自由",
       "interview": null,
       "roles": [
         {
@@ -11681,7 +11760,7 @@
       "heat": null,
       "benefits": null,
       "stock_plan": null,
-      "bonus_timing": "網友評價：分紅大致 4 月和 10 月發，金額看個人績效、單位獲利與職等（GoodJob 2026-07）；分紅要隔一年才能領（GoodJob 2025-02 面試分享）",
+      "bonus_timing": "網友評價：分紅大致 4 月和 10 月發，金額看個人績效、單位獲利與職等（GoodJob 2026-07）；分紅要隔一年才能領（GoodJob 2025-02 面試分享）；另一則 2026 機構工程師面試分享寫滿一年後 3 月與 10 月有獎金（3 月或 4 月兩說並存）",
       "bonus_structure": [
         {
           "type": "員工分紅",
@@ -11697,7 +11776,7 @@
         }
       ],
       "culture": "網友說法：GoodJob 評分 3.7，文化 2.7、工時 3.3、薪資福利 3.5",
-      "interview": null,
+      "interview": "網友說法：機構面試兩關，初試 HR＋單位主管深入追問履歷專案；也有不考試、做簡報自我介紹再依內容提問；嵌入式背景會被追問硬體系統細節（GoodJob 2026）",
       "grade_system": null,
       "mops": null,
       "roles": [
@@ -11728,6 +11807,30 @@
               "quote_free_note": "月薪 N+4，以 64k 計",
               "in_window": true,
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-09-03"
+            },
+            {
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 65,
+              "bonus_months": null,
+              "annual_months": 14,
+              "annual_wan": 91.0,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/job-titles/機構工程師/interview-experiences?p=3",
+              "date": "2026",
+              "date_confirmed": true,
+              "date_note": "摘要寫 2026 年分享，整年都在期間內",
+              "in_window": true,
+              "role": "機構工程師（面試）",
+              "quote_free_note": "一年保證 14 個月，滿一年後 3 月與 10 月有獎金視營收，無加班費",
+              "derived": [
+                "annual_wan"
+              ]
             }
           ],
           "sources": [
@@ -11735,22 +11838,33 @@
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/262076304",
               "date": "2026-09"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/job-titles/機構工程師/interview-experiences?p=3",
+              "date": "2026"
             }
           ],
           "confidence": "低",
-          "n": 1,
+          "n": 2,
           "base_month_k": [
             64,
-            64
+            65
           ],
           "years": null,
           "bonus_months": null,
-          "annual_months": null,
-          "annual_total_wan": null,
+          "annual_months": [
+            14,
+            14
+          ],
+          "annual_total_wan": [
+            91.0,
+            91.0
+          ],
           "weekly_hours": null,
           "overtime": null,
           "travel": null,
-          "n_stat": 1,
+          "n_stat": 2,
           "note": null
         }
       ],
