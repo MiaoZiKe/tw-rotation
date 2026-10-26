@@ -25,12 +25,25 @@
 - `data/logos/tc/ATTRIBUTION.md`：Wikimedia 來源的出處。
 - `data/_state/tc_logo_progress.json`：每輪摘要、失敗清單、下一次到期日。
 有圖 90 天才重抓（雜湊一樣不寫檔，git 不多版本）、沒抓到 30 天再試；已經有圖、這次沒抓到就保留舊圖。
+
+品質關卡（2026-10-27 Andy 看到 NVIDIA 是橫幅照片被裁切、聯電太小：DECISIONS #365）
+----------------------------------------------------------------------------------
+官網來源（og:image、頁首圖）常常抓到橫幅照片或別的圖示，所以官網與 Google s2 抓到的圖要過 `quality()`：
+og-image 一律不收；header-img 只收長寬比 ≤ 3:1 且不是「整張不透明長方形」的；網址帶 share／teaser／banner 等字樣不收；
+圖形只佔畫布一小角不收；人工排除清單（DENY）不收。不合格就換下一個來源（Wikimedia → s2 256），都沒有就判失敗（前端退字標）。
+Wikimedia 來源（Wikidata P154 標誌圖、官網網域比對）本身就是標誌，不過這道關。
+`WIKI_FIRST`（Andy 目視確認抓錯的網域）與「代號補強」的網域改成 Wikimedia 優先；舊索引裡不合格的舊圖在每輪開頭被標成 bad、重抓。
+「代號補強」：科技透明圈有台股代號、但 data/logos/<代號>.png 解析度低／空白／錯圖的公司，依官網網域走同一套，
+輸出在同一份索引（鍵＝網域），前端在代號圖低解析時改用網域圖。清單 `groups/tc_code_domains.json`。
+
 build_payload 只讀湖、輸出 `site/data/tc_logos.json`（{網域: 相對路徑}），見 build_payload.export_tc_logos()。
 """
 from __future__ import annotations
 
+import io
 import json
 import logging
+import re
 import time
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
@@ -43,6 +56,18 @@ from . import logos as lg
 log = logging.getLogger(__name__)
 
 DOMAINS_FILE = Path(__file__).resolve().parent.parent / "groups" / "tc_logo_domains.json"
+CODE_DOMAINS_FILE = Path(__file__).resolve().parent.parent / "groups" / "tc_code_domains.json"   # 代號補強
+
+QV = 2   # 品質關卡版本：索引裡有 qv>=2 的 ok 紀錄＝已經過 quality()，不再重驗
+
+# Andy 目視確認抓錯（橫幅照片／別的圖示／太小）的網域：改 Wikimedia 優先、舊圖一律重抓
+WIKI_FIRST = frozenset({"nvidia.com", "asml.com", "amd.com", "qualcomm.com", "synopsys.com", "wipro.com",
+                        "uicpaymentsinc.com", "itri.org.tw", "ami.com"})
+# 人工排除：抓得到的圖不是該公司自己的 Logo（寧可退字標也不要放錯公司的）
+DENY = {"carmax.com.tw": "官網頁首圖是母集團「和泰集團」的標誌，不是車美仕自己的 Logo"}
+S2_DENY = frozenset({"uicpaymentsinc.com"})    # Google s2 對這個網域只回通用地球圖示
+# 網址帶這些字樣＝分享圖示、宣傳橫幅、前端框架預設圖示，不是公司標誌
+_BAD_URL = re.compile(r"og-image|teaser|hero|banner|share[-_]?icon|sharing|social[-_]|clientlib-react|/icon/ai-|/ai-(?:black|white)", re.I)
 
 
 # ------------------------------------------------------------------ 路徑（每次呼叫才算，測試可以換 config.DATA）
@@ -65,16 +90,34 @@ def png_name(domain: str) -> str:
 
 # ------------------------------------------------------------------ 清單與索引
 
-def load_domains(path: Path | None = None) -> list[dict]:
-    """[{domain, names, en}]。清單壞了回空並記 log（不拖垮整個 Logo 步驟）。"""
-    p = path or DOMAINS_FILE
+def load_domains(path: Path | None = None, supplement: Path | bool | None = None) -> list[dict]:
+    """[{domain, names, en[, supp]}]。清單壞了回空並記 log（不拖垮整個 Logo 步驟）。
+    不指定 path 時，連「代號補強」清單一起讀（supp＝True、Wikimedia 優先）；測試指定 path 就只讀那一份。"""
+    if path is None and supplement is None:
+        supplement = CODE_DOMAINS_FILE
+    out = _load_one(path or DOMAINS_FILE)
+    if supplement:
+        seen = {d["domain"] for d in out}
+        for d in _load_one(Path(supplement)):
+            if d["domain"] in seen:
+                for o in out:
+                    if o["domain"] == d["domain"]:
+                        o["supp"] = True
+                        o["names"] = sorted(set(o["names"]) | set(d["names"]))
+                continue
+            seen.add(d["domain"])
+            out.append({**d, "supp": True})
+    return out
+
+
+def _load_one(p: Path) -> list[dict]:
     try:
         raw = json.loads(p.read_text(encoding="utf-8"))
     except (OSError, ValueError) as exc:
         log.warning("科技透明圈網域清單讀不進來（%s）：%s", p, exc)
         return []
     out, seen = [], set()
-    for r in (raw.get("domains") if isinstance(raw, dict) else raw) or []:
+    for r in (raw.get("domains") or raw.get("codes") if isinstance(raw, dict) else raw) or []:
         d = str((r or {}).get("domain") or "").strip().lower()
         if not d or d in seen or not lg._HOST_RE.match(d):
             continue
@@ -160,6 +203,61 @@ def big_enough(res: dict) -> bool:
     return res.get("status") == "ok" and bool(res.get("png")) and max(res.get("orig") or [0]) >= config.TC_LOGO_MIN_PX
 
 
+def _alpha_box(png: bytes):
+    """(畫布邊長, 不透明外框 (l,t,r,b), 不透明像素佔外框比例)。讀不了回 None。"""
+    try:
+        Image = lg._pil()
+        img = Image.open(io.BytesIO(png)).convert("RGBA")
+        a = img.getchannel("A").point(lambda v: 255 if v > 16 else 0)
+        box = a.getbbox()
+        if not box:
+            return None
+        n = a.histogram()[255]
+        area = (box[2] - box[0]) * (box[3] - box[1])
+        return img, max(img.size), box, (n / area if area else 0.0)
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def quality(res: dict, dom: str = "") -> str | None:
+    """官網／Google s2 抓到的圖像不像 Logo？回 None＝合格，否則回一句不合格原因。Wikimedia 來源不過這關（本身就是標誌圖）。
+    規則（Andy 2026-10-27 目視 47 張後定的）：og-image 一律不收；header-img 只收長寬比 ≤ 3:1 且不是照片；
+    整張不透明的長方形（橫幅照片縮進方框的樣子）不收；圖形只佔畫布一小角不收；網址像分享圖示／橫幅不收；人工排除不收。"""
+    dom = dom or str(res.get("domain") or "")
+    if dom in DENY:
+        return f"人工排除：{DENY[dom]}"
+    src = str(res.get("src") or "")
+    if src == "wikimedia":
+        return None
+    url = str(res.get("url") or "")
+    if _BAD_URL.search(url):
+        return f"網址像分享圖示／橫幅／框架預設圖，不是公司標誌 {url[:80]}"
+    kind = src.split(":", 1)[1] if src.startswith("site:") else src
+    if kind == "og-image":
+        return "og-image 一律不收（社群分享圖，常是橫幅照片）"
+    o = res.get("orig") or [0, 0]
+    w, h = (o + [0, 0])[:2]
+    asp = (max(w, h) / min(w, h)) if min(w, h) else 99
+    if kind == "header-img" and asp > 3:
+        return f"頁首圖長寬比 {asp:.1f}:1 > 3:1，縮小後看不清"
+    box = _alpha_box(res.get("png") or b"")
+    if box is None:
+        return "圖讀不了或全透明"
+    img, canvas, bb, fill = box
+    bw, bh = bb[2] - bb[0], bb[3] - bb[1]
+    if fill >= 0.85 and max(bw, bh) / max(1, min(bw, bh)) >= 1.4:
+        return f"整張不透明的 {bw}x{bh} 長方形，像橫幅照片"
+    if kind in ("header-img", "schema-logo", "home-img", "css-logo") and lg.is_photo(img):
+        return "看起來是照片"
+    if max(bw, bh) < canvas * 0.35:
+        return f"圖形只佔畫布一小角（{bw}x{bh}／{canvas}）"
+    return None
+
+
+def acceptable(res: dict, dom: str = "") -> bool:
+    return big_enough(res) and quality(res, dom) is None
+
+
 def s2_allowed(site_res: dict) -> bool:
     """官網禁止（robots）或明講擋雲端存取時，不請 Google 代抓 —— 同 logos.py 的規矩，不繞過對方的存取控制。"""
     if site_res.get("status") == "robots":
@@ -200,8 +298,23 @@ def resolve(entries: list[dict], reject, deadline: float, *, site_fetcher=None, 
 
     out: dict[str, dict] = {}
     sites: dict[str, dict] = {}
+    wtried: dict[str, dict] = {}     # 已經問過 Wikimedia 的網域（wiki-first 那輪），後面不重問
+
+    # ⓪ Wikimedia 優先：Andy 目視確認官網圖抓錯的網域、與「代號補強」的網域（官網圖低解析／錯圖才進補強清單）
+    first = [e for e in entries if e["en"] and (e["domain"] in WIKI_FIRST or e.get("supp"))]
+    if first and time.time() < deadline:
+        got = wiki_fetcher([{"domain": e["domain"], "en": e["en"]} for e in first], reject, deadline) or {}
+        for e in first:
+            w = got.get(e["domain"])
+            wtried[e["domain"]] = w or {}
+            if w is not None and big_enough(w) and e["domain"] not in DENY:
+                out[e["domain"]] = {**w, "tried": {"wikimedia": _brief(w)}}
+            elif w is not None:
+                wtried[e["domain"]] = w
+
+    rest = [e for e in entries if e["domain"] not in out]
     with ThreadPoolExecutor(max_workers=max(1, config.LOGO_WORKERS)) as ex:
-        futs = {e["domain"]: ex.submit(_site, e, reject, site_fetcher) for e in entries}
+        futs = {e["domain"]: ex.submit(_site, e, reject, site_fetcher) for e in rest}
         for dom, fu in futs.items():
             try:
                 sites[dom] = fu.result()
@@ -209,14 +322,19 @@ def resolve(entries: list[dict], reject, deadline: float, *, site_fetcher=None, 
                 sites[dom] = {"status": "error", "domain": dom, "detail": str(exc)[:200]}
 
     need_wiki = []
-    for e in entries:
+    for e in rest:
         dom, res = e["domain"], sites[e["domain"]]
         tried = {"site": _brief(res)}
-        if big_enough(res):
+        if dom in wtried:
+            tried["wikimedia"] = _brief(wtried[dom]) if wtried[dom] else "沒回應"
+        bad = quality(res, dom) if big_enough(res) else None
+        if bad:
+            tried["quality"] = bad[:120]
+        if big_enough(res) and not bad:
             out[dom] = {**res, "tried": tried}
         else:
-            out[dom] = {"status": "pending", "domain": dom, "tried": tried, "_site": res}
-            if e["en"]:
+            out[dom] = {"status": "pending", "domain": dom, "tried": tried, "_site": res, "_bad": bad}
+            if e["en"] and dom not in wtried:
                 need_wiki.append(e)
 
     # ② Wikimedia（序列、有間隔，遵守 Commons／Wikidata 的流量規範）
@@ -227,7 +345,7 @@ def resolve(entries: list[dict], reject, deadline: float, *, site_fetcher=None, 
             if w is None:
                 continue
             out[e["domain"]]["tried"]["wikimedia"] = _brief(w)
-            if big_enough(w):
+            if big_enough(w) and e["domain"] not in DENY:
                 out[e["domain"]] = {**w, "tried": out[e["domain"]]["tried"]}
 
     # ③ Google s2 256（官網沒禁止才問）
@@ -239,26 +357,31 @@ def resolve(entries: list[dict], reject, deadline: float, *, site_fetcher=None, 
         if time.time() >= deadline:
             cur["tried"]["google_s2"] = "時間到，下一輪"
             continue
+        if dom in DENY or dom in S2_DENY:
+            cur["tried"]["google_s2"] = "人工排除（s2 只回通用圖示／官網圖不是自家標誌）"
+            continue
         site_res = cur["_site"]
         if not s2_allowed(site_res):
             cur["tried"]["google_s2"] = "官網禁止或擋雲端存取，不問 Google"
             continue
         g = s2_fetcher(dom, reject)
         cur["tried"]["google_s2"] = _brief(g)
-        if big_enough(g):
+        if acceptable(g, dom):
             out[dom] = {**g, "tried": cur["tried"]}
 
     for dom, cur in out.items():
         if cur["status"] == "pending":
             site_res = cur.pop("_site", {})
+            bad = cur.pop("_bad", None)
             # 失敗原因：官網的狀態最有資訊量（robots／too_small／none／error）；官網其實 ok 但太小 → too_small
             st = site_res.get("status", "none")
             if st == "ok":
-                st = "too_small"
-            out[dom] = {"status": st if st in ("robots", "too_small", "blank", "generic", "error") else "none",
-                        "domain": dom, "detail": str(site_res.get("detail") or "")[:200], "tried": cur["tried"]}
+                st = "not_logo" if bad else "too_small"
+            out[dom] = {"status": st if st in ("robots", "too_small", "blank", "generic", "error", "not_logo") else "none",
+                        "domain": dom, "detail": (bad or str(site_res.get("detail") or ""))[:200], "tried": cur["tried"]}
         else:
             cur.pop("_site", None)
+            cur.pop("_bad", None)
     return out
 
 
@@ -316,11 +439,36 @@ def run(limit: int | None = None, *, today: date | None = None, time_budget: flo
         return summary
 
 
+def revalidate(items: dict, domains: list[dict]) -> list[str]:
+    """舊索引裡過不了品質關卡的 ok 紀錄 → 標成 bad（前端不再輸出、這輪重抓）。回被標的網域。
+    已有 qv>=2 的是這道關卡之後存的，不重驗；Wikimedia 來源不驗；WIKI_FIRST 的網域 qv<2 一律重抓
+    （它們的舊圖是 Andy 目視確認錯的，就算指標看起來正常）。"""
+    want = {d["domain"] for d in domains}
+    out = []
+    for dom, rec in items.items():
+        if dom not in want or rec.get("status") != "ok" or int(rec.get("qv") or 0) >= QV or rec.get("src") == "wikimedia":
+            continue
+        f = tc_dir() / png_name(dom)
+        why = None
+        if dom in WIKI_FIRST:
+            why = "Andy 目視確認這個網域的舊圖是錯的，改 Wikimedia 優先重抓"
+        elif f.exists():
+            why = quality({"domain": dom, "src": rec.get("src"), "url": rec.get("url"), "orig": rec.get("orig"),
+                           "png": f.read_bytes()}, dom)
+        if why:
+            rec.update(status="bad", fetched="1970-01-01", detail=why[:200])
+            out.append(dom)
+    return out
+
+
 def _run(summary, limit, today, time_budget, domains, site_fetcher, wiki_fetcher, s2_fetcher) -> dict:
     today = today or lg._today()
     domains = load_domains() if domains is None else domains
     idx = read_index()
     items = idx.setdefault("items", {})
+    marked = revalidate(items, domains)
+    if marked:
+        log.info("科技透明圈 Logo：%d 個舊圖過不了品質關卡，標成 bad 重抓：%s", len(marked), ",".join(marked))
     todo = select_todo(domains, idx, today, 10 ** 9 if limit is None else limit)
     real = site_fetcher is None
     if real:
@@ -343,14 +491,18 @@ def _run(summary, limit, today, time_budget, domains, site_fetcher, wiki_fetcher
         old = items.get(dom) or {}
         rec = {"status": st, "fetched": stamp, "names": names.get(dom, []), "tried": res.get("tried", {})}
         if st == "ok":
-            rec.update(src=res.get("src"), url=res.get("url"), orig=res.get("orig"),
+            rec.update(src=res.get("src"), url=res.get("url"), orig=res.get("orig"), qv=QV,
                        sha1=_save_png(dom, res["png"], old.get("sha1")))
             if res.get("attribution"):
                 rec["attribution"] = res["attribution"]
         else:
             rec["detail"] = res.get("detail", "")
             failures.append({"domain": dom, "status": st, "tried": rec["tried"]})
-            if old.get("status") == "ok" and (tc_dir() / png_name(dom)).exists():
+            if old.get("status") == "bad":
+                # 舊圖不合格、新來源也沒有：寧可沒圖（前端退字標）也不留錯圖。檔案刪掉，索引留失敗原因
+                (tc_dir() / png_name(dom)).unlink(missing_ok=True)
+                rec["detail"] = (rec.get("detail") or "") or str(old.get("detail") or "")
+            elif old.get("status") == "ok" and (tc_dir() / png_name(dom)).exists():
                 rec = {**old, "fetched": stamp, "last_fail": st, "tried": rec["tried"]}    # 有舊圖就留著，只延後重抓
                 st = "kept"
         items[dom] = rec

@@ -7066,3 +7066,10 @@ Andy 原話（10-20，錄「今日事件＋精選文章」功能影片時的選�
 - 存放：`data/logos/tc/<網域>.png`（128×128）＋`_index.json`＋`ATTRIBUTION.md`；增量（有圖 90 天、沒圖 30 天重試；舊圖遇失敗保留；雜湊一樣不寫檔），絕不碰 `data/logos/<代號>.png` 與任何 Parquet。進度＋到期日並進 `logo_progress.json`（守門只看那一份，不用改 backfill.yml）。
 - 輸出：`build_payload.export_tc_logos()` → `site/data/tc_logos.json`（`{網域: "data/tc_logos/<網域>.png"}`）＋ `site/data/tc_logos/`。
 - 別順手改回去：不要為了拉高覆蓋率把 `TC_LOGO_MIN_PX` 降回 16／32（小圖前端本來就退字標）；不要拿「名字像」的 Wikidata 條目當 Logo（Apple、Meta、Merck 同名公司多，一定要官網網域比對）。
+
+## #365 科技透明圈 Logo 品質關卡：og-image 不收、header-img 限 3:1 非照片、Wikimedia 優先名單、代號補強（爬蟲專家，2026-10-27；合併時若撞號請改號）
+- 事故（Andy 截圖＋目視 47 張）：NVIDIA／ASML／AMD 收到 og-image／頁首宣傳橫幅照片被裁成方形；高通收到 React 預設原子圖示、Synopsys 收到腦袋圖示、Wipro 收到分享圖示、連宇收到 Google 通用地球；工研院 256×59 頁首圖縮進方框後只剩一條；聯電（2303）代號圖只有 16px。
+- 決定：官網與 s2 的圖要過 `tc_logos.quality()`：og-image 一律不收；header-img 長寬比 ≤3:1 且不是照片；整張不透明長方形（≥85% 填滿、長寬比 ≥1.4，橫幅縮進方框的樣子）不收；網址帶 share／teaser／banner／clientlib-react 等字樣不收；圖形只佔畫布 35% 以下不收；`DENY` 人工排除（車美仕官網放的是母集團和泰的標誌）。不合格換下一個來源（Wikimedia → s2 256），都沒有就判失敗、**刪掉錯圖**（寧可前端退字標，也不留錯圖）。Wikimedia 來源（P154＋官網網域比對）本身是標誌圖，不過這關。
+- `WIKI_FIRST`（9 個 Andy 目視確認抓錯的網域）與代號補強網域改 Wikimedia 優先；`S2_DENY`（連宇）不問 Google。舊索引每輪開頭 `revalidate()`：沒有 `qv>=2` 且過不了關卡的 ok 紀錄標成 `bad` 重抓；新存的紀錄蓋 `qv=2`。
+- 代號補強：科技透明圈有台股代號、但 `data/logos/<代號>.png` 原圖 <96px／空白／目視是照片或圖形太小的 48 家（`pipeline/groups/tc_code_domains.json`，網域取自 `site/tc/logos.js`），走同一套、輸出併入同一份索引與 `tc_logos.json`（鍵＝網域），前端在代號圖低解析時改用網域圖（前端另案）。
+- 別順手改回去：不要為了覆蓋率重新放行 og-image；不要把代號補強改成覆寫 `data/logos/<代號>.png`（那條路徑不碰）。

@@ -192,3 +192,125 @@ def test_wikidata_throttle_stops_quietly(sandbox, monkeypatch):
     monkeypatch.setattr(http, "get_bytes", lambda url, **kw: (429, b"", "", url))
     out = wm.fetch_by_website([{"domain": "apple.com", "en": "Apple"}, {"domain": "amd.com", "en": "AMD"}])
     assert out == {}
+
+
+# ------------------------------------------------------------------ 品質關卡（DECISIONS #365）
+
+def _banner_png(size=(1200, 674)) -> bytes:
+    """假的橫幅照片：整張不透明、很多顏色。"""
+    from PIL import Image
+    img = Image.new("RGB", size)
+    img.putdata([((x * 7) % 256, (x * y) % 256, (y * 5) % 256) for y in range(size[1]) for x in range(size[0])]) if False else None
+    px = img.load()
+    for y in range(0, size[1], 3):
+        for x in range(0, size[0], 3):
+            px[x, y] = ((x * 7) % 256, (x + y) % 256, (y * 5) % 256)
+    buf = io.BytesIO()
+    img.save(buf, format="JPEG")
+    return buf.getvalue()
+
+
+def _res(png_bytes, src, orig, url="https://x.com/a.png", dom="x.com"):
+    png, o = lg.normalize_image(png_bytes, allow_lowres=True)
+    return {"status": "ok", "domain": dom, "src": src, "url": url, "png": png, "orig": list(orig or o)}
+
+
+def test_quality_og_image_never_accepted():
+    assert "og-image" in tc.quality(_res(_png(), "site:og-image", (180, 180)))
+
+
+def test_quality_banner_photo_rejected_even_as_header_img():
+    r = _res(_banner_png(), "site:header-img", (1200, 674))
+    assert tc.quality(r) is not None          # 整張不透明長方形（NVIDIA／AMD 那種）
+
+
+def test_quality_header_img_wider_than_3_to_1_rejected():
+    r = _res(_png((400, 80)), "site:header-img", (256, 59))
+    assert "3:1" in tc.quality(r)
+    from PIL import Image, ImageDraw
+    img = Image.new("RGBA", (400, 200), (0, 0, 0, 0))
+    ImageDraw.Draw(img).ellipse([20, 20, 380, 180], fill=(200, 30, 30, 255))      # 2:1、透明底、非長方形的標誌：收
+    buf = io.BytesIO()
+    img.save(buf, format="PNG")
+    assert tc.quality(_res(buf.getvalue(), "site:header-img", (400, 200))) is None
+
+
+def test_quality_bad_url_and_deny_and_tiny_mark():
+    assert tc.quality(_res(_png(), "site:header-img", (180, 180), url="https://w.com/share-icons/share-icon.png"))
+    assert tc.quality(_res(_png(), "site:manifest", (512, 512), url="https://q.com/etc.clientlibs/clientlib-react/logo512.png"))
+    assert "人工排除" in tc.quality(_res(_png(), "site:header-img", (180, 180), dom="carmax.com.tw"), "carmax.com.tw")
+    from PIL import Image
+    tiny = Image.new("RGBA", (180, 180), (0, 0, 0, 0))
+    tiny.paste(Image.new("RGBA", (30, 30), (200, 0, 0, 255)), (75, 75))
+    buf = io.BytesIO()
+    tiny.save(buf, format="PNG")
+    assert "一小角" in tc.quality(_res(buf.getvalue(), "site:icon", (180, 180)))
+
+
+def test_quality_wikimedia_exempt_and_normal_icon_passes():
+    assert tc.quality({"src": "wikimedia", "png": b"", "orig": [250, 72]}) is None
+    assert tc.quality(_res(_png(), "site:apple-touch-icon", (180, 180))) is None
+
+
+def test_resolve_rejected_site_image_falls_back_to_wikimedia(sandbox):
+    """官網只有 og-image → 不合格 → 換 Wikimedia。"""
+    def wiki(rows, reject, deadline):
+        return {r["domain"]: {"status": "ok", "domain": r["domain"], "src": "wikimedia", "url": "https://commons/x",
+                              "png": lg.normalize_image(_png((250, 250)))[0], "orig": [250, 250]} for r in rows}
+    out = tc.resolve([{"domain": "nv.com", "names": ["N"], "en": "Nv"}], frozenset(), 9e18,
+                     site_fetcher=_ok(src="site:og-image"), wiki_fetcher=wiki, s2_fetcher=lambda d, r: {"status": "none"})
+    assert out["nv.com"]["status"] == "ok" and out["nv.com"]["src"] == "wikimedia"
+    assert "og-image" in out["nv.com"]["tried"]["quality"]
+
+
+def test_resolve_wiki_first_domain_skips_site(sandbox):
+    calls = []
+    def site(website, host, reject=None, names=None):
+        calls.append(host)
+        return {"status": "none", "domain": host}
+    def wiki(rows, reject, deadline):
+        return {r["domain"]: {"status": "ok", "domain": r["domain"], "src": "wikimedia", "url": "u",
+                              "png": lg.normalize_image(_png((250, 250)))[0], "orig": [250, 250]} for r in rows}
+    out = tc.resolve([{"domain": "nvidia.com", "names": [], "en": "NVIDIA"}], frozenset(), 9e18,
+                     site_fetcher=site, wiki_fetcher=wiki, s2_fetcher=lambda d, r: {"status": "none"})
+    assert out["nvidia.com"]["src"] == "wikimedia" and calls == []
+
+
+def test_resolve_s2_deny_and_all_fail_gives_not_logo(sandbox):
+    s2_called = []
+    def s2(dom, reject):
+        s2_called.append(dom)
+        return {"status": "ok", "domain": dom, "src": "google_s2", "url": "u", "png": lg.normalize_image(_png())[0], "orig": [128, 128]}
+    out = tc.resolve([{"domain": "uicpaymentsinc.com", "names": [], "en": ""}], frozenset(), 9e18,
+                     site_fetcher=_ok(src="site:og-image"), wiki_fetcher=lambda *a, **k: {}, s2_fetcher=s2)
+    assert s2_called == [] and out["uicpaymentsinc.com"]["status"] == "not_logo"
+
+
+def test_revalidate_marks_old_bad_and_run_removes_unrecoverable(sandbox):
+    d = tc.tc_dir()
+    d.mkdir(parents=True)
+    (d / "nvidia.com.png").write_bytes(lg.normalize_image(_png())[0])
+    (d / "good.com.png").write_bytes(lg.normalize_image(_png())[0])
+    tc.write_index({"items": {
+        "nvidia.com": {"status": "ok", "src": "site:og-image", "url": "https://n/og-image.jpg", "orig": [1200, 674], "fetched": "2026-10-20"},
+        "good.com": {"status": "ok", "src": "site:icon", "url": "https://g/i.png", "orig": [180, 180], "fetched": "2026-10-20"}}})
+    doms = [{"domain": "nvidia.com", "names": ["NVIDIA"], "en": "NVIDIA"}, {"domain": "good.com", "names": ["G"], "en": ""}]
+    s = tc.run(today=TODAY, domains=doms, site_fetcher=_fail(), wiki_fetcher=lambda r, rj, dl: {}, s2_fetcher=lambda d, r: {"status": "none"})
+    idx = tc.read_index()["items"]
+    assert idx["nvidia.com"]["status"] != "ok" and not (d / "nvidia.com.png").exists()     # 錯圖不留
+    assert idx["good.com"]["status"] == "ok" and (d / "good.com.png").exists()             # 好圖不動
+    assert "nvidia.com" not in tc.usable()
+
+
+def test_new_ok_record_is_stamped_with_quality_version(sandbox):
+    tc.run(today=TODAY, domains=[{"domain": "a.com", "names": ["A"], "en": ""}], site_fetcher=_ok(),
+           wiki_fetcher=lambda r, rj, dl: {}, s2_fetcher=lambda d, r: {"status": "none"})
+    assert tc.read_index()["items"]["a.com"]["qv"] == tc.QV
+
+
+def test_code_supplement_merged_into_domain_list():
+    ds = {d["domain"]: d for d in tc.load_domains()}
+    assert ds["umc.com"]["supp"] and ds["umc.com"]["en"]          # 2303 聯電（16px）
+    sup = json.loads(tc.CODE_DOMAINS_FILE.read_text(encoding="utf-8"))["codes"]
+    assert {"2303", "3017", "2385"} <= {r["code"] for r in sup}
+    assert all(r["domain"] in ds for r in sup)

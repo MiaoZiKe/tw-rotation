@@ -342,3 +342,7 @@ LOGOS_ENABLED = os.environ.get("LOGOS_ENABLED", "1").strip() not in (...)
 ## 5. 科技透明圈沒有台股代號的公司（外商、未上市）— 2026-10-27，DECISIONS #364
 
 以官網網域為鍵：`data/logos/tc/<網域>.png`（128×128）。清單 `pipeline/groups/tc_logo_domains.json`。來源順序與規矩同上面各節：官網（`logos.fetch_logo`）→ Wikimedia Commons（用英文名找 Wikidata、官方網站網域必須對得上）→ Google s2 `sz=256`（官網 robots 禁止或擋雲端存取時不問）；每個網域原圖長邊要 ≥64px（SVG 不限）。輸出 `site/data/tc_logos.json`。程式：`pipeline/sources/tc_logos.py`。
+
+### 5.1 品質關卡與代號補強（DECISIONS #365）
+
+官網／s2 的圖過 `tc_logos.quality()`：og-image 一律不收；header-img 只收 ≤3:1 且非照片；整張不透明長方形、網址像分享圖示、圖形只佔一小角、人工排除（`DENY`）都不收；不合格換 Wikimedia → s2 256，都沒有就判 `not_logo`／失敗並刪掉舊錯圖。`WIKI_FIRST` 與代號補強清單（`pipeline/groups/tc_code_domains.json`，有台股代號但代號圖低解析／錯圖的 48 家）改 Wikimedia 優先。索引紀錄 `qv: 2`＝已過關卡。
