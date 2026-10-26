@@ -142,6 +142,27 @@
               "travel": null,
               "quote_free_note": "面試錄取",
               "in_window": true
+            },
+            {
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": 1,
+              "annual_months": 14,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/job-titles/製程設備工程師/interview-experiences",
+              "date": "2026-05",
+              "date_confirmed": true,
+              "date_note": "GoodJob 標示 2026 年 5 月（搜尋摘要）",
+              "in_window": true,
+              "role": "製程設備工程師（面試錄取）",
+              "quote_free_note": "保 14 個月＋績效獎金＋Bonus 約 1 個月（依營運）"
             }
           ],
           "sources": [
@@ -149,24 +170,272 @@
               "site": "GoodJob",
               "url": "https://www.goodjob.life/experiences/695f046971ffd5cf11a2ab86",
               "date": "2026-01"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/job-titles/製程設備工程師/interview-experiences",
+              "date": "2026-05"
             }
           ],
           "confidence": "低",
-          "n": 1,
+          "n": 2,
           "base_month_k": [
             78,
             78
           ],
-          "bonus_months": null,
-          "annual_months": null,
+          "bonus_months": [
+            1,
+            1
+          ],
+          "annual_months": [
+            14,
+            14
+          ],
           "annual_total_wan": null,
           "weekly_hours": null,
           "years": null,
           "overtime": null,
           "travel": null,
-          "n_stat": 1,
+          "n_stat": 2,
           "note": null,
           "grade": null
+        },
+        {
+          "unit": "研發 RD",
+          "role": "工程師",
+          "degree": null,
+          "samples": [
+            {
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 100,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/友達光電股份有限公司/work-experiences/薪資福利",
+              "date": "2026-05",
+              "date_confirmed": true,
+              "date_note": "GoodJob 標示 2026.5.31（搜尋摘要）",
+              "in_window": true,
+              "role": "工程師（在職評價）",
+              "quote_free_note": "評 5 分，薪水尚可、工時正常；年薪約 100 萬"
+            }
+          ],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/友達光電股份有限公司/work-experiences/薪資福利",
+              "date": "2026-05"
+            }
+          ],
+          "confidence": "低",
+          "note": "2026-10-26 依搜尋摘要新增",
+          "grade": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": [
+            100,
+            100
+          ],
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n": 1,
+          "n_stat": 1
+        },
+        {
+          "unit": "研發 RD",
+          "role": "電子工程師",
+          "degree": null,
+          "samples": [
+            {
+              "grade": null,
+              "unit_detail": null,
+              "years": "1",
+              "degree": null,
+              "base_k": 60,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": "幾乎不",
+              "travel": null,
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/友達光電股份有限公司/work-experiences/薪資福利",
+              "date": "2026-02",
+              "date_confirmed": true,
+              "date_note": "GoodJob 標示 2026.2.7（搜尋摘要）",
+              "in_window": true,
+              "role": "電子工程師（在職評價）",
+              "quote_free_note": "節奏穩定、大致準時下班；月薪 6 萬"
+            }
+          ],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/友達光電股份有限公司/work-experiences/薪資福利",
+              "date": "2026-02"
+            }
+          ],
+          "confidence": "低",
+          "note": "2026-10-26 依搜尋摘要新增",
+          "grade": null,
+          "base_month_k": [
+            60,
+            60
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": "幾乎不",
+          "travel": null,
+          "years": "1",
+          "n": 1,
+          "n_stat": 1
+        },
+        {
+          "unit": "研發 RD",
+          "role": "機構工程師",
+          "degree": null,
+          "samples": [
+            {
+              "grade": null,
+              "unit_detail": null,
+              "years": "12",
+              "degree": null,
+              "base_k": 85,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": "偶爾",
+              "travel": null,
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/友達光電股份有限公司/work-experiences/薪資福利",
+              "date": "2026-01",
+              "date_confirmed": true,
+              "date_note": "GoodJob 標示 2026.1.24（搜尋摘要）",
+              "in_window": true,
+              "role": "機構工程師（在職評價）",
+              "quote_free_note": "薪資比業界好、加班不多；月薪 8.5 萬"
+            }
+          ],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/友達光電股份有限公司/work-experiences/薪資福利",
+              "date": "2026-01"
+            }
+          ],
+          "confidence": "低",
+          "note": "2026-10-26 依搜尋摘要新增",
+          "grade": null,
+          "base_month_k": [
+            85,
+            85
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": "偶爾",
+          "travel": null,
+          "years": "12",
+          "n": 1,
+          "n_stat": 1
+        },
+        {
+          "unit": "研發 RD",
+          "role": "軟體工程師",
+          "degree": null,
+          "samples": [
+            {
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 70,
+              "bonus_months": null,
+              "annual_months": 14,
+              "annual_wan": 98.0,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/友達光電股份有限公司/interview-experiences",
+              "date": "2026-04",
+              "date_confirmed": true,
+              "date_note": "GoodJob 標示 2026.4.16（搜尋摘要）",
+              "in_window": true,
+              "role": "軟體工程師（面試錄取）",
+              "quote_free_note": "電話聯絡後一面；整年保 14 個月、分紅不一定；月薪 7 萬",
+              "derived": [
+                "annual_wan"
+              ]
+            },
+            {
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 72,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/友達光電股份有限公司/interview-experiences",
+              "date": "2026-06",
+              "date_confirmed": true,
+              "date_note": "GoodJob 標示 2026.6.5（搜尋摘要）",
+              "in_window": true,
+              "role": "軟體設計工程師（面試錄取）",
+              "quote_free_note": "建議準備英文、刷題，有推薦人較易通過；月薪 7.2 萬"
+            }
+          ],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/友達光電股份有限公司/interview-experiences",
+              "date": "2026-04"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/友達光電股份有限公司/interview-experiences",
+              "date": "2026-06"
+            }
+          ],
+          "confidence": "低",
+          "note": "2026-10-26 依搜尋摘要新增",
+          "grade": null,
+          "base_month_k": [
+            70,
+            72
+          ],
+          "bonus_months": null,
+          "annual_months": [
+            14,
+            14
+          ],
+          "annual_total_wan": [
+            98.0,
+            98.0
+          ],
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n": 2,
+          "n_stat": 2
         }
       ]
     },
@@ -463,6 +732,82 @@
           "n_stat": 0,
           "note": null,
           "grade": null
+        },
+        {
+          "unit": "研發 RD",
+          "role": "軟體工程師",
+          "degree": null,
+          "samples": [
+            {
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 60,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/大立光電股份有限公司/interview-experiences",
+              "date": "2026-07",
+              "date_confirmed": true,
+              "date_note": "GoodJob 標示 2026 年 7 月（搜尋摘要）",
+              "in_window": true,
+              "role": "AI 協作軟體工程師（面試）",
+              "quote_free_note": "問是否實際用 AI Agent 完成過完整系統；月薪 6 萬"
+            },
+            {
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 63,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": "經常",
+              "travel": null,
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/大立光電股份有限公司/work-experiences/薪資福利",
+              "date": "2026",
+              "date_confirmed": true,
+              "date_note": "GoodJob 標示 2026 年（搜尋摘要）",
+              "in_window": true,
+              "role": "軟體工程師（在職評價）",
+              "quote_free_note": "抱怨加班多；月薪 6.3 萬"
+            }
+          ],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/大立光電股份有限公司/interview-experiences",
+              "date": "2026-07"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/大立光電股份有限公司/work-experiences/薪資福利",
+              "date": "2026"
+            }
+          ],
+          "confidence": "低",
+          "note": "2026-10-26 依搜尋摘要新增",
+          "grade": null,
+          "base_month_k": [
+            60,
+            63
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": "經常",
+          "travel": null,
+          "n": 2,
+          "n_stat": 2
         }
       ]
     },
@@ -493,13 +838,18 @@
         },
         {
           "type": "年終獎金",
-          "rule": "官方招募說明有年終獎金；網友稱底薪不高但年終與分紅可觀（GoodJob 2025）",
-          "months": null,
+          "rule": "官方招募說明有年終獎金；網友稱底薪不高但年終與分紅可觀（GoodJob 2025）；2026-03 機構工程師評價稱年終保底 2 個月",
+          "months": 2,
           "sources": [
             {
               "site": "GoodJob",
               "url": "https://www.goodjob.life/companies/瑞儀光電股份有限公司/work-experiences/公司%2F團隊文化",
               "date": "2025"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/瑞儀光電股份有限公司/work-experiences/薪資福利",
+              "date": "2026-03"
             }
           ]
         }
@@ -536,14 +886,40 @@
               "quote_free_note": "月薪 N-9 保 14，分紅未知",
               "in_window": true,
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-02-03"
+            },
+            {
+              "grade": null,
+              "unit_detail": null,
+              "years": "9",
+              "degree": null,
+              "base_k": 45,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 48,
+              "overtime": null,
+              "travel": null,
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/瑞儀光電股份有限公司/work-experiences/薪資福利",
+              "date": "2026-03",
+              "date_confirmed": true,
+              "date_note": "GoodJob 標示 2026.3.23（搜尋摘要）",
+              "in_window": true,
+              "role": "機構工程師（在職評價）",
+              "quote_free_note": "年終保底 2 個月、每年固定調薪 1～3%；月薪 4.5 萬"
             }
           ],
-          "n": 1,
+          "n": 2,
           "sources": [
             {
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/260802181",
               "date": "2026-02"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/瑞儀光電股份有限公司/work-experiences/薪資福利",
+              "date": "2026-03"
             }
           ],
           "confidence": "低",
@@ -553,13 +929,143 @@
             14
           ],
           "years": "轉職",
-          "base_month_k": null,
+          "base_month_k": [
+            45,
+            45
+          ],
           "bonus_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": [
+            48,
+            48
+          ],
+          "overtime": null,
+          "travel": null,
+          "n_stat": 2
+        },
+        {
+          "unit": "研發 RD",
+          "role": "製程工程師",
+          "degree": null,
+          "samples": [
+            {
+              "grade": null,
+              "unit_detail": null,
+              "years": "1",
+              "degree": null,
+              "base_k": 43,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/瑞儀光電股份有限公司/work-experiences",
+              "date": "2025-09",
+              "date_confirmed": true,
+              "date_note": "GoodJob 標示 2025.9.11（搜尋摘要）",
+              "in_window": true,
+              "role": "製程工程師（在職評價）",
+              "quote_free_note": "月薪 4.3 萬"
+            }
+          ],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/瑞儀光電股份有限公司/work-experiences",
+              "date": "2025-09"
+            }
+          ],
+          "confidence": "低",
+          "note": "2026-10-26 依搜尋摘要新增",
+          "grade": null,
+          "base_month_k": [
+            43,
+            43
+          ],
+          "bonus_months": null,
+          "annual_months": null,
           "annual_total_wan": null,
           "weekly_hours": null,
           "overtime": null,
           "travel": null,
+          "years": "1",
+          "n": 1,
           "n_stat": 1
+        },
+        {
+          "unit": "研發 RD",
+          "role": "光學工程師",
+          "degree": null,
+          "samples": [
+            {
+              "grade": null,
+              "unit_detail": null,
+              "years": "8",
+              "degree": null,
+              "base_k": 60,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 40,
+              "overtime": null,
+              "travel": null,
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/job-titles/光電工程師/work-experiences",
+              "date": "2025-07",
+              "date_confirmed": true,
+              "date_note": "GoodJob 標示 2025.7.8（搜尋摘要）",
+              "in_window": false,
+              "role": "光學工程師（在職評價）",
+              "quote_free_note": "早於期間；月薪 6 萬、每週 40 小時"
+            },
+            {
+              "grade": null,
+              "unit_detail": null,
+              "years": "2",
+              "degree": null,
+              "base_k": 65,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 55,
+              "overtime": null,
+              "travel": null,
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/瑞儀光電股份有限公司/work-experiences",
+              "date": "2025-07",
+              "date_confirmed": true,
+              "date_note": "GoodJob 標示 2025.7.12（搜尋摘要）",
+              "in_window": false,
+              "role": "光學工程師（在職評價）",
+              "quote_free_note": "早於期間；月薪 6.5 萬、每週 55 小時"
+            }
+          ],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/job-titles/光電工程師/work-experiences",
+              "date": "2025-07"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/瑞儀光電股份有限公司/work-experiences",
+              "date": "2025-07"
+            }
+          ],
+          "confidence": "低",
+          "note": "2026-10-26 依搜尋摘要新增",
+          "grade": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n": 2,
+          "n_stat": 0
         }
       ]
     }
