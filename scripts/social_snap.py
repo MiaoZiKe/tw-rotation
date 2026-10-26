@@ -1411,17 +1411,8 @@ def caption_lines(kind: str, stamp: str, shots: list[dict], data_date: str, ymd:
     else:
         # 同上：Andy 盤中格式套到盤後
         n = min(n, 2)      # 2026-10-26 Andy：「統一兩個」
-        L.append("盤後消息")
+        L.append("盤後消息")      # 段落順序跟圖一樣：期貨法人未平倉 → 散戶多空比 → 三大法人 → 外資 → 投信 → 融資融券（2026-10-26 Andy）
         yi = lambda x: x.replace("−", "-")
-        r = (ok.get("inst-today") or {}).get("read") or []
-        if r:
-            nm_ = {"外資": "外資", "投信": "投信", "自營商": "自營", "三大法人合計": "合計"}
-            it = [f"{nm_.get(a, a)} {yi(b)}" for a, b in r]
-            L += ["三大法人買賣超："] + ([f"・{'、'.join(it[:2])}；", f"・{'、'.join(it[2:])}"] if len(it) > 2 else [f"・{'、'.join(it)}"])
-        for key, lab in (("streak-foreign", "外資"), ("streak-trust", "投信")):
-            r = (ok.get(key) or {}).get("read") or {}
-            if r.get("buy") and r.get("sell"):
-                L += [f"{lab}：", f"・買超 {_join(r['buy'], n)}；", f"・賣超 {_join(r['sell'], n)}"]
         r = (ok.get("fut-oi") or {}).get("read")
         if r:
             import re as _re
@@ -1432,6 +1423,18 @@ def caption_lines(kind: str, stamp: str, shots: list[dict], data_date: str, ymd:
         if r:
             it = [f"{x.get('prod') or '?'} {yi(x.get('pct') or '—')}" for x in r]
             L += ["散戶多空比："] + ([f"・{'、'.join(it[:2])}；", f"・{'、'.join(it[2:])}"] if len(it) > 2 else [f"・{'、'.join(it)}"])
+        r = (ok.get("inst-today") or {}).get("read") or []
+        if r:
+            nm_ = {"外資": "外資", "投信": "投信", "自營商": "自營", "三大法人合計": "合計"}
+            it = [f"{nm_.get(a, a)} {yi(b)}" for a, b in r]
+            L += ["三大法人買賣超："] + ([f"・{'、'.join(it[:2])}；", f"・{'、'.join(it[2:])}"] if len(it) > 2 else [f"・{'、'.join(it)}"])
+        for key, lab in (("streak-foreign", "外資"), ("streak-trust", "投信")):
+            r = (ok.get(key) or {}).get("read") or {}
+            if r.get("buy") and r.get("sell"):
+                L += [f"{lab}：", f"・買超 {_join(r['buy'], n)}；", f"・賣超 {_join(r['sell'], n)}"]
+        r = (ok.get("etf-buy") or {}).get("read") or {}
+        if r.get("foreign") or r.get("trust"):      # 2026-10-26 Andy：ETF 買超排名
+            L += ["ETF 買超："] + [f"・{lab} {_join(r[k], n)}" + ("；" if k == "foreign" and r.get("trust") else "") for k, lab in (("foreign", "外資"), ("trust", "投信")) if r.get(k)]
         L += credit_lines(ok, n)      # 2026-10-26 Andy：融資融券併進盤後同一篇；大盤走勢、漲跌家數拿掉
         L.append(HASHTAGS[kind])
         if links != "none":
@@ -1680,7 +1683,7 @@ def main() -> int:
                 return True
 
             ORDER = {"intraday": ["rotation-wheel", "sankey-tree", "rotation-rank", "heat"],
-                     "close": ["inst-today", "streak-foreign", "streak-trust", "fut-oi", "retail-ratio", "credit-ratio", "credit-rank", "credit-short"]}.get(args.kind, [])
+                     "close": ["fut-oi", "retail-ratio", "inst-today", "streak-foreign", "streak-trust", "credit-ratio", "credit-rank", "credit-short"]}.get(args.kind, [])
             rk = lambda r: ORDER.index(r["name"]) if r["name"] in ORDER else len(ORDER)
             pd_ = sorted([(s, r) for s in ok for r in s["pieces_d"]], key=lambda t: rk(t[1]))      # Threads 輪播順序＝這裡的順序
             pm_ = sorted([(s, r) for s in ok for r in s["pieces_m"]], key=lambda t: rk(t[1]))
@@ -1698,6 +1701,17 @@ def main() -> int:
                     if not native("story", rec):
                         compose(browser, "story", rec, tp, bt, out / f"story_{rec['name']}.png", report, args.frame)
                     stories.append(f"story_{rec['name']}.png")
+            if KIND == "close" and not args.no_native and "streak-trust" in [r["name"] for _, r in pd_]:
+                # ETF 買超排名（外資、投信上下兩張；原生繪製、沒有網站截圖），放在投信個股排行後面（2026-10-26 Andy）
+                for mode_, lst_ in (("threads", threads_imgs), ("story", stories)):
+                    try:
+                        fn_ = f"{'story' if mode_ == 'story' else 'threads'}_etf-buy.png"
+                        report.append(NAT.render(browser, "etf-buy", mode_, dict(kind=KIND, title="ETF 買超排名", date=DATE_BY.get("streak-trust") or DATE_LABEL,
+                                                                             jget=lambda n: fetch_json(base, n)), out / fn_))
+                        pos_ = next(i for i, f in enumerate(lst_) if "streak-trust" in f) + 1
+                        lst_.insert(pos_, fn_)
+                    except Exception as exc:  # noqa: BLE001
+                        log("  ⚠ ETF 買超排名畫失敗（不擋發文）：", str(exc)[:120])
             if stories and not args.no_native:     # 限動最後一張：「點個人簡介的連結」（API 不能加連結貼紙，2026-10-26 Andy 選 C）
                 try:
                     dl_ = (f"{DATE_LABEL} 12:00".strip() if KIND == "intraday" else DATE_LABEL)
@@ -1726,7 +1740,13 @@ def main() -> int:
 
         if args.kind in ("close", "credit"):      # 融資／融券文案改讀資料檔、只列個股（跟圖同一份：social_native.credit_top），2026-10-26 Andy「排除ETF只列個股」
             mf_ = (fetch_json(base, "market_fut") or {}).get("margin") or {}
+            it_ = fetch_json(base, "inst_today") if args.kind == "close" else {}
             for s_ in ok:
+                if s_["name"] in ("streak-foreign", "streak-trust") and it_:      # 法人排行也只列個股（2026-10-26 Andy「法人也排除ETF」）
+                    b_, s2_ = NAT.inst_top(it_, "foreign" if s_["name"] == "streak-foreign" else "trust", 10, dict(NAME_MAP))
+                    s_["read"] = {**(s_.get("read") or {}), "buy": [r["name"] for r in b_], "sell": [r["name"] for r in s2_]}
+            if it_:
+                ok.append({"name": "etf-buy", "ok": True, "read": {k_: [r["name"] for r in NAT.etf_buy(it_, k_, 10, dict(NAME_MAP))] for k_ in ("foreign", "trust")}})
                 if s_["name"] in ("credit-rank", "credit-short") and mf_:
                     up_, dn_ = NAT.credit_top(mf_, "short" if s_["name"] == "credit-short" else "rank")
                     s_["read"] = {**(s_.get("read") or {}), "up": [r["code"] for r in up_], "down": [r["code"] for r in dn_]}

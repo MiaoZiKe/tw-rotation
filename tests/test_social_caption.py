@@ -74,7 +74,9 @@ def test_盤後文案_照盤中格式():
              {"name": "fut-oi", "ok": True, "read": "外資 -87,297 投信 +83,601 自營商 +3,260"}]
     txt = ss.build_text("close", "10/22 17:20", shots, "2026-10-22", "20261022")
     L = txt.splitlines()
-    assert L[0] == "盤後消息" and L[1] == "三大法人買賣超：" and L[2] == "・外資 -815.8億、投信 +94.9億；" and L[3] == "・自營 -273.8億、合計 -994.7億"
+    assert L[0] == "盤後消息" and L[1] == "台指期法人淨未平倉："      # 2026-10-26 Andy：第一頁法人未平倉
+    i = L.index("三大法人買賣超：")
+    assert L[i + 1] == "・外資 -815.8億、投信 +94.9億；" and L[i + 2] == "・自營 -273.8億、合計 -994.7億" and i > L.index("台指期法人淨未平倉：")
     assert "外資：" in L and "・買超 緯穎、廣達；" in L and "・賣超 台積電、國巨" in L and "台指期法人淨未平倉：" in L   # 統一兩個、星號拿掉
     assert L[-2].startswith("#台股") and L[-1].endswith("#market/inst") and txt.count("https://") == 1
     assert " → " not in txt and ss.DISCLAIMER not in txt and len(txt) <= 480
@@ -96,3 +98,18 @@ def test_融資排行只列個股():
     up, dn = nat.credit_top(m, "rank")
     assert [r["code"] for r in up] == ["2409"] and [r["code"] for r in dn] == ["1802"]
     assert nat.clean_name("國巨*") == "國巨"
+
+
+def test_法人排行只列個股():
+    import social_native as nat
+    j = {"all_by": {"foreign": [["2330", -100, -302.8], ["0050", -20, -49.2], ["6669", 30, 23.5], ["00631L", 5, 30.0], ["3374", 10, 20.8]]},
+         "top": {"foreign": {"buy": [{"code": "6669", "name": "緯穎", "amt": 2.35e9}], "sell": [{"code": "2330", "name": "台積電", "amt": -3.0e10}]}}}
+    buy, sell = nat.inst_top(j, "foreign", 10, {"3374": "精材"})
+    assert [r["code"] for r in buy] == ["6669", "3374"] and [r["name"] for r in buy] == ["緯穎", "精材"]
+    assert [r["code"] for r in sell] == ["2330"]       # 0050 排除
+
+
+def test_盤後圖順序_未平倉第一_散戶第二():
+    import inspect
+    src = inspect.getsource(ss)
+    assert '"close": ["fut-oi", "retail-ratio", "inst-today", "streak-foreign", "streak-trust", "credit-ratio", "credit-rank", "credit-short"]' in src

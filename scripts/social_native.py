@@ -260,14 +260,57 @@ def rank_list(mode, w, h, ctx, sections, vw=190):
     return "".join(out)
 
 
+def inst_top(j: dict, side: str, n: int = 10, names: dict | None = None):
+    """外資／投信當日買超、賣超前 n 名，只列個股（排除 ETF，2026-10-26 Andy「法人也排除ETF」）。
+    用 inst_today.json 的 all_by（全市場逐檔 [代號, 張, 億元]），不用 top（只有前 10、濾掉 ETF 會不足 10 名）；
+    all_by 沒有就退回 top。回 (買超, 賣超)，每列 dict(code, name, amt＝元)。"""
+    names = names or {}
+    for r in ((j.get("top") or {}).get(side) or {}).get("buy", []) + ((j.get("top") or {}).get(side) or {}).get("sell", []):
+        names.setdefault(str(r["code"]), r["name"])
+    rows = (j.get("all_by") or {}).get(side)
+    if rows:
+        rs = [dict(code=str(c), name=names.get(str(c), str(c)), amt=float(y) * 1e8) for c, _l, y in rows if is_stock(c)]
+    else:
+        t = (j.get("top") or {}).get(side) or {}
+        rs = [dict(code=str(r["code"]), name=r["name"], amt=float(r["amt"])) for r in t.get("buy", []) + t.get("sell", []) if is_stock(r["code"])]
+    buy = sorted([r for r in rs if r["amt"] > 0], key=lambda r: -r["amt"])[:n]
+    sell = sorted([r for r in rs if r["amt"] < 0], key=lambda r: r["amt"])[:n]
+    return buy, sell
+
+
+def etf_buy(j: dict, side: str, n: int = 10, names: dict | None = None):
+    """外資／投信當日 ETF 買超前 n 名（代號 00 開頭；2026-10-26 Andy「新增一個 ETF 買超排名，外資、投信上下兩張」）。"""
+    names = names or {}
+    rows = (j.get("all_by") or {}).get(side) or []
+    rs = [dict(code=str(c), name=names.get(str(c), str(c)), amt=float(y) * 1e8) for c, _l, y in rows if str(c).startswith("00") and float(y) > 0]
+    return sorted(rs, key=lambda r: -r["amt"])[:n]
+
+
+def b_etf_buy(mode, w, h, ctx):
+    j = ctx["jget"]("inst_today")
+    nm = _stock_names(ctx)
+    secs = []
+    for side, title in (("foreign", "外資 ETF 買超"), ("trust", "投信 ETF 買超")):
+        rows = etf_buy(j, side, 10, nm)
+        mx = max([abs(r["amt"]) for r in rows] + [1])
+        secs.append((title, T["rise"], [dict(code=r["code"], name=r["name"], frac=abs(r["amt"]) / mx, val=sgn(r["amt"] / 1e8, 2), unit="億") for r in rows]))
+    return rank_list(mode, w, h, ctx, secs, vw=round(150 * S_(mode)))
+
+
+def _stock_names(ctx) -> dict:
+    if "_names" not in ctx:
+        st = ctx["jget"]("stocks") or []
+        ctx["_names"] = {str(r.get("code")): r.get("name") for r in (st if isinstance(st, list) else []) if r.get("code") and r.get("name")}
+    return ctx["_names"]
+
+
 def _streak(side):
     def b(mode, w, h, ctx):
         j = ctx["jget"]("inst_today")
-        top = (j.get("top") or {}).get(side) or {}
+        buy, sell = inst_top(j, side, 10, dict(_stock_names(ctx)))
         s = S_(mode)
         secs = []
-        for key, title, col in (("buy", "當日買超", T["rise"]), ("sell", "當日賣超", T["fall"])):
-            rows = (top.get(key) or [])[:10]
+        for rows, title, col in ((buy, "當日買超", T["rise"]), (sell, "當日賣超", T["fall"])):
             mx = max([abs(r["amt"]) for r in rows] + [1])
             secs.append((title, col, [dict(code=r["code"], name=r["name"], frac=abs(r["amt"]) / mx,
                                            val=sgn(r["amt"] / 1e8, 1), unit="億") for r in rows]))
@@ -696,6 +739,7 @@ def b_outro(mode, w, h, ctx):
 
 BUILDERS = {
     "outro": b_outro,
+    "etf-buy": b_etf_buy,
     "rotation-rank": b_rotation_rank,
     "sankey-tree": b_sankey,
     "market-index": b_market_index,
