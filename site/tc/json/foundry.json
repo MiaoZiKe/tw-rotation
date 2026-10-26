@@ -6360,9 +6360,14 @@
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/261929228",
               "date": "依文章編號推估"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/259220266",
+              "date": "2025-07"
             }
           ],
-          "n": 9,
+          "n": 10,
           "grade": "31 職等",
           "busyness": "高：新製程開發期加班到深夜常見",
           "samples": [
@@ -6536,6 +6541,28 @@
               "date_confirmed": true,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計；依 docs/tc/dcard_id_calibration.md 文章編號≥259537767 確認晚於 2025-08-01",
               "in_window": true
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/259220266",
+              "date": "2025-07",
+              "page_date": "2025-07-02",
+              "date_confirmed": true,
+              "role": "封裝 RD",
+              "grade": null,
+              "unit_detail": "竹南面試，實際在台中中科",
+              "years": "0",
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "同篇另一份offer，未揭露數字；留言稱7月分紅估10個月以上；加班原文：常日班不需輪班",
+              "in_window": false,
+              "date_note": "Dcard 頁面發文日期 2025-07-02（2026-10-26 2003 批）"
             }
           ],
           "n_stat": 5,
@@ -6902,6 +6929,28 @@
               "quote_free_note": "非產線系；前兩個單位感謝信，第三個 APOD2 錄取；面試到 offer 約五十天；數字未透露",
               "in_window": true,
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-09-09"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/259421520",
+              "date": "2025-07",
+              "page_date": "2025-07-29",
+              "date_confirmed": true,
+              "role": "DevOps Engineer",
+              "grade": "32",
+              "unit_detail": "TSID IMSD 智慧製造一部，先進封裝製造系統二課，南科",
+              "years": "3",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": 14,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "美光三年軟體工程師跳台積已收聘書；月薪為現職減12K、乘14再加分紅，原PO稱整體比現職多近兩倍；留言稱進台積半年後才領第一包季分紅；加班原文：留言稱要輪班值班，JD寫每3個月輪1週",
+              "in_window": false,
+              "date_note": "Dcard 頁面發文日期 2025-07-29（2026-10-26 2003 批）"
             }
           ],
           "sources": [
@@ -6909,10 +6958,15 @@
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/261959968",
               "date": "2026-09"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/259421520",
+              "date": "2025-07"
             }
           ],
           "confidence": "低",
-          "n": 1,
+          "n": 2,
           "years": null,
           "base_month_k": null,
           "bonus_months": null,
