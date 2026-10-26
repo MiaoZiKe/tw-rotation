@@ -38,7 +38,7 @@
           ],
           "overtime": "經常",
           "travel": "偶爾",
-          "n": 23,
+          "n": 32,
           "note": "平台自述統計（未轉貼原文）；GoodJob 2026-01～07 三筆月薪 5.7～6.5 萬（含 2 年經驗、未標學歷）；評價提年保 12 個月＋績效年終；Dcard 整理碩士整包 100～160 萬（16～24 個月）為網友估算；GoodJob 機構職面試與 2026-07 評價：需出差中國或東南亞，出差期間加班依產品進度；第二輪：Dcard BU9 伺服器硬體 12＋分紅看績效、整年約 20～22 個月；工時常 9～9；base_month_k、annual_total_wan 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples",
           "sources": [
             {
@@ -140,6 +140,36 @@
               "site": "GoodJob",
               "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=9",
               "date": "2026-01"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=11",
+              "date": "2025-09"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=12",
+              "date": "2025-08"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=13",
+              "date": "2025-06"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=14",
+              "date": "2025-06"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=16",
+              "date": "2025-03"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=17",
+              "date": "2025-03"
             }
           ],
           "confidence": "中",
@@ -629,9 +659,207 @@
               "quote_free_note": "自填；日工時 表訂/實際 8 / 10",
               "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2026-01（Andy 桌面版 2026-10-26 2150_a 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=11",
+              "date": "2025-09",
+              "page_date": "2025-09",
+              "date_confirmed": true,
+              "role": "硬體研發工程師 龜山",
+              "grade": null,
+              "unit_detail": "龜山",
+              "years": null,
+              "degree": null,
+              "base_k": 60,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 60,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 10 / 12",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2025-09（Andy 桌面版 2026-10-26 2150_b 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=12",
+              "date": "2025-08",
+              "page_date": "2025-08",
+              "date_confirmed": true,
+              "role": "硬體研發工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "11",
+              "degree": null,
+              "base_k": 85,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 46,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8 / 10",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2025-08（Andy 桌面版 2026-10-26 2150_b 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=13",
+              "date": "2025-06",
+              "page_date": "2025-06",
+              "date_confirmed": true,
+              "role": "硬體研發工程師 QRDC",
+              "grade": null,
+              "unit_detail": "QRDC",
+              "years": null,
+              "degree": null,
+              "base_k": 61,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 40,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8 / 8",
+              "in_window": false,
+              "date_note": "GoodJob 頁面標示年月 2025-06（Andy 桌面版 2026-10-26 2150_b 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=13",
+              "date": "2025-06",
+              "page_date": "2025-06",
+              "date_confirmed": true,
+              "role": "硬體研發工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 61,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 40,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8 / 8",
+              "in_window": false,
+              "date_note": "GoodJob 頁面標示年月 2025-06（Andy 桌面版 2026-10-26 2150_b 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=14",
+              "date": "2025-06",
+              "page_date": "2025-06",
+              "date_confirmed": true,
+              "role": "硬體研發工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "1",
+              "degree": null,
+              "base_k": 63,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 40,
+              "overtime": "幾乎不",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8 / 5",
+              "in_window": false,
+              "date_note": "GoodJob 頁面標示年月 2025-06（Andy 桌面版 2026-10-26 2150_b 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=14",
+              "date": "2025-05",
+              "page_date": "2025-05",
+              "date_confirmed": true,
+              "role": "硬體研發工程師 BU9",
+              "grade": null,
+              "unit_detail": "BU9",
+              "years": "5",
+              "degree": null,
+              "base_k": 93,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 50,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8 / 10",
+              "in_window": false,
+              "date_note": "GoodJob 頁面標示年月 2025-05（Andy 桌面版 2026-10-26 2150_b 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=16",
+              "date": "2025-03",
+              "page_date": "2025-03",
+              "date_confirmed": true,
+              "role": "硬體研發工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 55,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 55,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8 / 11",
+              "in_window": false,
+              "date_note": "GoodJob 頁面標示年月 2025-03（Andy 桌面版 2026-10-26 2150_b 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=17",
+              "date": "2025-03",
+              "page_date": "2025-03",
+              "date_confirmed": true,
+              "role": "硬體研發工程師 Bu9",
+              "grade": null,
+              "unit_detail": "Bu9",
+              "years": null,
+              "degree": null,
+              "base_k": 61,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 45,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8 / 9",
+              "in_window": false,
+              "date_note": "GoodJob 頁面標示年月 2025-03（Andy 桌面版 2026-10-26 2150_b 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=17",
+              "date": "2025-02",
+              "page_date": "2025-02",
+              "date_confirmed": true,
+              "role": "硬體研發工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 64,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 45,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8 / 9",
+              "in_window": false,
+              "date_note": "GoodJob 頁面標示年月 2025-02（Andy 桌面版 2026-10-26 2150_b 批）"
             }
           ],
-          "n_stat": 21
+          "n_stat": 23
         },
         {
           "unit": "研發 RD",
@@ -817,7 +1045,7 @@
           ],
           "overtime": "經常",
           "travel": null,
-          "n": 9,
+          "n": 12,
           "note": "",
           "sources": [
             {
@@ -859,6 +1087,21 @@
               "site": "GoodJob",
               "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=9",
               "date": "2026-01"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=10",
+              "date": "2025-12"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=15",
+              "date": "2025-05"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=19",
+              "date": "2025-01"
             }
           ],
           "confidence": "中",
@@ -1059,9 +1302,75 @@
               "quote_free_note": "自填；日工時 表訂/實際 8 / 9",
               "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2025-12（Andy 桌面版 2026-10-26 2150_a 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=10",
+              "date": "2025-12",
+              "page_date": "2025-12",
+              "date_confirmed": true,
+              "role": "機構工程師 林口",
+              "grade": null,
+              "unit_detail": "林口",
+              "years": null,
+              "degree": null,
+              "base_k": 61,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 40,
+              "overtime": "幾乎不",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8 / 8",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2025-12（Andy 桌面版 2026-10-26 2150_b 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=15",
+              "date": "2025-05",
+              "page_date": "2025-05",
+              "date_confirmed": true,
+              "role": "機構工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "1",
+              "degree": null,
+              "base_k": 52,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 48,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8 / 10",
+              "in_window": false,
+              "date_note": "GoodJob 頁面標示年月 2025-05（Andy 桌面版 2026-10-26 2150_b 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=19",
+              "date": "2025-01",
+              "page_date": "2025-01",
+              "date_confirmed": true,
+              "role": "機構工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "3",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 120,
+              "weekly_hours": 50,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8 / 10",
+              "in_window": false,
+              "date_note": "GoodJob 頁面標示年月 2025-01（Andy 桌面版 2026-10-26 2150_b 批）"
             }
           ],
-          "n_stat": 7
+          "n_stat": 8
         },
         {
           "unit": "BU9",
@@ -1357,6 +1666,116 @@
               "quote_free_note": "自填；日工時 表訂/實際 8 / 8",
               "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2026-05（Andy 桌面版 2026-10-26 2150_a 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=12",
+              "date": "2025-09",
+              "page_date": "2025-09",
+              "date_confirmed": true,
+              "role": "工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "3",
+              "degree": null,
+              "base_k": 56,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 50,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8 / 11",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2025-09（Andy 桌面版 2026-10-26 2150_b 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=17",
+              "date": "2025-03",
+              "page_date": "2025-03",
+              "date_confirmed": true,
+              "role": "工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "1",
+              "degree": null,
+              "base_k": 60,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 40,
+              "overtime": "幾乎不",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8 / 8",
+              "in_window": false,
+              "date_note": "GoodJob 頁面標示年月 2025-03（Andy 桌面版 2026-10-26 2150_b 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=17",
+              "date": "2025-02",
+              "page_date": "2025-02",
+              "date_confirmed": true,
+              "role": "工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "3",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 130,
+              "weekly_hours": 60,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8 / 12",
+              "in_window": false,
+              "date_note": "GoodJob 頁面標示年月 2025-02（Andy 桌面版 2026-10-26 2150_b 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=18",
+              "date": "2025-01",
+              "page_date": "2025-01",
+              "date_confirmed": true,
+              "role": "工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "1",
+              "degree": null,
+              "base_k": 36,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 40,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8 / 8",
+              "in_window": false,
+              "date_note": "GoodJob 頁面標示年月 2025-01（Andy 桌面版 2026-10-26 2150_b 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=18",
+              "date": "2025-01",
+              "page_date": "2025-01",
+              "date_confirmed": true,
+              "role": "工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "7",
+              "degree": null,
+              "base_k": 72,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 40.5,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8 / 8.5",
+              "in_window": false,
+              "date_note": "GoodJob 頁面標示年月 2025-01（Andy 桌面版 2026-10-26 2150_b 批）"
             }
           ],
           "sources": [
@@ -1394,13 +1813,28 @@
               "site": "GoodJob",
               "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=5",
               "date": "2026-05"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=12",
+              "date": "2025-09"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=17",
+              "date": "2025-03"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=18",
+              "date": "2025-01"
             }
           ],
           "confidence": "中",
-          "n": 8,
+          "n": 13,
           "years": "轉職",
           "base_month_k": [
-            58,
+            56,
             68
           ],
           "bonus_months": null,
@@ -1412,7 +1846,7 @@
           ],
           "overtime": "偶爾",
           "travel": null,
-          "n_stat": 4,
+          "n_stat": 5,
           "note": null,
           "grade": null
         },
@@ -1491,6 +1925,28 @@
               "quote_free_note": "自填；日工時 表訂/實際 8 / 15",
               "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2026-02（Andy 桌面版 2026-10-26 2150_a 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=14",
+              "date": "2025-05",
+              "page_date": "2025-05",
+              "date_confirmed": true,
+              "role": "EE",
+              "grade": null,
+              "unit_detail": null,
+              "years": "2",
+              "degree": null,
+              "base_k": 73,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 42,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8 / 9",
+              "in_window": false,
+              "date_note": "GoodJob 頁面標示年月 2025-05（Andy 桌面版 2026-10-26 2150_b 批）"
             }
           ],
           "sources": [
@@ -1508,10 +1964,15 @@
               "site": "GoodJob",
               "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=7",
               "date": "2026-02"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=14",
+              "date": "2025-05"
             }
           ],
           "confidence": "低",
-          "n": 3,
+          "n": 4,
           "years": "0",
           "base_month_k": [
             67,
@@ -2572,8 +3033,8 @@
           ],
           "overtime": "經常",
           "travel": null,
-          "n": 5,
-          "n_stat": 5,
+          "n": 6,
+          "n_stat": 6,
           "note": null,
           "grade": null,
           "sources": [
@@ -2591,6 +3052,11 @@
               "site": "GoodJob",
               "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=3",
               "date": "2026-07"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=10",
+              "date": "2025-11"
             }
           ],
           "confidence": "低",
@@ -2704,6 +3170,28 @@
               "quote_free_note": "自填；日工時 表訂/實際 8 / 10",
               "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2026-07（Andy 桌面版 2026-10-26 2150_a 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=10",
+              "date": "2025-11",
+              "page_date": "2025-11",
+              "date_confirmed": true,
+              "role": "自動化工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 60,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 50,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8 / 10",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2025-11（Andy 桌面版 2026-10-26 2150_b 批）"
             }
           ]
         },
@@ -2725,8 +3213,8 @@
           ],
           "overtime": "經常",
           "travel": null,
-          "n": 7,
-          "n_stat": 7,
+          "n": 15,
+          "n_stat": 9,
           "note": null,
           "grade": null,
           "sources": [
@@ -2749,6 +3237,31 @@
               "site": "GoodJob",
               "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=9",
               "date": "2026-01"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=11",
+              "date": "2025-09"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=12",
+              "date": "2025-08"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=15",
+              "date": "2025-04"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=16",
+              "date": "2025-03"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=19",
+              "date": "2025-01"
             }
           ],
           "confidence": "中",
@@ -2906,6 +3419,182 @@
               "quote_free_note": "自填；日工時 表訂/實際 8 / 8",
               "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2026-01（Andy 桌面版 2026-10-26 2150_a 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=11",
+              "date": "2025-09",
+              "page_date": "2025-09",
+              "date_confirmed": true,
+              "role": "硬體工程師 QRDC",
+              "grade": null,
+              "unit_detail": "QRDC",
+              "years": "7",
+              "degree": null,
+              "base_k": 85,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 40,
+              "overtime": "幾乎不",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8 / 8",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2025-09（Andy 桌面版 2026-10-26 2150_b 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=12",
+              "date": "2025-08",
+              "page_date": "2025-08",
+              "date_confirmed": true,
+              "role": "硬體工程師 QRDC",
+              "grade": null,
+              "unit_detail": "QRDC",
+              "years": "6",
+              "degree": null,
+              "base_k": 85,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 40,
+              "overtime": "幾乎不",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8 / 8",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2025-08（Andy 桌面版 2026-10-26 2150_b 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=15",
+              "date": "2025-04",
+              "page_date": "2025-04",
+              "date_confirmed": true,
+              "role": "硬體工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 58,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 55,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8 / 11",
+              "in_window": false,
+              "date_note": "GoodJob 頁面標示年月 2025-04（Andy 桌面版 2026-10-26 2150_b 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=15",
+              "date": "2025-04",
+              "page_date": "2025-04",
+              "date_confirmed": true,
+              "role": "硬體工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 55,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 55,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8 / 11",
+              "in_window": false,
+              "date_note": "GoodJob 頁面標示年月 2025-04（Andy 桌面版 2026-10-26 2150_b 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=15",
+              "date": "2025-04",
+              "page_date": "2025-04",
+              "date_confirmed": true,
+              "role": "硬體工程師 林口",
+              "grade": null,
+              "unit_detail": "林口",
+              "years": "11",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 200,
+              "weekly_hours": 40,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8 / 8",
+              "in_window": false,
+              "date_note": "GoodJob 頁面標示年月 2025-04（Andy 桌面版 2026-10-26 2150_b 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=15",
+              "date": "2025-04",
+              "page_date": "2025-04",
+              "date_confirmed": true,
+              "role": "硬體工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 58,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 40,
+              "overtime": "幾乎不",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8 / 8",
+              "in_window": false,
+              "date_note": "GoodJob 頁面標示年月 2025-04（Andy 桌面版 2026-10-26 2150_b 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=16",
+              "date": "2025-03",
+              "page_date": "2025-03",
+              "date_confirmed": true,
+              "role": "硬體工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 61,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 75,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 15 / 15",
+              "in_window": false,
+              "date_note": "GoodJob 頁面標示年月 2025-03（Andy 桌面版 2026-10-26 2150_b 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=19",
+              "date": "2025-01",
+              "page_date": "2025-01",
+              "date_confirmed": true,
+              "role": "硬體工程師 龜山",
+              "grade": null,
+              "unit_detail": "龜山",
+              "years": "4",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 150,
+              "weekly_hours": 40,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8 / 8",
+              "in_window": false,
+              "date_note": "GoodJob 頁面標示年月 2025-01（Andy 桌面版 2026-10-26 2150_b 批）"
             }
           ]
         },
@@ -2916,7 +3605,7 @@
           "years": null,
           "base_month_k": [
             60,
-            60
+            64
           ],
           "bonus_months": null,
           "annual_months": null,
@@ -2925,13 +3614,13 @@
             120
           ],
           "weekly_hours": [
-            45,
+            40,
             55
           ],
           "overtime": "偶爾",
           "travel": null,
-          "n": 2,
-          "n_stat": 2,
+          "n": 4,
+          "n_stat": 3,
           "note": null,
           "grade": null,
           "sources": [
@@ -2944,6 +3633,16 @@
               "site": "GoodJob",
               "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=5",
               "date": "2026-04"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=10",
+              "date": "2025-12"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=18",
+              "date": "2025-02"
             }
           ],
           "confidence": "中",
@@ -2991,6 +3690,50 @@
               "quote_free_note": "自填；日工時 表訂/實際 8 / 11",
               "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2026-04（Andy 桌面版 2026-10-26 2150_a 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=10",
+              "date": "2025-12",
+              "page_date": "2025-12",
+              "date_confirmed": true,
+              "role": "韌體 龜山",
+              "grade": null,
+              "unit_detail": "龜山",
+              "years": null,
+              "degree": null,
+              "base_k": 64,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 40,
+              "overtime": "幾乎不",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 9 / 2",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2025-12（Andy 桌面版 2026-10-26 2150_b 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=18",
+              "date": "2025-02",
+              "page_date": "2025-02",
+              "date_confirmed": true,
+              "role": "韌體工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "4",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 210,
+              "weekly_hours": 50,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8 / 10",
+              "in_window": false,
+              "date_note": "GoodJob 頁面標示年月 2025-02（Andy 桌面版 2026-10-26 2150_b 批）"
             }
           ]
         },
@@ -3086,7 +3829,7 @@
           "years": null,
           "base_month_k": [
             43,
-            67.5
+            70
           ],
           "bonus_months": null,
           "annual_months": null,
@@ -3098,10 +3841,10 @@
             40,
             50
           ],
-          "overtime": "經常",
+          "overtime": "幾乎不",
           "travel": null,
-          "n": 6,
-          "n_stat": 6,
+          "n": 14,
+          "n_stat": 8,
           "note": null,
           "grade": null,
           "sources": [
@@ -3124,6 +3867,36 @@
               "site": "GoodJob",
               "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=7",
               "date": "2026-03"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=10",
+              "date": "2025-11"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=13",
+              "date": "2025-06"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=14",
+              "date": "2025-05"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=15",
+              "date": "2025-04"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=16",
+              "date": "2025-03"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=18",
+              "date": "2025-02"
             }
           ],
           "confidence": "中",
@@ -3259,6 +4032,182 @@
               "quote_free_note": "自填；日工時 表訂/實際 8 / 8",
               "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2026-03（Andy 桌面版 2026-10-26 2150_a 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=10",
+              "date": "2025-11",
+              "page_date": "2025-11",
+              "date_confirmed": true,
+              "role": "軟體工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 68,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 45,
+              "overtime": "幾乎不",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8 / 8.5",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2025-11（Andy 桌面版 2026-10-26 2150_b 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=10",
+              "date": "2025-11",
+              "page_date": "2025-11",
+              "date_confirmed": true,
+              "role": "軟體工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "2",
+              "degree": null,
+              "base_k": 70,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 40,
+              "overtime": "幾乎不",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8 / 8",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2025-11（Andy 桌面版 2026-10-26 2150_b 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=13",
+              "date": "2025-06",
+              "page_date": "2025-06",
+              "date_confirmed": true,
+              "role": "軟體工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "1",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 110,
+              "weekly_hours": 40,
+              "overtime": "幾乎不",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8 / 8",
+              "in_window": false,
+              "date_note": "GoodJob 頁面標示年月 2025-06（Andy 桌面版 2026-10-26 2150_b 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=14",
+              "date": "2025-05",
+              "page_date": "2025-05",
+              "date_confirmed": true,
+              "role": "軟體工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "2",
+              "degree": null,
+              "base_k": 68.5,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 45,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 9 / 9",
+              "in_window": false,
+              "date_note": "GoodJob 頁面標示年月 2025-05（Andy 桌面版 2026-10-26 2150_b 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=14",
+              "date": "2025-05",
+              "page_date": "2025-05",
+              "date_confirmed": true,
+              "role": "軟體工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "1",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 100,
+              "weekly_hours": 40,
+              "overtime": "幾乎不",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8 / 8",
+              "in_window": false,
+              "date_note": "GoodJob 頁面標示年月 2025-05（Andy 桌面版 2026-10-26 2150_b 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=15",
+              "date": "2025-04",
+              "page_date": "2025-04",
+              "date_confirmed": true,
+              "role": "軟體工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "1",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 115,
+              "weekly_hours": 40,
+              "overtime": "幾乎不",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8 / 8",
+              "in_window": false,
+              "date_note": "GoodJob 頁面標示年月 2025-04（Andy 桌面版 2026-10-26 2150_b 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=16",
+              "date": "2025-03",
+              "page_date": "2025-03",
+              "date_confirmed": true,
+              "role": "軟體工程師 龜山",
+              "grade": null,
+              "unit_detail": "龜山",
+              "years": "5",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 120,
+              "weekly_hours": 45,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8 / 8.5",
+              "in_window": false,
+              "date_note": "GoodJob 頁面標示年月 2025-03（Andy 桌面版 2026-10-26 2150_b 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=18",
+              "date": "2025-02",
+              "page_date": "2025-02",
+              "date_confirmed": true,
+              "role": "軟體工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "1",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 110,
+              "weekly_hours": 40,
+              "overtime": "幾乎不",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8 / 8",
+              "in_window": false,
+              "date_note": "GoodJob 頁面標示年月 2025-02（Andy 桌面版 2026-10-26 2150_b 批）"
             }
           ]
         },
@@ -3417,7 +4366,7 @@
           ],
           "overtime": "經常",
           "travel": null,
-          "n": 1,
+          "n": 2,
           "n_stat": 1,
           "note": null,
           "grade": null,
@@ -3426,6 +4375,11 @@
               "site": "GoodJob",
               "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=3",
               "date": "2026-07"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=13",
+              "date": "2025-06"
             }
           ],
           "confidence": "低",
@@ -3451,6 +4405,28 @@
               "quote_free_note": "自填；日工時 表訂/實際 8 / 9",
               "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2026-07（Andy 桌面版 2026-10-26 2150_a 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=13",
+              "date": "2025-06",
+              "page_date": "2025-06",
+              "date_confirmed": true,
+              "role": "伺服器測試工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "1",
+              "degree": null,
+              "base_k": 55,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 60,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 10 / 12",
+              "in_window": false,
+              "date_note": "GoodJob 頁面標示年月 2025-06（Andy 桌面版 2026-10-26 2150_b 批）"
             }
           ]
         },
@@ -3626,7 +4602,7 @@
           "years": null,
           "base_month_k": [
             66.1,
-            81.5
+            130
           ],
           "bonus_months": null,
           "annual_months": null,
@@ -3637,8 +4613,8 @@
           ],
           "overtime": "偶爾",
           "travel": null,
-          "n": 2,
-          "n_stat": 2,
+          "n": 4,
+          "n_stat": 3,
           "note": null,
           "grade": null,
           "sources": [
@@ -3651,6 +4627,16 @@
               "site": "GoodJob",
               "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=9",
               "date": "2025-12"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=11",
+              "date": "2025-09"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=19",
+              "date": "2025-01"
             }
           ],
           "confidence": "中",
@@ -3698,6 +4684,50 @@
               "quote_free_note": "自填；日工時 表訂/實際 8 / 8",
               "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2025-12（Andy 桌面版 2026-10-26 2150_a 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=11",
+              "date": "2025-09",
+              "page_date": "2025-09",
+              "date_confirmed": true,
+              "role": "電源工程師 林口",
+              "grade": null,
+              "unit_detail": "林口",
+              "years": "10",
+              "degree": null,
+              "base_k": 130,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 50,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 9 / 9",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2025-09（Andy 桌面版 2026-10-26 2150_b 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=19",
+              "date": "2025-01",
+              "page_date": "2025-01",
+              "date_confirmed": true,
+              "role": "電源工程師 QRDC",
+              "grade": null,
+              "unit_detail": "QRDC",
+              "years": "10",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 185,
+              "weekly_hours": 42,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8 / 8.5",
+              "in_window": false,
+              "date_note": "GoodJob 頁面標示年月 2025-01（Andy 桌面版 2026-10-26 2150_b 批）"
             }
           ]
         },
@@ -3939,7 +4969,7 @@
           ],
           "overtime": "偶爾",
           "travel": null,
-          "n": 2,
+          "n": 4,
           "n_stat": 2,
           "note": null,
           "grade": null,
@@ -3953,6 +4983,16 @@
               "site": "GoodJob",
               "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=8",
               "date": "2026-01"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=16",
+              "date": "2025-03"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=18",
+              "date": "2025-02"
             }
           ],
           "confidence": "中",
@@ -4000,6 +5040,50 @@
               "quote_free_note": "自填；日工時 表訂/實際 8 / 8",
               "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2026-01（Andy 桌面版 2026-10-26 2150_a 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=16",
+              "date": "2025-03",
+              "page_date": "2025-03",
+              "date_confirmed": true,
+              "role": "軟體設計工程師 桃園",
+              "grade": null,
+              "unit_detail": "桃園",
+              "years": "1",
+              "degree": null,
+              "base_k": 65,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 42,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8 / 8",
+              "in_window": false,
+              "date_note": "GoodJob 頁面標示年月 2025-03（Andy 桌面版 2026-10-26 2150_b 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=18",
+              "date": "2025-02",
+              "page_date": "2025-02",
+              "date_confirmed": true,
+              "role": "軟體設計工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "3",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 130,
+              "weekly_hours": 40,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 9 / 9",
+              "in_window": false,
+              "date_note": "GoodJob 頁面標示年月 2025-02（Andy 桌面版 2026-10-26 2150_b 批）"
             }
           ]
         },
@@ -4351,7 +5435,7 @@
           ],
           "overtime": "經常",
           "travel": null,
-          "n": 1,
+          "n": 2,
           "n_stat": 1,
           "note": null,
           "grade": null,
@@ -4360,6 +5444,11 @@
               "site": "GoodJob",
               "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=8",
               "date": "2026-02"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=16",
+              "date": "2025-03"
             }
           ],
           "confidence": "低",
@@ -4385,6 +5474,28 @@
               "quote_free_note": "自填；日工時 表訂/實際 10.5 / 10.5",
               "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2026-02（Andy 桌面版 2026-10-26 2150_a 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=16",
+              "date": "2025-03",
+              "page_date": "2025-03",
+              "date_confirmed": true,
+              "role": "測試工程師 QC3",
+              "grade": null,
+              "unit_detail": "QC3",
+              "years": null,
+              "degree": null,
+              "base_k": 48,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 45,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 9 / 9",
+              "in_window": false,
+              "date_note": "GoodJob 頁面標示年月 2025-03（Andy 桌面版 2026-10-26 2150_b 批）"
             }
           ]
         },
@@ -4406,7 +5517,7 @@
           ],
           "overtime": "幾乎不",
           "travel": null,
-          "n": 1,
+          "n": 2,
           "n_stat": 1,
           "note": null,
           "grade": null,
@@ -4415,6 +5526,11 @@
               "site": "GoodJob",
               "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=8",
               "date": "2026-02"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=14",
+              "date": "2025-05"
             }
           ],
           "confidence": "低",
@@ -4440,6 +5556,28 @@
               "quote_free_note": "自填；日工時 表訂/實際 8 / 8",
               "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2026-02（Andy 桌面版 2026-10-26 2150_a 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=14",
+              "date": "2025-05",
+              "page_date": "2025-05",
+              "date_confirmed": true,
+              "role": "BMC工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "2",
+              "degree": null,
+              "base_k": 62,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 50,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 10 / 10",
+              "in_window": false,
+              "date_note": "GoodJob 頁面標示年月 2025-05（Andy 桌面版 2026-10-26 2150_b 批）"
             }
           ]
         },
@@ -4495,6 +5633,1129 @@
               "quote_free_note": "自填；日工時 表訂/實際 10 / 10",
               "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2026-01（Andy 桌面版 2026-10-26 2150_a 批）"
+            }
+          ]
+        },
+        {
+          "unit": "其他",
+          "role": "SMT工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": [
+            60,
+            60
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": [
+            52.5,
+            52.5
+          ],
+          "overtime": "經常",
+          "travel": null,
+          "n": 1,
+          "n_stat": 1,
+          "note": null,
+          "grade": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=10",
+              "date": "2025-12"
+            }
+          ],
+          "confidence": "低",
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=10",
+              "date": "2025-12",
+              "page_date": "2025-12",
+              "date_confirmed": true,
+              "role": "SMT工程師 QTMC",
+              "grade": null,
+              "unit_detail": "QTMC",
+              "years": null,
+              "degree": null,
+              "base_k": 60,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 52.5,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8 / 10.5",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2025-12（Andy 桌面版 2026-10-26 2150_b 批）"
+            }
+          ]
+        },
+        {
+          "unit": "其他",
+          "role": "MES工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": [
+            70,
+            70
+          ],
+          "weekly_hours": [
+            40,
+            40
+          ],
+          "overtime": "偶爾",
+          "travel": null,
+          "n": 1,
+          "n_stat": 1,
+          "note": null,
+          "grade": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=10",
+              "date": "2025-11"
+            }
+          ],
+          "confidence": "低",
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=10",
+              "date": "2025-11",
+              "page_date": "2025-11",
+              "date_confirmed": true,
+              "role": "MES工程師 桃園",
+              "grade": null,
+              "unit_detail": "桃園",
+              "years": "1",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 70,
+              "weekly_hours": 40,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8 / 8；填寫「700,000 / 月」疑為年薪誤植，以年薪計",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2025-11（Andy 桌面版 2026-10-26 2150_b 批）"
+            }
+          ]
+        },
+        {
+          "unit": "其他",
+          "role": "BIOS工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": [
+            200,
+            200
+          ],
+          "weekly_hours": [
+            40,
+            40
+          ],
+          "overtime": "偶爾",
+          "travel": null,
+          "n": 2,
+          "n_stat": 1,
+          "note": null,
+          "grade": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=10",
+              "date": "2025-10"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=13",
+              "date": "2025-06"
+            }
+          ],
+          "confidence": "低",
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=10",
+              "date": "2025-10",
+              "page_date": "2025-10",
+              "date_confirmed": true,
+              "role": "BIOS工程師 QRDC",
+              "grade": null,
+              "unit_detail": "QRDC",
+              "years": "7",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 200,
+              "weekly_hours": 40,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8 / 8",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2025-10（Andy 桌面版 2026-10-26 2150_b 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=13",
+              "date": "2025-06",
+              "page_date": "2025-06",
+              "date_confirmed": true,
+              "role": "BIOS工程師 龜山",
+              "grade": null,
+              "unit_detail": "龜山",
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 100,
+              "weekly_hours": 60,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 12 / 12",
+              "in_window": false,
+              "date_note": "GoodJob 頁面標示年月 2025-06（Andy 桌面版 2026-10-26 2150_b 批）"
+            }
+          ]
+        },
+        {
+          "unit": "其他",
+          "role": "BMC軟體工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n": 1,
+          "n_stat": 0,
+          "note": null,
+          "grade": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=12",
+              "date": "2025-07"
+            }
+          ],
+          "confidence": "低",
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=12",
+              "date": "2025-07",
+              "page_date": "2025-07",
+              "date_confirmed": true,
+              "role": "BMC軟體工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 60,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 60,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8 / 8",
+              "in_window": false,
+              "date_note": "GoodJob 頁面標示年月 2025-07（Andy 桌面版 2026-10-26 2150_b 批）"
+            }
+          ]
+        },
+        {
+          "unit": "其他",
+          "role": "軟體產品測試工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n": 1,
+          "n_stat": 0,
+          "note": null,
+          "grade": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=12",
+              "date": "2025-07"
+            }
+          ],
+          "confidence": "低",
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=12",
+              "date": "2025-07",
+              "page_date": "2025-07",
+              "date_confirmed": true,
+              "role": "軟體產品測試工程師 桃園龜山",
+              "grade": null,
+              "unit_detail": "桃園龜山",
+              "years": null,
+              "degree": null,
+              "base_k": 57,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 40,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 9 / 10",
+              "in_window": false,
+              "date_note": "GoodJob 頁面標示年月 2025-07（Andy 桌面版 2026-10-26 2150_b 批）"
+            }
+          ]
+        },
+        {
+          "unit": "其他",
+          "role": "硬體工程研發",
+          "degree": null,
+          "years": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n": 1,
+          "n_stat": 0,
+          "note": null,
+          "grade": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=13",
+              "date": "2025-06"
+            }
+          ],
+          "confidence": "低",
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=13",
+              "date": "2025-06",
+              "page_date": "2025-06",
+              "date_confirmed": true,
+              "role": "硬體工程研發",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 120,
+              "weekly_hours": 60,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8 / 8",
+              "in_window": false,
+              "date_note": "GoodJob 頁面標示年月 2025-06（Andy 桌面版 2026-10-26 2150_b 批）"
+            }
+          ]
+        },
+        {
+          "unit": "其他",
+          "role": "QTMC製程工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n": 1,
+          "n_stat": 0,
+          "note": null,
+          "grade": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=13",
+              "date": "2025-06"
+            }
+          ],
+          "confidence": "低",
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=13",
+              "date": "2025-06",
+              "page_date": "2025-06",
+              "date_confirmed": true,
+              "role": "QTMC製程工程師 QC1",
+              "grade": null,
+              "unit_detail": "QC1",
+              "years": "6",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 120,
+              "weekly_hours": 52,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8 / 10.5",
+              "in_window": false,
+              "date_note": "GoodJob 頁面標示年月 2025-06（Andy 桌面版 2026-10-26 2150_b 批）"
+            }
+          ]
+        },
+        {
+          "unit": "其他",
+          "role": "雲端硬體研發設計",
+          "degree": null,
+          "years": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n": 1,
+          "n_stat": 0,
+          "note": null,
+          "grade": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=13",
+              "date": "2025-06"
+            }
+          ],
+          "confidence": "低",
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=13",
+              "date": "2025-06",
+              "page_date": "2025-06",
+              "date_confirmed": true,
+              "role": "雲端硬體研發設計 QRDC",
+              "grade": null,
+              "unit_detail": "QRDC",
+              "years": null,
+              "degree": null,
+              "base_k": 61,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 40,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8 / 8",
+              "in_window": false,
+              "date_note": "GoodJob 頁面標示年月 2025-06（Andy 桌面版 2026-10-26 2150_b 批）"
+            }
+          ]
+        },
+        {
+          "unit": "其他",
+          "role": "OPEN BMC",
+          "degree": null,
+          "years": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n": 1,
+          "n_stat": 0,
+          "note": null,
+          "grade": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=13",
+              "date": "2025-06"
+            }
+          ],
+          "confidence": "低",
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=13",
+              "date": "2025-06",
+              "page_date": "2025-06",
+              "date_confirmed": true,
+              "role": "OPEN BMC 桃園龜山",
+              "grade": null,
+              "unit_detail": "桃園龜山",
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 80,
+              "weekly_hours": 40,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8 / 9",
+              "in_window": false,
+              "date_note": "GoodJob 頁面標示年月 2025-06（Andy 桌面版 2026-10-26 2150_b 批）"
+            }
+          ]
+        },
+        {
+          "unit": "其他",
+          "role": "雲端伺服器EMC工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n": 1,
+          "n_stat": 0,
+          "note": null,
+          "grade": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=14",
+              "date": "2025-06"
+            }
+          ],
+          "confidence": "低",
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=14",
+              "date": "2025-06",
+              "page_date": "2025-06",
+              "date_confirmed": true,
+              "role": "雲端伺服器EMC工程師 HQ",
+              "grade": null,
+              "unit_detail": "HQ",
+              "years": "3",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 160,
+              "weekly_hours": 52,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 10 / 11",
+              "in_window": false,
+              "date_note": "GoodJob 頁面標示年月 2025-06（Andy 桌面版 2026-10-26 2150_b 批）"
+            }
+          ]
+        },
+        {
+          "unit": "其他",
+          "role": "UEFI",
+          "degree": null,
+          "years": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n": 1,
+          "n_stat": 0,
+          "note": null,
+          "grade": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=14",
+              "date": "2025-05"
+            }
+          ],
+          "confidence": "低",
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=14",
+              "date": "2025-05",
+              "page_date": "2025-05",
+              "date_confirmed": true,
+              "role": "UEFI",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 60,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 49,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8 / 8",
+              "in_window": false,
+              "date_note": "GoodJob 頁面標示年月 2025-05（Andy 桌面版 2026-10-26 2150_b 批）"
+            }
+          ]
+        },
+        {
+          "unit": "其他",
+          "role": "ICT",
+          "degree": null,
+          "years": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n": 1,
+          "n_stat": 0,
+          "note": null,
+          "grade": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=14",
+              "date": "2025-05"
+            }
+          ],
+          "confidence": "低",
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=14",
+              "date": "2025-05",
+              "page_date": "2025-05",
+              "date_confirmed": true,
+              "role": "ICT",
+              "grade": null,
+              "unit_detail": null,
+              "years": "5",
+              "degree": null,
+              "base_k": 65,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 50,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8 / 10",
+              "in_window": false,
+              "date_note": "GoodJob 頁面標示年月 2025-05（Andy 桌面版 2026-10-26 2150_b 批）"
+            }
+          ]
+        },
+        {
+          "unit": "其他",
+          "role": "產品測試工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n": 1,
+          "n_stat": 0,
+          "note": null,
+          "grade": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=16",
+              "date": "2025-03"
+            }
+          ],
+          "confidence": "低",
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=16",
+              "date": "2025-03",
+              "page_date": "2025-03",
+              "date_confirmed": true,
+              "role": "產品測試工程師 QC3",
+              "grade": null,
+              "unit_detail": "QC3",
+              "years": null,
+              "degree": null,
+              "base_k": 48,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 45,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8 / 9",
+              "in_window": false,
+              "date_note": "GoodJob 頁面標示年月 2025-03（Andy 桌面版 2026-10-26 2150_b 批）"
+            }
+          ]
+        },
+        {
+          "unit": "其他",
+          "role": "嵌入式工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n": 1,
+          "n_stat": 0,
+          "note": null,
+          "grade": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=16",
+              "date": "2025-03"
+            }
+          ],
+          "confidence": "低",
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=16",
+              "date": "2025-03",
+              "page_date": "2025-03",
+              "date_confirmed": true,
+              "role": "嵌入式工程師 林口",
+              "grade": null,
+              "unit_detail": "林口",
+              "years": null,
+              "degree": null,
+              "base_k": 64,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 48,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 10 / 10",
+              "in_window": false,
+              "date_note": "GoodJob 頁面標示年月 2025-03（Andy 桌面版 2026-10-26 2150_b 批）"
+            }
+          ]
+        },
+        {
+          "unit": "其他",
+          "role": "聲學工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n": 1,
+          "n_stat": 0,
+          "note": null,
+          "grade": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=16",
+              "date": "2025-03"
+            }
+          ],
+          "confidence": "低",
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=16",
+              "date": "2025-03",
+              "page_date": "2025-03",
+              "date_confirmed": true,
+              "role": "聲學工程師 華亞科技園區",
+              "grade": null,
+              "unit_detail": "華亞科技園區",
+              "years": "3",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 120,
+              "weekly_hours": 50,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 9 / 10",
+              "in_window": false,
+              "date_note": "GoodJob 頁面標示年月 2025-03（Andy 桌面版 2026-10-26 2150_b 批）"
+            }
+          ]
+        },
+        {
+          "unit": "其他",
+          "role": "RD",
+          "degree": null,
+          "years": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n": 1,
+          "n_stat": 0,
+          "note": null,
+          "grade": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=17",
+              "date": "2025-03"
+            }
+          ],
+          "confidence": "低",
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=17",
+              "date": "2025-03",
+              "page_date": "2025-03",
+              "date_confirmed": true,
+              "role": "RD",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 120,
+              "weekly_hours": 44,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 10 / 10",
+              "in_window": false,
+              "date_note": "GoodJob 頁面標示年月 2025-03（Andy 桌面版 2026-10-26 2150_b 批）"
+            }
+          ]
+        },
+        {
+          "unit": "其他",
+          "role": "BU9EE",
+          "degree": null,
+          "years": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n": 1,
+          "n_stat": 0,
+          "note": null,
+          "grade": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=17",
+              "date": "2025-03"
+            }
+          ],
+          "confidence": "低",
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=17",
+              "date": "2025-03",
+              "page_date": "2025-03",
+              "date_confirmed": true,
+              "role": "BU9EE",
+              "grade": null,
+              "unit_detail": null,
+              "years": "4",
+              "degree": null,
+              "base_k": 98,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 45,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8 / 9",
+              "in_window": false,
+              "date_note": "GoodJob 頁面標示年月 2025-03（Andy 桌面版 2026-10-26 2150_b 批）"
+            }
+          ]
+        },
+        {
+          "unit": "其他",
+          "role": "硬體光學工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n": 1,
+          "n_stat": 0,
+          "note": null,
+          "grade": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=17",
+              "date": "2025-02"
+            }
+          ],
+          "confidence": "低",
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=17",
+              "date": "2025-02",
+              "page_date": "2025-02",
+              "date_confirmed": true,
+              "role": "硬體光學工程師 BU-AR",
+              "grade": null,
+              "unit_detail": "BU-AR",
+              "years": "7",
+              "degree": null,
+              "base_k": 80,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 40,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8 / 8",
+              "in_window": false,
+              "date_note": "GoodJob 頁面標示年月 2025-02（Andy 桌面版 2026-10-26 2150_b 批）"
+            }
+          ]
+        },
+        {
+          "unit": "其他",
+          "role": "DQE",
+          "degree": null,
+          "years": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n": 1,
+          "n_stat": 0,
+          "note": null,
+          "grade": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=17",
+              "date": "2025-02"
+            }
+          ],
+          "confidence": "低",
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=17",
+              "date": "2025-02",
+              "page_date": "2025-02",
+              "date_confirmed": true,
+              "role": "DQE",
+              "grade": null,
+              "unit_detail": null,
+              "years": "10",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 200,
+              "weekly_hours": 50,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 12 / 10",
+              "in_window": false,
+              "date_note": "GoodJob 頁面標示年月 2025-02（Andy 桌面版 2026-10-26 2150_b 批）"
+            }
+          ]
+        },
+        {
+          "unit": "其他",
+          "role": "品管╱品保工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n": 1,
+          "n_stat": 0,
+          "note": null,
+          "grade": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=18",
+              "date": "2025-02"
+            }
+          ],
+          "confidence": "低",
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=18",
+              "date": "2025-02",
+              "page_date": "2025-02",
+              "date_confirmed": true,
+              "role": "品管╱品保工程師 龜山",
+              "grade": null,
+              "unit_detail": "龜山",
+              "years": "3",
+              "degree": null,
+              "base_k": 93,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 45,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8 / 9",
+              "in_window": false,
+              "date_note": "GoodJob 頁面標示年月 2025-02（Andy 桌面版 2026-10-26 2150_b 批）"
+            }
+          ]
+        },
+        {
+          "unit": "其他",
+          "role": "職別未明",
+          "degree": null,
+          "years": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n": 1,
+          "n_stat": 0,
+          "note": null,
+          "grade": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=18",
+              "date": "2025-02"
+            }
+          ],
+          "confidence": "低",
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=18",
+              "date": "2025-02",
+              "page_date": "2025-02",
+              "date_confirmed": true,
+              "role": "一專 QRDC",
+              "grade": null,
+              "unit_detail": "QRDC",
+              "years": "7",
+              "degree": null,
+              "base_k": 68,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 40,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8 / 8.5；原填職稱「一專」，依 2321_含修正 批標為職別未明",
+              "in_window": false,
+              "date_note": "GoodJob 頁面標示年月 2025-02（Andy 桌面版 2026-10-26 2150_b 批）"
+            }
+          ]
+        },
+        {
+          "unit": "其他",
+          "role": "雲端伺服器韌體工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n": 1,
+          "n_stat": 0,
+          "note": null,
+          "grade": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=18",
+              "date": "2025-01"
+            }
+          ],
+          "confidence": "低",
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/廣達電腦股份有限公司/salary-work-times?p=18",
+              "date": "2025-01",
+              "page_date": "2025-01",
+              "date_confirmed": true,
+              "role": "雲端伺服器韌體工程師 龜山",
+              "grade": null,
+              "unit_detail": "龜山",
+              "years": null,
+              "degree": null,
+              "base_k": 65,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 40.5,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 13 / 13",
+              "in_window": false,
+              "date_note": "GoodJob 頁面標示年月 2025-01（Andy 桌面版 2026-10-26 2150_b 批）"
             }
           ]
         }
