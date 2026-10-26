@@ -1199,6 +1199,167 @@ def snap_targets(args, base: str, out: Path, today_ymd: str) -> tuple[list[dict]
     return shots, sniff
 
 
+# ---------------------------------------------------------------------------- 純資料快速路徑（2026-10-26）
+# 盤後各卡全部由 social_native 原生繪製，網站截圖最後都被原生圖覆蓋；以前仍對每張卡開網站截「桌機」與「限動版」各一次（16 次頁面載入、約 3 分 40 秒），
+# 只為了拿文案要的幾個數字。這裡改成直接讀 site/data 的 JSON，照網站畫面上的寫法（futpages.js、app.js 三大法人日報、marketfut.js）組出同格式的 read。
+# 啟用條件：本輪所有目標卡的每一片都在 NAT.NATIVE、不需要 DUMP_JS（頁面上才讀得到的資料）、沒有 parts，且不是 --no-native／--no-fast／--from-shots。
+# 盤中（輪盤、熱力圖等網站截圖卡）不會符合條件，照舊截圖。原生繪製若失敗，main 會自動用 --no-fast 重跑一次舊流程（退回網站截圖）。
+from decimal import ROUND_HALF_DOWN, ROUND_HALF_UP, Decimal  # noqa: E402
+
+
+def _js_fixed(v: float, d: int, comma: bool = False) -> str:
+    """模擬 JS toFixed／toLocaleString(minimumFractionDigits=d)：對 double 的精確十進位值四捨五入（不是銀行家捨入）。"""
+    q = Decimal(abs(v)).quantize(Decimal(1).scaleb(-d), rounding=ROUND_HALF_UP)
+    return f"{q:,.{d}f}" if comma else f"{q:.{d}f}"
+
+
+def _js_round(v: float) -> int:
+    """JS Math.round（.5 往正無限大）。"""
+    if v >= 0:
+        return int(Decimal(v).to_integral_value(rounding=ROUND_HALF_UP))
+    return -int(Decimal(-v).to_integral_value(rounding=ROUND_HALF_DOWN))
+
+
+def fast_read_fut_oi(j: dict) -> str:
+    """同 futpages.js paintNumbers 的 #fpBig3（最新一日）：「外資+1,234 多 x／空 y 投信… 自營商…」。"""
+    ds = j.get("dates") or []
+    if not ds:
+        return ""
+    i = 0 if j.get("order") == "desc" else len(ds) - 1
+    at = lambda arr: (float(arr[i]) if arr and i < len(arr) and arr[i] is not None else None)
+    nf = lambda v: "—" if v is None else f"{_js_round(v):,}"
+    sg = lambda v: "—" if v is None else ("+" if v > 0 else "−" if v < 0 else "") + f"{abs(_js_round(v)):,}"
+    out = []
+    for k, nm in (("foreign", "外資"), ("trust", "投信"), ("dealer", "自營商")):
+        o = j.get(k) or {}
+        lg, sh = at(o.get("long")), at(o.get("short"))
+        n = at(o.get("net"))
+        if n is None and lg is not None and sh is not None:
+            n = lg - sh
+        out.append(f"{nm}{sg(n)} 多 {nf(lg)}／空 {nf(sh)}")      # 網站 innerText 名稱與數字之間沒有空白
+    return " ".join(out)
+
+
+RETAIL_PROD = {"TX": "大台", "MTX": "小台", "TMF": "微台"}
+
+
+def fast_read_retail(j: dict) -> list[dict]:
+    """同 RETAIL_VARIANTS（大台、小台、微台各讀 #fpTop 的大數字）：[{pct: '+1.23%', prod: '大台'}, …]。"""
+    prods = j.get("products") if isinstance(j.get("products"), dict) else None
+    if prods is None and isinstance(j.get("dates"), list):       # 舊格式：頂層就是一個商品
+        prods = {j.get("product") if j.get("product") in RETAIL_PROD else "TMF": j}
+    out = []
+    for k, nm in RETAIL_PROD.items():
+        o = (prods or {}).get(k) or {}
+        ds = o.get("dates") or []
+        if not ds:
+            continue
+        i = 0 if (o.get("order") or j.get("order")) == "desc" else len(ds) - 1
+        at = lambda key: (float(o[key][i]) if o.get(key) and i < len(o[key]) and o[key][i] is not None else None)
+        p = at("ratio_pct")
+        if p is None:
+            tot, lg, sh, nn = at("total_oi"), at("retail_long"), at("retail_short"), at("retail_net")
+            if nn is None and lg is not None and sh is not None:
+                nn = lg - sh
+            p = nn / tot * 100 if tot and nn is not None else None
+        out.append({"pct": "" if p is None else ("-" if p < 0 else "+") + _js_fixed(p, 2) + "%", "prod": nm})
+    return out
+
+
+def fast_read_inst(j: dict) -> list[list[str]]:
+    """同 READ_INST（app.js 三大法人日報的 #instTiles）：[[身分, '+123.4億'], …]，用最新一列的官方值（不是 rev）。"""
+    rows = (j or {}).get("rows") or []
+    if not rows:
+        return []
+    last = rows[-1]
+
+    def yi(v):
+        if v is None:
+            return "—億"
+        return ("+" if v > 0 else "−" if v < 0 else "") + _js_fixed(v, 1, comma=True) + "億"
+    return [[lab, yi(last.get(k))] for k, lab in (("f", "外資"), ("t", "投信"), ("dl", "自營商"), ("tot", "三大法人合計"))]
+
+
+def fast_read_credit(mf: dict) -> dict:
+    """同 READ_CREDIT（marketfut.js 信用交易 hero）：{ratio: '172.34', chg: '+0.12'}；維持率取最近一個算得出來的日子。"""
+    rows = ((mf or {}).get("margin") or {}).get("rows") or []
+    idx = [i for i, r in enumerate(rows) if r.get("ratio") is not None]
+    if not idx:
+        return {"ratio": None, "chg": None}
+    cur = rows[idx[-1]]["ratio"]
+    prev = rows[idx[-2]]["ratio"] if len(idx) > 1 else None
+    chg = None
+    if prev is not None:
+        dr = cur - prev
+        chg = ("+" if dr > 0 else "-" if dr < 0 else "") + _js_fixed(dr, 2, comma=True)
+    return {"ratio": _js_fixed(cur, 2, comma=True), "chg": chg}
+
+
+def fast_eligible(wanted: list[dict], args) -> bool:
+    if getattr(args, "no_native", False) or getattr(args, "no_fast", False) or getattr(args, "from_shots", ""):
+        return False
+    if not wanted:
+        return False
+    for t in wanted:
+        if t.get("parts"):
+            return False
+        for pc in (t.get("d") or []) + (t.get("m") or []):
+            if pc["name"] not in NAT.NATIVE or pc["name"] in NAT.DUMP_JS:
+                return False
+    return True
+
+
+def fast_targets(args, jget) -> list[dict]:
+    """不開網站，直接從 JSON 組出跟 snap_targets 同格式的 shots（name、label、ok、why、read、pieces_d／pieces_m）。"""
+    wanted = [t for t in TARGETS if t["kind"] in KIND_SET[args.kind] and (not args.only or t["name"] in args.only.split(","))]
+    cache: dict = {}
+
+    def J(n):
+        if n not in cache:
+            cache[n] = jget(n) or {}
+        return cache[n]
+    shots = []
+    for t in wanted:
+        info = {"name": t["name"], "label": t["label"], "ok": False, "why": "", "pieces_d": [], "pieces_m": [], "fast": True}
+        n = t["name"]
+        has, read = False, None
+        if n == "fut-oi":
+            read = fast_read_fut_oi(J("fut_oi"))
+            has = bool(read)
+        elif n == "retail-ratio":
+            read = fast_read_retail(J("retail_ratio"))
+            has = bool(read)
+        elif n == "inst-today":
+            read = fast_read_inst(J("inst_market"))
+            has = bool(read)
+        elif n in ("streak-foreign", "streak-trust"):
+            b_, s_ = NAT.inst_top(J("inst_today"), "foreign" if n == "streak-foreign" else "trust", 10, dict(NAME_MAP))
+            has = bool(b_ or s_)
+            read = {"buy": [r["name"] for r in b_], "sell": [r["name"] for r in s_]}
+        elif n == "credit-ratio":
+            read = fast_read_credit(J("market_fut"))
+            has = bool(read.get("ratio"))
+        elif n in ("credit-rank", "credit-short"):
+            m = J("market_fut").get("margin") or {}
+            rk = m.get("short_rank" if n == "credit-short" else "rank") or {}
+            up_, dn_ = NAT.credit_top(m, "short" if n == "credit-short" else "rank")
+            has = bool(rk.get("rows"))
+            read = {"up": [r["code"] for r in up_], "down": [r["code"] for r in dn_]}
+        if not has:
+            info["why"] = "資料檔裡沒有這張卡的資料 → 跳過"
+            shots.append(info)
+            continue
+        info["read"] = read
+        for key, lst in (("d", info["pieces_d"]), ("m", info["pieces_m"])):
+            for pc in t.get(key) or []:
+                lst.append({"name": pc["name"], "raw": "", "dsf": args.scale, "min_css_font": None, "title": pc.get("title", ""), "text": pc.get("text"),
+                            "jishi": [], "notes": [], "texts": [], "dump": {}, "fast": True})
+        info["ok"] = True
+        log("資料快速路徑：", n, "（不開網站，原生繪製）")
+        shots.append(info)
+    return shots
+
+
 # ---------------------------------------------------------------------------- 排版
 def b64(path: str) -> str:
     return "data:image/png;base64," + base64.b64encode(Path(path).read_bytes()).decode()
@@ -1539,6 +1700,7 @@ def main() -> int:
     ap.add_argument("--spoof-origin", action="store_true", help="報價請求補上正式站 Origin（本機站打正式報價代理用）")
     ap.add_argument("--skip-live", nargs="?", const="all", default="", help="只測版面：不要求即時（all 或逗號分隔的目標名；會截到盤後畫面，絕不可用在發布）")
     ap.add_argument("--no-native", action="store_true", help="不用原生繪製，全部用網站截圖（除錯用）")
+    ap.add_argument("--no-fast", action="store_true", help="不走純資料快速路徑：全部卡都原生繪製時也照舊開網站截圖（除錯／比對用）")
     ap.add_argument("--from-shots", default="", help="沿用另一個輸出資料夾已截好的圖（只換 --frame 配色，示範用）")
     ap.add_argument("--frame", choices=["light", "dark"], default="light", help="版型配色（預設淺色，跟截圖一致）")
     ap.add_argument("--use-snap-attr", action="store_true", help="只用 data-snap 屬性找目標")
@@ -1619,7 +1781,13 @@ def main() -> int:
             shots = json.loads((Path(args.from_shots) / "shots.json").read_text("utf-8"))
             sniff = {"quote_dates": set(), "errors": []}
         else:
-            shots, sniff = snap_targets(args, base, out, today_ymd)
+            wanted_ = [t for t in TARGETS if t["kind"] in KIND_SET[args.kind] and (not args.only or t["name"] in args.only.split(","))]
+            if fast_eligible(wanted_, args):      # 全部原生繪製：不開網站截圖，直接讀 JSON（2026-10-26）
+                log("本輪全部卡片都原生繪製 → 純資料快速路徑（不開網站截圖）")
+                shots = fast_targets(args, lambda n: fetch_json(base, n))
+                sniff = {"quote_dates": set(), "errors": []}
+            else:
+                shots, sniff = snap_targets(args, base, out, today_ymd)
         if args.kind == "intraday" and not args.force:
             ok_q, why_q = gate.intraday_gate(now_, sniff["quote_dates"], holidays_)
             if not ok_q:
@@ -1653,6 +1821,7 @@ def main() -> int:
         report: list[dict] = []
         stories: list[str] = []
         threads_imgs: list[str] = []
+        fast_fail: list[str] = []      # 快速路徑原生繪製失敗的卡（沒有網站截圖可退）
         from playwright.sync_api import sync_playwright
         with sync_playwright() as p:
             browser = p.chromium.launch(executable_path=CHROMIUM) if CHROMIUM else p.chromium.launch()
@@ -1690,7 +1859,11 @@ def main() -> int:
             for s, rec in pd_:
                 if True:
                     tp, bt = texts(s, rec)
-                    if not native("threads", rec):
+                    if native("threads", rec):
+                        pass
+                    elif rec.get("fast"):      # 快速路徑沒有網站截圖可退 → 記下來，整輪改用 --no-fast 重跑
+                        fast_fail.append(rec["name"])
+                    else:
                         compose(browser, "threads", rec, tp, bt, out / f"threads_{rec['name']}.png", report, args.frame)
                     threads_imgs.append(f"threads_{rec['name']}.png")
             for s, rec in pm_:
@@ -1698,7 +1871,11 @@ def main() -> int:
                     if rec["name"] == "rotation-wheel":     # 手機版圓盤只佔卡片寬約 68%（標籤留白）；改用桌機窄視窗那張（約 96%），2026-10-26 Andy 要 ≥80%
                         rec = next((x for x in s["pieces_d"] if x["name"] == "rotation-wheel"), rec)
                     tp, bt = texts(s, rec)
-                    if not native("story", rec):
+                    if native("story", rec):
+                        pass
+                    elif rec.get("fast"):
+                        fast_fail.append(rec["name"])
+                    else:
                         compose(browser, "story", rec, tp, bt, out / f"story_{rec['name']}.png", report, args.frame)
                     stories.append(f"story_{rec['name']}.png")
             if KIND == "close" and not args.no_native and "streak-trust" in [r["name"] for _, r in pd_]:
@@ -1720,6 +1897,14 @@ def main() -> int:
                 except Exception as exc:  # noqa: BLE001
                     log("  ⚠ 限動結尾頁畫失敗（不擋發文）：", str(exc)[:120])
             browser.close()
+        if fast_fail:      # 快速路徑原生繪製失敗：退回舊流程（開網站截圖，失敗的卡用截圖排版），整輪重跑一次
+            log("  ⚠ 快速路徑原生繪製失敗：", "、".join(sorted(set(fast_fail))), "→ 改用 --no-fast（網站截圖）重跑")
+            if srv:
+                srv.shutdown()
+                srv.server_close()
+                srv = None
+            import subprocess
+            return subprocess.call([sys.executable, str(Path(__file__).resolve())] + sys.argv[1:] + ["--no-fast"])
         for r in report:
             if r["file"].startswith("story_") and r["shot_ratio"] < 0.75 and r["h"] == 1920:
                 log(f"  ⚠ {r['file']} 截圖佔畫布 {r['shot_ratio']:.0%}、內容卡片佔 {r['content_ratio']:.0%}")
