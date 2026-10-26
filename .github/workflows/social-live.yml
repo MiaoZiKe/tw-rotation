@@ -115,14 +115,35 @@ jobs:
         with:
           python-version: "3.12"
 
+      # 2026-10-27：Ubuntu 套件伺服器（azure.archive.ubuntu.com）半夜很慢，apt 裝字型卡 8 分鐘以上兩次 →
+      # 字型改從 GitHub 直接下載並快取（第二次起秒過）；Chromium 系統函式庫 ubuntu-latest 本來就有，先不裝，啟動失敗才補 install-deps
+      - name: 字型快取
+        if: steps.done.outputs.skip != '1'
+        id: fontcache
+        uses: actions/cache@v4
+        with:
+          path: ~/.local/share/fonts/tw-rotation
+          key: social-fonts-v1
+
       - name: 安裝 Playwright、Pillow 與中文字型
         if: steps.done.outputs.skip != '1'
-        timeout-minutes: 8      # 2026-10-27 測試時 apt 卡 11 分鐘：設上限，卡住就失敗重派，不要拖住整輪
+        timeout-minutes: 8
         run: |
           pip install playwright pillow requests
           if [ "${{ steps.kind.outputs.kind }}" = "premarket" ]; then pip install -r requirements.txt; fi      # 盤前要讀資料湖（pandas／pyarrow）
-          python -m playwright install --with-deps chromium
-          sudo apt-get -o Acquire::Retries=3 -o Acquire::http::Timeout=30 install -y fonts-noto-cjk fonts-noto-color-emoji
+          python -m playwright install chromium
+          F=~/.local/share/fonts/tw-rotation
+          mkdir -p "$F"
+          if [ ! -s "$F/NotoSansCJKtc-Regular.otf" ]; then
+            for w in Regular Bold; do
+              curl -fsSL --retry 3 -o "$F/NotoSansCJKtc-$w.otf" "https://github.com/notofonts/noto-cjk/raw/main/Sans/OTF/TraditionalChinese/NotoSansCJKtc-$w.otf"
+            done
+            curl -fsSL --retry 3 -o "$F/NotoColorEmoji.ttf" "https://github.com/googlefonts/noto-emoji/raw/main/fonts/NotoColorEmoji.ttf"
+          fi
+          fc-cache -f >/dev/null
+          fc-list | grep -c "Noto Sans CJK TC" || true
+          python -c "from playwright.sync_api import sync_playwright as P; p=P().start(); p.chromium.launch().close(); p.stop()" \
+            || { echo "Chromium 缺系統函式庫 → 補 install-deps"; sudo timeout 300 python -m playwright install-deps chromium; }
 
       - name: 截圖＋排版＋產 manifest
         id: snap
