@@ -69,20 +69,31 @@ def _sleep(sec):
     time.sleep(sec)
 
 
-def retry_once(label, fn):
-    try:
-        return fn()
-    except Exception as e:  # noqa: BLE001
-        log(f"[{label}] 失敗，重試 1 次：{redact(e)}")
-        _sleep(3)
-        return fn()
+def retry_once(label, fn, tries: int = 3):
+    """失敗重試（2026-10-27 起最多 3 次、間隔 5／15 秒；IG 偶發「Media Not Found」重建容器通常就過）。"""
+    for k in range(tries):
+        try:
+            return fn()
+        except Exception as e:  # noqa: BLE001
+            if k == tries - 1:
+                raise
+            log(f"[{label}] 失敗，第 {k + 1} 次重試：{redact(e)}")
+            _sleep(5 if k == 0 else 15)
 
 
 def wait_ready(host, token, cid, label, field):
     """輪詢容器狀態到 FINISHED。Threads 欄位 status、IG 欄位 status_code。"""
     waited = 0
+    _sleep(3)      # 剛建立的容器馬上查常回「Media Not Found」（IG 2207006，2026-10-27 盤中測試踩到）→ 先等一下
     while True:
-        d = http("GET", f"{host}/{cid}", params={"fields": field, "access_token": token})
+        try:
+            d = http("GET", f"{host}/{cid}", params={"fields": field, "access_token": token})
+        except RuntimeError as e:
+            if ("2207006" in str(e) or "does not exist" in str(e)) and waited < 60:      # 還沒同步好，不是真的失敗
+                _sleep(POLL_EVERY)
+                waited += POLL_EVERY
+                continue
+            raise
         st = d.get(field)
         if st == "FINISHED":
             return
@@ -262,7 +273,8 @@ def run(manifest_path, base_url, dry_run=False, env=None, flag=None) -> int:
         ig_uid = resolve_user_id("ig", env.get("IG_USER_ID", ""), env.get("IG_ACCESS_TOKEN", ""))
 
     # Threads
-    if not th.get("text"):
+    only = os.environ.get("SOCIAL_ONLY", "")      # 測試補發用：ig＝只發 IG 限動（Threads 已發過）、threads＝只發 Threads
+    if not th.get("text") or only == "ig":
         pass
     elif "threads" in done:
         log(f"[threads] 已發過（{done['threads'].get('link') or done['threads'].get('id')}），略過")
@@ -283,7 +295,7 @@ def run(manifest_path, base_url, dry_run=False, env=None, flag=None) -> int:
             log(f"[threads] 發布失敗：{redact(e)}")
 
     # IG 限動
-    if not st_urls:
+    if not st_urls or only == "threads":
         pass
     elif "story" in done and len(done["story"]) >= len(st_urls):
         log("[ig] 限動已發過，略過")

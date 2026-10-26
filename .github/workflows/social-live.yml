@@ -50,6 +50,11 @@ on:
         description: "略過盤中時段／交易日／資料日期檢查（測試用）"
         type: boolean
         default: false
+      only:
+        description: "只發哪個平台（測試補發用）：all、ig、threads"
+        type: choice
+        options: [all, ig, threads]
+        default: all
       live_test:
         description: "測試真發一篇（2026-10-27 Andy：「全部發一篇測試」）：不管總開關、用最近一次資料、不寫發布紀錄（不會擋掉當天正式那篇）"
         type: boolean
@@ -204,6 +209,7 @@ jobs:
           IG_USER_ID: ${{ secrets.IG_USER_ID }}
           IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
           SOCIAL_LIVE_TEST: ${{ github.event_name == 'workflow_dispatch' && inputs.live_test && '1' || '' }}
+          SOCIAL_ONLY: ${{ github.event_name == 'workflow_dispatch' && inputs.only != 'all' && inputs.only || '' }}
         run: |
           DRY=""
           if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.dry_run }}" = "true" ]; then DRY="--dry-run"; fi
