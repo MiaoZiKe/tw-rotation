@@ -49,6 +49,18 @@ def t_tc_charts_1026(b, base, code):
     pe.goto(base + "#tc/foundry/" + pe.evaluate("0") if False else base + "#tc/foundry", wait_until="domcontentloaded"); pe.wait_for_timeout(1500)
     pe.click("#v-tc .tc-co >> nth=1"); pe.wait_for_timeout(800)
     ok(f"{T}：完全沒數字的公司 → 灰色空環＋「資料不足」（不捏造）", "資料不足" in pe.inner_text("#v-tc .tc-pay"))
+    # 一眼看懂區：KPI、獎金月曆、量表、短標籤＋「?」、獎金卡、小橫條、摘要截斷
+    ok(f"{T}：公司頁 KPI 數字卡 ≥5 張、年薪中位數有數字", pp.evaluate("()=>document.querySelectorAll('#v-tc .tc-kpi').length>=5 && /\\d/.test(document.querySelector('#v-tc .tc-kpi b').innerText)"))
+    lit = pp.evaluate("()=>[...document.querySelectorAll('#v-tc .tc-cm.lit b')].map(e=>+e.innerText)")
+    ok(f"{T}：台積電獎金月曆點亮 2/5/7/8/11 月", lit == [2, 5, 7, 8, 11], lit)
+    ok(f"{T}：加班／出差三段量表存在", pp.evaluate("()=>document.querySelectorAll('#v-tc .tc-g3').length===2"))
+    ok(f"{T}：福利／持股／風氣／面試是短標籤（無整段長文）且有「?」", pp.evaluate("()=>{const g=[...document.querySelectorAll('#v-tc .tc-chg .tc-cg')];return g.length>=4&&g.every(x=>x.querySelectorAll('.tc-chip').length>=1&&x.querySelector('.tc-qp'))&&[...document.querySelectorAll('#v-tc .tc-chip')].every(e=>e.innerText.length<=16)}"))
+    pp.click("#v-tc .tc-chg .tc-qp > .tc-q >> nth=0"); pp.wait_for_timeout(150)
+    ok(f"{T}：點「?」→ 完整文字浮出、點背景關閉", pp.evaluate("()=>{const p=document.querySelector('#v-tc .tc-chg .tc-pop');return !p.hidden&&p.innerText.length>8}") and (pp.mouse.click(5, 300), pp.wait_for_timeout(150), pp.evaluate("()=>document.querySelector('#v-tc .tc-chg .tc-pop').hidden"))[-1])
+    ok(f"{T}：獎金卡有大字月數／發放月份、規則收進「?」", pp.evaluate("()=>[...document.querySelectorAll('#v-tc .tc-bsr')].every(c=>c.querySelector('em')&&c.querySelector('.tc-qp')&&!c.innerText.includes('每季提撥'))"))
+    ok(f"{T}：職位表底薪／年薪有小橫條", pp.evaluate("()=>document.querySelectorAll('#v-tc .tc-row .tc-mb b').length>=3"))
+    pp.click("#v-tc .tc-row >> nth=0 >> td[data-l='底薪(K/月)']"); pp.wait_for_timeout(250)
+    ok(f"{T}：樣本摘要欄預設截斷一行、點一下展開", pp.evaluate("()=>{const t=document.querySelector('#v-tc .tc-smt td.tc-clip');if(!t)return true;const a=getComputedStyle(t).whiteSpace==='nowrap';t.click();return a&&t.classList.contains('open')}"))
     # 區間陣列樣本：用 TwTc 內部不外露，改驗畫面——注入一筆陣列樣本資料後逐筆表要顯示 a–b 而不是 a,b
     c2 = b.new_context(viewport={"width": 1440, "height": 900}); c2.add_init_script("window.TW_TC_OVERRIDE=true;try{localStorage.setItem('tw.tour','done')}catch(e){}")
     def inj(rt):
