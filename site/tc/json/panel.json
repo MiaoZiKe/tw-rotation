@@ -49,6 +49,38 @@
           "sources": [],
           "confidence": "低",
           "note": "2026-10-26 Andy 指示加入"
+        },
+        {
+          "unit": "其他",
+          "role": "面板驅動電路設計工程師",
+          "degree": "碩士",
+          "samples": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/262300928",
+              "date": "2026-10",
+              "page_date": "2026-10-15",
+              "date_confirmed": true,
+              "role": "面板驅動電路設計工程師（消費性產品）",
+              "grade": null,
+              "unit_detail": null,
+              "years": "0",
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "拿到 offer 後婉拒；數字未透露",
+              "in_window": true,
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-10-15"
+            }
+          ],
+          "sources": [],
+          "confidence": "低",
+          "n": 1
         }
       ]
     },

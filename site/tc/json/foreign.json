@@ -1383,6 +1383,38 @@
           "sources": [],
           "confidence": "低",
           "n": 1
+        },
+        {
+          "unit": "新店 / 製造處",
+          "role": "自動化工程師",
+          "degree": "碩士",
+          "samples": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261165250",
+              "date": "2026-03",
+              "page_date": "2026-03-24",
+              "date_confirmed": true,
+              "role": "自動化工程師（機構）",
+              "grade": "工程師1",
+              "unit_detail": "新店 / 製造處",
+              "years": "3.5",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": 16,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": "偶爾",
+              "quote_free_note": "月薪約台積新人價 ±3K；常態 16 個月（保 14＋分紅 2～4）；面試感覺出差頻率高（含出國）；同篇台達電兩職缺在面試中、未拿到 offer",
+              "in_window": true,
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-03-24"
+            }
+          ],
+          "sources": [],
+          "confidence": "低",
+          "n": 1
         }
       ]
     },
@@ -1434,6 +1466,104 @@
           "note": "2026-10-26 由 Dcard 樣本新增的公司"
         }
       ]
+    },
+    {
+      "name": "Merck",
+      "code": null,
+      "heat": null,
+      "benefits": null,
+      "stock_plan": null,
+      "bonus_timing": null,
+      "bonus_structure": [],
+      "culture": null,
+      "interview": null,
+      "grade_system": null,
+      "mops": null,
+      "roles": [
+        {
+          "unit": "其他",
+          "role": "Automation Engineer",
+          "degree": "碩士",
+          "grade": null,
+          "samples": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/260705258",
+              "date": "2026-01",
+              "page_date": "2026-01-20",
+              "date_confirmed": true,
+              "role": "Automation Engineer（數位化）",
+              "grade": null,
+              "unit_detail": null,
+              "years": "9",
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": 13,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "34 歲，聯電＋台積設備共 3 年、長春儀電 6 年；N＝現職月薪；核薪 (N+14k)×13＋獎金，HR 說可再爭取，最後婉拒",
+              "in_window": true,
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-01-20"
+            }
+          ],
+          "sources": [],
+          "confidence": "低",
+          "n": 1
+        }
+      ],
+      "note": "2026-10-26 由 Dcard 樣本新增的公司"
+    },
+    {
+      "name": "SSMC（新加坡）",
+      "code": null,
+      "heat": null,
+      "benefits": null,
+      "stock_plan": null,
+      "bonus_timing": null,
+      "bonus_structure": [],
+      "culture": null,
+      "interview": null,
+      "grade_system": null,
+      "mops": null,
+      "roles": [
+        {
+          "unit": "其他",
+          "role": "工程師",
+          "degree": "碩士",
+          "grade": null,
+          "samples": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/260705258",
+              "date": "2026-01",
+              "page_date": "2026-01-20",
+              "date_confirmed": true,
+              "role": "工程師（職稱未寫）",
+              "grade": null,
+              "unit_detail": null,
+              "years": "9",
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": 15.5,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "面試談到薪資範圍約 (N+90k)×15.5＋租屋補助；結果未明確；同篇台達電 Data Center 系統主任工程師無數字，最後去了未列出的副理職公司",
+              "in_window": true,
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-01-20"
+            }
+          ],
+          "sources": [],
+          "confidence": "低",
+          "n": 1
+        }
+      ],
+      "note": "2026-10-26 由 Dcard 樣本新增的公司"
     }
   ]
 }

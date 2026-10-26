@@ -6732,9 +6732,31 @@
               "quote_free_note": "N＝2025 台積新人價；月薪 N-10k×12，不確定是否保 14",
               "in_window": true,
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-07-10"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261801327",
+              "date": "2026-07",
+              "page_date": "2026-07-10",
+              "date_confirmed": true,
+              "role": "韌體應用工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "0",
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": 12,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "N 未說明；offer (N-10K)×12，不確定有無保 14；責任制無加班費，客戶有問題時會突然很忙",
+              "in_window": true,
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-07-10"
             }
           ],
-          "n": 1,
+          "n": 2,
           "sources": [],
           "confidence": "低",
           "note": "2026-10-26 由 Dcard 樣本新增的公司"
