@@ -171,6 +171,11 @@ def t_funnel_1026(b, base, code):
         thr = next((r for r in tbl if r[0] == "Threads"), None)
         ok(f"{T}：⑤管理區「各來源的漏斗」：全站合計列、Threads 列都在", bool(tot) and bool(thr), tbl)
         ok(f"{T}：⑤Threads 列：進站 1、註冊 1、看價格 ≥1、點結帳 ≥1；註冊率 100.0%", bool(thr) and thr[1] == "1" and thr[2] == "1" and int(thr[4]) >= 1 and int(thr[5]) >= 1 and thr[7] == "100.0%", thr)
+        dirr = next((r for r in tbl if r[0].startswith("直接進站")), None)
+        ok(f"{T}：⑤直接進站列：進站 ≥ 1 且 ≥ 註冊", bool(dirr) and int(dirr[1]) >= 1 and int(dirr[1]) >= int(dirr[2]), dirr)
+        def _rt(r):
+            return r[-1] == "—" or float(r[-1].rstrip("%")) <= 100.0
+        ok(f"{T}：⑤任何列註冊率都不超過 100%", all(_rt(r) for r in tbl), tbl)
         ok(f"{T}：⑤全站合計註冊＝2（threads 1＋direct 1）", bool(tot) and tot[2] == "2", tot)
         ok(f"{T}：⑤「?」說明收在標題旁、卡內沒有攤開的說明段落", ad.evaluate("() => { const c = document.querySelector('#trFunnel'); return !!c.querySelector('h3 .qtip') && !c.querySelector('p, details'); }"))
         if shots:

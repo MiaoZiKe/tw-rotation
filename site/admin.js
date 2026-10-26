@@ -1121,7 +1121,8 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
     rows.forEach((r) => { const k = String(r.k || '').replace(/^ev:/, ''); if (r.k.startsWith('ev:') && k in tot) tot[k] += r.n; });
     const by = {};
     e2.forEach((r) => { if (r.page === 'other' && /^fn\./.test(r.comp)) { const k = r.comp.slice(3); if (k in tot) { (by[r.detail] = by[r.detail] || {})[k] = (by[r.detail][k] || 0) + r.n; } } });
-    const rate = (a, b) => (b > 0 ? (a / b * 100).toFixed(1) + '%' : '—');
+    /* 分母為 0 或舊資料不一致（註冊 > 進站，舊版直接進站不記進站）時顯示「—」，不顯示超過 100% */
+    const rate = (a, b) => (b > 0 && a <= b ? (a / b * 100).toFixed(1) + '%' : '—');
     const line = (name, o, cls) => `<tr${cls ? ` class="${cls}"` : ''}><th scope="row" data-l="來源">${esc(name)}</th>${FN_STEPS.map(([k, n]) => `<td data-l="${n}">${nf(o[k] || 0)}</td>`).join('')}<td data-l="註冊率">${rate(o.signup || 0, o.land || 0)}</td></tr>`;
     const srcs = Object.keys(by).sort((a, b) => (by[b].land || 0) - (by[a].land || 0) || (by[b].signup || 0) - (by[a].signup || 0));
     const any = sum(Object.values(tot)) > 0;

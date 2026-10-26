@@ -142,8 +142,10 @@
   }
   window.TwFunnel = (e) => funnel(e);
   /* 進站：這次網址帶了來源，且這台 30 分鐘內沒算過 → 算一次（用網址的來源，不是第一次來源） */
+  /* 沒帶來源的首次進站也算（來源 direct）：否則直接進站的人註冊時有「註冊」卻沒有「進站」，註冊率會超過 100%。
+     這台已有第一次來源的老訪客直接回來，不再算 direct（他的進站已記在原來源）；DNT／GPC 由 funnel() 擋掉。 */
   function landTrack(cur) {
-    if (!cur) return;
+    if (!cur) { if (srcGet()) return; cur = { s: 'direct' }; }
     const last = +ls.get(K_LAND) || 0;
     if (Date.now() - last < 30 * 60 * 1000) return;
     ls.set(K_LAND, String(Date.now()));
