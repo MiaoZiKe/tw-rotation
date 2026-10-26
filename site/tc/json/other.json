@@ -372,6 +372,150 @@
         }
       ],
       "note": "2026-10-26 由 Dcard 樣本新增的公司"
+    },
+    {
+      "name": "半導體設備外商（未具名）",
+      "code": null,
+      "heat": null,
+      "benefits": null,
+      "stock_plan": null,
+      "bonus_timing": null,
+      "bonus_structure": [],
+      "culture": null,
+      "interview": null,
+      "grade_system": null,
+      "mops": null,
+      "roles": [
+        {
+          "unit": "其他",
+          "role": "軟體 RD（junior，C++）",
+          "degree": "碩士",
+          "samples": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261908379",
+              "date": "2026-08",
+              "page_date": "2026-08-03",
+              "date_confirmed": true,
+              "role": "軟體 RD（junior，C++）",
+              "grade": null,
+              "unit_detail": null,
+              "years": "0",
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 150,
+              "weekly_hours": null,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "純 RD 不輪班、彈性上下班，出貨前要加班；年薪加 bonus 約 140～160 萬（取中值）；面試要求英文；文中說曾面廣達、華碩韌體但因薪水不如現職而拒絕二面",
+              "in_window": true,
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-08-03"
+            }
+          ],
+          "n": 1,
+          "sources": [],
+          "confidence": "低"
+        }
+      ],
+      "note": "Andy 2026-10-26「先收」；公司未具名"
+    },
+    {
+      "name": "外商派遣 A（印度派遣公司）",
+      "code": null,
+      "heat": null,
+      "benefits": null,
+      "stock_plan": null,
+      "bonus_timing": null,
+      "bonus_structure": [],
+      "culture": null,
+      "interview": null,
+      "grade_system": null,
+      "mops": null,
+      "roles": [
+        {
+          "unit": "其他",
+          "role": "ML Engineer",
+          "degree": "碩士",
+          "samples": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261239822",
+              "date": "2026-04",
+              "page_date": "2026-04-05",
+              "date_confirmed": true,
+              "role": "ML Engineer",
+              "grade": null,
+              "unit_detail": null,
+              "years": "5",
+              "degree": "碩士",
+              "base_k": 130,
+              "bonus_months": null,
+              "annual_months": 13,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "130k×13＋少量績效；派遣、福利少、無法轉正",
+              "in_window": true,
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-04-05"
+            }
+          ],
+          "n": 1,
+          "sources": [],
+          "confidence": "低"
+        }
+      ],
+      "note": "Andy 2026-10-26「先收」；公司未具名"
+    },
+    {
+      "name": "外商派遣 B（印度派遣公司）",
+      "code": null,
+      "heat": null,
+      "benefits": null,
+      "stock_plan": null,
+      "bonus_timing": null,
+      "bonus_structure": [],
+      "culture": null,
+      "interview": null,
+      "grade_system": null,
+      "mops": null,
+      "roles": [
+        {
+          "unit": "其他",
+          "role": "AI Engineer（LLM 應用）",
+          "degree": "碩士",
+          "samples": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261239822",
+              "date": "2026-04",
+              "page_date": "2026-04-05",
+              "date_confirmed": true,
+              "role": "AI Engineer（LLM 應用）",
+              "grade": null,
+              "unit_detail": null,
+              "years": "5",
+              "degree": "碩士",
+              "base_k": 120,
+              "bonus_months": null,
+              "annual_months": 13,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "120k×13＋少量績效；每週可 WFH 1～2 天",
+              "in_window": true,
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-04-05"
+            }
+          ],
+          "n": 1,
+          "sources": [],
+          "confidence": "低"
+        }
+      ],
+      "note": "Andy 2026-10-26「先收」；公司未具名"
     }
   ]
 }
