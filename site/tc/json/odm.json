@@ -1716,8 +1716,8 @@
             67
           ],
           "bonus_months": [
-            6,
-            6
+            2,
+            2
           ],
           "annual_months": null,
           "annual_total_wan": null,
@@ -1745,15 +1745,15 @@
               "degree": null,
               "base_k": 67,
               "bonus_months": [
-                6,
-                6
+                2,
+                2
               ],
               "annual_months": null,
               "annual_wan": null,
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
-              "quote_free_note": "考績甲：年終 4 個月、分紅 2 個月、三節各 1000 元",
+              "quote_free_note": "考績甲：年終 4 個月（另計）、分紅 2 個月、三節各 1000 元",
               "date_confirmed": true,
               "date_note": "GoodJob 評價標示年月，晚於 2025-08-01",
               "in_window": true
@@ -3337,6 +3337,25 @@
               "quote_free_note": "36 歲中年轉職；N＝約 60K（發文者寫）；月薪 N+4，以 64k 計；可能與 262084665 為同一人",
               "in_window": true,
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-09-03"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/智邦科技股份有限公司/work-experiences/薪資福利",
+              "date": "2025-11",
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 62,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "新鮮人；年終三節都有，無加班費只能換補休",
+              "date_confirmed": true,
+              "date_note": "來源標示年月，晚於 2025-08-01",
+              "in_window": true
             }
           ],
           "sources": [
@@ -3344,12 +3363,17 @@
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/262076304",
               "date": "2026-09"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/智邦科技股份有限公司/work-experiences/薪資福利",
+              "date": "2025-11"
             }
           ],
           "confidence": "低",
-          "n": 1,
+          "n": 2,
           "base_month_k": [
-            64,
+            62,
             64
           ],
           "years": null,
@@ -3359,7 +3383,7 @@
           "weekly_hours": null,
           "overtime": null,
           "travel": null,
-          "n_stat": 1,
+          "n_stat": 2,
           "note": null,
           "grade": null
         },
@@ -3388,12 +3412,36 @@
               "in_window": true,
               "role": "工程師（新竹縣評價）",
               "quote_free_note": "評 5 分，有彈休與生日假；月薪約 5.375 萬"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/智邦科技股份有限公司/work-experiences/薪資福利",
+              "date": "2026-03",
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 53.75,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "有彈休與生日假",
+              "date_confirmed": true,
+              "date_note": "來源標示年月，晚於 2025-08-01",
+              "in_window": true
             }
           ],
           "sources": [
             {
               "site": "GoodJob",
               "url": "https://www.goodjob.life/companies/智邦科技股份有限公司/work-experiences",
+              "date": "2026-03"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/智邦科技股份有限公司/work-experiences/薪資福利",
               "date": "2026-03"
             }
           ],
@@ -3410,8 +3458,8 @@
           "weekly_hours": null,
           "overtime": null,
           "travel": null,
-          "n": 1,
-          "n_stat": 1
+          "n": 2,
+          "n_stat": 2
         },
         {
           "unit": "研發 RD",
@@ -3565,7 +3613,7 @@
       "name": "台達電",
       "code": "2308",
       "heat": null,
-      "benefits": null,
+      "benefits": "網友說法：黃金週帶薪假、彈性上下班、育兒津貼、三節獎金、員工餐廳補助（GoodJob 評價）",
       "stock_plan": null,
       "bonus_timing": "分紅兩次：4 月員工現金獎金（約 40%）＋8 月員工現金酬勞（約 60%）；考績獎金 6 月；年終農曆年前",
       "culture": "GoodJob：薪資福利評分相對高；分紅看部門表現，工時評價不一",
@@ -5123,6 +5171,55 @@
           "n": 1,
           "n_stat": 0,
           "overtime": null
+        },
+        {
+          "unit": "研發 RD",
+          "role": "RD 工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": [
+            70,
+            70
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n": 1,
+          "note": "網友自述樣本（2025-08 之後）",
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台達電子工業股份有限公司/work-experiences/薪資福利",
+              "date": "2025-12"
+            }
+          ],
+          "confidence": "低",
+          "grade": null,
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台達電子工業股份有限公司/work-experiences/薪資福利",
+              "date": "2025-12",
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 70,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": null,
+              "date_confirmed": true,
+              "date_note": "來源標示年月，晚於 2025-08-01",
+              "in_window": true
+            }
+          ],
+          "n_stat": 1
         }
       ],
       "mops": null,
@@ -5178,7 +5275,7 @@
       "heat": null,
       "benefits": null,
       "stock_plan": "員工持股信託：2022 年起開放，員工與公司相對提撥，由銀行定期買進公司股票；現行提撥比例未查到（數位時代 bnext.com.tw/article/69127、GoodJob 員工評價）",
-      "bonus_timing": "年終＋績效獎金（約 1 月公布）；年中分紅舊報導稱 8 月底、占總分紅約七成；歲末派對曾加發 2～3 個月",
+      "bonus_timing": "年終＋績效獎金（約 1 月公布）；年中分紅舊報導稱 8 月底、占總分紅約七成；歲末派對曾加發 2～3 個月；網友說法：年終與獎金 8 月和年初各發一次（GoodJob 2025-09 軟體工程師評價）",
       "culture": null,
       "interview": "網友說法：先做線上英文／邏輯（圖形）或適性測驗，再人資與主管面，偏行為題與過往專案，最後問期望薪資與手上 offer；產品經理流程長、需英文簡報（GoodJob 2026 多則、Dcard 面試心得）",
       "roles": [
@@ -6256,6 +6353,25 @@
               "in_window": true,
               "role": "軟體工程師（在職評價）",
               "quote_free_note": "主管參與技術指導、責任制下工時相對公平；月薪 6.5 萬"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/華碩電腦股份有限公司 ASUS/work-experiences/薪資福利",
+              "date": "2025-09",
+              "unit_detail": null,
+              "years": "1",
+              "degree": null,
+              "base_k": 62,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "年終和獎金 8 月與年初各發一次",
+              "date_confirmed": true,
+              "date_note": "來源標示年月，晚於 2025-08-01",
+              "in_window": true
             }
           ],
           "sources": [
@@ -6263,13 +6379,18 @@
               "site": "GoodJob",
               "url": "https://www.goodjob.life/companies/華碩電腦股份有限公司 ASUS/work-experiences/工作內容",
               "date": "2026"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/華碩電腦股份有限公司 ASUS/work-experiences/薪資福利",
+              "date": "2025-09"
             }
           ],
           "confidence": "低",
           "note": "2026-10-26 依搜尋摘要新增",
           "grade": null,
           "base_month_k": [
-            65,
+            62,
             65
           ],
           "bonus_months": null,
@@ -6278,7 +6399,56 @@
           "weekly_hours": null,
           "overtime": null,
           "travel": null,
+          "n": 2,
+          "n_stat": 2
+        },
+        {
+          "unit": "其他",
+          "role": "自動化軟體工程師",
+          "degree": null,
+          "years": "2",
+          "base_month_k": [
+            42,
+            42
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": "經常",
           "n": 1,
+          "note": "網友自述樣本（2025-08 之後）",
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/華碩電腦股份有限公司 ASUS/work-experiences/薪資福利",
+              "date": "2025-09"
+            }
+          ],
+          "confidence": "低",
+          "grade": null,
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/華碩電腦股份有限公司 ASUS/work-experiences/薪資福利",
+              "date": "2025-09",
+              "unit_detail": null,
+              "years": "2",
+              "degree": null,
+              "base_k": 42,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": "經常",
+              "quote_free_note": "經常出差、主管嚴厲",
+              "date_confirmed": true,
+              "date_note": "來源標示年月，晚於 2025-08-01",
+              "in_window": true
+            }
+          ],
           "n_stat": 1
         }
       ],
@@ -6545,12 +6715,36 @@
               "in_window": true,
               "role": "韌體工程師（在職評價）",
               "quote_free_note": "常加班，主管依加班時數給績效；每週 80 小時"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/群光電子股份有限公司/work-experiences/薪資福利",
+              "date": "2026-01",
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 110,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "可報加班費",
+              "date_confirmed": true,
+              "date_note": "來源標示年月，晚於 2025-08-01",
+              "in_window": true
             }
           ],
           "sources": [
             {
               "site": "GoodJob",
               "url": "https://www.goodjob.life/companies/群光電子股份有限公司/work-experiences/工時狀況",
+              "date": "2026-01"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/群光電子股份有限公司/work-experiences/薪資福利",
               "date": "2026-01"
             }
           ],
@@ -6560,15 +6754,18 @@
           "base_month_k": null,
           "bonus_months": null,
           "annual_months": null,
-          "annual_total_wan": null,
+          "annual_total_wan": [
+            110,
+            110
+          ],
           "weekly_hours": [
             80,
             80
           ],
           "overtime": "經常",
           "travel": null,
-          "n": 1,
-          "n_stat": 1
+          "n": 2,
+          "n_stat": 2
         }
       ],
       "mops": null,
@@ -7478,6 +7675,18 @@
               "date": "2025-12"
             }
           ]
+        },
+        {
+          "type": "保障月數",
+          "rule": "網友說法：保 14 個月（中秋端午各半薪）＋尾牙獎金、生日獎金，實際約 16～18 個月，近年有人說變少（GoodJob 評價，未逐筆標日期）",
+          "months": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/和碩聯合科技股份有限公司/work-experiences/薪資福利",
+              "date": "2025"
+            }
+          ]
         }
       ]
     },
@@ -7945,6 +8154,55 @@
           "years": "2",
           "n": 2,
           "n_stat": 2
+        },
+        {
+          "unit": "研發 RD",
+          "role": "電源研發工程師（全英文電源研發班）",
+          "degree": null,
+          "years": null,
+          "base_month_k": [
+            85,
+            85
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n": 1,
+          "note": "網友自述樣本（2025-08 之後）",
+          "sources": [
+            {
+              "site": "Cake 公司職缺",
+              "url": "https://www.cake.me/companies/liteon/jobs",
+              "date": "2026"
+            }
+          ],
+          "confidence": "低",
+          "grade": null,
+          "samples": [
+            {
+              "site": "Cake 公司職缺",
+              "url": "https://www.cake.me/companies/liteon/jobs",
+              "date": "2026",
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 85,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "公司職缺頁：月薪最低 85,000 元，依經驗往上核薪",
+              "date_confirmed": true,
+              "date_note": "公司 2026 年招募職缺，2026/7/6 報到",
+              "in_window": true
+            }
+          ],
+          "n_stat": 1
         }
       ],
       "mops": null,
@@ -7977,6 +8235,18 @@
               "site": "Threads 網友",
               "url": "https://www.threads.com/@wade_lw.huang/post/DEg1LZxTMBG",
               "date": "2025-01"
+            }
+          ]
+        },
+        {
+          "type": "保障月數",
+          "rule": "網友說法：一般職級工程師保 14 個月，分紅多在主管或較高職等才穩定，依部門與績效差異大（GoodJob 評價）",
+          "months": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/光寶科技股份有限公司/work-experiences/薪資福利",
+              "date": "2025"
             }
           ]
         }
