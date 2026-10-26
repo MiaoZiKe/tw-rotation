@@ -1808,7 +1808,7 @@
           ],
           "overtime": "偶爾～經常",
           "travel": "不用",
-          "n": 10,
+          "n": 12,
           "note": "GoodJob 2026-01 彰化 5 萬、台中測試 4.3 萬；保 14 個月出自 salary.tw 單則；學歷未標；年薪 14 個月扣本薪 12 個月推算，含年終；撤回：bonus_months 原為沿用／推算／暫填值，無直接證據，已改回原值；第二輪：GoodJob 2026-08 製程技術錄取 5.4 萬（本薪＋伙食 3,000＋工作加給）、保 14、年調 2～5%；2025-11 評價稱分紅一年 4 次（2、5、8、11 月）；Dcard 稱國立碩約 30 職等 4.8～5 萬、加班常態每月約 50 小時；PTT 2026-04 測試職保 14＋分紅、做二休二",
           "sources": [
             {
@@ -2043,6 +2043,50 @@
               "quote_free_note": "面試時說要做二休二、上大夜，offer 寫常日班；月薪 49k",
               "in_window": true,
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-06-09"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/262118258",
+              "date": "2026-09",
+              "page_date": "2026-09-10",
+              "date_confirmed": true,
+              "role": "製程整合工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "同篇；數字未透露",
+              "in_window": true,
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-09-10"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/262097462",
+              "date": "2026-09",
+              "page_date": "2026-09-07",
+              "date_confirmed": true,
+              "role": "製程整合工程師",
+              "grade": null,
+              "unit_detail": "中科",
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "常日班；數字未透露",
+              "in_window": true,
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-09-07"
             }
           ],
           "n_stat": 3
@@ -2225,6 +2269,38 @@
               "quote_free_note": "月薪 (N-6)×約 17 個月（第一年領不滿）；常日班，不加班",
               "in_window": true,
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-07-19"
+            }
+          ],
+          "sources": [],
+          "confidence": "低",
+          "n": 1
+        },
+        {
+          "unit": "其他",
+          "role": "工程師",
+          "degree": "碩士",
+          "samples": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/262122290",
+              "date": "2026-09",
+              "page_date": "2026-09-11",
+              "date_confirmed": true,
+              "role": "工程師",
+              "grade": "30（推測）",
+              "unit_detail": null,
+              "years": "0",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "核薪和美光差不多；職等發文者推測是 30",
+              "in_window": true,
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-09-11"
             }
           ],
           "sources": [],
@@ -2702,6 +2778,54 @@
           "note": "2026-10-26 由 Dcard 樣本新增的公司"
         }
       ]
+    },
+    {
+      "name": "頎邦",
+      "code": "6147",
+      "heat": null,
+      "benefits": null,
+      "stock_plan": null,
+      "bonus_timing": null,
+      "bonus_structure": [],
+      "culture": null,
+      "interview": null,
+      "grade_system": null,
+      "mops": null,
+      "roles": [
+        {
+          "unit": "其他",
+          "role": "QA 工程師",
+          "degree": "碩士",
+          "samples": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/262264888",
+              "date": "2026-10",
+              "page_date": "2026-10-10",
+              "date_confirmed": true,
+              "role": "QA 工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "轉職",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "口頭核薪 N+2；要配合 on-call",
+              "in_window": true,
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-10-10"
+            }
+          ],
+          "sources": [],
+          "confidence": "低",
+          "n": 1
+        }
+      ],
+      "note": "2026-10-26 由 Dcard 樣本新增的公司"
     }
   ]
 }

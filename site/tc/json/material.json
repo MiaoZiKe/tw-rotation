@@ -531,7 +531,7 @@
           ],
           "overtime": "偶爾",
           "travel": "不用",
-          "n": 2,
+          "n": 3,
           "note": "GoodJob 2026-01 不到 1 年 6 萬、2025-09 三年 5 萬；學歷未標；第二輪：Dcard 2026 稱第一年沒分紅、2023～2025 訂單少薪水偏低，近期回穩；base_month_k、bonus_months、annual_months 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples；未逐筆對應的舊彙整：base_month_k=[50, 60]；未逐筆對應的舊彙整：bonus_months=[2, 2]；未逐筆對應的舊彙整：annual_months=[14, 15]",
           "sources": [
             {
@@ -584,6 +584,28 @@
               "date_confirmed": true,
               "date_note": "日期為推估或僅年份，不進統計；依 docs/tc/dcard_id_calibration.md 文章編號≥259537767 確認晚於 2025-08-01",
               "in_window": true
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/262196022",
+              "date": "2026-09",
+              "page_date": "2026-09-23",
+              "date_confirmed": true,
+              "role": "製程設計工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "0",
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "同篇；數字未透露",
+              "in_window": true,
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-09-23"
             }
           ],
           "n_stat": 0

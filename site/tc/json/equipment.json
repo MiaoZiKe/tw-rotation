@@ -299,6 +299,38 @@
           "sources": [],
           "confidence": "低",
           "n": 1
+        },
+        {
+          "unit": "台中",
+          "role": "CSE",
+          "degree": "碩士",
+          "samples": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/262041038",
+              "date": "2026-08",
+              "page_date": "2026-08-28",
+              "date_confirmed": true,
+              "role": "CSE（DUV，客戶美光）",
+              "grade": "JG4",
+              "unit_detail": "台中",
+              "years": "轉職",
+              "degree": "學士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "要輪班，加上輪班費後總額比 KLA 高",
+              "in_window": true,
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-08-28"
+            }
+          ],
+          "sources": [],
+          "confidence": "低",
+          "n": 1
         }
       ],
       "mops": null,
@@ -470,6 +502,38 @@
               "quote_free_note": "產線碩應屆；喜歡面試時的氣氛，但看到評價有點猶豫；薪資未透露",
               "in_window": true,
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-08-23"
+            }
+          ],
+          "sources": [],
+          "confidence": "低",
+          "n": 1
+        },
+        {
+          "unit": "桃園 / PCB 製程",
+          "role": "CSE",
+          "degree": "碩士",
+          "samples": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/262041038",
+              "date": "2026-08",
+              "page_date": "2026-08-28",
+              "date_confirmed": true,
+              "role": "CSE",
+              "grade": "P2",
+              "unit_detail": "桃園 / PCB 製程",
+              "years": "轉職",
+              "degree": "學士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "私立學士非新鮮人；兩家整包差不多",
+              "in_window": true,
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-08-28"
             }
           ],
           "sources": [],
@@ -1191,6 +1255,38 @@
           "sources": [],
           "confidence": "低",
           "n": 1
+        },
+        {
+          "unit": "高雄",
+          "role": "CE 客戶技術支援工程師",
+          "degree": "碩士",
+          "samples": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/262039038",
+              "date": "2026-08",
+              "page_date": "2026-08-27",
+              "date_confirmed": true,
+              "role": "CE 客戶技術支援工程師（PVD，客戶台積）",
+              "grade": "C1",
+              "unit_detail": "高雄",
+              "years": "0",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": 14,
+              "annual_wan": null,
+              "weekly_hours": 45,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "月薪 N+16 保 14；常日 8:30～17:30，每月 on-call 一週；旅遊補助 6 萬",
+              "in_window": true,
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-08-27"
+            }
+          ],
+          "sources": [],
+          "confidence": "低",
+          "n": 1
         }
       ],
       "mops": null,
@@ -1832,6 +1928,54 @@
           "note": "2026-10-26 由 Dcard 樣本新增的公司"
         }
       ]
+    },
+    {
+      "name": "FormFactor",
+      "code": "FORM",
+      "heat": null,
+      "benefits": null,
+      "stock_plan": null,
+      "bonus_timing": null,
+      "bonus_structure": [],
+      "culture": null,
+      "interview": null,
+      "grade_system": null,
+      "mops": null,
+      "roles": [
+        {
+          "unit": "其他",
+          "role": "Field Service Engineer",
+          "degree": "碩士",
+          "samples": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/262103459",
+              "date": "2026-09",
+              "page_date": "2026-09-08",
+              "date_confirmed": true,
+              "role": "Field Service Engineer",
+              "grade": null,
+              "unit_detail": null,
+              "years": "0",
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": 14,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "口頭 offer；要輪班；(N+2)×14",
+              "in_window": true,
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-09-08"
+            }
+          ],
+          "sources": [],
+          "confidence": "低",
+          "n": 1
+        }
+      ],
+      "note": "2026-10-26 由 Dcard 樣本新增的公司"
     }
   ]
 }
