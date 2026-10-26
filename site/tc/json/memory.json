@@ -28,8 +28,11 @@
             14,
             14
           ],
-          "annual_total_wan": null,
-          "weekly_hours": null,
+          "annual_total_wan": [
+            110,
+            110
+          ],
+          "weekly_hours": 50,
           "overtime": "輪班者常態",
           "travel": "不用",
           "n": 21,
@@ -513,7 +516,8 @@
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-04-07"
             }
           ],
-          "n_stat": 5
+          "n_stat": 5,
+          "degree_diff": "樣本中位數：學士底薪約 55K、碩士約 58K（差約 3K；學士 1 筆、碩士 4 筆）"
         },
         {
           "unit": "台中／桃園廠",
@@ -525,7 +529,10 @@
             64
           ],
           "bonus_months": null,
-          "annual_months": null,
+          "annual_months": [
+            14,
+            14
+          ],
           "annual_total_wan": [
             130.0,
             130.0
@@ -856,7 +863,9 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "overtime": "偶爾",
+          "travel": "偶爾"
         },
         {
           "unit": "銅鑼廠",
@@ -910,7 +919,12 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 2
+          "n": 2,
+          "annual_total_wan": [
+            120,
+            120
+          ],
+          "overtime": "經常"
         },
         {
           "unit": "銅鑼",
@@ -1146,7 +1160,7 @@
           "bonus_months": null,
           "annual_months": null,
           "annual_total_wan": null,
-          "weekly_hours": null,
+          "weekly_hours": 50,
           "overtime": "偶爾",
           "travel": "不用",
           "n": 9,
@@ -1377,7 +1391,7 @@
           "bonus_months": null,
           "annual_months": null,
           "annual_total_wan": null,
-          "weekly_hours": null,
+          "weekly_hours": 45,
           "overtime": "偶爾",
           "travel": null,
           "n": 7,
@@ -1579,7 +1593,11 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "annual_months": [
+            14,
+            14
+          ]
         }
       ],
       "mops": {
@@ -1634,7 +1652,10 @@
           "years": "0-2",
           "base_month_k": null,
           "bonus_months": null,
-          "annual_months": null,
+          "annual_months": [
+            15,
+            15
+          ],
           "annual_total_wan": null,
           "weekly_hours": null,
           "overtime": "偶爾（有加班費）",
@@ -1816,10 +1837,13 @@
             2,
             2
           ],
-          "annual_months": null,
+          "annual_months": [
+            15,
+            17
+          ],
           "annual_total_wan": null,
-          "weekly_hours": null,
-          "overtime": null,
+          "weekly_hours": 45,
+          "overtime": "偶爾",
           "travel": "不用",
           "n": 19,
           "note": "2025-02 自述年薪 100 萬（含職等津貼、季獎金、分紅）；有人說近年虧損無分紅年薪不到百萬；沿用同公司設備職回報；撤回：overtime 原為沿用／推算／暫填值，無直接證據，已改回原值；第二輪：2025-11 新聞碩士新進月薪由 4.5 萬調到 6.2 萬（公司稱正常調幅）；GoodJob 2026-05 製程 6.25 萬、3 年整合 6.8 萬；Dcard 製程值班 offer 保 15、人資口頭約 17 個月；2026-08 發激勵獎金約 2 個月（有人稱會從分紅扣回）；GoodJob 2026-08 評價稱分紅有上限；annual_total_wan 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples；未逐筆對應的舊彙整：annual_months=[17, 17]；未逐筆對應的舊彙整：annual_total_wan=[90, 100]",
@@ -2393,7 +2417,13 @@
           "n": 1,
           "sources": [],
           "confidence": "低",
-          "note": "2026-10-26 由 Dcard 樣本新增的公司"
+          "note": "2026-10-26 由 Dcard 樣本新增的公司",
+          "annual_months": [
+            14,
+            14
+          ],
+          "weekly_hours": 45,
+          "overtime": "幾乎不"
         },
         {
           "unit": "其他",
@@ -2449,7 +2479,8 @@
           "n": 2,
           "sources": [],
           "confidence": "低",
-          "note": "2026-10-26 由 Dcard 樣本新增的公司"
+          "note": "2026-10-26 由 Dcard 樣本新增的公司",
+          "overtime": "幾乎不"
         }
       ]
     },
@@ -2498,7 +2529,8 @@
           "n": 1,
           "sources": [],
           "confidence": "低",
-          "note": "2026-10-26 由 Dcard 樣本新增的公司"
+          "note": "2026-10-26 由 Dcard 樣本新增的公司",
+          "overtime": "偶爾"
         },
         {
           "unit": "其他",
@@ -2530,7 +2562,11 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "annual_months": [
+            14,
+            14
+          ]
         }
       ]
     }
