@@ -48,7 +48,11 @@
           "n": 1,
           "sources": [],
           "confidence": "低",
-          "note": "2026-10-26 Andy 指示加入"
+          "note": "2026-10-26 Andy 指示加入",
+          "annual_months": [
+            14,
+            14
+          ]
         },
         {
           "unit": "其他",
@@ -128,7 +132,15 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "base_month_k": [
+            55,
+            55
+          ],
+          "annual_months": [
+            14,
+            14
+          ]
         }
       ]
     },
@@ -176,7 +188,13 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "annual_months": [
+            14,
+            14
+          ],
+          "weekly_hours": 65,
+          "overtime": "經常"
         }
       ]
     },
@@ -225,7 +243,11 @@
           "n": 1,
           "sources": [],
           "confidence": "低",
-          "note": "2026-10-26 由 Dcard 樣本新增的公司"
+          "note": "2026-10-26 由 Dcard 樣本新增的公司",
+          "annual_months": [
+            14,
+            14
+          ]
         }
       ]
     }
