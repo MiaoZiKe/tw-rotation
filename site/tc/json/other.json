@@ -339,9 +339,34 @@
       "benefits": null,
       "stock_plan": null,
       "bonus_timing": null,
-      "bonus_structure": [],
-      "culture": null,
-      "interview": null,
+      "bonus_structure": [
+        {
+          "type": "年終獎金",
+          "rule": "網友評價：約 2 個月底薪（GoodJob）；發放月份查不到",
+          "months": 2,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/乾坤科技股份有限公司/work-experiences/工時狀況",
+              "date": null
+            }
+          ]
+        },
+        {
+          "type": "員工分紅",
+          "rule": "網友評價：依年資比例計算；另有評價說月薪×16 保底、其餘依部門（摘要被截斷）",
+          "months": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/乾坤科技股份有限公司/work-experiences/工時狀況",
+              "date": null
+            }
+          ]
+        }
+      ],
+      "culture": "網友說法：2025 新竹資深工程師評價偶爾加班、每週約 45 小時；2024 評價稱新竹廠加班較多；面試趣綜合 2.7／5",
+      "interview": "網友說法：面試趣統計面試評價約 3.4／5、難度低、錄取率約 41%",
       "grade_system": null,
       "mops": null,
       "roles": [
@@ -405,10 +430,47 @@
       "heat": null,
       "benefits": null,
       "stock_plan": null,
-      "bonus_timing": null,
-      "bonus_structure": [],
-      "culture": null,
-      "interview": null,
+      "bonus_timing": "網友評價：年中獎金 8 月發，另有三節與年終（GoodJob 2026-05）；年終約 3 個月＋依營運分紅約 3～4 個月（GoodJob 2025-10）",
+      "bonus_structure": [
+        {
+          "type": "年中獎金",
+          "rule": "8 月發（GoodJob 2026-05 評價）；月數未寫",
+          "months": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/車美仕股份有限公司",
+              "date": "2026-05"
+            }
+          ]
+        },
+        {
+          "type": "年終獎金",
+          "rule": "約 3 個月（GoodJob 2025-10 評價）",
+          "months": 3,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/車美仕股份有限公司",
+              "date": "2025-10"
+            }
+          ]
+        },
+        {
+          "type": "員工分紅",
+          "rule": "依營運狀況約 3～4 個月（GoodJob 2025-10 評價）",
+          "months": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/車美仕股份有限公司",
+              "date": "2025-10"
+            }
+          ]
+        }
+      ],
+      "culture": "網友說法：GoodJob 評分 3.2（13 筆），平均每週約 43 小時、60% 偶爾加班；底薪偏低、分紅偏高（2025-09）",
+      "interview": "網友說法：HR 先寄信線上考英文＋邏輯，再由用人主管與部長面試（GoodJob 2025-08）；SQE 需筆試＋英文、兩輪面試（2024-11）",
       "grade_system": null,
       "mops": null,
       "roles": [
@@ -798,8 +860,8 @@
       "stock_plan": null,
       "bonus_timing": null,
       "bonus_structure": [],
-      "culture": null,
-      "interview": null,
+      "culture": "網友說法：常態加班、會議長、需求變動大，但可彈性上下班；每年有分紅（GoodJob 2026-03 採購評價）",
+      "interview": "網友說法：多有筆試（英文、邏輯、專業，常見 C 語言題）；面試趣統計 3.2／5、難度普通（GoodJob 9 則）",
       "grade_system": null,
       "mops": null,
       "roles": [
@@ -940,8 +1002,8 @@
       "stock_plan": null,
       "bonus_timing": null,
       "bonus_structure": [],
-      "culture": null,
-      "interview": null,
+      "culture": "網友說法：GoodJob 評分 3.5（76 筆），平均每週約 48 小時、約三成幾乎每天加班；底薪偏低、靠績效獎金與年終；2026 多則說新車減少、福利補助由每年 1.2 萬降到 8 千",
+      "interview": "網友說法：2026-01 研發工程師面試分享認為福利不錯、薪資制度完整但升遷難；生產技術面試有車馬費（GoodJob）",
       "grade_system": null,
       "mops": null,
       "roles": [
@@ -1157,7 +1219,7 @@
       "bonus_timing": null,
       "bonus_structure": [],
       "culture": null,
-      "interview": null,
+      "interview": "網友說法：天線工程師面試較輕鬆，會問能否接受加班、加班無加班費（GoodJob 2024-02 分享）",
       "grade_system": null,
       "mops": null,
       "roles": [
@@ -1285,9 +1347,22 @@
       "benefits": null,
       "stock_plan": null,
       "bonus_timing": null,
-      "bonus_structure": [],
-      "culture": null,
-      "interview": null,
+      "bonus_structure": [
+        {
+          "type": "季獎金＋分紅",
+          "rule": "網友評價：有季獎金與分紅，在園區屬普通水準；月數與月份未寫",
+          "months": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/新代科技股份有限公司/work-experiences",
+              "date": null
+            }
+          ]
+        }
+      ],
+      "culture": "網友說法：GoodJob 評分 4.1（145 筆）、工時 4.6、薪資福利 4.3；平均每週約 41 小時、47% 偶爾加班；升遷不容易",
+      "interview": "網友說法：常先做邏輯／能力測驗（時間偏趕）再與部門主管面談；也有老闆親自面談、介紹分紅制度（GoodJob、hackmd 分享）",
       "grade_system": null,
       "mops": null,
       "note": "2026-10-26 由 Dcard 樣本新增的公司",
@@ -1347,12 +1422,37 @@
       "name": "四零四科技（Moxa）",
       "code": null,
       "heat": null,
-      "benefits": null,
+      "benefits": "網友說法：旅遊補助約 3 萬（GoodJob 2026-04 評價）",
       "stock_plan": null,
       "bonus_timing": null,
-      "bonus_structure": [],
-      "culture": null,
-      "interview": null,
+      "bonus_structure": [
+        {
+          "type": "年終獎金",
+          "rule": "網友評價：約 2～3 個月、浮動大（GoodJob 2026-04）；發放月份查不到",
+          "months": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/四零四科技股份有限公司/work-experiences/薪資福利",
+              "date": "2026-04"
+            }
+          ]
+        },
+        {
+          "type": "獎金（依年資）",
+          "rule": "網友評價：依年資少則 1 個月、多可以很多；新制要 5 年才能領滿，對新人不利（GoodJob 2026-04）",
+          "months": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/四零四科技股份有限公司/work-experiences/薪資福利",
+              "date": "2026-04"
+            }
+          ]
+        }
+      ],
+      "culture": "網友說法：GoodJob 評分 4.0（128 筆），平均每週約 42 小時、6% 幾乎每天加班、29% 偶爾；文化分數 2.2 最低，有人說工控領域新技術少、升遷慢",
+      "interview": "網友說法：第一關由用人主管問專業題（例如 OSI 七層、MAC address）與為何想做這份工作（GoodJob 2026-07 Technical Support Engineer 分享）",
       "grade_system": null,
       "mops": null,
       "note": "2026-10-26 由 Dcard 樣本新增的公司",
@@ -1420,7 +1520,7 @@
       "bonus_timing": null,
       "bonus_structure": [],
       "culture": null,
-      "interview": null,
+      "interview": "網友說法：面試趣 25 則、評價 4.2／5、錄取率 17%；有分享為三關（HR＋直屬主管 → 主管的主管 → 跨部門主管）（2022，非工程職）",
       "grade_system": null,
       "mops": null,
       "roles": [
@@ -1484,8 +1584,8 @@
       "stock_plan": null,
       "bonus_timing": null,
       "bonus_structure": [],
-      "culture": null,
-      "interview": null,
+      "culture": "網友說法：面試趣公司評價 2.6／5、升遷 1.9；Glassdoor 約 3.3／5（31 則），有人說家庭式文化但職涯發展受限",
+      "interview": "網友說法：面試趣面試評價約 4／5、難度約 2.9／5，樣本少",
       "grade_system": null,
       "mops": null,
       "roles": [
@@ -1549,7 +1649,7 @@
       "stock_plan": null,
       "bonus_timing": null,
       "bonus_structure": [],
-      "culture": null,
+      "culture": "網友說法：GoodJob 評價偏低，有人說文化保守、流程僵化、跨部門溝通耗時，也有人批評薪資福利不足（2021～2026）",
       "interview": null,
       "grade_system": null,
       "mops": null,

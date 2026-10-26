@@ -11821,7 +11821,7 @@
         {
           "unit": "研發 RD",
           "role": "硬體研發工程師",
-          "degree": "碩士",
+          "degree": null,
           "samples": [
             {
               "site": "GoodJob",
