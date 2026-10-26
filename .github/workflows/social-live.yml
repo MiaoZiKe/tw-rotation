@@ -32,7 +32,9 @@ name: 社群即時貼文（Threads／IG 限動）
 on:
   schedule:
     - cron: "1 4 * * 1-5"     # 台北 12:01 盤中（一天一篇，備援；準時由 Cloudflare Worker 12:00 派）
-    - cron: "20 0 * * 1-5"    # 台北 08:20 盤前（2026-10-27 Andy「開始發」；休市日或晚到開盤後由 social_premarket.py 自己不發）
+    - cron: "20 0 * * 1-5"    # 台北 08:20 盤前（2026-10-27 Andy「開始發」；休市日由 social_premarket.py 自己不發）
+    - cron: "50 0 * * 1-5"    # 台北 08:50 盤前備援 1（08:20 那輪被 GitHub 吃掉時補發；已發過就跳過）
+    - cron: "40 1 * * 1-5"    # 台北 09:40 盤前備援 2（2026-10-27 Andy：「晚到也不能不發，有問題就Mail通知」→ 晚到照發並寄信）
   workflow_run:
     workflows: ["每日盤後管線"]
     types: [completed]        # 每日管線跑完（含部署）→ 盤後法人；資料日不是今天就自己跳過
@@ -81,7 +83,7 @@ jobs:
       max-parallel: 1
       fail-fast: false
       matrix:
-        kind: ${{ fromJSON(github.event_name == 'workflow_run' && '["close"]' || (github.event_name == 'workflow_dispatch' && format('["{0}"]', inputs.kind) || (github.event.schedule == '20 0 * * 1-5' && '["premarket"]' || '["intraday"]'))) }}
+        kind: ${{ fromJSON(github.event_name == 'workflow_run' && '["close"]' || (github.event_name == 'workflow_dispatch' && format('["{0}"]', inputs.kind) || (github.event.schedule == '1 4 * * 1-5' && '["intraday"]' || '["premarket"]'))) }}
     env:
       TZ: Asia/Taipei
     steps:
@@ -173,7 +175,7 @@ jobs:
             exit 0
           fi
           if [ "$RC" != "0" ]; then
-            echo "::error::social_snap.py 結束碼 $RC（2＝一張都沒截成、3＝版面有重疊）"
+            echo "::error::產圖程式結束碼 $RC（2＝一張都沒截成／讀不到資料、3＝版面有重疊、4＝盤前美股資料太舊）"
             exit "$RC"
           fi
           echo "### ${{ steps.kind.outputs.kind }}：本輪產出" >> "$GITHUB_STEP_SUMMARY"
@@ -260,6 +262,19 @@ jobs:
             sleep $((i * 5))
           done
           echo "::warning::盤前消息推回 main 失敗（不影響已發的貼文）"
+
+      # ★ 2026-10-27 Andy：「有問題就Mail通知」→ 盤前晚到開盤後才發（late.txt）也把這一輪標紅；
+      #   任何一步紅燈，GitHub 都會寄「Run failed」信到 MiaoZiKe 帳號的信箱（github.com/settings/notifications → Actions 要勾 Email）。
+      #   下一步「寫回 posted.json」是 always()，這一步標紅不影響防重複紀錄。
+      - name: 有問題寄信通知（晚到照發也通知）
+        if: always() && steps.snap.outputs.rc == '0'
+        run: |
+          F="${{ steps.snap.outputs.out }}/late.txt"
+          if [ -f "$F" ]; then
+            echo "::error::$(cat "$F")"
+            { echo "### ⚠ 盤前貼文晚到"; echo ""; cat "$F"; } >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
 
       # 發布程式的防重複紀錄 posted.json 要寫回 social-snaps，下一輪（含盤後那三次接力）才知道發過了；
       # 發布失敗也要寫（已成功的那一半不能重發）

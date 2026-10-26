@@ -96,7 +96,8 @@ https://liguligu-puipui.com/
 
 ## 五、發文開關與防重複
 
-- 真的發文要 `docs/marketing/social_unit/LIVE_ENABLED` 這個檔存在；**Andy 說「開始發」才建**。
+- 真的發文要 `docs/marketing/social_unit/LIVE_ENABLED` 這個檔存在；2026-10-27 Andy 說「開始發」已建立。
+- 盤前 08:20（備援 08:50、09:40）只在台股交易日發；晚到開盤後**照發**，並把那一輪標紅 → GitHub 寄信通知（Andy：「不能不發，有問題就Mail通知」）。任何一步失敗也一樣寄信。
 - 同一時段只發一次：`social-snaps` 分支 `state/posted.json`，盤中鍵 `intraday-YYYY-MM-DD`、盤後鍵 `close-<資料日>`。
 - 準時觸發靠 Cloudflare 排程（`workers/gh-cron`，設定見 `docs/gh_cron_setup.md`）；GitHub 內建排程只當備援。
 

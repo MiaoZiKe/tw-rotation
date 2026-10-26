@@ -196,10 +196,10 @@ def test_總開關檔不存在_有金鑰也只_dry_run(tmp_path, monkeypatch, ca
     assert not (tmp_path / "posted.json").exists()
 
 
-def test_repo_的總開關這次沒有建立():
-    # Andy 還沒說開始發：repo 裡不能有 LIVE_ENABLED（這條測試在他說開始發、建立檔案時一起刪）
+def test_repo_的總開關已開啟():
+    # 2026-10-27 Andy「開始發…接下來就是自動發文」→ repo 要有 LIVE_ENABLED；要停發就刪檔並把這條改回 not exists
     from pathlib import Path
-    assert not (Path(sp.__file__).resolve().parents[1] / "docs/marketing/social_unit/LIVE_ENABLED").exists()
+    assert (Path(sp.__file__).resolve().parents[1] / "docs/marketing/social_unit/LIVE_ENABLED").exists()
 
 
 def test_USER_ID_空白時用權杖查_IG_用_user_id(tmp_path, monkeypatch, capsys):

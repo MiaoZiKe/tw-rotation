@@ -1181,11 +1181,16 @@ def main() -> int:
     if not is_tw_trading_day(target, hol) and not args.force:
         print(f"[premarket] {target} 不是台股交易日 → 不發")
         return 10
-    # 2026-10-27 Andy：「開盤才需要發布，台股沒開美股就不用發」→ 排程跑的那天本身要是台股交易日、而且還沒開盤（08:45 前）；
-    # 休市日或排程晚到開盤後，next_trading_day 會指到「之後」的交易日 → 不發（等那天早上再發）
+    # 2026-10-27 Andy：「開盤才需要發布，台股沒開美股就不用發」→ 排程跑的那天本身要是台股交易日；休市日不發（等下一個交易日早上）。
+    # 2026-10-27 Andy：「排程晚到 08:45 以後才跑也不發 不能不發，有問題就Mail通知」→ 今天是交易日、只是晚到開盤後：照發今天這篇，
+    # 並在 out/late.txt 留紀錄，workflow 看到就把這一輪標紅 → GitHub 寄失敗通知信給 Andy。
+    late = False
     if not args.date and not args.force and target != now.date():
-        print(f"[premarket] 今天 {now.date()} 不是台股交易日或已過開盤（下一個交易日 {target}）→ 不發")
-        return 10
+        if not is_tw_trading_day(now.date(), hol):
+            print(f"[premarket] 今天 {now.date()} 不是台股交易日（下一個交易日 {target}）→ 不發")
+            return 10
+        target, late = now.date(), True
+        print(f"[premarket] ⚠ 排程晚到 {now:%H:%M}（已過 08:45 開盤）→ 照發 {target}，並通知")
     key = f"{KIND}-{target.isoformat()}"
     if args.posted_json and not args.force:
         try:
@@ -1207,8 +1212,8 @@ def main() -> int:
         return 2
     stale = (target - pd.Timestamp(D["us"]["date"]).date()).days
     if stale > args.max_stale_days and not args.force:
-        print(f"[premarket] 美股最新收盤 {D['us']['date']} 距 {target} 已 {stale} 天 → 不發")
-        return 10
+        print(f"[premarket] 美股最新收盤 {D['us']['date']} 距 {target} 已 {stale} 天 → 資料太舊不發（結束碼 4，這輪標紅寄信通知）")
+        return 4
 
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
@@ -1253,6 +1258,8 @@ def main() -> int:
                 "threads": {"text": text, "images": threads}, "story": stories, "premarket_news": pn}
     (out / "manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2), "utf-8")
     (out / "caption.txt").write_text(text + "\n", "utf-8")
+    if late:
+        (out / "late.txt").write_text(f"盤前貼文排程晚到：{now:%Y-%m-%d %H:%M}（台北）才開始跑，已過 08:45 開盤，仍照發。\n", "utf-8")
     print(f"[premarket] manifest：{out / 'manifest.json'}；文案 {len(text)} 字；消息 {len(pn['items'])} 則")
     return 0
 

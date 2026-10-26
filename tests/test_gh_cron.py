@@ -40,8 +40,6 @@ def test_派出去的輸入都是_workflow_認得的值():
         for k, v in j["inputs"].items():
             assert k in inputs, f"{j['workflow']} 沒有輸入 {k}"
             opts = inputs[k].get("options")
-            if j.get("gate") == "premarket" and k == "kind":
-                continue  # 預留：workflow 還沒有 premarket 選項，Worker 端預設關閉（ENABLE_PREMARKET=0）
             if opts:
                 assert v in opts, f"{j['workflow']} 的 {k} 沒有選項 {v}"
             if inputs[k].get("type") == "boolean":
