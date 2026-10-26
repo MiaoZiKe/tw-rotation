@@ -55,7 +55,7 @@ def t_tc_1025(b, base, code):
     gsys = pg.evaluate("() => !!document.querySelector('#v-tc .tc-gs b')")
     ok(f"{T}：公司頁頂端職等制度（資料有才顯示；有則標題為職等制度）", (not gsys) or pg.evaluate("() => document.querySelector('#v-tc .tc-gs b').innerText==='職等制度'"))
     if is_tsmc:
-        ok(f"{T}：台積電頁頂端分紅結構顯示 3 種獎金、每種有規則", pg.evaluate("() => { const r=[...document.querySelectorAll('#v-tc .tc-bs .tc-bsr')]; return r.length===3 && r.every(e=>e.querySelector('span').innerText.trim().length>1); }"))
+        ok(f"{T}：台積電頁頂端分紅結構顯示 3 種獎金、每種有月數與發放月份（無資料顯示「—」）、規則收進「?」", pg.evaluate("() => { const r=[...document.querySelectorAll('#v-tc .tc-bs .tc-bsr')]; return r.length===3 && r.every(e=>e.querySelector('em').innerText.trim().length>=1 && e.querySelector('.tc-qp')); }"))
     pg.click("#v-tc .seg[data-fk=ot] button[data-i='3']"); pg.wait_for_timeout(250)
     r1 = rows()
     ok(f"{T}：公司頁篩選加班「經常」→ 職位數真的變少且每列都是經常", 0 <= r1 < r0 and pg.evaluate("() => [...document.querySelectorAll('#v-tc .tc-row .tc-ot')].every(e => e.innerText.includes('經常'))"), (r0, r1))

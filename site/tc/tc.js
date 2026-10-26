@@ -60,7 +60,7 @@
     { k: 'annual', t: '年薪', opts: [['全部'], ['≥100萬', (r) => has(mid(r.annual_total_wan)) && mid(r.annual_total_wan) >= 100], ['≥150萬', (r) => has(mid(r.annual_total_wan)) && mid(r.annual_total_wan) >= 150], ['≥200萬', (r) => has(mid(r.annual_total_wan)) && mid(r.annual_total_wan) >= 200], ['≥300萬', (r) => has(mid(r.annual_total_wan)) && mid(r.annual_total_wan) >= 300]], tip: '年薪總額（萬）區間的中點' },
     { k: 'ot', t: '加班', opts: [['全部'], ['幾乎不', (r) => otIs(r, '幾乎不')], ['偶爾', (r) => otIs(r, '偶爾')], ['經常', (r) => otIs(r, '經常')]], tip: '加班狀況' },
   ];
-  const S = { ind: '', co: '', f: {}, sort: { k: '', d: -1 }, fopen: false, data: {}, loaded: false, chm: 'share', chv: 'ring', payI: null, rk: { m: 'ann', ind: 'all', all: false }, agg: null };
+  const S = { ind: '', co: '', f: {}, sort: { k: '', d: -1 }, fopen: false, data: {}, loaded: false, chm: 'base', payI: null, rk: { m: 'ann', ind: 'all', all: false }, agg: null };
 
   /* 分紅發放欄只放「幾月」：從公司層 bonus_timing 抓出所有「N 月」，抓不到顯示「—」（完整說明留在公司頁頂端） */
   /* 展開「2、5、8、11 月」「2／5／8 月」這種列表＋單獨的「7 月」，去重後依數字排序輸出「2月、5月、…」；(?<!\d) 避免把 114 年的「14」當月份 */
@@ -86,9 +86,11 @@
   const qpop = (html) => '<span class="tc-how tc-qp"><button class="howbtn tc-q" type="button" aria-label="看完整說明" aria-expanded="false">?</button><div class="tc-pop" hidden>' + html + '</div></span>';
   const monthsIn = (t) => { const set = new Set(); String(t || '').replace(/(?<!\d)(\d{1,2}(?:\s*[、／\/,，]\s*\d{1,2})*)\s*月/g, (_, g) => { g.split(/[、／\/,，]/).forEach((x) => { const n = +x.trim(); if (n >= 1 && n <= 12) set.add(n); }); return _; }); return Array.from(set).sort((x, y) => x - y); };
   const catOf = (ty) => (/年終/.test(ty) ? '年終' : /三節|端午|中秋|春節|節/.test(ty) ? '三節' : /季|分紅|酬勞|績效|業績|獎金/.test(ty) ? '分紅／季獎' : '其他');
-  const CAT_C = { '年終': '#ffb454', '三節': '#2ec4b6', '分紅／季獎': '#8b7bff', '其他': '#9aa7b8' };
+  const CAT_SLOT = { '年終': 1, '分紅／季獎': 2, '三節': 3 };
+  const catC = (c) => { const D = DN(); return !D ? '#9aa7b8' : CAT_SLOT[c] != null ? D.color(CAT_SLOT[c]) : D.other(); };
   const chipsOf = (t, n, len) => { const seen = new Set(), out = []; String(t || '').split(/[；;。→＋:：、，,（）()／\/]/).forEach((x) => { x = x.trim(); if (x.length >= 2 && x.length <= len && !seen.has(x)) { seen.add(x); out.push(x); } }); return out.slice(0, n); };
-  const chipRow = (label, text, chips) => (text ? '<div class="tc-cg"><span class="tc-cgl">' + label + '</span><span class="tc-chips">' + (chips.length ? chips : [clip(text, 10)]).map((x) => '<em class="tc-chip">' + esc(x) + '</em>').join('') + '</span>' + qpop(esc(text)) + '</div>' : '');
+  const chipRow = (label, text, chips) => '<div class="tc-cg' + (text ? '' : ' na') + '"><div class="tc-cgh"><span class="tc-cgl">' + label + '</span>' + (text ? qpop(esc(text)) : '') + '</div>' +
+    (text ? '<span class="tc-chips">' + (chips.length ? chips : [clip(text, 10)]).slice(0, 3).map((x) => '<em class="tc-chip">' + esc(x) + '</em>').join('') + '</span>' : '<span class="tc-na">—</span>') + '</div>';
   const lvl3 = (v, map) => { const t = String(v || ''); for (const [re, n] of map) if (re.test(t)) return n; return 0; };
   const gauge = (label, v, map, names) => { const n = lvl3(v, map); return '<div class="tc-gg"><span class="tc-cgl">' + label + '</span><span class="tc-g3" title="' + esc(v || '無資料') + '">' + [1, 2, 3].map((i) => '<i class="' + (i <= n ? 'on l' + n : '') + '"></i>').join('') + '</span><em>' + esc(n ? names[n - 1] : '—') + '</em></div>'; };
   function kpiOf(co) {
@@ -102,28 +104,28 @@
     const kp = (l, v, u) => '<div class="tc-kpi' + (v == null ? ' na' : '') + '"><span>' + l + '</span><b>' + (v == null ? '—' : esc(v)) + (v != null && u ? '<small>' + u + '</small>' : '') + '</b></div>';
     return '<div class="tc-kpis">' + kp('年薪中位數', K.ann, '萬') + kp('底薪中位數', K.base, 'K/月') + kp('年薪總月數', K.am, '月') + kp('樣本數', K.n, '筆') + kp('信心（依樣本數）', K.conf === '—' ? null : K.conf) + (mo ? kp('全體員工平均年薪（' + mo.year + '）', mo.avg_wan, '萬') : '') + '</div>';
   }
+  function btRow(co) { const bm = monthsIn(co.bonus_timing); return '<div class="tc-cg tc-btrow"><span class="tc-cgl">分紅時間</span>' + (co.bonus_timing ? '<span class="tc-chips"><em class="tc-chip">' + (bm.length ? bm.join('/') + ' 月' : esc(clip(co.bonus_timing, 10))) + '</em></span>' + qpop(esc(co.bonus_timing)) : '<span class="tc-na">—</span>') + '</div>'; }
   function calHtml(co) {
     const bs = Array.isArray(co.bonus_structure) ? co.bonus_structure : [], by = {};
     bs.forEach((x) => monthsIn(String(x.type || '') + ' ' + String(x.rule || '')).forEach((m) => { (by[m] = by[m] || []).push(catOf(String(x.type || ''))); }));
     if (!bs.length) monthsIn(co.bonus_timing).forEach((m) => { by[m] = ['分紅／季獎']; });
     const has = Object.keys(by).length, cats = Array.from(new Set([].concat(...Object.values(by))));
-    return '<div class="tc-cal"><div class="tc-payh"><h5>獎金發放月曆</h5>' + (has ? '<span class="tc-cl">' + cats.map((c) => '<em><i style="background:' + CAT_C[c] + '"></i>' + c + '</em>').join('') + '</span>' : '') + '</div>' +
-      '<div class="tc-cm12">' + [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((m) => { const c = Array.from(new Set(by[m] || [])); return '<div class="tc-cm' + (c.length ? ' lit' : '') + '" title="' + (c.length ? m + ' 月：' + esc(c.join('、')) : m + ' 月：無已知發放') + '"><b>' + m + '</b><span>' + c.map((x) => '<i style="background:' + CAT_C[x] + '"></i>').join('') + '</span></div>'; }).join('') + '</div>' +
-      (has ? '' : '<div class="tc-paynote">發放月份查無資料</div>') +
-      '<div class="tc-gauges">' + gauge('加班', top((co.roles || []).map((r) => r.overtime)), [[/幾乎不/, 1], [/偶/, 2], [/經常|常/, 3]], ['幾乎不', '偶爾', '經常']) + gauge('出差', top((co.roles || []).map((r) => r.travel)), [[/不用|無|幾乎不/, 1], [/偶/, 2], [/經常|常/, 3]], ['不用', '偶爾', '經常']) + '</div></div>';
+    return '<div class="tc-cal"><div class="tc-payh"><h5>獎金發放月曆</h5>' + (has ? '<span class="tc-cl">' + cats.map((c) => '<em><i style="background:' + catC(c) + '"></i>' + c + '</em>').join('') + '</span>' : '') + '</div>' +
+      '<div class="tc-cm12">' + [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((m) => { const c = Array.from(new Set(by[m] || [])); return '<div class="tc-cm' + (c.length ? ' lit' : '') + '" title="' + (c.length ? m + ' 月：' + esc(c.join('、')) : m + ' 月：無已知發放') + '"><b>' + m + '</b><span>' + c.map((x) => '<i style="background:' + catC(x) + '"></i>').join('') + '</span></div>'; }).join('') + '</div>' +
+      '<div class="tc-gauges">' + gauge('加班', top((co.roles || []).map((r) => r.overtime)), [[/幾乎不/, 1], [/偶/, 2], [/經常|常/, 3]], ['幾乎不', '偶爾', '經常']) + gauge('出差', top((co.roles || []).map((r) => r.travel)), [[/不用|無|幾乎不/, 1], [/偶/, 2], [/經常|常/, 3]], ['不用', '偶爾', '經常']) + '</div>' + btRow(co) + '</div>';
   }
   function chipsHtml(co) {
     const sp = co.stock_plan, st = [['RSU', /RSU/i], ['PSU', /PSU/i], ['員工認股', /認股/], ['員工購股', /購股/], ['庫藏股', /庫藏/], ['配股', /配股/]].filter(([, re]) => re.test(sp || '')).map((x) => x[0]);
     const cu = co.culture || '', gj = cu.match(/工時[^；，。]*?(\d(?:\.\d)?)\s*[／\/]\s*5/), cc = (gj ? ['工時 ' + gj[1] + '/5'] : []).concat(/高工時/.test(cu) ? ['高工時'] : [], /輪班/.test(cu) ? ['輪班'] : [], chipsOf(cu, 3, 9));
     const bm = monthsIn(co.bonus_timing);
-    const chg = '<div class="tc-chg">' + chipRow('福利', co.benefits, chipsOf(co.benefits, 4, 9)) + chipRow('持股', sp, st.length ? st : chipsOf(sp, 3, 10)) + chipRow('風氣', cu, Array.from(new Set(cc)).slice(0, 4)) + chipRow('面試', co.interview, chipsOf(co.interview, 4, 10)) + chipRow('分紅時間', co.bonus_timing, bm.length ? [bm.join('/') + ' 月'] : []) + '</div>';
+    const chg = '<div class="tc-chg">' + chipRow('福利', co.benefits, chipsOf(co.benefits, 4, 9)) + chipRow('持股', sp, st.length ? st : chipsOf(sp, 3, 10)) + chipRow('風氣', cu, Array.from(new Set(cc)).slice(0, 4)) + chipRow('面試', co.interview, chipsOf(co.interview, 4, 10)) + '</div>';
     return mob() ? '<details class="tc-chd"><summary>福利・持股・風氣・面試（點開）</summary>' + chg + '</details>' : chg;
   }
   const bonusBlock = (co) => {
     const bs = Array.isArray(co.bonus_structure) ? co.bonus_structure : [];
     const src = (x) => (x.sources || []).filter((s) => s && s.url).map((s) => '<a href="' + esc(s.url) + '" target="_blank" rel="noopener">' + esc(s.site || '來源') + (s.date ? ' ' + esc(s.date) : '') + '</a>').join('・');
     let body;
-    if (bs.length) body = '<div class="tc-bcards">' + bs.map((x) => { const ty = String(x.type || '—'), c = CAT_C[catOf(ty)], mm = monthsIn(x.rule); return '<div class="tc-bsr" style="--bc:' + c + '"><i class="tc-bic">' + esc(ty.charAt(0)) + '</i><b>' + esc(ty) + '</b><em>' + (x.months != null ? esc(x.months) + '<small>個月</small>' : '<small>不固定</small>') + '</em><span>' + (mm.length ? mm.join('/') + ' 月' : '月份未載') + '</span>' + qpop(esc(x.rule || '—') + (src(x) ? '<br><span class="muted">' + src(x) + '</span>' : '')) + '</div>'; }).join('') + '</div>';
+    if (bs.length) body = '<div class="tc-bcards">' + bs.map((x) => { const ty = String(x.type || '—'), c = catC(catOf(ty)), mm = monthsIn(x.rule); return '<div class="tc-bsr" style="--bc:' + c + '"><i class="tc-bic">' + esc(ty.charAt(0)) + '</i><b>' + esc(ty) + '</b><em>' + (x.months != null ? esc(x.months) + '<small>個月</small>' : '<small class="tc-na">—</small>') + '</em><span>' + (mm.length ? mm.join('/') + ' 月' : '<span class="tc-na">—</span>') + '</span>' + qpop(esc(x.rule || '—') + (src(x) ? '<br><span class="muted">' + src(x) + '</span>' : '')) + '</div>'; }).join('') + '</div>';
     else if (co.bonus_timing) body = '<div class="tc-bcards"><div class="tc-bsr"><b>發放時間</b><span>' + esc(clip(co.bonus_timing, 16)) + '</span>' + qpop(esc(co.bonus_timing)) + '</div></div>';
     else return '';
     const n = bs.length;
@@ -227,80 +229,75 @@
   }
   const TL = (name, ind, sz) => (window.TcLogo ? window.TcLogo.html(name, ind, sz) : '');
   function bindRank(root) {
-    $$('.seg[data-chm] button', root).forEach((b) => b.onclick = () => { S.chm = b.dataset.v; $$('.seg[data-chm] button', root).forEach((x) => x.classList.toggle('on', x === b)); const g = $('.tc-gr', root); if (g) g.dataset.m = S.chm; drawStats(); });
-    $$('.seg[data-chv] button', root).forEach((b) => b.onclick = () => { S.chv = b.dataset.v; $$('.seg[data-chv] button', root).forEach((x) => x.classList.toggle('on', x === b)); drawStats(); });
+    $$('.seg[data-chm] button', root).forEach((b) => b.onclick = () => { S.chm = b.dataset.v; $$('.seg[data-chm] button', root).forEach((x) => x.classList.toggle('on', x === b)); drawStats(); });
     const A = S.agg, box = $('#tcRank', root); if (!box) return;
     $$('.seg[data-rk] button', box).forEach((b) => b.onclick = () => { const k = b.parentNode.dataset.rk; S.rk[k] = b.dataset.v; S.rk.all = false; box.innerHTML = rankHtml(A); bindRank(root); });
     const mo = $('.tc-rkmore', box); if (mo) mo.onclick = () => { S.rk.all = !S.rk.all; box.innerHTML = rankHtml(A); bindRank(root); };
   }
   const cv = (n, d) => { try { return getComputedStyle(document.documentElement).getPropertyValue(n).trim() || d; } catch (e) { return d; } };
   const INK2 = () => cv('--ink-2', '#5b6b80'), INK3 = () => cv('--ink-3', '#8a97ab');
-  function indBarOpt(A, key, unit, color) {
-    const rows = A.inds.filter((x) => x[key]).sort((a, b) => a[key].med - b[key].med);   // 升冪＋橫條由下往上畫＝最高在最上
-    const rng = rows.map((x, i) => [x[key].min, x[key].max, i]);
-    return { grid: { left: 8, right: 24, top: 8, bottom: 8, containLabel: true },
+  function indBarOpt(A, key, unit) {
+    const rows = A.inds.filter((x) => x[key]).sort((a, b) => a[key].med - b[key].med);   // 升冪＋橫條由下往上畫＝最高在最上（D 款排行橫條）
+    const rng = rows.map((x, i) => [x[key].min, x[key].max, i, x[key].med]);
+    const grad = { type: 'linear', x: 0, y: 0, x2: 1, y2: 0, colorStops: [{ offset: 0, color: 'rgba(62,224,255,.5)' }, { offset: 1, color: '#3ee0ff' }] };
+    return { grid: { left: 8, right: 56, top: 8, bottom: 8, containLabel: true },
       tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, confine: true, formatter: (p) => { const x = rows[p[0].dataIndex]; return esc(x.name) + '<br>中位數 <b>' + x[key].med + '</b> ' + unit + '<br>區間 ' + x[key].min + '–' + x[key].max + '<br>樣本 ' + x[key].n + ' 筆'; } },
       xAxis: { type: 'value', axisLabel: { color: INK3(), fontSize: 12 }, splitLine: { lineStyle: { opacity: .15 } } },
       yAxis: { type: 'category', data: rows.map((x) => x.name), axisLabel: { color: INK2(), fontSize: 12 }, axisTick: { show: false }, axisLine: { show: false } },
       series: [
-        { type: 'bar', data: rows.map((x) => x[key].med), barWidth: 12, itemStyle: { borderRadius: [0, 3, 3, 0], color: color }, showBackground: true, backgroundStyle: { color: 'rgba(120,140,170,.12)', borderRadius: 3 }, z: 2,
-          label: { show: false } },
+        { type: 'bar', data: rows.map((x) => x[key].med), barWidth: 12, itemStyle: { borderRadius: [0, 3, 3, 0], color: grad }, showBackground: true, backgroundStyle: { color: 'rgba(120,140,170,.12)', borderRadius: 3 }, z: 2, label: { show: false }, emphasis: { label: { show: false } } },
         { type: 'custom', data: rng, z: 3, silent: true, tooltip: { show: false },
           renderItem: (params, api) => { const a = api.coord([api.value(0), api.value(2)]), b = api.coord([api.value(1), api.value(2)]), st = { stroke: '#ffb454', lineWidth: 2 };
-            return { type: 'group', children: [{ type: 'line', shape: { x1: a[0], y1: a[1], x2: b[0], y2: b[1] }, style: st }, { type: 'line', shape: { x1: a[0], y1: a[1] - 5, x2: a[0], y2: a[1] + 5 }, style: st }, { type: 'line', shape: { x1: b[0], y1: b[1] - 5, x2: b[0], y2: b[1] + 5 }, style: st }] }; } }
+            return { type: 'group', children: [{ type: 'line', shape: { x1: a[0], y1: a[1], x2: b[0], y2: b[1] }, style: st }, { type: 'line', shape: { x1: a[0], y1: a[1] - 5, x2: a[0], y2: a[1] + 5 }, style: st }, { type: 'line', shape: { x1: b[0], y1: b[1] - 5, x2: b[0], y2: b[1] + 5 }, style: st },
+              { type: 'text', style: { text: String(api.value(3)), x: b[0] + 8, y: b[1], textVerticalAlign: 'middle', fill: INK2(), fontSize: 12, fontWeight: 700 } }] }; } }
       ] };
   }
-  /* ---------- 甜甜圈（圖表庫 A 款）：產業樣本占比、各產業底薪／年薪環組、公司薪資組成 ---------- */
-  const PAL = { base: '#3ee0ff', year: '#ffb454', bonus: '#8b7bff', other: '#2ec4b6', rest: '#9aa7b8' };
-  const TRACK = () => cv('--panel-3', '#e4ebf3');
-  const INK1 = () => cv('--ink', '#10202f');
-  const IND_PAL = ['#3ee0ff', '#8b7bff', '#ffb454', '#2ec4b6', '#ff7a45'];
-  function shareOpt(A, el) {
-    const rows = A.inds.slice().sort((a, b) => b.n - a.n), top = rows.slice(0, 5), rest = rows.slice(5), tot = rows.reduce((s, x) => s + x.n, 0);
-    const data = top.map((x, i) => ({ name: x.name, value: x.n, id: x.id, itemStyle: { color: IND_PAL[i] } }));
-    if (rest.length) data.push({ name: '其他', value: rest.reduce((s, x) => s + x.n, 0), items: rest.map((x) => x.name + ' ' + x.n), itemStyle: { color: '#9aa7b8' } });
-    const narrow = true;   // 卡片窄，圖例一律放下方（放右側會壓到環）
-    return { _tot: tot, tooltip: { trigger: 'item', confine: true, formatter: (p) => esc(p.name) + '：<b>' + p.value + '</b> 筆（' + (p.value / tot * 100).toFixed(1) + '%）' + (p.data.items ? '<br>' + p.data.items.map(esc).join('<br>') : '') },
-      legend: { orient: narrow ? 'horizontal' : 'vertical', right: narrow ? 'center' : 4, bottom: narrow ? 0 : 'middle', top: narrow ? undefined : 'middle', itemWidth: 10, itemHeight: 10, textStyle: { color: INK2(), fontSize: 12 },
-        formatter: (n) => { const d = data.find((x) => x.name === n); return n + '  ' + (d ? d.value : '') + ' 筆・' + (d ? Math.round(d.value / tot * 100) : 0) + '%'; } },
-      graphic: [{ id: 'c1', type: 'text', silent: true, style: { text: '樣本', fill: INK3(), fontSize: 12, textAlign: 'center' } }, { id: 'c2', type: 'text', silent: true, style: { text: String(tot), fill: INK1(), fontSize: 28, fontWeight: 700, textAlign: 'center' } }],
-      series: [{ type: 'pie', radius: ['38%', '54%'], center: ['50%', '32%'], avoidLabelOverlap: true, label: { show: false }, labelLine: { show: false }, padAngle: 1, itemStyle: { borderRadius: 6, borderColor: cv('--panel-2', '#fff'), borderWidth: 1 }, emphasis: { scale: true, scaleSize: 4, itemStyle: { borderColor: cv('--cyan', '#3ee0ff'), borderWidth: 3 } }, data }] };
+  /* ---------- 甜甜圈：完全共用「流量觀測」那套（site/app.js 的 App.donut：環 68／92、間隙 1.2°、圓角 6、中心字、滑過外凸 4＋外框 3）
+     版面照 admin.js 的 .dn：左環右圖例（色塊｜名稱｜數值｜占比），卡寬 < 420 才退到下方。色盤用 App.donut.color(i)，「其他」用 App.donut.other()。 ---------- */
+  const DN = () => (window.App && window.App.donut) || null;
+  const dnColor = (p, i) => { const D = DN(); return p.color || (D ? (p.isOther ? D.other() : D.color(i)) : '#5b9dff'); };
+  const nf = (n) => (n == null ? '—' : Number(n).toLocaleString('en-US'));
+  function dnHtml(id, parts, ltxt) {
+    const tot = parts.reduce((x, p) => x + p.value, 0) || 1;
+    return '<div class="tcdn" id="' + id + '"><div class="tcdnc" role="img" aria-label="占比"></div><ul class="tclg">' + parts.map((p, i) => { const t = ltxt ? ltxt(p, tot) : [nf(p.value), Math.round(p.value / tot * 100) + '%'];
+      return '<li data-k="' + esc(p.name) + '" title="' + esc(p.name) + '"><i style="background:' + dnColor(p, i) + '"></i><span>' + esc(p.name) + '</span><b>' + esc(t[0]) + '</b><small>' + esc(t[1]) + '</small></li>'; }).join('') + '</ul></div>';
   }
-  /* 中心字位置依實際容器算（graphic 要 px）；hover 時換成該塊名稱與占比 */
-  function centerText(c, el, cx, cy, t1, t2) { c.setOption({ graphic: [{ id: 'c1', style: { text: t1 }, x: cx, y: cy - 22 }, { id: 'c2', style: { text: t2 }, x: cx, y: cy - 8 }] }); }
-  function drawShare(ch) {
-    const A = S.agg, el = document.getElementById('tcChN'); if (!el || !el.clientWidth) return;
-    el.style.height = '330px';
-    const o = shareOpt(A, el), c = ch(el, o); if (!c) return;
-    const W = el.clientWidth, H = el.clientHeight, cx = W * .5, cy = H * .32, tot = o._tot;
-    centerText(c, el, cx, cy, '樣本', String(tot));
-    c.off('mouseover'); c.off('globalout');
-    c.on('mouseover', (p) => { if (p.seriesType === 'pie') centerText(c, el, cx, cy, p.name, (p.value / tot * 100).toFixed(1) + '%'); });
-    c.on('globalout', () => centerText(c, el, cx, cy, '樣本', String(tot)));
+  function dnMount(box, parts, c1, c2, extra) {
+    const A = window.App, D = DN(), el = box && box.querySelector('.tcdnc'); if (!A || !D || !el || !el.clientWidth) return null;
+    const SZ = Math.round(el.clientWidth) || 160, tot = parts.reduce((x, p) => x + p.value, 0) || 1;
+    const data = parts.map((p, i) => D.item({ name: p.name, value: p.value, isOther: p.isOther, color: p.color }, i, false));
+    const c = A.chart(el, { tooltip: { ...A.tip, confine: false, position: D.tipPos, trigger: 'item', formatter: (q) => '<b>' + esc(q.name) + '</b><br>' + nf(Math.round(q.value * 10) / 10) + (extra && extra.unit ? ' ' + extra.unit : '') + '（' + (+q.percent).toFixed(1) + '%）' + (extra && extra.tip ? extra.tip(q.name) : '') },
+      title: D.center(c1, c2, SZ), animationDurationUpdate: D.MS, series: D.series({ cursor: 'default', data }) }, { notMerge: true });
+    const inst = window.echarts.getInstanceByDom(el); if (!inst) return null;
+    let cur = null;
+    const setHi = (nm) => { if (inst.isDisposed() || cur === nm) return; cur = nm; const hd = nm ? parts.find((x) => x.name === nm) : null;
+      try { inst.setOption({ title: D.center(hd ? hd.name : c1, hd ? (A.fmt && A.fmt.n ? A.fmt.n(hd.value / tot * 100, 1) : (hd.value / tot * 100).toFixed(1)) + '%' : c2, SZ), series: [{ data: parts.map((p, i) => D.item({ name: p.name, value: p.value, isOther: p.isOther, color: p.color }, i, !!hd && p.name === nm)) }] }); } catch (e) { /* tooltip 與 dispose 競態 */ }
+      $$('li[data-k]', box).forEach((li) => li.classList.toggle('hl', !!hd && li.dataset.k === nm)); };
+    inst.off('mouseover'); inst.off('globalout');
+    inst.on('mouseover', (q) => { if (q.seriesIndex === 0) setHi(q.name); }); inst.on('globalout', () => setHi(null));
+    $$('li[data-k]', box).forEach((li) => { li.onmouseenter = () => setHi(li.dataset.k); li.onmouseleave = () => setHi(null); });
+    return inst;
   }
-  function ringsOpt(A, key, unit, color, el) {
-    const rows = A.inds.filter((x) => x[key]).sort((a, b) => b[key].med - a[key].med), mx = Math.max(1, ...rows.map((x) => x[key].med));
-    const W = el.clientWidth, cols = W >= 300 && !mob() ? 3 : 2, cellH = 112, R = 32, pos = rows.map((x, i) => [(i % cols + .5) * W / cols, Math.floor(i / cols) * cellH + 44]);
-    el.style.height = Math.ceil(rows.length / cols) * cellH + 'px';
-    return { tooltip: { trigger: 'item', confine: true, formatter: (p) => { const x = rows[p.seriesIndex]; return x ? esc(x.name) + '<br>中位數 <b>' + x[key].med + '</b> ' + unit + '<br>區間 ' + x[key].min + '–' + x[key].max + '<br>樣本 ' + x[key].n + ' 筆' : ''; } },
-      graphic: rows.map((x, i) => ({ type: 'text', silent: true, x: pos[i][0], y: pos[i][1] + R + 8, style: { text: x.name, fill: INK2(), fontSize: 12, textAlign: 'center' } })),
-      series: rows.map((x, i) => ({ type: 'pie', radius: [R * .72, R], center: pos[i], silent: false, startAngle: 90, label: { show: true, position: 'center', formatter: () => String(x[key].med), color: INK1(), fontSize: 12, fontWeight: 700 }, labelLine: { show: false }, emphasis: { scale: true, scaleSize: 3, label: { show: true } },
-        data: [{ value: x[key].med, name: x.name, itemStyle: { color } }, { value: Math.max(mx - x[key].med, mx * .02), name: '', tooltip: { show: false }, itemStyle: { color: TRACK() }, emphasis: { disabled: true } }] })) };
+  function shareParts(A) {
+    const rows = A.inds.slice().sort((a, b) => b.n - a.n), top = rows.slice(0, 5).map((x) => ({ name: x.name, value: x.n })), rest = rows.slice(5);
+    if (rest.length) top.push({ name: '其他', value: rest.reduce((s, x) => s + x.n, 0), isOther: true });
+    return top;
   }
   function drawStats() {
     const A = S.agg, ch = window.App && window.App.chart; if (!A || !ch) return;
-    const mkH = (n) => Math.max(120, n * 30 + 24);
-    const draw = (id, key, unit, color) => { const el = document.getElementById(id); if (!el || !el.clientWidth) return; const n = A.inds.filter((x) => x[key]).length;
-      if (S.chv === 'bar') { el.style.height = mkH(n) + 'px'; ch(el, indBarOpt(A, key, unit, color)); } else ch(el, ringsOpt(A, key, unit, color, el)); };
-    draw('tcChBase', 'base', 'K/月', '#3ee0ff'); draw('tcChAnn', 'ann', '萬/年', '#8b7bff');
-    drawShare(ch);
-    $$('#tcChBase,#tcChAnn', document).forEach((e) => { const c = window.echarts && window.echarts.getInstanceByDom(e); if (!c) return; c.off('click'); c.on('click', (q) => { const key = e.id === 'tcChBase' ? 'base' : 'ann'; const rows = S.chv === 'bar' ? A.inds.filter((x) => x[key]).sort((a, b) => a[key].med - b[key].med) : A.inds.filter((x) => x[key]).sort((a, b) => b[key].med - a[key].med); const k = S.chv === 'bar' ? q.dataIndex : q.seriesIndex; if (rows[k]) location.hash = '#tc/' + rows[k].id; }); });
+    const sb = document.getElementById('tcShare'); if (sb) dnMount(sb, shareParts(A), '樣本', String(A.inds.reduce((s, x) => s + x.n, 0)), { unit: '筆' });
+    const el = document.getElementById('tcChBar'); if (!el || !el.clientWidth) return;
+    const key = S.chm === 'ann' ? 'ann' : 'base', n = A.inds.filter((x) => x[key]).length;
+    el.style.height = Math.max(160, n * (mob() ? 27 : 32) + 24) + 'px';
+    ch(el, indBarOpt(A, key, key === 'ann' ? '萬/年' : 'K/月'));
+    const c = window.echarts && window.echarts.getInstanceByDom(el); if (!c) return;
+    c.off('click'); c.on('click', (q) => { const rows = A.inds.filter((x) => x[key]).sort((a, b) => a[key].med - b[key].med); if (rows[q.dataIndex]) location.hash = '#tc/' + rows[q.dataIndex].id; });
   }
   function chartsHtml(A) {
     if (!A.inds.length) return '';
-    const sg = (k, arr, cur) => '<div class="seg" data-' + k + '="1">' + arr.map(([v, t]) => '<button type="button" data-v="' + v + '" class="' + (cur === v ? 'on' : '') + '">' + t + '</button>').join('') + '</div>';
-    return '<div class="tc-chm">' + sg('chm', [['share', '占比'], ['base', '底薪'], ['ann', '年薪']], S.chm) + sg('chv', [['ring', '甜甜圈'], ['bar', '橫條']], S.chv) + '</div>' +
-      '<div class="tc-gr" data-m="' + S.chm + '"><div class="tc-gc" data-c="share"><h5>各產業樣本占比</h5><div id="tcChN" class="tc-ch"></div></div><div class="tc-gc" data-c="base"><h5>各產業底薪中位數（K/月）</h5><div id="tcChBase" class="tc-ch"></div></div><div class="tc-gc" data-c="ann"><h5>各產業年薪中位數（萬/年）</h5><div id="tcChAnn" class="tc-ch"></div></div></div>' +
+    const seg = '<div class="seg" data-chm="1">' + [['base', '底薪'], ['ann', '年薪']].map(([v, t]) => '<button type="button" data-v="' + v + '" class="' + (S.chm === v ? 'on' : '') + '">' + t + '</button>').join('') + '</div>';
+    return '<div class="tc-gr"><div class="tc-gc"><h5>各產業樣本占比</h5>' + dnHtml('tcShare', shareParts(A), (p, tot) => [nf(p.value) + ' 筆', Math.round(p.value / tot * 100) + '%']) + '</div>' +
+      '<div class="tc-gc"><div class="tc-payh"><h5>各產業薪資中位數</h5>' + seg + '<span class="tc-cl"><em><i style="background:#ffb454"></i>最低到最高</em></span></div><div id="tcChBar" class="tc-ch"></div></div></div>' +
       '<div class="tc-rkw"><h5>公司排行</h5><div id="tcRank">' + rankHtml(A) + '</div></div>';
   }
   /* ---------- 公司薪資組成：以「月數」為單位，缺的不捏造 ---------- */
@@ -310,40 +307,34 @@
     const baseK = mdp(r.base_month_k), annM = mdp(r.annual_months), annW = mdp(r.annual_total_wan), bonus = mdp(r.bonus_months);
     const year = sumOf((t) => /年終/.test(t) && !/分紅|保障/.test(t)), other = sumOf((t) => !/年終|分紅|酬勞|保障|RSU/.test(t));
     const parts = [], miss = [];
-    if (baseK != null) parts.push({ k: 'base', name: '底薪', m: 12, c: PAL.base }); else miss.push('底薪查無資料');
-    if (year != null) parts.push({ k: 'year', name: '年終', m: year, c: PAL.year }); else miss.push('年終月數查無資料');
-    if (bonus != null) parts.push({ k: 'bonus', name: '分紅', m: bonus, c: PAL.bonus }); else miss.push('分紅月數查無資料');
-    if (other != null) parts.push({ k: 'other', name: '三節／其他獎金', m: other, c: PAL.other }); else miss.push('三節／其他獎金月數查無資料');
+    if (baseK != null) parts.push({ k: 'base', name: '底薪', m: 12 }); else miss.push('底薪查無資料');
+    if (year != null) parts.push({ k: 'year', name: '年終', m: year }); else miss.push('年終月數查無資料');
+    if (bonus != null) parts.push({ k: 'bonus', name: '分紅', m: bonus }); else miss.push('分紅月數查無資料');
+    if (other != null) parts.push({ k: 'other', name: '三節／其他獎金', m: other }); else miss.push('三節／其他獎金月數查無資料');
     const known = parts.reduce((s, p) => s + p.m, 0);
-    if (annM != null && annM > 0) { const rest = annM - known; if (rest > 0.4 && parts.length) parts.push({ k: 'rest', name: '其餘獎金（分紅／季獎金等，未細分）', m: Math.round(rest * 10) / 10, c: PAL.rest }); if (annM > 0 && !parts.length) miss.push('只有年薪總月數'); } else miss.push('年薪總月數查無資料');
+    if (annM != null && annM > 0) { const rest = annM - known; if (rest > 0.4 && parts.length) parts.push({ k: 'rest', name: '其餘獎金（分紅／季獎金等，未細分）', m: Math.round(rest * 10) / 10 }); if (annM > 0 && !parts.length) miss.push('只有年薪總月數'); } else miss.push('年薪總月數查無資料');
     return { parts, miss, baseK, annM, annW, known };
   }
+  const SLOT = { base: 0, year: 1, bonus: 2, other: 3 };
+  const partColor = (k) => { const D = DN(); return !D ? '#5b9dff' : k === 'rest' ? D.other() : D.color(SLOT[k] != null ? SLOT[k] : 4); };
   const payRoles = (co) => (co.roles || []).filter((r) => hasNum(r.base_month_k) || hasNum(r.annual_months) || hasNum(r.annual_total_wan) || hasNum(r.bonus_months));
   function payHtml(co) {
     const rs = payRoles(co);
-    if (!rs.length) return '<div class="tc-pay"><h5>薪資組成</h5><div id="tcPay" class="tc-paych"></div><div class="tc-paynote">資料不足：這家公司還沒有可用的底薪／年薪數字</div></div>';
+    if (!rs.length) return '<div class="tc-pay"><div class="tc-payh"><h5>薪資組成（以月數計）</h5></div><div id="tcPayDn">' + dnHtml('tcPayBox', [{ name: '資料不足', value: 1, isOther: true }], () => ['—', '']) + '</div></div>';
     const fullness = (r) => ['base_month_k', 'bonus_months', 'annual_months', 'annual_total_wan'].filter((k) => hasNum(r[k])).length;
     let bi = 0; rs.forEach((r, i) => { const b = rs[bi]; if (fullness(r) > fullness(b) || (fullness(r) === fullness(b) && (r.n || 0) > (b.n || 0))) bi = i; });   // 預設：資料最完整的職位，同分取樣本多的
     S.payI = S.payI != null && S.payI < rs.length ? S.payI : bi;
-    return '<div class="tc-pay"><div class="tc-payh"><h5>薪資組成（以月數計）</h5><select id="tcPaySel" aria-label="選職位">' + rs.map((r, i) => '<option value="' + i + '"' + (i === S.payI ? ' selected' : '') + '>' + esc((r.unit || '') + '・' + (r.role || '') + '（' + (r.n || 0) + ' 筆）') + '</option>').join('') + '</select></div>' +
-      '<div class="tc-paybody"><div id="tcPay" class="tc-paych"></div><div id="tcPayLg" class="tc-paylg"></div></div><div id="tcPayNote" class="tc-paynote"></div></div>';
+    return '<div class="tc-pay"><div class="tc-payh"><h5>薪資組成（以月數計）</h5><select id="tcPaySel" aria-label="選職位">' + rs.map((r, i) => '<option value="' + i + '"' + (i === S.payI ? ' selected' : '') + '>' + esc((r.unit || '') + '・' + (r.role || '') + '（' + (r.n || 0) + ' 筆）') + '</option>').join('') + '</select></div><div id="tcPayDn"></div></div>';
   }
   function drawPay(co) {
-    const ch = window.App && window.App.chart, el = document.getElementById('tcPay'); if (!el || !ch) return;
-    const rs = payRoles(co), lg = document.getElementById('tcPayLg'), nt = document.getElementById('tcPayNote');
-    el.style.height = (mob() ? 190 : 200) + 'px';
-    const r = rs[S.payI || 0], P = r ? payOf(co, r) : { parts: [], miss: [], baseK: null, annM: null, annW: null };
-    const W = el.clientWidth || 200, H = el.clientHeight, cx = W / 2, cy = H / 2;
-    const amt = (m) => (P.baseK != null ? '約 ' + (m * P.baseK / 10).toFixed(1) + ' 萬' : '');
-    const empty = !P.parts.length, tot = P.annM != null ? P.annM : P.known;
-    const t1 = empty ? '資料不足' : (P.annM != null ? '年薪總月數' : '已知月數'), t2 = empty ? '' : String(Math.round(tot * 10) / 10), t3 = P.annW != null && H >= 190 ? '年薪中位 ' + P.annW + ' 萬' : '';
-    const c = ch(el, { tooltip: { trigger: 'item', confine: true, formatter: (p) => (p.data && p.data.k ? esc(p.name) + '：<b>' + p.value + '</b> 個月' + (amt(p.value) ? '（' + amt(p.value) + '）' : '') : '') },
-      graphic: [{ id: 'c1', type: 'text', silent: true, x: cx, y: cy - 24, style: { text: t1, fill: INK3(), fontSize: 12, textAlign: 'center' } }, { id: 'c2', type: 'text', silent: true, x: cx, y: cy - 10, style: { text: t2, fill: INK1(), fontSize: 26, fontWeight: 700, textAlign: 'center' } }, { id: 'c3', type: 'text', silent: true, x: cx, y: cy + 26, style: { text: t3, fill: INK3(), fontSize: 12, textAlign: 'center' } }],
-      series: [{ type: 'pie', radius: ['62%', '90%'], center: ['50%', '50%'], label: { show: false }, labelLine: { show: false }, padAngle: 1, itemStyle: { borderRadius: 5 }, emphasis: { scale: true, scaleSize: 4, itemStyle: { borderColor: cv('--cyan', '#3ee0ff'), borderWidth: 3 } },
-        data: empty ? [{ value: 1, name: '', itemStyle: { color: TRACK() }, emphasis: { disabled: true } }] : P.parts.map((p) => ({ value: p.m, name: p.name, k: p.k, itemStyle: { color: p.c } })) }] });
-    if (c) { c.off('mouseover'); c.off('globalout'); c.on('mouseover', (q) => { if (q.data && q.data.k) { c.setOption({ graphic: [{ id: 'c1', style: { text: q.name } }, { id: 'c2', style: { text: String(q.value) + ' 月' } }, { id: 'c3', style: { text: amt(q.value) } }] }); } }); c.on('globalout', () => c.setOption({ graphic: [{ id: 'c1', style: { text: t1 } }, { id: 'c2', style: { text: t2 } }, { id: 'c3', style: { text: t3 } }] })); }
-    if (lg) lg.innerHTML = P.parts.map((p) => '<div class="tc-pl"><i style="background:' + p.c + '"></i><span>' + esc(p.name) + '</span><b>' + p.m + ' 月</b><small>' + esc(amt(p.m)) + '</small></div>').join('');
-    if (nt) nt.textContent = empty ? '資料不足：' + (P.miss.join('、') || '') : (P.miss.length ? P.miss.join('、') + '（該塊未畫，不推算）' : '底薪以 12 個月計；其餘依公司層獎金結構與職位樣本');
+    const host = document.getElementById('tcPayDn'); if (!host || !DN()) return;
+    const rs = payRoles(co), r = rs[S.payI || 0], P = r ? payOf(co, r) : { parts: [], miss: [], baseK: null, annM: null, annW: null, known: 0 };
+    const empty = !P.parts.length, amt = (m) => (P.baseK != null ? '約 ' + (m * P.baseK / 10).toFixed(1) + ' 萬' : '');
+    const parts = empty ? [{ name: '資料不足', value: 1, isOther: true }] : P.parts.map((q) => ({ name: q.name, value: q.m, color: partColor(q.k), isOther: q.k === 'rest' }));
+    const tot = P.annM != null ? P.annM : P.known;
+    host.innerHTML = dnHtml('tcPayBox', parts, (q) => (empty ? ['—', ''] : [q.value + ' 月', amt(q.value)]));
+    host.title = P.miss.length && !empty ? P.miss.join('、') + '（該塊未畫，不推算）' : '';
+    dnMount(host.firstElementChild, parts, empty ? '資料不足' : (P.annM != null ? '年薪總月數' : '已知月數'), empty ? '—' : String(Math.round(tot * 10) / 10), { unit: '月', tip: (nm) => (amt((parts.find((x) => x.name === nm) || {}).value) ? '<br>' + amt((parts.find((x) => x.name === nm) || {}).value) : '') });
   }
   /* 樣本統計：產業→公司→單位→職位，每層 <details> 預設收起，只有一組時展開 */
   function statsHtml() {
@@ -400,7 +391,7 @@
     let b = rs[0]; rs.forEach((r) => { if ((r.n || 0) > (b.n || 0)) b = r; });
     const P = payOf(c, b); if (!P.parts.length) return '';
     const tot = P.parts.reduce((x, p) => x + p.m, 0), R = 15, C = 2 * Math.PI * R; let off = 0;
-    return '<div class="tc-mini" title="' + esc('薪資組成（月數）：' + P.parts.map((p) => p.name + p.m).join('／')) + '"><svg viewBox="0 0 40 40" width="44" height="44" aria-hidden="true">' + P.parts.map((p) => { const l = p.m / tot * C, e = '<circle cx="20" cy="20" r="' + R + '" fill="none" stroke="' + p.c + '" stroke-width="6" stroke-dasharray="' + l.toFixed(2) + ' ' + (C - l).toFixed(2) + '" stroke-dashoffset="' + (-off).toFixed(2) + '" transform="rotate(-90 20 20)"/>'; off += l; return e; }).join('') + '</svg></div>';
+    return '<div class="tc-mini" title="' + esc('薪資組成（月數）：' + P.parts.map((p) => p.name + p.m).join('／')) + '"><svg viewBox="0 0 40 40" width="44" height="44" aria-hidden="true">' + P.parts.map((p) => { const l = p.m / tot * C, e = '<circle cx="20" cy="20" r="' + R + '" fill="none" stroke="' + partColor(p.k) + '" stroke-width="6" stroke-dasharray="' + l.toFixed(2) + ' ' + (C - l).toFixed(2) + '" stroke-dashoffset="' + (-off).toFixed(2) + '" transform="rotate(-90 20 20)"/>'; off += l; return e; }).join('') + '</svg></div>';
   }
   function coCard(ind, c, matched) {
     const mini = miniDonut(c), col = (f) => matched.map((r) => mdp(r[f])).filter((v) => v != null);
