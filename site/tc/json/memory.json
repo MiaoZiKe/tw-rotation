@@ -3967,9 +3967,69 @@
               "date": "2026-06",
               "date_note": "GoodJob 標題附年月日",
               "in_window": true
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/旺宏電子股份有限公司/work-experiences?p=1",
+              "date": "2026-06",
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 63,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "role": "生產技術／製程工程師",
+              "quote_free_note": "生產技術／製程工程師評價 2026-06-29：月薪 6.3 萬",
+              "date_confirmed": true,
+              "date_note": "摘要寫出發文年月",
+              "in_window": true
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/旺宏電子股份有限公司/work-experiences?p=1",
+              "date": "2026-06",
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 70,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "role": null,
+              "quote_free_note": "製程工程師評價 2026-06-17：月薪 7 萬",
+              "date_confirmed": true,
+              "date_note": "摘要寫出發文年月",
+              "in_window": true
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/旺宏電子股份有限公司/work-experiences?p=1",
+              "date": "2026",
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 80,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "role": null,
+              "quote_free_note": "半導體製程工程師評價（2026）：年薪 80 萬，月薪×14＋簽約金",
+              "date_confirmed": true,
+              "date_note": "摘要寫出 2026 年",
+              "in_window": true
             }
           ],
-          "n": 2,
+          "n": 5,
           "sources": [
             {
               "site": "Dcard",
@@ -3980,16 +4040,24 @@
               "site": "GoodJob",
               "url": "https://www.goodjob.life/experiences/6a2091bf5694b101701001d2",
               "date": "2026-06"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/旺宏電子股份有限公司/work-experiences?p=1",
+              "date": "2026-06"
             }
           ],
-          "confidence": "低",
+          "confidence": "高",
           "note": "2026-10-26 由 Dcard 樣本新增的公司",
           "overtime": "偶爾",
-          "base_month_k": null,
+          "base_month_k": [
+            63,
+            70
+          ],
           "bonus_months": null,
           "annual_months": null,
           "annual_total_wan": [
-            110,
+            80,
             110
           ],
           "weekly_hours": [
@@ -3998,7 +4066,7 @@
           ],
           "years": null,
           "travel": null,
-          "n_stat": 2
+          "n_stat": 5
         },
         {
           "unit": "其他",
@@ -4051,6 +4119,56 @@
           "n_stat": 1,
           "note": null,
           "grade": null
+        },
+        {
+          "unit": "研發 R&D",
+          "role": "數位 IC 設計工程師",
+          "degree": "碩士",
+          "years": null,
+          "base_month_k": [
+            82,
+            82
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n": 1,
+          "note": "",
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/旺宏電子股份有限公司/work-experiences?p=1",
+              "date": "2026-04"
+            }
+          ],
+          "confidence": "低",
+          "grade": null,
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/旺宏電子股份有限公司/work-experiences?p=1",
+              "date": "2026-04",
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 82,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "role": null,
+              "quote_free_note": "數位 IC 設計工程師評價 2026-04-28：月薪 8.2 萬",
+              "date_confirmed": true,
+              "date_note": "摘要寫出發文年月",
+              "in_window": true
+            }
+          ],
+          "n_stat": 1
         }
       ]
     }
