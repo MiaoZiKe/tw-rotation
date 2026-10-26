@@ -601,7 +601,8 @@
               "travel": null,
               "quote_free_note": "留言 B9（非發文者，台大）：曾待 SPD2/CD1，新人第一年光分紅就領 120 萬以上（分紅金額無對應欄位），但部門極操，後轉外商",
               "date_note": "Dcard 頁面發文日期 2025-06-01（2026-10-26 1923 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": false,
+              "bonus_wan": 120
             },
             {
               "site": "Dcard",
@@ -2353,7 +2354,8 @@
               "travel": null,
               "quote_free_note": "留言 B66（非發文者，台大）：第一次打考績，DD 整包分紅不到 50 萬（分紅金額無對應欄位）",
               "date_note": "Dcard 頁面發文日期 2025-03-27（2026-10-26 1923 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": false,
+              "bonus_wan": 50
             },
             {
               "site": "Dcard",
@@ -2397,7 +2399,8 @@
               "travel": null,
               "quote_free_note": "留言 B104（非發文者，交大）：年資 4 年，DE 純分紅 200 萬以上（分紅金額無對應欄位），比去年多但工時很長；同部門相近年資 SA 再多一點",
               "date_note": "Dcard 頁面發文日期 2025-04-01（2026-10-26 1923 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": false,
+              "bonus_wan": 200
             },
             {
               "site": "Dcard",
@@ -2883,7 +2886,8 @@
               "travel": null,
               "quote_free_note": "留言 B37（非發文者，成大）：分紅打 8 折，整包分紅只剩約 150 萬（分紅金額無對應欄位）",
               "date_note": "Dcard 頁面發文日期 2025-03-27（2026-10-26 1923 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": false,
+              "bonus_wan": 150
             },
             {
               "site": "Dcard",
@@ -2927,7 +2931,8 @@
               "travel": null,
               "quote_free_note": "留言 B70（非發文者，中央）：第二次打考績，分紅只有約 50 萬（分紅金額無對應欄位）；年資依兩次考績推估",
               "date_note": "Dcard 頁面發文日期 2025-03-27（2026-10-26 1923 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": false,
+              "bonus_wan": 50
             },
             {
               "site": "Dcard",
@@ -3737,7 +3742,8 @@
               "travel": null,
               "quote_free_note": "留言 B9-5（非發文者）：當年以小 SA 身分拿到新人分紅包約 60 萬（分紅金額無對應欄位，記於此）；入職年份未寫",
               "date_note": "Dcard 頁面發文日期 2025-07-25（2026-10-26 1923 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": false,
+              "bonus_wan": 60
             },
             {
               "site": "Dcard",
@@ -4554,7 +4560,8 @@
               "travel": null,
               "quote_free_note": "留言者稱部門2–4年資今年這包分紅（年終）普遍85萬以上",
               "date_note": "Dcard 頁面發文日期 2025-01-29（2026-10-26 1943 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": false,
+              "bonus_wan": 85
             },
             {
               "site": "Dcard",
@@ -4576,7 +4583,11 @@
               "travel": null,
               "quote_free_note": "留言者自述年資1.4年，這包年終整包約85–95萬，主管說領滿",
               "date_note": "Dcard 頁面發文日期 2025-01-29（2026-10-26 1943 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": false,
+              "bonus_wan": [
+                85,
+                95
+              ]
             },
             {
               "site": "GoodJob",
@@ -6876,7 +6887,8 @@
               "travel": null,
               "quote_free_note": "群聯2025年7月開獎串留言；bonus_months為7月+10月+隔年4月三包合計月數，不含1月年終；7月+10月+4月三包合計約快80萬元（金額非月數）",
               "date_note": "Dcard 頁面發文日期 2025-07-31（2026-10-26 1943 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": false,
+              "bonus_wan": 80
             },
             {
               "site": "Dcard",

@@ -628,7 +628,7 @@
               "degree": "碩士",
               "base_k": null,
               "bonus_months": null,
-              "annual_months": null,
+              "annual_months": 14,
               "annual_wan": null,
               "weekly_hours": null,
               "overtime": null,
