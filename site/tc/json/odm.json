@@ -482,8 +482,8 @@
             100,
             100
           ],
-          "weekly_hours": null,
-          "overtime": null,
+          "weekly_hours": 48,
+          "overtime": "幾乎不",
           "travel": null,
           "n": 2,
           "note": "",
@@ -572,7 +572,13 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "annual_months": [
+            12,
+            12
+          ],
+          "weekly_hours": 55,
+          "overtime": "經常"
         },
         {
           "unit": "其他",
@@ -700,7 +706,8 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "overtime": "偶爾"
         },
         {
           "unit": "BU9 / QCT",
@@ -732,7 +739,11 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "annual_months": [
+            22,
+            22
+          ]
         },
         {
           "unit": "BU9",
@@ -850,7 +861,12 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "annual_months": [
+            20,
+            20
+          ],
+          "overtime": "偶爾"
         },
         {
           "unit": "BU4 / NB",
@@ -882,7 +898,11 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "annual_months": [
+            15,
+            15
+          ]
         },
         {
           "unit": "BU9",
@@ -946,7 +966,11 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "base_month_k": [
+            60,
+            60
+          ]
         },
         {
           "unit": "PC/NB",
@@ -978,7 +1002,8 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "overtime": "經常"
         },
         {
           "unit": "華亞園區 / 工廠端新部門（AI 眼鏡）",
@@ -1010,7 +1035,12 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "annual_months": [
+            17,
+            17
+          ],
+          "overtime": "經常"
         },
         {
           "unit": "其他",
@@ -1117,7 +1147,7 @@
             110,
             110
           ],
-          "weekly_hours": null,
+          "weekly_hours": 50,
           "overtime": "偶爾",
           "travel": null,
           "n": 12,
@@ -1438,7 +1468,11 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "base_month_k": [
+            40,
+            40
+          ]
         },
         {
           "unit": "E 事業群 / Dell 產品線",
@@ -1580,7 +1614,18 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 6
+          "n": 6,
+          "base_month_k": [
+            57.5,
+            57.5
+          ],
+          "annual_months": [
+            14,
+            18
+          ],
+          "weekly_hours": 40,
+          "overtime": "幾乎不",
+          "travel": "需要"
         },
         {
           "unit": "其他",
@@ -1612,7 +1657,8 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "overtime": "經常"
         },
         {
           "unit": "Server",
@@ -1644,7 +1690,8 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "travel": "需要"
         },
         {
           "unit": "A 事業群 / 包裝",
@@ -1676,7 +1723,8 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "travel": "需要"
         },
         {
           "unit": "其他",
@@ -1836,7 +1884,8 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "overtime": "經常"
         },
         {
           "unit": "其他",
@@ -1868,7 +1917,16 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "base_month_k": [
+            52,
+            52
+          ],
+          "annual_months": [
+            14,
+            14
+          ],
+          "overtime": "經常"
         },
         {
           "unit": "其他",
@@ -1900,7 +1958,8 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "overtime": "經常"
         }
       ],
       "mops": null,
@@ -2199,7 +2258,11 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "base_month_k": [
+            64,
+            64
+          ]
         }
       ],
       "mops": null,
@@ -2685,7 +2748,19 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 3
+          "n": 3,
+          "base_month_k": [
+            80,
+            80
+          ],
+          "annual_months": [
+            16,
+            16
+          ],
+          "annual_total_wan": [
+            190,
+            190
+          ]
         },
         {
           "unit": "其他",
@@ -2749,7 +2824,8 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "overtime": "經常"
         },
         {
           "unit": "ICTBG / Telecom Power System",
@@ -2781,7 +2857,11 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "annual_months": [
+            16,
+            16
+          ]
         },
         {
           "unit": "其他",
@@ -2909,7 +2989,9 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "weekly_hours": 49,
+          "overtime": "經常"
         },
         {
           "unit": "其他",
@@ -2973,7 +3055,8 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "overtime": "經常"
         },
         {
           "unit": "其他",
@@ -3005,7 +3088,11 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "annual_months": [
+            21,
+            21
+          ]
         },
         {
           "unit": "桃園 / data center pump",
@@ -3037,7 +3124,11 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "annual_total_wan": [
+            110,
+            110
+          ]
         },
         {
           "unit": "ICTBG / 中壢六廠",
@@ -3101,7 +3192,11 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "base_month_k": [
+            60,
+            60
+          ]
         },
         {
           "unit": "中壢 / 伺服器電源事業群",
@@ -3133,7 +3228,11 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "annual_total_wan": [
+            130,
+            130
+          ]
         },
         {
           "unit": "中壢廠 / IABG",
@@ -3197,7 +3296,15 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "base_month_k": [
+            74,
+            74
+          ],
+          "annual_months": [
+            19,
+            19
+          ]
         },
         {
           "unit": "桃園龜山 / 熱管理部",
@@ -3229,7 +3336,8 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "travel": "偶爾"
         },
         {
           "unit": "中壢六廠 / 全球製造",
@@ -3261,7 +3369,8 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "overtime": "經常"
         }
       ],
       "mops": null,
@@ -3336,8 +3445,8 @@
             95,
             100
           ],
-          "weekly_hours": null,
-          "overtime": null,
+          "weekly_hours": 40,
+          "overtime": "經常",
           "travel": null,
           "n": 15,
           "note": "平台自述統計（未轉貼原文）；社群回報月薪×14 保底＋績效分紅，無碩士起薪數字；2026-10 查比薪水有逾千筆但摘要無分紅／工時細節；annual_months 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples",
@@ -3825,7 +3934,17 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "base_month_k": [
+            66,
+            66
+          ],
+          "annual_months": [
+            16.5,
+            16.5
+          ],
+          "overtime": "幾乎不",
+          "travel": "幾乎不"
         },
         {
           "unit": "其他",
@@ -3857,7 +3976,11 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "base_month_k": [
+            65,
+            65
+          ]
         },
         {
           "unit": "其他",
@@ -3889,7 +4012,11 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "base_month_k": [
+            68,
+            68
+          ]
         },
         {
           "unit": "其他",
@@ -4385,8 +4512,11 @@
             14,
             14
           ],
-          "annual_total_wan": null,
-          "weekly_hours": null,
+          "annual_total_wan": [
+            100,
+            100
+          ],
+          "weekly_hours": 45,
           "overtime": "偶爾～經常",
           "travel": null,
           "n": 6,
@@ -4562,7 +4692,16 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "base_month_k": [
+            61.5,
+            61.5
+          ],
+          "annual_months": [
+            17,
+            17
+          ],
+          "travel": "需要"
         },
         {
           "unit": "其他",
@@ -4908,7 +5047,11 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "base_month_k": [
+            63.5,
+            63.5
+          ]
         },
         {
           "unit": "其他",
@@ -4972,7 +5115,11 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "annual_months": [
+            14,
+            14
+          ]
         }
       ],
       "mops": null,
@@ -5186,7 +5333,12 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "annual_months": [
+            16.5,
+            16.5
+          ],
+          "overtime": "偶爾"
         },
         {
           "unit": "其他",
@@ -5218,7 +5370,11 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "annual_months": [
+            15,
+            15
+          ]
         },
         {
           "unit": "其他",
@@ -5317,7 +5473,10 @@
           "years": "1",
           "base_month_k": null,
           "bonus_months": null,
-          "annual_months": null,
+          "annual_months": [
+            15,
+            15
+          ],
           "annual_total_wan": [
             70,
             70
@@ -5477,11 +5636,14 @@
           "years": "0-2",
           "base_month_k": null,
           "bonus_months": null,
-          "annual_months": null,
+          "annual_months": [
+            12,
+            12
+          ],
           "annual_total_wan": null,
           "weekly_hours": null,
           "overtime": "偶爾",
-          "travel": null,
+          "travel": "需要",
           "n": 5,
           "note": "平台自述統計（未轉貼原文）；韌體不到 1 年年薪 70 萬；軟體 1 年月薪 11 萬（落差大）；未逐筆對應的舊彙整：{\"base_month_k\": [110, 110], \"annual_total_wan\": [70, 70]}",
           "sources": [
@@ -5636,7 +5798,12 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "base_month_k": [
+            61.5,
+            61.5
+          ],
+          "travel": "不用"
         },
         {
           "unit": "桃園 / 全球營運中心",
@@ -5668,7 +5835,8 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "travel": "偶爾"
         }
       ],
       "mops": null,
@@ -6151,7 +6319,7 @@
           "annual_total_wan": null,
           "weekly_hours": null,
           "overtime": "經常",
-          "travel": null,
+          "travel": "需要",
           "n": 9,
           "note": "平台自述統計（未轉貼原文）；2 年年薪 120 萬；新人面試月薪 5.6 萬；2022 評價稱約 20 個月（範圍外）；GoodJob 2025-12 評價：近幾年約 18～20 個月（保 14 個月＋分紅），依職級而異；GoodJob 硬體職評價每週約 50 小時（2024-11，範圍外參考）；第二輪：PTT 2026-08 開獎串傳年薪 30 個月起（未證實），留言稱底薪近期大方調高；base_month_k、annual_total_wan 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples",
           "sources": [
@@ -6580,7 +6748,11 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "annual_months": [
+            14,
+            14
+          ]
         },
         {
           "unit": "南科廠",
@@ -6634,7 +6806,11 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 2
+          "n": 2,
+          "annual_months": [
+            14,
+            14
+          ]
         },
         {
           "unit": "其他",
@@ -6698,7 +6874,12 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "annual_months": [
+            19,
+            19
+          ],
+          "overtime": "偶爾"
         },
         {
           "unit": "其他",
@@ -6794,7 +6975,11 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "annual_months": [
+            24,
+            24
+          ]
         }
       ],
       "mops": null,
@@ -7158,7 +7343,17 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 7
+          "n": 7,
+          "base_month_k": [
+            58,
+            58
+          ],
+          "annual_months": [
+            12,
+            19
+          ],
+          "weekly_hours": 40,
+          "overtime": "經常"
         },
         {
           "unit": "其他",
@@ -7254,7 +7449,11 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "annual_months": [
+            17,
+            17
+          ]
         },
         {
           "unit": "內湖",
@@ -7286,7 +7485,13 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "annual_months": [
+            16,
+            16
+          ],
+          "weekly_hours": 50,
+          "overtime": "經常"
         },
         {
           "unit": "湖口",
@@ -7350,7 +7555,11 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "annual_months": [
+            17,
+            17
+          ]
         }
       ],
       "mops": null,
@@ -7536,7 +7745,7 @@
             14
           ],
           "annual_total_wan": null,
-          "weekly_hours": null,
+          "weekly_hours": 45,
           "overtime": "偶爾",
           "travel": null,
           "n": 3,
@@ -7724,7 +7933,12 @@
           "n": 1,
           "sources": [],
           "confidence": "低",
-          "note": "2026-10-26 由 Dcard 樣本新增的公司"
+          "note": "2026-10-26 由 Dcard 樣本新增的公司",
+          "annual_months": [
+            14,
+            14
+          ],
+          "overtime": "幾乎不"
         },
         {
           "unit": "其他",
@@ -7788,7 +8002,11 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "annual_months": [
+            14,
+            14
+          ]
         }
       ]
     },
@@ -7837,7 +8055,12 @@
           "n": 1,
           "sources": [],
           "confidence": "低",
-          "note": "2026-10-26 由 Dcard 樣本新增的公司"
+          "note": "2026-10-26 由 Dcard 樣本新增的公司",
+          "annual_months": [
+            15,
+            15
+          ],
+          "travel": "偶爾"
         }
       ]
     },
@@ -7886,7 +8109,11 @@
           "n": 1,
           "sources": [],
           "confidence": "低",
-          "note": "2026-10-26 由 Dcard 樣本新增的公司"
+          "note": "2026-10-26 由 Dcard 樣本新增的公司",
+          "annual_months": [
+            14,
+            14
+          ]
         }
       ]
     },
@@ -7935,7 +8162,11 @@
           "n": 1,
           "sources": [],
           "confidence": "低",
-          "note": "2026-10-26 由 Dcard 樣本新增的公司"
+          "note": "2026-10-26 由 Dcard 樣本新增的公司",
+          "annual_months": [
+            14,
+            14
+          ]
         }
       ]
     },
@@ -8033,7 +8264,9 @@
           "n": 1,
           "sources": [],
           "confidence": "低",
-          "note": "2026-10-26 由 Dcard 樣本新增的公司"
+          "note": "2026-10-26 由 Dcard 樣本新增的公司",
+          "weekly_hours": 47,
+          "overtime": "幾乎不"
         },
         {
           "unit": "其他",
@@ -8114,7 +8347,8 @@
           "n": 1,
           "sources": [],
           "confidence": "低",
-          "note": "2026-10-26 由 Dcard 樣本新增的公司"
+          "note": "2026-10-26 由 Dcard 樣本新增的公司",
+          "overtime": "經常"
         }
       ]
     },
@@ -8242,7 +8476,11 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "base_month_k": [
+            64,
+            64
+          ]
         }
       ],
       "note": "2026-10-26 由 Dcard 樣本新增的公司"
