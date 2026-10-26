@@ -578,6 +578,52 @@
               "in_window": false,
               "date_note": "Dcard 頁面發文日期 2025-03-05（2026-10-26 2122 批）",
               "comment_sample": true
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/257695308",
+              "date": "2025-01",
+              "page_date": "2025-01-10",
+              "date_confirmed": true,
+              "role": "工程師（DFT相關，原PO面試中）",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "留言B25-2：稱入職offer年薪從200萬到700萬都聽過（範圍過寬不填數值）；B25-4稱薪資看部門，部分部門IC3可高於IC4；B25-5（自稱IC3）建議參考Levels.fyi；原PO收到體檢通知，B10稱到體檢階段幾乎就會錄取",
+              "comment_sample": true,
+              "in_window": false,
+              "date_note": "Dcard 頁面發文日期 2025-01-10（2026-10-26 2321 批）"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/259128188",
+              "date": "2025-06",
+              "page_date": "2025-06-20",
+              "date_confirmed": true,
+              "role": "工程師（面試流程）",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "無薪資數字；留言B4稱面到第五面拿到offer、以前婉拒過不會少面；B8（疑似面試官）稱至少6輪、可能美中台三地主管都會面，Reference Check與體檢在offer之前",
+              "comment_sample": true,
+              "in_window": false,
+              "date_note": "Dcard 頁面發文日期 2025-06-20（2026-10-26 2321 批）"
             }
           ],
           "sources": [
@@ -640,10 +686,20 @@
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/258175547",
               "date": "2025-03"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/257695308",
+              "date": "2025-01"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/259128188",
+              "date": "2025-06"
             }
           ],
           "confidence": "低",
-          "n": 16,
+          "n": 18,
           "years": null,
           "base_month_k": null,
           "bonus_months": null,
@@ -1093,6 +1149,29 @@
               "quote_free_note": "原PO：同時拿到NV兩個研替口頭offer，未揭露薪資；B5稱兩缺錢差不到20萬",
               "in_window": false,
               "date_note": "Dcard 頁面發文日期 2025-04-02（2026-10-26 2122 批）"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/259298936",
+              "date": "2025-07",
+              "page_date": "2025-07-14",
+              "date_confirmed": true,
+              "role": "RDSS 研替（intern身分，1.5年後轉正）",
+              "grade": null,
+              "unit_detail": null,
+              "years": "1",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "無薪資數字；留言B8稱約1年時由主管提早轉正並簽新offer，轉正主要看部門headcount；B14-2稱身邊有2人、聽說近10人未轉正",
+              "comment_sample": true,
+              "in_window": false,
+              "date_note": "Dcard 頁面發文日期 2025-07-14（2026-10-26 2321 批）"
             }
           ],
           "sources": [
@@ -1110,10 +1189,15 @@
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/258439516",
               "date": "2025-04"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/259298936",
+              "date": "2025-07"
             }
           ],
           "confidence": "低",
-          "n": 3,
+          "n": 4,
           "n_stat": 0
         }
       ],

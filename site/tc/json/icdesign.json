@@ -5268,7 +5268,7 @@
               "date_confirmed": true,
               "role": "工程師",
               "grade": null,
-              "unit_detail": "CN事業群（帝王蟹）",
+              "unit_detail": "CN事業群",
               "years": "2",
               "degree": null,
               "base_k": null,
@@ -5351,6 +5351,30 @@
               "in_window": false,
               "date_note": "Dcard 頁面發文日期 2025-03-06（2026-10-26 2122 批）",
               "comment_sample": true
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/257856975",
+              "date": "2025-01",
+              "page_date": "2025-01-29",
+              "date_confirmed": true,
+              "role": "工程師",
+              "grade": null,
+              "unit_detail": "CTC（轉述的朋友部門未明）",
+              "years": "3",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "留言B10-36：轉述朋友年資3年，這包年終／分紅「6x」約60多萬（使用者確認為萬元，取65）；留言者稱其部門2–4年資這包普遍85萬以上、近2年資約90萬，認為6x偏低、可能是前一年業績衰退時的水準",
+              "bonus_wan": 65,
+              "comment_sample": true,
+              "in_window": false,
+              "date_note": "Dcard 頁面發文日期 2025-01-29（2026-10-26 2321 批）"
             }
           ],
           "sources": [
@@ -5373,10 +5397,15 @@
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/258175547",
               "date": "2025-03"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/257856975",
+              "date": "2025-01"
             }
           ],
           "confidence": "低",
-          "n": 6,
+          "n": 7,
           "weekly_hours": [
             50,
             50
@@ -7626,7 +7655,7 @@
               "page_date": "2025-01-21",
               "date_confirmed": true,
               "role": "工程師（職稱未註明）",
-              "grade": "B+",
+              "grade": "10職等 B+",
               "unit_detail": null,
               "years": "9",
               "degree": null,
@@ -7637,9 +7666,10 @@
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
-              "quote_free_note": "群聯2025年1月開獎串留言；bonus_months為1月這包合計月數（保證年終2個月＋績效）；職等10，自述這包超過100萬元（金額非月數）",
+              "quote_free_note": "群聯2025年1月開獎串留言；bonus_months為1月這包合計月數（保證年終2個月＋績效）；職等10，自述這包超過100萬元（金額非月數）；使用者確認「>100」為超過100萬元，bonus_wan 填下限100（2026-10-26 2321 修正）",
               "date_note": "Dcard 頁面發文日期 2025-01-21（2026-10-26 1943 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": false,
+              "bonus_wan": 100
             },
             {
               "site": "Dcard",
