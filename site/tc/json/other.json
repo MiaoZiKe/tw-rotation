@@ -366,6 +366,18 @@
               "date": null
             }
           ]
+        },
+        {
+          "type": "三節＋年中＋年終＋分紅",
+          "rule": "網友說法：端午中秋各 1 個月、年終 2 個月、分紅看年資比例（GoodJob 2024-12）；年中與年終各 2 個月底薪、旅遊津貼 1 萬（2025-07 技術員）；考績正常保底 16 個月（2025-10）",
+          "months": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/乾坤科技股份有限公司/work-experiences/薪資福利",
+              "date": "2025-10"
+            }
+          ]
         }
       ],
       "culture": "網友說法：2025 新竹資深工程師評價偶爾加班、每週約 45 小時；2024 評價稱新竹廠加班較多；面試趣綜合 2.7／5",
@@ -530,6 +542,28 @@
               "in_window": true,
               "role": "資深工程師（新竹評價）",
               "quote_free_note": "提到生育補助與旅遊津貼；6 年經驗、月薪 9 萬、每週 50 小時"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/乾坤科技股份有限公司/work-experiences/薪資福利",
+              "date": "2025-10",
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": [
+                16,
+                16
+              ],
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "考績正常以月薪×16 保底，其餘分紅看部門",
+              "date_confirmed": true,
+              "date_note": "來源標示年月，晚於 2025-08-01",
+              "in_window": true
             }
           ],
           "sources": [
@@ -547,7 +581,10 @@
             90
           ],
           "bonus_months": null,
-          "annual_months": null,
+          "annual_months": [
+            16,
+            16
+          ],
           "annual_total_wan": null,
           "weekly_hours": [
             50,
@@ -556,7 +593,59 @@
           "overtime": null,
           "travel": null,
           "years": "6",
+          "n": 2,
+          "n_stat": 2
+        },
+        {
+          "unit": "其他",
+          "role": "品保主管（全球製造高潛人才計畫）",
+          "degree": null,
+          "years": "8+",
+          "base_month_k": [
+            100,
+            140
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": "經常",
           "n": 1,
+          "note": "網友自述樣本（2025-08 之後）",
+          "sources": [
+            {
+              "site": "Cake 公司職缺",
+              "url": "https://www.cake.me/companies/cyntec/jobs/7dcf7de0-eaaa-4634-8dbc-fae9d9b70844-global-manufacturing-talent-gl-9e0c20d4e5cec8796794029de8f60d",
+              "date": "2026"
+            }
+          ],
+          "confidence": "低",
+          "grade": null,
+          "samples": [
+            {
+              "site": "Cake 公司職缺",
+              "url": "https://www.cake.me/companies/cyntec/jobs/7dcf7de0-eaaa-4634-8dbc-fae9d9b70844-global-manufacturing-talent-gl-9e0c20d4e5cec8796794029de8f60d",
+              "date": "2026",
+              "unit_detail": null,
+              "years": "8+",
+              "degree": null,
+              "base_k": [
+                100,
+                140
+              ],
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": "經常",
+              "quote_free_note": "公司職缺：月薪約 10～14 萬，含海外輪調、可能外派",
+              "date_confirmed": true,
+              "date_note": "公司 2026 年職缺頁",
+              "in_window": true
+            }
+          ],
           "n_stat": 1
         }
       ]
@@ -565,7 +654,7 @@
       "name": "車美仕",
       "code": null,
       "heat": null,
-      "benefits": null,
+      "benefits": "獲 1111 人力銀行 2025 幸福企業金獎（工商時報 2026-01 報導）；網友說法：低底薪高分紅（GoodJob 2025-09）",
       "stock_plan": null,
       "bonus_timing": "網友評價：年中獎金 8 月發，另有三節與年終（GoodJob 2026-05）；年終約 3 個月＋依營運分紅約 3～4 個月（GoodJob 2025-10）",
       "bonus_structure": [
@@ -602,6 +691,21 @@
               "site": "GoodJob",
               "url": "https://www.goodjob.life/companies/車美仕股份有限公司",
               "date": "2025-10"
+            }
+          ]
+        },
+        {
+          "type": "三節＋年中＋年終＋分紅",
+          "rule": "網友說法：三節獎金、年中獎金 8 月發、年終（GoodJob 2026-05）；年終近年約 3 個月＋分紅約 3～4 個月（GoodJob 2025-10）",
+          "months": [
+            3,
+            4
+          ],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/車美仕股份有限公司",
+              "date": "2026-05"
             }
           ]
         }
@@ -711,6 +815,58 @@
           "n_stat": 1,
           "note": null,
           "grade": null
+        },
+        {
+          "unit": "其他",
+          "role": "專案工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": null,
+          "bonus_months": [
+            3,
+            4
+          ],
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n": 1,
+          "note": "網友自述樣本（2025-08 之後）",
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/車美仕股份有限公司",
+              "date": "2025-10"
+            }
+          ],
+          "confidence": "低",
+          "grade": null,
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/車美仕股份有限公司",
+              "date": "2025-10",
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": [
+                3,
+                4
+              ],
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "年終近年約 3 個月＋分紅約 3～4 個月（依營運）",
+              "date_confirmed": true,
+              "date_note": "來源標示年月，晚於 2025-08-01",
+              "in_window": true
+            }
+          ],
+          "n_stat": 1
         }
       ],
       "note": "2026-10-26 由 Dcard 樣本新增的公司"
@@ -1723,6 +1879,18 @@
               "date": null
             }
           ]
+        },
+        {
+          "type": "保障月數＋季分紅",
+          "rule": "網友說法：保 14 個月＋每季分紅＋一年兩次績效獎金（GoodJob 2025-04 面試）；2026-05 評價也提到季獎金與分紅",
+          "months": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/新代科技股份有限公司/work-experiences",
+              "date": "2026-05"
+            }
+          ]
         }
       ],
       "culture": "網友說法：GoodJob 評分 4.1（145 筆）、工時 4.6、薪資福利 4.3；平均每週約 41 小時、47% 偶爾加班；升遷不容易",
@@ -1966,8 +2134,8 @@
       "name": "四零四科技（Moxa）",
       "code": null,
       "heat": null,
-      "benefits": "網友說法：旅遊補助約 3 萬（GoodJob 2026-04 評價）",
-      "stock_plan": null,
+      "benefits": "網友說法：旅遊補助約 3 萬（GoodJob 2026-04 評價）；網友說法：團保、社團補助、優於勞基法假期、每年健檢補助 5,000 元；WFH 已縮為每月 2 天；績效獎金受業績影響不保證（GoodJob 2025 評價）",
+      "stock_plan": "網友說法：部分績效獎金以虛擬股票發放、分四年領取（GoodJob 2025-08 專案主任評價）",
       "bonus_timing": null,
       "bonus_structure": [
         {
@@ -2105,6 +2273,104 @@
           "travel": null,
           "years": "4",
           "n": 1,
+          "n_stat": 1
+        },
+        {
+          "unit": "其他",
+          "role": "專案主任",
+          "degree": null,
+          "years": null,
+          "base_month_k": [
+            100,
+            100
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n": 1,
+          "note": "網友自述樣本（2025-08 之後）",
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/四零四科技股份有限公司/work-experiences/薪資福利",
+              "date": "2025-08"
+            }
+          ],
+          "confidence": "低",
+          "grade": null,
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/四零四科技股份有限公司/work-experiences/薪資福利",
+              "date": "2025-08",
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 100,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "績效獎金部分以虛擬股票發放、分四年領取",
+              "date_confirmed": true,
+              "date_note": "來源標示年月，晚於 2025-08-01",
+              "in_window": true
+            }
+          ],
+          "n_stat": 1
+        },
+        {
+          "unit": "研發 RD",
+          "role": "軟體設計工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": [
+            120,
+            120
+          ],
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n": 1,
+          "note": "網友自述樣本（2025-08 之後）",
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/四零四科技股份有限公司/work-experiences/薪資福利",
+              "date": "2025-10"
+            }
+          ],
+          "confidence": "低",
+          "grade": null,
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/四零四科技股份有限公司/work-experiences/薪資福利",
+              "date": "2025-10",
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 120,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": null,
+              "date_confirmed": true,
+              "date_note": "來源標示年月，晚於 2025-08-01",
+              "in_window": true
+            }
+          ],
           "n_stat": 1
         }
       ]
