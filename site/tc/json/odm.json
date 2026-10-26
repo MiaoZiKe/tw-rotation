@@ -11589,6 +11589,86 @@
             }
           ],
           "n_stat": 1
+        },
+        {
+          "unit": "研發 RD",
+          "role": "軟體工程師",
+          "degree": null,
+          "samples": [
+            {
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 70,
+              "weekly_hours": 40,
+              "overtime": null,
+              "travel": null,
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/明基電通股份有限公司/work-experiences/薪資福利",
+              "date": "2026-07",
+              "date_confirmed": true,
+              "date_note": "GoodJob 標示 2026.7.6（搜尋摘要）",
+              "in_window": true,
+              "role": "軟體工程師（在職評價）",
+              "quote_free_note": "年薪 70 萬、每週 40 小時"
+            },
+            {
+              "grade": null,
+              "unit_detail": null,
+              "years": "0",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 75,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/明基電通股份有限公司/work-experiences",
+              "date": "2026-07",
+              "date_confirmed": true,
+              "date_note": "GoodJob 標示 2026.7.20（搜尋摘要）",
+              "in_window": true,
+              "role": "軟體設計工程師（在職評價）",
+              "quote_free_note": "不到 1 年、年薪 75 萬"
+            }
+          ],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/明基電通股份有限公司/work-experiences/薪資福利",
+              "date": "2026-07"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/明基電通股份有限公司/work-experiences",
+              "date": "2026-07"
+            }
+          ],
+          "confidence": "低",
+          "note": "2026-10-26 依搜尋摘要新增",
+          "grade": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": [
+            70,
+            75
+          ],
+          "weekly_hours": [
+            40,
+            40
+          ],
+          "overtime": null,
+          "travel": null,
+          "years": "0",
+          "n": 2,
+          "n_stat": 2
         }
       ],
       "mops": null,
@@ -12558,7 +12638,20 @@
       "benefits": null,
       "stock_plan": null,
       "bonus_timing": null,
-      "bonus_structure": [],
+      "bonus_structure": [
+        {
+          "type": "保障年薪＋分紅",
+          "rule": "網友說法：保 14 個月，分紅約 0～3 個月；底薪依學歷 5.4～5.8 萬（GoodJob 2025-09 面試分享）；發放月份查不到",
+          "months": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/68e091d767cd8206aad1c336",
+              "date": "2025-09"
+            }
+          ]
+        }
+      ],
       "culture": "網友說法：面試趣公司評價 3.4／5；兆勤生活平衡 4.5 高於合勤 3.3",
       "interview": "網友說法：面試趣統計合勤面試評價 3.7／5（子公司兆勤 Zyxel 4／5、錄取率 38%）；具體題目查不到",
       "grade_system": null,
@@ -12614,6 +12707,177 @@
           "weekly_hours": null,
           "overtime": null,
           "travel": null,
+          "n_stat": 1
+        },
+        {
+          "unit": "研發 RD",
+          "role": "軟韌體工程師",
+          "degree": null,
+          "samples": [
+            {
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 55,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 40,
+              "overtime": null,
+              "travel": null,
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/合勤科技股份有限公司 ZYXEL/work-experiences/薪資福利",
+              "date": "2026-06",
+              "date_confirmed": true,
+              "date_note": "GoodJob 標示 2026.6.20（搜尋摘要）",
+              "in_window": true,
+              "role": "軟韌體工程師（新竹評價）",
+              "quote_free_note": "分紅比其他科技業少；月薪 5.5 萬、每週 40 小時"
+            },
+            {
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 57,
+              "bonus_months": [
+                0,
+                3
+              ],
+              "annual_months": 14,
+              "annual_wan": 79.8,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/68e091d767cd8206aad1c336",
+              "date": "2025-09",
+              "date_confirmed": true,
+              "date_note": "GoodJob 標示 2025 年 9 月（搜尋摘要）",
+              "in_window": true,
+              "role": "Linux 軟韌體工程師（面試錄取）",
+              "quote_free_note": "底薪依學歷 5.4～5.8 萬、保 14、分紅 0～3 個月；月薪 5.7 萬",
+              "derived": [
+                "annual_wan"
+              ]
+            },
+            {
+              "grade": null,
+              "unit_detail": null,
+              "years": "3",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 80,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/合勤科技股份有限公司 ZYXEL/work-experiences/薪資福利",
+              "date": "2026-01",
+              "date_confirmed": true,
+              "date_note": "GoodJob 標示 2026 年 1 月（搜尋摘要）",
+              "in_window": true,
+              "role": "軟體工程師（在職評價）",
+              "quote_free_note": "有底薪、獎金與三節；3 年經驗、年薪 80 萬"
+            }
+          ],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/合勤科技股份有限公司 ZYXEL/work-experiences/薪資福利",
+              "date": "2026-06"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/68e091d767cd8206aad1c336",
+              "date": "2025-09"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/合勤科技股份有限公司 ZYXEL/work-experiences/薪資福利",
+              "date": "2026-01"
+            }
+          ],
+          "confidence": "低",
+          "note": "2026-10-26 依搜尋摘要新增",
+          "grade": null,
+          "base_month_k": [
+            55,
+            57
+          ],
+          "bonus_months": [
+            0,
+            3
+          ],
+          "annual_months": [
+            14,
+            14
+          ],
+          "annual_total_wan": [
+            79.8,
+            80
+          ],
+          "weekly_hours": [
+            40,
+            40
+          ],
+          "overtime": null,
+          "travel": null,
+          "years": "3",
+          "n": 3,
+          "n_stat": 3
+        },
+        {
+          "unit": "研發 RD",
+          "role": "驗證工程師",
+          "degree": null,
+          "samples": [
+            {
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 51,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/合勤科技股份有限公司 ZYXEL/work-experiences/薪資福利",
+              "date": "2025-12",
+              "date_confirmed": true,
+              "date_note": "GoodJob 標示 2025 年 12 月（搜尋摘要）",
+              "in_window": true,
+              "role": "驗證工程師（新竹評價）",
+              "quote_free_note": "偏手動測試、適合新鮮人；月薪 5.1 萬"
+            }
+          ],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/合勤科技股份有限公司 ZYXEL/work-experiences/薪資福利",
+              "date": "2025-12"
+            }
+          ],
+          "confidence": "低",
+          "note": "2026-10-26 依搜尋摘要新增",
+          "grade": null,
+          "base_month_k": [
+            51,
+            51
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n": 1,
           "n_stat": 1
         }
       ]
