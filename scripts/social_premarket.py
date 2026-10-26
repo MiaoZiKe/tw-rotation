@@ -70,7 +70,7 @@ MAS = [(5, "5日"), (10, "10日"), (20, "月線20"), (60, "季線60"), (120, "�
 SRC_NAME = {"cnyes": "鉅亨", "udn": "聯合新聞網", "technews": "科技新報"}
 DISCLAIMER = "資料：Yahoo Finance、期交所公開資料、新聞媒體整理，僅供參考，不構成投資建議"
 HASHTAGS = "#台股 #盤前 #美股 #台指期 #台積電"
-ASK_LINE = "想看完整內容，留言『消息』"
+ASK_LINE = "💬 想看完整內容，留言『消息』"
 RELEASE_NAME = {"cpi": "美國 CPI", "nfp": "美國非農就業", "gdp": "美國 GDP", "pce": "美國 PCE"}
 
 # 消息：排除喊盤、權證、促銷、個人理財問答這類（不是「消息」）
@@ -500,6 +500,76 @@ def upcoming_events(target: date, cal: pd.DataFrame | None, days: int = 5) -> li
     return [{"time": e["t"].isoformat(), "name": e["name"], "label": f"{mdw(e['t'].date())} {e['t']:%H:%M}"} for e in merged]
 
 
+def bar_read(label: str, ks: dict) -> str:
+    """一檔的盤面解讀（2026-10-26 Andy：「需要描述昨日美股狀況…昨日費半原先下跌後來開高…台積電 ADR 也一樣開低走高」）。
+    只用日 K 的開高低收＋近 5 日＋月線／季線位置寫成一句，描述走勢、不給方向判斷或買賣建議：
+      ① 開盤相對前收（開高／開低／平開）與收盤相對開盤（走高／走低）→ 開低走高、開高走低、盤中翻紅／翻黑…
+      ② 收在當日區間的位置（≥80% 日高附近、≤20% 日低附近）
+      ③ 近 5 日累計漲跌，前 5 日多數收跌而今天收漲 → 止跌反彈；前 5 日多數收漲而今天收跌 → 漲多拉回
+      ④ 收盤在月線（20 日）／季線（60 日）之上或之下"""
+    b = ks.get("bars") or []
+    if len(b) < 2 or not ks.get("has_ohlc"):
+        return ""
+    t, y = b[-1], b[-2]
+    pc, o, h, l, c = y["c"], t["o"], t["h"], t["l"], t["c"]
+    pct = (c / pc - 1) * 100
+    gap = (o / pc - 1) * 100
+    flat = abs(gap) < 0.1
+    if flat:
+        path = "平盤開出後" + ("一路走高" if c > o else "震盪走低" if c < o else "持平")
+    elif gap > 0:
+        path = ("開高走高" if c >= o else ("開高後漲幅收斂" if c > pc else "開高走低、翻黑作收"))
+        if c >= o and l < pc:
+            path = "開高後一度翻黑、隨即拉回走高"
+    else:
+        path = ("開低走低" if c <= o else ("開低走高、翻紅作收" if c > pc else "開低後跌幅收斂"))
+        if c <= o and h > pc:
+            path = "開低後一度翻紅、終場仍收黑"
+    parts = [f"{label} {fmt_signed(pct, 2, '%')}，{path}"]
+    if h > l:
+        pos = (c - l) / (h - l)
+        if pos >= 0.8:
+            parts.append("收在日高附近")
+        elif pos <= 0.2:
+            parts.append("收在日低附近")
+    if len(b) >= 7:
+        prev5 = [b[i]["c"] < b[i - 1]["c"] for i in range(len(b) - 6, len(b) - 1)]
+        c5 = (c / b[-6]["c"] - 1) * 100
+        if sum(prev5) >= 3 and pct > 0:
+            parts.append(f"前 5 日有 {sum(prev5)} 日收跌，今天止跌反彈（近 5 日 {fmt_signed(c5, 1, '%')}）")
+        elif sum(prev5) <= 2 and pct < 0:
+            parts.append(f"前 5 日有 {5 - sum(prev5)} 日收漲，今天漲多拉回（近 5 日 {fmt_signed(c5, 1, '%')}）")
+        else:
+            parts.append(f"近 5 日 {fmt_signed(c5, 1, '%')}")
+    ma = [(n, t.get(k)) for k, n in (("ma20", "月線"), ("ma60", "季線")) if t.get(k)]
+    if ma:
+        parts.append("、".join(f"{n}{'之上' if c >= v else '之下'}" for n, v in ma))
+    return "；".join(parts)
+
+
+def market_reads(us: dict, adr: dict, night: dict) -> list[str]:
+    """盤面解讀清單：費半、那斯達克、標普、台積電 ADR 各一句，VIX 一句，夜盤一句（有資料才寫）。"""
+    out = []
+    by = {r["sym"]: r for r in us.get("rows", []) if not r.get("missing")}
+    for sym, lab in (("^SOX", "費半"), ("^IXIC", "那斯達克"), ("^GSPC", "標普")):
+        if sym in by:
+            x = bar_read(lab, by[sym]["k"])
+            if x:
+                out.append(x)
+    if not adr.get("missing"):
+        x = bar_read("台積電 ADR", adr["k"])
+        if x:
+            out.append(x)
+    if "^VIX" in by:
+        v = by["^VIX"]
+        mood = "恐慌情緒升溫" if v["pct"] >= 5 else "恐慌情緒降溫" if v["pct"] <= -5 else "情緒持平"
+        lvl = "，在 20 之上" if v["close"] >= 20 else "，回到 20 之下" if v["close"] < 20 <= v["close"] - v["chg"] else ""
+        out.append(f"VIX {fmt_num(v['close'])}（{fmt_signed(v['pct'], 1, '%')}），{mood}{lvl}")
+    if not night.get("missing") and night.get("diff") is not None and not night.get("partial"):
+        out.append(f"台指期夜盤 {fmt_num(night['close'], 0)}，較日盤 {fmt_signed(night['diff'], 0)} 點（{fmt_signed(night['diff_pct'], 2, '%')}）")
+    return out
+
+
 def summary_line(us: dict, adr: dict, tx: dict, night: dict) -> str:
     """一句話總結：只用數字事實，不給方向判斷、不給買賣建議（休市說明不上圖，只進文案）。"""
     parts = []
@@ -535,7 +605,7 @@ def collect(target: date, intl, price, intra, ohlc, news, cal) -> dict:
     return {"target": target.isoformat(), "us": us, "adr": adr, "tx": tx, "night": night, "last_td": last_td,
             "closure": closure_note(last_td, target), "news_window": [start.isoformat(), end.isoformat()],
             "news": pick_news(news, start, end), "events": upcoming_events(target, cal),
-            "summary": summary_line(us, adr, tx, night),
+            "summary": summary_line(us, adr, tx, night), "reads": market_reads(us, adr, night),
             "ta": {k: {"rows": ta_rows(v["k"]), "ma": ma_values(v["k"])} for k, v in (("tx", tx), ("adr", adr)) if not v.get("missing")}}
 
 
@@ -724,6 +794,9 @@ body{{font-variant-numeric:tabular-nums}}
 .sumt .v{{font-size:{S(84, 100)}px}}.sumt .k{{font-size:{S(34, 42)}px}}
 .bigbox{{flex:none;border:1.5px solid var(--line);border-radius:10px;background:var(--panel2);padding:{S('16px 28px', '24px 32px')}}}
 .big{{font-size:{S(46, 56)}px;line-height:1.6;font-weight:700}}
+.rdh{{font-size:{S(30, 36)}px;font-weight:800;color:var(--cyan);margin-bottom:6px}}
+.rd{{font-size:{S(27, 31)}px;line-height:1.5;font-weight:600;padding:6px 0 6px 22px;position:relative;border-top:1px dashed var(--line)}}
+.rd::before{{content:'';position:absolute;left:4px;top:{S(22, 25)}px;width:9px;height:9px;border-radius:50%;background:var(--cyan)}}
 """)
 
 
@@ -831,8 +904,11 @@ def build_pages(D: dict, mode: str, theme: str = "light") -> list[dict]:
     th = "".join(f'<div class=tile><div class=k data-box=sk{i}>{_e(k)}</div><div class="v {t}" data-box=sv{i}>{_e(v)}</div></div>'
                  for i, (k, v, t) in enumerate(tiles[:4]))
     if th:
-        big = f'<div class=bigbox><div class=big data-box=sum>{_e(D["summary"])}</div></div>' if D["summary"] else ""
-        pages.append({"name": "summary", "title": "一句話總結", "inner": f'<div class="grid sumt">{th}</div>{big}', "charts": {}})
+        # 2026-10-26 Andy：要有盤面分析（開低走高、一度翻紅…）→ 一句話總結改成「盤面解讀」清單
+        reads = D.get("reads") or []
+        big = (f'<div class=bigbox><div class=rdh>盤面解讀</div>' + "".join(f'<div class=rd data-box=rd{i}>{_e(x)}</div>' for i, x in enumerate(reads)) + '</div>') if reads else \
+              (f'<div class=bigbox><div class=big data-box=sum>{_e(D["summary"])}</div></div>' if D["summary"] else "")
+        pages.append({"name": "summary", "title": "盤面解讀", "inner": f'<div class="grid sumt">{th}</div>{big}', "charts": {}})
     return pages
 
 
@@ -886,35 +962,31 @@ def premarket_news(D: dict) -> dict:
 
 
 def caption(D: dict, ymd: str, max_len: int = ss.THREADS_MAX) -> str:
-    """第 1 行標題；美股／台指期／台積電各一行；完整消息標題清單；網址；免責；hashtag；最後一行留言關鍵字。超長先縮數字行。"""
-    tgt = pd.Timestamp(D["target"]).date()
-    us, adr, tx, night = D["us"], D["adr"], D["tx"], D["night"]
-    num = []
-    if us["date"]:
-        xs = [f"{r['label'].replace('費城半導體', '費半').replace('道瓊工業', '道瓊').replace('VIX 波動率', 'VIX')} "
-              + (fmt_num(r["close"]) if r["sym"] == "^VIX" else fmt_signed(r["pct"], 2, "%")) for r in us["rows"] if not r["missing"]]
-        num.append(f"美股 {md(us['date'])}：" + "、".join(xs))
-    if not tx["missing"]:
-        s = f"台指期 {md(tx['date'])} 收 {fmt_num(tx['close'], 0)}（{fmt_signed(tx['chg'], 0)}）"
-        if not night["missing"] and night.get("diff") is not None and not night.get("partial"):
-            s += f"，夜盤 {fmt_num(night['close'], 0)}（較日盤 {fmt_signed(night['diff'], 0)}）"
-        num.append(s)
-    if not adr["missing"]:
-        s = f"台積電 ADR {fmt_num(adr['close'])} 美元（{fmt_signed(adr['pct'], 2, '%')}）"
-        if adr.get("prem") is not None:
-            s += f"，換算{'溢價' if adr['prem'] >= 0 else '折價'} {abs(adr['prem']):.2f}%"
-        num.append(s)
-    elif adr.get("tw_close"):
-        num.append(f"台積電 {md(adr['tw_date'])} 收 {fmt_num(adr['tw_close'], 0)}（{fmt_signed(adr.get('tw_pct', 0), 2, '%')}）")
-    if D.get("closure"):
-        num.append(D["closure"]["text"])
-    news = [f"【{n['category']}】{n['title']}" for n in D["news"]]
-    tail = [*ss.LINK_LINES, DISCLAIMER, HASHTAGS, ASK_LINE]      # 連結格式同盤中盤後（2026-10-26 Andy）
+    """盤前文案，格式跟盤中盤後一樣（docs/marketing/social_unit/auto_post.md）：
+    標題 → 🇺🇸 美股（・條列）→ 🧭 盤面解讀（・條列）→ 📰 今日焦點（・【分類】標題）→ hashtag → 👉 連結 → 💬 留言關鍵字。
+    不放資料來源／免責。超過字數先砍焦點則數、再砍解讀句數。"""
+    us = D["us"]
+    by = {r["sym"]: r for r in us["rows"] if not r["missing"]}
+    nm = {"^SOX": "費半", "^IXIC": "那斯達克", "^GSPC": "標普", "^DJI": "道瓊"}
+    xs = [f"{nm[k]} {fmt_signed(by[k]['pct'], 2, '%')}" for k in ("^SOX", "^IXIC", "^GSPC", "^DJI") if k in by]
+    usl = []
+    if xs:
+        usl = [f"🇺🇸 美股 {md(us['date'])}："] + ([f"・{'、'.join(xs[:2])}；", f"・{'、'.join(xs[2:])}"] if len(xs) > 2 else [f"・{'、'.join(xs)}"])
+    def short(r: str) -> str:      # 文案只留：漲跌＋走勢，再加一段最有資訊的（止跌反彈／漲多拉回優先，其次收在日高／日低）
+        ps = r.split("；")
+        key = next((x for x in ps[1:] if "止跌" in x or "拉回" in x), None) or next((x for x in ps[1:] if "日高" in x or "日低" in x), None)
+        return ps[0] + (f"；{key}" if key else "")
+    reads = [short(r) for r in (D.get("reads") or [])]
+    news = [f"・【{n['category']}】{n['title']}" for n in D["news"]]
+    tail = [HASHTAGS, *ss.LINK_LINES, ASK_LINE]
     txt = ""
-    for keep_num, keep_news, keep_disc in ((len(num), len(news), True), (3, len(news), True), (2, len(news), True), (1, len(news), True),
-                                           (1, len(news), False), (0, len(news), False), (0, 4, False), (0, 3, False)):
-        t = tail if keep_disc else [x for x in tail if x != DISCLAIMER]
-        txt = "\n".join([f"台股盤前｜{md(tgt)}"] + num[:keep_num] + news[:keep_news] + t)
+    for kr, kn in ((len(reads), len(news)), (len(reads), 4), (len(reads), 3), (4, 3), (3, 3), (2, 3), (2, 2)):
+        body = [f"🌅 台股盤前 {md(pd.Timestamp(D['target']).date())}"] + usl
+        if reads[:kr]:
+            body += ["🧭 盤面解讀："] + [f"・{x}" for x in reads[:kr]]
+        if news[:kn]:
+            body += ["📰 今日焦點："] + news[:kn]
+        txt = "\n".join(body + tail)
         if len(txt) <= max_len:
             return txt
     return txt
@@ -929,6 +1001,7 @@ def main() -> int:
     ap.add_argument("--force", action="store_true", help="非交易日／資料舊／已發過也照產（示範用，不可用在發布）")
     ap.add_argument("--posted-json", default="", help="social-snaps 的 state/posted.json；premarket-<目標日> 已在裡面就不產（結束碼 10）")
     ap.add_argument("--max-stale-days", type=int, default=5, help="美股收盤日距目標日超過幾天就不發")
+    ap.add_argument("--save-site", action="store_true", help="把今日焦點寫進 site/articles/premarket.json（精選文章「盤前消息」分頁）")
     args = ap.parse_args()
 
     hol = load_holidays()
@@ -948,7 +1021,11 @@ def main() -> int:
             print(f"[premarket] {key} 已發過 → 不重複")
             return 10
 
-    D = collect(target, *load_lake(target))
+    lake = load_lake(target)
+    D = collect(target, *lake)
+    if not D["news"] and args.force:      # 示範用（美股還沒收盤、消息時間窗在未來）：改抓「現在往前 24 小時」的消息
+        D["news"] = pick_news(lake[4], now - timedelta(hours=24), now)
+        D["news_window"] = [(now - timedelta(hours=24)).isoformat(), now.isoformat()]
     if not D["us"]["date"]:
         print("[premarket] 資料庫讀不到美股收盤")
         return 2
@@ -965,6 +1042,11 @@ def main() -> int:
     DATE_TXT = f"{md(_t)} 週{WEEK[_t.weekday()]}"
     pn = premarket_news(D)
     (out / "premarket_news.json").write_text(json.dumps(pn, ensure_ascii=False, indent=1), "utf-8")
+    if args.save_site and pn["items"]:      # 2026-10-26 Andy：「標題內資訊需要存到我說的地方」＝精選文章「盤前消息」
+        from pipeline import premarket_news as PN
+        ok_ = PN.add_day({"date": D["target"], "items": [{"cat": i["category"], "title": i["title"], "url": i["url"], "source": i["source"],
+                                                          "time": i["published_at"]} for i in pn["items"]]})
+        print(f"[premarket] 盤前消息寫入 site/articles/premarket.json：{'成功' if ok_ else '失敗（格式不合，未寫）'}")
     from playwright.sync_api import sync_playwright
     report: list = []
     with sync_playwright() as p:

@@ -249,9 +249,10 @@ def test_caption_and_premarket_news():
     D = _collect()
     txt = sp.caption(D, "20261027")
     lines = txt.splitlines()
-    assert lines[0] == "台股盤前｜10/27" and lines[-1] == "想看完整內容，留言『消息』"
+    assert lines[0] == "🌅 台股盤前 10/27" and lines[-1] == "💬 想看完整內容，留言『消息』"      # 2026-10-26 盤前文案改成盤中盤後同格式
+    assert "🇺🇸 美股 10/23：" in lines and "📰 今日焦點：" in lines and "資料：" not in txt
     assert len(txt) <= 480 and "👉 更多詳細資料可以點擊以下連結：\nhttps://liguligu-puipui.com/\n" in txt
-    assert any(x.startswith("【總經】") for x in lines) and "查證中" not in txt
+    assert any(x.startswith("・【總經】") for x in lines) and "查證中" not in txt
     pn = sp.premarket_news(D)
     assert pn["version"] == 1 and pn["target_date"] == "2026-10-27" and pn["categories"] == ["新聞", "事件", "科技", "總經"]
     it = pn["items"][0]
@@ -269,3 +270,13 @@ def test_snap_note_regex_catches_notes():
         assert rx.search(bad), bad
     for ok in ("融資增減排行", "增加 Top 8", "+2.71 千張", "外資", "130%", "較前日 -5.85 pp"):
         assert not rx.search(ok), ok
+
+
+def test_盤面解讀_開低走高():
+    import pandas as pd
+    rows = [{"date": f"2026-10-{d:02d}", "open": o, "high": h, "low": l, "close": c, "volume": 1}
+            for d, (o, h, l, c) in zip(range(10, 24), [(100, 101, 99, 100)] * 6 + [(100, 100, 98, 99), (99, 99, 97, 98), (98, 98, 96, 97),
+                                                       (97, 98, 96, 97.5), (97.5, 97.5, 95, 96), (96, 96.5, 95, 96)] + [(96, 96, 95, 95.5), (95, 97, 94.8, 96.9)])]
+    ks = sp.k_series(pd.DataFrame(rows), 25)
+    r = sp.bar_read("費半", ks)
+    assert r.startswith("費半 +1.47%，開低走高、翻紅作收") and "收在日高附近" in r and "止跌反彈" in r
