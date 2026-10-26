@@ -70,7 +70,7 @@ def test_k_series_long_has_six_mas():
     df = pd.DataFrame({"date": days, "open": 99.0, "high": 102.0, "low": 98.0, "close": [100.0 + i for i in range(len(days))], "volume": 1.0})
     ks = sp.k_series(df, sp.K_LONG)
     b = ks["bars"]
-    assert len(b) == sp.K_LONG and 60 <= sp.K_LONG <= 66 and sp.DRAW_MAS == (5, 10, 20, 60) and [n for _, n in sp.MAS] == ["5日", "10日", "月線20", "季線60", "半年線120", "年線240"]
+    assert len(b) == sp.K_LONG and 20 <= sp.K_LONG <= 23 and sp.DRAW_MAS == (5, 10, 20, 60) and [n for _, n in sp.MAS] == ["5日", "10日", "月線20", "季線60", "半年線120", "年線240"]
     assert all(x["ma240"] is not None for x in b)                  # 歷史夠長，半年 K 棒的年線全程都有
     assert abs(b[-1]["ma240"] - (sum(range(len(days) - 240, len(days))) / 240 + 100)) < 1e-6
 

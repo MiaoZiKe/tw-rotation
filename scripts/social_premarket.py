@@ -65,7 +65,7 @@ US_ROWS = [("^IXIC", "那斯達克"), ("^SOX", "費城半導體"), ("^GSPC", "�
 ADR_SYM, FX_SYM, TSMC = "TSM", "TWD=X", "2330"
 ADR_RATIO = 5                     # 1 股 ADR＝5 股台積電普通股
 K_N = 25                          # 美股那頁每列的日 K 根數（小圖）
-K_LONG = 63                       # 日 K 根數：約 3 個月交易日（Andy 10-26 晚：「所有的日K只要前面3個月數據」；早先是半年 125）
+K_LONG = 22                       # 日 K 根數：約 1 個月交易日（Andy 10-26 晚：「改成一個月日K範圍」；先前 3 個月 63、半年 125）
 DRAW_MAS = (5, 10, 20, 60)        # 圖上只畫這四條（Andy 10-26 晚：「只要留下5 10 20 60均線」；120／240 仍照算，給解讀用）
 MAS = [(5, "5日"), (10, "10日"), (20, "月線20"), (60, "季線60"), (120, "半年線120"), (240, "年線240")]
 SRC_NAME = {"cnyes": "鉅亨", "udn": "聯合新聞網", "technews": "科技新報"}
@@ -849,15 +849,18 @@ body{{font-variant-numeric:tabular-nums}}
 .it .ix{{flex:none;width:{S(100, 112)}px;font-size:{S(56, 64)}px;font-weight:800;line-height:1.35;color:var(--c);font-family:Inter,'Roboto Mono',monospace;font-variant-numeric:tabular-nums}}
 .it .bd{{flex:1;min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:{S(8, 10)}px}}
 .it .tg{{flex:none;background:var(--c);color:{tg_ink};font-size:{S(26, 30)}px;font-weight:800;line-height:1.4;border-radius:8px;padding:{S('2px 14px', '2px 16px')};white-space:nowrap}}
-.it .tt{{min-width:0;align-self:stretch;font-size:{S(38, 40)}px;line-height:1.35;font-weight:800;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}}
+.it .tt{{min-width:0;align-self:stretch;font-size:{S(38, 40)}px;line-height:1.35;font-weight:800;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden}}
 .sumt{{flex:1;min-height:0;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr}}
 .sumt .tile{{display:flex;flex-direction:column;justify-content:center}}
 .sumt .v{{font-size:{S(84, 100)}px}}.sumt .k{{font-size:{S(34, 42)}px}}
 .bigbox{{flex:none;border:1.5px solid var(--line);border-radius:10px;background:var(--panel2);padding:{S('16px 28px', '24px 32px')}}}
 .big{{font-size:{S(46, 56)}px;line-height:1.6;font-weight:700}}
 .rdb{{flex:none;border:1.5px solid var(--line);border-left:6px solid var(--cyan);border-radius:10px;background:var(--panel2);padding:{S('6px 16px', '10px 18px')}}}
-.rdl{{font-size:{S(25, 29)}px;line-height:1.45;font-weight:600;color:var(--ink)}}
-.rdl + .rdl{{border-top:1px dashed var(--line)}}
+.rdh2{{font-size:{S(27, 31)}px;line-height:1.45;font-weight:800;color:var(--ink);padding-bottom:4px;margin-bottom:2px;border-bottom:1.5px solid var(--line)}}
+.rdg{{display:grid;grid-template-columns:auto auto 1fr;column-gap:{S(18, 20)}px;align-items:baseline}}
+.rdg > div{{font-size:{S(25, 28)}px;line-height:1.5;padding:2px 0;border-bottom:1px dashed var(--line);white-space:nowrap}}
+.rdg > div:nth-last-child(-n+3){{border-bottom:none}}
+.rdn{{font-weight:800;color:var(--ink)}}.rdv{{font-weight:800;text-align:right;font-variant-numeric:tabular-nums}}.rdt{{color:var(--ink2);font-weight:600}}
 .kps{{flex:1;min-height:0;display:flex;flex-direction:column;gap:{S(10, 14)}px}}
 .kp{{flex:1;min-height:0;display:flex;flex-direction:column;border:1.5px solid var(--line);border-radius:10px;background:var(--panel2);padding:{S('6px 14px 4px', '10px 16px 6px')}}}
 .kph{{flex:none;display:flex;align-items:baseline;justify-content:space-between;gap:12px;line-height:1.35}}
@@ -945,9 +948,31 @@ def build_pages(D: dict, mode: str, theme: str = "light") -> list[dict]:
     by = {r["sym"]: r for r in us["rows"] if not r["missing"]}
 
     def box(lines: list[str], key: str) -> str:
-        """頁首的盤面解析（Andy 10-26 晚：「圖一圖二上方都需要補充說明盤面解析」）：每檔一句，最多前兩段（漲跌＋走勢、再一個重點）。"""
-        ls = ["；".join(x.split("；")[:2]) for x in lines if x]
-        return ('<div class=rdb>' + "".join(f'<div class=rdl data-box={key}{i}>{_e(x)}</div>' for i, x in enumerate(ls)) + '</div>') if ls else ""
+        """頁首的盤面解析（Andy 10-26 晚：「上方文字需要排版工整好看」）：
+        總覽句單獨一行當標題；其餘每檔一列三欄對齊＝名稱｜漲跌（紅漲綠跌）｜走勢說明（最多兩段）。"""
+        head, rows = "", []
+        for x in lines:
+            if not x:
+                continue
+            if x.startswith("美股"):
+                head = x
+                continue
+            m = re.match(r"^(.+?) ([+\-−]?[\d,.]+%)，(.*)$", x) or re.match(r"^(VIX) ([\d.]+（[+\-−]?[\d.]+%）)，(.*)$", x) \
+                or re.match(r"^(台指期夜盤) ([\d,]+)，(.*)$", x)
+            if m:
+                nm, val, rest = m.groups()
+                rest = "；".join(rest.split("；")[:2])
+                sign = re.search(r"[+\-−]", val.split("（")[-1])
+                t = "rise" if sign and sign.group() == "+" else "fall" if sign else "ink2"
+                if nm == "台指期夜盤":
+                    t = "fall" if "−" in rest.split("點")[0] else "rise"
+                rows.append((nm, val, rest, t))
+        if not head and not rows:
+            return ""
+        h = f'<div class=rdh2 data-box={key}h>{_e(head)}</div>' if head else ""
+        body = "".join(f'<div class=rdn data-box={key}n{i}>{_e(a)}</div><div class="rdv {t}" data-box={key}v{i}>{_e(b)}</div>'
+                       f'<div class=rdt data-box={key}t{i}>{_e(c)}</div>' for i, (a, b, c, t) in enumerate(rows))
+        return f'<div class=rdb>{h}<div class=rdg>{body}</div></div>'
 
     def us_panel(sym: str):
         r = by[sym]
@@ -988,9 +1013,9 @@ def build_pages(D: dict, mode: str, theme: str = "light") -> list[dict]:
 
     # 3 昨日事件（原「今日焦點」；Andy：給剛起床的讀者馬上接收昨天發生的事）＋配圖示＋一句摘要
     if D["news"]:
-        items = "".join(f'<div class="it cat-{n["category"]}"><div class=ic data-box=ic{i}>{news_icon(n)}</div><div class=bd>'
-                        f'<div class=tg data-box=tg{i}>{n["category"]}</div><div class=tt data-box=tt{i}>{_e(n["title"])}</div>'
-                        + (f'<div class=sm2 data-box=sm{i}>{_e(n["summary"][:29] + ("…" if len(n["summary"]) > 29 else ""))}</div>' if n.get("summary") else "") + '</div></div>'
+        # Andy 10-26 晚：「最後一張圖不要表情好了，就標題」→ 編號＋分類＋標題，不放圖示與摘要
+        items = "".join(f'<div class="it cat-{n["category"]}"><div class=ix data-box=ix{i}>{i + 1:02d}</div><div class=bd>'
+                        f'<div class=tg data-box=tg{i}>{n["category"]}</div><div class=tt data-box=tt{i}>{_e(n["title"])}</div></div></div>'
                         for i, n in enumerate(D["news"]))
         pages.append({"name": "news", "title": "昨日事件", "inner": f'<div class=news>{items}</div>', "charts": {}})
     return pages
