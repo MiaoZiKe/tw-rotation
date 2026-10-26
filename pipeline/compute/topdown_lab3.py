@@ -428,7 +428,7 @@ def build3():
     f50 = frames["0050"].reindex(idx)
     M = dict(idx=idx, codes=codes, O=O.to_numpy(), H=H.to_numpy(), L=L.to_numpy(), C=C.to_numpy(), Cf=Cf.to_numpy(),
              f=f, sig=sigs, stock_rs=stock_rs, O50=f50["open"].ffill().to_numpy(), C50=f50["close"].ffill().to_numpy(),
-             c50=f50["close"].ffill(), modes={})
+             c50=f50["close"].ffill(), modes={}, frames=frames)
     ci = {c: i for i, c in enumerate(codes)}
     for mode, (mdf, gnames) in mems.items():
         G = T2.layer2(frames, codes, mdf.rename(columns={"group_id": "group_id"}), gnames, idx)
