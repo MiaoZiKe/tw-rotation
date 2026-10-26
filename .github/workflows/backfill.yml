@@ -150,6 +150,12 @@ jobs:
                       st = cp.get(k) or {}
                       if not (isinstance(st, dict) and st.get("done")):
                           done = False
+                  # 2026-10-26：策略回測／台指期研究的 2012、2008 起新步驟（計畫補齊後才加，同上理由）
+                  for k in ("inst@2012-01-01", "balance+financial+revenue@2012-01-01",
+                            "futlab2_intl", "futlab2_dgs10", "futlab2_fut"):
+                      st = cp.get(k) or {}
+                      if not (isinstance(st, dict) and st.get("done")):
+                          done = False
                   fr = cp.get("inst_fresh") or {}
                   today_tp = datetime.now(timezone(timedelta(hours=8))).strftime("%Y-%m-%d")
                   if not (isinstance(fr, dict) and fr.get("done") and fr.get("date") == today_tp):
