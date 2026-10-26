@@ -8781,8 +8781,8 @@
       "stock_plan": null,
       "bonus_timing": null,
       "bonus_structure": [],
-      "culture": null,
-      "interview": null,
+      "culture": "面試趣：生活平衡評分 2.1／5（筆數少）",
+      "interview": "線上初試→現場複試；先以投影片自介，主管追問履歷、碩論與專案細節（GoodJob 2026-06 等）",
       "grade_system": null,
       "mops": null,
       "roles": [
@@ -8987,10 +8987,23 @@
       "heat": null,
       "benefits": null,
       "stock_plan": null,
-      "bonus_timing": null,
-      "bonus_structure": [],
-      "culture": null,
-      "interview": null,
+      "bonus_timing": "PTT offer 文稱年薪為月薪×14＋分紅；發放月份查不到",
+      "bonus_structure": [
+        {
+          "type": "保障月數＋分紅",
+          "rule": "網友 offer：月薪×14＋分紅（PTT 轉載）",
+          "months": null,
+          "sources": [
+            {
+              "site": "比薪水（PTT 轉載）",
+              "url": "https://salary.tw/c/Z7x1/ptt",
+              "date": "不明"
+            }
+          ]
+        }
+      ],
+      "culture": "面試趣：日均約 8.6 小時、偶爾加班、生活平衡 4／5；GoodJob 回報從每週 40 小時幾乎不加班到 50 小時經常加班都有",
+      "interview": "韌體職約一小時 C 語言筆試或 C 白板題＋投影片自介→主管行為面談；驗證職考 SystemVerilog 並當場批改（GoodJob、Dcard）",
       "grade_system": null,
       "mops": null,
       "roles": [
@@ -9024,9 +9037,104 @@
               "derived": [
                 "annual_wan"
               ]
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/點序科技股份有限公司/interview-experiences#2026-03offer",
+              "date": "2026-03",
+              "unit_detail": "韌體（新竹縣，錄取）",
+              "years": null,
+              "degree": "碩士",
+              "base_k": 70,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "面試錄取，月薪 7 萬",
+              "date_confirmed": true,
+              "date_note": null,
+              "in_window": true
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/job-titles/韌體設計工程師/salary-work-times#2026-04",
+              "date": "2026-04",
+              "unit_detail": "韌體",
+              "years": null,
+              "degree": "碩士",
+              "base_k": 59,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 40,
+              "overtime": "幾乎不",
+              "travel": null,
+              "quote_free_note": "月薪 5.9 萬、每週 40 小時、幾乎不加班",
+              "date_confirmed": true,
+              "date_note": null,
+              "in_window": true
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/job-titles/韌體設計工程師/salary-work-times#2026-03",
+              "date": "2026-03",
+              "unit_detail": "韌體",
+              "years": "2-5",
+              "degree": "碩士",
+              "base_k": 70,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 50,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "年資 2 年，月薪 7 萬、每週 50 小時、經常加班",
+              "date_confirmed": true,
+              "date_note": null,
+              "in_window": true
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/job-titles/韌體設計工程師/salary-work-times#2025-08",
+              "date": "2025-08",
+              "unit_detail": "韌體",
+              "years": "0-2",
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 84,
+              "weekly_hours": 41,
+              "overtime": "幾乎不",
+              "travel": null,
+              "quote_free_note": "年資 1 年，年薪 84 萬、每週 41 小時",
+              "date_confirmed": true,
+              "date_note": null,
+              "in_window": true
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/點序科技股份有限公司/interview-experiences#2025-09",
+              "date": "2025-09",
+              "unit_detail": "韌體（未錄取）",
+              "years": null,
+              "degree": "碩士",
+              "base_k": 60,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "面試未錄取，月薪 6 萬",
+              "date_confirmed": true,
+              "date_note": null,
+              "in_window": true
             }
           ],
-          "n": 1,
+          "n": 6,
           "sources": [
             {
               "site": "Dcard",
@@ -9038,7 +9146,7 @@
           "note": "2026-10-26 由 Dcard 樣本新增的公司；部分年薪／年薪月數由同一筆樣本的「底薪×月數」推算（樣本標 derived）",
           "base_month_k": [
             57,
-            57
+            70
           ],
           "annual_months": [
             14,
@@ -9048,12 +9156,15 @@
           "bonus_months": null,
           "annual_total_wan": [
             79.8,
-            79.8
+            84
           ],
-          "weekly_hours": null,
-          "overtime": null,
+          "weekly_hours": [
+            40,
+            50
+          ],
+          "overtime": "幾乎不",
           "travel": null,
-          "n_stat": 1
+          "n_stat": 6
         }
       ]
     },
@@ -9253,8 +9364,8 @@
       "stock_plan": null,
       "bonus_timing": null,
       "bonus_structure": [],
-      "culture": null,
-      "interview": null,
+      "culture": "面試趣：日均約 8.5 小時、很少加班、生活平衡 2.3；2025 年虧損，母公司安國、最終母公司神盾",
+      "interview": "面試趣：難度低、錄取率約 25%，筆試三題簡單；GoodJob 2020：主管面談→工程師面試",
       "grade_system": null,
       "mops": null,
       "roles": [
@@ -9381,12 +9492,37 @@
       "name": "揚智",
       "code": "3041",
       "heat": null,
-      "benefits": null,
-      "stock_plan": null,
-      "bonus_timing": null,
-      "bonus_structure": [],
-      "culture": null,
-      "interview": null,
+      "benefits": "員工團保、眷屬團保、健身房、圖書館、結婚禮金、生育津貼（Cake 招募頁）",
+      "stock_plan": "招募頁列員工配股（細節未載）",
+      "bonus_timing": "招募頁列年終、中秋、端午獎金與員工紅利、績效及淨利獎金；月數查不到",
+      "bonus_structure": [
+        {
+          "type": "年終＋中秋端午獎金",
+          "rule": "招募頁列項，月數未載",
+          "months": null,
+          "sources": [
+            {
+              "site": "Cake 招募頁",
+              "url": "https://www.cake.me/companies/ali-corporation",
+              "date": "不明"
+            }
+          ]
+        },
+        {
+          "type": "員工紅利／配股、績效及淨利獎金",
+          "rule": "招募頁列項，比例未載",
+          "months": null,
+          "sources": [
+            {
+              "site": "Cake 招募頁",
+              "url": "https://www.cake.me/companies/ali-corporation",
+              "date": "不明"
+            }
+          ]
+        }
+      ],
+      "culture": "GoodJob：平均每週約 45 小時，13% 幾乎每天加班、50% 偶爾",
+      "interview": "一輪主管問經歷與實作→二輪大主管；軟體職有程式邏輯筆試（GoodJob 2018～2023）",
       "grade_system": null,
       "mops": null,
       "roles": [
@@ -9451,7 +9587,7 @@
       "bonus_timing": null,
       "bonus_structure": [],
       "culture": null,
-      "interview": null,
+      "interview": "面試趣：難度約 3.5／5；韌體職問 FreeRTOS，演算法職介紹碩論，也有人被問對 IPO 與股票價值的看法（2020～2024）",
       "grade_system": null,
       "mops": null,
       "roles": [
