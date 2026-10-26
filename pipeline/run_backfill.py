@@ -961,6 +961,51 @@ def backfill_mktfut(prog: dict, start: str = "2021-01-01") -> bool:
                     [t for t, d in got.items() if d.empty])
     return ok
 
+def backfill_delisted(prog: dict, max_codes: int = 200) -> bool:
+    """已下市股票（2010 年後）的日價量回補，修個股回測的存活者偏誤（2026-10-26）。
+
+    名單來源 sources/delisted.py（FinMind TaiwanStockDelisting）；每檔 1 次 TaiwanStockPrice 請求，
+    從 2008-01-01 起。逐檔 done 鍵 delisted_px:<代號>（回空也記 done，避免每輪重問）；
+    額度不足（budget 或 402）就停，下一輪接續。完成旗標 complete.delisted_px。只走 store.append()。"""
+    from .sources import delisted
+    comp = prog.setdefault("complete", {})
+    flag = comp.get("delisted_px")
+    if isinstance(flag, dict) and flag.get("done"):
+        return True
+    if http.finmind_budget_left() <= 3:
+        log.warning("額度不足，下市股回補這一輪先不做")
+        return False
+    lst = delisted.delisted_list()
+    if lst.empty:
+        log.warning("下市名單回空 —— 不標 done，下一輪重試")
+        return False
+    done = prog.setdefault("done", {})
+    todo = [c for c in lst["code"] if not done.get(f"delisted_px:{c}")]
+    added = n = 0
+    stopped = False
+    for code in todo[:max_codes]:
+        if http.finmind_budget_left() <= 1:
+            stopped = True
+            break
+        df = finmind.price_history(code, delisted.PRICE_START, wait=False)
+        if df.empty and (http.finmind_last_error("TaiwanStockPrice") or {}).get("status") == 402:
+            log.warning("下市股回補遇到 402，停到下一輪")
+            stopped = True
+            break
+        if not df.empty:
+            added += store.append("price_daily", df)
+        done[f"delisted_px:{code}"] = True
+        n += 1
+        if n % 25 == 0:
+            _save_progress(prog)
+    left = len([c for c in todo if not done.get(f"delisted_px:{c}")])
+    comp["delisted_px"] = {"done": left == 0 and not stopped, "total": len(lst), "remaining": left,
+                           "rows": added, "at": datetime.now(timezone.utc).isoformat()}
+    _save_progress(prog)
+    log.info("下市股回補：名單 %d 檔、本輪處理 %d 檔、新增 %d 列、剩 %d 檔", len(lst), n, added, left)
+    return left == 0
+
+
 def backfill_futlab2(prog: dict, start: str = "2008-01-01") -> bool:
     """台指期研究（2026-10-26）：2008 起的美股消息面與外資期貨部位，全部走 store.append()。
 
@@ -1532,6 +1577,10 @@ def run_plan(name: str, limit: int | None, today: date | None = None) -> dict:
         backfill_mktfut(_progress())
     except Exception as exc:  # noqa: BLE001
         log.warning("市場明細融資／期貨回補失敗（不影響其他步驟）：%s", exc)
+    try:
+        backfill_delisted(_progress())
+    except Exception as exc:  # noqa: BLE001
+        log.warning("下市股回補失敗（不影響其他步驟）：%s", exc)
     try:
         backfill_futlab2(_progress())
     except Exception as exc:  # noqa: BLE001
