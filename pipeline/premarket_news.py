@@ -23,6 +23,16 @@ DEFAULT_PATH = Path(__file__).resolve().parent.parent / "site" / "articles" / "p
 _DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
 
+def _desc(v) -> str:
+    """新聞摘要 → 一句簡短敘述：解 HTML 實體（&#10; &#8230;）、換行改「；」、去掉「[…]」，最多 80 字。"""
+    import html
+    t = html.unescape(str(v or ""))
+    t = re.sub(r"\s*\[(…|\.\.\.)\]\s*$", "", t)
+    t = re.sub(r"\s*[\r\n]+\s*", "；", t.strip())
+    t = re.sub(r"[ \t\u3000]+", " ", t).replace("。；", "；").strip("；").strip()
+    return t[:80] + ("…" if len(t) > 80 else "")
+
+
 def clean_day(day: dict) -> dict | None:
     """檢查並清理單日資料；日期不合或一則都沒有就回 None（寧可不寫，也不要寫壞檔讓網頁壞掉）。"""
     if not isinstance(day, dict) or not _DATE.match(str(day.get("date", ""))):
@@ -43,7 +53,9 @@ def clean_day(day: dict) -> dict | None:
         if not re.match(r"^https?://", url, re.I):
             url = ""    # 只收 http(s)，擋掉 javascript: 之類
         items.append({"cat": cat, "title": title[:160], "url": url[:500],
-                      "source": str(it.get("source") or "").strip()[:20], "time": str(it.get("time") or "").strip()[:30]})
+                      "source": str(it.get("source") or "").strip()[:20], "time": str(it.get("time") or "").strip()[:30],
+                      # 簡短敘述（2026-10-27 Andy：「盤前消息後面五個標題需要有簡短敘述」）：取新聞摘要前 80 字，沒有就空字串
+                      "desc": _desc(it.get("desc"))})
     if not items:
         return None
     return {"date": day["date"], "items": items[:MAX_ITEMS]}

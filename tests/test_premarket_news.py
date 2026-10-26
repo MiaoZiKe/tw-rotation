@@ -33,3 +33,9 @@ def test_url_sanitized_and_keep(tmp_path):
     for i in range(pm.KEEP + 5):
         pm.add_day(_day((base + dt.timedelta(days=i)).isoformat()), p)
     assert len(json.loads(p.read_text(encoding="utf-8"))["days"]) == pm.KEEP
+
+
+def test_簡短敘述_解實體與換行():
+    from pipeline import premarket_news as pn
+    d = pn.clean_day({"date": "2026-10-27", "items": [{"cat": "科技", "title": "T", "desc": "第一句&#10;第二句 [&#8230;]"}]})
+    assert d["items"][0]["desc"] == "第一句；第二句"

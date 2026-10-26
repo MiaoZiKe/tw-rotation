@@ -257,7 +257,7 @@ def test_caption_and_premarket_news():
     pn = sp.premarket_news(D)
     assert pn["version"] == 1 and pn["target_date"] == "2026-10-27" and pn["categories"] == ["新聞", "事件", "科技", "總經"]
     it = pn["items"][0]
-    assert set(it) == {"category", "title", "url", "source", "published_at", "coverage"}
+    assert set(it) == {"category", "title", "url", "source", "published_at", "coverage", "summary"}      # 10-27 加簡短敘述
     assert it["source"] == "科技新報" and it["url"] == "https://x/1" and it["published_at"].startswith("2026-10-24T09:18")
     for bad in ("買進", "賣出", "建議買", "看多", "看空"):
         assert bad not in D["summary"]

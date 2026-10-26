@@ -126,6 +126,8 @@
 #artPre .pmi:last-child{border-bottom:0}
 #artPre .pmk{flex:none;width:44px;text-align:center;font-size:12px;font-weight:600;line-height:20px;border-radius:4px;color:var(--art-t-ink);background:var(--pk)}
 #artPre .pmk.c-新聞{--pk:var(--art-p1)}#artPre .pmk.c-事件{--pk:var(--art-tn-warn)}#artPre .pmk.c-科技{--pk:var(--art-p2)}#artPre .pmk.c-總經{--pk:var(--art-p3)}
+#artPre .pmi .tw{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+#artPre .pmi .ds{font-size:var(--fs-min);line-height:1.5;color:var(--ink-3)}
 #artPre .pmi .tt{flex:1;min-width:0;font-size:14px;line-height:1.5;color:var(--ink);overflow-wrap:anywhere}
 #artPre a.tt{text-decoration:none}#artPre a.tt:hover{color:var(--accent,#3b82f6);text-decoration:underline}
 #artPre .pmi .sm{flex:none;font-size:var(--fs-min);color:var(--ink-3);white-space:nowrap;line-height:20px}
@@ -1145,7 +1147,7 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
       S.preP = fetchJson('articles/premarket.json').then((j) => {
         const days = (j && Array.isArray(j.days) ? j.days : []).filter((d) => d && okDate(d.date) && Array.isArray(d.items))
           .map((d) => ({ date: d.date, items: d.items.filter((i) => i && i.title && PM_CATS.includes(i.cat)).slice(0, 8)
-            .map((i) => ({ cat: i.cat, title: String(i.title).slice(0, 160), url: okUrl(i.url) ? i.url : '', source: String(i.source || '').slice(0, 20), time: String(i.time || '') })) }))
+            .map((i) => ({ cat: i.cat, title: String(i.title).slice(0, 160), url: okUrl(i.url) ? i.url : '', source: String(i.source || '').slice(0, 20), time: String(i.time || ''), desc: String(i.desc || '').slice(0, 90) })) }))
           .filter((d) => d.items.length);
         days.sort((a, b) => (a.date < b.date ? 1 : -1));
         S.pre = { updated: j && j.updated, days }; return S.pre;
@@ -1169,7 +1171,9 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
   }
   function dayHTML(d, open) {
     const items = d.items.map((i) => {
-      const t = i.url ? `<a class="tt" href="${esc(i.url)}" target="_blank" rel="noopener noreferrer">${esc(i.title)}</a>` : `<span class="tt">${esc(i.title)}</span>`;
+      // 2026-10-27 Andy：「盤前消息後面五個標題需要有簡短敘述」→ 標題下一行顯示 desc（新聞摘要整理，80 字內）
+      const t0 = i.url ? `<a class="tt" href="${esc(i.url)}" target="_blank" rel="noopener noreferrer">${esc(i.title)}</a>` : `<span class="tt">${esc(i.title)}</span>`;
+      const t = `<span class="tw">${t0}${i.desc ? `<span class="ds">${esc(i.desc)}</span>` : ''}</span>`;
       const sm = [i.source, hhmm(i.time)].filter(Boolean).join('・');
       return `<div class="pmi"><span class="pmk c-${esc(i.cat)}">${esc(i.cat)}</span>${t}${sm ? `<span class="sm">${esc(sm)}</span>` : ''}</div>`;
     }).join('');

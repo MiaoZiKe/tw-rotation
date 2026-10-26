@@ -862,7 +862,7 @@ body{{font-variant-numeric:tabular-nums}}
 .it .ix{{flex:none;width:{S(100, 112)}px;font-size:{S(56, 64)}px;font-weight:800;line-height:1.35;color:var(--c);font-family:Inter,'Roboto Mono',monospace;font-variant-numeric:tabular-nums}}
 .it .bd{{flex:1;min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:{S(8, 10)}px}}
 .it .tg{{flex:none;background:var(--c);color:{tg_ink};font-size:{S(26, 30)}px;font-weight:800;line-height:1.4;border-radius:8px;padding:{S('2px 14px', '2px 16px')};white-space:nowrap}}
-.it .tt{{min-width:0;align-self:stretch;font-size:{S(38, 40)}px;line-height:1.35;font-weight:800;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden}}
+.it .tt{{min-width:0;align-self:stretch;font-size:{S(38, 40)}px;line-height:1.35;font-weight:800;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}}
 .sumt{{flex:1;min-height:0;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr}}
 .sumt .tile{{display:flex;flex-direction:column;justify-content:center}}
 .sumt .v{{font-size:{S(84, 100)}px}}.sumt .k{{font-size:{S(34, 42)}px}}
@@ -928,6 +928,14 @@ NEWS_ICON = [(r"Fed|聯準會|升息|降息|利率|殖利率|美債", "🏦"), (
              (r"電動車|特斯拉|汽車", "🚗"),
              (r"漏洞|資安|駭客|當機", "🛡️"), (r"匯率|美元|台幣|日圓", "💱"), (r"財報|營收|獲利|EPS", "📊"), (r"颱風|地震|停市|休市", "🌀")]
 CAT_ICON = {"科技": "💡", "總經": "🌐", "事件": "📌", "新聞": "📰"}
+
+
+def PN_desc(v, n: int) -> str:
+    """昨日事件卡的一行簡短敘述（2026-10-27 Andy：「五個標題需要有簡短敘述」）：同網站盤前消息的整理規則，截 n 字。"""
+    from pipeline import premarket_news as PN
+    t = PN._desc(v)
+    t = t.split("；")[0]
+    return t if len(t) <= n else t[:n] + "…"
 
 
 def news_icon(n: dict) -> str:
@@ -1028,7 +1036,8 @@ def build_pages(D: dict, mode: str, theme: str = "light") -> list[dict]:
     if D["news"]:
         # Andy 10-26 晚：「最後一張圖不要表情好了，就標題」→ 編號＋分類＋標題，不放圖示與摘要
         items = "".join(f'<div class="it cat-{n["category"]}"><div class=ix data-box=ix{i}>{i + 1:02d}</div><div class=bd>'
-                        f'<div class=tg data-box=tg{i}>{n["category"]}</div><div class=tt data-box=tt{i}>{_e(n["title"])}</div></div></div>'
+                        f'<div class=tg data-box=tg{i}>{n["category"]}</div><div class=tt data-box=tt{i}>{_e(n["title"])}</div>'
+                        + (f'<div class=sm2 data-box=sm{i}>{_e(PN_desc(n.get("summary"), 30))}</div>' if n.get("summary") else "") + '</div></div>'
                         for i, n in enumerate(D["news"]))
         pages.append({"name": "news", "title": "昨日事件", "inner": f'<div class=news>{items}</div>', "charts": {}})
     return pages
@@ -1080,7 +1089,7 @@ def premarket_news(D: dict) -> dict:
     return {"version": 1, "target_date": D["target"], "window": {"start": D["news_window"][0], "end": D["news_window"][1]},
             "categories": CAT_ORDER,
             "items": [{"category": n["category"], "title": n["title"], "url": n["url"], "source": n["source"],
-                       "published_at": n["published_at"], "coverage": n.get("coverage", {})} for n in D["news"]]}
+                       "published_at": n["published_at"], "coverage": n.get("coverage", {}), "summary": n.get("summary", "")} for n in D["news"]]}
 
 
 def caption(D: dict, ymd: str, max_len: int = ss.THREADS_MAX) -> str:
@@ -1210,7 +1219,7 @@ def main() -> int:
     if args.save_site and pn["items"]:      # 2026-10-26 Andy：「標題內資訊需要存到我說的地方」＝精選文章「盤前消息」
         from pipeline import premarket_news as PN
         ok_ = PN.add_day({"date": D["target"], "items": [{"cat": i["category"], "title": i["title"], "url": i["url"], "source": i["source"],
-                                                          "time": i["published_at"]} for i in pn["items"]]})
+                                                          "time": i["published_at"], "desc": i.get("summary", "")} for i in pn["items"]]})
         print(f"[premarket] 盤前消息寫入 site/articles/premarket.json：{'成功' if ok_ else '失敗（格式不合，未寫）'}")
     from playwright.sync_api import sync_playwright
     report: list = []
