@@ -3385,7 +3385,7 @@
               "degree": "不限",
               "base_k": null,
               "bonus_months": null,
-              "annual_months": null,
+              "annual_months": 14,
               "annual_wan": null,
               "weekly_hours": 57,
               "overtime": "經常",
@@ -7290,7 +7290,7 @@
       "benefits": "育兒津貼、彈性工時、南科獎金（約 2 個月，自述）",
       "stock_plan": "過去曾發行限制員工權利新股留才（2022 報導）；近一年員工持股方案未查到",
       "bonus_timing": "分紅一年約兩次（網友稱 1 月約 1/3、7～8 月約 2/3）＋農曆年前年終；季獎金為 2021 年報導說法，近年是否仍有未確認",
-      "culture": "GoodJob 薪資福利 3.9／5（33 筆）；普遍認為不如台積但穩",
+      "culture": "GoodJob 薪資福利 3.9／5（33 筆）；普遍認為不如台積但穩；GoodJob 整體 4.0（554 筆），平均每週 47 小時、22% 幾乎每天加班、31% 偶爾加班；設備類工時較長、模型／軟體較輕鬆；分紅不一定每年都有、部分獎金需任職滿一定年限",
       "interview": "兩位主管線上面試：自我介紹→論文／專案追問→半導體專業題→人格與情境題；元件開發會考元件物理",
       "roles": [
         {
@@ -7300,15 +7300,18 @@
           "years": "0-2",
           "base_month_k": [
             65,
-            65
+            68
           ],
           "bonus_months": null,
           "annual_months": null,
           "annual_total_wan": null,
-          "weekly_hours": null,
+          "weekly_hours": [
+            50,
+            50
+          ],
           "overtime": "偶爾～經常（依部門）",
           "travel": "不用",
-          "n": 22,
+          "n": 23,
           "note": "GoodJob 自述月薪多落在 5～7 萬；salary.tw 台南製程有日均 14～15 小時自述（2025）；學歷未標，區間寬疑含學士／年資差；2026-10-25 補：碩士起薪 Dcard 2026 討論約 6.0～6.7 萬（四大一類另有價）；新人約 6 萬、前三年調薪 3～5%、約第三年升 7 職等後年薪約 200 萬上下（自述）；南科製程（薄膜）需輪班，全薪約台積新人價減 1，年薪 100～120 萬（單筆，範圍外）",
           "sources": [
             {
@@ -7842,9 +7845,29 @@
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
               "in_window": false
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯華電子股份有限公司/work-experiences",
+              "date": "2026-04",
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 68,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 50,
+              "overtime": null,
+              "travel": null,
+              "role": "生產技術／製程工程師",
+              "quote_free_note": "月薪 6.8 萬、每週 50 小時；薪水尚可、福利不錯、升遷慢",
+              "date_confirmed": true,
+              "date_note": "摘要寫出發文年月",
+              "in_window": true
             }
           ],
-          "n_stat": 10
+          "n_stat": 11
         },
         {
           "unit": "晶圓廠 Fab",
@@ -7852,7 +7875,7 @@
           "degree": "碩士",
           "years": "未明",
           "base_month_k": [
-            77,
+            58,
             77
           ],
           "bonus_months": null,
@@ -7864,10 +7887,13 @@
             138.6,
             138.6
           ],
-          "weekly_hours": null,
+          "weekly_hours": [
+            56,
+            56
+          ],
           "overtime": "偶爾～經常",
           "travel": "不用",
-          "n": 18,
+          "n": 20,
           "note": "GoodJob 單筆月薪 7.7 萬，年資未明，疑非新人；比薪水網 2025-09 設備職回報偶爾加班、日均工時約 12 小時（範圍外參考含 2023 年 22 筆整理）；分紅月數沿用同公司製程職區間；撤回：bonus_months 原為沿用／推算／暫填值，無直接證據，已改回原值；2026-10-25 補：GoodJob 2026-04 臺南設備月薪約 7.7 萬、年薪約月薪×18；GoodJob 另一則稱南科加給約 2 個月、含分紅全年 18～24 個月",
           "sources": [
             {
@@ -8311,9 +8337,49 @@
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
               "in_window": false
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯華電子股份有限公司/work-experiences",
+              "date": "2026-06",
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 58,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 56,
+              "overtime": null,
+              "travel": null,
+              "role": "設備工程師",
+              "quote_free_note": "月薪 5.8 萬、每週 56 小時",
+              "date_confirmed": true,
+              "date_note": "摘要寫出發文年月",
+              "in_window": true
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯華電子股份有限公司/work-experiences",
+              "date": "2026-07",
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 60,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "role": "設備工程師",
+              "quote_free_note": "月薪 6 萬；責任制居多、會議多、報告常修改",
+              "date_confirmed": true,
+              "date_note": "摘要寫出發文年月",
+              "in_window": true
             }
           ],
-          "n_stat": 5
+          "n_stat": 7
         },
         {
           "unit": "研發 R&D",
@@ -8931,11 +8997,11 @@
       "name": "世界先進",
       "code": "5347",
       "heat": "Dcard 熱度：低",
-      "benefits": "本輪未查到",
-      "stock_plan": "本輪未查到",
-      "bonus_timing": "員工酬勞不低於獲利 10%、次年發（網友稱 7 月）；年終月數公司未公開",
-      "culture": "比薪水稱年薪高於半導體業平均；2025-10 一則資深自述「保障 16 個月、不太推薦」",
-      "interview": "GoodJob 面試回報少：筆試算術＋英文、二面人資（舊資料）；整合工程師面試回報月薪 5.8 萬（未通知）",
+      "benefits": "家庭照顧強化計畫：產假延長至 14 週、生育補助每胎 1 萬元（報導）；2026-06 家庭日加發總額 1 億元「辛勤獎金」",
+      "stock_plan": "115 年（2026）發行限制員工權利新股，2026-06-10 公告上櫃掛牌（鉅亨網標題）；既得條件未查到",
+      "bonus_timing": "員工酬勞次年約 7 月發（章程不低於獲利 10%，月份為網友說法）；年終月數公司未公開；2026-06 另發辛勤獎金",
+      "culture": "比薪水稱年薪高於半導體業平均；2025-10 一則資深自述「保障 16 個月、不太推薦」；GoodJob 工時回報：製程 48 小時、薄膜製程 50 小時、技術員 60 小時、軟體 40 小時、硬體研發 45 小時／週",
+      "interview": "2026-05 製程整合：專業科目筆試＋英文筆試＋用人主管面談（GoodJob）；2025-12 桃園製程整合一面約 1 小時、需簡報（interview.tw）；面試評分 3.9（269 筆）",
       "roles": [
         {
           "unit": "晶圓廠 Fab",
@@ -8946,10 +9012,13 @@
           "bonus_months": null,
           "annual_months": null,
           "annual_total_wan": null,
-          "weekly_hours": null,
+          "weekly_hours": [
+            48,
+            50
+          ],
           "overtime": "經常（需值班）",
           "travel": "不用",
-          "n": 21,
+          "n": 23,
           "note": "GoodJob 2026 單筆月薪 6.06 萬；QC 自述 12＋4 個月；學歷年資未標；GoodJob 多則回報公司保障 16 個月（含年終與節金），另 7 月依營運發分紅、4 月調薪；分紅月數未見具體數字（2026-10 查 GoodJob、媒體）；2026-10-25 補：整體平台估算年薪 73～158 萬；工程師保 16 個月＋7 月分紅（HR 稱往年 1～2 個月）；部分年薪／年薪月數由同一筆樣本的「底薪×月數」推算（樣本標 derived）",
           "sources": [
             {
@@ -9462,9 +9531,49 @@
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
               "in_window": false
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/世界先進積體電路股份有限公司/work-experiences/公司管理方式",
+              "date": "2025-10",
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 48,
+              "overtime": null,
+              "travel": null,
+              "role": "製程工程師",
+              "quote_free_note": "每週 48 小時",
+              "date_confirmed": true,
+              "date_note": "摘要寫出發文年月",
+              "in_window": true
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/世界先進積體電路股份有限公司/work-experiences/公司管理方式",
+              "date": "2026-07",
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 50,
+              "overtime": null,
+              "travel": null,
+              "role": "薄膜製程工程師",
+              "quote_free_note": "每週 50 小時",
+              "date_confirmed": true,
+              "date_note": "摘要寫出發文年月",
+              "in_window": true
             }
           ],
-          "n_stat": 7
+          "n_stat": 9
         },
         {
           "unit": "晶圓廠 Fab",
@@ -10456,7 +10565,7 @@
       "benefits": "陽明交大合辦碩士預聘獎學金每年 20 萬（需簽服務契約）；產線績效獎金約每月 1,500 元（自述）",
       "stock_plan": "自述員工認股 5 折（2025）",
       "bonus_timing": "查不到近年分紅與年終發放月份；僅知 2021 年度員工分紅總額 33.5 億元",
-      "culture": "底薪在代工廠中不差，但分紅「可以當作沒有」是常見說法",
+      "culture": "底薪在代工廠中不差，但分紅「可以當作沒有」是常見說法；GoodJob 2026 回報製程類每週 40～55 小時，有人說兩年沒拿過分紅；2025-07 比薪水分享稱兩三年沒發年終",
       "interview": "兩位副理＋一位經理主管面（罐頭題、碩論、背景）→英文與心理測驗→人資面；interview.tw 面試評價 3.7／5、難度 2.7／5",
       "roles": [
         {
@@ -10465,16 +10574,28 @@
           "degree": "碩士",
           "years": "0-2",
           "base_month_k": [
-            60,
-            60
+            56,
+            63
           ],
-          "bonus_months": null,
-          "annual_months": null,
-          "annual_total_wan": null,
-          "weekly_hours": null,
+          "bonus_months": [
+            0,
+            0
+          ],
+          "annual_months": [
+            14,
+            14
+          ],
+          "annual_total_wan": [
+            88.2,
+            88.2
+          ],
+          "weekly_hours": [
+            45,
+            55
+          ],
           "overtime": "偶爾（良率問題時加班）",
           "travel": "不用",
-          "n": 14,
+          "n": 16,
           "note": "GoodJob 2026-01 自述月薪 6 萬、近一年無季獎金；另 2025 一筆 8 萬為 6 年年資已排除；力積電近一年虧損，分紅月數依同公司製程／整合職回報為 0；2026-10-25 補：Dcard 2025 碩士新人起薪 58～62k、保 14 個月，分紅不宜期待；部分年薪／年薪月數由同一筆樣本的「底薪×月數」推算（樣本標 derived）",
           "sources": [
             {
@@ -10562,10 +10683,10 @@
               "bonus_months": null,
               "annual_months": null,
               "annual_wan": null,
-              "weekly_hours": null,
+              "weekly_hours": 45,
               "overtime": "偶爾（良率問題時加班）",
               "travel": "不用",
-              "quote_free_note": "摘要無個人數字，僅作制度／口徑參考",
+              "quote_free_note": "月薪 6 萬、每週 45 小時、未滿 1 年；底薪與分紅跟網路查到的一致",
               "date_confirmed": true,
               "in_window": true,
               "date_note": null
@@ -10819,9 +10940,52 @@
               "date_confirmed": true,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計；依 docs/tc/dcard_id_calibration.md 文章編號≥259537767 確認晚於 2025-08-01",
               "in_window": true
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/力晶積成電子製造股份有限公司(力積電) PSMC/work-experiences/薪資福利?p=2",
+              "date": "2026-03",
+              "unit_detail": null,
+              "years": "2",
+              "degree": null,
+              "base_k": 63,
+              "bonus_months": 0,
+              "annual_months": 14,
+              "annual_wan": 88.2,
+              "weekly_hours": 55,
+              "overtime": null,
+              "travel": null,
+              "role": "半導體製程工程師",
+              "quote_free_note": "月薪 6.3 萬、保 14、每週 55 小時；自述兩年沒拿過分紅",
+              "date_confirmed": true,
+              "date_note": "摘要寫出發文年月",
+              "in_window": true,
+              "derived": [
+                "annual_wan"
+              ]
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/力晶積成電子製造股份有限公司(力積電) PSMC/work-experiences/薪資福利",
+              "date": "2026-01",
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 56,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 48,
+              "overtime": null,
+              "travel": null,
+              "role": "薄膜製程工程師",
+              "quote_free_note": "月薪 5.6 萬、每週 48 小時",
+              "date_confirmed": true,
+              "date_note": "摘要寫出發文年月",
+              "in_window": true
             }
           ],
-          "n_stat": 4
+          "n_stat": 6
         },
         {
           "unit": "晶圓廠 Fab",
@@ -10935,9 +11099,9 @@
               "annual_months": null,
               "annual_wan": null,
               "weekly_hours": null,
-              "overtime": "很少",
+              "overtime": "幾乎不",
               "travel": "不用",
-              "quote_free_note": "摘要無個人數字，僅作制度／口徑參考",
+              "quote_free_note": "很少加班、日均約 9 小時（比薪水 2026-01-03 分享）",
               "date_confirmed": true,
               "in_window": true,
               "date_note": null
@@ -11924,13 +12088,50 @@
       "code": "3105",
       "heat": "Dcard 熱度：低",
       "benefits": "本薪＋交通津貼＋伙食津貼（GoodJob 面試回報）",
-      "stock_plan": null,
-      "bonus_timing": "員工分紅通常 8 月發（整理文說法）",
-      "culture": null,
-      "interview": null,
+      "stock_plan": "查不到（員工持股信託、限制員工權利新股本輪皆未搜到穩懋資料）",
+      "bonus_timing": "員工分紅 8 月發（整理文說法）；年終於農曆年前、月數 2～4 個月（整理文說法，不保證）",
+      "culture": "GoodJob 整體約 4.0，平均每週 42 小時、3% 幾乎每天加班、47% 偶爾加班，工時狀況 4.3（16 筆）；產線／設備工時較長（每週 48～50 小時），研發與元件多準時下班",
+      "interview": "警衛室換證→報到→人資面＋基本能力考核，部分先做線上英文／邏輯測驗→兩位主管面（自我介紹、碩論、能否輪班、壓力與情境題）；建議準備 MOSFET、pn 接面等基礎",
       "mops": null,
       "grade_system": null,
-      "bonus_structure": null,
+      "bonus_structure": [
+        {
+          "type": "年終獎金",
+          "rule": "offer 註明不保證 14 個月；營運正常年份多會發，過去約 2～4 個月，近年與考績掛鉤、較不穩（整理文說法，非公司公告）",
+          "months": null,
+          "sources": [
+            {
+              "site": "uptogo",
+              "url": "https://uptogo.com.tw/?p=491178",
+              "date": "未明"
+            }
+          ]
+        },
+        {
+          "type": "員工分紅",
+          "rule": "通常每年 8 月發，依公司獲利與職等 0～1.5 個月（整理文說法，非公司公告）",
+          "months": null,
+          "sources": [
+            {
+              "site": "uptogo",
+              "url": "https://uptogo.com.tw/?p=491178",
+              "date": "未明"
+            }
+          ]
+        },
+        {
+          "type": "季獎金",
+          "rule": "整理文稱年薪含季獎金，月數與發放月份未寫",
+          "months": null,
+          "sources": [
+            {
+              "site": "uptogo",
+              "url": "https://uptogo.com.tw/?p=491178",
+              "date": "未明"
+            }
+          ]
+        }
+      ],
       "roles": [
         {
           "unit": "其他",
