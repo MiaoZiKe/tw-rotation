@@ -1,0 +1,54 @@
+name: social_insights
+# W6 成效自動回收：每日台北 23:10 抓 IG／Threads 洞察，append 到 social-snaps 分支 state/insights.json，並檢查權杖是否有效。
+on:
+  schedule:
+    - cron: "10 15 * * *"
+  workflow_dispatch:
+concurrency:
+  group: social-insights
+  cancel-in-progress: false
+permissions:
+  contents: write
+jobs:
+  insights:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - name: 取回既有 insights.json
+        run: |
+          mkdir -p state
+          if git ls-remote --exit-code --heads origin social-snaps >/dev/null 2>&1; then
+            git fetch --depth=1 origin social-snaps
+            git show FETCH_HEAD:state/insights.json > state/insights.json 2>/dev/null || rm -f state/insights.json
+          fi
+      - name: 抓洞察並檢查權杖
+        id: run
+        continue-on-error: true
+        env:
+          IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
+          THREADS_ACCESS_TOKEN: ${{ secrets.THREADS_ACCESS_TOKEN }}
+          INSIGHTS_PATH: state/insights.json
+        run: python3 scripts/social_insights.py
+      - name: 寫回 social-snaps
+        run: |
+          [ -f state/insights.json ] || { echo "沒有產出"; exit 1; }
+          for i in 1 2 3; do
+            WORK="$(mktemp -d)"
+            git fetch --depth=1 origin social-snaps
+            git archive FETCH_HEAD | tar -x -C "$WORK"
+            mkdir -p "$WORK/state"
+            cp state/insights.json "$WORK/state/insights.json"
+            (cd "$WORK" && git init -q && git checkout -q --orphan social-snaps \
+              && git config user.name tw-rotation-bot && git config user.email actions@github.com \
+              && git add -A && git commit -q -m "成效洞察 $(TZ=Asia/Taipei date +%F)" \
+              && git push --force "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" social-snaps) && break
+            sleep 5
+          done
+      - name: 權杖失效時讓這輪標紅
+        if: steps.run.outcome == 'failure'
+        run: |
+          echo "::error::Meta 權杖失效或未設定，詳見上一步與 state/insights.json 的 token_check"
+          exit 1
