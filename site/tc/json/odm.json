@@ -376,9 +376,9 @@
               ],
               "annual_wan": null,
               "weekly_hours": null,
-              "overtime": "可報加班費",
+              "overtime": null,
               "travel": null,
-              "quote_free_note": "前電源廠FAE一年轉EE，口頭offer簽核中；薪資為現職月薪減12K、年薪16–20個月，未給絕對金額；同篇聯詠DDR硬體工程師面試後感謝函",
+              "quote_free_note": "前電源廠FAE一年轉EE，口頭offer簽核中；薪資為現職月薪減12K、年薪16–20個月，未給絕對金額；同篇聯詠DDR硬體工程師面試後感謝函；加班：可報加班費",
               "date_note": "Dcard 頁面發文日期 2025-01-23（2026-10-26 1943 批，非 Andy 親眼讀）",
               "in_window": false
             }
@@ -1636,9 +1636,9 @@
               ],
               "annual_wan": null,
               "weekly_hours": 50,
-              "overtime": "有加班費，上班9點到19點",
+              "overtime": null,
               "travel": null,
-              "quote_free_note": "應屆碩士offer，月薪以N為基準未給絕對數；年薪18–22個月一般20個月；同時有台達offer",
+              "quote_free_note": "應屆碩士offer，月薪以N為基準未給絕對數；年薪18–22個月一般20個月；同時有台達offer；加班：有加班費，上班9點到19點",
               "date_note": "Dcard 頁面發文日期 2025-05-23（2026-10-26 1943 批，非 Andy 親眼讀）",
               "in_window": false
             }
@@ -1652,7 +1652,8 @@
           ],
           "confidence": "低",
           "n": 1,
-          "n_stat": 0
+          "n_stat": 0,
+          "overtime": null
         }
       ],
       "mops": {
@@ -4871,9 +4872,9 @@
               "annual_months": 17,
               "annual_wan": null,
               "weekly_hours": null,
-              "overtime": "約晚上8–9點下班，有加班費",
+              "overtime": null,
               "travel": "需出差中國、印度、歐洲、美國、日本",
-              "quote_free_note": "月薪比廣達offer多12K但未給絕對數；年薪12+年終2+績效分紅，主管估約17個月",
+              "quote_free_note": "月薪比廣達offer多12K但未給絕對數；年薪12+年終2+績效分紅，主管估約17個月；加班：約晚上8–9點下班，有加班費",
               "date_note": "Dcard 頁面發文日期 2025-05-23（2026-10-26 1943 批，非 Andy 親眼讀）",
               "in_window": false
             }
@@ -4887,7 +4888,8 @@
           ],
           "confidence": "低",
           "n": 1,
-          "n_stat": 0
+          "n_stat": 0,
+          "overtime": null
         }
       ],
       "mops": null,

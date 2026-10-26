@@ -618,7 +618,7 @@
             40,
             40
           ],
-          "overtime": "輪班",
+          "overtime": "經常",
           "travel": null,
           "n": 9,
           "note": "查無可用數字；查過關鍵字：日月光 京元電子 碩士 薪水 2026／日月光 碩士 製程工程師 月薪 2026 GoodJob 分紅 月份；Yahoo 徵才報導：設備工程師需輪班、另加輪班津貼，頂大碩畢起薪約 5 萬；比薪水 2026-05 中壢回報日均工時 10～12 小時；分紅與年薪月數沿用同公司製程職區間；撤回：bonus_months、annual_months 原為沿用／推算／暫填值，無直接證據，已改回原值；第二輪：PTT 2026-03 中壢設備 12 小時二休二，含加班日班 4～4.6 萬、夜班 5～7 萬；GoodJob 2026-09 高雄錄取月薪 5 萬（底薪＋津貼約 4 萬、夜班津貼約 1.5 萬、每月變動獎金 <1 萬）；保 14 個月＋年中發前一年分紅（GoodJob 評價）；學歷多為學士可進；annual_months 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples；未逐筆對應的舊彙整：annual_months=[14, 14]；未逐筆對應的舊彙整：travel=不用",
@@ -707,9 +707,9 @@
               "annual_months": null,
               "annual_wan": null,
               "weekly_hours": null,
-              "overtime": "輪班",
+              "overtime": null,
               "travel": null,
-              "quote_free_note": "中壢設備 12 小時二休二，日班含加班 4～4.6 萬",
+              "quote_free_note": "中壢設備 12 小時二休二，日班含加班 4～4.6 萬；加班：輪班",
               "date_confirmed": true,
               "date_note": "PTT 文章代碼即發文時間（Unix 時間）",
               "in_window": true
@@ -745,9 +745,9 @@
               "annual_months": null,
               "annual_wan": null,
               "weekly_hours": null,
-              "overtime": "輪班",
+              "overtime": null,
               "travel": null,
-              "quote_free_note": "高雄錄取月薪 5 萬（含津貼）",
+              "quote_free_note": "高雄錄取月薪 5 萬（含津貼）；加班：輪班",
               "date_confirmed": true,
               "date_note": "GoodJob 標題附分享日期",
               "in_window": true

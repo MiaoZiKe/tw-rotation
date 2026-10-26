@@ -725,9 +725,9 @@
               "annual_months": null,
               "annual_wan": null,
               "weekly_hours": null,
-              "overtime": "高工時",
+              "overtime": null,
               "travel": null,
-              "quote_free_note": "同篇另一份offer，原PO自述高工時、團隊大偏整合；留言多建議選M；未揭露薪資數字",
+              "quote_free_note": "同篇另一份offer，原PO自述高工時、團隊大偏整合；留言多建議選M；未揭露薪資數字；加班：高工時",
               "date_note": "Dcard 頁面發文日期 2025-01-21（2026-10-26 1943 批，非 Andy 親眼讀）",
               "in_window": false
             }
@@ -1845,7 +1845,8 @@
           ],
           "confidence": "低",
           "n": 1,
-          "n_stat": 0
+          "n_stat": 0,
+          "overtime": null
         },
         {
           "unit": "其他",
@@ -1884,7 +1885,8 @@
           ],
           "confidence": "低",
           "n": 1,
-          "n_stat": 0
+          "n_stat": 0,
+          "overtime": null
         }
       ],
       "mops": {
@@ -2883,9 +2885,9 @@
               "annual_months": null,
               "annual_wan": null,
               "weekly_hours": 45,
-              "overtime": "原PO聽說不太加班；留言稱加班費看部門",
+              "overtime": null,
               "travel": null,
-              "quote_free_note": "與慧榮FW offer比較，月薪約比慧榮少5K（慧榮略高於新人價），未給絕對金額；工時約每日9小時換算週45",
+              "quote_free_note": "與慧榮FW offer比較，月薪約比慧榮少5K（慧榮略高於新人價），未給絕對金額；工時約每日9小時換算週45；加班：原PO聽說不太加班；留言稱加班費看部門",
               "date_note": "Dcard 頁面發文日期 2025-01-12（2026-10-26 1943 批，非 Andy 親眼讀）",
               "in_window": false
             }
@@ -3369,9 +3371,9 @@
               "annual_months": null,
               "annual_wan": null,
               "weekly_hours": null,
-              "overtime": "經常，週一到四加班到很晚、週五準時，有加班費",
+              "overtime": null,
               "travel": null,
-              "quote_free_note": "留言者未滿三年，稱年薪已比先前一線系統廠好，同事主管友善；無絕對數字",
+              "quote_free_note": "留言者未滿三年，稱年薪已比先前一線系統廠好，同事主管友善；無絕對數字；加班：經常，週一到四加班到很晚、週五準時，有加班費",
               "date_note": "Dcard 頁面發文日期 2025-05-31（2026-10-26 1943 批，非 Andy 親眼讀）",
               "in_window": false
             }
@@ -3390,7 +3392,8 @@
           ],
           "confidence": "低",
           "n": 2,
-          "n_stat": 0
+          "n_stat": 0,
+          "overtime": null
         },
         {
           "unit": "MD",
@@ -3429,7 +3432,8 @@
           ],
           "confidence": "低",
           "n": 1,
-          "n_stat": 0
+          "n_stat": 0,
+          "overtime": null
         },
         {
           "unit": "其他",
@@ -3468,7 +3472,8 @@
           ],
           "confidence": "低",
           "n": 1,
-          "n_stat": 0
+          "n_stat": 0,
+          "overtime": null
         },
         {
           "unit": "其他",
@@ -3507,7 +3512,8 @@
           ],
           "confidence": "低",
           "n": 1,
-          "n_stat": 0
+          "n_stat": 0,
+          "overtime": null
         },
         {
           "unit": "其他",
@@ -3546,7 +3552,8 @@
           ],
           "confidence": "低",
           "n": 1,
-          "n_stat": 0
+          "n_stat": 0,
+          "overtime": null
         },
         {
           "unit": "其他",
@@ -3585,7 +3592,8 @@
           ],
           "confidence": "低",
           "n": 1,
-          "n_stat": 0
+          "n_stat": 0,
+          "overtime": null
         },
         {
           "unit": "其他",
@@ -3624,7 +3632,8 @@
           ],
           "confidence": "低",
           "n": 1,
-          "n_stat": 0
+          "n_stat": 0,
+          "overtime": null
         },
         {
           "unit": "其他",
@@ -3663,7 +3672,8 @@
           ],
           "confidence": "低",
           "n": 1,
-          "n_stat": 0
+          "n_stat": 0,
+          "overtime": null
         },
         {
           "unit": "其他",
@@ -3702,7 +3712,8 @@
           ],
           "confidence": "低",
           "n": 1,
-          "n_stat": 0
+          "n_stat": 0,
+          "overtime": null
         },
         {
           "unit": "其他",
@@ -3741,7 +3752,8 @@
           ],
           "confidence": "低",
           "n": 1,
-          "n_stat": 0
+          "n_stat": 0,
+          "overtime": null
         },
         {
           "unit": "其他",
@@ -3780,7 +3792,8 @@
           ],
           "confidence": "低",
           "n": 1,
-          "n_stat": 0
+          "n_stat": 0,
+          "overtime": null
         },
         {
           "unit": "其他",
@@ -3819,7 +3832,8 @@
           ],
           "confidence": "低",
           "n": 1,
-          "n_stat": 0
+          "n_stat": 0,
+          "overtime": null
         },
         {
           "unit": "其他",
@@ -3858,7 +3872,8 @@
           ],
           "confidence": "低",
           "n": 1,
-          "n_stat": 0
+          "n_stat": 0,
+          "overtime": null
         },
         {
           "unit": "iVoT",
@@ -3897,7 +3912,8 @@
           ],
           "confidence": "低",
           "n": 1,
-          "n_stat": 0
+          "n_stat": 0,
+          "overtime": null
         },
         {
           "unit": "其他",
@@ -3936,7 +3952,8 @@
           ],
           "confidence": "低",
           "n": 1,
-          "n_stat": 0
+          "n_stat": 0,
+          "overtime": null
         },
         {
           "unit": "其他",
@@ -3975,7 +3992,8 @@
           ],
           "confidence": "低",
           "n": 1,
-          "n_stat": 0
+          "n_stat": 0,
+          "overtime": null
         },
         {
           "unit": "其他",
@@ -4014,7 +4032,8 @@
           ],
           "confidence": "低",
           "n": 1,
-          "n_stat": 0
+          "n_stat": 0,
+          "overtime": null
         },
         {
           "unit": "其他",
@@ -4053,7 +4072,8 @@
           ],
           "confidence": "低",
           "n": 1,
-          "n_stat": 0
+          "n_stat": 0,
+          "overtime": null
         },
         {
           "unit": "AI 加速器相關，原面演算法被改為SA",
@@ -4076,9 +4096,9 @@
               "annual_months": null,
               "annual_wan": null,
               "weekly_hours": null,
-              "overtime": "留言稱SA工時長、下班較晚",
+              "overtime": null,
               "travel": "需面對客戶，留言稱會出差",
-              "quote_free_note": "應屆碩士同時拿聯發科與聯詠offer，聯詠職缺由演算法改為SA；未揭露薪資數字",
+              "quote_free_note": "應屆碩士同時拿聯發科與聯詠offer，聯詠職缺由演算法改為SA；未揭露薪資數字；加班：留言稱SA工時長、下班較晚",
               "date_note": "Dcard 頁面發文日期 2025-01-21（2026-10-26 1943 批，非 Andy 親眼讀）",
               "in_window": false
             }
@@ -4092,7 +4112,8 @@
           ],
           "confidence": "低",
           "n": 1,
-          "n_stat": 0
+          "n_stat": 0,
+          "overtime": null
         },
         {
           "unit": "MD 部門",
@@ -4115,9 +4136,9 @@
               "annual_months": null,
               "annual_wan": null,
               "weekly_hours": null,
-              "overtime": "經常，每天到晚上11–12點",
+              "overtime": null,
               "travel": null,
-              "quote_free_note": "留言者在MD待一年即離職，稱鬥爭重、分紅占比高；另一留言稱MD新人分紅不到半個月、分四次領，其他部門約為MD的3–8倍",
+              "quote_free_note": "留言者在MD待一年即離職，稱鬥爭重、分紅占比高；另一留言稱MD新人分紅不到半個月、分四次領，其他部門約為MD的3–8倍；加班：經常，每天到晚上11–12點",
               "date_note": "Dcard 頁面發文日期 2025-05-31（2026-10-26 1943 批，非 Andy 親眼讀）",
               "in_window": false
             }
@@ -4131,7 +4152,8 @@
           ],
           "confidence": "低",
           "n": 1,
-          "n_stat": 0
+          "n_stat": 0,
+          "overtime": null
         },
         {
           "unit": "MD，接蘋果案",
@@ -4154,9 +4176,9 @@
               "annual_months": null,
               "annual_wan": null,
               "weekly_hours": null,
-              "overtime": "經常，週六日固定加班半天到一天",
+              "overtime": null,
               "travel": null,
-              "quote_free_note": "留言者自述MD接蘋果案後週末固定加班；無薪資數字",
+              "quote_free_note": "留言者自述MD接蘋果案後週末固定加班；無薪資數字；加班：經常，週六日固定加班半天到一天",
               "date_note": "Dcard 頁面發文日期 2025-05-31（2026-10-26 1943 批，非 Andy 親眼讀）",
               "in_window": false
             }
@@ -4170,7 +4192,8 @@
           ],
           "confidence": "低",
           "n": 1,
-          "n_stat": 0
+          "n_stat": 0,
+          "overtime": null
         }
       ],
       "mops": {
@@ -4447,9 +4470,9 @@
                 300
               ],
               "weekly_hours": null,
-              "overtime": "幾乎不，前一年全年加班約30小時",
+              "overtime": null,
               "travel": null,
-              "quote_free_note": "留言者自述2025年1月年終約110–130萬，分紅約年終七折且三分之一延至隔年7月；估2025全年約280–300萬",
+              "quote_free_note": "留言者自述2025年1月年終約110–130萬，分紅約年終七折且三分之一延至隔年7月；估2025全年約280–300萬；加班：幾乎不，前一年全年加班約30小時",
               "date_note": "Dcard 頁面發文日期 2025-01-28（2026-10-26 1943 批，非 Andy 親眼讀）",
               "in_window": false
             },
@@ -4472,9 +4495,9 @@
                 300
               ],
               "weekly_hours": 42.5,
-              "overtime": "幾乎不，平均每日8–9小時",
+              "overtime": null,
               "travel": null,
-              "quote_free_note": "留言者稱碩畢第二年年薪約250–300萬，部門偏養生",
+              "quote_free_note": "留言者稱碩畢第二年年薪約250–300萬，部門偏養生；加班：幾乎不，平均每日8–9小時",
               "date_note": "Dcard 頁面發文日期 2025-01-28（2026-10-26 1943 批，非 Andy 親眼讀）",
               "in_window": false
             },
@@ -4641,9 +4664,9 @@
               "annual_months": null,
               "annual_wan": null,
               "weekly_hours": null,
-              "overtime": "留言稱Power部門很累、待很晚",
+              "overtime": null,
               "travel": null,
-              "quote_free_note": "新鮮人拿到瑞昱RDC兩部門類比設計offer詢問風氣；未揭露薪資數字",
+              "quote_free_note": "新鮮人拿到瑞昱RDC兩部門類比設計offer詢問風氣；未揭露薪資數字；加班：留言稱Power部門很累、待很晚",
               "date_note": "Dcard 頁面發文日期 2025-07-24（2026-10-26 1943 批，非 Andy 親眼讀）",
               "in_window": false
             }
@@ -5283,9 +5306,9 @@
               "annual_months": null,
               "annual_wan": null,
               "weekly_hours": null,
-              "overtime": "希望每月加班少於20小時，主管稱偶爾加班",
+              "overtime": null,
               "travel": null,
-              "quote_free_note": "現職一線IC DE轉職，瑞昱面試通過待HR排志願；未揭露薪資數字",
+              "quote_free_note": "現職一線IC DE轉職，瑞昱面試通過待HR排志願；未揭露薪資數字；加班：希望每月加班少於20小時，主管稱偶爾加班",
               "date_note": "Dcard 頁面發文日期 2025-01-28（2026-10-26 1943 批，非 Andy 親眼讀）",
               "in_window": false
             }
@@ -6561,9 +6584,9 @@
               "annual_months": null,
               "annual_wan": 250,
               "weekly_hours": null,
-              "overtime": "經常，可報加班費",
+              "overtime": null,
               "travel": null,
-              "quote_free_note": "群聯2025年7月開獎串留言；bonus_months為7月+10月+隔年4月三包合計月數，不含1月年終；一直加班但可報加班費；8/4補充含加班費今年有機會過250萬（自估）",
+              "quote_free_note": "群聯2025年7月開獎串留言；bonus_months為7月+10月+隔年4月三包合計月數，不含1月年終；一直加班但可報加班費；8/4補充含加班費今年有機會過250萬（自估）；加班：經常，可報加班費",
               "date_note": "Dcard 頁面發文日期 2025-07-31（2026-10-26 1943 批，非 Andy 親眼讀）",
               "in_window": false
             },
@@ -10291,7 +10314,8 @@
           ],
           "confidence": "低",
           "n": 1,
-          "n_stat": 0
+          "n_stat": 0,
+          "overtime": null
         },
         {
           "unit": "其他",
@@ -10330,7 +10354,8 @@
           ],
           "confidence": "低",
           "n": 1,
-          "n_stat": 0
+          "n_stat": 0,
+          "overtime": null
         }
       ],
       "mops": {
@@ -13732,7 +13757,8 @@
           ],
           "confidence": "低",
           "note": "2026-10-26 由 Dcard 樣本新增的公司",
-          "n_stat": 0
+          "n_stat": 0,
+          "overtime": null
         }
       ]
     },
@@ -13788,7 +13814,8 @@
           ],
           "confidence": "低",
           "note": "2026-10-26 由 Dcard 樣本新增的公司",
-          "n_stat": 0
+          "n_stat": 0,
+          "overtime": null
         },
         {
           "unit": "其他",
@@ -13832,7 +13859,8 @@
           ],
           "confidence": "低",
           "note": "2026-10-26 由 Dcard 樣本新增的公司",
-          "n_stat": 0
+          "n_stat": 0,
+          "overtime": null
         }
       ]
     }
