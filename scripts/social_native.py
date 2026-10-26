@@ -249,9 +249,9 @@ def rank_list(mode, w, h, ctx, sections, vw=190):
     # 名稱欄固定寬（取這張卡最長的名稱＋代號，上限 42%），長條一律從同一條線開始（2026-10-26 Andy：「長條圖幫我靠左對齊」）
     allr = [r for _, _, rows, *_ in sections for r in rows]
     nmw = min(max([est_w(clean_name(r["name"]), 30 * s) + est_w(str(r["code"]), 24 * s) + 14 for r in allr] + [120]), w * 0.42)
-    lotw = max([est_w(f'{r["lots"]:+,}張', 24 * s) * 0.92 for r in allr if r.get("lots") is not None] + [0])
+    lotw = max([est_w(f'{r["lots"]:+,}張', 24 * s) for r in allr if r.get("lots") is not None] + [0])     # 不打折：10/21「+168,000張」被切掉
     # 數字欄固定寬（量最長的「數字＋單位＋張數」），每列長條的右端也對齊
-    vw = max([vw] + [est_w(r["val"], 30 * s) * 0.9 + est_w(r.get("unit", ""), 24 * s) + 6 + ((lotw + 14) if r.get("lots") is not None else 0) for r in allr])
+    vw = max([vw] + [est_w(r["val"], 30 * s) + est_w(r.get("unit", ""), 24 * s) + 6 + ((lotw + 14) if r.get("lots") is not None else 0) for r in allr])
     for title, col, rows in [(a, b, c) for a, b, c, *_ in sections]:
         out.append(f'<div class=sec style="flex:{len(rows) + 1.3}"><div class=sh style="color:{col}">{esc(title)}</div><div class=rows>')
         for i, r in enumerate(rows):
