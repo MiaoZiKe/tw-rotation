@@ -29,7 +29,7 @@
             18
           ],
           "annual_total_wan": [
-            77.0,
+            77,
             110
           ],
           "weekly_hours": [
@@ -38,7 +38,7 @@
           ],
           "overtime": "偶爾",
           "travel": null,
-          "n": 23,
+          "n": 24,
           "note": "比薪水統計中位數 5.5 萬（2025 資料）；PTT 傳碩士 5.5 萬起未經公司證實；比薪水 2026 有 4 年 120 萬、6 年 105 萬自述（非新人）；第二輪（Dcard／PTT／GoodJob 各分開搜）：輪班設備起薪 5.5 萬起、台南 TCP Probe 7.4 萬、台中一年經驗 6.1 萬；保 14 個月（含年終 2 個月）＋分紅 0～4 個月（11 月發），內推文稱年薪約 18 個月；夜班津貼 +20%；FY26 公司另發每人 100 萬感謝金（工會質疑）；內推文數字可能偏樂觀；Dcard 日期依文章編號推估；bonus_months、annual_total_wan 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples；未逐筆對應的舊彙整：bonus_months=[2, 4]；未逐筆對應的舊彙整：annual_total_wan=[80, 100]；未逐筆對應的舊彙整：travel=不用；部分年薪／年薪月數由同一筆樣本的「底薪×月數」推算（樣本標 derived）",
           "sources": [
             {
@@ -155,6 +155,11 @@
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/258617187",
               "date": "2025-04"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台灣美光(台灣美光晶圓%2F台灣美光記憶體%2F美光亞太) MICRON/work-experiences/薪資福利",
+              "date": "2026-09"
             }
           ],
           "confidence": "高",
@@ -651,9 +656,29 @@
               "travel_raw": null,
               "in_window": false,
               "date_note": "Dcard 頁面發文日期 2025-04-22（2026-10-26 2037 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台灣美光(台灣美光晶圓%2F台灣美光記憶體%2F美光亞太) MICRON/work-experiences/薪資福利",
+              "date": "2026-09",
+              "unit_detail": "台中",
+              "years": "0-1",
+              "degree": null,
+              "base_k": 55,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "role": null,
+              "quote_free_note": "半導體設備工程師評價：台中、未滿 1 年、月薪 5.5 萬",
+              "date_confirmed": true,
+              "date_note": "摘要寫出發文年月",
+              "in_window": true
             }
           ],
-          "n_stat": 19,
+          "n_stat": 20,
           "degree_diff": "樣本中位數：學士底薪約 55K、碩士約 58K（差約 3K；學士 1 筆、碩士 4 筆）"
         },
         {
@@ -1258,6 +1283,26 @@
               "quote_free_note": "現職美光超過三年；結構為月薪×14加IPP加RSU，RSU已到最後一年；月薪N未揭露；加班原文：常在晚上7–8點或凌晨被call，無加班費",
               "in_window": false,
               "date_note": "Dcard 頁面發文日期 2025-07-29（2026-10-26 2003 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台灣美光(台灣美光晶圓%2F台灣美光記憶體%2F美光亞太) MICRON/work-experiences/薪資福利",
+              "date": "2026-06",
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 70,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "role": "軟體設計工程師",
+              "quote_free_note": "軟體設計工程師評價：月薪 7 萬",
+              "date_confirmed": true,
+              "date_note": "摘要寫出發文年月",
+              "in_window": true
             }
           ],
           "sources": [
@@ -1275,22 +1320,30 @@
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/259421520",
               "date": "2025-07"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台灣美光(台灣美光晶圓%2F台灣美光記憶體%2F美光亞太) MICRON/work-experiences/薪資福利",
+              "date": "2026-06"
             }
           ],
-          "confidence": "低",
-          "n": 3,
+          "confidence": "中",
+          "n": 4,
           "annual_total_wan": [
             120,
             120
           ],
           "overtime": "經常",
           "years": null,
-          "base_month_k": null,
+          "base_month_k": [
+            70,
+            70
+          ],
           "bonus_months": null,
           "annual_months": null,
           "weekly_hours": null,
           "travel": null,
-          "n_stat": 2,
+          "n_stat": 3,
           "note": null,
           "grade": null
         },
@@ -1864,6 +1917,26 @@
               "quote_free_note": "代友詢問，管院碩；月薪 N+8（N＝緯穎 PM offer 月薪）；要輪班；同篇緯穎是 PM，不收",
               "in_window": true,
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-08-25"
+            },
+            {
+              "site": "PTT",
+              "url": "https://www.ptt.cc/bbs/Tech_Job/M.1784288321.A.3A6.html",
+              "date": "2026-07",
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "role": "產線 IT 工程師",
+              "quote_free_note": "記憶體廠在職者拿到美光台南產線 IT offer，月薪 N+11K（N＝現職），整包與現職差不多；無絕對數",
+              "date_confirmed": true,
+              "date_note": "M.1784288321 換算 2026-07-17",
+              "in_window": true
             }
           ],
           "sources": [
@@ -1871,10 +1944,15 @@
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/262029602",
               "date": "2026-08"
+            },
+            {
+              "site": "PTT",
+              "url": "https://www.ptt.cc/bbs/Tech_Job/M.1784288321.A.3A6.html",
+              "date": "2026-07"
             }
           ],
-          "confidence": "低",
-          "n": 1,
+          "confidence": "中",
+          "n": 2,
           "years": null,
           "base_month_k": null,
           "bonus_months": null,
@@ -1883,7 +1961,7 @@
           "weekly_hours": null,
           "overtime": null,
           "travel": null,
-          "n_stat": 1,
+          "n_stat": 2,
           "note": null,
           "grade": null
         },
@@ -2004,19 +2082,22 @@
           "degree": "碩士",
           "years": "0-2",
           "base_month_k": [
-            58.0,
+            58,
             68
           ],
           "bonus_months": null,
           "annual_months": null,
-          "annual_total_wan": null,
+          "annual_total_wan": [
+            140,
+            140
+          ],
           "weekly_hours": [
             50,
             50
           ],
           "overtime": null,
           "travel": null,
-          "n": 9,
+          "n": 10,
           "note": "GoodJob 兩筆不到 1 年自述月薪 6.5／6.8 萬；5 年記憶體開發 8 萬已排除；學歷未標；GoodJob 公司頁平均每週 45 小時、42% 偶爾加班、5% 幾乎每天；2026 多則評價稱分紅少或改半年一次，分紅月數無可靠區間；第二輪：Dcard 四大碩製程面試喊 5.8 萬、談到 6 字頭；GoodJob 2026-06 製程 6.8 萬、每週約 50 小時；保 14 個月，2022Q4 起長期無分紅、2026 景氣好轉傳分紅大增（未證實）；annual_months 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples；未逐筆對應的舊彙整：annual_months=[14, 14]；未逐筆對應的舊彙整：overtime=偶爾、travel=不用",
           "sources": [
             {
@@ -2058,9 +2139,14 @@
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/261933659",
               "date": "2026-08"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/華邦電子股份有限公司/work-experiences/薪資福利",
+              "date": "2026"
             }
           ],
-          "confidence": "中",
+          "confidence": "高",
           "grade": null,
           "samples": [
             {
@@ -2233,9 +2319,29 @@
               "date_confirmed": true,
               "date_note": "GoodJob 標題年月",
               "in_window": true
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/華邦電子股份有限公司/work-experiences/薪資福利",
+              "date": "2026",
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 140,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "role": null,
+              "quote_free_note": "製程工程師評價（2026）：年薪 140 萬",
+              "date_confirmed": true,
+              "date_note": "摘要寫出 2026 年",
+              "in_window": true
             }
           ],
-          "n_stat": 7
+          "n_stat": 8
         },
         {
           "unit": "研發 R&D",
@@ -2500,6 +2606,106 @@
           "travel": null,
           "n_stat": 1,
           "note": null
+        },
+        {
+          "unit": "研發 R&D",
+          "role": "軟體開發工程師",
+          "degree": "碩士",
+          "years": null,
+          "base_month_k": [
+            61,
+            61
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n": 1,
+          "note": "",
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/華邦電子股份有限公司/work-experiences/薪資福利",
+              "date": "2026"
+            }
+          ],
+          "confidence": "低",
+          "grade": null,
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/華邦電子股份有限公司/work-experiences/薪資福利",
+              "date": "2026",
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 61,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "role": null,
+              "quote_free_note": "軟體開發工程師評價（2026）：月薪 6.1 萬",
+              "date_confirmed": true,
+              "date_note": "摘要寫出 2026 年",
+              "in_window": true
+            }
+          ],
+          "n_stat": 1
+        },
+        {
+          "unit": "研發 R&D",
+          "role": "類比 IC 設計工程師",
+          "degree": "碩士",
+          "years": null,
+          "base_month_k": [
+            120,
+            120
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n": 1,
+          "note": "",
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/華邦電子股份有限公司/work-experiences/薪資福利",
+              "date": "2026"
+            }
+          ],
+          "confidence": "低",
+          "grade": null,
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/華邦電子股份有限公司/work-experiences/薪資福利",
+              "date": "2026",
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 120,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "role": null,
+              "quote_free_note": "類比 IC 工程師評價（2026）：月薪 12 萬，稱分紅很少",
+              "date_confirmed": true,
+              "date_note": "摘要寫出 2026 年",
+              "in_window": true
+            }
+          ],
+          "n_stat": 1
         }
       ],
       "mops": {
@@ -2759,7 +2965,7 @@
           ],
           "overtime": "偶爾",
           "travel": null,
-          "n": 19,
+          "n": 20,
           "note": "2025-02 自述年薪 100 萬（含職等津貼、季獎金、分紅）；有人說近年虧損無分紅年薪不到百萬；沿用同公司設備職回報；撤回：overtime 原為沿用／推算／暫填值，無直接證據，已改回原值；第二輪：2025-11 新聞碩士新進月薪由 4.5 萬調到 6.2 萬（公司稱正常調幅）；GoodJob 2026-05 製程 6.25 萬、3 年整合 6.8 萬；Dcard 製程值班 offer 保 15、人資口頭約 17 個月；2026-08 發激勵獎金約 2 個月（有人稱會從分紅扣回）；GoodJob 2026-08 評價稱分紅有上限；annual_total_wan 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples；未逐筆對應的舊彙整：annual_months=[17, 17]；未逐筆對應的舊彙整：annual_total_wan=[90, 100]；未逐筆對應的舊彙整：travel=不用",
           "sources": [
             {
@@ -2821,6 +3027,11 @@
               "site": "GoodJob",
               "url": "https://www.goodjob.life/experiences/6a95a4b984e35a66ed46c5d9",
               "date": "2026-08"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/南亞科技股份有限公司/work-experiences/升遷制度",
+              "date": "2026-03"
             }
           ],
           "confidence": "高",
@@ -3198,9 +3409,29 @@
               "quote_free_note": "月薪 N-7.5；常日班",
               "in_window": true,
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-02-15"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/南亞科技股份有限公司/work-experiences/升遷制度",
+              "date": "2026-03",
+              "unit_detail": null,
+              "years": "2",
+              "degree": null,
+              "base_k": 59,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "role": "製程工程師",
+              "quote_free_note": "製程工程師評價：月薪 5.9 萬，保底 15 個月，加班費較難申請",
+              "date_confirmed": true,
+              "date_note": "摘要寫出發文年月",
+              "in_window": true
             }
           ],
-          "n_stat": 18
+          "n_stat": 19
         },
         {
           "unit": "其他",

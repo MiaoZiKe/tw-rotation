@@ -899,7 +899,7 @@
           "years": "0-2",
           "base_month_k": [
             50,
-            60
+            70
           ],
           "bonus_months": null,
           "annual_months": null,
@@ -910,7 +910,7 @@
           "weekly_hours": null,
           "overtime": null,
           "travel": null,
-          "n": 5,
+          "n": 6,
           "note": "GoodJob 2026-01 不到 1 年 6 萬、2025-09 三年 5 萬；學歷未標；第二輪：Dcard 2026 稱第一年沒分紅、2023～2025 訂單少薪水偏低，近期回穩；base_month_k、bonus_months、annual_months 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples；未逐筆對應的舊彙整：base_month_k=[50, 60]；未逐筆對應的舊彙整：bonus_months=[2, 2]；未逐筆對應的舊彙整：annual_months=[14, 15]；未逐筆對應的舊彙整：weekly_hours=[40, 46]、overtime=偶爾、travel=不用",
           "sources": [
             {
@@ -929,7 +929,7 @@
               "date": "2026-07"
             }
           ],
-          "confidence": "低",
+          "confidence": "高",
           "grade": null,
           "samples": [
             {
@@ -1030,9 +1030,29 @@
               "date_note": "GoodJob 搜尋摘要標分享年月（2026.7.14）",
               "in_window": true,
               "role": "生產技術／製程工程師"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/景碩科技股份有限公司/work-experiences/薪資福利",
+              "date": "2025-12",
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 70,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "role": "主任工程師",
+              "quote_free_note": "主任工程師評價：月薪 7 萬，稱薪資高於 PCB 同業",
+              "date_confirmed": true,
+              "date_note": "摘要寫出發文年月",
+              "in_window": true
             }
           ],
-          "n_stat": 5
+          "n_stat": 6
         },
         {
           "unit": "其他",
@@ -1058,6 +1078,26 @@
               "travel": null,
               "quote_free_note": "年終不保證",
               "in_window": true
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/景碩科技股份有限公司/interview-experiences?p=1",
+              "date": "2026-02",
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 54,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "role": null,
+              "quote_free_note": "面試經驗錄取：月薪 5.4 萬；先適性與邏輯測驗、HR 再主管面",
+              "date_confirmed": true,
+              "date_note": "摘要寫出發文年月",
+              "in_window": true
             }
           ],
           "sources": [
@@ -1065,12 +1105,17 @@
               "site": "GoodJob",
               "url": "https://www.goodjob.life/experiences/6a8e9daaddfa07d242bb0aab",
               "date": "2026-08"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/景碩科技股份有限公司/interview-experiences?p=1",
+              "date": "2026-02"
             }
           ],
-          "confidence": "低",
-          "n": 1,
+          "confidence": "中",
+          "n": 2,
           "base_month_k": [
-            55,
+            54,
             55
           ],
           "bonus_months": null,
@@ -1080,7 +1125,7 @@
           "years": null,
           "overtime": null,
           "travel": null,
-          "n_stat": 1,
+          "n_stat": 2,
           "note": null,
           "grade": null
         },
@@ -1270,6 +1315,26 @@
               "date_confirmed": true,
               "date_note": "GoodJob 搜尋摘要標分享年月（面試 2026.6.20）",
               "in_window": true
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/景碩科技股份有限公司/interview-experiences?p=1",
+              "date": "2026-04",
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 58,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "role": null,
+              "quote_free_note": "面試經驗錄取：月薪 5.8 萬，當天拿到 offer",
+              "date_confirmed": true,
+              "date_note": "摘要寫出發文年月",
+              "in_window": true
             }
           ],
           "sources": [
@@ -1277,9 +1342,14 @@
               "site": "GoodJob",
               "url": "https://www.goodjob.life/companies/景碩科技股份有限公司/interview-experiences",
               "date": "2026-06"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/景碩科技股份有限公司/interview-experiences?p=1",
+              "date": "2026-04"
             }
           ],
-          "confidence": "低",
+          "confidence": "中",
           "grade": null,
           "note": null,
           "base_month_k": [
@@ -1292,8 +1362,8 @@
           "weekly_hours": null,
           "overtime": null,
           "travel": null,
-          "n": 1,
-          "n_stat": 1
+          "n": 2,
+          "n_stat": 2
         }
       ],
       "mops": {
@@ -1761,6 +1831,26 @@
               "date_confirmed": true,
               "date_note": "GoodJob 搜尋摘要標分享年月",
               "in_window": true
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/job-titles/研發工程師/salary-work-times?p=3",
+              "date": "2026-03",
+              "unit_detail": null,
+              "years": "1",
+              "degree": null,
+              "base_k": 50,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 40,
+              "overtime": "偶爾",
+              "travel": null,
+              "role": null,
+              "quote_free_note": "研發工程師薪資頁：全職、年資 1 年、月薪 5 萬、每週 40 小時、偶爾加班",
+              "date_confirmed": true,
+              "date_note": "摘要寫出發文年月",
+              "in_window": true
             }
           ],
           "sources": [
@@ -1768,12 +1858,20 @@
               "site": "GoodJob",
               "url": "https://www.goodjob.life/companies/台光電子材料股份有限公司/work-experiences/工時狀況",
               "date": "2026-01"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/job-titles/研發工程師/salary-work-times?p=3",
+              "date": "2026-03"
             }
           ],
-          "confidence": "低",
+          "confidence": "中",
           "grade": null,
           "note": null,
-          "base_month_k": null,
+          "base_month_k": [
+            50,
+            50
+          ],
           "bonus_months": null,
           "annual_months": null,
           "annual_total_wan": null,
@@ -1783,8 +1881,8 @@
           ],
           "overtime": "偶爾",
           "travel": null,
-          "n": 1,
-          "n_stat": 1
+          "n": 2,
+          "n_stat": 2
         }
       ],
       "mops": {
