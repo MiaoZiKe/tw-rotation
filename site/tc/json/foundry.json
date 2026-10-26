@@ -1,7 +1,7 @@
 {
   "industry": "foundry",
   "name": "IC 晶圓代工",
-  "updated": "2026-10-25",
+  "updated": "2026-10-26",
   "window": "2025-10-25～2026-10-25",
   "companies": [
     {
@@ -20,7 +20,7 @@
           "degree": "不限",
           "years": "0-2",
           "base_month_k": [
-            65,
+            64,
             65
           ],
           "bonus_months": null,
@@ -29,8 +29,8 @@
             40
           ],
           "annual_total_wan": [
-            220,
-            250
+            205,
+            256
           ],
           "weekly_hours": [
             60,
@@ -322,7 +322,8 @@
               "travel": "不用",
               "quote_free_note": "碩士新進月薪約 6.5 萬以上",
               "date_confirmed": true,
-              "in_window": true
+              "in_window": true,
+              "date_note": null
             },
             {
               "site": "聯合新聞網",
@@ -340,7 +341,8 @@
               "travel": "不用",
               "quote_free_note": "公司口徑碩士新進平均年薪 220 萬",
               "date_confirmed": true,
-              "in_window": true
+              "in_window": true,
+              "date_note": null
             },
             {
               "site": "財報狗",
@@ -358,7 +360,8 @@
               "travel": "不用",
               "quote_free_note": "摘要無個人數字，僅作制度／口徑參考",
               "date_confirmed": true,
-              "in_window": true
+              "in_window": true,
+              "date_note": null
             },
             {
               "site": "Dcard",
@@ -395,7 +398,8 @@
               "travel": "不用",
               "quote_free_note": "同上新聞轉貼",
               "date_confirmed": true,
-              "in_window": false
+              "in_window": false,
+              "date_note": null
             },
             {
               "site": "Dcard",
@@ -432,7 +436,8 @@
               "travel": "不用",
               "quote_free_note": "自述月薪 6.24 萬、55 小時／週",
               "date_confirmed": true,
-              "in_window": false
+              "in_window": false,
+              "date_note": null
             },
             {
               "site": "GoodJob",
@@ -450,7 +455,8 @@
               "travel": "不用",
               "quote_free_note": "自述年薪約 250 萬、60 小時／週",
               "date_confirmed": true,
-              "in_window": true
+              "in_window": true,
+              "date_note": null
             },
             {
               "site": "PTT",
@@ -468,7 +474,8 @@
               "travel": "不用",
               "quote_free_note": "碩士 31 職等考績 S 推算年薪約 218 萬",
               "date_confirmed": true,
-              "in_window": false
+              "in_window": false,
+              "date_note": null
             },
             {
               "site": "PTT",
@@ -486,7 +493,8 @@
               "travel": "不用",
               "quote_free_note": "31 職等 S 季分紅約 4.22 個月（單季）（單季，原填 4.22 個月非全年）",
               "date_confirmed": true,
-              "in_window": true
+              "in_window": true,
+              "date_note": null
             },
             {
               "site": "Dcard",
@@ -542,7 +550,8 @@
               "travel": "不用",
               "quote_free_note": "碩士 5 年月薪 13 萬（2022，範圍外）",
               "date_confirmed": true,
-              "in_window": false
+              "in_window": false,
+              "date_note": null
             },
             {
               "site": "GoodJob",
@@ -560,7 +569,8 @@
               "travel": "不用",
               "quote_free_note": "封裝製程工程師評價，摘要無金額",
               "date_confirmed": true,
-              "in_window": false
+              "in_window": false,
+              "date_note": null
             },
             {
               "site": "GoodJob",
@@ -578,7 +588,8 @@
               "travel": "不用",
               "quote_free_note": "PE 評價 2026-06，摘要無金額",
               "date_confirmed": true,
-              "in_window": true
+              "in_window": true,
+              "date_note": null
             },
             {
               "site": "Dcard",
@@ -1306,7 +1317,7 @@
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-08-18"
             }
           ],
-          "n_in_window": 6
+          "n_stat": 21
         },
         {
           "unit": "晶圓廠 Fab",
@@ -1322,18 +1333,15 @@
             14,
             14
           ],
-          "annual_total_wan": [
-            170,
-            172
-          ],
+          "annual_total_wan": null,
           "weekly_hours": [
-            57,
-            57
+            55,
+            60
           ],
           "overtime": "經常",
           "travel": "不用",
           "n": 48,
-          "note": "GoodJob 2026-03 兩則自述（台中、高雄，不到 1 年），工時 55～60 小時／週、需輪班；學歷未標；分紅與年薪月數查 GoodJob／媒體未見設備職專屬數字，維持 null；可參考製程職推算 30～37 個月；2026-10-25 補：Dcard 碩士設備新人第一年自述 120～160 萬（第一年分紅未滿，試用期 3 個月不算），第三年 230～250 萬為單一匿名說法未採",
+          "note": "GoodJob 2026-03 兩則自述（台中、高雄，不到 1 年），工時 55～60 小時／週、需輪班；學歷未標；分紅與年薪月數查 GoodJob／媒體未見設備職專屬數字，維持 null；可參考製程職推算 30～37 個月；2026-10-25 補：Dcard 碩士設備新人第一年自述 120～160 萬（第一年分紅未滿，試用期 3 個月不算），第三年 230～250 萬為單一匿名說法未採；未逐筆對應的舊彙整：annual_total_wan=[170, 172]",
           "sources": [
             {
               "site": "GoodJob",
@@ -1536,7 +1544,8 @@
               "travel": "不用",
               "quote_free_note": "2026-03 兩則設備自述月薪約 6.3～6.5 萬、55～60 小時、輪班",
               "date_confirmed": true,
-              "in_window": true
+              "in_window": true,
+              "date_note": null
             },
             {
               "site": "Dcard",
@@ -1611,7 +1620,8 @@
               "travel": "不用",
               "quote_free_note": "面試心得：底薪 6.5 萬＋季分紅，主要問能否輪班",
               "date_confirmed": true,
-              "in_window": true
+              "in_window": true,
+              "date_note": null
             },
             {
               "site": "GoodJob",
@@ -1629,7 +1639,8 @@
               "travel": "不用",
               "quote_free_note": "設備面試 2025-11，摘要無金額",
               "date_confirmed": true,
-              "in_window": true
+              "in_window": true,
+              "date_note": null
             },
             {
               "site": "GoodJob",
@@ -1647,7 +1658,8 @@
               "travel": "不用",
               "quote_free_note": "設備面試 2024-06（範圍外）",
               "date_confirmed": true,
-              "in_window": false
+              "in_window": false,
+              "date_note": null
             },
             {
               "site": "PTT",
@@ -1665,7 +1677,8 @@
               "travel": "不用",
               "quote_free_note": "設備第一年 172 萬說法，串內多人質疑（範圍外）",
               "date_confirmed": true,
-              "in_window": false
+              "in_window": false,
+              "date_note": null
             },
             {
               "site": "PTT",
@@ -1683,7 +1696,8 @@
               "travel": "不用",
               "quote_free_note": "回文稱第二年約 160～180（範圍外）",
               "date_confirmed": true,
-              "in_window": false
+              "in_window": false,
+              "date_note": null
             },
             {
               "site": "Dcard",
@@ -2462,7 +2476,7 @@
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2025-05-13"
             }
           ],
-          "n_in_window": 3
+          "n_stat": 24
         },
         {
           "unit": "智慧製造 IT",
@@ -2594,7 +2608,8 @@
               "travel": "不用",
               "quote_free_note": "IT 2026-04 自述底薪 6 萬",
               "date_confirmed": true,
-              "in_window": true
+              "in_window": true,
+              "date_note": null
             },
             {
               "site": "Threads（Dcard 科技業轉貼）",
@@ -2631,7 +2646,8 @@
               "travel": "不用",
               "quote_free_note": "摘要無個人數字，僅作制度／口徑參考",
               "date_confirmed": true,
-              "in_window": true
+              "in_window": true,
+              "date_note": null
             },
             {
               "site": "Dcard",
@@ -3116,7 +3132,7 @@
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2025-05-14"
             }
           ],
-          "n_in_window": 2
+          "n_stat": 17
         },
         {
           "unit": "晶圓廠 Fab",
@@ -3275,7 +3291,8 @@
               "travel": "不用",
               "quote_free_note": "製程整合職稱頁台積電回報多在 6～6.4 萬",
               "date_confirmed": true,
-              "in_window": true
+              "in_window": true,
+              "date_note": null
             },
             {
               "site": "台積電徵才",
@@ -3293,7 +3310,8 @@
               "travel": "不用",
               "quote_free_note": "徵才頁（公司口徑）",
               "date_confirmed": true,
-              "in_window": true
+              "in_window": true,
+              "date_note": null
             },
             {
               "site": "PTT",
@@ -3311,7 +3329,8 @@
               "travel": "不用",
               "quote_free_note": "碩畢 2 年 31 職等約 280 萬（新聞）",
               "date_confirmed": true,
-              "in_window": true
+              "in_window": true,
+              "date_note": null
             },
             {
               "site": "PTT",
@@ -3329,7 +3348,8 @@
               "travel": "不用",
               "quote_free_note": "季分紅新聞，工程師年薪說法",
               "date_confirmed": true,
-              "in_window": false
+              "in_window": false,
+              "date_note": null
             },
             {
               "site": "GoodJob",
@@ -3347,7 +3367,8 @@
               "travel": "不用",
               "quote_free_note": "PIE 面試 2020，月薪 4.5 萬、慣性加班到 21 點（範圍外）",
               "date_confirmed": true,
-              "in_window": false
+              "in_window": false,
+              "date_note": null
             },
             {
               "site": "Dcard",
@@ -3422,7 +3443,8 @@
               "travel": "不用",
               "quote_free_note": "F15A 製程整合月薪約 6.2 萬",
               "date_confirmed": true,
-              "in_window": false
+              "in_window": false,
+              "date_note": null
             },
             {
               "site": "GoodJob",
@@ -3440,7 +3462,8 @@
               "travel": "不用",
               "quote_free_note": "APOD（先進封裝）PIE 面試，摘要無金額",
               "date_confirmed": true,
-              "in_window": false
+              "in_window": false,
+              "date_note": null
             },
             {
               "site": "GoodJob",
@@ -3458,7 +3481,8 @@
               "travel": "不用",
               "quote_free_note": "2020 錄取製程整合月薪約 5.6 萬",
               "date_confirmed": true,
-              "in_window": false
+              "in_window": false,
+              "date_note": null
             },
             {
               "site": "GoodJob",
@@ -3476,7 +3500,8 @@
               "travel": "不用",
               "quote_free_note": "製程整合面試，摘要無金額",
               "date_confirmed": true,
-              "in_window": false
+              "in_window": false,
+              "date_note": null
             },
             {
               "site": "Dcard",
@@ -3753,28 +3778,25 @@
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-10-22"
             }
           ],
-          "n_in_window": 3
+          "n_stat": 11
         },
         {
           "unit": "晶圓廠 Fab",
           "degree": "不限",
           "years": "0-2",
-          "base_month_k": [
-            39.5,
-            58
-          ],
+          "base_month_k": null,
           "bonus_months": null,
           "annual_months": null,
           "annual_total_wan": null,
           "weekly_hours": [
-            50,
+            65,
             65
           ],
           "overtime": "經常",
           "travel": "不用",
           "confidence": "低",
           "role": "模組副工程師（MAE）",
-          "note": "Dcard 多篇：徵才頁 MAE 起薪 38,700 起（需最多 12 個月訓練認證），新人價談薪空間小；年資約兩年自述『滿三年 150～180、五年約 200』、每月加班 10～20 小時、一個月 2～3 個週末加班；『做六休一＋on call』為轉述未採；職等 2X（碩士工程師為 3X）；年薪為網友推估非官方",
+          "note": "Dcard 多篇：徵才頁 MAE 起薪 38,700 起（需最多 12 個月訓練認證），新人價談薪空間小；年資約兩年自述『滿三年 150～180、五年約 200』、每月加班 10～20 小時、一個月 2～3 個週末加班；『做六休一＋on call』為轉述未採；職等 2X（碩士工程師為 3X）；年薪為網友推估非官方；未逐筆對應的舊彙整：base_month_k=[39.5, 58]",
           "sources": [
             {
               "site": "Dcard",
@@ -4064,7 +4086,8 @@
               "travel": "不用",
               "quote_free_note": "儲備 MAE 面試 2026-05",
               "date_confirmed": true,
-              "in_window": true
+              "in_window": true,
+              "date_note": null
             },
             {
               "site": "GoodJob",
@@ -4082,7 +4105,8 @@
               "travel": "不用",
               "quote_free_note": "MAE 面試 2025-02，月薪約 3.95 萬（範圍外）",
               "date_confirmed": true,
-              "in_window": false
+              "in_window": false,
+              "date_note": null
             },
             {
               "site": "GoodJob",
@@ -4100,7 +4124,8 @@
               "travel": "不用",
               "quote_free_note": "2 年月薪 5.8 萬、50 小時（範圍外）",
               "date_confirmed": true,
-              "in_window": false
+              "in_window": false,
+              "date_note": null
             },
             {
               "site": "Dcard",
@@ -4327,7 +4352,8 @@
               "travel": null,
               "quote_free_note": "儲備 MAE 培訓期分享，培訓最長約 12 個月通過才轉正",
               "date_confirmed": true,
-              "date_note": "依 docs/tc/dcard_id_calibration.md：編號 261577562 ≥ 259537767，晚於 2025-08-01；月份為校準表內插"
+              "date_note": "依 docs/tc/dcard_id_calibration.md：編號 261577562 ≥ 259537767，晚於 2025-08-01；月份為校準表內插",
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -4415,8 +4441,7 @@
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2025-07-31"
             }
           ],
-          "n_in_window": 1,
-          "n_stat": 11
+          "n_stat": 14
         },
         {
           "unit": "晶圓廠 Fab",
@@ -4427,11 +4452,11 @@
           "annual_months": null,
           "annual_total_wan": null,
           "weekly_hours": null,
-          "overtime": "經常",
-          "travel": "不用",
+          "overtime": null,
+          "travel": null,
           "confidence": "低",
           "role": "模組副工程師（MAE）",
-          "note": "同上 Dcard 年資自述推估：滿三年 150～180 萬、五年約 200 萬；『多久摸到 300 萬』討論串無一致答案",
+          "note": "同上 Dcard 年資自述推估：滿三年 150～180 萬、五年約 200 萬；『多久摸到 300 萬』討論串無一致答案；未逐筆對應的舊彙整：overtime=經常、travel=不用",
           "sources": [
             {
               "site": "Dcard",
@@ -4508,7 +4533,7 @@
               "date_note": "Andy 桌面版＋Chrome 親眼讀文章頁面發文日期"
             }
           ],
-          "n_in_window": 0
+          "n_stat": 1
         },
         {
           "unit": "晶圓廠 Fab",
@@ -4518,7 +4543,7 @@
           "bonus_months": null,
           "annual_months": null,
           "annual_total_wan": [
-            150,
+            80,
             150
           ],
           "weekly_hours": null,
@@ -4711,7 +4736,8 @@
               "travel": "不用",
               "quote_free_note": "徵才年薪 70 萬",
               "date_confirmed": true,
-              "in_window": false
+              "in_window": false,
+              "date_note": null
             },
             {
               "site": "PTT",
@@ -4729,7 +4755,8 @@
               "travel": "不用",
               "quote_free_note": "日夜班基本差約 1.4 萬",
               "date_confirmed": true,
-              "in_window": true
+              "in_window": true,
+              "date_note": null
             },
             {
               "site": "今周刊",
@@ -4747,7 +4774,8 @@
               "travel": "不用",
               "quote_free_note": "高職 6 年年收 150 萬；首年平均 75 萬",
               "date_confirmed": true,
-              "in_window": true
+              "in_window": true,
+              "date_note": null
             },
             {
               "site": "GoodJob",
@@ -4765,7 +4793,8 @@
               "travel": "不用",
               "quote_free_note": "技術員面試，平台頁年薪多在 60～80 萬",
               "date_confirmed": true,
-              "in_window": false
+              "in_window": false,
+              "date_note": null
             },
             {
               "site": "GoodJob",
@@ -4783,7 +4812,8 @@
               "travel": "不用",
               "quote_free_note": "技術員面試，摘要無金額",
               "date_confirmed": true,
-              "in_window": false
+              "in_window": false,
+              "date_note": null
             },
             {
               "site": "GoodJob",
@@ -4801,7 +4831,8 @@
               "travel": "不用",
               "quote_free_note": "技術員面試，摘要無金額",
               "date_confirmed": true,
-              "in_window": false
+              "in_window": false,
+              "date_note": null
             },
             {
               "site": "GoodJob",
@@ -4819,7 +4850,8 @@
               "travel": "不用",
               "quote_free_note": "2021 新竹錄取年薪約 80 萬",
               "date_confirmed": true,
-              "in_window": false
+              "in_window": false,
+              "date_note": null
             },
             {
               "site": "Dcard",
@@ -4876,7 +4908,8 @@
               "quote_free_note": "2026 技術員應徵過程分享（標題有年份）",
               "dcard_title_date": true,
               "date_confirmed": true,
-              "in_window": true
+              "in_window": true,
+              "date_note": null
             },
             {
               "site": "Dcard",
@@ -4895,7 +4928,8 @@
               "quote_free_note": "2026/07 面試錄取時程（標題有日期），36 歲轉職",
               "dcard_title_date": true,
               "date_confirmed": true,
-              "in_window": true
+              "in_window": true,
+              "date_note": null
             },
             {
               "site": "Dcard",
@@ -5098,16 +5132,13 @@
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-08-19"
             }
           ],
-          "n_in_window": 4
+          "n_stat": 9
         },
         {
           "unit": "晶圓廠 Fab",
           "degree": "不限",
           "years": "0-2",
-          "base_month_k": [
-            43,
-            43
-          ],
+          "base_month_k": null,
           "bonus_months": null,
           "annual_months": null,
           "annual_total_wan": null,
@@ -5116,7 +5147,7 @@
           "travel": "不用",
           "confidence": "低",
           "role": "技術員（DL／TE，夜班）",
-          "note": "徵才口徑夜班約 4.3 萬；網友夜班含津貼約 4.5 萬；PTT 自述日夜班基本差距約 1.4 萬（夜班津貼約 8 千＋輪班獎金）",
+          "note": "徵才口徑夜班約 4.3 萬；網友夜班含津貼約 4.5 萬；PTT 自述日夜班基本差距約 1.4 萬（夜班津貼約 8 千＋輪班獎金）；未逐筆對應的舊彙整：base_month_k=[43, 43]",
           "sources": [
             {
               "site": "Dcard",
@@ -5213,7 +5244,8 @@
               "travel": "不用",
               "quote_free_note": "日夜班基本差約 1.4 萬",
               "date_confirmed": true,
-              "in_window": true
+              "in_window": true,
+              "date_note": null
             },
             {
               "site": "PTT",
@@ -5231,7 +5263,8 @@
               "travel": "不用",
               "quote_free_note": "徵才夜班約 4.3 萬",
               "date_confirmed": true,
-              "in_window": false
+              "in_window": false,
+              "date_note": null
             },
             {
               "site": "Dcard",
@@ -5386,7 +5419,7 @@
               "in_window": false
             }
           ],
-          "n_in_window": 1
+          "n_stat": 1
         },
         {
           "unit": "晶圓廠 Fab",
@@ -5544,7 +5577,8 @@
               "travel": "不用",
               "quote_free_note": "2025 技術員薪資分享，靠分紅與加班",
               "date_confirmed": true,
-              "in_window": true
+              "in_window": true,
+              "date_note": null
             },
             {
               "site": "今周刊",
@@ -5562,7 +5596,8 @@
               "travel": "不用",
               "quote_free_note": "高職 6 年年收 150 萬；首年平均 75 萬",
               "date_confirmed": true,
-              "in_window": true
+              "in_window": true,
+              "date_note": null
             },
             {
               "site": "Dcard",
@@ -5618,7 +5653,8 @@
               "travel": "不用",
               "quote_free_note": "有加班第二年約 90 多萬；不加班約 5 年近百萬",
               "date_confirmed": true,
-              "in_window": true
+              "in_window": true,
+              "date_note": null
             },
             {
               "site": "Dcard",
@@ -5697,7 +5733,7 @@
               "in_window": false
             }
           ],
-          "n_in_window": 3
+          "n_stat": 5
         },
         {
           "unit": "海外廠",
@@ -5771,7 +5807,7 @@
               "in_window": false
             }
           ],
-          "n_in_window": 0
+          "n_stat": 1
         },
         {
           "unit": "廠務",
@@ -5857,7 +5893,8 @@
               "travel": "不用",
               "quote_free_note": "摘要無個人數字，僅作制度／口徑參考",
               "date_confirmed": true,
-              "in_window": true
+              "in_window": true,
+              "date_note": null
             },
             {
               "site": "Dcard",
@@ -6081,7 +6118,7 @@
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-08-07"
             }
           ],
-          "n_in_window": 1
+          "n_stat": 8
         },
         {
           "unit": "品保",
@@ -6134,7 +6171,8 @@
               "travel": "不用",
               "quote_free_note": "摘要無個人數字，僅作制度／口徑參考",
               "date_confirmed": true,
-              "in_window": true
+              "in_window": true,
+              "date_note": null
             },
             {
               "site": "Dcard",
@@ -6175,7 +6213,7 @@
               "in_window": false
             }
           ],
-          "n_in_window": 1
+          "n_stat": 2
         },
         {
           "unit": "研發 R&D",
@@ -6414,7 +6452,7 @@
               "in_window": true
             }
           ],
-          "n_in_window": 0
+          "n_stat": 5
         },
         {
           "unit": "管理處",
@@ -6467,7 +6505,8 @@
               "travel": "不用",
               "quote_free_note": "摘要無個人數字，僅作制度／口徑參考",
               "date_confirmed": true,
-              "in_window": true
+              "in_window": true,
+              "date_note": null
             },
             {
               "site": "Dcard",
@@ -6529,7 +6568,7 @@
               "date_note": "Andy 桌面版＋Chrome 親眼讀文章頁面發文日期"
             }
           ],
-          "n_in_window": 1
+          "n_stat": 2
         },
         {
           "unit": "矽光晶圓測試",
@@ -6648,16 +6687,52 @@
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-10-15"
             }
           ],
-          "sources": [],
+          "sources": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261688920",
+              "date": "2026-06"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/262078858",
+              "date": "2026-09"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/262014605",
+              "date": "2026-08"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261786747",
+              "date": "2026-07"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/262302523",
+              "date": "2026-10"
+            }
+          ],
           "confidence": "低",
           "n": 5,
           "annual_months": [
             33.5,
             33.5
           ],
-          "weekly_hours": 60,
+          "weekly_hours": [
+            60,
+            60
+          ],
           "overtime": "經常",
-          "travel": "不用"
+          "travel": "不用",
+          "years": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_total_wan": null,
+          "n_stat": 5,
+          "note": null,
+          "grade": null
         },
         {
           "unit": "其他",
@@ -6687,9 +6762,26 @@
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-09-05"
             }
           ],
-          "sources": [],
+          "sources": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/262087232",
+              "date": "2026-09"
+            }
+          ],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "years": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n_stat": 1,
+          "note": null,
+          "grade": null
         },
         {
           "unit": "APOD2",
@@ -6719,9 +6811,26 @@
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-09-09"
             }
           ],
-          "sources": [],
+          "sources": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261959968",
+              "date": "2026-09"
+            }
+          ],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "years": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n_stat": 1,
+          "note": null,
+          "grade": null
         },
         {
           "unit": "南科",
@@ -6752,9 +6861,26 @@
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-08-21"
             }
           ],
-          "sources": [],
+          "sources": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261914892",
+              "date": "2026-08"
+            }
+          ],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "years": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n_stat": 1,
+          "note": null,
+          "grade": null
         },
         {
           "unit": "竹科",
@@ -6784,9 +6910,26 @@
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-02-05"
             }
           ],
-          "sources": [],
+          "sources": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/260815975",
+              "date": "2026-02"
+            }
+          ],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "years": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n_stat": 1,
+          "note": null,
+          "grade": null
         },
         {
           "unit": "南科／高雄 / 成品倉儲",
@@ -6816,9 +6959,26 @@
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-10-05"
             }
           ],
-          "sources": [],
+          "sources": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/262243691",
+              "date": "2026-10"
+            }
+          ],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "years": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n_stat": 1,
+          "note": null,
+          "grade": null
         },
         {
           "unit": "DTP",
@@ -6848,12 +7008,26 @@
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-01-14"
             }
           ],
-          "sources": [],
+          "sources": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/260667647",
+              "date": "2026-01"
+            }
+          ],
           "confidence": "低",
           "n": 1,
           "bonus_months": null,
           "annual_months": null,
-          "base_month_k": null
+          "base_month_k": null,
+          "years": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n_stat": 1,
+          "note": null,
+          "grade": null
         },
         {
           "unit": "新竹",
@@ -6881,7 +7055,13 @@
               "in_window": true
             }
           ],
-          "sources": [],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/6a7c1f62b25d25ff8cb16e85",
+              "date": "2026-08"
+            }
+          ],
           "confidence": "低",
           "n": 1,
           "base_month_k": null,
@@ -6894,7 +7074,13 @@
           "weekly_hours": [
             40,
             40
-          ]
+          ],
+          "years": null,
+          "overtime": null,
+          "travel": null,
+          "n_stat": 1,
+          "note": null,
+          "grade": null
         },
         {
           "unit": "其他",
@@ -6924,9 +7110,26 @@
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2025-07-31"
             }
           ],
-          "sources": [],
+          "sources": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/259440833",
+              "date": "2025-07"
+            }
+          ],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "years": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n_stat": 0,
+          "note": null,
+          "grade": null
         }
       ],
       "mops": {
@@ -7229,7 +7432,8 @@
               "travel": "不用",
               "quote_free_note": "摘要無個人數字，僅作制度／口徑參考",
               "date_confirmed": true,
-              "in_window": true
+              "in_window": true,
+              "date_note": null
             },
             {
               "site": "比薪水",
@@ -7631,7 +7835,7 @@
               "in_window": false
             }
           ],
-          "n_in_window": 1
+          "n_stat": 10
         },
         {
           "unit": "晶圓廠 Fab",
@@ -7764,7 +7968,8 @@
               "travel": "不用",
               "quote_free_note": "摘要無個人數字，僅作制度／口徑參考",
               "date_confirmed": true,
-              "in_window": true
+              "in_window": true,
+              "date_note": null
             },
             {
               "site": "比薪水 salary.tw",
@@ -7782,7 +7987,8 @@
               "travel": "不用",
               "quote_free_note": "摘要無個人數字，僅作制度／口徑參考",
               "date_confirmed": true,
-              "in_window": true
+              "in_window": true,
+              "date_note": null
             },
             {
               "site": "GoodJob",
@@ -7800,7 +8006,8 @@
               "travel": "不用",
               "quote_free_note": "月薪約 7.7 萬、年薪約月薪×18",
               "date_confirmed": true,
-              "in_window": true
+              "in_window": true,
+              "date_note": null
             },
             {
               "site": "salary.tw",
@@ -7818,7 +8025,8 @@
               "travel": "不用",
               "quote_free_note": "摘要無個人數字，僅作制度／口徑參考",
               "date_confirmed": true,
-              "in_window": true
+              "in_window": true,
+              "date_note": null
             },
             {
               "site": "GoodJob",
@@ -7836,7 +8044,8 @@
               "travel": "不用",
               "quote_free_note": "設備未滿一年，底薪稍好但整包不比他廠多",
               "date_confirmed": true,
-              "in_window": true
+              "in_window": true,
+              "date_note": null
             },
             {
               "site": "GoodJob",
@@ -7854,7 +8063,8 @@
               "travel": "不用",
               "quote_free_note": "值班每週約 3 天、8～12 小時",
               "date_confirmed": true,
-              "in_window": false
+              "in_window": false,
+              "date_note": null
             },
             {
               "site": "Dcard",
@@ -7891,7 +8101,8 @@
               "travel": "不用",
               "quote_free_note": "設備碩士 7 年月薪 8.6 萬、含分紅全年 18～24 個月",
               "date_confirmed": true,
-              "in_window": false
+              "in_window": false,
+              "date_note": null
             },
             {
               "site": "Dcard",
@@ -8084,7 +8295,7 @@
               "in_window": false
             }
           ],
-          "n_in_window": 5
+          "n_stat": 5
         },
         {
           "unit": "研發 R&D",
@@ -8172,7 +8383,8 @@
               "travel": "偶爾",
               "quote_free_note": "摘要無個人數字，僅作制度／口徑參考",
               "date_confirmed": true,
-              "in_window": true
+              "in_window": true,
+              "date_note": null
             },
             {
               "site": "GoodJob",
@@ -8190,7 +8402,8 @@
               "travel": "偶爾",
               "quote_free_note": "良率提升工程師臺南月薪 6.7 萬、52 小時",
               "date_confirmed": true,
-              "in_window": true
+              "in_window": true,
+              "date_note": null
             },
             {
               "site": "Dcard",
@@ -8326,21 +8539,27 @@
               "in_window": false
             }
           ],
-          "n_in_window": 2
+          "n_stat": 5
         },
         {
           "unit": "晶圓廠 Fab",
           "role": "製程整合工程師",
           "degree": "碩士",
           "years": "0-2",
-          "base_month_k": null,
+          "base_month_k": [
+            67,
+            67
+          ],
           "bonus_months": null,
           "annual_months": null,
           "annual_total_wan": [
             150,
             150
           ],
-          "weekly_hours": null,
+          "weekly_hours": [
+            60,
+            60
+          ],
           "overtime": "經常",
           "travel": "不用",
           "n": 7,
@@ -8392,16 +8611,17 @@
               "unit_detail": "晶圓廠 Fab",
               "years": "0-2",
               "degree": "碩士",
-              "base_k": null,
+              "base_k": 67,
               "bonus_months": null,
               "annual_months": null,
               "annual_wan": null,
-              "weekly_hours": null,
+              "weekly_hours": 60,
               "overtime": "經常",
               "travel": "不用",
               "quote_free_note": "摘要無個人數字，僅作制度／口徑參考",
               "date_confirmed": true,
-              "in_window": true
+              "in_window": true,
+              "date_note": null
             },
             {
               "site": "Dcard",
@@ -8518,7 +8738,7 @@
               "in_window": true
             }
           ],
-          "n_in_window": 1
+          "n_stat": 5
         },
         {
           "unit": "其他",
@@ -8548,9 +8768,26 @@
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-10-09"
             }
           ],
-          "sources": [],
+          "sources": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/262102291",
+              "date": "2026-10"
+            }
+          ],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "years": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n_stat": 1,
+          "note": null,
+          "grade": null
         },
         {
           "unit": "新竹",
@@ -8580,9 +8817,26 @@
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-08-23"
             }
           ],
-          "sources": [],
+          "sources": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/262012814",
+              "date": "2026-08"
+            }
+          ],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "years": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n_stat": 1,
+          "note": null,
+          "grade": null
         }
       ],
       "mops": {
@@ -8805,7 +9059,8 @@
               "travel": "不用",
               "quote_free_note": "摘要無個人數字，僅作制度／口徑參考",
               "date_confirmed": true,
-              "in_window": true
+              "in_window": true,
+              "date_note": null
             },
             {
               "site": "比薪水",
@@ -8823,7 +9078,8 @@
               "travel": "不用",
               "quote_free_note": "摘要無個人數字，僅作制度／口徑參考",
               "date_confirmed": true,
-              "in_window": true
+              "in_window": true,
+              "date_note": null
             },
             {
               "site": "GoodJob",
@@ -8841,7 +9097,8 @@
               "travel": "不用",
               "quote_free_note": "摘要無個人數字，僅作制度／口徑參考",
               "date_confirmed": true,
-              "in_window": true
+              "in_window": true,
+              "date_note": null
             },
             {
               "site": "Dcard",
@@ -8878,7 +9135,8 @@
               "travel": "不用",
               "quote_free_note": "摘要無個人數字，僅作制度／口徑參考",
               "date_confirmed": true,
-              "in_window": true
+              "in_window": true,
+              "date_note": null
             },
             {
               "site": "Dcard",
@@ -9185,14 +9443,17 @@
               "in_window": false
             }
           ],
-          "n_in_window": 4
+          "n_stat": 7
         },
         {
           "unit": "晶圓廠 Fab",
           "role": "製程整合工程師",
           "degree": "碩士",
           "years": "0-2",
-          "base_month_k": null,
+          "base_month_k": [
+            58,
+            58
+          ],
           "bonus_months": null,
           "annual_months": [
             16,
@@ -9274,7 +9535,7 @@
               "unit_detail": "晶圓廠 Fab",
               "years": "0-2",
               "degree": "碩士",
-              "base_k": null,
+              "base_k": 58,
               "bonus_months": null,
               "annual_months": null,
               "annual_wan": null,
@@ -9283,7 +9544,8 @@
               "travel": "不用",
               "quote_free_note": "摘要無個人數字，僅作制度／口徑參考",
               "date_confirmed": true,
-              "in_window": true
+              "in_window": true,
+              "date_note": null
             },
             {
               "site": "GoodJob",
@@ -9301,7 +9563,8 @@
               "travel": "不用",
               "quote_free_note": "摘要無個人數字，僅作制度／口徑參考",
               "date_confirmed": true,
-              "in_window": true
+              "in_window": true,
+              "date_note": null
             },
             {
               "site": "Dcard",
@@ -9560,17 +9823,14 @@
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-09-23"
             }
           ],
-          "n_in_window": 2
+          "n_stat": 9
         },
         {
           "unit": "晶圓廠 Fab",
           "role": "設備工程師",
           "degree": "碩士",
           "years": "0-6",
-          "base_month_k": [
-            108,
-            108
-          ],
+          "base_month_k": null,
           "bonus_months": null,
           "annual_months": null,
           "annual_total_wan": [
@@ -9584,7 +9844,7 @@
           "overtime": "偶爾～經常（輪班／值班津貼）",
           "travel": "不用",
           "n": 9,
-          "note": "僅有 2018 年設備助理工程師 3.8 萬（太舊不採）；GoodJob 多則回報公司保障 16 個月（含年終與節金），另 7 月依營運發分紅、4 月調薪；分紅月數未見具體數字（2026-10 查 GoodJob、媒體）；2026-10-25 補：GoodJob 2026-03 生產設備工程師 6 年年薪約 150 萬、55 小時／週；設備助理工程師面試文（2026-07）",
+          "note": "僅有 2018 年設備助理工程師 3.8 萬（太舊不採）；GoodJob 多則回報公司保障 16 個月（含年終與節金），另 7 月依營運發分紅、4 月調薪；分紅月數未見具體數字（2026-10 查 GoodJob、媒體）；2026-10-25 補：GoodJob 2026-03 生產設備工程師 6 年年薪約 150 萬、55 小時／週；設備助理工程師面試文（2026-07）；未逐筆對應的舊彙整：base_month_k=[108, 108]",
           "sources": [
             {
               "site": "GoodJob",
@@ -9670,7 +9930,8 @@
               "travel": "不用",
               "quote_free_note": "摘要無個人數字，僅作制度／口徑參考",
               "date_confirmed": true,
-              "in_window": true
+              "in_window": true,
+              "date_note": null
             },
             {
               "site": "GoodJob",
@@ -9688,7 +9949,8 @@
               "travel": "不用",
               "quote_free_note": "6 年年薪約 150 萬",
               "date_confirmed": true,
-              "in_window": true
+              "in_window": true,
+              "date_note": null
             },
             {
               "site": "GoodJob",
@@ -9706,7 +9968,8 @@
               "travel": "不用",
               "quote_free_note": "摘要無個人數字，僅作制度／口徑參考",
               "date_confirmed": true,
-              "in_window": true
+              "in_window": true,
+              "date_note": null
             },
             {
               "site": "GoodJob",
@@ -9724,7 +9987,8 @@
               "travel": "不用",
               "quote_free_note": "資深設備 6 年月薪 10.8 萬、不推薦",
               "date_confirmed": true,
-              "in_window": false
+              "in_window": false,
+              "date_note": null
             },
             {
               "site": "Dcard",
@@ -9803,7 +10067,7 @@
               "in_window": false
             }
           ],
-          "n_in_window": 3
+          "n_stat": 4
         },
         {
           "unit": "研發 R&D",
@@ -9901,7 +10165,8 @@
               "travel": null,
               "quote_free_note": "摘要無個人數字，僅作制度／口徑參考",
               "date_confirmed": true,
-              "in_window": true
+              "in_window": true,
+              "date_note": null
             },
             {
               "site": "GoodJob",
@@ -9919,7 +10184,8 @@
               "travel": null,
               "quote_free_note": "摘要無個人數字，僅作制度／口徑參考",
               "date_confirmed": true,
-              "in_window": true
+              "in_window": true,
+              "date_note": null
             },
             {
               "site": "GoodJob",
@@ -9937,7 +10203,8 @@
               "travel": null,
               "quote_free_note": "技術開發新竹縣月薪約 5.7 萬、40 小時",
               "date_confirmed": true,
-              "in_window": true
+              "in_window": true,
+              "date_note": null
             },
             {
               "site": "PTT",
@@ -9955,7 +10222,8 @@
               "travel": null,
               "quote_free_note": "二廠技術開發 offer 約 N、簽約金 10 萬綁兩年",
               "date_confirmed": true,
-              "in_window": false
+              "in_window": false,
+              "date_note": null
             },
             {
               "site": "Dcard",
@@ -10091,7 +10359,7 @@
               "in_window": false
             }
           ],
-          "n_in_window": 3
+          "n_stat": 4
         }
       ],
       "mops": {
@@ -10169,7 +10437,10 @@
           "role": "製程工程師",
           "degree": "碩士",
           "years": "0-2",
-          "base_month_k": null,
+          "base_month_k": [
+            60,
+            60
+          ],
           "bonus_months": null,
           "annual_months": null,
           "annual_total_wan": null,
@@ -10260,7 +10531,7 @@
               "unit_detail": "晶圓廠 Fab",
               "years": "0-2",
               "degree": "碩士",
-              "base_k": null,
+              "base_k": 60,
               "bonus_months": null,
               "annual_months": null,
               "annual_wan": null,
@@ -10269,7 +10540,8 @@
               "travel": "不用",
               "quote_free_note": "摘要無個人數字，僅作制度／口徑參考",
               "date_confirmed": true,
-              "in_window": true
+              "in_window": true,
+              "date_note": null
             },
             {
               "site": "Dcard",
@@ -10344,7 +10616,8 @@
               "travel": "不用",
               "quote_free_note": "生產技術／製程，主任工程師職稱，摘要無金額",
               "date_confirmed": true,
-              "in_window": true
+              "in_window": true,
+              "date_note": null
             },
             {
               "site": "Dcard",
@@ -10518,7 +10791,7 @@
               "in_window": true
             }
           ],
-          "n_in_window": 2
+          "n_stat": 4
         },
         {
           "unit": "晶圓廠 Fab",
@@ -10529,8 +10802,14 @@
             70,
             74.9
           ],
-          "bonus_months": null,
-          "annual_months": null,
+          "bonus_months": [
+            0,
+            0
+          ],
+          "annual_months": [
+            14,
+            14
+          ],
           "annual_total_wan": null,
           "weekly_hours": [
             40,
@@ -10603,15 +10882,16 @@
               "years": "0-2",
               "degree": "碩士",
               "base_k": null,
-              "bonus_months": null,
-              "annual_months": null,
+              "bonus_months": 0,
+              "annual_months": 14,
               "annual_wan": null,
               "weekly_hours": null,
               "overtime": "很少",
               "travel": "不用",
               "quote_free_note": "摘要無個人數字，僅作制度／口徑參考",
               "date_confirmed": true,
-              "in_window": true
+              "in_window": true,
+              "date_note": null
             },
             {
               "site": "比薪水",
@@ -10629,7 +10909,8 @@
               "travel": "不用",
               "quote_free_note": "摘要無個人數字，僅作制度／口徑參考",
               "date_confirmed": true,
-              "in_window": true
+              "in_window": true,
+              "date_note": null
             },
             {
               "site": "GoodJob",
@@ -10647,7 +10928,8 @@
               "travel": "不用",
               "quote_free_note": "4 年月薪 7.49 萬",
               "date_confirmed": true,
-              "in_window": true
+              "in_window": true,
+              "date_note": null
             },
             {
               "site": "Dcard",
@@ -10684,7 +10966,8 @@
               "travel": "不用",
               "quote_free_note": "PSMC 整合月薪約 7 萬（開發單位）",
               "date_confirmed": true,
-              "in_window": true
+              "in_window": true,
+              "date_note": null
             },
             {
               "site": "Dcard",
@@ -10823,7 +11106,7 @@
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-05-16"
             }
           ],
-          "n_in_window": 4
+          "n_stat": 6
         },
         {
           "unit": "晶圓廠 Fab",
@@ -10839,15 +11122,12 @@
             14,
             14
           ],
-          "annual_total_wan": [
-            80,
-            80
-          ],
-          "weekly_hours": 48,
+          "annual_total_wan": null,
+          "weekly_hours": null,
           "overtime": "偶爾",
           "travel": "不用",
           "n": 12,
-          "note": "資料為 2025 年，略早於期間起點，僅供參考；力積電近一年虧損，分紅月數依同公司製程／整合職回報為 0；撤回：bonus_months 原為沿用／推算／暫填值，無直接證據，已改回原值；2026-10-25 補：GoodJob 苗栗設備年薪約 80 萬、48 小時／週、銅鑼補助 1 萬（2025-01）；Dcard：竹科設備約 5 萬×保 14＋季獎金、爐管輪班 51,000×14＋分紅（做二休二 12 小時）、銅鑼洗淨設備 N+4 千（含廠區津貼）",
+          "note": "資料為 2025 年，略早於期間起點，僅供參考；力積電近一年虧損，分紅月數依同公司製程／整合職回報為 0；撤回：bonus_months 原為沿用／推算／暫填值，無直接證據，已改回原值；2026-10-25 補：GoodJob 苗栗設備年薪約 80 萬、48 小時／週、銅鑼補助 1 萬（2025-01）；Dcard：竹科設備約 5 萬×保 14＋季獎金、爐管輪班 51,000×14＋分紅（做二休二 12 小時）、銅鑼洗淨設備 N+4 千（含廠區津貼）；未逐筆對應的舊彙整：annual_total_wan=[80, 80]、weekly_hours=48",
           "sources": [
             {
               "site": "GoodJob",
@@ -10938,7 +11218,8 @@
               "travel": "不用",
               "quote_free_note": "年薪約 80 萬（範圍外）",
               "date_confirmed": true,
-              "in_window": false
+              "in_window": false,
+              "date_note": null
             },
             {
               "site": "Dcard",
@@ -11137,7 +11418,7 @@
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-09-08"
             }
           ],
-          "n_in_window": 0
+          "n_stat": 5
         },
         {
           "unit": "研發 R&D",
@@ -11155,7 +11436,7 @@
             40,
             40
           ],
-          "overtime": null,
+          "overtime": "幾乎不",
           "travel": "不用",
           "n": 10,
           "note": "GoodJob 面試回報月薪 6.2 萬（面試時間 2023-09，發文 2026-04，時效偏舊）；Dcard／PTT 查無；力積電近一年虧損，分紅月數依同公司製程／整合職回報為 0；撤回：bonus_months、overtime 原為沿用／推算／暫填值，無直接證據，已改回原值；2026-10-25 補：GoodJob 2026-09 苗栗技術開發 1 年年薪約 100 萬、基本不加班；Dcard 碩士研發 offer（N-4 千）×14",
@@ -11230,7 +11511,8 @@
               "travel": "不用",
               "quote_free_note": "摘要無個人數字，僅作制度／口徑參考",
               "date_confirmed": true,
-              "in_window": true
+              "in_window": true,
+              "date_note": null
             },
             {
               "site": "面試趣",
@@ -11263,11 +11545,12 @@
               "annual_months": null,
               "annual_wan": 100,
               "weekly_hours": 40,
-              "overtime": null,
+              "overtime": "幾乎不",
               "travel": "不用",
               "quote_free_note": "1 年年薪約 100 萬、不加班",
               "date_confirmed": true,
-              "in_window": true
+              "in_window": true,
+              "date_note": null
             },
             {
               "site": "Dcard",
@@ -11304,7 +11587,8 @@
               "travel": "不用",
               "quote_free_note": "技術開發面試 2026-08，摘要無金額",
               "date_confirmed": true,
-              "in_window": true
+              "in_window": true,
+              "date_note": null
             },
             {
               "site": "Dcard",
@@ -11402,7 +11686,7 @@
               "in_window": false
             }
           ],
-          "n_in_window": 3
+          "n_stat": 4
         },
         {
           "unit": "新竹 / 元件開發",
@@ -11432,13 +11716,29 @@
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-08-24"
             }
           ],
-          "sources": [],
+          "sources": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/262014605",
+              "date": "2026-08"
+            }
+          ],
           "confidence": "低",
           "n": 1,
           "annual_months": [
             14,
             14
-          ]
+          ],
+          "years": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n_stat": 1,
+          "note": null,
+          "grade": null
         },
         {
           "unit": "其他",
@@ -11468,9 +11768,26 @@
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-08-25"
             }
           ],
-          "sources": [],
+          "sources": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/262022557",
+              "date": "2026-08"
+            }
+          ],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "years": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n_stat": 1,
+          "note": null,
+          "grade": null
         },
         {
           "unit": "苗栗銅鑼",
@@ -11500,10 +11817,26 @@
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2025-11-06"
             }
           ],
-          "sources": [],
+          "sources": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/260197379",
+              "date": "2025-11"
+            }
+          ],
           "confidence": "低",
           "n": 1,
-          "overtime": "幾乎不"
+          "overtime": "幾乎不",
+          "years": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "travel": null,
+          "n_stat": 1,
+          "note": null,
+          "grade": null
         }
       ],
       "mops": {
@@ -11541,6 +11874,122 @@
           "rule": "查不到",
           "months": null,
           "sources": []
+        }
+      ]
+    },
+    {
+      "name": "穩懋",
+      "code": "3105",
+      "heat": "Dcard 熱度：低",
+      "benefits": "本薪＋交通津貼＋伙食津貼（GoodJob 面試回報）",
+      "stock_plan": null,
+      "bonus_timing": "員工分紅通常 8 月發（整理文說法）",
+      "culture": null,
+      "interview": null,
+      "mops": null,
+      "grade_system": null,
+      "bonus_structure": null,
+      "roles": [
+        {
+          "unit": "其他",
+          "role": "品質稽核工程師",
+          "degree": null,
+          "years": null,
+          "note": "化合物半導體代工；桃園華亞廠",
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/穩懋半導體股份有限公司/work-experiences",
+              "date": "2026-08"
+            }
+          ],
+          "confidence": "低",
+          "grade": null,
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/穩懋半導體股份有限公司/work-experiences",
+              "date": "2026-08",
+              "unit_detail": "桃園華亞廠",
+              "years": "0",
+              "degree": null,
+              "base_k": 52.5,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "不到 1 年，月薪 52.5K",
+              "date_confirmed": true,
+              "date_note": "GoodJob 標 2026-08",
+              "in_window": true
+            }
+          ],
+          "base_month_k": [
+            52.5,
+            52.5
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n": 1,
+          "n_stat": 1
+        },
+        {
+          "unit": "其他",
+          "role": "磊晶製程開發工程師",
+          "degree": null,
+          "years": null,
+          "note": "GoodJob 面試經驗；本薪＋交通＋伙食津貼，基本保 14 個月，依營運有分紅",
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/穩懋半導體股份有限公司/interview-experiences",
+              "date": "2026"
+            }
+          ],
+          "confidence": "低",
+          "grade": null,
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/穩懋半導體股份有限公司/interview-experiences",
+              "date": "2026",
+              "unit_detail": null,
+              "years": "0",
+              "degree": null,
+              "base_k": 55,
+              "bonus_months": null,
+              "annual_months": 14,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "面試回報月薪 5.5 萬，基本保 14 個月",
+              "date_confirmed": true,
+              "date_note": "WebSearch 摘要標 2026 年面試紀錄（整年在期間內）",
+              "in_window": true
+            }
+          ],
+          "base_month_k": [
+            55,
+            55
+          ],
+          "bonus_months": null,
+          "annual_months": [
+            14,
+            14
+          ],
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n": 1,
+          "n_stat": 1
         }
       ]
     }

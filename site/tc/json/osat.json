@@ -1,7 +1,7 @@
 {
   "industry": "osat",
   "name": "封測",
-  "updated": "2026-10-25",
+  "updated": "2026-10-26",
   "window": "2025-08-01～2026-10-25",
   "companies": [
     {
@@ -30,16 +30,16 @@
           ],
           "annual_total_wan": [
             75,
-            75
+            80
           ],
           "weekly_hours": [
-            45,
-            55
+            57,
+            57
           ],
           "overtime": "經常",
-          "travel": "不用",
-          "n": 23,
-          "note": "Dcard 封測整理文（未註日期）碩士 4.6～6.3 萬；GoodJob 2026-06 中壢 1 年資深工程師 8 萬（職等高已排除）、2026-07 高雄 G5 5.1 萬；第二輪：Dcard 製程 offer 多為月薪×14＋績效分紅＋每月小白單（新人約 1 年後才有）；GoodJob 2026-08 高雄碩士 2 年年薪約 75 萬；評價稱碩畢底薪偏低、靠加班費；base_month_k、bonus_months、annual_months 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples；未逐筆對應的舊彙整：base_month_k=[46, 63]；未逐筆對應的舊彙整：bonus_months=[2, 4]；未逐筆對應的舊彙整：annual_months=[14, 16]",
+          "travel": null,
+          "n": 24,
+          "note": "Dcard 封測整理文（未註日期）碩士 4.6～6.3 萬；GoodJob 2026-06 中壢 1 年資深工程師 8 萬（職等高已排除）、2026-07 高雄 G5 5.1 萬；第二輪：Dcard 製程 offer 多為月薪×14＋績效分紅＋每月小白單（新人約 1 年後才有）；GoodJob 2026-08 高雄碩士 2 年年薪約 75 萬；評價稱碩畢底薪偏低、靠加班費；base_month_k、bonus_months、annual_months 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples；未逐筆對應的舊彙整：base_month_k=[46, 63]；未逐筆對應的舊彙整：bonus_months=[2, 4]；未逐筆對應的舊彙整：annual_months=[14, 16]；未逐筆對應的舊彙整：travel=不用",
           "sources": [
             {
               "site": "Dcard",
@@ -96,16 +96,17 @@
               "travel": null,
               "quote_free_note": null,
               "date_confirmed": false,
-              "date_note": "日期為推估或僅年份，不進統計"
+              "date_note": "日期為推估或僅年份，不進統計",
+              "in_window": true
             },
             {
               "site": "GoodJob",
               "url": "https://www.goodjob.life/companies/日月光半導體製造股份有限公司（中壢廠）/work-experiences/薪資福利",
               "date": "2026-06",
               "unit_detail": null,
-              "years": "0-2",
+              "years": "1",
               "degree": "碩士",
-              "base_k": null,
+              "base_k": 80,
               "bonus_months": null,
               "annual_months": null,
               "annual_wan": null,
@@ -114,7 +115,8 @@
               "travel": null,
               "quote_free_note": null,
               "date_confirmed": false,
-              "date_note": "日期為推估或僅年份，不進統計"
+              "date_note": "日期為推估或僅年份，不進統計",
+              "in_window": true
             },
             {
               "site": "GoodJob",
@@ -123,7 +125,7 @@
               "unit_detail": null,
               "years": "0-2",
               "degree": "碩士",
-              "base_k": null,
+              "base_k": 51,
               "bonus_months": null,
               "annual_months": null,
               "annual_wan": null,
@@ -132,7 +134,8 @@
               "travel": null,
               "quote_free_note": null,
               "date_confirmed": false,
-              "date_note": "日期為推估或僅年份，不進統計"
+              "date_note": "日期為推估或僅年份，不進統計",
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -188,7 +191,8 @@
               "travel": null,
               "quote_free_note": null,
               "date_confirmed": true,
-              "date_note": "PTT 文章代碼即發文時間（Unix 時間）"
+              "date_note": "PTT 文章代碼即發文時間（Unix 時間）",
+              "in_window": true
             },
             {
               "site": "GoodJob",
@@ -206,7 +210,8 @@
               "travel": null,
               "quote_free_note": "高雄碩士 2 年年薪約 75 萬",
               "date_confirmed": true,
-              "date_note": "GoodJob 標題附分享日期"
+              "date_note": "GoodJob 標題附分享日期",
+              "in_window": true
             },
             {
               "site": "GoodJob",
@@ -556,9 +561,28 @@
               "quote_free_note": "年 20 個月以上是請內部朋友保守估計；不含加班費",
               "in_window": true,
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-10-21"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/262310661",
+              "date": "2026-10",
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 60,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 80,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "「南神教」＝日月光（Andy 確認）；製程職缺，底薪含津貼約 60K、年薪約 80 萬",
+              "date_confirmed": true,
+              "date_note": "依 docs/tc/dcard_id_calibration.md 文章編號≥259537767 確認晚於 2025-08-01；同批 262310688 為 2026-10；WebSearch 兩組關鍵字撈不到本篇，數字依 Andy 提供",
+              "in_window": true
             }
           ],
-          "n_stat": 2
+          "n_stat": 21
         },
         {
           "unit": "封裝廠",
@@ -566,8 +590,8 @@
           "degree": "碩士",
           "years": "0-2",
           "base_month_k": [
-            43,
-            50
+            36.5,
+            51
           ],
           "bonus_months": null,
           "annual_months": [
@@ -576,10 +600,10 @@
           ],
           "annual_total_wan": null,
           "weekly_hours": null,
-          "overtime": "經常（需輪班）",
-          "travel": "不用",
+          "overtime": "輪班",
+          "travel": null,
           "n": 8,
-          "note": "查無可用數字；查過關鍵字：日月光 京元電子 碩士 薪水 2026／日月光 碩士 製程工程師 月薪 2026 GoodJob 分紅 月份；Yahoo 徵才報導：設備工程師需輪班、另加輪班津貼，頂大碩畢起薪約 5 萬；比薪水 2026-05 中壢回報日均工時 10～12 小時；分紅與年薪月數沿用同公司製程職區間；撤回：bonus_months、annual_months 原為沿用／推算／暫填值，無直接證據，已改回原值；第二輪：PTT 2026-03 中壢設備 12 小時二休二，含加班日班 4～4.6 萬、夜班 5～7 萬；GoodJob 2026-09 高雄錄取月薪 5 萬（底薪＋津貼約 4 萬、夜班津貼約 1.5 萬、每月變動獎金 <1 萬）；保 14 個月＋年中發前一年分紅（GoodJob 評價）；學歷多為學士可進；annual_months 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples；未逐筆對應的舊彙整：annual_months=[14, 14]",
+          "note": "查無可用數字；查過關鍵字：日月光 京元電子 碩士 薪水 2026／日月光 碩士 製程工程師 月薪 2026 GoodJob 分紅 月份；Yahoo 徵才報導：設備工程師需輪班、另加輪班津貼，頂大碩畢起薪約 5 萬；比薪水 2026-05 中壢回報日均工時 10～12 小時；分紅與年薪月數沿用同公司製程職區間；撤回：bonus_months、annual_months 原為沿用／推算／暫填值，無直接證據，已改回原值；第二輪：PTT 2026-03 中壢設備 12 小時二休二，含加班日班 4～4.6 萬、夜班 5～7 萬；GoodJob 2026-09 高雄錄取月薪 5 萬（底薪＋津貼約 4 萬、夜班津貼約 1.5 萬、每月變動獎金 <1 萬）；保 14 個月＋年中發前一年分紅（GoodJob 評價）；學歷多為學士可進；annual_months 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples；未逐筆對應的舊彙整：annual_months=[14, 14]；未逐筆對應的舊彙整：travel=不用",
           "sources": [
             {
               "site": "GoodJob",
@@ -626,7 +650,8 @@
               "travel": null,
               "quote_free_note": null,
               "date_confirmed": false,
-              "date_note": "日期為推估或僅年份，不進統計"
+              "date_note": "日期為推估或僅年份，不進統計",
+              "in_window": true
             },
             {
               "site": "Yahoo 股市／比薪水",
@@ -644,7 +669,8 @@
               "travel": null,
               "quote_free_note": null,
               "date_confirmed": false,
-              "date_note": "日期為推估或僅年份，不進統計"
+              "date_note": "日期為推估或僅年份，不進統計",
+              "in_window": true
             },
             {
               "site": "PTT",
@@ -662,7 +688,8 @@
               "travel": null,
               "quote_free_note": "中壢設備 12 小時二休二，日班含加班 4～4.6 萬",
               "date_confirmed": true,
-              "date_note": "PTT 文章代碼即發文時間（Unix 時間）"
+              "date_note": "PTT 文章代碼即發文時間（Unix 時間）",
+              "in_window": true
             },
             {
               "site": "GoodJob",
@@ -680,7 +707,8 @@
               "travel": null,
               "quote_free_note": "設備職評價",
               "date_confirmed": true,
-              "date_note": "GoodJob 標題附分享日期"
+              "date_note": "GoodJob 標題附分享日期",
+              "in_window": true
             },
             {
               "site": "GoodJob",
@@ -698,7 +726,8 @@
               "travel": null,
               "quote_free_note": "高雄錄取月薪 5 萬（含津貼）",
               "date_confirmed": true,
-              "date_note": "GoodJob 標題附分享日期"
+              "date_note": "GoodJob 標題附分享日期",
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -767,7 +796,7 @@
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2025-12-22"
             }
           ],
-          "n_stat": 3,
+          "n_stat": 6,
           "degree_diff": "樣本中位數：學士底薪約 40.75K、碩士約 46.5K（差約 5.75K；學士 2 筆、碩士 2 筆）"
         },
         {
@@ -861,7 +890,28 @@
               "in_window": true
             }
           ],
-          "sources": [],
+          "sources": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/262256627",
+              "date": "2026-10"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/260802181",
+              "date": "2026-02"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/259690173",
+              "date": "2025-09"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/6a5e461f40ce2ed7e9eb2533",
+              "date": "2026-07"
+            }
+          ],
           "confidence": "低",
           "n": 4,
           "annual_months": [
@@ -877,7 +927,13 @@
             45
           ],
           "bonus_months": null,
-          "weekly_hours": null
+          "weekly_hours": null,
+          "years": null,
+          "overtime": null,
+          "travel": null,
+          "n_stat": 4,
+          "note": null,
+          "grade": null
         },
         {
           "unit": "高雄",
@@ -907,13 +963,29 @@
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-07-01"
             }
           ],
-          "sources": [],
+          "sources": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261758851",
+              "date": "2026-07"
+            }
+          ],
           "confidence": "低",
           "n": 1,
           "annual_months": [
             18,
             18
-          ]
+          ],
+          "years": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n_stat": 1,
+          "note": null,
+          "grade": null
         },
         {
           "unit": "其他",
@@ -943,9 +1015,26 @@
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-06-10"
             }
           ],
-          "sources": [],
+          "sources": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261635434",
+              "date": "2026-06"
+            }
+          ],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "years": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n_stat": 1,
+          "note": null,
+          "grade": null
         },
         {
           "unit": "Chiplet／CPO 產品",
@@ -1020,15 +1109,41 @@
             }
           ],
           "n": 3,
-          "sources": [],
+          "sources": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261997587",
+              "date": "2026-08"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/262022557",
+              "date": "2026-08"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261518461",
+              "date": "2026-05"
+            }
+          ],
           "confidence": "低",
           "note": "2026-10-26 Andy 確認代稱後加入",
           "annual_months": [
             14,
             14
           ],
-          "weekly_hours": 45,
-          "overtime": "偶爾"
+          "weekly_hours": [
+            45,
+            45
+          ],
+          "overtime": "偶爾",
+          "years": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_total_wan": null,
+          "travel": null,
+          "n_stat": 3,
+          "grade": null
         },
         {
           "unit": "其他",
@@ -1058,9 +1173,26 @@
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-03-29"
             }
           ],
-          "sources": [],
+          "sources": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/260886182",
+              "date": "2026-03"
+            }
+          ],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "years": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n_stat": 1,
+          "note": null,
+          "grade": null
         },
         {
           "unit": "其他",
@@ -1090,13 +1222,29 @@
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-10-17"
             }
           ],
-          "sources": [],
+          "sources": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/262297316",
+              "date": "2026-10"
+            }
+          ],
           "confidence": "低",
           "n": 1,
           "annual_total_wan": [
             105,
             105
-          ]
+          ],
+          "years": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n_stat": 1,
+          "note": null,
+          "grade": null
         },
         {
           "unit": "高雄 / Bump",
@@ -1126,9 +1274,26 @@
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-07-09"
             }
           ],
-          "sources": [],
+          "sources": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261798082",
+              "date": "2026-07"
+            }
+          ],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "years": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n_stat": 1,
+          "note": null,
+          "grade": null
         },
         {
           "unit": "其他",
@@ -1180,10 +1345,31 @@
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-05-24"
             }
           ],
-          "sources": [],
+          "sources": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261734128",
+              "date": "2026-06"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261516348",
+              "date": "2026-05"
+            }
+          ],
           "confidence": "低",
           "n": 2,
-          "overtime": "經常"
+          "overtime": "經常",
+          "years": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "travel": null,
+          "n_stat": 2,
+          "note": null,
+          "grade": null
         },
         {
           "unit": "高雄 / CRD",
@@ -1213,9 +1399,26 @@
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-06-12"
             }
           ],
-          "sources": [],
+          "sources": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261647868",
+              "date": "2026-06"
+            }
+          ],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "years": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n_stat": 1,
+          "note": null,
+          "grade": null
         },
         {
           "unit": "其他",
@@ -1245,13 +1448,29 @@
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-06-09"
             }
           ],
-          "sources": [],
+          "sources": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261635364",
+              "date": "2026-06"
+            }
+          ],
           "confidence": "低",
           "n": 1,
           "base_month_k": [
             40,
             40
-          ]
+          ],
+          "years": null,
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n_stat": 1,
+          "note": null,
+          "grade": null
         },
         {
           "unit": "桃園中壢",
@@ -1281,13 +1500,29 @@
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-05-26"
             }
           ],
-          "sources": [],
+          "sources": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261549592",
+              "date": "2026-05"
+            }
+          ],
           "confidence": "低",
           "n": 1,
           "annual_months": [
             14,
             14
-          ]
+          ],
+          "years": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n_stat": 1,
+          "note": null,
+          "grade": null
         },
         {
           "unit": "高雄楠梓 / A3",
@@ -1317,9 +1552,26 @@
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-05-18"
             }
           ],
-          "sources": [],
+          "sources": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261507386",
+              "date": "2026-05"
+            }
+          ],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "years": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n_stat": 1,
+          "note": null,
+          "grade": null
         },
         {
           "unit": "高雄",
@@ -1349,10 +1601,26 @@
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-05-16"
             }
           ],
-          "sources": [],
+          "sources": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261491674",
+              "date": "2026-05"
+            }
+          ],
           "confidence": "低",
           "n": 1,
-          "overtime": "幾乎不"
+          "overtime": "幾乎不",
+          "years": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "travel": null,
+          "n_stat": 1,
+          "note": null,
+          "grade": null
         },
         {
           "unit": "其他",
@@ -1382,15 +1650,32 @@
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-03-12"
             }
           ],
-          "sources": [],
+          "sources": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261069457",
+              "date": "2026-03"
+            }
+          ],
           "confidence": "低",
           "n": 1,
           "annual_months": [
             17,
             17
           ],
-          "weekly_hours": 45,
-          "overtime": "偶爾"
+          "weekly_hours": [
+            45,
+            45
+          ],
+          "overtime": "偶爾",
+          "years": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_total_wan": null,
+          "travel": null,
+          "n_stat": 1,
+          "note": null,
+          "grade": null
         },
         {
           "unit": "其他",
@@ -1420,10 +1705,26 @@
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-03-06"
             }
           ],
-          "sources": [],
+          "sources": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261016421",
+              "date": "2026-03"
+            }
+          ],
           "confidence": "低",
           "n": 1,
-          "overtime": "幾乎不"
+          "overtime": "幾乎不",
+          "years": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "travel": null,
+          "n_stat": 1,
+          "note": null,
+          "grade": null
         },
         {
           "unit": "其他",
@@ -1453,11 +1754,29 @@
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-02-16"
             }
           ],
-          "sources": [],
+          "sources": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/260887445",
+              "date": "2026-02"
+            }
+          ],
           "confidence": "低",
           "n": 1,
-          "weekly_hours": 45,
-          "overtime": "偶爾"
+          "weekly_hours": [
+            45,
+            45
+          ],
+          "overtime": "偶爾",
+          "years": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "travel": null,
+          "n_stat": 1,
+          "note": null,
+          "grade": null
         },
         {
           "unit": "高雄",
@@ -1487,7 +1806,13 @@
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-01-18"
             }
           ],
-          "sources": [],
+          "sources": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/260691815",
+              "date": "2026-01"
+            }
+          ],
           "confidence": "低",
           "n": 1,
           "base_month_k": [
@@ -1498,7 +1823,15 @@
             14,
             14
           ],
-          "overtime": "經常"
+          "overtime": "經常",
+          "years": null,
+          "bonus_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "travel": null,
+          "n_stat": 1,
+          "note": null,
+          "grade": null
         }
       ],
       "mops": {
@@ -1556,14 +1889,11 @@
           "bonus_months": null,
           "annual_months": null,
           "annual_total_wan": null,
-          "weekly_hours": [
-            45,
-            55
-          ],
-          "overtime": "經常",
-          "travel": "不用",
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
           "n": 3,
-          "note": "GoodJob 2026 自述 4.8 萬；Dcard 整理文碩士 4.2～4.8 萬、15～18 個月；3.3 萬一筆疑學士已排除；第二輪：Dcard 面試心得一篇；Dcard 日期依文章編號推估；base_month_k、bonus_months、annual_months、annual_total_wan 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples；未逐筆對應的舊彙整：base_month_k=[42, 50]；未逐筆對應的舊彙整：bonus_months=[1, 4]；未逐筆對應的舊彙整：annual_months=[15, 18]；未逐筆對應的舊彙整：annual_total_wan=[63, 85]",
+          "note": "GoodJob 2026 自述 4.8 萬；Dcard 整理文碩士 4.2～4.8 萬、15～18 個月；3.3 萬一筆疑學士已排除；第二輪：Dcard 面試心得一篇；Dcard 日期依文章編號推估；base_month_k、bonus_months、annual_months、annual_total_wan 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples；未逐筆對應的舊彙整：base_month_k=[42, 50]；未逐筆對應的舊彙整：bonus_months=[1, 4]；未逐筆對應的舊彙整：annual_months=[15, 18]；未逐筆對應的舊彙整：annual_total_wan=[63, 85]；未逐筆對應的舊彙整：weekly_hours=[45, 55]、overtime=經常、travel=不用",
           "sources": [
             {
               "site": "GoodJob",
@@ -1591,7 +1921,7 @@
               "unit_detail": null,
               "years": "0-2",
               "degree": "碩士",
-              "base_k": null,
+              "base_k": 48,
               "bonus_months": null,
               "annual_months": null,
               "annual_wan": null,
@@ -1600,7 +1930,8 @@
               "travel": null,
               "quote_free_note": null,
               "date_confirmed": false,
-              "date_note": "日期為推估或僅年份，不進統計"
+              "date_note": "日期為推估或僅年份，不進統計",
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -1618,7 +1949,8 @@
               "travel": null,
               "quote_free_note": null,
               "date_confirmed": false,
-              "date_note": "日期為推估或僅年份，不進統計"
+              "date_note": "日期為推估或僅年份，不進統計",
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -1636,7 +1968,8 @@
               "travel": null,
               "quote_free_note": null,
               "date_confirmed": false,
-              "date_note": "日期為推估或僅年份，不進統計"
+              "date_note": "日期為推估或僅年份，不進統計",
+              "in_window": true
             }
           ],
           "n_stat": 0
@@ -1655,9 +1988,9 @@
           "annual_total_wan": null,
           "weekly_hours": null,
           "overtime": null,
-          "travel": "不用",
+          "travel": null,
           "n": 7,
-          "note": "GoodJob 2026 自述 5 萬與 4.2 萬（配件工程師）；學歷未標；加班與月數沿用同公司生產技術職回報（低信心）；撤回：overtime、bonus_months、annual_months 原為沿用／推算／暫填值，無直接證據，已改回原值；第二輪：Dcard IC 測試開發 offer N-13×14＋分紅、另一則月薪約 4.7 萬；GoodJob 2026 工程師多在 3.5～5 萬；工程師保 14 個月（端午、中秋各 0.5＋年終 1）；PTT 舊文稱年度分紅 10～12 月分三次發（範圍外參考）；base_month_k 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples；未逐筆對應的舊彙整：base_month_k=[42, 50]",
+          "note": "GoodJob 2026 自述 5 萬與 4.2 萬（配件工程師）；學歷未標；加班與月數沿用同公司生產技術職回報（低信心）；撤回：overtime、bonus_months、annual_months 原為沿用／推算／暫填值，無直接證據，已改回原值；第二輪：Dcard IC 測試開發 offer N-13×14＋分紅、另一則月薪約 4.7 萬；GoodJob 2026 工程師多在 3.5～5 萬；工程師保 14 個月（端午、中秋各 0.5＋年終 1）；PTT 舊文稱年度分紅 10～12 月分三次發（範圍外參考）；base_month_k 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples；未逐筆對應的舊彙整：base_month_k=[42, 50]；未逐筆對應的舊彙整：travel=不用",
           "sources": [
             {
               "site": "GoodJob",
@@ -1714,7 +2047,8 @@
               "travel": null,
               "quote_free_note": null,
               "date_confirmed": false,
-              "date_note": "日期為推估或僅年份，不進統計"
+              "date_note": "日期為推估或僅年份，不進統計",
+              "in_window": true
             },
             {
               "site": "比薪水",
@@ -1732,7 +2066,8 @@
               "travel": null,
               "quote_free_note": null,
               "date_confirmed": false,
-              "date_note": "日期為推估或僅年份，不進統計"
+              "date_note": "日期為推估或僅年份，不進統計",
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -1750,7 +2085,8 @@
               "travel": null,
               "quote_free_note": null,
               "date_confirmed": false,
-              "date_note": "日期為推估或僅年份，不進統計"
+              "date_note": "日期為推估或僅年份，不進統計",
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -1787,7 +2123,8 @@
               "travel": null,
               "quote_free_note": "測試設備面試",
               "date_confirmed": true,
-              "date_note": "GoodJob 標題附分享日期"
+              "date_note": "GoodJob 標題附分享日期",
+              "in_window": true
             },
             {
               "site": "GoodJob",
@@ -1805,7 +2142,8 @@
               "travel": null,
               "quote_free_note": "配件工程師面試；工程師保 14",
               "date_confirmed": true,
-              "date_note": "GoodJob 標題附分享日期"
+              "date_note": "GoodJob 標題附分享日期",
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -1823,10 +2161,11 @@
               "travel": null,
               "quote_free_note": "摘要標 2026-05：遠距視訊面試，人資後主管，難度低（無薪資數字；文章由標題推定）",
               "date_confirmed": true,
-              "date_note": "摘要／標題可見日期"
+              "date_note": "摘要／標題可見日期",
+              "in_window": true
             }
           ],
-          "n_stat": 3
+          "n_stat": 4
         },
         {
           "unit": "竹南",
@@ -1856,13 +2195,29 @@
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-04-29"
             }
           ],
-          "sources": [],
+          "sources": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261391943",
+              "date": "2026-04"
+            }
+          ],
           "confidence": "低",
           "n": 1,
           "base_month_k": [
             42,
             42
-          ]
+          ],
+          "years": null,
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n_stat": 1,
+          "note": null,
+          "grade": null
         },
         {
           "unit": "竹南廠",
@@ -1892,9 +2247,26 @@
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2025-07-31"
             }
           ],
-          "sources": [],
+          "sources": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/259438545",
+              "date": "2025-07"
+            }
+          ],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "years": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n_stat": 0,
+          "note": null,
+          "grade": null
         }
       ],
       "mops": {
@@ -1937,7 +2309,7 @@
           "degree": "碩士",
           "years": "0-2",
           "base_month_k": [
-            54,
+            49,
             54
           ],
           "bonus_months": null,
@@ -1946,14 +2318,11 @@
             14
           ],
           "annual_total_wan": null,
-          "weekly_hours": [
-            40,
-            50
-          ],
-          "overtime": "偶爾～經常",
-          "travel": "不用",
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
           "n": 12,
-          "note": "GoodJob 2026-01 彰化 5 萬、台中測試 4.3 萬；保 14 個月出自 salary.tw 單則；學歷未標；年薪 14 個月扣本薪 12 個月推算，含年終；撤回：bonus_months 原為沿用／推算／暫填值，無直接證據，已改回原值；第二輪：GoodJob 2026-08 製程技術錄取 5.4 萬（本薪＋伙食 3,000＋工作加給）、保 14、年調 2～5%；2025-11 評價稱分紅一年 4 次（2、5、8、11 月）；Dcard 稱國立碩約 30 職等 4.8～5 萬、加班常態每月約 50 小時；PTT 2026-04 測試職保 14＋分紅、做二休二",
+          "note": "GoodJob 2026-01 彰化 5 萬、台中測試 4.3 萬；保 14 個月出自 salary.tw 單則；學歷未標；年薪 14 個月扣本薪 12 個月推算，含年終；撤回：bonus_months 原為沿用／推算／暫填值，無直接證據，已改回原值；第二輪：GoodJob 2026-08 製程技術錄取 5.4 萬（本薪＋伙食 3,000＋工作加給）、保 14、年調 2～5%；2025-11 評價稱分紅一年 4 次（2、5、8、11 月）；Dcard 稱國立碩約 30 職等 4.8～5 萬、加班常態每月約 50 小時；PTT 2026-04 測試職保 14＋分紅、做二休二；未逐筆對應的舊彙整：weekly_hours=[40, 50]、overtime=偶爾～經常、travel=不用",
           "sources": [
             {
               "site": "GoodJob",
@@ -2001,7 +2370,7 @@
               "unit_detail": null,
               "years": "0-2",
               "degree": "碩士",
-              "base_k": null,
+              "base_k": 50,
               "bonus_months": null,
               "annual_months": null,
               "annual_wan": null,
@@ -2010,7 +2379,8 @@
               "travel": null,
               "quote_free_note": null,
               "date_confirmed": false,
-              "date_note": "日期為推估或僅年份，不進統計"
+              "date_note": "日期為推估或僅年份，不進統計",
+              "in_window": true
             },
             {
               "site": "比薪水",
@@ -2028,7 +2398,8 @@
               "travel": null,
               "quote_free_note": null,
               "date_confirmed": false,
-              "date_note": "日期為推估或僅年份，不進統計"
+              "date_note": "日期為推估或僅年份，不進統計",
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -2084,7 +2455,8 @@
               "travel": null,
               "quote_free_note": "擴散設備保 14、分紅另計／矽品測試職保 14、做二休二",
               "date_confirmed": true,
-              "date_note": "PTT 文章代碼即發文時間（Unix 時間）"
+              "date_note": "PTT 文章代碼即發文時間（Unix 時間）",
+              "in_window": true
             },
             {
               "site": "GoodJob",
@@ -2102,7 +2474,8 @@
               "travel": null,
               "quote_free_note": "製程技術錄取 5.4 萬、保 14",
               "date_confirmed": true,
-              "date_note": "GoodJob 標題附分享日期"
+              "date_note": "GoodJob 標題附分享日期",
+              "in_window": true
             },
             {
               "site": "GoodJob",
@@ -2120,7 +2493,8 @@
               "travel": null,
               "quote_free_note": "分紅一年 4 次（2、5、8、11 月）",
               "date_confirmed": true,
-              "date_note": "GoodJob 標題附分享日期"
+              "date_note": "GoodJob 標題附分享日期",
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -2233,7 +2607,7 @@
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-09-07"
             }
           ],
-          "n_stat": 3,
+          "n_stat": 10,
           "degree_diff": "樣本中位數：學士底薪約 49K、碩士約 54K（差約 5K；學士 1 筆、碩士 1 筆）"
         },
         {
@@ -2352,7 +2726,33 @@
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-10-02"
             }
           ],
-          "sources": [],
+          "sources": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/262340574",
+              "date": "2026-10"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/262308786",
+              "date": "2026-10"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261841341",
+              "date": "2026-07"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/260863627",
+              "date": "2026-07"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/262240738",
+              "date": "2026-10"
+            }
+          ],
           "confidence": "低",
           "n": 5,
           "base_month_k": [
@@ -2362,7 +2762,16 @@
           "annual_months": [
             14,
             14
-          ]
+          ],
+          "years": null,
+          "bonus_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n_stat": 5,
+          "note": null,
+          "grade": null
         },
         {
           "unit": "南科",
@@ -2392,9 +2801,26 @@
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-08-06"
             }
           ],
-          "sources": [],
+          "sources": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261931553",
+              "date": "2026-08"
+            }
+          ],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "years": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n_stat": 1,
+          "note": null,
+          "grade": null
         },
         {
           "unit": "台南新市",
@@ -2424,14 +2850,29 @@
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-07-19"
             }
           ],
-          "sources": [],
+          "sources": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261844956",
+              "date": "2026-07"
+            }
+          ],
           "confidence": "低",
           "n": 1,
           "annual_months": [
             17,
             17
           ],
-          "overtime": "幾乎不"
+          "overtime": "幾乎不",
+          "years": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "travel": null,
+          "n_stat": 1,
+          "note": null,
+          "grade": null
         },
         {
           "unit": "其他",
@@ -2461,9 +2902,26 @@
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-09-11"
             }
           ],
-          "sources": [],
+          "sources": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/262122290",
+              "date": "2026-09"
+            }
+          ],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "years": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n_stat": 1,
+          "note": null,
+          "grade": null
         }
       ],
       "mops": {
@@ -2566,7 +3024,13 @@
             }
           ],
           "n": 1,
-          "sources": [],
+          "sources": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/262256627",
+              "date": "2026-10"
+            }
+          ],
           "confidence": "低",
           "note": "2026-10-26 Andy 指示加入",
           "annual_months": [
@@ -2576,7 +3040,14 @@
           "annual_total_wan": [
             110,
             110
-          ]
+          ],
+          "years": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n_stat": 1
         }
       ]
     },
@@ -2623,13 +3094,27 @@
             }
           ],
           "n": 1,
-          "sources": [],
+          "sources": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261961126",
+              "date": "2026-08"
+            }
+          ],
           "confidence": "低",
           "note": "2026-10-26 由 Dcard 樣本新增的公司",
           "base_month_k": [
             61,
             61
-          ]
+          ],
+          "years": null,
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n_stat": 1
         },
         {
           "unit": "新竹 P11",
@@ -2705,14 +3190,37 @@
             }
           ],
           "n": 3,
-          "sources": [],
+          "sources": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261758851",
+              "date": "2026-07"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/259846606",
+              "date": "2025-10"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/259438545",
+              "date": "2025-07"
+            }
+          ],
           "confidence": "低",
           "note": "2026-10-26 由 Dcard 樣本新增的公司",
           "annual_months": [
             17,
             17
           ],
-          "overtime": "幾乎不"
+          "overtime": "幾乎不",
+          "years": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "travel": null,
+          "n_stat": 2
         },
         {
           "unit": "其他",
@@ -2742,9 +3250,26 @@
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-08-25"
             }
           ],
-          "sources": [],
+          "sources": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/262022557",
+              "date": "2026-08"
+            }
+          ],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "years": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n_stat": 1,
+          "note": null,
+          "grade": null
         }
       ]
     },
@@ -2791,13 +3316,27 @@
             }
           ],
           "n": 1,
-          "sources": [],
+          "sources": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/262340574",
+              "date": "2026-10"
+            }
+          ],
           "confidence": "低",
           "note": "2026-10-26 由 Dcard 樣本新增的公司",
           "base_month_k": [
             46.5,
             46.5
-          ]
+          ],
+          "years": null,
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n_stat": 1
         }
       ]
     },
@@ -2844,13 +3383,27 @@
             }
           ],
           "n": 1,
-          "sources": [],
+          "sources": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/262340574",
+              "date": "2026-10"
+            }
+          ],
           "confidence": "低",
           "note": "2026-10-26 由 Dcard 樣本新增的公司",
           "base_month_k": [
             47.5,
             47.5
-          ]
+          ],
+          "years": null,
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n_stat": 1
         }
       ]
     },
@@ -2897,14 +3450,27 @@
             }
           ],
           "n": 1,
-          "sources": [],
+          "sources": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/259846606",
+              "date": "2025-10"
+            }
+          ],
           "confidence": "低",
           "note": "2026-10-26 由 Dcard 樣本新增的公司",
           "annual_months": [
             14,
             14
           ],
-          "overtime": "幾乎不"
+          "overtime": "幾乎不",
+          "years": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "travel": null,
+          "n_stat": 1
         },
         {
           "unit": "其他",
@@ -2934,9 +3500,26 @@
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2025-10-14"
             }
           ],
-          "sources": [],
+          "sources": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/260031366",
+              "date": "2025-10"
+            }
+          ],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "years": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n_stat": 1,
+          "note": null,
+          "grade": null
         }
       ]
     },
@@ -2983,7 +3566,13 @@
             }
           ],
           "n": 1,
-          "sources": [],
+          "sources": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/260691815",
+              "date": "2026-01"
+            }
+          ],
           "confidence": "低",
           "note": "2026-10-26 由 Dcard 樣本新增的公司",
           "base_month_k": [
@@ -2994,7 +3583,13 @@
             12,
             12
           ],
-          "overtime": "經常"
+          "overtime": "經常",
+          "years": null,
+          "bonus_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "travel": null,
+          "n_stat": 1
         }
       ]
     },
@@ -3039,9 +3634,26 @@
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-10-10"
             }
           ],
-          "sources": [],
+          "sources": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/262264888",
+              "date": "2026-10"
+            }
+          ],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "years": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n_stat": 1,
+          "note": null,
+          "grade": null
         },
         {
           "unit": "其他",
@@ -3071,10 +3683,26 @@
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-10-10"
             }
           ],
-          "sources": [],
+          "sources": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/262264888",
+              "date": "2026-10"
+            }
+          ],
           "confidence": "低",
           "n": 1,
-          "overtime": "偶爾"
+          "overtime": "偶爾",
+          "years": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "travel": null,
+          "n_stat": 1,
+          "note": null,
+          "grade": null
         },
         {
           "unit": "新竹縣",
@@ -3102,7 +3730,13 @@
               "in_window": true
             }
           ],
-          "sources": [],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/6a8533030ac1ff26f8422e2d",
+              "date": "2026-08"
+            }
+          ],
           "confidence": "低",
           "n": 1,
           "base_month_k": [
@@ -3115,7 +3749,13 @@
             14
           ],
           "annual_total_wan": null,
-          "weekly_hours": null
+          "weekly_hours": null,
+          "years": null,
+          "overtime": null,
+          "travel": null,
+          "n_stat": 1,
+          "note": null,
+          "grade": null
         },
         {
           "unit": "其他",
@@ -3143,7 +3783,13 @@
               "in_window": true
             }
           ],
-          "sources": [],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/69627036b2e1e2880c463acb",
+              "date": "2026-01"
+            }
+          ],
           "confidence": "低",
           "n": 1,
           "base_month_k": null,
@@ -3153,7 +3799,13 @@
             75,
             75
           ],
-          "weekly_hours": null
+          "weekly_hours": null,
+          "years": null,
+          "overtime": null,
+          "travel": null,
+          "n_stat": 1,
+          "note": null,
+          "grade": null
         }
       ],
       "note": "2026-10-26 由 Dcard 樣本新增的公司"
