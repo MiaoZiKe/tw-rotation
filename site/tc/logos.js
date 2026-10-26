@@ -83,7 +83,7 @@
     (dm) => 'https://t1.gstatic.com/faviconV2?client=SOCIAL&type=FAVICON&fallback_opts=TYPE,SIZE,URL&url=' + encodeURIComponent('https://' + dm) + '&size=256',
     (dm) => 'https://www.google.com/s2/favicons?domain=' + encodeURIComponent(dm) + '&sz=256'
   ];
-  const MINW = 64, STMIN = 16, LSK = 'tc.lgsrc2';
+  const MINW = 64, STMIN_S = 48, STMIN_D = 32, LSK = 'tc.lgsrc2';
   let MEM = {};
   try { MEM = JSON.parse(localStorage.getItem(LSK) || '{}') || {}; } catch (e) { MEM = {}; }
   function remember(dm, i) { MEM[dm] = i; try { localStorage.setItem(LSK, JSON.stringify(MEM)); } catch (e) { /* 私密視窗等：不記也照常運作 */ } }
@@ -107,7 +107,7 @@
   function cand(t) { const L = []; if (t.dataset.s) t.dataset.s.split('|').forEach((x) => L.push(x)); if (t.dataset.dm) SRC.forEach((f) => L.push(f(t.dataset.dm))); return L; }
   function nextImg(t) {
     const n = +t.dataset.st + 1, L = cand(t);
-    if (n < L.length) { t.dataset.st = String(n); t.classList.remove('sm'); t.style.width = t.style.height = ''; t.src = L[n]; return; }
+    if (n < L.length) { t.dataset.st = String(n); t.classList.remove('sm', 'lc'); t.style.width = t.style.height = ''; t.src = L[n]; return; }
     if (t.dataset.dm && !t.dataset.s) remember(t.dataset.dm, -1);
     toTxt(t);
   }
@@ -118,10 +118,10 @@
   const BLD = '<svg viewBox="0 0 24 24" width="62%" height="62%" fill="currentColor" aria-hidden="true"><path d="M4 21V5l8-3v6l8 3v10h-6v-4h-4v4zm3-13h2V6H7zm0 4h2v-2H7zm0 4h2v-2H7zm8 0h2v-2h-2zm0-4h2v-2h-2z"/></svg>';
   // 站內圖：st=0 用站內路徑；沒站內圖時從外部來源開始（記住的來源索引用 MEM）
   function imgTag(name, dm, sz, st) {
-    const loc = [station(name), dstation(name)].filter(Boolean), s = loc.join('|');
+    const L2 = [['s', station(name)], ['d', dstation(name)]].filter((x) => x[1]), loc = L2.map((x) => x[1]), s = loc.join('|'), kd = L2.map((x) => x[0]).join('|');
     const i = loc.length ? 0 : (dm && MEM[dm] > 0 ? Math.min(MEM[dm], SRC.length - 1) : 0);
     const src = loc.length ? loc[0] : SRC[i](dm);
-    return '<img src="' + esc(src) + '" data-dm="' + esc(dm) + '" data-s="' + esc(s) + '" data-st="' + i + '" alt="' + esc(name) + '" loading="lazy" referrerpolicy="no-referrer" width="' + sz + '" height="' + sz + '">';
+    return '<img src="' + esc(src) + '" data-dm="' + esc(dm) + '" data-s="' + esc(s) + '" data-k="' + kd + '" data-st="' + i + '" alt="' + esc(name) + '" loading="lazy" referrerpolicy="no-referrer" width="' + sz + '" height="' + sz + '">';
   }
   /* 回傳 HTML 字串：字標先畫在底層，有圖來源才疊 <img>；LG 還沒載好的短暫空檔，data-pend 標起來，載好後 upgrade() 補圖 */
   function html(name, ind, size) {
@@ -147,7 +147,12 @@
   document.addEventListener('load', (e) => {
     const t = e.target; if (!isLg(t)) return;
     const nloc = t.dataset.s ? t.dataset.s.split('|').length : 0, st = +t.dataset.st < nloc, nw = t.naturalWidth;
-    if (!nw || nw < (st ? STMIN : MINW)) { nextImg(t); return; }
+    // 2026-10-27 Andy：站內代號圖 < 48px（如聯電 16px）視為低解析 → 換網域圖（< 32px 同理）→ Google（≥64）→ 字標
+    const kind = st ? (t.dataset.k || '').split('|')[+t.dataset.st] : '', need = st ? (kind === 's' ? STMIN_S : STMIN_D) : MINW;
+    if (!nw || nw < need) { nextImg(t); return; }
+    if (st) {   // 站內圖一律 contain＋10% 邊距，不裁切；橫幅也完整縮進白圓內
+      t.classList.add('lc'); t.parentNode.classList.add('has'); t.classList.add('ok'); return;
+    }
     const box = t.parentNode.clientWidth || parseInt(t.parentNode.style.getPropertyValue('--lz'), 10) || 24, inner = Math.max(8, box - 8);
     if (nw < inner * 2) { const z = Math.min(nw, inner); t.classList.add('sm'); t.style.width = t.style.height = z + 'px'; }   // 解析不夠 ×2：不放大，原尺寸（不超過內徑）置中
     if (!st) remember(t.dataset.dm, +t.dataset.st);

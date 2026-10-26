@@ -41,11 +41,11 @@ def t_tc_logo_1027(b, base, code):
       ds.forEach(d=>(d.companies||[]).forEach(x=>{const p=TcLogo.plan(x.name);c[p]++;if(p==='txt')ex.push(x.name)}));return {c,ex,n:c.station+c.ext+c.txt}}""")
     print(f"  ℹ {T}：公司來源統計 共 {st['n']} 家｜站內 {st['c']['station']}｜Google s2/gstatic {st['c']['ext']}｜字標 {st['c']['txt']}（{'、'.join(st['ex'])}）")
     ok(f"{T}：統計有站內圖（≥50 家）", st["c"]["station"] >= 50, st["c"])
-    # 低解析：站內圖只有 20px → 不放大、原尺寸置中；<16px → 字標
+    # 低解析：站內圖只有 20px（< 48）→ 不顯示小點，改走 Google（模擬 128px）；細節見 20261027b_tc_logo_fit
     q = c.new_page()
     q.route("**/data/logos/2330.png", lambda r: r.fulfill(body=_png(20), content_type="image/png"))
     q.goto(base + "#tc/foundry/%E5%8F%B0%E7%A9%8D%E9%9B%BB", wait_until="domcontentloaded"); q.wait_for_timeout(2500)
-    ok(f"{T}：站內圖只有 20px → 以 20px 置中、不放大", q.evaluate("()=>{const i=document.querySelector('#v-tc .tc-cinfo h4 .tc-lg img');return !!i&&i.classList.contains('sm')&&Math.round(i.getBoundingClientRect().width)<=20}"))
+    ok(f"{T}：站內圖只有 20px → 改用 Google 圖（不顯示小點）", q.evaluate("()=>{const i=document.querySelector('#v-tc .tc-cinfo h4 .tc-lg img');return !!i&&/gstatic|google/.test(i.getAttribute('src'))&&i.naturalWidth>=64}"))
     q.close()
     q2 = c.new_page()
     q2.route("**/data/logos/2330.png", lambda r: r.fulfill(body=_png(10), content_type="image/png"))
