@@ -34,3 +34,7 @@ COWOS_VOICE=hsiaochen python docs/marketing/videos/2026-10-18-cowos_bibi/render_
 - 換法：`tts.yml` 改呼叫 Azure 語音 REST API（金鑰放 GitHub Secrets），`tts_script.json` 格式不變。
   **現在不需要 Andy 設定任何東西**；要正式發佈時再一步一步帶他申請。
 - 發音注意：「CoWoS」由語音引擎自己念，試聽時請留意念法是否自然；不自然的話，正式版可用 Azure 的 SSML 音標（phoneme）指定念法。
+
+## 2026-10-27 Andy 定案
+Andy 原話：「音檔先使用影片內的，但之後需要告訴我其他免費可以客製化的音檔」。
+→ 短影片旁白暫定 `hsiaoyu_cute`（zh-TW-HsiaoYuNeural，+15%／+15Hz，edge-tts）。⚠ edge-tts 非官方介面，正式商用前改走 Azure 語音免費層（同一組聲音、每月 50 萬字元）或其他授權明確的方案，見 `docs/marketing/tts_options_1027.md`。
