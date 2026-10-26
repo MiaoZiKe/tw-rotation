@@ -1,6 +1,10 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
-### 2026-10-27 02:35 CEO：社群自動發文正式開啟（Andy「開始發…接下來就是自動發文」）
+### 2026-10-26 行銷指揮部：引流到付費總方案（文件，最後更新 2026-10-26 台北）
+- 方案：`docs/marketing/growth_command_1026.md`（已過監察委員＋法遵第三方審查並修訂）；研調 `docs/marketing/research_growth_1026.md`。
+- 下一步：等 Andy 回 J-1～J-10；W1 量測（utm＋漏斗事件）可先開工。純文件，未跑任何關卡。
+
+## 2026-10-27 02:35 CEO：社群自動發文正式開啟（Andy「開始發…接下來就是自動發文」）
 - 總開關 docs/marketing/social_unit/LIVE_ENABLED 已建（刪掉＝回 dry-run）。格式照 docs/marketing/social_unit/auto_post.md。
 - 時間：盤前 08:20（只在台股交易日；休市或已過開盤就不發，美股有開也不發）→ 盤中 12:00 → 盤後等當天法人／期貨資料到齊（daily 管線跑完觸發）。
 - 盤前發完寫回 site/articles/premarket.json（網站盤前消息）。
