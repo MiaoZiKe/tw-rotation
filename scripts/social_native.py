@@ -299,7 +299,7 @@ def b_etf_buy(mode, w, h, ctx):
     nm = _stock_names(ctx)
     secs = []
     for side, title in (("foreign", "外資 ETF 買超"), ("trust", "投信 ETF 買超")):
-        rows = etf_buy(j, side, 10, nm)
+        rows = etf_buy(j, side, 5, nm)      # 各前 5 名（2026-10-26 Andy：「買超各只要前五名即可」）
         mx = max([abs(r["amt"]) for r in rows] + [1])
         secs.append((title, T["rise"], [dict(code=r["code"], name=r["name"], frac=abs(r["amt"]) / mx, val=sgn(r["amt"] / 1e8, 2), unit="億", lots=r["lots"]) for r in rows]))
     return rank_list(mode, w, h, ctx, secs, vw=round(150 * S_(mode)))
