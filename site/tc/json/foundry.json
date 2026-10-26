@@ -11243,7 +11243,7 @@
         "source": "未取得；查過：<公司> 非主管 薪資 平均 中位數 2025／非主管 平均薪資 2025 萬元 證交所；新聞只列前十名，需至公開資訊觀測站彙總報表查",
         "url": "https://mops.twse.com.tw/"
       },
-      "grade_system": null,
+      "grade_system": "網友說法（低信心）：以 P 值標職級，例：生產線主任 P3、P3 製程開發；官方職等表未查到（Dcard tech_job 258980420、260548064 等）",
       "grade_sources": [
         {
           "site": "Dcard",
