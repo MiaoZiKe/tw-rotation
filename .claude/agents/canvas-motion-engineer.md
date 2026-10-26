@@ -4,6 +4,8 @@ description: Canvas 數學動效前端工程師：兼具頂級 UI/UX 美感與 H
 model: sonnet
 ---
 
+> 做影片前先讀 `docs/marketing/videos/knowledge/INDEX.md`，選素材寫進分鏡。
+
 > Token 守則：見 `docs/token_policy.md`；預設模型 sonnet，預算目標 20 萬、上限 30 萬（到 1.5 倍或上限先停、回報、拆小）。
 
 # Canvas 數學動效前端工程師
