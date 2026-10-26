@@ -23,7 +23,8 @@
   const EV_NAME = { session: '開啟網站（每個分頁一次）', session_login: '登入狀態下開啟網站', login: '登入', logout: '登出',
     search: '搜尋股票', watch_add: '加入自選', watch_remove: '移出自選', watch_tab_new: '新增自選分頁', watch_panel: '打開自選清單',
     stock_tab: '切個股分頁（營收／籌碼…）', k_period: '切 K 線週期', ai_tab: '切 AI 分析面向', open_3d: '打開 3D 剖析圖', zoom: '放大圖表',
-    how: '打開「?」說明', theme_toggle: '切深淺色', events_drawer: '打開今日事件', mtf: '四週期同看', indicators: '打開指標設定', draw: '畫線工具', m_seg: '手機切分段' };
+    how: '打開「?」說明', theme_toggle: '切深淺色', events_drawer: '打開今日事件', mtf: '四週期同看', indicators: '打開指標設定', draw: '畫線工具', m_seg: '手機切分段',
+    land: '帶來源進站', signup: '註冊（新會員第一次登入）', trial_start: '體驗開始', pricing_view: '看訂閱方案', checkout_click: '點訂閱／預約', paid: '第一次付費' };
   /* 細項事件的元件名（docs/account_analytics.md「細項事件」）*/
   const COMP_NAME = { read: '讀文章', search_art: '從搜尋進文章', 'sankey.node': '點資金分流樹節點', 'sankey.link': '點資金分流樹連線', 'inst.tab': '切族群×法人分頁', 'inst.group': '點族群×法人族群', ind: '開啟技術指標', 'draw.tool': '使用畫線工具', 'events.link': '點事件連結', 'etf.cat': '點 ETF 類別', 'explore.topic': '選股題目', 'watch.chart': '點走勢圖', 'watch.kline': '切換 K 線', 'support.fab': '打開客服', 'support.tab': '切客服分頁', 'support.faq': '展開常見問題', 'support.send': '送出意見反饋', 'support.mail': '寄信給客服', view: '被觀看', play: '播放（時間軸）', quad: '象限卡（領先／改善／轉弱／落後）', filter_chain: '篩選：產業鏈', filter_group: '篩選：族群（勾選）',
     filter_group_open: '打開族群下拉', filter_top10: '只看前 10 大', filter_clear: '清除篩選', rank_bar: '右側排行長條', clock_group: '輪盤上的族群點',
@@ -248,6 +249,13 @@ html[data-theme="light"] #v-admin{--pgL:40%}
 #v-admin .hrlk .days .dc.lkon i,#v-admin .hrlk .days .dc.lksel i{outline:2px solid var(--ink);outline-offset:0}
 #v-admin .hrlk .days .dc.lksel .dd{color:var(--ink);font-weight:700}
 @media (prefers-reduced-motion:reduce){#admBody [data-chart] [data-row],#admBody [data-chart] li[data-k]{transition:none}}
+#v-admin .trfun .funw{max-height:288px;overflow:auto}
+#v-admin .funt{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums}
+#v-admin .funt th,#v-admin .funt td{padding:6px 8px;text-align:right;border-bottom:1px solid var(--line)}
+#v-admin .funt thead th{position:sticky;top:0;background:var(--card);color:var(--muted);font-weight:600;z-index:1}
+#v-admin .funt th:first-child,#v-admin .funt tbody th{text-align:left;font-weight:600}
+#v-admin .funt tr.funtot td,#v-admin .funt tr.funtot th{background:var(--panel2,rgba(127,127,127,.08))}
+@media (max-width:640px){#v-admin .funt thead{display:none}#v-admin .funt,#v-admin .funt tbody,#v-admin .funt tr{display:block}#v-admin .funt tr{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px 8px;padding:8px 0;border-bottom:1px solid var(--line)}#v-admin .funt th,#v-admin .funt td{display:block;border:0;padding:0;text-align:left;font-size:12px}#v-admin .funt tbody th{grid-column:1/-1;font-size:13px}#v-admin .funt td::before{content:attr(data-l);display:block;color:var(--muted);font-size:11px}}
 @media (max-width:1100px){#v-admin .admgrid.trpair,#v-admin .admgrid.trtop{grid-template-columns:minmax(0,1fr)}#v-admin .admgrid{grid-template-columns:repeat(2,minmax(0,1fr))}#v-admin .admgrid>.s2{grid-column:span 2}}
 @media (max-width:820px){#v-admin .trkpi .kpis{grid-template-columns:repeat(3,minmax(0,1fr))}#v-admin .trctl{border-left:0;padding-left:0}#v-admin .admgrid{grid-template-columns:minmax(0,1fr)}#v-admin .admgrid>.s2{grid-column:auto}}
 #v-admin .admgrid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--gap-card,14px);margin-top:14px}
@@ -1089,7 +1097,7 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
     S.firstDay = Object.keys(perDay).filter((d) => perDay[d] > 0).sort()[0] || ''; S.pvAll = sum(Object.values(pvT));
     data.users = { pv: 0, rows: [], opens: {}, subN: [], total: (stT.users && stT.users.total) || 0, use: 0, fb: false };
     const tiers = st.tiers || await estimateTiers(A, st, sessions, loginSess);
-    v.querySelector('#admBody').innerHTML = topHtml(st, days, dmap, dmax, sessions, loginSess, pvTotal, tiers, bk) + `<div class="secttl" id="trDetailTtl"><h2>分頁統計</h2>${dayChip()}</div><div class="card trtabs" id="trDetail"><div id="trTabsBox"></div><div id="trPageBody"></div></div>`;
+    v.querySelector('#admBody').innerHTML = topHtml(st, days, dmap, dmax, sessions, loginSess, pvTotal, tiers, bk) + `<div class="admgrid trone">${funnelHtml()}</div><div class="secttl" id="trDetailTtl"><h2>分頁統計</h2>${dayChip()}</div><div class="card trtabs" id="trDetail"><div id="trTabsBox"></div><div id="trPageBody"></div></div>`;
     wireTop(v, A);
     thinTicks(v);
     paintTrTabs();
@@ -1101,6 +1109,25 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
   function dayChip() {
     if (!S.day) return '';
     return `<span class="daychip" id="trDayChip"><i class="dot"></i><b>${esc(S.dayTo && S.dayTo !== S.day ? S.day.slice(5) + '～' + S.dayTo.slice(5) : dayTxt(S.day))}</b>${S.dayMode === 'unsupported' ? '<em>這個功能要等會員系統更新後才有，下方暫時顯示整段期間</em>' : ''}<button type="button" id="trDayClr" aria-label="清除，回到原期間" title="清除，回到原期間">×</button></span>`;
+  }
+  /* ===== 各來源漏斗（2026-10-26，W2，docs/marketing/growth_command_1026.md B-2）=====
+     全站合計列讀 ev:<事件>（usage），各來源列讀細項事件 fn.<事件>（頁面 other、細項＝來源名；沒來源＝direct）。
+     註冊／體驗／付費由 Worker 算，進站／看價格／點結帳由前端送；DNT／GPC 的人不會被算到，所以這是「彙總比例的估計」不是逐人追蹤。 */
+  const FN_STEPS = [['land', '進站'], ['signup', '註冊'], ['trial_start', '體驗'], ['pricing_view', '看價格'], ['checkout_click', '點結帳'], ['paid', '付費']];
+  const FN_SRC = { direct: '直接進站（無來源）', threads: 'Threads', instagram: 'Instagram', facebook: 'Facebook', youtube: 'YouTube', ig_bio: 'IG 簡介連結', ig_story: 'IG 限動', reels: 'Reels', shorts: 'Shorts', email: 'Email', push: '推播' };
+  function funnelHtml() {
+    const st = S.st || {}, rows = Array.isArray(st.rows) ? st.rows : [], e2 = Array.isArray(st.e2) ? st.e2 : [];
+    const tot = {}; FN_STEPS.forEach(([k]) => { tot[k] = 0; });
+    rows.forEach((r) => { const k = String(r.k || '').replace(/^ev:/, ''); if (r.k.startsWith('ev:') && k in tot) tot[k] += r.n; });
+    const by = {};
+    e2.forEach((r) => { if (r.page === 'other' && /^fn\./.test(r.comp)) { const k = r.comp.slice(3); if (k in tot) { (by[r.detail] = by[r.detail] || {})[k] = (by[r.detail][k] || 0) + r.n; } } });
+    const rate = (a, b) => (b > 0 ? (a / b * 100).toFixed(1) + '%' : '—');
+    const line = (name, o, cls) => `<tr${cls ? ` class="${cls}"` : ''}><th scope="row" data-l="來源">${esc(name)}</th>${FN_STEPS.map(([k, n]) => `<td data-l="${n}">${nf(o[k] || 0)}</td>`).join('')}<td data-l="註冊率">${rate(o.signup || 0, o.land || 0)}</td></tr>`;
+    const srcs = Object.keys(by).sort((a, b) => (by[b].land || 0) - (by[a].land || 0) || (by[b].signup || 0) - (by[a].signup || 0));
+    const any = sum(Object.values(tot)) > 0;
+    const tip = '每一列是一個管道（貼文網址的 utm_source 或 ?u= 的平台）。進站＝帶來源網址進站；註冊＝新會員第一次登入；體驗＝註冊後拿到新會員體驗；看價格＝開訂閱方案頁；點結帳＝點付費方案的訂閱鈕；付費＝第一次付款開通。註冊率＝註冊 ÷ 進站。只記彙總次數、不追蹤個人，開「請勿追蹤」的人不會被算到；同一人換裝置來源會斷。上方「全站合計」含沒帶來源的瀏覽。怎麼用：哪個管道進站多但註冊率低，就改那個管道的落地內容；樣本小於 30 先不下結論。';
+    return `<div class="card trfun" id="trFunnel"><h3>各來源的漏斗<span class="qtip" tabindex="0" role="note" aria-label="說明" title="${esc(tip)}">?</span></h3>
+      ${any ? `<div class="cb"><div class="funw"><table class="funt"><thead><tr><th scope="col">來源</th>${FN_STEPS.map(([, n]) => `<th scope="col">${n}</th>`).join('')}<th scope="col">註冊率</th></tr></thead><tbody>${line('全站合計', tot, 'funtot')}${srcs.map((k) => line(FN_SRC[k] || k, by[k])).join('')}</tbody></table></div></div>` : '<div class="empty">尚無來源紀錄</div>'}</div>`;
   }
   function topHtml(st, days, dmap, dmax, sessions, loginSess, pvTotal, tiers, bk) {
     const opt = [['live', '即時'], ['7', '近 7 天'], ['30', '近 30 天'], ['90', '近 90 天'], ['365', '近 365 天'], ['since', '起始日期～至今']];

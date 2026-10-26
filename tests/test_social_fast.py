@@ -75,4 +75,4 @@ def test_快速路徑組出的_shots_可以直接產文案():
     assert "・大台 -2.35%、小台 +0.13%；" in L and "・微台 +20.00%" in L
     assert "・外資 -815.8億、投信 +94.9億；" in L
     assert "・上市（估算）170.38%，較前日 -0.12pp" not in L
-    assert L[-2:] == ss.LINK_LINES and txt.count("https://") == 1
+    assert L[-2:] == ss.link_lines("close", "20261022") and txt.count("https://") == 1

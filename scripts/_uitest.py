@@ -59386,7 +59386,7 @@ def t_guest_quota_1009(b, base, code):
 
 # ===================================================================== 套用建議方案（正式站狀態）＋範本會員名單1007
 # CEO 10-07 13:20：正式站按了「套用建議方案」沒生效。這段重現正式站的狀態：Worker 已種 plus／pro（價格 0）＋「299 會費」（1 位會員）＋「499會費」，
-# 按套用 → 只剩 訪客／註冊會員／Plus 299(2990)／Pro 549(5268)、那位會員被移到 Plus、訂閱頁出現月／年切換與「省 17%」。
+# 按套用 → 只剩 訪客／註冊會員／Plus 299(2990)／Pro 549(5490)、那位會員被移到 Plus、訂閱頁出現月／年切換與「省 17%」。
 # 再按一次（冪等）→ 沒有刪除區塊、照樣成功。
 # 範本會員名單（Andy「下方移除會員部分 幫我優化介面」「更直觀操作」）：搜尋過濾、勾兩人批次移出（確認框）→ 少兩人、
 # 改方案下拉立刻生效＋5 秒復原、＋加入會員、全部移光 → 空狀態小卡。
@@ -59421,8 +59421,8 @@ def t_preset_live_1007(b, base, code):
     ok(f"{T}：套用成功", bool(wait_until(pg, "() => /已套用建議方案/.test(document.getElementById('pmStat').textContent)", 10000)), pg.inner_text("#subDlg")[-300:])
     ids = [p["id"] for p in st["plans"]]
     pl = next((p for p in st["plans"] if p["id"] == "plus"), {}); pr = next((p for p in st["plans"] if p["id"] == "pro"), {})
-    ok(f"{T}：結果只剩 訪客／註冊會員／Plus 299(2990)／Pro 549(5268)，m299 被移到 Plus（微調保留）",
-       ids == ["guest", "free", "plus", "pro"] and pl.get("price") == 299 and pl.get("price_year") == 2990 and pr.get("price") == 549 and pr.get("price_year") == 5268
+    ok(f"{T}：結果只剩 訪客／註冊會員／Plus 299(2990)／Pro 549(5490)，m299 被移到 Plus（微調保留）",
+       ids == ["guest", "free", "plus", "pro"] and pl.get("price") == 299 and pl.get("price_year") == 2990 and pr.get("price") == 549 and pr.get("price_year") == 5490
        and st["perm"]["m299@example.com"]["plan"] == "plus" and st["perm"]["m299@example.com"]["over"] == {"ov.heat": False}, [ids, pl.get("price"), pl.get("price_year"), pr.get("price"), pr.get("price_year"), st["perm"]])
     ok(f"{T}：範本列只剩 Plus（月）、Pro（月）", bool(wait_until(pg, "() => [...document.querySelectorAll('#ptTier button[data-plan]')].map(b => b.textContent.trim()).join('|') === 'Plus（月）|Pro（月）'", 4000)),
        pg.evaluate("() => [...document.querySelectorAll('#ptTier button[data-plan]')].map(b => b.textContent.trim())"))
@@ -59441,7 +59441,7 @@ def t_preset_live_1007(b, base, code):
         pg.screenshot(path=str(pathlib.Path(sh) / "live_pricing_month.png"))
     pg.click("#prPeriod button[data-per=year]"); pg.wait_for_timeout(400)
     tx = pg.inner_text("#v-pricing")
-    ok(f"{T}：切年繳 → 寫「最多省 20%」、Plus 年繳 NT$ 2,990、Pro 年繳 NT$ 5,268、月均 249／439", "最多省 20%" in tx and "2,990" in tx and "5,268" in tx and "439" in tx, tx[:600])
+    ok(f"{T}：切年繳 → 寫「省 17%」、Plus 年繳 NT$ 2,990、Pro 年繳 NT$ 5,490、月均 249／458", "省 17%" in tx and "2,990" in tx and "5,490" in tx and "458" in tx, tx[:600])
     ok(f"{T}：套用後訂閱頁 Plus 定位句＝建議方案寫的（不是預設「進階分析與更高的每日次數」）",
        pg.evaluate("() => (document.querySelector(\"[data-plan='plus'] .who\") || {}).textContent") == "每天主動研究，工具一次到位", pg.evaluate("() => (document.querySelector(\"[data-plan='plus'] .who\") || {}).textContent"))
     if sh:
@@ -59500,7 +59500,7 @@ def _tier_ctx(b, who, theme="dark", width=1440):
     plans = [{"id": "guest", "name": "訪客", "builtin": True, "feats": {}, "price": None, "price_year": None, "period": None},
              {"id": "free", "name": "免費會員（預設）", "builtin": True, "feats": {}, "lims": {}, "price": None, "price_year": None, "period": None},
              # 故意把 Pro 排在 Plus 前面：順序要靠價格排，不是靠後端順序或寫死名稱
-             {"id": "pro", "name": "Pro", "builtin": False, "feats": {}, "price": 549, "price_year": 5268, "period": "month"},
+             {"id": "pro", "name": "Pro", "builtin": False, "feats": {}, "price": 549, "price_year": 5490, "period": "month"},
              {"id": "plus", "name": "Plus", "builtin": False, "feats": {}, "price": 299, "price_year": 2990, "period": "month"}]
     plan = {"free": "free", "plus": "plus", "pro": "pro", "owner": "free"}[who]
     pname = {"free": "免費會員（預設）", "plus": "Plus", "pro": "Pro"}.get(plan, "免費會員（預設）")
@@ -59812,15 +59812,15 @@ def t_sub_1005(b, base, code):
            pg.evaluate("() => [...document.querySelectorAll('#prCards .prcard')].map(c => c.dataset.plan).join(',')"))
         dm = pg.evaluate("""() => [...document.querySelectorAll('#prCards .prcard')].map(c => ({ cls: c.className, tag: (c.querySelector('.prtag') || {}).textContent || '', n: c.querySelectorAll('.prhl li').length,
             price: c.querySelector('.prprice').textContent.replace(/\\s/g, '').replace(/每天約NT\\$[\\d.]+/, ''), fit: !!(c.querySelector('.mfit') || {}).textContent.trim(), who: (c.querySelector('.who') || {}).textContent || '', left: Math.round(c.getBoundingClientRect().left), top: Math.round(c.getBoundingClientRect().top) }))""")
-        ok(f"{T}・demo {W}：年繳大字＝月均價 Plus NT$249／月、Pro NT$439／月、頂端「最多省 20%」（程式算）",
-           [x["price"] for x in dm] == ["免費", "NT$249／月", "NT$439／月"] and pg.inner_text("#prSave") == "最多省 20%", [x["price"] for x in dm])
+        ok(f"{T}・demo {W}：年繳大字＝月均價 Plus NT$249／月、Pro NT$458／月、頂端「省 17%」（程式算）",
+           [x["price"] for x in dm] == ["免費", "NT$249／月", "NT$458／月"] and pg.inner_text("#prSave") == "省 17%", [x["price"] for x in dm])
         sale = pg.evaluate("() => [...document.querySelectorAll('#prCards .prcard')].map(c => ({ s: (c.querySelector('.prorig s') || {}).textContent || '', line: getComputedStyle(c.querySelector('.prorig s') || document.body).textDecorationLine, b: (c.querySelector('.prsale') || {}).textContent || '' }))")
-        ok(f"{T}・demo {W}：原月價刪除線（NT$ 299／月、NT$ 549／月）＋徽章「省 NT$ 598／年・約 17%」「省 NT$ 1,320／年・約 20%」",
+        ok(f"{T}・demo {W}：原月價刪除線（NT$ 299／月、NT$ 549／月）＋徽章「省 NT$ 598／年・約 17%」「省 NT$ 1,098／年・約 17%」",
            [x["s"] for x in sale[1:]] == ["NT$ 299／月", "NT$ 549／月"] and all("line-through" in x["line"] for x in sale[1:])
-           and [x["b"] for x in sale[1:]] == ["省 NT$ 598／年・約 17%", "省 NT$ 1,320／年・約 20%"] and sale[0]["s"] == "", sale)
+           and [x["b"] for x in sale[1:]] == ["省 NT$ 598／年・約 17%", "省 NT$ 1,098／年・約 17%"] and sale[0]["s"] == "", sale)
         notes = pg.evaluate("() => [...document.querySelectorAll('#prCards .prnote')].map(e => e.textContent)")
-        ok(f"{T}・demo {W}：年繳小字＝「年繳 NT$ 2,990（一次付清）」「年繳 NT$ 5,268（一次付清）」",
-           notes[1:] == ["年繳 NT$ 2,990（一次付清）", "年繳 NT$ 5,268（一次付清）"], notes)
+        ok(f"{T}・demo {W}：年繳小字＝「年繳 NT$ 2,990（一次付清）」「年繳 NT$ 5,490（一次付清）」",
+           notes[1:] == ["年繳 NT$ 2,990（一次付清）", "年繳 NT$ 5,490（一次付清）"], notes)
         ok(f"{T}・demo {W}：註冊會員卡沒有灰底說明框（Andy：沒必要）、Plus／Pro 仍有",
            pg.evaluate("() => [...document.querySelectorAll('#prCards .prfit')].map(e => e.classList.contains('nil') ? '' : e.textContent.trim().length > 0 ? 'y' : '').join(',')") == ",y,y")
         ok(f"{T}・demo {W}：Plus／Pro 定位句是範本寫的，不是預設「進階分析與更高的每日次數」",
@@ -59881,7 +59881,7 @@ def t_sub_1005(b, base, code):
                     pg.screenshot(path=str(pathlib.Path(os.environ["TW_PERDAY_SHOTS"]) / f"perday_merged_{per}_1440.png"))
                 ok(f"{T}・demo 1440 合併表（{per}）：三欄各層 top 差 ≤1px、按鈕底緣齊、價格小字沒被截", a2["n"] == 3 and all(v <= 1 for k, v in a2.items() if k not in ("n", "noteClip")) and not a2["noteClip"], a2)
             mtx = pg.inner_text("#prMerged thead")
-            ok(f"{T}・demo 1440 合併表：年繳 2,990／5,268、月均 249／439、徽章「省 NT$ 598／年・約 17%」「省 NT$ 1,320／年・約 20%」、Plus 定位句不是預設字", "2,990" in mtx and "5,268" in mtx and "439" in mtx and "省 NT$ 598／年・約 17%" in mtx and "省 NT$ 1,320／年・約 20%" in mtx and pg.inner_text("#prSave") == "最多省 20%" and "進階分析與更高的每日次數" not in mtx, mtx[:400])
+            ok(f"{T}・demo 1440 合併表：年繳 2,990／5,490、月均 249／458、徽章「省 NT$ 598／年・約 17%」「省 NT$ 1,098／年・約 17%」、Plus 定位句不是預設字", "2,990" in mtx and "5,490" in mtx and "458" in mtx and "省 NT$ 598／年・約 17%" in mtx and "省 NT$ 1,098／年・約 17%" in mtx and pg.inner_text("#prSave") == "省 17%" and "進階分析與更高的每日次數" not in mtx, mtx[:400])
             if os.environ.get("TW_PRICING_SHOTS"):
                 pg.screenshot(path=str(pathlib.Path(os.environ["TW_PRICING_SHOTS"]) / f"fix2_merged_{W}.png"))
             pg.click("#prLayout button[data-lay='cards']"); wait_until(pg, "() => !!document.querySelector('#prCards')", 3000)

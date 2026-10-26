@@ -163,7 +163,7 @@
       highlights: ['研究瀏覽・每日 50 次', '3D 剖析圖・完整功能', '四週期同看・畫線工具・指標自訂', '自選清單・5 頁、每頁 50 檔', 'ETF 報酬比較（自選 8 檔）', '客服優先回覆（只限功能與資料說明）'],
       feats: { 'stock.k_min': false, 'live.tick': false, 'watch.tabs': 5 },
       lims: { 'quota.all': 50, 'stock.page': 50, 'ind.diagram': 50, 'heat.detail': 50, 'ind.rel': 50, 'ind.groups': 50 }, watch: { tabs: 5, size: 50 } },
-    { key: 'pro', name: 'Pro', price: { month: 549, year: 5268 }, badge: '功能最齊', tagline: '不限次數，自選清單每天幫你整理好',
+    { key: 'pro', name: 'Pro', price: { month: 549, year: 5490 }, badge: '功能最齊', tagline: '不限次數，自選清單每天幫你整理好',
       fit_title: '適合追蹤多個題材與大量自選股', fit_desc: '研究頁不限次數、自選清單不限頁數；加上「自選清單日報」把你追蹤的股票今天發生了什麼（營收、法人、籌碼、事件）彙整成一頁，省下逐檔翻的時間。',
       highlights: ['研究瀏覽・不限次數', 'Plus 全部功能', '自選清單・不限頁數（每頁 200 檔）', '自選清單日報：營收／法人／籌碼／事件變化一覽（開發中）', '自設條件提醒（開發中）', '剖析圖高解析匯出（開發中）'],
       feats: { 'stock.k_min': false, 'live.tick': false, 'watch.tabs': 5 },
@@ -665,6 +665,7 @@
     const a = A();
     const u = a && a.on() ? a.user() : null;
     if (tierOf(p) === 'free') { if (a && a.on()) a.login(); else toast('會員登入功能尚未開放'); return; }
+    try { if (window.TwFunnel) window.TwFunnel('checkout_click'); } catch (e) { /* 漏斗統計失敗不影響訂閱 */ }   // 2026-10-26 W2：點付費方案的訂閱／預約鈕
     if (!a || !a.on()) {
       dialog(`<h3>訂閱申請</h3><p>線上申請暫時無法使用（會員功能尚未開放）。請從右下角「客服」寄信給我們，註明想要的方案「${esc(showName(p))}」。</p><div class="row2"><button type="button" class="pri" data-close>知道了</button></div>`);
       return;

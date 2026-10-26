@@ -47,7 +47,7 @@ https://liguligu-puipui.com/
 1. 第一行是標題：「盤中3分鐘」「盤後3分鐘」「盤後融資融券」，不帶日期。
 2. 每段一行「段名：」，底下每點用「・」開頭；同一段的第一點結尾用「；」。
 3. 每點列 **2 個**名稱（盤中、盤後統一，10-26 Andy：「統一兩個」）；字數超過 480 字時程式自動縮短。
-4. **網址只放最底下一行，整篇只有一個**（10-26 Andy：「連結只需要附在最底下就好」）。網址帶 `utm_source=threads&utm_campaign=<時段>_<MMDD>` 方便看成效。
+4. **網址只放最底下一行，整篇只有一個**（10-26 Andy：「連結只需要附在最底下就好」）。網址一律帶短參數 `?u=<平台>-<時段>-<yyyymmdd>`（**10-26 Andy 核准 J-3**，行銷方案 `growth_command_1026.md`）：平台 `th`＝Threads、`ig`＝Instagram；時段 `pm` 盤前、`id` 盤中、`cl` 盤後、`mg` 融資融券；日期＝發文當天。例：`https://liguligu-puipui.com/?u=th-id-20261026`。網站讀到後存成「第一次來源」，註冊時記進帳號（隱私權政策「行銷來源與使用統計」已寫明；開 DNT／GPC 的人不記）。程式：`social_snap.py` 的 `link_lines()`／`link_url()`；站內映射：`site/account.js` 的 `SRC_PLAT`／`SRC_SLOT`，改代碼兩邊一起改。不用 `utm_*` 長參數（視覺太吵）；IG 個人簡介連結位只有一個，另用 `?utm_source=ig_bio&utm_medium=profile`。
    - 盤中 → `#flow/rotation`；盤後 → `#market/inst`。
 5. hashtag 一行，放在網址上面。
 6. **不放**「資料：證交所／櫃買公開資料整理，僅供參考，不構成投資建議」這行（10-26 Andy：「底下資訊不用」）。免責放個人簡介與網站。
@@ -111,3 +111,4 @@ https://liguligu-puipui.com/
 來源（IG 限動不能用自動發文介面加連結貼紙）：
 - https://storrito.com/resources/instagram-story-api/
 - https://support.agorapulse.com/en/articles/9694913-workaround-instagram-stories-with-link-stickers
+- 2026-10-26：Andy 核准 J-3「照建議，全部執行」→ 文案最底下的網址改為帶 `?u=<平台>-<時段>-<yyyymmdd>`（取代 10-26 稍早「不帶追蹤參數」那條）；格式、位置、說明句不變。

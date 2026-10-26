@@ -76,6 +76,17 @@ Andy 2026-09-27：「使用者透過 google 登入設定，目的是能紀錄線
 | `indicators` | 打開指標設定下拉 | — |
 | `draw` | 打開畫線工具 | — |
 | `m_seg` | 手機分段導覽切換 | 手機的分段是不是被當成主要導覽 |
+| `land` | 網址帶來源（utm 或 `?u=`）進站，同一台 30 分鐘內算一次 | 哪個管道帶人進來（2026-10-26 行銷漏斗 W2） |
+| `signup` | 新會員第一次登入後，Worker 收到來源紀錄（帳號建立 15 分鐘內）；**Worker 計**，前端不送 | 各管道帶來多少註冊 |
+| `trial_start` | 同上，而且該會員拿到「新會員體驗」；**Worker 計** | 註冊後有多少人真的進入體驗 |
+| `pricing_view` | 進 `#pricing` 一次（跟頁面瀏覽 `pv:pricing` 同時算） | 有多少人看到價格 |
+| `checkout_click` | 點付費方案卡的訂閱／預約鈕 | 有多少人想買 |
+| `paid` | 第一次付款開通付費方案；**Worker 計**（`pay.js`），來源取自帳號的首次來源 | 各管道帶來多少付費 |
+
+**漏斗分來源**：以上六個事件除了全站合計（`ev:<事件>`），另寫一份細項事件（頁面 `other`、元件 `fn.<事件>`、細項＝來源名，沒來源為 `direct`），
+管理區「流量觀測」的「各來源漏斗」卡就是讀這份。
+**來源參數**：`utm_source`／`utm_medium`／`utm_campaign`／`utm_content`，或自動發文的短參數 `?u=<平台>-<時段>-<yyyymmdd>`（例 `th-id-20261027`，平台代碼 th＝Threads、ig＝Instagram，時段 pm 盤前、id 盤中、cl 盤後、mg 融資融券）。
+首次來源存在瀏覽器 `localStorage`（`tw.src`），第一次登入後送 `/v1/me/src` 寫進帳號一欄（`users.src`，只寫一次）；DNT／GPC 開著完全不讀不存不送。
 
 要加新事件：`worker.js` 的 `EVENTS`、`site/account.js` 的 `EVENTS`（與 `HOOKS` 或呼叫 `TwTrack('名稱')`）、
 本表三處一起改；`site/admin.js` 的 `EV_NAME` 補中文名。測試會抓三邊不一致。

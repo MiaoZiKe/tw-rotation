@@ -23,7 +23,7 @@ def test_caption_full_four_lines_within_480():
     i = L.index("🎡 資金輪盤：")
     assert L[0] == "🕛 盤中3分鐘" and L[1] == "🧭 盤面分析：" and L[i + 1].startswith("・領先 ") and L[i + 2].startswith("・落後 ")      # 10-26 晚：盤面分析放最前   # 2026-10-26 Andy 指定格式
     assert "🌳 資金分流樹：" in L and "🔥 熱力圖：" in L and L[-3].startswith("#台股") and "資料：" not in txt   # 盤中文案不放免責／來源
-    assert L[-2:] == ss.LINK_LINES and txt.count("https://") == 1 and " → " not in txt   # Andy：「連結只需要附在最底下就好」＋10-26 連結改成首頁＋說明句
+    assert L[-2:] == ss.link_lines("intraday", "20261020") and L[-1] == "https://liguligu-puipui.com/?u=th-id-20261020" and txt.count("https://") == 1 and " → " not in txt   # Andy：「連結只需要附在最底下就好」＋10-26 連結改成首頁＋說明句
     assert "#heatmap" not in txt
     assert "utm_medium" not in txt and "即時" not in txt
 
@@ -60,7 +60,7 @@ def test_盤後融資文案_獨立一篇():
     assert "・上市（估算）168.20%，較前日 -1.35pp" in L
     assert L[L.index("📈 融資：") + 1] == "・增加 長榮、華邦電；" and L[L.index("📈 融資：") + 2] == "・減少 台積電、聯電"
     assert L[L.index("📉 融券：") + 1] == "・增加 友達、力積電；" and L[L.index("📉 融券：") + 2] == "・減少 英業達、廣達"
-    assert L[-3].startswith("#台股 #融資") and L[-2:] == ss.LINK_LINES
+    assert L[-3].startswith("#台股 #融資") and L[-2:] == ss.link_lines("credit", "20261022") and L[-1].endswith("?u=th-mg-20261022")
     assert txt.count("https://") == 1 and ss.DISCLAIMER not in txt      # 網址只在最底下、不放免責
     assert len(txt) <= 480
     # 2026-10-26 起盤後那篇也帶融資融券（合併）
@@ -78,7 +78,7 @@ def test_盤後文案_照盤中格式():
     i = L.index("🏦 三大法人買賣超：")
     assert L[i + 1] == "・外資 -815.8億、投信 +94.9億；" and L[i + 2] == "・自營 -273.8億、合計 -994.7億" and i > L.index("📊 台指期法人淨未平倉：")
     assert "🌏 外資：" in L and "・買超 緯穎、廣達、精材；" in L and "・賣超 台積電、國巨、南亞" in L and "📊 台指期法人淨未平倉：" in L   # 10-27 起買賣超列前五名（測資只有 3 個）、星號拿掉
-    assert L[-3].startswith("#台股") and L[-2:] == ss.LINK_LINES and txt.count("https://") == 1
+    assert L[-3].startswith("#台股") and L[-2:] == ss.link_lines("close", "20261022") and L[-1].endswith("?u=th-cl-20261022") and txt.count("https://") == 1
     assert " → " not in txt and ss.DISCLAIMER not in txt and len(txt) <= 480
 
 

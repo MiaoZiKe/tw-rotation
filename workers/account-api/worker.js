@@ -75,6 +75,8 @@ export const EVENTS = [
   'search', 'watch_add', 'watch_remove', 'watch_tab_new', 'watch_panel',
   'stock_tab', 'k_period', 'ai_tab', 'open_3d', 'zoom', 'how', 'theme_toggle',
   'events_drawer', 'mtf', 'indicators', 'draw', 'm_seg',
+  /* 2026-10-26 行銷漏斗（W2）：進站、註冊、體驗開始、看價格、點結帳、付費。註冊／體驗／付費由 Worker 自己算（funnel 區塊），其餘由前端送 */
+  'land', 'signup', 'trial_start', 'pricing_view', 'checkout_click', 'paid',
 ];
 const EV_KEYS = new Set([...VIEWS.map((v) => 'pv:' + v), ...EVENTS.map((e) => 'ev:' + e)]);
 /* 細項事件（2026-10-05 admin-v2，docs/account_analytics.md「細項事件」）：[頁面, 元件, 細項, 次數]。
@@ -2728,3 +2730,52 @@ Hub.prototype.trackBatch = async function (req, b) {
   j.today = this.q('SELECT COUNT(*) AS c FROM dayvis WHERE day = ?', day)[0].c;
   return this.json(req, j);
 };
+
+
+/* ============================================================================ 行銷漏斗區塊（2026-10-26，W2，docs/marketing/growth_command_1026.md B-2）
+   · 首次來源（first-touch）：前端把網址的 utm_* 或短參數 ?u= 存在瀏覽器，第一次登入後送到 /v1/me/src，這裡存進 users.src（JSON，四欄各 ≤40 字）。
+     只在「帳號還沒有來源紀錄」時寫入一次，之後不改、不保留逐次紀錄（隱私權政策「行銷來源與使用統計」）。
+   · 註冊（signup）：帳號建立 15 分鐘內第一次送來 → 算一次註冊，歸在該來源（沒來源＝direct）。舊會員第一次送來只標記「已處理」，不算註冊。
+   · 體驗開始（trial_start）：註冊當下若拿到「新會員體驗」（grants 有 welcome）才算。
+   · 付費（paid）：pay.js 第一次開通付費方案時呼叫 funnelPaid，來源取自 users.src。
+   · 計數同時寫 usage（ev:<事件>，全站合計）與 ev2（頁面 other、元件 fn.<事件>、細項＝來源），管理區「流量觀測」的漏斗卡讀這兩處。
+   · DNT／GPC：前端根本不送，所以這裡不需要判斷。
+   ============================================================================ */
+const SRC_RE = /^[A-Za-z0-9_.-]{1,40}$/;
+Hub.prototype.funnelInit = function () {
+  if (this._funnelOk) return;
+  if (!this.q('PRAGMA table_info(users)').some((c) => c.name === 'src')) this.q('ALTER TABLE users ADD COLUMN src TEXT');
+  this._funnelOk = true;
+};
+Hub.prototype.funnelBump = function (e, src) {
+  const day = tpeDay(this.now()), s = SRC_RE.test(src || '') ? String(src).slice(0, 24) : 'direct';
+  this.q('INSERT INTO usage (day, k, n) VALUES (?, ?, 1) ON CONFLICT(day, k) DO UPDATE SET n = n + 1', day, 'ev:' + e);
+  this.q("INSERT INTO ev2 (day, page, comp, detail, n) VALUES (?, 'other', ?, ?, 1) ON CONFLICT(day, page, comp, detail) DO UPDATE SET n = n + 1", day, 'fn.' + e, s);
+};
+Hub.prototype.funnelPaid = function (uid) {
+  this.funnelInit();
+  const u = this.q('SELECT src FROM users WHERE uid = ?', uid)[0];
+  let s = 'direct'; try { const j = JSON.parse((u && u.src) || 'null'); if (j && j.s) s = j.s; } catch (e) { /* 壞資料當 direct */ }
+  this.funnelBump('paid', s);
+};
+Hub.prototype.subRoutes['/v1/me/src'] = async function (req, b) {
+  const v = await this.auth(req, b);
+  if (!v) return this.json(req, { error: 'auth' }, 401);
+  this.funnelInit();
+  const u = this.q('SELECT uid, created, src FROM users WHERE uid = ?', v.user.uid)[0];
+  if (!u) return this.json(req, { error: 'auth' }, 401);
+  if (u.src != null) return this.json(req, { ok: true, first: false });       // 已處理過：首次來源不改
+  const o = b.src && typeof b.src === 'object' ? b.src : {}, src = {};
+  for (const k of ['s', 'm', 'c', 'x']) if (SRC_RE.test(String(o[k] || ''))) src[k] = String(o[k]);
+  const isNew = this.now() - (u.created || 0) < 15 * 60 * 1000;
+  this.q('UPDATE users SET src = ? WHERE uid = ?', isNew && src.s ? JSON.stringify(src) : '', u.uid);
+  if (!isNew) return this.json(req, { ok: true, first: false });
+  const label = src.s || 'direct';
+  this.funnelBump('signup', label);
+  try {
+    this.grantInit();
+    if (this.q("SELECT 1 FROM grants g JOIN grant_defs d ON d.id = g.gid WHERE g.uid = ? AND d.kind = 'welcome'", u.uid).length) this.funnelBump('trial_start', label);
+  } catch (e) { /* 體驗表有問題不影響註冊統計 */ }
+  return this.json(req, { ok: true, first: true });
+};
+/* ============================================================================ 行銷漏斗區塊結束 */

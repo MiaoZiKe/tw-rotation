@@ -71,7 +71,20 @@ NAME_MAP: dict = {}      # 代號→名稱（從網站資料 stocks.json 讀；�
 ROOT = Path(__file__).resolve().parent.parent
 SITE_URL = "https://liguligu-puipui.com"
 # 文案最底下的連結（2026-10-26 Andy：「連結部分要改成：更多詳細資料可以點擊以下連結：https://liguligu-puipui.com/」——首頁網址，不帶追蹤參數與分頁）
-LINK_LINES = ["👉 更多詳細資料可以點擊以下連結：", SITE_URL + "/"]
+LINK_LINES = ["👉 更多詳細資料可以點擊以下連結：", SITE_URL + "/"]      # 舊常數（不帶來源參數）：貼文改用 link_lines()，這個只留給沒有時段資訊的呼叫端
+# 2026-10-26 Andy 核准 J-3（growth_command_1026.md）：貼文網址帶短參數 ?u=<平台>-<時段>-<yyyymmdd>，網站讀到後存成「第一次來源」，
+# 才看得出哪一篇帶來進站／註冊（站內映射見 site/account.js 的 SRC_PLAT／SRC_SLOT；改代碼兩邊一起改，規則寫在 docs/marketing/social_unit/auto_post.md）。
+# 平台代碼 th＝Threads、ig＝Instagram；時段 pm 盤前、id 盤中、cl 盤後、mg 融資融券。
+SLOT_CODE = {"premarket": "pm", "intraday": "id", "close": "cl", "credit": "mg"}
+
+
+def link_url(kind: str, ymd: str, platform: str = "th") -> str:
+    return f"{SITE_URL}/?u={platform}-{SLOT_CODE.get(kind, 'xx')}-{ymd}"
+
+
+def link_lines(kind: str, ymd: str, platform: str = "th") -> list[str]:
+    """文案最底下兩行：「👉 …」＋帶來源參數的首頁網址（整篇只放這一個網址）。"""
+    return [LINK_LINES[0], link_url(kind, ymd, platform)]
 # 標題與段名前的表情符號（2026-10-26 Andy：「搭配些表情符號，除了個股」→ 只加在標題／段名，列股票名稱的「・」行不加）
 EMOJI = {"盤面分析：": "🧭", "盤中3分鐘": "🕛", "盤後3分鐘": "🌙", "盤後融資融券": "💳",
          "資金輪盤：": "🎡", "資金分流樹：": "🌳", "熱力圖：": "🔥",
@@ -1694,7 +1707,7 @@ def _caption_lines(kind: str, stamp: str, shots: list[dict], data_date: str, ymd
             L += ["熱力圖：", f"・漲最多 {ups}；", f"・跌最多 {dns}"]
         L.append(HASHTAGS[kind])
         if links != "none":
-            L += LINK_LINES
+            L += link_lines(kind, ymd)
         return L
     elif kind == "credit":
         # 2026-10-26 Andy：盤中格式確認 OK、「以後 Follow 這格式」→ 標題一行、每段「標題：」＋「・」條列、網址只放最底下一行、不放資料來源／免責
@@ -1703,7 +1716,7 @@ def _caption_lines(kind: str, stamp: str, shots: list[dict], data_date: str, ymd
         L += credit_lines(ok, n)
         L.append(HASHTAGS[kind])
         if links != "none":
-            L += LINK_LINES
+            L += link_lines(kind, ymd)
         return L
     else:
         # 同上：Andy 盤中格式套到盤後
@@ -1738,7 +1751,7 @@ def _caption_lines(kind: str, stamp: str, shots: list[dict], data_date: str, ymd
         # 2026-10-27 Andy：融資融券移到隔天盤前，盤後不再列
         L.append(HASHTAGS[kind])
         if links != "none":
-            L += LINK_LINES
+            L += link_lines(kind, ymd)
         return L
 
 

@@ -358,7 +358,7 @@ export function installPay(Hub, H) {
       if (cur) this.q('UPDATE perm SET plan = ?, expires = ?, updated = ? WHERE email = ?', o.plan, to, now, email);
       else this.q('INSERT INTO perm (email, plan, over, updated, expires) VALUES (?, ?, ?, ?, ?)', email, o.plan, '{}', now, to);
       const bf = this.billFlags(email);
-      if (!bf || !bf.first_paid) this.billUpsert(email, { first_paid: o.paid_at || now });
+      if (!bf || !bf.first_paid) { this.billUpsert(email, { first_paid: o.paid_at || now }); try { this.funnelPaid(o.uid); } catch (e) { /* 漏斗統計失敗不影響開通 */ } }   // 2026-10-26 W2：第一次付費才算漏斗的「付費」
       this.paySet(o.id, { applied: 1, status: 'active', grant_from: from, grant_to: to, confirmed_at: now, act_src: src, act_err: null, paid_at: o.paid_at || now, ...(upNote ? { anomaly: upNote } : {}) });
       this.planEv(email, same && from > now ? 'extend' : 'activate', o.plan, o.id, `${tpeDay(from)}～${tpeDay(to)}（${src}）`);
       this.payEv(o.id, 'activate', { src, from, to });

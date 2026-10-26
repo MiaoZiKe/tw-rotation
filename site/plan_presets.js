@@ -441,7 +441,7 @@ window.TW_PLAN_PRESETS = {
    "key": "pro",
    "name": "Pro",
    "price": 549,
-   "price_year": 5268,
+   "price_year": 5490,
    "dq": null,
    "feats": {
     "flow.play": true,
@@ -538,7 +538,7 @@ window.TW_PLAN_PRESETS = {
      "自選清單不限頁數（每頁 200 檔）",
      "自選清單日報（開發中）・自設條件提醒（開發中）"
     ],
-    "price_year": 5268
+    "price_year": 5490
    }
   }
  ]

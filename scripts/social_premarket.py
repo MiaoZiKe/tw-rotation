@@ -1107,7 +1107,7 @@ def caption(D: dict, ymd: str, max_len: int = ss.THREADS_MAX) -> str:
     def trim(r: str, k: int) -> str:
         return "；".join(r.split("；")[:k])
     news = D["news"]
-    tail = [HASHTAGS, *ss.LINK_LINES]      # 2026-10-27 Andy：「留言『消息』這句都先拿掉」（自動私訊還沒做；Threads 也沒有私訊 API）
+    tail = [HASHTAGS, *ss.link_lines("premarket", ymd)]      # 2026-10-27 Andy：「留言『消息』這句都先拿掉」（自動私訊還沒做；Threads 也沒有私訊 API）
     txt = ""
     # 先縮事件則數與標題長度，再把每檔解讀縮成「漲跌＋走勢」一段（距 60 日高點等細節圖上有），融資前五名一定保留（Andy 10-27）
     for kn, tl, rk in ((5, 22, 9), (4, 20, 9), (3, 18, 9), (5, 20, 1), (4, 18, 1), (3, 18, 1), (3, 16, 1), (3, 14, 1), (2, 14, 1)):

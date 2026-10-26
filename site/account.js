@@ -23,7 +23,7 @@
   /* 使用統計白名單 —— 跟 workers/account-api/worker.js 同一份，測試會比對（改一邊要改另一邊與文件）*/
   /* 跟 Worker 的 VIEWS 完全一致（18 頁、同順序；tests/account.test.mjs 三邊一致測試）。後七頁 2026-10-05（hourly）Worker 先補、這裡跟上 */
   const VIEWS = ['overview', 'flow', 'industry', 'heatmap', 'market', 'season', 'delivery', 'stock', 'legal', 'watch', 'other', 'etf', 'explore', 'earnings', 'events', 'support', 'pricing', 'notices', 'articles'];   // 2026-10-16 精選文章（#articles、#article/<id>）；Worker VIEWS_ADDED 同一批加
-  const EVENTS = ['session', 'session_login', 'login', 'logout', 'search', 'watch_add', 'watch_remove', 'watch_tab_new', 'watch_panel', 'stock_tab', 'k_period', 'ai_tab', 'open_3d', 'zoom', 'how', 'theme_toggle', 'events_drawer', 'mtf', 'indicators', 'draw', 'm_seg'];
+  const EVENTS = ['session', 'session_login', 'login', 'logout', 'search', 'watch_add', 'watch_remove', 'watch_tab_new', 'watch_panel', 'stock_tab', 'k_period', 'ai_tab', 'open_3d', 'zoom', 'how', 'theme_toggle', 'events_drawer', 'mtf', 'indicators', 'draw', 'm_seg', 'land', 'signup', 'trial_start', 'pricing_view', 'checkout_click', 'paid'];
   const K_TOK = 'tw.acct.tok', K_USER = 'tw.acct.user';
   const BEAT_MS = 60 * 1000;
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
@@ -102,12 +102,69 @@
     counted();
   }
   window.TwT = (comp, detail) => t2(comp, detail);
+  /* ---- 行銷來源與漏斗（2026-10-26，W1/W2，docs/marketing/growth_command_1026.md B-2；隱私權政策「行銷來源與使用統計」已先上線）
+     · 網址帶 utm_source／utm_medium／utm_campaign／utm_content，或自動發文用的短參數 ?u=<平台>-<時段>-<yyyymmdd>（J-3，例 th-id-20261027）。
+     · 「第一次來源」（first-touch）存在這台瀏覽器 localStorage（tw.src），已經有就不覆蓋；每欄只留英數與 . _ -，最長 40 字。不存 utm_term、不存 IP。
+     · 第一次登入後送給 Worker（/v1/me/src）寫進帳號一欄，Worker 只在帳號沒有來源時寫一次。
+     · 漏斗事件 land／pricing_view／checkout_click 由前端送：全站合計走 ev:<事件>，分來源走細項（頁面 other、元件 fn.<事件>、細項＝來源）。
+       signup／trial_start／paid 由 Worker 算（註冊、體驗額度、金流開通才是真相），這裡只在白名單。
+     · DNT／GPC：不讀、不存、不送（跟其他統計同一條規則）。 */
+  const K_SRC = 'tw.src', K_SRC_SENT = 'tw.src.sent', K_LAND = 'tw.src.land';
+  const SRC_PLAT = { th: 'threads', ig: 'instagram', fb: 'facebook', yt: 'youtube', x: 'x', tt: 'tiktok', ln: 'line' };
+  const SRC_SLOT = { pm: 'premarket', id: 'intraday', cl: 'close', mg: 'margin', wk: 'weekly' };
+  const srcClean = (v) => String(v == null ? '' : v).replace(/[^A-Za-z0-9_.-]/g, '').slice(0, 40);
+  function srcFromUrl() {
+    let q; try { q = new URLSearchParams(location.search); } catch (e) { return null; }
+    const o = {};
+    const s = srcClean(q.get('utm_source')), m = srcClean(q.get('utm_medium')), c = srcClean(q.get('utm_campaign')), x = srcClean(q.get('utm_content'));
+    if (s) { o.s = s; if (m) o.m = m; if (c) o.c = c; if (x) o.x = x; return o; }
+    const u = String(q.get('u') || '').toLowerCase().split('-');      // 短參數：平台-時段-日期
+    const p = srcClean(u[0]);
+    if (!p) return null;
+    o.s = SRC_PLAT[p] || p; o.m = 'post';
+    const slot = srcClean(u[1]), day = srcClean(u[2]);
+    if (slot) o.c = ((SRC_SLOT[slot] || slot) + (day ? '_' + day : '')).slice(0, 40);
+    return o;
+  }
+  const srcGet = () => { try { const o = JSON.parse(ls.get(K_SRC) || 'null'); return o && o.s ? o : null; } catch (e) { return null; } };
+  /* 進站時呼叫一次：網址有來源且這台還沒有第一次來源 → 存起來。回傳這次網址的來源（算「進站」用） */
+  function srcInit() {
+    if (noTrack()) return null;
+    const cur = srcFromUrl();
+    if (cur && !srcGet()) ls.set(K_SRC, JSON.stringify(cur));
+    return cur;
+  }
+  const srcLabel = () => { const o = srcGet(); return o ? o.s.slice(0, 24) : 'direct'; };
+  function funnel(e, label) {
+    if (!S.on || noTrack()) return;
+    track(e);
+    t2('fn.' + e, label || srcLabel(), 'other');
+  }
+  window.TwFunnel = (e) => funnel(e);
+  /* 進站：這次網址帶了來源，且這台 30 分鐘內沒算過 → 算一次（用網址的來源，不是第一次來源） */
+  function landTrack(cur) {
+    if (!cur) return;
+    const last = +ls.get(K_LAND) || 0;
+    if (Date.now() - last < 30 * 60 * 1000) return;
+    ls.set(K_LAND, String(Date.now()));
+    funnel('land', cur.s.slice(0, 24));
+  }
+  /* 登入成功後：把第一次來源（沒有也要送，Worker 才能把「直接進站的註冊」算成 direct）交給 Worker；同一個帳號只送一次 */
+  async function sendSrc() {
+    if (noTrack() || !S.user) return;
+    const uid = S.user.uid || S.user.email || '';
+    if (uid && ls.get(K_SRC_SENT) === uid) return;
+    const j = await call('/v1/me/src', { src: srcGet() || {} });
+    if (j && j._s === 200 && uid) ls.set(K_SRC_SENT, uid);
+  }
+  window.TwSrc = { get: srcGet, parse: srcFromUrl };
   function pv() {
     const v = viewOf(location.hash); if (!v) return;
     const key = v === 'stock' ? location.hash.split('/').slice(0, 2).join('/') : v;   // 換一檔股票算一次、同一頁內部切換不重算
     if (key === S.lastPv) return;
     S.lastPv = key;
     if (S.on && !noTrack()) bump('pv:' + v);
+    if (v === 'pricing') funnel('pricing_view');             // 漏斗：看價格
     if (v === 'stock' && stockCode()) t2('view', stockCode(), 'stock');     // 個股被觀看：細項＝代號
   }
   function takeQ() {
@@ -591,6 +648,7 @@ html:not(.m4) .m4deldlg .msg{min-height:1.4em;font-size:13px;color:#ff6b7a;margi
         <li><b>自選清單</b>只存股票代號與清單名稱，<b>不存張數、成本、損益</b>。</li>
         <li><b>功能權限</b>：網站管理者可以替你的 email 設定方案與可用的功能（例如付費方案）；刪除帳號時一起刪除。</li>
         <li><b>使用統計（所有訪客，不論是否登入）</b>：每天每一頁、每一項功能被使用的<b>次數</b>，不含身分、不存 IP，保留 13 個月。瀏覽器開了「請勿追蹤」就完全不送。</li>
+        <li><b>行銷來源</b>：若你是從貼文連結進站，會記下「第一次來源」（例如 threads），註冊時存進你的帳號一欄、只存這一次，只用來統計各管道成效；開了「請勿追蹤」就完全不記。</li>
         <li><b>線上狀態</b>：關掉分頁，或 7 分鐘沒有訊號，就刪除。</li>
         <li><b>保存期限</b>：會員資料保存到你刪除為止；連續 24 個月沒有使用會自動刪除。</li>
         <li><b>存放</b>：Cloudflare（Workers／Durable Objects）；登入經由 Google 驗證身分。</li>
@@ -643,7 +701,7 @@ html:not(.m4) .m4deldlg .msg{min-height:1.4em;font-size:13px;color:#ff6b7a;margi
     stopPoll();
     const tick = async () => {
       const j = await call('/auth/redeem', { n });
-      if (j && j.tok && j.user) { stopPoll(); closeDlg(); setUser(j.user, j.tok); track('login'); toast('已登入：' + (j.user.name || j.user.email)); goHome(); return; }
+      if (j && j.tok && j.user) { stopPoll(); closeDlg(); setUser(j.user, j.tok); track('login'); sendSrc(); toast('已登入：' + (j.user.name || j.user.email)); goHome(); return; }
       if (j && j._s === 404) { stopPoll(); openDlg('notice'); toast('登入沒有完成，請再試一次'); return; }
       if (Date.now() - t0 > 180 * 1000) { stopPoll(); closeDlg(); toast('等太久了，登入已取消'); return; }
       S.poll = setTimeout(tick, 1200);
@@ -671,7 +729,7 @@ html:not(.m4) .m4deldlg .msg{min-height:1.4em;font-size:13px;color:#ff6b7a;margi
     const d = e.data || {};
     if (d.type === 'tw-login' && d.n && d.n === S.pollN) { clearTimeout(S.poll); S.poll = setTimeout(async () => {
       const j = await call('/auth/redeem', { n: d.n });
-      if (j && j.tok && j.user) { stopPoll(); closeDlg(); setUser(j.user, j.tok); track('login'); toast('已登入：' + (j.user.name || j.user.email)); goHome(); }
+      if (j && j.tok && j.user) { stopPoll(); closeDlg(); setUser(j.user, j.tok); track('login'); sendSrc(); toast('已登入：' + (j.user.name || j.user.email)); goHome(); }
     }, 0); }
   });
   function logout() { track('logout'); setUser(null, null); toast('已登出。這台裝置上不會留下你的雲端清單。'); if ((location.hash || '').startsWith('#admin')) route('admin'); }
@@ -765,6 +823,7 @@ html:not(.m4) .m4deldlg .msg{min-height:1.4em;font-size:13px;color:#ff6b7a;margi
        同一組代碼會把新頁面剛登記的在線紀錄刪掉（驗收實測抓到），換一組就不會互相踩到。*/
     S.sid = rnd(12);
     paintBar();
+    landTrack(srcInit());
     pv();
     /* 整頁跳轉登入回來：拿 sessionStorage 的 n 去換權杖 */
     const hn = takeHashN();
@@ -772,7 +831,7 @@ html:not(.m4) .m4deldlg .msg{min-height:1.4em;font-size:13px;color:#ff6b7a;margi
     if (n) {
       ss.del('tw.acct.n');
       const j = await call('/auth/redeem', { n });
-      if (j && j.tok && j.user) { setUser(j.user, j.tok); track('login'); toast('已登入：' + (j.user.name || j.user.email)); goHome(); }
+      if (j && j.tok && j.user) { setUser(j.user, j.tok); track('login'); sendSrc(); toast('已登入：' + (j.user.name || j.user.email)); goHome(); }
       else {
         /* 代碼已被原本那一頁的輪詢先換走（同一個瀏覽器、共用 localStorage）：讀回權杖照樣算登入 */
         S.tok = ls.get(K_TOK) || S.tok;
