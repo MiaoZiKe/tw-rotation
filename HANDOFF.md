@@ -1,5 +1,13 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
+### 2026-10-27 02:35 CEO：社群自動發文正式開啟（Andy「開始發…接下來就是自動發文」）
+- 總開關 docs/marketing/social_unit/LIVE_ENABLED 已建（刪掉＝回 dry-run）。格式照 docs/marketing/social_unit/auto_post.md。
+- 時間：盤前 08:20（只在台股交易日；休市或已過開盤就不發，美股有開也不發）→ 盤中 12:00 → 盤後等當天法人／期貨資料到齊（daily 管線跑完觸發）。
+- 盤前發完寫回 site/articles/premarket.json（網站盤前消息）。
+- ⚠ GH_DISPATCH_TOKEN 未設 → 只靠 GitHub 內建排程，可能延遲；盤前若晚於 08:45 才跑會被擋下不發。設定步驟 docs/gh_cron_setup.md。
+- 待辦：Meta 換發的 Threads／IG 長效金鑰要更新到 GitHub Secrets（舊的到期前有效）；精選文章隱藏眼睛＋盤後消息分頁（frontend-ui 進行中）。
+- 這批驗：pytest tests/test_gh_cron.py tests/test_social_fast.py 等 social 相關全綠；盤前閘門手動驗休市日／交易日 08:20／09:30／週六。
+
 ### 2026-10-25 CEO：產業地圖新增「矽光子／CPO」分頁上線（合併 claude/siph-chain＋claude/siph-diagrams）
 - Andy 10-24：「產業地圖幫我新增矽光子CPO題材分頁…有哪些設備 產業 他們之間的關係…同樣風格的繪製2D/3D 風格圖」。
 - 調查 docs/siph_cpo_{semi,optics,substrate}_evidence.md；裁決 docs/siph_cpo_chain_notes.md；疊加族群 DECISIONS #362；規格 docs/diagram_specs/siph_cpo.md。
