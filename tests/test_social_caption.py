@@ -20,7 +20,8 @@ def test_caption_full_four_lines_within_480():
     txt = ss.build_text("intraday", "10/20 12:34", _shots(), "2026-10-20", "20261020")
     assert len(txt) <= 480, len(txt)
     L = txt.splitlines()
-    assert L[0] == "🕛 盤中消息" and L[1] == "🎡 資金輪盤：" and L[2].startswith("・領先 ") and L[3].startswith("・落後 ")   # 2026-10-26 Andy 指定格式
+    i = L.index("🎡 資金輪盤：")
+    assert L[0] == "🕛 盤中消息" and L[1] == "🧭 盤面分析：" and L[i + 1].startswith("・領先 ") and L[i + 2].startswith("・落後 ")      # 10-26 晚：盤面分析放最前   # 2026-10-26 Andy 指定格式
     assert "🌳 資金分流樹：" in L and "🔥 熱力圖：" in L and L[-3].startswith("#台股") and "資料：" not in txt   # 盤中文案不放免責／來源
     assert L[-2:] == ss.LINK_LINES and txt.count("https://") == 1 and " → " not in txt   # Andy：「連結只需要附在最底下就好」＋10-26 連結改成首頁＋說明句
     assert "#heatmap" not in txt
@@ -119,3 +120,17 @@ def test_ETF買超含槓桿型_附張數():
     j = {"all_by": {"foreign": [["00631L", 900, 0.5], ["00632R", 999, 0.1], ["2330", 10, 9.0], ["00687B", 16132, 4.36]]}}
     rows = nat.etf_buy(j, "foreign", 10, {})
     assert [r["code"] for r in rows] == ["00687B", "00631L", "00632R"] and rows[1]["lots"] == 900
+
+
+def test_盤面分析_盤中與盤後():
+    ok = {"heat": {"heat": [["A", 3.0], ["B", 2.0], ["C", -1.0], ["D", 1.5]]},
+          "sankey": {"notes": [["流入前五", ["A", "C"]], ["流出前五", ["B", "晶圓代工"]]]}}
+    r = ss.intraday_reads(ok)
+    assert r[0].startswith("族群普漲") and any("資金與股價同向：A" in x for x in r) and any("資金流入但股價收黑：C" in x for x in r) \
+        and any("漲幅逾 1% 但資金流出：B" in x for x in r)
+    im = {"rows": [{"d": "1", "f": 10, "t": 5}, {"d": "2", "f": -3, "t": 6}, {"d": "3", "f": -4, "t": 7}]}
+    r = ss.close_reads(im, {"foreign": {"net": [-100, -150]}}, {}, {"taiex": 100, "change": -2, "advancers": 100, "decliners": 300}, [{"prod": "小台", "pct": "+25%"}], {"ratio": "170", "chg": "-1.2"})
+    assert r[0].startswith("加權指數跌 2 點") and "跌家數是漲家數的 3.0 倍" in r[0]
+    assert "外資連 2 日賣超，累計 -7.0 億" in r and "投信連 3 日買超，累計 +18.0 億" in r
+    assert "外資台指期淨空單 150 口，較前日增加 50 口" in r and any("與外資期貨淨空方向相反" in x for x in r)
+    assert not any(w in "".join(r) for w in ("可望", "將", "建議", "布局"))      # 只寫事實（投顧法）
