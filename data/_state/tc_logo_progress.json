@@ -1,83 +1,13 @@
 {
- "at": "2026-10-26T18:35:33.697829+00:00",
+ "at": "2026-10-26T19:21:47.738303+00:00",
  "done": true,
  "pending": 0,
- "attempted": 54,
- "counts": {
-  "ok": 47,
-  "robots": 1,
-  "none": 3,
-  "too_small": 2,
-  "error": 1
- },
+ "attempted": 0,
+ "counts": {},
  "domains": 54,
  "have": 47,
  "coverage": 0.87,
  "next_due": "2026-11-26",
- "seconds": 66.8,
- "failures": [
-  {
-   "domain": "google.com",
-   "status": "robots",
-   "tried": {
-    "site": "robots https://google.com/ robots.txt 的 Disallow 規則不允許 —— 尊重它，也不走 Google 備援",
-    "wikimedia": "none Wikidata 查不到官網是 google.com 的 Google／沒有標誌圖",
-    "google_s2": "官網禁止或擋雲端存取，不問 Google"
-   }
-  },
-  {
-   "domain": "hitachi-hightech.com",
-   "status": "none",
-   "tried": {
-    "site": "none robots.txt 與首頁都回 HTTP 403（對方擋雲端存取），圖檔與 Google 備援都不抓 https://www.hitachi-hightech.com/",
-    "wikimedia": "none Commons too_wide 250x40",
-    "google_s2": "官網禁止或擋雲端存取，不問 Google"
-   }
-  },
-  {
-   "domain": "kaikutek.com",
-   "status": "too_small",
-   "tried": {
-    "site": "ok [57, 57]",
-    "wikimedia": "none Wikidata 查不到官網是 kaikutek.com 的 Kaikutek／沒有標誌圖",
-    "google_s2": "none none HTTP 404 https://www.google.com/s2/favicons?domain=kaikutek.com&sz=256"
-   }
-  },
-  {
-   "domain": "merckgroup.com",
-   "status": "none",
-   "tried": {
-    "site": "none robots.txt 與首頁都回 HTTP 403（對方擋雲端存取），圖檔與 Google 備援都不抓 https://www.merckgroup.com/",
-    "wikimedia": "none Commons too_wide 250x43",
-    "google_s2": "官網禁止或擋雲端存取，不問 Google"
-   }
-  },
-  {
-   "domain": "mitaccomputing.com",
-   "status": "too_small",
-   "tried": {
-    "site": "ok [48, 48]",
-    "wikimedia": "none Wikidata 查不到官網是 mitaccomputing.com 的 Mitac Computing Technology／沒有標誌圖",
-    "google_s2": "ok [48, 48]"
-   }
-  },
-  {
-   "domain": "spil.com.tw",
-   "status": "error",
-   "tried": {
-    "site": "error robots.txt 回 HTTP 500（RFC 9309 §2.3.1.4：伺服器錯誤視為暫時全站禁止，這輪不抓）https://spil.com.tw/",
-    "wikimedia": "none Wikidata 查不到官網是 spil.com.tw 的 Siliconware Precision Industries／沒有標誌圖",
-    "google_s2": "none none HTTP 404 https://www.google.com/s2/favicons?domain=spil.com.tw&sz=256"
-   }
-  },
-  {
-   "domain": "teradyne.com",
-   "status": "none",
-   "tried": {
-    "site": "none robots.txt 與首頁都回 HTTP 403（對方擋雲端存取），圖檔與 Google 備援都不抓 https://teradyne.com/",
-    "wikimedia": "none Commons too_wide 250x38",
-    "google_s2": "官網禁止或擋雲端存取，不問 Google"
-   }
-  }
- ]
+ "seconds": 0.0,
+ "failures": []
 }

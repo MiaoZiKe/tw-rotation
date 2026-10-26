@@ -1,6 +1,6 @@
 {
  "enabled": true,
- "at": "2026-10-26T18:35:33.368307+00:00",
+ "at": "2026-10-26T19:21:47.361963+00:00",
  "manual": {
   "files": 0,
   "applied": [],
@@ -32,12 +32,6 @@
   "coverage": 0.87,
   "pending": 0,
   "next_due": "2026-11-26",
-  "counts": {
-   "ok": 47,
-   "robots": 1,
-   "none": 3,
-   "too_small": 2,
-   "error": 1
-  }
+  "counts": {}
  }
 }
