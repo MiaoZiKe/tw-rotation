@@ -1,0 +1,56 @@
+# ==========================================================================================
+# 前向模擬盤排程「草稿」——放在 docs/，不在 .github/，所以不會被 GitHub 執行，也沒有接任何排程。
+# 要啟用時（需 Andy 同意）：複製到 .github/workflows/paper_lab5.yml，並先確認下面「啟用前檢查」。
+#
+# 做的事：每個交易日盤後（每日管線 daily.yml 的 21:30 台北那輪之後）用資料湖最新資料，
+# 重算三組凍結策略的持股、換股訊號與模擬帳，並與 0050（含息、扣成本）並列，把結果 commit 回分支。
+# 不下單、不接券商、不改 data/。
+#
+# 啟用前檢查（缺一不可）：
+#   1. 資料湖當天已更新完（daily.yml 跑完）。本檔用 workflow_run 等它，不自己抓資料。
+#   2. 只 commit docs/strategy_lab/paper/ 這個資料夾；不碰 data/、site/、pipeline/。
+#   3. concurrency 不可 cancel-in-progress（CLAUDE.md 第 6 條：會出現「repo 已更新但結果是舊的」）。
+#   4. 目標分支必須與其他專家的推送協調（先 pull --rebase；衝突時放棄這輪，下次再跑——重放是無狀態的，結果一樣）。
+#   5. 不放任何金鑰；本流程只讀 repo 內的 Parquet。
+# ==========================================================================================
+name: paper-lab5-draft
+
+on:
+  workflow_run:
+    workflows: ["每日盤後管線"]   # 對應 .github/workflows/daily.yml 的 name；該檔若改名這裡要跟著改
+    types: [completed]
+  workflow_dispatch: {}
+
+concurrency:
+  group: paper-lab5
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  paper:
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: claude/elegant-fermi-scpgme      # 啟用時改成實際要放結果的分支（不是 main）
+          fetch-depth: 1
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - name: 重放並產生模擬帳（無狀態，可重跑）
+        run: python -c "from pipeline.compute import paper_lab5; paper_lab5.run_paper()"
+      - name: 只提交模擬盤資料夾
+        run: |
+          git config user.name  "paper-lab5-bot"
+          git config user.email "paper-lab5-bot@users.noreply.github.com"
+          git add docs/strategy_lab/paper/
+          git diff --cached --quiet && echo "無變更" && exit 0
+          git commit -m "前向模擬盤：$(date -u +%F) 盤後更新（自動，不下單）"
+          git pull --rebase origin claude/elegant-fermi-scpgme || { echo "與其他推送衝突，放棄本輪"; exit 0; }
+          git push origin HEAD:claude/elegant-fermi-scpgme

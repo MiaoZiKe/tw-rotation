@@ -241,7 +241,7 @@ def pick(P, spec, t, pool, nret=None):
     return list(top), {int(i): float(sc[i]) for i in top}
 
 
-def run_periodic(P, spec, pool, lo, hi, trades=False):
+def run_periodic(P, spec, pool, lo, hi, trades=False, liquidate=True):
     idx = P["idx"]
     lo_i = idx.searchsorted(pd.Timestamp(lo)); hi_i = idx.searchsorted(pd.Timestamp(hi), side="right") - 1
     O, Cf = P["O"], P["Cf"]
@@ -305,7 +305,8 @@ def run_periodic(P, spec, pool, lo, hi, trades=False):
         pv = sum(sh[i] * Cf[t, i] for i in sh)
         eq[t] = cash + pv
         inv[t] = pv / eq[t]
-    if sh:       # 窗尾清倉成本
+    held_end = {P["cols"][i]: dict(shares=sh[i], entry=idx[ent[i][0]], entry_px=ent[i][1], last=Cf[hi_i, i]) for i in sh}
+    if sh and liquidate:       # 窗尾清倉成本（紙上交易不清倉）
         val = sum(sh[i] * Cf[hi_i, i] for i in sh)
         eq[hi_i] -= val * (SLIP + FEE + TAX)
         if trades:
@@ -315,7 +316,7 @@ def run_periodic(P, spec, pool, lo, hi, trades=False):
                                ret=px * (1 - FEE - TAX) / (ent[i][1] * (1 + FEE)) - 1, exit_reason="窗尾清倉（回測結束）", score=ent[i][2]))
     s = pd.Series(eq, index=idx).iloc[lo_i:hi_i + 1]
     yrs = max((s.index[-1] - s.index[0]).days / 365.25, 1e-9)
-    return dict(eq=s, trades=pd.DataFrame(tr), turnover=buys / yrs / max(s.mean(), 1e-9),
+    return dict(eq=s, trades=pd.DataFrame(tr), held=held_end, sh_idx={i: v for i, v in sh.items()}, turnover=buys / yrs / max(s.mean(), 1e-9),
                 expo=float(inv[lo_i:hi_i + 1].mean()))
 
 
