@@ -74,6 +74,7 @@
 .ntdrop .ntf a{display:block;padding:10px;color:var(--cyan);font-size:13.5px;text-decoration:none}
 .ntitem{display:block;width:100%;text-align:left;background:none;border:0;border-bottom:1px solid var(--line);padding:11px 14px;color:var(--ink);cursor:pointer;font:inherit}
 .ntitem.unread{background:color-mix(in srgb,var(--cyan) 7%,transparent)}
+.ntitem:hover,.ntitem:focus-visible,.ntitem.unread:hover{background:color-mix(in srgb,var(--cyan) 16%,var(--panel-2))}
 .ntitem .r1{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--ink-2)}
 .ntitem .r1 .u{width:8px;height:8px;border-radius:50%;background:var(--rise);flex:none}
 .ntitem .ttl{display:block;font-size:14.5px;font-weight:600;margin:3px 0 2px;line-height:1.45}
@@ -235,7 +236,7 @@
           return;
         }
         if (e.target.closest('#ntReadAll')) { markRead(unread().map((n) => n.id)).then(paintDrop); paintDrop(); return; }
-        const go = it && payLink(L().find((x) => x.id === it.dataset.id));
+        const go = it && it.dataset.route;
         if (go) { markRead([it.dataset.id]); toggleDrop(false); location.hash = go; return; }
         if (it) { S.expand = S.expand === it.dataset.id ? null : it.dataset.id; markRead([it.dataset.id]); paintDrop(); }
       });
@@ -254,10 +255,17 @@
     const m = /訂單編號：\s*([A-Za-z0-9_-]+)/.exec(b), oid = m ? '/' + encodeURIComponent(m[1]) : '';
     return /綠界/.test(b) && !/銀行轉帳/.test(b) ? '#admin/pay/orders' + oid : '#admin/pay/bankord' + oid;
   }
+  /* 2026-10-27（Andy：「這裡改點擊對應消息就連結過去」）：整張卡可點 → 跳到該則對應的站內路由。
+     路由 = 帳務通知的 payLink，否則內文裡第一個站內路由（[文字](#路由) 或單獨寫的 #路由）；都沒有 → '' → 點了只標已讀（照舊展開）。*/
+  function noticeRoute(n) {
+    const p = payLink(n); if (p) return p;
+    const m = /\]\((#[a-z][\w\/-]*)\)|(?:^|[^\w&\/#"=])(#[a-z][\w\/-]*)/i.exec(String(n && n.body || ''));
+    return m ? (m[1] || m[2]) : '';
+  }
   const goHTML = (n) => { const l = payLink(n); return l ? `<a class="ntgo" href="${esc(l)}" data-go="${esc(n.id)}">${/reqs$/.test(l) ? '前往取消／退款申請' : '前往付款與訂單處理'} →</a>` : ''; };
   function itemHTML(n) {
     const u = !isRead(n);
-    return `<button type="button" class="ntitem${u ? ' unread' : ''}${S.expand === n.id ? ' ex' : ''}" data-id="${esc(n.id)}" aria-expanded="${S.expand === n.id}">
+    return `<button type="button" class="ntitem${u ? ' unread' : ''}${S.expand === n.id ? ' ex' : ''}" data-id="${esc(n.id)}" aria-expanded="${S.expand === n.id}"${noticeRoute(n) ? ` data-route="${esc(noticeRoute(n))}"` : ''}>
       <span class="r1">${u ? '<i class="u" aria-label="未讀"></i>' : ''}<span class="ntkind k-${esc(n.kind)}">${esc(KINDS[n.kind] || n.kind)}</span>${n.pinned ? '<span class="ntpin">置頂</span>' : ''}<span>${dstr(n.start)}</span></span>
       <span class="ttl">${esc(n.title)}</span><span class="bd">${rich(n.body)}</span>${payLink(n) ? `<span class="ntgo">${/reqs$/.test(payLink(n)) ? '前往取消／退款申請' : '前往付款與訂單處理'} →</span>` : ''}</button>`;
   }
