@@ -459,12 +459,13 @@ def b_fut_oi(mode, w, h, ctx):
         net = [float(x) if x is not None else 0.0 for x in j[key]["net"][-126:]]
         last = net[-1]
         svg = "".join(_bars_svg(w - 6, ph - round(74 * s), net, dates, round(24 * s))) + "</svg>"
-        pn.append(f'<div class=sub style="height:{ph:.0f}px;margin-bottom:10px"><div class=ptitle>{lab} 每日淨未平倉（口）<span class=rt style="font-size:{round(36 * s)}px;font-weight:800;color:{tone(last)}">{sgn(last, 0)}</span></div>{svg}</div>')
+        pn.append(f'<div class=sub style="height:{ph:.0f}px;margin-top:10px"><div class=ptitle>{lab} 每日淨未平倉（口）<span class=rt style="font-size:{round(36 * s)}px;font-weight:800;color:{tone(last)}">{sgn(last, 0)}</span></div>{svg}</div>')
     foot = []
     for key, lab in (("foreign", "外資"), ("trust", "投信"), ("dealer", "自營商")):
         lg, sh = j[key]["long"][-1], j[key]["short"][-1]
         foot.append(f'<div class=k style="padding:4px 10px"><div class=l>{lab}</div><div class=vv style="font-size:{round(34 * s)}px;color:{tone(lg - sh)}">{sgn(lg - sh, 0)}</div><div class=ss>多 {lg:,.0f}／空 {sh:,.0f}</div></div>')
-    return "".join(pn) + f'<div class=sub style="height:{foot_h}px;display:grid;grid-template-columns:repeat(3,1fr);align-items:center">{"".join(foot)}</div>'
+    # 總覽（外資／投信／自營商 淨額＋多空口數）放最上面（2026-10-26 Andy：「圖一紅框移動到上方」）
+    return f'<div class=sub style="height:{foot_h}px;display:grid;grid-template-columns:repeat(3,1fr);align-items:center">{"".join(foot)}</div>' + "".join(pn)
 
 
 # ---- 散戶多空比
