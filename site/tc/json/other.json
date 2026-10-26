@@ -239,7 +239,11 @@
           ],
           "n": 1,
           "sources": [],
-          "confidence": "低"
+          "confidence": "低",
+          "base_month_k": [
+            60,
+            60
+          ]
         }
       ],
       "note": "Andy 2026-10-26「先收」；公司身分未確認"
@@ -289,7 +293,11 @@
           "n": 1,
           "sources": [],
           "confidence": "低",
-          "note": "2026-10-26 由 Dcard 樣本新增的公司"
+          "note": "2026-10-26 由 Dcard 樣本新增的公司",
+          "annual_months": [
+            16,
+            16
+          ]
         }
       ]
     },
@@ -368,7 +376,11 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "annual_months": [
+            15,
+            15
+          ]
         }
       ],
       "note": "2026-10-26 由 Dcard 樣本新增的公司"
@@ -416,7 +428,12 @@
           ],
           "n": 1,
           "sources": [],
-          "confidence": "低"
+          "confidence": "低",
+          "annual_total_wan": [
+            150,
+            150
+          ],
+          "overtime": "偶爾"
         }
       ],
       "note": "Andy 2026-10-26「先收」；公司未具名"
@@ -464,7 +481,15 @@
           ],
           "n": 1,
           "sources": [],
-          "confidence": "低"
+          "confidence": "低",
+          "base_month_k": [
+            130,
+            130
+          ],
+          "annual_months": [
+            13,
+            13
+          ]
         }
       ],
       "note": "Andy 2026-10-26「先收」；公司未具名"
@@ -512,7 +537,15 @@
           ],
           "n": 1,
           "sources": [],
-          "confidence": "低"
+          "confidence": "低",
+          "base_month_k": [
+            120,
+            120
+          ],
+          "annual_months": [
+            13,
+            13
+          ]
         }
       ],
       "note": "Andy 2026-10-26「先收」；公司未具名"
@@ -561,7 +594,15 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "base_month_k": [
+            50,
+            50
+          ],
+          "annual_months": [
+            14,
+            14
+          ]
         }
       ],
       "note": "2026-10-26 由 Dcard 樣本新增的公司"
@@ -659,7 +700,15 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "base_month_k": [
+            58,
+            58
+          ],
+          "annual_total_wan": [
+            86.5,
+            86.5
+          ]
         }
       ],
       "note": "2026-10-26 由 Dcard 樣本新增的公司"
@@ -708,7 +757,11 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "annual_months": [
+            18,
+            18
+          ]
         }
       ],
       "note": "公司未具名"
