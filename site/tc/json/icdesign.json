@@ -1514,6 +1514,29 @@
               "in_window": true,
               "date_note": "Dcard 頁面發文日期 2026-10-19（2026-10-26 2122 批）",
               "comment_sample": true
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/260475621",
+              "date": "2025-12",
+              "page_date": "2025-12-16",
+              "date_confirmed": true,
+              "role": "工程師（考績I-）",
+              "grade": "E8",
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": 14.5,
+              "annual_wan": 150,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "留言B27：聯發科E8考績I-只有150萬；B27-2稱MTK的I-整年分紅不到半個月、年薪約14.5個月，31對照MTK約E7",
+              "in_window": true,
+              "date_note": "Dcard 頁面發文日期 2025-12-16（20261027_0126_a 批）",
+              "comment_sample": true
             }
           ],
           "sources": [
@@ -1541,17 +1564,25 @@
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/258927555",
               "date": "2025-05"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/260475621",
+              "date": "2025-12"
             }
           ],
           "confidence": "低",
-          "n": 10,
+          "n": 11,
           "years": null,
           "base_month_k": [
             80,
             80
           ],
           "bonus_months": null,
-          "annual_months": null,
+          "annual_months": [
+            14.5,
+            14.5
+          ],
           "annual_total_wan": [
             150,
             150
@@ -1559,7 +1590,7 @@
           "weekly_hours": null,
           "overtime": null,
           "travel": null,
-          "n_stat": 3,
+          "n_stat": 4,
           "note": null,
           "grade": null
         },
