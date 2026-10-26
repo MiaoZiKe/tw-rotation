@@ -500,13 +500,29 @@ def upcoming_events(target: date, cal: pd.DataFrame | None, days: int = 5) -> li
     return [{"time": e["t"].isoformat(), "name": e["name"], "label": f"{mdw(e['t'].date())} {e['t']:%H:%M}"} for e in merged]
 
 
-def bar_read(label: str, ks: dict) -> str:
-    """一檔的盤面解讀（2026-10-26 Andy：「需要描述昨日美股狀況…昨日費半原先下跌後來開高…台積電 ADR 也一樣開低走高」）。
-    只用日 K 的開高低收＋近 5 日＋月線／季線位置寫成一句，描述走勢、不給方向判斷或買賣建議：
-      ① 開盤相對前收（開高／開低／平開）與收盤相對開盤（走高／走低）→ 開低走高、開高走低、盤中翻紅／翻黑…
-      ② 收在當日區間的位置（≥80% 日高附近、≤20% 日低附近）
-      ③ 近 5 日累計漲跌，前 5 日多數收跌而今天收漲 → 止跌反彈；前 5 日多數收漲而今天收跌 → 漲多拉回
-      ④ 收盤在月線（20 日）／季線（60 日）之上或之下"""
+# 盤面解讀門檻（2026-10-26 金融口徑審查後定案，理由見 docs/marketing/social_unit/premarket_read_rules.md）
+FLAT_GAP = {"費半": 0.3, "台積電 ADR": 0.3}      # 開盤相對前收 < 此值＝平開（其他指數 0.15%）
+MOVE_MIN = 0.2      # |收−開|／前收 < 0.2% → 「開高後震盪／開低後震盪」，不寫走高走低
+RANGE_NARROW, RANGE_POS = 0.5, 0.8      # 振幅 < 0.5% 寫「窄幅震盪」；≥ 0.8% 才寫收盤在日高／日低附近
+DEEP5 = {"費半": -5.0, "台積電 ADR": -5.0}       # 近 5 日跌幅 ≤ 此值（其他 −3%）才寫「近 5 日累計 −x%」這種下跌脈絡
+VIX_MOVE = 10.0
+
+
+def _streak(b: list, down: bool) -> int:
+    """從昨天往回數，連續收黑（down）或收紅的天數。"""
+    n = 0
+    for i in range(len(b) - 2, 0, -1):
+        if (b[i]["c"] < b[i - 1]["c"]) if down else (b[i]["c"] > b[i - 1]["c"]):
+            n += 1
+        else:
+            break
+    return n
+
+
+def bar_read(label: str, ks: dict, partial: bool = False) -> str:
+    """一檔的盤面解讀（2026-10-26 Andy：「需要描述昨日美股狀況…費半原先下跌後來開高…台積電 ADR 開低走高」）。
+    只寫事實、不寫預測或建議（投顧法）：開盤方向與盤中路徑 → 收盤在區間的位置 → 連 N 黑／紅 → 近 5 日與距 60 日高點 → 均線穿越 → ADR 量能。
+    partial＝美股還沒收盤（示範用），不寫「作收／收在」。"""
     b = ks.get("bars") or []
     if len(b) < 2 or not ks.get("has_ohlc"):
         return ""
@@ -514,57 +530,85 @@ def bar_read(label: str, ks: dict) -> str:
     pc, o, h, l, c = y["c"], t["o"], t["h"], t["l"], t["c"]
     pct = (c / pc - 1) * 100
     gap = (o / pc - 1) * 100
-    flat = abs(gap) < 0.1
-    if flat:
-        path = "平盤開出後" + ("一路走高" if c > o else "震盪走低" if c < o else "持平")
+    move = (c - o) / pc * 100
+    rng = (h - l) / pc * 100
+    flat = abs(gap) < FLAT_GAP.get(label, 0.15) or o == pc
+    end = "" if partial else "作收"
+    if rng < RANGE_NARROW:
+        path = "窄幅震盪"
+    elif flat:
+        path = "平盤開出後" + ("走高" if move >= MOVE_MIN else "走低" if move <= -MOVE_MIN else "震盪")
+        if l < pc < h and abs(pct) < 1:
+            path += "，盤中翻紅翻黑交錯"
     elif gap > 0:
-        path = ("開高走高" if c >= o else ("開高後漲幅收斂" if c > pc else "開高走低、翻黑作收"))
-        if c >= o and l < pc:
-            path = "開高後一度翻黑、隨即拉回走高"
-    else:
-        path = ("開低走低" if c <= o else ("開低走高、翻紅作收" if c > pc else "開低後跌幅收斂"))
-        if c <= o and h > pc:
-            path = "開低後一度翻紅、終場仍收黑"
-    parts = [f"{label} {fmt_signed(pct, 2, '%')}，{path}"]
-    if h > l:
-        pos = (c - l) / (h - l)
-        if pos >= 0.8:
-            parts.append("收在日高附近")
-        elif pos <= 0.2:
-            parts.append("收在日低附近")
-    if len(b) >= 7:
-        prev5 = [b[i]["c"] < b[i - 1]["c"] for i in range(len(b) - 6, len(b) - 1)]
-        c5 = (c / b[-6]["c"] - 1) * 100
-        if sum(prev5) >= 3 and pct > 0:
-            parts.append(f"前 5 日有 {sum(prev5)} 日收跌，今天止跌反彈（近 5 日 {fmt_signed(c5, 1, '%')}）")
-        elif sum(prev5) <= 2 and pct < 0:
-            parts.append(f"前 5 日有 {5 - sum(prev5)} 日收漲，今天漲多拉回（近 5 日 {fmt_signed(c5, 1, '%')}）")
+        if move >= MOVE_MIN:
+            path = "開高後一度翻黑、隨後拉高" if l < pc else "開高走高"
+        elif move <= -MOVE_MIN:
+            path = "開高走低" + (f"、翻黑{end}" if c < pc else "，漲幅收斂")
         else:
+            path = "開高後震盪"
+    else:
+        if move >= MOVE_MIN:
+            path = "開低走高" + (f"、翻紅{end}" if c > pc else "，跌幅收斂")
+        elif move <= -MOVE_MIN:
+            path = "開低後一度翻紅、隨後走低" if h > pc else "開低走低"
+        else:
+            path = "開低後震盪"
+    parts = [f"{label} {fmt_signed(pct, 2, '%')}，{path}"]
+    if rng >= RANGE_POS and h > l:
+        pos = (c - l) / (h - l)
+        at = "在" if partial else "收在"
+        if pos >= 0.75 and "走高" not in path and "拉高" not in path:
+            parts.append(f"{at}日高附近")
+        elif pos <= 0.25 and "走低" not in path:
+            parts.append(f"{at}日低附近")
+    dn, up = _streak(b, True), _streak(b, False)
+    if pct > 0 and dn >= 3:
+        parts.append(f"連 {dn} 黑後收紅")
+    elif pct < 0 and up >= 3:
+        parts.append(f"連 {up} 紅後收黑")
+    if len(b) >= 6:
+        c5 = (c / b[-6]["c"] - 1) * 100
+        if c5 <= DEEP5.get(label, -3.0) or c5 >= 3.0:
             parts.append(f"近 5 日 {fmt_signed(c5, 1, '%')}")
-    ma = [(n, t.get(k)) for k, n in (("ma20", "月線"), ("ma60", "季線")) if t.get(k)]
-    if ma:
-        parts.append("、".join(f"{n}{'之上' if c >= v else '之下'}" for n, v in ma))
+    hi60 = max(x["c"] for x in b[-60:])
+    off = (c / hi60 - 1) * 100
+    if off <= -5:
+        parts.append(f"距 60 日高點 {fmt_signed(off, 1, '%')}")
+    nm = {"ma20": "月線", "ma60": "季線"} if label == "台積電 ADR" else {"ma20": "20 日線", "ma60": "60 日線"}
+    for k in ("ma20", "ma60"):
+        if t.get(k) and y.get(k):
+            if c >= t[k] and y["c"] < y[k]:
+                parts.append(f"站回{nm[k]}")
+            elif c < t[k] and y["c"] >= y[k]:
+                parts.append(f"跌破{nm[k]}")
+    if label == "台積電 ADR" and not partial and t.get("v") and t.get("vma5"):      # 盤中量能不完整，不比
+        r = t["v"] / t["vma5"]
+        if r >= 1.5:
+            parts.append(f"量增（{r:.1f} 倍均量）")
+        elif r <= 0.7:
+            parts.append(f"量縮（{r:.1f} 倍均量）")
     return "；".join(parts)
 
 
-def market_reads(us: dict, adr: dict, night: dict) -> list[str]:
+def market_reads(us: dict, adr: dict, night: dict, partial: bool = False) -> list[str]:
     """盤面解讀清單：費半、那斯達克、標普、台積電 ADR 各一句，VIX 一句，夜盤一句（有資料才寫）。"""
     out = []
     by = {r["sym"]: r for r in us.get("rows", []) if not r.get("missing")}
     for sym, lab in (("^SOX", "費半"), ("^IXIC", "那斯達克"), ("^GSPC", "標普")):
         if sym in by:
-            x = bar_read(lab, by[sym]["k"])
+            x = bar_read(lab, by[sym]["k"], partial)
             if x:
                 out.append(x)
     if not adr.get("missing"):
-        x = bar_read("台積電 ADR", adr["k"])
+        x = bar_read("台積電 ADR", adr["k"], partial)
         if x:
             out.append(x)
     if "^VIX" in by:
         v = by["^VIX"]
-        mood = "恐慌情緒升溫" if v["pct"] >= 5 else "恐慌情緒降溫" if v["pct"] <= -5 else "情緒持平"
-        lvl = "，在 20 之上" if v["close"] >= 20 else "，回到 20 之下" if v["close"] < 20 <= v["close"] - v["chg"] else ""
-        out.append(f"VIX {fmt_num(v['close'])}（{fmt_signed(v['pct'], 1, '%')}），{mood}{lvl}")
+        lvl = "低檔" if v["close"] < 15 else "平穩區" if v["close"] < 20 else "偏高區" if v["close"] < 30 else "恐慌區"
+        mood = "，恐慌情緒升溫" if v["pct"] >= VIX_MOVE else "，恐慌情緒降溫" if v["pct"] <= -VIX_MOVE else ""
+        out.append(f"VIX {fmt_num(v['close'])}（{fmt_signed(v['pct'], 1, '%')}），位於{lvl}{mood}")
     if not night.get("missing") and night.get("diff") is not None and not night.get("partial"):
         out.append(f"台指期夜盤 {fmt_num(night['close'], 0)}，較日盤 {fmt_signed(night['diff'], 0)} 點（{fmt_signed(night['diff_pct'], 2, '%')}）")
     return out
@@ -605,7 +649,8 @@ def collect(target: date, intl, price, intra, ohlc, news, cal) -> dict:
     return {"target": target.isoformat(), "us": us, "adr": adr, "tx": tx, "night": night, "last_td": last_td,
             "closure": closure_note(last_td, target), "news_window": [start.isoformat(), end.isoformat()],
             "news": pick_news(news, start, end), "events": upcoming_events(target, cal),
-            "summary": summary_line(us, adr, tx, night), "reads": market_reads(us, adr, night),
+            "summary": summary_line(us, adr, tx, night), "reads": market_reads(us, adr, night, partial=bool(us["date"]) and datetime.now(TPE) < us_close_tpe(us["date"])),
+            "us_partial": bool(us["date"]) and datetime.now(TPE) < us_close_tpe(us["date"]),
             "ta": {k: {"rows": ta_rows(v["k"]), "ma": ma_values(v["k"])} for k, v in (("tx", tx), ("adr", adr)) if not v.get("missing")}}
 
 
@@ -971,10 +1016,10 @@ def caption(D: dict, ymd: str, max_len: int = ss.THREADS_MAX) -> str:
     xs = [f"{nm[k]} {fmt_signed(by[k]['pct'], 2, '%')}" for k in ("^SOX", "^IXIC", "^GSPC", "^DJI") if k in by]
     usl = []
     if xs:
-        usl = [f"🇺🇸 美股 {md(us['date'])}："] + ([f"・{'、'.join(xs[:2])}；", f"・{'、'.join(xs[2:])}"] if len(xs) > 2 else [f"・{'、'.join(xs)}"])
+        usl = [f"🇺🇸 美股 {md(us['date'])}{'（盤中）' if D.get('us_partial') else ''}："] + ([f"・{'、'.join(xs[:2])}；", f"・{'、'.join(xs[2:])}"] if len(xs) > 2 else [f"・{'、'.join(xs)}"])
     def short(r: str) -> str:      # 文案只留：漲跌＋走勢，再加一段最有資訊的（止跌反彈／漲多拉回優先，其次收在日高／日低）
         ps = r.split("；")
-        key = next((x for x in ps[1:] if "止跌" in x or "拉回" in x), None) or next((x for x in ps[1:] if "日高" in x or "日低" in x), None)
+        key = next((x for x in ps[1:] if "連 " in x or "距 60" in x or "站回" in x or "跌破" in x), None) or next((x for x in ps[1:] if "日高" in x or "日低" in x), None)
         return ps[0] + (f"；{key}" if key else "")
     reads = [short(r) for r in (D.get("reads") or [])]
     news = [f"・【{n['category']}】{n['title']}" for n in D["news"]]

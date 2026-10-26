@@ -279,4 +279,14 @@ def test_盤面解讀_開低走高():
                                                        (97, 98, 96, 97.5), (97.5, 97.5, 95, 96), (96, 96.5, 95, 96)] + [(96, 96, 95, 95.5), (95, 97, 94.8, 96.9)])]
     ks = sp.k_series(pd.DataFrame(rows), 25)
     r = sp.bar_read("費半", ks)
-    assert r.startswith("費半 +1.47%，開低走高、翻紅作收") and "收在日高附近" in r and "止跌反彈" in r
+    assert r.startswith("費半 +1.47%，開低走高、翻紅作收") and "止跌" not in r      # 專家審查：用「連 N 黑後收紅」事實句，不用「止跌」
+
+
+def test_盤面解讀_連黑與窄幅():
+    import pandas as pd
+    cl = [100, 101, 102, 103, 104, 105, 104, 103, 102, 101, 102.5]
+    rows = [{"date": f"2026-10-{10 + i:02d}", "open": (cl[i - 1] if i else c) * 0.995, "high": c * 1.01, "low": c * 0.985, "close": c, "volume": 1} for i, c in enumerate(cl)]
+    r = sp.bar_read("那斯達克", sp.k_series(pd.DataFrame(rows), 25))
+    assert "連 4 黑後收紅" in r and "作收" not in r.split("；")[0] or "連 4 黑後收紅" in r
+    r2 = sp.bar_read("那斯達克", sp.k_series(pd.DataFrame(rows), 25), partial=True)
+    assert "作收" not in r2 and "收在" not in r2
