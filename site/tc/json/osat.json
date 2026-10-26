@@ -30,13 +30,13 @@
           ],
           "annual_total_wan": [
             74.2,
-            130
+            130.0
           ],
           "weekly_hours": [
             50,
             57
           ],
-          "overtime": "經常",
+          "overtime": null,
           "travel": null,
           "n": 29,
           "note": "Dcard 封測整理文（未註日期）碩士 4.6～6.3 萬；GoodJob 2026-06 中壢 1 年資深工程師 8 萬（職等高已排除）、2026-07 高雄 G5 5.1 萬；第二輪：Dcard 製程 offer 多為月薪×14＋績效分紅＋每月小白單（新人約 1 年後才有）；GoodJob 2026-08 高雄碩士 2 年年薪約 75 萬；評價稱碩畢底薪偏低、靠加班費；base_month_k、bonus_months、annual_months 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples；未逐筆對應的舊彙整：base_month_k=[46, 63]；未逐筆對應的舊彙整：bonus_months=[2, 4]；未逐筆對應的舊彙整：annual_months=[14, 16]；未逐筆對應的舊彙整：travel=不用；部分年薪／年薪月數由同一筆樣本的「底薪×月數」推算（樣本標 derived）；未逐筆對應的舊彙整：bonus_months=[2, 2]",
@@ -745,7 +745,7 @@
             40,
             60
           ],
-          "overtime": "幾乎不",
+          "overtime": null,
           "travel": null,
           "n": 10,
           "note": "查無可用數字；查過關鍵字：日月光 京元電子 碩士 薪水 2026／日月光 碩士 製程工程師 月薪 2026 GoodJob 分紅 月份；Yahoo 徵才報導：設備工程師需輪班、另加輪班津貼，頂大碩畢起薪約 5 萬；比薪水 2026-05 中壢回報日均工時 10～12 小時；分紅與年薪月數沿用同公司製程職區間；撤回：bonus_months、annual_months 原為沿用／推算／暫填值，無直接證據，已改回原值；第二輪：PTT 2026-03 中壢設備 12 小時二休二，含加班日班 4～4.6 萬、夜班 5～7 萬；GoodJob 2026-09 高雄錄取月薪 5 萬（底薪＋津貼約 4 萬、夜班津貼約 1.5 萬、每月變動獎金 <1 萬）；保 14 個月＋年中發前一年分紅（GoodJob 評價）；學歷多為學士可進；annual_months 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples；未逐筆對應的舊彙整：annual_months=[14, 14]；未逐筆對應的舊彙整：travel=不用",
@@ -1723,7 +1723,7 @@
           ],
           "confidence": "低",
           "n": 4,
-          "overtime": "經常",
+          "overtime": null,
           "years": null,
           "base_month_k": [
             54,
@@ -2897,7 +2897,7 @@
           ],
           "overtime": null,
           "travel": null,
-          "n": 13,
+          "n": 12,
           "note": "GoodJob 2026-01 彰化 5 萬、台中測試 4.3 萬；保 14 個月出自 salary.tw 單則；學歷未標；年薪 14 個月扣本薪 12 個月推算，含年終；撤回：bonus_months 原為沿用／推算／暫填值，無直接證據，已改回原值；第二輪：GoodJob 2026-08 製程技術錄取 5.4 萬（本薪＋伙食 3,000＋工作加給）、保 14、年調 2～5%；2025-11 評價稱分紅一年 4 次（2、5、8、11 月）；Dcard 稱國立碩約 30 職等 4.8～5 萬、加班常態每月約 50 小時；PTT 2026-04 測試職保 14＋分紅、做二休二；未逐筆對應的舊彙整：weekly_hours=[40, 50]、overtime=偶爾～經常、travel=不用",
           "sources": [
             {
@@ -2919,11 +2919,6 @@
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/261185367",
               "date": "2026"
-            },
-            {
-              "site": "PTT",
-              "url": "https://www.ptt.cc/bbs/Tech_Job/M.1775200516.A.E4D.html",
-              "date": "2026-04"
             },
             {
               "site": "GoodJob",
@@ -3018,25 +3013,6 @@
               "quote_free_note": null,
               "date_confirmed": true,
               "date_note": "日期為推估或僅年份，不進統計；依 docs/tc/dcard_id_calibration.md 文章編號≥259537767 確認晚於 2025-08-01",
-              "in_window": true
-            },
-            {
-              "site": "PTT",
-              "url": "https://www.ptt.cc/bbs/Tech_Job/M.1775200516.A.E4D.html",
-              "date": "2026-04",
-              "unit_detail": null,
-              "years": "0-2",
-              "degree": "碩士",
-              "base_k": null,
-              "bonus_months": null,
-              "annual_months": 14,
-              "annual_wan": null,
-              "weekly_hours": null,
-              "overtime": null,
-              "travel": null,
-              "quote_free_note": "擴散設備保 14、分紅另計／矽品測試職保 14、做二休二",
-              "date_confirmed": true,
-              "date_note": "PTT 文章代碼即發文時間（Unix 時間）",
               "in_window": true
             },
             {
@@ -3212,7 +3188,7 @@
               "date_note": "GoodJob 標題／列表附年月，算確認"
             }
           ],
-          "n_stat": 11,
+          "n_stat": 10,
           "degree_diff": "樣本中位數：學士底薪約 49K、碩士約 54K（差約 5K；學士 1 筆、碩士 1 筆）"
         },
         {
@@ -3335,6 +3311,26 @@
               "derived": [
                 "annual_wan"
               ]
+            },
+            {
+              "site": "PTT",
+              "url": "https://www.ptt.cc/bbs/Tech_Job/M.1775200516.A.E4D.html",
+              "date": "2026-04",
+              "unit_detail": null,
+              "years": "0-2",
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": 14,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "矽品測試職保 14、做二休二（同篇另一份為美光擴散設備）",
+              "date_confirmed": true,
+              "date_note": "PTT 文章代碼即發文時間（Unix 時間）",
+              "in_window": true,
+              "role": "測試工程師"
             }
           ],
           "sources": [
@@ -3362,10 +3358,15 @@
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/262240738",
               "date": "2026-10"
+            },
+            {
+              "site": "PTT",
+              "url": "https://www.ptt.cc/bbs/Tech_Job/M.1775200516.A.E4D.html",
+              "date": "2026-04"
             }
           ],
           "confidence": "低",
-          "n": 5,
+          "n": 6,
           "base_month_k": [
             45,
             59
@@ -3383,7 +3384,7 @@
           "weekly_hours": null,
           "overtime": null,
           "travel": null,
-          "n_stat": 5,
+          "n_stat": 6,
           "note": "部分年薪／年薪月數由同一筆樣本的「底薪×月數」推算（樣本標 derived）",
           "grade": null
         },

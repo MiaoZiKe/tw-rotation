@@ -29,7 +29,7 @@
             18
           ],
           "annual_total_wan": [
-            110,
+            77.0,
             110
           ],
           "weekly_hours": [
@@ -321,10 +321,11 @@
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
-              "quote_free_note": "擴散設備保 14、分紅另計／矽品測試職保 14、做二休二",
+              "quote_free_note": "擴散設備保 14、分紅另計（同篇另一份為矽品測試職）",
               "date_confirmed": true,
               "date_note": "PTT 文章代碼即發文時間（Unix 時間）",
-              "in_window": true
+              "in_window": true,
+              "role": "擴散設備工程師"
             },
             {
               "site": "GoodJob",
@@ -694,7 +695,7 @@
             14
           ],
           "annual_total_wan": [
-            130.0,
+            100.8,
             130.0
           ],
           "weekly_hours": null,
@@ -2004,7 +2005,7 @@
           "degree": "碩士",
           "years": "0-2",
           "base_month_k": [
-            58,
+            58.0,
             68
           ],
           "bonus_months": null,

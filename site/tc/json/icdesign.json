@@ -1966,7 +1966,7 @@
             16.9
           ],
           "annual_total_wan": [
-            119,
+            119.0,
             200
           ],
           "weekly_hours": [
@@ -5859,8 +5859,8 @@
             2
           ],
           "annual_months": [
-            15,
-            15
+            15.0,
+            15.0
           ],
           "annual_total_wan": [
             120,
@@ -6491,7 +6491,7 @@
             50,
             50
           ],
-          "overtime": "經常",
+          "overtime": null,
           "years": null,
           "base_month_k": null,
           "bonus_months": null,

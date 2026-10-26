@@ -874,7 +874,7 @@
             100
           ],
           "weekly_hours": null,
-          "overtime": "經常",
+          "overtime": null,
           "travel": null,
           "n": 6,
           "note": "平台自述統計（未轉貼原文）；GoodJob 2026-05 一筆碩畢 2 年經驗年薪 100 萬、有加班費；另一則稱分紅年終 2～2.5 個月（個人說法）；GoodJob 機構職面試與 2026-07 評價：需出差中國或東南亞，出差期間加班依產品進度；bonus_months、annual_total_wan 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples；未逐筆對應的舊彙整：{\"bonus_months\": [2, 2.5], \"annual_total_wan\": [100, 100]}；未逐筆對應的舊彙整：travel=偶爾～需要（中國／東南亞廠）",
@@ -1844,7 +1844,7 @@
             40,
             50
           ],
-          "overtime": "偶爾",
+          "overtime": null,
           "travel": null,
           "n_stat": 5,
           "note": null,
@@ -2743,7 +2743,7 @@
             65,
             65
           ],
-          "overtime": "幾乎不",
+          "overtime": null,
           "years": "0",
           "annual_total_wan": null,
           "weekly_hours": [
@@ -3617,7 +3617,7 @@
             40,
             55
           ],
-          "overtime": "偶爾",
+          "overtime": null,
           "travel": null,
           "n": 4,
           "n_stat": 3,
@@ -7507,7 +7507,7 @@
             45
           ],
           "overtime": "幾乎不",
-          "travel": "需要",
+          "travel": null,
           "years": "0",
           "bonus_months": null,
           "annual_total_wan": [
@@ -11503,7 +11503,7 @@
             48,
             52
           ],
-          "overtime": "經常",
+          "overtime": null,
           "travel": null,
           "n": 7,
           "n_stat": 4,
@@ -14895,7 +14895,7 @@
             40,
             40
           ],
-          "overtime": "經常",
+          "overtime": null,
           "travel": null,
           "n": 19,
           "note": "平台自述統計（未轉貼原文）；社群回報月薪×14 保底＋績效分紅，無碩士起薪數字；2026-10 查比薪水有逾千筆但摘要無分紅／工時細節；annual_months 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples；部分年薪／年薪月數由同一筆樣本的「底薪×月數」推算（樣本標 derived）",
@@ -17077,7 +17077,7 @@
             40,
             50
           ],
-          "overtime": "偶爾",
+          "overtime": null,
           "travel": null,
           "n": 3,
           "n_stat": 2,
@@ -17351,7 +17351,7 @@
             40,
             60
           ],
-          "overtime": "偶爾",
+          "overtime": null,
           "travel": null,
           "n": 6,
           "n_stat": 5,
@@ -24178,7 +24178,7 @@
             48,
             48
           ],
-          "overtime": "經常",
+          "overtime": null,
           "travel": null,
           "n": 4,
           "n_stat": 2,
