@@ -48,8 +48,8 @@ def test_派出去的輸入都是_workflow_認得的值():
                 assert v in ("true", "false")
 
 
-def test_premarket_預設關閉():
-    assert re.search(r'ENABLE_PREMARKET\s*=\s*"0"', (W / "wrangler.toml").read_text(encoding="utf-8"))
+def test_premarket_已開啟():      # 2026-10-27 Andy「開始發」
+    assert re.search(r'ENABLE_PREMARKET\s*=\s*"1"', (W / "wrangler.toml").read_text(encoding="utf-8"))
 
 
 def test_index_沒有對外服務():

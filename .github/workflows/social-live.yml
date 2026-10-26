@@ -32,6 +32,7 @@ name: 社群即時貼文（Threads／IG 限動）
 on:
   schedule:
     - cron: "1 4 * * 1-5"     # 台北 12:01 盤中（一天一篇，備援；準時由 Cloudflare Worker 12:00 派）
+    - cron: "20 0 * * 1-5"    # 台北 08:20 盤前（2026-10-27 Andy「開始發」；休市日或晚到開盤後由 social_premarket.py 自己不發）
   workflow_run:
     workflows: ["每日盤後管線"]
     types: [completed]        # 每日管線跑完（含部署）→ 盤後法人；資料日不是今天就自己跳過
@@ -80,7 +81,7 @@ jobs:
       max-parallel: 1
       fail-fast: false
       matrix:
-        kind: ${{ fromJSON(github.event_name == 'workflow_run' && '["close"]' || (github.event_name == 'workflow_dispatch' && format('["{0}"]', inputs.kind) || '["intraday"]')) }}
+        kind: ${{ fromJSON(github.event_name == 'workflow_run' && '["close"]' || (github.event_name == 'workflow_dispatch' && format('["{0}"]', inputs.kind) || (github.event.schedule == '20 0 * * 1-5' && '["premarket"]' || '["intraday"]'))) }}
     env:
       TZ: Asia/Taipei
     steps:
@@ -96,7 +97,7 @@ jobs:
       - name: 盤後已經發過了就不重複（每日管線一天跑三輪都會接到這裡）
         id: done
         # 盤中也要讀發布紀錄（2026-10-25）：Cloudflare Worker 準時派的與 GitHub 備援排程晚到的，同一時段只發一次
-        if: steps.kind.outputs.kind == 'intraday' || (steps.kind.outputs.kind != 'intraday' && github.event_name == 'workflow_run')
+        if: steps.kind.outputs.kind == 'intraday' || steps.kind.outputs.kind == 'premarket' || (steps.kind.outputs.kind != 'intraday' && github.event_name == 'workflow_run')
         run: |
           if git ls-remote --exit-code --heads origin social-snaps >/dev/null 2>&1; then
             git fetch --depth=1 origin social-snaps
@@ -157,7 +158,7 @@ jobs:
           set +e
           if [ "${{ steps.kind.outputs.kind }}" = "premarket" ]; then
             # 盤前：讀 checkout 的資料湖（data/），不需要網站；融資 3 張讀正式站 market_fut.json
-            python scripts/social_premarket.py --out "$OUT" $FORCE
+            python scripts/social_premarket.py --out "$OUT" $FORCE $POSTED --save-site
           else
             SKIP=""
             if [ "${{ inputs.live_test }}" = "true" ]; then SKIP="--skip-live"; fi      # 測試在盤後時段跑，沒有即時報價
@@ -244,6 +245,21 @@ jobs:
             --base-url "${{ steps.pub.outputs.base }}" $DRY
           if [ -z "$DRY" ] && [ -f "${{ steps.snap.outputs.out }}/posted.json" ]; then echo "save=1" >> "$GITHUB_OUTPUT"; fi
           if [ "${{ inputs.live_test }}" = "true" ]; then rm -f "${{ steps.snap.outputs.out }}/posted.json"; fi      # 測試不寫發布紀錄
+
+      # 盤前：今日焦點寫進網站「精選文章 → 盤前消息」（site/articles/premarket.json，進版控）→ 推回 main，網站部署後就看得到
+      - name: 盤前消息寫回網站
+        if: steps.kind.outputs.kind == 'premarket' && steps.snap.outputs.rc == '0' && inputs.live_test != true
+        run: |
+          if git diff --quiet -- site/articles/premarket.json; then echo "盤前消息沒有變動"; exit 0; fi
+          git config user.name  "tw-rotation-bot"
+          git config user.email "actions@github.com"
+          git add site/articles/premarket.json
+          git commit -q -m "盤前消息 $(date '+%F')"
+          for i in 1 2 3; do
+            git pull -q --rebase origin main && git push -q origin HEAD:main && exit 0
+            sleep $((i * 5))
+          done
+          echo "::warning::盤前消息推回 main 失敗（不影響已發的貼文）"
 
       # 發布程式的防重複紀錄 posted.json 要寫回 social-snaps，下一輪（含盤後那三次接力）才知道發過了；
       # 發布失敗也要寫（已成功的那一半不能重發）

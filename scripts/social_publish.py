@@ -229,6 +229,8 @@ def slot_key(m: dict) -> str:
     if m.get("kind") == "credit":      # 盤後融資：以融資資料日為鍵（常在隔天清晨才到齊，用發文日會錯天）
         return f"credit-{(m.get('data_date') or date)[:10]}"
     kind = m.get("kind", "intraday")
+    if kind == "premarket":      # 盤前一天一篇，以目標開盤日為鍵（跟 social_premarket.py 的 premarket-<目標日> 同一套）
+        return f"premarket-{(m.get('data_date') or date)[:10]}"
     if kind == "intraday":
         return f"intraday-{date}"     # 盤中一天一篇（台北 12:00，2026-10-26）
     return f"{kind}-{date}-{t[11:13]}"  # 同一小時算同一時段

@@ -17,4 +17,4 @@ GH_REPO = "MiaoZiKe/tw-rotation"
 GH_REF = "main"
 # 盤前貼文（social-live.yml 的 kind=premarket）：workflow 還沒有這個選項時派過去會被 GitHub 回 422，
 # 所以預設關。另一位同事的 premarket 合進 main 之後，把這個改成 "1" 再推即可。
-ENABLE_PREMARKET = "0"
+ENABLE_PREMARKET = "1"      # 2026-10-27 Andy「開始發」：social-live.yml 已有 kind=premarket

@@ -1181,6 +1181,11 @@ def main() -> int:
     if not is_tw_trading_day(target, hol) and not args.force:
         print(f"[premarket] {target} 不是台股交易日 → 不發")
         return 10
+    # 2026-10-27 Andy：「開盤才需要發布，台股沒開美股就不用發」→ 排程跑的那天本身要是台股交易日、而且還沒開盤（08:45 前）；
+    # 休市日或排程晚到開盤後，next_trading_day 會指到「之後」的交易日 → 不發（等那天早上再發）
+    if not args.date and not args.force and target != now.date():
+        print(f"[premarket] 今天 {now.date()} 不是台股交易日或已過開盤（下一個交易日 {target}）→ 不發")
+        return 10
     key = f"{KIND}-{target.isoformat()}"
     if args.posted_json and not args.force:
         try:
