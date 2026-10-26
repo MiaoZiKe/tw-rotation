@@ -362,7 +362,7 @@
       return node(n, isan, cs.map((c) => node(c[0], c[1], c[2], 2, cs.length === 1)).join(''), 1, false);
     }).filter(Boolean);
     S.agg = aggStats();
-    return chartsHtml(S.agg) + (S.agg.inds.length ? '<details class="tc-raw"><summary>看數字明細（產業→公司→單位→職位）</summary>' : '<div>') + '<div class="tc-cnt">全部樣本 進統計 <b id="tcAll">' + all + '</b> 筆／未確認 ' + unc + ' 筆／範圍外 ' + outc + ' 筆（統計只算日期確認且 2025-08 起；依產業→公司→單位→職位；底薪／年薪為中位數，括號是區間）</div>' + (inds.length ? '<div class="tc-stats">' + inds.join('') + '</div>' : '<div class="empty isempty tc-empty">尚無逐筆樣本</div>') + '</' + (S.agg.inds.length ? 'details' : 'div') + '>';
+    return chartsHtml(S.agg) + (S.agg.inds.length ? '<details class="tc-raw"><summary>看數字明細（產業→公司→單位→職位）</summary>' : '<div>') + '<div class="tc-cnt">進統計 <b id="tcAll">' + all + '</b> 筆・未確認 ' + unc + '・範圍外 ' + outc + qpop('統計只算日期確認且 2025-08 起的樣本；明細依 產業→公司→單位→職位 逐層展開；底薪／年薪為中位數，括號內是最低到最高區間。') + '</div>' + (inds.length ? '<div class="tc-stats">' + inds.join('') + '</div>' : '<div class="empty isempty tc-empty">尚無逐筆樣本</div>') + '</' + (S.agg.inds.length ? 'details' : 'div') + '>';
   }
 
   function rolesTable(roles, bt, tsmc) {
@@ -401,19 +401,14 @@
     return '<div class="tc-mini" title="' + esc('薪資組成（月數）：' + P.parts.map((p) => p.name + p.m).join('／')) + '"><svg viewBox="0 0 40 40" width="44" height="44" aria-hidden="true">' + P.parts.map((p) => { const l = p.m / tot * C, e = '<circle cx="20" cy="20" r="' + R + '" fill="none" stroke="' + p.c + '" stroke-width="6" stroke-dasharray="' + l.toFixed(2) + ' ' + (C - l).toFixed(2) + '" stroke-dashoffset="' + (-off).toFixed(2) + '" transform="rotate(-90 20 20)"/>'; off += l; return e; }).join('') + '</svg></div>';
   }
   function coCard(ind, c, matched) {
-    const mini = miniDonut(c);
-    const mids = matched.map((r) => mid(r.annual_total_wan)).filter((v) => v != null);
-    const hrs = matched.map((r) => mid(r.weekly_hours)).filter((v) => v != null);
-    const avg = (a) => (a.length ? Math.round(a.reduce((x, y) => x + y, 0) / a.length) : '–');
-    const kv = (k, v) => '<div class="tc-kv"><span>' + k + '</span><b title="' + esc(v) + '">' + esc(v) + '</b></div>';
-    const sum = [['福利', c.benefits], ['認股', c.stock_plan], ['風氣', c.culture]].map((x) => '<div class="tc-sm"><span>' + x[0] + '</span>' + esc(x[1] ? clip(x[1], 38) : '—') + '</div>').join('');
+    const mini = miniDonut(c), col = (f) => matched.map((r) => mdp(r[f])).filter((v) => v != null);
+    const mA = col('annual_total_wan'), mB = col('base_month_k'), hr = col('weekly_hours'), nn = matched.reduce((x, r) => x + (r.n || 0), 0);
+    const ann = mA.length ? Math.round(med(mA) * 10) / 10 : null, bs = mB.length ? Math.round(med(mB) * 10) / 10 : null, hh = hr.length ? Math.round(hr.reduce((x, y) => x + y, 0) / hr.length) : null;
+    const none = ann == null && bs == null;
     return '<a class="tc-co' + (matched.some(roleHasData) ? '' : ' tc-nod') + '" href="#tc/' + ind + '/' + encodeURIComponent(c.name) + '" data-co="' + esc(c.name) + '">' +
-      '<div class="tc-coh">' + TL(c.name, ind, 28) + '<b>' + esc(c.name) + '</b>' + (c.code ? '<small>' + esc(c.code) + '</small>' : '') + (c.heat ? '<span class="tc-heat">' + esc(c.heat) + '</span>' : '') + '</div>' +
-      '<div class="tc-cok' + (mini ? ' has-pay' : '') + '"><div><em>' + matched.length + '</em><span>符合職位</span></div><div><em>' + avg(mids) + '</em><span>年薪中點(萬)</span></div><div><em>' + avg(hrs) + '</em><span>平均週工時</span></div>' + mini + '</div>' +
-      '<div class="tc-kvs">' + kv('底薪(K/月)', span(matched.map((r) => r.base_month_k))) + kv('分紅月數', span(matched.map((r) => r.bonus_months))) +
-      kv('年薪總月數', span(matched.map((r) => r.annual_months))) + kv('分紅發放', bsum(c)) +
-      kv('加班', top(matched.map((r) => r.overtime))) + kv('出差', top(matched.map((r) => r.travel))) + '</div>' +
-      '<div class="tc-sms">' + sum + '</div></a>';
+      '<div class="tc-coh">' + TL(c.name, ind, 36) + '<span class="tc-con"><b>' + esc(c.name) + '</b>' + (c.code ? '<small>' + esc(c.code) + '</small>' : '') + '</span>' + (c.heat ? '<span class="tc-heat">' + esc(String(c.heat).replace(/^.*熱度：?/, '熱度 ')) + '</span>' : '') + '</div>' +
+      '<div class="tc-cok' + (mini ? ' has-pay' : '') + '"><div class="tc-bigv"><em>' + (ann == null ? '—' : ann) + '</em><span>年薪中位數（萬）</span></div>' + mini + '</div>' +
+      '<div class="tc-cof"><span>底薪 <b>' + (bs == null ? '—' : bs + 'K') + '</b></span><span>週工時 <b>' + (hh == null ? '—' : hh) + '</b></span><span>樣本 <b>' + nn + '</b></span><span>符合職位 <b>' + matched.length + '</b></span></div></a>';
   }
 
   function paint() {

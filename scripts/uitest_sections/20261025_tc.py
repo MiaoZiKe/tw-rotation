@@ -25,8 +25,7 @@ def t_tc_1025(b, base, code):
     ok(f"{T}：#tc/foundry 畫出公司卡與五組篩選", n0 >= 1 and pg.evaluate("() => document.querySelectorAll('#v-tc .tc-fbar .seg').length") == 5, n0)
     ok(f"{T}：頁尾免責字樣在", "GoodJob、Dcard、PTT" in pg.inner_text("#v-tc .tc-foot"))
         # ⑤ 2026-10-25 公司卡新資訊：六格摘要＋福利／認股／風氣一行；缺值顯示「—」（不留空白）
-    ok(f"{T}：公司卡有 底薪／分紅月數／年薪總月數／分紅發放／加班／出差 六格", pg.evaluate("() => [...document.querySelectorAll('#v-tc .tc-co')].every(c => { const t=[...c.querySelectorAll('.tc-kv span')].map(e=>e.innerText).join('|'); return ['底薪','分紅月數','年薪總月數','分紅發放','加班','出差'].every(k=>t.includes(k)); })"))
-    ok(f"{T}：公司卡有 福利／認股／風氣 摘要且沒有空格子", pg.evaluate("() => [...document.querySelectorAll('#v-tc .tc-co')].every(c => c.querySelectorAll('.tc-sm').length===3 && [...c.querySelectorAll('.tc-kv b')].every(b=>b.innerText.trim()))"))
+    ok(f"{T}：公司卡＝LOGO＋年薪中位數大字＋樣本數（無長描述）", pg.evaluate("() => [...document.querySelectorAll('#v-tc .tc-co')].every(c => c.querySelector('.tc-lg') && c.querySelector('.tc-bigv em') && /樣本/.test(c.querySelector('.tc-cof').innerText) && !c.querySelector('.tc-sm,.tc-kv'))"))
     # ① 每組篩選：點最嚴格那顆，數字必須 <= 原本，且至少有一組真的讓筆數變少；點完 .on 真的移動
     shrunk = 0
     for k in ["hours", "base", "bonus", "annual", "ot"]:

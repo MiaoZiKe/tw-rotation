@@ -145,3 +145,18 @@
 #v-tc .tc-gs{display:flex;align-items:center;gap:var(--sp-2);flex-wrap:wrap}
 #v-tc .tc-two>*{min-width:0}
 #v-tc .tc-chd{margin-bottom:var(--sp-3)}#v-tc .tc-chd>summary{cursor:pointer;color:var(--cyan);font-size:13.5px;padding:var(--sp-2) 0}
+
+/* 公司卡（一眼看懂版） */
+#v-tc .tc-grid{grid-template-columns:repeat(auto-fill,minmax(250px,1fr))}
+#v-tc .tc-co{min-height:0;gap:var(--sp-2)}
+#v-tc .tc-coh{align-items:center;white-space:nowrap}
+#v-tc .tc-con{display:flex;align-items:baseline;gap:var(--sp-2);min-width:0}
+#v-tc .tc-con b{font-size:16px;overflow:hidden;text-overflow:ellipsis}
+#v-tc .tc-heat{margin-left:auto;font-size:12px;color:var(--cyan)}
+#v-tc .tc-cok{grid-template-columns:1fr;display:grid;text-align:left;align-items:center}
+#v-tc .tc-cok.has-pay{grid-template-columns:1fr 48px}
+#v-tc .tc-bigv em{display:block;font-style:normal;font-size:32px;line-height:1.1;font-weight:700;color:var(--cyan);font-family:var(--mono,inherit)}
+#v-tc .tc-bigv span{font-size:12px;color:var(--ink-3)}
+#v-tc .tc-cof{display:flex;flex-wrap:wrap;gap:4px var(--sp-3);font-size:12px;color:var(--ink-3);border-top:1px solid var(--line);padding-top:var(--sp-2)}
+#v-tc .tc-cof b{color:var(--ink);font-weight:600}
+@media (max-width:640px){#v-tc .tc-mini{display:flex}#v-tc .tc-cok.has-pay{grid-template-columns:1fr 48px}#v-tc .tc-grid{grid-template-columns:1fr 1fr;gap:var(--sp-2)}#v-tc .tc-bigv em{font-size:26px}#v-tc .tc-heat{display:none}}
