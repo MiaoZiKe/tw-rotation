@@ -17,7 +17,7 @@ from ..util import http
 log = logging.getLogger(__name__)
 
 
-def intl_daily(period: str = "2y") -> pd.DataFrame:
+def intl_daily(period: str = "2y", start: str | None = None) -> pd.DataFrame:
     """費半、那斯達克、美元指數、VIX、台幣匯率等，M4 國際連動盤的原料。"""
     try:
         import yfinance as yf
@@ -28,7 +28,8 @@ def intl_daily(period: str = "2y") -> pd.DataFrame:
     frames = []
     for symbol, label in config.INTL_SYMBOLS.items():
         try:
-            hist = yf.Ticker(symbol).history(period=period, auto_adjust=False)
+            hist = (yf.Ticker(symbol).history(start=start, auto_adjust=False) if start
+                    else yf.Ticker(symbol).history(period=period, auto_adjust=False))
         except Exception as exc:
             log.warning("yfinance %s 抓取失敗：%s", symbol, exc)
             continue
