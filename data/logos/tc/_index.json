@@ -26,9 +26,10 @@
    ],
    "tried": {
     "site": "ok [32, 32]",
-    "wikimedia": "none Wikidata 查不到官網是 airoha.com 的 Airoha Technology／沒有標誌圖",
+    "wikimedia": "沒回應",
     "google_s2": "none none HTTP 404 https://www.google.com/s2/favicons?domain=airoha.com&sz=256"
    },
+   "rv": 2,
    "detail": ""
   },
   "alchip.com": {
@@ -133,9 +134,10 @@
    ],
    "tried": {
     "site": "ok [32, 28]",
-    "wikimedia": "none Wikidata 查不到官網是 apmemory.com 的 AP Memory Technology／沒有標誌圖",
+    "wikimedia": "沒回應",
     "google_s2": "ok [32, 28]"
    },
+   "rv": 2,
    "detail": ""
   },
   "apple.com": {
@@ -214,17 +216,24 @@
    }
   },
   "aspeedtech.com": {
-   "status": "too_small",
+   "status": "ok",
    "fetched": "2026-10-27",
    "names": [
     "信驊"
    ],
    "tried": {
-    "site": "too_small 16x16 https://www.google.com/s2/favicons?domain=aspeedtech.com&sz=128",
-    "wikimedia": "none Wikidata 查不到官網是 aspeedtech.com 的 ASPEED Technology／沒有標誌圖",
-    "google_s2": "too_small too_small 16x16 https://www.google.com/s2/favicons?domain=aspeedtech.com&sz=256"
+    "site": "ok [48, 48]",
+    "wikimedia": "沒回應"
    },
-   "detail": "16x16 https://www.google.com/s2/favicons?domain=aspeedtech.com&sz=128"
+   "rv": 2,
+   "src": "site:conventional",
+   "url": "https://www.aspeedtech.com/favicon.ico",
+   "orig": [
+    48,
+    48
+   ],
+   "qv": 2,
+   "sha1": "23b5c6bb188dc1e627d0a335b8b0899e6ad12e16"
   },
   "asrockrack.com": {
    "status": "ok",
@@ -280,9 +289,10 @@
    ],
    "tried": {
     "site": "ok [16, 16]",
-    "wikimedia": "none Wikidata 查不到官網是 avc.co 的 Asia Vital Components／沒有標誌圖",
+    "wikimedia": "沒回應",
     "google_s2": "too_small too_small 16x16 https://www.google.com/s2/favicons?domain=avc.co&sz=256"
    },
+   "rv": 2,
    "detail": ""
   },
   "benq.com": {
@@ -342,6 +352,7 @@
     "quality": "人工排除：官網頁首圖是母集團「和泰集團」的標誌，不是車美仕自己的 Logo",
     "google_s2": "人工排除（s2 只回通用圖示／官網圖不是自家標誌）"
    },
+   "rv": 2,
    "detail": "人工排除：官網頁首圖是母集團「和泰集團」的標誌，不是車美仕自己的 Logo"
   },
   "castlestech.com": {
@@ -369,9 +380,10 @@
    ],
    "tried": {
     "site": "none 首頁 HTTP 403 https://www.chicony.com/",
-    "wikimedia": "none Wikidata 查不到官網是 chicony.com 的 Chicony Electronics／沒有標誌圖",
+    "wikimedia": "沒回應",
     "google_s2": "none none HTTP 404 https://www.google.com/s2/favicons?domain=chicony.com&sz=256"
    },
+   "rv": 2,
    "detail": "首頁 HTTP 403 https://www.chicony.com/"
   },
   "cyntec.com": {
@@ -381,17 +393,18 @@
     "乾坤科技"
    ],
    "tried": {
-    "site": "ok [64, 64]",
-    "wikimedia": "none Wikidata 查不到官網是 cyntec.com 的 Cyntec／沒有標誌圖"
+    "site": "ok [1275, 534]",
+    "wikimedia": "沒回應"
    },
-   "src": "site:conventional",
-   "url": "https://www.cyntec.com/favicon.ico",
+   "rv": 2,
+   "src": "site:header-img",
+   "url": "https://www.cyntec.com/Content/img/logo.png",
    "orig": [
-    64,
-    64
+    1275,
+    534
    ],
    "qv": 2,
-   "sha1": "6c8de2f806737b49fcd173e5b3fd7292c1169815"
+   "sha1": "0659435a8c7bf8a86b34695f3a1763b68397b554"
   },
   "dell.com": {
    "status": "ok",
@@ -447,10 +460,11 @@
    ],
    "tried": {
     "site": "ok [600, 600]",
-    "wikimedia": "none Wikidata 查不到官網是 eink.com 的 E Ink Holdings／沒有標誌圖",
+    "wikimedia": "沒回應",
     "quality": "og-image 一律不收（社群分享圖，常是橫幅照片）",
     "google_s2": "ok [32, 32]"
    },
+   "rv": 2,
    "detail": "og-image 一律不收（社群分享圖，常是橫幅照片）"
   },
   "emc.com.tw": {
@@ -461,9 +475,10 @@
    ],
    "tried": {
     "site": "none robots.txt 與首頁都回 HTTP 403（對方擋雲端存取），圖檔與 Google 備援都不抓 https://www.emc.com.tw/",
-    "wikimedia": "none Wikidata 查不到官網是 emc.com.tw 的 Elan Microelectronics／沒有標誌圖",
+    "wikimedia": "沒回應",
     "google_s2": "官網禁止或擋雲端存取，不問 Google"
    },
+   "rv": 2,
    "detail": "robots.txt 與首頁都回 HTTP 403（對方擋雲端存取），圖檔與 Google 備援都不抓 https://www.emc.com.tw/"
   },
   "entegris.com": {
@@ -475,9 +490,9 @@
    "tried": {
     "site": "ok [1200, 699]",
     "quality": "og-image 一律不收（社群分享圖，常是橫幅照片）",
-    "wikimedia": "none Wikidata 查不到官網是 entegris.com 的 Entegris／沒有標誌圖",
     "google_s2": "ok [33, 33]"
    },
+   "rv": 2,
    "detail": "og-image 一律不收（社群分享圖，常是橫幅照片）"
   },
   "episil.com": {
@@ -506,17 +521,18 @@
     "長興材料"
    ],
    "tried": {
-    "site": "ok [64, 64]",
-    "wikimedia": "none Wikidata 查不到官網是 eternal-group.com 的 Eternal Materials／沒有標誌圖"
+    "site": "ok [256, 117]",
+    "wikimedia": "沒回應"
    },
-   "src": "site:conventional",
-   "url": "https://eternal-group.com/favicon.ico",
+   "rv": 2,
+   "src": "site:header-img",
+   "url": "https://eternal-group.com/images/logo.svg",
    "orig": [
-    64,
-    64
+    256,
+    117
    ],
    "qv": 2,
-   "sha1": "6c8de2f806737b49fcd173e5b3fd7292c1169815"
+   "sha1": "bcef103fa61ba835c0015a899be9ac9cce04d1b5"
   },
   "fihmobile.com": {
    "status": "ok",
@@ -543,10 +559,11 @@
    ],
    "tried": {
     "site": "ok [256, 67]",
-    "wikimedia": "none Wikidata 查不到官網是 fitipower.com 的 Fitipower Integrated Technology／沒有標誌圖",
+    "wikimedia": "沒回應",
     "quality": "頁首圖長寬比 3.8:1 > 3:1，縮小後看不清",
     "google_s2": "none none HTTP 404 https://www.google.com/s2/favicons?domain=fitipower.com&sz=256"
    },
+   "rv": 2,
    "detail": "頁首圖長寬比 3.8:1 > 3:1，縮小後看不清"
   },
   "focaltech-electronics.com": {
@@ -557,9 +574,10 @@
    ],
    "tried": {
     "site": "ok [32, 32]",
-    "wikimedia": "none Wikidata 查不到官網是 focaltech-electronics.com 的 FocalTech Systems／沒有標誌圖",
+    "wikimedia": "沒回應",
     "google_s2": "ok [32, 32]"
    },
+   "rv": 2,
    "detail": ""
   },
   "formfactor.com": {
@@ -597,18 +615,26 @@
    "sha1": "aee111228cae386797399deb27cc15044ea144da"
   },
   "foxtronev.com": {
-   "status": "not_logo",
+   "status": "ok",
    "fetched": "2026-10-27",
    "names": [
     "鴻華先進"
    ],
    "tried": {
     "site": "ok [1200, 630]",
-    "wikimedia": "none Wikidata 查不到官網是 foxtronev.com 的 Foxtron Vehicle Technologies／沒有標誌圖",
+    "wikimedia": "沒回應",
     "quality": "og-image 一律不收（社群分享圖，常是橫幅照片）",
     "google_s2": "ok [48, 48]"
    },
-   "detail": "og-image 一律不收（社群分享圖，常是橫幅照片）"
+   "rv": 2,
+   "src": "google_s2",
+   "url": "https://www.google.com/s2/favicons?domain=foxtronev.com&sz=256",
+   "orig": [
+    48,
+    48
+   ],
+   "qv": 2,
+   "sha1": "ee5e0417b6ab4d2d373b41b26b11637c2ae46112"
   },
   "garmin.com.tw": {
    "status": "ok",
@@ -664,9 +690,9 @@
    ],
    "tried": {
     "site": "robots https://google.com/ robots.txt 的 Disallow 規則不允許 —— 尊重它，也不走 Google 備援",
-    "wikimedia": "none Wikidata 查不到官網是 google.com 的 Google／沒有標誌圖",
     "google_s2": "官網禁止或擋雲端存取，不問 Google"
    },
+   "rv": 2,
    "detail": "https://google.com/ robots.txt 的 Disallow 規則不允許 —— 尊重它，也不走 Google 備援"
   },
   "guc-asic.com": {
@@ -713,9 +739,9 @@
    ],
    "tried": {
     "site": "none robots.txt 與首頁都回 HTTP 403（對方擋雲端存取），圖檔與 Google 備援都不抓 https://www.hitachi-hightech.com/",
-    "wikimedia": "none Commons too_wide 250x40",
     "google_s2": "官網禁止或擋雲端存取，不問 Google"
    },
+   "rv": 2,
    "detail": "robots.txt 與首頁都回 HTTP 403（對方擋雲端存取），圖檔與 Google 備援都不抓 https://www.hitachi-hightech.com/"
   },
   "hp.com": {
@@ -772,9 +798,10 @@
    ],
    "tried": {
     "site": "none robots.txt 與首頁都回 HTTP 403（對方擋雲端存取），圖檔與 Google 備援都不抓 https://www.innolux.com/",
-    "wikimedia": "none Commons too_wide 250x44",
+    "wikimedia": "沒回應",
     "google_s2": "官網禁止或擋雲端存取，不問 Google"
    },
+   "rv": 2,
    "detail": "robots.txt 與首頁都回 HTTP 403（對方擋雲端存取），圖檔與 Google 備援都不抓 https://www.innolux.com/"
   },
   "inventec.com": {
@@ -843,37 +870,51 @@
    ],
    "tried": {
     "site": "ok [256, 59]",
-    "wikimedia": "none Wikidata 查不到官網是 itri.org.tw 的 Industrial Technology Research Institute／沒有標誌圖",
+    "wikimedia": "沒回應",
     "quality": "頁首圖長寬比 4.3:1 > 3:1，縮小後看不清",
     "google_s2": "none none HTTP 404 https://www.google.com/s2/favicons?domain=itri.org.tw&sz=256"
    },
+   "rv": 2,
    "detail": "頁首圖長寬比 4.3:1 > 3:1，縮小後看不清"
   },
   "kaikutek.com": {
-   "status": "too_small",
+   "status": "ok",
    "fetched": "2026-10-27",
    "names": [
     "開酷"
    ],
    "tried": {
-    "site": "ok [57, 57]",
-    "wikimedia": "none Wikidata 查不到官網是 kaikutek.com 的 Kaikutek／沒有標誌圖",
-    "google_s2": "none none HTTP 404 https://www.google.com/s2/favicons?domain=kaikutek.com&sz=256"
+    "site": "ok [57, 57]"
    },
-   "detail": ""
+   "rv": 2,
+   "src": "site:apple-touch-icon",
+   "url": "https://www.kaikutek.com/apple-touch-icon.png",
+   "orig": [
+    57,
+    57
+   ],
+   "qv": 2,
+   "sha1": "3b059ed2d21bee2f5588e57e185892ba6a79150c"
   },
   "kinsus.com.tw": {
-   "status": "too_small",
+   "status": "ok",
    "fetched": "2026-10-27",
    "names": [
     "景碩"
    ],
    "tried": {
     "site": "ok [48, 48]",
-    "wikimedia": "none Wikidata 查不到官網是 kinsus.com.tw 的 Kinsus Interconnect Technology／沒有標誌圖",
-    "google_s2": "none none HTTP 404 https://www.google.com/s2/favicons?domain=kinsus.com.tw&sz=256"
+    "wikimedia": "沒回應"
    },
-   "detail": ""
+   "rv": 2,
+   "src": "site:icon",
+   "url": "https://www.kinsus.com.tw/favicon.ico?v=lGa0MlsWxrcOGDHVDAaiwhVp7t8WMmcP5GLVVxArkf0",
+   "orig": [
+    48,
+    48
+   ],
+   "qv": 2,
+   "sha1": "c5aa11989c2e8188e9620a95bd39af705c5f9a83"
   },
   "kla.com": {
    "status": "ok",
@@ -917,9 +958,10 @@
    ],
    "tried": {
     "site": "none HTTP 404 https://www.google.com/s2/favicons?domain=ksmt.com.tw&sz=128",
-    "wikimedia": "none Wikidata 查不到官網是 ksmt.com.tw 的 KSMT／沒有標誌圖",
+    "wikimedia": "沒回應",
     "google_s2": "none none HTTP 404 https://www.google.com/s2/favicons?domain=ksmt.com.tw&sz=256"
    },
+   "rv": 2,
    "detail": "HTTP 404 https://www.google.com/s2/favicons?domain=ksmt.com.tw&sz=128"
   },
   "lamresearch.com": {
@@ -947,9 +989,10 @@
    ],
    "tried": {
     "site": "ok [32, 32]",
-    "wikimedia": "none Wikidata 查不到官網是 largan.com.tw 的 Largan Precision／沒有標誌圖",
+    "wikimedia": "沒回應",
     "google_s2": "none none HTTP 404 https://www.google.com/s2/favicons?domain=largan.com.tw&sz=256"
    },
+   "rv": 2,
    "detail": ""
   },
   "lasertec.co.jp": {
@@ -1006,9 +1049,9 @@
    ],
    "tried": {
     "site": "none robots.txt 與首頁都回 HTTP 403（對方擋雲端存取），圖檔與 Google 備援都不抓 https://www.merckgroup.com/",
-    "wikimedia": "none Commons too_wide 250x43",
     "google_s2": "官網禁止或擋雲端存取，不問 Google"
    },
+   "rv": 2,
    "detail": "robots.txt 與首頁都回 HTTP 403（對方擋雲端存取），圖檔與 Google 備援都不抓 https://www.merckgroup.com/"
   },
   "meta.com": {
@@ -1063,17 +1106,23 @@
    "sha1": "ee0276bdac452a6c257273ed300892864b83c76d"
   },
   "mitaccomputing.com": {
-   "status": "too_small",
+   "status": "ok",
    "fetched": "2026-10-27",
    "names": [
     "神雲科技"
    ],
    "tried": {
-    "site": "ok [48, 48]",
-    "wikimedia": "none Wikidata 查不到官網是 mitaccomputing.com 的 Mitac Computing Technology／沒有標誌圖",
-    "google_s2": "ok [48, 48]"
+    "site": "ok [48, 48]"
    },
-   "detail": ""
+   "rv": 2,
+   "src": "site:conventional",
+   "url": "https://mitaccomputing.com/favicon.ico",
+   "orig": [
+    48,
+    48
+   ],
+   "qv": 2,
+   "sha1": "cdf5d35b7a53a6e0558ca6051adde3dbdfb20d1b"
   },
   "monolithicpower.com": {
    "status": "ok",
@@ -1129,37 +1178,53 @@
    ],
    "tried": {
     "site": "none HTTP 404 https://www.google.com/s2/favicons?domain=nantex.com.tw&sz=128",
-    "wikimedia": "none Wikidata 查不到官網是 nantex.com.tw 的 Nantex Industry／沒有標誌圖",
+    "wikimedia": "沒回應",
     "google_s2": "none none HTTP 404 https://www.google.com/s2/favicons?domain=nantex.com.tw&sz=256"
    },
+   "rv": 2,
    "detail": "HTTP 404 https://www.google.com/s2/favicons?domain=nantex.com.tw&sz=128"
   },
   "nvidia.com": {
-   "status": "not_logo",
+   "status": "ok",
    "fetched": "2026-10-27",
    "names": [
     "NVIDIA"
    ],
    "tried": {
     "site": "ok [1200, 674]",
-    "wikimedia": "none 授權不在白名單：Apache License 2.0（File:NVIDIA logo.svg）",
+    "wikimedia": "沒回應",
     "quality": "網址像分享圖示／橫幅／框架預設圖，不是公司標誌 https://www.nvidia.com/content/dam/en-zz/Solutions/homepage/v2/sfg/nvidia-corpor",
     "google_s2": "ok [48, 48]"
    },
-   "detail": "網址像分享圖示／橫幅／框架預設圖，不是公司標誌 https://www.nvidia.com/content/dam/en-zz/Solutions/homepage/v2/sfg/nvidia-corpor"
+   "rv": 2,
+   "src": "google_s2",
+   "url": "https://www.google.com/s2/favicons?domain=nvidia.com&sz=256",
+   "orig": [
+    48,
+    48
+   ],
+   "qv": 2,
+   "sha1": "2cbe9a06176a169348209475a284c76240b11a71"
   },
   "pegatroncorp.com": {
-   "status": "too_small",
+   "status": "ok",
    "fetched": "2026-10-27",
    "names": [
     "和碩"
    ],
    "tried": {
     "site": "ok [48, 48]",
-    "wikimedia": "none Commons too_wide 250x39",
-    "google_s2": "none none HTTP 404 https://www.google.com/s2/favicons?domain=pegatroncorp.com&sz=256"
+    "wikimedia": "沒回應"
    },
-   "detail": ""
+   "rv": 2,
+   "src": "site:icon",
+   "url": "https://www.pegatroncorp.com/favicon.ico",
+   "orig": [
+    48,
+    48
+   ],
+   "qv": 2,
+   "sha1": "14050ad73a3472b8f280b00b6df092c0e7ef932b"
   },
   "phihongtech.com": {
    "status": "ok",
@@ -1215,9 +1280,10 @@
    ],
    "tried": {
     "site": "none HTTP 404 https://www.google.com/s2/favicons?domain=princeton.com.tw&sz=128",
-    "wikimedia": "none Wikidata 查不到官網是 princeton.com.tw 的 Princeton Technology／沒有標誌圖",
+    "wikimedia": "沒回應",
     "google_s2": "none none HTTP 404 https://www.google.com/s2/favicons?domain=princeton.com.tw&sz=256"
    },
+   "rv": 2,
    "detail": "HTTP 404 https://www.google.com/s2/favicons?domain=princeton.com.tw&sz=128"
   },
   "qualcomm.com": {
@@ -1228,10 +1294,11 @@
    ],
    "tried": {
     "site": "ok [512, 512]",
-    "wikimedia": "none Commons too_wide 250x46",
+    "wikimedia": "沒回應",
     "quality": "網址像分享圖示／橫幅／框架預設圖，不是公司標誌 https://www.qualcomm.com/etc.clientlibs/qcomm-martech/clientlibs/clientlib-react",
     "google_s2": "ok [32, 32]"
    },
+   "rv": 2,
    "detail": "網址像分享圖示／橫幅／框架預設圖，不是公司標誌 https://www.qualcomm.com/etc.clientlibs/qcomm-martech/clientlibs/clientlib-react"
   },
   "questglobal.com": {
@@ -1252,17 +1319,24 @@
    "sha1": "c6b762bb5a5738880d985eeb3c062af157f8014a"
   },
   "rad-ic.com": {
-   "status": "too_small",
+   "status": "ok",
    "fetched": "2026-10-27",
    "names": [
     "瑞鼎"
    ],
    "tried": {
     "site": "ok [48, 48]",
-    "wikimedia": "none Wikidata 查不到官網是 rad-ic.com 的 Raydium Semiconductor／沒有標誌圖",
-    "google_s2": "none none HTTP 404 https://www.google.com/s2/favicons?domain=rad-ic.com&sz=256"
+    "wikimedia": "沒回應"
    },
-   "detail": ""
+   "rv": 2,
+   "src": "site:conventional",
+   "url": "https://www.rad-ic.com/favicon.ico",
+   "orig": [
+    48,
+    48
+   ],
+   "qv": 2,
+   "sha1": "36b2a45df410b624ab8db13c3b6cd9d34edca088"
   },
   "raritan.com": {
    "status": "ok",
@@ -1328,17 +1402,24 @@
    "sha1": "39f5b8f16f87abe66d18ea0014ca7b265158dc8b"
   },
   "senaonetworks.com": {
-   "status": "none",
+   "status": "ok",
    "fetched": "2026-10-27",
    "names": [
     "神準"
    ],
    "tried": {
-    "site": "none robots.txt 與首頁都回 HTTP 403（對方擋雲端存取），圖檔與 Google 備援都不抓 https://senaonetworks.com/",
-    "wikimedia": "none Wikidata 查不到官網是 senaonetworks.com 的 Senao Networks／沒有標誌圖",
-    "google_s2": "官網禁止或擋雲端存取，不問 Google"
+    "site": "ok [128, 128]",
+    "wikimedia": "沒回應"
    },
-   "detail": "robots.txt 與首頁都回 HTTP 403（對方擋雲端存取），圖檔與 Google 備援都不抓 https://senaonetworks.com/"
+   "rv": 2,
+   "src": "google_s2",
+   "url": "https://www.google.com/s2/favicons?domain=senaonetworks.com&sz=128",
+   "orig": [
+    128,
+    128
+   ],
+   "qv": 2,
+   "sha1": "32b84d120b40a97098ec0b946e9daf9f65ffa109"
   },
   "siliconmotion.com": {
    "status": "ok",
@@ -1365,9 +1446,10 @@
    ],
    "tried": {
     "site": "robots https://soinc.com.tw/ robots.txt 的 Disallow 規則不允許 —— 尊重它，也不走 Google 備援",
-    "wikimedia": "none Wikidata 查不到官網是 soinc.com.tw 的 Silicon Optronics／沒有標誌圖",
+    "wikimedia": "沒回應",
     "google_s2": "官網禁止或擋雲端存取，不問 Google"
    },
+   "rv": 2,
    "detail": "https://soinc.com.tw/ robots.txt 的 Disallow 規則不允許 —— 尊重它，也不走 Google 備援"
   },
   "solartech.com.tw": {
@@ -1433,9 +1515,9 @@
    ],
    "tried": {
     "site": "error robots.txt 回 HTTP 500（RFC 9309 §2.3.1.4：伺服器錯誤視為暫時全站禁止，這輪不抓）https://spil.com.tw/",
-    "wikimedia": "none Wikidata 查不到官網是 spil.com.tw 的 Siliconware Precision Industries／沒有標誌圖",
     "google_s2": "none none HTTP 404 https://www.google.com/s2/favicons?domain=spil.com.tw&sz=256"
    },
+   "rv": 2,
    "detail": "robots.txt 回 HTTP 500（RFC 9309 §2.3.1.4：伺服器錯誤視為暫時全站禁止，這輪不抓）https://spil.com.tw/"
   },
   "ssmc.com": {
@@ -1480,9 +1562,10 @@
    ],
    "tried": {
     "site": "ok [32, 32]",
-    "wikimedia": "none Wikidata 查不到官網是 stl-tech.com 的 Simplo Technology／沒有標誌圖",
+    "wikimedia": "沒回應",
     "google_s2": "none none HTTP 404 https://www.google.com/s2/favicons?domain=stl-tech.com&sz=256"
    },
+   "rv": 2,
    "detail": ""
   },
   "synopsys.com": {
@@ -1556,9 +1639,9 @@
    ],
    "tried": {
     "site": "none robots.txt 與首頁都回 HTTP 403（對方擋雲端存取），圖檔與 Google 備援都不抓 https://teradyne.com/",
-    "wikimedia": "none Commons too_wide 250x38",
     "google_s2": "官網禁止或擋雲端存取，不問 Google"
    },
+   "rv": 2,
    "detail": "robots.txt 與首頁都回 HTTP 403（對方擋雲端存取），圖檔與 Google 備援都不抓 https://teradyne.com/"
   },
   "trendmicro.com": {
@@ -1591,17 +1674,24 @@
    }
   },
   "uicpaymentsinc.com": {
-   "status": "none",
+   "status": "ok",
    "fetched": "2026-10-27",
    "names": [
     "連宇"
    ],
    "tried": {
-    "site": "none robots.txt 與首頁都回 HTTP 403（對方擋雲端存取），圖檔與 Google 備援都不抓 https://uicpaymentsinc.com/",
-    "wikimedia": "none Wikidata 查不到官網是 uicpaymentsinc.com 的 UIC Payments／沒有標誌圖",
-    "google_s2": "人工排除（s2 只回通用圖示／官網圖不是自家標誌）"
+    "site": "ok [128, 128]",
+    "wikimedia": "沒回應"
    },
-   "detail": "robots.txt 與首頁都回 HTTP 403（對方擋雲端存取），圖檔與 Google 備援都不抓 https://uicpaymentsinc.com/"
+   "rv": 2,
+   "src": "google_s2",
+   "url": "https://www.google.com/s2/favicons?domain=uicpaymentsinc.com&sz=128",
+   "orig": [
+    128,
+    128
+   ],
+   "qv": 2,
+   "sha1": "fc436340f1cbda384f8d4634a69a457317ff4162"
   },
   "umc.com": {
    "status": "ok",
@@ -1657,9 +1747,10 @@
    ],
    "tried": {
     "site": "none HTTP 404 https://www.google.com/s2/favicons?domain=unimicron.com&sz=128",
-    "wikimedia": "none Wikidata 查不到官網是 unimicron.com 的 Unimicron Technology／沒有標誌圖",
+    "wikimedia": "沒回應",
     "google_s2": "none none HTTP 404 https://www.google.com/s2/favicons?domain=unimicron.com&sz=256"
    },
+   "rv": 2,
    "detail": "HTTP 404 https://www.google.com/s2/favicons?domain=unimicron.com&sz=128"
   },
   "vis.com.tw": {
@@ -1716,23 +1807,31 @@
    ],
    "tried": {
     "site": "ok [32, 32]",
-    "wikimedia": "none Commons too_wide 250x35",
+    "wikimedia": "沒回應",
     "google_s2": "ok [32, 32]"
    },
+   "rv": 2,
    "detail": ""
   },
   "winwayglobal.com": {
-   "status": "too_small",
+   "status": "ok",
    "fetched": "2026-10-27",
    "names": [
     "穎崴"
    ],
    "tried": {
     "site": "ok [48, 48]",
-    "wikimedia": "none Wikidata 查不到官網是 winwayglobal.com 的 WinWay Technology／沒有標誌圖",
-    "google_s2": "none none HTTP 404 https://www.google.com/s2/favicons?domain=winwayglobal.com&sz=256"
+    "wikimedia": "沒回應"
    },
-   "detail": ""
+   "rv": 2,
+   "src": "site:icon",
+   "url": "https://www.winwayglobal.com/static/web/styles/images/web-icon.ico",
+   "orig": [
+    48,
+    48
+   ],
+   "qv": 2,
+   "sha1": "f02ee7307bb133bfa4b1000b924c572f979ac670"
   },
   "wipro.com": {
    "status": "ok",
@@ -1763,9 +1862,10 @@
    ],
    "tried": {
     "site": "none robots.txt 與首頁都回 HTTP 403（對方擋雲端存取），圖檔與 Google 備援都不抓 https://www.wistron.com/",
-    "wikimedia": "none Commons too_wide 250x49",
+    "wikimedia": "沒回應",
     "google_s2": "官網禁止或擋雲端存取，不問 Google"
    },
+   "rv": 2,
    "detail": "robots.txt 與首頁都回 HTTP 403（對方擋雲端存取），圖檔與 Google 備援都不抓 https://www.wistron.com/"
   },
   "wiwynn.com": {
@@ -1776,10 +1876,11 @@
    ],
    "tried": {
     "site": "ok [1200, 630]",
-    "wikimedia": "none Wikidata 查不到官網是 wiwynn.com 的 Wiwynn／沒有標誌圖",
+    "wikimedia": "沒回應",
     "quality": "og-image 一律不收（社群分享圖，常是橫幅照片）",
     "google_s2": "too_small too_small 16x16 https://www.google.com/s2/favicons?domain=wiwynn.com&sz=256"
    },
+   "rv": 2,
    "detail": "og-image 一律不收（社群分享圖，常是橫幅照片）"
   },
   "xintec.com.tw": {
@@ -1790,9 +1891,10 @@
    ],
    "tried": {
     "site": "none HTTP 404 https://www.xintec.com.tw/apple-touch-icon.png",
-    "wikimedia": "none Wikidata 查不到官網是 xintec.com.tw 的 Xintec／沒有標誌圖",
+    "wikimedia": "沒回應",
     "google_s2": "none none HTTP 404 https://www.google.com/s2/favicons?domain=xintec.com.tw&sz=256"
    },
+   "rv": 2,
    "detail": "HTTP 404 https://www.xintec.com.tw/apple-touch-icon.png"
   },
   "zdtco.com": {
@@ -1803,11 +1905,12 @@
    ],
    "tried": {
     "site": "none HTTP 404 https://www.google.com/s2/favicons?domain=zdtco.com&sz=128",
-    "wikimedia": "none Wikidata 查不到官網是 zdtco.com 的 Zhen Ding Technology／沒有標誌圖",
+    "wikimedia": "沒回應",
     "google_s2": "none none HTTP 404 https://www.google.com/s2/favicons?domain=zdtco.com&sz=256"
    },
+   "rv": 2,
    "detail": "HTTP 404 https://www.google.com/s2/favicons?domain=zdtco.com&sz=128"
   }
  },
- "updated_at": "2026-10-26T20:48:55.539173+00:00"
+ "updated_at": "2026-10-26T20:54:29.830334+00:00"
 }

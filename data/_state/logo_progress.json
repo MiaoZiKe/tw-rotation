@@ -1,6 +1,6 @@
 {
  "enabled": true,
- "at": "2026-10-26T20:44:38.383514+00:00",
+ "at": "2026-10-26T20:52:24.839014+00:00",
  "manual": {
   "files": 0,
   "applied": [],
@@ -21,23 +21,24 @@
  "sites": 1989,
  "have": 1720,
  "next_due": "2026-10-29",
- "seconds": 0.0,
+ "seconds": 0.1,
  "deadline_hit": false,
  "strategy": 4,
  "svg": true,
  "failures": [],
  "tc": {
   "domains": 101,
-  "have": 60,
-  "coverage": 0.594,
+  "have": 71,
+  "coverage": 0.703,
   "pending": 0,
   "next_due": "2026-11-26",
   "counts": {
-   "ok": 24,
-   "none": 12,
-   "too_small": 12,
-   "not_logo": 9,
-   "robots": 1
+   "not_logo": 7,
+   "robots": 2,
+   "none": 13,
+   "ok": 13,
+   "error": 1,
+   "too_small": 7
   }
  }
 }
