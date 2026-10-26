@@ -19,9 +19,15 @@
           "role": "製程工程師",
           "degree": "碩士",
           "years": "0-2",
-          "base_month_k": null,
+          "base_month_k": [
+            45,
+            63
+          ],
           "bonus_months": null,
-          "annual_months": null,
+          "annual_months": [
+            14,
+            14
+          ],
           "annual_total_wan": [
             75,
             75
@@ -542,7 +548,10 @@
             50
           ],
           "bonus_months": null,
-          "annual_months": null,
+          "annual_months": [
+            14,
+            14
+          ],
           "annual_total_wan": null,
           "weekly_hours": null,
           "overtime": "經常（需輪班）",
@@ -736,7 +745,8 @@
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2025-12-22"
             }
           ],
-          "n_stat": 3
+          "n_stat": 3,
+          "degree_diff": "樣本中位數：學士底薪約 40.75K、碩士約 46.5K（差約 5.75K；學士 2 筆、碩士 2 筆）"
         },
         {
           "unit": "廠務",
@@ -811,7 +821,15 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 3
+          "n": 3,
+          "annual_months": [
+            14,
+            14
+          ],
+          "annual_total_wan": [
+            105,
+            105
+          ]
         },
         {
           "unit": "高雄",
@@ -843,7 +861,11 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "annual_months": [
+            18,
+            18
+          ]
         },
         {
           "unit": "其他",
@@ -952,7 +974,13 @@
           "n": 3,
           "sources": [],
           "confidence": "低",
-          "note": "2026-10-26 Andy 確認代稱後加入"
+          "note": "2026-10-26 Andy 確認代稱後加入",
+          "annual_months": [
+            14,
+            14
+          ],
+          "weekly_hours": 45,
+          "overtime": "偶爾"
         },
         {
           "unit": "其他",
@@ -1016,7 +1044,11 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "annual_total_wan": [
+            105,
+            105
+          ]
         },
         {
           "unit": "高雄 / Bump",
@@ -1102,7 +1134,8 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 2
+          "n": 2,
+          "overtime": "經常"
         },
         {
           "unit": "高雄 / CRD",
@@ -1166,7 +1199,11 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "base_month_k": [
+            40,
+            40
+          ]
         },
         {
           "unit": "桃園中壢",
@@ -1198,7 +1235,11 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "annual_months": [
+            14,
+            14
+          ]
         },
         {
           "unit": "高雄楠梓 / A3",
@@ -1262,7 +1303,8 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "overtime": "幾乎不"
         },
         {
           "unit": "其他",
@@ -1294,7 +1336,13 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "annual_months": [
+            17,
+            17
+          ],
+          "weekly_hours": 45,
+          "overtime": "偶爾"
         },
         {
           "unit": "其他",
@@ -1326,7 +1374,8 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "overtime": "幾乎不"
         },
         {
           "unit": "其他",
@@ -1358,7 +1407,9 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "weekly_hours": 45,
+          "overtime": "偶爾"
         },
         {
           "unit": "高雄",
@@ -1390,7 +1441,16 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "base_month_k": [
+            49,
+            49
+          ],
+          "annual_months": [
+            14,
+            14
+          ],
+          "overtime": "經常"
         }
       ],
       "mops": {
@@ -1750,7 +1810,11 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "base_month_k": [
+            42,
+            42
+          ]
         }
       ],
       "mops": {
@@ -2089,7 +2153,8 @@
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-09-07"
             }
           ],
-          "n_stat": 3
+          "n_stat": 3,
+          "degree_diff": "樣本中位數：學士底薪約 49K、碩士約 54K（差約 5K；學士 1 筆、碩士 1 筆）"
         },
         {
           "unit": "台南",
@@ -2209,7 +2274,15 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 5
+          "n": 5,
+          "base_month_k": [
+            46.5,
+            59
+          ],
+          "annual_months": [
+            14,
+            14
+          ]
         },
         {
           "unit": "南科",
@@ -2273,7 +2346,12 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "annual_months": [
+            17,
+            17
+          ],
+          "overtime": "幾乎不"
         },
         {
           "unit": "其他",
@@ -2410,7 +2488,15 @@
           "n": 1,
           "sources": [],
           "confidence": "低",
-          "note": "2026-10-26 Andy 指示加入"
+          "note": "2026-10-26 Andy 指示加入",
+          "annual_months": [
+            14,
+            14
+          ],
+          "annual_total_wan": [
+            110,
+            110
+          ]
         }
       ]
     },
@@ -2459,7 +2545,11 @@
           "n": 1,
           "sources": [],
           "confidence": "低",
-          "note": "2026-10-26 由 Dcard 樣本新增的公司"
+          "note": "2026-10-26 由 Dcard 樣本新增的公司",
+          "base_month_k": [
+            61,
+            61
+          ]
         },
         {
           "unit": "新竹 P11",
@@ -2515,7 +2605,12 @@
           "n": 2,
           "sources": [],
           "confidence": "低",
-          "note": "2026-10-26 由 Dcard 樣本新增的公司"
+          "note": "2026-10-26 由 Dcard 樣本新增的公司",
+          "annual_months": [
+            17,
+            17
+          ],
+          "overtime": "幾乎不"
         },
         {
           "unit": "其他",
@@ -2596,7 +2691,11 @@
           "n": 1,
           "sources": [],
           "confidence": "低",
-          "note": "2026-10-26 由 Dcard 樣本新增的公司"
+          "note": "2026-10-26 由 Dcard 樣本新增的公司",
+          "base_month_k": [
+            46.5,
+            46.5
+          ]
         }
       ]
     },
@@ -2645,7 +2744,11 @@
           "n": 1,
           "sources": [],
           "confidence": "低",
-          "note": "2026-10-26 由 Dcard 樣本新增的公司"
+          "note": "2026-10-26 由 Dcard 樣本新增的公司",
+          "base_month_k": [
+            47.5,
+            47.5
+          ]
         }
       ]
     },
@@ -2694,7 +2797,12 @@
           "n": 1,
           "sources": [],
           "confidence": "低",
-          "note": "2026-10-26 由 Dcard 樣本新增的公司"
+          "note": "2026-10-26 由 Dcard 樣本新增的公司",
+          "annual_months": [
+            14,
+            14
+          ],
+          "overtime": "幾乎不"
         },
         {
           "unit": "其他",
@@ -2775,7 +2883,16 @@
           "n": 1,
           "sources": [],
           "confidence": "低",
-          "note": "2026-10-26 由 Dcard 樣本新增的公司"
+          "note": "2026-10-26 由 Dcard 樣本新增的公司",
+          "base_month_k": [
+            50,
+            50
+          ],
+          "annual_months": [
+            12,
+            12
+          ],
+          "overtime": "經常"
         }
       ]
     },
@@ -2854,7 +2971,8 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "overtime": "偶爾"
         }
       ],
       "note": "2026-10-26 由 Dcard 樣本新增的公司"
