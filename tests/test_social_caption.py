@@ -21,7 +21,7 @@ def test_caption_full_four_lines_within_480():
     assert len(txt) <= 480, len(txt)
     L = txt.splitlines()
     i = L.index("🎡 資金輪盤：")
-    assert L[0] == "🕛 盤中消息" and L[1] == "🧭 盤面分析：" and L[i + 1].startswith("・領先 ") and L[i + 2].startswith("・落後 ")      # 10-26 晚：盤面分析放最前   # 2026-10-26 Andy 指定格式
+    assert L[0] == "🕛 盤中3分鐘" and L[1] == "🧭 盤面分析：" and L[i + 1].startswith("・領先 ") and L[i + 2].startswith("・落後 ")      # 10-26 晚：盤面分析放最前   # 2026-10-26 Andy 指定格式
     assert "🌳 資金分流樹：" in L and "🔥 熱力圖：" in L and L[-3].startswith("#台股") and "資料：" not in txt   # 盤中文案不放免責／來源
     assert L[-2:] == ss.LINK_LINES and txt.count("https://") == 1 and " → " not in txt   # Andy：「連結只需要附在最底下就好」＋10-26 連結改成首頁＋說明句
     assert "#heatmap" not in txt
