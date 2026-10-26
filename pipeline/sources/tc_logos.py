@@ -65,7 +65,8 @@ QV = 2   # 品質關卡版本：索引裡有 qv>=2 的 ok 紀錄＝已經過 qua
 WIKI_FIRST = frozenset({"nvidia.com", "asml.com", "amd.com", "qualcomm.com", "synopsys.com", "wipro.com",
                         "uicpaymentsinc.com", "itri.org.tw", "ami.com"})
 # 人工排除：抓得到的圖不是該公司自己的 Logo（寧可退字標也不要放錯公司的）
-DENY = {"carmax.com.tw": "官網頁首圖是母集團「和泰集團」的標誌，不是車美仕自己的 Logo"}
+DENY = {"carmax.com.tw": "官網頁首圖是母集團「和泰集團」的標誌，不是車美仕自己的 Logo",
+        "kinsus.com.tw": "官網只有 48px、內容糊成一片的 favicon，放大後認不出是什麼"}
 S2_DENY = frozenset({"uicpaymentsinc.com"})    # Google s2 對這個網域只回通用地球圖示
 # 網址帶這些字樣＝分享圖示、宣傳橫幅、前端框架預設圖示，不是公司標誌
 _BAD_URL = re.compile(r"og-image|teaser|hero|banner|share[-_]?icon|sharing|social[-_]|clientlib-react|/icon/ai-|/ai-(?:black|white)", re.I)
@@ -230,6 +231,8 @@ def quality(res: dict, dom: str = "") -> str | None:
     src = str(res.get("src") or "")
     if src == "wikimedia":
         return None
+    if src == "google_s2" and dom in S2_DENY:
+        return "Google s2 對這個網域只回通用圖示（地球）"      # 官網那條路（logos.fetch_logo）內建的 s2 備援也要擋
     url = str(res.get("url") or "")
     if _BAD_URL.search(url):
         return f"網址像分享圖示／橫幅／框架預設圖，不是公司標誌 {url[:80]}"
@@ -466,6 +469,8 @@ def revalidate(items: dict, domains: list[dict]) -> list[str]:
         why = None
         if rec.get("sha1") in dup:
             why = "多個網域同一張圖，是預設圖不是該公司的標誌"
+        elif dom in DENY or (dom in S2_DENY and rec.get("src") == "google_s2"):
+            why = quality({"domain": dom, "src": rec.get("src")}, dom)      # 人工排除清單後來才加的，qv 已蓋章也要重驗
         elif int(rec.get("qv") or 0) >= QV:
             continue
         elif dom in WIKI_FIRST:

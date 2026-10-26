@@ -345,3 +345,9 @@ def test_old_strategy_failure_is_retried_immediately(sandbox):
     tc.run(today=TODAY, domains=[{"domain": "g.com", "names": ["G"], "en": ""}], site_fetcher=_ok((64, 64)),
            wiki_fetcher=lambda *a: {}, s2_fetcher=lambda *a: {"status": "none"})
     assert tc.read_index()["items"]["g.com"]["status"] == "too_small"      # 新策略判的失敗，30 天內不重試
+
+
+def test_s2_deny_also_blocks_s2_result_returned_by_site_fetcher():
+    r = _res(_png(), "google_s2", (128, 128), dom="uicpaymentsinc.com")
+    assert "通用圖示" in tc.quality(r, "uicpaymentsinc.com")
+    assert tc.quality(_res(_png(), "google_s2", (128, 128), dom="ok.com"), "ok.com") is None
