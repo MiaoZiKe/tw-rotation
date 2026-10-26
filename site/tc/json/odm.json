@@ -12,7 +12,7 @@
       "stock_plan": null,
       "bonus_timing": "員工分紅每年 10～11 月入帳、依部門與考核；年終獎金農曆年前（2 月前後）另發，兩者分開計算",
       "culture": "加班普遍，硬體測試回報每日加班常態",
-      "interview": null,
+      "interview": "網友說法：多為線上面試、部分有二輪實體；先報專案再深入追問技術細節，常評估英文（有人先考多益），主管會直接問能否接受加班；各 BU 風格差異大（GoodJob 2026-08 多則、Dcard 2026 研替與 BU9 面試分享）",
       "roles": [
         {
           "unit": "研發 RD",
@@ -1084,7 +1084,7 @@
         "url": "https://money.udn.com/money/story/5612/8841090"
       },
       "mops_note": "查「廣達 非主管 薪資 平均 中位數 2025」與 104 職場力 2026 上市中位數榜，摘要未列此公司；需至公開資訊觀測站彙總報表查",
-      "grade_system": null,
+      "grade_system": "網友說法：工程師 → 二專（約 2～3 年）→ 一專（再 1～2 年），約兩年升一次（GoodJob 升遷制度評價多則；非官方）",
       "bonus_structure": [
         {
           "type": "員工分紅",
@@ -1126,11 +1126,11 @@
       "name": "鴻海",
       "code": "2317",
       "heat": "中",
-      "benefits": null,
+      "benefits": "「0 到 6 歲公司養」育兒補助（獲 HR Asia 雇主關懷獎，媒體報導已逾 2,100 名受惠）、準媽媽預產期交通補助（中時新聞網 wantrich 2025～2026 報導）",
       "stock_plan": null,
       "bonus_timing": "月薪＋12 月固定年終（原則 2 個月）＋農曆年前績效獎金＋每年 9 月年度員工分紅（依事業群與個人績效，非平均）",
-      "culture": null,
-      "interview": null,
+      "culture": "網友說法：GoodJob 評分約 3.6～3.7，文化 2.6、工時 2.8 偏低、成長 4.1 偏高；加班與職場政治高度依事業群與主管而異",
+      "interview": "網友說法：先填鴻海格式履歷並做性向、英文測驗，再由主管面談追問專案細節，關數因事業群而異（有人多達七關）；面試官態度評價兩極（GoodJob 2025-08～2026-08、Dcard 2026）",
       "roles": [
         {
           "unit": "研發 RD",
@@ -2320,7 +2320,7 @@
       "stock_plan": null,
       "bonus_timing": "分紅兩次：4 月員工現金獎金（約 40%）＋8 月員工現金酬勞（約 60%）；考績獎金 6 月；年終農曆年前",
       "culture": "GoodJob：薪資福利評分相對高；分紅看部門表現，工時評價不一",
-      "interview": null,
+      "interview": "網友說法：部分職缺先考英文與邏輯／性向測驗或專業卷（軟體有 LeetCode easy），主管面以碩論或履歷追問、HR 電訪談期望薪資；會問加班與出差意願（GoodJob 2026-08 多則、Dcard 台達面試分享）",
       "roles": [
         {
           "unit": "研發 RD",
@@ -3425,10 +3425,10 @@
       "code": "2357",
       "heat": null,
       "benefits": null,
-      "stock_plan": null,
+      "stock_plan": "員工持股信託：2022 年起開放，員工與公司相對提撥，由銀行定期買進公司股票；現行提撥比例未查到（數位時代 bnext.com.tw/article/69127、GoodJob 員工評價）",
       "bonus_timing": "年終＋績效獎金（約 1 月公布）；年中分紅舊報導稱 8 月底、占總分紅約七成；歲末派對曾加發 2～3 個月",
       "culture": null,
-      "interview": null,
+      "interview": "網友說法：先做線上英文／邏輯（圖形）或適性測驗，再人資與主管面，偏行為題與過往專案，最後問期望薪資與手上 offer；產品經理流程長、需英文簡報（GoodJob 2026 多則、Dcard 面試心得）",
       "roles": [
         {
           "unit": "研發 RD",
@@ -6297,7 +6297,7 @@
       "stock_plan": null,
       "bonus_timing": "網友稱年終約 1 個月、分紅約 2～3 個月；發放月份查不到",
       "culture": "GoodJob：加薪分紅偏大鍋飯、開會長、新人多自學",
-      "interview": null,
+      "interview": "網友說法：面試前有線上邏輯、英文與程式題（C 語言約 LeetCode easy），再主管關（自介、追問履歷、部分需報投影片）與人資關；測試職常需出差國外工廠（GoodJob 2026-07 多則、Dcard 2026 韌體面試心得）",
       "roles": [
         {
           "unit": "研發 RD",
@@ -7020,7 +7020,7 @@
       "stock_plan": null,
       "bonus_timing": "網友稱年終約 1 個月，分紅依 BU 差異大（傳統單位全年約 15～17 個月、AI 伺服器可達 20 個月）；月份查不到",
       "culture": "GoodJob 609 筆：平均每週 46 小時，多數偶爾或經常加班；薪資評價差強人意",
-      "interview": null,
+      "interview": "網友說法：常見先做適性、英文閱讀與專業科目（C、計組）測驗，主管面針對自介與 PPT 提問，伺服器職會問元件與 Linux；面試官會主動談加班、出差與夜班（GoodJob 2026、Dcard 2025 末～2026 面試分享）",
       "roles": [
         {
           "unit": "研發 RD",
