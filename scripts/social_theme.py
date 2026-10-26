@@ -32,8 +32,8 @@ NUM_FONT = "Inter,'SF Mono',Consolas,monospace"
 
 # ---- 畫布 ----
 CANVAS = {
-    "threads": dict(w=1080, pad="36px 40px 40px", s=1.0),                  # 寬 1080；高依內容（≤1350）
-    "story": dict(w=1080, h=1920, pad="250px 48px 230px", s=1.1),           # 上 250／下 230 是 IG 介面蓋掉的安全區，不放字
+    "threads": dict(w=1080, h=1350, pad="20px 20px 20px", s=1.0),          # 1080×1350（4:5）滿版：外圍留白 20px（2026-10-26 Andy「都需要滿版」）
+    "story": dict(w=1080, h=1920, pad="200px 20px 170px", s=1.1),           # 上 200／下 170：IG 介面蓋掉的區域只留底色與格線裝飾，不放重要字；左右 20px 滿版
 }
 
 

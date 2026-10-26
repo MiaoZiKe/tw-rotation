@@ -64,7 +64,7 @@ CEO 會接著確認：Worker 部署成功、第一次準時派出的 workflow �
 |---|---|---|
 | 05:07（週二到週六） | 每日管線 `phase=news` | 新聞、國際盤、總經；不看休市日 |
 | 08:20 | 社群貼文 `kind=premarket`（盤前） | **預留、預設關閉**，另一位同事的盤前功能合併後，把 `workers/gh-cron/wrangler.toml` 的 `ENABLE_PREMARKET` 改成 `"1"` |
-| 09:33、11:03、13:03 | 社群貼文 `kind=intraday`（盤中）`dry_run=false` | 真的發不發，仍由 repo 的總開關檔決定 |
+| 12:00 | 社群貼文 `kind=intraday`（盤中，一天一篇）`dry_run=false` | 真的發不發，仍由 repo 的總開關檔決定 |
 | 15:38 | 每日管線 `phase=price` | 價量 |
 | 16:16、16:46、17:16 | 每日管線 `phase=inst` | 搶當天三大法人；沒資料約 1 分鐘收工 |
 | 18:38、21:38 | 每日管線 `phase=full` | 完整一輪 |

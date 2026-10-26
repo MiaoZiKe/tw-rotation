@@ -15,10 +15,8 @@ const S = 'social-live.yml';
 export const SCHEDULE = [
   // 盤前（先預留：social-live.yml 要有 kind=premarket 才能開，見 wrangler.toml 的 ENABLE_PREMARKET）
   { at: '08:20', days: 'trading', workflow: S, inputs: { kind: 'premarket', dry_run: 'false' }, gate: 'premarket' },
-  // 盤中貼文（真發與否由 repo 的總開關檔決定，這裡一律 dry_run=false）
-  { at: '09:33', days: 'trading', workflow: S, inputs: { kind: 'intraday', dry_run: 'false' } },
-  { at: '11:03', days: 'trading', workflow: S, inputs: { kind: 'intraday', dry_run: 'false' } },
-  { at: '13:03', days: 'trading', workflow: S, inputs: { kind: 'intraday', dry_run: 'false' } },
+  // 盤中貼文：一天一篇、台北 12:00（Andy 2026-10-26；真發與否由 repo 的總開關檔決定，這裡一律 dry_run=false）
+  { at: '12:00', days: 'trading', workflow: S, inputs: { kind: 'intraday', dry_run: 'false' } },
   // 盤後資料
   { at: '15:38', days: 'trading', workflow: D, inputs: { phase: 'price' } },
   { at: '16:16', days: 'trading', workflow: D, inputs: { phase: 'inst' } },

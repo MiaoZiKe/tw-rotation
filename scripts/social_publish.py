@@ -216,10 +216,7 @@ def slot_key(m: dict) -> str:
         return f"credit-{(m.get('data_date') or date)[:10]}"
     kind = m.get("kind", "intraday")
     if kind == "intraday":
-        # 盤中三個時段（09:33／11:03／13:03，Cloudflare Worker 準時派；GitHub 備援排程 09:35／11:05／13:05）。
-        # 以時段起點當鍵：備援排程晚到幾十分鐘（跨了整點）也算同一時段，不會在 Worker 已發之後又發一篇。
-        h = int(t[11:13] or 0)
-        return f"intraday-{date}-{'09' if h < 11 else '11' if h < 13 else '13'}"
+        return f"intraday-{date}"     # 盤中一天一篇（台北 12:00，2026-10-26）
     return f"{kind}-{date}-{t[11:13]}"  # 同一小時算同一時段
 
 

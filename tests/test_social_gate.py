@@ -111,7 +111,7 @@ def test_盤後法人_颱風臨時休市不發_也不誤判成資料缺漏():
 
 
 def test_盤中_颱風臨時休市報價停在前一天():
-    ok, why = g.intraday_gate(T("2026-10-23T09:35"), {"20261022"}, H0)
+    ok, why = g.intraday_gate(T("2026-10-23T12:05"), {"20261022"}, H0)
     assert ok is False and "臨時休市" in why
 
 
@@ -126,15 +126,17 @@ def test_融資_還沒收盤不發():
 
 
 # ---------- 盤中 ----------
-def test_盤中_交易日盤中且報價是今天才發():
-    assert g.intraday_gate(T("2026-10-22T09:35"), {"20261022"}, H) == (True, "")
-    assert g.intraday_gate(T("2026-10-22T13:31"), {"20261022"}, H)[0] is False        # 收盤後
-    assert g.intraday_gate(T("2026-10-22T08:59"), {"20261022"}, H)[0] is False
-    assert g.intraday_gate(T("2026-10-22T10:00"), {"20261021"}, H)[0] is False        # 報價是昨天的
-    assert g.intraday_gate(T("2026-10-22T10:00"), set(), H)[0] is False               # 沒讀到報價也不發
-    ok, why = g.intraday_gate(T("2026-10-26T10:00"), {"20261026"}, H)
+def test_盤中_只在交易日中午12點到12點半且報價是今天才發():
+    assert g.intraday_gate(T("2026-10-22T12:00"), {"20261022"}, H) == (True, "")
+    assert g.intraday_gate(T("2026-10-22T12:01"), {"20261022"}, H) == (True, "")        # GitHub 備援
+    assert g.intraday_gate(T("2026-10-22T11:56"), {"20261022"}, H) == (True, "")        # 提早開跑，截圖前等到 12:00
+    for hhmm in ("09:35", "11:03", "13:03", "12:31", "11:54"):
+        assert g.intraday_gate(T(f"2026-10-22T{hhmm}"), {"20261022"}, H)[0] is False, hhmm
+    assert g.intraday_gate(T("2026-10-22T12:05"), {"20261021"}, H)[0] is False        # 報價是昨天的
+    assert g.intraday_gate(T("2026-10-22T12:05"), set(), H)[0] is False               # 沒讀到報價也不發
+    ok, why = g.intraday_gate(T("2026-10-26T12:00"), {"20261026"}, H)
     assert ok is False and "休市" in why
-    assert g.intraday_gate(T("2026-10-26T10:00"), [], H, check_quotes=False)[0] is False
+    assert g.intraday_gate(T("2026-10-26T12:00"), [], H, check_quotes=False)[0] is False
 
 
 def test_data_dates_回完整日期且含融券():

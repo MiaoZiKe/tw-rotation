@@ -126,8 +126,9 @@ FILL_JS = """([el, a]) => {   // 把卡片拉到 a.want（css px）高：差額�
   return el.getBoundingClientRect().height;
 }"""
 STORY_HEAT_VW, STORY_HEAT_DSF = 700, 2.4     # 熱力圖限動版：窄桌機視窗（>640 仍是桌機版面），方塊變大、字放大後更清楚
+THREADS_HEAT_RATIO = 1.22   # Threads 熱力圖（產業＋題材）截圖高寬比：卡片內 1000×1220 左右
 THREADS_MAX_H = 1350       # Threads 輪播圖高度上限（4:5）
-STORY_RATIO = 1.76     # 限動截圖目標高寬比＝限動版型截圖區 1008×1776（2026-10-22 品牌列兼標題、拿掉右下網址後量的；舊值 1.6 會上下各空約 80px）
+STORY_RATIO = 1.40     # 限動截圖目標高寬比＝限動版型截圖區 1008×1776（2026-10-22 品牌列兼標題、拿掉右下網址後量的；舊值 1.6 會上下各空約 80px）
 FILL_ROWS_JS = """([el, a]) => {   // 沒有圖表可拉高的片段（排行清單）：把差額平均加在每一列的上下內距，列距拉開到 a.want 高（不是拉伸點陣圖）
   for (let k = 0; k < 3; k++) {
     const rows = [...el.querySelectorAll(a.rows)].filter(e => e.offsetParent !== null);
@@ -266,13 +267,13 @@ TARGETS = [
                      hide=[".howbtn", ".livetg"], fill=dict(frac=0.60, charts=["#indTreeWrap", "#indTree"])),
                 dict(name="heat-theme", route="heatmap/theme", card="#themeMapCard", live="auto", live_ok=None, hide=[".howbtn", ".livetg"], optional=True, fill=dict(frac=0.40, charts=["#themeMap"]))],
          live="auto", live_ok=None, headline=None, d=[dict(name="heat", title="資金熱力圖")], m=[]),
-    dict(name="market-index", kind="intraday", label="大盤走勢", route="overview", card="#m3Frame",
+    dict(name="market-index", kind="close", label="大盤走勢（收盤全日）", route="overview", card="#m3Frame",
          live="#m3Frame .livetg-b",
          live_ok="() => { const b = document.querySelector('#m3Frame .livetg-b'); const f = document.querySelector('#m3Frame');"
                  " return !!b && !!f && (b.classList.contains('on') || b.getAttribute('aria-pressed') === 'true') && !/連不到|抓不到|失敗|逾時/.test(f.innerText); }",
          headline=None, d=[dict(name="market-index", hide=[".howbtn", ".mfilt", ".mpos", ".m4sico"], hide_exact=["~即時"])],
          m=[dict(name="market-index", hide=[".howbtn", ".mfilt", ".mpos", ".m4sico"], hide_exact=["~即時"], fill=dict(frac=1.0, charts=[".m3-chart", ".tv-lightweight-charts"]))]),
-    dict(name="market-breadth", kind="intraday", label="漲跌家數", route="market/updown", card=".mktdist", closest_card=True,
+    dict(name="market-breadth", kind="close", label="漲跌家數", route="market/updown", card=".mktdist", closest_card=True,
          live="#mktMode button[data-m=live]",
          live_ok="() => { const n = document.querySelector('#mktLive');"
                  " return !!n && !n.hidden && !/抓取中|抓不到|失敗|逾時|連不到/.test(n.innerText); }",
@@ -437,9 +438,8 @@ def slot_key_for(kind: str, data_date: str, taken_at: str) -> str:
         return f"close-{taken_at[:10]}"
     if kind == "credit":
         return f"credit-{data_date[:10]}"
-    if kind == "intraday":      # 盤中以時段起點為鍵（09／11／13），跟 social_publish.slot_key 一致
-        h = int(taken_at[11:13] or 0)
-        return f"intraday-{taken_at[:10]}-{'09' if h < 11 else '11' if h < 13 else '13'}"
+    if kind == "intraday":      # 盤中一天一篇（台北 12:00），跟 social_publish.slot_key 一致
+        return f"intraday-{taken_at[:10]}"
     return f"{kind}-{taken_at[:10]}-{taken_at[11:13]}"
 
 
@@ -880,6 +880,16 @@ def data_dates(serve: Path | None = None, reader=None) -> dict:
         out["credit-rank"] = iso((j["margin"].get("rank") or {}).get("d") or rs[-1].get("d"))
         if (j["margin"].get("short_rank") or {}).get("d"):
             out["credit-short"] = iso(j["margin"]["short_rank"]["d"])
+    j = rd("index_intraday.json")      # 大盤走勢（收盤全日）：加權指數最後一根分 K 的日期
+    try:
+        if j and (j.get("TSE") or {}).get("M15"):
+            from datetime import datetime as _dt
+            out["market-index"] = _dt.fromtimestamp(j["TSE"]["M15"][-1][0], TPE).date().isoformat()
+    except Exception:  # noqa: BLE001
+        pass
+    j = rd("meta.json")                # 漲跌家數：updown.json 沒帶日期，用 meta 的最新價量日
+    if j and j.get("price_latest"):
+        out["market-breadth"] = iso(j["price_latest"])
     j = rd("fut_oi.json")
     if j and j.get("dates"):
         out["fut-oi"] = iso(max(j["dates"]))
@@ -1056,6 +1066,12 @@ def snap_targets(args, base: str, out: Path, today_ymd: str) -> tuple[list[dict]
                             recs = []
                             break
                         info.setdefault("heat_parts", []).append(part["name"])
+                        try:      # Threads 滿版：產業＋題材兩張合起來拉成 1000×1230 的比例（重畫圖表、非拉伸），跟限動同一招
+                            bbw = pel.bounding_box()["width"]
+                            pg.evaluate(FILL_JS, [pel, {"want": bbw * THREADS_HEAT_RATIO * part["fill"]["frac"] - 8, "charts": part["fill"]["charts"]}])
+                            pg.wait_for_timeout(1200)
+                        except Exception as exc_:  # noqa: BLE001
+                            log("  熱力圖 Threads 版拉高失敗，用原高度：", str(exc_)[:80])
                         recs.append(shoot_piece(pg, pel, dict(name=part["name"], hide=part.get("hide", [])), raw_dir, "d", args.scale))
                         if part["name"] == "heat-industry":
                             info["heat"] = pg.evaluate(READ_HEAT_JS)
@@ -1234,8 +1250,7 @@ def layout_html(mode: str, title: str, sub: str, img: str, top: list, bot: list,
 .imgbox{{flex:1;min-height:0;display:flex;align-items:center;justify-content:center}}
 .shot{{max-width:100%;max-height:100%;display:block;border-radius:6px}}
 """
-    if not story:
-        css += ".card{flex:none}.shot{width:100%;max-height:none}.imgbox{flex:none;display:block}"
+    css += ".card{flex:1}.imgbox{flex:1;min-height:0;position:relative}.shot{position:absolute;inset:0;width:100%;height:100%;max-width:none;max-height:none;object-fit:contain}"      # 滿版：截圖吃滿卡片剩餘空間（contain，不變形）
     kind = "intraday" if KIND not in TH.SLOT else KIND
     body = f"""{TH.header_html(kind, _esc(title), _esc(date))}
 <div class=card>
@@ -1286,20 +1301,12 @@ def compose(browser, mode: str, rec: dict, top: list, bot: list, out_png: Path, 
     dlabel = DATE_BY.get(rec["name"]) or DATE_LABEL
     title = re.sub(r"\s*\{d\}", "", title)            # 日期只放標題列右側（規範 post_design_system.md 第五節）
     if KIND == "intraday":
-        dlabel = f"{dlabel} {now_tpe().strftime('%H:%M')}".strip()
+        dlabel = f"{dlabel} 12:00".strip()          # 盤中固定中午 12:00（2026-10-26 Andy）
     html = layout_html(mode, title, sub, b64(rec["raw"]), top, bot, theme, dlabel)
-    pg = browser.new_page(viewport={"width": 1080, "height": 1920 if mode == "story" else 1200}, device_scale_factor=1)
+    pg = browser.new_page(viewport={"width": 1080, "height": 1920 if mode == "story" else THREADS_MAX_H}, device_scale_factor=1)
     pg.set_content(html, wait_until="load")
     pg.wait_for_timeout(400)
-    H = 1920 if mode == "story" else int(pg.evaluate("document.body.offsetHeight"))
-    if mode != "story" and H > THREADS_MAX_H and rec["name"] in ("rotation-wheel", "sankey-tree"):      # 圓盤與樹縮小仍清楚：限在 4:5（1080×1350）；其他長圖（熱力圖、多張疊圖）縮了字會看不見，維持原高度
-        sh = pg.evaluate("document.querySelector('.shot').getBoundingClientRect().height")
-        pg.evaluate("(m) => { const e = document.querySelector('.shot'); e.style.cssText += ';width:auto;max-width:100%;max-height:' + m + 'px;margin:0 auto'; document.querySelector('.imgbox').style.textAlign = 'center'; }", int(sh - (H - THREADS_MAX_H)))
-        pg.wait_for_timeout(200)
-        H = int(pg.evaluate("document.body.offsetHeight"))
-    if mode != "story":
-        pg.set_viewport_size({"width": 1080, "height": H})
-        pg.wait_for_timeout(200)
+    H = 1920 if mode == "story" else THREADS_MAX_H
     res = pg.evaluate(OVERLAP_JS)
     box = pg.evaluate("(() => { const r = document.querySelector('.shot').getBoundingClientRect(), c = document.querySelector('.card').getBoundingClientRect(); return [r.width, r.height, c.height]; })()")
     scale = box[0] / iw
@@ -1366,9 +1373,6 @@ def caption_lines(kind: str, stamp: str, shots: list[dict], data_date: str, ymd:
             ups = "、".join(f"{a} {b:+.1f}%" for a, b in h[::-1][:k])
             dns = "、".join(f"{a} {b:+.1f}%" for a, b in h[:k])
             L.append(f"熱力圖：漲最多 {ups}；跌最多 {dns}" + lk("heatmap/industry", idx)); idx += 1
-        s = ok.get("market-breadth")
-        if s and s.get("breadth"):
-            L.append(f"漲跌家數：上漲 {s['breadth']['up']} 家、下跌 {s['breadth']['down']} 家" + lk("market/updown", idx)); idx += 1
     elif kind == "credit":
         yi = lambda x: x.replace("−", "-")
         L.append(f"台股盤後融資融券｜{data_date[5:].replace('-', '/')}")      # 2026-10-26 Andy：「盤後也需要新增融資融券」
@@ -1402,6 +1406,12 @@ def caption_lines(kind: str, stamp: str, shots: list[dict], data_date: str, ymd:
         r = (ok.get("retail-ratio") or {}).get("read") or []
         if r:
             L.append("散戶多空比：" + "、".join(f"{x.get('prod') or '?'} {yi(x.get('pct') or '—')}" for x in r))
+        pn = (((ok.get("market-index") or {}).get("pieces_d") or [{}])[0].get("dump") or {}).get("panels") or []
+        bd = (ok.get("market-breadth") or {}).get("breadth") or {}
+        if pn or bd:      # 2026-10-26：大盤走勢與漲跌家數從盤中移到盤後（Andy）
+            a = f"加權收盤 {pn[0]['price']}（{pn[0]['chgtxt'].replace('  ', ' ')}）" if pn else ""
+            b = f"上漲 {bd['up']} 家、下跌 {bd['down']} 家" if bd.get("up") else ""
+            L.append("大盤：" + "；".join(x for x in (a, b) if x) + f" → {deep_link('overview', kind, ymd)}")
     L.append(HASHTAGS[kind])
     L.append(DISCLAIMER)      # 2026-10-26 Andy：免責與來源只放文案最後一行（圖上不放）
     return L
@@ -1567,6 +1577,11 @@ def main() -> int:
             if key_ in done_:
                 log(f"{key_} 已經發過（{args.posted_json}）→ 不重複")
                 return 10
+        if args.kind == "intraday" and not args.force and not args.now:      # 盤中固定中午 12:00：早到就等到 12:00，資料以那一刻的即時為準
+            wait_s = (datetime.combine(now_tpe().date(), datetime.strptime("12:00", "%H:%M").time(), TPE) - now_tpe()).total_seconds()
+            if 0 < wait_s <= 600:
+                log(f"還沒到 12:00，等 {int(wait_s)} 秒再截圖")
+                time.sleep(wait_s)
         if args.from_shots:      # 只換版型配色：沿用另一輪已截好的圖（示範用）
             shots = json.loads((Path(args.from_shots) / "shots.json").read_text("utf-8"))
             sniff = {"quote_dates": set(), "errors": []}
@@ -1600,7 +1615,7 @@ def main() -> int:
             (out / "shots.json").write_text(json.dumps(shots, ensure_ascii=False, indent=2), "utf-8")
             return 2
 
-        stamp_full = now_tpe().strftime("%m/%d %H:%M")
+        stamp_full = now_tpe().strftime("%m/%d %H:%M") if args.kind != "intraday" else f"{now_tpe():%m/%d} 12:00"      # 盤中固定中午 12:00
         dd = data_date[5:].replace("-", "/")
         report: list[dict] = []
         stories: list[str] = []
@@ -1620,7 +1635,7 @@ def main() -> int:
                 title_ = re.sub(r"\s*\{d\}", "", PIECE_META.get(rec["name"], (rec["name"], ""))[0])
                 dlabel_ = DATE_BY.get(rec["name"]) or DATE_LABEL
                 if KIND == "intraday":
-                    dlabel_ = f"{dlabel_} {now_tpe().strftime('%H:%M')}".strip()
+                    dlabel_ = f"{dlabel_} 12:00".strip()
                 ctx_ = dict(kind=KIND, title=title_, date=dlabel_, jget=lambda n: fetch_json(base, n), site=Path(args.serve).resolve() if args.serve else Path("."),
                             logos=LOGO_MAP, dump=drec.get("dump") or {})
                 if rec["name"] in NAT.DUMP_JS and not ctx_["dump"]:
@@ -1634,13 +1649,19 @@ def main() -> int:
                 report.append(rep_)
                 return True
 
-            for s in ok:
-                for rec in s["pieces_d"]:
+            ORDER = {"intraday": ["rotation-wheel", "sankey-tree", "rotation-rank", "heat"],
+                     "close": ["inst-today", "streak-foreign", "streak-trust", "fut-oi", "retail-ratio", "market-index", "market-breadth"]}.get(args.kind, [])
+            rk = lambda r: ORDER.index(r["name"]) if r["name"] in ORDER else len(ORDER)
+            pd_ = sorted([(s, r) for s in ok for r in s["pieces_d"]], key=lambda t: rk(t[1]))      # Threads 輪播順序＝這裡的順序
+            pm_ = sorted([(s, r) for s in ok for r in s["pieces_m"]], key=lambda t: rk(t[1]))
+            for s, rec in pd_:
+                if True:
                     tp, bt = texts(s, rec)
                     if not native("threads", rec):
                         compose(browser, "threads", rec, tp, bt, out / f"threads_{rec['name']}.png", report, args.frame)
                     threads_imgs.append(f"threads_{rec['name']}.png")
-                for rec in s["pieces_m"]:
+            for s, rec in pm_:
+                if True:
                     if rec["name"] == "rotation-wheel":     # 手機版圓盤只佔卡片寬約 68%（標籤留白）；改用桌機窄視窗那張（約 96%），2026-10-26 Andy 要 ≥80%
                         rec = next((x for x in s["pieces_d"] if x["name"] == "rotation-wheel"), rec)
                     tp, bt = texts(s, rec)

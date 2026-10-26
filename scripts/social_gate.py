@@ -19,7 +19,7 @@ social_snap.py 與 tests/test_social_gate.py 共用。
 --------------
 · 盤後法人（close）：每張卡的資料日都要＝今天（台北）且今天是交易日；任何一張不是今天 → 不發（結束碼 10），log 寫哪張是哪天。
 · 盤後融資（credit）：融資隔天清晨才到齊，允許「最近一個已收盤的交易日」，但只在該資料日收盤後、下一個交易日 09:00 開盤前發。
-· 盤中（intraday）：只在交易日 09:00–13:30，而且即時報價的成交日要是今天。
+· 盤中（intraday）：只在交易日 12:00–12:30（11:55 起可開跑，截圖前等到 12:00；一天一篇），而且即時報價的成交日要是今天。
 """
 from __future__ import annotations
 
@@ -31,6 +31,7 @@ TPE = timezone(timedelta(hours=8))
 ROOT = Path(__file__).resolve().parents[1]
 HOLIDAY_YAML = ROOT / "pipeline" / "calendar" / "tw_holidays.yaml"
 OPEN_T, CLOSE_T = time(9, 0), time(13, 30)
+INTRA_FROM, INTRA_TO = time(11, 55), time(12, 30)      # 盤中一天一篇、台北 12:00：11:55 起可開跑（截圖前等到 12:00），12:30 後不發
 _LINE = re.compile(r'^\s*"?(\d{4}-\d{2}-\d{2})"?\s*:\s*\{\s*n\s*:\s*(.*?)\s*\}\s*$')
 
 
@@ -154,8 +155,8 @@ def intraday_gate(now: datetime, quote_dates, holidays: dict[str, str], check_qu
     t = now.date().isoformat()
     if t in holidays:
         return False, f"{t} 是休市日（{holidays[t]}）"
-    if not (OPEN_T <= now.time() <= CLOSE_T):
-        return False, f"現在台北 {now:%H:%M} 不在盤中 09:00～13:30"
+    if not (INTRA_FROM <= now.time() <= INTRA_TO):
+        return False, f"現在台北 {now:%H:%M} 不在盤中發文時段 12:00～12:30（一天一篇）"
     if not check_quotes:
         return True, ""
     qd = {_iso(x) for x in quote_dates or []}

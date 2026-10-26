@@ -10,12 +10,10 @@ name: 社群即時貼文（Threads／IG 限動）
 #
 # ★ 2026-10-25：準時派工改由 Cloudflare Worker（workers/gh-cron，docs/gh_cron_setup.md）呼叫 workflow_dispatch（kind=intraday、dry_run=false）；
 #   下面這些 GitHub 排程留作備援（GitHub 的 schedule 實測會延遲數小時或整輪不觸發）。
-#   防重複：發布紀錄的時段鍵把盤中分成 09／11／13 三個時段，晚到的備援跨整點也算同一時段（scripts/social_publish.py slot_key）。
+#   防重複：盤中一天一個時段鍵 intraday-YYYY-MM-DD（scripts/social_publish.py slot_key）。
 #
 # 排程（GitHub 的 cron 一律用 UTC；週一到週五）：
-#   盤中  台北 09:35 ＝ UTC 01:35
-#   盤中  台北 11:05 ＝ UTC 03:05
-#   盤中  台北 13:05 ＝ UTC 05:05
+#   盤中  台北 12:01 ＝ UTC 04:01（一天一篇，2026-10-26 Andy：「時間都需要固定中午 12:00」）
 #   盤後  不排固定時間，接在「每日盤後管線」每一輪結束（含部署）之後（workflow_run），
 #         只有網站 meta.json 的法人資料日（inst_date）＝今天才發，而且同一天只發一次（social-snaps 分支 state/posted.json 已有 close-日期 就跳過）。
 #   盤後融資 同樣接在每日管線每一輪之後（kind=credit，跟盤後法人分開兩篇，2026-10-21）：
@@ -32,9 +30,7 @@ name: 社群即時貼文（Threads／IG 限動）
 # ★ 即時沒套上（抓不到報價）的那張不發，不拿盤後舊圖冒充即時。
 on:
   schedule:
-    - cron: "35 1 * * 1-5"    # 台北 09:35 盤中
-    - cron: "5 3 * * 1-5"     # 台北 11:05 盤中
-    - cron: "5 5 * * 1-5"     # 台北 13:05 盤中
+    - cron: "1 4 * * 1-5"     # 台北 12:01 盤中（一天一篇，備援；準時由 Cloudflare Worker 12:00 派）
   workflow_run:
     workflows: ["每日盤後管線"]
     types: [completed]        # 每日管線跑完（含部署）→ 盤後法人；資料日不是今天就自己跳過
