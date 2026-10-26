@@ -365,17 +365,20 @@ def b_inst_today(mode, w, h, ctx):
 
 
 def _inst_chart(W, H, d, fs, mode):
-    L, Rr, Tp, B = 100, 118, 50, 50
+    L, Rr, Tp, B = 100, 118, 64, 50      # 上留 64：最上面的刻度字不貼圖例
     pw, ph = W - L - Rr, H - Tp - B
     ups = [max(0, x["f"]) + max(0, x["t"]) + max(0, x["dl"]) for x in d]
     dns = [min(0, x["f"]) + min(0, x["t"]) + min(0, x["dl"]) for x in d]
     top = max(ups + [1]); bot = min(dns + [-1])
     step = 10 ** math.floor(math.log10(max(top - bot, 1) / 4))
     stp = next(m * step for m in (1, 2, 2.5, 5, 10) if m * step >= (top - bot) / 5)
-    hi, lo = math.ceil(top / stp) * stp, math.floor(bot / stp) * stp
+    # 刻度先用原始範圍定，再上下各留 2% 取整：最高／最低那根不貼圖框（2026-10-26 Andy：「圖表不要出現被截圖狀況」，−4,000 那根壓在底線上）
+    pad_ = (top - bot) * .02
+    hi, lo = math.ceil((top + (pad_ if top > 1 else 0)) / stp) * stp, math.floor((bot - pad_) / stp) * stp
     Y = lambda v: Tp + (hi - v) / (hi - lo) * ph
     tws = [x["tw"] for x in d]
-    t_lo = math.floor(min(tws) / 500) * 500; t_hi = math.ceil(max(tws) / 500) * 500
+    tp_ = (max(tws) - min(tws)) * .06 or 50      # 加權指數同樣留白：最後一點不貼著底線
+    t_lo = math.floor((min(tws) - tp_) / 500) * 500; t_hi = math.ceil((max(tws) + tp_) / 500) * 500
     I = lambda v: Tp + (t_hi - v) / (t_hi - t_lo) * ph
     g = [svg_open(W, H)]
     lx = 10
