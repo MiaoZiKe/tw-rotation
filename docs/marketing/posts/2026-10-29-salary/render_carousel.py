@@ -79,7 +79,7 @@ slides_raw = [
  ('<div class="mid">中位數看中間那位</div>' + row(1,"聯發科",355.2,400,"b2") + row(2,"祥碩",337.4,400,"b2") + row(3,"瑞昱",319.3,400,"b2") + row(4,"台積電",316.2,400,"b2") + '<div class="unit">單位：萬元</div>'),
  ('<div class="mid">同一家公司，兩個數字</div>' + s5 + '<div class="unit">單位：萬元</div>'),
  ('<div class="big">前十名全是<br>半導體業</div><div class="sub">上市中位數前十名同一個產業</div>'),
- ('<div class="tag">轉折</div><div class="big">資金有沒有<br>流進這個族群？</div><div class="sub">薪水高 ≠ 股價漲，兩件事分開看</div>'),
+ ('<div class="tag">轉折</div><div class="big">薪水背後，<br>公司賺得怎樣？</div><div class="sub">員工酬勞依公司法 §235-1，從當年度獲利提撥</div>'),
  ('<div class="big">看完整資料：<br>點個人簡介的連結</div><div class="sub">族群資金流向</div><div class="disc">本內容為公開資料整理，不構成任何投資建議；投資有風險，請自行判斷。</div>'),
 ]
 
