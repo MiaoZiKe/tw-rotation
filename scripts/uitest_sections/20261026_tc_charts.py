@@ -80,6 +80,18 @@ def t_tc_charts_1026(b, base, code):
     ok(f"{T}：獎金卡放進月曆卡內、下方不再重複分紅結構區", pp.evaluate("()=>document.querySelectorAll('#v-tc .tc-bs').length===1&&!!document.querySelector('#v-tc .tc-cal .tc-bs')&&document.querySelector('#v-tc .tc-cm').getBoundingClientRect().height<=60"))
     pz = c.new_page(); pz.goto(base + "#tc/material/%E8%87%BB%E9%BC%8E", wait_until="domcontentloaded"); pz.wait_for_timeout(1800)
     ok(f"{T}：樣本數 0 的職位不顯示（職位表沒有樣本欄 0 的列）", pz.evaluate("()=>[...document.querySelectorAll('#v-tc .tc-row td[data-l=樣本]')].every(e=>e.innerText.trim()!=='0')"))
+    # 分紅金額欄（bonus_wan）：逐筆樣本明細有「分紅(萬)」欄、陣列顯示 a–b；職位名稱 tooltip 顯示區間
+    p5 = c.new_page()
+    def inj2(rt):
+        r = rt.fetch(); d = r.json()
+        ro = d["companies"][0]["roles"][0]
+        ro["samples"] = [{"site": "測試", "date": "2026-05", "date_confirmed": True, "in_window": True, "base_k": 60, "annual_wan": 200, "bonus_wan": [30, 45]}, {"site": "測試", "date": "2026-06", "date_confirmed": True, "in_window": True, "base_k": 62, "bonus_wan": 50}]
+        rt.fulfill(response=r, json=d)
+    p5.route("**/tc/json/foundry.json", inj2)
+    p5.goto(base + "#tc/foundry/%E5%8F%B0%E7%A9%8D%E9%9B%BB", wait_until="domcontentloaded"); p5.wait_for_timeout(1500)
+    p5.click("#v-tc .tc-row >> nth=0 >> td[data-l='底薪(K/月)']"); p5.wait_for_timeout(250)
+    bw = p5.evaluate("()=>({th:[...document.querySelectorAll('#v-tc .tc-smt th')].map(e=>e.innerText).includes('分紅(萬)'),cells:[...document.querySelectorAll('#v-tc .tc-smt td[data-l=\\'分紅(萬)\\']')].map(e=>e.innerText),tip:document.querySelector('#v-tc .tc-row .tc-role b').title})")
+    ok(f"{T}：逐筆明細有「分紅(萬)」欄、陣列顯示 30–45、職位 tooltip 顯示區間 30–50", bw["th"] and "30–45" in bw["cells"] and "50" in bw["cells"] and "30–50" in bw["tip"], bw)
     # 區間陣列樣本：用 TwTc 內部不外露，改驗畫面——注入一筆陣列樣本資料後逐筆表要顯示 a–b 而不是 a,b
     c2 = b.new_context(viewport={"width": 1440, "height": 900}); c2.add_init_script("window.TW_TC_OVERRIDE=true;try{localStorage.setItem('tw.tour','done')}catch(e){}")
     def inj(rt):
