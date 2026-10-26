@@ -73,7 +73,7 @@ SITE_URL = "https://liguligu-puipui.com"
 # 文案最底下的連結（2026-10-26 Andy：「連結部分要改成：更多詳細資料可以點擊以下連結：https://liguligu-puipui.com/」——首頁網址，不帶追蹤參數與分頁）
 LINK_LINES = ["👉 更多詳細資料可以點擊以下連結：", SITE_URL + "/"]
 # 標題與段名前的表情符號（2026-10-26 Andy：「搭配些表情符號，除了個股」→ 只加在標題／段名，列股票名稱的「・」行不加）
-EMOJI = {"盤中消息": "🕛", "盤後3分鐘": "🌙", "盤後融資融券": "💳",
+EMOJI = {"盤面分析：": "🧭", "盤中消息": "🕛", "盤後3分鐘": "🌙", "盤後融資融券": "💳",
          "資金輪盤：": "🎡", "資金分流樹：": "🌳", "熱力圖：": "🔥",
          "台指期法人淨未平倉：": "📊", "散戶多空比：": "⚖️", "三大法人買賣超：": "🏦", "外資：": "🌏", "投信：": "🏢",
          "ETF 買超：": "📦", "融資維持率：": "🛡️", "融資：": "📈", "融券：": "📉"}
@@ -1523,6 +1523,98 @@ def _join(names: list, n: int) -> str:
 LADDER = [(3, "all"), (2, "all"), (2, "two"), (1, "two"), (1, "one")]
 
 
+# ---------------------------------------------------------------------------- 盤面分析（2026-10-26 Andy：「盤前盤中盤後都需要有專業的金融專家分析盤面」）
+# 原則同盤前（docs/marketing/social_unit/premarket_read_rules.md）：只寫看得到的事實與對照，不寫預測、不給買賣建議（投信投顧法）。
+# 盤中、盤後的判斷式寫在 docs/marketing/social_unit/market_read_rules.md。
+
+def intraday_reads(ok: dict) -> list[str]:
+    """盤中（12:00）：族群漲跌家數 → 資金與股價同向的族群 → 背離（有資金流入卻收黑／漲幅大但資金流出）→ 權值族群動向。"""
+    out = []
+    heat = {a: b for a, b in ((ok.get("heat") or {}).get("heat") or [])}
+    notes = {k: v for k, v in ((ok.get("sankey") or {}).get("notes") or [])}
+    inflow, outflow = notes.get("流入前五") or [], notes.get("流出前五") or []
+    if heat:
+        up = sum(1 for v in heat.values() if v > 0)
+        dn = sum(1 for v in heat.values() if v < 0)
+        avg = sum(heat.values()) / len(heat)
+        tag = "族群普漲" if up >= dn * 2 else "族群普跌" if dn >= up * 2 else "族群漲跌互見"
+        out.append(f"{tag}：{len(heat)} 個族群 {up} 漲 {dn} 跌，平均 {avg:+.2f}%")
+        top = [a for a, _ in sorted(heat.items(), key=lambda x: -x[1])[:10]]
+        same = [g for g in inflow if g in top]
+        if same:
+            out.append(f"資金與股價同向：{'、'.join(same[:3])} 同時在資金流入前五與漲幅前 10 名")
+        lag = [f"{g} {heat[g]:+.1f}%" for g in inflow if g in heat and heat[g] < 0]
+        if lag:
+            out.append(f"資金流入但股價收黑：{'、'.join(lag[:2])}")
+        rev = [f"{g} {heat[g]:+.1f}%" for g in outflow if g in heat and heat[g] >= 1.0]
+        if rev:
+            out.append(f"漲幅逾 1% 但資金流出：{'、'.join(rev[:2])}")
+        big = [f"{g} {heat[g]:+.1f}%" for g in ("晶圓代工", "AI 伺服器組裝") if g in outflow and g in heat]
+        if big:
+            out.append(f"權值族群資金流出：{'、'.join(big)}")
+    return out
+
+
+def _streak_sign(vals: list[float]) -> tuple[int, float]:
+    """從最後一天往回數，同號（同買或同賣）的連續天數與累計。"""
+    if not vals or vals[-1] == 0:
+        return 0, 0.0
+    sg = vals[-1] > 0
+    n, tot = 0, 0.0
+    for v in reversed(vals):
+        if (v > 0) != sg or v == 0:
+            break
+        n += 1
+        tot += v
+    return n, tot
+
+
+def close_reads(im: dict, fo: dict, it: dict, mh: dict, retail: list, credit: dict) -> list[str]:
+    """盤後：大盤與漲跌家數 → 外資／投信連買賣與累計 → 外資賣超（買超）集中度 → 外資期貨淨部位變化 → 散戶多空比 → 融資維持率。"""
+    out = []
+    try:
+        if mh.get("taiex") and mh.get("change") is not None:
+            tw, ch = float(mh["taiex"]), float(mh["change"])
+            pct = ch / (tw - ch) * 100
+            s = f"加權指數{'漲' if ch >= 0 else '跌'} {abs(ch):,.0f} 點（{pct:+.2f}%）"
+            a, d = mh.get("advancers"), mh.get("decliners")
+            if a and d:
+                s += f"，上漲 {a:,} 家、下跌 {d:,} 家" + (f"（跌家數是漲家數的 {d / a:.1f} 倍）" if d >= a * 2 else f"（漲家數是跌家數的 {a / d:.1f} 倍）" if a >= d * 2 else "")
+            out.append(s)
+    except (TypeError, ValueError, ZeroDivisionError):
+        pass
+    rows = im.get("rows") or []
+    for k, nm in (("f", "外資"), ("t", "投信")):
+        vals = [float((r.get("rev") or {}).get(k, r.get(k)) or 0) for r in rows]
+        n, tot = _streak_sign(vals)
+        if n >= 2:
+            out.append(f"{nm}連 {n} 日{'買超' if tot > 0 else '賣超'}，累計 {tot:+,.1f} 億")
+        elif n == 1 and len(vals) >= 2 and vals[-2] != 0:
+            out.append(f"{nm}由{'賣轉買' if vals[-1] > 0 else '買轉賣'}（{vals[-1]:+,.1f} 億）")
+    fw = (it.get("who") or {}).get("foreign") or {}
+    sells = ((it.get("top") or {}).get("foreign") or {}).get("sell") or []
+    if sells and fw.get("sell_amt"):
+        r0 = sells[0]
+        share = abs(r0["amt"]) / abs(fw["sell_amt"]) * 100
+        if share >= 15:
+            out.append(f"外資賣超集中在{NAT.clean_name(r0['name'])}（{r0['amt'] / 1e8:+,.1f} 億，占外資當日賣出金額 {share:.0f}%）")
+    net = (fo.get("foreign") or {}).get("net") or []
+    if len(net) >= 2 and net[-1] is not None and net[-2] is not None:
+        d = net[-1] - net[-2]
+        side = "淨空單" if net[-1] < 0 else "淨多單"
+        chg = ("增加" if abs(net[-1]) > abs(net[-2]) else "減少") + f" {abs(d):,.0f} 口"
+        out.append(f"外資台指期{side} {abs(net[-1]):,.0f} 口，較前日{chg}")
+    mtx = next((x for x in retail or [] if x.get("prod") == "小台"), None)
+    if mtx and mtx.get("pct"):
+        v = float(str(mtx["pct"]).replace("%", "").replace("−", "-").replace("+", ""))
+        if abs(v) >= 20:
+            out.append(f"小台散戶多空比 {mtx['pct']}，散戶部位明顯{'偏多' if v > 0 else '偏空'}" + ("，與外資期貨淨空方向相反" if v > 0 and net and net[-1] < 0 else ""))
+    if credit.get("ratio"):
+        chg = str(credit.get("chg") or "").replace("−", "-")
+        out.append(f"上市融資維持率（估算）{credit['ratio']}%" + (f"，單日{'下降' if chg.startswith('-') else '上升'} {chg.lstrip('+-')} 個百分點" if chg else ""))
+    return out
+
+
 def credit_lines(ok: dict, n: int) -> list[str]:
     """融資維持率／融資／融券三段（盤後那篇與單獨的融資篇共用）。"""
     yi = lambda x: x.replace("−", "-")
@@ -1554,6 +1646,9 @@ def _caption_lines(kind: str, stamp: str, shots: list[dict], data_date: str, ymd
         # 2026-10-26 Andy 指定格式：標題「盤中消息」、每段標題一行＋「・」條列；Andy：「連結只需要附在最底下就好」→ 只在最後一行放一個網址；文案末不放資料來源／免責
         L.append("盤中消息")
         n = min(n, 2)      # Andy 範例每項列 2 個
+        ar = intraday_reads(ok)
+        if ar and links != "none":
+            L += ["盤面分析："] + [f"・{x}" for x in ar[:4]]
         s = ok.get("rotation")
         if s:
             d = {k: v for k, v in s.get("lines", [])}
@@ -1588,6 +1683,9 @@ def _caption_lines(kind: str, stamp: str, shots: list[dict], data_date: str, ymd
         # 同上：Andy 盤中格式套到盤後
         n = min(n, 2)      # 2026-10-26 Andy：「統一兩個」
         L.append("盤後3分鐘")      # 2026-10-26 Andy：標題「盤後3分鐘」；段落順序跟圖一樣：期貨法人未平倉 → 散戶多空比 → 三大法人 → 外資 → 投信 → 融資融券（2026-10-26 Andy）
+        ar = ((ok.get("analysis") or {}).get("read") or [])
+        if ar:
+            L += ["盤面分析："] + [f"・{x}" for x in ar[:6]]
         yi = lambda x: x.replace("−", "-")
         r = (ok.get("fut-oi") or {}).get("read")
         if r:
@@ -1618,12 +1716,31 @@ def _caption_lines(kind: str, stamp: str, shots: list[dict], data_date: str, ymd
         return L
 
 
+# 文案太長時依序拿掉的段落（盤面分析與網址永遠保留；被拿掉的數字圖上都有）
+DROP_ORDER = {"close": ["📦 ETF 買超：", "📉 融券：", "📈 融資：", "🛡️ 融資維持率：", "⚖️ 散戶多空比：", "📊 台指期法人淨未平倉：", "🏢 投信：", "🌏 外資："],
+              "intraday": ["🔥 熱力圖：", "🌳 資金分流樹："]}
+
+
 def build_text(kind: str, stamp: str, shots: list[dict], data_date: str, ymd: str = "") -> str:
     """Threads／IG 文案。一律用實際字元數 len(text) ≤ 480；超過就依 LADDER 降級（名稱 3→2→1，再來只有前兩行附網址，最後只留第一行一個網址）。"""
     ymd = ymd or data_date.replace("-", "")
+
+    def fit(L: list[str]) -> str:
+        """先依序拿掉次要段落（數字圖上都有），盤面分析與網址永遠保留。"""
+        L = list(L)
+        for head in DROP_ORDER.get(kind, []):
+            if len("\n".join(L)) <= THREADS_MAX:
+                break
+            if head in L:
+                i = L.index(head)
+                j = i + 1
+                while j < len(L) and L[j].startswith("・"):
+                    j += 1
+                del L[i:j]
+        return "\n".join(L)
     txt = ""
-    for n, links in LADDER:
-        txt = "\n".join(caption_lines(kind, stamp, shots, data_date, ymd, n, links))
+    for n, links in LADDER:      # 每一級都先砍段落、再縮名稱數（2026-10-26：名稱保留 2 個優先於保留次要段落）
+        txt = fit(caption_lines(kind, stamp, shots, data_date, ymd, n, links))
         if len(txt) <= THREADS_MAX:
             break
     if len(txt) > THREADS_MAX and kind != "intraday":      # 盤後連結多：先拿掉 utm_campaign
@@ -1948,6 +2065,14 @@ def main() -> int:
                 if s_["name"] in ("credit-rank", "credit-short") and mf_:
                     up_, dn_ = NAT.credit_top(mf_, "short" if s_["name"] == "credit-short" else "rank")
                     s_["read"] = {**(s_.get("read") or {}), "up": [r["code"] for r in up_], "down": [r["code"] for r in dn_]}
+            if args.kind == "close":
+                try:
+                    rr_ = next((x.get("read") for x in ok if x["name"] == "retail-ratio"), None) or []
+                    cr_ = next((x.get("read") for x in ok if x["name"] == "credit-ratio"), None) or {}
+                    ok.append({"name": "analysis", "ok": True, "read": close_reads(fetch_json(base, "inst_market") or {}, fetch_json(base, "fut_oi") or {},
+                                                                                   it_ or {}, fetch_json(base, "market_heat") or {}, rr_, cr_)})
+                except Exception as exc:  # noqa: BLE001
+                    log("  ⚠ 盤面分析失敗（不擋發文）：", str(exc)[:120])
             if it_:
                 ok.append({"name": "etf-buy", "ok": True, "read": {k_: [r["name"] for r in NAT.etf_buy(it_, k_, 10, dict(NAME_MAP))] for k_ in ("foreign", "trust")}})
         manifest = {
