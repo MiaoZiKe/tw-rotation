@@ -3056,6 +3056,156 @@
           "n_stat": 1,
           "note": null,
           "grade": null
+        },
+        {
+          "unit": "研發 RD",
+          "role": "工程師",
+          "degree": null,
+          "samples": [
+            {
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 53.75,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/智邦科技股份有限公司/work-experiences",
+              "date": "2026-03",
+              "date_confirmed": true,
+              "date_note": "GoodJob 標示 2026.3.27（搜尋摘要）",
+              "in_window": true,
+              "role": "工程師（新竹縣評價）",
+              "quote_free_note": "評 5 分，有彈休與生日假；月薪約 5.375 萬"
+            }
+          ],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/智邦科技股份有限公司/work-experiences",
+              "date": "2026-03"
+            }
+          ],
+          "confidence": "低",
+          "note": "2026-10-26 依搜尋摘要新增",
+          "grade": null,
+          "base_month_k": [
+            53.75,
+            53.75
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n": 1,
+          "n_stat": 1
+        },
+        {
+          "unit": "研發 RD",
+          "role": "設備工程師",
+          "degree": null,
+          "samples": [
+            {
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 40,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/智邦科技股份有限公司/work-experiences/薪資福利",
+              "date": "2025-11",
+              "date_confirmed": true,
+              "date_note": "GoodJob 標示 2025.11.17（搜尋摘要）",
+              "in_window": true,
+              "role": "設備工程師（苗栗評價）",
+              "quote_free_note": "福利不錯、環境好；月薪 4 萬"
+            }
+          ],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/智邦科技股份有限公司/work-experiences/薪資福利",
+              "date": "2025-11"
+            }
+          ],
+          "confidence": "低",
+          "note": "2026-10-26 依搜尋摘要新增",
+          "grade": null,
+          "base_month_k": [
+            40,
+            40
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n": 1,
+          "n_stat": 1
+        },
+        {
+          "unit": "研發 RD",
+          "role": "品保工程師",
+          "degree": null,
+          "samples": [
+            {
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 70,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/智邦科技股份有限公司/interview-experiences?p=2",
+              "date": "2026-08",
+              "date_confirmed": true,
+              "date_note": "GoodJob 標示 2026 年 8 月（搜尋摘要）",
+              "in_window": true,
+              "role": "品管／品保工程師（面試）",
+              "quote_free_note": "面試官詳細說明工作內容；月薪 7 萬"
+            }
+          ],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/智邦科技股份有限公司/interview-experiences?p=2",
+              "date": "2026-08"
+            }
+          ],
+          "confidence": "低",
+          "note": "2026-10-26 依搜尋摘要新增",
+          "grade": null,
+          "base_month_k": [
+            70,
+            70
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n": 1,
+          "n_stat": 1
         }
       ],
       "mops": null,
@@ -5753,11 +5903,14 @@
           "base_month_k": null,
           "bonus_months": null,
           "annual_months": null,
-          "annual_total_wan": null,
+          "annual_total_wan": [
+            65,
+            65
+          ],
           "weekly_hours": null,
           "overtime": null,
           "travel": null,
-          "n": 3,
+          "n": 4,
           "note": "WebSearch 以「群光 碩士 起薪／年薪／GoodJob／Dcard 2026」查詢，摘要未給出近一年碩士數字；待補；2026-10 GoodJob 批次查詢未見群光工時／分紅資料",
           "sources": [
             {
@@ -5774,6 +5927,11 @@
               "site": "GoodJob",
               "url": "https://www.goodjob.life/experiences/6923c9ad235074c85ba082b1",
               "date": "2025-11"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/群光電子股份有限公司/work-experiences/薪資福利",
+              "date": "2026-05"
             }
           ],
           "confidence": "低",
@@ -5835,8 +5993,130 @@
               "date_confirmed": true,
               "date_note": "GoodJob 標題 2025-11",
               "in_window": true
+            },
+            {
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 65,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/群光電子股份有限公司/work-experiences/薪資福利",
+              "date": "2026-05",
+              "date_confirmed": true,
+              "date_note": "GoodJob 標示 2026 年 5 月（搜尋摘要）",
+              "in_window": true,
+              "role": "硬體測試工程師（在職評價）",
+              "quote_free_note": "評 5 分，年終看當年獲利；年薪 65 萬"
             }
           ],
+          "n_stat": 2
+        },
+        {
+          "unit": "研發 RD",
+          "role": "工程師",
+          "degree": null,
+          "samples": [
+            {
+              "grade": null,
+              "unit_detail": null,
+              "years": "4",
+              "degree": null,
+              "base_k": 39,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/群光電子股份有限公司/work-experiences",
+              "date": "2026-06",
+              "date_confirmed": true,
+              "date_note": "GoodJob 標示 2026 年 6 月（搜尋摘要）",
+              "in_window": true,
+              "role": "工程師（在職評價）",
+              "quote_free_note": "評 1 分，抱怨薪資偏低、調薪慢；4 年經驗、月薪 3.9 萬"
+            }
+          ],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/群光電子股份有限公司/work-experiences",
+              "date": "2026-06"
+            }
+          ],
+          "confidence": "低",
+          "note": "2026-10-26 依搜尋摘要新增",
+          "grade": null,
+          "base_month_k": [
+            39,
+            39
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "years": "4",
+          "n": 1,
+          "n_stat": 1
+        },
+        {
+          "unit": "研發 RD",
+          "role": "韌體工程師",
+          "degree": null,
+          "samples": [
+            {
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 80,
+              "overtime": "經常",
+              "travel": null,
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/群光電子股份有限公司/work-experiences/工時狀況",
+              "date": "2026-01",
+              "date_confirmed": true,
+              "date_note": "GoodJob 標示 2026 年 1 月（搜尋摘要）",
+              "in_window": true,
+              "role": "韌體工程師（在職評價）",
+              "quote_free_note": "常加班，主管依加班時數給績效；每週 80 小時"
+            }
+          ],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/群光電子股份有限公司/work-experiences/工時狀況",
+              "date": "2026-01"
+            }
+          ],
+          "confidence": "低",
+          "note": "2026-10-26 依搜尋摘要新增",
+          "grade": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": [
+            80,
+            80
+          ],
+          "overtime": "經常",
+          "travel": null,
+          "n": 1,
           "n_stat": 1
         }
       ],
@@ -6584,9 +6864,9 @@
           ],
           "annual_total_wan": null,
           "weekly_hours": null,
-          "overtime": null,
+          "overtime": "經常",
           "travel": null,
-          "n": 6,
+          "n": 7,
           "note": "平台自述統計（未轉貼原文）；2026-05 一筆 8 年經驗年薪 140 萬，非新人；第二輪：Dcard 2026 福利風氣討論一篇；annual_total_wan 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples；未逐筆對應的舊彙整：{\"annual_total_wan\": [140, 140]}；未逐筆對應的舊彙整：overtime=偶爾",
           "sources": [
             {
@@ -6618,6 +6898,11 @@
               "site": "GoodJob",
               "url": "https://www.goodjob.life/experiences/6984558fe7f7e1aabfec3397",
               "date": "2026-02"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/光寶科技股份有限公司/work-experiences/工時狀況",
+              "date": "2026-05"
             }
           ],
           "confidence": "低",
@@ -6736,9 +7021,30 @@
               "date_confirmed": true,
               "date_note": "GoodJob 標題 2026-02",
               "in_window": true
+            },
+            {
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": "經常",
+              "travel": null,
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/光寶科技股份有限公司/work-experiences/工時狀況",
+              "date": "2026-05",
+              "date_confirmed": true,
+              "date_note": "GoodJob 標示 2026.5.29（搜尋摘要）",
+              "in_window": true,
+              "role": "軟體工程師（在職評價）",
+              "quote_free_note": "蠻常臨時加班、客戶需求多；數字未寫"
             }
           ],
-          "n_stat": 4
+          "n_stat": 5
         },
         {
           "unit": "中和 / 雲端事業群",
@@ -6922,6 +7228,83 @@
           "n_stat": 1,
           "note": null,
           "grade": null
+        },
+        {
+          "unit": "研發 RD",
+          "role": "工程師",
+          "degree": null,
+          "samples": [
+            {
+              "grade": null,
+              "unit_detail": null,
+              "years": "2",
+              "degree": null,
+              "base_k": 60,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/光寶科技股份有限公司/work-experiences",
+              "date": "2026-06",
+              "date_confirmed": true,
+              "date_note": "GoodJob 標示 2026.6.22（搜尋摘要）",
+              "in_window": true,
+              "role": "工程師（在職評價）",
+              "quote_free_note": "2 年經驗；認為跟電子五哥薪資落差大；月薪 6 萬"
+            },
+            {
+              "grade": null,
+              "unit_detail": null,
+              "years": "1",
+              "degree": null,
+              "base_k": 70,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/光寶科技股份有限公司/work-experiences/薪資福利",
+              "date": "2026-04",
+              "date_confirmed": true,
+              "date_note": "GoodJob 標示 2026.4.9（搜尋摘要）",
+              "in_window": true,
+              "role": "工程師（在職評價）",
+              "quote_free_note": "1 年經驗；月薪 7 萬"
+            }
+          ],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/光寶科技股份有限公司/work-experiences",
+              "date": "2026-06"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/光寶科技股份有限公司/work-experiences/薪資福利",
+              "date": "2026-04"
+            }
+          ],
+          "confidence": "低",
+          "note": "2026-10-26 依搜尋摘要新增",
+          "grade": null,
+          "base_month_k": [
+            60,
+            70
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "years": "2",
+          "n": 2,
+          "n_stat": 2
         }
       ],
       "mops": null,
