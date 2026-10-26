@@ -50,7 +50,8 @@ def t_tc_charts_1026(b, base, code):
     # 分紅發放欄：台積電 → 去重排序「2月、5月、7月、8月、11月」；與公司層文字一致
     p3 = c2.new_page(); p3.goto(base + "#tc/foundry/%E5%8F%B0%E7%A9%8D%E9%9B%BB", wait_until="domcontentloaded"); p3.wait_for_timeout(1500)
     bts = p3.evaluate("()=>[...new Set([...document.querySelectorAll('#v-tc .tc-row td[data-l=分紅發放]')].map(e=>e.innerText.trim()))]")
-    ok(f"{T}：分紅發放欄展開並排序「2月、5月、7月、8月、11月」", bts == ["2月、5月、7月、8月、11月"], bts)
+    ok(f"{T}：分紅發放欄單行精簡「2/5/7/8/11 月」", bts == ["2/5/7/8/11 月"], bts)
+    ok(f"{T}：分紅發放不折行（儲存格單行）且有 tooltip", p3.evaluate("()=>[...document.querySelectorAll('#v-tc .tc-row td.tc-btm')].every(e=>e.getBoundingClientRect().height<60&&getComputedStyle(e).whiteSpace==='nowrap'&&e.title)"))
     # 反灰：無數據列有 tc-nod、且同單位排在有數據列之後；「—」格淡灰
     chk = p3.evaluate("""()=>{const out={nod:0,order:true,dash:0};let seen=false;[...document.querySelectorAll('#v-tc .tc-tbl tbody tr')].forEach(tr=>{if(tr.classList.contains('tc-unit')){seen=false;return}if(!tr.classList.contains('tc-row'))return;if(tr.classList.contains('tc-nod')){out.nod++;seen=true}else if(seen)out.order=false});out.dash=document.querySelectorAll('#v-tc td.tc-dash').length;return out}""")
     ok(f"{T}：反灰列（若有）排在同單位有數據列後、「—」格有 tc-dash", chk["order"] and chk["dash"] >= 1, chk)

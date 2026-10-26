@@ -66,6 +66,9 @@
   /* 展開「2、5、8、11 月」「2／5／8 月」這種列表＋單獨的「7 月」，去重後依數字排序輸出「2月、5月、…」；(?<!\d) 避免把 114 年的「14」當月份 */
   const btMonths = (t) => { const set = new Set(); String(t || '').replace(/(?<!\d)(\d{1,2}(?:\s*[、／\/,，]\s*\d{1,2})*)\s*月/g, (_, g) => { g.split(/[、／\/,，]/).forEach((x) => { const n = +x.trim(); if (n >= 1 && n <= 12) set.add(n); }); return _; }); return set.size ? Array.from(set).sort((x, y) => x - y).map((n) => n + '月').join('、') : '—'; };
   /* 沒有任何數字的職位（底薪、分紅月數、年薪總月數、年薪、週工時全空）→ 反灰並排在同單位有數據的列後面 */
+  /* 分紅發放欄單行精簡：「2月、5月、7月」→「2/5/7 月」（不折行）；完整說明放 tooltip（title） */
+  const btShort = (t) => (/^\d{1,2}月(、\d{1,2}月)*$/.test(t) ? t.replace(/月/g, '').replace(/、/g, '/') + ' 月' : t);
+  const btTitle = (r, bt) => { const full = r.bonus_timing_month || bt; return full ? ' title="' + esc(String(full).slice(0, 300)) + '"' : ''; };
   const hasNum = (v) => fl(v).length > 0;
   const roleHasData = (r) => hasNum(r.base_month_k) || hasNum(r.bonus_months) || hasNum(r.annual_months) || hasNum(r.annual_total_wan) || hasNum(r.weekly_hours);
   /* 分紅結構：公司層 bonus_structure（每種獎金一筆）。摘要與頂端區塊都從它組；沒有就退回 bonus_timing */
@@ -264,7 +267,7 @@
       '<td data-l="職等" class="tc-grade">' + esc(r.grade || '—') + '</td>' +
       (tsmc ? '<td data-l="單位繁忙度" class="tc-busy">' + (r.busyness ? '<span class="tc-conf ' + (String(r.busyness).charAt(0) === '高' ? 'lo' : String(r.busyness).charAt(0) === '中' ? 'mid' : 'hi') + '" title="' + esc(r.busyness) + '">' + esc(String(r.busyness).charAt(0)) + '</span>' : '—') + '</td>'
         : '<td data-l="學歷" class="tc-deg">' + esc(r.degree || '—') + (r.degree_diff ? '<small>學士：' + esc(r.degree_diff) + '</small>' : '') + '</td>') +
-      '<td data-l="底薪(K/月)">' + rng(r.base_month_k) + '</td><td data-l="分紅月數">' + rng(r.bonus_months) + '</td><td data-l="年薪總月數">' + dash(rng(r.annual_months)) + '</td><td data-l="分紅發放">' + esc(r.bonus_timing_month ? (btMonths(r.bonus_timing_month) !== '—' ? btMonths(r.bonus_timing_month) : r.bonus_timing_month) : btMonths(bt)) + '</td><td data-l="年薪(萬)" class="tc-big">' + rng(r.annual_total_wan) + '</td>' +
+      '<td data-l="底薪(K/月)">' + rng(r.base_month_k) + '</td><td data-l="分紅月數">' + rng(r.bonus_months) + '</td><td data-l="年薪總月數">' + dash(rng(r.annual_months)) + '</td><td data-l="分紅發放" class="tc-btm"' + btTitle(r, bt) + '>' + esc(btShort(r.bonus_timing_month ? (btMonths(r.bonus_timing_month) !== '—' ? btMonths(r.bonus_timing_month) : r.bonus_timing_month) : btMonths(bt))) + '</td><td data-l="年薪(萬)" class="tc-big">' + rng(r.annual_total_wan) + '</td>' +
       '<td data-l="週工時">' + rng(r.weekly_hours) + '</td><td data-l="加班"><span class="tc-ot ot-' + esc(r.overtime) + '">' + esc(r.overtime || '—') + '</span></td><td data-l="出差">' + esc(r.travel || '—') + '</td>' +
       '<td data-l="樣本">' + (r.n != null ? r.n : '–') + '</td><td data-l="信心"><span class="tc-conf ' + confCls(r.confidence) + '" title="' + esc(r.note || '') + '">' + esc(r.confidence || '–') + '</span></td>' +
       '<td data-l="來源・日期" class="tc-src">' + srcHtml(r) + '</td></tr>' + smRow(r)).join('')).join('');
