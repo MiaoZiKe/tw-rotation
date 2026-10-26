@@ -9325,7 +9325,7 @@
       "name": "技嘉",
       "code": "2376",
       "heat": null,
-      "benefits": null,
+      "benefits": "2026 年 1 月旺年會總獎金 4,700 萬元、最大獎 BMW（新聞報導）；網友說法：底薪偏低但有月獎金，三節與年終以底薪計，部分為福利點數（GoodJob）",
       "stock_plan": null,
       "bonus_timing": "只查到約 2016 年網友說年終固定 2 個月、年獎金與月獎金看業績；近年資料查不到",
       "culture": "GoodJob 平均每週 46 小時、19% 幾乎每天加班",
@@ -14030,7 +14030,20 @@
       "benefits": null,
       "stock_plan": null,
       "bonus_timing": null,
-      "bonus_structure": [],
+      "bonus_structure": [
+        {
+          "type": "保障月數＋分紅",
+          "rule": "網友說法：保 14 個月加分紅、整年約 17 個月（GoodJob 2025 產品工程師評價）；另一則採購評價稱年終依績效 3～5 個月以上",
+          "months": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/啟碁科技股份有限公司/work-experiences",
+              "date": "2025"
+            }
+          ]
+        }
+      ],
       "culture": "網友說法：面試趣統計日均工時約 9 小時、偶爾加班；有軟體工程師說專案偏責任制、沒有加班費（GoodJob 工時評價）",
       "interview": "網友說法：面試趣統計面試評價 3.7／5、難度低、錄取率約 50%；近期心得多寫流程愉快、難度普通",
       "grade_system": null,
@@ -14661,7 +14674,7 @@
       "name": "瑞軒",
       "code": "2489",
       "heat": null,
-      "benefits": null,
+      "benefits": "網友說法：加班有加班費與晚餐、尾牙高額獎金、抒壓按摩（GoodJob 2026-03 專案管理師評價）",
       "stock_plan": null,
       "bonus_timing": null,
       "bonus_structure": [
@@ -14698,6 +14711,21 @@
               "site": "GoodJob",
               "url": "https://www.goodjob.life/companies/瑞軒科技股份有限公司/work-experiences",
               "date": "2025"
+            }
+          ]
+        },
+        {
+          "type": "三節＋年終＋分紅",
+          "rule": "網友說法：端午、中秋各 0.5，年終績效約 1.5，分紅約 2～4 個月（年資滿三年、看表現），無保證年薪（GoodJob 2025-08、2025-09）",
+          "months": [
+            2,
+            4
+          ],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/瑞軒科技股份有限公司/work-experiences/薪資福利",
+              "date": "2025-09"
             }
           ]
         }
@@ -14863,6 +14891,125 @@
           "travel": "需要",
           "n": 2,
           "n_stat": 1
+        },
+        {
+          "unit": "其他",
+          "role": "採購",
+          "degree": null,
+          "years": null,
+          "base_month_k": null,
+          "bonus_months": [
+            2,
+            4
+          ],
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n": 1,
+          "note": "GoodJob 評價（2025-08 之後）",
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/瑞軒科技股份有限公司/work-experiences/薪資福利",
+              "date": "2025-09"
+            }
+          ],
+          "confidence": "低",
+          "grade": null,
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/瑞軒科技股份有限公司/work-experiences/薪資福利",
+              "date": "2025-09",
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": [
+                2,
+                4
+              ],
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "無保證年薪；端午中秋各 0.5、年終績效約 1.5、分紅約 2～4（待滿第三年、看表現）",
+              "date_confirmed": true,
+              "date_note": "GoodJob 評價標示年月，晚於 2025-08-01",
+              "in_window": true
+            }
+          ],
+          "n_stat": 1
+        },
+        {
+          "unit": "研發 RD",
+          "role": "韌體設計工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": [
+            60,
+            60
+          ],
+          "bonus_months": [
+            2,
+            2
+          ],
+          "annual_months": [
+            16.5,
+            16.5
+          ],
+          "annual_total_wan": [
+            99.0,
+            99.0
+          ],
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n": 1,
+          "note": "GoodJob 評價（2025-08 之後）",
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/瑞軒科技股份有限公司/work-experiences/薪資福利",
+              "date": "2025-08"
+            }
+          ],
+          "confidence": "低",
+          "grade": null,
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/瑞軒科技股份有限公司/work-experiences/薪資福利",
+              "date": "2025-08",
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 60,
+              "bonus_months": [
+                2,
+                2
+              ],
+              "annual_months": [
+                16.5,
+                16.5
+              ],
+              "annual_wan": 99.0,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "起薪 6 萬×14.5 個月＋分紅約 2 個月",
+              "date_confirmed": true,
+              "date_note": "GoodJob 評價標示年月，晚於 2025-08-01",
+              "in_window": true,
+              "derived": [
+                "annual_wan"
+              ]
+            }
+          ],
+          "n_stat": 1
         }
       ],
       "note": "2026-10-26 由 Dcard 樣本新增的公司"
@@ -14878,6 +15025,18 @@
         {
           "type": "保底年薪＋年終",
           "rule": "網友說法：保底 14 個月，分年中與年終兩次發；年終依營運與個人績效約 1～3 個月（GoodJob 2021 分享，偏舊）",
+          "months": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/神雲科技股份有限公司/interview-experiences",
+              "date": "2021"
+            }
+          ]
+        },
+        {
+          "type": "保障月數（舊說法）",
+          "rule": "網友說法（2021 年，未確認近年）：保底 14 個月，分年中（端午、中秋約 1 個月）與年終（1～3 個月，看營運與績效）；另一則 2021 心得稱沒有保 14",
           "months": null,
           "sources": [
             {
