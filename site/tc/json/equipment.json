@@ -331,6 +331,38 @@
           "sources": [],
           "confidence": "低",
           "n": 1
+        },
+        {
+          "unit": "其他",
+          "role": "CSE",
+          "degree": "碩士",
+          "samples": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261448554",
+              "date": "2026-05",
+              "page_date": "2026-05-09",
+              "date_confirmed": true,
+              "role": "CSE（客戶服務工程師）",
+              "grade": null,
+              "unit_detail": null,
+              "years": "4",
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "機械碩，廠務設備商下包約 3.5 年＋專任助理半年；約 46 天拿到 offer；數字未透露",
+              "in_window": true,
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-05-09"
+            }
+          ],
+          "sources": [],
+          "confidence": "低",
+          "n": 1
         }
       ],
       "mops": null,
@@ -539,6 +571,38 @@
           "sources": [],
           "confidence": "低",
           "n": 1
+        },
+        {
+          "unit": "南科",
+          "role": "CSE",
+          "degree": "碩士",
+          "samples": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261865232",
+              "date": "2026-07",
+              "page_date": "2026-07-23",
+              "date_confirmed": true,
+              "role": "CSE（客戶支援工程師，對台積）",
+              "grade": null,
+              "unit_detail": "南科",
+              "years": "0",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 49,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "月薪 N+30（未寫單位）；主管說每月加班 40 小時內，需輪小夜",
+              "in_window": true,
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-07-23"
+            }
+          ],
+          "sources": [],
+          "confidence": "低",
+          "n": 1
         }
       ],
       "mops": null,
@@ -592,7 +656,7 @@
           "weekly_hours": null,
           "overtime": "經常（輪班＋on call）",
           "travel": "需要",
-          "n": 10,
+          "n": 11,
           "note": "比薪水 2026-03 新竹設備工程師有分享但金額需解鎖；GoodJob 2026-08 設備職面試：無塵室、三到四週輪一次班、需 on call 與出差支援",
           "sources": [
             {
@@ -816,6 +880,28 @@
               "date_confirmed": true,
               "date_note": "GoodJob 標題年月",
               "in_window": true
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261423697",
+              "date": "2026-05",
+              "page_date": "2026-05-05",
+              "date_confirmed": true,
+              "role": "設備工程師（wet clean）",
+              "grade": null,
+              "unit_detail": "竹科",
+              "years": "0",
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "發文者說薪資大幅優於台達電，但擔心發展性；數字未透露",
+              "in_window": true,
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-05-05"
             }
           ],
           "n_stat": 5
@@ -910,6 +996,70 @@
               "quote_free_note": "HR 電話核薪（文中寫到核薪階段）；數字未透露",
               "in_window": true,
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-02-16"
+            }
+          ],
+          "sources": [],
+          "confidence": "低",
+          "n": 1
+        },
+        {
+          "unit": "嘉義（對台積）",
+          "role": "FSE",
+          "degree": "碩士",
+          "samples": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261761266",
+              "date": "2026-07",
+              "page_date": "2026-07-02",
+              "date_confirmed": true,
+              "role": "FSE（現場服務工程師）",
+              "grade": null,
+              "unit_detail": "嘉義（對台積）",
+              "years": "0",
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "中字產線碩新鮮人；發文者說設備薪水很高但要輪班；數字未透露",
+              "in_window": true,
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-07-02"
+            }
+          ],
+          "sources": [],
+          "confidence": "低",
+          "n": 1
+        },
+        {
+          "unit": "其他",
+          "role": "FSE",
+          "degree": "碩士",
+          "samples": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261448554",
+              "date": "2026-05",
+              "page_date": "2026-05-09",
+              "date_confirmed": true,
+              "role": "FSE（現場服務工程師）",
+              "grade": null,
+              "unit_detail": null,
+              "years": "4",
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "實體面試當天口頭 offer，約 38 天正式 offer；數字未透露",
+              "in_window": true,
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-05-09"
             }
           ],
           "sources": [],
@@ -1287,6 +1437,38 @@
           "sources": [],
           "confidence": "低",
           "n": 1
+        },
+        {
+          "unit": "台南（對台積）",
+          "role": "Customer Engineer",
+          "degree": "碩士",
+          "samples": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261218379",
+              "date": "2026-04",
+              "page_date": "2026-04-01",
+              "date_confirmed": true,
+              "role": "Customer Engineer",
+              "grade": null,
+              "unit_detail": "台南（對台積）",
+              "years": "0",
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 130,
+              "weekly_hours": null,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "月薪 N+9（未寫單位），年薪 130 萬以上，加上加班費與 on call 津貼可能約 150 萬；需輪班",
+              "in_window": true,
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-04-01"
+            }
+          ],
+          "sources": [],
+          "confidence": "低",
+          "n": 1
         }
       ],
       "mops": null,
@@ -1430,6 +1612,38 @@
               "quote_free_note": "全薪 N+18（未寫單位）；第一年有宿舍補助每月 5000",
               "in_window": true,
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-09-29"
+            }
+          ],
+          "sources": [],
+          "confidence": "低",
+          "n": 1
+        },
+        {
+          "unit": "其他",
+          "role": "FE",
+          "degree": "碩士",
+          "samples": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261448554",
+              "date": "2026-05",
+              "page_date": "2026-05-09",
+              "date_confirmed": true,
+              "role": "FE（現場工程師）",
+              "grade": null,
+              "unit_detail": null,
+              "years": "4",
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "約 36 天拿到 offer；數字未透露",
+              "in_window": true,
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-05-09"
             }
           ],
           "sources": [],
@@ -1926,6 +2140,38 @@
           "sources": [],
           "confidence": "低",
           "note": "2026-10-26 由 Dcard 樣本新增的公司"
+        },
+        {
+          "unit": "其他",
+          "role": "CSE",
+          "degree": "碩士",
+          "samples": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261448554",
+              "date": "2026-05",
+              "page_date": "2026-05-09",
+              "date_confirmed": true,
+              "role": "CSE（客戶服務工程師）",
+              "grade": null,
+              "unit_detail": null,
+              "years": "4",
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "約 41 天拿到 offer；數字未透露",
+              "in_window": true,
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-05-09"
+            }
+          ],
+          "sources": [],
+          "confidence": "低",
+          "n": 1
         }
       ]
     },
