@@ -956,6 +956,70 @@ def backfill_mktfut(prog: dict, start: str = "2021-01-01") -> bool:
                     [t for t, d in got.items() if d.empty])
     return ok
 
+def backfill_futlab2(prog: dict, start: str = "2008-01-01") -> bool:
+    """台指期研究（2026-10-26）：2008 起的美股消息面與外資期貨部位，全部走 store.append()。
+
+    · intl_daily  ← yfinance（每日管線 macro.intl_daily 用的同一個來源，不吃 FinMind 額度）：
+                    S&P500／Nasdaq／費半／VIX／美元指數／TSM ADR 等 config.INTL_SYMBOLS 全部。
+    · macro DGS10 ← FRED（FRED_API_KEY），美債 10Y 殖利率，跟每日管線同一張 macro 表。
+    · fut_inst    ← FinMind TaiwanFuturesInstitutionalInvestors，TX 大台 1 次請求（外資期貨淨部位）。
+                    FinMind 實際最早從哪年有資料未實測：回空或只到較晚年份時如實 log、不猜，
+                    旗標記下實際最早日期，方便研究端知道訓練窗到哪。
+    三塊各自一個旗標（futlab2_intl／futlab2_dgs10／futlab2_fut），缺的下一輪重試；補過就不再補。"""
+    from .sources import macro as macro_src
+    comp = prog.setdefault("complete", {})
+
+    def _done(k: str) -> bool:
+        f = comp.get(k)
+        return isinstance(f, dict) and f.get("done") and f.get("start") == start
+
+    def _mark(k: str, rows: int, **extra) -> None:
+        comp[k] = {"done": True, "start": start, "rows": rows,
+                   "at": datetime.now(timezone.utc).isoformat(), **extra}
+        _save_progress(prog)
+
+    ok = True
+    if not _done("futlab2_intl"):
+        try:
+            df = macro_src.intl_daily(start=start)
+        except Exception as exc:  # noqa: BLE001
+            log.warning("2008 起國際指數回補失敗：%s", exc)
+            df = pd.DataFrame()
+        if df.empty:
+            ok = False
+        else:
+            _mark("futlab2_intl", store.append("intl_daily", df), earliest=str(df["date"].min()))
+    if not _done("futlab2_dgs10"):
+        try:
+            df = macro_src.fred_series("DGS10", start)
+        except Exception as exc:  # noqa: BLE001
+            log.warning("2008 起 DGS10 回補失敗：%s", exc)
+            df = pd.DataFrame()
+        if df.empty:
+            log.warning("DGS10 回空（多半是 FRED_API_KEY 問題）—— 不標 done，下一輪重試")
+            ok = False
+        else:
+            _mark("futlab2_dgs10", store.append("macro", df), earliest=str(df["date"].min()))
+    if not _done("futlab2_fut"):
+        if http.finmind_budget_left() <= 3:
+            log.warning("額度不足，外資期貨 2008 起這一輪先不補")
+            return False
+        try:
+            raw = http.finmind_get("TaiwanFuturesInstitutionalInvestors", data_id="TX",
+                                   start_date=start, end_date=None, wait_when_exhausted=False)
+            df = mktfut.parse_fut_inst(raw, "TX")
+        except Exception as exc:  # noqa: BLE001
+            log.warning("2008 起 fut_inst 回補失敗：%s", exc)
+            df = pd.DataFrame()
+        if df.empty:
+            log.warning("fut_inst 2008 起回空 —— 不標 done，下一輪重試")
+            ok = False
+        else:
+            _mark("futlab2_fut", store.append("fut_inst", df), earliest=str(df["date"].min()))
+            log.info("fut_inst 最早資料日 %s（FinMind 實際起點）", df["date"].min())
+    return ok
+
+
 INST_MARKET_START = "2021-01-01"   # 5 年；日報頁最長期間鈕要撐到這裡
 
 
@@ -1432,6 +1496,10 @@ def run_plan(name: str, limit: int | None, today: date | None = None) -> dict:
         backfill_mktfut(_progress())
     except Exception as exc:  # noqa: BLE001
         log.warning("市場明細融資／期貨回補失敗（不影響其他步驟）：%s", exc)
+    try:
+        backfill_futlab2(_progress())
+    except Exception as exc:  # noqa: BLE001
+        log.warning("台指期研究 2008 起資料回補失敗（不影響其他步驟）：%s", exc)
     # 全市場三大法人金額官方值只要 1 次請求，放在個股步驟之前（2026-10-21 根因）：
     # 原本掛在「整個計畫跑完（stopped_at is None）」之後，但個股步驟每輪都把額度燒光，
     # 計畫從來沒跑完，所以 5 年歷史一直沒補（湖裡只有每日管線 40 天增量的 09/10 起）。

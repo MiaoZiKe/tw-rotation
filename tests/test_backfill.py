@@ -749,3 +749,35 @@ def test_計畫含2012起的法人與財報步驟且旗標不與2016衝突():
     assert len(keys) == len(set(keys))
     assert run_backfill.datasets_key_of("inst", "2012-01-01", None, "universe") == "inst@2012-01-01"
     assert run_backfill.done_key_of("inst", "2330", "2012-01-01") == "inst@2012-01-01:2330"
+
+
+def test_futlab2_三塊各自標旗標_回空不標_補過不重抓(monkeypatch):
+    """台指期研究 2008 起資料：intl／DGS10／fut_inst 各自旗標；失敗回空不標 done，補過不再打 API。"""
+    import pandas as pd
+    from pipeline.sources import macro as macro_src
+    saved, appended, calls = [], [], {"intl": 0, "fred": 0, "fm": 0}
+    monkeypatch.setattr(run_backfill, "_save_progress", lambda p: saved.append(1))
+    monkeypatch.setattr(run_backfill.store, "append", lambda t, df: appended.append(t) or len(df))
+    monkeypatch.setattr(run_backfill.http, "finmind_budget_left", lambda: 100)
+
+    def intl(period="2y", start=None):
+        calls["intl"] += 1
+        assert start == "2008-01-01"
+        return pd.DataFrame({"date": ["2008-01-02"], "symbol": ["^GSPC"], "close": [1.0]})
+    monkeypatch.setattr(macro_src, "intl_daily", intl)
+    monkeypatch.setattr(macro_src, "fred_series",
+                        lambda sid, start: (calls.__setitem__("fred", calls["fred"] + 1) or pd.DataFrame()))
+    monkeypatch.setattr(run_backfill.http, "finmind_get",
+                        lambda *a, **k: (calls.__setitem__("fm", calls["fm"] + 1) or []))
+    prog = {"complete": {}}
+    assert run_backfill.backfill_futlab2(prog) is False          # FRED、FinMind 回空
+    assert set(prog["complete"]) == {"futlab2_intl"}
+    assert appended == ["intl_daily"]
+    monkeypatch.setattr(run_backfill.mktfut, "parse_fut_inst",
+                        lambda rows, fid: pd.DataFrame({"date": ["2008-01-02"], "futures_id": ["TX"], "who": ["foreign"]}))
+    monkeypatch.setattr(macro_src, "fred_series",
+                        lambda sid, start: pd.DataFrame({"date": ["2008-01-02"], "series": [sid], "value": [3.0]}))
+    assert run_backfill.backfill_futlab2(prog) is True
+    assert set(prog["complete"]) == {"futlab2_intl", "futlab2_dgs10", "futlab2_fut"}
+    assert calls["intl"] == 1                                    # 補過的不重抓
+    assert "macro" in appended and "fut_inst" in appended
