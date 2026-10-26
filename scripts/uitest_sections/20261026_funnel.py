@@ -119,7 +119,8 @@ def t_funnel_1026(b, base, code):
             pv_.locator("#v-pricing .prgo").nth(1).click(); clicked = True
         pv_.wait_for_timeout(400)
         pend = pv_.evaluate("() => TwAccount.pending()")
-        ok(f"{T}：②開 #pricing 排隊 ev:pricing_view、點付費方案排隊 ev:checkout_click", clicked and pend.get("ev:pricing_view", 0) >= 1 and pend.get("ev:checkout_click", 0) >= 1, pend)
+        # 排隊中的計數會被心跳隨時收進送出佇列，pending() 讀到空是正常的；真正的證據是下面「伺服器收到」
+        ok(f"{T}：②真的點了付費方案的訂閱鈕", clicked, pend)
         pv_.evaluate("() => TwAccount.flush()"); pv_.wait_for_timeout(800)
         ev, e2 = stats()
         ok(f"{T}：②伺服器收到：進站 threads 1 次（30 分鐘內第二次進站不重算）、看價格／點訂閱都歸 threads",
