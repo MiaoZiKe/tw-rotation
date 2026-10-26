@@ -73,6 +73,16 @@ PLAN_DEFAULT = [
     {"datasets": "dividend+divresult",        "start": "2016-01-01", "scope": "universe"},
     {"datasets": "margin+holding",            "start": "2021-01-01", "scope": "universe"},
     {"datasets": "price",                     "start": "2000-01-01", "scope": "groups"},
+    # ★ 2026-10-26（策略回測：法人籌碼動能最有希望，但 inst_daily 只到 2016、訓練窗不夠）：
+    #   三大法人與月營收／季財報／資產負債表往前補到 2012-01-01。
+    #   scope=universe（groups 成分股＋成交值前段班，手動觸發 limit 預設 500，涵蓋流動性前 300 檔綽綽有餘）；
+    #   不用 market，是因為全市場 1,980 檔 × 4 資料集會把額度吃光、擋住後面的步驟，回測只需要流動性好的標的。
+    #   完成旗標 inst@2012-01-01、financial+balance+revenue@2012-01-01，逐檔 done 鍵帶 @2012-01-01，
+    #   與 2016 那一步（inst@market、done 鍵 inst:<代號>）互不衝突；已補到 2012 之前的檔 already_covered 會直接跳過。
+    #   請求數：約 500 檔 × (inst 1 + revenue/financial/balance 3) ＝ 2,000 次 ÷ 每輪約 450～500 次 ≈ 4～5 輪，約 5 小時。
+    #   放在 groups 價量之後、全市場各步之前：這批量小，先補完才不被後面的大步驟的額度擠掉。
+    {"datasets": "inst",                      "start": "2012-01-01", "scope": "universe"},
+    {"datasets": "revenue+financial+balance", "start": "2012-01-01", "scope": "universe"},
     # ★ 2026-09-27（個股頁數據普查）：三大法人**從來不在計畫裡**。每日管線只補成交值前 500 檔
     #   （run_daily.fetch_institutional，UNIVERSE_SIZE），更早的一次性回補也只跑到 401 檔 ——
     #   實測 1,980 檔普通股裡 1,626 檔的 inst_daily 一列都沒有，個股頁「三大法人」整張不出現。

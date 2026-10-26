@@ -738,3 +738,14 @@ def test_全市場日線跳過族群已補的並在額度用完時接續(sandbox
     assert prog["done"]["price@2000-01-01:4563"] is True
     from pipeline.util import store
     assert {"4561", "4562", "4563"} <= set(store.read("price_daily")["code"])
+
+
+def test_計畫含2012起的法人與財報步驟且旗標不與2016衝突():
+    """2026-10-26 回測需要更長訓練窗：inst／revenue+financial+balance 補到 2012，完成旗標不可撞 2016 那步。"""
+    steps = [s for s in run_backfill.PLAN_DEFAULT if s["start"] == "2012-01-01"]
+    assert {s["datasets"] for s in steps} == {"inst", "revenue+financial+balance"}
+    keys = [run_backfill.datasets_key_of(s["datasets"], s["start"], s.get("tag"), s.get("scope"))
+            for s in run_backfill.PLAN_DEFAULT]
+    assert len(keys) == len(set(keys))
+    assert run_backfill.datasets_key_of("inst", "2012-01-01", None, "universe") == "inst@2012-01-01"
+    assert run_backfill.done_key_of("inst", "2330", "2012-01-01") == "inst@2012-01-01:2330"
