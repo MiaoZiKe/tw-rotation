@@ -962,9 +962,9 @@
       "heat": null,
       "benefits": null,
       "stock_plan": null,
-      "bonus_timing": null,
-      "culture": null,
-      "interview": null,
+      "bonus_timing": "網友 2026 稱獎金約 1.5～2 個月底薪（資深職）；發放月份查不到",
+      "culture": "GoodJob：績效獎金制度透明；也有評價稱福利變差、工時長、升遷不易（2026）",
+      "interview": "GoodJob 2025～2026：HR 電話初篩、追問離職原因，再主管面談",
       "roles": [
         {
           "unit": "台灣研發",
@@ -1088,7 +1088,20 @@
       ],
       "mops": null,
       "grade_system": "I 職級（網友提到 I6）",
-      "bonus_structure": []
+      "bonus_structure": [
+        {
+          "type": "年度獎金",
+          "rule": "資深軟體職自述約 1.5～2 個月底薪（GoodJob 2026 單筆）",
+          "months": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/荷蘭商台灣戴爾股份有限公司/work-experiences/薪資福利",
+              "date": "2026"
+            }
+          ]
+        }
+      ]
     },
     {
       "name": "Apple",
@@ -1184,7 +1197,7 @@
       "stock_plan": null,
       "bonus_timing": null,
       "culture": null,
-      "interview": null,
+      "interview": "線上溝通→主管面試（GoodJob 2024-03）；實習生為團體面試",
       "roles": [
         {
           "unit": "台灣研發",
@@ -1396,7 +1409,7 @@
       "code": null,
       "heat": null,
       "benefits": null,
-      "stock_plan": null,
+      "stock_plan": "RSU 四年歸屬，首年 25%、之後每月約 2.08%（Levels.fyi，美國資料）",
       "bonus_timing": null,
       "culture": null,
       "interview": null,
@@ -1751,10 +1764,10 @@
       "code": null,
       "heat": null,
       "benefits": null,
-      "stock_plan": null,
+      "stock_plan": "RSU 四年歸屬，首年 25%、之後每月；每年有 refresher（Levels.fyi、Blind 網友）",
       "bonus_timing": null,
       "culture": "GoodJob 2025-08 新竹工程師單筆：公司給得大方、年薪約 180 萬、每週 45 小時（樣本極少）",
-      "interview": null,
+      "interview": "網友稱博通通常不太議價，初始 offer 多為最終條件（Blind，未證實）",
       "roles": [
         {
           "unit": "台灣研發",
@@ -1971,12 +1984,37 @@
       "name": "Garmin",
       "code": null,
       "heat": null,
-      "benefits": null,
+      "benefits": "午餐固定免費額度約 85 元（GoodJob 2025-04）",
       "stock_plan": null,
-      "bonus_timing": null,
-      "bonus_structure": [],
-      "culture": null,
-      "interview": null,
+      "bonus_timing": "保 14 個月：年終 1 個月（農曆年前）＋端午 1 個月（約 6 月）（GoodJob 2025-04、2026-06）",
+      "bonus_structure": [
+        {
+          "type": "年終",
+          "rule": "1 個月（GoodJob 2025-04）",
+          "months": 1,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/6a182b8b4d5af42ceb1d54a7",
+              "date": "2025-04"
+            }
+          ]
+        },
+        {
+          "type": "端午節獎金",
+          "rule": "1 個月（GoodJob 2025-04）",
+          "months": 1,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/experiences/6a182b8b4d5af42ceb1d54a7",
+              "date": "2025-04"
+            }
+          ]
+        }
+      ],
+      "culture": "GoodJob 2026-06 電子工程師：年薪不錯、加班少、環境友善；薪資福利 3.8／5（24 筆）",
+      "interview": "線上英文考卷→人資線上情境題→主管線上面談（會問能否出差）（GoodJob 2025-04）",
       "grade_system": null,
       "mops": null,
       "roles": [
@@ -2143,8 +2181,8 @@
       "stock_plan": null,
       "bonus_timing": null,
       "bonus_structure": [],
-      "culture": null,
-      "interview": null,
+      "culture": "GoodJob 3.3 分（85 則），平均每週約 40 小時；入職後薪水很少調整",
+      "interview": "HR→Wipro 主管→客戶端團隊（GoodJob）；面試趣難度標示低",
       "grade_system": null,
       "mops": null,
       "roles": [
@@ -2175,9 +2213,28 @@
               "quote_free_note": "現職年薪約 105 萬；口頭 offer 可比現職多 5～10%；保 13＋季度獎金；之後說年末沒 HC",
               "in_window": true,
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-03-18"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/印度商威普羅股份有限公司/interview-experiences",
+              "date": "2026",
+              "unit_detail": "軟體工程師",
+              "years": null,
+              "degree": null,
+              "base_k": 72,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "面試錄取，月薪 7.2 萬",
+              "date_confirmed": true,
+              "date_note": null,
+              "in_window": true
             }
           ],
-          "n": 1,
+          "n": 2,
           "sources": [
             {
               "site": "Dcard",
@@ -2192,13 +2249,16 @@
             13
           ],
           "years": null,
-          "base_month_k": null,
+          "base_month_k": [
+            72,
+            72
+          ],
           "bonus_months": null,
           "annual_total_wan": null,
           "weekly_hours": null,
           "overtime": null,
           "travel": null,
-          "n_stat": 1
+          "n_stat": 2
         },
         {
           "unit": "新竹",
@@ -2259,7 +2319,7 @@
       "stock_plan": null,
       "bonus_timing": null,
       "bonus_structure": [],
-      "culture": null,
+      "culture": "GoodJob：制度完整、團隊友善（桃園工程師單筆，年薪約 90 萬）",
       "interview": null,
       "grade_system": null,
       "mops": null,
@@ -2393,10 +2453,23 @@
       "heat": null,
       "benefits": null,
       "stock_plan": null,
-      "bonus_timing": null,
-      "bonus_structure": [],
+      "bonus_timing": "固定年薪 14 個月（年資滿一年）＋年度分紅；發放月份查不到",
+      "bonus_structure": [
+        {
+          "type": "保障月數＋年度分紅",
+          "rule": "固定 14 個月（滿一年）另有年度分紅與調薪（GoodJob RD 評價）",
+          "months": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/美商安邁科技股份有限公司/work-experiences",
+              "date": "不明"
+            }
+          ]
+        }
+      ],
       "culture": null,
-      "interview": null,
+      "interview": "C/C++ 筆試約 50 題一小時、含 Linux 題，再技術主管面談（GoodJob 2026）",
       "grade_system": null,
       "mops": null,
       "roles": [
@@ -2505,12 +2578,12 @@
       "name": "Synopsys",
       "code": null,
       "heat": null,
-      "benefits": null,
+      "benefits": "生活津貼、公司負擔勞健保員工自付額（GoodJob 評價）",
       "stock_plan": null,
       "bonus_timing": null,
       "bonus_structure": [],
-      "culture": null,
-      "interview": null,
+      "culture": "GoodJob 4.5 分（63 則）；年薪中等、福利不錯",
+      "interview": "一面線上測驗→二面合作工程師依履歷提問；R&D 職需 30 分鐘簡報＋白板題、OS、C++（GoodJob 2025-12、2026）",
       "grade_system": null,
       "mops": null,
       "roles": [
