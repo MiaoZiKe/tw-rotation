@@ -7359,6 +7359,55 @@
         }
       ],
       "note": "2026-10-26 由 Dcard 樣本新增的公司"
+    },
+    {
+      "name": "松翰",
+      "code": "5471",
+      "heat": null,
+      "benefits": null,
+      "stock_plan": null,
+      "bonus_timing": null,
+      "bonus_structure": [],
+      "culture": null,
+      "interview": null,
+      "grade_system": null,
+      "mops": null,
+      "roles": [
+        {
+          "unit": "資訊",
+          "role": "MIS 軟體工程師",
+          "degree": "碩士",
+          "grade": null,
+          "samples": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/260870915",
+              "date": "2026-02",
+              "page_date": "2026-02-14",
+              "date_confirmed": true,
+              "role": "MIS 軟體工程師",
+              "grade": null,
+              "unit_detail": "竹北",
+              "years": "0",
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": 14,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "核薪 N-10 保 14，但後來被高層擋下收到感謝函（未成 offer）",
+              "in_window": true,
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-02-14"
+            }
+          ],
+          "n": 1,
+          "sources": [],
+          "confidence": "低",
+          "note": "2026-10-26 由 Dcard 樣本新增的公司"
+        }
+      ]
     }
   ]
 }
