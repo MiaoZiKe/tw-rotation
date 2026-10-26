@@ -1,4 +1,3 @@
 {
- "ran": false,
- "reason": "營收補齊旗標 done=False（remaining={'balance': 274, 'financial': 274, 'revenue': 273}），或本地資料 2013 年營收覆蓋不足；不執行最終驗證"
+ "ran": true
 }
