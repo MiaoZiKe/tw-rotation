@@ -19,10 +19,19 @@
           "role": "製造工程師",
           "degree": "碩士",
           "years": "0-2",
-          "base_month_k": null,
+          "base_month_k": [
+            48,
+            48
+          ],
           "bonus_months": null,
-          "annual_months": null,
-          "annual_total_wan": null,
+          "annual_months": [
+            14,
+            14
+          ],
+          "annual_total_wan": [
+            67.2,
+            67.2
+          ],
           "weekly_hours": null,
           "overtime": null,
           "travel": null,
@@ -57,15 +66,18 @@
               "degree": "碩士",
               "base_k": 48,
               "bonus_months": null,
-              "annual_months": null,
-              "annual_wan": null,
+              "annual_months": 14,
+              "annual_wan": 67.2,
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
-              "quote_free_note": null,
-              "date_confirmed": false,
-              "date_note": "日期為推估或僅年份，不進統計",
-              "in_window": true
+              "quote_free_note": "月薪 4.8 萬，保 14 個月，有分紅與績效獎金；現場人力不足",
+              "date_confirmed": true,
+              "date_note": "GoodJob 搜尋摘要標分享年月（2026.3）",
+              "in_window": true,
+              "derived": [
+                "annual_wan"
+              ]
             },
             {
               "site": "Dcard",
@@ -106,7 +118,7 @@
               "in_window": true
             }
           ],
-          "n_stat": 2
+          "n_stat": 3
         },
         {
           "unit": "桃園總部",
@@ -116,7 +128,10 @@
           "base_month_k": null,
           "bonus_months": null,
           "annual_months": null,
-          "annual_total_wan": null,
+          "annual_total_wan": [
+            115,
+            115
+          ],
           "weekly_hours": null,
           "overtime": null,
           "travel": null,
@@ -142,18 +157,18 @@
               "url": "https://www.goodjob.life/companies/臻鼎科技股份有限公司/work-experiences/薪資福利",
               "date": "2026-07",
               "unit_detail": null,
-              "years": "0-2",
+              "years": "5",
               "degree": "碩士",
               "base_k": null,
               "bonus_months": null,
               "annual_months": null,
-              "annual_wan": null,
+              "annual_wan": 115,
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
-              "quote_free_note": null,
-              "date_confirmed": false,
-              "date_note": "日期為推估或僅年份，不進統計",
+              "quote_free_note": "年薪 115 萬；低底薪高獎金，10 月分紅、隔年初年終 2 個月＋績效；升遷需連兩年績效 A",
+              "date_confirmed": true,
+              "date_note": "GoodJob 搜尋摘要標分享年月（2026.7）",
               "in_window": true
             },
             {
@@ -176,7 +191,7 @@
               "in_window": true
             }
           ],
-          "n_stat": 1
+          "n_stat": 2
         },
         {
           "unit": "中國深圳",
@@ -197,6 +212,159 @@
           "n_stat": 0,
           "note": null,
           "grade": null
+        },
+        {
+          "unit": "製造廠",
+          "role": "載板工程師",
+          "degree": "碩士",
+          "years": null,
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/臻鼎科技股份有限公司/work-experiences/薪資福利",
+              "date": "2026-04",
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 43,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": "經常",
+              "travel": "偶爾",
+              "quote_free_note": "月薪 4.3 萬，加班到晚上八點，可能外派中國",
+              "date_confirmed": true,
+              "date_note": "GoodJob 搜尋摘要標分享年月（2026.4）",
+              "in_window": true
+            }
+          ],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/臻鼎科技股份有限公司/work-experiences/薪資福利",
+              "date": "2026-04"
+            }
+          ],
+          "confidence": "低",
+          "grade": null,
+          "note": null,
+          "base_month_k": [
+            43,
+            43
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": "經常",
+          "travel": "偶爾",
+          "n": 1,
+          "n_stat": 1
+        },
+        {
+          "unit": "其他",
+          "role": "智能化工程師",
+          "degree": "碩士",
+          "years": null,
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/臻鼎科技股份有限公司/work-experiences/薪資福利",
+              "date": "2026-06",
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 30,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 40,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "月薪 3 萬，無升遷與調薪制度",
+              "date_confirmed": true,
+              "date_note": "GoodJob 搜尋摘要標分享年月（2026.6）",
+              "in_window": true
+            }
+          ],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/臻鼎科技股份有限公司/work-experiences/薪資福利",
+              "date": "2026-06"
+            }
+          ],
+          "confidence": "低",
+          "grade": null,
+          "note": null,
+          "base_month_k": [
+            30,
+            30
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": [
+            40,
+            40
+          ],
+          "overtime": null,
+          "travel": null,
+          "n": 1,
+          "n_stat": 1
+        },
+        {
+          "unit": "其他",
+          "role": "生管工程師",
+          "degree": "碩士",
+          "years": null,
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/臻鼎科技股份有限公司/work-experiences/薪資福利",
+              "date": "2026-01",
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 50,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 40,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "月薪 5 萬，登載 40 小時但自述有超時",
+              "date_confirmed": true,
+              "date_note": "GoodJob 搜尋摘要標分享年月（2026.1）",
+              "in_window": true
+            }
+          ],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/臻鼎科技股份有限公司/work-experiences/薪資福利",
+              "date": "2026-01"
+            }
+          ],
+          "confidence": "低",
+          "grade": null,
+          "note": null,
+          "base_month_k": [
+            50,
+            50
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": [
+            40,
+            40
+          ],
+          "overtime": null,
+          "travel": null,
+          "n": 1,
+          "n_stat": 1
         }
       ],
       "mops": {
@@ -1741,7 +1909,7 @@
           ]
         }
       ],
-      "culture": null,
+      "culture": "GoodJob 總評 3.9（80 筆）；平均約 48 小時／週、偏偶爾加班；工程師責任制無加班費（自述），臺南設備工程師 60 小時／週",
       "interview": "GoodJob 2026：副理→經理→協理／HR 多輪，視主管時間；部分職缺有性向測驗與主管考卷，無英文測驗",
       "grade_system": null,
       "mops": null,
@@ -1994,7 +2162,7 @@
       "stock_plan": null,
       "bonus_timing": null,
       "bonus_structure": [],
-      "culture": null,
+      "culture": "GoodJob 總評 3.1（36 筆）、薪資福利 2.5；平均約 45 小時／週、7% 幾乎每天加班、33% 偶爾",
       "interview": "interview.tw：面試評價 3.5／5、難度 2.8／5，有人提到筆試；加班標示「偶爾」",
       "grade_system": null,
       "mops": null,
@@ -2051,6 +2219,55 @@
           "n_stat": 1,
           "note": null,
           "grade": null
+        },
+        {
+          "unit": "其他",
+          "role": "業務工程師",
+          "degree": "碩士",
+          "years": null,
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/光洋應用材料科技股份有限公司/work-experiences",
+              "date": "2026-01",
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 45,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "月薪 4.5 萬，獎金看負責客戶",
+              "date_confirmed": true,
+              "date_note": "GoodJob 搜尋摘要標分享年月（2026.1）",
+              "in_window": true
+            }
+          ],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/光洋應用材料科技股份有限公司/work-experiences",
+              "date": "2026-01"
+            }
+          ],
+          "confidence": "低",
+          "grade": null,
+          "note": null,
+          "base_month_k": [
+            45,
+            45
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n": 1,
+          "n_stat": 1
         }
       ]
     },
@@ -2062,7 +2279,7 @@
       "stock_plan": null,
       "bonus_timing": null,
       "bonus_structure": [],
-      "culture": "GoodJob 薪資工時頁平均約 40 小時／週（加班資料不足五筆）",
+      "culture": "GoodJob 薪資工時頁平均約 40 小時／週（加班資料不足五筆）；林園廠環保工程師 2025-01 月薪 4.5 萬（早於期間，不列樣本）",
       "interview": null,
       "grade_system": null,
       "mops": null,
@@ -2452,7 +2669,7 @@
       "stock_plan": null,
       "bonus_timing": null,
       "bonus_structure": [],
-      "culture": null,
+      "culture": "GoodJob 總評 4.1（15 筆）；平均約 42 小時／週、11% 幾乎每天加班、44% 偶爾；偶需晚上與歐美開會",
       "interview": "2026 實習計畫兩階段面談（中央大學就業中心 PDF）；Dcard 實習分享：HR 撈履歷→線上→實體面試→offer 約兩個月（年份未標）",
       "grade_system": null,
       "mops": null,
