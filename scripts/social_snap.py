@@ -1353,26 +1353,28 @@ def caption_lines(kind: str, stamp: str, shots: list[dict], data_date: str, ymd:
     def lk(route: str, idx: int) -> str:     # idx＝這是第幾個有內容的行（0 起算）
         return f" → {deep_link(route, kind, ymd)}" if links == "all" or (links == "two" and idx < 2) else ""
     if kind == "intraday":
-        head = f"台股資金地圖｜{stamp}"
-        L.append(head + (f" → {deep_link('flow/rotation', kind, ymd)}" if links == "one" else ""))
-        idx = 0
+        # 2026-10-26 Andy 指定格式：標題「盤中消息」、每段標題一行＋「・」條列，網址只接在輪盤、分流樹段尾，熱力圖不附；文案末不放資料來源／免責
+        L.append("盤中消息")
+        n = min(n, 2)      # Andy 範例每項列 2 個
         s = ok.get("rotation")
         if s:
             d = {k: v for k, v in s.get("lines", [])}
             if d.get("領先") and d.get("落後"):
-                L.append(f"資金輪盤：領先 {_join(d['領先'], n)}；落後 {_join(d['落後'], n)}" + lk("flow/rotation", idx)); idx += 1
+                L += ["資金輪盤：", f"・領先 {_join(d['領先'], n)}；", f"・落後 {_join(d['落後'], n)}" + (f" → {deep_link('flow/rotation', kind, ymd)}" if links != "none" else "")]
         s = ok.get("sankey")
         if s:
             d = {k: v for k, v in s.get("notes", [])}
             if d.get("流入前五") and d.get("流出前五"):
-                L.append(f"資金分流樹：流入 {_join(d['流入前五'], n)}；流出 {_join(d['流出前五'], n)}" + lk("flow/sankey", idx)); idx += 1
+                L += ["資金分流樹：", f"・流入 {_join(d['流入前五'], n)}；", f"・流出 {_join(d['流出前五'], n)}" + (f" → {deep_link('flow/sankey', kind, ymd)}" if links in ("all", "two") else "")]
         s = ok.get("heat")
         if s and s.get("heat"):
             h = sorted(s["heat"], key=lambda x: x[1])
             k = min(2, n)
             ups = "、".join(f"{a} {b:+.1f}%" for a, b in h[::-1][:k])
             dns = "、".join(f"{a} {b:+.1f}%" for a, b in h[:k])
-            L.append(f"熱力圖：漲最多 {ups}；跌最多 {dns}" + lk("heatmap/industry", idx)); idx += 1
+            L += ["熱力圖：", f"・漲最多 {ups}；", f"・跌最多 {dns}"]
+        L.append(HASHTAGS[kind])
+        return L
     elif kind == "credit":
         yi = lambda x: x.replace("−", "-")
         L.append(f"台股盤後融資融券｜{data_date[5:].replace('-', '/')}")      # 2026-10-26 Andy：「盤後也需要新增融資融券」

@@ -19,7 +19,10 @@ def _shots():
 def test_caption_full_four_lines_within_480():
     txt = ss.build_text("intraday", "10/20 12:34", _shots(), "2026-10-20", "20261020")
     assert len(txt) <= 480, len(txt)
-    assert txt.splitlines()[0].startswith("台股資金地圖｜10/20 12:34")
+    L = txt.splitlines()
+    assert L[0] == "盤中消息" and L[1] == "資金輪盤：" and L[2].startswith("・領先 ") and L[3].startswith("・落後 ")   # 2026-10-26 Andy 指定格式
+    assert "資金分流樹：" in L and "熱力圖：" in L and L[-1].startswith("#台股") and "資料：" not in txt   # 盤中文案不放免責／來源
+    assert "#heatmap" not in txt
     assert "utm_medium" not in txt and "即時" not in txt
     assert "utm_campaign=intraday_1020" in txt
 
