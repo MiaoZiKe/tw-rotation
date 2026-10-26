@@ -869,11 +869,33 @@
               "quote_free_note": "台科；offer 期限將到，同時有其他 IC 廠 Linux Driver 二面；數字未透露。留言 B12（中央）說車用 BU 正常考績一年約 20 個月、可正常上下班；B9 說 BU1、BU4 部分單位案子少",
               "in_window": true,
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-08-20"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/257930495",
+              "date": "2025-02",
+              "page_date": "2025-02-07",
+              "date_confirmed": true,
+              "role": "BMC 韌體工程師",
+              "grade": "二專",
+              "unit_detail": "桃園 / BU9",
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "常態加班可報加班費、下班可能要接電話；發文者說薪水似乎沒吃到結構調薪；簽核流程約一個月；數字未透露",
+              "in_window": false,
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2025-02-07"
             }
           ],
           "sources": [],
           "confidence": "低",
-          "n": 2
+          "n": 3
         },
         {
           "unit": "BU9（QCT＋CSP）",
@@ -1185,6 +1207,38 @@
           "annual_months": null,
           "base_month_k": null,
           "overtime": "幾乎不"
+        },
+        {
+          "unit": "龜山 / BU9",
+          "role": "FPGA 電路設計工程師",
+          "degree": "碩士",
+          "samples": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/258265806",
+              "date": "2025-03",
+              "page_date": "2025-03-14",
+              "date_confirmed": true,
+              "role": "FPGA 電路設計工程師",
+              "grade": null,
+              "unit_detail": "龜山 / BU9",
+              "years": "2.5",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": 20.5,
+              "annual_wan": null,
+              "weekly_hours": 60,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "月薪 N-5K、有加班費；預估年薪 20～21 個月；工時 9～21 點（取中值）",
+              "in_window": false,
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2025-03-14"
+            }
+          ],
+          "sources": [],
+          "confidence": "低",
+          "n": 1
         }
       ],
       "mops": {
@@ -4983,11 +5037,33 @@
               "quote_free_note": "年薪與趨勢相近；留言 B3 說類似職缺月薪約 5 萬多",
               "in_window": true,
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-02-14"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/258409829",
+              "date": "2025-03",
+              "page_date": "2025-03-30",
+              "date_confirmed": true,
+              "role": "軟體／韌體工程師（職稱未寫）",
+              "grade": null,
+              "unit_detail": null,
+              "years": "1",
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "四大電資學碩、一線 IC 設計 DE（研替）近一年後離職；求職期間 2024 下半～2025 初；拿到 offer；數字未透露；最後去的公司未列出；NVIDIA 投遞無聲",
+              "in_window": false,
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2025-03-30"
             }
           ],
           "sources": [],
           "confidence": "低",
-          "n": 1
+          "n": 2
         },
         {
           "unit": "其他",

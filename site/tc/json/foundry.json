@@ -1332,7 +1332,7 @@
           ],
           "overtime": "經常",
           "travel": "不用",
-          "n": 47,
+          "n": 48,
           "note": "GoodJob 2026-03 兩則自述（台中、高雄，不到 1 年），工時 55～60 小時／週、需輪班；學歷未標；分紅與年薪月數查 GoodJob／媒體未見設備職專屬數字，維持 null；可參考製程職推算 30～37 個月；2026-10-25 補：Dcard 碩士設備新人第一年自述 120～160 萬（第一年分紅未滿，試用期 3 個月不算），第三年 230～250 萬為單一匿名說法未採",
           "sources": [
             {
@@ -2438,6 +2438,28 @@
               "quote_free_note": "投遞到 offer 約 159 天；busyness 未提；數字未透露",
               "in_window": true,
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-05-09"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/258798110",
+              "date": "2025-05",
+              "page_date": "2025-05-13",
+              "date_confirmed": true,
+              "role": "Intelligent Manufacturing System Engineer",
+              "grade": null,
+              "unit_detail": "IMC",
+              "years": "0",
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "四大 CS 學碩、AI 背景；忙時要加班可報加班費；busyness=中；數字未透露；留言 B26 說比聯發科早下班",
+              "in_window": false,
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2025-05-13"
             }
           ],
           "n_in_window": 3
@@ -2463,7 +2485,7 @@
           ],
           "overtime": "偶爾",
           "travel": "不用",
-          "n": 26,
+          "n": 27,
           "note": "GoodJob 2026-04 單筆（台南，不到 1 年），自述底薪 6 萬＋三節＋分紅＋運動會獎金；分紅與年薪月數查 GoodJob／媒體未見 IT 職專屬數字，維持 null；2026-10-25 補：Dcard 轉貼 IT 自述第一年約 145 萬、第二年吃到完整分紅約 300 萬、加班少（單筆）；salary.tw IT 回報以 MES 開發為主；資料科學／SRE 未找到專屬數字",
           "sources": [
             {
@@ -3070,6 +3092,28 @@
               "travel": null,
               "quote_free_note": "",
               "in_window": true
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/258809945",
+              "date": "2025-05",
+              "page_date": "2025-05-14",
+              "date_confirmed": true,
+              "role": "IT 軟體工程師 SWE",
+              "grade": null,
+              "unit_detail": "TSID",
+              "years": "0",
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "成大學碩應屆；工時較短但每兩個月 on call 一週；busyness=中；數字未透露",
+              "in_window": false,
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2025-05-14"
             }
           ],
           "n_in_window": 2
@@ -3848,7 +3892,7 @@
               "date": "2026-06"
             }
           ],
-          "n": 26,
+          "n": 27,
           "grade": "2X 職等（副工程師）",
           "busyness": "高：每月加班 10～20 小時、每月 2～3 個週末加班（Dcard 自述）",
           "samples": [
@@ -4347,6 +4391,28 @@
               "travel": null,
               "quote_free_note": "三班輪、每月加班約 100 小時，薪資分紅高",
               "in_window": true
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/259438545",
+              "date": "2025-07",
+              "page_date": "2025-07-31",
+              "date_confirmed": true,
+              "role": "MAE",
+              "grade": null,
+              "unit_detail": "F20",
+              "years": "0",
+              "degree": "學士",
+              "base_k": 40,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "聯大資工學士應屆；常日輪夜班；月薪 40000，三家中年薪最高；busyness=高（輪夜班）；留言 B6 說版上有 MAE 五年調到 47k",
+              "in_window": false,
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2025-07-31"
             }
           ],
           "n_in_window": 1,
@@ -6829,6 +6895,38 @@
             40,
             40
           ]
+        },
+        {
+          "unit": "其他",
+          "role": "AMHS 助理工程師",
+          "degree": "不限",
+          "samples": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/259440833",
+              "date": "2025-07",
+              "page_date": "2025-07-31",
+              "date_confirmed": true,
+              "role": "AMHS 助理工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "0",
+              "degree": "學士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 100,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "年薪破百（以 100 萬記）；常日非輪班，不確定是否 on call；一年後外派國外廠、需穿無塵衣；busyness=中",
+              "in_window": false,
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2025-07-31"
+            }
+          ],
+          "sources": [],
+          "confidence": "低",
+          "n": 1
         }
       ],
       "mops": {

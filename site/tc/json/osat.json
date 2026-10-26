@@ -1863,6 +1863,38 @@
             42,
             42
           ]
+        },
+        {
+          "unit": "竹南廠",
+          "role": "產品工程師",
+          "degree": "碩士",
+          "samples": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/259438545",
+              "date": "2025-07",
+              "page_date": "2025-07-31",
+              "date_confirmed": true,
+              "role": "產品工程師",
+              "grade": null,
+              "unit_detail": "竹南廠",
+              "years": "0",
+              "degree": "學士",
+              "base_k": 43,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "常日班；月薪 43000 含餐補；年薪三家中第三",
+              "in_window": false,
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2025-07-31"
+            }
+          ],
+          "sources": [],
+          "confidence": "低",
+          "n": 1
         }
       ],
       "mops": {
@@ -2648,9 +2680,31 @@
               "quote_free_note": "同篇；要輪班；數字未透露",
               "in_window": true,
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2025-10-30"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/259438545",
+              "date": "2025-07",
+              "page_date": "2025-07-31",
+              "date_confirmed": true,
+              "role": "設備工程師",
+              "grade": null,
+              "unit_detail": "竹科",
+              "years": "0",
+              "degree": "學士",
+              "base_k": 43,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "每三個月日夜輪班、做二休二；月薪 43000；年薪三家中第二",
+              "in_window": false,
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2025-07-31"
             }
           ],
-          "n": 2,
+          "n": 3,
           "sources": [],
           "confidence": "低",
           "note": "2026-10-26 由 Dcard 樣本新增的公司",

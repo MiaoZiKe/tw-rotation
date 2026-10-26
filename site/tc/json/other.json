@@ -434,6 +434,38 @@
             150
           ],
           "overtime": "偶爾"
+        },
+        {
+          "unit": "其他",
+          "role": "製程工程師",
+          "degree": "碩士",
+          "samples": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/257727764",
+              "date": "2025-01",
+              "page_date": "2025-01-12",
+              "date_confirmed": true,
+              "role": "製程工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 160,
+              "weekly_hours": null,
+              "overtime": "幾乎不",
+              "travel": null,
+              "quote_free_note": "月薪 N+22＋車補，預估年薪約 160 萬（發文者不確定）；工時約 8 小時",
+              "in_window": false,
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2025-01-12"
+            }
+          ],
+          "sources": [],
+          "confidence": "低",
+          "n": 1
         }
       ],
       "note": "Andy 2026-10-26「先收」；公司未具名"
@@ -1171,6 +1203,80 @@
         }
       ],
       "note": "2026-10-26 由 Dcard 樣本新增的公司"
+    },
+    {
+      "name": "外商 CSP 大廠（未具名）",
+      "roles": [
+        {
+          "unit": "其他",
+          "role": "韌體工程師",
+          "degree": "碩士",
+          "samples": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/258471248",
+              "date": "2025-04",
+              "page_date": "2025-04-06",
+              "date_confirmed": true,
+              "role": "韌體工程師（與 ODM 合作）",
+              "grade": null,
+              "unit_detail": null,
+              "years": "1.5",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "現職外商系統廠韌體驗證約 1.5 年；發文者說薪資與工時 CP 值較高；數字未透露",
+              "in_window": false,
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2025-04-06"
+            }
+          ],
+          "sources": [],
+          "confidence": "低",
+          "n": 1
+        }
+      ]
+    },
+    {
+      "name": "未具名 IC 設計外商",
+      "roles": [
+        {
+          "unit": "其他",
+          "role": "工程師",
+          "degree": "碩士",
+          "samples": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/258809945",
+              "date": "2025-05",
+              "page_date": "2025-05-14",
+              "date_confirmed": true,
+              "role": "工程師（職稱未寫）",
+              "grade": null,
+              "unit_detail": null,
+              "years": "8",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 500,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "留言 B17（非發文者）：在聯發科 3 年後跳外商，年資 8 年、年薪 500 萬以上、每天工時 4～6 小時",
+              "in_window": false,
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2025-05-14"
+            }
+          ],
+          "sources": [],
+          "confidence": "低",
+          "n": 1
+        }
+      ]
     }
   ]
 }

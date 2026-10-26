@@ -543,6 +543,38 @@
           "bonus_months": null,
           "annual_months": null,
           "base_month_k": null
+        },
+        {
+          "unit": "台北",
+          "role": "Software Engineer",
+          "degree": "碩士",
+          "samples": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/258653668",
+              "date": "2025-04",
+              "page_date": "2025-04-26",
+              "date_confirmed": true,
+              "role": "Software Engineer（RDSS 研替）",
+              "grade": null,
+              "unit_detail": "台北",
+              "years": "0",
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "資工學碩；投遞到 next step 約 86 天，留言更新 D+110 收到 email offer；數字未透露",
+              "in_window": false,
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2025-04-26"
+            }
+          ],
+          "sources": [],
+          "confidence": "低",
+          "n": 1
         }
       ],
       "mops": null,
@@ -601,7 +633,7 @@
           "weekly_hours": null,
           "overtime": null,
           "travel": null,
-          "n": 4,
+          "n": 5,
           "note": "平台自述統計（未轉貼原文）；NOWnews 引 Levels.fyi：台灣 L3 含股票獎金平均月約 18 萬、年 186 萬以上；日期未確認；annual_total_wan 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples；未逐筆對應的舊彙整：{\"annual_total_wan\": [186, null]}",
           "sources": [
             {
@@ -700,6 +732,28 @@
               "date_confirmed": true,
               "date_note": "依 docs/tc/dcard_id_calibration.md 文章編號 261452355 ≥259537767，確認晚於 2025-08-01",
               "in_window": true
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/258703934",
+              "date": "2025-05",
+              "page_date": "2025-05-02",
+              "date_confirmed": true,
+              "role": "軟體工程師（職稱未寫）",
+              "grade": null,
+              "unit_detail": null,
+              "years": "0",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "台大新鮮人，2024 末～2025 初求職系列文第 5 篇；拿到 offer；數字未透露",
+              "in_window": false,
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2025-05-02"
             }
           ]
         }
@@ -1830,6 +1884,38 @@
             13,
             13
           ]
+        },
+        {
+          "unit": "新竹",
+          "role": "Board Level Test Engineer",
+          "degree": "碩士",
+          "samples": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/259218556",
+              "date": "2025-07",
+              "page_date": "2025-07-01",
+              "date_confirmed": true,
+              "role": "Board Level Test Engineer",
+              "grade": null,
+              "unit_detail": "新竹",
+              "years": "2",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 170,
+              "weekly_hours": null,
+              "overtime": "幾乎不",
+              "travel": null,
+              "quote_free_note": "代工廠韌體 2 年、現職年薪約 110 萬；派遣身分、四輪全英文面試；total package 約 170 萬；HR 說不加班、加班可報",
+              "in_window": false,
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2025-07-01"
+            }
+          ],
+          "sources": [],
+          "confidence": "低",
+          "n": 1
         }
       ]
     },
