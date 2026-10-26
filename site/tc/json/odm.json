@@ -11863,14 +11863,66 @@
               "quote_free_note": "月薪 N-17k×14，半年培訓後依表現加 0～3k；主管說 WLB 好，但北部薪資偏低",
               "in_window": true,
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-07-10"
+            },
+            {
+              "grade": null,
+              "unit_detail": null,
+              "years": "1",
+              "degree": null,
+              "base_k": 50,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": "幾乎不",
+              "travel": null,
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/系微股份有限公司/work-experiences",
+              "date": "2026",
+              "date_confirmed": true,
+              "date_note": "GoodJob 標示 2026 年（搜尋摘要）",
+              "in_window": true,
+              "role": "BIOS 工程師（臺中評價）",
+              "quote_free_note": "不怎麼加班、有完整新人培訓；1 年經驗、月薪 5 萬"
+            },
+            {
+              "grade": null,
+              "unit_detail": null,
+              "years": "0",
+              "degree": null,
+              "base_k": 40,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/系微股份有限公司/work-experiences/工時狀況",
+              "date": "2026",
+              "date_confirmed": true,
+              "date_note": "GoodJob 標示 2026 年（搜尋摘要）",
+              "in_window": true,
+              "role": "BIOS 工程師（臺北評價）",
+              "quote_free_note": "加班看部門，chipset team 常加班；不到 1 年、月薪 4 萬"
             }
           ],
-          "n": 1,
+          "n": 3,
           "sources": [
             {
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/261801327",
               "date": "2026-07"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/系微股份有限公司/work-experiences",
+              "date": "2026"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/系微股份有限公司/work-experiences/工時狀況",
+              "date": "2026"
             }
           ],
           "confidence": "低",
@@ -11881,12 +11933,15 @@
           ],
           "overtime": "幾乎不",
           "years": "0",
-          "base_month_k": null,
+          "base_month_k": [
+            40,
+            50
+          ],
           "bonus_months": null,
           "annual_total_wan": null,
           "weekly_hours": null,
           "travel": null,
-          "n_stat": 1,
+          "n_stat": 3,
           "grade": null
         },
         {
@@ -12576,6 +12631,56 @@
           "n_stat": 1,
           "note": null,
           "grade": null
+        },
+        {
+          "unit": "研發 RD",
+          "role": "硬體工程師",
+          "degree": null,
+          "samples": [
+            {
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 46,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/神準科技股份有限公司/work-experiences/薪資福利",
+              "date": "2026-07",
+              "date_confirmed": true,
+              "date_note": "GoodJob 標示 2026 年 7 月（搜尋摘要）",
+              "in_window": true,
+              "role": "硬體工程師（在職評價）",
+              "quote_free_note": "評 2.5 分，提到年終與分紅制度；月薪 4.6 萬"
+            }
+          ],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/神準科技股份有限公司/work-experiences/薪資福利",
+              "date": "2026-07"
+            }
+          ],
+          "confidence": "低",
+          "note": "2026-10-26 依搜尋摘要新增",
+          "grade": null,
+          "base_month_k": [
+            46,
+            46
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n": 1,
+          "n_stat": 1
         }
       ]
     },
@@ -12773,7 +12878,7 @@
       "name": "奇鋐",
       "code": "3017",
       "heat": null,
-      "benefits": null,
+      "benefits": "網友說法：生育福利與獎金受稱讚（GoodJob 2026 評價）",
       "stock_plan": null,
       "bonus_timing": null,
       "bonus_structure": [
@@ -12825,21 +12930,50 @@
               "derived": [
                 "weekly_hours"
               ]
+            },
+            {
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 48,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/奇鋐科技股份有限公司/interview-experiences?p=2",
+              "date": "2026",
+              "date_confirmed": true,
+              "date_note": "GoodJob 標示 2026 年（搜尋摘要）",
+              "in_window": true,
+              "role": "水冷工程師（面試）",
+              "quote_free_note": "月薪 4.8 萬"
             }
           ],
-          "n": 1,
+          "n": 2,
           "sources": [
             {
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/259690173",
               "date": "2025-09"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/奇鋐科技股份有限公司/interview-experiences?p=2",
+              "date": "2026"
             }
           ],
           "confidence": "低",
           "note": "2026-10-26 由 Dcard 樣本新增的公司",
           "overtime": "經常",
           "years": "轉職",
-          "base_month_k": null,
+          "base_month_k": [
+            48,
+            48
+          ],
           "bonus_months": null,
           "annual_months": null,
           "annual_total_wan": null,
@@ -12848,6 +12982,140 @@
             47.5
           ],
           "travel": null,
+          "n_stat": 2
+        },
+        {
+          "unit": "研發 RD",
+          "role": "工程師",
+          "degree": null,
+          "samples": [
+            {
+              "grade": null,
+              "unit_detail": null,
+              "years": "3",
+              "degree": null,
+              "base_k": 45,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 50,
+              "overtime": null,
+              "travel": null,
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/奇鋐科技股份有限公司/work-experiences",
+              "date": "2026",
+              "date_confirmed": true,
+              "date_note": "GoodJob 標示 2026 年（搜尋摘要）",
+              "in_window": true,
+              "role": "工程師（新北評價）",
+              "quote_free_note": "責任制強、缺教育訓練；3 年經驗、月薪 4.5 萬、每週 50 小時"
+            },
+            {
+              "grade": "L8",
+              "unit_detail": null,
+              "years": "5",
+              "degree": null,
+              "base_k": 52,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/奇鋐科技股份有限公司/work-experiences/薪資福利",
+              "date": "2026",
+              "date_confirmed": true,
+              "date_note": "GoodJob 標示 2026 年（搜尋摘要）",
+              "in_window": true,
+              "role": "工程師（新北評價，職等 L8）",
+              "quote_free_note": "評 5 分，稱讚生育福利與獎金；5 年經驗、月薪 5.2 萬"
+            }
+          ],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/奇鋐科技股份有限公司/work-experiences",
+              "date": "2026"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/奇鋐科技股份有限公司/work-experiences/薪資福利",
+              "date": "2026"
+            }
+          ],
+          "confidence": "低",
+          "note": "2026-10-26 依搜尋摘要新增",
+          "grade": null,
+          "base_month_k": [
+            45,
+            52
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": [
+            50,
+            50
+          ],
+          "overtime": null,
+          "travel": null,
+          "years": "3",
+          "n": 2,
+          "n_stat": 2
+        },
+        {
+          "unit": "研發 RD",
+          "role": "機構工程師",
+          "degree": null,
+          "samples": [
+            {
+              "grade": null,
+              "unit_detail": null,
+              "years": "5",
+              "degree": null,
+              "base_k": 32,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 42,
+              "overtime": null,
+              "travel": null,
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/奇鋐科技股份有限公司/work-experiences?p=2",
+              "date": "2026",
+              "date_confirmed": true,
+              "date_note": "GoodJob 標示 2026 年（搜尋摘要）",
+              "in_window": true,
+              "role": "機構工程師（高雄評價）",
+              "quote_free_note": "評 5 分；5 年經驗、月薪 3.2 萬、每週 42 小時"
+            }
+          ],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/奇鋐科技股份有限公司/work-experiences?p=2",
+              "date": "2026"
+            }
+          ],
+          "confidence": "低",
+          "note": "2026-10-26 依搜尋摘要新增",
+          "grade": null,
+          "base_month_k": [
+            32,
+            32
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": [
+            42,
+            42
+          ],
+          "overtime": null,
+          "travel": null,
+          "years": "5",
+          "n": 1,
           "n_stat": 1
         }
       ]
