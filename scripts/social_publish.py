@@ -96,7 +96,10 @@ def wait_ready(host, token, cid, label, field):
 
 # ---------- 總開關與帳號編號 ----------
 def live_enabled(flag: Path | None = None) -> bool:
-    """總開關：repo 檔 LIVE_ENABLED 存在＝可以真的發；不存在＝一律 dry-run。"""
+    """總開關：repo 檔 LIVE_ENABLED 存在＝可以真的發；不存在＝一律 dry-run。
+    例外：workflow 的「測試真發一篇」（live_test，2026-10-27 Andy）設 SOCIAL_LIVE_TEST=1 → 這一輪可以發（只在手動派工時）。"""
+    if os.environ.get("SOCIAL_LIVE_TEST") == "1":
+        return True
     return Path(flag or LIVE_FLAG).exists()
 
 
