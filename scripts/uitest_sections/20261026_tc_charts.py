@@ -32,6 +32,21 @@ def t_tc_charts_1026(b, base, code):
     pg.route("**/s2/favicons**", lambda r: r.abort())
     pg.goto(base + "#tc/foundry", wait_until="domcontentloaded"); pg.reload(wait_until="domcontentloaded"); pg.wait_for_timeout(2000)
     ok(f"{T}：LOGO 載入失敗 → 圖被移除、字標仍在", pg.evaluate("()=>document.querySelectorAll('#v-tc .tc-lg img').length===0 && [...document.querySelectorAll('#v-tc .tc-lg')].every(l=>l.querySelector('i').innerText.trim())"))
+    # 區間陣列樣本：用 TwTc 內部不外露，改驗畫面——注入一筆陣列樣本資料後逐筆表要顯示 a–b 而不是 a,b
+    c2 = b.new_context(viewport={"width": 1440, "height": 900}); c2.add_init_script("window.TW_TC_OVERRIDE=true;try{localStorage.setItem('tw.tour','done')}catch(e){}")
+    def inj(rt):
+        r = rt.fetch(); d = r.json()
+        for co in d["companies"][:1]:
+            for ro in co.get("roles", [])[:1]:
+                ro["samples"] = [{"site": "測試", "date": "2026-05", "date_confirmed": True, "in_window": True, "base_k": [50, 60], "annual_wan": [92, 115], "bonus_months": [1, 5]}]
+        rt.fulfill(response=r, json=d)
+    p2 = c2.new_page(); p2.route("**/tc/json/foundry.json", inj)
+    p2.goto(base + "#tc/foundry", wait_until="domcontentloaded"); p2.wait_for_timeout(1500)
+    p2.click("#v-tc .tc-co >> nth=0"); p2.wait_for_timeout(600)
+    p2.evaluate("()=>{const e=document.querySelector('#v-tc .tc-exp'); if(e) e.click();}"); p2.wait_for_timeout(300)
+    tx = p2.evaluate("()=>[...document.querySelectorAll('#v-tc .tc-smt td')].map(e=>e.innerText).join('|')")
+    ok(f"{T}：區間陣列樣本顯示「a–b」、不出現「1,5」", "1–5" in tx and "92–115" in tx and "1,5" not in tx, tx[:120])
+    c2.close()
     c.close()
     m = b.new_context(viewport={"width": 390, "height": 844}); m.add_init_script("window.TW_TC_OVERRIDE=true;try{localStorage.setItem('tw.tour','done')}catch(e){}")
     mp = m.new_page(); mp.goto(base + "#tc/stats", wait_until="domcontentloaded"); mp.wait_for_timeout(2500)

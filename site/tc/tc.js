@@ -99,7 +99,7 @@
       catch (e) { S.data[id] = null; }
     }));
     /* 職位區間若有 samples 就由 samples 算（最小～最大），沒有才用手填值 */
-    const mm = (a) => { a = a.filter((v) => typeof v === 'number'); return a.length ? [Math.min(...a), Math.max(...a)] : null; };
+    const mm = (a) => { a = [].concat(...a.map(fl)); return a.length ? [Math.min(...a), Math.max(...a)] : null; };
     Object.values(S.data).forEach((d) => d && (d.companies || []).forEach((c) => (c.roles || []).forEach((r) => {
       const sm = (Array.isArray(r.samples) ? r.samples : []).filter(inWin); if (!sm.length) return;
       r.n = sm.length;
@@ -141,18 +141,20 @@
   /* 只有 date_confirmed:true 且 date ≥ 2025-08 的樣本進統計；日期未確認標「日期未確認」、範圍外標「範圍外參考」，都照列但標灰 */
   const smSt = (x) => (x.date_confirmed !== true ? 'unc' : (x.in_window === false || !x.date || String(x.date) < '2025-08' ? 'out' : 'in'));
   const inWin = (x) => smSt(x) === 'in';
-  const nv = (v) => (v == null ? '—' : v);
+  const fl = (v) => (typeof v === 'number' ? [v] : Array.isArray(v) ? v.filter((x) => typeof x === 'number') : []);   // 樣本值可能是區間陣列：展開成數值
+  const mdp = (v) => { const a = fl(v); return a.length ? (Math.min(...a) + Math.max(...a)) / 2 : null; };   // 區間取中點
+  const nv = (v) => { if (v == null) return '—'; if (Array.isArray(v)) { const a = fl(v); if (!a.length) return '—'; const lo = Math.min(...a), hi = Math.max(...a); return lo === hi ? lo : lo + '–' + hi; } return v; };
   function smRow(r) {
     const sm = r.samples || []; if (!sm.length) return '';
     return '<tr class="tc-smrow" hidden><td colspan="14"><div class="tc-smw"><table class="tc-smt"><thead><tr>' + ['來源・日期', '單位細項', '年資', '學歷', '底薪(K)', '年薪(萬)', '分紅月數', '工時', '加班', '摘要'].map((x) => '<th>' + x + '</th>').join('') + '</tr></thead><tbody>' +
       sm.map((x) => '<tr' + (inWin(x) ? '' : ' class="tc-out" title="不進統計"') + '><td data-l="來源・日期">' + (smSt(x) === 'unc' ? '<em>日期未確認</em> ' : smSt(x) === 'out' ? '<em>範圍外參考</em> ' : '') + (/^https?:\/\//.test(x.url || '') ? '<a href="' + esc(x.url) + '" target="_blank" rel="noopener noreferrer">' + esc(x.site || '連結') + '</a>' : esc(x.site || '—')) + ' ' + esc(x.date || '') + '</td><td data-l="單位細項">' + esc(nv(x.unit_detail)) + '</td><td data-l="年資">' + esc(nv(x.years)) + '</td><td data-l="學歷">' + esc(nv(x.degree)) + '</td><td data-l="底薪(K)">' + nv(x.base_k) + '</td><td data-l="年薪(萬)">' + nv(x.annual_wan) + '</td><td data-l="分紅月數">' + nv(x.bonus_months) + '</td><td data-l="工時">' + nv(x.weekly_hours) + '</td><td data-l="加班">' + esc(nv(x.overtime)) + '</td><td data-l="摘要">' + esc(nv(x.quote_free_note)) + '</td></tr>').join('') + '</tbody></table></div></td></tr>';
   }
   const med = (a) => { a = a.filter((v) => typeof v === 'number').sort((x, y) => x - y); if (!a.length) return null; const m = a.length >> 1; return a.length % 2 ? a[m] : (a[m - 1] + a[m]) / 2; };
-  const stat = (a) => { const v = a.filter((x) => typeof x === 'number'); return v.length ? med(v) + '（' + Math.min(...v) + '–' + Math.max(...v) + '）' : '—'; };
+  const stat = (a) => { const v = [].concat(...a.map(fl)), m = a.map(mdp).filter((x) => x != null); return v.length ? med(m) + '（' + Math.min(...v) + '–' + Math.max(...v) + '）' : '—'; };
 
   /* ---------- 圖表化（2026-10-26）：各產業中位數＋區間、樣本筆數、公司排行（含 LOGO） ---------- */
   function aggStats() {
-    const mk = (sm) => { const f = (k) => { const v = sm.map((x) => x[k]).filter((x) => typeof x === 'number'); return v.length ? { med: med(v), min: Math.min(...v), max: Math.max(...v), n: v.length } : null; }; return { n: sm.length, base: f('base_k'), ann: f('annual_wan') }; };
+    const mk = (sm) => { const f = (k) => { const raw = sm.map((x) => x[k]), v = [].concat(...raw.map(fl)), m = raw.map(mdp).filter((x) => x != null); return v.length ? { med: med(m), min: Math.min(...v), max: Math.max(...v), n: m.length } : null; }; return { n: sm.length, base: f('base_k'), ann: f('annual_wan') }; };
     const inds = [], cos = [];
     INDS.forEach(([id, n]) => {
       const d = S.data[id]; if (!d) return; let all = [];
