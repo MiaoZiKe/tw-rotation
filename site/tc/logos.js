@@ -39,7 +39,7 @@
     '円星': 'm31tech.com', '力旺': 'ememory.com.tw', '天鈺': 'fitipower.com', '奇景': 'himax.com.tw', '奕力': 'ilitek.com', '威鋒': 'via-labs.com', '愛普': 'apmemory.com',
     '慧榮': 'siliconmotion.com', '揚智': 'ali.com.tw', '敦泰': 'focaltech-electronics.com', '普誠': 'princeton.com.tw', '晶相光電': 'soinc.com.tw', '晶豪科': 'esmt.com.tw',
     '松翰': 'sonix.com.tw', '瑞鼎': 'rad-ic.com', '祥碩': 'asmedia.com.tw', '立錡': 'richtek.com', '義隆': 'emc.com.tw', '耐能智慧': 'kneron.com', '聯陽(ITE)': 'ite.com.tw',
-    '迅杰': 'ene.com.tw', '達發': 'airoha.com', '鈺創': 'etron.com', '雷泰': 'lasertec.co.jp', '點序': 'asolid-tek.com', '工研院': 'itri.org.tw', 'MPS 台灣': 'monolithicpower.com',
+    '迅杰': 'ene.com.tw', '達發': 'airoha.com', '鈺創': 'etron.com', '點序': 'asolid-tek.com', '工研院': 'itri.org.tw', 'MPS 台灣': 'monolithicpower.com',
     '力林': '', '開酷': '',
     // ODM
     '鴻海': 'foxconn.com', '廣達': 'quantatw.com', '仁寶': 'compal.com', '緯創': 'wistron.com', '英業達': 'inventec.com', '和碩': 'pegatroncorp.com', '華碩': 'asus.com',
