@@ -420,3 +420,7 @@ CEO 彙整 → pytest + scripts/_preview.py → push → 更新 HANDOFF.md → �
 - Andy 10-09：「幫我將 LOGO GIF 圖設計成立動畫設計單位…將從分鏡圖片到合成 GIF 以及去背整套流程寫個系統先儲存」。
 - 導演寫分鏡與規格、審片；設計師用 `scripts/anim/gif_pipeline.py` 做去背與合成、接上網站。整套流程與踩過的坑在 `docs/anim/README.md`。
 
+
+## 行銷指揮部：權限與跨單位資料交換（Andy 2026-10-26 核准 J-9）
+Andy 原話：「CEO 這單位負責行銷規劃……你可以跟任何單位進行資料交換以及有權限索取數據以及下達指令」「只要能為公司帶來收益的，都是優先處理」。
+權限表、資料交換方式（repo 工單檔）、回覆時限與禁止事項以 `docs/marketing/growth_command_1026.md` 第 K 節為準；收款前關卡見第 M 節（也抄在 `docs/launch_standard.md` 第二節第 10 條）。
