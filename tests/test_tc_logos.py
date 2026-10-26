@@ -334,3 +334,14 @@ def test_min_px_is_48(sandbox):
     assert config.TC_LOGO_MIN_PX == 48
     assert tc.big_enough({"status": "ok", "png": b"x", "orig": [48, 48]})
     assert not tc.big_enough({"status": "ok", "png": b"x", "orig": [32, 32]})
+
+
+def test_old_strategy_failure_is_retried_immediately(sandbox):
+    tc.write_index({"items": {"f.com": {"status": "too_small", "fetched": TODAY.isoformat(), "names": ["F"]}}})
+    doms = [{"domain": "f.com", "names": ["F"], "en": ""}]
+    tc.run(today=TODAY, domains=doms, site_fetcher=_ok((64, 64)), wiki_fetcher=lambda *a: {}, s2_fetcher=lambda *a: {"status": "none"})
+    assert tc.read_index()["items"]["f.com"]["status"] == "ok"
+    tc.write_index({"items": {"g.com": {"status": "too_small", "fetched": TODAY.isoformat(), "names": ["G"], "rv": tc.RV}}})
+    tc.run(today=TODAY, domains=[{"domain": "g.com", "names": ["G"], "en": ""}], site_fetcher=_ok((64, 64)),
+           wiki_fetcher=lambda *a: {}, s2_fetcher=lambda *a: {"status": "none"})
+    assert tc.read_index()["items"]["g.com"]["status"] == "too_small"      # 新策略判的失敗，30 天內不重試

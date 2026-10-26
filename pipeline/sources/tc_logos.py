@@ -58,6 +58,7 @@ log = logging.getLogger(__name__)
 DOMAINS_FILE = Path(__file__).resolve().parent.parent / "groups" / "tc_logo_domains.json"
 CODE_DOMAINS_FILE = Path(__file__).resolve().parent.parent / "groups" / "tc_code_domains.json"   # 代號補強
 
+RV = 2   # 失敗紀錄的策略版本：舊策略（rv<2，例如最小邊 64）判失敗的，策略升級後馬上重試，不等 30 天
 QV = 2   # 品質關卡版本：索引裡有 qv>=2 的 ok 紀錄＝已經過 quality()，不再重驗
 
 # Andy 目視確認抓錯（橫幅照片／別的圖示／太小）的網域：改 Wikimedia 優先、舊圖一律重抓
@@ -456,6 +457,9 @@ def revalidate(items: dict, domains: list[dict]) -> list[str]:
     dup = shared_hashes(items)
     out = []
     for dom, rec in items.items():
+        if dom in want and rec.get("status") not in ("ok", "bad", "kept") and int(rec.get("rv") or 0) < RV:
+            rec["fetched"] = "1970-01-01"       # 舊策略的失敗：這輪重試（不算 bad，也不刪檔）
+            continue
         if dom not in want or rec.get("status") != "ok" or rec.get("src") == "wikimedia":
             continue
         f = tc_dir() / png_name(dom)
@@ -504,7 +508,7 @@ def _run(summary, limit, today, time_budget, domains, site_fetcher, wiki_fetcher
     for dom, res in results.items():
         st = res.get("status", "error")
         old = items.get(dom) or {}
-        rec = {"status": st, "fetched": stamp, "names": names.get(dom, []), "tried": res.get("tried", {})}
+        rec = {"status": st, "fetched": stamp, "names": names.get(dom, []), "tried": res.get("tried", {}), "rv": RV}
         if st == "ok":
             rec.update(src=res.get("src"), url=res.get("url"), orig=res.get("orig"), qv=QV,
                        sha1=_save_png(dom, res["png"], old.get("sha1")))
