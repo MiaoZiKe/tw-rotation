@@ -35,7 +35,7 @@
           ],
           "overtime": "偶爾",
           "travel": "偶爾",
-          "n": 13,
+          "n": 14,
           "note": "平台自述統計（未轉貼原文）；GoodJob 2026-01～07 三筆月薪 5.7～6.5 萬（含 2 年經驗、未標學歷）；評價提年保 12 個月＋績效年終；Dcard 整理碩士整包 100～160 萬（16～24 個月）為網友估算；GoodJob 機構職面試與 2026-07 評價：需出差中國或東南亞，出差期間加班依產品進度；第二輪：Dcard BU9 伺服器硬體 12＋分紅看績效、整年約 20～22 個月；工時常 9～9；base_month_k、annual_total_wan 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples",
           "sources": [
             {
@@ -82,6 +82,11 @@
               "site": "PTT",
               "url": "https://www.ptt.cc/bbs/Tech_Job/M.1761664332.A.07D.html",
               "date": "2025-10"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/257825031",
+              "date": "2025-01"
             }
           ],
           "confidence": "中",
@@ -351,6 +356,31 @@
               "quote_free_note": "口頭 offer；需出差；三家中薪水最低；留言 B13 說學長在非 BU9 光加班費就讓月收入接近 IC 廠底薪",
               "in_window": true,
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2025-10-15"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/257825031",
+              "date": "2025-01",
+              "page_date": "2025-01-23",
+              "date_confirmed": true,
+              "role": "EE 硬體工程師",
+              "grade": null,
+              "unit_detail": "BU7",
+              "years": "1",
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": [
+                16,
+                20
+              ],
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": "可報加班費",
+              "travel": null,
+              "quote_free_note": "前電源廠FAE一年轉EE，口頭offer簽核中；薪資為現職月薪減12K、年薪16–20個月，未給絕對金額；同篇聯詠DDR硬體工程師面試後感謝函",
+              "date_note": "Dcard 頁面發文日期 2025-01-23（2026-10-26 1943 批，非 Andy 親眼讀）",
+              "in_window": false
             }
           ],
           "n_stat": 10
@@ -1581,6 +1611,48 @@
           "n_stat": 0,
           "note": null,
           "grade": null
+        },
+        {
+          "unit": "BU9 雲端伺服器電源，林口",
+          "role": "電源設計工程師",
+          "degree": "碩士",
+          "samples": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/258889979",
+              "date": "2025-05",
+              "page_date": "2025-05-23",
+              "date_confirmed": true,
+              "role": "電源設計工程師",
+              "grade": null,
+              "unit_detail": "BU9 雲端伺服器電源，林口",
+              "years": "0",
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": [
+                18,
+                22
+              ],
+              "annual_wan": null,
+              "weekly_hours": 50,
+              "overtime": "有加班費，上班9點到19點",
+              "travel": null,
+              "quote_free_note": "應屆碩士offer，月薪以N為基準未給絕對數；年薪18–22個月一般20個月；同時有台達offer",
+              "date_note": "Dcard 頁面發文日期 2025-05-23（2026-10-26 1943 批，非 Andy 親眼讀）",
+              "in_window": false
+            }
+          ],
+          "sources": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/258889979",
+              "date": "2025-05"
+            }
+          ],
+          "confidence": "低",
+          "n": 1,
+          "n_stat": 0
         }
       ],
       "mops": {
@@ -4777,6 +4849,45 @@
           "n_stat": 1,
           "note": null,
           "grade": null
+        },
+        {
+          "unit": "電器設備產品部，中壢",
+          "role": "電源設計工程師",
+          "degree": "碩士",
+          "samples": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/258889979",
+              "date": "2025-05",
+              "page_date": "2025-05-23",
+              "date_confirmed": true,
+              "role": "電源設計工程師",
+              "grade": null,
+              "unit_detail": "電器設備產品部，中壢",
+              "years": "0",
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": 17,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": "約晚上8–9點下班，有加班費",
+              "travel": "需出差中國、印度、歐洲、美國、日本",
+              "quote_free_note": "月薪比廣達offer多12K但未給絕對數；年薪12+年終2+績效分紅，主管估約17個月",
+              "date_note": "Dcard 頁面發文日期 2025-05-23（2026-10-26 1943 批，非 Andy 親眼讀）",
+              "in_window": false
+            }
+          ],
+          "sources": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/258889979",
+              "date": "2025-05"
+            }
+          ],
+          "confidence": "低",
+          "n": 1,
+          "n_stat": 0
         }
       ],
       "mops": null,
