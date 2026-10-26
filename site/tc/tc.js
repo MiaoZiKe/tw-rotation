@@ -60,7 +60,7 @@
     { k: 'annual', t: '年薪', opts: [['全部'], ['≥100萬', (r) => has(mid(r.annual_total_wan)) && mid(r.annual_total_wan) >= 100], ['≥150萬', (r) => has(mid(r.annual_total_wan)) && mid(r.annual_total_wan) >= 150], ['≥200萬', (r) => has(mid(r.annual_total_wan)) && mid(r.annual_total_wan) >= 200], ['≥300萬', (r) => has(mid(r.annual_total_wan)) && mid(r.annual_total_wan) >= 300]], tip: '年薪總額（萬）區間的中點' },
     { k: 'ot', t: '加班', opts: [['全部'], ['幾乎不', (r) => otIs(r, '幾乎不')], ['偶爾', (r) => otIs(r, '偶爾')], ['經常', (r) => otIs(r, '經常')]], tip: '加班狀況' },
   ];
-  const S = { ind: '', co: '', f: {}, sort: { k: '', d: -1 }, fopen: false, data: {}, loaded: false };
+  const S = { ind: '', co: '', f: {}, sort: { k: '', d: -1 }, fopen: false, data: {}, loaded: false, rk: { m: 'ann', ind: 'all', all: false }, agg: null };
 
   /* 分紅發放欄只放「幾月」：從公司層 bonus_timing 抓出所有「N 月」，抓不到顯示「—」（完整說明留在公司頁頂端） */
   const btMonths = (t) => { const m = String(t || '').match(/\d{1,2}\s*月/g); return m ? Array.from(new Set(m.map((x) => x.replace(/\s/g, '')))).join('、') : '—'; };
@@ -112,7 +112,7 @@
   function howHtml() {
     return '<span class="tc-how"><button class="howbtn tc-q" type="button" aria-label="這一頁怎麼用" aria-expanded="false">?</button>' +
       '<div class="tc-pop" hidden><b>怎麼用</b><br>上方挑產業，五組篩選（工時、底薪、分紅月數、年薪、加班）同時作用在公司卡與職位表；點公司卡看各單位的職位。' +
-      '數字都是整理後的區間，篩選拿區間中點比；信心度低代表來源少或彼此對不起來。' + '<br><span class="muted">' + esc(FOOT) + '</span></div></span>';
+      '數字都是整理後的區間，篩選拿區間中點比；信心度低代表來源少或彼此對不起來。' + '<br>「樣本統計」分頁：橫條是中位數、細線是最低到最高；越長代表該產業（公司）給得越高，線越長代表落差越大、談薪空間越大；公司排行可切底薪／年薪並按產業篩選，點一列進公司頁。' + '<br><span class="muted">' + esc(FOOT) + '</span></div></span>';
   }
   function bindHow(root) {
     const b = $('.tc-q', root), p = $('.tc-pop', root); if (!b || !p) return;
@@ -149,6 +149,78 @@
   }
   const med = (a) => { a = a.filter((v) => typeof v === 'number').sort((x, y) => x - y); if (!a.length) return null; const m = a.length >> 1; return a.length % 2 ? a[m] : (a[m - 1] + a[m]) / 2; };
   const stat = (a) => { const v = a.filter((x) => typeof x === 'number'); return v.length ? med(v) + '（' + Math.min(...v) + '–' + Math.max(...v) + '）' : '—'; };
+
+  /* ---------- 圖表化（2026-10-26）：各產業中位數＋區間、樣本筆數、公司排行（含 LOGO） ---------- */
+  function aggStats() {
+    const mk = (sm) => { const f = (k) => { const v = sm.map((x) => x[k]).filter((x) => typeof x === 'number'); return v.length ? { med: med(v), min: Math.min(...v), max: Math.max(...v), n: v.length } : null; }; return { n: sm.length, base: f('base_k'), ann: f('annual_wan') }; };
+    const inds = [], cos = [];
+    INDS.forEach(([id, n]) => {
+      const d = S.data[id]; if (!d) return; let all = [];
+      (d.companies || []).forEach((c) => {
+        const sm = [].concat(...(c.roles || []).map((r) => (r.samples || []).filter(inWin))); if (!sm.length) return;
+        all = all.concat(sm); cos.push(Object.assign({ ind: id, indName: n, name: c.name }, mk(sm)));
+      });
+      if (all.length) inds.push(Object.assign({ id, name: n }, mk(all)));
+    });
+    return { inds, cos };
+  }
+  const RK_SHOW = 15;
+  function rankHtml(A) {
+    const m = S.rk.m, key = m === 'base' ? 'base' : 'ann', unit = m === 'base' ? 'K/月' : '萬/年';
+    const list = A.cos.filter((c) => c[key] && (S.rk.ind === 'all' || c.ind === S.rk.ind)).sort((a, b) => b[key].med - a[key].med);
+    const top = S.rk.all ? list : list.slice(0, RK_SHOW), mx = Math.max(1, ...list.map((c) => c[key].max));
+    const seg = (k, arr) => '<div class="seg" data-rk="' + k + '">' + arr.map(([v, t]) => '<button type="button" data-v="' + v + '" class="' + (String(S.rk[k]) === v ? 'on' : '') + '">' + esc(t) + '</button>').join('') + '</div>';
+    const indOpts = [['all', '全部產業']].concat(A.inds.map((x) => [x.id, x.name]));
+    return '<div class="tc-rkbar"><span class="tc-fl">排行依</span>' + seg('m', [['ann', '年薪'], ['base', '底薪']]) + '<span class="tc-fl">產業</span>' + seg('ind', indOpts) + '</div>' +
+      '<div class="tc-cnt">共 <b>' + list.length + '</b> 家有樣本（中位數由高到低；細線＝最低到最高；單位 ' + unit + '）</div>' +
+      (list.length ? '<div class="tc-rk">' + top.map((c, i) => { const v = c[key], w = Math.max(2, v.med / mx * 100), l = v.min / mx * 100, r = v.max / mx * 100;
+        return '<a class="tc-rkr" href="#tc/' + c.ind + '/' + encodeURIComponent(c.name) + '" data-co="' + esc(c.name) + '"><span class="tc-rkn">' + (i + 1) + '</span>' + TL(c.name, c.ind, 24) + '<span class="tc-rkt">' + esc(c.name) + '<small>' + esc(c.indName) + '・' + c.n + ' 筆</small></span>' +
+          '<span class="tc-rkb"><i class="tc-rkbar" style="width:' + w.toFixed(1) + '%"></i><i class="tc-rkrg" style="left:' + l.toFixed(1) + '%;width:' + Math.max(0.5, r - l).toFixed(1) + '%"></i></span>' +
+          '<span class="tc-rkv"><b>' + v.med + '</b><small>' + v.min + '–' + v.max + '</small></span></a>'; }).join('') + '</div>' +
+        (list.length > RK_SHOW ? '<button type="button" class="tc-rkmore">' + (S.rk.all ? '只看前 ' + RK_SHOW : '看全部 ' + list.length + ' 家') + '</button>' : '') : '<div class="empty isempty tc-empty">這個產業沒有樣本</div>');
+  }
+  const TL = (name, ind, sz) => (window.TcLogo ? window.TcLogo.html(name, ind, sz) : '');
+  function bindRank(root) {
+    const A = S.agg, box = $('#tcRank', root); if (!box) return;
+    $$('.seg[data-rk] button', box).forEach((b) => b.onclick = () => { const k = b.parentNode.dataset.rk; S.rk[k] = b.dataset.v; S.rk.all = false; box.innerHTML = rankHtml(A); bindRank(root); });
+    const mo = $('.tc-rkmore', box); if (mo) mo.onclick = () => { S.rk.all = !S.rk.all; box.innerHTML = rankHtml(A); bindRank(root); };
+  }
+  const cv = (n, d) => { try { return getComputedStyle(document.documentElement).getPropertyValue(n).trim() || d; } catch (e) { return d; } };
+  const INK2 = () => cv('--ink-2', '#5b6b80'), INK3 = () => cv('--ink-3', '#8a97ab');
+  function indBarOpt(A, key, unit, color) {
+    const rows = A.inds.filter((x) => x[key]).sort((a, b) => a[key].med - b[key].med);   // 升冪＋橫條由下往上畫＝最高在最上
+    const rng = rows.map((x, i) => [x[key].min, x[key].max, i]);
+    return { grid: { left: 8, right: 24, top: 8, bottom: 8, containLabel: true },
+      tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, confine: true, formatter: (p) => { const x = rows[p[0].dataIndex]; return esc(x.name) + '<br>中位數 <b>' + x[key].med + '</b> ' + unit + '<br>區間 ' + x[key].min + '–' + x[key].max + '<br>樣本 ' + x[key].n + ' 筆'; } },
+      xAxis: { type: 'value', axisLabel: { color: INK3(), fontSize: 12 }, splitLine: { lineStyle: { opacity: .15 } } },
+      yAxis: { type: 'category', data: rows.map((x) => x.name), axisLabel: { color: INK2(), fontSize: 12 }, axisTick: { show: false }, axisLine: { show: false } },
+      series: [
+        { type: 'bar', data: rows.map((x) => x[key].med), barWidth: 12, itemStyle: { borderRadius: [0, 3, 3, 0], color: color }, showBackground: true, backgroundStyle: { color: 'rgba(120,140,170,.12)', borderRadius: 3 }, z: 2,
+          label: { show: false } },
+        { type: 'custom', data: rng, z: 3, silent: true, tooltip: { show: false },
+          renderItem: (params, api) => { const a = api.coord([api.value(0), api.value(2)]), b = api.coord([api.value(1), api.value(2)]), st = { stroke: '#ffb454', lineWidth: 2 };
+            return { type: 'group', children: [{ type: 'line', shape: { x1: a[0], y1: a[1], x2: b[0], y2: b[1] }, style: st }, { type: 'line', shape: { x1: a[0], y1: a[1] - 5, x2: a[0], y2: a[1] + 5 }, style: st }, { type: 'line', shape: { x1: b[0], y1: b[1] - 5, x2: b[0], y2: b[1] + 5 }, style: st }] }; } }
+      ] };
+  }
+  function drawStats() {
+    const A = S.agg, ch = window.App && window.App.chart; if (!A || !ch) return;
+    const mkH = (n) => Math.max(120, n * 30 + 24);
+    const draw = (id, key, unit, color) => { const el = document.getElementById(id); if (!el) return; const n = A.inds.filter((x) => x[key]).length; el.style.height = mkH(n) + 'px'; ch(el, indBarOpt(A, key, unit, color)); };
+    draw('tcChBase', 'base', 'K/月', '#3ee0ff'); draw('tcChAnn', 'ann', '萬/年', '#8b7bff');
+    const el = document.getElementById('tcChN'); if (el) {
+      const rows = A.inds.slice().sort((a, b) => a.n - b.n); el.style.height = mkH(rows.length) + 'px';
+      ch(el, { grid: { left: 8, right: 24, top: 8, bottom: 8, containLabel: true }, tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, confine: true, formatter: (p) => esc(rows[p[0].dataIndex].name) + '<br>樣本 <b>' + rows[p[0].dataIndex].n + '</b> 筆' },
+        xAxis: { type: 'value', axisLabel: { color: INK3(), fontSize: 12 }, splitLine: { lineStyle: { opacity: .15 } } },
+        yAxis: { type: 'category', data: rows.map((x) => x.name), axisLabel: { color: INK2(), fontSize: 12 }, axisTick: { show: false }, axisLine: { show: false } },
+        series: [{ type: 'bar', data: rows.map((x) => x.n), barWidth: 12, itemStyle: { borderRadius: [0, 3, 3, 0], color: '#2ec4b6' }, showBackground: true, backgroundStyle: { color: 'rgba(120,140,170,.12)', borderRadius: 3 }, label: { show: true, position: 'right', color: INK2(), fontSize: 11 } }] });
+    }
+    $$('#tcChBase,#tcChAnn', document).forEach((e) => { const c = window.echarts && window.echarts.getInstanceByDom(e); if (c) c.off('click'), c.on('click', (q) => { const k = q.dataIndex; const key = e.id === 'tcChBase' ? 'base' : 'ann'; const rows = A.inds.filter((x) => x[key]).sort((a, b) => a[key].med - b[key].med); if (rows[k]) location.hash = '#tc/' + rows[k].id; }); });
+  }
+  function chartsHtml(A) {
+    if (!A.inds.length) return '';
+    return '<div class="tc-gr"><div class="tc-gc"><h5>各產業底薪（K/月）</h5><div id="tcChBase" class="tc-ch"></div></div><div class="tc-gc"><h5>各產業年薪（萬/年）</h5><div id="tcChAnn" class="tc-ch"></div></div><div class="tc-gc"><h5>各產業樣本筆數</h5><div id="tcChN" class="tc-ch"></div></div></div>' +
+      '<div class="tc-rkw"><h5>公司排行</h5><div id="tcRank">' + rankHtml(A) + '</div></div>';
+  }
   /* 樣本統計：產業→公司→單位→職位，每層 <details> 預設收起，只有一組時展開 */
   function statsHtml() {
     const row = (name, sm, lvl) => '<span class="tc-sn">' + esc(name) + '</span><span data-l="樣本">' + sm.length + ' 筆</span><span data-l="底薪中位數(區間)">' + stat(sm.map((x) => x.base_k)) + '</span><span data-l="年薪中位數(區間)">' + stat(sm.map((x) => x.annual_wan)) + '</span>';
@@ -167,7 +239,8 @@
       const isan = [].concat(...cs.map((c) => c[1])); all += isan.length;
       return node(n, isan, cs.map((c) => node(c[0], c[1], c[2], 2, cs.length === 1)).join(''), 1, false);
     }).filter(Boolean);
-    return '<div class="tc-cnt">全部樣本 進統計 <b id="tcAll">' + all + '</b> 筆／未確認 ' + unc + ' 筆／範圍外 ' + outc + ' 筆（統計只算日期確認且 2025-08 起；依產業→公司→單位→職位；底薪／年薪為中位數，括號是區間）</div>' + (inds.length ? '<div class="tc-stats">' + inds.join('') + '</div>' : '<div class="empty isempty tc-empty">尚無逐筆樣本</div>');
+    S.agg = aggStats();
+    return chartsHtml(S.agg) + (S.agg.inds.length ? '<details class="tc-raw"><summary>看數字明細（產業→公司→單位→職位）</summary>' : '<div>') + '<div class="tc-cnt">全部樣本 進統計 <b id="tcAll">' + all + '</b> 筆／未確認 ' + unc + ' 筆／範圍外 ' + outc + ' 筆（統計只算日期確認且 2025-08 起；依產業→公司→單位→職位；底薪／年薪為中位數，括號是區間）</div>' + (inds.length ? '<div class="tc-stats">' + inds.join('') + '</div>' : '<div class="empty isempty tc-empty">尚無逐筆樣本</div>') + '</' + (S.agg.inds.length ? 'details' : 'div') + '>';
   }
 
   function rolesTable(roles, bt, tsmc) {
@@ -200,7 +273,7 @@
     const kv = (k, v) => '<div class="tc-kv"><span>' + k + '</span><b title="' + esc(v) + '">' + esc(v) + '</b></div>';
     const sum = [['福利', c.benefits], ['認股', c.stock_plan], ['風氣', c.culture]].map((x) => '<div class="tc-sm"><span>' + x[0] + '</span>' + esc(x[1] ? clip(x[1], 38) : '—') + '</div>').join('');
     return '<a class="tc-co" href="#tc/' + ind + '/' + encodeURIComponent(c.name) + '" data-co="' + esc(c.name) + '">' +
-      '<div class="tc-coh"><b>' + esc(c.name) + '</b>' + (c.code ? '<small>' + esc(c.code) + '</small>' : '') + (c.heat ? '<span class="tc-heat">' + esc(c.heat) + '</span>' : '') + '</div>' +
+      '<div class="tc-coh">' + TL(c.name, ind, 28) + '<b>' + esc(c.name) + '</b>' + (c.code ? '<small>' + esc(c.code) + '</small>' : '') + (c.heat ? '<span class="tc-heat">' + esc(c.heat) + '</span>' : '') + '</div>' +
       '<div class="tc-cok"><div><em>' + matched.length + '</em><span>符合職位</span></div><div><em>' + avg(mids) + '</em><span>年薪中點(萬)</span></div><div><em>' + avg(hrs) + '</em><span>平均週工時</span></div></div>' +
       '<div class="tc-kvs">' + kv('底薪(K/月)', span(matched.map((r) => r.base_month_k))) + kv('分紅月數', span(matched.map((r) => r.bonus_months))) +
       kv('年薪總月數', span(matched.map((r) => r.annual_months))) + kv('分紅發放', bsum(c)) +
@@ -225,7 +298,7 @@
       else if (co) {
         const m = (co.roles || []).filter(roleOk), tsmc = String(co.code) === '2330';
         h += '<div class="tc-crumb"><a href="#tc/' + S.ind + '" id="tcBack">← 返回公司列表</a></div>' +
-          '<div class="tc-cinfo"><h4>' + esc(co.name) + (co.code && /^\d{4,6}$/.test(co.code) ? ' <a class="tc-code" href="#stock/' + esc(co.code) + '">' + esc(co.code) + '</a>' : '') + '</h4><details class="tc-info"' + (matchMedia('(max-width:640px)').matches ? '' : ' open') + '><summary>福利・分紅時間・風氣・面試（點開看全部）</summary><dl>' +
+          '<div class="tc-cinfo"><h4>' + TL(co.name, S.ind, 32) + ' ' + esc(co.name) + (co.code && /^\d{4,6}$/.test(co.code) ? ' <a class="tc-code" href="#stock/' + esc(co.code) + '">' + esc(co.code) + '</a>' : '') + '</h4><details class="tc-info"' + (matchMedia('(max-width:640px)').matches ? '' : ' open') + '><summary>福利・分紅時間・風氣・面試（點開看全部）</summary><dl>' +
           [['福利', co.benefits], ['員工持股', co.stock_plan], ['分紅時間', co.bonus_timing], ['風氣', co.culture], ['面試', co.interview], ['討論熱度', co.heat], ['全體非主管員工年薪' + (co.mops ? '（' + co.mops.year + '）' : ''), co.mops && co.mops.avg_wan != null ? '平均 ' + co.mops.avg_wan + ' 萬・中位 ' + (co.mops.median_wan != null ? co.mops.median_wan : '–') + ' 萬（' + (co.mops.source || '') + '）' : '']].filter((x) => x[1]).map((x) => '<div><dt>' + x[0] + '</dt><dd>' + esc(x[1]) + '</dd></div>').join('') + '</dl></details></div>' +
           bonusBlock(co) +
           (co.grade_system ? '<div class="tc-gs"><b>職等制度</b>' + esc(co.grade_system) + '</div>' : '') +
@@ -241,6 +314,7 @@
     h += '</div></div><div class="tc-foot">' + esc(FOOT) + '</div>';
     root.innerHTML = h;
     bindHow(root);
+    if (S.ind === 'stats') { drawStats(); bindRank(root); }
     $$('.tc-fbar .seg', root).forEach((sg) => $$('button', sg).forEach((b) => b.onclick = () => { S.f[sg.dataset.fk] = +b.dataset.i; paint(); }));
     const cl = $('.tc-clear', root); if (cl) cl.onclick = () => { S.f = {}; paint(); };
     const tg = $('.tc-ftog', root); if (tg) tg.onclick = () => { S.fopen = !S.fopen; paint(); };

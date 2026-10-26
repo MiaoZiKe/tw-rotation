@@ -1,0 +1,33 @@
+/* 科技透明圈：樣本統計圖表化＋公司 LOGO（2026-10-26）。手機規則全包在 ≤640，不動共用元件 */
+#v-tc .tc-lg{position:relative;display:inline-flex;align-items:center;justify-content:center;flex:none;width:var(--lz,24px);height:var(--lz,24px);border-radius:50%;background:var(--lg,#7c8aa0);color:#06121c;font-style:normal;font-weight:700;font-size:calc(var(--lz,24px)*.5);overflow:hidden;vertical-align:middle;line-height:1}
+#v-tc .tc-lg i{font-style:normal;position:relative;z-index:0}
+#v-tc .tc-lg img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#fff;border-radius:50%;padding:2px;box-sizing:border-box;z-index:1}
+#v-tc .tc-coh .tc-lg{align-self:center}
+#v-tc .tc-cinfo h4{display:flex;align-items:center;gap:var(--sp-2)}
+#v-tc .tc-gr{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--sp-3);margin-bottom:var(--sp-4)}
+#v-tc .tc-gc{min-width:0;border:1px solid var(--line);border-radius:var(--r-sm);padding:var(--sp-3);background:var(--panel-2)}
+#v-tc .tc-gc h5,#v-tc .tc-rkw h5{margin:0 0 var(--sp-2);font-size:14px;color:var(--ink-2)}
+#v-tc .tc-ch{width:100%;min-height:120px}
+#v-tc .tc-rkw{margin-bottom:var(--sp-4)}
+#v-tc .tc-rkbar{display:flex;flex-wrap:wrap;gap:var(--sp-2) var(--sp-3);align-items:center;margin-bottom:var(--sp-2)}
+#v-tc .tc-rkbar .seg{flex-wrap:wrap}
+#v-tc .tc-rk{display:flex;flex-direction:column;gap:6px}
+#v-tc .tc-rkr{display:grid;grid-template-columns:22px 24px minmax(120px,190px) 1fr 90px;align-items:center;gap:var(--sp-2);padding:4px 6px;border-radius:var(--r-sm);color:var(--ink);text-decoration:none;border:1px solid transparent}
+#v-tc .tc-rkr:hover{border-color:var(--cyan);background:var(--panel-2)}
+#v-tc .tc-rkn{color:var(--ink-3);font-size:12px;text-align:right}
+#v-tc .tc-rkt{display:flex;flex-direction:column;font-size:13.5px;min-width:0}
+#v-tc .tc-rkt small{color:var(--ink-3);font-size:12px}
+#v-tc .tc-rkb{position:relative;height:12px;border-radius:3px;background:var(--panel-3)}
+#v-tc .tc-rkb .tc-rkbar{position:absolute;left:0;top:0;bottom:0;border-radius:0 3px 3px 0;background:linear-gradient(90deg,rgba(62,224,255,.55),#3ee0ff);display:block}
+#v-tc .tc-rkb .tc-rkrg{position:absolute;top:5px;height:2px;background:#ffb454;display:block}
+#v-tc .tc-rkv{text-align:right;display:flex;flex-direction:column;line-height:1.2}
+#v-tc .tc-rkv b{color:var(--cyan);font-size:14px}
+#v-tc .tc-rkv small{color:var(--ink-3);font-size:12px}
+#v-tc .tc-rkmore{margin-top:var(--sp-2);border:1px solid var(--line-2);background:var(--panel-3);color:var(--ink-2);border-radius:var(--r-sm);height:32px;padding:0 var(--sp-3);cursor:pointer;font-size:13px}
+#v-tc .tc-raw>summary{cursor:pointer;color:var(--cyan);font-size:13.5px;padding:var(--sp-2) 0}
+@media (max-width:1100px){#v-tc .tc-gr{grid-template-columns:1fr}}
+@media (max-width:640px){
+#v-tc .tc-rkr{grid-template-columns:18px 24px minmax(0,1fr) 64px;grid-template-areas:"n l t v" ". . b b"}
+#v-tc .tc-rkr .tc-rkn{grid-area:n}#v-tc .tc-rkr .tc-lg{grid-area:l}#v-tc .tc-rkr .tc-rkt{grid-area:t}#v-tc .tc-rkr .tc-rkb{grid-area:b}#v-tc .tc-rkr .tc-rkv{grid-area:v}
+#v-tc .tc-rkbar{gap:var(--sp-2)}
+}
