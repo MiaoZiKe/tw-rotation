@@ -123,7 +123,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.local/share/fonts/tw-rotation
-          key: social-fonts-v1
+          key: social-fonts-v2
 
       - name: 安裝 Playwright、Pillow 與中文字型
         if: steps.done.outputs.skip != '1'
@@ -136,9 +136,8 @@ jobs:
           mkdir -p "$F"
           if [ ! -s "$F/NotoSansCJKtc-Regular.otf" ]; then
             for w in Regular Bold; do
-              curl -fsSL --retry 3 -o "$F/NotoSansCJKtc-$w.otf" "https://github.com/notofonts/noto-cjk/raw/main/Sans/OTF/TraditionalChinese/NotoSansCJKtc-$w.otf"
-            done
-            curl -fsSL --retry 3 -o "$F/NotoColorEmoji.ttf" "https://github.com/googlefonts/noto-emoji/raw/main/fonts/NotoColorEmoji.ttf"
+              curl -fsSL --retry 3 -o "$F/NotoSansCJKtc-$w.otf" "https://raw.githubusercontent.com/notofonts/noto-cjk/main/Sans/OTF/TraditionalChinese/NotoSansCJKtc-$w.otf"
+            done      # 圖上已不用表情圖示（10-27 Andy 拿掉昨日事件的圖示），不裝彩色表情字型
           fi
           fc-cache -f >/dev/null
           fc-list | grep -c "Noto Sans CJK TC" || true
