@@ -1,6 +1,121 @@
 {
- "updated": "2026-10-23",
+ "updated": "2026-10-26",
  "topics": [
+  {
+   "id": "n_fx_outflow",
+   "cat": "news",
+   "title": "外資連賣 10 天，新台幣為何跟著貶",
+   "why": "外資 10/12~10/16 合計賣超台股約 194 億美元、淨匯出約 180 億美元，同期新台幣貶 1.37%，10/21 才中止連 10 賣（央行新聞稿經中時 2026-10-20、優分析引鉅亨 2026-10-21）；美元與新台幣口徑須分開核對，寫稿時以本站外資買賣超為準。",
+   "score": 5,
+   "format_hint": "兩者",
+   "added": "2026-10-26",
+   "site_links": [
+    "#flow",
+    "#overview"
+   ]
+  },
+  {
+   "id": "n_volume_8331",
+   "cat": "news",
+   "title": "台股單日成交 8331 億，量這麼大是好是壞",
+   "why": "10/21 台股收 46,887.77 點、漲 594.84 點，成交值約 8,331 億元（優分析引鉅亨、聯合新聞網 2026-10-21）；數字目前偏單一來源，寫稿前須核對證交所資料。",
+   "score": 4,
+   "format_hint": "文章",
+   "added": "2026-10-26",
+   "site_links": [
+    "#overview",
+    "#flow"
+   ]
+  },
+  {
+   "id": "n_gold_pullback",
+   "cat": "news",
+   "title": "金價從高點回落近三成，避險資產沒避險？",
+   "why": "現貨金 10/2 收約 4,140 美元、當週跌 3.4%，較 2026 年 1 月高點約 5,602 美元回落近三成（自由時報 2026-10-03、聯合新聞網）；高低點為單一來源，寫稿前須核對。",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-10-26",
+   "site_links": [
+    "#overview"
+   ]
+  },
+  {
+   "id": "k_gaa_node",
+   "cat": "know",
+   "title": "先進製程 GAA 電晶體是什麼？一顆電晶體切開看",
+   "why": "站內晶圓代工 3D 圖 foundry 可看電晶體結構（#industry/group/foundry），已上架 IC 代工文可銜接，本題講 FinFET 到 GAA 的結構差異；文章＋3D 圖。",
+   "score": 4,
+   "format_hint": "文章＋3D 圖",
+   "added": "2026-10-26",
+   "site_links": [
+    "#industry/group/foundry"
+   ]
+  },
+  {
+   "id": "k_dram_nand",
+   "cat": "know",
+   "title": "DRAM 與 NAND 差在哪？記憶體與儲存拆開看",
+   "why": "記憶體缺貨新聞常把 DRAM、NAND、HBM 混為一談；站內有 SSD 3D 圖（ssd）與 HBM／DRAM 2.5D 圖（hbm_memory）可對照；文章＋3D 圖。",
+   "score": 4,
+   "format_hint": "文章＋3D 圖",
+   "added": "2026-10-26",
+   "site_links": [
+    "#industry/semiconductor/dg/memory_module",
+    "#heatmap/theme/hbm_memory"
+   ]
+  },
+  {
+   "id": "k_cdu_liquid",
+   "cat": "know",
+   "title": "液冷 CDU 是什麼？冷卻液從晶片流到機櫃外",
+   "why": "站內液冷 3D 圖 liquid_cooling「從晶片到 CDU」，已有水冷原理題，本題改講零件與流向；文章＋3D 圖。",
+   "score": 3,
+   "format_hint": "文章＋3D 圖",
+   "added": "2026-10-26",
+   "site_links": [
+    "#industry/group/liquid_cooling"
+   ]
+  },
+  {
+   "id": "i_passive_chain",
+   "cat": "intro",
+   "title": "被動元件鏈：電容、電感、電阻各管什麼",
+   "why": "站內電子零組件鏈有 MLCC、電容、電感、保護元件、日系被動等族群與多張 3D 圖；需附供應鏈圖，講環節不排受惠。",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-10-26",
+   "site_links": [
+    "#industry/group/mlcc",
+    "#industry/group/capacitor",
+    "#industry/group/power_inductor"
+   ]
+  },
+  {
+   "id": "i_test_chain",
+   "cat": "intro",
+   "title": "半導體測試鏈：探針卡、測試座到測試服務",
+   "why": "站內半導體鏈有 IC 測試服務族群 ic_test_service，讀者常把封裝與測試混為一談；需附供應鏈圖，講環節不排受惠。",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-10-26",
+   "site_links": [
+    "#industry/semiconductor",
+    "#industry/group/ic_test_service"
+   ]
+  },
+  {
+   "id": "i_optics_lens",
+   "cat": "intro",
+   "title": "光學鏡頭鏈：鏡片、模組到 AR／VR 光學",
+   "why": "站內有光學鏡頭與 AR／VR 光學族群，讀者想知道鏡頭模組與穿戴裝置光學的分工；需附供應鏈圖，講環節不排受惠。",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-10-26",
+   "site_links": [
+    "#industry/group/optical_lens",
+    "#industry/group/ar_vr_optics"
+   ]
+  },
   {
    "id": "n_trade_truce_2month",
    "title": "美中休戰只延兩個月，供應鏈在擔心什麼",

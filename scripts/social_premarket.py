@@ -35,6 +35,7 @@ from __future__ import annotations
 import argparse
 import base64
 import json
+import math
 import re
 import sys
 from datetime import date, datetime, timedelta
@@ -63,7 +64,9 @@ WEEK = "一二三四五六日"
 US_ROWS = [("^IXIC", "那斯達克"), ("^SOX", "費城半導體"), ("^GSPC", "標普500"), ("^DJI", "道瓊工業"), ("^VIX", "VIX 波動率")]
 ADR_SYM, FX_SYM, TSMC = "TSM", "TWD=X", "2330"
 ADR_RATIO = 5                     # 1 股 ADR＝5 股台積電普通股
-K_N = 25                          # 日 K 根數
+K_N = 25                          # 美股那頁每列的日 K 根數（小圖）
+K_LONG = 125                      # 台指期／ADR 主圖的日 K 根數（約半年交易日；Andy 10-26：「K 棒期間至少半年」）
+MAS = [(5, "5日"), (10, "10日"), (20, "月線20"), (60, "季線60"), (120, "半年線120"), (240, "年線240")]
 SRC_NAME = {"cnyes": "鉅亨", "udn": "聯合新聞網", "technews": "科技新報"}
 DISCLAIMER = "資料：Yahoo Finance、期交所公開資料、新聞媒體整理，僅供參考，不構成投資建議"
 HASHTAGS = "#台股 #盤前 #美股 #台指期 #台積電"
@@ -84,7 +87,12 @@ EVENT_RE = re.compile(r"戰爭|戰事|開戰|戰線|作戰|停火|談判|攻擊|
                       r"中東|胡塞|休市|政策|法案|禁令")
 TECH_RE = re.compile(r"AI|晶片|半導體|台積電|輝達|NVIDIA|Nvidia|記憶體|HBM|蘋果|iPhone|伺服器|雲端|OpenAI|Anthropic|CoWoS|CPO|載板|PCB|"
                      r"英特爾|三星|美光|超微|AMD|博通|亞馬遜|AWS|微軟|谷歌|Google|特斯拉|SpaceX|機器人|資料中心|算力")
-CAT_CAP = 3                       # 同一類最多幾則（避免五則都是同一類）
+CAT_CAP = 2                       # 同一類最多幾則（四類盡量都有；Andy 10-26）
+# 跟台股／市場／科技產業有關的字（相關度加分）與政治口水、八卦（降權）；Andy 10-26：「優先挑跟台股、市場、科技產業相關，降權政治八卦」
+MARKET_RE = re.compile(r"台股|加權|大盤|股價|股市|美股|指數|期貨|外資|投信|自營|法人|營收|財報|獲利|EPS|毛利|法說|ETF|除息|配息|漲停|跌停|上市|上櫃|"
+                       r"IPO|訂單|出貨|產能|擴產|資本支出|供應鏈|市值|殖利率|油價|關稅|出口管制|制裁|匯率|台幣|\d{4}")
+STOCK_RE = re.compile(r"台股|加權|大盤|股價|股市|美股|指數|期貨|外資|投信|法人|營收|財報|EPS|法說|ETF")   # 口水標題裡有這些才不降權
+GOSSIP_RE = re.compile(r"批評?|嗆|罵|酸|怒|轟|諷|嘲|槓上|互槓|口水|八卦|緋聞|離婚|婚|網紅|名嘴|爆料|私生活|澤倫斯基|罷免")
 
 
 # ============================================================================ 小工具
@@ -96,6 +104,9 @@ def fmt_signed(v: float, nd: int = 2, suffix: str = "") -> str:
     """+1.23／−1.23（減號用全形減號 U+2212，跟網站一致）。"""
     s = f"{abs(v):,.{nd}f}{suffix}"
     return ("+" if v > 0 else "−" if v < 0 else "±") + s
+
+
+DATE_TXT = ""      # 標題列右側日期（main 設定），例 10/27 週二
 
 
 def md(d: date | str) -> str:
@@ -169,51 +180,59 @@ def _f(v):
 
 
 def k_series(df: pd.DataFrame, n: int = K_N) -> dict:
-    """最後 n 根日 K＋整段歷史算出的 MA5／MA20／RSI14（指標先用全歷史算再切，均線開頭才不會斷）。
+    """最後 n 根日 K＋整段歷史算出的 MA5／10／20／60／120／240 與 RSI14（指標先用全歷史算再切，均線開頭才不會斷）。
     has_ohlc＝最後 n 根都有開高低 → 畫 K 棒；否則畫收盤折線（可得的指標，不假造 K 棒）。"""
     d = daily_frame(df)
     if d.empty:
         return {"bars": [], "has_ohlc": False}
-    d["ma5"] = d["close"].rolling(5).mean()
-    d["ma20"] = d["close"].rolling(20).mean()
+    for p, _ in MAS:
+        d[f"ma{p}"] = d["close"].rolling(p).mean()
     d["rsi"] = ind.rsi(d["close"], 14)
     d["vma5"] = d["volume"].rolling(5).mean().shift(1)    # 前 5 日均量（不含當天）
     tail = d.tail(n)
     has = bool(tail[["open", "high", "low"]].notna().all().all())
-    bars = [{"date": r.date, "o": _f(r.open), "h": _f(r.high), "l": _f(r.low), "c": float(r.close), "v": _f(r.volume),
-             "ma5": _f(r.ma5), "ma20": _f(r.ma20), "rsi": _f(r.rsi), "vma5": _f(r.vma5)} for r in tail.itertuples()]
+    bars = [{"date": r["date"], "o": _f(r["open"]), "h": _f(r["high"]), "l": _f(r["low"]), "c": float(r["close"]), "v": _f(r["volume"]),
+             **{f"ma{p}": _f(r[f"ma{p}"]) for p, _ in MAS}, "rsi": _f(r["rsi"]), "vma5": _f(r["vma5"])} for _, r in tail.iterrows()]
     return {"bars": bars, "has_ohlc": has}
 
 
-def ta_lines(ks: dict) -> list[str]:
-    """2～3 行技術面描述，只講數字位置：位於／站上／跌破均線、RSI 區間、量價。不判多空、不給建議。
-    站上／跌破＝今天跟昨天在均線的不同側（真的穿過）；沒有穿過就寫「位於…之上／之下」。"""
+def ta_rows(ks: dict) -> list[tuple[str, str, str]]:
+    """技術面表格（左欄項目｜中欄數值｜右欄狀態），三列：收盤、RSI(14)、量能。只講數字位置，不判多空、不給建議。
+    收盤的狀態：今天真的穿過哪幾條均線（跟昨天在不同側）就寫「站上／跌破 5日、10日」；都沒穿過就寫跟月線、季線的相對位置。"""
     b = ks.get("bars") or []
     if len(b) < 2:
         return []
     t, y = b[-1], b[-2]
     nd = 2 if t["c"] < 1000 else 0
-    lines, pos = [], []
-    for k, name in (("ma5", "MA5"), ("ma20", "MA20")):
-        if t[k] is None:
+    rows = []
+    up, dn, pos = [], [], []
+    for p, name in MAS:
+        k = f"ma{p}"
+        if t.get(k) is None:
             continue
         above = t["c"] >= t[k]
-        crossed = y[k] is not None and above != (y["c"] >= y[k])
-        if crossed:
-            pos.append(f"{'站上' if above else '跌破'} {name}（{fmt_num(t[k], nd)}）")
-        else:
-            pos.append(f"位於 {name}（{fmt_num(t[k], nd)}）{'之上' if above else '之下'}")
-    if pos:
-        lines.append(f"收盤 {fmt_num(t['c'], nd)}，" + "、".join(pos))
-    if t["rsi"] is not None:
+        if y.get(k) is not None and above != (y["c"] >= y[k]):
+            (up if above else dn).append(name)
+    for p, name in ((20, "月線"), (60, "季線")):
+        if t.get(f"ma{p}") is not None:
+            pos.append(f"{name}{'之上' if t['c'] >= t[f'ma{p}'] else '之下'}")
+    st = "、".join(x for x in (("站上 " + "、".join(up)) if up else "", ("跌破 " + "、".join(dn)) if dn else "") if x) or "、".join(pos)
+    rows.append(("收盤", fmt_num(t["c"], nd), st))
+    if t.get("rsi") is not None:
         r = t["rsi"]
-        zone = "70 以上高檔區" if r >= 70 else "30 以下低檔區" if r <= 30 else ("30～70 區間、50 以上" if r >= 50 else "30～70 區間、50 以下")
-        lines.append(f"RSI(14) {r:.1f}，位於 {zone}")
-    if t["v"] and t["vma5"]:
+        zone = "70 以上高檔區" if r >= 70 else "30 以下低檔區" if r <= 30 else ("30–70 區間・50 以上" if r >= 50 else "30–70 區間・50 以下")
+        rows.append(("RSI(14)", f"{r:.1f}", zone))
+    if t.get("v") and t.get("vma5"):
         vp = (t["v"] / t["vma5"] - 1) * 100
         pv = ("價漲" if t["c"] > y["c"] else "價跌" if t["c"] < y["c"] else "價平") + ("量增" if vp > 0 else "量縮")
-        lines.append(f"成交量較前 5 日均量 {fmt_signed(vp, 1, '%')}，{pv}")
-    return lines[:3]
+        rows.append(("量能", fmt_signed(vp, 1, "%"), f"較前 5 日均量・{pv}"))
+    return rows
+
+
+def ma_values(ks: dict) -> list[tuple[str, float]]:
+    """最後一根的各條均線值（data.json 用；算不出來的那條不列）。"""
+    b = (ks.get("bars") or [{}])[-1]
+    return [(name, b[f"ma{p}"]) for p, name in MAS if b.get(f"ma{p}") is not None]
 
 
 def us_close(intl: pd.DataFrame, target: date) -> dict:
@@ -251,7 +270,7 @@ def adr_info(intl: pd.DataFrame, price: pd.DataFrame, us_date: str | None, targe
             if len(t) >= 2:
                 r["tw_chg"] = r["tw_close"] - float(t["close"].iloc[-2])
                 r["tw_pct"] = (r["tw_close"] / float(t["close"].iloc[-2]) - 1) * 100
-            r["tw_k"] = k_series(t)
+            r["tw_k"] = k_series(t, K_LONG)
     if intl is not None and not intl.empty and us_date:
         df = intl.copy()
         df["date"] = df["date"].astype(str).str[:10]
@@ -261,7 +280,7 @@ def adr_info(intl: pd.DataFrame, price: pd.DataFrame, us_date: str | None, targe
         a = daily_frame(df[(df["symbol"] == ADR_SYM) & (df["date"] <= us_date)])
         if len(a) >= 2 and a["date"].iloc[-1] == us_date:
             c, p = float(a["close"].iloc[-1]), float(a["close"].iloc[-2])
-            r.update(missing=False, close=c, chg=c - p, pct=(c / p - 1) * 100 if p else 0.0, k=k_series(a))
+            r.update(missing=False, close=c, chg=c - p, pct=(c / p - 1) * 100 if p else 0.0, k=k_series(a, K_LONG))
     if not r["missing"] and r.get("fx"):
         r["conv"] = r["close"] * r["fx"] / ADR_RATIO
         if r.get("tw_close"):
@@ -322,7 +341,7 @@ def tx_daily(ohlc: pd.DataFrame, target: date) -> dict:
     if len(d) < 2:
         return {"missing": True}
     c, p = float(d["close"].iloc[-1]), float(d["close"].iloc[-2])
-    return {"missing": False, "date": d["date"].iloc[-1], "close": c, "chg": c - p, "pct": (c / p - 1) * 100, "k": k_series(d)}
+    return {"missing": False, "date": d["date"].iloc[-1], "close": c, "chg": c - p, "pct": (c / p - 1) * 100, "k": k_series(d, K_LONG)}
 
 
 def closure_note(last_td: str | None, target: date) -> dict | None:
@@ -369,7 +388,7 @@ def _item(r, topic: str, cov: dict) -> dict:
 
 
 def pick_news(news: pd.DataFrame, start: datetime, end: datetime, n: int = 5) -> list[dict]:
-    """美股收盤後～台股開盤前的新聞，依「主題被幾家媒體、幾篇報導」排序取前 n 個主題，每個主題留一則標題最完整（最長）的。
+    """美股收盤後～台股開盤前的新聞，先看跟台股／市場／科技產業的相關度，再看「主題被幾家媒體、幾篇報導」，取前 n 則；四類盡量都有。
     主題＝新聞附的關鍵字（鉅亨、科技新報有附）＋出現在標題裡的同一個詞（聯合新聞網沒附關鍵字，用標題比對）。
     不改寫標題；同一類最多 CAT_CAP 則；主題不夠時用最新的補滿。"""
     if news is None or news.empty:
@@ -397,31 +416,53 @@ def pick_news(news: pd.DataFrame, start: datetime, end: datetime, n: int = 5) ->
             s = stat.setdefault(k, (set(), []))
             s[0].add(str(r["source"]))
             s[1].append(i)
-    order = sorted(stat, key=lambda k: (-len(stat[k][0]), -len(stat[k][1]), k))
+    # 每個主題選代表標題：先挑跟市場最相關的那篇，再挑跟同主題其他篇共用關鍵字最多（最居中的角度），同分取標題較完整的 → 候選清單
+    cands = []
+    for k in sorted(stat, key=lambda k: (-len(stat[k][0]), -len(stat[k][1]), k)):
+        ids = stat[k][1]
+        if len(ids) < 2:
+            continue
+        best = max(ids, key=lambda i: (-relevance_tier(str(df.at[i, "title"]), news_category(str(df.at[i, "title"]), str(df.at[i, "category"]))),
+                                       sum(len(toks[i] & toks[j]) for j in ids if j != i), len(str(df.at[i, "title"])), df.at[i, "t"].value))
+        cands.append((_item(df.loc[best], k, {"sources": len(stat[k][0]), "articles": len(ids)}), set(ids), best))
+    for i in df.sort_values("t", ascending=False).index:      # 單篇也當候選（排在多家報導的主題後面），補類別或補數量用
+        cands.append((_item(df.loc[i], "", {"sources": 1, "articles": 1}), {i}, i))
+    cands.sort(key=lambda c: (relevance_tier(c[0]["title"], c[0]["category"]), -c[0]["coverage"]["sources"], -c[0]["coverage"]["articles"]))
     used: set[int] = set()
     picked: list[dict] = []
     per_cat: dict[str, int] = {}
-    for k in order:
-        if len(picked) >= n:
-            break
-        idx = [i for i in stat[k][1] if i not in used]
-        if len(stat[k][1]) < 2 or not idx:
-            continue
-        # 代表標題：跟同主題其他篇共用關鍵字最多的那篇（最「居中」，不是某一家的獨家角度），同分取標題較完整（較長）的
-        best = max(idx, key=lambda i: (sum(len(toks[i] & toks[j]) for j in stat[k][1] if j != i), len(str(df.at[i, "title"])), df.at[i, "t"].value))
-        it = _item(df.loc[best], k, {"sources": len(stat[k][0]), "articles": len(stat[k][1])})
-        if per_cat.get(it["category"], 0) >= CAT_CAP:
-            continue
-        used.update(stat[k][1])
+
+    def take(it, ids):
+        used.update(ids)
         per_cat[it["category"]] = per_cat.get(it["category"], 0) + 1
         picked.append(it)
-    for i in df.sort_values("t", ascending=False).index:      # 主題不夠（新聞量少的早上）：用剩下最新的補滿
-        if len(picked) >= n:
-            break
-        if i not in used:
-            picked.append(_item(df.loc[i], "", {"sources": 1, "articles": 1}))
-            used.add(i)
-    return picked
+    # 第一輪：四類各挑最相關、最多家報導的一則（政治口水那一級不參加）
+    for cat in CAT_ORDER:
+        for it, ids, rep in cands:
+            if it["category"] == cat and rep not in used and relevance_tier(it["title"], cat) < 2:
+                take(it, ids)
+                break
+    # 第二輪：照相關度＋報導家數補滿；同類最多 CAT_CAP 則；真的不夠才放寬類別上限、最後才用口水那一級
+    for relax in (0, 1, 2):
+        for it, ids, rep in cands:
+            if len(picked) >= n:
+                break
+            if rep in used or (relax < 2 and relevance_tier(it["title"], it["category"]) >= 2):
+                continue
+            if relax == 0 and per_cat.get(it["category"], 0) >= CAT_CAP:
+                continue
+            take(it, ids)
+    picked.sort(key=lambda it: (relevance_tier(it["title"], it["category"]), -it["coverage"]["sources"], -it["coverage"]["articles"]))
+    return picked[:n]
+
+
+def relevance_tier(title: str, cat: str) -> int:
+    """0＝跟台股／市場／科技產業直接相關（科技、總經、新聞類，或事件但有市場字眼）；1＝其他事件（地緣政治）；2＝政治口水、八卦。"""
+    if GOSSIP_RE.search(title) and not (TECH_RE.search(title) or STOCK_RE.search(title)):
+        return 2
+    if cat != "事件" or MARKET_RE.search(title):
+        return 0
+    return 1
 
 
 def upcoming_events(target: date, cal: pd.DataFrame | None, days: int = 5) -> list[dict]:
@@ -494,12 +535,13 @@ def collect(target: date, intl, price, intra, ohlc, news, cal) -> dict:
     return {"target": target.isoformat(), "us": us, "adr": adr, "tx": tx, "night": night, "last_td": last_td,
             "closure": closure_note(last_td, target), "news_window": [start.isoformat(), end.isoformat()],
             "news": pick_news(news, start, end), "events": upcoming_events(target, cal),
-            "summary": summary_line(us, adr, tx, night)}
+            "summary": summary_line(us, adr, tx, night),
+            "ta": {k: {"rows": ta_rows(v["k"]), "ma": ma_values(v["k"])} for k, v in (("tx", tx), ("adr", adr)) if not v.get("missing")}}
 
 
 def load_lake(target: date) -> tuple:
     from pipeline.util import store
-    ys = sorted({target.year, (target - timedelta(days=120)).year})
+    ys = sorted({d.year for d in (target, target - timedelta(days=270), target - timedelta(days=560))})   # MA240＋半年 K 棒約需 365 個交易日
     yms = sorted({int(f"{d.year}{d.month:02d}") for d in (target, target - timedelta(days=10))})
     intl = store.read("intl_daily")
     price = store.read("price_daily", years=ys)
@@ -514,7 +556,9 @@ def load_lake(target: date) -> tuple:
 
 # ============================================================================ 圖（SVG，量好實際框再畫，不拉伸）
 FONT = "Noto Sans CJK TC,Noto Sans TC,WenQuanYi Zen Hei,sans-serif"
-MA_COL = {"light": {"ma5": "#d98a00", "ma20": "#6a4bc4", "rsi": "#0a6b8a"}, "dark": {"ma5": "#ffb454", "ma20": "#b49bff", "rsi": "#3ee0ff"}}
+# 均線六色＋RSI：避開紅綠（K 棒用），由短到長從暖到冷再到深灰
+MA_COL = {"light": {**{f"ma{n}": c for n, c in zip((5, 10, 20, 60, 120, 240), ss.TH.MA_COLORS)}, "rsi": "#0A6A86"},   # 亮色 HUD 六色（social_theme.MA_COLORS）
+          "dark": {"ma5": "#ffb454", "ma10": "#f2dc5d", "ma20": "#b49bff", "ma60": "#6aa8ff", "ma120": "#d0a07a", "ma240": "#c8cdd8", "rsi": "#3ee0ff"}}
 
 
 def line_svg(vals: list[float], w: int, h: int, color: str) -> str:
@@ -536,7 +580,7 @@ def line_svg(vals: list[float], w: int, h: int, color: str) -> str:
 
 def candle_svg(ks: dict, w: int, h: int, c: dict, theme: str, *, fs: int = 0, ma: bool = False, rsi: bool = False) -> str:
     """日 K：K 棒收≥開＝紅、收＜開＝綠（台股紅漲綠跌慣例）。
-    fs>0 才畫軸字（左側價格、下方日期）；ma＝畫 MA5／MA20；rsi＝下方 RSI(14) 副圖（30／70 虛線）。沒有開高低時改畫收盤折線。"""
+    fs>0 才畫軸字（左側價格、下方日期）；ma＝畫六條均線；rsi＝下方 RSI(14) 副圖（30／70 虛線）。沒有開高低時改畫收盤折線。"""
     b = ks.get("bars") or []
     if len(b) < 2:
         return ""
@@ -546,13 +590,17 @@ def candle_svg(ks: dict, w: int, h: int, c: dict, theme: str, *, fs: int = 0, ma
     L = int(fs * 4.0) if fs else 4
     R, T = 6, (int(fs * 0.6) if fs else 4)
     B = int(fs * 1.8) if fs else 4
-    gap = int(fs * 0.8) if rsi else 0
-    ph = (h - T - B - gap) * (0.70 if rsi else 1.0)        # 價格區高
-    rh = (h - T - B - gap) - ph if rsi else 0
-    mas = [x[k] for x in b for k in ("ma5", "ma20") if ma and x[k] is not None]
-    lo, hi = min([x["l"] for x in b] + mas), max([x["h"] for x in b] + mas)
+    gap = int(fs * 0.5) if rsi else 0
+    tot = h - T - B - gap
+    rh = max(80.0, tot * 0.2) if rsi else 0          # RSI 副圖至少 80px（30／70 兩條線相距 ≥ 32px，標籤不擠在一起）
+    ph = tot - rh                                    # 價格區（主圖）取剩下的
+    # 縱軸只依 K 棒高低＋MA5／10／20，上下各留 8%；MA60／120／240 超出就被 clip-path 截掉不畫，完全不影響縱軸
+    kl, kh = min(x["l"] for x in b), max(x["h"] for x in b)
+    near = [x[f"ma{p}"] for x in b for p in (5, 10, 20) if ma and x.get(f"ma{p}") is not None]
+    lo, hi = min([kl] + near), max([kh] + near)
     sp = (hi - lo) or 1
-    lo, hi = lo - sp * 0.04, hi + sp * 0.04
+    lo, hi = lo - sp * 0.08, hi + sp * 0.08
+    sp = hi - lo
     n = len(b)
     step = (w - L - R) / n
 
@@ -561,14 +609,17 @@ def candle_svg(ks: dict, w: int, h: int, c: dict, theme: str, *, fs: int = 0, ma
 
     def Y(v):
         return T + (hi - v) / (hi - lo) * ph
-    g = [f'<svg xmlns="http://www.w3.org/2000/svg" width="{w}" height="{h}" viewBox="0 0 {w} {h}" font-family="{FONT}">']
+    g = [(f'<svg xmlns="http://www.w3.org/2000/svg" width="{w}" height="{h}" viewBox="0 0 {w} {h}" font-family="{FONT}">'
+          f'<defs><clipPath id="pc"><rect x="{L}" y="{T}" width="{w - L - R}" height="{ph:.1f}"/></clipPath></defs>')]
     if fs:
-        for k in range(4):
-            v = lo + (hi - lo) * (k + 0.5) / 4
+        raw = (hi - lo) / 5                                  # 整數刻度（約 4～5 條）：1／2／2.5／5 × 10^n
+        mag = 10 ** math.floor(math.log10(raw)) if raw > 0 else 1
+        stp = next(m * mag for m in (1, 2, 2.5, 5, 10) if m * mag >= raw)
+        for v in [k * stp for k in range(math.ceil(lo / stp), math.floor(hi / stp) + 1)]:
             y = Y(v)
             g.append(f'<line x1="{L}" y1="{y:.1f}" x2="{w - R}" y2="{y:.1f}" stroke="{c["line"]}" stroke-width="1.5"/>')
-            g.append(f'<text x="{L - 8}" y="{y + fs * 0.35:.1f}" font-size="{fs}" fill="{c["ink3"]}" text-anchor="end">{v:,.{0 if v >= 1000 else 1}f}</text>')
-        for i, anchor in ((0, "start"), (n // 2, "middle"), (n - 1, "end")):
+            g.append(f'<text x="{L - 8}" y="{y + fs * 0.35:.1f}" font-size="{fs}" fill="{c["ink3"]}" text-anchor="end">{v:,.{0 if stp >= 1 else 1}f}</text>')
+        for i, anchor in ((0, "start"), (n // 3, "middle"), (2 * n // 3, "middle"), (n - 1, "end")):
             x = X(i) - step / 2 if anchor == "start" else X(i) + step / 2 if anchor == "end" else X(i)
             g.append(f'<text x="{x:.1f}" y="{h - fs * 0.35:.1f}" font-size="{fs}" fill="{c["ink3"]}" text-anchor="{anchor}">{md(b[i]["date"])}</text>')
     bw = max(2.0, step * 0.62)
@@ -578,10 +629,11 @@ def candle_svg(ks: dict, w: int, h: int, c: dict, theme: str, *, fs: int = 0, ma
         g.append(f'<line x1="{X(i):.1f}" y1="{Y(x["h"]):.1f}" x2="{X(i):.1f}" y2="{Y(x["l"]):.1f}" stroke="{col}" stroke-width="{max(1.5, bw / 6):.1f}"/>')
         g.append(f'<rect x="{X(i) - bw / 2:.1f}" y="{top:.1f}" width="{bw:.1f}" height="{max(1.5, bot - top):.1f}" fill="{col}"/>')
     if ma:
-        for k in ("ma5", "ma20"):
-            pts = [f"{X(i):.1f},{Y(x[k]):.1f}" for i, x in enumerate(b) if x[k] is not None]
+        for p, _ in reversed(MAS):          # 長均線先畫、短的疊在上面
+            k = f"ma{p}"
+            pts = [f"{X(i):.1f},{Y(x[k]):.1f}" for i, x in enumerate(b) if x.get(k) is not None]
             if len(pts) >= 2:
-                g.append(f'<polyline points="{" ".join(pts)}" fill="none" stroke="{mc[k]}" stroke-width="3" stroke-linejoin="round"/>')
+                g.append(f'<polyline points="{" ".join(pts)}" fill="none" stroke="{mc[k]}" stroke-width="2.5" stroke-linejoin="round" clip-path="url(#pc)"/>')
     if rsi:
         y0 = T + ph + gap
 
@@ -604,7 +656,7 @@ def svg_uri(svg: str) -> str:
 
 
 # ============================================================================ 版型
-CAT_COL = {"light": {"新聞": "#0a6b8a", "事件": "#b35c00", "科技": "#6a4bc4", "總經": "#2f6f3e"},
+CAT_COL = {"light": dict(ss.TH.CATEGORY),
            "dark": {"新聞": "#3ee0ff", "事件": "#ffb454", "科技": "#b49bff", "總經": "#7ddc8f"}}
 
 
@@ -622,51 +674,62 @@ def page_css(mode: str, theme: str) -> str:
     mc = MA_COL[theme]
     cats = "".join(f".cat-{k}{{--c:{v}}}" for k, v in CAT_COL[theme].items())
     tg_ink = "#fff" if theme == "light" else "#070b16"
-    return (":root{" + "".join(f"--{k}:{v};" for k, v in c.items()) + f"--ma5:{mc['ma5']};--ma20:{mc['ma20']};--rsi:{mc['rsi']}" + "}" + cats + f"""
-*{{box-sizing:border-box;margin:0;padding:0}}
-html,body{{width:1080px;height:{H}px;overflow:hidden}}
-body{{background:var(--bg);color:var(--ink);font-family:'Noto Sans CJK TC','Noto Sans TC','PingFang TC','Microsoft JhengHei','WenQuanYi Zen Hei',sans-serif;
-  display:flex;flex-direction:column;padding:{S('16px 20px 16px', '24px 24px 20px')};font-variant-numeric:tabular-nums}}
-.brand{{display:flex;align-items:center;gap:12px;height:{S(64, 72)}px;flex:none}}
-.brand img{{width:{S(54, 60)}px;height:{S(54, 60)}px;border-radius:13px;display:block}}
-.brand .nm{{font-size:{S(40, 44)}px;font-weight:800;line-height:1.5;white-space:nowrap}}
-.card{{flex:1;min-height:0;display:flex;flex-direction:column;gap:{S(10, 14)}px;margin-top:8px;background:var(--panel);border:1.5px solid var(--line2);border-radius:24px;padding:{S('14px 18px', '18px 20px')}}}
+    return (ss.TH.base_css(mode).replace("body{width:1080px;", f"html,body{{height:{H}px;overflow:hidden}}\nbody{{width:1080px;height:{H}px;", 1)
+            + ":root{" + "".join(f"--{k}:{v};" for k, v in mc.items()) + "}" + cats + f"""
+body{{font-variant-numeric:tabular-nums}}
+.card{{flex:1;min-height:0;display:flex;flex-direction:column;gap:{S(10, 14)}px;padding:{S('14px 18px', '18px 20px')}}}
 .rise{{color:var(--rise)}}.fall{{color:var(--fall)}}.ink3{{color:var(--ink3)}}
 .row{{flex:1;min-height:0;display:grid;grid-template-columns:{S('290px 1fr 380px', '1fr 1fr')};grid-template-rows:{S('1fr', 'auto 1fr')};align-items:center;column-gap:16px;
-  border:1.5px solid var(--line);border-radius:16px;padding:{S('8px 16px', '12px 20px')};background:var(--panel2)}}
+  border:1.5px solid var(--line);border-radius:10px;padding:{S('8px 16px', '12px 20px')};background:var(--panel2)}}
 .row .nm{{font-size:{S(34, 42)}px;font-weight:800;line-height:1.5;white-space:nowrap}}
 .row .px{{font-size:{S(30, 38)}px;line-height:1.5;color:var(--ink2);white-space:nowrap}}
 .row .pct{{font-size:{S(46, 56)}px;font-weight:800;line-height:1.4;white-space:nowrap;text-align:right}}
 .row .pts{{font-size:{S(28, 34)}px;line-height:1.5;white-space:nowrap;text-align:right}}
 .row .sp{{align-self:stretch;min-height:0;position:relative;{S('', 'grid-column:1 / span 2;margin-top:8px;')}}}
 .grid{{flex:none;display:grid;gap:{S(12, 14)}px}}
-.tile{{min-width:0;border:1.5px solid var(--line);border-radius:16px;background:var(--panel2);padding:{S('10px 18px', '14px 20px')}}}
+.tile{{min-width:0;border:1.5px solid var(--line);border-radius:10px;background:var(--panel2);padding:{S('10px 18px', '14px 20px')}}}
 .tile .k{{font-size:{S(26, 32)}px;line-height:1.5;color:var(--ink3);white-space:nowrap}}
 .tile .v{{font-size:{S(50, 58)}px;font-weight:800;line-height:1.3;white-space:nowrap}}
 .tile .d{{font-size:{S(26, 32)}px;line-height:1.5;white-space:nowrap}}
-.legend{{flex:none;display:flex;gap:28px;font-size:{S(24, 30)}px;line-height:1.5;color:var(--ink2);white-space:nowrap}}
-.legend i{{display:inline-block;width:34px;height:5px;border-radius:3px;vertical-align:middle;margin-right:8px;background:var(--lc)}}
+.legend{{flex:none;display:flex;flex-wrap:wrap;column-gap:{S(18, 22)}px;row-gap:2px;font-size:{S(23, 24)}px;line-height:1.4;color:var(--ink2);white-space:nowrap}}
+.legend i{{display:inline-block;width:{S(24, 30)}px;height:5px;border-radius:3px;vertical-align:middle;margin-right:6px;background:var(--lc)}}
+.sec{{flex:1;min-height:0;display:flex;flex-direction:row;gap:{S(12, 14)}px}}
+.sec + .sec{{border-top:1.5px solid var(--line);padding-top:{S(10, 14)}px}}
+.sec .chartbox{{flex:1;min-width:0}}
+.side{{flex:none;width:{S(330, 360)}px;display:flex;flex-direction:column;gap:{S(4, 6)}px;justify-content:space-between}}
+.side .tile{{padding:{S("3px 12px", "5px 14px")}}}
+.side .tile .k{{font-size:{S(22, 25)}px;line-height:1.35}}.side .tile .v{{font-size:{S(34, 38)}px;line-height:1.3}}.side .tile .d{{font-size:{S(22, 25)}px;line-height:1.35}}
+.side .tile.nmt{{display:flex;align-items:center;background:none;border:none;padding:0}}
+.side .tile.nmt .v{{font-size:{S(32, 36)}px}}
+.tat{{flex:none;display:grid;border:1.5px solid var(--line);border-radius:10px;background:var(--panel2)}}
+.tat .tk{{color:var(--ink3)}}.tat .tv{{font-weight:700;font-family:'Roboto Mono','DejaVu Sans Mono',monospace}}.tat .ts{{color:var(--ink2)}}
+.side .tat{{grid-template-columns:auto 1fr;column-gap:12px;padding:{S('2px 12px', '4px 14px')}}}
+.side .tat > div{{font-size:{S(23, 25)}px;line-height:1.35;padding:1px 0;border-top:none}}
+.side .tat .tv{{text-align:right}}
+.side .tat .ts{{grid-column:1 / -1;border-bottom:1px dashed var(--line);padding-bottom:3px;white-space:normal}}
+.side .tat .ts:last-child{{border-bottom:none}}
 .chartbox{{flex:1;min-height:0;position:relative}}
 .chartbox img{{position:absolute;left:0;top:0;display:block}}
-.ta{{flex:none;border:1.5px solid var(--line);border-radius:16px;background:var(--panel2);padding:{S('10px 18px', '14px 20px')}}}
+.ta{{flex:none;border:1.5px solid var(--line);border-radius:10px;background:var(--panel2);padding:{S('10px 18px', '14px 20px')}}}
 .ta div{{font-size:{S(30, 34)}px;line-height:1.55}}
 .news{{flex:1;min-height:0;display:flex;flex-direction:column;gap:{S(12, 16)}px}}
-.it{{flex:1;min-height:0;display:flex;align-items:center;gap:{S(18, 20)}px;border-radius:16px;padding:{S('8px 20px 8px 16px', '12px 22px 12px 18px')};
-  background:color-mix(in srgb,var(--c) 8%,var(--panel));border:1.5px solid color-mix(in srgb,var(--c) 40%,var(--panel))}}
-.it .tg{{flex:none;background:var(--c);color:{tg_ink};font-size:{S(28, 34)}px;font-weight:800;line-height:1.4;border-radius:12px;padding:{S('8px 14px', '10px 16px')};white-space:nowrap}}
-.it .tt{{flex:1;min-width:0;font-size:{S(38, 46)}px;line-height:1.42;font-weight:800;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:{S(3, 4)};overflow:hidden}}
+.it{{flex:1;min-height:0;display:flex;align-items:center;gap:{S(18, 20)}px;border-radius:10px;padding:{S('8px 20px 8px 16px', '12px 22px 12px 18px')};
+  background:var(--panel2);border:1.5px solid var(--line);border-left:8px solid var(--c)}}
+.it .ix{{flex:none;width:{S(100, 112)}px;font-size:{S(56, 64)}px;font-weight:800;line-height:1.35;color:var(--c);font-family:Inter,'Roboto Mono',monospace;font-variant-numeric:tabular-nums}}
+.it .bd{{flex:1;min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:{S(8, 10)}px}}
+.it .tg{{flex:none;background:var(--c);color:{tg_ink};font-size:{S(26, 30)}px;font-weight:800;line-height:1.4;border-radius:8px;padding:{S('2px 14px', '2px 16px')};white-space:nowrap}}
+.it .tt{{min-width:0;align-self:stretch;font-size:{S(44, 42)}px;line-height:1.38;font-weight:800;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;overflow:hidden}}
 .sumt{{flex:1;min-height:0;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr}}
 .sumt .tile{{display:flex;flex-direction:column;justify-content:center}}
 .sumt .v{{font-size:{S(84, 100)}px}}.sumt .k{{font-size:{S(34, 42)}px}}
-.bigbox{{flex:none;border:1.5px solid var(--line);border-radius:16px;background:var(--panel2);padding:{S('16px 28px', '24px 32px')}}}
+.bigbox{{flex:none;border:1.5px solid var(--line);border-radius:10px;background:var(--panel2);padding:{S('16px 28px', '24px 32px')}}}
 .big{{font-size:{S(46, 56)}px;line-height:1.6;font-weight:700}}
 """)
 
 
-def page_html(mode: str, theme: str, title: str, inner: str) -> str:
-    logo = ss._logo_uri()
-    img = f'<img data-box=logo src="{logo}">' if logo else ""
-    body = f'<div class=brand>{img}<div class=nm data-box=title>{_e(title)}</div></div><div class=card>{inner}</div>'
+def page_html(mode: str, theme: str, title: str, inner: str, date: str = "") -> str:
+    """標題列走 social_theme（LOGO｜時段膠囊｜標題｜靠右日期），日期只在標題列。"""
+    body = f'{ss.TH.header_html("premarket", _e(title), _e(date))}<div class=card>{inner}</div>'
     return f"<!doctype html><html><head><meta charset=utf-8><style>{page_css(mode, theme)}</style></head><body>{body}</body></html>"
 
 
@@ -675,24 +738,31 @@ def _tile(i: int, k: str, v: str, cls: str = "", d: str = "", dcls: str = "") ->
     return f'<div class=tile><div class=k data-box=k{i}>{_e(k)}</div><div class="v {cls}" data-box=v{i}>{v}</div>{dd}</div>'
 
 
-def _kpage(name: str, title: str, tiles: list[str], ks: dict, story: bool, theme: str) -> dict:
-    """日 K＋均線＋RSI 那一型頁面：數字卡一列 → 圖例 → 圖 → 技術面描述（2～3 行）。"""
-    legend = ('<div class=legend><span data-box=lg1><i style="--lc:var(--ma5)"></i>MA5</span>'
-              '<span data-box=lg2><i style="--lc:var(--ma20)"></i>MA20</span><span data-box=lg3><i style="--lc:var(--rsi)"></i>RSI(14)</span></div>')
-    lines = ta_lines(ks)
-    ta = ('<div class=ta>' + "".join(f'<div data-box=ta{i}>{_e(t)}</div>' for i, t in enumerate(lines)) + '</div>') if lines else ""
-    grid = f'<div class=grid style="grid-template-columns:repeat({len(tiles)},1fr)">{"".join(tiles)}</div>' if tiles else ""
+def ma_legend() -> str:
+    """圖例：中文均線名稱＋RSI(14)；一張圖只放一次（兩段共用同一套顏色）。"""
+    items = "".join(f'<span data-box=lg{p}><i style="--lc:var(--ma{p})"></i>{name}</span>' for p, name in MAS)
+    return f'<div class=legend>{items}<span data-box=lgrsi><i style="--lc:var(--rsi)"></i>RSI(14)</span></div>'
+
+
+def _ksec(key: str, name: str, tiles: list[str], ks: dict, story: bool, theme: str) -> tuple[str, dict, list]:
+    """一段日 K：名稱＋數字卡一列 → 圖（K 棒＋六條均線＋RSI 副圖）→ 技術面表格（項目｜數值｜狀態）。"""
+    rows = ta_rows(ks)
+    tat = ('<div class=tat>' + "".join(f'<div class=tk data-box={key}-tk{i}>{_e(a)}</div><div class=tv data-box={key}-tv{i}>{_e(b)}</div>'
+                                       f'<div class=ts data-box={key}-ts{i}>{_e(c)}</div>' for i, (a, b, c) in enumerate(rows)) + '</div>') if rows else ""
+    nm = f'<div class="tile nmt"><div class=v data-box={key}-nm>{_e(name)}</div></div>'
 
     def draw(w, h, c):
-        return candle_svg(ks, w, h, c, theme, fs=30 if story else 24, ma=True, rsi=True)
-    return {"name": name, "title": title, "inner": grid + legend + '<div class=chartbox data-box=chart data-chart=k></div>' + ta,
-            "charts": {"k": draw}, "ta": lines}
+        return candle_svg(ks, w, h, c, theme, fs=26 if story else 22, ma=True, rsi=True)
+    # 版面：左＝圖（吃滿整段高度，主圖 ≥330px、RSI ≥80px）、右＝名稱＋數字卡＋技術面表格直排（2026-10-26 CEO：K 棒不能被壓扁）
+    html = (f'<div class=sec><div class=chartbox data-box={key}-chart data-chart={key}></div>'
+            f'<div class=side>{nm}{"".join(tiles)}{tat}</div></div>')
+    return html, {key: draw}, rows
 
 
 def build_pages(D: dict, mode: str, theme: str = "light") -> list[dict]:
     """每張回 {name, title, inner, charts:{key: 畫圖函式(w,h,c)}}。圖上不放任何備註（資料日只在標題列）。"""
     story = mode == "story"
-    head = f"台股盤前｜{md(pd.Timestamp(D['target']).date())}"
+    head = ""   # 日期與「盤前」改放標題列的日期／膠囊（render 傳 date），標題只留頁名
     us, adr, tx, night = D["us"], D["adr"], D["tx"], D["night"]
     night_ok = not night["missing"] and night.get("diff") is not None and not night.get("partial")
     pages = []
@@ -714,34 +784,34 @@ def build_pages(D: dict, mode: str, theme: str = "light") -> list[dict]:
         else:
             charts[key] = (lambda ks: (lambda w, h, c: candle_svg(ks, w, h, c, theme)))(r["k"])
     if rows:
-        pages.append({"name": "us-close", "title": f"{head}｜美股", "inner": "".join(rows), "charts": charts})
+        pages.append({"name": "us-close", "title": "美股", "inner": "".join(rows), "charts": charts})
 
-    # 2 台指期：日盤日 K＋MA＋RSI；數字卡＝日盤收盤、夜盤收盤（較日盤）
+    # 2 台指期（上）＋台積電 ADR（下）同一頁；ADR 沒進資料庫 → 下段不畫（Andy 10-26：台積電現貨那頁改回 ADR）
+    secs, charts, ta = [], {}, {}
     if not tx["missing"]:
         tiles = [_tile(1, "日盤收盤", fmt_num(tx["close"], 0), "", f'{fmt_signed(tx["chg"], 0)} 點（{fmt_signed(tx["pct"], 2, "%")}）', tone(tx["chg"]))]
         if night_ok:
             tiles.append(_tile(2, "夜盤收盤", fmt_num(night["close"], 0), "",
                                f'較日盤 {fmt_signed(night["diff"], 0)} 點（{fmt_signed(night["diff_pct"], 2, "%")}）', tone(night["diff"])))
-        pages.append(_kpage("tx", f"{head}｜台指期", tiles, tx["k"], story, theme))
-
-    # 3 台積電 ADR（沒進資料庫 → 換成台積電 2330 日 K，標題跟著換，不出現「查證中」）
+        h, ch, rows = _ksec("ktx", "台指期", tiles, tx["k"], story, theme)
+        secs.append(h); charts.update(ch); ta["tx"] = rows
     if not adr["missing"]:
-        tiles = [_tile(1, "ADR 收盤（美元）", fmt_num(adr["close"]), "", fmt_signed(adr["pct"], 2, "%"), tone(adr["chg"]))]
+        tiles = [_tile(3, "ADR（美元）", fmt_num(adr["close"]), "", fmt_signed(adr["pct"], 2, "%"), tone(adr["chg"]))]
         if adr.get("conv"):
-            tiles.append(_tile(2, "換算台股價", fmt_num(adr["conv"], 1)))
+            tiles.append(_tile(4, "換算台股價", fmt_num(adr["conv"], 1)))
         if adr.get("prem") is not None:
-            tiles.append(_tile(3, "溢價" if adr["prem"] >= 0 else "折價", fmt_signed(adr["prem"], 2, "%"), tone(adr["prem"])))
-        pages.append(_kpage("tsm-adr", f"{head}｜台積電 ADR", tiles, adr["k"], story, theme))
-    elif adr.get("tw_k") and adr["tw_k"]["bars"]:
-        tiles = [_tile(1, "台積電收盤", fmt_num(adr["tw_close"], 0), "",
-                       f'{fmt_signed(adr.get("tw_chg", 0), 0)}（{fmt_signed(adr.get("tw_pct", 0), 2, "%")}）', tone(adr.get("tw_chg")))]
-        pages.append(_kpage("tsmc", f"{head}｜台積電", tiles, adr["tw_k"], story, theme))
+            tiles.append(_tile(5, "溢價" if adr["prem"] >= 0 else "折價", fmt_signed(adr["prem"], 2, "%"), tone(adr["prem"])))
+        h, ch, rows = _ksec("kadr", "台積電 ADR", tiles, adr["k"], story, theme)
+        secs.append(h); charts.update(ch); ta["adr"] = rows
+    if secs:
+        sub = "台指期・台積電 ADR" if len(secs) == 2 else ("台指期" if not tx["missing"] else "台積電 ADR")
+        pages.append({"name": "tx", "title": sub, "inner": ma_legend() + "".join(secs), "charts": charts, "ta": ta})
 
     # 4 今日焦點：分類色塊＋大標題，無來源無時間
     if D["news"]:
-        items = "".join(f'<div class="it cat-{n["category"]}"><div class=tg data-box=tg{i}>{n["category"]}</div>'
-                        f'<div class=tt data-box=tt{i}>{_e(n["title"])}</div></div>' for i, n in enumerate(D["news"]))
-        pages.append({"name": "news", "title": f"{head}｜今日焦點", "inner": f'<div class=news>{items}</div>', "charts": {}})
+        items = "".join(f'<div class="it cat-{n["category"]}"><div class=ix data-box=ix{i}>{i + 1:02d}</div><div class=bd><div class=tg data-box=tg{i}>{n["category"]}</div>'
+                        f'<div class=tt data-box=tt{i}>{_e(n["title"])}</div></div></div>' for i, n in enumerate(D["news"]))
+        pages.append({"name": "news", "title": "今日焦點", "inner": f'<div class=news>{items}</div>', "charts": {}})
 
     # 5 一句話總結：四格數字＋一句話（缺的格子換成可得的：標普、VIX）
     tiles = []
@@ -762,7 +832,7 @@ def build_pages(D: dict, mode: str, theme: str = "light") -> list[dict]:
                  for i, (k, v, t) in enumerate(tiles[:4]))
     if th:
         big = f'<div class=bigbox><div class=big data-box=sum>{_e(D["summary"])}</div></div>' if D["summary"] else ""
-        pages.append({"name": "summary", "title": f"{head}｜一句話總結", "inner": f'<div class="grid sumt">{th}</div>{big}', "charts": {}})
+        pages.append({"name": "summary", "title": "一句話總結", "inner": f'<div class="grid sumt">{th}</div>{big}', "charts": {}})
     return pages
 
 
@@ -777,7 +847,7 @@ CHECK_JS = """() => {   // 每個 [data-box] 的框：兩兩不得相交、不�
   const W = document.documentElement.clientWidth, H = document.documentElement.clientHeight;
   const out = R.filter(b => b.x < -0.5 || b.y < -0.5 || b.x + b.w > W + 0.5 || b.y + b.h > H + 0.5).map(b => b.n);
   const card = document.querySelector('.card').getBoundingClientRect();
-  return { hits, out, cut: R.filter(r => r.cut).map(r => r.n), n: R.length, content_ratio: (card.bottom - document.querySelector('.brand').getBoundingClientRect().top) / H };
+  return { hits, out, cut: R.filter(r => r.cut).map(r => r.n), n: R.length, content_ratio: (card.bottom - document.querySelector('.hd').getBoundingClientRect().top) / H };
 }"""
 
 
@@ -787,7 +857,7 @@ def render(pages: list[dict], mode: str, theme: str, out: Path, browser, report:
     c = ss.FRAME[theme]
     for p in pages:
         pg = browser.new_page(viewport={"width": 1080, "height": H}, device_scale_factor=1)
-        pg.set_content(page_html(mode, theme, p["title"], p["inner"]), wait_until="load")
+        pg.set_content(page_html(mode, theme, p["title"], p["inner"], DATE_TXT), wait_until="load")
         pg.wait_for_timeout(250)
         for key, fn in p["charts"].items():
             w, h = pg.evaluate("(k) => { const r = document.querySelector('[data-chart=\"' + k + '\"]').getBoundingClientRect(); return [Math.floor(r.width), Math.floor(r.height)]; }", key)
@@ -890,6 +960,9 @@ def main() -> int:
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
     (out / "data.json").write_text(json.dumps(D, ensure_ascii=False, indent=1, default=str), "utf-8")
+    global DATE_TXT
+    _t = pd.Timestamp(D['target']).date()
+    DATE_TXT = f"{md(_t)} 週{WEEK[_t.weekday()]}"
     pn = premarket_news(D)
     (out / "premarket_news.json").write_text(json.dumps(pn, ensure_ascii=False, indent=1), "utf-8")
     from playwright.sync_api import sync_playwright

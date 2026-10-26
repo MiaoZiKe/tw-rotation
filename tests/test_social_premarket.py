@@ -65,18 +65,30 @@ def test_k_series_indicators_use_full_history():
     assert b[-1]["rsi"] == 100.0                           # 一路上漲，Wilder RSI＝100
 
 
-def test_ta_lines_cross_vs_position_and_no_advice():
-    def bar(c, ma5, ma20, rsi, v=None, vma5=None):
-        return {"c": c, "ma5": ma5, "ma20": ma20, "rsi": rsi, "v": v, "vma5": vma5}
-    lines = sp.ta_lines({"bars": [bar(100, 101, 90, 50), bar(103, 102, 91, 72.3, 1500, 1000)]})
-    assert lines[0].startswith("收盤 103.00，站上 MA5（102.00）、位於 MA20（91.00）之上")
-    assert lines[1] == "RSI(14) 72.3，位於 70 以上高檔區"
-    assert lines[2] == "成交量較前 5 日均量 +50.0%，價漲量增"
-    low = sp.ta_lines({"bars": [bar(100, 99, 110, 35), bar(98, 99.5, 110, 28.0)]})
-    assert "跌破 MA5" in low[0] and "位於 30 以下低檔區" in low[1] and len(low) == 2
-    for t in lines + low:
+def test_k_series_long_has_six_mas():
+    days = pd.bdate_range("2025-01-01", "2026-10-23").strftime("%Y-%m-%d")
+    df = pd.DataFrame({"date": days, "open": 99.0, "high": 102.0, "low": 98.0, "close": [100.0 + i for i in range(len(days))], "volume": 1.0})
+    ks = sp.k_series(df, sp.K_LONG)
+    b = ks["bars"]
+    assert len(b) == sp.K_LONG >= 120 and [n for _, n in sp.MAS] == ["5日", "10日", "月線20", "季線60", "半年線120", "年線240"]
+    assert all(x["ma240"] is not None for x in b)                  # 歷史夠長，半年 K 棒的年線全程都有
+    assert abs(b[-1]["ma240"] - (sum(range(len(days) - 240, len(days))) / 240 + 100)) < 1e-6
+
+
+def test_ta_rows_table_cross_vs_position_and_no_advice():
+    def bar(c, ma5, ma20, ma60, rsi, v=None, vma5=None):
+        return {"c": c, "ma5": ma5, "ma10": None, "ma20": ma20, "ma60": ma60, "ma120": None, "ma240": None, "rsi": rsi, "v": v, "vma5": vma5}
+    rows = sp.ta_rows({"bars": [bar(100, 101, 90, 80, 50), bar(103, 102, 91, 81, 72.3, 1500, 1000)]})
+    assert rows[0] == ("收盤", "103.00", "站上 5日")
+    assert rows[1] == ("RSI(14)", "72.3", "70 以上高檔區")
+    assert rows[2] == ("量能", "+50.0%", "較前 5 日均量・價漲量增")
+    flat = sp.ta_rows({"bars": [bar(98, 99, 110, 90, 45), bar(97, 99.5, 110, 90, 41.0)]})
+    assert flat[0][2] == "月線之下、季線之上" and flat[1][2] == "30–70 區間・50 以下" and len(flat) == 2   # 沒穿過 → 寫跟月線、季線的位置
+    both = sp.ta_rows({"bars": [bar(100, 99, 101, 80, 50), bar(100, 101, 99, 80, 50)]})
+    assert both[0][2] == "站上 月線20、跌破 5日"
+    for r in rows + flat + both:
         for bad in ("買", "賣", "建議", "看多", "看空", "偏多", "偏空"):
-            assert bad not in t
+            assert bad not in "".join(r)
 
 
 def test_adr_conversion_premium_and_tsmc_fallback():
@@ -162,12 +174,28 @@ def test_pick_news_coverage_ranking_window_and_skip():
     news = pd.DataFrame([{"published_at": a, "source": b, "category": c, "title": t, "keywords": k, "url": f"https://x/{i}"}
                          for i, (a, b, c, t, k) in enumerate(rows)])
     got = sp.pick_news(news, sp.us_close_tpe("2026-10-23"), datetime(2026, 10, 27, 8, 45, tzinfo=sp.TPE), n=3)
-    assert [g["topic"] for g in got[:2]] == ["伊朗", "記憶體"]
-    assert got[0]["coverage"] == {"sources": 3, "articles": 3} and got[0]["category"] == "事件"
-    assert "　" not in got[1]["title"]                   # 全形空白正規化成一般空白（不改寫字）
+    # 先看跟台股／市場／科技的相關度，再看報導家數：伊朗（3 家，代表標題挑有「油價」的那篇）→ 記憶體（2 家）→ 006208（單篇補位）
+    assert [g["topic"] for g in got] == ["伊朗", "記憶體", ""]
+    assert got[0]["title"] == "伊朗情勢升溫 油價跳漲" and got[0]["coverage"] == {"sources": 3, "articles": 3}
+    assert {g["category"] for g in got} == {"科技", "新聞", "事件"}       # 第一輪每類各挑一則
+    assert "\u3000" not in got[1]["title"]               # 全形空白正規化成一般空白（不改寫字）
     assert all("杜金龍" not in g["title"] and "不算" not in g["title"] for g in got)
-    assert len(got) == 3 and got[2]["coverage"]["articles"] == 1      # 主題不夠 → 用最新的補滿
     assert got[0]["url"].startswith("https://x/")
+
+
+def test_pick_news_demotes_gossip_and_covers_four_categories():
+    rows = [
+        ("cnyes", "事件", "馬斯克再批澤倫斯基該下台", "澤倫斯基,馬斯克"), ("udn", "事件", "馬斯克嗆澤倫斯基 烏克蘭回擊", "澤倫斯基"),
+        ("technews", "事件", "澤倫斯基回應馬斯克批評", "澤倫斯基,馬斯克"),
+        ("cnyes", "科技", "輝達 GB300 出貨放量", "輝達"), ("cnyes", "總經", "美債殖利率急跌 Fed 降息預期升溫", "美債"),
+        ("cnyes", "台股", "外資連三賣 台股成交量萎縮", "外資"), ("udn", "事件", "川普宣布對墨西哥加徵關稅", "關稅"),
+    ]
+    news = pd.DataFrame([{"published_at": f"2026-10-24T1{i}:00:00+08:00", "source": b, "category": c, "title": t, "keywords": k, "url": ""}
+                         for i, (b, c, t, k) in enumerate(rows)])
+    got = sp.pick_news(news, sp.us_close_tpe("2026-10-23"), datetime(2026, 10, 27, 8, 45, tzinfo=sp.TPE), n=4)
+    assert {g["category"] for g in got} == {"新聞", "事件", "科技", "總經"}
+    assert all("澤倫斯基" not in g["title"] for g in got)            # 3 家都報的口水新聞也排不進來（有更相關的就不用它）
+    assert sp.relevance_tier("馬斯克再批澤倫斯基該下台", "事件") == 2 and sp.relevance_tier("川普宣布對墨西哥加徵關稅", "事件") == 0
 
 
 def test_upcoming_events_fomc_taipei_time():
@@ -196,11 +224,25 @@ def test_pages_have_no_notes_and_skip_missing():
     D = _collect()
     for mode in ("threads", "story"):
         pages = sp.build_pages(D, mode)
-        assert [p["name"] for p in pages] == ["us-close", "tx", "tsmc", "news", "summary"]   # ADR 沒資料 → 換台積電
+        assert [p["name"] for p in pages] == ["us-close", "tx", "news", "summary"]   # ADR 沒資料 → 下段不畫、不換成現貨
+        assert pages[1]["title"] == "台指期" and "台積電" not in pages[1]["inner"]
+        assert "年線240" in pages[1]["inner"] and "class=tat" in pages[1]["inner"]
         html = "".join(p["inner"] + p["title"] for p in pages)
         for bad in ("查證中", "資料日", "休市", "時段", "本週", "資料：", "不構成投資建議", "道瓊"):
             assert bad not in html, bad
-        assert pages[0]["title"] == "台股盤前｜10/27｜美股"
+        assert pages[0]["title"] == "美股"
+
+
+def test_tx_page_has_adr_section_when_available():
+    intra = _night()
+    ohlc, _ = _ohlc(float(intra[intra.symbol == "FUT_N"]["close"].iloc[-1]))
+    price = pd.DataFrame([{"date": "2026-10-21", "code": "2330", "close": 2420.0}, {"date": "2026-10-22", "code": "2330", "close": 2385.0}])
+    D = sp.collect(date(2026, 10, 27), _intl(), price, intra, ohlc, pd.DataFrame(), pd.DataFrame())
+    pages = sp.build_pages(D, "threads")
+    tx = pages[[p["name"] for p in pages].index("tx")]
+    assert tx["title"] == "台指期・台積電 ADR" and set(tx["charts"]) == {"ktx", "kadr"}
+    assert tx["inner"].index("台指期") < tx["inner"].index("台積電 ADR") and "換算台股價" in tx["inner"]
+    assert "tsmc" not in [p["name"] for p in pages] and set(D["ta"]) == {"tx", "adr"}
 
 
 def test_caption_and_premarket_news():

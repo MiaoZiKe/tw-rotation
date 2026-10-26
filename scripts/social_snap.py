@@ -58,9 +58,11 @@ from urllib.parse import parse_qs, urlparse
 from urllib.request import urlopen
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import social_native as NAT  # noqa: E402  原生繪製的卡片（2026-10-26）
 import social_gate as gate  # noqa: E402  資料日／交易日把關（2026-10-26）
 
 DATE_LABEL = ""
+KIND = ""             # 本輪種類（intraday／close／credit），版型標題列的時段膠囊用
 LOGO_MAP: dict = {}      # 代號→logo 網址（site/data/logos.json 的相對路徑，--data-url 時改成正式站的絕對網址）
 DATA_SRC = ""            # sync_data 實際採用的資料來源網址（logo 圖檔不下載到本機，直接讀這裡）
 DATE_BY: dict = {}       # 目標名稱→該張自己的資料日 MM/DD（取自資料檔本身，不借別的檔）
@@ -124,7 +126,9 @@ FILL_JS = """([el, a]) => {   // 把卡片拉到 a.want（css px）高：差額�
   return el.getBoundingClientRect().height;
 }"""
 STORY_HEAT_VW, STORY_HEAT_DSF = 700, 2.4     # 熱力圖限動版：窄桌機視窗（>640 仍是桌機版面），方塊變大、字放大後更清楚
-STORY_RATIO = 1.76     # 限動截圖目標高寬比＝限動版型截圖區 1008×1776（2026-10-22 品牌列兼標題、拿掉右下網址後量的；舊值 1.6 會上下各空約 80px）
+THREADS_HEAT_RATIO = 1.22   # Threads 熱力圖（產業＋題材）截圖高寬比：卡片內 1000×1220 左右
+THREADS_MAX_H = 1350       # Threads 輪播圖高度上限（4:5）
+STORY_RATIO = 1.40     # 限動截圖目標高寬比＝限動版型截圖區 1008×1776（2026-10-22 品牌列兼標題、拿掉右下網址後量的；舊值 1.6 會上下各空約 80px）
 FILL_ROWS_JS = """([el, a]) => {   // 沒有圖表可拉高的片段（排行清單）：把差額平均加在每一列的上下內距，列距拉開到 a.want 高（不是拉伸點陣圖）
   for (let k = 0; k < 3; k++) {
     const rows = [...el.querySelectorAll(a.rows)].filter(e => e.offsetParent !== null);
@@ -263,13 +267,13 @@ TARGETS = [
                      hide=[".howbtn", ".livetg"], fill=dict(frac=0.60, charts=["#indTreeWrap", "#indTree"])),
                 dict(name="heat-theme", route="heatmap/theme", card="#themeMapCard", live="auto", live_ok=None, hide=[".howbtn", ".livetg"], optional=True, fill=dict(frac=0.40, charts=["#themeMap"]))],
          live="auto", live_ok=None, headline=None, d=[dict(name="heat", title="資金熱力圖")], m=[]),
-    dict(name="market-index", kind="intraday", label="大盤走勢", route="overview", card="#m3Frame",
+    dict(name="market-index", kind="close", label="大盤走勢（收盤全日）", route="overview", card="#m3Frame",
          live="#m3Frame .livetg-b",
          live_ok="() => { const b = document.querySelector('#m3Frame .livetg-b'); const f = document.querySelector('#m3Frame');"
                  " return !!b && !!f && (b.classList.contains('on') || b.getAttribute('aria-pressed') === 'true') && !/連不到|抓不到|失敗|逾時/.test(f.innerText); }",
          headline=None, d=[dict(name="market-index", hide=[".howbtn", ".mfilt", ".mpos", ".m4sico"], hide_exact=["~即時"])],
          m=[dict(name="market-index", hide=[".howbtn", ".mfilt", ".mpos", ".m4sico"], hide_exact=["~即時"], fill=dict(frac=1.0, charts=[".m3-chart", ".tv-lightweight-charts"]))]),
-    dict(name="market-breadth", kind="intraday", label="漲跌家數", route="market/updown", card=".mktdist", closest_card=True,
+    dict(name="market-breadth", kind="close", label="漲跌家數", route="market/updown", card=".mktdist", closest_card=True,
          live="#mktMode button[data-m=live]",
          live_ok="() => { const n = document.querySelector('#mktLive');"
                  " return !!n && !n.hidden && !/抓取中|抓不到|失敗|逾時|連不到/.test(n.innerText); }",
@@ -323,13 +327,13 @@ PIECE_META = {
     "credit-rank": ("融資增減排行 {d}", ""),
     "credit-short": ("融券增減排行 {d}", ""),
     "fut-oi": ("台指期三大法人未平倉 {d}", ""),
-    "retail-ratio": ("台指散戶多空比（大台、小台、微台） {d}", ""),
+    "retail-ratio": ("台指散戶多空比 {d}", ""),
 }
 PIECE_META = {k: (v[0], "") for k, v in PIECE_META.items()}      # 標題下的操作說明小字一律不放
 # 版型配色：直接取自 site/index.html 的 CSS 變數（淺色 :root[data-theme=light]、深色 :root）
+import social_theme as TH   # 2026-10-26：版型色票與標題列抽到 social_theme.py（亮色 HUD，規範 docs/marketing/social_unit/post_design_system.md）
 FRAME = {
-    "light": dict(bg="#F4F3EF", panel="#ffffff", panel2="#FAF9F6", line="#E9E6DF", line2="#D6D2C8", ink="#1F1D19", ink2="#3E3A33",
-                  ink3="#5F5A51", cyan="#0a6b8a", rise="#c81234", fall="#07794f", amber="#8f5600"),
+    "light": dict(TH.TOKENS),
     "dark": dict(bg="#070b16", panel="#0f172b", panel2="#141e36", line="#1e2a48", line2="#2a3860", ink="#e8eeff", ink2="#a9b6d6",
                  ink3="#8493b8", cyan="#3ee0ff", rise="#ff4d6d", fall="#2ee59d", amber="#ffb454"),
 }
@@ -434,9 +438,8 @@ def slot_key_for(kind: str, data_date: str, taken_at: str) -> str:
         return f"close-{taken_at[:10]}"
     if kind == "credit":
         return f"credit-{data_date[:10]}"
-    if kind == "intraday":      # 盤中以時段起點為鍵（09／11／13），跟 social_publish.slot_key 一致
-        h = int(taken_at[11:13] or 0)
-        return f"intraday-{taken_at[:10]}-{'09' if h < 11 else '11' if h < 13 else '13'}"
+    if kind == "intraday":      # 盤中一天一篇（台北 12:00），跟 social_publish.slot_key 一致
+        return f"intraday-{taken_at[:10]}"
     return f"{kind}-{taken_at[:10]}-{taken_at[11:13]}"
 
 
@@ -877,6 +880,16 @@ def data_dates(serve: Path | None = None, reader=None) -> dict:
         out["credit-rank"] = iso((j["margin"].get("rank") or {}).get("d") or rs[-1].get("d"))
         if (j["margin"].get("short_rank") or {}).get("d"):
             out["credit-short"] = iso(j["margin"]["short_rank"]["d"])
+    j = rd("index_intraday.json")      # 大盤走勢（收盤全日）：加權指數最後一根分 K 的日期
+    try:
+        if j and (j.get("TSE") or {}).get("M15"):
+            from datetime import datetime as _dt
+            out["market-index"] = _dt.fromtimestamp(j["TSE"]["M15"][-1][0], TPE).date().isoformat()
+    except Exception:  # noqa: BLE001
+        pass
+    j = rd("meta.json")                # 漲跌家數：updown.json 沒帶日期，用 meta 的最新價量日
+    if j and j.get("price_latest"):
+        out["market-breadth"] = iso(j["price_latest"])
     j = rd("fut_oi.json")
     if j and j.get("dates"):
         out["fut-oi"] = iso(max(j["dates"]))
@@ -898,7 +911,8 @@ def _shoot_one(pg, card_el, pc: dict, raw_dir: Path, mode: str, dsf: float) -> d
     tgt = pg.query_selector(pc["sel"]) if pc.get("sel") else card_el
     if tgt is None:
         raise RuntimeError(f"找不到 {pc.get('sel')}")
-    pg.evaluate("() => { const o = document.getElementById('snapcss'); if (o) o.remove(); }")
+    pg.evaluate("() => { const o = document.getElementById('snapcss'); if (o) o.remove(); if (!document.getElementById('snapbr')) { const e = document.createElement('style'); e.id = 'snapbr';"
+                " e.textContent = '[data-theme4] .card,[data-theme4] .card::before,[data-theme4] .card::after{background-image:none!important}'; document.head.appendChild(e); } }")   # 網站卡片自帶的四角括角截圖時藏掉（貼文版型自己有括角，不要雙層）
     if pc.get("css"):     # 截圖用：只在這個瀏覽器分頁塞樣式藏控制列、調欄位，不改 site/
         pg.evaluate("(c) => { const e = document.createElement('style'); e.id = 'snapcss'; e.textContent = c; document.head.appendChild(e); window.dispatchEvent(new Event('resize'));"
                     " if (window.echarts) document.querySelectorAll('[_echarts_instance_]').forEach(x => { const i = echarts.getInstanceByDom(x); if (i) i.resize(); }); }", pc["css"])
@@ -947,7 +961,13 @@ def _shoot_one(pg, card_el, pc: dict, raw_dir: Path, mode: str, dsf: float) -> d
     jishi = pg.evaluate(SCAN_JS, tgt)
     notes = pg.evaluate(NOTE_SCAN_JS, [tgt, NOTE_RE])      # 備註／來源／免責字樣（2026-10-26）：有就不准發
     texts = [x.strip() for x in (tgt.evaluate("e => e.innerText") or "").split("\n") if x.strip()]
-    return {"texts": texts, "jishi": jishi, "notes": notes, "name": pc["name"], "raw": str(path), "dsf": dsf, "min_css_font": minpx, "title": pc.get("title", ""), "text": pc.get("text")}
+    dump = {}
+    if mode == "d" and pc["name"] in NAT.DUMP_JS:      # 原生繪製要的資料：在套上即時資料的頁面上讀（截圖之後才讀，免得點分頁改到截圖）
+        try:
+            dump = pg.evaluate(NAT.DUMP_JS[pc["name"]]) or {}
+        except Exception as exc:  # noqa: BLE001
+            log("  讀不到原生繪製資料", pc["name"], str(exc)[:80])
+    return {"texts": texts, "jishi": jishi, "notes": notes, "name": pc["name"], "raw": str(path), "dsf": dsf, "min_css_font": minpx, "title": pc.get("title", ""), "text": pc.get("text"), "dump": dump}
 
 
 def shoot_piece(pg, card_el, pc: dict, raw_dir: Path, mode: str, dsf: float) -> dict:
@@ -1046,6 +1066,12 @@ def snap_targets(args, base: str, out: Path, today_ymd: str) -> tuple[list[dict]
                             recs = []
                             break
                         info.setdefault("heat_parts", []).append(part["name"])
+                        try:      # Threads 滿版：產業＋題材兩張合起來拉成 1000×1230 的比例（重畫圖表、非拉伸），跟限動同一招
+                            bbw = pel.bounding_box()["width"]
+                            pg.evaluate(FILL_JS, [pel, {"want": bbw * THREADS_HEAT_RATIO * part["fill"]["frac"] - 8, "charts": part["fill"]["charts"]}])
+                            pg.wait_for_timeout(1200)
+                        except Exception as exc_:  # noqa: BLE001
+                            log("  熱力圖 Threads 版拉高失敗，用原高度：", str(exc_)[:80])
                         recs.append(shoot_piece(pg, pel, dict(name=part["name"], hide=part.get("hide", [])), raw_dir, "d", args.scale))
                         if part["name"] == "heat-industry":
                             info["heat"] = pg.evaluate(READ_HEAT_JS)
@@ -1204,43 +1230,31 @@ def _blocks(items: list, cls: str) -> str:
     return f'<div class="grid {cls}">{"".join(out)}</div>' if out else ""
 
 
-def layout_html(mode: str, title: str, sub: str, img: str, top: list, bot: list, theme: str) -> str:
-    """財經終端／券商 App 風版型：品牌列（比比＋哩股哩股）→ 圓角細框卡片（標題＋副標、2×2 文字塊、截圖、備註塊）→ 右下網址。
-    邊距與內距壓到最小，空間全給內容；flex 直排，元素天生不重疊，之後仍用瀏覽器量框檢查。"""
-    c = FRAME[theme]
-    var = ":root{" + "".join(f"--{k}:{v};" for k, v in c.items()) + "}"
+def layout_html(mode: str, title: str, sub: str, img: str, top: list, bot: list, theme: str, date: str = "") -> str:
+    """亮色 HUD 版型（規範 docs/marketing/social_unit/post_design_system.md）：標題列（LOGO＋時段膠囊＋標題＋靠右日期）→ HUD 卡片（四角括角：
+    2×2 文字塊、截圖、備註塊）。圖上不放備註、來源、網址；日期只在標題列。flex 直排，元素天生不重疊，之後仍用瀏覽器量框檢查。"""
     story = mode == "story"
-    css = var + """
-*{box-sizing:border-box;margin:0;padding:0}
-body{width:1080px;background:var(--bg);color:var(--ink);font-family:'Noto Sans CJK TC','Noto Sans TC','PingFang TC','Microsoft JhengHei','WenQuanYi Zen Hei',sans-serif;display:flex;flex-direction:column;padding:__PAD__}
-.brand{display:flex;align-items:center;gap:12px;height:__BH__px;flex:none}
-.brand img{width:__LG__px;height:__LG__px;border-radius:13px;display:block}
-.brand .nm{font-size:__TT__px;font-weight:800;line-height:1.5;white-space:nowrap;min-width:0}   /* 10-22 Andy：品牌字改成標題，卡片內不再重複一行標題，右下網址拿掉，版面給圖 */
-.card{flex:1;min-height:0;display:flex;flex-direction:column;margin-top:8px;background:var(--panel);border:1.5px solid var(--line-2);border-radius:24px;padding:__CPAD__}
-.hd{flex:none;margin:0 6px 8px}
-.hd .t{font-size:__TT__px;font-weight:800;line-height:1.5;white-space:nowrap}   /* 1.5：Noto CJK 的文字框高約 1.45em，行高低於它 Range 量到的框會互相壓到（雲端 runner 字型踩過） */
-.hd .s{font-size:22px;line-height:1.5;color:var(--ink3);margin-top:2px;white-space:nowrap}
-.grid{flex:none;display:grid;grid-template-columns:1fr 1fr;gap:10px;font-variant-numeric:tabular-nums}
-.grid.top{margin-bottom:10px}.grid.bot{margin-top:10px}
-.q{border-radius:14px;border:1.5px solid color-mix(in srgb,var(--c) 45%,var(--panel));background:color-mix(in srgb,var(--c) 9%,var(--panel));padding:__QP__;text-align:left;min-width:0}
-.q b{display:block;color:var(--c);font-size:__QT__px;font-weight:800;line-height:1.5;margin-bottom:4px}
-.q ul{list-style:none}.q li{font-size:__QF__px;line-height:1.5;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:clip}
-.imgbox{flex:1;min-height:0;display:flex;align-items:center;justify-content:center}
-.shot{max-width:100%;max-height:100%;display:block;border-radius:12px}
-.src{flex:none;text-align:right;margin-top:6px;font-size:26px;font-weight:700;color:var(--cyan);white-space:nowrap}
+    k = TH.CANVAS[mode]["s"]
+    css = TH.base_css(mode)
+    if theme == "dark":      # 舊深色配色（備用，不維護）
+        css += ":root{" + "".join(f"--{k_}:{v};" for k_, v in FRAME["dark"].items()) + "}"
+    css += f"""
+.card{{flex:1;min-height:0;display:flex;flex-direction:column;padding:{'14px' if story else '12px'}}}
+.hd2{{flex:none;margin:0 6px 8px}}
+.hd2 .s{{font-size:26px;line-height:1.5;color:var(--ink3);white-space:nowrap}}
+.grid{{flex:none;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;font-variant-numeric:tabular-nums}}
+.grid.top{{margin-bottom:10px}}.grid.bot{{margin-top:10px}}
+.q{{border-radius:10px;border:1.5px solid color-mix(in srgb,var(--c) 45%,var(--panel));background:color-mix(in srgb,var(--c) 9%,var(--panel));padding:{'10px 14px 8px' if story else '8px 12px 6px'};text-align:left;min-width:0}}
+.q b{{display:block;color:var(--c);font-size:{round(30*k)}px;font-weight:800;line-height:1.4;margin-bottom:2px}}
+.q ul{{list-style:none;display:flex;flex-wrap:wrap;gap:0 18px}}.q li::before{{content:'';display:inline-block;width:9px;height:9px;border-radius:50%;background:var(--c);margin-right:8px;vertical-align:middle}}.q li{{font-size:{round(26*k) if not story else 30}px;line-height:1.4;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:clip}}
+.imgbox{{flex:1;min-height:0;display:flex;align-items:center;justify-content:center}}
+.shot{{max-width:100%;max-height:100%;display:block;border-radius:6px}}
 """
-    if story:
-        css = (css.replace("__PAD__", "24px 24px 18px").replace("__BH__", "72").replace("__LG__", "60").replace("__BN__", "36").replace("__CPAD__", "12px 12px 10px")
-               .replace("__TT__", "44").replace("__QP__", "10px 14px 8px").replace("__QT__", "40").replace("__QF__", "36"))
-        css += "body{height:1920px}"
-    else:
-        css = (css.replace("__PAD__", "16px 20px 16px").replace("__BH__", "64").replace("__LG__", "54").replace("__BN__", "32").replace("__CPAD__", "12px 12px 10px")
-               .replace("__TT__", "40").replace("__QP__", "8px 12px 6px").replace("__QT__", "30").replace("__QF__", "28"))
-        css += ".card{flex:none}.shot{width:100%;max-height:none}.imgbox{flex:none;display:block}"
-    logo = _logo_uri()
-    body = f"""<div class=brand>{'<img data-box=logo src="' + logo + '">' if logo else ''}<div class=nm data-box=title>{_esc(title)}</div></div>
+    css += ".card{flex:1}.imgbox{flex:1;min-height:0;position:relative}.shot{position:absolute;inset:0;width:100%;height:100%;max-width:none;max-height:none;object-fit:contain}"      # 滿版：截圖吃滿卡片剩餘空間（contain，不變形）
+    kind = "intraday" if KIND not in TH.SLOT else KIND
+    body = f"""{TH.header_html(kind, _esc(title), _esc(date))}
 <div class=card>
-{("<div class=hd><div class=s data-box=sub>" + _esc(sub) + "</div></div>") if sub else ""}
+{("<div class=hd2><div class=s data-box=sub>" + _esc(sub) + "</div></div>") if sub else ""}
 {_blocks(top, "top")}<div class=imgbox><img class=shot data-box=shot src="{img}"></div>{_blocks(bot, "bot")}</div>"""
     return f"<!doctype html><html><head><meta charset=utf-8><style>{css}</style></head><body>{body}</body></html>"
 
@@ -1263,20 +1277,36 @@ OVERLAP_JS = """() => {
 }"""
 
 
+def trim_margin(path: str, pad: int = 2, thr: int = 28) -> str:
+    """把截圖四周的空白（跟角落同色的部分）裁掉，圓盤才放得大（2026-10-26：輪盤圓盤要佔卡片寬 80% 以上）。"""
+    from PIL import Image, ImageChops
+    im = Image.open(path).convert("RGB")
+    bg = Image.new("RGB", im.size, im.getpixel((3, 3)))
+    box = ImageChops.difference(im, bg).convert("L").point(lambda v: 255 if v > thr else 0).getbbox()
+    if not box:
+        return path
+    x0, y0, x1, y1 = max(0, box[0] - pad), max(0, box[1] - pad), min(im.width, box[2] + pad), min(im.height, box[3] + pad)
+    out = path[:-4] + "_t.png"
+    im.crop((x0, y0, x1, y1)).save(out)
+    return out
+
+
 def compose(browser, mode: str, rec: dict, top: list, bot: list, out_png: Path, report: list, theme: str) -> None:
     from PIL import Image
+    if rec["name"] == "rotation-wheel":
+        rec["raw"] = trim_margin(rec["raw"])
     with Image.open(rec["raw"]) as im:
         iw, ih = im.size
     title, sub = PIECE_META.get(rec["name"], (rec.get("title") or rec["name"], ""))
-    title = title.replace("{d}", DATE_BY.get(rec["name"]) or DATE_LABEL)
-    html = layout_html(mode, title, sub, b64(rec["raw"]), top, bot, theme)
-    pg = browser.new_page(viewport={"width": 1080, "height": 1920 if mode == "story" else 1200}, device_scale_factor=1)
+    dlabel = DATE_BY.get(rec["name"]) or DATE_LABEL
+    title = re.sub(r"\s*\{d\}", "", title)            # 日期只放標題列右側（規範 post_design_system.md 第五節）
+    if KIND == "intraday":
+        dlabel = f"{dlabel} 12:00".strip()          # 盤中固定中午 12:00（2026-10-26 Andy）
+    html = layout_html(mode, title, sub, b64(rec["raw"]), top, bot, theme, dlabel)
+    pg = browser.new_page(viewport={"width": 1080, "height": 1920 if mode == "story" else THREADS_MAX_H}, device_scale_factor=1)
     pg.set_content(html, wait_until="load")
     pg.wait_for_timeout(400)
-    H = 1920 if mode == "story" else int(pg.evaluate("document.body.offsetHeight"))
-    if mode != "story":
-        pg.set_viewport_size({"width": 1080, "height": H})
-        pg.wait_for_timeout(200)
+    H = 1920 if mode == "story" else THREADS_MAX_H
     res = pg.evaluate(OVERLAP_JS)
     box = pg.evaluate("(() => { const r = document.querySelector('.shot').getBoundingClientRect(), c = document.querySelector('.card').getBoundingClientRect(); return [r.width, r.height, c.height]; })()")
     scale = box[0] / iw
@@ -1343,9 +1373,6 @@ def caption_lines(kind: str, stamp: str, shots: list[dict], data_date: str, ymd:
             ups = "、".join(f"{a} {b:+.1f}%" for a, b in h[::-1][:k])
             dns = "、".join(f"{a} {b:+.1f}%" for a, b in h[:k])
             L.append(f"熱力圖：漲最多 {ups}；跌最多 {dns}" + lk("heatmap/industry", idx)); idx += 1
-        s = ok.get("market-breadth")
-        if s and s.get("breadth"):
-            L.append(f"漲跌家數：上漲 {s['breadth']['up']} 家、下跌 {s['breadth']['down']} 家" + lk("market/updown", idx)); idx += 1
     elif kind == "credit":
         yi = lambda x: x.replace("−", "-")
         L.append(f"台股盤後融資融券｜{data_date[5:].replace('-', '/')}")      # 2026-10-26 Andy：「盤後也需要新增融資融券」
@@ -1379,6 +1406,12 @@ def caption_lines(kind: str, stamp: str, shots: list[dict], data_date: str, ymd:
         r = (ok.get("retail-ratio") or {}).get("read") or []
         if r:
             L.append("散戶多空比：" + "、".join(f"{x.get('prod') or '?'} {yi(x.get('pct') or '—')}" for x in r))
+        pn = (((ok.get("market-index") or {}).get("pieces_d") or [{}])[0].get("dump") or {}).get("panels") or []
+        bd = (ok.get("market-breadth") or {}).get("breadth") or {}
+        if pn or bd:      # 2026-10-26：大盤走勢與漲跌家數從盤中移到盤後（Andy）
+            a = f"加權收盤 {pn[0]['price']}（{pn[0]['chgtxt'].replace('  ', ' ')}）" if pn else ""
+            b = f"上漲 {bd['up']} 家、下跌 {bd['down']} 家" if bd.get("up") else ""
+            L.append("大盤：" + "；".join(x for x in (a, b) if x) + f" → {deep_link('overview', kind, ymd)}")
     L.append(HASHTAGS[kind])
     L.append(DISCLAIMER)      # 2026-10-26 Andy：免責與來源只放文案最後一行（圖上不放）
     return L
@@ -1455,14 +1488,14 @@ def decide(kind: str, now: datetime, meta: dict, mf: dict, card_dates: dict, nam
 
 # ---------------------------------------------------------------------------- 主程式
 def main() -> int:
-    global DATE_LABEL
+    global DATE_LABEL, KIND
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--kind", choices=["intraday", "close", "credit"], required=True, help="intraday＝盤中；close＝盤後法人；credit＝盤後融資（資料到齊那輪才發）")
     ap.add_argument("--out", required=True, help="輸出資料夾（manifest.json 與圖片都放這裡）")
     ap.add_argument("--base", default=SITE_URL + "/index.html", help="網站網址（本機例如 http://127.0.0.1:8791/index.html）")
     ap.add_argument("--serve", default="", help="給路徑就在本機起靜態伺服器（site 資料夾），--base 自動設成它")
     ap.add_argument("--port", type=int, default=8791)
-    ap.add_argument("--width", type=int, default=1440)
+    ap.add_argument("--width", type=int, default=840, help="桌機截圖視窗寬（Threads 用）。2026-10-26 由 1440 改 840：截圖放進 1000px 卡片時內文放大約 1.25 倍（>820 才維持桌機版面）")
     ap.add_argument("--height", type=int, default=1000)
     ap.add_argument("--scale", type=float, default=2.0, help="截圖解析度倍率")
     ap.add_argument("--only", default="", help="只做這幾個目標（逗號分隔 name）")
@@ -1472,6 +1505,7 @@ def main() -> int:
     ap.add_argument("--data-url", default="", help="先從這些網址（逗號分隔，依序試）下載網站要用的 JSON 到 --serve 的 data/，例如 https://miaozike.github.io/tw-rotation/data,https://tw-rotation.pages.dev/data")
     ap.add_argument("--spoof-origin", action="store_true", help="報價請求補上正式站 Origin（本機站打正式報價代理用）")
     ap.add_argument("--skip-live", nargs="?", const="all", default="", help="只測版面：不要求即時（all 或逗號分隔的目標名；會截到盤後畫面，絕不可用在發布）")
+    ap.add_argument("--no-native", action="store_true", help="不用原生繪製，全部用網站截圖（除錯用）")
     ap.add_argument("--from-shots", default="", help="沿用另一個輸出資料夾已截好的圖（只換 --frame 配色，示範用）")
     ap.add_argument("--frame", choices=["light", "dark"], default="light", help="版型配色（預設淺色，跟截圖一致）")
     ap.add_argument("--use-snap-attr", action="store_true", help="只用 data-snap 屬性找目標")
@@ -1482,6 +1516,7 @@ def main() -> int:
     ap.add_argument("--no-mis", action="store_true", help="不查 mis 即時成交日（離線測試用；臨時休市就只能靠休市日表）")
     ap.add_argument("--now", default="", help="覆寫「現在」（台北，YYYY-MM-DDTHH:MM，測試日期把關用；會連帶覆寫 --today）")
     args = ap.parse_args()
+    KIND = args.kind
 
     out = Path(args.out).resolve()
     out.mkdir(parents=True, exist_ok=True)
@@ -1542,6 +1577,11 @@ def main() -> int:
             if key_ in done_:
                 log(f"{key_} 已經發過（{args.posted_json}）→ 不重複")
                 return 10
+        if args.kind == "intraday" and not args.force and not args.now:      # 盤中固定中午 12:00：早到就等到 12:00，資料以那一刻的即時為準
+            wait_s = (datetime.combine(now_tpe().date(), datetime.strptime("12:00", "%H:%M").time(), TPE) - now_tpe()).total_seconds()
+            if 0 < wait_s <= 600:
+                log(f"還沒到 12:00，等 {int(wait_s)} 秒再截圖")
+                time.sleep(wait_s)
         if args.from_shots:      # 只換版型配色：沿用另一輪已截好的圖（示範用）
             shots = json.loads((Path(args.from_shots) / "shots.json").read_text("utf-8"))
             sniff = {"quote_dates": set(), "errors": []}
@@ -1575,7 +1615,7 @@ def main() -> int:
             (out / "shots.json").write_text(json.dumps(shots, ensure_ascii=False, indent=2), "utf-8")
             return 2
 
-        stamp_full = now_tpe().strftime("%m/%d %H:%M")
+        stamp_full = now_tpe().strftime("%m/%d %H:%M") if args.kind != "intraday" else f"{now_tpe():%m/%d} 12:00"      # 盤中固定中午 12:00
         dd = data_date[5:].replace("-", "/")
         report: list[dict] = []
         stories: list[str] = []
@@ -1587,14 +1627,46 @@ def main() -> int:
             def texts(s, rec):
                 return (s.get("lines", []) if rec.get("text") == "quad" else []), (s.get("notes", []) if rec.get("text") == "flows" else [])
 
-            for s in ok:
-                for rec in s["pieces_d"]:
+            def native(mode_, rec):
+                """原生繪製（規範第十五節）：成功回 True；資料讀不到或畫失敗就退回網站截圖，並在 log 講明。"""
+                if rec["name"] not in NAT.NATIVE or args.no_native:
+                    return False
+                drec = next((x for x in [x for s_ in ok for x in s_["pieces_d"]] if x["name"] == rec["name"]), rec)
+                title_ = re.sub(r"\s*\{d\}", "", PIECE_META.get(rec["name"], (rec["name"], ""))[0])
+                dlabel_ = DATE_BY.get(rec["name"]) or DATE_LABEL
+                if KIND == "intraday":
+                    dlabel_ = f"{dlabel_} 12:00".strip()
+                ctx_ = dict(kind=KIND, title=title_, date=dlabel_, jget=lambda n: fetch_json(base, n), site=Path(args.serve).resolve() if args.serve else Path("."),
+                            logos=LOGO_MAP, dump=drec.get("dump") or {})
+                if rec["name"] in NAT.DUMP_JS and not ctx_["dump"]:
+                    log("  ⚠ 原生繪製讀不到資料 → 退回網站截圖：", rec["name"])
+                    return False
+                try:
+                    rep_ = NAT.render(browser, rec["name"], mode_, ctx_, out / f"{'story' if mode_ == 'story' else 'threads'}_{rec['name']}.png")
+                except Exception as exc:  # noqa: BLE001
+                    log("  ⚠ 原生繪製失敗 → 退回網站截圖：", rec["name"], str(exc)[:120])
+                    return False
+                report.append(rep_)
+                return True
+
+            ORDER = {"intraday": ["rotation-wheel", "sankey-tree", "rotation-rank", "heat"],
+                     "close": ["inst-today", "streak-foreign", "streak-trust", "fut-oi", "retail-ratio", "market-index", "market-breadth"]}.get(args.kind, [])
+            rk = lambda r: ORDER.index(r["name"]) if r["name"] in ORDER else len(ORDER)
+            pd_ = sorted([(s, r) for s in ok for r in s["pieces_d"]], key=lambda t: rk(t[1]))      # Threads 輪播順序＝這裡的順序
+            pm_ = sorted([(s, r) for s in ok for r in s["pieces_m"]], key=lambda t: rk(t[1]))
+            for s, rec in pd_:
+                if True:
                     tp, bt = texts(s, rec)
-                    compose(browser, "threads", rec, tp, bt, out / f"threads_{rec['name']}.png", report, args.frame)
+                    if not native("threads", rec):
+                        compose(browser, "threads", rec, tp, bt, out / f"threads_{rec['name']}.png", report, args.frame)
                     threads_imgs.append(f"threads_{rec['name']}.png")
-                for rec in s["pieces_m"]:
+            for s, rec in pm_:
+                if True:
+                    if rec["name"] == "rotation-wheel":     # 手機版圓盤只佔卡片寬約 68%（標籤留白）；改用桌機窄視窗那張（約 96%），2026-10-26 Andy 要 ≥80%
+                        rec = next((x for x in s["pieces_d"] if x["name"] == "rotation-wheel"), rec)
                     tp, bt = texts(s, rec)
-                    compose(browser, "story", rec, tp, bt, out / f"story_{rec['name']}.png", report, args.frame)
+                    if not native("story", rec):
+                        compose(browser, "story", rec, tp, bt, out / f"story_{rec['name']}.png", report, args.frame)
                     stories.append(f"story_{rec['name']}.png")
             browser.close()
         for r in report:
