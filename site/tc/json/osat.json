@@ -3802,6 +3802,53 @@
             }
           ],
           "n_stat": 1
+        },
+        {
+          "unit": "竹南",
+          "role": "製程值班工程師",
+          "degree": "碩士",
+          "years": "0",
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n": 1,
+          "note": "",
+          "sources": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261760877",
+              "date": "2026"
+            }
+          ],
+          "confidence": "低",
+          "grade": null,
+          "samples": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261760877",
+              "date": "2026",
+              "unit_detail": "竹南",
+              "years": "0",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "role": null,
+              "quote_free_note": "新鮮人比較矽品製程值班與他廠 offer，問輪班與加班費是否真能拉高收入；無數字",
+              "date_confirmed": true,
+              "date_note": "文章編號 261760877 ≥ 259537767，依 docs/tc/dcard_id_calibration.md 確認晚於 2025-08-01；年份依錨點屬 2026",
+              "in_window": true
+            }
+          ],
+          "n_stat": 1
         }
       ],
       "mops": {
@@ -5764,6 +5811,56 @@
               "quote_free_note": "GoodJob 2026-09 面試經驗，輪班，年薪 71 萬",
               "in_window": true,
               "date_note": "GoodJob 標題／列表附年月，算確認"
+            }
+          ],
+          "n_stat": 1
+        },
+        {
+          "unit": "封測廠",
+          "role": "IC 封裝／測試工程師",
+          "degree": "碩士",
+          "years": null,
+          "base_month_k": [
+            57.5,
+            57.5
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n": 1,
+          "note": "",
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/頎邦科技股份有限公司/work-experiences/薪資福利",
+              "date": "2026"
+            }
+          ],
+          "confidence": "低",
+          "grade": null,
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/頎邦科技股份有限公司/work-experiences/薪資福利",
+              "date": "2026",
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 57.5,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "role": null,
+              "quote_free_note": "IC 封裝／測試工程師評價（2026）：月薪 5.75 萬",
+              "date_confirmed": true,
+              "date_note": "摘要寫出 2026 年",
+              "in_window": true
             }
           ],
           "n_stat": 1

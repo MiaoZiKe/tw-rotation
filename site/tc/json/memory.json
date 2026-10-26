@@ -38,7 +38,7 @@
           ],
           "overtime": "偶爾",
           "travel": null,
-          "n": 24,
+          "n": 25,
           "note": "比薪水統計中位數 5.5 萬（2025 資料）；PTT 傳碩士 5.5 萬起未經公司證實；比薪水 2026 有 4 年 120 萬、6 年 105 萬自述（非新人）；第二輪（Dcard／PTT／GoodJob 各分開搜）：輪班設備起薪 5.5 萬起、台南 TCP Probe 7.4 萬、台中一年經驗 6.1 萬；保 14 個月（含年終 2 個月）＋分紅 0～4 個月（11 月發），內推文稱年薪約 18 個月；夜班津貼 +20%；FY26 公司另發每人 100 萬感謝金（工會質疑）；內推文數字可能偏樂觀；Dcard 日期依文章編號推估；bonus_months、annual_total_wan 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples；未逐筆對應的舊彙整：bonus_months=[2, 4]；未逐筆對應的舊彙整：annual_total_wan=[80, 100]；未逐筆對應的舊彙整：travel=不用；部分年薪／年薪月數由同一筆樣本的「底薪×月數」推算（樣本標 derived）",
           "sources": [
             {
@@ -160,6 +160,11 @@
               "site": "GoodJob",
               "url": "https://www.goodjob.life/companies/台灣美光(台灣美光晶圓%2F台灣美光記憶體%2F美光亞太) MICRON/work-experiences/薪資福利",
               "date": "2026-09"
+            },
+            {
+              "site": "比薪水",
+              "url": "https://salary.tw/salary/69c85d285946660414007836",
+              "date": "2026-03"
             }
           ],
           "confidence": "高",
@@ -676,9 +681,29 @@
               "date_confirmed": true,
               "date_note": "摘要寫出發文年月",
               "in_window": true
+            },
+            {
+              "site": "比薪水",
+              "url": "https://salary.tw/salary/69c85d285946660414007836",
+              "date": "2026-03",
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "role": null,
+              "quote_free_note": "比薪水 2026-03 底設備工程師心得（負責 AMAT 機台）；薪資欄位上鎖，無數字",
+              "date_confirmed": true,
+              "date_note": "摘要寫出發文年月",
+              "in_window": true
             }
           ],
-          "n_stat": 20,
+          "n_stat": 21,
           "degree_diff": "樣本中位數：學士底薪約 55K、碩士約 58K（差約 3K；學士 1 筆、碩士 4 筆）"
         },
         {

@@ -1601,6 +1601,26 @@
               "date_confirmed": true,
               "date_note": "GoodJob 搜尋摘要標分享年月",
               "in_window": true
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/南亞電路板股份有限公司/work-experiences/薪資福利",
+              "date": "2026",
+              "unit_detail": null,
+              "years": "2",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 85,
+              "weekly_hours": 50,
+              "overtime": null,
+              "travel": null,
+              "role": null,
+              "quote_free_note": "研發工程師評價（2026）：年資 2 年、年薪 85 萬、每週 50 小時",
+              "date_confirmed": true,
+              "date_note": "摘要寫出 2026 年",
+              "in_window": true
             }
           ],
           "sources": [
@@ -1620,7 +1640,7 @@
               "date": "2026-03"
             }
           ],
-          "confidence": "低",
+          "confidence": "中",
           "grade": null,
           "note": null,
           "base_month_k": [
@@ -1630,14 +1650,17 @@
           "bonus_months": null,
           "annual_months": null,
           "annual_total_wan": [
-            90,
+            85,
             90
           ],
-          "weekly_hours": null,
+          "weekly_hours": [
+            50,
+            50
+          ],
           "overtime": null,
           "travel": null,
-          "n": 3,
-          "n_stat": 3
+          "n": 4,
+          "n_stat": 4
         }
       ],
       "mops": {
