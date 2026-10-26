@@ -55,7 +55,7 @@ _sim_cm = _make_sim_cm()
 
 
 # ------------------------------------------------------------------ 修正後的資料與 Lab
-def adjusted_tx():
+def adjusted_tx(both=False):
     raw = F.load_tx()
     d = F._rd("index_ohlc"); d["date"] = pd.to_datetime(d["date"])
     idx = raw.index
@@ -65,9 +65,9 @@ def adjusted_tx():
     settle = F.settle_days(idx)
     k = np.ones(n)
     for i in np.where(settle)[0]:
-        t = i + 1
-        if t < n and np.isfinite(tr[t]):
-            k[t] = (c[t] / c[t - 1]) / (1.0 + tr[t])
+        for t in ((i, i + 1) if both else (i + 1,)):             # both=True：連結算日當天也當成換月日（敏感度檢查：假設提早一天換到下個月合約）
+            if t < n and np.isfinite(tr[t]):
+                k[t] = (c[t] / c[t - 1]) / (1.0 + tr[t])
     fac = np.ones(n); acc = 1.0
     for j in range(n - 1, -1, -1):
         fac[j] = acc; acc *= k[j]
@@ -112,8 +112,8 @@ RAW = {}
 
 
 @contextmanager
-def fixed_world():
-    adj, raw, fac = adjusted_tx()
+def fixed_world(both=False):
+    adj, raw, fac = adjusted_tx(both)
     RAW.update(raw=raw, fac=fac)
     F.load_tx = lambda: adj
     F.Lab = FixedLab
@@ -127,8 +127,8 @@ def fixed_world():
 class Lab5(L4.Lab4):
     """第四輪 Lab4 的修正版：事件式引擎與保證金引擎都用正確的成本換算。"""
 
-    def __init__(self):
-        with fixed_world():
+    def __init__(self, both=False):
+        with fixed_world(both):
             super().__init__()
         self.lab.fac = RAW["fac"]
         self.fixfac = RAW["fac"]
