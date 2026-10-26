@@ -17,6 +17,18 @@
      晶豪科 松翰 祥碩 義隆 聯陽 達發 鈺創 點序 奇景 神準 瑞軒 啟碁 瑞儀 大立光 富智康 永擎 新盛力 乾坤 虹堡 新代 SSMC
    國際大廠（ASML、NVIDIA、Apple…）與知名品牌網域未逐家另搜。
    仍無網域：鴻運科（只查到新加坡商專利資料）、立元科技、科傳、碩貝德（查到 speed-hz.com 僅為信箱網域，未證實）、馳諾瓦、開酷（kaikutek，查無官網）、力林 */
+/* 2026-10-27 第二輪查證（國際大廠／大型品牌逐家 WebSearch；台灣子公司一律以集團主網域為 favicon 來源）：
+   改正：Quest Global quest-global.com→questglobal.com（多數頁面在無連字號網域）｜Merck merck.com→merckgroup.com（台灣默克＝德國 Merck KGaA 電子材料；merck.com 是美國 MSD）
+   Garmin garmin.com→garmin.com.tw（台灣國際航電官網，實習公告）｜合勤 zyxel.com→zyxelgroup.com（3704 合勤控登記網址）
+   台灣子公司用主網域：ASML（asml.com/zh-tw）、應材（appliedmaterials.com/tw）、Lam、KLA（台灣分公司無獨立網域）、TEL、美光（micron.com）、愛德萬（advantest.com/tw）、
+     泰瑞達、AMD／NVIDIA（/zh-tw）、Dell（/zh-tw）、HP（/tw-zh）、Synopsys（/zh-tw）、高通、AMI、Moxa（moxa.com/tw）、Raritan（raritan.com/ap/tw）
+   一手或登記資料核對一致：台積電 聯電 南亞科 華邦 日月光 Amkor 欣興 聯發科 瑞昱 聯詠 群聯 世芯 信驊 立錡 耐能 智原 新唐 MPS 工研院 SCREEN FormFactor 日立先端
+     鴻海 廣達 仁寶 緯創 英業達 和碩 華碩 技嘉 微星 緯穎 台達電 光寶 智邦 系微 趨勢 元太 友達 群創 裕隆 Wipro 博通 Meta UnaBiz
+   明基：json 代號 2352 實為佳世達（qisda.com.tw），名稱寫明基故仍用品牌 benq.com。Google／微軟搜尋摘要未直接列網址，網域即品牌主網域。
+   查無補上（換 3 組關鍵字）：鴻運科→foxconn.com（新加坡商，鴻海 100% 持有的 Foxconn Singapore 體系；集團主網域，中信心）
+     碩貝德→speed-hz.com（母公司惠州碩貝德 300322 登記網站，台灣子公司信箱同網域）｜馳諾瓦→phihongtech.com（飛宏子公司，母公司登記網址）｜開酷→kaikutek.com（科技新報等報導）
+   仍無：立元科技（立元科技 官網／統一編號／Liyuan Technology／薪水 面試，皆只撈到立端、立銜等）、科傳（官網／統編 英文名／Cotron 推測未證實）、
+     力林（官網／統一編號 網址／Li Lin 電子 半導體，只撈到力領、力智） */
 (function () {
   'use strict';
   const D = {
@@ -33,28 +45,28 @@
     // 設備
     'ASML': 'asml.com', '應用材料': 'appliedmaterials.com', 'Lam Research': 'lamresearch.com', 'KLA': 'kla.com', 'TEL': 'tel.com', 'SCREEN（DNS）': 'screen.co.jp',
     'Lasertec': 'lasertec.co.jp', '愛德萬': 'advantest.com', '泰瑞達': 'teradyne.com', 'FormFactor': 'formfactor.com', '旺矽': 'mpi-corporation.com', '辛耘': 'scientech.com.tw',
-    '漢磊': 'episil.com', '日立先端（Hitachi High-Tech）': 'hitachi-hightech.com', 'Quest Global': 'quest-global.com',
+    '漢磊': 'episil.com', '日立先端（Hitachi High-Tech）': 'hitachi-hightech.com', 'Quest Global': 'questglobal.com',
     // IC 設計
     '聯發科': 'mediatek.com', '瑞昱': 'realtek.com', '聯詠': 'novatek.com.tw', '群聯': 'phison.com', '世芯-KY': 'alchip.com', '創意': 'guc-asic.com', '信驊': 'aspeedtech.com',
     '円星': 'm31tech.com', '力旺': 'ememory.com.tw', '天鈺': 'fitipower.com', '奇景': 'himax.com.tw', '奕力': 'ilitek.com', '威鋒': 'via-labs.com', '愛普': 'apmemory.com',
     '慧榮': 'siliconmotion.com', '揚智': 'ali.com.tw', '敦泰': 'focaltech-electronics.com', '普誠': 'princeton.com.tw', '晶相光電': 'soinc.com.tw', '晶豪科': 'esmt.com.tw',
     '松翰': 'sonix.com.tw', '瑞鼎': 'rad-ic.com', '祥碩': 'asmedia.com.tw', '立錡': 'richtek.com', '義隆': 'emc.com.tw', '耐能智慧': 'kneron.com', '聯陽(ITE)': 'ite.com.tw',
     '迅杰': 'ene.com.tw', '達發': 'airoha.com', '鈺創': 'etron.com', '點序': 'asolid-tek.com', '工研院': 'itri.org.tw', 'MPS 台灣': 'monolithicpower.com',
-    '力林': '', '開酷': '',
+    '力林': '', '開酷': 'kaikutek.com',
     // ODM
     '鴻海': 'foxconn.com', '廣達': 'quantatw.com', '仁寶': 'compal.com', '緯創': 'wistron.com', '英業達': 'inventec.com', '和碩': 'pegatroncorp.com', '華碩': 'asus.com',
     '技嘉': 'gigabyte.com', '微星': 'msi.com', '明基': 'benq.com', '緯穎': 'wiwynn.com', '台達電': 'deltaww.com', '光寶': 'liteon.com', '智邦': 'accton.com', '智易': 'arcadyan.com',
-    '啟碁': 'wnc.com.tw', '合勤': 'zyxel.com', '群光': 'chicony.com', '奇鋐': 'avc.co', '瑞軒': 'amtran.com.tw', '神準': 'senaonetworks.com', '系微': 'insyde.com',
-    '趨勢科技': 'trendmicro.com', '元太': 'eink.com', '富智康': 'fihmobile.com', '神雲科技': 'mitaccomputing.com', '鴻運科': '', '神基': 'getac.com', '鴻佰': 'ingrasys.com', '永擎電子': 'asrockrack.com',
+    '啟碁': 'wnc.com.tw', '合勤': 'zyxelgroup.com', '群光': 'chicony.com', '奇鋐': 'avc.co', '瑞軒': 'amtran.com.tw', '神準': 'senaonetworks.com', '系微': 'insyde.com',
+    '趨勢科技': 'trendmicro.com', '元太': 'eink.com', '富智康': 'fihmobile.com', '神雲科技': 'mitaccomputing.com', '鴻運科': 'foxconn.com', '神基': 'getac.com', '鴻佰': 'ingrasys.com', '永擎電子': 'asrockrack.com',
     // 面板／光學
     '友達': 'auo.com', '群創': 'innolux.com', '瑞儀光電': 'radiant.com.tw', '大立光': 'largan.com.tw',
     // 外商
-    'AMD': 'amd.com', 'Apple': 'apple.com', 'Dell': 'dell.com', 'Garmin': 'garmin.com', 'Google': 'google.com', 'HP': 'hp.com', 'Merck': 'merck.com', 'Meta': 'meta.com',
+    'AMD': 'amd.com', 'Apple': 'apple.com', 'Dell': 'dell.com', 'Garmin': 'garmin.com.tw', 'Google': 'google.com', 'HP': 'hp.com', 'Merck': 'merckgroup.com', 'Meta': 'meta.com',
     'NVIDIA': 'nvidia.com', 'Synopsys': 'synopsys.com', 'Wipro': 'wipro.com', '博通': 'broadcom.com', '微軟': 'microsoft.com', '高通': 'qualcomm.com', 'AMI': 'ami.com',
     'SSMC（新加坡）': 'ssmc.com',
     // 其他
     '乾坤科技': 'cyntec.com', '四零四科技（Moxa）': 'moxa.com', '新盛力科技': 'stl-tech.com', '裕隆': 'yulon-motor.com.tw', '鴻華先進': 'foxtronev.com', '瑞力登 Raritan': 'raritan.com',
-    '碩貝德': '', '科傳': '', '馳諾瓦': '', 'Unabiz': 'unabiz.com', '虹堡': 'castlestech.com', '雃博': 'wellell.com', '新代': 'syntecclub.com',
+    '碩貝德': 'speed-hz.com', '科傳': '', '馳諾瓦': 'phihongtech.com', 'Unabiz': 'unabiz.com', '虹堡': 'castlestech.com', '雃博': 'wellell.com', '新代': 'syntecclub.com',
     '立元科技': '', '車美仕': 'carmax.com.tw', '連宇': 'uicpaymentsinc.com'
   };
   Object.assign(D, { '智原': 'faraday-tech.com', '新唐': 'nuvoton.com' });

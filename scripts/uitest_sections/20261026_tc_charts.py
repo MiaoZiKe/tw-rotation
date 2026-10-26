@@ -43,7 +43,7 @@ def t_tc_charts_1026(b, base, code):
     ok(f"{T}：LOGO 載入失敗 → 圖被移除、字標仍在", pg.evaluate("()=>document.querySelectorAll('#v-tc .tc-lg img').length===0 && [...document.querySelectorAll('#v-tc .tc-lg')].every(l=>l.querySelector('i').innerText.trim()||l.querySelector('i svg'))"))
     cov = pg.evaluate("""async()=>{const fs=['equipment','foreign','foundry','icdesign','material','memory','odm','osat','other','panel'];const miss=[],un=[];let n=0;
       for(const f of fs){const d=await (await fetch('tc/json/'+f+'.json')).json();for(const c of (d.companies||[])){n++;if(TcLogo.unnamed(c.name)){un.push(c.name);continue}if(!TcLogo.domain(c.name))miss.push(c.name)}}return {n,miss,un}}""")
-    ALLOW = {"鴻運科": "只查到新加坡商專利資料", "立元科技": "「立元科技 官網」查無", "科傳": "「科傳 官網／科傳 資訊」查無", "碩貝德": "speed-hz.com 僅為信箱網域未證實", "馳諾瓦": "「馳諾瓦 官網／科技」查無", "開酷": "「開酷科技 KaiKuTek 官網」查無官網", "力林": "「力林科技 官網」查無"}
+    ALLOW = {"立元科技": "立元科技 官網／統一編號／Liyuan Technology／薪水 面試 皆查無", "科傳": "科傳 官網／統編 英文名／Cotron 推測未證實", "力林": "力林科技 官網／統一編號 網址／Li Lin 電子 皆查無"}
     bad = [m for m in cov["miss"] if m not in ALLOW]
     for m in cov["miss"]:
         if m in ALLOW: print(f"  ℹ {T}：{m} 無網域（{ALLOW[m]}）")
