@@ -293,7 +293,10 @@
               "unit_detail": null,
               "years": "0",
               "degree": "碩士",
-              "base_k": 60,
+              "base_k": [
+                58,
+                62
+              ],
               "bonus_months": null,
               "annual_months": null,
               "annual_wan": null,
@@ -302,7 +305,7 @@
               "travel": null,
               "quote_free_note": "總經理說約 58～62k（取中值），分紅看公司獲利；婉拒",
               "in_window": true,
-              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-01-20"
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-01-20；10-26 改：base_k 由中值 60 改填區間 [58, 62]"
             }
           ],
           "n": 1,
@@ -315,8 +318,8 @@
           ],
           "confidence": "低",
           "base_month_k": [
-            60,
-            60
+            58,
+            62
           ],
           "years": "0",
           "bonus_months": null,
@@ -610,13 +613,16 @@
               "base_k": null,
               "bonus_months": null,
               "annual_months": null,
-              "annual_wan": 150,
+              "annual_wan": [
+                140,
+                160
+              ],
               "weekly_hours": null,
               "overtime": "偶爾",
               "travel": null,
               "quote_free_note": "純 RD 不輪班、彈性上下班，出貨前要加班；年薪加 bonus 約 140～160 萬（取中值）；面試要求英文；文中說曾面廣達、華碩韌體但因薪水不如現職而拒絕二面",
               "in_window": true,
-              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-08-03"
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-08-03；10-26 改：annual_wan 由中值 150 改填區間 [140, 160]"
             }
           ],
           "n": 1,
@@ -629,8 +635,8 @@
           ],
           "confidence": "低",
           "annual_total_wan": [
-            150,
-            150
+            140,
+            160
           ],
           "overtime": "偶爾",
           "years": "0",
@@ -937,8 +943,8 @@
       "stock_plan": null,
       "bonus_timing": null,
       "bonus_structure": [],
-      "culture": null,
-      "interview": null,
+      "culture": "網友說法：福利評價兩極，2026-03 硬體高級工程師說沒啥福利、獎金看老闆心情；2025 軟體測試開發說整年 16～18 個月、第一年就能領，也有人說只保 14 個月（GoodJob）",
+      "interview": "網友說法：多為兩關（程式考試或線上 coding test＋現場面試），面試前常有 HR 聊天；第二關部門經理與主管一起面、要報告投影片（GoodJob 評分 3.3／36 筆）",
       "grade_system": null,
       "mops": null,
       "roles": [
@@ -990,6 +996,156 @@
           "travel": null,
           "n_stat": 1,
           "note": null
+        },
+        {
+          "unit": "研發 RD",
+          "role": "軟體工程師",
+          "degree": null,
+          "samples": [
+            {
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 60,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/鴻華先進科技股份有限公司/interview-experiences",
+              "date": "2026-06",
+              "date_confirmed": true,
+              "date_note": "GoodJob 面試經驗標示 2026.6.27（搜尋摘要）",
+              "in_window": true,
+              "role": "軟體工程師（面試）",
+              "quote_free_note": "面試分享評 4.5 分；月薪 6 萬"
+            }
+          ],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/鴻華先進科技股份有限公司/interview-experiences",
+              "date": "2026-06"
+            }
+          ],
+          "confidence": "低",
+          "note": "2026-10-26 依搜尋摘要新增",
+          "grade": null,
+          "base_month_k": [
+            60,
+            60
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n": 1,
+          "n_stat": 1
+        },
+        {
+          "unit": "研發 RD",
+          "role": "電子測試驗證工程師",
+          "degree": null,
+          "samples": [
+            {
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 55,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/鴻華先進科技股份有限公司/interview-experiences",
+              "date": "2026-06",
+              "date_confirmed": true,
+              "date_note": "GoodJob 面試經驗標示 2026.6.21（搜尋摘要）",
+              "in_window": true,
+              "role": "電子測試驗證工程師（面試）",
+              "quote_free_note": "面試分享；月薪 5.5 萬"
+            }
+          ],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/鴻華先進科技股份有限公司/interview-experiences",
+              "date": "2026-06"
+            }
+          ],
+          "confidence": "低",
+          "note": "2026-10-26 依搜尋摘要新增",
+          "grade": null,
+          "base_month_k": [
+            55,
+            55
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n": 1,
+          "n_stat": 1
+        },
+        {
+          "unit": "研發 RD",
+          "role": "硬體高級工程師",
+          "degree": null,
+          "samples": [
+            {
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 60,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/job-titles/硬體高級工程師/work-experiences",
+              "date": "2026-03",
+              "date_confirmed": true,
+              "date_note": "GoodJob 評價標示 2026 年 3 月（搜尋摘要）",
+              "in_window": true,
+              "role": "硬體高級工程師（在職評價）",
+              "quote_free_note": "評分不高；月薪 6 萬，說沒啥福利、獎金看老闆心情"
+            }
+          ],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/job-titles/硬體高級工程師/work-experiences",
+              "date": "2026-03"
+            }
+          ],
+          "confidence": "低",
+          "note": "2026-10-26 依搜尋摘要新增",
+          "grade": null,
+          "base_month_k": [
+            60,
+            60
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n": 1,
+          "n_stat": 1
         }
       ],
       "note": "2026-10-26 由 Dcard 樣本新增的公司"
@@ -1026,14 +1182,20 @@
               "degree": "碩士",
               "base_k": 58,
               "bonus_months": null,
-              "annual_months": 14.9,
-              "annual_wan": 86.5,
+              "annual_months": [
+                14.7,
+                15.2
+              ],
+              "annual_wan": [
+                85,
+                88
+              ],
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
               "quote_free_note": "HR 依資歷估核薪月薪約 58k、年薪 85～88 萬（取中值）；尚未完成面試",
               "in_window": true,
-              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2025-08-15",
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2025-08-15；10-26 改：annual_wan 由中值 86.5 改填區間 [85, 88]",
               "derived": [
                 "annual_months"
               ]
@@ -1053,14 +1215,14 @@
             58
           ],
           "annual_total_wan": [
-            86.5,
-            86.5
+            85,
+            88
           ],
           "years": "12",
           "bonus_months": null,
           "annual_months": [
-            14.9,
-            14.9
+            14.7,
+            15.2
           ],
           "weekly_hours": null,
           "overtime": null,
@@ -1106,14 +1268,17 @@
                 1,
                 5
               ],
-              "annual_months": 18,
+              "annual_months": [
+                16,
+                20
+              ],
               "annual_wan": null,
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
               "quote_free_note": "最終 offer：月薪比現職高約 10%、年薪高約 30%，保 15＋分紅 1～5 個月（取中值約 18）",
               "in_window": true,
-              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2025-08-15；bonus_months 依摘要「分紅 1～5 個月」填區間（10-26 補）",
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2025-08-15；bonus_months 依摘要「分紅 1～5 個月」填區間（10-26 補）；10-26 改：annual_months 由中值 18 改填區間 [16, 20]",
               "derived": []
             }
           ],
@@ -1127,8 +1292,8 @@
           "confidence": "低",
           "n": 1,
           "annual_months": [
-            18,
-            18
+            16,
+            20
           ],
           "years": "12",
           "base_month_k": null,
@@ -1283,9 +1448,22 @@
       "benefits": null,
       "stock_plan": null,
       "bonus_timing": null,
-      "bonus_structure": [],
-      "culture": null,
-      "interview": null,
+      "bonus_structure": [
+        {
+          "type": "三節＋年終",
+          "rule": "網友評價：月薪 12 個月，端午、中秋各 0.5 個月，年終 1～2 個月；另一則說三節＋年終＋分紅合計 15～16.5 個月",
+          "months": null,
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/馳諾瓦科技/work-experiences/薪資福利",
+              "date": null
+            }
+          ]
+        }
+      ],
+      "culture": "網友說法：有人抱怨責任制、需短期出差東南亞（面試時間 2022）；第一年沒有分紅、公司有賺錢才發（GoodJob）",
+      "interview": "網友說法：人資電話訪談後與單位主管面談；韌體職缺先考紙本（C 程式題、RTOS 概念）再一對一；2026 工程師分享說主管介紹仔細但地點偏僻（GoodJob 評分 3.6／12 筆）",
       "grade_system": null,
       "mops": null,
       "note": "2026-10-26 由 Dcard 樣本新增的公司",
@@ -1477,14 +1655,17 @@
               "degree": "碩士",
               "base_k": null,
               "bonus_months": null,
-              "annual_months": 15,
+              "annual_months": [
+                14,
+                16
+              ],
               "annual_wan": null,
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
               "quote_free_note": "(N-2)×14～16（取中值）；發文者說福利部分現金改為點數",
               "in_window": true,
-              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-03-13"
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-03-13；10-26 改：annual_months 由中值 15 改填區間 [14, 16]"
             }
           ],
           "n": 1,
@@ -1498,8 +1679,8 @@
           "confidence": "低",
           "note": "2026-10-26 由 Dcard 樣本新增的公司",
           "annual_months": [
-            15,
-            15
+            14,
+            16
           ],
           "years": "0",
           "base_month_k": null,
