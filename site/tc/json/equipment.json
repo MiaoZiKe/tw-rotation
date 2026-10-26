@@ -643,7 +643,15 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": [
+            170,
+            170
+          ],
+          "weekly_hours": null
         }
       ],
       "mops": null,
@@ -1579,7 +1587,18 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "base_month_k": null,
+          "bonus_months": [
+            3.5,
+            3.5
+          ],
+          "annual_months": [
+            14,
+            14
+          ],
+          "annual_total_wan": null,
+          "weekly_hours": null
         }
       ],
       "mops": null,
@@ -2204,7 +2223,7 @@
               "base_k": null,
               "bonus_months": null,
               "annual_months": null,
-              "annual_wan": null,
+              "annual_wan": 100,
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
@@ -2222,7 +2241,15 @@
           "sources": [],
           "confidence": "低",
           "note": "2026-10-26 由 Dcard 樣本新增的公司",
-          "travel": "需要"
+          "travel": "需要",
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": [
+            100,
+            100
+          ],
+          "weekly_hours": null
         }
       ]
     },

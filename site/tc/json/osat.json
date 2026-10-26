@@ -871,7 +871,13 @@
           "annual_total_wan": [
             105,
             105
-          ]
+          ],
+          "base_month_k": [
+            45,
+            45
+          ],
+          "bonus_months": null,
+          "weekly_hours": null
         },
         {
           "unit": "高雄",
@@ -3044,7 +3050,18 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "base_month_k": [
+            45,
+            45
+          ],
+          "bonus_months": null,
+          "annual_months": [
+            14,
+            14
+          ],
+          "annual_total_wan": null,
+          "weekly_hours": null
         },
         {
           "unit": "其他",
@@ -3074,7 +3091,15 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": [
+            75,
+            75
+          ],
+          "weekly_hours": null
         }
       ],
       "note": "2026-10-26 由 Dcard 樣本新增的公司"

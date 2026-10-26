@@ -2454,12 +2454,12 @@
           "bonus_months": null,
           "annual_months": null,
           "annual_total_wan": [
-            250,
+            160,
             250
           ],
           "weekly_hours": [
             45,
-            45
+            55
           ],
           "overtime": "偶爾",
           "travel": "不用",
@@ -3722,7 +3722,10 @@
           "bonus_months": null,
           "annual_months": null,
           "annual_total_wan": null,
-          "weekly_hours": 50,
+          "weekly_hours": [
+            50,
+            65
+          ],
           "overtime": "經常",
           "travel": "不用",
           "confidence": "低",
@@ -6814,7 +6817,18 @@
           ],
           "sources": [],
           "confidence": "低",
-          "n": 1
+          "n": 1,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": [
+            70,
+            70
+          ],
+          "weekly_hours": [
+            40,
+            40
+          ]
         }
       ],
       "mops": {
