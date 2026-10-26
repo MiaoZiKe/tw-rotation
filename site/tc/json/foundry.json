@@ -942,7 +942,7 @@
               "degree": "不限",
               "base_k": 77.5,
               "bonus_months": null,
-              "annual_months": null,
+              "annual_months": 39.2,
               "annual_wan": 304,
               "weekly_hours": null,
               "overtime": "經常",
@@ -950,7 +950,10 @@
               "quote_free_note": "32 職等平均底薪請益：32 底薪 75～80k 約 304 萬（估算）",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": false,
+              "derived": [
+                "annual_months"
+              ]
             },
             {
               "site": "Dcard",
@@ -2500,7 +2503,7 @@
           "overtime": "偶爾",
           "travel": "不用",
           "n": 27,
-          "note": "GoodJob 2026-04 單筆（台南，不到 1 年），自述底薪 6 萬＋三節＋分紅＋運動會獎金；分紅與年薪月數查 GoodJob／媒體未見 IT 職專屬數字，維持 null；2026-10-25 補：Dcard 轉貼 IT 自述第一年約 145 萬、第二年吃到完整分紅約 300 萬、加班少（單筆）；salary.tw IT 回報以 MES 開發為主；資料科學／SRE 未找到專屬數字",
+          "note": "GoodJob 2026-04 單筆（台南，不到 1 年），自述底薪 6 萬＋三節＋分紅＋運動會獎金；分紅與年薪月數查 GoodJob／媒體未見 IT 職專屬數字，維持 null；2026-10-25 補：Dcard 轉貼 IT 自述第一年約 145 萬、第二年吃到完整分紅約 300 萬、加班少（單筆）；salary.tw IT 回報以 MES 開發為主；資料科學／SRE 未找到專屬數字；部分年薪／年薪月數由同一筆樣本的「底薪×月數」推算（樣本標 derived）",
           "sources": [
             {
               "site": "GoodJob",
@@ -2753,7 +2756,7 @@
               "degree": "不限",
               "base_k": 53,
               "bonus_months": null,
-              "annual_months": null,
+              "annual_months": 15.1,
               "annual_wan": 80,
               "weekly_hours": null,
               "overtime": "偶爾",
@@ -2761,7 +2764,10 @@
               "quote_free_note": "CIM offer 月薪約 5.3 萬、年薪約 80 萬、on call（範圍外）",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": false,
+              "derived": [
+                "annual_months"
+              ]
             },
             {
               "site": "Dcard",
@@ -5437,7 +5443,7 @@
           "travel": "不用",
           "confidence": "中",
           "role": "技術員／資深技術員（含 ETE 助工）",
-          "note": "Dcard 五年技術員自述前五年約 70／80／90／95／100 萬；三年技術員自述第 4 年考績佳升職約 110 萬；今周刊與 Dcard『年收 150 萬』為高職 6 年單一個案；ETE 起薪比 TE 多約 4 千（自述）；2025 GG 技術員薪資分享（PTT）顯示年收主要靠分紅與加班費",
+          "note": "Dcard 五年技術員自述前五年約 70／80／90／95／100 萬；三年技術員自述第 4 年考績佳升職約 110 萬；今周刊與 Dcard『年收 150 萬』為高職 6 年單一個案；ETE 起薪比 TE 多約 4 千（自述）；2025 GG 技術員薪資分享（PTT）顯示年收主要靠分紅與加班費；部分年薪／年薪月數由同一筆樣本的「底薪×月數」推算（樣本標 derived）",
           "sources": [
             {
               "site": "Dcard",
@@ -5703,7 +5709,7 @@
               "degree": "不限",
               "base_k": 40,
               "bonus_months": null,
-              "annual_months": null,
+              "annual_months": 18.8,
               "annual_wan": 75,
               "weekly_hours": null,
               "overtime": "偶爾",
@@ -5711,7 +5717,10 @@
               "quote_free_note": "助工：二休二、本薪約 4 萬、第一年約 70～80 萬",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": false,
+              "derived": [
+                "annual_months"
+              ]
             },
             {
               "site": "Dcard",
@@ -7851,7 +7860,10 @@
             18,
             18
           ],
-          "annual_total_wan": null,
+          "annual_total_wan": [
+            138.6,
+            138.6
+          ],
           "weekly_hours": null,
           "overtime": "偶爾～經常",
           "travel": "不用",
@@ -8000,14 +8012,17 @@
               "base_k": 77,
               "bonus_months": null,
               "annual_months": 18,
-              "annual_wan": null,
+              "annual_wan": 138.6,
               "weekly_hours": null,
               "overtime": "偶爾～經常",
               "travel": "不用",
               "quote_free_note": "月薪約 7.7 萬、年薪約月薪×18",
               "date_confirmed": true,
               "in_window": true,
-              "date_note": null
+              "date_note": null,
+              "derived": [
+                "annual_wan"
+              ]
             },
             {
               "site": "salary.tw",
@@ -8095,14 +8110,17 @@
               "base_k": 86,
               "bonus_months": null,
               "annual_months": 21,
-              "annual_wan": null,
+              "annual_wan": 180.6,
               "weekly_hours": null,
               "overtime": "偶爾～經常",
               "travel": "不用",
               "quote_free_note": "設備碩士 7 年月薪 8.6 萬、含分紅全年 18～24 個月",
               "date_confirmed": true,
               "in_window": false,
-              "date_note": null
+              "date_note": null,
+              "derived": [
+                "annual_wan"
+              ]
             },
             {
               "site": "Dcard",
@@ -8932,7 +8950,7 @@
           "overtime": "經常（需值班）",
           "travel": "不用",
           "n": 21,
-          "note": "GoodJob 2026 單筆月薪 6.06 萬；QC 自述 12＋4 個月；學歷年資未標；GoodJob 多則回報公司保障 16 個月（含年終與節金），另 7 月依營運發分紅、4 月調薪；分紅月數未見具體數字（2026-10 查 GoodJob、媒體）；2026-10-25 補：整體平台估算年薪 73～158 萬；工程師保 16 個月＋7 月分紅（HR 稱往年 1～2 個月）",
+          "note": "GoodJob 2026 單筆月薪 6.06 萬；QC 自述 12＋4 個月；學歷年資未標；GoodJob 多則回報公司保障 16 個月（含年終與節金），另 7 月依營運發分紅、4 月調薪；分紅月數未見具體數字（2026-10 查 GoodJob、媒體）；2026-10-25 補：整體平台估算年薪 73～158 萬；工程師保 16 個月＋7 月分紅（HR 稱往年 1～2 個月）；部分年薪／年薪月數由同一筆樣本的「底薪×月數」推算（樣本標 derived）",
           "sources": [
             {
               "site": "GoodJob",
@@ -9281,14 +9299,17 @@
               "base_k": 51.5,
               "bonus_months": 1,
               "annual_months": 16,
-              "annual_wan": null,
+              "annual_wan": 82.4,
               "weekly_hours": null,
               "overtime": "經常（需值班）",
               "travel": "不用",
               "quote_free_note": "新人結構：2023 碩士 50～53k、保 16、分紅 31 職等約 1 個月（範圍外）",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": false,
+              "derived": [
+                "annual_wan"
+              ]
             },
             {
               "site": "Dcard",
@@ -9467,7 +9488,7 @@
           "overtime": "經常（需值班）",
           "travel": "不用",
           "n": 15,
-          "note": "GoodJob 面試回報單筆 5.8 萬（未通知、年資不完整）；Dcard／PTT 查無世界先進 offer。查過：世界先進 offer 碩士 月薪 分紅 面試 2026（Dcard）／世界先進 GoodJob 面試經驗 製程整合 設備工程師 月薪；GoodJob 多則回報公司保障 16 個月（含年終與節金），另 7 月依營運發分紅、4 月調薪；分紅月數未見具體數字（2026-10 查 GoodJob、媒體）；GoodJob 製程職回報工時偏長、需值班；出差未見回報（廠內職）；2026-10-25 補：Dcard 碩士 31 職等第二年領滿約 110～125 萬（網友）、第一年保 16 領不滿；研替 offer 57k×16、另簽約金 10 萬；研替同職等有 57／62 兩種價",
+          "note": "GoodJob 面試回報單筆 5.8 萬（未通知、年資不完整）；Dcard／PTT 查無世界先進 offer。查過：世界先進 offer 碩士 月薪 分紅 面試 2026（Dcard）／世界先進 GoodJob 面試經驗 製程整合 設備工程師 月薪；GoodJob 多則回報公司保障 16 個月（含年終與節金），另 7 月依營運發分紅、4 月調薪；分紅月數未見具體數字（2026-10 查 GoodJob、媒體）；GoodJob 製程職回報工時偏長、需值班；出差未見回報（廠內職）；2026-10-25 補：Dcard 碩士 31 職等第二年領滿約 110～125 萬（網友）、第一年保 16 領不滿；研替 offer 57k×16、另簽約金 10 萬；研替同職等有 57／62 兩種價；部分年薪／年薪月數由同一筆樣本的「底薪×月數」推算（樣本標 derived）",
           "sources": [
             {
               "site": "GoodJob",
@@ -9595,14 +9616,17 @@
               "base_k": 57,
               "bonus_months": null,
               "annual_months": 16,
-              "annual_wan": null,
+              "annual_wan": 91.2,
               "weekly_hours": null,
               "overtime": "經常（需值班）",
               "travel": "不用",
               "quote_free_note": "研替 57k×16",
               "date_confirmed": false,
               "in_window": false,
-              "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計"
+              "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
+              "derived": [
+                "annual_wan"
+              ]
             },
             {
               "site": "Dcard",
@@ -10235,14 +10259,17 @@
               "base_k": 46,
               "bonus_months": null,
               "annual_months": 16,
-              "annual_wan": null,
+              "annual_wan": 73.6,
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
               "quote_free_note": "舊制研發底薪 45～47k、保 16",
               "date_confirmed": false,
               "in_window": false,
-              "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計"
+              "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
+              "derived": [
+                "annual_wan"
+              ]
             },
             {
               "site": "Dcard",
@@ -10448,7 +10475,7 @@
           "overtime": "偶爾（良率問題時加班）",
           "travel": "不用",
           "n": 14,
-          "note": "GoodJob 2026-01 自述月薪 6 萬、近一年無季獎金；另 2025 一筆 8 萬為 6 年年資已排除；力積電近一年虧損，分紅月數依同公司製程／整合職回報為 0；2026-10-25 補：Dcard 2025 碩士新人起薪 58～62k、保 14 個月，分紅不宜期待",
+          "note": "GoodJob 2026-01 自述月薪 6 萬、近一年無季獎金；另 2025 一筆 8 萬為 6 年年資已排除；力積電近一年虧損，分紅月數依同公司製程／整合職回報為 0；2026-10-25 補：Dcard 2025 碩士新人起薪 58～62k、保 14 個月，分紅不宜期待；部分年薪／年薪月數由同一筆樣本的「底薪×月數」推算（樣本標 derived）",
           "sources": [
             {
               "site": "GoodJob",
@@ -10553,14 +10580,17 @@
               "base_k": 60,
               "bonus_months": null,
               "annual_months": 14,
-              "annual_wan": null,
+              "annual_wan": 84.0,
               "weekly_hours": null,
               "overtime": "偶爾（良率問題時加班）",
               "travel": "不用",
               "quote_free_note": "碩士新人 58～62k（取中）",
               "date_confirmed": false,
               "in_window": false,
-              "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計"
+              "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
+              "derived": [
+                "annual_wan"
+              ]
             },
             {
               "site": "Dcard",
@@ -10818,7 +10848,7 @@
           "overtime": "很少",
           "travel": "不用",
           "n": 12,
-          "note": "GoodJob 2026-02 自述只有 14 個月、無分紅；比薪水 2026-01 整合工程師日均 9 小時（金額需解鎖）；力積電近一年虧損，分紅月數依同公司製程／整合職回報為 0；2026-10-25 補：GoodJob 2026-08 新竹整合 4 年月薪約 7.49 萬、40 小時／週，近年分紅少、購股金 2 千",
+          "note": "GoodJob 2026-02 自述只有 14 個月、無分紅；比薪水 2026-01 整合工程師日均 9 小時（金額需解鎖）；力積電近一年虧損，分紅月數依同公司製程／整合職回報為 0；2026-10-25 補：GoodJob 2026-08 新竹整合 4 年月薪約 7.49 萬、40 小時／週，近年分紅少、購股金 2 千；部分年薪／年薪月數由同一筆樣本的「底薪×月數」推算（樣本標 derived）",
           "sources": [
             {
               "site": "GoodJob",
@@ -10998,14 +11028,17 @@
               "base_k": 60,
               "bonus_months": null,
               "annual_months": 14,
-              "annual_wan": null,
+              "annual_wan": 84.0,
               "weekly_hours": null,
               "overtime": "很少",
               "travel": "不用",
               "quote_free_note": "新人結構：2023 碩士 58～62k、保 14（範圍外）",
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "in_window": false,
+              "derived": [
+                "annual_wan"
+              ]
             },
             {
               "site": "Dcard",
@@ -11122,7 +11155,10 @@
             14,
             14
           ],
-          "annual_total_wan": null,
+          "annual_total_wan": [
+            74.2,
+            74.2
+          ],
           "weekly_hours": null,
           "overtime": "偶爾",
           "travel": "不用",
@@ -11231,14 +11267,17 @@
               "base_k": 50,
               "bonus_months": null,
               "annual_months": 14,
-              "annual_wan": null,
+              "annual_wan": 70.0,
               "weekly_hours": null,
               "overtime": "偶爾",
               "travel": "不用",
               "quote_free_note": "竹科設備約 5 萬×保 14",
               "date_confirmed": false,
               "in_window": false,
-              "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計"
+              "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
+              "derived": [
+                "annual_wan"
+              ]
             },
             {
               "site": "Dcard",
@@ -11345,14 +11384,17 @@
               "base_k": 53,
               "bonus_months": null,
               "annual_months": 14,
-              "annual_wan": null,
+              "annual_wan": 74.2,
               "weekly_hours": null,
               "overtime": "偶爾",
               "travel": "不用",
               "quote_free_note": "Offer 請益：薄膜設備輪班 53,000×14＋分紅、12 小時做二休二",
               "date_confirmed": true,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計；依 docs/tc/dcard_id_calibration.md 文章編號≥259537767 確認晚於 2025-08-01",
-              "in_window": true
+              "in_window": true,
+              "derived": [
+                "annual_wan"
+              ]
             },
             {
               "site": "Dcard",
@@ -11944,7 +11986,7 @@
           "role": "磊晶製程開發工程師",
           "degree": null,
           "years": null,
-          "note": "GoodJob 面試經驗；本薪＋交通＋伙食津貼，基本保 14 個月，依營運有分紅",
+          "note": "GoodJob 面試經驗；本薪＋交通＋伙食津貼，基本保 14 個月，依營運有分紅；部分年薪／年薪月數由同一筆樣本的「底薪×月數」推算（樣本標 derived）",
           "sources": [
             {
               "site": "GoodJob",
@@ -11965,14 +12007,17 @@
               "base_k": 55,
               "bonus_months": null,
               "annual_months": 14,
-              "annual_wan": null,
+              "annual_wan": 77.0,
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
               "quote_free_note": "面試回報月薪 5.5 萬，基本保 14 個月",
               "date_confirmed": true,
               "date_note": "WebSearch 摘要標 2026 年面試紀錄（整年在期間內）",
-              "in_window": true
+              "in_window": true,
+              "derived": [
+                "annual_wan"
+              ]
             }
           ],
           "base_month_k": [
@@ -11984,7 +12029,10 @@
             14,
             14
           ],
-          "annual_total_wan": null,
+          "annual_total_wan": [
+            77.0,
+            77.0
+          ],
           "weekly_hours": null,
           "overtime": null,
           "travel": null,

@@ -548,7 +548,7 @@
       "code": "3189",
       "heat": "Dcard 熱度：低",
       "benefits": "三節禮券、加班費另計",
-      "stock_plan": "本輪未查到",
+      "stock_plan": "限制型股票：2021 年度起發行留才，分三年給予",
       "bonus_timing": "網友 2026 稱季獎金（固定底標）＋分紅（第二年起）＋年終 2 個月；發放月份查不到",
       "culture": "自述「除了工程師以外不太建議」",
       "interview": "本輪未查到",
@@ -722,7 +722,7 @@
           "role": "系統工程師",
           "degree": null,
           "years": null,
-          "note": "Andy 截圖提供；獎金項目：季獎金＋分紅＋年終",
+          "note": "Andy 截圖提供；獎金項目：季獎金＋分紅＋年終；部分年薪／年薪月數由同一筆樣本的「底薪×月數」推算（樣本標 derived）",
           "sources": [
             {
               "site": "Dcard",
@@ -746,14 +746,20 @@
                 16,
                 18
               ],
-              "annual_wan": null,
+              "annual_wan": [
+                92.8,
+                104.4
+              ],
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
               "quote_free_note": "本薪＋職務加給＋交通補貼＋伙食費約 58K；HR 說第一年 16～18 個月；獎金：季獎金＋分紅＋年終",
               "date_confirmed": true,
               "date_note": "Andy 截圖提供，發文 25/12/20",
-              "in_window": true
+              "in_window": true,
+              "derived": [
+                "annual_wan"
+              ]
             }
           ],
           "base_month_k": [
@@ -765,7 +771,10 @@
             16,
             18
           ],
-          "annual_total_wan": null,
+          "annual_total_wan": [
+            92.8,
+            104.4
+          ],
           "weekly_hours": null,
           "overtime": null,
           "travel": null,

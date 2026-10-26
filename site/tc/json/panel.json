@@ -203,13 +203,16 @@
               "base_k": 55,
               "bonus_months": null,
               "annual_months": 14,
-              "annual_wan": null,
+              "annual_wan": 77.0,
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
               "quote_free_note": "55000 保 14，分紅不一定；常日班",
               "in_window": true,
-              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-09-09"
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-09-09",
+              "derived": [
+                "annual_wan"
+              ]
             }
           ],
           "sources": [
@@ -231,12 +234,15 @@
           ],
           "years": null,
           "bonus_months": null,
-          "annual_total_wan": null,
+          "annual_total_wan": [
+            77.0,
+            77.0
+          ],
           "weekly_hours": null,
           "overtime": null,
           "travel": null,
           "n_stat": 1,
-          "note": null,
+          "note": "部分年薪／年薪月數由同一筆樣本的「底薪×月數」推算（樣本標 derived）",
           "grade": null
         },
         {

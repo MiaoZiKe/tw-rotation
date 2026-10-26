@@ -665,13 +665,16 @@
               "base_k": 130,
               "bonus_months": null,
               "annual_months": 13,
-              "annual_wan": null,
+              "annual_wan": 169.0,
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
               "quote_free_note": "130k×13＋少量績效；派遣、福利少、無法轉正",
               "in_window": true,
-              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-04-05"
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-04-05",
+              "derived": [
+                "annual_wan"
+              ]
             }
           ],
           "n": 1,
@@ -693,12 +696,15 @@
           ],
           "years": null,
           "bonus_months": null,
-          "annual_total_wan": null,
+          "annual_total_wan": [
+            169.0,
+            169.0
+          ],
           "weekly_hours": null,
           "overtime": null,
           "travel": null,
           "n_stat": 1,
-          "note": null,
+          "note": "部分年薪／年薪月數由同一筆樣本的「底薪×月數」推算（樣本標 derived）",
           "grade": null
         }
       ],
@@ -736,13 +742,16 @@
               "base_k": 120,
               "bonus_months": null,
               "annual_months": 13,
-              "annual_wan": null,
+              "annual_wan": 156.0,
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
               "quote_free_note": "120k×13＋少量績效；每週可 WFH 1～2 天",
               "in_window": true,
-              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-04-05"
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-04-05",
+              "derived": [
+                "annual_wan"
+              ]
             }
           ],
           "n": 1,
@@ -764,12 +773,15 @@
           ],
           "years": null,
           "bonus_months": null,
-          "annual_total_wan": null,
+          "annual_total_wan": [
+            156.0,
+            156.0
+          ],
           "weekly_hours": null,
           "overtime": null,
           "travel": null,
           "n_stat": 1,
-          "note": null,
+          "note": "部分年薪／年薪月數由同一筆樣本的「底薪×月數」推算（樣本標 derived）",
           "grade": null
         }
       ],
@@ -808,13 +820,16 @@
               "base_k": 50,
               "bonus_months": null,
               "annual_months": 14,
-              "annual_wan": null,
+              "annual_wan": 70.0,
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
               "quote_free_note": "頁面日期為編輯後日期；N＝台積新人價 62k（發文者寫）；offer (N-12k)×14，以 50k 計",
               "in_window": true,
-              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-04-09"
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-04-09",
+              "derived": [
+                "annual_wan"
+              ]
             }
           ],
           "sources": [
@@ -836,12 +851,15 @@
           ],
           "years": null,
           "bonus_months": null,
-          "annual_total_wan": null,
+          "annual_total_wan": [
+            70.0,
+            70.0
+          ],
           "weekly_hours": null,
           "overtime": null,
           "travel": null,
           "n_stat": 1,
-          "note": null
+          "note": "部分年薪／年薪月數由同一筆樣本的「底薪×月數」推算（樣本標 derived）"
         }
       ],
       "note": "2026-10-26 由 Dcard 樣本新增的公司"
@@ -943,14 +961,17 @@
               "degree": "碩士",
               "base_k": 58,
               "bonus_months": null,
-              "annual_months": null,
+              "annual_months": 14.9,
               "annual_wan": 86.5,
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
               "quote_free_note": "HR 依資歷估核薪月薪約 58k、年薪 85～88 萬（取中值）；尚未完成面試",
               "in_window": true,
-              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2025-08-15"
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2025-08-15",
+              "derived": [
+                "annual_months"
+              ]
             }
           ],
           "sources": [
@@ -972,12 +993,15 @@
           ],
           "years": null,
           "bonus_months": null,
-          "annual_months": null,
+          "annual_months": [
+            14.9,
+            14.9
+          ],
           "weekly_hours": null,
           "overtime": null,
           "travel": null,
           "n_stat": 1,
-          "note": null
+          "note": "部分年薪／年薪月數由同一筆樣本的「底薪×月數」推算（樣本標 derived）"
         }
       ],
       "note": "2026-10-26 由 Dcard 樣本新增的公司"

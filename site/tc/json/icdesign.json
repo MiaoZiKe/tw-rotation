@@ -125,14 +125,17 @@
               "base_k": 80,
               "bonus_months": 5,
               "annual_months": 14,
-              "annual_wan": null,
+              "annual_wan": 112.0,
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
               "quote_free_note": "聯發科 80K 保 14＋分紅約 4～6 個月；聯詠預估 85K 保 14；新鮮人 offer 請益：預估 80K、保 14 個月＋分紅，第一年分紅估 4～6 個月（作者自估）",
               "date_confirmed": true,
               "in_window": true,
-              "date_note": "依 docs/tc/dcard_id_calibration.md 文章編號≥259537767 確認晚於 2025-08-01"
+              "date_note": "依 docs/tc/dcard_id_calibration.md 文章編號≥259537767 確認晚於 2025-08-01",
+              "derived": [
+                "annual_wan"
+              ]
             },
             {
               "site": "GoodJob",
@@ -501,13 +504,16 @@
               "base_k": 80,
               "bonus_months": null,
               "annual_months": 14,
-              "annual_wan": null,
+              "annual_wan": 112.0,
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
               "quote_free_note": "80K 保 14，另有分紅（第一年非 I- 約 4～6 個月）；主管說做完就能走",
               "in_window": true,
-              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-03-17"
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-03-17",
+              "derived": [
+                "annual_wan"
+              ]
             },
             {
               "site": "Dcard",
@@ -638,7 +644,10 @@
             14,
             14
           ],
-          "annual_total_wan": null,
+          "annual_total_wan": [
+            113.4,
+            113.4
+          ],
           "weekly_hours": null,
           "overtime": null,
           "travel": null,
@@ -689,13 +698,16 @@
               "base_k": 81,
               "bonus_months": null,
               "annual_months": 14,
-              "annual_wan": null,
+              "annual_wan": 113.4,
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
               "quote_free_note": "面試經驗：月薪 8.1 萬、保 14、2／8 月績效獎金；先考線上 C 語言",
               "in_window": true,
-              "date_note": null
+              "date_note": null,
+              "derived": [
+                "annual_wan"
+              ]
             },
             {
               "site": "GoodJob",
@@ -1659,10 +1671,10 @@
           "bonus_months": null,
           "annual_months": [
             14,
-            14
+            16.9
           ],
           "annual_total_wan": [
-            144,
+            119.0,
             144
           ],
           "weekly_hours": [
@@ -1672,7 +1684,7 @@
           "overtime": "經常",
           "travel": null,
           "n": 11,
-          "note": "網友自述未經查證；僅 Dcard 一篇 offer 文預估 85K 保 14＋分紅，日期不明；舊報導『碩士起薪 4.5 萬、年薪 60～70 萬』明顯過時不採；GoodJob 工時狀況 2.3／5，多則評價稱工時長；第二輪：Dcard VD/DD1 預估 85K 保 14＋分紅、爬文稱常態早 9 晚 9；GoodJob 2025-12 月薪 8.5 萬、每週 45 小時，新人簽約金兩年 50 萬、前兩年年薪約 144 萬；評價稱第一年幾乎沒分紅、分紅很吃景氣；已移除一筆誤植（同篇 80K 為聯發科數字）；未逐筆對應的舊彙整：bonus_months=[5, 5]",
+          "note": "網友自述未經查證；僅 Dcard 一篇 offer 文預估 85K 保 14＋分紅，日期不明；舊報導『碩士起薪 4.5 萬、年薪 60～70 萬』明顯過時不採；GoodJob 工時狀況 2.3／5，多則評價稱工時長；第二輪：Dcard VD/DD1 預估 85K 保 14＋分紅、爬文稱常態早 9 晚 9；GoodJob 2025-12 月薪 8.5 萬、每週 45 小時，新人簽約金兩年 50 萬、前兩年年薪約 144 萬；評價稱第一年幾乎沒分紅、分紅很吃景氣；已移除一筆誤植（同篇 80K 為聯發科數字）；未逐筆對應的舊彙整：bonus_months=[5, 5]；部分年薪／年薪月數由同一筆樣本的「底薪×月數」推算（樣本標 derived）",
           "sources": [
             {
               "site": "Dcard",
@@ -1712,7 +1724,7 @@
               "degree": "碩士",
               "base_k": 85,
               "bonus_months": null,
-              "annual_months": null,
+              "annual_months": 16.9,
               "annual_wan": 144,
               "weekly_hours": 45,
               "overtime": null,
@@ -1720,7 +1732,10 @@
               "quote_free_note": "8.5 萬、每週 45 小時，簽約金兩年 50 萬，前兩年約 144 萬；評價：月薪 8.5 萬、每週 45 小時，提到新人簽約金",
               "date_confirmed": true,
               "date_note": null,
-              "in_window": true
+              "in_window": true,
+              "derived": [
+                "annual_months"
+              ]
             },
             {
               "site": "GoodJob",
@@ -1752,13 +1767,16 @@
               "base_k": 85,
               "bonus_months": null,
               "annual_months": 14,
-              "annual_wan": null,
+              "annual_wan": 119.0,
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
               "quote_free_note": "同篇 offer 比較：聯詠預估 85K 保 14＋分紅（作者自估）",
               "date_note": "摘要只寫 2025；依 docs/tc/dcard_id_calibration.md 文章編號≥259537767 確認晚於 2025-08-01",
-              "in_window": true
+              "in_window": true,
+              "derived": [
+                "annual_wan"
+              ]
             },
             {
               "site": "GoodJob",
@@ -1850,13 +1868,16 @@
               "base_k": 85,
               "bonus_months": null,
               "annual_months": 14,
-              "annual_wan": null,
+              "annual_wan": 119.0,
               "weekly_hours": 60,
               "overtime": "經常",
               "travel": null,
               "quote_free_note": "85K 保 14＋分紅；爬文說常態早九晚九",
               "in_window": true,
-              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-03-17"
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-03-17",
+              "derived": [
+                "annual_wan"
+              ]
             },
             {
               "site": "Dcard",
@@ -3027,7 +3048,7 @@
           "overtime": "經常",
           "travel": null,
           "n": 6,
-          "note": "未逐筆對應的舊彙整：bonus_months=[2, 2]",
+          "note": "未逐筆對應的舊彙整：bonus_months=[2, 2]；部分年薪／年薪月數由同一筆樣本的「底薪×月數」推算（樣本標 derived）",
           "sources": [
             {
               "site": "GoodJob",
@@ -3072,13 +3093,16 @@
               "base_k": 81,
               "bonus_months": 2,
               "annual_months": 13,
-              "annual_wan": null,
+              "annual_wan": 105.3,
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
               "quote_free_note": "面試經驗：月薪 8.1 萬；保 13、分紅一年兩次（2 月、10 月）至少約 2 個月（早於期間）",
               "in_window": false,
-              "date_note": null
+              "date_note": null,
+              "derived": [
+                "annual_wan"
+              ]
             },
             {
               "site": "Dcard",
@@ -3950,7 +3974,7 @@
           "overtime": null,
           "travel": null,
           "n": 15,
-          "note": "網友自述未經查證；GoodJob 2026-01 FW 月薪 9.2 萬（週 60 小時）、2025-10 韌體 9.2～10.4 萬；年資 3～7 年的筆數已排除，學歷未載，起薪可能更低；GoodJob 自述每週 50～60 小時；分紅月數自述差異大（一則稱 14 個月），不填區間；第二輪：PTT 2026-02 開獎串：2 年 B+ 分紅約 4 個月、5 年 B+ 約 3.5 個月（含年終 2 個月）；尾牙串稱工程師底薪 9 萬多起；GoodJob 2025-12 韌體稱至少 8 萬以上、可報加班費；Dcard 稱 N×14＋簽約金＋分紅、分紅 50% 隔年發；未逐筆對應的舊彙整：{\"base_month_k\": [80, 90], \"bonus_months\": [4, 4], \"annual_total_wan\": [120, 120]}；未逐筆對應的舊彙整：overtime=經常",
+          "note": "網友自述未經查證；GoodJob 2026-01 FW 月薪 9.2 萬（週 60 小時）、2025-10 韌體 9.2～10.4 萬；年資 3～7 年的筆數已排除，學歷未載，起薪可能更低；GoodJob 自述每週 50～60 小時；分紅月數自述差異大（一則稱 14 個月），不填區間；第二輪：PTT 2026-02 開獎串：2 年 B+ 分紅約 4 個月、5 年 B+ 約 3.5 個月（含年終 2 個月）；尾牙串稱工程師底薪 9 萬多起；GoodJob 2025-12 韌體稱至少 8 萬以上、可報加班費；Dcard 稱 N×14＋簽約金＋分紅、分紅 50% 隔年發；未逐筆對應的舊彙整：{\"base_month_k\": [80, 90], \"bonus_months\": [4, 4], \"annual_total_wan\": [120, 120]}；未逐筆對應的舊彙整：overtime=經常；部分年薪／年薪月數由同一筆樣本的「底薪×月數」推算（樣本標 derived）",
           "sources": [
             {
               "site": "GoodJob",
@@ -4124,7 +4148,7 @@
               "degree": "碩士",
               "base_k": 80,
               "bonus_months": null,
-              "annual_months": null,
+              "annual_months": 15.0,
               "annual_wan": 120,
               "weekly_hours": null,
               "overtime": null,
@@ -4132,7 +4156,10 @@
               "quote_free_note": "韌體年薪約 120 萬、稱至少 8 萬以上",
               "date_confirmed": null,
               "date_note": null,
-              "in_window": true
+              "in_window": true,
+              "derived": [
+                "annual_months"
+              ]
             },
             {
               "site": "Dcard",
@@ -4856,12 +4883,15 @@
             14,
             14
           ],
-          "annual_total_wan": null,
+          "annual_total_wan": [
+            127.4,
+            127.4
+          ],
           "weekly_hours": null,
           "overtime": null,
           "travel": null,
           "n": 8,
-          "note": "網友自述未經查證；GoodJob 韌體設計 2026-04 月薪 9.2 萬（未滿 1 年）、韌體 9.5 萬（1 年）；2025-04 一筆 7 萬早於區間不採；公司頁平均週工時 47、42% 偶爾加班；年資 4～5 年 180～300 萬已排除；第二輪：Dcard 稱碩士起薪已調到約 9 萬、offer 不明寫保 14 但基本會達標；PTT 2026-02 開獎串 3 年 FW 年終 2＋分紅 5 個月（年薪近 300 萬）；GoodJob 韌體 2025-08～10 月薪 9.5～11 萬（範圍外參考）；未逐筆對應的舊彙整：{\"base_month_k\": [90, 90], \"bonus_months\": [5, 5], \"annual_total_wan\": [300, 300]}；未逐筆對應的舊彙整：overtime=偶爾",
+          "note": "網友自述未經查證；GoodJob 韌體設計 2026-04 月薪 9.2 萬（未滿 1 年）、韌體 9.5 萬（1 年）；2025-04 一筆 7 萬早於區間不採；公司頁平均週工時 47、42% 偶爾加班；年資 4～5 年 180～300 萬已排除；第二輪：Dcard 稱碩士起薪已調到約 9 萬、offer 不明寫保 14 但基本會達標；PTT 2026-02 開獎串 3 年 FW 年終 2＋分紅 5 個月（年薪近 300 萬）；GoodJob 韌體 2025-08～10 月薪 9.5～11 萬（範圍外參考）；未逐筆對應的舊彙整：{\"base_month_k\": [90, 90], \"bonus_months\": [5, 5], \"annual_total_wan\": [300, 300]}；未逐筆對應的舊彙整：overtime=偶爾；部分年薪／年薪月數由同一筆樣本的「底薪×月數」推算（樣本標 derived）",
           "sources": [
             {
               "site": "GoodJob",
@@ -4984,13 +5014,16 @@
               "base_k": 91,
               "bonus_months": null,
               "annual_months": 14,
-              "annual_wan": null,
+              "annual_wan": 127.4,
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
               "quote_free_note": "評價：月薪約 9.1 萬、保 14＋分紅（數字與篇目對應為推定）",
               "in_window": true,
-              "date_note": null
+              "date_note": null,
+              "derived": [
+                "annual_wan"
+              ]
             },
             {
               "site": "GoodJob",
@@ -5220,7 +5253,7 @@
           "bonus_months": null,
           "annual_months": [
             14,
-            14
+            25.0
           ],
           "annual_total_wan": [
             200,
@@ -5233,7 +5266,7 @@
           "overtime": "經常",
           "travel": null,
           "n": 3,
-          "note": "網友自述未經查證；GoodJob 數位 IC 一筆月薪 8.4 萬（年份未載）；有人說固定 14 個月＋兩次分紅；2025～2026 年薪 120～220 萬筆數年資不一不採；第二輪：Dcard 2026 offer 比較一篇；GoodJob 數位 IC 新竹月薪 8 萬（每週 40 小時）、另一筆 7 萬幾乎每天加班（日期未明）；加班無加班費；base_month_k、annual_months 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples",
+          "note": "網友自述未經查證；GoodJob 數位 IC 一筆月薪 8.4 萬（年份未載）；有人說固定 14 個月＋兩次分紅；2025～2026 年薪 120～220 萬筆數年資不一不採；第二輪：Dcard 2026 offer 比較一篇；GoodJob 數位 IC 新竹月薪 8 萬（每週 40 小時）、另一筆 7 萬幾乎每天加班（日期未明）；加班無加班費；base_month_k、annual_months 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples；部分年薪／年薪月數由同一筆樣本的「底薪×月數」推算（樣本標 derived）",
           "sources": [
             {
               "site": "GoodJob",
@@ -5302,14 +5335,17 @@
               "degree": null,
               "base_k": 80,
               "bonus_months": null,
-              "annual_months": null,
+              "annual_months": 25.0,
               "annual_wan": 200,
               "weekly_hours": 40,
               "overtime": "經常",
               "travel": null,
               "quote_free_note": "薪資頁：月薪 8 萬；薪資頁：年薪約 200 萬級距；薪資頁：月薪約 7 萬",
               "in_window": true,
-              "date_note": null
+              "date_note": null,
+              "derived": [
+                "annual_months"
+              ]
             }
           ],
           "n_stat": 2
@@ -5597,12 +5633,15 @@
             15,
             15
           ],
-          "annual_total_wan": null,
+          "annual_total_wan": [
+            129.0,
+            129.0
+          ],
           "weekly_hours": null,
           "overtime": "偶爾",
           "travel": null,
           "n": 4,
-          "note": "",
+          "note": "部分年薪／年薪月數由同一筆樣本的「底薪×月數」推算（樣本標 derived）",
           "sources": [
             {
               "site": "Dcard",
@@ -5623,13 +5662,16 @@
               "base_k": 86,
               "bonus_months": null,
               "annual_months": 15,
-              "annual_wan": null,
+              "annual_wan": 129.0,
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
               "quote_free_note": "同篇 offer 比較：立錡 86K 保 15＋分紅，學長第一年分紅約 40～50 萬",
               "date_note": "此篇摘要一次說 2025、一次說 2026 年初，互相矛盾，不算確認；依 docs/tc/dcard_id_calibration.md 文章編號≥259537767 確認晚於 2025-08-01",
-              "in_window": true
+              "in_window": true,
+              "derived": [
+                "annual_wan"
+              ]
             },
             {
               "site": "GoodJob",
@@ -5683,13 +5725,16 @@
               "base_k": 86,
               "bonus_months": null,
               "annual_months": 15,
-              "annual_wan": null,
+              "annual_wan": 129.0,
               "weekly_hours": null,
               "overtime": "偶爾",
               "travel": null,
               "quote_free_note": "86K 保 15，另有分紅（聽學長說第一年約 40～50 萬）；一年約 1～2 個月較忙",
               "in_window": true,
-              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-03-17"
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-03-17",
+              "derived": [
+                "annual_wan"
+              ]
             }
           ],
           "grade": null,
@@ -5923,7 +5968,7 @@
           "overtime": null,
           "travel": null,
           "n": 2,
-          "note": "網友自述未經查證；GoodJob 2026-05 臺南數位 IC 月薪 8.4 萬、保 14 個月、分紅偏少；2025-06 另一筆未滿 1 年年薪 110 萬；未逐筆對應的舊彙整：overtime=經常（不能報加班）",
+          "note": "網友自述未經查證；GoodJob 2026-05 臺南數位 IC 月薪 8.4 萬、保 14 個月、分紅偏少；2025-06 另一筆未滿 1 年年薪 110 萬；未逐筆對應的舊彙整：overtime=經常（不能報加班）；部分年薪／年薪月數由同一筆樣本的「底薪×月數」推算（樣本標 derived）",
           "sources": [
             {
               "site": "GoodJob",
@@ -5949,14 +5994,17 @@
               "base_k": 84,
               "bonus_months": null,
               "annual_months": 14,
-              "annual_wan": null,
+              "annual_wan": 117.6,
               "weekly_hours": 45,
               "overtime": null,
               "travel": null,
               "quote_free_note": null,
               "date_confirmed": null,
               "date_note": null,
-              "in_window": false
+              "in_window": false,
+              "derived": [
+                "annual_wan"
+              ]
             },
             {
               "site": "GoodJob",
@@ -7403,7 +7451,7 @@
           "overtime": null,
           "travel": null,
           "n": 2,
-          "note": "網友自述未經查證；GoodJob 2026-06 數位工程師月薪 7.8 萬（年資未載）；分紅說法不一（約 1 個月／保 14＋分紅）；GoodJob 自述保障 14 個月，分紅另計；未逐筆對應的舊彙整：{\"base_month_k\": [78, 78], \"annual_months\": [14, 14]}；未逐筆對應的舊彙整：overtime=偶爾",
+          "note": "網友自述未經查證；GoodJob 2026-06 數位工程師月薪 7.8 萬（年資未載）；分紅說法不一（約 1 個月／保 14＋分紅）；GoodJob 自述保障 14 個月，分紅另計；未逐筆對應的舊彙整：{\"base_month_k\": [78, 78], \"annual_months\": [14, 14]}；未逐筆對應的舊彙整：overtime=偶爾；部分年薪／年薪月數由同一筆樣本的「底薪×月數」推算（樣本標 derived）",
           "sources": [
             {
               "site": "GoodJob",
@@ -7429,14 +7477,17 @@
               "base_k": 78,
               "bonus_months": null,
               "annual_months": 14,
-              "annual_wan": null,
+              "annual_wan": 109.2,
               "weekly_hours": 49,
               "overtime": null,
               "travel": null,
               "quote_free_note": null,
               "date_confirmed": null,
               "date_note": null,
-              "in_window": true
+              "in_window": true,
+              "derived": [
+                "annual_wan"
+              ]
             },
             {
               "site": "GoodJob",
@@ -7679,7 +7730,7 @@
       "code": null,
       "heat": "Dcard 熱度：中",
       "benefits": null,
-      "stock_plan": null,
+      "stock_plan": "股票獎酬：員工股票認購計畫、PSU、RSU",
       "bonus_timing": "公司介紹列一年一次績效獎金或季度獎金、三節禮金、員工認股／PSU／RSU；月數查不到",
       "culture": null,
       "interview": null,
@@ -8752,13 +8803,16 @@
               "base_k": 57,
               "bonus_months": null,
               "annual_months": 14,
-              "annual_wan": null,
+              "annual_wan": 79.8,
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
               "quote_free_note": "口頭 offer：底薪 57k×14，另有 3k×12 津貼；分紅看 EPS（發文者提到 2021 年 18～20 個月、2023～2024 年 0）；婉拒",
               "in_window": true,
-              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-01-20"
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-01-20",
+              "derived": [
+                "annual_wan"
+              ]
             }
           ],
           "n": 1,
@@ -8770,7 +8824,7 @@
             }
           ],
           "confidence": "低",
-          "note": "2026-10-26 由 Dcard 樣本新增的公司",
+          "note": "2026-10-26 由 Dcard 樣本新增的公司；部分年薪／年薪月數由同一筆樣本的「底薪×月數」推算（樣本標 derived）",
           "base_month_k": [
             57,
             57
@@ -8781,7 +8835,10 @@
           ],
           "years": null,
           "bonus_months": null,
-          "annual_total_wan": null,
+          "annual_total_wan": [
+            79.8,
+            79.8
+          ],
           "weekly_hours": null,
           "overtime": null,
           "travel": null,

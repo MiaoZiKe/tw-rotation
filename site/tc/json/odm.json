@@ -1647,7 +1647,7 @@
           "overtime": "經常",
           "travel": null,
           "n": 12,
-          "note": "平台自述統計（未轉貼原文）；起薪 5.2 萬為 2024 校徵公告（超出一年窗口，僅參考）；Dcard 整理碩士整包 83～120 萬；無近一年 GoodJob 數字；比薪水 2026-02 單筆：偶爾加班、日均 8 小時；分紅月數無可靠區間；base_month_k、annual_months、annual_total_wan 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples",
+          "note": "平台自述統計（未轉貼原文）；起薪 5.2 萬為 2024 校徵公告（超出一年窗口，僅參考）；Dcard 整理碩士整包 83～120 萬；無近一年 GoodJob 數字；比薪水 2026-02 單筆：偶爾加班、日均 8 小時；分紅月數無可靠區間；base_month_k、annual_months、annual_total_wan 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples；部分年薪／年薪月數由同一筆樣本的「底薪×月數」推算（樣本標 derived）",
           "sources": [
             {
               "site": "自由時報",
@@ -1878,11 +1878,14 @@
               "base_k": 60,
               "bonus_months": null,
               "annual_months": 14,
-              "annual_wan": null,
+              "annual_wan": 84.0,
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
-              "quote_free_note": "對方開師3 60k；另有人說師3 頂約 60k"
+              "quote_free_note": "對方開師3 60k；另有人說師3 頂約 60k",
+              "derived": [
+                "annual_wan"
+              ]
             },
             {
               "site": "Dcard",
@@ -2125,13 +2128,16 @@
               "base_k": 57.5,
               "bonus_months": null,
               "annual_months": 18,
-              "annual_wan": null,
+              "annual_wan": 103.5,
               "weekly_hours": null,
               "overtime": "幾乎不",
               "travel": "不用",
               "quote_free_note": "月薪 N+10（估約 57.5k），保 14，整年 16～20 個月（取中值）；聽說不常態加班，要到 2028 年才領滿",
               "in_window": true,
-              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-05-12"
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-05-12",
+              "derived": [
+                "annual_wan"
+              ]
             }
           ],
           "sources": [
@@ -2184,9 +2190,12 @@
           "travel": "需要",
           "years": null,
           "bonus_months": null,
-          "annual_total_wan": null,
+          "annual_total_wan": [
+            103.5,
+            103.5
+          ],
           "n_stat": 6,
-          "note": null,
+          "note": "部分年薪／年薪月數由同一筆樣本的「底薪×月數」推算（樣本標 derived）",
           "grade": null
         },
         {
@@ -2600,13 +2609,16 @@
               "base_k": 52,
               "bonus_months": null,
               "annual_months": 14,
-              "annual_wan": null,
+              "annual_wan": 72.8,
               "weekly_hours": null,
               "overtime": "經常",
               "travel": null,
               "quote_free_note": "留言 B5（非發文者，中正）：新鮮人月薪 52K、第一年 14 個月，覺得忙又學不到東西",
               "in_window": true,
-              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-07-02"
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-07-02",
+              "derived": [
+                "annual_wan"
+              ]
             }
           ],
           "sources": [
@@ -2629,11 +2641,14 @@
           "overtime": "經常",
           "years": null,
           "bonus_months": null,
-          "annual_total_wan": null,
+          "annual_total_wan": [
+            72.8,
+            72.8
+          ],
           "weekly_hours": null,
           "travel": null,
           "n_stat": 1,
-          "note": null,
+          "note": "部分年薪／年薪月數由同一筆樣本的「底薪×月數」推算（樣本標 derived）",
           "grade": null
         },
         {
@@ -2761,7 +2776,7 @@
           "overtime": null,
           "travel": null,
           "n": 4,
-          "note": "平台自述統計（未轉貼原文）；GoodJob 2025-05 韌體不到 1 年年薪 130 萬（窗口前、未標學歷）；2026-01 面試經驗軟韌體 2 年月薪 7 萬；2026-10 GoodJob、Dcard 查詢未見智邦分紅與工時資料；未逐筆對應的舊彙整：{\"base_month_k\": [70, 70], \"annual_total_wan\": [130, 130]}",
+          "note": "平台自述統計（未轉貼原文）；GoodJob 2025-05 韌體不到 1 年年薪 130 萬（窗口前、未標學歷）；2026-01 面試經驗軟韌體 2 年月薪 7 萬；2026-10 GoodJob、Dcard 查詢未見智邦分紅與工時資料；未逐筆對應的舊彙整：{\"base_month_k\": [70, 70], \"annual_total_wan\": [130, 130]}；部分年薪／年薪月數由同一筆樣本的「底薪×月數」推算（樣本標 derived）",
           "sources": [
             {
               "site": "GoodJob",
@@ -2796,7 +2811,7 @@
               "degree": "碩士",
               "base_k": 70,
               "bonus_months": null,
-              "annual_months": null,
+              "annual_months": 18.6,
               "annual_wan": 130,
               "weekly_hours": null,
               "overtime": null,
@@ -2804,7 +2819,10 @@
               "quote_free_note": null,
               "date_confirmed": null,
               "date_note": null,
-              "in_window": true
+              "in_window": true,
+              "derived": [
+                "annual_months"
+              ]
             },
             {
               "site": "Dcard",
@@ -3470,13 +3488,16 @@
               "base_k": 80,
               "bonus_months": null,
               "annual_months": 16,
-              "annual_wan": null,
+              "annual_wan": 128.0,
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
               "quote_free_note": "現職系統廠 ML 工程師年薪約 145 萬；80k×(14+2)＋分紅，朋友說整年 18 個月以上；留言 B8 說台達研究院只有 16 個月",
               "in_window": true,
-              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-04-05"
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-04-05",
+              "derived": [
+                "annual_wan"
+              ]
             },
             {
               "site": "Dcard",
@@ -3529,7 +3550,7 @@
             16
           ],
           "annual_total_wan": [
-            190,
+            128.0,
             190
           ],
           "years": null,
@@ -3538,7 +3559,7 @@
           "overtime": null,
           "travel": null,
           "n_stat": 3,
-          "note": null,
+          "note": "部分年薪／年薪月數由同一筆樣本的「底薪×月數」推算（樣本標 derived）",
           "grade": null
         },
         {
@@ -3631,13 +3652,16 @@
               "base_k": 62,
               "bonus_months": null,
               "annual_months": 16,
-              "annual_wan": null,
+              "annual_wan": 99.2,
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
               "quote_free_note": "保 14，HR 說基本有 16；最後選這家",
               "in_window": true,
-              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-10-17"
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-10-17",
+              "derived": [
+                "annual_wan"
+              ]
             },
             {
               "site": "Dcard",
@@ -3692,11 +3716,14 @@
           ],
           "years": null,
           "bonus_months": null,
-          "annual_total_wan": null,
+          "annual_total_wan": [
+            99.2,
+            99.2
+          ],
           "weekly_hours": null,
           "travel": null,
           "n_stat": 3,
-          "note": null,
+          "note": "部分年薪／年薪月數由同一筆樣本的「底薪×月數」推算（樣本標 derived）",
           "grade": null
         },
         {
@@ -4373,13 +4400,16 @@
               "base_k": 74,
               "bonus_months": null,
               "annual_months": 19,
-              "annual_wan": null,
+              "annual_wan": 140.6,
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
               "quote_free_note": "offer (N+12k)，以 N＝62k 算約 74k；整年 18～20 個月（取中值）；同篇緯創、雙鴻、致茂等熱流職缺未錄取",
               "in_window": true,
-              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-04-09"
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-04-09",
+              "derived": [
+                "annual_wan"
+              ]
             }
           ],
           "sources": [
@@ -4401,12 +4431,15 @@
           ],
           "years": null,
           "bonus_months": null,
-          "annual_total_wan": null,
+          "annual_total_wan": [
+            140.6,
+            140.6
+          ],
           "weekly_hours": null,
           "overtime": null,
           "travel": null,
           "n_stat": 1,
-          "note": null,
+          "note": "部分年薪／年薪月數由同一筆樣本的「底薪×月數」推算（樣本標 derived）",
           "grade": null
         },
         {
@@ -4580,7 +4613,7 @@
             14
           ],
           "annual_total_wan": [
-            95,
+            85.4,
             100
           ],
           "weekly_hours": [
@@ -4590,7 +4623,7 @@
           "overtime": "經常",
           "travel": null,
           "n": 15,
-          "note": "平台自述統計（未轉貼原文）；社群回報月薪×14 保底＋績效分紅，無碩士起薪數字；2026-10 查比薪水有逾千筆但摘要無分紅／工時細節；annual_months 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples",
+          "note": "平台自述統計（未轉貼原文）；社群回報月薪×14 保底＋績效分紅，無碩士起薪數字；2026-10 查比薪水有逾千筆但摘要無分紅／工時細節；annual_months 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples；部分年薪／年薪月數由同一筆樣本的「底薪×月數」推算（樣本標 derived）",
           "sources": [
             {
               "site": "1111",
@@ -4799,14 +4832,17 @@
               "base_k": 61,
               "bonus_months": null,
               "annual_months": 14,
-              "annual_wan": null,
+              "annual_wan": 85.4,
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
               "quote_free_note": "月薪約 6.1 萬，保 14 個月、有加班費、每年分紅",
               "date_confirmed": true,
               "date_note": "GoodJob 標題 2026-04",
-              "in_window": true
+              "in_window": true,
+              "derived": [
+                "annual_wan"
+              ]
             },
             {
               "site": "GoodJob",
@@ -5119,13 +5155,16 @@
               "base_k": 66,
               "bonus_months": null,
               "annual_months": 16.5,
-              "annual_wan": null,
+              "annual_wan": 108.9,
               "weekly_hours": null,
               "overtime": "幾乎不",
               "travel": "幾乎不",
               "quote_free_note": "N＝60k（發文者寫）；月薪 N+6，年薪約 16.5 個月；主管說不太需要出差加班、彈性上下班",
               "in_window": true,
-              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-09-05"
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-09-05",
+              "derived": [
+                "annual_wan"
+              ]
             }
           ],
           "sources": [
@@ -5149,10 +5188,13 @@
           "travel": "幾乎不",
           "years": null,
           "bonus_months": null,
-          "annual_total_wan": null,
+          "annual_total_wan": [
+            108.9,
+            108.9
+          ],
           "weekly_hours": null,
           "n_stat": 1,
-          "note": null,
+          "note": "部分年薪／年薪月數由同一筆樣本的「底薪×月數」推算（樣本標 derived）",
           "grade": null
         },
         {
@@ -6116,13 +6158,16 @@
               "base_k": 61.5,
               "bonus_months": null,
               "annual_months": 17,
-              "annual_wan": null,
+              "annual_wan": 104.5,
               "weekly_hours": null,
               "overtime": null,
               "travel": "需要",
               "quote_free_note": "月薪 N+14（估約 61.5k），保 14，整年 16～18 個月（取中值）；要出差",
               "in_window": true,
-              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-05-12"
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-05-12",
+              "derived": [
+                "annual_wan"
+              ]
             }
           ],
           "sources": [
@@ -6145,11 +6190,14 @@
           "travel": "需要",
           "years": null,
           "bonus_months": null,
-          "annual_total_wan": null,
+          "annual_total_wan": [
+            104.5,
+            104.5
+          ],
           "weekly_hours": null,
           "overtime": null,
           "n_stat": 1,
-          "note": null,
+          "note": "部分年薪／年薪月數由同一筆樣本的「底薪×月數」推算（樣本標 derived）",
           "grade": null
         },
         {
@@ -7410,7 +7458,7 @@
           "overtime": null,
           "travel": "需要",
           "n": 5,
-          "note": "平台自述統計（未轉貼原文）；韌體不到 1 年年薪 70 萬；軟體 1 年月薪 11 萬（落差大）；未逐筆對應的舊彙整：{\"base_month_k\": [110, 110], \"annual_total_wan\": [70, 70]}；未逐筆對應的舊彙整：overtime=偶爾",
+          "note": "平台自述統計（未轉貼原文）；韌體不到 1 年年薪 70 萬；軟體 1 年月薪 11 萬（落差大）；未逐筆對應的舊彙整：{\"base_month_k\": [110, 110], \"annual_total_wan\": [70, 70]}；未逐筆對應的舊彙整：overtime=偶爾；部分年薪／年薪月數由同一筆樣本的「底薪×月數」推算（樣本標 derived）",
           "sources": [
             {
               "site": "GoodJob",
@@ -7445,7 +7493,7 @@
               "degree": "碩士（未標學歷）",
               "base_k": 110,
               "bonus_months": null,
-              "annual_months": null,
+              "annual_months": 6.4,
               "annual_wan": 70,
               "weekly_hours": null,
               "overtime": null,
@@ -7453,7 +7501,10 @@
               "quote_free_note": null,
               "date_confirmed": null,
               "date_note": null,
-              "in_window": true
+              "in_window": true,
+              "derived": [
+                "annual_months"
+              ]
             },
             {
               "site": "GoodJob",
@@ -7657,13 +7708,16 @@
               "base_k": 58,
               "bonus_months": null,
               "annual_months": 14,
-              "annual_wan": null,
+              "annual_wan": 81.2,
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
               "quote_free_note": "電子碩應屆；月薪約 58K，保 14；同篇緯穎智造 ICT 條件與 262195313 相同（底薪 50K＋伙食＋租補），疑為同一人故不重複記",
               "in_window": true,
-              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-09-18"
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-09-18",
+              "derived": [
+                "annual_wan"
+              ]
             }
           ],
           "sources": [
@@ -7685,12 +7739,15 @@
           ],
           "years": null,
           "bonus_months": null,
-          "annual_total_wan": null,
+          "annual_total_wan": [
+            81.2,
+            81.2
+          ],
           "weekly_hours": null,
           "overtime": null,
           "travel": null,
           "n_stat": 1,
-          "note": null,
+          "note": "部分年薪／年薪月數由同一筆樣本的「底薪×月數」推算（樣本標 derived）",
           "grade": null
         },
         {
@@ -8235,12 +8292,15 @@
             19,
             19
           ],
-          "annual_total_wan": null,
+          "annual_total_wan": [
+            121.6,
+            121.6
+          ],
           "weekly_hours": null,
           "overtime": null,
           "travel": "需要",
           "n": 9,
-          "note": "平台自述統計（未轉貼原文）；2 年年薪 120 萬；新人面試月薪 5.6 萬；2022 評價稱約 20 個月（範圍外）；GoodJob 2025-12 評價：近幾年約 18～20 個月（保 14 個月＋分紅），依職級而異；GoodJob 硬體職評價每週約 50 小時（2024-11，範圍外參考）；第二輪：PTT 2026-08 開獎串傳年薪 30 個月起（未證實），留言稱底薪近期大方調高；base_month_k、annual_total_wan 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples；未逐筆對應的舊彙整：overtime=經常",
+          "note": "平台自述統計（未轉貼原文）；2 年年薪 120 萬；新人面試月薪 5.6 萬；2022 評價稱約 20 個月（範圍外）；GoodJob 2025-12 評價：近幾年約 18～20 個月（保 14 個月＋分紅），依職級而異；GoodJob 硬體職評價每週約 50 小時（2024-11，範圍外參考）；第二輪：PTT 2026-08 開獎串傳年薪 30 個月起（未證實），留言稱底薪近期大方調高；base_month_k、annual_total_wan 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples；未逐筆對應的舊彙整：overtime=經常；部分年薪／年薪月數由同一筆樣本的「底薪×月數」推算（樣本標 derived）",
           "sources": [
             {
               "site": "GoodJob",
@@ -8432,11 +8492,14 @@
               "base_k": 64,
               "bonus_months": null,
               "annual_months": 19,
-              "annual_wan": null,
+              "annual_wan": 121.6,
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
-              "quote_free_note": "底薪偏低靠分紅，約 18～20 個月"
+              "quote_free_note": "底薪偏低靠分紅，約 18～20 個月",
+              "derived": [
+                "annual_wan"
+              ]
             },
             {
               "site": "Dcard",
@@ -8838,13 +8901,16 @@
               "base_k": 53,
               "bonus_months": null,
               "annual_months": 18,
-              "annual_wan": null,
+              "annual_wan": 95.4,
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
               "quote_free_note": "頁面日期為編輯後日期（留言始於 10/8）；保 14，HR 說通常約 18 個月；租補 4,000／月最多三年；留言 B23 說事多、放假也要回 Teams",
               "in_window": true,
-              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-10-17"
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-10-17",
+              "derived": [
+                "annual_wan"
+              ]
             },
             {
               "site": "Dcard",
@@ -8860,13 +8926,16 @@
               "base_k": 50,
               "bonus_months": null,
               "annual_months": 18,
-              "annual_wan": null,
+              "annual_wan": 90.0,
               "weekly_hours": null,
               "overtime": "經常",
               "travel": null,
               "quote_free_note": "月薪 50K＋伙食 3K＋租補 4K；保 14，HR 說平均約 18 個月；新廠一定加班、有加班費；可能與 262266870 為同一人",
               "in_window": true,
-              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-09-23"
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-09-23",
+              "derived": [
+                "annual_wan"
+              ]
             }
           ],
           "sources": [
@@ -8904,11 +8973,14 @@
           "overtime": "經常",
           "years": null,
           "bonus_months": null,
-          "annual_total_wan": null,
+          "annual_total_wan": [
+            90.0,
+            95.4
+          ],
           "weekly_hours": null,
           "travel": null,
           "n_stat": 4,
-          "note": null,
+          "note": "部分年薪／年薪月數由同一筆樣本的「底薪×月數」推算（樣本標 derived）",
           "grade": null
         },
         {
@@ -9181,13 +9253,16 @@
               "base_k": 64,
               "bonus_months": null,
               "annual_months": 20,
-              "annual_wan": null,
+              "annual_wan": 128.0,
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
               "quote_free_note": "另有租屋補助 4k；HR 核薪時說年 20 個月以上；留言 B2（成大，不同部門）說 HR 跟他講 18～22 個月",
               "in_window": true,
-              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-10-21"
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-10-21",
+              "derived": [
+                "annual_wan"
+              ]
             }
           ],
           "sources": [
@@ -9209,12 +9284,15 @@
           ],
           "years": null,
           "bonus_months": null,
-          "annual_total_wan": null,
+          "annual_total_wan": [
+            128.0,
+            128.0
+          ],
           "weekly_hours": null,
           "overtime": null,
           "travel": null,
           "n_stat": 1,
-          "note": null,
+          "note": "部分年薪／年薪月數由同一筆樣本的「底薪×月數」推算（樣本標 derived）",
           "grade": null
         },
         {
@@ -9737,13 +9815,16 @@
               "base_k": 58,
               "bonus_months": null,
               "annual_months": 12,
-              "annual_wan": null,
+              "annual_wan": 69.6,
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
               "quote_free_note": "58k 保 12，績效分紅約加 1～2 個月；嫌薪資不高，婉拒；發文者說在系統廠算中間值",
               "in_window": true,
-              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-01-20"
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-01-20",
+              "derived": [
+                "annual_wan"
+              ]
             },
             {
               "site": "Dcard",
@@ -9844,10 +9925,13 @@
           "overtime": "經常",
           "years": null,
           "bonus_months": null,
-          "annual_total_wan": null,
+          "annual_total_wan": [
+            69.6,
+            69.6
+          ],
           "travel": null,
           "n_stat": 7,
-          "note": null,
+          "note": "部分年薪／年薪月數由同一筆樣本的「底薪×月數」推算（樣本標 derived）",
           "grade": null
         },
         {
@@ -10041,13 +10125,16 @@
               "base_k": 59,
               "bonus_months": null,
               "annual_months": 16,
-              "annual_wan": null,
+              "annual_wan": 94.4,
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
               "quote_free_note": "保 14，主管說績效獎金正常約 2 個月、優良 3～4 個月",
               "in_window": true,
-              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-10-17"
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-10-17",
+              "derived": [
+                "annual_wan"
+              ]
             }
           ],
           "sources": [
@@ -10095,10 +10182,13 @@
           },
           "years": null,
           "bonus_months": null,
-          "annual_total_wan": null,
+          "annual_total_wan": [
+            94.4,
+            94.4
+          ],
           "travel": null,
           "n_stat": 2,
-          "note": null,
+          "note": "部分年薪／年薪月數由同一筆樣本的「底薪×月數」推算（樣本標 derived）",
           "grade": null
         },
         {
