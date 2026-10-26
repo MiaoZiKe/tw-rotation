@@ -70,6 +70,7 @@
   const btShort = (t) => (/^\d{1,2}月(、\d{1,2}月)*$/.test(t) ? t.replace(/月/g, '').replace(/、/g, '/') + ' 月' : t);
   const btTitle = (r, bt) => { const full = r.bonus_timing_month || bt; return full ? ' title="' + esc(String(full).slice(0, 300)) + '"' : ''; };
   const hasNum = (v) => fl(v).length > 0;
+  const roleShown = (r) => !(r.n === 0 || (r.n == null && !roleHasData(r)));   // 樣本 0 的職位（單位全是 0 就整段）不顯示
   const roleHasData = (r) => hasNum(r.base_month_k) || hasNum(r.bonus_months) || hasNum(r.annual_months) || hasNum(r.annual_total_wan) || hasNum(r.weekly_hours);
   /* 分紅結構：公司層 bonus_structure（每種獎金一筆）。摘要與頂端區塊都從它組；沒有就退回 bonus_timing */
   const bsum = (c) => {
@@ -88,9 +89,10 @@
   const catOf = (ty) => (/年終/.test(ty) ? '年終' : /三節|端午|中秋|春節|節/.test(ty) ? '三節' : /季|分紅|酬勞|績效|業績|獎金/.test(ty) ? '分紅／季獎' : '其他');
   const CAT_SLOT = { '年終': 1, '分紅／季獎': 2, '三節': 3 };
   const catC = (c) => { const D = DN(); return !D ? '#9aa7b8' : CAT_SLOT[c] != null ? D.color(CAT_SLOT[c]) : D.other(); };
-  const chipsOf = (t, n, len) => { const seen = new Set(), out = []; String(t || '').split(/[；;。→＋:：、，,（）()／\/]/).forEach((x) => { x = x.trim(); if (x.length >= 2 && x.length <= len && !seen.has(x)) { seen.add(x); out.push(x); } }); return out.slice(0, n); };
-  const chipRow = (label, text, chips) => '<div class="tc-cg' + (text ? '' : ' na') + '"><div class="tc-cgh"><span class="tc-cgl">' + label + '</span>' + (text ? qpop(esc(text)) : '') + '</div>' +
-    (text ? '<span class="tc-chips">' + (chips.length ? chips : [clip(text, 10)]).slice(0, 3).map((x) => '<em class="tc-chip">' + esc(x) + '</em>').join('') + '</span>' : '<span class="tc-na">—</span>') + '</div>';
+  const NOINFO = /本輪未查到|未查到|查不到|查無|未查證|不固定|月份未載|未載明|無資料/;   // 沒有資訊的字樣一律不當標籤
+  const chipsOf = (t, n, len) => { const seen = new Set(), out = []; String(t || '').split(/[；;。→＋:：、，,（）()／\/]/).forEach((x) => { x = x.trim(); if (x.length >= 2 && x.length <= len && !seen.has(x) && !NOINFO.test(x)) { seen.add(x); out.push(x); } }); return out.slice(0, n); };
+  const chipRow = (label, text, chips0) => { const chips = (chips0 || []).filter((x) => !NOINFO.test(x)).slice(0, 3), fb = clip(text || '', 10), ok = chips.length ? chips : (text && !NOINFO.test(fb) ? [fb] : []);
+    return '<div class="tc-cg' + (ok.length ? '' : ' na') + '"><div class="tc-cgh"><span class="tc-cgl">' + label + '</span>' + (ok.length ? qpop(esc(text)) : '') + '</div>' + (ok.length ? '<span class="tc-chips">' + ok.map((x) => '<em class="tc-chip">' + esc(x) + '</em>').join('') + '</span>' : '<span class="tc-na">—</span>') + '</div>'; };
   const lvl3 = (v, map) => { const t = String(v || ''); for (const [re, n] of map) if (re.test(t)) return n; return 0; };
   const gauge = (label, v, map, names) => { const n = lvl3(v, map); return '<div class="tc-gg"><span class="tc-cgl">' + label + '</span><span class="tc-g3" title="' + esc(v || '無資料') + '">' + [1, 2, 3].map((i) => '<i class="' + (i <= n ? 'on l' + n : '') + '"></i>').join('') + '</span><em>' + esc(n ? names[n - 1] : '—') + '</em></div>'; };
   function kpiOf(co) {
@@ -105,14 +107,14 @@
     return '<div class="tc-kpis">' + kp('年薪中位數', K.ann, '萬') + kp('底薪中位數', K.base, 'K/月') + kp('年薪總月數', K.am, '月') + kp('樣本數', K.n, '筆') + kp('信心（依樣本數）', K.conf === '—' ? null : K.conf) + (mo ? kp('全體員工平均年薪（' + mo.year + '）', mo.avg_wan, '萬') : '') + '</div>';
   }
   function btRow(co) { const bm = monthsIn(co.bonus_timing); return '<div class="tc-cg tc-btrow"><span class="tc-cgl">分紅時間</span>' + (co.bonus_timing ? '<span class="tc-chips"><em class="tc-chip">' + (bm.length ? bm.join('/') + ' 月' : esc(clip(co.bonus_timing, 10))) + '</em></span>' + qpop(esc(co.bonus_timing)) : '<span class="tc-na">—</span>') + '</div>'; }
-  function calHtml(co) {
+  function calHtml(co, extraHtml) {
     const bs = Array.isArray(co.bonus_structure) ? co.bonus_structure : [], by = {};
     bs.forEach((x) => monthsIn(String(x.type || '') + ' ' + String(x.rule || '')).forEach((m) => { (by[m] = by[m] || []).push(catOf(String(x.type || ''))); }));
     if (!bs.length) monthsIn(co.bonus_timing).forEach((m) => { by[m] = ['分紅／季獎']; });
     const has = Object.keys(by).length, cats = Array.from(new Set([].concat(...Object.values(by))));
     return '<div class="tc-cal"><div class="tc-payh"><h5>獎金發放月曆</h5>' + (has ? '<span class="tc-cl">' + cats.map((c) => '<em><i style="background:' + catC(c) + '"></i>' + c + '</em>').join('') + '</span>' : '') + '</div>' +
       '<div class="tc-cm12">' + [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((m) => { const c = Array.from(new Set(by[m] || [])); return '<div class="tc-cm' + (c.length ? ' lit' : '') + '" title="' + (c.length ? m + ' 月：' + esc(c.join('、')) : m + ' 月：無已知發放') + '"><b>' + m + '</b><span>' + c.map((x) => '<i style="background:' + catC(x) + '"></i>').join('') + '</span></div>'; }).join('') + '</div>' +
-      '<div class="tc-gauges">' + gauge('加班', top((co.roles || []).map((r) => r.overtime)), [[/幾乎不/, 1], [/偶/, 2], [/經常|常/, 3]], ['幾乎不', '偶爾', '經常']) + gauge('出差', top((co.roles || []).map((r) => r.travel)), [[/不用|無|幾乎不/, 1], [/偶/, 2], [/經常|常/, 3]], ['不用', '偶爾', '經常']) + '</div>' + btRow(co) + '</div>';
+      '<div class="tc-gauges">' + gauge('加班', top((co.roles || []).map((r) => r.overtime)), [[/幾乎不/, 1], [/偶/, 2], [/經常|常/, 3]], ['幾乎不', '偶爾', '經常']) + gauge('出差', top((co.roles || []).map((r) => r.travel)), [[/不用|無|幾乎不/, 1], [/偶/, 2], [/經常|常/, 3]], ['不用', '偶爾', '經常']) + '</div>' + btRow(co) + (extraHtml || '') + '</div>';
   }
   function chipsHtml(co) {
     const sp = co.stock_plan, st = [['RSU', /RSU/i], ['PSU', /PSU/i], ['員工認股', /認股/], ['員工購股', /購股/], ['庫藏股', /庫藏/], ['配股', /配股/]].filter(([, re]) => re.test(sp || '')).map((x) => x[0]);
@@ -238,15 +240,15 @@
   const INK2 = () => cv('--ink-2', '#5b6b80'), INK3 = () => cv('--ink-3', '#8a97ab');
   function indBarOpt(A, key, unit) {
     const rows = A.inds.filter((x) => x[key]).sort((a, b) => a[key].med - b[key].med);   // 升冪＋橫條由下往上畫＝最高在最上（D 款排行橫條）
-    const rng = rows.map((x, i) => [x[key].min, x[key].max, i, x[key].med]);
+    const rng = rows.map((x, i) => [x[key].min, x[key].max, i, x[key].med]), mxAll = Math.max(1, ...rows.map((x) => x[key].max)), xmax = Math.ceil(mxAll * 1.12 / 10) * 10;   // 上限＝所有最高值 ×1.12 進位，細線與尾端數字都在圖區內
     const grad = { type: 'linear', x: 0, y: 0, x2: 1, y2: 0, colorStops: [{ offset: 0, color: 'rgba(62,224,255,.5)' }, { offset: 1, color: '#3ee0ff' }] };
     return { grid: { left: 8, right: 56, top: 8, bottom: 8, containLabel: true },
       tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, confine: true, formatter: (p) => { const x = rows[p[0].dataIndex]; return esc(x.name) + '<br>中位數 <b>' + x[key].med + '</b> ' + unit + '<br>區間 ' + x[key].min + '–' + x[key].max + '<br>樣本 ' + x[key].n + ' 筆'; } },
-      xAxis: { type: 'value', axisLabel: { color: INK3(), fontSize: 12 }, splitLine: { lineStyle: { opacity: .15 } } },
+      xAxis: { type: 'value', min: 0, max: xmax, axisLabel: { color: INK3(), fontSize: 12 }, splitLine: { lineStyle: { opacity: .15 } } },
       yAxis: { type: 'category', data: rows.map((x) => x.name), axisLabel: { color: INK2(), fontSize: 12 }, axisTick: { show: false }, axisLine: { show: false } },
       series: [
         { type: 'bar', data: rows.map((x) => x[key].med), barWidth: 12, itemStyle: { borderRadius: [0, 3, 3, 0], color: grad }, showBackground: true, backgroundStyle: { color: 'rgba(120,140,170,.12)', borderRadius: 3 }, z: 2, label: { show: false }, emphasis: { label: { show: false } } },
-        { type: 'custom', data: rng, z: 3, silent: true, tooltip: { show: false },
+        { type: 'custom', data: rng, z: 3, silent: true, clip: false, tooltip: { show: false },
           renderItem: (params, api) => { const a = api.coord([api.value(0), api.value(2)]), b = api.coord([api.value(1), api.value(2)]), st = { stroke: '#ffb454', lineWidth: 2 };
             return { type: 'group', children: [{ type: 'line', shape: { x1: a[0], y1: a[1], x2: b[0], y2: b[1] }, style: st }, { type: 'line', shape: { x1: a[0], y1: a[1] - 5, x2: a[0], y2: a[1] + 5 }, style: st }, { type: 'line', shape: { x1: b[0], y1: b[1] - 5, x2: b[0], y2: b[1] + 5 }, style: st },
               { type: 'text', style: { text: String(api.value(3)), x: b[0] + 8, y: b[1], textVerticalAlign: 'middle', fill: INK2(), fontSize: 12, fontWeight: 700 } }] }; } }
@@ -419,17 +421,16 @@
       const co = S.co ? d.companies.find((x) => x.name === S.co) : null;
       if (S.co && !co) { h += '<div class="empty isempty tc-empty">找不到這家公司</div>'; }
       else if (co) {
-        const m = (co.roles || []).filter(roleOk), tsmc = String(co.code) === '2330';
+        const m = (co.roles || []).filter((r) => roleShown(r) && roleOk(r)), tsmc = String(co.code) === '2330';
         h += '<div class="tc-crumb"><a href="#tc/' + S.ind + '" id="tcBack">← 返回公司列表</a></div>' +
           '<div class="tc-cinfo"><h4>' + TL(co.name, S.ind, 40) + ' <span>' + esc(co.name) + '</span>' + (co.code && /^\d{4,6}$/.test(co.code) ? ' <a class="tc-code" href="#stock/' + esc(co.code) + '">' + esc(co.code) + '</a>' : '') + (co.heat ? '<small class="tc-heat">' + esc(co.heat) + '</small>' : '') + '</h4>' + topHtml(co) + '</div>' +
-          '<div class="tc-two">' + payHtml(co) + calHtml(co) + '</div>' + chipsHtml(co) +
-          bonusBlock(co) +
+          '<div class="tc-two">' + payHtml(co) + calHtml(co, bonusBlock(co)) + '</div>' + chipsHtml(co) +
           (co.grade_system ? '<div class="tc-gs"><b>職等制度</b><span class="tc-chips">' + chipsOf(co.grade_system, 3, 14).map((x) => '<em class="tc-chip">' + esc(x) + '</em>').join('') + '</span>' + qpop(esc(co.grade_system)) + '</div>' : '') +
           (tsmc ? '<div class="tc-gs tc-tsmcnote">台積電不分學歷，薪資差異主要來自單位繁忙度</div>' : '') +
           '<div class="tc-cnt" id="tcCnt">符合篩選 <b>' + m.length + '</b> / ' + (co.roles || []).length + ' 個職位</div>' +
           (m.length ? rolesTable(m, co.bonus_timing, tsmc) : '<div class="empty isempty tc-empty">沒有符合篩選的職位</div>');
       } else {
-        const list = d.companies.map((c) => [c, (c.roles || []).filter(roleOk)]).filter((x) => x[1].length);
+        const list = d.companies.map((c) => [c, (c.roles || []).filter((r) => roleShown(r) && roleOk(r))]).filter((x) => x[1].length);
         h += '<div class="tc-cnt" id="tcCnt">符合篩選 <b>' + list.length + '</b> / ' + d.companies.length + ' 家公司</div>' +
           (list.length ? '<div class="tc-grid">' + list.map((x) => coCard(S.ind, x[0], x[1])).join('') + '</div>' : '<div class="empty isempty tc-empty">沒有符合篩選的公司</div>');
       }

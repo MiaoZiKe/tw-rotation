@@ -8,10 +8,13 @@ def t_tc_charts_1026(b, base, code):
     pg.goto(base + "#tc/stats", wait_until="domcontentloaded"); pg.wait_for_timeout(2500)
     ch = lambda i: pg.evaluate("(i)=>{const e=document.querySelector(i);const c=e&&echarts.getInstanceByDom(e);if(!c)return 0;const s=c.getOption().series;return (s[0].data||[]).length}", i)
     nb = ch("#tcChBar")
+    if not pg.evaluate("()=>!!document.querySelector('#v-tc .tc-tabs')"):
+        ok(f"{T}：科技透明圈頁有畫出（tc.js 沒中途爆掉）", False); c.close(); return
     if not nb:
         print(f"  ⏭ {T}：沒有樣本，略過"); c.close(); return
     ok(f"{T}：樣本占比甜甜圈（流量觀測同一套 App.donut）＋橫條都畫出", ch("#tcShare .tcdnc") >= 2 and nb >= 1, (ch("#tcShare .tcdnc"), nb))
     ok(f"{T}：占比圖是 pie、圖例在環右側同排、橫條是 bar 且有區間線", pg.evaluate("()=>{const g=q=>echarts.getInstanceByDom(document.querySelector(q)).getOption().series;const dn=document.querySelector('#tcShare .tcdnc').getBoundingClientRect(),lg=document.querySelector('#tcShare ul.tclg').getBoundingClientRect();return g('#tcShare .tcdnc')[0].type==='pie'&&lg.left>=dn.right-4&&Math.abs((lg.top+lg.bottom)/2-(dn.top+dn.bottom)/2)<dn.height/2&&g('#tcChBar')[0].type==='bar'&&g('#tcChBar')[1].type==='custom'}"))
+    ok(f"{T}：橫條 x 軸上限 ≥ 所有區間最高值（細線不衝出圖區）", pg.evaluate("()=>{const o=echarts.getInstanceByDom(document.getElementById('tcChBar')).getOption();const mx=Math.max(...o.series[1].data.map(d=>d[1]));return o.xAxis[0].max>=mx*1.05}"))
     v0 = pg.evaluate("()=>JSON.stringify(echarts.getInstanceByDom(document.getElementById('tcChBar')).getOption().series[0].data)")
     pg.click("#v-tc .seg[data-chm] button[data-v=ann]"); pg.wait_for_timeout(500)
     ok(f"{T}：切「年薪」→ 橫條資料真的換了", pg.evaluate("()=>JSON.stringify(echarts.getInstanceByDom(document.getElementById('tcChBar')).getOption().series[0].data)") != v0)
@@ -65,6 +68,10 @@ def t_tc_charts_1026(b, base, code):
     ok(f"{T}：職位表底薪／年薪有小橫條", pp.evaluate("()=>document.querySelectorAll('#v-tc .tc-row .tc-mb b').length>=3"))
     pp.click("#v-tc .tc-row >> nth=0 >> td[data-l='底薪(K/月)']"); pp.wait_for_timeout(250)
     ok(f"{T}：樣本摘要欄預設截斷一行、點一下展開", pp.evaluate("()=>{const t=document.querySelector('#v-tc .tc-smt td.tc-clip');if(!t)return true;const a=getComputedStyle(t).whiteSpace==='nowrap';t.click();return a&&t.classList.contains('open')}"))
+    ok(f"{T}：標籤一律濾掉「未查到／查不到／不固定／月份未載」字樣", pp.evaluate("()=>!/本輪未查到|查不到|未查證|不固定|月份未載/.test([...document.querySelectorAll('#v-tc .tc-chip, #v-tc .tc-bsr, #v-tc .tc-cal')].map(e=>e.innerText).join(' '))"))
+    ok(f"{T}：獎金卡放進月曆卡內、下方不再重複分紅結構區", pp.evaluate("()=>document.querySelectorAll('#v-tc .tc-bs').length===1&&!!document.querySelector('#v-tc .tc-cal .tc-bs')&&document.querySelector('#v-tc .tc-cm').getBoundingClientRect().height<=60"))
+    pz = c.new_page(); pz.goto(base + "#tc/material/%E8%87%BB%E9%BC%8E", wait_until="domcontentloaded"); pz.wait_for_timeout(1800)
+    ok(f"{T}：樣本數 0 的職位不顯示（職位表沒有樣本欄 0 的列）", pz.evaluate("()=>[...document.querySelectorAll('#v-tc .tc-row td[data-l=樣本]')].every(e=>e.innerText.trim()!=='0')"))
     # 區間陣列樣本：用 TwTc 內部不外露，改驗畫面——注入一筆陣列樣本資料後逐筆表要顯示 a–b 而不是 a,b
     c2 = b.new_context(viewport={"width": 1440, "height": 900}); c2.add_init_script("window.TW_TC_OVERRIDE=true;try{localStorage.setItem('tw.tour','done')}catch(e){}")
     def inj(rt):
@@ -87,7 +94,7 @@ def t_tc_charts_1026(b, base, code):
     # 反灰：無數據列有 tc-nod、且同單位排在有數據列之後；「—」格淡灰
     chk = p3.evaluate("""()=>{const out={nod:0,order:true,dash:0};let seen=false;[...document.querySelectorAll('#v-tc .tc-tbl tbody tr')].forEach(tr=>{if(tr.classList.contains('tc-unit')){seen=false;return}if(!tr.classList.contains('tc-row'))return;if(tr.classList.contains('tc-nod')){out.nod++;seen=true}else if(seen)out.order=false});out.dash=document.querySelectorAll('#v-tc td.tc-dash').length;return out}""")
     ok(f"{T}：反灰列（若有）排在同單位有數據列後、「—」格有 tc-dash", chk["order"] and chk["dash"] >= 1, chk)
-    p4 = c2.new_page(); p4.route("**/tc/json/foundry.json", lambda rt: (lambda r: (lambda d: (d["companies"][0]["roles"].append({"unit": d["companies"][0]["roles"][0]["unit"], "role": "測試空列", "overtime": None}), rt.fulfill(response=r, json=d)))(r.json()))(rt.fetch()))
+    p4 = c2.new_page(); p4.route("**/tc/json/foundry.json", lambda rt: (lambda r: (lambda d: (d["companies"][0]["roles"].append({"unit": d["companies"][0]["roles"][0]["unit"], "role": "測試空列", "overtime": None, "n": 1}), rt.fulfill(response=r, json=d)))(r.json()))(rt.fetch()))
     p4.goto(base + "#tc/foundry/%E5%8F%B0%E7%A9%8D%E9%9B%BB", wait_until="domcontentloaded"); p4.wait_for_timeout(1500)
     nd = p4.evaluate("()=>{const r=[...document.querySelectorAll('#v-tc .tc-row.tc-nod')];return {n:r.length,col:r[0]?getComputedStyle(r[0].querySelector('td.tc-role b')).color:'',norm:getComputedStyle(document.querySelector('#v-tc .tc-row:not(.tc-nod) td.tc-role b')).color,last:r[0]?!r[0].nextElementSibling||r[0].nextElementSibling.classList.contains('tc-unit')||r[0].nextElementSibling.classList.contains('tc-nod')||r[0].nextElementSibling.classList.contains('tc-smrow'):false}}")
     ok(f"{T}：注入全空職位 → 該列反灰（顏色與一般列不同）且排在單位最後", nd["n"] >= 1 and nd["col"] != nd["norm"] and nd["last"], nd)

@@ -220,3 +220,14 @@
 #v-tc .tc-rkr{padding:2px 6px;gap:2px var(--sp-2)}
 #v-tc .tc-gc{padding:var(--sp-2)}
 }
+
+/* 退件修正（第二輪 10-26）：月曆正常高度、區間線在條下方 */
+#v-tc .tc-cal .tc-cm12{flex:none;grid-auto-rows:auto;margin:var(--sp-2) 0}
+#v-tc .tc-cal .tc-cm{min-height:44px;padding:4px 0}
+#v-tc .tc-cal .tc-bs{margin-top:var(--sp-3)}
+#v-tc .tc-cal .tc-bs h5{margin:0 0 var(--sp-2);font-size:14px;color:var(--ink-2)}
+#v-tc .tc-cal .tc-bcards{grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
+#v-tc .tc-rkb{height:16px;background:none}
+#v-tc .tc-rkb::before{content:'';position:absolute;left:0;right:0;top:0;height:10px;border-radius:3px;background:var(--panel-3)}
+#v-tc .tc-rkb .tc-rkbar{height:10px;bottom:auto}
+#v-tc .tc-rkb .tc-rkrg{top:13px;height:2px;background:#ffb454;opacity:.55}
