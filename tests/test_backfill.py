@@ -794,3 +794,29 @@ def test_pit名單依各年當時成交值前N檔且旗標獨立(monkeypatch):
     assert run_backfill.pit_codes(years=[2012, 2013], top=2) == ["1101", "1234", "2002"]   # ETF 排除、依年聯集
     assert run_backfill.datasets_key_of("inst", "2012-01-01", None, "pit") == "inst@2012-01-01@pit"
     assert run_backfill._codes_for_scope("pit", None) is not None
+
+
+def test_下市名單解析與回補逐檔記done(monkeypatch):
+    """只收 2010 後下市的 4 碼普通股；逐檔 done、有資料才 append。"""
+    import pandas as pd
+    from pipeline.sources import delisted
+    rows = [{"date": "2015-03-02", "stock_id": "1234", "stock_name": "甲"},
+            {"date": "2005-01-01", "stock_id": "2222", "stock_name": "乙"},   # 太早
+            {"date": "2019-06-01", "stock_id": "00878", "stock_name": "ETF"},
+            {"date": "2020-06-01", "stock_id": "3333", "stock_name": "丙"}]
+    lst = delisted.parse_delisting(rows)
+    assert list(lst["code"]) == ["3333", "1234"]
+    assert delisted.parse_delisting([{"x": 1}]).empty
+    appended = []
+    monkeypatch.setattr(delisted, "delisted_list", lambda **k: lst)
+    monkeypatch.setattr(run_backfill.http, "finmind_budget_left", lambda: 100)
+    monkeypatch.setattr(run_backfill.http, "finmind_last_error", lambda d=None: None)
+    monkeypatch.setattr(run_backfill.finmind, "price_history",
+                        lambda c, s, **k: pd.DataFrame({"date": ["2014-01-02"], "code": [c], "close": [1.0]}) if c == "1234" else pd.DataFrame())
+    monkeypatch.setattr(run_backfill.store, "append", lambda t, df: appended.append((t, len(df))) or len(df))
+    monkeypatch.setattr(run_backfill, "_save_progress", lambda p: None)
+    prog = {"complete": {}, "done": {}}
+    assert run_backfill.backfill_delisted(prog) is True
+    assert appended == [("price_daily", 1)]
+    assert prog["done"] == {"delisted_px:3333": True, "delisted_px:1234": True}
+    assert prog["complete"]["delisted_px"]["done"] is True
