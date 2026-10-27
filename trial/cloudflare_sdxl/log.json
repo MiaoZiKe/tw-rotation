@@ -1,0 +1,23 @@
+[
+ {
+  "img": "1_fab",
+  "ok": false,
+  "status": 401,
+  "sec": 0.1,
+  "err": "{\"result\":null,\"success\":false,\"errors\":[{\"code\":10000,\"message\":\"Authentication error\"}],\"messages\":[]}"
+ },
+ {
+  "img": "2_desk",
+  "ok": false,
+  "status": 401,
+  "sec": 0.1,
+  "err": "{\"result\":null,\"success\":false,\"errors\":[{\"code\":10000,\"message\":\"Authentication error\"}],\"messages\":[]}"
+ },
+ {
+  "img": "3_city",
+  "ok": false,
+  "status": 401,
+  "sec": 0.1,
+  "err": "{\"result\":null,\"success\":false,\"errors\":[{\"code\":10000,\"message\":\"Authentication error\"}],\"messages\":[]}"
+ }
+]
