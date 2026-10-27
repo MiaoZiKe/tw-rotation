@@ -6067,8 +6067,8 @@
           ],
           "overtime": "偶爾",
           "travel": null,
-          "n": 15,
-          "note": "網友自述未經查證；GoodJob 一筆新人月薪 8.2 萬（學歷未載）；GoodJob 頁面平均週工時 48 小時；年薪 150～300 萬的筆數年資不一（含 24 年）不採；第二輪：Dcard 數位 IC offer 多為 (N±x)×13～14＋分紅，CN 事業群分紅傳一兩百萬起跳；PTT 2026-02 開獎情報分 CN／非 CN／RDC；分紅一年兩包（1、4 月與 10、隔年 7 月各半），新人第一年不完整；GoodJob 多則稱責任制無加班費；base_month_k 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples；未逐筆對應的舊彙整：{\"base_month_k\": [82, 82]}",
+          "n": 14,
+          "note": "網友自述未經查證；GoodJob 一筆新人月薪 8.2 萬（學歷未載）；GoodJob 頁面平均週工時 48 小時；年薪 150～300 萬的筆數年資不一（含 24 年）不採；第二輪：Dcard 數位 IC offer 多為 (N±x)×13～14＋分紅，CN 事業群分紅傳一兩百萬起跳；PTT 2026-02 開獎情報分 CN／非 CN／RDC；分紅一年兩包（1、4 月與 10、隔年 7 月各半），新人第一年不完整；GoodJob 多則稱責任制無加班費；base_month_k 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples；未逐筆對應的舊彙整：{\"base_month_k\": [82, 82]}；Dcard 259644306 留言B4 自述 E8 年薪 280 萬，Andy 2026-10-28 確認排除",
           "sources": [
             {
               "site": "GoodJob",
@@ -6427,32 +6427,9 @@
               "in_window": true,
               "date_note": "Dcard 頁面發文日期 2026-08-16（20261027_0144 批）",
               "comment_sample": true
-            },
-            {
-              "site": "Dcard",
-              "url": "https://www.dcard.tw/f/tech_job/p/259644306",
-              "date": "2025-08",
-              "page_date": "2025-08-28",
-              "date_confirmed": true,
-              "role": "數位IC integration工程師(留言B4)",
-              "grade": "E8(自述)",
-              "unit_detail": null,
-              "years": "6.5",
-              "degree": null,
-              "base_k": null,
-              "bonus_months": null,
-              "annual_months": null,
-              "annual_wan": 280,
-              "weekly_hours": null,
-              "overtime": null,
-              "travel": null,
-              "quote_free_note": "留言B4：年資6-7年（取6.5）E8，不含加班費今年才280萬；公司依B4「M開頭的部門別來」及B16-4「我 B4」推為瑞昱，職等名稱為留言者自述",
-              "in_window": true,
-              "date_note": "Dcard 頁面發文日期 2025-08-28（b29b 批）",
-              "comment_sample": true
             }
           ],
-          "n_stat": 9
+          "n_stat": 8
         },
         {
           "unit": "研發 R&D",
