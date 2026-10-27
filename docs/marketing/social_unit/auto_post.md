@@ -117,3 +117,9 @@ https://liguligu-puipui.com/
 - https://support.agorapulse.com/en/articles/9694913-workaround-instagram-stories-with-link-stickers
 - 2026-10-26：Andy 核准 J-3「照建議，全部執行」→ 文案最底下的網址改為帶 `?u=<平台>-<時段>-<yyyymmdd>`（取代 10-26 稍早「不帶追蹤參數」那條）；格式、位置、說明句不變。
 - 2026-10-27：Andy 授權「照建議，全部執行」→ 文案網址加 `#<路由>` 深層連結（落點依當天內容挑，見規則 4 的落點說明）；其餘格式不變。
+
+## 防重複紀錄不可擋到正式發文（2026-10-27 Andy：「不可再發生」）
+事故：凌晨測試補發把 `intraday-2026-10-27` 寫進 social-snaps 的 `state/posted.json`，12:00 正式盤中被判「已發過」跳過，12:13 才手動補發。
+1. 測試輪（`live_test` 或 `force`）一律不寫發布紀錄（`.github/workflows/social-live.yml`）。
+2. 每筆發布紀錄帶 `at`（台北發布時間，`social_publish.py`）；`social_snap.posted_ok()` 只承認正式時段的紀錄：盤中＝當天 09:00～13:30、盤前＝當天 05:00 之後，其他時間寫的紀錄視為測試誤記、照發（log 印 ⚠）。
+3. 手動補發測試要用 `live_test=true`，不准用 `dry_run=false + force=true`。

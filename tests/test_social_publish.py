@@ -249,3 +249,21 @@ def test_盤前主文之後同一篇底下回覆_重跑不重複(tmp_path, monke
     assert c[1][2]["data"]["reply_to_id"] == pub_id and c[1][2]["data"]["text"] == "🧭 昨日盤面"
     f2 = Fake(); monkeypatch.setattr(sp, "http", f2)
     assert sp.run(p, BASE, env=ENV) == 0 and not posts(f2, "/11/threads")      # 主文與回覆都發過 → 不重發
+
+
+def test_發布紀錄帶時間_測試時段誤記不算已發過(tmp_path, monkeypatch):
+    # 2026-10-27 事故：凌晨測試寫進 intraday-2026-10-27，12:00 正式盤中被當成已發過 → Andy：「不可再發生」
+    import sys
+    from pathlib import Path
+    sys.path.insert(0, str(Path(sp.__file__).resolve().parent))
+    import social_snap as ss
+    assert not ss.posted_ok("intraday-2026-10-27", {"at": "2026-10-27T02:21:00+08:00"})
+    assert ss.posted_ok("intraday-2026-10-27", {"at": "2026-10-27T12:02:00+08:00"})
+    assert not ss.posted_ok("premarket-2026-10-28", {"at": "2026-10-27T23:00:00+08:00"})
+    assert ss.posted_ok("premarket-2026-10-28", {"at": "2026-10-28T08:22:00+08:00"})
+    assert ss.posted_ok("intraday-2026-10-27", {"threads": {}})      # 舊紀錄沒有 at：照舊算已發過，避免重發
+    f = Fake(); monkeypatch.setattr(sp, "http", f)
+    p = mk(tmp_path)
+    sp.run(p, BASE, env=ENV)
+    rec = json.loads((tmp_path / "posted.json").read_text("utf-8"))
+    assert all("at" in v and v["at"].endswith("+08:00") for v in rec.values())

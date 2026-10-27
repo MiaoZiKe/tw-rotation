@@ -621,6 +621,21 @@ def slot_key_for(kind: str, data_date: str, taken_at: str) -> str:
     return f"{kind}-{taken_at[:10]}-{taken_at[11:13]}"
 
 
+def posted_ok(key: str, rec) -> bool:
+    """發布紀錄算不算數（2026-10-27 事故：凌晨測試寫進 intraday-2026-10-27，12:00 正式盤中被當成已發過）。
+    紀錄有 at（台北發布時間）時，盤中必須在當天 09:00～13:30、盤前必須在當天 05:00 之後才算；
+    舊紀錄沒有 at 照舊算已發過（避免重發）。"""
+    at = (rec or {}).get("at") if isinstance(rec, dict) else None
+    if not at:
+        return True
+    day, hm = key.split("-", 1)[1][:10], at[11:16]
+    if key.startswith("intraday-"):
+        return at[:10] == day and "09:00" <= hm <= "13:30"
+    if key.startswith("premarket-"):
+        return at[:10] == day and hm >= "05:00"
+    return True
+
+
 def _get(url: str, timeout: int = 40) -> bytes:
     from urllib.request import Request
     req = Request(url, headers={"User-Agent": "Mozilla/5.0 (tw-rotation social_snap)", "Accept": "application/json,*/*"})
@@ -2083,9 +2098,11 @@ def main() -> int:
                 done_ = json.loads(Path(args.posted_json).read_text("utf-8"))
             except Exception:  # noqa: BLE001
                 done_ = {}
-            if key_ in done_:
+            if key_ in done_ and posted_ok(key_, done_[key_]):
                 log(f"{key_} 已經發過（{args.posted_json}）→ 不重複")
                 return 10
+            if key_ in done_:
+                log(f"⚠ {key_} 的發布紀錄時間 {done_[key_].get('at')} 不在正式時段（測試誤記）→ 不算，照發")
         if args.kind == "intraday" and not args.force and not args.now:      # 盤中固定中午 12:00：早到就等到 12:00，資料以那一刻的即時為準
             wait_s = (datetime.combine(now_tpe().date(), datetime.strptime("12:00", "%H:%M").time(), TPE) - now_tpe()).total_seconds()
             if 0 < wait_s <= 600:

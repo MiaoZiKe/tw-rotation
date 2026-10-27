@@ -1289,7 +1289,7 @@ def main() -> int:
         except Exception as exc:  # noqa: BLE001 —— 沒有紀錄檔＝還沒發過
             print(f"[premarket] 讀不到發布紀錄（{exc}），當作還沒發過")
             done = {}
-        if key in done:
+        if key in done and ss.posted_ok(key, done[key]):
             print(f"[premarket] {key} 已發過 → 不重複")
             return 10
 

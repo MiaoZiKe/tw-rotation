@@ -19,6 +19,7 @@ from __future__ import annotations
 
 import argparse
 import json
+from datetime import datetime, timedelta, timezone
 import os
 import sys
 import time
@@ -353,6 +354,8 @@ def run(manifest_path, base_url, dry_run=False, env=None, flag=None) -> int:
             log(f"[ig] 發布失敗：{redact(e)}")
 
     if done and not off:
+        # 記下台北發布時間：social_snap.posted_ok 用它判斷紀錄是不是正式時段發的（測試誤記不算）
+        done.setdefault("at", datetime.now(timezone(timedelta(hours=8))).isoformat(timespec="seconds"))
         posted[key] = done
         posted_file.write_text(json.dumps(posted, ensure_ascii=False, indent=1), encoding="utf-8")
     return 1 if fail else 0
