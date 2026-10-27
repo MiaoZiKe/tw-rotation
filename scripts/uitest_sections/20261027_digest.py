@@ -155,6 +155,10 @@ def t_digest_1027(b, base, code):
         pg.click("#wdCard [data-wddel]")
         wait_until(pg, "() => document.querySelectorAll('#wdCard .wdrule').length === 1", 4000)
         ok(f"{T}（{W}/Pro）刪除一條提醒 → 打 put、剩 1 條", st["puts"] == p0 + 1 and len(st["rules"]) == 1, [st["puts"], len(st["rules"])])
+        # 2026-10-27：刪除後的「已刪除」提示不能一直留在清單標題位置（390 寬會被誤讀成剩下那條被刪）→ 要自己消失
+        m0 = pg.evaluate("() => (document.getElementById('wdMsg') || {}).innerText || ''")
+        gone = wait_until(pg, "() => !((document.getElementById('wdMsg') || {}).innerText || '').includes('已刪除')", 5000)
+        ok(f"{T}（{W}/Pro）刪除後的「已刪除」提示會自己消失", "已刪除" in m0 and bool(gone), m0)
         # 版面：手機不得橫向捲、字不小於 11px
         ovf = pg.evaluate("() => document.documentElement.scrollWidth - innerWidth")
         small = pg.evaluate("() => [...document.querySelectorAll('#wdCard *')].filter(e => e.children.length === 0 && e.textContent.trim() && parseFloat(getComputedStyle(e).fontSize) < 11).length")

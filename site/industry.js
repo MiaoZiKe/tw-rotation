@@ -3858,7 +3858,7 @@
        標題色塊內縮 3px、晶片與公司卡內縮 6px、說明文字從 +10 開始。
        連線端點仍接在 coPos（＝框的左右緣），所以線停在框邊、不會伸進框裡。*/
     const SEG_IN = 6, inW = colW - SEG_IN * 2;
-    const NOTE_W = inW - 4, NOTE_LH = 16, NOTE_MAX = 5;   // 文字從欄左 +6 開始，右邊留 4px；5 行（高度已算進 noteLines）
+    const NOTE_W = inW - 4, NOTE_LH = 17, NOTE_MAX = 5;   // 文字從欄左 +6 開始，右邊留 4px；5 行（高度已算進 noteLines） // 16→17（2026-10-27）：800px 縮放後相鄰兩行外框會重疊 0.3px，被 _preview 抓為交疊
     /* 字寬用畫布真的量（字級沿用這個框實際吃到的字型；量不到就退回「中文 13、英數 7.5」的估計）。
        ⚠ 這段 SVG 文字沒有自己的字級規則，吃的是繼承下來的 13px，不是註解上寫的 11px —— 用猜的會溢出欄寬。*/
     const cs0 = (() => { try { return getComputedStyle(host); } catch (e) { return null; } })();
@@ -8624,7 +8624,7 @@ html.m4 #etfHoldCard tr.hi td{background:color-mix(in srgb,var(--accent,#4ea1ff)
               text: lw ? `{d|━} {n|${L.full}}  {l|${rangeTxt}} {${ppCls(m)}|${pp(m)}}` : `{d|━} {n|${L.full}}  {l|這個區間沒有公布日}` }; }),
           grid: LINES.map((L, i) => ({ left: 52, right: 30, top: TOP + i * CELL + GAP, height: CELL - GAP - 12 })),
           xAxis: LINES.map((L, i) => xCat({ gridIndex: i, boundaryGap: false, splitLine: { show: false },
-            axisTick: { show: i === LINES.length - 1 }, axisLabel: { show: i === LINES.length - 1, color: A.CH.ink3, fontFamily: A.NUM_FONT, formatter: dayLbl, hideOverlap: true } })),
+            axisTick: { show: i === LINES.length - 1 }, axisLabel: { show: i === LINES.length - 1, color: A.CH.ink3, fontFamily: A.NUM_FONT, formatter: dayLbl, hideOverlap: true, margin: 14 } })),   // 2026-10-27 margin 8→14：最底格 y 軸「0%」跟第一個日期「09-22」差 2px 交疊
           yAxis: LINES.map((L, i) => ({ ...A.axisStyle, type: 'value', gridIndex: i, scale: true, splitNumber: 2,
             axisLabel: { color: A.CH.ink3, fontFamily: A.NUM_FONT, fontSize: 12, formatter: (v) => +v.toFixed(2) + '%' } })),   // 設計 v4 2B：11 → 12
           series: LINES.map((L, i) => ({ name: L.full, type: 'line', xAxisIndex: i, yAxisIndex: i,

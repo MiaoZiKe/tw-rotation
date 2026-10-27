@@ -57274,10 +57274,13 @@ def t_watchlists_guest(b, base):
     # ⑫ 800 寬：頂欄放得下「自選」而且沒有橫向捲軸
     pg.set_viewport_size({"width": 800, "height": 900})
     pg.wait_for_timeout(400)
-    r = pg.evaluate("""() => { const b = document.getElementById('wlBtn').getBoundingClientRect();
-        return { vis: b.width > 0 && b.right <= innerWidth, sw: document.documentElement.scrollWidth, iw: innerWidth }; }""")
-    ok("自選 800：頂欄「自選」看得到、沒有橫向捲軸", r["vis"] and r["sw"] <= r["iw"] + 1, r)
-    pg.click("#wlBtn")
+    # 2026-10-27 驗收更新：版面 V2（10-03）之後 800 寬也掛新版面（l4-mini 側欄），頂欄那顆 #wlBtn 隨 #acctBar 收起，
+    #   「自選」改成側欄「自選」那一格（#tabs .tab[data-view=watch]）—— 程式沒壞，驗收改量那一格看得到、沒橫向捲軸。
+    r = pg.evaluate("""() => { const l4 = document.documentElement.classList.contains('l4');
+        const b = (l4 ? document.querySelector("#tabs .tab[data-view='watch']") : document.getElementById('wlBtn')).getBoundingClientRect();
+        return { l4, vis: b.width > 0 && b.right <= innerWidth, sw: document.documentElement.scrollWidth, iw: innerWidth }; }""")
+    ok("自選 800：「自選」入口（側欄／頂欄）看得到、沒有橫向捲軸", r["vis"] and r["sw"] <= r["iw"] + 1, r)
+    pg.click("#tabs .tab[data-view='watch']" if r["l4"] else "#wlBtn")
     wait_until(pg, "() => location.hash === '#watch' && !!document.getElementById('wpTabs')", 6000)
     # 2026-09-28 改前：量 #wlPanel 在畫面內 → 改後：頂欄「自選」到整頁，量整頁沒有橫向捲軸、五頁標籤不超出畫面
     r = pg.evaluate("() => { const t = document.getElementById('wpTabs').getBoundingClientRect(); return { l: t.left, r: t.right, iw: innerWidth, sw: document.documentElement.scrollWidth }; }")
@@ -57293,17 +57296,11 @@ def t_watchlists_guest(b, base):
     m.on("pageerror", lambda e: errs.append("390: " + str(e)))
     m.route("**/fonts.googleapis.com/**", lambda r: r.abort())
     m.goto(base + "#overview", wait_until="domcontentloaded")
-    wait_until(m, "() => !!document.querySelector('#mbWatch .mbw')", 10000)
-    ok("手機自選：總覽那一列顯示目前那頁（1 檔）", m.locator("#mbWatch .mbw").count() == 1, m.locator("#mbWatch .mbw").count())
-    ok("手機自選：列最左邊有頁名鈕", m.locator("#mbWTab").count() == 1 and "自選 1" in m.inner_text("#mbWTab"))
-    m.click("#mbWTab")
-    wait_until(m, "() => !!document.querySelector('.msheet:not([hidden]) button[data-wt]')", 4000)
-    m.click(".msheet button[data-wt='bb2']")
-    wait_until(m, "() => document.querySelectorAll('#mbWatch .mbw').length === 2", 4000)
-    ok("手機自選：換到「AI」頁後那一列變成兩檔", m.locator("#mbWatch .mbw").count() == 2)
-    ok("手機自選：換頁記住了（tw.watchcur）", m.evaluate("() => localStorage.getItem('tw.watchcur')") == "bb2")
-    r = m.evaluate("() => ({ sw: document.documentElement.scrollWidth, iw: innerWidth })")
-    ok("手機自選 390：沒有橫向捲軸", r["sw"] <= r["iw"] + 1, r)
+    # 2026-10-27 驗收更新：手機 v2（10-08）把總覽改成新版（#mbHome 整塊 display:none），舊的「總覽那一列自選（#mbWatch／#mbWTab 換頁抽屜）」
+    #   已不在畫面上 —— 程式沒壞，是驗收還在點看不見的鈕（Playwright 等 30 秒逾時、整段中斷）。改驗：舊那一列確實收起、手機自選從 ☰ 抽屜進、
+    #   在自選分頁真的切到「AI」頁（兩檔）並記住（tw.watchcur）。
+    m.wait_for_timeout(1500)
+    ok("手機自選：總覽舊的自選列（#mbHome）在手機 v2 已收起，不會殘留半截", m.evaluate("() => { const h = document.getElementById('mbHome'); return !h || h.getClientRects().length === 0; }"))
     # 「⋯」清單裡的自選清單
     # 2026-10-08 手機 v2：「⋯」清單退役，自選改從左上 ☰ 側欄抽屜進（改前驗「⋯ → 自選清單」）
     m.click("#m4Burger"); m.wait_for_timeout(400)
@@ -57317,6 +57314,9 @@ def t_watchlists_guest(b, base):
     ok("手機自選：自選分頁的字 ≥ 11px", fs >= 11, fs)
     r = m.evaluate("() => { const p = document.getElementById('wpTabs').getBoundingClientRect(); return { l: p.left, r: p.right, iw: innerWidth, sw: document.documentElement.scrollWidth }; }")
     ok("手機自選：自選分頁在畫面內、沒有橫向捲軸", r["l"] >= 0 and r["r"] <= r["iw"] + 1 and r["sw"] <= r["iw"] + 1, r)
+    m.click("#wpTabs button[data-sel='bb2']")
+    wait_until(m, "() => document.querySelectorAll('#wpList tr[data-go]').length === 2", 4000)
+    ok("手機自選：在自選分頁換到「AI」頁後清單變成兩檔，且記住（tw.watchcur）", m.locator("#wpList tr[data-go]").count() == 2 and m.evaluate("() => localStorage.getItem('tw.watchcur')") == "bb2")
     # 個股 ☆
     m.goto(base + "#stock/2454", wait_until="domcontentloaded")
     wait_until(m, "() => !!document.getElementById('mbStar')", 12000)
@@ -57446,7 +57446,9 @@ def _wp_tabs_1008(b, base, errs):
     ok(f"★ {T} ⑧ 390：選中的最後一頁（含 ⋯）自動捲進可見範圍", g["onId"] == "q5" and g["vis"] and g["sl"] > 0, g)
     ok(f"{T} ⑧ 390：左邊還有頁籤 → 左端有漸層提示", g["ovl"], g)
     ok(f"★ {T} ⑨ 390：頁籤（含 ⋯ 與 ＋）高度 ≥ 40px", g["hmin"] >= 40, g)
-    ok(f"{T} ⑨ 390：選中頁籤下緣貼著內容框上緣", g["gap"] <= 1, g)
+    # 2026-10-27 驗收更新：手機 v2（mobile4.css 第 345 行起）把 .nbsw 頁籤統一改成「分段膠囊」（高 40、1px 細框、圓角），
+    #   不再是資料夾式「下緣貼著內容框」，實測與內容框差 2px（Andy 的手機版新風格），所以 390 改驗「沒有大空隙（≤ 8px）」；桌機 ① 仍是 ≤ 1px。
+    ok(f"{T} ⑨ 390：選中頁籤與內容框之間沒有大空隙（≤ 8px）", g["gap"] <= 8, g)
     mp.eval_on_selector("#wpTabs", "e => { e.scrollLeft = 0; e.dispatchEvent(new Event('scroll')); }")
     mp.wait_for_timeout(100)
     g = mp.evaluate(WPT_GEO)
@@ -57906,7 +57908,8 @@ def t_account_cloud(b, base):
         pg.click("#admRefresh")
         pg.wait_for_timeout(800)
         ok("管理頁：管理者打開 #admin 看得到上排兩張圖與分頁統計", all(pg.locator(s).count() == 1 for s in ("#admDays", "#trDonut", "#trDetail")))
-        ok("管理頁：分頁統計有「全部」分頁與各頁分頁（2026-10-05 新規格）", pg.evaluate("() => document.querySelectorAll('#trTabs button').length === 13 && document.querySelector('#trTabs button.on').textContent.trim().startsWith('全部')"))
+        # 2026-10-27 驗收更新：13→14 顆（全部＋13 頁）。10-16 站上新增「精選文章」分頁（admin.js PAGES），驗收沒跟著改；程式沒壞。
+        ok("管理頁：分頁統計有「全部」分頁與各頁分頁（2026-10-05 新規格）", pg.evaluate("() => document.querySelectorAll('#trTabs button').length === 14 && document.querySelector('#trTabs button.on').textContent.trim().startsWith('全部')"))
         pg.select_option("#admDaysSel", "7")
         pg.wait_for_timeout(500)
         # ★ 2026-10-05 改前→改後（流量觀測1005）：每天直條改成「只從第一筆有資料的日子起畫」，不再補滿 7 格空白 → 1～7 格、且說明文字寫「7 天」
@@ -57930,18 +57933,24 @@ def t_account_cloud(b, base):
         ok("會員：再打開後訪客又看得到（線上名單有 Andy、有 1 位訪客）", g.evaluate("() => TwAccount.online()") >= 2 and onl0.get("guests") == 1 and any(u["email"] == "andy@example.com" for u in onl0.get("users", [])), onl0)
         # 訪客關掉分頁 → 離線即刪
         g.close()
-        pg.wait_for_timeout(600)
-        pg.wait_for_timeout(600)
+        # 2026-10-27：改成輪詢最多 6 秒（原本固定等 1.2 秒）。離線訊號是關頁時瀏覽器背景送出的 sendBeacon，何時送達看機器忙不忙，
+        #   固定等法在機器忙時（同時跑別的驗收）會誤判；輪詢到 0 為止，真的沒送才會紅。
+        for _ in range(12):
+            pg.wait_for_timeout(500)
+            if pg.evaluate("() => TwAccount.call('/v1/admin/online', {})").get("guests") == 0:
+                break
         onl = pg.evaluate("() => TwAccount.call('/v1/admin/online', {})")
         ok("會員：訪客關掉分頁後立刻從線上名單消失（離線即刪）：訪客數歸 0、Andy 還在", onl.get("guests") == 0 and any(u["email"] == "andy@example.com" for u in onl.get("users", [])), onl)
         c2.close()
 
         # ---- ⑥ 隱私權政策跟著功能出現
         pg.goto(base + "#privacy", wait_until="domcontentloaded")
-        wait_until(pg, "() => /以 Google 帳號登入/.test(document.getElementById('v-legal').textContent)", 6000)
+        wait_until(pg, "() => /Google 帳號登入/.test(document.getElementById('v-legal').textContent)", 6000)
         t = pg.inner_text("#v-legal")
+        # 2026-10-27 驗收更新：legal.js 的列名改成「自選清單」「在線狀態（所有訪客）」，驗收仍找舊字；內容與保存期限沒變。
         ok("隱私權政策：有登入、自選清單、使用統計、線上人數四列與保存期限",
-           all(x in t for x in ("以 Google 帳號登入", "自選清單（登入後）", "使用統計（所有訪客）", "線上人數（所有訪客）", "13 個月", "24 個月", "客服信箱")))
+           all(x in t for x in ("Google 帳號登入", "自選清單", "使用統計（所有訪客）", "在線狀態（所有訪客）", "13 個月", "24 個月")) and "Email" in pg.inner_text("body"))
+        # 「以 Google 帳號登入」→「Google 帳號登入」（列名）、「客服信箱」→ 全站頁尾「Email …」（10-14 Andy：下方只附聯絡 Mail），所以聯絡方式改驗頁尾
         c1.close()
 
         # ---- ⑦ 小視窗被擋 → 整頁跳轉登入（手機 PWA 常見）
@@ -57951,9 +57960,11 @@ def t_account_cloud(b, base):
         m.add_init_script("window.open = function () { return null; };")
         m.goto(base + "#overview", wait_until="domcontentloaded")
         wait_until(m, "() => !!window.TwAccount && TwAccount.on()", 8000)
-        m.click("#moreBtn")
-        ok("手機會員：「⋯」清單裡有登入", m.is_visible("#mmAcct") and "登入" in m.inner_text("#mmAcct"))
-        m.click("#mmAcct")
+        # 2026-10-27 驗收更新：手機 v2（10-08）拿掉「⋯」清單，登入入口改在頂欄右上角（#m4Tools）；程式沒壞，驗收仍點已不存在的 #moreBtn/#mmAcct。
+        lg = m.locator("#m4Tools #acctBtn, #m4Tools #m4Login").first
+        ok("手機會員：頂欄右上角有登入／帳號鈕", lg.is_visible())
+        lg.click()
+        m.click("#acctMenu .m4login")
         m.click("#acctGo")
         m.wait_for_selector("#as-bob", timeout=8000)
         m.click("#as-bob")
@@ -60593,7 +60604,10 @@ def t_member_perm(b, base, code):
 
         def login(pg, who):
             if pg.viewport_size["width"] <= 640:
-                pg.click("#moreBtn"); pg.click("#mmAcct")
+                # 2026-10-27 驗收更新：手機 v2（10-08）拿掉「⋯」選單，帳號入口改成頂欄右上角頭像／登入鈕（#m4Tools），
+                #   原本點 #moreBtn → #mmAcct 的路已不存在（程式沒壞，是驗收過時）。
+                pg.locator("#m4Tools #acctBtn, #m4Tools #m4Login").first.click()
+                pg.click("#acctMenu .m4login")   # 10-09 起手機訪客先開帳號選單，再按「登入／註冊」才到登入告知
             else:
                 pg.click("#acctBtn")
             with pg.expect_popup() as pi:

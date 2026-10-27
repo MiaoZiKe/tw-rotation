@@ -10655,9 +10655,9 @@
             + `<br>期間報酬 <span style="color:${upDown(g.ret)}">${fmt.pct(g.ret, 1)}</span>`
             + `<br>成交值 ${fmt.yi(g.turnover)}`; },
       },
-      // bottom 30→38、nameGap 24→22：原本「佔比變化 (pp)」整行掉出容器下緣 6px
-      grid: { left: GL, right: GR, top: 12, bottom: 38 },
-      xAxis: { ...axisStyle, name: gsLive ? '佔比變化 (pp)・即時' : '佔比變化 (pp)', nameLocation: 'middle', nameGap: 22, nameTextStyle: { color: CH.ink3, fontSize: 12 },
+      // bottom 30→38、nameGap 24→22：原本「佔比變化 (pp)」整行掉出容器下緣 6px ；2026-10-27 再加：bottom 38→44、nameGap 22→28（800px 時軸上「-1」與軸名交疊 7px²）
+      grid: { left: GL, right: GR, top: 12, bottom: 44 },
+      xAxis: { ...axisStyle, name: gsLive ? '佔比變化 (pp)・即時' : '佔比變化 (pp)', nameLocation: 'middle', nameGap: 28, nameTextStyle: { color: CH.ink3, fontSize: 12 },
         ...(xMin != null ? { min: xMin } : {}),
         // 2026-09-24 夜：上限貼著最大值（不再湊到整數 1），最長那根長條直接頂到右邊數字欄 —— 長條區多出 15～20%
         ...(vMax > 0 ? { max: +(vMax * 1.03).toFixed(3) } : {}),
