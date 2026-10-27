@@ -177,6 +177,24 @@ def t_funnel_1026(b, base, code):
             return r[-1] == "—" or float(r[-1].rstrip("%")) <= 100.0
         ok(f"{T}：⑤任何列註冊率都不超過 100%", all(_rt(r) for r in tbl), tbl)
         ok(f"{T}：⑤全站合計註冊＝2（threads 1＋direct 1）", bool(tot) and tot[2] == "2", tot)
+        # ⑤b 2026-10-27 依功能分組：切到「依功能」→ 列變成功能（盤中／無功能碼）、各欄加總＝全站合計、註冊率不超過 100%
+        ad.click("#trFunBy button[data-by=fn]"); ad.wait_for_timeout(400)
+        tf = ad.evaluate("() => [...document.querySelectorAll('#trFunnel .funt tbody tr')].map(tr => [...tr.children].map(c => c.textContent.trim()))")
+        ttl = ad.evaluate("() => document.querySelector('#trFunnel h3').textContent")
+        tot_f = next((r for r in tf if r[0] == "全站合計"), None)
+        intr = next((r for r in tf if r[0] == "盤中"), None)
+        none_ = next((r for r in tf if r[0].startswith("（無功能碼")), None)
+        ok(f"{T}：⑤b「依功能」：標題變成「各功能的漏斗」、有全站合計／盤中／（無功能碼）三列", "各功能" in ttl and bool(tot_f) and bool(intr) and bool(none_), (ttl, tf))
+        ok(f"{T}：⑤b 盤中列：進站 1、註冊 1、看價格 ≥1、點結帳 ≥1；註冊率 100.0%（th-id 貼文）", bool(intr) and intr[1] == "1" and intr[2] == "1" and int(intr[4]) >= 1 and int(intr[5]) >= 1 and intr[7] == "100.0%", intr)
+        ok(f"{T}：⑤b 無功能碼列＝管理者 direct 註冊：註冊 1", bool(none_) and none_[2] == "1", none_)
+        body_f = [r for r in tf if r[0] != "全站合計"]
+        sums_ok = bool(tot_f) and all(sum(int(r[i]) for r in body_f) == int(tot_f[i]) for i in range(1, 7))
+        ok(f"{T}：⑤b 依功能各欄加總＝全站合計（分母與依平台一致）", sums_ok, tf)
+        ok(f"{T}：⑤b 依功能任何列註冊率都不超過 100%", all(_rt(r) for r in tf), tf)
+        if shots:
+            ad.locator("#trFunnel").screenshot(path=str(pathlib.Path(shots) / "funnel_func.png"))
+        ad.click("#trFunBy button[data-by=src]"); ad.wait_for_timeout(300)
+        ok(f"{T}：⑤b 切回「依平台」→ 又看到 Threads 列", ad.evaluate("() => [...document.querySelectorAll('#trFunnel .funt tbody th')].some(e => e.textContent.trim() === 'Threads')"))
         ok(f"{T}：⑤「?」說明收在標題旁、卡內沒有攤開的說明段落", ad.evaluate("() => { const c = document.querySelector('#trFunnel'); return !!c.querySelector('h3 .qtip') && !c.querySelector('p, details'); }"))
         if shots:
             ad.locator("#trFunnel").screenshot(path=str(pathlib.Path(shots) / "funnel_1440.png"))

@@ -23,11 +23,11 @@
   if (!T()) return;
   const { esc, css, call, view, toast, ls } = T();
   const K_READ = 'tw.notice.read', K_BAN = 'tw.notice.banner';
-  const KINDS = { event: '活動', feature: '功能更新', maint: '維護', plan: '方案異動', pay: '帳務通知' };   // pay＝只有本人看得到的付款／升級／退款通知（2026-10-12）
+  const KINDS = { event: '活動', feature: '功能更新', maint: '維護', plan: '方案異動', pay: '帳務通知', digest: '自選日報', alert: '自設提醒' };   // digest／alert＝site/digest.js 在本機組出來的個人通知（2026-10-27）   // pay＝只有本人看得到的付款／升級／退款通知（2026-10-12）
   const AUD = [['all', '全部'], ['guest', '訪客'], ['member', '註冊會員（含付費）'], ['paid', '付費會員']];
   const S = { list: [], loaded: false, open: false, expand: null, at: 0 };
   const F = { list: [], loaded: false, fly: null };                    // 靜態「功能更新」（features.json）
-  const isStatic = (id) => /^f-\d{8}-[a-z0-9-]+$/.test(String(id || ''));
+  const isStatic = (id) => /^[fd]-\d{8}-[a-z0-9-]+$/.test(String(id || ''));   // d-＝自選日報／提醒（digest.js 本機產生），已讀一樣只記本機
   const A = () => window.TwAccount;
   const logged = () => { const a = A(); return !!(a && a.on() && a.user()); };
   const localRead = () => { try { const a = JSON.parse(ls.get(K_READ) || '[]'); return new Set(Array.isArray(a) ? a : []); } catch (e) { return new Set(); } };
@@ -44,7 +44,9 @@
   }
   function L() {
     const ids = new Set(S.list.map((n) => n.id));
-    return S.list.concat(F.list.filter((n) => audOk(n) && !ids.has(n.id)))
+    /* 自選日報／自設提醒（site/digest.js）：依「我的自選與條件」在瀏覽器裡組出來的個人通知，不經 Worker */
+    let mine = []; try { mine = window.TwDigest && window.TwDigest.notes ? window.TwDigest.notes() : []; } catch (e) { mine = []; }
+    return S.list.concat(F.list.filter((n) => audOk(n) && !ids.has(n.id))).concat(mine.filter((n) => !ids.has(n.id)))
       .map((n, i) => [n, i]).sort((a, b) => (b[0].pinned ? 1 : 0) - (a[0].pinned ? 1 : 0) || (b[0].start || 0) - (a[0].start || 0) || a[1] - b[1]).map((x) => x[0]);
   }
   const unread = () => L().filter((n) => !isRead(n));
@@ -87,6 +89,7 @@
 .ntkind.k-feature{color:var(--cyan);border-color:color-mix(in srgb,var(--cyan) 50%,transparent)}
 .ntkind.k-maint{color:var(--rise);border-color:color-mix(in srgb,var(--rise) 50%,transparent)}
 .ntkind.k-plan{color:var(--violet);border-color:color-mix(in srgb,var(--violet) 50%,transparent)}
+.ntkind.k-digest,.ntkind.k-alert{color:var(--amber);border-color:color-mix(in srgb,var(--amber) 50%,transparent)}
 .ntkind.k-pay{color:var(--green,#30a46c);border-color:color-mix(in srgb,var(--green,#30a46c) 50%,transparent)}
 .ntpin{font-size:11.5px;color:var(--amber)}
 .ntempty{padding:22px 14px;text-align:center;color:var(--ink-2);font-size:13.5px}
@@ -379,6 +382,7 @@
     if ((location.hash || '') === '#admin/notices') { const v = view('v-subadm'); if (v) renderNoticesAdmin(v); }
   });
   window.addEventListener('tw:account-config', () => { paintBell(); fetchList(); });
+  window.addEventListener('tw:digest', () => repaint());   // digest.js 組好新通知了
   window.addEventListener('tw:perm', () => { if (F.list.some((n) => n.aud === 'paid')) repaint(); });   // 方案變了 → aud:paid 的那幾則要不要出現
   setInterval(() => { if (!document.hidden) fetchList(); }, 10 * 60 * 1000);
   window.TwNotices = { refresh: () => fetchList(true), open: () => toggleDrop(true), unread: () => unread().length, list: () => L(), renderNoticesAdmin };

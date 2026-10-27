@@ -219,6 +219,8 @@
     if (P.menu) openMenu();
     const ri = document.getElementById('wpRename');
     if (ri) { ri.focus({ preventScroll: true }); ri.select(); ri.addEventListener('blur', () => finishRename(true)); }
+    /* 2026-10-27 自選日報＋自設提醒（site/digest.js）：登入後在清單卡下面多一張卡；paint 會整頁重畫，所以每次都重新掛 */
+    if (window.TwDigest && !P.editing) window.TwDigest.mount(v);
   }
 
   /* 頁籤列：捲動位置、兩端漸層、選中那顆捲進可見範圍。

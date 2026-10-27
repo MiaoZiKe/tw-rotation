@@ -2247,7 +2247,13 @@ Hub.prototype.billState = async function (v) {
   const paid = plan !== 'free' && plan !== 'guest';
   const row = this.billFlags(email);
   const hk = await this.billHashKinds(email);           // 刪過帳號、用同一個信箱回來的人
-  const firstPaid = (row && row.first_paid) || (paid ? e.updated || 0 : 0);
+  /* 2026-10-27（tier_plan_1027 4-4）：沒有 first_paid 紀錄時，不能單憑 perm.updated 就當作「付過款」——
+     體驗者若被掛上非 free 方案（人工或日後自動化），會被誤判成可七天退款。後備只對「真的有已生效訂單」的人成立。 */
+  let realPaid = false;
+  if (paid && !(row && row.first_paid)) {
+    try { this.payInit(); realPaid = this.q('SELECT 1 FROM orders WHERE (uid = ? OR email = ?) AND applied = 1 LIMIT 1', v.user.uid, email).length > 0; } catch (err) { realPaid = false; }
+  }
+  const firstPaid = (row && row.first_paid) || (realPaid ? e.updated || 0 : 0);
   const open = (t) => this.q("SELECT id, created FROM sub_requests WHERE uid = ? AND type = ? AND status = 'new' ORDER BY created DESC LIMIT 1", v.user.uid, t)[0] || null;
   const inWindow = !!(paid && firstPaid && this.now() - firstPaid <= BILL_REFUND_DAYS * 86400 * 1000);
   const refundUsed = !!(row && row.refund_used) || hk.has('refund');
@@ -2387,6 +2393,11 @@ for (const t of ['bill_flags', 'benefit_hash']) if (!EXPORT_TABLES.includes(t)) 
    ★ 同前面幾個區塊：只在檔尾新增、包一層 prototype，既有函式一行不動。
    ============================================================================ */
 export const GRANT_BAN = ['mkt.cand', 'mkt.cand.n', 'explore.list', 'explore.list.n', 'stock.ai', 'stock.mtf', 'live.tick', 'stock.k_min'];
+/* 2026-10-27 新會員體驗額度（tier_plan_1027 4-7；Andy 拍板 T-1/T-6）：Plus 等級 A 級功能、14 天、每天每項各 M 次。
+   刻意不放：今日關注、選股名單、四面向資料整理（stock.ai）、四週期同看、分 K（都在 GRANT_BAN）、自選擴充、精選全文。 */
+export const WELCOME_1027_FEATS = { 'ind.3d': 10, 'ind.rel': 10, 'ind.groups': 15, 'ind.diagram': 15, 'heat.detail': 15, 'heat.link': 10, 'flow.play': 5,
+  'flow.sankey.drill': 20, 'etf.cashflow': 10, 'etf.inc.params': 10, 'etf.inc.comp': 10, 'etf.cmp': 10, 'etf.ret.period': 5, 'stock.draw': 10, 'stock.ind': 10,
+  'stock.page': 20, 'season.groups': 20 };
 const GRANT_ID_RE = /^[a-z0-9_-]{1,24}$/;
 const GRANT_MAX_FEATS = 40, GRANT_M_MAX = 999, GRANT_DAYS_MAX = 60, GRANT_IP_DAY = 3;
 const GRANT_HIT_KEEP_DAYS = 30, GRANT_KEEP_MONTHS = 13;
@@ -2414,17 +2425,31 @@ Hub.prototype.grantInit = function () {
   /* 預設兩筆範本（都是「關」）：Andy 在管理區 #admin/grants 打開就生效。參數＝docs/launch_gap_payment_1009.md 3-2 的例子
      （welcome 7 天每項 3 次、promo 10/13～10/26 每項 5 次）；功能只放法遵 2-3「可以」、而且 site/plan_presets.js 對註冊會員有鎖或有上限的那幾項。
      只種一次，刪掉不會長回來。*/
+  this._seededBefore1027 = !!this.kv('grants_seeded');
   if (!this.kv('grants_seeded')) {
     const feats = (m) => JSON.stringify({ 'ind.3d': m, 'ind.rel': m, 'stock.draw': m, 'stock.ind': m, 'etf.cashflow': m, 'heat.link': m, 'explore.filter': m });
     const now = this.now();
+    /* 2026-10-27（Andy 拍板 tier_plan_1027 T-1）：新建資料庫的 welcome 種子就是 14 天、每天、體驗功能表（仍預設關，正式站由下面的遷移打開） */
     if (!this.q('SELECT 1 FROM grant_defs WHERE id = ?', 'welcome').length) {
-      this.q("INSERT INTO grant_defs (id, kind, name, feats, per, days, t0, t1, audience, on_, updated) VALUES ('welcome', 'welcome', '新會員體驗', ?, 'total', 7, NULL, NULL, 'free', 0, ?)", feats(3), now);
+      this.q("INSERT INTO grant_defs (id, kind, name, feats, per, days, t0, t1, audience, on_, updated) VALUES ('welcome', 'welcome', '新會員體驗', ?, 'day', 14, NULL, NULL, 'free', 0, ?)", JSON.stringify(WELCOME_1027_FEATS), now);
     }
     if (!this.q('SELECT 1 FROM grant_defs WHERE id = ?', 'promo-launch').length) {
       this.q("INSERT INTO grant_defs (id, kind, name, feats, per, days, t0, t1, audience, on_, updated) VALUES ('promo-launch', 'promo', '上市體驗週', ?, 'total', NULL, ?, ?, 'free', 0, ?)",
         feats(5), Date.parse('2026-10-13T00:00:00+08:00'), Date.parse('2026-10-27T00:00:00+08:00') - 1, now);
     }
     this.setKv('grants_seeded', '1');
+  }
+  /* 2026-10-27 一次性遷移（tier_plan_1027 T-1）：已經種過種子的正式站，把 welcome 改成「14 天、每天計次、Plus 等級 A 級功能」並打開。
+     只做一次（kv 記號）；之後 Andy 在 #admin/grants 怎麼改都不會被蓋回來。新建資料庫（剛種完種子）不打開，維持原本「預設關」。 */
+  if (!this.kv('grants_t1027')) {
+    if (this._seededBefore1027) {
+      /* Andy 10-27「原有參數不可動」：只改「還是原廠種子、沒人動過」的 welcome（關著、7 天、total）；Andy 自己改過的設定一律不碰 */
+      const cur = this.q("SELECT on_, days, per FROM grant_defs WHERE id = 'welcome'")[0];
+      const f = JSON.stringify(WELCOME_1027_FEATS);
+      if (cur) { if (!cur.on_ && cur.days === 7 && cur.per === 'total') this.q("UPDATE grant_defs SET feats = ?, per = 'day', days = 14, on_ = 1, updated = ? WHERE id = 'welcome'", f, this.now()); }
+      else this.q("INSERT INTO grant_defs (id, kind, name, feats, per, days, t0, t1, audience, on_, updated) VALUES ('welcome', 'welcome', '新會員體驗', ?, 'day', 14, NULL, NULL, 'free', 1, ?)", f, this.now());
+    }
+    this.setKv('grants_t1027', '1');
   }
   this._grantOk = true;
 };
@@ -2498,6 +2523,13 @@ Hub.prototype.grantWelcome = async function (user, req) {
   /* 刪過帳號、用同一個信箱（含 Gmail 別名）回來 → 不再發 */
   const emh = await this.billHash(grantMailNorm(user.email));
   if (this.q("SELECT 1 FROM benefit_hash WHERE emh = ? AND kind = 'welcome' AND at >= ?", emh, now - BILL_HASH_DAYS * 86400 * 1000).length) return 'used';
+  /* 2026-10-27（tier_plan_1027 5-3 缺口）：取消或退款過的人（bill_flags 或刪帳號後留下的 trial／refund 比對碼）不能再領體驗 */
+  try {
+    const bf = this.billFlags(user.email);
+    if (bf && (bf.trial_used || bf.refund_used)) return 'used';
+    const hk = await this.billHashKinds(user.email);
+    if (hk.has('trial') || hk.has('refund')) return 'used';
+  } catch (e) { /* 查不到帳務旗標不擋註冊 */ }
   /* 同 IP 每天最多 3 份（只存 HMAC，不存原始 IP）*/
   const ip = req && req.headers ? req.headers.get('CF-Connecting-IP') || '' : '';
   const day = tpeDay(now);
@@ -2738,7 +2770,7 @@ Hub.prototype.trackBatch = async function (req, b) {
    · 註冊（signup）：帳號建立 15 分鐘內第一次送來 → 算一次註冊，歸在該來源（沒來源＝direct）。舊會員第一次送來只標記「已處理」，不算註冊。
    · 體驗開始（trial_start）：註冊當下若拿到「新會員體驗」（grants 有 welcome）才算。
    · 付費（paid）：pay.js 第一次開通付費方案時呼叫 funnelPaid，來源取自 users.src。
-   · 計數同時寫 usage（ev:<事件>，全站合計）與 ev2（頁面 other、元件 fn.<事件>、細項＝來源），管理區「流量觀測」的漏斗卡讀這兩處。
+   · 計數同時寫 usage（ev:<事件>，全站合計）與 ev2（頁面 other、元件 fn.<事件>、細項＝來源；另寫 fx.<事件>、細項＝功能碼，供管理區「依功能」切換），管理區「流量觀測」的漏斗卡讀這兩處。
    · DNT／GPC：前端根本不送，所以這裡不需要判斷。
    ============================================================================ */
 const SRC_RE = /^[A-Za-z0-9_.-]{1,40}$/;
@@ -2747,16 +2779,24 @@ Hub.prototype.funnelInit = function () {
   if (!this.q('PRAGMA table_info(users)').some((c) => c.name === 'src')) this.q('ALTER TABLE users ADD COLUMN src TEXT');
   this._funnelOk = true;
 };
-Hub.prototype.funnelBump = function (e, src) {
-  const day = tpeDay(this.now()), s = SRC_RE.test(src || '') ? String(src).slice(0, 24) : 'direct';
+/* 功能碼（2026-10-27 深層連結）：?u= 第二段，前端存成 src.c（例 diagram3d_20261028）；去掉結尾 _yyyymmdd 就是功能碼。
+   只認貼文（m=post），utm_campaign 是自由字串不算功能；沒有就記 none，這樣「依功能」各列加總＝全站合計，註冊率分母跟「依平台」一致。 */
+const funcOf = (j) => {
+  if (!j || j.m !== 'post' || !j.c) return 'none';
+  const f = String(j.c).replace(/_\d{8}$/, '').toLowerCase();
+  return /^[a-z0-9_]{1,24}$/.test(f) ? f : 'none';
+};
+Hub.prototype.funnelBump = function (e, src, func) {
+  const day = tpeDay(this.now()), s = SRC_RE.test(src || '') ? String(src).slice(0, 24) : 'direct', f = /^[a-z0-9_]{1,24}$/.test(func || '') ? func : 'none';
+  this.q("INSERT INTO ev2 (day, page, comp, detail, n) VALUES (?, 'other', ?, ?, 1) ON CONFLICT(day, page, comp, detail) DO UPDATE SET n = n + 1", day, 'fx.' + e, f);
   this.q('INSERT INTO usage (day, k, n) VALUES (?, ?, 1) ON CONFLICT(day, k) DO UPDATE SET n = n + 1', day, 'ev:' + e);
   this.q("INSERT INTO ev2 (day, page, comp, detail, n) VALUES (?, 'other', ?, ?, 1) ON CONFLICT(day, page, comp, detail) DO UPDATE SET n = n + 1", day, 'fn.' + e, s);
 };
 Hub.prototype.funnelPaid = function (uid) {
   this.funnelInit();
   const u = this.q('SELECT src FROM users WHERE uid = ?', uid)[0];
-  let s = 'direct'; try { const j = JSON.parse((u && u.src) || 'null'); if (j && j.s) s = j.s; } catch (e) { /* 壞資料當 direct */ }
-  this.funnelBump('paid', s);
+  let s = 'direct', f = 'none'; try { const j = JSON.parse((u && u.src) || 'null'); if (j && j.s) { s = j.s; f = funcOf(j); } } catch (e) { /* 壞資料當 direct */ }
+  this.funnelBump('paid', s, f);
 };
 Hub.prototype.subRoutes['/v1/me/src'] = async function (req, b) {
   const v = await this.auth(req, b);
@@ -2770,12 +2810,98 @@ Hub.prototype.subRoutes['/v1/me/src'] = async function (req, b) {
   const isNew = this.now() - (u.created || 0) < 15 * 60 * 1000;
   this.q('UPDATE users SET src = ? WHERE uid = ?', isNew && src.s ? JSON.stringify(src) : '', u.uid);
   if (!isNew) return this.json(req, { ok: true, first: false });
-  const label = src.s || 'direct';
-  this.funnelBump('signup', label);
+  const label = src.s || 'direct', fc = src.s ? funcOf(src) : 'none';
+  this.funnelBump('signup', label, fc);
   try {
     this.grantInit();
-    if (this.q("SELECT 1 FROM grants g JOIN grant_defs d ON d.id = g.gid WHERE g.uid = ? AND d.kind = 'welcome'", u.uid).length) this.funnelBump('trial_start', label);
+    if (this.q("SELECT 1 FROM grants g JOIN grant_defs d ON d.id = g.gid WHERE g.uid = ? AND d.kind = 'welcome'", u.uid).length) this.funnelBump('trial_start', label, fc);
   } catch (e) { /* 體驗表有問題不影響註冊統計 */ }
   return this.json(req, { ok: true, first: true });
 };
 /* ============================================================================ 行銷漏斗區塊結束 */
+
+/* ============================================================================ 自設提醒區塊 alerts（2026-10-27，Andy 拍板 T-4「自選日報＋自設提醒」，docs/marketing/tier_plan_1027.md W7）
+   為什麼要有 Worker：提醒條件跟著帳號跨裝置（跟自選清單同一種個資），而且「可以設幾條」是方案差異（新權限鍵 watch.alert：註冊 1、Plus 5、Pro 不限），
+   上限要伺服器這關才算數（前端擋得了一般人，F12 改得掉 —— 跟 watch.tabs 同一個原則）。
+   ★ 判斷「條件有沒有成立」不在這裡：事實表是靜態的 site/data/digest.json（盤後 build_payload 產出），瀏覽器載入後自己比對、發站內通知，
+     Worker 不碰資料湖、不存通知、不寄信。這裡只存「使用者自己設的條件」。
+   ★ 法遵 L-13：條件只能由使用者自己設（營收公布／法人連買連賣 N 天／收盤價高於低於 X／除息前 N 天），站方不提供任何預設的「買點／賣點」條件；
+     欄位只收下面白名單，多帶的（備註、文字）一律丟掉。
+   ★ 同前面幾個區塊：只在檔尾新增、包一層 prototype，既有函式一行不動。
+   ============================================================================ */
+export const ALERT_HARD = 200;
+const ALERT_TYPES = ['rev', 'streak', 'above', 'below', 'exdiv'];
+/* 範本沒寫 watch.alert 時的預設（site/features.js 的 defBy 同一組數，改一邊要改另一邊）；其他付費範本比照 Plus */
+const ALERT_DEF = { guest: 0, free: 1, plus: 5, pro: ALERT_HARD };
+Hub.prototype.alertInit = function () {
+  if (this._alOk) return;
+  this.q('CREATE TABLE IF NOT EXISTS alerts (uid TEXT PRIMARY KEY, data TEXT, rev INTEGER, updated INTEGER)');
+  this._alOk = true;
+};
+Hub.prototype.alertCap = function (user) {
+  if (this.isAdmin(user)) return ALERT_HARD;
+  const e = this.effective(String(user.email || '').toLowerCase());
+  const v = (e.feats || {})['watch.alert'];
+  if (Number.isInteger(v)) return Math.max(0, Math.min(ALERT_HARD, v));
+  if (v === false) return 0;
+  const k = e.expired ? 'free' : e.plan;
+  return Object.prototype.hasOwnProperty.call(ALERT_DEF, k) ? ALERT_DEF[k] : ALERT_DEF.plus;
+};
+Hub.prototype.cleanAlerts = function (rules) {
+  if (!Array.isArray(rules) || rules.length > ALERT_HARD) return null;
+  const seen = new Set(), out = [];
+  for (const r of rules) {
+    if (!r || typeof r !== 'object') return null;
+    const id = String(r.id || '');
+    if (!/^[a-z0-9]{1,12}$/.test(id) || seen.has(id)) return null;
+    seen.add(id);
+    const code = String(r.code || '');
+    if (!CODE_RE.test(code) || !ALERT_TYPES.includes(r.type)) return null;
+    const o = { id, code, type: r.type, on: r.on !== false };
+    if (r.type === 'streak') {
+      if (!Number.isInteger(r.n) || r.n < 2 || r.n > 30) return null;
+      if (!['buy', 'sell'].includes(r.side) || !['total', 'foreign', 'trust'].includes(r.who)) return null;
+      o.n = r.n; o.side = r.side; o.who = r.who;
+    } else if (r.type === 'exdiv') {
+      if (!Number.isInteger(r.n) || r.n < 1 || r.n > 30) return null;
+      o.n = r.n;
+    } else if (r.type === 'above' || r.type === 'below') {
+      if (typeof r.x !== 'number' || !isFinite(r.x) || r.x <= 0 || r.x > 1e6) return null;
+      o.x = Math.round(r.x * 100) / 100;
+    }
+    out.push(o);
+  }
+  return out;
+};
+Hub.prototype.subRoutes['/v1/alerts/get'] = async function (req, b) {
+  const v = await this.auth(req, b);
+  if (!v) return this.json(req, { error: 'auth' }, 401);
+  this.alertInit();
+  const r = this.q('SELECT data, rev FROM alerts WHERE uid = ?', v.user.uid)[0];
+  return this.json(req, { alerts: r ? JSON.parse(r.data) : [], rev: r ? r.rev : 0, cap: this.alertCap(v.user) });
+};
+Hub.prototype.subRoutes['/v1/alerts/put'] = async function (req, b) {
+  const v = await this.auth(req, b);
+  if (!v) return this.json(req, { error: 'auth' }, 401);
+  this.alertInit();
+  const rules = this.cleanAlerts(b.alerts);
+  if (!rules) return this.json(req, { error: 'bad_alerts' }, 400);
+  const cur = this.q('SELECT data, rev FROM alerts WHERE uid = ?', v.user.uid)[0];
+  const rev = cur ? cur.rev : 0, old = cur ? JSON.parse(cur.data) : [];
+  if (b.rev !== rev) return this.json(req, { conflict: true, alerts: old, rev }, 409);
+  /* 只擋「變多」：降級的人原本設的照樣留著、能改能刪，只是不能再新增（同 watch.tabs） */
+  const cap = this.alertCap(v.user);
+  if (rules.length > Math.max(cap, old.length)) return this.json(req, { error: 'alert_limit', limit: cap, alerts: old, rev }, 403);
+  this.q('INSERT INTO alerts (uid, data, rev, updated) VALUES (?, ?, ?, ?) ON CONFLICT(uid) DO UPDATE SET data = excluded.data, rev = excluded.rev, updated = excluded.updated',
+    v.user.uid, JSON.stringify(rules), rev + 1, this.now());
+  return this.json(req, { ok: true, rev: rev + 1, alerts: rules, cap });
+};
+/* 刪帳號：提醒條件是個人資料，一起刪（原本的 deleteMe 會把 users 那列刪掉，所以先記 uid） */
+const alertOrigDelete = Hub.prototype.deleteMe;
+Hub.prototype.deleteMe = async function (req, b) {
+  const v = await this.auth(req, b || {});
+  const res = await alertOrigDelete.call(this, req, b);
+  if (v && res.status === 200) { try { this.alertInit(); this.q('DELETE FROM alerts WHERE uid = ?', v.user.uid); } catch (e) { /* 略 */ } }
+  return res;
+};
+/* ============================================================================ 自設提醒區塊結束 */

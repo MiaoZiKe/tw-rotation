@@ -250,7 +250,7 @@ html[data-theme="light"] #v-admin{--pgL:40%}
 #v-admin .hrlk .days .dc.lksel .dd{color:var(--ink);font-weight:700}
 @media (prefers-reduced-motion:reduce){#admBody [data-chart] [data-row],#admBody [data-chart] li[data-k]{transition:none}}
 #v-admin .trfun .funw{max-height:288px;overflow:auto}
-#v-admin .funt{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums}
+#v-admin .trfun{position:relative}#v-admin .trfun .grtog{position:absolute;right:14px;top:12px}#v-admin .funt{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums}
 #v-admin .funt th,#v-admin .funt td{padding:6px 8px;text-align:right;border-bottom:1px solid var(--line)}
 #v-admin .funt thead th{position:sticky;top:0;background:var(--card);color:var(--muted);font-weight:600;z-index:1}
 #v-admin .funt th:first-child,#v-admin .funt tbody th{text-align:left;font-weight:600}
@@ -1099,6 +1099,7 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
     const tiers = st.tiers || await estimateTiers(A, st, sessions, loginSess);
     v.querySelector('#admBody').innerHTML = topHtml(st, days, dmap, dmax, sessions, loginSess, pvTotal, tiers, bk) + `<div class="admgrid trone">${funnelHtml()}</div><div class="secttl" id="trDetailTtl"><h2>分頁統計</h2>${dayChip()}</div><div class="card trtabs" id="trDetail"><div id="trTabsBox"></div><div id="trPageBody"></div></div>`;
     wireTop(v, A);
+    wireFunnel(v);
     thinTicks(v);
     paintTrTabs();
     bindHover(v.querySelector('#admBody'));
@@ -1115,20 +1116,28 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
      註冊／體驗／付費由 Worker 算，進站／看價格／點結帳由前端送；DNT／GPC 的人不會被算到，所以這是「彙總比例的估計」不是逐人追蹤。 */
   const FN_STEPS = [['land', '進站'], ['signup', '註冊'], ['trial_start', '體驗'], ['pricing_view', '看價格'], ['checkout_click', '點結帳'], ['paid', '付費']];
   const FN_SRC = { direct: '直接進站（無來源）', threads: 'Threads', instagram: 'Instagram', facebook: 'Facebook', youtube: 'YouTube', ig_bio: 'IG 簡介連結', ig_story: 'IG 限動', reels: 'Reels', shorts: 'Shorts', email: 'Email', push: '推播' };
+  /* 功能碼中文名：貼文 ?u= 第二段經 account.js 的 SRC_SLOT 轉成英文詞後存進 src.c，這裡再轉中文；none＝網址沒帶功能碼 */
+  const FN_FUNC = { none: '（無功能碼）', premarket: '盤前', intraday: '盤中', close: '盤後', margin: '融資融券', weekly: '週報', diagram2d: '產業鏈 2D 剖析圖', diagram3d: '3D 剖析圖', etf_div: 'ETF 配息行事曆', etf_income: 'ETF 現金流試算', etf_list: 'ETF 總覽', earnings: '財報／財經日曆', hot_topic: '熱門話題', ev_fomc: '事件：FOMC', ev_oil: '事件：油價', ev_cpi: '事件：CPI' };
   function funnelHtml() {
     const st = S.st || {}, rows = Array.isArray(st.rows) ? st.rows : [], e2 = Array.isArray(st.e2) ? st.e2 : [];
     const tot = {}; FN_STEPS.forEach(([k]) => { tot[k] = 0; });
     rows.forEach((r) => { const k = String(r.k || '').replace(/^ev:/, ''); if (r.k.startsWith('ev:') && k in tot) tot[k] += r.n; });
-    const by = {};
-    e2.forEach((r) => { if (r.page === 'other' && /^fn\./.test(r.comp)) { const k = r.comp.slice(3); if (k in tot) { (by[r.detail] = by[r.detail] || {})[k] = (by[r.detail][k] || 0) + r.n; } } });
+    const by = {}, byFn = S.funBy === 'fn', pre = byFn ? /^fx\./ : /^fn\./;      // 依平台讀 fn.<事件>（細項＝來源）、依功能讀 fx.<事件>（細項＝功能碼，沒碼＝none）；兩邊都含無來源列，加總＝全站合計
+    e2.forEach((r) => { if (r.page === 'other' && pre.test(r.comp)) { const k = r.comp.slice(3); if (k in tot) { (by[r.detail] = by[r.detail] || {})[k] = (by[r.detail][k] || 0) + r.n; } } });
     /* 分母為 0 或舊資料不一致（註冊 > 進站，舊版直接進站不記進站）時顯示「—」，不顯示超過 100% */
     const rate = (a, b) => (b > 0 && a <= b ? (a / b * 100).toFixed(1) + '%' : '—');
-    const line = (name, o, cls) => `<tr${cls ? ` class="${cls}"` : ''}><th scope="row" data-l="來源">${esc(name)}</th>${FN_STEPS.map(([k, n]) => `<td data-l="${n}">${nf(o[k] || 0)}</td>`).join('')}<td data-l="註冊率">${rate(o.signup || 0, o.land || 0)}</td></tr>`;
+    const line = (name, o, cls) => `<tr${cls ? ` class="${cls}"` : ''}><th scope="row" data-l="${byFn ? '功能' : '來源'}">${esc(name)}</th>${FN_STEPS.map(([k, n]) => `<td data-l="${n}">${nf(o[k] || 0)}</td>`).join('')}<td data-l="註冊率">${rate(o.signup || 0, o.land || 0)}</td></tr>`;
     const srcs = Object.keys(by).sort((a, b) => (by[b].land || 0) - (by[a].land || 0) || (by[b].signup || 0) - (by[a].signup || 0));
     const any = sum(Object.values(tot)) > 0;
-    const tip = '每一列是一個管道（貼文網址的 utm_source 或 ?u= 的平台）。進站＝帶來源網址進站；註冊＝新會員第一次登入；體驗＝註冊後拿到新會員體驗；看價格＝開訂閱方案頁；點結帳＝點付費方案的訂閱鈕；付費＝第一次付款開通。註冊率＝註冊 ÷ 進站。只記彙總次數、不追蹤個人，開「請勿追蹤」的人不會被算到；同一人換裝置來源會斷。上方「全站合計」含沒帶來源的瀏覽。怎麼用：哪個管道進站多但註冊率低，就改那個管道的落地內容；樣本小於 30 先不下結論。';
-    return `<div class="card trfun" id="trFunnel"><h3>各來源的漏斗<span class="qtip" tabindex="0" role="note" aria-label="說明" title="${esc(tip)}">?</span></h3>
-      ${any ? `<div class="cb"><div class="funw"><table class="funt"><thead><tr><th scope="col">來源</th>${FN_STEPS.map(([, n]) => `<th scope="col">${n}</th>`).join('')}<th scope="col">註冊率</th></tr></thead><tbody>${line('全站合計', tot, 'funtot')}${srcs.map((k) => line(FN_SRC[k] || k, by[k])).join('')}</tbody></table></div></div>` : '<div class="empty">尚無來源紀錄</div>'}</div>`;
+    const tip = '每一列是一個管道（貼文網址的 utm_source 或 ?u= 的平台）；右上角切到「依功能」，每一列改成貼文推廣的功能（?u= 第二段，例如 3D 剖析圖、ETF 配息行事曆；沒帶功能碼的算「無功能碼」），兩種分法的加總都等於全站合計。進站＝帶來源網址進站；註冊＝新會員第一次登入；體驗＝註冊後拿到新會員體驗；看價格＝開訂閱方案頁；點結帳＝點付費方案的訂閱鈕；付費＝第一次付款開通。註冊率＝註冊 ÷ 進站。只記彙總次數、不追蹤個人，開「請勿追蹤」的人不會被算到；同一人換裝置來源會斷。上方「全站合計」含沒帶來源的瀏覽。怎麼用：哪個管道進站多但註冊率低，就改那個管道的落地內容；樣本小於 30 先不下結論。';
+    return `<div class="card trfun" id="trFunnel"><div class="seg tiny grtog" id="trFunBy" role="tablist" aria-label="漏斗分組">${[['src', '依平台'], ['fn', '依功能']].map(([k, n]) => `<button type="button" role="tab" data-by="${k}" class="${(byFn ? 'fn' : 'src') === k ? 'on' : ''}" aria-selected="${(byFn ? 'fn' : 'src') === k}">${n}</button>`).join('')}</div><h3>各${byFn ? '功能' : '來源'}的漏斗<span class="qtip" tabindex="0" role="note" aria-label="說明" title="${esc(tip)}">?</span></h3>
+      ${any ? `<div class="cb"><div class="funw"><table class="funt"><thead><tr><th scope="col">${byFn ? '功能' : '來源'}</th>${FN_STEPS.map(([, n]) => `<th scope="col">${n}</th>`).join('')}<th scope="col">註冊率</th></tr></thead><tbody>${line('全站合計', tot, 'funtot')}${srcs.map((k) => line(byFn ? (FN_FUNC[k] || k) : (FN_SRC[k] || k), by[k])).join('')}</tbody></table></div></div>` : '<div class="empty">尚無來源紀錄</div>'}</div>`;
+  }
+  /* 漏斗卡「依平台／依功能」切換：只重畫這張卡，不重抓資料 */
+  function wireFunnel(v) {
+    const c = v.querySelector('#trFunnel'); if (!c) return;
+    const bar = c.querySelector('#trFunBy');
+    if (bar) bar.onclick = (e) => { const b = e.target.closest('button[data-by]'); if (!b) return; S.funBy = b.dataset.by; c.outerHTML = funnelHtml(); wireFunnel(v); };
   }
   function topHtml(st, days, dmap, dmax, sessions, loginSess, pvTotal, tiers, bk) {
     const opt = [['live', '即時'], ['7', '近 7 天'], ['30', '近 30 天'], ['90', '近 90 天'], ['365', '近 365 天'], ['since', '起始日期～至今']];
