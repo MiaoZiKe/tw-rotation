@@ -46,17 +46,17 @@ def card(k, t, sub, c, tint):
     return (f'<div class="blk" style="background:{TINT[tint]};flex:1"><div class="row" style="gap:30px"><div class="nb" style="background:{c};width:84px;height:84px;font-size:48px">{k}</div>'
             f'<div><div class="t" style="font-size:54px;font-weight:800;line-height:1.3">{t}</div><div class="note" style="font-size:38px">{sub}</div></div></div></div>')
 P = [cover(),
- pin('明天約 <span class="y num">9 成</span>預期持平，<br>12 月升息機率更高',
+ pin('明天約 <span class="y num">9 成</span>預期持平；<br>12 月的定價則偏向升息',
    f'<div class="blk" style="background:{TINT["blue"]}">' + bar("10/28 持平", 90.6, "91%", INK, 250) + bar("10/28 升息", 9.4, "9%", "#8F5600", 250) + bar("12 月升息", 73, "73%起", "#3F35A8", 250) +
-   '</div><div class="unit">CME FedWatch 約 10/27 資料。12 月升息機率各媒體引述 73%～80% 以上，圖取 73%。這是市場定價，不是預測</div>', 2, "face_think", 100),
+   '</div><div class="unit">CME FedWatch 約 10/27 資料。12 月升息機率各媒體引述 73%～80% 以上，圖取 73%。這是期貨市場定價，不是本帳號的預測</div>', 2, "face_think", 100),
  pin('利率現在在 <span class="y num">3.75～4.00%</span>',
    f'<img class="pic" style="height:250px" src="{crop(560, 250)}">' +
    node("2025/12", "3.50–3.75%", "降息 1 碼", "amber") + node("2026/09", "3.75–4.00%", "升息 1 碼（12 比 0）", "teal") + node("10/29 凌晨", "？", "02:00 公布", "lilac"), 3, "calendar", 100),
  pin('明天凌晨看這 <span class="y num">4</span> 件事',
    card("1", "聲明措辭", "對通膨與就業的描述有沒有改", "#5145C8", "blue") + card("2", "投票結果", "有沒有人投反對票", "#0A7F77", "teal") + card("3", "02:30 記者會", "對 12 月的說法", "#B26A00", "amber") + card("4", "本次沒有點陣圖", "不是經濟預測（SEP）會議", "#3F35A8", "lilac"), 4, "magnifier", 100),
- pin('利率預期變了，<br>一般會傳到這 <span class="y num">3</span> 處',
-   card("1", "美元：通常偏強", "利率預期上升時", "#5145C8", "blue") + card("2", "美債：殖利率跟著走", "通常跟著利率預期變動", "#0A7F77", "teal") + card("3", "科技股：壓力通常較大", "預期上升，估值折現率跟著升", "#B26A00", "amber") +
-   f'<div class="blk s" style="background:#fff"><div class="note"><b>收藏這張</b>，明天凌晨公布後回來對照<br><span style="font-size:30px;color:{INK3}">只講傳導管道，不代表明天一定如此</span></div></div>', 5, "clock", 100),
+ pin('利率預期變動時，<br>常被討論的 <span class="y num">3</span> 個管道',
+   card("1", "美元：反映利差預期", "升降方向都可能", "#5145C8", "blue") + card("2", "美債殖利率", "常隨利率預期調整", "#0A7F77", "teal") + card("3", "股票估值", "折現率隨利率預期改變", "#B26A00", "amber") +
+   f'<div class="blk s" style="background:#fff"><div class="note"><b>收藏這張</b>，明天凌晨公布後回來對照<br><span style="font-size:30px;color:{INK3}">只說明傳導管道，不預測方向、非投資建議</span></div></div>', 5, "clock", 100),
 ]
 if __name__ == "__main__":
     out = Path(sys.argv[1]); render(P, out)
