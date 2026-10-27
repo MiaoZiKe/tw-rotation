@@ -62,7 +62,7 @@ def cover():
             f'<div class="cvtop"><span class="brand">哩股哩股</span><span class="cvdate num">10/28 事件前</span></div>'
             f'<div class="cvbody"><div class="cvt">聯準會利率<br>明天凌晨<span class="yy num">2 點</span>公布</div><div class="hook">利率會變嗎？</div>'
             f'<div class="chips"><span class="num">02:00 公布</span><span class="num">02:30 記者會</span><span class="num a">目前 3.75～4.00%</span></div>'
-            f'<div class="cvsub">台灣 10/29（四）02:00 公布・02:30 記者會</div></div></body>')
+            f'<div class="cvsub">台灣 10/29（四）凌晨</div></div></body>')
 # ---- 第 2 張：甜甜圈＋條 合併單卡 ----
 def donut():
     import math
