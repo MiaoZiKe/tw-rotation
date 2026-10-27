@@ -107,7 +107,6 @@ jobs:
       - name: 推到 ai-image-trial 分支
         if: always()
         run: |
-          git config user.name "github-actions[bot]"; git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           mkdir -p /tmp/o && cp -r out/. /tmp/o/ && cd repo
           git config user.name "github-actions[bot]"; git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git fetch origin ai-image-trial && git checkout ai-image-trial || git checkout --orphan ai-image-trial
