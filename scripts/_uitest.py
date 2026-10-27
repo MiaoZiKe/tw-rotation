@@ -71457,8 +71457,8 @@ def t_articles_1014(b, base):
           side: (() => { const s = document.getElementById('artSide'); const r = s.getBoundingClientRect(); return [Math.round(r.width), Math.round(r.right), s.querySelectorAll('.cr').length]; })(), tabs, cards }; }""")
     ok(f"{T}：版面填滿 —— 主內容區＝主欄全寬（{st['vw']}/{st['mw']}）、卡片 ≥ 3 欄、卡片框至少跟視窗一樣高、右側快速瀏覽在畫面內",
        st["vw"] >= st["mw"] - 40 and st["cols"] >= 3 and st["ch"] >= 900 - 130 and st["side"][0] >= 240 and st["side"][1] <= 1440 and st["side"][2] == 3, st)
-    ok(f"{T}：上方分頁＝全部文章／比比快訊／比比產業鏈／比比知識／盤前消息，每個都有小圖示、五種顏色兩兩不同；卡片有類別色條與圖示徽章",
-       [t[1].rstrip("0123456789 ") for t in st["tabs"]] == ["全部文章", "比比快訊", "比比產業鏈", "比比知識", "盤前消息"] and all(t[3] for t in st["tabs"]) and len({t[2] for t in st["tabs"]}) == 5
+    ok(f"{T}：上方分頁＝全部文章／比比快訊／比比產業鏈／比比知識／盤前消息／盤後消息，每個都有小圖示、六種顏色兩兩不同；卡片有類別色條與圖示徽章",
+       [t[1].rstrip("0123456789 ") for t in st["tabs"]] == ["全部文章", "比比快訊", "比比產業鏈", "比比知識", "盤前消息", "盤後消息"] and all(t[3] for t in st["tabs"]) and len({t[2] for t in st["tabs"]}) == 6
        and all(cc[1] and cc[0] not in ("", "rgba(0, 0, 0, 0)") for cc in st["cards"]), st)
     # 頁內分類分頁（側欄子項 10-16 拿掉後，切類別只靠這一排）
     pg.click("#artCats>button[data-cat=news]")

@@ -297,3 +297,20 @@ test('新增主題請求：結構化 note 才收、壞值擋、重複不排、�
   // 文章請求照舊
   assert.equal((await pj(hub, '/v1/articles/jobs/add', { t: andy, topic_id: 'tsmc-q3', kind: 'article', title: '台積電法說會' })).s, 200);
 });
+
+/* 精選文章隱藏分頁（2026-10-27）：公開可讀、只有管理者能寫、壞輸入擋、去重 */
+test('隱藏分頁：預設空；管理者可寫；訪客讀得到；非管理者與壞輸入被擋', async () => {
+  const { hub } = makeHub({ ...env, GOOGLE_CLIENT_ID: CID });
+  const andy = await login(hub, 'andy@example.com'), bob = await login(hub, 'bob@example.com');
+  assert.deepEqual((await pj(hub, '/v1/articles/tabs', {})).j.hidden, []);
+  assert.equal((await pj(hub, '/v1/articles/tabs/put', { hidden: ['premarket'] })).s, 403, '沒登入不能寫');
+  assert.equal((await pj(hub, '/v1/articles/tabs/put', { t: bob, hidden: ['premarket'] })).s, 403, '一般會員不能寫');
+  assert.deepEqual((await pj(hub, '/v1/articles/tabs', {})).j.hidden, [], '被擋就不會寫入');
+  assert.equal((await pj(hub, '/v1/articles/tabs/put', { t: andy, hidden: 'premarket' })).s, 400);
+  assert.equal((await pj(hub, '/v1/articles/tabs/put', { t: andy, hidden: ['<b>'] })).s, 400);
+  assert.equal((await pj(hub, '/v1/articles/tabs/put', { t: andy, hidden: Array(13).fill('news') })).s, 400);
+  const r = await pj(hub, '/v1/articles/tabs/put', { t: andy, hidden: ['premarket', 'postmarket', 'premarket'] });
+  assert.equal(r.s, 200); assert.deepEqual(r.j.hidden, ['premarket', 'postmarket'], '重複的收成一個');
+  assert.deepEqual((await pj(hub, '/v1/articles/tabs', {})).j.hidden, ['premarket', 'postmarket'], '訪客讀得到');
+  assert.deepEqual((await pj(hub, '/v1/articles/tabs/put', { t: andy, hidden: [] })).j.hidden, [], '全部顯示');
+});

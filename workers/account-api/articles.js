@@ -27,6 +27,22 @@ export function installArticles(Hub, EXPORT_TABLES) {
     this._artOk = true;
   };
   const views = (hub, id) => (hub.q('SELECT views FROM article_views WHERE id = ?', id)[0] || {}).views || 0;
+  /* 精選文章「隱藏分頁」（2026-10-27）：Andy「這邊需要新增一個眼睛，可以讓管理者選擇隱藏……我點擊後其他人就看不到」。
+     設定存在伺服器的 kv（鍵 articles_hidden_tabs，JSON 陣列），所以對所有人生效，不是只存在管理者自己的瀏覽器。
+     · 公開讀：/v1/articles/tabs {} → {hidden:[…]}（訪客也要知道哪些分頁不能顯示，所以不用登入）
+     · 管理者寫：/v1/articles/tabs/put {t, hidden:[…]} → {hidden}；非管理者 403
+     分頁鍵只收小寫英文 2～20 字、最多 12 個，不在 Worker 抄一份白名單（前端新增分頁不必重新部署 Worker）。 */
+  const TAB_RE = /^[a-z]{2,20}$/, TAB_MAX = 12, TAB_KV = 'articles_hidden_tabs';
+  const hiddenTabs = (hub) => { try { const a = JSON.parse(hub.kv(TAB_KV) || '[]'); return Array.isArray(a) ? a.filter((x) => TAB_RE.test(x)).slice(0, TAB_MAX) : []; } catch (e) { return []; } };
+  Object.assign(Hub.prototype.subRoutes, {
+    '/v1/articles/tabs': async function (req) { return this.json(req, { hidden: hiddenTabs(this) }); },
+    '/v1/articles/tabs/put': async function (req, b) {
+      if (!(await this.admin(req, b))) return this.json(req, { error: 'forbidden' }, 403);
+      if (!Array.isArray(b.hidden) || b.hidden.length > TAB_MAX || !b.hidden.every((x) => typeof x === 'string' && TAB_RE.test(x))) return this.json(req, { error: 'bad_input' }, 400);
+      this.setKv(TAB_KV, JSON.stringify([...new Set(b.hidden)]));
+      return this.json(req, { ok: true, hidden: hiddenTabs(this) });
+    },
+  });
   Object.assign(Hub.prototype.subRoutes, {
     '/v1/articles/view': async function (req, b) {
       this.artInit();

@@ -48,6 +48,7 @@
     news: '<path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/>',
     intro: '<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>',
     premarket: '<path d="M12 2v6"/><path d="m4.93 10.93 1.41 1.41"/><path d="M2 18h2"/><path d="M20 18h2"/><path d="m19.07 10.93-1.41 1.41"/><path d="M22 22H2"/><path d="m8 6 4-4 4 4"/><path d="M16 18a4 4 0 0 0-8 0"/>',
+    postmarket: '<path d="M12 10V2"/><path d="m4.93 10.93 1.41 1.41"/><path d="M2 18h2"/><path d="M20 18h2"/><path d="m19.07 10.93-1.41 1.41"/><path d="M22 22H2"/><path d="m16 6-4 4-4-4"/><path d="M16 18a4 4 0 0 0-8 0"/>',
     know: '<path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/>',
   };
   const icon = (k, sz) => `<svg class="artic" viewBox="0 0 24 24" width="${sz || 16}" height="${sz || 16}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${CAT_IC[k] || CAT_IC.all}</svg>`;
@@ -55,9 +56,16 @@
   const CATS = { news: { t: '比比快訊' }, intro: { t: '比比產業鏈' }, know: { t: '比比知識' } };
   /* 手機（≤640）分頁用的短名（mobile4.css 檔尾「精選文章分頁」那節用 attr(data-s) 換上）：
      2026-10-16 Andy「手機版的分頁需要適當調整寬度」—— 360 寬四格各只有 ~84px，「比比產業鏈＋篇數」塞不下，短名才能四格等寬、不換行、不被切 */
-  const CAT_S = { all: '全部', news: '快訊', intro: '產業鏈', know: '知識', premarket: '盤前' };
+  const CAT_S = { all: '全部', news: '快訊', intro: '產業鏈', know: '知識', premarket: '盤前', postmarket: '盤後' };
   const ALL_T = '全部文章';
   const CAT_KEYS = Object.keys(CATS);
+  /* 「消息」型分頁（卡片版面相同，只差資料檔與文字）：10-26 盤前消息；10-27 Andy「還需要新增盤後消息，在盤前旁邊」→ 盤後消息。
+     how＝「?」說明的 id（skeletonList 裡的 #how-<id>）；empty＝沒資料時的一句話。 */
+  const NW = {
+    premarket: { t: '盤前消息', file: 'articles/premarket.json', how: 'artpre', head: '台股盤前消息', empty: '尚無盤前消息，交易日開盤前會更新。' },
+    postmarket: { t: '盤後消息', file: 'articles/postmarket.json', how: 'artpost', head: '台股盤後消息', empty: '今天的盤後消息還沒整理好' },
+  };
+  const TAB_KEYS = ['all'].concat(CAT_KEYS, Object.keys(NW));   // 分頁由左到右
   const okId = (id) => /^[\w.-]{1,120}$/.test(String(id || ''));
   const okUrl = (u) => /^https?:\/\/[^\s"'<>]+$/i.test(String(u || ''));
   const okHash = (h) => /^#[^\s"'<>]*$/.test(String(h || ''));   // 站內連結只收 # 開頭（族群 id 可能是中文：#industry/group/ind_半導體業）
@@ -77,7 +85,7 @@
   };
   const defRange = () => { const t = tpeToday(); return { from: monthAgo(t), to: t }; };
 
-  const S = { views: null, statsP: null, statsAt: 0, idx: null, idxP: null, idxErr: false, cat: 'all', q: '', from: null, to: null, grp: new Set(), ms: null,
+  const S = { nw: {}, hid: null, hidP: null, views: null, statsP: null, statsAt: 0, idx: null, idxP: null, idxErr: false, cat: 'all', q: '', from: null, to: null, grp: new Set(), ms: null,
     posts: {}, cur: '', curData: null, backOk: false, topics: null, topicsP: null, tcat: 'all', tsort: 'desc', tsels: [], jobs: null, af: { cat: 'all', grp: '', from: '', to: '', q: '' }, jf: { kind: '', st: '', q: '' }, ss: { period: '30', from: '', to: '', cat: '', grp: '', daily: null, first: null } };
 
   /* 「← 返回」要不要用 history.back()：只有「在站內從別頁換過來」才有上一頁可回；直接貼網址開的，回該類別清單 */
@@ -92,19 +100,19 @@
     if (document.getElementById('artCss')) return;
     const s = document.createElement('style'); s.id = 'artCss';
     s.textContent = `
-:root{--art-all:var(--ink-2);--art-pre:#5b9cff;--art-news:#ff9d4a;--art-intro:#2fd1c1;--art-know:#b99bff;--art-hl:#f5c842;
+:root{--art-all:var(--ink-2);--art-pre:#5b9cff;--art-post:#f08bc4;--art-news:#ff9d4a;--art-intro:#2fd1c1;--art-know:#b99bff;--art-hl:#f5c842;
   --art-t-chip:#5b9cff;--art-t-mem:#2ec4b6;--art-t-interposer:#f2c14e;--art-t-substrate:#ff8a65;--art-t-board:#a88bff;--art-t-bump:#c6cfdf;--art-t-other:#9aa6c0;--art-t-ink:#0b1220;
   /* 文章說明圖調色盤（Andy 10-16：「圖表色彩需要豐富點且多樣，不要太單一」）：只給這一頁的區塊用，全站其他圖不吃這一組。
      ⚠ 10-17 起 ECharts 圖表不吃這一組（改用網站 --cat-*，Andy：「圖表風格需要 Follow 我網頁內的風格」），只剩數字卡／關係圖／流程圖等說明圖。
      刻意避開紅、綠（紅漲綠跌保留給漲跌）與標註用的金色（--art-hl）；彩度壓在不刺眼的範圍。深淺主題各一組，淺色每色都 ≥ 3:1。 */
   --art-p1:#5b9cff;--art-p2:#2ec4b6;--art-p3:#a88bff;--art-p4:#ff8a65;--art-p5:#ec74b5;--art-p6:#d39b5b;--art-p7:#4cc3ef;
   --art-tn-neutral:#8e9bb8;--art-tn-accent:#5b9cff;--art-tn-warn:#f2a93b;--art-tn-good:#2ec4b6}
-:root[data-theme="light"]{--art-pre:#2563c9;--art-news:#b45309;--art-intro:#0f766e;--art-know:#7e22ce;--art-hl:#a36d00;
+:root[data-theme="light"]{--art-pre:#2563c9;--art-post:#b83a7f;--art-news:#b45309;--art-intro:#0f766e;--art-know:#7e22ce;--art-hl:#a36d00;
   --art-t-chip:#2f5fb3;--art-t-mem:#0f7d72;--art-t-interposer:#946200;--art-t-substrate:#c0461e;--art-t-board:#6d4bd1;--art-t-bump:#6b7385;--art-t-other:#5d6b88;--art-t-ink:#ffffff;
   --art-p1:#2563c9;--art-p2:#0e8a74;--art-p3:#6e44d6;--art-p4:#c9502b;--art-p5:#b83a7f;--art-p6:#8a5a1e;--art-p7:#0f7fa8;
   --art-tn-neutral:#5d6b88;--art-tn-accent:#2563c9;--art-tn-warn:#a86400;--art-tn-good:#0e8a74}
 .pc1{--pc:var(--art-p1)}.pc2{--pc:var(--art-p2)}.pc3{--pc:var(--art-p3)}.pc4{--pc:var(--art-p4)}.pc5{--pc:var(--art-p5)}.pc6{--pc:var(--art-p6)}.pc7{--pc:var(--art-p7)}
-.k-all{--k:var(--art-all)}.k-premarket{--k:var(--art-pre)}.k-news{--k:var(--art-news)}.k-intro{--k:var(--art-intro)}.k-know{--k:var(--art-know)}
+.k-all{--k:var(--art-all)}.k-premarket{--k:var(--art-pre)}.k-postmarket{--k:var(--art-post)}.k-news{--k:var(--art-news)}.k-intro{--k:var(--art-intro)}.k-know{--k:var(--art-know)}
 .artic{flex:none;display:block}
 /* 10-26 盤前消息：每天一張卡（5 則、依分類色塊、可點連結）＋「複製整包」。分類色用 --art-p*／--art-tn-*（不用紅綠，紅綠留給漲跌）。 */
 #artCard #artPre{display:none}
@@ -138,7 +146,18 @@
 @media (min-width:821px){#v-articles .artcard.pre{min-height:0}}   /* 盤前消息一天只有 5 列，卡片不撐滿一屏（不留大空白） */
 #v-articles .artcard h3{display:flex;align-items:baseline;gap:var(--sp-2);flex-wrap:wrap}
 #v-articles .artcard h3 small{font-size:var(--fs-sm);color:var(--ink-3);font-weight:400}
-#artCats{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));align-items:end;margin-top:var(--sp-2)}
+#artCats{display:grid;grid-template-columns:repeat(var(--n,6),minmax(0,1fr));align-items:end;margin-top:var(--sp-2)}
+/* 10-27 管理者的「眼睛」列：放在分頁列正上方、跟分頁同一組欄（--n 欄），每個眼睛剛好在自己那一格分頁的上面；一般人與會員整列不存在 */
+.arteyes{display:grid;grid-template-columns:repeat(var(--n,6),minmax(0,1fr));gap:3px;padding:0 2px;margin-top:var(--sp-2)}
+.arteyes[hidden]{display:none}
+.arteyes>span{display:flex;justify-content:center;min-width:0}
+.arteye{display:inline-flex;align-items:center;justify-content:center;gap:4px;height:28px;min-width:36px;padding:0 8px;border-radius:999px;border:1px solid var(--line-2);background:var(--panel);color:var(--k,var(--ink-2));cursor:pointer;font:inherit;font-size:var(--fs-min)}
+.arteye:hover{border-color:var(--k,var(--cyan))}
+.arteye.off{color:var(--ink-3);background:transparent;border-style:dashed}
+.arteye svg{flex:none}
+#artCats>button[hidden]{display:none!important}
+#artCats>button.hid{opacity:.45}
+#artCats>button.hid span{text-decoration:line-through}
 #artCats>button{min-width:0;overflow:hidden;text-overflow:ellipsis;gap:6px}
 #artCats>button .artic{color:var(--k)}
 #artCats>button.on{color:var(--k);box-shadow:inset 0 3px 0 var(--k)}
@@ -456,7 +475,7 @@
 @media (max-width:820px){.artflow .fl{column-gap:32px}}
 /* 手機（≤640，只限 m4 這段寬度，桌機一行都不受影響）：一欄、內文 16px、標題 21px、篩選列兩行；分類分頁四格等寬；關係圖改由上到下 */
 @media (max-width:640px){
-  #artCats{grid-template-columns:repeat(4,minmax(0,1fr))!important;width:100%!important}
+  #artCats{grid-template-columns:repeat(var(--n,4),minmax(0,1fr))!important;width:100%!important}
   :root.m4 #v-articles #artCats>button{padding:0 2px!important;gap:3px!important;min-width:0;font-size:12.5px!important}
   :root.m4 #v-articles #artCats>button em{display:none}
   :root.m4 #v-articles #artCats>button .artic{color:var(--k)}
@@ -885,7 +904,7 @@
   }
 
   /* ------------------------------------------------------------------ 共用小片段 */
-  const catT = (k) => (CATS[k] ? CATS[k].t : k === 'premarket' ? '盤前消息' : ALL_T);
+  const catT = (k) => (CATS[k] ? CATS[k].t : NW[k] ? NW[k].t : ALL_T);
   const badge = (cat) => `<span class="artbadge k-${CATS[cat] ? cat : 'all'}">${icon(CATS[cat] ? cat : 'all', 13)}${esc(catT(cat))}</span>`;
   const tagsHTML = (tags) => (Array.isArray(tags) && tags.length ? `<div class="arttags">${tags.slice(0, 8).map((t) => `<span>${esc(t)}</span>`).join('')}</div>` : '');
   const EYE = '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>';
@@ -1003,14 +1022,25 @@
     const A = window.App;
     return A && A.howHTML ? A.howHTML(q, li) : `<b class="howq">${esc(q)}</b><ul>${li.map((t) => `<li>${esc(t)}</li>`).join('')}</ul>`;
   })();
+  const HOW_POST = (() => {
+    const q = '這一頁回答：收盤後最受關注的消息是什麼';
+    const li = ['每天一張卡：當天收盤後整理的幾則標題，色塊＝分類（新聞、事件、科技、總經）', '點標題直接開原文；較早的日子點日期列就在原地展開', '右上「複製整包」＝一段純文字（分類｜標題＋連結）',
+      '所以：收盤後掃一遍，對照隔天早上的盤前消息，看哪些事還在延燒', '消息只是背景，進出場仍看資金流向與技術面'];
+    const A = window.App;
+    return A && A.howHTML ? A.howHTML(q, li) : `<b class="howq">${esc(q)}</b><ul>${li.map((t) => `<li>${esc(t)}</li>`).join('')}</ul>`;
+  })();
+  const EYE_ON = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>';
+  const EYE_OFF = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M9.9 4.2A10 10 0 0 1 12 4c6.5 0 10 8 10 8a17 17 0 0 1-3.2 4.4"/><path d="M6.6 6.6A17 17 0 0 0 2 12s3.5 8 10 8a9.7 9.7 0 0 0 5.4-1.6"/><path d="M14.1 14.1a3 3 0 1 1-4.2-4.2"/><path d="m2 2 20 20"/></svg>';
   function skeletonList(root) {
     root.innerHTML = `
 <div class="card artcard" id="artCard">
   <div class="row spread"><h3>精選文章 <small id="artUpd"></small> <button class="howbtn pop" data-how="artlist" data-ttl="精選文章怎麼看" type="button" aria-label="精選文章怎麼看">?</button></h3></div>
   <div class="howtxt" id="how-artlist" hidden>${HOW_ART}</div>
   <div class="howtxt" id="how-artpre" hidden>${HOW_PRE}</div>
+  <div class="howtxt" id="how-artpost" hidden>${HOW_POST}</div>
+  <div class="arteyes" id="artEyes" hidden aria-label="管理者：對外隱藏或顯示分頁">${TAB_KEYS.map((k) => (k === 'all' ? '<span></span>' : `<span><button type="button" class="arteye k-${k}" data-cat="${k}">${EYE_ON}</button></span>`)).join('')}</div>
   <div class="nbsw" id="artCats" role="tablist" aria-label="文章分類">
-    ${['all'].concat(CAT_KEYS, ['premarket']).map((k) => `<button type="button" role="tab" class="k-${k}" data-cat="${k}" data-s="${esc(CAT_S[k])}" title="${esc(catT(k))}">${icon(k, 15)}<span>${esc(catT(k))}</span><em></em></button>`).join('')}
+    ${TAB_KEYS.map((k) => `<button type="button" role="tab" class="k-${k}" data-cat="${k}" data-s="${esc(CAT_S[k])}" title="${esc(catT(k))}">${icon(k, 15)}<span>${esc(catT(k))}</span><em></em></button>`).join('')}
   </div>
   <div class="nbbody">
     <div id="artPre"></div>
@@ -1103,11 +1133,12 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
     $$('#artCats>button', root).forEach((b) => {
       const on = b.dataset.cat === S.cat;
       b.classList.toggle('on', on); b.setAttribute('aria-selected', on ? 'true' : 'false');
-      const em = $('em', b); if (em) em.textContent = S.idx && b.dataset.cat !== 'premarket' ? String(filtered(b.dataset.cat).length) : '';
+      const em = $('em', b); if (em) em.textContent = S.idx && !NW[b.dataset.cat] ? String(filtered(b.dataset.cat).length) : '';
     });
-    const isPre = S.cat === 'premarket';
+    paintHide(root);
+    const isPre = !!NW[S.cat];
     const card = $('#artCard', root); if (card) card.classList.toggle('pre', isPre);
-    const hb = $('.howbtn', card || root); if (hb) { hb.dataset.how = isPre ? 'artpre' : 'artlist'; hb.dataset.ttl = isPre ? '盤前消息怎麼看' : '精選文章怎麼看'; hb.setAttribute('aria-label', hb.dataset.ttl); }
+    const hb = $('.howbtn', card || root); if (hb) { hb.dataset.how = isPre ? NW[S.cat].how : 'artlist'; hb.dataset.ttl = isPre ? NW[S.cat].t + '怎麼看' : '精選文章怎麼看'; hb.setAttribute('aria-label', hb.dataset.ttl); }
     if (isPre) { paintPre(root); return; }
     const box = $('#artList', root), cnt = $('#artCount', root);
     if (!S.idx) {
@@ -1141,25 +1172,27 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
      預設只有最新一天展開（其餘一列一天、點日期在原地展開）；一次先列 7 天，「看更早」再多 7 天。 */
   const PM_CATS = ['新聞', '事件', '科技', '總經'];
   const PM_STEP = 7;
-  function loadPre() {
-    if (S.pre) return Promise.resolve(S.pre);
-    if (!S.preP) {
-      S.preP = fetchJson('articles/premarket.json').then((j) => {
+  function loadPre(key) {
+    key = key || S.cat;
+    const st = S.nw[key] || (S.nw[key] = { data: null, p: null, n: 0, open: null });
+    if (st.data) return Promise.resolve(st.data);
+    if (!st.p) {
+      st.p = fetchJson(NW[key].file).then((j) => {
         const days = (j && Array.isArray(j.days) ? j.days : []).filter((d) => d && okDate(d.date) && Array.isArray(d.items))
           .map((d) => ({ date: d.date, items: d.items.filter((i) => i && i.title && PM_CATS.includes(i.cat)).slice(0, 8)
             .map((i) => ({ cat: i.cat, title: String(i.title).slice(0, 160), url: okUrl(i.url) ? i.url : '', source: String(i.source || '').slice(0, 20), time: String(i.time || ''), desc: String(i.desc || '').slice(0, 90) })) }))
           .filter((d) => d.items.length);
         days.sort((a, b) => (a.date < b.date ? 1 : -1));
-        S.pre = { updated: j && j.updated, days }; return S.pre;
-      }).catch(() => { S.preP = null; S.pre = { updated: '', days: [] }; return S.pre; });   // 讀不到＝當作還沒有資料，不報錯
+        st.data = { updated: j && j.updated, days }; return st.data;
+      }).catch(() => { st.p = null; st.data = { updated: '', days: [] }; return st.data; });   // 讀不到＝當作還沒有資料，不報錯
     }
-    return S.preP;
+    return st.p;
   }
   const mdDate = (d) => d.slice(5).replace('-', '/');
   const hhmm = (t) => { const m = /T(\d\d:\d\d)/.exec(t || ''); const d = /^\d{4}-(\d\d)-(\d\d)/.exec(t || ''); return m && d ? `${d[1]}/${d[2]} ${m[1]}` : ''; };
   /* 複製整包：日期標題＋每則「分類｜標題」換行接連結（沒有連結就只有標題），貼到哪都是純文字 */
-  function preText(day) {
-    return `【台股盤前消息｜${day.date}】\n` + day.items.map((i, n) => `${n + 1}. ${i.cat}｜${i.title}${i.url ? '\n' + i.url : ''}`).join('\n');
+  function preText(day, key) {
+    return `【${NW[key || 'premarket'].head}｜${day.date}】\n` + day.items.map((i, n) => `${n + 1}. ${i.cat}｜${i.title}${i.url ? '\n' + i.url : ''}`).join('\n');
   }
   function copyText(txt) {
     if (navigator.clipboard && navigator.clipboard.writeText) return navigator.clipboard.writeText(txt).then(() => true).catch(() => legacyCopy(txt));
@@ -1182,16 +1215,17 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
   }
   function paintPre(root) {
     const box = $('#artPre', root); if (!box) return;
-    if (!S.pre) {
+    const key = S.cat, st = S.nw[key] || (S.nw[key] = { data: null, p: null, n: 0, open: null });
+    if (!st.data) {
       box.innerHTML = '<div class="artempty">載入中…</div>';
-      loadPre().then(() => { if (S.cat === 'premarket') paintPre(root); });
+      loadPre(key).then(() => { if (S.cat === key) paintPre(root); });
       return;
     }
-    const days = S.pre.days, upd = $('#artUpd', root);
-    if (upd) upd.textContent = S.pre.updated ? '更新 ' + S.pre.updated : '';
-    if (!days.length) { box.innerHTML = `<div class="artempty k-premarket" id="artPreEmpty">${icon('premarket', 40)}<div>尚無盤前消息，交易日開盤前會更新。</div></div>`; return; }
-    const shown = Math.min(days.length, S.preN || PM_STEP);
-    const opened = S.preOpen || (S.preOpen = new Set([days[0].date]));
+    const days = st.data.days, upd = $('#artUpd', root);
+    if (upd) upd.textContent = st.data.updated ? '更新 ' + st.data.updated : '';
+    if (!days.length) { box.innerHTML = `<div class="artempty k-${key}" id="artPreEmpty">${icon(key, 40)}<div>${esc(NW[key].empty)}</div></div>`; return; }
+    const shown = Math.min(days.length, st.n || PM_STEP);
+    const opened = st.open || (st.open = new Set([days[0].date]));
     box.innerHTML = days.slice(0, shown).map((d) => dayHTML(d, opened.has(d.date))).join('')
       + (shown < days.length ? `<button type="button" class="btn small pmmore" id="artPreMore">看更早（還有 ${days.length - shown} 天）</button>` : '');
     $$('.pmt', box).forEach((b) => {
@@ -1204,7 +1238,7 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
     $$('.pmcp', box).forEach((b) => {
       b.onclick = () => {
         const d = days.find((x) => x.date === b.dataset.copy); if (!d) return;
-        const txt = preText(d);
+        const txt = preText(d, key);
         copyText(txt).then((okc) => {
           b.dataset.copied = txt; b.classList.toggle('done', !!okc);
           b.textContent = okc ? '已複製' : '複製失敗，請長按選取';
@@ -1212,20 +1246,96 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
         });
       };
     });
-    const more = $('#artPreMore', box); if (more) more.onclick = () => { S.preN = shown + PM_STEP; paintPre(root); };
+    const more = $('#artPreMore', box); if (more) more.onclick = () => { st.n = shown + PM_STEP; paintPre(root); };
   }
+  /* ------------------------------------------------------------------ 隱藏分頁（10-27）
+     Andy：「這邊需要新增一個眼睛，可以讓管理者選擇隱藏，其他所有的分頁也都需要新增隱藏功能，我點擊後其他人就看不到」。
+     · 設定存在伺服器（會員 Worker /v1/articles/tabs 公開讀、/v1/articles/tabs/put 管理者寫），所以對所有人生效；
+       上次讀到的結果另存 localStorage（tw.art.hid）只拿來「第一眼就不出現」，每次進頁仍以伺服器為準。
+     · 一般人與會員：被隱藏的分頁標籤不出現、直接打該路由導回「全部」（#articles）。
+     · 管理者：標籤照舊在（半透明＋刪除線），分頁上方多一列眼睛，眼睛斜線＝目前對外隱藏。
+     · 預覽版（TW_PREVIEW）會員 API 寫入被擋，所以眼睛只改這個瀏覽器（tw.art.hid.pv），讓 Andy 能試、又不會動到正式站。
+     · 「全部」不能隱藏（它是被隱藏分頁的導回點）。文章本身不受影響：隱藏的是分頁入口，不是文章。 */
+  const HID_KEY = window.TW_PREVIEW ? 'tw.art.hid.pv' : 'tw.art.hid';
+  const hidRead = () => { try { const a = JSON.parse(localStorage.getItem(HID_KEY) || '[]'); return new Set(Array.isArray(a) ? a.filter((k) => TAB_KEYS.includes(k) && k !== 'all') : []); } catch (e) { return new Set(); } };
+  const hidSave = () => { try { localStorage.setItem(HID_KEY, JSON.stringify([...S.hid])); } catch (e) { /* 存不了就只留在記憶體 */ } };
+  const hiddenNow = () => (S.hid || (S.hid = hidRead()));
+  const canEye = () => !!window.TW_PREVIEW || isAdminUser();
+  function loadHidden() {
+    if (window.TW_PREVIEW) { S.hid = hidRead(); return Promise.resolve(S.hid); }
+    if (!S.hidP) {
+      const A = window.TwAccount;
+      const cfg = window.TW_ACCOUNT_OVERRIDE || window.TW_ACCOUNT;
+      const ready = !(cfg && cfg.api) || (A && A.on && A.on()) ? Promise.resolve() : new Promise((res) => { const t = setTimeout(res, 3000); window.addEventListener('tw:account-config', () => { clearTimeout(t); res(); }, { once: true }); });
+      S.hidP = ready.then(() => acctCall('/v1/articles/tabs', {})).then((j) => {
+        if (j && j._s === 200 && Array.isArray(j.hidden)) { S.hid = new Set(j.hidden.filter((k) => TAB_KEYS.includes(k) && k !== 'all')); hidSave(); }
+        return hiddenNow();
+      }).catch(() => hiddenNow()).finally(() => { setTimeout(() => { S.hidP = null; }, 60000); });   // 一分鐘內不重問；回來看時會再讀一次
+    }
+    return S.hidP;
+  }
+  /* 一般人打到被隱藏的分頁 → 導回「全部」。回 true＝已導走，呼叫端不要再往下畫 */
+  function guardHidden() {
+    if (!NW[S.cat] && !CATS[S.cat]) return false;
+    if (!hiddenNow().has(S.cat) || canEye()) return false;
+    location.replace('#articles');
+    return true;
+  }
+  function paintHide(root) {
+    const hid = hiddenNow(), adm = canEye();
+    const tabs = $$('#artCats>button', root);
+    tabs.forEach((b) => {
+      const off = hid.has(b.dataset.cat);
+      b.hidden = off && !adm;
+      b.classList.toggle('hid', off && adm);
+      b.title = off && adm ? catT(b.dataset.cat) + '（目前對外隱藏，只有管理者看得到）' : catT(b.dataset.cat);
+    });
+    const n = tabs.filter((b) => !b.hidden).length;
+    const cats = $('#artCats', root), eyes = $('#artEyes', root);
+    if (cats) cats.style.setProperty('--n', String(n));
+    if (cats) cats.classList.toggle('many', n >= 6);   // 手機六格塞不下圖示＋文字（m4 檔 .many 隱藏圖示）
+    if (!eyes) return;
+    eyes.hidden = !adm;
+    eyes.style.setProperty('--n', String(n));
+    $$('.arteye', eyes).forEach((e) => {
+      const off = hid.has(e.dataset.cat), nm = catT(e.dataset.cat);
+      e.classList.toggle('off', off); e.innerHTML = off ? EYE_OFF : EYE_ON;
+      e.setAttribute('aria-pressed', off ? 'true' : 'false');
+      e.title = off ? `「${nm}」目前對外隱藏（一般訪客與會員看不到），點一下恢復顯示` : `「${nm}」目前對外顯示，點一下隱藏（一般訪客與會員將看不到這個分頁）`;
+      e.setAttribute('aria-label', e.title);
+      if (!e.onclick) e.onclick = () => toggleHide(e.dataset.cat);
+    });
+  }
+  async function toggleHide(k) {
+    if (!canEye() || k === 'all') return;
+    const root = document.getElementById('v-articles'); if (!root) return;
+    const was = new Set(hiddenNow()), next = new Set(was);
+    if (next.has(k)) next.delete(k); else next.add(k);
+    S.hid = next; hidSave(); paintHide(root);   // 先改畫面（點了馬上有感），伺服器回失敗再還原
+    if (window.TW_PREVIEW) return;
+    const r = await acctCall('/v1/articles/tabs/put', { hidden: [...next] });
+    if (r && r._s === 200 && Array.isArray(r.hidden)) { S.hid = new Set(r.hidden.filter((x) => TAB_KEYS.includes(x) && x !== 'all')); hidSave(); paintHide(root); return; }
+    S.hid = was; hidSave(); paintHide(root);
+    const e = $(`.arteye[data-cat="${k}"]`, root);
+    if (e) { const t = e.title; e.title = '儲存失敗，請稍後再試'; e.classList.add('err'); setTimeout(() => { e.classList.remove('err'); paintHide(root); }, 2500); void t; }
+  }
+  window.addEventListener('tw:account', () => { const r = document.getElementById('v-articles'); if (r && $('#artCats', r)) { paintHide(r); guardHidden(); } });
   async function showList(cat) {
     css();
     const root = document.getElementById('v-articles'); if (!root) return;
-    S.cat = CATS[cat] || cat === 'premarket' ? cat : 'all';
+    S.cat = CATS[cat] || NW[cat] ? cat : 'all';
     S.cur = ''; S.curData = null;
     ensureRange();
     markSub(S.cat);
     if (!$('#artList', root)) { disposeCharts(root); skeletonList(root); }
+    if (guardHidden()) return;
     paintList();
     loadStats();
+    /* 隱藏設定不卡清單：回來了才補畫分頁列，被隱藏的分頁（一般人）導回「全部」 */
+    loadHidden().then(() => { if (location.hash.replace(/^#/, '').split('/')[0] !== 'articles') return; const r = document.getElementById('v-articles'); if (r && $('#artCats', r)) { if (!guardHidden()) paintHide(r); } });
     await Promise.all([loadIndex(), permReady()]);
     if (location.hash.replace(/^#/, '').split('/')[0] !== 'articles') return;   // 讀清單的時候使用者已經換頁
+    if (guardHidden()) return;
     paintList();
     syncReads();
   }
