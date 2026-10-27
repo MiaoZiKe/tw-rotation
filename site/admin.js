@@ -493,7 +493,7 @@ html[data-theme="light"] #v-admin{--pgL:40%}
 #v-admin .bars.sm .bt{height:10px}
 @media (max-width:1320px){#v-admin .memtbl .c-cr{display:none}}
 @media (max-width:1180px){#v-admin .memtbl .c-stk,#v-admin .memtbl .c-vw{display:none}#v-admin .mdgrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media (max-width:900px){#v-admin .memtbl .c-feat,#v-admin .memtbl .c-on,#v-admin .memtbl .c-seen{display:none}}
+@media (max-width:900px){#v-admin .memtbl .c-feat,#v-admin .memtbl .c-tdon,#v-admin .memtbl .c-on,#v-admin .memtbl .c-seen{display:none}}
 @media (max-width:600px){#v-admin .memtbl .c-tpl,#v-admin .memtbl .c-exp,#v-admin .memtbl .c-vis{display:none}#v-admin .mdgrid{grid-template-columns:minmax(0,1fr)}#v-admin .pmrow.wlim{grid-template-columns:auto minmax(0,1fr) auto}#v-admin .pmrow.wlim .pmside{display:none}}
 /* ==== perm-v4（2026-10-05，Andy）：資料夾頁籤、範本資訊列、卡片同寬同高、頁籤拖曳／⋮ 選單、會員名單統計圖 ====
    放在最後、選擇器刻意比前面的規則多一層，讓這一段蓋過舊的（舊規則不刪：會員管理頁 #admin/members 還在用一部分）。 */
@@ -511,6 +511,12 @@ html[data-theme="light"] #v-admin{--pgL:40%}
 #v-admin .pmfbar{display:flex;align-items:center;gap:8px;flex-wrap:nowrap}
 #v-admin .pmfbar>input,#v-admin .pmfbar>select,#v-admin .pmfbar>button,#v-admin .pmaddf>*{height:32px;box-sizing:border-box}
 #v-admin .pmfbar .sp{flex:1}
+/* 名單工具列最右邊的訪客數（2026-10-27 Andy）：今日訪客大一點、近 30 天附在後面；不換行 */
+#v-admin .pmvis{margin-left:auto;flex:none;display:inline-flex;align-items:baseline;gap:6px;font-size:13px;color:var(--ink-2,var(--ink));white-space:nowrap;cursor:help}
+#v-admin .pmvis b{font-size:16px;font-variant-numeric:tabular-nums;color:var(--ink)}
+#v-admin .pmvis i{font-style:normal;color:var(--ink-3,var(--ink-2));font-variant-numeric:tabular-nums}
+#v-admin .pmvis[hidden]{display:none}
+#v-admin .pmfbar .pmvis~.sp{display:none}
 #v-admin .pmaddf{display:flex;gap:8px;align-items:center;margin:8px 0}
 #v-admin .pmaddf[hidden]{display:none}
 #v-admin .pmaddf input{width:min(320px,100%)}
@@ -726,7 +732,7 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
 #v-admin .mdet .mkpi{padding:6px 14px}
 /* 數字欄夠用就好（Andy 10-05）：日期、時間、次數、狀態用內容寬（width:1%＋不換行），剩下的寬度給會員、功能 Top3、股票 Top3 */
 #v-admin table.memtbl th.c-cr,#v-admin table.memtbl td.c-cr,#v-admin table.memtbl th.c-exp,#v-admin table.memtbl td.c-exp,#v-admin table.memtbl th.c-seen,#v-admin table.memtbl td.c-seen,
-#v-admin table.memtbl th.c-on,#v-admin table.memtbl td.c-on,#v-admin table.memtbl th.c-vis,#v-admin table.memtbl td.c-vis,#v-admin table.memtbl th.c-vw,#v-admin table.memtbl td.c-vw,
+#v-admin table.memtbl th.c-tdon,#v-admin table.memtbl td.c-tdon,#v-admin table.memtbl th.c-on,#v-admin table.memtbl td.c-on,#v-admin table.memtbl th.c-vis,#v-admin table.memtbl td.c-vis,#v-admin table.memtbl th.c-vw,#v-admin table.memtbl td.c-vw,
 #v-admin table.memtbl th.c-st,#v-admin table.memtbl td.c-st{width:1%;white-space:nowrap!important;overflow-wrap:normal}
 #v-admin table.memtbl td.c-cr,#v-admin table.memtbl td.c-exp,#v-admin table.memtbl td.c-seen,#v-admin table.memtbl td.c-st,#v-admin table.memtbl th.c-st{text-align:center}
 #v-admin table.memtbl td.c-who b{display:inline-block;vertical-align:top;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;overflow-wrap:normal;max-width:calc(100% - 1.4em)}
@@ -883,7 +889,7 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
     const NOW = Date.now(), NU = 520;
     const users = Array.from({ length: NU }, (_, i) => ({ name: NM[i % NM.length] + (i >= NM.length ? String(Math.floor(i / NM.length) + 1) : ''), email: `demo${String(i + 1).padStart(3, '0')}@example.com`,
       seen: NOW - Math.round((i * 0.35 + rnd() * 2) * 3600000), created: NOW - Math.round((8 + i * 0.6) * 86400000), visits: Math.max(1, Math.round(60 - i * 0.1 + rnd() * 8)) }));
-    const members = users.map((u, i) => ({ email: u.email, onlineMs: Math.round((12 - i * 0.02 + rnd()) * 3600000), online30: Math.round((6 - i * 0.01 + rnd()) * 3600000), visits30: u.visits,
+    const members = users.map((u, i) => ({ email: u.email, onlineMs: Math.round((12 - i * 0.02 + rnd()) * 3600000), todayMs: i % 4 === 3 ? 0 : Math.round((0.2 + rnd() * 1.8) * 3600000), online30: Math.round((6 - i * 0.01 + rnd()) * 3600000), visits30: u.visits,
       days30: Math.max(1, Math.round(24 - i * 0.04)), views30: Math.round(u.visits * (4 + rnd() * 5)), topFeat: [['tab.revenue', 14 - (i % 7)], ['quad', 9 - (i % 5)], ['kp.60m', 5]], topStock: [[STK[i % 12][0], 18 - (i % 9)], [STK[(i + 3) % 12][0], 7], [STK[(i + 6) % 12][0], 3]] }));
     const routes = ['flow', 'stock', 'overview', 'industry', 'market', 'heatmap', 'etf', 'watch', 'explore'];
     const online = { total: 19, guests: 8, public_online: true, users: routes.concat(['flow', 'stock']).map((r, i) => ({ name: users[i].name, email: users[i].email, route: r, seen: NOW - (6 + i * 13) * 1000 })) };
@@ -944,7 +950,7 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
     W.call = async (path, body) => {
       if (path === '/v1/admin/stats') { const nr = !!window.__demoNoRange; return ok(DEMO.stats((body || {}).days, (body || {}).live, nr ? undefined : (body || {}).from, nr ? undefined : (body || {}).to)); }      // __demoNoRange：測試用，模擬還沒更新的 Worker（不認得 from／to）
       if (path === '/v1/admin/online') return ok(DEMO.online);
-      if (path === '/v1/admin/members') return ok({ members: DEMO.members });
+      if (path === '/v1/admin/members') return ok({ members: DEMO.members, visitors: { today: 238, d30: 6412, days: 30, since: '2026-09-28' } });
       if (path === '/v1/admin/members/stats') return ok(DEMO.mstatsFor(body || {}));
       if (path === '/v1/admin/member/detail') return ok(DEMO.detail(String((body || {}).email || '').toLowerCase()));
       const r = await A.call(path, body);
@@ -2091,7 +2097,7 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
     return people().map((r) => {
       const m = st.get(r.email) || {};
       return Object.assign(r, { paid: r.tier === 'paid' && r.st !== 'exp', planName: (planOf(r.plan) || {}).name || r.plan,
-        onlineMs: m.onlineMs || 0, online30: m.online30 || 0, visits30: m.visits30 != null ? m.visits30 : r.visits || 0, days30: m.days30 || 0,
+        onlineMs: m.onlineMs || 0, todayMs: m.todayMs || 0, online30: m.online30 || 0, visits30: m.visits30 != null ? m.visits30 : r.visits || 0, days30: m.days30 || 0,
         views30: m.views30 || 0, topFeat: m.topFeat || [], topStock: m.topStock || [], hasStats: !!st.size });
     });
   }
@@ -2834,7 +2840,7 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
        會員（email、名字、付費金色徽章＋方案名）｜方案｜加入日｜到期日｜最後上線｜累計在線｜近 30 天造訪｜觀看次數（近 30 天頁面瀏覽）｜
        最常用的功能 Top3｜最常看的股票 Top3｜狀態。展開：近 14 天每日活躍、各分頁瀏覽、功能次數、常看股票、活躍天數、平均每次停留。 */
   const COLS = [['email', '會員', 'c-who'], ['plan', '方案', 'c-tpl'], ['created', '加入日', 'c-cr'], ['expires', '到期日', 'c-exp'], ['seen', '最後上線', 'c-seen'],
-    ['online', '累計在線', 'c-on num'], ['visits', '近 30 天造訪', 'c-vis num'], ['views', '觀看次數', 'c-vw num'], ['feat', '最常用的功能 Top3', 'c-feat'],
+    ['today', '今日在線', 'c-tdon num'], ['online', '累計在線', 'c-on num'], ['visits', '近 30 天造訪', 'c-vis num'], ['views', '觀看次數', 'c-vw num'], ['feat', '最常用的功能 Top3', 'c-feat'],
     ['stock', '最常看的股票 Top3', 'c-stk'], ['st', '狀態', 'c-st']];
   /* 會員權限 → 會員名單：註冊會員＝所有註冊會員（付費的也在、金色標示）；付費＝這個範本的人 */
   function listRows() {
@@ -2847,7 +2853,7 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
   function sortVal(r, key) {
     switch (key) {
       case 'plan': return (r.paid ? '0' : '1') + r.planName;
-      case 'online': return r.onlineMs; case 'visits': return r.visits30; case 'views': return r.views30;
+      case 'today': return r.todayMs; case 'online': return r.onlineMs; case 'visits': return r.visits30; case 'views': return r.views30;
       case 'feat': return (r.topFeat[0] || [, 0])[1]; case 'stock': return (r.topStock[0] || [, 0])[1];
       case 'st': return ['ok', 'soon', 'new', 'exp'].indexOf(stOf(r));
       default: return r[key] == null ? '' : r[key];
@@ -2865,7 +2871,7 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
         + `<td class="c-who"><span class="who1"><span class="car" aria-hidden="true">${open ? '▾' : '▸'}</span><b title="${esc(r.email)}">${esc(r.email)}</b>${r.name ? `<small title="${esc(r.name)}">${esc(r.name)}</small>` : ''}${badge(r)}</span></td>`
         + `<td class="c-tpl"${r.set ? '' : ' title="尚未個別設定"'}>${r.tier === 'paid' ? esc(r.planName) : '註冊會員'}</td>`
         + `<td class="c-cr">${dday(r.created)}</td><td class="c-exp">${dday(r.expires)}</td><td class="c-seen" title="${r.seen ? dstr(r.seen) : ''}">${seenTxt(r.seen)}</td>`
-        + `<td class="c-on num">${dur(r.onlineMs)}</td><td class="c-vis num">${nf(r.visits30)}</td><td class="c-vw num">${nf(r.views30)}</td>`
+        + `<td class="c-tdon num" title="今天（台北時間 00:00 起）在線的時間">${dur(r.todayMs)}</td><td class="c-on num">${dur(r.onlineMs)}</td><td class="c-vis num">${nf(r.visits30)}</td><td class="c-vw num">${nf(r.views30)}</td>`
         + `<td class="c-feat">${top(r.topFeat, compName)}</td><td class="c-stk">${top(r.topStock, (k) => k)}</td>`
         + `<td class="c-st"><span class="stt ${stOf(r)}">${ST_NAME[stOf(r)]}</span></td></tr>`
         + (open ? `<tr class="pmdet" data-for="${esc(r.email)}"><td colspan="${COLS.length}">${detailHtml(r)}</td></tr>` : '');
@@ -3086,6 +3092,16 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
     PS.det[email] = j && j._s === 200 && Array.isArray(j.days) ? j : { err: j && j._s === 404 ? '讀不到使用紀錄' : '讀不到使用紀錄（' + errText(j) + '）' };
     paintList();
   }
+  /* 名單工具列右上角的訪客數：今日訪客（不同裝置、含沒登入的）＋近 30 天每日加總。Worker 還沒更新（沒有 visitors）就整個藏起來，不顯示假的 0 */
+  function paintVis() {
+    const el = PS.v && PS.v.querySelector('#pmVis'); if (!el) return;
+    const vs = PS.mem && PS.mem.visitors;
+    if (!vs || typeof vs.today !== 'number') { el.hidden = true; el.textContent = ''; return; }
+    el.hidden = false;
+    el.innerHTML = `今日訪客 <b id="pmVisToday">${nf(vs.today)}</b><i>近 30 天 <span id="pmVis30">${nf(vs.d30 || 0)}</span></i>`;
+    el.title = '訪客＝今天用不同裝置打開過網站的數量（含沒登入的人），同一台一天只算一次；近 30 天＝每天的訪客數加總（同一台隔天再來算兩次，因為裝置代碼每天換一組、不追蹤個人）。'
+      + (vs.since ? `從 ${vs.since} 開始累計，更早的沒有紀錄。` : '還沒有累計紀錄，從有人進站開始算。');
+  }
   function paintList() {
     if (!PS.v) return;
     if (PS.mode === 'plan') {
@@ -3099,7 +3115,7 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
         box.dataset.shell = shellKey;
         box.innerHTML = `<div class="ptinner" id="ptMail"><div class="mstats" id="ptStats"></div>
           <div class="pmbar pmfbar"><input type="search" id="pmSearch" placeholder="搜尋 email、名字、層級或範本" aria-label="搜尋會員" value="${esc(PS.q)}">
-            <select id="pmStatF" aria-label="依狀態篩選"><option value="">全部狀態</option><option value="ok">有效</option><option value="exp">過期</option><option value="new">未登入過</option></select><span class="pmcnt" id="pmCnt"></span>
+            <select id="pmStatF" aria-label="依狀態篩選"><option value="">全部狀態</option><option value="ok">有效</option><option value="exp">過期</option><option value="new">未登入過</option></select><span class="pmcnt" id="pmCnt"></span><span class="pmvis" id="pmVis" hidden></span>
             ${PS.tier === 'paid' ? '<span class="sp"></span><button type="button" class="pri pmadd" id="pmAddBtn">＋ 加入會員</button>' : ''}</div>
           ${PS.tier === 'paid' ? '<div class="pmaddf" id="pmAddF" hidden><input type="email" id="pmAddMail" placeholder="輸入 email，指定到這個方案" aria-label="要加入的 email"><button type="button" class="pri" id="pmAddGo">加入</button><button type="button" id="pmAddX">取消</button></div>' : ''}
           <div id="ptTableBox"></div></div>`;
@@ -3117,6 +3133,7 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
       if (PS.stf) fr = fr.filter((r) => r.st === PS.stf);
       const cnt = box.querySelector('#pmCnt'); if (cnt) cnt.textContent = (q || PS.stf) ? `${fr.length} ／ ${rows.length} 位` : `共 ${rows.length} 位`;
       if (cnt) cnt.title = use;
+      paintVis();
       const tb = box.querySelector('#ptTableBox');
       /* ★ 2026-10-07 Andy：「下方移除會員部分 幫我優化介面」「更直觀操作」→ 付費範本的名單改成一列一人的操作列（改方案／移出／勾選批次移出），
          空的時候是一張置中小卡（不再一大片空白「沒有人」）。註冊會員那層（所有人員）維持原本的統計表。 */

@@ -1039,8 +1039,8 @@ Hub.prototype.cleanup = function () {
 };
 
 /* 會員名單（管理者）：設定過的（perm）＋登入過的（users）合成一人一列，帶使用數據。
-   回：{ now, members: [{ email, name, plan, planName, tier, paid, expires, expired, created, seen, st,
-        onlineMs, online30, visits30, days30, views30, topFeat:[[元件, 次數]×3], topStock:[[代號, 次數]×3] }] } */
+   回：{ now, visitors（見 vdaily 區塊）, members: [{ email, name, plan, planName, tier, paid, expires, expired, created, seen, st,
+        onlineMs, todayMs（今天台北日的在線毫秒）, online30, visits30, days30, views30, topFeat:[[元件, 次數]×3], topStock:[[代號, 次數]×3] }] } */
 Hub.prototype.v3Members = function () {
   this.v3Init();
   const now = this.now(), from30 = tpeDay(now - 29 * 86400 * 1000);
@@ -1048,6 +1048,8 @@ Hub.prototype.v3Members = function () {
   const users = this.q('SELECT uid, name, email, created, seen FROM users ORDER BY seen DESC LIMIT 2000');
   const vis = {}; this.q('SELECT uid, SUM(n) AS n, SUM(COALESCE(ms, 0)) AS ms, SUM(CASE WHEN n > 0 OR ms > 0 THEN 1 ELSE 0 END) AS d FROM visits WHERE day >= ? GROUP BY uid', from30).forEach((r) => { vis[r.uid] = r; });
   const tot = {}; this.q('SELECT uid, SUM(COALESCE(ms, 0)) AS ms FROM visits GROUP BY uid').forEach((r) => { tot[r.uid] = r.ms || 0; });
+  /* 今日在線（2026-10-27，Andy：「新增 用戶當天使用多久」）：visits 本來就是「每人每天」一列，今天（台北日）那列的 ms 就是答案，不用另外記 */
+  const today = tpeDay(now), tdy = {}; this.q('SELECT uid, COALESCE(ms, 0) AS ms FROM visits WHERE day = ?', today).forEach((r) => { tdy[r.uid] = r.ms || 0; });
   const pv = {}; this.q("SELECT uid, SUM(n) AS n FROM uev WHERE day >= ? AND comp = '_pv' GROUP BY uid", from30).forEach((r) => { pv[r.uid] = r.n; });
   const feat = {}, stock = {};
   this.q("SELECT uid, comp, SUM(n) AS n FROM uev WHERE day >= ? AND comp NOT IN ('_pv', 'view') GROUP BY uid, comp ORDER BY n DESC", from30)
@@ -1061,13 +1063,13 @@ Hub.prototype.v3Members = function () {
     const uid = u ? u.uid : null, vv = (uid && vis[uid]) || {};
     return { email, name: u ? u.name : '', plan, planName: plans[plan] || plan, tier: plan === 'free' ? 'free' : 'paid', paid: plan !== 'free' && !expired,
       expires: exp, expired, set: !!p, created: u ? u.created || 0 : 0, seen: u ? u.seen || 0 : 0,
-      st: expired ? 'exp' : (u ? 'ok' : 'new'), onlineMs: uid ? tot[uid] || 0 : 0, online30: vv.ms || 0, visits30: vv.n || 0, days30: vv.d || 0,
+      st: expired ? 'exp' : (u ? 'ok' : 'new'), onlineMs: uid ? tot[uid] || 0 : 0, todayMs: uid ? tdy[uid] || 0 : 0, online30: vv.ms || 0, visits30: vv.n || 0, days30: vv.d || 0,
       views30: uid ? pv[uid] || 0 : 0, topFeat: uid ? feat[uid] || [] : [], topStock: uid ? stock[uid] || [] : [] };
   };
   const out = [], seen = new Set();
   for (const u of users) { const e = String(u.email || '').toLowerCase(); if (!e || seen.has(e)) continue; seen.add(e); out.push(row(e, u)); }
   for (const e of Object.keys(perm)) if (!seen.has(e)) { seen.add(e); out.push(row(e, null)); }
-  return { now, members: out };
+  return { now, members: out, visitors: this.vdailyStats(now) };
 };
 /* 某一位會員的詳細使用紀錄（展開那一列用）：各分頁瀏覽、功能次數 Top 15、最常看的股票 Top 10、近 14 天每日（造訪、在線、瀏覽）*/
 Hub.prototype.v3Detail = function (email) {
@@ -2747,16 +2749,36 @@ installArticles(Hub, EXPORT_TABLES);   // 2026-10-16 精選文章點閱次數
    ★ 同前面幾個區塊：只在檔尾新增、包一層 prototype。
    ============================================================================ */
 const VD_RE = /^[A-Za-z0-9]{10,32}$/;
+/* 訪客數（2026-10-27，Andy：「右上角有需要紀錄有多少訪客來過」）：沿用 dayvis 的口徑 —— 每台瀏覽器每天一組隨機代碼（含沒登入的訪客與登入者），
+   同一台一天只算一次。dayvis 只留兩天，這裡的 vdaily（台北日期, 當天不同裝置數）每天一列、只有一個數字，沒有任何代碼，留 400 天。
+   「近 30 天訪客」＝這 30 列加總（＝人次，同一台隔天再來算兩次；代碼每天換一組，本來就無法跨日認人，這是為了不做追蹤的取捨）。
+   從上線那刻起累積；沒有歷史資料可回補。 */
+Hub.prototype.vdailyInit = function () {
+  if (this._vdOk) return;
+  this.q('CREATE TABLE IF NOT EXISTS vdaily (day TEXT PRIMARY KEY, n INTEGER NOT NULL DEFAULT 0)');
+  this._vdOk = true;
+};
+Hub.prototype.vdailyStats = function (now) {
+  this.vdailyInit();
+  const today = tpeDay(now), from30 = tpeDay(now - 29 * 86400 * 1000);
+  const t = this.q('SELECT n FROM vdaily WHERE day = ?', today)[0];
+  const a = this.q('SELECT COALESCE(SUM(n), 0) AS s, COUNT(*) AS d FROM vdaily WHERE day >= ? AND day <= ?', from30, today)[0];
+  const f = this.q('SELECT MIN(day) AS d FROM vdaily')[0];
+  return { today: t ? t.n : 0, d30: a.s || 0, days: a.d || 0, since: (f && f.d) || null };
+};
 const dayvisOrigBatch = Hub.prototype.trackBatch;
 Hub.prototype.trackBatch = async function (req, b) {
   const res = await dayvisOrigBatch.call(this, req, b);
   if (res.status !== 200) return res;
   let j; try { j = await res.clone().json(); } catch (e) { return res; }
   if (!this.dayvisReady) { this.q('CREATE TABLE IF NOT EXISTS dayvis (day TEXT, vd TEXT, PRIMARY KEY (day, vd))'); this.dayvisReady = true; }
+  this.vdailyInit();
   const now = this.now(), day = tpeDay(now);
   if (!b.leave && VD_RE.test(String(b.vd || ''))) {
     this.q('INSERT OR IGNORE INTO dayvis (day, vd) VALUES (?, ?)', day, String(b.vd));
-    if (this.dayvisDay !== day) { this.q('DELETE FROM dayvis WHERE day < ?', tpeDay(now - 86400 * 1000)); this.dayvisDay = day; }
+    /* 管理區「訪客數」要看歷史，但 dayvis 只留兩天 → 把當天的去重人數（只有一個數字）另存 vdaily，留 400 天 */
+    this.q('INSERT INTO vdaily (day, n) VALUES (?, (SELECT COUNT(*) FROM dayvis WHERE day = ?)) ON CONFLICT(day) DO UPDATE SET n = excluded.n', day, day);
+    if (this.dayvisDay !== day) { this.q('DELETE FROM dayvis WHERE day < ?', tpeDay(now - 86400 * 1000)); this.q('DELETE FROM vdaily WHERE day < ?', tpeDay(now - 400 * 86400 * 1000)); this.dayvisDay = day; }
   }
   if (typeof j.n !== 'number') return res;
   j.today = this.q('SELECT COUNT(*) AS c FROM dayvis WHERE day = ?', day)[0].c;

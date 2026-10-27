@@ -62836,7 +62836,7 @@ def t_admin_v3(b, base, code):
     wait_until(pg, "() => !!document.getElementById('ptTable')", 4000)
     hd = pg.evaluate("() => [...document.querySelectorAll('#ptTable thead th')].map(t => t.textContent.replace(/[▲▼]/g, '').trim())")
     ok(f"{T}：註冊會員名單欄位齊全（會員／方案／加入日／到期日／最後上線／累計在線／近 30 天造訪／觀看次數／最常用的功能 Top3／最常看的股票 Top3／狀態）",
-       hd == ["會員", "方案", "加入日", "到期日", "最後上線", "累計在線", "近 30 天造訪", "觀看次數", "最常用的功能 Top3", "最常看的股票 Top3", "狀態"], hd)
+       hd == ["會員", "方案", "加入日", "到期日", "最後上線", "今日在線", "累計在線", "近 30 天造訪", "觀看次數", "最常用的功能 Top3", "最常看的股票 Top3", "狀態"], hd)   # 10-27 新增「今日在線」
     rows = pg.evaluate("""() => Object.fromEntries([...document.querySelectorAll('#ptTable tbody tr[data-email]')].map(t => [t.dataset.email,
         { badge: (t.querySelector('.pdbadge') || { title: '' }).title, one: Math.round(t.querySelector('td.c-who .who1').getBoundingClientRect().height), on: t.querySelector('.c-on').textContent, vw: t.querySelector('.c-vw').textContent,
           feat: t.querySelector('.c-feat').textContent, stk: t.querySelector('.c-stk').textContent, bg: getComputedStyle(t.querySelector('.pdbadge') || t).backgroundImage }]))""")
@@ -62862,7 +62862,7 @@ def t_admin_v3(b, base, code):
     ok(f"{T}：再點一次收起", pg.locator("#ptTable tr.pmdet").count() == 0)
     # 會員管理也用同一個名單元件
     to_members(pg)
-    ok(f"{T}：會員管理的「所有人員狀況」是同一個名單元件（同欄位、付費徽章）", pg.evaluate("() => document.querySelectorAll('#ptTable thead th').length") == 11 and pg.locator("#ptTable .pdbadge").count() >= 2)
+    ok(f"{T}：會員管理的「所有人員狀況」是同一個名單元件（同欄位、付費徽章）", pg.evaluate("() => document.querySelectorAll('#ptTable thead th').length") == 12 and pg.locator("#ptTable .pdbadge").count() >= 2)
     sw = pg.evaluate("() => document.documentElement.scrollWidth - innerWidth")
     ok(f"{T} 1440：沒有橫向捲軸", sw <= 1, sw)
     c.close()
@@ -63113,7 +63113,7 @@ def t_admin_v3(b, base, code):
                  kids: ch.map(e => e.dataset.ch), nOver, abs: [...d.querySelectorAll('*')].filter(e => !e.closest('.dnc') && ['absolute', 'fixed'].includes(getComputedStyle(e).position)).length,
                  pages: d.querySelectorAll('[data-ch=pages] .mdonut li').length, bars: d.querySelectorAll('[data-ch=feats] .hbars svg').length, stk: [...d.querySelectorAll('[data-ch=stocks] .bl')].map(e => e.textContent) }; }""")
     ok(f"{T}・perm-v4：展開明細是表格裡獨立一列（colspan 全寬）、跟上一列與下一列 rect 不相交、裡面沒有絕對定位",
-       dt["span"] == 11 and not dt["inPrev"] and not dt["inNext"] and dt["gap"] >= 0 and dt["abs"] == 0, dt)
+       dt["span"] == 12 and not dt["inPrev"] and not dt["inNext"] and dt["gap"] >= 0 and dt["abs"] == 0, dt)
     ok(f"{T}・perm-v4：四個 KPI 同一排（同一個 top）、字級 ≤ 20px", len(dt["kTop"]) == 1 and dt["kFs"] <= 20, dt)
     ok(f"{T}・perm-v4：下面四張圖卡同一排、同高、都有 SVG（14 天長條｜各分頁甜甜圈｜功能 Top 8｜股票 Top 8 代號＋名稱）",
        len(dt["chH"]) == 1 and len(dt["chTop"]) == 1 and all(dt["chSvg"]) and dt["kids"] == ["days", "pages", "feats", "stocks"] and 1 <= dt["pages"] <= 5 and dt["bars"] >= 1

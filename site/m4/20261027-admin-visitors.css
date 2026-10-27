@@ -1,0 +1,5 @@
+/* 管理區會員名單右上角「訪客數」（2026-10-27）：手機只留「今日訪客」，近 30 天靠滑過／長按提示；搜尋列不准被撐出橫向捲軸 */
+@media (max-width:640px){
+  #v-admin .pmvis i{display:none}
+  #v-admin .pmvis{font-size:12px}
+}
