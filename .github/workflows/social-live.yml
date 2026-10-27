@@ -250,7 +250,9 @@ jobs:
           python scripts/social_publish.py --manifest "${{ steps.snap.outputs.out }}/manifest.json" \
             --base-url "${{ steps.pub.outputs.base }}" $DRY
           if [ -z "$DRY" ] && [ -f "${{ steps.snap.outputs.out }}/posted.json" ]; then echo "save=1" >> "$GITHUB_OUTPUT"; fi
-          if [ "${{ inputs.live_test }}" = "true" ]; then rm -f "${{ steps.snap.outputs.out }}/posted.json"; fi      # 測試不寫發布紀錄
+          # 測試不寫發布紀錄：live_test 或 force（略過時段／資料日檢查＝測試）都不寫。
+          # 2026-10-27 事故：凌晨測試補發寫進 intraday-2026-10-27，12:00 正式盤中被當成「已發過」跳過
+          if [ "${{ inputs.live_test }}" = "true" ] || [ "${{ inputs.force }}" = "true" ]; then rm -f "${{ steps.snap.outputs.out }}/posted.json"; fi
 
       # 盤前：今日焦點寫進網站「精選文章 → 盤前消息」（site/articles/premarket.json，進版控）→ 推回 main，網站部署後就看得到
       - name: 盤前消息寫回網站
