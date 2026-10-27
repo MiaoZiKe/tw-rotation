@@ -34,7 +34,7 @@ on:
     - cron: "1 4 * * 1-5"     # 台北 12:01 盤中（一天一篇，備援；準時由 Cloudflare Worker 12:00 派）
     - cron: "20 0 * * 1-5"    # 台北 08:20 盤前（2026-10-27 Andy「開始發」；休市日由 social_premarket.py 自己不發）
     - cron: "50 0 * * 1-5"    # 台北 08:50 盤前備援 1（08:20 那輪被 GitHub 吃掉時補發；已發過就跳過）
-    - cron: "40 1 * * 1-5"    # 台北 09:40 盤前備援 2（2026-10-27 Andy：「晚到也不能不發，有問題就Mail通知」→ 晚到照發並寄信）
+    - cron: "40 1 * * 1-5"    # 台北 09:40 盤前備援 2（2026-10-27 Andy：「晚到也不能不發，有問題就Mail通知」→ 晚到照發；10-27 晚：只有發不成功才寄信）
   workflow_run:
     workflows: ["每日盤後管線"]
     types: [completed]        # 每日管線跑完（含部署）→ 盤後法人；資料日不是今天就自己跳過
@@ -190,7 +190,7 @@ jobs:
           cat "$OUT/manifest.json" >> "$GITHUB_STEP_SUMMARY"
 
       - name: 存成 Actions artifact（保留 7 天）
-        if: steps.snap.outputs.rc == '0'
+        if: steps.snap.outcome == 'success' && steps.snap.outputs.rc == '0'
         uses: actions/upload-artifact@v4
         with:
           name: social-${{ steps.kind.outputs.kind }}-${{ steps.kind.outputs.stamp }}
@@ -204,7 +204,7 @@ jobs:
       # 否則每天幾十張 PNG 的歷史會把 repo 撐爆）；保留最近 3 天的圖與 state/posted.json。
       - name: 推圖到 social-snaps 分支
         id: pub
-        if: steps.snap.outputs.rc == '0'
+        if: steps.snap.outcome == 'success' && steps.snap.outputs.rc == '0'
         run: |
           OUT="${{ steps.snap.outputs.out }}"
           NAME="$(basename "$OUT")"
@@ -234,7 +234,7 @@ jobs:
       #   THREADS_USER_ID／IG_USER_ID 空白時，social_publish.py 會用權杖自動查帳號編號（log 只印末 4 碼）。
       - name: 發布（總開關關閉或沒有金鑰會自動 dry-run）
         id: post
-        if: steps.snap.outputs.rc == '0'
+        if: steps.snap.outcome == 'success' && steps.snap.outputs.rc == '0'
         env:
           THREADS_USER_ID: ${{ secrets.THREADS_USER_ID }}
           THREADS_ACCESS_TOKEN: ${{ secrets.THREADS_ACCESS_TOKEN }}
@@ -260,7 +260,7 @@ jobs:
 
       # 盤前：今日焦點寫進網站「精選文章 → 盤前消息」（site/articles/premarket.json，進版控）→ 推回 main，網站部署後就看得到
       - name: 盤前消息寫回網站
-        if: steps.kind.outputs.kind == 'premarket' && steps.snap.outputs.rc == '0' && inputs.live_test != true
+        if: steps.kind.outputs.kind == 'premarket' && steps.snap.outcome == 'success' && steps.snap.outputs.rc == '0' && inputs.live_test != true
         run: |
           if git diff --quiet -- site/articles/premarket.json; then echo "盤前消息沒有變動"; exit 0; fi
           git config user.name  "tw-rotation-bot"
@@ -273,17 +273,17 @@ jobs:
           done
           echo "::warning::盤前消息推回 main 失敗（不影響已發的貼文）"
 
-      # ★ 2026-10-27 Andy：「有問題就Mail通知」→ 盤前晚到開盤後才發、昨日事件 0 則（alert.txt）也把這一輪標紅；
+      # ★ 2026-10-27 Andy：「有問題就Mail通知」→ 晚上改「只有發不成功才需要」：晚到／昨日事件 0 則（alert.txt）只記摘要；
       #   任何一步紅燈，GitHub 都會寄「Run failed」信到 MiaoZiKe 帳號的信箱（github.com/settings/notifications → Actions 要勾 Email）。
       #   下一步「寫回 posted.json」是 always()，這一步標紅不影響防重複紀錄。
-      - name: 有問題寄信通知（晚到照發、昨日事件 0 則也通知）
-        if: always() && steps.snap.outputs.rc == '0'
+      - name: 晚到／昨日事件 0 則：記在摘要（有發出就不寄信）
+        if: always() && steps.snap.outcome == 'success' && steps.snap.outputs.rc == '0'
         run: |
           F="${{ steps.snap.outputs.out }}/alert.txt"
+          # 2026-10-27 Andy：「這Mail 只有發不成功才需要 不要一直發」→ 晚到／昨日事件 0 則但有發出去：只寫摘要、不標紅、不寄信
           if [ -f "$F" ]; then
-            echo "::error::$(cat "$F")"
-            { echo "### ⚠ 盤前貼文有狀況"; echo ""; cat "$F"; } >> "$GITHUB_STEP_SUMMARY"
-            exit 1
+            echo "::warning::$(cat "$F")"
+            { echo "### ⚠ 盤前貼文有狀況（已發出）"; echo ""; cat "$F"; } >> "$GITHUB_STEP_SUMMARY"
           fi
 
       # 發布程式的防重複紀錄 posted.json 要寫回 social-snaps，下一輪（含盤後那三次接力）才知道發過了；
