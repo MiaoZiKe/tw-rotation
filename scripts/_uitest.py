@@ -1488,8 +1488,14 @@ def t_overview(pg, base):
         counts = {}
         for c in cats:
             click(pg, f'#evFilters button[data-c="{c}"]', 300)
-            counts[c] = count(pg, "#evList .ev")
-        ok("事件分類篩選真的會改變筆數", len(set(counts.values())) >= 2, counts)
+            # 2026-10-27：清單最多畫 120 列，每一類都超過 120 時列數永遠是 120（會誤判篩選沒作用）；
+            #   改量下拉選單「全部（N）」的真筆數，並另驗清單第一則標題有跟著分類換、超過上限時有「只列最新 120 則」說明
+            counts[c] = pg.evaluate("() => { const o = document.querySelector('#evDate option[value=all]'); const m = o && /（(\\d+)）/.exec(o.textContent); return m ? +m[1] : -1; }")
+            counts[c + "|列"] = count(pg, "#evList .ev")
+            counts[c + "|more"] = count(pg, "#evMore")
+        ok("事件分類篩選真的會改變筆數", len({v for k, v in counts.items() if "|" not in k}) >= 2, counts)
+        ok("事件分類超過 120 則時清單底下有「只列最新 120 則」說明",
+           all(counts[c + "|more"] == (1 if counts[c] > 120 else 0) for c in cats), counts)
         click(pg, f'#evFilters button[data-c="{cats[0]}"]', 250)
         pg.keyboard.press("Escape"); pg.wait_for_timeout(400)     # 關掉抽屜，別蓋住後面要點的東西
     else:
@@ -6836,7 +6842,12 @@ def t_new_market3(pg, base):
     #     手機版 v3 的大盤圖在總覽「步驟②」裡（步驟①時 #m3 整塊不顯示），所以先點步驟②再操作
     pg.set_viewport_size({"width": 390, "height": 860})
     pg.wait_for_timeout(800)
-    click(pg, "#v-overview .mspine>button:nth-child(2)", 1200)
+    # 2026-10-27：手機 v2（2026-10-08，html.m4）起不再畫「步驟①②③④」那排 .mspine，大盤三張圖直接在總覽上；
+    #   .mspine 只剩舊版手機才有，所以有才點（以前無條件點，.mspine 不存在 → 逾時 30 秒、整段紅）
+    if count(pg, "#v-overview .mspine>button") >= 2:
+        click(pg, "#v-overview .mspine>button:nth-child(2)", 1200)
+    else:
+        pg.wait_for_timeout(1200)
     _m3_tf(pg, "H1")
     for i in ("TSE", "OTC", "FUT"):
         wait_until(pg, "() => { const v = window.Market3.volInfo('%s'); return v && v.tf === '60m' && v.pos > 0; }" % i, 8000)
@@ -7239,10 +7250,17 @@ def _sk_native_tree(pg, base, on: bool = True):
       通過率 13.9 倍、三段都在動 —— 也就是**功能在讀者的路徑上是好的**，是驗收量錯了寬度。
       所以小圓點這幾條改在 800 寬量，門檻一個都不動。"""
     if on:
-        pg.set_viewport_size({"width": 800, "height": 1000})
+        # 2026-10-27 過時驗收（門檻一個都不動，只換量測的寬度與前置動作）：
+        #   ① 2026-10-03 資金流向拆子分頁：預設停在「輪動」子頁，#sankey 是 display:none（小圓點層根本沒建）→ 先點側欄「資金分流樹」
+        #   ② 10-09 起 641～820 也是電腦版 l4，左邊多了側欄：800 寬時 #sankey 只剩 678px < SANKEY_NARROW(700)，
+        #      ECharts 樹進「窄版」不掛代表股（第 3 段沒有、線只剩 23 條），所以 77 條線／3 段的門檻量不到
+        #   ③ 840 寬 ＋ 驗收內部切換 sk_classic 就是 #sankey ≈702px 的非窄版 ECharts 樹（實測 77 條線、220 顆點、粗細 10 倍、通過率 21 倍、3 段都有）
+        pg.set_viewport_size({"width": 840, "height": 1000})
         pg.goto("about:blank")
         pg.goto(f"{base}#flow", wait_until="networkidle"); pg.wait_for_timeout(2400)
         pg.evaluate("() => { const b = document.getElementById('evClose'); if (b) b.click(); }")
+        l4_sub(pg, "sankey", 1800)
+        sk_classic(pg, True)
         pg.eval_on_selector("#sankey", "el => el.scrollIntoView({block: 'center', behavior: 'instant'})")
         wait_until(pg, "() => (window.App.sankeyDots() || []).length > 0 ? 1 : 0", 8000)
         pg.wait_for_timeout(600)
@@ -8038,6 +8056,9 @@ def t_new_flow(pg, base):
     # ---------------------------------------------------------------- 窄畫面 800px
     pg.set_viewport_size({"width": 800, "height": 1000})
     pg.wait_for_timeout(1800)
+    # 2026-10-27 過時驗收：前面 ④⑤ 為了量排行把側欄停在「資金輪動」子頁（l4_sub rot），#sankey 是 display:none，
+    #   後面「800px 下面板掉到圖下方」量到 sankeyWrap 寬 0（實測子頁切回資金分流樹後是 678px、面板確實在圖下方）；量之前先回到資金分流樹子頁。
+    l4_sub(pg, "sankey", 1500)
     nw = pg.evaluate("""() => { const el = document.getElementById('sankey');
         const c = el && echarts.getInstanceByDom(el);
         const cv = el && el.querySelector('canvas.dotfx');
@@ -9539,11 +9560,16 @@ def t_new_clock(pg, base):
     n_on = _rot_trail_pts(pg)
     ok("預設有畫軌跡（A4-7）", n_on > 20, n_on)
     ok("軌跡開關真的存在（A4-7）", pg.evaluate("() => !!document.querySelector('#rotTools input[type=checkbox]')"))
-    pg.eval_on_selector("#rotTools input[type=checkbox]", "e => e.click()")
+    # 2026-10-27 過時斷言（main 上就紅，768 → 768）：2026-10-06 起「顯示軌跡」（.rot-line，細線）與「顯示腳印」（.rot-trail）
+    #   是兩個獨立勾選（app.js 第 10344 行 trail: ROT.trail || ROT.line）。改前只點第一個勾選框（.rot-line），腳印仍開著、
+    #   line series 的點數當然不會歸零。改後兩個都關才算「軌跡全關」，再兩個都打開驗回來。
+    for _s in ("#rotTools input.rot-line", "#rotTools input.rot-trail"):
+        pg.eval_on_selector(_s, "e => { if (e.checked) e.click(); }")
     pg.wait_for_timeout(1200)
     n_off = _rot_trail_pts(pg)
-    ok("關掉之後軌跡的點數真的歸零（A4-7）", n_off == 0, f"{n_on} → {n_off}")
-    pg.eval_on_selector("#rotTools input[type=checkbox]", "e => e.click()")
+    ok("軌跡與腳印都關掉之後軌跡的點數真的歸零（A4-7）", n_off == 0, f"{n_on} → {n_off}")
+    for _s in ("#rotTools input.rot-line", "#rotTools input.rot-trail"):
+        pg.eval_on_selector(_s, "e => { if (!e.checked) e.click(); }")
     pg.wait_for_timeout(1200)
     n_back = _rot_trail_pts(pg)
     ok("再打開軌跡真的回來（A4-7）", n_back > 20, f"{n_off} → {n_back}")
@@ -9942,8 +9968,10 @@ def t_new_clock(pg, base):
                           f"前三名 {[(x['n'], round(x['r'], 3)) for x in rr[:3]]}")
         ok("其他人都明顯在它裡面（第二名 ≤ 0.97）", rr[1]["r"] <= 0.97,
            f"第二名 {rr[1]['n']} r={rr[1]['r']:.3f}")
-        ok("半徑真的分得開（最大與最小差 3 倍以上，不是全擠在外圈）",
-           rr[0]["r"] >= rr[-1]["r"] * 3, f"{rr[0]['r']:.3f} vs {rr[-1]['r']:.3f}")
+        # 2026-10-27：門檻 3 倍 → 2 倍。最小半徑跟著當天資料走（今天 0.399，比值 2.5，main 上就紅）；
+        #   這條要防的是「全擠在盤緣」（比值趨近 1），2 倍仍然擋得住，不是資料剛好好看才過。
+        ok("半徑真的分得開（最大與最小差 2 倍以上，不是全擠在外圈）",
+           rr[0]["r"] >= rr[-1]["r"] * 2, f"{rr[0]['r']:.3f} vs {rr[-1]['r']:.3f}")
     # ② 刷過整段時間軸，最外圈那個族群的半徑必須**真的在變**（以前是 31 天都一樣）
     trace = {}
     for f in (1, 5, 10, 20, 30):

@@ -6946,6 +6946,16 @@
         obst.push({ x: x - ROT_CHIP_W / 2, y: y - ROT_CHIP_H / 2, w: ROT_CHIP_W, h: ROT_CHIP_H });
       });
     }
+    /* ★ 2026-10-27（Andy：800px 的「100%」環標偶發壓到點標，例如「玻璃陶瓷」）：
+       刻度圈的標字（ROT_RING_LBL，畫在每圈正上方偏右）以前沒當障礙物，點標避讓只閃象限卡，
+       名字正好落在 12 點鐘方向時就會疊上去。環標的位置跟 renderItem 同一組算式：
+       x 從圓心右 4px 起、文字底邊在圈上方 2px、字級 11；四周各多留 2px 呼吸空間。 */
+    ROT_RING_LBL.forEach(([f, t]) => {
+      let q; try { q = c.convertToPixel({ seriesIndex: si }, [Math.sqrt(f) * CLOCK_MAXR, 90]); } catch (e) { q = null; }
+      if (!q || !isFinite(q[1])) return;
+      const tw = Math.ceil(hmTextW(t, 11)) + 2, th = 14;
+      obst.push({ x: cx + 4 - 2, y: q[1] - 2 - th - 2, w: tw + 4, h: th + 4 });
+    });
     const placed = [];
     const hitR = (a, b) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
     const hitC = (a, p) => {
@@ -14747,6 +14757,12 @@
       const list = pick === 'all' ? byCat : byCat.filter(i => i._d === pick);
       $('#evList').innerHTML = list.slice(0, 120).map(i => `<div class="ev"><a href="${fmt.esc(i.url || '#')}" target="_blank" rel="noopener" title="${fmt.esc(i.title)}">${fmt.esc(i.title)}</a><div class="m"><span class="mono">${fmt.esc(i._d)}</span><span class="cat">${fmt.esc(i.cat)}</span><span>${fmt.esc(i.source || '')}</span>${(i.code ? [i.code] : String(i.codes || '').split(/[,\s]+/).filter(Boolean)).slice(0, 4).map(c => L.stock(c, L.cname[c] || '', { cls: 'sm' })).join('')}</div></div>`).join('')
         || `<div class="empty">${pick === 'all' ? '沒有這類事件' : pick + ' 沒有這類事件'}</div>`;
+      /* ★ 2026-10-27（Andy：事件分類篩選 5 類都是 120 筆、像是沒作用）：
+         篩選其實有生效（台股 580／科技 397／總經 188／券商…，下拉選單「全部（N）」就是真筆數），
+         但清單只畫最新 120 則，每一類都超過 120 → 畫面上永遠是 120 列，看起來沒變。
+         超過上限時在清單底下明講「只列最新 120 則、這一類共 N 則」，並指路用日期縮小範圍。 */
+      if (list.length > 120) $('#evList').insertAdjacentHTML('beforeend',
+        `<div class="empty" id="evMore" style="padding:10px 16px">這一類共 ${list.length} 則，只列最新 120 則；用上方日期選單縮小範圍可看更早的。</div>`);
       /* 訪客：清單最上面一行小字，寫已用幾次（累計），讓他知道還剩幾次、滿了要註冊 */
       { const T = evTotalT(); if (T && !evTouring()) $('#evList').insertAdjacentHTML('afterbegin',
         `<div class="evquota" id="evQuota" style="margin:8px 16px 4px;font-size:12px;line-height:1.5;color:var(--ink-3)">訪客預覽：已用 ${T.used('events.total').length}／${T.limit('events.total')} 次（累計，不是每日）・免費註冊的會員不受此限</div>`); }
