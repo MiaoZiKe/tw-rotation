@@ -34,6 +34,7 @@ from __future__ import annotations
 
 import argparse
 import base64
+import html
 import json
 import math
 import re
@@ -676,7 +677,8 @@ def collect(target: date, intl, price, intra, ohlc, news, cal) -> dict:
         start = min(start, us_close_tpe(us["date"]))
     return {"target": target.isoformat(), "us": us, "adr": adr, "tx": tx, "night": night, "last_td": last_td,
             "closure": closure_note(last_td, target), "news_window": [start.isoformat(), end.isoformat()],
-            "news": pick_news(news, start, end), "events": upcoming_events(target, cal),
+            "news": pick_news(news, start, end), "news_pool": pick_news(news, start, end, n=10),      # 今日焦點至少 5 則（Andy 10-27），候選多抓
+            "events": upcoming_events(target, cal),
             "summary": summary_line(us, adr, tx, night), "reads": market_reads(us, adr, night, partial=bool(us["date"]) and datetime.now(TPE) < us_close_tpe(us["date"])),
             "us_partial": bool(us["date"]) and datetime.now(TPE) < us_close_tpe(us["date"]),
             "ta": {k: {"rows": ta_rows(v["k"]), "ma": ma_values(v["k"])} for k, v in (("tx", tx), ("adr", adr)) if not v.get("missing")}}
@@ -1096,66 +1098,100 @@ def premarket_news(D: dict) -> dict:
                        "published_at": n["published_at"], "coverage": n.get("coverage", {}), "summary": n.get("summary", "")} for n in D["news"]]}
 
 
+def _clause(t: str, n: int) -> str:
+    """標題／摘要取第一個短句（到「！，：。」為止）；超過 n 字就不用（不截成半句加…）。問句保留問號，不把「台股不妙？」寫成斷言。"""
+    m = re.match(r"(.+?)([！!？?，,：:；;。　\n]| {2,}|$)", t.strip())
+    if not m:
+        return ""
+    c = m.group(1).strip() + ("？" if m.group(2) and m.group(2) in "？?" else "")
+    if len(c) > n and " " in c:      # 「A 標題 B 標題」這種用空白隔開的，取第一段
+        c = c.split(" ")[0].strip()
+    return c if 4 <= len(c) <= n else ""
+
+
+def _desc(summary: str, n: int) -> str:
+    """消息摘要的第一句當描述（鉅亨摘要是多行重點、科技新報是導言）；取到 n 字內最後一個逗號／頓號，不截半句。"""
+    t = html.unescape(str(summary or "")).replace("\r", "")
+    t = re.split(r"[\n。]", t)[0].strip().rstrip("…[] ")
+    if not t or n <= 0:
+        return ""
+    if len(t) <= n:
+        return t
+    cut = max(t.rfind(ch, 0, n) for ch in "，、；,")
+    t = t[:cut].strip() if cut >= 8 else ""
+    # 截在「宣布／表示／指出」這種後面還要接內容的地方，讀起來是半句 → 再往前退一段
+    while t and re.search(r"(宣布|表示|指出|認為|透露|強調|提到|說)$", t):
+        k = max(t.rfind(ch) for ch in "，、；,")
+        t = t[:k].strip() if k >= 8 else ""
+    return t
+
+
+def focus_lines(D: dict, kn: int = 5, tl: int = 30, dl: int = 40) -> list[str]:
+    """2026-10-27 Andy：「盤前需要新增像是這樣的內文說明」＋「排版要整齊 一個一行 另外重點資訊至少5個且在多點描述」：
+    📌 今日焦點： → 第一行美股四大指數＋費半 → 每則消息一行「短標題：一句描述」，至少 5 則（消息不足就有幾則放幾則）。"""
+    out = []
+    rows = [r for r in D["us"].get("rows") or [] if not r.get("missing") and r.get("pct") is not None and "VIX" not in r["label"]]
+    if rows:
+        up, dn = sum(r["pct"] > 0 for r in rows), sum(r["pct"] < 0 for r in rows)
+        fl_ = len(rows) - up - dn
+        head = ("美股四大指數全數收紅" if up == len(rows) else "美股四大指數全數收黑" if dn == len(rows)
+                else f"美股四大指數 {up} 漲 {dn} 跌" + (f" {fl_} 平" if fl_ else ""))
+        sox = next((r for r in rows if "費" in r["label"]), None)
+        if sox:
+            head += "，費半持平" if abs(sox["pct"]) < 0.05 else f"，費半{'上漲' if sox['pct'] > 0 else '下跌'} {abs(sox['pct']):.1f}%"
+        out.append(head)
+    seen = set()
+    for n in [*D["news"], *(D.get("news_pool") or [])]:      # 先放圖上那 5 則，不夠再從候選補
+        if n["title"] in seen:
+            continue
+        seen.add(n["title"])
+        if len(out) - bool(rows) >= kn:
+            break
+        c = _clause(n["title"], tl)
+        if not c:
+            continue
+        d = _desc(n.get("summary") or n.get("desc") or "", dl)
+        out.append(f"{c}：{d}" if d and d != c else c)
+    return ["📌 今日焦點："] + [f"・{x}" for x in out] if out else []
+
+
 def caption(D: dict, ymd: str, max_len: int = ss.THREADS_MAX) -> str:
-    """盤前文案（2026-10-26 Andy：「文案需要先多講述昨日盤面分析，再簡短講述標題」）：
-    標題 → 📌 今日焦點（一段話：美股＋重點消息短標題，10-27 Andy 範例）→ 🧭 昨日盤面（每檔一句完整解讀）→ 💳 融資融券 → hashtag → 👉 連結。
-    超過字數：先把事件縮成 3 則、標題再截短，最後才縮解讀句。"""
+    """盤前主文（2026-10-27 Andy 第二版：「排版要整齊 一個一行 另外重點資訊至少5個且在多點描述」）：
+    標題 → 📌 今日焦點（一則一行，美股＋至少 5 則消息，每則短標題＋一句描述）→ hashtag → 👉 連結。
+    Threads 一則 500 字放不下盤面解讀與融資，那兩段改成同一篇底下的第一則回覆（caption_reply）。
+    超過字數：先縮描述長度，最後才減則數（不少於 5 則，除非描述已經全拿掉）。"""
+    tail = [HASHTAGS, *ss.link_lines("premarket", ymd, route=ss.pick_landing("premarket", {"events": [e["name"] for e in D.get("events") or []], "reads": D.get("reads") or []})[0])]      # 2026-10-27 Andy：「留言『消息』這句都先拿掉」
+    head = [f"🌅 盤前3分鐘 {md(pd.Timestamp(D['target']).date())}"]      # 2026-10-26 Andy：「標題盤前改盤前3分鐘」
+    txt = ""
+    for kn, tl, dl in ((5, 30, 48), (5, 30, 40), (5, 30, 32), (5, 30, 26), (5, 26, 20), (5, 26, 0), (4, 26, 0), (3, 22, 0)):
+        txt = "\n".join(head + focus_lines(D, kn, tl, dl) + tail)
+        if len(txt) <= max_len:
+            return txt
+    return txt
+
+
+def caption_reply(D: dict, max_len: int = ss.THREADS_MAX) -> str:
+    """同一篇 Threads 底下的第一則回覆：🧭 昨日盤面（每檔一句解讀）→ 💳 融資融券（前一日，前五名）。沒有網址、沒有 hashtag。"""
     reads = D.get("reads") or []
     part = " 盤中" if D.get("us_partial") else ""
     us_d = md(D["us"]["date"]) if D["us"].get("date") else ""
 
-    def short_title(t: str, n: int) -> str:
-        t = re.split(r"[！!？?]|　| {2,}", t)[0].strip() or t
-        return t if len(t) <= n else t[:n] + "…"
-
     def trim(r: str, k: int) -> str:
         return "；".join(r.split("；")[:k])
-    news = D["news"]
-
-    def clause(t: str, n: int) -> str:
-        """消息標題取第一個短句（到「！，：」為止）；超過 n 字就不用這則（不截成半句加…）。"""
-        m = re.match(r"(.+?)([！!？?，,：:；;　]| {2,}|$)", t.strip())
-        c = m.group(1).strip() + ("？" if m.group(2) in "？?" and m.group(2) else "")      # 問句保留問號，不把「台股不妙？」寫成斷言
-        return c if 4 <= len(c) <= n else ""
-
-    def focus(kn: int, tl: int) -> str:
-        """2026-10-27 Andy 給範例「今日焦點｜美股科技股反彈，費半上漲2.8%，…；台灣產業新增…」：一段話講美股＋前一晚重點消息（取代原本的事件條列）。"""
-        rows = [r for r in D["us"].get("rows") or [] if not r.get("missing") and r.get("pct") is not None and "VIX" not in r["label"]]
-        segs = []
-        if rows:
-            up, dn = sum(r["pct"] > 0 for r in rows), sum(r["pct"] < 0 for r in rows)
-            fl_ = len(rows) - up - dn
-            head = ("美股四大指數全數收紅" if up == len(rows) else "美股四大指數全數收黑" if dn == len(rows)
-                    else f"美股四大指數 {up} 漲 {dn} 跌" + (f" {fl_} 平" if fl_ else ""))
-            sox = next((r for r in rows if "費" in r["label"]), None)
-            if sox:
-                head += "，費半持平" if abs(sox["pct"]) < 0.05 else f"，費半{'上漲' if sox['pct'] > 0 else '下跌'} {abs(sox['pct']):.1f}%"
-            segs.append(head)
-        segs += [c for c in (clause(n["title"], tl) for n in news) if c][:kn]
-        if not segs:
-            return ""
-        t = "；".join(segs)
-        return "📌 今日焦點｜" + t + ("" if t.endswith("？") else "。")
-    tail = [HASHTAGS, *ss.link_lines("premarket", ymd, route=ss.pick_landing("premarket", {"events": [e["name"] for e in D.get("events") or []], "reads": D.get("reads") or []})[0])]      # 2026-10-27 Andy：「留言『消息』這句都先拿掉」（自動私訊還沒做；Threads 也沒有私訊 API）
     txt = ""
-    # 先縮事件則數與標題長度，再把每檔解讀縮成「漲跌＋走勢」一段（距 60 日高點等細節圖上有），融資前五名一定保留（Andy 10-27）
-    for kn, tl, rk in ((4, 28, 9), (3, 28, 9), (4, 28, 1), (3, 28, 1), (3, 22, 1), (2, 28, 1), (2, 22, 1), (1, 22, 1), (0, 0, 1)):
-        body = [f"🌅 盤前3分鐘 {md(pd.Timestamp(D['target']).date())}"]      # 2026-10-26 Andy：「標題盤前改盤前3分鐘」
-        fl = focus(kn, tl)
-        if fl:      # 2026-10-27 Andy：「盤前需要新增像是這樣的內文說明」→ 標題下一段「今日焦點｜…」，事件併進這段，不再另列「昨日事件」條列
-            body.append(fl)
+    for rk in (9, 2, 1):
+        body = []
         if reads:
-            rs_ = reads[1:] if fl and reads[0].startswith("美股") else reads      # 第一句「美股四大指數…」已寫進今日焦點
-            body += [f"🧭 昨日盤面（美股 {us_d}{part}）："] + [f"・{trim(x, rk)}" for x in rs_]
+            body += [f"🧭 昨日盤面（美股 {us_d}{part}）："] + [f"・{trim(x, rk)}" for x in reads]
         cr = D.get("credit")
-        if cr:      # 前一日融資融券接在最後（2026-10-27 Andy）
+        if cr:      # 前一日融資融券（2026-10-27 Andy）
             body += [f"💳 融資融券（{md(cr['date'])}）："]
             body.append(f"・上市融資維持率（估算）{cr['ratio']:.2f}%" + (f"，單日{'下降' if cr['chg'] < 0 else '上升'} {abs(cr['chg']):.2f} 個百分點" if cr.get("chg") is not None else ""))
             # Andy 10-27 格式：融資／融券各一行標題，底下「增加」「減少」各一行、各列前五名
             for nm_, a_, b_ in (("融資", cr["up"], cr["dn"]), ("融券", cr["sup"], cr["sdn"])):
                 if a_ or b_:
                     body += [f"・{nm_}："] + ([f"　增加 {'、'.join(a_)}"] if a_ else []) + ([f"　減少 {'、'.join(b_)}"] if b_ else [])
-        txt = "\n".join(body + tail)
+        txt = "\n".join(body)
         if len(txt) <= max_len:
             return txt
     return txt
@@ -1285,10 +1321,11 @@ def main() -> int:
     if bad:
         return 3
     text = caption(D, target.strftime("%Y%m%d"))
+    reply = caption_reply(D)
     manifest = {"kind": KIND, "taken_at": now.isoformat(timespec="seconds"), "data_date": target.isoformat(), "slot_key": key,
-                "threads": {"text": text, "images": threads}, "story": stories, "premarket_news": pn}
+                "threads": {"text": text, "images": threads, "reply": reply}, "story": stories, "premarket_news": pn}
     (out / "manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2), "utf-8")
-    (out / "caption.txt").write_text(text + "\n", "utf-8")
+    (out / "caption.txt").write_text(text + "\n\n--- 回覆 ---\n" + reply + "\n", "utf-8")
     alerts = []      # 2026-10-27 Andy：「有問題就Mail通知」→ 寫進 alert.txt，workflow 把這一輪標紅 → GitHub 寄信
     if late:
         alerts.append(f"盤前貼文排程晚到：{now:%Y-%m-%d %H:%M}（台北）才開始跑，已過 08:45 開盤，仍照發。")

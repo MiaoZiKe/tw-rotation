@@ -250,11 +250,12 @@ def test_caption_and_premarket_news():
     txt = sp.caption(D, "20261027")
     lines = txt.splitlines()
     assert lines[0] == "🌅 盤前3分鐘 10/27" and lines[-1].split("#")[0] == "https://liguligu-puipui.com/?u=th-pm-20261027" and "留言" not in txt      # 2026-10-26 盤前文案改成盤中盤後同格式
-    # 2026-10-27 Andy：「盤前需要新增像是這樣的內文說明」→ 標題下一段「📌 今日焦點｜…」，事件併進這段（不再另列昨日事件）
-    assert "🧭 昨日盤面（美股 10/23）：" in lines and "📰 昨日事件：" not in lines and "資料：" not in txt
-    assert lines[1].startswith("📌 今日焦點｜美股四大指數") and "費半持平" in lines[1] and "…" not in lines[1]
+    # 2026-10-27 Andy：「排版要整齊 一個一行 另外重點資訊至少5個且在多點描述」→ 主文「📌 今日焦點：」一則一行；盤面解讀＋融資改放回覆
+    assert lines[1] == "📌 今日焦點：" and lines[2].startswith("・美股四大指數") and "費半持平" in lines[2] and "…" not in txt
+    assert "・AI 投資疑慮未消、油價飆漲" in lines and "📰 昨日事件：" not in lines and "🧭 昨日盤面" not in txt and "資料：" not in txt
     assert len(txt) <= 480 and "👉 更多詳細資料可以點擊以下連結：\nhttps://liguligu-puipui.com/?u=th-pm-20261027" in txt and txt.endswith("#earnings")      # 10-27 深層連結：夾具有 FOMC 事件 → 落點 #earnings
-    assert "AI 投資疑慮未消" in lines[1] and "查證中" not in txt
+    rp = sp.caption_reply(D)
+    assert rp.startswith("🧭 昨日盤面（美股 10/23）：") and "https://" not in rp and "#台股" not in rp and len(rp) <= 480 and "查證中" not in txt
     pn = sp.premarket_news(D)
     assert pn["version"] == 1 and pn["target_date"] == "2026-10-27" and pn["categories"] == ["新聞", "事件", "科技", "總經"]
     it = pn["items"][0]
@@ -292,3 +293,10 @@ def test_盤面解讀_連黑與窄幅():
     assert "連 4 黑後收紅" in r and "作收" not in r.split("；")[0] or "連 4 黑後收紅" in r
     r2 = sp.bar_read("那斯達克", sp.k_series(pd.DataFrame(rows), 25), partial=True)
     assert "作收" not in r2 and "收在" not in r2
+
+
+def test_今日焦點描述不截半句():
+    assert sp._desc("全球 AI 晶片搶購潮白熱化，特斯拉執行長馬斯克週日正式宣布，旗下 SpaceX 已完成募資", 40) == "全球 AI 晶片搶購潮白熱化"
+    assert sp._desc("外資單日狂賣台股3025.55億元創紀錄，主因美國CPI高於預期。&#10;野村統計", 60) == "外資單日狂賣台股3025.55億元創紀錄，主因美國CPI高於預期"
+    assert sp._clause("外資狂賣3025億元台股不妙？野村估明年EPS成長29%", 30) == "外資狂賣3025億元台股不妙？"
+    assert sp._clause("川普任內汽油均價超越拜登時期 柴油價格創歷史新高 期中選舉壓力加劇", 30) == "川普任內汽油均價超越拜登時期"

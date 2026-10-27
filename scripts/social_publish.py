@@ -204,6 +204,26 @@ def publish_threads(uid, token, text, urls):
     return {"id": pid, "link": link}
 
 
+def publish_threads_reply(uid, token, text, reply_to):
+    """同一篇底下的第一則回覆（2026-10-27 盤前：主文放今日焦點，盤面解讀＋融資放回覆）。Threads API：建容器時帶 reply_to_id。"""
+    host = f"{THREADS_HOST}/{uid}"
+    if len(text) > THREADS_TEXT_MAX:
+        text = text[:THREADS_TEXT_MAX - 1] + "…"
+
+    def go():
+        c = http("POST", f"{host}/threads", data={"media_type": "TEXT", "text": text, "reply_to_id": reply_to, "access_token": token})
+        wait_ready(THREADS_HOST, token, c["id"], "threads 回覆", "status")
+        return http("POST", f"{host}/threads_publish", data={"creation_id": c["id"], "access_token": token})["id"]
+
+    pid = retry_once("threads", go)
+    link = ""
+    try:
+        link = http("GET", f"{THREADS_HOST}/{pid}", params={"fields": "permalink", "access_token": token}).get("permalink", "")
+    except Exception:  # noqa: BLE001
+        pass
+    return {"id": pid, "link": link}
+
+
 # ---------- IG 限動 ----------
 def publish_story(uid, token, url):
     def go():
@@ -295,6 +315,20 @@ def run(manifest_path, base_url, dry_run=False, env=None, flag=None) -> int:
         except Exception as e:  # noqa: BLE001
             fail = True
             log(f"[threads] 發布失敗：{redact(e)}")
+    # 同一篇底下的第一則回覆（盤前：盤面解讀＋融資）；主文已發、回覆還沒發才補
+    if th.get("reply") and only != "ig" and "threads" in done and "threads_reply" not in done:
+        if off or not (th_uid and env.get("THREADS_ACCESS_TOKEN")):
+            log(f"[threads] dry-run 回覆：\n{th['reply']}")
+        else:
+            try:
+                tok = refresh_token("threads", env["THREADS_ACCESS_TOKEN"])
+                done["threads_reply"] = publish_threads_reply(th_uid, tok, th["reply"], done["threads"]["id"])
+                log(f"[threads] 回覆已發布 id={done['threads_reply']['id']} {done['threads_reply']['link']}")
+            except Exception as e:  # noqa: BLE001
+                fail = True
+                log(f"[threads] 回覆發布失敗：{redact(e)}")
+    elif th.get("reply") and off:
+        log(f"[threads] dry-run 回覆：\n{th['reply']}")
 
     # IG 限動
     if not st_urls or only == "threads":

@@ -234,3 +234,18 @@ def test_工作流讀總開關():
     from pathlib import Path
     y = (Path(sp.__file__).resolve().parents[1] / ".github/workflows/social-live.yml").read_text(encoding="utf-8")
     assert "docs/marketing/social_unit/LIVE_ENABLED" in y and "總開關關閉" in y
+
+
+def test_盤前主文之後同一篇底下回覆_重跑不重複(tmp_path, monkeypatch):
+    # 2026-10-27：盤前主文放今日焦點，盤面解讀＋融資放同一篇底下的第一則回覆（reply_to_id＝主文 id）
+    p = tmp_path / "manifest.json"
+    p.write_text(json.dumps({"kind": "premarket", "taken_at": "2026-10-27T08:21:00+08:00", "data_date": "2026-10-27",
+                             "threads": {"text": "主文", "images": ["a.png"], "reply": "🧭 昨日盤面"}, "story": []}), encoding="utf-8")
+    f = Fake(); monkeypatch.setattr(sp, "http", f)
+    assert sp.run(p, BASE, env=ENV) == 0
+    c = posts(f, "/11/threads")
+    assert [x[2]["data"]["media_type"] for x in c] == ["IMAGE", "TEXT"]
+    pub_id = json.loads((tmp_path / "posted.json").read_text("utf-8"))["premarket-2026-10-27"]["threads"]["id"]
+    assert c[1][2]["data"]["reply_to_id"] == pub_id and c[1][2]["data"]["text"] == "🧭 昨日盤面"
+    f2 = Fake(); monkeypatch.setattr(sp, "http", f2)
+    assert sp.run(p, BASE, env=ENV) == 0 and not posts(f2, "/11/threads")      # 主文與回覆都發過 → 不重發
