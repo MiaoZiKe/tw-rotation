@@ -140,6 +140,8 @@
     else if (j && j._s === 409) { S.rules = j.alerts; S.rev = j.rev; S.msg = '另一台裝置剛改過，已更新，請再操作一次'; }
     else S.msg = '儲存失敗，稍後再試';
     repaint();
+    // 成功提示只閃一下就收掉：原本「已刪除」一直留在清單標題的位置，390 寬時看起來像下面那條仍啟用的提醒被刪了
+    if (okMsg && S.msg === okMsg) { const m = okMsg; clearTimeout(saveRules._t); saveRules._t = setTimeout(() => { if (S.msg === m) { S.msg = ''; repaint(); } }, 2500); }
   }
 
   // ------------------------------------------------------------------ 畫面（掛在自選頁 #v-watch 底下）
@@ -233,7 +235,7 @@
     const v = e.target.closest('[data-wdv]');
     if (v) { S.view = v.dataset.wdv; S.msg = ''; paint(); return; }
     const del = e.target.closest('[data-wddel]');
-    if (del) { saveRules(S.rules.filter((r) => r.id !== del.dataset.wddel), '已刪除'); return; }
+    if (del) { saveRules(S.rules.filter((r) => r.id !== del.dataset.wddel), '已刪除該條提醒'); return; }
     if (e.target.closest('#wdAdd')) addRule();
   }
   function addRule() {

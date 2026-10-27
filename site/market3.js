@@ -2426,8 +2426,9 @@
     const opt = {
       /* ★ 2026-09-24（Andy：「走勢圖／K 線左右擴充到適當範圍，不要留太多空白」）：
          左 14→2、右 58→4（containLabel 會自己把右側價格軸的字算進來，不必再多留 54px）。*/
-      grid: [{ left: 2, right: 4, top: 10, bottom: 70, containLabel: true },
-        { left: 2, right: 4, height: 44, bottom: 22, containLabel: true }],
+      /* 2026-10-27：右留 4→8。containLabel 量字寬比實際繪出的少約 3px，5 位數價格軸（46,000）會探出容器右緣被 _preview 抓到。*/
+      grid: [{ left: 2, right: 8, top: 10, bottom: 70, containLabel: true },
+        { left: 2, right: 8, height: 44, bottom: 22, containLabel: true }],
       tooltip: Object.assign({}, A.tip, {
         trigger: 'axis', axisPointer: { type: 'cross' },
         formatter: (ps) => {
