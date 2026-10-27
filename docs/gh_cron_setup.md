@@ -66,7 +66,7 @@ CEO 會接著確認：Worker 部署成功、第一次準時派出的 workflow �
 | 08:20 | 社群貼文 `kind=premarket`（盤前） | 2026-10-27 已開啟（`ENABLE_PREMARKET = "1"`）。GitHub 備援 08:20／08:50／09:40；晚到開盤後照發，並把那一輪標紅寄信通知 |
 | 12:00 | 社群貼文 `kind=intraday`（盤中，一天一篇）`dry_run=false` | 真的發不發，仍由 repo 的總開關檔決定 |
 | 15:38 | 每日管線 `phase=price` | 價量 |
-| 16:16、16:46、17:16 | 每日管線 `phase=inst` | 搶當天三大法人；沒資料約 1 分鐘收工 |
+| 14:16 起每 30 分鐘到 21:16（15:38、18:38 除外） | 每日管線 `phase=inst` | 2026-10-27 Andy「關盤後每半小時就要確認一次，資料齊全就發布」：抓當天三大法人＋期貨法人／多空比，有新資料就重算部署，部署完 social-live 判斷盤後貼文齊了就發；沒資料約 1 分鐘收工 |
 | 18:38、21:38 | 每日管線 `phase=full` | 完整一輪 |
 
 休市日清單來自 `pipeline/calendar/tw_holidays.yaml`（2026 年；已含 10/26 光復節補假）。2027 年證交所公告後，更新該 YAML 並跑 `python scripts/gen_gh_cron_holidays.py`，兩個檔一起 commit（測試會檢查兩邊同步）。

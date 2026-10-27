@@ -18,11 +18,13 @@ export const SCHEDULE = [
   // 盤中貼文：一天一篇、台北 12:00（Andy 2026-10-26；真發與否由 repo 的總開關檔決定，這裡一律 dry_run=false）
   { at: '12:00', days: 'trading', workflow: S, inputs: { kind: 'intraday', dry_run: 'false' } },
   // 盤後資料
+  // 2026-10-27 Andy：「拿到資料就要發布了 關盤後 每半小時就要確認一次，資料齊全就發布」→ 收盤後每 30 分鐘抓一次法人＋期貨，
+  // 有新資料就重算部署，部署完 social-live 接著判斷盤後貼文齊了沒（齊了就發、發過就跳過）。沒新資料的輪約 1 分鐘收工。
+  ...['14:16', '14:46', '15:16'].map((at) => ({ at, days: 'trading', workflow: D, inputs: { phase: 'inst' } })),
   { at: '15:38', days: 'trading', workflow: D, inputs: { phase: 'price' } },
-  { at: '16:16', days: 'trading', workflow: D, inputs: { phase: 'inst' } },
-  { at: '16:46', days: 'trading', workflow: D, inputs: { phase: 'inst' } },
-  { at: '17:16', days: 'trading', workflow: D, inputs: { phase: 'inst' } },
+  ...['16:16', '16:46', '17:16', '17:46', '18:16'].map((at) => ({ at, days: 'trading', workflow: D, inputs: { phase: 'inst' } })),
   { at: '18:38', days: 'trading', workflow: D, inputs: { phase: 'full' } },
+  ...['19:16', '19:46', '20:16', '20:46', '21:16'].map((at) => ({ at, days: 'trading', workflow: D, inputs: { phase: 'inst' } })),
   { at: '21:38', days: 'trading', workflow: D, inputs: { phase: 'full' } },
   // 清晨：新聞、國際盤、總經。GitHub 原本的 05:07 排程（週一到週五）同樣不可靠，所以也由這裡準時派一次。
   { at: '05:07', days: 'tueSat', workflow: D, inputs: { phase: 'news' } },

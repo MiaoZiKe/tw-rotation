@@ -592,17 +592,31 @@ def run_inst_phase(args) -> int:
         if not df.empty and (df["date"].astype(str) == trade_date).any():
             got = True
             break
-    if not got:
+    # 2026-10-27 Andy：「拿到資料就要發布了 關盤後 每半小時就要確認一次，資料齊全就發布」
+    # 盤後貼文要的期貨法人未平倉／散戶多空比（fut_inst／fut_oi）以前只在 price／full 抓，15:38 那輪常還沒出 →
+    # 盤後貼文要等到 18:38 full。這裡每輪 inst 也抓（近 10 天增量、依 date 去重，重抓無害），有新列一樣重算部署。
+    n_fut = 0
+    if not args.skip_finmind:
+        try:
+            _mf = mktfut.collect((pd.Timestamp.now("UTC") - pd.Timedelta(days=10)).strftime("%Y-%m-%d"))
+            for _t, _df in _mf.items():
+                n_fut += save(_t, _df)
+                RESULT["steps"]["mktfut." + _t] = {"ok": not _df.empty, "rows": int(len(_df))}
+        except Exception as exc:  # noqa: BLE001
+            log.warning("phase=inst：期貨／融資抓取失敗（不影響法人）：%s", exc)
+    if not got and n_fut <= 0:
         log.info("phase=inst：FinMind 還沒有 %s 的法人資料，下一輪再試", trade_date)
         _set_gh_output("inst_new", "false")
         return 0
 
-    # 只抓目標日那一天（lookback=0），把額度與時間留給別的步驟
-    # 先整天全市場（1 次額度），再逐檔補剩下的（fetch_institutional 會跳過湖裡已有的）
-    n = save("inst_daily", _inst_bulk_step())
-    inst = step("finmind.institutional", fetch_institutional, codes, trade_date, 0)
-    inst = inst[inst["date"].astype(str) == trade_date] if not inst.empty else inst
-    n += save("inst_daily", inst)
+    n = n_fut
+    if got:
+        # 只抓目標日那一天（lookback=0），把額度與時間留給別的步驟
+        # 先整天全市場（1 次額度），再逐檔補剩下的（fetch_institutional 會跳過湖裡已有的）
+        n += save("inst_daily", _inst_bulk_step())
+        inst = step("finmind.institutional", fetch_institutional, codes, trade_date, 0)
+        inst = inst[inst["date"].astype(str) == trade_date] if not inst.empty else inst
+        n += save("inst_daily", inst)
     if n <= 0:
         # 官方端點的診斷（網址／HTTP／欄位名）內容有變才寫檔並讓這輪 commit：Actions log 在容器讀不到，
         # 端點第一次上線要靠這個檔校正 parser；沒變就照舊不 commit、不部署。
