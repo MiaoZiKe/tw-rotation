@@ -511,6 +511,15 @@ html[data-theme="light"] #v-admin{--pgL:40%}
 #v-admin .pmfbar{display:flex;align-items:center;gap:8px;flex-wrap:nowrap}
 #v-admin .pmfbar>input,#v-admin .pmfbar>select,#v-admin .pmfbar>button,#v-admin .pmaddf>*{height:32px;box-sizing:border-box}
 #v-admin .pmfbar .sp{flex:1}
+#v-admin .hideye{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;margin-left:4px;vertical-align:middle;border-radius:999px;color:var(--ink-2);cursor:pointer}
+#v-admin .hideye:hover,#v-admin .hideye:focus-visible{background:color-mix(in srgb,var(--cyan) 22%,transparent);color:var(--ink)}
+#v-admin .hideye svg{flex:none;width:16px;height:16px}
+#v-admin .hideye.off{color:var(--ink-3,var(--ink-2))}
+#v-admin tr.hid td:not(.c-st),#v-admin tr.hid td.c-st .stt{opacity:.45}
+#v-admin tr.hid td.c-who b{text-decoration:line-through}
+#v-admin .pmhidtg{flex:none;height:32px;padding:0 12px;font-size:13px;border-radius:8px;border:1px solid var(--line-2);background:var(--panel-2);color:var(--ink);cursor:pointer;white-space:nowrap}
+#v-admin .pmhidtg[aria-pressed=true]{border-color:var(--cyan);background:color-mix(in srgb,var(--cyan) 14%,transparent)}
+#v-admin .pmhidtg[hidden]{display:none}
 /* 名單工具列最右邊的訪客數（2026-10-27 Andy）：今日訪客大一點、近 30 天附在後面；不換行 */
 #v-admin .pmvis{margin-left:auto;flex:none;display:inline-flex;align-items:baseline;gap:6px;font-size:13px;color:var(--ink-2,var(--ink));white-space:nowrap;cursor:help}
 #v-admin .pmvis b{font-size:16px;font-variant-numeric:tabular-nums;color:var(--ink)}
@@ -947,10 +956,16 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
     const ok = (o) => Promise.resolve(Object.assign({ _s: 200 }, o));
     const W = Object.create(A);
     W.__demo = true;
+    const demoHid = () => { if (window.__demoHid) return window.__demoHid; try { const j = JSON.parse(localStorage.getItem('tw.adm.hid') || 'null'); if (Array.isArray(j)) return j; } catch (e) { /* 沒有就用預設 */ } return ['demo005@example.com']; };
     W.call = async (path, body) => {
       if (path === '/v1/admin/stats') { const nr = !!window.__demoNoRange; return ok(DEMO.stats((body || {}).days, (body || {}).live, nr ? undefined : (body || {}).from, nr ? undefined : (body || {}).to)); }      // __demoNoRange：測試用，模擬還沒更新的 Worker（不認得 from／to）
       if (path === '/v1/admin/online') return ok(DEMO.online);
-      if (path === '/v1/admin/members') return ok({ members: DEMO.members, visitors: { today: 238, d30: 6412, days: 30, since: '2026-09-28' } });
+      if (path === '/v1/admin/members/hide') {   // 預覽版寫入被擋 → 隱藏清單用 localStorage 示範（同一台瀏覽器重新整理還在）
+        const em = String((body || {}).email || '').toLowerCase(); let cur = demoHid().filter((x) => x !== em); if ((body || {}).hide) cur.push(em);
+        try { localStorage.setItem('tw.adm.hid', JSON.stringify(cur)); } catch (e) { /* 存不了就只留這次 */ } window.__demoHid = cur;
+        return ok({ hidden: cur });
+      }
+      if (path === '/v1/admin/members') return ok({ members: DEMO.members, hidden: demoHid(), visitors: { today: 238, d30: 6412, days: 30, since: '2026-09-28' } });
       if (path === '/v1/admin/members/stats') return ok(DEMO.mstatsFor(body || {}));
       if (path === '/v1/admin/member/detail') return ok(DEMO.detail(String((body || {}).email || '').toLowerCase()));
       const r = await A.call(path, body);
@@ -2092,14 +2107,16 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
     return all;
   }
   /* 名單的每一列 = people() ＋ /v1/admin/members 的使用數據（新 Worker 才有；舊的就只有造訪次數）*/
-  function members() {
-    const st = new Map(((PS.mem && PS.mem.members) || []).map((m) => [m.email, m]));
+  /* 已隱藏的帳號（Andy 自己的測試帳號，2026-10-27）：預設不在 members() 裡，所以名單、上方統計、共 N 位都不含它們；members(true) 才帶出來（只給「顯示已隱藏」用） */
+  const hidSet = () => new Set(((PS.mem && PS.mem.hidden) || []).map((x) => String(x).toLowerCase()));
+  function members(withHid) {
+    const st = new Map(((PS.mem && PS.mem.members) || []).map((m) => [m.email, m])), hid = hidSet();
     return people().map((r) => {
       const m = st.get(r.email) || {};
       return Object.assign(r, { paid: r.tier === 'paid' && r.st !== 'exp', planName: (planOf(r.plan) || {}).name || r.plan,
         onlineMs: m.onlineMs || 0, todayMs: m.todayMs || 0, online30: m.online30 || 0, visits30: m.visits30 != null ? m.visits30 : r.visits || 0, days30: m.days30 || 0,
-        views30: m.views30 || 0, topFeat: m.topFeat || [], topStock: m.topStock || [], hasStats: !!st.size });
-    });
+        views30: m.views30 || 0, topFeat: m.topFeat || [], topStock: m.topStock || [], hasStats: !!st.size, hidden: hid.has(String(r.email).toLowerCase()) });
+    }).filter((r) => withHid || !r.hidden);
   }
   const ST_NAME = { ok: '有效', soon: '即將到期', exp: '過期', new: '未登入過' };
   /* 顯示用的狀態（perm-v4）：有效裡面再分出「7 天內到期」—— 名單的狀態欄與上方甜甜圈用同一個函式，兩邊數字一定對得上。
@@ -2859,21 +2876,34 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
       default: return r[key] == null ? '' : r[key];
     }
   }
+  /* 隱藏眼睛（樣式比照精選文章分頁那顆：16px 圖示、24px 點擊區）：睜眼＝目前算進統計，點了隱藏；斜線眼＝已隱藏，點了取消 */
+  const EYE_ON = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>';
+  const EYE_OFF = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M9.9 4.2A10 10 0 0 1 12 4c6.5 0 10 8 10 8a17 17 0 0 1-3.2 4.4"/><path d="M6.6 6.6A17 17 0 0 0 2 12s3.5 8 10 8a9.7 9.7 0 0 0 5.4-1.6"/><path d="M14.1 14.1a3 3 0 1 1-4.2-4.2"/><path d="m2 2 20 20"/></svg>';
+  const eyeBtn = (r) => `<span class="hideye${r.hidden ? ' off' : ''}" role="button" tabindex="0" data-hide="${esc(r.email)}" aria-pressed="${r.hidden ? 'true' : 'false'}" aria-label="${r.hidden ? '取消隱藏' : '隱藏'}${esc(r.email)}" title="${r.hidden ? '已隱藏：不在預設名單、不算進統計。點一下取消隱藏' : '點一下隱藏這個帳號（例如自己的測試帳號）：不再出現在名單，也不算進統計'}">${r.hidden ? EYE_OFF : EYE_ON}</span>`;
+  async function toggleHide(email) {
+    const want = !hidSet().has(email.toLowerCase());
+    const j = await PS.A.call('/v1/admin/members/hide', { email, hide: want });
+    if (!j || j._s !== 200 || !Array.isArray(j.hidden)) { setStat('隱藏設定存不進去：' + errText(j), 'bad'); return; }
+    if (!PS.mem) PS.mem = { members: [] }; PS.mem.hidden = j.hidden;
+    PS.mst = {};      // 統計（總人數、Top 8、活躍）由伺服器排除隱藏帳號後重算
+    PS.exp.delete(email);
+    paintTabs(); paintList();
+  }
   function memTable(rows, id) {
     const key = PS.sort, dir = PS.dir;
-    rows = rows.slice().sort((a, b) => { const x = sortVal(a, key), y = sortVal(b, key); return (x > y ? 1 : x < y ? -1 : 0) * dir || a.email.localeCompare(b.email); });
+    rows = rows.slice().sort((a, b) => { const x = sortVal(a, key), y = sortVal(b, key); return (!!a.hidden - !!b.hidden) || (x > y ? 1 : x < y ? -1 : 0) * dir || a.email.localeCompare(b.email); });   // 已隱藏的永遠排在最後
     const top = (a, nm) => (a.length ? a.map(([k, n]) => `<span class="mchip" title="${esc(nm(k))}：${nf(n)} 次"><span class="mcn">${esc(nm(k))}</span><i>${nf(n)}</i></span>`).join('') : '<span class="mdim">—</span>');
     /* 付費標示縮成一顆金色 ★（方案名已在「方案」欄；全名在滑過提示），讓會員欄永遠一行（Andy 10-05：所有文字一行）*/
     const badge = (r) => (r.paid ? `<span class="pdbadge" title="付費會員：${esc(r.planName)}" aria-label="付費會員：${esc(r.planName)}">★</span>` : r.tier === 'paid' ? `<span class="pdbadge off" title="付費已過期：${esc(r.planName)}" aria-label="付費已過期">★</span>` : '');
     const body = rows.map((r) => {
       const open = PS.exp.has(r.email);
-      return `<tr data-email="${esc(r.email)}" class="${PS.rec && r.email === PS.rec.email ? 'on' : ''}${r.paid ? ' paid' : ''}" aria-expanded="${open}">`
+      return `<tr data-email="${esc(r.email)}" class="${PS.rec && r.email === PS.rec.email ? 'on' : ''}${r.paid ? ' paid' : ''}${r.hidden ? ' hid' : ''}" aria-expanded="${open}">`
         + `<td class="c-who"><span class="who1"><span class="car" aria-hidden="true">${open ? '▾' : '▸'}</span><b title="${esc(r.email)}">${esc(r.email)}</b>${r.name ? `<small title="${esc(r.name)}">${esc(r.name)}</small>` : ''}${badge(r)}</span></td>`
         + `<td class="c-tpl"${r.set ? '' : ' title="尚未個別設定"'}>${r.tier === 'paid' ? esc(r.planName) : '註冊會員'}</td>`
         + `<td class="c-cr">${dday(r.created)}</td><td class="c-exp">${dday(r.expires)}</td><td class="c-seen" title="${r.seen ? dstr(r.seen) : ''}">${seenTxt(r.seen)}</td>`
         + `<td class="c-tdon num" title="今天（台北時間 00:00 起）在線的時間">${dur(r.todayMs)}</td><td class="c-on num">${dur(r.onlineMs)}</td><td class="c-vis num">${nf(r.visits30)}</td><td class="c-vw num">${nf(r.views30)}</td>`
         + `<td class="c-feat">${top(r.topFeat, compName)}</td><td class="c-stk">${top(r.topStock, (k) => k)}</td>`
-        + `<td class="c-st"><span class="stt ${stOf(r)}">${ST_NAME[stOf(r)]}</span></td></tr>`
+        + `<td class="c-st"><span class="stt ${stOf(r)}">${ST_NAME[stOf(r)]}</span>${eyeBtn(r)}</td></tr>`
         + (open ? `<tr class="pmdet" data-for="${esc(r.email)}"><td colspan="${COLS.length}">${detailHtml(r)}</td></tr>` : '');
     }).join('');
     return `<table class="pmlist memtbl" id="${id}"><thead><tr>${COLS.map(([k, n, cls]) => `<th data-sort="${k}" class="${cls}${PS.sort === k ? ' sorted' : ''}" aria-sort="${PS.sort === k ? (PS.dir > 0 ? 'ascending' : 'descending') : 'none'}">${n}${PS.sort === k ? (PS.dir > 0 ? ' ▲' : ' ▼') : ''}</th>`).join('')}</tr></thead><tbody>${body}</tbody></table>`;
@@ -3100,7 +3130,7 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
     el.hidden = false;
     el.innerHTML = `今日訪客 <b id="pmVisToday">${nf(vs.today)}</b><i>近 30 天 <span id="pmVis30">${nf(vs.d30 || 0)}</span></i>`;
     el.title = '訪客＝今天用不同裝置打開過網站的數量（含沒登入的人），同一台一天只算一次；近 30 天＝每天的訪客數加總（同一台隔天再來算兩次，因為裝置代碼每天換一組、不追蹤個人）。'
-      + (vs.since ? `從 ${vs.since} 開始累計，更早的沒有紀錄。` : '還沒有累計紀錄，從有人進站開始算。');
+      + '訪客數含已隱藏的帳號（裝置代碼不綁帳號，排除不了）。' + (vs.since ? `從 ${vs.since} 開始累計，更早的沒有紀錄。` : '還沒有累計紀錄，從有人進站開始算。');
   }
   function paintList() {
     if (!PS.v) return;
@@ -3115,13 +3145,14 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
         box.dataset.shell = shellKey;
         box.innerHTML = `<div class="ptinner" id="ptMail"><div class="mstats" id="ptStats"></div>
           <div class="pmbar pmfbar"><input type="search" id="pmSearch" placeholder="搜尋 email、名字、層級或範本" aria-label="搜尋會員" value="${esc(PS.q)}">
-            <select id="pmStatF" aria-label="依狀態篩選"><option value="">全部狀態</option><option value="ok">有效</option><option value="exp">過期</option><option value="new">未登入過</option></select><span class="pmcnt" id="pmCnt"></span><span class="pmvis" id="pmVis" hidden></span>
+            <select id="pmStatF" aria-label="依狀態篩選"><option value="">全部狀態</option><option value="ok">有效</option><option value="exp">過期</option><option value="new">未登入過</option></select><span class="pmcnt" id="pmCnt"></span><button type="button" class="pmhidtg" id="pmHidTg" aria-pressed="false" hidden></button><span class="pmvis" id="pmVis" hidden></span>
             ${PS.tier === 'paid' ? '<span class="sp"></span><button type="button" class="pri pmadd" id="pmAddBtn">＋ 加入會員</button>' : ''}</div>
           ${PS.tier === 'paid' ? '<div class="pmaddf" id="pmAddF" hidden><input type="email" id="pmAddMail" placeholder="輸入 email，指定到這個方案" aria-label="要加入的 email"><button type="button" class="pri" id="pmAddGo">加入</button><button type="button" id="pmAddX">取消</button></div>' : ''}
           <div id="ptTableBox"></div></div>`;
         const vv = PS.v; vv.querySelector('#pmStatF').value = PS.stf;
         vv.querySelector('#pmSearch').oninput = (e) => { PS.q = e.target.value; paintList(); };
         vv.querySelector('#pmStatF').onchange = (e) => { PS.stf = e.target.value; paintList(); };
+        vv.querySelector('#pmHidTg').onclick = () => { PS.showHid = !PS.showHid; paintList(); };
         const ab = vv.querySelector('#pmAddBtn'); if (ab) ab.onclick = () => openAdd();
         const ag = vv.querySelector('#pmAddGo'); if (ag) ag.onclick = () => addMember();
         const am = vv.querySelector('#pmAddMail'); if (am) am.onkeydown = (e) => { if (e.key === 'Enter') addMember(); if (e.key === 'Escape') openAdd(false); };
@@ -3129,9 +3160,15 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
       }
       paintStats();       // 統計區：換期間／換範本／名單變了都會走到這裡；沒有快取就去讀（不會卡在「載入中」）
       const q = PS.q.trim().toLowerCase();
-      let fr = q ? rows.filter((r) => (r.email + ' ' + r.name + ' ' + r.planName + ' ' + TIER_NAME[r.tier]).toLowerCase().includes(q)) : rows.slice();
-      if (PS.stf) fr = fr.filter((r) => r.st === PS.stf);
-      const cnt = box.querySelector('#pmCnt'); if (cnt) cnt.textContent = (q || PS.stf) ? `${fr.length} ／ ${rows.length} 位` : `共 ${rows.length} 位`;
+      /* 已隱藏的帳號：只有「註冊會員」那層（所有人員）有眼睛；打開「顯示已隱藏」才把它們（半透明）接在名單後面，仍不算進共 N 位 */
+      const hidAll = PS.tier === 'free' ? members(true).filter((r) => r.hidden) : [];
+      const hg = box.querySelector('#pmHidTg');
+      if (hg) { hg.hidden = !hidAll.length && !PS.showHid; hg.setAttribute('aria-pressed', PS.showHid ? 'true' : 'false'); hg.textContent = (PS.showHid ? '收起已隱藏' : '顯示已隱藏') + `（${hidAll.length}）`; hg.title = '已隱藏的帳號不在名單、也不算進統計。打開這個開關可以看到它們（半透明），再點眼睛可取消隱藏'; }
+      const hit = (r) => (!q || (r.email + ' ' + r.name + ' ' + r.planName + ' ' + TIER_NAME[r.tier]).toLowerCase().includes(q)) && (!PS.stf || r.st === PS.stf);
+      let fr = rows.filter(hit);
+      const nVis = fr.length;
+      if (PS.showHid) fr = fr.concat(hidAll.filter(hit));
+      const cnt = box.querySelector('#pmCnt'); if (cnt) cnt.textContent = (q || PS.stf) ? `${nVis} ／ ${rows.length} 位` : `共 ${rows.length} 位`;
       if (cnt) cnt.title = use;
       paintVis();
       const tb = box.querySelector('#ptTableBox');
@@ -3261,9 +3298,11 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
     pickTierPlan(); paintAll(); setStat(''); refreshList();
   }
   function wireList(box) {
+    box.onkeydown = (e) => { const he = e.target.closest && e.target.closest('.hideye'); if (he && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); toggleHide(he.dataset.hide); } };
     box.onclick = (e) => {
       const th = e.target.closest('th[data-sort]');
       if (th) { if (PS.sort === th.dataset.sort) PS.dir = -PS.dir; else { PS.sort = th.dataset.sort; PS.dir = th.dataset.sort === 'email' ? 1 : -1; } paintList(); return; }
+      const he = e.target.closest('.hideye'); if (he) { e.stopPropagation(); toggleHide(he.dataset.hide); return; }
       const tu = e.target.closest('button[data-tune]'); if (tu) { enterMember(tu.dataset.tune); return; }
       if (e.target.closest('tr.pmdet')) return;
       const tr = e.target.closest('tr[data-email]'); if (!tr) return;

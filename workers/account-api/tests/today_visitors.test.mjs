@@ -81,3 +81,35 @@ test('壞的 vd／leave 不記進訪客數', async () => {
   const r = await pj(hub, '/v1/admin/members', { t: andy });
   assert.deepEqual([r.j.visitors.today, r.j.visitors.d30, r.j.visitors.since], [0, 0, null]);
 });
+
+test('隱藏會員：管理者限定、壞輸入 400、去重；隱藏的不算進統計、名單仍回但帶 hidden 旗標', async () => {
+  clock = tpe('2026-10-27 09:00');
+  const { hub } = makeHub(env());
+  const andy = await login(hub, 'andy@example.com');
+  const bob = await login(hub, 'bob@example.com');
+  const me = await login(hub, 'me-test@example.com');
+  await beat(hub, bob, { ev: { 'ev:session_login': 1, 'pv:stock': 1 }, e2: [['stock', 'view', '2330', 2]] });
+  await beat(hub, me, { ev: { 'ev:session_login': 1, 'pv:stock': 5 }, e2: [['stock', 'view', '9999', 50]] });
+  assert.equal((await post(hub, '/v1/admin/members/hide', { t: bob, email: 'me-test@example.com', hide: true })).status, 403, '一般會員不能寫');
+  assert.equal((await post(hub, '/v1/admin/members/hide', { email: 'me-test@example.com', hide: true })).status, 403, '沒登入不能寫');
+  for (const bad of [{ email: 'nope', hide: true }, { email: 'a@b.c', hide: 'yes' }, { hide: true }, { email: 'a b@c.d', hide: true }]) {
+    assert.equal((await post(hub, '/v1/admin/members/hide', { t: andy, ...bad })).status, 400, JSON.stringify(bad));
+  }
+  const before = (await pj(hub, '/v1/admin/members/stats', { t: andy, scope: 'all' })).j;
+  assert.equal(before.n, 3);
+  let r = await pj(hub, '/v1/admin/members/hide', { t: andy, email: ' ME-Test@Example.com ', hide: true });
+  assert.deepEqual([r.s, r.j.hidden], [200, ['me-test@example.com']]);
+  r = await pj(hub, '/v1/admin/members/hide', { t: andy, email: 'me-test@example.com', hide: true });
+  assert.deepEqual(r.j.hidden, ['me-test@example.com'], '重複隱藏只留一筆');
+  const ms = (await pj(hub, '/v1/admin/members', { t: andy })).j;
+  assert.deepEqual(ms.hidden, ['me-test@example.com']);
+  assert.equal(ms.members.find((x) => x.email === 'me-test@example.com').hidden, true);
+  assert.equal(ms.members.find((x) => x.email === 'bob@example.com').hidden, false);
+  const st = (await pj(hub, '/v1/admin/members/stats', { t: andy, scope: 'all' })).j;
+  assert.equal(st.n, 2, '總人數不含隱藏');
+  assert.equal(st.stocks.find((x) => x[0] === '9999'), undefined, '最常看股票不含隱藏帳號');
+  assert.ok(st.stocks.find((x) => x[0] === '2330'));
+  r = await pj(hub, '/v1/admin/members/hide', { t: andy, email: 'me-test@example.com', hide: false });
+  assert.deepEqual(r.j.hidden, []);
+  assert.equal((await pj(hub, '/v1/admin/members/stats', { t: andy, scope: 'all' })).j.n, 3, '取消隱藏後回來');
+});

@@ -1041,6 +1041,16 @@ Hub.prototype.cleanup = function () {
 /* 會員名單（管理者）：設定過的（perm）＋登入過的（users）合成一人一列，帶使用數據。
    回：{ now, visitors（見 vdaily 區塊）, members: [{ email, name, plan, planName, tier, paid, expires, expired, created, seen, st,
         onlineMs, todayMs（今天台北日的在線毫秒）, online30, visits30, days30, views30, topFeat:[[元件, 次數]×3], topStock:[[代號, 次數]×3] }] } */
+/* 隱藏的會員（2026-10-27，Andy：「有幾個帳戶是我自己的帳號」）：存在 kv 鍵 admin_hidden_members（JSON 陣列、小寫 email），管理者限定寫入。
+   被隱藏的帳號不出現在名單預設檢視，也不算進統計（v4Stats／v6Stats 用 dropHidden 濾掉）。訪客數用匿名裝置代碼、不綁帳號，排除不了。 */
+const HID_KV = 'admin_hidden_members', HID_MAX = 200, HID_RE = /^[^\s@]{1,64}@[^\s@]{1,190}$/;
+Hub.prototype.hiddenMembers = function () {
+  try { const a = JSON.parse(this.kv(HID_KV) || '[]'); return Array.isArray(a) ? a.filter((x) => typeof x === 'string' && HID_RE.test(x)).slice(0, HID_MAX) : []; } catch (e) { return []; }
+};
+Hub.prototype.dropHidden = function (users) {
+  const h = new Set(this.hiddenMembers());
+  return h.size ? users.filter((u) => !h.has(String(u.email || '').toLowerCase())) : users;
+};
 Hub.prototype.v3Members = function () {
   this.v3Init();
   const now = this.now(), from30 = tpeDay(now - 29 * 86400 * 1000);
@@ -1069,7 +1079,9 @@ Hub.prototype.v3Members = function () {
   const out = [], seen = new Set();
   for (const u of users) { const e = String(u.email || '').toLowerCase(); if (!e || seen.has(e)) continue; seen.add(e); out.push(row(e, u)); }
   for (const e of Object.keys(perm)) if (!seen.has(e)) { seen.add(e); out.push(row(e, null)); }
-  return { now, members: out, visitors: this.vdailyStats(now) };
+  const hid = this.hiddenMembers();
+  out.forEach((m) => { m.hidden = hid.includes(m.email); });
+  return { now, members: out, hidden: hid, visitors: this.vdailyStats(now) };
 };
 /* 某一位會員的詳細使用紀錄（展開那一列用）：各分頁瀏覽、功能次數 Top 15、最常看的股票 Top 10、近 14 天每日（造訪、在線、瀏覽）*/
 Hub.prototype.v3Detail = function (email) {
@@ -1087,6 +1099,15 @@ Hub.prototype.v3Detail = function (email) {
   return { email, known: true, name: u.name, created: u.created, seen: u.seen, pages, feats, stocks, days };
 };
 Object.assign(Hub.prototype.subRoutes, {
+  '/v1/admin/members/hide': async function (req, b) {
+    if (!(await this.admin(req, b))) return this.json(req, { error: 'forbidden' }, 403);
+    const email = typeof b.email === 'string' ? b.email.trim().toLowerCase() : '';
+    if (!HID_RE.test(email) || typeof b.hide !== 'boolean') return this.json(req, { error: 'bad_input' }, 400);
+    const cur = new Set(this.hiddenMembers());
+    if (b.hide) { if (!cur.has(email) && cur.size >= HID_MAX) return this.json(req, { error: 'too_many' }, 400); cur.add(email); } else cur.delete(email);
+    this.setKv(HID_KV, JSON.stringify([...cur]));
+    return this.json(req, { ok: true, hidden: this.hiddenMembers() });
+  },
   '/v1/admin/members': async function (req, b) {
     if (!(await this.admin(req, b))) return this.json(req, { error: 'forbidden' }, 403);
     return this.json(req, this.v3Members());
@@ -1181,6 +1202,7 @@ Hub.prototype.v4Stats = function (scope, plan) {
     const em = new Set(this.q('SELECT email FROM perm WHERE plan = ?', plan).map((r) => r.email));
     pick = users.filter((u) => em.has(String(u.email || '').toLowerCase()));
   }
+  pick = this.dropHidden(pick);   // 已隱藏的帳號（Andy 自己的測試帳號）不算進統計
   const set = new Set(pick.map((u) => u.uid));
   const feats = {}, stocks = {}, act = {};
   this.q("SELECT uid, comp, SUM(n) AS n FROM uev WHERE day >= ? AND comp NOT IN ('_pv', 'view') GROUP BY uid, comp", d30)
@@ -1397,6 +1419,7 @@ Hub.prototype.v6Stats = function (scope, plan, from, to, bin) {
     const em = new Set(this.q('SELECT email FROM perm WHERE plan = ?', plan).map((r) => r.email));
     pick = users.filter((u) => em.has(String(u.email || '').toLowerCase()));
   }
+  pick = this.dropHidden(pick);
   const set = new Set(pick.map((u) => u.uid));
   const feats = {}, stocks = {}, act = {}, vis = {}, pvd = {}, who = new Set();
   let visits = 0, ms = 0, pv = 0, featTotal = 0, stockTotal = 0;

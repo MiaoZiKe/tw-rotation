@@ -13,23 +13,33 @@ def t_admin_today_visitors(b, base, code):
     import os as _os
     _os.makedirs(_ATV_SHOTS, exist_ok=True)
     errs = []
-    state = {"visitors": True}
+    state = {"visitors": True, "hidden": [], "hide_calls": []}
     mem = [("vip@example.com", "王小明", 72 * 60000, 9 * 3600000), ("lee@example.com", "李大華", 7 * 60000, 3 * 3600000), ("chen@example.com", "陳一", 0, 30 * 60000)]
 
     def members_route(route):
         if route.request.method == "OPTIONS":
             return route.fulfill(status=204, headers={"access-control-allow-origin": "*", "access-control-allow-headers": "*", "access-control-allow-methods": "POST"})
-        out = {"now": 1761550000000, "members": [
+        out = {"now": 1761550000000, "hidden": list(state["hidden"]), "members": [
             {"email": e, "name": n, "plan": "free", "planName": "免費會員", "tier": "free", "paid": False, "expires": 0, "expired": False, "set": False,
              "created": 1759000000000, "seen": 1761549000000, "st": "ok", "onlineMs": tot, "todayMs": td, "online30": tot, "visits30": 5, "days30": 3,
-             "views30": 20, "topFeat": [], "topStock": []} for e, n, td, tot in mem]}
+             "views30": 20, "topFeat": [], "topStock": [], "hidden": e in state["hidden"]} for e, n, td, tot in mem]}
         if state["visitors"]:
             out["visitors"] = {"today": 238, "d30": 6412, "days": 30, "since": "2026-09-28"}
         route.fulfill(status=200, body=_atv_json.dumps(out), headers={"access-control-allow-origin": "*", "content-type": "application/json"})
 
+    def hide_route(route):
+        if route.request.method == "OPTIONS":
+            return route.fulfill(status=204, headers={"access-control-allow-origin": "*", "access-control-allow-headers": "*", "access-control-allow-methods": "POST"})
+        b_ = _atv_json.loads(route.request.post_data or "{}")
+        state["hide_calls"].append(b_)
+        em = str(b_.get("email", "")).lower()
+        state["hidden"] = [x for x in state["hidden"] if x != em] + ([em] if b_.get("hide") else [])
+        route.fulfill(status=200, body=_atv_json.dumps({"ok": True, "hidden": state["hidden"]}), headers={"access-control-allow-origin": "*", "content-type": "application/json"})
+
     for W in (1440, 390):
         c, _sent = _pnav_ctx(b, True, width=W)
         c.route(PNAV_API + "/v1/admin/members", members_route)
+        c.route(PNAV_API + "/v1/admin/members/hide", hide_route)
         pg = c.new_page(); pg.on("pageerror", lambda e, W=W: errs.append(f"{W}: {e}"))
         pg.goto(base + "#admin/perm", wait_until="domcontentloaded")
         a = pg.get_by_role("button", name="同意並繼續")
@@ -59,6 +69,30 @@ def t_admin_today_visitors(b, base, code):
                 return { visRight: Math.round(v.right), tblRight: Math.round(t.right), afterFilter: v.left >= s.right - 1 }; }""")
             ok(f"{T}（{W}）訪客數在搜尋列最右邊（在狀態下拉右側、右緣對齊表格）", r["afterFilter"] and abs(r["visRight"] - r["tblRight"]) <= 24, r)
             pg.screenshot(path=f"{_ATV_SHOTS}/members_{W}.png", clip={"x": 0, "y": 0, "width": W, "height": 900})
+            # ---- 隱藏帳號（Andy 10-27：「有幾個帳戶是我自己的帳號」）
+            rows_n = lambda: pg.evaluate("() => document.querySelectorAll('#ptTable tr[data-email]').length")
+            cnt = lambda: pg.inner_text("#pmCnt").strip()
+            ok(f"{T}（{W}）隱藏前：3 列、共 3 位、沒有「顯示已隱藏」鈕、每列有眼睛（24px 點擊區、16px 圖示）",
+               rows_n() == 3 and cnt() == "共 3 位" and pg.evaluate("() => document.getElementById('pmHidTg').hidden") and
+               pg.evaluate("() => [...document.querySelectorAll('#ptTable .hideye')].every(e => { const r = e.getBoundingClientRect(), s = e.querySelector('svg').getBoundingClientRect(); return Math.round(r.width) === 24 && Math.round(s.width) === 16; }) && document.querySelectorAll('#ptTable .hideye').length === 3"))
+            pg.click("#ptTable .hideye[data-hide='chen@example.com']")
+            wait_until(pg, "() => document.querySelectorAll('#ptTable tr[data-email]').length === 2", 4000)
+            ok(f"{T}（{W}）點眼睛 → 該列消失、不展開、共 3 位 → 共 2 位、伺服器收到 hide=true、出現「顯示已隱藏（1）」",
+               rows_n() == 2 and cnt() == "共 2 位" and pg.evaluate("() => !document.querySelector('#ptTable tr.pmdet')") and state["hide_calls"][-1] == {"email": "chen@example.com", "hide": True, "t": state["hide_calls"][-1].get("t")}
+               and "顯示已隱藏（1）" in pg.inner_text("#pmHidTg"), (state["hide_calls"], cnt(), pg.inner_text("#pmHidTg")))
+            pg.screenshot(path=f"{_ATV_SHOTS}/members_{W}_hidden_off.png", clip={"x": 0, "y": 0, "width": W, "height": 900})
+            pg.click("#pmHidTg")
+            wait_until(pg, "() => document.querySelectorAll('#ptTable tr[data-email]').length === 3", 4000)
+            st_ = pg.evaluate("() => { const r = document.querySelector('#ptTable tr.hid'); return r ? { email: r.dataset.email, op: getComputedStyle(r.querySelector('td.c-vis')).opacity, eye: r.querySelector('.hideye').classList.contains('off'), last: r === [...document.querySelectorAll('#ptTable tr[data-email]')].pop() } : null; }")
+            ok(f"{T}（{W}）打開「顯示已隱藏」→ 3 列、已隱藏那列半透明＋斜線眼睛＋排最後、共 N 位仍是 2",
+               bool(st_) and st_["email"] == "chen@example.com" and float(st_["op"]) < 0.7 and st_["eye"] and st_["last"] and cnt() == "共 2 位" and pg.get_attribute("#pmHidTg", "aria-pressed") == "true", (st_, cnt()))
+            pg.screenshot(path=f"{_ATV_SHOTS}/members_{W}_hidden_on.png", clip={"x": 0, "y": 0, "width": W, "height": 900})
+            pg.click("#ptTable .hideye[data-hide='chen@example.com']")
+            wait_until(pg, "() => document.querySelectorAll('#ptTable tr.hid').length === 0", 4000)
+            ok(f"{T}（{W}）再點斜線眼睛 → 取消隱藏：3 列回到一般、共 3 位、伺服器收到 hide=false",
+               rows_n() == 3 and cnt() == "共 3 位" and state["hide_calls"][-1].get("hide") is False and pg.evaluate("() => document.querySelectorAll('#ptTable tr.hid').length") == 0,
+               (rows_n(), cnt(), state["hide_calls"][-1]))
+            pg.click("#pmHidTg") if pg.evaluate("() => !document.getElementById('pmHidTg').hidden") else None
             # Worker 還沒更新（沒給 visitors）→ 不顯示假的 0
             state["visitors"] = False
             pg.evaluate("() => { location.hash = '#overview'; }"); pg.wait_for_timeout(300)
