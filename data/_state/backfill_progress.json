@@ -41658,13 +41658,14 @@
     "daytrade@fresh2026-10-27:2597": true,
     "daytrade@fresh2026-10-27:6226": true,
     "daytrade@fresh2026-10-27:5228": true,
-    "daytrade@fresh2026-10-27:2458": true
+    "daytrade@fresh2026-10-27:2458": true,
+    "intraday_60m:7710": true
   },
-  "updated_at": "2026-10-27T18:54:04.164387+00:00",
+  "updated_at": "2026-10-27T19:49:51.494179+00:00",
   "complete": {
     "balance+financial+revenue": {
-      "done": true,
-      "at": "2026-10-27T18:47:42.407964+00:00",
+      "done": false,
+      "at": "2026-10-27T19:49:51.460965+00:00",
       "codes": 500,
       "remaining": {
         "balance": 0,
@@ -41678,30 +41679,14 @@
       }
     },
     "plan:default": {
-      "done": true,
-      "at": "2026-10-27T18:54:04.164356+00:00",
+      "done": false,
+      "at": "2026-10-27T19:49:51.494126+00:00",
       "month": "2026-10",
       "week": "w2026-44a",
       "steps": {
-        "balance+financial+revenue": true,
-        "dividend+divresult": true,
-        "holding+margin@2021-01-01": true,
-        "price@2000-01-01": true,
-        "inst@2012-01-01": true,
-        "balance+financial+revenue@2012-01-01": true,
-        "inst@2012-01-01@pit": true,
-        "inst@market": true,
-        "daytrade+sbl@2025-01-01@market": true,
-        "dividend+divresult@2009-01-01@market": true,
-        "price@2000-01-01@market": true,
-        "dividend+divresult@etf2009@etf": true,
-        "etfdiv@etfx2009@etf": true,
-        "price@2000-01-01@etf": true,
-        "dividend+divresult@m2026-10": true,
-        "divresult@em2026-10@etf": true,
-        "etfdiv@w2026-44a@etf": true
+        "balance+financial+revenue": false
       },
-      "stopped_at": null
+      "stopped_at": "balance+financial+revenue"
     },
     "index_ohlc": {
       "done": true,
@@ -41916,19 +41901,19 @@
       "remaining": {
         "intraday_60m": 0
       },
-      "codes": 2040,
-      "ok": 2040,
+      "codes": 2041,
+      "ok": 2041,
       "no_data": 0,
       "per_run": 400,
       "this_run": {
-        "asked": 0,
-        "got": 0,
-        "new_rows": 0,
+        "asked": 1,
+        "got": 1,
+        "new_rows": 5,
         "new_no_data": 0,
         "marked_from_lake": 0
       },
       "stopped": null,
-      "at": "2026-10-27T18:47:33.936305+00:00"
+      "at": "2026-10-27T19:49:49.657744+00:00"
     },
     "dividend+divresult@m2026-10": {
       "done": true,
@@ -42758,7 +42743,7 @@
       }
     },
     "opt_pc": {
-      "next": "2011-06-01",
+      "next": "2011-07-01",
       "at": "2026-10-27",
       "done": false
     },
