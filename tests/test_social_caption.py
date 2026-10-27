@@ -23,7 +23,7 @@ def test_caption_full_four_lines_within_480():
     i = L.index("🎡 資金輪盤：")
     assert L[0] == "🕛 盤中3分鐘" and L[1] == "🧭 盤面分析：" and L[i + 1].startswith("・領先 ") and L[i + 2].startswith("・落後 ")      # 10-26 晚：盤面分析放最前   # 2026-10-26 Andy 指定格式
     assert "🌳 資金分流樹：" in L and "🔥 熱力圖：" in L and L[-3].startswith("#台股") and "資料：" not in txt   # 盤中文案不放免責／來源
-    assert L[-2:] == ss.link_lines("intraday", "20261020") and L[-1] == "https://liguligu-puipui.com/?u=th-id-20261020" and txt.count("https://") == 1 and " → " not in txt   # Andy：「連結只需要附在最底下就好」＋10-26 連結改成首頁＋說明句
+    assert L[-1].startswith(ss.link_url("intraday", "20261020")) and L[-1].split("#")[0] == "https://liguligu-puipui.com/?u=th-id-20261020" and txt.count("https://") == 1 and " → " not in txt   # Andy：「連結只需要附在最底下就好」＋10-26 連結改成首頁＋說明句
     assert "#heatmap" not in txt
     assert "utm_medium" not in txt and "即時" not in txt
 
@@ -60,7 +60,7 @@ def test_盤後融資文案_獨立一篇():
     assert "・上市（估算）168.20%，較前日 -1.35pp" in L
     assert L[L.index("📈 融資：") + 1] == "・增加 長榮、華邦電；" and L[L.index("📈 融資：") + 2] == "・減少 台積電、聯電"
     assert L[L.index("📉 融券：") + 1] == "・增加 友達、力積電；" and L[L.index("📉 融券：") + 2] == "・減少 英業達、廣達"
-    assert L[-3].startswith("#台股 #融資") and L[-2:] == ss.link_lines("credit", "20261022") and L[-1].endswith("?u=th-mg-20261022")
+    assert L[-3].startswith("#台股 #融資") and L[-2] == ss.LINK_LINES[0] and L[-1].startswith(ss.link_url("credit", "20261022")) and L[-1].split("#")[0].endswith("?u=th-mg-20261022")
     assert txt.count("https://") == 1 and ss.DISCLAIMER not in txt      # 網址只在最底下、不放免責
     assert len(txt) <= 480
     # 2026-10-26 起盤後那篇也帶融資融券（合併）
@@ -78,7 +78,7 @@ def test_盤後文案_照盤中格式():
     i = L.index("🏦 三大法人買賣超：")
     assert L[i + 1] == "・外資 -815.8億、投信 +94.9億；" and L[i + 2] == "・自營 -273.8億、合計 -994.7億" and i > L.index("📊 台指期法人淨未平倉：")
     assert "🌏 外資：" in L and "・買超 緯穎、廣達、精材；" in L and "・賣超 台積電、國巨、南亞" in L and "📊 台指期法人淨未平倉：" in L   # 10-27 起買賣超列前五名（測資只有 3 個）、星號拿掉
-    assert L[-3].startswith("#台股") and L[-2:] == ss.link_lines("close", "20261022") and L[-1].endswith("?u=th-cl-20261022") and txt.count("https://") == 1
+    assert L[-3].startswith("#台股") and L[-2] == ss.LINK_LINES[0] and L[-1].startswith(ss.link_url("close", "20261022")) and L[-1].split("#")[0].endswith("?u=th-cl-20261022") and txt.count("https://") == 1
     assert " → " not in txt and ss.DISCLAIMER not in txt and len(txt) <= 480
 
 
@@ -136,3 +136,32 @@ def test_盤面分析_盤中與盤後():
     r2 = ss.close_reads({"rows": [{"f": -500}] * 8 + [{"f": 22}, {"f": -815.8}]}, {}, {}, {}, [], {})
     assert r2[0].startswith("外資賣超 815.8 億，近 10 日 9 日賣超")      # 前一天只小買 → 不寫「轉賣」
     assert not any(w in "".join(r + r2) for w in ("可望", "將", "建議", "布局", "明顯偏多", "收黑"))
+
+
+# ---- 2026-10-27 深層連結（docs/marketing/feature_funnel_1027.md 第四節）：落點依當天內容挑，?u= 一定在 # 前面、路由走白名單
+def test_pick_landing_領漲族群對應產業鏈():
+    rt, why = ss.pick_landing("intraday", {"leaders": ["晶圓代工", "航運"]})
+    assert rt.startswith("industry/") and ss.route_ok(rt) and "領漲" in why
+    assert ss.pick_landing("intraday", {"leaders": ["不存在的族群"]})[0] == "flow/rotation"        # 沒對應 → 保底
+    assert ss.pick_landing("close", {})[0] == "market/inst" and ss.pick_landing("credit", {})[0] == "market/credit"
+
+
+def test_pick_landing_盤前事件與連續兩天換落點():
+    assert ss.pick_landing("premarket", {"events": ["FOMC 利率決議"]})[0] == "earnings"
+    assert ss.pick_landing("premarket", {"events": ["某 ETF 除息"]})[0] == "etf/cal"
+    assert ss.pick_landing("premarket", {"reads": ["費半 +2%"]})[0] == "industry/semiconductor"
+    assert ss.pick_landing("premarket", {})[0] == ""
+    c = {"leaders": ["晶圓代工", "航運"]}
+    first = ss.pick_landing("intraday", c)[0]
+    assert ss.pick_landing("intraday", c, [first, first])[0] != first      # 同一落點已連 2 天 → 換下一個
+
+
+def test_route_ok_白名單與網址格式():
+    for r in ("flow/rotation", "market/inst", "earnings", "etf/cal", "etf/inc", "industry/semiconductor", "heatmap/industry"):
+        assert ss.route_ok(r), r
+    for r in ("pricing", "industry/nochain", "industry/group/xx", "stock/2330", "../x", ""):
+        assert not ss.route_ok(r), r
+    u = ss.link_url("intraday", "20261027", route="industry/semiconductor")
+    assert u == "https://liguligu-puipui.com/?u=th-id-20261027#industry/semiconductor" and u.index("?u=") < u.index("#")
+    assert ss.link_url("close", "20261027", route="pricing") == "https://liguligu-puipui.com/?u=th-cl-20261027"      # 不在白名單 → 首頁
+    assert ss.link_url("premarket", "20261029", func="f3d", route="etf/cal").endswith("?u=th-f3d-20261029#etf/cal")

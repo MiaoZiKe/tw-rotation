@@ -78,13 +78,115 @@ LINK_LINES = ["👉 更多詳細資料可以點擊以下連結：", SITE_URL + "
 SLOT_CODE = {"premarket": "pm", "intraday": "id", "close": "cl", "credit": "mg"}
 
 
-def link_url(kind: str, ymd: str, platform: str = "th") -> str:
-    return f"{SITE_URL}/?u={platform}-{SLOT_CODE.get(kind, 'xx')}-{ymd}"
+# 2026-10-27 Andy 授權（docs/marketing/feature_funnel_1027.md 第四節 A＋C）：網址改成 ?u=<平台碼>-<功能碼>-<yyyymmdd>#<路由>，
+# 落點依當天內容挑（領漲族群→產業鏈頁、事件→財經日曆），不再一律首頁。?u= 一定在 # 前面（站內 srcFromUrl 讀 location.search，放後面讀不到）。
+# 功能碼預設是時段碼（pm/id/cl/mg）；功能推廣篇用 f2d f3d etfd etfi etfl earn ev* hot（站內對照見 site/account.js 的 SRC_SLOT）。
+STATIC_ROUTES = {"flow/rotation", "flow/sankey", "flow/inst", "market/updown", "market/inst", "market/ma", "market/cand", "market/credit", "market/fut",
+                 "heatmap/industry", "heatmap/theme", "season", "earnings", "articles", "etf/cal", "etf/list", "etf/inc"}   # 不含 #pricing（關卡 ⑥：貼文不得導價格頁）
 
 
-def link_lines(kind: str, ymd: str, platform: str = "th") -> list[str]:
-    """文案最底下兩行：「👉 …」＋帶來源參數的首頁網址（整篇只放這一個網址）。"""
-    return [LINK_LINES[0], link_url(kind, ymd, platform)]
+@functools.lru_cache(maxsize=1)
+def _group_maps() -> tuple[dict, dict, set]:
+    """(族群顯示名→族群 id, 族群 id→產業鏈 id, 產業鏈 id 集合)；讀 pipeline/groups/groups.yaml，讀不到就全空（落點退回保底）。"""
+    try:
+        import yaml
+        cfg = yaml.safe_load((ROOT / "pipeline" / "groups" / "groups.yaml").read_text("utf-8")) or {}
+    except Exception:  # noqa: BLE001
+        return {}, {}, set()
+    gs = cfg.get("groups") or {}
+    name2gid = {NAT.clean_name(v.get("name")): k for k, v in gs.items() if isinstance(v, dict) and v.get("name")}
+    gid2chain = {k: v.get("chain") for k, v in gs.items() if isinstance(v, dict) and v.get("chain")}
+    return name2gid, gid2chain, set((cfg.get("chains") or {}).keys())
+
+
+def route_ok(route: str) -> bool:
+    """落點白名單：靜態頁、#industry/<鏈 id>、#industry/group/<族群 id>；其餘（含 #pricing）一律不收，呼叫端退回保底。"""
+    r = (route or "").lstrip("#")
+    if r in STATIC_ROUTES:
+        return True
+    _, gid2chain, chains = _group_maps()
+    m = re.fullmatch(r"industry/([a-z0-9_]+)", r)
+    if m:
+        return m.group(1) in chains
+    m = re.fullmatch(r"industry/group/([a-z0-9_]+)", r)
+    return bool(m and m.group(1) in gid2chain)
+
+
+def group_of(name: str) -> str | None:
+    """頁面上的族群名 → 族群 id（先全名、再互相包含）；自動桶（「半導體・其他」）沒有產業鏈，回 None。"""
+    n2g, _, _ = _group_maps()
+    nm = NAT.clean_name(name)
+    if nm in n2g:
+        return n2g[nm]
+    for k, g in n2g.items():
+        if len(nm) >= 3 and (nm in k or k in nm):
+            return g
+    return None
+
+
+EVENT_ROUTES = (("除息", "etf/cal"), ("FOMC", "earnings"), ("利率決議", "earnings"), ("CPI", "earnings"), ("財報", "earnings"), ("非農", "earnings"), ("法說", "earnings"))
+FALLBACK = {"intraday": "flow/rotation", "close": "market/inst", "credit": "market/credit", "premarket": ""}
+
+
+def pick_landing(kind: str, ctx: dict | None = None, recent: list[str] | None = None) -> tuple[str, str]:
+    """依當天內容挑貼文網址的落點，回 (路由不含 #，理由)。路由為空字串＝首頁。
+    ctx：leaders＝當天領漲／資金流入的族群名（依強到弱）、events＝盤前近日事件名稱、reads＝盤前解讀句。
+    盤中盤後：第一個對得到產業鏈的族群 → #industry/<鏈>；都對不到 → 保底（盤中 flow/rotation、盤後 market/inst）。
+    盤前：事件（FOMC／CPI／財報／ETF 除息）優先 → 對應功能頁；否則解讀提到半導體／AI → #industry/semiconductor；否則首頁。
+    recent：最近幾天用過的落點，同一落點已連續 2 天就改選下一個候選（避免天天導同一頁）。"""
+    ctx = ctx or {}
+    recent = recent or []
+    cands: list[tuple[str, str]] = []
+    if kind == "premarket":
+        for e in ctx.get("events") or []:
+            for kw, rt in EVENT_ROUTES:
+                if kw in str(e):
+                    cands.append((rt, f"事件「{e}」"))
+                    break
+        txt = "".join(ctx.get("reads") or [])
+        if re.search(r"半導體|費半|SOX|台積|輝達|AI", txt):
+            cands.append(("industry/semiconductor", "美股解讀提到半導體／AI"))
+    else:
+        _, g2c, _ = _group_maps()
+        for nm in ctx.get("leaders") or []:
+            gid = group_of(nm)
+            ch = g2c.get(gid) if gid else None
+            if ch:
+                cands.append((f"industry/{ch}", f"領漲族群「{NAT.clean_name(nm)}」屬 {ch} 鏈"))
+    cands = [c for c in cands if route_ok(c[0])]
+    seen = set()
+    for rt, why in cands:
+        if rt in seen:
+            continue
+        seen.add(rt)
+        if recent[-2:] == [rt, rt]:
+            continue
+        return rt, why
+    fb = FALLBACK.get(kind, "")
+    return (fb if route_ok(fb) else ""), "沒有對應內容，用保底落點"
+
+
+def ctx_from_shots(ok: dict) -> dict:
+    """從截圖讀到的資料抽出領漲族群：資金輪盤「領先」→ 資金分流樹「流入前五」→ 熱力圖漲最多。"""
+    out: list = []
+    d = {k: v for k, v in (ok.get("rotation") or {}).get("lines", [])}
+    out += list(d.get("領先") or [])
+    n = {k: v for k, v in (ok.get("sankey") or {}).get("notes", [])}
+    out += list(n.get("流入前五") or [])
+    h = sorted((ok.get("heat") or {}).get("heat") or [], key=lambda x: x[1], reverse=True)
+    out += [a for a, _ in h[:3]]
+    return {"leaders": out}
+
+
+def link_url(kind: str, ymd: str, platform: str = "th", route: str = "", func: str = "") -> str:
+    u = f"{SITE_URL}/?u={platform}-{func or SLOT_CODE.get(kind, 'xx')}-{ymd}"
+    r = (route or "").lstrip("#")
+    return u + (f"#{r}" if r and route_ok(r) else "")
+
+
+def link_lines(kind: str, ymd: str, platform: str = "th", route: str = "", func: str = "") -> list[str]:
+    """文案最底下兩行：「👉 …」＋帶來源參數與落點的網址（整篇只放這一個網址）。"""
+    return [LINK_LINES[0], link_url(kind, ymd, platform, route, func)]
 # 標題與段名前的表情符號（2026-10-26 Andy：「搭配些表情符號，除了個股」→ 只加在標題／段名，列股票名稱的「・」行不加）
 EMOJI = {"盤面分析：": "🧭", "盤中3分鐘": "🕛", "盤後3分鐘": "🌙", "盤後融資融券": "💳",
          "資金輪盤：": "🎡", "資金分流樹：": "🌳", "熱力圖：": "🔥",
@@ -1707,7 +1809,7 @@ def _caption_lines(kind: str, stamp: str, shots: list[dict], data_date: str, ymd
             L += ["熱力圖：", f"・漲最多 {ups}；", f"・跌最多 {dns}"]
         L.append(HASHTAGS[kind])
         if links != "none":
-            L += link_lines(kind, ymd)
+            L += link_lines(kind, ymd, route=pick_landing(kind, ctx_from_shots(ok))[0])
         return L
     elif kind == "credit":
         # 2026-10-26 Andy：盤中格式確認 OK、「以後 Follow 這格式」→ 標題一行、每段「標題：」＋「・」條列、網址只放最底下一行、不放資料來源／免責
@@ -1716,7 +1818,7 @@ def _caption_lines(kind: str, stamp: str, shots: list[dict], data_date: str, ymd
         L += credit_lines(ok, n)
         L.append(HASHTAGS[kind])
         if links != "none":
-            L += link_lines(kind, ymd)
+            L += link_lines(kind, ymd, route=pick_landing(kind, ctx_from_shots(ok))[0])
         return L
     else:
         # 同上：Andy 盤中格式套到盤後
@@ -1751,7 +1853,7 @@ def _caption_lines(kind: str, stamp: str, shots: list[dict], data_date: str, ymd
         # 2026-10-27 Andy：融資融券移到隔天盤前，盤後不再列
         L.append(HASHTAGS[kind])
         if links != "none":
-            L += link_lines(kind, ymd)
+            L += link_lines(kind, ymd, route=pick_landing(kind, ctx_from_shots(ok))[0])
         return L
 
 

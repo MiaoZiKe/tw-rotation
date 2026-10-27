@@ -110,8 +110,13 @@
        signup／trial_start／paid 由 Worker 算（註冊、體驗額度、金流開通才是真相），這裡只在白名單。
      · DNT／GPC：不讀、不存、不送（跟其他統計同一條規則）。 */
   const K_SRC = 'tw.src', K_SRC_SENT = 'tw.src.sent', K_LAND = 'tw.src.land';
-  const SRC_PLAT = { th: 'threads', ig: 'instagram', fb: 'facebook', yt: 'youtube', x: 'x', tt: 'tiktok', ln: 'line' };
-  const SRC_SLOT = { pm: 'premarket', id: 'intraday', cl: 'close', mg: 'margin', wk: 'weekly' };
+  const SRC_PLAT = { th: 'threads', ig: 'instagram', igs: 'instagram_story', fb: 'facebook', yt: 'youtube', x: 'x', tt: 'tiktok', ln: 'line' };
+  /* 2026-10-27 深層連結（docs/marketing/feature_funnel_1027.md）：平台碼統一 th/ig/igs…，舊的全名碼（threads 等）歸併成短碼；
+     功能碼補 f2d f3d etfd etfi etfl earn hot ev*（事件型 ev<事件>：evfomc evoil evcpi…，沒列到的原樣收）。 */
+  const SRC_ALIAS = { threads: 'th', instagram: 'ig', facebook: 'fb', youtube: 'yt', tiktok: 'tt', line: 'ln' };
+  const SRC_SLOT = { pm: 'premarket', id: 'intraday', cl: 'close', mg: 'margin', wk: 'weekly',
+    f2d: 'diagram2d', f3d: 'diagram3d', etfd: 'etf_div', etfi: 'etf_income', etfl: 'etf_list', earn: 'earnings', hot: 'hot_topic',
+    evfomc: 'ev_fomc', evoil: 'ev_oil', evcpi: 'ev_cpi' };
   const srcClean = (v) => String(v == null ? '' : v).replace(/[^A-Za-z0-9_.-]/g, '').slice(0, 40);
   function srcFromUrl() {
     let q; try { q = new URLSearchParams(location.search); } catch (e) { return null; }
@@ -119,11 +124,11 @@
     const s = srcClean(q.get('utm_source')), m = srcClean(q.get('utm_medium')), c = srcClean(q.get('utm_campaign')), x = srcClean(q.get('utm_content'));
     if (s) { o.s = s; if (m) o.m = m; if (c) o.c = c; if (x) o.x = x; return o; }
     const u = String(q.get('u') || '').toLowerCase().split('-');      // 短參數：平台-時段-日期
-    const p = srcClean(u[0]);
+    const p0 = srcClean(u[0]), p = SRC_ALIAS[p0] || p0;
     if (!p) return null;
     o.s = SRC_PLAT[p] || p; o.m = 'post';
     const slot = srcClean(u[1]), day = srcClean(u[2]);
-    if (slot) o.c = ((SRC_SLOT[slot] || slot) + (day ? '_' + day : '')).slice(0, 40);
+    if (slot) o.c = ((SRC_SLOT[slot] || (/^ev[a-z]+$/.test(slot) ? 'ev_' + slot.slice(2) : slot)) + (day ? '_' + day : '')).slice(0, 40);
     return o;
   }
   const srcGet = () => { try { const o = JSON.parse(ls.get(K_SRC) || 'null'); return o && o.s ? o : null; } catch (e) { return null; } };

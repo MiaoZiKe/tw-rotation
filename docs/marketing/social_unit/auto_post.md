@@ -48,7 +48,7 @@ https://liguligu-puipui.com/
 2. 每段一行「段名：」，底下每點用「・」開頭；同一段的第一點結尾用「；」。
 3. 每點列 **2 個**名稱（盤中、盤後統一，10-26 Andy：「統一兩個」）；字數超過 480 字時程式自動縮短。
 4. **網址只放最底下一行，整篇只有一個**（10-26 Andy：「連結只需要附在最底下就好」）。網址一律帶短參數 `?u=<平台>-<時段>-<yyyymmdd>`（**10-26 Andy 核准 J-3**，行銷方案 `growth_command_1026.md`）：平台 `th`＝Threads、`ig`＝Instagram；時段 `pm` 盤前、`id` 盤中、`cl` 盤後、`mg` 融資融券；日期＝發文當天。例：`https://liguligu-puipui.com/?u=th-id-20261026`。網站讀到後存成「第一次來源」，註冊時記進帳號（隱私權政策「行銷來源與使用統計」已寫明；開 DNT／GPC 的人不記）。程式：`social_snap.py` 的 `link_lines()`／`link_url()`；站內映射：`site/account.js` 的 `SRC_PLAT`／`SRC_SLOT`，改代碼兩邊一起改。不用 `utm_*` 長參數（視覺太吵）；IG 個人簡介連結位只有一個，另用 `?utm_source=ig_bio&utm_medium=profile`。
-   - 盤中 → `#flow/rotation`；盤後 → `#market/inst`。
+   - **落點（2026-10-27 Andy 授權「照建議，全部執行」，`feature_funnel_1027.md` 第四節；`scripts/social_snap.py` 的 `pick_landing`）**：網址形式 `https://liguligu-puipui.com/?u=<平台碼>-<功能碼>-<yyyymmdd>#<路由>`，`?u=` 一定在 `#` 前。盤中／盤後：領漲族群（資金輪盤領先 → 分流樹流入 → 熱力圖漲最多）對得到產業鏈 → `#industry/<鏈>`，沒對應才退回盤中 `#flow/rotation`、盤後 `#market/inst`、融資融券 `#market/credit`；盤前：事件含 FOMC／CPI／財報／非農 → `#earnings`，ETF 除息 → `#etf/cal`，美股解讀提到半導體／AI → `#industry/semiconductor`，否則首頁。路由必須過 `route_ok` 白名單（`#pricing` 與不存在的鏈一律退回保底）。平台碼統一 `th`（舊 `threads` 站內歸併成 th）；功能推廣篇的功能碼見 `feature_funnel_1027.md` 第三節（`f2d f3d etfd etfi etfl earn ev* hot`）。
 5. hashtag 一行，放在網址上面。
 6. **不放**「資料：證交所／櫃買公開資料整理，僅供參考，不構成投資建議」這行（10-26 Andy：「底下資訊不用」）。免責放個人簡介與網站。
 
@@ -112,3 +112,4 @@ https://liguligu-puipui.com/
 - https://storrito.com/resources/instagram-story-api/
 - https://support.agorapulse.com/en/articles/9694913-workaround-instagram-stories-with-link-stickers
 - 2026-10-26：Andy 核准 J-3「照建議，全部執行」→ 文案最底下的網址改為帶 `?u=<平台>-<時段>-<yyyymmdd>`（取代 10-26 稍早「不帶追蹤參數」那條）；格式、位置、說明句不變。
+- 2026-10-27：Andy 授權「照建議，全部執行」→ 文案網址加 `#<路由>` 深層連結（落點依當天內容挑，見規則 4 的落點說明）；其餘格式不變。
