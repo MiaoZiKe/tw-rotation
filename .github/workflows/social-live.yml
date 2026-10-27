@@ -135,7 +135,7 @@ jobs:
         timeout-minutes: 8
         run: |
           pip install playwright pillow requests
-          if [ "${{ steps.kind.outputs.kind }}" = "premarket" ]; then pip install -r requirements.txt; fi      # 盤前要讀資料湖（pandas／pyarrow）
+          if [ "${{ steps.kind.outputs.kind }}" = "premarket" ] || [ "${{ steps.kind.outputs.kind }}" = "close" ]; then pip install -r requirements.txt; fi      # 盤前、盤後要讀資料湖（pandas／pyarrow）
           python -m playwright install chromium
           F=~/.local/share/fonts/tw-rotation
           mkdir -p "$F"
@@ -168,8 +168,11 @@ jobs:
           else
             SKIP=""
             if [ "${{ inputs.live_test }}" = "true" ]; then SKIP="--skip-live"; fi      # 測試在盤後時段跑，沒有即時報價
+            OVL=""
+            # 2026-10-27 Andy：「盤後貼文資料到就發」→ 盤後直接從資料湖算那幾份 JSON 蓋上去，不等整站重算＋部署
+            if [ "${{ steps.kind.outputs.kind }}" = "close" ] && python -m pipeline.social_close_payload "$RUNNER_TEMP/close_overlay"; then OVL="--data-overlay $RUNNER_TEMP/close_overlay"; fi
             python scripts/social_snap.py --kind "${{ steps.kind.outputs.kind }}" --out "$OUT" \
-              --serve site --data-url https://miaozike.github.io/tw-rotation/data,https://tw-rotation.pages.dev/data,https://liguligu-puipui.com/data --spoof-origin $FORCE $POSTED $LAND $SKIP
+              --serve site --data-url https://miaozike.github.io/tw-rotation/data,https://tw-rotation.pages.dev/data,https://liguligu-puipui.com/data --spoof-origin $FORCE $POSTED $LAND $SKIP $OVL
           fi
           RC=$?
           set -e

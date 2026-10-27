@@ -2023,6 +2023,7 @@ def main() -> int:
     ap.add_argument("--live-wait", type=int, default=30, help="等即時套上的秒數")
     ap.add_argument("--mock-live", action="store_true", help="模擬報價（本機示範用；正式站不要加）")
     ap.add_argument("--live-override", action="store_true", help="本機 TW_LIVE_OVERRIDE（只有 127.0.0.1 認）")
+    ap.add_argument("--data-overlay", default="", help="下載網站資料後，再用這個資料夾裡的 JSON 蓋過去（pipeline/social_close_payload.py 的輸出）")
     ap.add_argument("--data-url", default="", help="先從這些網址（逗號分隔，依序試）下載網站要用的 JSON 到 --serve 的 data/，例如 https://miaozike.github.io/tw-rotation/data,https://tw-rotation.pages.dev/data")
     ap.add_argument("--spoof-origin", action="store_true", help="報價請求補上正式站 Origin（本機站打正式報價代理用）")
     ap.add_argument("--skip-live", nargs="?", const="all", default="", help="只測版面：不要求即時（all 或逗號分隔的目標名；會截到盤後畫面，絕不可用在發布）")
@@ -2055,6 +2056,11 @@ def main() -> int:
         if args.data_url:
             if not sync_data(Path(args.serve).resolve(), args.data_url):
                 return 2
+        if args.data_overlay:      # 2026-10-27：盤後貼文用資料湖直接算的那幾份蓋上去，不等整站重算＋部署
+            import shutil
+            for f_ in sorted(Path(args.data_overlay).glob("*.json")):
+                shutil.copy(f_, Path(args.serve).resolve() / "data" / f_.name)
+                log(f"  用最新資料湖算的 {f_.name} 蓋過網站版")
         try:
             for r_ in json.loads((Path(args.serve).resolve() / "data" / "stocks.json").read_text("utf-8")):
                 if r_.get("code") and r_.get("name"):

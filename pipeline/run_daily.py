@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import logging
 import time
 from datetime import datetime, timedelta, timezone
@@ -556,6 +557,10 @@ def _set_gh_output(key: str, value: str) -> None:
             f.write(f"{key}={value}\n")
 
 
+class _Deferred(Exception):
+    """inst 輪延後整站重算（INST_DEFER_BUILD=1）時跳出 build 區塊用。"""
+
+
 def run_inst_phase(args) -> int:
     """phase=inst：台北 16:15／16:45／17:15 專門搶「當天三大法人」進資料湖。
 
@@ -639,9 +644,15 @@ def run_inst_phase(args) -> int:
     if fr:
         RESULT["freshness"], RESULT["warn"] = fr, fr.get("warn", [])
     try:
+        if os.environ.get("INST_DEFER_BUILD") == "1":
+            # 2026-10-27 Andy：「馬上拆開，盤後貼文資料到就發」→ daily.yml 先 commit 資料湖、派盤後貼文，再另一步整站重算
+            RESULT["steps"]["build_payload"] = {"ok": True, "deferred": True}
+            raise _Deferred()
         from .build_payload import build
         build()
         RESULT["steps"]["build_payload"] = {"ok": True}
+    except _Deferred:
+        pass
     except Exception as exc:  # noqa: BLE001
         log.exception("產生前端資料失敗")
         RESULT["errors"].append(f"build_payload: {exc}")

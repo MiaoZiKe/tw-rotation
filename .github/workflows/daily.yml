@@ -67,6 +67,7 @@ permissions:
   contents: write
   pages: write
   id-token: write
+  actions: write      # inst 輪資料一進湖就派 social-live（盤後貼文），不等整站重算（2026-10-27）
 
 jobs:
   collect:
@@ -132,6 +133,9 @@ jobs:
             fi
           fi
           echo "本輪 phase=$PHASE（現在是 UTC $(date -u '+%H:%M')）"
+          echo "phase=$PHASE" >> "$GITHUB_OUTPUT"
+          # 2026-10-27 Andy：「馬上拆開，盤後貼文資料到就發」→ inst 輪先不整站重算：抓完就 commit、派盤後貼文，下面另一步再重算
+          if [ "$PHASE" = "inst" ]; then export INST_DEFER_BUILD=1; fi
           python -m pipeline.run_daily --phase "$PHASE" \
             ${{ inputs.skip_finmind && '--skip-finmind' || '' }}
 
@@ -185,6 +189,21 @@ jobs:
           done
           echo "::error::推送連續失敗 5 次"
           exit 1
+
+      # 2026-10-27 Andy：「馬上拆開，盤後貼文資料到就發」「為何要那麼久」
+      #   以前：法人 16:17 進湖 → 整站重算 20 分鐘 → Pages 部署排隊 → social-live 才接到，17 點後才發。
+      #   現在：資料湖一 commit 就派 social-live（kind=close）；它自己從湖裡算盤後那幾份 JSON（pipeline/social_close_payload.py，約 1～2 分鐘），
+      #   齊了就發、還沒齊就跳過（同一天發過也跳過）。整站重算與部署接著在這裡跑，兩邊不互等。
+      - name: 派盤後貼文（不等整站重算）
+        if: steps.fetch.outputs.inst_new != 'false' && steps.fetch.outputs.phase == 'inst'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run social-live.yml --ref "${{ github.ref_name }}" -f kind=close -f dry_run=false
+
+      - name: 整站重算（inst 輪延後的那一步）
+        if: steps.fetch.outputs.inst_new != 'false' && steps.fetch.outputs.phase == 'inst'
+        run: python -m pipeline.build_payload
 
       - name: 前端對齊 main 最新版（避免把開跑時的舊前端蓋上線）
         if: steps.fetch.outputs.inst_new != 'false'
