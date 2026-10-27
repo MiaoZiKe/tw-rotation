@@ -99,7 +99,8 @@ jobs:
       - name: 盤後已經發過了就不重複（每日管線一天跑三輪都會接到這裡）
         id: done
         # 盤中也要讀發布紀錄（2026-10-25）：Cloudflare Worker 準時派的與 GitHub 備援排程晚到的，同一時段只發一次
-        if: steps.kind.outputs.kind == 'intraday' || steps.kind.outputs.kind == 'premarket' || (steps.kind.outputs.kind != 'intraday' && github.event_name == 'workflow_run')
+        # 2026-10-27：盤後改由每日管線 inst 輪直接派（workflow_dispatch），這一步每一種、每一個觸發來源都要跑，否則會重複發
+        if: always()
         run: |
           if git ls-remote --exit-code --heads origin social-snaps >/dev/null 2>&1; then
             git fetch --depth=1 origin social-snaps
