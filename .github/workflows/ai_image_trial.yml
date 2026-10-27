@@ -45,7 +45,7 @@ jobs:
           from prompts import P
           d="out/pollinations"; os.makedirs(d,exist_ok=True); log=[]
           for i,(k,p) in enumerate(P.items()):
-              if i: time.sleep(20)
+              if i: time.sleep(50)
               url="https://image.pollinations.ai/prompt/"+urllib.parse.quote(p)+"?width=1080&height=1350&nologo=true&model=flux&seed=7"
               t=time.time()
               try:
