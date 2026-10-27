@@ -9,7 +9,7 @@
 
 ## 〇、先講結論（5 句）
 
-1. **現行分級有一個必須先修的矛盾**：Plus／Pro 的賣點裡還有 B 級功能（今日關注、AI 分析不限次、選股篩選 30 次、四週期同看），違反 `launch_standard.md`「B 級先免費、付費差異只放 A 級」。建議 **B 級所有會員層級同額度，不當付費差異**（第三節）。
+1. **現行分級有一個必須先修的矛盾**：Plus／Pro 的賣點裡還有 B 級功能（今日關注、AI 分析不限次、選股篩選 30 次）〔監察 10-27 更正：原文把「四週期同看」列為 B 級，與第一節第 16 項、3-1 主表標 A 級且 Plus 照開矛盾，已刪除；它只是在體驗額度黑名單內〕，違反 `launch_standard.md`「B 級先免費、付費差異只放 A 級」。建議 **B 級所有會員層級同額度，不當付費差異**（第三節）。
 2. **Plus 賣「省時間」、Pro 賣「重度工具」**：Plus＝次數放寬＋圖表工具＋自選 5 頁；Pro＝Plus 加不限次、自選不限頁、自選日報與自設提醒（後兩項目前是「開發中」，沒做出來之前 Pro 與 Plus 的差距太薄）。
 3. **註冊體驗：推薦 14 天、Plus 等級、只開 A 級功能、走既有「體驗額度」機制（不是換方案）**。理由與替代方案見第四節。
 4. **不要用「換成 Plus／Pro 方案並設到期日」做試用**：現有程式會把這個動作記成「第一次付費」，啟動七天退款倒數，會污染退款判斷與漏斗（第四節 4-3）。
@@ -343,3 +343,29 @@
 
 - 專案內：`site/plan_presets.js`、`site/features.js`、`site/grants.js`、`workers/account-api/worker.js`（約 2198～2340、2371～2540、2739～2780 行）、`docs/marketing/trial_offer_1009.md`、`growth_command_1026.md`、`research_growth_1026.md`、`feature_funnel_1027.md`、`docs/launch_standard.md`、`docs/valuation_pricing_1007.md`。
 - 外部（2026-10-27 WebSearch 摘要，未讀原文）：[Flint](https://www.flint.com/blog/b2b-saas-free-trial-conversion-rate-statistics)、[Customer.io](https://customer.io/learn/product-led-growth/free-trial-length)、[SaaStr](https://www.saastr.com/learnings-free-trials-tomasz)、[Userpilot](https://userpilot.com/blog/free-trial-conversion-rate/)、[Dcard M平方心得](https://www.dcard.tw/f/money/p/261767023)。
+
+---
+
+## 第三方審查：監察委員（2026-10-27）
+
+逐條對照 Andy 10-27 原話（重新評估所有上架功能／註冊・Plus・Pro 差異／含次數／註冊後 7 或 14 天／給 Plus 或 Pro／詳細規劃）。
+
+| 原話要求 | 判定 | 證據與缺口 |
+|---|---|---|
+| 盤點所有上架功能 | 大致齊（34 項） | 用 `plan_presets.js` 全部鍵比對：`stock.tick`（個股逐筆）、`watch.page`（自選頁開關）兩個鍵沒有出現在任何一列；方案頁 `#pricing`、`#delivery` 路由沒列。需補兩列。 |
+| 三層差異 | 有，但 Pro 偏薄 | 3-2 表的 Pro 獨有項只有「不限次數、自選 50 頁×200、報酬比較 20 檔、日報／提醒（開發中）」。B 級拉齊之後 Pro 的現成賣點只剩「量」，本檔 T-4 自己也承認。判定：**在 W7 上線前，Pro 不具付費理由**，建議 Pro 只開預約、不上價格頁，這點要寫進第七節當正式決議，不只是「若不同意」。 |
+| 次數 | 有數字、理由弱 | 3-3 誠實說明「全部沿用 Andy 舊數字、沒有使用量資料」；4-7 體驗次數標低信心。可接受，但缺「上線後用哪個事件、第幾天回頭調整」的時點，建議接 W4 的 `activated` 事件，30 天後依用量第 80 百分位重調。 |
+| 7 天還 14 天 | 有比較、有實驗設計 | 4-2 證據來源自承矛盾、二手；4-5 有 A/B 設計（分組、指標、樣本、判準）。但月註冊 30～50 人、每組要 250 人，A/B 實際要 10 個月以上才能下結論 —— 等同第一年就是 14 天，應明講。 |
+| Plus 還是 Pro | 有結論（Plus）與理由 | 理由成立（Pro 差異未開發）。 |
+| 詳細規劃（實作） | 有負責人、工時；**缺驗收欄** | 第六節 W1～W9 沒有「怎樣算做完」。至少要補：W1＝`_uitest` 方案頁亮點無「不限次數」字樣；W2＝新帳號登入後 `grants` 有 `welcome` 且 `days=14`；W3＝刪帳號後重註冊不發體驗；W5＝到期後畫線唯讀實測。負責人 `payments-billing` 有對應檔（`.claude/agents/payments-billing.md`）；「Worker 工程 agent」「前端 agent」名稱不精確，應寫 `frontend-ui`。 |
+
+**與其他文件的衝突（必修）**
+1. `growth_command_1026.md` H-1 寫「新註冊自動掛 `trial7`（7 天），沿用 `trial_offer_1009.md` 第二節」，H-6 提醒排在第 5、7 天。本檔改 14 天、提醒排第 3／7／12／13 天，**但沒有回頭標註 H-1 已被取代**。Andy 拍板 T-1 前兩份文件並存會讓執行者照錯的做；拍板後要在 H-1 加一行「已由 tier_plan_1027 第四節取代」。
+2. 5-1 第 12 天標「E6 點」，但 4-5 又建議「本實驗啟動前先不開 E6」，且 growth_command 的 E6 是第 5 天提醒。同一個代號三種用法，請改名或刪除第 12 天的 E6 標記。
+3. `trial_offer_1009.md` 用「換範本設到期日」做 7 天體驗；本檔 4-4 指出這會觸發 `first_paid` 啟動七日退款倒數。這是有效的新發現（讀程式得出），但本次稽核未重讀 `worker.js` 驗證，標**未複核**。
+
+**已直接修正**：第〇節結論 1 把「四週期同看」列為 B 級，與盤點表第 16 項（A 級）及 3-1 主表（Plus 開）矛盾，已刪除並加註。
+
+**數字自洽抽查**：3-1 主表與 3-2 精簡表、第一節盤點表的 3D／關聯圖／ETF／自選數字一致；價格 299／549 與 growth_command H-5 一致。未發現其他矛盾。
+
+**結論**：可以交 Andy 拍板 T-1～T-4，但送出前 CEO 要先補「驗收欄」「兩個漏列鍵」「H-1 取代註記」三項；Pro 在 W7 做出來前不應上價格頁。
