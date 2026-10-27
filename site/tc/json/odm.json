@@ -24172,7 +24172,10 @@
             78
           ],
           "bonus_months": null,
-          "annual_months": null,
+          "annual_months": [
+            14,
+            14
+          ],
           "annual_total_wan": null,
           "weekly_hours": [
             48,
@@ -24180,8 +24183,8 @@
           ],
           "overtime": null,
           "travel": null,
-          "n": 4,
-          "n_stat": 2,
+          "n": 5,
+          "n_stat": 3,
           "note": null,
           "grade": null,
           "sources": [
@@ -24199,6 +24202,11 @@
               "site": "GoodJob",
               "url": "https://www.goodjob.life/companies/緯穎科技服務股份有限公司/salary-work-times?p=4",
               "date": "2025-01"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/259579352",
+              "date": "2025-08"
             }
           ],
           "confidence": "中",
@@ -24290,6 +24298,29 @@
               "quote_free_note": "自填；日工時 表訂/實際 8 / 10",
               "in_window": false,
               "date_note": "GoodJob 頁面標示年月 2025-01（Andy 桌面版 2026-10-26 2330 批）"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/259579352",
+              "date": "2025-08",
+              "page_date": "2025-08-19",
+              "date_confirmed": true,
+              "role": "伺服器電源技術主任(offer,原PO)",
+              "grade": "技術主任",
+              "unit_detail": "伺服器電源",
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": 14,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "原PO offer：(N+8K)×14+分紅，N未揭露；B35-3稱bu9加班一定能報",
+              "in_window": true,
+              "date_note": "Dcard 頁面發文日期 2025-08-19（b29b 批）",
+              "comment_sample": false
             }
           ]
         },
