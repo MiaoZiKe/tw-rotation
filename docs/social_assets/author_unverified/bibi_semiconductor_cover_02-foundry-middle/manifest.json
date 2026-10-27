@@ -1,0 +1,24 @@
+{
+  "asset_id": "bibi_semiconductor_cover_02-foundry-middle",
+  "中文名稱": "晶圓代工・中篇封面情境",
+  "category": "author_unverified",
+  "original_author": "unknown",
+  "illustration_author": "OpenAI imagegen",
+  "processed_by": "Codex",
+  "tool": "OpenAI imagegen；Codex正式文字後製",
+  "provenance_evidence": "本對話內建image_gen生成；角色參考為Andy提供跳跳.gif；原檔路徑與SHA256可核對。",
+  "parent_asset_id": "bibi_user_jump_gif",
+  "版本": "v001",
+  "尺寸": [
+    1536,
+    1024
+  ],
+  "是否透明底": true,
+  "姿勢表情道具": "小開關，越來越難管。",
+  "可用用途": "哩股哩股半導體介紹主持插畫；依情境使用，不作技術數據圖",
+  "權利狀態": "unknown：角色母版原作者權利未核實；新情境生成不覆蓋原畫歸屬",
+  "品管狀態": "review：待逐頁發布前核稿",
+  "prompt_summary": "由漏電控制切入 Planar、FinFET 與 GAA 的結構變化，不用奈米數字比大小。；暖白粉彩研究情境，單隻比比，不生成正式文字或數字，技術物件為概念示意。",
+  "sha256": "f1835be8f87bf99c1325d70d88f2d99ce45f70d4595c147c3581db0dec195b3d",
+  "source_file": "C:\\Users\\user\\.codex\\generated_images\\01a14c4f-1a7f-71e3-883c-de2d2fcd98b9\\exec-8b2a0489-5156-45f4-a7fd-6e7bce1acbc8.png"
+}

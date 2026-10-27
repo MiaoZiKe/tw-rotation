@@ -1,0 +1,210 @@
+{
+  "slug": "07-wafer-upper",
+  "topic": "矽晶圓",
+  "part": "上",
+  "title": "晶片為何從圓盤開始",
+  "angle": "用空白晶圓與成品晶片的差異破題，講清單晶、長晶、切片與拋光的基本門檻。",
+  "next_hook": "下一篇：同樣叫晶圓，為什麼尺寸與表面處理都不同？",
+  "slides": [
+    {
+      "page": 1,
+      "title": "晶片為何從圓盤開始",
+      "points": [
+        "晶片製造前，先需要一片合格基底",
+        "矽晶圓是電路成形的重要起點"
+      ],
+      "bubble": "這片還沒有電路喔。",
+      "visual": "wafer",
+      "diagram_labels": [
+        "空白晶圓",
+        "製作電路",
+        "晶粒"
+      ],
+      "host": {
+        "expression": "好奇歪頭",
+        "gaze": "看晶圓",
+        "action": "短掌靠晶圓",
+        "prop": "晶圓與支架",
+        "intent": "指讀本頁的晶片為何從圓盤開始",
+        "contact": "短掌接觸所列道具，身體與腳受地面支撐；無道具頁以視線和短掌邀請讀者。",
+        "asset_id": "bibi_semiconductor_host_01",
+        "version": "v001"
+      }
+    },
+    {
+      "page": 2,
+      "title": "它不是一塊普通玻璃",
+      "points": [
+        "矽晶圓來自受控生長的單晶矽",
+        "晶格方向、純度與表面品質都重要"
+      ],
+      "bubble": "看起來平，學問很深。",
+      "visual": "crystal",
+      "diagram_labels": [
+        "晶格",
+        "純度",
+        "表面"
+      ],
+      "host": {
+        "expression": "專注",
+        "gaze": "看放大鏡",
+        "action": "短掌握鏡柄",
+        "prop": "放大鏡",
+        "intent": "指讀本頁的它不是一塊普通玻璃",
+        "contact": "短掌接觸所列道具，身體與腳受地面支撐；無道具頁以視線和短掌邀請讀者。",
+        "asset_id": "bibi_semiconductor_host_03",
+        "version": "v001"
+      }
+    },
+    {
+      "page": 3,
+      "title": "先從一鍋熔湯長起",
+      "points": [
+        "CZ提拉法讓籽晶接觸熔融矽",
+        "旋轉並提拉，長成單晶晶碇"
+      ],
+      "bubble": "像拉出一根晶體柱。",
+      "visual": "crystal",
+      "diagram_labels": [
+        "籽晶",
+        "晶碇",
+        "熔湯"
+      ],
+      "host": {
+        "expression": "開心記錄",
+        "gaze": "看左下筆記",
+        "action": "短掌靠筆記",
+        "prop": "空白筆記本",
+        "intent": "指讀本頁的先從一鍋熔湯長起",
+        "contact": "短掌接觸所列道具，身體與腳受地面支撐；無道具頁以視線和短掌邀請讀者。",
+        "asset_id": "bibi_semiconductor_host_05",
+        "version": "v001"
+      }
+    },
+    {
+      "page": 4,
+      "title": "圓柱再切成一片片",
+      "points": [
+        "晶碇加工後切片，形成薄晶圓",
+        "切出的表面還需要後續加工"
+      ],
+      "bubble": "切好，不等於能出貨。",
+      "visual": "wafer_process",
+      "diagram_labels": [
+        "晶碇",
+        "切片",
+        "表面加工"
+      ],
+      "host": {
+        "expression": "思考",
+        "gaze": "看右側樣品",
+        "action": "雙短掌靠桌",
+        "prop": "兩種樣品與矮桌",
+        "intent": "指讀本頁的圓柱再切成一片片",
+        "contact": "短掌接觸所列道具，身體與腳受地面支撐；無道具頁以視線和短掌邀請讀者。",
+        "asset_id": "bibi_semiconductor_host_04",
+        "version": "v001"
+      }
+    },
+    {
+      "page": 5,
+      "title": "要把加工傷痕處理掉",
+      "points": [
+        "研磨與蝕刻等步驟處理表面",
+        "再拋光、清洗，達到所需品質"
+      ],
+      "bubble": "不只是擦亮而已。",
+      "visual": "process",
+      "diagram_labels": [
+        "研磨",
+        "蝕刻",
+        "拋光清洗"
+      ],
+      "host": {
+        "expression": "微笑解說",
+        "gaze": "看左側提示板",
+        "action": "短掌握短指示棒",
+        "prop": "空白提示板",
+        "intent": "指讀本頁的要把加工傷痕處理掉",
+        "contact": "短掌接觸所列道具，身體與腳受地面支撐；無道具頁以視線和短掌邀請讀者。",
+        "asset_id": "bibi_semiconductor_host_02",
+        "version": "v001"
+      }
+    },
+    {
+      "page": 6,
+      "title": "合格才交給晶片廠",
+      "points": [
+        "矽晶圓廠交付的是材料基底",
+        "晶圓廠再在上面製造電子元件"
+      ],
+      "bubble": "前後兩站，別認錯。",
+      "visual": "chain",
+      "diagram_labels": [
+        "矽晶圓廠",
+        "晶片製造",
+        "封裝測試"
+      ],
+      "host": {
+        "expression": "擔心檢查",
+        "gaze": "看左下警示牌",
+        "action": "短掌扶牌",
+        "prop": "無字警示牌",
+        "intent": "指讀本頁的合格才交給晶片廠",
+        "contact": "短掌接觸所列道具，身體與腳受地面支撐；無道具頁以視線和短掌邀請讀者。",
+        "asset_id": "bibi_semiconductor_host_06",
+        "version": "v001"
+      }
+    },
+    {
+      "page": 7,
+      "title": "這條流程也有其他路",
+      "points": [
+        "CZ 是常見方法，但不是唯一方法",
+        "不同產品會選不同材料與工藝"
+      ],
+      "bubble": "本篇不是所有晶圓通則。",
+      "visual": "compare",
+      "diagram_labels": [
+        "材料",
+        "規格",
+        "工藝"
+      ],
+      "host": {
+        "expression": "點頭理解",
+        "gaze": "看右上",
+        "action": "短掌靠紙卡",
+        "prop": "三張筆記卡",
+        "intent": "指讀本頁的這條流程也有其他路",
+        "contact": "短掌接觸所列道具，身體與腳受地面支撐；無道具頁以視線和短掌邀請讀者。",
+        "asset_id": "bibi_semiconductor_host_07",
+        "version": "v001"
+      }
+    },
+    {
+      "page": 8,
+      "title": "下一片為何長得不同",
+      "points": [
+        "先記住：晶圓品質是後續製造基礎",
+        "下一篇看尺寸、磊晶與再生片"
+      ],
+      "bubble": "鏡面背後，還有分類。",
+      "visual": "cta",
+      "diagram_labels": [
+        "尺寸",
+        "表面處理",
+        "使用目的"
+      ],
+      "host": {
+        "expression": "微笑邀請",
+        "gaze": "看讀者",
+        "action": "短掌貼身揮手",
+        "prop": "無",
+        "intent": "指讀本頁的下一片為何長得不同",
+        "contact": "短掌接觸所列道具，身體與腳受地面支撐；無道具頁以視線和短掌邀請讀者。",
+        "asset_id": "bibi_semiconductor_host_08",
+        "version": "v001"
+      }
+    }
+  ]
+}
