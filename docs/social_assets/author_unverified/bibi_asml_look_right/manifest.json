@@ -1,0 +1,103 @@
+{
+  "asset_id": "bibi_asml_look_right",
+  "中文名稱": "比比・側看介紹",
+  "category": "author_unverified",
+  "original_author": "角色參考原畫 unknown；新情境由 OpenAI imagegen 生成",
+  "processed_by": "Codex：版本登錄、機械裁切／程式製圖",
+  "tool": "image_gen.imagegen；固定格機械裁切",
+  "provenance_evidence": [
+    "output/2026-10-17_asml-outlook/prompts.md",
+    "output/2026-10-17_asml-outlook/assets/pose_sheet_source.png",
+    "output/2026-10-17_asml-outlook/assets/pose_cells.json"
+  ],
+  "parent_asset_id": "bibi_clean",
+  "version": "v001",
+  "版本": "v001",
+  "files": [
+    {
+      "path": "v001.png",
+      "exists": true,
+      "bytes": 139893,
+      "sha256": "0533f2891e23841b164360f7134bea97287df991059ff7eacad8d430fa8e8168",
+      "dimensions": [
+        441,
+        431
+      ],
+      "format": "PNG",
+      "frames": 1,
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "has_transparent_pixels": true,
+      "duration_ms": null,
+      "fps": null
+    }
+  ],
+  "檔案": "v001.png",
+  "是否透明底": true,
+  "status": "review",
+  "qa_status": "review",
+  "品管狀態": "review；Andy尚未核可品牌風格",
+  "approval_evidence": null,
+  "animation": {
+    "frames": 0,
+    "fps": null,
+    "duration_ms": null,
+    "note": "靜態素材；0表示無動畫，不代表PNG影像格數"
+  },
+  "rights": "unknown：角色原畫歸屬未核實；本次生成與加工不覆蓋父素材權利",
+  "權利狀態": "unknown",
+  "可用用途": [
+    "本次ASML校準預覽；核可前不得自動挑選"
+  ],
+  "used_in": [
+    "2026-10-17_asml-outlook"
+  ],
+  "雲端備份狀態": "pending PR",
+  "fields_note": "標籤僅描述本次可見情境，不代表已通過逐頁品管",
+  "pose": "四腳站姿",
+  "action": "四腳站姿",
+  "expression": "好奇微笑",
+  "orientation": "右側面",
+  "scene": "側看介紹",
+  "prop": "無",
+  "tags": [
+    "比比",
+    "主持",
+    "look_right",
+    "側看介紹",
+    "四腳站姿"
+  ],
+  "crop_evidence": {
+    "file": "02.png",
+    "source_cell": [
+      1,
+      0
+    ],
+    "source_sheet_size": [
+      1774,
+      887
+    ],
+    "crop_bbox": [
+      0,
+      3,
+      441,
+      434
+    ],
+    "dimensions": [
+      441,
+      431
+    ],
+    "alpha_extrema": [
+      0,
+      255
+    ],
+    "status": "review"
+  },
+  "prompt_summary": "保留奶白毛球、咖啡輪廓、短掌短腳；八種主持表情與角度；透明底、不畫文字。",
+  "dimensions": [
+    441,
+    431
+  ]
+}

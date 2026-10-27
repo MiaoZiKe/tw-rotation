@@ -1,0 +1,63 @@
+{
+  "schema_version": 1,
+  "purpose": "社群庫延伸交叉引用；不覆寫歷史index／catalog",
+  "legacy_index": "docs/anim/bibi_library/index.md",
+  "snapshot": "output/2026-10-17_asml-outlook/catalog_snapshot.json",
+  "social_catalog": "docs/social_assets/catalog.json",
+  "entries": [
+    {
+      "asset_id": "bibi_asml_cheer_front",
+      "version": "v001",
+      "manifest": "docs/social_assets/author_unverified/bibi_asml_cheer_front/manifest.json",
+      "status": "review"
+    },
+    {
+      "asset_id": "bibi_asml_look_right",
+      "version": "v001",
+      "manifest": "docs/social_assets/author_unverified/bibi_asml_look_right/manifest.json",
+      "status": "review"
+    },
+    {
+      "asset_id": "bibi_asml_think_tilt",
+      "version": "v001",
+      "manifest": "docs/social_assets/author_unverified/bibi_asml_think_tilt/manifest.json",
+      "status": "review"
+    },
+    {
+      "asset_id": "bibi_asml_wow_front",
+      "version": "v001",
+      "manifest": "docs/social_assets/author_unverified/bibi_asml_wow_front/manifest.json",
+      "status": "review"
+    },
+    {
+      "asset_id": "bibi_asml_look_left",
+      "version": "v001",
+      "manifest": "docs/social_assets/author_unverified/bibi_asml_look_left/manifest.json",
+      "status": "review"
+    },
+    {
+      "asset_id": "bibi_asml_prone_observe",
+      "version": "v002",
+      "manifest": "docs/social_assets/author_unverified/bibi_asml_prone_observe/manifest.json",
+      "status": "review"
+    },
+    {
+      "asset_id": "bibi_asml_worried_sweat",
+      "version": "v001",
+      "manifest": "docs/social_assets/author_unverified/bibi_asml_worried_sweat/manifest.json",
+      "status": "review"
+    },
+    {
+      "asset_id": "bibi_asml_happy_close",
+      "version": "v001",
+      "manifest": "docs/social_assets/author_unverified/bibi_asml_happy_close/manifest.json",
+      "status": "review"
+    },
+    {
+      "asset_id": "bibi_asml_euv_scene",
+      "version": "v001",
+      "manifest": "docs/social_assets/author_unverified/bibi_asml_euv_scene/manifest.json",
+      "status": "review"
+    }
+  ]
+}
