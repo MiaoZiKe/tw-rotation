@@ -104,6 +104,77 @@ def threads():
     return rec, tok
 
 
+
+CATALOG_PATH = os.environ.get("CATALOG_PATH", "state/posts_catalog.json")
+FULL = os.environ.get("CATALOG_FULL", "") == "1"  # 1＝回補全部歷史；否則只更新最近 30 則
+
+
+def paged(url, limit_total, **p):
+    """分頁抓到底（或抓滿 limit_total 筆）；用 paging.next 續抓，權杖不印。"""
+    rows, st, b = [], 0, {}
+    st, b = get(url, **p)
+    while st == 200:
+        rows += b.get("data", [])
+        nxt = (b.get("paging") or {}).get("next")
+        if not nxt or len(rows) >= limit_total:
+            break
+        try:
+            with urllib.request.urlopen(nxt, timeout=30) as r:
+                b = json.loads(r.read().decode())
+        except Exception as e:
+            print("分頁中斷:", type(e).__name__)
+            break
+    return rows
+
+
+def metrics(base, pid, names, tok):
+    """逐一指標抓，某指標該貼文型態不支援就略過，不影響其他。"""
+    out = {}
+    s2, b2 = get(base + "/%s/insights" % pid, metric=",".join(names), access_token=tok)
+    if s2 == 200:
+        return vals(b2)
+    for n in names:
+        s3, b3 = get(base + "/%s/insights" % pid, metric=n, access_token=tok)
+        if s3 == 200:
+            out.update(vals(b3))
+    return out
+
+
+def catalog():
+    try:
+        cat = json.load(open(CATALOG_PATH, encoding="utf-8"))
+    except Exception:
+        cat = {"posts": {}}
+    cat.setdefault("posts", {})
+    cap = 100000 if FULL else 30
+    n = {"ig": 0, "threads": 0}
+    if IG_T:
+        base = "https://graph.instagram.com/v24.0"
+        rows = paged(base + "/me/media", cap, access_token=IG_T, limit=50,
+                     fields="id,caption,media_type,media_product_type,permalink,timestamp")
+        for m in rows:
+            met = metrics(base, m["id"], ["views", "reach", "likes", "comments", "shares", "saved", "total_interactions"], IG_T)
+            cat["posts"]["ig:" + m["id"]] = {"platform": "ig", "id": m["id"], "time": m.get("timestamp"),
+                "text": m.get("caption") or "", "media_type": m.get("media_type"),
+                "product_type": m.get("media_product_type"), "permalink": m.get("permalink"),
+                "metrics": met, "updated": NOW.isoformat(timespec="seconds")}
+            n["ig"] += 1
+    if TH_T:
+        base = "https://graph.threads.net/v1.0"
+        rows = paged(base + "/me/threads", cap, access_token=TH_T, limit=50,
+                     fields="id,text,media_type,permalink,timestamp,shortcode,is_quote_post")
+        for m in rows:
+            met = metrics(base, m["id"], ["views", "likes", "replies", "reposts", "quotes", "shares"], TH_T)
+            cat["posts"]["th:" + m["id"]] = {"platform": "threads", "id": m["id"], "time": m.get("timestamp"),
+                "text": m.get("text") or "", "media_type": m.get("media_type"),
+                "permalink": m.get("permalink"), "metrics": met, "updated": NOW.isoformat(timespec="seconds")}
+            n["threads"] += 1
+    cat["updated_at"] = NOW.isoformat(timespec="seconds")
+    os.makedirs(os.path.dirname(CATALOG_PATH) or ".", exist_ok=True)
+    json.dump(cat, open(CATALOG_PATH, "w", encoding="utf-8"), ensure_ascii=False, indent=1)
+    print("貼文目錄：本次寫入 IG", n["ig"], "Threads", n["threads"], "；目錄總數", len(cat["posts"]), "（全量回補）" if FULL else "")
+
+
 igr, igt = ig()
 thr, tht = threads()
 try:
@@ -126,4 +197,8 @@ for name, t in (("IG", igt), ("Threads", tht)):
     else:
         bad = True
         print(f"::error::{name} 權杖{'失效' if t['status']=='invalid' else '未設定'}：{t.get('code')} {t.get('message','')}，請重新產生權杖並更新 Secrets")
+try:
+    catalog()
+except Exception as e:
+    print('::warning::貼文目錄失敗', mask(type(e).__name__))
 sys.exit(1 if bad else 0)

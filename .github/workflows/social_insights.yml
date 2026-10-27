@@ -4,6 +4,10 @@ on:
   schedule:
     - cron: "10 15 * * *"
   workflow_dispatch:
+    inputs:
+      full:
+        description: '1＝回補帳號全部歷史貼文'
+        default: '0'
 concurrency:
   group: social-insights
   cancel-in-progress: false
@@ -12,7 +16,7 @@ permissions:
 jobs:
   insights:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
         with:
@@ -23,6 +27,7 @@ jobs:
           if git ls-remote --exit-code --heads origin social-snaps >/dev/null 2>&1; then
             git fetch --depth=1 origin social-snaps
             git show FETCH_HEAD:state/insights.json > state/insights.json 2>/dev/null || rm -f state/insights.json
+            git show FETCH_HEAD:state/posts_catalog.json > state/posts_catalog.json 2>/dev/null || rm -f state/posts_catalog.json
           fi
       - name: 抓洞察並檢查權杖
         id: run
@@ -31,6 +36,8 @@ jobs:
           IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
           THREADS_ACCESS_TOKEN: ${{ secrets.THREADS_ACCESS_TOKEN }}
           INSIGHTS_PATH: state/insights.json
+          CATALOG_PATH: state/posts_catalog.json
+          CATALOG_FULL: ${{ github.event.inputs.full == '1' && '1' || '' }}
         run: python3 scripts/social_insights.py
       - name: 寫回 social-snaps
         run: |
@@ -41,6 +48,7 @@ jobs:
             git archive FETCH_HEAD | tar -x -C "$WORK"
             mkdir -p "$WORK/state"
             cp state/insights.json "$WORK/state/insights.json"
+            [ -f state/posts_catalog.json ] && cp state/posts_catalog.json "$WORK/state/posts_catalog.json"
             (cd "$WORK" && git init -q && git checkout -q --orphan social-snaps \
               && git config user.name tw-rotation-bot && git config user.email actions@github.com \
               && git add -A && git commit -q -m "成效洞察 $(TZ=Asia/Taipei date +%F)" \
