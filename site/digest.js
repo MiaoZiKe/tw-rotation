@@ -113,7 +113,7 @@
     const live = new Set((S.rules || []).map((r) => r.id)); Object.keys(m.st).forEach((id) => { if (!live.has(id)) { delete m.st[id]; changed = true; } });
     if (changed) { save(m); window.dispatchEvent(new Event('tw:digest')); }
   }
-  const mkAlert = (r, ymd, text, asof) => ({ id: `d-${ymd}-${r.id}`, kind: 'alert', title: `提醒：${nameOf(r.code)} ${ruleText(r)}`, body: `你設定的條件成立：${text}\n公開資料整理，非投資建議。\n[到自選頁](#watch)`, aud: 'member', start: dayStart(asof) + 18 * 3600e3, end: 0, pinned: false, stat: true });
+  const mkAlert = (r, ymd, text, asof) => ({ id: `d-${ymd}-${r.id}`, kind: 'alert', title: `提醒：${nameOf(r.code)} ${ruleText(r)}`, body: `你設定的條件成立：${text}\n條件由你自設，成立不代表買賣時機；公開資料整理，非投資建議。\n[到自選頁](#watch)`, aud: 'member', start: dayStart(asof) + 18 * 3600e3, end: 0, pinned: false, stat: true });
 
   // ------------------------------------------------------------------ 取資料
   let dFly = null;
@@ -175,6 +175,7 @@
     <li>日報只列事實：收盤價與成交量、三大法人買賣超、最新月營收、公告的除息與法說日期</li>
     <li>資料每個交易日盤後更新一次，不是盤中即時</li>
     <li>提醒條件由你自己設定，成立時通知鈴鐺響一次</li>
+    <li>本功能為公開資料整理，不構成投資建議或買賣推介；提醒成立只代表你設的條件發生，不代表買進或賣出時機，投資盈虧自行負責</li>
     <li>日報為 Pro 功能；提醒條數：註冊會員 1 條、Plus 5 條、Pro 不限</li></ul>`;
 
   function digestHTML() {
