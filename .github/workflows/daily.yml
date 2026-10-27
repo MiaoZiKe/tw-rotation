@@ -144,12 +144,20 @@ jobs:
         timeout-minutes: 10
         run: python -m pipeline.compute.live_signals
 
+      # 2026-10-27 Andy：「盤後消息 在盤前旁邊」→ 收盤後的重點消息 5 則寫進 site/articles/postmarket.json（精選文章「盤後消息」分頁）
+      #   跟資料一起 commit；非交易日／沒有新聞就不寫。失敗不影響其他步驟。
+      - name: 盤後消息（精選文章分頁）
+        if: steps.fetch.outputs.inst_new != 'false'
+        continue-on-error: true
+        timeout-minutes: 5
+        run: python scripts/postmarket_pick.py
+
       - name: 回寫資料湖
         if: steps.fetch.outputs.inst_new != 'false'
         run: |
           git config user.name  "tw-rotation-bot"
           git config user.email "actions@github.com"
-          git add data
+          git add data site/articles/postmarket.json
           if git diff --staged --quiet; then
             echo "沒有資料變動，跳過 commit"
             exit 0
@@ -170,7 +178,7 @@ jobs:
             git rebase -X ours "origin/${{ github.ref_name }}" || {
               git rebase --abort || true
               git reset --soft "origin/${{ github.ref_name }}"
-              git add data
+              git add data site/articles/postmarket.json
               git commit -m "資料更新 $(date -u '+%Y-%m-%d') (合併重試)"
             }
             sleep $((i * 5))

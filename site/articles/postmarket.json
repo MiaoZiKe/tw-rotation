@@ -1,4 +1,50 @@
 {
- "updated": "",
- "days": []
+ "updated": "2026-10-27",
+ "days": [
+  {
+   "date": "2026-10-27",
+   "items": [
+    {
+     "cat": "事件",
+     "title": "川普任內油價「比拜登時期還貴」 期中選舉添變數",
+     "url": "https://technews.tw/2026/10/27/oil-prices-higher-than-under-biden-trump-faces-midterm-election-headwinds/",
+     "source": "科技新報",
+     "time": "2026-10-27T14:30:50+08:00",
+     "desc": "美國 11 月 3 日期中選舉進入倒數，高油價卻成為共和黨爭取選票的一大阻力。最新統計顯示，川普第二任期以來，"
+    },
+    {
+     "cat": "科技",
+     "title": "蘋果最高防護等級，成功抵禦間諜軟體的「封閉模式」誰才需要啟用",
+     "url": "https://infosecu.technews.tw/2026/10/27/iphone-lockdown-mode/",
+     "source": "科技新報",
+     "time": "2026-10-27T14:40:49+08:00",
+     "desc": "蘋果（Apple）的封閉模式（Lockdown Mode）再次受到關注。這項功能被蘋果形容為「極端」等級的安全"
+    },
+    {
+     "cat": "科技",
+     "title": "南韓銀行警告：AI投資若放緩 南韓晶片出口恐面臨千億美元缺口",
+     "url": "https://news.cnyes.com/news/id/6638295",
+     "source": "鉅亨",
+     "time": "2026-10-27T14:50:02+08:00",
+     "desc": ""
+    },
+    {
+     "cat": "新聞",
+     "title": "國泰世華銀布局企業穩定幣收款與結算服務 串聯傳統金融與虛擬資產生態系",
+     "url": "https://news.cnyes.com/news/id/6638351",
+     "source": "鉅亨",
+     "time": "2026-10-27T15:40:20+08:00",
+     "desc": "國泰世華布局穩定幣收款及結算，規劃串聯國內VASP業者，為企業打造連結傳統金融與虛擬資產生態系服務；企業若遇海外客戶以穩定幣支付，未來可在企業網銀建立交易資訊，…"
+    },
+    {
+     "cat": "總經",
+     "title": "CNBC：日銀擬維持利率，但未來升息機率高",
+     "url": "https://finance.technews.tw/2026/10/27/bank-of-japan-is-expected-to-hold-rates-this-week/",
+     "source": "科技新報",
+     "time": "2026-10-27T15:30:57+08:00",
+     "desc": "美國財經媒體 CNBC 近期訪問的專家均預期日本銀行（BoJ，日本央行）這週會維持政策利率 1.25% 不動，"
+    }
+   ]
+  }
+ ]
 }

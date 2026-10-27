@@ -3,7 +3,7 @@
 2026-10-27 Andy：「還需要新增盤後消息，在盤前旁邊」。格式、清理規則、同日覆蓋、只留最近 KEEP 天
 全部與盤前消息（pipeline/premarket_news.py）相同，所以直接沿用它的 clean_day()，不重寫一份
 （兩邊的欄位檢查若各寫各的，日後改一邊就會悄悄不一致）。差別只有落點：site/articles/postmarket.json。
-之後社群盤後貼文流程挑完幾則後呼叫 add_day()（或 CLI），這次先不接。
+每天由 scripts/postmarket_pick.py（daily.yml 盤後管線）挑收盤後 5 則呼叫 add_day()。
 
 單日格式與盤前相同：
   {"date": "2026-10-27", "items": [{"cat": "總經|事件|科技|新聞", "title": "...", "url": "https://...", "source": "鉅亨", "time": "...", "desc": "..."}]}
