@@ -1,5 +1,13 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
+## 2026-10-27 T-4 自選日報＋自設提醒上線（W7；Andy「照建議，全部執行」「原有的參數設定不可以動」）
+- 計算：`pipeline/compute/digest.py` 在 build_payload 產 `site/data/digest.json`（全市場事實表，只讀資料湖既有表、不新增抓取）；前端 `site/digest.js` 依自選清單／條件在瀏覽器組日報、判斷提醒，通知併進既有鈴鐺（`notices.js` 的 `L()`）。通知與已讀只存本機。
+- Worker：`workers/account-api/worker.js` 檔尾 alerts 區塊（`/v1/alerts/get|put`、條數上限伺服器守、刪帳號一併刪）。
+- 權限新鍵（只新增）：`watch.digest`（Pro 開）、`watch.alert`（註冊 1／Plus 5／Pro 200＝不限／訪客 0）；`plan_presets.js` 只多 8 行。要讓線上範本生效須在 #admin/perm 按「套用建議方案」，沒按之前靠 features.js defBy＋Worker ALERT_DEF 預設一樣。
+- 欄位白名單（法遵 L-13）：收盤價量、法人買賣超、最新月營收、除息／法說會／財報公布日；`tests/test_digest.py` 掃輸出無評分／建議字樣。
+- 這批驗了：pytest 全跑綠（1405）、Worker 測試 187 綠（含新 alerts.test.mjs）、`_uitest --sections 自選日報提醒1027,體驗額度1027,桌機守門1008`＝0 問題；`_preview` 9 個舊問題與 main 完全相同。
+- 已知：`會員與自選五分頁` 段在 main 上就紅（「自選 800 頂欄看不到」「#wlBtn 不可見」），與本批無關。Email 寄送未做（等寄信關卡）。
+
 ## 2026-10-27 前向驗證紙上帳本上線（E2 正二 200 日線／F2 台指期 1.3 倍；只動 pipeline）
 - Andy 拍板策略委員會「穩健版」：個股＋ETF 用 E2、台指期用 F2。`pipeline/compute/live_signals.py` 每日盤後算訊號，從 2026-10-27 起用隔日開盤價假想成交並扣成本，寫進 `data/paper/`（表 `paper/ledger`、`paper/satellite`，只增不改）；規則與讀法見 `docs/paper_ledger.md`。研究用，不是買賣建議，不會下單。
 - 接進 `daily.yml`：「抓取與計算」之後一步，`continue-on-error: true`；沒動 `cancel-in-progress`。

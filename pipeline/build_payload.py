@@ -18,7 +18,7 @@ import pandas as pd
 from . import config, delivery_log, indicators
 from .compute import explore, inst_market, inst_today
 from .compute import mktfut as mktfut_c
-from .compute import analysis, earnings, etf, etf_holdings, flow, fundamental, mtf, rrg, scoring, season, stockpage, technical, themes
+from .compute import analysis, digest, earnings, etf, etf_holdings, flow, fundamental, mtf, rrg, scoring, season, stockpage, technical, themes
 from .groups import loader
 # TechNews 的分類在讀取端重跑（見下面 news_df 那一段的註解），所以要 import 抓取層的分類器
 from .sources import news as news_src
@@ -770,6 +770,16 @@ def build() -> None:
     except Exception as exc:  # noqa: BLE001
         log.warning("財報日曆產出失敗：%s", exc)
     lap("財報日曆")
+
+    # ---------------------------------------------------------- 自選日報／自設提醒的事實表（2026-10-27，site/digest.js）
+    # 只讀資料湖既有表、不新增抓取；欄位白名單見 compute/digest.py（法遵 L-13：只有事實，沒有評分／建議）。
+    try:
+        _dg_mat = store.read("material_news")
+        _write("digest", digest.build(price, inst, revenue, div_events,
+                                      earnings.mops_events(_dg_mat, set(), conf_all=True), latest, names))
+    except Exception as exc:  # noqa: BLE001
+        log.warning("自選日報事實表產出失敗（只影響日報與提醒）：%s", exc)
+    lap("自選日報")
 
     # ---------------------------------------------------------- 產業關聯圖
     try:

@@ -2819,3 +2819,89 @@ Hub.prototype.subRoutes['/v1/me/src'] = async function (req, b) {
   return this.json(req, { ok: true, first: true });
 };
 /* ============================================================================ 行銷漏斗區塊結束 */
+
+/* ============================================================================ 自設提醒區塊 alerts（2026-10-27，Andy 拍板 T-4「自選日報＋自設提醒」，docs/marketing/tier_plan_1027.md W7）
+   為什麼要有 Worker：提醒條件跟著帳號跨裝置（跟自選清單同一種個資），而且「可以設幾條」是方案差異（新權限鍵 watch.alert：註冊 1、Plus 5、Pro 不限），
+   上限要伺服器這關才算數（前端擋得了一般人，F12 改得掉 —— 跟 watch.tabs 同一個原則）。
+   ★ 判斷「條件有沒有成立」不在這裡：事實表是靜態的 site/data/digest.json（盤後 build_payload 產出），瀏覽器載入後自己比對、發站內通知，
+     Worker 不碰資料湖、不存通知、不寄信。這裡只存「使用者自己設的條件」。
+   ★ 法遵 L-13：條件只能由使用者自己設（營收公布／法人連買連賣 N 天／收盤價高於低於 X／除息前 N 天），站方不提供任何預設的「買點／賣點」條件；
+     欄位只收下面白名單，多帶的（備註、文字）一律丟掉。
+   ★ 同前面幾個區塊：只在檔尾新增、包一層 prototype，既有函式一行不動。
+   ============================================================================ */
+export const ALERT_HARD = 200;
+const ALERT_TYPES = ['rev', 'streak', 'above', 'below', 'exdiv'];
+/* 範本沒寫 watch.alert 時的預設（site/features.js 的 defBy 同一組數，改一邊要改另一邊）；其他付費範本比照 Plus */
+const ALERT_DEF = { guest: 0, free: 1, plus: 5, pro: ALERT_HARD };
+Hub.prototype.alertInit = function () {
+  if (this._alOk) return;
+  this.q('CREATE TABLE IF NOT EXISTS alerts (uid TEXT PRIMARY KEY, data TEXT, rev INTEGER, updated INTEGER)');
+  this._alOk = true;
+};
+Hub.prototype.alertCap = function (user) {
+  if (this.isAdmin(user)) return ALERT_HARD;
+  const e = this.effective(String(user.email || '').toLowerCase());
+  const v = (e.feats || {})['watch.alert'];
+  if (Number.isInteger(v)) return Math.max(0, Math.min(ALERT_HARD, v));
+  if (v === false) return 0;
+  const k = e.expired ? 'free' : e.plan;
+  return Object.prototype.hasOwnProperty.call(ALERT_DEF, k) ? ALERT_DEF[k] : ALERT_DEF.plus;
+};
+Hub.prototype.cleanAlerts = function (rules) {
+  if (!Array.isArray(rules) || rules.length > ALERT_HARD) return null;
+  const seen = new Set(), out = [];
+  for (const r of rules) {
+    if (!r || typeof r !== 'object') return null;
+    const id = String(r.id || '');
+    if (!/^[a-z0-9]{1,12}$/.test(id) || seen.has(id)) return null;
+    seen.add(id);
+    const code = String(r.code || '');
+    if (!CODE_RE.test(code) || !ALERT_TYPES.includes(r.type)) return null;
+    const o = { id, code, type: r.type, on: r.on !== false };
+    if (r.type === 'streak') {
+      if (!Number.isInteger(r.n) || r.n < 2 || r.n > 30) return null;
+      if (!['buy', 'sell'].includes(r.side) || !['total', 'foreign', 'trust'].includes(r.who)) return null;
+      o.n = r.n; o.side = r.side; o.who = r.who;
+    } else if (r.type === 'exdiv') {
+      if (!Number.isInteger(r.n) || r.n < 1 || r.n > 30) return null;
+      o.n = r.n;
+    } else if (r.type === 'above' || r.type === 'below') {
+      if (typeof r.x !== 'number' || !isFinite(r.x) || r.x <= 0 || r.x > 1e6) return null;
+      o.x = Math.round(r.x * 100) / 100;
+    }
+    out.push(o);
+  }
+  return out;
+};
+Hub.prototype.subRoutes['/v1/alerts/get'] = async function (req, b) {
+  const v = await this.auth(req, b);
+  if (!v) return this.json(req, { error: 'auth' }, 401);
+  this.alertInit();
+  const r = this.q('SELECT data, rev FROM alerts WHERE uid = ?', v.user.uid)[0];
+  return this.json(req, { alerts: r ? JSON.parse(r.data) : [], rev: r ? r.rev : 0, cap: this.alertCap(v.user) });
+};
+Hub.prototype.subRoutes['/v1/alerts/put'] = async function (req, b) {
+  const v = await this.auth(req, b);
+  if (!v) return this.json(req, { error: 'auth' }, 401);
+  this.alertInit();
+  const rules = this.cleanAlerts(b.alerts);
+  if (!rules) return this.json(req, { error: 'bad_alerts' }, 400);
+  const cur = this.q('SELECT data, rev FROM alerts WHERE uid = ?', v.user.uid)[0];
+  const rev = cur ? cur.rev : 0, old = cur ? JSON.parse(cur.data) : [];
+  if (b.rev !== rev) return this.json(req, { conflict: true, alerts: old, rev }, 409);
+  /* 只擋「變多」：降級的人原本設的照樣留著、能改能刪，只是不能再新增（同 watch.tabs） */
+  const cap = this.alertCap(v.user);
+  if (rules.length > Math.max(cap, old.length)) return this.json(req, { error: 'alert_limit', limit: cap, alerts: old, rev }, 403);
+  this.q('INSERT INTO alerts (uid, data, rev, updated) VALUES (?, ?, ?, ?) ON CONFLICT(uid) DO UPDATE SET data = excluded.data, rev = excluded.rev, updated = excluded.updated',
+    v.user.uid, JSON.stringify(rules), rev + 1, this.now());
+  return this.json(req, { ok: true, rev: rev + 1, alerts: rules, cap });
+};
+/* 刪帳號：提醒條件是個人資料，一起刪（原本的 deleteMe 會把 users 那列刪掉，所以先記 uid） */
+const alertOrigDelete = Hub.prototype.deleteMe;
+Hub.prototype.deleteMe = async function (req, b) {
+  const v = await this.auth(req, b || {});
+  const res = await alertOrigDelete.call(this, req, b);
+  if (v && res.status === 200) { try { this.alertInit(); this.q('DELETE FROM alerts WHERE uid = ?', v.user.uid); } catch (e) { /* 略 */ } }
+  return res;
+};
+/* ============================================================================ 自設提醒區塊結束 */
