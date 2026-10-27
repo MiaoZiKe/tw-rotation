@@ -39,10 +39,12 @@ TABLES: dict[str, list[str]] = {
     #   （inst_market_daily 後到覆蓋，存的是修訂版）。網站主數字用首次公布版，與新聞同口徑。欄位同上＋fetched_at、src。
     "inst_market_first":  ["date"],
     # 2026-10-27（策略委員會第三回合，前向驗證）：紙上帳本，只增不改；寫在 data/paper/。研究用，不是買賣建議，不會下單。
-    #   paper/ledger：每個方案（E2 正二 200 日線、F2 台指期 1.3 倍、SAT 個股衛星假想、BENCH 0050 含息）每天一列。
-    #   paper/satellite：衛星觀察清單（權重 0%，只記錄）。寫入一律走 pipeline/compute/live_signals.append_only。
+    #   paper/ledger：每個方案（E2 正二 200 日線、F2 台指期 1.3 倍、SAT 衛星單獨紀錄、E2SAT 80% E2 + 20% 衛星、BENCH 0050 含息）每天一列。
+    #   paper/satellite：衛星清單（凍結規格 x2=nh85；在 E2SAT 內占 20%）。寫入一律走 pipeline/compute/live_signals.append_only。
     "paper/ledger":       ["date", "plan"],
     "paper/satellite":    ["date", "rank"],
+    #   paper/e2sat_holdings：E2SAT 每天的持有明細（00631L／衛星個股／現金，weight＝占 E2SAT 總淨值）。plan＝E2SAT 的淨值在 paper/ledger。
+    "paper/e2sat_holdings": ["date", "code"],
     "revenue_monthly":    ["ym", "code"],     # 月營收
     "financial_q":        ["year", "quarter", "code"],  # EPS / 損益（單季值）
     "balance_q":          ["year", "quarter", "code"],  # 股本 / 淨值 / 總資產

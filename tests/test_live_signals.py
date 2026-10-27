@@ -61,6 +61,7 @@ def lake(tmp_path, monkeypatch):
 def test_tables_registered():
     assert config.TABLES["paper/ledger"] == ["date", "plan"]
     assert config.TABLES["paper/satellite"] == ["date", "rank"]
+    assert config.TABLES["paper/e2sat_holdings"] == ["date", "code"]
 
 
 def test_e2_signal_hysteresis_band():
@@ -183,7 +184,7 @@ def test_run_first_signal_row_and_next_open_fill(lake):
     assert e2.iloc[0].nav == LS.CAPITAL and e2.iloc[0].units == 0           # 起算日只有訊號，沒有成交
     sig = json.loads(e2.iloc[0].sig)
     assert {"tse_close", "ma200", "upper", "lower", "state", "target_next", "switch_tomorrow"} <= set(sig)
-    assert set(led.plan) == {"BENCH", "E2", "F2", "SAT"}
+    assert set(led.plan) == {"BENCH", "E2", "F2", "SAT", "E2SAT"}
     assert (led.disclaimer == LS.DISCLAIMER).all()
     LS.run(market=truncate(mk, "2026-10-28"))
     led = LS.read_ledger()
@@ -239,14 +240,14 @@ def test_ledger_rows_do_not_peek_at_future(lake, tmp_path, monkeypatch):
     pd.testing.assert_frame_equal(a.drop(columns=["sig"]), b.drop(columns=["sig"]))
 
 
-def test_satellite_is_recorded_with_zero_weight(lake):
+def test_satellite_is_recorded_with_e2sat_weight(lake):
     mk = make_market()
     LS.run(market=truncate(mk, "2026-11-20"))
     sat = store.read(LS.T_SAT)
-    assert len(sat) > 0 and (sat.weight_pct == 0.0).all() and (sat.disclaimer == LS.DISCLAIMER).all()
+    assert len(sat) > 0 and (sat.weight_pct == LS.E2SAT_W_SAT).all() and (sat.disclaimer == LS.DISCLAIMER).all()
     led = LS.read_ledger()
     s = led[led.plan == "SAT"]
-    assert (s.target == 0.0).all()                                             # 權重 0%：不放資金
+    assert (s.target == LS.E2SAT_W_SAT).all()                                  # 衛星在 E2SAT 內占 20%
 
 
 def test_main_never_raises_and_writes_state(lake, monkeypatch):
@@ -256,3 +257,115 @@ def test_main_never_raises_and_writes_state(lake, monkeypatch):
     assert LS.main() == 0
     state = json.loads((config.STATE / "live_signals.json").read_text(encoding="utf-8"))
     assert state["status"] == "error" and state["disclaimer"] == LS.DISCLAIMER
+
+
+# ------------------------------------------------------------------ E2SAT：80% E2 + 20% 衛星，每年再平衡
+def test_pick_satellite_requires_ma3_per_frozen_spec():
+    """凍結規格 x2=nh85 含 ma3（收盤站上 20/60/120 日線）：站不上任一條均線的不能入選。"""
+    cal = pd.bdate_range("2025-01-01", periods=300)
+    up = pd.Series(np.linspace(50, 100, 300), index=cal)
+    dip = up.copy()
+    dip.iloc[-1] = up.iloc[-1] * 0.99            # 仍在 52 週高 85% 內，但收盤跌破 20 日線以下
+    dip.iloc[-30:-1] = up.iloc[-1] * 1.0
+    close = pd.DataFrame({"1101": up, "1102": dip})
+    turn = pd.DataFrame(1e8, index=cal, columns=close.columns)
+    pk = LS.pick_satellite(close, turn, pd.Series({"1101": 1.2, "1102": 1.5}), cal[-1])
+    assert list(pk.code) == ["1101"]
+
+
+def test_year_rebalance_day_is_first_trading_day_of_year():
+    cal = pd.bdate_range("2026-12-28", "2027-01-08")
+    days = [d for i, d in enumerate(cal) if LS.is_year_rebalance_day(d, cal[i - 1] if i else None)]
+    assert days == [pd.Timestamp("2027-01-01")]
+    assert not LS.is_year_rebalance_day(pd.Timestamp("2026-10-27"), None)       # 起算日不算再平衡
+
+
+def _e2sat(led):
+    return led[led.plan == "E2SAT"].reset_index(drop=True)
+
+
+def test_e2sat_starts_80_20_and_weights_drift_between_rebalances(lake):
+    mk = make_market(end="2027-02-26")
+    LS.run(market=truncate(mk, "2026-10-27"))
+    r0 = _e2sat(LS.read_ledger()).iloc[0]
+    assert r0.nav == LS.CAPITAL and r0.cash == pytest.approx(LS.CAPITAL * 0.8)          # 起算日：E2 子帳戶拿 80%
+    assert json.loads(r0.extra)["sat_nav"] == pytest.approx(LS.CAPITAL * 0.2)
+    LS.run(market=truncate(mk, "2026-12-31"))
+    e = _e2sat(LS.read_ledger())
+    w = e.apply(lambda r: json.loads(r.extra)["sat_nav"] / r.nav, axis=1)
+    assert w.iloc[1:].std() > 0 and (w.iloc[1:] != 0.2).any()                           # 年中不調，權重會漂移
+    assert not e.action.str.contains("年度再平衡").any()
+
+
+def test_e2sat_rebalances_to_80_20_on_first_trading_day_of_year(lake):
+    mk = make_market(end="2027-02-26")
+    LS.run(market=truncate(mk, "2026-12-31"))
+    LS.run(market=truncate(mk, "2027-01-04"))
+    e = _e2sat(LS.read_ledger())
+    first = pd.Timestamp("2027-01-01")                                                  # bdate_range 把元旦當交易日；真實資料湖以實際交易日為準
+    row = e[e.date == first].iloc[0]
+    assert "年度再平衡" in row.action
+    sig = json.loads(row.sig)
+    # 再平衡在開盤；收盤時兩邊各自漲跌，所以收盤權重只會「接近」20%，開盤一刻才是 20%
+    assert sig["sat_weight"] == pytest.approx(0.2, abs=0.03)
+    assert row.cost > 0
+    assert e[e.date > first].action.str.contains("年度再平衡").sum() == 0                # 同一年只調一次
+
+
+def test_e2sat_rebalance_exact_80_20_at_open_when_flat(lake):
+    """把元旦當天價格全部壓平（開=收=昨收），收盤權重就等於開盤再平衡後的權重 -> 應是精準的 80/20（扣掉成本前後差在成本量級）。"""
+    mk = make_market(end="2027-02-26")
+    d = pd.Timestamp("2027-01-01")
+    prev = mk["etf"]["00631L"].index[mk["etf"]["00631L"].index.get_loc(d) - 1]
+    mk["etf"]["00631L"].loc[d, ["open", "close"]] = mk["etf"]["00631L"].loc[prev, "close"]
+    mk["stk_open"].loc[d] = mk["stk_close"].loc[prev]
+    mk["stk_close"].loc[d] = mk["stk_close"].loc[prev]
+    LS.run(market=truncate(mk, "2027-01-04"))
+    row = _e2sat(LS.read_ledger()).query("date == @d").iloc[0]
+    sig = json.loads(row.sig)
+    assert sig["sat_weight"] == pytest.approx(0.2, abs=0.004)
+    assert sig["e2_value"] / row.nav == pytest.approx(0.8, abs=0.004)
+
+
+def test_e2sat_sleeve_costs_and_next_open_fill(lake):
+    mk = make_market()
+    LS.run(market=truncate(mk, "2026-10-28"))
+    r = _e2sat(LS.read_ledger()).iloc[1]
+    assert r.fill_px == pytest.approx(mk["etf"]["00631L"].loc["2026-10-28", "open"])    # 隔日開盤價成交
+    assert r.cost > 0 and r.units > 0
+    assert r.nav == pytest.approx(json.loads(r.extra)["sat_nav"] + r.cash + r.units * mk["etf"]["00631L"].loc["2026-10-28", "close"])
+
+
+def test_e2sat_does_not_peek_at_future_and_is_append_only(lake, tmp_path, monkeypatch):
+    mk = make_market(end="2027-02-26")
+    LS.run(market=truncate(mk, "2027-01-12"))
+    a = _e2sat(LS.read_ledger())
+    other = tmp_path / "other"
+    other.mkdir()
+    monkeypatch.setattr(config, "DATA", other)
+    mk2 = make_market(end="2027-02-26")
+    for k in ("open", "close"):
+        mk2["etf"]["00631L"].loc["2027-01-13":, k] *= 0.1
+        mk2["idx"]["TSE"].loc["2027-01-13":, k] *= 0.1
+    mk2["stk_close"].loc["2027-01-13":] *= 0.1
+    mk2["stk_open"].loc["2027-01-13":] *= 0.1
+    LS.run(market=mk2, asof=pd.Timestamp("2027-01-12"))
+    b = _e2sat(LS.read_ledger())
+    pd.testing.assert_frame_equal(a, b)                                                 # asof 以後的資料被竄改，E2SAT 的列一模一樣
+    monkeypatch.undo()
+    # 只增不改：同一個湖再往後推，舊列完全不變
+    monkeypatch.setattr(config, "DATA", lake / "data")
+    monkeypatch.setattr(config, "STATE", lake / "data" / "_state")
+    LS.run(market=mk)
+    later = _e2sat(LS.read_ledger())
+    pd.testing.assert_frame_equal(a, later[later.date <= a.date.max()].reset_index(drop=True))
+    assert LS.run(market=mk)["rows_added"] == 0
+
+
+def test_e2sat_holdings_table_written(lake):
+    mk = make_market()
+    LS.run(market=truncate(mk, "2026-11-20"))
+    h = store.read(LS.T_E2SAT)
+    assert {"E2", "SAT"} <= set(h.sleeve) and "00631L" in set(h.code)
+    last = h[h.date == h.date.max()]
+    assert last.weight.sum() == pytest.approx(1.0, abs=0.02)

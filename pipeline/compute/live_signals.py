@@ -17,8 +17,11 @@
 三個方案 + 一個基準，同一張帳本表（paper/ledger，key＝date, plan）：
   E2     正二 200 日線方案（門檻：同期含息 0050 x 1.5）
   F2     台指期 1.3 倍（門檻：同期含息 0050 x 1.0）
-  SAT    個股衛星觀察：營收動能 + 近 52 週新高 >= 85%，前 200 檔流動性池取 10 檔。**權重 0%、只記錄假想報酬**；
-         資料湖沒有下市股、價格沒還原除息，存活者偏誤與股利少算都未量化，補齊並重驗之前不放資金。
+  SAT    個股衛星（凍結候選 x2=nh85）：營收動能 + 站上 20/60/120 日線 + 近 52 週新高 >= 85%，前 200 檔流動性池取 10 檔。
+         這條帳戶本身是「衛星部位單獨的紀錄」；真正的資金配置在 E2SAT 裡占 20%。
+         2026-10-27 起衛星改列真實配置：依據第八輪存活者偏誤壓力測試（分支 claude/elegant-fermi-scpgme 的
+         docs/strategy_lab/round8/survivorship_stress.md，最壞情境三個窗仍贏 0050）。價格沒還原除息仍是已知限制。
+  E2SAT  80% E2 + 20% 衛星（SAT），每年第一個交易日開盤再平衡回 80/20（門檻：同期含息 0050 x 1.4＝0.8x1.5+0.2x1.0）。
   BENCH  0050 含息（除息金額於除息日以收盤價再投入），同樣在第一個成交日開盤買進並扣成本。
 
 假想本金 1,000 萬元（讓微型台指期口數取整有意義；報酬都用淨值比，與本金大小無關）。
@@ -68,11 +71,17 @@ SAT_NEAR_HIGH = 0.85
 SAT_BUY = 0.001425 + 0.001
 SAT_SELL = 0.001425 + 0.001 + 0.003
 
-PLANS = ("BENCH", "E2", "F2", "SAT")        # BENCH 先算，其他方案要帶同期基準
-MULT = {"E2": 1.5, "F2": 1.0, "SAT": 1.0, "BENCH": 1.0}
+E2SAT_W_E2 = 0.80                           # E2SAT 的 E2 部位目標權重
+E2SAT_W_SAT = 0.20                          # E2SAT 的衛星部位目標權重（每年第一個交易日開盤調回）
+SAT_MA = (20, 60, 120)                      # 凍結規格 ma3：收盤要同時站上 20/60/120 日線
+SAT_NH_MIN_OBS = 200                        # 凍結規格 nh：252 日滾動最高價至少要有 200 筆（min_periods=200）
+
+PLANS = ("BENCH", "E2", "F2", "SAT", "E2SAT")   # BENCH 先算，其他方案要帶同期基準；E2SAT 自成一格不依賴別的方案
+MULT = {"E2": 1.5, "F2": 1.0, "SAT": 1.0, "BENCH": 1.0, "E2SAT": E2SAT_W_E2 * 1.5 + E2SAT_W_SAT * 1.0}
 
 T_LEDGER = "paper/ledger"
 T_SAT = "paper/satellite"
+T_E2SAT = "paper/e2sat_holdings"
 
 
 # ------------------------------------------------------------------ 純函式：訊號
@@ -143,19 +152,27 @@ def f2_sizing(nav: float, index_level: float, x: float = F2_X) -> dict[str, floa
 
 
 def pick_satellite(close: pd.DataFrame, turnover: pd.DataFrame, rev_ratio: pd.Series, asof: pd.Timestamp) -> pd.DataFrame:
-    """衛星清單（只用 asof 當日收盤以前的資料）：
-    前 200 檔（近 60 日平均成交值）∩ 營收動能（近 3 月均營收 / 近 12 月均營收 > 1）∩ 收盤 >= 52 週高點 x 0.85，
-    依營收動能比值由大到小取 10 檔。回傳欄位 rank, code, rev_ratio, near_high。"""
+    """衛星清單（只用 asof 當日收盤以前的資料），規格 = round8 frozen_candidates.json 的「x2=nh85」：
+    前 200 檔（近 60 日平均成交值）∩ 營收動能（近 3 月均營收 / 近 12 月均營收 > 1）∩ 收盤同時站上 20/60/120 日線（ma3）
+    ∩ 收盤 >= 52 週高點 x 0.85（252 日滾動最高、至少 200 筆），依營收動能比值由大到小取 10 檔。
+    與凍結規格的差異（以凍結規格為準）：原實作漏了 ma3 條件，2026-10-27 補上；
+    仍存在的差異：研究端用還原價，這裡資料湖是未還原收盤（除權息日會讓 52 週高點與均線偏高，偏保守）。
+    回傳欄位 rank, code, rev_ratio, near_high。"""
     c = close.loc[:asof]
     t = turnover.loc[:asof]
     last = c.iloc[-1]
-    hi = c.tail(252).max()
+    win = c.tail(252)
+    hi = win.max().where(win.count() >= SAT_NH_MIN_OBS)
     near = (last / hi)
+    ma_ok = pd.Series(True, index=c.columns)
+    for n in SAT_MA:
+        ma_ok &= (last > c.tail(n).mean()) & (c.tail(n).count() >= n)
     liq = t.tail(60).mean()
     pool = liq.dropna().nlargest(SAT_POOL).index
     s = rev_ratio.dropna()
     s = s[s.index.isin(pool) & (s > 1.0)]
     s = s[(near.reindex(s.index) >= SAT_NEAR_HIGH).fillna(False)]
+    s = s[ma_ok.reindex(s.index).fillna(False).astype(bool)]
     top = s.sort_values(ascending=False).head(SAT_N)
     return pd.DataFrame({"rank": range(1, len(top) + 1), "code": top.index, "rev_ratio": top.values, "near_high": near.reindex(top.index).values})
 
@@ -261,8 +278,8 @@ def _split_mult(prev_close: float, open_: float) -> float:
 
 
 def step_etf(prev: dict | None, d: pd.Timestamp, opx: float, cpx: float, prev_close: float | None, code: str,
-             target_next: float, rf: float = RF) -> dict[str, Any]:
-    """E2 帳戶一天：隔夜現金利息 -> 開盤執行『昨天收盤決定的目標權重』-> 收盤估值 -> 設定明天的目標。"""
+             target_next: float, rf: float = RF, cash_adj: float = 0.0) -> dict[str, Any]:
+    """E2 帳戶一天（cash_adj≠0 是 E2SAT 年度再平衡：開盤前先和衛星部位劃撥現金，並強制調回目標權重）：隔夜現金利息 -> 開盤執行『昨天收盤決定的目標權重』-> 收盤估值 -> 設定明天的目標。"""
     cost = traded = 0.0
     fill = np.nan
     action = ""
@@ -274,13 +291,14 @@ def step_etf(prev: dict | None, d: pd.Timestamp, opx: float, cpx: float, prev_cl
         pending = float(prev["target"])
         if prev_close is not None:
             units *= _split_mult(prev_close, opx)
-        if np.isnan(held) or abs(pending - held) > 1e-9:
+        cash += cash_adj
+        if np.isnan(held) or abs(pending - held) > 1e-9 or cash_adj != 0.0:
             e_open = cash + units * opx
             delta = pending * e_open - units * opx                 # 元；>0 買進
             slip = SLIP[code]
             rate = (FEE + slip) if delta > 0 else (FEE + TAX + slip)
             if delta > 0:
-                delta = min(delta, cash / (1 + rate))              # 買進金額 + 成本不能超過手上現金（不借錢）
+                delta = max(min(delta, cash / (1 + rate)), 0.0)    # 買進金額 + 成本不能超過手上現金（不借錢）
             cost = abs(delta) * rate
             cash -= delta + cost
             units += delta / opx
@@ -346,6 +364,7 @@ def run(asof: pd.Timestamp | None = None, market: dict | None = None) -> dict[st
     last_done = {p: (led[led.plan == p].date.max() if not led.empty and (led.plan == p).any() else None) for p in PLANS}
     new_rows: list[dict] = []
     sat_rows: list[dict] = []
+    hold_rows: list[dict] = []
     state: dict[str, dict | None] = {}
     for p in PLANS:
         sub = led[led.plan == p] if not led.empty else led
@@ -361,11 +380,14 @@ def run(asof: pd.Timestamp | None = None, market: dict | None = None) -> dict[st
                 continue
             new_rows.append(row["row"])
             sat_rows += row.get("sat", [])
+            hold_rows += row.get("hold", [])
             state[p] = row["row"]
             last_done[p] = d
     n = append_only(T_LEDGER, pd.DataFrame(new_rows), ["date", "plan"]) if new_rows else 0
     if sat_rows:
         append_only(T_SAT, pd.DataFrame(sat_rows), ["date", "rank"])
+    if hold_rows:
+        append_only(T_E2SAT, pd.DataFrame(hold_rows), ["date", "code"])
     summary["rows_added"] = n
     summary["signals"] = signals_snapshot(mk, cal[-1], state)
     summary["status"] = "ok"
@@ -383,6 +405,10 @@ def _day_row(p, d, prev_d, prev, mk, e0, e2, tse, fut, sig_all, settle, cal, sta
         return {"row": _bench_row(prev, d, prev_d, mk, e0)}
     if p == "SAT":
         out = _sat_row(prev, d, prev_d, mk)
+        _attach_bench(out["row"], state.get("BENCH"), p)
+        return out
+    if p == "E2SAT":
+        out = _e2sat_row(prev, d, prev_d, mk, e2, sig_all)
         _attach_bench(out["row"], state.get("BENCH"), p)
         return out
     if p == "E2":
@@ -450,7 +476,7 @@ def tomorrow_is_rebalance_day(d: pd.Timestamp) -> bool:
 
 
 def _sat_row(prev, d, prev_d, mk):
-    """衛星假想帳戶（權重 0%，不放資金）。每天等權持有清單，日報酬分隔夜／盤中兩段（與 lev_lab 衛星同口徑），
+    """衛星部位單獨紀錄（E2SAT 內占 20%）。每天等權持有清單，日報酬分隔夜／盤中兩段（與 lev_lab 衛星同口徑），
     換股日開盤成交；起算日收盤先決定第一份清單，次一交易日開盤買進。價格沒還原除息、|日報酬|>10.5% 視為公司行動設 0。"""
     so, sc, st = mk["stk_open"], mk["stk_close"], mk["stk_turn"]
     held: dict[str, float] = {}
@@ -469,7 +495,7 @@ def _sat_row(prev, d, prev_d, mk):
             cost = nav * (buy * SAT_BUY + sell * SAT_SELL)
             nav -= cost
             held = pend
-            action = f"開盤換股：買 {buy:.0%}／賣 {sell:.0%}（假想，權重 0%）"
+            action = f"開盤換股：買 {buy:.0%}／賣 {sell:.0%}（衛星部位）"
         nav *= 1 + sum(w * _clip(sc.loc[d, c] / so.loc[d, c] - 1) for c, w in held.items() if c in sc.columns)
     pending, sat_rows = None, []
     if prev is None or not held or tomorrow_is_rebalance_day(d):
@@ -477,9 +503,9 @@ def _sat_row(prev, d, prev_d, mk):
         if len(picks):
             pending = {r.code: 1.0 / len(picks) for r in picks.itertuples()}
             sat_rows = [dict(date=d.strftime("%Y-%m-%d"), rank=int(r.rank), code=r.code, rev_ratio=float(r.rev_ratio), near_high=float(r.near_high),
-                             weight_pct=0.0, disclaimer=DISCLAIMER) for r in picks.itertuples()]
-    row = _row(d, "SAT", nav=nav, cash=0.0, exposure=sum(held.values()) if held else 0.0, target=0.0, action=action, cost=cost,
-               sig=json.dumps({"picks": list(pending) if pending else [], "資金權重": "0%（只記錄，不放資金）"}, ensure_ascii=False),
+                             weight_pct=E2SAT_W_SAT, disclaimer=DISCLAIMER) for r in picks.itertuples()]
+    row = _row(d, "SAT", nav=nav, cash=0.0, exposure=sum(held.values()) if held else 0.0, target=E2SAT_W_SAT, action=action, cost=cost,
+               sig=json.dumps({"picks": list(pending) if pending else [], "資金權重": "20%（E2SAT 內的衛星部位；本列為衛星單獨紀錄）"}, ensure_ascii=False),
                extra=json.dumps({"holdings": held, "pending": pending}, ensure_ascii=False), plan_cum=_cum(nav))
     return {"row": row, "sat": sat_rows}
 
@@ -491,6 +517,89 @@ def _clip(x: float) -> float:
     return float(x)
 
 
+def is_year_rebalance_day(d: pd.Timestamp, prev_d: pd.Timestamp | None) -> bool:
+    """E2SAT 年度再平衡日：資料湖裡每年第一個交易日（上一個交易日跨年）。起算日不算（那天才剛配 80/20）。"""
+    return prev_d is not None and d.year != prev_d.year
+
+
+def _e2sat_row(prev, d, prev_d, mk, e2, sig_all):
+    """E2SAT：80% E2 + 20% 衛星，兩個子帳戶各自記帳（extra 存衛星子帳戶），每年第一個交易日開盤調回 80/20。
+    順序與其他方案一致：d 日開盤執行『前一日收盤決定』的事（E2 目標權重、衛星換股、年度再平衡），d 日收盤估值，
+    再用 d 日收盤以前的資料決定明天要做什麼。再平衡所需的成本（正二 手續費+稅+滑價、個股 手續費+稅+證交稅）全部扣。"""
+    sc, so, st = mk["stk_close"], mk["stk_open"], mk["stk_turn"]
+    s = sig_all.loc[d]
+    tgt = E2_W_UP if int(s["state"]) == 1 else E2_W_DOWN
+    opx, cpx = float(e2.loc[d, "open"]), float(e2.loc[d, "close"])
+    sat_cost = 0.0
+    action_parts: list[str] = []
+    if prev is None:
+        sat_nav, held, pend = CAPITAL * E2SAT_W_SAT, {}, None
+        e2_adj = 0.0
+        r = step_etf(None, d, opx, cpx, None, "00631L", tgt)
+        r["cash"] = CAPITAL * E2SAT_W_E2                 # 起算日：先把本金切 80/20，E2 只拿 80%
+        r["nav"] = r["cash"]
+    else:
+        ex = json.loads(prev["extra"])
+        held, pend = ex.get("holdings") or {}, ex.get("pending")
+        sat_nav = float(ex["sat_nav"])
+        # 衛星子帳戶：隔夜到開盤的報酬（沒持股就只計現金利息）
+        if held:
+            sat_nav *= 1 + sum(w * _clip(so.loc[d, c] / sc.loc[prev_d, c] - 1) for c, w in held.items() if c in so.columns)
+        else:
+            sat_nav *= 1 + RF / 252
+        e2_adj = 0.0
+        if is_year_rebalance_day(d, prev_d):
+            # 開盤時兩邊的市值（E2 用開盤價估，與 step_etf 的開盤估值同口徑）
+            mult = _split_mult(float(e2.loc[prev_d, "close"]), opx)
+            e2_open = float(prev["cash"]) * (1 + RF / 252) + float(prev["units"]) * mult * opx
+            total = e2_open + sat_nav
+            diff = total * E2SAT_W_SAT - sat_nav          # >0：衛星要加碼，錢從 E2 部位出
+            w_before = sat_nav / total
+            if diff > 0:
+                fee = diff * SAT_BUY if held else 0.0
+                sat_nav += diff - fee
+                sat_cost += fee
+                e2_adj = -diff
+            elif diff < 0:
+                fee = (-diff) * SAT_SELL if held else 0.0
+                sat_nav += diff                           # 賣出 |diff|，成本從賣出款扣
+                sat_cost += fee
+                e2_adj = -diff - fee
+            action_parts.append(f"年度再平衡：衛星 {w_before:.1%}→目標 {E2SAT_W_SAT:.0%}（劃撥 {diff:+,.0f} 元）")
+        if pend:
+            diffw = {c: pend.get(c, 0.0) - held.get(c, 0.0) for c in set(held) | set(pend)}
+            buy = sum(max(v, 0) for v in diffw.values())
+            sell = sum(max(-v, 0) for v in diffw.values())
+            fee = sat_nav * (buy * SAT_BUY + sell * SAT_SELL)
+            sat_nav -= fee
+            sat_cost += fee
+            held = pend
+            action_parts.append(f"衛星開盤換股：買 {buy:.0%}／賣 {sell:.0%}")
+        if held:
+            sat_nav *= 1 + sum(w * _clip(sc.loc[d, c] / so.loc[d, c] - 1) for c, w in held.items() if c in sc.columns)
+        e2_prev = dict(cash=prev["cash"], units=prev["units"], held=prev["held"], target=prev["target"], nav=prev["nav"])
+        r = step_etf(e2_prev, d, opx, cpx, float(e2.loc[prev_d, "close"]), "00631L", tgt, cash_adj=e2_adj)
+        if r["action"]:
+            action_parts.append("E2 " + r["action"])
+    nav = r["nav"] + sat_nav
+    new_pend = None
+    if prev is None or not held or tomorrow_is_rebalance_day(d):
+        picks = pick_satellite(sc, st, rev_ratio_asof(mk["rev"], d), d)
+        if len(picks):
+            new_pend = {x.code: 1.0 / len(picks) for x in picks.itertuples()}
+    eq = (r["units"] * cpx + sat_nav * sum(held.values())) / nav if nav else 0.0
+    sig = dict(tse_close=float(s["close"]), ma200=float(s["ma"]), state=int(s["state"]), e2_target_next=tgt,
+               e2_value=r["nav"], sat_value=sat_nav, sat_weight=sat_nav / nav if nav else 0.0,
+               sat_picks_next=list(new_pend) if new_pend else [], 資金權重="80% E2 + 20% 衛星，每年第一個交易日再平衡")
+    row = _row(d, "E2SAT", nav=nav, cash=r["cash"], units=r["units"], exposure=eq, target=tgt, held=r["held"], action="；".join(action_parts),
+               fill_px=r["fill"], traded=r["traded"], cost=r["cost"] + sat_cost, sig=json.dumps(sig, ensure_ascii=False),
+               extra=json.dumps({"holdings": held, "pending": new_pend, "sat_nav": sat_nav}, ensure_ascii=False), plan_cum=_cum(nav))
+    hold = [dict(date=d.strftime("%Y-%m-%d"), code="00631L", sleeve="E2", weight=r["units"] * cpx / nav if nav else 0.0, disclaimer=DISCLAIMER)]
+    hold += [dict(date=d.strftime("%Y-%m-%d"), code=c, sleeve="SAT", weight=w * sat_nav / nav if nav else 0.0, disclaimer=DISCLAIMER) for c, w in held.items()]
+    hold.append(dict(date=d.strftime("%Y-%m-%d"), code="CASH", sleeve="E2", weight=r["cash"] / nav if nav else 0.0, disclaimer=DISCLAIMER))
+    return {"row": row, "hold": hold}
+
+
 def signals_snapshot(mk: dict, asof: pd.Timestamp | None, state: dict | None) -> dict[str, Any]:
     """給人看的最新訊號（也寫進 data/_state/live_signals.json）。state 為空時只算 E2 與 F2 日曆。"""
     out: dict[str, Any] = {"disclaimer": DISCLAIMER}
@@ -500,6 +609,13 @@ def signals_snapshot(mk: dict, asof: pd.Timestamp | None, state: dict | None) ->
     out["asof"] = str(asof.date())
     out["E2"] = dict(tse_close=float(s["close"]), ma200=float(s["ma"]), upper=float(s["upper"]), lower=float(s["lower"]), state="線上（持 100% 正二）" if s["state"] == 1 else "線下（30% 正二 + 70% 現金）")
     out["F2"] = {k: (str(v.date()) if isinstance(v, pd.Timestamp) else v) for k, v in futures_calendar(asof).items()}
+    if state and state.get("E2SAT"):
+        ex = json.loads(state["E2SAT"]["extra"])
+        nxt = pd.Timestamp(asof.year + 1, 1, 1)
+        while nxt.weekday() >= 5:
+            nxt += pd.Timedelta(days=1)
+        out["E2SAT"] = dict(持有衛星=sorted((ex.get("holdings") or {}).keys()), 明日換股清單=sorted((ex.get("pending") or {}).keys()),
+                            下次年度再平衡約=str(nxt.date()), 目標權重="80% E2 + 20% 衛星")
     if state:
         for p in PLANS:
             if state.get(p):
