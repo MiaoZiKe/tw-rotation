@@ -45642,12 +45642,12 @@
     "inst@2012-01-01:3284": true,
     "inst@2012-01-01:1570": true
   },
-  "updated_at": "2026-10-27T00:21:33.344573+00:00",
+  "updated_at": "2026-10-27T01:00:24.982504+00:00",
   "complete": {
     "balance+financial+revenue": {
       "done": true,
-      "at": "2026-10-26T23:56:17.431274+00:00",
-      "codes": 2340,
+      "at": "2026-10-27T00:58:04.768736+00:00",
+      "codes": 500,
       "remaining": {
         "balance": 0,
         "financial": 0,
@@ -45660,8 +45660,8 @@
       }
     },
     "plan:default": {
-      "done": false,
-      "at": "2026-10-27T00:21:33.344535+00:00",
+      "done": true,
+      "at": "2026-10-27T01:00:24.982474+00:00",
       "month": "2026-10",
       "week": "w2026-44a",
       "steps": {
@@ -45669,9 +45669,21 @@
         "dividend+divresult": true,
         "holding+margin@2021-01-01": true,
         "price@2000-01-01": true,
-        "inst@2012-01-01": false
+        "inst@2012-01-01": true,
+        "balance+financial+revenue@2012-01-01": true,
+        "inst@2012-01-01@pit": true,
+        "inst@market": true,
+        "daytrade+sbl@2025-01-01@market": true,
+        "dividend+divresult@2009-01-01@market": true,
+        "price@2000-01-01@market": true,
+        "dividend+divresult@etf2009@etf": true,
+        "etfdiv@etfx2009@etf": true,
+        "price@2000-01-01@etf": true,
+        "dividend+divresult@m2026-10": true,
+        "divresult@em2026-10@etf": true,
+        "etfdiv@w2026-44a@etf": true
       },
-      "stopped_at": "inst@2012-01-01"
+      "stopped_at": null
     },
     "index_ohlc": {
       "done": true,
@@ -45681,33 +45693,33 @@
     },
     "dividend+divresult": {
       "done": true,
-      "at": "2026-10-26T23:56:39.410255+00:00",
-      "codes": 2340,
+      "at": "2026-10-27T00:58:10.492726+00:00",
+      "codes": 500,
       "remaining": {
         "dividend": 0,
         "divresult": 0
       },
       "no_data": {
-        "dividend": 5,
-        "divresult": 7
+        "dividend": 1,
+        "divresult": 1
       }
     },
     "holding+margin@2021-01-01": {
       "done": true,
-      "at": "2026-10-26T23:57:13.570272+00:00",
-      "codes": 2340,
+      "at": "2026-10-27T00:58:19.226489+00:00",
+      "codes": 500,
       "remaining": {
-        "holding": 2340,
+        "holding": 500,
         "margin": 0
       },
       "no_data": {
         "holding": 0,
-        "margin": 4
+        "margin": 0
       }
     },
     "price@2000-01-01": {
       "done": true,
-      "at": "2026-10-26T23:57:17.464013+00:00",
+      "at": "2026-10-27T00:58:23.126742+00:00",
       "codes": 445,
       "remaining": {
         "price": 0
@@ -45813,7 +45825,7 @@
     },
     "inst@market": {
       "done": true,
-      "at": "2026-10-26T22:38:39.694547+00:00",
+      "at": "2026-10-27T00:59:02.111886+00:00",
       "codes": 1984,
       "remaining": {
         "inst": 0
@@ -45824,7 +45836,7 @@
     },
     "daytrade+sbl@2025-01-01@market": {
       "done": true,
-      "at": "2026-10-26T22:38:58.554461+00:00",
+      "at": "2026-10-27T00:59:20.889599+00:00",
       "codes": 1984,
       "remaining": {
         "daytrade": 0,
@@ -45837,7 +45849,7 @@
     },
     "dividend+divresult@2009-01-01@market": {
       "done": true,
-      "at": "2026-10-26T22:39:17.424986+00:00",
+      "at": "2026-10-27T00:59:39.658017+00:00",
       "codes": 1984,
       "remaining": {
         "dividend": 0,
@@ -45898,11 +45910,11 @@
         "marked_from_lake": 0
       },
       "stopped": null,
-      "at": "2026-10-26T23:55:53.438064+00:00"
+      "at": "2026-10-27T00:57:56.857042+00:00"
     },
     "dividend+divresult@m2026-10": {
       "done": true,
-      "at": "2026-10-26T22:39:53.861640+00:00",
+      "at": "2026-10-27T01:00:15.878335+00:00",
       "codes": 445,
       "remaining": {
         "dividend": 0,
@@ -46003,7 +46015,7 @@
     },
     "price@2000-01-01@market": {
       "done": true,
-      "at": "2026-10-26T22:39:36.292293+00:00",
+      "at": "2026-10-27T00:59:58.407218+00:00",
       "codes": 1984,
       "remaining": {
         "price": 0
@@ -46027,7 +46039,7 @@
     },
     "price@2000-01-01@etf": {
       "done": true,
-      "at": "2026-10-26T22:39:49.936393+00:00",
+      "at": "2026-10-27T01:00:11.981098+00:00",
       "codes": 392,
       "remaining": {
         "price": 0
@@ -46051,7 +46063,7 @@
     },
     "dividend+divresult@etf2009@etf": {
       "done": true,
-      "at": "2026-10-26T22:39:40.843375+00:00",
+      "at": "2026-10-27T01:00:02.913609+00:00",
       "codes": 392,
       "remaining": {
         "dividend": 0,
@@ -46064,7 +46076,7 @@
     },
     "etfdiv@etfx2009@etf": {
       "done": true,
-      "at": "2026-10-26T22:39:45.378792+00:00",
+      "at": "2026-10-27T01:00:07.458618+00:00",
       "codes": 392,
       "remaining": {
         "etfdiv": 0
@@ -46396,7 +46408,7 @@
     },
     "divresult@em2026-10@etf": {
       "done": true,
-      "at": "2026-10-26T22:39:58.382091+00:00",
+      "at": "2026-10-27T01:00:20.420996+00:00",
       "codes": 392,
       "remaining": {
         "divresult": 0
@@ -46678,7 +46690,7 @@
     },
     "etfdiv@w2026-44a@etf": {
       "done": true,
-      "at": "2026-10-26T22:40:02.919743+00:00",
+      "at": "2026-10-27T01:00:24.937782+00:00",
       "codes": 392,
       "remaining": {
         "etfdiv": 0
@@ -46702,11 +46714,11 @@
       "earliest": "2018-06-05"
     },
     "inst@2012-01-01": {
-      "done": false,
-      "at": "2026-10-27T00:21:33.305887+00:00",
-      "codes": 2340,
+      "done": true,
+      "at": "2026-10-27T00:58:28.849945+00:00",
+      "codes": 500,
       "remaining": {
-        "inst": 481
+        "inst": 0
       },
       "no_data": {
         "inst": 0
@@ -46714,7 +46726,7 @@
     },
     "balance+financial+revenue@2012-01-01": {
       "done": true,
-      "at": "2026-10-26T22:28:50.327020+00:00",
+      "at": "2026-10-27T00:58:34.601504+00:00",
       "codes": 500,
       "remaining": {
         "balance": 0,
@@ -46728,8 +46740,8 @@
       }
     },
     "opt_pc": {
-      "next": "2009-12-01",
-      "at": "2026-10-26",
+      "next": "2010-03-01",
+      "at": "2026-10-27",
       "done": false
     },
     "delisted_px": {
@@ -46741,7 +46753,7 @@
     },
     "inst@2012-01-01@pit": {
       "done": true,
-      "at": "2026-10-26T22:38:20.891064+00:00",
+      "at": "2026-10-27T00:58:43.267092+00:00",
       "codes": 789,
       "remaining": {
         "inst": 0
@@ -46753,7 +46765,7 @@
   },
   "finmind_health": {
     "ok": true,
-    "at": "2026-10-26T23:55:55.468785+00:00",
+    "at": "2026-10-27T00:57:58.918732+00:00",
     "probe": "TaiwanStockPrice/2330 since 2026-10-17",
     "detail": ""
   },
