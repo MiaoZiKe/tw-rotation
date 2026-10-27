@@ -2,7 +2,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { makeHub } from '../harness.mjs';
-import { GRANT_BAN, grantMailNorm } from '../worker.js';
+import { GRANT_BAN, grantMailNorm, WELCOME_1027_FEATS } from '../worker.js';
 
 const ORIGIN = 'https://miaozike.github.io';
 const API = 'https://tw-account.example.workers.dev';
@@ -53,7 +53,7 @@ test('預設兩筆範本（welcome 7 天每項 3 次、promo 每項 5 次）都�
   const { j } = await pj(hub, '/v1/admin/grants/defs/list', { t: andy });
   const w = j.defs.find((d) => d.id === 'welcome'), p = j.defs.find((d) => d.id === 'promo-launch');
   assert.equal(w.on, false); assert.equal(p.on, false);
-  assert.equal(w.days, 7); assert.ok(Object.values(w.feats).every((m) => m === 3));
+  assert.equal(w.days, 14); assert.equal(w.per, 'day'); assert.equal(w.feats['ind.3d'], 10); /* 2026-10-27 T-1 */
   assert.ok(Object.values(p.feats).every((m) => m === 5));
   assert.equal(p.t1 - p.t0 + 1, 14 * DAY, 'promo 14 天');
   for (const d of [w, p]) for (const k of Object.keys(d.feats)) assert.ok(!GRANT_BAN.includes(k), k);
@@ -227,4 +227,26 @@ test('體驗不碰帳務：不改方案、不寫 perm、不影響七天退款保
   assert.equal(hub.q('SELECT COUNT(*) AS c FROM perm WHERE email = ?', 'bob@example.com')[0].c, 0);
   const bs = (await pj(hub, '/v1/billing/me', { t: bob })).j;
   assert.equal(bs.trialUsed, false); assert.equal(bs.refundUsed, false);
+});
+
+test('2026-10-27 T-1：新會員體驗 14 天、每天計次、不含 GRANT_BAN；體驗者 canRefund=false；退款或取消過的人不能再領', async () => {
+  const { hub, andy } = await setup();
+  for (const k of Object.keys(WELCOME_1027_FEATS)) assert.ok(!GRANT_BAN.includes(k), k);
+  await pj(hub, '/v1/admin/grants/defs/put', { t: andy, id: 'welcome', kind: 'welcome', name: '新會員體驗', feats: WELCOME_1027_FEATS, per: 'day', days: 14, on: true });
+  const bob = await login(hub, 'bob@example.com', '198.51.100.20');
+  const g = (await pj(hub, '/v1/grants/me', { t: bob })).j.grants;
+  assert.equal(g.length, 1); assert.equal(g[0].end - g[0].start, 14 * DAY);
+  const st = (await pj(hub, '/v1/billing/me', { t: bob })).j;
+  assert.equal(st.canRefund, false, '體驗者不是付費者');
+  /* 取消過（trial_used）的人刪帳號後同信箱回來：不再發 */
+  const cx = await login(hub, 'cx@example.com', '198.51.100.21');
+  await hub.billUpsert('cx@example.com', { trial_used: 1 });
+  assert.equal((await pj(hub, '/v1/delete', { t: cx })).s, 200);
+  const cx2 = await login(hub, 'cx@example.com', '198.51.100.22', 'sub-cx2');
+  assert.deepEqual((await pj(hub, '/v1/grants/me', { t: cx2 })).j.grants, [], '取消過不能再領體驗');
+  const rf = await login(hub, 'rf@example.com', '198.51.100.23');
+  await hub.billUpsert('rf@example.com', { trial_used: 1, refund_used: 1 });
+  assert.equal((await pj(hub, '/v1/delete', { t: rf })).s, 200);
+  const rf2 = await login(hub, 'rf@example.com', '198.51.100.24', 'sub-rf2');
+  assert.deepEqual((await pj(hub, '/v1/grants/me', { t: rf2 })).j.grants, [], '退款過不能再領體驗');
 });

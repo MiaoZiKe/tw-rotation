@@ -2247,7 +2247,13 @@ Hub.prototype.billState = async function (v) {
   const paid = plan !== 'free' && plan !== 'guest';
   const row = this.billFlags(email);
   const hk = await this.billHashKinds(email);           // 刪過帳號、用同一個信箱回來的人
-  const firstPaid = (row && row.first_paid) || (paid ? e.updated || 0 : 0);
+  /* 2026-10-27（tier_plan_1027 4-4）：沒有 first_paid 紀錄時，不能單憑 perm.updated 就當作「付過款」——
+     體驗者若被掛上非 free 方案（人工或日後自動化），會被誤判成可七天退款。後備只對「真的有已生效訂單」的人成立。 */
+  let realPaid = false;
+  if (paid && !(row && row.first_paid)) {
+    try { this.payInit(); realPaid = this.q('SELECT 1 FROM orders WHERE (uid = ? OR email = ?) AND applied = 1 LIMIT 1', v.user.uid, email).length > 0; } catch (err) { realPaid = false; }
+  }
+  const firstPaid = (row && row.first_paid) || (realPaid ? e.updated || 0 : 0);
   const open = (t) => this.q("SELECT id, created FROM sub_requests WHERE uid = ? AND type = ? AND status = 'new' ORDER BY created DESC LIMIT 1", v.user.uid, t)[0] || null;
   const inWindow = !!(paid && firstPaid && this.now() - firstPaid <= BILL_REFUND_DAYS * 86400 * 1000);
   const refundUsed = !!(row && row.refund_used) || hk.has('refund');
@@ -2387,6 +2393,11 @@ for (const t of ['bill_flags', 'benefit_hash']) if (!EXPORT_TABLES.includes(t)) 
    ★ 同前面幾個區塊：只在檔尾新增、包一層 prototype，既有函式一行不動。
    ============================================================================ */
 export const GRANT_BAN = ['mkt.cand', 'mkt.cand.n', 'explore.list', 'explore.list.n', 'stock.ai', 'stock.mtf', 'live.tick', 'stock.k_min'];
+/* 2026-10-27 新會員體驗額度（tier_plan_1027 4-7；Andy 拍板 T-1/T-6）：Plus 等級 A 級功能、14 天、每天每項各 M 次。
+   刻意不放：今日關注、選股名單、四面向資料整理（stock.ai）、四週期同看、分 K（都在 GRANT_BAN）、自選擴充、精選全文。 */
+export const WELCOME_1027_FEATS = { 'ind.3d': 10, 'ind.rel': 10, 'ind.groups': 15, 'ind.diagram': 15, 'heat.detail': 15, 'heat.link': 10, 'flow.play': 5,
+  'flow.sankey.drill': 20, 'etf.cashflow': 10, 'etf.inc.params': 10, 'etf.inc.comp': 10, 'etf.cmp': 10, 'etf.ret.period': 5, 'stock.draw': 10, 'stock.ind': 10,
+  'stock.page': 20, 'season.groups': 20 };
 const GRANT_ID_RE = /^[a-z0-9_-]{1,24}$/;
 const GRANT_MAX_FEATS = 40, GRANT_M_MAX = 999, GRANT_DAYS_MAX = 60, GRANT_IP_DAY = 3;
 const GRANT_HIT_KEEP_DAYS = 30, GRANT_KEEP_MONTHS = 13;
@@ -2414,17 +2425,31 @@ Hub.prototype.grantInit = function () {
   /* 預設兩筆範本（都是「關」）：Andy 在管理區 #admin/grants 打開就生效。參數＝docs/launch_gap_payment_1009.md 3-2 的例子
      （welcome 7 天每項 3 次、promo 10/13～10/26 每項 5 次）；功能只放法遵 2-3「可以」、而且 site/plan_presets.js 對註冊會員有鎖或有上限的那幾項。
      只種一次，刪掉不會長回來。*/
+  this._seededBefore1027 = !!this.kv('grants_seeded');
   if (!this.kv('grants_seeded')) {
     const feats = (m) => JSON.stringify({ 'ind.3d': m, 'ind.rel': m, 'stock.draw': m, 'stock.ind': m, 'etf.cashflow': m, 'heat.link': m, 'explore.filter': m });
     const now = this.now();
+    /* 2026-10-27（Andy 拍板 tier_plan_1027 T-1）：新建資料庫的 welcome 種子就是 14 天、每天、體驗功能表（仍預設關，正式站由下面的遷移打開） */
     if (!this.q('SELECT 1 FROM grant_defs WHERE id = ?', 'welcome').length) {
-      this.q("INSERT INTO grant_defs (id, kind, name, feats, per, days, t0, t1, audience, on_, updated) VALUES ('welcome', 'welcome', '新會員體驗', ?, 'total', 7, NULL, NULL, 'free', 0, ?)", feats(3), now);
+      this.q("INSERT INTO grant_defs (id, kind, name, feats, per, days, t0, t1, audience, on_, updated) VALUES ('welcome', 'welcome', '新會員體驗', ?, 'day', 14, NULL, NULL, 'free', 0, ?)", JSON.stringify(WELCOME_1027_FEATS), now);
     }
     if (!this.q('SELECT 1 FROM grant_defs WHERE id = ?', 'promo-launch').length) {
       this.q("INSERT INTO grant_defs (id, kind, name, feats, per, days, t0, t1, audience, on_, updated) VALUES ('promo-launch', 'promo', '上市體驗週', ?, 'total', NULL, ?, ?, 'free', 0, ?)",
         feats(5), Date.parse('2026-10-13T00:00:00+08:00'), Date.parse('2026-10-27T00:00:00+08:00') - 1, now);
     }
     this.setKv('grants_seeded', '1');
+  }
+  /* 2026-10-27 一次性遷移（tier_plan_1027 T-1）：已經種過種子的正式站，把 welcome 改成「14 天、每天計次、Plus 等級 A 級功能」並打開。
+     只做一次（kv 記號）；之後 Andy 在 #admin/grants 怎麼改都不會被蓋回來。新建資料庫（剛種完種子）不打開，維持原本「預設關」。 */
+  if (!this.kv('grants_t1027')) {
+    if (this._seededBefore1027) {
+      /* Andy 10-27「原有參數不可動」：只改「還是原廠種子、沒人動過」的 welcome（關著、7 天、total）；Andy 自己改過的設定一律不碰 */
+      const cur = this.q("SELECT on_, days, per FROM grant_defs WHERE id = 'welcome'")[0];
+      const f = JSON.stringify(WELCOME_1027_FEATS);
+      if (cur) { if (!cur.on_ && cur.days === 7 && cur.per === 'total') this.q("UPDATE grant_defs SET feats = ?, per = 'day', days = 14, on_ = 1, updated = ? WHERE id = 'welcome'", f, this.now()); }
+      else this.q("INSERT INTO grant_defs (id, kind, name, feats, per, days, t0, t1, audience, on_, updated) VALUES ('welcome', 'welcome', '新會員體驗', ?, 'day', 14, NULL, NULL, 'free', 1, ?)", f, this.now());
+    }
+    this.setKv('grants_t1027', '1');
   }
   this._grantOk = true;
 };
@@ -2498,6 +2523,13 @@ Hub.prototype.grantWelcome = async function (user, req) {
   /* 刪過帳號、用同一個信箱（含 Gmail 別名）回來 → 不再發 */
   const emh = await this.billHash(grantMailNorm(user.email));
   if (this.q("SELECT 1 FROM benefit_hash WHERE emh = ? AND kind = 'welcome' AND at >= ?", emh, now - BILL_HASH_DAYS * 86400 * 1000).length) return 'used';
+  /* 2026-10-27（tier_plan_1027 5-3 缺口）：取消或退款過的人（bill_flags 或刪帳號後留下的 trial／refund 比對碼）不能再領體驗 */
+  try {
+    const bf = this.billFlags(user.email);
+    if (bf && (bf.trial_used || bf.refund_used)) return 'used';
+    const hk = await this.billHashKinds(user.email);
+    if (hk.has('trial') || hk.has('refund')) return 'used';
+  } catch (e) { /* 查不到帳務旗標不擋註冊 */ }
   /* 同 IP 每天最多 3 份（只存 HMAC，不存原始 IP）*/
   const ip = req && req.headers ? req.headers.get('CF-Connecting-IP') || '' : '';
   const day = tpeDay(now);

@@ -211,10 +211,47 @@
   // ------------------------------------------------------------------ 總覽橫幅＋活動辦法
   const names = (feats) => Object.keys(feats || {}).map((k) => { const f = F() && F().byId(k); return f ? f.name : k; });
   function activePromo() { const now = Date.now(); return ((G.pub && G.pub.promo) || []).find((d) => d.t0 <= now && d.t1 > now) || null; }
+  /* 2026-10-27（Andy 拍板 tier_plan_1027 T-1）：新會員 14 天「體驗額度」橫幅。對外一律叫「體驗額度」並列「不含」清單（法遵 L-6）；
+     只在登入且 welcome 還沒到期時出現，沒有倒數計時器、沒有「最後機會」類字眼（法遵 L-8）。 */
+  const WELCOME_NOT = '四面向資料整理、今日關注、選股名單、四週期同看、分 K、自選擴充、精選全文';
+  function welcomeGrant() { return logged() ? live().find((g) => g.gid === 'welcome') || null : null; }
+  function welcomeBanner(el, v, w) {
+    css();
+    if (!el) {
+      el = document.createElement('div'); el.id = 'grantBar'; el.setAttribute('role', 'note');
+      el.addEventListener('click', (e) => {
+        if (e.target.closest('.gb-x')) { e.stopPropagation(); const q = welcomeGrant(); if (q) ls.set('tw.grantBar.off.welcome.' + q.end, '1'); el.hidden = true; return; }
+        welcomeRules();
+      });
+    }
+    if (el.parentNode !== v || v.firstElementChild !== el) v.insertBefore(el, v.firstChild);
+    const left = Math.max(1, Math.ceil((w.end - Date.now()) / DAY)), n = Object.keys(w.feats || {}).length;
+    const t = `<span class="gb-ic" aria-hidden="true">🎁</span><span class="gb-t" data-welcome><b>體驗額度</b>：${n} 項功能每天各有次數可用，還剩 ${left} 天（到 ${esc(md(w.end - 1))} 為止）；不含 ${esc(WELCOME_NOT)}。免綁卡、到期不扣款</span><span class="gb-r">看明細</span><button type="button" class="gb-x" aria-label="關閉體驗額度橫幅">×</button>`;
+    if (el.dataset.h !== t) { el.innerHTML = t; el.dataset.h = t; }
+    el.dataset.gid = 'welcome'; el.title = '點一下看體驗額度明細'; el.hidden = false;
+  }
+  function welcomeRules() {
+    const w = welcomeGrant(), T = window.TwSub;
+    if (!w || !T || !T.dialog) return;
+    css();
+    const fl = Object.entries(w.feats || {}).map(([k, x]) => { const f = F() && F().byId(k); return `${esc(f ? f.name : k)} 每天 ${esc(x.max)} 次（今天剩 ${esc(x.left)}）`; }).join('、');
+    return T.dialog(`<div class="grules" id="grantRules"><h3>體驗額度</h3><ol>
+      <li>註冊送體驗額度，到 ${esc(fmtFull(w.end - 1))}（臺北時間）為止；實際到期日以此為準。</li>
+      <li>下列功能每天各有次數可用：<span class="gr-f">${fl}</span>。</li>
+      <li>不含：${esc(WELCOME_NOT)}。</li>
+      <li>不綁卡、到期不扣款、不會自動升級，結束後回到註冊會員額度。</li>
+      <li>體驗額度不屬於免費試用，不影響日後購買付費方案之 7 天退款保證。</li>
+      <li>本網站提供之內容為公開資料之整理與統計，不構成任何投資建議。</li></ol>
+      <div class="row2"><button type="button" class="pri" data-close>知道了</button></div></div>`);
+  }
   function banner() {
     const v = document.getElementById('v-overview');
     let el = document.getElementById('grantBar');
     const p = activePromo();
+    if (!p) {
+      const w = welcomeGrant();
+      if (w && v && ls.get('tw.grantBar.off.welcome.' + w.end) !== '1') { welcomeBanner(el, v, w); return; }
+    }
     /* 橫幅放在總覽那一頁（#v-overview）的最上面：換到別頁時整個 view 藏起來，不必另外判斷網址 */
     const off = p && ls.get('tw.grantBar.off.' + p.gid) === '1';
     if (!p || off || !v) { if (el) el.hidden = true; return; }
@@ -279,6 +316,6 @@
   { let rt = 0; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => { if (document.getElementById('grantBar')) banner(); }, 250); }); }
   /* 到期：每分鐘看一次（過期的那一份從畫面拿掉、鎖頭蓋回來）*/
   setInterval(() => { if (G.me && (G.me.grants || []).some((g) => g.end <= Date.now() && !g._gone)) { G.me.grants.forEach((g) => { if (g.end <= Date.now()) g._gone = true; }); paint(); } }, 60000);
-  window.TwGrants = { open, has, extra, use, cardHtml, pending, unitOf, refresh, rules, banner, state, left: leftOf };
+  window.TwGrants = { welcomeRules, open, has, extra, use, cardHtml, pending, unitOf, refresh, rules, banner, state, left: leftOf };
   if (window.TW_ACCOUNT_ON) later();
 })();
