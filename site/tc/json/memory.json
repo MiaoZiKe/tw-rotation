@@ -30,7 +30,7 @@
           ],
           "annual_total_wan": [
             77.0,
-            110
+            120
           ],
           "weekly_hours": [
             50,
@@ -38,7 +38,7 @@
           ],
           "overtime": "偶爾",
           "travel": null,
-          "n": 30,
+          "n": 31,
           "note": "比薪水統計中位數 5.5 萬（2025 資料）；PTT 傳碩士 5.5 萬起未經公司證實；比薪水 2026 有 4 年 120 萬、6 年 105 萬自述（非新人）；第二輪（Dcard／PTT／GoodJob 各分開搜）：輪班設備起薪 5.5 萬起、台南 TCP Probe 7.4 萬、台中一年經驗 6.1 萬；保 14 個月（含年終 2 個月）＋分紅 0～4 個月（11 月發），內推文稱年薪約 18 個月；夜班津貼 +20%；FY26 公司另發每人 100 萬感謝金（工會質疑）；內推文數字可能偏樂觀；Dcard 日期依文章編號推估；bonus_months、annual_total_wan 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples；未逐筆對應的舊彙整：bonus_months=[2, 4]；未逐筆對應的舊彙整：annual_total_wan=[80, 100]；未逐筆對應的舊彙整：travel=不用；部分年薪／年薪月數由同一筆樣本的「底薪×月數」推算（樣本標 derived）",
           "sources": [
             {
@@ -175,6 +175,11 @@
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/262344860",
               "date": "2026-10"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261804490",
+              "date": "2026-07"
             }
           ],
           "confidence": "高",
@@ -828,9 +833,32 @@
               "in_window": true,
               "date_note": "Dcard 頁面發文日期 2026-10-24（b28 批）",
               "comment_sample": true
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261804490",
+              "date": "2026-07",
+              "page_date": "2026-07-13",
+              "date_confirmed": true,
+              "role": "設備工程師(輪班,留言B16)",
+              "grade": null,
+              "unit_detail": null,
+              "years": "0",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 120,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "留言B16：剛拿offer輪班設備，整年不到120萬（上限值，取120）",
+              "in_window": true,
+              "date_note": "Dcard 頁面發文日期 2026-07-13（b29a 批）",
+              "comment_sample": true
             }
           ],
-          "n_stat": 26,
+          "n_stat": 27,
           "degree_diff": "樣本中位數：學士底薪約 55K、碩士約 58K（差約 3K；學士 1 筆、碩士 4 筆）"
         },
         {
@@ -2677,6 +2705,78 @@
               "in_window": true,
               "date_note": "Dcard 頁面發文日期 2025-12-02（b28 批）",
               "comment_sample": true
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/260512773",
+              "date": "2025-12",
+              "page_date": "2025-12-21",
+              "date_confirmed": true,
+              "role": "工程師（碩畢新人，內推文）",
+              "grade": null,
+              "unit_detail": null,
+              "years": "0",
+              "degree": "碩",
+              "base_k": [
+                68,
+                75
+              ],
+              "bonus_months": null,
+              "annual_months": 14,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "原PO（內推文）：碩畢起薪68~75K看學歷、四大/海歸另有簽約金；保底年薪14個月（含2個月年終），分紅0~4個月+RSU依景氣與考績，11月例行調薪；留言B21稱設備輪班缺有55K",
+              "in_window": true,
+              "date_note": "Dcard 頁面發文日期 2025-12-21（b29a 批）",
+              "comment_sample": false
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261804490",
+              "date": "2026-07",
+              "page_date": "2026-07-11",
+              "date_confirmed": true,
+              "role": "工程師(留言B3)",
+              "grade": "E2",
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 120,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "留言B3：E2自述整年約120萬（差不多），回應原PO中位數文；可能含2026一次性特別獎金",
+              "in_window": true,
+              "date_note": "Dcard 頁面發文日期 2026-07-11（b29a 批）",
+              "comment_sample": true
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261804490",
+              "date": "2026-07",
+              "page_date": "2026-07-11",
+              "date_confirmed": true,
+              "role": "工程師(留言B5)",
+              "grade": "E1",
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 70,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 120,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "留言B5：E1月薪70K以上（取70）、整年含IPP約120萬",
+              "in_window": true,
+              "date_note": "Dcard 頁面發文日期 2026-07-11（b29a 批）",
+              "comment_sample": true
             }
           ],
           "sources": [
@@ -2754,10 +2854,20 @@
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/258530036",
               "date": "2025-04"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/260512773",
+              "date": "2025-12"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261804490",
+              "date": "2026-07"
             }
           ],
           "confidence": "低",
-          "n": 48,
+          "n": 51,
           "years": null,
           "base_month_k": [
             60,
@@ -2775,7 +2885,7 @@
           "weekly_hours": null,
           "overtime": null,
           "travel": null,
-          "n_stat": 34,
+          "n_stat": 37,
           "note": null,
           "grade": null
         },

@@ -2444,6 +2444,52 @@
               "in_window": true,
               "date_note": "Dcard 頁面發文日期 2026-10-25（b28 批）",
               "comment_sample": true
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261408388",
+              "date": "2026-05",
+              "page_date": "2026-05-03",
+              "date_confirmed": true,
+              "role": "工程師(SPD1 power架構,offer,原PO)",
+              "grade": null,
+              "unit_detail": "SPD1",
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 52.5,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "原PO offer：工時9:30-20:00（取週52.5）；無薪資數字",
+              "in_window": true,
+              "date_note": "Dcard 頁面發文日期 2026-05-03（b29a 批）",
+              "comment_sample": false
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261408388",
+              "date": "2026-05",
+              "page_date": "2026-05-03",
+              "date_confirmed": true,
+              "role": "工程師(SPD1 效能分析,offer,原PO)",
+              "grade": null,
+              "unit_detail": "SPD1",
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 52.5,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "原PO offer：工時9:30-20:00（取週52.5）；無薪資數字",
+              "in_window": true,
+              "date_note": "Dcard 頁面發文日期 2026-05-03（b29a 批）",
+              "comment_sample": false
             }
           ],
           "sources": [
@@ -2531,10 +2577,15 @@
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/262346039",
               "date": "2026-10"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261408388",
+              "date": "2026-05"
             }
           ],
           "confidence": "低",
-          "n": 39,
+          "n": 41,
           "years": null,
           "base_month_k": [
             80,
@@ -2549,10 +2600,13 @@
             120,
             500
           ],
-          "weekly_hours": null,
-          "overtime": "幾乎不",
+          "weekly_hours": [
+            52.5,
+            52.5
+          ],
+          "overtime": "偶爾",
           "travel": null,
-          "n_stat": 30,
+          "n_stat": 32,
           "note": null,
           "grade": null
         },
@@ -2952,7 +3006,7 @@
           "years": "0-2",
           "base_month_k": [
             82,
-            85
+            92
           ],
           "bonus_months": null,
           "annual_months": [
@@ -2969,7 +3023,7 @@
           ],
           "overtime": "經常",
           "travel": null,
-          "n": 21,
+          "n": 22,
           "note": "網友自述未經查證；僅 Dcard 一篇 offer 文預估 85K 保 14＋分紅，日期不明；舊報導『碩士起薪 4.5 萬、年薪 60～70 萬』明顯過時不採；GoodJob 工時狀況 2.3／5，多則評價稱工時長；第二輪：Dcard VD/DD1 預估 85K 保 14＋分紅、爬文稱常態早 9 晚 9；GoodJob 2025-12 月薪 8.5 萬、每週 45 小時，新人簽約金兩年 50 萬、前兩年年薪約 144 萬；評價稱第一年幾乎沒分紅、分紅很吃景氣；已移除一筆誤植（同篇 80K 為聯發科數字）；未逐筆對應的舊彙整：bonus_months=[5, 5]；部分年薪／年薪月數由同一筆樣本的「底薪×月數」推算（樣本標 derived）",
           "sources": [
             {
@@ -3026,6 +3080,11 @@
               "site": "GoodJob",
               "url": "https://www.goodjob.life/companies/聯詠科技股份有限公司/interview-experiences?p=2#dic-2026-06-3y",
               "date": "2026-06"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/260071743",
+              "date": "2025-10"
             }
           ],
           "confidence": "中",
@@ -3480,9 +3539,35 @@
               "in_window": true,
               "date_note": "Dcard 頁面發文日期 2026-03-16（20261027_0126_b 批）",
               "comment_sample": false
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/260071743",
+              "date": "2025-10",
+              "page_date": "2025-10-19",
+              "date_confirmed": true,
+              "role": "DE(新人價,留言B2-2)",
+              "grade": null,
+              "unit_detail": null,
+              "years": "0",
+              "degree": null,
+              "base_k": [
+                86,
+                92
+              ],
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "留言B2-2：「DE 86-92」K（填區間）",
+              "in_window": true,
+              "date_note": "Dcard 頁面發文日期 2025-10-19（b29a 批）",
+              "comment_sample": true
             }
           ],
-          "n_stat": 12
+          "n_stat": 13
         },
         {
           "unit": "研發 R&D",
@@ -3659,6 +3744,167 @@
               "quote_free_note": "臺南，職務經驗不到 1 年，月薪 8 萬、每週 55 小時",
               "in_window": true,
               "date_note": "WebSearch 摘要標示 2026-07（2026-10-26 補齊批）"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/260071743",
+              "date": "2025-10",
+              "page_date": "2025-10-19",
+              "date_confirmed": true,
+              "role": "SA(新人價,留言B2-2)",
+              "grade": null,
+              "unit_detail": null,
+              "years": "0",
+              "degree": null,
+              "base_k": 80,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "留言B2-2：回答待遇「SA 80000」，新人價；同串原PO面AI/ML演算法(S5)",
+              "in_window": true,
+              "date_note": "Dcard 頁面發文日期 2025-10-19（b29a 批）",
+              "comment_sample": true
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261339833",
+              "date": "2026-04",
+              "page_date": "2026-04-21",
+              "date_confirmed": true,
+              "role": "SA(iVoT BSP,offer,原PO)",
+              "grade": null,
+              "unit_detail": "iVoT BSP",
+              "years": "2",
+              "degree": "碩",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": 14,
+              "annual_wan": null,
+              "weekly_hours": 60,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "原PO offer：聯詠SA新人價×14+分紅（未給底薪數字）；工時粗估09:00-21:00（取週60）；可報加班費；系統廠年資約2年仍核新人價",
+              "in_window": true,
+              "date_note": "Dcard 頁面發文日期 2026-04-21（b29a 批）",
+              "comment_sample": false
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261657235",
+              "date": "2026-06",
+              "page_date": "2026-06-13",
+              "date_confirmed": true,
+              "role": "SA(面試中,原PO)",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 55,
+              "overtime": null,
+              "travel": "需要",
+              "quote_free_note": "原PO（仍在面試，非正式offer）：預期底薪N+14K（N為現職未揭露），整年未知；工時9-8（取週55）；需出差（次數未知）；同文其他offer為瑞鼎/祥碩（不在清單）",
+              "in_window": true,
+              "date_note": "Dcard 頁面發文日期 2026-06-13（b29a 批）",
+              "comment_sample": false
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261011850",
+              "date": "2026-03",
+              "page_date": "2026-03-05",
+              "date_confirmed": true,
+              "role": "SA(留言B12,曾任)",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 50,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "留言B12：待過幾年聯詠SA，一般9-7（取週50）、忙時9-9（週60）；無薪資數字。原PO為聯詠MD SA offer（未給數字），B24稱與工研院薪水差約兩倍",
+              "in_window": true,
+              "date_note": "Dcard 頁面發文日期 2026-03-05（b29a 批）",
+              "comment_sample": true
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261177206",
+              "date": "2026-03",
+              "page_date": "2026-03-26",
+              "date_confirmed": true,
+              "role": "SA(台元某事業部,留言B9)",
+              "grade": null,
+              "unit_detail": "台元某事業部",
+              "years": "1",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": 0,
+              "annual_months": null,
+              "annual_wan": 112,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "留言B9：白嫖三年，第一年「112不到」（上限值，取112）；B9-9稱第一年分紅一包都沒有；B9-10換算112/14≈8萬底薪；B9-7背書台元某事業部SA數據真實",
+              "in_window": true,
+              "date_note": "Dcard 頁面發文日期 2026-03-26（b29a 批）",
+              "comment_sample": true
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261177206",
+              "date": "2026-03",
+              "page_date": "2026-03-26",
+              "date_confirmed": true,
+              "role": "SA(台元某事業部,留言B9)",
+              "grade": null,
+              "unit_detail": "台元某事業部",
+              "years": "2",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 130,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "留言B9：第二年130萬",
+              "in_window": true,
+              "date_note": "Dcard 頁面發文日期 2026-03-26（b29a 批）",
+              "comment_sample": true
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261177206",
+              "date": "2026-03",
+              "page_date": "2026-03-26",
+              "date_confirmed": true,
+              "role": "SA(台元某事業部,留言B9)",
+              "grade": null,
+              "unit_detail": "台元某事業部",
+              "years": "3",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 160,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "留言B9：第三年160萬",
+              "in_window": true,
+              "date_note": "Dcard 頁面發文日期 2026-03-26（b29a 批）",
+              "comment_sample": true
             }
           ],
           "sources": [
@@ -3671,17 +3917,42 @@
               "site": "GoodJob",
               "url": "https://www.goodjob.life/companies/聯詠科技股份有限公司/work-experiences/工時狀況",
               "date": "2026-07"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/260071743",
+              "date": "2025-10"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261339833",
+              "date": "2026-04"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261657235",
+              "date": "2026-06"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261011850",
+              "date": "2026-03"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261177206",
+              "date": "2026-03"
             }
           ],
           "confidence": "低",
-          "n": 2,
+          "n": 9,
           "annual_months": [
             14,
             14
           ],
           "weekly_hours": [
-            55,
-            55
+            50,
+            60
           ],
           "overtime": "經常",
           "years": null,
@@ -3689,10 +3960,16 @@
             80,
             80
           ],
-          "bonus_months": null,
-          "annual_total_wan": null,
-          "travel": null,
-          "n_stat": 2,
+          "bonus_months": [
+            0,
+            0
+          ],
+          "annual_total_wan": [
+            112,
+            160
+          ],
+          "travel": "需要",
+          "n_stat": 9,
           "note": null,
           "grade": null
         },
@@ -4059,6 +4336,144 @@
               "quote_free_note": "留言 B41（非發文者，交大）：五年整包接近 6 位數（約 100 萬，語意略模糊）",
               "date_note": "Dcard 頁面發文日期 2025-03-27（2026-10-26 1923 批，非 Andy 親眼讀）",
               "in_window": false
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/260071743",
+              "date": "2025-10",
+              "page_date": "2025-10-20",
+              "date_confirmed": true,
+              "role": "工程師(留言B26,職務未明)",
+              "grade": null,
+              "unit_detail": null,
+              "years": "1",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 150,
+              "weekly_hours": null,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "留言B26：第一年約150萬，偶爾要加點班；職務未說明，年資標第一年",
+              "in_window": true,
+              "date_note": "Dcard 頁面發文日期 2025-10-20（b29a 批）",
+              "comment_sample": true
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/260097933",
+              "date": "2025-10",
+              "page_date": "2025-10-22",
+              "date_confirmed": true,
+              "role": "SOC部門工程師(原PO)",
+              "grade": null,
+              "unit_detail": "SOC",
+              "years": "2",
+              "degree": "碩",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 45,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "原PO：年資約2年，底薪N（未給數字），工時每天9小時（取週45）；分紅第一包3X~4X萬（一年分4季加總，見B14-1/B21-1）；另拿聯發科WiFi offer底薪N+6K",
+              "in_window": true,
+              "date_note": "Dcard 頁面發文日期 2025-10-22（b29a 批）",
+              "comment_sample": false
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/260097933",
+              "date": "2025-10",
+              "page_date": "2025-10-23",
+              "date_confirmed": true,
+              "role": "SOC工程師(留言B10-3)",
+              "grade": null,
+              "unit_detail": "SOC",
+              "years": "4",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 200,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "留言B10-3：「我們soc 4年200」萬",
+              "in_window": true,
+              "date_note": "Dcard 頁面發文日期 2025-10-23（b29a 批）",
+              "comment_sample": true
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/260097933",
+              "date": "2025-10",
+              "page_date": "2025-10-22",
+              "date_confirmed": true,
+              "role": "工程師(留言B10-2,非SA)",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "留言B10-2：自述非SA、年薪「還在為邁向300努力」（低於300萬，無確切值）；同年資SA朋友近350萬（轉述）；公司依上下文推為聯詠",
+              "in_window": true,
+              "date_note": "Dcard 頁面發文日期 2025-10-22（b29a 批）",
+              "comment_sample": true
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/260097933",
+              "date": "2025-11",
+              "page_date": "2025-11-24",
+              "date_confirmed": true,
+              "role": "工程師(留言B43,職務未明)",
+              "grade": null,
+              "unit_detail": null,
+              "years": "5",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "留言B43：「N滿五年還是有300吧」萬（推估語氣，不填數字）",
+              "in_window": true,
+              "date_note": "Dcard 頁面發文日期 2025-11-24（b29a 批）",
+              "comment_sample": true
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261408388",
+              "date": "2026-05",
+              "page_date": "2026-05-03",
+              "date_confirmed": true,
+              "role": "工程師(ihome bus相關,offer,原PO)",
+              "grade": null,
+              "unit_detail": "ihome",
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 52.5,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "原PO offer：工時9:00-19:30（取週52.5），可能加班到22點；無薪資數字",
+              "in_window": true,
+              "date_note": "Dcard 頁面發文日期 2026-05-03（b29a 批）",
+              "comment_sample": false
             }
           ],
           "sources": [
@@ -4076,22 +4491,35 @@
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/258380931",
               "date": "2025-03"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/260071743",
+              "date": "2025-10"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/260097933",
+              "date": "2025-10"
             }
           ],
           "confidence": "低",
-          "n": 14,
+          "n": 20,
           "weekly_hours": [
-            52,
-            52
+            45,
+            52.5
           ],
-          "overtime": "經常",
+          "overtime": null,
           "years": null,
           "base_month_k": null,
           "bonus_months": null,
           "annual_months": null,
-          "annual_total_wan": null,
+          "annual_total_wan": [
+            150,
+            200
+          ],
           "travel": null,
-          "n_stat": 1,
+          "n_stat": 7,
           "note": null,
           "grade": null
         },
@@ -4287,6 +4715,29 @@
               "in_window": true,
               "date_note": "GoodJob 標題 2025.9.2、面試時間 2025-08",
               "role": "韌體工程師"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261177206",
+              "date": "2026-03",
+              "page_date": "2026-03-29",
+              "date_confirmed": true,
+              "role": "FW工程師(新人,留言B9-26)",
+              "grade": null,
+              "unit_detail": null,
+              "years": "0",
+              "degree": null,
+              "base_k": 79,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "留言B9-26：「聯詠FW起薪79而已」K；B9-27稱面試主管說的底薪略高",
+              "in_window": true,
+              "date_note": "Dcard 頁面發文日期 2026-03-29（b29a 批）",
+              "comment_sample": true
             }
           ],
           "sources": [
@@ -4319,13 +4770,18 @@
               "site": "GoodJob",
               "url": "https://www.goodjob.life/experiences/68b70b46e9e65a4c25c085eb",
               "date": "2025-08"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261177206",
+              "date": "2026-03"
             }
           ],
           "confidence": "中",
-          "n": 6,
+          "n": 7,
           "years": null,
           "base_month_k": [
-            110,
+            79,
             110
           ],
           "bonus_months": null,
@@ -4334,7 +4790,7 @@
           "weekly_hours": null,
           "overtime": null,
           "travel": null,
-          "n_stat": 3,
+          "n_stat": 4,
           "note": null,
           "grade": null
         },
@@ -4707,6 +5163,29 @@
               "quote_free_note": "月薪 (N+9.3k)×14＋分紅",
               "in_window": true,
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2025-08-19"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/259579352",
+              "date": "2025-08",
+              "page_date": "2025-08-19",
+              "date_confirmed": true,
+              "role": "車載產品系統應用工程師A3(高級工程師,offer,原PO)",
+              "grade": "高級工程師",
+              "unit_detail": "車載",
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": 14,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "原PO offer：(N+9.3K)×14+分紅，N為二線IC廠AE現職薪資未揭露",
+              "in_window": true,
+              "date_note": "Dcard 頁面發文日期 2025-08-19（b29a 批）",
+              "comment_sample": false
             }
           ],
           "sources": [
@@ -4717,7 +5196,7 @@
             }
           ],
           "confidence": "低",
-          "n": 1,
+          "n": 2,
           "annual_months": [
             14,
             14
@@ -4729,7 +5208,7 @@
           "weekly_hours": null,
           "overtime": null,
           "travel": null,
-          "n_stat": 1,
+          "n_stat": 2,
           "note": null,
           "grade": null
         },
@@ -6411,6 +6890,29 @@
               "comment_sample": true,
               "in_window": false,
               "date_note": "Dcard 頁面發文日期 2025-01-29（2026-10-26 2321 批）"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261408388",
+              "date": "2026-05",
+              "page_date": "2026-05-03",
+              "date_confirmed": true,
+              "role": "工程師(電視相關,offer,原PO)",
+              "grade": null,
+              "unit_detail": "電視相關",
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 50,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "原PO offer：工時9:00-19:00（取週50）；無薪資數字",
+              "in_window": true,
+              "date_note": "Dcard 頁面發文日期 2026-05-03（b29a 批）",
+              "comment_sample": false
             }
           ],
           "sources": [
@@ -6441,7 +6943,7 @@
             }
           ],
           "confidence": "低",
-          "n": 7,
+          "n": 8,
           "weekly_hours": [
             50,
             50
@@ -6453,7 +6955,7 @@
           "annual_months": null,
           "annual_total_wan": null,
           "travel": null,
-          "n_stat": 2,
+          "n_stat": 3,
           "note": null,
           "grade": null
         },
@@ -7676,6 +8178,29 @@
               "date_confirmed": true,
               "date_note": null,
               "in_window": true
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261339833",
+              "date": "2026-04",
+              "page_date": "2026-04-21",
+              "date_confirmed": true,
+              "role": "工程師(智能研發 AI加速卡Host Driver,offer,原PO)",
+              "grade": null,
+              "unit_detail": "智能研發",
+              "years": "2",
+              "degree": "碩",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": 14,
+              "annual_wan": null,
+              "weekly_hours": 50,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "原PO offer：群聯新人價×14+分紅（未給數字）；工時粗估10:00-20:00（取週50）",
+              "in_window": true,
+              "date_note": "Dcard 頁面發文日期 2026-04-21（b29a 批）",
+              "comment_sample": false
             }
           ],
           "sources": [
@@ -7693,10 +8218,15 @@
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/261470227",
               "date": "2026-05"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261339833",
+              "date": "2026-04"
             }
           ],
           "confidence": "低",
-          "n": 4,
+          "n": 5,
           "overtime": "經常",
           "years": null,
           "base_month_k": [
@@ -7704,11 +8234,17 @@
             92
           ],
           "bonus_months": null,
-          "annual_months": null,
+          "annual_months": [
+            14,
+            14
+          ],
           "annual_total_wan": null,
-          "weekly_hours": null,
+          "weekly_hours": [
+            50,
+            50
+          ],
           "travel": null,
-          "n_stat": 4,
+          "n_stat": 5,
           "note": null,
           "grade": null
         },
