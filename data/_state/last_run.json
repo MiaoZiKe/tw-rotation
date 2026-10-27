@@ -1,25 +1,25 @@
 {
   "steps": {
     "mis.index_minute": {
-      "ok": false,
-      "rows": 0,
-      "seconds": 1.0
-    },
-    "taifex.futures_minute": {
       "ok": true,
-      "rows": 838,
-      "seconds": 5.8
+      "rows": 840,
+      "seconds": 6.2
     },
     "index_intraday": {
-      "stored": 0
+      "stored": 840
+    },
+    "taifex.futures_minute": {
+      "ok": false,
+      "rows": 0,
+      "seconds": 1.6
     },
     "news.collect": {
       "ok": true,
-      "rows": 127,
-      "seconds": 3.2
+      "rows": 137,
+      "seconds": 3.1
     },
     "news": {
-      "stored": 42
+      "stored": 92
     },
     "news.broker_views": {
       "ok": true,
@@ -27,36 +27,36 @@
       "seconds": 0.0
     },
     "broker_views": {
-      "stored": 1
+      "stored": 3
     },
     "mops.material_news": {
       "ok": true,
       "rows": 9,
-      "seconds": 1.6
+      "seconds": 1.5
     },
     "material_news": {
-      "stored": 9
+      "stored": 0
     },
     "macro.intl": {
       "ok": true,
       "rows": 4506,
-      "seconds": 1.7
+      "seconds": 2.0
     },
     "intl_daily": {
-      "stored": 1
+      "stored": 2
     },
     "macro.fred": {
       "ok": true,
       "rows": 15571,
-      "seconds": 3.5
+      "seconds": 3.1
     },
     "macro": {
-      "stored": 2
+      "stored": 0
     },
     "macro.fred_calendar": {
       "ok": true,
       "rows": 24,
-      "seconds": 1.1
+      "seconds": 1.0
     },
     "macro_calendar": {
       "stored": 0
@@ -89,15 +89,20 @@
   "errors": [],
   "empty": [],
   "phase": "news",
-  "taifex_minute_days": {
-    "FUT_N": [
-      "2026-10-22",
-      "2026-10-23"
+  "index_minute_days": {
+    "FUT": [
+      "2026-10-27"
+    ],
+    "OTC": [
+      "2026-10-27"
+    ],
+    "TSE": [
+      "2026-10-27"
     ]
   },
-  "started_at": "2026-10-27T00:24:56.134311+00:00",
-  "finished_at": "2026-10-27T00:37:52.023422+00:00",
-  "duration_seconds": 775.9,
+  "started_at": "2026-10-27T06:17:27.406134+00:00",
+  "finished_at": "2026-10-27T06:31:34.959192+00:00",
+  "duration_seconds": 847.6,
   "trade_date": null,
   "complete": true,
   "freshness": {
@@ -106,8 +111,8 @@
       "inst_daily": {
         "label": "個股三大法人",
         "latest": "2026-10-22",
-        "rows": 2184,
-        "median": 2168.0,
+        "rows": 2214,
+        "median": 2210.5,
         "status": "ok",
         "reason": null
       },
@@ -182,8 +187,8 @@
     },
     {
       "table": "opt_pc",
-      "rows": 441,
-      "latest": "2009-11-30"
+      "rows": 628,
+      "latest": "2010-08-31"
     },
     {
       "table": "index_daily",
@@ -197,7 +202,7 @@
     },
     {
       "table": "inst_daily",
-      "rows": 5307241,
+      "rows": 5480972,
       "latest": "2026-10-22"
     },
     {
@@ -211,18 +216,33 @@
       "latest": "2026-10-21"
     },
     {
+      "table": "paper/ledger",
+      "rows": 0,
+      "latest": "—"
+    },
+    {
+      "table": "paper/satellite",
+      "rows": 0,
+      "latest": "—"
+    },
+    {
+      "table": "paper/e2sat_holdings",
+      "rows": 0,
+      "latest": "—"
+    },
+    {
       "table": "revenue_monthly",
-      "rows": 246471,
+      "rows": 246737,
       "latest": "2026-09"
     },
     {
       "table": "financial_q",
-      "rows": 80834,
+      "rows": 80922,
       "latest": "—"
     },
     {
       "table": "balance_q",
-      "rows": 81146,
+      "rows": 81205,
       "latest": "—"
     },
     {
@@ -242,17 +262,17 @@
     },
     {
       "table": "news",
-      "rows": 7676,
+      "rows": 7768,
       "latest": "2026-10-27"
     },
     {
       "table": "broker_views",
-      "rows": 184,
+      "rows": 187,
       "latest": "2026-10-27"
     },
     {
       "table": "intl_daily",
-      "rows": 42632,
+      "rows": 42634,
       "latest": "2026-10-27"
     },
     {
@@ -302,7 +322,7 @@
     },
     {
       "table": "index_intraday",
-      "rows": 241114,
+      "rows": 241954,
       "latest": "—"
     },
     {
