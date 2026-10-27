@@ -1,0 +1,39 @@
+name: social_style_weekly
+# 每週一台北 09:30：讀 social-snaps 的貼文目錄，重算格式統計，更新 docs/marketing/style_stats_1027.md 的附錄並推回 main。
+on:
+  schedule:
+    - cron: "30 1 * * 1"
+  workflow_dispatch:
+concurrency:
+  group: social-style-weekly
+  cancel-in-progress: false
+permissions:
+  contents: write
+jobs:
+  stats:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - name: 重算統計並更新附錄
+        run: |
+          git fetch --depth=1 origin social-snaps
+          git show FETCH_HEAD:state/posts_catalog.json > /tmp/cat.json
+          python3 scripts/social_style_stats.py /tmp/cat.json > /tmp/out.md
+          F=docs/marketing/style_stats_1027.md
+          python3 - <<'PY'
+          s = open("docs/marketing/style_stats_1027.md", encoding="utf-8").read()
+          head = s.split("## 附錄：完整統計表")[0]
+          import datetime
+          d = (datetime.datetime.utcnow() + datetime.timedelta(hours=8)).strftime("%Y-%m-%d")
+          open("docs/marketing/style_stats_1027.md", "w", encoding="utf-8").write(
+              head + "## 附錄：完整統計表（自動更新於 %s，時段為台北時間）\n\n" % d + open("/tmp/out.md", encoding="utf-8").read())
+          PY
+          git config user.name tw-rotation-bot
+          git config user.email actions@github.com
+          git add "$F"
+          git diff --cached --quiet && { echo "無變化"; exit 0; }
+          git commit -q -m "貼文格式統計每週自動更新 $(TZ=Asia/Taipei date +%F)"
+          for i in 1 2 3; do git pull --rebase -q origin main && git push -q origin HEAD:main && break; sleep 5; done

@@ -159,6 +159,14 @@ def catalog():
                 "product_type": m.get("media_product_type"), "permalink": m.get("permalink"),
                 "metrics": met, "updated": NOW.isoformat(timespec="seconds")}
             n["ig"] += 1
+        # 限動不在 /me/media 裡，另抓（只留 24 小時內的，已過期的 API 不回）
+        for m in paged(base + "/me/stories", 100, access_token=IG_T, limit=50,
+                       fields="id,caption,media_type,media_product_type,permalink,timestamp"):
+            met = metrics(base, m["id"], ["views", "reach", "replies", "shares", "total_interactions"], IG_T)
+            cat["posts"]["ig:" + m["id"]] = {"platform": "ig", "id": m["id"], "time": m.get("timestamp"),
+                "text": m.get("caption") or "", "media_type": "STORY", "product_type": "STORY",
+                "permalink": m.get("permalink"), "metrics": met, "updated": NOW.isoformat(timespec="seconds")}
+            n["ig"] += 1
     if TH_T:
         base = "https://graph.threads.net/v1.0"
         rows = paged(base + "/me/threads", cap, access_token=TH_T, limit=50,

@@ -17,8 +17,8 @@ def feat(p):
     if p["platform"] == "ig" and p.get("product_type") in ("REELS",):
         form = "影片/Reels"
     else:
-        form = {"TEXT_POST": "純文字", "IMAGE": "單圖", "CAROUSEL_ALBUM": "輪播", "VIDEO": "影片/Reels", "REELS": "影片/Reels"}.get(mt, mt or "未知")
-    if re.search(r"(盤前|盤中|盤後)3分鐘|盤後融資融券", t):
+        form = {"TEXT_POST": "純文字", "IMAGE": "單圖", "CAROUSEL_ALBUM": "輪播", "VIDEO": "影片/Reels", "STORY": "限動", "REELS": "影片/Reels"}.get(mt, mt or "未知")
+    if re.search(r"(盤前|盤中|盤後)3分鐘|台股盤前|盤後融資融券", t):
         tpl = "自動模板(盤前/中/後)"
     elif re.search(r"薪資|月薪|年薪|薪水", t):
         tpl = "破圈題材(薪資類)"
