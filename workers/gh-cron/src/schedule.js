@@ -22,7 +22,8 @@ export const SCHEDULE = [
   // 有新資料就重算部署，部署完 social-live 接著判斷盤後貼文齊了沒（齊了就發、發過就跳過）。沒新資料的輪約 1 分鐘收工。
   ...['14:16', '14:46', '15:16'].map((at) => ({ at, days: 'trading', workflow: D, inputs: { phase: 'inst' } })),
   { at: '15:38', days: 'trading', workflow: D, inputs: { phase: 'price' } },
-  ...['16:16', '16:46', '17:16', '17:46', '18:16'].map((at) => ({ at, days: 'trading', workflow: D, inputs: { phase: 'inst' } })),
+  // 上市個股法人只能等 FinMind（證交所開放平台沒有個股法人明細），實測約 17:00～17:40 陸續上架 → 16:46～17:56 每 10 分鐘抓一次
+  ...['16:16', '16:46', '16:56', '17:06', '17:16', '17:26', '17:36', '17:46', '17:56', '18:16'].map((at) => ({ at, days: 'trading', workflow: D, inputs: { phase: 'inst' } })),
   { at: '18:38', days: 'trading', workflow: D, inputs: { phase: 'full' } },
   ...['19:16', '19:46', '20:16', '20:46', '21:16'].map((at) => ({ at, days: 'trading', workflow: D, inputs: { phase: 'inst' } })),
   { at: '21:38', days: 'trading', workflow: D, inputs: { phase: 'full' } },
