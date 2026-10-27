@@ -1,0 +1,113 @@
+# 免費 AI 產圖試跑（Andy 2026-10-28：「找出所有可以免費生成 AI 圖片的方法，並且每個都先生成，讓美編審核」）
+# 手動觸發；產出 commit 到 ai-image-trial 分支 trial/<方法>/，不進 main、不進公開網站。
+name: AI 產圖試跑
+on:
+  workflow_dispatch:
+    inputs:
+      methods:
+        description: "要跑的方法（逗號分隔）"
+        default: "pollinations,cloudflare_flux,cloudflare_sdxl,cpu_sdturbo"
+permissions:
+  contents: write
+concurrency:
+  group: ai-image-trial
+  cancel-in-progress: false
+jobs:
+  trial:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      METHODS: ${{ github.event.inputs.methods }}
+      CF_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CF_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+    steps:
+      - name: 準備
+        run: |
+          pip install -q requests pillow
+          mkdir -p out
+          cat > prompts.py <<'PY'
+          NEG = "no text, no letters, no logo, no watermark, no real landmark buildings"
+          P = {
+           "1_fab": "Photorealistic interior of a bright modern semiconductor wafer fab cleanroom in daylight-white lighting, engineers in white bunny suits, wafer handling robots, clean perspective, " + NEG,
+           "2_desk": "Photorealistic bright daytime office trading desk by large windows, multiple monitors showing only abstract line charts, plants, natural sunlight, " + NEG,
+           "3_city": "Photorealistic bright sunny daytime street view of a generic modern financial district with glass office towers, blue sky, pedestrians, fictional architecture, " + NEG,
+          }
+          PY
+      - name: Pollinations（免金鑰）
+        if: contains(env.METHODS, 'pollinations')
+        continue-on-error: true
+        run: |
+          python - <<'PY'
+          import requests, time, urllib.parse, os, json
+          from prompts import P
+          d="out/pollinations"; os.makedirs(d,exist_ok=True); log=[]
+          for i,(k,p) in enumerate(P.items()):
+              if i: time.sleep(20)
+              url="https://image.pollinations.ai/prompt/"+urllib.parse.quote(p)+"?width=1080&height=1350&nologo=true&model=flux&seed=7"
+              t=time.time()
+              try:
+                  r=requests.get(url,timeout=180)
+                  ok=r.ok and r.headers.get("content-type","").startswith("image")
+                  if ok: open(f"{d}/{k}.jpg","wb").write(r.content)
+                  log.append({"img":k,"ok":ok,"status":r.status_code,"sec":round(time.time()-t,1),"err":"" if ok else r.text[:300]})
+              except Exception as e: log.append({"img":k,"ok":False,"sec":round(time.time()-t,1),"err":str(e)[:300]})
+          json.dump(log,open(f"{d}/log.json","w"),ensure_ascii=False,indent=1); print(log)
+          PY
+      - name: Cloudflare Workers AI
+        continue-on-error: true
+        run: |
+          python - <<'PY'
+          import requests, time, os, json, base64
+          from prompts import P
+          acct=os.environ.get("CF_ACCOUNT_ID"); tok=os.environ.get("CF_API_TOKEN"); M=os.environ["METHODS"]
+          models={"cloudflare_flux":("@cf/black-forest-labs/flux-1-schnell",{"steps":8}),
+                  "cloudflare_sdxl":("@cf/stabilityai/stable-diffusion-xl-base-1.0",{"width":1024,"height":1280,"num_steps":20})}
+          for name,(model,extra) in models.items():
+              if name not in M: continue
+              d=f"out/{name}"; os.makedirs(d,exist_ok=True); log=[]
+              for k,p in P.items():
+                  t=time.time()
+                  try:
+                      r=requests.post(f"https://api.cloudflare.com/client/v4/accounts/{acct}/ai/run/{model}",
+                          headers={"Authorization":f"Bearer {tok}"},json={"prompt":p,**extra},timeout=180)
+                      ct=r.headers.get("content-type","")
+                      if r.ok and ct.startswith("image"): open(f"{d}/{k}.png","wb").write(r.content); ok=True; err=""
+                      elif r.ok and r.json().get("result",{}).get("image"):
+                          open(f"{d}/{k}.jpg","wb").write(base64.b64decode(r.json()["result"]["image"])); ok=True; err=""
+                      else: ok=False; err=r.text[:300]
+                      log.append({"img":k,"ok":ok,"status":r.status_code,"sec":round(time.time()-t,1),"err":err})
+                  except Exception as e: log.append({"img":k,"ok":False,"err":str(e)[:300]})
+              json.dump(log,open(f"{d}/log.json","w"),ensure_ascii=False,indent=1); print(name,log)
+          PY
+      - name: 本機 CPU 跑 SD-Turbo（開源）
+        if: contains(env.METHODS, 'cpu_sdturbo')
+        continue-on-error: true
+        run: |
+          pip install -q --index-url https://download.pytorch.org/whl/cpu torch
+          pip install -q diffusers transformers accelerate
+          python - <<'PY'
+          import time, os, json, torch
+          from diffusers import AutoPipelineForText2Image
+          from prompts import P
+          d="out/cpu_sdturbo"; os.makedirs(d,exist_ok=True); log=[]
+          t0=time.time()
+          pipe=AutoPipelineForText2Image.from_pretrained("stabilityai/sd-turbo",torch_dtype=torch.float32)
+          print("載入秒數",time.time()-t0)
+          for k,p in P.items():
+              t=time.time()
+              try:
+                  img=pipe(prompt=p,num_inference_steps=4,guidance_scale=0.0,width=512,height=640).images[0]
+                  img.save(f"{d}/{k}.png"); log.append({"img":k,"ok":True,"sec":round(time.time()-t,1),"res":"512x640"})
+              except Exception as e: log.append({"img":k,"ok":False,"err":str(e)[:300]})
+          json.dump(log,open(f"{d}/log.json","w"),ensure_ascii=False,indent=1); print(log)
+          PY
+      - name: 推到 ai-image-trial 分支
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"; git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          mkdir -p /tmp/o && cp -r out/. /tmp/o/
+          git fetch origin ai-image-trial && git checkout ai-image-trial || git checkout --orphan ai-image-trial
+          git rm -rq --cached . 2>/dev/null || true
+          find . -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
+          mkdir -p trial && cp -r /tmp/o/. trial/
+          git add trial && git commit -qm "AI 產圖試跑 ${GITHUB_RUN_ID}" && git push origin ai-image-trial
