@@ -263,16 +263,16 @@ jobs:
           done
           echo "::warning::盤前消息推回 main 失敗（不影響已發的貼文）"
 
-      # ★ 2026-10-27 Andy：「有問題就Mail通知」→ 盤前晚到開盤後才發（late.txt）也把這一輪標紅；
+      # ★ 2026-10-27 Andy：「有問題就Mail通知」→ 盤前晚到開盤後才發、昨日事件 0 則（alert.txt）也把這一輪標紅；
       #   任何一步紅燈，GitHub 都會寄「Run failed」信到 MiaoZiKe 帳號的信箱（github.com/settings/notifications → Actions 要勾 Email）。
       #   下一步「寫回 posted.json」是 always()，這一步標紅不影響防重複紀錄。
-      - name: 有問題寄信通知（晚到照發也通知）
+      - name: 有問題寄信通知（晚到照發、昨日事件 0 則也通知）
         if: always() && steps.snap.outputs.rc == '0'
         run: |
-          F="${{ steps.snap.outputs.out }}/late.txt"
+          F="${{ steps.snap.outputs.out }}/alert.txt"
           if [ -f "$F" ]; then
             echo "::error::$(cat "$F")"
-            { echo "### ⚠ 盤前貼文晚到"; echo ""; cat "$F"; } >> "$GITHUB_STEP_SUMMARY"
+            { echo "### ⚠ 盤前貼文有狀況"; echo ""; cat "$F"; } >> "$GITHUB_STEP_SUMMARY"
             exit 1
           fi
 

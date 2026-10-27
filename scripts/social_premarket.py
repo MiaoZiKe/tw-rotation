@@ -668,8 +668,12 @@ def collect(target: date, intl, price, intra, ohlc, news, cal) -> dict:
         t = ohlc[(ohlc["symbol"].astype(str) == "TSE") & (ohlc["date"].astype(str).str[:10] < target.isoformat())]
         if not t.empty:
             last_td = str(t["date"].astype(str).str[:10].max())
-    start = us_close_tpe(us["date"]) if us["date"] else datetime.combine(target - timedelta(days=1), dtime(5, 0), tzinfo=TPE)
     end = datetime.combine(target, OPEN_TPE, tzinfo=TPE)
+    # 2026-10-27 事故：窗口只從美股收盤（台北 04:00）算起，而新聞 05:07 才抓一次 → 正式那篇「昨日事件」0 則、整段消失。
+    # 「昨日事件」＝開盤前 24 小時內的消息；美股收盤若更早（例如連假），從美股收盤算起
+    start = end - timedelta(hours=24)
+    if us["date"]:
+        start = min(start, us_close_tpe(us["date"]))
     return {"target": target.isoformat(), "us": us, "adr": adr, "tx": tx, "night": night, "last_td": last_td,
             "closure": closure_note(last_td, target), "news_window": [start.isoformat(), end.isoformat()],
             "news": pick_news(news, start, end), "events": upcoming_events(target, cal),
@@ -1183,7 +1187,7 @@ def main() -> int:
         return 10
     # 2026-10-27 Andy：「開盤才需要發布，台股沒開美股就不用發」→ 排程跑的那天本身要是台股交易日；休市日不發（等下一個交易日早上）。
     # 2026-10-27 Andy：「排程晚到 08:45 以後才跑也不發 不能不發，有問題就Mail通知」→ 今天是交易日、只是晚到開盤後：照發今天這篇，
-    # 並在 out/late.txt 留紀錄，workflow 看到就把這一輪標紅 → GitHub 寄失敗通知信給 Andy。
+    # 並在 out/alert.txt 留紀錄，workflow 看到就把這一輪標紅 → GitHub 寄失敗通知信給 Andy。
     late = False
     if not args.date and not args.force and target != now.date():
         if not is_tw_trading_day(now.date(), hol):
@@ -1258,8 +1262,13 @@ def main() -> int:
                 "threads": {"text": text, "images": threads}, "story": stories, "premarket_news": pn}
     (out / "manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2), "utf-8")
     (out / "caption.txt").write_text(text + "\n", "utf-8")
+    alerts = []      # 2026-10-27 Andy：「有問題就Mail通知」→ 寫進 alert.txt，workflow 把這一輪標紅 → GitHub 寄信
     if late:
-        (out / "late.txt").write_text(f"盤前貼文排程晚到：{now:%Y-%m-%d %H:%M}（台北）才開始跑，已過 08:45 開盤，仍照發。\n", "utf-8")
+        alerts.append(f"盤前貼文排程晚到：{now:%Y-%m-%d %H:%M}（台北）才開始跑，已過 08:45 開盤，仍照發。")
+    if not pn["items"]:
+        alerts.append(f"盤前貼文「昨日事件」0 則（消息時間窗 {D['news_window'][0][:16]}～{D['news_window'][1][:16]}），這篇少了昨日事件那張圖與那段文案。")
+    if alerts:
+        (out / "alert.txt").write_text("\n".join(alerts) + "\n", "utf-8")
     print(f"[premarket] manifest：{out / 'manifest.json'}；文案 {len(text)} 字；消息 {len(pn['items'])} 則")
     return 0
 
