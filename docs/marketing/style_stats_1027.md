@@ -51,7 +51,7 @@
 3. 每週一（建議加進排程）：`git fetch origin social-snaps && git show FETCH_HEAD:state/posts_catalog.json > cat.json && python3 scripts/social_style_stats.py cat.json > 附錄`，貼進本文附錄並更新第一節結論。排程進 workflow 需要另排工，尚未做。
 4. 樣本滿 5 篇的類別才會取消「樣本不足」標註。
 
-## 附錄：完整統計表（統計時間 2026-10-27，時段為台北時間）
+## 附錄：完整統計表（自動更新於 2026-10-27，時段為台北時間）
 
 ## Threads（共 15 篇）
 
