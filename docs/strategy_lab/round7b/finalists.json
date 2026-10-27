@@ -1,0 +1,5 @@
+[
+ "{\"N\": 5, \"fam\": \"trust\", \"mf\": \"br200\", \"rebal\": \"Q\", \"size\": \"equal\", \"sl\": null}",
+ "{\"N\": 5, \"fam\": \"trust\", \"mf\": \"br200\", \"rebal\": \"Q\", \"size\": \"equal\", \"sl\": 0.2}",
+ "{\"N\": 5, \"fam\": \"foreign\", \"mf\": \"br200\", \"rebal\": \"Q\", \"size\": \"equal\", \"sl\": null}"
+]

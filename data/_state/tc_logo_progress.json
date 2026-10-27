@@ -1,0 +1,13 @@
+{
+ "at": "2026-10-26T23:55:50.245819+00:00",
+ "done": true,
+ "pending": 0,
+ "attempted": 0,
+ "counts": {},
+ "domains": 101,
+ "have": 65,
+ "coverage": 0.644,
+ "next_due": "2026-11-26",
+ "seconds": 0.0,
+ "failures": []
+}
