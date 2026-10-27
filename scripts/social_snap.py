@@ -2053,13 +2053,7 @@ def main() -> int:
                         lst_.insert(pos_, fn_)
                     except Exception as exc:  # noqa: BLE001
                         log("  ⚠ ETF 買超排名畫失敗（不擋發文）：", str(exc)[:120])
-            if stories and not args.no_native:     # 限動最後一張：「點個人簡介的連結」（API 不能加連結貼紙，2026-10-26 Andy 選 C）
-                try:
-                    dl_ = (f"{DATE_LABEL} 12:00".strip() if KIND == "intraday" else DATE_LABEL)
-                    report.append(NAT.render(browser, "outro", "story", dict(kind=KIND, title="完整資料在網站", date=dl_), out / "story_outro.png"))
-                    stories.append("story_outro.png")
-                except Exception as exc:  # noqa: BLE001
-                    log("  ⚠ 限動結尾頁畫失敗（不擋發文）：", str(exc)[:120])
+            # 2026-10-27 Andy：「IG 限時動態這頁都拿掉」→ 不再加結尾頁「完整資料在網站」（social_native.py 的 outro 保留不用）
             browser.close()
         if fast_fail:      # 快速路徑原生繪製失敗：退回舊流程（開網站截圖，失敗的卡用截圖排版），整輪重跑一次
             log("  ⚠ 快速路徑原生繪製失敗：", "、".join(sorted(set(fast_fail))), "→ 改用 --no-fast（網站截圖）重跑")
