@@ -105,6 +105,8 @@ jobs:
             git fetch --depth=1 origin social-snaps
             # 盤後融資的鍵是「融資資料日」，要截之前才知道 → 把發布紀錄交給 social_snap.py 的 --posted-json 自己比
             git show FETCH_HEAD:state/posted.json > "$RUNNER_TEMP/posted.json" 2>/dev/null || echo '{}' > "$RUNNER_TEMP/posted.json"
+            # 近幾天落點紀錄（2026-10-27）：貼文網址「同一落點連續 2 天就換」靠它
+            git show FETCH_HEAD:state/landing_recent.json > "$RUNNER_TEMP/landing_recent.json" 2>/dev/null || echo '{}' > "$RUNNER_TEMP/landing_recent.json"
             if [ "${{ steps.kind.outputs.kind }}" != "close" ]; then exit 0; fi
             KEY="close-$(date '+%F')"
             if git show FETCH_HEAD:state/posted.json 2>/dev/null | grep -q "\"$KEY\""; then
@@ -157,15 +159,17 @@ jobs:
           if [ "${{ inputs.force }}" = "true" ] || [ "${{ inputs.live_test }}" = "true" ]; then FORCE="--force"; fi
           POSTED=""
           if [ -f "$RUNNER_TEMP/posted.json" ] && [ "${{ inputs.live_test }}" != "true" ]; then POSTED="--posted-json $RUNNER_TEMP/posted.json"; fi
+          LAND=""
+          if [ -f "$RUNNER_TEMP/landing_recent.json" ]; then LAND="--landing-json $RUNNER_TEMP/landing_recent.json"; fi
           set +e
           if [ "${{ steps.kind.outputs.kind }}" = "premarket" ]; then
             # 盤前：讀 checkout 的資料湖（data/），不需要網站；融資 3 張讀正式站 market_fut.json
-            python scripts/social_premarket.py --out "$OUT" $FORCE $POSTED --save-site
+            python scripts/social_premarket.py --out "$OUT" $FORCE $POSTED $LAND --save-site
           else
             SKIP=""
             if [ "${{ inputs.live_test }}" = "true" ]; then SKIP="--skip-live"; fi      # 測試在盤後時段跑，沒有即時報價
             python scripts/social_snap.py --kind "${{ steps.kind.outputs.kind }}" --out "$OUT" \
-              --serve site --data-url https://miaozike.github.io/tw-rotation/data,https://tw-rotation.pages.dev/data,https://liguligu-puipui.com/data --spoof-origin $FORCE $POSTED $SKIP
+              --serve site --data-url https://miaozike.github.io/tw-rotation/data,https://tw-rotation.pages.dev/data,https://liguligu-puipui.com/data --spoof-origin $FORCE $POSTED $LAND $SKIP
           fi
           RC=$?
           set -e
@@ -288,6 +292,8 @@ jobs:
           git archive FETCH_HEAD | tar -x -C "$WORK"
           mkdir -p "$WORK/state"
           cp "$OUT/posted.json" "$WORK/state/posted.json"
+          # 這一輪真的發了，才把選到的落點記下（dry-run 與測試不會走到這裡）
+          if [ -f "$OUT/landing_recent.json" ]; then cp "$OUT/landing_recent.json" "$WORK/state/landing_recent.json"; fi
           cd "$WORK"
           git init -q
           git checkout -q --orphan social-snaps

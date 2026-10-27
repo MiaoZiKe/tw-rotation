@@ -300,3 +300,16 @@ def test_今日焦點描述不截半句():
     assert sp._desc("外資單日狂賣台股3025.55億元創紀錄，主因美國CPI高於預期。&#10;野村統計", 60) == "外資單日狂賣台股3025.55億元創紀錄，主因美國CPI高於預期"
     assert sp._clause("外資狂賣3025億元台股不妙？野村估明年EPS成長29%", 30) == "外資狂賣3025億元台股不妙？"
     assert sp._clause("川普任內汽油均價超越拜登時期 柴油價格創歷史新高 期中選舉壓力加劇", 30) == "川普任內汽油均價超越拜登時期"
+
+
+def test_etf_exdiv_soon_熱門ETF七天內除息():
+    df = pd.DataFrame([
+        {"code": "00919", "ex_date": "2026-11-03"}, {"code": "00919", "ex_date": "2026-11-03"},    # 重複列只算一次
+        {"code": "0056", "ex_date": "2026-11-10"},        # 超過 7 天
+        {"code": "00999A", "ex_date": "2026-11-02"},      # 不在熱門清單
+        {"code": "00878", "ex_date": "2026-10-27"},       # 已過
+    ])
+    out = sp.etf_exdiv_soon(date(2026, 10, 28), df)
+    assert out == ["00919 群益台灣精選高息 11/03"]
+    assert sp.etf_exdiv_soon(date(2026, 10, 28), pd.DataFrame(columns=["code", "ex_date"])) == []
+    assert sp.etf_exdiv_soon(date(2026, 10, 28), pd.DataFrame([{"x": 1}])) == []       # 欄位不對 → 空，不炸貼文

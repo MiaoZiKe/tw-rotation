@@ -85,6 +85,8 @@ Andy 2026-09-27：「使用者透過 google 登入設定，目的是能紀錄線
 
 **漏斗分來源**：以上六個事件除了全站合計（`ev:<事件>`），另寫一份細項事件（頁面 `other`、元件 `fn.<事件>`、細項＝來源名，沒來源為 `direct`），
 管理區「流量觀測」的「各來源漏斗」卡就是讀這份。
+**漏斗依功能（2026-10-27 深層連結補強）**：同樣六個事件再寫一份 `fx.<事件>`（頁面 `other`，細項＝功能碼）。功能碼＝`?u=` 第二段經 `SRC_SLOT` 轉出的詞（`diagram3d`、`etf_div`、`earnings`、`ev_fomc`…），存在 `src.c`、去掉結尾 `_yyyymmdd`；只認貼文（`m=post`），utm 來源或沒有功能碼的記 `none`。
+前端 `account.js` 的 `srcFunc` 與 Worker 的 `funcOf` 是同一條規則；`signup`／`trial_start`／`paid` 由 Worker 依帳號的首次來源寫 `fx.*`。因為 `none` 也記，「依功能」各列加總＝全站合計，註冊率分母與「依平台」一致（註冊 ÷ 進站，註冊大於進站顯示「—」，不超過 100%）。管理區漏斗卡右上角「依平台／依功能」切換。
 **來源參數**：`utm_source`／`utm_medium`／`utm_campaign`／`utm_content`，或自動發文的短參數 `?u=<平台>-<時段>-<yyyymmdd>`（例 `th-id-20261027`，平台代碼 th＝Threads、ig＝Instagram，時段 pm 盤前、id 盤中、cl 盤後、mg 融資融券）。
 首次來源存在瀏覽器 `localStorage`（`tw.src`），第一次登入後送 `/v1/me/src` 寫進帳號一欄（`users.src`，只寫一次）；DNT／GPC 開著完全不讀不存不送。
 

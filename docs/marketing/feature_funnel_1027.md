@@ -267,3 +267,11 @@
 1. 本週先不等程式：**今晚（10/27）20:30 起**，由 GPT 幫手依第三節排程手動發 1 篇「產業鏈剖析圖 2D」，網址手寫 `https://liguligu-puipui.com/?u=th-f2d-20261027#industry/semiconductor`，其他照舊。
 2. 同時開工 4.4 的 A＋B（約 3～4 小時），讓 `?u=` 功能碼在後台看得見。
 3. 第 2 週末照第六節判準看第一份週報。
+
+---
+
+## 補充（2026-10-27，Andy「照建議，全部執行」）：深層連結三個已知限制已補
+
+1. **漏斗依功能分組**：Worker 多寫 `fx.<事件>`（細項＝功能碼，沒有記 `none`），管理區漏斗卡右上角「依平台／依功能」切換；各欄加總＝全站合計、註冊率不超過 100%。見 `docs/account_analytics.md`。
+2. **落點連續 2 天就換**：發文流程把落點存到 social-snaps 分支 `state/landing_recent.json`（真的發布才寫回），`social_snap.py`／`social_premarket.py` 以 `--landing-json` 讀入。
+3. **盤前 ETF 除息導 #etf/cal**：盤前讀資料湖 `etf_dividend_events`（只讀），未來 7 天內有熱門 ETF（`social_premarket.py` 的 `POPULAR_ETFS`，人工清單可改）除息就導 `#etf/cal`；總經事件（FOMC／CPI／財報）優先。

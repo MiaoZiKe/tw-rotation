@@ -165,3 +165,34 @@ def test_route_ok_白名單與網址格式():
     assert u == "https://liguligu-puipui.com/?u=th-id-20261027#industry/semiconductor" and u.index("?u=") < u.index("#")
     assert ss.link_url("close", "20261027", route="pricing") == "https://liguligu-puipui.com/?u=th-cl-20261027"      # 不在白名單 → 首頁
     assert ss.link_url("premarket", "20261029", func="f3d", route="etf/cal").endswith("?u=th-f3d-20261029#etf/cal")
+
+
+# ---- 2026-10-27 近幾天落點記憶：state/landing_recent.json 讓「同一落點連續 2 天就換」真正生效
+def test_landing_recent_落點連兩天會換並寫檔(tmp_path):
+    ss.CHOSEN.clear()
+    f = tmp_path / "in.json"
+    c = {"leaders": ["晶圓代工", "航運"]}
+    ss.load_recent(None)
+    first = ss.landing_route("intraday", "20261026", c)
+    f.write_text(__import__("json").dumps({"intraday": [{"d": "20261024", "r": first}, {"d": "20261025", "r": first}]}), "utf-8")
+    ss.load_recent(f)
+    assert ss.RECENT["intraday"] == [first, first]
+    assert ss.landing_route("intraday", "20261026", c) != first          # 已連 2 天 → 換
+    ss.save_recent(tmp_path)
+    saved = __import__("json").loads((tmp_path / "landing_recent.json").read_text("utf-8"))
+    assert saved["intraday"][-1]["d"] == "20261026" and len(saved["intraday"]) == 3
+    # 同一天重跑：今天自己那一筆不算「近幾天」
+    f.write_text(__import__("json").dumps(saved), "utf-8")
+    ss.load_recent(f)
+    again = ss.landing_route("intraday", "20261026", c)
+    assert again == saved["intraday"][-1]["r"]
+    ss.save_recent(tmp_path)
+    assert len(__import__("json").loads((tmp_path / "landing_recent.json").read_text("utf-8"))["intraday"]) == 3
+    ss.load_recent(None)
+    ss.CHOSEN.clear()
+    assert ss.pick_landing("intraday", c)[0] == first                      # 清掉記憶後不受影響
+
+
+def test_pick_landing_盤前熱門ETF除息導etf_cal():
+    assert ss.pick_landing("premarket", {"etf_div": ["00919 群益台灣精選高息 11/03"]})[0] == "etf/cal"
+    assert ss.pick_landing("premarket", {"events": ["FOMC 利率決議"], "etf_div": ["0056 x 11/03"]})[0] == "earnings"     # 總經事件優先

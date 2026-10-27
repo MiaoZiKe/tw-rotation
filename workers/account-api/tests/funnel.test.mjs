@@ -58,3 +58,27 @@ test('前端送的漏斗事件白名單收得下', async () => {
   assert.equal(r.s, 200);
   assert.equal(usage(db, 'ev:checkout_click'), 2); assert.equal(e2(db, 'fn.land', 'threads'), 1);
 });
+
+/* 2026-10-27 依功能分組：?u= 第二段（src.c 去掉 _yyyymmdd）成為 fx.<事件> 的細項；沒有功能碼記 none，各列加總＝全站合計 */
+test('依功能：註冊／體驗／付費帶功能碼（fx.*），utm 與無來源記 none', async () => {
+  const { hub, db } = makeHub(env());
+  const t1 = await mkUser(hub, db, 'f1', clock - 1000);
+  await post(hub, '/v1/me/src', { t: t1, src: { s: 'threads', m: 'post', c: 'diagram3d_20261028' } });
+  assert.equal(e2(db, 'fx.signup', 'diagram3d'), 1); assert.equal(e2(db, 'fn.signup', 'threads'), 1);
+  hub.funnelPaid('f1');
+  assert.equal(e2(db, 'fx.paid', 'diagram3d'), 1);
+  const t2 = await mkUser(hub, db, 'f2', clock - 1000);
+  await post(hub, '/v1/me/src', { t: t2, src: { s: 'ig_bio', m: 'profile', c: 'spring_sale' } });      // utm 活動名不是功能碼
+  const t3 = await mkUser(hub, db, 'f3', clock - 1000);
+  await post(hub, '/v1/me/src', { t: t3, src: {} });
+  assert.equal(e2(db, 'fx.signup', 'none'), 2);
+  const sum = db.prepare("SELECT SUM(n) AS n FROM ev2 WHERE comp = 'fx.signup'").get().n;
+  assert.equal(sum, usage(db, 'ev:signup'));      // 依功能加總＝全站合計
+});
+
+test('依功能：前端送的 fx.* 細項收得下', async () => {
+  const { hub, db } = makeHub(env());
+  const r = await post(hub, '/v1/beat', { sid: 'sidFUNNEL0002', r: 'overview', ev: { 'ev:land': 1 }, e2: [['other', 'fx.land', 'etf_div', 1], ['other', 'fx.pricing_view', 'none', 1]] });
+  assert.equal(r.s, 200);
+  assert.equal(e2(db, 'fx.land', 'etf_div'), 1); assert.equal(e2(db, 'fx.pricing_view', 'none'), 1);
+});

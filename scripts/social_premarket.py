@@ -684,6 +684,28 @@ def collect(target: date, intl, price, intra, ohlc, news, cal) -> dict:
             "ta": {k: {"rows": ta_rows(v["k"]), "ma": ma_values(v["k"])} for k, v in (("tx", tx), ("adr", adr)) if not v.get("missing")}}
 
 
+# 熱門 ETF（人工清單，Andy 可改）：高股息與市值型的代表；除息日從資料湖 etf_dividend_events 讀，不抓取
+POPULAR_ETFS = {"0050": "元大台灣50", "0056": "元大高股息", "006208": "富邦台50", "00878": "國泰永續高股息", "00919": "群益台灣精選高息",
+                "00929": "復華台灣科技優息", "00940": "元大台灣價值高息", "00713": "元大台灣高息低波", "00900": "富邦特選高股息30",
+                "00939": "統一台灣高息動能", "00981A": "統一台股增長", "00991A": "復華台灣未來50"}
+
+
+def etf_exdiv_soon(target: date, df: pd.DataFrame | None = None, days: int = 7) -> list[str]:
+    """目標日起 days 天內（含當天）熱門 ETF 的除息：回 ["00919 群益台灣精選高息 10/20", ...]（依日期）；讀不到資料就回空，不影響貼文。"""
+    try:
+        if df is None:
+            from pipeline.util import store
+            df = store.read("etf_dividend_events")
+        if df is None or df.empty:
+            return []
+        end = (target + timedelta(days=days)).isoformat()
+        d = df.assign(cc=df["code"].astype(str), xx=df["ex_date"].astype(str).str[:10])
+        d = d[d["cc"].isin(POPULAR_ETFS) & (d["xx"] >= target.isoformat()) & (d["xx"] <= end)].drop_duplicates(subset=["cc", "xx"]).sort_values(["xx", "cc"])
+        return [f"{r.cc} {POPULAR_ETFS[r.cc]} {r.xx[5:7]}/{r.xx[8:10]}" for r in d.itertuples()]
+    except Exception:  # noqa: BLE001
+        return []
+
+
 def load_lake(target: date) -> tuple:
     from pipeline.util import store
     ys = sorted({d.year for d in (target, target - timedelta(days=270), target - timedelta(days=560))})   # MA240＋半年 K 棒約需 365 個交易日
@@ -1160,7 +1182,7 @@ def caption(D: dict, ymd: str, max_len: int = ss.THREADS_MAX) -> str:
     標題 → 📌 今日焦點（一則一行，美股＋至少 5 則消息，每則短標題＋一句描述）→ hashtag → 👉 連結。
     Threads 一則 500 字放不下盤面解讀與融資，那兩段改成同一篇底下的第一則回覆（caption_reply）。
     超過字數：先縮描述長度，最後才減則數（不少於 5 則，除非描述已經全拿掉）。"""
-    tail = [HASHTAGS, *ss.link_lines("premarket", ymd, route=ss.pick_landing("premarket", {"events": [e["name"] for e in D.get("events") or []], "reads": D.get("reads") or []})[0])]      # 2026-10-27 Andy：「留言『消息』這句都先拿掉」
+    tail = [HASHTAGS, *ss.link_lines("premarket", ymd, route=ss.landing_route("premarket", ymd, {"events": [e["name"] for e in D.get("events") or []], "reads": D.get("reads") or [], "etf_div": D.get("etf_div") or []}))]      # 2026-10-27 Andy：「留言『消息』這句都先拿掉」
     head = [f"🌅 盤前3分鐘 {md(pd.Timestamp(D['target']).date())}"]      # 2026-10-26 Andy：「標題盤前改盤前3分鐘」
     txt = ""
     for kn, tl, dl in ((5, 30, 48), (5, 30, 40), (5, 30, 32), (5, 30, 26), (5, 26, 20), (5, 26, 0), (4, 26, 0), (3, 22, 0)):
@@ -1237,10 +1259,12 @@ def main() -> int:
     ap.add_argument("--date", default="", help="盤前的目標開盤日 YYYY-MM-DD（預設＝下一個台股開盤日）")
     ap.add_argument("--frame", default="light", choices=list(ss.FRAME))
     ap.add_argument("--force", action="store_true", help="非交易日／資料舊／已發過也照產（示範用，不可用在發布）")
+    ap.add_argument("--landing-json", default="", help="近幾天落點紀錄 landing_recent.json（social-snaps 分支 state/）")
     ap.add_argument("--posted-json", default="", help="social-snaps 的 state/posted.json；premarket-<目標日> 已在裡面就不產（結束碼 10）")
     ap.add_argument("--max-stale-days", type=int, default=5, help="美股收盤日距目標日超過幾天就不發")
     ap.add_argument("--save-site", action="store_true", help="把今日焦點寫進 site/articles/premarket.json（精選文章「盤前消息」分頁）")
     args = ap.parse_args()
+    ss.load_recent(args.landing_json)
 
     hol = load_holidays()
     now = datetime.now(TPE)
@@ -1271,6 +1295,7 @@ def main() -> int:
 
     lake = load_lake(target)
     D = collect(target, *lake)
+    D["etf_div"] = etf_exdiv_soon(target)      # 2026-10-27：未來 7 天有熱門 ETF 除息 → 貼文網址導 #etf/cal
     if not D["news"] and args.force:      # 示範用（美股還沒收盤、消息時間窗在未來）：改抓「現在往前 24 小時」的消息
         D["news"] = pick_news(lake[4], now - timedelta(hours=24), now)
         D["news_window"] = [(now - timedelta(hours=24)).isoformat(), now.isoformat()]
@@ -1325,6 +1350,7 @@ def main() -> int:
     manifest = {"kind": KIND, "taken_at": now.isoformat(timespec="seconds"), "data_date": target.isoformat(), "slot_key": key,
                 "threads": {"text": text, "images": threads, "reply": reply}, "story": stories, "premarket_news": pn}
     (out / "manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2), "utf-8")
+    ss.save_recent(out)      # 這一輪選的落點寫進 <out>/landing_recent.json，工作流發布成功才寫回 social-snaps
     (out / "caption.txt").write_text(text + "\n\n--- 回覆 ---\n" + reply + "\n", "utf-8")
     alerts = []      # 2026-10-27 Andy：「有問題就Mail通知」→ 寫進 alert.txt，workflow 把這一輪標紅 → GitHub 寄信
     if late:

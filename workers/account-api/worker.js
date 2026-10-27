@@ -2770,7 +2770,7 @@ Hub.prototype.trackBatch = async function (req, b) {
    · 註冊（signup）：帳號建立 15 分鐘內第一次送來 → 算一次註冊，歸在該來源（沒來源＝direct）。舊會員第一次送來只標記「已處理」，不算註冊。
    · 體驗開始（trial_start）：註冊當下若拿到「新會員體驗」（grants 有 welcome）才算。
    · 付費（paid）：pay.js 第一次開通付費方案時呼叫 funnelPaid，來源取自 users.src。
-   · 計數同時寫 usage（ev:<事件>，全站合計）與 ev2（頁面 other、元件 fn.<事件>、細項＝來源），管理區「流量觀測」的漏斗卡讀這兩處。
+   · 計數同時寫 usage（ev:<事件>，全站合計）與 ev2（頁面 other、元件 fn.<事件>、細項＝來源；另寫 fx.<事件>、細項＝功能碼，供管理區「依功能」切換），管理區「流量觀測」的漏斗卡讀這兩處。
    · DNT／GPC：前端根本不送，所以這裡不需要判斷。
    ============================================================================ */
 const SRC_RE = /^[A-Za-z0-9_.-]{1,40}$/;
@@ -2779,16 +2779,24 @@ Hub.prototype.funnelInit = function () {
   if (!this.q('PRAGMA table_info(users)').some((c) => c.name === 'src')) this.q('ALTER TABLE users ADD COLUMN src TEXT');
   this._funnelOk = true;
 };
-Hub.prototype.funnelBump = function (e, src) {
-  const day = tpeDay(this.now()), s = SRC_RE.test(src || '') ? String(src).slice(0, 24) : 'direct';
+/* 功能碼（2026-10-27 深層連結）：?u= 第二段，前端存成 src.c（例 diagram3d_20261028）；去掉結尾 _yyyymmdd 就是功能碼。
+   只認貼文（m=post），utm_campaign 是自由字串不算功能；沒有就記 none，這樣「依功能」各列加總＝全站合計，註冊率分母跟「依平台」一致。 */
+const funcOf = (j) => {
+  if (!j || j.m !== 'post' || !j.c) return 'none';
+  const f = String(j.c).replace(/_\d{8}$/, '').toLowerCase();
+  return /^[a-z0-9_]{1,24}$/.test(f) ? f : 'none';
+};
+Hub.prototype.funnelBump = function (e, src, func) {
+  const day = tpeDay(this.now()), s = SRC_RE.test(src || '') ? String(src).slice(0, 24) : 'direct', f = /^[a-z0-9_]{1,24}$/.test(func || '') ? func : 'none';
+  this.q("INSERT INTO ev2 (day, page, comp, detail, n) VALUES (?, 'other', ?, ?, 1) ON CONFLICT(day, page, comp, detail) DO UPDATE SET n = n + 1", day, 'fx.' + e, f);
   this.q('INSERT INTO usage (day, k, n) VALUES (?, ?, 1) ON CONFLICT(day, k) DO UPDATE SET n = n + 1', day, 'ev:' + e);
   this.q("INSERT INTO ev2 (day, page, comp, detail, n) VALUES (?, 'other', ?, ?, 1) ON CONFLICT(day, page, comp, detail) DO UPDATE SET n = n + 1", day, 'fn.' + e, s);
 };
 Hub.prototype.funnelPaid = function (uid) {
   this.funnelInit();
   const u = this.q('SELECT src FROM users WHERE uid = ?', uid)[0];
-  let s = 'direct'; try { const j = JSON.parse((u && u.src) || 'null'); if (j && j.s) s = j.s; } catch (e) { /* 壞資料當 direct */ }
-  this.funnelBump('paid', s);
+  let s = 'direct', f = 'none'; try { const j = JSON.parse((u && u.src) || 'null'); if (j && j.s) { s = j.s; f = funcOf(j); } } catch (e) { /* 壞資料當 direct */ }
+  this.funnelBump('paid', s, f);
 };
 Hub.prototype.subRoutes['/v1/me/src'] = async function (req, b) {
   const v = await this.auth(req, b);
@@ -2802,11 +2810,11 @@ Hub.prototype.subRoutes['/v1/me/src'] = async function (req, b) {
   const isNew = this.now() - (u.created || 0) < 15 * 60 * 1000;
   this.q('UPDATE users SET src = ? WHERE uid = ?', isNew && src.s ? JSON.stringify(src) : '', u.uid);
   if (!isNew) return this.json(req, { ok: true, first: false });
-  const label = src.s || 'direct';
-  this.funnelBump('signup', label);
+  const label = src.s || 'direct', fc = src.s ? funcOf(src) : 'none';
+  this.funnelBump('signup', label, fc);
   try {
     this.grantInit();
-    if (this.q("SELECT 1 FROM grants g JOIN grant_defs d ON d.id = g.gid WHERE g.uid = ? AND d.kind = 'welcome'", u.uid).length) this.funnelBump('trial_start', label);
+    if (this.q("SELECT 1 FROM grants g JOIN grant_defs d ON d.id = g.gid WHERE g.uid = ? AND d.kind = 'welcome'", u.uid).length) this.funnelBump('trial_start', label, fc);
   } catch (e) { /* 體驗表有問題不影響註冊統計 */ }
   return this.json(req, { ok: true, first: true });
 };

@@ -135,7 +135,8 @@ def pick_landing(kind: str, ctx: dict | None = None, recent: list[str] | None = 
     盤前：事件（FOMC／CPI／財報／ETF 除息）優先 → 對應功能頁；否則解讀提到半導體／AI → #industry/semiconductor；否則首頁。
     recent：最近幾天用過的落點，同一落點已連續 2 天就改選下一個候選（避免天天導同一頁）。"""
     ctx = ctx or {}
-    recent = recent or []
+    if recent is None:
+        recent = RECENT.get(kind, [])      # 沒明講就用 --landing-json 載進來的近幾天落點（社群 state/landing_recent.json）
     cands: list[tuple[str, str]] = []
     if kind == "premarket":
         for e in ctx.get("events") or []:
@@ -143,6 +144,8 @@ def pick_landing(kind: str, ctx: dict | None = None, recent: list[str] | None = 
                 if kw in str(e):
                     cands.append((rt, f"事件「{e}」"))
                     break
+        for e in ctx.get("etf_div") or []:      # 未來 7 天內有熱門 ETF 除息（資料湖 etf_dividend_events，只讀）→ ETF 配息行事曆
+            cands.append(("etf/cal", f"ETF 除息：{e}"))
         txt = "".join(ctx.get("reads") or [])
         if re.search(r"半導體|費半|SOX|台積|輝達|AI", txt):
             cands.append(("industry/semiconductor", "美股解讀提到半導體／AI"))
@@ -164,6 +167,49 @@ def pick_landing(kind: str, ctx: dict | None = None, recent: list[str] | None = 
         return rt, why
     fb = FALLBACK.get(kind, "")
     return (fb if route_ok(fb) else ""), "沒有對應內容，用保底落點"
+
+
+# ---- 近幾天落點記憶（2026-10-27）：讓 pick_landing 的「同一落點連續 2 天就換」真正生效 ----
+# 檔案放 social-snaps 分支 state/landing_recent.json：{"intraday": [{"d": "20261027", "r": "industry/semiconductor"}, ...], ...}
+# 工作流把檔案交給 --landing-json 讀；這一輪選了什麼寫進 <out>/landing_recent.json，真的發布（posted.json 有寫）才寫回分支，
+# dry-run 與測試不會污染紀錄。每個時段只留最近 10 筆、同一天重跑只留最後一次。
+RECENT: dict[str, list[str]] = {}        # kind → 落點路由（舊→新）
+_RECENT_RAW: dict[str, list[dict]] = {}
+CHOSEN: dict[str, tuple[str, str]] = {}  # kind → (ymd, route)：這一輪選的
+
+
+def load_recent(path: str | Path | None) -> None:
+    RECENT.clear()
+    _RECENT_RAW.clear()
+    if not path:
+        return
+    try:
+        raw = json.loads(Path(path).read_text("utf-8"))
+    except Exception:  # noqa: BLE001
+        return
+    for k, v in (raw.items() if isinstance(raw, dict) else []):
+        rows = [x for x in v if isinstance(x, dict) and isinstance(x.get("r"), str)] if isinstance(v, list) else []
+        _RECENT_RAW[k] = rows
+        RECENT[k] = [x["r"] for x in rows]
+
+
+def landing_route(kind: str, ymd: str, ctx: dict | None = None) -> str:
+    """挑落點並記下這一輪的選擇（寫檔用）；同一天重跑時，「近幾天」不含今天自己那一筆。"""
+    recent = [x["r"] for x in _RECENT_RAW.get(kind, []) if x.get("d") != ymd] if _RECENT_RAW.get(kind) else RECENT.get(kind, [])
+    rt = pick_landing(kind, ctx, recent)[0]
+    CHOSEN[kind] = (ymd, rt)
+    return rt
+
+
+def save_recent(out: Path) -> None:
+    """把近幾天紀錄＋這一輪的選擇寫到 <out>/landing_recent.json（沒選過就不寫）。"""
+    if not CHOSEN:
+        return
+    data = {k: [dict(x) for x in v] for k, v in _RECENT_RAW.items()}
+    for k, (d, r) in CHOSEN.items():
+        data[k] = [x for x in data.get(k, []) if x.get("d") != d] + [{"d": d, "r": r}]
+        data[k] = data[k][-10:]
+    (out / "landing_recent.json").write_text(json.dumps(data, ensure_ascii=False, indent=1), "utf-8")
 
 
 def ctx_from_shots(ok: dict) -> dict:
@@ -1809,7 +1855,7 @@ def _caption_lines(kind: str, stamp: str, shots: list[dict], data_date: str, ymd
             L += ["熱力圖：", f"・漲最多 {ups}；", f"・跌最多 {dns}"]
         L.append(HASHTAGS[kind])
         if links != "none":
-            L += link_lines(kind, ymd, route=pick_landing(kind, ctx_from_shots(ok))[0])
+            L += link_lines(kind, ymd, route=landing_route(kind, ymd, ctx_from_shots(ok)))
         return L
     elif kind == "credit":
         # 2026-10-26 Andy：盤中格式確認 OK、「以後 Follow 這格式」→ 標題一行、每段「標題：」＋「・」條列、網址只放最底下一行、不放資料來源／免責
@@ -1818,7 +1864,7 @@ def _caption_lines(kind: str, stamp: str, shots: list[dict], data_date: str, ymd
         L += credit_lines(ok, n)
         L.append(HASHTAGS[kind])
         if links != "none":
-            L += link_lines(kind, ymd, route=pick_landing(kind, ctx_from_shots(ok))[0])
+            L += link_lines(kind, ymd, route=landing_route(kind, ymd, ctx_from_shots(ok)))
         return L
     else:
         # 同上：Andy 盤中格式套到盤後
@@ -1853,7 +1899,7 @@ def _caption_lines(kind: str, stamp: str, shots: list[dict], data_date: str, ymd
         # 2026-10-27 Andy：融資融券移到隔天盤前，盤後不再列
         L.append(HASHTAGS[kind])
         if links != "none":
-            L += link_lines(kind, ymd, route=pick_landing(kind, ctx_from_shots(ok))[0])
+            L += link_lines(kind, ymd, route=landing_route(kind, ymd, ctx_from_shots(ok)))
         return L
 
 
@@ -1973,11 +2019,13 @@ def main() -> int:
     ap.add_argument("--no-snap-attr", action="store_true", help="不用 data-snap，只用現有選擇器")
     ap.add_argument("--force", action="store_true", help="略過「盤中時段／今天是不是交易日／法人資料是不是今天」的檢查（示範用）")
     ap.add_argument("--posted-json", default="", help="發布紀錄 posted.json（social-snaps 分支 state/）；這一篇的時段鍵已在裡面就不截（結束碼 10）")
+    ap.add_argument("--landing-json", default="", help="近幾天落點紀錄 landing_recent.json（social-snaps 分支 state/）；讓「同一落點連續 2 天就換」生效")
     ap.add_argument("--today", default="", help="覆寫「今天」（YYYY-MM-DD，示範／測試用）")
     ap.add_argument("--no-mis", action="store_true", help="不查 mis 即時成交日（離線測試用；臨時休市就只能靠休市日表）")
     ap.add_argument("--now", default="", help="覆寫「現在」（台北，YYYY-MM-DDTHH:MM，測試日期把關用；會連帶覆寫 --today）")
     args = ap.parse_args()
     KIND = args.kind
+    load_recent(args.landing_json)
 
     out = Path(args.out).resolve()
     out.mkdir(parents=True, exist_ok=True)
@@ -2212,6 +2260,7 @@ def main() -> int:
             "story": stories,
         }
         (out / "manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2), "utf-8")
+        save_recent(out)
         (out / "caption.txt").write_text(manifest["threads"]["text"] + "\n", "utf-8")   # 給 Andy 手動貼 IG（限動 API 不能附文字與連結貼紙）
         log("manifest：", out / "manifest.json", "；文案字數", len(manifest["threads"]["text"]))
         return 0

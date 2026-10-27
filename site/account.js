@@ -140,10 +140,13 @@
     return cur;
   }
   const srcLabel = () => { const o = srcGet(); return o ? o.s.slice(0, 24) : 'direct'; };
-  function funnel(e, label) {
+  /* 功能碼＝src.c 去掉結尾 _yyyymmdd（?u= 第二段）；非貼文來源或沒有 → none。Worker 的 funcOf 同一規則 */
+  const srcFunc = (o) => { if (!o || o.m !== 'post' || !o.c) return 'none'; const f = String(o.c).toLowerCase().replace(/_\d{8}$/, ''); return /^[a-z0-9_]{1,24}$/.test(f) ? f : 'none'; };
+  function funnel(e, label, func) {
     if (!S.on || noTrack()) return;
     track(e);
     t2('fn.' + e, label || srcLabel(), 'other');
+    t2('fx.' + e, func || srcFunc(srcGet()), 'other');      // 依功能分組（管理區漏斗卡「依功能」）；沒有功能碼記 none，加總＝全站合計
   }
   window.TwFunnel = (e) => funnel(e);
   /* 進站：這次網址帶了來源，且這台 30 分鐘內沒算過 → 算一次（用網址的來源，不是第一次來源） */
@@ -154,7 +157,7 @@
     const last = +ls.get(K_LAND) || 0;
     if (Date.now() - last < 30 * 60 * 1000) return;
     ls.set(K_LAND, String(Date.now()));
-    funnel('land', cur.s.slice(0, 24));
+    funnel('land', cur.s.slice(0, 24), srcFunc(cur));
   }
   /* 登入成功後：把第一次來源（沒有也要送，Worker 才能把「直接進站的註冊」算成 direct）交給 Worker；同一個帳號只送一次 */
   async function sendSrc() {
