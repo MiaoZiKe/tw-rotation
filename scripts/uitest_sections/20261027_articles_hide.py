@@ -73,7 +73,7 @@ def t_articles_hide_1027(b, base, code):
             except Exception: pass
         wait_until(pg, "() => !!document.querySelector('#artCats>button[data-cat=postmarket]')", 20000)
         if admin:
-            wait_until(pg, "() => { const e = document.getElementById('artEyes'); return e && !e.hidden && e.querySelectorAll('.arteye').length === 5; }", 10000)
+            wait_until(pg, "() => document.querySelectorAll('#artCats .arteye:not([hidden])').length === 5", 10000)
         pg.wait_for_timeout(900)   # 等 /v1/articles/tabs 回來並重畫
 
     vis = "() => [...document.querySelectorAll('#artCats>button')].filter(b => b.getClientRects().length).map(b => b.dataset.cat)"
@@ -84,24 +84,31 @@ def t_articles_hide_1027(b, base, code):
         c, pg = ctx("andy@example.com", W)
         open_articles(pg, admin=True)
         ok(f"★ [{T}（{W}）] 管理者：分頁順序 全部→快訊→產業鏈→知識→盤前→盤後（盤後在盤前右邊）", pg.evaluate(vis) == ["all", "news", "intro", "know", "premarket", "postmarket"], pg.evaluate(vis))
-        ok(f"[{T}（{W}）] 管理者：眼睛 5 顆、每顆在自己那格分頁的正上方（水平置中誤差 ≤ 6px）", pg.evaluate("""() => [...document.querySelectorAll('.arteye')].every(e => {
-            const t = document.querySelector('#artCats>button[data-cat=' + e.dataset.cat + ']'); if (!t) return false; const a = e.getBoundingClientRect(), r = t.getBoundingClientRect();
-            return Math.abs((a.left + a.width / 2) - (r.left + r.width / 2)) <= 6 && a.bottom <= r.top + 1; })"""),
-           pg.evaluate("""() => [...document.querySelectorAll('.arteye')].map(e => { const t = document.querySelector('#artCats>button[data-cat=' + e.dataset.cat + ']'); const a = e.getBoundingClientRect(), r = t.getBoundingClientRect();
-            return [e.dataset.cat, Math.round(a.left + a.width / 2), Math.round(r.left + r.width / 2), Math.round(a.bottom), Math.round(r.top)]; })"""))
-        ok(f"[{T}（{W}）] 管理者：眼睛按鈕高度 ≥ 28px、沒有橫向捲軸", pg.evaluate("() => [...document.querySelectorAll('.arteye')].every(e => e.getBoundingClientRect().height >= 28)")
-           and pg.evaluate("() => document.documentElement.scrollWidth - innerWidth") <= 1)
+        geo = pg.evaluate("""() => [...document.querySelectorAll('#artCats .arteye')].map(e => { const t = e.closest('button'), a = e.getBoundingClientRect(), r = t.getBoundingClientRect(), lb = t.querySelector(':scope > span:not(.arteye)').getBoundingClientRect();
+            return { cat: e.dataset.cat, own: t.dataset.cat === e.dataset.cat, inside: a.left >= r.left - 0.5 && a.right <= r.right + 0.5 && a.top >= r.top - 0.5 && a.bottom <= r.bottom + 0.5,
+              right: (a.left + a.width / 2) > (r.left + r.width / 2), vc: Math.abs((a.top + a.height / 2) - (r.top + r.height / 2)) <= 3, noOverlap: a.left >= lb.right - 0.5, w: a.width, h: a.height }; })""")
+        ok(f"★ [{T}（{W}）] 管理者：眼睛 5 顆都在自己標籤裡面、靠右半邊、垂直置中、不壓到標題文字、沒有分頁上方那一列", len(geo) == 5 and all(g["own"] and g["inside"] and g["right"] and g["vc"] and g["noOverlap"] for g in geo)
+           and pg.locator("#artEyes").count() == 0, geo)
+        ok(f"[{T}（{W}）] 管理者：眼睛點擊區 ≥ 24×24", all(g["w"] >= 24 and g["h"] >= 24 for g in geo), geo)
+        ok(f"[{T}（{W}）] 管理者：分頁文字沒被切成「…」（用 canvas 量短名／全名寬度，要放得進標籤扣掉眼睛後的空間）", pg.evaluate("""() => [...document.querySelectorAll('#artCats>button:not([hidden])')].every(b => {
+            const cs = getComputedStyle(b), mob = innerWidth <= 640, txt = mob ? b.dataset.s : b.querySelector(':scope > span:not(.arteye)').textContent;
+            const c = document.createElement('canvas').getContext('2d'); c.font = cs.fontWeight + ' ' + cs.fontSize + ' ' + cs.fontFamily;
+            const em = b.querySelector('em'), emW = em && getComputedStyle(em).display !== 'none' ? em.getBoundingClientRect().width + 4 : 0, ic = b.querySelector(':scope > svg'), icW = ic && getComputedStyle(ic).display !== 'none' ? ic.getBoundingClientRect().width + 4 : 0, avail = b.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight) - emW - icW;
+            return c.measureText(txt).width <= avail + 0.5; })"""))
+        ok(f"[{T}（{W}）] 管理者：沒有橫向捲軸", pg.evaluate("() => document.documentElement.scrollWidth - innerWidth") <= 1)
         if mob:
             ok(f"[{T}（{W}）] 手機：六個分頁都在畫面內、字 ≥ 11px", pg.evaluate("() => [...document.querySelectorAll('#artCats>button')].every(b => { const r = b.getBoundingClientRect(); return r.left >= -1 && r.right <= 391; })")
                and pg.evaluate("() => [...document.querySelectorAll('#artCats>button span')].every(s => parseFloat(getComputedStyle(s).fontSize) >= 11)"))
-        pg.click(".arteye[data-cat=premarket]"); pg.wait_for_timeout(500)
-        s1 = pg.evaluate("""() => { const t = document.querySelector('#artCats>button[data-cat=premarket]'), e = document.querySelector('.arteye[data-cat=premarket]');
+        h0 = pg.evaluate("() => location.hash")
+        pg.click("#artCats .arteye[data-cat=premarket]"); pg.wait_for_timeout(500)
+        ok(f"★ [{T}（{W}）] 點眼睛不會切到那個分頁（網址與亮起的分頁都沒變）", pg.evaluate("() => location.hash") == h0 and pg.evaluate("() => document.querySelector('#artCats>button.on').dataset.cat") == "all", pg.evaluate("() => location.hash"))
+        s1 = pg.evaluate("""() => { const t = document.querySelector('#artCats>button[data-cat=premarket]'), e = document.querySelector('#artCats .arteye[data-cat=premarket]');
             return { hid: t.classList.contains('hid'), op: parseFloat(getComputedStyle(t).opacity), shown: t.getClientRects().length > 0, pressed: e.getAttribute('aria-pressed'), off: e.classList.contains('off') }; }""")
         ok(f"★ [{T}（{W}）] 管理者點「盤前」眼睛 → 分頁變半透明（還看得到）、眼睛斜線、伺服器收到 ['premarket']",
            s1["hid"] and s1["op"] < 0.8 and s1["shown"] and s1["pressed"] == "true" and s1["off"] and st["hidden"] == ["premarket"], [s1, st["hidden"]])
-        pg.click(".arteye[data-cat=postmarket]"); pg.wait_for_timeout(500)
+        pg.click("#artCats .arteye[data-cat=postmarket]"); pg.wait_for_timeout(500)
         ok(f"[{T}（{W}）] 再點「盤後」眼睛 → 伺服器 ['premarket','postmarket']、全部那格沒有眼睛", sorted(st["hidden"]) == ["postmarket", "premarket"]
-           and pg.locator(".arteye[data-cat=all]").count() == 0, st["hidden"])
+           and pg.locator("#artCats .arteye[data-cat=all]").count() == 0, st["hidden"])
         # 重新整理後設定還在（存在伺服器，不是只在畫面）
         pg.reload(wait_until="domcontentloaded"); wait_until(pg, "() => !!document.querySelector('.arteye.off')", 15000); pg.wait_for_timeout(600)
         ok(f"[{T}（{W}）] 管理者重新整理 → 兩顆眼睛仍是斜線", pg.locator(".arteye.off").count() == 2)
@@ -112,7 +119,7 @@ def t_articles_hide_1027(b, base, code):
             c, pg = ctx(mail, W)
             open_articles(pg)
             ok(f"★ [{T}（{W}）] {who}：只看到 全部／快訊／產業鏈／知識（盤前、盤後不見）", pg.evaluate(vis) == ["all", "news", "intro", "know"], pg.evaluate(vis))
-            ok(f"[{T}（{W}）] {who}：沒有眼睛列、欄數跟著變 4（分頁沒擠成一角）", pg.evaluate("() => { const e = document.getElementById('artEyes'); return !e || e.getClientRects().length === 0; }")
+            ok(f"[{T}（{W}）] {who}：看不到任何眼睛、欄數跟著變 4（分頁沒擠成一角）", pg.evaluate("() => [...document.querySelectorAll('.arteye')].every(e => e.getClientRects().length === 0)")
                and pg.evaluate("() => getComputedStyle(document.getElementById('artCats')).gridTemplateColumns.split(' ').length") == 4)
             pg.goto(base + "#articles/premarket", wait_until="domcontentloaded"); pg.wait_for_timeout(1800)
             ok(f"★ [{T}（{W}）] {who}：直接打 #articles/premarket → 導回 #articles（停在全部文章）", pg.evaluate("() => location.hash") == "#articles"
@@ -131,14 +138,14 @@ def t_articles_hide_1027(b, base, code):
         c3.close()
         # ── 管理者恢復盤前 → 訪客馬上看得到
         c, pg = ctx("andy@example.com", W); open_articles(pg, admin=True)
-        pg.click(".arteye[data-cat=premarket]"); pg.wait_for_timeout(500)
+        pg.click("#artCats .arteye[data-cat=premarket]"); pg.wait_for_timeout(500)
         ok(f"★ [{T}] 管理者再點「盤前」眼睛 → 伺服器 ['postmarket']、分頁回到不透明", st["hidden"] == ["postmarket"] and not pg.evaluate("() => document.querySelector('#artCats>button[data-cat=premarket]').classList.contains('hid')"), st["hidden"])
         c2, pg2 = ctx(None, W); open_articles(pg2)
         ok(f"★ [{T}] 訪客重新開 → 盤前回來、盤後仍不見", pg2.evaluate(vis) == ["all", "news", "intro", "know", "premarket"], pg2.evaluate(vis))
         c2.close()
         # ── 寫入失敗 → 畫面還原
         st["fail"] = True
-        pg.click(".arteye[data-cat=news]"); pg.wait_for_timeout(900)
+        pg.click("#artCats .arteye[data-cat=news]"); pg.wait_for_timeout(900)
         ok(f"★ [{T}] 伺服器寫入失敗（500）→ 快訊分頁不留在半透明、伺服器沒變", not pg.evaluate("() => document.querySelector('#artCats>button[data-cat=news]').classList.contains('hid')") and st["hidden"] == ["postmarket"], st["hidden"])
         st["fail"] = False
         c.close()
@@ -151,10 +158,11 @@ def t_articles_hide_1027(b, base, code):
             try: c.grant_permissions(["clipboard-read", "clipboard-write"])
             except Exception: pass
             open_articles(pg, admin=True)
+            dbg = pg.evaluate("() => { const t = document.querySelector('#artCats>button[data-cat=postmarket]'), r = t.getBoundingClientRect(), el = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2); const e = t.querySelector('.arteye').getBoundingClientRect(); return [Math.round(r.left), Math.round(r.width), Math.round(e.left), Math.round(e.width), Math.round(r.left + r.width / 2), el && el.className]; }")
             pg.click("#artCats>button[data-cat=postmarket]"); pg.wait_for_timeout(700)
             tag = f"{T}（盤後 {label}，{W}）"
             ok(f"★ [{tag}] 點分頁 → #articles/postmarket、分頁亮起、文章清單收起", pg.evaluate("() => location.hash") == "#articles/postmarket"
-               and pg.evaluate("() => document.querySelector('#artCats>button.on').dataset.cat") == "postmarket" and not pg.locator("#artList").is_visible())
+               and pg.evaluate("() => document.querySelector('#artCats>button.on').dataset.cat") == "postmarket" and not pg.locator("#artList").is_visible(), dbg)
             if post is None:
                 wait_until(pg, "() => !!document.querySelector('#artPreEmpty')", 8000)
                 ok(f"★ [{tag}] 空狀態一句話「今天的盤後消息還沒整理好」、沒有卡片", "今天的盤後消息還沒整理好" in pg.inner_text("#artPre") and pg.locator("#artPre .pmday").count() == 0)

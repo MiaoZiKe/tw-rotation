@@ -147,14 +147,15 @@
 #v-articles .artcard h3{display:flex;align-items:baseline;gap:var(--sp-2);flex-wrap:wrap}
 #v-articles .artcard h3 small{font-size:var(--fs-sm);color:var(--ink-3);font-weight:400}
 #artCats{display:grid;grid-template-columns:repeat(var(--n,6),minmax(0,1fr));align-items:end;margin-top:var(--sp-2)}
-/* 10-27 管理者的「眼睛」列：放在分頁列正上方、跟分頁同一組欄（--n 欄），每個眼睛剛好在自己那一格分頁的上面；一般人與會員整列不存在 */
-.arteyes{display:grid;grid-template-columns:repeat(var(--n,6),minmax(0,1fr));gap:3px;padding:0 2px;margin-top:var(--sp-2)}
-.arteyes[hidden]{display:none}
-.arteyes>span{display:flex;justify-content:center;min-width:0}
-.arteye{display:inline-flex;align-items:center;justify-content:center;gap:4px;height:28px;min-width:36px;padding:0 8px;border-radius:999px;border:1px solid var(--line-2);background:var(--panel);color:var(--k,var(--ink-2));cursor:pointer;font:inherit;font-size:var(--fs-min)}
-.arteye:hover{border-color:var(--k,var(--cyan))}
-.arteye.off{color:var(--ink-3);background:transparent;border-style:dashed}
-.arteye svg{flex:none}
+/* 10-27 管理者的「眼睛」：放在每個分頁標籤裡面的最右側（Andy 紅框位置），一般人與會員整顆 hidden。
+   標籤右邊留位置（.adm）才不會壓到標題與數量；眼睛垂直置中、點擊區 ≥24px，圖示 16px。 */
+#artCats>button{position:relative}
+#artCats.adm>button:not([data-cat=all]){padding-right:30px}
+.arteye[hidden]{display:none}
+.arteye{position:absolute;right:4px;top:50%;transform:translateY(-50%);display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:999px;color:var(--k,var(--ink-2));cursor:pointer}
+.arteye:hover{background:color-mix(in srgb,var(--k,var(--cyan)) 22%,transparent)}
+.arteye.off{color:var(--ink-3)}
+.arteye svg{flex:none;width:16px;height:16px}
 #artCats>button[hidden]{display:none!important}
 #artCats>button.hid{opacity:.45}
 #artCats>button.hid span{text-decoration:line-through}
@@ -1038,9 +1039,8 @@
   <div class="howtxt" id="how-artlist" hidden>${HOW_ART}</div>
   <div class="howtxt" id="how-artpre" hidden>${HOW_PRE}</div>
   <div class="howtxt" id="how-artpost" hidden>${HOW_POST}</div>
-  <div class="arteyes" id="artEyes" hidden aria-label="管理者：對外隱藏或顯示分頁">${TAB_KEYS.map((k) => (k === 'all' ? '<span></span>' : `<span><button type="button" class="arteye k-${k}" data-cat="${k}">${EYE_ON}</button></span>`)).join('')}</div>
   <div class="nbsw" id="artCats" role="tablist" aria-label="文章分類">
-    ${TAB_KEYS.map((k) => `<button type="button" role="tab" class="k-${k}" data-cat="${k}" data-s="${esc(CAT_S[k])}" title="${esc(catT(k))}">${icon(k, 15)}<span>${esc(catT(k))}</span><em></em></button>`).join('')}
+    ${TAB_KEYS.map((k) => `<button type="button" role="tab" class="k-${k}" data-cat="${k}" data-s="${esc(CAT_S[k])}" title="${esc(catT(k))}">${icon(k, 15)}<span>${esc(catT(k))}</span><em></em>${k === 'all' ? '' : `<span class="arteye" role="button" tabindex="0" hidden data-cat="${k}">${EYE_ON}</span>`}</button>`).join('')}
   </div>
   <div class="nbbody">
     <div id="artPre"></div>
@@ -1291,19 +1291,22 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
       b.title = off && adm ? catT(b.dataset.cat) + '（目前對外隱藏，只有管理者看得到）' : catT(b.dataset.cat);
     });
     const n = tabs.filter((b) => !b.hidden).length;
-    const cats = $('#artCats', root), eyes = $('#artEyes', root);
+    const cats = $('#artCats', root);
     if (cats) cats.style.setProperty('--n', String(n));
+    if (cats) cats.classList.toggle('adm', adm);
     if (cats) cats.classList.toggle('many', n >= 6);   // 手機六格塞不下圖示＋文字（m4 檔 .many 隱藏圖示）
-    if (!eyes) return;
-    eyes.hidden = !adm;
-    eyes.style.setProperty('--n', String(n));
-    $$('.arteye', eyes).forEach((e) => {
+    $$('#artCats .arteye', root).forEach((e) => {
+      e.hidden = !adm;
       const off = hid.has(e.dataset.cat), nm = catT(e.dataset.cat);
       e.classList.toggle('off', off); e.innerHTML = off ? EYE_OFF : EYE_ON;
       e.setAttribute('aria-pressed', off ? 'true' : 'false');
       e.title = off ? `「${nm}」目前對外隱藏（一般訪客與會員看不到），點一下恢復顯示` : `「${nm}」目前對外顯示，點一下隱藏（一般訪客與會員將看不到這個分頁）`;
       e.setAttribute('aria-label', e.title);
-      if (!e.onclick) e.onclick = () => toggleHide(e.dataset.cat);
+      if (!e.onclick) {
+        // 眼睛在分頁標籤裡面：點眼睛只切隱藏，不能同時切到那個分頁
+        e.onclick = (ev) => { ev.stopPropagation(); ev.preventDefault(); toggleHide(e.dataset.cat); };
+        e.onkeydown = (ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.stopPropagation(); ev.preventDefault(); toggleHide(e.dataset.cat); } };
+      }
     });
   }
   async function toggleHide(k) {

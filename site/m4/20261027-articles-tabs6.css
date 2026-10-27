@@ -1,11 +1,17 @@
-/* site/m4/20261027-articles-tabs6.css —— 精選文章分頁最多六格（全部／快訊／產業鏈／知識／盤前／盤後）＋管理者的眼睛列。
-   只在 ≤640＋:root.m4，桌機不吃。欄數改讀 JS 算好的 --n（被隱藏的分頁一般人看不到，欄數跟著少），取代 20261026-premarket-tab.css 寫死的 5。
-   六格各約 54px：分頁文字 12px、圖示縮到 12，不換行、不被切；眼睛列每顆至少 36×28 在自己那格正上方。 */
+/* site/m4/20261027-articles-tabs6.css —— 精選文章分頁最多六格（全部／快訊／產業鏈／知識／盤前／盤後）＋管理者在標籤內的眼睛。
+   只在 ≤640＋:root.m4，桌機不吃。欄數讀 JS 算好的 --n（被隱藏的分頁一般人看不到，欄數跟著少）。
+   管理者（#artCats.adm）：每個標籤右側留 24px 給眼睛（點擊區 24×24），圖示讓位、「全部」那欄縮窄，短名才不會被切成「產…」。 */
 @media (max-width:640px){
   :root.m4 #v-articles.view.on #artCats#artCats.nbsw{grid-template-columns:repeat(var(--n,6),minmax(0,1fr))!important}
   :root.m4 #v-articles.view.on #artCats#artCats.nbsw>button{padding:0 1px!important;gap:2px!important;font-size:12px!important}
   :root.m4 #v-articles.view.on #artCats#artCats.nbsw>button>svg{width:12px;height:12px}
-  :root.m4 #v-articles.view.on #artCats#artCats.nbsw.many>button>svg{display:none}   /* 六格（管理者）：圖示讓位給文字，「產業鏈」才不會被切成「產…」 */
-  :root.m4 #v-articles .arteyes{margin:var(--sp-1) 8px 0;gap:2px;padding:0 3px;box-sizing:border-box}   /* 跟 m4 的分頁膠囊（框 1px＋內距 2px、格距 2px）同寬，眼睛才會對在自己那格正上方 */
-  :root.m4 #v-articles .arteye{min-width:0;width:100%;max-width:44px;padding:0;height:32px}
+  :root.m4 #v-articles.view.on #artCats#artCats.nbsw.many>button>svg{display:none}
+  :root.m4 #v-articles.view.on #artCats#artCats.nbsw.adm{grid-template-columns:minmax(0,.62fr) repeat(calc(var(--n,6) - 1),minmax(0,1fr))!important}
+  :root.m4 #v-articles.view.on #artCats#artCats.nbsw.adm>button:not([data-cat=all]){padding:0 21px 0 1px!important;font-size:11.5px!important}
+  :root.m4 #v-articles.view.on #artCats#artCats.nbsw.adm>button em{display:none!important}   /* 管理者六格：篇數讓位給標題與眼睛 */
+  :root.m4 #v-articles.view.on #artCats#artCats.nbsw>button>span.arteye:not([hidden]){display:inline-flex!important}   /* 20261016c 把標籤裡所有 span 藏起來換短名，眼睛要明確放行 */
+  :root.m4 #v-articles .arteye{right:0;width:24px!important;height:24px!important;min-width:0!important;min-height:0!important;padding:0!important}   /* 全站手機 [role=button] 的 40px 觸控下限會把眼睛撐寬壓到標題，這裡鎖 24px */
+}
+@media (max-width:380px){
+  :root.m4 #v-articles.view.on #artCats#artCats.nbsw.adm>button:not([data-cat=all]){font-size:11px!important}   /* 360 寬：標題 3 字要放進約 35px */
 }
