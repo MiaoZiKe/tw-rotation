@@ -1,5 +1,12 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
+## 2026-10-27 行銷指揮部（最後更新 10-28 00:15 台北）
+- 已上線：W1 量測＋漏斗（依平台／依功能）、W6 社群成效每日回收、每週風格統計、貼文深層連結（含落點輪換、ETF 除息）、14 天體驗額度＋防濫用、自選日報＋自設提醒、_preview 9 筆歸零、三個既有問題（輪動時鐘環標、事件篩選說明、驗收過時段）。
+- 規則：Andy 10-27「原有的參數設定不可以動」——plan_presets 既有鍵值、價格、#admin/perm 一律不改；#admin/perm「套用建議方案」不要按。T-2／T-3 暫停；T-5／T-6 Andy 不同意（Pro 照樣上價、FinMind 功能維持原分層、AI 分析維持分層次數）。
+- 文件：docs/marketing/{growth_command_1026,traffic_methods_1027,feature_funnel_1027,tier_plan_1027,style_stats_1027,style_research_1027}.md。
+- 下一步：11/01 首份每週選題簡報；11/09 第 14 天校正；12/17 Meta 權杖到期提醒（已排）；等 Andy 旁白 10 秒錄音、確認 welcome 天數。
+- 這批驗了：各批回報所列段落（漏斗事件1026、深層連結1027、體驗額度1027、自選日報提醒1027、輪動時鐘環標1027、總覽、新-大盤三張圖、資金流向系列、會員兩段、桌機守門1008、_preview）。
+
 ## 2026-10-27 T-4 自選日報＋自設提醒上線（W7；Andy「照建議，全部執行」「原有的參數設定不可以動」）
 - 計算：`pipeline/compute/digest.py` 在 build_payload 產 `site/data/digest.json`（全市場事實表，只讀資料湖既有表、不新增抓取）；前端 `site/digest.js` 依自選清單／條件在瀏覽器組日報、判斷提醒，通知併進既有鈴鐺（`notices.js` 的 `L()`）。通知與已讀只存本機。
 - Worker：`workers/account-api/worker.js` 檔尾 alerts 區塊（`/v1/alerts/get|put`、條數上限伺服器守、刪帳號一併刪）。
