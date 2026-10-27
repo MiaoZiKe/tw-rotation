@@ -1,6 +1,111 @@
 {
- "updated": "2026-10-26",
+ "updated": "2026-10-27",
  "topics": [
+  {
+   "id": "n_holiday_4day",
+   "cat": "news",
+   "title": "台股連休 4 天，美股油價債市發生什麼事",
+   "why": "台股 10/23 颱風休市、10/26 補假，10/27 復市（UAnalyze、聯合新聞網 10/22）；休市期間美股 10/23 道瓊 -1.2%、那斯達克 -0.2%、Brent 漲逾 3%、美 10 年債殖利率約 4.99%（AP 10/23，台股 10/22 收盤為單一來源），寫稿以本站復市資料核對",
+   "score": 4,
+   "format_hint": "貼文",
+   "site_links": [
+    "#overview",
+    "#flow"
+   ],
+   "added": "2026-10-27"
+  },
+  {
+   "id": "n_ust_5pct",
+   "cat": "news",
+   "title": "美債殖利率貼著 5%，政府債務與回購怎麼牽動股市",
+   "why": "美 10 年債殖利率 10/23 約 4.99%（AP），9/24 曾達 5.11% 為 2007 年來高點（世界日報、摘要轉述）；財政部擴大長債回購至 11/4（財政部新聞稿 8/19）；角度放債務與回購，避開 Fed 升息與非農題；數字寫稿前須核日期",
+   "score": 3,
+   "format_hint": "文章",
+   "site_links": [
+    "#overview",
+    "#flow"
+   ],
+   "added": "2026-10-27"
+  },
+  {
+   "id": "k_robot_joint",
+   "cat": "know",
+   "title": "機器人關節是什麼？減速機、馬達、感測器怎麼組成",
+   "why": "機器人題材常被討論，但少有人說明一個關節由哪些零件組成；站內有 2.5D 圖 robotics（機器人：一個關節的價值分佈），文章＋2.5D 圖，只講原理與取捨，不排受惠",
+   "score": 3,
+   "format_hint": "文章",
+   "site_links": [
+    "#heatmap/theme/robotics",
+    "#themes"
+   ],
+   "added": "2026-10-27"
+  },
+  {
+   "id": "k_ev_arch",
+   "cat": "know",
+   "title": "電動車架構是什麼？電池、電控、馬達各管什麼",
+   "why": "電動車與特斯拉動向常見於新聞，但多數人不清楚三電分工；站內有 2.5D 圖 ev_auto（車用與電動車：台廠切在哪幾塊），可銜接已上架特斯拉文；只講原理，不排受惠",
+   "score": 3,
+   "format_hint": "文章",
+   "site_links": [
+    "#heatmap/theme/ev_auto"
+   ],
+   "added": "2026-10-27"
+  },
+  {
+   "id": "k_drone_quad",
+   "cat": "know",
+   "title": "無人機是什麼？四旋翼拆開看飛控、馬達與電池",
+   "why": "國防預算與無人機議題常見於新聞；站內有 2.5D 圖 drone（無人機：四旋翼供應鏈），文章＋2.5D 圖，只講結構與原理，不排受惠",
+   "score": 3,
+   "format_hint": "文章",
+   "site_links": [
+    "#heatmap/theme/drone"
+   ],
+   "added": "2026-10-27"
+  },
+  {
+   "id": "i_ccl_material",
+   "cat": "intro",
+   "title": "銅箔基板上游材料鏈：銅箔、玻纖布到樹脂",
+   "why": "站內有 ccl、copper_foil、glass_fiber 族群，AI 板材升級讓上游材料被拆開討論；需附供應鏈圖，講環節不排受惠，避開已上架板材鏈總覽",
+   "score": 3,
+   "format_hint": "文章",
+   "site_links": [
+    "#industry/group/ccl",
+    "#industry/group/copper_foil",
+    "#industry/group/glass_fiber"
+   ],
+   "added": "2026-10-27"
+  },
+  {
+   "id": "i_osat_chain",
+   "cat": "intro",
+   "title": "封裝代工 OSAT 鏈：設備、材料到封測廠",
+   "why": "站內有 osat、pkg_equipment、leadframe_chem 族群；讀者常把先進封裝與傳統封裝代工混為一談，本題講 OSAT 環節分工，需附供應鏈圖，講環節不排受惠",
+   "score": 3,
+   "format_hint": "文章",
+   "site_links": [
+    "#industry/group/osat",
+    "#industry/group/pkg_equipment",
+    "#industry/group/leadframe_chem"
+   ],
+   "added": "2026-10-27"
+  },
+  {
+   "id": "i_energy_storage",
+   "cat": "intro",
+   "title": "儲能產業鏈：電芯、電池系統到電力調度",
+   "why": "站內有 energy_storage、battery_cell、battery_material 族群；資料中心用電與電網穩定讓儲能被常提起，需附供應鏈圖，講環節不排受惠",
+   "score": 3,
+   "format_hint": "文章",
+   "site_links": [
+    "#industry/group/energy_storage",
+    "#industry/group/battery_cell",
+    "#industry/group/battery_material"
+   ],
+   "added": "2026-10-27"
+  },
   {
    "id": "n_fx_outflow",
    "cat": "news",
