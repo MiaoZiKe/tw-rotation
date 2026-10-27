@@ -1,5 +1,12 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
+## 2026-10-27 前向驗證紙上帳本上線（E2 正二 200 日線／F2 台指期 1.3 倍；只動 pipeline）
+- Andy 拍板策略委員會「穩健版」：個股＋ETF 用 E2、台指期用 F2。`pipeline/compute/live_signals.py` 每日盤後算訊號，從 2026-10-27 起用隔日開盤價假想成交並扣成本，寫進 `data/paper/`（表 `paper/ledger`、`paper/satellite`，只增不改）；規則與讀法見 `docs/paper_ledger.md`。研究用，不是買賣建議，不會下單。
+- 接進 `daily.yml`：「抓取與計算」之後一步，`continue-on-error: true`；沒動 `cancel-in-progress`。
+- 第一筆訊號：2026-10-27 收盤資料進湖後的那一輪（起算日只有訊號、10-28 開盤才成交）。SAT 衛星權重 0%，只記錄。
+- 這批驗：`pytest tests/test_live_signals.py`（16 項：訊號不偷看未來、隔日開盤成交與成本、帳本只增不改、起算日前不寫）。
+- 待辦：下市股資料補齊後重驗衛星；帳本滿 3 年才有滾動窗口可比。
+
 ### 2026-10-26 行銷指揮部：引流到付費總方案（文件，最後更新 2026-10-26 台北）
 - 方案：`docs/marketing/growth_command_1026.md`（已過監察委員＋法遵第三方審查並修訂）；研調 `docs/marketing/research_growth_1026.md`。
 - 下一步：等 Andy 回 J-1～J-10；W1 量測（utm＋漏斗事件）可先開工。純文件，未跑任何關卡。

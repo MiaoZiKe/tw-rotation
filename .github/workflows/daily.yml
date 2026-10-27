@@ -135,6 +135,15 @@ jobs:
           python -m pipeline.run_daily --phase "$PHASE" \
             ${{ inputs.skip_finmind && '--skip-finmind' || '' }}
 
+      # 2026-10-27：策略委員會穩健版（E2／F2）的前向驗證紙上帳本（研究用，不是買賣建議，不會下單；規則見 docs/paper_ledger.md）。
+      #   放在「回寫資料湖」之前，帳本的新列才會跟這輪資料一起 commit。
+      #   continue-on-error＋程式本身不拋例外：失敗只記錄，不影響其他步驟；不動 concurrency／cancel-in-progress。
+      - name: 前向驗證紙上帳本（失敗不影響其他步驟）
+        if: steps.fetch.outputs.inst_new != 'false'
+        continue-on-error: true
+        timeout-minutes: 10
+        run: python -m pipeline.compute.live_signals
+
       - name: 回寫資料湖
         if: steps.fetch.outputs.inst_new != 'false'
         run: |

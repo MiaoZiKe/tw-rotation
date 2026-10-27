@@ -38,6 +38,11 @@ TABLES: dict[str, list[str]] = {
     #   證交所 15:00 公布的「三大法人買賣金額統計表」＝新聞引用的數字；FinMind 晚間會換成含盤後成交的修訂版
     #   （inst_market_daily 後到覆蓋，存的是修訂版）。網站主數字用首次公布版，與新聞同口徑。欄位同上＋fetched_at、src。
     "inst_market_first":  ["date"],
+    # 2026-10-27（策略委員會第三回合，前向驗證）：紙上帳本，只增不改；寫在 data/paper/。研究用，不是買賣建議，不會下單。
+    #   paper/ledger：每個方案（E2 正二 200 日線、F2 台指期 1.3 倍、SAT 個股衛星假想、BENCH 0050 含息）每天一列。
+    #   paper/satellite：衛星觀察清單（權重 0%，只記錄）。寫入一律走 pipeline/compute/live_signals.append_only。
+    "paper/ledger":       ["date", "plan"],
+    "paper/satellite":    ["date", "rank"],
     "revenue_monthly":    ["ym", "code"],     # 月營收
     "financial_q":        ["year", "quarter", "code"],  # EPS / 損益（單季值）
     "balance_q":          ["year", "quarter", "code"],  # 股本 / 淨值 / 總資產
