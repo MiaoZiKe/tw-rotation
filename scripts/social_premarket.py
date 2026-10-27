@@ -1098,7 +1098,7 @@ def premarket_news(D: dict) -> dict:
 
 def caption(D: dict, ymd: str, max_len: int = ss.THREADS_MAX) -> str:
     """盤前文案（2026-10-26 Andy：「文案需要先多講述昨日盤面分析，再簡短講述標題」）：
-    標題 → 🧭 昨日盤面（每檔一句完整解讀，含漲跌幅）→ 📰 昨日事件（短標題）→ hashtag → 👉 連結 → 💬 留言關鍵字。
+    標題 → 📌 今日焦點（一段話：美股＋重點消息短標題，10-27 Andy 範例）→ 🧭 昨日盤面（每檔一句完整解讀）→ 💳 融資融券 → hashtag → 👉 連結。
     超過字數：先把事件縮成 3 則、標題再截短，最後才縮解讀句。"""
     reads = D.get("reads") or []
     part = " 盤中" if D.get("us_partial") else ""
@@ -1111,15 +1111,42 @@ def caption(D: dict, ymd: str, max_len: int = ss.THREADS_MAX) -> str:
     def trim(r: str, k: int) -> str:
         return "；".join(r.split("；")[:k])
     news = D["news"]
+
+    def clause(t: str, n: int) -> str:
+        """消息標題取第一個短句（到「！，：」為止）；超過 n 字就不用這則（不截成半句加…）。"""
+        m = re.match(r"(.+?)([！!？?，,：:；;　]| {2,}|$)", t.strip())
+        c = m.group(1).strip() + ("？" if m.group(2) in "？?" and m.group(2) else "")      # 問句保留問號，不把「台股不妙？」寫成斷言
+        return c if 4 <= len(c) <= n else ""
+
+    def focus(kn: int, tl: int) -> str:
+        """2026-10-27 Andy 給範例「今日焦點｜美股科技股反彈，費半上漲2.8%，…；台灣產業新增…」：一段話講美股＋前一晚重點消息（取代原本的事件條列）。"""
+        rows = [r for r in D["us"].get("rows") or [] if not r.get("missing") and r.get("pct") is not None and "VIX" not in r["label"]]
+        segs = []
+        if rows:
+            up, dn = sum(r["pct"] > 0 for r in rows), sum(r["pct"] < 0 for r in rows)
+            fl_ = len(rows) - up - dn
+            head = ("美股四大指數全數收紅" if up == len(rows) else "美股四大指數全數收黑" if dn == len(rows)
+                    else f"美股四大指數 {up} 漲 {dn} 跌" + (f" {fl_} 平" if fl_ else ""))
+            sox = next((r for r in rows if "費" in r["label"]), None)
+            if sox:
+                head += "，費半持平" if abs(sox["pct"]) < 0.05 else f"，費半{'上漲' if sox['pct'] > 0 else '下跌'} {abs(sox['pct']):.1f}%"
+            segs.append(head)
+        segs += [c for c in (clause(n["title"], tl) for n in news) if c][:kn]
+        if not segs:
+            return ""
+        t = "；".join(segs)
+        return "📌 今日焦點｜" + t + ("" if t.endswith("？") else "。")
     tail = [HASHTAGS, *ss.link_lines("premarket", ymd, route=ss.pick_landing("premarket", {"events": [e["name"] for e in D.get("events") or []], "reads": D.get("reads") or []})[0])]      # 2026-10-27 Andy：「留言『消息』這句都先拿掉」（自動私訊還沒做；Threads 也沒有私訊 API）
     txt = ""
     # 先縮事件則數與標題長度，再把每檔解讀縮成「漲跌＋走勢」一段（距 60 日高點等細節圖上有），融資前五名一定保留（Andy 10-27）
-    for kn, tl, rk in ((5, 22, 9), (4, 20, 9), (3, 18, 9), (5, 20, 1), (4, 18, 1), (3, 18, 1), (3, 16, 1), (3, 14, 1), (2, 14, 1)):
+    for kn, tl, rk in ((4, 28, 9), (3, 28, 9), (4, 28, 1), (3, 28, 1), (3, 22, 1), (2, 28, 1), (2, 22, 1), (1, 22, 1), (0, 0, 1)):
         body = [f"🌅 盤前3分鐘 {md(pd.Timestamp(D['target']).date())}"]      # 2026-10-26 Andy：「標題盤前改盤前3分鐘」
+        fl = focus(kn, tl)
+        if fl:      # 2026-10-27 Andy：「盤前需要新增像是這樣的內文說明」→ 標題下一段「今日焦點｜…」，事件併進這段，不再另列「昨日事件」條列
+            body.append(fl)
         if reads:
-            body += [f"🧭 昨日盤面（美股 {us_d}{part}）："] + [f"・{trim(x, rk)}" for x in reads]
-        if news[:kn]:
-            body += ["📰 昨日事件："] + [f"・【{n['category']}】{short_title(n['title'], tl)}" for n in news[:kn]]
+            rs_ = reads[1:] if fl and reads[0].startswith("美股") else reads      # 第一句「美股四大指數…」已寫進今日焦點
+            body += [f"🧭 昨日盤面（美股 {us_d}{part}）："] + [f"・{trim(x, rk)}" for x in rs_]
         cr = D.get("credit")
         if cr:      # 前一日融資融券接在最後（2026-10-27 Andy）
             body += [f"💳 融資融券（{md(cr['date'])}）："]

@@ -250,10 +250,11 @@ def test_caption_and_premarket_news():
     txt = sp.caption(D, "20261027")
     lines = txt.splitlines()
     assert lines[0] == "🌅 盤前3分鐘 10/27" and lines[-1].split("#")[0] == "https://liguligu-puipui.com/?u=th-pm-20261027" and "留言" not in txt      # 2026-10-26 盤前文案改成盤中盤後同格式
-    assert "🧭 昨日盤面（美股 10/23）：" in lines and "📰 昨日事件：" in lines and "資料：" not in txt
-    assert lines.index("🧭 昨日盤面（美股 10/23）：") < lines.index("📰 昨日事件：")      # 先盤面分析、再事件標題
+    # 2026-10-27 Andy：「盤前需要新增像是這樣的內文說明」→ 標題下一段「📌 今日焦點｜…」，事件併進這段（不再另列昨日事件）
+    assert "🧭 昨日盤面（美股 10/23）：" in lines and "📰 昨日事件：" not in lines and "資料：" not in txt
+    assert lines[1].startswith("📌 今日焦點｜美股四大指數") and "費半持平" in lines[1] and "…" not in lines[1]
     assert len(txt) <= 480 and "👉 更多詳細資料可以點擊以下連結：\nhttps://liguligu-puipui.com/?u=th-pm-20261027" in txt and txt.endswith("#earnings")      # 10-27 深層連結：夾具有 FOMC 事件 → 落點 #earnings
-    assert any(x.startswith("・【總經】") for x in lines) and "查證中" not in txt
+    assert "AI 投資疑慮未消" in lines[1] and "查證中" not in txt
     pn = sp.premarket_news(D)
     assert pn["version"] == 1 and pn["target_date"] == "2026-10-27" and pn["categories"] == ["新聞", "事件", "科技", "總經"]
     it = pn["items"][0]
