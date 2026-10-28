@@ -176,14 +176,93 @@ def card_v2(d, idx, tot, bg=None):
             f'<div class="a T3" style="left:64px;top:{dtop}px;width:952px;color:rgba(255,255,255,.92);line-height:52px;{sh}">' + "".join(f"<div>{e(l)}</div>" for l in dl) + '</div>'
             f'<div class="a" style="left:64px;top:1264px;width:952px;height:2px;background:rgba(255,255,255,.28)"></div>'
             f'<div class="a row T4" style="left:64px;top:{foot+4}px;width:952px;height:56px;color:rgba(255,255,255,.78)"><span class="num">{d["data_date"][:10].replace("-", "/")}・{idx} / {tot}</span></div></body>')
+# ---- cover_v3（Andy 10-28：比比全拿掉、色調太醜）：單一主色＋一個強調色＋中性色；漲跌仍用台股紅綠 ----
+PALS = {
+ "A": dict(name="深海藍單色", bg="#0A1A2F", ink="#FFFFFF", sub="#C3D2E6", acc="#7CC4FF", chip="#1E5BD8", chipfg="#FFFFFF",
+           tile="#FFFFFF", tilebd="#FFFFFF", tl="#475569", tu="#64748B", tv="#0A1A2F", rule="rgba(255,255,255,.25)", foot="#A9BBD3",
+           duo=("#050E1C", "#8FB8E8"), shade="10,26,47", ring="rgba(124,196,255,.22)", panel="linear-gradient(135deg,#0F2A4F 0%,#123C7A 100%)", dark=True),
+ "B": dict(name="亮白藍橘", bg="#F3F6FB", ink="#0B1F3A", sub="#475569", acc="#E8590C", chip="#0B3D91", chipfg="#FFFFFF",
+           tile="#FFFFFF", tilebd="#D5DDEA", tl="#475569", tu="#64748B", tv="#0B1F3A", rule="#C9D3E3", foot="#64748B",
+           duo=("#0B2447", "#A9C4EA"), shade="11,36,71", ring="rgba(255,255,255,.22)", panel="linear-gradient(135deg,#0B3D91 0%,#1F5FC4 100%)", dark=False),
+}
+SLOTN = {"pre": "盤前新聞", "intra": "盤中新聞", "post": "盤後新聞"}
+def bg_duo(path, w, h, pal):
+    """AI 圖統一轉成同一組雙色調（暗→亮），整組色調一致；取上緣鋪滿"""
+    from PIL import ImageFilter, ImageOps, ImageStat
+    im = Image.open(path).convert("RGB")
+    if "pollinations" in str(path): im = im.crop((0, 0, im.width, im.height - int(im.height*0.07)))
+    g = ImageOps.autocontrast(im.convert("L"), cutoff=1)
+    sc = max(w/g.width, h/g.height); g = g.resize((int(g.width*sc)+1, g.height and int(g.height*sc)+1), Image.LANCZOS).filter(ImageFilter.UnsharpMask(radius=1.5, percent=50, threshold=3))
+    x0 = (g.width - w)//2; y0 = int((g.height - h)*0.2); g = g.crop((x0, y0, x0+w, y0+h))
+    out = ImageOps.colorize(g, pal["duo"][0], pal["duo"][1]); b = io.BytesIO(); out.save(b, "JPEG", quality=92)
+    return "data:image/jpeg;base64," + base64.b64encode(b.getvalue()).decode()
+def vcolor3(v, pal):
+    v = v.strip()
+    if v.startswith(("+", "買超")): return UP
+    if v.startswith(("-", "－", "−", "賣超")): return DN
+    return pal["tv"]
+def hero3(c, tl, pal):
+    """沒有 AI 圖：純色漸層面板＋幾何圓環＋放大的關鍵數字（取自大標第一個數字），無任何插圖"""
+    hero = None
+    for l in tl:
+        m = NUM.search(l)
+        if m: hero = m.group(0).strip(); break
+    shapes = (f'<div class="a" data-bg=1 style="left:0;top:0;width:1080px;height:760px;background:{pal["panel"]}"></div>'
+              f'<div class="a" data-bg=1 style="left:560px;top:-120px;width:640px;height:640px;border-radius:50%;border:2px solid {pal["ring"]}"></div>'
+              f'<div class="a" data-bg=1 style="left:640px;top:-40px;width:480px;height:480px;border-radius:50%;border:2px solid {pal["ring"]}"></div>'
+              f'<div class="a" data-bg=1 style="left:720px;top:40px;width:320px;height:320px;border-radius:50%;background:{pal["ring"]}"></div>'
+              + "".join(f'<div class="a" data-bg=1 style="left:0;top:{y}px;width:1080px;height:1px;background:{pal["ring"]}"></div>' for y in (260, 340, 420)))
+    if not hero: return shapes, ""
+    num = re.match(r"[\d,.]+", hero).group(0); unit = hero[len(num):].strip(); label = ""
+    for x in c["numbers"]:
+        if num.replace(",", "") in x["value"].replace(",", "").replace("+", ""): label = x["label"]; break
+    fsz = 208 if len(num) <= 5 else 160
+    hx = ((f'<div class="a T3b" style="left:64px;top:176px;color:#fff;opacity:.85;letter-spacing:.08em">{e(label)}</div>') if label else "") + \
+         f'<div class="a ser num" style="left:64px;top:232px;color:#fff;font-size:{fsz}px;line-height:{fsz+16}px;font-weight:700;white-space:nowrap">{e(num)}<span style="font-size:64px;margin-left:12px">{e(unit)}</span></div>'
+    return shapes, hx
+def card_v3(d, idx, tot, bg=None, pal="A", slot="pre"):
+    P3 = PALS[pal]; c = d["card"]; cat = c["category"]
+    tl = (lines_of(c.get("cover_title")) or breakit(c["title"], 88).split("\n"))[:2]
+    dl = (lines_of(c.get("cover_desc")) or [c["subtitle"]])[:2]
+    fs = min(96, int(944 / max(wid(l) for l in tl)) // 4 * 4)
+    nums = c["numbers"][:3]; n = len(nums); rh, g = 88, 10
+    rtop = 1240 - (n*rh + (n-1)*g); dtop = rtop - 28 - len(dl)*52; ttop = dtop - 20 - len(tl)*(fs+12); chipt = ttop - 20 - 56
+    hi = next((i for i, l in enumerate(tl) if NUM.search(l)), -1)
+    def hl3(l):
+        m = NUM.search(l)
+        if not m: return e(l)
+        return e(l[:m.start()]) + f'<span class="ser num" style="color:{P3["acc"]};font-weight:700">{e(m.group(0))}</span>' + e(l[m.end():])
+    extra = ""
+    if bg:
+        img = f'<div class="a" data-bg=1 style="left:0;top:0;width:1080px;height:760px;background:url({bg_duo(bg, 1080, 760, P3)}) center/cover"></div>'
+    else: img, extra = hero3(c, tl, P3)
+    sh = P3["shade"]
+    shade = (f'<div class="a" data-bg=1 style="left:0;top:0;width:1080px;height:1350px;background:linear-gradient(180deg,rgba({sh},.55) 0%,rgba({sh},0) 12%,rgba({sh},0) 30%,rgba({sh},.0) 34%,{P3["bg"]}EE 44%,{P3["bg"]} 52%,{P3["bg"]} 100%)"></div>')
+    rows = ''.join(
+        f'<div class="row" style="position:absolute;left:64px;top:{rtop + i*(rh+g)}px;width:952px;height:{rh}px;background:{P3["tile"]};border:1px solid {P3["tilebd"]};border-left:8px solid {P3["chip"]};border-radius:4px;padding:0 28px;justify-content:space-between">'
+        f'<span class="T3b" style="color:{P3["tl"]}">{e(x["label"])}</span><span class="row" style="gap:8px;align-items:baseline"><span class="ser num" style="font-size:56px;line-height:64px;font-weight:700;color:{vcolor3(x["value"], P3)}">{e(x["value"])}</span>'
+        f'<span class="T4b" style="color:{P3["tu"]}">{e(x["unit"])}</span></span></div>' for i, x in enumerate(nums))
+    date = d["data_date"][:10].replace("-", "/"); topc = "#fff" if (P3["dark"] or True) else P3["ink"]
+    return (f'<body style="{V};background:{P3["bg"]}">{img}{shade}{extra}'
+            f'<div class="a" style="left:64px;top:48px;width:952px;height:2px;background:rgba(255,255,255,.45)" data-bg=1></div>'
+            f'<div class="brand T3b" style="color:#fff;top:64px">哩股哩股</div><div class="hdate T4b num" style="color:#fff;top:68px">{SLOTN.get(slot, "")}・{date}</div>'
+            f'<div class="a row" style="left:64px;top:{chipt}px"><span class="T3b" style="background:{P3["chip"]};color:{P3["chipfg"]};padding:4px 28px;border-radius:4px;letter-spacing:.12em">{e(cat)}</span></div>'
+            f'<div class="a" style="left:64px;top:{ttop}px;width:952px;color:{P3["ink"]};font-size:{fs}px;line-height:{fs+12}px;font-weight:800;letter-spacing:-.01em">'
+            + "".join(f'<div style="white-space:nowrap">{hl3(l) if i == hi else e(l)}</div>' for i, l in enumerate(tl)) + '</div>'
+            f'<div class="a T3" style="left:64px;top:{dtop}px;width:952px;color:{P3["sub"]};line-height:52px">' + "".join(f"<div>{e(l)}</div>" for l in dl) + '</div>'
+            f'{rows}<div class="a" style="left:64px;top:1264px;width:952px;height:2px;background:{P3["rule"]}"></div>'
+            f'<div class="a row T4" style="left:64px;top:1272px;width:952px;height:56px;color:{P3["foot"]}"><span class="num">{idx} / {tot}</span></div></body>')
 if __name__ == "__main__":
     root = Path(sys.argv[1]); slot = sys.argv[2]
+    def _opt(k, dv=None): return sys.argv[sys.argv.index(k)+1] if k in sys.argv else dv
+    PAL = _opt("--pal", "A"); ONLY = _opt("--only"); OUT = _opt("--out")
     from playwright.sync_api import sync_playwright as _sp
     _pw = _sp().start(); _br = _pw.chromium.launch(executable_path=os.environ.get("CHROMIUM") or None); _PG = _br.new_page(); _PG.set_content("<body></body>")
     items = json.load(open(root/f"{slot}.json", encoding="utf-8"))
-    out = root/slot; bgmap = json.load(open(root/"news_bg.json", encoding="utf-8")) if (root/"news_bg.json").exists() else {}
-    fn = card if "--v1" in sys.argv else card_v2
+    out = Path(OUT) if OUT else root/slot; bgmap = json.load(open(root/"news_bg.json", encoding="utf-8")) if (root/"news_bg.json").exists() else {}
+    fn = lambda d, i, t, b: card_v3(d, i, t, b, PAL, slot)
     pages = [fn(d, i, len(items), (root/bgmap[d["id"]]) if bgmap.get(d["id"]) else None) for i, d in enumerate(items, 1)]
+    if ONLY: pages = [pages[int(x)-1] for x in ONLY.split(",")]
     _br.close(); _pw.stop()      # 量字寬用的瀏覽器先關掉，才能開渲染用的
     render("", pages, out)
-    if len(sys.argv) > 3 and not sys.argv[3].startswith("--"): sheet(out, [f"{i}.jpg" for i in range(1, len(items)+1)], sys.argv[3], len(items), 400)
+    if len(sys.argv) > 3 and not sys.argv[3].startswith("--"): sheet(out, [f"{i}.jpg" for i in range(1, len(pages)+1)], sys.argv[3], len(pages), 400)
