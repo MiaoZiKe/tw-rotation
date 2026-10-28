@@ -202,6 +202,9 @@ def foot_of(c, idx, tot):
 def vfs(v):
     """資訊列右側數值字級：數字用 56px 襯線；含中文的文字值縮成 44px，避免字高貼滿 80px 的列（常備文庫知識卡）。"""
     return "font-size:44px;line-height:56px" if re.search(r"[\u2e80-\ua000\uff00-\uffef]", v) else "font-size:56px;line-height:64px"
+def vcls(v):
+    """含中文的值整串用無襯線（避免「IC 設計公司」「運算晶片＋HBM」英數襯線、中文黑體混字）；純英數才用襯線。"""
+    return "num" if re.search(r"[\u2e80-\ua000\uff00-\uffef]", v) else "ser num"
 def hero_fs(num):
     """大字字級依字數縮放（全形 1.0、半形 0.55 em），上限 280px：大數字填滿灰框，不留右半邊空白。"""
     w = sum(1.0 if ord(ch) > 0x2E80 else 0.55 for ch in num) or 1
@@ -313,7 +316,7 @@ def card_v4(d, idx, tot, bg=None, slot="pre"):
                f'<div class="a ser num" style="left:96px;top:{128 + (imgh - fsz - 16 - 48)//2 + 64}px;color:{K["ink"]};font-size:{fsz}px;line-height:{fsz+16}px;height:{fsz+16}px;font-weight:700;white-space:nowrap">{e(num)}<span style="font-size:64px;line-height:64px;margin-left:12px;color:{K["sub"]}">{e(unit)}</span></div>')
     rows = ''.join(
         f'<div class="row" style="position:absolute;left:64px;top:{rtop + i*(rh+g)}px;width:952px;height:{rh}px;background:{K["tile"]};border:1px solid {K["tbd"]};border-left:8px solid {K["bar"]};border-radius:4px;padding:0 28px;justify-content:space-between">'
-        f'<span class="T3b" style="color:{K["sub"]}">{e(x["label"])}</span><span class="row" style="gap:8px;align-items:baseline"><span class="ser num" style="{vfs(x["value"])};font-weight:700;color:{vcolor3(x["value"], dict(tv=K["ink"]))}">{e(x["value"])}</span>'
+        f'<span class="T3b" style="color:{K["sub"]}">{e(x["label"])}</span><span class="row" style="gap:8px;align-items:baseline"><span class="{vcls(x["value"])}" style="{vfs(x["value"])};font-weight:700;color:{vcolor3(x["value"], dict(tv=K["ink"]))}">{e(x["value"])}</span>'
         f'<span class="T4b" style="color:{K["mu"]}">{e(x["unit"])}</span></span></div>' for i, x in enumerate(nums))
     date = d["data_date"][:10].replace("-", "/")
     return (f'<body style="{V};background:{K["bg"]}"><div class="a" style="left:64px;top:40px;width:952px;height:4px;background:{K["ink"]}" data-bg=1></div>'
@@ -441,7 +444,7 @@ def card_photo(d, idx, tot, photo, slot="pre", pending=False):
     date = d["data_date"][:10].replace("-", "/")
     rows = ''.join(
         f'<div class="row" style="position:absolute;left:64px;top:{rtop + i*(rh+g)}px;width:952px;height:{rh}px;background:{K["tile"]};border:1px solid {K["tbd"]};border-left:8px solid {K["bar"]};border-radius:4px;padding:0 28px;justify-content:space-between">'
-        f'<span class="T3b" style="color:{K["sub"]}">{e(x["label"])}</span><span class="row" style="gap:8px;align-items:baseline"><span class="ser num" style="{vfs(x["value"])};font-weight:700;color:{vcolor3(x["value"], dict(tv=K["ink"]))}">{e(x["value"])}</span>'
+        f'<span class="T3b" style="color:{K["sub"]}">{e(x["label"])}</span><span class="row" style="gap:8px;align-items:baseline"><span class="{vcls(x["value"])}" style="{vfs(x["value"])};font-weight:700;color:{vcolor3(x["value"], dict(tv=K["ink"]))}">{e(x["value"])}</span>'
         f'<span class="T4b" style="color:{K["mu"]}">{e(x["unit"])}</span></span></div>' for i, x in enumerate(nums))
     return (f'<body style="{V};background:{K["bg"]}"><div class="a" style="left:64px;top:40px;width:952px;height:4px;background:{K["ink"]}" data-bg=1></div>'
             f'<div class="brand T3b" style="color:{K["ink"]}">哩股哩股</div><div class="hdate T4b num" style="color:{K["mu"]}">{hdr_of(c, slot)}・{date}</div>'
