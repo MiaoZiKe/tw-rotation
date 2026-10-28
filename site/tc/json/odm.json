@@ -24043,7 +24043,10 @@
             60
           ],
           "bonus_months": null,
-          "annual_months": null,
+          "annual_months": [
+            14,
+            14
+          ],
           "annual_total_wan": null,
           "weekly_hours": [
             45,
@@ -24051,11 +24054,11 @@
           ],
           "overtime": "經常",
           "travel": null,
-          "n": 2,
+          "n": 4,
           "note": "2026-10-28 Dcard 1449 批新增職位",
           "confidence": "低",
           "grade": null,
-          "n_stat": 2,
+          "n_stat": 4,
           "samples": [
             {
               "site": "Dcard",
@@ -24101,6 +24104,52 @@
               "quote_free_note": "自填；日工時 表訂/實際 8/9 小時",
               "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2026-06（20261029_0014～0053 合併批，0044 檔）"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261217119",
+              "date": "2026-04",
+              "page_date": "2026-04-01",
+              "date_confirmed": true,
+              "role": "製程工程師（儲備幹部）",
+              "grade": null,
+              "unit_detail": "桃園",
+              "years": "1",
+              "degree": "碩士",
+              "base_k": 50,
+              "bonus_months": null,
+              "annual_months": 14,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "口頭 offer 50k（保 14）＋分紅；可能外派、之後可能中班",
+              "in_window": true,
+              "date_note": "Dcard 頁面日期 2026-04-01（20261029_0237 批）",
+              "comment_sample": false
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/260732806",
+              "date": "2026-01",
+              "page_date": "2026-01-24",
+              "date_confirmed": true,
+              "role": "SMT 製程工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "0",
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": 14,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "主管口頭 offer 保 14，月薪未寫",
+              "in_window": true,
+              "date_note": "Dcard 頁面日期 2026-01-24（20261029_0237 批）",
+              "comment_sample": false
             }
           ],
           "sources": [
@@ -24113,6 +24162,16 @@
               "site": "GoodJob",
               "url": "https://www.goodjob.life/companies/和碩聯合科技股份有限公司/salary-work-times?p=3",
               "date": "2026-06"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261217119",
+              "date": "2026-04"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/260732806",
+              "date": "2026-01"
             }
           ]
         },
@@ -25931,6 +25990,28 @@
               "quote_free_note": "自填；日工時 表訂/實際 8/9 小時",
               "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2025-11（20261029_0014～0053 合併批，0051 檔）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/仁寶電腦工業股份有限公司 COMPAL/salary-work-times?p=11",
+              "date": "2025-06",
+              "page_date": "2025-06",
+              "date_confirmed": true,
+              "role": "THERMAL",
+              "grade": null,
+              "unit_detail": null,
+              "years": "6",
+              "degree": null,
+              "base_k": 85,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 45,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/9 小時；職稱未寫工程師",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2025-06（20261029_0225＋0237＋0239 合併批，0225 檔）"
             }
           ],
           "sources": [
@@ -25943,28 +26024,33 @@
               "site": "GoodJob",
               "url": "https://www.goodjob.life/companies/仁寶電腦工業股份有限公司 COMPAL/salary-work-times?p=6",
               "date": "2025-11"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/仁寶電腦工業股份有限公司 COMPAL/salary-work-times?p=11",
+              "date": "2025-06"
             }
           ],
           "confidence": "低",
-          "n": 2,
+          "n": 3,
           "annual_months": [
             16.5,
             16.5
           ],
-          "overtime": null,
+          "overtime": "經常",
           "years": "轉職",
           "base_month_k": [
             60,
-            60
+            85
           ],
           "bonus_months": null,
           "annual_total_wan": null,
           "weekly_hours": [
             40,
-            40
+            45
           ],
           "travel": null,
-          "n_stat": 2,
+          "n_stat": 3,
           "note": null,
           "grade": null
         },
@@ -26090,7 +26176,7 @@
           ],
           "overtime": "經常",
           "travel": null,
-          "n": 15,
+          "n": 18,
           "note": "GoodJob 評價（2025-08 之後）",
           "sources": [
             {
@@ -26142,6 +26228,16 @@
               "site": "GoodJob",
               "url": "https://www.goodjob.life/companies/仁寶電腦工業股份有限公司 COMPAL/salary-work-times?p=10",
               "date": "2025-06"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/仁寶電腦工業股份有限公司 COMPAL/salary-work-times?p=11",
+              "date": "2025-06"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/仁寶電腦工業股份有限公司 COMPAL/salary-work-times?p=12",
+              "date": "2025-04"
             }
           ],
           "confidence": "低",
@@ -26473,9 +26569,75 @@
               "quote_free_note": "自填；日工時 表訂/實際 8/11 小時",
               "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2025-06（20261029_0014～0053 合併批，0053 檔）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/仁寶電腦工業股份有限公司 COMPAL/salary-work-times?p=11",
+              "date": "2025-06",
+              "page_date": "2025-06",
+              "date_confirmed": true,
+              "role": "硬體工程師",
+              "grade": null,
+              "unit_detail": "台北",
+              "years": "6",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 120,
+              "weekly_hours": 50,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/9.5 小時",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2025-06（20261029_0225＋0237＋0239 合併批，0225 檔）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/仁寶電腦工業股份有限公司 COMPAL/salary-work-times?p=12",
+              "date": "2025-04",
+              "page_date": "2025-04",
+              "date_confirmed": true,
+              "role": "硬體工程師",
+              "grade": null,
+              "unit_detail": "台北",
+              "years": "5",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 110,
+              "weekly_hours": 45,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/9 小時",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2025-04（20261029_0225＋0237＋0239 合併批，0225 檔）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/仁寶電腦工業股份有限公司 COMPAL/salary-work-times?p=12",
+              "date": "2025-03",
+              "page_date": "2025-03",
+              "date_confirmed": true,
+              "role": "硬體工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "4",
+              "degree": null,
+              "base_k": 43,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 60,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 10/12 小時",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2025-03（20261029_0225＋0237＋0239 合併批，0225 檔）"
             }
           ],
-          "n_stat": 15
+          "n_stat": 18
         },
         {
           "unit": "其他",
@@ -26484,18 +26646,18 @@
           "years": "3",
           "base_month_k": [
             50,
-            56
+            72
           ],
           "bonus_months": null,
           "annual_months": null,
           "annual_total_wan": null,
           "weekly_hours": [
-            40.5,
+            40,
             40.5
           ],
-          "overtime": "偶爾",
+          "overtime": "幾乎不",
           "travel": null,
-          "n": 2,
+          "n": 5,
           "note": "GoodJob 評價（2025-08 之後）",
           "sources": [
             {
@@ -26507,6 +26669,16 @@
               "site": "GoodJob",
               "url": "https://www.goodjob.life/companies/仁寶電腦工業股份有限公司 COMPAL/salary-work-times?p=2",
               "date": "2026-07"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/仁寶電腦工業股份有限公司 COMPAL/salary-work-times?p=11",
+              "date": "2025-06"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/仁寶電腦工業股份有限公司 COMPAL/salary-work-times?p=12",
+              "date": "2025-03"
             }
           ],
           "confidence": "低",
@@ -26552,9 +26724,75 @@
               "quote_free_note": "自填；日工時 表訂/實際 8/8.5 小時；職稱為「高工」（高級工程師簡稱）",
               "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2026-07（20261029_0014～0053 合併批，0049 檔）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/仁寶電腦工業股份有限公司 COMPAL/salary-work-times?p=11",
+              "date": "2025-06",
+              "page_date": "2025-06",
+              "date_confirmed": true,
+              "role": "高級工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "3",
+              "degree": null,
+              "base_k": 72,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 40,
+              "overtime": "幾乎不",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/8 小時",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2025-06（20261029_0225＋0237＋0239 合併批，0225 檔）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/仁寶電腦工業股份有限公司 COMPAL/salary-work-times?p=12",
+              "date": "2025-03",
+              "page_date": "2025-03",
+              "date_confirmed": true,
+              "role": "高級工程師",
+              "grade": null,
+              "unit_detail": "TPE",
+              "years": "5",
+              "degree": null,
+              "base_k": 66,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 40,
+              "overtime": "幾乎不",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/8 小時",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2025-03（20261029_0225＋0237＋0239 合併批，0225 檔）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/仁寶電腦工業股份有限公司 COMPAL/salary-work-times?p=12",
+              "date": "2025-03",
+              "page_date": "2025-03",
+              "date_confirmed": true,
+              "role": "高級工程師",
+              "grade": null,
+              "unit_detail": "台北市",
+              "years": "2",
+              "degree": null,
+              "base_k": 71,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 40,
+              "overtime": "幾乎不",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/8 小時",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2025-03（20261029_0225＋0237＋0239 合併批，0225 檔）"
             }
           ],
-          "n_stat": 2
+          "n_stat": 5
         },
         {
           "unit": "其他",
@@ -26621,13 +26859,13 @@
             150
           ],
           "weekly_hours": [
-            45,
+            41,
             64
           ],
           "overtime": "經常",
           "travel": null,
-          "n": 4,
-          "n_stat": 4,
+          "n": 5,
+          "n_stat": 5,
           "note": null,
           "grade": null,
           "sources": [
@@ -26650,6 +26888,11 @@
               "site": "GoodJob",
               "url": "https://www.goodjob.life/companies/仁寶電腦工業股份有限公司 COMPAL/salary-work-times?p=9",
               "date": "2025-07"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/仁寶電腦工業股份有限公司 COMPAL/salary-work-times?p=11",
+              "date": "2025-06"
             }
           ],
           "confidence": "低",
@@ -26741,6 +26984,28 @@
               "quote_free_note": "自填；日工時 表訂/實際 8/10 小時；原選項幾乎每天",
               "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2025-07（20261029_0014～0053 合併批，0053 檔）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/仁寶電腦工業股份有限公司 COMPAL/salary-work-times?p=11",
+              "date": "2025-06",
+              "page_date": "2025-06",
+              "date_confirmed": true,
+              "role": "BIOS工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "5",
+              "degree": null,
+              "base_k": 74.1,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 41,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/8.5 小時",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2025-06（20261029_0225＋0237＋0239 合併批，0225 檔）"
             }
           ]
         },
@@ -26751,25 +27016,25 @@
           "years": null,
           "base_month_k": [
             38,
-            51
+            87.5
           ],
           "bonus_months": null,
           "annual_months": null,
           "annual_total_wan": [
-            70,
+            56,
             100
           ],
           "weekly_hours": [
             40,
-            45
+            55
           ],
           "overtime": "偶爾",
           "travel": null,
-          "n": 7,
+          "n": 10,
           "note": "2026-10-28 Dcard 2009 批新增職位",
           "confidence": "低",
           "grade": null,
-          "n_stat": 7,
+          "n_stat": 10,
           "samples": [
             {
               "site": "Dcard",
@@ -26925,6 +27190,72 @@
               "quote_free_note": "自填；日工時 表訂/實際 8/8 小時",
               "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2025-08（20261029_0014～0053 合併批，0053 檔）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/仁寶電腦工業股份有限公司 COMPAL/salary-work-times?p=11",
+              "date": "2025-05",
+              "page_date": "2025-05",
+              "date_confirmed": true,
+              "role": "PE工程師",
+              "grade": null,
+              "unit_detail": "平鎮廠",
+              "years": "7",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 56,
+              "weekly_hours": 45,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/9 小時",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2025-05（20261029_0225＋0237＋0239 合併批，0225 檔）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/仁寶電腦工業股份有限公司 COMPAL/salary-work-times?p=13",
+              "date": "2025-02",
+              "page_date": "2025-02",
+              "date_confirmed": true,
+              "role": "LCD工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "3",
+              "degree": null,
+              "base_k": 40,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 40,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/9 小時",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2025-02（20261029_0225＋0237＋0239 合併批，0225 檔）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/仁寶電腦工業股份有限公司 COMPAL/salary-work-times?p=13",
+              "date": "2025-02",
+              "page_date": "2025-02",
+              "date_confirmed": true,
+              "role": "工程師",
+              "grade": null,
+              "unit_detail": "林口",
+              "years": "5",
+              "degree": null,
+              "base_k": 87.5,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 55,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 10/12 小時",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2025-02（20261029_0225＋0237＋0239 合併批，0225 檔）"
             }
           ],
           "sources": [
@@ -26962,6 +27293,16 @@
               "site": "GoodJob",
               "url": "https://www.goodjob.life/companies/仁寶電腦工業股份有限公司 COMPAL/salary-work-times?p=9",
               "date": "2025-08"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/仁寶電腦工業股份有限公司 COMPAL/salary-work-times?p=11",
+              "date": "2025-05"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/仁寶電腦工業股份有限公司 COMPAL/salary-work-times?p=13",
+              "date": "2025-02"
             }
           ]
         },
@@ -27241,8 +27582,8 @@
           "degree": null,
           "years": null,
           "base_month_k": [
-            47,
-            60
+            39,
+            75
           ],
           "bonus_months": null,
           "annual_months": null,
@@ -27254,13 +27595,13 @@
             40,
             60
           ],
-          "overtime": null,
+          "overtime": "幾乎不",
           "travel": null,
-          "n": 9,
+          "n": 17,
           "note": "2026-10-29 GoodJob 合併批新增職位",
           "confidence": "低",
           "grade": null,
-          "n_stat": 9,
+          "n_stat": 17,
           "samples": [
             {
               "site": "GoodJob",
@@ -27459,6 +27800,182 @@
               "quote_free_note": "自填；日工時 表訂/實際 8/10.5 小時；原選項幾乎每天",
               "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2025-06（20261029_0014～0053 合併批，0053 檔）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/仁寶電腦工業股份有限公司 COMPAL/salary-work-times?p=11",
+              "date": "2025-06",
+              "page_date": "2025-06",
+              "date_confirmed": true,
+              "role": "軟體工程師",
+              "grade": null,
+              "unit_detail": "內湖",
+              "years": "5",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 130,
+              "weekly_hours": 40,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 9/8 小時",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2025-06（20261029_0225＋0237＋0239 合併批，0225 檔）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/仁寶電腦工業股份有限公司 COMPAL/salary-work-times?p=11",
+              "date": "2025-05",
+              "page_date": "2025-05",
+              "date_confirmed": true,
+              "role": "軟體工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "5",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 150,
+              "weekly_hours": 40,
+              "overtime": "幾乎不",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/8 小時",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2025-05（20261029_0225＋0237＋0239 合併批，0225 檔）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/仁寶電腦工業股份有限公司 COMPAL/salary-work-times?p=12",
+              "date": "2025-04",
+              "page_date": "2025-04",
+              "date_confirmed": true,
+              "role": "軟體工程師",
+              "grade": null,
+              "unit_detail": "內湖",
+              "years": "2",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 110,
+              "weekly_hours": 40,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8.5/8.5 小時",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2025-04（20261029_0225＋0237＋0239 合併批，0225 檔）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/仁寶電腦工業股份有限公司 COMPAL/salary-work-times?p=12",
+              "date": "2025-03",
+              "page_date": "2025-03",
+              "date_confirmed": true,
+              "role": "軟體工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 80,
+              "weekly_hours": 40,
+              "overtime": "幾乎不",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/8 小時",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2025-03（20261029_0225＋0237＋0239 合併批，0225 檔）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/仁寶電腦工業股份有限公司 COMPAL/salary-work-times?p=12",
+              "date": "2025-03",
+              "page_date": "2025-03",
+              "date_confirmed": true,
+              "role": "軟體工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "2",
+              "degree": null,
+              "base_k": 75,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 40,
+              "overtime": "幾乎不",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8.5/8 小時",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2025-03（20261029_0225＋0237＋0239 合併批，0225 檔）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/仁寶電腦工業股份有限公司 COMPAL/salary-work-times?p=13",
+              "date": "2025-03",
+              "page_date": "2025-03",
+              "date_confirmed": true,
+              "role": "軟體設計工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "3",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 80,
+              "weekly_hours": 40,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/8 小時",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2025-03（20261029_0225＋0237＋0239 合併批，0225 檔）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/仁寶電腦工業股份有限公司 COMPAL/salary-work-times?p=13",
+              "date": "2025-03",
+              "page_date": "2025-03",
+              "date_confirmed": true,
+              "role": "軟體工程師",
+              "grade": null,
+              "unit_detail": "台北",
+              "years": "2",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 90,
+              "weekly_hours": 50,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 9/11 小時",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2025-03（20261029_0225＋0237＋0239 合併批，0225 檔）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/仁寶電腦工業股份有限公司 COMPAL/salary-work-times?p=13",
+              "date": "2025-02",
+              "page_date": "2025-02",
+              "date_confirmed": true,
+              "role": "NB軟體應用工程師",
+              "grade": null,
+              "unit_detail": "仁寶大樓(內湖)",
+              "years": null,
+              "degree": null,
+              "base_k": 39,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 45,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/9 小時",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2025-02（20261029_0225＋0237＋0239 合併批，0225 檔）"
             }
           ],
           "sources": [
@@ -27496,6 +28013,21 @@
               "site": "GoodJob",
               "url": "https://www.goodjob.life/companies/仁寶電腦工業股份有限公司 COMPAL/salary-work-times?p=10",
               "date": "2025-06"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/仁寶電腦工業股份有限公司 COMPAL/salary-work-times?p=11",
+              "date": "2025-06"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/仁寶電腦工業股份有限公司 COMPAL/salary-work-times?p=12",
+              "date": "2025-04"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/仁寶電腦工業股份有限公司 COMPAL/salary-work-times?p=13",
+              "date": "2025-03"
             }
           ]
         },
@@ -27971,7 +28503,7 @@
           "degree": null,
           "years": null,
           "base_month_k": [
-            45,
+            38,
             65
           ],
           "bonus_months": null,
@@ -27984,13 +28516,13 @@
             40,
             53
           ],
-          "overtime": "經常",
+          "overtime": null,
           "travel": null,
-          "n": 3,
+          "n": 4,
           "note": "2026-10-29 GoodJob 合併批新增職位",
           "confidence": "低",
           "grade": null,
-          "n_stat": 3,
+          "n_stat": 4,
           "samples": [
             {
               "site": "GoodJob",
@@ -28057,6 +28589,28 @@
               "quote_free_note": "自填；日工時 表訂/實際 8/10.5 小時；原選項幾乎每天",
               "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2026-02（20261029_0014～0053 合併批，0051 檔）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/仁寶電腦工業股份有限公司 COMPAL/salary-work-times?p=13",
+              "date": "2025-02",
+              "page_date": "2025-02",
+              "date_confirmed": true,
+              "role": "測試工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "1",
+              "degree": null,
+              "base_k": 38,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 45,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/9 小時",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2025-02（20261029_0225＋0237＋0239 合併批，0225 檔）"
             }
           ],
           "sources": [
@@ -28074,6 +28628,11 @@
               "site": "GoodJob",
               "url": "https://www.goodjob.life/companies/仁寶電腦工業股份有限公司 COMPAL/salary-work-times?p=5",
               "date": "2026-02"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/仁寶電腦工業股份有限公司 COMPAL/salary-work-times?p=13",
+              "date": "2025-02"
             }
           ]
         },
