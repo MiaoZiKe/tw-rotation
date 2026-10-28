@@ -1,0 +1,5 @@
+/* 2026-10-28 手機：薪資組成圖例最右欄金額（約 110.4 萬）會被固定在右下角的客服鈕（比比）蓋住。
+   客服鈕位置是 Andy 定的規則不能移，所以圖例右側留 68px（客服鈕寬 60 + 間距）；只限 ≤640，桌機不動 */
+@media (max-width:640px){
+#v-tc .tc-pay .tcdn ul.tclg{padding-right:68px;box-sizing:border-box}
+}
