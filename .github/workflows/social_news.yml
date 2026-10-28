@@ -99,7 +99,7 @@ jobs:
           IN_DRY: ${{ inputs.dry_run }}
           IN_FORCE: ${{ inputs.force }}
           NEWS_AUTO_APPROVE: "1"   # 10-28 Andy：「A，開啟」（寧可少發、品質閘不放寬）
-          TOPIC_AUTO_APPROVE: "0"  # 10-29：週末精選／備案／常備文庫的開關（預設關＝只寫 draft）。CEO 看過樣本後改 "1" 才會自動發出
+          TOPIC_AUTO_APPROVE: "1"  # 10-29：週末精選／備案／常備文庫的開關。10-29 美編複審＋11 篇事實查證通過後開啟（Andy：「週末也會有一到兩篇，這些都需要自動化」）
         run: |
           args="--slot $IN_SLOT --posted state/posted.json"
           if [ "$IN_DRY" = "true" ]; then args="$args --dry-run --out $RUNNER_TEMP/news_dry"; fi
