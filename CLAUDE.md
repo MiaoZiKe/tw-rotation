@@ -6,7 +6,7 @@
 回答四個問題：**錢往哪個族群跑、那個族群現在貴不貴、什麼時候進場、有沒有理由不進場。**
 判斷順序是刻意的：M1 資金面 + M2 基本面決定方向 → M3 技術面決定時機 → M4 事件面否決。
 
-- 線上網址：<https://miaozike.github.io/tw-rotation/>
+- 線上網址：**主站 <https://liguligu-puipui.com/>**（2026-10-29 Andy：「之後以這為主」，回報一律附這個網址）；備援 <https://miaozike.github.io/tw-rotation/>。兩邊每次推 main 都要同步，`deploy_wait.py --branch main` 兩行 ✅ 才算。
 - Repo：<https://github.com/MiaoZiKe/tw-rotation>（**public**，所以任何金鑰、持股、成本價都不能進 repo）
 - 擁有者 Andy。`groups.yaml` / `themes.yaml` / `supply_chain.yaml` 的成分他會自己校訂。
 - **★ 判斷依據是證據，不是誰在問**（Andy 2026-09-19：「不要把我的身份加進來，
