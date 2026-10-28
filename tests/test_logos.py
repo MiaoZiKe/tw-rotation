@@ -1865,3 +1865,21 @@ def test_run_records_group_via_and_site(sandbox):
     lg.run(today=date(2026, 9, 29), fetcher=fetcher)
     rec = lg.read_index()["items"]["9999"]
     assert rec["via"] == "group" and rec["site"] == "www.group.com"
+
+
+def test_依網域_API被擋503時改走SPARQL備援(monkeypatch):
+    """Wikidata API 對 runner 持續 503 時，不要整批『沒回應』：改用 SPARQL 備援一次問完。"""
+    from pipeline.sources import logo_wikimedia as wm
+
+    def boom(name, dom):
+        raise wm.Throttled("Wikidata API 回 HTTP 503")
+    monkeypatch.setattr(wm, "logo_by_website", boom)
+    monkeypatch.setattr(wm, "logos_by_domains_sparql", lambda doms: {})
+    monkeypatch.setattr(wm.time, "sleep", lambda s: None)
+    assert wm.fetch_by_website([{"domain": "nvidia.com", "en": "NVIDIA"}]) == {}    # 備援也空＝照舊收手
+    monkeypatch.setattr(wm, "logos_by_domains_sparql", lambda doms: {})
+    monkeypatch.setattr(wm, "commons_info", lambda t: {})
+    monkeypatch.setattr(wm, "logos_by_domains_sparql",
+                        lambda doms: {"nvidia.com": {"file": "File:N.svg", "item": "Q1", "match": "website-sparql"}})
+    out = wm.fetch_by_website([{"domain": "nvidia.com", "en": "NVIDIA"}])
+    assert out["nvidia.com"]["status"] == "none" and "Commons" in out["nvidia.com"]["detail"]

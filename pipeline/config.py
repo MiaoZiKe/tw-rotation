@@ -439,7 +439,7 @@ LOGO_COMMONS_API = "https://commons.wikimedia.org/w/api.php"
 # Wikimedia 的 User-Agent 政策：要能辨識用途、附聯絡方式（網址或 email）。用 repo 網址（issues 可聯絡），
 # 不放個人 email —— repo 是 public。瀏覽器樣式的 UA（上面的 USER_AGENT）會被歸成「未識別流量」而被限流。
 LOGO_WIKIMEDIA_UA = ("tw-rotation-logo/4 (https://github.com/MiaoZiKe/tw-rotation; "
-                     "contact: GitHub issues of MiaoZiKe/tw-rotation) python-requests")
+                     "contact: GitHub issues of MiaoZiKe/tw-rotation)")
 LOGO_WIKIDATA_CACHE = "logo_wikidata.json"   # data/_state/ 底下：代號／公司名 → Commons 檔名（7 天重查一次）
 LOGO_WIKIDATA_REFRESH_DAYS = 7
 LOGO_COMMONS_THUMB_PX = 250           # Commons 縮圖只接受標準尺寸（20/40/60/120/250/330/500…），非標準寬度會回 400／429

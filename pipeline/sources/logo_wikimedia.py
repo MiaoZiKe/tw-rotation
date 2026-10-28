@@ -515,11 +515,52 @@ def logo_by_website(name_en: str, domain: str) -> dict | None:
     return {"file": f if f.startswith("File:") else "File:" + f, "item": hits[0][1], "match": "website"}
 
 
+def logos_by_domains_sparql(domains: list[str]) -> dict[str, dict]:
+    """備援：wbsearchentities（www.wikidata.org/w/api.php）被 GitHub runner 的 IP 擋成 503 時，
+    改走 SPARQL（query.wikidata.org，每週查台灣條目已證實連得上）一次問完：官方網站 P856 含該網域、且有標誌圖 P154。
+    回 {網域: {file, item, match}}；同一網域對到兩個以上不同圖檔就不收（不猜）。連線失敗回 {}。"""
+    from . import logos as lg
+
+    doms = sorted({d.lower() for d in domains if d and re.fullmatch(r"[a-z0-9.-]+", d.lower())})
+    if not doms:
+        return {}
+    cond = " || ".join(f'CONTAINS(LCASE(STR(?site)), "{d}")' for d in doms)
+    q = f"SELECT DISTINCT ?item ?site ?logo WHERE {{ ?item wdt:P154 ?logo . ?item wdt:P856 ?site . FILTER({cond}) }}"
+    res = http.get_bytes(config.LOGO_WIKIDATA_SPARQL + "?" + urlencode({"query": q, "format": "json"}),
+                         headers={**_headers(), "Accept": "application/sparql-results+json"}, timeout=70, max_bytes=5_000_000)
+    if res is None or res[0] != 200:
+        log.warning("Wikidata SPARQL 備援失敗（HTTP %s）", res[0] if res else "連線失敗")
+        return {}
+    try:
+        rows = json.loads(res[1].decode("utf-8"))["results"]["bindings"]
+    except (ValueError, KeyError, TypeError, UnicodeDecodeError):
+        log.warning("Wikidata SPARQL 備援回應解析失敗（回應前 200 字）：%s", res[1][:200].decode("utf-8", errors="replace"))
+        return {}
+    found: dict[str, set] = {}
+    for b in rows:
+        try:
+            host = (re.sub(r"^[a-z]+://", "", b["site"]["value"].strip().lower()).split("/")[0]).split(":")[0]
+            f = file_title(b["logo"]["value"])
+            q_id = b["item"]["value"].rsplit("/", 1)[-1]
+        except (KeyError, TypeError):
+            continue
+        for d in doms:
+            if f and lg.same_company(host, d):
+                found.setdefault(d, set()).add((f, q_id))
+    out = {}
+    for d, v in found.items():
+        if len({x[0] for x in v}) == 1:
+            f, q_id = sorted(v)[0]
+            out[d] = {"file": f if f.startswith("File:") else "File:" + f, "item": q_id, "match": "website-sparql"}
+    return out
+
+
 def fetch_by_website(rows: list[dict], reject=frozenset(), deadline: float | None = None) -> dict[str, dict]:
     """rows＝[{domain, en}] → {網域: 結果}（格式同 fetch_many，多半 status＝ok／none）。絕不拋例外；被限流就整段收手。"""
     from . import logos as lg
 
     out: dict[str, dict] = {}
+    sp: dict | None = None      # 非 None＝API 被擋，改用 SPARQL 備援的結果
     try:
         for r in rows:
             dom, name = r["domain"], r.get("en")
@@ -528,7 +569,17 @@ def fetch_by_website(rows: list[dict], reject=frozenset(), deadline: float | Non
             if deadline and time.time() >= deadline:
                 break
             try:
-                hit = logo_by_website(name, dom)
+                if sp is None:
+                    try:
+                        hit = logo_by_website(name, dom)
+                    except Throttled as exc:
+                        log.warning("Wikimedia（依網域）：%s，改走 SPARQL 備援", exc)
+                        sp = logos_by_domains_sparql([x["domain"] for x in rows if x.get("en")])
+                        if not sp:
+                            raise
+                        hit = sp.get(dom)
+                else:
+                    hit = sp.get(dom)
                 time.sleep(config.LOGO_WIKIMEDIA_PAUSE_SEC)
                 if not hit:
                     out[dom] = {"status": "none", "domain": dom, "detail": f"Wikidata 查不到官網是 {dom} 的 {name}／沒有標誌圖"}
