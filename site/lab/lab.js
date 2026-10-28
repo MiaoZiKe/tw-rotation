@@ -85,14 +85,15 @@
   }
 
   /* ---------------------------------------------------------------- 狀態 */
-  const SUBS = [['fut', '台指期'], ['bt', '歷史回測']];
+  const SUBS = [['fut', '台指期', 10], ['bt', '歷史回測', 20]];
+  const MODS = {};        // 其他子頁（K 線重播、事件分析、自訂策略）由各自的 js 註冊進來：{ id, name, ord, mount(body, util), unmount(), reset() }
   const RANGES = ['1M', '3M', '6M', 'YTD', '1Y', '5Y', 'All'];
   const RANGE_DAYS = { '1M': 31, '3M': 92, '6M': 183, '1Y': 366, '5Y': 1830 };
   const TFS = [['60', '60分'], ['D', '日'], ['W', '週'], ['M', '月']];
   function newState(sub) {
     const fut = sub === 'fut';
     return {
-      sub, sym: fut ? 'TX' : '2330', tf: 'D', strat: 'ma2', params: {}, mode: 'both', range: 'All', showBH: false, tt: 'ov', eqMode: 'eq', sortK: 'no', sortD: -1,
+      sub, sym: fut ? 'TX' : '2330', tf: 'D', strat: 'ma2', params: {}, mode: 'both', range: 'All', showBH: false, ind: LabK.defaultInd(), ctype: 'k', tt: 'ov', eqMode: 'eq', sortK: 'no', sortD: -1,
       cfg: { capital: 1000000, sizeMode: fut ? 'units' : 'pct', sizeVal: fut ? 1 : 100, pyramiding: 1, fillOn: 'open', sl: 0, tp: 0, trail: 0, maxLoss: 0 },
       costs: {}, advOpen: false, pickOpen: false, res: null, B: null, sel: -1, rowsAll: false, busy: 0,
     };
@@ -151,14 +152,16 @@
     return '<div class="lab-bar">' +
       '<div class="lab-f lab-symw"><span>標的</span><input id="labSym" class="lab-in" type="text" autocomplete="off" spellcheck="false" aria-label="搜尋標的" placeholder="代號或名稱"><div class="lab-dd" id="labSymDD" hidden></div></div>' +
       '<div class="seg lab-tf" id="labTf" role="tablist" aria-label="時間週期">' + TFS.map(([k, n]) => '<button type="button" role="tab" data-tf="' + k + '">' + n + '</button>').join('') + '</div>' +
-      '<div class="lab-f"><span>策略</span><button type="button" class="lab-pickbtn" id="labPickBtn" aria-haspopup="listbox"></button><div class="lab-pick" id="labPick" hidden></div></div>' +
+      '<div class="lab-f"><span>策略</span><button type="button" class="lab-pickbtn" id="labPickBtn" aria-haspopup="listbox"></button></div>' +
       '<div class="seg lab-mode" id="labMode" role="tablist" aria-label="多空"><button type="button" data-m="both">多空</button><button type="button" data-m="long">只做多</button><button type="button" data-m="short">只做空</button></div>' +
       '<div class="seg lab-rng" id="labRng" role="tablist" aria-label="回測期間">' + RANGES.map((k) => '<button type="button" role="tab" data-r="' + k + '">' + k + '</button>').join('') + '</div>' +
       '<button type="button" class="lab-gear" id="labAdvBtn" aria-expanded="false">設定</button>' +
       '</div>' +
       '<div class="lab-params" id="labParams"></div>' +
-      '<div class="lab-adv" id="labAdv" hidden></div>' +
-      '<div class="lab-kc"><div class="lab-ch" id="labK"></div></div>' +
+      '<div class="lab-adv" id="labAdv" hidden></div><div class="lab-pick" id="labPick" hidden></div>' +
+      '<div class="lab-ktool"><button type="button" class="lab-pickbtn lab-indbtn" id="labIndBtn" aria-haspopup="listbox">指標 ▾</button><div class="lab-chips" id="labChips"></div>' +
+      '<div class="seg lab-ct" id="labCt" role="tablist" aria-label="圖表類型">' + LabK.TYPES.map(([k, n]) => '<button type="button" role="tab" data-c="' + k + '">' + n + '</button>').join('') + '</div></div>' +
+      '<div class="lab-kwrap"><div class="lab-draw" id="labDraw" aria-label="繪圖工具"></div><div class="lab-kc"><div class="lab-ch" id="labK"></div></div></div><div class="lab-indset" id="labIndSet" hidden></div>' +
       '<div class="lab-tester"><div class="lab-thead"><div class="lab-stats" id="labStats"></div>' +
       '<div class="seg lab-tt" id="labTT" role="tablist" aria-label="策略測試器">' + TT.map(([k, n]) => '<button type="button" role="tab" data-t="' + k + '">' + n + '</button>').join('') + '</div></div>' +
       '<div class="lab-tbody" id="labTBody"></div></div>';
@@ -177,7 +180,18 @@
       (fut ? F('mult', '每點（元）', inst.mult, 1) + F('futFee', '手續費（元／口／邊）', inst.futFee, 1) + F('futTax', '期交稅（％，每邊）', inst.futTax, 0.0005) + F('slip', '滑價（點）', inst.slip, 0.5)
         : F('feeRate', '手續費率（％）', inst.feeRate, 0.0005) + F('feeDisc', '手續費折扣（折，10＝無）', Math.round(inst.feeDisc * 100) / 10, 0.1) + F('feeMin', '最低手續費（元）', inst.feeMin, 1) + F('taxRate', '證交稅（％，賣出）', inst.taxRate, 0.05) + F('slip', '滑價（％，每邊）', inst.slip, 0.01)) +
       F('sl', '停損（％）', c.sl, 0.5, '0＝不設') + F('tp', '停利（％）', c.tp, 0.5, '0＝不設') + F('trail', '移動停損（％）', c.trail, 0.5, '0＝不設') + F('maxLoss', '最大日內虧損出場（權益％）', c.maxLoss, 0.1, '單根 K 棒內虧損超過前一根收盤權益的這個比例就出場；0＝不設') +
-      '<button type="button" class="lab-clear" id="labReset">還原預設成本</button></div>';
+      '<button type="button" class="lab-clear" id="labReset">還原預設成本</button></div>' + evtFields(S);
+  }
+  /* 事件當濾網：事件窗內不進場／只在窗內進場、進入窗就平倉（事件日期表見 pipeline/groups/events_history.yaml） */
+  function evtFields(S) {
+    const D = DATA.events || { types: {} }, e = S.evt || { on: false, types: ['fomc'], mode: 'avoid', before: 3, after: 1, flat: false };
+    const tp = Object.keys(D.types || {}); if (!tp.length) return '';
+    return '<div class="lab-evt"><label class="lab-chk"><input type="checkbox" data-e="on"' + (e.on ? ' checked' : '') + '> 事件濾網</label>' +
+      '<select class="lab-in" data-e="type">' + tp.map((k) => '<option value="' + k + '"' + (e.types[0] === k ? ' selected' : '') + '>' + esc(D.types[k]) + '</option>').join('') + '</select>' +
+      '<select class="lab-in" data-e="mode"><option value="avoid"' + (e.mode === 'avoid' ? ' selected' : '') + '>事件窗內不進場</option><option value="only"' + (e.mode === 'only' ? ' selected' : '') + '>只在事件窗內進場</option></select>' +
+      '<label class="lab-fld"><span>事件前</span><input class="lab-in lab-n" type="number" min="0" max="30" data-e="before" value="' + e.before + '"><span>日</span></label>' +
+      '<label class="lab-fld"><span>事件後</span><input class="lab-in lab-n" type="number" min="0" max="30" data-e="after" value="' + e.after + '"><span>日</span></label>' +
+      '<label class="lab-chk"><input type="checkbox" data-e="flat"' + (e.flat ? ' checked' : '') + '> 進入事件窗就平倉</label></div>';
   }
   function paramsHTML(S) {
     const st = E.STRAT[S.strat];
@@ -188,13 +202,46 @@
   }
 
   /* ---------------------------------------------------------------- 策略挑選（仿 TradingView 的「指標、指標、策略」視窗：搜尋＋分類） */
-  function pickHTML(S) {
-    const cats = {}; E.STRATS.forEach((s) => { (cats[s.cat] = cats[s.cat] || []).push(s); });
-    const mine = (window.TwLabCustom && window.TwLabCustom.list ? window.TwLabCustom.list() : []);
-    return '<input class="lab-in lab-pq" type="text" id="labPq" placeholder="搜尋策略" aria-label="搜尋策略" autocomplete="off">' +
-      '<div class="lab-plist" id="labPl">' +
-      (mine.length ? '<div class="lab-pc">我的策略</div>' + mine.map((m) => '<button type="button" class="lab-pi" data-s="u:' + esc(m.id) + '" data-n="' + esc(m.name) + '">' + esc(m.name) + '</button>').join('') : '') +
-      Object.keys(cats).map((c) => '<div class="lab-pc">' + esc(c) + '</div>' + cats[c].map((s) => '<button type="button" class="lab-pi' + (S.strat === s.id ? ' on' : '') + '" data-s="' + s.id + '" data-n="' + esc(s.name) + '" title="' + esc(s.desc) + '">' + esc(s.name) + '</button>').join('')).join('') + '</div>';
+  /* 指標、策略挑選視窗（仿 TradingView「指標、指標、策略」視窗）：上方搜尋，分頁＝指標／策略，分類＝我的最愛、我的策略、各類指標與內建策略；
+     星號加入我的最愛（存在這台裝置）。指標點了就加到圖上、視窗不關（可以連加好幾個）；策略點了就選用並關閉。 */
+  const FAV_KEY = 'tw.lab.favs';
+  const favs = () => { try { const a = JSON.parse(localStorage.getItem(FAV_KEY) || '[]'); return Array.isArray(a) ? a : []; } catch (e) { return []; } };
+  const setFavs = (a) => { try { localStorage.setItem(FAV_KEY, JSON.stringify(a)); } catch (e) { /* 私密視窗 */ } };
+  function pickHTML(S, tab) {
+    tab = tab || S.pickTab || 'strat'; S.pickTab = tab;
+    const fv = new Set(favs()), mine = (window.TwLabCustom && window.TwLabCustom.list ? window.TwLabCustom.list() : []);
+    const star = (id) => '<button type="button" class="lab-star' + (fv.has(id) ? ' on' : '') + '" data-fav="' + esc(id) + '" aria-label="加入我的最愛" title="加入我的最愛">' + (fv.has(id) ? '★' : '☆') + '</button>';
+    const rowS = (id, name, desc, on) => '<div class="lab-pr"><button type="button" class="lab-pi' + (on ? ' on' : '') + '" data-s="' + esc(id) + '" data-n="' + esc(name) + '" title="' + esc(desc || '') + '">' + esc(name) + '</button>' + star('s:' + id) + '</div>';
+    const rowI = (d) => '<div class="lab-pr"><button type="button" class="lab-pi" data-i="' + d.id + '" data-n="' + esc(d.name) + '">' + esc(d.name) + '<small>＋ 加到圖上</small></button>' + star('i:' + d.id) + '</div>';
+    let list = '';
+    if (tab === 'ind') {
+      const fi = LabK.IND.filter((d) => fv.has('i:' + d.id));
+      if (fi.length) list += '<div class="lab-pc">我的最愛</div>' + fi.map(rowI).join('');
+      const cats = {}; LabK.IND.forEach((d) => { (cats[d.cat] = cats[d.cat] || []).push(d); });
+      list += Object.keys(cats).map((c) => '<div class="lab-pc">' + esc(c) + '</div>' + cats[c].map(rowI).join('')).join('');
+    } else {
+      const all = {}; E.STRATS.forEach((x) => { all[x.id] = x; });
+      const fs = Array.from(fv).filter((k) => k.indexOf('s:') === 0).map((k) => k.slice(2));
+      if (fs.length) list += '<div class="lab-pc">我的最愛</div>' + fs.map((id) => (all[id] ? rowS(id, all[id].name, all[id].desc, S.strat === id) : '')).join('');
+      if (mine.length) list += '<div class="lab-pc">我的策略</div>' + mine.map((m) => rowS('u:' + m.id, m.name, '', S.strat === 'u:' + m.id)).join('');
+      const cats = {}; E.STRATS.forEach((x) => { (cats[x.cat] = cats[x.cat] || []).push(x); });
+      list += Object.keys(cats).map((c) => '<div class="lab-pc">內建策略・' + esc(c) + '</div>' + cats[c].map((x) => rowS(x.id, x.name, x.desc, S.strat === x.id)).join('')).join('');
+    }
+    return '<div class="lab-ptabs seg" role="tablist"><button type="button" role="tab" data-pt="ind" class="' + (tab === 'ind' ? 'on' : '') + '">指標</button><button type="button" role="tab" data-pt="strat" class="' + (tab === 'strat' ? 'on' : '') + '">策略</button></div>' +
+      '<input class="lab-in lab-pq" type="text" id="labPq" placeholder="搜尋' + (tab === 'ind' ? '指標' : '策略') + '" aria-label="搜尋" autocomplete="off">' +
+      '<div class="lab-plist" id="labPl">' + list + '</div>';
+  }
+  /* 圖上已加的指標：每個一顆小標籤（名稱＋參數）、齒輪開設定（輸入／樣式）、× 移除 */
+  function chipsHTML(S) {
+    return S.ind.map((it, i) => { const d = LabK.BY[it.id]; const par = (d.p || []).map(([k]) => it[k]).join(','); return '<span class="lab-chip" data-i="' + i + '"><b>' + esc(d.name.split(' ')[0]) + (par ? ' ' + par : '') + '</b>' + (d.p.length ? '<button type="button" class="lab-cg" data-cg="' + i + '" aria-label="設定" title="設定">⚙</button>' : '') + '<button type="button" class="lab-cx" data-cx="' + i + '" aria-label="移除" title="移除">×</button></span>'; }).join('');
+  }
+  function indSetHTML(S, i) {
+    const it = S.ind[i], d = it && LabK.BY[it.id]; if (!it) return '';
+    return '<div class="lab-isi"><b>' + esc(d.name) + '</b><div class="seg" role="tablist"><button type="button" data-ist="in" class="' + (S.istab !== 'st' ? 'on' : '') + '">輸入</button><button type="button" data-ist="st" class="' + (S.istab === 'st' ? 'on' : '') + '">樣式</button></div></div>' +
+      (S.istab === 'st'
+        ? '<div class="lab-isr"><label class="lab-fld"><span>顏色</span><input type="color" class="lab-col" data-ii="' + i + '" data-f="color" value="' + (it.color || '#3ee0ff') + '"></label><label class="lab-fld"><span>粗細</span><select class="lab-in" data-ii="' + i + '" data-f="w">' + [1, 2, 3].map((w) => '<option value="' + w + '"' + ((+it.w || 1) === w ? ' selected' : '') + '>' + w + '</option>').join('') + '</select></label><button type="button" class="lab-clear" data-iclr="' + i + '">預設顏色</button></div>'
+        : '<div class="lab-isr">' + (d.p.length ? d.p.map(([k, lab, def, mn, mx]) => '<label class="lab-fld"><span>' + lab + '</span><input class="lab-in cb-n" type="number" min="' + mn + '" max="' + mx + '" step="any" data-ii="' + i + '" data-f="' + k + '" value="' + (it[k] != null ? it[k] : def) + '"></label>').join('') : '<span class="lab-pdesc">這個指標沒有可調的參數</span>') + '<button type="button" class="lab-clear" data-idef="' + i + '">預設值</button></div>') +
+      '<button type="button" class="lab-clear lab-iok" data-iclose>完成</button>';
   }
   const stratName = (id) => { const s = E.STRAT[id]; if (s) return s.name; if (id.indexOf('u:') === 0 && window.TwLabCustom) { const m = window.TwLabCustom.get(id.slice(2)); return m ? m.name : id; } return id; };
 
@@ -215,11 +262,10 @@
       if (S.strat.indexOf('u:') === 0 && window.TwLabCustom) {
         const sg = window.TwLabCustom.compile(S.strat.slice(2), B);
         if (!sg) { renderEmpty(S, '這個自訂策略無法執行，請到「自訂策略」檢查條件'); return; }
-        strat = { sig: sg };
-        if (sg.risk) Object.assign(S.cfg, {});
+        strat = { sig: sg, risk: sg.risk };
       } else strat = { id: S.strat, params: Object.assign(E.defaults(S.strat), S.params) };
       const evts = S.evt && S.evt.on ? ((await loadEvents()).events || []) : null;
-      const r = await wcall({ op: 'run', key, strat: strat.sig ? { sig: strat.sig } : strat, cfg: buildCfg(S), range: S.range, events: evts });
+      const r = await wcall({ op: 'run', key, strat: strat.sig ? { sig: strat.sig, risk: strat.risk } : strat, cfg: buildCfg(S), range: S.range, events: evts });
       if (tok !== runTok) return;
       S.res = r; S.sel = -1; S.rowsAll = false;
       paintResult(S, keepView);
@@ -235,42 +281,52 @@
   const CH = { k: null, eq: null, cs: null, mk: null, s1: null, s2: null, syncing: false, ro: [] };
   /* 銷毀圖表：先把容器清空（canvas 先離開 DOM，觸發的 mouseleave 還打在活著的圖上），再 remove()；
      反過來做會讓「已銷毀的圖」收到滑鼠離開事件而丟 Object is disposed。 */
-  function killChart(name) {
-    const c = CH[name]; if (!c) return; CH[name] = null;
-    // 先拆掉連到這張圖的時間軸連動，removal 時內部觸發的範圍事件才不會打到已銷毀的另一張
-    CH.subs = (CH.subs || []).filter((x) => { if (x.a === c || x.b === c) { try { x.a.timeScale().unsubscribeVisibleLogicalRangeChange(x.fn); } catch (e) { /* 已銷毀 */ } return false; } return true; });
-    try { const el = name === 'k' ? $('#labK') : $('#labEq'); if (el) el.replaceChildren(); } catch (e) { /* 忽略 */ }
-    try { c.remove(); } catch (e) { /* 已銷毀 */ }
-  }
-  function disposeCharts() { CH.syncing = true; ['k', 'eq'].forEach((n) => killChart(n)); CH.cs = CH.mk = CH.s1 = CH.s2 = null; CH.syncing = false; }
   function baseOpts(el) {
     const c = pal();
     return { autoSize: true, layout: { background: { type: 'solid', color: 'transparent' }, textColor: c.ink, fontSize: 12, attributionLogo: false }, grid: { vertLines: { color: c.grid }, horzLines: { color: c.grid } }, rightPriceScale: { borderColor: c.grid }, timeScale: { borderColor: c.grid, rightOffset: 4, timeVisible: false }, crosshair: { mode: 0 }, handleScroll: true, handleScale: true, localization: { locale: 'zh-TW' } };
   }
-  /* 圖上：K 線＋進出場箭頭（回測區間那一段）；策略測試器面板另外畫（paintTester） */
+  function killChart(name) {
+    if (name === 'k') {
+      const kv = CH.kv; CH.kv = null; CH.k = null; CH.cs = CH.mk = null;
+      CH.subs = (CH.subs || []).filter((x) => { if (kv && (x.a === kv.chart || x.b === kv.chart)) { try { x.a.timeScale().unsubscribeVisibleLogicalRangeChange(x.fn); } catch (e) { /* 已銷毀 */ } return false; } return true; });
+      if (kv) { try { const el = $('#labK'); if (el) el.replaceChildren(); } catch (e) { /* 忽略 */ } kv.destroy(); }
+      return;
+    }
+    const c = CH[name]; if (!c) return; CH[name] = null;
+    // 先拆掉連到這張圖的時間軸連動，removal 時內部觸發的範圍事件才不會打到已銷毀的另一張
+    CH.subs = (CH.subs || []).filter((x) => { if (x.a === c || x.b === c) { try { x.a.timeScale().unsubscribeVisibleLogicalRangeChange(x.fn); } catch (e) { /* 已銷毀 */ } return false; } return true; });
+    // 先把容器清空（canvas 先離開 DOM，觸發的 mouseleave 還打在活著的圖上），再 remove()；反過來做會讓「已銷毀的圖」收到滑鼠離開事件而丟 Object is disposed。
+    try { const el = $('#labEq'); if (el) el.replaceChildren(); } catch (e) { /* 忽略 */ }
+    try { c.remove(); } catch (e) { /* 已銷毀 */ }
+  }
+  function disposeCharts() { CH.syncing = true; ['k', 'eq'].forEach((n) => killChart(n)); CH.s1 = CH.s2 = null; CH.syncing = false; CH.key = ''; }
+
+  /* 圖上：K 線（全站 KChart）＋指標＋繪圖工具＋進出場箭頭。畫「全部歷史」，取景停在回測區間；換參數時不重建圖（同標的同週期同起點就只換箭頭）。 */
   function paintResult(S, keepView) {
     const r = S.res, B = S.B; if (!r) return;
-    const LW = window.LightweightCharts; const c = pal();
-    const from = r.from, n = B.n - from;
+    const c = pal(), from = r.from, n = B.n - from;
     const kEl = $('#labK'); if (!kEl) return;
-    killChart('k');
-    const tfv = B.tf === '60';
-    CH.k = LW.createChart(kEl, baseOpts(kEl));
-    CH.k.applyOptions({ timeScale: { timeVisible: tfv, secondsVisible: false } });
-    CH.cs = CH.k.addSeries(LW.CandlestickSeries, { upColor: c.rise, downColor: c.fall, borderUpColor: c.rise, borderDownColor: c.fall, wickUpColor: c.rise, wickDownColor: c.fall, priceLineVisible: false });
-    const cd = new Array(n);
-    for (let i = 0; i < n; i++) { const j = from + i; cd[i] = { time: ltime(B, j), open: B.o[j], high: B.h[j], low: B.l[j], close: B.c[j] }; }
-    CH.cs.setData(cd); S.times = cd.map((x) => x.time);
+    const key = S.sym + '|' + S.tf + '|' + from + '|' + B.n;
+    if (!CH.kv || CH.key !== key) {
+      killChart('k');
+      const kv = new LabK.KView(kEl, B, { items: S.ind, type: S.ctype, drawKey: 'tw.draw.lab.' + S.sym + '.' + S.tf });
+      CH.kv = kv; CH.k = kv.chart; CH.cs = kv.candle; CH.key = key;
+      kv.set(B.n - 1, false);
+      kv.enableDraw($('#labDraw'));
+      kv.chart.timeScale().setVisibleLogicalRange({ from: Math.max(0, from - 2), to: B.n + 3 });
+    }
+    S.times = Array.from({ length: n }, (_, i) => LabK.ltime(B, from + i));
     // 進出場箭頭：多單進場＝朝上箭頭（K 棒下方）、空單進場＝朝下箭頭；出場箭頭顏色＝這一筆的損益（紅賺綠賠），字＝損益
     const all = r.trades.concat(r.opens || []), mks = [], many = all.length > 60;
     all.forEach((t) => {
       if (t.i0 < from) return;
-      mks.push({ time: ltime(B, t.i0), position: t.dir === 1 ? 'belowBar' : 'aboveBar', shape: t.dir === 1 ? 'arrowUp' : 'arrowDown', color: t.dir === 1 ? c.rise : c.fall, text: many ? '' : (t.dir === 1 ? '多 ' + (t.entryWhy || '').replace('訊號', '') : '空 ' + (t.entryWhy || '').replace('訊號', '')), size: 1 });
-      if (!t.open) mks.push({ time: ltime(B, t.i1), position: t.dir === 1 ? 'aboveBar' : 'belowBar', shape: t.dir === 1 ? 'arrowDown' : 'arrowUp', color: t.pnl >= 0 ? c.rise : c.fall, text: many ? '' : compact(t.pnl), size: 1 });
+      mks.push({ time: LabK.ltime(B, t.i0), position: t.dir === 1 ? 'belowBar' : 'aboveBar', shape: t.dir === 1 ? 'arrowUp' : 'arrowDown', color: t.dir === 1 ? c.rise : c.fall, text: many ? '' : (t.dir === 1 ? '多 ' : '空 ') + (t.entryWhy || '').replace('訊號', ''), size: 1 });
+      if (!t.open) mks.push({ time: LabK.ltime(B, t.i1), position: t.dir === 1 ? 'aboveBar' : 'belowBar', shape: t.dir === 1 ? 'arrowDown' : 'arrowUp', color: t.pnl >= 0 ? c.rise : c.fall, text: many ? '' : compact(t.pnl), size: 1 });
     });
     mks.sort((a, b) => (a.time < b.time ? -1 : a.time > b.time ? 1 : 0));
-    CH.mk = LW.createSeriesMarkers(CH.cs, mks);
-    CH.k.timeScale().fitContent();
+    CH.kv.setMarkers(mks);
+    const ch = $('#labChips'); if (ch) ch.innerHTML = chipsHTML(S);
+    $$('#labCt button').forEach((b) => b.classList.toggle('on', b.dataset.c === S.ctype));
     paintKeys(S); paintTester(S);
   }
 
@@ -329,9 +385,10 @@
     }
     void ser; void n;
     CH.eq.timeScale().fitContent();
-    const link = (a, b) => { const fn = (rg) => { if (CH.syncing || !rg) return; CH.syncing = true; try { b.timeScale().setVisibleLogicalRange(rg); } catch (e) { /* 圖已銷毀 */ } CH.syncing = false; }; (CH.subs = CH.subs || []).push({ a, b, fn }); a.timeScale().subscribeVisibleLogicalRangeChange(fn); };
-    link(CH.k, CH.eq); link(CH.eq, CH.k);
-    try { const vr = CH.k.timeScale().getVisibleLogicalRange(); if (vr) CH.eq.timeScale().setVisibleLogicalRange(vr); } catch (e) { /* 忽略 */ }
+    const off = r.from;     // K 線的第 off 根 ＝ 累積損益的第 0 根
+    const link = (a, b, d) => { const fn = (rg) => { if (CH.syncing || !rg) return; CH.syncing = true; try { b.timeScale().setVisibleLogicalRange({ from: rg.from + d, to: rg.to + d }); } catch (e) { /* 圖已銷毀 */ } CH.syncing = false; }; (CH.subs = CH.subs || []).push({ a, b, fn }); a.timeScale().subscribeVisibleLogicalRangeChange(fn); };
+    link(CH.k, CH.eq, -off); link(CH.eq, CH.k, off);
+    try { const vr = CH.k.timeScale().getVisibleLogicalRange(); if (vr) CH.eq.timeScale().setVisibleLogicalRange({ from: vr.from - off, to: vr.to - off }); } catch (e) { /* 忽略 */ }
   }
 
   /* 績效摘要：全部／多／空三欄（欄位與口徑對照 TradingView；Sharpe、Sortino 與最大上漲／回撤只有「全部」） */
@@ -401,10 +458,12 @@
     a.href = URL.createObjectURL(blob); a.download = 'lab_' + S.sym + '_' + S.strat + '.csv'; document.body.appendChild(a); a.click();
     setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
   }
+  /* 取景回到回測區間（不是整段歷史） */
+  function resetView(S) { try { if (CH.k && S.res) CH.k.timeScale().setVisibleLogicalRange({ from: Math.max(0, S.res.from - 2), to: S.B.n + 3 }); } catch (e) { /* 圖已銷毀 */ } }
   function focusTrade(S, i) {
     const all = tradeRows(S), t = all[i]; if (!t || !CH.k) return;
     S.sel = i;
-    const a = Math.max(0, t.i0 - S.res.from - 12), b = Math.min(S.B.n - S.res.from - 1, t.i1 - S.res.from + 12);
+    const a = Math.max(0, t.i0 - 12), b = Math.min(S.B.n - 1, t.i1 + 12);
     try { CH.k.timeScale().setVisibleLogicalRange({ from: a, to: b }); } catch (e) { /* 圖已銷毀 */ }
     $$('#labTBody tbody tr').forEach((tr) => tr.classList.toggle('on', +tr.dataset.i === i));
   }
@@ -477,8 +536,30 @@
       const md = t.closest('#labMode button'); if (md) { S.mode = md.dataset.m; syncBar(S); recompute(S); return; }
       const rg = t.closest('#labRng button'); if (rg && !rg.disabled) { S.range = rg.dataset.r; syncBar(S); recompute(S); return; }
       if (t.closest('#labAdvBtn')) { S.advOpen = !S.advOpen; syncBar(S); return; }
-      if (t.closest('#labPickBtn')) { const pk = $('#labPick'); S.pickOpen = pk.hidden; pk.hidden = !S.pickOpen; if (S.pickOpen) { pk.innerHTML = pickHTML(S); const q = $('#labPq'); q && q.focus(); } return; }
-      const pi = t.closest('.lab-pi'); if (pi) { S.strat = pi.dataset.s; S.params = {}; const st0 = E.STRAT[S.strat]; if (st0 && st0.risk) Object.assign(S.cfg, st0.risk); $('#labPick').hidden = true; S.pickOpen = false; syncBar(S); recompute(S); return; }
+      const pbtn = t.closest('#labPickBtn, #labIndBtn');
+      if (pbtn) {
+        const pk = $('#labPick'), tab = pbtn.id === 'labIndBtn' ? 'ind' : 'strat';
+        const same = !pk.hidden && S.pickTab === tab;
+        pk.hidden = same; if (!same) { pk.innerHTML = pickHTML(S, tab); const bb = $('#labBody').getBoundingClientRect(), r = pbtn.getBoundingClientRect(); pk.style.left = Math.max(0, Math.min(r.left - bb.left, bb.width - 300)) + 'px'; pk.style.top = (r.bottom - bb.top + 4) + 'px'; const q = $('#labPq'); q && q.focus(); }
+        return;
+      }
+      const pt = t.closest('.lab-ptabs button'); if (pt) { $('#labPick').innerHTML = pickHTML(S, pt.dataset.pt); const q = $('#labPq'); q && q.focus(); return; }
+      const sr = t.closest('.lab-star'); if (sr) { const id = sr.dataset.fav, a = favs(), k = a.indexOf(id); if (k >= 0) a.splice(k, 1); else a.push(id); setFavs(a); const q0 = ($('#labPq') || {}).value || ''; $('#labPick').innerHTML = pickHTML(S, S.pickTab); const q = $('#labPq'); if (q) { q.value = q0; filterPick(q0); } return; }
+      const pin = t.closest('.lab-pi[data-i]');
+      if (pin) {
+        const id = pin.dataset.i, d = LabK.BY[id];
+        if (d.multi || !S.ind.some((x) => x.id === id)) { S.ind.push(LabK.newItem(id)); applyInd(S); }
+        const sm = pin.querySelector('small'); if (sm) sm.textContent = '✓ 已加到圖上';
+        return;
+      }
+      const pi = t.closest('.lab-pi[data-s]'); if (pi) { S.strat = pi.dataset.s; S.params = {}; const st0 = E.STRAT[S.strat]; if (st0 && st0.risk) Object.assign(S.cfg, st0.risk); $('#labPick').hidden = true; S.pickOpen = false; syncBar(S); recompute(S); return; }
+      const cx = t.closest('.lab-cx'); if (cx) { S.ind.splice(+cx.dataset.cx, 1); S.setI = -1; $('#labIndSet').hidden = true; applyInd(S); return; }
+      const cg = t.closest('.lab-cg'); if (cg) { const i = +cg.dataset.cg, box = $('#labIndSet'); if (!box.hidden && S.setI === i) { box.hidden = true; S.setI = -1; return; } S.setI = i; S.istab = 'in'; box.innerHTML = indSetHTML(S, i); box.hidden = false; const bb = $('#labBody').getBoundingClientRect(), r = cg.getBoundingClientRect(); box.style.left = Math.max(0, Math.min(r.left - bb.left, bb.width - 280)) + 'px'; box.style.top = (r.bottom - bb.top + 4) + 'px'; return; }
+      const ist = t.closest('[data-ist]'); if (ist) { S.istab = ist.dataset.ist; $('#labIndSet').innerHTML = indSetHTML(S, S.setI); return; }
+      if (t.closest('[data-iclose]')) { $('#labIndSet').hidden = true; S.setI = -1; return; }
+      const idf = t.closest('[data-idef]'); if (idf) { const i = +idf.dataset.idef, d = LabK.BY[S.ind[i].id]; d.p.forEach(([k, , def]) => { S.ind[i][k] = def; }); applyInd(S); $('#labIndSet').innerHTML = indSetHTML(S, i); return; }
+      const icl = t.closest('[data-iclr]'); if (icl) { const i = +icl.dataset.iclr; delete S.ind[i].color; delete S.ind[i].w; applyInd(S); $('#labIndSet').innerHTML = indSetHTML(S, i); return; }
+      const ct = t.closest('#labCt button'); if (ct) { S.ctype = ct.dataset.c; if (CH.kv) CH.kv.setType(S.ctype); $$('#labCt button').forEach((b) => b.classList.toggle('on', b.dataset.c === S.ctype)); return; }
       const di = t.closest('.lab-di'); if (di) { $('#labSymDD').hidden = true; await setSymbol(S, di.dataset.c); return; }
       if (t.closest('#labReset')) { delete S.costs[kindOf(S.sym)]; syncBar(S); recompute(S); return; }
       const tt = t.closest('#labTT button'); if (tt) { S.tt = tt.dataset.t; paintTester(S); return; }
@@ -486,13 +567,25 @@
       if (t.closest('#labCsv')) { downloadCsv(S); return; }
       if (t.closest('#labMore')) { S.rowsAll = true; paintTester(S); return; }
       const th = t.closest('#labTBody th.lab-sort'); if (th) { const k = th.dataset.k; if (S.sortK === k) S.sortD = -S.sortD; else { S.sortK = k; S.sortD = -1; } paintTester(S); return; }
-      const tr = t.closest('#labTBody tbody tr'); if (tr && S.tt === 'tr') { const i = +tr.dataset.i; if (S.sel === i) { S.sel = -1; CH.k && CH.k.timeScale().fitContent(); $$('#labTBody tbody tr').forEach((x) => x.classList.remove('on')); } else focusTrade(S, i); return; }
+      const tr = t.closest('#labTBody tbody tr'); if (tr && S.tt === 'tr') { const i = +tr.dataset.i; if (S.sel === i) { S.sel = -1; resetView(S); $$('#labTBody tbody tr').forEach((x) => x.classList.remove('on')); } else focusTrade(S, i); return; }
     };
     body.oninput = (e) => {
       const t = e.target;
       if (t.id === 'labSym') { paintDD(S); return; }
-      if (t.id === 'labPq') { const q = t.value.trim().toLowerCase(); $$('#labPl .lab-pi').forEach((b) => { b.hidden = q && b.dataset.n.toLowerCase().indexOf(q) < 0; }); $$('#labPl .lab-pc').forEach((c) => { let n = c.nextElementSibling, any = false; while (n && !n.classList.contains('lab-pc')) { if (!n.hidden) any = true; n = n.nextElementSibling; } c.hidden = !any; }); return; }
+      if (t.id === 'labPq') { filterPick(t.value); return; }
+      if (t.dataset.ii != null && t.dataset.ii !== '') {
+        const it = S.ind[+t.dataset.ii], f = t.dataset.f; if (!it) return;
+        if (f === 'color') it.color = t.value; else it[f] = parseFloat(t.value);
+        if (Number.isFinite(it[f]) || f === 'color') { clearTimeout(deb); deb = setTimeout(() => applyInd(S), 200); }
+        return;
+      }
       if (t.id === 'labBH') { S.showBH = t.checked; paintEq(S); return; }
+      if (t.dataset.e) {
+        const e = S.evt = S.evt || { on: false, types: ['fomc'], mode: 'avoid', before: 3, after: 1, flat: false }, k = t.dataset.e;
+        if (k === 'on') e.on = t.checked; else if (k === 'flat') e.flat = t.checked; else if (k === 'type') e.types = [t.value]; else if (k === 'mode') e.mode = t.value;
+        else e[k] = Math.max(0, parseInt(t.value || '0', 10));
+        clearTimeout(deb); deb = setTimeout(() => recompute(S), 280); return;
+      }
       const pk = t.dataset.p, ck = t.dataset.k;
       if (pk || ck) {
         if (pk) S.params[pk] = parseFloat(t.value);
@@ -505,14 +598,27 @@
         clearTimeout(deb); deb = setTimeout(() => recompute(S), 280);
       }
     };
-    body.onchange = (e) => { if (e.target.dataset.k === 'fillOn') { S.cfg.fillOn = e.target.value; recompute(S); } };
+    body.onchange = (e) => { if (e.target.dataset.k === 'fillOn') { S.cfg.fillOn = e.target.value; recompute(S); } else if (e.target.dataset.e && e.target.tagName === 'SELECT') bodyInputFix(S, e); };
+    const bodyInputFix = (S2, e) => body.oninput(e);
     body.onfocusin = (e) => { if (e.target.id === 'labSym') { e.target.select(); paintDD(S); } };
     document.addEventListener('click', docClick);
   }
+  /* 指標清單改了 → 套到圖上、更新標籤列 */
+  function applyInd(S) {
+    if (CH.kv) CH.kv.applyInd(S.ind);
+    const ch = $('#labChips'); if (ch) ch.innerHTML = chipsHTML(S);
+  }
+  function filterPick(v) {
+    const q = String(v || '').trim().toLowerCase();
+    $$('#labPl .lab-pr').forEach((r) => { const n = (r.querySelector('.lab-pi') || {}).dataset; r.hidden = !!q && !(n && n.n.toLowerCase().indexOf(q) >= 0); });
+    $$('#labPl .lab-pc').forEach((c) => { let n = c.nextElementSibling, any = false; while (n && !n.classList.contains('lab-pc')) { if (!n.hidden) any = true; n = n.nextElementSibling; } c.hidden = !any; });
+  }
   function docClick(e) {
+    if (!e.target.isConnected) return;     // 點的那個元素已被重畫掉（例如挑選視窗點星號）：不是「點到外面」，別把視窗關掉
     const dd = $('#labSymDD'), pk = $('#labPick');
     if (dd && !e.target.closest('.lab-symw')) dd.hidden = true;
-    if (pk && !pk.hidden && !e.target.closest('.lab-pick') && !e.target.closest('#labPickBtn')) pk.hidden = true;
+    if (pk && !pk.hidden && !e.target.closest('.lab-pick') && !e.target.closest('#labPickBtn') && !e.target.closest('#labIndBtn')) pk.hidden = true;
+    const is = $('#labIndSet'); if (is && !is.hidden && !e.target.closest('.lab-indset') && !e.target.closest('.lab-cg')) { is.hidden = true; }
     const q = e.target.closest('.lab-q');
     $$('.lab-pop').forEach((p) => { if (!q || p !== q.nextElementSibling) p.hidden = true; });
     if (q) { const p = q.nextElementSibling; p.hidden = !p.hidden; q.setAttribute('aria-expanded', String(!p.hidden)); }
@@ -521,29 +627,39 @@
   /* ---------------------------------------------------------------- 進入點 */
   /* 規矩 C7：離開交易練習室再進來，一律回 Default（每個子頁的選項都重來）。同一頁內 route() 重跑（資料背景更新）不重畫。 */
   let inLab = false;
-  window.addEventListener('hashchange', () => {
-    if (inLab && !/^#lab(\/|$)/.test(location.hash || '')) {
-      inLab = false; curSub = ''; ST.fut = newState('fut'); ST.bt = newState('bt'); disposeCharts();
-      document.removeEventListener('click', docClick);
-    }
-  });
+  window.addEventListener('hashchange', () => { if (inLab && !/^#lab(\/|$)/.test(location.hash || '')) leaveLab(); });
+  let docBound = false;
+  function leaveLab() {
+    inLab = false; curSub = ''; ST.fut = newState('fut'); ST.bt = newState('bt'); disposeCharts();
+    Object.keys(MODS).forEach((k) => { try { MODS[k].unmount && MODS[k].unmount(); MODS[k].reset && MODS[k].reset(); } catch (e) { /* 忽略 */ } });
+    document.removeEventListener('click', docClick); docBound = false;
+  }
   async function show(head, rest) {
     const root = $('#v-lab'); if (!root) return;
     if (!gate()) { if (!known) root.innerHTML = '<div class="empty">確認登入身分中…</div>'; return; }
     const sub = rest[0];
     if (!SUBS.some((x) => x[0] === sub)) { location.replace('#lab/' + SUBS[0][0]); return; }
     if (inLab && curSub === sub && $('#labBody')) return;
+    if (curSub && MODS[curSub]) { try { MODS[curSub].unmount && MODS[curSub].unmount(); } catch (e) { /* 忽略 */ } }
     inLab = true; curSub = sub;
     disposeCharts();          // 先銷毀圖表再換 DOM：容器先被拿掉的話，autoSize 的觀察器還會對已銷毀的圖重畫而丟錯
     shell(root);
+    if (!docBound) { document.addEventListener('click', docClick); docBound = true; }
+    await loadIndex(); await loadEvents();
+    if (MODS[sub]) { await MODS[sub].mount($('#labBody'), UTIL); return; }
     const S = ST[sub];
     $('#labBody').innerHTML = btHTML(S);
-    document.removeEventListener('click', docClick);
     bind(S);
-    await loadIndex();
     S.B = null;
     await setSymbol(S, S.sym, true);
   }
+  function register(mod) {
+    MODS[mod.id] = mod;
+    if (!SUBS.some((x) => x[0] === mod.id)) { SUBS.push([mod.id, mod.name, mod.ord || 50]); SUBS.sort((x, y) => (x[2] || 0) - (y[2] || 0)); }
+  }
 
-  window.TwLab = { show, state: () => ST, data: DATA, wcall, loadSeries, loadIndex, loadEvents, E, charts: CH };
+  /* 給其他子頁共用的小工具（K 重播、事件分析、自訂策略） */
+  const UTIL = { LabK, E, $, $$, esc, fmt, sgn, cls, compact, pal, ltime, tstr, qpop, getJSON, loadIndex, loadSeries, loadEvents, wcall, ensureLoaded, instOf, kindOf, killChart, CH, DATA, summaryHTML, searchItems, KIND_N, stratName, pickHTML, paramsHTML, ST, defaultsBar: () => ({}) };
+
+  window.TwLab = { show, register, mods: MODS, util: UTIL, state: () => ST, data: DATA, wcall, loadSeries, loadIndex, loadEvents, E, charts: CH };
 }());

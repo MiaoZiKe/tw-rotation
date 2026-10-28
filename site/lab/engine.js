@@ -371,6 +371,7 @@
       } else if (sig.L[i]) { if (longOK && ok) ord(1, '反向訊號'); else out.push({ dir: 0, kind: 'mkt', price: 0, why: '反向訊號' }); }
       else if (sig.XS[i]) out.push({ dir: 0, kind: 'mkt', price: 0, why: '出場訊號' });
       else if (sig.S[i] && shortOK && ok && lots.length < pyr) ord(-1, '加碼訊號');
+      if (pos !== 0 && cfg.maxBars > 0 && i - lots[0].i0 >= cfg.maxBars) { out.length = 0; out.push({ dir: 0, kind: 'mkt', price: 0, why: '持有逾時' }); }    // 最長持有 N 根
       if (pos !== 0 && cfg.exitMask && cfg.exitMask[i]) { out.length = 0; out.push({ dir: 0, kind: 'mkt', price: 0, why: '事件出場' }); }
       return out;
     }
@@ -522,6 +523,7 @@
   function runStrategy(B, strat, cfg, rangeKey, events) {
     const sig = strat.sig || STRAT[strat.id].build(B, Object.assign(defaults(strat.id), strat.params || {}));
     const c2 = Object.assign({}, cfg);
+    if (strat.risk) { const r = strat.risk; if (r.sl > 0) c2.sl = r.sl; if (r.tp > 0) c2.tp = r.tp; if (r.trail > 0) c2.trail = r.trail; if (r.maxbars > 0) c2.maxBars = r.maxbars; }    // 自訂策略自帶的風控
     if (cfg.evt && cfg.evt.on && events && events.length) {
       const f = events.filter((e) => cfg.evt.types.includes(e.t));
       const inW = eventWindowMask(B, f, cfg.evt.before | 0, cfg.evt.after | 0);

@@ -22,7 +22,7 @@ def t_lab_bt(b, base, code):
     st0 = pg.evaluate(JS_ST)
     ok(f"{T}：開 #lab/bt 有 K 線圖與回測結果", st0["n"] > 500 and st0["trades"] > 0 and pg.locator("#labK canvas").count() > 0, st0)
     ok(f"{T}：標題頁籤＝台指期｜歷史回測，預設是最左邊的子頁（#lab 導到 #lab/fut）",
-       pg.evaluate("() => [...document.querySelectorAll('#v-lab .lab-tabs a')].map(a => a.textContent).join('|')") == "台指期|歷史回測", None)
+       pg.evaluate("() => [...document.querySelectorAll('#v-lab .lab-tabs a')].map(a => a.textContent).join('|')") == "台指期|歷史回測|K 線重播|事件分析|自訂策略", None)
     ok(f"{T}：Key stats 四張卡", pg.locator("#labStats .lab-st").count() == 4, None)
 
     # --- 切策略 → 交易數改變
@@ -102,6 +102,56 @@ def t_lab_bt(b, base, code):
     pg.fill("#labSym", "聯發科"); pg.wait_for_timeout(300)
     pg.click(".lab-di:first-child"); pg.wait_for_timeout(2000)
     ok(f"{T}：搜尋「聯發科」切到 2454", pg.evaluate("() => window.TwLab.state().bt.sym") == "2454", None)
+    # --- 指標／策略挑選視窗（搜尋、分頁、最愛）、指標加到圖上、設定、圖表類型、繪圖工具
+    ov0 = pg.evaluate("() => window.TwLab.charts.kv.kc.overlays.length")
+    pg.click("#labIndBtn"); pg.wait_for_timeout(200)
+    ok(f"{T}：按「指標」開挑選視窗，分頁＝指標／策略，有搜尋框與分類", pg.is_visible("#labPick") and pg.locator("#labPick .lab-ptabs button").count() == 2 and pg.is_visible("#labPq") and "趨勢" in pg.inner_text("#labPl"), None)
+    pg.fill("#labPq", "RSI"); pg.wait_for_timeout(200)
+    vis = pg.evaluate("() => [...document.querySelectorAll('#labPl .lab-pr')].filter(r => !r.hidden).length")
+    ok(f"{T}：搜尋「RSI」只剩 RSI 一列", vis == 1, vis)
+    pg.fill("#labPq", ""); pg.wait_for_timeout(100)
+    pg.click(".lab-pi[data-i='ma']"); pg.wait_for_timeout(500)
+    ok(f"{T}：點「均線 MA」加到圖上（標籤＋圖上多一條線），視窗沒有關", pg.is_visible("#labPick") and pg.locator("#labChips .lab-chip").count() == 2 and pg.evaluate("() => window.TwLab.charts.kv.kc.overlays.length") == ov0 + 1, (ov0, pg.locator("#labChips .lab-chip").count()))
+    pg.click(".lab-pi[data-i='ma']"); pg.wait_for_timeout(300)
+    pg.click(".lab-pi[data-i='rsi']"); pg.wait_for_timeout(500)
+    ok(f"{T}：加 RSI 後圖上多一個 RSI 面板", pg.evaluate("() => !!window.TwLab.charts.kv.kc.panes.rsi"), None)
+    pg.click(".lab-pr:has(.lab-pi[data-i='rsi']) .lab-star"); pg.wait_for_timeout(200)
+    ok(f"{T}：點星號加入我的最愛（存進 localStorage、列表出現「我的最愛」）", "i:rsi" in pg.evaluate("() => localStorage.getItem('tw.lab.favs') || ''") and "我的最愛" in pg.inner_text("#labPl"), None)
+    pg.click(".lab-ptabs button[data-pt='strat']"); pg.wait_for_timeout(200)
+    ok(f"{T}：切到策略分頁有內建策略與分類", "內建策略" in pg.inner_text("#labPl") and pg.locator("#labPl .lab-pi[data-s]").count() >= 20, pg.locator("#labPl .lab-pi[data-s]").count())
+    pg.keyboard.press("Escape"); pg.click("body", position={"x": 5, "y": 5}); pg.wait_for_timeout(200)
+    ok(f"{T}：點別處挑選視窗關閉", not pg.is_visible("#labPick"), None)
+    # 設定：把第一條均線週期改 10 → 標籤文字改變
+    before = pg.inner_text("#labChips")
+    pg.locator("#labChips .lab-chip").nth(1).locator(".lab-cg").click(); pg.wait_for_timeout(200)
+    ok(f"{T}：點齒輪開指標設定（輸入／樣式兩個分頁）", pg.is_visible("#labIndSet") and pg.locator("#labIndSet [data-ist]").count() == 2, None)
+    pg.fill("#labIndSet input[data-f='n']", "10"); pg.wait_for_timeout(600)
+    ok(f"{T}：把均線週期改成 10，標籤文字跟著改", "10" in pg.inner_text("#labChips") and pg.inner_text("#labChips") != before, pg.inner_text("#labChips"))
+    pg.click("#labIndSet [data-ist='st']"); pg.wait_for_timeout(200)
+    pg.evaluate("() => { const i = document.querySelector('#labIndSet input[data-f=color]'); i.value = '#00ff00'; i.dispatchEvent(new Event('input', { bubbles: true })); }"); pg.wait_for_timeout(600)
+    ok(f"{T}：樣式分頁改顏色後存進指標設定", pg.evaluate("() => window.TwLab.state().bt.ind[1].color") == "#00ff00", None)
+    pg.click("#labIndSet [data-iclose]"); pg.wait_for_timeout(100)
+    # 移除
+    n_chip = pg.locator("#labChips .lab-chip").count()
+    pg.locator("#labChips .lab-chip").nth(1).locator(".lab-cx").click(); pg.wait_for_timeout(400)
+    ok(f"{T}：按 × 移除指標，標籤少一個", pg.locator("#labChips .lab-chip").count() == n_chip - 1, None)
+    # 圖表類型：平均 K → 第一根的開盤價與原始價不同；線圖 → 出現線序列
+    o_k = pg.evaluate("() => window.TwLab.charts.kv.candle.data()[5].open")
+    pg.click("#labCt button[data-c='ha']"); pg.wait_for_timeout(500)
+    o_ha = pg.evaluate("() => window.TwLab.charts.kv.candle.data()[5].open")
+    ok(f"{T}：切到平均 K 後 K 棒數值改變（開＝前一根平均 K 的開收中點）", abs(o_k - o_ha) > 1e-6 and pg.evaluate("() => window.TwLab.state().bt.ctype") == "ha", (o_k, o_ha))
+    pg.click("#labCt button[data-c='line']"); pg.wait_for_timeout(500)
+    ok(f"{T}：切到線圖後多一條收盤線", pg.evaluate("() => !!window.TwLab.charts.kv.line"), None)
+    pg.click("#labCt button[data-c='k']"); pg.wait_for_timeout(400)
+    # 繪圖工具：水平線
+    ok(f"{T}：圖左側有繪圖工具列（趨勢線、水平線、方框…）", pg.locator("#labDraw .dtool[data-t]").count() >= 8, pg.locator("#labDraw .dtool").count())
+    pg.click("#labDraw .dtool[data-t='hline']"); pg.wait_for_timeout(200)
+    box = pg.locator("#labK").bounding_box()
+    pg.mouse.move(box["x"] + box["width"] * 0.5, box["y"] + box["height"] * 0.3); pg.wait_for_timeout(200)
+    pg.mouse.down(); pg.wait_for_timeout(100); pg.mouse.up(); pg.wait_for_timeout(500)
+    ok(f"{T}：選水平線在圖上點一下，真的多出一條線並存進 localStorage", pg.evaluate("() => window.TwLab.charts.kv.kc.draw.shapes.length") == 1 and "hline" in pg.evaluate("() => localStorage.getItem('tw.draw.lab.' + window.TwLab.state().bt.sym + '.D') || ''"), None)
+    pg.click("#labCt button[data-c='ha']"); pg.wait_for_timeout(300); pg.click("#labCt button[data-c='k']"); pg.wait_for_timeout(300)
+    ok(f"{T}：切換圖表類型後畫的線還在", pg.evaluate("() => window.TwLab.charts.kv.kc.draw.shapes.length") == 1, None)
     # --- 引擎數字：人工可算的序列（手續費 0.1425%、證交稅 0.3%）
     eng = pg.evaluate("""() => { const E = window.LabEngine, n = 6, B = { n, tf: 'D', ts: new Float64Array(n), day: Float64Array.from([19000,19001,19002,19003,19004,19005]), dayEnd: Float64Array.from([19000,19001,19002,19003,19004,19005]),
       o: Float64Array.from([99,100,100,105,110,110]), h: Float64Array.from([99,100,101,106,111,110]), l: Float64Array.from([99,100,99,104,109,110]), c: Float64Array.from([99,100,100,105,110,110]), v: new Float64Array(n) };
