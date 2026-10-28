@@ -6620,6 +6620,28 @@
               "in_window": true,
               "date_note": "Dcard 頁面發文日期 2026-03-29（b29a 批）",
               "comment_sample": true
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯詠科技股份有限公司/salary-work-times?p=3",
+              "date": "2025-03",
+              "page_date": "2025-03",
+              "date_confirmed": true,
+              "role": "韌體設計工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "1",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 150,
+              "weekly_hours": 48,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 12/12",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2025-03（20261028_2133 批）"
             }
           ],
           "sources": [
@@ -6657,10 +6679,15 @@
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/261177206",
               "date": "2026-03"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯詠科技股份有限公司/salary-work-times?p=3",
+              "date": "2025-03"
             }
           ],
           "confidence": "中",
-          "n": 7,
+          "n": 8,
           "years": null,
           "base_month_k": [
             79,
@@ -6668,14 +6695,17 @@
           ],
           "bonus_months": null,
           "annual_months": null,
-          "annual_total_wan": null,
+          "annual_total_wan": [
+            150,
+            150
+          ],
           "weekly_hours": [
             45,
             60
           ],
           "overtime": "經常",
           "travel": null,
-          "n_stat": 7,
+          "n_stat": 8,
           "note": null,
           "grade": null
         },
@@ -7804,7 +7834,7 @@
           "annual_months": null,
           "annual_total_wan": [
             100,
-            150
+            180
           ],
           "weekly_hours": [
             45,
@@ -7812,11 +7842,11 @@
           ],
           "overtime": "偶爾",
           "travel": null,
-          "n": 2,
+          "n": 3,
           "note": "2026-10-28 GoodJob 2054 批新增職位",
           "confidence": "低",
           "grade": null,
-          "n_stat": 2,
+          "n_stat": 3,
           "samples": [
             {
               "site": "GoodJob",
@@ -7861,6 +7891,28 @@
               "quote_free_note": "自填；日工時 表訂/實際 10/10",
               "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2026-06（20261028_2054 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯詠科技股份有限公司/salary-work-times?p=3",
+              "date": "2025-06",
+              "page_date": "2025-06",
+              "date_confirmed": true,
+              "role": "軟體工程師",
+              "grade": null,
+              "unit_detail": "新竹",
+              "years": "2",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 180,
+              "weekly_hours": 45,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/9",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2025-06（20261028_2133 批）"
             }
           ],
           "sources": [
@@ -7873,6 +7925,11 @@
               "site": "GoodJob",
               "url": "https://www.goodjob.life/companies/聯詠科技股份有限公司/salary-work-times?p=2",
               "date": "2026-06"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯詠科技股份有限公司/salary-work-times?p=3",
+              "date": "2025-06"
             }
           ]
         },
@@ -7997,18 +8054,21 @@
           ],
           "bonus_months": null,
           "annual_months": null,
-          "annual_total_wan": null,
+          "annual_total_wan": [
+            320,
+            320
+          ],
           "weekly_hours": [
             50,
             50
           ],
-          "overtime": "經常",
+          "overtime": null,
           "travel": null,
-          "n": 1,
+          "n": 2,
           "note": "2026-10-28 GoodJob 2054 批新增職位",
           "confidence": "低",
           "grade": null,
-          "n_stat": 1,
+          "n_stat": 2,
           "samples": [
             {
               "site": "GoodJob",
@@ -8031,6 +8091,28 @@
               "quote_free_note": "自填；日工時 表訂/實際 12/12",
               "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2026-03（20261028_2054 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯詠科技股份有限公司/salary-work-times?p=3",
+              "date": "2025-07",
+              "page_date": "2025-07",
+              "date_confirmed": true,
+              "role": "主任工程師",
+              "grade": null,
+              "unit_detail": "台元",
+              "years": "8",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 320,
+              "weekly_hours": 50,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/10",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2025-07（20261028_2133 批）"
             }
           ],
           "sources": [
@@ -8038,6 +8120,88 @@
               "site": "GoodJob",
               "url": "https://www.goodjob.life/companies/聯詠科技股份有限公司/salary-work-times?p=2",
               "date": "2026-03"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯詠科技股份有限公司/salary-work-times?p=3",
+              "date": "2025-07"
+            }
+          ]
+        },
+        {
+          "unit": null,
+          "role": "演算法工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": [
+            250,
+            250
+          ],
+          "weekly_hours": [
+            45,
+            50
+          ],
+          "overtime": "偶爾",
+          "travel": null,
+          "n": 2,
+          "note": "2026-10-28 GoodJob 2133 批新增職位",
+          "confidence": "低",
+          "grade": null,
+          "n_stat": 2,
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯詠科技股份有限公司/salary-work-times?p=3",
+              "date": "2025-07",
+              "page_date": "2025-07",
+              "date_confirmed": true,
+              "role": "演算法工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "4",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 250,
+              "weekly_hours": 50,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 10/10",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2025-07（20261028_2133 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯詠科技股份有限公司/salary-work-times?p=3",
+              "date": "2025-06",
+              "page_date": "2025-06",
+              "date_confirmed": true,
+              "role": "演算法工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "3",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 250,
+              "weekly_hours": 45,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 10/10",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2025-06（20261028_2133 批）"
+            }
+          ],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯詠科技股份有限公司/salary-work-times?p=3",
+              "date": "2025-07"
             }
           ]
         }
@@ -8127,7 +8291,7 @@
           ],
           "overtime": "偶爾",
           "travel": null,
-          "n": 16,
+          "n": 17,
           "note": "網友自述未經查證；GoodJob 一筆新人月薪 8.2 萬（學歷未載）；GoodJob 頁面平均週工時 48 小時；年薪 150～300 萬的筆數年資不一（含 24 年）不採；第二輪：Dcard 數位 IC offer 多為 (N±x)×13～14＋分紅，CN 事業群分紅傳一兩百萬起跳；PTT 2026-02 開獎情報分 CN／非 CN／RDC；分紅一年兩包（1、4 月與 10、隔年 7 月各半），新人第一年不完整；GoodJob 多則稱責任制無加班費；base_month_k 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples；未逐筆對應的舊彙整：{\"base_month_k\": [82, 82]}；Dcard 259644306 留言B4 自述 E8 年薪 280 萬，Andy 2026-10-28 確認排除",
           "sources": [
             {
@@ -8189,6 +8353,11 @@
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/259738654",
               "date": "2026-05"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/瑞昱半導體股份有限公司/salary-work-times?p=2",
+              "date": "2026-03"
             }
           ],
           "confidence": "高",
@@ -8543,6 +8712,29 @@
               "in_window": true,
               "date_note": "Dcard 頁面發文日期 2026-05-15（20261028_1140_b 批）",
               "comment_sample": true
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/瑞昱半導體股份有限公司/salary-work-times?p=2",
+              "date": "2026-03",
+              "page_date": "2026-03",
+              "date_confirmed": true,
+              "role": "數位IC設計工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "5",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 302,
+              "weekly_hours": 42,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8.5/8.5",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-03（20261028_2133 批）",
+              "dup_of": "https://www.goodjob.life/companies/瑞昱半導體股份有限公司/salary-work-times#dic-2026-03-5y"
             }
           ],
           "n_stat": 15
@@ -8684,7 +8876,7 @@
           "degree": "碩士",
           "years": "0-2",
           "base_month_k": [
-            80,
+            75,
             81
           ],
           "bonus_months": [
@@ -8700,12 +8892,12 @@
             350
           ],
           "weekly_hours": [
-            60,
+            45,
             60
           ],
           "overtime": "經常",
           "travel": null,
-          "n": 8,
+          "n": 10,
           "note": "未逐筆對應的舊彙整：bonus_months=[2, 2]；部分年薪／年薪月數由同一筆樣本的「底薪×月數」推算（樣本標 derived）",
           "sources": [
             {
@@ -8727,6 +8919,16 @@
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/262179333",
               "date": "2026-09"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/瑞昱半導體股份有限公司/salary-work-times?p=1",
+              "date": "2026-05"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/瑞昱半導體股份有限公司/salary-work-times?p=2",
+              "date": "2026-03"
             }
           ],
           "confidence": "低",
@@ -8911,10 +9113,54 @@
               "in_window": true,
               "date_note": "Dcard 頁面發文日期 2026-09-20（20261028_1140_b 批）",
               "comment_sample": true
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/瑞昱半導體股份有限公司/salary-work-times?p=1",
+              "date": "2026-05",
+              "page_date": "2026-05",
+              "date_confirmed": true,
+              "role": "韌體設計工程師",
+              "grade": null,
+              "unit_detail": "一廠",
+              "years": "20",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 250,
+              "weekly_hours": 45,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 9/10",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-05（20261028_2133 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/瑞昱半導體股份有限公司/salary-work-times?p=2",
+              "date": "2026-03",
+              "page_date": "2026-03",
+              "date_confirmed": true,
+              "role": "韌體設計工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 75,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 50,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 9/10",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-03（20261028_2133 批）"
             }
           ],
           "grade": null,
-          "n_stat": 8
+          "n_stat": 10
         },
         {
           "unit": "研發 R&D",
@@ -9032,6 +9278,28 @@
               "quote_free_note": "工時聽說與聯發科差不多；分紅區間未知",
               "in_window": true,
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-08-17"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/瑞昱半導體股份有限公司/salary-work-times?p=1",
+              "date": "2026-08",
+              "page_date": "2026-08",
+              "date_confirmed": true,
+              "role": "語音演算法工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 170,
+              "weekly_hours": 42,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/9",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-08（20261028_2133 批）"
             }
           ],
           "sources": [
@@ -9039,19 +9307,30 @@
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/261988855",
               "date": "2026-08"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/瑞昱半導體股份有限公司/salary-work-times?p=1",
+              "date": "2026-08"
             }
           ],
           "confidence": "低",
-          "n": 1,
-          "overtime": "偶爾",
+          "n": 2,
+          "overtime": null,
           "years": null,
           "base_month_k": null,
           "bonus_months": null,
           "annual_months": null,
-          "annual_total_wan": null,
-          "weekly_hours": null,
+          "annual_total_wan": [
+            170,
+            170
+          ],
+          "weekly_hours": [
+            42,
+            42
+          ],
           "travel": null,
-          "n_stat": 1,
+          "n_stat": 2,
           "note": null,
           "grade": null
         },
@@ -9103,6 +9382,72 @@
               "quote_free_note": "口頭 offer，等核薪；打聽到是 WLB 好的部門",
               "in_window": true,
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-02-15"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/瑞昱半導體股份有限公司/salary-work-times?p=1",
+              "date": "2026-09",
+              "page_date": "2026-09",
+              "date_confirmed": true,
+              "role": "IT",
+              "grade": null,
+              "unit_detail": null,
+              "years": "1",
+              "degree": null,
+              "base_k": 65,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 45,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/9；職稱未寫工程師",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-09（20261028_2133 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/瑞昱半導體股份有限公司/salary-work-times?p=1",
+              "date": "2026-04",
+              "page_date": "2026-04",
+              "date_confirmed": true,
+              "role": "通訊軟體工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "3",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 200,
+              "weekly_hours": 50,
+              "overtime": "幾乎不",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 10/10",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-04（20261028_2133 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/瑞昱半導體股份有限公司/salary-work-times?p=2",
+              "date": "2026-04",
+              "page_date": "2026-04",
+              "date_confirmed": true,
+              "role": "軟體工程師",
+              "grade": null,
+              "unit_detail": "二廠",
+              "years": "7",
+              "degree": null,
+              "base_k": 94,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 50,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 10/10；原選項幾乎每天",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-04（20261028_2133 批）"
             }
           ],
           "sources": [
@@ -9115,19 +9460,38 @@
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/260879963",
               "date": "2026-02"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/瑞昱半導體股份有限公司/salary-work-times?p=1",
+              "date": "2026-09"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/瑞昱半導體股份有限公司/salary-work-times?p=2",
+              "date": "2026-04"
             }
           ],
           "confidence": "低",
-          "n": 2,
+          "n": 5,
           "overtime": "幾乎不",
           "years": null,
-          "base_month_k": null,
+          "base_month_k": [
+            65,
+            94
+          ],
           "bonus_months": null,
           "annual_months": null,
-          "annual_total_wan": null,
-          "weekly_hours": null,
+          "annual_total_wan": [
+            200,
+            200
+          ],
+          "weekly_hours": [
+            45,
+            50
+          ],
           "travel": null,
-          "n_stat": 2,
+          "n_stat": 5,
           "note": null,
           "grade": null
         },
@@ -9157,6 +9521,28 @@
               "quote_free_note": "應屆；發文者喜歡瑞昱的工作內容與上下班時間；薪資只說和網路查到的一樣",
               "in_window": true,
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-08-26"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/瑞昱半導體股份有限公司/salary-work-times?p=2",
+              "date": "2026-04",
+              "page_date": "2026-04",
+              "date_confirmed": true,
+              "role": "EDA工程師",
+              "grade": null,
+              "unit_detail": "新竹",
+              "years": "6",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 320,
+              "weekly_hours": 45,
+              "overtime": "幾乎不",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/5",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-04（20261028_2133 批）"
             }
           ],
           "sources": [
@@ -9164,19 +9550,30 @@
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/262035113",
               "date": "2026-08"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/瑞昱半導體股份有限公司/salary-work-times?p=2",
+              "date": "2026-04"
             }
           ],
           "confidence": "低",
-          "n": 1,
+          "n": 2,
           "overtime": "幾乎不",
           "years": null,
           "base_month_k": null,
           "bonus_months": null,
           "annual_months": null,
-          "annual_total_wan": null,
-          "weekly_hours": null,
+          "annual_total_wan": [
+            320,
+            320
+          ],
+          "weekly_hours": [
+            45,
+            45
+          ],
           "travel": null,
-          "n_stat": 1,
+          "n_stat": 2,
           "note": null,
           "grade": null
         },
@@ -10576,6 +10973,94 @@
               "in_window": true,
               "date_note": "Dcard 頁面發文日期 2025-09-09（20261028_1140_b 批）",
               "comment_sample": true
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/瑞昱半導體股份有限公司/salary-work-times?p=1",
+              "date": "2026-10",
+              "page_date": "2026-10",
+              "date_confirmed": true,
+              "role": "工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "3",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 220,
+              "weekly_hours": 40,
+              "overtime": "幾乎不",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/8",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-10（20261028_2133 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/瑞昱半導體股份有限公司/salary-work-times?p=1",
+              "date": "2026-07",
+              "page_date": "2026-07",
+              "date_confirmed": true,
+              "role": "硬體工作室",
+              "grade": null,
+              "unit_detail": null,
+              "years": "4",
+              "degree": null,
+              "base_k": 85,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 50,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 9/10；職稱原文「硬體工作室」，未寫工程師",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-07（20261028_2133 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/瑞昱半導體股份有限公司/salary-work-times?p=2",
+              "date": "2026-04",
+              "page_date": "2026-04",
+              "date_confirmed": true,
+              "role": "資深工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "7",
+              "degree": null,
+              "base_k": 90,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 40,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8.5/8",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-04（20261028_2133 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/瑞昱半導體股份有限公司/salary-work-times?p=2",
+              "date": "2026-03",
+              "page_date": "2026-03",
+              "date_confirmed": true,
+              "role": "資深工程師",
+              "grade": null,
+              "unit_detail": "二廠",
+              "years": "7",
+              "degree": null,
+              "base_k": 89,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 50,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/12",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-03（20261028_2133 批）"
             }
           ],
           "sources": [
@@ -10633,19 +11118,29 @@
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/259738654",
               "date": "2025-09"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/瑞昱半導體股份有限公司/salary-work-times?p=1",
+              "date": "2026-10"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/瑞昱半導體股份有限公司/salary-work-times?p=2",
+              "date": "2026-04"
             }
           ],
           "confidence": "低",
-          "n": 59,
+          "n": 63,
           "weekly_hours": [
-            50,
+            40,
             50
           ],
-          "overtime": "偶爾",
+          "overtime": "經常",
           "years": null,
           "base_month_k": [
             30,
-            88
+            90
           ],
           "bonus_months": [
             0,
@@ -10660,7 +11155,7 @@
             600
           ],
           "travel": null,
-          "n_stat": 58,
+          "n_stat": 62,
           "note": null,
           "grade": null
         },
@@ -10816,6 +11311,28 @@
               "quote_free_note": "現職一線IC DE轉職，瑞昱面試通過待HR排志願；未揭露薪資數字；加班：希望每月加班少於20小時，主管稱偶爾加班",
               "date_note": "Dcard 頁面發文日期 2025-01-28（2026-10-26 1943 批，非 Andy 親眼讀）",
               "in_window": true
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/瑞昱半導體股份有限公司/salary-work-times?p=2",
+              "date": "2026-03",
+              "page_date": "2026-03",
+              "date_confirmed": true,
+              "role": "數位電路驗證工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "7",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 335,
+              "weekly_hours": 60,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/11",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-03（20261028_2133 批）"
             }
           ],
           "sources": [
@@ -10828,22 +11345,30 @@
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/257856975",
               "date": "2025-01"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/瑞昱半導體股份有限公司/salary-work-times?p=2",
+              "date": "2026-03"
             }
           ],
           "confidence": "低",
-          "n": 2,
+          "n": 3,
           "weekly_hours": [
             45,
-            45
+            60
           ],
-          "overtime": "幾乎不",
+          "overtime": null,
           "years": null,
           "base_month_k": null,
           "bonus_months": null,
           "annual_months": null,
-          "annual_total_wan": null,
+          "annual_total_wan": [
+            335,
+            335
+          ],
           "travel": null,
-          "n_stat": 2,
+          "n_stat": 3,
           "note": null,
           "grade": null
         },
@@ -11135,20 +11660,26 @@
           "degree": null,
           "years": null,
           "base_month_k": [
-            82,
+            75,
             82
           ],
           "bonus_months": null,
           "annual_months": null,
-          "annual_total_wan": null,
-          "weekly_hours": null,
-          "overtime": null,
+          "annual_total_wan": [
+            250,
+            250
+          ],
+          "weekly_hours": [
+            45,
+            70
+          ],
+          "overtime": "經常",
           "travel": null,
-          "n": 1,
+          "n": 3,
           "note": "2026-10-28 Dcard 補漏批新增職位",
           "confidence": "低",
           "grade": null,
-          "n_stat": 1,
+          "n_stat": 3,
           "samples": [
             {
               "site": "Dcard",
@@ -11172,6 +11703,50 @@
               "in_window": true,
               "date_note": "Dcard 頁面發文日期 2026-07-07（20261028_1140_a 批）",
               "comment_sample": true
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/瑞昱半導體股份有限公司/salary-work-times?p=1",
+              "date": "2026-08",
+              "page_date": "2026-08",
+              "date_confirmed": true,
+              "role": "SA",
+              "grade": null,
+              "unit_detail": "RDC",
+              "years": "3",
+              "degree": null,
+              "base_k": 75,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 45,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 10/11；原選項幾乎每天；職稱未寫工程師",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-08（20261028_2133 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/瑞昱半導體股份有限公司/salary-work-times?p=1",
+              "date": "2026-08",
+              "page_date": "2026-08",
+              "date_confirmed": true,
+              "role": "SA",
+              "grade": null,
+              "unit_detail": "新竹二廠",
+              "years": "6",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 250,
+              "weekly_hours": 70,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 12/12；原選項幾乎每天；職稱未寫工程師",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-08（20261028_2133 批）"
             }
           ],
           "sources": [
@@ -11179,6 +11754,11 @@
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/260197713",
               "date": "2026-07"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/瑞昱半導體股份有限公司/salary-work-times?p=1",
+              "date": "2026-08"
             }
           ]
         }
