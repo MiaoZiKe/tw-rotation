@@ -5594,6 +5594,7 @@ h3 .howbtn.pop{font-family:inherit}
 <link rel="stylesheet" href="m4/20261024-siph-chain.css">
 <link rel="stylesheet" href="m4/20261026-premarket-tab.css">
 <link rel="stylesheet" href="m4/20261027-articles-tabs6.css">
+<link rel="stylesheet" href="m4/20261028-futures.css">
 <!-- m4:css 結束 -->
 <!-- ★ 2026-10-03 一屏看完（DECISIONS #308，fit.css／fit.js）：每張圖表卡完整落在一屏可視高度內，只動桌機（≥821）的卡高與圖高。 -->
 <link rel="stylesheet" href="fit.css">
@@ -5632,6 +5633,8 @@ h3 .howbtn.pop{font-family:inherit}
     <button class="tab" data-view="season">週期統計</button>
     <!-- ★ 2026-10-05（Andy）：ETF 專區（site/etfpage.js；規格 docs/etf_page_spec.md） -->
     <button class="tab" data-view="etf">ETF</button>
+    <!-- ★ 2026-10-28（Andy：「台指期也要做成網站頁面」）：台指期策略（site/futures.js，#futures）；電腦版側欄「族群與個股」組最後一格，手機走抽屜（mobile4.js HREF） -->
+    <button class="tab" data-view="futures">台指期策略</button>
     <!-- ★ 2026-09-23（Andy：「要用什麼方式可以讓你一次就知道我問的問題不會被遺忘，
          且如實完成」）：交付清單。他只重新整理網頁，所以驗收清單一定要在網頁上 ——
          同一天才剛把「任務板」拿掉，這一格能留下來的唯一理由就是它放的是**他的原話**。 -->
@@ -5988,6 +5991,8 @@ h3 .howbtn.pop{font-family:inherit}
   <section class="view" id="v-etf"></section>
   <!-- ================= 財報日曆（#earnings，2026-10-05） ================= 整頁由 site/earnings.js 畫 -->
   <section class="view" id="v-earnings"></section>
+  <!-- ================= 台指期策略（#futures，2026-10-28） ================= 整頁由 site/futures.js 畫 -->
+  <section class="view" id="v-futures"></section>
   <!-- ================= 精選文章（#articles、#articles/<類別>、#article/<id>，2026-10-14） ================= 整頁由 site/articles.js 畫 -->
   <section class="view" id="v-articles"></section>
 
@@ -6192,6 +6197,7 @@ return {load:load,ready:ready,srcs:srcs};})();
 <script src="etfpage.js"></script>
 <script src="futpages.js"></script><!-- 2026-10-20 市場明細：台指期三大法人未平倉、微台指散戶多空比 -->
 <script src="earnings.js"></script>
+<script src="futures.js"></script><!-- 2026-10-28 台指期策略頁（#futures）：今日訊號、前向模擬、回測依據、風險 -->
 <script src="artillus.js"></script><!-- 2026-10-16 精選文章的具象插圖（CoWoS 剖面、AI 機櫃）：{"t":"illus"} 區塊的 SVG 幾何與錨點；版面與引線在 articles.js -->
 <script src="articles.js"></script><!-- 2026-10-14 精選文章（列表／單篇）＋管理區 #admin/articles；資料在 site/articles/（不在 site/data/）-->
 <script src="artsched.js"></script><!-- 2026-10-16 產貼文頻率設定（第 2 版：日期→整點時段→類別篇數→加入排程清單→啟用）：由 articles.js 掛進 #admin/articles「文章主題」分頁最下面（僅管理者） -->

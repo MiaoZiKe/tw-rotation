@@ -30,7 +30,7 @@
 
   /* 頁面 → 抽屜裡要點的網址（有子項的大項點了進第一個子項，跟電腦版一樣） */
   const HREF = { overview: '#overview', articles: '#articles', earnings: '#earnings',   // 2026-10-14 精選文章：抽屜點了進「全部」，分類在頁內分頁切 flow: '#flow/rotation', heatmap: '#heatmap/industry',
-    industry: '#industry', market: '#market', explore: '#explore', etf: '#etf/cal', season: '#season', watch: '#watch', delivery: '#delivery' };
+    industry: '#industry', market: '#market', explore: '#explore', etf: '#etf/cal', futures: '#futures', season: '#season', watch: '#watch', delivery: '#delivery' };
 
   function nav() { return window.TwL4Nav || null; }
   function brandName() { const b = $('.topbar .brand b'); return (b && b.textContent.trim()) || '哩股哩股'; }

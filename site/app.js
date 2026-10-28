@@ -2335,7 +2335,7 @@
   // 2026-10-05：'etf'＝ETF 專區（site/etfpage.js）、'explore'＝選股策略
   // 2026-10-05（晚）：'earnings'＝財報日曆（site/earnings.js）
   // 2026-10-14：'articles'＝精選文章（site/articles.js）；單篇 #article/<id> 也落在這個 view（見 route() 的 view 對照）
-  const VIEWS = ['overview', 'flow', 'market', 'industry', 'heatmap', 'season', 'etf', 'tasks', 'delivery', 'watch', 'explore', 'earnings', 'articles'];
+  const VIEWS = ['overview', 'flow', 'market', 'industry', 'heatmap', 'season', 'etf', 'tasks', 'delivery', 'watch', 'explore', 'earnings', 'articles', 'futures'];   // 2026-10-28 futures＝台指期策略（site/futures.js）
   // 2026-10-03 電腦版資金流向的子分頁（側欄縮排子項；第一個是 #flow 的預設）。layout4.js 的側欄子項用同一份名單
   const FLOW_SUBS = ['rotation', 'sankey', 'inst'];
   const rendered = {};
@@ -3396,7 +3396,8 @@
       watch: () => { if (window.TwWatchPage) window.TwWatchPage.render(); },
       explore: () => (window.TwExplore ? window.TwExplore.render(rest[0]) : null),
       etf: () => (window.TwEtfPage ? window.TwEtfPage.render(rest[0]) : null),
-      earnings: () => (window.TwEarnings ? window.TwEarnings.render() : null) })[view](); }
+      earnings: () => (window.TwEarnings ? window.TwEarnings.render() : null),
+      futures: () => (window.TwFutures ? window.TwFutures.render() : null) })[view](); }
     mia(); setTimeout(mia, 500);
     setTimeout(resizeVisibleCharts, 30);
     // 換頁之後那幾個橫向捲動容器的寬度才算得出來，補掃一次（G6）

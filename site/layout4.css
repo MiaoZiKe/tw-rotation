@@ -136,6 +136,8 @@
   :root.l4 .tab[data-view="explore"]{order:5}   /* 2026-10-05 選股探索：DOM 緊接在市場明細後面，同 order 就照 DOM 排在它下面 */
   :root.l4 .tab[data-view="season"]{order:6}
   :root.l4 .tab[data-view="etf"]{order:5;--l4-ic:var(--l4-ic-etf)}
+  /* 2026-10-28 台指期策略：族群與個股組最後一格（DOM 排在 ETF 後面）；圖示＝走勢線上一個靶心 */
+  :root.l4 .tab[data-view="futures"]{order:5;--l4-ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 17l5-5 4 4 8-9'/%3E%3Cpath d='M15 7h5v5'/%3E%3C/svg%3E")}
   :root.l4 .tab[data-view="watch"]{order:7}
   :root.l4 .tab[data-view="delivery"]{order:8}
   :root.l4 .tabs>:not(.tab){order:9}
@@ -523,7 +525,7 @@
   :root.l4.l4g:not(.l4-mini) .tabs[data-cs~="articles"]>.l4subtab[data-parent="articles"],
   :root.l4.l4g:not(.l4-mini) .tabs[data-cg~="money"]>:is(.tab[data-view="flow"],.tab[data-view="heatmap"]),
   :root.l4.l4g:not(.l4-mini) .tabs[data-cg~="money"]>.l4subtab:is([data-parent="flow"],[data-parent="heatmap"]),
-  :root.l4.l4g:not(.l4-mini) .tabs[data-cg~="stock"]>:is(.tab[data-view="industry"],.tab[data-view="stock"],.tab[data-view="market"],.tab[data-view="explore"],.tab[data-view="etf"]),
+  :root.l4.l4g:not(.l4-mini) .tabs[data-cg~="stock"]>:is(.tab[data-view="industry"],.tab[data-view="stock"],.tab[data-view="market"],.tab[data-view="explore"],.tab[data-view="etf"],.tab[data-view="futures"]),
   :root.l4.l4g:not(.l4-mini) .tabs[data-cg~="hist"]>.tab[data-view="season"],
   :root.l4.l4g:not(.l4-mini) .tabs[data-cg~="proj"]>:is(.tab[data-view="watch"],.tab[data-view="delivery"],.tab.l4perm),
   :root.l4.l4g:not(.l4-mini) .tabs[data-cg~="proj"]>.l4subtab[data-parent="admin"],

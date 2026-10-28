@@ -57,6 +57,7 @@
     stock: { grp: '族群與個股', t: '個股', d: 'K 線與多週期技術面、營收與獲利、籌碼與除權息 —— 決定「什麼時候進場」與「現在貴不貴」。' },
     market: { grp: '族群與個股', t: '市場明細', d: '完整名單：漲跌分佈、站上均線、法人動向與各項排行，可以排序篩選，找出符合條件的個股。' },
     explore: { grp: '族群與個股', t: '選股策略', d: 'Strategy Lab：每張卡是一組公開條件（獲利、估值、成長、技術、法人、股利、動能），列出前 3 檔；點一列看入選原因，點 i 看條件與資料出處。' },
+    futures: { grp: '族群與個股', t: '台指期策略', d: '台指期 1.3 倍持有：今天該持有幾口、下次結算與重算口數的日期，加上前向模擬績效與回測依據 —— 研究用，不是買賣建議。' },
     season: { grp: '歷史規律', t: '週期統計', d: '每個族群在各月份的歷史表現：勝率、報酬中位數與超額報酬，看現在是不是它的旺季。' },
     etf: { grp: '族群與個股', t: 'ETF', d: 'ETF 分類、殖利率、配息行事曆與長期報酬比較（價格與含息分開算）—— 純資料整理，不構成投資建議。' },
     watch: { grp: '專案', t: '自選', d: '你自己的自選清單（最多五頁）：今天的漲跌與走勢，點名稱進個股頁。' },
@@ -348,7 +349,7 @@
   const GROUPS = [
     { g: 'today', t: '今日市場', first: 'overview', views: ['overview', 'articles', 'earnings'] },   // 2026-10-14 精選文章插在總覽與財經日曆之間（Andy 截圖標的位置）
     { g: 'money', t: '資金流水', first: 'flow', views: ['flow', 'heatmap'] },
-    { g: 'stock', t: '族群與個股', first: 'industry', views: ['industry', 'stock', 'market', 'explore', 'etf'] },
+    { g: 'stock', t: '族群與個股', first: 'industry', views: ['industry', 'stock', 'market', 'explore', 'etf', 'futures'] },
     { g: 'hist', t: '歷史規律', first: 'season', views: ['season'] },
     { g: 'proj', t: '專案', first: 'watch', views: ['watch', 'delivery', 'admin'] },
   ];

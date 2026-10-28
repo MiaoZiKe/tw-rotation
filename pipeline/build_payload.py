@@ -18,7 +18,7 @@ import pandas as pd
 from . import config, delivery_log, indicators
 from .compute import explore, inst_market, inst_today
 from .compute import mktfut as mktfut_c
-from .compute import analysis, digest, earnings, etf, etf_holdings, flow, fundamental, mtf, rrg, scoring, season, stockpage, technical, themes
+from .compute import analysis, digest, earnings, etf, etf_holdings, flow, fundamental, futures_page, mtf, rrg, scoring, season, stockpage, technical, themes
 from .groups import loader
 # TechNews 的分類在讀取端重跑（見下面 news_df 那一段的註解），所以要 import 抓取層的分類器
 from .sources import news as news_src
@@ -780,6 +780,13 @@ def build() -> None:
     except Exception as exc:  # noqa: BLE001
         log.warning("自選日報事實表產出失敗（只影響日報與提醒）：%s", exc)
     lap("自選日報")
+
+    # ---------------------------------------------------------- 台指期策略頁（2026-10-28，site/futures.js）
+    # 只讀資料湖 paper/ledger（F2 台指期 1.3 倍與 0050 含息）＋寫死的回測結論；失敗只影響這一頁，前端讀不到會寫「尚無」。
+    try:
+        _write("futures", futures_page.build())
+    except Exception as exc:  # noqa: BLE001
+        log.warning("台指期策略頁資料產出失敗（只影響 #futures）：%s", exc)
 
     # ---------------------------------------------------------- 產業關聯圖
     try:

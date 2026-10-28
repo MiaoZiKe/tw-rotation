@@ -417,6 +417,10 @@ def main() -> int:
             problems.append(f"財報日曆 #earnings 文字重疊：{info['overlaps'][:3]}")
         if pg.evaluate("() => document.querySelectorAll('#earnGrid .chip').length") == 0:
             problems.append("財報日曆 #earnings 月曆上一個標籤都沒有")
+        # ★ 2026-10-28 台指期策略（site/futures.js）：訊號格、績效圖、回測表、散點圖走一次文字重疊掃描
+        info = visit("futures", "futures", wait=1200)
+        if info["overlaps"]:
+            problems.append(f"台指期策略 #futures 文字重疊：{info['overlaps'][:3]}")
         # ★ 2026-09-24 設計系統 v2 第 6 批：三個法律頁（site/legal.js）也走一次文字重疊掃描。
         #   這三頁是純文字長頁，最常出事的是表格與【】空格標示在窄欄裡疊字。
         for lg in ("terms", "privacy", "disclaimer"):
