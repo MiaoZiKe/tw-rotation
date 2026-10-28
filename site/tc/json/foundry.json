@@ -14705,7 +14705,7 @@
           "degree": "碩士",
           "years": "0-2",
           "base_month_k": [
-            63.5,
+            58,
             68
           ],
           "bonus_months": null,
@@ -14714,16 +14714,16 @@
             20
           ],
           "annual_total_wan": [
-            130,
-            130
+            120,
+            150
           ],
           "weekly_hours": [
-            50,
-            50
+            40,
+            55
           ],
-          "overtime": null,
+          "overtime": "經常",
           "travel": "不用",
-          "n": 29,
+          "n": 34,
           "note": "GoodJob 自述月薪多落在 5～7 萬；salary.tw 台南製程有日均 14～15 小時自述（2025）；學歷未標，區間寬疑含學士／年資差；2026-10-25 補：碩士起薪 Dcard 2026 討論約 6.0～6.7 萬（四大一類另有價）；新人約 6 萬、前三年調薪 3～5%、約第三年升 7 職等後年薪約 200 萬上下（自述）；南科製程（薄膜）需輪班，全薪約台積新人價減 1，年薪 100～120 萬（單筆，範圍外）",
           "sources": [
             {
@@ -14850,6 +14850,21 @@
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/258442690",
               "date": "2025-05"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯華電子股份有限公司/salary-work-times?p=1",
+              "date": "2026-10"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯華電子股份有限公司/salary-work-times?p=2",
+              "date": "2026-07"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯華電子股份有限公司/salary-work-times?p=3",
+              "date": "2026-02"
             }
           ],
           "confidence": "高",
@@ -15430,9 +15445,120 @@
               "in_window": true,
               "date_note": "Dcard 頁面發文日期 2025-07-11（20261028_1548 批）",
               "comment_sample": true
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯華電子股份有限公司/salary-work-times?p=1",
+              "date": "2026-10",
+              "page_date": "2026-10",
+              "date_confirmed": true,
+              "role": "半導體製程工程師",
+              "grade": null,
+              "unit_detail": "聯電8E",
+              "years": "5",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 120,
+              "weekly_hours": 45,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8.5/9",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-10（20261028_1730 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯華電子股份有限公司/salary-work-times?p=1",
+              "date": "2026-09",
+              "page_date": "2026-09",
+              "date_confirmed": true,
+              "role": "製程工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 66,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 55,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 9/11；原選項幾乎每天",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-09（20261028_1730 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯華電子股份有限公司/salary-work-times?p=1",
+              "date": "2026-08",
+              "page_date": "2026-08",
+              "date_confirmed": true,
+              "role": "半導體製程工程師",
+              "grade": null,
+              "unit_detail": "新竹",
+              "years": null,
+              "degree": null,
+              "base_k": 58,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 45,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 9/9",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-08（20261028_1730 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯華電子股份有限公司/salary-work-times?p=2",
+              "date": "2026-07",
+              "page_date": "2026-07",
+              "date_confirmed": true,
+              "role": "製成工程師",
+              "grade": null,
+              "unit_detail": "南科",
+              "years": "1",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 150,
+              "weekly_hours": 40,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/8",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-07（20261028_1730 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯華電子股份有限公司/salary-work-times?p=3",
+              "date": "2026-02",
+              "page_date": "2026-02",
+              "date_confirmed": true,
+              "role": "生產技術╱製程工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "1",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 130,
+              "weekly_hours": 42,
+              "overtime": "幾乎不",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/9",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-02（20261028_1748 批）",
+              "dup_of": "https://www.dcard.tw/f/tech_job/p/260497760#留言B8-8"
             }
           ],
-          "n_stat": 18
+          "n_stat": 22
         },
         {
           "unit": "晶圓廠 Fab",
@@ -15449,16 +15575,16 @@
             18
           ],
           "annual_total_wan": [
-            134,
-            138.6
+            100,
+            200
           ],
           "weekly_hours": [
-            56,
-            56
+            42.5,
+            60
           ],
           "overtime": null,
           "travel": "不用",
-          "n": 21,
+          "n": 25,
           "note": "GoodJob 單筆月薪 7.7 萬，年資未明，疑非新人；比薪水網 2025-09 設備職回報偶爾加班、日均工時約 12 小時（範圍外參考含 2023 年 22 筆整理）；分紅月數沿用同公司製程職區間；撤回：bonus_months 原為沿用／推算／暫填值，無直接證據，已改回原值；2026-10-25 補：GoodJob 2026-04 臺南設備月薪約 7.7 萬、年薪約月薪×18；GoodJob 另一則稱南科加給約 2 個月、含分紅全年 18～24 個月",
           "sources": [
             {
@@ -15550,6 +15676,21 @@
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/251404156",
               "date": "依文章編號推估"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯華電子股份有限公司/salary-work-times?p=1",
+              "date": "2026-10"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯華電子股份有限公司/salary-work-times?p=2",
+              "date": "2026-07"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯華電子股份有限公司/salary-work-times?p=3",
+              "date": "2026-03"
             }
           ],
           "confidence": "高",
@@ -15965,9 +16106,97 @@
               "in_window": true,
               "date_note": "Dcard 頁面發文日期 2025-05-22（20261028_1206_a 批）",
               "comment_sample": false
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯華電子股份有限公司/salary-work-times?p=1",
+              "date": "2026-10",
+              "page_date": "2026-10",
+              "date_confirmed": true,
+              "role": "設備工程師",
+              "grade": null,
+              "unit_detail": "台南廠/etch",
+              "years": "4",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 140,
+              "weekly_hours": 60,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/11",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-10（20261028_1730 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯華電子股份有限公司/salary-work-times?p=1",
+              "date": "2026-08",
+              "page_date": "2026-08",
+              "date_confirmed": true,
+              "role": "設備",
+              "grade": null,
+              "unit_detail": null,
+              "years": "3",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 100,
+              "weekly_hours": 45,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 12/10；原選項幾乎每天；職稱未寫工程師",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-08（20261028_1730 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯華電子股份有限公司/salary-work-times?p=2",
+              "date": "2026-07",
+              "page_date": "2026-07",
+              "date_confirmed": true,
+              "role": "薄膜設備工程師",
+              "grade": null,
+              "unit_detail": "南科",
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 100,
+              "weekly_hours": 56,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 10/12",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-07（20261028_1730 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯華電子股份有限公司/salary-work-times?p=3",
+              "date": "2026-03",
+              "page_date": "2026-03",
+              "date_confirmed": true,
+              "role": "設備工程師",
+              "grade": null,
+              "unit_detail": "台南",
+              "years": "10",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 200,
+              "weekly_hours": 42.5,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/9.5",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-03（20261028_1748 批）"
             }
           ],
-          "n_stat": 10
+          "n_stat": 14
         },
         {
           "unit": "研發 R&D",
@@ -16225,16 +16454,16 @@
           "bonus_months": null,
           "annual_months": null,
           "annual_total_wan": [
-            150,
+            100,
             350
           ],
           "weekly_hours": [
-            42,
+            40,
             60
           ],
           "overtime": "經常",
           "travel": "不用",
-          "n": 9,
+          "n": 10,
           "note": "GoodJob 2026-03 月薪 6.7 萬、工時 60 小時／週；2025-08 一則 7 萬，分紅與加薪看考績；年薪與分紅月數沿用同公司製程職區間；撤回：annual_months、bonus_months 原為沿用／推算／暫填值，無直接證據，已改回原值；2026-10-25 補：南科整合：四大碩士三年 150 萬常見、五年 180～200 萬（網友說法）；屬產線需輪班",
           "sources": [
             {
@@ -16281,6 +16510,11 @@
               "site": "GoodJob",
               "url": "https://www.goodjob.life/companies/聯華電子股份有限公司/salary-work-times?p=1",
               "date": "2026-10"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯華電子股份有限公司/salary-work-times?p=2",
+              "date": "2026-07"
             }
           ],
           "confidence": "高",
@@ -16460,9 +16694,31 @@
               "quote_free_note": "自填；日工時 表訂/實際 8/8.5 小時",
               "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2026-10（20261028_1712 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯華電子股份有限公司/salary-work-times?p=2",
+              "date": "2026-07",
+              "page_date": "2026-07",
+              "date_confirmed": true,
+              "role": "製程整合工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 100,
+              "weekly_hours": 40,
+              "overtime": "幾乎不",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/8.5",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-07（20261028_1730 批）"
             }
           ],
-          "n_stat": 7
+          "n_stat": 8
         },
         {
           "unit": "其他",
@@ -16893,6 +17149,94 @@
               "in_window": true,
               "date_note": "Dcard 頁面發文日期 2025-06-07（20261028_1548 批）",
               "comment_sample": true
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯華電子股份有限公司/salary-work-times?p=2",
+              "date": "2026-07",
+              "page_date": "2026-07",
+              "date_confirmed": true,
+              "role": "工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "2",
+              "degree": null,
+              "base_k": 70,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 40,
+              "overtime": "幾乎不",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/8",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-07（20261028_1730 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯華電子股份有限公司/salary-work-times?p=2",
+              "date": "2026-06",
+              "page_date": "2026-06",
+              "date_confirmed": true,
+              "role": "半導體工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "2",
+              "degree": null,
+              "base_k": 69,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 40,
+              "overtime": "幾乎不",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/8",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-06（20261028_1730 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯華電子股份有限公司/salary-work-times?p=2",
+              "date": "2026-06",
+              "page_date": "2026-06",
+              "date_confirmed": true,
+              "role": "工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "2",
+              "degree": null,
+              "base_k": 55,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 45,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/9",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-06（20261028_1730 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯華電子股份有限公司/salary-work-times?p=3",
+              "date": "2026-06",
+              "page_date": "2026-06",
+              "date_confirmed": true,
+              "role": "半導體工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "2",
+              "degree": null,
+              "base_k": 75,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 40,
+              "overtime": "幾乎不",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/8",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-06（20261028_1730 批）"
             }
           ],
           "sources": [
@@ -16925,14 +17269,24 @@
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/259020566",
               "date": "2025-06"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯華電子股份有限公司/salary-work-times?p=2",
+              "date": "2026-07"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯華電子股份有限公司/salary-work-times?p=3",
+              "date": "2026-06"
             }
           ],
           "confidence": "低",
-          "n": 18,
+          "n": 22,
           "years": null,
           "base_month_k": [
-            60,
-            70
+            55,
+            75
           ],
           "bonus_months": null,
           "annual_months": [
@@ -16943,10 +17297,13 @@
             100,
             200
           ],
-          "weekly_hours": null,
-          "overtime": null,
+          "weekly_hours": [
+            40,
+            45
+          ],
+          "overtime": "幾乎不",
           "travel": null,
-          "n_stat": 18,
+          "n_stat": 22,
           "note": null,
           "grade": null
         },
@@ -16976,6 +17333,28 @@
               "quote_free_note": "文中寫「已拿到 offer／面試中」，未確定是正式 offer；發文者說除台積外各家條件差不多",
               "in_window": true,
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-08-23"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯華電子股份有限公司/salary-work-times?p=3",
+              "date": "2026-02",
+              "page_date": "2026-02",
+              "date_confirmed": true,
+              "role": "模型工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "1",
+              "degree": null,
+              "base_k": 68,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 44,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/8.5",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-02（20261028_1748 批）"
             }
           ],
           "sources": [
@@ -16983,19 +17362,30 @@
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/262012814",
               "date": "2026-08"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯華電子股份有限公司/salary-work-times?p=3",
+              "date": "2026-02"
             }
           ],
           "confidence": "低",
-          "n": 1,
+          "n": 2,
           "years": null,
-          "base_month_k": null,
+          "base_month_k": [
+            68,
+            68
+          ],
           "bonus_months": null,
           "annual_months": null,
           "annual_total_wan": null,
-          "weekly_hours": null,
-          "overtime": null,
+          "weekly_hours": [
+            44,
+            44
+          ],
+          "overtime": "偶爾",
           "travel": null,
-          "n_stat": 1,
+          "n_stat": 2,
           "note": null,
           "grade": null
         },
@@ -17005,22 +17395,40 @@
           "degree": "碩士",
           "years": "0-1",
           "base_month_k": [
-            67,
-            67
+            65.8,
+            75
           ],
           "bonus_months": null,
           "annual_months": null,
           "annual_total_wan": null,
-          "weekly_hours": null,
-          "overtime": null,
+          "weekly_hours": [
+            42,
+            50
+          ],
+          "overtime": "經常",
           "travel": null,
-          "n": 1,
+          "n": 5,
           "note": "",
           "sources": [
             {
               "site": "GoodJob",
               "url": "https://www.goodjob.life/companies/聯華電子股份有限公司/work-experiences?p=1",
               "date": "2026-01"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯華電子股份有限公司/salary-work-times?p=1",
+              "date": "2026-08"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯華電子股份有限公司/salary-work-times?p=2",
+              "date": "2026-07"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯華電子股份有限公司/salary-work-times?p=3",
+              "date": "2026-04"
             }
           ],
           "confidence": "低",
@@ -17045,9 +17453,362 @@
               "date_confirmed": true,
               "date_note": "摘要寫出發文年月",
               "in_window": true
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯華電子股份有限公司/salary-work-times?p=1",
+              "date": "2026-08",
+              "page_date": "2026-08",
+              "date_confirmed": true,
+              "role": "良率工程師",
+              "grade": null,
+              "unit_detail": "南科12A",
+              "years": "2",
+              "degree": null,
+              "base_k": 75,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 50,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/10",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-08（20261028_1730 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯華電子股份有限公司/salary-work-times?p=2",
+              "date": "2026-07",
+              "page_date": "2026-07",
+              "date_confirmed": true,
+              "role": "良率提升工程師",
+              "grade": null,
+              "unit_detail": "28/22奈米廠",
+              "years": "2",
+              "degree": null,
+              "base_k": 70,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 48,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 10/10",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-07（20261028_1730 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯華電子股份有限公司/salary-work-times?p=3",
+              "date": "2026-04",
+              "page_date": "2026-04",
+              "date_confirmed": true,
+              "role": "良率提升工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "1",
+              "degree": null,
+              "base_k": 65.8,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 42,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/8.5",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-04（20261028_1730 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯華電子股份有限公司/salary-work-times?p=3",
+              "date": "2026-03",
+              "page_date": "2026-03",
+              "date_confirmed": true,
+              "role": "良率提升工程師",
+              "grade": null,
+              "unit_detail": "南科",
+              "years": "1",
+              "degree": null,
+              "base_k": 65.8,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 42.5,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/8.5；來源註記疑似與同頁 2026-04 良率提升工程師同一人",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-03（20261028_1748 批）",
+              "dup_of": "https://www.goodjob.life/companies/聯華電子股份有限公司/salary-work-times?p=3"
             }
           ],
-          "n_stat": 1
+          "n_stat": 4
+        },
+        {
+          "unit": null,
+          "role": "軟體工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": [
+            60,
+            68
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": [
+            110,
+            110
+          ],
+          "weekly_hours": [
+            40,
+            50
+          ],
+          "overtime": "幾乎不",
+          "travel": null,
+          "n": 4,
+          "note": "2026-10-28 GoodJob 1730 批新增職位",
+          "confidence": "低",
+          "grade": null,
+          "n_stat": 4,
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯華電子股份有限公司/salary-work-times?p=1",
+              "date": "2026-08",
+              "page_date": "2026-08",
+              "date_confirmed": true,
+              "role": "軟體設計工程師",
+              "grade": null,
+              "unit_detail": "新竹",
+              "years": "2",
+              "degree": null,
+              "base_k": 60,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 50,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/8",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-08（20261028_1730 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯華電子股份有限公司/salary-work-times?p=1",
+              "date": "2026-08",
+              "page_date": "2026-08",
+              "date_confirmed": true,
+              "role": "軟體工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 67.9,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 40,
+              "overtime": "幾乎不",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/8",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-08（20261028_1730 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯華電子股份有限公司/salary-work-times?p=2",
+              "date": "2026-06",
+              "page_date": "2026-06",
+              "date_confirmed": true,
+              "role": "軟體工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 110,
+              "weekly_hours": 40,
+              "overtime": "幾乎不",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/8",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-06（20261028_1730 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯華電子股份有限公司/salary-work-times?p=2",
+              "date": "2026-06",
+              "page_date": "2026-06",
+              "date_confirmed": true,
+              "role": "軟體工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 68,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 40,
+              "overtime": "幾乎不",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/8",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-06（20261028_1730 批）"
+            }
+          ],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯華電子股份有限公司/salary-work-times?p=1",
+              "date": "2026-08"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯華電子股份有限公司/salary-work-times?p=2",
+              "date": "2026-06"
+            }
+          ]
+        },
+        {
+          "unit": null,
+          "role": "資深工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": [
+            180,
+            180
+          ],
+          "weekly_hours": [
+            40,
+            40
+          ],
+          "overtime": "幾乎不",
+          "travel": null,
+          "n": 1,
+          "note": "2026-10-28 GoodJob 1730 批新增職位",
+          "confidence": "低",
+          "grade": null,
+          "n_stat": 1,
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯華電子股份有限公司/salary-work-times?p=3",
+              "date": "2026-04",
+              "page_date": "2026-04",
+              "date_confirmed": true,
+              "role": "資深工程師",
+              "grade": null,
+              "unit_detail": "台南",
+              "years": "7",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 180,
+              "weekly_hours": 40,
+              "overtime": "幾乎不",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/8",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-04（20261028_1730 批）"
+            }
+          ],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯華電子股份有限公司/salary-work-times?p=3",
+              "date": "2026-04"
+            }
+          ]
+        },
+        {
+          "unit": null,
+          "role": "CIM／MES 工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": [
+            66,
+            66
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": [
+            290,
+            290
+          ],
+          "weekly_hours": [
+            40,
+            42
+          ],
+          "overtime": "幾乎不",
+          "travel": null,
+          "n": 2,
+          "note": "2026-10-28 GoodJob 1748 批新增職位",
+          "confidence": "低",
+          "grade": null,
+          "n_stat": 2,
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯華電子股份有限公司/salary-work-times?p=3",
+              "date": "2026-02",
+              "page_date": "2026-02",
+              "date_confirmed": true,
+              "role": "CIM工程師",
+              "grade": null,
+              "unit_detail": "南科廠區",
+              "years": "25",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 290,
+              "weekly_hours": 42,
+              "overtime": "幾乎不",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/8.5",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-02（20261028_1748 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯華電子股份有限公司/salary-work-times?p=3",
+              "date": "2026-02",
+              "page_date": "2026-02",
+              "date_confirmed": true,
+              "role": "MES工程師",
+              "grade": null,
+              "unit_detail": "台南",
+              "years": "5",
+              "degree": null,
+              "base_k": 66,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 40,
+              "overtime": "幾乎不",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/8",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-02（20261028_1748 批）"
+            }
+          ],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯華電子股份有限公司/salary-work-times?p=3",
+              "date": "2026-02"
+            }
+          ]
         }
       ],
       "mops": {
@@ -17140,17 +17901,20 @@
           "role": "生產線工程師",
           "degree": "碩士",
           "years": "0-2",
-          "base_month_k": null,
+          "base_month_k": [
+            60,
+            60
+          ],
           "bonus_months": null,
           "annual_months": null,
           "annual_total_wan": null,
           "weekly_hours": [
             48,
-            50
+            55
           ],
-          "overtime": null,
+          "overtime": "經常",
           "travel": "不用",
-          "n": 23,
+          "n": 24,
           "note": "GoodJob 2026 單筆月薪 6.06 萬；QC 自述 12＋4 個月；學歷年資未標；GoodJob 多則回報公司保障 16 個月（含年終與節金），另 7 月依營運發分紅、4 月調薪；分紅月數未見具體數字（2026-10 查 GoodJob、媒體）；2026-10-25 補：整體平台估算年薪 73～158 萬；工程師保 16 個月＋7 月分紅（HR 稱往年 1～2 個月）；部分年薪／年薪月數由同一筆樣本的「底薪×月數」推算（樣本標 derived）",
           "sources": [
             {
@@ -17257,6 +18021,11 @@
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/256108655",
               "date": "依文章編號推估"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/世界先進積體電路股份有限公司/salary-work-times?p=1",
+              "date": "2026-09"
             }
           ],
           "confidence": "中",
@@ -17703,9 +18472,31 @@
               "date_confirmed": true,
               "date_note": "摘要寫出發文年月",
               "in_window": true
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/世界先進積體電路股份有限公司/salary-work-times?p=1",
+              "date": "2026-09",
+              "page_date": "2026-09",
+              "date_confirmed": true,
+              "role": "生產線工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 60,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 55,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 12/12；原選項幾乎每天",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-09（20261028_1748 批）"
             }
           ],
-          "n_stat": 9
+          "n_stat": 10
         },
         {
           "unit": "晶圓廠 Fab",
@@ -17713,7 +18504,7 @@
           "degree": "碩士",
           "years": "0-2",
           "base_month_k": [
-            58,
+            57,
             58
           ],
           "bonus_months": null,
@@ -17722,13 +18513,16 @@
             16
           ],
           "annual_total_wan": [
-            118,
+            100,
             140
           ],
-          "weekly_hours": null,
+          "weekly_hours": [
+            45,
+            50
+          ],
           "overtime": "經常",
           "travel": "不用",
-          "n": 17,
+          "n": 19,
           "note": "GoodJob 面試回報單筆 5.8 萬（未通知、年資不完整）；Dcard／PTT 查無世界先進 offer。查過：世界先進 offer 碩士 月薪 分紅 面試 2026（Dcard）／世界先進 GoodJob 面試經驗 製程整合 設備工程師 月薪；GoodJob 多則回報公司保障 16 個月（含年終與節金），另 7 月依營運發分紅、4 月調薪；分紅月數未見具體數字（2026-10 查 GoodJob、媒體）；GoodJob 製程職回報工時偏長、需值班；出差未見回報（廠內職）；2026-10-25 補：Dcard 碩士 31 職等第二年領滿約 110～125 萬（網友）、第一年保 16 領不滿；研替 offer 57k×16、另簽約金 10 萬；研替同職等有 57／62 兩種價；部分年薪／年薪月數由同一筆樣本的「底薪×月數」推算（樣本標 derived）",
           "sources": [
             {
@@ -17795,6 +18589,16 @@
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/262310815",
               "date": "2026-10"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/世界先進積體電路股份有限公司/salary-work-times?p=1",
+              "date": "2026-07"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/世界先進積體電路股份有限公司/salary-work-times?p=2",
+              "date": "2026-04"
             }
           ],
           "confidence": "高",
@@ -18139,9 +18943,53 @@
               "in_window": true,
               "date_note": "Dcard 頁面發文日期 2026-10-17（20261028_1511 批）",
               "comment_sample": false
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/世界先進積體電路股份有限公司/salary-work-times?p=1",
+              "date": "2026-07",
+              "page_date": "2026-07",
+              "date_confirmed": true,
+              "role": "PIE",
+              "grade": null,
+              "unit_detail": null,
+              "years": "2",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 100,
+              "weekly_hours": 50,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/10",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-07（20261028_1748 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/世界先進積體電路股份有限公司/salary-work-times?p=2",
+              "date": "2026-04",
+              "page_date": "2026-04",
+              "date_confirmed": true,
+              "role": "製程整合工程師(延替)",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 57,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 45,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/8",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-04（20261028_1748 批）"
             }
           ],
-          "n_stat": 11
+          "n_stat": 13
         },
         {
           "unit": "晶圓廠 Fab",
@@ -18155,16 +19003,16 @@
             16
           ],
           "annual_total_wan": [
-            150,
+            100,
             150
           ],
           "weekly_hours": [
-            55,
+            48,
             55
           ],
-          "overtime": null,
+          "overtime": "偶爾",
           "travel": "不用",
-          "n": 9,
+          "n": 10,
           "note": "僅有 2018 年設備助理工程師 3.8 萬（太舊不採）；GoodJob 多則回報公司保障 16 個月（含年終與節金），另 7 月依營運發分紅、4 月調薪；分紅月數未見具體數字（2026-10 查 GoodJob、媒體）；2026-10-25 補：GoodJob 2026-03 生產設備工程師 6 年年薪約 150 萬、55 小時／週；設備助理工程師面試文（2026-07）；未逐筆對應的舊彙整：base_month_k=[108, 108]",
           "sources": [
             {
@@ -18211,6 +19059,11 @@
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/237772103",
               "date": "依文章編號推估"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/世界先進積體電路股份有限公司/salary-work-times?p=2",
+              "date": "2026-03"
             }
           ],
           "confidence": "中",
@@ -18386,9 +19239,31 @@
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
               "in_window": false
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/世界先進積體電路股份有限公司/salary-work-times?p=2",
+              "date": "2026-03",
+              "page_date": "2026-03",
+              "date_confirmed": true,
+              "role": "研發替代役 擴散設備工程師",
+              "grade": null,
+              "unit_detail": "五廠",
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 100,
+              "weekly_hours": 48,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 12/12",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-03（20261028_1748 批）"
             }
           ],
-          "n_stat": 5
+          "n_stat": 6
         },
         {
           "unit": "研發 R&D",
@@ -18401,14 +19276,17 @@
           ],
           "bonus_months": null,
           "annual_months": null,
-          "annual_total_wan": null,
+          "annual_total_wan": [
+            110,
+            110
+          ],
           "weekly_hours": [
             40,
             40
           ],
-          "overtime": null,
+          "overtime": "幾乎不",
           "travel": null,
-          "n": 11,
+          "n": 12,
           "note": "查無；關鍵字同上＋世界先進 製程 月薪 分紅 季獎金 2026；GoodJob 多則回報公司保障 16 個月（含年終與節金），另 7 月依營運發分紅、4 月調薪；分紅月數未見具體數字（2026-10 查 GoodJob、媒體）；研發出差頻率未見具體回報，暫填偶爾（低信心）；撤回：travel 原為沿用／推算／暫填值，無直接證據，已改回原值",
           "sources": [
             {
@@ -18465,6 +19343,11 @@
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/254985006",
               "date": "依文章編號推估"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/世界先進積體電路股份有限公司/salary-work-times?p=2",
+              "date": "2026-01"
             }
           ],
           "confidence": "中",
@@ -18681,9 +19564,31 @@
               "date_confirmed": false,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
               "in_window": false
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/世界先進積體電路股份有限公司/salary-work-times?p=2",
+              "date": "2026-01",
+              "page_date": "2026-01",
+              "date_confirmed": true,
+              "role": "元件工程師",
+              "grade": null,
+              "unit_detail": "新竹二廠",
+              "years": "2",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 110,
+              "weekly_hours": 40,
+              "overtime": "幾乎不",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/8",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-01（20261028_1748 批）"
             }
           ],
-          "n_stat": 5
+          "n_stat": 6
         },
         {
           "unit": "研發 R&D",
@@ -18899,6 +19804,357 @@
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/262310815",
               "date": "2026-10"
+            }
+          ]
+        },
+        {
+          "unit": null,
+          "role": "主任工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": [
+            100,
+            100
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": [
+            40,
+            40
+          ],
+          "overtime": "偶爾",
+          "travel": null,
+          "n": 1,
+          "note": "2026-10-28 GoodJob 1748 批新增職位",
+          "confidence": "低",
+          "grade": null,
+          "n_stat": 1,
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/世界先進積體電路股份有限公司/salary-work-times?p=1",
+              "date": "2026-09",
+              "page_date": "2026-09",
+              "date_confirmed": true,
+              "role": "主任工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "15",
+              "degree": null,
+              "base_k": 100,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 40,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/9",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-09（20261028_1748 批）"
+            }
+          ],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/世界先進積體電路股份有限公司/salary-work-times?p=1",
+              "date": "2026-09"
+            }
+          ]
+        },
+        {
+          "unit": null,
+          "role": "IE 工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": [
+            60,
+            63
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": [
+            43,
+            50
+          ],
+          "overtime": null,
+          "travel": null,
+          "n": 2,
+          "note": "2026-10-28 GoodJob 1748 批新增職位",
+          "confidence": "低",
+          "grade": null,
+          "n_stat": 2,
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/世界先進積體電路股份有限公司/salary-work-times?p=1",
+              "date": "2026-07",
+              "page_date": "2026-07",
+              "date_confirmed": true,
+              "role": "工業工程師╱生產線規劃",
+              "grade": null,
+              "unit_detail": "一廠區",
+              "years": null,
+              "degree": null,
+              "base_k": 63,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 43,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/8.5",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-07（20261028_1748 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/世界先進積體電路股份有限公司/salary-work-times?p=2",
+              "date": "2026-01",
+              "page_date": "2026-01",
+              "date_confirmed": true,
+              "role": "工業工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "2",
+              "degree": null,
+              "base_k": 60,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 50,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 9/10",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-01（20261028_1748 批）"
+            }
+          ],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/世界先進積體電路股份有限公司/salary-work-times?p=1",
+              "date": "2026-07"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/世界先進積體電路股份有限公司/salary-work-times?p=2",
+              "date": "2026-01"
+            }
+          ]
+        },
+        {
+          "unit": null,
+          "role": "廠務工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": [
+            120,
+            120
+          ],
+          "weekly_hours": [
+            48,
+            48
+          ],
+          "overtime": "偶爾",
+          "travel": null,
+          "n": 1,
+          "note": "2026-10-28 GoodJob 1748 批新增職位",
+          "confidence": "低",
+          "grade": null,
+          "n_stat": 1,
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/世界先進積體電路股份有限公司/salary-work-times?p=1",
+              "date": "2026-07",
+              "page_date": "2026-07",
+              "date_confirmed": true,
+              "role": "廠務",
+              "grade": null,
+              "unit_detail": null,
+              "years": "1",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 120,
+              "weekly_hours": 48,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 12/12；職稱未寫工程師",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-07（20261028_1748 批）"
+            }
+          ],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/世界先進積體電路股份有限公司/salary-work-times?p=1",
+              "date": "2026-07"
+            }
+          ]
+        },
+        {
+          "unit": null,
+          "role": "製程工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": [
+            50,
+            65
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": [
+            40,
+            50
+          ],
+          "overtime": "經常",
+          "travel": null,
+          "n": 3,
+          "note": "2026-10-28 GoodJob 1748 批新增職位",
+          "confidence": "低",
+          "grade": null,
+          "n_stat": 3,
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/世界先進積體電路股份有限公司/salary-work-times?p=1",
+              "date": "2026-06",
+              "page_date": "2026-06",
+              "date_confirmed": true,
+              "role": "擴散工程師",
+              "grade": null,
+              "unit_detail": "新竹",
+              "years": "2",
+              "degree": null,
+              "base_k": 50,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 40,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/8.5",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-06（20261028_1748 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/世界先進積體電路股份有限公司/salary-work-times?p=1",
+              "date": "2026-05",
+              "page_date": "2026-05",
+              "date_confirmed": true,
+              "role": "製程工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 60,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 40,
+              "overtime": "幾乎不",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/9",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-05（20261028_1748 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/世界先進積體電路股份有限公司/salary-work-times?p=2",
+              "date": "2026-04",
+              "page_date": "2026-04",
+              "date_confirmed": true,
+              "role": "半導體製程工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "4",
+              "degree": null,
+              "base_k": 65,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 50,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/12；原選項幾乎每天",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-04（20261028_1748 批）"
+            }
+          ],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/世界先進積體電路股份有限公司/salary-work-times?p=1",
+              "date": "2026-06"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/世界先進積體電路股份有限公司/salary-work-times?p=2",
+              "date": "2026-04"
+            }
+          ]
+        },
+        {
+          "unit": null,
+          "role": "CAD 工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": [
+            67,
+            67
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": [
+            40,
+            40
+          ],
+          "overtime": "幾乎不",
+          "travel": null,
+          "n": 1,
+          "note": "2026-10-28 GoodJob 1748 批新增職位",
+          "confidence": "低",
+          "grade": null,
+          "n_stat": 1,
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/世界先進積體電路股份有限公司/salary-work-times?p=2",
+              "date": "2026-05",
+              "page_date": "2026-05",
+              "date_confirmed": true,
+              "role": "CAD工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 67,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 40,
+              "overtime": "幾乎不",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/8",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-05（20261028_1748 批）"
+            }
+          ],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/世界先進積體電路股份有限公司/salary-work-times?p=2",
+              "date": "2026-05"
             }
           ]
         }
