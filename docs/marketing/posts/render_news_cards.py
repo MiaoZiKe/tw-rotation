@@ -190,7 +190,22 @@ PALS["C"] = dict(name="比比色", bg="#FEF8E8", ink="#2A1410", sub="#5A3E36", a
            tile="#FFFFFF", tilebd="#EBDCC8", tl="#5A3E36", tu="#7A6258", tv="#2A1410", rule="#E6D5BE", foot="#7A6258",
            duo=("#2A1410", "#FFD9C9"), shade="42,20,16", ring="rgba(255,255,255,.38)", panel="linear-gradient(135deg,#FFB4A0 0%,#F58C78 100%)", dark=False,
            herofg="#2A1410", toppanel="#2A1410")
-SLOTN = {"pre": "盤前新聞", "intra": "盤中新聞", "post": "盤後新聞"}
+SLOTN = {"pre": "盤前新聞", "intra": "盤中新聞", "post": "盤後新聞", "wk1": "週末精選", "wk2": "週末精選", "fb": "精選"}
+def hdr_of(c, slot):
+    """卡片右上角時段字；常備文庫（知識卡）自帶 hdr，不冒充「盤後新聞」。"""
+    return c.get("hdr") or SLOTN.get(slot, "")
+def foot_of(c, idx, tot):
+    """卡片底列：左＝資料來源（c["foot"]），右＝張數（只有多張才放，單張不放「1 / 1」）。"""
+    L = f'<span class="T4" style="flex:1;white-space:nowrap">{e(c["foot"])}</span>' if c.get("foot") else ""
+    R = f'<span class="num">{idx} / {tot}</span>' if tot > 1 else ""
+    return L + R
+def vfs(v):
+    """資訊列右側數值字級：數字用 56px 襯線；含中文的文字值縮成 44px，避免字高貼滿 80px 的列（常備文庫知識卡）。"""
+    return "font-size:44px;line-height:56px" if re.search(r"[\u2e80-\ua000\uff00-\uffef]", v) else "font-size:56px;line-height:64px"
+def hero_fs(num):
+    """大字字級依字數縮放（全形 1.0、半形 0.55 em），上限 280px：大數字填滿灰框，不留右半邊空白。"""
+    w = sum(1.0 if ord(ch) > 0x2E80 else 0.55 for ch in num) or 1
+    return int(max(120, min(280, 800 / w)))
 def bg_duo(path, w, h, pal):
     """AI 圖統一轉成同一組雙色調（暗→亮），整組色調一致；取上緣鋪滿"""
     from PIL import ImageFilter, ImageOps, ImageStat
@@ -290,26 +305,26 @@ def card_v4(d, idx, tot, bg=None, slot="pre"):
         if not hero and nums: hero = (nums[0]["value"] + nums[0]["unit"]).strip()
         mm = re.match(r"[約逾\s]*([\d,.]+)\s*(.*)", hero or ""); num = mm.group(1) if mm else (hero or ""); unit = mm.group(2) if mm else ""
         hit = next((x for x in nums if num and num.replace(",", "") in x["value"].replace(",", "")), None)
-        label = hit["label"] if hit else ""
+        label = c.get("hero_label") or (hit["label"] if hit else "")
         if hit and "美元" in hit["unit"] and "美元" not in unit: unit = hit["unit"]   # 對應單位含美元時顯示完整（如「億美元」），不截成「億」
-        fsz = 208 if len(num) <= 5 else 160
+        fsz = hero_fs(num)
         art = (f'<div class="a" data-bg=1 style="left:64px;top:128px;width:952px;height:{imgh}px;background:{K["panel"]};border-radius:4px"></div>'
                f'<div class="a T3b" style="left:96px;top:{128 + (imgh - fsz - 16 - 48)//2}px;color:{K["mu"]}">{e(label)}</div>'
-               f'<div class="a ser num" style="left:96px;top:{128 + (imgh - fsz - 16 - 48)//2 + 56}px;color:{K["ink"]};font-size:{fsz}px;line-height:{fsz+16}px;font-weight:700;white-space:nowrap">{e(num)}<span style="font-size:64px;margin-left:12px;color:{K["sub"]}">{e(unit)}</span></div>')
+               f'<div class="a ser num" style="left:96px;top:{128 + (imgh - fsz - 16 - 48)//2 + 64}px;color:{K["ink"]};font-size:{fsz}px;line-height:{fsz+16}px;height:{fsz+16}px;font-weight:700;white-space:nowrap">{e(num)}<span style="font-size:64px;line-height:64px;margin-left:12px;color:{K["sub"]}">{e(unit)}</span></div>')
     rows = ''.join(
         f'<div class="row" style="position:absolute;left:64px;top:{rtop + i*(rh+g)}px;width:952px;height:{rh}px;background:{K["tile"]};border:1px solid {K["tbd"]};border-left:8px solid {K["bar"]};border-radius:4px;padding:0 28px;justify-content:space-between">'
-        f'<span class="T3b" style="color:{K["sub"]}">{e(x["label"])}</span><span class="row" style="gap:8px;align-items:baseline"><span class="ser num" style="font-size:56px;line-height:64px;font-weight:700;color:{vcolor3(x["value"], dict(tv=K["ink"]))}">{e(x["value"])}</span>'
+        f'<span class="T3b" style="color:{K["sub"]}">{e(x["label"])}</span><span class="row" style="gap:8px;align-items:baseline"><span class="ser num" style="{vfs(x["value"])};font-weight:700;color:{vcolor3(x["value"], dict(tv=K["ink"]))}">{e(x["value"])}</span>'
         f'<span class="T4b" style="color:{K["mu"]}">{e(x["unit"])}</span></span></div>' for i, x in enumerate(nums))
     date = d["data_date"][:10].replace("-", "/")
     return (f'<body style="{V};background:{K["bg"]}"><div class="a" style="left:64px;top:40px;width:952px;height:4px;background:{K["ink"]}" data-bg=1></div>'
-            f'<div class="brand T3b" style="color:{K["ink"]}">哩股哩股</div><div class="hdate T4b num" style="color:{K["mu"]}">{SLOTN.get(slot, "")}・{date}</div>'
+            f'<div class="brand T3b" style="color:{K["ink"]}">哩股哩股</div><div class="hdate T4b num" style="color:{K["mu"]}">{hdr_of(c, slot)}・{date}</div>'
             f'<div class="a" style="left:64px;top:112px;width:952px;height:2px;background:{K["rule"]}" data-bg=1></div>{art}'
             f'<div class="a row" style="left:64px;top:{chipt}px"><span class="T3b" style="background:{K["acc"]};color:#fff;padding:4px 28px;border-radius:4px;letter-spacing:.12em">{e(cat)}</span></div>'
             f'<div class="a" style="left:64px;top:{ttop}px;width:952px;color:{K["ink"]};font-size:{fs}px;line-height:{fs+12}px;font-weight:800">'
             + "".join(f'<div style="white-space:nowrap">{hl4(l) if i == hi else e(l)}</div>' for i, l in enumerate(tl)) + '</div>'
             f'<div class="a T3" style="left:64px;top:{dtop}px;width:952px;color:{K["sub"]};line-height:52px">' + "".join(f"<div>{e(l)}</div>" for l in dl) + '</div>'
             f'{rows}<div class="a" style="left:64px;top:1264px;width:952px;height:2px;background:{K["rule"]}"></div>'
-            f'<div class="a row T4" style="left:64px;top:1272px;width:952px;height:56px;color:{K["mu"]}"><span class="num">{idx} / {tot}</span></div></body>')
+            f'<div class="a row T4" style="left:64px;top:1272px;width:952px;height:56px;color:{K["mu"]}">{foot_of(c, idx, tot)}</div></body>')
 # ---- D-實景（Andy 10-28）：上方放主體公司的實景照片（原色、只裁切），照片上方帶狀區放小標（主體＋事件），大數字留在下方大標 ----
 PHOTO_LIB = Path(__file__).resolve().parents[3] / "social" / "photo_lib"
 KIND_LAYOUT = {"總部/廠房": "D-實景(公司)", "產品": "D-實景(產品)", "相關場景": "D-實景(類別)", "類別": "D-實景(類別)"}
@@ -426,10 +441,10 @@ def card_photo(d, idx, tot, photo, slot="pre", pending=False):
     date = d["data_date"][:10].replace("-", "/")
     rows = ''.join(
         f'<div class="row" style="position:absolute;left:64px;top:{rtop + i*(rh+g)}px;width:952px;height:{rh}px;background:{K["tile"]};border:1px solid {K["tbd"]};border-left:8px solid {K["bar"]};border-radius:4px;padding:0 28px;justify-content:space-between">'
-        f'<span class="T3b" style="color:{K["sub"]}">{e(x["label"])}</span><span class="row" style="gap:8px;align-items:baseline"><span class="ser num" style="font-size:56px;line-height:64px;font-weight:700;color:{vcolor3(x["value"], dict(tv=K["ink"]))}">{e(x["value"])}</span>'
+        f'<span class="T3b" style="color:{K["sub"]}">{e(x["label"])}</span><span class="row" style="gap:8px;align-items:baseline"><span class="ser num" style="{vfs(x["value"])};font-weight:700;color:{vcolor3(x["value"], dict(tv=K["ink"]))}">{e(x["value"])}</span>'
         f'<span class="T4b" style="color:{K["mu"]}">{e(x["unit"])}</span></span></div>' for i, x in enumerate(nums))
     return (f'<body style="{V};background:{K["bg"]}"><div class="a" style="left:64px;top:40px;width:952px;height:4px;background:{K["ink"]}" data-bg=1></div>'
-            f'<div class="brand T3b" style="color:{K["ink"]}">哩股哩股</div><div class="hdate T4b num" style="color:{K["mu"]}">{SLOTN.get(slot, "")}・{date}</div>'
+            f'<div class="brand T3b" style="color:{K["ink"]}">哩股哩股</div><div class="hdate T4b num" style="color:{K["mu"]}">{hdr_of(c, slot)}・{date}</div>'
             f'<div class="a" style="left:64px;top:112px;width:952px;height:2px;background:{K["rule"]}" data-bg=1></div>'
             f'<div class="a row" style="left:64px;top:{ktop}px;width:952px;height:72px"><span class="T2" style="font-weight:800;color:{K["ink"]};white-space:nowrap">{e(kicker)}</span>{tag}</div>'
             f'<img class="a" data-g=1 style="left:64px;top:{ptop}px;width:952px;height:{imgh}px;border-radius:4px" src="{bg_plain(path, 952, imgh, 0.5)}">'
@@ -439,14 +454,14 @@ def card_photo(d, idx, tot, photo, slot="pre", pending=False):
             + "".join(f'<div style="white-space:nowrap">{hl5(l) if NUM.search(l) or (c.get("hl") and c["hl"] in l) else e(l)}</div>' for l in tl) + '</div>'
             f'<div class="a T3" style="left:64px;top:{dtop}px;width:952px;color:{K["sub"]};line-height:52px">' + "".join(f"<div>{e(l)}</div>" for l in dl) + '</div>'
             f'{rows}<div class="a" style="left:64px;top:1264px;width:952px;height:2px;background:{K["rule"]}"></div>'
-            f'<div class="a row T4" style="left:64px;top:1272px;width:952px;height:56px;color:{K["mu"]}"><span class="num">{idx} / {tot}</span></div></body>')
+            f'<div class="a row T4" style="left:64px;top:1272px;width:952px;height:56px;color:{K["mu"]}">{foot_of(c, idx, tot)}</div></body>')
 def card_auto(d, idx, tot, slot="pre", allow_unreviewed=False, used=None, today=None):
     """自動版：公司圖池 → 類別圖池 → card_v4 灰框大數字。回傳 (html, layout 標籤, 選圖資訊 dict 或 None)。
     選圖資訊＝{key, kind, file}；呼叫端用 key 記使用紀錄（輪替）、kind 寫進 meta.photo_kind。"""
     c = d["card"]
     text = " ".join([c.get("title", ""), c.get("cover_title", "") if isinstance(c.get("cover_title"), str) else " ".join(c.get("cover_title") or []),
                      c.get("kicker", "")] + [x.get("name", "") for x in d.get("sources", [])])
-    ph = photo_pick(c.get("subject"), d.get("meta", {}).get("topic_category") or c.get("category"), used, today, allow_unreviewed, text=text)
+    ph = None if c.get("no_photo") else photo_pick(c.get("subject"), d.get("meta", {}).get("topic_category") or c.get("category"), used, today, allow_unreviewed, text=text)
     if ph:
         path, meta, lay, key = ph
         return card_photo(d, idx, tot, (path, meta), slot, pending=not meta.get("reviewed")), lay, dict(key=key, kind=meta.get("kind", ""), file=str(path))

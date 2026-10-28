@@ -17,6 +17,12 @@ on:
     workflows: ["社群即時貼文（Threads／IG 限動）"]
     types: [completed]
   schedule:
+    # 2026-10-29：主題文章每天自動（週末也有）。下面四個是每天（含週末）的備援，主力由 gh-cron Worker 準時派（workers/gh-cron/src/schedule.js）；
+    # social_news.py 自己判斷是交易日還是休市日、排哪一段，已排過的段落跳過。
+    - cron: "15 2 * * *"      # 台北 10:15（週末精選 wk1）
+    - cron: "45 2 * * *"      # 台北 10:45（wk1 備援）
+    - cron: "0 11 * * *"      # 台北 19:00（週末精選 wk2）
+    - cron: "40 11 * * *"     # 台北 19:40（wk2 備援）
     - cron: "30 0 * * 1-5"    # 台北 08:30
     - cron: "10 4 * * 1-5"    # 台北 12:10
     - cron: "35 11 * * 1-5"   # 台北 19:35
@@ -25,9 +31,9 @@ on:
   workflow_dispatch:
     inputs:
       slot:
-        description: "auto（看主貼文發了哪幾段）、pre、intra、post"
+        description: "auto（交易日看主貼文發了哪幾段；休市日排週末精選）、pre、intra、post、wk1（週末上午）、wk2（週末晚上）、fb（備案）"
         type: choice
-        options: [auto, pre, intra, post]
+        options: [auto, pre, intra, post, wk1, wk2, fb]
         default: auto
       dry_run:
         description: "只演練：產圖與文案存成 artifact，不寫 queue、不會發"
@@ -93,6 +99,7 @@ jobs:
           IN_DRY: ${{ inputs.dry_run }}
           IN_FORCE: ${{ inputs.force }}
           NEWS_AUTO_APPROVE: "1"   # 10-28 Andy：「A，開啟」（寧可少發、品質閘不放寬）
+          TOPIC_AUTO_APPROVE: "0"  # 10-29：週末精選／備案／常備文庫的開關（預設關＝只寫 draft）。CEO 看過樣本後改 "1" 才會自動發出
         run: |
           args="--slot $IN_SLOT --posted state/posted.json"
           if [ "$IN_DRY" = "true" ]; then args="$args --dry-run --out $RUNNER_TEMP/news_dry"; fi

@@ -81,3 +81,11 @@ test('runScheduled：呼叫 GitHub 的網址、標頭、內容正確，且錯誤
   assert.equal(errs2.length, 1);
   assert.equal(calls.length, 1);
 });
+
+test('週末與休市日派主題文章（social_news.yml），交易日不派', () => {
+  const want = ['social_news.yml:{"slot":"auto","dry_run":"false"}'];
+  for (const day of ['2026-10-24', '2026-10-25', '2026-10-26']) {      // 週六、週日、光復節補假
+    for (const t of ['10:15', '10:45', '19:00', '19:40']) assert.deepEqual(names(tpe(`${day} ${t}`)), want, `${day} ${t}`);
+  }
+  for (const t of ['10:15', '10:45', '19:00', '19:40']) assert.deepEqual(names(tpe(`2026-10-21 ${t}`)), [], `交易日 ${t}`);
+});
