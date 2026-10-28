@@ -97,7 +97,7 @@
     const fut = sub === 'fut';
     return {
       sub, sym: fut ? 'TX' : '2330', tf: 'D', strat: 'ma2', params: {}, mode: 'both', range: 'All', showBH: false, ind: LabK.defaultInd(), ctype: 'k', tt: 'ov', eqMode: 'eq', sortK: 'no', sortD: -1,
-      cfg: { capital: 1000000, sizeMode: fut ? 'units' : 'pct', sizeVal: fut ? 1 : 100, pyramiding: 1, fillOn: 'open', sl: 0, tp: 0, trail: 0, maxLoss: 0 },
+      cfg: { capital: 1000000, sizeMode: 'pct', sizeVal: 100, pyramiding: 1, fillOn: 'open', sl: 0, tp: 0, trail: 0, maxLoss: 0, slPts: 0, tpPts: 0, slAmt: 0, tpAmt: 0, trailPts: 0, trailStart: 0, marginCall: 130 },
       costs: {}, advOpen: false, pickOpen: false, res: null, B: null, sel: -1, rowsAll: false, busy: 0,
     };
   }
@@ -140,6 +140,9 @@
     '<br>· 加碼口數上限 1＝不加碼；大於 1 時，同方向訊號再出現就再加一口，出場時各口分開記一筆。' +
     '<br>· 週、月 K 由日 K 合成；60 分 K 只有 2023-09 之後、近期成交值前 500 名的個股；價格是除權息還原後的價格。' +
     '<br>· 台指期是近月連續合約，換月的價差沒有調整，長期績效會有偏差。' +
+    '<br>· 風控設定（「成本設定」裡）：停損、停利、移動停損可用「％」、「點（股票為元）」或「金額」；移動停損可設「啟動點」，賺超過才開始跟。多個條件同時設就取最先碰到的。' +
+    '<br>· 台指期預設「依資金換算」：口數＝初始資金 × 比例 ÷ （價格 × 每點）取整，資金不夠一口名目但付得起原始保證金就下 1 口；權益低於維持保證金當根收盤強制平倉，換月跨結算日另付換月成本。' +
+    '<br>· 股票空單：每天計借券費（年率）；現金含融券價款 ÷ 空單市值低於「追繳維持率」（預設 130％）當根收盤強制回補；權益歸零就停止交易。畫面上會寫出發生的日期與原因。' +
     '<br><br><b>我們採用的定義（TradingView 原文未核實處）</b><br>· 夏普值＝月報酬：（月均報酬 − 無風險 2%÷12）÷ 月報酬標準差 × √12；索提諾值分母只算低於無風險報酬的下檔偏差；不足 3 個月不計算。' +
     '<br>· 最大回撤、最大上漲用每根收盤的權益（含未平倉浮動損益），不含盤中高低。' +
     '<br>· 買進持有＝期初第一根開盤買入、持有到最後一根收盤。' +
@@ -202,14 +205,20 @@
     const inst = instOf(S), c = S.cfg, fut = inst.kind === 'fut';
     const F = (id, lab, v, step, title) => '<label class="lab-fld" title="' + esc(title || '') + '"><span>' + lab + '</span><input class="lab-in" type="number" data-k="' + id + '" value="' + v + '" step="' + (step || 'any') + '"></label>';
     const sizeSel = '<label class="lab-fld"><span>部位方式</span><select class="lab-in" data-k="sizeMode">' +
-      [['pct', '資金百分比'], ['amount', '固定金額'], ['units', fut ? '固定口數' : '固定股數']].map(([k, n]) => '<option value="' + k + '"' + (c.sizeMode === k ? ' selected' : '') + '>' + n + '</option>').join('') + '</select></label>';
+      [['pct', fut ? '依資金換算（名目％）' : '資金百分比'], ['amount', '固定金額'], ['units', fut ? '固定口數' : '固定股數']].map(([k, n]) => '<option value="' + k + '"' + (c.sizeMode === k ? ' selected' : '') + '>' + n + '</option>').join('') + '</select></label>';
+    const pu = fut ? '點' : '元';
     const unit = c.sizeMode === 'pct' ? '％' : c.sizeMode === 'amount' ? '元' : (fut ? '口' : '股');
     return '<div class="lab-grid">' +
       F('capital', '初始資金（元）', c.capital, 10000) + sizeSel + F('pyramiding', '加碼口數上限（1＝不加碼）', c.pyramiding, 1, '同方向最多同時持有幾口') +
       '<label class="lab-fld"><span>成交時機</span><select class="lab-in" data-k="fillOn"><option value="open"' + (c.fillOn === 'open' ? ' selected' : '') + '>下一根開盤（預設）</option><option value="close"' + (c.fillOn === 'close' ? ' selected' : '') + '>訊號當根收盤</option></select></label>' + F('sizeVal', '單筆部位（' + unit + '）', c.sizeVal, 1) +
       (fut ? F('mult', '每點（元）', inst.mult, 1) + F('futFee', '手續費（元／口／邊）', inst.futFee, 1) + F('futTax', '期交稅（％，每邊）', inst.futTax, 0.0005) + F('slip', '滑價（點）', inst.slip, 0.5)
         : F('feeRate', '手續費率（％）', inst.feeRate, 0.0005) + F('feeDisc', '手續費折扣（折，10＝無）', Math.round(inst.feeDisc * 100) / 10, 0.1) + F('feeMin', '最低手續費（元）', inst.feeMin, 1) + F('taxRate', '證交稅（％，賣出）', inst.taxRate, 0.05) + F('slip', '滑價（％，每邊）', inst.slip, 0.01)) +
-      F('sl', '停損（％）', c.sl, 0.5, '0＝不設') + F('tp', '停利（％）', c.tp, 0.5, '0＝不設') + F('trail', '移動停損（％）', c.trail, 0.5, '0＝不設') + F('maxLoss', '最大日內虧損出場（權益％）', c.maxLoss, 0.1, '單根 K 棒內虧損超過前一根收盤權益的這個比例就出場；0＝不設') +
+      F('sl', '停損（％）', c.sl, 0.5, '0＝不設') + F('tp', '停利（％）', c.tp, 0.5, '0＝不設') + F('trail', '移動停損（％）', c.trail, 0.5, '0＝不設') +
+      F('slPts', '停損（' + pu + '）', c.slPts, 1, '距進場價幾' + pu + '就停損；0＝不設') + F('tpPts', '停利（' + pu + '）', c.tpPts, 1, '距進場價幾' + pu + '就停利；0＝不設') +
+      F('slAmt', '停損（金額，元）', c.slAmt, 1000, '這一口（或這筆）虧到這個金額就停損；0＝不設') + F('tpAmt', '停利（金額，元）', c.tpAmt, 1000, '賺到這個金額就停利；0＝不設') +
+      F('trailPts', '移動停損（' + pu + '）', c.trailPts, 1, '從最有利價回落幾' + pu + '就出場；0＝不設') + F('trailStart', '移動停損啟動（' + pu + '）', c.trailStart, 1, '賺超過這個' + pu + '數才開始跟；0＝一進場就跟') +
+      (fut ? F('marginInit', '原始保證金（％）', inst.marginInit, 0.5, '權益低於「口數 × 價格 × 每點 × 這個比例」就不能再下單') + F('marginMaint', '維持保證金（％）', inst.marginMaint, 0.5, '權益低於這個比例當根收盤強制平倉') + F('rollCost', '換月成本（點）', inst.rollCost, 0.5, '持倉跨過結算日，賣舊買新各付這麼多點的滑價')
+        : F('marginCall', '追繳維持率（％，空單）', c.marginCall, 5, '融券空單：現金含融券價款 ÷ 空單市值低於這個比例，當根收盤強制回補；0＝不追繳') + F('borrowFee', '借券費（年率％，空單）', inst.borrowFee, 0.1, '放空每天依空單市值的年率計收；0＝不計')) + F('maxLoss', '最大日內虧損出場（權益％）', c.maxLoss, 0.1, '單根 K 棒內虧損超過前一根收盤權益的這個比例就出場；0＝不設') +
       '<button type="button" class="lab-clear" id="labReset">還原預設成本</button></div>' + evtFields(S);
   }
   /* 事件當濾網：事件窗內不進場／只在窗內進場、進入窗就平倉（事件日期表見 pipeline/groups/events_history.yaml） */
@@ -444,8 +453,10 @@
     const verdict = nT === 0 && !(r.opens && r.opens.length)
       ? '這段期間這套規則沒有產生任何交易，可以換週期、放寬參數或拉長期間'
       : '<span class="lab-vd"><b>' + E.dayToStr(B.day[r.from]) + ' 到 ' + E.dayToStr(B.day[r.to]) + '</b>：</span>照這套規則做 <b class="' + cls(s.ret) + '">' + sgn(s.ret, 1) + '%</b>，買進持有 <b class="' + cls(s.bhRet) + '">' + sgn(s.bhRet, 1) + '%</b>，' + (Math.abs(gap) < 0.05 ? '兩者差不多' : '<b>' + (gap > 0 ? '多賺 ' : '少賺 ') + fmt(Math.abs(gap), 1) + ' 個百分點</b>') + '；中途最深回撤 −' + s.mddP.toFixed(1) + '%';
+    const cl = (r.calls || []).map((c) => '<b>' + E.dayToStr(B.day[Math.min(c.i, B.n - 1)]) + '</b> ' + esc(c.why));
+    const callsHTML = cl.length ? '<div class="lab-calls" role="alert">⚠ ' + cl.slice(0, 2).join('；') + (cl.length > 2 ? '；另 ' + (cl.length - 2) + ' 次' : '') + '</div>' : '';
     el.innerHTML =
-      '<div class="lab-verdict" role="status">' + verdict + '</div>' +
+      '<div class="lab-verdict" role="status">' + verdict + '</div>' + callsHTML +
       T('總損益', sgn(s.net, 0), sgn(s.ret, 2) + '%', cls(s.net), '含未平倉損益，已扣手續費、證交稅、滑價') +
       T('最大回撤', fmt(-s.mdd, 0), '−' + s.mddP.toFixed(2) + '%', s.mdd > 0 ? 'dn' : '', '權益（含未平倉浮動損益）從高點往下的最大跌幅') +
       T('獲利交易', s.all.win == null ? '—' : s.all.win.toFixed(2) + '%', s.all.nWin + ' / ' + s.all.nClosed, '', '已平倉交易中賺錢的比例') +
@@ -544,7 +555,9 @@
     const r = S.res;
     return r.trades.map((t, i) => Object.assign({ no: i + 1 }, t)).concat((r.opens || []).map((t, i) => Object.assign({ no: r.trades.length + i + 1 }, t)));
   }
-  const TCOL = [['no', '#'], ['dir', '方向'], ['i0', '進場時間'], ['i1', '出場時間'], ['p0', '進場價'], ['p1', '出場價'], ['qty', '數量'], ['pnl', '損益'], ['pnlP', '損益%'], ['cum', '累積損益'], ['mfe', 'MFE'], ['mae', 'MAE']];
+  /* 交易清單（對照 TradingView）：一筆交易兩列——進場列（時間、價格、進場訊號、數量）、出場列（時間、價格、出場原因、損益、累積）。
+     第 8 欄固定是損益；排序以「整筆交易」為單位，兩列一起移動。點任一列鎖定那一筆（只有出場列掛 .on，進場列掛 .pr 一起亮）。 */
+  const TCOL = [['no', '#', 1], ['ty', '類型', 0], ['dir', '方向', 1], ['i0', '時間', 1], ['p0', '價格', 1], ['why', '訊號／原因', 0], ['qty', '數量', 1], ['pnl', '損益', 1], ['pnlP', '損益%', 1], ['cum', '累積損益', 1], ['mfe', 'MFE', 1], ['mae', 'MAE', 1]];
   function tradesHTML(S) {
     const B = S.B, all = tradeRows(S);
     if (!all.length) return '<div class="lab-note">這段期間沒有交易</div>';
@@ -553,8 +566,15 @@
     const rows = all.slice().sort((a, b) => (a[k] < b[k] ? -1 : a[k] > b[k] ? 1 : 0) * d);
     const lim = mob && !S.rowsAll ? 10 : rows.length;
     const hold = (t) => (B.tf === '60' ? t.bars + ' 根' : B.tf === 'D' ? (B.day[Math.min(t.i1, B.n - 1)] - B.day[t.i0]) + ' 日' : t.bars + ' 根');
-    return '<div class="lab-trbar"><button type="button" class="lab-clear" id="labCsv">匯出 CSV</button></div><div class="lab-twrap"><table class="lab-tbl"><thead><tr>' + TCOL.map(([kk, n], i) => '<th data-k="' + kk + '" class="lab-sort' + (i >= 9 ? ' lab-hm' : '') + (kk === k ? ' on' : '') + '" role="columnheader" aria-sort="' + (kk === k ? (d > 0 ? 'ascending' : 'descending') : 'none') + '">' + n + (kk === k ? (d > 0 ? ' ▲' : ' ▼') : '') + '</th>').join('') + '</tr></thead><tbody>' +
-      rows.slice(0, lim).map((t) => '<tr data-i="' + (t.no - 1) + '" class="' + (S.sel === t.no - 1 ? 'on' : '') + '" title="' + esc('進場：' + (t.entryWhy || '') + '｜出場：' + (t.why || '') + '｜持有 ' + hold(t)) + '"><td>' + t.no + '</td><td class="' + (t.dir === 1 ? 'up' : 'dn') + '">' + (t.dir === 1 ? '多' : '空') + '</td><td>' + tstr(B, t.i0) + '</td><td>' + (t.open ? '未平倉' : tstr(B, t.i1)) + '</td><td>' + fmt(t.p0, 2) + '</td><td>' + fmt(t.p1, 2) + '</td><td>' + fmt(t.qty, 0) + '</td><td class="' + cls(t.pnl) + '">' + sgn(t.pnl, 0) + '</td><td class="' + cls(t.pnl) + '">' + sgn(t.pnlP, 2) + '%</td><td class="lab-hm ' + cls(t.cum) + '">' + sgn(t.cum, 0) + '</td><td class="lab-hm">' + fmt(t.mfe, 0) + '</td><td class="lab-hm">' + fmt(t.mae, 0) + '</td></tr>').join('') +
+    const head = TCOL.map(([kk, n, sortable], i) => '<th' + (sortable ? ' data-k="' + kk + '" class="lab-sort' + (i >= 9 ? ' lab-hm' : '') + (kk === k ? ' on' : '') + '" role="columnheader" aria-sort="' + (kk === k ? (d > 0 ? 'ascending' : 'descending') : 'none') + '"' : (i >= 9 ? ' class="lab-hm"' : '')) + '>' + n + (kk === k ? (d > 0 ? ' ▲' : ' ▼') : '') + '</th>').join('');
+    const body = rows.slice(0, lim).map((t) => {
+      const dir = '<td class="' + (t.dir === 1 ? 'up' : 'dn') + '">' + (t.dir === 1 ? '多' : '空') + '</td>';
+      const tip = esc('進場：' + (t.entryWhy || '') + '｜出場：' + (t.why || '') + '｜持有 ' + hold(t));
+      const sel = S.sel === t.no - 1;
+      return '<tr data-i="' + (t.no - 1) + '" class="en' + (sel ? ' pr' : '') + '" title="' + tip + '"><td rowspan="1">' + t.no + '</td><td>進場</td>' + dir + '<td>' + tstr(B, t.i0) + '</td><td>' + fmt(t.p0, 2) + '</td><td class="lab-why">' + esc(t.entryWhy || '') + '</td><td>' + fmt(t.qty, 0) + '</td><td></td><td></td><td class="lab-hm"></td><td class="lab-hm"></td><td class="lab-hm"></td></tr>' +
+        '<tr data-i="' + (t.no - 1) + '" class="ex' + (sel ? ' on' : '') + '" title="' + tip + '"><td></td><td>' + (t.open ? '未平倉' : '出場') + '</td>' + dir + '<td>' + (t.open ? '—' : tstr(B, t.i1)) + '</td><td>' + fmt(t.p1, 2) + '</td><td class="lab-why">' + esc(t.open ? '' : (t.why || '')) + '</td><td>' + fmt(t.qty, 0) + '</td><td class="' + cls(t.pnl) + '">' + sgn(t.pnl, 0) + '</td><td class="' + cls(t.pnl) + '">' + sgn(t.pnlP, 2) + '%</td><td class="lab-hm ' + cls(t.cum) + '">' + sgn(t.cum, 0) + '</td><td class="lab-hm">' + fmt(t.mfe, 0) + '</td><td class="lab-hm">' + fmt(t.mae, 0) + '</td></tr>';
+    }).join('');
+    return '<div class="lab-trbar"><button type="button" class="lab-clear" id="labCsv">匯出 CSV</button></div><div class="lab-twrap"><table class="lab-tbl lab-trades"><thead><tr>' + head + '</tr></thead><tbody>' + body +
       '</tbody></table></div>' + (lim < rows.length ? '<button type="button" class="lab-more" id="labMore">看全部 ' + rows.length + ' 筆</button>' : '');
   }
   function csvOf(S) {
@@ -577,7 +597,8 @@
     S.sel = i;
     const a = Math.max(0, t.i0 - 12), b = Math.min(S.B.n - 1, t.i1 + 12);
     try { CH.k.timeScale().setVisibleLogicalRange({ from: a, to: b }); } catch (e) { /* 圖已銷毀 */ }
-    $$('#labTBody tbody tr').forEach((tr) => tr.classList.toggle('on', +tr.dataset.i === i));
+    $$('#labTBody tbody tr.ex').forEach((tr) => tr.classList.toggle('on', +tr.dataset.i === i));
+    $$('#labTBody tbody tr.en').forEach((tr) => tr.classList.toggle('pr', +tr.dataset.i === i));
   }
 
   /* ---------------------------------------------------------------- 控制列同步 */
@@ -696,7 +717,7 @@
       if (t.closest('#labCsv')) { downloadCsv(S); return; }
       if (t.closest('#labMore')) { S.rowsAll = true; paintTester(S); return; }
       const th = t.closest('#labTBody th.lab-sort'); if (th) { const k = th.dataset.k; if (S.sortK === k) S.sortD = -S.sortD; else { S.sortK = k; S.sortD = -1; } paintTester(S); return; }
-      const tr = t.closest('#labTBody tbody tr'); if (tr && S.tt === 'tr') { const i = +tr.dataset.i; if (S.sel === i) { S.sel = -1; resetView(S); $$('#labTBody tbody tr').forEach((x) => x.classList.remove('on')); } else focusTrade(S, i); return; }
+      const tr = t.closest('#labTBody tbody tr'); if (tr && S.tt === 'tr') { const i = +tr.dataset.i; if (S.sel === i) { S.sel = -1; resetView(S); $$('#labTBody tbody tr').forEach((x) => x.classList.remove('on', 'pr')); } else focusTrade(S, i); return; }
     };
     body.oninput = (e) => {
       const t = e.target;

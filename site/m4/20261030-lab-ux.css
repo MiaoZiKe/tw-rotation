@@ -94,7 +94,7 @@
 
 @media (max-width:640px){
   /* 交易清單：先看 #、方向、進場時間、出場價、損益、損益%（出場時間、進場價、數量點該列看或匯出） */
-  #v-lab #labTBody .lab-tbl:has(th[data-k="i0"]) :is(th,td):is(:nth-child(4),:nth-child(5),:nth-child(7)){display:none}
+  #v-lab .lab-trades :is(th,td):is(:nth-child(1),:nth-child(6),:nth-child(7)){display:none}
   #v-lab .lab-chk{min-height:44px}
   #v-lab .lab-chk input{width:22px;height:22px}
   #v-lab .lab-log{min-height:40px}
@@ -105,3 +105,12 @@
   /* 加了三個以上指標：指標列獨佔一整排，標籤橫著排、不一個一行 */
   #v-lab .lab-row2:has(.lab-chip:nth-child(3)) .lab-ktool{flex-basis:100%}
 }
+
+/* ---- 交易清單：進場、出場兩列成一組；追繳警示 ---- */
+#v-lab .lab-trades tbody tr.ex td{border-top:0}
+#v-lab .lab-trades tbody tr.en td{border-top:1px solid var(--line-2)}
+#v-lab .lab-trades tbody tr.pr,#v-lab .lab-trades tbody tr.on{background:color-mix(in srgb,var(--cyan) 14%,transparent)}
+#v-lab .lab-trades .lab-why{text-align:left;max-width:180px;overflow:hidden;text-overflow:ellipsis;font-family:inherit;font-size:13px;color:var(--ink-2)}
+#v-lab .lab-trades tr.en td:nth-child(2){color:var(--ink-3)}
+#v-lab .lab-calls{grid-column:1/-1;font-size:13px;color:var(--amber);line-height:1.5}
+#v-lab .lab-calls b{color:var(--amber)}
