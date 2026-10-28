@@ -5580,3 +5580,8 @@ agent 改了 13 處，我合併後又補上漏掉的 2 處（`t_mlcc` 的回歸�
 - Worker：`/v1/admin/members/stats` 多收 from／to／bin（檔尾新區塊、prototype 包裝），回 active／visits／ms／pv／joined／featTotal／stockTotal；沒帶起訖＝舊格式。
 - 驗了：`會員名單1006,會員權限開關,管理區v3,管理區1005,流量觀測1005`、`_preview.py`、`node --test`。沒跑 pytest（只動 site 與 workers）。
 - 沒驗到：真 Cloudflare 上的真資料；流量觀測自己的期間列沒改成共用元件（會員名單另寫 periodCtlHtml，同 markup）。
+
+## 2026-10-28 科技透明圈（#tc，僅管理者）併入 main
+- 驗了：pytest 全 1409 通過；_preview 正常；`桌機守門1008` 0 問題；`科技透明圈1025` 0 問題（含 390 寬公司頁 ≤4 屏）；`科技透明圈LOGO不裁切` 0 問題。
+- 未收斂：`科技透明圈圖表1026`（5 項）與 `科技透明圈站內LOGO`（2 項）在容器紅，原因是容器連不到 Google／gstatic 外部 LOGO 圖（改動前同樣紅，線上不受影響）。
+- 樣本數 Andy 要再查；網站那邊的來源由他請人繼續找。
