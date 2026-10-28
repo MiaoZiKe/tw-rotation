@@ -16,7 +16,9 @@ e = html.escape
 def hl(title):  # 標題第一個數字（含單位）加芥黃底線，並用主綠
     m = NUM.search(title)
     if not m: return e(title)
-    return e(title[:m.start()]) + f'<span class="u num ser" style="font-weight:700">{e(m.group(0))}</span>' + e(title[m.end():])
+    col = UP if ("漲" in title and "跌" not in title) else DN if ("賣超" in title or "跌" in title) else None  # 台股紅漲綠跌
+    st = f";color:{col}" if col else ""
+    return e(title[:m.start()]) + f'<span class="u num ser" style="font-weight:700{st}">{e(m.group(0))}</span>' + e(title[m.end():])
 def vcolor(v):
     v = v.strip()
     if v.startswith(("+", "買超")): return UP     # 台股紅漲（買超同紅）
