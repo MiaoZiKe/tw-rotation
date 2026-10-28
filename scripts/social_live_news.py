@@ -36,6 +36,84 @@ LIVE_SKIP_RE = re.compile(r"募集|開募|限時|講座|說明會|研討會|座�
 ATTR_RE = re.compile(r"^(根據|據|依據|綜合|外媒|知情人士|消息人士)")
 
 
+# ---------------------------------------------------------------------------- 相關度（2026-10-29 CEO 追加：財經、產業、台股相關優先）
+# 試產時「MacBook 走過 20 年」「高齡海嘯併發醫護荒」這類跟盤面無關的產品回顧、生活、醫療照護新聞被選進前 5 → 分三級：
+#   A＝跟盤面直接相關：提到上市櫃公司（名稱或 4 碼代號）、財報營收、產業鏈關鍵字（含 groups.yaml 族群名）、總經、國際市場
+#   B＝其他（科技、政經一般新聞）
+#   C＝產品回顧／週年、生活、醫療照護、社會新聞，而且沒有提到上市櫃公司 → 只在 A＋B 湊不到 3 則時才補
+FIN_RE = re.compile(r"財報|營收|獲利|淨利|毛利|營益|EPS|法說|股利|配息|除息|增資|減資|併購|收購|IPO|上市櫃|上市公司|掛牌上市|上櫃|興櫃|掛牌|股價|市值|"
+                    r"漲停|跌停|外資|投信|法人|台股|加權|大盤|櫃買|ETF|訂單|出貨|擴產|產能|資本支出|設備|接單|報價|漲價|調漲|降價|庫存")
+IND_RE = re.compile(r"半導體|晶圓|晶片|IC設計|IC 設計|封裝|封測|CoWoS|先進製程|奈米|AI|伺服器|資料中心|算力|GPU|ASIC|HBM|DRAM|NAND|記憶體|"
+                    r"PCB|載板|CCL|銅箔|被動元件|MLCC|散熱|電源|光通訊|CPO|矽光子|交換器|網通|面板|LED|低軌衛星|衛星|電動車|車用|機器人|"
+                    r"綠能|風電|太陽能|儲能|重電|電網|航運|貨櫃|鋼鐵|石化|塑化|水泥|金控|銀行|壽險|生技|新藥|輝達|NVIDIA|台積電|鴻海")
+MACRO_RE = re.compile(r"Fed|聯準會|央行|利率|降息|升息|殖利率|通膨|CPI|PPI|PCE|GDP|非農|就業|失業率|景氣|PMI|匯率|新台幣|台幣|美元|日圓|日元|人民幣|"
+                      r"油價|原油|金價|黃金|美債|公債|關稅|出口管制|制裁|貿易")
+INTL_RE = re.compile(r"美股|道瓊|那斯達克|標普|費半|日股|日經|韓股|港股|陸股|A股|歐股|華爾街|期貨|比特幣")
+LIFE_RE = re.compile(r"週年|周年|走過\s*\d+\s*年|回顧|歷程|懷舊|醫護|照護|長照|護理|醫院|看診|病患|病人|健康|養生|高齡|失智|美食|旅遊|景點|"
+                     r"命案|車禍|警方|詐騙|網紅|藝人|明星|演唱會|寵物|親子|婚禮|天氣|颱風假|月薪|職缺|求職|薪水")
+# 兩個字的公司名很多是常用詞（幸福、安心、統一…），比對時排掉這些，免得生活新聞被誤判成「提到上市櫃公司」
+NAME_STOP = {"幸福", "安心", "地球", "統一", "大成", "乾杯", "信大", "泰山", "東和", "大宇", "大將", "得力", "生合", "年興", "永裕", "大洋",
+             "東陽", "華夏", "天仁", "名軒", "利華", "大東", "中福", "興泰", "宏遠", "全家", "大立", "中華", "台灣", "新光", "國際", "世界",
+             "一詮", "三星", "日本", "美國", "未來", "健康", "長榮", "遠東", "力麗", "大眾", "第一", "聯合", "愛普", "如興", "南亞", "國泰"}
+_NAMES: list[str] | None = None
+
+
+def company_names() -> list[str]:
+    """上市櫃公司簡稱（資料湖 company_info，排除興櫃；讀不到就回空，只靠代號與關鍵字）。"""
+    global _NAMES
+    if _NAMES is None:
+        try:
+            from pipeline.util import store
+            ci = store.read("company_info")
+            ci = ci[ci["market"].astype(str).isin(["TWSE", "TPEX"])]
+            nm = {re.sub(r"[-*＊]?KY$|\*", "", str(x)).strip() for x in ci["name"]}
+            _NAMES = sorted({x for x in nm if len(x) >= 2 and x not in NAME_STOP}, key=len, reverse=True)
+        except Exception:  # noqa: BLE001
+            _NAMES = []
+    return _NAMES
+
+
+_GROUP_RE = None
+
+
+def group_re():
+    """pipeline/groups/groups.yaml 的族群名（去掉括號與空白後 ≥ 3 字的）也算產業鏈關鍵字。"""
+    global _GROUP_RE
+    if _GROUP_RE is None:
+        try:
+            import yaml
+            g = yaml.safe_load((ROOT / "pipeline" / "groups" / "groups.yaml").read_text("utf-8")).get("groups") or {}
+            words = set()
+            for v in g.values():
+                for w in re.split(r"[\s／/、（）()與及]+", str(v.get("name") or "")):
+                    if len(w) >= 3 and not re.fullmatch(r"[A-Za-z]{1,3}", w):
+                        words.add(w)
+            _GROUP_RE = re.compile("|".join(re.escape(w) for w in sorted(words, key=len, reverse=True))) if words else re.compile(r"(?!x)x")
+        except Exception:  # noqa: BLE001
+            _GROUP_RE = re.compile(r"(?!x)x")
+    return _GROUP_RE
+
+
+def mentions_company(text: str) -> bool:
+    t = str(text)
+    if re.search(r"[（(]\s*\d{4,6}\s*[)）]|(?<!\d)\d{4}(?:\.TW|-TW)?\s*(?:股|$)", t):
+        return True
+    return any(n in t for n in company_names())
+
+
+def relevance(title: str, summary: str = "") -> str:
+    """A＝跟盤面直接相關；B＝其他；C＝產品回顧／生活／醫療照護／社會新聞且沒提到上市櫃公司。只看標題＋摘要第一句。"""
+    t = str(title)
+    first = re.split(r"[\n。]", str(summary or ""))[0]
+    co = mentions_company(t) or mentions_company(first)
+    if LIFE_RE.search(t) and not co:
+        return "C"
+    both = t + " " + first
+    if co or FIN_RE.search(both) or MACRO_RE.search(both) or INTL_RE.search(both) or IND_RE.search(t) or group_re().search(t):
+        return "A"
+    return "B"
+
+
 def window(kind: str, now: datetime) -> tuple[datetime, datetime]:
     now = now.astimezone(TPE) if now.tzinfo else now.replace(tzinfo=TPE)
     return datetime.combine(now.date(), NEWS_FROM[kind], tzinfo=TPE), now
@@ -98,7 +176,7 @@ def load_news(fresh: bool = False, timeout_s: float = 60.0, log=print):
     return both.drop_duplicates("news_id", keep="last") if "news_id" in both.columns else both
 
 
-def pick(news, start: datetime, end: datetime, used: list[dict] | None = None, pool: int = 15) -> list[dict]:
+def pick(news, start: datetime, end: datetime, used: list[dict] | None = None, pool: int = 30) -> list[dict]:
     """時間窗內、排掉業配與盤前用過的，照盤前的挑法排好，回候選清單（最多 pool 則、已去掉相似標題）。"""
     import social_premarket as sp
     if news is None or getattr(news, "empty", True):
@@ -114,8 +192,10 @@ def pick(news, start: datetime, end: datetime, used: list[dict] | None = None, p
     for it in sp.pick_news(df, start, end, n=pool):
         if any(similar(it["title"], o["title"]) for o in out):
             continue
+        it["rel"] = relevance(it["title"], it.get("summary") or "")
         out.append(it)
-    return out
+    # 相關度分級優先，同級內維持盤前挑法的順序（相關度 → 報導家數 → 篇數）
+    return sorted(out, key=lambda it: "ABC".index(it["rel"]))
 
 
 def _d(n: dict, dl: int, c: str = "") -> str:
@@ -135,14 +215,17 @@ def _d(n: dict, dl: int, c: str = "") -> str:
 def lines(items: list[dict], kn: int = MAX_N, tl: int = 30, dl: int = 40) -> list[str]:
     """每則一行「・短標題：一句描述」（跟盤前今日焦點同格式），照相關度順序；短標題取不出來的那則跳過、由後面的候選遞補。"""
     out: list[str] = []
-    for n in items:
-        if len(out) >= kn:
-            break
-        c = short_title(n["title"], tl)
-        if not c:
-            continue
-        d = _d(n, dl, c)
-        out.append(f"・{c}：{d}" if d and d != c else f"・{c}")
+    for low in (False, True):      # 先放 A／B 級；C 級（生活、產品回顧…）只在湊不到 MIN_N 則時才補
+        for n in items:
+            if len(out) >= (kn if not low else min(kn, MIN_N)):
+                break
+            if (n.get("rel") == "C") != low:
+                continue
+            c = short_title(n["title"], tl)
+            if not c:
+                continue
+            d = _d(n, dl, c)
+            out.append(f"・{c}：{d}" if d and d != c else f"・{c}")
     return [SECTION] + out if out else []
 
 

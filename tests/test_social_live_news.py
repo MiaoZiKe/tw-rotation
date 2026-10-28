@@ -119,6 +119,31 @@ def test_errors_never_block(tmp_path):
     assert LN.for_post("credit", TEXT, NOW_ID, "#x", 480, news=_news(ROWS))["text"] == TEXT       # 融資融券篇不加
 
 
+LIFE = [  # 10-28 試產被選進前 5 的兩則反例：產品回顧、醫療照護
+    ("2026-10-29T08:20:00+08:00", "technews", "科技", "MacBook 走過 20 年：蘋果每次大改款，PC 陣營都得跟著變", "macbook,蘋果",
+     "蘋果（Apple）MacBook 迎來 20 週年，回顧這段歷程。"),
+    ("2026-10-29T08:25:00+08:00", "udn", "台股", "高齡海嘯併發醫護荒！照護人才需求年增破5成 物理治療師新人月薪5.1萬起跳", "",
+     "醫護缺工潮未解，復健與照護人才需求年增逾5成。"),
+]
+
+
+def test_relevance_tiers():
+    assert LN.relevance(LIFE[0][3], LIFE[0][5]) == "C" and LN.relevance(LIFE[1][3], LIFE[1][5]) == "C"
+    assert LN.relevance("欣興（3037）再加碼509億元預訂設備！擴產布局升溫") == "A"          # 台股公司＋代號
+    assert LN.relevance("是方 Q3 毛利率衝上 51.5%") == "A"                                   # 財報
+    assert LN.relevance("美債殖利率急跌，Fed 降息預期升溫") == "A"                           # 總經
+    assert LN.relevance("台積電醫療照護 AI 平台上線") == "A"                                  # 生活字眼但提到上市櫃公司 → 不降級
+    assert LN.relevance("以色列組閣前景添變數") == "B"
+
+
+def test_life_news_only_fills_when_short(tmp_path):
+    s, e = LN.window("intraday", NOW_ID)
+    L = LN.lines(LN.pick(_news(ROWS + LIFE), s, e, []))
+    assert len(L) - 1 == 5 and not any("MacBook" in x or "醫護" in x for x in L)            # 有財經新聞可用 → 兩則反例排不進來
+    few = LN.lines(LN.pick(_news([ROWS[2]] + LIFE), s, e, []))
+    assert len(few) - 1 == 3 and "GB300" in few[1]                                          # 湊不到 3 則才用 C 級補，而且排在後面
+
+
 def test_empty_summary_uses_rest_of_title():
     L = LN.lines([{"title": "SK海力士財報出爐！第三季營益衝83.3兆韓元超預期，記憶體漲價威力顯現", "summary": ""}])
     assert L == ["📰 新聞焦點：", "・SK海力士財報出爐：第三季營益衝83.3兆韓元超預期，記憶體漲價威力顯現"]
