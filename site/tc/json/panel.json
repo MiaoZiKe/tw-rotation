@@ -2,7 +2,7 @@
   "industry": "panel",
   "name": "面板／光學",
   "updated": "2026-10-26",
-  "window": "2025-08-01～",
+  "window": "2025-01-01～",
   "companies": [
     {
       "name": "友達",
@@ -903,7 +903,7 @@
               "overtime": null,
               "travel": null,
               "quote_free_note": "同篇列為拿到 offer；數字未透露",
-              "in_window": false,
+              "in_window": true,
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2025-05-02"
             }
           ],
@@ -924,7 +924,7 @@
           "weekly_hours": null,
           "overtime": null,
           "travel": null,
-          "n_stat": 0,
+          "n_stat": 1,
           "note": null,
           "grade": null
         },
@@ -1275,7 +1275,7 @@
               "date": "2025-07",
               "date_confirmed": true,
               "date_note": "GoodJob 標示 2025.7.8（搜尋摘要）",
-              "in_window": false,
+              "in_window": true,
               "role": "光學工程師（在職評價）",
               "quote_free_note": "早於期間；月薪 6 萬、每週 40 小時"
             },
@@ -1296,7 +1296,7 @@
               "date": "2025-07",
               "date_confirmed": true,
               "date_note": "GoodJob 標示 2025.7.12（搜尋摘要）",
-              "in_window": false,
+              "in_window": true,
               "role": "光學工程師（在職評價）",
               "quote_free_note": "早於期間；月薪 6.5 萬、每週 55 小時"
             }
@@ -1316,15 +1316,21 @@
           "confidence": "低",
           "note": "2026-10-26 依搜尋摘要新增",
           "grade": null,
-          "base_month_k": null,
+          "base_month_k": [
+            60,
+            65
+          ],
           "bonus_months": null,
           "annual_months": null,
           "annual_total_wan": null,
-          "weekly_hours": null,
+          "weekly_hours": [
+            40,
+            55
+          ],
           "overtime": null,
           "travel": null,
           "n": 2,
-          "n_stat": 0
+          "n_stat": 2
         },
         {
           "unit": "研發 RD",

@@ -190,8 +190,8 @@
   }
   const confCls = (c) => (c === '高' ? 'hi' : c === '中' ? 'mid' : 'lo');
 
-  /* 只有 date_confirmed:true 且 date ≥ 2025-08 的樣本進統計；日期未確認標「日期未確認」、範圍外標「範圍外參考」，都照列但標灰 */
-  const smSt = (x) => (x.date_confirmed !== true ? 'unc' : (x.in_window === false || !x.date || String(x.date) < '2025-08' ? 'out' : 'in'));
+  /* 只有 date_confirmed:true 且 date ≥ 2025-01 的樣本進統計；日期未確認標「日期未確認」、範圍外標「範圍外參考」；標 dup_of（疑似同一人重複）也歸範圍外，都照列但標灰 */
+  const smSt = (x) => (x.date_confirmed !== true ? 'unc' : (x.dup_of || x.in_window === false || !x.date || String(x.date) < '2025-01' ? 'out' : 'in'));
   const inWin = (x) => smSt(x) === 'in';
   const fl = (v) => (typeof v === 'number' ? [v] : Array.isArray(v) ? v.filter((x) => typeof x === 'number') : []);   // 樣本值可能是區間陣列：展開成數值
   const mdp = (v) => { const a = fl(v); return a.length ? (Math.min(...a) + Math.max(...a)) / 2 : null; };   // 區間取中點
@@ -361,7 +361,7 @@
       return node(n, isan, cs.map((c) => node(c[0], c[1], c[2], 2, cs.length === 1)).join(''), 1, false);
     }).filter(Boolean);
     S.agg = aggStats();
-    return chartsHtml(S.agg) + (S.agg.inds.length ? '<details class="tc-raw"><summary>看數字明細（產業→公司→單位→職位）</summary>' : '<div>') + '<div class="tc-cnt">進統計 <b id="tcAll">' + all + '</b> 筆・未確認 ' + unc + '・範圍外 ' + outc + qpop('統計只算日期確認且 2025-08 起的樣本；明細依 產業→公司→單位→職位 逐層展開；底薪／年薪為中位數，括號內是最低到最高區間。') + '</div>' + (inds.length ? '<div class="tc-stats">' + inds.join('') + '</div>' : '<div class="empty isempty tc-empty">尚無逐筆樣本</div>') + '</' + (S.agg.inds.length ? 'details' : 'div') + '>';
+    return chartsHtml(S.agg) + (S.agg.inds.length ? '<details class="tc-raw"><summary>看數字明細（產業→公司→單位→職位）</summary>' : '<div>') + '<div class="tc-cnt">進統計 <b id="tcAll">' + all + '</b> 筆・未確認 ' + unc + '・範圍外 ' + outc + qpop('統計只算日期確認且 2025-01 起的樣本；範圍外含 2025-01 以前與疑似同一人重複（Dcard／GoodJob 交叉比對後標記）的樣本；明細依 產業→公司→單位→職位 逐層展開；底薪／年薪為中位數，括號內是最低到最高區間。') + '</div>' + (inds.length ? '<div class="tc-stats">' + inds.join('') + '</div>' : '<div class="empty isempty tc-empty">尚無逐筆樣本</div>') + '</' + (S.agg.inds.length ? 'details' : 'div') + '>';
   }
 
   function rolesTable(roles, bt, tsmc) {

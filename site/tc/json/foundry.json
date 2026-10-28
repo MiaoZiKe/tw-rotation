@@ -21,7 +21,7 @@
           "years": "0-2",
           "base_month_k": [
             41,
-            65
+            70
           ],
           "bonus_months": null,
           "annual_months": [
@@ -29,11 +29,11 @@
             40
           ],
           "annual_total_wan": [
-            200,
-            256
+            100,
+            280
           ],
           "weekly_hours": [
-            48,
+            40,
             72
           ],
           "overtime": "經常",
@@ -473,7 +473,7 @@
               "travel": "不用",
               "quote_free_note": "同上新聞轉貼",
               "date_confirmed": true,
-              "in_window": false,
+              "in_window": true,
               "date_note": null
             },
             {
@@ -511,7 +511,7 @@
               "travel": "不用",
               "quote_free_note": "自述月薪 6.24 萬、55 小時／週",
               "date_confirmed": true,
-              "in_window": false,
+              "in_window": true,
               "date_note": null
             },
             {
@@ -644,7 +644,7 @@
               "travel": "不用",
               "quote_free_note": "封裝製程工程師評價，摘要無金額",
               "date_confirmed": true,
-              "in_window": false,
+              "in_window": true,
               "date_note": null
             },
             {
@@ -700,9 +700,9 @@
               "overtime": "經常",
               "travel": "不用",
               "quote_free_note": "碩士起薪請益，摘要無金額",
-              "date_confirmed": false,
-              "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "date_confirmed": true,
+              "date_note": "依 docs/tc/dcard_id_calibration.md：編號 ≥ 258870385（2025-05-21 錨點），確定晚於 2025-01-01",
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -757,9 +757,9 @@
               "overtime": "經常",
               "travel": "不用",
               "quote_free_note": "端午季分紅新聞：基層工程師約 3.5 個月（單季，原填 3.5 個月非全年）",
-              "date_confirmed": false,
-              "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "date_confirmed": true,
+              "date_note": "依 docs/tc/dcard_id_calibration.md：編號 ≥ 258870385（2025-05-21 錨點），確定晚於 2025-01-01",
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -947,9 +947,9 @@
               "overtime": "經常",
               "travel": "不用",
               "quote_free_note": "offer 請益（台積／力成／京元）",
-              "date_confirmed": false,
-              "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "date_confirmed": true,
+              "date_note": "依 docs/tc/dcard_id_calibration.md：編號 ≥ 258870385（2025-05-21 錨點），確定晚於 2025-01-01",
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -1083,9 +1083,9 @@
               "overtime": "經常",
               "travel": "不用",
               "quote_free_note": "GG 開獎總整理",
-              "date_confirmed": false,
-              "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "date_confirmed": true,
+              "date_note": "依 docs/tc/dcard_id_calibration.md：編號 ≥ 258870385（2025-05-21 錨點），確定晚於 2025-01-01",
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -1197,9 +1197,9 @@
               "overtime": "經常",
               "travel": "不用",
               "quote_free_note": "離職後悔討論",
-              "date_confirmed": false,
-              "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "date_confirmed": true,
+              "date_note": "依 docs/tc/dcard_id_calibration.md：編號 ≥ 258870385（2025-05-21 錨點），確定晚於 2025-01-01",
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -1414,7 +1414,7 @@
               "travel": null,
               "quote_free_note": "成大碩；主管說約三個月值兩次小夜班，部門多在晚上 7 點左右下班（週工時依此估）；busyness=中；數字未透露；同時錄取博士班在考慮",
               "date_note": "Dcard 頁面發文日期 2025-01-18（2026-10-26 1923 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "GoodJob",
@@ -1457,7 +1457,7 @@
               "overtime": "經常",
               "travel": null,
               "quote_free_note": "自填；日工時 表訂/實際 8 / 12",
-              "in_window": false,
+              "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2025-05（Andy 桌面版 20261027_0051_a 批）"
             },
             {
@@ -1479,7 +1479,7 @@
               "overtime": "經常",
               "travel": null,
               "quote_free_note": "自填；日工時 表訂/實際 8 / 12",
-              "in_window": false,
+              "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2025-03（Andy 桌面版 20261027_0051_b 批）"
             },
             {
@@ -1501,7 +1501,7 @@
               "overtime": "經常",
               "travel": null,
               "quote_free_note": "自填；日工時 表訂/實際 12 / 12",
-              "in_window": false,
+              "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2025-03（Andy 桌面版 20261027_0051_b 批）"
             },
             {
@@ -1523,7 +1523,7 @@
               "overtime": "經常",
               "travel": null,
               "quote_free_note": "自填；日工時 表訂/實際 8 / 8",
-              "in_window": false,
+              "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2025-03（Andy 桌面版 20261027_0051_b 批）"
             },
             {
@@ -1611,7 +1611,7 @@
               "overtime": "經常",
               "travel": null,
               "quote_free_note": "自填；日工時 表訂/實際 9 / 12",
-              "in_window": false,
+              "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2025-05（Andy 桌面版 20261027_0051_a 批）"
             },
             {
@@ -1633,7 +1633,7 @@
               "overtime": "偶爾",
               "travel": null,
               "quote_free_note": "自填；日工時 表訂/實際 9 / 9",
-              "in_window": false,
+              "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2025-04（Andy 桌面版 20261027_0051_a 批）"
             },
             {
@@ -1655,7 +1655,7 @@
               "overtime": "經常",
               "travel": null,
               "quote_free_note": "自填；日工時 表訂/實際 8 / 10",
-              "in_window": false,
+              "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2025-02（Andy 桌面版 20261027_0051_b 批）"
             },
             {
@@ -1677,7 +1677,7 @@
               "overtime": "經常",
               "travel": null,
               "quote_free_note": "自填；日工時 表訂/實際 8 / 12",
-              "in_window": false,
+              "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2025-04（Andy 桌面版 20261027_0051_a 批）"
             },
             {
@@ -1699,7 +1699,7 @@
               "overtime": "經常",
               "travel": null,
               "quote_free_note": "自填；日工時 表訂/實際 10 / 10",
-              "in_window": false,
+              "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2025-04（Andy 桌面版 20261027_0051_b 批）"
             },
             {
@@ -1721,7 +1721,7 @@
               "overtime": "經常",
               "travel": null,
               "quote_free_note": "自填；日工時 表訂/實際 8 / 9",
-              "in_window": false,
+              "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2025-03（Andy 桌面版 20261027_0051_b 批）"
             },
             {
@@ -1743,7 +1743,7 @@
               "overtime": "經常",
               "travel": null,
               "quote_free_note": "自填；日工時 表訂/實際 8 / 12",
-              "in_window": false,
+              "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2025-02（Andy 桌面版 20261027_0051_b 批）"
             },
             {
@@ -1765,7 +1765,7 @@
               "overtime": "經常",
               "travel": null,
               "quote_free_note": "自填；日工時 表訂/實際 9 / 12",
-              "in_window": false,
+              "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2025-02（Andy 桌面版 20261027_0051_b 批）"
             },
             {
@@ -1787,7 +1787,7 @@
               "overtime": "經常",
               "travel": null,
               "quote_free_note": "自填；日工時 表訂/實際 8 / 10",
-              "in_window": false,
+              "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2025-02（Andy 桌面版 20261027_0051_b 批）"
             },
             {
@@ -1809,7 +1809,7 @@
               "overtime": "經常",
               "travel": null,
               "quote_free_note": "自填；日工時 表訂/實際 8 / 13",
-              "in_window": false,
+              "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2025-01（Andy 桌面版 20261027_0051_b 批）"
             },
             {
@@ -1831,7 +1831,7 @@
               "overtime": "經常",
               "travel": null,
               "quote_free_note": "自填；日工時 表訂/實際 8 / 13",
-              "in_window": false,
+              "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2025-01（Andy 桌面版 20261027_0051_b 批）"
             },
             {
@@ -1853,7 +1853,7 @@
               "overtime": "偶爾",
               "travel": null,
               "quote_free_note": "自填；日工時 表訂/實際 8.5 / 8.5",
-              "in_window": false,
+              "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2025-03（Andy 桌面版 20261027_0051_b 批）"
             },
             {
@@ -1903,7 +1903,7 @@
               "comment_sample": false
             }
           ],
-          "n_stat": 27,
+          "n_stat": 52,
           "bonus_timing_month": "2 月、5 月、7 月、8 月、11 月"
         },
         {
@@ -1912,8 +1912,8 @@
           "degree": "不限",
           "years": "0-2",
           "base_month_k": [
-            62.4,
-            65
+            60,
+            70
           ],
           "bonus_months": null,
           "annual_months": [
@@ -1921,12 +1921,12 @@
             14
           ],
           "annual_total_wan": [
-            350,
+            170,
             500
           ],
           "weekly_hours": [
             25,
-            60
+            80
           ],
           "overtime": "經常",
           "travel": "不用",
@@ -2611,7 +2611,7 @@
               "quote_free_note": "AP7 先進封裝設備 offer：薪資 N，先竹南受訓；原面 F14 PE 與 RDPC EE，被轉到先進封裝 EE 後拿到 offer；數字未透露；busyness 未提",
               "date_confirmed": true,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false,
+              "in_window": true,
               "page_date": "2025-03-19",
               "role": "設備工程師 EE（先進封裝 3DIC／CoWoS）"
             },
@@ -2898,9 +2898,9 @@
               "overtime": "經常",
               "travel": "不用",
               "quote_free_note": "產線工作心得：一天處理 100～200 個 alarm",
-              "date_confirmed": false,
-              "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "date_confirmed": true,
+              "date_note": "依 docs/tc/dcard_id_calibration.md：編號 ≥ 258870385（2025-05-21 錨點），確定晚於 2025-01-01",
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -2917,9 +2917,9 @@
               "overtime": "經常",
               "travel": "不用",
               "quote_free_note": "在台積的一點心得",
-              "date_confirmed": false,
-              "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "date_confirmed": true,
+              "date_note": "依 docs/tc/dcard_id_calibration.md：編號 ≥ 258870385（2025-05-21 錨點），確定晚於 2025-01-01",
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -3157,7 +3157,7 @@
               "overtime": "偶爾",
               "travel": null,
               "quote_free_note": "四大 CS 學碩、AI 背景；忙時要加班可報加班費；busyness=中；數字未透露；留言 B26 說比聯發科早下班",
-              "in_window": false,
+              "in_window": true,
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2025-05-13"
             },
             {
@@ -3181,7 +3181,7 @@
               "quote_free_note": "同篇另一offer，未揭露薪資；同篇台達機構面試後感謝信",
               "overtime_raw": null,
               "travel_raw": null,
-              "in_window": false,
+              "in_window": true,
               "date_note": "Dcard 頁面發文日期 2025-01-23（2026-10-26 2056 批）"
             },
             {
@@ -3223,7 +3223,7 @@
               "overtime": "經常",
               "travel": null,
               "quote_free_note": "自填；日工時 表訂/實際 8 / 12",
-              "in_window": false,
+              "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2025-07（Andy 桌面版 20261027_0051_a 批）"
             },
             {
@@ -3245,7 +3245,7 @@
               "overtime": "經常",
               "travel": null,
               "quote_free_note": "自填；日工時 表訂/實際 8 / 12",
-              "in_window": false,
+              "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2025-07（Andy 桌面版 20261027_0051_a 批）"
             },
             {
@@ -3267,7 +3267,7 @@
               "overtime": "經常",
               "travel": null,
               "quote_free_note": "自填；日工時 表訂/實際 8 / 12",
-              "in_window": false,
+              "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2025-06（Andy 桌面版 20261027_0051_a 批）"
             },
             {
@@ -3289,7 +3289,7 @@
               "overtime": "偶爾",
               "travel": null,
               "quote_free_note": "自填；日工時 表訂/實際 8 / 9",
-              "in_window": false,
+              "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2025-05（Andy 桌面版 20261027_0051_a 批）"
             },
             {
@@ -3311,7 +3311,7 @@
               "overtime": "經常",
               "travel": null,
               "quote_free_note": "自填；日工時 表訂/實際 10 / 10",
-              "in_window": false,
+              "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2025-03（Andy 桌面版 20261027_0051_b 批）"
             },
             {
@@ -3333,7 +3333,7 @@
               "overtime": "經常",
               "travel": null,
               "quote_free_note": "自填；日工時 表訂/實際 9 / 10.5",
-              "in_window": false,
+              "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2025-02（Andy 桌面版 20261027_0051_b 批）"
             },
             {
@@ -3355,7 +3355,7 @@
               "overtime": "經常",
               "travel": null,
               "quote_free_note": "自填；日工時 表訂/實際 8 / 10",
-              "in_window": false,
+              "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2025-02（Andy 桌面版 20261027_0051_b 批）"
             },
             {
@@ -3377,7 +3377,7 @@
               "overtime": "經常",
               "travel": null,
               "quote_free_note": "自填；日工時 表訂/實際 10 / 10",
-              "in_window": false,
+              "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2025-02（Andy 桌面版 20261027_0051_b 批）"
             },
             {
@@ -3421,7 +3421,7 @@
               "overtime": "經常",
               "travel": null,
               "quote_free_note": "自填；日工時 表訂/實際 12 / 12",
-              "in_window": false,
+              "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2025-07（Andy 桌面版 20261027_0051_a 批）"
             },
             {
@@ -3443,7 +3443,7 @@
               "overtime": "經常",
               "travel": null,
               "quote_free_note": "自填；日工時 表訂/實際 10 / 12",
-              "in_window": false,
+              "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2025-04（Andy 桌面版 20261027_0051_a 批）"
             },
             {
@@ -3465,7 +3465,7 @@
               "overtime": "經常",
               "travel": null,
               "quote_free_note": "自填；日工時 表訂/實際 8 / 10",
-              "in_window": false,
+              "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2025-04（Andy 桌面版 20261027_0051_a 批）"
             },
             {
@@ -3487,7 +3487,7 @@
               "overtime": "經常",
               "travel": null,
               "quote_free_note": "自填；日工時 表訂/實際 8 / 10",
-              "in_window": false,
+              "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2025-03（Andy 桌面版 20261027_0051_b 批）"
             },
             {
@@ -3509,7 +3509,7 @@
               "overtime": "經常",
               "travel": null,
               "quote_free_note": "自填；日工時 表訂/實際 9 / 9",
-              "in_window": false,
+              "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2025-02（Andy 桌面版 20261027_0051_b 批）"
             },
             {
@@ -3531,7 +3531,7 @@
               "overtime": "經常",
               "travel": null,
               "quote_free_note": "自填；日工時 表訂/實際 10 / 10",
-              "in_window": false,
+              "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2025-02（Andy 桌面版 20261027_0051_b 批）"
             },
             {
@@ -3553,7 +3553,7 @@
               "overtime": "經常",
               "travel": null,
               "quote_free_note": "自填；日工時 表訂/實際 11 / 11",
-              "in_window": false,
+              "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2025-01（Andy 桌面版 20261027_0051_b 批）"
             },
             {
@@ -3575,7 +3575,7 @@
               "overtime": "經常",
               "travel": null,
               "quote_free_note": "自填；日工時 表訂/實際 10 / 10",
-              "in_window": false,
+              "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2025-01（Andy 桌面版 20261027_0051_b 批）"
             },
             {
@@ -3597,7 +3597,7 @@
               "overtime": "經常",
               "travel": null,
               "quote_free_note": "自填；日工時 表訂/實際 8 / 10.5",
-              "in_window": false,
+              "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2025-07（Andy 桌面版 20261027_0051_a 批）"
             },
             {
@@ -3619,7 +3619,7 @@
               "overtime": "經常",
               "travel": null,
               "quote_free_note": "自填；日工時 表訂/實際 8 / 10",
-              "in_window": false,
+              "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2025-05（Andy 桌面版 20261027_0051_a 批）"
             },
             {
@@ -3641,7 +3641,7 @@
               "overtime": "經常",
               "travel": null,
               "quote_free_note": "自填；日工時 表訂/實際 8 / 8.5",
-              "in_window": false,
+              "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2025-02（Andy 桌面版 20261027_0051_b 批）"
             },
             {
@@ -3663,7 +3663,7 @@
               "overtime": "經常",
               "travel": null,
               "quote_free_note": "自填；日工時 表訂/實際 8 / 11",
-              "in_window": false,
+              "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2025-02（Andy 桌面版 20261027_0051_b 批）"
             },
             {
@@ -3685,7 +3685,7 @@
               "overtime": "經常",
               "travel": null,
               "quote_free_note": "自填；日工時 表訂/實際 10 / 12",
-              "in_window": false,
+              "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2025-02（Andy 桌面版 20261027_0051_b 批）"
             },
             {
@@ -3707,7 +3707,7 @@
               "overtime": "偶爾",
               "travel": null,
               "quote_free_note": "自填；日工時 表訂/實際 8 / 8",
-              "in_window": false,
+              "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2025-05（Andy 桌面版 20261027_0051_a 批）"
             },
             {
@@ -3849,7 +3849,7 @@
               "comment_sample": true
             }
           ],
-          "n_stat": 30,
+          "n_stat": 57,
           "bonus_timing_month": "2 月、5 月、7 月、8 月、11 月"
         },
         {
@@ -3859,20 +3859,20 @@
           "years": "0-2",
           "base_month_k": [
             60,
-            60
+            63.7
           ],
           "bonus_months": null,
           "annual_months": [
-            40,
+            14,
             40
           ],
           "annual_total_wan": [
-            160,
+            80,
             250
           ],
           "weekly_hours": [
             45,
-            65
+            70
           ],
           "overtime": "偶爾",
           "travel": "不用",
@@ -4198,9 +4198,9 @@
               "overtime": "偶爾",
               "travel": "不用",
               "quote_free_note": "瑞昱／台積 offer 比較",
-              "date_confirmed": false,
-              "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "date_confirmed": true,
+              "date_note": "依 docs/tc/dcard_id_calibration.md：編號 ≥ 258870385（2025-05-21 錨點），確定晚於 2025-01-01",
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -4372,9 +4372,9 @@
               "overtime": "偶爾",
               "travel": "不用",
               "quote_free_note": "IT 半年心得",
-              "date_confirmed": false,
-              "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "date_confirmed": true,
+              "date_note": "依 docs/tc/dcard_id_calibration.md：編號 ≥ 258870385（2025-05-21 錨點），確定晚於 2025-01-01",
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -4608,7 +4608,7 @@
               "overtime": null,
               "travel": null,
               "quote_free_note": "成大學碩應屆；工時較短但每兩個月 on call 一週；busyness=中；數字未透露",
-              "in_window": false,
+              "in_window": true,
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2025-05-14"
             },
             {
@@ -4652,7 +4652,7 @@
               "overtime": "經常",
               "travel": null,
               "quote_free_note": "自填；日工時 表訂/實際 9 / 9",
-              "in_window": false,
+              "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2025-07（Andy 桌面版 20261027_0051_a 批）"
             },
             {
@@ -4674,7 +4674,7 @@
               "overtime": "經常",
               "travel": null,
               "quote_free_note": "自填；日工時 表訂/實際 12 / 15",
-              "in_window": false,
+              "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2025-03（Andy 桌面版 20261027_0051_b 批）"
             },
             {
@@ -4696,7 +4696,7 @@
               "overtime": "經常",
               "travel": null,
               "quote_free_note": "自填；日工時 表訂/實際 10 / 12",
-              "in_window": false,
+              "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2025-03（Andy 桌面版 20261027_0051_b 批）"
             },
             {
@@ -4718,7 +4718,7 @@
               "overtime": "經常",
               "travel": null,
               "quote_free_note": "自填；日工時 表訂/實際 12 / 12",
-              "in_window": false,
+              "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2025-02（Andy 桌面版 20261027_0051_b 批）"
             },
             {
@@ -4740,7 +4740,7 @@
               "overtime": "偶爾",
               "travel": null,
               "quote_free_note": "自填；日工時 表訂/實際 8 / 10",
-              "in_window": false,
+              "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2025-01（Andy 桌面版 20261027_0051_b 批）"
             },
             {
@@ -4762,7 +4762,7 @@
               "overtime": "偶爾",
               "travel": null,
               "quote_free_note": "自填；日工時 表訂/實際 8.5 / 8.5",
-              "in_window": false,
+              "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2025-01（Andy 桌面版 20261027_0051_b 批）"
             },
             {
@@ -4806,7 +4806,7 @@
               "overtime": null,
               "travel": null,
               "quote_free_note": "美光三年軟體工程師跳台積已收聘書；月薪為現職減12K、乘14再加分紅，原PO稱整體比現職多近兩倍；留言稱進台積半年後才領第一包季分紅；加班原文：留言稱要輪班值班，JD寫每3個月輪1週",
-              "in_window": false,
+              "in_window": true,
               "date_note": "Dcard 頁面發文日期 2025-07-29（2026-10-26 2003 批）"
             },
             {
@@ -4902,7 +4902,7 @@
               "comment_sample": false
             }
           ],
-          "n_stat": 23,
+          "n_stat": 33,
           "bonus_timing_month": "2 月、5 月、7 月、8 月、11 月"
         },
         {
@@ -4918,10 +4918,10 @@
           "annual_months": null,
           "annual_total_wan": [
             160,
-            280
+            300
           ],
           "weekly_hours": [
-            50,
+            45,
             70
           ],
           "overtime": "經常",
@@ -5167,7 +5167,7 @@
               "travel": "不用",
               "quote_free_note": "季分紅新聞，工程師年薪說法",
               "date_confirmed": true,
-              "in_window": false,
+              "in_window": true,
               "date_note": null
             },
             {
@@ -5659,7 +5659,7 @@
               "overtime": "經常",
               "travel": null,
               "quote_free_note": "自填；日工時 表訂/實際 8 / 11",
-              "in_window": false,
+              "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2025-06（Andy 桌面版 20261027_0051_a 批）"
             },
             {
@@ -5681,7 +5681,7 @@
               "overtime": "偶爾",
               "travel": null,
               "quote_free_note": "自填；日工時 表訂/實際 9 / 9",
-              "in_window": false,
+              "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2025-05（Andy 桌面版 20261027_0051_a 批）"
             },
             {
@@ -5703,7 +5703,7 @@
               "overtime": "經常",
               "travel": null,
               "quote_free_note": "自填；日工時 表訂/實際 8 / 13",
-              "in_window": false,
+              "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2025-03（Andy 桌面版 20261027_0051_b 批）"
             },
             {
@@ -5725,7 +5725,7 @@
               "overtime": "經常",
               "travel": null,
               "quote_free_note": "自填；日工時 表訂/實際 8 / 11",
-              "in_window": false,
+              "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2025-03（Andy 桌面版 20261027_0051_b 批）"
             },
             {
@@ -5747,7 +5747,7 @@
               "overtime": "經常",
               "travel": null,
               "quote_free_note": "自填；日工時 表訂/實際 8 / 11",
-              "in_window": false,
+              "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2025-01（Andy 桌面版 20261027_0051_b 批）"
             },
             {
@@ -5773,7 +5773,7 @@
               "date_note": "GoodJob 頁面標示年月 2025-08（Andy 桌面版 20261027_0051_a 批）"
             }
           ],
-          "n_stat": 14,
+          "n_stat": 20,
           "bonus_timing_month": "2 月、5 月、7 月、8 月、11 月"
         },
         {
@@ -5781,17 +5781,17 @@
           "degree": "不限",
           "years": "0-2",
           "base_month_k": [
-            44,
+            39.5,
             48
           ],
           "bonus_months": null,
           "annual_months": null,
           "annual_total_wan": [
-            80,
+            70,
             250
           ],
           "weekly_hours": [
-            65,
+            45,
             65
           ],
           "overtime": "經常",
@@ -6172,7 +6172,7 @@
               "travel": "不用",
               "quote_free_note": "MAE 面試 2025-02，月薪約 3.95 萬（範圍外）",
               "date_confirmed": true,
-              "in_window": false,
+              "in_window": true,
               "date_note": null
             },
             {
@@ -6504,7 +6504,7 @@
               "overtime": null,
               "travel": null,
               "quote_free_note": "聯大資工學士應屆；常日輪夜班；月薪 40000，三家中年薪最高；busyness=高（輪夜班）；留言 B6 說版上有 MAE 五年調到 47k",
-              "in_window": false,
+              "in_window": true,
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2025-07-31"
             },
             {
@@ -6527,7 +6527,7 @@
               "travel": null,
               "quote_free_note": "勤益資工；主管面試後約 24 天直接收到 e-offer、沒有口頭 offer；數字未透露；busyness 未提",
               "date_note": "Dcard 頁面發文日期 2025-03-03（2026-10-26 1923 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "GoodJob",
@@ -6548,7 +6548,7 @@
               "overtime": "經常",
               "travel": null,
               "quote_free_note": "自填；日工時 表訂/實際 10 / 10",
-              "in_window": false,
+              "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2025-07（Andy 桌面版 20261027_0051_a 批）"
             },
             {
@@ -6570,7 +6570,7 @@
               "overtime": "偶爾",
               "travel": null,
               "quote_free_note": "自填；日工時 表訂/實際 10 / 10",
-              "in_window": false,
+              "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2025-07（Andy 桌面版 20261027_0051_a 批）"
             },
             {
@@ -6592,7 +6592,7 @@
               "overtime": "偶爾",
               "travel": null,
               "quote_free_note": "自填；日工時 表訂/實際 8 / 9",
-              "in_window": false,
+              "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2025-04（Andy 桌面版 20261027_0051_a 批）"
             },
             {
@@ -6965,12 +6965,12 @@
               "overtime": null,
               "travel": null,
               "quote_free_note": "留言B7：MAE操成那樣才150左右，還不見得能撐3年（概括說法）",
-              "in_window": false,
+              "in_window": true,
               "date_note": "Dcard 頁面發文日期 2025-05-29（20261027_0126_b 批）",
               "comment_sample": true
             }
           ],
-          "n_stat": 29,
+          "n_stat": 36,
           "bonus_timing_month": "2 月、5 月、7 月、8 月、11 月"
         },
         {
@@ -7077,7 +7077,7 @@
           "bonus_months": null,
           "annual_months": null,
           "annual_total_wan": [
-            80,
+            70,
             150
           ],
           "weekly_hours": null,
@@ -7217,9 +7217,9 @@
               "overtime": "偶爾",
               "travel": "不用",
               "quote_free_note": "前五年約 70／80／90／95／100 萬",
-              "date_confirmed": false,
-              "in_window": false,
-              "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計"
+              "date_confirmed": true,
+              "in_window": true,
+              "date_note": "依 docs/tc/dcard_id_calibration.md：編號 ≥ 258870385（2025-05-21 錨點），確定晚於 2025-01-01"
             },
             {
               "site": "Dcard",
@@ -7275,7 +7275,7 @@
               "travel": "不用",
               "quote_free_note": "徵才年薪 70 萬",
               "date_confirmed": true,
-              "in_window": false,
+              "in_window": true,
               "date_note": null
             },
             {
@@ -7485,9 +7485,9 @@
               "overtime": "偶爾",
               "travel": "不用",
               "quote_free_note": "AP8 APOD2 技術員面試：英文＋數學筆試",
-              "date_confirmed": false,
-              "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "date_confirmed": true,
+              "date_note": "依 docs/tc/dcard_id_calibration.md：編號 ≥ 258870385（2025-05-21 錨點），確定晚於 2025-01-01",
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -7694,17 +7694,23 @@
               "comment_sample": false
             }
           ],
-          "n_stat": 10,
+          "n_stat": 13,
           "bonus_timing_month": "2 月、5 月、7 月、8 月、11 月"
         },
         {
           "unit": "晶圓廠 Fab",
           "degree": "不限",
           "years": "0-2",
-          "base_month_k": null,
+          "base_month_k": [
+            43,
+            43
+          ],
           "bonus_months": null,
           "annual_months": null,
-          "annual_total_wan": null,
+          "annual_total_wan": [
+            100,
+            100
+          ],
           "weekly_hours": null,
           "overtime": "偶爾",
           "travel": "不用",
@@ -7787,9 +7793,9 @@
               "overtime": "偶爾",
               "travel": "不用",
               "quote_free_note": "前五年約 70／80／90／95／100 萬",
-              "date_confirmed": false,
-              "in_window": false,
-              "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計"
+              "date_confirmed": true,
+              "in_window": true,
+              "date_note": "依 docs/tc/dcard_id_calibration.md：編號 ≥ 258870385（2025-05-21 錨點），確定晚於 2025-01-01"
             },
             {
               "site": "PTT",
@@ -7826,7 +7832,7 @@
               "travel": "不用",
               "quote_free_note": "徵才夜班約 4.3 萬",
               "date_confirmed": true,
-              "in_window": false,
+              "in_window": true,
               "date_note": null
             },
             {
@@ -7982,21 +7988,27 @@
               "in_window": false
             }
           ],
-          "n_stat": 1,
+          "n_stat": 3,
           "bonus_timing_month": "2 月、5 月、7 月、8 月、11 月"
         },
         {
           "unit": "晶圓廠 Fab",
           "degree": "不限",
           "years": "3-5",
-          "base_month_k": null,
+          "base_month_k": [
+            32,
+            32
+          ],
           "bonus_months": null,
           "annual_months": null,
           "annual_total_wan": [
-            85,
+            70,
             300
           ],
-          "weekly_hours": null,
+          "weekly_hours": [
+            48,
+            48
+          ],
           "overtime": null,
           "travel": "不用",
           "confidence": "中",
@@ -8108,9 +8120,9 @@
               "overtime": "偶爾",
               "travel": "不用",
               "quote_free_note": "前五年約 70／80／90／95／100 萬",
-              "date_confirmed": false,
-              "in_window": false,
-              "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計"
+              "date_confirmed": true,
+              "in_window": true,
+              "date_note": "依 docs/tc/dcard_id_calibration.md：編號 ≥ 258870385（2025-05-21 錨點），確定晚於 2025-01-01"
             },
             {
               "site": "Dcard",
@@ -8343,7 +8355,7 @@
               "overtime": "經常",
               "travel": null,
               "quote_free_note": "自填；日工時 表訂/實際 12 / 10",
-              "in_window": false,
+              "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2025-03（Andy 桌面版 20261027_0051_b 批，補收）"
             },
             {
@@ -8811,7 +8823,7 @@
               "overtime": null,
               "travel": null,
               "quote_free_note": "留言B58：自己也是二休二，年薪才70-80之間（區間）",
-              "in_window": false,
+              "in_window": true,
               "date_note": "Dcard 頁面發文日期 2025-06-01（20261027_0126_b 批）",
               "comment_sample": true
             },
@@ -8834,7 +8846,7 @@
               "overtime": "幾乎不",
               "travel": null,
               "quote_free_note": "留言B70-4（以朋友為例）：領滿後不加班也有「80初」（取80為下限），做二休二含特休一年休200多天；忙碌度：低",
-              "in_window": false,
+              "in_window": true,
               "date_note": "Dcard 頁面發文日期 2025-07-03（20261027_0126_b 批）",
               "comment_sample": true
             },
@@ -8885,7 +8897,7 @@
               "comment_sample": true
             }
           ],
-          "n_stat": 26,
+          "n_stat": 30,
           "bonus_timing_month": "2 月、5 月、7 月、8 月、11 月"
         },
         {
@@ -8975,7 +8987,7 @@
           "annual_months": null,
           "annual_total_wan": [
             120,
-            120
+            220
           ],
           "weekly_hours": [
             40,
@@ -9132,7 +9144,7 @@
               "quote_free_note": "廠務工程師 offer 請益；現職工研院（月薪 N-3、8 小時）；台積核薪 N（N 未說明）；需輪大小夜（8 週內小夜、大夜各 1 週）；busyness=高",
               "date_confirmed": true,
               "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false,
+              "in_window": true,
               "page_date": "2025-03-13",
               "role": "廠務工程師（氣化課）"
             },
@@ -9339,7 +9351,7 @@
               "travel": null,
               "quote_free_note": "留言 B6（前工研轉台積廠務）：上班日幾乎 12 小時在公司（週工時以 12×5=60 估）",
               "date_note": "Dcard 頁面發文日期 2025-03-13（2026-10-26 1923 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -9361,7 +9373,7 @@
               "travel": null,
               "quote_free_note": "留言 B10（非發文者，台大）：預聘 offer 上只寫竹科廠務 8 部；數字未透露；busyness 未提",
               "date_note": "Dcard 頁面發文日期 2025-03-13（2026-10-26 1923 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "GoodJob",
@@ -9448,7 +9460,7 @@
               "overtime": "經常",
               "travel": null,
               "quote_free_note": "自填；日工時 表訂/實際 8 / 12",
-              "in_window": false,
+              "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2025-07（Andy 桌面版 20261027_0051_a 批）"
             },
             {
@@ -9470,7 +9482,7 @@
               "overtime": "經常",
               "travel": null,
               "quote_free_note": "自填；日工時 表訂/實際 8 / 10",
-              "in_window": false,
+              "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2025-03（Andy 桌面版 20261027_0051_b 批）"
             },
             {
@@ -9497,7 +9509,7 @@
               "comment_sample": false
             }
           ],
-          "n_stat": 12,
+          "n_stat": 17,
           "bonus_timing_month": "2 月、5 月、7 月、8 月、11 月"
         },
         {
@@ -9607,7 +9619,10 @@
             150,
             500
           ],
-          "weekly_hours": null,
+          "weekly_hours": [
+            40,
+            50
+          ],
           "overtime": "經常",
           "travel": "不用",
           "confidence": "低",
@@ -9879,7 +9894,7 @@
               "overtime": null,
               "travel": null,
               "quote_free_note": "同篇另一份offer，未揭露數字；留言稱7月分紅估10個月以上；加班原文：常日班不需輪班",
-              "in_window": false,
+              "in_window": true,
               "date_note": "Dcard 頁面發文日期 2025-07-02（2026-10-26 2003 批）"
             },
             {
@@ -9901,7 +9916,7 @@
               "overtime": "經常",
               "travel": null,
               "quote_free_note": "自填；日工時 表訂/實際 8 / 10",
-              "in_window": false,
+              "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2025-04（Andy 桌面版 20261027_0051_b 批）"
             },
             {
@@ -9923,7 +9938,7 @@
               "overtime": "經常",
               "travel": null,
               "quote_free_note": "自填；日工時 表訂/實際 12 / 8",
-              "in_window": false,
+              "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2025-03（Andy 桌面版 20261027_0051_b 批）"
             },
             {
@@ -9945,8 +9960,9 @@
               "overtime": "經常",
               "travel": null,
               "quote_free_note": "自填；日工時 表訂/實際 15 / 16",
-              "in_window": false,
-              "date_note": "GoodJob 頁面標示年月 2025-03（Andy 桌面版 20261027_0051_b 批）"
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2025-03（Andy 桌面版 20261027_0051_b 批）",
+              "dup_of": "https://www.goodjob.life/companies/台灣積體電路製造股份有限公司(台積電) TSMC/salary-work-times?p=22"
             },
             {
               "site": "Dcard",
@@ -10064,7 +10080,7 @@
               "comment_sample": true
             }
           ],
-          "n_stat": 10,
+          "n_stat": 13,
           "bonus_timing_month": "2 月、5 月、7 月、8 月、11 月"
         },
         {
@@ -10418,7 +10434,7 @@
               "overtime": "偶爾",
               "travel": null,
               "quote_free_note": "自填；日工時 表訂/實際 2 / 8",
-              "in_window": false,
+              "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2025-06（Andy 桌面版 20261027_0051_a 批）"
             },
             {
@@ -10440,7 +10456,7 @@
               "overtime": "經常",
               "travel": null,
               "quote_free_note": "自填；日工時 表訂/實際 10 / 10",
-              "in_window": false,
+              "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2025-02（Andy 桌面版 20261027_0051_b 批）"
             },
             {
@@ -10462,7 +10478,7 @@
               "overtime": "幾乎不",
               "travel": null,
               "quote_free_note": "自填；日工時 表訂/實際 8 / 8",
-              "in_window": false,
+              "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2025-06（Andy 桌面版 20261027_0051_a 批）"
             },
             {
@@ -10484,7 +10500,7 @@
               "overtime": "幾乎不",
               "travel": null,
               "quote_free_note": "自填；日工時 表訂/實際 10 / 9",
-              "in_window": false,
+              "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2025-05（Andy 桌面版 20261027_0051_a 批）"
             },
             {
@@ -10506,7 +10522,7 @@
               "overtime": "經常",
               "travel": null,
               "quote_free_note": "自填；日工時 表訂/實際 12 / 12",
-              "in_window": false,
+              "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2025-01（Andy 桌面版 20261027_0051_b 批）"
             },
             {
@@ -10528,7 +10544,7 @@
               "overtime": "經常",
               "travel": null,
               "quote_free_note": "自填；日工時 表訂/實際 10 / 10",
-              "in_window": false,
+              "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2025-02（Andy 桌面版 20261027_0051_b 批）"
             }
           ],
@@ -10561,21 +10577,24 @@
           ],
           "confidence": "低",
           "n": 8,
-          "base_month_k": null,
+          "base_month_k": [
+            60,
+            70
+          ],
           "bonus_months": null,
           "annual_months": null,
           "annual_total_wan": [
             70,
-            150
+            200
           ],
           "weekly_hours": [
-            40,
-            48
+            28,
+            60
           ],
           "years": null,
           "overtime": "經常",
           "travel": null,
-          "n_stat": 2,
+          "n_stat": 8,
           "note": null,
           "grade": null,
           "bonus_timing_month": "2 月、5 月、7 月、8 月、11 月"
@@ -10605,7 +10624,7 @@
               "travel": null,
               "quote_free_note": "清大碩；數月前收到正式 offer，offer 上月薪約 63XXX（以 63k 記），入職日延到明年服役後；問是否適用調薪後的 64XXX；busyness 未提；同文：調薪後新人月薪約 64XXX（以 64k 記，另立一筆）",
               "date_note": "Dcard 頁面發文日期 2025-06-06（2026-10-26 1923 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "GoodJob",
@@ -10648,7 +10667,7 @@
               "overtime": "偶爾",
               "travel": null,
               "quote_free_note": "自填；日工時 表訂/實際 8 / 8",
-              "in_window": false,
+              "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2025-07（Andy 桌面版 20261027_0051_a 批）"
             },
             {
@@ -10670,7 +10689,7 @@
               "overtime": "經常",
               "travel": null,
               "quote_free_note": "自填；日工時 表訂/實際 6 / 12",
-              "in_window": false,
+              "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2025-07（Andy 桌面版 20261027_0051_a 批）"
             },
             {
@@ -10692,7 +10711,7 @@
               "overtime": "偶爾",
               "travel": null,
               "quote_free_note": "自填；日工時 表訂/實際 8 / 8",
-              "in_window": false,
+              "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2025-05（Andy 桌面版 20261027_0051_a 批）"
             },
             {
@@ -10714,7 +10733,7 @@
               "overtime": "經常",
               "travel": null,
               "quote_free_note": "自填；日工時 表訂/實際 9 / 11",
-              "in_window": false,
+              "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2025-04（Andy 桌面版 20261027_0051_a 批）"
             },
             {
@@ -10736,7 +10755,7 @@
               "overtime": "偶爾",
               "travel": null,
               "quote_free_note": "自填；日工時 表訂/實際 9 / 11",
-              "in_window": false,
+              "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2025-02（Andy 桌面版 20261027_0051_b 批）"
             },
             {
@@ -10758,7 +10777,7 @@
               "overtime": "經常",
               "travel": null,
               "quote_free_note": "自填；日工時 表訂/實際 10 / 9",
-              "in_window": false,
+              "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2025-02（Andy 桌面版 20261027_0051_b 批）"
             },
             {
@@ -10870,7 +10889,7 @@
               "travel": null,
               "quote_free_note": "頁面日期為編輯後日期（留言始於 5/21）；意願排序後約兩週收到核薪與 e-offer；職缺、數字未透露；busyness 未提",
               "date_note": "Dcard 頁面發文日期 2025-06-28（2026-10-26 1923 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -10892,7 +10911,7 @@
               "travel": null,
               "quote_free_note": "清大；收到 offer 但想改面另一個台積職位；職缺、數字未透露；busyness 未提；留言 B7 說曾拒絕聘書後三個月面上其他部門，核薪略低",
               "date_note": "Dcard 頁面發文日期 2025-03-22（2026-10-26 1923 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -11031,7 +11050,7 @@
               "overtime": null,
               "travel": null,
               "quote_free_note": "留言B11更正新聞：碩畢起薪（純底薪）2024年62,400、2025年63,700；B1-5亦稱新N 63,700",
-              "in_window": false,
+              "in_window": true,
               "date_note": "Dcard 頁面發文日期 2025-05-04（20261027_0107 批）",
               "comment_sample": true
             },
@@ -11054,7 +11073,7 @@
               "overtime": null,
               "travel": null,
               "quote_free_note": "留言B2推算：待滿可領全年分紅且未調薪，63,700×14+63,700×4×8≈293萬（自稱高估）；多位留言反駁；屬推估，年薪與月數不填",
-              "in_window": false,
+              "in_window": true,
               "date_note": "Dcard 頁面發文日期 2025-05-03（20261027_0107 批）",
               "comment_sample": true
             },
@@ -11704,7 +11723,7 @@
               "overtime": null,
               "travel": null,
               "quote_free_note": "留言B10：「08在台積第四年領了345萬」（2025/2留言，推測為2024年度；「08」含義未說明）",
-              "in_window": false,
+              "in_window": true,
               "date_note": "Dcard 頁面發文日期 2025-02-21（20261027_0144 批）",
               "comment_sample": true
             },
@@ -12016,7 +12035,7 @@
           ],
           "confidence": "低",
           "n": 55,
-          "n_stat": 43,
+          "n_stat": 55,
           "bonus_timing_month": "2 月、5 月、7 月、8 月、11 月",
           "years": null,
           "annual_total_wan": [
@@ -12024,13 +12043,17 @@
             1000
           ],
           "weekly_hours": [
-            70,
+            40,
             70
           ],
           "overtime": "經常",
           "annual_months": [
             30,
             40
+          ],
+          "base_month_k": [
+            60,
+            78
           ]
         },
         {
@@ -12200,15 +12223,21 @@
           "role": "硬體工程師",
           "degree": null,
           "years": null,
-          "base_month_k": null,
+          "base_month_k": [
+            62,
+            62
+          ],
           "bonus_months": null,
           "annual_months": null,
           "annual_total_wan": null,
-          "weekly_hours": null,
-          "overtime": null,
+          "weekly_hours": [
+            40,
+            40
+          ],
+          "overtime": "幾乎不",
           "travel": null,
           "n": 1,
-          "n_stat": 0,
+          "n_stat": 1,
           "note": null,
           "grade": null,
           "sources": [
@@ -12239,7 +12268,7 @@
               "overtime": "幾乎不",
               "travel": null,
               "quote_free_note": "自填；日工時 表訂/實際 8 / 8.5",
-              "in_window": false,
+              "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2025-06（Andy 桌面版 20261027_0051_a 批）"
             }
           ]
@@ -12249,15 +12278,24 @@
           "role": "通訊軟體工程師",
           "degree": null,
           "years": null,
-          "base_month_k": null,
+          "base_month_k": [
+            68,
+            100
+          ],
           "bonus_months": null,
           "annual_months": null,
-          "annual_total_wan": null,
-          "weekly_hours": null,
+          "annual_total_wan": [
+            200,
+            250
+          ],
+          "weekly_hours": [
+            40,
+            48
+          ],
           "overtime": null,
           "travel": null,
           "n": 4,
-          "n_stat": 0,
+          "n_stat": 4,
           "note": null,
           "grade": null,
           "sources": [
@@ -12298,7 +12336,7 @@
               "overtime": "偶爾",
               "travel": null,
               "quote_free_note": "自填；日工時 表訂/實際 8 / 8",
-              "in_window": false,
+              "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2025-05（Andy 桌面版 20261027_0051_a 批）"
             },
             {
@@ -12320,7 +12358,7 @@
               "overtime": "經常",
               "travel": null,
               "quote_free_note": "自填；日工時 表訂/實際 10 / 8",
-              "in_window": false,
+              "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2025-04（Andy 桌面版 20261027_0051_a 批）"
             },
             {
@@ -12342,7 +12380,7 @@
               "overtime": "偶爾",
               "travel": null,
               "quote_free_note": "自填；日工時 表訂/實際 10 / 8",
-              "in_window": false,
+              "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2025-03（Andy 桌面版 20261027_0051_b 批）"
             },
             {
@@ -12364,7 +12402,7 @@
               "overtime": "經常",
               "travel": null,
               "quote_free_note": "自填；日工時 表訂/實際 8 / 12",
-              "in_window": false,
+              "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2025-03（Andy 桌面版 20261027_0051_b 批）"
             }
           ]
@@ -12377,12 +12415,18 @@
           "base_month_k": null,
           "bonus_months": null,
           "annual_months": null,
-          "annual_total_wan": null,
-          "weekly_hours": null,
+          "annual_total_wan": [
+            110,
+            150
+          ],
+          "weekly_hours": [
+            40,
+            40
+          ],
           "overtime": null,
           "travel": null,
           "n": 2,
-          "n_stat": 0,
+          "n_stat": 2,
           "note": null,
           "grade": null,
           "sources": [
@@ -12418,7 +12462,7 @@
               "overtime": "幾乎不",
               "travel": null,
               "quote_free_note": "自填；日工時 表訂/實際 8 / 8",
-              "in_window": false,
+              "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2025-05（Andy 桌面版 20261027_0051_a 批）"
             },
             {
@@ -12440,7 +12484,7 @@
               "overtime": "偶爾",
               "travel": null,
               "quote_free_note": "自填；日工時 表訂/實際 8 / 8",
-              "in_window": false,
+              "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2025-03（Andy 桌面版 20261027_0051_b 批）"
             }
           ]
@@ -12453,12 +12497,18 @@
           "base_month_k": null,
           "bonus_months": null,
           "annual_months": null,
-          "annual_total_wan": null,
-          "weekly_hours": null,
-          "overtime": null,
+          "annual_total_wan": [
+            200,
+            400
+          ],
+          "weekly_hours": [
+            40,
+            50
+          ],
+          "overtime": "偶爾",
           "travel": null,
           "n": 2,
-          "n_stat": 0,
+          "n_stat": 2,
           "note": null,
           "grade": null,
           "sources": [
@@ -12494,7 +12544,7 @@
               "overtime": "偶爾",
               "travel": null,
               "quote_free_note": "自填；日工時 表訂/實際 8 / 8",
-              "in_window": false,
+              "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2025-05（Andy 桌面版 20261027_0051_a 批）"
             },
             {
@@ -12516,7 +12566,7 @@
               "overtime": "偶爾",
               "travel": null,
               "quote_free_note": "自填；日工時 表訂/實際 8 / 10",
-              "in_window": false,
+              "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2025-03（Andy 桌面版 20261027_0051_b 批）"
             }
           ]
@@ -12529,12 +12579,18 @@
           "base_month_k": null,
           "bonus_months": null,
           "annual_months": null,
-          "annual_total_wan": null,
-          "weekly_hours": null,
+          "annual_total_wan": [
+            290,
+            300
+          ],
+          "weekly_hours": [
+            42,
+            50
+          ],
           "overtime": null,
           "travel": null,
           "n": 2,
-          "n_stat": 0,
+          "n_stat": 2,
           "note": null,
           "grade": null,
           "sources": [
@@ -12570,7 +12626,7 @@
               "overtime": "經常",
               "travel": null,
               "quote_free_note": "自填；日工時 表訂/實際 10 / 10",
-              "in_window": false,
+              "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2025-04（Andy 桌面版 20261027_0051_a 批）"
             },
             {
@@ -12592,7 +12648,7 @@
               "overtime": "偶爾",
               "travel": null,
               "quote_free_note": "自填；日工時 表訂/實際 8.5 / 8.5",
-              "in_window": false,
+              "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2025-03（Andy 桌面版 20261027_0051_b 批）"
             }
           ]
@@ -12605,12 +12661,18 @@
           "base_month_k": null,
           "bonus_months": null,
           "annual_months": null,
-          "annual_total_wan": null,
-          "weekly_hours": null,
-          "overtime": null,
+          "annual_total_wan": [
+            120,
+            120
+          ],
+          "weekly_hours": [
+            55,
+            55
+          ],
+          "overtime": "經常",
           "travel": null,
           "n": 1,
-          "n_stat": 0,
+          "n_stat": 1,
           "note": null,
           "grade": null,
           "sources": [
@@ -12641,7 +12703,7 @@
               "overtime": "經常",
               "travel": null,
               "quote_free_note": "自填；日工時 表訂/實際 9 / 12",
-              "in_window": false,
+              "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2025-04（Andy 桌面版 20261027_0051_b 批）"
             }
           ]
@@ -12654,12 +12716,18 @@
           "base_month_k": null,
           "bonus_months": null,
           "annual_months": null,
-          "annual_total_wan": null,
-          "weekly_hours": null,
-          "overtime": null,
+          "annual_total_wan": [
+            100,
+            100
+          ],
+          "weekly_hours": [
+            45,
+            45
+          ],
+          "overtime": "經常",
           "travel": null,
           "n": 1,
-          "n_stat": 0,
+          "n_stat": 1,
           "note": null,
           "grade": null,
           "sources": [
@@ -12690,7 +12758,7 @@
               "overtime": "經常",
               "travel": null,
               "quote_free_note": "自填；日工時 表訂/實際 8 / 10",
-              "in_window": false,
+              "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2025-02（Andy 桌面版 20261027_0051_b 批）"
             }
           ]
@@ -12703,12 +12771,18 @@
           "base_month_k": null,
           "bonus_months": null,
           "annual_months": null,
-          "annual_total_wan": null,
-          "weekly_hours": null,
-          "overtime": null,
+          "annual_total_wan": [
+            230,
+            230
+          ],
+          "weekly_hours": [
+            40,
+            40
+          ],
+          "overtime": "偶爾",
           "travel": null,
           "n": 1,
-          "n_stat": 0,
+          "n_stat": 1,
           "note": null,
           "grade": null,
           "sources": [
@@ -12739,7 +12813,7 @@
               "overtime": "偶爾",
               "travel": null,
               "quote_free_note": "自填；日工時 表訂/實際 8 / 8",
-              "in_window": false,
+              "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2025-01（Andy 桌面版 20261027_0051_b 批）"
             }
           ]
@@ -12790,7 +12864,7 @@
               "overtime": null,
               "travel": null,
               "quote_free_note": "年薪破百（以 100 萬記）；常日非輪班，不確定是否 on call；一年後外派國外廠、需穿無塵衣；busyness=中",
-              "in_window": false,
+              "in_window": true,
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2025-07-31"
             },
             {
@@ -12907,7 +12981,7 @@
               "overtime": "幾乎不",
               "travel": null,
               "quote_free_note": "留言B13：助工不用進產線，低標26個月，準時上下班，年薪破百（下限）；忙碌度：低",
-              "in_window": false,
+              "in_window": true,
               "date_note": "Dcard 頁面發文日期 2025-05-04（20261027_0107 批）",
               "comment_sample": true
             }
@@ -12939,15 +13013,18 @@
           "years": null,
           "base_month_k": null,
           "bonus_months": null,
-          "annual_months": null,
+          "annual_months": [
+            26,
+            26
+          ],
           "annual_total_wan": [
-            140,
+            100,
             250
           ],
           "weekly_hours": null,
-          "overtime": null,
+          "overtime": "幾乎不",
           "travel": null,
-          "n_stat": 5,
+          "n_stat": 7,
           "note": null,
           "grade": null,
           "bonus_timing_month": "2 月、5 月、7 月、8 月、11 月"
@@ -13111,7 +13188,7 @@
           "degree": "碩士",
           "years": "0-2",
           "base_month_k": [
-            65,
+            63.5,
             68
           ],
           "bonus_months": null,
@@ -13434,9 +13511,9 @@
               "overtime": null,
               "travel": "不用",
               "quote_free_note": "2025 四大新人價：約 6～6.7 萬，另簽約金 20 萬；加班：偶爾～經常（依部門）",
-              "date_confirmed": false,
-              "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "date_confirmed": true,
+              "date_note": "依 docs/tc/dcard_id_calibration.md：編號 ≥ 258870385（2025-05-21 錨點），確定晚於 2025-01-01",
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -13707,7 +13784,7 @@
               "in_window": true
             }
           ],
-          "n_stat": 12
+          "n_stat": 13
         },
         {
           "unit": "晶圓廠 Fab",
@@ -14022,9 +14099,9 @@
               "overtime": null,
               "travel": "不用",
               "quote_free_note": "新加坡 TF 設備面試期程；加班：偶爾～經常",
-              "date_confirmed": false,
-              "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "date_confirmed": true,
+              "date_note": "依 docs/tc/dcard_id_calibration.md：編號 ≥ 258870385（2025-05-21 錨點），確定晚於 2025-01-01",
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -14098,9 +14175,9 @@
               "overtime": null,
               "travel": "不用",
               "quote_free_note": "聯電 vs 台達；加班：偶爾～經常",
-              "date_confirmed": false,
-              "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "date_confirmed": true,
+              "date_note": "依 docs/tc/dcard_id_calibration.md：編號 ≥ 258870385（2025-05-21 錨點），確定晚於 2025-01-01",
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -14219,7 +14296,7 @@
               "in_window": true
             }
           ],
-          "n_stat": 7
+          "n_stat": 9
         },
         {
           "unit": "研發 R&D",
@@ -15910,7 +15987,10 @@
           "years": "0-6",
           "base_month_k": null,
           "bonus_months": null,
-          "annual_months": null,
+          "annual_months": [
+            16,
+            16
+          ],
           "annual_total_wan": [
             150,
             150
@@ -16121,9 +16201,9 @@
               "overtime": null,
               "travel": "不用",
               "quote_free_note": "聯電／南亞／世界先進 offer：薄膜設備（N-5）×16＋分紅；加班：偶爾～經常（輪班／值班津貼）",
-              "date_confirmed": false,
-              "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
-              "in_window": false
+              "date_confirmed": true,
+              "date_note": "依 docs/tc/dcard_id_calibration.md：編號 ≥ 258870385（2025-05-21 錨點），確定晚於 2025-01-01",
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -16145,7 +16225,7 @@
               "in_window": false
             }
           ],
-          "n_stat": 4
+          "n_stat": 5
         },
         {
           "unit": "研發 R&D",
@@ -16300,7 +16380,7 @@
               "travel": null,
               "quote_free_note": "二廠技術開發 offer 約 N、簽約金 10 萬綁兩年",
               "date_confirmed": true,
-              "in_window": false,
+              "in_window": true,
               "date_note": null
             },
             {
@@ -16440,7 +16520,7 @@
               "in_window": false
             }
           ],
-          "n_stat": 4
+          "n_stat": 5
         },
         {
           "unit": "研發 R&D",
@@ -16584,7 +16664,7 @@
             14
           ],
           "annual_total_wan": [
-            88.2,
+            81.2,
             88.2
           ],
           "weekly_hours": [
@@ -16710,9 +16790,9 @@
               "overtime": null,
               "travel": "不用",
               "quote_free_note": "碩士新人 58～62k；加班：偶爾（良率問題時加班）",
-              "date_confirmed": false,
-              "in_window": false,
-              "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計；10-26 稽核：base_k 由中值 60 改填區間 [58, 62]",
+              "date_confirmed": true,
+              "in_window": true,
+              "date_note": "依 docs/tc/dcard_id_calibration.md：編號 ≥ 258870385（2025-05-21 錨點），確定晚於 2025-01-01",
               "derived": [
                 "annual_wan"
               ]
@@ -16989,7 +17069,7 @@
               "in_window": true
             }
           ],
-          "n_stat": 6
+          "n_stat": 7
         },
         {
           "unit": "晶圓廠 Fab",
@@ -17315,7 +17395,7 @@
           "degree": "碩士",
           "years": "0-2",
           "base_month_k": [
-            53,
+            50,
             60
           ],
           "bonus_months": null,
@@ -17324,10 +17404,13 @@
             14
           ],
           "annual_total_wan": [
-            74.2,
-            74.2
+            70.0,
+            80
           ],
-          "weekly_hours": null,
+          "weekly_hours": [
+            48,
+            48
+          ],
           "overtime": "偶爾",
           "travel": "不用",
           "n": 12,
@@ -17422,7 +17505,7 @@
               "travel": "不用",
               "quote_free_note": "年薪約 80 萬（範圍外）",
               "date_confirmed": true,
-              "in_window": false,
+              "in_window": true,
               "date_note": null
             },
             {
@@ -17440,9 +17523,9 @@
               "overtime": "偶爾",
               "travel": "不用",
               "quote_free_note": "竹科設備約 5 萬×保 14",
-              "date_confirmed": false,
-              "in_window": false,
-              "date_note": "日期未確認：依文章編號推估；錨點：本輪標題確認日期的 Dcard 261914892＝2026-07、258958968＝2025-05（摘要寫 2025/05/31）；推估仍不進統計",
+              "date_confirmed": true,
+              "in_window": true,
+              "date_note": "依 docs/tc/dcard_id_calibration.md：編號 ≥ 258870385（2025-05-21 錨點），確定晚於 2025-01-01",
               "derived": [
                 "annual_wan"
               ]
@@ -17631,7 +17714,7 @@
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-09-08"
             }
           ],
-          "n_stat": 5
+          "n_stat": 7
         },
         {
           "unit": "研發 R&D",
