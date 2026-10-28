@@ -7173,7 +7173,7 @@
           ],
           "overtime": "幾乎不",
           "travel": null,
-          "n": 6,
+          "n": 7,
           "note": "2026-10-28 Dcard 1612 批新增職位",
           "confidence": "低",
           "grade": null,
@@ -7312,6 +7312,29 @@
               "quote_free_note": "自填；日工時 表訂/實際 8/8",
               "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2025-04（20261028_2348～20261029_0012 合併批，2355 檔）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/華邦電子股份有限公司/salary-work-times?p=3",
+              "date": "2025-05",
+              "page_date": "2025-05",
+              "date_confirmed": true,
+              "role": "工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "5",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 99.9999,
+              "weekly_hours": 40,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/8 小時；頁面寫 999,999/年；疑似與 2025-07 工程師同一人",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2025-05（20261029_0523 批，0523 檔）",
+              "dup_of": "https://www.goodjob.life/companies/華邦電子股份有限公司/salary-work-times?p=3"
             }
           ],
           "sources": [
