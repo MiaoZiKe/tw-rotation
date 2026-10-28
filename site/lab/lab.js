@@ -98,7 +98,7 @@
   function newState(sub) {
     const fut = sub === 'fut';
     return {
-      sub, sym: fut ? 'TX' : '2330', tf: 'D', strat: 'ma2', params: {}, mode: 'both', range: 'All', showBH: false, ind: LabK.defaultInd(), ctype: 'k', tt: 'ov', eqMode: 'eq', sortK: 'no', sortD: -1,
+      sub, sym: fut ? 'TX' : '2330', tf: 'D', strat: 'ma2', params: {}, mode: 'both', range: fut ? '5Y' : 'All', showBH: false, ind: LabK.defaultInd(), ctype: 'k', tt: 'ov', eqMode: 'eq', sortK: 'no', sortD: -1,
       cfg: { capital: 1000000, sizeMode: 'pct', sizeVal: 100, pyramiding: 1, fillOn: 'open', sl: 0, tp: 0, trail: 0, maxLoss: 0, slPts: 0, tpPts: 0, slAmt: 0, tpAmt: 0, trailPts: 0, trailStart: 0, marginCall: 130 },
       costs: {}, advOpen: false, pickOpen: false, res: null, B: null, sel: -1, rowsAll: false, busy: 0,
     };
@@ -401,6 +401,7 @@
       kv.chart.subscribeCrosshairMove((p) => { legendAt(S, p && p.time ? p : null); if (!S.tipPin) tipAt(S, p); });
       applyLog(S);
       kv.chart.subscribeClick((p) => { tipAt(S, p); S.tipPin = !$('#labTip').hidden; });
+      kv.chart.applyOptions({ timeScale: { minBarSpacing: 0.02, rightOffset: innerWidth <= 640 ? 12 : 4 } });   // 手機右邊多留幾根，最右側月份標籤才不會被切     // 預設 0.5 會把「All」夾成只看得到最近幾年
       kv.chart.timeScale().setVisibleLogicalRange({ from: Math.max(0, from - 2), to: B.n + 3 });
     }
     S.times = Array.from({ length: n }, (_, i) => LabK.ltime(B, from + i));
@@ -456,6 +457,11 @@
       ? '這段期間這套規則沒有產生任何交易，可以換週期、放寬參數或拉長期間'
       : '<span class="lab-vd"><b>' + E.dayToStr(B.day[r.from]) + ' 到 ' + E.dayToStr(B.day[r.to]) + '</b>：</span>照這套規則做 <b class="' + cls(s.ret) + '">' + sgn(s.ret, 1) + '%</b>，買進持有 <b class="' + cls(s.bhRet) + '">' + sgn(s.bhRet, 1) + '%</b>，' + (Math.abs(gap) < 0.05 ? '兩者差不多' : '<b>' + (gap > 0 ? '多賺 ' : '少賺 ') + fmt(Math.abs(gap), 1) + ' 個百分點</b>') + '；中途最深回撤 −' + s.mddP.toFixed(1) + '%';
     const cl = (r.calls || []).map((c) => '<b>' + E.dayToStr(B.day[Math.min(c.i, B.n - 1)]) + '</b> ' + esc(c.why));
+    { const inst = (buildCfg(S).inst) || {}, lastC = (r.calls || []).slice(-1)[0];
+      if (inst.kind === 'fut' && lastC && !r.trades.some((t) => t.i0 > lastC.i) && !(r.opens && r.opens.length)) {
+        const eqEnd = r.eq[r.eq.length - 1], need = B.c[r.to] * (inst.mult || 200) * (inst.marginInit || 10) / 100;
+        if (eqEnd < need) cl.unshift('<b>' + E.dayToStr(B.day[Math.min(lastC.i, B.n - 1)]) + '</b> 起資金不足 1 口保證金，之後停止交易');
+      } }
     const callsHTML = cl.length ? '<div class="lab-calls" role="alert">⚠ ' + cl.slice(0, 2).join('；') + (cl.length > 2 ? '；另 ' + (cl.length - 2) + ' 次' : '') + '</div>' : '';
     el.innerHTML =
       '<div class="lab-verdict" role="status">' + verdict + '</div>' + callsHTML +
@@ -484,7 +490,8 @@
     const tfv = B.tf === '60', times = S.times;
     $('#labBHw').style.display = S.eqMode === 'eq' ? '' : 'none';
     CH.eq = LW.createChart(eEl, baseOpts(eEl));
-    CH.eq.applyOptions({ timeScale: { timeVisible: tfv, secondsVisible: false } });
+    CH.eq.applyOptions({ timeScale: { timeVisible: tfv, secondsVisible: false, minBarSpacing: 0.02, rightOffset: innerWidth <= 640 ? 12 : 4 } });
+    if (S.eqMode !== 'dd') CH.eq.applyOptions({ localization: { priceFormatter: (v) => Math.round(v).toLocaleString('en-US') } });   // 金額不帶小數、加千分位
     const ser = {};
     if (S.eqMode === 'eq') {
       CH.s1 = CH.eq.addSeries(LW.BaselineSeries, { baseValue: { type: 'price', price: 0 }, topLineColor: c.rise, topFillColor1: c.rise + '55', topFillColor2: c.rise + '08', bottomLineColor: c.fall, bottomFillColor1: c.fall + '08', bottomFillColor2: c.fall + '55', lineWidth: 2, priceLineVisible: false, lastValueVisible: true });

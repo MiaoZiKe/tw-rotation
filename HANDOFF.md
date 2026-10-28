@@ -1,5 +1,12 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
+## 2026-10-31 交易練習室最終版上 main（合併 preview/lab-ux＋preview/standard-strategies；Andy「上線」；最後更新 10-29 台北）
+- 合併：兩分支自動合併無衝突；engine/expr/replay 取 standard-strategies，ux/kview 取 lab-ux，CSV 用 `E.tradeLegs()`。
+- 這批修：台指期回測預設 5Y；資金不足 1 口原始保證金時結論列寫「YYYY-MM-DD 起資金不足 1 口保證金，之後停止交易」；All 的 K 線可視範圍涵蓋整段（minBarSpacing 0.02）；損益圖 Y 軸整數千分位；手機右側多留 12 根避免最右月份被切；`#v-lab #labBHw` 右讓 72px 避開比比客服鈕（site/m4/20261031-lab-final.css）。
+- 驗收工具：`_uitest._block_external()` 中斷非本機請求（容器代理把外部請求掛著，networkidle 永遠等不到）；`_preview.py` 同步套用。1028 段成本口徑、台指期 60 分、標準策略「?」浮層三條過時斷言已更新。
+- 這批驗了：交易練習室 8 段＋最終版1031 全 0；桌機守門1008 0；手機v2 7 紅與 origin/main 基準逐條相同（ETF 報酬率／除息表、頂欄搜尋，既有問題）；_preview 只剩 #stock/3189/holders 文字交疊（main 既有）。
+- 待處理（P1 未修）：自訂起訖日期、事件濾網多選、日內虧損以交易日計、換月價差還原、畫面交易清單進出場兩列、借券費預設 0。
+
 ## 2026-10-28 新聞貼文自動排程上線（Andy「可以，接上排程，單位改成億美元…」；最後更新 10-28 台北）
 - 圖卡大數字單位：`render_news_cards.py` 數字正則改成「億美元」整段保留；10-28 盤後五張重產（--pal D，重疊 0 筆）。
 - 新工作流程「新聞貼文自動排程」`.github/workflows/social_news.yml`：接在「社群即時貼文」每輪之後＋備援 08:35／12:16／19:35／21:05／22:35；主貼文發出 +30 分（盤前 ≥08:50、盤中 ≥12:31）排 3～5 篇到 social/{ig,threads}/queue。
