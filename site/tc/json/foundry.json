@@ -35,7 +35,7 @@
           ],
           "overtime": "經常",
           "travel": "不用",
-          "n": 81,
+          "n": 85,
           "note": "公司徵才稱碩士新進平均年薪 220 萬以上（含分紅，公司口徑）；GoodJob 自述碩士新進月薪約 6.5 萬以上；分紅月數無可靠區間；年薪月數為推算：公司公布碩士新進整體年薪 220 萬以上 ÷ 底薪 6.3～6.8 萬；分紅月數＝推算總月數扣 12 個月本薪與年終約 1 個月，非個人實領，2026-10 再查 PTT／GoodJob 未見新人逐月拆解；撤回：annual_months、bonus_months 原為沿用／推算／暫填值，無直接證據，已改回原值；2026-10-25 補：GoodJob 製程回報月薪 6.24～6.5 萬（2025-06）、另一則年薪約 250 萬（2026-08，60 小時／週）；PTT 31 職等考績 S 推算年薪約 218 萬（2024，範圍外）、2026-02 季分紅 S 約 4.22 個月；網友自述季分紅工程師約 3～6 個月／季；公司口徑碩士新進 220 萬吻合；2026-10-25 更正：4.22 個月為「單季」季分紅（2026-02 那一包），不是全年，全年可確認數字未找到，bonus_months 改 null",
           "sources": [
             {
@@ -387,6 +387,16 @@
               "site": "GoodJob",
               "url": "https://www.goodjob.life/companies/台灣積體電路製造股份有限公司(台積電)%20TSMC/salary-work-times?p=2",
               "date": "2026-09"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台灣積體電路製造股份有限公司(台積電)%20TSMC/salary-work-times?p=3",
+              "date": "2026-08"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台灣積體電路製造股份有限公司(台積電)%20TSMC/salary-work-times?p=4",
+              "date": "2026-07"
             }
           ],
           "confidence": "高",
@@ -2026,9 +2036,97 @@
               "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2026-09（20261028_1555 批）",
               "dup_of": "https://www.goodjob.life/companies/台灣積體電路製造股份有限公司(台積電) TSMC/work-experiences/薪資福利?p=20"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台灣積體電路製造股份有限公司(台積電)%20TSMC/salary-work-times?p=3",
+              "date": "2026-08",
+              "page_date": "2026-08",
+              "date_confirmed": true,
+              "role": "生產技術╱製程工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "1",
+              "degree": null,
+              "base_k": 65,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 50,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 10/10；原選項幾乎每天",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-08（20261028_1712 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台灣積體電路製造股份有限公司(台積電)%20TSMC/salary-work-times?p=3",
+              "date": "2026-08",
+              "page_date": "2026-08",
+              "date_confirmed": true,
+              "role": "生產技術╱製程工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 65,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 60,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/12；原選項幾乎每天",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-08（20261028_1712 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台灣積體電路製造股份有限公司(台積電)%20TSMC/salary-work-times?p=4",
+              "date": "2026-07",
+              "page_date": "2026-07",
+              "date_confirmed": true,
+              "role": "半導體製程工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 150,
+              "weekly_hours": 60,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 9/11；原選項幾乎每天",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-07（20261028_1712 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台灣積體電路製造股份有限公司(台積電)%20TSMC/salary-work-times?p=4",
+              "date": "2026-07",
+              "page_date": "2026-07",
+              "date_confirmed": true,
+              "role": "製程工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "1",
+              "degree": null,
+              "base_k": 65,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 65,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/11；原選項幾乎每天",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-07（20261028_1712 批）"
             }
           ],
-          "n_stat": 55,
+          "n_stat": 59,
           "bonus_timing_month": "2 月、5 月、7 月、8 月、11 月"
         },
         {
@@ -2055,7 +2153,7 @@
           ],
           "overtime": "經常",
           "travel": "不用",
-          "n": 85,
+          "n": 89,
           "note": "GoodJob 2026-03 兩則自述（台中、高雄，不到 1 年），工時 55～60 小時／週、需輪班；學歷未標；分紅與年薪月數查 GoodJob／媒體未見設備職專屬數字，維持 null；可參考製程職推算 30～37 個月；2026-10-25 補：Dcard 碩士設備新人第一年自述 120～160 萬（第一年分紅未滿，試用期 3 個月不算），第三年 230～250 萬為單一匿名說法未採；未逐筆對應的舊彙整：annual_total_wan=[170, 172]",
           "sources": [
             {
@@ -2392,6 +2490,21 @@
               "site": "GoodJob",
               "url": "https://www.goodjob.life/companies/台灣積體電路製造股份有限公司(台積電)%20TSMC/salary-work-times?p=2",
               "date": "2026-09"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台灣積體電路製造股份有限公司(台積電)%20TSMC/salary-work-times?p=3",
+              "date": "2026-08"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台灣積體電路製造股份有限公司(台積電)%20TSMC/salary-work-times?p=4",
+              "date": "2026-07"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台灣積體電路製造股份有限公司(台積電)%20TSMC/salary-work-times?p=5",
+              "date": "2026-06"
             }
           ],
           "confidence": "高",
@@ -4176,9 +4289,100 @@
               "quote_free_note": "自填；日工時 表訂/實際 10/10",
               "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2026-08（20261028_1555 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台灣積體電路製造股份有限公司(台積電)%20TSMC/salary-work-times?p=3",
+              "date": "2026-08",
+              "page_date": "2026-08",
+              "date_confirmed": true,
+              "role": "設備工程師",
+              "grade": null,
+              "unit_detail": "台中廠",
+              "years": "9",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 380,
+              "weekly_hours": 47,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/9.5",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-08（20261028_1712 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台灣積體電路製造股份有限公司(台積電)%20TSMC/salary-work-times?p=4",
+              "date": "2026-07",
+              "page_date": "2026-07",
+              "date_confirmed": true,
+              "role": "生產設備工程師",
+              "grade": null,
+              "unit_detail": "高雄",
+              "years": null,
+              "degree": null,
+              "base_k": 65,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 50,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 10/10",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-07（20261028_1712 批）",
+              "dup_of": "https://www.goodjob.life/companies/台灣積體電路製造股份有限公司(台積電) TSMC/work-experiences/薪資福利?p=20"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台灣積體電路製造股份有限公司(台積電)%20TSMC/salary-work-times?p=4",
+              "date": "2026-07",
+              "page_date": "2026-07",
+              "date_confirmed": true,
+              "role": "設備工程師",
+              "grade": null,
+              "unit_detail": "台南",
+              "years": "1",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 140,
+              "weekly_hours": 50,
+              "overtime": "幾乎不",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/8",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-07（20261028_1712 批）",
+              "dup_of": "https://www.dcard.tw/f/tech_job/p/262027052"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台灣積體電路製造股份有限公司(台積電)%20TSMC/salary-work-times?p=5",
+              "date": "2026-06",
+              "page_date": "2026-06",
+              "date_confirmed": true,
+              "role": "半導體設備工程師",
+              "grade": null,
+              "unit_detail": "18a",
+              "years": null,
+              "degree": null,
+              "base_k": 63.5,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 45,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 9/9",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-06（20261028_1712 批）",
+              "dup_of": "https://www.goodjob.life/companies/台灣積體電路製造股份有限公司(台積電)%20TSMC/salary-work-times?p=3"
             }
           ],
-          "n_stat": 65,
+          "n_stat": 66,
           "bonus_timing_month": "2 月、5 月、7 月、8 月、11 月"
         },
         {
@@ -4188,7 +4392,7 @@
           "years": "0-2",
           "base_month_k": [
             60,
-            63.7
+            66.45
           ],
           "bonus_months": null,
           "annual_months": [
@@ -4196,7 +4400,7 @@
             14
           ],
           "annual_total_wan": [
-            80,
+            70,
             400
           ],
           "weekly_hours": [
@@ -4205,7 +4409,7 @@
           ],
           "overtime": "偶爾",
           "travel": "不用",
-          "n": 44,
+          "n": 48,
           "note": "GoodJob 2026-04 單筆（台南，不到 1 年），自述底薪 6 萬＋三節＋分紅＋運動會獎金；分紅與年薪月數查 GoodJob／媒體未見 IT 職專屬數字，維持 null；2026-10-25 補：Dcard 轉貼 IT 自述第一年約 145 萬、第二年吃到完整分紅約 300 萬、加班少（單筆）；salary.tw IT 回報以 MES 開發為主；資料科學／SRE 未找到專屬數字；部分年薪／年薪月數由同一筆樣本的「底薪×月數」推算（樣本標 derived）",
           "sources": [
             {
@@ -4407,6 +4611,16 @@
               "site": "GoodJob",
               "url": "https://www.goodjob.life/companies/台灣積體電路製造股份有限公司(台積電)%20TSMC/salary-work-times?p=3",
               "date": "2026-08"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台灣積體電路製造股份有限公司(台積電)%20TSMC/salary-work-times?p=4",
+              "date": "2026-07"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台灣積體電路製造股份有限公司(台積電)%20TSMC/salary-work-times?p=5",
+              "date": "2026-07"
             }
           ],
           "confidence": "中",
@@ -5333,9 +5547,98 @@
               "quote_free_note": "自填；日工時 表訂/實際 10/10；職稱未寫工程師",
               "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2026-08（20261028_1555 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台灣積體電路製造股份有限公司(台積電)%20TSMC/salary-work-times?p=4",
+              "date": "2026-07",
+              "page_date": "2026-07",
+              "date_confirmed": true,
+              "role": "智慧製造工程師",
+              "grade": null,
+              "unit_detail": "18A",
+              "years": "5",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 200,
+              "weekly_hours": 40,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/10",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-07（20261028_1712 批）",
+              "dup_of": "https://www.dcard.tw/f/tech_job/p/261967334"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台灣積體電路製造股份有限公司(台積電)%20TSMC/salary-work-times?p=5",
+              "date": "2026-07",
+              "page_date": "2026-07",
+              "date_confirmed": true,
+              "role": "智慧製造工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 66,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 55,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/11",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-07（20261028_1712 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台灣積體電路製造股份有限公司(台積電)%20TSMC/salary-work-times?p=5",
+              "date": "2026-07",
+              "page_date": "2026-07",
+              "date_confirmed": true,
+              "role": "IT",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 66.45,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 50,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 9/9；職稱未寫工程師",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-07（20261028_1712 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台灣積體電路製造股份有限公司(台積電)%20TSMC/salary-work-times?p=5",
+              "date": "2026-06",
+              "page_date": "2026-06",
+              "date_confirmed": true,
+              "role": "IT ENGINEER",
+              "grade": null,
+              "unit_detail": "台中",
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 70,
+              "weekly_hours": 50,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 10/10",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-06（20261028_1712 批）"
             }
           ],
-          "n_stat": 37,
+          "n_stat": 40,
           "bonus_timing_month": "2 月、5 月、7 月、8 月、11 月"
         },
         {
@@ -5359,7 +5662,7 @@
           ],
           "overtime": "經常",
           "travel": "不用",
-          "n": 34,
+          "n": 35,
           "note": "GoodJob 製程整合職稱頁台積電回報多在 6～6.4 萬；PTT／Dcard 未找到 PIE 專屬 offer 數字；年薪沿用公司公布碩士平均 220 萬以上；年薪月數為推算（220 萬以上 ÷ 底薪 6～6.4 萬），分紅月數＝推算扣 13 個月，非個人實領；撤回：annual_months、bonus_months 原為沿用／推算／暫填值，無直接證據，已改回原值；2026-10-25 補：PTT 轉貼新聞碩畢 2 年 31 職等年薪約 280 萬（未標職位，僅作工程師整體參考）",
           "sources": [
             {
@@ -5521,6 +5824,11 @@
               "site": "GoodJob",
               "url": "https://www.goodjob.life/companies/台灣積體電路製造股份有限公司(台積電) TSMC/salary-work-times?p=28",
               "date": "2025-01"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台灣積體電路製造股份有限公司(台積電)%20TSMC/salary-work-times?p=4",
+              "date": "2026-07"
             }
           ],
           "confidence": "中",
@@ -6204,6 +6512,29 @@
               "quote_free_note": "自填；日工時 表訂/實際 8 / 13",
               "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2025-08（Andy 桌面版 20261027_0051_a 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台灣積體電路製造股份有限公司(台積電)%20TSMC/salary-work-times?p=4",
+              "date": "2026-07",
+              "page_date": "2026-07",
+              "date_confirmed": true,
+              "role": "製程整合工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "3",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 200,
+              "weekly_hours": 45,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 9/9；原選項幾乎每天",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-07（20261028_1712 批）",
+              "dup_of": "https://www.dcard.tw/f/tech_job/p/262077451"
             }
           ],
           "n_stat": 20,
@@ -9548,9 +9879,19 @@
               "site": "GoodJob",
               "url": "https://www.goodjob.life/companies/台灣積體電路製造股份有限公司(台積電)%20TSMC/salary-work-times?p=2",
               "date": "2026-09"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台灣積體電路製造股份有限公司(台積電)%20TSMC/salary-work-times?p=3",
+              "date": "2026-08"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台灣積體電路製造股份有限公司(台積電)%20TSMC/salary-work-times?p=5",
+              "date": "2026-06"
             }
           ],
-          "n": 22,
+          "n": 24,
           "grade": null,
           "busyness": null,
           "samples": [
@@ -10017,9 +10358,53 @@
               "quote_free_note": "自填；日工時 表訂/實際 8/8；職稱未寫工程師",
               "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2026-09（20261028_1555 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台灣積體電路製造股份有限公司(台積電)%20TSMC/salary-work-times?p=3",
+              "date": "2026-08",
+              "page_date": "2026-08",
+              "date_confirmed": true,
+              "role": "廠務工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 64,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 45,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/9",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-08（20261028_1712 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台灣積體電路製造股份有限公司(台積電)%20TSMC/salary-work-times?p=5",
+              "date": "2026-06",
+              "page_date": "2026-06",
+              "date_confirmed": true,
+              "role": "廠務工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 200,
+              "weekly_hours": 50,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/11",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-06（20261028_1712 批）"
             }
           ],
-          "n_stat": 19,
+          "n_stat": 21,
           "bonus_timing_month": "2 月、5 月、7 月、8 月、11 月"
         },
         {
@@ -12705,6 +13090,94 @@
               "in_window": true,
               "date_note": "Dcard 頁面發文日期 2025-02-15（20261028_1612 批）",
               "comment_sample": true
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台灣積體電路製造股份有限公司(台積電)%20TSMC/salary-work-times?p=3",
+              "date": "2026-08",
+              "page_date": "2026-08",
+              "date_confirmed": true,
+              "role": "工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 63.5,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 45,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 9/9",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-08（20261028_1712 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台灣積體電路製造股份有限公司(台積電)%20TSMC/salary-work-times?p=4",
+              "date": "2026-07",
+              "page_date": "2026-07",
+              "date_confirmed": true,
+              "role": "工程師",
+              "grade": null,
+              "unit_detail": "南科",
+              "years": null,
+              "degree": null,
+              "base_k": 64,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 50,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/10",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-07（20261028_1712 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台灣積體電路製造股份有限公司(台積電)%20TSMC/salary-work-times?p=4",
+              "date": "2026-07",
+              "page_date": "2026-07",
+              "date_confirmed": true,
+              "role": "ECO",
+              "grade": null,
+              "unit_detail": null,
+              "years": "2",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 280,
+              "weekly_hours": 60,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 10/10；職稱未寫工程師",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-07（20261028_1712 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台灣積體電路製造股份有限公司(台積電)%20TSMC/salary-work-times?p=5",
+              "date": "2026-07",
+              "page_date": "2026-07",
+              "date_confirmed": true,
+              "role": "半導體工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "3",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 280,
+              "weekly_hours": 50,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/11；原選項幾乎每天",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-07（20261028_1712 批）"
             }
           ],
           "sources": [
@@ -12897,11 +13370,26 @@
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/257992784",
               "date": "2025-02"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台灣積體電路製造股份有限公司(台積電)%20TSMC/salary-work-times?p=3",
+              "date": "2026-08"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台灣積體電路製造股份有限公司(台積電)%20TSMC/salary-work-times?p=4",
+              "date": "2026-07"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/台灣積體電路製造股份有限公司(台積電)%20TSMC/salary-work-times?p=5",
+              "date": "2026-07"
             }
           ],
           "confidence": "低",
-          "n": 65,
-          "n_stat": 65,
+          "n": 69,
+          "n_stat": 69,
           "bonus_timing_month": "2 月、5 月、7 月、8 月、11 月",
           "years": null,
           "annual_total_wan": [
@@ -15710,15 +16198,15 @@
           "annual_months": null,
           "annual_total_wan": [
             150,
-            150
+            350
           ],
           "weekly_hours": [
-            60,
+            42,
             60
           ],
           "overtime": "經常",
           "travel": "不用",
-          "n": 8,
+          "n": 9,
           "note": "GoodJob 2026-03 月薪 6.7 萬、工時 60 小時／週；2025-08 一則 7 萬，分紅與加薪看考績；年薪與分紅月數沿用同公司製程職區間；撤回：annual_months、bonus_months 原為沿用／推算／暫填值，無直接證據，已改回原值；2026-10-25 補：南科整合：四大碩士三年 150 萬常見、五年 180～200 萬（網友說法）；屬產線需輪班",
           "sources": [
             {
@@ -15760,6 +16248,11 @@
               "site": "GoodJob",
               "url": "https://www.goodjob.life/companies/聯華電子股份有限公司/work-experiences?p=1",
               "date": "2025-08"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯華電子股份有限公司/salary-work-times?p=1",
+              "date": "2026-10"
             }
           ],
           "confidence": "高",
@@ -15917,9 +16410,31 @@
               "date_confirmed": true,
               "date_note": "摘要寫出發文年月",
               "in_window": true
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯華電子股份有限公司/salary-work-times?p=1",
+              "date": "2026-10",
+              "page_date": "2026-10",
+              "date_confirmed": true,
+              "role": "整合工程師",
+              "grade": null,
+              "unit_detail": "新加坡廠",
+              "years": "13",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 350,
+              "weekly_hours": 42,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/8.5 小時",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-10（20261028_1712 批）"
             }
           ],
-          "n_stat": 6
+          "n_stat": 7
         },
         {
           "unit": "其他",
