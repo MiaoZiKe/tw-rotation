@@ -21,7 +21,7 @@
   "swagger_path": "/fund/MI_QFIIS_sort_20"
  },
  {
-  "head": "<html> <head> <meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\"> </head> <body>  因為安全性考量，您所執行的頁面無法呈現。<BR> FOR SECURITY REASONS, THIS PAGE CAN NOT BE ACCESSED.<BR> <BR> 您可以<A HREF=\"jav",
+  "head": "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\"> <html xmlns=\"http://www.w3.org/1999/xhtml\"> <head> <meta http-equiv=\"Content-T",
   "http": 200,
   "url": "https://openapi.twse.com.tw/v1/fund/T86"
  },
@@ -124,61 +124,15 @@
   "swagger_path": "/tpex_3insti_qfii_trading"
  },
  {
-  "head": "[ {\"Date\":\"1151027\",\"Rank\":\"1\",\"SecuritiesCompanyCode\":\"1815\",\"CompanyName\":\"富喬\",\"Buy\":\"3365\",\"Sell\":\"0\",\"NetBuy\":\"3365\"}, {\"Date\":\"1151027\",\"Rank\":\"2\",\"SecuritiesCompanyCode\":\"6147\",\"CompanyName\":\"頎邦",
+  "head": "[ {\"Date\":\"1151027\",\"SecuritiesCompanyCode\":\"00411A\",\"CompanyName\":\"主動統一前沿科技\",\"Foreign Investors include Mainland Area Investors (Foreign Dealers excluded)-Total Buy\":\"1154112\",\" Foreign Investors inc",
   "http": 200,
-  "url": "https://www.tpex.org.tw/openapi/v1/tpex_3insti_trading"
- },
- {
-  "cols": [
-   "Date",
-   "Rank",
-   "SecuritiesCompanyCode",
-   "CompanyName",
-   "Buy",
-   "Sell",
-   "NetBuy"
-  ],
-  "n": 39,
-  "url": "https://www.tpex.org.tw/openapi/v1/tpex_3insti_trading"
- },
- {
-  "head": "<!DOCTYPE html><html lang=\"zh-Hant-tw\"><head><title>404 - è­å¸æ«æª¯è²·è³£ä¸­å¿</title><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, maximum-scale=1, u",
-  "http": 200,
-  "url": "https://www.tpex.org.tw/openapi/tpex_3insti_qfii"
- },
- {
-  "head": "<html>\r <head><title>404 Not Found</title></head>\r <body>\r <center><h1>404 Not Found</h1></center>\r <hr><center>nginx</center>\r <script>(function(){function c(){var b=a.contentDocument||(a.contentWind",
-  "http": 404,
-  "url": "https://www.tpex.org.tw/openapi/tpex_3insti_qfii_industry"
- },
- {
-  "head": "<!DOCTYPE html><html lang=\"zh-Hant-tw\"><head><title>404 - è­å¸æ«æª¯è²·è³£ä¸­å¿</title><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, maximum-scale=1, u",
-  "http": 200,
-  "url": "https://www.tpex.org.tw/openapi/tpex_3insti_daily_trading"
- },
- {
-  "head": "<!DOCTYPE html><html lang=\"zh-Hant-tw\"><head><title>404 - è­å¸æ«æª¯è²·è³£ä¸­å¿</title><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, maximum-scale=1, u",
-  "http": 200,
-  "url": "https://www.tpex.org.tw/openapi/tpex_3insti_dealer_trading"
- },
- {
-  "head": "<!DOCTYPE html><html lang=\"zh-Hant-tw\"><head><title>404 - è­å¸æ«æª¯è²·è³£ä¸­å¿</title><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, maximum-scale=1, u",
-  "http": 200,
-  "url": "https://www.tpex.org.tw/openapi/tpex_3insti_summary"
- },
- {
-  "head": "<!DOCTYPE html><html lang=\"zh-Hant-tw\"><head><title>404 - è­å¸æ«æª¯è²·è³£ä¸­å¿</title><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, maximum-scale=1, u",
-  "http": 200,
-  "url": "https://www.tpex.org.tw/openapi/tpex_3insti_trading"
- },
- {
-  "head": "<!DOCTYPE html><html lang=\"zh-Hant-tw\"><head><title>404 - è­å¸æ«æª¯è²·è³£ä¸­å¿</title><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, maximum-scale=1, u",
-  "http": 200,
-  "url": "https://www.tpex.org.tw/openapi/tpex_3insti_qfii_trading"
+  "url": "https://www.tpex.org.tw/openapi/v1/tpex_3insti_daily_trading"
  },
  {
   "market": "上櫃",
-  "parts": [],
-  "rows": 0
+  "parts": [
+   890
+  ],
+  "rows": 890
  }
 ]
