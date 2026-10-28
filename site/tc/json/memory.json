@@ -910,7 +910,7 @@
           "weekly_hours": null,
           "overtime": null,
           "travel": null,
-          "n": 16,
+          "n": 17,
           "note": "整理文稱常日班 5.4 萬起、輪班 4.6 萬起，依學歷科系核敘；未區分碩士；常日班加班與分紅沿用同公司設備職回報（低信心）；撤回：overtime、bonus_months 原為沿用／推算／暫填值，無直接證據，已改回原值；第二輪：Dcard 台南徵才文常日班工程師月薪 6.4 萬起；annual_months 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples；未逐筆對應的舊彙整：base_month_k=[64, 64]；未逐筆對應的舊彙整：annual_months=[14, 14]；未逐筆對應的舊彙整：travel=不用",
           "sources": [
             {
@@ -992,6 +992,11 @@
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/258420902",
               "date": "2025-04"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/258252850",
+              "date": "2025-03"
             }
           ],
           "confidence": "低",
@@ -1341,9 +1346,32 @@
               "travel_raw": null,
               "in_window": true,
               "date_note": "Dcard 頁面發文日期 2025-04-01（2026-10-26 2037 批）"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/258252850",
+              "date": "2025-03",
+              "page_date": "2025-03-13",
+              "date_confirmed": true,
+              "role": "製程工程師（台中，等待結果）",
+              "grade": null,
+              "unit_detail": "台中",
+              "years": "0",
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": 14,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "發文者：尚在等待結果（非正式 offer）；(N+3)×14",
+              "in_window": true,
+              "date_note": "Dcard 頁面發文日期 2025-03-13（20261028_1449 批）",
+              "comment_sample": false
             }
           ],
-          "n_stat": 15
+          "n_stat": 16
         },
         {
           "unit": "Global team",
@@ -2857,6 +2885,30 @@
               "in_window": true,
               "date_note": "Dcard 頁面發文日期 2026-04-13（20261028_1206_a 批）",
               "comment_sample": true
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/258252850#留言B5-2",
+              "date": "2025-03",
+              "page_date": "2025-03-14",
+              "date_confirmed": true,
+              "role": "工程師（新鮮人）",
+              "grade": null,
+              "unit_detail": null,
+              "years": "0",
+              "degree": null,
+              "base_k": 72,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "留言 B5-2：中字輩朋友昨天剛拿到 offer，72k",
+              "in_window": true,
+              "date_note": "Dcard 頁面發文日期 2025-03-14（20261028_1449 批）",
+              "comment_sample": true,
+              "dup_of": "https://www.dcard.tw/f/tech_job/p/257752865"
             }
           ],
           "sources": [
@@ -2949,10 +3001,15 @@
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/259648805",
               "date": "2025-08"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/258252850",
+              "date": "2025-03"
             }
           ],
           "confidence": "低",
-          "n": 53,
+          "n": 54,
           "years": null,
           "base_month_k": [
             55,
@@ -4048,7 +4105,7 @@
           ],
           "overtime": "偶爾",
           "travel": null,
-          "n": 20,
+          "n": 21,
           "note": "2025-02 自述年薪 100 萬（含職等津貼、季獎金、分紅）；有人說近年虧損無分紅年薪不到百萬；沿用同公司設備職回報；撤回：overtime 原為沿用／推算／暫填值，無直接證據，已改回原值；第二輪：2025-11 新聞碩士新進月薪由 4.5 萬調到 6.2 萬（公司稱正常調幅）；GoodJob 2026-05 製程 6.25 萬、3 年整合 6.8 萬；Dcard 製程值班 offer 保 15、人資口頭約 17 個月；2026-08 發激勵獎金約 2 個月（有人稱會從分紅扣回）；GoodJob 2026-08 評價稱分紅有上限；annual_total_wan 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples；未逐筆對應的舊彙整：annual_months=[17, 17]；未逐筆對應的舊彙整：annual_total_wan=[90, 100]；未逐筆對應的舊彙整：travel=不用",
           "sources": [
             {
@@ -4115,6 +4172,11 @@
               "site": "GoodJob",
               "url": "https://www.goodjob.life/companies/南亞科技股份有限公司/work-experiences/升遷制度",
               "date": "2026-03"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/259338513",
+              "date": "2025-07"
             }
           ],
           "confidence": "高",
@@ -4512,9 +4574,32 @@
               "date_confirmed": true,
               "date_note": "摘要寫出發文年月",
               "in_window": true
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/259338513",
+              "date": "2025-07",
+              "page_date": "2025-07-17",
+              "date_confirmed": true,
+              "role": "黃光製程工程師（泰山，碩士新人 offer）",
+              "grade": null,
+              "unit_detail": "泰山",
+              "years": "0",
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": 15,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "發文者 offer：N-9（N＝2025 台積新人價），保 15；留言 B16 稱沒分紅和季獎金",
+              "in_window": true,
+              "date_note": "Dcard 頁面發文日期 2025-07-17（20261028_1449 批）",
+              "comment_sample": false
             }
           ],
-          "n_stat": 19
+          "n_stat": 20
         },
         {
           "unit": "其他",

@@ -2637,6 +2637,75 @@
           "grade": null
         }
       ]
+    },
+    {
+      "name": "祥茂光電",
+      "code": null,
+      "heat": null,
+      "benefits": null,
+      "stock_plan": null,
+      "bonus_timing": null,
+      "bonus_structure": [],
+      "culture": null,
+      "interview": null,
+      "grade_system": null,
+      "mops": null,
+      "note": "2026-10-28 由 Dcard 樣本新增的公司",
+      "roles": [
+        {
+          "unit": null,
+          "role": "AOI 產品／製程設計工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": [
+            14,
+            14
+          ],
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": "經常",
+          "travel": "偶爾",
+          "n": 1,
+          "note": "2026-10-28 Dcard 1449 批新增職位",
+          "confidence": "低",
+          "grade": null,
+          "n_stat": 1,
+          "samples": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/259888363",
+              "date": "2025-09",
+              "page_date": "2025-09-24",
+              "date_confirmed": true,
+              "role": "AOI 產品／製程設計工程師（林口，碩士新人 offer）",
+              "grade": null,
+              "unit_detail": "林口",
+              "years": "0",
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": 14,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": "經常",
+              "travel": "偶爾",
+              "quote_free_note": "發文者 offer：月薪 N，保 14；工時 10～12 小時（週工時為推估不填）；擴廠中很忙，可能出差一兩個月",
+              "in_window": true,
+              "date_note": "Dcard 頁面發文日期 2025-09-24（20261028_1449 批）",
+              "comment_sample": false
+            }
+          ],
+          "sources": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/259888363",
+              "date": "2025-09"
+            }
+          ]
+        }
+      ]
     }
   ]
 }

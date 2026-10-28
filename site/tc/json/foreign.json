@@ -1499,6 +1499,59 @@
             }
           ],
           "n_stat": 4
+        },
+        {
+          "unit": null,
+          "role": "職位未寫",
+          "degree": null,
+          "years": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": [
+            200,
+            200
+          ],
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n": 1,
+          "note": "2026-10-28 Dcard 1449 批新增職位",
+          "confidence": "低",
+          "grade": null,
+          "n_stat": 1,
+          "samples": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/259600090#留言B19",
+              "date": "2025-08",
+              "page_date": "2025-08-22",
+              "date_confirmed": true,
+              "role": "工程師（職稱未寫）",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 200,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "留言 B19（台科）：進 Google 才 200 多萬（以 200 萬記，為下限）",
+              "in_window": true,
+              "date_note": "Dcard 頁面發文日期 2025-08-22（20261028_1449 批）",
+              "comment_sample": true
+            }
+          ],
+          "sources": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/259600090",
+              "date": "2025-08"
+            }
+          ]
         }
       ],
       "mops": null,

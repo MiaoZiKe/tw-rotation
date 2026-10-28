@@ -820,6 +820,62 @@
           "travel": null,
           "n": 1,
           "n_stat": 1
+        },
+        {
+          "unit": null,
+          "role": "IE 工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": [
+            49,
+            50
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n": 1,
+          "note": "2026-10-28 Dcard 1449 批新增職位",
+          "confidence": "低",
+          "grade": null,
+          "n_stat": 1,
+          "samples": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261488026#留言B6-7",
+              "date": "2026-06",
+              "page_date": "2026-06-17",
+              "date_confirmed": true,
+              "role": "IE 工程師（5 年）",
+              "grade": null,
+              "unit_detail": null,
+              "years": "5",
+              "degree": null,
+              "base_k": [
+                49,
+                50
+              ],
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "留言 B6-7（雲科）：欣興 IE 待 5 年，離開時月薪約 49～50k（區間）",
+              "in_window": true,
+              "date_note": "Dcard 頁面發文日期 2026-06-17（20261028_1449 批）",
+              "comment_sample": true
+            }
+          ],
+          "sources": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261488026",
+              "date": "2026-06"
+            }
+          ]
         }
       ],
       "mops": {
@@ -2834,6 +2890,75 @@
           "n_stat": 1,
           "note": null,
           "grade": null
+        }
+      ]
+    },
+    {
+      "name": "台灣光罩",
+      "code": null,
+      "heat": null,
+      "benefits": null,
+      "stock_plan": null,
+      "bonus_timing": null,
+      "bonus_structure": [],
+      "culture": null,
+      "interview": null,
+      "grade_system": null,
+      "mops": null,
+      "note": "2026-10-28 由 Dcard 樣本新增的公司",
+      "roles": [
+        {
+          "unit": null,
+          "role": "製程工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": [
+            14,
+            14
+          ],
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n": 1,
+          "note": "2026-10-28 Dcard 1449 批新增職位",
+          "confidence": "低",
+          "grade": null,
+          "n_stat": 1,
+          "samples": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/258252850",
+              "date": "2025-03",
+              "page_date": "2025-03-13",
+              "date_confirmed": true,
+              "role": "製程工程師（新竹，碩士新人 offer）",
+              "grade": null,
+              "unit_detail": "新竹",
+              "years": "0",
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": 14,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "發文者 offer：(N-10)×14；不太需要輪班",
+              "in_window": true,
+              "date_note": "Dcard 頁面發文日期 2025-03-13（20261028_1449 批）",
+              "comment_sample": false
+            }
+          ],
+          "sources": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/258252850",
+              "date": "2025-03"
+            }
+          ]
         }
       ]
     }

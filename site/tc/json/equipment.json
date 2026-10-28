@@ -1642,7 +1642,10 @@
           "role": "設備／組裝工程師",
           "degree": "碩士",
           "years": "0-2",
-          "base_month_k": null,
+          "base_month_k": [
+            52,
+            52
+          ],
           "bonus_months": null,
           "annual_months": [
             14,
@@ -1652,7 +1655,7 @@
           "weekly_hours": null,
           "overtime": null,
           "travel": null,
-          "n": 12,
+          "n": 13,
           "note": "比薪水 2026-03 新竹設備工程師有分享但金額需解鎖；GoodJob 2026-08 設備職面試：無塵室、三到四週輪一次班、需 on call 與出差支援；未逐筆對應的舊彙整：overtime=經常（輪班＋on call）、travel=需要",
           "sources": [
             {
@@ -1689,6 +1692,11 @@
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/260978734",
               "date": "2026-03"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/260548064",
+              "date": "2025-12"
             }
           ],
           "confidence": "低",
@@ -1927,9 +1935,32 @@
               "quote_free_note": "(N+28k)×17；要輪班；留言 B11（Lam 嘉義 etch 新人）說目前還不忙但大家都說幾個月後就知道",
               "in_window": true,
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-06-23"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/260548064",
+              "date": "2025-12",
+              "page_date": "2025-12-26",
+              "date_confirmed": true,
+              "role": "設備工程師（五九約聘派駐 Lam，學士新人 offer）",
+              "grade": null,
+              "unit_detail": null,
+              "years": "0",
+              "degree": "學士",
+              "base_k": 52,
+              "bonus_months": null,
+              "annual_months": 14,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "發文者 offer：五九（Lam 約聘）52000×14；常日 on call；留言 B18 稱五九沒有保 14",
+              "in_window": true,
+              "date_note": "Dcard 頁面發文日期 2025-12-26（20261028_1449 批）",
+              "comment_sample": false
             }
           ],
-          "n_stat": 10
+          "n_stat": 11
         },
         {
           "unit": "台南",
@@ -4660,6 +4691,62 @@
             }
           ],
           "n_stat": 1
+        },
+        {
+          "unit": null,
+          "role": "客服工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": [
+            45,
+            45
+          ],
+          "bonus_months": null,
+          "annual_months": [
+            14,
+            14
+          ],
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": "經常",
+          "travel": "需要",
+          "n": 1,
+          "note": "2026-10-28 Dcard 1449 批新增職位",
+          "confidence": "低",
+          "grade": null,
+          "n_stat": 1,
+          "samples": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/260548064",
+              "date": "2025-12",
+              "page_date": "2025-12-26",
+              "date_confirmed": true,
+              "role": "客服工程師（學士新人 offer）",
+              "grade": null,
+              "unit_detail": null,
+              "years": "0",
+              "degree": "學士",
+              "base_k": 45,
+              "bonus_months": null,
+              "annual_months": 14,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": "經常",
+              "travel": "需要",
+              "quote_free_note": "發文者 offer：45000×14＋分紅；常日 on call、需出差、加班超多",
+              "in_window": true,
+              "date_note": "Dcard 頁面發文日期 2025-12-26（20261028_1449 批）",
+              "comment_sample": false
+            }
+          ],
+          "sources": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/260548064",
+              "date": "2025-12"
+            }
+          ]
         }
       ]
     },
@@ -5252,11 +5339,14 @@
           "degree": "碩士",
           "years": null,
           "base_month_k": [
-            54,
+            52,
             54
           ],
           "bonus_months": null,
-          "annual_months": null,
+          "annual_months": [
+            12,
+            12
+          ],
           "annual_total_wan": [
             100,
             100
@@ -5264,7 +5354,7 @@
           "weekly_hours": null,
           "overtime": null,
           "travel": null,
-          "n": 2,
+          "n": 3,
           "note": "未逐筆對應的舊彙整：bonus_months=[4, 6]",
           "sources": [
             {
@@ -5276,6 +5366,11 @@
               "site": "GoodJob",
               "url": "https://www.goodjob.life/companies/辛耘企業股份有限公司/work-experiences/薪資福利",
               "date": "2026-02"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/260548064",
+              "date": "2025-12"
             }
           ],
           "confidence": "低",
@@ -5322,9 +5417,32 @@
               "quote_free_note": "GoodJob 2026-02 台中，年薪 100 萬；年終加分紅約 4～6 個月，每年調薪；數值待查：原 bonus_months [4, 6] 是年終＋分紅合計，拆不出分紅",
               "in_window": true,
               "date_note": "GoodJob 標題／列表附年月，算確認"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/260548064",
+              "date": "2025-12",
+              "page_date": "2025-12-26",
+              "date_confirmed": true,
+              "role": "客服工程師（竹南，學士新人 offer）",
+              "grade": null,
+              "unit_detail": "竹南",
+              "years": "0",
+              "degree": "學士",
+              "base_k": 52,
+              "bonus_months": null,
+              "annual_months": 12,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "發文者 offer：52000×12＋分紅；常日、值班 on call；車補一天 600；留言 B24、B34 不推",
+              "in_window": true,
+              "date_note": "Dcard 頁面發文日期 2025-12-26（20261028_1449 批）",
+              "comment_sample": false
             }
           ],
-          "n_stat": 2
+          "n_stat": 3
         },
         {
           "unit": "設備",
@@ -5467,6 +5585,78 @@
           "overtime": null,
           "travel": null,
           "n_stat": 1
+        }
+      ]
+    },
+    {
+      "name": "台灣荏原",
+      "code": null,
+      "heat": null,
+      "benefits": null,
+      "stock_plan": null,
+      "bonus_timing": null,
+      "bonus_structure": [],
+      "culture": null,
+      "interview": null,
+      "grade_system": null,
+      "mops": null,
+      "note": "2026-10-28 由 Dcard 樣本新增的公司",
+      "roles": [
+        {
+          "unit": null,
+          "role": "CMP 工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": [
+            44,
+            44
+          ],
+          "bonus_months": null,
+          "annual_months": [
+            14,
+            14
+          ],
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n": 1,
+          "note": "2026-10-28 Dcard 1449 批新增職位",
+          "confidence": "低",
+          "grade": null,
+          "n_stat": 1,
+          "samples": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/260548064",
+              "date": "2025-12",
+              "page_date": "2025-12-26",
+              "date_confirmed": true,
+              "role": "CMP 工程師（學士新人 offer）",
+              "grade": null,
+              "unit_detail": null,
+              "years": "0",
+              "degree": "學士",
+              "base_k": 44,
+              "bonus_months": null,
+              "annual_months": 14,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "發文者 offer：44000×14＋分紅；常日、值班 on call",
+              "in_window": true,
+              "date_note": "Dcard 頁面發文日期 2025-12-26（20261028_1449 批）",
+              "comment_sample": false
+            }
+          ],
+          "sources": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/260548064",
+              "date": "2025-12"
+            }
+          ]
         }
       ]
     }
