@@ -7,6 +7,21 @@
 - 驗證：pytest 全跑；workflow YAML 解析；本機乾跑樣本 `docs/marketing/posts/2026-10-29-news-auto-dryrun/`（沒有真發）。純 scripts／workflow／docs，未動 site/**，_preview／_uitest 不適用。
 - 待處理：點擊（?u= 漏斗）Actions 讀不到；單一來源數字以標出處代替（見 news_auto.md 第四、九節）。
 
+## 2026-10-28 交易練習室（#lab，管理者限定；預覽 preview/trading-room；最後更新 10-28 台北）
+- Andy 要「TradingView 有的都要有」：台指期、歷史回測、K 線重播（含模擬下單）、事件分析、自訂策略。規格書 `docs/tradingview_spec.md`（TradingView 原文沒讀到，〔知〕處的口徑已寫進頁面「?」）。
+- 檔案：前端 `site/lab/{lab,engine,kview,replay,events,expr,custom}.js` ＋ `worker.js`；樣式 `site/m4/20261028-lab.css`；資料 `pipeline/compute/lab.py`（`python -m pipeline.compute.lab`，build_payload 會呼叫，`SKIP_LAB=1` 略過）→ `site/data/lab/`（約 130 MB，Pages 容量要留意）；預覽分支吃正式站資料、正式站還沒有 lab/ 目錄，所以另 commit 小樣本 `site/lab/sample/`（`python -m pipeline.compute.lab --sample`）。事件表 `pipeline/groups/events_history.yaml`（`scripts/gen_events_history.py` 產初稿）。
+- 驗：`tests/lab_engine_check.js`（269 項：人工可算序列到小數、帳務恆等式 150 組、無未來資料、指標與 KInd 同口徑）、`tests/lab_expr_check.js`（29 項：腳本＝內建策略 27 組）、pytest 包裝 `tests/test_lab_engine.py`；`_uitest` 四段 `交易練習室回測1028／重播1028／事件1028／自訂策略1028`＝0 問題；`桌機守門1008`＝0 問題；`手機v2` 本機 7 個問題但 origin/main 同環境是 10 個（不是這批造成，且這批順手修掉科技透明圈圖示那兩條）。
+- 已知限制 / 待辦（卡住的不擋其他項）：
+  1. 「籌碼」類策略（法人連買、融資減少、大戶增加）沒做：要把 `inst_daily`／`margin_daily`／`shareholding_weekly` 按標的輸出進 `site/data/lab/`，容量再加一輪，等 Andy 決定要不要。
+  2. 台指期是近月連續合約，換月價差沒調整（頁面「?」已寫）；夜盤 `FUT_N` 沒用。
+  3. 60 分 K 只給近期成交值前 500 名個股（`TOP60`，容量考量），指數與台指期沒有 60 分資料；日 K 個股從 2016 起（`DAILY_FROM`）。
+  4. 事件表：FOMC、台積電法說會日期是依公開日程整理（信心「中」，尚未逐筆對官網）；非農、台指期結算日是規則推算（信心「低」，遇假日未調整）；歷史 CPI 沒有（`macro_calendar` 只有近期）；除權息旺季是由資料湖統計。要補官方出處請改 yaml 的 `src`／`conf`。
+  5. 引擎沒做：保證金追繳、Bar Magnifier（用 60 分推演日內）、Recalculate on every tick、限價單 Verify price、多幣別；Greedy 是近似版、Technical Ratings 沒做（規格書標未核實）。
+  6. 重播：沒有分 K 逐步長出當根；委託單沒有拖曳改價；帳戶只存在記憶體（離開就清掉）；漲跌停限制沒擋。
+  7. 迷你腳本不支援迴圈／陣列／request.security；版本紀錄、分享策略沒做（規格書 P2）。
+  8. 本機 `_preview.py` 沒有涵蓋 #lab（管理者限定，不在公開路由掃描裡），驗收靠上面四段 `_uitest`。
+- 下一步：Andy 看過預覽後決定是否上正式站（上線時 `site/notices/features.json` 先不發公告，因為只有管理者看得到）；要放給一般會員前，先過 `docs/launch_standard.md` 與法遵（回測績效字樣、免責）。
+
 ## 2026-10-28 波段系統 B-M2 加進前向紙上帳本（帳戶 SWING／SWING_BRAKE；只動 pipeline，最後更新 10-28 台北）
 - 新增 `pipeline/compute/swing_b_m2.py`（名單、S1/S2、還原價、帳戶逐日推進，純函式）與 `live_signals.run_swing()`（讀寫帳本）；新表 `paper/swing_signals`、`paper/swing_holdings`、`paper/swing_watch` 已在 `config.TABLES` 註冊；淨值寫進既有 `paper/ledger`（plan＝SWING／SWING_BRAKE）。起算日 2026-10-29（第一個訊號日），最早成交 10-30 開盤。規則、失效條件、與回測引擎的差異見 `docs/paper_ledger.md` 最後一節。
 - 驗：`tests/test_swing_b_m2.py` 23 項（不偷看未來、隔日開盤成交、停損／跌破 50 日線／滿 60 日、降速、持倉上限、帳本只增不改、補跑與逐日結果一致）；全套 pytest 1432 passed，5 個 error 是本機沒裝 yfinance（`test_sources_v3` 的 intraday 測試，與本批無關）。另用 2024-03～07 逐日重播對照回測引擎成交紀錄：兩邊都有的 13 筆出場日全同、R 誤差 <1e-10。

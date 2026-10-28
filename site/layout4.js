@@ -50,6 +50,7 @@
   const PAGES = {
     overview: { grp: '今日市場', t: '總覽', d: '今天大盤怎麼走、錢集中在哪幾個族群、題材在做什麼 —— 從這裡開始，一頁看完今天的重點。' },
     articles: { grp: '今日市場', t: '精選文章', d: '站上整理過的文章：比比快訊（近期大事）、比比產業鏈（產業與公司）、比比知識（觀念與指標）；可依分類、族群、日期與標題關鍵字篩選，文中的股票與頁面都點得過去。' },
+    lab: { grp: '歷史規律', t: '交易練習室', d: '把技術分析規則放到歷史上回測：台指期與個股、60 分到月線、進出場箭頭、績效與逐筆明細；也可 K 線重播練習、看事件前後的報酬、自己組策略。' },
     tc: { grp: '族群與個股', t: '科技透明圈', d: '科技業各產業、各公司、各單位的職位：工時、底薪、分紅月數、年薪、加班狀況，可依這五項篩選，每筆附來源與信心度。' },
     earnings: { grp: '今日市場', t: '財經日曆', d: '三大分類排在同一張月曆：公司財報（市值前 50 公告的財報董事會與已公布財報）、公司法說（全部上市櫃公司公告的法說會）、FED 消息（FOMC 與美國重大數據）；點一項看分析與說明。' },
     flow: { grp: '資金流水', t: '資金流向', d: '錢正在往哪個族群跑：輪盤看輪動階段、排行看誰進誰出、資金分流樹看錢從哪裡流到哪裡。' },
@@ -350,7 +351,7 @@
     { g: 'today', t: '今日市場', first: 'overview', views: ['overview', 'articles', 'earnings'] },   // 2026-10-14 精選文章插在總覽與財經日曆之間（Andy 截圖標的位置）
     { g: 'money', t: '資金流水', first: 'flow', views: ['flow', 'heatmap'] },
     { g: 'stock', t: '族群與個股', first: 'industry', views: ['industry', 'tc', 'stock', 'market', 'explore', 'etf'] },
-    { g: 'hist', t: '歷史規律', first: 'season', views: ['season'] },
+    { g: 'hist', t: '歷史規律', first: 'season', views: ['season', 'lab'] },
     { g: 'proj', t: '專案', first: 'watch', views: ['watch', 'delivery', 'admin'] },
   ];
   const FOLD_KEY = 'l4.navFold';

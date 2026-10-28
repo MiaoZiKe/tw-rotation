@@ -90,6 +90,7 @@
           return;
         }
         if (v === 'stock' || v === 'delivery' || !has(v)) return;    // 個股頁沒有側欄入口；交付清單入口桌機也收掉了
+        if ((v === 'tc' && !root.classList.contains('tc-adm')) || (v === 'lab' && !root.classList.contains('lab-adm'))) return;   // 管理者限定的頁：非管理者抽屜根本不列（光用 CSS 藏會讓「每一項都有圖示」的驗收把隱藏項算進去）
         const P = N.PAGES[v] || { t: v };
         const subs = N.SUBS[v] || [];
         const on = pg === v || (v === 'industry' && pg === 'stock');

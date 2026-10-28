@@ -7083,3 +7083,9 @@ Andy 原話（10-20，錄「今日事件＋精選文章」功能影片時的選�
 - 別順手改回去：不要把帳本改成可覆寫；不要在帳本滿 3 年前用短期績效調參數或下結論。
 - 2026-10-28 科技透明圈期間改 2025-01-01 起（Andy：「Dcard 和 Goodjob 交叉比對看喔，時間從2025/01開始搜尋」）；Dcard 編號 ≥ 258870385（2025-05-21 錨點）視為日期確認；疑似同一人重複標 `dup_of` 不入統計、前端歸「範圍外」。比對見 docs/tc/crosscheck_dcard_goodjob.md。
 - 2026-10-28 科技透明圈人工刪除（Andy：「有些數據資訊太少，所以你需要新增刪除功能給我，我會在人工審閱」）：公司／職位／樣本三層可標刪除（不進統計、不顯示、可復原）。持久化沿用「隱藏分頁」同一套——會員 Worker kv `tc_hidden`（`/v1/tc/hidden` 管理者讀、`/v1/tc/hidden/put` 管理者寫），localStorage 只當快取；預覽版寫入被擋、只存預覽自己的 localStorage。鍵＝類型|產業|公司|單位|職位|樣本內容雜湊，原始 JSON 不動、每次從 raw 重建。別順手改回去：不要把刪除清單改存瀏覽器（Andy 只用網頁、要所有裝置一樣）；Worker 要 push main 才會經 deploy-account-worker 上線，之前前端寫入會 404 並還原。
+
+
+## #367 交易練習室（#lab）：回測引擎純前端放 Web Worker、K 線沿用全站 KChart、資料每檔一個靜態 JSON、管理者限定（前端專家，2026-10-28；合併時若撞號請改號）
+- 決定：① 引擎無 DOM（`site/lab/engine.js`），Worker／主執行緒／Node 同一份，`tests/lab_engine_check.js` 用人工可算序列驗；訊號收盤判定、下一根開盤成交，停損單只掛一根、跳空以開盤價成交，同根停損停利依「開盤離高點較近→先高後低」決定誰先（TradingView 預設口徑）。② K 線用 `KChart`＋`DrawTools`（指標面板、繪圖工具全站一致），進出場箭頭另掛 `createSeriesMarkers`；重播時圖只送到目前那一根，指標因此不可能洩漏未來。③ 資料由 `pipeline/compute/lab.py` 產整數差分編碼的每檔 JSON（價格用總報酬還原價，與 K 線同口徑），前端不打任何外部 API。④ 積木編輯器先轉腳本文字再編譯，只有一條編譯路徑；腳本只做安全子集（無迴圈、無任意 JS）。⑤ 管理者限定判定沿用科技透明圈（`TwAccount.user()` 的 admin／owner），抽屜與側欄對非管理者不列。
+- 別順手改回去：不要把引擎改成「訊號當根成交」當預設（偷看未來）；不要在前端另寫一套指標（要與 `KInd`／`indicators.py` 同口徑，`lab_engine_check.js` 第 H 段會抓）；不要為了省容量把個股日 K 改成未還原價（回測會被除權息跳空騙）；不要把 `site/data/lab/` 加進 git（`site/lab/sample/` 才是要 commit 的預覽樣本）。
+- 取捨（Andy 可能不同意）：個股日 K 只到 2016、60 分只給成交值前 500 名（Pages 容量，全部約 130 MB）；Sharpe／Sortino 用月報酬、無風險 2%（TradingView 口徑未核實，頁面「?」寫明）；籌碼策略沒做。
