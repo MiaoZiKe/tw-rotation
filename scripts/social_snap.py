@@ -2250,9 +2250,15 @@ def main() -> int:
         (out / "text_report.md").write_text("\n".join(lines_), "utf-8")
         log(f"重疊檢查：程式 {len(report)} 張版面（{sum(r['n'] for r in report)} 個框）{len(bad)} 張有問題")
         if bad:
+            # 2026-10-28 Andy：「後續盤中 盤後也不能發生這樣的事情」→ 一張圖重疊不再擋下整篇：拿掉那張、其他照發，記進 alert.txt
             for r in bad:
-                log("  ✗", r["file"], r["hits"], r["out"], r["cut"])
-            return 3
+                log("  ✗", r["file"], r["hits"], r["out"], r["cut"], "→ 這張不放進貼文")
+            drop_ = {r["file"] for r in bad}
+            threads_imgs = [f for f in threads_imgs if Path(f).name not in drop_]
+            stories = [f for f in stories if Path(f).name not in drop_]
+            if not threads_imgs and not stories:
+                return 3
+            (out / "alert.txt").write_text(f"{args.kind} 貼文有 {len(drop_)} 張圖版面重疊，已拿掉不發：{'、'.join(sorted(drop_))}。\n", "utf-8")
 
         if args.kind in ("close", "credit"):      # 融資／融券文案改讀資料檔、只列個股（跟圖同一份：social_native.credit_top），2026-10-26 Andy「排除ETF只列個股」
             mf_ = (fetch_json(base, "market_fut") or {}).get("margin") or {}
