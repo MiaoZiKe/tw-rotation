@@ -1,6 +1,6 @@
 {
  "enabled": true,
- "at": "2026-10-28T03:24:01.568659+00:00",
+ "at": "2026-10-28T03:29:26.397846+00:00",
  "manual": {
   "files": 0,
   "applied": [],
@@ -28,15 +28,15 @@
  "failures": [],
  "tc": {
   "domains": 101,
-  "have": 65,
-  "coverage": 0.644,
+  "have": 66,
+  "coverage": 0.653,
   "pending": 0,
   "next_due": "2026-11-27",
   "counts": {
    "not_logo": 13,
    "robots": 2,
-   "none": 13,
-   "ok": 6,
+   "none": 12,
+   "ok": 7,
    "error": 1,
    "too_small": 7
   }
