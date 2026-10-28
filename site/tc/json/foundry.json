@@ -6546,7 +6546,7 @@
           "years": "0-2",
           "base_month_k": [
             39.5,
-            48
+            50
           ],
           "bonus_months": null,
           "annual_months": null,
@@ -6748,9 +6748,14 @@
               "site": "GoodJob",
               "url": "https://www.goodjob.life/companies/台灣積體電路製造股份有限公司(台積電)%20TSMC/salary-work-times?p=3",
               "date": "2026-08"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/257770002",
+              "date": "2025-11"
             }
           ],
-          "n": 48,
+          "n": 49,
           "grade": "2X 職等（副工程師）",
           "busyness": "高：每月加班 10～20 小時、每月 2～3 個週末加班（Dcard 自述）",
           "samples": [
@@ -7759,9 +7764,32 @@
               "quote_free_note": "自填；日工時 表訂/實際 8/12；原選項幾乎每天",
               "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2026-08（20261028_1555 批）"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/257770002#留言B34-19",
+              "date": "2025-11",
+              "page_date": "2025-11-06",
+              "date_confirmed": true,
+              "role": "MAE 設備助理工程師（24 等，轉職）",
+              "grade": "24",
+              "unit_detail": null,
+              "years": "8",
+              "degree": null,
+              "base_k": 50,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "留言 B34-19（高科）：日月光設備 8 年後跳台積 MAE，年資談到 24 等，底薪超過 50K（以 50K 記，下限）",
+              "in_window": true,
+              "date_note": "Dcard 頁面發文日期 2025-11-06（20261028_1725 批）",
+              "comment_sample": true
             }
           ],
-          "n_stat": 37,
+          "n_stat": 38,
           "bonus_timing_month": "2 月、5 月、7 月、8 月、11 月"
         },
         {
