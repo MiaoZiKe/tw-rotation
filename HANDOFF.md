@@ -1,5 +1,12 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
+## 2026-10-28 新聞貼文自動排程上線（Andy「可以，接上排程，單位改成億美元…」；最後更新 10-28 台北）
+- 圖卡大數字單位：`render_news_cards.py` 數字正則改成「億美元」整段保留；10-28 盤後五張重產（--pal D，重疊 0 筆）。
+- 新工作流程「新聞貼文自動排程」`.github/workflows/social_news.yml`：接在「社群即時貼文」每輪之後＋備援 08:35／12:16／19:35／21:05／22:35；主貼文發出 +30 分（盤前 ≥08:50、盤中 ≥12:31）排 3～5 篇到 social/{ig,threads}/queue。
+- 產稿 `scripts/social_news.py`（模板、不用 LLM）、法遵 `scripts/news_legal.py`、成效／週報／權重 `scripts/news_insights.py`（掛在 social_insights.yml、social_style_weekly.yml）。說明 `docs/marketing/social_unit/news_auto.md`。
+- 驗證：pytest 全跑；workflow YAML 解析；本機乾跑樣本 `docs/marketing/posts/2026-10-29-news-auto-dryrun/`（沒有真發）。純 scripts／workflow／docs，未動 site/**，_preview／_uitest 不適用。
+- 待處理：點擊（?u= 漏斗）Actions 讀不到；單一來源數字以標出處代替（見 news_auto.md 第四、九節）。
+
 ## 2026-10-28 波段系統 B-M2 加進前向紙上帳本（帳戶 SWING／SWING_BRAKE；只動 pipeline，最後更新 10-28 台北）
 - 新增 `pipeline/compute/swing_b_m2.py`（名單、S1/S2、還原價、帳戶逐日推進，純函式）與 `live_signals.run_swing()`（讀寫帳本）；新表 `paper/swing_signals`、`paper/swing_holdings`、`paper/swing_watch` 已在 `config.TABLES` 註冊；淨值寫進既有 `paper/ledger`（plan＝SWING／SWING_BRAKE）。起算日 2026-10-29（第一個訊號日），最早成交 10-30 開盤。規則、失效條件、與回測引擎的差異見 `docs/paper_ledger.md` 最後一節。
 - 驗：`tests/test_swing_b_m2.py` 23 項（不偷看未來、隔日開盤成交、停損／跌破 50 日線／滿 60 日、降速、持倉上限、帳本只增不改、補跑與逐日結果一致）；全套 pytest 1432 passed，5 個 error 是本機沒裝 yfinance（`test_sources_v3` 的 intraday 測試，與本批無關）。另用 2024-03～07 逐日重播對照回測引擎成交紀錄：兩邊都有的 13 筆出場日全同、R 誤差 <1e-10。

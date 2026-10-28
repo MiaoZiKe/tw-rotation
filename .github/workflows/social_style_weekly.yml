@@ -1,5 +1,6 @@
 name: social_style_weekly
 # 每週一台北 09:30：讀 social-snaps 的貼文目錄，重算格式統計，更新 docs/marketing/style_stats_1027.md 的附錄並推回 main。
+# 2026-10-28 加：同時產出「新聞貼文週報」docs/marketing/news_weekly/<日期>.md，並更新選題權重 social/news/weights.json（scripts/news_insights.py）。
 on:
   schedule:
     - cron: "30 1 * * 1"
@@ -33,7 +34,10 @@ jobs:
           PY
           git config user.name tw-rotation-bot
           git config user.email actions@github.com
-          git add "$F"
+          D=$(TZ=Asia/Taipei date +%F)
+          python3 scripts/news_insights.py --catalog /tmp/cat.json --out /tmp/news_insights.json \
+            --weekly "docs/marketing/news_weekly/$D.md" --weights social/news/weights.json || echo "::warning::新聞貼文週報產生失敗"
+          git add "$F" docs/marketing/news_weekly social/news/weights.json
           git diff --cached --quiet && { echo "無變化"; exit 0; }
           git commit -q -m "貼文格式統計每週自動更新 $(TZ=Asia/Taipei date +%F)"
           for i in 1 2 3; do git pull --rebase -q origin main && git push -q origin HEAD:main && break; sleep 5; done

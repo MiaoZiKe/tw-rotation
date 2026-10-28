@@ -11,7 +11,7 @@ CAT = {"美股": "blue", "台股": "green", "財報": "mustard", "總經": "cora
 CVAR = {"blue": "--bl", "green": "--gr", "mustard": "--my", "coral": "--co", "ink": "--ink"}
 CTXT = {"blue": "#fff", "green": "#fff", "mustard": P["ink"], "coral": P["ink"], "ink": "#fff"}
 STRIPE = ["--gr", "--co", "--bl", "--my"]; TINT = ["--tg", "--tc", "--tb", "--tm"]
-NUM = re.compile(r"(?<![A-Za-z\d])\d[\d,.]*\s*[%％兆億萬元點]*")
+NUM = re.compile(r"(?<![A-Za-z\d])\d[\d,.]*\s*[%％兆億萬]*(?:美元|元|點)?")   # 「億美元」整段保留（Andy 10-28：單位改成億美元）
 e = html.escape
 def hl(title):  # 標題第一個數字（含單位）加芥黃底線，並用主綠
     m = NUM.search(title)
@@ -276,15 +276,21 @@ def card_v4(d, idx, tot, bg=None, slot="pre"):
     imgh = (chipt - 16 - 128) // 8 * 8
     hi = next((i for i, l in enumerate(tl) if NUM.search(l)), -1)
     def hl4(l):
-        m = NUM.search(l)
-        if not m: return e(l)
-        return e(l[:m.start()]) + f'<span class="ser num" style="font-weight:700;text-decoration:underline;text-decoration-color:{K["acc"]};text-decoration-thickness:6px;text-underline-offset:8px">{e(m.group(0))}</span>' + e(l[m.end():])
+        if "hl" in c:      # 自動產稿（scripts/social_news.py）指定要畫底線的字；空字串＝不畫
+            k = l.find(c["hl"]) if c["hl"] else -1
+            a, b = (k, k + len(c["hl"])) if k >= 0 else (None, None)
+        else:
+            m = NUM.search(l); a, b = (m.start(), m.end()) if m else (None, None)
+        if a is None: return e(l)
+        return e(l[:a]) + f'<span class="ser num" style="font-weight:700;text-decoration:underline;text-decoration-color:{K["acc"]};text-decoration-thickness:6px;text-underline-offset:8px">{e(l[a:b])}</span>' + e(l[b:])
     if bg: art = f'<img class="a" data-g=1 style="left:64px;top:128px;width:952px;height:{imgh}px;border-radius:4px" src="{bg_plain(bg, 952, imgh)}">'
     else:
-        hero = next((NUM.search(l).group(0).strip() for l in tl if NUM.search(l)), None)
+        hero = c.get("hero") or next((NUM.search(l).group(0).strip() for l in tl if NUM.search(l)), None)
         if not hero and nums: hero = (nums[0]["value"] + nums[0]["unit"]).strip()
         mm = re.match(r"[約逾\s]*([\d,.]+)\s*(.*)", hero or ""); num = mm.group(1) if mm else (hero or ""); unit = mm.group(2) if mm else ""
-        label = next((x["label"] for x in nums if num and num.replace(",", "") in x["value"].replace(",", "")), "")
+        hit = next((x for x in nums if num and num.replace(",", "") in x["value"].replace(",", "")), None)
+        label = hit["label"] if hit else ""
+        if hit and "美元" in hit["unit"] and "美元" not in unit: unit = hit["unit"]   # 對應單位含美元時顯示完整（如「億美元」），不截成「億」
         fsz = 208 if len(num) <= 5 else 160
         art = (f'<div class="a" data-bg=1 style="left:64px;top:128px;width:952px;height:{imgh}px;background:{K["panel"]};border-radius:4px"></div>'
                f'<div class="a T3b" style="left:96px;top:{128 + (imgh - fsz - 16 - 48)//2}px;color:{K["mu"]}">{e(label)}</div>'
