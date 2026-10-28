@@ -1,0 +1,2 @@
+/* 2026-10-27 Andy：LOGO 不可裁切；站內圖（代號圖／網域圖）object-fit:contain、容器內留 10% 邊距、白圓底 */
+#v-tc .tc-lg img.lc{position:absolute;inset:0;width:100%;height:100%;max-width:none;max-height:none;object-fit:contain;padding:10%;box-sizing:border-box;border-radius:50%;background:#fff;border:0}

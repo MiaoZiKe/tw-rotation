@@ -1,0 +1,141 @@
+/* 科技透明圈（#tc）：桌機樣式在這裡、手機規則全包在 @media (max-width:640px)，不動共用元件 */
+#v-tc .tc-card{padding:var(--sp-3) var(--sp-4)}
+#v-tc .tc-hd h3{display:flex;align-items:center;gap:var(--sp-2);margin:0}
+#v-tc .tc-upd{color:var(--ink-3);font-size:13px}
+#v-tc .tc-how{position:relative;display:inline-block}
+#v-tc .tc-q{width:20px;height:20px;border-radius:50%;border:1px solid var(--line-2);background:var(--panel-3);color:var(--cyan);font-size:12px;cursor:pointer;padding:0}
+#v-tc .tc-pop{position:absolute;z-index:30;left:0;top:28px;width:min(360px,80vw);padding:var(--sp-3);background:var(--panel);border:1px solid var(--line-2);border-radius:var(--r-sm);font-size:13px;font-weight:400;line-height:1.6;box-shadow:0 8px 24px rgba(0,0,0,.35)}
+#v-tc .tc-pop[hidden]{display:none}
+#v-tc .tc-tabs{margin-top:var(--sp-2)}
+#v-tc .tc-tabs small{margin-left:6px;color:var(--ink-3);font-weight:400}
+#v-tc .tc-body{border:1px solid var(--line);border-radius:0 var(--r-sm) var(--r-sm) var(--r-sm);padding:var(--sp-3);margin-top:-1px}
+#v-tc .tc-fbar{display:flex;flex-wrap:wrap;gap:var(--sp-2) var(--sp-4);align-items:center;margin-bottom:var(--sp-3)}
+#v-tc .tc-ftog{display:none}
+#v-tc .tc-fgrp{display:flex;flex-wrap:wrap;gap:var(--sp-2) var(--sp-4);align-items:center}
+#v-tc .tc-f{display:flex;align-items:center;gap:var(--sp-2)}
+#v-tc .tc-fl{color:var(--ink-3);font-size:13px;white-space:nowrap}
+#v-tc .tc-clear{border:1px solid var(--line-2);background:var(--panel-3);color:var(--ink-2);border-radius:var(--r-sm);height:32px;padding:0 var(--sp-3);cursor:pointer;font-size:13px}
+#v-tc .tc-clear[hidden]{display:none}
+#v-tc .tc-cnt{color:var(--ink-3);font-size:13px;margin-bottom:var(--sp-2)}
+#v-tc .tc-cnt b{color:var(--cyan)}
+#v-tc .tc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:var(--sp-3)}
+#v-tc .tc-co{display:flex;flex-direction:column;gap:var(--sp-2);padding:var(--sp-3);border:1px solid var(--line);border-radius:var(--r-sm);background:var(--panel-2);color:var(--ink);text-decoration:none;min-height:152px;overflow:hidden}
+#v-tc .tc-co:hover{border-color:var(--cyan)}
+#v-tc .tc-coh{display:flex;align-items:baseline;gap:var(--sp-2);white-space:nowrap}
+#v-tc .tc-coh b{font-size:16px}
+#v-tc .tc-coh small{color:var(--ink-3)}
+#v-tc .tc-heat{margin-left:auto;font-size:12px;color:var(--cyan)}
+#v-tc .tc-cok{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--sp-2);text-align:center}
+#v-tc .tc-cok em{display:block;font-style:normal;font-size:18px;font-weight:700;color:var(--cyan);font-family:var(--mono,inherit)}
+#v-tc .tc-cok span{font-size:12px;color:var(--ink-3)}
+#v-tc .tc-cob{font-size:13px;color:var(--ink-2);overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
+#v-tc .tc-crumb{margin-bottom:var(--sp-2)}
+#v-tc .tc-crumb a,#v-tc .tc-code{color:var(--cyan)}
+#v-tc .tc-cinfo h4{margin:0 0 var(--sp-2);font-size:16px}
+#v-tc .tc-cinfo dl{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:var(--sp-2) var(--sp-4);margin:0 0 var(--sp-3)}
+#v-tc .tc-cinfo dt{font-size:12px;color:var(--ink-3)}
+#v-tc .tc-cinfo dd{margin:0;font-size:13.5px}
+#v-tc .tc-tw{max-height:560px;overflow:auto;border:1px solid var(--line);border-radius:var(--r-sm)}
+#v-tc .tc-tbl{width:100%;border-collapse:collapse;font-size:13.5px;text-align:center}
+#v-tc .tc-tbl th{position:sticky;top:0;background:var(--panel-3);color:var(--ink-2);padding:var(--sp-2);white-space:nowrap;font-weight:600}
+#v-tc .tc-tbl th.srt{cursor:pointer}
+#v-tc .tc-tbl th.on{color:var(--cyan)}
+#v-tc .tc-tbl td{padding:var(--sp-2);border-top:1px solid var(--line);white-space:nowrap}
+#v-tc .tc-tbl td.tc-src{white-space:normal;min-width:160px}
+#v-tc .tc-unit td{text-align:left;background:var(--panel-2);font-weight:700;color:var(--ink)}
+#v-tc .tc-unit i{display:inline-block;width:4px;height:14px;background:var(--cyan);margin-right:var(--sp-2);vertical-align:-2px;border-radius:2px}
+#v-tc .tc-unit small{margin-left:var(--sp-2);color:var(--ink-3);font-weight:400}
+#v-tc .tc-role{text-align:left}
+#v-tc .tc-role small{display:block;color:var(--ink-3)}
+#v-tc .tc-big{font-weight:700;color:var(--cyan)}
+#v-tc .tc-ot,#v-tc .tc-conf{display:inline-block;padding:1px 8px;border-radius:10px;font-size:12px;border:1px solid var(--line-2)}
+#v-tc .ot-hi{color:#ff7a45;border-color:#ff7a45}
+#v-tc .ot-mid{color:#f5b041;border-color:#f5b041}
+#v-tc .ot-lo{color:#2ec4b6;border-color:#2ec4b6}
+#v-tc .tc-conf.hi{color:#2ec4b6;border-color:#2ec4b6}
+#v-tc .tc-conf.mid{color:#f5b041;border-color:#f5b041}
+#v-tc .tc-conf.lo{color:#ff7a45;border-color:#ff7a45}
+#v-tc .tc-src a{color:var(--cyan)}
+#v-tc .tc-foot{margin-top:var(--sp-3);text-align:center;color:var(--ink-3);font-size:12px}
+@media (max-width:640px){
+  #v-tc .tc-ftog{display:inline-block;height:40px;padding:0 var(--sp-4);border:1px solid var(--line-2);background:var(--panel-3);color:var(--ink);border-radius:var(--r-sm);font-size:13px}
+  #v-tc .tc-fgrp{display:none;width:100%;flex-direction:column;align-items:stretch}
+  #v-tc .tc-fgrp.open{display:flex}
+  #v-tc .tc-f{flex-wrap:wrap}
+  #v-tc .tc-f .seg{overflow-x:auto;max-width:100%}
+  #v-tc .tc-f .seg button{min-height:40px;white-space:nowrap}
+  #v-tc .tc-clear{height:40px}
+  #v-tc .tc-hd{flex-wrap:wrap}
+  #v-tc .tc-tw{max-height:none;border:0}
+  #v-tc .tc-tbl,#v-tc .tc-tbl tbody{display:block}
+  #v-tc .tc-tbl thead{display:none}
+  #v-tc .tc-row{display:grid;grid-template-columns:1fr 1fr;gap:2px var(--sp-3);padding:var(--sp-2);border:1px solid var(--line);border-radius:var(--r-sm);margin-bottom:var(--sp-2)}
+  #v-tc .tc-row td{display:flex;justify-content:space-between;gap:var(--sp-2);border:0;padding:2px 0;white-space:normal;text-align:right}
+  #v-tc .tc-row td::before{content:attr(data-l);color:var(--ink-3);font-size:12px;text-align:left}
+  #v-tc .tc-row .tc-role{grid-column:1/-1;text-align:left;display:block}
+  #v-tc .tc-row .tc-role::before{content:none}
+  #v-tc .tc-row .tc-src{grid-column:1/-1}
+  #v-tc .tc-unit{display:block;margin:var(--sp-2) 0 var(--sp-1)}
+  #v-tc .tc-unit td{display:block;background:none;padding:0}
+  #v-tc .tc-grid{grid-template-columns:1fr}
+}
+
+/* 2026-10-25 只限管理者：html 沒有 .tc-adm 時，側欄／手機導覽的入口一律藏（路由本身在 tc.js 導回總覽） */
+html:not(.tc-adm) .tab[data-view="tc"],html:not(.tc-adm) a[href="#tc"],html:not(.tc-adm) [data-v="tc"]{display:none!important}
+#v-tc .tc-kvs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px var(--sp-3)}
+#v-tc .tc-kv{display:flex;justify-content:space-between;gap:6px;font-size:13px;min-width:0}
+#v-tc .tc-kv span{color:var(--ink-3);white-space:nowrap}
+#v-tc .tc-kv b{font-weight:600;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+#v-tc .tc-sms{display:flex;flex-direction:column;gap:2px;border-top:1px solid var(--line);padding-top:var(--sp-2)}
+#v-tc .tc-sm{font-size:12px;color:var(--ink-2);line-height:1.5;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#v-tc .tc-sm span{color:var(--ink-3);margin-right:6px}
+#v-tc .tc-deg small{display:block;color:var(--ink-3);font-size:12px}
+#v-tc .tc-gs{color:var(--ink-2);font-size:13px;margin-bottom:var(--sp-2)}
+#v-tc .tc-gs b{color:var(--cyan);margin-right:8px}
+#v-tc .tc-tsmcnote{color:var(--cyan)}
+#v-tc .tc-exp{background:none;border:0;color:var(--cyan);cursor:pointer;min-width:24px;min-height:24px;padding:0 4px;font-size:13px}
+#v-tc .tc-smw{overflow-x:auto;padding:var(--sp-2)}
+#v-tc .tc-smt{width:100%;font-size:12px;border-collapse:collapse}
+#v-tc .tc-smt th,#v-tc .tc-smt td{padding:4px 8px;text-align:left;border-bottom:1px solid var(--line,#2a3342)}
+#v-tc .tc-st summary,#v-tc .tc-st.leaf{display:grid;grid-template-columns:minmax(120px,2fr) 70px 1.5fr 1.5fr;gap:8px;padding:6px 8px;cursor:pointer;font-size:13px}
+#v-tc .tc-st.leaf{cursor:default}
+#v-tc .tc-st .tc-st{margin-left:16px}
+#v-tc .tc-st.l1>summary{font-weight:700;color:var(--cyan)}
+@media (max-width:640px){#v-tc .tc-st summary,#v-tc .tc-st.leaf{grid-template-columns:1fr 1fr;font-size:12px}#v-tc .tc-st .tc-st{margin-left:8px}}
+#v-tc .tc-smrow[hidden]{display:none}
+#v-tc .tc-out td{opacity:.5}#v-tc .tc-out em{color:var(--ink-3);font-style:normal}
+@media (min-width:641px){
+#v-tc .tc-tw{max-height:none;overflow-x:hidden}
+#v-tc .tc-tbl{font-size:12.5px;table-layout:auto}
+#v-tc .tc-tbl th{padding:6px 3px;font-size:12px}
+#v-tc .tc-tbl td{padding:6px 3px}
+#v-tc .tc-tbl td.tc-role{white-space:normal;text-align:left;min-width:90px}
+#v-tc .tc-tbl td.tc-src{min-width:0;font-size:11.5px;white-space:normal;max-width:130px}
+#v-tc .tc-tbl td.tc-src small{display:block;color:var(--ink-3)}
+#v-tc .tc-tbl td:nth-child(7){white-space:normal;max-width:70px}
+}
+#v-tc .tc-info>summary{display:none}
+@media (max-width:640px){
+  #v-tc .tc-info>summary{display:block;cursor:pointer;color:var(--ink-2);font-size:13px;min-height:40px;line-height:40px;list-style:none}
+  #v-tc .tc-info>summary::before{content:"▸ "}
+  #v-tc .tc-info[open]>summary::before{content:"▾ "}
+  #v-tc .tc-row td:not(.tc-role):not(.tc-big):not([data-l="樣本"]):not([data-l="信心"]){display:none}
+  #v-tc .tc-row.mo td:not(.x):not(.y):not(.z):not([x]):not([y]){display:flex}
+  #v-tc .tc-row{cursor:pointer;grid-template-columns:repeat(3,1fr);padding:6px var(--sp-2);margin-bottom:6px}
+  #v-tc .tc-row.mo{grid-template-columns:1fr 1fr}
+  #v-tc .tc-row td{font-size:12px;padding:0}
+  #v-tc .tc-row .tc-role small{display:inline;margin-left:6px}
+  #v-tc #tcCnt::after{content:"・點職位列看全部欄位";color:var(--ink-3)}
+  #v-tc .tc-row .tc-conf{white-space:nowrap}
+  #v-tc .tc-smrow td{display:block}
+}
+
+/* 分紅結構（2026-10-25）：每種獎金一行 */
+#v-tc .tc-bs{margin-bottom:var(--sp-2);font-size:13px;color:var(--ink-2)}
+#v-tc .tc-bs h5{margin:0 0 4px;font-size:14px;color:var(--cyan)}
+#v-tc .tc-bs summary{cursor:pointer;color:var(--cyan);font-size:14px;min-height:32px}
+#v-tc .tc-bsr{display:grid;grid-template-columns:minmax(120px,1.2fr) 3fr 90px 2fr;gap:8px;padding:4px 0;border-top:1px solid var(--line,rgba(128,128,128,.2))}
+#v-tc .tc-bsr em{font-style:normal;color:var(--ink)}
+#v-tc .tc-bsr small{font-size:11px;opacity:.8}
+#v-tc .tc-bsr small a{color:inherit;text-decoration:underline}
+@media (max-width:640px){#v-tc .tc-bsr{grid-template-columns:1fr 90px}#v-tc .tc-bsr span,#v-tc .tc-bsr small{grid-column:1/-1}}

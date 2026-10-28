@@ -5592,8 +5592,12 @@ h3 .howbtn.pop{font-family:inherit}
 <link rel="stylesheet" href="m4/20261020-margin-fut.css">
 <link rel="stylesheet" href="m4/20261020-market-r3.css">
 <link rel="stylesheet" href="m4/20261024-siph-chain.css">
+<link rel="stylesheet" href="m4/20261025-tc.css">
 <link rel="stylesheet" href="m4/20261026-premarket-tab.css">
+<link rel="stylesheet" href="m4/20261026-tc-charts.css">
 <link rel="stylesheet" href="m4/20261027-articles-tabs6.css">
+<link rel="stylesheet" href="m4/20261027-tc-logo-fit.css">
+<link rel="stylesheet" href="m4/20261028-tc-pay-compact.css">
 <!-- m4:css 結束 -->
 <!-- ★ 2026-10-03 一屏看完（DECISIONS #308，fit.css／fit.js）：每張圖表卡完整落在一屏可視高度內，只動桌機（≥821）的卡高與圖高。 -->
 <link rel="stylesheet" href="fit.css">
@@ -5619,6 +5623,7 @@ h3 .howbtn.pop{font-family:inherit}
     <button class="tab" data-view="overview">總覽</button>
     <button class="tab" data-view="flow">資金流向</button>
     <button class="tab" data-view="industry">產業地圖</button>
+    <button class="tab" data-view="tc">科技透明圈</button>
     <button class="tab" data-view="heatmap">熱力圖</button>
     <!-- ★ 2026-09-24（Andy：「題材內 熱力圖 放到熱力圖分頁」，截圖上把「熱力圖」「題材」框在一起寫「合併」）：
          「題材」分頁併進「熱力圖」—— 題材資金熱力＋題材細節（剖析圖）整塊搬到 #v-heatmap 的全市場熱力圖下面。
@@ -5645,6 +5650,7 @@ h3 .howbtn.pop{font-family:inherit}
          DOM 放在財經日曆前面：電腦版側欄兩顆都是 order 1（同「今日市場」組），同 order 照 DOM 排 → 總覽、精選文章（＋三個子項）、財經日曆。
          手機（html.m4）#tabs 整排藏起來、由 mobile4.js 抽屜讀 layout4.js 的 GROUPS，不吃這裡的順序。 -->
     <button class="tab" data-view="articles">精選文章</button>
+    <!-- 2026-10-25 科技透明圈（site/tc/tc.js）：DOM 放在財經日曆之後（手機底部列用 nth-child，不插中間） -->
     <button class="tab" data-view="earnings">財經日曆</button>
     <!-- ★ 2026-09-23（Andy：「上方分頁任務板移除」）：入口收掉。
          `site/tasks.js`、`#v-tasks` 與 `#tasks` 路由**刻意留著**（他只說移除分頁）——
@@ -5990,6 +5996,8 @@ h3 .howbtn.pop{font-family:inherit}
   <section class="view" id="v-earnings"></section>
   <!-- ================= 精選文章（#articles、#articles/<類別>、#article/<id>，2026-10-14） ================= 整頁由 site/articles.js 畫 -->
   <section class="view" id="v-articles"></section>
+  <!-- 科技透明圈（#tc，2026-10-25）整頁由 site/tc/tc.js 畫 -->
+  <section class="view" id="v-tc"></section>
 
   <!-- ================= 週期統計（路由沿用 #season） =================
        ★ 2026-09-24（Andy：「下方的兩個表格都拿掉」）：「逐年明細」與「本月歷史最強族群」兩張卡整張移除。
@@ -6193,6 +6201,7 @@ return {load:load,ready:ready,srcs:srcs};})();
 <script src="futpages.js"></script><!-- 2026-10-20 市場明細：台指期三大法人未平倉、微台指散戶多空比 -->
 <script src="earnings.js"></script>
 <script src="artillus.js"></script><!-- 2026-10-16 精選文章的具象插圖（CoWoS 剖面、AI 機櫃）：{"t":"illus"} 區塊的 SVG 幾何與錨點；版面與引線在 articles.js -->
+<script src="tc/logos.js"></script><script src="tc/tc.js"></script><!-- 2026-10-25 科技透明圈 -->
 <script src="articles.js"></script><!-- 2026-10-14 精選文章（列表／單篇）＋管理區 #admin/articles；資料在 site/articles/（不在 site/data/）-->
 <script src="artsched.js"></script><!-- 2026-10-16 產貼文頻率設定（第 2 版：日期→整點時段→類別篇數→加入排程清單→啟用）：由 articles.js 掛進 #admin/articles「文章主題」分頁最下面（僅管理者） -->
 <script src="market3.js"></script>
