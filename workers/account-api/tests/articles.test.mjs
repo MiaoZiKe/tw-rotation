@@ -314,3 +314,20 @@ test('隱藏分頁：預設空；管理者可寫；訪客讀得到；非管理�
   assert.deepEqual((await pj(hub, '/v1/articles/tabs', {})).j.hidden, ['premarket', 'postmarket'], '訪客讀得到');
   assert.deepEqual((await pj(hub, '/v1/articles/tabs/put', { t: andy, hidden: [] })).j.hidden, [], '全部顯示');
 });
+
+/* 科技透明圈人工刪除清單（2026-10-28）：只有管理者能讀寫、壞輸入擋、去重、整份取代 */
+test('科技透明圈刪除清單：管理者讀寫；訪客與一般會員 403；壞輸入 400；去重', async () => {
+  const { hub } = makeHub({ ...env, GOOGLE_CLIENT_ID: CID });
+  const andy = await login(hub, 'andy@example.com'), bob = await login(hub, 'bob@example.com');
+  assert.equal((await pj(hub, '/v1/tc/hidden', {})).s, 403, '沒登入不能讀');
+  assert.equal((await pj(hub, '/v1/tc/hidden', { t: bob })).s, 403, '一般會員不能讀');
+  assert.deepEqual((await pj(hub, '/v1/tc/hidden', { t: andy })).j.hidden, [], '預設空');
+  assert.equal((await pj(hub, '/v1/tc/hidden/put', { t: bob, hidden: ['c|icdesign|Meta'] })).s, 403);
+  assert.equal((await pj(hub, '/v1/tc/hidden/put', { t: andy, hidden: 'x' })).s, 400);
+  assert.equal((await pj(hub, '/v1/tc/hidden/put', { t: andy, hidden: [''] })).s, 400);
+  assert.equal((await pj(hub, '/v1/tc/hidden/put', { t: andy, hidden: ['a'.repeat(301)] })).s, 400);
+  const r = await pj(hub, '/v1/tc/hidden/put', { t: andy, hidden: ['c|icdesign|Meta', 's|icdesign|Meta|u|r|abc', 'c|icdesign|Meta'] });
+  assert.equal(r.s, 200); assert.deepEqual(r.j.hidden, ['c|icdesign|Meta', 's|icdesign|Meta|u|r|abc']);
+  assert.deepEqual((await pj(hub, '/v1/tc/hidden', { t: andy })).j.hidden, r.j.hidden, '讀得回來');
+  assert.deepEqual((await pj(hub, '/v1/tc/hidden/put', { t: andy, hidden: [] })).j.hidden, [], '復原到空');
+});

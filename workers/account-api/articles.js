@@ -43,6 +43,26 @@ export function installArticles(Hub, EXPORT_TABLES) {
       return this.json(req, { ok: true, hidden: hiddenTabs(this) });
     },
   });
+  /* 科技透明圈「人工刪除清單」（2026-10-28）：Andy「有些數據資訊太少，所以你需要新增刪除功能給我，我會在人工審閱」。
+     沿用上面隱藏分頁的做法：存在伺服器 kv（鍵 tc_hidden，JSON 陣列），所有裝置看到一樣；整份取代式寫入。
+     · 管理者讀：/v1/tc/hidden {} → {hidden:[…]}（#tc 只有管理者看得到，所以讀也要管理者，不公開被刪的樣本代號）
+     · 管理者寫：/v1/tc/hidden/put {t, hidden:[…]} → {hidden}；非管理者 403
+     鍵是前端組的「類型|產業|公司|單位|職位|樣本雜湊」，Worker 不認內容、只擋長度（每筆 ≤ 300 字、最多 3000 筆），
+     這樣前端換資料格式不必重新部署 Worker。 */
+  const TCH_KV = 'tc_hidden', TCH_MAX = 3000, TCH_LEN = 300;
+  const tcHidden = (hub) => { try { const a = JSON.parse(hub.kv(TCH_KV) || '[]'); return Array.isArray(a) ? a.filter((x) => typeof x === 'string').slice(0, TCH_MAX) : []; } catch (e) { return []; } };
+  Object.assign(Hub.prototype.subRoutes, {
+    '/v1/tc/hidden': async function (req, b) {
+      if (!(await this.admin(req, b))) return this.json(req, { error: 'forbidden' }, 403);
+      return this.json(req, { hidden: tcHidden(this) });
+    },
+    '/v1/tc/hidden/put': async function (req, b) {
+      if (!(await this.admin(req, b))) return this.json(req, { error: 'forbidden' }, 403);
+      if (!Array.isArray(b.hidden) || b.hidden.length > TCH_MAX || !b.hidden.every((x) => typeof x === 'string' && x.length > 0 && x.length <= TCH_LEN)) return this.json(req, { error: 'bad_input' }, 400);
+      this.setKv(TCH_KV, JSON.stringify([...new Set(b.hidden)]));
+      return this.json(req, { ok: true, hidden: tcHidden(this) });
+    },
+  });
   Object.assign(Hub.prototype.subRoutes, {
     '/v1/articles/view': async function (req, b) {
       this.artInit();
