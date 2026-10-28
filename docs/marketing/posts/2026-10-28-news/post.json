@@ -1,0 +1,78 @@
+[
+  {
+    "id": "post1",
+    "slot": "post",
+    "data_date": "2026-10-28 台北",
+    "caption_threads": [
+      "#微軟 #Alphabet 今晚財報登場！先看上一季的成績\n#美股財報 Google Cloud 上季年增 82%、Azure 年增 43%\n\n微軟與 Alphabet 今晚（10/28）美股盤後公布財報，台灣時間 10/29 凌晨可看到結果。兩家公司上一季都是在 7 月公布，下面整理當時的重點數字，今晚的實績可以拿來對照。\n\n☁️ #微軟（上一季，截至 6/30）\n▪ 營收約 900 億美元，年增 18%\n▪ Azure 雲端營收年增 43%\n▪ 全年 Azure 營收首度突破 1,000 億美元\nAzure 年增 43%，是 2022 年初以來最大的增幅（經濟日報、時報編譯報導）。另有報導指出，微軟延長了資料中心與辦公大樓的估計使用年限，部分資本支出因此改列營運成本，市場對這項會計處理的解讀不一。\n(1/2)",
+      "🔍 #Alphabet（上一季，7/22 公布）\n▪ 營收約 1,198 億美元，年增 24%\n▪ Google Cloud 營收約 248 億美元，年增 82%\n▪ 單季資本支出約 449 億美元，約為去年同期的 2 倍\n▪ 2026 全年資本支出指引上調至 1,950 億～2,050 億美元（原為 1,800 億～1,900 億）\nAlphabet 上季淨利與 EPS 含約 980 億美元的持股未實現利得，屬帳面收益，要看本業表現，需要看營收與營業利益，不能只看 EPS。\n\n👀 #為什麼值得注意\n兩家公司上一季的重點，一個是 Azure 的成長幅度，一個是 Alphabet 的資本支出與全年指引。鉅亨報導，本週市場關注的是科技巨頭的 AI 資本支出是否超前需求。今晚公布的雲端營收與資本支出數字，可以直接放在上面的基準旁比較。\n\n以上為公開資料整理，非投資建議\n👉 更多詳細資料可以點擊以下連結：\nhttps://liguligu-puipui.com/?u=th-newspost1-20261028#earnings\n(2/2)"
+    ],
+    "caption_ig": "#微軟 #Alphabet 今晚財報登場！先看上一季的成績\n#美股財報 Google Cloud 上季年增 82%、Azure 年增 43%\n\n微軟與 Alphabet 今晚（10/28）美股盤後公布財報，台灣時間 10/29 凌晨可看到結果。兩家公司上一季都是在 7 月公布，下面整理當時的重點數字，今晚的實績可以拿來對照。\n\n☁️ #微軟（上一季，截至 6/30）\n▪ 營收約 900 億美元，年增 18%\n▪ Azure 雲端營收年增 43%\n▪ 全年 Azure 營收首度突破 1,000 億美元\nAzure 年增 43%，是 2022 年初以來最大的增幅（經濟日報、時報編譯報導）。另有報導指出，微軟延長了資料中心與辦公大樓的估計使用年限，部分資本支出因此改列營運成本，市場對這項會計處理的解讀不一。\n\n🔍 #Alphabet（上一季，7/22 公布）\n▪ 營收約 1,198 億美元，年增 24%\n▪ Google Cloud 營收約 248 億美元，年增 82%\n▪ 單季資本支出約 449 億美元，約為去年同期的 2 倍\n▪ 2026 全年資本支出指引上調至 1,950 億～2,050 億美元（原為 1,800 億～1,900 億）\nAlphabet 上季淨利與 EPS 含約 980 億美元的持股未實現利得，屬帳面收益，要看本業表現，需要看營收與營業利益，不能只看 EPS。\n\n👀 #為什麼值得注意\n兩家公司上一季的重點，一個是 Azure 的成長幅度，一個是 Alphabet 的資本支出與全年指引。鉅亨報導，本週市場關注的是科技巨頭的 AI 資本支出是否超前需求。今晚公布的雲端營收與資本支出數字，可以直接放在上面的基準旁比較。\n\n以上為公開資料整理，非投資建議\n👉 更多詳細資料可以點擊以下連結：\nhttps://liguligu-puipui.com/?u=ig-newspost1-20261028#earnings",
+    "card": {
+      "title": "兩大科技財報今晚登場",
+      "subtitle": "上一季的基準數字是多少？",
+      "numbers": [
+        {
+          "label": "Google Cloud 上季年增",
+          "value": "82",
+          "unit": "%"
+        },
+        {
+          "label": "Azure 上季年增",
+          "value": "43",
+          "unit": "%"
+        },
+        {
+          "label": "Alphabet 全年資本支出指引",
+          "value": "1,950–2,050",
+          "unit": "億美元"
+        }
+      ],
+      "category": "財報",
+      "cover_title": [
+        "微軟、Alphabet今晚",
+        "財報登場！"
+      ],
+      "cover_desc": [
+        "上季Google Cloud年增82%、",
+        "Azure年增43%，先看基準"
+      ]
+    },
+    "link": "https://liguligu-puipui.com/?u=th-newspost1-20261028#earnings",
+    "sources": [
+      {
+        "name": "科技新報：微軟 Azure 全年營收破千億美元",
+        "url": "https://finance.technews.tw/2026/07/30/azure-revenue-100-billion-microsoft-ai-milestone/",
+        "date": "2026-07-30"
+      },
+      {
+        "name": "經濟日報：微軟 Azure 全年營收首破千億美元",
+        "url": "https://udn.com/news/story/6811/9659596",
+        "date": "2026-07-30"
+      },
+      {
+        "name": "Fierce Network：Alphabet Q2 Google Cloud 與資本支出",
+        "url": "https://www.fierce-network.com/cloud/google-cloud-surges-alphabets-ai-capex-problem-grows",
+        "date": "2026-07"
+      },
+      {
+        "name": "The Next Web：Alphabet 資本支出指引上調",
+        "url": "https://thenextweb.com/news/alphabet-q2-2026-capex-205bn-cloud-82",
+        "date": "2026-07"
+      },
+      {
+        "name": "鉅亨：台股風向球（本週科技財報）",
+        "url": "https://news.cnyes.com/news/id/6637890",
+        "date": "2026-10-27"
+      }
+    ],
+    "confidence": "中高（Azure、Google Cloud、資本支出皆至少兩來源；微軟資本支出金額僅單一來源，故不寫）",
+    "note": "今晚實績尚未公布；本篇只放上一季基準，實績出來後另發。",
+    "chars_threads": [
+      361,
+      472
+    ],
+    "chars_ig": 823,
+    "style": "口袋證券式 IG 長文"
+  }
+]
