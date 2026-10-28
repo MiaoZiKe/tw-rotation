@@ -45,6 +45,14 @@ TABLES: dict[str, list[str]] = {
     "paper/satellite":    ["date", "rank"],
     #   paper/e2sat_holdings：E2SAT 每天的持有明細（00631L／衛星個股／現金，weight＝占 E2SAT 總淨值）。plan＝E2SAT 的淨值在 paper/ledger。
     "paper/e2sat_holdings": ["date", "code"],
+    # 2026-10-28（波段系統 B-M2 前向驗證，帳戶 SWING／SWING_BRAKE；淨值在 paper/ledger，plan＝SWING／SWING_BRAKE）。只增不改，研究用、不是買賣建議、不下單。
+    #   paper/swing_signals：每天的進出場事件（ENTRY_SIGNAL 收盤訊號、ENTRY 隔日開盤成交、EXIT_SIGNAL 跌破 50 日線、EXIT 出場、REJECT 被拒），
+    #     含停損價、參考目標價（3R）、R（每股風險）、進場理由、出場結果。同一天同一檔同一事件只會有一列。
+    "paper/swing_signals":  ["date", "plan", "code", "event"],
+    #   paper/swing_holdings：每天收盤後的持倉明細（成本、停損、浮盈虧 R、持有天數、最大不利偏移）。
+    "paper/swing_holdings": ["date", "plan", "code"],
+    #   paper/swing_watch：每天收盤後的名單（前 30，不分帳戶）。觀察用；真正會進場的是名單內出現 S1/S2 訊號的那幾檔。
+    "paper/swing_watch":    ["date", "rank"],
     "revenue_monthly":    ["ym", "code"],     # 月營收
     "financial_q":        ["year", "quarter", "code"],  # EPS / 損益（單季值）
     "balance_q":          ["year", "quarter", "code"],  # 股本 / 淨值 / 總資產

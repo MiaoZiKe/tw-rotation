@@ -1,5 +1,11 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
+## 2026-10-28 波段系統 B-M2 加進前向紙上帳本（帳戶 SWING／SWING_BRAKE；只動 pipeline，最後更新 10-28 台北）
+- 新增 `pipeline/compute/swing_b_m2.py`（名單、S1/S2、還原價、帳戶逐日推進，純函式）與 `live_signals.run_swing()`（讀寫帳本）；新表 `paper/swing_signals`、`paper/swing_holdings`、`paper/swing_watch` 已在 `config.TABLES` 註冊；淨值寫進既有 `paper/ledger`（plan＝SWING／SWING_BRAKE）。起算日 2026-10-29（第一個訊號日），最早成交 10-30 開盤。規則、失效條件、與回測引擎的差異見 `docs/paper_ledger.md` 最後一節。
+- 驗：`tests/test_swing_b_m2.py` 23 項（不偷看未來、隔日開盤成交、停損／跌破 50 日線／滿 60 日、降速、持倉上限、帳本只增不改、補跑與逐日結果一致）；全套 pytest 1432 passed，5 個 error 是本機沒裝 yfinance（`test_sources_v3` 的 intraday 測試，與本批無關）。另用 2024-03～07 逐日重播對照回測引擎成交紀錄：兩邊都有的 13 筆出場日全同、R 誤差 <1e-10。
+- 已知限制：前向帳本不調參數；同族群 2 檔上限是任務規格加的（引擎 basic 模式沒有）；被拒絕的訊號不會虛擬占位；降速回撤用每日淨值；`dividend_results` 若晚到，除息日可能被當成跌破停損（有 -38% 以上單日跳動才會被補丁修回）。
+- 下一步：10-29 收盤後第一次出現 SWING／SWING_BRAKE 帳本列；每週看一次 `paper/swing_signals` 的 REJECT 原因分布；累積 3 個月再回頭比較兩個帳戶，期間不改規則。
+
 ## 2026-10-28 盤中貼文熱力圖被略過（data-snap-live=err）修正（最後更新 10-28 12:50 台北）
 - 根因：① 熱力圖即時要「名單約 455 檔每一檔都問過」才算 ready，但只認 mis 有回報價的代號 —— 只要有一檔不回（暫停交易、市場猜錯、還沒成交），就永遠 pending → 60 秒後 err；② 逾時計時從開頁就開始算（單頁換頁不重載），截圖程式先跑輪盤／排行／分流樹約 40 秒，進熱力圖頁時已接近或超過 60 秒；③ 截圖程式看到 err 立刻放棄。
 - 修：`site/app.js` HL —— 補位送出的代號都算問過；只在熱力圖看得到時計時；逾時 150 秒；`scripts/social_snap.py` —— pending／err 再等最多 170 秒；仍等不到 → 熱力圖退回上一個交易日收盤（標題列寫「M/D 收盤」、文案「熱力圖（M/D 收盤）：」、盤面分析不引用），其他三張不受影響。
