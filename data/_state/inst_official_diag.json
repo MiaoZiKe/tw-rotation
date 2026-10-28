@@ -21,7 +21,7 @@
   "swagger_path": "/fund/MI_QFIIS_sort_20"
  },
  {
-  "head": "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\"> <html xmlns=\"http://www.w3.org/1999/xhtml\"> <head> <meta http-equiv=\"Content-T",
+  "head": "<html> <head> <meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\"> </head> <body>  因為安全性考量，您所執行的頁面無法呈現。<BR> FOR SECURITY REASONS, THIS PAGE CAN NOT BE ACCESSED.<BR> <BR> 您可以<A HREF=\"jav",
   "http": 200,
   "url": "https://openapi.twse.com.tw/v1/fund/T86"
  },
@@ -41,7 +41,7 @@
   "url": "https://openapi.twse.com.tw/v1/fund/TWT44U"
  },
  {
-  "head": "[ {\"IndustryCat\":\"ETF\",\"Numbers\":\"242\",\"ShareNumber\":\"262803405260\",\"ForeignMainlandAreaShare\":\"3200410528\",\"Percentage\":\"1.22\"}, {\"IndustryCat\":\"水泥工業\",\"Numbers\":\"8\",\"ShareNumber\":\"14107198706\",\"Forei",
+  "head": "[ {\"IndustryCat\":\"ETF\",\"Numbers\":\"242\",\"ShareNumber\":\"265533405260\",\"ForeignMainlandAreaShare\":\"3336787983\",\"Percentage\":\"1.26\"}, {\"IndustryCat\":\"水泥工業\",\"Numbers\":\"8\",\"ShareNumber\":\"14107198706\",\"Forei",
   "http": 200,
   "url": "https://openapi.twse.com.tw/v1/fund/MI_QFIIS_cat"
  },
@@ -57,7 +57,7 @@
   "url": "https://openapi.twse.com.tw/v1/fund/MI_QFIIS_cat"
  },
  {
-  "head": "[ {\"Rank\":\"1\",\"Code\":\"2923\",\"Name\":\"鼎固-KY\",\"ShareNumber\":\"1740296982\",\"AvailableShare\":\"8763363\",\"SharesHeld\":\"1731533619\",\"AvailableInvestPer\":\"0.50\",\"SharesHeldPer\":\"99.49\",\"Upperlimit\":\"100.00\"}, {",
+  "head": "[ {\"Rank\":\"1\",\"Code\":\"2923\",\"Name\":\"鼎固-KY\",\"ShareNumber\":\"1740296982\",\"AvailableShare\":\"8583946\",\"SharesHeld\":\"1731713036\",\"AvailableInvestPer\":\"0.49\",\"SharesHeldPer\":\"99.50\",\"Upperlimit\":\"100.00\"}, {",
   "http": 200,
   "url": "https://openapi.twse.com.tw/v1/fund/MI_QFIIS_sort_20"
  },
@@ -124,15 +124,61 @@
   "swagger_path": "/tpex_3insti_qfii_trading"
  },
  {
-  "head": "[ {\"Date\":\"1151027\",\"SecuritiesCompanyCode\":\"00411A\",\"CompanyName\":\"主動統一前沿科技\",\"Foreign Investors include Mainland Area Investors (Foreign Dealers excluded)-Total Buy\":\"1154112\",\" Foreign Investors inc",
+  "head": "[ {\"Date\":\"1151027\",\"Rank\":\"1\",\"SecuritiesCompanyCode\":\"1815\",\"CompanyName\":\"富喬\",\"Buy\":\"3365\",\"Sell\":\"0\",\"NetBuy\":\"3365\"}, {\"Date\":\"1151027\",\"Rank\":\"2\",\"SecuritiesCompanyCode\":\"6147\",\"CompanyName\":\"頎邦",
   "http": 200,
-  "url": "https://www.tpex.org.tw/openapi/v1/tpex_3insti_daily_trading"
+  "url": "https://www.tpex.org.tw/openapi/v1/tpex_3insti_trading"
+ },
+ {
+  "cols": [
+   "Date",
+   "Rank",
+   "SecuritiesCompanyCode",
+   "CompanyName",
+   "Buy",
+   "Sell",
+   "NetBuy"
+  ],
+  "n": 39,
+  "url": "https://www.tpex.org.tw/openapi/v1/tpex_3insti_trading"
+ },
+ {
+  "head": "<!DOCTYPE html><html lang=\"zh-Hant-tw\"><head><title>404 - è­å¸æ«æª¯è²·è³£ä¸­å¿</title><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, maximum-scale=1, u",
+  "http": 200,
+  "url": "https://www.tpex.org.tw/openapi/tpex_3insti_qfii"
+ },
+ {
+  "head": "<html>\r <head><title>404 Not Found</title></head>\r <body>\r <center><h1>404 Not Found</h1></center>\r <hr><center>nginx</center>\r <script>(function(){function c(){var b=a.contentDocument||(a.contentWind",
+  "http": 404,
+  "url": "https://www.tpex.org.tw/openapi/tpex_3insti_qfii_industry"
+ },
+ {
+  "head": "<!DOCTYPE html><html lang=\"zh-Hant-tw\"><head><title>404 - è­å¸æ«æª¯è²·è³£ä¸­å¿</title><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, maximum-scale=1, u",
+  "http": 200,
+  "url": "https://www.tpex.org.tw/openapi/tpex_3insti_daily_trading"
+ },
+ {
+  "head": "<!DOCTYPE html><html lang=\"zh-Hant-tw\"><head><title>404 - è­å¸æ«æª¯è²·è³£ä¸­å¿</title><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, maximum-scale=1, u",
+  "http": 200,
+  "url": "https://www.tpex.org.tw/openapi/tpex_3insti_dealer_trading"
+ },
+ {
+  "head": "<!DOCTYPE html><html lang=\"zh-Hant-tw\"><head><title>404 - è­å¸æ«æª¯è²·è³£ä¸­å¿</title><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, maximum-scale=1, u",
+  "http": 200,
+  "url": "https://www.tpex.org.tw/openapi/tpex_3insti_summary"
+ },
+ {
+  "head": "<!DOCTYPE html><html lang=\"zh-Hant-tw\"><head><title>404 - è­å¸æ«æª¯è²·è³£ä¸­å¿</title><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, maximum-scale=1, u",
+  "http": 200,
+  "url": "https://www.tpex.org.tw/openapi/tpex_3insti_trading"
+ },
+ {
+  "head": "<!DOCTYPE html><html lang=\"zh-Hant-tw\"><head><title>404 - è­å¸æ«æª¯è²·è³£ä¸­å¿</title><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, maximum-scale=1, u",
+  "http": 200,
+  "url": "https://www.tpex.org.tw/openapi/tpex_3insti_qfii_trading"
  },
  {
   "market": "上櫃",
-  "parts": [
-   890
-  ],
-  "rows": 890
+  "parts": [],
+  "rows": 0
  }
 ]
