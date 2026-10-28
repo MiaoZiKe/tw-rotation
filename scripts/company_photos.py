@@ -51,9 +51,9 @@ def tokens(q: str) -> list[str]:
     return [w for w in re.findall(r"[a-z0-9]+", q.lower()) if len(w) >= 3 and w not in STOP]
 
 
-def candidates(pages: list[dict], kind: str, name_en: str, q: str, seen: set[str]):
-    """依 kind 篩：總部/廠房＝含公司名＋建築字；產品／相關場景／類別＝含查詢字裡至少一個實詞。"""
-    key = name_en.split()[0].lower().replace("-", "")
+def candidates(pages: list[dict], kind: str, name_en: str, q: str, seen: set[str], key: str = ""):
+    """依 kind 篩：總部/廠房＝含公司名（targets 的 key，沒填取英文名第一個字）＋建築字；產品／相關場景／類別＝含查詢字裡至少一個實詞。"""
+    key = (key or name_en.split()[0]).lower().replace("-", "")
     qt = tokens(q)
     for p in pages:
         ii = (p.get("imageinfo") or [{}])[0]; md = ii.get("extmetadata") or {}
@@ -99,18 +99,18 @@ def load_pool(d: Path, slug: str) -> dict:
         return dict(slug=slug, photos=[], rejected=[])
 
 
-def fill(sess, d: Path, slug: str, name_en: str, plan: list[tuple[str, list[str], int]], gseen: set[str]) -> dict:
+def fill(sess, d: Path, slug: str, name_en: str, plan: list[tuple[str, list[str], int]], gseen: set[str], key: str = "") -> dict:
     """plan＝[(kind, 查詢字, 上限)]；補到上限為止，已在池裡／退件過／別家用過的檔名跳過。"""
     pool = load_pool(d, slug)
     seen = gseen | {x.get("file_title") for x in pool["photos"]} | {x.get("file_title") for x in pool.get("rejected", [])}
     used_n = {int(m.group(1)) for x in pool["photos"] if (m := re.match(r"photo_(\d+)\.jpg", x.get("file", "")))}
     added = 0
     for kind, qs, cap in plan:
-        have = sum(1 for x in pool["photos"] if x.get("kind") == kind)
+        have = sum(1 for x in pool["photos"] if x.get("kind") == kind and not x.get("reject_reason"))   # 複審退件的不佔名額
         for q in qs:
             if have >= cap: break
             try:
-                cs = list(candidates(search(sess, q), kind, name_en, q, seen))
+                cs = list(candidates(search(sess, q), kind, name_en, q, seen, key))
             except Exception as ex:      # 單一查詢失敗不影響其他
                 print(slug, q, "查詢失敗", ex); cs = []
             time.sleep(1)
@@ -144,13 +144,20 @@ def main(argv=None) -> int:
             plan = [("總部/廠房", t["queries"] + [t["name_en"]], QUOTA["總部/廠房"]),
                     ("產品", t.get("product_queries", []), QUOTA["產品"]),
                     ("相關場景", t.get("related_queries", []), QUOTA["相關場景"])]
-            res = fill(sess, LIB / t["slug"], t["slug"], t["name_en"], plan, gseen); print(res); log.append(res)
+            res = fill(sess, LIB / t["slug"], t["slug"], t["name_en"], plan, gseen, t.get("key", "")); print(res); log.append(res)
     cats = []
     if "--no-category" not in argv:
         for cat, qs in json.loads((LIB / "categories.json").read_text(encoding="utf-8")).items():
+            if only and "--only-category" in argv and cat not in only: continue      # --only 也可指定類別名（例如 總經_央行）
             plan = [("類別", [q], min(CAT_MAX, (i + 1) * 2)) for i, q in enumerate(qs)] + [("類別", qs, CAT_MAX)]   # 每個查詢字約 2 張，查詢字之間多樣
             res = fill(sess, CAT_DIR / cat, cat, cat, plan, gseen)
             print(res); cats.append(res)
+    if only:
+        try:      # 類別也只抓一部分時，保留其他類別的紀錄
+            pc = {x["slug"]: x for x in json.loads((LIB / "fetch_log.json").read_text(encoding="utf-8")).get("categories", [])}
+            pc.update({x["slug"]: x for x in cats}); cats = list(pc.values())
+        except Exception:
+            pass
     if only:      # 只抓部分時，與上一次完整紀錄合併，保留其他家的狀態
         try:
             prev = {x["slug"]: x for x in json.loads((LIB / "fetch_log.json").read_text(encoding="utf-8"))["items"]}

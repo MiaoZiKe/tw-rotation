@@ -42,11 +42,12 @@
   "PCB manufacturing"
  ],
  "網通": [
-  "network switch",
+  "network switch rack",
   "fiber optic cable",
-  "network cables data center",
-  "router",
-  "optical transceiver"
+  "optical fiber connectors",
+  "patch panel network cables",
+  "ethernet switch ports",
+  "submarine cable landing"
  ],
  "航運": [
   "container ship",
@@ -60,7 +61,11 @@
   "Taipei 101",
   "Xinyi District skyline",
   "bank building",
-  "Taiwan Stock Exchange"
+  "Taiwan Stock Exchange",
+  "Wall Street",
+  "New York Stock Exchange building",
+  "bank vault door",
+  "stock exchange trading floor"
  ],
  "鋼鐵": [
   "steel mill",
@@ -81,14 +86,20 @@
   "telecommunication tower",
   "5G antenna",
   "mobile phone mast",
-  "telecom antenna"
+  "telecom antenna",
+  "cell site antennas",
+  "microwave relay tower",
+  "telephone exchange"
  ],
  "汽車": [
   "car assembly line",
   "electric car charging",
   "automobile factory",
   "electric vehicle",
-  "car production line"
+  "car production line",
+  "car factory robots",
+  "automobile assembly plant",
+  "new cars parking lot port"
  ],
  "消費電子": [
   "smartphone",
@@ -103,5 +114,92 @@
   "Taipei 101 skyline",
   "New Taiwan dollar",
   "Kaohsiung skyline"
+ ],
+ "能源": [
+  "oil well pump jack",
+  "oil refinery",
+  "offshore oil platform",
+  "LNG tanker",
+  "natural gas pipeline",
+  "wind farm",
+  "solar power plant",
+  "power station cooling towers"
+ ],
+ "航太": [
+  "airliner assembly line",
+  "airliner takeoff",
+  "aircraft factory",
+  "jet engine"
+ ],
+ "零售消費": [
+  "supermarket aisle",
+  "shopping mall interior",
+  "supermarket shelves",
+  "sneakers store display"
+ ],
+ "娛樂媒體": [
+  "movie theater",
+  "film studio",
+  "television studio",
+  "streaming living room television"
+ ],
+ "總經_央行": [
+  "Marriner S. Eccles Federal Reserve Board Building",
+  "Federal Reserve Building Washington",
+  "European Central Bank Frankfurt",
+  "Bank of Japan headquarters",
+  "Bank of England building",
+  "Central Bank of the Republic of China Taipei"
+ ],
+ "總經_物價就業": [
+  "supermarket shelves",
+  "grocery store produce",
+  "gas station price sign",
+  "fuel prices sign",
+  "factory workers",
+  "construction workers"
+ ],
+ "總經_利率債券": [
+  "Wall Street sign",
+  "New York Stock Exchange facade",
+  "United States Treasury building",
+  "US dollar banknotes",
+  "hundred dollar bills"
+ ],
+ "總經_匯率": [
+  "New Taiwan dollar banknotes",
+  "Japanese yen banknotes",
+  "euro banknotes",
+  "coins currency",
+  "Chinese yuan banknotes",
+  "US dollar bills"
+ ],
+ "總經_能源": [
+  "oil well pump jack",
+  "oil refinery",
+  "offshore oil platform",
+  "oil storage tanks"
+ ],
+ "總經_貿易關稅": [
+  "container port cranes",
+  "container ship",
+  "port of Long Beach",
+  "shipping containers stacked",
+  "Port of Kaohsiung containers"
+ ],
+ "總經_景氣": [
+  "factory production line",
+  "industrial robots factory",
+  "Taipei skyline",
+  "Shanghai skyline",
+  "New York skyline",
+  "Tokyo skyline"
+ ],
+ "總經_房市": [
+  "residential buildings Taipei",
+  "apartment buildings",
+  "housing construction",
+  "suburban houses",
+  "high-rise apartments"
  ]
 }
