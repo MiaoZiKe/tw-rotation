@@ -10,8 +10,10 @@ const TPE_OFFSET_MS = 8 * 3600 * 1000;
 // days：
 //   trading  台股交易日（週一到週五，且不在休市日清單）
 //   tueSat   台北週二到週六（對應美股週一到週五收盤後的清晨），不看休市日——新聞照常更新
+//   offday   休市日（週末、國定假日；臨時休市 Worker 不知道，由 social_news.py 自己用主貼文狀態判斷）——週末主題文章用
 const D = 'daily.yml';
 const S = 'social-live.yml';
+const N = 'social_news.yml';
 export const SCHEDULE = [
   // 盤前（先預留：social-live.yml 要有 kind=premarket 才能開，見 wrangler.toml 的 ENABLE_PREMARKET）
   { at: '08:20', days: 'trading', workflow: S, inputs: { kind: 'premarket', dry_run: 'false' }, gate: 'premarket' },
@@ -27,6 +29,9 @@ export const SCHEDULE = [
   { at: '18:38', days: 'trading', workflow: D, inputs: { phase: 'full' } },
   ...['19:16', '19:46', '20:16', '20:46', '21:16'].map((at) => ({ at, days: 'trading', workflow: D, inputs: { phase: 'inst' } })),
   { at: '21:38', days: 'trading', workflow: D, inputs: { phase: 'full' } },
+  // 週末與休市日的主題文章（2026-10-29 Andy：週末也要每天 1～2 篇、全自動）。social_news.py 自己判斷是不是休市日、
+  // 排哪一段（wk1 10:30 發、wk2 19:30 發）；已排過的段落自動跳過，所以每段派兩次當備援。交易日這幾分鐘 Worker 不派。
+  ...['10:15', '10:45', '19:00', '19:40'].map((at) => ({ at, days: 'offday', workflow: N, inputs: { slot: 'auto', dry_run: 'false' } })),
   // 清晨：新聞、國際盤、總經。GitHub 原本的 05:07 排程（週一到週五）同樣不可靠，所以也由這裡準時派一次。
   { at: '05:07', days: 'tueSat', workflow: D, inputs: { phase: 'news' } },
 ];
@@ -60,6 +65,7 @@ export function dueJobs(scheduledTimeMs, opts = {}) {
     if (j.gate && !enabled[j.gate]) return false;
     if (j.days === 'trading') return trading;
     if (j.days === 'tueSat') return dow >= 2 && dow <= 6;
+    if (j.days === 'offday') return !trading;
     return false;
   }).map((j) => ({ workflow: j.workflow, inputs: { ...j.inputs }, label: `${date} ${hhmm} ${j.workflow} ${JSON.stringify(j.inputs)}` }));
 }

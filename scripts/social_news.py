@@ -1,7 +1,11 @@
 """新聞貼文自動產稿＋排程（2026-10-28，Andy：「可以，接上排程，單位改成億美元，CEO並安排人員持續優化，
 依據不同的內容後台紀錄，後續慢慢改善收斂成大家喜歡的主題、內容、版面、風格」）。
 
-盤前／盤中／盤後三段自動文發完後 30 分鐘，各發 3～5 篇新聞貼文（每篇 IG 單圖＋Threads 串文）。
+「主題文章」（新聞／題材／知識長文貼文，每篇 IG 單圖＋Threads 串文）每天全自動：
+  交易日：盤前 1 篇＋盤後 1 篇（主貼文發出後 15 分鐘；新聞挑不到才用常備文庫補，盤後至少 1 篇）；
+  週末與休市日：週末精選 2 篇（10:30 新聞優先、19:30 常備文庫優先），另有「備案」時段保證每天至少 1 篇。
+  （2026-10-29 Andy：「每天至少開盤會有四到五篇……週末也會有一到兩篇，這些都需要自動化」；
+    3 篇主貼文＋主題文章 1～2 篇。舊版每段 3～5 篇已改成每段名額 SLOTS[...]["n"]。）
 Actions 上沒有 Claude、OpenAI 額度用完，所以全部用「模板」產稿，不呼叫任何 LLM：
   選題：資料湖 data/news（cnyes／udn／technews）→ 相似標題分群 → 熱度（幾家媒體報、幾則、有沒有數字、多新）
         × 每週成效權重（social/news/weights.json）→ 前 80% 依分數、保留 20% 探索（隨機挑其他主題）。
@@ -44,14 +48,28 @@ WEIGHTS = ROOT / "social" / "news" / "weights.json"
 LOG_DIR = ROOT / "social" / "news" / "log"
 
 # 時段：主貼文的 posted.json 鍵、固定最早發文時間（台北）、新聞時間窗
+# n＝這段最多幾篇；floor＝新聞挑不夠時用常備文庫補到至少幾篇；off＝休市日（週末／國定假日）才跑；after＝auto 模式最早幾點才排
+# 2026-10-29：每天主題文章交易日 2 篇（盤前 1＋盤後 1）、休市日 2 篇（wk1＋wk2）；盤中名額 0（主貼文已密集），要開把 n 改 1。
 SLOTS = {
-    "pre":   dict(name="盤前", key="premarket", fixed="08:35", since=(-1, "13:30")),
-    "intra": dict(name="盤中", key="intraday",  fixed="12:16", since=(0, "07:30")),
-    "post":  dict(name="盤後", key="close",     fixed=None,    since=(0, "11:30")),
+    "pre":   dict(name="盤前", key="premarket", fixed="08:35", since=(-1, "13:30"), n=1, floor=0),
+    "intra": dict(name="盤中", key="intraday",  fixed="12:16", since=(0, "07:30"),  n=0, floor=0),
+    "post":  dict(name="盤後", key="close",     fixed=None,    since=(0, "11:30"),  n=1, floor=1),
+    "wk1":   dict(name="週末", key=None, fixed="10:30", since=(-1, "13:30"), n=1, floor=1, off=True, after="10:00"),
+    "wk2":   dict(name="週末", key=None, fixed="19:30", since=(0, "06:00"),  n=1, floor=1, off=True, after="18:45", evergreen_first=True),
+    "fb":    dict(name="備案", key=None, fixed="21:15", since=(0, "06:00"),  n=1, floor=1, off=False, after="20:50", evergreen_first=True),
 }
-N_MIN, N_MAX = 3, 5
+WEEKDAY_SLOTS = ("pre", "intra", "post")
+OFFDAY_SLOTS = ("wk1", "wk2")
+EVERGREEN = ROOT / "social" / "news" / "evergreen.json"
+EVG_USAGE = ROOT / "social" / "news" / "log" / "evergreen_usage.json"
+EVG_COOLDOWN = 30                 # 同一篇常備文 30 天內不重發（庫存用完才輪回最久沒用的）
+EVG_MIN_BODY = 350
+N_MIN, N_MAX = 1, 5               # 保留舊名稱（外部腳本可能 import）；實際名額看 SLOTS[...]["n"]
 EXPLORE = 0.2
 STATUS = "approved" if os.environ.get("NEWS_AUTO_APPROVE") == "1" else "draft"   # 預設 draft：品質修完、CEO 確認後 workflow 才設 NEWS_AUTO_APPROVE=1
+# 休市日／備案時段／常備文庫的貼文另用一個開關（2026-10-29 新增）：TOPIC_AUTO_APPROVE=1 才寫 approved，否則 draft（不會發）。
+# 交易日的新聞稿仍照 NEWS_AUTO_APPROVE。要全開：兩個環境變數都設 "1"（.github/workflows/social_news.yml 的「產稿」那一步）。
+TOPIC_STATUS = "approved" if os.environ.get("TOPIC_AUTO_APPROVE") == "1" else "draft"
 GAP_MIN = 5                       # 同一段多篇之間錯開 5 分鐘，避免洗版
 SRC_NAME = {"cnyes": "鉅亨", "udn": "經濟日報", "technews": "科技新報"}
 CATS = ["台股", "財報", "總經", "科技", "美股"]
@@ -585,7 +603,7 @@ def compose(c: dict, slot: str, idx: int, day: str, style: str, names: dict) -> 
     cap_ig = "\n".join(head) + "\n" + "\n\n".join(body) + f"\n\n{tail}\n{link_line}\n{url_ig}"
     threads = pack_threads(["\n".join(head[:2]) + "\n\n" + intro] + body[1:] + [f"{tail}\n{link_line}\n{url_th}"])
     card = dict(title=l1 + l2, subtitle=SUBQ[c["ctype"]], numbers=[{k: x[k] for k in ("label", "value", "unit")} for x in rows],
-                category=c["cat"], subject=subj, cover_title=cover, cover_desc=_lines("、".join(f"{x['label']} {_fmt(x)}" for x in comps[:2]) or SUBQ[c["ctype"]], 22),
+                category=c["cat"], subject=subj, foot="資料：" + "、".join(dict.fromkeys(SRC_NAME.get(n["source"], n["source"]) for n in c["group"])) + "・本站整理", cover_title=cover, cover_desc=_lines("、".join(f"{x['label']} {_fmt(x)}" for x in comps[:2]) or SUBQ[c["ctype"]], 22),
                 hero=key["value"].lstrip("約逾近超過") + key["unit"], hl=_fmt(key).replace(" ", "") if _fmt(key).replace(" ", "") in l2 else "")
     d = dict(id=f"{slot}{idx}", slot=slot, data_date=f"{day} 台北", caption_ig=cap_ig, caption_threads=threads,
              card=card, link=url_th, u_code=ucode,
@@ -657,6 +675,71 @@ def pack_threads(secs: list[str], lim: int = 480) -> list[str]:
     return [f"{x}\n({i}/{n})" if n > 1 else x for i, x in enumerate(chunks, 1)]
 
 
+# ---------------- 常備文庫（不靠新聞、不放 AI 圖的備案稿） ----------------
+def load_evergreen() -> list[dict]:
+    try:
+        return json.loads(EVERGREEN.read_text(encoding="utf-8")).get("items", [])
+    except Exception:
+        return []
+
+
+def evg_usage() -> dict:
+    try:
+        return json.loads(EVG_USAGE.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+
+
+def pick_evergreen(day: str, k: int, taken: set[str], rng: random.Random, prefer: str = "") -> list[dict]:
+    """依「最久沒用」輪替挑 k 篇；30 天內用過的排在最後（庫存不夠才輪回）。同分隨機（以日期＋時段為種子，可重現）。
+    prefer：想優先的主題分類（例：週末晚上偏產業／總經知識），只是排序加權，不是篩選。"""
+    use = evg_usage(); lib = [e for e in load_evergreen() if e["id"] not in taken]
+    cut = (datetime.fromisoformat(day) - timedelta(days=EVG_COOLDOWN)).strftime("%Y-%m-%d")
+    def key(e):
+        last = max(use.get(e["id"], [""]) or [""])
+        return (last >= cut, last, rng.random())
+    lib.sort(key=key)
+    return lib[:k]
+
+
+def compose_evergreen(e: dict, slot: str, idx: int, day: str) -> dict:
+    """常備文庫條目 → 與 compose() 同格式的貼文 dict（法遵與長度閘不過丟 Skip）。"""
+    ymd = day.replace("-", ""); ucode = f"news{slot}{idx}"; route = e.get("route", "")
+    url_ig = f"{SITE}?u=ig-{ucode}-{ymd}" + (f"#{route}" if route else "")
+    url_th = f"{SITE}?u=th-{ucode}-{ymd}" + (f"#{route}" if route else "")
+    head = list(e["head"]) + [""]
+    sec_watch = "👀 #為什麼值得知道\n" + e["watch"]
+    tail = "以上為公開資料整理，非投資建議"
+    link_line = "👉 更多詳細資料可以點擊以下連結："
+    body = [e["intro"]] + list(e["sections"]) + [sec_watch]
+    cap_ig = "\n".join(head) + "\n" + "\n\n".join(body) + f"\n\n{tail}\n{link_line}\n{url_ig}"
+    threads = pack_threads(["\n".join(head[:2]) + "\n\n" + e["intro"]] + list(e["sections"]) + [sec_watch, f"{tail}\n{link_line}\n{url_th}"])
+    card = dict(title=" ".join(e["cover_title"]), subtitle=e["ctype"], numbers=e["rows"], category=e["cat"], subject="",
+                cover_title=e["cover_title"], cover_desc=e["cover_desc"], hero=e["hero"], hero_label=e.get("hero_label", ""),
+                hl="", hdr=e["ctype"], foot="資料：公開資料整理・本站編輯", no_photo=True)
+    d = dict(id=f"{slot}{idx}", slot=slot, data_date=f"{day} 台北", caption_ig=cap_ig, caption_threads=threads, card=card,
+             link=url_th, u_code=ucode, evergreen=True, sources=[dict(name=x, url="", date="") for x in e.get("sources", [])],
+             meta=dict(topic_category=e["cat"], content_type=e["ctype"], layout="D-知識卡", style="常備文庫", has_ai_image="false",
+                       explore="false", heat="0", news_ids="", u_code=ucode, evergreen="true", topic_id=e["id"]))
+    bad = []
+    for l in e["cover_title"]:
+        if not l or len(l) > TITLE_MAX + 2:
+            bad.append(f"標題行長度 {len(l)}：{l}")
+    body_len = len(cap_ig.rsplit("以上為公開資料整理", 1)[0])
+    if body_len < EVG_MIN_BODY:
+        bad.append(f"內文 {body_len} 字（最少 {EVG_MIN_BODY}）")
+    if "#stock/" in cap_ig:
+        bad.append("落點不得為個股頁")
+    v = legal_check(cap_ig + "\n" + "\n".join(threads) + "\n" + json.dumps(card, ensure_ascii=False))
+    if v:
+        bad.append("法遵：" + "；".join(v))
+    if len(cap_ig) > 2000:
+        bad.append("IG 文案超過 2,000 字")
+    if bad:
+        raise Skip("常備文庫 " + e["id"] + "：" + "；".join(bad))
+    return d
+
+
 # ---------------- 圖卡 ----------------
 PHOTO_USAGE = LOG_DIR / "photo_usage.json"     # 圖池使用紀錄 {"<slug>/<檔名>": ["YYYY-MM-DD", ...]}，給 14 天輪替用
 
@@ -694,14 +777,14 @@ def render_cards(posts: list[dict], slot: str, out: Path, day: str = "", usage_p
         pg = b.new_page(viewport={"width": 1080, "height": 1350})
         for i, d in enumerate(posts, 1):
             html, lay, pick = R.card_auto(d, i, len(posts), slot, used=used, today=day or None)
-            d["meta"]["layout"] = lay
+            d["meta"]["layout"] = "D-知識卡" if d.get("evergreen") else lay
             if pick:
                 d["meta"]["has_photo"] = "true"; d["meta"]["photo_kind"] = pick["kind"]
             pg.set_content(f"<html><head><meta charset=utf-8><style>{BASE}</style></head>{html}</html>")
             pg.wait_for_timeout(300)
             res = pg.evaluate(CHECK)
             if res["bad"] and pick:           # 實景版有重疊 → 退回灰框大數字版，不擋整篇
-                html = R.card_v4(d, i, len(posts), None, slot); d["meta"]["layout"] = "D-無圖大數字"
+                html = R.card_v4(d, i, len(posts), None, slot); d["meta"]["layout"] = "D-知識卡" if d.get("evergreen") else "D-無圖大數字"
                 d["meta"].pop("has_photo", None); d["meta"].pop("photo_kind", None); pick = None
                 pg.set_content(f"<html><head><meta charset=utf-8><style>{BASE}</style></head>{html}</html>")
                 pg.wait_for_timeout(300); res = pg.evaluate(CHECK)
@@ -735,34 +818,75 @@ def already(slot: str, day: str) -> bool:
     return any(IG_Q.glob(f"{day}_news-{slot}-*.md")) or (LOG_DIR / f"{day}-{slot}.json").exists()
 
 
+def used_news_ids(day: str) -> set[str]:
+    """同一天其他時段已入選的新聞（避免週末兩篇、盤前盤後選到同一則）。"""
+    ids: set[str] = set()
+    for f in LOG_DIR.glob(f"{day}-*.json"):
+        try:
+            for x in json.loads(f.read_text(encoding="utf-8")).get("posted", []):
+                ids |= set(str(x.get("news_ids", "")).split(","))
+        except Exception:
+            pass
+    return ids - {""}
+
+
+def used_topic_ids(day: str, out: Path | None = None) -> set[str]:
+    """同一天其他時段已用的常備文庫條目（演練時也看 --out 資料夾裡先前存的 <slot>.json）。"""
+    ids: set[str] = set()
+    for f in LOG_DIR.glob(f"{day}-*.json"):
+        try:
+            ids |= {x.get("topic_id") for x in json.loads(f.read_text(encoding="utf-8")).get("posted", [])}
+        except Exception:
+            pass
+    if out and out.exists():
+        for f in out.glob("*.json"):
+            try:
+                ids |= {(x.get("meta") or {}).get("topic_id") for x in json.loads(f.read_text(encoding="utf-8")) if isinstance(x, dict)}
+            except Exception:
+                pass
+    return ids - {None, ""}
+
+
 def run_slot(slot: str, day: str, now: datetime, posted: dict, dry: bool, out: Path | None, force: bool) -> dict:
     cfg = SLOTS[slot]
+    nmax = cfg["n"]
     log = dict(slot=slot, date=day, run_at=now.isoformat(timespec="minutes"), posted=[], skipped=[])
+    if nmax <= 0:
+        return dict(log, note="這段名額 0（SLOTS 設定），不排")
     if not dry and not force and already(slot, day):
         return dict(log, note="今天這段已排過，跳過")
-    when = publish_base(slot, day, posted, now) if not force else now + timedelta(minutes=30)
-    if when is None and not dry:
-        return dict(log, note=f"主貼文 {cfg['key']}-{day} 還沒發，先不排")
-    at = (posted.get(f"{cfg['key']}-{day}") or {}).get("at")
-    if at and not force and not dry and now - datetime.fromisoformat(at).astimezone(TPE) > timedelta(hours=3):
-        return dict(log, note="主貼文已發超過 3 小時，新聞時效已過，這段不補排")
+    offday = cfg["key"] is None                  # 週末／休市日／備案：不看主貼文
+    if offday:
+        fx = datetime.fromisoformat(f"{day}T{cfg['fixed']}:00+08:00")
+        when = max(fx, now + timedelta(minutes=5)).replace(second=0, microsecond=0)
+    else:
+        when = publish_base(slot, day, posted, now) if not force else now + timedelta(minutes=30)
+        if when is None and not dry:
+            return dict(log, note=f"主貼文 {cfg['key']}-{day} 還沒發，先不排")
+        at = (posted.get(f"{cfg['key']}-{day}") or {}).get("at")
+        if at and not force and not dry and now - datetime.fromisoformat(at).astimezone(TPE) > timedelta(hours=3):
+            return dict(log, note="主貼文已發超過 3 小時，新聞時效已過，這段不補排")
     when = when or now + timedelta(minutes=30)
     dd, hh = cfg["since"]
     t0 = datetime.fromisoformat(f"{day}T{hh}:00+08:00") + timedelta(days=dd)
-    news = [n for n in load_news(t0, now) if not is_promo(n["title"] + n["summary"])]
+    news = [n for n in load_news(t0, now) if not is_promo(n["title"] + n["summary"])] if not cfg.get("evergreen_first") else []
     w = load_weights()
     cands = [score(g, w) for g in cluster(news)]
     cands = [c for c in cands if len(c["nums"]) >= 2]
+    taken_ids = used_news_ids(day)
+    cands = [c for c in cands if not ({n["news_id"] for n in c["group"]} & taken_ids)]
+    if offday:               # 休市日：盤勢數字（收盤、法人）當天沒有新資料，不選
+        cands = [c for c in cands if c["ctype"] != "盤勢數字"]
     if slot == "pre":        # 盤前：前一天台股收盤主貼文已講，只留隔夜美股／國際／今日事件（排掉台股盤勢與台股公司）
         names0 = names_map()
         cands = [c for c in cands if c["cat"] != "台股" and c["ctype"] != "盤勢數字" and not subject_of(c, names0)[1]]
     rng = random.Random(int(hashlib.md5(f"{day}{slot}".encode()).hexdigest()[:8], 16))
-    chosen = pick(cands, N_MAX + 8, rng, w.get("explore", EXPLORE))      # 多挑 3 篇當備胎（法遵或重疊被擋時遞補）
+    chosen = pick(cands, nmax + 8, rng, w.get("explore", EXPLORE))      # 多挑 8 篇當備胎（品質閘、法遵或重疊被擋時遞補）
     names = names_map()
     sw = w.get("style", {})
     posts = []
     for c in chosen:
-        if len(posts) >= N_MAX:
+        if len(posts) >= nmax:
             break
         style = rng.choice(STYLES) if c.get("explore") else max(STYLES, key=lambda s: (sw.get(s, 1.0), s == STYLES[0]))
         try:
@@ -776,8 +900,22 @@ def run_slot(slot: str, day: str, now: datetime, posted: dict, dry: bool, out: P
         if len(d["caption_ig"]) > 2000:
             log["skipped"].append(dict(title=c["lead"]["title"], why="IG 文案超過 2,000 字")); continue
         posts.append(d)
-    if len(posts) < N_MIN:
-        log["note"] = f"可發的只有 {len(posts)} 篇（< {N_MIN}），寧可少發也不湊數：照發 {len(posts)} 篇"
+    # 常備文庫：新聞品質閘不過就少發，但保底（floor）一定要有——交易日盤後至少 1 篇、休市日每段 1 篇
+    need = (nmax if cfg.get("evergreen_first") else cfg["floor"]) - len(posts)
+    if cfg.get("evergreen_first"):
+        need = nmax - len(posts)
+    if need > 0:
+        taken = {x["meta"].get("topic_id") for x in posts} | used_topic_ids(day, out)
+        for e in pick_evergreen(day, need + 3, taken, rng):
+            if need <= 0:
+                break
+            try:
+                posts.append(compose_evergreen(e, slot, len(posts) + 1, day)); need -= 1
+            except Skip as ex:
+                log["skipped"].append(dict(title=e["id"], why=str(ex)))
+        log["evergreen"] = [x["meta"]["topic_id"] for x in posts if x.get("evergreen")]
+    if len(posts) < nmax:
+        log["note"] = f"可發的只有 {len(posts)} 篇（名額 {nmax}），寧可少發也不湊數"
     if not posts:
         return log
     img_out = (out / slot) if dry else IMG_DIR / f"{day}-{slot}"
@@ -796,9 +934,10 @@ def run_slot(slot: str, day: str, now: datetime, posted: dict, dry: bool, out: P
         d["publish_at"] = pa
         img_rel = (img_out / f"{d['id']}.jpg").relative_to(ROOT).as_posix() if not dry else f"{slot}/{d['id']}.jpg"
         meta = "\n".join(f"{k}: {v}" for k, v in d["meta"].items())
-        ttl = f"{cfg['name']}新聞 {day} #{i + 1}：{d['card']['title']}"
-        ig = f"---\nstatus: {STATUS}\npublish_at: {pa}\ntitle: {ttl}\nimages: {img_rel}\n{meta}\n---\n{d['caption_ig']}\n"
-        th = f"---\nstatus: {STATUS}\npublish_at: {pa}\ntitle: {ttl}\n{meta}\n---\n" + "\n-----\n".join(d["caption_threads"]) + "\n"
+        ttl = f"{cfg['name']}{'知識' if d.get('evergreen') else '新聞'} {day} #{i + 1}：{d['card']['title']}"
+        status = TOPIC_STATUS if (offday or d.get("evergreen")) else STATUS
+        ig = f"---\nstatus: {status}\npublish_at: {pa}\ntitle: {ttl}\nimages: {img_rel}\n{meta}\n---\n{d['caption_ig']}\n"
+        th = f"---\nstatus: {status}\npublish_at: {pa}\ntitle: {ttl}\n{meta}\n---\n" + "\n-----\n".join(d["caption_threads"]) + "\n"
         name = f"{day}_news-{slot}-{i + 1}.md"
         if dry:
             (out / "ig").mkdir(parents=True, exist_ok=True); (out / "threads").mkdir(parents=True, exist_ok=True)
@@ -811,12 +950,39 @@ def run_slot(slot: str, day: str, now: datetime, posted: dict, dry: bool, out: P
     else:
         LOG_DIR.mkdir(parents=True, exist_ok=True)
         (LOG_DIR / f"{day}-{slot}.json").write_text(json.dumps(log, ensure_ascii=False, indent=1), encoding="utf-8")
+        used = evg_usage()
+        for d in keep:
+            if d.get("evergreen"):
+                used.setdefault(d["meta"]["topic_id"], []).append(day)
+        if any(d.get("evergreen") for d in keep):
+            EVG_USAGE.write_text(json.dumps(used, ensure_ascii=False, indent=1, sort_keys=True), encoding="utf-8")
     return log
+
+
+def is_trading(day: str) -> bool:
+    try:
+        from datetime import date
+        from social_gate import load_holidays, is_open_day
+        return is_open_day(date.fromisoformat(day), load_holidays())
+    except Exception:
+        return datetime.fromisoformat(day).weekday() < 5
+
+
+def auto_slots(day: str, now: datetime, posted: dict) -> list[str]:
+    """交易日：主貼文已發的盤前／盤中／盤後；20:50 後盤後還沒排任何一篇 → 加「備案」（主貼文沒發也要有 1 篇）。
+    休市日（週末、國定假日、颱風假）：wk1（10:00 起）、wk2（18:45 起）。"""
+    hm = now.strftime("%H:%M")
+    if is_trading(day):
+        out = [s for s in WEEKDAY_SLOTS if SLOTS[s]["n"] > 0 and f"{SLOTS[s]['key']}-{day}" in posted]
+        if hm >= SLOTS["fb"]["after"] and not any(IG_Q.glob(f"{day}_news-post-*.md")) and not any(IG_Q.glob(f"{day}_news-fb-*.md")):
+            out.append("fb")
+        return out
+    return [s for s in OFFDAY_SLOTS if hm >= SLOTS[s]["after"]]
 
 
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--slot", default="auto", choices=["pre", "intra", "post", "auto"])
+    ap.add_argument("--slot", default="auto", choices=list(SLOTS) + ["auto"])
     ap.add_argument("--date", default="")
     ap.add_argument("--now", default="")
     ap.add_argument("--posted", default="state/posted.json")
@@ -833,9 +999,9 @@ def main(argv=None) -> int:
     out = Path(a.out) if a.out else None
     if a.dry_run and not out:
         ap.error("--dry-run 要搭配 --out")
-    slots = [a.slot] if a.slot != "auto" else [s for s in SLOTS if f"{SLOTS[s]['key']}-{day}" in posted]
+    slots = [a.slot] if a.slot != "auto" else auto_slots(day, now, posted)
     if not slots:
-        print(f"{day} 還沒有任何一段主貼文發出，不排新聞文")
+        print(f"{day} 目前沒有該排的主題文章時段（交易日要等主貼文發出；休市日要等排定時間）")
     for s in slots:
         log = run_slot(s, day, now, posted, a.dry_run, out, a.force)
         print(json.dumps(log, ensure_ascii=False, indent=1))
