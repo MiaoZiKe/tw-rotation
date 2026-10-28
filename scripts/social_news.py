@@ -51,6 +51,7 @@ SLOTS = {
 }
 N_MIN, N_MAX = 3, 5
 EXPLORE = 0.2
+STATUS = "approved" if os.environ.get("NEWS_AUTO_APPROVE") == "1" else "draft"   # 預設 draft：品質修完、CEO 確認後 workflow 才設 NEWS_AUTO_APPROVE=1
 GAP_MIN = 5                       # 同一段多篇之間錯開 5 分鐘，避免洗版
 SRC_NAME = {"cnyes": "鉅亨", "udn": "經濟日報", "technews": "科技新報"}
 CATS = ["台股", "財報", "總經", "科技", "美股"]
@@ -531,8 +532,8 @@ def run_slot(slot: str, day: str, now: datetime, posted: dict, dry: bool, out: P
         img_rel = (img_out / f"{d['id']}.jpg").relative_to(ROOT).as_posix() if not dry else f"{slot}/{d['id']}.jpg"
         meta = "\n".join(f"{k}: {v}" for k, v in d["meta"].items())
         ttl = f"{cfg['name']}新聞 {day} #{i + 1}：{d['card']['title']}"
-        ig = f"---\nstatus: approved\npublish_at: {pa}\ntitle: {ttl}\nimages: {img_rel}\n{meta}\n---\n{d['caption_ig']}\n"
-        th = f"---\nstatus: approved\npublish_at: {pa}\ntitle: {ttl}\n{meta}\n---\n" + "\n-----\n".join(d["caption_threads"]) + "\n"
+        ig = f"---\nstatus: {STATUS}\npublish_at: {pa}\ntitle: {ttl}\nimages: {img_rel}\n{meta}\n---\n{d['caption_ig']}\n"
+        th = f"---\nstatus: {STATUS}\npublish_at: {pa}\ntitle: {ttl}\n{meta}\n---\n" + "\n-----\n".join(d["caption_threads"]) + "\n"
         name = f"{day}_news-{slot}-{i + 1}.md"
         if dry:
             (out / "ig").mkdir(parents=True, exist_ok=True); (out / "threads").mkdir(parents=True, exist_ok=True)
