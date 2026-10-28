@@ -185,6 +185,10 @@ PALS = {
            tile="#FFFFFF", tilebd="#D5DDEA", tl="#475569", tu="#64748B", tv="#0B1F3A", rule="#C9D3E3", foot="#64748B",
            duo=("#0B2447", "#A9C4EA"), shade="11,36,71", ring="rgba(255,255,255,.22)", panel="linear-gradient(135deg,#0B3D91 0%,#1F5FC4 100%)", dark=False),
 }
+PALS["C"] = dict(name="比比色", bg="#FEF8E8", ink="#2A1410", sub="#5A3E36", acc="#2A1410", chip="#F58C78", chipfg="#2A1410", mark="#FFB4A0",
+           tile="#FFFFFF", tilebd="#EBDCC8", tl="#5A3E36", tu="#7A6258", tv="#2A1410", rule="#E6D5BE", foot="#7A6258",
+           duo=("#2A1410", "#FFD9C9"), shade="42,20,16", ring="rgba(255,255,255,.38)", panel="linear-gradient(135deg,#FFB4A0 0%,#F58C78 100%)", dark=False,
+           herofg="#2A1410", toppanel="#2A1410")
 SLOTN = {"pre": "盤前新聞", "intra": "盤中新聞", "post": "盤後新聞"}
 def bg_duo(path, w, h, pal):
     """AI 圖統一轉成同一組雙色調（暗→亮），整組色調一致；取上緣鋪滿"""
@@ -216,9 +220,9 @@ def hero3(c, tl, pal):
     num = re.match(r"[\d,.]+", hero).group(0); unit = hero[len(num):].strip(); label = ""
     for x in c["numbers"]:
         if num.replace(",", "") in x["value"].replace(",", "").replace("+", ""): label = x["label"]; break
-    fsz = 208 if len(num) <= 5 else 160
-    hx = ((f'<div class="a T3b" style="left:64px;top:176px;color:#fff;opacity:.85;letter-spacing:.08em">{e(label)}</div>') if label else "") + \
-         f'<div class="a ser num" style="left:64px;top:232px;color:#fff;font-size:{fsz}px;line-height:{fsz+16}px;font-weight:700;white-space:nowrap">{e(num)}<span style="font-size:64px;margin-left:12px">{e(unit)}</span></div>'
+    fg = pal.get("herofg", "#fff"); fsz = 208 if len(num) <= 5 else 160
+    hx = ((f'<div class="a T3b" style="left:64px;top:176px;color:{fg};opacity:.85;letter-spacing:.08em">{e(label)}</div>') if label else "") + \
+         f'<div class="a ser num" style="left:64px;top:232px;color:{fg};font-size:{fsz}px;line-height:{fsz+16}px;font-weight:700;white-space:nowrap">{e(num)}<span style="font-size:64px;margin-left:12px">{e(unit)}</span></div>'
     return shapes, hx
 def card_v3(d, idx, tot, bg=None, pal="A", slot="pre"):
     P3 = PALS[pal]; c = d["card"]; cat = c["category"]
@@ -231,21 +235,22 @@ def card_v3(d, idx, tot, bg=None, pal="A", slot="pre"):
     def hl3(l):
         m = NUM.search(l)
         if not m: return e(l)
-        return e(l[:m.start()]) + f'<span class="ser num" style="color:{P3["acc"]};font-weight:700">{e(m.group(0))}</span>' + e(l[m.end():])
+        mk = f';background:{P3["mark"]};padding:0 6px;border-radius:4px' if P3.get("mark") else ""
+        return e(l[:m.start()]) + f'<span class="ser num" style="color:{P3["acc"]};font-weight:700{mk}">{e(m.group(0))}</span>' + e(l[m.end():])
     extra = ""
     if bg:
         img = f'<div class="a" data-bg=1 style="left:0;top:0;width:1080px;height:760px;background:url({bg_duo(bg, 1080, 760, P3)}) center/cover"></div>'
     else: img, extra = hero3(c, tl, P3)
     sh = P3["shade"]
-    shade = (f'<div class="a" data-bg=1 style="left:0;top:0;width:1080px;height:1350px;background:linear-gradient(180deg,rgba({sh},.55) 0%,rgba({sh},0) 12%,rgba({sh},0) 30%,rgba({sh},.0) 34%,{P3["bg"]}EE 44%,{P3["bg"]} 52%,{P3["bg"]} 100%)"></div>')
+    shade = (f'<div class="a" data-bg=1 style="left:0;top:0;width:1080px;height:1350px;background:linear-gradient(180deg,rgba({sh},{0.55 if bg else 0}) 0%,rgba({sh},0) 12%,rgba({sh},0) 30%,rgba({sh},.0) 34%,{P3["bg"]}EE 44%,{P3["bg"]} 52%,{P3["bg"]} 100%)"></div>')
     rows = ''.join(
         f'<div class="row" style="position:absolute;left:64px;top:{rtop + i*(rh+g)}px;width:952px;height:{rh}px;background:{P3["tile"]};border:1px solid {P3["tilebd"]};border-left:8px solid {P3["chip"]};border-radius:4px;padding:0 28px;justify-content:space-between">'
         f'<span class="T3b" style="color:{P3["tl"]}">{e(x["label"])}</span><span class="row" style="gap:8px;align-items:baseline"><span class="ser num" style="font-size:56px;line-height:64px;font-weight:700;color:{vcolor3(x["value"], P3)}">{e(x["value"])}</span>'
         f'<span class="T4b" style="color:{P3["tu"]}">{e(x["unit"])}</span></span></div>' for i, x in enumerate(nums))
-    date = d["data_date"][:10].replace("-", "/"); topc = "#fff" if (P3["dark"] or True) else P3["ink"]
+    date = d["data_date"][:10].replace("-", "/"); topc = P3.get("toppanel", "#fff") if (not bg and P3.get("toppanel")) else "#fff"
     return (f'<body style="{V};background:{P3["bg"]}">{img}{shade}{extra}'
-            f'<div class="a" style="left:64px;top:48px;width:952px;height:2px;background:rgba(255,255,255,.45)" data-bg=1></div>'
-            f'<div class="brand T3b" style="color:#fff;top:64px">哩股哩股</div><div class="hdate T4b num" style="color:#fff;top:68px">{SLOTN.get(slot, "")}・{date}</div>'
+            f'<div class="a" style="left:64px;top:48px;width:952px;height:2px;background:{topc};opacity:.45" data-bg=1></div>'
+            f'<div class="brand T3b" style="color:{topc};top:64px">哩股哩股</div><div class="hdate T4b num" style="color:{topc};top:68px">{SLOTN.get(slot, "")}・{date}</div>'
             f'<div class="a row" style="left:64px;top:{chipt}px"><span class="T3b" style="background:{P3["chip"]};color:{P3["chipfg"]};padding:4px 28px;border-radius:4px;letter-spacing:.12em">{e(cat)}</span></div>'
             f'<div class="a" style="left:64px;top:{ttop}px;width:952px;color:{P3["ink"]};font-size:{fs}px;line-height:{fs+12}px;font-weight:800;letter-spacing:-.01em">'
             + "".join(f'<div style="white-space:nowrap">{hl3(l) if i == hi else e(l)}</div>' for i, l in enumerate(tl)) + '</div>'
