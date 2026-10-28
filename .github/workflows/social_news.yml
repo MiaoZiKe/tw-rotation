@@ -91,6 +91,7 @@ jobs:
           IN_SLOT: ${{ inputs.slot || 'auto' }}
           IN_DRY: ${{ inputs.dry_run }}
           IN_FORCE: ${{ inputs.force }}
+          NEWS_AUTO_APPROVE: "1"   # 10-28 Andy：「A，開啟」（寧可少發、品質閘不放寬）
         run: |
           args="--slot $IN_SLOT --posted state/posted.json"
           if [ "$IN_DRY" = "true" ]; then args="$args --dry-run --out $RUNNER_TEMP/news_dry"; fi
