@@ -18652,16 +18652,16 @@
             14
           ],
           "annual_total_wan": [
-            117.6,
+            60,
             120
           ],
           "weekly_hours": [
             40,
             55
           ],
-          "overtime": "經常",
+          "overtime": null,
           "travel": null,
-          "n": 5,
+          "n": 6,
           "note": "網友自述未經查證；GoodJob 2026-05 臺南數位 IC 月薪 8.4 萬、保 14 個月、分紅偏少；2025-06 另一筆未滿 1 年年薪 110 萬；未逐筆對應的舊彙整：overtime=經常（不能報加班）；部分年薪／年薪月數由同一筆樣本的「底薪×月數」推算（樣本標 derived）",
           "sources": [
             {
@@ -18688,6 +18688,11 @@
               "site": "GoodJob",
               "url": "https://www.goodjob.life/companies/奇景光電股份有限公司/salary-work-times?p=2",
               "date": "2025-03"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/奇景光電股份有限公司/salary-work-times?p=3",
+              "date": "2025-02"
             }
           ],
           "confidence": "低",
@@ -18802,9 +18807,31 @@
               "quote_free_note": "自填；日工時 表訂/實際 8/8",
               "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2025-03（20261028_2348～20261029_0012 合併批，0004 檔）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/奇景光電股份有限公司/salary-work-times?p=3",
+              "date": "2025-02",
+              "page_date": "2025-02",
+              "date_confirmed": true,
+              "role": "數位IC設計工程師",
+              "grade": null,
+              "unit_detail": "新竹",
+              "years": "1",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 60,
+              "weekly_hours": 40,
+              "overtime": "幾乎不",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/8 小時",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2025-02（20261029_0014～0053 合併批，0045 檔）"
             }
           ],
-          "n_stat": 5
+          "n_stat": 6
         },
         {
           "unit": "研發 R&D",
@@ -19509,11 +19536,11 @@
           ],
           "overtime": "經常",
           "travel": null,
-          "n": 3,
+          "n": 4,
           "note": "2026-10-29 GoodJob 合併批新增職位",
           "confidence": "低",
           "grade": null,
-          "n_stat": 3,
+          "n_stat": 4,
           "samples": [
             {
               "site": "GoodJob",
@@ -19580,6 +19607,28 @@
               "quote_free_note": "自填；日工時 表訂/實際 8/10",
               "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2025-03（20261028_2348～20261029_0012 合併批，0004 檔）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/奇景光電股份有限公司/salary-work-times?p=3",
+              "date": "2025-01",
+              "page_date": "2025-01",
+              "date_confirmed": true,
+              "role": "高級工程師",
+              "grade": null,
+              "unit_detail": "台北",
+              "years": "5",
+              "degree": null,
+              "base_k": 96,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 44,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/10 小時；疑似與同頁 2025-03 台北資深工程師同一人",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2025-01（20261029_0014～0053 合併批，0045 檔）"
             }
           ],
           "sources": [
@@ -19752,11 +19801,17 @@
             14,
             14
           ],
-          "annual_total_wan": null,
-          "weekly_hours": null,
-          "overtime": null,
+          "annual_total_wan": [
+            220,
+            280
+          ],
+          "weekly_hours": [
+            40,
+            42
+          ],
+          "overtime": "偶爾",
           "travel": null,
-          "n": 2,
+          "n": 4,
           "note": "WebSearch 查「奕力 碩士 薪資 2026」「GoodJob 奕力」「PTT Tech_Job offer 奕力」「Dcard offer 奕力」「104 ESG 薪資中位數」，摘要未出現 2025-10 後碩士職位數字；第二輪（換 GoodJob 公司頁／職稱頁／salary.tw）：salary.tw 數字鎖住；GoodJob 無；GoodJob 評價稱底薪保障 14 個月、分紅不確定；未逐筆對應的舊彙整：{\"annual_months\": [14, 14]}；未逐筆對應的舊彙整：overtime=經常",
           "sources": [
             {
@@ -19768,6 +19823,11 @@
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/258590272",
               "date": "2025-04"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/奕力科技股份有限公司/salary-work-times?p=1",
+              "date": "2026-10"
             }
           ],
           "confidence": "低",
@@ -19813,9 +19873,53 @@
               "quote_free_note": "N 只作比較用；offer 月薪 N+9k（N 未知，無法填 base_k）",
               "date_note": "Dcard 頁面發文日期 2025-04-19（2026-10-26 1923 批，非 Andy 親眼讀）",
               "in_window": true
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/奕力科技股份有限公司/salary-work-times?p=1",
+              "date": "2026-10",
+              "page_date": "2026-10",
+              "date_confirmed": true,
+              "role": "類比工程師",
+              "grade": null,
+              "unit_detail": "竹北",
+              "years": "6",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 280,
+              "weekly_hours": 40,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/8 小時",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-10（20261029_0014～0053 合併批，0045 檔）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/奕力科技股份有限公司/salary-work-times?p=1",
+              "date": "2025-08",
+              "page_date": "2025-08",
+              "date_confirmed": true,
+              "role": "類比工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "6",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 220,
+              "weekly_hours": 42,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/8.5 小時",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2025-08（20261029_0014～0053 合併批，0045 檔）"
             }
           ],
-          "n_stat": 2
+          "n_stat": 4
         },
         {
           "unit": "驅動 IC",
@@ -19922,6 +20026,50 @@
               "date_confirmed": true,
               "date_note": null,
               "in_window": true
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/奕力科技股份有限公司/salary-work-times?p=1",
+              "date": "2026-08",
+              "page_date": "2026-08",
+              "date_confirmed": true,
+              "role": "韌體設計工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 70,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 40,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 10/9 小時；原選項幾乎每天",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-08（20261029_0014～0053 合併批，0045 檔）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/奕力科技股份有限公司/salary-work-times?p=1",
+              "date": "2025-02",
+              "page_date": "2025-02",
+              "date_confirmed": true,
+              "role": "任體工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "3",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 210,
+              "weekly_hours": 50,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/10 小時；職稱原文如此（疑為韌體工程師）",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2025-02（20261029_0014～0053 合併批，0045 檔）"
             }
           ],
           "sources": [
@@ -19939,25 +20087,33 @@
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/261924291",
               "date": "2026-08"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/奕力科技股份有限公司/salary-work-times?p=1",
+              "date": "2026-08"
             }
           ],
           "confidence": "低",
-          "n": 5,
+          "n": 7,
           "weekly_hours": [
-            55,
+            40,
             60
           ],
           "overtime": "經常",
           "years": null,
           "base_month_k": [
-            78,
+            70,
             82
           ],
           "bonus_months": null,
           "annual_months": null,
-          "annual_total_wan": null,
+          "annual_total_wan": [
+            210,
+            210
+          ],
           "travel": null,
-          "n_stat": 5,
+          "n_stat": 7,
           "note": null,
           "grade": null
         },
@@ -20027,6 +20183,28 @@
               "quote_free_note": "代 PO；拿到 offer；數字未透露",
               "date_note": "Dcard 頁面發文日期 2025-07-16（2026-10-26 1923 批，非 Andy 親眼讀）",
               "in_window": true
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/奕力科技股份有限公司/salary-work-times?p=1",
+              "date": "2025-10",
+              "page_date": "2025-10",
+              "date_confirmed": true,
+              "role": "系統應用工程師",
+              "grade": null,
+              "unit_detail": "竹北",
+              "years": "19",
+              "degree": null,
+              "base_k": 180,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 50,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/10 小時",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2025-10（20261029_0014～0053 合併批，0045 檔）"
             }
           ],
           "sources": [
@@ -20034,12 +20212,215 @@
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/259328414",
               "date": "2025-07"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/奕力科技股份有限公司/salary-work-times?p=1",
+              "date": "2025-10"
             }
           ],
           "confidence": "低",
+          "n": 2,
+          "n_stat": 2,
+          "overtime": "經常",
+          "base_month_k": [
+            180,
+            180
+          ],
+          "weekly_hours": [
+            50,
+            50
+          ]
+        },
+        {
+          "unit": null,
+          "role": "資深工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": [
+            100,
+            100
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": [
+            180,
+            180
+          ],
+          "weekly_hours": [
+            40,
+            40
+          ],
+          "overtime": null,
+          "travel": null,
+          "n": 2,
+          "note": "2026-10-29 GoodJob 合併批新增職位",
+          "confidence": "低",
+          "grade": null,
+          "n_stat": 2,
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/奕力科技股份有限公司/salary-work-times?p=1",
+              "date": "2026-10",
+              "page_date": "2026-10",
+              "date_confirmed": true,
+              "role": "資深工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "8",
+              "degree": null,
+              "base_k": 100,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 40,
+              "overtime": "幾乎不",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/8 小時",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-10（20261029_0014～0053 合併批，0045 檔）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/奕力科技股份有限公司/salary-work-times?p=1",
+              "date": "2026-03",
+              "page_date": "2026-03",
+              "date_confirmed": true,
+              "role": "資深工程師",
+              "grade": null,
+              "unit_detail": "竹北",
+              "years": "9",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 180,
+              "weekly_hours": 40,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/8 小時",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-03（20261029_0014～0053 合併批，0045 檔）"
+            }
+          ],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/奕力科技股份有限公司/salary-work-times?p=1",
+              "date": "2026-10"
+            }
+          ]
+        },
+        {
+          "unit": null,
+          "role": "軟體工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": [
+            85,
+            85
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": [
+            50,
+            50
+          ],
+          "overtime": "經常",
+          "travel": null,
           "n": 1,
+          "note": "2026-10-29 GoodJob 合併批新增職位",
+          "confidence": "低",
+          "grade": null,
           "n_stat": 1,
-          "overtime": "經常"
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/奕力科技股份有限公司/salary-work-times?p=1",
+              "date": "2026-01",
+              "page_date": "2026-01",
+              "date_confirmed": true,
+              "role": "軟體工程師",
+              "grade": null,
+              "unit_detail": "竹北",
+              "years": null,
+              "degree": null,
+              "base_k": 85,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 50,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 9/11 小時",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-01（20261029_0014～0053 合併批，0045 檔）"
+            }
+          ],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/奕力科技股份有限公司/salary-work-times?p=1",
+              "date": "2026-01"
+            }
+          ]
+        },
+        {
+          "unit": null,
+          "role": "測試工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": [
+            70,
+            70
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": [
+            50,
+            50
+          ],
+          "overtime": "偶爾",
+          "travel": null,
+          "n": 1,
+          "note": "2026-10-29 GoodJob 合併批新增職位",
+          "confidence": "低",
+          "grade": null,
+          "n_stat": 1,
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/奕力科技股份有限公司/salary-work-times?p=1",
+              "date": "2025-09",
+              "page_date": "2025-09",
+              "date_confirmed": true,
+              "role": "IC封裝╱測試工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "2",
+              "degree": null,
+              "base_k": 70,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 50,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/10 小時",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2025-09（20261029_0014～0053 合併批，0045 檔）"
+            }
+          ],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/奕力科技股份有限公司/salary-work-times?p=1",
+              "date": "2025-09"
+            }
+          ]
         }
       ],
       "mops": {
@@ -20112,7 +20493,7 @@
           ],
           "overtime": "幾乎不",
           "travel": null,
-          "n": 2,
+          "n": 3,
           "note": "WebSearch 查「力旺 碩士 薪資 2026」「GoodJob 力旺」「PTT Tech_Job offer 力旺」「Dcard offer 力旺」「104 ESG 薪資中位數」，摘要未出現 2025-10 後碩士職位數字；第二輪（換 GoodJob 公司頁／職稱頁／salary.tw）：GoodJob 只有 2025-05 主任工程師年資 5 年月薪 9 萬，超出 0-2 不填；第二輪：Dcard 2026 稱四月調薪很少、分紅與去年差不多；未逐筆對應的舊彙整：overtime=幾乎不",
           "sources": [
             {
@@ -20123,6 +20504,11 @@
             {
               "site": "GoodJob",
               "url": "https://www.goodjob.life/companies/力旺電子股份有限公司/salary-work-times",
+              "date": "2026-04"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/力旺電子股份有限公司/salary-work-times?p=1",
               "date": "2026-04"
             }
           ],
@@ -20166,9 +20552,31 @@
               "quote_free_note": "薪資頁：月薪 7.5 萬",
               "in_window": true,
               "date_note": null
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/力旺電子股份有限公司/salary-work-times?p=1",
+              "date": "2026-04",
+              "page_date": "2026-04",
+              "date_confirmed": true,
+              "role": "類比IC設計工程師",
+              "grade": null,
+              "unit_detail": "竹北",
+              "years": null,
+              "degree": null,
+              "base_k": 75,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 40,
+              "overtime": "幾乎不",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/8 小時",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-04（20261029_0014～0053 合併批，0045 檔）"
             }
           ],
-          "n_stat": 2
+          "n_stat": 3
         },
         {
           "unit": "研發 R&D",
@@ -20182,16 +20590,24 @@
             150,
             150
           ],
-          "weekly_hours": null,
-          "overtime": null,
+          "weekly_hours": [
+            40,
+            40
+          ],
+          "overtime": "幾乎不",
           "travel": null,
-          "n": 1,
+          "n": 2,
           "note": "WebSearch 查「力旺 碩士 薪資 2026」「GoodJob 力旺」「PTT Tech_Job offer 力旺」「Dcard offer 力旺」「104 ESG 薪資中位數」，摘要未出現 2025-10 後碩士職位數字；第二輪（換 GoodJob 公司頁／職稱頁／salary.tw）：GoodJob 只有 2025-05 主任工程師年資 5 年月薪 9 萬，超出 0-2 不填；未逐筆對應的舊彙整：overtime=幾乎不",
           "sources": [
             {
               "site": "GoodJob",
               "url": "https://www.goodjob.life/companies/力旺電子股份有限公司/salary-work-times",
               "date": "2026"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/力旺電子股份有限公司/salary-work-times?p=1",
+              "date": "2026-09"
             }
           ],
           "confidence": "低",
@@ -20215,9 +20631,86 @@
               "quote_free_note": "薪資頁：年薪約 150 萬（只標 2026 年）",
               "in_window": true,
               "date_note": null
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/力旺電子股份有限公司/salary-work-times?p=1",
+              "date": "2026-09",
+              "page_date": "2026-09",
+              "date_confirmed": true,
+              "role": "驗證工程師",
+              "grade": null,
+              "unit_detail": "竹北",
+              "years": "2",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 150,
+              "weekly_hours": 40,
+              "overtime": "幾乎不",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/8 小時",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-09（20261029_0014～0053 合併批，0045 檔）"
             }
           ],
-          "n_stat": 1
+          "n_stat": 2
+        },
+        {
+          "unit": null,
+          "role": "工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": [
+            140,
+            140
+          ],
+          "weekly_hours": [
+            40,
+            40
+          ],
+          "overtime": "幾乎不",
+          "travel": null,
+          "n": 1,
+          "note": "2026-10-29 GoodJob 合併批新增職位",
+          "confidence": "低",
+          "grade": null,
+          "n_stat": 1,
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/力旺電子股份有限公司/salary-work-times?p=1",
+              "date": "2026-03",
+              "page_date": "2026-03",
+              "date_confirmed": true,
+              "role": "工程中心工程師",
+              "grade": null,
+              "unit_detail": "竹北",
+              "years": "3",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 140,
+              "weekly_hours": 40,
+              "overtime": "幾乎不",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/8 小時",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-03（20261029_0014～0053 合併批，0045 檔）"
+            }
+          ],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/力旺電子股份有限公司/salary-work-times?p=1",
+              "date": "2026-03"
+            }
+          ]
         }
       ],
       "mops": {
@@ -20285,10 +20778,13 @@
             150,
             150
           ],
-          "weekly_hours": null,
-          "overtime": null,
+          "weekly_hours": [
+            45,
+            45
+          ],
+          "overtime": "經常",
           "travel": null,
-          "n": 3,
+          "n": 4,
           "note": "網友自述未經查證；GoodJob 臺南數位 IC 未滿 1 年年薪 150 萬、保 14 個月（端午中秋各 0.5、年終 1）；日期未載；GoodJob 工時統計 46 小時／週；annual_months、annual_total_wan 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples；未逐筆對應的舊彙整：overtime=偶爾～經常",
           "sources": [
             {
@@ -20304,6 +20800,11 @@
             {
               "site": "GoodJob",
               "url": "https://www.goodjob.life/companies/天鈺科技股份有限公司/salary-work-times",
+              "date": "2025-09"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/天鈺科技股份有限公司/salary-work-times?p=1",
               "date": "2025-09"
             }
           ],
@@ -20366,9 +20867,31 @@
               "date_confirmed": true,
               "date_note": null,
               "in_window": true
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/天鈺科技股份有限公司/salary-work-times?p=1",
+              "date": "2025-09",
+              "page_date": "2025-09",
+              "date_confirmed": true,
+              "role": "數位IC設計工程師",
+              "grade": null,
+              "unit_detail": "新竹",
+              "years": null,
+              "degree": null,
+              "base_k": 80,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 45,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 9/9 小時",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2025-09（20261029_0014～0053 合併批，0045 檔）"
             }
           ],
-          "n_stat": 2
+          "n_stat": 3
         },
         {
           "unit": "研發 R&D",
@@ -20522,6 +21045,196 @@
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/259978760",
               "date": "2025-10"
+            }
+          ]
+        },
+        {
+          "unit": null,
+          "role": "FAE",
+          "degree": null,
+          "years": null,
+          "base_month_k": [
+            88.5,
+            88.5
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": [
+            40,
+            40
+          ],
+          "overtime": "偶爾",
+          "travel": null,
+          "n": 1,
+          "note": "2026-10-29 GoodJob 合併批新增職位",
+          "confidence": "低",
+          "grade": null,
+          "n_stat": 1,
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/天鈺科技股份有限公司/salary-work-times?p=1",
+              "date": "2026-07",
+              "page_date": "2026-07",
+              "date_confirmed": true,
+              "role": "應用工程師",
+              "grade": null,
+              "unit_detail": "新竹",
+              "years": "4",
+              "degree": null,
+              "base_k": 88.5,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 40,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/9.5 小時",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-07（20261029_0014～0053 合併批，0045 檔）"
+            }
+          ],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/天鈺科技股份有限公司/salary-work-times?p=1",
+              "date": "2026-07"
+            }
+          ]
+        },
+        {
+          "unit": null,
+          "role": "IC 佈局工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": [
+            55,
+            55
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": [
+            120,
+            120
+          ],
+          "weekly_hours": [
+            50,
+            55
+          ],
+          "overtime": "經常",
+          "travel": null,
+          "n": 2,
+          "note": "2026-10-29 GoodJob 合併批新增職位",
+          "confidence": "低",
+          "grade": null,
+          "n_stat": 2,
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/天鈺科技股份有限公司/salary-work-times?p=1",
+              "date": "2026-05",
+              "page_date": "2026-05",
+              "date_confirmed": true,
+              "role": "IC LAYOUT工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "4",
+              "degree": null,
+              "base_k": 55,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 55,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/12 小時；原選項幾乎每天",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-05（20261029_0014～0053 合併批，0045 檔）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/天鈺科技股份有限公司/salary-work-times?p=1",
+              "date": "2025-08",
+              "page_date": "2025-08",
+              "date_confirmed": true,
+              "role": "LAYOUT",
+              "grade": null,
+              "unit_detail": null,
+              "years": "4",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 120,
+              "weekly_hours": 50,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 10/10 小時；原選項幾乎每天；職稱未寫工程師",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2025-08（20261029_0014～0053 合併批，0045 檔）"
+            }
+          ],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/天鈺科技股份有限公司/salary-work-times?p=1",
+              "date": "2026-05"
+            }
+          ]
+        },
+        {
+          "unit": null,
+          "role": "測試工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": [
+            170,
+            170
+          ],
+          "weekly_hours": [
+            45,
+            45
+          ],
+          "overtime": "偶爾",
+          "travel": null,
+          "n": 1,
+          "note": "2026-10-29 GoodJob 合併批新增職位",
+          "confidence": "低",
+          "grade": null,
+          "n_stat": 1,
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/天鈺科技股份有限公司/salary-work-times?p=1",
+              "date": "2026-04",
+              "page_date": "2026-04",
+              "date_confirmed": true,
+              "role": "測試工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "8",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 170,
+              "weekly_hours": 45,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/9 小時",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-04（20261029_0014～0053 合併批，0045 檔）"
+            }
+          ],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/天鈺科技股份有限公司/salary-work-times?p=1",
+              "date": "2026-04"
             }
           ]
         }
@@ -20790,6 +21503,61 @@
           "n_stat": 1,
           "note": null,
           "grade": null
+        },
+        {
+          "unit": null,
+          "role": "測試工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": [
+            60,
+            60
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": [
+            40,
+            40
+          ],
+          "overtime": "幾乎不",
+          "travel": null,
+          "n": 1,
+          "note": "2026-10-29 GoodJob 合併批新增職位",
+          "confidence": "低",
+          "grade": null,
+          "n_stat": 1,
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/晶豪科技股份有限公司/salary-work-times?p=1",
+              "date": "2026-09",
+              "page_date": "2026-09",
+              "date_confirmed": true,
+              "role": "測試工程師",
+              "grade": null,
+              "unit_detail": "新竹",
+              "years": null,
+              "degree": null,
+              "base_k": 60,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 40,
+              "overtime": "幾乎不",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/8 小時",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-09（20261029_0014～0053 合併批，0045 檔）"
+            }
+          ],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/晶豪科技股份有限公司/salary-work-times?p=1",
+              "date": "2026-09"
+            }
+          ]
         }
       ],
       "mops": {
