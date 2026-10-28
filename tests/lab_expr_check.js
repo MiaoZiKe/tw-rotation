@@ -14,6 +14,10 @@ function randBars(n, seed) {
 }
 const same = (a, b, keys) => keys.every((k) => a[k].every((x, i) => x === b[k][i]));
 const B = randBars(500, 9);
+{   // 隨機籌碼（外資／投信／自營買賣超，張），讓有籌碼的內建策略也能做腳本等價驗證
+  let q = 77; const rnd = () => { q = (q * 16807) % 2147483647; return q / 2147483647; };
+  B.chip = { fn: Float64Array.from({ length: B.n }, () => Math.round((rnd() - 0.5) * 2000)), tr: Float64Array.from({ length: B.n }, () => Math.round((rnd() - 0.5) * 400)), dl: Float64Array.from({ length: B.n }, () => Math.round((rnd() - 0.5) * 300)) };
+}
 
 // ① 腳本＝內建策略
 let r = X.compile('若 crossover(sma(close,5), sma(close,20)) 則 進場("多")\n若 crossunder(sma(close,5), sma(close,20)) 則 進場("空")', B);
@@ -84,5 +88,13 @@ eq(R.trades.length, 1, '最長持有：一筆'); eq(R.trades[0].i1 - R.trades[0]
   }
   assert.ok(n >= 24, '至少 12 支×2 組參數有腳本寫法：' + n); pass++;
   console.log('  內建策略↔腳本：' + n + ' 組一致');
+}
+{   // 籌碼函式：中英文別名等價、沒有籌碼資料時有看得懂的錯誤
+  const a = X.compile('若 streak(chip("法人")) >= 3 則 進場("多")', B), b = X.compile('若 連買賣(籌碼("inst")) >= 3 則 進場("多")', B);
+  eq(a.errors, [], '籌碼函式沒有錯誤'); eq(b.errors, [], '籌碼函式（中文別名）沒有錯誤'); assert.ok(same(a.sig, b.sig, ['L', 'S']) && a.sig.L.some((x) => x), '中英文籌碼函式等價且有訊號'); pass++;
+  const B0 = randBars(50, 5); const c = X.compile('若 chip("外資") > 0 則 進場("多")', B0);
+  assert.ok(c.errors.length === 1 && /沒有籌碼資料/.test(c.errors[0]), '沒籌碼時的錯誤：' + c.errors); pass++;
+  const rule = { name: 't', blocks: { le: { join: 'and', rows: [{ kind: 'cmp', op: 'gt', a: { t: 'sinst' }, b: { t: 'num', v: 2 } }] }, lx: { join: 'and', rows: [] }, se: { join: 'and', rows: [] }, sx: { join: 'and', rows: [] } }, risk: {} };
+  const d = X.compile(X.toScript(rule), B); eq(d.errors, [], '積木籌碼運算元可編譯'); assert.ok(d.sig.L.some((x) => x), '積木籌碼條件有訊號'); pass++;
 }
 console.log(`lab_expr_check：${pass} 項斷言全數通過`);

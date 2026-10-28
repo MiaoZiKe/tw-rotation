@@ -121,6 +121,7 @@ def export_lab(price_adj: pd.DataFrame, names: dict, markets: dict, out_dir: Pat
         m60g = {str(c): g for c, g in m60.groupby(m60["code"].astype(str))}
     recent = p[p["date"].astype(str) >= (pd.to_datetime(latest) - pd.Timedelta(days=60)).strftime("%Y-%m-%d")]
     top60 = set(recent.groupby(recent["code"].astype(str))["turnover"].sum().nlargest(TOP60).index)
+    topchip = set(recent.groupby(recent["code"].astype(str))["turnover"].sum().nlargest(CHIP_N).index)
     for code, g in p.groupby(p["code"].astype(str)):
         if not CODE_RE.match(code) or (only and code not in only):
             continue
@@ -142,9 +143,63 @@ def export_lab(price_adj: pd.DataFrame, names: dict, markets: dict, out_dir: Pat
                 h60 = True
         items.append({"c": code, "n": nm, "k": kind, "m": markets.get(code, ""), "a": str(g["date"].iloc[0]),
                       "b": str(g["date"].iloc[-1]), "h60": h60})
+    try:
+        total += export_chips(p, items, out, topchip, only)
+    except Exception as exc:  # noqa: BLE001 —— 籌碼壞了只影響籌碼策略，K 線與回測照常
+        log.warning("交易練習室籌碼資料產出失敗：%s", exc)
     _dump(out / "index.json", {"updated": latest, "items": items})
     log.info("交易練習室：%d 檔、合計 %.1f MB → %s", len(items), total / 1e6, out)
     return {"n": len(items), "bytes": total}
+
+
+CHIP_N = 1000                   # 籌碼檔只給近期成交值前 1000 名（含 ETF 後約 850 檔個股，每檔約 30 KB，合計約 26 MB）
+# 欄位 → (來源表, 來源欄, 單位換算)。三大法人是買賣超股數、融資融券是餘額股數、當沖是成交股數；一律換成「張」。
+CHIP_FIELDS = {"fn": ("inst_daily", "foreign_total"), "tr": ("inst_daily", "trust"), "dl": ("inst_daily", "dealer"),
+               "mb": ("margin_daily", "margin_balance"), "sb": ("margin_daily", "short_balance"),
+               "dt": ("daytrade_daily", "daytrade_volume")}
+
+
+def export_chips(p: pd.DataFrame, items: list, out: Path, rank_set=None, only=None) -> int:
+    """每檔一個 c/<代號>.json：{s:{欄位:起點列號}, fn:[…], tr:[…], …}，各序列對齊該檔日 K 的列（同樣的日期篩選與去重）。
+    為什麼用「起點列號＋連續陣列」：融資從 2021、當沖從 2025 才有，用 null 補會變很肥；起點之前就是沒有資料，前端補 NaN。
+    資料當天沒紀錄的法人買賣超補 0（沒成交＝沒買賣超），餘額類沿用前一日。集保大戶只有 2026-09 起、不足以回測，故意不出。
+    """
+    cand = [it["c"] for it in items if it["k"] == "stock" and ((only and it["c"] in only) or (not only and it["c"] in (rank_set or ())))]
+    if not cand:
+        return 0
+    cs = set(cand)
+    frames = {}
+    for t in ("inst_daily", "margin_daily", "daytrade_daily"):
+        df = store.read(t)
+        df = df[(df["date"].astype(str) >= DAILY_FROM) & df["code"].astype(str).isin(cs)]
+        df = df.assign(code=df["code"].astype(str), date=df["date"].astype(str))
+        frames[t] = {c: g.drop_duplicates("date", keep="last").set_index("date") for c, g in df.groupby("code")}
+    total = 0
+    for code in cand:
+        g = p[p["code"].astype(str) == code].sort_values("date").drop_duplicates("date")
+        g = g[g["close"] > 0]
+        dates = g["date"].astype(str).tolist()
+        o: dict = {"c": code, "s": {}}
+        for f, (t, col) in CHIP_FIELDS.items():
+            src = frames[t].get(code)
+            if src is None or col not in src.columns or src.empty:
+                continue
+            ser = pd.to_numeric(src[col], errors="coerce").reindex(dates)
+            first = ser.first_valid_index()
+            if first is None:
+                continue
+            i0 = dates.index(first)
+            ser = ser.iloc[i0:]
+            ser = ser.fillna(0) if t == "inst_daily" else ser.ffill().fillna(0)
+            o["s"][f] = i0
+            o[f] = [int(round(x / 1000)) for x in ser.tolist()]
+        if o["s"]:
+            total += _dump(out / "c" / f"{code}.json", o)
+            for it in items:
+                if it["c"] == code:
+                    it["ch"] = True
+    log.info("交易練習室籌碼：%d 檔、%.1f MB", len(cand), total / 1e6)
+    return total
 
 
 def export_events(out_dir: Path | None = None) -> int:

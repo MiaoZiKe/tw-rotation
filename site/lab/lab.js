@@ -55,7 +55,10 @@
     if (tf === '60') { const j = await getJSON('s/' + code + '.60.json'); if (!j) return null; B = E.decode(j.d, '60'); }
     else {
       const j = await getJSON('s/' + code + '.json'); if (!j) return null;
-      const D = E.decode(j.d, 'D'); B = E.resample(D, tf); B.name = j.n; B.kind = j.k; B.vu = j.vu;
+      const D = E.decode(j.d, 'D');
+      const it = ((await loadIndex()).items || []).find((x) => x.c === code);
+      if (it && it.ch) E.attachChip(D, await getJSON('c/' + code + '.json'));       // 籌碼檔（近期成交值前 1000 大個股才有），按需載入
+      B = E.resample(D, tf); B.name = j.n; B.kind = j.k; B.vu = j.vu;
     }
     DATA.ser[k] = B; return B;
   }
@@ -79,7 +82,7 @@
   }
   async function ensureLoaded(key, B) {
     if (W.loaded[key]) return;
-    const bars = { n: B.n, tf: B.tf, ts: B.ts, day: B.day, dayEnd: B.dayEnd, o: B.o, h: B.h, l: B.l, c: B.c, v: B.v };
+    const bars = { n: B.n, tf: B.tf, ts: B.ts, day: B.day, dayEnd: B.dayEnd, o: B.o, h: B.h, l: B.l, c: B.c, v: B.v, chip: B.chip };
     await wcall({ op: 'load', key, bars });
     W.loaded[key] = 1;
   }
@@ -141,7 +144,11 @@
     '<br>· 最大回撤、最大上漲用每根收盤的權益（含未平倉浮動損益），不含盤中高低。' +
     '<br>· 買進持有＝期初第一根開盤買入、持有到最後一根收盤。' +
     '<br>· 內建策略的預設參數與進場方式照 TradingView 內建策略整理，Greedy 為我們的近似版（原版未核實）；台股 KD 用 9,3,3。' +
-    '<br>· 回測是過去的結果，不代表未來，也不是投資建議。';
+    '<br><br><b>籌碼策略（策略清單的「籌碼」類）</b><br>· 先講我們自己的研究結論：<b>法人籌碼當主訊號沒有增量</b>——單看法人買賣超進出，通常贏不過買進持有；所以這裡的「突破＋法人買超」「均線多頭＋投信連買」是價格訊號為主、籌碼只當濾網。請用「買進持有」對照，別只看勝率。' +
+      '<br>· 資料來源：三大法人買賣超（2016 起）、融資融券餘額（2021 起）、當沖成交量（2025 起），單位一律「張」；只涵蓋近期成交值前 1000 大個股，日、週、月 K 才有（週月：買賣超加總、餘額取最後一天）。起點之前沒有資料，策略就不出訊號。' +
+      '<br>· 集保大戶增減：我們只有 2026-09 起的週資料（約 8 週），不足以回測，所以標示「資料不足」、不產生訊號。' +
+      '<br>· 券資比＝融券餘額 ÷ 融資餘額；當沖比＝當沖成交量 ÷ 成交量；連買連賣＝連續幾根買超（或賣超）；法人＝外資＋投信＋自營商。資料都是收盤後公布，訊號在收盤、下一根開盤成交，不偷看未來。' +
+      '<br>· 回測是過去的結果，不代表未來，也不是投資建議。';
 
   /* 各子頁自己的「?」說明（定義、口徑、限制都在這裡，畫面上不放說明卡） */
   const HOWS = {
@@ -157,7 +164,7 @@
       '<br><br><b>事件資料</b><br>人工維護的歷史日期表（pipeline/groups/events_history.yaml），每筆有出處與信心度：高＝官方公布的固定日期；中＝依公開日程整理、尚未逐筆對官網（FOMC、台積電法說會）；低＝規則推算（非農＝每月第一個週五、台指期結算＝每月第三個週三，遇假日未調整）；資料＝由資料湖統計（除權息旺季）。事件數不多的類別（選舉）平均值參考性低。',
     custom: '<b>怎麼用</b><br>左邊管理策略，右邊用積木組規則：多單進場、多單出場、空單進場、空單出場四格各自加條件，格內用「全部成立」或「任一成立」組合，再設停損、停利、移動停損、最長持有。下方立刻試跑，按「在歷史回測看完整結果」到完整的策略測試器。' +
       '<br><br><b>腳本寫法</b>（切到「腳本」分頁）<br>每行一件事：<br>· 若 條件 則 進場("多")／進場("空")／平倉("多")<br>· 快 = 參數("快線", 5)　宣告可在畫面上調的參數<br>· x = rsi(收盤, 14)　自己的變數；x[1] 是前一根<br>· 出場("風控", 停損%=5, 停利%=10, 移動%=3, 最長持有=30)' +
-      '<br>函式：均線 sma、ema、rsi、macd_dif／macd_dea／macd_osc、bb_up／bb_mid／bb_low、kd_k／kd_d、atr、highest、lowest、change、crossover（上穿）、crossunder（下穿）、event("fomc", 前, 後)。也能用 ta.sma、ta.crossover、strategy.entry 這些 TradingView 寫法。不支援迴圈、陣列、跨週期。' +
+      '<br>函式：均線 sma、ema、rsi、macd_dif／macd_dea／macd_osc、bb_up／bb_mid／bb_low、kd_k／kd_d、atr、highest、lowest、change、crossover（上穿）、crossunder（下穿）、event("fomc", 前, 後)；籌碼：chip("外資"／"投信"／"自營"／"法人"／"融資"／"融券"／"券資比"／"當沖比"／"當沖量")、streak(x)（連買為正、連賣為負的根數）、csum(x, N)（N 根累計）。也能用 ta.sma、ta.crossover、strategy.entry 這些 TradingView 寫法。不支援迴圈、陣列、跨週期。' +
       '<br><br><b>儲存</b><br>存在這台裝置的瀏覽器（每台裝置各自保存），可匯出成 JSON 帶到別台再匯入；不上傳。'
   };
   const howOf = (sub) => (MODS[sub] && MODS[sub].how) || HOWS[sub] || HOW;
@@ -278,6 +285,11 @@
     try {
       await ensureLoaded(key, B);
       let strat;
+      const sd = E.STRAT[S.strat];
+      if (sd && sd.needs === 'chip') {      // 籌碼策略：沒有籌碼資料就明講，不要畫一張空的績效
+        if (sd.unavail) { renderEmpty(S, sd.desc); return; }
+        if (!B.chip) { renderEmpty(S, '這個標的（或 60 分週期）沒有籌碼資料：籌碼策略只支援近期成交值前 1000 大的個股，且限日、週、月 K。請換標的或週期。'); return; }
+      }
       if (S.strat.indexOf('u:') === 0 && window.TwLabCustom) {
         const sg = window.TwLabCustom.compile(S.strat.slice(2), B);
         if (!sg) { renderEmpty(S, '這個自訂策略無法執行，請到「自訂策略」檢查條件'); return; }

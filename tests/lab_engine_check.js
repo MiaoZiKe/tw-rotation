@@ -239,4 +239,44 @@ function randBars(n, seed) {
   assert.ok(s.dd.length === r.eq.length && s.dd.every((x) => x <= 0), 'N 回撤序列皆 ≤ 0'); pass++;
 }
 
+// ⑦ 籌碼（2026-10-29）：全部用手算得出來的小資料
+{
+  const mkB = (n, day0) => { const B = { n, tf: 'D', ts: new Float64Array(n), day: new Float64Array(n), dayEnd: new Float64Array(n), o: new Float64Array(n), h: new Float64Array(n), l: new Float64Array(n), c: new Float64Array(n), v: new Float64Array(n).fill(100) };
+    for (let i = 0; i < n; i++) { B.day[i] = day0 + i; B.dayEnd[i] = day0 + i; B.ts[i] = (day0 + i) * 86400; B.o[i] = B.c[i] = B.h[i] = B.l[i] = 100; } return B; };
+  const nan = NaN;
+  // attachChip：起點之前一律 NaN，序列長度比日 K 短時尾端也是 NaN
+  let D = mkB(6, 19002); E.attachChip(D, { s: { fn: 2 }, fn: [5, -3, 4] });
+  assert.deepStrictEqual(Array.from(D.chip.fn).map((x) => (Number.isNaN(x) ? 'n' : x)), ['n', 'n', 5, -3, 4, 'n']); pass++;
+  // 週 K 合成：流量加總、餘額取該週最後一天（19002 是星期一）
+  D = mkB(10, 19002); D.day = Float64Array.from([19002, 19003, 19004, 19005, 19006, 19009, 19010, 19011, 19012, 19013]); D.dayEnd = D.day.slice();
+  E.attachChip(D, { s: { fn: 0, mb: 0 }, fn: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], mb: [100, 101, 102, 103, 104, 105, 106, 107, 108, 109] });
+  const W = E.resample(D, 'W');
+  assert.deepStrictEqual([W.n, Array.from(W.chip.fn), Array.from(W.chip.mb)], [2, [15, 40], [104, 109]]); pass++;
+  // 連買連賣、累計
+  assert.deepStrictEqual(Array.from(E.streakOf(Float64Array.from([1, 2, -1, -2, -3, 0, 5]))), [1, 2, -1, -2, -3, 0, 1]); pass++;
+  assert.deepStrictEqual(Array.from(E.csumOf(Float64Array.from([1, 2, 3, 4, 5]), 3)).map((x) => (Number.isNaN(x) ? 'n' : x)), ['n', 'n', 6, 9, 12]); pass++;
+  // 券資比、當沖比
+  let B = mkB(3, 19002); B.chip = { sb: Float64Array.from([10, 20, nan]), mb: Float64Array.from([100, 0, 100]), dt: Float64Array.from([20, 30, 40]), fn: Float64Array.from([1, 1, 1]), tr: Float64Array.from([1, 1, 1]), dl: Float64Array.from([1, 1, 1]) };
+  assert.deepStrictEqual(Array.from(E.chipSeries(B, 'ratio')).map((x) => (Number.isNaN(x) ? 'n' : x)), [10, 'n', 'n']); pass++;
+  assert.deepStrictEqual(Array.from(E.chipSeries(B, 'dtr')), [20, 30, 40]); pass++;
+  assert.deepStrictEqual(Array.from(E.chipSeries(B, 'inst')), [3, 3, 3]); pass++;
+  // 法人連買：合計 + - 規律  inst = [1,1,1,-1,-1,-1,1,1] → 連買 3 根在 i=2、連賣 3 根在 i=5
+  B = mkB(8, 19002); B.chip = { fn: Float64Array.from([1, 1, 1, -1, -1, -1, 1, 1]), tr: new Float64Array(8), dl: new Float64Array(8) };
+  let r = E.STRAT.instbuy.build(B, { n: 3, m: 3 });
+  assert.deepStrictEqual([Array.from(r.L).indexOf(1), Array.from(r.S).indexOf(1), r.L.reduce((a, b) => a + b), r.S.reduce((a, b) => a + b)], [2, 5, 1, 1]); pass++;
+  // 沒有籌碼資料：所有籌碼策略都不出訊號（不能丟錯、不能亂出）
+  const B0 = mkB(30, 19002);
+  for (const st of E.STRATS.filter((x) => x.needs === 'chip')) { const q = st.build(B0, E.defaults(st.id)); assert.ok(!q.L.some((x) => x) && !q.S.some((x) => x), st.id + ' 沒有籌碼時不出訊號'); pass++; }
+  // 集保大戶：資料不足的策略即使有籌碼也不出訊號
+  assert.ok(E.STRAT.holders.unavail && !E.STRAT.holders.build(B, {}).L.some((x) => x)); pass++;
+  // 突破＋法人買超：價格突破那天法人賣超 → 不進；買超 → 進
+  const mkBrk = (instVal) => { const b = mkB(8, 19002); for (let i = 0; i < 8; i++) { b.c[i] = b.o[i] = b.h[i] = b.l[i] = i < 6 ? 100 : (i === 6 ? 110 : 111); } b.chip = { fn: Float64Array.from({ length: 8 }, (_, i) => (i === 6 ? instVal : 0)), tr: new Float64Array(8), dl: new Float64Array(8) }; return b; };
+  assert.deepStrictEqual([Array.from(E.STRAT.brkinst.build(mkBrk(-5), { n: 5, m: 3 }).L).indexOf(1), Array.from(E.STRAT.brkinst.build(mkBrk(5), { n: 5, m: 3 }).L).indexOf(1)], [-1, 6]); pass++;
+  // 融資策略：餘額 10 根內減 5%（>3%）且收盤站上均線 → 做多；只在剛成立那一根發訊號
+  const bm = mkB(40, 19002); for (let i = 0; i < 40; i++) { bm.c[i] = bm.o[i] = bm.h[i] = bm.l[i] = i < 25 ? 100 : 110; }
+  bm.chip = { mb: Float64Array.from({ length: 40 }, (_, i) => (i < 25 ? 1000 : 940)) };
+  r = E.STRAT.margin.build(bm, { n: 10, x: 3, y: 5 });
+  assert.deepStrictEqual(Array.from(r.L).map((x, i) => (x ? i : -1)).filter((i) => i >= 0), [25]); pass++;
+}
+
 console.log(`lab_engine_check：${pass} 項斷言全數通過`);

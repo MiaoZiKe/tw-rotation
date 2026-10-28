@@ -25,6 +25,7 @@
     最高價: 'highest', 最低價: 'lowest', 絕對值: 'abs', 最大: 'max', 最小: 'min', 漲跌: 'change', 平均真實區間: 'atr', 真實區間: 'tr',
     進場: 'entry', 平倉: 'closepos', 出場: 'exitrisk', 策略: 'strategy', 參數: 'param', 事件: 'event', 做多: 'long', 做空: 'short', 多: 'long', 空: 'short', 全部: 'all',
     停損: 'sl', '停損%': 'sl', 停利: 'tp', '停利%': 'tp', 移動: 'trail', '移動%': 'trail', 移動停損: 'trail', '移動停損%': 'trail', 最長持有: 'maxbars',
+    籌碼: 'chip', 連買賣: 'streak', 累計: 'csum',
     且: 'and', 或: 'or', 非: 'not', 若: 'if', 則: 'then', 'kd_k': 'kd_k', 'kd_d': 'kd_d',
   };
   const norm = (name) => {
@@ -112,6 +113,8 @@
       const A = ser(a), Bs = ser(b), o = new Float64Array(n); for (let i = 0; i < n; i++) o[i] = f(A[i], Bs[i]); return o;
     };
     const bool = (x) => (x ? 1 : 0);
+    // 籌碼名稱：中英文都收。inst＝三大法人合計，ratio＝券資比 %，dtr＝當沖比 %（其餘單位皆為張）
+    const CHIPN = { 外資: 'fn', 投信: 'tr', 自營: 'dl', 自營商: 'dl', 法人: 'inst', 三大法人: 'inst', 融資: 'mb', 融券: 'sb', 券資比: 'ratio', 當沖比: 'dtr', 當沖量: 'dt', fn: 'fn', tr: 'tr', dl: 'dl', inst: 'inst', mb: 'mb', sb: 'sb', ratio: 'ratio', dtr: 'dtr', dt: 'dt' };
     const fn = {
       sma: (a, k) => I.sma(ser(a), num(k, '週期')), ema: (a, k) => I.ema(ser(a), num(k, '週期')), rma: (a, k) => I.rma(ser(a), num(k, '週期')),
       rsi: (a, k) => I.rsi(ser(a), num(k, '週期')), highest: (a, k) => I.highest(ser(a), num(k, '週期')), lowest: (a, k) => I.lowest(ser(a), num(k, '週期')),
@@ -127,6 +130,12 @@
       supertrend_dir: (k, m) => I.supertrend(B.h, B.l, B.c, num(k === undefined ? 10 : k, '週期'), num(m === undefined ? 3 : m, '倍數')).trend,
       crossover: (a, b) => { const A = ser(a), Bs = ser(b), o = new Float64Array(n); for (let i = 1; i < n; i++) o[i] = bool(A[i] > Bs[i] && A[i - 1] <= Bs[i - 1]); return o; },
       crossunder: (a, b) => { const A = ser(a), Bs = ser(b), o = new Float64Array(n); for (let i = 1; i < n; i++) o[i] = bool(A[i] < Bs[i] && A[i - 1] >= Bs[i - 1]); return o; },
+      chip: (t) => {   // 籌碼序列（沒有資料的日子是 NaN，比較一律為假）
+        const key = CHIPN[t && t.s]; if (!key) throw new Error('chip() 的名稱要用：外資、投信、自營、法人、融資、融券、券資比、當沖比、當沖量');
+        const x = E.chipSeries(B, key); if (!x) throw new Error('這個標的／週期沒有籌碼資料（只有近期成交值前 1000 大的個股，日、週、月 K 才有）');
+        return x;
+      },
+      streak: (a) => E.streakOf(ser(a)), csum: (a, k) => E.csumOf(ser(a), num(k, '根數')),
       abs: (a) => (typeof a === 'number' ? Math.abs(a) : a.map(Math.abs)), max: (a, b) => map2(a, b, Math.max), min: (a, b) => map2(a, b, Math.min),
       nz: (a, d) => { const v = d === undefined ? 0 : d; return typeof a === 'number' ? (Number.isFinite(a) ? a : v) : a.map((x) => (Number.isFinite(x) ? x : v)); },
       event: (t, b, a) => {   // 事件窗：這一根是否落在「某類事件前 b 根～後 a 根」內（日 K 為日數；週月 K 為根數）
@@ -223,6 +232,13 @@
     bbu: { name: '布林上軌', p: [['n', '週期', 20], ['k', '倍數', 2]], fmt: (v) => `bb_up(close,${v.n},${v.k})` }, bbm: { name: '布林中軌', p: [['n', '週期', 20], ['k', '倍數', 2]], fmt: (v) => `bb_mid(close,${v.n},${v.k})` }, bbl: { name: '布林下軌', p: [['n', '週期', 20], ['k', '倍數', 2]], fmt: (v) => `bb_low(close,${v.n},${v.k})` },
     atr: { name: 'ATR', p: [['n', '週期', 14]], fmt: (v) => `atr(${v.n})` }, hh: { name: '前 N 日最高價（不含今天）', p: [['n', '週期', 20]], fmt: (v) => `highest(high,${v.n})[1]` }, ll: { name: '前 N 日最低價（不含今天）', p: [['n', '週期', 20]], fmt: (v) => `lowest(low,${v.n})[1]` },
     vma: { name: '成交量均線', p: [['n', '週期', 5]], fmt: (v) => `sma(volume,${v.n})` }, chg: { name: 'N 日漲跌（元）', p: [['n', '期數', 5]], fmt: (v) => `change(close,${v.n})` },
+    cinst: { name: '籌碼：三大法人買賣超（張）', p: [], fmt: () => 'chip("inst")' }, cfn: { name: '籌碼：外資買賣超（張）', p: [], fmt: () => 'chip("fn")' },
+    ctr: { name: '籌碼：投信買賣超（張）', p: [], fmt: () => 'chip("tr")' }, cdl: { name: '籌碼：自營商買賣超（張）', p: [], fmt: () => 'chip("dl")' },
+    cmb: { name: '籌碼：融資餘額（張）', p: [], fmt: () => 'chip("mb")' }, csb: { name: '籌碼：融券餘額（張）', p: [], fmt: () => 'chip("sb")' },
+    cratio: { name: '籌碼：券資比（%）', p: [], fmt: () => 'chip("ratio")' }, cdtr: { name: '籌碼：當沖比（%）', p: [], fmt: () => 'chip("dtr")' },
+    sinst: { name: '籌碼：法人連買連賣根數（連賣為負）', p: [], fmt: () => 'streak(chip("inst"))' }, str: { name: '籌碼：投信連買連賣根數（連賣為負）', p: [], fmt: () => 'streak(chip("tr"))' },
+    sfn: { name: '籌碼：外資連買連賣根數（連賣為負）', p: [], fmt: () => 'streak(chip("fn"))' },
+    sumfn: { name: '籌碼：外資 N 根累計買賣超', p: [['n', '根數', 5]], fmt: (v) => `csum(chip("fn"),${v.n})` }, suminst: { name: '籌碼：法人 N 根累計買賣超', p: [['n', '根數', 5]], fmt: (v) => `csum(chip("inst"),${v.n})` },
     num: { name: '固定數字', p: [['v', '數字', 0]], fmt: (v) => String(v.v) },
   };
   const CMP = { up: ['上穿', (a, b) => `crossover(${a},${b})`], dn: ['下穿', (a, b) => `crossunder(${a},${b})`], gt: ['大於', (a, b) => `${a} > ${b}`], lt: ['小於', (a, b) => `${a} < ${b}`], ge: ['大於等於', (a, b) => `${a} >= ${b}`], le: ['小於等於', (a, b) => `${a} <= ${b}`] };
@@ -259,6 +275,9 @@
       case 'supertrend': L.push(`t = supertrend_dir(${q('n', 10)},${q('m', 3)})`); both('t > 0 且 t[1] < 0', 't < 0 且 t[1] > 0'); break;
       case 'cci': L.push(`x = cci(${q('n', 20)})`); both(`x > ${-q('t', 100)} 且 x[1] <= ${-q('t', 100)}`, `x < ${q('t', 100)} 且 x[1] >= ${q('t', 100)}`); break;
       case 'willr': L.push(`x = willr(${q('n', 14)})`); both('x > -80 且 x[1] <= -80', 'x < -20 且 x[1] >= -20'); break;
+      case 'instbuy': L.push('s = streak(chip("法人"))'); both(`s >= ${q('n', 3)} 且 s[1] < ${q('n', 3)}`, `s <= ${-q('m', 3)} 且 s[1] > ${-q('m', 3)}`); break;
+      case 'trustbuy': L.push('s = streak(chip("投信"))'); both(`s >= ${q('n', 3)} 且 s[1] < ${q('n', 3)}`, `s <= ${-q('m', 3)} 且 s[1] > ${-q('m', 3)}`); break;
+      case 'foreignturn': L.push(`s = csum(chip("外資"),${q('n', 5)})`); both('s > 0 且 s[1] <= 0', 's < 0 且 s[1] >= 0'); break;
       case 'barupdn': both('close > open 且 open > close[1]', 'close < open 且 open < close[1]'); break;
       case 'inside': both('high < high[1] 且 low > low[1] 且 close > open', 'high < high[1] 且 low > low[1] 且 close < open'); break;
       case 'outside': both('high > high[1] 且 low < low[1] 且 close > open', 'high > high[1] 且 low < low[1] 且 close < open'); break;

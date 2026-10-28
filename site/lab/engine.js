@@ -59,8 +59,56 @@
       for (let i = a; i <= b; i++) { if (D.h[i] > hi) hi = D.h[i]; if (D.l[i] < lo) lo = D.l[i]; v += D.v[i]; }
       B.h[k] = hi; B.l[k] = lo; B.v[k] = v;
     }
+    if (D.chip) {
+      B.chip = {};
+      Object.keys(D.chip).forEach((f) => {
+        const src = D.chip[f], o = new Float64Array(n).fill(NaN), flow = CHIP_FLOW.indexOf(f) >= 0;
+        for (let k = 0; k < n; k++) {
+          const [a2, b2] = idx[k];
+          if (flow) { let sum = 0, any = false; for (let i = a2; i <= b2; i++) if (!Number.isNaN(src[i])) { sum += src[i]; any = true; } o[k] = any ? sum : NaN; }
+          else o[k] = src[b2];
+        }
+        B.chip[f] = o;
+      });
+    }
     return B;
   }
+
+  /* ---------------------------------------------------------------- 籌碼（2026-10-29 建）
+     原料 site/data/lab/c/<代號>.json（pipeline/compute/lab.py export_chips）：外資 fn、投信 tr、自營商 dl 的買賣超（張）、
+     融資餘額 mb、融券餘額 sb（張）、當沖成交量 dt（張）。各序列有各自的起點（融資 2021、當沖 2025 才有），之前一律 NaN＝沒有資料。
+     集保大戶增減只有 2026-09 起的週資料，不夠回測，故意不接。 */
+  const CHIP_FLOW = ['fn', 'tr', 'dl', 'dt'];
+  function attachChip(D, j) {
+    if (!j || !j.s) return D;
+    D.chip = {};
+    Object.keys(j.s).forEach((f) => {
+      const o = new Float64Array(D.n).fill(NaN), arr = j[f] || [], s0 = j.s[f];
+      for (let k = 0; k < arr.length && s0 + k < D.n; k++) o[s0 + k] = arr[k];
+      D.chip[f] = o;
+    });
+    return D;
+  }
+  /** 取一條籌碼序列（長度＝B.n、缺值 NaN）；沒有籌碼資料回 null。inst＝三大法人合計、ratio＝券資比 %、dtr＝當沖比 %。 */
+  function chipSeries(B, name) {
+    const C = B.chip; if (!C) return null;
+    const n = B.n, o = new Float64Array(n).fill(NaN);
+    if (name === 'inst') { if (!C.fn || !C.tr || !C.dl) return null; for (let i = 0; i < n; i++) o[i] = C.fn[i] + C.tr[i] + C.dl[i]; return o; }
+    if (name === 'ratio') { if (!C.sb || !C.mb) return null; for (let i = 0; i < n; i++) o[i] = C.mb[i] > 0 ? C.sb[i] / C.mb[i] * 100 : NaN; return o; }
+    if (name === 'dtr') { if (!C.dt) return null; for (let i = 0; i < n; i++) o[i] = B.v[i] > 0 ? C.dt[i] / B.v[i] * 100 : NaN; return o; }
+    return C[name] || null;
+  }
+  /** 連續買賣超：正數＝連買幾根、負數＝連賣幾根、0＝持平或沒資料。 */
+  function streakOf(x) {
+    const o = new Float64Array(x.length);
+    for (let i = 0; i < x.length; i++) {
+      if (!(x[i] > 0 || x[i] < 0)) { o[i] = 0; continue; }
+      const prev = i ? o[i - 1] : 0;
+      o[i] = x[i] > 0 ? (prev > 0 ? prev + 1 : 1) : (prev < 0 ? prev - 1 : -1);
+    }
+    return o;
+  }
+  const csumOf = (x, k) => { const o = new Float64Array(x.length).fill(NaN); let s = 0, bad = 0; for (let i = 0; i < x.length; i++) { if (Number.isNaN(x[i])) bad++; else s += x[i]; if (i >= k) { if (Number.isNaN(x[i - k])) bad--; else s -= x[i - k]; } if (i >= k - 1 && bad === 0) o[i] = s; } return o; };
 
   const PPY = { D: 252, W: 52, M: 12, '60': 252 * 5 };       // 一年幾根（Sharpe 年化用）
 
@@ -222,6 +270,39 @@
     { id: 'bnh', name: '買進持有', cat: '基準', desc: '第一根進場後一路持有，用來對照其他策略有沒有贏過單純持有。', params: [],
       build(B) { const r = mk(B.n); if (B.n) r.L[0] = 1; return r; } },
   ];
+
+  /* ---------------------------------------------------------------- 籌碼策略（2026-10-29，Andy：「籌碼策略也要做」）
+     一律只用「當天收盤後已公布」的資料，訊號在收盤、下一根開盤成交，不偷看未來。需要籌碼資料（B.chip），沒有就沒有訊號。
+     ⚠ 我們之前的研究結論：「法人籌碼當主訊號沒有增量」——單用籌碼進出，通常贏不過買進持有；
+        這裡提供的是讓你自己驗證的工具，並附「籌碼＋價格」組合（價格訊號為主、籌碼只當濾網）。 */
+  const NEED = (B, names) => names.map((nm) => chipSeries(B, nm));
+  const CHIP_STRATS = [
+    { id: 'instbuy', name: '法人連買（三大法人）', cat: '籌碼', needs: 'chip', desc: '三大法人合計連續 N 根買超做多；連續 M 根賣超出場（或做空）。買賣超單位為張，日 K 的「根」即交易日。', params: [P('n', '連買根數', 3, 1, 20), P('m', '連賣根數', 3, 1, 20)],
+      build(B, p) { const r = mk(B.n), [x] = NEED(B, ['inst']); if (!x) return r; const st = streakOf(x); for (let i = 1; i < B.n; i++) { if (st[i] >= p.n && st[i - 1] < p.n) r.L[i] = 1; if (st[i] <= -p.m && st[i - 1] > -p.m) r.S[i] = 1; } return r; } },
+    { id: 'trustbuy', name: '投信連買', cat: '籌碼', needs: 'chip', desc: '投信連續 N 根買超做多；連續 M 根賣超出場（或做空）。投信買賣超常與作帳行情同步，中小型股較明顯。', params: [P('n', '連買根數', 3, 1, 20), P('m', '連賣根數', 3, 1, 20)],
+      build(B, p) { const r = mk(B.n), [x] = NEED(B, ['tr']); if (!x) return r; const st = streakOf(x); for (let i = 1; i < B.n; i++) { if (st[i] >= p.n && st[i - 1] < p.n) r.L[i] = 1; if (st[i] <= -p.m && st[i - 1] > -p.m) r.S[i] = 1; } return r; } },
+    { id: 'foreignturn', name: '外資轉買', cat: '籌碼', needs: 'chip', desc: '外資近 N 根累計買賣超由負轉正做多（轉買）；由正轉負做空（轉賣）。外資買賣超以張計。', params: [P('n', '累計根數', 5, 2, 60)],
+      build(B, p) { const r = mk(B.n), [x] = NEED(B, ['fn']); if (!x) return r; const s = csumOf(x, p.n); for (let i = 1; i < B.n; i++) { if (s[i] > 0 && s[i - 1] <= 0) r.L[i] = 1; if (s[i] < 0 && s[i - 1] >= 0) r.S[i] = 1; } return r; } },
+    { id: 'margin', name: '融資增減（搭配價格）', cat: '籌碼', needs: 'chip', desc: '融資餘額近 N 根減少 X% 以上且收盤站上 20 均線＝籌碼沉澱、做多；融資近 N 根增加 Y% 以上且收盤跌破 20 均線＝追價套牢、做空。融資資料 2021 年起。', params: [P('n', '比較根數', 10, 3, 60), P('x', '減少 %', 3, 0.5, 30, 0.5), P('y', '增加 %', 5, 0.5, 50, 0.5)],
+      build(B, p) { const r = mk(B.n), [mb] = NEED(B, ['mb']); if (!mb) return r; const ma = I.sma(B.c, 20); for (let i = p.n; i < B.n; i++) { if (!(mb[i - p.n] > 0) || Number.isNaN(mb[i]) || Number.isNaN(ma[i])) continue; const ch = (mb[i] / mb[i - p.n] - 1) * 100; if (ch <= -p.x && B.c[i] > ma[i] && !(i > p.n && prevOk(mb, B.c, ma, i - 1, p, -1))) r.L[i] = 1; if (ch >= p.y && B.c[i] < ma[i] && !(i > p.n && prevOk(mb, B.c, ma, i - 1, p, 1))) r.S[i] = 1; } return r; } },
+    { id: 'ratio', name: '券資比（軋空）', cat: '籌碼', needs: 'chip', desc: '券資比（融券餘額 ÷ 融資餘額）≥ 門檻且收盤上穿 5 均線＝空方回補壓力、做多；券資比降到出場線以下平倉。券資比單位為 %。', params: [P('hi', '進場券資比 %', 15, 3, 100), P('lo', '出場券資比 %', 8, 0, 50)],
+      build(B, p) { const r = mk(B.n), [x] = NEED(B, ['ratio']); if (!x) return r; const ma = I.sma(B.c, 5); for (let i = 1; i < B.n; i++) { if (x[i] >= p.hi && up(B.c, ma, i)) r.L[i] = 1; if (x[i] <= p.lo && x[i - 1] > p.lo) r.XL[i] = 1; } return r; } },
+    { id: 'holders', name: '集保大戶增減', cat: '籌碼', needs: 'chip', unavail: true, desc: '【資料不足，暫不能回測】集保戶股權分散表我們只有 2026-09 起的週資料（約 8 週），少於可回測所需的歷史，所以這支不產生訊號。資料累積滿 2 年後才開放。', params: [],
+      build(B) { return mk(B.n); } },
+    { id: 'daytrade', name: '當沖比過熱', cat: '籌碼', needs: 'chip', desc: '當沖比（當沖成交量 ÷ 成交量）高於 T% 代表短線過熱，且收盤收黑時做空／出場；降到 T 的一半以下且收盤站上 20 均線才回來做多。當沖資料 2025 年起。', params: [P('t', '過熱門檻 %', 40, 10, 90)],
+      build(B, p) { const r = mk(B.n), [x] = NEED(B, ['dtr']); if (!x) return r; const ma = I.sma(B.c, 20); for (let i = 1; i < B.n; i++) { if (x[i] >= p.t && B.c[i] < B.o[i]) r.S[i] = 1; if (x[i] <= p.t / 2 && up(B.c, ma, i)) r.L[i] = 1; } return r; } },
+    { id: 'brkinst', name: '突破＋法人買超', cat: '籌碼', needs: 'chip', desc: '收盤突破前 N 日最高價，且當天三大法人合計買超才做多（用籌碼過濾假突破）；跌破前 M 日最低價出場。價格訊號為主、籌碼當濾網。', params: [P('n', '突破天數', 20, 5, 120), P('m', '出場天數', 10, 3, 60)],
+      build(B, p) { const r = mk(B.n), [x] = NEED(B, ['inst']); if (!x) return r; const hh = I.highest(B.h, p.n), ll = I.lowest(B.l, p.m); for (let i = Math.max(p.n, p.m); i < B.n; i++) { if (B.c[i] > hh[i - 1] && x[i] > 0) r.L[i] = 1; if (B.c[i] < ll[i - 1]) r.XL[i] = 1; } return r; } },
+    { id: 'matrust', name: '均線多頭＋投信連買', cat: '籌碼', needs: 'chip', desc: '5、20、60 均線多頭排列且投信連續 N 根買超才進場；排列破壞（5 均線跌破 20 均線）出場。價格趨勢為主、投信只當濾網。', params: [P('n', '投信連買根數', 3, 1, 10)],
+      build(B, p) { const r = mk(B.n), [x] = NEED(B, ['tr']); if (!x) return r; const st = streakOf(x), a = I.sma(B.c, 5), b = I.sma(B.c, 20), c = I.sma(B.c, 60); let on = false; for (let i = 1; i < B.n; i++) { const trend = a[i] > b[i] && b[i] > c[i]; if (!on && trend && st[i] >= p.n) { r.L[i] = 1; on = true; } else if (on && !(a[i] > b[i])) { r.XL[i] = 1; on = false; } } return r; } },
+  ];
+  /* 融資策略「剛成立」判斷：前一根已經成立就不重複發訊號（只在條件由否轉是的那一根進場） */
+  function prevOk(mb, c, ma, i, p, sgn) {
+    if (i < p.n || !(mb[i - p.n] > 0) || Number.isNaN(mb[i]) || Number.isNaN(ma[i])) return false;
+    const ch = (mb[i] / mb[i - p.n] - 1) * 100;
+    return sgn < 0 ? (ch <= -p.x && c[i] > ma[i]) : (ch >= p.y && c[i] < ma[i]);
+  }
+  STRATS.splice(STRATS.length - 1, 0, ...CHIP_STRATS);
   const STRAT = {}; STRATS.forEach((s) => { STRAT[s.id] = s; });
   function defaults(id) { const o = {}; ((STRAT[id] || {}).params || []).forEach((q) => { o[q.k] = q.def; }); return o; }
 
@@ -535,7 +616,7 @@
     return run(B, sig, c2, from, B.n - 1);
   }
 
-  const api = { decode, resample, PPY, I, STRATS, STRAT, defaults, instDefaults, run, runStrategy, rangeFrom, eventWindowMask, eventStudy, computeStats, dayToStr, strToDay, up, dn, mk };
+  const api = { decode, resample, attachChip, chipSeries, streakOf, csumOf, PPY, I, STRATS, STRAT, defaults, instDefaults, run, runStrategy, rangeFrom, eventWindowMask, eventStudy, computeStats, dayToStr, strToDay, up, dn, mk };
 
   /** Worker 訊息處理：load 資料 → run 回測。資料以 key 快取在 worker 內，避免每次重傳。 */
   const cache = {};
