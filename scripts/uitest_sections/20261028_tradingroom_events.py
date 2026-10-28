@@ -15,6 +15,9 @@ def t_lab_events(b, base, code):
     pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e) + " @ 上一步＝" + step[0]))
     pg.goto(base + "#lab/evt", wait_until="domcontentloaded"); pg.wait_for_timeout(5000)
 
+    pg.click("#v-lab .lab-q"); pg.wait_for_timeout(200)
+    ok(f"{T}：「?」寫著事件窗定義與資料出處信心度", "反應日" in pg.inner_text("#v-lab .lab-pop") and "信心度" in pg.inner_text("#v-lab .lab-pop"), None)
+    pg.click("body", position={"x": 5, "y": 5}); pg.wait_for_timeout(150)
     rows0 = pg.locator("#evStats tbody tr").count()
     ok(f"{T}：事件分析頁有統計表（每類事件一列）", rows0 >= 5, rows0)
     ok(f"{T}：平均走勢圖有畫出（echarts）", pg.evaluate("() => { const el = document.getElementById('evPath'); const c = el && window.echarts && echarts.getInstanceByDom(el); return !!c && c.getOption().series.length >= 5; }"), None)

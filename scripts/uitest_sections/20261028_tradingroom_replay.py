@@ -23,6 +23,9 @@ def t_lab_replay(b, base, code):
     r0 = R()
     ok(f"{T}：進重播頁，頁籤有 K 線重播且還沒開始（先選起點）", not r0["run"] and r0["n"] > 500 and pg.is_visible("#rpStart") and not pg.is_visible("#rpCtl"), r0)
     ok(f"{T}：選起點前，下單欄是停用的", pg.evaluate("() => document.getElementById('rpBuy').disabled"), None)
+    pg.click("#v-lab .lab-q"); pg.wait_for_timeout(200)
+    ok(f"{T}：標題旁「?」是重播專屬說明（規則、快捷鍵），不是回測的說明", pg.is_visible("#v-lab .lab-pop") and "空白鍵" in pg.inner_text("#v-lab .lab-pop") and "未來的 K 棒" in pg.inner_text("#v-lab .lab-pop"), None)
+    pg.click("body", position={"x": 5, "y": 5}); pg.wait_for_timeout(150)
     # --- 選日期開始
     pg.fill("#rpDate", "2024-03-01"); pg.click("#rpGo"); pg.wait_for_timeout(600)
     r1 = R()
