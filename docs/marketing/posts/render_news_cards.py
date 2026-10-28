@@ -123,6 +123,32 @@ def bg_cover(path, w, h):
     x0 = (im.width - w)//2; y0 = int((im.height - h)*0.2)
     im = im.crop((x0, y0, x0+w, y0+h)); b = io.BytesIO(); im.save(b, "JPEG", quality=92)
     return "data:image/jpeg;base64," + base64.b64encode(b.getvalue()).decode()
+BIBI_BY_CAT = {"科技": "face_think", "台股": "magnifier", "財報": "trophy", "美股": "rocket", "總經": "calendar"}
+def hero_art(c, tl, cat):
+    """沒有合格 AI 圖時的上半部：D+ 色系幾何圖形＋放大的關鍵數字（取自大標第一個數字）＋比比"""
+    hero = None
+    for l in tl:
+        m = NUM.search(l)
+        if m: hero = m.group(0).strip(); break
+    num = re.match(r"[\d,.]+", hero).group(0) if hero else ""
+    unit = hero[len(num):].strip() if hero else ""
+    label = ""
+    for x in c["numbers"]:
+        if num and num.replace(",", "") in x["value"].replace(",", "").replace("+", ""): label = x["label"]; break
+    bib = bibi(BIBI_BY_CAT.get(cat, "face_think"), 330, "").replace("height:330px", "height:330px;max-width:300px;object-fit:contain")
+    shapes = (
+        '<div class="a" data-bg=1 style="left:0;top:0;width:1080px;height:1350px;background:linear-gradient(135deg,#1E4D3B 0%,#2C6A6E 60%,#3F6F94 100%)"></div>'
+        '<div class="a" data-bg=1 style="left:640px;top:150px;width:520px;height:520px;border-radius:50%;background:#D2583C;opacity:.92"></div>'
+        '<div class="a" data-bg=1 style="left:556px;top:96px;width:132px;height:132px;border-radius:50%;background:#E0A526"></div>'
+        '<div class="a" data-bg=1 style="left:-140px;top:520px;width:380px;height:380px;border-radius:50%;border:28px solid rgba(255,255,255,.16)"></div>'
+        '<div class="a" data-bg=1 style="left:720px;top:700px;width:44px;height:44px;border-radius:50%;background:#F7F3EA;opacity:.85"></div>'
+        '<div class="a" data-bg=1 style="left:800px;top:704px;width:120px;height:36px;border-radius:18px;background:rgba(255,255,255,.2)"></div>')
+    art = f'<div class="a" style="left:700px;top:210px;width:300px;height:330px;display:flex;align-items:flex-end;justify-content:center">{bib.replace("<img", "<img data-art=1", 1)}</div>'
+    hx = ""
+    if num:
+        hx = ((f'<div class="a T3b" style="left:64px;top:312px;color:var(--my);letter-spacing:.08em">{e(label)}</div>' if label else "") +
+              f'<div class="a ser num" style="left:64px;top:372px;color:#fff;font-size:208px;line-height:224px;font-weight:700;white-space:nowrap;text-shadow:0 4px 24px rgba(0,0,0,.25)">{e(num)}<span style="font-size:72px;color:var(--my);margin-left:12px">{e(unit)}</span></div>')
+    return shapes, art + hx
 def card_v2(d, idx, tot, bg=None):
     c = d["card"]; cat = c["category"]; ck = CAT.get(cat, "green")
     tl = lines_of(c.get("cover_title")) or breakit(c["title"], 88).split("\n")
@@ -134,19 +160,19 @@ def card_v2(d, idx, tot, bg=None):
     tl = tl[:2]; dl = dl[:2]
     import math
     nl = sum(max(1, math.ceil(wid(x)*36/96/ (944/96) * 1.04)) for x in dl)   # 說明實際折行數（每行 944px、36px 字）
+    hi = next((i for i, l in enumerate(tl) if NUM.search(l)), -1)
     foot = 1272; dh = nl*52; dtop = 1240 - dh; ttop = dtop - 24 - len(tl)*(fs+12); chipt = ttop - 24 - 60
+    extra = ""
     if bg: img = f'<div class="a" data-bg=1 style="left:0;top:0;width:1080px;height:1000px;background:url({bg_cover(bg, 1080, 1000)}) center/cover"></div>'
     else:
-        ic = ICONS.get(cat, ICONS["default"])
-        img = (f'<div class="a" data-bg=1 style="left:0;top:0;width:1080px;height:1350px;background:linear-gradient(135deg,#1E4D3B 0%,#2C6A6E 55%,#3F6F94 100%)"></div>'
-               f'<div class="a" data-bg=1 style="right:48px;top:96px;opacity:.20">{icon(ic, "#fff", 440)}</div>')
+        img, extra = hero_art(c, tl, cat)
     shade = (f'<div class="a" data-bg=1 style="left:0;top:0;width:1080px;height:1350px;background:linear-gradient(180deg,rgba(12,38,28,.55) 0%,rgba(12,38,28,0) 16%,rgba(12,38,28,0) 34%,rgba(18,51,37,.82) 52%,{DEEP} 66%,{DEEP} 100%)"></div>')
     sh = "text-shadow:0 2px 14px rgba(0,0,0,.35)"
-    return (f'<body style="{V};background:{DEEP}">{img}{shade}'
+    return (f'<body style="{V};background:{DEEP}">{img}{shade}{extra}'
             f'<div class="brand T3b" style="color:#fff;top:48px;{sh}">哩股哩股</div>'
             f'<div class="a row" style="left:64px;top:{chipt}px"><span class="T3b" style="background:{CHIP2.get(cat, (P["green"], "#fff"))[0]};color:{CHIP2.get(cat, (P["green"], "#fff"))[1]};padding:6px 28px;border-radius:4px;letter-spacing:.12em">{e(cat)}</span></div>'
             f'<div class="a" style="left:64px;top:{ttop}px;width:952px;color:#fff;font-size:{fs}px;line-height:{fs+12}px;font-weight:800;letter-spacing:-.01em;{sh}">'
-            + "".join(f'<div style="white-space:nowrap">{hl2(l)}</div>' for l in tl) + '</div>'
+            + "".join(f'<div style="white-space:nowrap">{hl2(l) if i == hi else e(l)}</div>' for i, l in enumerate(tl)) + '</div>'
             f'<div class="a T3" style="left:64px;top:{dtop}px;width:952px;color:rgba(255,255,255,.92);line-height:52px;{sh}">' + "".join(f"<div>{e(l)}</div>" for l in dl) + '</div>'
             f'<div class="a" style="left:64px;top:1264px;width:952px;height:2px;background:rgba(255,255,255,.28)"></div>'
             f'<div class="a row T4" style="left:64px;top:{foot+4}px;width:952px;height:56px;color:rgba(255,255,255,.78)"><span class="num">{d["data_date"][:10].replace("-", "/")}・{idx} / {tot}</span></div></body>')
