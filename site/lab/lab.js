@@ -196,9 +196,9 @@
   function paramsHTML(S) {
     const st = E.STRAT[S.strat];
     if (S.strat.indexOf('u:') === 0) return '';
-    if (!st || !st.params.length) return '<span class="lab-pdesc">' + esc(st ? st.desc : '') + '</span>';
+    if (!st || !st.params.length) return '';
     const p = Object.assign(E.defaults(S.strat), S.params);
-    return st.params.map((q) => '<label class="lab-fld lab-pp"><span>' + esc(q.label) + '</span><input class="lab-in" type="number" data-p="' + q.k + '" value="' + p[q.k] + '" min="' + q.min + '" max="' + q.max + '" step="' + q.step + '"></label>').join('') + '<span class="lab-pdesc">' + esc(st.desc) + '</span>';
+    return st.params.map((q) => '<label class="lab-fld lab-pp"><span>' + esc(q.label) + '</span><input class="lab-in" type="number" data-p="' + q.k + '" value="' + p[q.k] + '" min="' + q.min + '" max="' + q.max + '" step="' + q.step + '"></label>').join('');
   }
 
   /* ---------------------------------------------------------------- 策略挑選（仿 TradingView 的「指標、指標、策略」視窗：搜尋＋分類） */
@@ -482,7 +482,7 @@
       const k = b.dataset.r, short = RANGE_DAYS[k] && span < RANGE_DAYS[k] * 0.9;
       b.classList.toggle('on', k === S.range); b.disabled = !!short; b.title = short ? '資料只有 ' + Math.round(span / 30) + ' 個月，不足這個期間' : '';
     });
-    const pb = $('#labPickBtn'); if (pb) pb.textContent = stratName(S.strat) + ' ▾';
+    const pb = $('#labPickBtn'); if (pb) { pb.textContent = stratName(S.strat) + ' ▾'; pb.title = (E.STRAT[S.strat] || {}).desc || ''; }
     const pp = $('#labParams');
     if (pp) {
       pp.innerHTML = paramsHTML(S);

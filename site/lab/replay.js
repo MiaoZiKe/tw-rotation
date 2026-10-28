@@ -219,7 +219,7 @@
     tk.classList.toggle('off', !run);
     U.$$('#rpTicket input,#rpTicket button').forEach((e) => { if (e.id !== 'rpPx') e.disabled = !run; });
     const px = U.$('#rpPx'); if (px) px.disabled = !run || R.kind === 'mkt';
-    const mg = U.$('#rpMsg'); if (mg) mg.textContent = run ? R.msg : '先在上面選一個起點（日期、隨機，或點圖上的某一根）';
+    const mg = U.$('#rpMsg'); if (mg) mg.textContent = run ? R.msg : '先選起點';
     U.$$('#rpTabs button').forEach((b) => b.classList.toggle('on', b.dataset.t === R.tab));
     panel();
   }

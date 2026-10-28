@@ -38,9 +38,9 @@ def t_lab_events(b, base, code):
     h0 = pg.inner_text("#evDetH")
     pg.locator("#evStats tbody tr").nth(2).click(); pg.wait_for_timeout(400)
     h1 = pg.inner_text("#evDetH")
-    ok(f"{T}：點統計列鎖定那一類，明細標題改變且寫著可再點取消", h1 != h0 and "取消" in h1, (h0, h1))
+    ok(f"{T}：點統計列鎖定那一類，明細標題改變、列亮起", h1 != h0 and pg.locator("#evStats tbody tr.on").count() == 1, (h0, h1))
     pg.locator("#evStats tbody tr").nth(2).click(); pg.wait_for_timeout(300)
-    ok(f"{T}：再點同一列取消鎖定", "取消" not in pg.inner_text("#evDetH"), pg.inner_text("#evDetH"))
+    ok(f"{T}：再點同一列取消鎖定", pg.locator("#evStats tbody tr.on").count() == 0, pg.inner_text("#evDetH"))
     # 換標的 → 事件數改變（台指期資料到 2000 年，加權也一樣；換成只有 2016 起的個股事件數變少）
     cnt_idx = pg.evaluate("() => [...document.querySelectorAll('#evStats tbody tr td:nth-child(2)')].reduce((s, t) => s + +t.textContent, 0)")
     pg.fill("#labSym", "2330"); pg.wait_for_timeout(300); pg.click(".lab-di:first-child"); pg.wait_for_timeout(2500)

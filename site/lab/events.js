@@ -88,7 +88,7 @@
     const dh = U.$('#evDetH'), dt = U.$('#evDet');
     const showT = S.sel || keys[0];
     if (showT && res[showT]) {
-      dh.textContent = (names[showT] || showT) + '：逐次明細' + (S.sel ? '（再點一次同一列取消鎖定）' : '');
+      dh.textContent = (names[showT] || showT) + '：逐次明細'; dh.title = S.sel ? '再點一次同一列取消鎖定' : '';
       dt.innerHTML = '<table class="lab-tbl"><thead><tr><th>事件日</th><th>名稱</th><th>前 ' + S.N + ' 日</th><th>反應日</th><th>後 1 日</th><th>後 ' + S.N + ' 日</th><th>信心</th></tr></thead><tbody>' +
         res[showT].list.slice().reverse().map((x) => { const ev = S.events.find((e) => e.d === x.d && e.t === showT) || {}; return '<tr title="' + U.esc(ev.src || '') + '"><td>' + x.d + '</td><td class="ev-l">' + U.esc(x.name) + '</td><td class="' + U.cls(x.pre) + '">' + pc(x.pre * 100) + '</td><td class="' + U.cls(x.day0) + '">' + pc(x.day0 * 100) + '</td><td class="' + U.cls(x.post1) + '">' + pc(x.post1 * 100) + '</td><td class="' + U.cls(x.postN) + '">' + pc(x.postN * 100) + '</td><td title="' + U.esc(CONF[ev.conf] || '') + '">' + U.esc(ev.conf || '') + '</td></tr>'; }).join('') + '</tbody></table>';
     } else { dh.textContent = '事件明細'; dt.innerHTML = '<div class="lab-note">—</div>'; }
