@@ -250,3 +250,7 @@ html:not(.lab-adm) .tab[data-view="lab"],html:not(.lab-adm) a[href="#lab"],html:
 
 #v-lab .lab-savestrat{margin-left:auto}
 #v-lab .lab-pickbtn.flash{border-color:var(--amber);box-shadow:0 0 0 1px var(--amber)}
+
+#v-lab .lab-tbl td,#v-lab .lab-tbl thead th{text-align:center}
+#v-lab .lab-sum tbody th{text-align:left;border-top:1px solid var(--line);width:140px;background:transparent;font-size:14px;padding:0 var(--sp-3)}
+#v-lab .lab-sum thead th:first-child{width:140px}
