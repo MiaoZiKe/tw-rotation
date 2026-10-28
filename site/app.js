@@ -5537,12 +5537,19 @@
     });
   }
   /* 狀態旗標（給截圖程式與驗收）：卡片 data-snap-live。pending 超過 60 秒當作抓不到，免得截圖程式永遠等。 */
+  /* ★ 2026-10-28 修（盤中 12:00 貼文熱力圖被略過）：
+     ① 計時只算「熱力圖真的在畫面上」的時間 —— 單頁應用換頁不重新載入，以前從總覽開頁就開始算 60 秒，
+        熱力圖頁還沒開始輪名單，一進去就已經是 err，截圖程式直接略過。看不到熱力圖時一律 pending、不計時。
+     ② 逾時從 60 秒放寬到 150 秒：名單約 455 檔，上市上櫃不明的代號一檔佔兩格，一輪最少 5～9 個 5 秒班次，
+        再加節流閥排隊與代理延遲，60 秒在雲端跑不完一圈。 */
+  const HL_PEND_MAX = 150000;
   function hlState() {
     if (!liveOK() || !hlCardOn() || !hlIntra()) return 'close';
     if (hlLive()) return 'live';
+    if (!hlShown()) { HL.pendSince = 0; return 'pending'; }
     if (HL.err) return 'err';
     if (!HL.pendSince) HL.pendSince = Date.now();
-    return Date.now() - HL.pendSince > 60000 ? 'err' : 'pending';
+    return Date.now() - HL.pendSince > HL_PEND_MAX ? 'err' : 'pending';
   }
   function hlSnap() {
     const s = hlState(); if (s !== 'pending') HL.pendSince = 0;
@@ -5569,14 +5576,19 @@
        但名單大半重疊，搭同一班車；在別的頁（熱力圖頁）才靠自己的補位輪一圈）。 */
     let got = 0;
     (d.codes || []).forEach(c => { if (HL.uniSet && HL.uniSet.has(c)) { hlMerge(c, Q[c]); HL.asked.add(c); got++; } });
+    /* ★ 2026-10-28：補位送出去的代號，不管 mis 有沒有回那一檔，都算「這一圈問過了」（同總覽 OVL 的做法）。
+       以前只認有回報價的代號 —— 名單裡只要有一檔 mis 不回（暫停交易、上市上櫃猜錯、盤中還沒成交），
+       HL.ready 永遠湊不滿，熱力圖就永遠卡在 pending → err。 */
+    Object.keys(d.fill || {}).forEach(k => (d.fill[k] || []).forEach(c => { if (HL.uniSet && HL.uniSet.has(c)) HL.asked.add(c); }));   // 總覽搭摘要卡（ovs）的班車也算
     if (sent.length) HL.ptr = U.length ? (HL.ptr + sent.length) % U.length : 0;
-    if (got) {
-      HL.err = '';
-      if (!HL.ready) HL.ready = U.length > 0 && U.every(c => HL.asked.has(c));
+    const wasReady = HL.ready;
+    if (!HL.ready && (got || sent.length)) HL.ready = U.length > 0 && U.every(c => HL.asked.has(c));
+    if (got || (HL.ready && !wasReady)) {
+      if (got) HL.err = '';
       hlUpdate();
     }
   });
-  window.addEventListener('tw:livetick', (e) => { const d = (e && e.detail) || {}; if (!d.ok && HL.pendSince && Date.now() - HL.pendSince > 15000) { HL.err = d.err || '這一輪沒抓到'; hlSnap(); } });   // 剛開頁的前幾輪還沒有名單可抓，不算失敗
+  window.addEventListener('tw:livetick', (e) => { const d = (e && e.detail) || {}; if (!d.ok && hlShown() && HL.pendSince && Date.now() - HL.pendSince > 15000) { HL.err = d.err || '這一輪沒抓到'; hlSnap(); } });   // 剛開頁的前幾輪還沒有名單可抓，不算失敗
   window.addEventListener('tw:livecard', (e) => {                     // 開／關：打開重輪一圈才算數；關掉原地換回盤後
     if (!e || !e.detail || e.detail.key !== 'heat') return;
     HL.asked = new Set(); HL.ready = false; HL.pendSince = 0; HL.painted = ''; HL.err = '';

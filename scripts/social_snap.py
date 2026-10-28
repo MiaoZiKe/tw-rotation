@@ -241,7 +241,9 @@ EMOJI = {"盤面分析：": "🧭", "盤中3分鐘": "🕛", "盤後3分鐘": "�
 
 
 def _emo(L: list[str]) -> list[str]:
-    return [f"{EMOJI[x]} {x}" if x in EMOJI else x for x in L]
+    def k(x):      # 「熱力圖（10/27 收盤）：」這種帶括號的段名，用括號前的段名找表情符號
+        return re.sub(r"（[^）]*）：$", "：", x)
+    return [f"{EMOJI[k(x)]} {x}" if k(x) in EMOJI else x for x in L]
 SITE_HOST = "liguligu-puipui.com"
 TPE = timezone(timedelta(hours=8))
 DISCLAIMER = "資料：證交所／櫃買公開資料，僅供參考，不構成投資建議"
@@ -298,6 +300,42 @@ FILL_JS = """([el, a]) => {   // 把卡片拉到 a.want（css px）高：差額�
   return el.getBoundingClientRect().height;
 }"""
 STORY_HEAT_VW, STORY_HEAT_DSF = 700, 2.4     # 熱力圖限動版：窄桌機視窗（>640 仍是桌機版面），方塊變大、字放大後更清楚
+# ★ 2026-10-28 盤中熱力圖被略過（data-snap-live=err）事故：
+#   前端把熱力圖即時的「逾時」放寬到 150 秒且只在熱力圖看得到時計時；這裡等即時套上最多 LIVE_STATE_WAIT_S 秒（比前端多一點），
+#   err 不再一看到就放棄（err 只代表「上一輪沒抓到」，下一輪抓到會自己變回 live）。
+#   真的等不到即時：標了 close_fallback 的熱力圖退回「上一個交易日收盤」，圖上與文案都標日期，其他三張不受影響。
+#   Andy 原話：「後續盤中 盤後也不能發生這樣的事情」。
+LIVE_STATE_WAIT_S = 170
+
+
+def live_state_step(state: str, elapsed_s: float, limit_s: float = LIVE_STATE_WAIT_S) -> str:
+    """等即時套上的判斷（純函式，好測）：回 'ok'＝可以截、'wait'＝再等、'fail'＝等不到。
+    live／close（非盤中或沒開即時，沿用舊行為）／空字串（這張卡沒有旗標，靠前面的 live_ok 判斷）＝ok；
+    pending／err＝還沒好，等到期限才 fail（err 只代表上一輪沒抓到，下一輪抓到會自己變回 live）。"""
+    if state in ("live", "close", ""):
+        return "ok"
+    return "fail" if elapsed_s >= limit_s else "wait"
+
+
+def close_label(date_iso: str) -> str:
+    """'2026-10-27' → '10/27 收盤'（熱力圖退回收盤時，圖上與文案的日期標示）。"""
+    try:
+        _, m, d = str(date_iso).split("-")
+        return f"{int(m)}/{int(d)} 收盤"
+    except Exception:  # noqa: BLE001
+        return "上一個交易日收盤"
+
+
+# 熱力圖退回收盤：把卡片的「即時」關掉（前端原地換回盤後資料、data-snap-live=close）。
+# 日期標在合成圖標題列右側（compose 用 rec["close_label"] 取代「M/D 12:00」），不在卡片內插字（卡片換資料時會整塊重畫）。
+CLOSE_FALLBACK_JS = """async (a) => {
+  const wait = ms => new Promise(r => setTimeout(r, ms));
+  const c = document.querySelector('[data-snap="' + a.n + '"]') || document.querySelector(a.card);
+  if (!c) return false;
+  if (window.Live && window.Live.setCard && window.Live.cardOn && window.Live.cardOn('heat')) window.Live.setCard('heat', false);
+  await wait(1200);
+  return true;
+}"""
 THREADS_HEAT_RATIO = 1.22   # Threads 熱力圖（產業＋題材）截圖高寬比：卡片內 1000×1220 左右
 THREADS_MAX_H = 1350       # Threads 輪播圖高度上限（4:5）
 STORY_RATIO = 1.40     # 限動截圖目標高寬比＝限動版型截圖區 1008×1776（2026-10-22 品牌列兼標題、拿掉右下網址後量的；舊值 1.6 會上下各空約 80px）
@@ -435,9 +473,9 @@ TARGETS = [
          headline=None, d=SANKEY_PIECES, m=SANKEY_PIECES),
     # 熱力圖：桌機網頁版（1440）上＝產業「整個台股一次看」、下＝題材資金熱力，合成一張（Threads 與限動共用這張）
     dict(name="heat", kind="intraday", label="資金熱力圖", route="heatmap/industry", card="#indTreeWrap",
-         parts=[dict(name="heat-industry", route="heatmap/industry", card="#indTreeWrap", closest_card=True, live="auto", live_ok=None,
+         parts=[dict(name="heat-industry", route="heatmap/industry", card="#indTreeWrap", closest_card=True, live="auto", live_ok=None, close_fallback=True,
                      hide=[".howbtn", ".livetg"], fill=dict(frac=0.60, charts=["#indTreeWrap", "#indTree"])),
-                dict(name="heat-theme", route="heatmap/theme", card="#themeMapCard", live="auto", live_ok=None, hide=[".howbtn", ".livetg"], optional=True, fill=dict(frac=0.40, charts=["#themeMap"]))],
+                dict(name="heat-theme", route="heatmap/theme", card="#themeMapCard", live="auto", live_ok=None, close_fallback=True, hide=[".howbtn", ".livetg"], optional=True, fill=dict(frac=0.40, charts=["#themeMap"]))],
          live="auto", live_ok=None, headline=None, d=[dict(name="heat", title="資金熱力圖")], m=[]),
     # 2026-10-26 Andy：「大盤走勢 & 漲跌家數拿掉」→ kind="off"（保留設定，不發）
     dict(name="market-index", kind="off", label="大盤走勢（收盤全日）", route="overview", card="#m3Frame",
@@ -1200,7 +1238,24 @@ def snap_targets(args, base: str, out: Path, today_ymd: str) -> tuple[list[dict]
     attr_mode = "only" if args.use_snap_attr else ("never" if args.no_snap_attr else "prefer")
     m_dsf = 1080 / 374.0          # 手機卡片寬 374 css px（390 − 左右各 8）→ 輸出剛好 1080 寬
 
-    def prepare(pg, t, info):
+    def snap_live_state(pg, t):
+        return pg.evaluate("""(n) => { const e = document.querySelector('[data-snap="' + n + '"]'); const h = e && (e.closest('[data-snap-live]') || e);
+                                     return (h && h.getAttribute('data-snap-live')) || ''; }""", t.get("snap", t["name"]))
+
+    def fallback_close(pg, t, info, el, why=""):
+        """即時等不到 → 熱力圖退回上一個交易日收盤（圖上標日期）。回傳要截的元素；不能退就回 None。"""
+        lbl = close_label(DATE_ISO.get("market-index") or DATE_ISO.get("inst-today") or "")
+        ok_ = pg.evaluate(CLOSE_FALLBACK_JS, {"n": t.get("snap", t["name"]), "card": t["card"]})
+        if not ok_:
+            return None
+        pg.wait_for_timeout(1500)
+        info["close_label"] = lbl
+        log("  ⚠", t["name"], (why or f"即時等了 {LIVE_STATE_WAIT_S} 秒仍沒套上") + f" → 退回 {lbl}（圖上標日期），其他張不受影響")
+        pg.evaluate(HIDE_FLOATING_JS, t["card"])
+        pg.wait_for_timeout(300)
+        return resolve_target(pg, t, attr_mode) or el
+
+    def prepare(pg, t, info, close_mode=False):
         go_target(pg, base, t)
         el = resolve_target(pg, t, attr_mode)
         if el is None:
@@ -1215,25 +1270,42 @@ def snap_targets(args, base: str, out: Path, today_ymd: str) -> tuple[list[dict]
         if args.kind in ("close", "credit") and t.get("stale") and not args.force and pg.evaluate("(q) => [...document.querySelectorAll(q)].some(e => e.offsetParent !== null)", t["stale"]):
             info["why"] = "頁面標示「資料未更新」（資料日不是最近交易日）→ 不發"
             return None
+        if close_mode:      # 同一張熱力圖前半已退回收盤：後半也用收盤（兩半口徑一致），不再切即時
+            return fallback_close(pg, t, info, el, "同一張熱力圖已退回收盤，這半口徑一致")
         if args.kind == "intraday" and not (args.skip_live == "all" or t["name"] in args.skip_live.split(",")):
             if not click_live(pg, t, el):
                 info["why"] = "沒有即時鈕（這張還不能即時）→ 不發"
                 log("  ✗", t["name"], info["why"], diag(pg, t))
                 return None
             if not live_confirmed(pg, t, args):
+                if t.get("close_fallback") and not args.no_close_fallback:
+                    return fallback_close(pg, t, info, el)
                 info["why"] = "即時沒套上（抓不到報價）→ 不發"
                 log("  ✗", t["name"], info["why"], diag(pg, t))
                 return None
+        live_t = args.kind == "intraday" and not (args.skip_live == "all" or t["name"] in args.skip_live.split(","))
+        t0 = time.time()      # 等即時的總時間從這裡算（TwSnapReady 與下面 data-snap-live 等待合計，不重複累加）
         if not wait_snap_ready(pg, t.get("snap", t["name"]), 80000 if args.kind == "intraday" else 20000):
-            info["why"] = "TwSnapReady 逾時 → 不發"
-            log("  ✗", t["name"], info["why"], diag(pg, t))
-            return None
-        if args.kind == "intraday" and not (args.skip_live == "all" or t["name"] in args.skip_live.split(",")):
-            st = pg.evaluate("""(n) => { const e = document.querySelector('[data-snap="' + n + '"]'); const h = e && (e.closest('[data-snap-live]') || e);
-                                         return (h && h.getAttribute('data-snap-live')) || ''; }""", t.get("snap", t["name"]))
-            if st == "err":   # 前端回報即時抓不到（或等超過 60 秒）→ 不拿舊圖冒充
-                info["why"] = "data-snap-live=err（即時抓不到）→ 不發"
+            if not (live_t and t.get("close_fallback")):      # 熱力圖：交給下面的 data-snap-live 等待（等滿 LIVE_STATE_WAIT_S 秒才退回收盤）
+                info["why"] = "TwSnapReady 逾時 → 不發"
+                log("  ✗", t["name"], info["why"], diag(pg, t))
                 return None
+        if live_t:
+            # 2026-10-28：err 不再一看到就放棄 —— 等到 live（最多 LIVE_STATE_WAIT_S 秒）；等不到才退回收盤或略過，不拿舊圖冒充即時
+            while True:
+                st = snap_live_state(pg, t)
+                step = live_state_step(st, time.time() - t0)
+                if step != "wait":
+                    break
+                pg.wait_for_timeout(2000)
+            if step == "fail":
+                log("  ✗", t["name"], f"data-snap-live={st or '（無）'}，等了 {int(time.time() - t0)} 秒", diag(pg, t))
+                if t.get("close_fallback") and not args.no_close_fallback:
+                    return fallback_close(pg, t, info, el)
+                info["why"] = f"data-snap-live={st or '（無）'}（即時抓不到）→ 不發"
+                return None
+            if st == "live" and int(time.time() - t0) > 3:
+                log(f"  {t['name']} 即時套上（多等了 {int(time.time() - t0)} 秒）")
         pg.wait_for_timeout(1500)
         pg.evaluate(HIDE_FLOATING_JS, t["card"])
         pg.wait_for_timeout(300)
@@ -1250,7 +1322,10 @@ def snap_targets(args, base: str, out: Path, today_ymd: str) -> tuple[list[dict]
                     recs = []
                     for part in t["parts"]:
                         pinfo = {}
-                        pel = prepare(pg, part, pinfo) or prepare(pg, part, pinfo)      # 即時偶爾第一次沒套上：重進一次
+                        cm = bool(info.get("close_label"))
+                        pel = prepare(pg, part, pinfo, cm) or prepare(pg, part, pinfo, cm)      # 即時偶爾第一次沒套上：重進一次
+                        if pel is not None and pinfo.get("close_label"):
+                            info["close_label"] = pinfo["close_label"]
                         if pel is None:
                             if part.get("optional") and recs:      # 題材那半抓不到即時就只發產業那半（不拿收盤圖冒充）
                                 log("  ⚠", part["name"], "即時沒套上 → 這張只放產業熱力圖：", pinfo.get("why"))
@@ -1282,6 +1357,8 @@ def snap_targets(args, base: str, out: Path, today_ymd: str) -> tuple[list[dict]
                         sheet.save(path)
                         rec = {"name": t["name"], "raw": str(path), "dsf": args.scale, "min_css_font": min(r["min_css_font"] for r in recs),
                                "title": t["label"], "text": None, "jishi": [x for r in recs for x in r["jishi"]], "texts": [x for r in recs for x in r.get("texts", [])]}
+                        if info.get("close_label"):
+                            rec["close_label"] = info["close_label"]      # 標題列右側改寫「M/D 收盤」，不寫「12:00」
                         info["pieces_d"] = [rec]
                         info["pieces_m"] = [dict(rec)]       # 限動也用這張直式疊放的圖（等比放大填滿寬度）
                         info["ok"] = True
@@ -1326,7 +1403,8 @@ def snap_targets(args, base: str, out: Path, today_ymd: str) -> tuple[list[dict]
                     act_parts = [x for x in t["parts"] if x["name"] in info.get("heat_parts", [x["name"] for x in t["parts"]])]
                     for part in act_parts:          # 一張一張處理（換路由後前一張的元素就失效）
                         pinfo = {}
-                        pel = prepare(spg, part, pinfo) or prepare(spg, part, pinfo)
+                        cm = bool(info.get("close_label"))      # 桌機版退回收盤 → 限動版也用收盤（同一篇口徑一致）
+                        pel = prepare(spg, part, pinfo, cm) or prepare(spg, part, pinfo, cm)
                         if pel is None:
                             raise RuntimeError(f"{part['name']}：{pinfo.get('why')}")
                         pw = pw or pel.bounding_box()["width"]
@@ -1348,6 +1426,8 @@ def snap_targets(args, base: str, out: Path, today_ymd: str) -> tuple[list[dict]
                     sheet.save(path)
                     info["pieces_m"] = [{"name": "heat", "raw": str(path), "dsf": STORY_HEAT_DSF, "min_css_font": min(r["min_css_font"] for r in out_recs),
                                          "title": t["label"], "text": None, "jishi": [x for r in out_recs for x in r["jishi"]], "texts": [x for r in out_recs for x in r.get("texts", [])]}]
+                    if info.get("close_label"):
+                        info["pieces_m"][0]["close_label"] = info["close_label"]
                     log("限動版截到 heat（窄視窗", STORY_HEAT_VW, "）")
                     sctx.close()
                 except Exception as exc:  # noqa: BLE001
@@ -1654,7 +1734,9 @@ def compose(browser, mode: str, rec: dict, top: list, bot: list, out_png: Path, 
     title, sub = PIECE_META.get(rec["name"], (rec.get("title") or rec["name"], ""))
     dlabel = DATE_BY.get(rec["name"]) or DATE_LABEL
     title = re.sub(r"\s*\{d\}", "", title)            # 日期只放標題列右側（規範 post_design_system.md 第五節）
-    if KIND == "intraday":
+    if rec.get("close_label"):
+        dlabel = rec["close_label"]                 # 2026-10-28：熱力圖即時等不到、退回上一個交易日收盤 → 標題列寫「M/D 收盤」，不冒充 12:00
+    elif KIND == "intraday":
         dlabel = f"{dlabel} 12:00".strip()          # 盤中固定中午 12:00（2026-10-26 Andy）
     html = layout_html(mode, title, sub, b64(rec["raw"]), top, bot, theme, dlabel)
     pg = browser.new_page(viewport={"width": 1080, "height": 1920 if mode == "story" else THREADS_MAX_H}, device_scale_factor=1)
@@ -1708,7 +1790,8 @@ def intraday_reads(ok: dict) -> list[str]:
     """盤中（12:00，還沒收盤，不寫「收黑」）：族群漲跌 → 成交比重增加且漲幅前段（同向）→ 背離 → 權值族群動向。
     2026-10-27 金融口徑審查：族群平均是簡單平均要寫明；1.5～2 倍寫「漲多跌少／跌多漲少」；「資金流入」＝資金分流樹的成交比重增加。"""
     out = []
-    heat = {a: b for a, b in ((ok.get("heat") or {}).get("heat") or [])}
+    hs = ok.get("heat") or {}
+    heat = {} if hs.get("close_label") else {a: b for a, b in (hs.get("heat") or [])}   # 熱力圖退回收盤：不拿昨天的族群漲跌寫今天盤中
     notes = {k: v for k, v in ((ok.get("sankey") or {}).get("notes") or [])}
     inflow, outflow = notes.get("流入前五") or [], notes.get("流出前五") or []
     if heat:
@@ -1867,7 +1950,7 @@ def _caption_lines(kind: str, stamp: str, shots: list[dict], data_date: str, ymd
             k = min(2, n)
             ups = "、".join(f"{a} {b:+.1f}%" for a, b in h[::-1][:k])
             dns = "、".join(f"{a} {b:+.1f}%" for a, b in h[:k])
-            L += ["熱力圖：", f"・漲最多 {ups}；", f"・跌最多 {dns}"]
+            L += [f"熱力圖（{s['close_label']}）：" if s.get("close_label") else "熱力圖：", f"・漲最多 {ups}；", f"・跌最多 {dns}"]
         L.append(HASHTAGS[kind])
         if links != "none":
             L += link_lines(kind, ymd, route=landing_route(kind, ymd, ctx_from_shots(ok)))
@@ -2021,6 +2104,7 @@ def main() -> int:
     ap.add_argument("--scale", type=float, default=2.0, help="截圖解析度倍率")
     ap.add_argument("--only", default="", help="只做這幾個目標（逗號分隔 name）")
     ap.add_argument("--live-wait", type=int, default=30, help="等即時套上的秒數")
+    ap.add_argument("--no-close-fallback", action="store_true", help="熱力圖等不到即時就略過（不退回上一個交易日收盤）")
     ap.add_argument("--mock-live", action="store_true", help="模擬報價（本機示範用；正式站不要加）")
     ap.add_argument("--live-override", action="store_true", help="本機 TW_LIVE_OVERRIDE（只有 127.0.0.1 認）")
     ap.add_argument("--data-overlay", default="", help="下載網站資料後，再用這個資料夾裡的 JSON 蓋過去（pipeline/social_close_payload.py 的輸出）")
