@@ -159,6 +159,26 @@ CHIP_FIELDS = {"fn": ("inst_daily", "foreign_total"), "tr": ("inst_daily", "trus
                "dt": ("daytrade_daily", "daytrade_volume")}
 
 
+def _rev_momentum(rev: pd.DataFrame, dates: list[str]) -> pd.Series | None:
+    """月營收動能 = 近 3 月均營收 ÷ 近 12 月均營收 × 100，對齊到每個交易日（標準策略「營收動能＋52 週新高」用）。
+    可用日一律用法定期限：某月營收最晚次月 10 日公布，所以「次月 11 日起」的第一根 K 才看得到
+    （寧可晚用，不可偷看；不用公司實際公告日，因為早報的日子不能當成全市場都知道）。
+    要滿 12 個月才有值；沒資料的日子回 NaN。"""
+    r = rev.dropna(subset=["revenue"]).drop_duplicates("ym", keep="last").sort_values("ym")
+    if len(r) < 12:
+        return None
+    v = pd.to_numeric(r["revenue"], errors="coerce").to_numpy()
+    m3, m12 = pd.Series(v).rolling(3).mean(), pd.Series(v).rolling(12).mean()
+    ratio = (m3 / m12 * 100).to_numpy()
+    avail = [(pd.Period(ym, "M") + 1).strftime("%Y-%m") + "-11" for ym in r["ym"].astype(str)]
+    s = pd.Series(ratio, index=avail)
+    s = s[~s.index.duplicated(keep="last")]
+    # 每個交易日取「可用日 <= 當天」的最新一筆
+    idx = pd.Index(dates)
+    s = s.reindex(s.index.union(idx)).ffill().reindex(idx)
+    return s
+
+
 def export_chips(p: pd.DataFrame, items: list, out: Path, rank_set=None, only=None) -> int:
     """每檔一個 c/<代號>.json：{s:{欄位:起點列號}, fn:[…], tr:[…], …}，各序列對齊該檔日 K 的列（同樣的日期篩選與去重）。
     為什麼用「起點列號＋連續陣列」：融資從 2021、當沖從 2025 才有，用 null 補會變很肥；起點之前就是沒有資料，前端補 NaN。
@@ -174,6 +194,13 @@ def export_chips(p: pd.DataFrame, items: list, out: Path, rank_set=None, only=No
         df = df[(df["date"].astype(str) >= DAILY_FROM) & df["code"].astype(str).isin(cs)]
         df = df.assign(code=df["code"].astype(str), date=df["date"].astype(str))
         frames[t] = {c: g.drop_duplicates("date", keep="last").set_index("date") for c, g in df.groupby("code")}
+    try:
+        rv_all = store.read("revenue_monthly")
+        rv_all = rv_all[rv_all["code"].astype(str).isin(cs)].assign(code=lambda d: d["code"].astype(str))
+        rv_by = {c: g for c, g in rv_all.groupby("code")}
+    except Exception as exc:  # noqa: BLE001 —— 月營收壞了只影響「營收動能」條件
+        log.warning("交易練習室月營收讀取失敗：%s", exc)
+        rv_by = {}
     total = 0
     for code in cand:
         g = p[p["code"].astype(str) == code].sort_values("date").drop_duplicates("date")
@@ -193,6 +220,13 @@ def export_chips(p: pd.DataFrame, items: list, out: Path, rank_set=None, only=No
             ser = ser.fillna(0) if t == "inst_daily" else ser.ffill().fillna(0)
             o["s"][f] = i0
             o[f] = [int(round(x / 1000)) for x in ser.tolist()]
+        if code in rv_by:
+            rs = _rev_momentum(rv_by[code], dates)
+            first = rs.first_valid_index() if rs is not None else None
+            if first is not None:
+                i0 = dates.index(first)
+                o["s"]["rv"] = i0
+                o["rv"] = [int(round(x)) if x == x else 0 for x in rs.iloc[i0:].tolist()]   # 單位：%（118＝近 3 月均是近 12 月均的 1.18 倍）
         if o["s"]:
             total += _dump(out / "c" / f"{code}.json", o)
             for it in items:
