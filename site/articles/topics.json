@@ -1,6 +1,122 @@
 {
- "updated": "2026-10-27",
+ "updated": "2026-10-28",
  "topics": [
+  {
+   "id": "n_drop_846",
+   "cat": "news",
+   "title": "台股單日重挫 846 點，賣壓從哪裡來",
+   "why": "10/22 台股收 46,041.43 點、單日跌 846 點，外資 10/22 現貨賣超約 816.56 億元（優分析 10/22、玩股網整理，搜尋摘要轉述，數字寫稿前須以證交所資料核對）；角度放賣壓來源與族群，避開休市機制（已有 n_holiday_4day）",
+   "score": 4,
+   "format_hint": "兩者",
+   "site_links": [
+    "#overview",
+    "#flow"
+   ],
+   "added": "2026-10-28"
+  },
+  {
+   "id": "n_fut_short_87k",
+   "cat": "news",
+   "title": "外資期貨淨空 8.7 萬口，現貨期貨怎麼分開看",
+   "why": "10/21 外資台指期淨空單約 8.6 萬口（玩股網 10/21），udn 報導約 8.78 萬口，8 月初曾逾 9 萬口；大家想知道外資是真看空還是避險。各家口徑不同，數字須以期交所公布值為準",
+   "score": 4,
+   "format_hint": "兩者",
+   "site_links": [
+    "#flow",
+    "#overview"
+   ],
+   "added": "2026-10-28"
+  },
+  {
+   "id": "n_ma60_break",
+   "cat": "news",
+   "title": "台股跌破季線：季線是什麼、跌破通常代表什麼",
+   "why": "台股 10/6 創歷史新高後回測，10/22 收 46,041.43 點跌破季線（優分析 10/20、10/22；經濟日報 10/19）；投資人最想問跌破季線嚴不嚴重；季線價位須用本站資料自行計算，焦點限定均線概念",
+   "score": 3,
+   "format_hint": "貼文",
+   "site_links": [
+    "#overview",
+    "#flow"
+   ],
+   "added": "2026-10-28"
+  },
+  {
+   "id": "k_foplp",
+   "cat": "know",
+   "title": "面板級封裝 FOPLP 是什麼？方形大板怎麼把晶片包起來",
+   "why": "先進封裝產能吃緊，面板級封裝以方形大板取代圓形晶圓以提高面積利用率；站內有 2.5D 圖 panel_pkg（面板轉封裝），文章＋2.5D 圖，只講原理與取捨，不排受惠",
+   "score": 3,
+   "format_hint": "文章",
+   "site_links": [
+    "#heatmap/theme/panel_pkg",
+    "#themes"
+   ],
+   "added": "2026-10-28"
+  },
+  {
+   "id": "k_npu_aipc",
+   "cat": "know",
+   "title": "NPU 是什麼？AI PC 的神經網路處理器拆開看",
+   "why": "AI PC 常被提到「要有 NPU」，但多數人分不清 NPU 與 CPU、GPU 的分工；站內有 2.5D 圖 edge_ai_pc（邊緣 AI 與 AI PC），文章＋2.5D 圖，只講原理，不排受惠",
+   "score": 3,
+   "format_hint": "文章",
+   "site_links": [
+    "#heatmap/theme/edge_ai_pc",
+    "#themes"
+   ],
+   "added": "2026-10-28"
+  },
+  {
+   "id": "k_grid_transformer",
+   "cat": "know",
+   "title": "變壓器是什麼？電從電廠送到機房要變壓幾次",
+   "why": "資料中心用電量上升，電網與變壓設備常被提及；站內有 2.5D 圖 heavy_electric（重電與電網：電從電廠到機房），文章＋2.5D 圖，講電壓層級與設備分工，不排受惠",
+   "score": 3,
+   "format_hint": "文章",
+   "site_links": [
+    "#heatmap/theme/heavy_electric",
+    "#themes"
+   ],
+   "added": "2026-10-28"
+  },
+  {
+   "id": "i_cyber_security",
+   "cat": "intro",
+   "title": "資安產業鏈：端點、網路到雲端防護怎麼分工",
+   "why": "站內有資安族群頁 cyber_security；講環節分工（端點、網路、身分、雲端、服務），需附供應鏈圖，不排誰受惠",
+   "score": 3,
+   "format_hint": "文章",
+   "site_links": [
+    "#industry/group/cyber_security"
+   ],
+   "added": "2026-10-28"
+  },
+  {
+   "id": "i_green_power",
+   "cat": "intro",
+   "title": "太陽能與風電鏈：材料、設備到電廠怎麼銜接",
+   "why": "站內有 solar、wind_power 族群頁；講上游材料、中游設備與下游電廠開發的環節，需附供應鏈圖，不排誰受惠",
+   "score": 3,
+   "format_hint": "文章",
+   "site_links": [
+    "#industry/group/solar",
+    "#industry/group/wind_power"
+   ],
+   "added": "2026-10-28"
+  },
+  {
+   "id": "i_microled",
+   "cat": "intro",
+   "title": "Micro LED 顯示鏈：磊晶、巨量轉移到驅動 IC",
+   "why": "站內有 microled、display_driver_ic 族群頁；講環節分工與技術瓶頸（巨量轉移、良率），需附供應鏈圖，不排誰受惠",
+   "score": 3,
+   "format_hint": "文章",
+   "site_links": [
+    "#industry/group/microled",
+    "#industry/group/display_driver_ic"
+   ],
+   "added": "2026-10-28"
+  },
   {
    "id": "n_holiday_4day",
    "cat": "news",
