@@ -1,0 +1,39 @@
+/* site/m4/20261028-articles-news-align.css —— 精選文章「盤前消息／盤後消息」列表對齊重做（Andy 10-28：「優化這邊這邊沒對齊 版面也不好」）。
+   根因：消息標題外層 class 叫 .tw，撞到全站表格容器 .tw{border;border-radius}，所以每則標題被框一層，
+   再加上右欄「來源・時間」寬度不固定，中間框右緣參差。改名 .pmw，並把每則改成三欄 grid：
+   分類 52px 固定｜標題＋摘要 1fr｜來源時間 150px 固定靠右。外框只留最外層卡片，每天不再自成一框，
+   每則用分隔線而不是一個個框。全部限定 #artPre（只這兩個分頁），桌機與手機共用；手機另在 ≤640 收成兩欄。 */
+#artCard #artPre{display:none}
+#artCard.pre #artPre{display:block}
+#artCard.pre :is(.artflt,.artmain,#artQuota){display:none!important}
+#artPre .pmday{border-bottom:1px solid var(--line);min-width:0;margin:0}
+#artPre .pmday:last-of-type{border-bottom:0}
+#artPre .pmh{display:flex;align-items:center;gap:var(--sp-2);padding:var(--sp-2) var(--sp-1);min-height:44px}
+#artPre .pmh>button.pmt{all:unset;box-sizing:border-box;flex:1;min-width:0;display:flex;align-items:center;gap:var(--sp-2);cursor:pointer;min-height:32px;color:var(--ink)}
+#artPre .pmt:focus-visible{outline:2px solid var(--accent,#3b82f6);outline-offset:2px;border-radius:4px}
+#artPre .pmt .pc{flex:none;width:16px;text-align:center;font-size:18px;line-height:1;color:var(--ink-3);transition:transform .15s}
+#artPre .pmday.open .pmt .pc{transform:rotate(90deg)}
+#artPre .pmt .pd{font-family:var(--mono);font-variant-numeric:tabular-nums;font-weight:600;font-size:var(--fs-base,14px)}
+#artPre .pmt .pn{font-size:var(--fs-min);color:var(--ink-3)}
+#artPre .pmcp{flex:none;min-height:32px;margin-left:auto}
+#artPre .pmcp.done{border-color:var(--art-tn-good);color:var(--art-tn-good)}
+#artPre .pmbody{display:none;padding:0 var(--sp-1) var(--sp-2)}
+#artPre .pmday.open .pmbody{display:block}
+#artPre .pmi{display:grid;grid-template-columns:52px minmax(0,1fr) 150px;column-gap:var(--sp-3);align-items:start;padding:var(--sp-2) 0;border-top:1px solid var(--line);min-width:0}
+#artPre .pmi:first-child{border-top:0}
+#artPre .pmk{width:52px;box-sizing:border-box;text-align:center;font-size:12px;font-weight:600;line-height:22px;border-radius:4px;color:var(--art-t-ink);background:var(--pk)}
+#artPre .pmk.c-新聞{--pk:var(--art-p1)}#artPre .pmk.c-事件{--pk:var(--art-tn-warn)}#artPre .pmk.c-科技{--pk:var(--art-p2)}#artPre .pmk.c-總經{--pk:var(--art-p3)}
+#artPre .pmw{min-width:0;display:flex;flex-direction:column;gap:2px}
+#artPre .pmi .tt{font-size:14px;line-height:22px;color:var(--ink);overflow-wrap:anywhere}
+#artPre .pmi .ds{font-size:var(--fs-min);line-height:1.5;color:var(--ink-3)}
+#artPre a.tt{text-decoration:none}#artPre a.tt:hover{color:var(--accent,#3b82f6);text-decoration:underline}
+#artPre .pmi .sm{grid-column:3;text-align:right;font-size:var(--fs-min);color:var(--ink-3);white-space:nowrap;line-height:22px;font-variant-numeric:tabular-nums}
+#artPre .pmmore{margin:var(--sp-1) 0 var(--sp-2)}
+/* 手機：只留重點 —— 分類縮 44px，來源時間掉到標題下一行（對齊標題左緣） */
+@media (max-width:640px){
+  #artPre .pmi{grid-template-columns:44px minmax(0,1fr);column-gap:var(--sp-2)}
+  #artPre .pmk{width:44px}
+  #artPre .pmi .sm{grid-column:2;text-align:left;line-height:16px;margin-top:2px}
+  #artPre .pmh{padding:var(--sp-2) 0}
+  #artPre .pmbody{padding:0 0 var(--sp-2)}
+}

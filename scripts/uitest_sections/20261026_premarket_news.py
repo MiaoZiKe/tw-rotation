@@ -89,6 +89,26 @@ def t_premarket_1026(b, base, code):
             ok(f"[{tag}] 沒有橫向捲軸", pg.evaluate("() => document.documentElement.scrollWidth - innerWidth") <= 1)
             tiny = pg.evaluate("() => [...document.querySelectorAll('#artPre *')].filter(e => e.offsetParent && [...e.childNodes].some(n => n.nodeType === 3 && n.textContent.trim()) && parseFloat(getComputedStyle(e).fontSize) < 11).map(e => e.textContent.trim().slice(0, 12))")
             ok(f"[{tag}] 沒有 < 11px 的字", not tiny, tiny)
+            # 10-28 Andy「這邊沒對齊 版面也不好」：標題欄右緣一致、標籤等寬、標題不再被 .tw 框、來源時間欄固定寬靠右、箭頭在日期左邊
+            al = pg.evaluate("""() => {
+              const q = (s) => [...document.querySelectorAll('#artPre .pmday.open ' + s)];
+              const r = (e) => e.getBoundingClientRect();
+              const w = q('.pmw'), k = q('.pmk'), m = q('.sm');
+              const day = document.querySelector('#artPre .pmday.open');
+              return {n: w.length, rights: new Set(w.map(e => Math.round(r(e).right))).size, kw: new Set(k.map(e => Math.round(r(e).width))).size,
+                bord: w.some(e => parseFloat(getComputedStyle(e).borderTopWidth) > 0),
+                smw: new Set(m.map(e => Math.round(r(e).width))).size, smr: new Set(m.map(e => Math.round(r(e).right))).size,
+                topgap: Math.max(...w.map((e, i) => Math.abs(r(e.querySelector('.tt')).top - r(k[i]).top))),
+                chev: r(day.querySelector('.pc')).left < r(day.querySelector('.pd')).left,
+                cp: r(day.querySelector('.pmcp')).right - r(day.querySelector('.pmh')).right,
+                below: m.length ? m.every((e, i) => r(e).top >= r(w[i]).bottom - 1) : false};
+            }""")
+            ok(f"★ {tag}：標題欄右緣一致、標籤等寬、標題無外框", al["n"] == 5 and al["rights"] == 1 and al["kw"] == 1 and not al["bord"], al)
+            ok(f"★ {tag}：標題與標籤上緣對齊（≤ 3px）、箭頭在日期左邊、複製整包靠右", al["topgap"] <= 3 and al["chev"] and al["cp"] >= -12, al)
+            if not mob:
+                ok(f"★ {tag}：來源時間欄等寬且右緣對齊", al["smw"] == 1 and al["smr"] == 1, al)
+            else:
+                ok(f"★ {tag}：手機來源時間在標題下一行", al["below"], al)
             if not mob:
                 r = pg.evaluate("() => { const e = document.querySelector('#artPre .pmday.open').getBoundingClientRect(); return e.bottom; }")
                 ok(f"★ {tag}：1440×900 最新一天整張卡在第一屏內", r <= 900, r)
