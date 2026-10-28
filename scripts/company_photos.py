@@ -99,6 +99,12 @@ def main(argv=None) -> int:
             if m.get("reviewed") or not refresh:
                 log.append(dict(slug=slug, ok=True, skipped=True, license=m.get("license"))); continue
         res = fetch_one(sess, slug, name_en, queries); print(res); log.append(res)
+    if only:      # 只抓部分時，與上一次完整紀錄合併，保留其他家的狀態
+        try:
+            prev = {x["slug"]: x for x in json.loads((LIB / "fetch_log.json").read_text(encoding="utf-8"))["items"]}
+            prev.update({x["slug"]: x for x in log}); log = list(prev.values())
+        except Exception:
+            pass
     got = [x for x in log if x["ok"]]
     (LIB / "fetch_log.json").write_text(json.dumps(dict(at=datetime.now(timezone.utc).isoformat(timespec="seconds"),
         ok=len(got), miss=[x["slug"] for x in log if not x["ok"]], items=log), ensure_ascii=False, indent=1), encoding="utf-8")
