@@ -112,7 +112,9 @@
    "fetched_at": "2026-10-28T16:49:40+00:00",
    "reviewed": false,
    "reviewer": "",
-   "review_note": ""
+   "review_note": "",
+   "prescreen": "pass",
+   "prescreen_note": "2026-10-28 工程初篩（v3）：通過，待 art-director 正式複審"
   },
   {
    "file": "photo_6.jpg",
@@ -133,7 +135,9 @@
    "fetched_at": "2026-10-28T16:49:40+00:00",
    "reviewed": false,
    "reviewer": "",
-   "review_note": ""
+   "review_note": "",
+   "prescreen": "pass",
+   "prescreen_note": "2026-10-28 工程初篩（v3）：通過，待 art-director 正式複審"
   },
   {
    "file": "photo_7.jpg",
@@ -154,7 +158,9 @@
    "fetched_at": "2026-10-28T16:49:42+00:00",
    "reviewed": false,
    "reviewer": "",
-   "review_note": ""
+   "review_note": "",
+   "prescreen": "pass",
+   "prescreen_note": "2026-10-28 工程初篩（v3）：通過，待 art-director 正式複審"
   }
  ],
  "rejected": [

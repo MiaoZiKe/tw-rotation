@@ -322,7 +322,7 @@ def _rotate(d, key, used, today, allow_unreviewed):
     """圖池裡挑一張：只要已審；近 14 天用過的往後排（全都用過就挑最久沒用的）。回傳 (路徑, meta) 或 None。"""
     pool = _pool(d)
     if not pool: return None
-    ph = [m for m in pool.get("photos", []) if (m.get("reviewed") or allow_unreviewed) and (d / m.get("file", "")).exists()]
+    ph = [m for m in pool.get("photos", []) if (m.get("reviewed") or (allow_unreviewed and not m.get("reject_reason") and m.get("prescreen") != "fail")) and (d / m.get("file", "")).exists()]
     if not ph: return None
     used = used or {}
     def last(m): return max(used.get(f"{key}/{m['file']}", []) or [""])

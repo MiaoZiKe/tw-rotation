@@ -67,7 +67,9 @@
    "fetched_at": "2026-10-28T16:52:37+00:00",
    "reviewed": false,
    "reviewer": "",
-   "review_note": ""
+   "review_note": "",
+   "prescreen": "fail",
+   "prescreen_note": "2026-10-28 工程初篩（v3）：不建議：LOGO／人物／車牌／他牌／舊照或主體不明"
   },
   {
    "file": "photo_4.jpg",
@@ -88,7 +90,9 @@
    "fetched_at": "2026-10-28T16:52:38+00:00",
    "reviewed": false,
    "reviewer": "",
-   "review_note": ""
+   "review_note": "",
+   "prescreen": "pass",
+   "prescreen_note": "2026-10-28 工程初篩（v3）：通過，待 art-director 正式複審"
   }
  ],
  "rejected": [

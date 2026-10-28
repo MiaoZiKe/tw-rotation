@@ -90,7 +90,9 @@
    "fetched_at": "2026-10-28T16:51:38+00:00",
    "reviewed": false,
    "reviewer": "",
-   "review_note": ""
+   "review_note": "",
+   "prescreen": "pass",
+   "prescreen_note": "2026-10-28 工程初篩（v3）：通過，待 art-director 正式複審"
   },
   {
    "file": "photo_5.jpg",
@@ -111,7 +113,9 @@
    "fetched_at": "2026-10-28T16:51:41+00:00",
    "reviewed": false,
    "reviewer": "",
-   "review_note": ""
+   "review_note": "",
+   "prescreen": "pass",
+   "prescreen_note": "2026-10-28 工程初篩（v3）：通過，待 art-director 正式複審"
   }
  ],
  "rejected": [

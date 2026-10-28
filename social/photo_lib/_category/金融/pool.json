@@ -66,7 +66,9 @@
    "fetched_at": "2026-10-28T16:59:05+00:00",
    "reviewed": false,
    "reviewer": "",
-   "review_note": ""
+   "review_note": "",
+   "prescreen": "fail",
+   "prescreen_note": "2026-10-28 工程初篩（v3）：不建議：LOGO／人物／車牌／他牌／舊照或主體不明"
   },
   {
    "file": "photo_2.jpg",
@@ -87,7 +89,9 @@
    "fetched_at": "2026-10-28T16:59:06+00:00",
    "reviewed": false,
    "reviewer": "",
-   "review_note": ""
+   "review_note": "",
+   "prescreen": "pass",
+   "prescreen_note": "2026-10-28 工程初篩（v3）：通過，待 art-director 正式複審"
   },
   {
    "file": "photo_3.jpg",
@@ -108,7 +112,9 @@
    "fetched_at": "2026-10-28T16:59:06+00:00",
    "reviewed": false,
    "reviewer": "",
-   "review_note": ""
+   "review_note": "",
+   "prescreen": "pass",
+   "prescreen_note": "2026-10-28 工程初篩（v3）：通過，待 art-director 正式複審"
   },
   {
    "file": "photo_6.jpg",
@@ -129,7 +135,9 @@
    "fetched_at": "2026-10-28T16:59:06+00:00",
    "reviewed": false,
    "reviewer": "",
-   "review_note": ""
+   "review_note": "",
+   "prescreen": "pass",
+   "prescreen_note": "2026-10-28 工程初篩（v3）：通過，待 art-director 正式複審"
   },
   {
    "file": "photo_7.jpg",
@@ -150,7 +158,9 @@
    "fetched_at": "2026-10-28T16:59:07+00:00",
    "reviewed": false,
    "reviewer": "",
-   "review_note": ""
+   "review_note": "",
+   "prescreen": "pass",
+   "prescreen_note": "2026-10-28 工程初篩（v3）：通過，待 art-director 正式複審"
   },
   {
    "file": "photo_8.jpg",
@@ -171,7 +181,9 @@
    "fetched_at": "2026-10-28T16:59:09+00:00",
    "reviewed": false,
    "reviewer": "",
-   "review_note": ""
+   "review_note": "",
+   "prescreen": "fail",
+   "prescreen_note": "2026-10-28 工程初篩（v3）：不建議：LOGO／人物／車牌／他牌／舊照或主體不明"
   },
   {
    "file": "photo_9.jpg",
@@ -192,7 +204,9 @@
    "fetched_at": "2026-10-28T16:59:09+00:00",
    "reviewed": false,
    "reviewer": "",
-   "review_note": ""
+   "review_note": "",
+   "prescreen": "fail",
+   "prescreen_note": "2026-10-28 工程初篩（v3）：不建議：LOGO／人物／車牌／他牌／舊照或主體不明"
   }
  ],
  "rejected": [
