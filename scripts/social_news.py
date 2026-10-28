@@ -585,7 +585,7 @@ def compose(c: dict, slot: str, idx: int, day: str, style: str, names: dict) -> 
     cap_ig = "\n".join(head) + "\n" + "\n\n".join(body) + f"\n\n{tail}\n{link_line}\n{url_ig}"
     threads = pack_threads(["\n".join(head[:2]) + "\n\n" + intro] + body[1:] + [f"{tail}\n{link_line}\n{url_th}"])
     card = dict(title=l1 + l2, subtitle=SUBQ[c["ctype"]], numbers=[{k: x[k] for k in ("label", "value", "unit")} for x in rows],
-                category=c["cat"], cover_title=cover, cover_desc=_lines("、".join(f"{x['label']} {_fmt(x)}" for x in comps[:2]) or SUBQ[c["ctype"]], 22),
+                category=c["cat"], subject=subj, cover_title=cover, cover_desc=_lines("、".join(f"{x['label']} {_fmt(x)}" for x in comps[:2]) or SUBQ[c["ctype"]], 22),
                 hero=key["value"].lstrip("約逾近超過") + key["unit"], hl=_fmt(key).replace(" ", "") if _fmt(key).replace(" ", "") in l2 else "")
     d = dict(id=f"{slot}{idx}", slot=slot, data_date=f"{day} 台北", caption_ig=cap_ig, caption_threads=threads,
              card=card, link=url_th, u_code=ucode,
@@ -659,7 +659,7 @@ def pack_threads(secs: list[str], lim: int = 480) -> list[str]:
 
 # ---------------- 圖卡 ----------------
 def render_cards(posts: list[dict], slot: str, out: Path) -> dict[str, int]:
-    """用 render_news_cards.card_v4（--pal D）逐張渲染＋重疊檢查；回傳 {id: 重疊筆數}。"""
+    """用 render_news_cards.card_auto（D-實景／--pal D 灰框）逐張渲染＋重疊檢查；回傳 {id: 重疊筆數}；layout 標籤寫回 meta。"""
     pdir = ROOT / "docs" / "marketing" / "posts"
     sys.path.insert(0, str(pdir))
     import render_news_cards as R
@@ -674,10 +674,17 @@ def render_cards(posts: list[dict], slot: str, out: Path) -> dict[str, int]:
         R._PG = b.new_page(); R._PG.set_content("<body></body>")
         pg = b.new_page(viewport={"width": 1080, "height": 1350})
         for i, d in enumerate(posts, 1):
-            html = R.card_v4(d, i, len(posts), None, slot)
+            html, lay = R.card_auto(d, i, len(posts), slot)      # 主體有已審實景照片 → D-實景；否則灰框大數字
+            d["meta"]["layout"] = lay
+            if lay == "D-實景":
+                d["meta"]["has_photo"] = "true"
             pg.set_content(f"<html><head><meta charset=utf-8><style>{BASE}</style></head>{html}</html>")
             pg.wait_for_timeout(300)
             res = pg.evaluate(CHECK)
+            if res["bad"] and lay == "D-實景":           # 實景版有重疊 → 退回灰框大數字版，不擋整篇
+                html = R.card_v4(d, i, len(posts), None, slot); d["meta"]["layout"] = "D-無圖大數字"; d["meta"].pop("has_photo", None)
+                pg.set_content(f"<html><head><meta charset=utf-8><style>{BASE}</style></head>{html}</html>")
+                pg.wait_for_timeout(300); res = pg.evaluate(CHECK)
             bad[d["id"]] = len(res["bad"])
             Image.open(io.BytesIO(pg.screenshot(clip={"x": 0, "y": 0, "width": 1080, "height": 1350}))).convert("RGB") \
                 .save(out / f"{d['id']}.jpg", quality=92)

@@ -259,12 +259,12 @@ def card_v3(d, idx, tot, bg=None, pal="A", slot="pre"):
             f'<div class="a row T4" style="left:64px;top:1272px;width:952px;height:56px;color:{P3["foot"]}"><span class="num">{idx} / {tot}</span></div></body>')
 # ---- cover_v4（--pal D，Andy 10-28 退件：AI 圖不可染色、色調要舒適）----
 D4 = dict(bg="#FAF9F6", ink="#1F2328", sub="#4B5563", mu="#6B7280", acc="#A85D49", tile="#FFFFFF", tbd="#E5E2DA", bar="#CFCBC2", panel="#EFEDE8", rule="#D9D5CB")
-def bg_plain(path, w, h):
+def bg_plain(path, w, h, ya=0.6):
     """AI 圖保持原色：只裁切與縮放（取上緣），不套任何色調、遮罩、亮度調整"""
     im = Image.open(path).convert("RGB")
     if "pollinations" in str(path): im = im.crop((0, 0, im.width, im.height - int(im.height*0.07)))
     sc = max(w/im.width, h/im.height); im = im.resize((int(im.width*sc)+1, int(im.height*sc)+1), Image.LANCZOS)
-    x0 = (im.width - w)//2; y0 = int((im.height - h)*0.6); im = im.crop((x0, y0, x0+w, y0+h))
+    x0 = (im.width - w)//2; y0 = int((im.height - h)*ya); im = im.crop((x0, y0, x0+w, y0+h))
     b = io.BytesIO(); im.save(b, "JPEG", quality=93); return "data:image/jpeg;base64," + base64.b64encode(b.getvalue()).decode()
 def card_v4(d, idx, tot, bg=None, slot="pre"):
     K = D4; c = d["card"]; cat = c["category"]
@@ -309,6 +309,66 @@ def card_v4(d, idx, tot, bg=None, slot="pre"):
             f'<div class="a T3" style="left:64px;top:{dtop}px;width:952px;color:{K["sub"]};line-height:52px">' + "".join(f"<div>{e(l)}</div>" for l in dl) + '</div>'
             f'{rows}<div class="a" style="left:64px;top:1264px;width:952px;height:2px;background:{K["rule"]}"></div>'
             f'<div class="a row T4" style="left:64px;top:1272px;width:952px;height:56px;color:{K["mu"]}"><span class="num">{idx} / {tot}</span></div></body>')
+# ---- D-實景（Andy 10-28）：上方放主體公司的實景照片（原色、只裁切），照片上方帶狀區放小標（主體＋事件），大數字留在下方大標 ----
+PHOTO_LIB = Path(__file__).resolve().parents[3] / "social" / "photo_lib"
+def photo_for(subject, allow_unreviewed=False):
+    """主體名稱 → 素材庫照片 (photo.jpg 路徑, meta)；只認 aliases.json 的完全相同名稱；未審核（reviewed:false）預設不給。"""
+    if not subject: return None
+    try: aliases = json.loads((PHOTO_LIB / "aliases.json").read_text(encoding="utf-8"))
+    except Exception: return None
+    slug = aliases.get(subject.strip())
+    if not slug: return None
+    d = PHOTO_LIB / slug
+    try: meta = json.loads((d / "meta.json").read_text(encoding="utf-8"))
+    except Exception: return None
+    if not (d / "photo.jpg").exists() or not (meta.get("reviewed") or allow_unreviewed): return None
+    return d / "photo.jpg", meta
+def credit_of(meta):
+    a = re.sub(r"\s+", " ", meta.get("author") or "不詳").strip()
+    if len(a) > 24: a = a[:23] + "…"
+    return f"攝影：{a}／{meta.get('license', '')}・Wikimedia Commons"
+def card_photo(d, idx, tot, photo, slot="pre", pending=False):
+    """photo＝(路徑, meta)。小標＝cover_title 第 1 行（主體＋事件）放照片上方的乾淨帶狀區；大標只留數字那行，避免重複。"""
+    K = D4; c = d["card"]; cat = c["category"]; path, meta = photo
+    tl0 = (lines_of(c.get("cover_title")) or breakit(c["title"], 88).split("\n"))[:2]
+    kicker = c.get("kicker") or tl0[0]
+    tl = tl0[1:] if len(tl0) > 1 else tl0
+    dl = (lines_of(c.get("cover_desc")) or [c["subtitle"]])[:2]
+    fs = min(88, int(920 / max(wid(l) for l in tl)) // 4 * 4)
+    nums = c["numbers"][:3]; n = len(nums); rh, g = 80, 8
+    rtop = 1240 - (n*rh + (n-1)*g); dtop = rtop - 24 - len(dl)*52; ttop = dtop - 16 - len(tl)*(fs+12); chipt = ttop - 16 - 56
+    ktop = 128; ptop = 216; credt = chipt - 16 - 40; imgh = (credt - 8 - ptop) // 8 * 8
+    def hl5(l):
+        h = c.get("hl")
+        if h is not None:
+            k = l.find(h) if h else -1; a, b = (k, k + len(h)) if k >= 0 else (None, None)
+        else:
+            m = NUM.search(l); a, b = (m.start(), m.end()) if m else (None, None)
+        if a is None: return e(l)
+        return e(l[:a]) + f'<span class="ser num" style="font-weight:700;text-decoration:underline;text-decoration-color:{K["acc"]};text-decoration-thickness:6px;text-underline-offset:8px">{e(l[a:b])}</span>' + e(l[b:])
+    tag = '<span class="T4b" style="margin-left:16px;color:#fff;background:#B45309;padding:0 12px;border-radius:4px">待審</span>' if pending else ""
+    date = d["data_date"][:10].replace("-", "/")
+    rows = ''.join(
+        f'<div class="row" style="position:absolute;left:64px;top:{rtop + i*(rh+g)}px;width:952px;height:{rh}px;background:{K["tile"]};border:1px solid {K["tbd"]};border-left:8px solid {K["bar"]};border-radius:4px;padding:0 28px;justify-content:space-between">'
+        f'<span class="T3b" style="color:{K["sub"]}">{e(x["label"])}</span><span class="row" style="gap:8px;align-items:baseline"><span class="ser num" style="font-size:56px;line-height:64px;font-weight:700;color:{vcolor3(x["value"], dict(tv=K["ink"]))}">{e(x["value"])}</span>'
+        f'<span class="T4b" style="color:{K["mu"]}">{e(x["unit"])}</span></span></div>' for i, x in enumerate(nums))
+    return (f'<body style="{V};background:{K["bg"]}"><div class="a" style="left:64px;top:40px;width:952px;height:4px;background:{K["ink"]}" data-bg=1></div>'
+            f'<div class="brand T3b" style="color:{K["ink"]}">哩股哩股</div><div class="hdate T4b num" style="color:{K["mu"]}">{SLOTN.get(slot, "")}・{date}</div>'
+            f'<div class="a" style="left:64px;top:112px;width:952px;height:2px;background:{K["rule"]}" data-bg=1></div>'
+            f'<div class="a row" style="left:64px;top:{ktop}px;width:952px;height:72px"><span class="T2" style="font-weight:800;color:{K["ink"]};white-space:nowrap">{e(kicker)}</span>{tag}</div>'
+            f'<img class="a" data-g=1 style="left:64px;top:{ptop}px;width:952px;height:{imgh}px;border-radius:4px" src="{bg_plain(path, 952, imgh, 0.5)}">'
+            f'<div class="a row" style="left:64px;top:{credt}px;width:952px;height:40px;justify-content:flex-end"><span style="font-size:28px;line-height:40px;color:{K["mu"]};white-space:nowrap">{e(credit_of(meta))}</span></div>'
+            f'<div class="a row" style="left:64px;top:{chipt}px"><span class="T3b" style="background:{K["acc"]};color:#fff;padding:4px 28px;border-radius:4px;letter-spacing:.12em">{e(cat)}</span></div>'
+            f'<div class="a" style="left:64px;top:{ttop}px;width:952px;color:{K["ink"]};font-size:{fs}px;line-height:{fs+12}px;font-weight:800">'
+            + "".join(f'<div style="white-space:nowrap">{hl5(l) if NUM.search(l) or (c.get("hl") and c["hl"] in l) else e(l)}</div>' for l in tl) + '</div>'
+            f'<div class="a T3" style="left:64px;top:{dtop}px;width:952px;color:{K["sub"]};line-height:52px">' + "".join(f"<div>{e(l)}</div>" for l in dl) + '</div>'
+            f'{rows}<div class="a" style="left:64px;top:1264px;width:952px;height:2px;background:{K["rule"]}"></div>'
+            f'<div class="a row T4" style="left:64px;top:1272px;width:952px;height:56px;color:{K["mu"]}"><span class="num">{idx} / {tot}</span></div></body>')
+def card_auto(d, idx, tot, slot="pre", allow_unreviewed=False):
+    """自動版：主體有已審照片 → D-實景；否則 → card_v4 灰框大數字。回傳 (html, layout 標籤)。"""
+    ph = photo_for(d["card"].get("subject"), allow_unreviewed)
+    if ph: return card_photo(d, idx, tot, ph, slot, pending=not ph[1].get("reviewed")), "D-實景"
+    return card_v4(d, idx, tot, None, slot), "D-無圖大數字"
 if __name__ == "__main__":
     root = Path(sys.argv[1]); slot = sys.argv[2]
     def _opt(k, dv=None): return sys.argv[sys.argv.index(k)+1] if k in sys.argv else dv
