@@ -2335,7 +2335,7 @@
   // 2026-10-05：'etf'＝ETF 專區（site/etfpage.js）、'explore'＝選股策略
   // 2026-10-05（晚）：'earnings'＝財報日曆（site/earnings.js）
   // 2026-10-14：'articles'＝精選文章（site/articles.js）；單篇 #article/<id> 也落在這個 view（見 route() 的 view 對照）
-  const VIEWS = ['overview', 'flow', 'market', 'industry', 'heatmap', 'season', 'etf', 'tasks', 'delivery', 'watch', 'explore', 'earnings', 'articles', 'tc'];
+  const VIEWS = ['overview', 'flow', 'market', 'industry', 'heatmap', 'season', 'etf', 'tasks', 'delivery', 'watch', 'explore', 'earnings', 'articles', 'tc', 'lab'];
   // 2026-10-03 電腦版資金流向的子分頁（側欄縮排子項；第一個是 #flow 的預設）。layout4.js 的側欄子項用同一份名單
   const FLOW_SUBS = ['rotation', 'sankey', 'inst'];
   const rendered = {};
@@ -3383,6 +3383,7 @@
       return;
     }
     // 2026-10-14 精選文章：列表換分類／換篩選、點進單篇都由 articles.js 自己決定要重畫哪一塊（篩選狀態留在它的 S 裡），所以每次都交給它
+    if (view === 'lab') { if (window.TwLab) await window.TwLab.show(head, rest); mia(); return; }   // 2026-10-28 交易練習室（管理者限定）：子頁狀態留在 lab.js 的 ST
     if (view === 'tc') { if (window.TwTc) await window.TwTc.show(head, rest); mia(); return; }   // 2026-10-25 科技透明圈：每次進來都交給 tc.js（篩選狀態留在它的 S）
     if (view === 'articles') { if (window.TwArticles) await window.TwArticles.show(head, rest); mia(); return; }
     if (view === 'industry') { if (!(await needLazy('ind', '#v-industry'))) return; if (location.hash !== h0) return; await window.Industry.route(head, rest); mia(); setTimeout(mia, 500); return; }

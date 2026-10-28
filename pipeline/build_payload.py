@@ -18,6 +18,7 @@ import pandas as pd
 from . import config, delivery_log, indicators
 from .compute import explore, inst_market, inst_today
 from .compute import mktfut as mktfut_c
+from .compute import lab as lab_compute
 from .compute import analysis, digest, earnings, etf, etf_holdings, flow, fundamental, mtf, rrg, scoring, season, stockpage, technical, themes
 from .groups import loader
 # TechNews 的分類在讀取端重跑（見下面 news_df 那一段的註解），所以要 import 抓取層的分類器
@@ -324,6 +325,11 @@ def build() -> None:
                  int((actions["source"] != "dividend_results").sum()))
 
     lap("讀資料湖")
+
+    # 交易練習室（#lab）的靜態資料：每檔一個 JSON、前端按需載入（SKIP_LAB=1 可略過，省本機驗收時間）
+    if not os.environ.get("SKIP_LAB"):
+        lab_compute.build(price_adj, names, markets)
+        lap("交易練習室資料")
 
     # ---------------------------------------------------------- M1 資金面
     group_hist = flow.group_daily(price, company, inst, margin)
