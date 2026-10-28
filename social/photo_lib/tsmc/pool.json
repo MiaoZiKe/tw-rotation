@@ -93,6 +93,27 @@
    "review_note": "2026-10-28 第三輪（art-director 複審）通過：主體正確、原色、裁成 952×424 仍成立",
    "reviewed_at": "2026-10-28",
    "reviewed_by": "art-director"
+  },
+  {
+   "file": "photo_5.jpg",
+   "kind": "相關場景",
+   "slug": "tsmc",
+   "name_en": "TSMC",
+   "query": "semiconductor fab",
+   "file_title": "File:Minimal Fab exhibit at Tsukuba Science Square 3.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:Minimal_Fab_exhibit_at_Tsukuba_Science_Square_3.jpg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/8/8a/Minimal_Fab_exhibit_at_Tsukuba_Science_Square_3.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "CC0",
+   "license_url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+   "author": "Syced",
+   "credit": "Own work",
+   "description": "Minimal Fab exhibit at Tsukuba Science Square",
+   "width": 1920,
+   "height": 1446,
+   "fetched_at": "2026-10-28T16:43:13+00:00",
+   "reviewed": false,
+   "reviewer": "",
+   "review_note": ""
   }
  ],
  "rejected": [

@@ -46,6 +46,27 @@
    "review_note": "2026-10-28 第三輪（art-director 複審）退件：LHC 計算網格，非緯穎（主體錯誤）",
    "reviewed_at": "2026-10-28",
    "reject_reason": "LHC 計算網格，非緯穎（主體錯誤）"
+  },
+  {
+   "file": "photo_3.jpg",
+   "kind": "相關場景",
+   "slug": "wiwynn",
+   "name_en": "Wiwynn",
+   "query": "server rack",
+   "file_title": "File:Osservando il rack ESC20 - ML.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:Osservando_il_rack_ESC20_-_ML.jpg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/8/8a/Osservando_il_rack_ESC20_-_ML.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "author": "Martinligabue",
+   "credit": "Own work",
+   "description": "due partecipanti scrutano attentamente un rack di server che emana luce che gli illumina il volto, sembrano molto intenti a decifrarlo",
+   "width": 1920,
+   "height": 1440,
+   "fetched_at": "2026-10-28T16:44:37+00:00",
+   "reviewed": false,
+   "reviewer": "",
+   "review_note": ""
   }
  ],
  "rejected": [

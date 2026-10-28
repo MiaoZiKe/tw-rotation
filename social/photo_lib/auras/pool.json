@@ -46,6 +46,27 @@
    "review_note": "2026-10-28 第三輪（art-director 複審）通過：主體正確、原色、裁成 952×424 仍成立",
    "reviewed_at": "2026-10-28",
    "reviewed_by": "art-director"
+  },
+  {
+   "file": "photo_1.jpg",
+   "kind": "產品",
+   "slug": "auras",
+   "name_en": "Asia Vital Components",
+   "query": "heat sink",
+   "file_title": "File:Heat sink 1.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:Heat_sink_1.jpg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/1/1e/Heat_sink_1.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "CC BY-SA 3.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/3.0",
+   "author": "Srokebep",
+   "credit": "Own work",
+   "description": "heat sink 1",
+   "width": 1920,
+   "height": 1440,
+   "fetched_at": "2026-10-28T16:45:40+00:00",
+   "reviewed": false,
+   "reviewer": "",
+   "review_note": ""
   }
  ],
  "rejected": [

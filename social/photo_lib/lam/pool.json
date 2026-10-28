@@ -1,0 +1,48 @@
+{
+ "slug": "lam",
+ "photos": [
+  {
+   "file": "photo_1.jpg",
+   "kind": "產品",
+   "slug": "lam",
+   "name_en": "Lam Research",
+   "query": "wafer etching",
+   "file_title": "File:Wet etching tanks at LAAS 0465.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:Wet_etching_tanks_at_LAAS_0465.jpg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/c/cf/Wet_etching_tanks_at_LAAS_0465.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "CC BY-SA 3.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/3.0",
+   "author": "Guillaume Paumier (user:guillom)",
+   "credit": "Own work",
+   "description": "etching tanks used to perform Piranha, Hydrofluoric acid or RCA clean on 4-inch wafer batches at LAAS-CNRS technological facility in Toulouse, France.",
+   "width": 1920,
+   "height": 1285,
+   "fetched_at": "2026-10-28T16:54:34+00:00",
+   "reviewed": false,
+   "reviewer": "",
+   "review_note": ""
+  },
+  {
+   "file": "photo_2.jpg",
+   "kind": "產品",
+   "slug": "lam",
+   "name_en": "Lam Research",
+   "query": "wafer etching",
+   "file_title": "File:Wet etching tanks at LAAS (6 inches) 0468.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:Wet_etching_tanks_at_LAAS_(6_inches)_0468.jpg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/1/17/Wet_etching_tanks_at_LAAS_%286_inches%29_0468.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "CC BY-SA 3.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/3.0",
+   "author": "Guillaume Paumier (user:guillom)",
+   "credit": "Own work",
+   "description": "etching tanks used to perform Piranha, Hydrofluoric acid or RCA clean on 6-inch wafer batches at LAAS-CNRS technological facility in Toulouse, France.",
+   "width": 1920,
+   "height": 1285,
+   "fetched_at": "2026-10-28T16:54:35+00:00",
+   "reviewed": false,
+   "reviewer": "",
+   "review_note": ""
+  }
+ ],
+ "rejected": []
+}

@@ -1,6 +1,28 @@
 {
  "slug": "umc",
- "photos": [],
+ "photos": [
+  {
+   "file": "photo_1.jpg",
+   "kind": "相關場景",
+   "slug": "umc",
+   "name_en": "United Microelectronics",
+   "query": "semiconductor fab",
+   "file_title": "File:Minimal Fab exhibit at Tsukuba Science Square 7.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:Minimal_Fab_exhibit_at_Tsukuba_Science_Square_7.jpg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/0/0d/Minimal_Fab_exhibit_at_Tsukuba_Science_Square_7.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "CC0",
+   "license_url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+   "author": "Syced",
+   "credit": "Own work",
+   "description": "Minimal Fab exhibit at Tsukuba Science Square",
+   "width": 1920,
+   "height": 1446,
+   "fetched_at": "2026-10-28T16:45:23+00:00",
+   "reviewed": false,
+   "reviewer": "",
+   "review_note": ""
+  }
+ ],
  "rejected": [
   {
    "file_title": "File:Minimal Fab exhibit at Tsukuba Science Square 4.jpg",

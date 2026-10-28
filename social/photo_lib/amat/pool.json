@@ -1,0 +1,48 @@
+{
+ "slug": "amat",
+ "photos": [
+  {
+   "file": "photo_1.jpg",
+   "kind": "總部/廠房",
+   "slug": "amat",
+   "name_en": "Applied Materials",
+   "query": "Applied Materials building",
+   "file_title": "File:Applied Materials Metron office - Hillsboro, Oregon.JPG",
+   "source_url": "https://commons.wikimedia.org/wiki/File:Applied_Materials_Metron_office_-_Hillsboro,_Oregon.JPG",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/f/f4/Applied_Materials_Metron_office_-_Hillsboro%2C_Oregon.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "CC BY-SA 3.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/3.0",
+   "author": "M.O. Stevens",
+   "credit": "Own work",
+   "description": "Applied Materials Metron office in w:Hillsboro, Oregon, off w:Cornelius Pass Road.",
+   "width": 1920,
+   "height": 1482,
+   "fetched_at": "2026-10-28T16:54:19+00:00",
+   "reviewed": false,
+   "reviewer": "",
+   "review_note": ""
+  },
+  {
+   "file": "photo_2.jpg",
+   "kind": "總部/廠房",
+   "slug": "amat",
+   "name_en": "Applied Materials",
+   "query": "Applied Materials building",
+   "file_title": "File:Applied Materials sign and Air Products plant in Southern Taiwan Science Park May 2025.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:Applied_Materials_sign_and_Air_Products_plant_in_Southern_Taiwan_Science_Park_May_2025.jpg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/a/a6/Applied_Materials_sign_and_Air_Products_plant_in_Southern_Taiwan_Science_Park_May_2025.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "CC BY 4.0",
+   "license_url": "https://creativecommons.org/licenses/by/4.0",
+   "author": "4300streetcar",
+   "credit": "Own work",
+   "description": "An Applied Materials sign in front of a large Air Products plant in Southern Taiwan Science Park",
+   "width": 1920,
+   "height": 1280,
+   "fetched_at": "2026-10-28T16:54:19+00:00",
+   "reviewed": false,
+   "reviewer": "",
+   "review_note": ""
+  }
+ ],
+ "rejected": []
+}
