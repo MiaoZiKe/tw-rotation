@@ -1,62 +1,59 @@
 {
   "steps": {
     "mis.index_minute": {
-      "ok": true,
-      "rows": 840,
-      "seconds": 1.6
-    },
-    "index_intraday": {
-      "stored": 812
+      "ok": false,
+      "rows": 0,
+      "seconds": 1.1
     },
     "taifex.futures_minute": {
-      "ok": true,
-      "rows": 812,
-      "seconds": 44.7
+      "ok": false,
+      "rows": 0,
+      "seconds": 0.1
     },
     "news.collect": {
       "ok": true,
       "rows": 137,
-      "seconds": 2.8
+      "seconds": 2.9
     },
     "news": {
-      "stored": 4
+      "stored": 33
     },
     "news.broker_views": {
       "ok": true,
-      "rows": 1,
+      "rows": 4,
       "seconds": 0.0
     },
     "broker_views": {
-      "stored": 0
+      "stored": 3
     },
     "mops.material_news": {
       "ok": true,
-      "rows": 9,
-      "seconds": 2.5
+      "rows": 137,
+      "seconds": 2.2
     },
     "material_news": {
-      "stored": 0
+      "stored": 137
     },
     "macro.intl": {
       "ok": true,
       "rows": 4511,
-      "seconds": 1.7
+      "seconds": 2.6
     },
     "intl_daily": {
-      "stored": 0
+      "stored": 1
     },
     "macro.fred": {
       "ok": true,
       "rows": 15575,
-      "seconds": 3.8
+      "seconds": 2.8
     },
     "macro": {
-      "stored": 2
+      "stored": 0
     },
     "macro.fred_calendar": {
       "ok": true,
       "rows": 24,
-      "seconds": 1.0
+      "seconds": 0.8
     },
     "macro_calendar": {
       "stored": 0
@@ -89,26 +86,9 @@
   "errors": [],
   "empty": [],
   "phase": "news",
-  "index_minute_days": {
-    "FUT": [
-      "2026-10-27"
-    ],
-    "OTC": [
-      "2026-10-27"
-    ],
-    "TSE": [
-      "2026-10-27"
-    ]
-  },
-  "taifex_minute_days": {
-    "FUT_N": [
-      "2026-10-27",
-      "2026-10-28"
-    ]
-  },
-  "started_at": "2026-10-27T21:11:49.755471+00:00",
-  "finished_at": "2026-10-27T21:34:14.973353+00:00",
-  "duration_seconds": 1345.2,
+  "started_at": "2026-10-28T00:37:26.821832+00:00",
+  "finished_at": "2026-10-28T00:59:41.897781+00:00",
+  "duration_seconds": 1335.1,
   "trade_date": null,
   "complete": true,
   "freshness": {
@@ -117,7 +97,7 @@
       "inst_daily": {
         "label": "個股三大法人",
         "latest": "2026-10-27",
-        "rows": 1419,
+        "rows": 1487,
         "median": 2213.0,
         "status": "warn",
         "reason": "thin"
@@ -179,7 +159,7 @@
     },
     {
       "table": "margin_daily",
-      "rows": 2681223,
+      "rows": 2681370,
       "latest": "2026-10-27"
     },
     {
@@ -199,8 +179,8 @@
     },
     {
       "table": "opt_pc",
-      "rows": 877,
-      "latest": "2011-09-30"
+      "rows": 1126,
+      "latest": "2012-09-28"
     },
     {
       "table": "index_daily",
@@ -214,7 +194,7 @@
     },
     {
       "table": "inst_daily",
-      "rows": 5483599,
+      "rows": 5483667,
       "latest": "2026-10-27"
     },
     {
@@ -244,17 +224,17 @@
     },
     {
       "table": "revenue_monthly",
-      "rows": 252449,
+      "rows": 253430,
       "latest": "2026-09"
     },
     {
       "table": "financial_q",
-      "rows": 82745,
+      "rows": 83061,
       "latest": "—"
     },
     {
       "table": "balance_q",
-      "rows": 82745,
+      "rows": 83013,
       "latest": "—"
     },
     {
@@ -274,18 +254,18 @@
     },
     {
       "table": "news",
-      "rows": 7911,
+      "rows": 7944,
       "latest": "2026-10-28"
     },
     {
       "table": "broker_views",
-      "rows": 188,
-      "latest": "2026-10-27"
+      "rows": 191,
+      "latest": "2026-10-28"
     },
     {
       "table": "intl_daily",
-      "rows": 42640,
-      "latest": "2026-10-27"
+      "rows": 42641,
+      "latest": "2026-10-28"
     },
     {
       "table": "macro",
@@ -339,8 +319,8 @@
     },
     {
       "table": "material_news",
-      "rows": 2026,
-      "latest": "2026-10-26"
+      "rows": 2163,
+      "latest": "2026-10-27"
     },
     {
       "table": "company_website",
@@ -349,12 +329,12 @@
     },
     {
       "table": "daytrade_daily",
-      "rows": 724786,
+      "rows": 725596,
       "latest": "2026-10-27"
     },
     {
       "table": "sbl_daily",
-      "rows": 794994,
+      "rows": 795146,
       "latest": "2026-10-27"
     },
     {
@@ -365,7 +345,7 @@
   ],
   "groups_health": {
     "reviewed": "2026-09-21",
-    "days_since_review": 36,
+    "days_since_review": 37,
     "is_stale": false,
     "group_count": 95,
     "code_count": 444,
