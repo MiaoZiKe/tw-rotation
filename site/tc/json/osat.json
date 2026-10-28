@@ -2,7 +2,7 @@
   "industry": "osat",
   "name": "封測",
   "updated": "2026-10-26",
-  "window": "2025-08-01～2026-10-25",
+  "window": "2025-01-01～2026-10-25",
   "companies": [
     {
       "name": "日月光",
@@ -36,7 +36,7 @@
             50,
             57
           ],
-          "overtime": null,
+          "overtime": "經常",
           "travel": null,
           "n": 29,
           "note": "Dcard 封測整理文（未註日期）碩士 4.6～6.3 萬；GoodJob 2026-06 中壢 1 年資深工程師 8 萬（職等高已排除）、2026-07 高雄 G5 5.1 萬；第二輪：Dcard 製程 offer 多為月薪×14＋績效分紅＋每月小白單（新人約 1 年後才有）；GoodJob 2026-08 高雄碩士 2 年年薪約 75 萬；評價稱碩畢底薪偏低、靠加班費；base_month_k、bonus_months、annual_months 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples；未逐筆對應的舊彙整：base_month_k=[46, 63]；未逐筆對應的舊彙整：bonus_months=[2, 4]；未逐筆對應的舊彙整：annual_months=[14, 16]；未逐筆對應的舊彙整：travel=不用；部分年薪／年薪月數由同一筆樣本的「底薪×月數」推算（樣本標 derived）；未逐筆對應的舊彙整：bonus_months=[2, 2]",
@@ -634,7 +634,7 @@
               "overtime": null,
               "travel": null,
               "quote_free_note": "主管口頭offer待核薪；結構為月薪×12+小白單+分紅，月薪未給；現職傳產RD月薪44K；留言稱日月光保14個月（12+端午中秋各0.5+年終1）、底薪偏低靠加班與輪班津貼；另一留言稱第四個月即有小白單",
-              "in_window": false,
+              "in_window": true,
               "date_note": "Dcard 頁面發文日期 2025-07-15（2026-10-26 2003 批）"
             },
             {
@@ -656,7 +656,7 @@
               "overtime": "經常",
               "travel": null,
               "quote_free_note": "月薪寫成台積新碩士價N減14K再加績效獎金，乘14，未給絕對數；留言稱朋友台科碩底薪加津貼約55K；同篇美光OMT PEE面試後感謝信；加班原文：常日班，平均加班到晚上8點，每1.5個月輪一次假日值班",
-              "in_window": false,
+              "in_window": true,
               "date_note": "Dcard 頁面發文日期 2025-05-16（2026-10-26 2003 批）"
             },
             {
@@ -678,7 +678,7 @@
               "overtime": null,
               "travel": null,
               "quote_free_note": "碩士新鮮人核薪電話；月薪寫成N減6K未給絕對數，原PO自估年薪約100萬出頭；留言稱PE年後調薪約500元、研發與製程薪資不到100萬",
-              "in_window": false,
+              "in_window": true,
               "date_note": "Dcard 頁面發文日期 2025-03-24（2026-10-26 2003 批）"
             },
             {
@@ -700,7 +700,7 @@
               "overtime": null,
               "travel": null,
               "quote_free_note": "科大碩畢offer；全薪寫成台積新碩士價N減11K未給絕對數，另有三節與分紅；同時有艾克爾offer；留言稱有朋友待過bumping時加班沒上限；加班原文：常日班為主，配合部門輪班",
-              "in_window": false,
+              "in_window": true,
               "date_note": "Dcard 頁面發文日期 2025-02-24（2026-10-26 2003 批）"
             },
             {
@@ -724,7 +724,7 @@
               "in_window": true
             }
           ],
-          "n_stat": 22
+          "n_stat": 26
         },
         {
           "unit": "封裝廠",
@@ -959,7 +959,7 @@
               "overtime": null,
               "travel": null,
               "quote_free_note": "前京元電子設備工程師2.5年，4月更新已收日月光offer並決定前往；未揭露薪資；留言稱近期有結構調薪、新人第一年無績效獎金、底薪偏低靠小白單與加班；加班原文：需輪班",
-              "in_window": false,
+              "in_window": true,
               "date_note": "Dcard 頁面發文日期 2025-04-01（2026-10-26 2003 批）"
             },
             {
@@ -981,7 +981,7 @@
               "overtime": null,
               "travel": null,
               "quote_free_note": "日月光設備工程師offer，未揭露薪資；同時有台積供應商助理工程師offer；加班原文：需輪班，班表07:30–19:35",
-              "in_window": false,
+              "in_window": true,
               "date_note": "Dcard 頁面發文日期 2025-01-14（2026-10-26 2003 批）"
             },
             {
@@ -1008,7 +1008,7 @@
               "in_window": true
             }
           ],
-          "n_stat": 6,
+          "n_stat": 8,
           "degree_diff": "樣本中位數：學士底薪約 40.75K、碩士約 46.5K（差約 5.75K；學士 2 筆、碩士 2 筆）"
         },
         {
@@ -1406,7 +1406,7 @@
               "overtime": null,
               "travel": null,
               "quote_free_note": "留言者稱碩畢第一年年薪約70萬、碩約三年可破百；另有留言質疑底薪×14已高於此數，僅供參考",
-              "in_window": false,
+              "in_window": true,
               "date_note": "Dcard 頁面發文日期 2025-05-21（2026-10-26 2003 批）"
             }
           ],
@@ -1428,11 +1428,14 @@
           "base_month_k": null,
           "bonus_months": null,
           "annual_months": null,
-          "annual_total_wan": null,
+          "annual_total_wan": [
+            70,
+            70
+          ],
           "weekly_hours": null,
           "overtime": null,
           "travel": null,
-          "n_stat": 1,
+          "n_stat": 2,
           "note": null,
           "grade": null
         },
@@ -1695,7 +1698,7 @@
               "overtime": "經常",
               "travel": null,
               "quote_free_note": "現職封測廠PTE轉職；月薪寫成台積學士新人價N加24K另加每月績效3–20K，未給絕對數；HR稱年薪平均14–16個月；同時有艾克爾offer；加班原文：經常加班，可報加班費；表訂8–17點",
-              "in_window": false,
+              "in_window": true,
               "date_note": "Dcard 頁面發文日期 2025-07-24（2026-10-26 2003 批）"
             }
           ],
@@ -1723,18 +1726,21 @@
           ],
           "confidence": "低",
           "n": 4,
-          "overtime": null,
+          "overtime": "經常",
           "years": null,
           "base_month_k": [
             54,
             54
           ],
           "bonus_months": null,
-          "annual_months": null,
+          "annual_months": [
+            15,
+            15
+          ],
           "annual_total_wan": null,
           "weekly_hours": null,
           "travel": null,
-          "n_stat": 3,
+          "n_stat": 4,
           "note": null,
           "grade": null
         },
@@ -1983,7 +1989,7 @@
               "overtime": "經常",
               "travel": null,
               "quote_free_note": "前台積電離職者offer；月薪寫成N減9K未給絕對數，保14個月；同時有台郡offer；加班原文：有加班費，每日可能10–12小時，每月值班一次需配合輪班",
-              "in_window": false,
+              "in_window": true,
               "date_note": "Dcard 頁面發文日期 2025-05-20（2026-10-26 2003 批）"
             }
           ],
@@ -2001,15 +2007,21 @@
           ],
           "confidence": "低",
           "n": 2,
-          "overtime": "幾乎不",
+          "overtime": null,
           "years": null,
           "base_month_k": null,
           "bonus_months": null,
-          "annual_months": null,
+          "annual_months": [
+            14,
+            14
+          ],
           "annual_total_wan": null,
-          "weekly_hours": null,
+          "weekly_hours": [
+            55,
+            55
+          ],
           "travel": null,
-          "n_stat": 1,
+          "n_stat": 2,
           "note": null,
           "grade": null
         },
@@ -2268,8 +2280,8 @@
               "overtime": null,
               "travel": null,
               "quote_free_note": null,
-              "date_confirmed": false,
-              "date_note": "日期為推估或僅年份，不進統計",
+              "date_confirmed": true,
+              "date_note": "依 docs/tc/dcard_id_calibration.md：編號 ≥ 258870385（2025-05-21 錨點），確定晚於 2025-01-01",
               "in_window": true
             },
             {
@@ -2294,7 +2306,7 @@
               "date_note": "GoodJob 標題／列表附年月，算確認"
             }
           ],
-          "n_stat": 1
+          "n_stat": 2
         },
         {
           "unit": "測試廠",
@@ -2414,8 +2426,8 @@
               "overtime": null,
               "travel": null,
               "quote_free_note": null,
-              "date_confirmed": false,
-              "date_note": "日期為推估或僅年份，不進統計",
+              "date_confirmed": true,
+              "date_note": "依 docs/tc/dcard_id_calibration.md：編號 ≥ 258870385（2025-05-21 錨點），確定晚於 2025-01-01",
               "in_window": true
             },
             {
@@ -2516,7 +2528,7 @@
               "date_note": "GoodJob 標題／列表附年月，算確認"
             }
           ],
-          "n_stat": 5
+          "n_stat": 6
         },
         {
           "unit": "竹南",
@@ -2645,7 +2657,7 @@
               "overtime": null,
               "travel": null,
               "quote_free_note": "常日班；月薪 43000 含餐補；年薪三家中第三",
-              "in_window": false,
+              "in_window": true,
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2025-07-31"
             }
           ],
@@ -2659,14 +2671,17 @@
           "confidence": "低",
           "n": 1,
           "years": null,
-          "base_month_k": null,
+          "base_month_k": [
+            43,
+            43
+          ],
           "bonus_months": null,
           "annual_months": null,
           "annual_total_wan": null,
           "weekly_hours": null,
           "overtime": null,
           "travel": null,
-          "n_stat": 0,
+          "n_stat": 1,
           "note": null,
           "grade": null
         },
@@ -4337,7 +4352,7 @@
               "overtime": null,
               "travel": null,
               "quote_free_note": "每三個月日夜輪班、做二休二；月薪 43000；年薪三家中第二",
-              "in_window": false,
+              "in_window": true,
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2025-07-31"
             }
           ],
@@ -4367,12 +4382,15 @@
           ],
           "overtime": "幾乎不",
           "years": null,
-          "base_month_k": null,
+          "base_month_k": [
+            43,
+            43
+          ],
           "bonus_months": null,
           "annual_total_wan": null,
           "weekly_hours": null,
           "travel": null,
-          "n_stat": 2
+          "n_stat": 3
         },
         {
           "unit": "其他",

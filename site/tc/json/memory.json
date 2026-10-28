@@ -2,7 +2,7 @@
   "industry": "memory",
   "name": "記憶體",
   "updated": "2026-10-26",
-  "window": "2025-08-01～2026-10-25",
+  "window": "2025-01-01～2026-10-25",
   "companies": [
     {
       "name": "美光台灣",
@@ -604,7 +604,7 @@
               "overtime": null,
               "travel": null,
               "quote_free_note": "面試後收到正向結果、待核薪（尚非正式offer）；原PO估月薪約台積新人價N減7K，未給絕對數；留言稱美光目前無季獎金、11月有分紅；加班原文：輪大夜，夜班加給約20%",
-              "in_window": false,
+              "in_window": true,
               "date_note": "Dcard 頁面發文日期 2025-04-30（2026-10-26 2003 批）"
             },
             {
@@ -653,7 +653,7 @@
               "quote_free_note": "offer月薪寫成N減3K乘14加分紅；留言稱N通常指台積新人價約63K，依此推約60K（推估）",
               "overtime_raw": "需輪班",
               "travel_raw": null,
-              "in_window": false,
+              "in_window": true,
               "date_note": "Dcard 頁面發文日期 2025-04-22（2026-10-26 2037 批）"
             },
             {
@@ -858,7 +858,7 @@
               "comment_sample": true
             }
           ],
-          "n_stat": 27,
+          "n_stat": 29,
           "degree_diff": "樣本中位數：學士底薪約 55K、碩士約 58K（差約 3K；學士 1 筆、碩士 4 筆）"
         },
         {
@@ -1243,7 +1243,7 @@
               "overtime": null,
               "travel": null,
               "quote_free_note": "混血新鮮人收到聘書，校園徵才管道；未揭露薪資；留言稱美光M1職等低於台積31",
-              "in_window": false,
+              "in_window": true,
               "date_note": "Dcard 頁面發文日期 2025-04-18（2026-10-26 2003 批）"
             },
             {
@@ -1265,7 +1265,7 @@
               "overtime": null,
               "travel": null,
               "quote_free_note": "四大碩同時拿美光PEE與KLA CSE offer，原PO稱KLA薪水較高；未揭露數字",
-              "in_window": false,
+              "in_window": true,
               "date_note": "Dcard 頁面發文日期 2025-02-13（2026-10-26 2003 批）"
             },
             {
@@ -1287,7 +1287,7 @@
               "overtime": null,
               "travel": null,
               "quote_free_note": "四大碩offer；月薪寫成N加12K乘14另有簽約金與分紅，未給絕對數；留言稱值假日班會補平日、從台積跳美光一年約少80萬；加班原文：常日班不需輪班，假日要值班",
-              "in_window": false,
+              "in_window": true,
               "date_note": "Dcard 頁面發文日期 2025-07-02（2026-10-26 2003 批）"
             },
             {
@@ -1311,11 +1311,11 @@
               "quote_free_note": "混血產線系offer；月薪寫成N加9K未給絕對數；簽約金250K；同時有佳能設備工程師offer",
               "overtime_raw": null,
               "travel_raw": null,
-              "in_window": false,
+              "in_window": true,
               "date_note": "Dcard 頁面發文日期 2025-04-01（2026-10-26 2037 批）"
             }
           ],
-          "n_stat": 11
+          "n_stat": 15
         },
         {
           "unit": "Global team",
@@ -1434,7 +1434,7 @@
               "overtime": "經常",
               "travel": null,
               "quote_free_note": "現職美光超過三年；結構為月薪×14加IPP加RSU，RSU已到最後一年；月薪N未揭露；加班原文：常在晚上7–8點或凌晨被call，無加班費",
-              "in_window": false,
+              "in_window": true,
               "date_note": "Dcard 頁面發文日期 2025-07-29（2026-10-26 2003 批）"
             },
             {
@@ -1493,10 +1493,13 @@
             70
           ],
           "bonus_months": null,
-          "annual_months": null,
+          "annual_months": [
+            14,
+            14
+          ],
           "weekly_hours": null,
           "travel": null,
-          "n_stat": 3,
+          "n_stat": 4,
           "note": null,
           "grade": null
         },
@@ -1546,7 +1549,7 @@
               "overtime": null,
               "travel": null,
               "quote_free_note": "碩士新人offer；月薪寫成N加10K乘14未給絕對數；簽約金150K；同時有力積電研替offer；留言稱美光目前無季獎金與分紅；加班原文：常日班，需輪假日班",
-              "in_window": false,
+              "in_window": true,
               "date_note": "Dcard 頁面發文日期 2025-04-29（2026-10-26 2003 批）"
             }
           ],
@@ -1567,12 +1570,15 @@
           "years": null,
           "base_month_k": null,
           "bonus_months": null,
-          "annual_months": null,
+          "annual_months": [
+            14,
+            14
+          ],
           "annual_total_wan": null,
           "weekly_hours": null,
           "overtime": null,
           "travel": null,
-          "n_stat": 1,
+          "n_stat": 2,
           "note": null,
           "grade": null
         },
@@ -1642,7 +1648,7 @@
               "overtime": null,
               "travel": null,
               "quote_free_note": "留言者核薪原開55K，拒絕後美光來信加薪到60K；為留言自述；加班原文：輪班",
-              "in_window": false,
+              "in_window": true,
               "date_note": "Dcard 頁面發文日期 2025-03-12（2026-10-26 2003 批）"
             },
             {
@@ -1664,7 +1670,7 @@
               "overtime": null,
               "travel": null,
               "quote_free_note": "留言回覆博士新人月薪88K；原PO稱職等E3",
-              "in_window": false,
+              "in_window": true,
               "date_note": "Dcard 頁面發文日期 2025-06-01（2026-10-26 2003 批）"
             },
             {
@@ -1710,7 +1716,7 @@
               "quote_free_note": "在職心得文；自述年薪約破百萬、不上不下，壓力多來自人際；稱裁員從考績差者開始",
               "overtime_raw": "上班時間長",
               "travel_raw": null,
-              "in_window": false,
+              "in_window": true,
               "date_note": "Dcard 頁面發文日期 2025-03-22（2026-10-26 2037 批）"
             },
             {
@@ -1734,7 +1740,7 @@
               "quote_free_note": "原PO以扣繳憑單分享2024全年收入約260萬（月薪×14+IPP+當年歸屬RSU+ESPP補助）；歷年：2018約93萬、2020升E2約145萬、2023升E3約175萬；2024增幅主要來自股價上漲",
               "overtime_raw": null,
               "travel_raw": null,
-              "in_window": false,
+              "in_window": true,
               "date_note": "Dcard 頁面發文日期 2025-01-14（2026-10-26 2037 批）"
             },
             {
@@ -1759,7 +1765,7 @@
               "overtime_raw": null,
               "travel_raw": null,
               "comment_sample": true,
-              "in_window": false,
+              "in_window": true,
               "date_note": "Dcard 頁面發文日期 2025-01-14（2026-10-26 2037 批）"
             },
             {
@@ -1784,7 +1790,7 @@
               "overtime_raw": null,
               "travel_raw": null,
               "comment_sample": true,
-              "in_window": false,
+              "in_window": true,
               "date_note": "Dcard 頁面發文日期 2025-01-14（2026-10-26 2037 批）"
             },
             {
@@ -1809,7 +1815,7 @@
               "overtime_raw": null,
               "travel_raw": null,
               "comment_sample": true,
-              "in_window": false,
+              "in_window": true,
               "date_note": "Dcard 頁面發文日期 2025-01-16（2026-10-26 2037 批）"
             },
             {
@@ -1834,7 +1840,7 @@
               "overtime_raw": null,
               "travel_raw": null,
               "comment_sample": true,
-              "in_window": false,
+              "in_window": true,
               "date_note": "Dcard 頁面發文日期 2025-01-15（2026-10-26 2037 批）"
             },
             {
@@ -1859,7 +1865,7 @@
               "overtime_raw": null,
               "travel_raw": null,
               "comment_sample": true,
-              "in_window": false,
+              "in_window": true,
               "date_note": "Dcard 頁面發文日期 2025-01-15（2026-10-26 2037 批）"
             },
             {
@@ -1884,7 +1890,7 @@
               "overtime_raw": null,
               "travel_raw": null,
               "comment_sample": true,
-              "in_window": false,
+              "in_window": true,
               "date_note": "Dcard 頁面發文日期 2025-01-16（2026-10-26 2037 批）"
             },
             {
@@ -1909,7 +1915,7 @@
               "overtime_raw": null,
               "travel_raw": null,
               "comment_sample": true,
-              "in_window": false,
+              "in_window": true,
               "date_note": "Dcard 頁面發文日期 2025-01-16（2026-10-26 2037 批）"
             },
             {
@@ -1934,7 +1940,7 @@
               "overtime_raw": null,
               "travel_raw": null,
               "comment_sample": true,
-              "in_window": false,
+              "in_window": true,
               "date_note": "Dcard 頁面發文日期 2025-01-23（2026-10-26 2037 批）"
             },
             {
@@ -2564,7 +2570,7 @@
               "overtime": "經常",
               "travel": null,
               "quote_free_note": "留言B11：待三年，年薪不含加班大概1.7M（原文「17M上下」，判讀為1.7M=170萬）；分紅三年有一年沒拿到、那年整年不到100萬",
-              "in_window": false,
+              "in_window": true,
               "date_note": "Dcard 頁面發文日期 2025-04-13（b28 批）",
               "comment_sample": true
             },
@@ -2587,7 +2593,7 @@
               "overtime": null,
               "travel": null,
               "quote_free_note": "留言B10：聽過E2年薪140萬但另有RSU 18K美元（非每人都有）；非禮包年考績3粗估月薪×17；B10-3稱RSU有E3 50K美元",
-              "in_window": false,
+              "in_window": true,
               "date_note": "Dcard 頁面發文日期 2025-04-13（b28 批）",
               "comment_sample": true
             },
@@ -2870,7 +2876,7 @@
           "n": 51,
           "years": null,
           "base_month_k": [
-            60,
+            55,
             150
           ],
           "bonus_months": null,
@@ -2883,9 +2889,9 @@
             600
           ],
           "weekly_hours": null,
-          "overtime": null,
+          "overtime": "經常",
           "travel": null,
-          "n_stat": 37,
+          "n_stat": 51,
           "note": null,
           "grade": null
         },

@@ -29,7 +29,7 @@
           ],
           "annual_months": [
             14,
-            14
+            20
           ],
           "annual_total_wan": [
             100,
@@ -37,9 +37,9 @@
           ],
           "weekly_hours": [
             50,
-            50
+            55
           ],
-          "overtime": "偶爾",
+          "overtime": "經常",
           "travel": null,
           "n": 31,
           "note": "網友自述未經查證；Dcard 新鮮人 offer 文預估月薪約 80K、保 14 個月＋分紅；GoodJob 2026-03 一筆 9 萬為年資 3 年已排除；2026-04 一筆 3 萬疑為實習已排除；新聞『碩士年薪上看 200 萬』未標日期不採；總年薪不確定填 null；出差：GoodJob 未見固定出差回報，研發職偶有客戶／海外支援，暫填偶爾（低信心）；撤回：travel 原為沿用／推算／暫填值，無直接證據，已改回原值；第二輪：Dcard offer 約 80K 保 14＋分紅、第一年非 I- 分紅約 4～6 個月；E7 第一年試算約 200 萬（含加班）；2026-02 下半年分紅平均每人約 95 萬（媒體估）；GoodJob 2026-08 面試 8 萬、DV 9.5 萬（每週 50 小時，年資未標，上緣可能非新人）；未逐筆對應的舊彙整：travel=偶爾",
@@ -551,7 +551,7 @@
               "overtime": "經常",
               "travel": null,
               "quote_free_note": "預估每天 10～12 小時（週工時依此估）；分紅未知；數字未透露",
-              "in_window": false,
+              "in_window": true,
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2025-05-04"
             },
             {
@@ -576,7 +576,7 @@
               "overtime": "經常",
               "travel": null,
               "quote_free_note": "二線數位 IC 2.5 年；N＝現職月薪；月薪 N-8K、有加班費；預估年薪 19～20 個月；9～19 點需帶電腦回家；新進可能考績 I-",
-              "in_window": false,
+              "in_window": true,
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2025-03-14；10-26 稽核：annual_months 由中值 19.5 改填區間 [19, 20]"
             },
             {
@@ -599,7 +599,7 @@
               "travel": null,
               "quote_free_note": "陽明交大新人；彈性工時；數字未透露；留言 B6 諷刺為早九晚十一",
               "date_note": "Dcard 頁面發文日期 2025-05-31（2026-10-26 1923 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -621,7 +621,7 @@
               "travel": null,
               "quote_free_note": "留言 B9（非發文者，台大）：曾待 SPD2/CD1，新人第一年光分紅就領 120 萬以上（分紅金額無對應欄位），但部門極操，後轉外商",
               "date_note": "Dcard 頁面發文日期 2025-06-01（2026-10-26 1923 批，非 Andy 親眼讀）",
-              "in_window": false,
+              "in_window": true,
               "bonus_wan": 120
             },
             {
@@ -644,7 +644,7 @@
               "travel": null,
               "quote_free_note": "發文者轉述 SPD2 朋友：前三年某年考績好時含加班整包快 300 萬（以 300 萬記，為上限）；台大 ICS 碩應屆；主管說第一年不會給 I-；數字未透露",
               "date_note": "Dcard 頁面發文日期 2025-05-12（2026-10-26 1923 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -669,7 +669,7 @@
               "travel": null,
               "quote_free_note": "留言 B17（非發文者）推估：聯發科 SPD2 做四五年跳外商約開 250～300 萬（為外商開價，非聯發科本身年薪）",
               "date_note": "Dcard 頁面發文日期 2025-05-12（2026-10-26 1923 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -691,7 +691,7 @@
               "travel": null,
               "quote_free_note": "同篇另一份offer，原PO自述高工時、團隊大偏整合；留言多建議選M；未揭露薪資數字；加班：高工時",
               "date_note": "Dcard 頁面發文日期 2025-01-21（2026-10-26 1943 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -815,7 +815,7 @@
               "comment_sample": false
             }
           ],
-          "n_stat": 23
+          "n_stat": 30
         },
         {
           "unit": "研發 R&D",
@@ -887,8 +887,11 @@
             100,
             200
           ],
-          "weekly_hours": null,
-          "overtime": null,
+          "weekly_hours": [
+            55,
+            55
+          ],
+          "overtime": "經常",
           "travel": null,
           "n": 17,
           "note": "WebSearch 查「聯發科 碩士 薪資 2026」「GoodJob 聯發科」「PTT Tech_Job offer 聯發科」「Dcard offer 聯發科」「104 ESG 薪資中位數」，摘要未出現 2025-10 後碩士職位數字；出差：GoodJob 未見固定出差回報，研發職偶有客戶／海外支援，暫填偶爾（低信心）；撤回：travel 原為沿用／推算／暫填值，無直接證據，已改回原值；第二輪：Dcard 討論稱軟韌普遍要加班、加班費計入後 I- 新人年收也可能逾 120 萬；未逐筆對應的舊彙整：overtime=經常（有加班費）",
@@ -1109,7 +1112,7 @@
               "overtime": null,
               "travel": null,
               "quote_free_note": "拿到 offer；數字未透露；留言 B15 說新人高機率考績 I-、分紅少",
-              "in_window": false,
+              "in_window": true,
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2025-05-14"
             },
             {
@@ -1131,7 +1134,7 @@
               "overtime": null,
               "travel": null,
               "quote_free_note": "同上，offer 或面邀未區分；數字未透露",
-              "in_window": false,
+              "in_window": true,
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2025-03-30"
             },
             {
@@ -1153,7 +1156,7 @@
               "overtime": "經常",
               "travel": null,
               "quote_free_note": "中字資工碩、CV/DL 背景；新人價；約 9～19（可能到 21）點、加班依勞基法可報（週工時依此估）；發文者預期第一年考績 I-",
-              "in_window": false,
+              "in_window": true,
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2025-01-06"
             },
             {
@@ -1291,7 +1294,7 @@
               "comment_sample": true
             }
           ],
-          "n_stat": 14
+          "n_stat": 17
         },
         {
           "unit": "研發 R&D",
@@ -1350,7 +1353,7 @@
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/259440112",
               "date": "不明",
-              "date_confirmed": false,
+              "date_confirmed": true,
               "unit_detail": "CDG 驗證",
               "years": "0",
               "degree": "碩士",
@@ -1362,8 +1365,8 @@
               "overtime": null,
               "travel": null,
               "quote_free_note": "應屆生收到 CDG 驗證面試，詢問內容與風氣；無數字",
-              "in_window": false,
-              "date_note": null
+              "in_window": true,
+              "date_note": "依 docs/tc/dcard_id_calibration.md：編號 ≥ 258870385（2025-05-21 錨點），確定晚於 2025-01-01"
             },
             {
               "site": "GoodJob",
@@ -1408,7 +1411,7 @@
             }
           ],
           "grade": "E7（新人碩士，Dcard 多則）",
-          "n_stat": 3
+          "n_stat": 4
         },
         {
           "unit": "GPU compiler",
@@ -1527,7 +1530,7 @@
               "overtime": "偶爾",
               "travel": null,
               "quote_free_note": "忙時要加班；數字未透露；留言多說前三年薪資輸台積",
-              "in_window": false,
+              "in_window": true,
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2025-05-13"
             }
           ],
@@ -1558,7 +1561,7 @@
           "annual_total_wan": null,
           "weekly_hours": null,
           "travel": null,
-          "n_stat": 2,
+          "n_stat": 3,
           "note": null,
           "grade": null
         },
@@ -1628,7 +1631,7 @@
               "travel": null,
               "quote_free_note": "留言 B4-3（非發文者，成大）：在聯發科年薪沒低於 200 萬過（以 200 萬記，為下限）",
               "date_note": "Dcard 頁面發文日期 2025-07-22（2026-10-26 1923 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -1650,7 +1653,7 @@
               "travel": null,
               "quote_free_note": "留言 B18-8（非發文者，成大）：聯發科第一年考績 I 年薪約 150 萬、第二年 I- 只剩底薪；未說明是否本人",
               "date_note": "Dcard 頁面發文日期 2025-05-13（2026-10-26 1923 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -1671,7 +1674,7 @@
               "overtime": null,
               "travel": null,
               "quote_free_note": "留言B16：自稱年資8年，年薪不到250萬（上限值）",
-              "in_window": false,
+              "in_window": true,
               "date_note": "Dcard 頁面發文日期 2025-05-28（2026-10-26 2122 批）",
               "comment_sample": true
             },
@@ -1694,7 +1697,7 @@
               "overtime": null,
               "travel": null,
               "quote_free_note": "留言B16-7：E8考績I，底薪12萬×固定14個月=168萬，2月分紅2X萬、全年分紅估50萬內（自估合計218萬為推估，未填）",
-              "in_window": false,
+              "in_window": true,
               "date_note": "Dcard 頁面發文日期 2025-05-30（2026-10-26 2122 批）",
               "comment_sample": true,
               "derived": "annual_wan 由 base_k×annual_months 推算"
@@ -1718,7 +1721,7 @@
               "overtime": null,
               "travel": null,
               "quote_free_note": "留言B16-11：E8考績E，2月分紅不到50萬，自稱在守年薪250萬（約值）",
-              "in_window": false,
+              "in_window": true,
               "date_note": "Dcard 頁面發文日期 2025-05-31（2026-10-26 2122 批）",
               "comment_sample": true
             },
@@ -1741,7 +1744,7 @@
               "overtime": null,
               "travel": null,
               "quote_free_note": "留言B6/B6-4：稱第一年若考績I-年薪頂多120萬（上限值）；轉述學弟10月入職，隔年2月無分紅、8月約2X萬；另一同事8月入職考績I-，隔年兩包分紅各約1個月",
-              "in_window": false,
+              "in_window": true,
               "date_note": "Dcard 頁面發文日期 2025-05-28（2026-10-26 2122 批）",
               "comment_sample": true
             },
@@ -1764,7 +1767,7 @@
               "overtime": null,
               "travel": null,
               "quote_free_note": "留言B13：轉述學弟妹E7、E8去年年薪皆超過250萬（下限值）",
-              "in_window": false,
+              "in_window": true,
               "date_note": "Dcard 頁面發文日期 2025-05-28（2026-10-26 2122 批）",
               "comment_sample": true
             },
@@ -1975,7 +1978,7 @@
               "overtime": null,
               "travel": null,
               "quote_free_note": "留言B17：碩畢進M，六七年後差不多接近中位數（主文所引2024非主管中位數343.8萬，記344）；B17-2質疑此需E9考績好才勾得到",
-              "in_window": false,
+              "in_window": true,
               "date_note": "Dcard 頁面發文日期 2025-07-10（20261027_0144 批）",
               "comment_sample": true
             },
@@ -1998,7 +2001,7 @@
               "overtime": null,
               "travel": null,
               "quote_free_note": "留言B6-2：同學在聯發科E9說「300保衛戰」（約300萬上下，轉述）；主文為新聞平均分紅，未列樣本",
-              "in_window": false,
+              "in_window": true,
               "date_note": "Dcard 頁面發文日期 2025-02-21（20261027_0144 批）",
               "comment_sample": true
             },
@@ -2800,14 +2803,14 @@
           "years": null,
           "base_month_k": [
             80,
-            111
+            120
           ],
           "bonus_months": [
             0,
             0
           ],
           "annual_months": [
-            14.5,
+            14,
             14.5
           ],
           "annual_total_wan": [
@@ -2820,7 +2823,7 @@
           ],
           "overtime": "偶爾",
           "travel": null,
-          "n_stat": 39,
+          "n_stat": 48,
           "note": null,
           "grade": null
         },
@@ -3053,7 +3056,7 @@
               "overtime": "經常",
               "travel": null,
               "quote_free_note": "工時相對較長；數字未透露",
-              "in_window": false,
+              "in_window": true,
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2025-04-06"
             }
           ],
@@ -3072,9 +3075,9 @@
           "annual_months": null,
           "annual_total_wan": null,
           "weekly_hours": null,
-          "overtime": null,
+          "overtime": "經常",
           "travel": null,
-          "n_stat": 0,
+          "n_stat": 1,
           "note": null,
           "grade": null
         },
@@ -3102,7 +3105,7 @@
               "overtime": "經常",
               "travel": null,
               "quote_free_note": "N 未說明；月薪 N+22，預估年薪約 180 萬（發文者不確定）；發文者說加班很多",
-              "in_window": false,
+              "in_window": true,
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2025-01-12"
             },
             {
@@ -3141,11 +3144,14 @@
           ],
           "bonus_months": null,
           "annual_months": null,
-          "annual_total_wan": null,
+          "annual_total_wan": [
+            180,
+            180
+          ],
           "weekly_hours": null,
-          "overtime": null,
+          "overtime": "經常",
           "travel": null,
-          "n_stat": 1,
+          "n_stat": 2,
           "note": null,
           "grade": null
         }
@@ -3229,7 +3235,7 @@
           ],
           "annual_total_wan": [
             119.0,
-            200
+            300
           ],
           "weekly_hours": [
             44,
@@ -3514,7 +3520,7 @@
               "overtime": "幾乎不",
               "travel": null,
               "quote_free_note": "兩家月薪差不多；不太加班；分紅未知；數字未透露",
-              "in_window": false,
+              "in_window": true,
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2025-05-04"
             },
             {
@@ -3537,7 +3543,7 @@
               "travel": null,
               "quote_free_note": "工時約 9～19 點（週工時依此估）；數字未透露",
               "date_note": "Dcard 頁面發文日期 2025-05-31（2026-10-26 1923 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -3559,7 +3565,7 @@
               "travel": null,
               "quote_free_note": "新人從 IP（clock gen）開始；分紅第三年才領滿；數字未透露；留言 B12 說聯發科年薪約為聯詠 1.5 倍（未說明依據）",
               "date_note": "Dcard 頁面發文日期 2025-05-12（2026-10-26 1923 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -3581,7 +3587,7 @@
               "travel": null,
               "quote_free_note": "留言 B18-4（非發文者，台大）：以前在聯詠 MD，第一年年薪不到 160 萬（以 160 萬記，為上限），撐不下去離職",
               "date_note": "Dcard 頁面發文日期 2025-05-12（2026-10-26 1923 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -3603,7 +3609,7 @@
               "travel": null,
               "quote_free_note": "留言 B17（非發文者）推估：MD 年資三四年年薪 300 萬以上大有人在（以 300 萬記，為下限）；非本人數字",
               "date_note": "Dcard 頁面發文日期 2025-05-12（2026-10-26 1923 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -3625,7 +3631,7 @@
               "travel": null,
               "quote_free_note": "留言 B66（非發文者，台大）：第一次打考績，DD 整包分紅不到 50 萬（分紅金額無對應欄位）",
               "date_note": "Dcard 頁面發文日期 2025-03-27（2026-10-26 1923 批，非 Andy 親眼讀）",
-              "in_window": false,
+              "in_window": true,
               "bonus_wan": 50
             },
             {
@@ -3648,7 +3654,7 @@
               "travel": null,
               "quote_free_note": "留言 B85（非發文者，代 PO）：5 年、DE、150（未說明是分紅或年薪，單位推測萬元，不填欄位）",
               "date_note": "Dcard 頁面發文日期 2025-03-28（2026-10-26 1923 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -3670,7 +3676,7 @@
               "travel": null,
               "quote_free_note": "留言 B104（非發文者，交大）：年資 4 年，DE 純分紅 200 萬以上（分紅金額無對應欄位），比去年多但工時很長；同部門相近年資 SA 再多一點",
               "date_note": "Dcard 頁面發文日期 2025-04-01（2026-10-26 1923 批，非 Andy 親眼讀）",
-              "in_window": false,
+              "in_window": true,
               "bonus_wan": 200
             },
             {
@@ -3693,7 +3699,7 @@
               "travel": null,
               "quote_free_note": "國外碩士應屆offer，月薪N未揭露，寫N乘14；另有簽約金綁兩年金額未定；同時持高通offer、瑞昱兩部門面試中",
               "date_note": "Dcard 頁面發文日期 2025-02-18（2026-10-26 1943 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "GoodJob",
@@ -3809,7 +3815,7 @@
               "comment_sample": true
             }
           ],
-          "n_stat": 14
+          "n_stat": 23
         },
         {
           "unit": "研發 R&D",
@@ -3912,7 +3918,7 @@
               "travel": null,
               "quote_free_note": "清大；已拿到 offer，問簽約金；留言說 SA／軟韌自 2018 後無簽約金；數字未透露",
               "date_note": "Dcard 頁面發文日期 2025-07-24（2026-10-26 1923 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -3934,10 +3940,10 @@
               "travel": null,
               "quote_free_note": "offer 月薪 N+14k（N 未知）；三個部門都拿到 offer",
               "date_note": "Dcard 頁面發文日期 2025-04-19（2026-10-26 1923 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             }
           ],
-          "n_stat": 2
+          "n_stat": 4
         },
         {
           "unit": "竹北 / OLED",
@@ -4311,7 +4317,7 @@
               "travel": null,
               "quote_free_note": "留言 B9（非發文者，台大）轉述：聯詠同學第三年分紅領滿後年薪多破 400 萬（以 400 萬記，為下限）",
               "date_note": "Dcard 頁面發文日期 2025-06-01（2026-10-26 1923 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -4333,7 +4339,7 @@
               "travel": null,
               "quote_free_note": "發文者：2024 分紅開獎，一年一包、分 3/6/9/12 月四次各 1/4；2024 EPS 33.43 vs 2023 38.32，約打 87 折；無個人數字",
               "date_note": "Dcard 頁面發文日期 2025-03-27（2026-10-26 1923 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -4355,7 +4361,7 @@
               "travel": null,
               "quote_free_note": "留言 B15（非發文者，成大）：做 3 年整年不到 200 萬（以 200 萬記，為上限）",
               "date_note": "Dcard 頁面發文日期 2025-03-27（2026-10-26 1923 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -4377,7 +4383,7 @@
               "travel": null,
               "quote_free_note": "留言 B47（非發文者，成大）：快十年，分紅打 95 折，整年約 400 萬",
               "date_note": "Dcard 頁面發文日期 2025-03-27（2026-10-26 1923 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -4399,7 +4405,7 @@
               "travel": null,
               "quote_free_note": "留言 B61（非發文者，成大）：8 年，370 萬",
               "date_note": "Dcard 頁面發文日期 2025-03-27（2026-10-26 1923 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -4421,7 +4427,7 @@
               "travel": null,
               "quote_free_note": "留言 B37（非發文者，成大）：分紅打 8 折，整包分紅只剩約 150 萬（分紅金額無對應欄位）",
               "date_note": "Dcard 頁面發文日期 2025-03-27（2026-10-26 1923 批，非 Andy 親眼讀）",
-              "in_window": false,
+              "in_window": true,
               "bonus_wan": 150
             },
             {
@@ -4444,7 +4450,7 @@
               "travel": null,
               "quote_free_note": "留言 B36（非發文者，代 PO）：4 年，年薪約 280 萬",
               "date_note": "Dcard 頁面發文日期 2025-03-27（2026-10-26 1923 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -4466,7 +4472,7 @@
               "travel": null,
               "quote_free_note": "留言 B70（非發文者，中央）：第二次打考績，分紅只有約 50 萬（分紅金額無對應欄位）；年資依兩次考績推估",
               "date_note": "Dcard 頁面發文日期 2025-03-27（2026-10-26 1923 批，非 Andy 親眼讀）",
-              "in_window": false,
+              "in_window": true,
               "bonus_wan": 50
             },
             {
@@ -4489,7 +4495,7 @@
               "travel": null,
               "quote_free_note": "留言 B98（非發文者）轉述朋友：非紅部門老員工整包約 400 萬",
               "date_note": "Dcard 頁面發文日期 2025-03-29（2026-10-26 1923 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -4511,7 +4517,7 @@
               "travel": null,
               "quote_free_note": "留言 B103-2（非發文者，成大）：第一次打考績分紅約 6x 萬（分紅金額無對應欄位）",
               "date_note": "Dcard 頁面發文日期 2025-04-01（2026-10-26 1923 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -4533,7 +4539,7 @@
               "travel": null,
               "quote_free_note": "留言 B103-5（非發文者，中央）：第一次打考績分紅約 5x 萬（另立一筆；分紅金額無對應欄位）",
               "date_note": "Dcard 頁面發文日期 2025-04-01（2026-10-26 1923 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -4555,7 +4561,7 @@
               "travel": null,
               "quote_free_note": "留言 B106-7（非發文者，交大）：打過五次考績，分紅也才 9x 萬（分紅金額無對應欄位）",
               "date_note": "Dcard 頁面發文日期 2025-04-02（2026-10-26 1923 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -4577,7 +4583,7 @@
               "travel": null,
               "quote_free_note": "留言 B41（非發文者，交大）：五年整包接近 6 位數（約 100 萬，語意略模糊）",
               "date_note": "Dcard 頁面發文日期 2025-03-27（2026-10-26 1923 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -4757,11 +4763,11 @@
           "bonus_months": null,
           "annual_months": null,
           "annual_total_wan": [
-            150,
-            200
+            100,
+            400
           ],
           "travel": null,
-          "n_stat": 7,
+          "n_stat": 20,
           "note": null,
           "grade": null
         },
@@ -4889,7 +4895,7 @@
               "travel": null,
               "quote_free_note": "留言 B5-3（非發文者）：約 3 年年資跳槽進聯詠，主管說這兩年沒發簽約金；數字未透露",
               "date_note": "Dcard 頁面發文日期 2025-07-23（2026-10-26 1923 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -4914,7 +4920,7 @@
               "travel": null,
               "quote_free_note": "平均每天 10～12 小時、有案子更多（週工時依此估為 50～60）；主管說平常約 7 點多可走；數字未透露",
               "date_note": "Dcard 頁面發文日期 2025-07-21（2026-10-26 1923 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -4936,7 +4942,7 @@
               "travel": null,
               "quote_free_note": "與慧榮FW offer比較，月薪約比慧榮少5K（慧榮略高於新人價），未給絕對金額；工時約每日9小時換算週45；加班：原PO聽說不太加班；留言稱加班費看部門",
               "date_note": "Dcard 頁面發文日期 2025-01-12（2026-10-26 1943 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "GoodJob",
@@ -5029,10 +5035,13 @@
           "bonus_months": null,
           "annual_months": null,
           "annual_total_wan": null,
-          "weekly_hours": null,
-          "overtime": null,
+          "weekly_hours": [
+            45,
+            60
+          ],
+          "overtime": "經常",
           "travel": null,
-          "n_stat": 4,
+          "n_stat": 7,
           "note": null,
           "grade": null
         },
@@ -5505,7 +5514,7 @@
               "travel": null,
               "quote_free_note": "留言 B9-5（非發文者）：當年以小 SA 身分拿到新人分紅包約 60 萬（分紅金額無對應欄位，記於此）；入職年份未寫",
               "date_note": "Dcard 頁面發文日期 2025-07-25（2026-10-26 1923 批，非 Andy 親眼讀）",
-              "in_window": false,
+              "in_window": true,
               "bonus_wan": 60
             },
             {
@@ -5528,7 +5537,7 @@
               "travel": null,
               "quote_free_note": "留言者未滿三年，稱年薪已比先前一線系統廠好，同事主管友善；無絕對數字；加班：經常，週一到四加班到很晚、週五準時，有加班費",
               "date_note": "Dcard 頁面發文日期 2025-05-31（2026-10-26 1943 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             }
           ],
           "sources": [
@@ -5545,7 +5554,7 @@
           ],
           "confidence": "低",
           "n": 2,
-          "n_stat": 0,
+          "n_stat": 2,
           "overtime": null
         },
         {
@@ -5573,7 +5582,7 @@
               "travel": null,
               "quote_free_note": "代 PO；拿到 offer；數字未透露；B7 說 SA 假日加班與 on call 常見、B16（聯詠 SA 在職）說部門差異大",
               "date_note": "Dcard 頁面發文日期 2025-07-16（2026-10-26 1923 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             }
           ],
           "sources": [
@@ -5585,8 +5594,8 @@
           ],
           "confidence": "低",
           "n": 1,
-          "n_stat": 0,
-          "overtime": null
+          "n_stat": 1,
+          "overtime": "經常"
         },
         {
           "unit": "其他",
@@ -5613,7 +5622,7 @@
               "travel": null,
               "quote_free_note": "留言 B3（非發文者）：聯詠 SA 平均工時約 13.2 小時／天（週工時以 13.2×5=66 估）",
               "date_note": "Dcard 頁面發文日期 2025-07-16（2026-10-26 1923 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             }
           ],
           "sources": [
@@ -5625,8 +5634,12 @@
           ],
           "confidence": "低",
           "n": 1,
-          "n_stat": 0,
-          "overtime": null
+          "n_stat": 1,
+          "overtime": "經常",
+          "weekly_hours": [
+            66,
+            66
+          ]
         },
         {
           "unit": "其他",
@@ -5653,7 +5666,7 @@
               "travel": null,
               "quote_free_note": "留言 B87（非發文者，交大）：4 年、driver line、145（推測為分紅萬元，不填欄位）",
               "date_note": "Dcard 頁面發文日期 2025-03-28（2026-10-26 1923 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             }
           ],
           "sources": [
@@ -5665,7 +5678,7 @@
           ],
           "confidence": "低",
           "n": 1,
-          "n_stat": 0,
+          "n_stat": 1,
           "overtime": null
         },
         {
@@ -5693,7 +5706,7 @@
               "travel": null,
               "quote_free_note": "留言 B106（非發文者）：滿 3 年（第二次完整考績），整包分紅約 7x 萬（分紅金額無對應欄位）",
               "date_note": "Dcard 頁面發文日期 2025-04-02（2026-10-26 1923 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             }
           ],
           "sources": [
@@ -5705,7 +5718,7 @@
           ],
           "confidence": "低",
           "n": 1,
-          "n_stat": 0,
+          "n_stat": 1,
           "overtime": null
         },
         {
@@ -5733,7 +5746,7 @@
               "travel": "需要",
               "quote_free_note": "應屆碩士同時拿聯發科與聯詠offer，聯詠職缺由演算法改為SA；未揭露薪資數字；加班：留言稱SA工時長、下班較晚",
               "date_note": "Dcard 頁面發文日期 2025-01-21（2026-10-26 1943 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             }
           ],
           "sources": [
@@ -5745,8 +5758,9 @@
           ],
           "confidence": "低",
           "n": 1,
-          "n_stat": 0,
-          "overtime": null
+          "n_stat": 1,
+          "overtime": null,
+          "travel": "需要"
         },
         {
           "unit": "MD 部門",
@@ -5773,7 +5787,7 @@
               "travel": null,
               "quote_free_note": "留言者在MD待一年即離職，稱鬥爭重、分紅占比高；另一留言稱MD新人分紅不到半個月、分四次領，其他部門約為MD的3–8倍；加班：經常，每天到晚上11–12點",
               "date_note": "Dcard 頁面發文日期 2025-05-31（2026-10-26 1943 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             }
           ],
           "sources": [
@@ -5785,7 +5799,7 @@
           ],
           "confidence": "低",
           "n": 1,
-          "n_stat": 0,
+          "n_stat": 1,
           "overtime": null
         },
         {
@@ -5813,7 +5827,7 @@
               "travel": null,
               "quote_free_note": "留言者自述MD接蘋果案後週末固定加班；無薪資數字；加班：經常，週六日固定加班半天到一天",
               "date_note": "Dcard 頁面發文日期 2025-05-31（2026-10-26 1943 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             }
           ],
           "sources": [
@@ -5825,7 +5839,7 @@
           ],
           "confidence": "低",
           "n": 1,
-          "n_stat": 0,
+          "n_stat": 1,
           "overtime": null
         },
         {
@@ -6177,9 +6191,9 @@
               "overtime": null,
               "travel": null,
               "quote_free_note": "瑞昱 IC layout vs 台積助工 offer：底薪以學士計；無數字",
-              "date_confirmed": false,
+              "date_confirmed": true,
               "in_window": true,
-              "date_note": null
+              "date_note": "依 docs/tc/dcard_id_calibration.md：編號 ≥ 258870385（2025-05-21 錨點），確定晚於 2025-01-01"
             },
             {
               "site": "Dcard",
@@ -6286,7 +6300,7 @@
               "travel": null,
               "quote_free_note": "留言者自述2025年1月年終約110–130萬，分紅約年終七折且三分之一延至隔年7月；估2025全年約280–300萬；加班：幾乎不，前一年全年加班約30小時",
               "date_note": "Dcard 頁面發文日期 2025-01-28（2026-10-26 1943 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -6311,7 +6325,7 @@
               "travel": null,
               "quote_free_note": "留言者稱碩畢第二年年薪約250–300萬，部門偏養生；加班：幾乎不，平均每日8–9小時",
               "date_note": "Dcard 頁面發文日期 2025-01-28（2026-10-26 1943 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -6333,7 +6347,7 @@
               "travel": null,
               "quote_free_note": "留言者稱部門2–4年資今年這包分紅（年終）普遍85萬以上",
               "date_note": "Dcard 頁面發文日期 2025-01-29（2026-10-26 1943 批，非 Andy 親眼讀）",
-              "in_window": false,
+              "in_window": true,
               "bonus_wan": 85
             },
             {
@@ -6356,7 +6370,7 @@
               "travel": null,
               "quote_free_note": "留言者自述年資1.4年，這包年終整包約85–95萬，主管說領滿",
               "date_note": "Dcard 頁面發文日期 2025-01-29（2026-10-26 1943 批，非 Andy 親眼讀）",
-              "in_window": false,
+              "in_window": true,
               "bonus_wan": [
                 85,
                 95
@@ -6429,7 +6443,7 @@
               "comment_sample": true
             }
           ],
-          "n_stat": 8
+          "n_stat": 13
         },
         {
           "unit": "研發 R&D",
@@ -6535,7 +6549,7 @@
               "travel": null,
               "quote_free_note": "offer 月薪 N（比較基準，N 未知）",
               "date_note": "Dcard 頁面發文日期 2025-04-19（2026-10-26 1923 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -6557,10 +6571,10 @@
               "travel": null,
               "quote_free_note": "新鮮人拿到瑞昱RDC兩部門類比設計offer詢問風氣；未揭露薪資數字；加班：留言稱Power部門很累、待很晚",
               "date_note": "Dcard 頁面發文日期 2025-07-24（2026-10-26 1943 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             }
           ],
-          "n_stat": 2
+          "n_stat": 4
         },
         {
           "unit": "研發 R&D",
@@ -6569,15 +6583,18 @@
           "years": "0-2",
           "base_month_k": [
             80,
-            80
+            81
           ],
-          "bonus_months": null,
+          "bonus_months": [
+            2,
+            2
+          ],
           "annual_months": [
             12,
             13
           ],
           "annual_total_wan": [
-            140,
+            105.3,
             190
           ],
           "weekly_hours": [
@@ -6642,7 +6659,7 @@
               "overtime": null,
               "travel": null,
               "quote_free_note": "面試經驗：月薪 8.1 萬；保 13、分紅一年兩次（2 月、10 月）至少約 2 個月（早於期間）",
-              "in_window": false,
+              "in_window": true,
               "date_note": null,
               "derived": [
                 "annual_wan"
@@ -6736,7 +6753,7 @@
               "overtime": null,
               "travel": null,
               "quote_free_note": "代朋友發問；文中 offer 與面邀未區分，可能只是面邀；數字未透露",
-              "in_window": false,
+              "in_window": true,
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2025-03-30"
             },
             {
@@ -6767,7 +6784,7 @@
             }
           ],
           "grade": null,
-          "n_stat": 5
+          "n_stat": 7
         },
         {
           "unit": "研發 R&D",
@@ -7101,7 +7118,7 @@
               "overtime": "幾乎不",
               "travel": null,
               "quote_free_note": "留言B53-7：轉述認識的人「帝王蟹」早10晚6，第二年起年薪沒低於300萬（下限值、轉述）；帝王蟹指瑞昱CN事業群",
-              "in_window": false,
+              "in_window": true,
               "date_note": "Dcard 頁面發文日期 2025-05-04（2026-10-26 2122 批）",
               "comment_sample": true
             },
@@ -7124,7 +7141,7 @@
               "overtime": null,
               "travel": null,
               "quote_free_note": "留言B9-7：自稱CN3滿3年年薪不到250萬（上限值）；B9-14回稱250約是CN4新人水準",
-              "in_window": false,
+              "in_window": true,
               "date_note": "Dcard 頁面發文日期 2025-03-06（2026-10-26 2122 批）",
               "comment_sample": true
             },
@@ -7147,7 +7164,7 @@
               "overtime": null,
               "travel": null,
               "quote_free_note": "留言B9-5：稱CN年資3年拿滿500萬的比比皆是（遭B9-7反駁，可信度低）",
-              "in_window": false,
+              "in_window": true,
               "date_note": "Dcard 頁面發文日期 2025-03-05（2026-10-26 2122 批）",
               "comment_sample": true
             },
@@ -7170,7 +7187,7 @@
               "overtime": null,
               "travel": null,
               "quote_free_note": "留言B9-10：轉述內部群組統計，3–4年資CN與RDC年薪中位數皆約250萬",
-              "in_window": false,
+              "in_window": true,
               "date_note": "Dcard 頁面發文日期 2025-03-06（2026-10-26 2122 批）",
               "comment_sample": true
             },
@@ -7195,7 +7212,7 @@
               "quote_free_note": "留言B10-36：轉述朋友年資3年，這包年終／分紅「6x」約60多萬（使用者確認為萬元，取65）；留言者稱其部門2–4年資這包普遍85萬以上、近2年資約90萬，認為6x偏低、可能是前一年業績衰退時的水準",
               "bonus_wan": 65,
               "comment_sample": true,
-              "in_window": false,
+              "in_window": true,
               "date_note": "Dcard 頁面發文日期 2025-01-29（2026-10-26 2321 批）"
             },
             {
@@ -7561,7 +7578,7 @@
             600
           ],
           "travel": null,
-          "n_stat": 15,
+          "n_stat": 20,
           "note": null,
           "grade": null
         },
@@ -7716,7 +7733,7 @@
               "travel": null,
               "quote_free_note": "現職一線IC DE轉職，瑞昱面試通過待HR排志願；未揭露薪資數字；加班：希望每月加班少於20小時，主管稱偶爾加班",
               "date_note": "Dcard 頁面發文日期 2025-01-28（2026-10-26 1943 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             }
           ],
           "sources": [
@@ -7744,7 +7761,7 @@
           "annual_months": null,
           "annual_total_wan": null,
           "travel": null,
-          "n_stat": 1,
+          "n_stat": 2,
           "note": null,
           "grade": null
         },
@@ -7923,7 +7940,7 @@
               "overtime": null,
               "travel": null,
               "quote_free_note": "雲科電機學士應屆；學士新人底薪；常日班、彈性上下班；數字未透露；留言 B20 說瑞昱 layout 調薪分紅不如 RD",
-              "in_window": false,
+              "in_window": true,
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2025-07-31"
             }
           ],
@@ -7944,7 +7961,7 @@
           "weekly_hours": null,
           "overtime": null,
           "travel": null,
-          "n_stat": 0,
+          "n_stat": 1,
           "note": null,
           "grade": null
         }
@@ -8389,7 +8406,7 @@
               "overtime": null,
               "travel": null,
               "quote_free_note": "同上，offer 或面邀未區分；數字未透露",
-              "in_window": false,
+              "in_window": true,
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2025-03-30"
             },
             {
@@ -8435,7 +8452,7 @@
               "comment_sample": false
             }
           ],
-          "n_stat": 16
+          "n_stat": 17
         },
         {
           "unit": "研發 R&D",
@@ -8927,7 +8944,7 @@
               "overtime": null,
               "travel": null,
               "quote_free_note": "同篇列為拿到 offer；數字未透露",
-              "in_window": false,
+              "in_window": true,
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2025-05-02"
             },
             {
@@ -8950,7 +8967,7 @@
               "travel": null,
               "quote_free_note": "群聯2025年7月開獎串留言；bonus_months為7月+10月+隔年4月三包合計月數，不含1月年終；原PO；回覆稱全年有250萬以上（未給確數）",
               "date_note": "Dcard 頁面發文日期 2025-07-31（2026-10-26 1943 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -8972,7 +8989,7 @@
               "travel": null,
               "quote_free_note": "群聯2025年7月開獎串留言；bonus_months為7月+10月+隔年4月三包合計月數，不含1月年終",
               "date_note": "Dcard 頁面發文日期 2025-07-31（2026-10-26 1943 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -8994,7 +9011,7 @@
               "travel": null,
               "quote_free_note": "群聯2025年7月開獎串留言；bonus_months為7月+10月+隔年4月三包合計月數，不含1月年終",
               "date_note": "Dcard 頁面發文日期 2025-07-31（2026-10-26 1943 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -9016,7 +9033,7 @@
               "travel": null,
               "quote_free_note": "群聯2025年7月開獎串留言；bonus_months為7月+10月+隔年4月三包合計月數，不含1月年終；一直加班但可報加班費；8/4補充含加班費今年有機會過250萬（自估）；加班：經常，可報加班費",
               "date_note": "Dcard 頁面發文日期 2025-07-31（2026-10-26 1943 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -9038,7 +9055,7 @@
               "travel": null,
               "quote_free_note": "群聯2025年7月開獎串留言；bonus_months為7月+10月+隔年4月三包合計月數，不含1月年終",
               "date_note": "Dcard 頁面發文日期 2025-07-31（2026-10-26 1943 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -9060,7 +9077,7 @@
               "travel": null,
               "quote_free_note": "群聯2025年7月開獎串留言；bonus_months為7月+10月+隔年4月三包合計月數，不含1月年終",
               "date_note": "Dcard 頁面發文日期 2025-07-31（2026-10-26 1943 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -9082,7 +9099,7 @@
               "travel": null,
               "quote_free_note": "群聯2025年7月開獎串留言；bonus_months為7月+10月+隔年4月三包合計月數，不含1月年終",
               "date_note": "Dcard 頁面發文日期 2025-07-31（2026-10-26 1943 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -9104,7 +9121,7 @@
               "travel": null,
               "quote_free_note": "群聯2025年7月開獎串留言；bonus_months為7月+10月+隔年4月三包合計月數，不含1月年終；7月+10月+4月三包合計約快80萬元（金額非月數）",
               "date_note": "Dcard 頁面發文日期 2025-07-31（2026-10-26 1943 批，非 Andy 親眼讀）",
-              "in_window": false,
+              "in_window": true,
               "bonus_wan": 80
             },
             {
@@ -9127,7 +9144,7 @@
               "travel": null,
               "quote_free_note": "群聯2025年7月開獎串留言；bonus_months為7月+10月+隔年4月三包合計月數，不含1月年終",
               "date_note": "Dcard 頁面發文日期 2025-07-31（2026-10-26 1943 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -9149,7 +9166,7 @@
               "travel": null,
               "quote_free_note": "群聯2025年7月開獎串留言；bonus_months為7月+10月+隔年4月三包合計月數，不含1月年終",
               "date_note": "Dcard 頁面發文日期 2025-07-31（2026-10-26 1943 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -9171,7 +9188,7 @@
               "travel": null,
               "quote_free_note": "群聯2025年7月開獎串留言；bonus_months為7月+10月+隔年4月三包合計月數，不含1月年終；另一樓層有同樣5y/A/4.8m回報，疑重複未另記",
               "date_note": "Dcard 頁面發文日期 2025-07-31（2026-10-26 1943 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -9193,7 +9210,7 @@
               "travel": null,
               "quote_free_note": "群聯2025年7月開獎串留言；bonus_months為7月+10月+隔年4月三包合計月數，不含1月年終；三包加起來快6個月",
               "date_note": "Dcard 頁面發文日期 2025-07-31（2026-10-26 1943 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -9215,7 +9232,7 @@
               "travel": null,
               "quote_free_note": "群聯2025年7月開獎串留言；bonus_months為7月+10月+隔年4月三包合計月數，不含1月年終",
               "date_note": "Dcard 頁面發文日期 2025-07-31（2026-10-26 1943 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -9237,7 +9254,7 @@
               "travel": null,
               "quote_free_note": "群聯2025年7月開獎串留言；bonus_months為7月+10月+隔年4月三包合計月數，不含1月年終；只看到7月這包",
               "date_note": "Dcard 頁面發文日期 2025-07-31（2026-10-26 1943 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -9259,7 +9276,7 @@
               "travel": null,
               "quote_free_note": "群聯2025年7月開獎串留言；bonus_months為7月+10月+隔年4月三包合計月數，不含1月年終",
               "date_note": "Dcard 頁面發文日期 2025-07-31（2026-10-26 1943 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -9281,7 +9298,7 @@
               "travel": null,
               "quote_free_note": "群聯2025年7月開獎串留言；bonus_months為7月+10月+隔年4月三包合計月數，不含1月年終；自述不加班",
               "date_note": "Dcard 頁面發文日期 2025-07-31（2026-10-26 1943 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -9303,7 +9320,7 @@
               "travel": null,
               "quote_free_note": "群聯2025年7月開獎串留言；bonus_months為7月+10月+隔年4月三包合計月數，不含1月年終",
               "date_note": "Dcard 頁面發文日期 2025-07-31（2026-10-26 1943 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -9325,7 +9342,7 @@
               "travel": null,
               "quote_free_note": "群聯2025年7月開獎串留言；bonus_months為7月+10月+隔年4月三包合計月數，不含1月年終；代男友回報",
               "date_note": "Dcard 頁面發文日期 2025-07-31（2026-10-26 1943 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -9347,7 +9364,7 @@
               "travel": null,
               "quote_free_note": "群聯2025年7月開獎串留言；bonus_months為7月+10月+隔年4月三包合計月數，不含1月年終",
               "date_note": "Dcard 頁面發文日期 2025-07-31（2026-10-26 1943 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -9611,7 +9628,7 @@
               "travel": null,
               "quote_free_note": "群聯2025年1月開獎串留言；1月這包含保證年終2個月；bonus_months 只記年終以外的績效分紅；原PO；含保證年終2個月與尾牙獎金，不綁直接入帳；含保證年終 2 個月、無法拆出分紅，bonus_months 清空",
               "date_note": "Dcard 頁面發文日期 2025-01-21（2026-10-26 1943 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -9633,7 +9650,7 @@
               "travel": null,
               "quote_free_note": "群聯2025年1月開獎串留言；1月這包含保證年終2個月；bonus_months 只記年終以外的績效分紅；約1個月；含保證年終 2 個月、無法拆出分紅，bonus_months 清空",
               "date_note": "Dcard 頁面發文日期 2025-01-21（2026-10-26 1943 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -9655,7 +9672,7 @@
               "travel": null,
               "quote_free_note": "群聯2025年1月開獎串留言；1月這包含保證年終2個月；bonus_months 只記年終以外的績效分紅；2+4；群聯2025年1月開獎串留言；1月這包含保證年終2個月；bonus_months 只記年終以外的績效分紅；五期",
               "date_note": "Dcard 頁面發文日期 2025-01-21（2026-10-26 1943 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -9677,7 +9694,7 @@
               "travel": null,
               "quote_free_note": "群聯2025年1月開獎串留言；1月這包含保證年終2個月；bonus_months 只記年終以外的績效分紅；2+1.5",
               "date_note": "Dcard 頁面發文日期 2025-01-21（2026-10-26 1943 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -9699,7 +9716,7 @@
               "travel": null,
               "quote_free_note": "群聯2025年1月開獎串留言；1月這包含保證年終2個月；bonus_months 只記年終以外的績效分紅；2+1.7",
               "date_note": "Dcard 頁面發文日期 2025-01-21（2026-10-26 1943 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -9721,7 +9738,7 @@
               "travel": null,
               "quote_free_note": "群聯2025年1月開獎串留言；1月這包含保證年終2個月；bonus_months 只記年終以外的績效分紅；2+2.2；職等7",
               "date_note": "Dcard 頁面發文日期 2025-01-21（2026-10-26 1943 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -9743,7 +9760,7 @@
               "travel": null,
               "quote_free_note": "群聯2025年1月開獎串留言；1月這包含保證年終2個月；bonus_months 只記年終以外的績效分紅；2+2",
               "date_note": "Dcard 頁面發文日期 2025-01-21（2026-10-26 1943 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -9765,7 +9782,7 @@
               "travel": null,
               "quote_free_note": "群聯2025年1月開獎串留言；1月這包含保證年終2個月；bonus_months 只記年終以外的績效分紅；2+6",
               "date_note": "Dcard 頁面發文日期 2025-01-21（2026-10-26 1943 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -9787,7 +9804,7 @@
               "travel": null,
               "quote_free_note": "群聯2025年1月開獎串留言；1月這包含保證年終2個月；bonus_months 只記年終以外的績效分紅；2+5",
               "date_note": "Dcard 頁面發文日期 2025-01-21（2026-10-26 1943 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -9809,7 +9826,7 @@
               "travel": null,
               "quote_free_note": "群聯2025年1月開獎串留言；1月這包含保證年終2個月；bonus_months 只記年終以外的績效分紅；2+1.7；年資1年多",
               "date_note": "Dcard 頁面發文日期 2025-01-21（2026-10-26 1943 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -9831,7 +9848,7 @@
               "travel": null,
               "quote_free_note": "群聯2025年1月開獎串留言；1月這包含保證年終2個月；bonus_months 只記年終以外的績效分紅；2+3.5",
               "date_note": "Dcard 頁面發文日期 2025-01-21（2026-10-26 1943 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -9853,7 +9870,7 @@
               "travel": null,
               "quote_free_note": "群聯2025年1月開獎串留言；1月這包含保證年終2個月；bonus_months 只記年終以外的績效分紅；2+4，與去年相同",
               "date_note": "Dcard 頁面發文日期 2025-01-21（2026-10-26 1943 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -9875,7 +9892,7 @@
               "travel": null,
               "quote_free_note": "群聯2025年1月開獎串留言；bonus_months為1月這包合計月數（保證年終2個月＋績效）；職等10，自述這包超過100萬元（金額非月數）；使用者確認「>100」為超過100萬元，bonus_wan 填下限100（2026-10-26 2321 修正）",
               "date_note": "Dcard 頁面發文日期 2025-01-21（2026-10-26 1943 批，非 Andy 親眼讀）",
-              "in_window": false,
+              "in_window": true,
               "bonus_wan": 100
             },
             {
@@ -9898,7 +9915,7 @@
               "travel": null,
               "quote_free_note": "群聯2025年1月開獎串留言；1月這包含保證年終2個月；bonus_months 只記年終以外的績效分紅；2+4",
               "date_note": "Dcard 頁面發文日期 2025-01-21（2026-10-26 1943 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -9920,7 +9937,7 @@
               "travel": null,
               "quote_free_note": "群聯2025年1月開獎串留言；1月這包含保證年終2個月；bonus_months 只記年終以外的績效分紅；群聯2025年1月開獎串留言；1月這包含保證年終2個月；bonus_months 只記年終以外的績效分紅；2+7",
               "date_note": "Dcard 頁面發文日期 2025-01-21（2026-10-26 1943 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -9942,7 +9959,7 @@
               "travel": null,
               "quote_free_note": "群聯2025年1月開獎串留言；1月這包含保證年終2個月；bonus_months 只記年終以外的績效分紅；含保證年終 2 個月、無法拆出分紅，bonus_months 清空",
               "date_note": "Dcard 頁面發文日期 2025-01-21（2026-10-26 1943 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -9964,7 +9981,7 @@
               "travel": null,
               "quote_free_note": "群聯2025年1月開獎串留言；1月這包含保證年終2個月；bonus_months 只記年終以外的績效分紅；含保證年終 2 個月、無法拆出分紅，bonus_months 清空",
               "date_note": "Dcard 頁面發文日期 2025-01-21（2026-10-26 1943 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -9986,7 +10003,7 @@
               "travel": null,
               "quote_free_note": "群聯2025年1月開獎串留言；1月這包含保證年終2個月；bonus_months 只記年終以外的績效分紅；2+1.1另加尾牙獎金",
               "date_note": "Dcard 頁面發文日期 2025-01-21（2026-10-26 1943 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -10008,7 +10025,7 @@
               "travel": null,
               "quote_free_note": "群聯2025年1月開獎串留言；1月這包含保證年終2個月；bonus_months 只記年終以外的績效分紅；2+3.5",
               "date_note": "Dcard 頁面發文日期 2025-01-21（2026-10-26 1943 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -10030,7 +10047,7 @@
               "travel": null,
               "quote_free_note": "群聯2025年1月開獎串留言；1月這包含保證年終2個月；bonus_months 只記年終以外的績效分紅；含保證年終 2 個月、無法拆出分紅，bonus_months 清空",
               "date_note": "Dcard 頁面發文日期 2025-01-21（2026-10-26 1943 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -10052,7 +10069,7 @@
               "travel": null,
               "quote_free_note": "群聯2025年1月開獎串留言；1月這包含保證年終2個月；bonus_months 只記年終以外的績效分紅；群聯2025年1月開獎串留言；1月這包含保證年終2個月；bonus_months 只記年終以外的績效分紅；2+4",
               "date_note": "Dcard 頁面發文日期 2025-01-21（2026-10-26 1943 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -10074,7 +10091,7 @@
               "travel": null,
               "quote_free_note": "群聯2025年1月開獎串留言；1月這包含保證年終2個月；bonus_months 只記年終以外的績效分紅；含保證年終 2 個月、無法拆出分紅，bonus_months 清空",
               "date_note": "Dcard 頁面發文日期 2025-01-21（2026-10-26 1943 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -10096,7 +10113,7 @@
               "travel": null,
               "quote_free_note": "群聯2025年1月開獎串留言；1月這包含保證年終2個月；bonus_months 只記年終以外的績效分紅；2+6",
               "date_note": "Dcard 頁面發文日期 2025-01-21（2026-10-26 1943 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -10118,7 +10135,7 @@
               "travel": null,
               "quote_free_note": "群聯2025年1月開獎串留言；1月這包含保證年終2個月；bonus_months 只記年終以外的績效分紅；2+1.8，比去年少",
               "date_note": "Dcard 頁面發文日期 2025-01-21（2026-10-26 1943 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -10140,7 +10157,7 @@
               "travel": null,
               "quote_free_note": "群聯2025年1月開獎串留言；1月這包含保證年終2個月；bonus_months 只記年終以外的績效分紅；2+3",
               "date_note": "Dcard 頁面發文日期 2025-01-21（2026-10-26 1943 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -10162,7 +10179,7 @@
               "travel": null,
               "quote_free_note": "群聯2025年1月開獎串留言；1月這包含保證年終2個月；bonus_months 只記年終以外的績效分紅；2+11",
               "date_note": "Dcard 頁面發文日期 2025-01-21（2026-10-26 1943 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -10184,7 +10201,7 @@
               "travel": null,
               "quote_free_note": "群聯2025年1月開獎串留言；1月這包含保證年終2個月；bonus_months 只記年終以外的績效分紅；2+1.7",
               "date_note": "Dcard 頁面發文日期 2025-01-21（2026-10-26 1943 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -10206,7 +10223,7 @@
               "travel": null,
               "quote_free_note": "群聯2025年1月開獎串留言；1月這包含保證年終2個月；bonus_months 只記年終以外的績效分紅；2+7",
               "date_note": "Dcard 頁面發文日期 2025-01-21（2026-10-26 1943 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -10228,7 +10245,7 @@
               "travel": null,
               "quote_free_note": "群聯2025年1月開獎串留言；1月這包含保證年終2個月；bonus_months 只記年終以外的績效分紅；2+5",
               "date_note": "Dcard 頁面發文日期 2025-01-21（2026-10-26 1943 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -10250,7 +10267,7 @@
               "travel": null,
               "quote_free_note": "群聯2025年1月開獎串留言；1月這包含保證年終2個月；bonus_months 只記年終以外的績效分紅；2+3",
               "date_note": "Dcard 頁面發文日期 2025-01-21（2026-10-26 1943 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -10272,7 +10289,7 @@
               "travel": null,
               "quote_free_note": "群聯2025年1月開獎串留言；1月這包含保證年終2個月；bonus_months 只記年終以外的績效分紅；2+3",
               "date_note": "Dcard 頁面發文日期 2025-01-21（2026-10-26 1943 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -10294,7 +10311,7 @@
               "travel": null,
               "quote_free_note": "群聯2025年1月開獎串留言；1月這包含保證年終2個月；bonus_months 只記年終以外的績效分紅；含保證年終 2 個月、無法拆出分紅，bonus_months 清空",
               "date_note": "Dcard 頁面發文日期 2025-01-21（2026-10-26 1943 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -10316,7 +10333,7 @@
               "travel": null,
               "quote_free_note": "群聯2025年1月開獎串留言；1月這包含保證年終2個月；bonus_months 只記年終以外的績效分紅；2+5",
               "date_note": "Dcard 頁面發文日期 2025-01-21（2026-10-26 1943 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -10338,7 +10355,7 @@
               "travel": null,
               "quote_free_note": "群聯2025年1月開獎串留言；1月這包含保證年終2個月；bonus_months 只記年終以外的績效分紅；含保證年終 2 個月、無法拆出分紅，bonus_months 清空",
               "date_note": "Dcard 頁面發文日期 2025-01-21（2026-10-26 1943 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -10360,7 +10377,7 @@
               "travel": null,
               "quote_free_note": "群聯2025年1月開獎串留言；1月這包含保證年終2個月；bonus_months 只記年終以外的績效分紅；2+3，比去年多",
               "date_note": "Dcard 頁面發文日期 2025-01-21（2026-10-26 1943 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -10382,7 +10399,7 @@
               "travel": null,
               "quote_free_note": "群聯2025年1月開獎串留言；1月這包含保證年終2個月；bonus_months 只記年終以外的績效分紅；含保證年終 2 個月、無法拆出分紅，bonus_months 清空",
               "date_note": "Dcard 頁面發文日期 2025-01-21（2026-10-26 1943 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -10404,7 +10421,7 @@
               "travel": null,
               "quote_free_note": "群聯2025年1月開獎串留言；1月這包含保證年終2個月；bonus_months 只記年終以外的績效分紅；2+5",
               "date_note": "Dcard 頁面發文日期 2025-01-21（2026-10-26 1943 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -10426,7 +10443,7 @@
               "travel": null,
               "quote_free_note": "群聯2025年1月開獎串留言；1月這包含保證年終2個月；bonus_months 只記年終以外的績效分紅；2+8",
               "date_note": "Dcard 頁面發文日期 2025-01-21（2026-10-26 1943 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -10448,7 +10465,7 @@
               "travel": null,
               "quote_free_note": "群聯2025年1月開獎串留言；1月這包含保證年終2個月；bonus_months 只記年終以外的績效分紅；1+1；含保證年終 2 個月、無法拆出分紅，bonus_months 清空",
               "date_note": "Dcard 頁面發文日期 2025-01-21（2026-10-26 1943 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -10470,7 +10487,7 @@
               "travel": null,
               "quote_free_note": "群聯2025年1月開獎串留言；1月這包含保證年終2個月；bonus_months 只記年終以外的績效分紅；2+3.5",
               "date_note": "Dcard 頁面發文日期 2025-01-21（2026-10-26 1943 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -10492,7 +10509,7 @@
               "travel": null,
               "quote_free_note": "群聯2025年1月開獎串留言；1月這包含保證年終2個月；bonus_months 只記年終以外的績效分紅；2+2.1另加尾牙獎金",
               "date_note": "Dcard 頁面發文日期 2025-01-21（2026-10-26 1943 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -10514,7 +10531,7 @@
               "travel": null,
               "quote_free_note": "群聯2025年1月開獎串留言；1月這包含保證年終2個月；bonus_months 只記年終以外的績效分紅；2+2",
               "date_note": "Dcard 頁面發文日期 2025-01-21（2026-10-26 1943 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -10536,7 +10553,7 @@
               "travel": null,
               "quote_free_note": "群聯2025年1月開獎串留言；1月這包含保證年終2個月；bonus_months 只記年終以外的績效分紅；2+3.4",
               "date_note": "Dcard 頁面發文日期 2025-01-22（2026-10-26 1943 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -10558,7 +10575,7 @@
               "travel": null,
               "quote_free_note": "群聯2025年1月開獎串留言；1月這包含保證年終2個月；bonus_months 只記年終以外的績效分紅；2+2",
               "date_note": "Dcard 頁面發文日期 2025-01-21（2026-10-26 1943 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -10580,7 +10597,7 @@
               "travel": null,
               "quote_free_note": "群聯2025年1月開獎串留言；1月這包含保證年終2個月；bonus_months 只記年終以外的績效分紅；2+3",
               "date_note": "Dcard 頁面發文日期 2025-01-23（2026-10-26 1943 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -10602,7 +10619,7 @@
               "travel": null,
               "quote_free_note": "群聯2025年1月開獎串留言；1月這包含保證年終2個月；bonus_months 只記年終以外的績效分紅；2+3.7，自述年後馬上離職",
               "date_note": "Dcard 頁面發文日期 2025-02-06（2026-10-26 1943 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -10679,17 +10696,17 @@
           "base_month_k": null,
           "bonus_months": [
             0.6,
-            7
+            11
           ],
           "annual_months": null,
           "annual_total_wan": [
-            270,
+            250,
             300
           ],
           "weekly_hours": null,
-          "overtime": null,
+          "overtime": "幾乎不",
           "travel": null,
-          "n_stat": 13,
+          "n_stat": 79,
           "note": null,
           "grade": null
         }
@@ -10875,9 +10892,9 @@
               "overtime": null,
               "travel": null,
               "quote_free_note": "碩士起薪約 9 萬；結構調薪 5Xk→72k→90～91k，每年 8 月調 4～7%，分紅一年兩次",
-              "date_confirmed": false,
+              "date_confirmed": true,
               "in_window": true,
-              "date_note": null
+              "date_note": "依 docs/tc/dcard_id_calibration.md：編號 ≥ 258870385（2025-05-21 錨點），確定晚於 2025-01-01"
             },
             {
               "site": "PTT",
@@ -10996,7 +11013,7 @@
               "overtime": null,
               "travel": null,
               "quote_free_note": "同上，offer 或面邀未區分；數字未透露",
-              "in_window": false,
+              "in_window": true,
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2025-03-30"
             },
             {
@@ -11019,7 +11036,7 @@
               "travel": null,
               "quote_free_note": "第一個面試就拿到 offer，後婉拒；數字未透露",
               "date_note": "Dcard 頁面發文日期 2025-04-01（2026-10-26 1923 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "GoodJob",
@@ -11064,7 +11081,7 @@
               "date_note": "WebSearch 摘要標示 2025-12（2026-10-26 補齊批）"
             }
           ],
-          "n_stat": 8
+          "n_stat": 11
         },
         {
           "unit": "研發 R&D",
@@ -11139,7 +11156,7 @@
               "overtime": "經常",
               "travel": null,
               "quote_free_note": "月薪 N+12K、無加班費；預估年薪 20～21 個月；9～19 點需帶電腦回家；留言 B16 質疑 21 個月估法",
-              "in_window": false,
+              "in_window": true,
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2025-03-14；10-26 稽核：annual_months 由中值 20.5 改填區間 [20, 21]"
             }
           ],
@@ -11155,12 +11172,18 @@
           "years": null,
           "base_month_k": null,
           "bonus_months": null,
-          "annual_months": null,
+          "annual_months": [
+            20,
+            21
+          ],
           "annual_total_wan": null,
-          "weekly_hours": null,
-          "overtime": null,
+          "weekly_hours": [
+            50,
+            50
+          ],
+          "overtime": "經常",
           "travel": null,
-          "n_stat": 0,
+          "n_stat": 1,
           "note": null,
           "grade": null
         },
@@ -11591,10 +11614,10 @@
               "quote_free_note": null,
               "date_confirmed": true,
               "date_note": null,
-              "in_window": false
+              "in_window": true
             }
           ],
-          "n_stat": 0
+          "n_stat": 1
         },
         {
           "unit": "研發 R&D",
@@ -11661,10 +11684,10 @@
               "quote_free_note": null,
               "date_confirmed": true,
               "date_note": null,
-              "in_window": false
+              "in_window": true
             }
           ],
-          "n_stat": 0
+          "n_stat": 1
         },
         {
           "unit": "研發 R&D",
@@ -12003,13 +12026,22 @@
           "years": "0-2",
           "base_month_k": [
             80,
-            80
+            84
           ],
           "bonus_months": null,
-          "annual_months": null,
-          "annual_total_wan": null,
-          "weekly_hours": null,
-          "overtime": null,
+          "annual_months": [
+            14,
+            14
+          ],
+          "annual_total_wan": [
+            117.6,
+            117.6
+          ],
+          "weekly_hours": [
+            45,
+            55
+          ],
+          "overtime": "經常",
           "travel": null,
           "n": 3,
           "note": "網友自述未經查證；GoodJob 2026-05 臺南數位 IC 月薪 8.4 萬、保 14 個月、分紅偏少；2025-06 另一筆未滿 1 年年薪 110 萬；未逐筆對應的舊彙整：overtime=經常（不能報加班）；部分年薪／年薪月數由同一筆樣本的「底薪×月數」推算（樣本標 derived）",
@@ -12050,7 +12082,7 @@
               "quote_free_note": null,
               "date_confirmed": true,
               "date_note": null,
-              "in_window": false,
+              "in_window": true,
               "derived": [
                 "annual_wan"
               ]
@@ -12097,10 +12129,10 @@
               "travel": null,
               "quote_free_note": "月薪 (N-10k)×14＋分紅；工時 9～19、20 點（週工時依此估為 50～55）",
               "date_note": "Dcard 頁面發文日期 2025-04-09（2026-10-26 1923 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             }
           ],
-          "n_stat": 1
+          "n_stat": 3
         },
         {
           "unit": "研發 R&D",
@@ -12398,10 +12430,10 @@
               "travel": null,
               "quote_free_note": "N 只作比較用；offer 月薪 N+9k（N 未知，無法填 base_k）",
               "date_note": "Dcard 頁面發文日期 2025-04-19（2026-10-26 1923 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             }
           ],
-          "n_stat": 1
+          "n_stat": 2
         },
         {
           "unit": "驅動 IC",
@@ -12572,7 +12604,7 @@
               "travel": null,
               "quote_free_note": "代 PO；拿到 offer；發文者說屬高工時職位；數字未透露",
               "date_note": "Dcard 頁面發文日期 2025-07-16（2026-10-26 1923 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             }
           ],
           "sources": [
@@ -12584,8 +12616,8 @@
           ],
           "confidence": "低",
           "n": 1,
-          "n_stat": 0,
-          "overtime": null
+          "n_stat": 1,
+          "overtime": "經常"
         },
         {
           "unit": "其他",
@@ -12612,7 +12644,7 @@
               "travel": null,
               "quote_free_note": "代 PO；拿到 offer；數字未透露",
               "date_note": "Dcard 頁面發文日期 2025-07-16（2026-10-26 1923 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             }
           ],
           "sources": [
@@ -12624,8 +12656,8 @@
           ],
           "confidence": "低",
           "n": 1,
-          "n_stat": 0,
-          "overtime": null
+          "n_stat": 1,
+          "overtime": "經常"
         }
       ],
       "mops": {
@@ -13582,7 +13614,7 @@
               "quote_free_note": null,
               "date_confirmed": true,
               "date_note": null,
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -13604,7 +13636,7 @@
               "date_note": null
             }
           ],
-          "n_stat": 1
+          "n_stat": 2
         },
         {
           "unit": "研發 R&D",
@@ -14674,8 +14706,14 @@
           "years": "0-2",
           "base_month_k": null,
           "bonus_months": null,
-          "annual_months": null,
-          "annual_total_wan": null,
+          "annual_months": [
+            14,
+            14
+          ],
+          "annual_total_wan": [
+            70,
+            70
+          ],
           "weekly_hours": null,
           "overtime": null,
           "travel": null,
@@ -14711,9 +14749,9 @@
               "overtime": null,
               "travel": null,
               "quote_free_note": "新人年薪約 70 萬（不含獎金分紅）；世芯待遇：留言稱新人年薪約 70 萬、14 個月（不含分紅），另有人說 16～18 個月，說法分歧",
-              "date_confirmed": false,
+              "date_confirmed": true,
               "in_window": true,
-              "date_note": null
+              "date_note": "依 docs/tc/dcard_id_calibration.md：編號 ≥ 258870385（2025-05-21 錨點），確定晚於 2025-01-01"
             },
             {
               "site": "Dcard",
@@ -14735,7 +14773,7 @@
               "date_note": "依 docs/tc/dcard_id_calibration.md 文章編號≥259537767 確認晚於 2025-08-01"
             }
           ],
-          "n_stat": 1
+          "n_stat": 2
         },
         {
           "unit": "研發 R&D",
@@ -16348,7 +16386,7 @@
               "overtime": "經常",
               "travel": null,
               "quote_free_note": "轉換領域求職；常態加班可報加班費；數字未透露",
-              "in_window": false,
+              "in_window": true,
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2025-02-07"
             }
           ],
@@ -16367,9 +16405,9 @@
           "annual_months": null,
           "annual_total_wan": null,
           "weekly_hours": null,
-          "overtime": null,
+          "overtime": "經常",
           "travel": null,
-          "n_stat": 0,
+          "n_stat": 1,
           "note": null,
           "grade": null
         }
@@ -16404,7 +16442,7 @@
               "overtime": "經常",
               "travel": null,
               "quote_free_note": "常態加班可報加班費；有認股權；數字未透露",
-              "in_window": false,
+              "in_window": true,
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2025-02-07"
             }
           ],
@@ -16423,9 +16461,9 @@
           "annual_months": null,
           "annual_total_wan": null,
           "weekly_hours": null,
-          "overtime": null,
+          "overtime": "經常",
           "travel": null,
-          "n_stat": 0,
+          "n_stat": 1,
           "note": null,
           "grade": null
         }
@@ -16472,7 +16510,7 @@
               "travel": null,
               "quote_free_note": "非四大學碩、二線 IC 設計 3 年；口頭 offer，尚未核薪",
               "date_note": "Dcard 頁面發文日期 2025-04-19（2026-10-26 1923 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             }
           ],
           "n": 1,
@@ -16485,7 +16523,7 @@
           ],
           "confidence": "低",
           "note": "2026-10-26 由 Dcard 樣本新增的公司",
-          "n_stat": 0,
+          "n_stat": 1,
           "overtime": null
         }
       ]
@@ -16529,7 +16567,7 @@
               "travel": null,
               "quote_free_note": "中山碩應屆；N 非台積價、只作比較；月薪 N×14＋分紅；工時 9～18（週工時依此估）；留言 B16 說新唐幾乎不操",
               "date_note": "Dcard 頁面發文日期 2025-04-09（2026-10-26 1923 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             }
           ],
           "n": 1,
@@ -16542,8 +16580,16 @@
           ],
           "confidence": "低",
           "note": "2026-10-26 由 Dcard 樣本新增的公司",
-          "n_stat": 0,
-          "overtime": null
+          "n_stat": 1,
+          "overtime": "幾乎不",
+          "annual_months": [
+            14,
+            14
+          ],
+          "weekly_hours": [
+            45,
+            45
+          ]
         },
         {
           "unit": "其他",
@@ -16574,7 +16620,7 @@
               "travel": null,
               "quote_free_note": "留言 B13（非發文者，交大）：剛從新唐離開，說一年約 14～15 個月",
               "date_note": "Dcard 頁面發文日期 2025-04-10（2026-10-26 1923 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             }
           ],
           "n": 1,
@@ -16587,8 +16633,12 @@
           ],
           "confidence": "低",
           "note": "2026-10-26 由 Dcard 樣本新增的公司",
-          "n_stat": 0,
-          "overtime": null
+          "n_stat": 1,
+          "overtime": null,
+          "annual_months": [
+            14,
+            15
+          ]
         }
       ]
     }

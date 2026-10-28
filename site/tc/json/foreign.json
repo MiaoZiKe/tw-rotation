@@ -2,7 +2,7 @@
   "industry": "foreign",
   "name": "外商（台灣據點）",
   "updated": "2026-10-26",
-  "window": "2025-08-01～2026-10-25",
+  "window": "2025-01-01～2026-10-25",
   "companies": [
     {
       "name": "NVIDIA",
@@ -63,7 +63,7 @@
               "quote_free_note": null,
               "date_confirmed": true,
               "date_note": null,
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "GoodJob",
@@ -85,7 +85,7 @@
               "quote_free_note": "年薪 280 萬（面試者自報）"
             }
           ],
-          "n_stat": 1
+          "n_stat": 2
         },
         {
           "unit": "台灣研發",
@@ -320,7 +320,7 @@
               "overtime": null,
               "travel": null,
               "quote_free_note": "原PO：CS碩士新鮮人拿到NVIDIA等多家offer，最後選Google ML；文中未揭露NV薪資數字（Scientist缺未獲面試）",
-              "in_window": false,
+              "in_window": true,
               "date_note": "Dcard 頁面發文日期 2025-02-23（2026-10-26 2122 批）"
             },
             {
@@ -342,7 +342,7 @@
               "overtime": null,
               "travel": null,
               "quote_free_note": "留言B25：稱去年看過此職缺，印象年薪180萬以上（下限值、記憶性說法）；原PO為封測廠TE收到NV徵才通知，詢問薪資",
-              "in_window": false,
+              "in_window": true,
               "date_note": "Dcard 頁面發文日期 2025-03-15（2026-10-26 2122 批）",
               "comment_sample": true
             },
@@ -365,7 +365,7 @@
               "overtime": "經常",
               "travel": null,
               "quote_free_note": "留言B20：在職者稱考績與美國同事一起評但薪資約其一半，無報加班費文化，分紅未隨營收等比提高，常假日加班到半夜；B20-1另一在職者稱錢還是很多",
-              "in_window": false,
+              "in_window": true,
               "date_note": "Dcard 頁面發文日期 2025-05-04（2026-10-26 2122 批）",
               "comment_sample": true
             },
@@ -388,7 +388,7 @@
               "overtime": null,
               "travel": null,
               "quote_free_note": "留言B7-4：稱入職時給IC4，月薪就不只20萬台幣（下限值）；原PO的IC5美國USD薪資不列入台灣樣本",
-              "in_window": false,
+              "in_window": true,
               "date_note": "Dcard 頁面發文日期 2025-03-20（2026-10-26 2122 批）",
               "comment_sample": true
             },
@@ -411,7 +411,7 @@
               "overtime": null,
               "travel": null,
               "quote_free_note": "留言B22：轉述朋友面試此職，整包約350萬台幣（含股票的總包、轉述）；B12更正資深約550萬台幣",
-              "in_window": false,
+              "in_window": true,
               "date_note": "Dcard 頁面發文日期 2025-06-13（2026-10-26 2122 批）",
               "comment_sample": true
             },
@@ -434,7 +434,7 @@
               "overtime": null,
               "travel": null,
               "quote_free_note": "留言B20-2：稱起薪約200萬（含股票）大概是IC2；B20-5指出NV沒有年終獎金",
-              "in_window": false,
+              "in_window": true,
               "date_note": "Dcard 頁面發文日期 2025-07-17（2026-10-26 2122 批）",
               "comment_sample": true
             },
@@ -460,7 +460,7 @@
               "overtime": "經常",
               "travel": null,
               "quote_free_note": "留言B11/B11-3/B11-5：IC3底薪加每年1/4 RSU約280–350萬；需配合美國開會（有時凌晨2點、早上7點），每週都要做投影片報告",
-              "in_window": false,
+              "in_window": true,
               "date_note": "Dcard 頁面發文日期 2025-05-12（2026-10-26 2122 批）",
               "comment_sample": true
             },
@@ -483,7 +483,7 @@
               "overtime": "經常",
               "travel": null,
               "quote_free_note": "留言B5：IC3約300萬（薪水加股票），工時很高；B1另稱IC3保底300萬以上但很操",
-              "in_window": false,
+              "in_window": true,
               "date_note": "Dcard 頁面發文日期 2025-05-12（2026-10-26 2122 批）",
               "comment_sample": true
             },
@@ -506,7 +506,7 @@
               "overtime": null,
               "travel": null,
               "quote_free_note": "留言B12：稱去年IC4可到500萬以上、今年會少一截；B18轉述去年IC4已沒有500（下限值、有爭議）",
-              "in_window": false,
+              "in_window": true,
               "date_note": "Dcard 頁面發文日期 2025-05-12（2026-10-26 2122 批）",
               "comment_sample": true
             },
@@ -529,7 +529,7 @@
               "overtime": null,
               "travel": null,
               "quote_free_note": "留言B20（原PO）：年度開獎自述IC6、年資10年以上，調薪8%、RSU約1300–1500股；500+格式未說明故不填",
-              "in_window": false,
+              "in_window": true,
               "date_note": "Dcard 頁面發文日期 2025-03-12（2026-10-26 2122 批）",
               "comment_sample": true
             },
@@ -552,7 +552,7 @@
               "overtime": null,
               "travel": null,
               "quote_free_note": "留言B19系列：年度調薪討論，一般3–5%（未揭露絕對金額）",
-              "in_window": false,
+              "in_window": true,
               "date_note": "Dcard 頁面發文日期 2025-03-12（2026-10-26 2122 批）",
               "comment_sample": true
             },
@@ -575,7 +575,7 @@
               "overtime": null,
               "travel": null,
               "quote_free_note": "留言B16/B32-1：稱NV現在薪水與Google差不多甚至小輸、比較累；有WFH與每季2天global free day",
-              "in_window": false,
+              "in_window": true,
               "date_note": "Dcard 頁面發文日期 2025-03-05（2026-10-26 2122 批）",
               "comment_sample": true
             },
@@ -599,7 +599,7 @@
               "travel": null,
               "quote_free_note": "留言B25-2：稱入職offer年薪從200萬到700萬都聽過（範圍過寬不填數值）；B25-4稱薪資看部門，部分部門IC3可高於IC4；B25-5（自稱IC3）建議參考Levels.fyi；原PO收到體檢通知，B10稱到體檢階段幾乎就會錄取",
               "comment_sample": true,
-              "in_window": false,
+              "in_window": true,
               "date_note": "Dcard 頁面發文日期 2025-01-10（2026-10-26 2321 批）"
             },
             {
@@ -622,7 +622,7 @@
               "travel": null,
               "quote_free_note": "無薪資數字；留言B4稱面到第五面拿到offer、以前婉拒過不會少面；B8（疑似面試官）稱至少6輪、可能美中台三地主管都會面，Reference Check與體檢在offer之前",
               "comment_sample": true,
-              "in_window": false,
+              "in_window": true,
               "date_note": "Dcard 頁面發文日期 2025-06-20（2026-10-26 2321 批）"
             }
           ],
@@ -701,14 +701,20 @@
           "confidence": "低",
           "n": 18,
           "years": null,
-          "base_month_k": null,
+          "base_month_k": [
+            200,
+            200
+          ],
           "bonus_months": null,
           "annual_months": null,
-          "annual_total_wan": null,
+          "annual_total_wan": [
+            180,
+            500
+          ],
           "weekly_hours": null,
-          "overtime": null,
+          "overtime": "經常",
           "travel": null,
-          "n_stat": 4,
+          "n_stat": 18,
           "note": null,
           "grade": null
         },
@@ -932,7 +938,7 @@
               "overtime": null,
               "travel": null,
               "quote_free_note": "資工學碩；投遞到 next step 約 86 天，留言更新 D+110 收到 email offer；數字未透露",
-              "in_window": false,
+              "in_window": true,
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2025-04-26"
             },
             {
@@ -954,7 +960,7 @@
               "overtime": null,
               "travel": null,
               "quote_free_note": "留言B2-3/B2-6：在職者稱因G家team match等不到才去NV；認為台灣NV純軟只有Omniverse部門，System Software偏底層；未揭露薪資",
-              "in_window": false,
+              "in_window": true,
               "date_note": "Dcard 頁面發文日期 2025-02-24（2026-10-26 2122 批）",
               "comment_sample": true
             }
@@ -986,7 +992,7 @@
           "weekly_hours": null,
           "overtime": null,
           "travel": null,
-          "n_stat": 1,
+          "n_stat": 3,
           "note": null,
           "grade": null
         },
@@ -1064,7 +1070,7 @@
               "travel": null,
               "quote_free_note": "研替求職；拿到 offer；數字未透露",
               "date_note": "Dcard 頁面發文日期 2025-04-01（2026-10-26 1923 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             }
           ],
           "sources": [
@@ -1076,7 +1082,7 @@
           ],
           "confidence": "低",
           "n": 1,
-          "n_stat": 0
+          "n_stat": 1
         },
         {
           "unit": "其他",
@@ -1103,7 +1109,7 @@
               "travel": null,
               "quote_free_note": "留言 B7（非發文者，台大）：研替官網第二梯勾選 NVIDIA，已推掉其他公司，等待錄用中；數字未透露",
               "date_note": "Dcard 頁面發文日期 2025-04-07（2026-10-26 1923 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             },
             {
               "site": "Dcard",
@@ -1124,7 +1130,7 @@
               "overtime": null,
               "travel": null,
               "quote_free_note": "留言B11-12/B11-14：曾在NV RDSS待約1年半後離職，稱在NV一年可能比別處多約100萬（未填）；B11稱NV比台積更操",
-              "in_window": false,
+              "in_window": true,
               "date_note": "Dcard 頁面發文日期 2025-01-14（2026-10-26 2122 批）",
               "comment_sample": true
             },
@@ -1147,7 +1153,7 @@
               "overtime": null,
               "travel": null,
               "quote_free_note": "原PO：同時拿到NV兩個研替口頭offer，未揭露薪資；B5稱兩缺錢差不到20萬",
-              "in_window": false,
+              "in_window": true,
               "date_note": "Dcard 頁面發文日期 2025-04-02（2026-10-26 2122 批）"
             },
             {
@@ -1170,7 +1176,7 @@
               "travel": null,
               "quote_free_note": "無薪資數字；留言B8稱約1年時由主管提早轉正並簽新offer，轉正主要看部門headcount；B14-2稱身邊有2人、聽說近10人未轉正",
               "comment_sample": true,
-              "in_window": false,
+              "in_window": true,
               "date_note": "Dcard 頁面發文日期 2025-07-14（2026-10-26 2321 批）"
             }
           ],
@@ -1198,7 +1204,7 @@
           ],
           "confidence": "低",
           "n": 4,
-          "n_stat": 0
+          "n_stat": 4
         },
         {
           "unit": "其他",
@@ -1434,11 +1440,11 @@
               "overtime": null,
               "travel": null,
               "quote_free_note": "台大新鮮人，2024 末～2025 初求職系列文第 5 篇；拿到 offer；數字未透露",
-              "in_window": false,
+              "in_window": true,
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2025-05-02"
             }
           ],
-          "n_stat": 3
+          "n_stat": 4
         }
       ],
       "mops": null,
@@ -3274,7 +3280,7 @@
               "overtime": "幾乎不",
               "travel": null,
               "quote_free_note": "代工廠韌體 2 年、現職年薪約 110 萬；派遣身分、四輪全英文面試；total package 約 170 萬；HR 說不加班、加班可報",
-              "in_window": false,
+              "in_window": true,
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2025-07-01"
             },
             {
@@ -3296,7 +3302,7 @@
               "overtime": null,
               "travel": null,
               "quote_free_note": "原PO：軟韌體2年資，拿到印度人力公司派駐NVIDIA做BLT的offer，總包約170萬可報加班，樂於出差；非NV正職",
-              "in_window": false,
+              "in_window": true,
               "date_note": "Dcard 頁面發文日期 2025-06-30（2026-10-26 2122 批）"
             }
           ],
@@ -3318,11 +3324,14 @@
           "base_month_k": null,
           "bonus_months": null,
           "annual_months": null,
-          "annual_total_wan": null,
+          "annual_total_wan": [
+            170,
+            170
+          ],
           "weekly_hours": null,
-          "overtime": null,
+          "overtime": "幾乎不",
           "travel": null,
-          "n_stat": 0,
+          "n_stat": 2,
           "note": null,
           "grade": null
         },

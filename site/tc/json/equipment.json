@@ -2,7 +2,7 @@
   "industry": "equipment",
   "name": "設備商",
   "updated": "2026-10-26",
-  "window": "2025-08-01～2026-10-25",
+  "window": "2025-01-01～2026-10-25",
   "companies": [
     {
       "name": "ASML",
@@ -824,9 +824,9 @@
               "overtime": null,
               "travel": null,
               "quote_free_note": null,
-              "date_confirmed": false,
-              "date_note": "日期為推估或僅年份，不進統計",
-              "in_window": false
+              "date_confirmed": true,
+              "date_note": "依 docs/tc/dcard_id_calibration.md：編號 ≥ 258870385（2025-05-21 錨點），確定晚於 2025-01-01",
+              "in_window": true
             },
             {
               "site": "GoodJob",
@@ -867,7 +867,7 @@
               "in_window": true
             }
           ],
-          "n_stat": 2
+          "n_stat": 3
         },
         {
           "unit": "台南 / 客戶台積",
@@ -3770,7 +3770,7 @@
               "travel": "需要",
               "quote_free_note": "中字尾電資學碩、剛役畢；正常上下班、加班無加班費但可補休；主管說每週三天進台積廠 8 小時且有小夜班；數字未透露",
               "date_note": "Dcard 頁面發文日期 2025-07-21（2026-10-26 1923 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             }
           ],
           "sources": [
@@ -3782,7 +3782,9 @@
           ],
           "confidence": "低",
           "n": 1,
-          "n_stat": 0
+          "n_stat": 1,
+          "overtime": "偶爾",
+          "travel": "需要"
         },
         {
           "unit": "其他",
@@ -3809,7 +3811,7 @@
               "travel": null,
               "quote_free_note": "留言 B16-2（非發文者）轉述朋友：年資 5 年，含補助年薪約 160 萬；工時不高，客戶趕案時偶爾半夜遠端",
               "date_note": "Dcard 頁面發文日期 2025-07-19（2026-10-26 1923 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             }
           ],
           "sources": [
@@ -3821,7 +3823,12 @@
           ],
           "confidence": "低",
           "n": 1,
-          "n_stat": 0
+          "n_stat": 1,
+          "annual_total_wan": [
+            160,
+            160
+          ],
+          "overtime": "偶爾"
         },
         {
           "unit": "其他",
@@ -3848,7 +3855,7 @@
               "travel": null,
               "quote_free_note": "留言 B10（非發文者，清大電機所）：也拿到愛德萬 offer 但婉拒；數字未透露",
               "date_note": "Dcard 頁面發文日期 2025-07-18（2026-10-26 1923 批，非 Andy 親眼讀）",
-              "in_window": false
+              "in_window": true
             }
           ],
           "sources": [
@@ -3860,7 +3867,7 @@
           ],
           "confidence": "低",
           "n": 1,
-          "n_stat": 0
+          "n_stat": 1
         },
         {
           "unit": "其他",

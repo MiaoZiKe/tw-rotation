@@ -2,7 +2,7 @@
   "industry": "other",
   "name": "其他科技",
   "updated": "2026-10-26",
-  "window": "2025-08-01～",
+  "window": "2025-01-01～",
   "companies": [
     {
       "name": "連宇",
@@ -862,7 +862,7 @@
               "overtime": "幾乎不",
               "travel": null,
               "quote_free_note": "月薪 N+22＋車補，預估年薪約 160 萬（發文者不確定）；工時約 8 小時",
-              "in_window": false,
+              "in_window": true,
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2025-01-12；weekly_hours 由摘要「工時約 8 小時」×5 天換算（10-26 補）",
               "derived": [
                 "weekly_hours"
@@ -882,11 +882,17 @@
           "base_month_k": null,
           "bonus_months": null,
           "annual_months": null,
-          "annual_total_wan": null,
-          "weekly_hours": null,
-          "overtime": null,
+          "annual_total_wan": [
+            160,
+            160
+          ],
+          "weekly_hours": [
+            40,
+            40
+          ],
+          "overtime": "幾乎不",
           "travel": null,
-          "n_stat": 0,
+          "n_stat": 1,
           "note": null,
           "grade": null
         }
@@ -2548,7 +2554,7 @@
               "overtime": null,
               "travel": null,
               "quote_free_note": "現職外商系統廠韌體驗證約 1.5 年；發文者說薪資與工時 CP 值較高；數字未透露",
-              "in_window": false,
+              "in_window": true,
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2025-04-06"
             }
           ],
@@ -2569,7 +2575,7 @@
           "weekly_hours": null,
           "overtime": null,
           "travel": null,
-          "n_stat": 0,
+          "n_stat": 1,
           "note": null,
           "grade": null
         }
@@ -2602,7 +2608,7 @@
               "overtime": null,
               "travel": null,
               "quote_free_note": "留言 B17（非發文者）：在聯發科 3 年後跳外商，年資 8 年、年薪 500 萬以上、每天工時 4～6 小時",
-              "in_window": false,
+              "in_window": true,
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2025-05-14"
             }
           ],
@@ -2619,11 +2625,14 @@
           "base_month_k": null,
           "bonus_months": null,
           "annual_months": null,
-          "annual_total_wan": null,
+          "annual_total_wan": [
+            500,
+            500
+          ],
           "weekly_hours": null,
           "overtime": null,
           "travel": null,
-          "n_stat": 0,
+          "n_stat": 1,
           "note": null,
           "grade": null
         }
