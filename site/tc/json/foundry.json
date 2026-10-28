@@ -16455,7 +16455,7 @@
           "weekly_hours": null,
           "overtime": "經常",
           "travel": "不用",
-          "n": 16,
+          "n": 17,
           "note": "GoodJob 面試回報單筆 5.8 萬（未通知、年資不完整）；Dcard／PTT 查無世界先進 offer。查過：世界先進 offer 碩士 月薪 分紅 面試 2026（Dcard）／世界先進 GoodJob 面試經驗 製程整合 設備工程師 月薪；GoodJob 多則回報公司保障 16 個月（含年終與節金），另 7 月依營運發分紅、4 月調薪；分紅月數未見具體數字（2026-10 查 GoodJob、媒體）；GoodJob 製程職回報工時偏長、需值班；出差未見回報（廠內職）；2026-10-25 補：Dcard 碩士 31 職等第二年領滿約 110～125 萬（網友）、第一年保 16 領不滿；研替 offer 57k×16、另簽約金 10 萬；研替同職等有 57／62 兩種價；部分年薪／年薪月數由同一筆樣本的「底薪×月數」推算（樣本標 derived）",
           "sources": [
             {
@@ -16517,6 +16517,11 @@
               "site": "GoodJob",
               "url": "https://www.goodjob.life/companies/世界先進積體電路股份有限公司/work-experiences/薪資福利",
               "date": "2025-09"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/262310815",
+              "date": "2026-10"
             }
           ],
           "confidence": "高",
@@ -16838,9 +16843,32 @@
               "date_confirmed": true,
               "date_note": "摘要寫出發文年月",
               "in_window": true
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/262310815",
+              "date": "2026-10",
+              "page_date": "2026-10-17",
+              "date_confirmed": true,
+              "role": "薄膜製程工程師（南崁，6 年經驗 offer）",
+              "grade": null,
+              "unit_detail": "南崁",
+              "years": "6",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": 16,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "發文者 offer：月薪 N+4K、16 個月（HR 說不保證但過去都有；N 未說明）；約每月一次假日值班；留言 B8 稱平日值班月 3 次、假日 2～3 次",
+              "in_window": true,
+              "date_note": "Dcard 頁面發文日期 2026-10-17（20261028_1511 批）",
+              "comment_sample": false
             }
           ],
-          "n_stat": 10
+          "n_stat": 11
         },
         {
           "unit": "晶圓廠 Fab",
@@ -17449,7 +17477,7 @@
           "bonus_months": null,
           "annual_months": [
             16,
-            16
+            20
           ],
           "annual_total_wan": [
             150,
@@ -17458,11 +17486,11 @@
           "weekly_hours": null,
           "overtime": null,
           "travel": null,
-          "n": 4,
+          "n": 5,
           "note": "2026-10-28 Dcard 1449 批新增職位",
           "confidence": "低",
           "grade": null,
-          "n_stat": 4,
+          "n_stat": 5,
           "samples": [
             {
               "site": "Dcard",
@@ -17558,6 +17586,29 @@
               "in_window": true,
               "date_note": "Dcard 頁面發文日期 2025-12-13（20261028_1449 批）",
               "comment_sample": true
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/262310815#留言B4",
+              "date": "2026-10",
+              "page_date": "2026-10-17",
+              "date_confirmed": true,
+              "role": "資深工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": 20,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "留言 B4（長庚）：VIS 資深工程師今年 20 個月；對明年分紅偏悲觀",
+              "in_window": true,
+              "date_note": "Dcard 頁面發文日期 2026-10-17（20261028_1511 批）",
+              "comment_sample": true
             }
           ],
           "sources": [
@@ -17570,6 +17621,11 @@
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/job/p/260450914",
               "date": "2025-12"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/262310815",
+              "date": "2026-10"
             }
           ]
         }

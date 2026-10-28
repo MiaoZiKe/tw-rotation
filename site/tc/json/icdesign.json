@@ -12647,6 +12647,29 @@
               "in_window": true,
               "date_note": "Dcard 頁面發文日期 2025-08-01（20261028_0051_補漏r1 批）",
               "comment_sample": true
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/262350753#留言B2-25",
+              "date": "2026-10",
+              "page_date": "2026-10-27",
+              "date_confirmed": true,
+              "role": "工程師（第二年）",
+              "grade": null,
+              "unit_detail": null,
+              "years": "2",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 290,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "留言 B2-25：群聯逐年 140→290 萬，後面還沒",
+              "in_window": true,
+              "date_note": "Dcard 頁面發文日期 2026-10-27（20261028_1511 批）",
+              "comment_sample": true
             }
           ],
           "sources": [
@@ -12672,7 +12695,7 @@
             }
           ],
           "confidence": "低",
-          "n": 84,
+          "n": 85,
           "years": null,
           "base_month_k": null,
           "bonus_months": [
@@ -12687,7 +12710,7 @@
           "weekly_hours": null,
           "overtime": null,
           "travel": null,
-          "n_stat": 84,
+          "n_stat": 85,
           "note": null,
           "grade": null
         }
