@@ -97,7 +97,7 @@
     const fut = sub === 'fut';
     return {
       sub, sym: fut ? 'TX' : '2330', tf: 'D', strat: 'ma2', params: {}, mode: 'both', range: 'All', showBH: false, ind: LabK.defaultInd(), ctype: 'k', tt: 'ov', eqMode: 'eq', sortK: 'no', sortD: -1,
-      cfg: { capital: 1000000, sizeMode: fut ? 'units' : 'pct', sizeVal: fut ? 1 : 100, pyramiding: 1, fillOn: 'open', sl: 0, tp: 0, trail: 0, maxLoss: 0 },
+      cfg: { capital: 1000000, sizeMode: 'pct', sizeVal: 100, pyramiding: 1, fillOn: 'open', sl: 0, tp: 0, trail: 0, maxLoss: 0, slPts: 0, tpPts: 0, slAmt: 0, tpAmt: 0, trailPts: 0, trailStart: 0, marginCall: 130 },
       costs: {}, advOpen: false, pickOpen: false, res: null, B: null, sel: -1, rowsAll: false, busy: 0,
     };
   }
@@ -140,6 +140,9 @@
     '<br>· 加碼口數上限 1＝不加碼；大於 1 時，同方向訊號再出現就再加一口，出場時各口分開記一筆。' +
     '<br>· 週、月 K 由日 K 合成；60 分 K 只有 2023-09 之後、近期成交值前 500 名的個股；價格是除權息還原後的價格。' +
     '<br>· 台指期是近月連續合約，換月的價差沒有調整，長期績效會有偏差。' +
+    '<br>· 風控設定（「成本設定」裡）：停損、停利、移動停損可用「％」、「點（股票為元）」或「金額」；移動停損可設「啟動點」，賺超過才開始跟。多個條件同時設就取最先碰到的。' +
+    '<br>· 台指期預設「依資金換算」：口數＝初始資金 × 比例 ÷ （價格 × 每點）取整，資金不夠一口名目但付得起原始保證金就下 1 口；權益低於維持保證金當根收盤強制平倉，換月跨結算日另付換月成本。' +
+    '<br>· 股票空單：每天計借券費（年率）；現金含融券價款 ÷ 空單市值低於「追繳維持率」（預設 130％）當根收盤強制回補；權益歸零就停止交易。畫面上會寫出發生的日期與原因。' +
     '<br><br><b>我們採用的定義（TradingView 原文未核實處）</b><br>· 夏普值＝月報酬：（月均報酬 − 無風險 2%÷12）÷ 月報酬標準差 × √12；索提諾值分母只算低於無風險報酬的下檔偏差；不足 3 個月不計算。' +
     '<br>· 最大回撤、最大上漲用每根收盤的權益（含未平倉浮動損益），不含盤中高低。' +
     '<br>· 買進持有＝期初第一根開盤買入、持有到最後一根收盤。' +
@@ -165,12 +168,16 @@
     custom: '<b>怎麼用</b><br>左邊管理策略，右邊用積木組規則：多單進場、多單出場、空單進場、空單出場四格各自加條件，格內用「全部成立」或「任一成立」組合，再設停損、停利、移動停損、最長持有。下方立刻試跑，按「在歷史回測看完整結果」到完整的策略測試器。' +
       '<br><br><b>腳本寫法</b>（切到「腳本」分頁）<br>每行一件事：<br>· 若 條件 則 進場("多")／進場("空")／平倉("多")<br>· 快 = 參數("快線", 5)　宣告可在畫面上調的參數<br>· x = rsi(收盤, 14)　自己的變數；x[1] 是前一根<br>· 出場("風控", 停損%=5, 停利%=10, 移動%=3, 最長持有=30)' +
       '<br>函式：均線 sma、ema、rsi、macd_dif／macd_dea／macd_osc、bb_up／bb_mid／bb_low、kd_k／kd_d、atr、highest、lowest、change、crossover（上穿）、crossunder（下穿）、event("fomc", 前, 後)；籌碼：chip("外資"／"投信"／"自營"／"法人"／"融資"／"融券"／"券資比"／"當沖比"／"當沖量")、streak(x)（連買為正、連賣為負的根數）、csum(x, N)（N 根累計）。也能用 ta.sma、ta.crossover、strategy.entry 這些 TradingView 寫法。不支援迴圈、陣列、跨週期。' +
-      '<br><br><b>儲存</b><br>存在這台裝置的瀏覽器（每台裝置各自保存），可匯出成 JSON 帶到別台再匯入；不上傳。'
+      '<br><br><b>標準策略</b><br>左側「標準策略」下拉有 10 組事先定好參數的範本（趨勢、動能、突破、回歸、多週期、籌碼、營收動能、台指期）。點一組會把腳本（有的也附積木）放進編輯器並直接試跑，上方成績卡是它在多檔標的上的過去成績；規則、出處、失效條件在成績卡標題旁的「?」。參數是教科書預設值，沒有看結果調過；結果不好就照實寫。'+'<br><br><b>儲存</b><br>存在這台裝置的瀏覽器（每台裝置各自保存），可匯出成 JSON 帶到別台再匯入；不上傳。'
   };
   const howOf = (sub) => (MODS[sub] && MODS[sub].how) || HOWS[sub] || HOW;
+  const TAB_HINT = { fut: '今天該持幾口台指期、前向模擬績效與回測依據', bt: '把一套進出場規則放到歷史上，看賺還是賠', replay: '倒回過去某一天，一根一根往前播，練習下單', evt: '選舉、FOMC 等事件前後，股價平均怎麼走', custom: '用積木或腳本組自己的進出場規則，再拿去回測' };
   function shell(root) {
-    const tabs = '<div class="nbsw lab-tabs" role="tablist" aria-label="交易練習室">' + SUBS.map(([id, n]) => '<a href="#lab/' + id + '" role="tab" data-sub="' + id + '" class="' + (id === curSub ? 'on' : '') + '">' + n + '</a>').join('') + qpop(howOf(curSub)) + '</div>';
+    const tabs = '<div class="nbsw lab-tabs" role="tablist" aria-label="交易練習室">' + SUBS.map(([id, n]) => '<a href="#lab/' + id + '" role="tab" data-sub="' + id + '" title="' + esc(TAB_HINT[id] || '') + '" class="' + (id === curSub ? 'on' : '') + '">' + n + '</a>').join('') + qpop(howOf(curSub)) + '</div>';
     root.innerHTML = '<div class="card lab-card">' + tabs + '<div class="lab-body" id="labBody"></div><div class="lab-disc">回測為歷史資料模擬，不代表未來績效，不構成任何投資建議或參考；所有成交與成本為假設。</div></div>';
+    // 手機：分頁列橫向捲動時，把目前這一頁捲到看得見（不動整頁的垂直位置）
+    const on = $('.lab-tabs a.on', root), bar = $('.lab-tabs', root);
+    if (on && bar && bar.scrollWidth > bar.clientWidth) bar.scrollLeft = Math.max(0, on.offsetLeft - (bar.clientWidth - on.offsetWidth) / 2);
   }
 
   function btHTML(S) {
@@ -180,13 +187,13 @@
       '<div class="lab-f"><span>策略</span><button type="button" class="lab-pickbtn" id="labPickBtn" aria-haspopup="listbox"></button></div>' +
       '<div class="seg lab-mode lab-mx" id="labMode" role="tablist" aria-label="多空"><button type="button" data-m="both">多空</button><button type="button" data-m="long">只做多</button><button type="button" data-m="short">只做空</button></div>' +
       '<div class="seg lab-rng lab-mx" id="labRng" role="tablist" aria-label="回測期間">' + RANGES.map((k) => '<button type="button" role="tab" data-r="' + k + '">' + k + '</button>').join('') + '</div>' +
-      '<button type="button" class="lab-gear lab-mx" id="labAdvBtn" aria-expanded="false">設定</button>' +
-      '<button type="button" class="lab-gear lab-mxbtn" id="labMx" aria-expanded="false">設定</button>' +
+      '<button type="button" class="lab-gear lab-mx" id="labAdvBtn" aria-expanded="false" title="手續費、滑價、部位、停損停利">成本設定</button>' +
+      '<button type="button" class="lab-gear lab-mxbtn" id="labMx" aria-expanded="false" title="策略參數、指標、期間">參數與指標</button>' +
       '</div>' +
-      '<div class="lab-params lab-mx" id="labParams"></div>' +
       '<div class="lab-adv" id="labAdv" hidden></div><div class="lab-pick" id="labPick" hidden></div>' +
+      '<div class="lab-row2"><div class="lab-params lab-mx" id="labParams"></div>' +
       '<div class="lab-ktool lab-mx"><button type="button" class="lab-pickbtn lab-indbtn" id="labIndBtn" aria-haspopup="listbox">指標 ▾</button><div class="lab-chips" id="labChips"></div>' +
-      '<div class="seg lab-ct" id="labCt" role="tablist" aria-label="圖表類型">' + LabK.TYPES.map(([k, n]) => '<button type="button" role="tab" data-c="' + k + '">' + n + '</button>').join('') + '</div></div>' +
+      '<button type="button" class="lab-pickbtn lab-log" id="labLog" aria-pressed="false" title="價格用對數座標：漲跌幅相同的 K 棒畫得一樣高，長期走勢不會被近年價位壓平">對數</button><div class="seg lab-ct" id="labCt" role="tablist" aria-label="圖表類型">' + LabK.TYPES.map(([k, n]) => '<button type="button" role="tab" data-c="' + k + '">' + n + '</button>').join('') + '</div></div></div>' +
       '<div class="lab-kwrap"><div class="lab-draw lab-mx" id="labDraw" aria-label="繪圖工具"></div><div class="lab-kc"><div class="lab-ch" id="labK"></div><div class="lab-tip" id="labTip" hidden></div></div></div><div class="lab-indset" id="labIndSet" hidden></div>' +
       '<div class="lab-tester"><div class="lab-thead"><div class="lab-stats" id="labStats"></div>' +
       '<div class="seg lab-tt" id="labTT" role="tablist" aria-label="策略測試器">' + TT.map(([k, n]) => '<button type="button" role="tab" data-t="' + k + '">' + n + '</button>').join('') + '</div></div>' +
@@ -198,14 +205,20 @@
     const inst = instOf(S), c = S.cfg, fut = inst.kind === 'fut';
     const F = (id, lab, v, step, title) => '<label class="lab-fld" title="' + esc(title || '') + '"><span>' + lab + '</span><input class="lab-in" type="number" data-k="' + id + '" value="' + v + '" step="' + (step || 'any') + '"></label>';
     const sizeSel = '<label class="lab-fld"><span>部位方式</span><select class="lab-in" data-k="sizeMode">' +
-      [['pct', '資金百分比'], ['amount', '固定金額'], ['units', fut ? '固定口數' : '固定股數']].map(([k, n]) => '<option value="' + k + '"' + (c.sizeMode === k ? ' selected' : '') + '>' + n + '</option>').join('') + '</select></label>';
+      [['pct', fut ? '依資金換算（名目％）' : '資金百分比'], ['amount', '固定金額'], ['units', fut ? '固定口數' : '固定股數']].map(([k, n]) => '<option value="' + k + '"' + (c.sizeMode === k ? ' selected' : '') + '>' + n + '</option>').join('') + '</select></label>';
+    const pu = fut ? '點' : '元';
     const unit = c.sizeMode === 'pct' ? '％' : c.sizeMode === 'amount' ? '元' : (fut ? '口' : '股');
     return '<div class="lab-grid">' +
       F('capital', '初始資金（元）', c.capital, 10000) + sizeSel + F('pyramiding', '加碼口數上限（1＝不加碼）', c.pyramiding, 1, '同方向最多同時持有幾口') +
       '<label class="lab-fld"><span>成交時機</span><select class="lab-in" data-k="fillOn"><option value="open"' + (c.fillOn === 'open' ? ' selected' : '') + '>下一根開盤（預設）</option><option value="close"' + (c.fillOn === 'close' ? ' selected' : '') + '>訊號當根收盤</option></select></label>' + F('sizeVal', '單筆部位（' + unit + '）', c.sizeVal, 1) +
       (fut ? F('mult', '每點（元）', inst.mult, 1) + F('futFee', '手續費（元／口／邊）', inst.futFee, 1) + F('futTax', '期交稅（％，每邊）', inst.futTax, 0.0005) + F('slip', '滑價（點）', inst.slip, 0.5)
         : F('feeRate', '手續費率（％）', inst.feeRate, 0.0005) + F('feeDisc', '手續費折扣（折，10＝無）', Math.round(inst.feeDisc * 100) / 10, 0.1) + F('feeMin', '最低手續費（元）', inst.feeMin, 1) + F('taxRate', '證交稅（％，賣出）', inst.taxRate, 0.05) + F('slip', '滑價（％，每邊）', inst.slip, 0.01)) +
-      F('sl', '停損（％）', c.sl, 0.5, '0＝不設') + F('tp', '停利（％）', c.tp, 0.5, '0＝不設') + F('trail', '移動停損（％）', c.trail, 0.5, '0＝不設') + F('maxLoss', '最大日內虧損出場（權益％）', c.maxLoss, 0.1, '單根 K 棒內虧損超過前一根收盤權益的這個比例就出場；0＝不設') +
+      F('sl', '停損（％）', c.sl, 0.5, '0＝不設') + F('tp', '停利（％）', c.tp, 0.5, '0＝不設') + F('trail', '移動停損（％）', c.trail, 0.5, '0＝不設') +
+      F('slPts', '停損（' + pu + '）', c.slPts, 1, '距進場價幾' + pu + '就停損；0＝不設') + F('tpPts', '停利（' + pu + '）', c.tpPts, 1, '距進場價幾' + pu + '就停利；0＝不設') +
+      F('slAmt', '停損（金額，元）', c.slAmt, 1000, '這一口（或這筆）虧到這個金額就停損；0＝不設') + F('tpAmt', '停利（金額，元）', c.tpAmt, 1000, '賺到這個金額就停利；0＝不設') +
+      F('trailPts', '移動停損（' + pu + '）', c.trailPts, 1, '從最有利價回落幾' + pu + '就出場；0＝不設') + F('trailStart', '移動停損啟動（' + pu + '）', c.trailStart, 1, '賺超過這個' + pu + '數才開始跟；0＝一進場就跟') +
+      (fut ? F('marginInit', '原始保證金（％）', inst.marginInit, 0.5, '權益低於「口數 × 價格 × 每點 × 這個比例」就不能再下單') + F('marginMaint', '維持保證金（％）', inst.marginMaint, 0.5, '權益低於這個比例當根收盤強制平倉') + F('rollCost', '換月成本（點）', inst.rollCost, 0.5, '持倉跨過結算日，賣舊買新各付這麼多點的滑價')
+        : F('marginCall', '追繳維持率（％，空單）', c.marginCall, 5, '融券空單：現金含融券價款 ÷ 空單市值低於這個比例，當根收盤強制回補；0＝不追繳') + F('borrowFee', '借券費（年率％，空單）', inst.borrowFee, 0.1, '放空每天依空單市值的年率計收；0＝不計')) + F('maxLoss', '最大日內虧損出場（權益％）', c.maxLoss, 0.1, '單根 K 棒內虧損超過前一根收盤權益的這個比例就出場；0＝不設') +
       '<button type="button" class="lab-clear" id="labReset">還原預設成本</button></div>' + evtFields(S);
   }
   /* 事件當濾網：事件窗內不進場／只在窗內進場、進入窗就平倉（事件日期表見 pipeline/groups/events_history.yaml） */
@@ -258,8 +271,46 @@
       '<div class="lab-plist" id="labPl">' + list + '</div>';
   }
   /* 圖上已加的指標：每個一顆小標籤（名稱＋參數）、齒輪開設定（輸入／樣式）、× 移除 */
+  /* 指標數值圖例：滑到哪一根就顯示那一根的值（沒有滑鼠就顯示最新一根）。公式與回測引擎同一份（E.I），不另寫一套。 */
+  function applyLog(S) {
+    try { if (CH.k) CH.k.priceScale('right').applyOptions({ mode: S.log ? 1 : 0 }); } catch (e) { /* 圖剛銷毀 */ }
+    const b = $('#labLog'); if (b) { b.setAttribute('aria-pressed', S.log ? 'true' : 'false'); b.classList.toggle('on', !!S.log); }
+  }
+  function indArr(S, it) {
+    const B = S.B, I = E.I, n = +it.n || 0; S.lgc = S.lgc || {};
+    const key = S.sym + '|' + S.tf + '|' + B.n + '|' + JSON.stringify(it); if (S.lgc[key]) return S.lgc[key];
+    let r = null;
+    if (it.id === 'ma') r = { a: I.sma(B.c, n || 20) };
+    else if (it.id === 'ema') r = { a: I.ema(B.c, n || 20) };
+    else if (it.id === 'boll') r = { raw: I.boll(B.c, n || 20, +it.k || 2) };
+    else if (it.id === 'kd') r = I.kd(B.h, B.l, B.c, n || 9, +it.m1 || 3, +it.m2 || 3);
+    else if (it.id === 'macd') r = I.macd(B.c, +it.f || 12, +it.s || 26, +it.g || 9);
+    else if (it.id === 'rsi') r = { a: I.rsi(B.c, n || 14) };
+    else if (it.id === 'atr') r = { a: I.atr(B.h, B.l, B.c, n || 14) };
+    else if (it.id === 'sar') r = { a: I.sar(B.h, B.l, +it.s || 0.02, +it.i || 0.02, +it.m || 0.2).sar };
+    else if (it.id === 'st') r = { a: I.supertrend(B.h, B.l, B.c, n || 10, +it.m || 3).line };
+    else if (it.id === 'vol') r = { a: B.v };
+    S.lgc[key] = r || {}; return S.lgc[key];
+  }
+  function legendAt(S, p) {
+    if (!S.B || !S.ind) return;
+    const B = S.B; let i = B.n - 1;
+    if (p && p.time) { if (!S.timeIdx) { S.timeIdx = {}; for (let j = 0; j < B.n; j++) S.timeIdx[LabK.ltime(B, j)] = j; } if (S.timeIdx[p.time] != null) i = S.timeIdx[p.time]; }
+    const f = (x, d) => (Number.isFinite(x) ? fmt(x, d == null ? 2 : d) : '—');
+    $$('#labChips .lab-cv').forEach((el) => {
+      const it = S.ind[+el.dataset.i]; if (!it) return;
+      let r; try { r = indArr(S, it); } catch (e) { r = {}; }
+      let t = '';
+      if (it.id === 'kd') t = 'K ' + f(r.k && r.k[i]) + ' D ' + f(r.d && r.d[i]);
+      else if (it.id === 'macd') t = f(r.dif && r.dif[i]) + ' / ' + f(r.dea && r.dea[i]) + ' / ' + f(r.osc && r.osc[i]);
+      else if (it.id === 'boll') { const x = r.raw || {}; const u = x.up || x.u || x.upper, l = x.low || x.l || x.lower; t = f(u && u[i]) + ' / ' + f(l && l[i]); }
+      else if (it.id === 'vol') t = f(r.a && r.a[i], 0);
+      else t = f(r.a && r.a[i]);
+      el.textContent = t;
+    });
+  }
   function chipsHTML(S) {
-    return S.ind.map((it, i) => { const d = LabK.BY[it.id]; const par = (d.p || []).map(([k]) => it[k]).join(','); return '<span class="lab-chip" data-i="' + i + '"><b>' + esc(d.name.split(' ')[0]) + (par ? ' ' + par : '') + '</b>' + (d.p.length ? '<button type="button" class="lab-cg" data-cg="' + i + '" aria-label="設定" title="設定">⚙</button>' : '') + '<button type="button" class="lab-cx" data-cx="' + i + '" aria-label="移除" title="移除">×</button></span>'; }).join('');
+    return S.ind.map((it, i) => { const d = LabK.BY[it.id]; const par = (d.p || []).map(([k]) => it[k]).join(','); return '<span class="lab-chip" data-i="' + i + '"><b>' + esc(d.name.split(' ')[0]) + (par ? ' ' + par : '') + '</b><i class="lab-cv" data-i="' + i + '"></i>' + (d.p.length ? '<button type="button" class="lab-cg" data-cg="' + i + '" aria-label="設定" title="設定">⚙</button>' : '') + '<button type="button" class="lab-cx" data-cx="' + i + '" aria-label="移除" title="移除">×</button></span>'; }).join('');
   }
   function indSetHTML(S, i) {
     const it = S.ind[i], d = it && LabK.BY[it.id]; if (!it) return '';
@@ -282,6 +333,7 @@
     const body = $('#labBody'); if (!body) return;
     const B = S.B; if (!B) return;
     const key = S.sym + '|' + S.tf;
+    if (!S.res) { const st0 = $('#labStats'); if (st0 && !st0.querySelector('.lab-st')) st0.innerHTML = '<div class="lab-note lab-loading" role="status">回測計算中…</div>'; }
     try {
       await ensureLoaded(key, B);
       let strat;
@@ -344,7 +396,8 @@
       CH.kv = kv; CH.k = kv.chart; CH.cs = kv.candle; CH.key = key;
       kv.set(B.n - 1, false);
       kv.enableDraw($('#labDraw'));
-      kv.chart.subscribeCrosshairMove((p) => { if (!S.tipPin) tipAt(S, p); });
+      kv.chart.subscribeCrosshairMove((p) => { legendAt(S, p && p.time ? p : null); if (!S.tipPin) tipAt(S, p); });
+      applyLog(S);
       kv.chart.subscribeClick((p) => { tipAt(S, p); S.tipPin = !$('#labTip').hidden; });
       kv.chart.timeScale().setVisibleLogicalRange({ from: Math.max(0, from - 2), to: B.n + 3 });
     }
@@ -364,6 +417,7 @@
     all.forEach((t) => { if (t.i0 >= from) addTip(t.i0, t); if (!t.open) addTip(t.i1, t); });
     S.timeIdx = null;
     const ch = $('#labChips'); if (ch) ch.innerHTML = chipsHTML(S);
+    legendAt(S, null); fitK(S);
     $$('#labCt button').forEach((b) => b.classList.toggle('on', b.dataset.c === S.ctype));
     paintKeys(S); paintTester(S);
   }
@@ -394,7 +448,15 @@
     const s = S.res.stats, el = $('#labStats'); if (!el) return;
     const T = (lab, val, sub, c2, tip) => '<div class="lab-st" title="' + esc(tip || '') + '"><span>' + lab + '</span><b class="' + (c2 || '') + '">' + val + '</b><small>' + (sub || '') + '</small></div>';
     const pf = s.all.pf == null ? '—' : s.all.pf === Infinity ? '∞' : s.all.pf.toFixed(2);
+    const B = S.B, r = S.res, nT = s.all.nClosed || 0;
+    const gap = s.ret - s.bhRet;
+    const verdict = nT === 0 && !(r.opens && r.opens.length)
+      ? '這段期間這套規則沒有產生任何交易，可以換週期、放寬參數或拉長期間'
+      : '<span class="lab-vd"><b>' + E.dayToStr(B.day[r.from]) + ' 到 ' + E.dayToStr(B.day[r.to]) + '</b>：</span>照這套規則做 <b class="' + cls(s.ret) + '">' + sgn(s.ret, 1) + '%</b>，買進持有 <b class="' + cls(s.bhRet) + '">' + sgn(s.bhRet, 1) + '%</b>，' + (Math.abs(gap) < 0.05 ? '兩者差不多' : '<b>' + (gap > 0 ? '多賺 ' : '少賺 ') + fmt(Math.abs(gap), 1) + ' 個百分點</b>') + '；中途最深回撤 −' + s.mddP.toFixed(1) + '%';
+    const cl = (r.calls || []).map((c) => '<b>' + E.dayToStr(B.day[Math.min(c.i, B.n - 1)]) + '</b> ' + esc(c.why));
+    const callsHTML = cl.length ? '<div class="lab-calls" role="alert">⚠ ' + cl.slice(0, 2).join('；') + (cl.length > 2 ? '；另 ' + (cl.length - 2) + ' 次' : '') + '</div>' : '';
     el.innerHTML =
+      '<div class="lab-verdict" role="status">' + verdict + '</div>' + callsHTML +
       T('總損益', sgn(s.net, 0), sgn(s.ret, 2) + '%', cls(s.net), '含未平倉損益，已扣手續費、證交稅、滑價') +
       T('最大回撤', fmt(-s.mdd, 0), '−' + s.mddP.toFixed(2) + '%', s.mdd > 0 ? 'dn' : '', '權益（含未平倉浮動損益）從高點往下的最大跌幅') +
       T('獲利交易', s.all.win == null ? '—' : s.all.win.toFixed(2) + '%', s.all.nWin + ' / ' + s.all.nClosed, '', '已平倉交易中賺錢的比例') +
@@ -493,7 +555,9 @@
     const r = S.res;
     return r.trades.map((t, i) => Object.assign({ no: i + 1 }, t)).concat((r.opens || []).map((t, i) => Object.assign({ no: r.trades.length + i + 1 }, t)));
   }
-  const TCOL = [['no', '#'], ['dir', '方向'], ['i0', '進場時間'], ['i1', '出場時間'], ['p0', '進場價'], ['p1', '出場價'], ['qty', '數量'], ['pnl', '損益'], ['pnlP', '損益%'], ['cum', '累積損益'], ['mfe', 'MFE'], ['mae', 'MAE']];
+  /* 交易清單（對照 TradingView）：一筆交易兩列——進場列（時間、價格、進場訊號、數量）、出場列（時間、價格、出場原因、損益、累積）。
+     第 8 欄固定是損益；排序以「整筆交易」為單位，兩列一起移動。點任一列鎖定那一筆（只有出場列掛 .on，進場列掛 .pr 一起亮）。 */
+  const TCOL = [['no', '#', 1], ['ty', '類型', 0], ['dir', '方向', 1], ['i0', '時間', 1], ['p0', '價格', 1], ['why', '訊號／原因', 0], ['qty', '數量', 1], ['pnl', '損益', 1], ['pnlP', '損益%', 1], ['cum', '累積損益', 1], ['mfe', 'MFE', 1], ['mae', 'MAE', 1]];
   function tradesHTML(S) {
     const B = S.B, all = tradeRows(S);
     if (!all.length) return '<div class="lab-note">這段期間沒有交易</div>';
@@ -502,8 +566,15 @@
     const rows = all.slice().sort((a, b) => (a[k] < b[k] ? -1 : a[k] > b[k] ? 1 : 0) * d);
     const lim = mob && !S.rowsAll ? 10 : rows.length;
     const hold = (t) => (B.tf === '60' ? t.bars + ' 根' : B.tf === 'D' ? (B.day[Math.min(t.i1, B.n - 1)] - B.day[t.i0]) + ' 日' : t.bars + ' 根');
-    return '<div class="lab-trbar"><button type="button" class="lab-clear" id="labCsv">匯出 CSV</button></div><div class="lab-twrap"><table class="lab-tbl"><thead><tr>' + TCOL.map(([kk, n], i) => '<th data-k="' + kk + '" class="lab-sort' + (i >= 9 ? ' lab-hm' : '') + (kk === k ? ' on' : '') + '" role="columnheader" aria-sort="' + (kk === k ? (d > 0 ? 'ascending' : 'descending') : 'none') + '">' + n + (kk === k ? (d > 0 ? ' ▲' : ' ▼') : '') + '</th>').join('') + '</tr></thead><tbody>' +
-      rows.slice(0, lim).map((t) => '<tr data-i="' + (t.no - 1) + '" class="' + (S.sel === t.no - 1 ? 'on' : '') + '" title="' + esc('進場：' + (t.entryWhy || '') + '｜出場：' + (t.why || '') + '｜持有 ' + hold(t)) + '"><td>' + t.no + '</td><td class="' + (t.dir === 1 ? 'up' : 'dn') + '">' + (t.dir === 1 ? '多' : '空') + '</td><td>' + tstr(B, t.i0) + '</td><td>' + (t.open ? '未平倉' : tstr(B, t.i1)) + '</td><td>' + fmt(t.p0, 2) + '</td><td>' + fmt(t.p1, 2) + '</td><td>' + fmt(t.qty, 0) + '</td><td class="' + cls(t.pnl) + '">' + sgn(t.pnl, 0) + '</td><td class="' + cls(t.pnl) + '">' + sgn(t.pnlP, 2) + '%</td><td class="lab-hm ' + cls(t.cum) + '">' + sgn(t.cum, 0) + '</td><td class="lab-hm">' + fmt(t.mfe, 0) + '</td><td class="lab-hm">' + fmt(t.mae, 0) + '</td></tr>').join('') +
+    const head = TCOL.map(([kk, n, sortable], i) => '<th' + (sortable ? ' data-k="' + kk + '" class="lab-sort' + (i >= 9 ? ' lab-hm' : '') + (kk === k ? ' on' : '') + '" role="columnheader" aria-sort="' + (kk === k ? (d > 0 ? 'ascending' : 'descending') : 'none') + '"' : (i >= 9 ? ' class="lab-hm"' : '')) + '>' + n + (kk === k ? (d > 0 ? ' ▲' : ' ▼') : '') + '</th>').join('');
+    const body = rows.slice(0, lim).map((t) => {
+      const dir = '<td class="' + (t.dir === 1 ? 'up' : 'dn') + '">' + (t.dir === 1 ? '多' : '空') + '</td>';
+      const tip = esc('進場：' + (t.entryWhy || '') + '｜出場：' + (t.why || '') + '｜持有 ' + hold(t));
+      const sel = S.sel === t.no - 1;
+      return '<tr data-i="' + (t.no - 1) + '" class="en' + (sel ? ' pr' : '') + '" title="' + tip + '"><td rowspan="1">' + t.no + '</td><td>進場</td>' + dir + '<td>' + tstr(B, t.i0) + '</td><td>' + fmt(t.p0, 2) + '</td><td class="lab-why">' + esc(t.entryWhy || '') + '</td><td>' + fmt(t.qty, 0) + '</td><td></td><td></td><td class="lab-hm"></td><td class="lab-hm"></td><td class="lab-hm"></td></tr>' +
+        '<tr data-i="' + (t.no - 1) + '" class="ex' + (sel ? ' on' : '') + '" title="' + tip + '"><td></td><td>' + (t.open ? '未平倉' : '出場') + '</td>' + dir + '<td>' + (t.open ? '—' : tstr(B, t.i1)) + '</td><td>' + fmt(t.p1, 2) + '</td><td class="lab-why">' + esc(t.open ? '' : (t.why || '')) + '</td><td>' + fmt(t.qty, 0) + '</td><td class="' + cls(t.pnl) + '">' + sgn(t.pnl, 0) + '</td><td class="' + cls(t.pnl) + '">' + sgn(t.pnlP, 2) + '%</td><td class="lab-hm ' + cls(t.cum) + '">' + sgn(t.cum, 0) + '</td><td class="lab-hm">' + fmt(t.mfe, 0) + '</td><td class="lab-hm">' + fmt(t.mae, 0) + '</td></tr>';
+    }).join('');
+    return '<div class="lab-trbar"><button type="button" class="lab-clear" id="labCsv">匯出 CSV</button></div><div class="lab-twrap"><table class="lab-tbl lab-trades"><thead><tr>' + head + '</tr></thead><tbody>' + body +
       '</tbody></table></div>' + (lim < rows.length ? '<button type="button" class="lab-more" id="labMore">看全部 ' + rows.length + ' 筆</button>' : '');
   }
   function csvOf(S) {
@@ -526,7 +597,8 @@
     S.sel = i;
     const a = Math.max(0, t.i0 - 12), b = Math.min(S.B.n - 1, t.i1 + 12);
     try { CH.k.timeScale().setVisibleLogicalRange({ from: a, to: b }); } catch (e) { /* 圖已銷毀 */ }
-    $$('#labTBody tbody tr').forEach((tr) => tr.classList.toggle('on', +tr.dataset.i === i));
+    $$('#labTBody tbody tr.ex').forEach((tr) => tr.classList.toggle('on', +tr.dataset.i === i));
+    $$('#labTBody tbody tr.en').forEach((tr) => tr.classList.toggle('pr', +tr.dataset.i === i));
   }
 
   /* ---------------------------------------------------------------- 控制列同步 */
@@ -636,6 +708,7 @@
       if (t.closest('[data-iclose]')) { $('#labIndSet').hidden = true; S.setI = -1; return; }
       const idf = t.closest('[data-idef]'); if (idf) { const i = +idf.dataset.idef, d = LabK.BY[S.ind[i].id]; d.p.forEach(([k, , def]) => { S.ind[i][k] = def; }); applyInd(S); $('#labIndSet').innerHTML = indSetHTML(S, i); return; }
       const icl = t.closest('[data-iclr]'); if (icl) { const i = +icl.dataset.iclr; delete S.ind[i].color; delete S.ind[i].w; applyInd(S); $('#labIndSet').innerHTML = indSetHTML(S, i); return; }
+      const lg = t.closest('#labLog'); if (lg) { S.log = !S.log; applyLog(S); return; }
       const ct = t.closest('#labCt button'); if (ct) { S.ctype = ct.dataset.c; if (CH.kv) CH.kv.setType(S.ctype); $$('#labCt button').forEach((b) => b.classList.toggle('on', b.dataset.c === S.ctype)); return; }
       const di = t.closest('.lab-di'); if (di) { $('#labSymDD').hidden = true; await setSymbol(S, di.dataset.c); return; }
       if (t.closest('#labReset')) { delete S.costs[kindOf(S.sym)]; syncBar(S); recompute(S); return; }
@@ -644,7 +717,7 @@
       if (t.closest('#labCsv')) { downloadCsv(S); return; }
       if (t.closest('#labMore')) { S.rowsAll = true; paintTester(S); return; }
       const th = t.closest('#labTBody th.lab-sort'); if (th) { const k = th.dataset.k; if (S.sortK === k) S.sortD = -S.sortD; else { S.sortK = k; S.sortD = -1; } paintTester(S); return; }
-      const tr = t.closest('#labTBody tbody tr'); if (tr && S.tt === 'tr') { const i = +tr.dataset.i; if (S.sel === i) { S.sel = -1; resetView(S); $$('#labTBody tbody tr').forEach((x) => x.classList.remove('on')); } else focusTrade(S, i); return; }
+      const tr = t.closest('#labTBody tbody tr'); if (tr && S.tt === 'tr') { const i = +tr.dataset.i; if (S.sel === i) { S.sel = -1; resetView(S); $$('#labTBody tbody tr').forEach((x) => x.classList.remove('on', 'pr')); } else focusTrade(S, i); return; }
     };
     body.oninput = (e) => {
       const t = e.target;
@@ -684,6 +757,14 @@
   function applyInd(S) {
     if (CH.kv) CH.kv.applyInd(S.ind);
     const ch = $('#labChips'); if (ch) ch.innerHTML = chipsHTML(S);
+    legendAt(S, null); fitK(S);
+  }
+  /* 手機：每多一個副圖就把 K 線區加高，副圖才不會被壓成細線（桌機高度由 CSS 的 clamp 決定，這裡不動） */
+  function fitK(S) {
+    const kc = $('#labK') && $('#labK').parentElement; if (!kc) return;
+    const mob = window.matchMedia && window.matchMedia('(max-width:640px)').matches;
+    const nsub = S.ind.filter((x) => x.id === 'kd' || x.id === 'macd' || x.id === 'rsi' || x.id === 'atr').length;
+    kc.style.height = mob && nsub ? (300 + nsub * 110) + 'px' : '';
   }
   function filterPick(v) {
     const q = String(v || '').trim().toLowerCase();
@@ -715,7 +796,7 @@
     const root = $('#v-lab'); if (!root) return;
     if (!gate()) { if (!known) root.innerHTML = '<div class="empty">確認登入身分中…</div>'; return; }
     const sub = rest[0];
-    if (!SUBS.some((x) => x[0] === sub)) { location.replace('#lab/' + SUBS[0][0]); return; }
+    if (!SUBS.some((x) => x[0] === sub)) { const al = { events: 'evt', event: 'evt', futures: 'fut', backtest: 'bt', strategy: 'custom' }[sub]; if (al) { location.replace('#lab/' + al); return; } location.replace('#lab/' + SUBS[0][0]); return; }
     if (inLab && curSub === sub && $('#labBody')) return;
     if (curSub && MODS[curSub]) { try { MODS[curSub].unmount && MODS[curSub].unmount(); } catch (e) { /* 忽略 */ } }
     inLab = true; curSub = sub;

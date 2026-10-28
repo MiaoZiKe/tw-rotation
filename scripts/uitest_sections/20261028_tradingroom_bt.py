@@ -92,10 +92,10 @@ def t_lab_bt(b, base, code):
     pg.locator("#labTBody tbody tr").nth(3).click(); pg.wait_for_timeout(300)
     ok(f"{T}：再點同一列取消鎖定", pg.locator("#labTBody tbody tr.on").count() == 0, None)
     # 排序
-    first = pg.inner_text("#labTBody tbody tr:first-child td:nth-child(8)")
+    first = pg.locator("#labTBody tbody tr.ex").first.locator("td:nth-child(8)").inner_text()
     pg.click("#labTBody th[data-k='pnl']"); pg.wait_for_timeout(200)
     pg.click("#labTBody th[data-k='pnl']"); pg.wait_for_timeout(200)
-    asc = pg.evaluate("() => [...document.querySelectorAll('#labTBody tbody tr td:nth-child(8)')].map(td => +td.textContent.replace(/[+,−]/g, m => m === '−' ? '-' : ''))")
+    asc = pg.evaluate("() => [...document.querySelectorAll('#labTBody tbody tr.ex td:nth-child(8)')].map(td => +td.textContent.replace(/[+,−]/g, m => m === '−' ? '-' : ''))")
     ok(f"{T}：點欄名「損益」排序真的改變順序", asc == sorted(asc), asc[:4])
     # 匯出 CSV
     with pg.expect_download(timeout=5000) as dl:

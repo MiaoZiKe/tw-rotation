@@ -1,0 +1,116 @@
+/* 交易練習室（#lab）介面優化 2026-10-30：版面密度、第一屏、空狀態、載入中、手機手感。
+   只動 #v-lab（管理者限定頁）；桌機規則放 min-width:641px、手機規則全包在 max-width:640px。間距只用 4／8／12／16／24。 */
+
+/* ---- 共用：結論一句話、載入中、空狀態 ---- */
+#v-lab .lab-verdict{grid-column:1/-1;font-size:14px;color:var(--ink-2);line-height:1.5;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+#v-lab .lab-verdict b{color:var(--ink);font-weight:700}
+#v-lab .lab-verdict b.up{color:var(--rise)}
+#v-lab .lab-verdict b.dn{color:var(--fall)}
+#v-lab .lab-loading{position:relative;overflow:hidden;grid-column:1/-1;border-radius:var(--r-sm);background:var(--panel-2);min-height:64px;display:flex;align-items:center}
+#v-lab .lab-loading::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent,color-mix(in srgb,var(--cyan) 14%,transparent),transparent);transform:translateX(-100%);animation:labshim 1.2s infinite}
+@keyframes labshim{to{transform:translateX(100%)}}
+@media (prefers-reduced-motion:reduce){#v-lab .lab-loading::after{animation:none}}
+#v-lab .lab-tabs a{white-space:nowrap}
+
+/* 自訂策略空狀態：範本卡片（site/lab/ux.js 產生） */
+#v-lab .cu-start{display:flex;flex-direction:column;gap:var(--sp-3)}
+#v-lab .cu-st-h{font-size:16px;font-weight:600;display:flex;align-items:center;gap:var(--sp-2)}
+#v-lab .cu-st-h::before{content:"";width:4px;height:14px;background:var(--cyan);border-radius:2px}
+#v-lab .cu-cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--sp-2)}
+#v-lab .cu-card{display:flex;align-items:center;gap:var(--sp-2);text-align:left;min-height:56px;padding:var(--sp-2) var(--sp-3);border:1px solid var(--line-2);border-radius:var(--r-sm);background:var(--panel-2);color:var(--ink);cursor:pointer;font-size:14px;line-height:1.4}
+#v-lab .cu-card:hover,#v-lab .cu-card:focus-visible{border-color:var(--cyan);background:color-mix(in srgb,var(--cyan) 10%,var(--panel-2))}
+#v-lab .cu-card::before{content:"＋";color:var(--cyan);font-weight:700;flex:none}
+#v-lab .cu-st-f{display:flex;gap:var(--sp-2)}
+
+/* K 線重播：還沒選起點時，下單面板與成績單先收起，圖吃滿寬，圖上一句提示 */
+#v-lab .lab-body:has(.rp-ticket.off) .rp-main{grid-template-columns:minmax(0,1fr)}
+#v-lab .lab-body:has(.rp-ticket.off) .rp-ticket,
+#v-lab .lab-body:has(.rp-ticket.off) .rp-tabs,
+#v-lab .lab-body:has(.rp-ticket.off) .rp-panel{display:none}
+#v-lab .lab-body:has(.rp-ticket.off) .rp-kc::after{content:"選個起點，圖會倒回那天，之後一根一根往前播";position:absolute;left:50%;top:12px;transform:translateX(-50%);max-width:calc(100% - 24px);padding:var(--sp-1) var(--sp-3);border:1px solid var(--line-2);border-radius:999px;background:var(--panel);color:var(--ink-2);font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;pointer-events:none;z-index:6}
+#v-lab #rpRand{background:var(--cyan);color:var(--bg,#04121a);border-color:var(--cyan);font-weight:700}
+
+@media (min-width:641px){
+  /* 回測：參數列與指標列併成一排，K 線高度跟著螢幕高度（第一屏看到 K 線＋四張數字卡） */
+  #v-lab .lab-row2{display:flex;flex-wrap:wrap;align-items:center;gap:var(--sp-2) var(--sp-4);margin-bottom:var(--sp-2)}
+  #v-lab .lab-row2 .lab-params{flex:0 1 auto;margin:0;min-height:0}
+  #v-lab .lab-row2 .lab-params:empty{display:none}
+  #v-lab .lab-row2 .lab-ktool{flex:1 1 440px;margin:0}
+  #v-lab .lab-kc{height:clamp(340px,calc(100vh - 440px),560px)}
+  #v-lab .lab-draw{max-height:none}
+  #v-lab .rp-kc{height:clamp(360px,calc(100vh - 400px),560px)}
+  #v-lab .lab-st{min-height:56px;padding:var(--sp-1) var(--sp-3)}
+  #v-lab .lab-thead{margin-bottom:var(--sp-2)}
+  #v-lab .lab-tester{margin-top:var(--sp-2)}
+  /* 事件分析：上排兩張卡等高，明細不把整頁撐太長 */
+  #v-lab .ev-ch{height:280px}
+  #v-lab .ev-tw{max-height:280px}
+}
+
+@media (max-width:640px){
+  /* 分頁列：觸控高度 40、右緣漸層提示還能橫拖 */
+  #v-lab .lab-tabs{flex-wrap:nowrap;overflow-x:auto;overscroll-behavior-x:contain;scrollbar-width:none;-webkit-overflow-scrolling:touch;
+    -webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 28px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 28px),transparent)}
+  #v-lab .lab-tabs::-webkit-scrollbar{display:none}
+  #v-lab .lab-tabs a{min-height:40px;display:inline-flex;align-items:center;flex:none}
+  #v-lab .lab-tabs .lab-how{flex:none;margin-left:0}
+  /* 回測：數字卡壓扁，第一屏要看到 K 線＋數字 */
+  #v-lab .lab-st{min-height:52px;padding:var(--sp-1) var(--sp-2)}
+  #v-lab .lab-st b{font-size:16px}
+  #v-lab .lab-verdict{white-space:normal;font-size:13px}
+  #v-lab .lab-vd{display:none}
+  #v-lab .lab-row2{display:block}
+  /* 重播：起點的主按鈕「隨機」最大，其餘兩顆並排 */
+  #v-lab .rp-start{display:grid;grid-template-columns:1fr 1fr;gap:var(--sp-2);width:100%}
+  #v-lab .rp-start .lab-f{grid-column:1/-1}
+  #v-lab .rp-start .lab-clear{min-height:44px}
+  #v-lab #rpRand{grid-column:1/-1;order:-1}
+  #v-lab .lab-body:has(.rp-ticket.off) .rp-kc::after{white-space:normal;text-align:center;top:8px;border-radius:var(--r-sm)}
+  /* 重播進行中：操作列黏在上緣、觸控 44 */
+  #v-lab .rp-ctl{position:sticky;top:0;z-index:12;background:var(--panel);padding:var(--sp-1) 0}
+  #v-lab .rp-ctl .lab-clear,#v-lab .rp-ctl .lab-gear{min-height:44px;flex:1}
+  #v-lab .rp-buy,#v-lab .rp-sell{height:48px}
+  /* 下單面板：數量與買賣鈕排最前面（預設市價單），委託類型、價格、停利停損、想法往後放 */
+  #v-lab .rp-ticket>*{order:5}
+  #v-lab .rp-ticket>.rp-tk-h{order:0}
+  #v-lab .rp-ticket>.lab-fld:nth-child(2){order:1}
+  #v-lab .rp-ticket>.rp-two:has(.rp-buy){order:2}
+  #v-lab .rp-ticket>#rpFlat{order:3;min-height:44px}
+  #v-lab .rp-ticket>.rp-msg{order:4}
+  /* 事件分析、自訂策略 */
+  #v-lab .ev-tw{max-height:220px}
+  #v-lab .ev-ch{height:220px}
+  #v-lab .cu-cards{grid-template-columns:minmax(0,1fr)}
+  #v-lab .cu-card{min-height:48px}
+}
+
+/* ---- 指標數值圖例、對數座標鈕 ---- */
+#v-lab .lab-cv{font-style:normal;font-family:var(--mono,inherit);font-size:12px;color:var(--ink-2);margin:0 var(--sp-1);white-space:nowrap}
+#v-lab .lab-cv:empty{display:none}
+#v-lab .lab-log{min-width:0;flex:none;padding:0 var(--sp-3)}
+#v-lab .lab-log.on{border-color:var(--cyan);color:var(--cyan);font-weight:700}
+#v-lab .lab-chk{white-space:nowrap}
+#v-lab .lab-chk input{width:18px;height:18px}
+
+@media (max-width:640px){
+  /* 交易清單：先看 #、方向、進場時間、出場價、損益、損益%（出場時間、進場價、數量點該列看或匯出） */
+  #v-lab .lab-trades :is(th,td):is(:nth-child(1),:nth-child(6),:nth-child(7)){display:none}
+  #v-lab .lab-chk{min-height:44px}
+  #v-lab .lab-chk input{width:22px;height:22px}
+  #v-lab .lab-log{min-height:40px}
+  #v-lab .lab-ktool{flex-wrap:wrap}
+  #v-lab .lab-chips{flex:1 1 100%;order:9}
+}
+@media (min-width:641px){
+  /* 加了三個以上指標：指標列獨佔一整排，標籤橫著排、不一個一行 */
+  #v-lab .lab-row2:has(.lab-chip:nth-child(3)) .lab-ktool{flex-basis:100%}
+}
+
+/* ---- 交易清單：進場、出場兩列成一組；追繳警示 ---- */
+#v-lab .lab-trades tbody tr.ex td{border-top:0}
+#v-lab .lab-trades tbody tr.en td{border-top:1px solid var(--line-2)}
+#v-lab .lab-trades tbody tr.pr,#v-lab .lab-trades tbody tr.on{background:color-mix(in srgb,var(--cyan) 14%,transparent)}
+#v-lab .lab-trades .lab-why{text-align:left;max-width:180px;overflow:hidden;text-overflow:ellipsis;font-family:inherit;font-size:13px;color:var(--ink-2)}
+#v-lab .lab-trades tr.en td:nth-child(2){color:var(--ink-3)}
+#v-lab .lab-calls{grid-column:1/-1;font-size:13px;color:var(--amber);line-height:1.5}
+#v-lab .lab-calls b{color:var(--amber)}

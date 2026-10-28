@@ -309,8 +309,8 @@
   /* ---------------------------------------------------------------- 商品與成本設定 */
   /** 各種標的的預設成本。fee 單位％；slip：股票為％、台指期為點。 */
   function instDefaults(kind) {
-    if (kind === 'fut') return { kind: 'fut', mult: 200, futFee: 40, futTax: 0.002, slip: 1, feeMin: 0, feeRate: 0, feeDisc: 1, taxRate: 0 };
-    return { kind, mult: 1, futFee: 0, futTax: 0, slip: 0.05, feeMin: 20, feeRate: 0.1425, feeDisc: 1, taxRate: kind === 'stock' ? 0.3 : 0.1 };
+    if (kind === 'fut') return { kind: 'fut', mult: 200, futFee: 40, futTax: 0.002, slip: 1, rollCost: 4, marginInit: 10, marginMaint: 8, feeMin: 0, feeRate: 0, feeDisc: 1, taxRate: 0 };
+    return { kind, borrowFee: 0, mult: 1, futFee: 0, futTax: 0, slip: 0.05, feeMin: 20, feeRate: 0.1425, feeDisc: 1, taxRate: kind === 'stock' ? 0.3 : 0.1 };
   }
 
   /* ---------------------------------------------------------------- 回測主迴圈 */
@@ -334,6 +334,7 @@
     const fee = (notional, qty) => (fut ? inst.futFee * qty : Math.max(inst.feeMin, notional * feeEff));
     const tax = (notional, isSell) => (fut ? notional * inst.futTax / 100 : (isSell ? notional * inst.taxRate / 100 : 0));
 
+    const marginCall = cfg.marginCall == null ? 130 : +cfg.marginCall;
     let cash = cfg.capital, pos = 0, lots = [], eqPrev = cfg.capital;
     const trades = [], eq = new Float64Array(to - from + 1), bh = new Float64Array(to - from + 1);
     const o0 = B.o[from];
@@ -347,8 +348,10 @@
       else {
         const budget = cfg.sizeMode === 'amount' ? cfg.sizeVal : equity * cfg.sizeVal / 100;
         q = fut ? Math.floor(budget / (p * mult)) : Math.floor(Math.min(budget, cash) / (p * (1 + feeEff)));
+        if (fut && q < 1 && equity >= p * mult * inst.marginInit / 100) q = 1;     // 資金不夠 1 倍名目但付得起 1 口原始保證金：下 1 口（槓桿 > 1）
       }
       if (q < 1 || equity <= 0) return false;
+      if (fut) { const used = lots.reduce((a, x) => a + x.q, 0) + q; if (equity < used * p * mult * inst.marginInit / 100) return false; }    // 期貨：權益不足原始保證金就不能下單（重播、回測同一套）
       const f = fee(p * q * mult, q), t = tax(p * q * mult, dir === -1);
       if (fut) cash -= f + t; else if (dir === 1) cash -= p * q + f; else cash += p * q - f - t;
       pos = dir;
@@ -361,12 +364,12 @@
       const exFee = fee(p * L.q * mult, L.q), exTax = tax(p * L.q * mult, pos === 1);
       const gross = pos * (p - L.p) * L.q * mult;
       if (fut) cash += gross - exFee - exTax; else if (pos === 1) cash += p * L.q - exFee - exTax; else cash -= p * L.q + exFee;
-      const costs = L.fee + L.tax + exFee + exTax, notional = L.p * L.q * mult;
+      const costs = L.fee + L.tax + exFee + exTax + (L.borrow || 0), notional = L.p * L.q * mult;
       trades.push({ dir: pos, i0: L.i0, i1: i, p0: L.p, p1: p, qty: L.q, gross, costs, pnl: gross - costs, pnlP: (gross - costs) / notional * 100, bars: i - L.i0, mfe: L.mfe * L.q * mult, mae: L.mae * L.q * mult, mfeP: L.mfe / L.p * 100, maeP: L.mae / L.p * 100, why, entryWhy: L.why, open: false, notional });
     }
     function closeAll(i, raw, why) { for (const L of lots) closeLot(L, i, raw, why); lots = []; pos = 0; }
 
-    let maxQ = 0;
+    let maxQ = 0, halted = false; const calls = [];
     let pend = [];   // 前一根收盤決定的單：{dir（1／－1／0＝全平）, kind:'mkt'|'stop'|'limit', price, why}
     function execPending(i, o, h, l) {
       let ocaDone = false;
@@ -384,8 +387,9 @@
         else if (od.kind === 'stop') { if (od.dir === 1 ? h >= od.price : l <= od.price) { fill = od.dir === 1 ? Math.max(o, od.price) : Math.min(o, od.price); mid = fill !== o; } }
         else if (od.dir === 1 ? l <= od.price : h >= od.price) { fill = od.dir === 1 ? Math.min(o, od.price) : Math.max(o, od.price); mid = fill !== o; }
         if (Number.isNaN(fill)) continue;
-        if (pos === -od.dir) closeAll(i, o, od.why);
-        if (pos === 0 || (pos === od.dir && lots.length < pyr)) { if (openLot(i, od.dir, fill, od.why, mid) && od.oca) ocaDone = true; }
+        const rev = pos === -od.dir;      // 反手：舊部位的出場原因是「反向訊號」，但新部位的進場原因要是「做多／做空訊號」（匯出 CSV 的進場訊號欄才不會寫成反向訊號）
+        if (rev) closeAll(i, o, od.why);
+        if (pos === 0 || (pos === od.dir && lots.length < pyr)) { if (openLot(i, od.dir, fill, rev ? (od.dir === 1 ? '做多訊號' : '做空訊號') : od.why, mid) && od.oca) ocaDone = true; }
       }
       pend = [];
     }
@@ -404,11 +408,18 @@
         let lvl = d === 1 ? -Infinity : Infinity, why = '';
         const cand = (v, w) => { if (d === 1 ? v > lvl : v < lvl) { lvl = v; why = w; } };
         if (cfg.sl > 0) cand(L.p * (1 - d * cfg.sl / 100), '停損');
+        if (cfg.slPts > 0) cand(L.p - d * cfg.slPts, '停損（點數）');
+        if (cfg.slAmt > 0) cand(L.p - d * cfg.slAmt / (L.q * mult), '停損（金額）');
+        // 移動停損（點數）：賺到「啟動點」以上才開始跟，之後停在最有利價退回 trailPts 處（對應 strategy.exit 的 trail_points／trail_offset）
+        if (cfg.trailPts > 0 && d * (extNow - L.p) >= (cfg.trailStart || 0)) cand(extNow - d * cfg.trailPts, '移動停損（點數）');
         if (cfg.trail > 0) cand(extNow * (1 - d * cfg.trail / 100), '移動停損');
         // 最大日內虧損：以前一根收盤（進場那根以成交價）為基準，這一根持倉虧掉前一根收盤權益的 maxLoss% 就出場
         if (cfg.maxLoss > 0) cand(ref - d * (cfg.maxLoss / 100 * eqPrev) / (L.q * mult), 'Close Position (Max intraday Loss)');
-        const tl = cfg.tp > 0 ? L.p * (1 + d * cfg.tp / 100) : NaN;
-        const advHit = why && (d === 1 ? l <= lvl : h >= lvl), tpHit = cfg.tp > 0 && (d === 1 ? h >= tl : l <= tl);
+        let tl = cfg.tp > 0 ? L.p * (1 + d * cfg.tp / 100) : NaN;
+        const tc = (v) => { if (Number.isNaN(tl) || (d === 1 ? v < tl : v > tl)) tl = v; };      // 停利有多種設法時取最近的一個
+        if (cfg.tpPts > 0) tc(L.p + d * cfg.tpPts);
+        if (cfg.tpAmt > 0) tc(L.p + d * cfg.tpAmt / (L.q * mult));
+        const advHit = why && (d === 1 ? l <= lvl : h >= lvl), tpHit = !Number.isNaN(tl) && (d === 1 ? h >= tl : l <= tl);
         const gapAdv = advHit && !fresh && (d === 1 ? o <= lvl : o >= lvl), gapTp = tpHit && !fresh && (d === 1 ? o >= tl : o <= tl);
         let act = null;
         if (advHit && tpHit) act = gapAdv ? 'adv' : gapTp ? 'tp' : (favFirst ? 'tp' : 'adv');
@@ -432,7 +443,9 @@
       lots = keep; if (!lots.length) pos = 0;
     }
     function decide(i) {
-      const ok = !cfg.entryMask || cfg.entryMask[i] !== 0;
+      if (halted) return [];     // 權益歸零後停止交易
+      const nx = i + 1 < n ? i + 1 : i;      // 單子在「下一根開盤」成交，所以事件窗要看下一根：窗口第一根的開盤就要已經空手（不然會晚一天）
+      const ok = !cfg.entryMask || cfg.entryMask[nx] !== 0;
       const out = [];
       const ord = (dir, why) => {
         const k = dir === 1 ? sig.Lk : sig.Sk, pr = dir === 1 ? sig.Lp : sig.Sp;
@@ -453,7 +466,7 @@
       else if (sig.XS[i]) out.push({ dir: 0, kind: 'mkt', price: 0, why: '出場訊號' });
       else if (sig.S[i] && shortOK && ok && lots.length < pyr) ord(-1, '加碼訊號');
       if (pos !== 0 && cfg.maxBars > 0 && i - lots[0].i0 >= cfg.maxBars) { out.length = 0; out.push({ dir: 0, kind: 'mkt', price: 0, why: '持有逾時' }); }    // 最長持有 N 根
-      if (pos !== 0 && cfg.exitMask && cfg.exitMask[i]) { out.length = 0; out.push({ dir: 0, kind: 'mkt', price: 0, why: '事件出場' }); }
+      if (pos !== 0 && cfg.exitMask && cfg.exitMask[nx]) { out.length = 0; out.push({ dir: 0, kind: 'mkt', price: 0, why: '事件出場' }); }
       return out;
     }
 
@@ -462,6 +475,28 @@
       execPending(i, o, h, l);
       protect(i, o, h, l);
       if (cfg.fillOn === 'close') { pend = decide(i); execPending(i, c, c, c); }      // 收盤即成交：訊號當根收盤價
+      // 換月成本（台指期）：持倉跨過結算日（每月第三個星期三）時，賣舊買新各一次：滑價 inst.rollCost 點 ×2（站內前期研究 docs/futures_lab 的口徑）＋手續費 2 次
+      if (fut && pos !== 0 && i > from && inst.rollCost > 0) {
+        const pd = new Date(B.day[i - 1] * 86400000), pdw = pd.getUTCDay(), pdd = pd.getUTCDate();
+        if (pdw === 3 && pdd >= 15 && pdd <= 21 && B.day[i] > B.day[i - 1]) for (const L of lots) { const x = (inst.rollCost * mult + inst.futFee * 2 / L.q) * L.q; cash -= x; L.borrow = (L.borrow || 0) + x; }
+      }
+      // 借券費（只對股票空單）：每個日曆日按前一根收盤的空單市值 × 年化費率 ÷ 365 計，直接從現金扣，並記進該口的成本
+      if (!fut && pos === -1 && inst.borrowFee > 0 && i > from) {
+        const dt = B.day[i] - B.day[i - 1];
+        if (dt > 0) for (const L of lots) { const x = L.q * B.c[i - 1] * inst.borrowFee / 100 * dt / 365; cash -= x; L.borrow = (L.borrow || 0) + x; }
+      }
+      // 追繳／歸零強平（簡化模型）：
+      //  · 任何部位權益 ≤ 0 → 當根收盤強制平倉並停止交易（帳戶不能虧超過本金還繼續下單）
+      //  · 股票空單另看維持率＝(現金含融券價款) ÷ 空單市值；低於 marginCall（預設 130%，0＝不追繳）→ 當根收盤強制平倉，之後可再進場
+      if (pos !== 0 && !halted) {
+        const e0 = equityAt(c);
+        let why = '';
+        if (e0 <= 0) why = '權益歸零強平';
+        else if (fut && e0 < lots.reduce((a, L) => a + L.q, 0) * c * mult * inst.marginMaint / 100) why = '追繳強平（低於維持保證金）';
+        else if (!fut && pos === -1 && marginCall > 0) { const sv = lots.reduce((a, L) => a + L.q * c, 0); if (sv > 0 && cash / sv * 100 < marginCall) why = '追繳強平（維持率不足）'; }
+        if (why) { calls.push({ i, why, eq: e0 }); closeAll(i, c, why); pend = []; }
+      }
+      if (!halted && pos === 0 && equityAt(c) <= 0) { halted = true; calls.push({ i, why: '權益歸零，停止交易', eq: equityAt(c) }); }
       const e = equityAt(c);
       eq[i - from] = e; eqPrev = e;
       bh[i - from] = fut ? cfg.capital + (c - o0) * mult * (cfg.sizeMode === 'units' ? cfg.sizeVal : 1) : cfg.capital * c / o0;
@@ -470,11 +505,11 @@
     // 區間結束仍有部位：不強制平倉，列為「未平倉」（損益含在淨損益，不進勝率等已平倉統計）
     const openT = lots.map((L) => {
       const c = B.c[to], gross = pos * (c - L.p) * L.q * mult;
-      return { dir: pos, i0: L.i0, i1: to, p0: L.p, p1: c, qty: L.q, gross, costs: L.fee + L.tax, pnl: gross - L.fee - L.tax, pnlP: (gross - L.fee - L.tax) / (L.p * L.q * mult) * 100, bars: to - L.i0, mfe: L.mfe * L.q * mult, mae: L.mae * L.q * mult, mfeP: L.mfe / L.p * 100, maeP: L.mae / L.p * 100, why: '未平倉', entryWhy: L.why, open: true, notional: L.p * L.q * mult };
+      return { dir: pos, i0: L.i0, i1: to, p0: L.p, p1: c, qty: L.q, gross, costs: L.fee + L.tax + (L.borrow || 0), pnl: gross - L.fee - L.tax - (L.borrow || 0), pnlP: (gross - L.fee - L.tax - (L.borrow || 0)) / (L.p * L.q * mult) * 100, bars: to - L.i0, mfe: L.mfe * L.q * mult, mae: L.mae * L.q * mult, mfeP: L.mfe / L.p * 100, maeP: L.mae / L.p * 100, why: '未平倉', entryWhy: L.why, open: true, notional: L.p * L.q * mult };
     });
     trades.sort((a, b) => a.i1 - b.i1 || a.i0 - b.i0);
     const stats = computeStats(B, trades, eq, cfg, from, to, openT, maxQ);
-    return { trades, open: openT.length ? openT[0] : null, opens: openT, eq, bh, stats, from, to };
+    return { trades, open: openT.length ? openT[0] : null, opens: openT, eq, bh, stats, from, to, calls };
   }
 
   /** 單一方向（0＝全部、1＝多、－1＝空）的績效摘要，欄位對照 TradingView 的 Performance Summary。 */
@@ -604,7 +639,7 @@
   function runStrategy(B, strat, cfg, rangeKey, events) {
     const sig = strat.sig || STRAT[strat.id].build(B, Object.assign(defaults(strat.id), strat.params || {}));
     const c2 = Object.assign({}, cfg);
-    if (strat.risk) { const r = strat.risk; if (r.sl > 0) c2.sl = r.sl; if (r.tp > 0) c2.tp = r.tp; if (r.trail > 0) c2.trail = r.trail; if (r.maxbars > 0) c2.maxBars = r.maxbars; }    // 自訂策略自帶的風控
+    if (strat.risk) { const r = strat.risk; if (r.sl > 0) c2.sl = r.sl; if (r.tp > 0) c2.tp = r.tp; if (r.trail > 0) c2.trail = r.trail; if (r.maxbars > 0) c2.maxBars = r.maxbars; ['slPts', 'tpPts', 'trailPts', 'trailStart', 'slAmt', 'tpAmt'].forEach((k) => { if (r[k] > 0) c2[k] = r[k]; }); }    // 自訂策略自帶的風控
     if (cfg.evt && cfg.evt.on && events && events.length) {
       const f = events.filter((e) => cfg.evt.types.includes(e.t));
       const inW = eventWindowMask(B, f, cfg.evt.before | 0, cfg.evt.after | 0);
@@ -625,7 +660,7 @@
     const B = cache[m.key]; if (!B) throw new Error('worker 沒有資料：' + m.key);
     if (m.op === 'run') {
       const r = runStrategy(B, m.strat, m.cfg, m.range, m.events);
-      return { trades: r.trades, open: r.open, opens: r.opens, eq: r.eq, bh: r.bh, stats: r.stats, from: r.from, to: r.to };
+      return { trades: r.trades, open: r.open, opens: r.opens, eq: r.eq, bh: r.bh, stats: r.stats, from: r.from, to: r.to, calls: r.calls };
     }
     if (m.op === 'study') return eventStudy(B, m.events, m.N || 10);
     if (m.op === 'cmp') {   // 事件條件前後對照：同一策略跑兩次
