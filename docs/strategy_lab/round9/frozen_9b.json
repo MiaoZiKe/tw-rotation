@@ -1,0 +1,55 @@
+{
+ "frozen_at": "2026-10-28 03:08:42",
+ "rule": "訓練期 excess>0 且 NW t>0，依資訊比取前6",
+ "trials_total": 1840,
+ "cands": [
+  {
+   "name": "roe｜m15_05｜台積電照實",
+   "cfg": [
+    "roe",
+    "m15_05",
+    "actual"
+   ]
+  },
+  {
+   "name": "lowvol｜m15_05｜台積電照實",
+   "cfg": [
+    "lowvol",
+    "m15_05",
+    "actual"
+   ]
+  },
+  {
+   "name": "dy｜ex10｜台積電照實",
+   "cfg": [
+    "dy",
+    "ex10",
+    "actual"
+   ]
+  },
+  {
+   "name": "lowvol｜ex10｜台積電照實",
+   "cfg": [
+    "lowvol",
+    "ex10",
+    "actual"
+   ]
+  },
+  {
+   "name": "ep｜m15_05｜台積電照實",
+   "cfg": [
+    "ep",
+    "m15_05",
+    "actual"
+   ]
+  },
+  {
+   "name": "lowvol｜lin3｜台積電照實",
+   "cfg": [
+    "lowvol",
+    "lin3",
+    "actual"
+   ]
+  }
+ ]
+}

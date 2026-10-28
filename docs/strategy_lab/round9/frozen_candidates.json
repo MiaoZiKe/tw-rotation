@@ -1,0 +1,71 @@
+{
+ "frozen_at": "2026-10-28 03:06:40",
+ "rule": "訓練期 excess>0 且 NW t>0，依資訊比取前6；純市值加權當對照",
+ "trials_total": 1816,
+ "cands": [
+  {
+   "name": "nh｜bin_up15｜台積電照實",
+   "cfg": [
+    "nh",
+    "bin_up15",
+    "actual"
+   ]
+  },
+  {
+   "name": "nh｜ex20｜台積電照實",
+   "cfg": [
+    "nh",
+    "ex20",
+    "actual"
+   ]
+  },
+  {
+   "name": "nh｜ex20_up15｜台積電照實",
+   "cfg": [
+    "nh",
+    "ex20_up15",
+    "actual"
+   ]
+  },
+  {
+   "name": "nh｜ex10｜台積電照實",
+   "cfg": [
+    "nh",
+    "ex10",
+    "actual"
+   ]
+  },
+  {
+   "name": "nh｜m125_075｜台積電照實",
+   "cfg": [
+    "nh",
+    "m125_075",
+    "actual"
+   ]
+  },
+  {
+   "name": "nh｜m15_05｜台積電照實",
+   "cfg": [
+    "nh",
+    "m15_05",
+    "actual"
+   ]
+  },
+  {
+   "name": "純市值加權｜台積電照實",
+   "cfg": [
+    "both",
+    null,
+    "actual"
+   ]
+  },
+  {
+   "name": "純市值加權｜台積電上限20%",
+   "cfg": [
+    "both",
+    null,
+    "cap20"
+   ]
+  }
+ ]
+}
