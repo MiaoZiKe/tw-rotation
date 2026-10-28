@@ -279,4 +279,53 @@ function randBars(n, seed) {
   assert.deepStrictEqual(Array.from(r.L).map((x, i) => (x ? i : -1)).filter((i) => i >= 0), [25]); pass++;
 }
 
+/* ---- Z. 2026-10-29 實測回報的引擎 P0（先寫成會失敗的測試，修好才通過） ---- */
+{   // Z1 股票空單不能虧超過本金：預設維持率 130% 先強平；關掉追繳也要在權益 ≤ 0 時強平並停止交易
+  const px = [100, 100, 100, 120, 150, 160, 200, 250, 300, 300, 300];
+  const B = mkBars(px.map((v) => [v, v, v, v]));
+  const cfgS = (extra) => Object.assign(base(stock0(), { mode: 'short', sizeMode: 'pct', sizeVal: 100 }), extra || {});
+  let r = E.run(B, sigOf(11, { S: [0, 9] }), cfgS(), 0, 10);
+  assert.ok(r.calls.length >= 1 && /追繳/.test(r.calls[0].why), 'Z1 預設維持率 130% 要強平'); pass++;
+  assert.ok(r.stats.ret > -100, 'Z1 虧損不超過本金'); pass++;
+  r = E.run(B, sigOf(11, { S: [0, 9] }), cfgS({ marginCall: 0 }), 0, 10);
+  assert.ok(r.calls.some((x) => /歸零/.test(x.why)), 'Z1 權益歸零要強平'); pass++;
+  eq(r.trades.length, 1, 'Z1 歸零後停止交易，不再開新單'); eq(r.open, null, 'Z1 無剩餘部位');
+}
+{   // Z2 事件窗「進入就平倉」要在窗口第一根的開盤出場（原本晚一天）
+  const B = mkBars(Array.from({ length: 10 }, (_, i) => { const v = 100 + i; return [v, v, v, v]; }));
+  const mask = new Uint8Array(10); mask[5] = 1; mask[6] = 1;
+  const r = E.run(B, sigOf(10, { L: [0] }), base(stock0(), { mode: 'long', sizeMode: 'pct', sizeVal: 100, exitMask: mask }), 0, 9);
+  eq(r.trades[0].i1, 5, 'Z2 窗口第一根(5)開盤平倉');
+}
+{   // Z3 反手單：進場原因是「做多／做空訊號」，不是「反向訊號」
+  const B = mkBars(Array.from({ length: 8 }, (_, i) => { const v = 100 + i; return [v, v, v, v]; }));
+  const r = E.run(B, sigOf(8, { L: [0], S: [3] }), base(stock0(), { mode: 'both', sizeMode: 'pct', sizeVal: 100 }), 0, 7);
+  eq(r.trades[0].why, '反向訊號', 'Z3 舊單出場原因'); eq(r.opens[0].entryWhy, '做空訊號', 'Z3 反手新單進場原因');
+}
+{   // Z4 借券費：空單 10 日、年化 3.65% → 每日 0.01%，持有市值 100 萬 × 0.01% × 天數
+  const B = mkBars(Array.from({ length: 12 }, () => [100, 100, 100, 100]));
+  const inst = Object.assign(stock0(), { borrowFee: 3.65, taxRate: 0, feeRate: 0 });
+  const r = E.run(B, sigOf(12, { S: [0], XS: [10] }), base(inst, { mode: 'short', sizeMode: 'units', sizeVal: 10000 }), 0, 11);
+  near(r.trades[0].costs, 1000000 * 0.0001 * 10, 1e-6, 'Z4 借券費 10 日 = 1,000 元'); // 第 1~10 根持有
+}
+{   // Z5 期貨：權益低於維持保證金強平，權益歸零停止；原始保證金不足不能下單
+  const px = [10000, 10000, 9800, 9500, 9000, 8000, 8000];
+  const B = mkBars(px.map((v) => [v, v, v, v]));
+  const inst = Object.assign(E.instDefaults('fut'), { slip: 0, rollCost: 0 });
+  const cfg = base(inst, { mode: 'long', capital: 500000, sizeMode: 'units', sizeVal: 1 });
+  const r = E.run(B, sigOf(7, { L: [0] }), cfg, 0, 6);
+  assert.ok(r.calls.length >= 1 && /追繳|歸零/.test(r.calls[0].why), 'Z5 期貨要強平'); pass++;
+  const cfg2 = base(inst, { mode: 'long', capital: 100000, sizeMode: 'units', sizeVal: 1 });   // 10 萬 < 1 口原始保證金（10000×200×10%＝20 萬）
+  eq(E.run(B, sigOf(7, { L: [0] }), cfg2, 0, 6).trades.length + (E.run(B, sigOf(7, { L: [0] }), cfg2, 0, 6).opens.length), 0, 'Z5 保證金不足不能下單');
+}
+{   // Z6 停損／停利／移動停損（點數）
+  const B = mkBars([[100, 100, 100, 100], [100, 100, 100, 100], [100, 112, 100, 110], [110, 110, 94, 95], [95, 95, 95, 95]]);
+  const r = E.run(B, sigOf(5, { L: [0] }), base(stock0(), { mode: 'long', sizeMode: 'units', sizeVal: 1, slPts: 5 }), 0, 4);
+  near(r.trades[0].p1, 95, 1e-9, 'Z6 停損 5 點'); 
+  const r2 = E.run(B, sigOf(5, { L: [0] }), base(stock0(), { mode: 'long', sizeMode: 'units', sizeVal: 1, tpPts: 10 }), 0, 4);
+  near(r2.trades[0].p1, 110, 1e-9, 'Z6 停利 10 點');
+  const r3 = E.run(B, sigOf(5, { L: [0] }), base(stock0(), { mode: 'long', sizeMode: 'units', sizeVal: 1, trailPts: 6, trailStart: 10 }), 0, 4);
+  near(r3.trades[0].p1, 106, 1e-9, 'Z6 移動停損：賺 ≥ 10 點啟動，最高 112 退 6 點 = 106');
+}
+
 console.log(`lab_engine_check：${pass} 項斷言全數通過`);

@@ -338,6 +338,17 @@ def build() -> None:
     if not os.environ.get("SKIP_LAB"):
         lab_compute.build(price_adj, names, markets)
         lap("交易練習室資料")
+        # 標準策略的預設回測成績（site/lab/standard_results.json）：用剛產出的 site/data/lab 讓 node 跑一遍，數字每天跟著更新；
+        # 沒有 node 或失敗只影響「標準策略」成績卡（前端讀不到就顯示尚未產生），不拖垮整份 payload
+        try:
+            import shutil
+            import subprocess
+            if shutil.which("node"):
+                subprocess.run(["node", os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "scripts", "gen_standard_strategies.js")],
+                               check=True, timeout=300, capture_output=True)
+                lap("標準策略成績")
+        except Exception as exc:  # noqa: BLE001
+            log.warning("標準策略成績產出失敗（只影響交易練習室的標準策略成績卡）：%s", exc)
 
     # ---------------------------------------------------------- M1 資金面
     group_hist = flow.group_daily(price, company, inst, margin)

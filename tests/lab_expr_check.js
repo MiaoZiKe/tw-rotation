@@ -87,7 +87,15 @@ eq(R.trades.length, 1, '最長持有：一筆'); eq(R.trades[0].i1 - R.trades[0]
     }
   }
   assert.ok(n >= 24, '至少 12 支×2 組參數有腳本寫法：' + n); pass++;
-  console.log('  內建策略↔腳本：' + n + ' 組一致');
+  
+// P0（tvpro）：strategy.exit 參數不准默默忽略；input.int 照 Pine v5 順序（defval 在前、title 在後）
+{
+  let q = X.compile('f = input.int(9, "Fast")\n若 close > sma(close,f) 則 進場("多")\nstrategy.exit("x", loss=5, profit=10, trail_points=8, trail_offset=3)', B);
+  eq(q.errors, [], 'exit 參數可編譯'); eq(q.params.map((p) => p.k + ':' + p.label + ':' + p.def), ['f:Fast:9'], 'input.int 順序'); eq(q.risk, { slPts: 5, tpPts: 10, trailStart: 8, trailPts: 3 }, 'exit 對照');
+  q = X.compile('若 close > open 則 進場("多")\nstrategy.exit("x", stop=95)', B); assert.ok(q.errors.length && /stop/.test(q.errors[0]), 'stop 要報錯'); pass++;
+  q = X.compile('若 close > open 則 進場("多")\nstrategy.exit("x", foo=1)', B); assert.ok(q.errors.length && /foo/.test(q.errors[0]), '未知參數要報錯'); pass++;
+}
+console.log('  內建策略↔腳本：' + n + ' 組一致');
 }
 {   // 籌碼函式：中英文別名等價、沒有籌碼資料時有看得懂的錯誤
   const a = X.compile('若 streak(chip("法人")) >= 3 則 進場("多")', B), b = X.compile('若 連買賣(籌碼("inst")) >= 3 則 進場("多")', B);

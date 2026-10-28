@@ -21,7 +21,7 @@
 
   /* ---------------------------------------------------------------- 別名 */
   const ALIAS = {
-    收盤: 'close', 開盤: 'open', 最高: 'high', 最低: 'low', 成交量: 'volume', 均線: 'sma', 指數均線: 'ema', 上穿: 'crossover', 下穿: 'crossunder',
+    週均線: 'wk_sma', 收盤: 'close', 開盤: 'open', 最高: 'high', 最低: 'low', 成交量: 'volume', 均線: 'sma', 指數均線: 'ema', 上穿: 'crossover', 下穿: 'crossunder',
     最高價: 'highest', 最低價: 'lowest', 絕對值: 'abs', 最大: 'max', 最小: 'min', 漲跌: 'change', 平均真實區間: 'atr', 真實區間: 'tr',
     進場: 'entry', 平倉: 'closepos', 出場: 'exitrisk', 策略: 'strategy', 參數: 'param', 事件: 'event', 做多: 'long', 做空: 'short', 多: 'long', 空: 'short', 全部: 'all',
     停損: 'sl', '停損%': 'sl', 停利: 'tp', '停利%': 'tp', 移動: 'trail', '移動%': 'trail', 移動停損: 'trail', '移動停損%': 'trail', 最長持有: 'maxbars',
@@ -114,7 +114,7 @@
     };
     const bool = (x) => (x ? 1 : 0);
     // 籌碼名稱：中英文都收。inst＝三大法人合計，ratio＝券資比 %，dtr＝當沖比 %（其餘單位皆為張）
-    const CHIPN = { 外資: 'fn', 投信: 'tr', 自營: 'dl', 自營商: 'dl', 法人: 'inst', 三大法人: 'inst', 融資: 'mb', 融券: 'sb', 券資比: 'ratio', 當沖比: 'dtr', 當沖量: 'dt', fn: 'fn', tr: 'tr', dl: 'dl', inst: 'inst', mb: 'mb', sb: 'sb', ratio: 'ratio', dtr: 'dtr', dt: 'dt' };
+    const CHIPN = { 外資: 'fn', 投信: 'tr', 自營: 'dl', 自營商: 'dl', 法人: 'inst', 三大法人: 'inst', 融資: 'mb', 融券: 'sb', 券資比: 'ratio', 當沖比: 'dtr', 當沖量: 'dt', 營收動能: 'rv', rv: 'rv', fn: 'fn', tr: 'tr', dl: 'dl', inst: 'inst', mb: 'mb', sb: 'sb', ratio: 'ratio', dtr: 'dtr', dt: 'dt' };
     const fn = {
       sma: (a, k) => I.sma(ser(a), num(k, '週期')), ema: (a, k) => I.ema(ser(a), num(k, '週期')), rma: (a, k) => I.rma(ser(a), num(k, '週期')),
       rsi: (a, k) => I.rsi(ser(a), num(k, '週期')), highest: (a, k) => I.highest(ser(a), num(k, '週期')), lowest: (a, k) => I.lowest(ser(a), num(k, '週期')),
@@ -128,10 +128,21 @@
       cci: (k) => I.cci(B.h, B.l, B.c, num(k === undefined ? 20 : k, '週期')), willr: (k) => I.willr(B.h, B.l, B.c, num(k === undefined ? 14 : k, '週期')),
       sar_dir: (s, i2, m) => I.sar(B.h, B.l, num(s === undefined ? 0.02 : s, '起始'), num(i2 === undefined ? 0.02 : i2, '增量'), num(m === undefined ? 0.2 : m, '上限')).dir,
       supertrend_dir: (k, m) => I.supertrend(B.h, B.l, B.c, num(k === undefined ? 10 : k, '週期'), num(m === undefined ? 3 : m, '倍數')).trend,
+      wk_sma: (k) => {   // 週 K 收盤的 k 週均線，只用「已經收完的週」（本週還沒收完就不算），在日 K 上逐根對齊——這就是「週 K 定方向、日 K 進場」不偷看本週的做法
+        if (B.tf !== 'D') throw new Error('週均線（wk_sma）只能在日 K 週期使用');
+        const m = num(k, '週數'), o = new Float64Array(n).fill(NaN), done = []; let key = null;
+        for (let i = 0; i < n; i++) {
+          const kk = B.day[i] - ((B.day[i] + 3) % 7);          // 該日所屬週一的日數（1970-01-01 是星期四）
+          if (key !== null && kk !== key) done.push(B.c[i - 1]);   // 換週了：上一週收完，收盤＝上一根日 K 的收盤
+          key = kk;
+          if (done.length >= m) { let s = 0; for (let j = done.length - m; j < done.length; j++) s += done[j]; o[i] = s / m; }
+        }
+        return o;
+      },
       crossover: (a, b) => { const A = ser(a), Bs = ser(b), o = new Float64Array(n); for (let i = 1; i < n; i++) o[i] = bool(A[i] > Bs[i] && A[i - 1] <= Bs[i - 1]); return o; },
       crossunder: (a, b) => { const A = ser(a), Bs = ser(b), o = new Float64Array(n); for (let i = 1; i < n; i++) o[i] = bool(A[i] < Bs[i] && A[i - 1] >= Bs[i - 1]); return o; },
       chip: (t) => {   // 籌碼序列（沒有資料的日子是 NaN，比較一律為假）
-        const key = CHIPN[t && t.s]; if (!key) throw new Error('chip() 的名稱要用：外資、投信、自營、法人、融資、融券、券資比、當沖比、當沖量');
+        const key = CHIPN[t && t.s]; if (!key) throw new Error('chip() 的名稱要用：外資、投信、自營、法人、融資、融券、券資比、當沖比、當沖量、營收動能');
         const x = E.chipSeries(B, key); if (!x) throw new Error('這個標的／週期沒有籌碼資料（只有近期成交值前 1000 大的個股，日、週、月 K 才有）');
         return x;
       },
@@ -203,7 +214,10 @@
         if (toks[1] && toks[1].t === 'op' && toks[1].v === '=' && toks[0].t === 'id' && !(toks[2] && toks[2].t === 'op' && toks[2].v === '=')) {   // 指定：x = 算式
           const vn = toks[0].v, rhs = parseExpr(toks.slice(2), ln);
           if (rhs.k === 'call' && rhs.f === 'param') {
-            const label = rhs.args[0] && rhs.args[0].k === 'str' ? rhs.args[0].v : vn, defv = rhs.args[1] ? env.ev(rhs.args[1]) : 0;
+            // 中文寫法 參數("標籤", 預設)；Pine v5 寫法 input.int(預設, "標籤")（defval 在前、title 在後）——兩種順序都收，依第一個引數是不是字串判斷
+            const a0 = rhs.args[0], a1 = rhs.args[1], pine = a0 && a0.k !== 'str';
+            const label = pine ? (a1 && a1.k === 'str' ? a1.v : (rhs.kw.title && rhs.kw.title.k === 'str' ? rhs.kw.title.v : vn)) : (a0 && a0.k === 'str' ? a0.v : vn);
+            const defd = pine ? a0 : (a1 || rhs.kw.defval), defv = defd ? env.ev(defd) : 0;
             const v = ctx.params && ctx.params[vn] != null ? +ctx.params[vn] : defv;
             params.push({ k: vn, label, def: defv }); env.vars[vn] = v;
           } else env.vars[vn] = env.ev(rhs);
@@ -212,7 +226,13 @@
         if (wc === 'strategy') { const e = parseExpr(toks, ln); if (e.args[0] && e.args[0].k === 'str') name = e.args[0].v; return; }
         if (wc === 'exitrisk' || wc === 'param') {
           const e = parseExpr(toks, ln);
-          Object.keys(e.kw).forEach((k) => { if (['sl', 'tp', 'trail', 'maxbars'].includes(k)) risk[k] = env.ev(e.kw[k]); });
+          // strategy.exit 的參數對照（Pine 的 loss／profit 以「點」計）：不支援的參數一律報錯，不默默忽略
+          const KMAP = { sl: 'sl', tp: 'tp', trail: 'trail', maxbars: 'maxbars', loss: 'slPts', profit: 'tpPts', trail_points: 'trailStart', trail_offset: 'trailPts', loss_amt: 'slAmt', profit_amt: 'tpAmt' };
+          Object.keys(e.kw).forEach((k) => {
+            if (k === 'stop' || k === 'limit') throw new Error('第 ' + ln + ' 行：出場()／strategy.exit 的「' + k + '」要填絕對價位，目前不支援；請改用 loss（停損點數）、profit（停利點數）或 停損%／停利%');
+            if (!KMAP[k]) throw new Error('第 ' + ln + ' 行：出場()／strategy.exit 不認得參數「' + k + '」（可用：停損%、停利%、移動%、最長持有、loss、profit、trail_points、trail_offset）');
+            risk[KMAP[k]] = env.ev(e.kw[k]);
+          });
           // 位置參數：出場("名稱", 5, 10) 不支援，避免猜錯
           return;
         }
@@ -234,6 +254,7 @@
     vma: { name: '成交量均線', p: [['n', '週期', 5]], fmt: (v) => `sma(volume,${v.n})` }, chg: { name: 'N 日漲跌（元）', p: [['n', '期數', 5]], fmt: (v) => `change(close,${v.n})` },
     cinst: { name: '籌碼：三大法人買賣超（張）', p: [], fmt: () => 'chip("inst")' }, cfn: { name: '籌碼：外資買賣超（張）', p: [], fmt: () => 'chip("fn")' },
     ctr: { name: '籌碼：投信買賣超（張）', p: [], fmt: () => 'chip("tr")' }, cdl: { name: '籌碼：自營商買賣超（張）', p: [], fmt: () => 'chip("dl")' },
+    crv: { name: '基本面：營收動能（近 3 月均 ÷ 近 12 月均，%）', p: [], fmt: () => 'chip("rv")' },
     cmb: { name: '籌碼：融資餘額（張）', p: [], fmt: () => 'chip("mb")' }, csb: { name: '籌碼：融券餘額（張）', p: [], fmt: () => 'chip("sb")' },
     cratio: { name: '籌碼：券資比（%）', p: [], fmt: () => 'chip("ratio")' }, cdtr: { name: '籌碼：當沖比（%）', p: [], fmt: () => 'chip("dtr")' },
     sinst: { name: '籌碼：法人連買連賣根數（連賣為負）', p: [], fmt: () => 'streak(chip("inst"))' }, str: { name: '籌碼：投信連買連賣根數（連賣為負）', p: [], fmt: () => 'streak(chip("tr"))' },
