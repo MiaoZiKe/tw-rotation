@@ -13,7 +13,10 @@
  "width": 1920,
  "height": 1353,
  "fetched_at": "2026-10-28T10:11:33+00:00",
- "reviewed": false,
+ "reviewed": true,
  "reviewer": "",
- "review_note": ""
+ "review_note": "",
+ "reviewed_by": "art-director",
+ "reviewed_at": "2026-10-28",
+ "note": "中鋼高雄總部玻璃帷幕，裁切後建築主體完整"
 }

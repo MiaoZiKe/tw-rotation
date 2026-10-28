@@ -13,7 +13,10 @@
  "width": 1920,
  "height": 1309,
  "fetched_at": "2026-10-28T10:13:28+00:00",
- "reviewed": false,
+ "reviewed": true,
  "reviewer": "",
- "review_note": ""
+ "review_note": "",
+ "reviewed_by": "art-director",
+ "reviewed_at": "2026-10-28",
+ "note": "Qualcomm 聖地牙哥總部，招牌為建築一部分"
 }

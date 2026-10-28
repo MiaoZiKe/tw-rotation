@@ -13,7 +13,10 @@
  "width": 1920,
  "height": 1440,
  "fetched_at": "2026-10-28T10:11:42+00:00",
- "reviewed": false,
+ "reviewed": true,
  "reviewer": "",
- "review_note": ""
+ "review_note": "",
+ "reviewed_by": "art-director",
+ "reviewed_at": "2026-10-28",
+ "note": "光寶科技大樓，天色略灰但可接受"
 }

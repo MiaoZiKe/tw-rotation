@@ -13,7 +13,10 @@
  "width": 1920,
  "height": 1292,
  "fetched_at": "2026-10-28T10:09:40+00:00",
- "reviewed": false,
+ "reviewed": true,
  "reviewer": "",
- "review_note": ""
+ "review_note": "",
+ "reviewed_by": "art-director",
+ "reviewed_at": "2026-10-28",
+ "note": "中華電信總部大樓，構圖乾淨"
 }

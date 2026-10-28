@@ -13,7 +13,10 @@
  "width": 1920,
  "height": 1239,
  "fetched_at": "2026-10-28T10:13:04+00:00",
- "reviewed": false,
+ "reviewed": true,
  "reviewer": "",
- "review_note": ""
+ "review_note": "",
+ "reviewed_by": "art-director",
+ "reviewed_at": "2026-10-28",
+ "note": "AMD 森尼韋爾園區建築，招牌小"
 }

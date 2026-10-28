@@ -13,7 +13,10 @@
  "width": 1920,
  "height": 965,
  "fetched_at": "2026-10-28T10:13:35+00:00",
- "reviewed": false,
+ "reviewed": true,
  "reviewer": "",
- "review_note": ""
+ "review_note": "",
+ "reviewed_by": "art-director",
+ "reviewed_at": "2026-10-28",
+ "note": "OpenAI 舊總部 Pioneer Building，無 LOGO；內容為建築外觀，若 OpenAI 搬遷需重審"
 }

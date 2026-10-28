@@ -15,5 +15,8 @@
  "fetched_at": "2026-10-28T10:12:44+00:00",
  "reviewed": false,
  "reviewer": "",
- "review_note": ""
+ "review_note": "",
+ "reject_reason": "畫面主角是 NVIDIA 路牌 LOGO 特寫",
+ "reviewed_by": "art-director",
+ "reviewed_at": "2026-10-28"
 }

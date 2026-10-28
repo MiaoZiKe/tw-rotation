@@ -13,7 +13,10 @@
  "width": 1920,
  "height": 1080,
  "fetched_at": "2026-10-28T10:13:24+00:00",
- "reviewed": false,
+ "reviewed": true,
  "reviewer": "",
- "review_note": ""
+ "review_note": "",
+ "reviewed_by": "art-director",
+ "reviewed_at": "2026-10-28",
+ "note": "Giga Texas 廠房外牆，畫面單調但主體正確"
 }

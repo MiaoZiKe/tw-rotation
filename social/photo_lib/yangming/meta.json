@@ -13,7 +13,10 @@
  "width": 1920,
  "height": 1440,
  "fetched_at": "2026-10-28T10:12:20+00:00",
- "reviewed": false,
+ "reviewed": true,
  "reviewer": "",
- "review_note": ""
+ "review_note": "",
+ "reviewed_by": "art-director",
+ "reviewed_at": "2026-10-28",
+ "note": "陽明海運總部大樓，無招牌，裁切後主體完整"
 }

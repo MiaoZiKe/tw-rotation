@@ -15,5 +15,8 @@
  "fetched_at": "2026-10-28T10:12:04+00:00",
  "reviewed": false,
  "reviewer": "",
- "review_note": ""
+ "review_note": "",
+ "reject_reason": "大樓樓層指示牌特寫，且內容為兆豐證券，主體錯誤",
+ "reviewed_by": "art-director",
+ "reviewed_at": "2026-10-28"
 }

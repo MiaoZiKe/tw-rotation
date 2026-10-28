@@ -13,7 +13,10 @@
  "width": 1920,
  "height": 1281,
  "fetched_at": "2026-10-28T10:13:26+00:00",
- "reviewed": false,
+ "reviewed": true,
  "reviewer": "",
- "review_note": ""
+ "review_note": "",
+ "reviewed_by": "art-director",
+ "reviewed_at": "2026-10-28",
+ "note": "NXP 總部大樓，水岸構圖佳"
 }

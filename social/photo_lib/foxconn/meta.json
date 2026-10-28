@@ -15,5 +15,8 @@
  "fetched_at": "2026-10-28T10:09:10+00:00",
  "reviewed": false,
  "reviewer": "",
- "review_note": ""
+ "review_note": "",
+ "reject_reason": "畫面主角是 FOXCONN 招牌特寫（LOGO 為主角）",
+ "reviewed_by": "art-director",
+ "reviewed_at": "2026-10-28"
 }

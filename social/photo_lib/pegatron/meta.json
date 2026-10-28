@@ -15,5 +15,8 @@
  "fetched_at": "2026-10-28T10:11:00+00:00",
  "reviewed": false,
  "reviewer": "",
- "review_note": ""
+ "review_note": "",
+ "reject_reason": "主機板微距照，非和碩建築（同名誤抓）",
+ "reviewed_by": "art-director",
+ "reviewed_at": "2026-10-28"
 }

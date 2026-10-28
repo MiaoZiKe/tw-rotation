@@ -13,7 +13,10 @@
  "width": 1920,
  "height": 1440,
  "fetched_at": "2026-10-28T10:10:30+00:00",
- "reviewed": false,
+ "reviewed": true,
  "reviewer": "",
- "review_note": ""
+ "review_note": "",
+ "reviewed_by": "art-director",
+ "reviewed_at": "2026-10-28",
+ "note": "長榮海運大樓，字樣於頂端略被裁切但可接受"
 }

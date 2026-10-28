@@ -13,7 +13,10 @@
  "width": 1920,
  "height": 1282,
  "fetched_at": "2026-10-28T10:09:22+00:00",
- "reviewed": false,
+ "reviewed": true,
  "reviewer": "",
- "review_note": ""
+ "review_note": "",
+ "reviewed_by": "art-director",
+ "reviewed_at": "2026-10-28",
+ "note": "台達電泰國廠區，LOGO 為小招牌；注意是海外廠區非台灣總部"
 }

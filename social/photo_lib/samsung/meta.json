@@ -13,7 +13,10 @@
  "width": 1920,
  "height": 1521,
  "fetched_at": "2026-10-28T10:13:09+00:00",
- "reviewed": false,
+ "reviewed": true,
  "reviewer": "",
- "review_note": ""
+ "review_note": "",
+ "reviewed_by": "art-director",
+ "reviewed_at": "2026-10-28",
+ "note": "三星首爾瑞草大樓，周邊他牌招牌小；可接受"
 }

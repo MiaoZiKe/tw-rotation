@@ -13,7 +13,10 @@
  "width": 1920,
  "height": 1282,
  "fetched_at": "2026-10-28T10:12:45+00:00",
- "reviewed": false,
+ "reviewed": true,
  "reviewer": "",
- "review_note": ""
+ "review_note": "",
+ "reviewed_by": "art-director",
+ "reviewed_at": "2026-10-28",
+ "note": "Apple Park 空拍，主體完整"
 }
