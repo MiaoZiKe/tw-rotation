@@ -326,6 +326,10 @@ def main() -> int:
 
     with sync_playwright() as p:
         b = p.chromium.launch(executable_path="/opt/pw-browsers/chromium")
+        # 外部網域一律中斷，否則容器出口代理把請求掛著、networkidle 永遠等不到（同 _uitest._block_external）
+        sys.path.insert(0, str(Path(__file__).resolve().parent))
+        from _uitest import _block_external
+        _block_external(b)
         pg = b.new_page(viewport={"width": 1500, "height": 1000})
         pg.on("pageerror", lambda e: problems.append(f"pageerror: {e}"))
         pg.on("console", lambda m: problems.append(f"console.error: {m.text}") if m.type == "error" and "ERR_FAILED" not in m.text and "fonts.googleapis" not in m.text

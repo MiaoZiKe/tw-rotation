@@ -102,7 +102,7 @@ def t_lab_replay(b, base, code):
       r.inst = Object.assign(window.LabEngine.instDefaults('stock'), { slip: 0, feeDisc: 1, feeMin: 0 }); r.acct = m.api.newAcct(1000000);
       m.api.applyFill(1, 1000, 100, 1, '', ''); m.api.applyFill(-1, 1000, 110, 2, '', '');
       const t = r.acct.trades[0]; return { pnl: t.pnl, costs: t.costs, cash: r.acct.cash }; }""")
-    ok(f"{T}：模擬帳戶記帳：損益 9,370.75、成本 629.25、現金 1,009,370.75", abs(acc["pnl"] - 9370.75) < 1e-6 and abs(acc["costs"] - 629.25) < 1e-6 and abs(acc["cash"] - 1009370.75) < 1e-6, acc)
+    ok(f"{T}：模擬帳戶記帳：損益 9,372、成本 628（手續費無條件捨去到整數元）、現金 1,009,372", abs(acc["pnl"] - 9372) < 1e-6 and abs(acc["costs"] - 628) < 1e-6 and abs(acc["cash"] - 1009372) < 1e-6, acc)
     c.close()
 
     # --- 手機 390

@@ -50,8 +50,8 @@ def t_lab_standard(b, base, code):
     pg.click("#cuStd .lab-q"); pg.wait_for_timeout(300)
     tx = pg.inner_text("#cuStd .lab-pop")
     ok(f"{T}：「?」寫了進場、出場、停損、出處、失效條件與免責", all(k in tx for k in ["進場", "出場", "停損", "出處", "什麼時候會失效", "免責"]), tx[:40])
-    # 沒有說明卡常駐文字（說明只在「?」）
-    ok(f"{T}：卡片上沒有整段規則原文（說明都收在「?」）", "下一個交易日開盤買進" not in pg.inner_text("#cuStd .cu-stdh") and "出處" not in pg.inner_text("#cuStd .cu-stdtb"), None)
+    # 沒有說明卡常駐文字（說明只在「?」）—— 「?」的浮層就長在標題列裡、上一步剛打開，比對前先把浮層排除（1030 合併時修）
+    ok(f"{T}：卡片上沒有整段規則原文（說明都收在「?」）", "下一個交易日開盤買進" not in pg.evaluate("() => { const h = document.querySelector('#cuStd .cu-stdh').cloneNode(true); h.querySelectorAll('.lab-pop').forEach(x => x.remove()); return h.innerText; }") and "出處" not in pg.inner_text("#cuStd .cu-stdtb"), None)
     # 手機寬度
     pg.set_viewport_size({"width": 390, "height": 844}); pg.wait_for_timeout(600)
     m = pg.evaluate("() => ({ sw: document.documentElement.scrollWidth, cw: document.documentElement.clientWidth })")

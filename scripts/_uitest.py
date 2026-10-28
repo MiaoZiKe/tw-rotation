@@ -37750,6 +37750,46 @@ def _preset_consent() -> None:
     Browser._tw_consent = True
 
 
+def _block_external(b):
+    """把所有非本機的請求直接中斷（2026-10-28 加）。
+
+    為什麼：雲端容器的出口代理會把外部網域（workers.dev、mis.twse、YouTube、Twitter 嵌入…）
+    卡成「連線一直掛著」而不是立刻失敗，`wait_until="networkidle"` 因此永遠等不到、
+    整段逾時，連 origin/main 基準都跑不過。直接中斷後請求立刻 ERR_FAILED，
+    網路就會閒置；console 的 ERR_FAILED 本來就在白名單裡。
+    頁面層級的 page.route()（測試自己 mock 的外部回應）優先於這裡的 context 路由，不受影響。
+    設 TW_UITEST_ALLOW_EXTERNAL=1 可關掉（在能上網的機器上要測真實外部時用）。
+    """
+    if os.environ.get("TW_UITEST_ALLOW_EXTERNAL") == "1":
+        return
+    from urllib.parse import urlparse
+
+    def _h(route):
+        host = urlparse(route.request.url).hostname or ""
+        if host in ("127.0.0.1", "localhost", ""):
+            return route.fallback()
+        return route.abort()
+
+    def _hook(ctx):
+        try:
+            ctx.route("**/*", _h)
+        except Exception:  # noqa: BLE001
+            pass
+        return ctx
+
+    _nc, _np = b.new_context, b.new_page
+
+    def new_context(*a, **k):
+        return _hook(_nc(*a, **k))
+
+    def new_page(*a, **k):
+        pg = _np(*a, **k)
+        _hook(pg.context)
+        return pg
+
+    b.new_context, b.new_page = new_context, new_page
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--code", default="2330")
@@ -37802,6 +37842,7 @@ def main() -> int:
 
     with sync_playwright() as p:
         b = p.chromium.launch(executable_path="/opt/pw-browsers/chromium", headless=not args.headed)
+        _block_external(b)
         pg = b.new_page(viewport={"width": 1500, "height": 1000})
         pg.on("pageerror", lambda e: fails.append("pageerror: " + str(e).replace(chr(10), " / ") + " || STACK: " + ((getattr(e, "stack", "") or "").replace(chr(10), " / ")[:600]) + " || URL: " + pg.url))
         # 缺頁測試會故意讓一個個股頁回 404，那一筆不算問題

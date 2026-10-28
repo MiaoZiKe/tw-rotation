@@ -189,7 +189,7 @@ def t_lab_bt(b, base, code):
       const sig = E.mk(n); sig.L[1] = 1; sig.XL[3] = 1; const inst = Object.assign(E.instDefaults('stock'), { feeDisc: 1, feeMin: 0, slip: 0 });
       const r = E.run(B, sig, { mode: 'both', capital: 1000000, sizeMode: 'units', sizeVal: 1000, inst, sl: 0, tp: 0, trail: 0, maxLoss: 0 }, 0, 5);
       return { pnl: r.trades[0].pnl, costs: r.trades[0].costs }; }""")
-    ok(f"{T}：引擎固定序列損益 9,370.75、成本 629.25（手續費 142.5＋156.75、證交稅 330）", abs(eng["pnl"] - 9370.75) < 1e-6 and abs(eng["costs"] - 629.25) < 1e-6, eng)
+    ok(f"{T}：引擎固定序列損益 9,372、成本 628（手續費 142＋156 無條件捨去到整數元、證交稅 330）", abs(eng["pnl"] - 9372) < 1e-6 and abs(eng["costs"] - 628) < 1e-6, eng)
     c.close()
 
     # --- 台指期子頁：預設標的 TX、期貨成本欄位
@@ -201,7 +201,8 @@ def t_lab_bt(b, base, code):
     pg.click("#labAdvBtn"); pg.wait_for_timeout(300)
     ok(f"{T}：台指期設定有 每點／期交稅／手續費每口 欄位，每點預設 200",
        pg.evaluate("() => document.querySelector(\"input[data-k='mult']\") && +document.querySelector(\"input[data-k='mult']\").value") == 200 and pg.locator("input[data-k='futTax']").count() == 1, None)
-    ok(f"{T}：台指期沒有 60 分資料 → 60分鈕反灰並有說明", pg.evaluate("() => { const b = document.querySelector(\"#labTf button[data-tf='60']\"); return b.disabled && b.title.length > 5; }"), None)
+    # 1029 第二批起台指期有 60 分 K（只有短段）：按鈕可按、title 寫明資料起點（原本斷言「反灰」已過時，1030 合併時改）
+    ok(f"{T}：台指期 60 分鈕可按，並說明 60 分 K 的資料起點", pg.evaluate("() => { const b = document.querySelector(\"#labTf button[data-tf='60']\"); return !b.disabled && b.title.indexOf('僅自') >= 0; }"), None)
     s_fut = pg.evaluate("() => { const S = window.TwLab.state().fut; return S.res ? S.res.stats.n : -1; }")
     pg.fill("input[data-k='mult']", "50"); pg.wait_for_timeout(1500)
     net_a = pg.evaluate("() => window.TwLab.state().fut.res.stats.net")
