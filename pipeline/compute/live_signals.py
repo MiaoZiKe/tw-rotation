@@ -38,6 +38,7 @@ import numpy as np
 import pandas as pd
 
 from pipeline import config
+from pipeline.compute import swing_b_m2 as SW
 from pipeline.util import store
 
 log = logging.getLogger(__name__)
@@ -82,6 +83,11 @@ MULT = {"E2": 1.5, "F2": 1.0, "SAT": 1.0, "BENCH": 1.0, "E2SAT": E2SAT_W_E2 * 1.
 T_LEDGER = "paper/ledger"
 T_SAT = "paper/satellite"
 T_E2SAT = "paper/e2sat_holdings"
+T_SW_SIG = "paper/swing_signals"
+T_SW_HOLD = "paper/swing_holdings"
+T_SW_WATCH = "paper/swing_watch"
+SWING_START = pd.Timestamp("2026-10-29")    # 波段帳戶第一個訊號日（今天 10-28 之後的第一個交易日）；最早成交日是下一個交易日的開盤
+SWING_PLANS = (SW.SWING, SW.SWING_BRAKE)
 
 
 # ------------------------------------------------------------------ 純函式：訊號
@@ -391,7 +397,135 @@ def run(asof: pd.Timestamp | None = None, market: dict | None = None) -> dict[st
     summary["rows_added"] = n
     summary["signals"] = signals_snapshot(mk, cal[-1], state)
     summary["status"] = "ok"
+    try:                                                        # 波段帳戶獨立失敗：不能拖垮上面五個方案
+        summary["swing"] = run_swing(asof)
+    except Exception as exc:                                    # noqa: BLE001
+        log.exception("SWING 帳戶失敗")
+        summary["swing"] = {"status": "error", "error": str(exc)[:300]}
     return summary
+
+
+# ------------------------------------------------------------------ 波段帳戶 SWING／SWING_BRAKE
+def load_swing_lake(asof: pd.Timestamp | None = None) -> dict[str, Any]:
+    """讀波段帳戶需要的資料：個股還原用的價量與除權息、月營收、加權指數、族群歸屬。
+    價格只收四碼普通股（排除 ETF、興櫃）；全部截到 asof（沒給就讀到最新）。"""
+    y = (asof or pd.Timestamp.now()).year
+    px = store.read("price_daily", years=[y - 1, y])
+    if px.empty:
+        return {}
+    ci = store.read("company_info")
+    px["date"] = pd.to_datetime(px["date"])
+    if asof is not None:
+        px = px[px["date"] <= asof]
+    px = px[px["code"].astype(str).str.fullmatch(r"\d{4}") & ~px["code"].astype(str).str.startswith("00")]
+    if not ci.empty:
+        px = px[~px["code"].isin(set(ci.loc[ci["market"] == "EMERGING", "code"]))]
+    px = px.dropna(subset=["open", "high", "low", "close"])
+    px = px[(px["close"] > 0) & (px["open"] > 0)].drop_duplicates(["date", "code"], keep="last")
+    names = px.sort_values("date").groupby("code")["name"].last().to_dict() if "name" in px.columns else {}
+    keep = ["date", "code", "open", "high", "low", "close", "volume", "turnover"]
+    dv = store.read("dividend_results", years=[y - 1, y])
+    dv = dv[["date", "code", "before_price", "reference_price"]] if not dv.empty else pd.DataFrame(columns=["date", "code", "before_price", "reference_price"])
+    rev = store.read("revenue_monthly", years=[y - 2, y - 1, y])
+    ix = store.read("index_ohlc")
+    ix = ix[ix["symbol"] == "TSE"].copy()
+    ix["date"] = pd.to_datetime(ix["date"])
+    idx = ix.drop_duplicates("date").set_index("date").sort_index()["close"].astype(float)
+    from pipeline.groups import loader
+    mem = loader.membership()
+    prim = mem.drop_duplicates("code").set_index("code")["group_id"] if not mem.empty else pd.Series(dtype=object)
+    ind = ci.set_index("code")["industry"] if not ci.empty else pd.Series(dtype=object)
+    group_of = pd.Series({c: (prim[c] if c in prim.index else f"ind_{ind.get(c)}") for c in px["code"].unique()})   # 與回測引擎同一個歸屬規則
+    return {"px": px[keep], "dv": dv, "rev": rev, "idx": idx, "group_of": group_of, "names": names}
+
+
+def _swing_restore(led: pd.DataFrame, plan: str) -> tuple[dict, pd.Timestamp | None]:
+    sub = led[led.plan == plan] if not led.empty else led
+    if sub.empty:
+        return SW.new_state(CAPITAL), None
+    last = sub.iloc[-1]
+    return json.loads(last["extra"])["state"], pd.Timestamp(last["date"])
+
+
+def _swing_ledger_row(d: pd.Timestamp, cfg: SW.AccountCfg, st: dict, res: dict, view: SW.DayView, bench_cum: float, names: dict) -> dict:
+    ents = [e for e in res["signals"] if e["event"] == "ENTRY"]
+    exits = [e for e in res["signals"] if e["event"] == "EXIT"]
+    news = [e for e in res["signals"] if e["event"] == "ENTRY_SIGNAL"]
+    nav = res["nav"]
+    act = "；".join(x for x in (
+        "開盤進場 " + "、".join(f"{e['code']}{e['name']}" for e in ents) if ents else "",
+        "出場 " + "、".join(f"{e['code']}{e['name']}（{e['result_r']:+.2f}R）" for e in exits) if exits else "") if x)
+    sig = dict(watch_top=[dict(rank=int(r.rank), code=r.code, name=names.get(r.code, ""), score=round(float(r.score), 1)) for r in view.watch.head(10).itertuples()],
+               watch_n=int(len(view.watch)), new_signals=[e["code"] for e in news], entries=[e["code"] for e in ents], exits=[e["code"] for e in exits],
+               rejects=[(e["code"], e["note"]) for e in res["signals"] if e["event"] == "REJECT"],
+               risk_mult=res["mult"], halting=res["halting"], positions=len(st["positions"]), disclaimer=DISCLAIMER)
+    return _row(d, cfg.name, nav=nav, cash=res["eq_all"] - res["cost_in"], units=float(len(st["positions"])), notional=res["mkt"],
+                exposure=res["mkt"] / nav if nav else 0.0, held=float(len(st["positions"])), action=act, traded=res["traded"], cost=res["cost"],
+                sig=json.dumps(sig, ensure_ascii=False, default=str), extra=json.dumps({"state": st}, ensure_ascii=False, default=str),
+                plan_cum=_cum(nav), bench_cum=bench_cum, thresh_cum=bench_cum)
+
+
+def run_swing(asof: pd.Timestamp | None = None, lake: dict | None = None) -> dict[str, Any]:
+    """推進 SWING／SWING_BRAKE 到資料湖最新的一天（或 asof）。重跑安全：已寫入的日子不重算、不改寫。
+    每天：用截到 d 日為止的資料算名單與 S1/S2 候選（絕不看 d 日之後）→ 兩個帳戶各自開盤成交昨日候選、處理出場、標價 → 寫帳本。
+    寫入順序：事件、持倉、名單，最後才是 paper/ledger（它是『這一天算完了』的記號，也存著下一天的狀態）。"""
+    out: dict[str, Any] = {"disclaimer": DISCLAIMER, "start": str(SWING_START.date())}
+    lake = lake or load_swing_lake(asof)
+    if not lake:
+        out["status"] = "price_daily 沒資料"
+        return out
+    px = lake["px"]
+    cal = [d for d in sorted(px["date"].unique()) if d >= SWING_START and (asof is None or d <= asof)]
+    if not cal:
+        out["status"] = f"資料還沒到起算日 {SWING_START.date()}（資料湖最新 {px['date'].max().date()}）"
+        return out
+    led = read_ledger()
+    bench = led[led.plan == "BENCH"].set_index("date")["nav"] if not led.empty else pd.Series(dtype=float)
+    states, last_done = {}, {}
+    for cfg in SWING_PLANS:
+        states[cfg.name], last_done[cfg.name] = _swing_restore(led, cfg.name)
+    names = lake["names"]
+    rows, sig_rows, hold_rows, watch_rows = [], [], [], []
+    view = None
+    for d in cal:
+        d = pd.Timestamp(d)
+        todo = [c for c in SWING_PLANS if last_done[c.name] is None or d > last_done[c.name]]
+        if not todo:
+            continue
+        view = SW.build_view(px, lake["dv"], lake["rev"], lake["idx"], lake["group_of"], d)
+        if view is None:
+            continue
+        wr = view.watch.copy()
+        wr["date"] = d.strftime("%Y-%m-%d")
+        wr["name"] = wr["code"].map(names)
+        watch_rows.append(wr)
+        b0 = bench.get(SWING_START)
+        bn = bench.get(d)
+        bcum = float(bn / b0 - 1) if (b0 and bn and np.isfinite(b0) and np.isfinite(bn)) else np.nan
+        for cfg in todo:
+            st0 = states[cfg.name]
+            codes = {p["code"] for p in st0["positions"]} | {c["code"] for c in st0["pending"]}
+            bars = SW.day_bars(view.adj, d, codes)
+            st1, res = SW.step_account(st0, d, bars, view.cands, cfg, names)
+            states[cfg.name], last_done[cfg.name] = st1, d
+            sig_rows += res["signals"]
+            hold_rows += res["holdings"]
+            rows.append(_swing_ledger_row(d, cfg, st1, res, view, bcum, names))
+    n_sig = append_only(T_SW_SIG, pd.DataFrame(sig_rows), ["date", "plan", "code", "event"]) if sig_rows else 0
+    if hold_rows:
+        append_only(T_SW_HOLD, pd.DataFrame(hold_rows), ["date", "plan", "code"])
+    if watch_rows:
+        append_only(T_SW_WATCH, pd.concat(watch_rows, ignore_index=True)[["date", "rank", "code", "name", "score", "group", "ext", "prm", "pnh", "rm_raw", "nh_raw"]],
+                    ["date", "rank"])
+    n = append_only(T_LEDGER, pd.DataFrame(rows), ["date", "plan"]) if rows else 0
+    out.update(status="ok", rows_added=n, signal_rows_added=n_sig, data_last=str(pd.Timestamp(cal[-1]).date()))
+    if view is not None:
+        out["watch_top"] = [dict(rank=int(r.rank), code=r.code, name=names.get(r.code, ""), group=r.group, score=round(float(r.score), 1)) for r in view.watch.head(10).itertuples()]
+    for cfg in SWING_PLANS:
+        st = states[cfg.name]
+        out[cfg.name] = dict(nav=st["last_nav"], positions=[(p["code"], p["entry_date"], p["stop"]) for p in st["positions"]],
+                             tomorrow_candidates=[(c["code"], c["kind"], c["rank"]) for c in st["pending"]])
+    return out
 
 
 def _cum(nav: float) -> float:

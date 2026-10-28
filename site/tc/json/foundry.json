@@ -1955,7 +1955,7 @@
           ],
           "overtime": "經常",
           "travel": "不用",
-          "n": 79,
+          "n": 80,
           "note": "GoodJob 2026-03 兩則自述（台中、高雄，不到 1 年），工時 55～60 小時／週、需輪班；學歷未標；分紅與年薪月數查 GoodJob／媒體未見設備職專屬數字，維持 null；可參考製程職推算 30～37 個月；2026-10-25 補：Dcard 碩士設備新人第一年自述 120～160 萬（第一年分紅未滿，試用期 3 個月不算），第三年 230～250 萬為單一匿名說法未採；未逐筆對應的舊彙整：annual_total_wan=[170, 172]",
           "sources": [
             {
@@ -2277,6 +2277,11 @@
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/260548064",
               "date": "2025-12"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/259020566",
+              "date": "2025-06"
             }
           ],
           "confidence": "高",
@@ -3928,9 +3933,32 @@
               "in_window": true,
               "date_note": "Dcard 頁面發文日期 2025-12-26（20261028_1449 批）",
               "comment_sample": true
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/259020566#留言B2-6",
+              "date": "2025-06",
+              "page_date": "2025-06-08",
+              "date_confirmed": true,
+              "role": "設備工程師（EE，南科，3 年）",
+              "grade": null,
+              "unit_detail": "南科",
+              "years": "3",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 200,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "留言 B2-6（嘉大電機）：工作三年，去年領 200 萬",
+              "in_window": true,
+              "date_note": "Dcard 頁面發文日期 2025-06-08（20261028_1548 批）",
+              "comment_sample": true
             }
           ],
-          "n_stat": 59,
+          "n_stat": 60,
           "bonus_timing_month": "2 月、5 月、7 月、8 月、11 月"
         },
         {
@@ -12194,6 +12222,29 @@
               "in_window": true,
               "date_note": "Dcard 頁面發文日期 2025-08-22（20261028_1449 批）",
               "comment_sample": true
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/260856881#留言B31",
+              "date": "2026-02",
+              "page_date": "2026-02-12",
+              "date_confirmed": true,
+              "role": "工程師（職等 31，第三年）",
+              "grade": "31",
+              "unit_detail": null,
+              "years": "3",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 280,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "留言 B31（自稱 31 職等）：第一年 120 萬、第二年 200 萬、第三年 280 萬（皆考績 S）；今年預估 350 萬為推估不填；每月加班費約 5000～10000",
+              "in_window": true,
+              "date_note": "Dcard 頁面發文日期 2026-02-12（20261028_1548 批）",
+              "comment_sample": true
             }
           ],
           "sources": [
@@ -12376,11 +12427,16 @@
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/259600090",
               "date": "2025-08"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/260856881",
+              "date": "2026-02"
             }
           ],
           "confidence": "低",
-          "n": 63,
-          "n_stat": 63,
+          "n": 64,
+          "n_stat": 64,
           "bonus_timing_month": "2 月、5 月、7 月、8 月、11 月",
           "years": null,
           "annual_total_wan": [
@@ -13551,7 +13607,7 @@
           ],
           "overtime": null,
           "travel": "不用",
-          "n": 28,
+          "n": 29,
           "note": "GoodJob 自述月薪多落在 5～7 萬；salary.tw 台南製程有日均 14～15 小時自述（2025）；學歷未標，區間寬疑含學士／年資差；2026-10-25 補：碩士起薪 Dcard 2026 討論約 6.0～6.7 萬（四大一類另有價）；新人約 6 萬、前三年調薪 3～5%、約第三年升 7 職等後年薪約 200 萬上下（自述）；南科製程（薄膜）需輪班，全薪約台積新人價減 1，年薪 100～120 萬（單筆，範圍外）",
           "sources": [
             {
@@ -14235,9 +14291,32 @@
               "in_window": true,
               "date_note": "Dcard 頁面發文日期 2025-05-10（20261028_1206_a 批）",
               "comment_sample": false
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/259020566#留言B22-5",
+              "date": "2025-07",
+              "page_date": "2025-07-11",
+              "date_confirmed": true,
+              "role": "產線工程師（Defect／YED，offer）",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": "碩士",
+              "base_k": 67,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "留言 B22-5（成大，現職他廠）：剛拿到 offer，四大混血產線碩 67K＋簽約金 20 萬（綁 2 年、試用期滿次月發）",
+              "in_window": true,
+              "date_note": "Dcard 頁面發文日期 2025-07-11（20261028_1548 批）",
+              "comment_sample": true
             }
           ],
-          "n_stat": 17
+          "n_stat": 18
         },
         {
           "unit": "晶圓廠 Fab",
@@ -15625,6 +15704,52 @@
               "in_window": true,
               "date_note": "Dcard 頁面發文日期 2025-12-19（20261028_1449 批）",
               "comment_sample": true
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/259020566#留言B4",
+              "date": "2025-06",
+              "page_date": "2025-06-07",
+              "date_confirmed": true,
+              "role": "工程師（新人，四大碩）",
+              "grade": null,
+              "unit_detail": null,
+              "years": "0",
+              "degree": "碩士",
+              "base_k": 67,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "留言 B4（清大）：新人 60k～67k，四大與混血四大 67k、四中 65k；B5 稱新人無法談價",
+              "in_window": true,
+              "date_note": "Dcard 頁面發文日期 2025-06-07（20261028_1548 批）",
+              "comment_sample": true
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/259020566#留言B6",
+              "date": "2025-06",
+              "page_date": "2025-06-07",
+              "date_confirmed": true,
+              "role": "工程師（碩士新人）",
+              "grade": null,
+              "unit_detail": null,
+              "years": "0",
+              "degree": "碩士",
+              "base_k": 64,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "留言 B6（台大）：去年面試，沒經驗碩畢新人開 64k",
+              "in_window": true,
+              "date_note": "Dcard 頁面發文日期 2025-06-07（20261028_1548 批）",
+              "comment_sample": true
             }
           ],
           "sources": [
@@ -15652,10 +15777,15 @@
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/258876648",
               "date": "2025-05"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/259020566",
+              "date": "2025-06"
             }
           ],
           "confidence": "低",
-          "n": 16,
+          "n": 18,
           "years": null,
           "base_month_k": [
             60,
@@ -15673,7 +15803,7 @@
           "weekly_hours": null,
           "overtime": null,
           "travel": null,
-          "n_stat": 16,
+          "n_stat": 18,
           "note": null,
           "grade": null
         },
@@ -16455,7 +16585,7 @@
           "weekly_hours": null,
           "overtime": "經常",
           "travel": "不用",
-          "n": 16,
+          "n": 17,
           "note": "GoodJob 面試回報單筆 5.8 萬（未通知、年資不完整）；Dcard／PTT 查無世界先進 offer。查過：世界先進 offer 碩士 月薪 分紅 面試 2026（Dcard）／世界先進 GoodJob 面試經驗 製程整合 設備工程師 月薪；GoodJob 多則回報公司保障 16 個月（含年終與節金），另 7 月依營運發分紅、4 月調薪；分紅月數未見具體數字（2026-10 查 GoodJob、媒體）；GoodJob 製程職回報工時偏長、需值班；出差未見回報（廠內職）；2026-10-25 補：Dcard 碩士 31 職等第二年領滿約 110～125 萬（網友）、第一年保 16 領不滿；研替 offer 57k×16、另簽約金 10 萬；研替同職等有 57／62 兩種價；部分年薪／年薪月數由同一筆樣本的「底薪×月數」推算（樣本標 derived）",
           "sources": [
             {
@@ -16517,6 +16647,11 @@
               "site": "GoodJob",
               "url": "https://www.goodjob.life/companies/世界先進積體電路股份有限公司/work-experiences/薪資福利",
               "date": "2025-09"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/262310815",
+              "date": "2026-10"
             }
           ],
           "confidence": "高",
@@ -16838,9 +16973,32 @@
               "date_confirmed": true,
               "date_note": "摘要寫出發文年月",
               "in_window": true
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/262310815",
+              "date": "2026-10",
+              "page_date": "2026-10-17",
+              "date_confirmed": true,
+              "role": "薄膜製程工程師（南崁，6 年經驗 offer）",
+              "grade": null,
+              "unit_detail": "南崁",
+              "years": "6",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": 16,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "發文者 offer：月薪 N+4K、16 個月（HR 說不保證但過去都有；N 未說明）；約每月一次假日值班；留言 B8 稱平日值班月 3 次、假日 2～3 次",
+              "in_window": true,
+              "date_note": "Dcard 頁面發文日期 2026-10-17（20261028_1511 批）",
+              "comment_sample": false
             }
           ],
-          "n_stat": 10
+          "n_stat": 11
         },
         {
           "unit": "晶圓廠 Fab",
@@ -17449,7 +17607,7 @@
           "bonus_months": null,
           "annual_months": [
             16,
-            16
+            20
           ],
           "annual_total_wan": [
             150,
@@ -17458,11 +17616,11 @@
           "weekly_hours": null,
           "overtime": null,
           "travel": null,
-          "n": 4,
+          "n": 5,
           "note": "2026-10-28 Dcard 1449 批新增職位",
           "confidence": "低",
           "grade": null,
-          "n_stat": 4,
+          "n_stat": 5,
           "samples": [
             {
               "site": "Dcard",
@@ -17558,6 +17716,29 @@
               "in_window": true,
               "date_note": "Dcard 頁面發文日期 2025-12-13（20261028_1449 批）",
               "comment_sample": true
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/262310815#留言B4",
+              "date": "2026-10",
+              "page_date": "2026-10-17",
+              "date_confirmed": true,
+              "role": "資深工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": 20,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "留言 B4（長庚）：VIS 資深工程師今年 20 個月；對明年分紅偏悲觀",
+              "in_window": true,
+              "date_note": "Dcard 頁面發文日期 2026-10-17（20261028_1511 批）",
+              "comment_sample": true
             }
           ],
           "sources": [
@@ -17570,6 +17751,11 @@
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/job/p/260450914",
               "date": "2025-12"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/262310815",
+              "date": "2026-10"
             }
           ]
         }

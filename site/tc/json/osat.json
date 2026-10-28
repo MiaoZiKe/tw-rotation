@@ -1085,7 +1085,7 @@
               "base_k": null,
               "bonus_months": null,
               "annual_months": 14,
-              "annual_wan": 105,
+              "annual_wan": null,
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
@@ -1191,7 +1191,7 @@
           ],
           "annual_total_wan": [
             63.0,
-            105
+            63.0
           ],
           "base_month_k": [
             45,
@@ -1464,6 +1464,29 @@
               "quote_free_note": "留言者稱碩畢第一年年薪約70萬、碩約三年可破百；另有留言質疑底薪×14已高於此數，僅供參考",
               "in_window": true,
               "date_note": "Dcard 頁面發文日期 2025-05-21（2026-10-26 2003 批）"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/262256627#留言B3",
+              "date": "2026-10",
+              "page_date": "2026-10-06",
+              "date_confirmed": true,
+              "role": "工程師（六職等，傳產轉職）",
+              "grade": "6",
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 100,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "留言 B3（中山電機所）：從傳產跳日月光六職等，小白幾乎都拿到也才 100 出頭（以 100 萬記，下限）",
+              "in_window": true,
+              "date_note": "Dcard 頁面發文日期 2026-10-06（20261028_1511 批）",
+              "comment_sample": true
             }
           ],
           "sources": [
@@ -1476,22 +1499,27 @@
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/258865068",
               "date": "2025-05"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/262256627",
+              "date": "2026-10"
             }
           ],
           "confidence": "低",
-          "n": 2,
+          "n": 3,
           "years": null,
           "base_month_k": null,
           "bonus_months": null,
           "annual_months": null,
           "annual_total_wan": [
             70,
-            70
+            100
           ],
           "weekly_hours": null,
           "overtime": null,
           "travel": null,
-          "n_stat": 2,
+          "n_stat": 3,
           "note": null,
           "grade": null
         },
@@ -3988,7 +4016,7 @@
               "base_k": null,
               "bonus_months": null,
               "annual_months": 14,
-              "annual_wan": 110,
+              "annual_wan": null,
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
@@ -4011,10 +4039,7 @@
             14,
             14
           ],
-          "annual_total_wan": [
-            110,
-            110
-          ],
+          "annual_total_wan": null,
           "years": null,
           "base_month_k": null,
           "bonus_months": null,
@@ -5892,6 +5917,84 @@
         }
       ],
       "note": "2026-10-26 由 Dcard 樣本新增的公司"
+    },
+    {
+      "name": "久元",
+      "code": null,
+      "heat": null,
+      "benefits": null,
+      "stock_plan": null,
+      "bonus_timing": null,
+      "bonus_structure": [],
+      "culture": null,
+      "interview": null,
+      "grade_system": null,
+      "mops": null,
+      "note": "2026-10-28 由 Dcard 樣本新增的公司",
+      "roles": [
+        {
+          "unit": null,
+          "role": "測試開發工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": [
+            42,
+            43
+          ],
+          "bonus_months": null,
+          "annual_months": [
+            15,
+            18
+          ],
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n": 1,
+          "note": "2026-10-28 Dcard 1548 批新增職位",
+          "confidence": "低",
+          "grade": null,
+          "n_stat": 1,
+          "samples": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/260121874",
+              "date": "2025-10",
+              "page_date": "2025-10-26",
+              "date_confirmed": true,
+              "role": "測試開發工程師（學士新人 offer）",
+              "grade": null,
+              "unit_detail": null,
+              "years": "0",
+              "degree": "學士",
+              "base_k": [
+                42,
+                43
+              ],
+              "bonus_months": null,
+              "annual_months": [
+                15,
+                18
+              ],
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "發文者 offer：月薪 42k～43k × 15～18 個月（與京元合併寫，以區間記）；發文者稱京元整年略高於久元",
+              "in_window": true,
+              "date_note": "Dcard 頁面發文日期 2025-10-26（20261028_1548 批）",
+              "comment_sample": false
+            }
+          ],
+          "sources": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/260121874",
+              "date": "2025-10"
+            }
+          ]
+        }
+      ]
     }
   ]
 }

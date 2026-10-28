@@ -2,7 +2,7 @@
    做法：公司名 → 官網網域，執行時向 Google favicon 服務要小圖；沒有網域或載入失敗，就退成「公司名首字＋產業色」的圓形字標。
    為什麼這樣：不把任何商標圖檔放進 repo（授權與體積），而且對照表只是網域字串，不確定的留空由字標頂上。
    ⚠ 不碰 tc/json 資料檔；名稱以 json 內的 name 欄原文為鍵。 */
-/* 2026-10-28 補：台灣光罩 tmcnet.com.tw（technews／wantgoo 公司資料）｜台灣荏原 ebara.com（母公司荏原製作所主網域，台灣分公司無獨立網域可查）｜祥茂光電 ao-inc.com（新北市就業平台企業資料，Applied Optoelectronics） */
+/* 2026-10-28 補：久元 ytec.com.tw（technews／鉅亨公司資料）｜台灣光罩 tmcnet.com.tw（technews／wantgoo 公司資料）｜台灣荏原 ebara.com（母公司荏原製作所主網域，台灣分公司無獨立網域可查）｜祥茂光電 ao-inc.com（新北市就業平台企業資料，Applied Optoelectronics） */
 /* 2026-10-26 逐家查證（WebSearch，關鍵字「<公司> 官網／網址」「<英文名> official website」）：
    改正：力積電 psmc.tw→powerchip.com（technews 公司資料、維基）｜旺宏 mxic.com.tw→macronix.com（technews）｜穎崴 chpt.com.tw→winwayglobal.com（MONEY LINK）
    南電 npc.com.tw→nanyapcb.com.tw（technews）｜長興 eternal-materials.com→eternal-group.com（法說簡報網域）｜明基材 beq.com→benqmaterials.com（年報）
@@ -39,7 +39,7 @@
     '南亞科': 'nanya.com', '旺宏': 'macronix.com', '華邦電': 'winbond.com', '美光台灣': 'micron.com', '建興儲存': 'ssstc.com',
     // 封測
     '日月光': 'aseglobal.com', '矽品': 'spil.com.tw', '力成': 'pti.com.tw', '京元電子': 'kyec.com.tw', '頎邦': 'chipbond.com.tw', '精材': 'xintec.com.tw',
-    '穎崴': 'winwayglobal.com', '雍智': 'ksmt.com.tw', '漢測': 'hermes-testing.com.tw', '艾克爾（Amkor）': 'amkor.com',
+    '穎崴': 'winwayglobal.com', '雍智': 'ksmt.com.tw', '漢測': 'hermes-testing.com.tw', '久元': 'ytec.com.tw', '艾克爾（Amkor）': 'amkor.com',
     // 材料
     '欣興': 'unimicron.com', '景碩': 'kinsus.com.tw', '南電': 'nanyapcb.com.tw', '臻鼎': 'zdtco.com', '台光電': 'emctw.com', '長興材料': 'eternal-group.com',
     '南帝化工': 'nantex.com.tw', '台灣光罩': 'tmcnet.com.tw', '明基材料': 'benqmaterials.com', '光洋應材': 'solartech.com.tw', '英特格（Entegris）': 'entegris.com',

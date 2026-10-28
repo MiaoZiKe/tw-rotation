@@ -28400,6 +28400,62 @@
           "overtime": null,
           "travel": null,
           "n_stat": 1
+        },
+        {
+          "unit": null,
+          "role": "ACD 工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": [
+            18,
+            21
+          ],
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": "幾乎不",
+          "travel": null,
+          "n": 1,
+          "note": "2026-10-28 Dcard 1548 批新增職位",
+          "confidence": "低",
+          "grade": null,
+          "n_stat": 1,
+          "samples": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/259978760",
+              "date": "2025-10",
+              "page_date": "2025-10-06",
+              "date_confirmed": true,
+              "role": "ACD 工程師（3 年經驗 offer）",
+              "grade": null,
+              "unit_detail": null,
+              "years": "3",
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": [
+                18,
+                21
+              ],
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": "幾乎不",
+              "travel": null,
+              "quote_free_note": "發文者 offer：月薪 N+5，整包 (N+5)×18～21（區間）；8:30～17:30 鮮少加班；Pixel／panel 設計與 TFT 模擬",
+              "in_window": true,
+              "date_note": "Dcard 頁面發文日期 2025-10-06（20261028_1548 批）",
+              "comment_sample": false
+            }
+          ],
+          "sources": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/259978760",
+              "date": "2025-10"
+            }
+          ]
         }
       ]
     },
