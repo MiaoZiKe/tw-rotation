@@ -124,15 +124,15 @@
   "swagger_path": "/tpex_3insti_qfii_trading"
  },
  {
-  "head": "[ {\"Date\":\"1151027\",\"SecuritiesCompanyCode\":\"00411A\",\"CompanyName\":\"主動統一前沿科技\",\"Foreign Investors include Mainland Area Investors (Foreign Dealers excluded)-Total Buy\":\"1154112\",\" Foreign Investors inc",
+  "head": "[ {\"Date\":\"1151028\",\"SecuritiesCompanyCode\":\"00411A\",\"CompanyName\":\"主動統一前沿科技\",\"Foreign Investors include Mainland Area Investors (Foreign Dealers excluded)-Total Buy\":\"1375000\",\" Foreign Investors inc",
   "http": 200,
   "url": "https://www.tpex.org.tw/openapi/v1/tpex_3insti_daily_trading"
  },
  {
   "market": "上櫃",
   "parts": [
-   890
+   902
   ],
-  "rows": 890
+  "rows": 902
  }
 ]
