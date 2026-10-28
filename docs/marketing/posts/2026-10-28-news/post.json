@@ -74,5 +74,152 @@
     ],
     "chars_ig": 823,
     "style": "口袋證券式 IG 長文"
+  },
+  {
+    "id": "post2",
+    "slot": "post",
+    "data_date": "2026-10-28 台北",
+    "caption_threads": [
+      "#博通 #Anthropic AI 設備融資逾 600 億美元！\n#AI基建 銀行團籌資，設備租給 Anthropic\n\n博通（Broadcom）與美國銀行、黑石、花旗、摩根士丹利合作，籌組一筆逾 600 億美元的融資，買進 AI 設備後租給 Anthropic。這筆交易由彭博 10/26 前後報導，鉅亨與科技新報都有跟進。\n\n🏦 #交易結構（報導整理）\n▪ 參與機構：美國銀行、黑石、花旗、摩根士丹利\n▪ 做法：透過特殊目的公司（SPV）買設備，再出租給 Anthropic\n▪ 債權分兩層：第一順位與第二順位擔保\n▪ 博通提供殘值支持\n租賃的做法，是由金融機構出資購買設備、Anthropic 付租金使用，設備本身屬於 SPV。殘值支持指設備租期結束後若價值低於預期，博通提供保障，目的是降低出資方的風險。\n(1/2)",
+      "🔢 #金額口徑不一致\n▪ 鉅亨、科技新報（引彭博）：630 億美元\n▪ 英文媒體：約 600 億美元，其中優先層約 420 億、次順位約 180 億\n兩邊差約 30 億美元，可能是統計範圍或報導時點不同，本篇因此寫「逾 600 億美元」，正式金額以交易文件或公司公告為準。\n\n📅 #時程\n▪ 設備預計自 2027 年開始交付（鉅亨）\nAnthropic 在 10/26 公開的 IPO 文件中，與科技公司的長期算力合約是重要內容，博通是其中之一（鉅亨報導）。\n\n👀 #為什麼值得注意\nAI 運算的設備與電力成本很高，這筆交易顯示部分資金來源不是公司自有現金，而是由銀行團以租賃結構籌資。鉅亨與其他報導也提到，市場近期關注 AI 資本支出與融資壓力。這是融資結構的事實整理，不涉及對任何公司的評價。\n\n以上為公開資料整理，非投資建議\n👉 更多詳細資料可以點擊以下連結：\nhttps://liguligu-puipui.com/?u=th-newspost2-20261028#industry/ai_server\n(2/2)"
+    ],
+    "caption_ig": "#博通 #Anthropic AI 設備融資逾 600 億美元！\n#AI基建 銀行團籌資，設備租給 Anthropic\n\n博通（Broadcom）與美國銀行、黑石、花旗、摩根士丹利合作，籌組一筆逾 600 億美元的融資，買進 AI 設備後租給 Anthropic。這筆交易由彭博 10/26 前後報導，鉅亨與科技新報都有跟進。\n\n🏦 #交易結構（報導整理）\n▪ 參與機構：美國銀行、黑石、花旗、摩根士丹利\n▪ 做法：透過特殊目的公司（SPV）買設備，再出租給 Anthropic\n▪ 債權分兩層：第一順位與第二順位擔保\n▪ 博通提供殘值支持\n租賃的做法，是由金融機構出資購買設備、Anthropic 付租金使用，設備本身屬於 SPV。殘值支持指設備租期結束後若價值低於預期，博通提供保障，目的是降低出資方的風險。\n\n🔢 #金額口徑不一致\n▪ 鉅亨、科技新報（引彭博）：630 億美元\n▪ 英文媒體：約 600 億美元，其中優先層約 420 億、次順位約 180 億\n兩邊差約 30 億美元，可能是統計範圍或報導時點不同，本篇因此寫「逾 600 億美元」，正式金額以交易文件或公司公告為準。\n\n📅 #時程\n▪ 設備預計自 2027 年開始交付（鉅亨）\nAnthropic 在 10/26 公開的 IPO 文件中，與科技公司的長期算力合約是重要內容，博通是其中之一（鉅亨報導）。\n\n👀 #為什麼值得注意\nAI 運算的設備與電力成本很高，這筆交易顯示部分資金來源不是公司自有現金，而是由銀行團以租賃結構籌資。鉅亨與其他報導也提到，市場近期關注 AI 資本支出與融資壓力。這是融資結構的事實整理，不涉及對任何公司的評價。\n\n以上為公開資料整理，非投資建議\n👉 更多詳細資料可以點擊以下連結：\nhttps://liguligu-puipui.com/?u=ig-newspost2-20261028#industry/ai_server",
+    "card": {
+      "title": "AI設備融資逾600億美元",
+      "subtitle": "錢從哪裡來？",
+      "numbers": [
+        {
+          "label": "融資規模",
+          "value": "逾600",
+          "unit": "億美元"
+        },
+        {
+          "label": "參與銀行與機構",
+          "value": "4",
+          "unit": "家"
+        },
+        {
+          "label": "設備預計開始交付",
+          "value": "2027",
+          "unit": "年"
+        }
+      ],
+      "category": "科技",
+      "cover_title": [
+        "博通籌資逾600億美元",
+        "設備租給Anthropic"
+      ],
+      "cover_desc": [
+        "銀行團出資買AI設備，",
+        "報導金額630億與600億不一"
+      ]
+    },
+    "link": "https://liguligu-puipui.com/?u=th-newspost2-20261028#industry/ai_server",
+    "sources": [
+      {
+        "name": "鉅亨：博通與多家銀行合作進行630億美元AI融資",
+        "url": "https://news.cnyes.com/news/id/6637964",
+        "date": "2026-10-27"
+      },
+      {
+        "name": "科技新報：博通攜華爾街籌資630億美元",
+        "url": "https://technews.tw/2026/10/27/broadcom-anthropic-deal/",
+        "date": "2026-10-27"
+      },
+      {
+        "name": "The Next Web：Broadcom 籌資逾 600 億美元",
+        "url": "https://thenextweb.com/news/broadcom-60bn-ai-chip-debt-anthropic",
+        "date": "2026-10"
+      },
+      {
+        "name": "AI Weekly：Broadcom 與 Blackstone 600 億美元債務",
+        "url": "https://aiweekly.co/alerts/broadcom-and-blackstone-amass-60b-debt-to-fund-anthropic-chips",
+        "date": "2026-10"
+      }
+    ],
+    "confidence": "中（結構兩邊一致；金額 630 億對 600 億不一致，已用「逾 600 億」；2027 年交付僅鉅亨）",
+    "note": "金額衝突已在文內並列，不採 630 億或 600 億單一數字。",
+    "chars_threads": [
+      362,
+      461
+    ],
+    "chars_ig": 813,
+    "style": "口袋證券式 IG 長文"
+  },
+  {
+    "id": "post3",
+    "slot": "post",
+    "data_date": "2026-10-28 台北",
+    "caption_threads": [
+      "#蘋果 M6 iMac、MacBook Pro 台灣售價揭曉！\n#iPhoneDuo 內螢幕異常，蘋果證實少數裝置受影響\n\n蘋果這週有兩件事：一是 M6 晶片的 24 吋 iMac 與 14 吋 MacBook Pro 發表，台灣售價 iMac 49,900 元起、MacBook Pro 64,900 元起；二是首款摺疊手機 iPhone Duo 上市首週傳出內螢幕異常，蘋果在 10/26 證實少數裝置受影響。\n\n💻 #M6 Mac（鉅亨、科技新報）\n▪ 24 吋 iMac：台灣 49,900 元起\n▪ 14 吋 MacBook Pro：台灣 64,900 元起\n▪ iMac AI 處理速度最高為前代 5 倍\n外觀與前代相近，升級重點在晶片效能。「最高 5 倍」代表特定 AI 運算情境下的最大差距，不是所有使用情境的平均，實際表現要看獨立測試。\n(1/2)",
+      "📱 #iPhone Duo 螢幕異常\n▪ 上市首週傳出內螢幕裂痕、亮線、白斑與誤觸\n▪ 蘋果 10/26 證實少數裝置受影響，提供 AppleCare 換機\n▪ 維修平台 iFixit 推測與鉸鏈支撐桿的應力集中有關\n蘋果尚未公布故障原因、受影響數量，也未說明是否調整設計；網路上流傳的圖片混有 AI 生成的假圖，實際規模未明。iFixit 的鉸鏈說法屬外部推測，不是蘋果的結論。\n\n👀 #為什麼值得注意\n蘋果新品的價格與規格已公布，但 iPhone Duo 的原因與規模仍待蘋果說明。兩件事相關的後續資訊，以蘋果公告為準。\n\n以上為公開資料整理，非投資建議\n👉 更多詳細資料可以點擊以下連結：\nhttps://liguligu-puipui.com/?u=th-newspost3-20261028#heatmap/theme\n(2/2)"
+    ],
+    "caption_ig": "#蘋果 M6 iMac、MacBook Pro 台灣售價揭曉！\n#iPhoneDuo 內螢幕異常，蘋果證實少數裝置受影響\n\n蘋果這週有兩件事：一是 M6 晶片的 24 吋 iMac 與 14 吋 MacBook Pro 發表，台灣售價 iMac 49,900 元起、MacBook Pro 64,900 元起；二是首款摺疊手機 iPhone Duo 上市首週傳出內螢幕異常，蘋果在 10/26 證實少數裝置受影響。\n\n💻 #M6 Mac（鉅亨、科技新報）\n▪ 24 吋 iMac：台灣 49,900 元起\n▪ 14 吋 MacBook Pro：台灣 64,900 元起\n▪ iMac AI 處理速度最高為前代 5 倍\n外觀與前代相近，升級重點在晶片效能。「最高 5 倍」代表特定 AI 運算情境下的最大差距，不是所有使用情境的平均，實際表現要看獨立測試。\n\n📱 #iPhone Duo 螢幕異常\n▪ 上市首週傳出內螢幕裂痕、亮線、白斑與誤觸\n▪ 蘋果 10/26 證實少數裝置受影響，提供 AppleCare 換機\n▪ 維修平台 iFixit 推測與鉸鏈支撐桿的應力集中有關\n蘋果尚未公布故障原因、受影響數量，也未說明是否調整設計；網路上流傳的圖片混有 AI 生成的假圖，實際規模未明。iFixit 的鉸鏈說法屬外部推測，不是蘋果的結論。\n\n👀 #為什麼值得注意\n蘋果新品的價格與規格已公布，但 iPhone Duo 的原因與規模仍待蘋果說明。兩件事相關的後續資訊，以蘋果公告為準。\n\n以上為公開資料整理，非投資建議\n👉 更多詳細資料可以點擊以下連結：\nhttps://liguligu-puipui.com/?u=ig-newspost3-20261028#heatmap/theme",
+    "card": {
+      "title": "蘋果M6 Mac售價揭曉",
+      "subtitle": "iPhone Duo 螢幕異常怎麼回事？",
+      "numbers": [
+        {
+          "label": "iMac 台灣起價",
+          "value": "49,900",
+          "unit": "元"
+        },
+        {
+          "label": "MacBook Pro 14吋起價",
+          "value": "64,900",
+          "unit": "元"
+        },
+        {
+          "label": "iMac AI 速度最高為前代",
+          "value": "5",
+          "unit": "倍"
+        }
+      ],
+      "category": "科技",
+      "cover_title": [
+        "蘋果M6 Mac售價揭曉",
+        "iMac 49,900元起"
+      ],
+      "cover_desc": [
+        "MacBook Pro 64,900元起，",
+        "iPhone Duo異常蘋果證實"
+      ]
+    },
+    "link": "https://liguligu-puipui.com/?u=th-newspost3-20261028#heatmap/theme",
+    "sources": [
+      {
+        "name": "鉅亨：蘋果兩款Mac換上M6 台灣售價揭曉",
+        "url": "https://news.cnyes.com/news/id/6638779",
+        "date": "2026-10-27"
+      },
+      {
+        "name": "科技新報：M6 iMac AI 效能最高提升 5 倍，售價 49,900 元起",
+        "url": "https://technews.tw/2026/10/27/m6-imac/",
+        "date": "2026-10-27"
+      },
+      {
+        "name": "科技新報：M6 版 14 吋 MacBook Pro 售價 64,900 元起",
+        "url": "https://technews.tw/2026/10/27/m6-macbook-pro-2/",
+        "date": "2026-10-27"
+      },
+      {
+        "name": "鉅亨：蘋果證實少數 iPhone Duo 受影響",
+        "url": "https://news.cnyes.com/news/id/6637951",
+        "date": "2026-10-27"
+      },
+      {
+        "name": "科技新報：蘋果證實 iPhone Duo 螢幕異常",
+        "url": "https://technews.tw/2026/10/27/apple-confirms-iphone-duo-broken-display-issues/",
+        "date": "2026-10-27"
+      }
+    ],
+    "confidence": "中高（價格與 5 倍兩家一致；Duo 證實兩家一致；MacBook Pro 繪圖 +30% 與預購時間僅鉅亨，未寫）",
+    "note": "不點名個股；iFixit 說法標為外部推測。",
+    "chars_threads": [
+      383,
+      370
+    ],
+    "chars_ig": 743,
+    "style": "口袋證券式 IG 長文"
   }
 ]
