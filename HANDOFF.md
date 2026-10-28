@@ -7,12 +7,19 @@
 - 驗證：pytest 全跑；workflow YAML 解析；本機乾跑樣本 `docs/marketing/posts/2026-10-29-news-auto-dryrun/`（沒有真發）。純 scripts／workflow／docs，未動 site/**，_preview／_uitest 不適用。
 - 待處理：點擊（?u= 漏斗）Actions 讀不到；單一來源數字以標出處代替（見 news_auto.md 第四、九節）。
 
+## 2026-10-29 交易練習室上線 main＋台指期搬進來＋籌碼策略（#lab，仍只有管理者看得到）
+- Andy 拍板「上線，籌碼策略也要做，台指期搬進交易練習室」。① `#futures` 頁整個搬進「台指期」子分頁：上方分段鈕「F2 策略訊號與績效」（預設，`site/lab/futures.js`＋`pipeline/compute/futures_page.py`＋`site/data/futures.json`）｜「回測工作台」；舊網址 `#futures` 導向 `#lab/fut`。② 已推 main（c573dfad，管理者限定、無一般公告）；`preview/trading-room`、`preview/futures` 分支在 main 部署 ✅ 後刪除。③ 籌碼策略 9 支：法人連買、投信連買、外資轉買、融資增減、券資比、集保大戶增減（只有 2026-09 起週資料，標「資料不足」不出訊號）、當沖比過熱、突破＋法人買超、均線多頭＋投信連買；自訂積木與腳本新增 `chip()`／`streak()`／`csum()`。
+- 籌碼資料：`pipeline/compute/lab.py export_chips` 每檔一個 `site/data/lab/c/<代號>.json`（近期成交值前 1000 名中的個股約 825 檔、合計約 23 MB），按需載入；index.json 的 `ch:true` 標記有籌碼檔。研究結論「法人籌碼當主訊號沒有增量」寫在「?」。
+- 驗：`tests/lab_engine_check.js` 352 項、`lab_expr_check.js` 35 項（含籌碼手算小資料）；`_uitest` 五段 `交易練習室回測1028／重播1028／事件1028／自訂策略1028／台指期1029`＋新增 `交易練習室籌碼1029` ＝0 問題；上線前 `桌機守門1008`＝0 問題、`手機v2` 7 個（與 origin/main 同環境 10 個，非本批造成）；pytest 1445 通過，2 失敗（`test_送到前端的名稱不會是nan` 先前就失敗；`test_族群沒有未登記的產業別離群值` 讀本機 company_info，我們沒動族群）、5 個 yfinance 缺模組（環境）。`_preview.py` 唯一問題是 `#stock/3189/holders` 圖內文字交疊（個股籌碼頁，非本批）。
+- 容量：`site/data` 未壓縮約 1.1 GB、gzip 約 307 MB（Pages 上限看壓縮後 artifact）；lab 目錄約 157 MB。
+- 公開前要法遵看：F2 區塊「建議曝險／口數」字眼可能被讀成明確買賣建議（launch_standard C 類）；回測績效另有頁尾免責一行。目前僅管理者可見。
+
 ## 2026-10-28 交易練習室（#lab，管理者限定；預覽 preview/trading-room；最後更新 10-28 台北）
 - Andy 要「TradingView 有的都要有」：台指期、歷史回測、K 線重播（含模擬下單）、事件分析、自訂策略。規格書 `docs/tradingview_spec.md`（TradingView 原文沒讀到，〔知〕處的口徑已寫進頁面「?」）。
 - 檔案：前端 `site/lab/{lab,engine,kview,replay,events,expr,custom}.js` ＋ `worker.js`；樣式 `site/m4/20261028-lab.css`；資料 `pipeline/compute/lab.py`（`python -m pipeline.compute.lab`，build_payload 會呼叫，`SKIP_LAB=1` 略過）→ `site/data/lab/`（約 130 MB，Pages 容量要留意）；預覽分支吃正式站資料、正式站還沒有 lab/ 目錄，所以另 commit 小樣本 `site/lab/sample/`（`python -m pipeline.compute.lab --sample`）。事件表 `pipeline/groups/events_history.yaml`（`scripts/gen_events_history.py` 產初稿）。
 - 驗：`tests/lab_engine_check.js`（269 項：人工可算序列到小數、帳務恆等式 150 組、無未來資料、指標與 KInd 同口徑）、`tests/lab_expr_check.js`（29 項：腳本＝內建策略 27 組）、pytest 包裝 `tests/test_lab_engine.py`；`_uitest` 四段 `交易練習室回測1028／重播1028／事件1028／自訂策略1028`＝0 問題；`桌機守門1008`＝0 問題；`手機v2` 本機 7 個問題但 origin/main 同環境是 10 個（不是這批造成，且這批順手修掉科技透明圈圖示那兩條）。
 - 已知限制 / 待辦（卡住的不擋其他項）：
-  1. 「籌碼」類策略（法人連買、融資減少、大戶增加）沒做：要把 `inst_daily`／`margin_daily`／`shareholding_weekly` 按標的輸出進 `site/data/lab/`，容量再加一輪，等 Andy 決定要不要。
+  1. 籌碼策略 10-29 已做（見上）；集保大戶增減待 `shareholding_weekly` 累積滿 2 年才可回測；籌碼檔只給近期成交值前 1000 名個股。，等 Andy 決定要不要。
   2. 台指期是近月連續合約，換月價差沒調整（頁面「?」已寫）；夜盤 `FUT_N` 沒用。
   3. 60 分 K 只給近期成交值前 500 名個股（`TOP60`，容量考量），指數與台指期沒有 60 分資料；日 K 個股從 2016 起（`DAILY_FROM`）。
   4. 事件表：FOMC、台積電法說會日期是依公開日程整理（信心「中」，尚未逐筆對官網）；非農、台指期結算日是規則推算（信心「低」，遇假日未調整）；歷史 CPI 沒有（`macro_calendar` 只有近期）；除權息旺季是由資料湖統計。要補官方出處請改 yaml 的 `src`／`conf`。
