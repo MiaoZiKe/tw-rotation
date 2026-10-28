@@ -18,10 +18,11 @@
    "width": 1920,
    "height": 1440,
    "fetched_at": "2026-10-28T16:16:24+00:00",
-   "reviewed": true,
+   "reviewed": false,
    "reviewer": "art-director",
-   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
-   "reviewed_at": "2026-10-28"
+   "review_note": "2026-10-28 第三輪（art-director 複審）退件：主體不明、天空雲影壓抑，看不出資料中心",
+   "reviewed_at": "2026-10-28",
+   "reject_reason": "主體不明、天空雲影壓抑，看不出資料中心"
   },
   {
    "file": "photo_3.jpg",
@@ -40,10 +41,11 @@
    "width": 1920,
    "height": 1440,
    "fetched_at": "2026-10-28T16:16:26+00:00",
-   "reviewed": true,
+   "reviewed": false,
    "reviewer": "art-director",
-   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
-   "reviewed_at": "2026-10-28"
+   "review_note": "2026-10-28 第三輪（art-director 複審）退件：老舊雜亂機櫃",
+   "reviewed_at": "2026-10-28",
+   "reject_reason": "老舊雜亂機櫃"
   },
   {
    "file": "photo_4.jpg",
@@ -62,10 +64,11 @@
    "width": 1920,
    "height": 1440,
    "fetched_at": "2026-10-28T16:16:26+00:00",
-   "reviewed": true,
+   "reviewed": false,
    "reviewer": "art-director",
-   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
-   "reviewed_at": "2026-10-28"
+   "review_note": "2026-10-28 第三輪（art-director 複審）退件：線材堆疊雜亂、無主體",
+   "reviewed_at": "2026-10-28",
+   "reject_reason": "線材堆疊雜亂、無主體"
   },
   {
    "file": "photo_5.jpg",
@@ -84,10 +87,11 @@
    "width": 1920,
    "height": 1280,
    "fetched_at": "2026-10-28T16:16:28+00:00",
-   "reviewed": true,
+   "reviewed": false,
    "reviewer": "art-director",
-   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
-   "reviewed_at": "2026-10-28"
+   "review_note": "2026-10-28 第三輪（art-director 複審）退件：CERN 標示且老舊米色機房",
+   "reviewed_at": "2026-10-28",
+   "reject_reason": "CERN 標示且老舊米色機房"
   },
   {
    "file": "photo_7.jpg",
@@ -108,8 +112,9 @@
    "fetched_at": "2026-10-28T16:16:32+00:00",
    "reviewed": true,
    "reviewer": "art-director",
-   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
-   "reviewed_at": "2026-10-28"
+   "review_note": "2026-10-28 第三輪（art-director 複審）通過：主體正確、原色、裁成 952×424 仍成立",
+   "reviewed_at": "2026-10-28",
+   "reviewed_by": "art-director"
   },
   {
    "file": "photo_8.jpg",
@@ -128,10 +133,11 @@
    "width": 1920,
    "height": 1440,
    "fetched_at": "2026-10-28T16:16:32+00:00",
-   "reviewed": true,
+   "reviewed": false,
    "reviewer": "art-director",
-   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
-   "reviewed_at": "2026-10-28"
+   "review_note": "2026-10-28 第三輪（art-director 複審）退件：偏綠色偏、舊機房、有文字殘留",
+   "reviewed_at": "2026-10-28",
+   "reject_reason": "偏綠色偏、舊機房、有文字殘留"
   }
  ],
  "rejected": [

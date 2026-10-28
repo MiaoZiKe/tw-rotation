@@ -20,8 +20,9 @@
    "fetched_at": "2026-10-28T16:16:07+00:00",
    "reviewed": true,
    "reviewer": "art-director",
-   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
-   "reviewed_at": "2026-10-28"
+   "review_note": "2026-10-28 第三輪（art-director 複審）通過：主體正確、原色、裁成 952×424 仍成立",
+   "reviewed_at": "2026-10-28",
+   "reviewed_by": "art-director"
   },
   {
    "file": "photo_2.jpg",
@@ -40,10 +41,11 @@
    "width": 1920,
    "height": 1592,
    "fetched_at": "2026-10-28T16:16:08+00:00",
-   "reviewed": true,
+   "reviewed": false,
    "reviewer": "art-director",
-   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
-   "reviewed_at": "2026-10-28"
+   "review_note": "2026-10-28 第三輪（art-director 複審）退件：德州儀器 LOGO 為主角",
+   "reviewed_at": "2026-10-28",
+   "reject_reason": "德州儀器 LOGO 為主角"
   },
   {
    "file": "photo_3.jpg",
@@ -62,10 +64,11 @@
    "width": 1920,
    "height": 949,
    "fetched_at": "2026-10-28T16:16:11+00:00",
-   "reviewed": true,
+   "reviewed": false,
    "reviewer": "art-director",
-   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
-   "reviewed_at": "2026-10-28"
+   "review_note": "2026-10-28 第三輪（art-director 複審）退件：大幅條碼貼紙為視覺中心",
+   "reviewed_at": "2026-10-28",
+   "reject_reason": "大幅條碼貼紙為視覺中心"
   },
   {
    "file": "photo_5.jpg",
@@ -86,8 +89,9 @@
    "fetched_at": "2026-10-28T16:16:11+00:00",
    "reviewed": true,
    "reviewer": "art-director",
-   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
-   "reviewed_at": "2026-10-28"
+   "review_note": "2026-10-28 第三輪（art-director 複審）通過：主體正確、原色、裁成 952×424 仍成立",
+   "reviewed_at": "2026-10-28",
+   "reviewed_by": "art-director"
   },
   {
    "file": "photo_7.jpg",
@@ -108,8 +112,9 @@
    "fetched_at": "2026-10-28T16:16:14+00:00",
    "reviewed": true,
    "reviewer": "art-director",
-   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
-   "reviewed_at": "2026-10-28"
+   "review_note": "2026-10-28 第三輪（art-director 複審）通過：主體正確、原色、裁成 952×424 仍成立",
+   "reviewed_at": "2026-10-28",
+   "reviewed_by": "art-director"
   },
   {
    "file": "photo_8.jpg",
@@ -130,8 +135,9 @@
    "fetched_at": "2026-10-28T16:16:14+00:00",
    "reviewed": true,
    "reviewer": "art-director",
-   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
-   "reviewed_at": "2026-10-28"
+   "review_note": "2026-10-28 第三輪（art-director 複審）通過：主體正確、原色、裁成 952×424 仍成立",
+   "reviewed_at": "2026-10-28",
+   "reviewed_by": "art-director"
   }
  ],
  "rejected": [

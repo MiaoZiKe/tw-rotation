@@ -20,8 +20,9 @@
    "fetched_at": "2026-10-28T16:16:20+00:00",
    "reviewed": true,
    "reviewer": "art-director",
-   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
-   "reviewed_at": "2026-10-28"
+   "review_note": "2026-10-28 第三輪（art-director 複審）通過：主體正確、原色、裁成 952×424 仍成立",
+   "reviewed_at": "2026-10-28",
+   "reviewed_by": "art-director"
   },
   {
    "file": "photo_2.jpg",
@@ -40,10 +41,11 @@
    "width": 1920,
    "height": 1296,
    "fetched_at": "2026-10-28T16:16:21+00:00",
-   "reviewed": true,
+   "reviewed": false,
    "reviewer": "art-director",
-   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
-   "reviewed_at": "2026-10-28"
+   "review_note": "2026-10-28 第三輪（art-director 複審）退件：雜亂、含 HP 商標、偏舊髒亂",
+   "reviewed_at": "2026-10-28",
+   "reject_reason": "雜亂、含 HP 商標、偏舊髒亂"
   },
   {
    "file": "photo_3.jpg",
@@ -62,10 +64,11 @@
    "width": 1600,
    "height": 1400,
    "fetched_at": "2026-10-28T16:16:21+00:00",
-   "reviewed": true,
+   "reviewed": false,
    "reviewer": "art-director",
-   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
-   "reviewed_at": "2026-10-28"
+   "review_note": "2026-10-28 第三輪（art-director 複審）退件：ASUS 散熱片商標為主角",
+   "reviewed_at": "2026-10-28",
+   "reject_reason": "ASUS 散熱片商標為主角"
   },
   {
    "file": "photo_4.jpg",
@@ -86,8 +89,9 @@
    "fetched_at": "2026-10-28T16:16:21+00:00",
    "reviewed": true,
    "reviewer": "art-director",
-   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
-   "reviewed_at": "2026-10-28"
+   "review_note": "2026-10-28 第三輪（art-director 複審）通過：主體正確、原色、裁成 952×424 仍成立",
+   "reviewed_at": "2026-10-28",
+   "reviewed_by": "art-director"
   },
   {
    "file": "photo_5.jpg",
@@ -108,8 +112,9 @@
    "fetched_at": "2026-10-28T16:16:23+00:00",
    "reviewed": true,
    "reviewer": "art-director",
-   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
-   "reviewed_at": "2026-10-28"
+   "review_note": "2026-10-28 第三輪（art-director 複審）通過：主體正確、原色、裁成 952×424 仍成立",
+   "reviewed_at": "2026-10-28",
+   "reviewed_by": "art-director"
   },
   {
    "file": "photo_6.jpg",
@@ -130,8 +135,9 @@
    "fetched_at": "2026-10-28T16:16:23+00:00",
    "reviewed": true,
    "reviewer": "art-director",
-   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
-   "reviewed_at": "2026-10-28"
+   "review_note": "2026-10-28 第三輪（art-director 複審）通過：主體正確、原色、裁成 952×424 仍成立",
+   "reviewed_at": "2026-10-28",
+   "reviewed_by": "art-director"
   }
  ],
  "rejected": [
