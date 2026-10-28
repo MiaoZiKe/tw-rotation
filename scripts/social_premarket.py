@@ -1065,7 +1065,7 @@ def build_pages(D: dict, mode: str, theme: str = "light") -> list[dict]:
         # Andy 10-26 晚：「最後一張圖不要表情好了，就標題」→ 編號＋分類＋標題，不放圖示與摘要
         items = "".join(f'<div class="it cat-{n["category"]}"><div class=ix data-box=ix{i}>{i + 1:02d}</div><div class=bd>'
                         f'<div class=tg data-box=tg{i}>{n["category"]}</div><div class=tt data-box=tt{i}>{_e(n["title"])}</div>'
-                        + (f'<div class=sm2 data-box=sm{i}>{_e(PN_desc(n.get("summary"), 30))}</div>' if n.get("summary") else "") + '</div></div>'
+                        + (f'<div class=sm2 data-box=sm{i}>{_e(PN_desc(n.get("summary"), 30))}</div>' if n.get("summary") and not D.get("compact_news") else "") + '</div></div>'
                         for i, n in enumerate(D["news"]))
         pages.append({"name": "news", "title": "昨日事件", "inner": f'<div class=news>{items}</div>', "charts": {}})
     return pages
@@ -1343,7 +1343,27 @@ def main() -> int:
     print(f"[premarket] 重疊檢查：程式 {len(report)} 張、{sum(r['n'] for r in report)} 個框、{len(bad)} 筆問題")
     for r in report:
         print(f"  {r['file']}: 框 {r['n']}、填滿 {r['content_ratio']:.0%}" + (f"  ✗ {r['hits']} {r['out']} {r['cut']}" if r in bad else ""))
-    if bad:
+    # 2026-10-28 Andy：「我的自動發文為何沒有執行 已經發生多次了 請確實完成」
+    # 以前一張圖重疊就整篇不發（結束碼 3）。現在：① 昨日事件卡重疊 → 拿掉摘要重畫；② 還有重疊的那張圖直接不放，其他照發，記進 alert。
+    dropped: list[str] = []
+    if bad and any("news" in r["file"] for r in bad):
+        D["compact_news"] = True
+        rep2: list = []
+        with sync_playwright() as p:
+            browser = p.chromium.launch(executable_path=ss.CHROMIUM) if ss.CHROMIUM else p.chromium.launch()
+            for mode in ("threads", "story"):
+                render([pg for pg in build_pages(D, mode, args.frame) if pg["name"] == "news"], mode, args.frame, out, browser, rep2)
+            browser.close()
+        report = [r for r in report if "news" not in r["file"]] + rep2
+        bad = [r for r in report if r["hits"] or r["out"] or r["cut"]]
+        print(f"[premarket] 昨日事件卡改精簡版（不放摘要）重畫：剩 {len(bad)} 筆問題")
+    for r in bad:
+        dropped.append(r["file"])
+        threads = [f for f in threads if f != r["file"]]
+        stories = [f for f in stories if f != r["file"]]
+    if dropped:
+        print(f"[premarket] ⚠ 這幾張仍有重疊，不放進貼文（其他照發）：{dropped}")
+    if not threads and not stories:
         return 3
     text = caption(D, target.strftime("%Y%m%d"))
     reply = caption_reply(D)
@@ -1355,6 +1375,8 @@ def main() -> int:
     alerts = []      # 2026-10-27 Andy：「有問題就Mail通知」→ 寫進 alert.txt，workflow 把這一輪標紅 → GitHub 寄信
     if late:
         alerts.append(f"盤前貼文排程晚到：{now:%Y-%m-%d %H:%M}（台北）才開始跑，已過 08:45 開盤，仍照發。")
+    if dropped:
+        alerts.append(f"盤前貼文有 {len(dropped)} 張圖版面重疊，已拿掉不發：{'、'.join(dropped)}。")
     if not pn["items"]:
         alerts.append(f"盤前貼文「昨日事件」0 則（消息時間窗 {D['news_window'][0][:16]}～{D['news_window'][1][:16]}），這篇少了昨日事件那張圖與那段文案。")
     if alerts:
