@@ -247,3 +247,6 @@ html:not(.lab-adm) .tab[data-view="lab"],html:not(.lab-adm) a[href="#lab"],html:
 
 #v-lab .rp-blindon .legend-ov{display:none!important}
 #v-lab .rp-main .lab-kwrap{min-width:0}
+
+#v-lab .lab-savestrat{margin-left:auto}
+#v-lab .lab-pickbtn.flash{border-color:var(--amber);box-shadow:0 0 0 1px var(--amber)}

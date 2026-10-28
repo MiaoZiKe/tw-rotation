@@ -483,7 +483,12 @@
       b.classList.toggle('on', k === S.range); b.disabled = !!short; b.title = short ? '資料只有 ' + Math.round(span / 30) + ' 個月，不足這個期間' : '';
     });
     const pb = $('#labPickBtn'); if (pb) pb.textContent = stratName(S.strat) + ' ▾';
-    const pp = $('#labParams'); if (pp) pp.innerHTML = paramsHTML(S);
+    const pp = $('#labParams');
+    if (pp) {
+      pp.innerHTML = paramsHTML(S);
+      const can = S.strat.indexOf('u:') !== 0 && window.LabExpr && window.LabExpr.scriptFor(S.strat, Object.assign(E.defaults(S.strat), S.params));
+      if (can) pp.insertAdjacentHTML('beforeend', '<button type="button" class="lab-clear lab-savestrat" id="labSaveStrat" title="把這個內建策略（連同目前的參數）存成可以修改的自訂策略">另存為我的策略</button>');
+    }
     const bh = $('#labBH'); if (bh) bh.checked = !!S.showBH;
     const ab = $('#labAdvBtn'); if (ab) { ab.setAttribute('aria-expanded', String(!!S.advOpen)); ab.classList.toggle('on', !!S.advOpen); }
     const adv = $('#labAdv'); if (adv) { adv.hidden = !S.advOpen; if (S.advOpen) adv.innerHTML = advFields(S); }
@@ -553,6 +558,15 @@
         return;
       }
       const pi = t.closest('.lab-pi[data-s]'); if (pi) { S.strat = pi.dataset.s; S.params = {}; const st0 = E.STRAT[S.strat]; if (st0 && st0.risk) Object.assign(S.cfg, st0.risk); $('#labPick').hidden = true; S.pickOpen = false; syncBar(S); recompute(S); return; }
+      if (t.closest('#labSaveStrat')) {
+        const C = window.TwLabCustom; if (!C) return;
+        const text = window.LabExpr.scriptFor(S.strat, Object.assign(E.defaults(S.strat), S.params));
+        const id = C.addRule({ name: stratName(S.strat).replace(/（.*）/, '') + '（我的）', mode: 'script', dir: S.mode, script: text, risk: { sl: S.cfg.sl || 0, tp: S.cfg.tp || 0, trail: S.cfg.trail || 0, maxbars: 0 } });
+        S.cfg.sl = 0; S.cfg.tp = 0; S.cfg.trail = 0;       // 風控已經存進自訂策略裡，不要重複套兩次
+        S.strat = 'u:' + id; S.params = {}; syncBar(S); recompute(S);
+        const b = $('#labPickBtn'); if (b) { b.classList.add('flash'); setTimeout(() => b.classList.remove('flash'), 1500); }
+        return;
+      }
       const cx = t.closest('.lab-cx'); if (cx) { S.ind.splice(+cx.dataset.cx, 1); S.setI = -1; $('#labIndSet').hidden = true; applyInd(S); return; }
       const cg = t.closest('.lab-cg'); if (cg) { const i = +cg.dataset.cg, box = $('#labIndSet'); if (!box.hidden && S.setI === i) { box.hidden = true; S.setI = -1; return; } S.setI = i; S.istab = 'in'; box.innerHTML = indSetHTML(S, i); box.hidden = false; const bb = $('#labBody').getBoundingClientRect(), r = cg.getBoundingClientRect(); box.style.left = Math.max(0, Math.min(r.left - bb.left, bb.width - 280)) + 'px'; box.style.top = (r.bottom - bb.top + 4) + 'px'; return; }
       const ist = t.closest('[data-ist]'); if (ist) { S.istab = ist.dataset.ist; $('#labIndSet').innerHTML = indSetHTML(S, S.setI); return; }

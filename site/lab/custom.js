@@ -48,6 +48,11 @@
       res.sig.risk = res.risk; res.sig.dir = r.dir; return res.sig;
     },
     reload() { RULES = load(); },
+    /** 從歷史回測「另存為我的策略」：把規則（腳本模式）存進這台裝置，回傳新策略的 id */
+    addRule(x) {
+      const r = Object.assign(blank(), x); r.risk = Object.assign({ sl: 0, tp: 0, trail: 0, maxbars: 0 }, x.risk || {});
+      RULES = load(); RULES.push(r); save(RULES); return r.id;
+    },
   };
 
   /* ---------------------------------------------------------------- 編輯器狀態 */

@@ -69,4 +69,20 @@ const idx = Array.from(r.sig.L).map((x, i) => (x ? i : -1)).filter((i) => i >= 0
 const R = E.run(B, { L: Uint8Array.from(B.c, (_, i) => (i === 10 ? 1 : 0)), S: new Uint8Array(B.n), XL: new Uint8Array(B.n), XS: new Uint8Array(B.n) },
   { mode: 'both', capital: 1000000, sizeMode: 'units', sizeVal: 100, inst: Object.assign(E.instDefaults('stock'), { slip: 0 }), sl: 0, tp: 0, trail: 0, maxLoss: 0, maxBars: 7 }, 0, B.n - 1);
 eq(R.trades.length, 1, '最長持有：一筆'); eq(R.trades[0].i1 - R.trades[0].i0, 8, '最長持有 7 根：第 7 根收盤判定、第 8 根開盤出場'); eq(R.trades[0].why, '持有逾時', '原因');
+// ⑥ 內建策略 → 腳本：每支有對應寫法的都要與內建策略訊號完全相同（預設參數與改過的參數各驗一次）
+{
+  let n = 0;
+  for (const st of E.STRATS) {
+    const tweak = {}; (st.params || []).forEach((q) => { tweak[q.k] = q.def === q.min ? q.def + q.step : (q.k === 'rev' ? q.def : Math.max(q.min, Math.round((q.def * 0.8) / q.step) * q.step)); });
+    for (const pr of [E.defaults(st.id), Object.assign(E.defaults(st.id), tweak)]) {
+      const text = X.scriptFor(st.id, pr); if (!text) continue;
+      const res = X.compile(text, B); assert.deepStrictEqual(res.errors, [], st.id + ' 腳本沒有錯誤：' + text);
+      const ref = st.build(B, pr);
+      for (const k of ['L', 'S']) for (let i = 0; i < B.n; i++) assert.strictEqual(res.sig[k][i], ref[k][i], `${st.id}.${k}[${i}] 腳本與內建策略不同（參數 ${JSON.stringify(pr)}）`);
+      n++;
+    }
+  }
+  assert.ok(n >= 24, '至少 12 支×2 組參數有腳本寫法：' + n); pass++;
+  console.log('  內建策略↔腳本：' + n + ' 組一致');
+}
 console.log(`lab_expr_check：${pass} 項斷言全數通過`);

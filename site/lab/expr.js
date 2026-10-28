@@ -243,5 +243,30 @@
     return o.join('\n');
   }
 
-  return { compile, tokenize, parseExpr, toScript, rowText, blockText, OPD, CMP, norm };
+  /** 內建策略 → 同一套規則的腳本文字（給「另存為我的策略」用）。回傳 null＝這支沒有對應的腳本寫法。
+      tests/lab_expr_check.js 逐支驗證：腳本編譯出來的訊號與內建策略完全相同。 */
+  function scriptFor(id, p) {
+    const q = (k, d) => (p && p[k] != null ? p[k] : d), L = [];
+    const both = (l, s) => { L.push('若 ' + l + ' 則 進場("多")'); L.push('若 ' + s + ' 則 進場("空")'); };
+    switch (id) {
+      case 'ma2': both(`crossover(sma(close,${q('f', 9)}), sma(close,${q('s', 18)}))`, `crossunder(sma(close,${q('f', 9)}), sma(close,${q('s', 18)}))`); break;
+      case 'ma1': if (q('k', 1) !== 1) return null; both(`crossover(close, sma(close,${q('n', 9)}))`, `crossunder(close, sma(close,${q('n', 9)}))`); break;
+      case 'rsi': L.push(`r = rsi(close,${q('n', 14)})`); both(`crossover(r, ${q('lo', 30)})`, `crossunder(r, ${q('hi', 70)})`); break;
+      case 'macd': L.push(`o = macd_osc(close,${q('f', 12)},${q('s', 26)},${q('g', 9)})`); both('o > 0 且 o[1] <= 0', 'o < 0 且 o[1] >= 0'); break;
+      case 'bb': both(`crossover(close, bb_low(close,${q('n', 20)},${q('k', 2)}))`, `crossunder(close, bb_up(close,${q('n', 20)},${q('k', 2)}))`); break;
+      case 'pricech': both(`close > highest(high,${q('n', 20)})[1]`, `close < lowest(low,${q('n', 20)})[1]`); break;
+      case 'kd': L.push(`k = kd_k(${q('n', 9)})`, `d = kd_d(${q('n', 9)})`); both(`crossover(k, d) 且 k < ${q('lo', 20)}`, `crossunder(k, d) 且 k > ${q('hi', 80)}`); break;
+      case 'supertrend': L.push(`t = supertrend_dir(${q('n', 10)},${q('m', 3)})`); both('t > 0 且 t[1] < 0', 't < 0 且 t[1] > 0'); break;
+      case 'cci': L.push(`x = cci(${q('n', 20)})`); both(`x > ${-q('t', 100)} 且 x[1] <= ${-q('t', 100)}`, `x < ${q('t', 100)} 且 x[1] >= ${q('t', 100)}`); break;
+      case 'willr': L.push(`x = willr(${q('n', 14)})`); both('x > -80 且 x[1] <= -80', 'x < -20 且 x[1] >= -20'); break;
+      case 'barupdn': both('close > open 且 open > close[1]', 'close < open 且 open < close[1]'); break;
+      case 'inside': both('high < high[1] 且 low > low[1] 且 close > open', 'high < high[1] 且 low > low[1] 且 close < open'); break;
+      case 'outside': both('high > high[1] 且 low < low[1] 且 close > open', 'high > high[1] 且 low < low[1] 且 close < open'); break;
+      case 'consec': { const up = [], dn = []; for (let i = 0; i < q('n', 3); i++) up.push(`close${i ? '[' + i + ']' : ''} > close[${i + 1}]`); for (let i = 0; i < q('m', 3); i++) dn.push(`close${i ? '[' + i + ']' : ''} < close[${i + 1}]`); both(up.join(' 且 '), dn.join(' 且 ')); break; }
+      default: return null;
+    }
+    return L.join('\n');
+  }
+
+  return { compile, tokenize, parseExpr, toScript, scriptFor, rowText, blockText, OPD, CMP, norm };
 }));

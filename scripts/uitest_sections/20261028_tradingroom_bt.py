@@ -152,6 +152,14 @@ def t_lab_bt(b, base, code):
     ok(f"{T}：選水平線在圖上點一下，真的多出一條線並存進 localStorage", pg.evaluate("() => window.TwLab.charts.kv.kc.draw.shapes.length") == 1 and "hline" in pg.evaluate("() => localStorage.getItem('tw.draw.lab.' + window.TwLab.state().bt.sym + '.D') || ''"), None)
     pg.click("#labCt button[data-c='ha']"); pg.wait_for_timeout(300); pg.click("#labCt button[data-c='k']"); pg.wait_for_timeout(300)
     ok(f"{T}：切換圖表類型後畫的線還在", pg.evaluate("() => window.TwLab.charts.kv.kc.draw.shapes.length") == 1, None)
+    # --- 內建策略另存為我的策略
+    pg.click("#labPickBtn"); pg.wait_for_timeout(200)
+    pg.click(".lab-ptabs button[data-pt='strat']"); pg.click(".lab-pi[data-s='ma2']"); pg.wait_for_timeout(1500)
+    t_before = pg.evaluate("() => window.TwLab.state().bt.res.trades.length")
+    ok(f"{T}：內建的雙均線有「另存為我的策略」鈕", pg.locator("#labSaveStrat").count() == 1, None)
+    pg.click("#labSaveStrat"); pg.wait_for_timeout(2000)
+    ok(f"{T}：另存後自動改用「我的策略」版，回測交易數與原內建策略完全相同", pg.evaluate("() => window.TwLab.state().bt.strat").startswith("u:") and pg.evaluate("() => window.TwLab.state().bt.res.trades.length") == t_before, t_before)
+    ok(f"{T}：另存的策略真的寫進 localStorage（腳本模式）", pg.evaluate("() => JSON.parse(localStorage.getItem('tw.lab.rules') || '[]').some(r => r.mode === 'script' && r.script.indexOf('crossover') >= 0)"), None)
     # --- 引擎數字：人工可算的序列（手續費 0.1425%、證交稅 0.3%）
     eng = pg.evaluate("""() => { const E = window.LabEngine, n = 6, B = { n, tf: 'D', ts: new Float64Array(n), day: Float64Array.from([19000,19001,19002,19003,19004,19005]), dayEnd: Float64Array.from([19000,19001,19002,19003,19004,19005]),
       o: Float64Array.from([99,100,100,105,110,110]), h: Float64Array.from([99,100,101,106,111,110]), l: Float64Array.from([99,100,99,104,109,110]), c: Float64Array.from([99,100,100,105,110,110]), v: new Float64Array(n) };
