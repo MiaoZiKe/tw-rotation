@@ -508,6 +508,62 @@
               "annual_wan_derived": true
             }
           ]
+        },
+        {
+          "unit": null,
+          "role": "RD 工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": [
+            14,
+            15.5
+          ],
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": "幾乎不",
+          "travel": null,
+          "n": 1,
+          "note": "2026-10-28 Dcard 1612 批新增職位",
+          "confidence": "低",
+          "grade": null,
+          "n_stat": 1,
+          "samples": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/259208089",
+              "date": "2025-06",
+              "page_date": "2025-06-30",
+              "date_confirmed": true,
+              "role": "平台 RD 工程師（龍潭廠，尚未正式 offer）",
+              "grade": null,
+              "unit_detail": "桃園龍潭廠",
+              "years": "1.5",
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": [
+                14,
+                15.5
+              ],
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": "幾乎不",
+              "travel": null,
+              "quote_free_note": "發文者：尚未拿到正式 offer；月薪約 N-4k，年薪約 14～15.5 個月（區間）；8:00～17:00 不太需要加班；B2-4 稱 offer 應只寫保 14",
+              "in_window": true,
+              "date_note": "Dcard 頁面發文日期 2025-06-30（20261028_1612 批）",
+              "comment_sample": false
+            }
+          ],
+          "sources": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/259208089",
+              "date": "2025-06"
+            }
+          ]
         }
       ]
     },

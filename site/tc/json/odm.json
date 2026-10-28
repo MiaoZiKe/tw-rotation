@@ -13853,7 +13853,7 @@
           "degree": null,
           "years": null,
           "base_month_k": [
-            90,
+            74,
             90
           ],
           "bonus_months": null,
@@ -13865,8 +13865,8 @@
           ],
           "overtime": "經常",
           "travel": null,
-          "n": 1,
-          "n_stat": 1,
+          "n": 2,
+          "n_stat": 2,
           "note": null,
           "grade": null,
           "sources": [
@@ -13874,6 +13874,11 @@
               "site": "GoodJob",
               "url": "https://www.goodjob.life/companies/台達電子工業股份有限公司/salary-work-times?p=7",
               "date": "2026-01"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/258009182",
+              "date": "2025-06"
             }
           ],
           "confidence": "低",
@@ -13899,6 +13904,29 @@
               "quote_free_note": "自填；日工時 表訂/實際 8 / 12",
               "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2026-01（Andy 桌面版 2026-10-26 2225_a 批）"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/258009182#留言B1-5",
+              "date": "2025-06",
+              "page_date": "2025-06-03",
+              "date_confirmed": true,
+              "role": "資深工程師（新鮮人，轉述）",
+              "grade": null,
+              "unit_detail": null,
+              "years": "0",
+              "degree": "碩士",
+              "base_k": 74,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "留言 B1-5（清大）：朋友剛進台達，無年資、四大碩非純血，74k",
+              "in_window": true,
+              "date_note": "Dcard 頁面發文日期 2025-06-03（20261028_1612 批）",
+              "comment_sample": true
             }
           ]
         },
@@ -26681,6 +26709,29 @@
               "quote_free_note": "「大 W」＝緯創；口頭核薪 N-6；三個廠都拿到機會；非新人；月薪 N-6；三個廠都拿到機會，選湖口",
               "in_window": true,
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-10-10"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/259571338",
+              "date": "2025-08",
+              "page_date": "2025-08-18",
+              "date_confirmed": true,
+              "role": "品保工程師（數據分析，竹北廠，碩士新人 offer）",
+              "grade": null,
+              "unit_detail": "竹北廠",
+              "years": "0",
+              "degree": "碩士",
+              "base_k": 50,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": "偶爾",
+              "quote_free_note": "發文者 offer：月薪 5xk（以 50k 記，為下限），沒有保 14；可能需長時間國外出差；最後選擇緯創",
+              "in_window": true,
+              "date_note": "Dcard 頁面發文日期 2025-08-18（20261028_1612 批）",
+              "comment_sample": false
             }
           ],
           "sources": [
@@ -26688,19 +26739,27 @@
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/262264888",
               "date": "2026-10"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/259571338",
+              "date": "2025-08"
             }
           ],
           "confidence": "低",
-          "n": 1,
+          "n": 2,
           "years": "轉職",
-          "base_month_k": null,
+          "base_month_k": [
+            50,
+            50
+          ],
           "bonus_months": null,
           "annual_months": null,
           "annual_total_wan": null,
           "weekly_hours": null,
           "overtime": null,
-          "travel": null,
-          "n_stat": 1,
+          "travel": "偶爾",
+          "n_stat": 2,
           "note": null,
           "grade": null
         },

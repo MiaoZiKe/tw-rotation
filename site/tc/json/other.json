@@ -483,6 +483,29 @@
               "in_window": true,
               "role": "工程師（台南）",
               "quote_free_note": "經常加班、每週 45 小時；月薪 6.5 萬"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/257667813#留言B24",
+              "date": "2025-01",
+              "page_date": "2025-01-06",
+              "date_confirmed": true,
+              "role": "工程師（第一年）",
+              "grade": null,
+              "unit_detail": null,
+              "years": "1",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": 4,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "留言 B24（交大）：考績 ABC 就保 16，第一年分紅 4.x 個月（以 4 記）",
+              "in_window": true,
+              "date_note": "Dcard 頁面發文日期 2025-01-06（20261028_1612 批）",
+              "comment_sample": true
             }
           ],
           "sources": [
@@ -495,6 +518,11 @@
               "site": "GoodJob",
               "url": "https://www.goodjob.life/job-titles/資深工程師/salary-work-times?p=3",
               "date": "2026-03"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/257667813",
+              "date": "2025-01"
             }
           ],
           "confidence": "低",
@@ -504,7 +532,10 @@
             65,
             88
           ],
-          "bonus_months": null,
+          "bonus_months": [
+            4,
+            4
+          ],
           "annual_months": null,
           "annual_total_wan": null,
           "weekly_hours": [
@@ -514,8 +545,8 @@
           "overtime": "經常",
           "travel": null,
           "years": "0",
-          "n": 2,
-          "n_stat": 2
+          "n": 3,
+          "n_stat": 3
         },
         {
           "unit": "研發 RD",
@@ -595,6 +626,59 @@
           "years": "6",
           "n": 2,
           "n_stat": 2
+        },
+        {
+          "unit": null,
+          "role": "QA 品保工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": [
+            16,
+            16
+          ],
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": "幾乎不",
+          "travel": null,
+          "n": 1,
+          "note": "2026-10-28 Dcard 1612 批新增職位",
+          "confidence": "低",
+          "grade": null,
+          "n_stat": 1,
+          "samples": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/257667813",
+              "date": "2025-01",
+              "page_date": "2025-01-04",
+              "date_confirmed": true,
+              "role": "QA 品保工程師（竹科，1.5 年經驗 offer）",
+              "grade": null,
+              "unit_detail": "竹科",
+              "years": "1.5",
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": 16,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": "幾乎不",
+              "travel": null,
+              "quote_free_note": "發文者 offer：(N+8k)×16＋分紅，人資說保 16；常日 8:00～17:00；發文者最後選這家",
+              "in_window": true,
+              "date_note": "Dcard 頁面發文日期 2025-01-04（20261028_1612 批）",
+              "comment_sample": false
+            }
+          ],
+          "sources": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/257667813",
+              "date": "2025-01"
+            }
+          ]
         }
       ]
     },

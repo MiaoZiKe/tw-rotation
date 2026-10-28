@@ -12679,6 +12679,32 @@
               "in_window": true,
               "date_note": "Dcard 頁面發文日期 2026-02-12（20261028_1548 批）",
               "comment_sample": true
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/257992784#留言B13",
+              "date": "2025-02",
+              "page_date": "2025-02-15",
+              "date_confirmed": true,
+              "role": "工程師（職等 31，第二年）",
+              "grade": "31",
+              "unit_detail": null,
+              "years": "2",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": [
+                170,
+                200
+              ],
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "留言 B13（交大應化）：新人考績 S，第一年約 100～120 萬、第二年約 170～200 萬（區間），皆含加班費；第三年預估 250 萬為推估不填",
+              "in_window": true,
+              "date_note": "Dcard 頁面發文日期 2025-02-15（20261028_1612 批）",
+              "comment_sample": true
             }
           ],
           "sources": [
@@ -12866,11 +12892,16 @@
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/260856881",
               "date": "2026-02"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/257992784",
+              "date": "2025-02"
             }
           ],
           "confidence": "低",
-          "n": 64,
-          "n_stat": 64,
+          "n": 65,
+          "n_stat": 65,
           "bonus_timing_month": "2 月、5 月、7 月、8 月、11 月",
           "years": null,
           "annual_total_wan": [
@@ -13943,6 +13974,59 @@
               "site": "GoodJob",
               "url": "https://www.goodjob.life/companies/台灣積體電路製造股份有限公司(台積電)%20TSMC/salary-work-times?p=2",
               "date": "2026-08"
+            }
+          ]
+        },
+        {
+          "unit": null,
+          "role": "Std cell layout 工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": [
+            14,
+            14
+          ],
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": "偶爾",
+          "travel": null,
+          "n": 1,
+          "note": "2026-10-28 Dcard 1612 批新增職位",
+          "confidence": "低",
+          "grade": null,
+          "n_stat": 1,
+          "samples": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/258509657",
+              "date": "2025-04",
+              "page_date": "2025-04-10",
+              "date_confirmed": true,
+              "role": "Std cell layout designer（竹科，碩士新人 offer）",
+              "grade": null,
+              "unit_detail": "竹科",
+              "years": "0",
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": 14,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "發文者 offer：N×14＋簽約金＋分紅；約 9～19 點（週工時為推估不填）；B14 稱新人期後準時下班",
+              "in_window": true,
+              "date_note": "Dcard 頁面發文日期 2025-04-10（20261028_1612 批）",
+              "comment_sample": false
+            }
+          ],
+          "sources": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/258509657",
+              "date": "2025-04"
             }
           ]
         }
@@ -18823,7 +18907,7 @@
           "degree": "碩士",
           "years": "0-2",
           "base_month_k": [
-            70,
+            62,
             74.9
           ],
           "bonus_months": [
@@ -18839,9 +18923,9 @@
             40,
             40
           ],
-          "overtime": null,
+          "overtime": "幾乎不",
           "travel": "不用",
-          "n": 12,
+          "n": 13,
           "note": "GoodJob 2026-02 自述只有 14 個月、無分紅；比薪水 2026-01 整合工程師日均 9 小時（金額需解鎖）；力積電近一年虧損，分紅月數依同公司製程／整合職回報為 0；2026-10-25 補：GoodJob 2026-08 新竹整合 4 年月薪約 7.49 萬、40 小時／週，近年分紅少、購股金 2 千；部分年薪／年薪月數由同一筆樣本的「底薪×月數」推算（樣本標 derived）",
           "sources": [
             {
@@ -18893,6 +18977,11 @@
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/job/p/257044262",
               "date": "依文章編號推估"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/260034953",
+              "date": "2025-10"
             }
           ],
           "confidence": "中",
@@ -19131,9 +19220,32 @@
               "quote_free_note": "月薪約 N；不輪小夜大夜，但常態加班、假日值班；發文者說分紅少，不加班不容易破百",
               "in_window": true,
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-05-16"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/260034953",
+              "date": "2025-10",
+              "page_date": "2025-10-14",
+              "date_confirmed": true,
+              "role": "製程整合工程師（竹南 8 吋廠，碩士新人 offer）",
+              "grade": null,
+              "unit_detail": "苗栗竹南（8 吋廠）",
+              "years": "0",
+              "degree": "碩士",
+              "base_k": 62,
+              "bonus_months": null,
+              "annual_months": 14,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": "幾乎不",
+              "travel": null,
+              "quote_free_note": "發文者 offer：62k 保 14，近兩年無分紅；常日 8～17 或 18 點、不需值班輪班（週工時為推估不填）",
+              "in_window": true,
+              "date_note": "Dcard 頁面發文日期 2025-10-14（20261028_1612 批）",
+              "comment_sample": false
             }
           ],
-          "n_stat": 6
+          "n_stat": 7
         },
         {
           "unit": "晶圓廠 Fab",
