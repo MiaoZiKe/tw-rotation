@@ -136,9 +136,10 @@
    "fetched_at": "2026-10-28T16:49:31+00:00",
    "reviewed": false,
    "reviewer": "",
-   "review_note": "",
+   "review_note": "2026-10-28 art-director 退件：繩索遮擋右側、構圖差",
    "prescreen": "pass",
-   "prescreen_note": "2026-10-28 工程初篩（v3）：通過，待 art-director 正式複審"
+   "prescreen_note": "2026-10-28 工程初篩（v3）：通過，待 art-director 正式複審",
+   "reject_reason": "繩索遮擋右側、構圖差"
   },
   {
    "file": "photo_7.jpg",
@@ -157,11 +158,12 @@
    "width": 1920,
    "height": 1363,
    "fetched_at": "2026-10-28T16:49:32+00:00",
-   "reviewed": false,
+   "reviewed": true,
    "reviewer": "",
-   "review_note": "",
+   "review_note": "2026-10-28 art-director 正式審核通過（952×424 中段裁切檢視）",
    "prescreen": "pass",
-   "prescreen_note": "2026-10-28 工程初篩（v3）：通過，待 art-director 正式複審"
+   "prescreen_note": "2026-10-28 工程初篩（v3）：通過，待 art-director 正式複審",
+   "reviewed_by": "art-director"
   },
   {
    "file": "photo_8.jpg",

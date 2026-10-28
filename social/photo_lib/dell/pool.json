@@ -18,11 +18,12 @@
    "width": 1600,
    "height": 1200,
    "fetched_at": "2026-10-28T16:53:37+00:00",
-   "reviewed": false,
+   "reviewed": true,
    "reviewer": "",
-   "review_note": "",
+   "review_note": "2026-10-28 art-director 正式審核通過（952×424 中段裁切檢視）",
    "prescreen": "pass",
-   "prescreen_note": "2026-10-28 工程初篩（v3）：通過，待 art-director 正式複審"
+   "prescreen_note": "2026-10-28 工程初篩（v3）：通過，待 art-director 正式複審",
+   "reviewed_by": "art-director"
   },
   {
    "file": "photo_2.jpg",
@@ -66,9 +67,10 @@
    "fetched_at": "2026-10-28T16:53:39+00:00",
    "reviewed": false,
    "reviewer": "",
-   "review_note": "",
+   "review_note": "2026-10-28 art-director 退件：DELL LOGO 為主角",
    "prescreen": "pass",
-   "prescreen_note": "2026-10-28 工程初篩（v3）：通過，待 art-director 正式複審"
+   "prescreen_note": "2026-10-28 工程初篩（v3）：通過，待 art-director 正式複審",
+   "reject_reason": "DELL LOGO 為主角"
   },
   {
    "file": "photo_4.jpg",
@@ -89,9 +91,10 @@
    "fetched_at": "2026-10-28T16:53:40+00:00",
    "reviewed": false,
    "reviewer": "",
-   "review_note": "",
+   "review_note": "2026-10-28 art-director 退件：DELL LOGO 為主角",
    "prescreen": "pass",
-   "prescreen_note": "2026-10-28 工程初篩（v3）：通過，待 art-director 正式複審"
+   "prescreen_note": "2026-10-28 工程初篩（v3）：通過，待 art-director 正式複審",
+   "reject_reason": "DELL LOGO 為主角"
   }
  ],
  "rejected": []

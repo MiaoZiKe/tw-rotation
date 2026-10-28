@@ -18,11 +18,12 @@
    "width": 1920,
    "height": 1280,
    "fetched_at": "2026-10-28T16:53:43+00:00",
-   "reviewed": false,
+   "reviewed": true,
    "reviewer": "",
-   "review_note": "",
+   "review_note": "2026-10-28 art-director 正式審核通過（952×424 中段裁切檢視）",
    "prescreen": "pass",
-   "prescreen_note": "2026-10-28 工程初篩（v3）：通過，待 art-director 正式複審"
+   "prescreen_note": "2026-10-28 工程初篩（v3）：通過，待 art-director 正式複審",
+   "reviewed_by": "art-director"
   },
   {
    "file": "photo_2.jpg",
@@ -43,9 +44,10 @@
    "fetched_at": "2026-10-28T16:53:47+00:00",
    "reviewed": false,
    "reviewer": "",
-   "review_note": "",
+   "review_note": "2026-10-28 art-director 退件：招牌特寫（HPE 字樣為主）",
    "prescreen": "pass",
-   "prescreen_note": "2026-10-28 工程初篩（v3）：通過，待 art-director 正式複審"
+   "prescreen_note": "2026-10-28 工程初篩（v3）：通過，待 art-director 正式複審",
+   "reject_reason": "招牌特寫（HPE 字樣為主）"
   },
   {
    "file": "photo_3.jpg",
@@ -64,11 +66,12 @@
    "width": 1920,
    "height": 1081,
    "fetched_at": "2026-10-28T16:53:49+00:00",
-   "reviewed": false,
+   "reviewed": true,
    "reviewer": "",
-   "review_note": "",
+   "review_note": "2026-10-28 art-director 正式審核通過（952×424 中段裁切檢視）",
    "prescreen": "pass",
-   "prescreen_note": "2026-10-28 工程初篩（v3）：通過，待 art-director 正式複審"
+   "prescreen_note": "2026-10-28 工程初篩（v3）：通過，待 art-director 正式複審",
+   "reviewed_by": "art-director"
   },
   {
    "file": "photo_4.jpg",
@@ -89,9 +92,10 @@
    "fetched_at": "2026-10-28T16:53:50+00:00",
    "reviewed": false,
    "reviewer": "",
-   "review_note": "",
+   "review_note": "2026-10-28 art-director 退件：機箱開蓋雜亂、紙箱電線",
    "prescreen": "pass",
-   "prescreen_note": "2026-10-28 工程初篩（v3）：通過，待 art-director 正式複審"
+   "prescreen_note": "2026-10-28 工程初篩（v3）：通過，待 art-director 正式複審",
+   "reject_reason": "機箱開蓋雜亂、紙箱電線"
   }
  ],
  "rejected": []

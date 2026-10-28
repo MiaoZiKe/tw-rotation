@@ -41,11 +41,12 @@
    "width": 1920,
    "height": 1276,
    "fetched_at": "2026-10-28T16:46:17+00:00",
-   "reviewed": false,
+   "reviewed": true,
    "reviewer": "",
-   "review_note": "",
+   "review_note": "2026-10-28 art-director 正式審核通過（952×424 中段裁切檢視）",
    "prescreen": "pass",
-   "prescreen_note": "2026-10-28 工程初篩（v3）：通過，待 art-director 正式複審"
+   "prescreen_note": "2026-10-28 工程初篩（v3）：通過，待 art-director 正式複審",
+   "reviewed_by": "art-director"
   },
   {
    "file": "photo_3.jpg",
@@ -66,9 +67,10 @@
    "fetched_at": "2026-10-28T16:46:18+00:00",
    "reviewed": false,
    "reviewer": "",
-   "review_note": "",
+   "review_note": "2026-10-28 art-director 退件：樹木遮擋大樓",
    "prescreen": "pass",
-   "prescreen_note": "2026-10-28 工程初篩（v3）：通過，待 art-director 正式複審"
+   "prescreen_note": "2026-10-28 工程初篩（v3）：通過，待 art-director 正式複審",
+   "reject_reason": "樹木遮擋大樓"
   },
   {
    "file": "photo_4.jpg",

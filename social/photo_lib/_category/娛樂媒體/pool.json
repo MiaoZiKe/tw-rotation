@@ -66,9 +66,10 @@
    "fetched_at": "2026-10-28T17:00:33+00:00",
    "reviewed": false,
    "reviewer": "",
-   "review_note": "",
+   "review_note": "2026-10-28 art-director 退件：航拍山丘小院，與娛樂媒體無關",
    "prescreen": "pass",
-   "prescreen_note": "2026-10-28 工程初篩（v3）：通過，待 art-director 正式複審"
+   "prescreen_note": "2026-10-28 工程初篩（v3）：通過，待 art-director 正式複審",
+   "reject_reason": "航拍山丘小院，與娛樂媒體無關"
   },
   {
    "file": "photo_4.jpg",

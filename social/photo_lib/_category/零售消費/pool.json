@@ -20,9 +20,10 @@
    "fetched_at": "2026-10-28T17:00:22+00:00",
    "reviewed": false,
    "reviewer": "",
-   "review_note": "",
+   "review_note": "2026-10-28 art-director 退件：人物入鏡、商品品牌為主",
    "prescreen": "pass",
-   "prescreen_note": "2026-10-28 工程初篩（v3）：通過，待 art-director 正式複審"
+   "prescreen_note": "2026-10-28 工程初篩（v3）：通過，待 art-director 正式複審",
+   "reject_reason": "人物入鏡、商品品牌為主"
   },
   {
    "file": "photo_2.jpg",
@@ -43,9 +44,10 @@
    "fetched_at": "2026-10-28T17:00:23+00:00",
    "reviewed": false,
    "reviewer": "",
-   "review_note": "",
+   "review_note": "2026-10-28 art-director 退件：商品包裝品牌為主",
    "prescreen": "pass",
-   "prescreen_note": "2026-10-28 工程初篩（v3）：通過，待 art-director 正式複審"
+   "prescreen_note": "2026-10-28 工程初篩（v3）：通過，待 art-director 正式複審",
+   "reject_reason": "商品包裝品牌為主"
   },
   {
    "file": "photo_3.jpg",
@@ -87,11 +89,12 @@
    "width": 1920,
    "height": 1280,
    "fetched_at": "2026-10-28T17:00:25+00:00",
-   "reviewed": false,
+   "reviewed": true,
    "reviewer": "",
-   "review_note": "",
+   "review_note": "2026-10-28 art-director 正式審核通過（952×424 中段裁切檢視）",
    "prescreen": "pass",
-   "prescreen_note": "2026-10-28 工程初篩（v3）：通過，待 art-director 正式複審"
+   "prescreen_note": "2026-10-28 工程初篩（v3）：通過，待 art-director 正式複審",
+   "reviewed_by": "art-director"
   },
   {
    "file": "photo_5.jpg",
@@ -112,9 +115,10 @@
    "fetched_at": "2026-10-28T17:00:26+00:00",
    "reviewed": false,
    "reviewer": "",
-   "review_note": "",
+   "review_note": "2026-10-28 art-director 退件：缺貨空架暗示事件、他牌商品",
    "prescreen": "pass",
-   "prescreen_note": "2026-10-28 工程初篩（v3）：通過，待 art-director 正式複審"
+   "prescreen_note": "2026-10-28 工程初篩（v3）：通過，待 art-director 正式複審",
+   "reject_reason": "缺貨空架暗示事件、他牌商品"
   },
   {
    "file": "photo_6.jpg",
@@ -158,9 +162,10 @@
    "fetched_at": "2026-10-28T17:00:28+00:00",
    "reviewed": false,
    "reviewer": "",
-   "review_note": "",
+   "review_note": "2026-10-28 art-director 退件：價標與街邊雜物凌亂",
    "prescreen": "pass",
-   "prescreen_note": "2026-10-28 工程初篩（v3）：通過，待 art-director 正式複審"
+   "prescreen_note": "2026-10-28 工程初篩（v3）：通過，待 art-director 正式複審",
+   "reject_reason": "價標與街邊雜物凌亂"
   },
   {
    "file": "photo_8.jpg",

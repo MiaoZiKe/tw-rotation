@@ -66,9 +66,10 @@
    "fetched_at": "2026-10-28T16:48:19+00:00",
    "reviewed": false,
    "reviewer": "",
-   "review_note": "",
+   "review_note": "2026-10-28 art-director 退件：同名他牌：Freescale Wandboard 非研華產品",
    "prescreen": "pass",
-   "prescreen_note": "2026-10-28 工程初篩（v3）：通過，待 art-director 正式複審"
+   "prescreen_note": "2026-10-28 工程初篩（v3）：通過，待 art-director 正式複審",
+   "reject_reason": "同名他牌：Freescale Wandboard 非研華產品"
   },
   {
    "file": "photo_4.jpg",
@@ -89,9 +90,10 @@
    "fetched_at": "2026-10-28T16:48:19+00:00",
    "reviewed": false,
    "reviewer": "",
-   "review_note": "",
+   "review_note": "2026-10-28 art-director 退件：同名他牌：Freescale RIoT 開發板非研華產品",
    "prescreen": "pass",
-   "prescreen_note": "2026-10-28 工程初篩（v3）：通過，待 art-director 正式複審"
+   "prescreen_note": "2026-10-28 工程初篩（v3）：通過，待 art-director 正式複審",
+   "reject_reason": "同名他牌：Freescale RIoT 開發板非研華產品"
   },
   {
    "file": "photo_5.jpg",

@@ -90,9 +90,10 @@
    "fetched_at": "2026-10-28T16:51:46+00:00",
    "reviewed": false,
    "reviewer": "",
-   "review_note": "",
+   "review_note": "2026-10-28 art-director 退件：霧霾灰暗、辨識不出三星",
    "prescreen": "pass",
-   "prescreen_note": "2026-10-28 工程初篩（v3）：通過，待 art-director 正式複審"
+   "prescreen_note": "2026-10-28 工程初篩（v3）：通過，待 art-director 正式複審",
+   "reject_reason": "霧霾灰暗、辨識不出三星"
   },
   {
    "file": "photo_4.jpg",

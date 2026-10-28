@@ -158,9 +158,10 @@
    "fetched_at": "2026-10-28T16:58:47+00:00",
    "reviewed": false,
    "reviewer": "",
-   "review_note": "",
+   "review_note": "2026-10-28 art-director 退件：主體在畫面邊緣、背景糊",
    "prescreen": "pass",
-   "prescreen_note": "2026-10-28 工程初篩（v3）：通過，待 art-director 正式複審"
+   "prescreen_note": "2026-10-28 工程初篩（v3）：通過，待 art-director 正式複審",
+   "reject_reason": "主體在畫面邊緣、背景糊"
   },
   {
    "file": "photo_8.jpg",
@@ -181,9 +182,10 @@
    "fetched_at": "2026-10-28T16:58:47+00:00",
    "reviewed": false,
    "reviewer": "",
-   "review_note": "",
+   "review_note": "2026-10-28 art-director 退件：微距失焦、糊",
    "prescreen": "pass",
-   "prescreen_note": "2026-10-28 工程初篩（v3）：通過，待 art-director 正式複審"
+   "prescreen_note": "2026-10-28 工程初篩（v3）：通過，待 art-director 正式複審",
+   "reject_reason": "微距失焦、糊"
   },
   {
    "file": "photo_9.jpg",

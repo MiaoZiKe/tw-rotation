@@ -159,9 +159,10 @@
    "fetched_at": "2026-10-28T16:53:04+00:00",
    "reviewed": false,
    "reviewer": "",
-   "review_note": "",
+   "review_note": "2026-10-28 art-director 退件：他牌（維基媒體伺服器）、Intel 貼紙",
    "prescreen": "pass",
-   "prescreen_note": "2026-10-28 工程初篩（v3）：通過，待 art-director 正式複審"
+   "prescreen_note": "2026-10-28 工程初篩（v3）：通過，待 art-director 正式複審",
+   "reject_reason": "他牌（維基媒體伺服器）、Intel 貼紙"
   },
   {
    "file": "photo_8.jpg",

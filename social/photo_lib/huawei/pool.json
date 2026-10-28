@@ -89,9 +89,10 @@
    "fetched_at": "2026-10-28T16:57:24+00:00",
    "reviewed": false,
    "reviewer": "",
-   "review_note": "",
+   "review_note": "2026-10-28 art-director 退件：同名他物：德國通用基地台，非華為",
    "prescreen": "pass",
-   "prescreen_note": "2026-10-28 工程初篩（v3）：通過，待 art-director 正式複審"
+   "prescreen_note": "2026-10-28 工程初篩（v3）：通過，待 art-director 正式複審",
+   "reject_reason": "同名他物：德國通用基地台，非華為"
   },
   {
    "file": "photo_5.jpg",

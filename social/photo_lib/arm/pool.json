@@ -18,11 +18,12 @@
    "width": 1920,
    "height": 768,
    "fetched_at": "2026-10-28T16:53:18+00:00",
-   "reviewed": false,
+   "reviewed": true,
    "reviewer": "",
-   "review_note": "",
+   "review_note": "2026-10-28 art-director 正式審核通過（952×424 中段裁切檢視）",
    "prescreen": "pass",
-   "prescreen_note": "2026-10-28 工程初篩（v3）：通過，待 art-director 正式複審"
+   "prescreen_note": "2026-10-28 工程初篩（v3）：通過，待 art-director 正式複審",
+   "reviewed_by": "art-director"
   },
   {
    "file": "photo_2.jpg",
@@ -66,9 +67,10 @@
    "fetched_at": "2026-10-28T16:53:23+00:00",
    "reviewed": false,
    "reviewer": "",
-   "review_note": "",
+   "review_note": "2026-10-28 art-director 退件：他牌：Raspberry Pi 板，非 Arm 公司",
    "prescreen": "pass",
-   "prescreen_note": "2026-10-28 工程初篩（v3）：通過，待 art-director 正式複審"
+   "prescreen_note": "2026-10-28 工程初篩（v3）：通過，待 art-director 正式複審",
+   "reject_reason": "他牌：Raspberry Pi 板，非 Arm 公司"
   },
   {
    "file": "photo_4.jpg",
@@ -89,9 +91,10 @@
    "fetched_at": "2026-10-28T16:53:26+00:00",
    "reviewed": false,
    "reviewer": "",
-   "review_note": "",
+   "review_note": "2026-10-28 art-director 退件：無法證明是 Arm 的晶粒照",
    "prescreen": "pass",
-   "prescreen_note": "2026-10-28 工程初篩（v3）：通過，待 art-director 正式複審"
+   "prescreen_note": "2026-10-28 工程初篩（v3）：通過，待 art-director 正式複審",
+   "reject_reason": "無法證明是 Arm 的晶粒照"
   }
  ],
  "rejected": []

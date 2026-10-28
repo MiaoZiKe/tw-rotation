@@ -112,9 +112,10 @@
    "fetched_at": "2026-10-28T16:48:27+00:00",
    "reviewed": false,
    "reviewer": "",
-   "review_note": "",
+   "review_note": "2026-10-28 art-director 退件：非台泥（突尼西亞水泥廠）",
    "prescreen": "pass",
-   "prescreen_note": "2026-10-28 工程初篩（v3）：通過，待 art-director 正式複審"
+   "prescreen_note": "2026-10-28 工程初篩（v3）：通過，待 art-director 正式複審",
+   "reject_reason": "非台泥（突尼西亞水泥廠）"
   },
   {
    "file": "photo_6.jpg",

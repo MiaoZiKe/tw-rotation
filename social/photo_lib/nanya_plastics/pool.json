@@ -66,9 +66,10 @@
    "fetched_at": "2026-10-28T16:46:40+00:00",
    "reviewed": false,
    "reviewer": "",
-   "review_note": "",
+   "review_note": "2026-10-28 art-director 退件：他廠：德國管材廠，非南亞",
    "prescreen": "pass",
-   "prescreen_note": "2026-10-28 工程初篩（v3）：通過，待 art-director 正式複審"
+   "prescreen_note": "2026-10-28 工程初篩（v3）：通過，待 art-director 正式複審",
+   "reject_reason": "他廠：德國管材廠，非南亞"
   },
   {
    "file": "photo_4.jpg",
@@ -112,9 +113,10 @@
    "fetched_at": "2026-10-28T16:46:43+00:00",
    "reviewed": false,
    "reviewer": "",
-   "review_note": "",
+   "review_note": "2026-10-28 art-director 退件：風暴暗色、他地石化廠",
    "prescreen": "pass",
-   "prescreen_note": "2026-10-28 工程初篩（v3）：通過，待 art-director 正式複審"
+   "prescreen_note": "2026-10-28 工程初篩（v3）：通過，待 art-director 正式複審",
+   "reject_reason": "風暴暗色、他地石化廠"
   }
  ],
  "rejected": [

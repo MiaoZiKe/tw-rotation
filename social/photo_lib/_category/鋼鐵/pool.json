@@ -135,9 +135,10 @@
    "fetched_at": "2026-10-28T16:59:11+00:00",
    "reviewed": false,
    "reviewer": "",
-   "review_note": "",
+   "review_note": "2026-10-28 art-director 退件：褪色老照片、鐵道車廂 LOGO",
    "prescreen": "pass",
-   "prescreen_note": "2026-10-28 工程初篩（v3）：通過，待 art-director 正式複審"
+   "prescreen_note": "2026-10-28 工程初篩（v3）：通過，待 art-director 正式複審",
+   "reject_reason": "褪色老照片、鐵道車廂 LOGO"
   },
   {
    "file": "photo_7.jpg",

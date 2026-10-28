@@ -135,9 +135,10 @@
    "fetched_at": "2026-10-28T16:50:07+00:00",
    "reviewed": false,
    "reviewer": "",
-   "review_note": "",
+   "review_note": "2026-10-28 art-director 退件：遠傳大型 LOGO 布幔為主角",
    "prescreen": "pass",
-   "prescreen_note": "2026-10-28 工程初篩（v3）：通過，待 art-director 正式複審"
+   "prescreen_note": "2026-10-28 工程初篩（v3）：通過，待 art-director 正式複審",
+   "reject_reason": "遠傳大型 LOGO 布幔為主角"
   },
   {
    "file": "photo_7.jpg",
@@ -227,9 +228,10 @@
    "fetched_at": "2026-10-28T16:50:15+00:00",
    "reviewed": false,
    "reviewer": "",
-   "review_note": "",
+   "review_note": "2026-10-28 art-director 退件：非遠傳（北馬其頓電視塔）",
    "prescreen": "pass",
-   "prescreen_note": "2026-10-28 工程初篩（v3）：通過，待 art-director 正式複審"
+   "prescreen_note": "2026-10-28 工程初篩（v3）：通過，待 art-director 正式複審",
+   "reject_reason": "非遠傳（北馬其頓電視塔）"
   }
  ],
  "rejected": [

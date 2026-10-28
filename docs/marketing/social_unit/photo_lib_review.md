@@ -190,3 +190,102 @@ Andy 10-28 原話：新聞卡上方的大數字灰框改成「對應的實景圖
 提醒：以下公司複審後**沒有任何通過的圖**，自動發文遇到這幾家會退回灰框大數字版，不會用錯圖：
 
 _category/網通、advantech、anthropic、asml、cathay、fareastone、first_fin、foxconn、fpcc、fubon、hotai、inventec、kingslide、meta、nanya_plastics、quanta、sk_hynix、taishin、wiwynn、yuanta
+
+## 第六節　第四輪（2026-10-28，art-director 正式審核 v3 初篩通過的 203 張）
+
+標準同第五節（含加嚴三條）。額外退件原則：他牌／同名他物（如 BP／Altona 煉油廠冒充 Aramco／台塑化、Freescale 開發板冒充研華、Raspberry Pi 冒充 Arm）、缺貨空架與舊版鈔票／硬幣（過時或暗示事件）、強烈調色（霓虹、黃光、藍光）、黑白老照片、機房雜亂、施工中、LOGO 特寫為主角。初篩點名的豐田上鄉工廠外道路、匯率子類舊日圓紙鈔均退。
+
+結果：通過 121／退件 82。通過者 `reviewed:true`＋`reviewed_by: art-director`；退件者 `reviewed:false` 並寫 `reject_reason`。
+
+| 圖池 | 通過 | 退件 |
+|---|---|---|
+| social/photo_lib/_category/總經 | 3 | 2 |
+| social/photo_lib/_category/總經_利率債券 | 4 | 0 |
+| social/photo_lib/_category/總經_匯率 | 2 | 1 |
+| social/photo_lib/_category/總經_央行 | 5 | 0 |
+| social/photo_lib/_category/總經_房市 | 4 | 0 |
+| social/photo_lib/_category/總經_景氣 | 5 | 1 |
+| social/photo_lib/_category/總經_物價就業 | 1 | 2 |
+| social/photo_lib/_category/總經_能源 | 1 | 3 |
+| social/photo_lib/_category/總經_貿易關稅 | 3 | 0 |
+| social/photo_lib/_category/AI伺服器 | 2 | 1 |
+| social/photo_lib/_category/PCB | 0 | 2 |
+| social/photo_lib/_category/半導體 | 3 | 0 |
+| social/photo_lib/_category/娛樂媒體 | 0 | 1 |
+| social/photo_lib/_category/散熱 | 2 | 0 |
+| social/photo_lib/_category/汽車 | 1 | 1 |
+| social/photo_lib/_category/石化 | 4 | 0 |
+| social/photo_lib/_category/網通 | 1 | 0 |
+| social/photo_lib/_category/能源 | 7 | 0 |
+| social/photo_lib/_category/航太 | 2 | 0 |
+| social/photo_lib/_category/航運 | 1 | 0 |
+| social/photo_lib/_category/資料中心 | 1 | 3 |
+| social/photo_lib/_category/金融 | 4 | 0 |
+| social/photo_lib/_category/鋼鐵 | 0 | 1 |
+| social/photo_lib/_category/零售消費 | 1 | 4 |
+| social/photo_lib/_category/電信 | 1 | 0 |
+| social/photo_lib/accton | 1 | 0 |
+| social/photo_lib/advantech | 0 | 2 |
+| social/photo_lib/alibaba | 2 | 1 |
+| social/photo_lib/alphabet | 2 | 0 |
+| social/photo_lib/amazon | 2 | 0 |
+| social/photo_lib/anthropic | 0 | 1 |
+| social/photo_lib/apple | 1 | 0 |
+| social/photo_lib/aramco | 1 | 2 |
+| social/photo_lib/arm | 1 | 2 |
+| social/photo_lib/ase | 1 | 0 |
+| social/photo_lib/berkshire | 0 | 1 |
+| social/photo_lib/boeing | 1 | 2 |
+| social/photo_lib/byd | 2 | 0 |
+| social/photo_lib/cathay | 1 | 0 |
+| social/photo_lib/cdf | 1 | 0 |
+| social/photo_lib/chunghwa_telecom | 0 | 1 |
+| social/photo_lib/cisco | 2 | 1 |
+| social/photo_lib/cocacola | 0 | 1 |
+| social/photo_lib/csc | 3 | 0 |
+| social/photo_lib/dell | 1 | 2 |
+| social/photo_lib/delta | 1 | 0 |
+| social/photo_lib/esun | 1 | 0 |
+| social/photo_lib/evergreen | 1 | 2 |
+| social/photo_lib/exxon | 0 | 2 |
+| social/photo_lib/fareastone | 0 | 2 |
+| social/photo_lib/first_fin | 1 | 1 |
+| social/photo_lib/formosa_plastics | 1 | 1 |
+| social/photo_lib/fpcc | 0 | 2 |
+| social/photo_lib/fubon | 1 | 1 |
+| social/photo_lib/goldman | 2 | 0 |
+| social/photo_lib/hotai | 0 | 1 |
+| social/photo_lib/hpe | 2 | 2 |
+| social/photo_lib/huawei | 0 | 1 |
+| social/photo_lib/intel | 2 | 0 |
+| social/photo_lib/inventec | 0 | 1 |
+| social/photo_lib/jpmorgan | 1 | 1 |
+| social/photo_lib/kioxia | 1 | 0 |
+| social/photo_lib/kla | 1 | 1 |
+| social/photo_lib/liteon | 0 | 3 |
+| social/photo_lib/marvell | 1 | 0 |
+| social/photo_lib/meta | 2 | 0 |
+| social/photo_lib/micron | 2 | 0 |
+| social/photo_lib/microsoft | 1 | 2 |
+| social/photo_lib/nanya_plastics | 0 | 2 |
+| social/photo_lib/netflix | 1 | 1 |
+| social/photo_lib/nike | 1 | 0 |
+| social/photo_lib/nintendo | 1 | 2 |
+| social/photo_lib/nxp | 0 | 1 |
+| social/photo_lib/openai | 0 | 1 |
+| social/photo_lib/oracle | 2 | 0 |
+| social/photo_lib/pegatron | 0 | 1 |
+| social/photo_lib/qualcomm | 1 | 0 |
+| social/photo_lib/samsung | 0 | 1 |
+| social/photo_lib/sony | 3 | 1 |
+| social/photo_lib/supermicro | 1 | 1 |
+| social/photo_lib/taiwan_mobile | 0 | 1 |
+| social/photo_lib/tcc | 0 | 1 |
+| social/photo_lib/tel | 1 | 1 |
+| social/photo_lib/ti | 1 | 1 |
+| social/photo_lib/toyota | 2 | 1 |
+| social/photo_lib/unimicron | 1 | 1 |
+| social/photo_lib/walmart | 0 | 2 |
+| social/photo_lib/wanhai | 2 | 1 |
+| social/photo_lib/wdc | 2 | 0 |
+| social/photo_lib/yangming | 1 | 1 |

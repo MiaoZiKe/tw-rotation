@@ -89,9 +89,10 @@
    "fetched_at": "2026-10-28T16:56:36+00:00",
    "reviewed": false,
    "reviewer": "",
-   "review_note": "",
+   "review_note": "2026-10-28 art-director 退件：非埃克森美孚（Curaçao 煉油廠＋郵輪）",
    "prescreen": "pass",
-   "prescreen_note": "2026-10-28 工程初篩（v3）：通過，待 art-director 正式複審"
+   "prescreen_note": "2026-10-28 工程初篩（v3）：通過，待 art-director 正式複審",
+   "reject_reason": "非埃克森美孚（Curaçao 煉油廠＋郵輪）"
   },
   {
    "file": "photo_5.jpg",
@@ -112,9 +113,10 @@
    "fetched_at": "2026-10-28T16:56:38+00:00",
    "reviewed": false,
    "reviewer": "",
-   "review_note": "",
+   "review_note": "2026-10-28 art-director 退件：暗沉剪影、質感不足",
    "prescreen": "pass",
-   "prescreen_note": "2026-10-28 工程初篩（v3）：通過，待 art-director 正式複審"
+   "prescreen_note": "2026-10-28 工程初篩（v3）：通過，待 art-director 正式複審",
+   "reject_reason": "暗沉剪影、質感不足"
   }
  ],
  "rejected": []
