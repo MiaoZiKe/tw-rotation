@@ -890,7 +890,7 @@ body{{font-variant-numeric:tabular-nums}}
 .it .ix{{flex:none;width:{S(100, 112)}px;font-size:{S(56, 64)}px;font-weight:800;line-height:1.35;color:var(--c);font-family:Inter,'Roboto Mono',monospace;font-variant-numeric:tabular-nums}}
 .it .bd{{flex:1;min-width:0;display:flex;flex-direction:column;align-items:flex-start;gap:{S(8, 10)}px}}
 .it .tg{{flex:none;background:var(--c);color:{tg_ink};font-size:{S(26, 30)}px;font-weight:800;line-height:1.4;border-radius:8px;padding:{S('2px 14px', '2px 16px')};white-space:nowrap}}
-.it .tt{{min-width:0;align-self:stretch;font-size:{S(38, 40)}px;line-height:1.35;font-weight:800;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}}
+.it .tt{{flex:none;min-width:0;align-self:stretch;font-size:{S(38, 40)}px;line-height:1.35;font-weight:800;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden}}
 .sumt{{flex:1;min-height:0;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr}}
 .sumt .tile{{display:flex;flex-direction:column;justify-content:center}}
 .sumt .v{{font-size:{S(84, 100)}px}}.sumt .k{{font-size:{S(34, 42)}px}}
@@ -911,7 +911,7 @@ body{{font-variant-numeric:tabular-nums}}
 .kp .chartbox{{margin-top:4px}}
 .it .ic{{flex:none;width:{S(110, 120)}px;height:{S(110, 120)}px;border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:{S(64, 70)}px;line-height:1;
   background:color-mix(in srgb,var(--c) 14%,var(--panel));font-family:'Noto Color Emoji','Apple Color Emoji',sans-serif}}
-.it .sm2{{align-self:stretch;font-size:{S(24, 26)}px;line-height:1.4;color:var(--ink2);white-space:nowrap}}
+.it .sm2{{flex:none;align-self:stretch;font-size:{S(24, 26)}px;line-height:1.4;color:var(--ink2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}}
 .rdh{{font-size:{S(30, 36)}px;font-weight:800;color:var(--cyan);margin-bottom:6px}}
 .rd{{font-size:{S(27, 31)}px;line-height:1.5;font-weight:600;padding:6px 0 6px 22px;position:relative;border-top:1px dashed var(--line)}}
 .rd::before{{content:'';position:absolute;left:4px;top:{S(22, 25)}px;width:9px;height:9px;border-radius:50%;background:var(--cyan)}}
