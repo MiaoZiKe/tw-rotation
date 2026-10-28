@@ -38,7 +38,7 @@
           ],
           "overtime": "經常",
           "travel": null,
-          "n": 45,
+          "n": 47,
           "note": "Dcard 封測整理文（未註日期）碩士 4.6～6.3 萬；GoodJob 2026-06 中壢 1 年資深工程師 8 萬（職等高已排除）、2026-07 高雄 G5 5.1 萬；第二輪：Dcard 製程 offer 多為月薪×14＋績效分紅＋每月小白單（新人約 1 年後才有）；GoodJob 2026-08 高雄碩士 2 年年薪約 75 萬；評價稱碩畢底薪偏低、靠加班費；base_month_k、bonus_months、annual_months 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples；未逐筆對應的舊彙整：base_month_k=[46, 63]；未逐筆對應的舊彙整：bonus_months=[2, 4]；未逐筆對應的舊彙整：annual_months=[14, 16]；未逐筆對應的舊彙整：travel=不用；部分年薪／年薪月數由同一筆樣本的「底薪×月數」推算（樣本標 derived）；未逐筆對應的舊彙整：bonus_months=[2, 2]",
           "sources": [
             {
@@ -145,6 +145,16 @@
               "site": "GoodJob",
               "url": "https://www.goodjob.life/companies/日月光半導體製造股份有限公司 ASE/salary-work-times?p=13",
               "date": "2025-02"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/日月光半導體製造股份有限公司（中壢廠）/salary-work-times?p=1",
+              "date": "2026-08"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/日月光半導體製造股份有限公司（中壢廠）/salary-work-times?p=2",
+              "date": "2026-05"
             }
           ],
           "confidence": "高",
@@ -1121,9 +1131,53 @@
               "quote_free_note": "自填；日工時 表訂/實際 8/9；原職稱「製成工程師」",
               "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2025-01（20261028_2348～20261029_0012 合併批，0008 檔）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/日月光半導體製造股份有限公司（中壢廠）/salary-work-times?p=1",
+              "date": "2026-08",
+              "page_date": "2026-08",
+              "date_confirmed": true,
+              "role": "半導體製程工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 60,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 45,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/8 小時；中壢廠頁",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-08（20261029_0733 批，0733 檔）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/日月光半導體製造股份有限公司（中壢廠）/salary-work-times?p=2",
+              "date": "2026-05",
+              "page_date": "2026-05",
+              "date_confirmed": true,
+              "role": "生產技術╱製程工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 57,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 50,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/9 小時；中壢廠頁",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-05（20261029_0733 批，0733 檔）"
             }
           ],
-          "n_stat": 41
+          "n_stat": 43
         },
         {
           "unit": "封裝廠",
@@ -1149,7 +1203,7 @@
           ],
           "overtime": "經常",
           "travel": null,
-          "n": 45,
+          "n": 49,
           "note": "查無可用數字；查過關鍵字：日月光 京元電子 碩士 薪水 2026／日月光 碩士 製程工程師 月薪 2026 GoodJob 分紅 月份；Yahoo 徵才報導：設備工程師需輪班、另加輪班津貼，頂大碩畢起薪約 5 萬；比薪水 2026-05 中壢回報日均工時 10～12 小時；分紅與年薪月數沿用同公司製程職區間；撤回：bonus_months、annual_months 原為沿用／推算／暫填值，無直接證據，已改回原值；第二輪：PTT 2026-03 中壢設備 12 小時二休二，含加班日班 4～4.6 萬、夜班 5～7 萬；GoodJob 2026-09 高雄錄取月薪 5 萬（底薪＋津貼約 4 萬、夜班津貼約 1.5 萬、每月變動獎金 <1 萬）；保 14 個月＋年中發前一年分紅（GoodJob 評價）；學歷多為學士可進；annual_months 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples；未逐筆對應的舊彙整：annual_months=[14, 14]；未逐筆對應的舊彙整：travel=不用",
           "sources": [
             {
@@ -1266,6 +1320,16 @@
               "site": "GoodJob",
               "url": "https://www.goodjob.life/companies/日月光半導體製造股份有限公司 ASE/salary-work-times?p=13",
               "date": "2025-02"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/日月光半導體製造股份有限公司（中壢廠）/salary-work-times?p=1",
+              "date": "2026-06"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/日月光半導體製造股份有限公司（中壢廠）/salary-work-times?p=2",
+              "date": "2026-03"
             }
           ],
           "confidence": "高",
@@ -2260,9 +2324,97 @@
               "quote_free_note": "自填；日工時 表訂/實際 8/8",
               "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2025-01（20261028_2348～20261029_0012 合併批，0008 檔）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/日月光半導體製造股份有限公司（中壢廠）/salary-work-times?p=1",
+              "date": "2026-06",
+              "page_date": "2026-06",
+              "date_confirmed": true,
+              "role": "半導體設備工程師",
+              "grade": null,
+              "unit_detail": "中壢廠",
+              "years": null,
+              "degree": null,
+              "base_k": 55,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 40,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 12/10 小時；中壢廠頁",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-06（20261029_0733 批，0733 檔）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/日月光半導體製造股份有限公司（中壢廠）/salary-work-times?p=1",
+              "date": "2026-06",
+              "page_date": "2026-06",
+              "date_confirmed": true,
+              "role": "設備工程師",
+              "grade": null,
+              "unit_detail": "中壢",
+              "years": "2",
+              "degree": null,
+              "base_k": 50,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 50,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 12/10.5 小時；原選項幾乎每天；中壢廠頁",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-06（20261029_0733 批，0733 檔）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/日月光半導體製造股份有限公司（中壢廠）/salary-work-times?p=2",
+              "date": "2026-03",
+              "page_date": "2026-03",
+              "date_confirmed": true,
+              "role": "设备工程师",
+              "grade": null,
+              "unit_detail": "HW",
+              "years": null,
+              "degree": null,
+              "base_k": 40.5,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 50,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/10 小時；中壢廠頁",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-03（20261029_0733 批，0733 檔）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/日月光半導體製造股份有限公司（中壢廠）/salary-work-times?p=2",
+              "date": "2026-03",
+              "page_date": "2026-03",
+              "date_confirmed": true,
+              "role": "半導體設備工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 80,
+              "weekly_hours": 48,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 12/10.5 小時；原選項幾乎每天；中壢廠頁",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-03（20261029_0733 批，0733 檔）"
             }
           ],
-          "n_stat": 43,
+          "n_stat": 47,
           "degree_diff": "樣本中位數：學士底薪約 40.75K、碩士約 46.5K（差約 5.75K；學士 2 筆、碩士 2 筆）"
         },
         {
@@ -2950,6 +3102,28 @@
               "quote_free_note": "自填；日工時 表訂/實際 8/8",
               "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2025-03（20261028_2348～20261029_0012 合併批，0008 檔）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/日月光半導體製造股份有限公司（中壢廠）/salary-work-times?p=2",
+              "date": "2026-05",
+              "page_date": "2026-05",
+              "date_confirmed": true,
+              "role": "工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "2",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 100,
+              "weekly_hours": 40,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/8 小時；中壢廠頁",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-05（20261029_0733 批，0733 檔）"
             }
           ],
           "sources": [
@@ -3012,10 +3186,15 @@
               "site": "GoodJob",
               "url": "https://www.goodjob.life/companies/日月光半導體製造股份有限公司 ASE/salary-work-times?p=12",
               "date": "2025-03"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/日月光半導體製造股份有限公司（中壢廠）/salary-work-times?p=2",
+              "date": "2026-05"
             }
           ],
           "confidence": "低",
-          "n": 15,
+          "n": 16,
           "years": null,
           "base_month_k": [
             40,
@@ -3031,9 +3210,9 @@
             40,
             55
           ],
-          "overtime": "經常",
+          "overtime": null,
           "travel": null,
-          "n_stat": 15,
+          "n_stat": 16,
           "note": null,
           "grade": null
         },
@@ -3223,6 +3402,28 @@
               "quote_free_note": "自填；日工時 表訂/實際 8/8；一週總工時填 8 與日工時不符，週工時不填",
               "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2025-01（20261028_2348～20261029_0012 合併批，0008 檔）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/日月光半導體製造股份有限公司（中壢廠）/salary-work-times?p=1",
+              "date": "2026-08",
+              "page_date": "2026-08",
+              "date_confirmed": true,
+              "role": "品質系統工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "3",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 70,
+              "weekly_hours": 40,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/8 小時；中壢廠頁",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-08（20261029_0733 批，0733 檔）"
             }
           ],
           "sources": [
@@ -3260,12 +3461,17 @@
               "site": "GoodJob",
               "url": "https://www.goodjob.life/companies/日月光半導體製造股份有限公司 ASE/salary-work-times?p=13",
               "date": "2025-01"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/日月光半導體製造股份有限公司（中壢廠）/salary-work-times?p=1",
+              "date": "2026-08"
             }
           ],
           "confidence": "低",
-          "n": 8,
+          "n": 9,
           "annual_total_wan": [
-            80,
+            70,
             110
           ],
           "years": null,
@@ -3279,12 +3485,12 @@
             18
           ],
           "weekly_hours": [
-            45,
+            40,
             47.5
           ],
           "overtime": "偶爾",
           "travel": null,
-          "n_stat": 8,
+          "n_stat": 9,
           "note": null,
           "grade": null
         },
@@ -4149,7 +4355,7 @@
           "years": null,
           "base_month_k": [
             50,
-            59
+            73
           ],
           "bonus_months": null,
           "annual_months": [
@@ -4164,13 +4370,13 @@
             40,
             60
           ],
-          "overtime": "經常",
+          "overtime": null,
           "travel": null,
-          "n": 6,
+          "n": 7,
           "note": "2026-10-29 GoodJob 合併批新增職位",
           "confidence": "低",
           "grade": null,
-          "n_stat": 6,
+          "n_stat": 7,
           "samples": [
             {
               "site": "GoodJob",
@@ -4303,6 +4509,28 @@
               "quote_free_note": "前台積電離職者offer；月薪寫成N減9K未給絕對數，保14個月；同時有台郡offer；加班原文：有加班費，每日可能10–12小時，每月值班一次需配合輪班",
               "in_window": true,
               "date_note": "Dcard 頁面發文日期 2025-05-20（2026-10-26 2003 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/日月光半導體製造股份有限公司（中壢廠）/salary-work-times?p=1",
+              "date": "2026-07",
+              "page_date": "2026-07",
+              "date_confirmed": true,
+              "role": "研發工程師",
+              "grade": null,
+              "unit_detail": "中壢廠",
+              "years": "10",
+              "degree": null,
+              "base_k": 73,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 40,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/8 小時；中壢廠頁",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-07（20261029_0733 批，0733 檔）"
             }
           ],
           "sources": [
@@ -4335,6 +4563,11 @@
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/258865068",
               "date": "2025-05"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/日月光半導體製造股份有限公司（中壢廠）/salary-work-times?p=1",
+              "date": "2026-07"
             }
           ]
         },
@@ -4702,6 +4935,196 @@
               "site": "GoodJob",
               "url": "https://www.goodjob.life/companies/日月光半導體製造股份有限公司 ASE/salary-work-times?p=12",
               "date": "2025-02"
+            }
+          ]
+        },
+        {
+          "unit": null,
+          "role": "自動化工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": [
+            163,
+            163
+          ],
+          "weekly_hours": [
+            42,
+            42
+          ],
+          "overtime": "偶爾",
+          "travel": null,
+          "n": 1,
+          "note": "2026-10-29 GoodJob 合併批新增職位",
+          "confidence": "低",
+          "grade": null,
+          "n_stat": 1,
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/日月光半導體製造股份有限公司（中壢廠）/salary-work-times?p=1",
+              "date": "2026-08",
+              "page_date": "2026-08",
+              "date_confirmed": true,
+              "role": "自動化工程師（製程）",
+              "grade": null,
+              "unit_detail": "中壢",
+              "years": "5",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 163,
+              "weekly_hours": 42,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/8.5 小時；中壢廠頁",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-08（20261029_0733 批，0733 檔）"
+            }
+          ],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/日月光半導體製造股份有限公司（中壢廠）/salary-work-times?p=1",
+              "date": "2026-08"
+            }
+          ]
+        },
+        {
+          "unit": null,
+          "role": "封裝設計工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": [
+            70,
+            70
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": [
+            75,
+            75
+          ],
+          "weekly_hours": [
+            44,
+            45
+          ],
+          "overtime": null,
+          "travel": null,
+          "n": 2,
+          "note": "2026-10-29 GoodJob 合併批新增職位",
+          "confidence": "低",
+          "grade": null,
+          "n_stat": 2,
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/日月光半導體製造股份有限公司（中壢廠）/salary-work-times?p=1",
+              "date": "2026-06",
+              "page_date": "2026-06",
+              "date_confirmed": true,
+              "role": "PACKAGE DESIGNER",
+              "grade": null,
+              "unit_detail": "PDE",
+              "years": "5",
+              "degree": null,
+              "base_k": 70,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 44,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/8 小時；中壢廠頁",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-06（20261029_0733 批，0733 檔）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/日月光半導體製造股份有限公司（中壢廠）/salary-work-times?p=1",
+              "date": "2026-06",
+              "page_date": "2026-06",
+              "date_confirmed": true,
+              "role": "基板設計工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "3",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 75,
+              "weekly_hours": 45,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/8.5 小時；中壢廠頁",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-06（20261029_0733 批，0733 檔）"
+            }
+          ],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/日月光半導體製造股份有限公司（中壢廠）/salary-work-times?p=1",
+              "date": "2026-06"
+            }
+          ]
+        },
+        {
+          "unit": null,
+          "role": "AI／演算法工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": [
+            80,
+            80
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": [
+            40,
+            40
+          ],
+          "overtime": "偶爾",
+          "travel": null,
+          "n": 1,
+          "note": "2026-10-29 GoodJob 合併批新增職位",
+          "confidence": "低",
+          "grade": null,
+          "n_stat": 1,
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/日月光半導體製造股份有限公司（中壢廠）/salary-work-times?p=2",
+              "date": "2026-05",
+              "page_date": "2026-05",
+              "date_confirmed": true,
+              "role": "AI辨識工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "3",
+              "degree": null,
+              "base_k": 80,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 40,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/8 小時；中壢廠頁",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-05（20261029_0733 批，0733 檔）"
+            }
+          ],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/日月光半導體製造股份有限公司（中壢廠）/salary-work-times?p=2",
+              "date": "2026-05"
             }
           ]
         }
