@@ -163,7 +163,7 @@
   const howOf = (sub) => (MODS[sub] && MODS[sub].how) || HOWS[sub] || HOW;
   function shell(root) {
     const tabs = '<div class="nbsw lab-tabs" role="tablist" aria-label="交易練習室">' + SUBS.map(([id, n]) => '<a href="#lab/' + id + '" role="tab" data-sub="' + id + '" class="' + (id === curSub ? 'on' : '') + '">' + n + '</a>').join('') + qpop(howOf(curSub)) + '</div>';
-    root.innerHTML = '<div class="card lab-card">' + tabs + '<div class="lab-body" id="labBody"></div></div>';
+    root.innerHTML = '<div class="card lab-card">' + tabs + '<div class="lab-body" id="labBody"></div><div class="lab-disc">回測為歷史資料模擬，不代表未來績效，不構成任何投資建議或參考；所有成交與成本為假設。</div></div>';
   }
 
   function btHTML(S) {

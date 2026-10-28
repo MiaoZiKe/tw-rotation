@@ -276,3 +276,6 @@ html:not(.lab-adm) .tab[data-view="lab"],html:not(.lab-adm) a[href="#lab"],html:
 
 #v-lab .lab-fsub{margin-bottom:var(--sp-3)}
 @media (max-width:640px){#v-lab .lab-fsub{max-width:100%;overflow-x:auto}}
+
+#v-lab .lab-disc{margin-top:var(--sp-2);font-size:12px;color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media (max-width:640px){#v-lab .lab-disc{white-space:normal}}

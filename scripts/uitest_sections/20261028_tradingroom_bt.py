@@ -20,6 +20,7 @@ def t_lab_bt(b, base, code):
     c, pg = new()
     pg.goto(base + "#lab/bt", wait_until="domcontentloaded"); pg.wait_for_timeout(4500)
     st0 = pg.evaluate(JS_ST)
+    ok(f"{T}：頁面底部一行免責（回測不代表未來、不構成投資建議）", "不構成任何投資建議" in pg.inner_text("#v-lab .lab-disc"), None)
     ok(f"{T}：開 #lab/bt 有 K 線圖與回測結果", st0["n"] > 500 and st0["trades"] > 0 and pg.locator("#labK canvas").count() > 0, st0)
     ok(f"{T}：標題頁籤＝台指期｜歷史回測，預設是最左邊的子頁（#lab 導到 #lab/fut）",
        pg.evaluate("() => [...document.querySelectorAll('#v-lab .lab-tabs a')].map(a => a.textContent).join('|')") == "台指期|歷史回測|K 線重播|事件分析|自訂策略", None)
