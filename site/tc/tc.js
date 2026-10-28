@@ -60,7 +60,7 @@
     { k: 'annual', t: '年薪', opts: [['全部'], ['≥100萬', (r) => has(mid(r.annual_total_wan)) && mid(r.annual_total_wan) >= 100], ['≥150萬', (r) => has(mid(r.annual_total_wan)) && mid(r.annual_total_wan) >= 150], ['≥200萬', (r) => has(mid(r.annual_total_wan)) && mid(r.annual_total_wan) >= 200], ['≥300萬', (r) => has(mid(r.annual_total_wan)) && mid(r.annual_total_wan) >= 300]], tip: '年薪總額（萬）區間的中點' },
     { k: 'ot', t: '加班', opts: [['全部'], ['幾乎不', (r) => otIs(r, '幾乎不')], ['偶爾', (r) => otIs(r, '偶爾')], ['經常', (r) => otIs(r, '經常')]], tip: '加班狀況' },
   ];
-  const S = { ind: '', co: '', f: {}, sort: { k: '', d: -1 }, fopen: false, data: {}, loaded: false, chm: 'base', payI: null, rk: { m: 'ann', ind: 'all', all: false }, agg: null };
+  const S = { ind: '', co: '', f: {}, sort: { k: '', d: -1 }, fopen: false, data: {}, loaded: false, chm: 'base', payI: null, hid: new Set(), raw: {}, lab: {}, dellist: [], hidAt: 0, delOpen: false, openK: null, rk: { m: 'ann', ind: 'all', all: false }, agg: null };
 
   /* 分紅發放欄只放「幾月」：從公司層 bonus_timing 抓出所有「N 月」，抓不到顯示「—」（完整說明留在公司頁頂端） */
   /* 展開「2、5、8、11 月」「2／5／8 月」這種列表＋單獨的「7 月」，去重後依數字排序輸出「2月、5月、…」；(?<!\d) 避免把 114 年的「14」當月份 */
@@ -145,19 +145,129 @@
   async function loadAll() {
     if (S.loaded) return;
     await Promise.all(INDS.map(async ([id]) => {
-      try { const r = await fetch('tc/json/' + id + '.json', { cache: 'no-cache' }); S.data[id] = r.ok ? await r.json() : null; }
-      catch (e) { S.data[id] = null; }
+      try { const r = await fetch('tc/json/' + id + '.json', { cache: 'no-cache' }); S.raw[id] = r.ok ? await r.json() : null; }
+      catch (e) { S.raw[id] = null; }
     }));
-    /* 2026-10-27 站內 Logo：把「公司名→股票代號」登記給 TcLogo，由它對 data/logos.json 找站內圖（外商／沒代號的才走 Google 來源） */
-    Object.values(S.data).forEach((d) => d && (d.companies || []).forEach((c) => window.TcLogo && window.TcLogo.reg(c.name, c.code)));
-    /* 職位區間若有 samples 就由 samples 算（最小～最大），沒有才用手填值 */
-    const mm = (a) => { a = [].concat(...a.map(fl)); return a.length ? [Math.min(...a), Math.max(...a)] : null; };
-    Object.values(S.data).forEach((d) => d && (d.companies || []).forEach((c) => (c.roles || []).forEach((r) => {
-      const sm = (Array.isArray(r.samples) ? r.samples : []).filter(inWin); if (!sm.length) return;
-      r.n = sm.length;
-      [['base_month_k', 'base_k'], ['bonus_months', 'bonus_months'], ['annual_months', 'annual_months'], ['annual_total_wan', 'annual_wan'], ['weekly_hours', 'weekly_hours']].forEach(([a, b]) => { const v = mm(sm.map((x) => x[b])); if (v) r[a] = v; });
-    })));
+    hidLoad();
+    rebuild();
     S.loaded = true;
+  }
+
+  /* ============ 人工刪除（2026-10-28，Andy：「有些數據資訊太少，所以你需要新增刪除功能給我，我會在人工審閱」） ============
+     · 刪除單位有三層：整家公司（c）、某個職位（r）、某一筆樣本（s）；被刪的不進統計、不顯示，可在頁面下方「已刪除」區逐筆復原。
+     · 持久化：存在會員 Worker 的 kv（/v1/tc/hidden 讀、/v1/tc/hidden/put 寫，只有管理者），所有裝置看到同一份；
+       localStorage 只當快取（開頁先套快取、再用伺服器覆蓋，避免閃一下被刪的東西）。預覽版沒有寫入權限，只存在預覽自己的 localStorage。
+     · 鍵：類型|產業|公司|單位|職位|樣本雜湊。樣本沒有穩定編號，所以拿「樣本整筆內容」雜湊——資料檔重產、順序變了也對得回來；
+       內容被改過就對不上（變成不影響統計的孤兒鍵，列在「已刪除」讓人看得到、可復原）。
+     · 原始資料永遠保留在 S.raw，每次刪除／復原都從 S.raw 重建 S.data（過濾 → 重算職位區間），統計與排行自然跟著變。 */
+  const HKEY = 'tw.tc.hid';
+  const kseg = (v, n) => String(v == null ? '' : v).replace(/\|/g, '/').slice(0, n);
+  const hsh = (o) => { const t = JSON.stringify(o); let h = 5381; for (let i = 0; i < t.length; i++) h = ((h << 5) + h + t.charCodeAt(i)) | 0; return (h >>> 0).toString(36); };
+  const hidLoad = () => { try { const a = JSON.parse(localStorage.getItem(HKEY) || '[]'); if (Array.isArray(a)) S.hid = new Set(a.filter((x) => typeof x === 'string')); } catch (e) { /* 沒快取就空 */ } };
+  const hidSave = () => { try { localStorage.setItem(HKEY, JSON.stringify([...S.hid])); } catch (e) { /* 無痕模式 */ } };
+  const clone = (o) => JSON.parse(JSON.stringify(o));
+  const sampleLab = (x) => [x.site || '來源', x.date || '', x.annual_wan != null ? '年薪 ' + nv(x.annual_wan) + ' 萬' : (x.base_k != null ? '底薪 ' + nv(x.base_k) + 'K' : '')].filter(Boolean).join(' ');
+  function rebuild() {
+    const H = S.hid, out = {}, lab = {};
+    INDS.forEach(([id, indName]) => {
+      const raw = S.raw[id]; if (!raw) { out[id] = null; return; }
+      const d = clone(raw);
+      d.companies = (d.companies || []).filter((c) => {
+        const kcn = 'c|' + id + '|' + kseg(c.name, 60); c._k = kcn; lab[kcn] = { t: 'c', l: c.name + '（' + indName + '）' };
+        c.roles = (c.roles || []).filter((r) => {
+          const kr = 'r|' + id + '|' + kseg(c.name, 60) + '|' + kseg(r.unit, 60) + '|' + kseg(r.role, 60); r._k = kr; lab[kr] = { t: 'r', l: c.name + '・' + (r.unit ? r.unit + '・' : '') + r.role };
+          const had = Array.isArray(r.samples) && r.samples.length; let removed = 0;
+          if (had) r.samples = r.samples.filter((x) => { const ks = kr.replace(/^r\|/, 's|') + '|' + hsh(x); x._k = ks; lab[ks] = { t: 's', l: c.name + '・' + r.role + '・' + sampleLab(x) }; if (H.has(ks)) { removed++; return false; } return true; });
+          if (H.has(kr) || H.has(kcn)) return false;
+          const sm = (r.samples || []).filter(inWin);
+          if (sm.length) {
+            r.n = sm.length;
+            const mm = (a) => { a = [].concat(...a.map(fl)); return a.length ? [Math.min(...a), Math.max(...a)] : null; };
+            [['base_month_k', 'base_k'], ['bonus_months', 'bonus_months'], ['annual_months', 'annual_months'], ['annual_total_wan', 'annual_wan'], ['weekly_hours', 'weekly_hours']].forEach(([a, b]) => { const v = mm(sm.map((x) => x[b])); if (v) r[a] = v; });
+          } else if (removed) r.n = 0;   // 樣本全被刪光：手填的區間不能再冒充統計，職位整列收掉
+          return true;
+        });
+        return !H.has(kcn);
+      });
+      out[id] = d;
+    });
+    /* 「已刪除」清單：只列上層沒被刪的（公司被刪時，底下的職位／樣本不重複列）；資料裡對不到的鍵也列出來，才不會有刪了卻看不到、復原不了的項目 */
+    S.lab = lab;
+    S.dellist = [...H].filter((k) => { const p = k.split('|'); return p[0] === 'c' || !H.has('c|' + p[1] + '|' + p[2]); }).filter((k) => { const p = k.split('|'); return p[0] !== 's' || !H.has('r|' + k.slice(2, k.lastIndexOf('|'))); })
+      .map((k) => ({ k, t: (lab[k] || { t: k.charAt(0) }).t, l: lab[k] ? lab[k].l : '（資料裡已找不到）' + k.split('|').slice(2).join('・') }));
+    S.data = out;
+    Object.values(S.data).forEach((d) => d && (d.companies || []).forEach((c) => window.TcLogo && window.TcLogo.reg(c.name, c.code)));
+  }
+  const acctCall = (p, b) => { const A = window.TwAccount; return A && typeof A.call === 'function' ? A.call(p, b) : Promise.resolve(null); };
+  /* 伺服器的清單為準；20 秒內不重問。回傳「是否和手上的不一樣」 */
+  async function hidRefresh() {
+    if (window.TW_PREVIEW || Date.now() - S.hidAt < 20000) return false;
+    S.hidAt = Date.now();
+    let j = null; try { j = await acctCall('/v1/tc/hidden', {}); } catch (e) { j = null; }
+    if (!(j && j._s === 200 && Array.isArray(j.hidden))) return false;
+    const n = new Set(j.hidden.filter((x) => typeof x === 'string')), ch = n.size !== S.hid.size || [...n].some((k) => !S.hid.has(k));
+    S.hid = n; hidSave(); return ch;
+  }
+  async function hidPush() {
+    if (window.TW_PREVIEW) return true;
+    let j = null; try { j = await acctCall('/v1/tc/hidden/put', { hidden: [...S.hid] }); } catch (e) { j = null; }
+    if (j && j._s === 200 && Array.isArray(j.hidden)) { S.hid = new Set(j.hidden); hidSave(); return true; }
+    return false;
+  }
+  function toast(msg) {
+    const old = $('.tc-toast'); if (old) old.remove();
+    const t = document.createElement('div'); t.className = 'tc-toast'; t.setAttribute('role', 'status'); t.textContent = msg; document.body.appendChild(t);
+    setTimeout(() => t.remove(), 3500);
+  }
+  /* 刪除／復原後重畫：公司頁的公司被刪就回該產業清單；展開著的職位樣本面板維持展開（不然刪一筆就被收起來，連刪很不順） */
+  function afterChange() {
+    const root = $('#v-tc'); if (!root) return;
+    if (S.co && S.ind !== 'stats' && !((S.data[S.ind] || {}).companies || []).some((c) => c.name === S.co)) { location.hash = '#tc/' + S.ind; return; }
+    S.openK = new Set($$('.tc-row.tc-open', root).map((tr) => tr.dataset.k)); paint(); S.openK = null;
+  }
+  async function hidSet(keys, on) {
+    const was = new Set(S.hid);
+    keys.forEach((k) => (on ? S.hid.add(k) : S.hid.delete(k)));
+    hidSave(); rebuild(); afterChange();   // 先改畫面（按了馬上有感），伺服器回失敗再還原
+    if (await hidPush()) return;
+    S.hid = was; hidSave(); rebuild(); afterChange();
+    toast('儲存失敗，已還原。請確認有登入管理者帳號後再試一次');
+  }
+  function confirmDel(title, note) {
+    return new Promise((res) => {
+      const o = document.createElement('div'); o.className = 'tc-dlg';
+      o.innerHTML = '<div class="tc-dlgb" role="alertdialog" aria-modal="true" aria-label="確認刪除"><h4>' + esc(title) + '</h4><p>' + esc(note) + '</p><div class="tc-dlga"><button type="button" class="tc-dno">取消</button><button type="button" class="tc-dok">確定刪除</button></div></div>';
+      document.body.appendChild(o);
+      const done = (v) => { document.removeEventListener('keydown', kd, true); o.remove(); res(v); };
+      const kd = (e) => { if (e.key === 'Escape') { e.stopPropagation(); done(false); } };
+      document.addEventListener('keydown', kd, true);
+      $('.tc-dno', o).onclick = () => done(false); $('.tc-dok', o).onclick = () => done(true);
+      o.addEventListener('click', (e) => { if (e.target === o) done(false); });
+      $('.tc-dno', o).focus();
+    });
+  }
+  const DEL_T = { c: '公司', r: '職位', s: '樣本' };
+  const delBtn = (t, k, label, n, txt) => '<button type="button" class="tc-delbtn tc-d' + t + '" data-t="' + t + '" data-k="' + esc(k) + '" data-l="' + esc(label) + '" data-n="' + (n || 0) + '" title="刪除這' + (t === 'c' ? '家公司' : t === 'r' ? '個職位' : '筆樣本') + '（不進統計、不顯示，可復原）" aria-label="刪除' + DEL_T[t] + '：' + esc(label) + '">' + (txt || '<b>刪</b><i>除</i>') + '</button>';
+  const fewTag = (n) => (n > 0 && n <= 2 ? '<em class="tc-few" title="這家公司只有 ' + n + ' 筆樣本，統計參考性低，建議人工審閱">樣本少</em>' : '');
+  const coN = (c) => (c.roles || []).reduce((x, r) => x + (r.n || 0), 0);
+  function delBox() {
+    const L = S.dellist; if (!L.length) return '';
+    return '<details class="tc-delbox" id="tcDelBox"' + (S.delOpen ? ' open' : '') + '><summary>已刪除（' + L.length + '）</summary><div class="tc-dellist">' +
+      L.map((x) => '<div class="tc-delrow"><span class="tc-dtype">' + (DEL_T[x.t] || '其他') + '</span><span class="tc-dlab" title="' + esc(x.l) + '">' + esc(x.l) + '</span><button type="button" class="tc-undo" data-k="' + esc(x.k) + '">復原</button></div>').join('') +
+      '</div></details>';
+  }
+  function bindDel(root) {
+    if (root.__tcDel) return; root.__tcDel = true;
+    root.addEventListener('click', async (e) => {
+      const b = e.target.closest('.tc-delbtn'), u = e.target.closest('.tc-undo');
+      if (b) {
+        e.preventDefault(); e.stopPropagation();
+        const t = b.dataset.t, n = +b.dataset.n || 0;
+        const ttl = '刪除' + DEL_T[t] + '「' + b.dataset.l + '」？';
+        const note = (t === 'c' ? '整家公司含底下 ' + n + ' 筆樣本' : t === 'r' ? '這個職位含 ' + n + ' 筆樣本' : '這 1 筆樣本') + '會從統計與排行拿掉、畫面不再顯示。可到頁面下方「已刪除」區復原。';
+        if (await confirmDel(ttl, note)) hidSet([b.dataset.k], true);
+      } else if (u) { e.preventDefault(); e.stopPropagation(); hidSet([u.dataset.k], false); }
+    }, true);
   }
 
   /* 「?」小說明：點開浮出、點背景關閉（Andy 規矩 B2：說明收進 ?） */
@@ -198,8 +308,8 @@
   const nv = (v) => { if (v == null) return '—'; if (Array.isArray(v)) { const a = fl(v); if (!a.length) return '—'; const lo = Math.min(...a), hi = Math.max(...a); return lo === hi ? lo : lo + '–' + hi; } return v; };
   function smRow(r) {
     const sm = r.samples || []; if (!sm.length) return '';
-    return '<tr class="tc-smrow" hidden><td colspan="14"><div class="tc-smw"><table class="tc-smt"><thead><tr>' + ['來源・日期', '單位細項', '年資', '學歷', '底薪(K)', '年薪(萬)', '分紅月數', '分紅(萬)', '工時', '加班', '摘要'].map((x) => '<th>' + x + '</th>').join('') + '</tr></thead><tbody>' +
-      sm.map((x) => '<tr' + (inWin(x) ? '' : ' class="tc-out" title="不進統計"') + '><td data-l="來源・日期">' + (smSt(x) === 'unc' ? '<em>日期未確認</em> ' : smSt(x) === 'out' ? '<em>範圍外參考</em> ' : '') + (/^https?:\/\//.test(x.url || '') ? '<a href="' + esc(x.url) + '" target="_blank" rel="noopener noreferrer">' + esc(x.site || '連結') + '</a>' : esc(x.site || '—')) + ' ' + esc(x.date || '') + '</td><td data-l="單位細項">' + esc(nv(x.unit_detail)) + '</td><td data-l="年資">' + esc(nv(x.years)) + '</td><td data-l="學歷">' + esc(nv(x.degree)) + '</td><td data-l="底薪(K)">' + nv(x.base_k) + '</td><td data-l="年薪(萬)">' + nv(x.annual_wan) + '</td><td data-l="分紅月數">' + nv(x.bonus_months) + '</td><td data-l="分紅(萬)">' + nv(x.bonus_wan) + '</td><td data-l="工時">' + nv(x.weekly_hours) + '</td><td data-l="加班">' + esc(nv(x.overtime)) + '</td><td data-l="摘要" class="tc-clip" title="點一下展開／收合">' + esc(nv(x.quote_free_note)) + '</td></tr>').join('') + '</tbody></table></div></td></tr>';
+    return '<tr class="tc-smrow" hidden><td colspan="14"><div class="tc-smw"><div class="tc-smh"><span>共 ' + sm.length + ' 筆樣本（淡色＝不進統計）</span>' + delBtn('r', r._k, r.role, sm.length, '刪除此職位') + '</div><table class="tc-smt"><thead><tr>' + ['來源・日期', '單位細項', '年資', '學歷', '底薪(K)', '年薪(萬)', '分紅月數', '分紅(萬)', '工時', '加班', '摘要', ''].map((x) => '<th>' + x + '</th>').join('') + '</tr></thead><tbody>' +
+      sm.map((x) => '<tr' + (inWin(x) ? '' : ' class="tc-out" title="不進統計"') + '><td data-l="來源・日期">' + (smSt(x) === 'unc' ? '<em>日期未確認</em> ' : smSt(x) === 'out' ? '<em>範圍外參考</em> ' : '') + (/^https?:\/\//.test(x.url || '') ? '<a href="' + esc(x.url) + '" target="_blank" rel="noopener noreferrer">' + esc(x.site || '連結') + '</a>' : esc(x.site || '—')) + ' ' + esc(x.date || '') + '</td><td data-l="單位細項">' + esc(nv(x.unit_detail)) + '</td><td data-l="年資">' + esc(nv(x.years)) + '</td><td data-l="學歷">' + esc(nv(x.degree)) + '</td><td data-l="底薪(K)">' + nv(x.base_k) + '</td><td data-l="年薪(萬)">' + nv(x.annual_wan) + '</td><td data-l="分紅月數">' + nv(x.bonus_months) + '</td><td data-l="分紅(萬)">' + nv(x.bonus_wan) + '</td><td data-l="工時">' + nv(x.weekly_hours) + '</td><td data-l="加班">' + esc(nv(x.overtime)) + '</td><td data-l="摘要" class="tc-clip" title="點一下展開／收合">' + esc(nv(x.quote_free_note)) + '</td><td data-l="" class="tc-smd">' + delBtn('s', x._k, sampleLab(x), 1) + '</td></tr>').join('') + '</tbody></table></div></td></tr>';
   }
   const med = (a) => { a = a.filter((v) => typeof v === 'number').sort((x, y) => x - y); if (!a.length) return null; const m = a.length >> 1; return a.length % 2 ? a[m] : (a[m - 1] + a[m]) / 2; };
   const stat = (a) => { const v = [].concat(...a.map(fl)), m = a.map(mdp).filter((x) => x != null); return v.length ? med(m) + '（' + Math.min(...v) + '–' + Math.max(...v) + '）' : '—'; };
@@ -212,7 +322,7 @@
       const d = S.data[id]; if (!d) return; let all = [];
       (d.companies || []).forEach((c) => {
         const sm = [].concat(...(c.roles || []).map((r) => (r.samples || []).filter(inWin))); if (!sm.length) return;
-        all = all.concat(sm); cos.push(Object.assign({ ind: id, indName: n, name: c.name }, mk(sm)));
+        all = all.concat(sm); cos.push(Object.assign({ ind: id, indName: n, name: c.name, key: c._k }, mk(sm)));
       });
       if (all.length) inds.push(Object.assign({ id, name: n }, mk(all)));
     });
@@ -228,10 +338,10 @@
     return '<div class="tc-rkbar"><span class="tc-fl">排行依</span>' + seg('m', [['ann', '年薪'], ['base', '底薪']]) + '<span class="tc-fl">產業</span>' + seg('ind', indOpts) + '</div>' +
       '<div class="tc-cnt">共 <b>' + list.length + '</b> 家有樣本（中位數由高到低；細線＝最低到最高；單位 ' + unit + '）</div>' +
       (list.length ? '<div class="tc-rk">' + top.map((c, i) => { const v = c[key], w = Math.max(2, v.med / mx * 100), l = v.min / mx * 100, r = v.max / mx * 100;
-        return '<a class="tc-rkr" href="#tc/' + c.ind + '/' + encodeURIComponent(c.name) + '" data-co="' + esc(c.name) + '"><span class="tc-rkn">' + (i + 1) + '</span>' + TL(c.name, c.ind, 24) + '<span class="tc-rkt">' + esc(c.name) + '<small>' + esc(c.indName) + '・' + c.n + ' 筆</small></span>' +
+        return '<div class="tc-rkrow"><a class="tc-rkr" href="#tc/' + c.ind + '/' + encodeURIComponent(c.name) + '" data-co="' + esc(c.name) + '"><span class="tc-rkn">' + (i + 1) + '</span>' + TL(c.name, c.ind, 24) + '<span class="tc-rkt">' + esc(c.name) + '<small>' + esc(c.indName) + '・' + c.n + ' 筆' + fewTag(c.n) + '</small></span>' +
           '<span class="tc-rkb"><i class="tc-rkbar" style="width:' + w.toFixed(1) + '%"></i><i class="tc-rkrg" style="left:' + l.toFixed(1) + '%;width:' + Math.max(0.5, r - l).toFixed(1) + '%"></i></span>' +
-          '<span class="tc-rkv"><b>' + v.med + '</b><small>' + v.min + '–' + v.max + '</small></span></a>'; }).join('') + '</div>' +
-        (list.length > (mob() ? RK_SHOW_M : RK_SHOW_D) ? '<button type="button" class="tc-rkmore">' + (S.rk.all ? '只看前 ' + RK_SHOW : '看全部 ' + list.length + ' 家') + '</button>' : '') : '<div class="empty isempty tc-empty">這個產業沒有樣本</div>');
+          '<span class="tc-rkv"><b>' + v.med + '</b><small>' + v.min + '–' + v.max + '</small></span></a>' + delBtn('c', c.key, c.name, c.n) + '</div>'; }).join('') + '</div>' +
+        (list.length > (mob() ? RK_SHOW_M : RK_SHOW_D) ? '<button type="button" class="tc-rkmore">' + (S.rk.all ? '只看前 ' + (mob() ? RK_SHOW_M : RK_SHOW_D) : '看全部 ' + list.length + ' 家') + '</button>' : '') : '<div class="empty isempty tc-empty">這個產業沒有樣本</div>');
   }
   const TL = (name, ind, sz) => (window.TcLogo ? window.TcLogo.html(name, ind, sz) : '');
   function bindRank(root) {
@@ -376,7 +486,7 @@
     units.forEach((u) => { const y = u.rows.filter(roleHasData), n = u.rows.filter((r) => !roleHasData(r)); u.rows = y.concat(n); });
     const head = '<tr>' + cols.map(([k, n]) => '<th data-sk="' + (sortVal[k] ? k : '') + '" class="' + (sortVal[k] ? 'srt' : '') + (sk === k ? ' on' : '') + '">' + n + (sk === k ? (sd < 0 ? ' ▼' : ' ▲') : '') + '</th>').join('') + '</tr>';
     const body = units.map((u) => '<tr class="tc-unit"><td colspan="14"><i></i>' + esc(u.u) + '<small>' + u.rows.length + ' 個職位</small></td></tr>' + u.rows.map((r) =>
-      '<tr class="tc-row' + (roleHasData(r) ? '' : ' tc-nod') + '"><td data-l="職位" class="tc-role">' + ((r.samples || []).length ? '<button type="button" class="tc-exp" aria-expanded="false" title="展開逐筆樣本">▸</button>' : '') + '<b' + (bonusWanOf(r) ? ' title="分紅金額 ' + bonusWanOf(r) + ' 萬（確認樣本）"' : '') + '>' + esc(r.role) + '</b><small>' + esc(r.years ? r.years + ' 年經驗' : '') + '</small></td>' +
+      '<tr class="tc-row' + (roleHasData(r) ? '' : ' tc-nod') + '" data-k="' + esc(r._k || '') + '"><td data-l="職位" class="tc-role">' + ((r.samples || []).length ? '<button type="button" class="tc-exp" aria-expanded="false" title="展開逐筆樣本">▸</button>' : '') + '<b' + (bonusWanOf(r) ? ' title="分紅金額 ' + bonusWanOf(r) + ' 萬（確認樣本）"' : '') + '>' + esc(r.role) + '</b><small>' + esc(r.years ? r.years + ' 年經驗' : '') + '</small></td>' +
       '<td data-l="職等" class="tc-grade">' + esc(r.grade || '—') + '</td>' +
       (tsmc ? '<td data-l="單位繁忙度" class="tc-busy">' + (r.busyness ? '<span class="tc-conf ' + (String(r.busyness).charAt(0) === '高' ? 'lo' : String(r.busyness).charAt(0) === '中' ? 'mid' : 'hi') + '" title="' + esc(r.busyness) + '">' + esc(String(r.busyness).charAt(0)) + '</span>' : '—') + '</td>'
         : '<td data-l="學歷" class="tc-deg">' + esc(r.degree || '—') + (r.degree_diff ? '<small>學士：' + esc(r.degree_diff) + '</small>' : '') + '</td>') +
@@ -427,7 +537,7 @@
       else if (co) {
         const m = (co.roles || []).filter((r) => roleShown(r) && roleOk(r)), tsmc = String(co.code) === '2330';
         h += '<div class="tc-crumb"><a href="#tc/' + S.ind + '" id="tcBack">← 返回公司列表</a></div>' +
-          '<div class="tc-cinfo"><h4>' + TL(co.name, S.ind, 40) + ' <span>' + esc(co.name) + '</span>' + (co.code && /^\d{4,6}$/.test(co.code) ? ' <a class="tc-code" href="#stock/' + esc(co.code) + '">' + esc(co.code) + '</a>' : '') + (co.heat ? '<small class="tc-heat">' + esc(co.heat) + '</small>' : '') + '</h4>' + topHtml(co) + '</div>' +
+          '<div class="tc-cinfo"><h4>' + TL(co.name, S.ind, 40) + ' <span>' + esc(co.name) + '</span>' + (co.code && /^\d{4,6}$/.test(co.code) ? ' <a class="tc-code" href="#stock/' + esc(co.code) + '">' + esc(co.code) + '</a>' : '') + fewTag(coN(co)) + (co.heat ? '<small class="tc-heat">' + esc(co.heat) + '</small>' : '') + delBtn('c', co._k, co.name, coN(co)) + '</h4>' + topHtml(co) + '</div>' +
           '<div class="tc-two">' + payHtml(co) + calHtml(co, bonusBlock(co)) + '</div>' + chipsHtml(co) +
           (co.grade_system ? '<div class="tc-gs"><b>職等制度</b><span class="tc-chips">' + chipsOf(co.grade_system, 3, 14).map((x) => '<em class="tc-chip">' + esc(x) + '</em>').join('') + '</span>' + qpop(esc(co.grade_system)) + '</div>' : '') +
           (tsmc ? '<div class="tc-gs tc-tsmcnote">台積電不分學歷，薪資差異主要來自單位繁忙度</div>' : '') +
@@ -439,9 +549,10 @@
           (list.length ? '<div class="tc-grid">' + list.map((x) => coCard(S.ind, x[0], x[1])).join('') + '</div>' : '<div class="empty isempty tc-empty">沒有符合篩選的公司</div>');
       }
     }
-    h += '</div></div><div class="tc-foot">' + esc(FOOT) + '・<a href="https://github.com/MiaoZiKe/tw-rotation/blob/main/data/logos/tc/ATTRIBUTION.md" target="_blank" rel="noopener">LOGO 出處與授權</a>（部分取自 Wikimedia Commons；商標屬各公司）</div>';
+    h += delBox() + '</div></div><div class="tc-foot">' + esc(FOOT) + '・<a href="https://github.com/MiaoZiKe/tw-rotation/blob/main/data/logos/tc/ATTRIBUTION.md" target="_blank" rel="noopener">LOGO 出處與授權</a>（部分取自 Wikimedia Commons；商標屬各公司）</div>';
     root.innerHTML = h;
-    bindHow(root);
+    bindHow(root); bindDel(root);
+    const dbx = $('#tcDelBox', root); if (dbx) dbx.addEventListener('toggle', () => { S.delOpen = dbx.open; });
     $$('.tc-smt td.tc-clip', root).forEach((td) => td.onclick = () => td.classList.toggle('open'));
     $$('.tc-qp > .tc-q', root).forEach((b) => b.onclick = (e) => { e.stopPropagation(); const p = b.nextElementSibling, open = p.hidden; $$('.tc-qp > .tc-pop', root).forEach((x) => { x.hidden = true; }); p.hidden = !open; b.setAttribute('aria-expanded', String(open)); });
     if (!window.__tcQpDoc) { window.__tcQpDoc = true; document.addEventListener('click', (e) => { if (!e.target.closest('.tc-qp')) $$('.tc-qp > .tc-pop').forEach((x) => { x.hidden = true; }); }); }
@@ -476,6 +587,7 @@
       tr.addEventListener('click', (e) => { if (e.target.closest('a') || (e.target.closest('button') && !e.target.closest('.tc-exp'))) return; togRow(tr); });
       tr.addEventListener('keydown', (e) => { if (e.target !== tr) return; if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); togRow(tr); } });
     });
+    if (S.openK) $$('.tc-row', root).forEach((tr) => { if (S.openK.has(tr.dataset.k)) togRow(tr); });
     $$('th.srt', root).forEach((th) => th.onclick = () => { const k = th.dataset.sk; S.sort = S.sort.k === k ? { k, d: -S.sort.d } : { k, d: -1 }; paint(); });
   }
 
@@ -490,6 +602,7 @@
     S.ind = ind; S.co = co;
     await loadAll();
     paint();
+    if (await hidRefresh()) { rebuild(); afterChange(); }   // 先用快取畫、再用伺服器清單校正（別的裝置刪的在這裡也要生效）
   }
 
   window.TwTc = { show, state: () => S, INDS };

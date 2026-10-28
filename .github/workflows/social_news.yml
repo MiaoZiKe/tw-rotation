@@ -1,0 +1,123 @@
+name: 新聞貼文自動排程
+
+# 2026-10-28 Andy：「可以，接上排程，單位改成億美元，CEO並安排人員持續優化，依據不同的內容後台紀錄，後續慢慢改善收斂成大家喜歡的主題、內容、版面、風格」
+# 盤前／盤中／盤後三段自動文（社群即時貼文）發完後 30 分鐘，各排 3～5 篇新聞貼文（IG 單圖＋Threads 串文）。
+# 做的事：scripts/social_news.py 讀資料湖新聞 → 選題（熱度 × 每週成效權重，保留 20% 探索）→ 模板產稿 → 法遵自動檢查
+#         → render_news_cards.py --pal D 出圖＋重疊檢查 → 寫 social/{ig,threads}/queue（status: approved＋publish_at）推回 main。
+#         真正發文交給既有的 ig_post.yml／threads_post.yml（每 15 分鐘看 queue），本流程不連 Meta、不需要任何金鑰。
+# 說明文件：docs/marketing/social_unit/news_auto.md
+# ★ 10-28 晚：queue 預設寫 draft（不會發）。CEO 確認 v2 品質後，在「產稿」那一步的 env 加 NEWS_AUTO_APPROVE: "1" 才會寫 approved。
+#
+# 觸發（台北時間）：
+#   ① 接在「社群即時貼文」每一輪結束之後（workflow_run）：看 social-snaps 的 state/posted.json，今天哪一段主貼文已發、新聞文還沒排 → 排。
+#      發文時間＝主貼文發出時間 + 30 分；盤前不早於 08:50、盤中不早於 12:31；同段多篇每篇錯開 5 分鐘。
+#   ② 備援排程（GitHub 的 workflow_run／schedule 偶爾漏）：08:35、12:16、19:35、21:05、22:35（週一到週五）。已排過的段落自動跳過。
+on:
+  workflow_run:
+    workflows: ["社群即時貼文（Threads／IG 限動）"]
+    types: [completed]
+  schedule:
+    - cron: "35 0 * * 1-5"    # 台北 08:35
+    - cron: "16 4 * * 1-5"    # 台北 12:16
+    - cron: "35 11 * * 1-5"   # 台北 19:35
+    - cron: "5 13 * * 1-5"    # 台北 21:05
+    - cron: "35 14 * * 1-5"   # 台北 22:35
+  workflow_dispatch:
+    inputs:
+      slot:
+        description: "auto（看主貼文發了哪幾段）、pre、intra、post"
+        type: choice
+        options: [auto, pre, intra, post]
+        default: auto
+      dry_run:
+        description: "只演練：產圖與文案存成 artifact，不寫 queue、不會發"
+        type: boolean
+        default: true
+      force:
+        description: "不看主貼文有沒有發（測試用；仍不會重複排同一段）"
+        type: boolean
+        default: false
+
+concurrency:
+  group: social-news
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  news:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: 字型快取
+        uses: actions/cache@v4
+        with:
+          path: ~/.local/share/fonts/tw-rotation
+          key: social-fonts-v2
+
+      - name: 安裝套件與中文字型
+        timeout-minutes: 8
+        run: |
+          pip install -q -r requirements.txt playwright pillow
+          python -m playwright install chromium
+          F=~/.local/share/fonts/tw-rotation
+          mkdir -p "$F"
+          if [ ! -s "$F/NotoSansCJKtc-Regular.otf" ]; then
+            for w in Regular Bold; do
+              curl -fsSL --retry 3 -o "$F/NotoSansCJKtc-$w.otf" "https://raw.githubusercontent.com/notofonts/noto-cjk/main/Sans/OTF/TraditionalChinese/NotoSansCJKtc-$w.otf"
+            done
+          fi
+          fc-cache -f >/dev/null
+          python -c "from playwright.sync_api import sync_playwright as P; p=P().start(); p.chromium.launch().close(); p.stop()" \
+            || { echo "Chromium 缺系統函式庫 → 補 install-deps"; sudo timeout 300 python -m playwright install-deps chromium; }
+
+      - name: 取主貼文發布紀錄
+        run: |
+          mkdir -p state
+          git fetch --depth=1 origin social-snaps
+          git show FETCH_HEAD:state/posted.json > state/posted.json 2>/dev/null || echo '{}' > state/posted.json
+
+      - name: 產稿＋法遵檢查＋出圖＋寫 queue
+        env:
+          IN_SLOT: ${{ inputs.slot || 'auto' }}
+          IN_DRY: ${{ inputs.dry_run }}
+          IN_FORCE: ${{ inputs.force }}
+          NEWS_AUTO_APPROVE: "1"   # 10-28 Andy：「A，開啟」（寧可少發、品質閘不放寬）
+        run: |
+          args="--slot $IN_SLOT --posted state/posted.json"
+          if [ "$IN_DRY" = "true" ]; then args="$args --dry-run --out $RUNNER_TEMP/news_dry"; fi
+          if [ "$IN_FORCE" = "true" ]; then args="$args --force"; fi
+          python scripts/social_news.py $args
+          python scripts/ig_post.py --check
+          python scripts/threads_post.py --check
+
+      - name: 演練結果存成 artifact
+        if: inputs.dry_run == true
+        uses: actions/upload-artifact@v4
+        with:
+          name: news-dry-run
+          path: ${{ runner.temp }}/news_dry
+          if-no-files-found: ignore
+
+      - name: 推回 main（queue、圖、選題紀錄）
+        if: inputs.dry_run != true
+        run: |
+          git config user.name  "tw-rotation-bot"
+          git config user.email "actions@github.com"
+          git add social/ig/queue social/threads/queue social/ig/images/news social/news/log
+          if git diff --staged --quiet; then echo "沒有新排程"; exit 0; fi
+          git commit -q -m "新聞貼文排程 $(TZ=Asia/Taipei date '+%Y-%m-%d %H:%M')"
+          for i in 1 2 3 4; do
+            git pull --rebase --autostash -q origin main && git push -q origin HEAD:main && exit 0
+            sleep $((i*3))
+          done
+          echo "::error::推回 main 失敗（四次）"; exit 1

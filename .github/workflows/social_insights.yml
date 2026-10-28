@@ -39,6 +39,9 @@ jobs:
           CATALOG_PATH: state/posts_catalog.json
           CATALOG_FULL: ${{ github.event.inputs.full == '1' && '1' || '' }}
         run: python3 scripts/social_insights.py
+      - name: 新聞貼文成效依標籤聚合（state/news_insights.json）
+        continue-on-error: true
+        run: python3 scripts/news_insights.py --catalog state/posts_catalog.json --out state/news_insights.json
       - name: 寫回 social-snaps
         run: |
           [ -f state/insights.json ] || { echo "沒有產出"; exit 1; }
@@ -49,6 +52,7 @@ jobs:
             mkdir -p "$WORK/state"
             cp state/insights.json "$WORK/state/insights.json"
             [ -f state/posts_catalog.json ] && cp state/posts_catalog.json "$WORK/state/posts_catalog.json"
+            [ -f state/news_insights.json ] && cp state/news_insights.json "$WORK/state/news_insights.json"
             (cd "$WORK" && git init -q && git checkout -q --orphan social-snaps \
               && git config user.name tw-rotation-bot && git config user.email actions@github.com \
               && git add -A && git commit -q -m "成效洞察 $(TZ=Asia/Taipei date +%F)" \

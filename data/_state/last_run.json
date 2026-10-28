@@ -2,8 +2,8 @@
   "steps": {
     "inst_official": {
       "ok": true,
-      "rows": 890,
-      "date": "2026-10-27",
+      "rows": 902,
+      "date": "2026-10-28",
       "diag": [
         {
           "url": "https://openapi.twse.com.tw/v1/swagger.json",
@@ -88,15 +88,57 @@
           "parts": []
         },
         {
+          "url": "https://www.tpex.org.tw/openapi/swagger.json",
+          "http": 200,
+          "head": "{\"openapi\":\"3.0.0\",\"info\":{\"description\":\"\\u672c\\u5e73\\u81fa\\u63d0\\u4f9b\\u6ac3\\u6aaf\\u8cb7\\u8ce3\\u5e02\\u5834\\u8cc7\\u6599\\u670d\\u52d9API\\uff0c\\u5305\\u542b\\u4e0a\\u6ac3\\u3001\\u8208\\u6ac3\\u3001\\u5275\\u6ac"
+        },
+        {
+          "swagger": "https://www.tpex.org.tw/openapi/swagger.json",
+          "n_paths": 225,
+          "fund_paths": [
+            "/tpex_opfund_latest",
+            "/tpex_opfund_market_highlight",
+            "/tpex_opfund_recommended_dealer"
+          ]
+        },
+        {
+          "swagger_path": "/tpex_3insti_qfii",
+          "summary": "上櫃僑外資及陸資持股比例排行表"
+        },
+        {
+          "swagger_path": "/tpex_3insti_qfii_industry",
+          "summary": "上櫃各類股僑外資及陸資持股比例表"
+        },
+        {
+          "swagger_path": "/tpex_3insti_daily_trading",
+          "summary": "上櫃股票三大法人買賣明細資訊"
+        },
+        {
+          "swagger_path": "/tpex_3insti_dealer_trading",
+          "summary": "上櫃股票自營商買賣超彙總表"
+        },
+        {
+          "swagger_path": "/tpex_3insti_summary",
+          "summary": "上櫃股票三大法人買賣金額彙總表"
+        },
+        {
+          "swagger_path": "/tpex_3insti_trading",
+          "summary": "上櫃股票投信買賣超彙總表"
+        },
+        {
+          "swagger_path": "/tpex_3insti_qfii_trading",
+          "summary": "上櫃股票外資及陸資買賣超彙總表"
+        },
+        {
           "url": "https://www.tpex.org.tw/openapi/v1/tpex_3insti_daily_trading",
           "http": 200,
-          "head": "[ {\"Date\":\"1151027\",\"SecuritiesCompanyCode\":\"00411A\",\"CompanyName\":\"主動統一前沿科技\",\"Foreign Investors include Mainland Area Investors (Foreign Dealers excluded)-Total Buy\":\"1154112\",\" Foreign Investors inc"
+          "head": "[ {\"Date\":\"1151028\",\"SecuritiesCompanyCode\":\"00411A\",\"CompanyName\":\"主動統一前沿科技\",\"Foreign Investors include Mainland Area Investors (Foreign Dealers excluded)-Total Buy\":\"1375000\",\" Foreign Investors inc"
         },
         {
           "market": "上櫃",
-          "rows": 890,
+          "rows": 902,
           "parts": [
-            890
+            902
           ]
         }
       ]
@@ -109,14 +151,14 @@
       "rows": 5
     },
     "fut_inst": {
-      "stored": 9
+      "stored": 0
     },
     "mktfut.fut_inst": {
       "ok": true,
       "rows": 54
     },
     "fut_oi": {
-      "stored": 3
+      "stored": 0
     },
     "mktfut.fut_oi": {
       "ok": true,
@@ -124,20 +166,20 @@
     },
     "finmind.institutional_bulk": {
       "ok": true,
-      "rows": 890,
+      "rows": 902,
       "seconds": 0.3
     },
     "inst_daily": {
-      "stored": 0
+      "stored": 54
     },
     "institutional_codes": {
-      "requested": 2,
-      "returned": 0
+      "requested": 54,
+      "returned": 54
     },
     "finmind.institutional": {
-      "ok": false,
-      "rows": 0,
-      "seconds": 0.6
+      "ok": true,
+      "rows": 54,
+      "seconds": 15.6
     },
     "build_payload": {
       "ok": true,
@@ -145,24 +187,22 @@
     }
   },
   "errors": [],
-  "empty": [
-    "finmind.institutional"
-  ],
+  "empty": [],
   "phase": "inst",
   "freshness": {
-    "trade_date": "2026-10-27",
+    "trade_date": "2026-10-28",
     "tables": {
       "inst_daily": {
         "label": "個股三大法人",
-        "latest": "2026-10-27",
-        "rows": 1509,
+        "latest": "2026-10-28",
+        "rows": 1364,
         "median": 2213.0,
-        "status": "warn",
+        "status": "pending",
         "reason": "thin"
       },
       "inst_market_daily": {
         "label": "全市場三大法人金額",
-        "latest": "2026-10-27",
+        "latest": "2026-10-28",
         "rows": 1,
         "median": 1.0,
         "status": "ok",
@@ -171,10 +211,10 @@
       "margin_total": {
         "label": "整體融資融券",
         "latest": "2026-10-27",
-        "rows": 1,
+        "rows": 0,
         "median": 1.0,
-        "status": "ok",
-        "reason": null
+        "status": "pending",
+        "reason": "behind"
       },
       "fut_inst": {
         "label": "期貨三大法人",
@@ -193,20 +233,14 @@
         "reason": null
       }
     },
-    "warn": [
-      "inst_daily"
-    ],
-    "warn_labels": [
-      "個股三大法人"
-    ]
+    "warn": [],
+    "warn_labels": []
   },
-  "warn": [
-    "inst_daily"
-  ],
-  "started_at": "2026-10-28T07:33:43.662684+00:00",
-  "finished_at": "2026-10-28T07:34:00.416729+00:00",
-  "duration_seconds": 16.8,
-  "trade_date": "2026-10-27",
+  "warn": [],
+  "started_at": "2026-10-28T09:10:23.559539+00:00",
+  "finished_at": "2026-10-28T09:10:55.244349+00:00",
+  "duration_seconds": 31.7,
+  "trade_date": "2026-10-28",
   "complete": true,
-  "finmind_budget_left": 500
+  "finmind_budget_left": 448
 }

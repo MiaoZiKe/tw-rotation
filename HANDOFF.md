@@ -1,5 +1,12 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
+## 2026-10-28 新聞貼文自動排程上線（Andy「可以，接上排程，單位改成億美元…」；最後更新 10-28 台北）
+- 圖卡大數字單位：`render_news_cards.py` 數字正則改成「億美元」整段保留；10-28 盤後五張重產（--pal D，重疊 0 筆）。
+- 新工作流程「新聞貼文自動排程」`.github/workflows/social_news.yml`：接在「社群即時貼文」每輪之後＋備援 08:35／12:16／19:35／21:05／22:35；主貼文發出 +30 分（盤前 ≥08:50、盤中 ≥12:31）排 3～5 篇到 social/{ig,threads}/queue。
+- 產稿 `scripts/social_news.py`（模板、不用 LLM）、法遵 `scripts/news_legal.py`、成效／週報／權重 `scripts/news_insights.py`（掛在 social_insights.yml、social_style_weekly.yml）。說明 `docs/marketing/social_unit/news_auto.md`。
+- 驗證：pytest 全跑；workflow YAML 解析；本機乾跑樣本 `docs/marketing/posts/2026-10-29-news-auto-dryrun/`（沒有真發）。純 scripts／workflow／docs，未動 site/**，_preview／_uitest 不適用。
+- 待處理：點擊（?u= 漏斗）Actions 讀不到；單一來源數字以標出處代替（見 news_auto.md 第四、九節）。
+
 ## 2026-10-28 交易練習室（#lab，管理者限定；預覽 preview/trading-room；最後更新 10-28 台北）
 - Andy 要「TradingView 有的都要有」：台指期、歷史回測、K 線重播（含模擬下單）、事件分析、自訂策略。規格書 `docs/tradingview_spec.md`（TradingView 原文沒讀到，〔知〕處的口徑已寫進頁面「?」）。
 - 檔案：前端 `site/lab/{lab,engine,kview,replay,events,expr,custom}.js` ＋ `worker.js`；樣式 `site/m4/20261028-lab.css`；資料 `pipeline/compute/lab.py`（`python -m pipeline.compute.lab`，build_payload 會呼叫，`SKIP_LAB=1` 略過）→ `site/data/lab/`（約 130 MB，Pages 容量要留意）；預覽分支吃正式站資料、正式站還沒有 lab/ 目錄，所以另 commit 小樣本 `site/lab/sample/`（`python -m pipeline.compute.lab --sample`）。事件表 `pipeline/groups/events_history.yaml`（`scripts/gen_events_history.py` 產初稿）。

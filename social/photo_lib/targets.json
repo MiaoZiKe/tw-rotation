@@ -1,0 +1,804 @@
+[
+ [
+  "tsmc",
+  "TSMC",
+  [
+   "台積電",
+   "台積"
+  ],
+  [
+   "TSMC Fab",
+   "TSMC headquarters Hsinchu",
+   "TSMC building"
+  ]
+ ],
+ [
+  "foxconn",
+  "Foxconn",
+  [
+   "鴻海",
+   "富士康"
+  ],
+  [
+   "Foxconn building",
+   "Hon Hai Precision headquarters",
+   "Foxconn factory"
+  ]
+ ],
+ [
+  "mediatek",
+  "MediaTek",
+  [
+   "聯發科"
+  ],
+  [
+   "MediaTek headquarters",
+   "MediaTek building Hsinchu"
+  ]
+ ],
+ [
+  "delta",
+  "Delta Electronics",
+  [
+   "台達電",
+   "台達"
+  ],
+  [
+   "Delta Electronics building",
+   "Delta Electronics headquarters Taipei"
+  ]
+ ],
+ [
+  "quanta",
+  "Quanta Computer",
+  [
+   "廣達"
+  ],
+  [
+   "Quanta Computer headquarters",
+   "Quanta Computer building"
+  ]
+ ],
+ [
+  "fubon",
+  "Fubon Financial",
+  [
+   "富邦金",
+   "富邦"
+  ],
+  [
+   "Fubon Financial Center",
+   "Fubon building Taipei"
+  ]
+ ],
+ [
+  "ase",
+  "ASE Technology",
+  [
+   "日月光投控",
+   "日月光"
+  ],
+  [
+   "ASE Group Kaohsiung",
+   "Advanced Semiconductor Engineering building"
+  ]
+ ],
+ [
+  "cathay",
+  "Cathay Financial",
+  [
+   "國泰金",
+   "國泰"
+  ],
+  [
+   "Cathay United Bank building",
+   "Cathay Financial Holdings building"
+  ]
+ ],
+ [
+  "chunghwa_telecom",
+  "Chunghwa Telecom",
+  [
+   "中華電信",
+   "中華電"
+  ],
+  [
+   "Chunghwa Telecom headquarters",
+   "Chunghwa Telecom building"
+  ]
+ ],
+ [
+  "wiwynn",
+  "Wiwynn",
+  [
+   "緯穎"
+  ],
+  [
+   "Wiwynn building",
+   "Wiwynn headquarters"
+  ]
+ ],
+ [
+  "ctbc",
+  "CTBC Financial",
+  [
+   "中信金",
+   "中國信託"
+  ],
+  [
+   "CTBC Financial Park",
+   "CTBC building Taipei"
+  ]
+ ],
+ [
+  "mega",
+  "Mega Financial",
+  [
+   "兆豐金",
+   "兆豐"
+  ],
+  [
+   "Mega International Commercial Bank building"
+  ]
+ ],
+ [
+  "accton",
+  "Accton Technology",
+  [
+   "智邦"
+  ],
+  [
+   "Accton Technology building",
+   "Accton headquarters Hsinchu"
+  ]
+ ],
+ [
+  "esun",
+  "E.Sun Financial",
+  [
+   "玉山金",
+   "玉山銀行"
+  ],
+  [
+   "E.Sun Bank building",
+   "E.SUN Commercial Bank headquarters"
+  ]
+ ],
+ [
+  "umc",
+  "United Microelectronics",
+  [
+   "聯電"
+  ],
+  [
+   "UMC Fab",
+   "United Microelectronics Corporation building"
+  ]
+ ],
+ [
+  "yuanta",
+  "Yuanta Financial",
+  [
+   "元大金",
+   "元大"
+  ],
+  [
+   "Yuanta Financial building",
+   "Yuanta Securities building Taipei"
+  ]
+ ],
+ [
+  "auras",
+  "Asia Vital Components",
+  [
+   "奇鋐"
+  ],
+  [
+   "Asia Vital Components building"
+  ]
+ ],
+ [
+  "evergreen",
+  "Evergreen Marine",
+  [
+   "長榮海運",
+   "長榮"
+  ],
+  [
+   "Evergreen Marine building",
+   "Evergreen container ship",
+   "Evergreen Marine Corporation headquarters"
+  ]
+ ],
+ [
+  "uni_president",
+  "Uni-President",
+  [
+   "統一企業",
+   "統一"
+  ],
+  [
+   "Uni-President Enterprises headquarters",
+   "Uni-President building Tainan"
+  ]
+ ],
+ [
+  "asus",
+  "ASUS",
+  [
+   "華碩"
+  ],
+  [
+   "ASUS headquarters Taipei",
+   "Asus building Beitou"
+  ]
+ ],
+ [
+  "first_fin",
+  "First Financial",
+  [
+   "第一金",
+   "第一銀行"
+  ],
+  [
+   "First Commercial Bank headquarters Taipei",
+   "First Bank building Taipei"
+  ]
+ ],
+ [
+  "fpcc",
+  "Formosa Petrochemical",
+  [
+   "台塑化"
+  ],
+  [
+   "Formosa Petrochemical Mailiao",
+   "Mailiao refinery"
+  ]
+ ],
+ [
+  "nanya_plastics",
+  "Nan Ya Plastics",
+  [
+   "南亞"
+  ],
+  [
+   "Nan Ya Plastics building",
+   "Formosa Plastics Building Taipei"
+  ]
+ ],
+ [
+  "formosa_plastics",
+  "Formosa Plastics",
+  [
+   "台塑"
+  ],
+  [
+   "Formosa Plastics Building",
+   "Formosa Plastics Group headquarters"
+  ]
+ ],
+ [
+  "pegatron",
+  "Pegatron",
+  [
+   "和碩"
+  ],
+  [
+   "Pegatron headquarters",
+   "Pegatron building"
+  ]
+ ],
+ [
+  "wistron",
+  "Wistron",
+  [
+   "緯創"
+  ],
+  [
+   "Wistron headquarters",
+   "Wistron building"
+  ]
+ ],
+ [
+  "alchip",
+  "Alchip Technologies",
+  [
+   "世芯-KY",
+   "世芯"
+  ],
+  [
+   "Alchip Technologies"
+  ]
+ ],
+ [
+  "tcfhc",
+  "Taiwan Cooperative Financial",
+  [
+   "合庫金",
+   "合作金庫"
+  ],
+  [
+   "Taiwan Cooperative Bank headquarters",
+   "Taiwan Cooperative Bank building"
+  ]
+ ],
+ [
+  "hua_nan",
+  "Hua Nan Financial",
+  [
+   "華南金",
+   "華南銀行"
+  ],
+  [
+   "Hua Nan Commercial Bank headquarters",
+   "Hua Nan Bank building"
+  ]
+ ],
+ [
+  "largan",
+  "Largan Precision",
+  [
+   "大立光"
+  ],
+  [
+   "Largan Precision building",
+   "Largan Precision headquarters Taichung"
+  ]
+ ],
+ [
+  "taishin",
+  "Taishin Financial",
+  [
+   "台新金",
+   "台新"
+  ],
+  [
+   "Taishin Bank building",
+   "Taishin Financial headquarters"
+  ]
+ ],
+ [
+  "yageo",
+  "Yageo",
+  [
+   "國巨"
+  ],
+  [
+   "Yageo building",
+   "Yageo headquarters"
+  ]
+ ],
+ [
+  "csc",
+  "China Steel",
+  [
+   "中鋼"
+  ],
+  [
+   "China Steel Corporation headquarters Kaohsiung",
+   "China Steel building"
+  ]
+ ],
+ [
+  "liteon",
+  "Lite-On",
+  [
+   "光寶科",
+   "光寶"
+  ],
+  [
+   "Lite-On Technology headquarters",
+   "Lite-On building"
+  ]
+ ],
+ [
+  "advantech",
+  "Advantech",
+  [
+   "研華"
+  ],
+  [
+   "Advantech headquarters",
+   "Advantech building Taipei"
+  ]
+ ],
+ [
+  "tcc",
+  "Taiwan Cement",
+  [
+   "台泥"
+  ],
+  [
+   "Taiwan Cement building Taipei",
+   "Taiwan Cement Corporation"
+  ]
+ ],
+ [
+  "hotai",
+  "Hotai Motor",
+  [
+   "和泰車"
+  ],
+  [
+   "Hotai Motor building",
+   "Hotai Motor headquarters"
+  ]
+ ],
+ [
+  "realtek",
+  "Realtek",
+  [
+   "瑞昱"
+  ],
+  [
+   "Realtek headquarters Hsinchu",
+   "Realtek Semiconductor building"
+  ]
+ ],
+ [
+  "sinopac",
+  "SinoPac Financial",
+  [
+   "永豐金",
+   "永豐"
+  ],
+  [
+   "SinoPac building Taipei",
+   "Bank SinoPac headquarters"
+  ]
+ ],
+ [
+  "cdf",
+  "China Development Financial",
+  [
+   "開發金",
+   "中華開發"
+  ],
+  [
+   "China Development Financial building",
+   "KGI Bank building"
+  ]
+ ],
+ [
+  "novatek",
+  "Novatek Microelectronics",
+  [
+   "聯詠"
+  ],
+  [
+   "Novatek Microelectronics building"
+  ]
+ ],
+ [
+  "unimicron",
+  "Unimicron",
+  [
+   "欣興"
+  ],
+  [
+   "Unimicron building",
+   "Unimicron headquarters"
+  ]
+ ],
+ [
+  "yangming",
+  "Yang Ming Marine",
+  [
+   "陽明海運",
+   "陽明"
+  ],
+  [
+   "Yang Ming Marine Transport building",
+   "Yang Ming container ship"
+  ]
+ ],
+ [
+  "wanhai",
+  "Wan Hai Lines",
+  [
+   "萬海"
+  ],
+  [
+   "Wan Hai Lines building",
+   "Wan Hai container ship"
+  ]
+ ],
+ [
+  "kingslide",
+  "King Slide Works",
+  [
+   "川湖"
+  ],
+  [
+   "King Slide Works"
+  ]
+ ],
+ [
+  "taiwan_mobile",
+  "Taiwan Mobile",
+  [
+   "台灣大哥大",
+   "台灣大"
+  ],
+  [
+   "Taiwan Mobile headquarters",
+   "Taiwan Mobile building"
+  ]
+ ],
+ [
+  "fareastone",
+  "Far EasTone",
+  [
+   "遠傳"
+  ],
+  [
+   "Far EasTone building",
+   "Far EasTone headquarters"
+  ]
+ ],
+ [
+  "inventec",
+  "Inventec",
+  [
+   "英業達"
+  ],
+  [
+   "Inventec building",
+   "Inventec headquarters"
+  ]
+ ],
+ [
+  "jentech",
+  "Jentech Precision",
+  [
+   "健策"
+  ],
+  [
+   "Jentech Precision"
+  ]
+ ],
+ [
+  "nvidia",
+  "NVIDIA",
+  [
+   "輝達",
+   "NVIDIA",
+   "Nvidia"
+  ],
+  [
+   "Nvidia headquarters Santa Clara",
+   "Nvidia Endeavor building",
+   "Nvidia Voyager building"
+  ]
+ ],
+ [
+  "apple",
+  "Apple",
+  [
+   "蘋果",
+   "Apple"
+  ],
+  [
+   "Apple Park aerial",
+   "Apple Park",
+   "Apple Campus Cupertino"
+  ]
+ ],
+ [
+  "microsoft",
+  "Microsoft",
+  [
+   "微軟",
+   "Microsoft"
+  ],
+  [
+   "Microsoft Redmond campus",
+   "Microsoft headquarters Redmond"
+  ]
+ ],
+ [
+  "alphabet",
+  "Alphabet",
+  [
+   "Alphabet",
+   "Google",
+   "谷歌",
+   "Google母公司"
+  ],
+  [
+   "Googleplex",
+   "Google headquarters Mountain View",
+   "Google Bay View campus",
+   "Google headquarters",
+   "Google Mountain View building",
+   "Google office"
+  ]
+ ],
+ [
+  "meta",
+  "Meta Platforms",
+  [
+   "Meta",
+   "臉書"
+  ],
+  [
+   "Meta headquarters Menlo Park",
+   "Facebook headquarters Menlo Park",
+   "1 Hacker Way"
+  ]
+ ],
+ [
+  "amazon",
+  "Amazon",
+  [
+   "亞馬遜",
+   "Amazon"
+  ],
+  [
+   "Amazon Spheres Seattle",
+   "Amazon headquarters Seattle",
+   "Amazon Day 1 building"
+  ]
+ ],
+ [
+  "broadcom",
+  "Broadcom",
+  [
+   "博通",
+   "Broadcom"
+  ],
+  [
+   "Broadcom headquarters San Jose",
+   "Broadcom building"
+  ]
+ ],
+ [
+  "amd",
+  "AMD",
+  [
+   "超微",
+   "AMD"
+  ],
+  [
+   "AMD headquarters Santa Clara",
+   "AMD campus Austin",
+   "Advanced Micro Devices building"
+  ]
+ ],
+ [
+  "intel",
+  "Intel",
+  [
+   "英特爾",
+   "Intel"
+  ],
+  [
+   "Intel headquarters Santa Clara",
+   "Intel Robert Noyce Building",
+   "Intel fab"
+  ]
+ ],
+ [
+  "samsung",
+  "Samsung Electronics",
+  [
+   "三星電子",
+   "三星",
+   "Samsung"
+  ],
+  [
+   "Samsung Electronics headquarters Suwon",
+   "Samsung Digital City",
+   "Samsung Town Seoul",
+   "Samsung Pyeongtaek"
+  ]
+ ],
+ [
+  "sk_hynix",
+  "SK hynix",
+  [
+   "SK海力士",
+   "海力士",
+   "SK hynix"
+  ],
+  [
+   "SK hynix Icheon",
+   "SK hynix headquarters",
+   "SK Hynix building",
+   "SK hynix Cheongju",
+   "SK하이닉스",
+   "SK hynix M15",
+   "SK hynix fab",
+   "Hynix Icheon",
+   "SK Hynix Wuxi"
+  ]
+ ],
+ [
+  "micron",
+  "Micron Technology",
+  [
+   "美光",
+   "Micron"
+  ],
+  [
+   "Micron Technology headquarters Boise",
+   "Micron Boise",
+   "Micron Technology building"
+  ]
+ ],
+ [
+  "asml",
+  "ASML",
+  [
+   "艾司摩爾",
+   "ASML"
+  ],
+  [
+   "ASML Veldhoven",
+   "ASML headquarters",
+   "ASML building"
+  ]
+ ],
+ [
+  "tesla",
+  "Tesla",
+  [
+   "特斯拉",
+   "Tesla"
+  ],
+  [
+   "Tesla Gigafactory Texas",
+   "Gigafactory Nevada",
+   "Tesla Fremont factory",
+   "Tesla headquarters Austin"
+  ]
+ ],
+ [
+  "nxp",
+  "NXP Semiconductors",
+  [
+   "恩智浦",
+   "NXP"
+  ],
+  [
+   "NXP Semiconductors headquarters Eindhoven",
+   "NXP building Eindhoven",
+   "NXP Nijmegen"
+  ]
+ ],
+ [
+  "qualcomm",
+  "Qualcomm",
+  [
+   "高通",
+   "Qualcomm"
+  ],
+  [
+   "Qualcomm headquarters San Diego",
+   "Qualcomm building San Diego"
+  ]
+ ],
+ [
+  "anthropic",
+  "Anthropic",
+  [
+   "Anthropic"
+  ],
+  [
+   "Anthropic office San Francisco",
+   "Anthropic headquarters"
+  ]
+ ],
+ [
+  "openai",
+  "OpenAI",
+  [
+   "OpenAI"
+  ],
+  [
+   "OpenAI headquarters San Francisco",
+   "OpenAI office Pioneer Building"
+  ]
+ ]
+]
