@@ -1,21 +1,22 @@
 {
- "at": "2026-10-28T03:29:26.777218+00:00",
+ "at": "2026-10-28T03:36:12.847373+00:00",
  "done": true,
  "pending": 0,
- "attempted": 42,
+ "attempted": 41,
  "counts": {
-  "not_logo": 13,
+  "not_logo": 12,
   "robots": 2,
-  "none": 12,
-  "ok": 7,
+  "none": 13,
+  "ok": 5,
   "error": 1,
+  "kept": 1,
   "too_small": 7
  },
  "domains": 101,
  "have": 66,
  "coverage": 0.653,
  "next_due": "2026-11-27",
- "seconds": 237.5,
+ "seconds": 276.3,
  "failures": [
   {
    "domain": "carmax.com.tw",
@@ -95,7 +96,7 @@
    "status": "not_logo",
    "tried": {
     "site": "ok [512, 512]",
-    "wikimedia": "none Wikidata 查不到官網是 qualcomm.com 的 Qualcomm／沒有標誌圖",
+    "wikimedia": "none Commons too_wide 250x46",
     "quality": "網址像分享圖示／橫幅／框架預設圖，不是公司標誌 https://www.qualcomm.com/etc.clientlibs/qcomm-martech/clientlibs/clientlib-react",
     "google_s2": "ok [32, 32]"
    }
@@ -110,11 +111,10 @@
   },
   {
    "domain": "uicpaymentsinc.com",
-   "status": "not_logo",
+   "status": "none",
    "tried": {
-    "site": "ok [128, 128]",
+    "site": "none robots.txt 與首頁都回 HTTP 403（對方擋雲端存取），圖檔與 Google 備援都不抓 https://uicpaymentsinc.com/",
     "wikimedia": "none Wikidata 查不到官網是 uicpaymentsinc.com 的 UIC Payments／沒有標誌圖",
-    "quality": "Google s2 對這個網域只回通用圖示（地球）",
     "google_s2": "人工排除（s2 只回通用圖示／官網圖不是自家標誌）"
    }
   },
@@ -123,7 +123,7 @@
    "status": "none",
    "tried": {
     "site": "none HTTP 404 https://www.google.com/s2/favicons?domain=zdtco.com&sz=128",
-    "wikimedia": "none Wikidata 查不到官網是 zdtco.com 的 Zhen Ding Technology／沒有標誌圖",
+    "wikimedia": "沒回應",
     "google_s2": "none none HTTP 404 https://www.google.com/s2/favicons?domain=zdtco.com&sz=256"
    }
   },
@@ -132,7 +132,7 @@
    "status": "none",
    "tried": {
     "site": "none HTTP 404 https://www.google.com/s2/favicons?domain=unimicron.com&sz=128",
-    "wikimedia": "none Wikidata 查不到官網是 unimicron.com 的 Unimicron Technology／沒有標誌圖",
+    "wikimedia": "沒回應",
     "google_s2": "none none HTTP 404 https://www.google.com/s2/favicons?domain=unimicron.com&sz=256"
    }
   },
@@ -141,7 +141,7 @@
    "status": "not_logo",
    "tried": {
     "site": "ok [48, 48]",
-    "wikimedia": "none Wikidata 查不到官網是 kinsus.com.tw 的 Kinsus Interconnect Technology／沒有標誌圖",
+    "wikimedia": "沒回應",
     "quality": "人工排除：官網只有 48px、內容糊成一片的 favicon，放大後認不出是什麼",
     "google_s2": "人工排除（s2 只回通用圖示／官網圖不是自家標誌）"
    }
@@ -151,7 +151,7 @@
    "status": "not_logo",
    "tried": {
     "site": "ok [152, 152]",
-    "wikimedia": "none Wikidata 查不到官網是 solartech.com.tw 的 Solar Applied Materials Technology／沒有標誌圖",
+    "wikimedia": "沒回應",
     "quality": "人工排除：彩虹圓環大半空白，疑為裁切圖示、無法確認是正確標誌（CEO 10-27 目視）",
     "google_s2": "人工排除（s2 只回通用圖示／官網圖不是自家標誌）"
    }
@@ -161,7 +161,7 @@
    "status": "none",
    "tried": {
     "site": "none HTTP 404 https://www.google.com/s2/favicons?domain=nantex.com.tw&sz=128",
-    "wikimedia": "none Wikidata 查不到官網是 nantex.com.tw 的 Nantex Industry／沒有標誌圖",
+    "wikimedia": "沒回應",
     "google_s2": "none none HTTP 404 https://www.google.com/s2/favicons?domain=nantex.com.tw&sz=256"
    }
   },
@@ -170,7 +170,7 @@
    "status": "not_logo",
    "tried": {
     "site": "ok [64, 64]",
-    "wikimedia": "none Wikidata 查不到官網是 eternal-group.com 的 Eternal Materials／沒有標誌圖",
+    "wikimedia": "沒回應",
     "quality": "人工排除：白色字標，白底上看不見（CEO 10-27 目視）",
     "google_s2": "人工排除（s2 只回通用圖示／官網圖不是自家標誌）"
    }
@@ -180,7 +180,7 @@
    "status": "none",
    "tried": {
     "site": "none 首頁 HTTP 403 https://www.chicony.com/",
-    "wikimedia": "none Wikidata 查不到官網是 chicony.com 的 Chicony Electronics／沒有標誌圖",
+    "wikimedia": "沒回應",
     "google_s2": "none none HTTP 404 https://www.google.com/s2/favicons?domain=chicony.com&sz=256"
    }
   },
@@ -189,7 +189,7 @@
    "status": "not_logo",
    "tried": {
     "site": "ok [1200, 630]",
-    "wikimedia": "none Wikidata 查不到官網是 wiwynn.com 的 Wiwynn／沒有標誌圖",
+    "wikimedia": "沒回應",
     "quality": "og-image 一律不收（社群分享圖，常是橫幅照片）",
     "google_s2": "too_small too_small 16x16 https://www.google.com/s2/favicons?domain=wiwynn.com&sz=256"
    }
@@ -211,6 +211,15 @@
     "wikimedia": "沒回應",
     "quality": "og-image 一律不收（社群分享圖，常是橫幅照片）",
     "google_s2": "ok [32, 32]"
+   }
+  },
+  {
+   "domain": "senaonetworks.com",
+   "status": "none",
+   "tried": {
+    "site": "none robots.txt 與首頁都回 HTTP 403（對方擋雲端存取），圖檔與 Google 備援都不抓 https://senaonetworks.com/",
+    "wikimedia": "沒回應",
+    "google_s2": "官網禁止或擋雲端存取，不問 Google"
    }
   },
   {
