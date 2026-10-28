@@ -467,7 +467,15 @@ def revalidate(items: dict, domains: list[dict]) -> list[str]:
     want = {d["domain"] for d in domains}
     dup = shared_hashes(items)
     out = []
+    manual_files = {d["domain"] for d in domains if d.get("commons_file")}      # 人工指定檔的網域：沒成功就每輪都試
+    today = datetime.now(timezone(timedelta(hours=8))).strftime("%Y-%m-%d")
     for dom, rec in items.items():
+        if (dom in want and rec.get("status") not in ("bad", "kept")
+                and (today > str(rec.get("fetched") or "") or (dom in manual_files and rec.get("status") != "ok"))
+                and (rec.get("tried") or {}).get("wikimedia") == "沒回應" and "last_fail" not in rec):
+            # Wikimedia 限流沒回應的：不等 30 天，隔天（台北日期）再試；同一天內不重試，避免每小時一輪都去敲
+            rec["fetched"] = "1970-01-01"
+            continue
         if dom in want and rec.get("status") not in ("ok", "bad", "kept") and int(rec.get("rv") or 0) < RV:
             rec["fetched"] = "1970-01-01"       # 舊策略的失敗：這輪重試（不算 bad，也不刪檔）
             continue
