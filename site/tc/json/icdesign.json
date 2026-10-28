@@ -41,7 +41,7 @@
           ],
           "overtime": "經常",
           "travel": null,
-          "n": 32,
+          "n": 33,
           "note": "網友自述未經查證；Dcard 新鮮人 offer 文預估月薪約 80K、保 14 個月＋分紅；GoodJob 2026-03 一筆 9 萬為年資 3 年已排除；2026-04 一筆 3 萬疑為實習已排除；新聞『碩士年薪上看 200 萬』未標日期不採；總年薪不確定填 null；出差：GoodJob 未見固定出差回報，研發職偶有客戶／海外支援，暫填偶爾（低信心）；撤回：travel 原為沿用／推算／暫填值，無直接證據，已改回原值；第二輪：Dcard offer 約 80K 保 14＋分紅、第一年非 I- 分紅約 4～6 個月；E7 第一年試算約 200 萬（含加班）；2026-02 下半年分紅平均每人約 95 萬（媒體估）；GoodJob 2026-08 面試 8 萬、DV 9.5 萬（每週 50 小時，年資未標，上緣可能非新人）；未逐筆對應的舊彙整：travel=偶爾",
           "sources": [
             {
@@ -153,6 +153,11 @@
               "site": "GoodJob",
               "url": "https://www.goodjob.life/companies/聯發科技股份有限公司/salary-work-times?p=1",
               "date": "2026-09"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯發科技股份有限公司/salary-work-times?p=2",
+              "date": "2026-07"
             }
           ],
           "confidence": "高",
@@ -840,9 +845,31 @@
               "quote_free_note": "自填；日工時 表訂/實際 8/8",
               "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2026-09（20261028_2010 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯發科技股份有限公司/salary-work-times?p=2",
+              "date": "2026-07",
+              "page_date": "2026-07",
+              "date_confirmed": true,
+              "role": "數位IC設計工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 80,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 40,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/8；原選項幾乎每天",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-07（20261028_2036 批）"
             }
           ],
-          "n_stat": 31
+          "n_stat": 32
         },
         {
           "unit": "研發 R&D",
@@ -855,20 +882,28 @@
           ],
           "bonus_months": null,
           "annual_months": null,
-          "annual_total_wan": null,
+          "annual_total_wan": [
+            216,
+            216
+          ],
           "weekly_hours": [
             40,
-            40
+            72
           ],
-          "overtime": null,
+          "overtime": "經常",
           "travel": null,
-          "n": 1,
+          "n": 2,
           "note": "WebSearch 查「聯發科 碩士 薪資 2026」「GoodJob 聯發科」「PTT Tech_Job offer 聯發科」「Dcard offer 聯發科」「104 ESG 薪資中位數」，摘要未出現 2025-10 後碩士職位數字；出差：GoodJob 未見固定出差回報，研發職偶有客戶／海外支援，暫填偶爾（低信心）；撤回：travel 原為沿用／推算／暫填值，無直接證據，已改回原值；第二輪：GoodJob 2026-06 類比 IC 單筆月薪 8.8 萬、每週 40 小時（年資未標）；未逐筆對應的舊彙整：{\"base_month_k\": [88, 88]}；未逐筆對應的舊彙整：weekly_hours=40、overtime=依部門",
           "sources": [
             {
               "site": "GoodJob",
               "url": "https://www.goodjob.life/companies/聯發科技股份有限公司/salary-work-times?p=4",
               "date": "2026-06"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯發科技股份有限公司/salary-work-times?p=3",
+              "date": "2026-05"
             }
           ],
           "confidence": "低",
@@ -892,9 +927,31 @@
               "date_confirmed": true,
               "date_note": null,
               "in_window": true
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯發科技股份有限公司/salary-work-times?p=3",
+              "date": "2026-05",
+              "page_date": "2026-05",
+              "date_confirmed": true,
+              "role": "類比電路設計工程師",
+              "grade": null,
+              "unit_detail": "新竹總部",
+              "years": "1",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 216,
+              "weekly_hours": 72,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 11.5/12.5；原選項幾乎每天",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-05（20261028_2036 批）"
             }
           ],
-          "n_stat": 1
+          "n_stat": 2
         },
         {
           "unit": "研發 R&D",
@@ -912,15 +969,15 @@
           ],
           "annual_total_wan": [
             100,
-            250
+            300
           ],
           "weekly_hours": [
             40,
-            55
+            70
           ],
-          "overtime": null,
+          "overtime": "經常",
           "travel": null,
-          "n": 23,
+          "n": 32,
           "note": "WebSearch 查「聯發科 碩士 薪資 2026」「GoodJob 聯發科」「PTT Tech_Job offer 聯發科」「Dcard offer 聯發科」「104 ESG 薪資中位數」，摘要未出現 2025-10 後碩士職位數字；出差：GoodJob 未見固定出差回報，研發職偶有客戶／海外支援，暫填偶爾（低信心）；撤回：travel 原為沿用／推算／暫填值，無直接證據，已改回原值；第二輪：Dcard 討論稱軟韌普遍要加班、加班費計入後 I- 新人年收也可能逾 120 萬；未逐筆對應的舊彙整：overtime=經常（有加班費）",
           "sources": [
             {
@@ -957,6 +1014,16 @@
               "site": "GoodJob",
               "url": "https://www.goodjob.life/companies/聯發科技股份有限公司/salary-work-times?p=1",
               "date": "2026-10"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯發科技股份有限公司/salary-work-times?p=2",
+              "date": "2026-07"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯發科技股份有限公司/salary-work-times?p=3",
+              "date": "2026-06"
             }
           ],
           "confidence": "低",
@@ -1457,9 +1524,207 @@
               "quote_free_note": "自填；日工時 表訂/實際 8/9.2；原選項幾乎每天",
               "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2026-08（20261028_2010 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯發科技股份有限公司/salary-work-times?p=2",
+              "date": "2026-07",
+              "page_date": "2026-07",
+              "date_confirmed": true,
+              "role": "軟體工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 112,
+              "weekly_hours": 60,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/12；原選項幾乎每天",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-07（20261028_2036 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯發科技股份有限公司/salary-work-times?p=2",
+              "date": "2026-07",
+              "page_date": "2026-07",
+              "date_confirmed": true,
+              "role": "軟體工程師",
+              "grade": null,
+              "unit_detail": "WSD",
+              "years": "5",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 260,
+              "weekly_hours": 70,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/12；原選項幾乎每天",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-07（20261028_2036 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯發科技股份有限公司/salary-work-times?p=2",
+              "date": "2026-07",
+              "page_date": "2026-07",
+              "date_confirmed": true,
+              "role": "韌體工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "5",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 260,
+              "weekly_hours": 40,
+              "overtime": "幾乎不",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/8",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-07（20261028_2036 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯發科技股份有限公司/salary-work-times?p=2",
+              "date": "2026-06",
+              "page_date": "2026-06",
+              "date_confirmed": true,
+              "role": "軟韌體工程師",
+              "grade": null,
+              "unit_detail": "台北",
+              "years": "3",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 170,
+              "weekly_hours": 45,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/9",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-06（20261028_2036 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯發科技股份有限公司/salary-work-times?p=3",
+              "date": "2026-06",
+              "page_date": "2026-06",
+              "date_confirmed": true,
+              "role": "軟體RD",
+              "grade": null,
+              "unit_detail": "MTK",
+              "years": "5",
+              "degree": null,
+              "base_k": 85,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 50,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/10",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-06（20261028_2036 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯發科技股份有限公司/salary-work-times?p=3",
+              "date": "2026-05",
+              "page_date": "2026-05",
+              "date_confirmed": true,
+              "role": "嵌入式系統工程師",
+              "grade": null,
+              "unit_detail": "竹北",
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 120,
+              "weekly_hours": 45,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 9/9",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-05（20261028_2036 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯發科技股份有限公司/salary-work-times?p=3",
+              "date": "2026-04",
+              "page_date": "2026-04",
+              "date_confirmed": true,
+              "role": "軟體工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "2",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 150,
+              "weekly_hours": 60,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/12",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-04（20261028_2036 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯發科技股份有限公司/salary-work-times?p=3",
+              "date": "2026-04",
+              "page_date": "2026-04",
+              "date_confirmed": true,
+              "role": "軟體設計工程師",
+              "grade": null,
+              "unit_detail": "新竹",
+              "years": "10",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 300,
+              "weekly_hours": 40,
+              "overtime": "幾乎不",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/8",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-04（20261028_2036 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯發科技股份有限公司/salary-work-times?p=3",
+              "date": "2026-04",
+              "page_date": "2026-04",
+              "date_confirmed": true,
+              "role": "軟體工程師",
+              "grade": null,
+              "unit_detail": "新竹",
+              "years": "10",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 200,
+              "weekly_hours": 60,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 12/9",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-04（20261028_2036 批）"
             }
           ],
-          "n_stat": 22
+          "n_stat": 31
         },
         {
           "unit": "研發 R&D",
@@ -2976,6 +3241,50 @@
               "date_note": "Dcard 頁面發文日期 2026-09-21（20261028_1140_a 批）",
               "comment_sample": true,
               "dup_of": "https://www.dcard.tw/f/tech_job/p/261909483"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯發科技股份有限公司/salary-work-times?p=2",
+              "date": "2026-08",
+              "page_date": "2026-08",
+              "date_confirmed": true,
+              "role": "工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 160,
+              "weekly_hours": 45,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 9/10",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-08（20261028_2036 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯發科技股份有限公司/salary-work-times?p=2",
+              "date": "2026-07",
+              "page_date": "2026-07",
+              "date_confirmed": true,
+              "role": "工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 76,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 50,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/12；原選項幾乎每天；同頁另有一筆完全相同，依來源只收一筆",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-07（20261028_2036 批）"
             }
           ],
           "sources": [
@@ -3093,13 +3402,18 @@
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/262179333",
               "date": "2026-09"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯發科技股份有限公司/salary-work-times?p=2",
+              "date": "2026-08"
             }
           ],
           "confidence": "低",
-          "n": 53,
+          "n": 55,
           "years": null,
           "base_month_k": [
-            80,
+            76,
             120
           ],
           "bonus_months": [
@@ -3115,12 +3429,12 @@
             600
           ],
           "weekly_hours": [
-            52.5,
+            45,
             52.5
           ],
           "overtime": "偶爾",
           "travel": null,
-          "n_stat": 52,
+          "n_stat": 54,
           "note": null,
           "grade": null
         },
@@ -3423,6 +3737,51 @@
               "date_confirmed": true,
               "date_note": null,
               "in_window": true
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯發科技股份有限公司/salary-work-times?p=2",
+              "date": "2026-06",
+              "page_date": "2026-06",
+              "date_confirmed": true,
+              "role": "後段實現設計工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "1",
+              "degree": null,
+              "base_k": 80,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 40,
+              "overtime": "幾乎不",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/8",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-06（20261028_2036 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯發科技股份有限公司/salary-work-times?p=3",
+              "date": "2026-05",
+              "page_date": "2026-05",
+              "date_confirmed": true,
+              "role": "APR",
+              "grade": null,
+              "unit_detail": null,
+              "years": "1",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 120,
+              "weekly_hours": 45,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/9；職稱未寫工程師",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-05（20261028_2036 批）",
+              "dup_of": "https://www.dcard.tw/f/tech_job/p/261103764"
             }
           ],
           "sources": [
@@ -3430,10 +3789,20 @@
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/257727764",
               "date": "2025-01"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯發科技股份有限公司/salary-work-times?p=2",
+              "date": "2026-06"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯發科技股份有限公司/salary-work-times?p=3",
+              "date": "2026-05"
             }
           ],
           "confidence": "低",
-          "n": 2,
+          "n": 4,
           "years": null,
           "base_month_k": [
             80,
@@ -3445,10 +3814,13 @@
             180,
             180
           ],
-          "weekly_hours": null,
-          "overtime": "經常",
+          "weekly_hours": [
+            40,
+            40
+          ],
+          "overtime": null,
           "travel": null,
-          "n_stat": 2,
+          "n_stat": 3,
           "note": null,
           "grade": null
         },
@@ -3504,6 +3876,105 @@
               "site": "GoodJob",
               "url": "https://www.goodjob.life/companies/聯發科技股份有限公司/salary-work-times?p=1",
               "date": "2026-09"
+            }
+          ]
+        },
+        {
+          "unit": null,
+          "role": "硬體工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": [
+            80,
+            100
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": [
+            50,
+            55
+          ],
+          "overtime": "經常",
+          "travel": null,
+          "n": 3,
+          "note": "2026-10-28 GoodJob 2036 批新增職位",
+          "confidence": "低",
+          "grade": null,
+          "n_stat": 3,
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯發科技股份有限公司/salary-work-times?p=3",
+              "date": "2026-06",
+              "page_date": "2026-06",
+              "date_confirmed": true,
+              "role": "硬體研發工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 80,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 50,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/10",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-06（20261028_2036 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯發科技股份有限公司/salary-work-times?p=3",
+              "date": "2026-05",
+              "page_date": "2026-05",
+              "date_confirmed": true,
+              "role": "CMODEL SIMULATION HW ENGINEER",
+              "grade": null,
+              "unit_detail": "總部/CAI2/CPT1",
+              "years": "4",
+              "degree": null,
+              "base_k": 94,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 50,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/8",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-05（20261028_2036 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯發科技股份有限公司/salary-work-times?p=3",
+              "date": "2026-05",
+              "page_date": "2026-05",
+              "date_confirmed": true,
+              "role": "硬體工程師",
+              "grade": null,
+              "unit_detail": "新竹",
+              "years": "6",
+              "degree": null,
+              "base_k": 100,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 55,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 10/10",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-05（20261028_2036 批）"
+            }
+          ],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯發科技股份有限公司/salary-work-times?p=3",
+              "date": "2026-06"
             }
           ]
         }
@@ -3595,7 +4066,7 @@
           ],
           "overtime": "經常",
           "travel": null,
-          "n": 25,
+          "n": 27,
           "note": "網友自述未經查證；僅 Dcard 一篇 offer 文預估 85K 保 14＋分紅，日期不明；舊報導『碩士起薪 4.5 萬、年薪 60～70 萬』明顯過時不採；GoodJob 工時狀況 2.3／5，多則評價稱工時長；第二輪：Dcard VD/DD1 預估 85K 保 14＋分紅、爬文稱常態早 9 晚 9；GoodJob 2025-12 月薪 8.5 萬、每週 45 小時，新人簽約金兩年 50 萬、前兩年年薪約 144 萬；評價稱第一年幾乎沒分紅、分紅很吃景氣；已移除一筆誤植（同篇 80K 為聯發科數字）；未逐筆對應的舊彙整：bonus_months=[5, 5]；部分年薪／年薪月數由同一筆樣本的「底薪×月數」推算（樣本標 derived）",
           "sources": [
             {
@@ -3662,6 +4133,11 @@
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/259579352",
               "date": "2025-08"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯詠科技股份有限公司/salary-work-times?p=3",
+              "date": "2025-10"
             }
           ],
           "confidence": "中",
@@ -4214,9 +4690,53 @@
               "comment_sample": true,
               "bonus_wan": 50,
               "dup_of": "https://www.dcard.tw/f/tech_job/p/258380931（留言 B66）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯詠科技股份有限公司/salary-work-times?p=1",
+              "date": "2026-09",
+              "page_date": "2026-09",
+              "date_confirmed": true,
+              "role": "數位IC設計工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 85,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 50,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 10/10",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-09（20261028_2054 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯詠科技股份有限公司/salary-work-times?p=3",
+              "date": "2025-10",
+              "page_date": "2025-10",
+              "date_confirmed": true,
+              "role": "數位IC設計工程師",
+              "grade": null,
+              "unit_detail": "台元",
+              "years": "3",
+              "degree": null,
+              "base_k": 90,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 50,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 12/12",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2025-10（20261028_2054 批）"
             }
           ],
-          "n_stat": 24
+          "n_stat": 26
         },
         {
           "unit": "研發 R&D",
@@ -4225,7 +4745,7 @@
           "years": "0-2",
           "base_month_k": [
             83,
-            83
+            90
           ],
           "bonus_months": null,
           "annual_months": [
@@ -4233,10 +4753,13 @@
             14
           ],
           "annual_total_wan": null,
-          "weekly_hours": null,
-          "overtime": "幾乎不",
+          "weekly_hours": [
+            40,
+            72
+          ],
+          "overtime": null,
           "travel": null,
-          "n": 4,
+          "n": 6,
           "note": "Dcard 有人列聯詠類比研替薪資公式，摘要無數字；WebSearch 查「聯詠 碩士 薪資 2026」「GoodJob 聯詠」「PTT Tech_Job offer 聯詠」「Dcard offer 聯詠」「104 ESG 薪資中位數」，摘要未出現 2025-10 後碩士職位數字；GoodJob 工時狀況 2.3／5，多則評價稱工時長；第二輪：GoodJob 2026-08 類比 IC 不到 1 年月薪 8.3 萬；另一筆 2 年 9.3 萬（日期未明）；有加班費、簽約金綁兩年；未逐筆對應的舊彙整：{\"base_month_k\": [83, 83]}",
           "sources": [
             {
@@ -4253,6 +4776,11 @@
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/258590272",
               "date": "2025-04"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯詠科技股份有限公司/salary-work-times?p=3",
+              "date": "2026-01"
             }
           ],
           "confidence": "低",
@@ -4342,9 +4870,53 @@
               "quote_free_note": "offer 月薪 N+14k（N 未知）；三個部門都拿到 offer",
               "date_note": "Dcard 頁面發文日期 2025-04-19（2026-10-26 1923 批，非 Andy 親眼讀）",
               "in_window": true
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯詠科技股份有限公司/salary-work-times?p=3",
+              "date": "2026-01",
+              "page_date": "2026-01",
+              "date_confirmed": true,
+              "role": "類比IC設計工程師",
+              "grade": null,
+              "unit_detail": "台元",
+              "years": null,
+              "degree": null,
+              "base_k": 88,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 72,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/12；原選項幾乎每天",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-01（20261028_2054 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯詠科技股份有限公司/salary-work-times?p=3",
+              "date": "2025-09",
+              "page_date": "2025-09",
+              "date_confirmed": true,
+              "role": "類比",
+              "grade": null,
+              "unit_detail": null,
+              "years": "2",
+              "degree": null,
+              "base_k": 90,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 40,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/8；職稱未寫工程師",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2025-09（20261028_2054 批）"
             }
           ],
-          "n_stat": 4
+          "n_stat": 6
         },
         {
           "unit": "竹北 / OLED",
@@ -4581,6 +5153,249 @@
                 60,
                 69
               ]
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯詠科技股份有限公司/salary-work-times?p=1",
+              "date": "2026-07",
+              "page_date": "2026-07",
+              "date_confirmed": true,
+              "role": "SA",
+              "grade": null,
+              "unit_detail": "MD",
+              "years": "2",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 200,
+              "weekly_hours": 60,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 12/12；原選項幾乎每天；職稱未寫工程師",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-07（20261028_2054 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯詠科技股份有限公司/salary-work-times?p=1",
+              "date": "2026-07",
+              "page_date": "2026-07",
+              "date_confirmed": true,
+              "role": "SA",
+              "grade": null,
+              "unit_detail": "MD",
+              "years": "3",
+              "degree": null,
+              "base_k": 90,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 50,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 13/13；原選項幾乎每天；職稱未寫工程師",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-07（20261028_2054 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯詠科技股份有限公司/salary-work-times?p=1",
+              "date": "2026-07",
+              "page_date": "2026-07",
+              "date_confirmed": true,
+              "role": "工程師SA",
+              "grade": null,
+              "unit_detail": "科技",
+              "years": "8",
+              "degree": null,
+              "base_k": 120,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 60,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/12；原選項幾乎每天",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-07（20261028_2054 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯詠科技股份有限公司/salary-work-times?p=1",
+              "date": "2026-07",
+              "page_date": "2026-07",
+              "date_confirmed": true,
+              "role": "系統分析師SA",
+              "grade": null,
+              "unit_detail": "科技",
+              "years": "6",
+              "degree": null,
+              "base_k": 99.6,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 45,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 9.5/9",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-07（20261028_2054 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯詠科技股份有限公司/salary-work-times?p=2",
+              "date": "2026-06",
+              "page_date": "2026-06",
+              "date_confirmed": true,
+              "role": "系統應用工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 125,
+              "weekly_hours": 42,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/8.5",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-06（20261028_2054 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯詠科技股份有限公司/salary-work-times?p=2",
+              "date": "2026-06",
+              "page_date": "2026-06",
+              "date_confirmed": true,
+              "role": "系統應用",
+              "grade": null,
+              "unit_detail": null,
+              "years": "3",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 180,
+              "weekly_hours": 48,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/9；職稱未寫工程師",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-06（20261028_2054 批）",
+              "dup_of": "https://www.goodjob.life/job-titles/系統應用工程師/salary-work-times"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯詠科技股份有限公司/salary-work-times?p=2",
+              "date": "2026-03",
+              "page_date": "2026-03",
+              "date_confirmed": true,
+              "role": "系統應用工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "9",
+              "degree": null,
+              "base_k": 100,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 55,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/11",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-03（20261028_2054 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯詠科技股份有限公司/salary-work-times?p=2",
+              "date": "2026-02",
+              "page_date": "2026-02",
+              "date_confirmed": true,
+              "role": "系統應用工程師",
+              "grade": null,
+              "unit_detail": "新竹",
+              "years": "1",
+              "degree": null,
+              "base_k": 80,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 50,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/10",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-02（20261028_2054 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯詠科技股份有限公司/salary-work-times?p=2",
+              "date": "2026-02",
+              "page_date": "2026-02",
+              "date_confirmed": true,
+              "role": "SA",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 80,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 50,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/12；原選項幾乎每天；職稱未寫工程師",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-02（20261028_2054 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯詠科技股份有限公司/salary-work-times?p=2",
+              "date": "2026-01",
+              "page_date": "2026-01",
+              "date_confirmed": true,
+              "role": "系統應用工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "1",
+              "degree": null,
+              "base_k": 83,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 65,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 13/13；原選項幾乎每天",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-01（20261028_2054 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯詠科技股份有限公司/salary-work-times?p=3",
+              "date": "2025-11",
+              "page_date": "2025-11",
+              "date_confirmed": true,
+              "role": "系統應用工程師",
+              "grade": null,
+              "unit_detail": "台元",
+              "years": null,
+              "degree": null,
+              "base_k": 80,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 55,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 9/11.5",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2025-11（20261028_2054 批）"
             }
           ],
           "sources": [
@@ -4623,23 +5438,38 @@
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/258380931",
               "date": "2025-03"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯詠科技股份有限公司/salary-work-times?p=1",
+              "date": "2026-07"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯詠科技股份有限公司/salary-work-times?p=2",
+              "date": "2026-06"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯詠科技股份有限公司/salary-work-times?p=3",
+              "date": "2025-11"
             }
           ],
           "confidence": "低",
-          "n": 10,
+          "n": 21,
           "annual_months": [
             14,
             14
           ],
           "weekly_hours": [
-            50,
-            60
+            42,
+            65
           ],
           "overtime": "經常",
           "years": null,
           "base_month_k": [
             80,
-            80
+            120
           ],
           "bonus_months": [
             0,
@@ -4647,10 +5477,10 @@
           ],
           "annual_total_wan": [
             112,
-            160
+            200
           ],
           "travel": "需要",
-          "n_stat": 10,
+          "n_stat": 20,
           "note": null,
           "grade": null
         },
@@ -5490,6 +6320,28 @@
               "date_note": "Dcard 頁面發文日期 2025-03-28（20261028_0051_補漏r1 批）",
               "comment_sample": true,
               "bonus_wan": 100
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯詠科技股份有限公司/salary-work-times?p=1",
+              "date": "2026-09",
+              "page_date": "2026-09",
+              "date_confirmed": true,
+              "role": "工程師",
+              "grade": null,
+              "unit_detail": "新竹",
+              "years": "1",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 120,
+              "weekly_hours": 60,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/12",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-09（20261028_2036 批）"
             }
           ],
           "sources": [
@@ -5517,15 +6369,20 @@
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/260097933",
               "date": "2025-10"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯詠科技股份有限公司/salary-work-times?p=1",
+              "date": "2026-09"
             }
           ],
           "confidence": "低",
-          "n": 34,
+          "n": 35,
           "weekly_hours": [
             45,
-            52.5
+            60
           ],
-          "overtime": null,
+          "overtime": "經常",
           "years": null,
           "base_month_k": [
             85,
@@ -5544,7 +6401,7 @@
             400
           ],
           "travel": null,
-          "n_stat": 34,
+          "n_stat": 35,
           "note": null,
           "grade": null
         },
@@ -6879,6 +7736,308 @@
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/258380931",
               "date": "2025-03"
+            }
+          ]
+        },
+        {
+          "unit": null,
+          "role": "CAD 工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": [
+            84,
+            84
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": [
+            40,
+            40
+          ],
+          "overtime": "幾乎不",
+          "travel": null,
+          "n": 1,
+          "note": "2026-10-28 GoodJob 2036 批新增職位",
+          "confidence": "低",
+          "grade": null,
+          "n_stat": 1,
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯詠科技股份有限公司/salary-work-times?p=1",
+              "date": "2026-09",
+              "page_date": "2026-09",
+              "date_confirmed": true,
+              "role": "CAD 工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 84,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 40,
+              "overtime": "幾乎不",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/8",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-09（20261028_2036 批）"
+            }
+          ],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯詠科技股份有限公司/salary-work-times?p=1",
+              "date": "2026-09"
+            }
+          ]
+        },
+        {
+          "unit": null,
+          "role": "軟體工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": [
+            100,
+            150
+          ],
+          "weekly_hours": [
+            45,
+            50
+          ],
+          "overtime": "偶爾",
+          "travel": null,
+          "n": 2,
+          "note": "2026-10-28 GoodJob 2054 批新增職位",
+          "confidence": "低",
+          "grade": null,
+          "n_stat": 2,
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯詠科技股份有限公司/salary-work-times?p=1",
+              "date": "2026-09",
+              "page_date": "2026-09",
+              "date_confirmed": true,
+              "role": "軟體工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 150,
+              "weekly_hours": 50,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/10",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-09（20261028_2054 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯詠科技股份有限公司/salary-work-times?p=2",
+              "date": "2026-06",
+              "page_date": "2026-06",
+              "date_confirmed": true,
+              "role": "軟體工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 100,
+              "weekly_hours": 45,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 10/10",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-06（20261028_2054 批）"
+            }
+          ],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯詠科技股份有限公司/salary-work-times?p=1",
+              "date": "2026-09"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯詠科技股份有限公司/salary-work-times?p=2",
+              "date": "2026-06"
+            }
+          ]
+        },
+        {
+          "unit": null,
+          "role": "硬體研發工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": [
+            122,
+            122
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": [
+            55,
+            55
+          ],
+          "overtime": "經常",
+          "travel": null,
+          "n": 1,
+          "note": "2026-10-28 GoodJob 2054 批新增職位",
+          "confidence": "低",
+          "grade": null,
+          "n_stat": 1,
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯詠科技股份有限公司/salary-work-times?p=1",
+              "date": "2026-09",
+              "page_date": "2026-09",
+              "date_confirmed": true,
+              "role": "硬體研發工程師",
+              "grade": null,
+              "unit_detail": "新竹",
+              "years": "8",
+              "degree": null,
+              "base_k": 122,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 55,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/12",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-09（20261028_2054 批）"
+            }
+          ],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯詠科技股份有限公司/salary-work-times?p=1",
+              "date": "2026-09"
+            }
+          ]
+        },
+        {
+          "unit": null,
+          "role": "軟韌體測試工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": [
+            90,
+            90
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": [
+            50,
+            50
+          ],
+          "overtime": "經常",
+          "travel": null,
+          "n": 1,
+          "note": "2026-10-28 GoodJob 2054 批新增職位",
+          "confidence": "低",
+          "grade": null,
+          "n_stat": 1,
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯詠科技股份有限公司/salary-work-times?p=2",
+              "date": "2026-04",
+              "page_date": "2026-04",
+              "date_confirmed": true,
+              "role": "軟韌體測試工程師",
+              "grade": null,
+              "unit_detail": "新竹",
+              "years": "3",
+              "degree": null,
+              "base_k": 90,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 50,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/9",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-04（20261028_2054 批）"
+            }
+          ],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯詠科技股份有限公司/salary-work-times?p=2",
+              "date": "2026-04"
+            }
+          ]
+        },
+        {
+          "unit": null,
+          "role": "主任工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": [
+            120,
+            120
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": [
+            50,
+            50
+          ],
+          "overtime": "經常",
+          "travel": null,
+          "n": 1,
+          "note": "2026-10-28 GoodJob 2054 批新增職位",
+          "confidence": "低",
+          "grade": null,
+          "n_stat": 1,
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯詠科技股份有限公司/salary-work-times?p=2",
+              "date": "2026-03",
+              "page_date": "2026-03",
+              "date_confirmed": true,
+              "role": "主任工程師",
+              "grade": null,
+              "unit_detail": "創新廠",
+              "years": "10",
+              "degree": null,
+              "base_k": 120,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 50,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 12/12",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-03（20261028_2054 批）"
+            }
+          ],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯詠科技股份有限公司/salary-work-times?p=2",
+              "date": "2026-03"
             }
           ]
         }
