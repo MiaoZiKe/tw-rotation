@@ -195,6 +195,8 @@ def t_lab_bt(b, base, code):
     c, pg = new()
     pg.goto(base + "#lab", wait_until="domcontentloaded"); pg.wait_for_timeout(4500)
     ok(f"{T}：#lab 導到最左邊子頁（台指期）且標的是 TX", pg.evaluate("() => location.hash") == "#lab/fut" and pg.evaluate("() => window.TwLab.state().fut.sym") == "TX", pg.evaluate("() => location.hash"))
+    pg.click("#labFSub button[data-f='bt']"); pg.wait_for_timeout(3000)
+    ok(f"{T}：台指期子分頁有兩塊：F2 策略訊號與績效（預設）、回測工作台（分段開關切換）", pg.locator("#labFSub button").count() == 2, None)
     pg.click("#labAdvBtn"); pg.wait_for_timeout(300)
     ok(f"{T}：台指期設定有 每點／期交稅／手續費每口 欄位，每點預設 200",
        pg.evaluate("() => document.querySelector(\"input[data-k='mult']\") && +document.querySelector(\"input[data-k='mult']\").value") == 200 and pg.locator("input[data-k='futTax']").count() == 1, None)

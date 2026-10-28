@@ -3206,6 +3206,8 @@
        用 location.replace：不多留一筆歷史，上一頁才按得出去（跟 #themes 同一個理由）。
        2026-09-25 起 build_payload 也不再產出 `data/tasks.json`（並刪掉殘留舊檔），網址直接打也拿不到。*/
     if (head === 'tasks') { location.replace('#delivery'); return; }
+    /* 2026-10-29 台指期策略頁搬進交易練習室（#lab/fut）：舊網址 #futures 一律導過去（preview/futures 發過的連結不會壞）。 */
+    if (head === 'futures') { location.replace('#lab/fut'); return; }
     /* ★ 2026-09-24 設計系統 v2 第 6 批：法律頁與「不同意」之後的 #leave 全部交給 site/legal.js。
        這幾個網址不在 VIEWS 裡 —— 不先攔下來，底下那行會把它們當成未知路由、導回總覽。*/
     /* ★ 2026-10-05（sub-v1）訂閱頁 #pricing、公告 #notices、管理端 #admin/feedback｜#admin/notices：

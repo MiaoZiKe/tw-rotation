@@ -18,6 +18,7 @@ import pandas as pd
 from . import config, delivery_log, indicators
 from .compute import explore, inst_market, inst_today
 from .compute import mktfut as mktfut_c
+from .compute import futures_page
 from .compute import lab as lab_compute
 from .compute import analysis, digest, earnings, etf, etf_holdings, flow, fundamental, mtf, rrg, scoring, season, stockpage, technical, themes
 from .groups import loader
@@ -325,6 +326,13 @@ def build() -> None:
                  int((actions["source"] != "dividend_results").sum()))
 
     lap("讀資料湖")
+
+    # 台指期策略（2026-10-28，現在在交易練習室「台指期」子分頁，site/lab/futures.js）
+    # 只讀資料湖 paper/ledger（F2 台指期 1.3 倍與 0050 含息）＋寫死的回測結論；失敗只影響這一塊，前端讀不到會寫「尚無」。
+    try:
+        _write("futures", futures_page.build())
+    except Exception as exc:  # noqa: BLE001
+        log.warning("台指期策略資料產出失敗（只影響交易練習室的台指期策略區塊）：%s", exc)
 
     # 交易練習室（#lab）的靜態資料：每檔一個 JSON、前端按需載入（SKIP_LAB=1 可略過，省本機驗收時間）
     if not os.environ.get("SKIP_LAB"):

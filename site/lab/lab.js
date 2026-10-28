@@ -589,6 +589,7 @@
       const tf = t.closest('#labTf button'); if (tf && !tf.disabled) { await setTf(S, tf.dataset.tf); return; }
       const md = t.closest('#labMode button'); if (md) { S.mode = md.dataset.m; syncBar(S); recompute(S); return; }
       const rg = t.closest('#labRng button'); if (rg && !rg.disabled) { S.range = rg.dataset.r; syncBar(S); recompute(S); return; }
+      const fs = t.closest('#labFSub button'); if (fs) { S.fsub = fs.dataset.f; await mountFut(S); return; }
       const mxb = t.closest('#labMx'); if (mxb) { const on = $('#labBody').classList.toggle('mx-open'); mxb.setAttribute('aria-expanded', String(on)); return; }
       if (t.closest('#labAdvBtn')) { S.advOpen = !S.advOpen; syncBar(S); return; }
       const pbtn = t.closest('#labPickBtn, #labIndBtn');
@@ -712,9 +713,28 @@
     await loadIndex(); await loadEvents();
     if (MODS[sub]) { await MODS[sub].mount($('#labBody'), UTIL); return; }
     const S = ST[sub];
+    if (sub === 'fut') { bind(S); await mountFut(S); return; }
     $('#labBody').innerHTML = btHTML(S);
     bind(S);
     S.B = null;
+    await setSymbol(S, S.sym, true);
+  }
+  /* 台指期子分頁（Andy 2026-10-29：「台指期搬進交易練習室」）：兩塊用分段開關切換——
+     「F2 策略訊號與績效」（預設，今日訊號、前向模擬績效、回測依據、風險；site/lab/futures.js）與「回測工作台」（TradingView 式回測）。 */
+  const FSUBS = [['sig', 'F2 策略訊號與績效'], ['bt', '回測工作台']];
+  async function mountFut(S) {
+    disposeCharts();
+    if (window.TwLabFutures) window.TwLabFutures.unmount();
+    const body = $('#labBody');
+    body.innerHTML = '<div class="seg lab-fsub" id="labFSub" role="tablist" aria-label="台指期">' + FSUBS.map(([k, n]) => '<button type="button" role="tab" data-f="' + k + '" class="' + ((S.fsub || 'sig') === k ? 'on' : '') + '">' + n + '</button>').join('') + '</div><div id="labFBox"></div>';
+    const box = $('#labFBox');
+    if ((S.fsub || 'sig') === 'sig') {
+      box.innerHTML = '<div id="labFuBox"></div>';
+      if (window.TwLabFutures) await window.TwLabFutures.mount($('#labFuBox'));
+      return;
+    }
+    box.innerHTML = btHTML(S);
+    S.B = null; CH.key = '';
     await setSymbol(S, S.sym, true);
   }
   function register(mod) {

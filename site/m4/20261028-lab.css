@@ -273,3 +273,6 @@ html:not(.lab-adm) .tab[data-view="lab"],html:not(.lab-adm) a[href="#lab"],html:
   #v-lab .lab-mxbtn[aria-expanded="true"]{border-color:var(--cyan);color:var(--cyan)}
   #v-lab .lab-kc{height:260px}
 }
+
+#v-lab .lab-fsub{margin-bottom:var(--sp-3)}
+@media (max-width:640px){#v-lab .lab-fsub{max-width:100%;overflow-x:auto}}
