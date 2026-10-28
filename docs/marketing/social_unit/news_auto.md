@@ -71,6 +71,13 @@
 4. 選題熱度 × 主題權重 × 內容型態權重；風格取權重最高者，探索篇隨機。
 5. 探索比例固定 20%（每段至少 1 篇從還沒選到的主題挑），避免早期碰巧表現好的類別獨占。
 
+## 五之一、D-實景（公司實景照片，Andy 10-28）
+
+- 卡片：`render_news_cards.card_auto()`。主體（`card.subject`）在 `social/photo_lib/aliases.json` 有對應、且該照片 `meta.json` 的 `reviewed` 為 true → **D-實景**：照片上方乾淨帶狀區放小標（主體＋事件，即 cover_title 第一行），中間放 952 寬實景照（原色、只裁切，不套色調遮罩），照片下方右側 28px 灰字標「攝影：作者／授權・Wikimedia Commons」（CC BY／CC BY-SA 必要標示），下方大標只留數字那一行。
+- 找不到主體照片、未審核、或實景版重疊檢查不過 → 自動退回 **D-無圖大數字**（灰框），不擋整篇。
+- layout 標籤寫在 queue 檔頭 meta（`layout: D-實景`／`D-無圖大數字`，實景另加 `has_photo: true`），週一優化可比較兩種版型成效。
+- 素材庫入庫與審核流程：`docs/marketing/social_unit/photo_lib_review.md`；抓圖工作流程 `.github/workflows/company_photos.yml`。
+
 ## 六、AI 圖
 
 規則（`ai_image_review.md`）：AI 圖未經 art-director 審核不得發布。自動流程預設 **無 AI 圖**（`D-無圖大數字`，上半部放大關鍵數字）。
