@@ -10,9 +10,13 @@
   const LWC = window.LightweightCharts;
   const IND = [
     { id: 'ma', name: '均線 MA', cat: '趨勢', multi: true, p: [['n', '週期', 20, 2, 250]] },
+    { id: 'ema', name: 'EMA 指數均線', cat: '趨勢', multi: true, p: [['n', '週期', 20, 2, 250]] },
+    { id: 'sar', name: 'SAR 拋物線', cat: '趨勢', p: [['s', '起始', 0.02, 0.001, 0.2], ['i', '加速', 0.02, 0.001, 0.2], ['m', '上限', 0.2, 0.01, 1]] },
+    { id: 'st', name: 'Supertrend', cat: '趨勢', p: [['n', 'ATR 週期', 10, 3, 60], ['m', 'ATR 倍數', 3, 0.5, 10]] },
+    { id: 'atr', name: 'ATR 平均真實波幅', cat: '波動', p: [['n', '週期', 14, 2, 60]] },
     { id: 'boll', name: '布林通道 BOLL', cat: '波動', p: [['n', '週期', 20, 5, 120], ['k', '倍數', 2, 0.5, 4]] },
     { id: 'vol', name: '成交量', cat: '成交量', p: [] },
-    { id: 'kd', name: 'KD 隨機指標', cat: '動能', p: [['n', '週期', 9, 3, 60]] },
+    { id: 'kd', name: 'KD 隨機指標', cat: '動能', p: [['n', '週期', 9, 3, 60], ['m1', 'K 平滑', 3, 1, 20], ['m2', 'D 平滑', 3, 1, 20]] },
     { id: 'macd', name: 'MACD', cat: '動能', p: [['f', '快線', 12, 2, 60], ['s', '慢線', 26, 5, 120], ['g', '訊號', 9, 2, 30]] },
     { id: 'rsi', name: 'RSI', cat: '動能', p: [['n', '週期', 14, 2, 60]] },
   ];
@@ -32,7 +36,7 @@
       if (it.id === 'ma') { cfg.ma.push(+it.n || 20); cfg.maColor.push(it.color || ''); cfg.maWidth.push(+it.w || 1); }
       else if (it.id === 'boll' && !cfg.boll) { cfg.boll = { n: +it.n || 20, k: +it.k || 2 }; if (it.color || it.w) cfg.st.boll = { c: it.color || undefined, w: +it.w || 1 }; }
       else if (it.id === 'vol') cfg.vol = true;
-      else if (it.id === 'kd' && !cfg.kd) { cfg.kd = { n: +it.n || 9, m1: 3, m2: 3 }; if (it.color || it.w) cfg.st.kd = { c: it.color || undefined, w: +it.w || 1 }; }
+      else if (it.id === 'kd' && !cfg.kd) { cfg.kd = { n: +it.n || 9, m1: +it.m1 || 3, m2: +it.m2 || 3 }; if (it.color || it.w) cfg.st.kd = { c: it.color || undefined, w: +it.w || 1 }; }
       else if (it.id === 'macd' && !cfg.macd) { cfg.macd = { f: +it.f || 12, s: +it.s || 26, g: +it.g || 9 }; cfg.macdDiv = false; if (it.color || it.w) cfg.st.macd = { c: it.color || undefined, w: +it.w || 1 }; }
       else if (it.id === 'rsi' && !cfg.rsi) { cfg.rsi = { n: +it.n || 14 }; if (it.color || it.w) cfg.st.rsi = { c: it.color || undefined, w: +it.w || 1 }; }
     });
@@ -70,7 +74,46 @@
       this.applyInd(); this.paintLine();
       try { this.candle.applyOptions({ lastValueVisible: false, priceLineVisible: false }); } catch (e) { /* 圖剛銷毀 */ }   // 右軸最新價標籤會壓到刻度字（不可重疊）
     }
-    applyInd(items) { if (items) this.items = items; try { this.kc.applyIndicators(cfgOf(this.items)); } catch (e) { /* 圖剛銷毀 */ } }
+    applyInd(items) {
+      if (items) this.items = items;
+      try { this.kc.applyIndicators(cfgOf(this.items)); } catch (e) { /* 圖剛銷毀 */ }
+      this.paintExtras(); this.volUnit();
+    }
+    /** 期貨成交量單位是「口」，不是「張」：全站 KChart 的量軸固定除以 1000 寫「張」，這裡針對期貨改寫量軸文字。 */
+    volUnit() {
+      if (!/口/.test(this.B.vu || '')) return;
+      try {
+        const ps = this.chart.panes(); if (!ps[1]) return;
+        const f = (v) => (Math.abs(v) >= 1e4 ? (v / 1e4).toFixed(1) + '萬口' : Math.round(v) + '口');
+        ps[1].getSeries().forEach((x) => { try { x.applyOptions({ priceFormat: { type: 'custom', minMove: 1, formatter: f } }); } catch (e) { /* 不是量序列 */ } });
+      } catch (e) { /* 圖剛銷毀 */ }
+    }
+    /** 全站 KChart 沒有的指標（EMA、SAR、Supertrend、ATR）：另外畫在同一張圖上，公式與回測引擎同一份（LabEngine.I），只畫到目前這一根（重播不洩漏未來）。 */
+    paintExtras() {
+      (this.ex || []).forEach((x) => { try { this.chart.removeSeries(x); } catch (e) { /* 已移除 */ } });
+      this.ex = [];
+      const E = window.LabEngine, B = this.B, u = this.upto + 1;
+      if (!E || !E.I) return;
+      const add = (arr, o, pane) => {
+        const sr = this.chart.addSeries(LWC.LineSeries, Object.assign({ priceLineVisible: false, lastValueVisible: false, crosshairMarkerVisible: false }, o), pane);
+        const d = []; for (let i = 0; i < u; i++) if (Number.isFinite(arr[i])) d.push({ time: ltime(B, i), value: arr[i] });
+        sr.setData(d); this.ex.push(sr); return sr;
+      };
+      const pal = ['#ff9f1c', '#2ec4b6', '#e71d36', '#9b5de5'];
+      let k = 0;
+      this.items.forEach((it) => {
+        const col = it.color || pal[k++ % pal.length], w = +it.w || 1;
+        try {
+          if (it.id === 'ema') add(E.I.ema(B.c, +it.n || 20), { color: col, lineWidth: w });
+          else if (it.id === 'sar') { const r = E.I.sar(B.h, B.l, +it.s || 0.02, +it.i || 0.02, +it.m || 0.2); add(r.sar, { color: col, lineVisible: false, pointMarkersVisible: true, pointMarkersRadius: 2 }); }
+          else if (it.id === 'st') {
+            const r = E.I.supertrend(B.h, B.l, B.c, +it.n || 10, +it.m || 3), up = new Float64Array(B.n).fill(NaN), dn = new Float64Array(B.n).fill(NaN);
+            for (let i = 0; i < B.n; i++) { if (r.trend[i] === 1) up[i] = r.line[i]; else if (r.trend[i] === -1) dn[i] = r.line[i]; }
+            add(up, { color: '#e63946', lineWidth: w }); add(dn, { color: '#2a9d8f', lineWidth: w });
+          } else if (it.id === 'atr') { const pi = this.chart.panes().length; add(E.I.atr(B.h, B.l, B.c, +it.n || 14), { color: col, lineWidth: w }, pi); try { this.chart.panes()[pi].setStretchFactor(90); } catch (e) { /* 舊版沒有 stretch */ } }
+        } catch (e) { /* 圖剛銷毀 */ }
+      });
+    }
     setType(t) { this.type = t; this.set(this.upto, true); }
     paintLine() {
       const c = this.candle, LW = LWC;
