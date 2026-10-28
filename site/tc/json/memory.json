@@ -13570,6 +13570,132 @@
           ]
         }
       ]
+    },
+    {
+      "name": "威剛",
+      "code": null,
+      "heat": null,
+      "benefits": null,
+      "stock_plan": null,
+      "bonus_timing": null,
+      "bonus_structure": [],
+      "culture": null,
+      "interview": null,
+      "grade_system": null,
+      "mops": null,
+      "note": "2026-10-29 由 GoodJob 樣本新增的公司",
+      "roles": [
+        {
+          "unit": null,
+          "role": "軟體工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": [
+            110,
+            110
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": [
+            40,
+            40
+          ],
+          "overtime": "偶爾",
+          "travel": null,
+          "n": 1,
+          "note": "2026-10-29 GoodJob 合併批新增職位",
+          "confidence": "低",
+          "grade": null,
+          "n_stat": 1,
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/威剛科技股份有限公司/salary-work-times?p=1",
+              "date": "2026-09",
+              "page_date": "2026-09",
+              "date_confirmed": true,
+              "role": "軟體工程師",
+              "grade": null,
+              "unit_detail": "內湖",
+              "years": "15",
+              "degree": null,
+              "base_k": 110,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 40,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/8 小時",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-09（20261029_0634 批，0634 檔）"
+            }
+          ],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/威剛科技股份有限公司/salary-work-times?p=1",
+              "date": "2026-09"
+            }
+          ]
+        },
+        {
+          "unit": null,
+          "role": "韌體工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": [
+            65,
+            65
+          ],
+          "weekly_hours": [
+            40,
+            40
+          ],
+          "overtime": "幾乎不",
+          "travel": null,
+          "n": 1,
+          "note": "2026-10-29 GoodJob 合併批新增職位",
+          "confidence": "低",
+          "grade": null,
+          "n_stat": 1,
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/威剛科技股份有限公司/salary-work-times?p=1",
+              "date": "2026-03",
+              "page_date": "2026-03",
+              "date_confirmed": true,
+              "role": "FW ENG",
+              "grade": null,
+              "unit_detail": "內湖",
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 65,
+              "weekly_hours": 40,
+              "overtime": "幾乎不",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/8 小時",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-03（20261029_0634 批，0634 檔）"
+            }
+          ],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/威剛科技股份有限公司/salary-work-times?p=1",
+              "date": "2026-03"
+            }
+          ]
+        }
+      ]
     }
   ]
 }
