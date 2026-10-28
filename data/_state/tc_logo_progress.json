@@ -1,22 +1,21 @@
 {
- "at": "2026-10-28T03:19:05.821283+00:00",
+ "at": "2026-10-28T03:24:01.846217+00:00",
  "done": true,
  "pending": 0,
  "attempted": 42,
  "counts": {
-  "not_logo": 12,
+  "not_logo": 13,
   "robots": 2,
-  "none": 14,
-  "ok": 5,
+  "none": 13,
+  "ok": 6,
   "error": 1,
-  "kept": 1,
   "too_small": 7
  },
  "domains": 101,
  "have": 65,
  "coverage": 0.644,
  "next_due": "2026-11-27",
- "seconds": 128.6,
+ "seconds": 169.5,
  "failures": [
   {
    "domain": "carmax.com.tw",
@@ -116,10 +115,11 @@
   },
   {
    "domain": "uicpaymentsinc.com",
-   "status": "none",
+   "status": "not_logo",
    "tried": {
-    "site": "none robots.txt 與首頁都回 HTTP 403（對方擋雲端存取），圖檔與 Google 備援都不抓 https://uicpaymentsinc.com/",
+    "site": "ok [128, 128]",
     "wikimedia": "沒回應",
+    "quality": "Google s2 對這個網域只回通用圖示（地球）",
     "google_s2": "人工排除（s2 只回通用圖示／官網圖不是自家標誌）"
    }
   },
@@ -216,15 +216,6 @@
     "wikimedia": "沒回應",
     "quality": "og-image 一律不收（社群分享圖，常是橫幅照片）",
     "google_s2": "ok [32, 32]"
-   }
-  },
-  {
-   "domain": "senaonetworks.com",
-   "status": "none",
-   "tried": {
-    "site": "none robots.txt 與首頁都回 HTTP 403（對方擋雲端存取），圖檔與 Google 備援都不抓 https://senaonetworks.com/",
-    "wikimedia": "沒回應",
-    "google_s2": "官網禁止或擋雲端存取，不問 Google"
    }
   },
   {
