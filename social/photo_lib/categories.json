@@ -1,0 +1,107 @@
+{
+ "半導體": [
+  "semiconductor fab cleanroom",
+  "silicon wafer",
+  "integrated circuit die",
+  "wafer fab",
+  "semiconductor manufacturing"
+ ],
+ "記憶體": [
+  "DRAM chips",
+  "memory module",
+  "DDR4 SDRAM",
+  "solid state drive",
+  "RAM module"
+ ],
+ "AI伺服器": [
+  "server rack",
+  "rack server",
+  "GPU server",
+  "server motherboard",
+  "blade server"
+ ],
+ "資料中心": [
+  "data center",
+  "server room",
+  "datacenter aisle",
+  "data centre cooling",
+  "server farm"
+ ],
+ "散熱": [
+  "heat sink",
+  "CPU cooler",
+  "liquid cooling computer",
+  "heat pipe",
+  "computer fan"
+ ],
+ "PCB": [
+  "printed circuit board",
+  "PCB assembly",
+  "circuit board close-up",
+  "SMT line",
+  "PCB manufacturing"
+ ],
+ "網通": [
+  "network switch",
+  "fiber optic cable",
+  "network cables data center",
+  "router",
+  "optical transceiver"
+ ],
+ "航運": [
+  "container ship",
+  "container port",
+  "port of Kaohsiung",
+  "container terminal cranes",
+  "shipping containers"
+ ],
+ "金融": [
+  "Taipei financial district",
+  "Taipei 101",
+  "Xinyi District skyline",
+  "bank building",
+  "Taiwan Stock Exchange"
+ ],
+ "鋼鐵": [
+  "steel mill",
+  "steel coil",
+  "blast furnace",
+  "steel production",
+  "hot rolled steel"
+ ],
+ "石化": [
+  "petrochemical plant",
+  "oil refinery",
+  "refinery at night",
+  "chemical plant",
+  "Mailiao"
+ ],
+ "電信": [
+  "cell tower",
+  "telecommunication tower",
+  "5G antenna",
+  "mobile phone mast",
+  "telecom antenna"
+ ],
+ "汽車": [
+  "car assembly line",
+  "electric car charging",
+  "automobile factory",
+  "electric vehicle",
+  "car production line"
+ ],
+ "消費電子": [
+  "smartphone",
+  "laptop computer",
+  "consumer electronics",
+  "smartphones display",
+  "tablet computer"
+ ],
+ "總經": [
+  "Taipei skyline",
+  "Taiwan Stock Exchange",
+  "Taipei 101 skyline",
+  "New Taiwan dollar",
+  "Kaohsiung skyline"
+ ]
+}

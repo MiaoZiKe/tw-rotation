@@ -1,0 +1,30 @@
+{
+ "slug": "liteon",
+ "photos": [
+  {
+   "slug": "liteon",
+   "name_en": "Lite-On",
+   "query": "Lite-On Technology headquarters",
+   "file_title": "File:Lite-On Technology Building and Industrial Bank of Taiwan Building view from Yingfeng Riverside Park (32917174853).jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:Lite-On_Technology_Building_and_Industrial_Bank_of_Taiwan_Building_view_from_Yingfeng_Riverside_Park_(32917174853).jpg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/e/e8/Lite-On_Technology_Building_and_Industrial_Bank_of_Taiwan_Building_view_from_Yingfeng_Riverside_Park_%2832917174853%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "CC0",
+   "license_url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+   "author": "玄史生",
+   "credit": "https://www.flickr.com/photos/137596559@N07/32917174853/",
+   "description": "​從迎風河濱公園隔基隆河北望光寶科技大樓、台灣工業銀行大樓、聯邦大樓自由廣場。",
+   "width": 1920,
+   "height": 1440,
+   "fetched_at": "2026-10-28T10:11:42+00:00",
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第一輪通過：光寶科技大樓，天色略灰但可接受",
+   "reviewed_by": "art-director",
+   "reviewed_at": "2026-10-28",
+   "note": "光寶科技大樓，天色略灰但可接受",
+   "file": "photo_1.jpg",
+   "kind": "總部/廠房"
+  }
+ ],
+ "rejected": []
+}

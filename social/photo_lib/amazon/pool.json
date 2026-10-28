@@ -1,0 +1,30 @@
+{
+ "slug": "amazon",
+ "photos": [
+  {
+   "slug": "amazon",
+   "name_en": "Amazon",
+   "query": "Amazon Spheres Seattle",
+   "file_title": "File:Amazon spheres W.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:Amazon_spheres_W.jpg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/b/b4/Amazon_spheres_W.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "author": "Sea Cow",
+   "credit": "Own work",
+   "description": "The Amazon Spheres in Seattle, WA in May 2022.",
+   "width": 1920,
+   "height": 1080,
+   "fetched_at": "2026-10-28T10:12:58+00:00",
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第一輪通過：西雅圖 Amazon Spheres，Amazon 總部園區，空拍構圖清楚",
+   "reviewed_by": "art-director",
+   "reviewed_at": "2026-10-28",
+   "note": "西雅圖 Amazon Spheres，Amazon 總部園區，空拍構圖清楚",
+   "file": "photo_1.jpg",
+   "kind": "總部/廠房"
+  }
+ ],
+ "rejected": []
+}
