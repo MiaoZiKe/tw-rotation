@@ -71,7 +71,7 @@ def build():
           + c4(3, "02:30 記者會", "對 12 月的說法", "tb", BL) + c4(4, "本次沒有點陣圖", "不是經濟預測（SEP）會議", "tm", MY) + '</div>')
     # --- 5 三欄：每欄一色（珊瑚／藍／綠），圖示同色，淡底
     def col3(i, ic, t, s, col, tint): return (f'<div class="col" style="width:296px;height:408px;gap:8px;background:var(--{tint});border-top:6px solid {col};border-radius:4px;padding:24px 20px 0"><span class="ser T2" style="color:{col};font-weight:700">0{i}</span>'
-                                              f'<div style="height:112px;margin-top:8px">{icon(ic, col, 96)}</div><span class="T3b">{t}</span><span class="T3" style="color:var(--mu)">{s}</span></div>')
+                                              f'<div style="height:112px;margin-top:8px">{icon(ic, col, 96)}</div><span class="T3b">{t}</span><span class="T3" style="color:var(--mu);text-wrap:balance">{s}</span></div>')
     ar = f'<i style="border:16px solid transparent;border-top:24px solid var(--my);border-bottom:0"></i>'
     p5 = (f'<div class="col" style="gap:8px"><div class="row" style="height:96px;background:var(--gr);border-radius:4px;justify-content:center"><span class="T2" style="color:#fff">利率預期變動</span></div>'
           f'<div class="row" style="justify-content:space-between;height:48px;padding:0 140px">{ar}{ar}{ar}</div>'
