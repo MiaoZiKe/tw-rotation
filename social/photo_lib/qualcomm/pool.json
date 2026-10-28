@@ -18,13 +18,47 @@
    "fetched_at": "2026-10-28T10:13:28+00:00",
    "reviewed": true,
    "reviewer": "art-director",
-   "review_note": "2026-10-28 第一輪通過：Qualcomm 聖地牙哥總部，招牌為建築一部分",
+   "review_note": "2026-10-28 第三輪（art-director 複審）通過：主體正確、原色、裁成 952×424 仍成立",
    "reviewed_by": "art-director",
    "reviewed_at": "2026-10-28",
    "note": "Qualcomm 聖地牙哥總部，招牌為建築一部分",
    "file": "photo_1.jpg",
    "kind": "總部/廠房"
+  },
+  {
+   "file": "photo_2.jpg",
+   "kind": "總部/廠房",
+   "slug": "qualcomm",
+   "name_en": "Qualcomm",
+   "query": "Qualcomm headquarters San Diego",
+   "file_title": "File:Qualcomm Headquarters La Jolla.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:Qualcomm_Headquarters_La_Jolla.jpg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/2/29/Qualcomm_Headquarters_La_Jolla.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "author": "Coolcaesar",
+   "credit": "Own work",
+   "description": "The headquarters of Qualcomm in the La Jolla area of San Diego, California. Photographed on December 26, 2015 by user Coolcaesar.",
+   "width": 1920,
+   "height": 1644,
+   "fetched_at": "2026-10-28T16:15:36+00:00",
+   "reviewed": false,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第三輪（art-director 複審）退件：樹木遮擋建築",
+   "reviewed_at": "2026-10-28",
+   "reject_reason": "樹木遮擋建築"
   }
  ],
- "rejected": []
+ "rejected": [
+  {
+   "file_title": "File:Qualcomm snapdragon 450 chipset.jpg",
+   "reason": "模糊、LOGO",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:LG P710 Optimus L7 II - Qualcomm MSM8225 on main printed circuit board-5427.jpg",
+   "reason": "晶片印字為主角",
+   "at": "2026-10-28"
+  }
+ ]
 }

@@ -1,0 +1,58 @@
+{
+ "slug": "wiwynn",
+ "photos": [
+  {
+   "file": "photo_1.jpg",
+   "kind": "產品",
+   "slug": "wiwynn",
+   "name_en": "Wiwynn",
+   "query": "Open Compute server",
+   "file_title": "File:Open Compute 1U Drive Tray Flat.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:Open_Compute_1U_Drive_Tray_Flat.jpg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/a/ae/Open_Compute_1U_Drive_Tray_Flat.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "CC BY-SA 3.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/3.0",
+   "author": "Robert.Harker",
+   "credit": "Own work",
+   "description": "Open Compute 1U Drive Tray Flat (1 of 2)\n2ed lower tray retracted",
+   "width": 1920,
+   "height": 1080,
+   "fetched_at": "2026-10-28T16:07:49+00:00",
+   "reviewed": false,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第三輪（art-director 複審）退件：暗沉去色，質感不足",
+   "reviewed_at": "2026-10-28",
+   "reject_reason": "暗沉去色，質感不足"
+  },
+  {
+   "file": "photo_2.jpg",
+   "kind": "產品",
+   "slug": "wiwynn",
+   "name_en": "Wiwynn",
+   "query": "Open Compute server",
+   "file_title": "File:Rack of Worldwide LHC Computing Grid.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:Rack_of_Worldwide_LHC_Computing_Grid.jpg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/5/58/Rack_of_Worldwide_LHC_Computing_Grid.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "author": "Marián Hubinský",
+   "credit": "Own work",
+   "description": "top view of servers rack in CERN Computer Centre",
+   "width": 1920,
+   "height": 1440,
+   "fetched_at": "2026-10-28T16:07:50+00:00",
+   "reviewed": false,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第三輪（art-director 複審）退件：LHC 計算網格，非緯穎（主體錯誤）",
+   "reviewed_at": "2026-10-28",
+   "reject_reason": "LHC 計算網格，非緯穎（主體錯誤）"
+  }
+ ],
+ "rejected": [
+  {
+   "file_title": "File:IBM server rack internals - IBM rack server serverroom xseries xseries 336 - IMG 0556.jpg",
+   "reason": "雜亂機房",
+   "at": "2026-10-28"
+  }
+ ]
+}

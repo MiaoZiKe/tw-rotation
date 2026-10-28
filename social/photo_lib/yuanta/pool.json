@@ -1,10 +1,90 @@
 {
  "slug": "yuanta",
- "photos": [],
+ "photos": [
+  {
+   "file": "photo_1.jpg",
+   "kind": "總部/廠房",
+   "slug": "yuanta",
+   "name_en": "Yuanta Financial",
+   "query": "Yuanta Financial building",
+   "file_title": "File:Yuanta Financial Tower & Nan Shan Dunnan Building 20190901.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:Yuanta_Financial_Tower_%26_Nan_Shan_Dunnan_Building_20190901.jpg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/c/c9/Yuanta_Financial_Tower_%26_Nan_Shan_Dunnan_Building_20190901.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "author": "Solomon203",
+   "credit": "Own work",
+   "description": "​元大金控大樓與南山敦南大樓。",
+   "width": 1920,
+   "height": 1440,
+   "fetched_at": "2026-10-28T16:08:39+00:00",
+   "reviewed": false,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第三輪（art-director 複審）退件：無法確認為元大，樹木遮擋",
+   "reviewed_at": "2026-10-28",
+   "reject_reason": "無法確認為元大，樹木遮擋"
+  },
+  {
+   "file": "photo_2.jpg",
+   "kind": "總部/廠房",
+   "slug": "yuanta",
+   "name_en": "Yuanta Financial",
+   "query": "Yuanta Financial building",
+   "file_title": "File:Yuanta Financial Tower 20170813.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:Yuanta_Financial_Tower_20170813.jpg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/4/41/Yuanta_Financial_Tower_20170813.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "author": "Solomon203",
+   "credit": "Own work",
+   "description": "​元大金控大樓，位於臺北市松山區敦化南路一段66號。",
+   "width": 1920,
+   "height": 1440,
+   "fetched_at": "2026-10-28T16:08:39+00:00",
+   "reviewed": false,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第三輪（art-director 複審）退件：無法確認為元大，樹木遮擋",
+   "reviewed_at": "2026-10-28",
+   "reject_reason": "無法確認為元大，樹木遮擋"
+  },
+  {
+   "file": "photo_5.jpg",
+   "kind": "相關場景",
+   "slug": "yuanta",
+   "name_en": "Yuanta Financial",
+   "query": "Taipei 101",
+   "file_title": "File:Taipei, November 25, 2024 - 007.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:Taipei,_November_25,_2024_-_007.jpg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/2/26/Taipei%2C_November_25%2C_2024_-_007.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "author": "Another Believer",
+   "credit": "Own work",
+   "description": "Taipei 101",
+   "width": 1920,
+   "height": 1440,
+   "fetched_at": "2026-10-28T16:08:43+00:00",
+   "reviewed": false,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第三輪（art-director 複審）退件：主體是台北 101 天際線，非國泰世華／富邦等金控本身",
+   "reviewed_at": "2026-10-28",
+   "reject_reason": "主體是台北 101 天際線，非國泰世華／富邦等金控本身"
+  }
+ ],
  "rejected": [
   {
    "file_title": "File:Yuanta Financial Tower 20190901.jpg",
    "reason": "樹木與路牌遮擋大樓，構圖雜亂",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:Taipei Taiwan Taiwan-Cooperative-Bank-01.jpg",
+   "reason": "合作金庫分行，主體錯",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:Taipei Taiwan Taiwan-Cooperative-Bank-02.jpg",
+   "reason": "合作金庫分行，主體錯",
    "at": "2026-10-28"
   }
  ]

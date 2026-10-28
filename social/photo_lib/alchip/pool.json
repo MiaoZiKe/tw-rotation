@@ -1,0 +1,58 @@
+{
+ "slug": "alchip",
+ "photos": [
+  {
+   "file": "photo_1.jpg",
+   "kind": "產品",
+   "slug": "alchip",
+   "name_en": "Alchip Technologies",
+   "query": "ASIC chip",
+   "file_title": "File:S-MOS Systems ASIC SLA6140.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:S-MOS_Systems_ASIC_SLA6140.jpg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/9/9c/S-MOS_Systems_ASIC_SLA6140.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "CC BY-SA 3.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/3.0",
+   "author": "Antoinebercovici",
+   "credit": "Own work",
+   "description": "The S-MOS Systems SLA6000 series consists of a group of 8 CMOS gate arrays with gate counts from 513 to 6,206 gates. The series is fabricated utilizing a 2.0 micron high speed CMOS silicon gate technology to achieve propagation delays of ins for the internal gates and 5ns to 7ns for the I/O buffers.",
+   "width": 1920,
+   "height": 1949,
+   "fetched_at": "2026-10-28T16:10:20+00:00",
+   "reviewed": false,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第三輪（art-director 複審）退件：記憶體陣列微距，無辨識度、質感不足",
+   "reviewed_at": "2026-10-28",
+   "reject_reason": "記憶體陣列微距，無辨識度、質感不足"
+  },
+  {
+   "file": "photo_2.jpg",
+   "kind": "產品",
+   "slug": "alchip",
+   "name_en": "Alchip Technologies",
+   "query": "ASIC chip",
+   "file_title": "File:VLSI VL82C486 Single Chip 486 System Controller HV.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:VLSI_VL82C486_Single_Chip_486_System_Controller_HV.jpg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/7/7b/VLSI_VL82C486_Single_Chip_486_System_Controller_HV.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "CC BY-SA 3.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/3.0",
+   "author": "Antoinebercovici",
+   "credit": "Own work",
+   "description": "The VLSI Technology VL82C486 Single Chip 486 System Controller incorporates several devices essential to the implementation of an Intel 486 based PC/AT-compatible computer system.",
+   "width": 1920,
+   "height": 1878,
+   "fetched_at": "2026-10-28T16:10:20+00:00",
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第三輪（art-director 複審）通過：主體正確、原色、裁成 952×424 仍成立",
+   "reviewed_at": "2026-10-28",
+   "reviewed_by": "art-director"
+  }
+ ],
+ "rejected": [
+  {
+   "file_title": "File:Minimal Fab exhibit at Tsukuba Science Square 2.jpg",
+   "reason": "展示模型，主體弱",
+   "at": "2026-10-28"
+  }
+ ]
+}

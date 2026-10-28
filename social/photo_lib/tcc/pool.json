@@ -1,10 +1,90 @@
 {
  "slug": "tcc",
- "photos": [],
+ "photos": [
+  {
+   "file": "photo_1.jpg",
+   "kind": "總部/廠房",
+   "slug": "tcc",
+   "name_en": "Taiwan Cement",
+   "query": "Taiwan Cement Corporation",
+   "file_title": "File:Hoping Taiwan-Cement-Corporation-Hoping-Plant-02.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:Hoping_Taiwan-Cement-Corporation-Hoping-Plant-02.jpg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/7/7a/Hoping_Taiwan-Cement-Corporation-Hoping-Plant-02.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "CC BY-SA 3.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/3.0",
+   "author": "CEphoto, Uwe Aranas",
+   "credit": "Own work",
+   "description": "Hoping, Hualien County, Taiwan: Taiwan Cement Corporation Hoping Plant",
+   "width": 1920,
+   "height": 1080,
+   "fetched_at": "2026-10-28T16:11:31+00:00",
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第三輪（art-director 複審）通過：主體正確、原色、裁成 952×424 仍成立",
+   "reviewed_at": "2026-10-28",
+   "reviewed_by": "art-director"
+  },
+  {
+   "file": "photo_3.jpg",
+   "kind": "產品",
+   "slug": "tcc",
+   "name_en": "Taiwan Cement",
+   "query": "cement plant",
+   "file_title": "File:Exshaw Cement Plant.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:Exshaw_Cement_Plant.jpg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/6/6c/Exshaw_Cement_Plant.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "CC BY-SA 2.5 ca",
+   "license_url": "https://creativecommons.org/licenses/by-sa/2.5/ca/deed.en",
+   "author": "The Cosmonaut",
+   "credit": "Own work\n\n This  image was created with darktable.",
+   "description": "Exshaw Cement Plant.",
+   "width": 1920,
+   "height": 1281,
+   "fetched_at": "2026-10-28T16:11:33+00:00",
+   "reviewed": false,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第三輪（art-director 複審）退件：外國雪景工廠，非台泥",
+   "reviewed_at": "2026-10-28",
+   "reject_reason": "外國雪景工廠，非台泥"
+  },
+  {
+   "file": "photo_5.jpg",
+   "kind": "相關場景",
+   "slug": "tcc",
+   "name_en": "Taiwan Cement",
+   "query": "steel mill",
+   "file_title": "File:13 Industry of Australia - Steelworks of BlueScope Steel Limited company in Port Kembla, Australia.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:13_Industry_of_Australia_-_Steelworks_of_BlueScope_Steel_Limited_company_in_Port_Kembla,_Australia.jpg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/d/d5/13_Industry_of_Australia_-_Steelworks_of_BlueScope_Steel_Limited_company_in_Port_Kembla%2C_Australia.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "CC BY 3.0",
+   "license_url": "https://creativecommons.org/licenses/by/3.0",
+   "author": "Marek Ślusarczyk (Tupungato) Photo gallery",
+   "credit": "Own work",
+   "description": "Steelworks of BlueScope Steel Limited company in Port Kembla, Australia.",
+   "width": 1920,
+   "height": 1280,
+   "fetched_at": "2026-10-28T16:11:35+00:00",
+   "reviewed": false,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第三輪（art-director 複審）退件：鋼廠煙霧，非台泥",
+   "reviewed_at": "2026-10-28",
+   "reject_reason": "鋼廠煙霧，非台泥"
+  }
+ ],
  "rejected": [
   {
    "file_title": "File:Taiwan Cement Building maingate 20130118.jpg",
    "reason": "畫面主角是兩面紅色 LOGO 布幔，夜間逆光",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:Hoping Taiwan-Cement-Corporation-Hoping-Plant-01.jpg",
+   "reason": "招牌搶戲、與上一張重複",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:Cement 02 (cropped).jpg",
+   "reason": "水泥粉末特寫、包裝字",
    "at": "2026-10-28"
   }
  ]

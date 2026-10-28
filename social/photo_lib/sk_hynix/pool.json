@@ -1,0 +1,40 @@
+{
+ "slug": "sk_hynix",
+ "photos": [
+  {
+   "file": "photo_3.jpg",
+   "kind": "相關場景",
+   "slug": "sk_hynix",
+   "name_en": "SK hynix",
+   "query": "DRAM chips",
+   "file_title": "File:DRAM chips on JEGA Video Adapter YS-90047H (15809134267).jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:DRAM_chips_on_JEGA_Video_Adapter_YS-90047H_(15809134267).jpg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/2/29/DRAM_chips_on_JEGA_Video_Adapter_YS-90047H_%2815809134267%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "CC BY-SA 2.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/2.0",
+   "author": "htomari",
+   "credit": "DRAM chips on JEGA Video Adapter YS-90047H",
+   "description": "DRAM chips on JEGA Video Adapter YS-90047H",
+   "width": 1920,
+   "height": 1080,
+   "fetched_at": "2026-10-28T16:15:00+00:00",
+   "reviewed": false,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第三輪（art-director 複審）退件：Mitsubishi 晶片板，非 SK 海力士（主體錯誤）",
+   "reviewed_at": "2026-10-28",
+   "reject_reason": "Mitsubishi 晶片板，非 SK 海力士（主體錯誤）"
+  }
+ ],
+ "rejected": [
+  {
+   "file_title": "File:SK Hynix DDR5 form factors.jpg",
+   "reason": "展示看板文字為主角",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:SK HYNIX HMT451S6AFR8A-PB 4GB PC3-12800 DDR3-1600MHz SINGLE RANK MEMORY MODULE FRONT.jpg",
+   "reason": "標籤為主角",
+   "at": "2026-10-28"
+  }
+ ]
+}

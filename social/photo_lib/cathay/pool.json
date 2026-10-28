@@ -1,10 +1,54 @@
 {
  "slug": "cathay",
- "photos": [],
+ "photos": [
+  {
+   "file": "photo_3.jpg",
+   "kind": "產品",
+   "slug": "cathay",
+   "name_en": "Cathay Financial",
+   "query": "Taipei financial district",
+   "file_title": "File:1 taipei sunrise panorama dxr edit pangen 141215 1.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:1_taipei_sunrise_panorama_dxr_edit_pangen_141215_1.jpg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/e/e4/1_taipei_sunrise_panorama_dxr_edit_pangen_141215_1.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "author": "Chensiyuan, edit by DXR",
+   "credit": "This file was derived from:  1 taipei sunrise panorama 2015.jpg",
+   "description": "Taipei sunrise panorama. This image was stiched in Hugin using panini general projection.",
+   "width": 1920,
+   "height": 1083,
+   "fetched_at": "2026-10-28T16:07:37+00:00",
+   "reviewed": false,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第三輪（art-director 複審）退件：主體是台北 101 天際線，非國泰世華／富邦等金控本身",
+   "reviewed_at": "2026-10-28",
+   "reject_reason": "主體是台北 101 天際線，非國泰世華／富邦等金控本身"
+  }
+ ],
  "rejected": [
   {
    "file_title": "File:Cathay R1 Taipei Zhonghua Building entrance and Cathay United Bank ATM 20171018.jpg",
    "reason": "ATM 與門面特寫，非總部主體",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:Shipai Branch, Cathay United Bank 20161210.jpg",
+   "reason": "分行街景、人物",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:Cathay R1 Taipei Zhonghua Building entrance and Cathay United Bank ATM 20171111.jpg",
+   "reason": "門面與 ATM 特寫",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:Taipei International Convention Center and Taipei 101 20080621.jpg",
+   "reason": "畫面歪斜",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:View of Taipei 101, a skyscraper under construction, apartment buildings, and a temple at Wufenpu.jpg",
+   "reason": "主體是廟宇，與國泰無關",
    "at": "2026-10-28"
   }
  ]

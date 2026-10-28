@@ -1,10 +1,72 @@
 {
  "slug": "broadcom",
- "photos": [],
+ "photos": [
+  {
+   "file": "photo_2.jpg",
+   "kind": "總部/廠房",
+   "slug": "broadcom",
+   "name_en": "Broadcom",
+   "query": "Broadcom building",
+   "file_title": "File:Cambridge Science Park Broadcom.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:Cambridge_Science_Park_Broadcom.jpg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/3/3b/Cambridge_Science_Park_Broadcom.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "CC BY-SA 3.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/3.0",
+   "author": "Cmglee",
+   "credit": "Own work",
+   "description": "Cambridge Science Park Broadcom building in April 2011.",
+   "width": 1536,
+   "height": 1024,
+   "fetched_at": "2026-10-28T16:14:18+00:00",
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第三輪（art-director 複審）通過：主體正確、原色、裁成 952×424 仍成立",
+   "reviewed_at": "2026-10-28",
+   "reviewed_by": "art-director"
+  },
+  {
+   "file": "photo_5.jpg",
+   "kind": "相關場景",
+   "slug": "broadcom",
+   "name_en": "Broadcom",
+   "query": "network switch",
+   "file_title": "File:Network switches.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:Network_switches.jpg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/e/e5/Network_switches.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "CC BY-SA 3.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/3.0",
+   "author": "ShakataGaNai",
+   "credit": "Own work",
+   "description": "Two network switches and CAT5 cables.",
+   "width": 1920,
+   "height": 1277,
+   "fetched_at": "2026-10-28T16:14:22+00:00",
+   "reviewed": false,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第三輪（art-director 複審）退件：網路交換器線材，非博通",
+   "reviewed_at": "2026-10-28",
+   "reject_reason": "網路交換器線材，非博通"
+  }
+ ],
  "rejected": [
   {
    "file_title": "File:Broadcom Headquarters San Jose.jpg",
    "reason": "樹木遮住主體，建築幾乎看不到",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:Broadcomheadquarters.jpg",
+   "reason": "LOGO 招牌為主角",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:Broadcom BCM92046MPCIE - Broadcom BCM2046-6970.jpg",
+   "reason": "晶片印字為主角",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:Broadcom WLL6230B-D99-7203.jpg",
+   "reason": "Broadcom LOGO 為主角",
    "at": "2026-10-28"
   }
  ]

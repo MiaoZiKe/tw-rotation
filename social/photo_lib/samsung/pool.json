@@ -16,15 +16,72 @@
    "width": 1920,
    "height": 1521,
    "fetched_at": "2026-10-28T10:13:09+00:00",
-   "reviewed": true,
+   "reviewed": false,
    "reviewer": "art-director",
-   "review_note": "2026-10-28 第一輪通過：三星首爾瑞草大樓，周邊他牌招牌小；可接受",
-   "reviewed_by": "art-director",
+   "review_note": "2026-10-28 第三輪（art-director 複審）退件：三星大樓被他牌（GT、Cinus）招牌包圍，非主角",
    "reviewed_at": "2026-10-28",
    "note": "三星首爾瑞草大樓，周邊他牌招牌小；可接受",
    "file": "photo_1.jpg",
-   "kind": "總部/廠房"
+   "kind": "總部/廠房",
+   "reject_reason": "三星大樓被他牌（GT、Cinus）招牌包圍，非主角"
+  },
+  {
+   "file": "photo_2.jpg",
+   "kind": "總部/廠房",
+   "slug": "samsung",
+   "name_en": "Samsung Electronics",
+   "query": "Samsung Digital City",
+   "file_title": "File:Samsung Ridgefield Park building, New Jersey.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:Samsung_Ridgefield_Park_building,_New_Jersey.jpg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/9/9f/Samsung_Ridgefield_Park_building%2C_New_Jersey.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "author": "Kenneth C. Zirkel",
+   "credit": "Own work",
+   "description": "Samsung Ridgefield Park building, 85 Challenger Road, Ridgefield Park New Jersey.",
+   "width": 1920,
+   "height": 1050,
+   "fetched_at": "2026-10-28T16:14:39+00:00",
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第三輪（art-director 複審）通過：主體正確、原色、裁成 952×424 仍成立",
+   "reviewed_at": "2026-10-28",
+   "reviewed_by": "art-director"
+  },
+  {
+   "file": "photo_5.jpg",
+   "kind": "相關場景",
+   "slug": "samsung",
+   "name_en": "Samsung Electronics",
+   "query": "DRAM chips",
+   "file_title": "File:16K DRAM array.agr.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:16K_DRAM_array.agr.jpg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/1/10/16K_DRAM_array.agr.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "author": "ArnoldReinhold",
+   "credit": "Own work",
+   "description": "Array of Motorola 16 Kib dynamic random access memory chips, circa 1981",
+   "width": 1920,
+   "height": 1440,
+   "fetched_at": "2026-10-28T16:14:44+00:00",
+   "reviewed": false,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第三輪（art-director 複審）退件：Motorola 記憶體晶片，非三星（主體錯誤）",
+   "reviewed_at": "2026-10-28",
+   "reject_reason": "Motorola 記憶體晶片，非三星（主體錯誤）"
   }
  ],
- "rejected": []
+ "rejected": [
+  {
+   "file_title": "File:SanDisk Memory Stick PRO 256MB PCB.jpg",
+   "reason": "SanDisk 產品，與三星無關",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:Intel Optane Memory 32GB.jpg",
+   "reason": "Intel 產品，與三星無關",
+   "at": "2026-10-28"
+  }
+ ]
 }

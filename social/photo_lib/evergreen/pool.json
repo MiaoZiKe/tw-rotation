@@ -18,13 +18,70 @@
    "fetched_at": "2026-10-28T10:10:30+00:00",
    "reviewed": true,
    "reviewer": "art-director",
-   "review_note": "2026-10-28 第一輪通過：長榮海運大樓，字樣於頂端略被裁切但可接受",
+   "review_note": "2026-10-28 第三輪（art-director 複審）通過：主體正確、原色、裁成 952×424 仍成立",
    "reviewed_by": "art-director",
    "reviewed_at": "2026-10-28",
    "note": "長榮海運大樓，字樣於頂端略被裁切但可接受",
    "file": "photo_1.jpg",
    "kind": "總部/廠房"
+  },
+  {
+   "file": "photo_2.jpg",
+   "kind": "總部/廠房",
+   "slug": "evergreen",
+   "name_en": "Evergreen Marine",
+   "query": "Evergreen Marine building",
+   "file_title": "File:Evergreen Marine Building 20190615.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:Evergreen_Marine_Building_20190615.jpg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/9/9c/Evergreen_Marine_Building_20190615.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "author": "Solomon203",
+   "credit": "Own work",
+   "description": "​長榮海運大樓，地址：臺北市中山區民生東路二段166號。",
+   "width": 1920,
+   "height": 1440,
+   "fetched_at": "2026-10-28T16:08:52+00:00",
+   "reviewed": false,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第三輪（art-director 複審）退件：無法確認是長榮海運大樓",
+   "reviewed_at": "2026-10-28",
+   "reject_reason": "無法確認是長榮海運大樓"
+  },
+  {
+   "file": "photo_4.jpg",
+   "kind": "產品",
+   "slug": "evergreen",
+   "name_en": "Evergreen Marine",
+   "query": "Evergreen container ship",
+   "file_title": "File:Evergreen container ship SF sailboat.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:Evergreen_container_ship_SF_sailboat.jpg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/f/fc/Evergreen_container_ship_SF_sailboat.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "CC BY 2.0",
+   "license_url": "https://creativecommons.org/licenses/by/2.0",
+   "author": "Jef Poskanzer from Berkeley, CA, USA",
+   "credit": "Flickr",
+   "description": "Container ship and the KAISEI\n\nIMO number: 8859366\nCallsign: V2YJ9two ships",
+   "width": 1920,
+   "height": 1440,
+   "fetched_at": "2026-10-28T16:08:55+00:00",
+   "reviewed": false,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第三輪（art-director 複審）退件：EVERGREEN 船身 LOGO 為主角且帆船入鏡",
+   "reviewed_at": "2026-10-28",
+   "reject_reason": "EVERGREEN 船身 LOGO 為主角且帆船入鏡"
   }
  ],
- "rejected": []
+ "rejected": [
+  {
+   "file_title": "File:Evergreen container ship Hamburg port.jpg",
+   "reason": "人物入鏡",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:2021-11-19 Damaged container ship, MV ZIM KINGSTON - IMO 9389693.jpg",
+   "reason": "受損船舶（事故）且非長榮",
+   "at": "2026-10-28"
+  }
+ ]
 }

@@ -1,10 +1,90 @@
 {
  "slug": "nvidia",
- "photos": [],
+ "photos": [
+  {
+   "file": "photo_1.jpg",
+   "kind": "總部/廠房",
+   "slug": "nvidia",
+   "name_en": "NVIDIA",
+   "query": "Nvidia Endeavor building",
+   "file_title": "File:NVIDIA Headquarters.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:NVIDIA_Headquarters.jpg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/0/0f/NVIDIA_Headquarters.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "author": "Coolcaesar",
+   "credit": "Own work",
+   "description": "Nvidia headquarters in Santa Clara, California. Photographed by user Coolcaesar on August 4, 2018.",
+   "width": 1920,
+   "height": 1175,
+   "fetched_at": "2026-10-28T16:13:30+00:00",
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第三輪（art-director 複審）通過：主體正確、原色、裁成 952×424 仍成立",
+   "reviewed_at": "2026-10-28",
+   "reviewed_by": "art-director"
+  },
+  {
+   "file": "photo_3.jpg",
+   "kind": "產品",
+   "slug": "nvidia",
+   "name_en": "NVIDIA",
+   "query": "Nvidia GeForce graphics card",
+   "file_title": "File:NVIDIA GeForce 7300 LE.JPG",
+   "source_url": "https://commons.wikimedia.org/wiki/File:NVIDIA_GeForce_7300_LE.JPG",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/a/ae/NVIDIA_GeForce_7300_LE.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "CC BY-SA 3.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/3.0",
+   "author": "Joydeep",
+   "credit": "Own work",
+   "description": "NVIDIA GeForce 7300 LE graphics card",
+   "width": 1920,
+   "height": 1148,
+   "fetched_at": "2026-10-28T16:13:34+00:00",
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第三輪（art-director 複審）通過：主體正確、原色、裁成 952×424 仍成立",
+   "reviewed_at": "2026-10-28",
+   "reviewed_by": "art-director"
+  },
+  {
+   "file": "photo_4.jpg",
+   "kind": "產品",
+   "slug": "nvidia",
+   "name_en": "NVIDIA",
+   "query": "Nvidia GeForce graphics card",
+   "file_title": "File:Nvidia GeForce RTX 5060 Ti 16GB, PNY Overclocked Dual Fan, front.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:Nvidia_GeForce_RTX_5060_Ti_16GB,_PNY_Overclocked_Dual_Fan,_front.jpg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/c/cd/Nvidia_GeForce_RTX_5060_Ti_16GB%2C_PNY_Overclocked_Dual_Fan%2C_front.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "author": "FreeMediaKid!",
+   "credit": "Own work",
+   "description": "The front side of a PNY NVIDIA GeForce RTX 5060 Ti Overclocked Dual Fan 16GB GDDR7 PCIe 5.0 graphics card.\nOn a bittersweet Thursday last week, in my nearly-four-year quest to get an affordable, up-to-date Nvidia GeForce RTX card in the midst of the shortage of graphics cards, I was finally able to ",
+   "width": 1920,
+   "height": 1280,
+   "fetched_at": "2026-10-28T16:13:34+00:00",
+   "reviewed": false,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第三輪（art-director 複審）退件：PNY 商標在風扇為主角",
+   "reviewed_at": "2026-10-28",
+   "reject_reason": "PNY 商標在風扇為主角"
+  }
+ ],
  "rejected": [
   {
    "file_title": "File:Nvidia sign.jpg",
    "reason": "畫面主角是 NVIDIA 路牌 LOGO 特寫",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:San Tomas Expressway at Central Expressway.jpg",
+   "reason": "魚眼街景，看不出輝達",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:FAB 1 Thunderbirds car 2004.jpg",
+   "reason": "玩具車，與輝達無關",
    "at": "2026-10-28"
   }
  ]

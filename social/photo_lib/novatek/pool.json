@@ -1,0 +1,21 @@
+{
+ "slug": "novatek",
+ "photos": [],
+ "rejected": [
+  {
+   "file_title": "File:HDLG-2416 7 x 5 Dot Matrix Green LED Display.jpg",
+   "reason": "LED 顯示零件，與聯詠不符",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:Heathkit IC-2008A Desktop Calculator.jpg",
+   "reason": "計算機，與聯詠無關",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:Blackview A60 Smartphone Android mobile phone and folio case.jpg",
+   "reason": "他牌手機",
+   "at": "2026-10-28"
+  }
+ ]
+}

@@ -1,10 +1,62 @@
 {
  "slug": "unimicron",
- "photos": [],
+ "photos": [
+  {
+   "file": "photo_1.jpg",
+   "kind": "產品",
+   "slug": "unimicron",
+   "name_en": "Unimicron",
+   "query": "IC substrate",
+   "file_title": "File:Hybrid IC substrate bond wires.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:Hybrid_IC_substrate_bond_wires.jpg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/1/12/Hybrid_IC_substrate_bond_wires.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "author": "Phiarc",
+   "credit": "Own work",
+   "description": "250 µm \"bond wires\" directly pressed on PCB/substrate traces in a hybrid IC",
+   "width": 1920,
+   "height": 1387,
+   "fetched_at": "2026-10-28T16:12:22+00:00",
+   "reviewed": false,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第三輪（art-director 複審）退件：焊點微距，無辨識度",
+   "reviewed_at": "2026-10-28",
+   "reject_reason": "焊點微距，無辨識度"
+  },
+  {
+   "file": "photo_3.jpg",
+   "kind": "相關場景",
+   "slug": "unimicron",
+   "name_en": "Unimicron",
+   "query": "printed circuit board",
+   "file_title": "File:RS 42471-12 PCB 02.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:RS_42471-12_PCB_02.jpg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/6/67/RS_42471-12_PCB_02.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "author": "Mister rf",
+   "credit": "Own work",
+   "description": "Rohde & Schwarz 42471-12 printed circuit board assembly, 1970s.",
+   "width": 1920,
+   "height": 1285,
+   "fetched_at": "2026-10-28T16:12:25+00:00",
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第三輪（art-director 複審）通過：主體正確、原色、裁成 952×424 仍成立",
+   "reviewed_at": "2026-10-28",
+   "reviewed_by": "art-director"
+  }
+ ],
  "rejected": [
   {
    "file_title": "File:Shanying Plant, Unimicron Technology Corporation 20170102.jpg",
    "reason": "樹木與雜物佔畫面、廠房被遮，構圖雜亂",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:Sony SOBAX ICC-400W- PCB 1-538-580-13 Side view 2.jpg",
+   "reason": "Sony 零件，與欣興無關",
    "at": "2026-10-28"
   }
  ]

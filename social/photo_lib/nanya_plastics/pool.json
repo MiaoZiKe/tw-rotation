@@ -1,10 +1,67 @@
 {
  "slug": "nanya_plastics",
- "photos": [],
+ "photos": [
+  {
+   "file": "photo_1.jpg",
+   "kind": "總部/廠房",
+   "slug": "nanya_plastics",
+   "name_en": "Nan Ya Plastics",
+   "query": "Formosa Plastics Building Taipei",
+   "file_title": "File:Nanya Plastics Shulin Plant 20131026.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:Nanya_Plastics_Shulin_Plant_20131026.jpg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/5/53/Nanya_Plastics_Shulin_Plant_20131026.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "CC BY-SA 3.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/3.0",
+   "author": "Solomon203",
+   "credit": "Own work",
+   "description": "​南亞塑膠樹林廠、南亞電路板樹林廠、南亞光電樹林廠，地址：新北市樹林區味王街55、57號。",
+   "width": 1920,
+   "height": 1440,
+   "fetched_at": "2026-10-28T16:09:44+00:00",
+   "reviewed": false,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第三輪（art-director 複審）退件：停車場與拒馬，非南亞塑膠主體",
+   "reviewed_at": "2026-10-28",
+   "reject_reason": "停車場與拒馬，非南亞塑膠主體"
+  },
+  {
+   "file": "photo_3.jpg",
+   "kind": "產品",
+   "slug": "nanya_plastics",
+   "name_en": "Nan Ya Plastics",
+   "query": "plastic pellets",
+   "file_title": "File:Plastic pellets.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:Plastic_pellets.jpg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/f/f3/Plastic_pellets.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "CC BY 2.0",
+   "license_url": "https://creativecommons.org/licenses/by/2.0",
+   "author": "SuSanA Secretariat",
+   "credit": "https://www.flickr.com/photos/gtzecosan/4480914245/",
+   "description": "Plastic pellets (granule, nurdle) for rotation moulding\n\nFoto by: C.Rieck, Nairobi, 2007",
+   "width": 1920,
+   "height": 1440,
+   "fetched_at": "2026-10-28T16:09:49+00:00",
+   "reviewed": false,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第三輪（art-director 複審）退件：髒汙袋裝顆粒，質感不足",
+   "reviewed_at": "2026-10-28",
+   "reject_reason": "髒汙袋裝顆粒，質感不足"
+  }
+ ],
  "rejected": [
   {
    "file_title": "File:Chiayi Plant, Nan Ya Plastics 20160326.jpg",
    "reason": "霧天灰暗、主體是大門與路面，質感不足",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:Plastic Pellets (Scharhörn).jpg",
+   "reason": "海灘塑膠微粒（汙染議題，有誤導）",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:PETROCHEMICAL PLANT IN COASTAL AREA - NARA - 546389.jpg",
+   "reason": "剪影色調強、主體弱",
    "at": "2026-10-28"
   }
  ]

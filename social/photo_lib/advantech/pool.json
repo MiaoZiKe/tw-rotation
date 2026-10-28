@@ -1,0 +1,58 @@
+{
+ "slug": "advantech",
+ "photos": [
+  {
+   "file": "photo_1.jpg",
+   "kind": "產品",
+   "slug": "advantech",
+   "name_en": "Advantech",
+   "query": "industrial computer",
+   "file_title": "File:DHCOM Computer On Module - AM35x.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:DHCOM_Computer_On_Module_-_AM35x.jpg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/6/6b/DHCOM_Computer_On_Module_-_AM35x.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "CC BY-SA 3.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/3.0",
+   "author": "Pe wiki editor",
+   "credit": "Own work",
+   "description": "DHCOM Computer On Module with AM35x Processor, http://www.dh-electronics.com",
+   "width": 1920,
+   "height": 1070,
+   "fetched_at": "2026-10-28T16:11:25+00:00",
+   "reviewed": false,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第三輪（art-director 複審）退件：DH electronics 板，非研華（主體錯誤）",
+   "reviewed_at": "2026-10-28",
+   "reject_reason": "DH electronics 板，非研華（主體錯誤）"
+  },
+  {
+   "file": "photo_2.jpg",
+   "kind": "產品",
+   "slug": "advantech",
+   "name_en": "Advantech",
+   "query": "industrial computer",
+   "file_title": "File:Accupoll-embedded-computer.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:Accupoll-embedded-computer.jpg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/a/af/Accupoll-embedded-computer.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "CC BY-SA 3.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/3.0",
+   "author": "David Lippincott for Chassis Plans",
+   "credit": "http://www.chassis-plans.com/custom/Accupoll-Front-Oblique-Larg.jpg",
+   "description": "Embedded computer used to manage the Accupoll electronic voting machine. This was a small form factor VIA computing engine providing parallel and serial ports, USB, Ethernet, Keyboard/Mouse, Microphone and Speaker (for visually impaired users) and Video.  See http://w2.eff.org/Activism/E-voting/info",
+   "width": 1402,
+   "height": 1392,
+   "fetched_at": "2026-10-28T16:11:25+00:00",
+   "reviewed": false,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第三輪（art-director 複審）退件：Chassis Plans 機殼，非研華（主體錯誤）",
+   "reviewed_at": "2026-10-28",
+   "reject_reason": "Chassis Plans 機殼，非研華（主體錯誤）"
+  }
+ ],
+ "rejected": [
+  {
+   "file_title": "File:5 different Smartphones.jpg",
+   "reason": "雜牌手機，與研華無關",
+   "at": "2026-10-28"
+  }
+ ]
+}

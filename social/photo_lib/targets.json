@@ -30,9 +30,9 @@
   ],
   "category": "AI伺服器",
   "queries": [
-   "Foxconn building",
-   "Hon Hai Precision headquarters",
-   "Foxconn factory"
+   "Foxconn Tucheng headquarters",
+   "Hon Hai Precision Tucheng",
+   "Foxconn Longhua campus"
   ],
   "product_queries": [
    "server assembly line",
@@ -198,12 +198,12 @@
   ],
   "category": "AI伺服器",
   "queries": [
-   "Wiwynn building",
-   "Wiwynn headquarters"
+   "Wiwynn Xizhi",
+   "Wiwynn headquarters New Taipei"
   ],
   "product_queries": [
-   "Open Compute server",
-   "server rack"
+   "Open Compute Project server",
+   "OCP rack"
   ],
   "related_queries": [
    "server rack",
@@ -711,13 +711,12 @@
   ],
   "category": "消費電子",
   "queries": [
-   "Advantech headquarters",
-   "Advantech building Taipei"
+   "Advantech Linkou campus",
+   "Advantech headquarters Neihu"
   ],
   "product_queries": [
-   "industrial computer",
    "industrial PC",
-   "embedded computer"
+   "embedded computer board"
   ],
   "related_queries": [
    "smartphone",
@@ -1114,19 +1113,20 @@
   ],
   "category": "消費電子",
   "queries": [
-   "Meta headquarters Menlo Park",
-   "Facebook headquarters Menlo Park",
-   "1 Hacker Way"
+   "Meta headquarters Menlo Park 1 Hacker Way",
+   "Meta Platforms campus Menlo Park",
+   "MPK 21 Menlo Park",
+   "Meta data center Prineville"
   ],
   "product_queries": [
-   "Oculus Quest",
-   "Meta Quest",
-   "virtual reality headset"
+   "Meta Quest 3",
+   "Oculus Quest 2 headset"
   ],
   "related_queries": [
    "smartphone",
    "laptop computer"
-  ]
+  ],
+  "key": "meta"
  },
  {
   "slug": "amazon",
@@ -1253,26 +1253,21 @@
   ],
   "category": "記憶體",
   "queries": [
-   "SK hynix Icheon",
-   "SK hynix headquarters",
-   "SK Hynix building",
-   "SK hynix Cheongju",
-   "SK하이닉스",
-   "SK hynix M15",
-   "SK hynix fab",
-   "Hynix Icheon",
-   "SK Hynix Wuxi"
+   "SK hynix Icheon campus",
+   "SK hynix Cheongju M15",
+   "SK Hynix headquarters Icheon",
+   "SK hynix M16 fab"
   ],
   "product_queries": [
-   "SK hynix memory",
-   "SK Hynix DRAM",
-   "HBM memory",
-   "DDR4 memory module"
+   "SK hynix HBM",
+   "SK hynix DDR5 module",
+   "SK Hynix SSD"
   ],
   "related_queries": [
    "DRAM chips",
    "memory module"
-  ]
+  ],
+  "key": "hynix"
  },
  {
   "slug": "micron",
@@ -1307,19 +1302,20 @@
   ],
   "category": "半導體",
   "queries": [
-   "ASML Veldhoven",
-   "ASML headquarters",
-   "ASML building"
+   "ASML Veldhoven headquarters",
+   "ASML campus Veldhoven",
+   "ASML building Veldhoven"
   ],
   "product_queries": [
-   "ASML EUV",
-   "ASML lithography machine",
-   "EUV lithography"
+   "ASML EUV lithography machine",
+   "ASML TWINSCAN",
+   "extreme ultraviolet lithography"
   ],
   "related_queries": [
    "semiconductor fab",
    "silicon wafer"
-  ]
+  ],
+  "key": "asml"
  },
  {
   "slug": "tesla",
@@ -1397,16 +1393,16 @@
   "category": "資料中心",
   "queries": [
    "Anthropic office San Francisco",
-   "Anthropic headquarters"
+   "Anthropic headquarters Howard Street"
   ],
   "product_queries": [
-   "data center servers",
-   "AI accelerator"
+   "data center GPU servers",
+   "AI accelerator chip"
   ],
   "related_queries": [
-   "data center",
-   "server room"
-  ]
+   "San Francisco SoMa skyline"
+  ],
+  "key": "anthropic"
  },
  {
   "slug": "openai",
@@ -1426,6 +1422,714 @@
   "related_queries": [
    "data center",
    "server room"
+  ]
+ },
+ {
+  "slug": "oracle",
+  "name_en": "Oracle",
+  "key": "oracle",
+  "zh": [
+   "甲骨文"
+  ],
+  "category": "資料中心",
+  "queries": [
+   "Oracle headquarters Austin",
+   "Oracle Redwood Shores campus",
+   "Oracle Corporation building"
+  ],
+  "product_queries": [
+   "Oracle Exadata",
+   "server rack"
+  ],
+  "related_queries": [
+   "data center"
+  ]
+ },
+ {
+  "slug": "arm",
+  "name_en": "Arm",
+  "key": "arm",
+  "zh": [
+   "安謀",
+   "Arm"
+  ],
+  "category": "半導體",
+  "queries": [
+   "Arm Holdings headquarters Cambridge",
+   "ARM Ltd building Cambridge"
+  ],
+  "product_queries": [
+   "ARM processor chip",
+   "Raspberry Pi board"
+  ],
+  "related_queries": [
+   "integrated circuit die"
+  ]
+ },
+ {
+  "slug": "supermicro",
+  "name_en": "Supermicro",
+  "key": "supermicro",
+  "zh": [
+   "美超微"
+  ],
+  "category": "AI伺服器",
+  "queries": [
+   "Supermicro headquarters San Jose",
+   "Super Micro Computer building"
+  ],
+  "product_queries": [
+   "Supermicro server",
+   "rack server"
+  ],
+  "related_queries": [
+   "server rack"
+  ]
+ },
+ {
+  "slug": "dell",
+  "name_en": "Dell",
+  "key": "dell",
+  "zh": [
+   "戴爾"
+  ],
+  "category": "AI伺服器",
+  "queries": [
+   "Dell headquarters Round Rock",
+   "Dell campus Round Rock"
+  ],
+  "product_queries": [
+   "Dell PowerEdge",
+   "Dell laptop"
+  ],
+  "related_queries": [
+   "server rack"
+  ]
+ },
+ {
+  "slug": "hpe",
+  "name_en": "Hewlett Packard Enterprise",
+  "key": "hewlett",
+  "zh": [
+   "慧與",
+   "HPE"
+  ],
+  "category": "AI伺服器",
+  "queries": [
+   "Hewlett Packard Enterprise headquarters",
+   "HPE campus Houston"
+  ],
+  "product_queries": [
+   "HPE ProLiant",
+   "HP ProLiant server"
+  ],
+  "related_queries": [
+   "server rack"
+  ]
+ },
+ {
+  "slug": "cisco",
+  "name_en": "Cisco",
+  "key": "cisco",
+  "zh": [
+   "思科"
+  ],
+  "category": "網通",
+  "queries": [
+   "Cisco headquarters San Jose",
+   "Cisco Systems campus"
+  ],
+  "product_queries": [
+   "Cisco switch",
+   "Cisco router"
+  ],
+  "related_queries": [
+   "network switch"
+  ]
+ },
+ {
+  "slug": "marvell",
+  "name_en": "Marvell",
+  "key": "marvell",
+  "zh": [
+   "邁威爾"
+  ],
+  "category": "半導體",
+  "queries": [
+   "Marvell Technology headquarters",
+   "Marvell building Santa Clara"
+  ],
+  "product_queries": [
+   "optical transceiver",
+   "integrated circuit die"
+  ],
+  "related_queries": [
+   "semiconductor fab"
+  ]
+ },
+ {
+  "slug": "ti",
+  "name_en": "Texas Instruments",
+  "key": "texas instruments",
+  "zh": [
+   "德州儀器"
+  ],
+  "category": "半導體",
+  "queries": [
+   "Texas Instruments headquarters Dallas",
+   "Texas Instruments building",
+   "Texas Instruments fab"
+  ],
+  "product_queries": [
+   "TI calculator",
+   "Texas Instruments chip"
+  ],
+  "related_queries": [
+   "silicon wafer"
+  ]
+ },
+ {
+  "slug": "amat",
+  "name_en": "Applied Materials",
+  "key": "applied materials",
+  "zh": [
+   "應用材料",
+   "應材"
+  ],
+  "category": "半導體",
+  "queries": [
+   "Applied Materials headquarters Santa Clara",
+   "Applied Materials building"
+  ],
+  "product_queries": [
+   "wafer processing equipment",
+   "semiconductor equipment"
+  ],
+  "related_queries": [
+   "semiconductor fab cleanroom"
+  ]
+ },
+ {
+  "slug": "lam",
+  "name_en": "Lam Research",
+  "key": "lam research",
+  "zh": [
+   "科林研發"
+  ],
+  "category": "半導體",
+  "queries": [
+   "Lam Research headquarters Fremont",
+   "Lam Research building"
+  ],
+  "product_queries": [
+   "plasma etch equipment",
+   "wafer etching"
+  ],
+  "related_queries": [
+   "semiconductor fab cleanroom"
+  ]
+ },
+ {
+  "slug": "kla",
+  "name_en": "KLA",
+  "key": "kla",
+  "zh": [
+   "科磊"
+  ],
+  "category": "半導體",
+  "queries": [
+   "KLA Corporation headquarters Milpitas",
+   "KLA-Tencor building"
+  ],
+  "product_queries": [
+   "wafer inspection",
+   "semiconductor metrology"
+  ],
+  "related_queries": [
+   "silicon wafer"
+  ]
+ },
+ {
+  "slug": "tel",
+  "name_en": "Tokyo Electron",
+  "key": "tokyo electron",
+  "zh": [
+   "東京威力科創",
+   "東京電子"
+  ],
+  "category": "半導體",
+  "queries": [
+   "Tokyo Electron headquarters Akasaka",
+   "Tokyo Electron building",
+   "Tokyo Electron Miyagi"
+  ],
+  "product_queries": [
+   "semiconductor equipment",
+   "coater developer"
+  ],
+  "related_queries": [
+   "semiconductor fab cleanroom"
+  ]
+ },
+ {
+  "slug": "sony",
+  "name_en": "Sony",
+  "key": "sony",
+  "zh": [
+   "索尼"
+  ],
+  "category": "消費電子",
+  "queries": [
+   "Sony City Osaki",
+   "Sony headquarters Tokyo",
+   "Sony building Minato"
+  ],
+  "product_queries": [
+   "PlayStation 5 console",
+   "Sony image sensor"
+  ],
+  "related_queries": [
+   "consumer electronics"
+  ]
+ },
+ {
+  "slug": "nintendo",
+  "name_en": "Nintendo",
+  "key": "nintendo",
+  "zh": [
+   "任天堂"
+  ],
+  "category": "消費電子",
+  "queries": [
+   "Nintendo headquarters Kyoto",
+   "Nintendo building Kyoto"
+  ],
+  "product_queries": [
+   "Nintendo Switch console",
+   "Nintendo Switch"
+  ],
+  "related_queries": [
+   "video game console"
+  ]
+ },
+ {
+  "slug": "toyota",
+  "name_en": "Toyota",
+  "key": "toyota",
+  "zh": [
+   "豐田"
+  ],
+  "category": "汽車",
+  "queries": [
+   "Toyota headquarters Toyota City",
+   "Toyota Motor head office",
+   "Toyota plant"
+  ],
+  "product_queries": [
+   "Toyota Prius",
+   "Toyota car assembly"
+  ],
+  "related_queries": [
+   "car assembly line"
+  ]
+ },
+ {
+  "slug": "netflix",
+  "name_en": "Netflix",
+  "key": "netflix",
+  "zh": [
+   "網飛"
+  ],
+  "category": "娛樂媒體",
+  "queries": [
+   "Netflix headquarters Los Gatos",
+   "Netflix building Los Gatos",
+   "Netflix Hollywood building"
+  ],
+  "product_queries": [
+   "streaming television",
+   "smart TV remote"
+  ],
+  "related_queries": [
+   "movie theater"
+  ]
+ },
+ {
+  "slug": "berkshire",
+  "name_en": "Berkshire Hathaway",
+  "key": "berkshire",
+  "zh": [
+   "波克夏"
+  ],
+  "category": "金融",
+  "queries": [
+   "Kiewit Plaza Omaha",
+   "Berkshire Hathaway headquarters Omaha",
+   "Omaha skyline"
+  ],
+  "product_queries": [
+   "stock exchange trading floor"
+  ],
+  "related_queries": [
+   "Wall Street"
+  ]
+ },
+ {
+  "slug": "jpmorgan",
+  "name_en": "JPMorgan Chase",
+  "key": "jpmorgan",
+  "zh": [
+   "摩根大通",
+   "小摩"
+  ],
+  "category": "金融",
+  "queries": [
+   "270 Park Avenue",
+   "JPMorgan Chase Tower",
+   "383 Madison Avenue"
+  ],
+  "product_queries": [
+   "bank vault"
+  ],
+  "related_queries": [
+   "Wall Street"
+  ]
+ },
+ {
+  "slug": "goldman",
+  "name_en": "Goldman Sachs",
+  "key": "goldman",
+  "zh": [
+   "高盛"
+  ],
+  "category": "金融",
+  "queries": [
+   "200 West Street Goldman Sachs",
+   "Goldman Sachs headquarters",
+   "Goldman Sachs tower Jersey City"
+  ],
+  "product_queries": [
+   "stock exchange trading floor"
+  ],
+  "related_queries": [
+   "Wall Street"
+  ]
+ },
+ {
+  "slug": "walmart",
+  "name_en": "Walmart",
+  "key": "walmart",
+  "zh": [
+   "沃爾瑪"
+  ],
+  "category": "零售消費",
+  "queries": [
+   "Walmart Home Office Bentonville",
+   "Walmart Supercenter exterior",
+   "Walmart store"
+  ],
+  "product_queries": [
+   "supermarket shelves",
+   "shopping cart"
+  ],
+  "related_queries": [
+   "supermarket aisle"
+  ]
+ },
+ {
+  "slug": "cocacola",
+  "name_en": "Coca-Cola",
+  "key": "cocacola",
+  "zh": [
+   "可口可樂"
+  ],
+  "category": "零售消費",
+  "queries": [
+   "Coca-Cola headquarters Atlanta",
+   "World of Coca-Cola",
+   "Coca-Cola bottling plant"
+  ],
+  "product_queries": [
+   "bottling plant",
+   "soft drink bottles"
+  ],
+  "related_queries": [
+   "supermarket shelves"
+  ]
+ },
+ {
+  "slug": "nike",
+  "name_en": "Nike",
+  "key": "nike",
+  "zh": [
+   "耐吉",
+   "耐克"
+  ],
+  "category": "零售消費",
+  "queries": [
+   "Nike World Headquarters Beaverton",
+   "Nike campus Beaverton"
+  ],
+  "product_queries": [
+   "running shoes",
+   "sneakers"
+  ],
+  "related_queries": [
+   "shoe store"
+  ]
+ },
+ {
+  "slug": "boeing",
+  "name_en": "Boeing",
+  "key": "boeing",
+  "zh": [
+   "波音"
+  ],
+  "category": "航太",
+  "queries": [
+   "Boeing Everett Factory",
+   "Boeing factory Renton",
+   "Boeing headquarters"
+  ],
+  "product_queries": [
+   "Boeing 787",
+   "Boeing 737 MAX"
+  ],
+  "related_queries": [
+   "airliner takeoff"
+  ]
+ },
+ {
+  "slug": "exxon",
+  "name_en": "ExxonMobil",
+  "key": "exxon",
+  "zh": [
+   "埃克森美孚",
+   "艾克森美孚"
+  ],
+  "category": "能源",
+  "queries": [
+   "ExxonMobil Baytown refinery",
+   "ExxonMobil campus Spring Texas",
+   "ExxonMobil refinery"
+  ],
+  "product_queries": [
+   "oil refinery"
+  ],
+  "related_queries": [
+   "oil well pump jack"
+  ]
+ },
+ {
+  "slug": "aramco",
+  "name_en": "Saudi Aramco",
+  "key": "aramco",
+  "zh": [
+   "沙烏地阿美",
+   "沙烏地阿拉伯國家石油"
+  ],
+  "category": "能源",
+  "queries": [
+   "Saudi Aramco headquarters Dhahran",
+   "Aramco tower",
+   "Aramco Ras Tanura"
+  ],
+  "product_queries": [
+   "oil refinery",
+   "oil tanker"
+  ],
+  "related_queries": [
+   "oil field"
+  ]
+ },
+ {
+  "slug": "alibaba",
+  "name_en": "Alibaba",
+  "key": "alibaba",
+  "zh": [
+   "阿里巴巴",
+   "阿里"
+  ],
+  "category": "資料中心",
+  "queries": [
+   "Alibaba headquarters Hangzhou",
+   "Alibaba Xixi campus",
+   "Alibaba Group building"
+  ],
+  "product_queries": [
+   "data center"
+  ],
+  "related_queries": [
+   "e-commerce warehouse"
+  ]
+ },
+ {
+  "slug": "tencent",
+  "name_en": "Tencent",
+  "key": "tencent",
+  "zh": [
+   "騰訊"
+  ],
+  "category": "消費電子",
+  "queries": [
+   "Tencent Seafront Towers",
+   "Tencent Binhai Mansion",
+   "Tencent building Shenzhen"
+  ],
+  "product_queries": [
+   "smartphone"
+  ],
+  "related_queries": [
+   "Shenzhen skyline"
+  ]
+ },
+ {
+  "slug": "byd",
+  "name_en": "BYD",
+  "key": "byd",
+  "zh": [
+   "比亞迪"
+  ],
+  "category": "汽車",
+  "queries": [
+   "BYD headquarters Shenzhen",
+   "BYD factory",
+   "BYD Auto plant"
+  ],
+  "product_queries": [
+   "BYD Seal",
+   "BYD Atto 3",
+   "BYD Han"
+  ],
+  "related_queries": [
+   "electric car charging"
+  ]
+ },
+ {
+  "slug": "xiaomi",
+  "name_en": "Xiaomi",
+  "key": "xiaomi",
+  "zh": [
+   "小米"
+  ],
+  "category": "消費電子",
+  "queries": [
+   "Xiaomi headquarters Beijing",
+   "Xiaomi campus Haidian",
+   "Xiaomi store exterior"
+  ],
+  "product_queries": [
+   "Xiaomi SU7",
+   "Xiaomi smartphone"
+  ],
+  "related_queries": [
+   "smartphone"
+  ]
+ },
+ {
+  "slug": "huawei",
+  "name_en": "Huawei",
+  "key": "huawei",
+  "zh": [
+   "華為"
+  ],
+  "category": "網通",
+  "queries": [
+   "Huawei Ox Horn campus",
+   "Huawei Bantian headquarters",
+   "Huawei Songshan Lake"
+  ],
+  "product_queries": [
+   "Huawei base station",
+   "Huawei smartphone"
+  ],
+  "related_queries": [
+   "5G antenna"
+  ]
+ },
+ {
+  "slug": "foxconn_overseas",
+  "name_en": "Foxconn overseas",
+  "key": "foxconn",
+  "zh": [
+   "鴻海海外"
+  ],
+  "category": "AI伺服器",
+  "queries": [
+   "Foxconn Wisconsin",
+   "Foxconn Mount Pleasant",
+   "Foxconn Zhengzhou",
+   "Foxconn Guadalajara",
+   "Foxconn Chennai"
+  ],
+  "product_queries": [
+   "electronics assembly line"
+  ],
+  "related_queries": [
+   "server rack"
+  ]
+ },
+ {
+  "slug": "rapidus",
+  "name_en": "Rapidus",
+  "key": "rapidus",
+  "zh": [
+   "Rapidus"
+  ],
+  "category": "半導體",
+  "queries": [
+   "Rapidus Chitose",
+   "Rapidus IIM-1 Chitose",
+   "Rapidus fab Hokkaido"
+  ],
+  "product_queries": [
+   "silicon wafer"
+  ],
+  "related_queries": [
+   "semiconductor fab cleanroom"
+  ]
+ },
+ {
+  "slug": "kioxia",
+  "name_en": "Kioxia",
+  "key": "kioxia",
+  "zh": [
+   "鎧俠"
+  ],
+  "category": "記憶體",
+  "queries": [
+   "Kioxia Yokkaichi",
+   "Kioxia Kitakami",
+   "Kioxia headquarters"
+  ],
+  "product_queries": [
+   "Kioxia SSD",
+   "NAND flash"
+  ],
+  "related_queries": [
+   "solid state drive"
+  ]
+ },
+ {
+  "slug": "wdc",
+  "name_en": "Western Digital",
+  "key": "western digital",
+  "zh": [
+   "威騰",
+   "西部數據"
+  ],
+  "category": "記憶體",
+  "queries": [
+   "Western Digital headquarters San Jose",
+   "Western Digital building",
+   "Western Digital campus"
+  ],
+  "product_queries": [
+   "Western Digital hard drive",
+   "hard disk drive internals"
+  ],
+  "related_queries": [
+   "solid state drive"
   ]
  }
 ]

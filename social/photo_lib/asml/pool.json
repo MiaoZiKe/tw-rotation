@@ -1,10 +1,49 @@
 {
  "slug": "asml",
- "photos": [],
+ "photos": [
+  {
+   "file": "photo_2.jpg",
+   "kind": "總部/廠房",
+   "slug": "asml",
+   "name_en": "ASML",
+   "query": "ASML building",
+   "file_title": "File:ASML Yokkaichi office - panoramio.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:ASML_Yokkaichi_office_-_panoramio.jpg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/f/f9/ASML_Yokkaichi_office_-_panoramio.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "CC BY 3.0",
+   "license_url": "https://creativecommons.org/licenses/by/3.0",
+   "author": "z tanuki",
+   "credit": "https://web.archive.org/web/20161027065650/http://www.panoramio.com/photo/75860535",
+   "description": "ASML Yokkaichi office",
+   "width": 1605,
+   "height": 900,
+   "fetched_at": "2026-10-28T16:15:13+00:00",
+   "reviewed": false,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第三輪（art-director 複審）退件：日本辦公樓、電線雜亂，辨識與質感不足",
+   "reviewed_at": "2026-10-28",
+   "reject_reason": "日本辦公樓、電線雜亂，辨識與質感不足"
+  }
+ ],
  "rejected": [
   {
    "file_title": "File:ASML headquarters Veldhoven.jpg",
    "reason": "天空過曝、塔樓頂端被裁、影像偏灰；畫質不合格",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:ASML shuttle van in Southern Taiwan Science Park May 2025.jpg",
+   "reason": "廂型車，主體弱",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:ASML air freight containers in Tainan May 2025 1.jpg",
+   "reason": "ASML 字樣為主角",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:ASML air freight containers in Tainan May 2025 3.jpg",
+   "reason": "ASML 字樣為主角",
    "at": "2026-10-28"
   }
  ]

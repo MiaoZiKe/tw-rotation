@@ -43,3 +43,19 @@ def test_fallback_to_category_then_none(R):
     assert R.photo_pick("無圖")[2:] == ("D-實景(類別)", "_category/半導體/photo_1.jpg")
     assert R.photo_pick("不在名單") is None
     assert R.photo_pick("不在名單", topic="總經") is None      # 總經池沒有圖 → 灰框
+
+
+def test_foreign_and_macro_text_fallback(R, tmp_path):
+    lib = R.PHOTO_LIB
+    for cat in ("總經_央行", "總經", "能源"):
+        d = lib / "_category" / cat; d.mkdir(parents=True)
+        (d / "photo_1.jpg").write_bytes(b"x")
+        (d / "pool.json").write_text(json.dumps(dict(photos=[dict(file="photo_1.jpg", kind="類別", reviewed=True)])), encoding="utf-8")
+    # 外商不在名單：依文字對應產業池
+    assert R.photo_pick("某外商", topic="美股", text="某外商 HBM 晶片出貨")[3] == "_category/半導體/photo_1.jpg"   # 記憶體池沒圖 → 半導體
+    assert R.photo_pick("埃克森", topic="美股", text="油價大漲 煉油")[3] == "_category/能源/photo_1.jpg"
+    # 總經：先子類，子類沒圖退總經
+    assert R.photo_pick("", topic="總經", text="Fed 宣布降息 1 碼")[3] == "_category/總經_央行/photo_1.jpg"
+    assert R.photo_pick("", topic="總經", text="美國 CPI 年增 3%")[3] == "_category/總經/photo_1.jpg"
+    assert R.topic_cats("非農新增 25 萬", "總經")[0] == "總經_物價就業"
+    assert R.topic_cats("景氣燈號轉紅", "總經")[0] == "總經_景氣"

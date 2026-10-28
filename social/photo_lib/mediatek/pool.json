@@ -1,0 +1,21 @@
+{
+ "slug": "mediatek",
+ "photos": [],
+ "rejected": [
+  {
+   "file_title": "File:Galaxy Tab S11 Ultra 2026-08-09 Samsung Galaxy Tab S series 02.jpg",
+   "reason": "Samsung 平板，與聯發科無關",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:Back side Galaxy Tab S11 Ultra 2026-08-09 Samsung Galaxy Tab S series 04.jpg",
+   "reason": "Samsung 平板背面",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:Minimal Fab exhibit at Tsukuba Science Square 3.jpg",
+   "reason": "展示機台按鈕",
+   "at": "2026-10-28"
+  }
+ ]
+}

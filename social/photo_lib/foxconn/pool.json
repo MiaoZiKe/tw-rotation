@@ -1,10 +1,54 @@
 {
  "slug": "foxconn",
- "photos": [],
+ "photos": [
+  {
+   "file": "photo_1.jpg",
+   "kind": "總部/廠房",
+   "slug": "foxconn",
+   "name_en": "Foxconn",
+   "query": "Foxconn building",
+   "file_title": "File:Foxconn Data Center, Mount Pleasant (53444925939).jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:Foxconn_Data_Center,_Mount_Pleasant_(53444925939).jpg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/9/9f/Foxconn_Data_Center%2C_Mount_Pleasant_%2853444925939%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "CC BY 2.0",
+   "license_url": "https://creativecommons.org/licenses/by/2.0",
+   "author": "Chad Davis from Minneapolis, United States",
+   "credit": "Foxconn Data Center, Mount Pleasant",
+   "description": "A Foxconn data center in Mount Pleasant, Wisconsin. The company has for years promised to build a state of the art manufacturing facility.",
+   "width": 1920,
+   "height": 1279,
+   "fetched_at": "2026-10-28T16:06:45+00:00",
+   "reviewed": false,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第三輪（art-director 複審）退件：疑似 Foxconn 威州廠區，紫色濃霧色偏過重、原色存疑",
+   "reviewed_at": "2026-10-28",
+   "reject_reason": "疑似 Foxconn 威州廠區，紫色濃霧色偏過重、原色存疑"
+  }
+ ],
  "rejected": [
   {
    "file_title": "File:Foxconn (53883997799).jpg",
    "reason": "畫面主角是 FOXCONN 招牌特寫（LOGO 為主角）",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:Inside MPS Administration Building Milwaukee Public School Teachers and Supporters Picket Outside Milwaukee Public Schools Adminstration Building Milwaukee Wisconsin 4-24-18 1190 (27863933918).jpg",
+   "reason": "人群，同名誤抓",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:Schmid Electronics Tech Line DPC 500 (2) - boards-4341.jpg",
+   "reason": "電子零件與鴻海無關",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:Schmid Electronics Tech Line DPC 500 (2) - boards-4339.jpg",
+   "reason": "電子零件與鴻海無關",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:Door of Rack Server Cabinet Fujitsu Primecenter.jpg",
+   "reason": "Fujitsu LOGO 為主角",
    "at": "2026-10-28"
   }
  ]

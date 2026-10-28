@@ -1,0 +1,119 @@
+{
+ "slug": "石化",
+ "photos": [
+  {
+   "file": "photo_1.jpg",
+   "kind": "類別",
+   "slug": "石化",
+   "name_en": "石化",
+   "query": "oil refinery",
+   "file_title": "File:Altona Oil Refinery Victoria.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:Altona_Oil_Refinery_Victoria.jpg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/0/0e/Altona_Oil_Refinery_Victoria.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "author": "Sgroey",
+   "credit": "Own work",
+   "description": "As seen from Clement Reserve Altona North",
+   "width": 1920,
+   "height": 821,
+   "fetched_at": "2026-10-28T16:17:16+00:00",
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第三輪（art-director 複審）通過：主體正確、原色、裁成 952×424 仍成立",
+   "reviewed_at": "2026-10-28",
+   "reviewed_by": "art-director"
+  },
+  {
+   "file": "photo_2.jpg",
+   "kind": "類別",
+   "slug": "石化",
+   "name_en": "石化",
+   "query": "oil refinery",
+   "file_title": "File:Altona oil refinery 2.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:Altona_oil_refinery_2.jpg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/f/f2/Altona_oil_refinery_2.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "author": "Sgroey",
+   "credit": "Own work",
+   "description": "Altona oil refinery (Oil refinery southeast of Melbourne, Australia)",
+   "width": 1920,
+   "height": 886,
+   "fetched_at": "2026-10-28T16:17:16+00:00",
+   "reviewed": false,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第三輪（art-director 複審）退件：老舊煉油廠、鐵道旁塗鴉、天色灰暗",
+   "reviewed_at": "2026-10-28",
+   "reject_reason": "老舊煉油廠、鐵道旁塗鴉、天色灰暗"
+  },
+  {
+   "file": "photo_7.jpg",
+   "kind": "類別",
+   "slug": "石化",
+   "name_en": "石化",
+   "query": "chemical plant",
+   "file_title": "File:Singur Plant (Chemical factory) of Himadri Speciality Chemicals Limited in Hooghly district (18 June 2022).jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:Singur_Plant_(Chemical_factory)_of_Himadri_Speciality_Chemicals_Limited_in_Hooghly_district_(18_June_2022).jpg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/6/64/Singur_Plant_%28Chemical_factory%29_of_Himadri_Speciality_Chemicals_Limited_in_Hooghly_district_%2818_June_2022%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "CC BY 4.0",
+   "license_url": "https://creativecommons.org/licenses/by/4.0",
+   "author": "This photograph is created by Sbb1413. All photographs created by him are released under the {{CC-BY 4.0}} license unles",
+   "credit": "Own work",
+   "description": "A chemical factory of Himadri Speciality Chemicals Limited in Hooghly district of West Bengal. The photo was taken on 18 June, 2022 from Durgapur Expressway (NH-19 or AH-1).",
+   "width": 1920,
+   "height": 1080,
+   "fetched_at": "2026-10-28T16:17:20+00:00",
+   "reviewed": false,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第三輪（art-director 複審）退件：鏽蝕老舊廠區、霧濛、有廢墟感",
+   "reviewed_at": "2026-10-28",
+   "reject_reason": "鏽蝕老舊廠區、霧濛、有廢墟感"
+  },
+  {
+   "file": "photo_8.jpg",
+   "kind": "類別",
+   "slug": "石化",
+   "name_en": "石化",
+   "query": "chemical plant",
+   "file_title": "File:Gomel chemical factory.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:Gomel_chemical_factory.jpg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/9/98/Gomel_chemical_factory.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "author": "Bsivko",
+   "credit": "Own work",
+   "description": "Chemical factory in Gomel, Belarus",
+   "width": 1920,
+   "height": 1440,
+   "fetched_at": "2026-10-28T16:17:20+00:00",
+   "reviewed": false,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第三輪（art-director 複審）退件：主體不明（非確定石化）、電線雜亂",
+   "reviewed_at": "2026-10-28",
+   "reject_reason": "主體不明（非確定石化）、電線雜亂"
+  }
+ ],
+ "rejected": [
+  {
+   "file_title": "File:Oil refinery, Port Dickson.jpg",
+   "reason": "有人物、霧霾",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:Waterloo, NSW - NSW Shale & Oil Co.'s refinery in Botany Rd (Aust. Town & Country Journal, 10 April 1875, p21)).jpg",
+   "reason": "版畫插圖非照片",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:Snowfall at night over Brofjorden and Preemraff oil refinery.jpg",
+   "reason": "夜景主體看不清",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:Night at Valero Refinery in Chalmette Louisiana 02.jpg",
+   "reason": "人物為主",
+   "at": "2026-10-28"
+  }
+ ]
+}

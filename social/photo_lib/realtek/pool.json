@@ -1,0 +1,40 @@
+{
+ "slug": "realtek",
+ "photos": [
+  {
+   "file": "photo_2.jpg",
+   "kind": "產品",
+   "slug": "realtek",
+   "name_en": "Realtek",
+   "query": "Realtek chip",
+   "file_title": "File:Realtek RTL8201BL - 01.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:Realtek_RTL8201BL_-_01.jpg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/e/ee/Realtek_RTL8201BL_-_01.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "author": "Jakub T. Jankiewicz",
+   "credit": "Own work",
+   "description": "ASUS motherboard macro with Realtek chip as main subject",
+   "width": 1920,
+   "height": 1280,
+   "fetched_at": "2026-10-28T16:11:53+00:00",
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第三輪（art-director 複審）通過：主體正確、原色、裁成 952×424 仍成立",
+   "reviewed_at": "2026-10-28",
+   "reviewed_by": "art-director"
+  }
+ ],
+ "rejected": [
+  {
+   "file_title": "File:Msi DIGI VOX mini Deluxe - controller - Realtek RTL2832U-91647.jpg",
+   "reason": "晶片印字為主角",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:Netgear Gigabit Switch 5-port.jpg",
+   "reason": "Netgear LOGO 為主角",
+   "at": "2026-10-28"
+  }
+ ]
+}

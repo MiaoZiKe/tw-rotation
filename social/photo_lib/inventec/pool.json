@@ -1,10 +1,44 @@
 {
  "slug": "inventec",
- "photos": [],
+ "photos": [
+  {
+   "file": "photo_2.jpg",
+   "kind": "產品",
+   "slug": "inventec",
+   "name_en": "Inventec",
+   "query": "server rack",
+   "file_title": "File:IBM server rack internals - IMG 0573.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:IBM_server_rack_internals_-_IMG_0573.jpg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/b/b0/IBM_server_rack_internals_-_IMG_0573.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "CC BY 2.0",
+   "license_url": "https://creativecommons.org/licenses/by/2.0",
+   "author": "Jemimus",
+   "credit": "https://www.flickr.com/photos/12967790@N00/47244555/",
+   "description": "Not bad if I do say so myself.",
+   "width": 1920,
+   "height": 1440,
+   "fetched_at": "2026-10-28T16:13:20+00:00",
+   "reviewed": false,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第三輪（art-director 複審）退件：機櫃雜亂，非營業主體（英業達）",
+   "reviewed_at": "2026-10-28",
+   "reject_reason": "機櫃雜亂，非營業主體（英業達）"
+  }
+ ],
  "rejected": [
   {
    "file_title": "File:Taipei Performing Arts Center and Inventec building 20140828.jpg",
    "reason": "畫面主角是施工中的台北表演藝術中心鋼構，非英業達大樓（同圖他物）",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:Empty server rack - IMG 3677.jpg",
+   "reason": "人物入鏡",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:IBM server rack internals - IMG 0572.jpg",
+   "reason": "主體看不清",
    "at": "2026-10-28"
   }
  ]

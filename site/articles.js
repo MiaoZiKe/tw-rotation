@@ -118,29 +118,7 @@
 #artCard #artPre{display:none}
 #artCard.pre #artPre{display:block}
 #artCard.pre :is(.artflt,.artmain,#artQuota){display:none!important}
-#artPre .pmday{border:1px solid var(--line);border-radius:var(--r-md,10px);background:var(--panel-2,var(--panel));margin-bottom:var(--sp-2);min-width:0;overflow:hidden}
-#artPre .pmh{display:flex;align-items:center;gap:var(--sp-2);padding:var(--sp-2) var(--sp-3);min-height:44px}
-#artPre .pmh>button.pmt{all:unset;box-sizing:border-box;flex:1;min-width:0;display:flex;align-items:center;gap:var(--sp-2);cursor:pointer;min-height:32px;color:var(--ink)}
-#artPre .pmt:focus-visible{outline:2px solid var(--accent,#3b82f6);outline-offset:2px;border-radius:4px}
-#artPre .pmt .pd{font-family:var(--mono);font-variant-numeric:tabular-nums;font-weight:600;font-size:var(--fs-base,14px)}
-#artPre .pmt .pn{font-size:var(--fs-min);color:var(--ink-3)}
-#artPre .pmt .pc{margin-left:auto;color:var(--ink-3);transition:transform .15s}
-#artPre .pmday.open .pmt .pc{transform:rotate(90deg)}
-#artPre .pmcp{flex:none;min-height:32px}
-#artPre .pmcp.done{border-color:var(--art-tn-good);color:var(--art-tn-good)}
-#artPre .pmbody{display:none;border-top:1px solid var(--line);padding:var(--sp-1) var(--sp-3) var(--sp-2)}
-#artPre .pmday.open .pmbody{display:block}
-#artPre .pmi{display:flex;align-items:flex-start;gap:var(--sp-2);padding:var(--sp-2) 0;border-bottom:1px solid var(--line);min-width:0}
-#artPre .pmi:last-child{border-bottom:0}
-#artPre .pmk{flex:none;width:44px;text-align:center;font-size:12px;font-weight:600;line-height:20px;border-radius:4px;color:var(--art-t-ink);background:var(--pk)}
-#artPre .pmk.c-新聞{--pk:var(--art-p1)}#artPre .pmk.c-事件{--pk:var(--art-tn-warn)}#artPre .pmk.c-科技{--pk:var(--art-p2)}#artPre .pmk.c-總經{--pk:var(--art-p3)}
-#artPre .pmi .tw{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
-#artPre .pmi .ds{font-size:var(--fs-min);line-height:1.5;color:var(--ink-3)}
-#artPre .pmi .tt{flex:1;min-width:0;font-size:14px;line-height:1.5;color:var(--ink);overflow-wrap:anywhere}
-#artPre a.tt{text-decoration:none}#artPre a.tt:hover{color:var(--accent,#3b82f6);text-decoration:underline}
-#artPre .pmi .sm{flex:none;font-size:var(--fs-min);color:var(--ink-3);white-space:nowrap;line-height:20px}
-#artPre .pmmore{margin:var(--sp-1) 0 var(--sp-2)}
-@media (max-width:640px){#artPre .pmi{flex-wrap:wrap}#artPre .pmi .sm{flex-basis:100%;padding-left:calc(44px + var(--sp-2));line-height:16px}#artPre .pmh{padding:var(--sp-2)}}
+/* 盤前／盤後消息的列表樣式搬到 site/m4/20261028-articles-news-align.css（10-28 對齊重做） */
 #v-articles .artcard{display:flex;flex-direction:column}
 @media (min-width:821px){#v-articles .artcard{min-height:calc(100vh - 110px);box-sizing:border-box}}
 @media (min-width:821px){#v-articles .artcard.pre{min-height:0}}   /* 盤前消息一天只有 5 列，卡片不撐滿一屏（不留大空白） */
@@ -1206,11 +1184,11 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
     const items = d.items.map((i) => {
       // 2026-10-27 Andy：「盤前消息後面五個標題需要有簡短敘述」→ 標題下一行顯示 desc（新聞摘要整理，80 字內）
       const t0 = i.url ? `<a class="tt" href="${esc(i.url)}" target="_blank" rel="noopener noreferrer">${esc(i.title)}</a>` : `<span class="tt">${esc(i.title)}</span>`;
-      const t = `<span class="tw">${t0}${i.desc ? `<span class="ds">${esc(i.desc)}</span>` : ''}</span>`;
+      const t = `<span class="pmw">${t0}${i.desc ? `<span class="ds">${esc(i.desc)}</span>` : ''}</span>`;
       const sm = [i.source, hhmm(i.time)].filter(Boolean).join('・');
       return `<div class="pmi"><span class="pmk c-${esc(i.cat)}">${esc(i.cat)}</span>${t}${sm ? `<span class="sm">${esc(sm)}</span>` : ''}</div>`;
     }).join('');
-    return `<section class="pmday${open ? ' open' : ''}" data-date="${esc(d.date)}"><div class="pmh"><button type="button" class="pmt" aria-expanded="${open ? 'true' : 'false'}"><span class="pd">${esc(d.date)}</span><span class="pn">${d.items.length} 則</span><span class="pc" aria-hidden="true">›</span></button>`
+    return `<section class="pmday${open ? ' open' : ''}" data-date="${esc(d.date)}"><div class="pmh"><button type="button" class="pmt" aria-expanded="${open ? 'true' : 'false'}"><span class="pc" aria-hidden="true">›</span><span class="pd">${esc(d.date)}</span><span class="pn">${d.items.length} 則</span></button>`
       + `<button type="button" class="btn small pmcp" data-copy="${esc(d.date)}" title="複製成純文字：日期標題＋每則「分類｜標題」與連結">複製整包</button></div><div class="pmbody">${items}</div></section>`;
   }
   function paintPre(root) {

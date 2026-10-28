@@ -18,7 +18,7 @@
    "fetched_at": "2026-10-28T10:11:14+00:00",
    "reviewed": true,
    "reviewer": "art-director",
-   "review_note": "2026-10-28 第一輪通過：華南銀行總行大樓，招牌小字",
+   "review_note": "2026-10-28 第三輪（art-director 複審）通過：主體正確、原色、裁成 952×424 仍成立",
    "reviewed_by": "art-director",
    "reviewed_at": "2026-10-28",
    "note": "華南銀行總行大樓，招牌小字",
@@ -26,5 +26,21 @@
    "kind": "總部/廠房"
   }
  ],
- "rejected": []
+ "rejected": [
+  {
+   "file_title": "File:Hankou Street side, Hua Nan Bank Headquarters 20160730 night.jpg",
+   "reason": "強烈色偏",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:Sijhih Branch, Taiwan Cooperative Bank 20120705.jpg",
+   "reason": "合作金庫分行，主體錯",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:Kaohsiung Branch, Bank of Taiwan 20130528.jpg",
+   "reason": "臺灣銀行，主體錯",
+   "at": "2026-10-28"
+  }
+ ]
 }

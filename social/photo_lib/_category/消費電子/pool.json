@@ -1,0 +1,119 @@
+{
+ "slug": "消費電子",
+ "photos": [
+  {
+   "file": "photo_1.jpg",
+   "kind": "類別",
+   "slug": "消費電子",
+   "name_en": "消費電子",
+   "query": "laptop computer",
+   "file_title": "File:Laptop computer.jpeg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:Laptop_computer.jpeg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/b/bd/Laptop_computer.jpeg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "author": "KK IN HK",
+   "credit": "Windows 11 lock screen.png",
+   "description": "Laptop computer",
+   "width": 1920,
+   "height": 1280,
+   "fetched_at": "2026-10-28T16:17:36+00:00",
+   "reviewed": false,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第三輪（art-director 複審）退件：筆電螢幕翻拍、反光、非產品主體",
+   "reviewed_at": "2026-10-28",
+   "reject_reason": "筆電螢幕翻拍、反光、非產品主體"
+  },
+  {
+   "file": "photo_3.jpg",
+   "kind": "類別",
+   "slug": "消費電子",
+   "name_en": "消費電子",
+   "query": "laptop computer",
+   "file_title": "File:Backlit Laptop Keyboard.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:Backlit_Laptop_Keyboard.jpg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/d/d9/Backlit_Laptop_Keyboard.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "CC0",
+   "license_url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+   "author": "Gre123gr",
+   "credit": "Own work",
+   "description": "A keyboard of a laptop, with a backlight.",
+   "width": 1920,
+   "height": 1440,
+   "fetched_at": "2026-10-28T16:17:37+00:00",
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第三輪（art-director 複審）通過：主體正確、原色、裁成 952×424 仍成立",
+   "reviewed_at": "2026-10-28",
+   "reviewed_by": "art-director"
+  },
+  {
+   "file": "photo_4.jpg",
+   "kind": "類別",
+   "slug": "消費電子",
+   "name_en": "消費電子",
+   "query": "laptop computer",
+   "file_title": "File:HP laptop keyboard.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:HP_laptop_keyboard.jpg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/9/97/HP_laptop_keyboard.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "author": "Gugalcrom123",
+   "credit": "Own work",
+   "description": "Close-up of the keyboard in the HP 250 G7 laptop computer.",
+   "width": 1920,
+   "height": 1440,
+   "fetched_at": "2026-10-28T16:17:37+00:00",
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第三輪（art-director 複審）通過：主體正確、原色、裁成 952×424 仍成立",
+   "reviewed_at": "2026-10-28",
+   "reviewed_by": "art-director"
+  },
+  {
+   "file": "photo_7.jpg",
+   "kind": "類別",
+   "slug": "消費電子",
+   "name_en": "消費電子",
+   "query": "smartphones display",
+   "file_title": "File:Various smartphones - Android, Blackberry, Windows Phone, and iOS.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:Various_smartphones_-_Android,_Blackberry,_Windows_Phone,_and_iOS.jpg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/b/b0/Various_smartphones_-_Android%2C_Blackberry%2C_Windows_Phone%2C_and_iOS.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "CC BY 2.0",
+   "license_url": "https://creativecommons.org/licenses/by/2.0",
+   "author": "Carlos Varela",
+   "credit": "https://www.flickr.com/photos/c32/7755470064/",
+   "description": "Display of several smartphone OSes",
+   "width": 1920,
+   "height": 1080,
+   "fetched_at": "2026-10-28T16:17:41+00:00",
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第三輪（art-director 複審）通過：主體正確、原色、裁成 952×424 仍成立",
+   "reviewed_at": "2026-10-28",
+   "reviewed_by": "art-director"
+  }
+ ],
+ "rejected": [
+  {
+   "file_title": "File:2006 broken laptop computer 237398638.jpg",
+   "reason": "破損螢幕，有誤導",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:1982 Consumer Electronics Show Chicago (4507880322).jpg",
+   "reason": "黑白舊照、人物為主",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:1982 Consumer Electronics Show Chicago (4507209919).jpg",
+   "reason": "黑白舊照、人物為主",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:HK 樂富 Lok Fu Place Plaza 橫頭磡 Wang Tau Hom mall shop Telecom Digital smartphones display December 2021 SS2 02.jpg",
+   "reason": "價格吊牌為主角",
+   "at": "2026-10-28"
+  }
+ ]
+}

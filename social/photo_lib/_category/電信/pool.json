@@ -1,0 +1,83 @@
+{
+ "slug": "電信",
+ "photos": [
+  {
+   "file": "photo_7.jpg",
+   "kind": "類別",
+   "slug": "電信",
+   "name_en": "電信",
+   "query": "mobile phone mast",
+   "file_title": "File:Mobile phone mast.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:Mobile_phone_mast.jpg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/f/fd/Mobile_phone_mast.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "author": "Diacius",
+   "credit": "Own work",
+   "description": "This is a picture of a mobile phone base station, next to the M25, near Cobham services. It is operated by both EE and Three UK.",
+   "width": 1920,
+   "height": 1440,
+   "fetched_at": "2026-10-28T16:17:26+00:00",
+   "reviewed": false,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第三輪（art-director 複審）退件：微不足道的小棚屋與煙囪，無電信辨識度",
+   "reviewed_at": "2026-10-28",
+   "reject_reason": "微不足道的小棚屋與煙囪，無電信辨識度"
+  },
+  {
+   "file": "photo_8.jpg",
+   "kind": "類別",
+   "slug": "電信",
+   "name_en": "電信",
+   "query": "mobile phone mast",
+   "file_title": "File:Zoomed in shot of mobile phone mast.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:Zoomed_in_shot_of_mobile_phone_mast.jpg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/e/eb/Zoomed_in_shot_of_mobile_phone_mast.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "CC BY-SA 3.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/3.0",
+   "author": "Kernow Skies",
+   "credit": "The Photographer",
+   "description": "Zoomed in shot of mobile phone mast",
+   "width": 1920,
+   "height": 1440,
+   "fetched_at": "2026-10-28T16:17:26+00:00",
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第三輪（art-director 複審）通過：主體正確、原色、裁成 952×424 仍成立",
+   "reviewed_at": "2026-10-28",
+   "reviewed_by": "art-director"
+  }
+ ],
+ "rejected": [
+  {
+   "file_title": "File:Funkturm Arsenal Blitze.jpg",
+   "reason": "閃電特效夜景",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:Deutsche Telekom 5G-Empfänger SE - Wieson Wi-Fi antenna 3-1444.jpg",
+   "reason": "天線零件特寫，看不出電信",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:Deutsche Telekom 5G-Empfänger SE - Wieson Wi-Fi antenna 0-1460.jpg",
+   "reason": "天線零件特寫",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:Deutsche Telekom 5G-Empfänger SE - Wieson Wi-Fi antenna 4-1464.jpg",
+   "reason": "天線零件特寫",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:Deutsche Telekom 5G-Empfänger SE - Wieson Wi-Fi antenna 9-1470.jpg",
+   "reason": "天線零件特寫",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:Deutsche Telekom 5G-Empfänger SE - Wieson Wi-Fi antenna 5-1468.jpg",
+   "reason": "天線零件特寫",
+   "at": "2026-10-28"
+  }
+ ]
+}

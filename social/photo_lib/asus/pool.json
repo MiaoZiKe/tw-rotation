@@ -1,10 +1,85 @@
 {
  "slug": "asus",
- "photos": [],
+ "photos": [
+  {
+   "file": "photo_1.jpg",
+   "kind": "總部/廠房",
+   "slug": "asus",
+   "name_en": "ASUS",
+   "query": "ASUS",
+   "file_title": "File:ASUS US Headquarters.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:ASUS_US_Headquarters.jpg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/7/7c/ASUS_US_Headquarters.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "author": "Coolcaesar",
+   "credit": "Own work",
+   "description": "ASUSTek's US headquarters in Fremont, California. Photographed by user Coolcaesar on July 24, 2021.",
+   "width": 1920,
+   "height": 1306,
+   "fetched_at": "2026-10-28T16:09:11+00:00",
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第三輪（art-director 複審）通過：主體正確、原色、裁成 952×424 仍成立",
+   "reviewed_at": "2026-10-28",
+   "reviewed_by": "art-director"
+  },
+  {
+   "file": "photo_2.jpg",
+   "kind": "產品",
+   "slug": "asus",
+   "name_en": "ASUS",
+   "query": "ASUS motherboard",
+   "file_title": "File:Motherboard ASUS Digital Home P5W DH Deluxe.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:Motherboard_ASUS_Digital_Home_P5W_DH_Deluxe.jpg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/7/73/Motherboard_ASUS_Digital_Home_P5W_DH_Deluxe.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "author": "Alex P. Kok",
+   "credit": "Own work",
+   "description": "Motherboard ASUS Digital Home P5W DH Deluxe",
+   "width": 1920,
+   "height": 1536,
+   "fetched_at": "2026-10-28T16:09:14+00:00",
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第三輪（art-director 複審）通過：主體正確、原色、裁成 952×424 仍成立",
+   "reviewed_at": "2026-10-28",
+   "reviewed_by": "art-director"
+  },
+  {
+   "file": "photo_3.jpg",
+   "kind": "產品",
+   "slug": "asus",
+   "name_en": "ASUS",
+   "query": "ASUS motherboard",
+   "file_title": "File:Asus-ROG-Strix-Z390-F-Gaming-Motherboard 20201120 DSC6025.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:Asus-ROG-Strix-Z390-F-Gaming-Motherboard_20201120_DSC6025.jpg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/7/7b/Asus-ROG-Strix-Z390-F-Gaming-Motherboard_20201120_DSC6025.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "CC BY 4.0",
+   "license_url": "https://creativecommons.org/licenses/by/4.0",
+   "author": "PantheraLeo1359531",
+   "credit": "Own work",
+   "description": "Asus-ROG-Strix-Z390-F-Gaming motherboard. The information about the PIN connectors were extracted from the official ASUS manual. Also, the names of the connectors were added. The PIN-specified names are provided in capitals and separated by \"/\". All PCIe lanes are 3rd generation. It uses the Intel Z",
+   "width": 1920,
+   "height": 1596,
+   "fetched_at": "2026-10-28T16:09:14+00:00",
+   "reviewed": false,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第三輪（art-director 複審）退件：紅地毯背景、ROG 字樣為主角",
+   "reviewed_at": "2026-10-28",
+   "reject_reason": "紅地毯背景、ROG 字樣為主角"
+  }
+ ],
  "rejected": [
   {
    "file_title": "File:ASUSTeK Computer headquarters 20150711.jpg",
    "reason": "霧霾、施工鷹架，辨識不出華碩大樓",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:HP Pavilion Computer laptop keyboard closeup.jpg",
+   "reason": "他牌筆電、模糊",
    "at": "2026-10-28"
   }
  ]

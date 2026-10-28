@@ -1,10 +1,54 @@
 {
  "slug": "quanta",
- "photos": [],
+ "photos": [
+  {
+   "file": "photo_3.jpg",
+   "kind": "產品",
+   "slug": "quanta",
+   "name_en": "Quanta Computer",
+   "query": "server rack",
+   "file_title": "File:Wikimedia Foundation Servers-8055 03 square.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:Wikimedia_Foundation_Servers-8055_03_square.jpg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/d/de/Wikimedia_Foundation_Servers-8055_03_square.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "author": "Victorgrigas",
+   "credit": "File:Wikimedia Foundation Servers-8055 03.jpg",
+   "description": "Wikimedia Foundation Servers",
+   "width": 1920,
+   "height": 1917,
+   "fetched_at": "2026-10-28T16:07:16+00:00",
+   "reviewed": false,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第三輪（art-director 複審）退件：線材雜亂，非廣達",
+   "reviewed_at": "2026-10-28",
+   "reject_reason": "線材雜亂，非廣達"
+  }
+ ],
  "rejected": [
   {
    "file_title": "File:Quanta Computer Hwa Ya Technology Park.JPG",
    "reason": "天花鋼構特寫，看不出主體是廣達",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:Quanta Crews (53513782029).jpg",
+   "reason": "人物演講（同名誤抓）",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:Quanta Crews (52962790287).jpg",
+   "reason": "人物演講（同名誤抓）",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:Osservando il rack ESC20 - ML.jpg",
+   "reason": "人物為主角",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:Colorful metal bicycle parking rack in Lysekil 2.jpg",
+   "reason": "腳踏車架，同名誤抓",
    "at": "2026-10-28"
   }
  ]

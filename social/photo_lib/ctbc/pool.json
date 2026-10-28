@@ -18,13 +18,70 @@
    "fetched_at": "2026-10-28T10:09:47+00:00",
    "reviewed": true,
    "reviewer": "art-director",
-   "review_note": "2026-10-28 第一輪通過：中信金融園區雙塔，日間",
+   "review_note": "2026-10-28 第三輪（art-director 複審）通過：主體正確、原色、裁成 952×424 仍成立",
    "reviewed_by": "art-director",
    "reviewed_at": "2026-10-28",
    "note": "中信金融園區雙塔，日間",
    "file": "photo_1.jpg",
    "kind": "總部/廠房"
+  },
+  {
+   "file": "photo_2.jpg",
+   "kind": "總部/廠房",
+   "slug": "ctbc",
+   "name_en": "CTBC Financial",
+   "query": "CTBC Financial Park",
+   "file_title": "File:CTBC Financial Park 20230916.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:CTBC_Financial_Park_20230916.jpg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/8/8e/CTBC_Financial_Park_20230916.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "author": "Yu tptw",
+   "credit": "Own work",
+   "description": "​自南港軟體園區第三期大樓拍攝中國信託金融園區。",
+   "width": 1920,
+   "height": 1464,
+   "fetched_at": "2026-10-28T16:07:53+00:00",
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第三輪（art-director 複審）通過：主體正確、原色、裁成 952×424 仍成立",
+   "reviewed_at": "2026-10-28",
+   "reviewed_by": "art-director"
+  },
+  {
+   "file": "photo_5.jpg",
+   "kind": "相關場景",
+   "slug": "ctbc",
+   "name_en": "CTBC Financial",
+   "query": "Taipei 101",
+   "file_title": "File:Taipei, November 25, 2024 - 008.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:Taipei,_November_25,_2024_-_008.jpg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/7/71/Taipei%2C_November_25%2C_2024_-_008.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "author": "Another Believer",
+   "credit": "Own work",
+   "description": "Taipei 101",
+   "width": 1920,
+   "height": 1440,
+   "fetched_at": "2026-10-28T16:07:59+00:00",
+   "reviewed": false,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第三輪（art-director 複審）退件：主體是台北 101 天際線，非國泰世華／富邦等金控本身",
+   "reviewed_at": "2026-10-28",
+   "reject_reason": "主體是台北 101 天際線，非國泰世華／富邦等金控本身"
   }
  ],
- "rejected": []
+ "rejected": [
+  {
+   "file_title": "File:Taipei 101 Tuned Mass Damper 2010.jpg",
+   "reason": "101 阻尼器，與中信金無關",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:Tainan Taiwan Bank-of-Taiwan-Tainan-Branch-02.jpg",
+   "reason": "臺灣銀行分行，主體錯",
+   "at": "2026-10-28"
+  }
+ ]
 }

@@ -333,20 +333,65 @@ def _rotate(d, key, used, today, allow_unreviewed):
         except Exception: return False
     m = sorted(ph, key=lambda m: (recent(m), last(m), m["file"]))[0]
     return d / m["file"], m
-def photo_pick(subject, topic=None, used=None, today=None, allow_unreviewed=False):
-    """選圖順序（Andy 10-28 v2）：該公司已審圖池（近 14 天用過的避開、輪替）→ 該公司所屬類別的通用圖池 → None（灰框大數字）。
+# 主體不在名單（或名單裡沒有可用圖）時，依新聞文字對應類別池（Andy 10-28：「如果是外商，或是總經面相關呢？」）。依序比對，先中先用。
+TOPIC_KW = [
+    ("記憶體", r"記憶體|DRAM|NAND|HBM|快閃|SSD|DDR\d"),
+    ("半導體", r"晶圓|半導體|製程|先進封裝|CoWoS|晶片|IC設計|EUV|微影|蝕刻|奈米"),
+    ("AI伺服器", r"AI伺服器|伺服器|GPU|機櫃|算力|加速器"),
+    ("資料中心", r"資料中心|數據中心|雲端|超大規模|data center"),
+    ("散熱", r"散熱|液冷|水冷|均熱"),
+    ("PCB", r"PCB|印刷電路板|載板|CCL|銅箔"),
+    ("網通", r"網通|交換器|光通訊|光模組|矽光子|CPO|路由器|乙太網路"),
+    ("電信", r"電信|5G|基地台|資費|頻譜"),
+    ("汽車", r"汽車|電動車|車廠|新車|自駕|EV\b|車用"),
+    ("航太", r"航太|飛機|客機|航空|波音|空巴"),
+    ("能源", r"石油|原油|油價|天然氣|LNG|煉油|OPEC|核電|電廠|綠能|太陽能|風電"),
+    ("航運", r"航運|貨櫃|運價|散裝|船隊|SCFI"),
+    ("鋼鐵", r"鋼鐵|鋼價|鋼材"),
+    ("石化", r"石化|塑化|乙烯"),
+    ("金融", r"銀行|金控|壽險|投行|券商|華爾街|基金|資產管理|併購"),
+    ("零售消費", r"零售|超市|量販|消費者|飲料|球鞋|服飾|電商"),
+    ("娛樂媒體", r"串流|影音|電影|影集|訂閱戶"),
+    ("消費電子", r"手機|iPhone|筆電|平板|遊戲機|穿戴|消費性電子|PC\b"),
+]
+MACRO_KW = [      # 總經子類（依序比對）；都沒中就用 _category/總經
+    ("總經_央行", r"Fed|FOMC|聯準會|央行|理監事|日銀|歐洲央行|ECB|英格蘭銀行|鮑爾|降息|升息|貨幣政策|縮表|QE"),
+    ("總經_物價就業", r"CPI|PCE|PPI|通膨|物價|非農|就業|失業率|薪資|初領"),
+    ("總經_貿易關稅", r"關稅|貿易|出口|進口|外銷訂單|海關|貿易戰"),
+    ("總經_能源", r"油價|原油|OPEC|布蘭特|WTI|天然氣"),
+    ("總經_匯率", r"匯率|新台幣|美元指數|日圓|日元|人民幣|歐元|升值|貶值|外匯"),
+    ("總經_利率債券", r"殖利率|公債|美債|債券|利差|國債"),
+    ("總經_房市", r"房市|房價|房貸|新屋|成屋|營建|住宅"),
+    ("總經_景氣", r"GDP|PMI|景氣|燈號|經濟成長|衰退|工業生產|消費者信心|零售銷售"),
+]
+def topic_cats(text, topic=None):
+    """依新聞文字回傳候選類別池（依序）。總經新聞：命中的子類 → 總經；其他：產業類別。"""
+    t = text or ""; out = []
+    macro = [c for c, kw in MACRO_KW if re.search(kw, t, re.I)]
+    inds = [c for c, kw in TOPIC_KW if re.search(kw, t, re.I)]
+    if topic == "總經":
+        out = macro[:1] + ["總經"] + inds[:1]
+    else:
+        out = inds[:2] + macro[:1] + (["總經"] if macro else [])
+    return [c for i, c in enumerate(out) if c not in out[:i]]
+def photo_pick(subject, topic=None, used=None, today=None, allow_unreviewed=False, text=None):
+    """選圖順序（Andy 10-28 v3）：該公司已審圖池（近 14 天用過的避開、輪替）→ 該公司所屬類別池
+    → 依新聞文字對應的類別池（總經新聞先找子類：央行／物價就業／利率債券／匯率／能源／貿易關稅／景氣／房市）→ None（灰框大數字）。
     主體名只認 aliases.json 的完全相同名稱。回傳 (路徑, meta, layout 標籤, 使用紀錄鍵) 或 None。"""
     try: aliases = json.loads((PHOTO_LIB / "aliases.json").read_text(encoding="utf-8"))
     except Exception: aliases = {}
     slug = aliases.get((subject or "").strip())
-    cat = None
+    cats = []
     if slug:
         r = _rotate(PHOTO_LIB / slug, slug, used, today, allow_unreviewed)
         if r: return r[0], r[1], KIND_LAYOUT.get(r[1].get("kind"), "D-實景(公司)"), f"{slug}/{r[1]['file']}"
-        try: cat = next((t.get("category") for t in json.loads((PHOTO_LIB / "targets.json").read_text(encoding="utf-8")) if t.get("slug") == slug), None)
-        except Exception: cat = None
-    cat = cat or TOPIC_CAT.get(topic or "")
-    if cat:
+        try: cats = [next((t.get("category") for t in json.loads((PHOTO_LIB / "targets.json").read_text(encoding="utf-8")) if t.get("slug") == slug), None)]
+        except Exception: cats = []
+    cats += topic_cats(f"{subject or ''} {text or ''}", topic) + [TOPIC_CAT.get(topic or "")]
+    seen = set()
+    for cat in cats:
+        if not cat or cat in seen: continue
+        seen.add(cat)
         r = _rotate(PHOTO_LIB / "_category" / cat, f"_category/{cat}", used, today, allow_unreviewed)
         if r: return r[0], r[1], "D-實景(類別)", f"_category/{cat}/{r[1]['file']}"
     return None
@@ -398,7 +443,10 @@ def card_photo(d, idx, tot, photo, slot="pre", pending=False):
 def card_auto(d, idx, tot, slot="pre", allow_unreviewed=False, used=None, today=None):
     """自動版：公司圖池 → 類別圖池 → card_v4 灰框大數字。回傳 (html, layout 標籤, 選圖資訊 dict 或 None)。
     選圖資訊＝{key, kind, file}；呼叫端用 key 記使用紀錄（輪替）、kind 寫進 meta.photo_kind。"""
-    ph = photo_pick(d["card"].get("subject"), d.get("meta", {}).get("topic_category") or d["card"].get("category"), used, today, allow_unreviewed)
+    c = d["card"]
+    text = " ".join([c.get("title", ""), c.get("cover_title", "") if isinstance(c.get("cover_title"), str) else " ".join(c.get("cover_title") or []),
+                     c.get("kicker", "")] + [x.get("name", "") for x in d.get("sources", [])])
+    ph = photo_pick(c.get("subject"), d.get("meta", {}).get("topic_category") or c.get("category"), used, today, allow_unreviewed, text=text)
     if ph:
         path, meta, lay, key = ph
         return card_photo(d, idx, tot, (path, meta), slot, pending=not meta.get("reviewed")), lay, dict(key=key, kind=meta.get("kind", ""), file=str(path))

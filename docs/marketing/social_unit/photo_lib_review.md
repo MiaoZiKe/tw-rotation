@@ -99,3 +99,94 @@ Andy 10-28 原話：新聞卡上方的大數字灰框改成「對應的實景圖
 | unimicron | CC BY-SA 4.0 | 退件 | 2026-10-28 | 樹木與雜物佔畫面、廠房被遮，構圖雜亂 |
 | wanhai | CC BY-SA 2.0 | 退件 | 2026-10-28 | 動態模糊、樹叢遮擋，畫質不合格 |
 | yuanta | CC BY-SA 4.0 | 退件 | 2026-10-28 | 樹木與路牌遮擋大樓，構圖雜亂 |
+
+### 第二輪（2026-10-28，v2 圖池，art-director 依 952×424 中段裁切逐張檢視）
+
+新抓 376 張：通過 190、退件 186。每張結論寫在各自 `pool.json`（通過：`reviewed:true`＋`review_note`；退件：移到 `rejected`，附原因，之後不再抓）。
+主要退件原因：LOGO／招牌為主角、別家銀行分行（合作金庫／臺灣銀行／土地銀行被誤抓到他家金控）、人物為主角、同名誤抓（Quanta Crews、King's College 等）、與產品無關的零件特寫、事故或廢墟畫面、強烈色調。
+審後覆蓋：67 家中 57 家有 ≥1 張（平均 2.2 張／家），類別池 15 類共 68 張；公司池仍無圖的 10 家（聯發科、智邦、聯電、和碩、合庫金、大立光、永豐金、聯詠、台灣大哥大、健策）改用類別池。偏少的類別池：網通 1、汽車 2、金融 2、電信 2，下次換查詢字補。
+
+## 第五節　第三輪複審（2026-10-28，art-director 正式審核，複審所有工程自審 reviewed:true 的 215 張）
+
+標準同第三節，逐張用 952×424 中段裁切檢視；額外加嚴三條：① 拍到的是「同名他物／他牌產品」一律退（例如 Motorola／TI／Mitsubishi 記憶體板冒充三星、SK 海力士、美光；Netgear 交換器冒充台達電）；② 畫面主體是台北 101 天際線的，不算金控本身，退；③ 圖上有浮水印、可辨識車牌、人物入鏡、施工／廢墟／濃霧色偏的退。
+
+結果：通過 98／退件 117。通過者 pool.json 加 `reviewed_by: art-director`；退件者 `reviewed:false` 並寫 `reject_reason`（`social_news.py` 對 reviewed:false 一律不用）。
+
+| 圖池 | 通過 | 退件 |
+|---|---|---|
+| _category/AI伺服器 | 4 | 2 |
+| _category/PCB | 4 | 2 |
+| _category/半導體 | 5 | 1 |
+| _category/散熱 | 4 | 1 |
+| _category/汽車 | 1 | 1 |
+| _category/消費電子 | 3 | 1 |
+| _category/石化 | 1 | 3 |
+| _category/網通 | 0 | 1 |
+| _category/總經 | 3 | 3 |
+| _category/航運 | 7 | 1 |
+| _category/記憶體 | 4 | 2 |
+| _category/資料中心 | 1 | 5 |
+| _category/金融 | 1 | 1 |
+| _category/鋼鐵 | 2 | 2 |
+| _category/電信 | 1 | 1 |
+| advantech | 0 | 2 |
+| alchip | 1 | 1 |
+| alphabet | 1 | 1 |
+| amazon | 2 | 2 |
+| amd | 3 | 0 |
+| anthropic | 0 | 3 |
+| apple | 3 | 0 |
+| ase | 1 | 1 |
+| asml | 0 | 1 |
+| asus | 2 | 1 |
+| auras | 2 | 0 |
+| broadcom | 1 | 1 |
+| cathay | 0 | 1 |
+| cdf | 1 | 1 |
+| chunghwa_telecom | 2 | 2 |
+| csc | 2 | 2 |
+| ctbc | 2 | 1 |
+| delta | 2 | 3 |
+| esun | 1 | 1 |
+| evergreen | 1 | 2 |
+| fareastone | 0 | 5 |
+| first_fin | 0 | 1 |
+| formosa_plastics | 1 | 2 |
+| foxconn | 0 | 1 |
+| fpcc | 0 | 3 |
+| fubon | 0 | 2 |
+| hotai | 0 | 2 |
+| hua_nan | 1 | 0 |
+| intel | 2 | 1 |
+| inventec | 0 | 1 |
+| kingslide | 0 | 2 |
+| liteon | 1 | 2 |
+| mega | 1 | 2 |
+| meta | 0 | 1 |
+| micron | 1 | 2 |
+| microsoft | 2 | 3 |
+| nanya_plastics | 0 | 2 |
+| nvidia | 2 | 1 |
+| nxp | 2 | 0 |
+| openai | 1 | 4 |
+| qualcomm | 1 | 1 |
+| quanta | 0 | 1 |
+| realtek | 1 | 0 |
+| samsung | 1 | 2 |
+| sk_hynix | 0 | 1 |
+| taishin | 0 | 2 |
+| tcc | 1 | 2 |
+| tesla | 1 | 4 |
+| tsmc | 3 | 1 |
+| uni_president | 1 | 0 |
+| unimicron | 1 | 1 |
+| wanhai | 2 | 2 |
+| wistron | 2 | 2 |
+| wiwynn | 0 | 2 |
+| yageo | 1 | 0 |
+| yangming | 1 | 3 |
+| yuanta | 0 | 3 |
+
+提醒：以下公司複審後**沒有任何通過的圖**，自動發文遇到這幾家會退回灰框大數字版，不會用錯圖：
+
+_category/網通、advantech、anthropic、asml、cathay、fareastone、first_fin、foxconn、fpcc、fubon、hotai、inventec、kingslide、meta、nanya_plastics、quanta、sk_hynix、taishin、wiwynn、yuanta

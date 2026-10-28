@@ -1,10 +1,67 @@
 {
  "slug": "taishin",
- "photos": [],
+ "photos": [
+  {
+   "file": "photo_1.jpg",
+   "kind": "總部/廠房",
+   "slug": "taishin",
+   "name_en": "Taishin Financial",
+   "query": "Taishin Bank building",
+   "file_title": "File:Taishin Tower 20240824.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:Taishin_Tower_20240824.jpg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/b/bd/Taishin_Tower_20240824.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "author": "Yu tptw",
+   "credit": "Own work",
+   "description": "​台新金控大樓",
+   "width": 1920,
+   "height": 2065,
+   "fetched_at": "2026-10-28T16:10:49+00:00",
+   "reviewed": false,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第三輪（art-director 複審）退件：塔身細長、裁切後多為天空、無辨識",
+   "reviewed_at": "2026-10-28",
+   "reject_reason": "塔身細長、裁切後多為天空、無辨識"
+  },
+  {
+   "file": "photo_2.jpg",
+   "kind": "總部/廠房",
+   "slug": "taishin",
+   "name_en": "Taishin Financial",
+   "query": "Taishin Bank building",
+   "file_title": "File:Taishin Tower 20230517.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:Taishin_Tower_20230517.jpg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/7/74/Taishin_Tower_20230517.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "author": "Yu tptw",
+   "credit": "Own work",
+   "description": "​台新金控大樓、仁愛路四段路標牌、福斯多元計程車TDU-3032車尾。",
+   "width": 1920,
+   "height": 1952,
+   "fetched_at": "2026-10-28T16:10:50+00:00",
+   "reviewed": false,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第三輪（art-director 複審）退件：塔身細長、裁切後多為天空、無辨識",
+   "reviewed_at": "2026-10-28",
+   "reject_reason": "塔身細長、裁切後多為天空、無辨識"
+  }
+ ],
  "rejected": [
   {
    "file_title": "File:Taishin Tower entrance 20130324.jpg",
    "reason": "入口招牌近拍，無建築全貌，招牌為主角",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:Songshan Branch, Taiwan Cooperative Bank 20101013.jpg",
+   "reason": "合作金庫分行，主體錯",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:Dong Taipei Branch, Taiwan Cooperative Bank 20101031.jpg",
+   "reason": "合作金庫分行，主體錯",
    "at": "2026-10-28"
   }
  ]

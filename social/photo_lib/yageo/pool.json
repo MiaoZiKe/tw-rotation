@@ -1,0 +1,40 @@
+{
+ "slug": "yageo",
+ "photos": [
+  {
+   "file": "photo_1.jpg",
+   "kind": "產品",
+   "slug": "yageo",
+   "name_en": "Yageo",
+   "query": "multilayer ceramic capacitor",
+   "file_title": "File:Ceramic capacitors mounted on a PCB.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:Ceramic_capacitors_mounted_on_a_PCB.jpg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/1/1b/Ceramic_capacitors_mounted_on_a_PCB.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "CC BY 4.0",
+   "license_url": "https://creativecommons.org/licenses/by/4.0",
+   "author": "Giovanna 27",
+   "credit": "Own work",
+   "description": "Multilayer ceramic capacitors (MLCCs) are based on barium titanate, BaTiO3. MLCCs are mounted on Printed Circuit Boards (PCBs) as high capacitance capacitors",
+   "width": 1920,
+   "height": 1280,
+   "fetched_at": "2026-10-28T16:11:01+00:00",
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第三輪（art-director 複審）通過：主體正確、原色、裁成 952×424 仍成立",
+   "reviewed_at": "2026-10-28",
+   "reviewed_by": "art-director"
+  }
+ ],
+ "rejected": [
+  {
+   "file_title": "File:Dubilier S635 mica capacitor, 1940s (01).jpg",
+   "reason": "古董電容，非國巨產品",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:Smartphone Use.jpg",
+   "reason": "手機使用，與國巨無關",
+   "at": "2026-10-28"
+  }
+ ]
+}

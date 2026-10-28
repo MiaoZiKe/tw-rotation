@@ -1,0 +1,68 @@
+{
+ "slug": "kingslide",
+ "photos": [
+  {
+   "file": "photo_3.jpg",
+   "kind": "產品",
+   "slug": "kingslide",
+   "name_en": "King Slide Works",
+   "query": "server rail",
+   "file_title": "File:Fujitsu Siemens 19inch rack rail system 20100621.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:Fujitsu_Siemens_19inch_rack_rail_system_20100621.jpg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/4/48/Fujitsu_Siemens_19inch_rack_rail_system_20100621.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "Public domain",
+   "license_url": "",
+   "author": "Mixabest",
+   "credit": "Own work",
+   "description": "Fujitsu Siemens servers rail system for 19 inch rack.",
+   "width": 1920,
+   "height": 857,
+   "fetched_at": "2026-10-28T16:12:51+00:00",
+   "reviewed": false,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第三輪（art-director 複審）退件：機殼加鋼尺，非主體",
+   "reviewed_at": "2026-10-28",
+   "reject_reason": "機殼加鋼尺，非主體"
+  },
+  {
+   "file": "photo_5.jpg",
+   "kind": "相關場景",
+   "slug": "kingslide",
+   "name_en": "King Slide Works",
+   "query": "server rack",
+   "file_title": "File:Compaq server rack - IMG 0146.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:Compaq_server_rack_-_IMG_0146.jpg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/9/9b/Compaq_server_rack_-_IMG_0146.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "CC BY 2.0",
+   "license_url": "https://creativecommons.org/licenses/by/2.0",
+   "author": "Jemimus",
+   "credit": "https://www.flickr.com/photos/12967790@N00/28522656/",
+   "description": "Note the nice NAS array",
+   "width": 1600,
+   "height": 1200,
+   "fetched_at": "2026-10-28T16:12:52+00:00",
+   "reviewed": false,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第三輪（art-director 複審）退件：雜亂機房、紅橘線纜",
+   "reviewed_at": "2026-10-28",
+   "reject_reason": "雜亂機房、紅橘線纜"
+  }
+ ],
+ "rejected": [
+  {
+   "file_title": "File:Cambridge. King's College. Front Court, GD013963.jpg",
+   "reason": "老照片，與川湖無關（同名誤抓）",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:Employees and customers in Building Department in King County Courthouse building, 1952 (51299343784).jpg",
+   "reason": "老照片人物，同名誤抓",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:IC125@40 - TS 42143 (fGWR) Volo TV server box.JPG",
+   "reason": "列車設備，與川湖無關",
+   "at": "2026-10-28"
+  }
+ ]
+}

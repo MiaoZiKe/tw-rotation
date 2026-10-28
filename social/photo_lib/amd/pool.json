@@ -18,13 +18,65 @@
    "fetched_at": "2026-10-28T10:13:04+00:00",
    "reviewed": true,
    "reviewer": "art-director",
-   "review_note": "2026-10-28 第一輪通過：AMD 森尼韋爾園區建築，招牌小",
+   "review_note": "2026-10-28 第三輪（art-director 複審）通過：主體正確、原色、裁成 952×424 仍成立",
    "reviewed_by": "art-director",
    "reviewed_at": "2026-10-28",
    "note": "AMD 森尼韋爾園區建築，招牌小",
    "file": "photo_1.jpg",
    "kind": "總部/廠房"
+  },
+  {
+   "file": "photo_2.jpg",
+   "kind": "總部/廠房",
+   "slug": "amd",
+   "name_en": "AMD",
+   "query": "AMD campus Austin",
+   "file_title": "File:AMD Austin campus.JPG",
+   "source_url": "https://commons.wikimedia.org/wiki/File:AMD_Austin_campus.JPG",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/5/53/AMD_Austin_campus.JPG?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "Public domain",
+   "license_url": "",
+   "author": "Matthewrutledge",
+   "credit": "Own work",
+   "description": "One of the 5 buildings of AMD's Lone Star Campus in Austin, Texas, which houses many of the worldwide business operations of the company.",
+   "width": 1920,
+   "height": 1440,
+   "fetched_at": "2026-10-28T16:14:25+00:00",
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第三輪（art-director 複審）通過：主體正確、原色、裁成 952×424 仍成立",
+   "reviewed_at": "2026-10-28",
+   "reviewed_by": "art-director"
+  },
+  {
+   "file": "photo_3.jpg",
+   "kind": "產品",
+   "slug": "amd",
+   "name_en": "AMD",
+   "query": "AMD Ryzen processor",
+   "file_title": "File:AMD Ryzen 7 1800X.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:AMD_Ryzen_7_1800X.jpg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/3/3f/AMD_Ryzen_7_1800X.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "CC BY-SA 2.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/2.0",
+   "author": "Brian Wong",
+   "credit": "https://www.flickr.com/photos/57993471@N06/37962336546/",
+   "description": "There's an AMD Ryzen 7 1800X eight-core processor in the socket.",
+   "width": 1920,
+   "height": 1281,
+   "fetched_at": "2026-10-28T16:14:28+00:00",
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第三輪（art-director 複審）通過：主體正確、原色、裁成 952×424 仍成立",
+   "reviewed_at": "2026-10-28",
+   "reviewed_by": "art-director"
   }
  ],
- "rejected": []
+ "rejected": [
+  {
+   "file_title": "File:AMD Ryzen 9 7900X.jpg",
+   "reason": "晶片印字為主角",
+   "at": "2026-10-28"
+  }
+ ]
 }

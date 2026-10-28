@@ -18,13 +18,52 @@
    "fetched_at": "2026-10-28T10:09:35+00:00",
    "reviewed": true,
    "reviewer": "art-director",
-   "review_note": "2026-10-28 第一輪通過：日月光高雄總部，招牌為場景一部分",
+   "review_note": "2026-10-28 第三輪（art-director 複審）通過：主體正確、原色、裁成 952×424 仍成立",
    "reviewed_by": "art-director",
    "reviewed_at": "2026-10-28",
    "note": "日月光高雄總部，招牌為場景一部分",
    "file": "photo_1.jpg",
    "kind": "總部/廠房"
+  },
+  {
+   "file": "photo_2.jpg",
+   "kind": "總部/廠房",
+   "slug": "ase",
+   "name_en": "ASE Technology",
+   "query": "ASE Group Kaohsiung",
+   "file_title": "File:ASE Chungli Plant 20150815b.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:ASE_Chungli_Plant_20150815b.jpg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/f/f4/ASE_Chungli_Plant_20150815b.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "CC BY-SA 3.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/3.0",
+   "author": "Foxy Who \\(^∀^)/",
+   "credit": "https://www.panoramio.com/photo/122554934",
+   "description": "​日月光半導體中壢廠。",
+   "width": 1920,
+   "height": 1440,
+   "fetched_at": "2026-10-28T16:07:30+00:00",
+   "reviewed": false,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第三輪（art-director 複審）退件：外牆髒舊、仰角傾斜、招牌極小",
+   "reviewed_at": "2026-10-28",
+   "reject_reason": "外牆髒舊、仰角傾斜、招牌極小"
   }
  ],
- "rejected": []
+ "rejected": [
+  {
+   "file_title": "File:Hemispherical Curved Multi-Chip Array using Quilt Packaging.jpg",
+   "reason": "實驗品，與日月光無關",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:One Chip Challenge at 7-Eleven.jpg",
+   "reason": "零食貨架，與日月光無關（同名誤抓）",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:Minimal Fab exhibit at Tsukuba Science Square 7.jpg",
+   "reason": "展示機台，主體弱",
+   "at": "2026-10-28"
+  }
+ ]
 }

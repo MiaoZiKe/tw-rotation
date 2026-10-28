@@ -1,10 +1,54 @@
 {
  "slug": "uni_president",
- "photos": [],
+ "photos": [
+  {
+   "file": "photo_1.jpg",
+   "kind": "總部/廠房",
+   "slug": "uni_president",
+   "name_en": "Uni-President",
+   "query": "Uni-President",
+   "file_title": "File:Hsinchu Hukou Park from Uni-President Enterprises Corporation.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:Hsinchu_Hukou_Park_from_Uni-President_Enterprises_Corporation.jpg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/a/aa/Hsinchu_Hukou_Park_from_Uni-President_Enterprises_Corporation.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "author": "Yuriy kosygin",
+   "credit": "Own work",
+   "description": "Hsinchu Hukou Park, Uni-President Enterprises Corporation.",
+   "width": 1920,
+   "height": 1440,
+   "fetched_at": "2026-10-28T16:09:02+00:00",
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第三輪（art-director 複審）通過：主體正確、原色、裁成 952×424 仍成立",
+   "reviewed_at": "2026-10-28",
+   "reviewed_by": "art-director"
+  }
+ ],
  "rejected": [
   {
    "file_title": "File:Uni-President Cake House promo at Songshan Cultural and Creative Park 20191130.jpg",
    "reason": "統一蛋糕屋攤位活動照，主角是人物與攤位",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:Uni-President Vender Taipei Office tag 20191031b.jpg",
+   "reason": "文字名片",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:Kuala Terengganu - 7-Eleven store on Jalan Sultan Zainal Abidin - May 2024.jpg",
+   "reason": "7-Eleven LOGO 為主角、海外門市",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:7-Eleven inside MRT station Taoyuan May 2026.jpg",
+   "reason": "門市內有人物、LOGO",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:Taipei skyline at dusk.jpg",
+   "reason": "強烈色調",
    "at": "2026-10-28"
   }
  ]

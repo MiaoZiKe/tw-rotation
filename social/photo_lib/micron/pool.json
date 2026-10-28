@@ -1,10 +1,90 @@
 {
  "slug": "micron",
- "photos": [],
+ "photos": [
+  {
+   "file": "photo_1.jpg",
+   "kind": "總部/廠房",
+   "slug": "micron",
+   "name_en": "Micron Technology",
+   "query": "Micron Boise",
+   "file_title": "File:Micron Fab in Taichung, Taiwan.jpeg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:Micron_Fab_in_Taichung,_Taiwan.jpeg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/b/bc/Micron_Fab_in_Taichung%2C_Taiwan.jpeg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "author": "Thingreenline4546",
+   "credit": "Own work",
+   "description": "The photo has been taken in November 2023",
+   "width": 1920,
+   "height": 1440,
+   "fetched_at": "2026-10-28T16:15:04+00:00",
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第三輪（art-director 複審）通過：主體正確、原色、裁成 952×424 仍成立",
+   "reviewed_at": "2026-10-28",
+   "reviewed_by": "art-director"
+  },
+  {
+   "file": "photo_4.jpg",
+   "kind": "產品",
+   "slug": "micron",
+   "name_en": "Micron Technology",
+   "query": "Micron memory",
+   "file_title": "File:Micron Memory Japan Hiroshima Factory 01.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:Micron_Memory_Japan_Hiroshima_Factory_01.jpg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/4/4e/Micron_Memory_Japan_Hiroshima_Factory_01.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "CC BY 4.0",
+   "license_url": "https://creativecommons.org/licenses/by/4.0",
+   "author": "ノボホショコロトソ",
+   "credit": "Own work",
+   "description": "マイクロンジャパン広島工場",
+   "width": 1920,
+   "height": 1440,
+   "fetched_at": "2026-10-28T16:15:07+00:00",
+   "reviewed": false,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第三輪（art-director 複審）退件：灰天、無法辨識是美光",
+   "reviewed_at": "2026-10-28",
+   "reject_reason": "灰天、無法辨識是美光"
+  },
+  {
+   "file": "photo_5.jpg",
+   "kind": "相關場景",
+   "slug": "micron",
+   "name_en": "Micron Technology",
+   "query": "DRAM chips",
+   "file_title": "File:DRAM chips on I-O DATA PIO-9234 2M (15961434626).jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:DRAM_chips_on_I-O_DATA_PIO-9234_2M_(15961434626).jpg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/a/a8/DRAM_chips_on_I-O_DATA_PIO-9234_2M_%2815961434626%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "CC BY-SA 2.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/2.0",
+   "author": "htomari",
+   "credit": "DRAM chips on I-O DATA PIO-9234 2M",
+   "description": "DRAM chips on I-O DATA PIO-9234 2M",
+   "width": 1920,
+   "height": 1440,
+   "fetched_at": "2026-10-28T16:15:08+00:00",
+   "reviewed": false,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第三輪（art-director 複審）退件：TI 晶片記憶體板，非美光（主體錯誤）",
+   "reviewed_at": "2026-10-28",
+   "reject_reason": "TI 晶片記憶體板，非美光（主體錯誤）"
+  }
+ ],
  "rejected": [
   {
    "file_title": "File:Micron Engineering Center Boise State.JPG",
    "reason": "實為 Boise State 大學工程中心，非美光（同名誤抓）",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:P20221027AS-0751 (52651187029).jpg",
+   "reason": "政治人物",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:エルピーダメモリ広島工場 Elpida Memory, Inc - panoramio.jpg",
+   "reason": "爾必達舊名招牌，易誤會",
    "at": "2026-10-28"
   }
  ]

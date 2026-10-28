@@ -1,0 +1,119 @@
+{
+ "slug": "鋼鐵",
+ "photos": [
+  {
+   "file": "photo_2.jpg",
+   "kind": "類別",
+   "slug": "鋼鐵",
+   "name_en": "鋼鐵",
+   "query": "steel mill",
+   "file_title": "File:Katowice Steelworks bridge.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:Katowice_Steelworks_bridge.jpg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/7/7b/Katowice_Steelworks_bridge.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "author": "Peter.shaman",
+   "credit": "Own work",
+   "description": "Katowice Steelworks  view",
+   "width": 1920,
+   "height": 1440,
+   "fetched_at": "2026-10-28T16:17:07+00:00",
+   "reviewed": false,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第三輪（art-director 複審）退件：ArcelorMittal 招牌、灰暗霧霾、樹木遮擋",
+   "reviewed_at": "2026-10-28",
+   "reject_reason": "ArcelorMittal 招牌、灰暗霧霾、樹木遮擋"
+  },
+  {
+   "file": "photo_3.jpg",
+   "kind": "類別",
+   "slug": "鋼鐵",
+   "name_en": "鋼鐵",
+   "query": "steel coil",
+   "file_title": "File:HDG Coils - Leeco Steel Trading - Antonio Carlos Rosset.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:HDG_Coils_-_Leeco_Steel_Trading_-_Antonio_Carlos_Rosset.jpg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/c/c1/HDG_Coils_-_Leeco_Steel_Trading_-_Antonio_Carlos_Rosset.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "author": "Arosset",
+   "credit": "Own work",
+   "description": "Leeco Steel Trading",
+   "width": 1920,
+   "height": 1440,
+   "fetched_at": "2026-10-28T16:17:08+00:00",
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第三輪（art-director 複審）通過：主體正確、原色、裁成 952×424 仍成立",
+   "reviewed_at": "2026-10-28",
+   "reviewed_by": "art-director"
+  },
+  {
+   "file": "photo_4.jpg",
+   "kind": "類別",
+   "slug": "鋼鐵",
+   "name_en": "鋼鐵",
+   "query": "steel coil",
+   "file_title": "File:Rolled coil in Oulu Jun2009 001.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:Rolled_coil_in_Oulu_Jun2009_001.jpg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/0/0d/Rolled_coil_in_Oulu_Jun2009_001.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "Public domain",
+   "license_url": "",
+   "author": "Methem (Mikko J. Putkonen)",
+   "credit": "Own work",
+   "description": "A rolled steel coil (possibly by Rautaruukki) in the VR freight yard at the city of Oulu in Finland.",
+   "width": 1200,
+   "height": 801,
+   "fetched_at": "2026-10-28T16:17:09+00:00",
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第三輪（art-director 複審）通過：主體正確、原色、裁成 952×424 仍成立",
+   "reviewed_at": "2026-10-28",
+   "reviewed_by": "art-director"
+  },
+  {
+   "file": "photo_6.jpg",
+   "kind": "類別",
+   "slug": "鋼鐵",
+   "name_en": "鋼鐵",
+   "query": "blast furnace",
+   "file_title": "File:Duisburg, Landschaftspark Duisburg-Nord, Hochofen 2 -- 2016 -- 1115.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:Duisburg,_Landschaftspark_Duisburg-Nord,_Hochofen_2_--_2016_--_1115.jpg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/6/60/Duisburg%2C_Landschaftspark_Duisburg-Nord%2C_Hochofen_2_--_2016_--_1115.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "author": "Dietmar Rabich",
+   "credit": "Own work",
+   "description": "Blast furnace 2, Landschaftspark Duisburg-Nord in Duisburg, North Rhine-Westphalia, GermanyThe Landschaftspark Duisburg-Nord (also known as “LaPaNo” or “LaPaDu” for short) is a landscape park covering around 180 hectares surrounding a disused steelworks in Duisburg-Meiderich. The former plant was fo",
+   "width": 1920,
+   "height": 1280,
+   "fetched_at": "2026-10-28T16:17:11+00:00",
+   "reviewed": false,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第三輪（art-director 複審）退件：老舊鏽蝕高爐，有廢墟感",
+   "reviewed_at": "2026-10-28",
+   "reject_reason": "老舊鏽蝕高爐，有廢墟感"
+  }
+ ],
+ "rejected": [
+  {
+   "file_title": "File:ECSC Financial report 1976 Tarento Italsider steel mill n°2.jpg",
+   "reason": "主體只有天空與樹",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:Duisburg, Landschaftspark Duisburg-Nord, Hochofen 5, Halle -- 2024 -- 4164 (kreativ 4).jpg",
+   "reason": "抽象長曝，看不出鋼鐵",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:State wise Steel Production India, 2019.jpg",
+   "reason": "圖表",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:2026-05-15 Tiegelguß-Denkmal.jpg",
+   "reason": "紀念浮雕，與鋼鐵產業無關",
+   "at": "2026-10-28"
+  }
+ ]
+}

@@ -1,0 +1,65 @@
+{
+ "slug": "網通",
+ "photos": [
+  {
+   "file": "photo_6.jpg",
+   "kind": "類別",
+   "slug": "網通",
+   "name_en": "網通",
+   "query": "network cables data center",
+   "file_title": "File:UPS Power Management Module, racks with network cabling in NERSC data center.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:UPS_Power_Management_Module,_racks_with_network_cabling_in_NERSC_data_center.jpg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/8/87/UPS_Power_Management_Module%2C_racks_with_network_cabling_in_NERSC_data_center.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "CC0",
+   "license_url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+   "author": "Derrick Coetzee from Berkeley, CA, USA",
+   "credit": "UPS Power Management Module, racks with network cabling in NERSC data center (1)\n\nUploaded by Dcoetzee",
+   "description": "CC0 waiver: To the extent possible under law, I waive all copyright and related or neighboring rights to this work.",
+   "width": 1920,
+   "height": 1275,
+   "fetched_at": "2026-10-28T16:16:51+00:00",
+   "reviewed": false,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第三輪（art-director 複審）退件：非網通主體、PDU 貼滿藍標籤、畫面左緣有人物",
+   "reviewed_at": "2026-10-28",
+   "reject_reason": "非網通主體、PDU 貼滿藍標籤、畫面左緣有人物"
+  }
+ ],
+ "rejected": [
+  {
+   "file_title": "File:Raspberry Pi 4 on a network switch.jpg",
+   "reason": "tp-link LOGO 為主角",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:Peabird Ethernet switch in 2003.jpg",
+   "reason": "品牌 LOGO 為主角",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:Optical fiber connectors-optical patch cable-01ASD.jpg",
+   "reason": "包裝標籤為主角",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:Fujikura optic fiber at Science Museum.jpg",
+   "reason": "Fujikura LOGO 為主角",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:UPS Power Management Module, iDataPlex racks with network cabling in NERSC data center (2).jpg",
+   "reason": "可辨識人臉",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:Digicel Router Trinidad.jpg",
+   "reason": "Digicel LOGO 為主角",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:Network router ZyXel USG20.jpg",
+   "reason": "ZyXEL LOGO 為主角",
+   "at": "2026-10-28"
+  }
+ ]
+}

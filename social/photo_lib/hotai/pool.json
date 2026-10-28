@@ -1,10 +1,72 @@
 {
  "slug": "hotai",
- "photos": [],
+ "photos": [
+  {
+   "file": "photo_3.jpg",
+   "kind": "產品",
+   "slug": "hotai",
+   "name_en": "Hotai Motor",
+   "query": "Toyota Corolla Altis",
+   "file_title": "File:2010 Toyota Corolla Altis 2.0 V ZRE143R (20190623).jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:2010_Toyota_Corolla_Altis_2.0_V_ZRE143R_(20190623).jpg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/e/e2/2010_Toyota_Corolla_Altis_2.0_V_ZRE143R_%2820190623%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "author": "オーバードライブ83",
+   "credit": "Own work",
+   "description": "2010 Toyota Corolla Altis 2.0 V (ZRE143R)",
+   "width": 1920,
+   "height": 903,
+   "fetched_at": "2026-10-28T16:11:42+00:00",
+   "reviewed": false,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第三輪（art-director 複審）退件：豐田轎車非和泰本身，且畫面雜亂",
+   "reviewed_at": "2026-10-28",
+   "reject_reason": "豐田轎車非和泰本身，且畫面雜亂"
+  },
+  {
+   "file": "photo_5.jpg",
+   "kind": "相關場景",
+   "slug": "hotai",
+   "name_en": "Hotai Motor",
+   "query": "car assembly line",
+   "file_title": "File:Hyundai car assembly line.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:Hyundai_car_assembly_line.jpg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/f/f1/Hyundai_car_assembly_line.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "CC BY 2.5",
+   "license_url": "https://creativecommons.org/licenses/by/2.5",
+   "author": "User: Anonyme",
+   "credit": "Own work",
+   "description": "Assembly line at Hyundai Motor Company’s car factory in Ulsan, South Korea.",
+   "width": 1920,
+   "height": 1445,
+   "fetched_at": "2026-10-28T16:11:43+00:00",
+   "reviewed": false,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第三輪（art-director 複審）退件：產線上有人物、光線偏暗",
+   "reviewed_at": "2026-10-28",
+   "reject_reason": "產線上有人物、光線偏暗"
+  }
+ ],
  "rejected": [
   {
    "file_title": "File:Hotai Motor plate on Hotai Motor Building entrance 20160305.jpg",
    "reason": "LOGO 金屬字特寫，LOGO 為主角",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:Hotai Motor Building main entrance 20251129.jpg",
+   "reason": "大門近拍",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:Hotai Motor Building main entrance 20180505.jpg",
+   "reason": "大門近拍",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:Toyota Corolla Altis X 002.jpg",
+   "reason": "街景人物雜亂",
    "at": "2026-10-28"
   }
  ]
