@@ -1,0 +1,5 @@
+/* 2026-10-28 手機：薪資組成甜甜圈縮到 150px 寬（原本 190px 上下堆疊），
+   讓公司頁整頁維持 ≤4 屏；只限 ≤640，桌機不動 */
+@media (max-width:640px){
+#v-tc .tc-pay .tcdn .tcdnc{max-width:150px;min-width:0}
+}

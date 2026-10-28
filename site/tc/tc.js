@@ -318,7 +318,7 @@
     if (bonus != null) parts.push({ k: 'bonus', name: '分紅', m: bonus }); else miss.push('分紅月數查無資料');
     if (other != null) parts.push({ k: 'other', name: '三節／其他獎金', m: other }); else miss.push('三節／其他獎金月數查無資料');
     const known = parts.reduce((s, p) => s + p.m, 0);
-    if (annM != null && annM > 0) { const rest = annM - known; if (rest > 0.4 && parts.length) parts.push({ k: 'rest', name: '其餘獎金（分紅／季獎金等，未細分）', m: Math.round(rest * 10) / 10 }); if (annM > 0 && !parts.length) miss.push('只有年薪總月數'); } else miss.push('年薪總月數查無資料');
+    if (annM != null && annM > 0) { const rest = annM - known; if (rest > 0.4 && parts.length) parts.push({ k: 'rest', name: bonus == null ? '分紅＋其餘獎金' : '其餘獎金（季獎金等，未細分）', m: Math.round(rest * 10) / 10 }); if (annM > 0 && !parts.length) miss.push('只有年薪總月數'); } else miss.push('年薪總月數查無資料');
     return { parts, miss, baseK, annM, annW, known };
   }
   const SLOT = { base: 0, year: 1, bonus: 2, other: 3 };
