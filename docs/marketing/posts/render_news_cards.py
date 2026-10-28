@@ -257,6 +257,52 @@ def card_v3(d, idx, tot, bg=None, pal="A", slot="pre"):
             f'<div class="a T3" style="left:64px;top:{dtop}px;width:952px;color:{P3["sub"]};line-height:52px">' + "".join(f"<div>{e(l)}</div>" for l in dl) + '</div>'
             f'{rows}<div class="a" style="left:64px;top:1264px;width:952px;height:2px;background:{P3["rule"]}"></div>'
             f'<div class="a row T4" style="left:64px;top:1272px;width:952px;height:56px;color:{P3["foot"]}"><span class="num">{idx} / {tot}</span></div></body>')
+# ---- cover_v4（--pal D，Andy 10-28 退件：AI 圖不可染色、色調要舒適）----
+D4 = dict(bg="#FAF9F6", ink="#1F2328", sub="#4B5563", mu="#6B7280", acc="#A85D49", tile="#FFFFFF", tbd="#E5E2DA", bar="#CFCBC2", panel="#EFEDE8", rule="#D9D5CB")
+def bg_plain(path, w, h):
+    """AI 圖保持原色：只裁切與縮放（取上緣），不套任何色調、遮罩、亮度調整"""
+    im = Image.open(path).convert("RGB")
+    if "pollinations" in str(path): im = im.crop((0, 0, im.width, im.height - int(im.height*0.07)))
+    sc = max(w/im.width, h/im.height); im = im.resize((int(im.width*sc)+1, int(im.height*sc)+1), Image.LANCZOS)
+    x0 = (im.width - w)//2; y0 = int((im.height - h)*0.6); im = im.crop((x0, y0, x0+w, y0+h))
+    b = io.BytesIO(); im.save(b, "JPEG", quality=93); return "data:image/jpeg;base64," + base64.b64encode(b.getvalue()).decode()
+def card_v4(d, idx, tot, bg=None, slot="pre"):
+    K = D4; c = d["card"]; cat = c["category"]
+    tl = (lines_of(c.get("cover_title")) or breakit(c["title"], 88).split("\n"))[:2]
+    dl = (lines_of(c.get("cover_desc")) or [c["subtitle"]])[:2]
+    fs = min(88, int(920 / max(wid(l) for l in tl)) // 4 * 4)
+    nums = c["numbers"][:3]; n = len(nums); rh, g = 80, 8
+    rtop = 1240 - (n*rh + (n-1)*g); dtop = rtop - 24 - len(dl)*52; ttop = dtop - 16 - len(tl)*(fs+12); chipt = ttop - 16 - 56
+    imgh = (chipt - 16 - 128) // 8 * 8
+    hi = next((i for i, l in enumerate(tl) if NUM.search(l)), -1)
+    def hl4(l):
+        m = NUM.search(l)
+        if not m: return e(l)
+        return e(l[:m.start()]) + f'<span class="ser num" style="font-weight:700;text-decoration:underline;text-decoration-color:{K["acc"]};text-decoration-thickness:6px;text-underline-offset:8px">{e(m.group(0))}</span>' + e(l[m.end():])
+    if bg: art = f'<img class="a" data-g=1 style="left:64px;top:128px;width:952px;height:{imgh}px;border-radius:4px" src="{bg_plain(bg, 952, imgh)}">'
+    else:
+        hero = next((NUM.search(l).group(0).strip() for l in tl if NUM.search(l)), None)
+        if not hero and nums: hero = (nums[0]["value"] + nums[0]["unit"]).strip()
+        mm = re.match(r"[約逾\s]*([\d,.]+)\s*(.*)", hero or ""); num = mm.group(1) if mm else (hero or ""); unit = mm.group(2) if mm else ""
+        label = next((x["label"] for x in nums if num and num.replace(",", "") in x["value"].replace(",", "")), "")
+        fsz = 208 if len(num) <= 5 else 160
+        art = (f'<div class="a" data-bg=1 style="left:64px;top:128px;width:952px;height:{imgh}px;background:{K["panel"]};border-radius:4px"></div>'
+               f'<div class="a T3b" style="left:96px;top:{128 + (imgh - fsz - 16 - 48)//2}px;color:{K["mu"]}">{e(label)}</div>'
+               f'<div class="a ser num" style="left:96px;top:{128 + (imgh - fsz - 16 - 48)//2 + 56}px;color:{K["ink"]};font-size:{fsz}px;line-height:{fsz+16}px;font-weight:700;white-space:nowrap">{e(num)}<span style="font-size:64px;margin-left:12px;color:{K["sub"]}">{e(unit)}</span></div>')
+    rows = ''.join(
+        f'<div class="row" style="position:absolute;left:64px;top:{rtop + i*(rh+g)}px;width:952px;height:{rh}px;background:{K["tile"]};border:1px solid {K["tbd"]};border-left:8px solid {K["bar"]};border-radius:4px;padding:0 28px;justify-content:space-between">'
+        f'<span class="T3b" style="color:{K["sub"]}">{e(x["label"])}</span><span class="row" style="gap:8px;align-items:baseline"><span class="ser num" style="font-size:56px;line-height:64px;font-weight:700;color:{vcolor3(x["value"], dict(tv=K["ink"]))}">{e(x["value"])}</span>'
+        f'<span class="T4b" style="color:{K["mu"]}">{e(x["unit"])}</span></span></div>' for i, x in enumerate(nums))
+    date = d["data_date"][:10].replace("-", "/")
+    return (f'<body style="{V};background:{K["bg"]}"><div class="a" style="left:64px;top:40px;width:952px;height:4px;background:{K["ink"]}" data-bg=1></div>'
+            f'<div class="brand T3b" style="color:{K["ink"]}">哩股哩股</div><div class="hdate T4b num" style="color:{K["mu"]}">{SLOTN.get(slot, "")}・{date}</div>'
+            f'<div class="a" style="left:64px;top:112px;width:952px;height:2px;background:{K["rule"]}" data-bg=1></div>{art}'
+            f'<div class="a row" style="left:64px;top:{chipt}px"><span class="T3b" style="background:{K["acc"]};color:#fff;padding:4px 28px;border-radius:4px;letter-spacing:.12em">{e(cat)}</span></div>'
+            f'<div class="a" style="left:64px;top:{ttop}px;width:952px;color:{K["ink"]};font-size:{fs}px;line-height:{fs+12}px;font-weight:800">'
+            + "".join(f'<div style="white-space:nowrap">{hl4(l) if i == hi else e(l)}</div>' for i, l in enumerate(tl)) + '</div>'
+            f'<div class="a T3" style="left:64px;top:{dtop}px;width:952px;color:{K["sub"]};line-height:52px">' + "".join(f"<div>{e(l)}</div>" for l in dl) + '</div>'
+            f'{rows}<div class="a" style="left:64px;top:1264px;width:952px;height:2px;background:{K["rule"]}"></div>'
+            f'<div class="a row T4" style="left:64px;top:1272px;width:952px;height:56px;color:{K["mu"]}"><span class="num">{idx} / {tot}</span></div></body>')
 if __name__ == "__main__":
     root = Path(sys.argv[1]); slot = sys.argv[2]
     def _opt(k, dv=None): return sys.argv[sys.argv.index(k)+1] if k in sys.argv else dv
@@ -265,7 +311,7 @@ if __name__ == "__main__":
     _pw = _sp().start(); _br = _pw.chromium.launch(executable_path=os.environ.get("CHROMIUM") or None); _PG = _br.new_page(); _PG.set_content("<body></body>")
     items = json.load(open(root/f"{slot}.json", encoding="utf-8"))
     out = Path(OUT) if OUT else root/slot; bgmap = json.load(open(root/"news_bg.json", encoding="utf-8")) if (root/"news_bg.json").exists() else {}
-    fn = lambda d, i, t, b: card_v3(d, i, t, b, PAL, slot)
+    fn = (lambda d, i, t, b: card_v4(d, i, t, b, slot)) if PAL == "D" else (lambda d, i, t, b: card_v3(d, i, t, b, PAL, slot))
     pages = [fn(d, i, len(items), (root/bgmap[d["id"]]) if bgmap.get(d["id"]) else None) for i, d in enumerate(items, 1)]
     if ONLY: pages = [pages[int(x)-1] for x in ONLY.split(",")]
     _br.close(); _pw.stop()      # 量字寬用的瀏覽器先關掉，才能開渲染用的
