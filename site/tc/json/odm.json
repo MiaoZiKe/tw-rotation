@@ -8044,6 +8044,29 @@
               "comment_sample": true,
               "in_window": true,
               "date_note": "Dcard 頁面發文日期 2025-02-14（2026-10-26 2037 批）"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/262312950#留言B7",
+              "date": "2026-10",
+              "page_date": "2026-10-18",
+              "date_confirmed": true,
+              "role": "工程師（新鮮人）",
+              "grade": null,
+              "unit_detail": null,
+              "years": "0",
+              "degree": null,
+              "base_k": 52,
+              "bonus_months": null,
+              "annual_months": 14,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "留言稱鴻海新鮮人第一年 52K×14，分紅第三年才領得到",
+              "in_window": true,
+              "date_note": "Dcard 頁面發文日期 2026-10-18（20261028_1206_a 批）",
+              "comment_sample": true
             }
           ],
           "sources": [
@@ -8061,22 +8084,30 @@
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/257980153",
               "date": "2025-02"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/262312950",
+              "date": "2026-10"
             }
           ],
           "confidence": "低",
-          "n": 3,
+          "n": 4,
           "years": "轉職",
           "base_month_k": [
-            60,
+            52,
             69
           ],
           "bonus_months": null,
-          "annual_months": null,
+          "annual_months": [
+            14,
+            14
+          ],
           "annual_total_wan": null,
           "weekly_hours": null,
           "overtime": null,
           "travel": "需要",
-          "n_stat": 3,
+          "n_stat": 4,
           "note": null,
           "grade": null
         },
@@ -15215,6 +15246,59 @@
               "quote_free_note": "自填；日工時 表訂/實際 8 / 10",
               "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2025-01（Andy 桌面版 2026-10-26 2225_b 批）"
+            }
+          ]
+        },
+        {
+          "unit": null,
+          "role": "測試工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": [
+            102,
+            102
+          ],
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n": 1,
+          "note": "2026-10-28 Dcard 補漏批新增職位",
+          "confidence": "低",
+          "grade": null,
+          "n_stat": 1,
+          "samples": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/258876648",
+              "date": "2025-05",
+              "page_date": "2025-05-22",
+              "date_confirmed": true,
+              "role": "測試工程師（現職，職等 A7）",
+              "grade": "A7",
+              "unit_detail": null,
+              "years": null,
+              "degree": "學士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 102,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "發文者現職台達測試工程師 A7 年薪含加班約 102 萬；B12-5 稱為學士有幾年經驗非 RD（B3-1 估底薪不填）",
+              "in_window": true,
+              "date_note": "Dcard 頁面發文日期 2025-05-22（20261028_1206_a 批）",
+              "comment_sample": false
+            }
+          ],
+          "sources": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/258876648",
+              "date": "2025-05"
             }
           ]
         }
