@@ -62,7 +62,7 @@ def pack_daily(df: pd.DataFrame, vol_div: float = 1000.0) -> dict:
     }
 
 
-def pack_60(g: pd.DataFrame) -> dict | None:
+def pack_60(g: pd.DataFrame, vdiv: float = 1000.0) -> dict | None:
     """60 分 K：ts 轉「自 1970 的分鐘數」差分；其餘同 pack_daily。價格不還原（60 分 K 只有近三年）。"""
     g = g.dropna(subset=["close"]).sort_values("ts").drop_duplicates("ts")
     if len(g) < 20:
@@ -77,8 +77,22 @@ def pack_60(g: pd.DataFrame) -> dict | None:
         "o": [int(round(a * 100)) - b for a, b in zip(g["open"], c)],
         "h": [int(round(a * 100)) - b for a, b in zip(g["high"], c)],
         "l": [int(round(a * 100)) - b for a, b in zip(g["low"], c)],
-        "v": [int(round(x / 1000)) for x in g["volume"].fillna(0)],
+        "v": [int(round(x / vdiv)) for x in g["volume"].fillna(0)],
     }
+
+
+def tx_60(ii: pd.DataFrame) -> pd.DataFrame | None:
+    """台指期 60 分 K：資料湖只有近月連續的「1 分 K」（index_intraday，symbol=FUT，日盤 08:45～13:45），而且只從 2026-08 才開始存。
+    合成成每小時一根（以 :45 為界，每天 5 根：08:45、09:45、10:45、11:45、12:45），開＝第一分、高低＝極值、收＝最後一分、量＝加總。
+    不納入夜盤（FUT_N）。回傳含 ts／open／high／low／close／volume 欄的表；資料不夠回 None。"""
+    f = ii[(ii["symbol"] == "FUT") & (ii["interval"] == "1m")].dropna(subset=["close"]).copy()
+    if len(f) < 100:
+        return None
+    f["t"] = pd.to_datetime(f["ts"], utc=True).dt.tz_convert("Asia/Taipei")
+    f = f.sort_values("t").drop_duplicates("t").set_index("t")
+    g = f.resample("60min", origin="start_day", offset="45min").agg({"open": "first", "high": "max", "low": "min", "close": "last", "volume": "sum"})
+    g = g.dropna(subset=["close"]).reset_index().rename(columns={"t": "ts"})
+    return g if len(g) >= 20 else None
 
 
 def _dump(path: Path, obj) -> int:
@@ -112,6 +126,19 @@ def export_lab(price_adj: pd.DataFrame, names: dict, markets: dict, out_dir: Pat
         total += _dump(out / "s" / f"{code}.json", o)
         items.append({"c": code, "n": nm, "k": kind, "a": str(g["date"].iloc[0]), "b": str(g["date"].iloc[-1]), "h60": False})
 
+    # ---- 台指期 60 分 K（只有 2026-08 起，前端會標示「僅自 xx 起」）
+    try:
+        tx = tx_60(store.read("index_intraday"))
+        k60 = pack_60(tx, vdiv=1.0) if tx is not None else None
+        if k60:
+            total += _dump(out / "s" / "TX.60.json", {"c": "TX", "d": k60})
+            for it in items:
+                if it["c"] == "TX":
+                    it["h60"] = True
+                    it["a60"] = str(pd.to_datetime(tx["ts"].iloc[0]).date())
+    except Exception as exc:  # noqa: BLE001 —— 台指期分 K 壞了只影響 60 分鈕
+        log.warning("交易練習室台指期 60 分 K 產出失敗：%s", exc)
+
     # ---- 個股／ETF
     p = price_adj[price_adj["date"].astype(str) >= DAILY_FROM]
     latest = str(p["date"].max())
@@ -143,6 +170,7 @@ def export_lab(price_adj: pd.DataFrame, names: dict, markets: dict, out_dir: Pat
                 h60 = True
         items.append({"c": code, "n": nm, "k": kind, "m": markets.get(code, ""), "a": str(g["date"].iloc[0]),
                       "b": str(g["date"].iloc[-1]), "h60": h60})
+    total += export_us(out)
     try:
         total += export_chips(p, items, out, topchip, only)
     except Exception as exc:  # noqa: BLE001 —— 籌碼壞了只影響籌碼策略，K 線與回測照常
@@ -154,29 +182,63 @@ def export_lab(price_adj: pd.DataFrame, names: dict, markets: dict, out_dir: Pat
 
 CHIP_N = 1000                   # 籌碼檔只給近期成交值前 1000 名（含 ETF 後約 850 檔個股，每檔約 30 KB，合計約 26 MB）
 # 欄位 → (來源表, 來源欄, 單位換算)。三大法人是買賣超股數、融資融券是餘額股數、當沖是成交股數；一律換成「張」。
-CHIP_FIELDS = {"fn": ("inst_daily", "foreign_total"), "tr": ("inst_daily", "trust"), "dl": ("inst_daily", "dealer"),
+CHIP_FIELDS = {"fn": ("inst_daily", "_fn"), "tr": ("inst_daily", "trust"), "dl": ("inst_daily", "_dl"),
                "mb": ("margin_daily", "margin_balance"), "sb": ("margin_daily", "short_balance"),
                "dt": ("daytrade_daily", "daytrade_volume")}
 
 
-def _rev_momentum(rev: pd.DataFrame, dates: list[str]) -> pd.Series | None:
-    """月營收動能 = 近 3 月均營收 ÷ 近 12 月均營收 × 100，對齊到每個交易日（標準策略「營收動能＋52 週新高」用）。
-    可用日一律用法定期限：某月營收最晚次月 10 日公布，所以「次月 11 日起」的第一根 K 才看得到
-    （寧可晚用，不可偷看；不用公司實際公告日，因為早報的日子不能當成全市場都知道）。
-    要滿 12 個月才有值；沒資料的日子回 NaN。"""
-    r = rev.dropna(subset=["revenue"]).drop_duplicates("ym", keep="last").sort_values("ym")
-    if len(r) < 12:
+def _rev_series(rev: pd.DataFrame, dates: list[str]) -> dict[str, pd.Series] | None:
+    """月營收三條序列，全部對齊到每個交易日（標準策略「營收動能」「營收年增＋公布後短窗」用）：
+      rv＝近 3 月均營收 ÷ 近 12 月均營收 × 100（%）
+      ry＝最新一期月營收年增率（%）＝ 本月 ÷ 去年同月 − 1
+      ra＝最新一期營收「公布後第幾個交易日」（公布日當天＝0，沒資料或超過 99 一律 99）
+    可用日一律用法定期限：某月營收最晚次月 10 日公布（config.REVENUE_DEADLINE_DAY），所以「次月 10 日起」的第一根 K 才用得到；
+    不用公司實際公告日（早報的日子不能當成全市場都知道）。月份用連續日曆月補齊（缺月是 NaN，不會把不相鄰的月份當成相鄰）。
+    訊號在該日收盤後產生、下一根開盤成交，所以 10 日當天收盤看到、11 日開盤進場（和淘汰賽報告 docs/strategy_lab/tournament 同口徑）。"""
+    r = rev.dropna(subset=["revenue"]).drop_duplicates("ym", keep="last")
+    if len(r) < 13:
         return None
-    v = pd.to_numeric(r["revenue"], errors="coerce").to_numpy()
-    m3, m12 = pd.Series(v).rolling(3).mean(), pd.Series(v).rolling(12).mean()
-    ratio = (m3 / m12 * 100).to_numpy()
-    avail = [(pd.Period(ym, "M") + 1).strftime("%Y-%m") + "-11" for ym in r["ym"].astype(str)]
-    s = pd.Series(ratio, index=avail)
-    s = s[~s.index.duplicated(keep="last")]
-    # 每個交易日取「可用日 <= 當天」的最新一筆
+    r = r.assign(ym=r["ym"].astype(str)).set_index("ym").sort_index()
+    full = pd.period_range(r.index.min(), r.index.max(), freq="M").astype(str)
+    v = pd.to_numeric(r["revenue"], errors="coerce").reindex(full)
+    m3, m12 = v.rolling(3).mean(), v.rolling(12).mean()
+    day = config.REVENUE_DEADLINE_DAY
+    avail = pd.Index([(pd.Period(ym, "M") + 1).strftime("%Y-%m") + f"-{day:02d}" for ym in full])
     idx = pd.Index(dates)
-    s = s.reindex(s.index.union(idx)).ffill().reindex(idx)
-    return s
+
+    def daily(x: pd.Series) -> pd.Series:
+        s_ = pd.Series(x.to_numpy(), index=avail)
+        s_ = s_[~s_.index.duplicated(keep="last")]
+        return s_.reindex(s_.index.union(idx)).ffill().reindex(idx)
+
+    # 公布後第幾個交易日：每個「可用日」落在哪一根（該日或之後第一根）
+    first_day = str(idx[0]) if len(idx) else ""
+    pos = idx.searchsorted([a_ for a_ in avail if a_ >= first_day])      # 比資料第一天還早公布的期別數不到「第幾個交易日」，不算
+    pos = sorted({int(q) for q in pos if q < len(idx)})
+    age, last, ps = [], None, set(pos)
+    for i in range(len(idx)):
+        if i in ps:
+            last = i
+        age.append(99 if last is None else min(99, i - last))
+    return {"rv": daily(m3 / m12 * 100), "ry": daily((v / v.shift(12) - 1) * 100), "ra": pd.Series(age, index=idx)}
+
+
+def export_us(out: Path) -> int:
+    """美股前一晚漲跌：{sox, ixic, tsm: {d:[日數], r:[漲跌 %]}}。日數＝自 1970 的日曆日數。
+    前端對每根台股 K 棒只取「日期嚴格早於這一天」的最近一筆（T-1，不含同一個日曆日），所以台股盤中決策用不到當天夜裡的美股。"""
+    try:
+        ig = store.read("intl_daily")
+    except Exception as exc:  # noqa: BLE001
+        log.warning("交易練習室美股資料讀取失敗：%s", exc)
+        return 0
+    obj = {}
+    for key, sym in (("sox", "^SOX"), ("ixic", "^IXIC"), ("tsm", "TSM")):
+        g = ig[ig["symbol"] == sym].drop_duplicates("date").sort_values("date")
+        c = pd.to_numeric(g["close"], errors="coerce").to_numpy()
+        d = [(dt.date.fromisoformat(str(x)[:10]) - EPOCH).days for x in g["date"]]
+        r = [(i, round(float(c[i] / c[i - 1] - 1) * 100, 2)) for i in range(1, len(c)) if c[i] == c[i] and c[i - 1] == c[i - 1] and c[i - 1] > 0]
+        obj[key] = {"d": [d[i] for i, _ in r], "r": [x for _, x in r]}
+    return _dump(out / "us.json", obj)
 
 
 def export_chips(p: pd.DataFrame, items: list, out: Path, rank_set=None, only=None) -> int:
@@ -193,6 +255,11 @@ def export_chips(p: pd.DataFrame, items: list, out: Path, rank_set=None, only=No
         df = store.read(t)
         df = df[(df["date"].astype(str) >= DAILY_FROM) & df["code"].astype(str).isin(cs)]
         df = df.assign(code=df["code"].astype(str), date=df["date"].astype(str))
+        if t == "inst_daily":
+            # 2018 以前資料湖的 foreign_total／dealer 欄位幾乎是空的：外資改用「外陸資 foreign」補、自營商改用「自買＋避險」補
+            # （外資自營商那一小塊早年缺，口徑略有差異；和淘汰賽報告 docs/strategy_lab/tournament 的處理一致）
+            df = df.assign(_fn=pd.to_numeric(df["foreign_total"], errors="coerce").fillna(pd.to_numeric(df["foreign"], errors="coerce")),
+                           _dl=pd.to_numeric(df["dealer"], errors="coerce").fillna(pd.to_numeric(df["dealer_self"], errors="coerce").fillna(0) + pd.to_numeric(df["dealer_hedge"], errors="coerce").fillna(0)))
         frames[t] = {c: g.drop_duplicates("date", keep="last").set_index("date") for c, g in df.groupby("code")}
     try:
         rv_all = store.read("revenue_monthly")
@@ -221,12 +288,15 @@ def export_chips(p: pd.DataFrame, items: list, out: Path, rank_set=None, only=No
             o["s"][f] = i0
             o[f] = [int(round(x / 1000)) for x in ser.tolist()]
         if code in rv_by:
-            rs = _rev_momentum(rv_by[code], dates)
-            first = rs.first_valid_index() if rs is not None else None
+            rs = _rev_series(rv_by[code], dates)
+            first = rs["rv"].first_valid_index() if rs is not None else None
             if first is not None:
                 i0 = dates.index(first)
-                o["s"]["rv"] = i0
-                o["rv"] = [int(round(x)) if x == x else 0 for x in rs.iloc[i0:].tolist()]   # 單位：%（118＝近 3 月均是近 12 月均的 1.18 倍）
+                for k, nd in (("rv", 0), ("ry", 1), ("ra", 0)):
+                    x = rs[k].iloc[i0:]
+                    o["s"][k] = i0
+                    # rv 單位：%（118＝近 3 月均是近 12 月均的 1.18 倍）；ry 單位：%（1 位小數）；ra：公布後第幾個交易日（99＝沒資料或太久）
+                    o[k] = [(round(float(v_), nd) if nd else int(round(v_))) if v_ == v_ and abs(v_) != float("inf") else (0 if k != "ry" else 0.0) for v_ in x.tolist()]      # NaN／無限大（去年同月營收 0）一律當沒有資料
         if o["s"]:
             total += _dump(out / "c" / f"{code}.json", o)
             for it in items:

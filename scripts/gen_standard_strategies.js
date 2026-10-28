@@ -38,6 +38,7 @@ function series(code, tf) {
     if (j) {
       const D = E.decode(j.d, 'D');
       if (ITEM[code] && ITEM[code].ch) E.attachChip(D, readJ('c/' + code + '.json'));
+      E.attachUS(D, readJ('us.json'));
       B = E.resample(D, tf); B.name = j.n; B.kind = j.k;
     }
   }
@@ -60,10 +61,10 @@ function yearly(B, from, eq, bh, cap0) {
 }
 function maxDD(arr) { let pk = -Infinity, m = 0; for (const v of arr) { if (v > pk) pk = v; const d = pk > 0 ? (pk - v) / pk : 0; if (d > m) m = d; } return m * 100; }
 
-function runOne(def, code, tf) {
+function runOne(def, code, tf, keepTrades) {
   const B = series(code, tf); if (!B) return { skip: '沒有這個週期的資料' };
   const it = ITEM[code], kind = it.k, fut = kind === 'fut';
-  if (def.needs === 'chip' && !B.chip) return { skip: '沒有籌碼／月營收資料' };
+  if (def.needs === 'chip' && !(B.chip && B.chip.tr)) return { skip: '沒有籌碼／月營收資料' };
   let res;
   try { res = X.compile(def.script, B, { events: [], params: {} }); } catch (e) { return { skip: String(e.message || e) }; }
   if (!res.sig) return { skip: res.errors[0] || '編譯失敗' };
@@ -83,7 +84,30 @@ function runOne(def, code, tf) {
     n: s.n, nWin: s.all.nWin, nOpen: s.all.nOpen, avgPct: r2(s.all.avgTradeP), avgBars: r2(s.avgBars), costs: Math.round(s.costs),
     bhRet: r2(bhRet), bhAnn: r2(annB), bhMdd: r2(maxDD(Array.from(out.bh))), exAnn: r2(annS - annB),
     yr: yearly(B, from, out.eq, out.bh, cap), worst,
+    _trades: keepTrades ? out.trades.map((t) => ({ y: new Date(B.day[t.i0] * 86400000).getUTCFullYear(), pct: t.pnlP, bars: t.bars })) : undefined,
   };
+}
+
+/* ---------------------------------------------------------------- 全市場單檔合計（競賽冠軍用）
+   淘汰賽的冠軍是「300 檔股票池＋排名＋持股上限」的組合策略，練習室只能一檔一檔單獨回測。
+   為了能和報告的逐筆統計（筆數、勝率、賺賠比、平均持有）對帳，這裡把所有有籌碼資料的個股各跑一次，把交易全部合在一起統計。
+   訓練期＝2020 年以前（練習室個股日 K 從 2016 年起，所以只有 2016～2020 這一段，和報告的 2012～2020 不同）、保留期＝2021 年起。 */
+function poolStats(trs) {
+  const f = (a) => {
+    const w = a.filter((t) => t.pct > 0), l = a.filter((t) => t.pct < 0), avg = (x, k) => (x.length ? x.reduce((s, t) => s + t[k], 0) / x.length : null);
+    const aw = avg(w, 'pct'), al = avg(l, 'pct');
+    return { n: a.length, win: a.length ? r2(w.length / a.length * 100) : null, payoff: aw != null && al ? r2(aw / Math.abs(al)) : null, avgPct: r2(avg(a, 'pct')), avgBars: r2(avg(a, 'bars')) };
+  };
+  return { all: f(trs), train: f(trs.filter((t) => t.y <= 2020)), hold: f(trs.filter((t) => t.y >= 2021)) };
+}
+function runPool(def) {
+  const trs = []; let ns = 0, nUse = 0;
+  for (const it of IDX.items) {
+    if (it.k !== 'stock' || !it.ch) continue; ns++;
+    const r = runOne(def, it.c, 'D', true); if (r.skip) continue; nUse++;
+    if (r.n > 0) trs.push(...r._trades);
+  }
+  return Object.assign({ nStocks: nUse, nCandidates: ns }, poolStats(trs));
 }
 
 /* ---------------------------------------------------------------- 主流程 */
@@ -108,7 +132,7 @@ for (const def of STD.DEFS) {
   const ex = D.map((r) => r.exAnn).sort((a, b) => a - b), med = ex.length ? (ex.length % 2 ? ex[(ex.length - 1) / 2] : (ex[ex.length / 2 - 1] + ex[ex.length / 2]) / 2) : null;
   const ddBetter = D.filter((r) => r.mdd < r.bhMdd).length;
   result.strategies[def.id] = {
-    no: def.no, headline: def.headline, runs, skipped,
+    no: def.no, headline: def.headline, runs, skipped, pool: def.pool ? runPool(def) : undefined,
     summary: { nSym: D.length, beatBH: beat, positive: pos, ddBetter, medianExAnn: r2(med), totalTrades: D.reduce((a, r) => a + r.n, 0), minTrades: D.length ? Math.min(...D.map((r) => r.n)) : 0 },
   };
 }

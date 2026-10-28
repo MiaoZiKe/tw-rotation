@@ -114,7 +114,7 @@
     };
     const bool = (x) => (x ? 1 : 0);
     // 籌碼名稱：中英文都收。inst＝三大法人合計，ratio＝券資比 %，dtr＝當沖比 %（其餘單位皆為張）
-    const CHIPN = { 外資: 'fn', 投信: 'tr', 自營: 'dl', 自營商: 'dl', 法人: 'inst', 三大法人: 'inst', 融資: 'mb', 融券: 'sb', 券資比: 'ratio', 當沖比: 'dtr', 當沖量: 'dt', 營收動能: 'rv', rv: 'rv', fn: 'fn', tr: 'tr', dl: 'dl', inst: 'inst', mb: 'mb', sb: 'sb', ratio: 'ratio', dtr: 'dtr', dt: 'dt' };
+    const CHIPN = { 外資: 'fn', 投信: 'tr', 自營: 'dl', 自營商: 'dl', 法人: 'inst', 三大法人: 'inst', 融資: 'mb', 融券: 'sb', 券資比: 'ratio', 當沖比: 'dtr', 當沖量: 'dt', 營收動能: 'rv', rv: 'rv', 營收年增: 'ry', ry: 'ry', 營收公布後天數: 'ra', ra: 'ra', 美股費半: 'us_sox', us_sox: 'us_sox', 美股那指: 'us_ixic', us_ixic: 'us_ixic', 美股台積電ADR: 'us_tsm', us_tsm: 'us_tsm', fn: 'fn', tr: 'tr', dl: 'dl', inst: 'inst', mb: 'mb', sb: 'sb', ratio: 'ratio', dtr: 'dtr', dt: 'dt' };
     const fn = {
       sma: (a, k) => I.sma(ser(a), num(k, '週期')), ema: (a, k) => I.ema(ser(a), num(k, '週期')), rma: (a, k) => I.rma(ser(a), num(k, '週期')),
       rsi: (a, k) => I.rsi(ser(a), num(k, '週期')), highest: (a, k) => I.highest(ser(a), num(k, '週期')), lowest: (a, k) => I.lowest(ser(a), num(k, '週期')),
@@ -139,12 +139,23 @@
         }
         return o;
       },
+      stoch: (a, h, l, k) => {   // Pine 的 ta.stoch(close, high, low, length)：原始 %K（0～100），高低相同回 50（和內建 KD 的 RSV 同口徑）
+        const m = num(k, '週期'), hh = I.highest(ser(h), m), ll = I.lowest(ser(l), m), A = ser(a), o = new Float64Array(n).fill(NaN);
+        for (let i = 0; i < n; i++) if (!Number.isNaN(hh[i])) o[i] = hh[i] === ll[i] ? 50 : (A[i] - ll[i]) / (hh[i] - ll[i]) * 100;
+        return o;
+      },
       crossover: (a, b) => { const A = ser(a), Bs = ser(b), o = new Float64Array(n); for (let i = 1; i < n; i++) o[i] = bool(A[i] > Bs[i] && A[i - 1] <= Bs[i - 1]); return o; },
       crossunder: (a, b) => { const A = ser(a), Bs = ser(b), o = new Float64Array(n); for (let i = 1; i < n; i++) o[i] = bool(A[i] < Bs[i] && A[i - 1] >= Bs[i - 1]); return o; },
       chip: (t) => {   // 籌碼序列（沒有資料的日子是 NaN，比較一律為假）
-        const key = CHIPN[t && t.s]; if (!key) throw new Error('chip() 的名稱要用：外資、投信、自營、法人、融資、融券、券資比、當沖比、當沖量、營收動能');
+        const key = CHIPN[t && t.s]; if (!key) throw new Error('chip() 的名稱要用：外資、投信、自營、法人、融資、融券、券資比、當沖比、當沖量、營收動能、營收年增、營收公布後天數、美股費半、美股那指、美股台積電ADR');
         const x = E.chipSeries(B, key); if (!x) throw new Error('這個標的／週期沒有籌碼資料（只有近期成交值前 1000 大的個股，日、週、月 K 才有）');
         return x;
+      },
+      chip_pct: (t, k) => {   // 籌碼近 k 根淨買超 ÷ 同期成交量 × 100（%）：chip_pct("法人", 5)＝三大法人近 5 日淨買超占成交量 %（沒資料的根算 0 張）
+        const key = CHIPN[t && t.s]; if (!key) throw new Error('chip_pct() 的名稱要用：外資、投信、自營、法人');
+        const x = E.chipSeries(B, key); if (!x) throw new Error('這個標的／週期沒有籌碼資料（只有近期成交值前 1000 大的個股，日、週、月 K 才有）');
+        const m = num(k, '根數'), a = E.csumOf(Float64Array.from(x, (v) => (Number.isNaN(v) ? 0 : v)), m), b = E.csumOf(B.v, m);
+        return a.map((v, i) => (b[i] > 0 ? v / b[i] * 100 : NaN));
       },
       streak: (a) => E.streakOf(ser(a)), csum: (a, k) => E.csumOf(ser(a), num(k, '根數')),
       abs: (a) => (typeof a === 'number' ? Math.abs(a) : a.map(Math.abs)), max: (a, b) => map2(a, b, Math.max), min: (a, b) => map2(a, b, Math.min),
@@ -153,6 +164,15 @@
         const ev = (ctx.events || []).filter((e) => e.t === t.s); const m = E.eventWindowMask(B, ev, num(b === undefined ? 0 : b, '事件前'), num(a === undefined ? 0 : a, '事件後')); return Float64Array.from(m);
       },
     };
+    // 會回傳多個值的函式：只能用 [a, b, c] = ta.macd(...) 這種解構接（Pine v5 的寫法）
+    const TUP = {
+      macd: (a, f, s, g) => { const x = a === undefined ? B.c : ser(a), q = I.macd(x, num(f === undefined ? 12 : f, '快線'), num(s === undefined ? 26 : s, '慢線'), num(g === undefined ? 9 : g, '訊號')); return [q.dif, q.dea, q.osc]; },
+      bb: (a, k, m) => { const x = a === undefined ? B.c : ser(a), q = I.boll(x, num(k === undefined ? 20 : k, '週期'), num(m === undefined ? 2 : m, '倍數')); return [q.mid, q.up, q.low]; },
+    };
+    function tup(node) {
+      if (node.k !== 'call' || !TUP[node.f]) throw new Error('解構（[a,b,c] = …）右邊要是 ta.macd(...)（回傳 MACD 線、訊號線、柱）或 ta.bb(...)（回傳中軌、上軌、下軌）');
+      return TUP[node.f](...node.args.map(ev));
+    }
     function ev(node) {
       switch (node.k) {
         case 'num': return node.v;
@@ -173,6 +193,7 @@
           return map2(a, b, F);
         }
         case 'call': {
+          if (TUP[node.f]) throw new Error('「' + node.raw + '」會回傳多個值，要寫成 [a, b, c] = ' + node.raw + '(…)');
           const f = fn[node.f]; if (!f) throw new Error('不認得函式「' + node.raw + '」');
           if (node.f === 'event') return f(ev(node.args[0]), node.args[1] ? ev(node.args[1]) : undefined, node.args[2] ? ev(node.args[2]) : undefined);
           return f(...node.args.map(ev));
@@ -180,7 +201,33 @@
         default: throw new Error('算式有誤');
       }
     }
-    return { ev, vars, params, n };
+    return { ev, vars, params, n, tup };
+  }
+
+  /* ---------------------------------------------------------------- 多行 if（縮排）展開
+     Pine 寫法：
+       if crossover(a, b)
+           strategy.entry("L", strategy.long)
+           strategy.close("S")
+     中文寫法：「若 條件 則」換行後縮排接動作。展開成多行「若 條件 則 動作」，錯誤訊息仍指到原本的行號。 */
+  function expandBlocks(lines) {
+    const out = [], strip = (r) => r.replace(/\/\/.*$/, ''), indent = (r) => /^[ \t]*/.exec(r)[0].replace(/\t/g, '    ').length;
+    for (let i = 0; i < lines.length; i++) {
+      const t = strip(lines[i]).trim(); if (!t) continue;
+      const m = /^(若|if)(?=[\s(])/i.exec(t);
+      const endsThen = m && /(則|\bthen)\s*$/i.test(t), hasThen = m && /(則|\bthen\b)\s*\S/i.test(t);
+      if (!m || (hasThen && !endsThen)) { out.push({ text: t, ln: i + 1 }); continue; }
+      const cond = t.slice(m[1].length).replace(/(則|\bthen)\s*$/i, '').trim(), ind = indent(lines[i]); let j = i + 1, n = 0;
+      if (!cond) { out.push({ bad: '第 ' + (i + 1) + ' 行：if 後面少了條件', ln: i + 1 }); continue; }
+      for (; j < lines.length; j++) {
+        const a = strip(lines[j]).trim();
+        if (a && indent(lines[j]) <= ind) break;
+        if (a) { out.push({ text: '若 ' + cond + ' 則 ' + a, ln: j + 1 }); n++; }
+      }
+      if (!n) out.push({ bad: '第 ' + (i + 1) + ' 行：if 底下要縮排寫動作（例如 進場("多")），或寫成一行「若 條件 則 動作」', ln: i + 1 });
+      i = j - 1;
+    }
+    return out;
   }
 
   /* ---------------------------------------------------------------- 編譯：整份腳本 → 訊號 */
@@ -192,8 +239,9 @@
     let name = '';
     const env = makeEnv(B, ctx);
     const lines = String(text || '').split(/\r?\n/);
-    lines.forEach((raw, idx) => {
-      const ln = idx + 1; let line = raw.replace(/\/\/.*$/, '').trim(); if (!line) return;
+    expandBlocks(lines).forEach((it) => {
+      if (it.bad) { errors.push(it.bad); return; }
+      const ln = it.ln; const line = it.text; if (!line) return;
       try {
         const toks = tokenize(line, ln);
         // 若 條件 則 動作
@@ -208,6 +256,15 @@
           const c = typeof cond === 'number' ? Float64Array.from({ length: n }, () => cond) : cond;
           const tgt = act.f === 'entry' ? (d === -1 ? sig.S : sig.L) : (d === 1 ? [sig.XL] : d === -1 ? [sig.XS] : [sig.XL, sig.XS]);
           (Array.isArray(tgt) ? tgt : [tgt]).forEach((arr) => { for (let i = 0; i < n; i++) if (c[i]) arr[i] = 1; });
+          return;
+        }
+        if (toks[0] && toks[0].t === 'op' && toks[0].v === '[') {   // [m, s, h] = ta.macd(...)
+          const k = toks.findIndex((t) => t.t === 'op' && t.v === ']');
+          const names = toks.slice(1, k).filter((t) => !(t.t === 'op' && t.v === ','));
+          if (k < 0 || !toks[k + 1] || toks[k + 1].v !== '=' || !names.length || names.some((t) => t.t !== 'id')) throw new Error('第 ' + ln + ' 行：解構要寫成 [a, b, c] = ta.macd(…)');
+          const vals = env.tup(parseExpr(toks.slice(k + 2), ln));
+          if (names.length > vals.length) throw new Error('第 ' + ln + ' 行：這個函式只回傳 ' + vals.length + ' 個值');
+          names.forEach((t, q) => { env.vars[t.v] = vals[q]; });
           return;
         }
         const wc = toks[0] && toks[0].t === 'id' ? norm(toks[0].v) : null;
@@ -254,6 +311,10 @@
     vma: { name: '成交量均線', p: [['n', '週期', 5]], fmt: (v) => `sma(volume,${v.n})` }, chg: { name: 'N 日漲跌（元）', p: [['n', '期數', 5]], fmt: (v) => `change(close,${v.n})` },
     cinst: { name: '籌碼：三大法人買賣超（張）', p: [], fmt: () => 'chip("inst")' }, cfn: { name: '籌碼：外資買賣超（張）', p: [], fmt: () => 'chip("fn")' },
     ctr: { name: '籌碼：投信買賣超（張）', p: [], fmt: () => 'chip("tr")' }, cdl: { name: '籌碼：自營商買賣超（張）', p: [], fmt: () => 'chip("dl")' },
+    cry: { name: '基本面：最新月營收年增率（%，次月 10 日起可用）', p: [], fmt: () => 'chip("營收年增")' },
+    cra: { name: '基本面：營收公布後第幾個交易日（公布日＝0）', p: [], fmt: () => 'chip("營收公布後天數")' },
+    cpin: { name: '籌碼：三大法人近 N 日淨買超占成交量（%）', p: [['n', '根數', 5]], fmt: (v) => `chip_pct("法人",${v.n})` }, cpfn: { name: '籌碼：外資近 N 日淨買超占成交量（%）', p: [['n', '根數', 5]], fmt: (v) => `chip_pct("外資",${v.n})` }, cptr: { name: '籌碼：投信近 N 日淨買超占成交量（%）', p: [['n', '根數', 5]], fmt: (v) => `chip_pct("投信",${v.n})` },
+    cussox: { name: '美股前一晚：費城半導體漲跌（%，T-1）', p: [], fmt: () => 'chip("美股費半")' }, cusix: { name: '美股前一晚：那斯達克漲跌（%，T-1）', p: [], fmt: () => 'chip("美股那指")' }, custsm: { name: '美股前一晚：台積電 ADR 漲跌（%，T-1）', p: [], fmt: () => 'chip("美股台積電ADR")' },
     crv: { name: '基本面：營收動能（近 3 月均 ÷ 近 12 月均，%）', p: [], fmt: () => 'chip("rv")' },
     cmb: { name: '籌碼：融資餘額（張）', p: [], fmt: () => 'chip("mb")' }, csb: { name: '籌碼：融券餘額（張）', p: [], fmt: () => 'chip("sb")' },
     cratio: { name: '籌碼：券資比（%）', p: [], fmt: () => 'chip("ratio")' }, cdtr: { name: '籌碼：當沖比（%）', p: [], fmt: () => 'chip("dtr")' },

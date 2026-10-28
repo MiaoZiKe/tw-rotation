@@ -89,6 +89,20 @@
     });
     return D;
   }
+  /** 美股前一晚漲跌（%）：對每根「日 K」取日期「嚴格早於這一天」的最近一筆美股收盤漲跌（T-1）。
+      台股 T 日盤中／收盤決策只能用到 T-1 以前已收盤的美股；美股同一個日曆日的收盤在台灣是隔天清晨，不能當天用。
+      usj＝lab/us.json（{sox,ixic,tsm:{d:[自 1970 的日曆日數],r:[漲跌%]}}）。只對日 K 有意義（週、月 K 用不到）；結果放在 B.chip.us_sox／us_ixic／us_tsm。 */
+  function attachUS(D, usj) {
+    if (!usj) return D;
+    D.chip = D.chip || {};
+    Object.keys(usj).forEach((k) => {
+      const dd = usj[k].d, rr = usj[k].r, o = new Float64Array(D.n).fill(NaN);
+      let j = -1;      // dd 升冪；j＝最後一筆 dd[j] < 這根的日期
+      for (let i = 0; i < D.n; i++) { while (j + 1 < dd.length && dd[j + 1] < D.day[i]) j++; if (j >= 0) o[i] = rr[j]; }
+      D.chip['us_' + k] = o;
+    });
+    return D;
+  }
   /** 取一條籌碼序列（長度＝B.n、缺值 NaN）；沒有籌碼資料回 null。inst＝三大法人合計、ratio＝券資比 %、dtr＝當沖比 %。 */
   function chipSeries(B, name) {
     const C = B.chip; if (!C) return null;
@@ -331,12 +345,13 @@
     const pyr = Math.max(1, cfg.pyramiding || 1);
     const feeEff = (inst.feeRate / 100) * inst.feeDisc;
     const slipOf = (p) => (fut ? inst.slip : p * inst.slip / 100);
-    const fee = (notional, qty) => (fut ? inst.futFee * qty : Math.max(inst.feeMin, notional * feeEff));
-    const tax = (notional, isSell) => (fut ? notional * inst.futTax / 100 : (isSell ? notional * inst.taxRate / 100 : 0));
+    // 手續費、證交稅取整數元（台股慣例：無條件捨去；手續費有最低 20 元；期交稅四捨五入到整數元）
+    const fee = (notional, qty) => (fut ? inst.futFee * qty : Math.max(inst.feeMin, Math.floor(notional * feeEff)));
+    const tax = (notional, isSell) => (fut ? Math.round(notional * inst.futTax / 100) : (isSell ? Math.floor(notional * inst.taxRate / 100) : 0));
 
     const marginCall = cfg.marginCall == null ? 130 : +cfg.marginCall;
     let cash = cfg.capital, pos = 0, lots = [], eqPrev = cfg.capital;
-    const trades = [], eq = new Float64Array(to - from + 1), bh = new Float64Array(to - from + 1);
+    const trades = [], eq = new Float64Array(to - from + 1), bh = new Float64Array(to - from + 1), eqLo = new Float64Array(to - from + 1), eqHi = new Float64Array(to - from + 1);
     const o0 = B.o[from];
     const equityAt = (c) => { let e = cash; for (const L of lots) e += fut ? pos * L.q * mult * (c - L.p) : pos * L.q * c; return e; };
 
@@ -499,6 +514,8 @@
       if (!halted && pos === 0 && equityAt(c) <= 0) { halted = true; calls.push({ i, why: '權益歸零，停止交易', eq: equityAt(c) }); }
       const e = equityAt(c);
       eq[i - from] = e; eqPrev = e;
+      // 盤中權益：以收盤後持有的部位，多單用最低價、空單用最高價算最差權益（反向算最佳），最大回撤用這組，不只看收盤
+      { let lo = cash, hi = cash; for (const L of lots) { const w = fut ? pos * L.q * mult : pos * L.q, pl = pos === 1 ? l : h, ph = pos === 1 ? h : l; lo += fut ? w * (pl - L.p) : w * pl; hi += fut ? w * (ph - L.p) : w * ph; } eqLo[i - from] = Math.min(lo, e); eqHi[i - from] = Math.max(hi, e); }
       bh[i - from] = fut ? cfg.capital + (c - o0) * mult * (cfg.sizeMode === 'units' ? cfg.sizeVal : 1) : cfg.capital * c / o0;
       if (i < to && cfg.fillOn !== 'close') pend = decide(i);
     }
@@ -508,7 +525,7 @@
       return { dir: pos, i0: L.i0, i1: to, p0: L.p, p1: c, qty: L.q, gross, costs: L.fee + L.tax + (L.borrow || 0), pnl: gross - L.fee - L.tax - (L.borrow || 0), pnlP: (gross - L.fee - L.tax - (L.borrow || 0)) / (L.p * L.q * mult) * 100, bars: to - L.i0, mfe: L.mfe * L.q * mult, mae: L.mae * L.q * mult, mfeP: L.mfe / L.p * 100, maeP: L.mae / L.p * 100, why: '未平倉', entryWhy: L.why, open: true, notional: L.p * L.q * mult };
     });
     trades.sort((a, b) => a.i1 - b.i1 || a.i0 - b.i0);
-    const stats = computeStats(B, trades, eq, cfg, from, to, openT, maxQ);
+    const stats = computeStats(B, trades, eq, cfg, from, to, openT, maxQ, eqLo, eqHi);
     return { trades, open: openT.length ? openT[0] : null, opens: openT, eq, bh, stats, from, to, calls };
   }
 
@@ -547,23 +564,28 @@
   }
   const RF = 0.02;   // 無風險利率（年化）。TradingView 的預設口徑未核實，我們採 2%，寫在畫面說明裡
 
-  function computeStats(B, trades, eq, cfg, from, to, opens, maxQ) {
+  function computeStats(B, trades, eq, cfg, from, to, opens, maxQ, eqLo, eqHi) {
     const cap = cfg.capital, last = eq.length ? eq[eq.length - 1] : cap;
     let cum = 0; trades.forEach((t) => { cum += t.pnl; t.cum = cum; });
     opens.forEach((t) => { t.cum = cum + t.pnl; });
     const all = summary(trades, opens, 0, cap), lg = summary(trades, opens, 1, cap), sh = summary(trades, opens, -1, cap);
     let peak = cap, mdd = 0, mddP = 0, trough = cap, ru = 0, ruP = 0;
     const dd = new Float64Array(eq.length);
+    let pk2 = cap;      // 盤中口徑的高點（用各根最高權益）；最大回撤＝之前的盤中高點 − 這一根盤中最低權益
     for (let i = 0; i < eq.length; i++) {
-      if (eq[i] > peak) peak = eq[i]; const d = peak - eq[i]; dd[i] = peak > 0 ? -d / peak * 100 : 0; if (d > mdd) mdd = d; const dp = peak > 0 ? d / peak : 0; if (dp > mddP) mddP = dp;
+      if (eq[i] > peak) peak = eq[i]; const d = peak - eq[i]; dd[i] = peak > 0 ? -d / peak * 100 : 0;
+      const lo = eqLo ? eqLo[i] : eq[i], hi = eqHi ? eqHi[i] : eq[i], di = pk2 - lo;
+      if (di > mdd) mdd = di; const dpi = pk2 > 0 ? di / pk2 : 0; if (dpi > mddP) mddP = dpi;
+      if (hi > pk2) pk2 = hi;
       if (eq[i] < trough) trough = eq[i]; const r = eq[i] - trough; if (r > ru) ru = r; const rp = trough > 0 ? r / trough : 0; if (rp > ruP) ruP = rp;
     }
     const mr = monthlyReturns(B, eq, from, cap);
     const mean = mr.reduce((a, b) => a + b, 0) / (mr.length || 1), rfm = RF / 12;
     const sd = Math.sqrt(mr.reduce((a, b) => a + (b - mean) ** 2, 0) / Math.max(1, mr.length - 1));
     const dsd = Math.sqrt(mr.reduce((a, b) => a + Math.min(0, b - rfm) ** 2, 0) / (mr.length || 1));
-    const sharpe = mr.length >= 3 && sd > 0 ? (mean - rfm) / sd * Math.sqrt(12) : null;
-    const sortino = mr.length >= 3 && dsd > 0 ? (mean - rfm) / dsd * Math.sqrt(12) : null;
+    const span = eq.length ? B.dayEnd[to] - B.day[from] : 0, longEnough = mr.length >= 3 && span >= 90;      // 期間不到 3 個月（90 天）月報酬太少，夏普／索提諾不計算，顯示「—」
+    const sharpe = longEnough && sd > 0 ? (mean - rfm) / sd : null;      // 和 TradingView 一致：月報酬比值，不年化
+    const sortino = longEnough && dsd > 0 ? (mean - rfm) / dsd : null;
     const days = trades.length ? trades.reduce((a, t) => a + (B.day[Math.min(t.i1, B.n - 1)] - B.day[t.i0]), 0) / trades.length : 0;
     const fut = cfg.inst.kind === 'fut';
     return Object.assign({}, all, {
@@ -651,7 +673,19 @@
     return run(B, sig, c2, from, B.n - 1);
   }
 
-  const api = { decode, resample, attachChip, chipSeries, streakOf, csumOf, PPY, I, STRATS, STRAT, defaults, instDefaults, run, runStrategy, rangeFrom, eventWindowMask, eventStudy, computeStats, dayToStr, strToDay, up, dn, mk };
+  /** 交易清單的資料結構：每一筆交易拆成「進場」「出場」各一列（對照 TradingView 的交易清單）。
+      trades＝已平倉、opens＝未平倉（出場列標 open:true，價格是最後一根收盤、損益是浮動損益）。回傳依交易編號排序、同一筆進場在前。 */
+  function tradeLegs(trades, opens) {
+    const out = [], all = (trades || []).map((t) => [t, false]).concat((opens || []).map((t) => [t, true]));
+    all.forEach(([t, open], k) => {
+      const no = k + 1, side = t.dir === 1 ? '多' : '空';
+      out.push({ no, type: 'entry', label: '進場', dir: t.dir, side, i: t.i0, price: t.p0, qty: t.qty, signal: t.entryWhy || '', pnl: null, pnlP: null, cum: null, mfe: null, mae: null, costs: null, open });
+      out.push({ no, type: 'exit', label: open ? '出場（未平倉）' : '出場', dir: t.dir, side, i: t.i1, price: t.p1, qty: t.qty, signal: open ? '' : (t.why || ''), pnl: t.pnl, pnlP: t.pnlP, cum: t.cum, mfe: t.mfe, mae: t.mae, costs: t.costs, open });
+    });
+    return out;
+  }
+
+  const api = { attachUS, tradeLegs, decode, resample, attachChip, chipSeries, streakOf, csumOf, PPY, I, STRATS, STRAT, defaults, instDefaults, run, runStrategy, rangeFrom, eventWindowMask, eventStudy, computeStats, dayToStr, strToDay, up, dn, mk };
 
   /** Worker 訊息處理：load 資料 → run 回測。資料以 key 快取在 worker 內，避免每次重傳。 */
   const cache = {};

@@ -19,9 +19,9 @@ def t_lab_standard(b, base, code):
     pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e) + " @ 上一步＝" + step[0]))
     pg.goto(base + "#lab/custom", wait_until="domcontentloaded"); pg.wait_for_timeout(4500)
     res = pg.evaluate("async () => { const r = await fetch('lab/standard_results.json'); return r.ok ? await r.json() : null; }")
-    ok(f"{T}：結果檔 standard_results.json 讀得到、10 組齊全", bool(res) and len(res["strategies"]) == 10, None)
+    ok(f"{T}：結果檔 standard_results.json 讀得到、12 組齊全", bool(res) and len(res["strategies"]) == 12, None)
     opts = pg.evaluate("() => [...document.querySelectorAll('#cuStdSel option')].filter(o => o.value).map(o => o.value)")
-    ok(f"{T}：下拉有 10 組標準策略", len(opts) == 10, opts)
+    ok(f"{T}：下拉有 12 組標準策略", len(opts) == 12, opts)
 
     def n_trades():
         pg.wait_for_timeout(1500)
