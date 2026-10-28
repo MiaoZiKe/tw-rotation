@@ -42,51 +42,10 @@
    "width": 1920,
    "height": 1440,
    "fetched_at": "2026-10-28T16:08:03+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
-  },
-  {
-   "file": "photo_3.jpg",
-   "kind": "產品",
-   "slug": "mega",
-   "name_en": "Mega Financial",
-   "query": "bank branch Taiwan",
-   "file_title": "File:Tainan Taiwan Bank-of-Taiwan-Tainan-Branch-01.jpg",
-   "source_url": "https://commons.wikimedia.org/wiki/File:Tainan_Taiwan_Bank-of-Taiwan-Tainan-Branch-01.jpg",
-   "image_url": "https://upload.wikimedia.org/wikipedia/commons/2/26/Tainan_Taiwan_Bank-of-Taiwan-Tainan-Branch-01.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-   "license": "CC BY-SA 3.0",
-   "license_url": "https://creativecommons.org/licenses/by-sa/3.0",
-   "author": "CEphoto, Uwe Aranas",
-   "credit": "Own work",
-   "description": "Tainan, Taiwan: Signboard of Bank of Taiwan, Tainan Branch.",
-   "width": 1920,
-   "height": 974,
-   "fetched_at": "2026-10-28T16:08:06+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
-  },
-  {
-   "file": "photo_4.jpg",
-   "kind": "產品",
-   "slug": "mega",
-   "name_en": "Mega Financial",
-   "query": "bank branch Taiwan",
-   "file_title": "File:Penghu Branch, Land Bank of Taiwan 01.jpg",
-   "source_url": "https://commons.wikimedia.org/wiki/File:Penghu_Branch,_Land_Bank_of_Taiwan_01.jpg",
-   "image_url": "https://upload.wikimedia.org/wikipedia/commons/d/d4/Penghu_Branch%2C_Land_Bank_of_Taiwan_01.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-   "license": "CC BY-SA 4.0",
-   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
-   "author": "舟集 Boattoad",
-   "credit": "Own work",
-   "description": "Address: No. 20, Sanmin Rd., Magong City, Penghu 880 Taiwan",
-   "width": 1920,
-   "height": 1446,
-   "fetched_at": "2026-10-28T16:08:06+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
+   "reviewed_at": "2026-10-28"
   },
   {
    "file": "photo_5.jpg",
@@ -105,10 +64,22 @@
    "width": 1920,
    "height": 1440,
    "fetched_at": "2026-10-28T16:08:08+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
+   "reviewed_at": "2026-10-28"
   }
  ],
- "rejected": []
+ "rejected": [
+  {
+   "file_title": "File:Tainan Taiwan Bank-of-Taiwan-Tainan-Branch-01.jpg",
+   "reason": "臺灣銀行招牌",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:Penghu Branch, Land Bank of Taiwan 01.jpg",
+   "reason": "土地銀行，主體錯",
+   "at": "2026-10-28"
+  }
+ ]
 }

@@ -18,99 +18,36 @@
    "width": 1920,
    "height": 1279,
    "fetched_at": "2026-10-28T16:06:45+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
-  },
-  {
-   "file": "photo_2.jpg",
-   "kind": "總部/廠房",
-   "slug": "foxconn",
-   "name_en": "Foxconn",
-   "query": "Foxconn building",
-   "file_title": "File:Inside MPS Administration Building Milwaukee Public School Teachers and Supporters Picket Outside Milwaukee Public Schools Adminstration Building Milwaukee Wisconsin 4-24-18 1190 (27863933918).jpg",
-   "source_url": "https://commons.wikimedia.org/wiki/File:Inside_MPS_Administration_Building_Milwaukee_Public_School_Teachers_and_Supporters_Picket_Outside_Milwaukee_Public_Schools_Adminstration_Building_Milwaukee_Wisconsin_4-24-18_1190_(27863933918).jpg",
-   "image_url": "https://upload.wikimedia.org/wikipedia/commons/1/13/Inside_MPS_Administration_Building_Milwaukee_Public_School_Teachers_and_Supporters_Picket_Outside_Milwaukee_Public_Schools_Adminstration_Building_Milwaukee_Wisconsin_4-24-18_1190_%2827863933918%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-   "license": "CC BY-SA 2.0",
-   "license_url": "https://creativecommons.org/licenses/by-sa/2.0",
-   "author": "Charles Edward Miller from Chicago, United States",
-   "credit": "Inside MPS Administration Building Milwaukee Public School Teachers and Supporters Picket Outside Milwaukee Public Schools Adminstration Building Milwaukee Wisc",
-   "description": "Milwaukee public school teachers, parents, students and supporters staged a large picket line outside MPS administration building on Vliet Street on Milwaukee's west side late Tuesday afternoon. \nThe purpose was to protest yet another round of funding cuts to K-12 schools in Milwaukee. Classrooms an",
-   "width": 1920,
-   "height": 1280,
-   "fetched_at": "2026-10-28T16:06:46+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
-  },
-  {
-   "file": "photo_3.jpg",
-   "kind": "產品",
-   "slug": "foxconn",
-   "name_en": "Foxconn",
-   "query": "electronics assembly line",
-   "file_title": "File:Schmid Electronics Tech Line DPC 500 (2) - boards-4341.jpg",
-   "source_url": "https://commons.wikimedia.org/wiki/File:Schmid_Electronics_Tech_Line_DPC_500_(2)_-_boards-4341.jpg",
-   "image_url": "https://upload.wikimedia.org/wikipedia/commons/5/57/Schmid_Electronics_Tech_Line_DPC_500_%282%29_-_boards-4341.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-   "license": "CC BY-SA 4.0",
-   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
-   "author": "Raimond Spekking",
-   "credit": "Own work",
-   "description": "Schmid Electronics Tech Line DPC 500 (2) - board -  LCD with LED as projector of the time",
-   "width": 1920,
-   "height": 1080,
-   "fetched_at": "2026-10-28T16:06:50+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
-  },
-  {
-   "file": "photo_4.jpg",
-   "kind": "產品",
-   "slug": "foxconn",
-   "name_en": "Foxconn",
-   "query": "electronics assembly line",
-   "file_title": "File:Schmid Electronics Tech Line DPC 500 (2) - boards-4339.jpg",
-   "source_url": "https://commons.wikimedia.org/wiki/File:Schmid_Electronics_Tech_Line_DPC_500_(2)_-_boards-4339.jpg",
-   "image_url": "https://upload.wikimedia.org/wikipedia/commons/d/de/Schmid_Electronics_Tech_Line_DPC_500_%282%29_-_boards-4339.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-   "license": "CC BY-SA 4.0",
-   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
-   "author": "Raimond Spekking",
-   "credit": "Own work",
-   "description": "Schmid Electronics Tech Line DPC 500 (2) - boards. Top: ferrite rod antenna, left and right: LCD with LED as projector of the time",
-   "width": 1920,
-   "height": 1920,
-   "fetched_at": "2026-10-28T16:06:50+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
-  },
-  {
-   "file": "photo_5.jpg",
-   "kind": "相關場景",
-   "slug": "foxconn",
-   "name_en": "Foxconn",
-   "query": "server rack",
-   "file_title": "File:Door of Rack Server Cabinet Fujitsu Primecenter.jpg",
-   "source_url": "https://commons.wikimedia.org/wiki/File:Door_of_Rack_Server_Cabinet_Fujitsu_Primecenter.jpg",
-   "image_url": "https://upload.wikimedia.org/wikipedia/commons/2/28/Door_of_Rack_Server_Cabinet_Fujitsu_Primecenter.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-   "license": "CC BY-SA 4.0",
-   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
-   "author": "Trique303",
-   "credit": "Own work",
-   "description": "Rack door with visible honeycomb ventilation holes.",
-   "width": 1920,
-   "height": 1303,
-   "fetched_at": "2026-10-28T16:06:52+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
+   "reviewed_at": "2026-10-28"
   }
  ],
  "rejected": [
   {
    "file_title": "File:Foxconn (53883997799).jpg",
    "reason": "畫面主角是 FOXCONN 招牌特寫（LOGO 為主角）",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:Inside MPS Administration Building Milwaukee Public School Teachers and Supporters Picket Outside Milwaukee Public Schools Adminstration Building Milwaukee Wisconsin 4-24-18 1190 (27863933918).jpg",
+   "reason": "人群，同名誤抓",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:Schmid Electronics Tech Line DPC 500 (2) - boards-4341.jpg",
+   "reason": "電子零件與鴻海無關",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:Schmid Electronics Tech Line DPC 500 (2) - boards-4339.jpg",
+   "reason": "電子零件與鴻海無關",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:Door of Rack Server Cabinet Fujitsu Primecenter.jpg",
+   "reason": "Fujitsu LOGO 為主角",
    "at": "2026-10-28"
   }
  ]

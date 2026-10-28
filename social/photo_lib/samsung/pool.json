@@ -42,51 +42,10 @@
    "width": 1920,
    "height": 1050,
    "fetched_at": "2026-10-28T16:14:39+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
-  },
-  {
-   "file": "photo_3.jpg",
-   "kind": "產品",
-   "slug": "samsung",
-   "name_en": "Samsung Electronics",
-   "query": "Samsung memory",
-   "file_title": "File:SanDisk Memory Stick PRO 256MB PCB.jpg",
-   "source_url": "https://commons.wikimedia.org/wiki/File:SanDisk_Memory_Stick_PRO_256MB_PCB.jpg",
-   "image_url": "https://upload.wikimedia.org/wikipedia/commons/8/89/SanDisk_Memory_Stick_PRO_256MB_PCB.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-   "license": "CC BY-SA 4.0",
-   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
-   "author": "Mister rf",
-   "credit": "Own work",
-   "description": "SanDisk 256MB Memory Stick PRO card. \nIntegrated circuits:\n\nNAND Flash controller - SanDisk 20-99-00091-4;\nNAND Flash Memory - Samsung  K9F2G08U0M 256M x 8 Bit NAND Flash Memory.",
-   "width": 1920,
-   "height": 1548,
-   "fetched_at": "2026-10-28T16:14:41+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
-  },
-  {
-   "file": "photo_4.jpg",
-   "kind": "產品",
-   "slug": "samsung",
-   "name_en": "Samsung Electronics",
-   "query": "Samsung memory",
-   "file_title": "File:Intel Optane Memory 32GB.jpg",
-   "source_url": "https://commons.wikimedia.org/wiki/File:Intel_Optane_Memory_32GB.jpg",
-   "image_url": "https://upload.wikimedia.org/wikipedia/commons/e/e1/Intel_Optane_Memory_32GB.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-   "license": "CC BY 4.0",
-   "license_url": "https://creativecommons.org/licenses/by/4.0",
-   "author": "Ox1997cow",
-   "credit": "Own work",
-   "description": "Intel Optane memory is used in conjunction with hard disk drives to speed up hard disk drives.",
-   "width": 1920,
-   "height": 1080,
-   "fetched_at": "2026-10-28T16:14:41+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
+   "reviewed_at": "2026-10-28"
   },
   {
    "file": "photo_5.jpg",
@@ -105,10 +64,22 @@
    "width": 1920,
    "height": 1440,
    "fetched_at": "2026-10-28T16:14:44+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
+   "reviewed_at": "2026-10-28"
   }
  ],
- "rejected": []
+ "rejected": [
+  {
+   "file_title": "File:SanDisk Memory Stick PRO 256MB PCB.jpg",
+   "reason": "SanDisk 產品，與三星無關",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:Intel Optane Memory 32GB.jpg",
+   "reason": "Intel 產品，與三星無關",
+   "at": "2026-10-28"
+  }
+ ]
 }

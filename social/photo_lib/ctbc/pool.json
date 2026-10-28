@@ -42,51 +42,10 @@
    "width": 1920,
    "height": 1464,
    "fetched_at": "2026-10-28T16:07:53+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
-  },
-  {
-   "file": "photo_3.jpg",
-   "kind": "產品",
-   "slug": "ctbc",
-   "name_en": "CTBC Financial",
-   "query": "Taipei financial district",
-   "file_title": "File:Taipei 101 Tuned Mass Damper 2010.jpg",
-   "source_url": "https://commons.wikimedia.org/wiki/File:Taipei_101_Tuned_Mass_Damper_2010.jpg",
-   "image_url": "https://upload.wikimedia.org/wikipedia/commons/7/7c/Taipei_101_Tuned_Mass_Damper_2010.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-   "license": "CC BY 3.0",
-   "license_url": "https://creativecommons.org/licenses/by/3.0",
-   "author": "Armand du Plessis",
-   "credit": "Own work",
-   "description": "Tuned mass damper on display in Taipei 101.",
-   "width": 1920,
-   "height": 1275,
-   "fetched_at": "2026-10-28T16:07:54+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
-  },
-  {
-   "file": "photo_4.jpg",
-   "kind": "產品",
-   "slug": "ctbc",
-   "name_en": "CTBC Financial",
-   "query": "bank branch Taiwan",
-   "file_title": "File:Tainan Taiwan Bank-of-Taiwan-Tainan-Branch-02.jpg",
-   "source_url": "https://commons.wikimedia.org/wiki/File:Tainan_Taiwan_Bank-of-Taiwan-Tainan-Branch-02.jpg",
-   "image_url": "https://upload.wikimedia.org/wikipedia/commons/2/2a/Tainan_Taiwan_Bank-of-Taiwan-Tainan-Branch-02.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-   "license": "CC BY-SA 3.0",
-   "license_url": "https://creativecommons.org/licenses/by-sa/3.0",
-   "author": "CEphoto, Uwe Aranas",
-   "credit": "Own work",
-   "description": "Tainan, Taiwan: Bank of Taiwan, Tainan Branch.",
-   "width": 1920,
-   "height": 1280,
-   "fetched_at": "2026-10-28T16:07:56+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
+   "reviewed_at": "2026-10-28"
   },
   {
    "file": "photo_5.jpg",
@@ -105,10 +64,22 @@
    "width": 1920,
    "height": 1440,
    "fetched_at": "2026-10-28T16:07:59+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
+   "reviewed_at": "2026-10-28"
   }
  ],
- "rejected": []
+ "rejected": [
+  {
+   "file_title": "File:Taipei 101 Tuned Mass Damper 2010.jpg",
+   "reason": "101 阻尼器，與中信金無關",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:Tainan Taiwan Bank-of-Taiwan-Tainan-Branch-02.jpg",
+   "reason": "臺灣銀行分行，主體錯",
+   "at": "2026-10-28"
+  }
+ ]
 }

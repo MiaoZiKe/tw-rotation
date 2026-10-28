@@ -2,27 +2,6 @@
  "slug": "資料中心",
  "photos": [
   {
-   "file": "photo_1.jpg",
-   "kind": "類別",
-   "slug": "資料中心",
-   "name_en": "資料中心",
-   "query": "data center",
-   "file_title": "File:CERN data centre.jpg",
-   "source_url": "https://commons.wikimedia.org/wiki/File:CERN_data_centre.jpg",
-   "image_url": "https://upload.wikimedia.org/wikipedia/commons/7/76/CERN_data_centre.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-   "license": "CC BY-SA 4.0",
-   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
-   "author": "Unnerving duck",
-   "credit": "Own work",
-   "description": "CERN data centre from the outside",
-   "width": 1920,
-   "height": 1440,
-   "fetched_at": "2026-10-28T16:16:24+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
-  },
-  {
    "file": "photo_2.jpg",
    "kind": "類別",
    "slug": "資料中心",
@@ -39,9 +18,10 @@
    "width": 1920,
    "height": 1440,
    "fetched_at": "2026-10-28T16:16:24+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
+   "reviewed_at": "2026-10-28"
   },
   {
    "file": "photo_3.jpg",
@@ -60,9 +40,10 @@
    "width": 1920,
    "height": 1440,
    "fetched_at": "2026-10-28T16:16:26+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
+   "reviewed_at": "2026-10-28"
   },
   {
    "file": "photo_4.jpg",
@@ -81,9 +62,10 @@
    "width": 1920,
    "height": 1440,
    "fetched_at": "2026-10-28T16:16:26+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
+   "reviewed_at": "2026-10-28"
   },
   {
    "file": "photo_5.jpg",
@@ -102,30 +84,10 @@
    "width": 1920,
    "height": 1280,
    "fetched_at": "2026-10-28T16:16:28+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
-  },
-  {
-   "file": "photo_6.jpg",
-   "kind": "類別",
-   "slug": "資料中心",
-   "name_en": "資料中心",
-   "query": "server farm",
-   "file_title": "File:A NASA computer server farm -a.jpg",
-   "source_url": "https://commons.wikimedia.org/wiki/File:A_NASA_computer_server_farm_-a.jpg",
-   "image_url": "https://upload.wikimedia.org/wikipedia/commons/1/10/A_NASA_computer_server_farm_-a.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-   "license": "Public domain",
-   "license_url": "",
-   "author": "NASA",
-   "credit": "https://www.dvidshub.net/image/848149/networking-check-new-gx-cluster-advanced-computational-concepts-laboratory-accl",
-   "description": "Networking check for the new GX cluster in the Advanced Computational Concepts Laboratory (ACCL)\n\nNASA Identifier: C-2006-1850",
-   "width": 1920,
-   "height": 1536,
-   "fetched_at": "2026-10-28T16:16:32+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
+   "reviewed_at": "2026-10-28"
   },
   {
    "file": "photo_7.jpg",
@@ -144,9 +106,10 @@
    "width": 1920,
    "height": 1440,
    "fetched_at": "2026-10-28T16:16:32+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
+   "reviewed_at": "2026-10-28"
   },
   {
    "file": "photo_8.jpg",
@@ -165,10 +128,22 @@
    "width": 1920,
    "height": 1440,
    "fetched_at": "2026-10-28T16:16:32+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
+   "reviewed_at": "2026-10-28"
   }
  ],
- "rejected": []
+ "rejected": [
+  {
+   "file_title": "File:CERN data centre.jpg",
+   "reason": "招牌字為主角",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:A NASA computer server farm -a.jpg",
+   "reason": "人物為主角",
+   "at": "2026-10-28"
+  }
+ ]
 }

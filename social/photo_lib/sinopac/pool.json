@@ -1,95 +1,30 @@
 {
  "slug": "sinopac",
- "photos": [
-  {
-   "file": "photo_1.jpg",
-   "kind": "總部/廠房",
-   "slug": "sinopac",
-   "name_en": "SinoPac Financial",
-   "query": "SinoPac building Taipei",
-   "file_title": "File:Bank SinoPac JanCheng Building entry 20160924.jpg",
-   "source_url": "https://commons.wikimedia.org/wiki/File:Bank_SinoPac_JanCheng_Building_entry_20160924.jpg",
-   "image_url": "https://upload.wikimedia.org/wikipedia/commons/c/c6/Bank_SinoPac_JanCheng_Building_entry_20160924.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-   "license": "CC BY-SA 4.0",
-   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
-   "author": "Solomon203",
-   "credit": "Own work",
-   "description": "​永豐商業銀行建成大樓大門。永豐商業銀行建成分行設於1至2樓，兒童福利聯盟文教基金會總部設於6樓。現為長安服務中心，總部已搬遷至多倫多科技中心。",
-   "width": 1920,
-   "height": 1440,
-   "fetched_at": "2026-10-28T16:11:57+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
-  },
-  {
-   "file": "photo_2.jpg",
-   "kind": "總部/廠房",
-   "slug": "sinopac",
-   "name_en": "SinoPac Financial",
-   "query": "SinoPac building Taipei",
-   "file_title": "File:Chung Chien Building title and Bank SinoPac light box 20101213.jpg",
-   "source_url": "https://commons.wikimedia.org/wiki/File:Chung_Chien_Building_title_and_Bank_SinoPac_light_box_20101213.jpg",
-   "image_url": "https://upload.wikimedia.org/wikipedia/commons/4/43/Chung_Chien_Building_title_and_Bank_SinoPac_light_box_20101213.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-   "license": "CC BY-SA 3.0",
-   "license_url": "https://creativecommons.org/licenses/by-sa/3.0",
-   "author": "Solomon203",
-   "credit": "Own work",
-   "description": "​中建大樓題字與永豐銀行招牌。",
-   "width": 1920,
-   "height": 1080,
-   "fetched_at": "2026-10-28T16:11:57+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
-  },
-  {
-   "file": "photo_3.jpg",
-   "kind": "產品",
-   "slug": "sinopac",
-   "name_en": "SinoPac Financial",
-   "query": "bank branch Taiwan",
-   "file_title": "File:Chengnei Branch, Taiwan Cooperative Bank 20111120.jpg",
-   "source_url": "https://commons.wikimedia.org/wiki/File:Chengnei_Branch,_Taiwan_Cooperative_Bank_20111120.jpg",
-   "image_url": "https://upload.wikimedia.org/wikipedia/commons/2/23/Chengnei_Branch%2C_Taiwan_Cooperative_Bank_20111120.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-   "license": "CC BY 3.0",
-   "license_url": "https://creativecommons.org/licenses/by/3.0",
-   "author": "lienyuan lee",
-   "credit": "https://web.archive.org/web/20161021042008/http://www.panoramio.com/photo/64248628",
-   "description": "​合作金庫銀行城內分行，位於臺北市中正區衡陽路87號（原臺北信用組合）。",
-   "width": 1920,
-   "height": 1440,
-   "fetched_at": "2026-10-28T16:11:59+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
-  },
-  {
-   "file": "photo_4.jpg",
-   "kind": "產品",
-   "slug": "sinopac",
-   "name_en": "SinoPac Financial",
-   "query": "bank branch Taiwan",
-   "file_title": "File:Chengnei Branch, Taiwan Cooperative Bank 2007-08-26.jpg",
-   "source_url": "https://commons.wikimedia.org/wiki/File:Chengnei_Branch,_Taiwan_Cooperative_Bank_2007-08-26.jpg",
-   "image_url": "https://upload.wikimedia.org/wikipedia/commons/f/fe/Chengnei_Branch%2C_Taiwan_Cooperative_Bank_2007-08-26.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-   "license": "Public domain",
-   "license_url": "",
-   "author": "KaurJmeb",
-   "credit": "Own work",
-   "description": "​合作金庫銀行城內分行。",
-   "width": 1920,
-   "height": 1440,
-   "fetched_at": "2026-10-28T16:12:00+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
-  }
- ],
+ "photos": [],
  "rejected": [
   {
    "file_title": "File:Bank SinoPac Yenping Building floor guide 20200718.jpg",
    "reason": "大樓樓層指示牌特寫，且內容為兆豐證券，主體錯誤",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:Bank SinoPac JanCheng Building entry 20160924.jpg",
+   "reason": "門口與招牌，主體錯",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:Chung Chien Building title and Bank SinoPac light box 20101213.jpg",
+   "reason": "招牌燈箱為主角",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:Chengnei Branch, Taiwan Cooperative Bank 20111120.jpg",
+   "reason": "合作金庫分行，主體錯",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:Chengnei Branch, Taiwan Cooperative Bank 2007-08-26.jpg",
+   "reason": "合作金庫分行，主體錯",
    "at": "2026-10-28"
   }
  ]

@@ -42,9 +42,10 @@
    "width": 1920,
    "height": 1372,
    "fetched_at": "2026-10-28T16:14:32+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
+   "reviewed_at": "2026-10-28"
   },
   {
    "file": "photo_3.jpg",
@@ -63,31 +64,17 @@
    "width": 1920,
    "height": 1161,
    "fetched_at": "2026-10-28T16:14:34+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
-  },
-  {
-   "file": "photo_4.jpg",
-   "kind": "產品",
-   "slug": "intel",
-   "name_en": "Intel",
-   "query": "Intel Core processor",
-   "file_title": "File:Processor INTEL CORE 2 DUO.jpg",
-   "source_url": "https://commons.wikimedia.org/wiki/File:Processor_INTEL_CORE_2_DUO.jpg",
-   "image_url": "https://upload.wikimedia.org/wikipedia/commons/8/8b/Processor_INTEL_CORE_2_DUO.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-   "license": "CC0",
-   "license_url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
-   "author": "45746845685468q",
-   "credit": "Own work",
-   "description": "процессор INTEL CORE 2 DUO E8400",
-   "width": 1570,
-   "height": 1324,
-   "fetched_at": "2026-10-28T16:14:34+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
+   "reviewed_at": "2026-10-28"
   }
  ],
- "rejected": []
+ "rejected": [
+  {
+   "file_title": "File:Processor INTEL CORE 2 DUO.jpg",
+   "reason": "印字特寫",
+   "at": "2026-10-28"
+  }
+ ]
 }

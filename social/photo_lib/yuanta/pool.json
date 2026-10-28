@@ -18,9 +18,10 @@
    "width": 1920,
    "height": 1440,
    "fetched_at": "2026-10-28T16:08:39+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
+   "reviewed_at": "2026-10-28"
   },
   {
    "file": "photo_2.jpg",
@@ -39,51 +40,10 @@
    "width": 1920,
    "height": 1440,
    "fetched_at": "2026-10-28T16:08:39+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
-  },
-  {
-   "file": "photo_3.jpg",
-   "kind": "產品",
-   "slug": "yuanta",
-   "name_en": "Yuanta Financial",
-   "query": "bank branch Taiwan",
-   "file_title": "File:Taipei Taiwan Taiwan-Cooperative-Bank-01.jpg",
-   "source_url": "https://commons.wikimedia.org/wiki/File:Taipei_Taiwan_Taiwan-Cooperative-Bank-01.jpg",
-   "image_url": "https://upload.wikimedia.org/wikipedia/commons/3/30/Taipei_Taiwan_Taiwan-Cooperative-Bank-01.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-   "license": "CC BY-SA 3.0",
-   "license_url": "https://creativecommons.org/licenses/by-sa/3.0",
-   "author": "CEphoto, Uwe Aranas",
-   "credit": "Own work",
-   "description": "Taipei, Taiwan: Taiwan Cooperative Bank in HengYang Road",
-   "width": 1920,
-   "height": 1372,
-   "fetched_at": "2026-10-28T16:08:41+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
-  },
-  {
-   "file": "photo_4.jpg",
-   "kind": "產品",
-   "slug": "yuanta",
-   "name_en": "Yuanta Financial",
-   "query": "bank branch Taiwan",
-   "file_title": "File:Taipei Taiwan Taiwan-Cooperative-Bank-02.jpg",
-   "source_url": "https://commons.wikimedia.org/wiki/File:Taipei_Taiwan_Taiwan-Cooperative-Bank-02.jpg",
-   "image_url": "https://upload.wikimedia.org/wikipedia/commons/e/e6/Taipei_Taiwan_Taiwan-Cooperative-Bank-02.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-   "license": "CC BY-SA 3.0",
-   "license_url": "https://creativecommons.org/licenses/by-sa/3.0",
-   "author": "CEphoto, Uwe Aranas",
-   "credit": "Own work",
-   "description": "Taipei, Taiwan: Taiwan Cooperative Bank in HengYang Road",
-   "width": 1920,
-   "height": 1280,
-   "fetched_at": "2026-10-28T16:08:41+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
+   "reviewed_at": "2026-10-28"
   },
   {
    "file": "photo_5.jpg",
@@ -102,15 +62,26 @@
    "width": 1920,
    "height": 1440,
    "fetched_at": "2026-10-28T16:08:43+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
+   "reviewed_at": "2026-10-28"
   }
  ],
  "rejected": [
   {
    "file_title": "File:Yuanta Financial Tower 20190901.jpg",
    "reason": "樹木與路牌遮擋大樓，構圖雜亂",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:Taipei Taiwan Taiwan-Cooperative-Bank-01.jpg",
+   "reason": "合作金庫分行，主體錯",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:Taipei Taiwan Taiwan-Cooperative-Bank-02.jpg",
+   "reason": "合作金庫分行，主體錯",
    "at": "2026-10-28"
   }
  ]

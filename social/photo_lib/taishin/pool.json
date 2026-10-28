@@ -18,9 +18,10 @@
    "width": 1920,
    "height": 2065,
    "fetched_at": "2026-10-28T16:10:49+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
+   "reviewed_at": "2026-10-28"
   },
   {
    "file": "photo_2.jpg",
@@ -39,57 +40,26 @@
    "width": 1920,
    "height": 1952,
    "fetched_at": "2026-10-28T16:10:50+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
-  },
-  {
-   "file": "photo_3.jpg",
-   "kind": "產品",
-   "slug": "taishin",
-   "name_en": "Taishin Financial",
-   "query": "bank branch Taiwan",
-   "file_title": "File:Songshan Branch, Taiwan Cooperative Bank 20101013.jpg",
-   "source_url": "https://commons.wikimedia.org/wiki/File:Songshan_Branch,_Taiwan_Cooperative_Bank_20101013.jpg",
-   "image_url": "https://upload.wikimedia.org/wikipedia/commons/c/c1/Songshan_Branch%2C_Taiwan_Cooperative_Bank_20101013.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-   "license": "CC BY-SA 3.0",
-   "license_url": "https://creativecommons.org/licenses/by-sa/3.0",
-   "author": "Solomon203",
-   "credit": "Own work",
-   "description": "​合作金庫銀行松山分行。",
-   "width": 1600,
-   "height": 1200,
-   "fetched_at": "2026-10-28T16:10:52+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
-  },
-  {
-   "file": "photo_4.jpg",
-   "kind": "產品",
-   "slug": "taishin",
-   "name_en": "Taishin Financial",
-   "query": "bank branch Taiwan",
-   "file_title": "File:Dong Taipei Branch, Taiwan Cooperative Bank 20101031.jpg",
-   "source_url": "https://commons.wikimedia.org/wiki/File:Dong_Taipei_Branch,_Taiwan_Cooperative_Bank_20101031.jpg",
-   "image_url": "https://upload.wikimedia.org/wikipedia/commons/0/02/Dong_Taipei_Branch%2C_Taiwan_Cooperative_Bank_20101031.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-   "license": "CC BY-SA 3.0",
-   "license_url": "https://creativecommons.org/licenses/by-sa/3.0",
-   "author": "Solomon203",
-   "credit": "Own work",
-   "description": "​合作金庫銀行東台北分行，位於臺北市大安區忠孝東路四段325號1樓。",
-   "width": 1920,
-   "height": 1440,
-   "fetched_at": "2026-10-28T16:10:53+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
+   "reviewed_at": "2026-10-28"
   }
  ],
  "rejected": [
   {
    "file_title": "File:Taishin Tower entrance 20130324.jpg",
    "reason": "入口招牌近拍，無建築全貌，招牌為主角",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:Songshan Branch, Taiwan Cooperative Bank 20101013.jpg",
+   "reason": "合作金庫分行，主體錯",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:Dong Taipei Branch, Taiwan Cooperative Bank 20101031.jpg",
+   "reason": "合作金庫分行，主體錯",
    "at": "2026-10-28"
   }
  ]

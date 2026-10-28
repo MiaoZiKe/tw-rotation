@@ -2,27 +2,6 @@
  "slug": "first_fin",
  "photos": [
   {
-   "file": "photo_1.jpg",
-   "kind": "總部/廠房",
-   "slug": "first_fin",
-   "name_en": "First Financial",
-   "query": "First Commercial Bank headquarters Taipei",
-   "file_title": "File:Shin-Shin Bus EAL-1025 left side at First Bank HQ 20240628.jpg",
-   "source_url": "https://commons.wikimedia.org/wiki/File:Shin-Shin_Bus_EAL-1025_left_side_at_First_Bank_HQ_20240628.jpg",
-   "image_url": "https://upload.wikimedia.org/wikipedia/commons/f/fa/Shin-Shin_Bus_EAL-1025_left_side_at_First_Bank_HQ_20240628.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-   "license": "CC BY-SA 4.0",
-   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
-   "author": "Solomon203",
-   "credit": "Own work",
-   "description": "​欣欣客運電動大客車EAL-1025，行駛臺北市聯營公車羅斯福路幹線，停靠第一商業銀行總行，左側貼格雷維蒂互動《仙境傳說：初心之戰》車體廣告。",
-   "width": 1920,
-   "height": 887,
-   "fetched_at": "2026-10-28T16:09:20+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
-  },
-  {
    "file": "photo_2.jpg",
    "kind": "總部/廠房",
    "slug": "first_fin",
@@ -39,57 +18,31 @@
    "width": 1920,
    "height": 1276,
    "fetched_at": "2026-10-28T16:09:25+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
-  },
-  {
-   "file": "photo_3.jpg",
-   "kind": "產品",
-   "slug": "first_fin",
-   "name_en": "First Financial",
-   "query": "bank branch Taiwan",
-   "file_title": "File:Sijhih Branch, Taiwan Cooperative Bank 20200207.jpg",
-   "source_url": "https://commons.wikimedia.org/wiki/File:Sijhih_Branch,_Taiwan_Cooperative_Bank_20200207.jpg",
-   "image_url": "https://upload.wikimedia.org/wikipedia/commons/a/af/Sijhih_Branch%2C_Taiwan_Cooperative_Bank_20200207.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-   "license": "CC BY-SA 4.0",
-   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
-   "author": "Solomon203",
-   "credit": "Own work",
-   "description": "TAIWAN COOPERATIVE BANK SIJHIH BRANCH",
-   "width": 1920,
-   "height": 1080,
-   "fetched_at": "2026-10-28T16:09:27+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
-  },
-  {
-   "file": "photo_4.jpg",
-   "kind": "產品",
-   "slug": "first_fin",
-   "name_en": "First Financial",
-   "query": "bank branch Taiwan",
-   "file_title": "File:Chungli Branch, Bank of Taiwan 20131023.jpg",
-   "source_url": "https://commons.wikimedia.org/wiki/File:Chungli_Branch,_Bank_of_Taiwan_20131023.jpg",
-   "image_url": "https://upload.wikimedia.org/wikipedia/commons/6/6d/Chungli_Branch%2C_Bank_of_Taiwan_20131023.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-   "license": "CC BY-SA 3.0",
-   "license_url": "https://creativecommons.org/licenses/by-sa/3.0",
-   "author": "Solomon203",
-   "credit": "Own work",
-   "description": "Chungli Branch, Bank of Taiwan. Address: No. 580, Yanping Road, Jhongli City, Taoyuan County.",
-   "width": 1920,
-   "height": 1440,
-   "fetched_at": "2026-10-28T16:09:28+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
+   "reviewed_at": "2026-10-28"
   }
  ],
  "rejected": [
   {
    "file_title": "File:First Commercial Bank headquarters 2010-11-14.jpg",
    "reason": "畫面主角是銀行招牌橫條，建築被機車與廣告搶戲",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:Shin-Shin Bus EAL-1025 left side at First Bank HQ 20240628.jpg",
+   "reason": "公車為主角",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:Sijhih Branch, Taiwan Cooperative Bank 20200207.jpg",
+   "reason": "合作金庫分行，主體錯",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:Chungli Branch, Bank of Taiwan 20131023.jpg",
+   "reason": "臺灣銀行分行，主體錯",
    "at": "2026-10-28"
   }
  ]

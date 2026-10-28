@@ -42,30 +42,10 @@
    "width": 1920,
    "height": 1440,
    "fetched_at": "2026-10-28T16:08:52+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
-  },
-  {
-   "file": "photo_3.jpg",
-   "kind": "產品",
-   "slug": "evergreen",
-   "name_en": "Evergreen Marine",
-   "query": "Evergreen container ship",
-   "file_title": "File:Evergreen container ship Hamburg port.jpg",
-   "source_url": "https://commons.wikimedia.org/wiki/File:Evergreen_container_ship_Hamburg_port.jpg",
-   "image_url": "https://upload.wikimedia.org/wikipedia/commons/6/67/Evergreen_container_ship_Hamburg_port.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-   "license": "CC BY-SA 2.0",
-   "license_url": "https://creativecommons.org/licenses/by-sa/2.0",
-   "author": "Photocapy",
-   "credit": "Evergreen?",
-   "description": "Evergreen container ship",
-   "width": 1920,
-   "height": 1577,
-   "fetched_at": "2026-10-28T16:08:54+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
+   "reviewed_at": "2026-10-28"
   },
   {
    "file": "photo_4.jpg",
@@ -84,31 +64,22 @@
    "width": 1920,
    "height": 1440,
    "fetched_at": "2026-10-28T16:08:55+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
-  },
-  {
-   "file": "photo_5.jpg",
-   "kind": "相關場景",
-   "slug": "evergreen",
-   "name_en": "Evergreen Marine",
-   "query": "container ship",
-   "file_title": "File:2021-11-19 Damaged container ship, MV ZIM KINGSTON - IMO 9389693.jpg",
-   "source_url": "https://commons.wikimedia.org/wiki/File:2021-11-19_Damaged_container_ship,_MV_ZIM_KINGSTON_-_IMO_9389693.jpg",
-   "image_url": "https://upload.wikimedia.org/wikipedia/commons/f/f7/2021-11-19_Damaged_container_ship%2C_MV_ZIM_KINGSTON_-_IMO_9389693.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-   "license": "CC BY 4.0",
-   "license_url": "https://creativecommons.org/licenses/by/4.0",
-   "author": "Gordon Leggett",
-   "credit": "Own work",
-   "description": "Damaged container ship, M/V ZIM KINGSTON - IMO 9389693, after losing 109 containers due to an on-board fire and a follow-up storm. Ship is at anchor 8 km off Ogden Point, Victoria BC Canada on November 19, 2021.",
-   "width": 1920,
-   "height": 1282,
-   "fetched_at": "2026-10-28T16:08:56+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
+   "reviewed_at": "2026-10-28"
   }
  ],
- "rejected": []
+ "rejected": [
+  {
+   "file_title": "File:Evergreen container ship Hamburg port.jpg",
+   "reason": "人物入鏡",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:2021-11-19 Damaged container ship, MV ZIM KINGSTON - IMO 9389693.jpg",
+   "reason": "受損船舶（事故）且非長榮",
+   "at": "2026-10-28"
+  }
+ ]
 }

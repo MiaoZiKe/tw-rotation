@@ -18,9 +18,10 @@
    "width": 1920,
    "height": 1334,
    "fetched_at": "2026-10-28T16:12:38+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
+   "reviewed_at": "2026-10-28"
   },
   {
    "file": "photo_2.jpg",
@@ -39,9 +40,10 @@
    "width": 1920,
    "height": 1270,
    "fetched_at": "2026-10-28T16:12:40+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
+   "reviewed_at": "2026-10-28"
   },
   {
    "file": "photo_3.jpg",
@@ -60,9 +62,10 @@
    "width": 1280,
    "height": 960,
    "fetched_at": "2026-10-28T16:12:41+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
+   "reviewed_at": "2026-10-28"
   },
   {
    "file": "photo_4.jpg",
@@ -81,36 +84,21 @@
    "width": 1628,
    "height": 954,
    "fetched_at": "2026-10-28T16:12:41+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
-  },
-  {
-   "file": "photo_5.jpg",
-   "kind": "相關場景",
-   "slug": "wanhai",
-   "name_en": "Wan Hai Lines",
-   "query": "container ship",
-   "file_title": "File:MAERSK HANOI Container Ship (Port Koper SIKOP, 2023).jpg",
-   "source_url": "https://commons.wikimedia.org/wiki/File:MAERSK_HANOI_Container_Ship_(Port_Koper_SIKOP,_2023).jpg",
-   "image_url": "https://upload.wikimedia.org/wikipedia/commons/c/c8/MAERSK_HANOI_Container_Ship_%28Port_Koper_SIKOP%2C_2023%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-   "license": "CC BY-SA 4.0",
-   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
-   "author": "Petar Milošević",
-   "credit": "Own work",
-   "description": "IMO: 9784295\nName: MAERSK HANOI\nGeneral vessel type: Cargo - Hazard A (Major) \nDetailed vessel type: Container Ship \nNavigational Status: Active \nMMSI: 563039700 \nCall sign: 9V5601 \nFlag: Singapore [SG] \nGross Tonnage: 153744 \nSummer DWT: 178257 t \nLength Overall x Breadth Extreme: 353.02 x 53.5 m \n",
-   "width": 1920,
-   "height": 1439,
-   "fetched_at": "2026-10-28T16:12:42+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
+   "reviewed_at": "2026-10-28"
   }
  ],
  "rejected": [
   {
    "file_title": "File:\"WAN HAI 171\" IMO- 9380257 - CONTAINER SHIP 16488 tons (13170859225).jpg",
    "reason": "動態模糊、樹叢遮擋，畫質不合格",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:MAERSK HANOI Container Ship (Port Koper SIKOP, 2023).jpg",
+   "reason": "Maersk 船，非萬海",
    "at": "2026-10-28"
   }
  ]

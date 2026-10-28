@@ -2,27 +2,6 @@
  "slug": "鋼鐵",
  "photos": [
   {
-   "file": "photo_1.jpg",
-   "kind": "類別",
-   "slug": "鋼鐵",
-   "name_en": "鋼鐵",
-   "query": "steel mill",
-   "file_title": "File:ECSC Financial report 1976 Tarento Italsider steel mill n°2.jpg",
-   "source_url": "https://commons.wikimedia.org/wiki/File:ECSC_Financial_report_1976_Tarento_Italsider_steel_mill_n%C2%B02.jpg",
-   "image_url": "https://upload.wikimedia.org/wikipedia/commons/0/00/ECSC_Financial_report_1976_Tarento_Italsider_steel_mill_n%C2%B02.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-   "license": "CC BY-SA 4.0",
-   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
-   "author": "European Coal and Steel Community",
-   "credit": "op.europa.eu/",
-   "description": "LD steel mill nb 2 of Italsider SpA at Tarento, Italy, in 1976.",
-   "width": 1920,
-   "height": 2057,
-   "fetched_at": "2026-10-28T16:17:07+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
-  },
-  {
    "file": "photo_2.jpg",
    "kind": "類別",
    "slug": "鋼鐵",
@@ -39,9 +18,10 @@
    "width": 1920,
    "height": 1440,
    "fetched_at": "2026-10-28T16:17:07+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
+   "reviewed_at": "2026-10-28"
   },
   {
    "file": "photo_3.jpg",
@@ -60,9 +40,10 @@
    "width": 1920,
    "height": 1440,
    "fetched_at": "2026-10-28T16:17:08+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
+   "reviewed_at": "2026-10-28"
   },
   {
    "file": "photo_4.jpg",
@@ -81,30 +62,10 @@
    "width": 1200,
    "height": 801,
    "fetched_at": "2026-10-28T16:17:09+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
-  },
-  {
-   "file": "photo_5.jpg",
-   "kind": "類別",
-   "slug": "鋼鐵",
-   "name_en": "鋼鐵",
-   "query": "blast furnace",
-   "file_title": "File:Duisburg, Landschaftspark Duisburg-Nord, Hochofen 5, Halle -- 2024 -- 4164 (kreativ 4).jpg",
-   "source_url": "https://commons.wikimedia.org/wiki/File:Duisburg,_Landschaftspark_Duisburg-Nord,_Hochofen_5,_Halle_--_2024_--_4164_(kreativ_4).jpg",
-   "image_url": "https://upload.wikimedia.org/wikipedia/commons/3/3f/Duisburg%2C_Landschaftspark_Duisburg-Nord%2C_Hochofen_5%2C_Halle_--_2024_--_4164_%28kreativ_4%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-   "license": "CC BY-SA 4.0",
-   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
-   "author": "Dietmar Rabich",
-   "credit": "Own work",
-   "description": "Photo art based on a picture of a rolling gate of Gas Cleaning West at blast furnace 5 in the Landschaftspark Duisburg-Nord, Duisburg, North Rhine-Westphalia, GermanyThe shot was created by intentional moving the camera (intentional camera movement, ICM) and subsequent composition using copies of th",
-   "width": 1920,
-   "height": 1440,
-   "fetched_at": "2026-10-28T16:17:11+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
+   "reviewed_at": "2026-10-28"
   },
   {
    "file": "photo_6.jpg",
@@ -123,52 +84,32 @@
    "width": 1920,
    "height": 1280,
    "fetched_at": "2026-10-28T16:17:11+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
-  },
-  {
-   "file": "photo_7.jpg",
-   "kind": "類別",
-   "slug": "鋼鐵",
-   "name_en": "鋼鐵",
-   "query": "steel production",
-   "file_title": "File:State wise Steel Production India, 2019.jpg",
-   "source_url": "https://commons.wikimedia.org/wiki/File:State_wise_Steel_Production_India,_2019.jpg",
-   "image_url": "https://upload.wikimedia.org/wikipedia/commons/5/58/State_wise_Steel_Production_India%2C_2019.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-   "license": "CC BY-SA 4.0",
-   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
-   "author": "Roysreejit",
-   "credit": "Own work",
-   "description": "State wise Steel Production India, 2019. Figures are in thousand tons.",
-   "width": 1920,
-   "height": 1451,
-   "fetched_at": "2026-10-28T16:17:14+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
-  },
-  {
-   "file": "photo_8.jpg",
-   "kind": "類別",
-   "slug": "鋼鐵",
-   "name_en": "鋼鐵",
-   "query": "steel production",
-   "file_title": "File:2026-05-15 Tiegelguß-Denkmal.jpg",
-   "source_url": "https://commons.wikimedia.org/wiki/File:2026-05-15_Tiegelgu%C3%9F-Denkmal.jpg",
-   "image_url": "https://upload.wikimedia.org/wikipedia/commons/2/2b/2026-05-15_Tiegelgu%C3%9F-Denkmal.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-   "license": "CC0",
-   "license_url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
-   "author": "Pentaclebreaker",
-   "credit": "Own work",
-   "description": "Monument showing historical steel casting at Krupp Industry",
-   "width": 1920,
-   "height": 1186,
-   "fetched_at": "2026-10-28T16:17:14+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
+   "reviewed_at": "2026-10-28"
   }
  ],
- "rejected": []
+ "rejected": [
+  {
+   "file_title": "File:ECSC Financial report 1976 Tarento Italsider steel mill n°2.jpg",
+   "reason": "主體只有天空與樹",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:Duisburg, Landschaftspark Duisburg-Nord, Hochofen 5, Halle -- 2024 -- 4164 (kreativ 4).jpg",
+   "reason": "抽象長曝，看不出鋼鐵",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:State wise Steel Production India, 2019.jpg",
+   "reason": "圖表",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:2026-05-15 Tiegelguß-Denkmal.jpg",
+   "reason": "紀念浮雕，與鋼鐵產業無關",
+   "at": "2026-10-28"
+  }
+ ]
 }

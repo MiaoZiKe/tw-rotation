@@ -18,9 +18,10 @@
    "width": 1920,
    "height": 821,
    "fetched_at": "2026-10-28T16:17:16+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
+   "reviewed_at": "2026-10-28"
   },
   {
    "file": "photo_2.jpg",
@@ -39,93 +40,10 @@
    "width": 1920,
    "height": 886,
    "fetched_at": "2026-10-28T16:17:16+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
-  },
-  {
-   "file": "photo_3.jpg",
-   "kind": "類別",
-   "slug": "石化",
-   "name_en": "石化",
-   "query": "oil refinery",
-   "file_title": "File:Oil refinery, Port Dickson.jpg",
-   "source_url": "https://commons.wikimedia.org/wiki/File:Oil_refinery,_Port_Dickson.jpg",
-   "image_url": "https://upload.wikimedia.org/wikipedia/commons/c/c7/Oil_refinery%2C_Port_Dickson.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-   "license": "CC BY-SA 4.0",
-   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
-   "author": "AyyanD",
-   "credit": "Own work",
-   "description": "An oil refinery east of Port Dickson, Negeri Sembilan, seen from the Negri section of Federal Route 5. It is one of the two oil refineries in the town, the latter being operated by Filipino oil company Petron (previously Esso). This one in the picture is operated by Hengyuan Refining Co. (previously",
-   "width": 1920,
-   "height": 1188,
-   "fetched_at": "2026-10-28T16:17:16+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
-  },
-  {
-   "file": "photo_4.jpg",
-   "kind": "類別",
-   "slug": "石化",
-   "name_en": "石化",
-   "query": "oil refinery",
-   "file_title": "File:Waterloo, NSW - NSW Shale & Oil Co.'s refinery in Botany Rd (Aust. Town & Country Journal, 10 April 1875, p21)).jpg",
-   "source_url": "https://commons.wikimedia.org/wiki/File:Waterloo,_NSW_-_NSW_Shale_%26_Oil_Co.%27s_refinery_in_Botany_Rd_(Aust._Town_%26_Country_Journal,_10_April_1875,_p21)).jpg",
-   "image_url": "https://upload.wikimedia.org/wikipedia/commons/c/cc/Waterloo%2C_NSW_-_NSW_Shale_%26_Oil_Co.%27s_refinery_in_Botany_Rd_%28Aust._Town_%26_Country_Journal%2C_10_April_1875%2C_p21%29%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-   "license": "Public domain",
-   "license_url": "",
-   "author": "Unknown engraver. Published in Australian Town & Country Journal, 10 April 1875, page 21.",
-   "credit": "https://trove.nla.gov.au/newspaper/article/70490126/4764484",
-   "description": "Waterloo, NSW - NSW Shale & Oil Co.'s refinery in Botany Rd (Aust. Town & Country Journal,10 April 1875, p21)). Site of oil shale retorting and refining, until these operations were relocated to Hartley Vale. Although the address was usually given as Waterloo, the works was on the western side of Bo",
-   "width": 1267,
-   "height": 719,
-   "fetched_at": "2026-10-28T16:17:16+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
-  },
-  {
-   "file": "photo_5.jpg",
-   "kind": "類別",
-   "slug": "石化",
-   "name_en": "石化",
-   "query": "refinery at night",
-   "file_title": "File:Snowfall at night over Brofjorden and Preemraff oil refinery.jpg",
-   "source_url": "https://commons.wikimedia.org/wiki/File:Snowfall_at_night_over_Brofjorden_and_Preemraff_oil_refinery.jpg",
-   "image_url": "https://upload.wikimedia.org/wikipedia/commons/e/e1/Snowfall_at_night_over_Brofjorden_and_Preemraff_oil_refinery.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-   "license": "CC0",
-   "license_url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
-   "author": "W.carter",
-   "credit": "Own work",
-   "description": "View from Holländaröd looking over Brofjorden to Ryxö Island and Preemraff oil refinery behind it on a snowy night. On such nights, the snow flakes catch and reflects the light in a way that lights up the whole sky over the fjord. Holländaröd, Lysekil Municipality, Sweden. The big main glow comes fr",
-   "width": 1920,
-   "height": 1080,
-   "fetched_at": "2026-10-28T16:17:18+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
-  },
-  {
-   "file": "photo_6.jpg",
-   "kind": "類別",
-   "slug": "石化",
-   "name_en": "石化",
-   "query": "refinery at night",
-   "file_title": "File:Night at Valero Refinery in Chalmette Louisiana 02.jpg",
-   "source_url": "https://commons.wikimedia.org/wiki/File:Night_at_Valero_Refinery_in_Chalmette_Louisiana_02.jpg",
-   "image_url": "https://upload.wikimedia.org/wikipedia/commons/9/96/Night_at_Valero_Refinery_in_Chalmette_Louisiana_02.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-   "license": "CC BY-SA 2.0",
-   "license_url": "https://creativecommons.org/licenses/by-sa/2.0",
-   "author": "Shannon Dosemagen",
-   "credit": "https://www.flickr.com/photos/recordandremember/9389831642/",
-   "description": "Night at Valero Refinery in Chalmette Louisiana",
-   "width": 1920,
-   "height": 1440,
-   "fetched_at": "2026-10-28T16:17:18+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
+   "reviewed_at": "2026-10-28"
   },
   {
    "file": "photo_7.jpg",
@@ -144,9 +62,10 @@
    "width": 1920,
    "height": 1080,
    "fetched_at": "2026-10-28T16:17:20+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
+   "reviewed_at": "2026-10-28"
   },
   {
    "file": "photo_8.jpg",
@@ -165,10 +84,32 @@
    "width": 1920,
    "height": 1440,
    "fetched_at": "2026-10-28T16:17:20+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
+   "reviewed_at": "2026-10-28"
   }
  ],
- "rejected": []
+ "rejected": [
+  {
+   "file_title": "File:Oil refinery, Port Dickson.jpg",
+   "reason": "有人物、霧霾",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:Waterloo, NSW - NSW Shale & Oil Co.'s refinery in Botany Rd (Aust. Town & Country Journal, 10 April 1875, p21)).jpg",
+   "reason": "版畫插圖非照片",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:Snowfall at night over Brofjorden and Preemraff oil refinery.jpg",
+   "reason": "夜景主體看不清",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:Night at Valero Refinery in Chalmette Louisiana 02.jpg",
+   "reason": "人物為主",
+   "at": "2026-10-28"
+  }
+ ]
 }

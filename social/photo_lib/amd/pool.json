@@ -42,9 +42,10 @@
    "width": 1920,
    "height": 1440,
    "fetched_at": "2026-10-28T16:14:25+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
+   "reviewed_at": "2026-10-28"
   },
   {
    "file": "photo_3.jpg",
@@ -63,31 +64,17 @@
    "width": 1920,
    "height": 1281,
    "fetched_at": "2026-10-28T16:14:28+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
-  },
-  {
-   "file": "photo_4.jpg",
-   "kind": "產品",
-   "slug": "amd",
-   "name_en": "AMD",
-   "query": "AMD Ryzen processor",
-   "file_title": "File:AMD Ryzen 9 7900X.jpg",
-   "source_url": "https://commons.wikimedia.org/wiki/File:AMD_Ryzen_9_7900X.jpg",
-   "image_url": "https://upload.wikimedia.org/wikipedia/commons/a/a3/AMD_Ryzen_9_7900X.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-   "license": "CC BY-SA 4.0",
-   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
-   "author": "CristoCalis",
-   "credit": "Own work",
-   "description": "Front IHS design for AMD's Zen 4-based Ryzen 9 7900X processor",
-   "width": 1920,
-   "height": 1920,
-   "fetched_at": "2026-10-28T16:14:28+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
+   "reviewed_at": "2026-10-28"
   }
  ],
- "rejected": []
+ "rejected": [
+  {
+   "file_title": "File:AMD Ryzen 9 7900X.jpg",
+   "reason": "晶片印字為主角",
+   "at": "2026-10-28"
+  }
+ ]
 }

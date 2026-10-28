@@ -42,9 +42,10 @@
    "width": 1920,
    "height": 1079,
    "fetched_at": "2026-10-28T16:13:37+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
+   "reviewed_at": "2026-10-28"
   },
   {
    "file": "photo_3.jpg",
@@ -63,52 +64,22 @@
    "width": 1920,
    "height": 1442,
    "fetched_at": "2026-10-28T16:13:38+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
-  },
-  {
-   "file": "photo_4.jpg",
-   "kind": "產品",
-   "slug": "apple",
-   "name_en": "Apple",
-   "query": "iPhone",
-   "file_title": "File:Apple iPhone.jpg",
-   "source_url": "https://commons.wikimedia.org/wiki/File:Apple_iPhone.jpg",
-   "image_url": "https://upload.wikimedia.org/wikipedia/commons/f/fd/Apple_iPhone.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-   "license": "CC BY 2.5",
-   "license_url": "https://creativecommons.org/licenses/by/2.5",
-   "author": "Pangkakit at Japanese Wikipedia",
-   "credit": "Own work",
-   "description": "Android 6.0 default wallpapers of the iPhones, which are released under CC 2.5 Attribution. Portions of this page are reproduced from work created and shared by the Android Open Source Project and used according to terms described in the Creative Commons 2.5 Attribution License.",
-   "width": 1920,
-   "height": 1440,
-   "fetched_at": "2026-10-28T16:13:39+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
-  },
-  {
-   "file": "photo_5.jpg",
-   "kind": "相關場景",
-   "slug": "apple",
-   "name_en": "Apple",
-   "query": "smartphone",
-   "file_title": "File:Blackview A60 Smartphone Android mobile phone back face.jpg",
-   "source_url": "https://commons.wikimedia.org/wiki/File:Blackview_A60_Smartphone_Android_mobile_phone_back_face.jpg",
-   "image_url": "https://upload.wikimedia.org/wikipedia/commons/7/78/Blackview_A60_Smartphone_Android_mobile_phone_back_face.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-   "license": "CC BY-SA 4.0",
-   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
-   "author": "Acabashi",
-   "credit": "Own work",
-   "description": "Blackview A60 Andoid Go mobile phone smartphone cell phone showing the back view.Mobile device view: Wikimedia (June 2020) makes it difficult to immediately view photo groups related to this image. To see its most relevant allied photos, click on this uploader's Photos. You can add a click-through '",
-   "width": 1920,
-   "height": 1080,
-   "fetched_at": "2026-10-28T16:13:40+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
+   "reviewed_at": "2026-10-28"
   }
  ],
- "rejected": []
+ "rejected": [
+  {
+   "file_title": "File:Apple iPhone.jpg",
+   "reason": "畫面模糊",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:Blackview A60 Smartphone Android mobile phone back face.jpg",
+   "reason": "他牌手機",
+   "at": "2026-10-28"
+  }
+ ]
 }

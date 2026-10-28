@@ -42,52 +42,22 @@
    "width": 1920,
    "height": 1644,
    "fetched_at": "2026-10-28T16:15:36+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
-  },
-  {
-   "file": "photo_3.jpg",
-   "kind": "產品",
-   "slug": "qualcomm",
-   "name_en": "Qualcomm",
-   "query": "Snapdragon chip",
-   "file_title": "File:Qualcomm snapdragon 450 chipset.jpg",
-   "source_url": "https://commons.wikimedia.org/wiki/File:Qualcomm_snapdragon_450_chipset.jpg",
-   "image_url": "https://upload.wikimedia.org/wikipedia/commons/a/a5/Qualcomm_snapdragon_450_chipset.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-   "license": "CC BY-SA 4.0",
-   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
-   "author": "Jaredryandloneria",
-   "credit": "Own work",
-   "description": "Qualcomm",
-   "width": 1600,
-   "height": 900,
-   "fetched_at": "2026-10-28T16:15:39+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
-  },
-  {
-   "file": "photo_4.jpg",
-   "kind": "產品",
-   "slug": "qualcomm",
-   "name_en": "Qualcomm",
-   "query": "Snapdragon chip",
-   "file_title": "File:LG P710 Optimus L7 II - Qualcomm MSM8225 on main printed circuit board-5427.jpg",
-   "source_url": "https://commons.wikimedia.org/wiki/File:LG_P710_Optimus_L7_II_-_Qualcomm_MSM8225_on_main_printed_circuit_board-5427.jpg",
-   "image_url": "https://upload.wikimedia.org/wikipedia/commons/1/13/LG_P710_Optimus_L7_II_-_Qualcomm_MSM8225_on_main_printed_circuit_board-5427.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-   "license": "CC BY-SA 4.0",
-   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
-   "author": "Raimond Spekking",
-   "credit": "Own work",
-   "description": "LG P710 Optimus L7 II - Qualcomm MSM8225 (System-on-a-Chip Snapdragon S4 Play) on main printed circuit board.",
-   "width": 1920,
-   "height": 1920,
-   "fetched_at": "2026-10-28T16:15:40+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
+   "reviewed_at": "2026-10-28"
   }
  ],
- "rejected": []
+ "rejected": [
+  {
+   "file_title": "File:Qualcomm snapdragon 450 chipset.jpg",
+   "reason": "模糊、LOGO",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:LG P710 Optimus L7 II - Qualcomm MSM8225 on main printed circuit board-5427.jpg",
+   "reason": "晶片印字為主角",
+   "at": "2026-10-28"
+  }
+ ]
 }

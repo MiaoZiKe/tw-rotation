@@ -42,9 +42,10 @@
    "width": 1920,
    "height": 1440,
    "fetched_at": "2026-10-28T16:12:29+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
+   "reviewed_at": "2026-10-28"
   },
   {
    "file": "photo_3.jpg",
@@ -63,9 +64,10 @@
    "width": 1920,
    "height": 1440,
    "fetched_at": "2026-10-28T16:12:31+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
+   "reviewed_at": "2026-10-28"
   },
   {
    "file": "photo_4.jpg",
@@ -84,31 +86,17 @@
    "width": 1920,
    "height": 1440,
    "fetched_at": "2026-10-28T16:12:31+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
-  },
-  {
-   "file": "photo_5.jpg",
-   "kind": "相關場景",
-   "slug": "yangming",
-   "name_en": "Yang Ming Marine",
-   "query": "container ship",
-   "file_title": "File:MSC HARMONY III (container ship, 2006) in Port Koper (SIKOP, 2024).jpg",
-   "source_url": "https://commons.wikimedia.org/wiki/File:MSC_HARMONY_III_(container_ship,_2006)_in_Port_Koper_(SIKOP,_2024).jpg",
-   "image_url": "https://upload.wikimedia.org/wikipedia/commons/6/62/MSC_HARMONY_III_%28container_ship%2C_2006%29_in_Port_Koper_%28SIKOP%2C_2024%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-   "license": "CC BY-SA 4.0",
-   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
-   "author": "Petar Milošević",
-   "credit": "Own work",
-   "description": "MSC HARMONY III (container ship, 2006, IMO 9309411) in Port Koper (SIKOP, 2024)",
-   "width": 1920,
-   "height": 1262,
-   "fetched_at": "2026-10-28T16:12:32+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
+   "reviewed_at": "2026-10-28"
   }
  ],
- "rejected": []
+ "rejected": [
+  {
+   "file_title": "File:MSC HARMONY III (container ship, 2006) in Port Koper (SIKOP, 2024).jpg",
+   "reason": "MSC 船，非陽明",
+   "at": "2026-10-28"
+  }
+ ]
 }

@@ -1,69 +1,21 @@
 {
  "slug": "largan",
- "photos": [
+ "photos": [],
+ "rejected": [
   {
-   "file": "photo_1.jpg",
-   "kind": "產品",
-   "slug": "largan",
-   "name_en": "Largan Precision",
-   "query": "smartphone camera module",
    "file_title": "File:Fairphone 3 modules on display.jpg",
-   "source_url": "https://commons.wikimedia.org/wiki/File:Fairphone_3_modules_on_display.jpg",
-   "image_url": "https://upload.wikimedia.org/wikipedia/commons/c/c4/Fairphone_3_modules_on_display.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-   "license": "CC BY-SA 4.0",
-   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
-   "author": "PKFP",
-   "credit": "Own work",
-   "description": "The modules of the Fairphone 3 mounted on a display at the launch event in Amsterdam on August 29th, 2019",
-   "width": 1920,
-   "height": 1280,
-   "fetched_at": "2026-10-28T16:10:46+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reason": "Fairphone 品牌",
+   "at": "2026-10-28"
   },
   {
-   "file": "photo_2.jpg",
-   "kind": "產品",
-   "slug": "largan",
-   "name_en": "Largan Precision",
-   "query": "smartphone camera module",
    "file_title": "File:Miniatur-Kameramodul.P1045321.jpg",
-   "source_url": "https://commons.wikimedia.org/wiki/File:Miniatur-Kameramodul.P1045321.jpg",
-   "image_url": "https://upload.wikimedia.org/wikipedia/commons/c/ce/Miniatur-Kameramodul.P1045321.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-   "license": "CC0",
-   "license_url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
-   "author": "Bautsch",
-   "credit": "Own work",
-   "description": "Smartphone-Kameramodul mit 8 mm x 8 mm x 5 mm, Öffnungsweite der Frontlinse = 1,3 mm",
-   "width": 1920,
-   "height": 1920,
-   "fetched_at": "2026-10-28T16:10:46+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reason": "模糊",
+   "at": "2026-10-28"
   },
   {
-   "file": "photo_3.jpg",
-   "kind": "相關場景",
-   "slug": "largan",
-   "name_en": "Largan Precision",
-   "query": "smartphone",
    "file_title": "File:Leaflet at Narita arrival. Requirement to have a smartphone to enter Japan during COVID-19 pandemic.jpg",
-   "source_url": "https://commons.wikimedia.org/wiki/File:Leaflet_at_Narita_arrival._Requirement_to_have_a_smartphone_to_enter_Japan_during_COVID-19_pandemic.jpg",
-   "image_url": "https://upload.wikimedia.org/wikipedia/commons/3/3c/Leaflet_at_Narita_arrival._Requirement_to_have_a_smartphone_to_enter_Japan_during_COVID-19_pandemic.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-   "license": "CC0",
-   "license_url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
-   "author": "Syced",
-   "credit": "Own work",
-   "description": "Leaflet at Narita arrival. Requirement to have a smartphone to enter Japan during COVID-19 pandemic",
-   "width": 1920,
-   "height": 1440,
-   "fetched_at": "2026-10-28T16:10:47+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reason": "傳單文字",
+   "at": "2026-10-28"
   }
- ],
- "rejected": []
+ ]
 }

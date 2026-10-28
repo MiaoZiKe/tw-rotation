@@ -26,27 +26,6 @@
    "kind": "總部/廠房"
   },
   {
-   "file": "photo_2.jpg",
-   "kind": "總部/廠房",
-   "slug": "csc",
-   "name_en": "China Steel",
-   "query": "China Steel",
-   "file_title": "File:China Steel Test Certificate 080403F014B 20190412.jpg",
-   "source_url": "https://commons.wikimedia.org/wiki/File:China_Steel_Test_Certificate_080403F014B_20190412.jpg",
-   "image_url": "https://upload.wikimedia.org/wikipedia/commons/6/69/China_Steel_Test_Certificate_080403F014B_20190412.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-   "license": "CC BY-SA 4.0",
-   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
-   "author": "Solomon203",
-   "credit": "Own work",
-   "description": "​中國鋼鐵品質證明書，證明書編號080403F014B，證明書日期2019年4月3日，發給春源鋼鐵高雄廠。春源鋼鐵高雄廠檢驗合格章蓋章日期2019年4月12日。",
-   "width": 1920,
-   "height": 1357,
-   "fetched_at": "2026-10-28T16:11:08+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
-  },
-  {
    "file": "photo_3.jpg",
    "kind": "產品",
    "slug": "csc",
@@ -63,9 +42,10 @@
    "width": 1920,
    "height": 1440,
    "fetched_at": "2026-10-28T16:11:09+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
+   "reviewed_at": "2026-10-28"
   },
   {
    "file": "photo_4.jpg",
@@ -84,9 +64,10 @@
    "width": 1920,
    "height": 1440,
    "fetched_at": "2026-10-28T16:11:10+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
+   "reviewed_at": "2026-10-28"
   },
   {
    "file": "photo_5.jpg",
@@ -105,10 +86,17 @@
    "width": 1920,
    "height": 1179,
    "fetched_at": "2026-10-28T16:11:12+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
+   "reviewed_at": "2026-10-28"
   }
  ],
- "rejected": []
+ "rejected": [
+  {
+   "file_title": "File:China Steel Test Certificate 080403F014B 20190412.jpg",
+   "reason": "文件掃描",
+   "at": "2026-10-28"
+  }
+ ]
 }

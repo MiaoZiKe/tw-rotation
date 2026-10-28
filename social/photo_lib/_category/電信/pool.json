@@ -2,132 +2,6 @@
  "slug": "電信",
  "photos": [
   {
-   "file": "photo_1.jpg",
-   "kind": "類別",
-   "slug": "電信",
-   "name_en": "電信",
-   "query": "telecommunication tower",
-   "file_title": "File:Funkturm Arsenal Blitze.jpg",
-   "source_url": "https://commons.wikimedia.org/wiki/File:Funkturm_Arsenal_Blitze.jpg",
-   "image_url": "https://upload.wikimedia.org/wikipedia/commons/7/77/Funkturm_Arsenal_Blitze.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-   "license": "CC BY-SA 4.0",
-   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
-   "author": "Linie29",
-   "credit": "Own work",
-   "description": "Lightning at the radio tower in Arsenal",
-   "width": 1920,
-   "height": 1277,
-   "fetched_at": "2026-10-28T16:17:22+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
-  },
-  {
-   "file": "photo_2.jpg",
-   "kind": "類別",
-   "slug": "電信",
-   "name_en": "電信",
-   "query": "5G antenna",
-   "file_title": "File:Deutsche Telekom 5G-Empfänger SE - Wieson Wi-Fi antenna 3-1444.jpg",
-   "source_url": "https://commons.wikimedia.org/wiki/File:Deutsche_Telekom_5G-Empf%C3%A4nger_SE_-_Wieson_Wi-Fi_antenna_3-1444.jpg",
-   "image_url": "https://upload.wikimedia.org/wikipedia/commons/5/57/Deutsche_Telekom_5G-Empf%C3%A4nger_SE_-_Wieson_Wi-Fi_antenna_3-1444.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-   "license": "CC BY-SA 4.0",
-   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
-   "author": "Raimond Spekking",
-   "credit": "Own work",
-   "description": "Deutsche Telekom 5G-Empfänger SE - Wieson Wi-Fi antenna 3",
-   "width": 1920,
-   "height": 1080,
-   "fetched_at": "2026-10-28T16:17:24+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
-  },
-  {
-   "file": "photo_3.jpg",
-   "kind": "類別",
-   "slug": "電信",
-   "name_en": "電信",
-   "query": "5G antenna",
-   "file_title": "File:Deutsche Telekom 5G-Empfänger SE - Wieson Wi-Fi antenna 0-1460.jpg",
-   "source_url": "https://commons.wikimedia.org/wiki/File:Deutsche_Telekom_5G-Empf%C3%A4nger_SE_-_Wieson_Wi-Fi_antenna_0-1460.jpg",
-   "image_url": "https://upload.wikimedia.org/wikipedia/commons/4/49/Deutsche_Telekom_5G-Empf%C3%A4nger_SE_-_Wieson_Wi-Fi_antenna_0-1460.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-   "license": "CC BY-SA 4.0",
-   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
-   "author": "Raimond Spekking",
-   "credit": "Own work",
-   "description": "Deutsche Telekom 5G-Empfänger SE - Wieson Wi-Fi antenna 0",
-   "width": 1920,
-   "height": 1080,
-   "fetched_at": "2026-10-28T16:17:24+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
-  },
-  {
-   "file": "photo_4.jpg",
-   "kind": "類別",
-   "slug": "電信",
-   "name_en": "電信",
-   "query": "5G antenna",
-   "file_title": "File:Deutsche Telekom 5G-Empfänger SE - Wieson Wi-Fi antenna 4-1464.jpg",
-   "source_url": "https://commons.wikimedia.org/wiki/File:Deutsche_Telekom_5G-Empf%C3%A4nger_SE_-_Wieson_Wi-Fi_antenna_4-1464.jpg",
-   "image_url": "https://upload.wikimedia.org/wikipedia/commons/4/44/Deutsche_Telekom_5G-Empf%C3%A4nger_SE_-_Wieson_Wi-Fi_antenna_4-1464.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-   "license": "CC BY-SA 4.0",
-   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
-   "author": "Raimond Spekking",
-   "credit": "Own work",
-   "description": "Deutsche Telekom 5G-Empfänger SE - Wieson Wi-Fi antenna 4",
-   "width": 1920,
-   "height": 1080,
-   "fetched_at": "2026-10-28T16:17:24+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
-  },
-  {
-   "file": "photo_5.jpg",
-   "kind": "類別",
-   "slug": "電信",
-   "name_en": "電信",
-   "query": "5G antenna",
-   "file_title": "File:Deutsche Telekom 5G-Empfänger SE - Wieson Wi-Fi antenna 9-1470.jpg",
-   "source_url": "https://commons.wikimedia.org/wiki/File:Deutsche_Telekom_5G-Empf%C3%A4nger_SE_-_Wieson_Wi-Fi_antenna_9-1470.jpg",
-   "image_url": "https://upload.wikimedia.org/wikipedia/commons/2/23/Deutsche_Telekom_5G-Empf%C3%A4nger_SE_-_Wieson_Wi-Fi_antenna_9-1470.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-   "license": "CC BY-SA 4.0",
-   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
-   "author": "Raimond Spekking",
-   "credit": "Own work",
-   "description": "Deutsche Telekom 5G-Empfänger SE - Wieson Wi-Fi antenna 9",
-   "width": 1920,
-   "height": 1440,
-   "fetched_at": "2026-10-28T16:17:24+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
-  },
-  {
-   "file": "photo_6.jpg",
-   "kind": "類別",
-   "slug": "電信",
-   "name_en": "電信",
-   "query": "5G antenna",
-   "file_title": "File:Deutsche Telekom 5G-Empfänger SE - Wieson Wi-Fi antenna 5-1468.jpg",
-   "source_url": "https://commons.wikimedia.org/wiki/File:Deutsche_Telekom_5G-Empf%C3%A4nger_SE_-_Wieson_Wi-Fi_antenna_5-1468.jpg",
-   "image_url": "https://upload.wikimedia.org/wikipedia/commons/e/ef/Deutsche_Telekom_5G-Empf%C3%A4nger_SE_-_Wieson_Wi-Fi_antenna_5-1468.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-   "license": "CC BY-SA 4.0",
-   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
-   "author": "Raimond Spekking",
-   "credit": "Own work",
-   "description": "Deutsche Telekom 5G-Empfänger SE - Wieson Wi-Fi antenna 5",
-   "width": 1920,
-   "height": 1080,
-   "fetched_at": "2026-10-28T16:17:24+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
-  },
-  {
    "file": "photo_7.jpg",
    "kind": "類別",
    "slug": "電信",
@@ -144,9 +18,10 @@
    "width": 1920,
    "height": 1440,
    "fetched_at": "2026-10-28T16:17:26+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
+   "reviewed_at": "2026-10-28"
   },
   {
    "file": "photo_8.jpg",
@@ -165,10 +40,42 @@
    "width": 1920,
    "height": 1440,
    "fetched_at": "2026-10-28T16:17:26+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
+   "reviewed_at": "2026-10-28"
   }
  ],
- "rejected": []
+ "rejected": [
+  {
+   "file_title": "File:Funkturm Arsenal Blitze.jpg",
+   "reason": "閃電特效夜景",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:Deutsche Telekom 5G-Empfänger SE - Wieson Wi-Fi antenna 3-1444.jpg",
+   "reason": "天線零件特寫，看不出電信",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:Deutsche Telekom 5G-Empfänger SE - Wieson Wi-Fi antenna 0-1460.jpg",
+   "reason": "天線零件特寫",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:Deutsche Telekom 5G-Empfänger SE - Wieson Wi-Fi antenna 4-1464.jpg",
+   "reason": "天線零件特寫",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:Deutsche Telekom 5G-Empfänger SE - Wieson Wi-Fi antenna 9-1470.jpg",
+   "reason": "天線零件特寫",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:Deutsche Telekom 5G-Empfänger SE - Wieson Wi-Fi antenna 5-1468.jpg",
+   "reason": "天線零件特寫",
+   "at": "2026-10-28"
+  }
+ ]
 }

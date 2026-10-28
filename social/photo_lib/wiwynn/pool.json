@@ -18,9 +18,10 @@
    "width": 1920,
    "height": 1080,
    "fetched_at": "2026-10-28T16:07:49+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
+   "reviewed_at": "2026-10-28"
   },
   {
    "file": "photo_2.jpg",
@@ -39,31 +40,17 @@
    "width": 1920,
    "height": 1440,
    "fetched_at": "2026-10-28T16:07:50+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
-  },
-  {
-   "file": "photo_3.jpg",
-   "kind": "相關場景",
-   "slug": "wiwynn",
-   "name_en": "Wiwynn",
-   "query": "server rack",
-   "file_title": "File:IBM server rack internals - IBM rack server serverroom xseries xseries 336 - IMG 0556.jpg",
-   "source_url": "https://commons.wikimedia.org/wiki/File:IBM_server_rack_internals_-_IBM_rack_server_serverroom_xseries_xseries_336_-_IMG_0556.jpg",
-   "image_url": "https://upload.wikimedia.org/wikipedia/commons/d/d2/IBM_server_rack_internals_-_IBM_rack_server_serverroom_xseries_xseries_336_-_IMG_0556.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-   "license": "CC BY 2.0",
-   "license_url": "https://creativecommons.org/licenses/by/2.0",
-   "author": "Jemimus",
-   "credit": "https://www.flickr.com/photos/12967790@N00/47244847/",
-   "description": "Messy. Time to create some order in this chaos",
-   "width": 1920,
-   "height": 1440,
-   "fetched_at": "2026-10-28T16:07:51+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
+   "reviewed_at": "2026-10-28"
   }
  ],
- "rejected": []
+ "rejected": [
+  {
+   "file_title": "File:IBM server rack internals - IBM rack server serverroom xseries xseries 336 - IMG 0556.jpg",
+   "reason": "雜亂機房",
+   "at": "2026-10-28"
+  }
+ ]
 }

@@ -18,30 +18,10 @@
    "width": 1920,
    "height": 1440,
    "fetched_at": "2026-10-28T16:07:22+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
-  },
-  {
-   "file": "photo_2.jpg",
-   "kind": "總部/廠房",
-   "slug": "fubon",
-   "name_en": "Fubon Financial",
-   "query": "Fubon building Taipei",
-   "file_title": "File:Chengdong Branch, Taipei Fubon Bank 20240428.jpg",
-   "source_url": "https://commons.wikimedia.org/wiki/File:Chengdong_Branch,_Taipei_Fubon_Bank_20240428.jpg",
-   "image_url": "https://upload.wikimedia.org/wikipedia/commons/8/8c/Chengdong_Branch%2C_Taipei_Fubon_Bank_20240428.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-   "license": "CC BY-SA 4.0",
-   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
-   "author": "Solomon203",
-   "credit": "Own work",
-   "description": "​台北富邦銀行城東分行，地址：臺北市中山區南京東路二段90號1樓（台肥大樓）。",
-   "width": 1920,
-   "height": 1440,
-   "fetched_at": "2026-10-28T16:07:25+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
+   "reviewed_at": "2026-10-28"
   },
   {
    "file": "photo_3.jpg",
@@ -60,57 +40,31 @@
    "width": 1920,
    "height": 1280,
    "fetched_at": "2026-10-28T16:07:27+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
-  },
-  {
-   "file": "photo_4.jpg",
-   "kind": "產品",
-   "slug": "fubon",
-   "name_en": "Fubon Financial",
-   "query": "Taipei financial district",
-   "file_title": "File:101 Tower (Taipei), 2005.jpg",
-   "source_url": "https://commons.wikimedia.org/wiki/File:101_Tower_(Taipei),_2005.jpg",
-   "image_url": "https://upload.wikimedia.org/wikipedia/commons/c/c3/101_Tower_%28Taipei%29%2C_2005.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-   "license": "Public domain",
-   "license_url": "",
-   "author": "Unknown authorUnknown author",
-   "credit": "Own work",
-   "description": "The Taipei 101, at the moment the highest building on earth",
-   "width": 1920,
-   "height": 1440,
-   "fetched_at": "2026-10-28T16:07:27+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
-  },
-  {
-   "file": "photo_5.jpg",
-   "kind": "相關場景",
-   "slug": "fubon",
-   "name_en": "Fubon Financial",
-   "query": "Taipei financial district",
-   "file_title": "File:Taipei 101 20230401.jpg",
-   "source_url": "https://commons.wikimedia.org/wiki/File:Taipei_101_20230401.jpg",
-   "image_url": "https://upload.wikimedia.org/wikipedia/commons/c/c3/Taipei_101_20230401.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-   "license": "CC BY-SA 4.0",
-   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
-   "author": "Xiaoanan1207",
-   "credit": "Own work",
-   "description": "Taipei 101",
-   "width": 1920,
-   "height": 1280,
-   "fetched_at": "2026-10-28T16:07:28+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
+   "reviewed_at": "2026-10-28"
   }
  ],
  "rejected": [
   {
    "file_title": "File:Tao Zhu Yin Yuan, CPC Building and Fubon Xinyi A25.jpg",
    "reason": "原圖為強烈濾鏡／後製（紫色、紅外線風），違反原色",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:Chengdong Branch, Taipei Fubon Bank 20240428.jpg",
+   "reason": "招牌為主角",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:101 Tower (Taipei), 2005.jpg",
+   "reason": "陰暗、主體弱",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:Taipei 101 20230401.jpg",
+   "reason": "煙火活動",
    "at": "2026-10-28"
   }
  ]

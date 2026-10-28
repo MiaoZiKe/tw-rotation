@@ -2,27 +2,6 @@
  "slug": "asml",
  "photos": [
   {
-   "file": "photo_1.jpg",
-   "kind": "總部/廠房",
-   "slug": "asml",
-   "name_en": "ASML",
-   "query": "ASML building",
-   "file_title": "File:ASML shuttle van in Southern Taiwan Science Park May 2025.jpg",
-   "source_url": "https://commons.wikimedia.org/wiki/File:ASML_shuttle_van_in_Southern_Taiwan_Science_Park_May_2025.jpg",
-   "image_url": "https://upload.wikimedia.org/wikipedia/commons/7/72/ASML_shuttle_van_in_Southern_Taiwan_Science_Park_May_2025.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-   "license": "CC BY 4.0",
-   "license_url": "https://creativecommons.org/licenses/by/4.0",
-   "author": "4300streetcar",
-   "credit": "Own work",
-   "description": "An ASML shuttle van in Southern Taiwan Science Park",
-   "width": 1920,
-   "height": 1280,
-   "fetched_at": "2026-10-28T16:15:13+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
-  },
-  {
    "file": "photo_2.jpg",
    "kind": "總部/廠房",
    "slug": "asml",
@@ -39,57 +18,31 @@
    "width": 1605,
    "height": 900,
    "fetched_at": "2026-10-28T16:15:13+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
-  },
-  {
-   "file": "photo_3.jpg",
-   "kind": "產品",
-   "slug": "asml",
-   "name_en": "ASML",
-   "query": "ASML lithography machine",
-   "file_title": "File:ASML air freight containers in Tainan May 2025 1.jpg",
-   "source_url": "https://commons.wikimedia.org/wiki/File:ASML_air_freight_containers_in_Tainan_May_2025_1.jpg",
-   "image_url": "https://upload.wikimedia.org/wikipedia/commons/6/6c/ASML_air_freight_containers_in_Tainan_May_2025_1.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-   "license": "CC BY 4.0",
-   "license_url": "https://creativecommons.org/licenses/by/4.0",
-   "author": "4300streetcar",
-   "credit": "Own work",
-   "description": "ASML main-deck Unit Load Device air cargo containers for transporting ASML machines, in Tainan",
-   "width": 1920,
-   "height": 1280,
-   "fetched_at": "2026-10-28T16:15:16+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
-  },
-  {
-   "file": "photo_4.jpg",
-   "kind": "產品",
-   "slug": "asml",
-   "name_en": "ASML",
-   "query": "ASML lithography machine",
-   "file_title": "File:ASML air freight containers in Tainan May 2025 3.jpg",
-   "source_url": "https://commons.wikimedia.org/wiki/File:ASML_air_freight_containers_in_Tainan_May_2025_3.jpg",
-   "image_url": "https://upload.wikimedia.org/wikipedia/commons/8/82/ASML_air_freight_containers_in_Tainan_May_2025_3.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-   "license": "CC BY 4.0",
-   "license_url": "https://creativecommons.org/licenses/by/4.0",
-   "author": "4300streetcar",
-   "credit": "Own work",
-   "description": "ASML main-deck Unit Load Device air cargo containers for transporting ASML machines, in Tainan",
-   "width": 1920,
-   "height": 1280,
-   "fetched_at": "2026-10-28T16:15:16+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
+   "reviewed_at": "2026-10-28"
   }
  ],
  "rejected": [
   {
    "file_title": "File:ASML headquarters Veldhoven.jpg",
    "reason": "天空過曝、塔樓頂端被裁、影像偏灰；畫質不合格",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:ASML shuttle van in Southern Taiwan Science Park May 2025.jpg",
+   "reason": "廂型車，主體弱",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:ASML air freight containers in Tainan May 2025 1.jpg",
+   "reason": "ASML 字樣為主角",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:ASML air freight containers in Tainan May 2025 3.jpg",
+   "reason": "ASML 字樣為主角",
    "at": "2026-10-28"
   }
  ]

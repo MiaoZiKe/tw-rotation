@@ -18,9 +18,10 @@
    "width": 1920,
    "height": 1080,
    "fetched_at": "2026-10-28T16:17:43+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
+   "reviewed_at": "2026-10-28"
   },
   {
    "file": "photo_2.jpg",
@@ -39,9 +40,10 @@
    "width": 1920,
    "height": 966,
    "fetched_at": "2026-10-28T16:17:43+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
+   "reviewed_at": "2026-10-28"
   },
   {
    "file": "photo_3.jpg",
@@ -60,30 +62,10 @@
    "width": 1920,
    "height": 1280,
    "fetched_at": "2026-10-28T16:17:45+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
-  },
-  {
-   "file": "photo_4.jpg",
-   "kind": "類別",
-   "slug": "總經",
-   "name_en": "總經",
-   "query": "Taiwan Stock Exchange",
-   "file_title": "File:Taiwan Stock Exchange Press Conference Room in 1st Floor, Taipei 101 20160422.jpg",
-   "source_url": "https://commons.wikimedia.org/wiki/File:Taiwan_Stock_Exchange_Press_Conference_Room_in_1st_Floor,_Taipei_101_20160422.jpg",
-   "image_url": "https://upload.wikimedia.org/wikipedia/commons/8/8e/Taiwan_Stock_Exchange_Press_Conference_Room_in_1st_Floor%2C_Taipei_101_20160422.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-   "license": "CC0",
-   "license_url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
-   "author": "玄史生",
-   "credit": "Own work",
-   "description": "​臺北101大樓一樓，臺灣證券交易所簡報室室內。",
-   "width": 1920,
-   "height": 1280,
-   "fetched_at": "2026-10-28T16:17:45+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
+   "reviewed_at": "2026-10-28"
   },
   {
    "file": "photo_5.jpg",
@@ -102,9 +84,10 @@
    "width": 1920,
    "height": 1440,
    "fetched_at": "2026-10-28T16:17:46+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
+   "reviewed_at": "2026-10-28"
   },
   {
    "file": "photo_6.jpg",
@@ -123,30 +106,10 @@
    "width": 1920,
    "height": 1280,
    "fetched_at": "2026-10-28T16:17:46+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
-  },
-  {
-   "file": "photo_7.jpg",
-   "kind": "類別",
-   "slug": "總經",
-   "name_en": "總經",
-   "query": "New Taiwan dollar",
-   "file_title": "File:Opened can of Pocari Sweat with a New Taiwan Dollar coin.jpg",
-   "source_url": "https://commons.wikimedia.org/wiki/File:Opened_can_of_Pocari_Sweat_with_a_New_Taiwan_Dollar_coin.jpg",
-   "image_url": "https://upload.wikimedia.org/wikipedia/commons/4/4f/Opened_can_of_Pocari_Sweat_with_a_New_Taiwan_Dollar_coin.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-   "license": "CC BY-SA 4.0",
-   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
-   "author": "Beverage cans in Taiwan",
-   "credit": "Own work",
-   "description": "​金車大塚寶礦力水得340毫升鋁罐空罐與新臺幣一元硬幣。",
-   "width": 1920,
-   "height": 1282,
-   "fetched_at": "2026-10-28T16:17:48+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
+   "reviewed_at": "2026-10-28"
   },
   {
    "file": "photo_8.jpg",
@@ -165,10 +128,22 @@
    "width": 1920,
    "height": 1440,
    "fetched_at": "2026-10-28T16:17:48+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
+   "reviewed_at": "2026-10-28"
   }
  ],
- "rejected": []
+ "rejected": [
+  {
+   "file_title": "File:Taiwan Stock Exchange Press Conference Room in 1st Floor, Taipei 101 20160422.jpg",
+   "reason": "有人物、會議室與主題弱",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:Opened can of Pocari Sweat with a New Taiwan Dollar coin.jpg",
+   "reason": "飲料罐為主角，與總經無關",
+   "at": "2026-10-28"
+  }
+ ]
 }

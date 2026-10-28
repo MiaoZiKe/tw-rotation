@@ -42,9 +42,10 @@
    "width": 1920,
    "height": 1440,
    "fetched_at": "2026-10-28T16:07:40+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
+   "reviewed_at": "2026-10-28"
   },
   {
    "file": "photo_3.jpg",
@@ -63,30 +64,10 @@
    "width": 1920,
    "height": 1080,
    "fetched_at": "2026-10-28T16:07:42+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
-  },
-  {
-   "file": "photo_4.jpg",
-   "kind": "產品",
-   "slug": "chunghwa_telecom",
-   "name_en": "Chunghwa Telecom",
-   "query": "cell tower",
-   "file_title": "File:Cell Tower at night.jpg",
-   "source_url": "https://commons.wikimedia.org/wiki/File:Cell_Tower_at_night.jpg",
-   "image_url": "https://upload.wikimedia.org/wikipedia/commons/6/62/Cell_Tower_at_night.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-   "license": "CC BY-SA 4.0",
-   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
-   "author": "Kevin Kandlbinder",
-   "credit": "Own work",
-   "description": "Cell Tower at night with long exposure",
-   "width": 1920,
-   "height": 1442,
-   "fetched_at": "2026-10-28T16:07:42+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
+   "reviewed_at": "2026-10-28"
   },
   {
    "file": "photo_5.jpg",
@@ -105,10 +86,17 @@
    "width": 1920,
    "height": 1280,
    "fetched_at": "2026-10-28T16:07:44+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
+   "reviewed_at": "2026-10-28"
   }
  ],
- "rejected": []
+ "rejected": [
+  {
+   "file_title": "File:Cell Tower at night.jpg",
+   "reason": "夜間全黑",
+   "at": "2026-10-28"
+  }
+ ]
 }

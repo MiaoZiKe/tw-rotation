@@ -2,48 +2,6 @@
  "slug": "meta",
  "photos": [
   {
-   "file": "photo_1.jpg",
-   "kind": "總部/廠房",
-   "slug": "meta",
-   "name_en": "Meta Platforms",
-   "query": "Meta headquarters Menlo Park",
-   "file_title": "File:Diana Vicezar Meta Product Design.jpg",
-   "source_url": "https://commons.wikimedia.org/wiki/File:Diana_Vicezar_Meta_Product_Design.jpg",
-   "image_url": "https://upload.wikimedia.org/wikipedia/commons/f/fe/Diana_Vicezar_Meta_Product_Design.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-   "license": "CC BY-SA 4.0",
-   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
-   "author": "Sshanghai",
-   "credit": "Own work",
-   "description": "Paraguayan product designer Diana Vicezar at Meta headquarters in Menlo Park, CA.",
-   "width": 1920,
-   "height": 1027,
-   "fetched_at": "2026-10-28T16:14:05+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
-  },
-  {
-   "file": "photo_2.jpg",
-   "kind": "總部/廠房",
-   "slug": "meta",
-   "name_en": "Meta Platforms",
-   "query": "Meta headquarters Menlo Park",
-   "file_title": "File:Diana Vicezar at Meta.jpg",
-   "source_url": "https://commons.wikimedia.org/wiki/File:Diana_Vicezar_at_Meta.jpg",
-   "image_url": "https://upload.wikimedia.org/wikipedia/commons/b/bd/Diana_Vicezar_at_Meta.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-   "license": "CC BY-SA 4.0",
-   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
-   "author": "Sshanghai",
-   "credit": "Own work",
-   "description": "Paraguayan entrepreneur and user experience designer Diana Vicezar at Meta headquarters in Menlo Park, CA.",
-   "width": 1920,
-   "height": 1307,
-   "fetched_at": "2026-10-28T16:14:05+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
-  },
-  {
    "file": "photo_3.jpg",
    "kind": "產品",
    "slug": "meta",
@@ -60,57 +18,36 @@
    "width": 1920,
    "height": 1440,
    "fetched_at": "2026-10-28T16:14:07+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
-  },
-  {
-   "file": "photo_4.jpg",
-   "kind": "產品",
-   "slug": "meta",
-   "name_en": "Meta Platforms",
-   "query": "Oculus Quest",
-   "file_title": "File:InclusiveGameLab Oculus-Quest 1 CC-BY-SA.jpg",
-   "source_url": "https://commons.wikimedia.org/wiki/File:InclusiveGameLab_Oculus-Quest_1_CC-BY-SA.jpg",
-   "image_url": "https://upload.wikimedia.org/wikipedia/commons/2/21/InclusiveGameLab_Oculus-Quest_1_CC-BY-SA.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-   "license": "CC BY-SA 4.0",
-   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
-   "author": "InclusiveGameLab",
-   "credit": "Own work",
-   "description": "\"A person places a case containing a white Oculus Quest virtual reality headset and its black controllers on a black table. Next to the case is a black keyboard. Part of the person's upper body and hands are visible.",
-   "width": 1920,
-   "height": 1440,
-   "fetched_at": "2026-10-28T16:14:07+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
-  },
-  {
-   "file": "photo_5.jpg",
-   "kind": "相關場景",
-   "slug": "meta",
-   "name_en": "Meta Platforms",
-   "query": "smartphone",
-   "file_title": "File:Fediverse smartphone apps (photo by Elena Rossini).jpg",
-   "source_url": "https://commons.wikimedia.org/wiki/File:Fediverse_smartphone_apps_(photo_by_Elena_Rossini).jpg",
-   "image_url": "https://upload.wikimedia.org/wikipedia/commons/6/66/Fediverse_smartphone_apps_%28photo_by_Elena_Rossini%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-   "license": "CC BY-SA 4.0",
-   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
-   "author": "Elexfedi",
-   "credit": "Own work",
-   "description": "a photo of a hand holding a smartphone; on screen you see icons of Fediverse apps: Lemmy, Loops, Mastodon, PeerTube and Pixelfed",
-   "width": 1920,
-   "height": 1280,
-   "fetched_at": "2026-10-28T16:14:08+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
+   "reviewed_at": "2026-10-28"
   }
  ],
  "rejected": [
   {
    "file_title": "File:Meta Platforms Headquarters Menlo Park California.jpg",
    "reason": "建築在畫面左緣很小、主體是路口與天空，裁切後主體不成立",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:Diana Vicezar Meta Product Design.jpg",
+   "reason": "人物肖像",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:Diana Vicezar at Meta.jpg",
+   "reason": "人物肖像",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:InclusiveGameLab Oculus-Quest 1 CC-BY-SA.jpg",
+   "reason": "手入鏡、雜亂",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:Fediverse smartphone apps (photo by Elena Rossini).jpg",
+   "reason": "手機 App 畫面",
    "at": "2026-10-28"
   }
  ]

@@ -2,27 +2,6 @@
  "slug": "broadcom",
  "photos": [
   {
-   "file": "photo_1.jpg",
-   "kind": "總部/廠房",
-   "slug": "broadcom",
-   "name_en": "Broadcom",
-   "query": "Broadcom building",
-   "file_title": "File:Broadcomheadquarters.jpg",
-   "source_url": "https://commons.wikimedia.org/wiki/File:Broadcomheadquarters.jpg",
-   "image_url": "https://upload.wikimedia.org/wikipedia/commons/b/b7/Broadcomheadquarters.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-   "license": "CC BY-SA 3.0",
-   "license_url": "http://creativecommons.org/licenses/by-sa/3.0/",
-   "author": "Coolcaesar",
-   "credit": "en:Image:Broadcomheadquarters.jpg",
-   "description": "Corporate headquarters of Broadcom",
-   "width": 1920,
-   "height": 1440,
-   "fetched_at": "2026-10-28T16:14:18+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
-  },
-  {
    "file": "photo_2.jpg",
    "kind": "總部/廠房",
    "slug": "broadcom",
@@ -39,51 +18,10 @@
    "width": 1536,
    "height": 1024,
    "fetched_at": "2026-10-28T16:14:18+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
-  },
-  {
-   "file": "photo_3.jpg",
-   "kind": "產品",
-   "slug": "broadcom",
-   "name_en": "Broadcom",
-   "query": "Broadcom chip",
-   "file_title": "File:Broadcom BCM92046MPCIE - Broadcom BCM2046-6970.jpg",
-   "source_url": "https://commons.wikimedia.org/wiki/File:Broadcom_BCM92046MPCIE_-_Broadcom_BCM2046-6970.jpg",
-   "image_url": "https://upload.wikimedia.org/wikipedia/commons/d/d3/Broadcom_BCM92046MPCIE_-_Broadcom_BCM2046-6970.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-   "license": "CC BY-SA 4.0",
-   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
-   "author": "Raimond Spekking",
-   "credit": "Own work",
-   "description": "Broadcom BCM92046MPCIE - Broadcom BCM2046 - Blutonium Bluetooth 2.1 + EDR Single-Chip HCI  Solution",
-   "width": 1567,
-   "height": 1567,
-   "fetched_at": "2026-10-28T16:14:21+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
-  },
-  {
-   "file": "photo_4.jpg",
-   "kind": "產品",
-   "slug": "broadcom",
-   "name_en": "Broadcom",
-   "query": "Broadcom chip",
-   "file_title": "File:Broadcom WLL6230B-D99-7203.jpg",
-   "source_url": "https://commons.wikimedia.org/wiki/File:Broadcom_WLL6230B-D99-7203.jpg",
-   "image_url": "https://upload.wikimedia.org/wikipedia/commons/4/4c/Broadcom_WLL6230B-D99-7203.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-   "license": "CC BY-SA 4.0",
-   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
-   "author": "Raimond Spekking",
-   "credit": "Own work",
-   "description": "Broadcom WLL6230B-D99",
-   "width": 1920,
-   "height": 1440,
-   "fetched_at": "2026-10-28T16:14:21+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
+   "reviewed_at": "2026-10-28"
   },
   {
    "file": "photo_5.jpg",
@@ -102,15 +40,31 @@
    "width": 1920,
    "height": 1277,
    "fetched_at": "2026-10-28T16:14:22+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
+   "reviewed_at": "2026-10-28"
   }
  ],
  "rejected": [
   {
    "file_title": "File:Broadcom Headquarters San Jose.jpg",
    "reason": "樹木遮住主體，建築幾乎看不到",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:Broadcomheadquarters.jpg",
+   "reason": "LOGO 招牌為主角",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:Broadcom BCM92046MPCIE - Broadcom BCM2046-6970.jpg",
+   "reason": "晶片印字為主角",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:Broadcom WLL6230B-D99-7203.jpg",
+   "reason": "Broadcom LOGO 為主角",
    "at": "2026-10-28"
   }
  ]

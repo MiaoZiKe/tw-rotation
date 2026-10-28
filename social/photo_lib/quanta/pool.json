@@ -2,48 +2,6 @@
  "slug": "quanta",
  "photos": [
   {
-   "file": "photo_1.jpg",
-   "kind": "總部/廠房",
-   "slug": "quanta",
-   "name_en": "Quanta Computer",
-   "query": "Quanta Computer",
-   "file_title": "File:Quanta Crews (53513782029).jpg",
-   "source_url": "https://commons.wikimedia.org/wiki/File:Quanta_Crews_(53513782029).jpg",
-   "image_url": "https://upload.wikimedia.org/wikipedia/commons/d/d6/Quanta_Crews_%2853513782029%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-   "license": "CC BY-SA 2.0",
-   "license_url": "https://creativecommons.org/licenses/by-sa/2.0",
-   "author": "Gage Skidmore from Surprise, AZ, United States of America",
-   "credit": "Quanta Crews",
-   "description": "State Representative Quanta Crews speaking at the swearing in ceremony of State Representative Jevin Hodge on the floor of the Arizona House of Representatives at the Arizona State Capitol building in Phoenix, Arizona.\n\nPlease attribute to Gage Skidmore if used elsewhere.",
-   "width": 1920,
-   "height": 1280,
-   "fetched_at": "2026-10-28T16:07:12+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
-  },
-  {
-   "file": "photo_2.jpg",
-   "kind": "總部/廠房",
-   "slug": "quanta",
-   "name_en": "Quanta Computer",
-   "query": "Quanta Computer",
-   "file_title": "File:Quanta Crews (52962790287).jpg",
-   "source_url": "https://commons.wikimedia.org/wiki/File:Quanta_Crews_(52962790287).jpg",
-   "image_url": "https://upload.wikimedia.org/wikipedia/commons/e/e9/Quanta_Crews_%2852962790287%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-   "license": "CC BY-SA 2.0",
-   "license_url": "https://creativecommons.org/licenses/by-sa/2.0",
-   "author": "Gage Skidmore from Surprise, AZ, United States of America",
-   "credit": "Quanta Crews",
-   "description": "State Representative Quanta Crews speaking at her swearing in ceremony on the floor of the Arizona House of Representatives at the Arizona State Capitol building in Phoenix, Arizona.\n\nPlease attribute to Gage Skidmore if used elsewhere.",
-   "width": 1920,
-   "height": 1280,
-   "fetched_at": "2026-10-28T16:07:15+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
-  },
-  {
    "file": "photo_3.jpg",
    "kind": "產品",
    "slug": "quanta",
@@ -60,57 +18,36 @@
    "width": 1920,
    "height": 1917,
    "fetched_at": "2026-10-28T16:07:16+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
-  },
-  {
-   "file": "photo_4.jpg",
-   "kind": "產品",
-   "slug": "quanta",
-   "name_en": "Quanta Computer",
-   "query": "server rack",
-   "file_title": "File:Osservando il rack ESC20 - ML.jpg",
-   "source_url": "https://commons.wikimedia.org/wiki/File:Osservando_il_rack_ESC20_-_ML.jpg",
-   "image_url": "https://upload.wikimedia.org/wikipedia/commons/8/8a/Osservando_il_rack_ESC20_-_ML.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-   "license": "CC BY-SA 4.0",
-   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
-   "author": "Martinligabue",
-   "credit": "Own work",
-   "description": "due partecipanti scrutano attentamente un rack di server che emana luce che gli illumina il volto, sembrano molto intenti a decifrarlo",
-   "width": 1920,
-   "height": 1440,
-   "fetched_at": "2026-10-28T16:07:16+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
-  },
-  {
-   "file": "photo_5.jpg",
-   "kind": "相關場景",
-   "slug": "quanta",
-   "name_en": "Quanta Computer",
-   "query": "server rack",
-   "file_title": "File:Colorful metal bicycle parking rack in Lysekil 2.jpg",
-   "source_url": "https://commons.wikimedia.org/wiki/File:Colorful_metal_bicycle_parking_rack_in_Lysekil_2.jpg",
-   "image_url": "https://upload.wikimedia.org/wikipedia/commons/9/98/Colorful_metal_bicycle_parking_rack_in_Lysekil_2.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-   "license": "CC BY-SA 4.0",
-   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
-   "author": "W.carter",
-   "credit": "Own work",
-   "description": "A colorful metal bicycle parking rack at Valbogatan in autumn, Lysekil, Sweden.",
-   "width": 1920,
-   "height": 1280,
-   "fetched_at": "2026-10-28T16:07:17+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
+   "reviewed_at": "2026-10-28"
   }
  ],
  "rejected": [
   {
    "file_title": "File:Quanta Computer Hwa Ya Technology Park.JPG",
    "reason": "天花鋼構特寫，看不出主體是廣達",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:Quanta Crews (53513782029).jpg",
+   "reason": "人物演講（同名誤抓）",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:Quanta Crews (52962790287).jpg",
+   "reason": "人物演講（同名誤抓）",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:Osservando il rack ESC20 - ML.jpg",
+   "reason": "人物為主角",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:Colorful metal bicycle parking rack in Lysekil 2.jpg",
+   "reason": "腳踏車架，同名誤抓",
    "at": "2026-10-28"
   }
  ]

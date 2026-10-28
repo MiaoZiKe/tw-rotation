@@ -2,27 +2,6 @@
  "slug": "alphabet",
  "photos": [
   {
-   "file": "photo_1.jpg",
-   "kind": "產品",
-   "slug": "alphabet",
-   "name_en": "Alphabet",
-   "query": "Google data center",
-   "file_title": "File:Google data center.jpg",
-   "source_url": "https://commons.wikimedia.org/wiki/File:Google_data_center.jpg",
-   "image_url": "https://upload.wikimedia.org/wikipedia/commons/9/95/Google_data_center.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-   "license": "CC BY-SA 4.0",
-   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
-   "author": "Lambtron",
-   "credit": "Own work",
-   "description": "Google data center in The Dalles, Oregon",
-   "width": 1920,
-   "height": 1403,
-   "fetched_at": "2026-10-28T16:14:01+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
-  },
-  {
    "file": "photo_2.jpg",
    "kind": "產品",
    "slug": "alphabet",
@@ -39,9 +18,10 @@
    "width": 1920,
    "height": 1280,
    "fetched_at": "2026-10-28T16:14:01+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
+   "reviewed_at": "2026-10-28"
   },
   {
    "file": "photo_3.jpg",
@@ -60,10 +40,17 @@
    "width": 1920,
    "height": 1440,
    "fetched_at": "2026-10-28T16:14:03+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
+   "reviewed_at": "2026-10-28"
   }
  ],
- "rejected": []
+ "rejected": [
+  {
+   "file_title": "File:Google data center.jpg",
+   "reason": "Google LOGO 招牌為主角",
+   "at": "2026-10-28"
+  }
+ ]
 }

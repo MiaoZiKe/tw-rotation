@@ -2,48 +2,6 @@
  "slug": "cathay",
  "photos": [
   {
-   "file": "photo_1.jpg",
-   "kind": "總部/廠房",
-   "slug": "cathay",
-   "name_en": "Cathay Financial",
-   "query": "Cathay United Bank building",
-   "file_title": "File:Shipai Branch, Cathay United Bank 20161210.jpg",
-   "source_url": "https://commons.wikimedia.org/wiki/File:Shipai_Branch,_Cathay_United_Bank_20161210.jpg",
-   "image_url": "https://upload.wikimedia.org/wikipedia/commons/5/5d/Shipai_Branch%2C_Cathay_United_Bank_20161210.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-   "license": "CC BY-SA 4.0",
-   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
-   "author": "Solomon203",
-   "credit": "Own work",
-   "description": "​國泰世華銀行石牌分行，位於臺北市北投區石牌路一段188號1樓（國泰石牌大樓）。",
-   "width": 1920,
-   "height": 1440,
-   "fetched_at": "2026-10-28T16:07:36+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
-  },
-  {
-   "file": "photo_2.jpg",
-   "kind": "總部/廠房",
-   "slug": "cathay",
-   "name_en": "Cathay Financial",
-   "query": "Cathay United Bank building",
-   "file_title": "File:Cathay R1 Taipei Zhonghua Building entrance and Cathay United Bank ATM 20171111.jpg",
-   "source_url": "https://commons.wikimedia.org/wiki/File:Cathay_R1_Taipei_Zhonghua_Building_entrance_and_Cathay_United_Bank_ATM_20171111.jpg",
-   "image_url": "https://upload.wikimedia.org/wikipedia/commons/5/5e/Cathay_R1_Taipei_Zhonghua_Building_entrance_and_Cathay_United_Bank_ATM_20171111.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-   "license": "CC BY-SA 4.0",
-   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
-   "author": "Solomon203",
-   "credit": "Own work",
-   "description": "​國泰一號台北中華大樓大門與國泰世華銀行自動櫃員機。",
-   "width": 1920,
-   "height": 1440,
-   "fetched_at": "2026-10-28T16:07:36+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
-  },
-  {
    "file": "photo_3.jpg",
    "kind": "產品",
    "slug": "cathay",
@@ -60,57 +18,36 @@
    "width": 1920,
    "height": 1083,
    "fetched_at": "2026-10-28T16:07:37+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
-  },
-  {
-   "file": "photo_4.jpg",
-   "kind": "產品",
-   "slug": "cathay",
-   "name_en": "Cathay Financial",
-   "query": "Taipei financial district",
-   "file_title": "File:Taipei International Convention Center and Taipei 101 20080621.jpg",
-   "source_url": "https://commons.wikimedia.org/wiki/File:Taipei_International_Convention_Center_and_Taipei_101_20080621.jpg",
-   "image_url": "https://upload.wikimedia.org/wikipedia/commons/9/98/Taipei_International_Convention_Center_and_Taipei_101_20080621.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-   "license": "CC BY 3.0",
-   "license_url": "https://creativecommons.org/licenses/by/3.0",
-   "author": "michaelwm25",
-   "credit": "https://web.archive.org/web/20161119020336/http://www.panoramio.com/photo/17286196",
-   "description": "​台北國際會議中心與台北101大樓。",
-   "width": 1920,
-   "height": 1440,
-   "fetched_at": "2026-10-28T16:07:37+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
-  },
-  {
-   "file": "photo_5.jpg",
-   "kind": "相關場景",
-   "slug": "cathay",
-   "name_en": "Cathay Financial",
-   "query": "Taipei financial district",
-   "file_title": "File:View of Taipei 101, a skyscraper under construction, apartment buildings, and a temple at Wufenpu.jpg",
-   "source_url": "https://commons.wikimedia.org/wiki/File:View_of_Taipei_101,_a_skyscraper_under_construction,_apartment_buildings,_and_a_temple_at_Wufenpu.jpg",
-   "image_url": "https://upload.wikimedia.org/wikipedia/commons/a/a9/View_of_Taipei_101%2C_a_skyscraper_under_construction%2C_apartment_buildings%2C_and_a_temple_at_Wufenpu.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-   "license": "CC BY-SA 4.0",
-   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
-   "author": "Lokseng01",
-   "credit": "Own work",
-   "description": "​臺北市五分埔一都市景觀",
-   "width": 1920,
-   "height": 1282,
-   "fetched_at": "2026-10-28T16:07:38+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
+   "reviewed_at": "2026-10-28"
   }
  ],
  "rejected": [
   {
    "file_title": "File:Cathay R1 Taipei Zhonghua Building entrance and Cathay United Bank ATM 20171018.jpg",
    "reason": "ATM 與門面特寫，非總部主體",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:Shipai Branch, Cathay United Bank 20161210.jpg",
+   "reason": "分行街景、人物",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:Cathay R1 Taipei Zhonghua Building entrance and Cathay United Bank ATM 20171111.jpg",
+   "reason": "門面與 ATM 特寫",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:Taipei International Convention Center and Taipei 101 20080621.jpg",
+   "reason": "畫面歪斜",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:View of Taipei 101, a skyscraper under construction, apartment buildings, and a temple at Wufenpu.jpg",
+   "reason": "主體是廟宇，與國泰無關",
    "at": "2026-10-28"
   }
  ]

@@ -18,51 +18,10 @@
    "width": 1920,
    "height": 1280,
    "fetched_at": "2026-10-28T16:17:27+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
-  },
-  {
-   "file": "photo_2.jpg",
-   "kind": "類別",
-   "slug": "汽車",
-   "name_en": "汽車",
-   "query": "car assembly line",
-   "file_title": "File:Inbound MBTA Orange Line train at Assembly November 2025.jpg",
-   "source_url": "https://commons.wikimedia.org/wiki/File:Inbound_MBTA_Orange_Line_train_at_Assembly_November_2025.jpg",
-   "image_url": "https://upload.wikimedia.org/wikipedia/commons/9/97/Inbound_MBTA_Orange_Line_train_at_Assembly_November_2025.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-   "license": "CC BY 4.0",
-   "license_url": "https://creativecommons.org/licenses/by/4.0",
-   "author": "4300streetcar",
-   "credit": "Own work",
-   "description": "An inbound MBTA Orange Line train arrives at Assembly station.",
-   "width": 1920,
-   "height": 1280,
-   "fetched_at": "2026-10-28T16:17:28+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
-  },
-  {
-   "file": "photo_3.jpg",
-   "kind": "類別",
-   "slug": "汽車",
-   "name_en": "汽車",
-   "query": "electric car charging",
-   "file_title": "File:Cologne Germany Electric-Car-Charging-Point-at-TUV-Rheinland-01.jpg",
-   "source_url": "https://commons.wikimedia.org/wiki/File:Cologne_Germany_Electric-Car-Charging-Point-at-TUV-Rheinland-01.jpg",
-   "image_url": "https://upload.wikimedia.org/wikipedia/commons/3/3a/Cologne_Germany_Electric-Car-Charging-Point-at-TUV-Rheinland-01.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-   "license": "CC BY-SA 3.0",
-   "license_url": "https://creativecommons.org/licenses/by-sa/3.0",
-   "author": "CEphoto, Uwe Aranas",
-   "credit": "Own work",
-   "description": "Cologne, Germany: Electric Car Charging Point at TUV Rheinland Headquarters in Cologne, Germany",
-   "width": 1920,
-   "height": 1187,
-   "fetched_at": "2026-10-28T16:17:29+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
+   "reviewed_at": "2026-10-28"
   },
   {
    "file": "photo_4.jpg",
@@ -81,94 +40,42 @@
    "width": 1301,
    "height": 834,
    "fetched_at": "2026-10-28T16:17:29+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
-  },
-  {
-   "file": "photo_5.jpg",
-   "kind": "類別",
-   "slug": "汽車",
-   "name_en": "汽車",
-   "query": "automobile factory",
-   "file_title": "File:Automobile factory Logan (1906).jpg",
-   "source_url": "https://commons.wikimedia.org/wiki/File:Automobile_factory_Logan_(1906).jpg",
-   "image_url": "https://upload.wikimedia.org/wikipedia/commons/1/15/Automobile_factory_Logan_%281906%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-   "license": "Public domain",
-   "license_url": "",
-   "author": "Logan Construction Company",
-   "credit": "https://babel.hathitrust.org/cgi/pt?id=mdp.39015076871196&seq=4",
-   "description": "Automobile factory Logan (1906)",
-   "width": 1275,
-   "height": 873,
-   "fetched_at": "2026-10-28T16:17:32+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
-  },
-  {
-   "file": "photo_6.jpg",
-   "kind": "類別",
-   "slug": "汽車",
-   "name_en": "汽車",
-   "query": "automobile factory",
-   "file_title": "File:Abandoned Packard Automobile Factory Detroit 200.jpg",
-   "source_url": "https://commons.wikimedia.org/wiki/File:Abandoned_Packard_Automobile_Factory_Detroit_200.jpg",
-   "image_url": "https://upload.wikimedia.org/wikipedia/commons/c/c7/Abandoned_Packard_Automobile_Factory_Detroit_200.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-   "license": "CC BY-SA 3.0",
-   "license_url": "https://creativecommons.org/licenses/by-sa/3.0",
-   "author": "Albert duce",
-   "credit": "Own work",
-   "description": "Western part of the abandoned Packard Automotive Plant in Detroit, Michigan.",
-   "width": 1920,
-   "height": 1329,
-   "fetched_at": "2026-10-28T16:17:32+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
-  },
-  {
-   "file": "photo_7.jpg",
-   "kind": "類別",
-   "slug": "汽車",
-   "name_en": "汽車",
-   "query": "electric vehicle",
-   "file_title": "File:Alwayz AW9060 electric passenger vehicle in Moscow 2.jpg",
-   "source_url": "https://commons.wikimedia.org/wiki/File:Alwayz_AW9060_electric_passenger_vehicle_in_Moscow_2.jpg",
-   "image_url": "https://upload.wikimedia.org/wikipedia/commons/c/ca/Alwayz_AW9060_electric_passenger_vehicle_in_Moscow_2.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-   "license": "CC BY-SA 4.0",
-   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
-   "author": "Dmitry Ivanov..",
-   "credit": "Own work",
-   "description": "An AW9060 series electric passenger vehicle (a neighborhood electric vehicle, 6 seats, enclosed body with doors) manufactured by Suzhou Alwayz Electric Vehicle Manufacturing Co., Ltd (P. R. China). The name of the vehicle in the Russian market given by the dealer[1] is ElectroEco T6A. The photograph",
-   "width": 1920,
-   "height": 1094,
-   "fetched_at": "2026-10-28T16:17:34+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
-  },
-  {
-   "file": "photo_8.jpg",
-   "kind": "類別",
-   "slug": "汽車",
-   "name_en": "汽車",
-   "query": "electric vehicle",
-   "file_title": "File:BeTRITON amphibious vehicle (Fully Charged 2022) boat interior.jpg",
-   "source_url": "https://commons.wikimedia.org/wiki/File:BeTRITON_amphibious_vehicle_(Fully_Charged_2022)_boat_interior.jpg",
-   "image_url": "https://upload.wikimedia.org/wikipedia/commons/d/db/BeTRITON_amphibious_vehicle_%28Fully_Charged_2022%29_boat_interior.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-   "license": "CC BY-SA 4.0",
-   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
-   "author": "Ogidya",
-   "credit": "Own work",
-   "description": "Interior of the Electric Recreational Vehicle \"BeTRITON\", presented at Fully Charged 2022 in Amsterdam.",
-   "width": 1920,
-   "height": 1440,
-   "fetched_at": "2026-10-28T16:17:34+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
+   "reviewed_at": "2026-10-28"
   }
  ],
- "rejected": []
+ "rejected": [
+  {
+   "file_title": "File:Inbound MBTA Orange Line train at Assembly November 2025.jpg",
+   "reason": "地鐵列車，與汽車無關",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:Cologne Germany Electric-Car-Charging-Point-at-TUV-Rheinland-01.jpg",
+   "reason": "車身品牌塗裝為主角",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:Automobile factory Logan (1906).jpg",
+   "reason": "手繪插圖非照片",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:Abandoned Packard Automobile Factory Detroit 200.jpg",
+   "reason": "廢棄廠房，有誤導",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:Alwayz AW9060 electric passenger vehicle in Moscow 2.jpg",
+   "reason": "小眾車款、構圖雜",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:BeTRITON amphibious vehicle (Fully Charged 2022) boat interior.jpg",
+   "reason": "兩棲車內裝，主體不明",
+   "at": "2026-10-28"
+  }
+ ]
 }

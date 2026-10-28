@@ -42,9 +42,10 @@
    "width": 1920,
    "height": 1735,
    "fetched_at": "2026-10-28T16:10:10+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
+   "reviewed_at": "2026-10-28"
   },
   {
    "file": "photo_3.jpg",
@@ -63,9 +64,10 @@
    "width": 1920,
    "height": 1621,
    "fetched_at": "2026-10-28T16:10:12+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
+   "reviewed_at": "2026-10-28"
   },
   {
    "file": "photo_4.jpg",
@@ -84,31 +86,17 @@
    "width": 1920,
    "height": 1538,
    "fetched_at": "2026-10-28T16:10:12+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
-  },
-  {
-   "file": "photo_5.jpg",
-   "kind": "相關場景",
-   "slug": "wistron",
-   "name_en": "Wistron",
-   "query": "server rack",
-   "file_title": "File:Technician with laptop working on server rack at NERSC.jpg",
-   "source_url": "https://commons.wikimedia.org/wiki/File:Technician_with_laptop_working_on_server_rack_at_NERSC.jpg",
-   "image_url": "https://upload.wikimedia.org/wikipedia/commons/2/2a/Technician_with_laptop_working_on_server_rack_at_NERSC.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-   "license": "CC0",
-   "license_url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
-   "author": "Derrick Coetzee from Berkeley, CA, USA",
-   "credit": "Technician with laptop working on server rack at NERSC\n\nUploaded by Dcoetzee",
-   "description": "CC0 waiver: To the extent possible under law, I waive all copyright and related or neighboring rights to this work.",
-   "width": 1920,
-   "height": 1275,
-   "fetched_at": "2026-10-28T16:10:13+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
+   "reviewed_at": "2026-10-28"
   }
  ],
- "rejected": []
+ "rejected": [
+  {
+   "file_title": "File:Technician with laptop working on server rack at NERSC.jpg",
+   "reason": "人物為主角",
+   "at": "2026-10-28"
+  }
+ ]
 }

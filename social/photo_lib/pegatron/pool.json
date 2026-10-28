@@ -1,116 +1,35 @@
 {
  "slug": "pegatron",
- "photos": [
-  {
-   "file": "photo_1.jpg",
-   "kind": "總部/廠房",
-   "slug": "pegatron",
-   "name_en": "Pegatron",
-   "query": "Pegatron",
-   "file_title": "File:PCWare IPM41-D3 Motherboard (53163041743).jpg",
-   "source_url": "https://commons.wikimedia.org/wiki/File:PCWare_IPM41-D3_Motherboard_(53163041743).jpg",
-   "image_url": "https://upload.wikimedia.org/wikipedia/commons/4/4a/PCWare_IPM41-D3_Motherboard_%2853163041743%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-   "license": "CC0",
-   "license_url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
-   "author": "Davidson F",
-   "credit": "PCWare IPM41-D3 Motherboard",
-   "description": "The IPM41-D3 is a micro-ATX motherboard featuring the Intel G41 Express chipset and an LGA 775 socket, designed for compatibility with various Intel processors, from Celeron to Core 2 Quad series.\nKey Features:\n- Chipset: Intel G41 Express\n- CPU Socket: LGA 775\n- Memory: Two DDR3 slots supporting up",
-   "width": 1920,
-   "height": 1047,
-   "fetched_at": "2026-10-28T16:10:04+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
-  },
-  {
-   "file": "photo_2.jpg",
-   "kind": "總部/廠房",
-   "slug": "pegatron",
-   "name_en": "Pegatron",
-   "query": "Pegatron",
-   "file_title": "File:PCWare IPM41-D3 Motherboard (53162758424).jpg",
-   "source_url": "https://commons.wikimedia.org/wiki/File:PCWare_IPM41-D3_Motherboard_(53162758424).jpg",
-   "image_url": "https://upload.wikimedia.org/wikipedia/commons/4/42/PCWare_IPM41-D3_Motherboard_%2853162758424%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-   "license": "CC0",
-   "license_url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
-   "author": "Davidson F",
-   "credit": "PCWare IPM41-D3 Motherboard",
-   "description": "The IPM41-D3 is a micro-ATX motherboard featuring the Intel G41 Express chipset and an LGA 775 socket, designed for compatibility with various Intel processors, from Celeron to Core 2 Quad series.\nKey Features:\n- Chipset: Intel G41 Express\n- CPU Socket: LGA 775\n- Memory: Two DDR3 slots supporting up",
-   "width": 1920,
-   "height": 1280,
-   "fetched_at": "2026-10-28T16:10:04+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
-  },
-  {
-   "file": "photo_3.jpg",
-   "kind": "產品",
-   "slug": "pegatron",
-   "name_en": "Pegatron",
-   "query": "motherboard",
-   "file_title": "File:2023 Płyta główna ASRock A320M-DVS.jpg",
-   "source_url": "https://commons.wikimedia.org/wiki/File:2023_P%C5%82yta_g%C5%82%C3%B3wna_ASRock_A320M-DVS.jpg",
-   "image_url": "https://upload.wikimedia.org/wikipedia/commons/b/b6/2023_P%C5%82yta_g%C5%82%C3%B3wna_ASRock_A320M-DVS.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-   "license": "CC BY-SA 4.0",
-   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
-   "author": "Jacek Halicki",
-   "credit": "Own work",
-   "description": "ASRock A320M-DVS R4.0 motherboards",
-   "width": 1920,
-   "height": 2091,
-   "fetched_at": "2026-10-28T16:10:06+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
-  },
-  {
-   "file": "photo_4.jpg",
-   "kind": "產品",
-   "slug": "pegatron",
-   "name_en": "Pegatron",
-   "query": "motherboard",
-   "file_title": "File:Amazon Echo Dot (RS03QR) - motherboard-0557.jpg",
-   "source_url": "https://commons.wikimedia.org/wiki/File:Amazon_Echo_Dot_(RS03QR)_-_motherboard-0557.jpg",
-   "image_url": "https://upload.wikimedia.org/wikipedia/commons/9/95/Amazon_Echo_Dot_%28RS03QR%29_-_motherboard-0557.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-   "license": "CC BY-SA 4.0",
-   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
-   "author": "Raimond Spekking",
-   "credit": "Own work",
-   "description": "Amazon Echo Dot (RS03QR) - motherboard",
-   "width": 1920,
-   "height": 1440,
-   "fetched_at": "2026-10-28T16:10:06+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
-  },
-  {
-   "file": "photo_5.jpg",
-   "kind": "相關場景",
-   "slug": "pegatron",
-   "name_en": "Pegatron",
-   "query": "smartphone",
-   "file_title": "File:Smartphone display screen.jpg",
-   "source_url": "https://commons.wikimedia.org/wiki/File:Smartphone_display_screen.jpg",
-   "image_url": "https://upload.wikimedia.org/wikipedia/commons/8/89/Smartphone_display_screen.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-   "license": "CC0",
-   "license_url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
-   "author": "Skitterphoto",
-   "credit": "https://pixabay.com/photos/phone-cell-smartphone-airplane-2344373/",
-   "description": "Smartphone display screen with time and icons",
-   "width": 1920,
-   "height": 1217,
-   "fetched_at": "2026-10-28T16:10:08+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
-  }
- ],
+ "photos": [],
  "rejected": [
   {
    "file_title": "File:PCWare IPM41-D3 Motherboard (53162956700).jpg",
    "reason": "主機板微距照，非和碩建築（同名誤抓）",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:PCWare IPM41-D3 Motherboard (53163041743).jpg",
+   "reason": "紫色燈光、品牌字為主角",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:PCWare IPM41-D3 Motherboard (53162758424).jpg",
+   "reason": "品牌字為主角",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:2023 Płyta główna ASRock A320M-DVS.jpg",
+   "reason": "他牌主機板",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:Amazon Echo Dot (RS03QR) - motherboard-0557.jpg",
+   "reason": "Amazon 產品主機板",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:Smartphone display screen.jpg",
+   "reason": "手機螢幕局部",
    "at": "2026-10-28"
   }
  ]

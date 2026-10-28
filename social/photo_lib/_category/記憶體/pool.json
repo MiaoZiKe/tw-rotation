@@ -18,9 +18,10 @@
    "width": 1920,
    "height": 1280,
    "fetched_at": "2026-10-28T16:16:07+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
+   "reviewed_at": "2026-10-28"
   },
   {
    "file": "photo_2.jpg",
@@ -39,9 +40,10 @@
    "width": 1920,
    "height": 1592,
    "fetched_at": "2026-10-28T16:16:08+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
+   "reviewed_at": "2026-10-28"
   },
   {
    "file": "photo_3.jpg",
@@ -60,30 +62,10 @@
    "width": 1920,
    "height": 949,
    "fetched_at": "2026-10-28T16:16:11+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
-  },
-  {
-   "file": "photo_4.jpg",
-   "kind": "類別",
-   "slug": "記憶體",
-   "name_en": "記憶體",
-   "query": "DDR4 SDRAM",
-   "file_title": "File:DDR 4 RAM SO-DIMM 16GB by Micron-top front PNr°0840.jpg",
-   "source_url": "https://commons.wikimedia.org/wiki/File:DDR_4_RAM_SO-DIMM_16GB_by_Micron-top_front_PNr%C2%B00840.jpg",
-   "image_url": "https://upload.wikimedia.org/wikipedia/commons/b/ba/DDR_4_RAM_SO-DIMM_16GB_by_Micron-top_front_PNr%C2%B00840.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-   "license": "CC BY-SA 4.0",
-   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
-   "author": "D-Kuru",
-   "credit": "Own work",
-   "description": "A 16GB DDR4 RAM SO-DIMM module by Micron sold under their Crucial brand",
-   "width": 1920,
-   "height": 956,
-   "fetched_at": "2026-10-28T16:16:11+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
+   "reviewed_at": "2026-10-28"
   },
   {
    "file": "photo_5.jpg",
@@ -102,30 +84,10 @@
    "width": 1920,
    "height": 952,
    "fetched_at": "2026-10-28T16:16:11+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
-  },
-  {
-   "file": "photo_6.jpg",
-   "kind": "類別",
-   "slug": "記憶體",
-   "name_en": "記憶體",
-   "query": "DDR4 SDRAM",
-   "file_title": "File:DDR 4 RAM SO-DIMM 8GB by Samsung-top front PNr°0838.jpg",
-   "source_url": "https://commons.wikimedia.org/wiki/File:DDR_4_RAM_SO-DIMM_8GB_by_Samsung-top_front_PNr%C2%B00838.jpg",
-   "image_url": "https://upload.wikimedia.org/wikipedia/commons/e/e7/DDR_4_RAM_SO-DIMM_8GB_by_Samsung-top_front_PNr%C2%B00838.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-   "license": "CC BY-SA 4.0",
-   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
-   "author": "D-Kuru",
-   "credit": "Own work",
-   "description": "An 8GB DDR4 RAM SO-DIMM module by Samsung",
-   "width": 1920,
-   "height": 950,
-   "fetched_at": "2026-10-28T16:16:11+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
+   "reviewed_at": "2026-10-28"
   },
   {
    "file": "photo_7.jpg",
@@ -144,9 +106,10 @@
    "width": 1920,
    "height": 1333,
    "fetched_at": "2026-10-28T16:16:14+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
+   "reviewed_at": "2026-10-28"
   },
   {
    "file": "photo_8.jpg",
@@ -165,10 +128,22 @@
    "width": 1920,
    "height": 1080,
    "fetched_at": "2026-10-28T16:16:14+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
+   "reviewed_at": "2026-10-28"
   }
  ],
- "rejected": []
+ "rejected": [
+  {
+   "file_title": "File:DDR 4 RAM SO-DIMM 16GB by Micron-top front PNr°0840.jpg",
+   "reason": "Crucial LOGO 為主角",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:DDR 4 RAM SO-DIMM 8GB by Samsung-top front PNr°0838.jpg",
+   "reason": "Samsung 標籤為主角",
+   "at": "2026-10-28"
+  }
+ ]
 }

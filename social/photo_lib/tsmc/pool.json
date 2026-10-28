@@ -42,9 +42,10 @@
    "width": 1920,
    "height": 1280,
    "fetched_at": "2026-10-28T16:06:37+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
+   "reviewed_at": "2026-10-28"
   },
   {
    "file": "photo_3.jpg",
@@ -63,9 +64,10 @@
    "width": 1535,
    "height": 1157,
    "fetched_at": "2026-10-28T16:06:39+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
+   "reviewed_at": "2026-10-28"
   },
   {
    "file": "photo_4.jpg",
@@ -84,31 +86,17 @@
    "width": 1920,
    "height": 1440,
    "fetched_at": "2026-10-28T16:06:41+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
-  },
-  {
-   "file": "photo_5.jpg",
-   "kind": "相關場景",
-   "slug": "tsmc",
-   "name_en": "TSMC",
-   "query": "semiconductor fab",
-   "file_title": "File:Minimal Fab exhibit at Tsukuba Science Square.jpg",
-   "source_url": "https://commons.wikimedia.org/wiki/File:Minimal_Fab_exhibit_at_Tsukuba_Science_Square.jpg",
-   "image_url": "https://upload.wikimedia.org/wikipedia/commons/b/b9/Minimal_Fab_exhibit_at_Tsukuba_Science_Square.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-   "license": "CC0",
-   "license_url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
-   "author": "Syced",
-   "credit": "Own work",
-   "description": "Minimal Fab exhibit at Tsukuba Science Square",
-   "width": 1920,
-   "height": 1446,
-   "fetched_at": "2026-10-28T16:06:43+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
+   "reviewed_at": "2026-10-28"
   }
  ],
- "rejected": []
+ "rejected": [
+  {
+   "file_title": "File:Minimal Fab exhibit at Tsukuba Science Square.jpg",
+   "reason": "展示櫃，主體弱",
+   "at": "2026-10-28"
+  }
+ ]
 }

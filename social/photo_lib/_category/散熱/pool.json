@@ -2,27 +2,6 @@
  "slug": "散熱",
  "photos": [
   {
-   "file": "photo_1.jpg",
-   "kind": "類別",
-   "slug": "散熱",
-   "name_en": "散熱",
-   "query": "heat sink",
-   "file_title": "File:Heat sink soldered wires.jpg",
-   "source_url": "https://commons.wikimedia.org/wiki/File:Heat_sink_soldered_wires.jpg",
-   "image_url": "https://upload.wikimedia.org/wikipedia/commons/b/bd/Heat_sink_soldered_wires.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-   "license": "CC BY-SA 3.0",
-   "license_url": "https://creativecommons.org/licenses/by-sa/3.0",
-   "author": "Srokebep",
-   "credit": "Own work",
-   "description": "heat sink soldered wires",
-   "width": 1920,
-   "height": 1440,
-   "fetched_at": "2026-10-28T16:16:33+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
-  },
-  {
    "file": "photo_2.jpg",
    "kind": "類別",
    "slug": "散熱",
@@ -39,9 +18,10 @@
    "width": 1920,
    "height": 873,
    "fetched_at": "2026-10-28T16:16:33+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
+   "reviewed_at": "2026-10-28"
   },
   {
    "file": "photo_3.jpg",
@@ -60,30 +40,10 @@
    "width": 1920,
    "height": 1417,
    "fetched_at": "2026-10-28T16:16:35+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
-  },
-  {
-   "file": "photo_4.jpg",
-   "kind": "類別",
-   "slug": "散熱",
-   "name_en": "散熱",
-   "query": "CPU cooler",
-   "file_title": "File:2023 Chłodzenie procesora be quiet! Dark Rock Top Flow (1).jpg",
-   "source_url": "https://commons.wikimedia.org/wiki/File:2023_Ch%C5%82odzenie_procesora_be_quiet!_Dark_Rock_Top_Flow_(1).jpg",
-   "image_url": "https://upload.wikimedia.org/wikipedia/commons/7/7c/2023_Ch%C5%82odzenie_procesora_be_quiet%21_Dark_Rock_Top_Flow_%281%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-   "license": "CC BY-SA 4.0",
-   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
-   "author": "Jacek Halicki",
-   "credit": "Own work",
-   "description": "Be quiet! Dark Rock Top Flow CPU cooler",
-   "width": 1920,
-   "height": 1350,
-   "fetched_at": "2026-10-28T16:16:35+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
+   "reviewed_at": "2026-10-28"
   },
   {
    "file": "photo_5.jpg",
@@ -102,30 +62,10 @@
    "width": 1920,
    "height": 1258,
    "fetched_at": "2026-10-28T16:16:37+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
-  },
-  {
-   "file": "photo_6.jpg",
-   "kind": "類別",
-   "slug": "散熱",
-   "name_en": "散熱",
-   "query": "liquid cooling computer",
-   "file_title": "File:ETA Systems ETA10 supercomputer (1987-1989) where CPU is mounted in a liquid nitrogen tank for liquid cooling (End of an ERA) - Computer History Museum, 2010-01-21 15.43.38 by Jitze Couperus.jpg",
-   "source_url": "https://commons.wikimedia.org/wiki/File:ETA_Systems_ETA10_supercomputer_(1987-1989)_where_CPU_is_mounted_in_a_liquid_nitrogen_tank_for_liquid_cooling_(End_of_an_ERA)_-_Computer_History_Museum,_2010-01-21_15.43.38_by_Jitze_Couperus.jpg",
-   "image_url": "https://upload.wikimedia.org/wikipedia/commons/6/60/ETA_Systems_ETA10_supercomputer_%281987-1989%29_where_CPU_is_mounted_in_a_liquid_nitrogen_tank_for_liquid_cooling_%28End_of_an_ERA%29_-_Computer_History_Museum%2C_2010-01-21_15.43.38_by_Jitze_Couperus.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-   "license": "CC BY 2.0",
-   "license_url": "https://creativecommons.org/licenses/by/2.0",
-   "author": "Jitze Couperus from Los Altos Hills, California, USA",
-   "credit": "Supercomputer - End Of An ERA",
-   "description": "This is the ETA 10 (designed and built by a subsidiary of Control Data). It represents the dying gasp of the era of big mainframe supercomputers.\n\nYou can't see the actual CPU - it was mounted in a tank of liquid nitrogen on the left (to which the labels were affixed shown here)  Without the \"skins\"",
-   "width": 1920,
-   "height": 1374,
-   "fetched_at": "2026-10-28T16:16:37+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
+   "reviewed_at": "2026-10-28"
   },
   {
    "file": "photo_7.jpg",
@@ -144,9 +84,10 @@
    "width": 1920,
    "height": 1280,
    "fetched_at": "2026-10-28T16:16:39+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
+   "reviewed_at": "2026-10-28"
   },
   {
    "file": "photo_8.jpg",
@@ -165,10 +106,27 @@
    "width": 1920,
    "height": 1280,
    "fetched_at": "2026-10-28T16:16:39+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
+   "reviewed_at": "2026-10-28"
   }
  ],
- "rejected": []
+ "rejected": [
+  {
+   "file_title": "File:Heat sink soldered wires.jpg",
+   "reason": "畫質差、雜亂",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:2023 Chłodzenie procesora be quiet! Dark Rock Top Flow (1).jpg",
+   "reason": "品牌字樣明顯、與上一張重複",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:ETA Systems ETA10 supercomputer (1987-1989) where CPU is mounted in a liquid nitrogen tank for liquid cooling (End of an ERA) - Computer History Museum, 2010-01-21 15.43.38 by Jitze Couperus.jpg",
+   "reason": "老舊標籤特寫，與散熱無關",
+   "at": "2026-10-28"
+  }
+ ]
 }

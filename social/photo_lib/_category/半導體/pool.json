@@ -18,9 +18,10 @@
    "width": 1920,
    "height": 1241,
    "fetched_at": "2026-10-28T16:15:59+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
+   "reviewed_at": "2026-10-28"
   },
   {
    "file": "photo_2.jpg",
@@ -39,30 +40,10 @@
    "width": 1920,
    "height": 1920,
    "fetched_at": "2026-10-28T16:15:59+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
-  },
-  {
-   "file": "photo_3.jpg",
-   "kind": "類別",
-   "slug": "半導體",
-   "name_en": "半導體",
-   "query": "integrated circuit die",
-   "file_title": "File:C1702A die.jpg",
-   "source_url": "https://commons.wikimedia.org/wiki/File:C1702A_die.jpg",
-   "image_url": "https://upload.wikimedia.org/wikipedia/commons/8/8e/C1702A_die.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-   "license": "CC BY-SA 4.0",
-   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
-   "author": "Mister rf",
-   "credit": "Own work",
-   "description": "C1702A  die: 2Kbit (256x8) MOS UV-Erasable EPROM in 24-pin DIP package.\nManufactured by INTEL",
-   "width": 1920,
-   "height": 1907,
-   "fetched_at": "2026-10-28T16:16:00+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
+   "reviewed_at": "2026-10-28"
   },
   {
    "file": "photo_4.jpg",
@@ -81,30 +62,10 @@
    "width": 1920,
    "height": 1574,
    "fetched_at": "2026-10-28T16:16:00+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
-  },
-  {
-   "file": "photo_5.jpg",
-   "kind": "類別",
-   "slug": "半導體",
-   "name_en": "半導體",
-   "query": "integrated circuit die",
-   "file_title": "File:ICM7107.jpg",
-   "source_url": "https://commons.wikimedia.org/wiki/File:ICM7107.jpg",
-   "image_url": "https://upload.wikimedia.org/wikipedia/commons/b/b9/ICM7107.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-   "license": "CC BY-SA 4.0",
-   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
-   "author": "Mister rf",
-   "credit": "Own work",
-   "description": "INTERSIL ICL7107. 31/2 Digit Single Chip A/D Converter The ICL7107 is a high performance, low power, 3.5 digit analog to digital converter. The IC includes internal circuitry for seven segment decoders, display drivers, reference voltage source and a clock.",
-   "width": 1920,
-   "height": 1536,
-   "fetched_at": "2026-10-28T16:16:00+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
+   "reviewed_at": "2026-10-28"
   },
   {
    "file": "photo_6.jpg",
@@ -123,9 +84,10 @@
    "width": 1920,
    "height": 1760,
    "fetched_at": "2026-10-28T16:16:00+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
+   "reviewed_at": "2026-10-28"
   },
   {
    "file": "photo_7.jpg",
@@ -144,9 +106,10 @@
    "width": 1920,
    "height": 1285,
    "fetched_at": "2026-10-28T16:16:03+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
+   "reviewed_at": "2026-10-28"
   },
   {
    "file": "photo_8.jpg",
@@ -165,10 +128,22 @@
    "width": 1920,
    "height": 1660,
    "fetched_at": "2026-10-28T16:16:06+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
+   "reviewed_at": "2026-10-28"
   }
  ],
- "rejected": []
+ "rejected": [
+  {
+   "file_title": "File:C1702A die.jpg",
+   "reason": "與同池晶片照重複",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:ICM7107.jpg",
+   "reason": "與同池晶片照重複",
+   "at": "2026-10-28"
+  }
+ ]
 }

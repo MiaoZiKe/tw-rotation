@@ -18,99 +18,36 @@
    "width": 1920,
    "height": 1440,
    "fetched_at": "2026-10-28T16:09:02+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
-  },
-  {
-   "file": "photo_2.jpg",
-   "kind": "總部/廠房",
-   "slug": "uni_president",
-   "name_en": "Uni-President",
-   "query": "Uni-President",
-   "file_title": "File:Uni-President Vender Taipei Office tag 20191031b.jpg",
-   "source_url": "https://commons.wikimedia.org/wiki/File:Uni-President_Vender_Taipei_Office_tag_20191031b.jpg",
-   "image_url": "https://upload.wikimedia.org/wikipedia/commons/e/e8/Uni-President_Vender_Taipei_Office_tag_20191031b.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-   "license": "CC BY-SA 4.0",
-   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
-   "author": "Solomon203",
-   "credit": "Own work",
-   "description": "​統一速邁自販台北營業所貼於自動販賣機正面右上角的標籤。",
-   "width": 1600,
-   "height": 1200,
-   "fetched_at": "2026-10-28T16:09:02+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
-  },
-  {
-   "file": "photo_3.jpg",
-   "kind": "產品",
-   "slug": "uni_president",
-   "name_en": "Uni-President",
-   "query": "7-Eleven Taiwan",
-   "file_title": "File:Kuala Terengganu - 7-Eleven store on Jalan Sultan Zainal Abidin - May 2024.jpg",
-   "source_url": "https://commons.wikimedia.org/wiki/File:Kuala_Terengganu_-_7-Eleven_store_on_Jalan_Sultan_Zainal_Abidin_-_May_2024.jpg",
-   "image_url": "https://upload.wikimedia.org/wikipedia/commons/b/b9/Kuala_Terengganu_-_7-Eleven_store_on_Jalan_Sultan_Zainal_Abidin_-_May_2024.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-   "license": "CC BY-SA 4.0",
-   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
-   "author": "Dominic Nelson",
-   "credit": "Own work",
-   "description": "7-Eleven convenience store, Jalan Sultan Zainal Abidin, Kuala Terengganu",
-   "width": 1920,
-   "height": 1280,
-   "fetched_at": "2026-10-28T16:09:04+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
-  },
-  {
-   "file": "photo_4.jpg",
-   "kind": "產品",
-   "slug": "uni_president",
-   "name_en": "Uni-President",
-   "query": "7-Eleven Taiwan",
-   "file_title": "File:7-Eleven inside MRT station Taoyuan May 2026.jpg",
-   "source_url": "https://commons.wikimedia.org/wiki/File:7-Eleven_inside_MRT_station_Taoyuan_May_2026.jpg",
-   "image_url": "https://upload.wikimedia.org/wikipedia/commons/6/67/7-Eleven_inside_MRT_station_Taoyuan_May_2026.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-   "license": "CC BY 4.0",
-   "license_url": "https://creativecommons.org/licenses/by/4.0",
-   "author": "Heidi Meudt",
-   "credit": "Own work",
-   "description": "7-Eleven inside MRT station Taoyuan May 2026",
-   "width": 1920,
-   "height": 1440,
-   "fetched_at": "2026-10-28T16:09:04+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
-  },
-  {
-   "file": "photo_5.jpg",
-   "kind": "相關場景",
-   "slug": "uni_president",
-   "name_en": "Uni-President",
-   "query": "Taipei skyline",
-   "file_title": "File:Taipei skyline at dusk.jpg",
-   "source_url": "https://commons.wikimedia.org/wiki/File:Taipei_skyline_at_dusk.jpg",
-   "image_url": "https://upload.wikimedia.org/wikipedia/commons/4/4e/Taipei_skyline_at_dusk.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-   "license": "CC BY 2.0",
-   "license_url": "https://creativecommons.org/licenses/by/2.0",
-   "author": "Debjyoti Bardhan",
-   "credit": "originally posted to Flickr as Dusk descends on Taipei's Skyline",
-   "description": "Taipei, Taiwan skyline at dusk in 2016",
-   "width": 1920,
-   "height": 1261,
-   "fetched_at": "2026-10-28T16:09:06+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
+   "reviewed_at": "2026-10-28"
   }
  ],
  "rejected": [
   {
    "file_title": "File:Uni-President Cake House promo at Songshan Cultural and Creative Park 20191130.jpg",
    "reason": "統一蛋糕屋攤位活動照，主角是人物與攤位",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:Uni-President Vender Taipei Office tag 20191031b.jpg",
+   "reason": "文字名片",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:Kuala Terengganu - 7-Eleven store on Jalan Sultan Zainal Abidin - May 2024.jpg",
+   "reason": "7-Eleven LOGO 為主角、海外門市",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:7-Eleven inside MRT station Taoyuan May 2026.jpg",
+   "reason": "門市內有人物、LOGO",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:Taipei skyline at dusk.jpg",
+   "reason": "強烈色調",
    "at": "2026-10-28"
   }
  ]

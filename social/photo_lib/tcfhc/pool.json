@@ -1,95 +1,30 @@
 {
  "slug": "tcfhc",
- "photos": [
-  {
-   "file": "photo_1.jpg",
-   "kind": "總部/廠房",
-   "slug": "tcfhc",
-   "name_en": "Taiwan Cooperative Financial",
-   "query": "Taiwan Cooperative Bank headquarters",
-   "file_title": "File:Taiwan Cooperative Bank Workers' Union headquarters entrance 20200718.jpg",
-   "source_url": "https://commons.wikimedia.org/wiki/File:Taiwan_Cooperative_Bank_Workers%27_Union_headquarters_entrance_20200718.jpg",
-   "image_url": "https://upload.wikimedia.org/wikipedia/commons/c/cc/Taiwan_Cooperative_Bank_Workers%27_Union_headquarters_entrance_20200718.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-   "license": "CC BY-SA 4.0",
-   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
-   "author": "Solomon203",
-   "credit": "Own work",
-   "description": "​合作金庫金控工會與合作金庫企業工會總部，地址：臺北市大同區南京西路103之2、103之3號。",
-   "width": 1920,
-   "height": 1440,
-   "fetched_at": "2026-10-28T16:10:23+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
-  },
-  {
-   "file": "photo_2.jpg",
-   "kind": "總部/廠房",
-   "slug": "tcfhc",
-   "name_en": "Taiwan Cooperative Financial",
-   "query": "Taiwan Cooperative Bank headquarters",
-   "file_title": "File:Taiwan Cooperative Bank KJA-3728 right side at Taiwan Cooperative Financial Holding Building 20230428.jpg",
-   "source_url": "https://commons.wikimedia.org/wiki/File:Taiwan_Cooperative_Bank_KJA-3728_right_side_at_Taiwan_Cooperative_Financial_Holding_Building_20230428.jpg",
-   "image_url": "https://upload.wikimedia.org/wikipedia/commons/e/e9/Taiwan_Cooperative_Bank_KJA-3728_right_side_at_Taiwan_Cooperative_Financial_Holding_Building_20230428.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-   "license": "CC BY-SA 4.0",
-   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
-   "author": "Solomon203",
-   "credit": "Own work",
-   "description": "​合作金庫商業銀行2020年Fuso Rosa公務車KJA-3728右側，烈日下停在合庫金控暨合作金庫商業銀行總行大樓中庭。",
-   "width": 1920,
-   "height": 1080,
-   "fetched_at": "2026-10-28T16:10:25+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
-  },
-  {
-   "file": "photo_3.jpg",
-   "kind": "產品",
-   "slug": "tcfhc",
-   "name_en": "Taiwan Cooperative Financial",
-   "query": "bank branch Taiwan",
-   "file_title": "File:Nantou Branch, Taiwan Cooperative Bank 20120302.jpg",
-   "source_url": "https://commons.wikimedia.org/wiki/File:Nantou_Branch,_Taiwan_Cooperative_Bank_20120302.jpg",
-   "image_url": "https://upload.wikimedia.org/wikipedia/commons/7/7c/Nantou_Branch%2C_Taiwan_Cooperative_Bank_20120302.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-   "license": "CC BY-SA 3.0",
-   "license_url": "https://creativecommons.org/licenses/by-sa/3.0",
-   "author": "Shxpeng",
-   "credit": "Own work",
-   "description": "​合作金庫商業銀行南投分行",
-   "width": 1920,
-   "height": 1440,
-   "fetched_at": "2026-10-28T16:10:27+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
-  },
-  {
-   "file": "photo_4.jpg",
-   "kind": "產品",
-   "slug": "tcfhc",
-   "name_en": "Taiwan Cooperative Financial",
-   "query": "bank branch Taiwan",
-   "file_title": "File:Cheng Chung Branch, Bank of Taiwan 20110426.jpg",
-   "source_url": "https://commons.wikimedia.org/wiki/File:Cheng_Chung_Branch,_Bank_of_Taiwan_20110426.jpg",
-   "image_url": "https://upload.wikimedia.org/wikipedia/commons/9/93/Cheng_Chung_Branch%2C_Bank_of_Taiwan_20110426.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-   "license": "CC BY-SA 4.0",
-   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
-   "author": "Solomon203",
-   "credit": "Own work",
-   "description": "​臺灣銀行城中分行，地址︰臺北市中正區青島東路47號。",
-   "width": 1920,
-   "height": 1440,
-   "fetched_at": "2026-10-28T16:10:27+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
-  }
- ],
+ "photos": [],
  "rejected": [
   {
    "file_title": "File:Taiwan Cooperative Bank Workers' Union headquarters entrance 20131110.jpg",
    "reason": "合作金庫工會鐵捲門，非總部，無主體",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:Taiwan Cooperative Bank Workers' Union headquarters entrance 20200718.jpg",
+   "reason": "工會鐵捲門",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:Taiwan Cooperative Bank KJA-3728 right side at Taiwan Cooperative Financial Holding Building 20230428.jpg",
+   "reason": "公務車",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:Nantou Branch, Taiwan Cooperative Bank 20120302.jpg",
+   "reason": "招牌為主角",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:Cheng Chung Branch, Bank of Taiwan 20110426.jpg",
+   "reason": "臺灣銀行，主體錯",
    "at": "2026-10-28"
   }
  ]

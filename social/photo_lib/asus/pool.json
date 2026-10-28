@@ -18,9 +18,10 @@
    "width": 1920,
    "height": 1306,
    "fetched_at": "2026-10-28T16:09:11+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
+   "reviewed_at": "2026-10-28"
   },
   {
    "file": "photo_2.jpg",
@@ -39,9 +40,10 @@
    "width": 1920,
    "height": 1536,
    "fetched_at": "2026-10-28T16:09:14+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
+   "reviewed_at": "2026-10-28"
   },
   {
    "file": "photo_3.jpg",
@@ -60,36 +62,21 @@
    "width": 1920,
    "height": 1596,
    "fetched_at": "2026-10-28T16:09:14+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
-  },
-  {
-   "file": "photo_4.jpg",
-   "kind": "相關場景",
-   "slug": "asus",
-   "name_en": "ASUS",
-   "query": "laptop computer",
-   "file_title": "File:HP Pavilion Computer laptop keyboard closeup.jpg",
-   "source_url": "https://commons.wikimedia.org/wiki/File:HP_Pavilion_Computer_laptop_keyboard_closeup.jpg",
-   "image_url": "https://upload.wikimedia.org/wikipedia/commons/d/d6/HP_Pavilion_Computer_laptop_keyboard_closeup.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-   "license": "CC BY 2.0",
-   "license_url": "https://creativecommons.org/licenses/by/2.0",
-   "author": "Carissa Rogers",
-   "credit": "computer laptop keyboard HP Pavilion Entertainment PC",
-   "description": "Closeup photographs of the keyboard of an HP Pavilion Entertainment PC notebook computer.",
-   "width": 1920,
-   "height": 784,
-   "fetched_at": "2026-10-28T16:09:17+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
+   "reviewed_at": "2026-10-28"
   }
  ],
  "rejected": [
   {
    "file_title": "File:ASUSTeK Computer headquarters 20150711.jpg",
    "reason": "霧霾、施工鷹架，辨識不出華碩大樓",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:HP Pavilion Computer laptop keyboard closeup.jpg",
+   "reason": "他牌筆電、模糊",
    "at": "2026-10-28"
   }
  ]

@@ -18,30 +18,10 @@
    "width": 1920,
    "height": 1440,
    "fetched_at": "2026-10-28T16:09:44+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
-  },
-  {
-   "file": "photo_2.jpg",
-   "kind": "產品",
-   "slug": "nanya_plastics",
-   "name_en": "Nan Ya Plastics",
-   "query": "plastic pellets",
-   "file_title": "File:Plastic Pellets (Scharhörn).jpg",
-   "source_url": "https://commons.wikimedia.org/wiki/File:Plastic_Pellets_(Scharh%C3%B6rn).jpg",
-   "image_url": "https://upload.wikimedia.org/wikipedia/commons/f/f5/Plastic_Pellets_%28Scharh%C3%B6rn%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-   "license": "CC BY-SA 4.0",
-   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
-   "author": "Aeroid",
-   "credit": "Own work",
-   "description": "Plastic Pellets in the upper shoreline on Scharhörn",
-   "width": 1920,
-   "height": 1280,
-   "fetched_at": "2026-10-28T16:09:49+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
+   "reviewed_at": "2026-10-28"
   },
   {
    "file": "photo_3.jpg",
@@ -60,36 +40,26 @@
    "width": 1920,
    "height": 1440,
    "fetched_at": "2026-10-28T16:09:49+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
-  },
-  {
-   "file": "photo_4.jpg",
-   "kind": "相關場景",
-   "slug": "nanya_plastics",
-   "name_en": "Nan Ya Plastics",
-   "query": "petrochemical plant",
-   "file_title": "File:PETROCHEMICAL PLANT IN COASTAL AREA - NARA - 546389.jpg",
-   "source_url": "https://commons.wikimedia.org/wiki/File:PETROCHEMICAL_PLANT_IN_COASTAL_AREA_-_NARA_-_546389.jpg",
-   "image_url": "https://upload.wikimedia.org/wikipedia/commons/9/92/PETROCHEMICAL_PLANT_IN_COASTAL_AREA_-_NARA_-_546389.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-   "license": "Public domain",
-   "license_url": "",
-   "author": "John Vachon",
-   "credit": "U.S. National Archives and Records Administration",
-   "description": "",
-   "width": 1920,
-   "height": 1296,
-   "fetched_at": "2026-10-28T16:09:50+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
+   "reviewed_at": "2026-10-28"
   }
  ],
  "rejected": [
   {
    "file_title": "File:Chiayi Plant, Nan Ya Plastics 20160326.jpg",
    "reason": "霧天灰暗、主體是大門與路面，質感不足",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:Plastic Pellets (Scharhörn).jpg",
+   "reason": "海灘塑膠微粒（汙染議題，有誤導）",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:PETROCHEMICAL PLANT IN COASTAL AREA - NARA - 546389.jpg",
+   "reason": "剪影色調強、主體弱",
    "at": "2026-10-28"
   }
  ]

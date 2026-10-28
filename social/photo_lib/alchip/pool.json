@@ -18,9 +18,10 @@
    "width": 1920,
    "height": 1949,
    "fetched_at": "2026-10-28T16:10:20+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
+   "reviewed_at": "2026-10-28"
   },
   {
    "file": "photo_2.jpg",
@@ -39,31 +40,17 @@
    "width": 1920,
    "height": 1878,
    "fetched_at": "2026-10-28T16:10:20+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
-  },
-  {
-   "file": "photo_3.jpg",
-   "kind": "相關場景",
-   "slug": "alchip",
-   "name_en": "Alchip Technologies",
-   "query": "semiconductor fab",
-   "file_title": "File:Minimal Fab exhibit at Tsukuba Science Square 2.jpg",
-   "source_url": "https://commons.wikimedia.org/wiki/File:Minimal_Fab_exhibit_at_Tsukuba_Science_Square_2.jpg",
-   "image_url": "https://upload.wikimedia.org/wikipedia/commons/1/1d/Minimal_Fab_exhibit_at_Tsukuba_Science_Square_2.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-   "license": "CC0",
-   "license_url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
-   "author": "Syced",
-   "credit": "Own work",
-   "description": "Minimal Fab exhibit at Tsukuba Science Square",
-   "width": 1920,
-   "height": 1446,
-   "fetched_at": "2026-10-28T16:10:21+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
+   "reviewed_at": "2026-10-28"
   }
  ],
- "rejected": []
+ "rejected": [
+  {
+   "file_title": "File:Minimal Fab exhibit at Tsukuba Science Square 2.jpg",
+   "reason": "展示模型，主體弱",
+   "at": "2026-10-28"
+  }
+ ]
 }

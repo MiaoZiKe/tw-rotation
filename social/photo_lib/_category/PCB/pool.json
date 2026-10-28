@@ -18,9 +18,10 @@
    "width": 1920,
    "height": 869,
    "fetched_at": "2026-10-28T16:16:40+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
+   "reviewed_at": "2026-10-28"
   },
   {
    "file": "photo_2.jpg",
@@ -39,9 +40,10 @@
    "width": 1920,
    "height": 843,
    "fetched_at": "2026-10-28T16:16:40+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
+   "reviewed_at": "2026-10-28"
   },
   {
    "file": "photo_3.jpg",
@@ -60,9 +62,10 @@
    "width": 1920,
    "height": 1401,
    "fetched_at": "2026-10-28T16:16:42+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
+   "reviewed_at": "2026-10-28"
   },
   {
    "file": "photo_4.jpg",
@@ -81,9 +84,10 @@
    "width": 1920,
    "height": 1387,
    "fetched_at": "2026-10-28T16:16:42+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
+   "reviewed_at": "2026-10-28"
   },
   {
    "file": "photo_5.jpg",
@@ -102,9 +106,10 @@
    "width": 1920,
    "height": 1440,
    "fetched_at": "2026-10-28T16:16:44+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
+   "reviewed_at": "2026-10-28"
   },
   {
    "file": "photo_6.jpg",
@@ -123,52 +128,22 @@
    "width": 1920,
    "height": 1440,
    "fetched_at": "2026-10-28T16:16:44+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
-  },
-  {
-   "file": "photo_7.jpg",
-   "kind": "類別",
-   "slug": "PCB",
-   "name_en": "PCB",
-   "query": "SMT line",
-   "file_title": "File:Moscow Alexeevskaya Railway Line SMT-3 2132 2023-06-18 4978.jpg",
-   "source_url": "https://commons.wikimedia.org/wiki/File:Moscow_Alexeevskaya_Railway_Line_SMT-3_2132_2023-06-18_4978.jpg",
-   "image_url": "https://upload.wikimedia.org/wikipedia/commons/8/82/Moscow_Alexeevskaya_Railway_Line_SMT-3_2132_2023-06-18_4978.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-   "license": "CC BY-SA 3.0",
-   "license_url": "https://creativecommons.org/licenses/by-sa/3.0",
-   "author": "Mike1979 Russia",
-   "credit": "Own work",
-   "description": "SMT-3 2132. Alekseevskaya connecting railway line. Moscow",
-   "width": 1920,
-   "height": 1280,
-   "fetched_at": "2026-10-28T16:16:46+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
-  },
-  {
-   "file": "photo_8.jpg",
-   "kind": "類別",
-   "slug": "PCB",
-   "name_en": "PCB",
-   "query": "SMT line",
-   "file_title": "File:Shanghai Maglev Line from platform of Longyang Road Station (Shanghai Maglev) 2.jpg",
-   "source_url": "https://commons.wikimedia.org/wiki/File:Shanghai_Maglev_Line_from_platform_of_Longyang_Road_Station_(Shanghai_Maglev)_2.jpg",
-   "image_url": "https://upload.wikimedia.org/wikipedia/commons/7/72/Shanghai_Maglev_Line_from_platform_of_Longyang_Road_Station_%28Shanghai_Maglev%29_2.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-   "license": "CC BY-SA 4.0",
-   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
-   "author": "そらみみ",
-   "credit": "Own work",
-   "description": "龍陽路駅のホームより望む上海トランスラピッド線。右側は上海地下鉄16号線",
-   "width": 1920,
-   "height": 1440,
-   "fetched_at": "2026-10-28T16:16:46+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
+   "reviewed_at": "2026-10-28"
   }
  ],
- "rejected": []
+ "rejected": [
+  {
+   "file_title": "File:Moscow Alexeevskaya Railway Line SMT-3 2132 2023-06-18 4978.jpg",
+   "reason": "主體是鐵路工程車，與 PCB 無關",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:Shanghai Maglev Line from platform of Longyang Road Station (Shanghai Maglev) 2.jpg",
+   "reason": "磁浮軌道，與 PCB 無關",
+   "at": "2026-10-28"
+  }
+ ]
 }

@@ -18,30 +18,10 @@
    "width": 1920,
    "height": 1080,
    "fetched_at": "2026-10-28T16:11:31+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
-  },
-  {
-   "file": "photo_2.jpg",
-   "kind": "總部/廠房",
-   "slug": "tcc",
-   "name_en": "Taiwan Cement",
-   "query": "Taiwan Cement Corporation",
-   "file_title": "File:Hoping Taiwan-Cement-Corporation-Hoping-Plant-01.jpg",
-   "source_url": "https://commons.wikimedia.org/wiki/File:Hoping_Taiwan-Cement-Corporation-Hoping-Plant-01.jpg",
-   "image_url": "https://upload.wikimedia.org/wikipedia/commons/3/35/Hoping_Taiwan-Cement-Corporation-Hoping-Plant-01.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-   "license": "CC BY-SA 3.0",
-   "license_url": "https://creativecommons.org/licenses/by-sa/3.0",
-   "author": "CEphoto, Uwe Aranas",
-   "credit": "Own work",
-   "description": "Hoping, Hualien County, Taiwan: Taiwan Cement Corporation Hoping Plant",
-   "width": 1920,
-   "height": 1080,
-   "fetched_at": "2026-10-28T16:11:31+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
+   "reviewed_at": "2026-10-28"
   },
   {
    "file": "photo_3.jpg",
@@ -60,30 +40,10 @@
    "width": 1920,
    "height": 1281,
    "fetched_at": "2026-10-28T16:11:33+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
-  },
-  {
-   "file": "photo_4.jpg",
-   "kind": "產品",
-   "slug": "tcc",
-   "name_en": "Taiwan Cement",
-   "query": "cement plant",
-   "file_title": "File:Cement 02 (cropped).jpg",
-   "source_url": "https://commons.wikimedia.org/wiki/File:Cement_02_(cropped).jpg",
-   "image_url": "https://upload.wikimedia.org/wikipedia/commons/8/8a/Cement_02_%28cropped%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-   "license": "CC BY-SA 4.0",
-   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
-   "author": "Szlomo Lejb",
-   "credit": "File:Cement_02.JPG",
-   "description": "Cement",
-   "width": 1498,
-   "height": 1468,
-   "fetched_at": "2026-10-28T16:11:33+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
+   "reviewed_at": "2026-10-28"
   },
   {
    "file": "photo_5.jpg",
@@ -102,15 +62,26 @@
    "width": 1920,
    "height": 1280,
    "fetched_at": "2026-10-28T16:11:35+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
+   "reviewed_at": "2026-10-28"
   }
  ],
  "rejected": [
   {
    "file_title": "File:Taiwan Cement Building maingate 20130118.jpg",
    "reason": "畫面主角是兩面紅色 LOGO 布幔，夜間逆光",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:Hoping Taiwan-Cement-Corporation-Hoping-Plant-01.jpg",
+   "reason": "招牌搶戲、與上一張重複",
+   "at": "2026-10-28"
+  },
+  {
+   "file_title": "File:Cement 02 (cropped).jpg",
+   "reason": "水泥粉末特寫、包裝字",
    "at": "2026-10-28"
   }
  ]

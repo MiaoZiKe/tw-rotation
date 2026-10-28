@@ -1,27 +1,11 @@
 {
  "slug": "accton",
- "photos": [
+ "photos": [],
+ "rejected": [
   {
-   "file": "photo_1.jpg",
-   "kind": "相關場景",
-   "slug": "accton",
-   "name_en": "Accton Technology",
-   "query": "fiber optic cable",
    "file_title": "File:Optical fiber cable-01ASD.jpg",
-   "source_url": "https://commons.wikimedia.org/wiki/File:Optical_fiber_cable-01ASD.jpg",
-   "image_url": "https://upload.wikimedia.org/wikipedia/commons/f/f5/Optical_fiber_cable-01ASD.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-   "license": "CC BY-SA 4.0",
-   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
-   "author": "Asurnipal",
-   "credit": "Own work",
-   "description": "Optical fiber cable for signal transmission for burial in the ground. White maincores = empty cores, red and green maincores each with 12 signal single cores. In the middle the \"cablesoul\".",
-   "width": 1920,
-   "height": 499,
-   "fetched_at": "2026-10-28T16:08:18+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reason": "電線特寫，看不出網通",
+   "at": "2026-10-28"
   }
- ],
- "rejected": []
+ ]
 }

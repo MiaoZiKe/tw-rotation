@@ -18,9 +18,10 @@
    "width": 1920,
    "height": 1070,
    "fetched_at": "2026-10-28T16:11:25+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
+   "reviewed_at": "2026-10-28"
   },
   {
    "file": "photo_2.jpg",
@@ -39,31 +40,17 @@
    "width": 1402,
    "height": 1392,
    "fetched_at": "2026-10-28T16:11:25+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
-  },
-  {
-   "file": "photo_3.jpg",
-   "kind": "相關場景",
-   "slug": "advantech",
-   "name_en": "Advantech",
-   "query": "smartphone",
-   "file_title": "File:5 different Smartphones.jpg",
-   "source_url": "https://commons.wikimedia.org/wiki/File:5_different_Smartphones.jpg",
-   "image_url": "https://upload.wikimedia.org/wikipedia/commons/c/c6/5_different_Smartphones.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
-   "license": "CC BY-SA 4.0",
-   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
-   "author": "Kskhh",
-   "credit": "Own work",
-   "description": "A picture of 5 different Smartphones.\n1. Samsung Galaxy S III\n2,3. HTC Desire 500 Dual SIM\n4. Samsung Galaxy Note 3\n\n5. iPhone 4s",
-   "width": 1920,
-   "height": 1277,
-   "fetched_at": "2026-10-28T16:11:26+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
+   "reviewed_at": "2026-10-28"
   }
  ],
- "rejected": []
+ "rejected": [
+  {
+   "file_title": "File:5 different Smartphones.jpg",
+   "reason": "雜牌手機，與研華無關",
+   "at": "2026-10-28"
+  }
+ ]
 }
