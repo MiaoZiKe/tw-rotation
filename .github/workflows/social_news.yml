@@ -6,6 +6,7 @@ name: 新聞貼文自動排程
 #         → render_news_cards.py --pal D 出圖＋重疊檢查 → 寫 social/{ig,threads}/queue（status: approved＋publish_at）推回 main。
 #         真正發文交給既有的 ig_post.yml／threads_post.yml（每 15 分鐘看 queue），本流程不連 Meta、不需要任何金鑰。
 # 說明文件：docs/marketing/social_unit/news_auto.md
+# ★ 10-28 晚：queue 預設寫 draft（不會發）。CEO 確認 v2 品質後，在「產稿」那一步的 env 加 NEWS_AUTO_APPROVE: "1" 才會寫 approved。
 #
 # 觸發（台北時間）：
 #   ① 接在「社群即時貼文」每一輪結束之後（workflow_run）：看 social-snaps 的 state/posted.json，今天哪一段主貼文已發、新聞文還沒排 → 排。

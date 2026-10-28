@@ -274,7 +274,7 @@ def card_v4(d, idx, tot, bg=None, slot="pre"):
     nums = c["numbers"][:3]; n = len(nums); rh, g = 80, 8
     rtop = 1240 - (n*rh + (n-1)*g); dtop = rtop - 24 - len(dl)*52; ttop = dtop - 16 - len(tl)*(fs+12); chipt = ttop - 16 - 56
     imgh = (chipt - 16 - 128) // 8 * 8
-    hi = next((i for i, l in enumerate(tl) if NUM.search(l)), -1)
+    hi = next((i for i, l in enumerate(tl) if c["hl"] and c["hl"] in l), -1) if "hl" in c else next((i for i, l in enumerate(tl) if NUM.search(l)), -1)
     def hl4(l):
         if "hl" in c:      # 自動產稿（scripts/social_news.py）指定要畫底線的字；空字串＝不畫
             k = l.find(c["hl"]) if c["hl"] else -1

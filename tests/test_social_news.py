@@ -69,3 +69,25 @@ def test_weights_shrink_and_clip():
     assert w["topic_category"]["財報"] > 1 > w["topic_category"]["總經"]
     assert w["topic_category"]["科技"] == 1.0           # 樣本 < 3 不調
     assert all(0.6 <= v <= 1.6 for v in w["topic_category"].values())
+
+
+def test_v2_gate_rejects_long_title_and_empty_phrases():
+    key = dict(value="4.31", unit="元")
+    d = dict(card=dict(cover_title=["是方第3季財報", "EPS 4.31元"], hero="4.31元"),
+             caption_ig="甲" * 520 + "以上為公開資料整理，非投資建議", caption_threads=["x"])
+    assert S.quality_gate(d, key) == []
+    d2 = dict(card=dict(cover_title=["Space為何要跟特斯拉合併", "EPS 4.31元"], hero="6.8元"),
+              caption_ig="指數點數反映整體市值。共有2家媒體5則報導 #stock/2330 以上為公開資料整理，非投資建議", caption_threads=["x"])
+    bad = "；".join(S.quality_gate(d2, key))
+    for w in ("標題行長度", "封面大數字", "內文", "空泛句", "個股頁"):
+        assert w in bad
+
+
+def test_queue_default_draft(monkeypatch):
+    import importlib
+    monkeypatch.delenv("NEWS_AUTO_APPROVE", raising=False)
+    assert importlib.reload(S).STATUS == "draft"
+    monkeypatch.setenv("NEWS_AUTO_APPROVE", "1")
+    assert importlib.reload(S).STATUS == "approved"
+    monkeypatch.delenv("NEWS_AUTO_APPROVE")
+    importlib.reload(S)

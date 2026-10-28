@@ -118,6 +118,7 @@ def load_news(t0: datetime, t1: datetime) -> list[dict]:
     import html as _h
     for col in ("title", "summary"):
         df[col] = df[col].astype(str).map(lambda x: re.sub(r"\s*\[…\]|\s*\[\.\.\.\]", "", _h.unescape(x)).strip())
+        df[col] = df[col].map(lambda x: re.sub(r"\s*\n+\s*", "，", x).strip("， "))
     lo = (t0 - timedelta(days=1)).strftime("%Y-%m-%d")
     df = df[df["date"].astype(str) >= lo]
     out = []
@@ -134,7 +135,7 @@ def names_map() -> dict[str, str]:
         import pandas as pd
         fs = sorted((ROOT / "data" / "company_info").glob("**/*.parquet"))
         d = pd.concat([pd.read_parquet(f) for f in fs])
-        return dict(zip(d["code"].astype(str), d["name"].astype(str)))
+        return {k: v.strip(" *＊") for k, v in zip(d["code"].astype(str), d["name"].astype(str))}
     except Exception:
         return {}
 
@@ -310,11 +311,12 @@ def _lead_sentence(c: dict) -> str:
     """導言句：同群各篇摘要的第一句；含法遵禁用字眼的子句整段拿掉（只刪不改），剩不到 12 字就換下一篇，都不行退回標題。"""
     for n in [c["lead"]] + [x for x in c["group"] if x is not c["lead"]]:
         s = sanitize(n["summary"] or "")
-        first = re.split(r"(?<=。)", s)[0].strip().rstrip("。")
+        first = "，".join(re.split(r"(?<=。)", s)[:2]).replace("。", "，").strip("， ")
+        first = re.sub(r"[A-Za-z0-9\u4e00-\u9fff]{1,12}：(?=，|$)", "", first)      # 去掉黏在句尾的「來源：」殘段
         keep = [x for x in first.split("，") if x.strip() and clean_ok(x)]
         out = ""
         for x in keep:
-            if len(out) + len(x) > 90:
+            if len(out) + len(x) > 180:
                 break
             out = f"{out}，{x}" if out else x
         if len(out) >= 12:
@@ -332,67 +334,292 @@ def _who(c: dict, names: dict, title: str) -> str:
     return max(hits, key=len) if hits else ""
 
 
-def compose(c: dict, slot: str, idx: int, day: str, style: str, names: dict) -> dict:
-    lead = c["lead"]; ymd = day.replace("-", ""); md = f"{lead['ts'].month}/{lead['ts'].day}"
-    codes = [x for x in str(lead.get("codes") or "").split(",") if x and not x.startswith("US-")]
-    ucode = f"news{slot}{idx}"
-    title = _clean_title(lead["title"])
-    who = _who(c, names, title)
-    if not codes and who:
-        codes = [k for k, v in names.items() if v == who][:1]
-    route = f"stock/{codes[0]}" if codes else ROUTE[c["cat"]]
-    nums = c["nums"]
-    in_t = lambda x: x["value"].lstrip("約逾近超過") in title          # 標題裡出現的數字優先上卡，其次兩家來源一致的
-    card_nums = sorted(nums, key=lambda x: (not in_t(x), not x.get("verified")))[:3]
-    srcname = SRC_NAME.get(lead["source"], lead["source"])
-    def cite(x):
-        return "（兩家來源）" if x.get("verified") else f"（{srcname}報導）"
-    tag1 = f"#{who}" if who else f"#{TAG[c['cat']]}"
-    sub = SUBQ[c["ctype"]]
-    head = [f"{tag1} {title[len(who):].strip() if who and title.startswith(who) else title}", f"#{TAG[c['cat']]} {sub}", ""]
-    intro = (f"{md}，{'、'.join(SRC_NAME.get(s, s) for s in c['srcs'])}"
-             f"{'都' if len(c['srcs']) > 1 else ''}報導了這則消息。以下是報導摘述與重點數字：\n{_lead_sentence(c)}（{SRC_NAME.get(c['lead_src'], c['lead_src'])}報導摘述）")
-    sec_num = "📊 #重點數字\n" + "\n".join(f"▪ {x['label']} {x['value']}{' ' if x['unit'] not in '%' else ''}{x['unit']}{cite(x)}" for x in nums[:5])
-    exps, used = [], set()
-    for x in nums[:5]:
-        for pat, fn in EXPLAIN:
-            if re.search(pat, x["label"] + x["unit"]) and pat not in used:
-                exps.append(fn(x)); used.add(pat); break
-        if len(exps) >= 2:
+# ---------------- v2 結構化產稿（CEO 10-28 退件後：標題由欄位組、大數字＝主旨、具體解讀、觀察點、品質閘） ----------------
+ENT = ["SK海力士", "三星", "輝達", "NVIDIA", "微軟", "蘋果", "Alphabet", "Google", "Meta", "亞馬遜", "特斯拉", "博通", "超微", "AMD",
+       "甲骨文", "英特爾", "高通", "美光", "恩智浦", "安謀", "CoreWeave", "OpenAI", "Anthropic", "SpaceX", "費半", "道瓊", "那斯達克",
+       "標普", "聯準會", "Fed", "日銀", "歐洲央行", "TrendForce", "IDC", "加權指數", "台股", "三大法人", "外資", "投信", "自營商"]
+METRICS = [("EPS", r"每股(純益|盈餘|稅後|賺)|EPS"), ("毛利率", r"毛利率"), ("營業利益", r"營業利益|營益"), ("淨利", r"淨利|純益|獲利|盈餘"),
+           ("營收", r"營收"), ("資本支出", r"資本支出"), ("財測", r"財測|指引"), ("指數", r"加權指數|指數|道瓊|那斯達克|標普|費半"),
+           ("買超", r"買超"), ("賣超", r"賣超"), ("成交值", r"成交值|成交額"), ("殖利率", r"殖利率"), ("利率", r"利率"), ("融資", r"融資|籌資|增資"), ("產值", r"產值"), ("出貨", r"出貨"), ("餘額", r"餘額"),
+           ("市值", r"市值"), ("訂單", r"訂單|合約"), ("油價", r"油價|金價|布蘭特|西德州"), ("股價", r"股價|收盤價|盤後")]
+FIN = {"EPS", "毛利率", "營業利益", "淨利", "營收", "財測", "資本支出"}
+EVENTW = {"指數": "收盤", "買超": "法人動向", "賣超": "法人動向", "成交值": "成交", "殖利率": "利率", "利率": "利率",
+          "資本支出": "資本支出", "財測": "財測", "融資": "融資"}
+JUNK = r"跌停|漲停|家數|檔|張|名|人|歲|年$"
+GROWTH = r"年增|季增|月增|年減|季減|月減|較|同期|成長|衰退|增加|減少|上漲|下跌|漲|跌|下挫|升至|降至|新高|新低"
+EMPTY = ["指數點數反映", "家媒體", "則報導", "營收是公司銷售", "每股純益（EPS）是", "年增減是", "季增減是", "月增減是", "成交值是當天"]
+REL = {"cpi": "美國 CPI 物價", "pce": "美國 PCE 物價", "gdp": "美國 GDP", "nfp": "美國非農就業", "payems": "美國非農就業",
+       "fomc": "FOMC 利率決議", "ppi": "美國 PPI", "retail": "美國零售銷售", "unrate": "美國失業率"}
+TITLE_MAX = 12
+GENERIC = {"全台", "台灣", "中華", "國際", "美國", "大眾", "統一", "華南", "第一", "合庫", "新光", "全國", "亞洲", "世界", "大立", "東方"}
+MIN_BODY = 500
+
+
+class Skip(Exception):
+    pass
+
+
+def metric_of(label: str) -> str | None:
+    for k, pat in METRICS:
+        if re.search(pat, label):
+            return k
+    return None
+
+
+def period_of(text: str) -> str:
+    m = re.search(r"第[一二三四1-4]季|Q[1-4]|前三季|上半年|全年|[1-9]{1,2}月(?!\d)", text)
+    if not m:
+        return ""
+    p = m.group(0)
+    return {"Q1": "第1季", "Q2": "第2季", "Q3": "第3季", "Q4": "第4季"}.get(p, p)
+
+
+def subject_of(c: dict, names: dict) -> tuple[str, str]:
+    """(主體名稱, 台股代號或空)；找不到回 ('', '')。"""
+    t = c["lead"]["title"]
+    codes = [x for x in str(c["lead"].get("codes") or "").split(",") if x and not x.startswith("US-")]
+    if codes and names.get(codes[0]):
+        return names[codes[0]], codes[0]
+    best = None
+    for v in set(names.values()):
+        if len(v) >= 2 and not re.search(r"[A-Za-z0-9]", v) and v not in GENERIC:
+            k = t.find(v)
+            if k >= 0 and (best is None or (k, -len(v)) < (best[0], -len(best[1]))):
+                best = (k, v)
+    for v in ENT:
+        k = t.find(v)
+        if k >= 0 and (best is None or k < best[0]):
+            best = (k, v)
+    if not best:
+        return "", ""
+    code = next((k for k, v in names.items() if v == best[1]), "")
+    return best[1], code
+
+
+def chain_of(code: str) -> str:
+    try:
+        import yaml
+        cfg = yaml.safe_load((ROOT / "pipeline" / "groups" / "groups.yaml").read_text("utf-8")) or {}
+        for g in (cfg.get("groups") or {}).values():
+            if isinstance(g, dict) and code in [str(x) for x in g.get("codes") or []] and g.get("chain"):
+                return g["chain"]
+    except Exception:
+        pass
+    return ""
+
+
+def landing(c: dict, code: str) -> str:
+    """落點（法遵：不導個股頁）：台股公司 → #industry/<產業鏈>；財報 → #earnings；台股盤勢 → #market/inst；
+    半導體／AI → #industry/semiconductor；其餘首頁。規則同 social_snap.pick_landing。"""
+    if code:
+        ch = chain_of(code)
+        if ch:
+            return f"industry/{ch}"
+    if c["ctype"] == "財報數字" or c["cat"] == "財報":
+        return "earnings"
+    if c["cat"] == "台股":
+        return "market/inst"
+    if re.search(r"半導體|晶片|AI|記憶體|HBM|CoWoS|伺服器", c["text"]):
+        return "industry/semiconductor"
+    return ""
+
+
+def watch_point(day: str, tw: bool, ctype: str) -> str:
+    d = datetime.fromisoformat(day)
+    if tw:
+        nm = (d.replace(day=1) + timedelta(days=32)).replace(day=1)
+        s = f"上市櫃公司每月 10 日前公告上月營收，{d.month} 月營收最晚 {nm.month}/10 公布，可以對照這次的數字。"
+        if ctype == "財報數字":
+            s += "第 4 季（全年）財報依規定在明年 3 月底前公告。"
+        return s
+    try:
+        import pandas as pd
+        fs = sorted((ROOT / "data" / "macro_calendar").glob("**/*.parquet"))
+        mc = pd.concat([pd.read_parquet(f) for f in fs])
+        mc = mc[mc["date"].astype(str) > day].sort_values("date")
+        for r in mc.to_dict("records"):
+            nm = REL.get(str(r["release"]).lower())
+            if nm:
+                dd = str(r["date"])[:10]
+                return f"下一個要看的總經數據是 {int(dd[5:7])}/{int(dd[8:10])}（美國時間）公布的{nm}，市場會拿來對照這次的數字。"
+    except Exception:
+        pass
+    return ""
+
+
+_HIST = None
+
+
+def history(subj: str, before: datetime, n: int = 2) -> list[str]:
+    """資料湖裡同一主體在本則之前 45 天內、含數字的報導重點（給「背景」段做前期對照）。"""
+    global _HIST
+    if _HIST is None:
+        _HIST = load_news(before - timedelta(days=45), before + timedelta(days=1))
+    rows = [x for x in _HIST if x["ts"] < before - timedelta(hours=12) and subj in x["title"]]
+    out, seen = [], set()
+    for x in sorted(rows, key=lambda x: x["ts"], reverse=True):
+        cl = [c for c in sanitize(x["summary"] or x["title"]).replace("。", "，").split("，") if c.strip() and clean_ok(c) and NUMRE.search(c)][:2]
+        k = "".join(cl)
+        if cl and k not in seen:
+            seen.add(k)
+            out.append(f"{x['ts'].month}/{x['ts'].day} {SRC_NAME.get(x['source'], x['source'])}：{'，'.join(cl)}。")
+        if len(out) >= n:
             break
-    sec_exp = ("🔎 #數字怎麼看\n" + "".join(exps)) if exps else ""
-    facts = [f"這則消息在本時段共有 {len(c['srcs'])} 家媒體、{len(c['group'])} 則報導。"]
-    m = re.search(r"[^，。]*(新高|新低|首度|首次|歷史)[^，。]*", c["text"])
-    if m:
-        facts.append(f"報導提到「{m.group(0).strip()}」。")
-    if any(x.get("verified") for x in nums):
-        facts.append("標「兩家來源」的數字，在兩家以上媒體的報導中一致。")
-    sec_why = "👀 #為什麼值得注意\n" + "".join(facts)
+    return out
+
+
+def _fmt(x: dict) -> str:
+    return f"{x['value']}{'' if x['unit'] == '%' else ' '}{x['unit']}"
+
+
+def compose(c: dict, slot: str, idx: int, day: str, style: str, names: dict) -> dict:
+    """結構化產稿；資料不足或品質閘不過丟 Skip(原因)。"""
+    lead = c["lead"]; ymd = day.replace("-", ""); md = f"{lead['ts'].month}/{lead['ts'].day}"
+    subj, code = subject_of(c, names)
+    if not subj:
+        raise Skip("找不到主體（公司／機構／指數）")
+    nums = [x for x in c["nums"] if not re.search(JUNK, x["label"])]
+    for x in nums:
+        x["metric"] = metric_of(x["label"]); x["growth"] = bool(re.search(GROWTH, x["label"]))
+    title_raw = sanitize(lead["title"])
+    m_close = re.search(r"收(?:在)?\s*([\d,]+(?:\.\d+)?)\s*點", title_raw)
+    if c["cat"] == "台股" and m_close:         # 台股盤勢：主旨＝加權指數收盤，漲跌點數當前期比較
+        nums = [dict(label="加權指數收盤", value=m_close.group(1), unit="點", key="close", metric="指數", growth=False, verified=False)] + nums
+        m_chg = re.search(r"(上漲|下跌|漲|跌)\s*([\d,]+(?:\.\d+)?)\s*點", title_raw)
+        if m_chg:
+            nums.insert(1, dict(label=f"較前一交易日{'下跌' if '跌' in m_chg.group(1) else '上漲'}", value=m_chg.group(2), unit="點",
+                                key="chg", metric="指數", growth=True, verified=False))
+    keyc = [x for x in nums if x["metric"] and not x["growth"]]
+    key = next((x for x in keyc if x["value"].lstrip("約逾近超過") in title_raw), keyc[0] if keyc else None)
+    if not key:
+        raise Skip("沒有可當主旨的關鍵數字")
+    km = key["metric"]
+    period = period_of(key["label"]) or period_of(title_raw)
+    ev = "財報" if km in FIN and period else EVENTW.get(km, "")
+    l1 = f"{subj}{period}{ev}"
+    if len(l1) > TITLE_MAX:
+        l1 = f"{subj}{ev}"
+    if len(l1) > TITLE_MAX:
+        l1 = subj                         # 主體太長：事件改由第二行的指標名稱帶出
+    l2 = f"{km} {_fmt(key).replace(' ', '')}" if re.match(r"[A-Za-z]", km) else f"{km}{_fmt(key).replace(' ', '')}"
+    if km == "指數":
+        l2 = ("加權" if c["cat"] == "台股" else "") + _fmt(key).replace(" ", "")
+    cover = [l1, l2]
+    # 資訊列：主旨數字＋同一族（財報類／同指標）的相關數字
+    fam = FIN if km in FIN else {km}
+    rel = [x for x in nums if x is not key and (x["metric"] in fam or (x["growth"] and (x["metric"] in fam or x["metric"] is None)))]
+    if len(rel) < 2:
+        rel += [x for x in nums if x is not key and x not in rel and x["growth"]]
+    rows = [key] + rel[:2]
+    if len(rows) < 2:
+        raise Skip("圖卡資訊列不足 2 列（與主旨相關的數字太少）")
+    comps = [x for x in nums if x["growth"]]
+    hi = re.search(r"[^，。]*(新高|新低|首度|首次)[^，。]*", c["text"])
+    if not comps and not hi:
+        raise Skip("沒有與前期的比較數字（季增／年增／前高）")
+    tw = bool(code) or c["cat"] == "台股"
+    wp = watch_point(day, tw, c["ctype"])
+    if c["cat"] == "台股" and c["ctype"] == "盤勢數字":
+        try:
+            from social_gate import load_holidays, next_open
+            nx = next_open(lead["ts"].strftime("%Y-%m-%d"), load_holidays())
+            wp = f"下一個交易日 {nx.month}/{nx.day} 09:00 開盤；三大法人買賣超通常在收盤後下午公布，可以對照今天的收盤與法人動向。"
+        except Exception:
+            pass
+    if not wp:
+        raise Skip("找不到下一個觀察點（公布日／數據日）")
+    srcname = SRC_NAME.get(lead["source"], lead["source"])
+    cite = lambda x: "（兩家來源）" if x.get("verified") else f"（{srcname}報導）"
+    route = landing(c, code)
+    ucode = f"news{slot}{idx}"
+    url_ig = f"{SITE}?u=ig-{ucode}-{ymd}" + (f"#{route}" if route else "")
+    url_th = f"{SITE}?u=th-{ucode}-{ymd}" + (f"#{route}" if route else "")
+    head = [f"#{subj} {l2}" if l1 == subj else f"#{subj} {l1}：{l2}", f"#{TAG[c['cat']]} {SUBQ[c['ctype']]}", ""]
+    intro = f"{md}，{srcname}報導：{_lead_sentence(c)}（{SRC_NAME.get(c.get('lead_src'), srcname)}報導摘述）"
+    shown = [x for x in nums if (x["metric"] or x["growth"]) and len(x["label"]) >= 2 and not re.match(r"[含約共逾近]", x["label"])]
+    sec_num = "📊 #重點數字\n" + "\n".join(f"▪ {x['label']} {_fmt(x)}{cite(x)}" for x in shown[:5])
+    cmp_lines = [f"▪ {x['label']} {_fmt(x)}" for x in comps[:3]]
+    if hi:
+        cmp_lines.append(f"▪ 報導提到「{hi.group(0).strip()}」")
+    sec_cmp = "🔁 #和前期比\n" + "\n".join(cmp_lines)
+    mean = []
+    if km == "EPS":
+        net = next((x for x in nums if x["metric"] == "淨利" and not x["growth"]), None)
+        mean.append(f"{subj}{period}每股賺 {key['value']} 元" + (f"，對應稅後淨利 {_fmt(net)}" if net else "") + "。")
+    gm = next((x for x in nums if x["metric"] == "毛利率" and not x["growth"]), None)
+    if gm:
+        mean.append(f"毛利率 {gm['value']}%，代表每 100 元營收扣掉直接成本後約剩 {gm['value'].lstrip('約逾近')} 元毛利（本站換算）。")
+    idx_mode = km == "指數" and c["cat"] == "台股"
+    if idx_mode:
+        chg = next((x for x in nums if x.get("key") == "chg"), None)
+        pct = re.search(r"漲幅\s*([\d.]+)%|跌幅\s*([\d.]+)%", c["text"])
+        high = re.search(r"最高\s*([\d,]+(?:\.\d+)?)\s*點", c["text"])
+        s1 = f"加權指數收在 {key['value']} 點"
+        if chg:
+            s1 += f"，{chg['label']} {chg['value']} 點" + (f"（{pct.group(0)}）" if pct else "")
+        mean.append(s1 + "。")
+        if high:
+            hv = float(high.group(1).replace(",", "")); cv = float(key["value"].replace(",", ""))
+            mean.append(f"盤中最高 {high.group(1)} 點，收盤距離當天最高點約 {hv - cv:,.2f} 點（本站計算），代表收在接近當天高點的位置。")
+    for x in ([] if idx_mode else comps[:2]):
+        dn = re.search(r"減|衰退|較.*少|跌|下挫", x["label"])
+        base = "去年同期" if "年" in x["label"] or "同期" in x["label"] else "上一季" if "季" in x["label"] else "上個月" if "月" in x["label"] else "前一交易日" if re.search(r"漲|跌|挫", x["label"]) else "比較基期"
+        mean.append(f"{x['label']} {_fmt(x)}，代表和{base}相比{'減少' if dn else '增加'}約 {x['value'].lstrip('+-約逾近')}{x['unit']}。")
+    if km not in ("EPS",) and not mean:
+        mean.append(f"{key['label']} {_fmt(key)} 是這則報導的核心數字。")
+    sec_mean = "🔎 #這些數字代表什麼\n" + "".join(mean)
+    other = []
+    for n in c["group"]:
+        if n is lead or n["source"] == lead["source"]:
+            continue
+        cl = [x for x in sanitize(n["summary"]).split("，") if x.strip() and clean_ok(x)][:2]
+        if cl:
+            other.append(f"{SRC_NAME.get(n['source'], n['source'])}報導：{'，'.join(cl)}。")
+    sec_more = ("📰 #其他媒體怎麼寫\n" + "\n".join(other[:2])) if other else ""
+    hist = history(subj, lead["ts"])
+    sec_hist = ("📌 #之前的報導\n" + "\n".join(hist)) if hist else ""
+    sec_watch = "👀 #接下來觀察\n" + wp
     tail = "以上為公開資料整理，非投資建議"
-    url_ig = f"{SITE}?u=ig-{ucode}-{ymd}#{route}"
-    url_th = f"{SITE}?u=th-{ucode}-{ymd}#{route}"
+    body = [intro, sec_num, sec_cmp] + ([sec_mean] if style != "精簡重點" else []) + ([sec_more] if sec_more else []) + ([sec_hist] if sec_hist else []) + [sec_watch]
     link_line = "👉 更多詳細資料可以點擊以下連結："
-    if style == "精簡重點":
-        body = [intro, sec_num, sec_why]
-    else:
-        body = [intro, sec_num] + ([sec_exp] if sec_exp else []) + [sec_why]
     cap_ig = "\n".join(head) + "\n" + "\n\n".join(body) + f"\n\n{tail}\n{link_line}\n{url_ig}"
-    th_secs = ["\n".join(head[:2]) + "\n\n" + intro] + body[1:] + [f"{tail}\n{link_line}\n{url_th}"]
-    threads = pack_threads(th_secs)
-    cover = _lines(title, 14)
-    desc_src = "、".join(f"{x['label']} {x['value']}{x['unit']}" for x in card_nums[:2]) or sub
-    card = dict(title=title[:28], subtitle=sub, numbers=[{k: x[k] for k in ("label", "value", "unit")} for x in card_nums],
-                category=c["cat"], cover_title=cover, cover_desc=_lines(desc_src, 22))
-    if card_nums:
-        card["hero"] = card_nums[0]["value"].lstrip("約逾近超過") + card_nums[0]["unit"]
-    card["hl"] = next((x["value"] + x["unit"] for x in card_nums if (x["value"] + x["unit"]) in "".join(cover)), "")
-    return dict(id=f"{slot}{idx}", slot=slot, data_date=f"{day} 台北", caption_ig=cap_ig, caption_threads=threads,
-                card=card, link=url_th, u_code=ucode,
-                sources=[{"name": SRC_NAME.get(n["source"], n["source"]) + "：" + n["title"], "url": n["url"],
-                          "date": n["ts"].isoformat(timespec="minutes")} for n in c["group"][:6]],
-                meta=dict(topic_category=c["cat"], content_type=c["ctype"], layout=LAYOUT, style=style,
-                          has_ai_image="false", explore=str(bool(c.get("explore"))).lower(), heat=str(c["heat"]),
-                          news_ids=",".join(n["news_id"] for n in c["group"][:8]), u_code=ucode))
+    threads = pack_threads(["\n".join(head[:2]) + "\n\n" + intro] + body[1:] + [f"{tail}\n{link_line}\n{url_th}"])
+    card = dict(title=l1 + l2, subtitle=SUBQ[c["ctype"]], numbers=[{k: x[k] for k in ("label", "value", "unit")} for x in rows],
+                category=c["cat"], cover_title=cover, cover_desc=_lines("、".join(f"{x['label']} {_fmt(x)}" for x in comps[:2]) or SUBQ[c["ctype"]], 22),
+                hero=key["value"].lstrip("約逾近超過") + key["unit"], hl=_fmt(key).replace(" ", "") if _fmt(key).replace(" ", "") in l2 else "")
+    d = dict(id=f"{slot}{idx}", slot=slot, data_date=f"{day} 台北", caption_ig=cap_ig, caption_threads=threads,
+             card=card, link=url_th, u_code=ucode,
+             sources=[{"name": SRC_NAME.get(n["source"], n["source"]) + "：" + n["title"], "url": n["url"],
+                       "date": n["ts"].isoformat(timespec="minutes")} for n in c["group"][:6]],
+             meta=dict(topic_category=c["cat"], content_type=c["ctype"], layout=LAYOUT, style=style,
+                       has_ai_image="false", explore=str(bool(c.get("explore"))).lower(), heat=str(c["heat"]),
+                       news_ids=",".join(n["news_id"] for n in c["group"][:8]), u_code=ucode))
+    bad = quality_gate(d, key)
+    if bad:
+        raise Skip("品質閘：" + "；".join(bad))
+    return d
+
+
+def quality_gate(d: dict, key: dict) -> list[str]:
+    out = []
+    ct = d["card"]["cover_title"]
+    for l in ct:
+        if not l or len(l) > TITLE_MAX:
+            out.append(f"標題行長度 {len(l)}（上限 {TITLE_MAX}）：{l}")
+        if "  " in l or l != l.strip() or re.search(r"[\d,]$", l) and not re.search(r"\d$", key["value"]):
+            out.append(f"標題斷行或空白異常：{l!r}")
+    hv = key["value"].lstrip("約逾近超過")
+    if hv not in ct[1] or not d["card"]["hero"].startswith(hv):
+        out.append("封面大數字與標題主旨不同")
+    body = d["caption_ig"].rsplit("以上為公開資料整理", 1)[0]
+    if len(body) < MIN_BODY:
+        out.append(f"內文 {len(body)} 字（最少 {MIN_BODY}）")
+    for w in EMPTY:
+        if w in d["caption_ig"]:
+            out.append(f"空泛句：{w}")
+    if "#stock/" in d["caption_ig"] or any("#stock/" in t for t in d["caption_threads"]):
+        out.append("落點不得為個股頁")
+    return out
 
 
 def _tlen(s: str) -> int:
@@ -494,8 +721,11 @@ def run_slot(slot: str, day: str, now: datetime, posted: dict, dry: bool, out: P
     w = load_weights()
     cands = [score(g, w) for g in cluster(news)]
     cands = [c for c in cands if len(c["nums"]) >= 2]
+    if slot == "pre":        # 盤前：前一天台股收盤主貼文已講，只留隔夜美股／國際／今日事件（排掉台股盤勢與台股公司）
+        names0 = names_map()
+        cands = [c for c in cands if c["cat"] != "台股" and c["ctype"] != "盤勢數字" and not subject_of(c, names0)[1]]
     rng = random.Random(int(hashlib.md5(f"{day}{slot}".encode()).hexdigest()[:8], 16))
-    chosen = pick(cands, N_MAX + 3, rng, w.get("explore", EXPLORE))      # 多挑 3 篇當備胎（法遵或重疊被擋時遞補）
+    chosen = pick(cands, N_MAX + 8, rng, w.get("explore", EXPLORE))      # 多挑 3 篇當備胎（法遵或重疊被擋時遞補）
     names = names_map()
     sw = w.get("style", {})
     posts = []
@@ -503,7 +733,10 @@ def run_slot(slot: str, day: str, now: datetime, posted: dict, dry: bool, out: P
         if len(posts) >= N_MAX:
             break
         style = rng.choice(STYLES) if c.get("explore") else max(STYLES, key=lambda s: (sw.get(s, 1.0), s == STYLES[0]))
-        d = compose(c, slot, len(posts) + 1, day, style, names)
+        try:
+            d = compose(c, slot, len(posts) + 1, day, style, names)
+        except Skip as ex:
+            log["skipped"].append(dict(title=c["lead"]["title"], why=str(ex))); continue
         full = d["caption_ig"] + "\n" + "\n".join(d["caption_threads"]) + "\n" + json.dumps(d["card"], ensure_ascii=False)
         v = legal_check(full)
         if v:
