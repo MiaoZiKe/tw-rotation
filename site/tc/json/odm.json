@@ -9966,6 +9966,78 @@
               "quote_free_note": "自填；日工時 表訂/實際 8 / 8",
               "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2025-01（Andy 桌面版 2026-10-26 2225_b 批）"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/260447448#留言B12-1",
+              "date": "2025-12",
+              "page_date": "2025-12-13",
+              "date_confirmed": true,
+              "role": "工程師（offer）",
+              "grade": null,
+              "unit_detail": null,
+              "years": "0",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": 19,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "補漏：留言 B12-1 稱人資說 (N-4K)×19 個月（16 個月保底＋三節各一），獎金分紅另外算；N 為台積新人價（未給數字）",
+              "in_window": true,
+              "date_note": "Dcard 頁面發文日期 2025-12-13（20261028_1140_補漏r2 批）",
+              "comment_sample": true
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/260549543#留言B17-2",
+              "date": "2025-12",
+              "page_date": "2025-12-28",
+              "date_confirmed": true,
+              "role": "工程師（IA 事業群）",
+              "grade": null,
+              "unit_detail": "IA",
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": 20,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "補漏：留言 B17-2 稱「我 IA 超爛都有 20（個月）」；B17 稱台達基本盤 18～20 個月",
+              "in_window": true,
+              "date_note": "Dcard 頁面發文日期 2025-12-28（20261028_1140_補漏r2 批）",
+              "comment_sample": true
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261218379#留言B10-1",
+              "date": "2026-04",
+              "page_date": "2026-04-01",
+              "date_confirmed": true,
+              "role": "工程師（碩士新人）",
+              "grade": null,
+              "unit_detail": null,
+              "years": "0",
+              "degree": "碩士",
+              "base_k": [
+                70,
+                75
+              ],
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "補漏：B10 稱以為台達有 72K，B10-1 回「只有四大碩新鮮人 70～75K」（區間）；B10-3 稱四中碩也有；B10-4 則稱 72 明顯被殺價（看法不一）",
+              "in_window": true,
+              "date_note": "Dcard 頁面發文日期 2026-04-01（20261028_1140_補漏r2 批）",
+              "comment_sample": true
             }
           ],
           "sources": [
@@ -10003,19 +10075,34 @@
               "site": "GoodJob",
               "url": "https://www.goodjob.life/companies/台達電子工業股份有限公司/salary-work-times?p=16",
               "date": "2025-01"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/260447448",
+              "date": "2025-12"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/260549543",
+              "date": "2025-12"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261218379",
+              "date": "2026-04"
             }
           ],
           "confidence": "低",
-          "n": 7,
+          "n": 10,
           "years": "1",
           "base_month_k": [
             45,
-            71
+            75
           ],
           "bonus_months": null,
           "annual_months": [
             16,
-            19
+            20
           ],
           "annual_total_wan": null,
           "weekly_hours": [
@@ -10024,7 +10111,7 @@
           ],
           "overtime": "幾乎不",
           "travel": null,
-          "n_stat": 7,
+          "n_stat": 10,
           "note": null,
           "grade": null
         },
@@ -16505,16 +16592,19 @@
               "unit_detail": "Server BU",
               "years": "1.5",
               "degree": null,
-              "base_k": null,
+              "base_k": 70,
               "bonus_months": null,
               "annual_months": null,
               "annual_wan": null,
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
-              "quote_free_note": "面試到 e-offer 約 51 天（含春節）；HR 說起薪與分紅在中上；數字未透露；留言 B2 估月薪 6 萬多",
+              "quote_free_note": "面試到 e-offer 約 51 天（含春節）；HR 說起薪與分紅在中上；數字未透露；留言 B2 估月薪 6 萬多；補漏 r2：B16-1 發文者答結果「N+8」，B16-5 稱 N 為 62K → 底薪約 70K（由 N 換算，derived）；有前職經歷",
               "in_window": true,
-              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-03-16"
+              "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-03-16",
+              "derived": [
+                "base_k"
+              ]
             }
           ],
           "sources": [
@@ -16527,7 +16617,10 @@
           "confidence": "低",
           "n": 1,
           "years": "1.5",
-          "base_month_k": null,
+          "base_month_k": [
+            70,
+            70
+          ],
           "bonus_months": null,
           "annual_months": null,
           "annual_total_wan": null,
@@ -23262,14 +23355,17 @@
               "unit_detail": "南科廠",
               "years": null,
               "degree": "碩士",
-              "base_k": null,
+              "base_k": 45,
               "bonus_months": null,
-              "annual_months": 14,
+              "annual_months": [
+                18,
+                20
+              ],
               "annual_wan": null,
               "weekly_hours": null,
               "overtime": null,
               "travel": null,
-              "quote_free_note": "職等 8，保 14＋伙食津貼＋分紅；數字未透露；同篇日月光是生產線儲備幹部，不收；offer：職等 8，保 14＋伙食津貼＋分紅；面試問輪班與出差；同篇日月光儲備幹部屬非工程職未收",
+              "quote_free_note": "職等 8，保 14＋伙食津貼＋分紅；數字未透露；同篇日月光是生產線儲備幹部，不收；offer：職等 8，保 14＋伙食津貼＋分紅；面試問輪班與出差；同篇日月光儲備幹部屬非工程職未收；補漏 r2：發文者於 B13-1 回覆緯穎月領 45K up、整包 18～20 個月（區間；保 14 為保底）；B13-2 稱表現正常就不只 20 個月",
               "in_window": true,
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-04-07"
             },
@@ -23349,11 +23445,11 @@
           "confidence": "低",
           "n": 3,
           "annual_months": [
-            14,
-            18
+            18,
+            20
           ],
           "base_month_k": [
-            50,
+            45,
             53
           ],
           "overtime": "經常",
