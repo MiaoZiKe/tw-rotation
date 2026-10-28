@@ -189,7 +189,7 @@ def test_position_caps_and_ordering():
     two = state(positions=[pos(code="1101", group="g1"), pos(code="1102", group="g1")])
     st, _ = SW.step_account(two, D1, {}, cdf(cand(group="g1")), SW.SWING)
     _, res = SW.step_account(st, D2, {"2330": bar(100, 101, 99, 100), "1101": bar(100, 101, 99, 100, ma50=90), "1102": bar(100, 101, 99, 100, ma50=90)}, cdf(), SW.SWING)
-    assert "同族群" in ev_of(res, "REJECT")[0]["note"]
+    assert [e["code"] for e in ev_of(res, "ENTRY")] == ["2330"] and not ev_of(res, "REJECT")      # 凍結規格沒有族群持倉上限
     # 一個空位，兩檔候選：營收動能高的先進
     five = state(positions=[pos(code=f"10{i}1", group=f"g{i}") for i in range(5)])
     st, _ = SW.step_account(five, D1, {}, cdf(cand(code="2330", group="a", rm=1.1), cand(code="2317", group="b", rm=1.9)), SW.SWING)
