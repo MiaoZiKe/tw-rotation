@@ -18,10 +18,11 @@
    "width": 1920,
    "height": 1440,
    "fetched_at": "2026-10-28T16:14:07+00:00",
-   "reviewed": true,
+   "reviewed": false,
    "reviewer": "art-director",
-   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
-   "reviewed_at": "2026-10-28"
+   "review_note": "2026-10-28 第三輪（art-director 複審）退件：Quest 頭盔特寫模糊、榻榻米背景",
+   "reviewed_at": "2026-10-28",
+   "reject_reason": "Quest 頭盔特寫模糊、榻榻米背景"
   }
  ],
  "rejected": [

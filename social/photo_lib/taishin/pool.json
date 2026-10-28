@@ -18,10 +18,11 @@
    "width": 1920,
    "height": 2065,
    "fetched_at": "2026-10-28T16:10:49+00:00",
-   "reviewed": true,
+   "reviewed": false,
    "reviewer": "art-director",
-   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
-   "reviewed_at": "2026-10-28"
+   "review_note": "2026-10-28 第三輪（art-director 複審）退件：塔身細長、裁切後多為天空、無辨識",
+   "reviewed_at": "2026-10-28",
+   "reject_reason": "塔身細長、裁切後多為天空、無辨識"
   },
   {
    "file": "photo_2.jpg",
@@ -40,10 +41,11 @@
    "width": 1920,
    "height": 1952,
    "fetched_at": "2026-10-28T16:10:50+00:00",
-   "reviewed": true,
+   "reviewed": false,
    "reviewer": "art-director",
-   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
-   "reviewed_at": "2026-10-28"
+   "review_note": "2026-10-28 第三輪（art-director 複審）退件：塔身細長、裁切後多為天空、無辨識",
+   "reviewed_at": "2026-10-28",
+   "reject_reason": "塔身細長、裁切後多為天空、無辨識"
   }
  ],
  "rejected": [

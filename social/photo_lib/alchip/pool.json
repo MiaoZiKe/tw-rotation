@@ -18,10 +18,11 @@
    "width": 1920,
    "height": 1949,
    "fetched_at": "2026-10-28T16:10:20+00:00",
-   "reviewed": true,
+   "reviewed": false,
    "reviewer": "art-director",
-   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
-   "reviewed_at": "2026-10-28"
+   "review_note": "2026-10-28 第三輪（art-director 複審）退件：記憶體陣列微距，無辨識度、質感不足",
+   "reviewed_at": "2026-10-28",
+   "reject_reason": "記憶體陣列微距，無辨識度、質感不足"
   },
   {
    "file": "photo_2.jpg",
@@ -42,8 +43,9 @@
    "fetched_at": "2026-10-28T16:10:20+00:00",
    "reviewed": true,
    "reviewer": "art-director",
-   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
-   "reviewed_at": "2026-10-28"
+   "review_note": "2026-10-28 第三輪（art-director 複審）通過：主體正確、原色、裁成 952×424 仍成立",
+   "reviewed_at": "2026-10-28",
+   "reviewed_by": "art-director"
   }
  ],
  "rejected": [

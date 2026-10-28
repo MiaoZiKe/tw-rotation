@@ -18,7 +18,7 @@
    "fetched_at": "2026-10-28T10:11:42+00:00",
    "reviewed": true,
    "reviewer": "art-director",
-   "review_note": "2026-10-28 第一輪通過：光寶科技大樓，天色略灰但可接受",
+   "review_note": "2026-10-28 第三輪（art-director 複審）通過：主體正確、原色、裁成 952×424 仍成立",
    "reviewed_by": "art-director",
    "reviewed_at": "2026-10-28",
    "note": "光寶科技大樓，天色略灰但可接受",
@@ -42,10 +42,11 @@
    "width": 1920,
    "height": 1440,
    "fetched_at": "2026-10-28T16:11:16+00:00",
-   "reviewed": true,
+   "reviewed": false,
    "reviewer": "art-director",
-   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
-   "reviewed_at": "2026-10-28"
+   "review_note": "2026-10-28 第三輪（art-director 複審）退件：塔樓局部放大，無辨識與質感",
+   "reviewed_at": "2026-10-28",
+   "reject_reason": "塔樓局部放大，無辨識與質感"
   },
   {
    "file": "photo_4.jpg",
@@ -64,10 +65,11 @@
    "width": 1920,
    "height": 1371,
    "fetched_at": "2026-10-28T16:11:17+00:00",
-   "reviewed": true,
+   "reviewed": false,
    "reviewer": "art-director",
-   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
-   "reviewed_at": "2026-10-28"
+   "review_note": "2026-10-28 第三輪（art-director 複審）退件：電源線接頭特寫、偏暗",
+   "reviewed_at": "2026-10-28",
+   "reject_reason": "電源線接頭特寫、偏暗"
   }
  ],
  "rejected": [

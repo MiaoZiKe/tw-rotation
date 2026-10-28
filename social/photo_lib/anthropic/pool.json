@@ -18,10 +18,11 @@
    "width": 1920,
    "height": 1275,
    "fetched_at": "2026-10-28T16:15:49+00:00",
-   "reviewed": true,
+   "reviewed": false,
    "reviewer": "art-director",
-   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
-   "reviewed_at": "2026-10-28"
+   "review_note": "2026-10-28 第三輪（art-director 複審）退件：通用藍光機櫃，與 Anthropic 無關",
+   "reviewed_at": "2026-10-28",
+   "reject_reason": "通用藍光機櫃，與 Anthropic 無關"
   },
   {
    "file": "photo_2.jpg",
@@ -40,10 +41,11 @@
    "width": 1600,
    "height": 1200,
    "fetched_at": "2026-10-28T16:15:49+00:00",
-   "reviewed": true,
+   "reviewed": false,
    "reviewer": "art-director",
-   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
-   "reviewed_at": "2026-10-28"
+   "review_note": "2026-10-28 第三輪（art-director 複審）退件：通用資料中心外觀，與 Anthropic 無關、灰暗",
+   "reviewed_at": "2026-10-28",
+   "reject_reason": "通用資料中心外觀，與 Anthropic 無關、灰暗"
   },
   {
    "file": "photo_3.jpg",
@@ -62,10 +64,11 @@
    "width": 1920,
    "height": 1440,
    "fetched_at": "2026-10-28T16:15:50+00:00",
-   "reviewed": true,
+   "reviewed": false,
    "reviewer": "art-director",
-   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
-   "reviewed_at": "2026-10-28"
+   "review_note": "2026-10-28 第三輪（art-director 複審）退件：通用資料中心外觀，與 Anthropic 無關、灰暗",
+   "reviewed_at": "2026-10-28",
+   "reject_reason": "通用資料中心外觀，與 Anthropic 無關、灰暗"
   }
  ],
  "rejected": [

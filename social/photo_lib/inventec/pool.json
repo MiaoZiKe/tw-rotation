@@ -18,10 +18,11 @@
    "width": 1920,
    "height": 1440,
    "fetched_at": "2026-10-28T16:13:20+00:00",
-   "reviewed": true,
+   "reviewed": false,
    "reviewer": "art-director",
-   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
-   "reviewed_at": "2026-10-28"
+   "review_note": "2026-10-28 第三輪（art-director 複審）退件：機櫃雜亂，非營業主體（英業達）",
+   "reviewed_at": "2026-10-28",
+   "reject_reason": "機櫃雜亂，非營業主體（英業達）"
   }
  ],
  "rejected": [

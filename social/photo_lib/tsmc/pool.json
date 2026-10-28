@@ -18,7 +18,7 @@
    "fetched_at": "2026-10-28T10:09:08+00:00",
    "reviewed": true,
    "reviewer": "art-director",
-   "review_note": "2026-10-28 第一輪通過：台積電 Fab 18，構圖與曝光佳",
+   "review_note": "2026-10-28 第三輪（art-director 複審）通過：主體正確、原色、裁成 952×424 仍成立",
    "reviewed_by": "art-director",
    "reviewed_at": "2026-10-28",
    "note": "台積電 Fab 18，構圖與曝光佳",
@@ -44,8 +44,9 @@
    "fetched_at": "2026-10-28T16:06:37+00:00",
    "reviewed": true,
    "reviewer": "art-director",
-   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
-   "reviewed_at": "2026-10-28"
+   "review_note": "2026-10-28 第三輪（art-director 複審）通過：主體正確、原色、裁成 952×424 仍成立",
+   "reviewed_at": "2026-10-28",
+   "reviewed_by": "art-director"
   },
   {
    "file": "photo_3.jpg",
@@ -64,10 +65,11 @@
    "width": 1535,
    "height": 1157,
    "fetched_at": "2026-10-28T16:06:39+00:00",
-   "reviewed": true,
+   "reviewed": false,
    "reviewer": "art-director",
-   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
-   "reviewed_at": "2026-10-28"
+   "review_note": "2026-10-28 第三輪（art-director 複審）退件：晶圓微距偏暗紅、邊緣模糊，專業質感不足",
+   "reviewed_at": "2026-10-28",
+   "reject_reason": "晶圓微距偏暗紅、邊緣模糊，專業質感不足"
   },
   {
    "file": "photo_4.jpg",
@@ -88,8 +90,9 @@
    "fetched_at": "2026-10-28T16:06:41+00:00",
    "reviewed": true,
    "reviewer": "art-director",
-   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
-   "reviewed_at": "2026-10-28"
+   "review_note": "2026-10-28 第三輪（art-director 複審）通過：主體正確、原色、裁成 952×424 仍成立",
+   "reviewed_at": "2026-10-28",
+   "reviewed_by": "art-director"
   }
  ],
  "rejected": [

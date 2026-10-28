@@ -20,8 +20,9 @@
    "fetched_at": "2026-10-28T16:11:31+00:00",
    "reviewed": true,
    "reviewer": "art-director",
-   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
-   "reviewed_at": "2026-10-28"
+   "review_note": "2026-10-28 第三輪（art-director 複審）通過：主體正確、原色、裁成 952×424 仍成立",
+   "reviewed_at": "2026-10-28",
+   "reviewed_by": "art-director"
   },
   {
    "file": "photo_3.jpg",
@@ -40,10 +41,11 @@
    "width": 1920,
    "height": 1281,
    "fetched_at": "2026-10-28T16:11:33+00:00",
-   "reviewed": true,
+   "reviewed": false,
    "reviewer": "art-director",
-   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
-   "reviewed_at": "2026-10-28"
+   "review_note": "2026-10-28 第三輪（art-director 複審）退件：外國雪景工廠，非台泥",
+   "reviewed_at": "2026-10-28",
+   "reject_reason": "外國雪景工廠，非台泥"
   },
   {
    "file": "photo_5.jpg",
@@ -62,10 +64,11 @@
    "width": 1920,
    "height": 1280,
    "fetched_at": "2026-10-28T16:11:35+00:00",
-   "reviewed": true,
+   "reviewed": false,
    "reviewer": "art-director",
-   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
-   "reviewed_at": "2026-10-28"
+   "review_note": "2026-10-28 第三輪（art-director 複審）退件：鋼廠煙霧，非台泥",
+   "reviewed_at": "2026-10-28",
+   "reject_reason": "鋼廠煙霧，非台泥"
   }
  ],
  "rejected": [

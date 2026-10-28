@@ -18,10 +18,11 @@
    "width": 1920,
    "height": 1440,
    "fetched_at": "2026-10-28T16:13:09+00:00",
-   "reviewed": true,
+   "reviewed": false,
    "reviewer": "art-director",
-   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
-   "reviewed_at": "2026-10-28"
+   "review_note": "2026-10-28 第三輪（art-director 複審）退件：大型外牆廣告布幔搶戲、仰角灰天",
+   "reviewed_at": "2026-10-28",
+   "reject_reason": "大型外牆廣告布幔搶戲、仰角灰天"
   },
   {
    "file": "photo_2.jpg",
@@ -40,10 +41,11 @@
    "width": 1920,
    "height": 1440,
    "fetched_at": "2026-10-28T16:13:09+00:00",
-   "reviewed": true,
+   "reviewed": false,
    "reviewer": "art-director",
-   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
-   "reviewed_at": "2026-10-28"
+   "review_note": "2026-10-28 第三輪（art-director 複審）退件：大型外牆廣告布幔搶戲、仰角灰天",
+   "reviewed_at": "2026-10-28",
+   "reject_reason": "大型外牆廣告布幔搶戲、仰角灰天"
   },
   {
    "file": "photo_3.jpg",
@@ -62,10 +64,11 @@
    "width": 1920,
    "height": 1440,
    "fetched_at": "2026-10-28T16:13:12+00:00",
-   "reviewed": true,
+   "reviewed": false,
    "reviewer": "art-director",
-   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
-   "reviewed_at": "2026-10-28"
+   "review_note": "2026-10-28 第三輪（art-director 複審）退件：西藏山區基地台，非遠傳（主體錯誤）",
+   "reviewed_at": "2026-10-28",
+   "reject_reason": "西藏山區基地台，非遠傳（主體錯誤）"
   },
   {
    "file": "photo_4.jpg",
@@ -84,10 +87,11 @@
    "width": 1920,
    "height": 1440,
    "fetched_at": "2026-10-28T16:13:12+00:00",
-   "reviewed": true,
+   "reviewed": false,
    "reviewer": "art-director",
-   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
-   "reviewed_at": "2026-10-28"
+   "review_note": "2026-10-28 第三輪（art-director 複審）退件：西藏山區基地台，非遠傳（主體錯誤）",
+   "reviewed_at": "2026-10-28",
+   "reject_reason": "西藏山區基地台，非遠傳（主體錯誤）"
   },
   {
    "file": "photo_5.jpg",
@@ -106,10 +110,11 @@
    "width": 1920,
    "height": 1373,
    "fetched_at": "2026-10-28T16:13:14+00:00",
-   "reviewed": true,
+   "reviewed": false,
    "reviewer": "art-director",
-   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
-   "reviewed_at": "2026-10-28"
+   "review_note": "2026-10-28 第三輪（art-director 複審）退件：山頂電視塔雪景，非遠傳（主體錯誤）",
+   "reviewed_at": "2026-10-28",
+   "reject_reason": "山頂電視塔雪景，非遠傳（主體錯誤）"
   }
  ],
  "rejected": [

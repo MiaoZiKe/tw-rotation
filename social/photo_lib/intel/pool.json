@@ -18,7 +18,7 @@
    "fetched_at": "2026-10-28T10:13:06+00:00",
    "reviewed": true,
    "reviewer": "art-director",
-   "review_note": "2026-10-28 第一輪通過：Intel 聖塔克拉拉總部；立面有大型肖像壁畫，屬建築裝飾、非人物照，可接受",
+   "review_note": "2026-10-28 第三輪（art-director 複審）通過：主體正確、原色、裁成 952×424 仍成立",
    "reviewed_by": "art-director",
    "reviewed_at": "2026-10-28",
    "note": "Intel 聖塔克拉拉總部；立面有大型肖像壁畫，屬建築裝飾、非人物照，可接受",
@@ -42,10 +42,11 @@
    "width": 1920,
    "height": 1372,
    "fetched_at": "2026-10-28T16:14:32+00:00",
-   "reviewed": true,
+   "reviewed": false,
    "reviewer": "art-director",
-   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
-   "reviewed_at": "2026-10-28"
+   "review_note": "2026-10-28 第三輪（art-director 複審）退件：無招牌，無法確認是英特爾",
+   "reviewed_at": "2026-10-28",
+   "reject_reason": "無招牌，無法確認是英特爾"
   },
   {
    "file": "photo_3.jpg",
@@ -66,8 +67,9 @@
    "fetched_at": "2026-10-28T16:14:34+00:00",
    "reviewed": true,
    "reviewer": "art-director",
-   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
-   "reviewed_at": "2026-10-28"
+   "review_note": "2026-10-28 第三輪（art-director 複審）通過：主體正確、原色、裁成 952×424 仍成立",
+   "reviewed_at": "2026-10-28",
+   "reviewed_by": "art-director"
   }
  ],
  "rejected": [

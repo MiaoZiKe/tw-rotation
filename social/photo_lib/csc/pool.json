@@ -18,7 +18,7 @@
    "fetched_at": "2026-10-28T10:11:33+00:00",
    "reviewed": true,
    "reviewer": "art-director",
-   "review_note": "2026-10-28 第一輪通過：中鋼高雄總部玻璃帷幕，裁切後建築主體完整",
+   "review_note": "2026-10-28 第三輪（art-director 複審）通過：主體正確、原色、裁成 952×424 仍成立",
    "reviewed_by": "art-director",
    "reviewed_at": "2026-10-28",
    "note": "中鋼高雄總部玻璃帷幕，裁切後建築主體完整",
@@ -42,10 +42,11 @@
    "width": 1920,
    "height": 1440,
    "fetched_at": "2026-10-28T16:11:09+00:00",
-   "reviewed": true,
+   "reviewed": false,
    "reviewer": "art-director",
-   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
-   "reviewed_at": "2026-10-28"
+   "review_note": "2026-10-28 第三輪（art-director 複審）退件：染色鋼捲堆放雜亂、蓋布",
+   "reviewed_at": "2026-10-28",
+   "reject_reason": "染色鋼捲堆放雜亂、蓋布"
   },
   {
    "file": "photo_4.jpg",
@@ -64,10 +65,11 @@
    "width": 1920,
    "height": 1440,
    "fetched_at": "2026-10-28T16:11:10+00:00",
-   "reviewed": true,
+   "reviewed": false,
    "reviewer": "art-director",
-   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
-   "reviewed_at": "2026-10-28"
+   "review_note": "2026-10-28 第三輪（art-director 複審）退件：鋁捲加挖土機，非中鋼鋼捲主體",
+   "reviewed_at": "2026-10-28",
+   "reject_reason": "鋁捲加挖土機，非中鋼鋼捲主體"
   },
   {
    "file": "photo_5.jpg",
@@ -88,8 +90,9 @@
    "fetched_at": "2026-10-28T16:11:12+00:00",
    "reviewed": true,
    "reviewer": "art-director",
-   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
-   "reviewed_at": "2026-10-28"
+   "review_note": "2026-10-28 第三輪（art-director 複審）通過：主體正確、原色、裁成 952×424 仍成立",
+   "reviewed_at": "2026-10-28",
+   "reviewed_by": "art-director"
   }
  ],
  "rejected": [

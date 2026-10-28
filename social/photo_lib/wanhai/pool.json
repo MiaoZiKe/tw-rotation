@@ -18,10 +18,11 @@
    "width": 1920,
    "height": 1334,
    "fetched_at": "2026-10-28T16:12:38+00:00",
-   "reviewed": true,
+   "reviewed": false,
    "reviewer": "art-director",
-   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
-   "reviewed_at": "2026-10-28"
+   "review_note": "2026-10-28 第三輪（art-director 複審）退件：K LINE 貨櫃船，非萬海（主體錯誤）",
+   "reviewed_at": "2026-10-28",
+   "reject_reason": "K LINE 貨櫃船，非萬海（主體錯誤）"
   },
   {
    "file": "photo_2.jpg",
@@ -40,10 +41,11 @@
    "width": 1920,
    "height": 1270,
    "fetched_at": "2026-10-28T16:12:40+00:00",
-   "reviewed": true,
+   "reviewed": false,
    "reviewer": "art-director",
-   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
-   "reviewed_at": "2026-10-28"
+   "review_note": "2026-10-28 第三輪（art-director 複審）退件：龍門吊與船身雜亂，萬海僅小標",
+   "reviewed_at": "2026-10-28",
+   "reject_reason": "龍門吊與船身雜亂，萬海僅小標"
   },
   {
    "file": "photo_3.jpg",
@@ -64,8 +66,9 @@
    "fetched_at": "2026-10-28T16:12:41+00:00",
    "reviewed": true,
    "reviewer": "art-director",
-   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
-   "reviewed_at": "2026-10-28"
+   "review_note": "2026-10-28 第三輪（art-director 複審）通過：主體正確、原色、裁成 952×424 仍成立",
+   "reviewed_at": "2026-10-28",
+   "reviewed_by": "art-director"
   },
   {
    "file": "photo_4.jpg",
@@ -86,8 +89,9 @@
    "fetched_at": "2026-10-28T16:12:41+00:00",
    "reviewed": true,
    "reviewer": "art-director",
-   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
-   "reviewed_at": "2026-10-28"
+   "review_note": "2026-10-28 第三輪（art-director 複審）通過：主體正確、原色、裁成 952×424 仍成立",
+   "reviewed_at": "2026-10-28",
+   "reviewed_by": "art-director"
   }
  ],
  "rejected": [

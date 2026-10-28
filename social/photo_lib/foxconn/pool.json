@@ -18,10 +18,11 @@
    "width": 1920,
    "height": 1279,
    "fetched_at": "2026-10-28T16:06:45+00:00",
-   "reviewed": true,
+   "reviewed": false,
    "reviewer": "art-director",
-   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
-   "reviewed_at": "2026-10-28"
+   "review_note": "2026-10-28 第三輪（art-director 複審）退件：疑似 Foxconn 威州廠區，紫色濃霧色偏過重、原色存疑",
+   "reviewed_at": "2026-10-28",
+   "reject_reason": "疑似 Foxconn 威州廠區，紫色濃霧色偏過重、原色存疑"
   }
  ],
  "rejected": [

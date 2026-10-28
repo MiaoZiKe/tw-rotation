@@ -18,10 +18,11 @@
    "width": 1920,
    "height": 1425,
    "fetched_at": "2026-10-28T16:09:38+00:00",
-   "reviewed": true,
+   "reviewed": false,
    "reviewer": "art-director",
-   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
-   "reviewed_at": "2026-10-28"
+   "review_note": "2026-10-28 第三輪（art-director 複審）退件：國外煉油廠與煙霧、雪山，非台塑化",
+   "reviewed_at": "2026-10-28",
+   "reject_reason": "國外煉油廠與煙霧、雪山，非台塑化"
   },
   {
    "file": "photo_2.jpg",
@@ -40,10 +41,11 @@
    "width": 1920,
    "height": 559,
    "fetched_at": "2026-10-28T16:09:38+00:00",
-   "reviewed": true,
+   "reviewed": false,
    "reviewer": "art-director",
-   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
-   "reviewed_at": "2026-10-28"
+   "review_note": "2026-10-28 第三輪（art-director 複審）退件：暮色湖面倒影，暗沉看不出廠房",
+   "reviewed_at": "2026-10-28",
+   "reject_reason": "暮色湖面倒影，暗沉看不出廠房"
   },
   {
    "file": "photo_3.jpg",
@@ -62,10 +64,11 @@
    "width": 1920,
    "height": 1484,
    "fetched_at": "2026-10-28T16:09:40+00:00",
-   "reviewed": true,
+   "reviewed": false,
    "reviewer": "art-director",
-   "review_note": "2026-10-28 第二輪（圖池）通過：主體符合、LOGO 非主角、畫質構圖可、原色",
-   "reviewed_at": "2026-10-28"
+   "review_note": "2026-10-28 第三輪（art-director 複審）退件：管線特寫，無主體",
+   "reviewed_at": "2026-10-28",
+   "reject_reason": "管線特寫，無主體"
   }
  ],
  "rejected": [
