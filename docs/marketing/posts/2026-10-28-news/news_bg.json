@@ -1,0 +1,9 @@
+{
+ "pre1": "bg/sdturbo_fab.png",
+ "pre2": "bg/sdturbo_datacenter.png",
+ "pre3": "../samples_1028/event_v2_lib/bg/fomc_day.jpg",
+ "pre4": "bg/sdturbo_city.png",
+ "intra1": "bg/sdturbo_fab.png",
+ "intra2": null,
+ "intra3": "bg/sdturbo_city.png"
+}
