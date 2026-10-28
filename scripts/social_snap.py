@@ -2123,6 +2123,7 @@ def main() -> int:
     ap.add_argument("--today", default="", help="覆寫「今天」（YYYY-MM-DD，示範／測試用）")
     ap.add_argument("--no-mis", action="store_true", help="不查 mis 即時成交日（離線測試用；臨時休市就只能靠休市日表）")
     ap.add_argument("--now", default="", help="覆寫「現在」（台北，YYYY-MM-DDTHH:MM，測試日期把關用；會連帶覆寫 --today）")
+    ap.add_argument("--fresh-news", action="store_true", help="新聞焦點除了資料湖 news，再當場抓一次鉅亨／科技新報／聯合（只併進記憶體，不寫湖；失敗就只用湖）")
     args = ap.parse_args()
     KIND = args.kind
     load_recent(args.landing_json)
@@ -2364,17 +2365,34 @@ def main() -> int:
                     log("  ⚠ 盤面分析失敗（不擋發文）：", str(exc)[:120])
             if it_:
                 ok.append({"name": "etf-buy", "ok": True, "read": {k_: [r["name"] for r in NAT.etf_buy(it_, k_, 10, dict(NAME_MAP))] for k_ in ("foreign", "trust")}})
+        text_ = build_text(args.kind, stamp_full, ok, data_date, today_ymd)
+        reply_ = ""
+        if args.kind in ("intraday", "close"):
+            # 2026-10-29 Andy：「盤前、盤中、盤後……除了基本的盤面解讀之外，還需要搭配當下的一些新聞消息，三到五個主題」
+            # → 盤面解讀之後、hashtag 之前加「📰 新聞焦點」；主文放不下就改放回覆串。新聞不足或出錯只寫 alert，絕不擋整篇。
+            try:
+                import social_live_news as LN
+                news_now_ = datetime.fromisoformat(args.now).replace(tzinfo=TPE) if args.now else now_tpe()
+                nf_ = LN.for_post(args.kind, text_, news_now_, HASHTAGS[args.kind], THREADS_MAX, fresh=args.fresh_news, log=log)
+                text_, reply_ = nf_["text"], nf_["reply"]
+                if nf_["alert"]:
+                    log("  ⚠", nf_["alert"])
+                    with open(out / "alert.txt", "a", encoding="utf-8") as fa_:
+                        fa_.write(nf_["alert"] + "\n")
+            except Exception as exc:  # noqa: BLE001
+                log("  ⚠ 新聞焦點失敗（不擋發文）：", str(exc)[:120])
+                with open(out / "alert.txt", "a", encoding="utf-8") as fa_:
+                    fa_.write(f"{args.kind} 貼文的新聞焦點失敗（{str(exc)[:100]}），這篇照發、少了新聞那段。\n")
         manifest = {
             "kind": args.kind,
             "taken_at": now_tpe().isoformat(timespec="seconds"),
             "data_date": data_date,
-            "threads": {"text": build_text(args.kind, stamp_full, ok, data_date, today_ymd),
-                        "images": threads_imgs},
+            "threads": {"text": text_, "images": threads_imgs, **({"reply": reply_} if reply_ else {})},
             "story": stories,
         }
         (out / "manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2), "utf-8")
         save_recent(out)
-        (out / "caption.txt").write_text(manifest["threads"]["text"] + "\n", "utf-8")   # 給 Andy 手動貼 IG（限動 API 不能附文字與連結貼紙）
+        (out / "caption.txt").write_text(manifest["threads"]["text"] + ("\n\n" + reply_ if reply_ else "") + "\n", "utf-8")   # 給 Andy 手動貼 IG（限動 API 不能附文字與連結貼紙）
         log("manifest：", out / "manifest.json", "；文案字數", len(manifest["threads"]["text"]))
         return 0
     finally:
