@@ -1,0 +1,47 @@
+# 公司實景照片素材庫（Andy 2026-10-28）：從 Wikimedia Commons 抓 CC0／CC BY／CC BY-SA／公有領域照片
+# 存進 social/photo_lib/<slug>/，meta.reviewed=false，art-director 審過才可用。手動觸發＋每週一次。
+name: 公司實景照片
+on:
+  workflow_dispatch:
+    inputs:
+      only:
+        description: "只抓這些 slug（逗號分隔，空白＝全部）"
+        default: ""
+      refresh:
+        description: "重抓未審核（reviewed=false）的照片：true／false"
+        default: "false"
+  schedule:
+    - cron: "17 19 * * 0"   # 每週一 03:17 台北
+permissions:
+  contents: write
+concurrency:
+  group: company-photos
+  cancel-in-progress: false
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -q requests pillow
+      - name: 抓圖
+        env:
+          ONLY: ${{ github.event.inputs.only }}
+          REFRESH: ${{ github.event.inputs.refresh }}
+        run: |
+          args=""
+          [ -n "$ONLY" ] && args="$args --only $ONLY"
+          [ "$REFRESH" = "true" ] && args="$args --refresh"
+          python scripts/company_photos.py $args
+      - name: commit 回 repo
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add social/photo_lib
+          git diff --cached --quiet && { echo 沒有新照片; exit 0; }
+          git commit -m "公司實景照片素材庫：自動抓取（待 art-director 審核）"
+          for i in 1 2 3 4 5; do git pull --rebase --autostash -q origin main && git push origin HEAD:main && exit 0; sleep 15; done
+          exit 1
