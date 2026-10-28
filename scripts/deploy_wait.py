@@ -47,6 +47,37 @@ def is_ancestor(a, b):
     return r.returncode == 0
 
 
+def wait_cloudflare(sha, pushed, t0, timeout):
+    """main 另要確認正式網域 liguligu-puipui.com（Cloudflare Pages）。
+    容器連不到網站，改看 pages.yml 那一輪「雙部署到 Cloudflare Pages」步驟的結果
+    （2026-10-28 起該步驟不再被 continue-on-error 吞掉，失敗會是 failure）。
+    要求：該輪 head_sha 是你推的 commit 或其後代、且在推送之後建立。"""
+    print("等 Cloudflare Pages（liguligu-puipui.com）…", flush=True)
+    while time.time() - t0 < timeout:
+        runs = gh(f"repos/{REPO}/actions/workflows/pages.yml/runs?branch=main&per_page=15")["workflow_runs"]
+        runs = [r for r in runs if ts(r["created_at"]) >= pushed - timedelta(minutes=1)
+                and is_ancestor(sha, r["head_sha"]) and r["conclusion"] != "cancelled"]
+        runs.sort(key=lambda r: r["created_at"])
+        for r in runs:
+            jobs = gh(f"repos/{REPO}/actions/runs/{r['id']}/jobs")["jobs"]
+            for j in jobs:
+                for st in j.get("steps", []):
+                    if "Cloudflare" not in st["name"]:
+                        continue
+                    if st["status"] != "completed":
+                        break
+                    if st["conclusion"] == "success":
+                        print(f"✅ liguligu-puipui.com（Cloudflare Pages）部署完成：run {r['id']}（{r['head_sha'][:8]}）"
+                              f"台北 {tpe(ts(st['completed_at']))} success")
+                        print("   ⚠ 容器打不開網站，依 Actions 步驟結果確認；請 Andy 重新整理看一眼。")
+                        return 0
+                    print(f"❌ Cloudflare Pages 步驟 {st['conclusion']}（run {r['id']}，{r['html_url']}）——正式網域沒同步，不可回報「好了」")
+                    return 1
+        time.sleep(20)
+    print("⏳ Cloudflare Pages 還沒部署完成 —— 不可以回報「好了」。")
+    return 2
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--branch", required=True, help="main 或 preview/<名稱>")
@@ -85,6 +116,8 @@ def main():
                 print(f"✅ 部署完成：Pages deployment {d['id']}（main {d['sha'][:8]}）台北 {tpe(done)} success")
                 print(f"   網址：{url}")
                 print("   ⚠ 這是從 GitHub 部署紀錄確認的；容器打不開網站，請 Andy 重新整理看一眼。")
+                if a.branch == "main":
+                    return wait_cloudflare(sha, pushed, t0, a.timeout)
                 return 0
             if state in ("failure", "error", "inactive"):
                 print(f"   deployment {d['id']}（{d['sha'][:8]}）{state} —— 繼續等下一筆", flush=True)

@@ -210,12 +210,11 @@ jobs:
       # 2026-10-06 雙部署（DECISIONS #339，說明見 docs/hosting_cost_plan.md）：
       # 同一份產出（site/）也部署到 Cloudflare Pages（https://tw-rotation.pages.dev/）。
       # GitHub Pages 條款不允許商業站，Cloudflare 可以；先並行跑，正式切換等 Andy 備好網域與 OAuth。
-      # 這一步失敗或跳過一律不讓整個部署變紅（continue-on-error），原因寫在 log 與 Step Summary。
+      # 2026-10-28 起不再 continue-on-error：失敗會讓這一輪變紅（GitHub Pages 已在前一步部署完，不受影響），deploy_wait.py 也靠這一步結果確認正式網域。
       # 只部署 main（preview 分支的預覽機制仍走 GitHub Pages）；
       # 不用 wrangler-action，直接 npx wrangler，才能分辨「缺金鑰／缺權限／部署失敗」。
       - name: 雙部署到 Cloudflare Pages（失敗不擋 GitHub Pages）
         id: cfpages
-        continue-on-error: true
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -224,12 +223,17 @@ jobs:
           if [ "${GITHUB_REF_NAME}" != "main" ]; then echo "非 main，跳過 Cloudflare Pages"; exit 0; fi
           if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
             echo "::warning::缺 CLOUDFLARE_API_TOKEN／CLOUDFLARE_ACCOUNT_ID，跳過 Cloudflare Pages"
-            sum "### Cloudflare Pages：已跳過（缺 Secret）"; exit 0
+            sum "### Cloudflare Pages：已跳過（缺 Secret）"; exit 1
           fi
+          # 2026-10-28 根因：Cloudflare Pages 單次部署上限 20,000 檔，site/ 含 preview/* 預覽就爆量，
+          # 步驟又被 continue-on-error 吞掉（顯示成功），正式網域因此一直停在舊版。
+          # 正式網域只需要 main，所以預覽目錄不送，並把檔數寫進 log。
+          rm -rf cf_site && mkdir cf_site && tar -C site --exclude='./preview' -cf - . | tar -C cf_site -xf -
+          echo "Cloudflare 部署檔數：$(find cf_site -type f | wc -l)（上限 20000）"
           # 專案不存在就建（已存在會回錯，忽略）；真正的權限問題由下面 deploy 的錯誤訊息判斷
           npx --yes wrangler@3 pages project create tw-rotation --production-branch main > cf_create.log 2>&1 || true
           cat cf_create.log
-          if npx --yes wrangler@3 pages deploy site --project-name tw-rotation --branch main --commit-hash "$GITHUB_SHA" --commit-dirty=true > cf_deploy.log 2>&1; then
+          if npx --yes wrangler@3 pages deploy cf_site --project-name tw-rotation --branch main --commit-hash "$GITHUB_SHA" --commit-dirty=true > cf_deploy.log 2>&1; then
             cat cf_deploy.log
             sum "### Cloudflare Pages：部署成功"
             sum '```'; tail -n 5 cf_deploy.log | sed 's/^/ /' >> "$GITHUB_STEP_SUMMARY"; sum '```'
