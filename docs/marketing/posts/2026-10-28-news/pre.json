@@ -1,202 +1,202 @@
 [
-  {
-    "id": "pre1",
-    "slot": "pre",
-    "data_date": "2026-10-28 台北（資料至 2026-10-28 清晨；市場數字為 10/27 收盤）",
-    "caption_threads": "美股 10/27 收盤：費城半導體指數 11,482.50 點、單日 +3.60%，那斯達克 +1.18%，標普 500 +0.60%。\n\n▍四大指數\n・費半 11,482.50（+3.60%）\n・那斯達克 26,477.81（+1.18%）\n・標普 500 7,722.60（+0.60%）、道瓊 52,377.57（+0.03%）\n▍台股相關\n・台積電 ADR 收 436.87 美元（+2.95%）\n▍昨日台股\n・加權收 46,096.23 點（+54.80 點）\n以上為公開資料整理，非投資建議\n#美股 #費半 #台積電ADR\n👉 更多詳細資料可以點擊以下連結：\nhttps://liguligu-puipui.com/?u=th-newspre1-20261028#industry/semiconductor",
-    "caption_ig": "美股 10/27 收盤：費城半導體指數 11,482.50 點、單日 +3.60%，那斯達克 +1.18%，標普 500 +0.60%。\n\n▍四大指數\n・費半 11,482.50（+3.60%）\n・那斯達克 26,477.81（+1.18%）\n・標普 500 7,722.60（+0.60%）、道瓊 52,377.57（+0.03%）\n▍台股相關\n・台積電 ADR 收 436.87 美元（+2.95%）\n▍昨日台股\n・加權收 46,096.23 點（+54.80 點）\n以上為公開資料整理，非投資建議\n#美股 #費半 #台積電ADR\n👉 更多詳細資料可以點擊以下連結：\nhttps://liguligu-puipui.com/?u=ig-newspre1-20261028#industry/semiconductor",
-    "card": {
-      "title": "費半單日漲 3.6%",
-      "subtitle": "隔夜美股，半導體誰帶頭？",
-      "numbers": [
-        {
-          "label": "費城半導體",
-          "value": "11,482.50",
-          "unit": "點"
-        },
-        {
-          "label": "那斯達克",
-          "value": "+1.18",
-          "unit": "%"
-        },
-        {
-          "label": "台積電 ADR",
-          "value": "436.87",
-          "unit": "美元"
-        }
-      ],
-      "category": "美股"
+ {
+  "id": "pre1",
+  "slot": "pre",
+  "data_date": "2026-10-28 台北（資料至 2026-10-28 清晨；市場數字為 10/27 收盤）",
+  "caption_threads": "美股 10/27 收盤：費城半導體指數 11,482.50 點、單日 +3.60%，那斯達克 +1.18%，標普 500 +0.60%。\n\n▍四大指數\n・費半 11,482.50（+3.60%）\n・那斯達克 26,477.81（+1.18%）\n・標普 500 7,722.60（+0.60%）、道瓊 52,377.57（+0.03%）\n▍台股相關\n・台積電 ADR 收 436.87 美元（+2.95%）\n▍昨日台股\n・加權收 46,096.23 點（+54.80 點）\n以上為公開資料整理，非投資建議\n#美股 #費半 #台積電ADR\n👉 更多詳細資料可以點擊以下連結：\nhttps://liguligu-puipui.com/?u=th-newspre1-20261028#industry/semiconductor",
+  "caption_ig": "美股 10/27 收盤：費城半導體指數 11,482.50 點、單日 +3.60%，那斯達克 +1.18%，標普 500 +0.60%。\n\n▍四大指數\n・費半 11,482.50（+3.60%）\n・那斯達克 26,477.81（+1.18%）\n・標普 500 7,722.60（+0.60%）、道瓊 52,377.57（+0.03%）\n▍台股相關\n・台積電 ADR 收 436.87 美元（+2.95%）\n▍昨日台股\n・加權收 46,096.23 點（+54.80 點）\n以上為公開資料整理，非投資建議\n#美股 #費半 #台積電ADR\n👉 更多詳細資料可以點擊以下連結：\nhttps://liguligu-puipui.com/?u=ig-newspre1-20261028#industry/semiconductor",
+  "card": {
+   "title": "費半單日漲 3.6%",
+   "subtitle": "隔夜美股，半導體誰帶頭？",
+   "numbers": [
+    {
+     "label": "費城半導體",
+     "value": "11,482.50",
+     "unit": "點"
     },
-    "link": "https://liguligu-puipui.com/?u=th-newspre1-20261028#industry/semiconductor",
-    "sources": [
-      {
-        "name": "Yahoo Finance 日線（本站資料湖 intl_daily，漲跌幅由相鄰兩日收盤計算）",
-        "url": "https://finance.yahoo.com/",
-        "date": "2026-10-27"
-      },
-      {
-        "name": "經濟日報：10月28日盤前／油價回落 美 AI 科技股回神 助攻台股反彈重回季線",
-        "url": "https://money.udn.com/money/story/5607/9841234",
-        "date": "2026-10-28"
-      },
-      {
-        "name": "鉅亨網：台積擺尾台股守住4萬6、外資連2賣 三大法人買超31.42億元",
-        "url": "https://news.cnyes.com/news/id/6638339",
-        "date": "2026-10-27"
-      }
-    ],
-    "confidence": "中（指數數字單一資料源，媒體標題只佐證方向）",
-    "note": "",
-    "chars_threads": 360
+    {
+     "label": "那斯達克",
+     "value": "+1.18",
+     "unit": "%"
+    },
+    {
+     "label": "台積電 ADR",
+     "value": "436.87",
+     "unit": "美元"
+    }
+   ],
+   "category": "美股"
   },
-  {
-    "id": "pre2",
-    "slot": "pre",
-    "data_date": "2026-10-28 台北（資料至 2026-10-28 清晨；市場數字為 10/27 收盤）",
-    "caption_threads": "SK 海力士 10/28 公布第三季：營收 104.62 兆韓元、營業利益 83.33 兆韓元，營業利益年增 632.1%。\n\n▍第三季\n・營收 104.62 兆韓元，創單季新高\n・營業利益 83.33 兆韓元，年增 632.1%\n▍對照\n・去年同期（2025 Q3）營業利益約 11.4 兆韓元\n▍公司說法（報導摘述）\n・記憶體供不應求將持續至 2030 年\n以上為公開資料整理，非投資建議\n#財報 #SK海力士 #記憶體\n👉 更多詳細資料可以點擊以下連結：\nhttps://liguligu-puipui.com/?u=th-newspre2-20261028#earnings",
-    "caption_ig": "SK 海力士 10/28 公布第三季：營收 104.62 兆韓元、營業利益 83.33 兆韓元，營業利益年增 632.1%。\n\n▍第三季\n・營收 104.62 兆韓元，創單季新高\n・營業利益 83.33 兆韓元，年增 632.1%\n▍對照\n・去年同期（2025 Q3）營業利益約 11.4 兆韓元\n▍公司說法（報導摘述）\n・記憶體供不應求將持續至 2030 年\n以上為公開資料整理，非投資建議\n#財報 #SK海力士 #記憶體\n👉 更多詳細資料可以點擊以下連結：\nhttps://liguligu-puipui.com/?u=ig-newspre2-20261028#earnings",
-    "card": {
-      "title": "SK海力士Q3營收破100兆",
-      "subtitle": "記憶體缺貨還要多久？",
-      "numbers": [
-        {
-          "label": "營收",
-          "value": "104.62",
-          "unit": "兆韓元"
-        },
-        {
-          "label": "營業利益",
-          "value": "83.33",
-          "unit": "兆韓元"
-        },
-        {
-          "label": "營業利益年增",
-          "value": "632.1",
-          "unit": "%"
-        }
-      ],
-      "category": "財報"
+  "link": "https://liguligu-puipui.com/?u=th-newspre1-20261028#industry/semiconductor",
+  "sources": [
+   {
+    "name": "Yahoo Finance 日線（本站資料湖 intl_daily，漲跌幅由相鄰兩日收盤計算）",
+    "url": "https://finance.yahoo.com/",
+    "date": "2026-10-27"
+   },
+   {
+    "name": "經濟日報：10月28日盤前／油價回落 美 AI 科技股回神 助攻台股反彈重回季線",
+    "url": "https://money.udn.com/money/story/5607/9841234",
+    "date": "2026-10-28"
+   },
+   {
+    "name": "鉅亨網：台積擺尾台股守住4萬6、外資連2賣 三大法人買超31.42億元",
+    "url": "https://news.cnyes.com/news/id/6638339",
+    "date": "2026-10-27"
+   }
+  ],
+  "confidence": "中（指數數字單一資料源，媒體標題只佐證方向）",
+  "note": "",
+  "chars_threads": 360
+ },
+ {
+  "id": "pre2",
+  "slot": "pre",
+  "data_date": "2026-10-28 台北（資料至 2026-10-28 清晨；市場數字為 10/27 收盤）",
+  "caption_threads": "SK 海力士 10/28 公布第三季：營收 104.62 兆韓元、營業利益 83.33 兆韓元，營業利益年增 632.1%。\n\n▍第三季\n・營收 104.62 兆韓元，創單季新高\n・營業利益 83.33 兆韓元，年增 632.1%\n▍對照\n・去年同期（2025 Q3）營業利益約 11.4 兆韓元\n▍公司說法（報導摘述）\n・記憶體供不應求將持續至 2030 年\n以上為公開資料整理，非投資建議\n#財報 #SK海力士 #記憶體\n👉 更多詳細資料可以點擊以下連結：\nhttps://liguligu-puipui.com/?u=th-newspre2-20261028#earnings",
+  "caption_ig": "SK 海力士 10/28 公布第三季：營收 104.62 兆韓元、營業利益 83.33 兆韓元，營業利益年增 632.1%。\n\n▍第三季\n・營收 104.62 兆韓元，創單季新高\n・營業利益 83.33 兆韓元，年增 632.1%\n▍對照\n・去年同期（2025 Q3）營業利益約 11.4 兆韓元\n▍公司說法（報導摘述）\n・記憶體供不應求將持續至 2030 年\n以上為公開資料整理，非投資建議\n#財報 #SK海力士 #記憶體\n👉 更多詳細資料可以點擊以下連結：\nhttps://liguligu-puipui.com/?u=ig-newspre2-20261028#earnings",
+  "card": {
+   "title": "SK海力士Q3營收破100兆",
+   "subtitle": "記憶體缺貨還要多久？",
+   "numbers": [
+    {
+     "label": "營收",
+     "value": "104.62",
+     "unit": "兆韓元"
     },
-    "link": "https://liguligu-puipui.com/?u=th-newspre2-20261028#earnings",
-    "sources": [
-      {
-        "name": "鉅亨網：〈財報〉AI記憶體賺翻！SK海力士Q3營業利益暴增六倍 祭全年100兆韓元回饋股東",
-        "url": "https://news.cnyes.com/news/id/6639023",
-        "date": "2026-10-28"
-      },
-      {
-        "name": "科技新報：SK 海力士第三季營收史上最高破 100 兆韓圜，強調供不應求將持續至 2030 年",
-        "url": "https://finance.technews.tw/2026/10/28/sk-hynixs-third-quarter-revenue-hit-a-record-high-of-over-100-trillion-won/",
-        "date": "2026-10-28"
-      },
-      {
-        "name": "科技新報：SK 海力士 2025 Q3 營收 24.4 兆、營業利益 11.4 兆韓元（對照基準）",
-        "url": "https://technews.tw/2025/11/28/sk-hynix-ai-order/",
-        "date": "2025-11-28"
-      }
-    ],
-    "confidence": "中高（營收兩家一致；營業利益由鉅亨報導，並以去年同期 11.4 兆回推年增約 632% 相符）",
-    "note": "",
-    "chars_threads": 291
+    {
+     "label": "營業利益",
+     "value": "83.33",
+     "unit": "兆韓元"
+    },
+    {
+     "label": "營業利益年增",
+     "value": "632.1",
+     "unit": "%"
+    }
+   ],
+   "category": "財報"
   },
-  {
-    "id": "pre3",
-    "slot": "pre",
-    "data_date": "2026-10-28 台北（資料至 2026-10-28 清晨；市場數字為 10/27 收盤）",
-    "caption_threads": "聯準會 10/28 美東 14:00（台灣 10/29 凌晨 2:00）公布利率決議；微軟、Alphabet 同日美股盤後公布財報。\n\n▍聯準會\n・9 月升息 1 碼，這是升息後第一次會議\n・本次會議不附經濟預測摘要（點陣圖）\n▍科技巨頭財報（美股盤後）\n・微軟、Alphabet 今日公布；Meta 上週已公布\n▍同日其他\n・SK 海力士財報、蘋果新品發表會\n以上為公開資料整理，非投資建議\n#總經 #FOMC #美股財報\n👉 更多詳細資料可以點擊以下連結：\nhttps://liguligu-puipui.com/?u=th-newspre3-20261028#earnings",
-    "caption_ig": "聯準會 10/28 美東 14:00（台灣 10/29 凌晨 2:00）公布利率決議；微軟、Alphabet 同日美股盤後公布財報。\n\n▍聯準會\n・9 月升息 1 碼，這是升息後第一次會議\n・本次會議不附經濟預測摘要（點陣圖）\n▍科技巨頭財報（美股盤後）\n・微軟、Alphabet 今日公布；Meta 上週已公布\n▍同日其他\n・SK 海力士財報、蘋果新品發表會\n以上為公開資料整理，非投資建議\n#總經 #FOMC #美股財報\n👉 更多詳細資料可以點擊以下連結：\nhttps://liguligu-puipui.com/?u=ig-newspre3-20261028#earnings",
-    "card": {
-      "title": "凌晨 2 點 Fed 決議",
-      "subtitle": "微軟、Alphabet 也同晚交卷",
-      "numbers": [
-        {
-          "label": "Fed 決議（台灣時間）",
-          "value": "10/29 02:00",
-          "unit": ""
-        },
-        {
-          "label": "財報",
-          "value": "2",
-          "unit": "家"
-        },
-        {
-          "label": "上次會議",
-          "value": "升息",
-          "unit": "1 碼"
-        }
-      ],
-      "category": "總經"
+  "link": "https://liguligu-puipui.com/?u=th-newspre2-20261028#earnings",
+  "sources": [
+   {
+    "name": "鉅亨網：〈財報〉AI記憶體賺翻！SK海力士Q3營業利益暴增六倍 祭全年100兆韓元回饋股東",
+    "url": "https://news.cnyes.com/news/id/6639023",
+    "date": "2026-10-28"
+   },
+   {
+    "name": "科技新報：SK 海力士第三季營收史上最高破 100 兆韓圜，強調供不應求將持續至 2030 年",
+    "url": "https://finance.technews.tw/2026/10/28/sk-hynixs-third-quarter-revenue-hit-a-record-high-of-over-100-trillion-won/",
+    "date": "2026-10-28"
+   },
+   {
+    "name": "科技新報：SK 海力士 2025 Q3 營收 24.4 兆、營業利益 11.4 兆韓元（對照基準）",
+    "url": "https://technews.tw/2025/11/28/sk-hynix-ai-order/",
+    "date": "2025-11-28"
+   }
+  ],
+  "confidence": "中高（營收兩家一致；營業利益由鉅亨報導，並以去年同期 11.4 兆回推年增約 632% 相符）",
+  "note": "",
+  "chars_threads": 291
+ },
+ {
+  "id": "pre3",
+  "slot": "pre",
+  "data_date": "2026-10-28 台北（資料至 2026-10-28 清晨；市場數字為 10/27 收盤）",
+  "caption_threads": "聯準會 10/28 美東 14:00（台灣 10/29 凌晨 2:00）公布利率決議；微軟、Alphabet 同日美股盤後公布財報。\n\n▍聯準會\n・9 月升息 1 碼，這是升息後第一次會議\n・本次會議不附經濟預測摘要（點陣圖）\n▍科技巨頭財報（美股盤後）\n・微軟、Alphabet 今日公布；Meta 上週已公布\n▍同日其他\n・SK 海力士財報、蘋果新品發表會\n以上為公開資料整理，非投資建議\n#總經 #FOMC #美股財報\n👉 更多詳細資料可以點擊以下連結：\nhttps://liguligu-puipui.com/?u=th-newspre3-20261028#earnings",
+  "caption_ig": "聯準會 10/28 美東 14:00（台灣 10/29 凌晨 2:00）公布利率決議；微軟、Alphabet 同日美股盤後公布財報。\n\n▍聯準會\n・9 月升息 1 碼，這是升息後第一次會議\n・本次會議不附經濟預測摘要（點陣圖）\n▍科技巨頭財報（美股盤後）\n・微軟、Alphabet 今日公布；Meta 上週已公布\n▍同日其他\n・SK 海力士財報、蘋果新品發表會\n以上為公開資料整理，非投資建議\n#總經 #FOMC #美股財報\n👉 更多詳細資料可以點擊以下連結：\nhttps://liguligu-puipui.com/?u=ig-newspre3-20261028#earnings",
+  "card": {
+   "title": "凌晨 2 點 Fed 決議",
+   "subtitle": "微軟、Alphabet 也同晚交卷",
+   "numbers": [
+    {
+     "label": "Fed 決議（台灣時間）",
+     "value": "10/29 02:00",
+     "unit": ""
     },
-    "link": "https://liguligu-puipui.com/?u=th-newspre3-20261028#earnings",
-    "sources": [
-      {
-        "name": "經濟日報：10月28日重要財經行事曆",
-        "url": "https://money.udn.com/money/story/5607/9841141",
-        "date": "2026-10-28"
-      },
-      {
-        "name": "fedratecalc.com：2026 年 10 月 FOMC 日程（10/27–28，決議 14:00 ET）",
-        "url": "https://fedratecalc.com/fomc-meeting-schedule/october-2026/",
-        "date": "2026-10"
-      },
-      {
-        "name": "本站 macro_events.yaml（9 月 FOMC 後升息 1 碼；10 月會議無 SEP）",
-        "url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
-        "date": "2026-10-05"
-      }
-    ],
-    "confidence": "中（日程多源一致；財報時間以公司公告為準；利率區間各源不一致故不寫）",
-    "note": "現行利率區間搜尋結果互相矛盾（3.50–3.75 vs 3.75–4.00），已刻意不寫；市場機率各源不一致亦不寫。",
-    "chars_threads": 291
+    {
+     "label": "財報",
+     "value": "2",
+     "unit": "家"
+    },
+    {
+     "label": "上次會議",
+     "value": "升息",
+     "unit": "1 碼"
+    }
+   ],
+   "category": "總經"
   },
-  {
-    "id": "pre4",
-    "slot": "pre",
-    "data_date": "2026-10-28 台北（資料至 2026-10-28 清晨；市場數字為 10/27 收盤）",
-    "caption_threads": "Anthropic 10/26 公開 IPO 申請文件，擬以代號 ANT 在那斯達克上市；七名共同創辦人經 Founder LLC 掌握 50.1% 投票權。\n\n▍文件重點（媒體整理）\n・代號 ANT、那斯達克\n・七名共同創辦人經 Founder LLC 握有 50.1% 投票權\n・流動資產約 1,300 億美元\n▍台股同日\n・10/27 早盤一度漲 544 點，收盤 +54.80 點\n以上為公開資料整理，非投資建議\n#科技 #Anthropic #IPO\n👉 更多詳細資料可以點擊以下連結：\nhttps://liguligu-puipui.com/?u=th-newspre4-20261028#industry/ai_server",
-    "caption_ig": "Anthropic 10/26 公開 IPO 申請文件，擬以代號 ANT 在那斯達克上市；七名共同創辦人經 Founder LLC 掌握 50.1% 投票權。\n\n▍文件重點（媒體整理）\n・代號 ANT、那斯達克\n・七名共同創辦人經 Founder LLC 握有 50.1% 投票權\n・流動資產約 1,300 億美元\n▍台股同日\n・10/27 早盤一度漲 544 點，收盤 +54.80 點\n以上為公開資料整理，非投資建議\n#科技 #Anthropic #IPO\n👉 更多詳細資料可以點擊以下連結：\nhttps://liguligu-puipui.com/?u=ig-newspre4-20261028#industry/ai_server",
-    "card": {
-      "title": "創辦人握 50.1% 投票權",
-      "subtitle": "Anthropic 上市後誰說了算？",
-      "numbers": [
-        {
-          "label": "共同創辦人",
-          "value": "7",
-          "unit": "名"
-        },
-        {
-          "label": "投票權",
-          "value": "50.1",
-          "unit": "%"
-        },
-        {
-          "label": "流動資產",
-          "value": "約 1,300",
-          "unit": "億美元"
-        }
-      ],
-      "category": "科技"
+  "link": "https://liguligu-puipui.com/?u=th-newspre3-20261028#earnings",
+  "sources": [
+   {
+    "name": "經濟日報：10月28日重要財經行事曆",
+    "url": "https://money.udn.com/money/story/5607/9841141",
+    "date": "2026-10-28"
+   },
+   {
+    "name": "fedratecalc.com：2026 年 10 月 FOMC 日程（10/27–28，決議 14:00 ET）",
+    "url": "https://fedratecalc.com/fomc-meeting-schedule/october-2026/",
+    "date": "2026-10"
+   },
+   {
+    "name": "本站 macro_events.yaml（9 月 FOMC 後升息 1 碼；10 月會議無 SEP）",
+    "url": "https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
+    "date": "2026-10-05"
+   }
+  ],
+  "confidence": "中（日程多源一致；財報時間以公司公告為準；利率區間各源不一致故不寫）",
+  "note": "現行利率區間搜尋結果互相矛盾（3.50–3.75 vs 3.75–4.00），已刻意不寫；市場機率各源不一致亦不寫。",
+  "chars_threads": 291
+ },
+ {
+  "id": "pre4",
+  "slot": "pre",
+  "data_date": "2026-10-28 台北（資料至 2026-10-28 清晨；市場數字為 10/27 收盤）",
+  "caption_threads": "Anthropic 10/26 公開 IPO 申請文件，擬以代號 ANT 在那斯達克上市；七名共同創辦人經 Founder LLC 掌握 50.1% 投票權。\n\n▍文件重點（媒體整理）\n・代號 ANT、那斯達克\n・七名共同創辦人經 Founder LLC 握有 50.1% 投票權\n・流動資產約 1,300 億美元\n以上為公開資料整理，非投資建議\n#科技 #Anthropic #IPO\n👉 更多詳細資料可以點擊以下連結：\nhttps://liguligu-puipui.com/?u=th-newspre4-20261028#industry/ai_server",
+  "caption_ig": "Anthropic 10/26 公開 IPO 申請文件，擬以代號 ANT 在那斯達克上市；七名共同創辦人經 Founder LLC 掌握 50.1% 投票權。\n\n▍文件重點（媒體整理）\n・代號 ANT、那斯達克\n・七名共同創辦人經 Founder LLC 握有 50.1% 投票權\n・流動資產約 1,300 億美元\n以上為公開資料整理，非投資建議\n#科技 #Anthropic #IPO\n👉 更多詳細資料可以點擊以下連結：\nhttps://liguligu-puipui.com/?u=ig-newspre4-20261028#industry/ai_server",
+  "card": {
+   "title": "創辦人握 50.1% 投票權",
+   "subtitle": "Anthropic 上市後誰說了算？",
+   "numbers": [
+    {
+     "label": "共同創辦人",
+     "value": "7",
+     "unit": "名"
     },
-    "link": "https://liguligu-puipui.com/?u=th-newspre4-20261028#industry/ai_server",
-    "sources": [
-      {
-        "name": "科技新報：Anthropic 公開 IPO 遞件，那斯達克上市股票代碼 ANT",
-        "url": "https://finance.technews.tw/2026/10/27/anthropic-files-s-1-with-the-sec-for-proposed-initial-public-offering/",
-        "date": "2026-10-27"
-      },
-      {
-        "name": "鉅亨網：Anthropic IPO治理架構曝光！7名共同創辦人掌握50.1%投票權 外部股東難左右決策",
-        "url": "https://news.cnyes.com/news/id/6638026",
-        "date": "2026-10-27"
-      },
-      {
-        "name": "經濟日報：台股虎頭蛇尾 拚反彈看四個訊號",
-        "url": "https://money.udn.com/money/story/5607/9840841",
-        "date": "2026-10-28"
-      }
-    ],
-    "confidence": "中高（ANT 代號兩家一致；50.1% 為鉅亨兩篇；流動資產鉅亨 1,317 億、科技新報 1,320 億，故寫約 1,300 億）",
-    "note": "招股書其他金額（承諾支出 5,000 億 vs 8,000 億）兩家不一致，未寫。",
-    "chars_threads": 319
-  }
+    {
+     "label": "投票權",
+     "value": "50.1",
+     "unit": "%"
+    },
+    {
+     "label": "流動資產",
+     "value": "約 1,300",
+     "unit": "億美元"
+    }
+   ],
+   "category": "科技"
+  },
+  "link": "https://liguligu-puipui.com/?u=th-newspre4-20261028#industry/ai_server",
+  "sources": [
+   {
+    "name": "科技新報：Anthropic 公開 IPO 遞件，那斯達克上市股票代碼 ANT",
+    "url": "https://finance.technews.tw/2026/10/27/anthropic-files-s-1-with-the-sec-for-proposed-initial-public-offering/",
+    "date": "2026-10-27"
+   },
+   {
+    "name": "鉅亨網：Anthropic IPO治理架構曝光！7名共同創辦人掌握50.1%投票權 外部股東難左右決策",
+    "url": "https://news.cnyes.com/news/id/6638026",
+    "date": "2026-10-27"
+   },
+   {
+    "name": "經濟日報：台股虎頭蛇尾 拚反彈看四個訊號",
+    "url": "https://money.udn.com/money/story/5607/9840841",
+    "date": "2026-10-28"
+   }
+  ],
+  "confidence": "中高（ANT 代號兩家一致；50.1% 為鉅亨兩篇；流動資產鉅亨 1,317 億、科技新報 1,320 億，故寫約 1,300 億）",
+  "note": "招股書其他金額（承諾支出 5,000 億 vs 8,000 億）兩家不一致，未寫。",
+  "chars_threads": 282
+ }
 ]
