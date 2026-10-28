@@ -15929,7 +15929,7 @@
           ],
           "overtime": "經常",
           "travel": null,
-          "n": 16,
+          "n": 25,
           "note": "網友自述未經查證；GoodJob 韌體設計 2026-04 月薪 9.2 萬（未滿 1 年）、韌體 9.5 萬（1 年）；2025-04 一筆 7 萬早於區間不採；公司頁平均週工時 47、42% 偶爾加班；年資 4～5 年 180～300 萬已排除；第二輪：Dcard 稱碩士起薪已調到約 9 萬、offer 不明寫保 14 但基本會達標；PTT 2026-02 開獎串 3 年 FW 年終 2＋分紅 5 個月（年薪近 300 萬）；GoodJob 韌體 2025-08～10 月薪 9.5～11 萬（範圍外參考）；未逐筆對應的舊彙整：{\"base_month_k\": [90, 90], \"bonus_months\": [5, 5], \"annual_total_wan\": [300, 300]}；未逐筆對應的舊彙整：overtime=偶爾；部分年薪／年薪月數由同一筆樣本的「底薪×月數」推算（樣本標 derived）",
           "sources": [
             {
@@ -16323,9 +16323,208 @@
               "quote_free_note": "自填；日工時 表訂/實際 8/12；原選項幾乎每天",
               "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2025-12（20261028_2235 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/慧榮科技股份有限公司/salary-work-times?p=1",
+              "date": "2025-09",
+              "page_date": "2025-09",
+              "date_confirmed": true,
+              "role": "韌體工程師",
+              "grade": null,
+              "unit_detail": "竹北",
+              "years": null,
+              "degree": null,
+              "base_k": 92,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 50,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 10/10",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2025-09（20261028_2251 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/慧榮科技股份有限公司/salary-work-times?p=1",
+              "date": "2025-08",
+              "page_date": "2025-08",
+              "date_confirmed": true,
+              "role": "韌體工程師",
+              "grade": null,
+              "unit_detail": "台北",
+              "years": "3",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 180,
+              "weekly_hours": 45,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/10",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2025-08（20261028_2251 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/慧榮科技股份有限公司/salary-work-times?p=1",
+              "date": "2025-08",
+              "page_date": "2025-08",
+              "date_confirmed": true,
+              "role": "韌體設計工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 92,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 45,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 9/9",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2025-08（20261028_2251 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/慧榮科技股份有限公司/salary-work-times?p=1",
+              "date": "2025-07",
+              "page_date": "2025-07",
+              "date_confirmed": true,
+              "role": "韌體工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 92,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 40.5,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/8.5",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2025-07（20261028_2251 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/慧榮科技股份有限公司/salary-work-times?p=1",
+              "date": "2025-06",
+              "page_date": "2025-06",
+              "date_confirmed": true,
+              "role": "韌體工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 92,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 45,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 9/9",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2025-06（20261028_2251 批）",
+              "dup_of": "https://www.goodjob.life/companies/慧榮科技股份有限公司/salary-work-times?p=1"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/慧榮科技股份有限公司/salary-work-times?p=1",
+              "date": "2025-03",
+              "page_date": "2025-03",
+              "date_confirmed": true,
+              "role": "韌體工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 92,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 45,
+              "overtime": "幾乎不",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 9/9",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2025-03（20261028_2251 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/慧榮科技股份有限公司/salary-work-times?p=2",
+              "date": "2025-03",
+              "page_date": "2025-03",
+              "date_confirmed": true,
+              "role": "韌體設計工程師",
+              "grade": null,
+              "unit_detail": "竹北",
+              "years": "3",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 220,
+              "weekly_hours": 48,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/9.5",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2025-03（20261028_2251 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/慧榮科技股份有限公司/salary-work-times?p=2",
+              "date": "2025-02",
+              "page_date": "2025-02",
+              "date_confirmed": true,
+              "role": "韌體設計工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 92,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 40,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/8",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2025-02（20261028_2251 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/慧榮科技股份有限公司/salary-work-times?p=2",
+              "date": "2025-01",
+              "page_date": "2025-01",
+              "date_confirmed": true,
+              "role": "韌體工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "2",
+              "degree": null,
+              "base_k": 97,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 45,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/9",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2025-01（20261028_2251 批）"
             }
           ],
-          "n_stat": 16
+          "n_stat": 24
         },
         {
           "unit": "研發 R&D",
@@ -16571,6 +16770,61 @@
               "date": "2026-03"
             }
           ]
+        },
+        {
+          "unit": null,
+          "role": "軟體工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": [
+            108,
+            108
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": [
+            42,
+            42
+          ],
+          "overtime": "偶爾",
+          "travel": null,
+          "n": 1,
+          "note": "2026-10-28 GoodJob 2251 批新增職位",
+          "confidence": "低",
+          "grade": null,
+          "n_stat": 1,
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/慧榮科技股份有限公司/salary-work-times?p=2",
+              "date": "2025-03",
+              "page_date": "2025-03",
+              "date_confirmed": true,
+              "role": "軟體工程師",
+              "grade": null,
+              "unit_detail": "竹北",
+              "years": "2",
+              "degree": null,
+              "base_k": 108,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 42,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 9/8.5",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2025-03（20261028_2251 批）"
+            }
+          ],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/慧榮科技股份有限公司/salary-work-times?p=2",
+              "date": "2025-03"
+            }
+          ]
         }
       ],
       "mops": {
@@ -16645,16 +16899,16 @@
             25.0
           ],
           "annual_total_wan": [
-            200,
+            180,
             200
           ],
           "weekly_hours": [
             40,
-            40
+            50
           ],
-          "overtime": "經常",
+          "overtime": "偶爾",
           "travel": null,
-          "n": 3,
+          "n": 6,
           "note": "網友自述未經查證；GoodJob 數位 IC 一筆月薪 8.4 萬（年份未載）；有人說固定 14 個月＋兩次分紅；2025～2026 年薪 120～220 萬筆數年資不一不採；第二輪：Dcard 2026 offer 比較一篇；GoodJob 數位 IC 新竹月薪 8 萬（每週 40 小時）、另一筆 7 萬幾乎每天加班（日期未明）；加班無加班費；base_month_k、annual_months 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples；部分年薪／年薪月數由同一筆樣本的「底薪×月數」推算（樣本標 derived）",
           "sources": [
             {
@@ -16671,6 +16925,11 @@
               "site": "GoodJob",
               "url": "https://www.goodjob.life/companies/瑞鼎科技股份有限公司/salary-work-times",
               "date": "2026-03"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/瑞鼎科技股份有限公司/salary-work-times?p=1",
+              "date": "2026-05"
             }
           ],
           "confidence": "中",
@@ -16735,9 +16994,75 @@
               "derived": [
                 "annual_months"
               ]
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/瑞鼎科技股份有限公司/salary-work-times?p=1",
+              "date": "2026-05",
+              "page_date": "2026-05",
+              "date_confirmed": true,
+              "role": "數位IC設計工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "5",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 200,
+              "weekly_hours": 50,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/10",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-05（20261028_2251 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/瑞鼎科技股份有限公司/salary-work-times?p=1",
+              "date": "2026-05",
+              "page_date": "2026-05",
+              "date_confirmed": true,
+              "role": "數位IC設計工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "2",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 180,
+              "weekly_hours": 45,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/10",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-05（20261028_2251 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/瑞鼎科技股份有限公司/salary-work-times?p=1",
+              "date": "2026-03",
+              "page_date": "2026-03",
+              "date_confirmed": true,
+              "role": "數位IC設計工程師",
+              "grade": null,
+              "unit_detail": "新竹",
+              "years": null,
+              "degree": null,
+              "base_k": 80,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 40,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/9",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-03（20261028_2251 批）"
             }
           ],
-          "n_stat": 2
+          "n_stat": 5
         },
         {
           "unit": "研發 R&D",
@@ -16840,6 +17165,50 @@
               "quote_free_note": "N＝現職月薪；月薪 N+10（未寫單位），整年 20 個月以上；一年出差 3～4 次、每次 1～2 週；9～21 點，假日偶爾開會",
               "in_window": true,
               "date_note": "Andy 桌面版＋Chrome 親眼讀頁面發文日期 2026-08-12"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/瑞鼎科技股份有限公司/salary-work-times?p=1",
+              "date": "2026-04",
+              "page_date": "2026-04",
+              "date_confirmed": true,
+              "role": "系統應用",
+              "grade": null,
+              "unit_detail": "新竹",
+              "years": "7",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 250,
+              "weekly_hours": 60,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 12/12；原選項幾乎每天；職稱未寫工程師",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-04（20261028_2251 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/瑞鼎科技股份有限公司/salary-work-times?p=1",
+              "date": "2026-01",
+              "page_date": "2026-01",
+              "date_confirmed": true,
+              "role": "SA",
+              "grade": null,
+              "unit_detail": "台南",
+              "years": "3",
+              "degree": null,
+              "base_k": 84,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 50,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/12；職稱未寫工程師",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-01（20261028_2251 批）"
             }
           ],
           "sources": [
@@ -16847,27 +17216,225 @@
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/261657235",
               "date": "2026-08"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/瑞鼎科技股份有限公司/salary-work-times?p=1",
+              "date": "2026-04"
             }
           ],
           "confidence": "低",
-          "n": 1,
+          "n": 3,
           "annual_months": [
             20,
             20
           ],
           "weekly_hours": [
-            60,
+            50,
             60
           ],
           "overtime": "經常",
           "travel": "偶爾",
           "years": null,
-          "base_month_k": null,
+          "base_month_k": [
+            84,
+            84
+          ],
           "bonus_months": null,
-          "annual_total_wan": null,
-          "n_stat": 1,
+          "annual_total_wan": [
+            250,
+            250
+          ],
+          "n_stat": 3,
           "note": null,
           "grade": null
+        },
+        {
+          "unit": null,
+          "role": "工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": [
+            70,
+            90
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": [
+            60,
+            60
+          ],
+          "overtime": null,
+          "travel": null,
+          "n": 2,
+          "note": "2026-10-28 GoodJob 2251 批新增職位",
+          "confidence": "低",
+          "grade": null,
+          "n_stat": 2,
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/瑞鼎科技股份有限公司/salary-work-times?p=1",
+              "date": "2026-10",
+              "page_date": "2026-10",
+              "date_confirmed": true,
+              "role": "工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "3",
+              "degree": null,
+              "base_k": 90,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 60,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 12/12；原選項幾乎每天",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-10（20261028_2251 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/瑞鼎科技股份有限公司/salary-work-times?p=1",
+              "date": "2026-03",
+              "page_date": "2026-03",
+              "date_confirmed": true,
+              "role": "工程師",
+              "grade": null,
+              "unit_detail": "新竹",
+              "years": null,
+              "degree": null,
+              "base_k": 70,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 60,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 12/12",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-03（20261028_2251 批）"
+            }
+          ],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/瑞鼎科技股份有限公司/salary-work-times?p=1",
+              "date": "2026-10"
+            }
+          ]
+        },
+        {
+          "unit": null,
+          "role": "硬體工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": [
+            90,
+            90
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": [
+            55,
+            55
+          ],
+          "overtime": "偶爾",
+          "travel": null,
+          "n": 1,
+          "note": "2026-10-28 GoodJob 2251 批新增職位",
+          "confidence": "低",
+          "grade": null,
+          "n_stat": 1,
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/瑞鼎科技股份有限公司/salary-work-times?p=1",
+              "date": "2026-04",
+              "page_date": "2026-04",
+              "date_confirmed": true,
+              "role": "硬體工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "2",
+              "degree": null,
+              "base_k": 90,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 55,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/10",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-04（20261028_2251 批）"
+            }
+          ],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/瑞鼎科技股份有限公司/salary-work-times?p=1",
+              "date": "2026-04"
+            }
+          ]
+        },
+        {
+          "unit": null,
+          "role": "軟體工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": [
+            75,
+            75
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": [
+            60,
+            60
+          ],
+          "overtime": "經常",
+          "travel": null,
+          "n": 1,
+          "note": "2026-10-28 GoodJob 2251 批新增職位",
+          "confidence": "低",
+          "grade": null,
+          "n_stat": 1,
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/瑞鼎科技股份有限公司/salary-work-times?p=1",
+              "date": "2026-01",
+              "page_date": "2026-01",
+              "date_confirmed": true,
+              "role": "軟體工程師",
+              "grade": null,
+              "unit_detail": "竹科",
+              "years": null,
+              "degree": null,
+              "base_k": 75,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 60,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 12/12；原選項幾乎每天",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-01（20261028_2251 批）"
+            }
+          ],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/瑞鼎科技股份有限公司/salary-work-times?p=1",
+              "date": "2026-01"
+            }
+          ]
         }
       ],
       "mops": {
