@@ -439,7 +439,7 @@
           (list.length ? '<div class="tc-grid">' + list.map((x) => coCard(S.ind, x[0], x[1])).join('') + '</div>' : '<div class="empty isempty tc-empty">沒有符合篩選的公司</div>');
       }
     }
-    h += '</div></div><div class="tc-foot">' + esc(FOOT) + '</div>';
+    h += '</div></div><div class="tc-foot">' + esc(FOOT) + '・<a href="https://github.com/MiaoZiKe/tw-rotation/blob/main/data/logos/tc/ATTRIBUTION.md" target="_blank" rel="noopener">LOGO 出處與授權</a>（部分取自 Wikimedia Commons；商標屬各公司）</div>';
     root.innerHTML = h;
     bindHow(root);
     $$('.tc-smt td.tc-clip', root).forEach((td) => td.onclick = () => td.classList.toggle('open'));
