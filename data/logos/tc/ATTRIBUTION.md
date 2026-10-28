@@ -17,7 +17,9 @@
 | ite.com.tw | [File:ITE Tech logo 20140131.svg](https://commons.wikimedia.org/wiki/File:ITE_Tech_logo_20140131.svg) | ITE Tech. Inc. | Public domain |
 | liteon.com | [File:Liteon logo.svg](https://commons.wikimedia.org/wiki/File:Liteon_logo.svg) | Lite-On Technology | Public domain |
 | monolithicpower.com | [File:Monolithic Power Systems Logo.svg](https://commons.wikimedia.org/wiki/File:Monolithic_Power_Systems_Logo.svg) | Monolithic Power Systems, Inc. | Public domain |
+| nvidia.com | [File:NVIDIA logo.svg](https://commons.wikimedia.org/wiki/File:NVIDIA_logo.svg) | Nvidia | Apache License 2.0 <http://www.apache.org/licenses/LICENSE-2.0> |
 | powerchip.com | [File:Powerchip logo.svg](https://commons.wikimedia.org/wiki/File:Powerchip_logo.svg) | Powerchip Semiconductor Manufacturing Corporation | Public domain |
+| qualcomm.com | [File:Qualcomm-Logo.svg](https://commons.wikimedia.org/wiki/File:Qualcomm-Logo.svg) | Original: Qualcomm | Public domain |
 | richtek.com | [File:Richtek logo.PNG](https://commons.wikimedia.org/wiki/File:Richtek_logo.PNG) | Richtek | Public domain |
 | synopsys.com | [File:Synopsys Logo.svg](https://commons.wikimedia.org/wiki/File:Synopsys_Logo.svg) | ™/®Synopsys, Inc. | Public domain |
 | trendmicro.com | [File:Trend Micro logo.svg](https://commons.wikimedia.org/wiki/File:Trend_Micro_logo.svg) | Trend Micro | Public domain |

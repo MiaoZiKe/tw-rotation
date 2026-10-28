@@ -84,6 +84,9 @@ _TICKER = re.compile(r"(?<!\d)(\d{4,6}[A-Z]?)(?![\d])")
 _SUFFIX = re.compile(r"(股份有限公司|有限公司|公司)$")
 
 
+MANUAL_MAX_ASPECT = 8.0      # 人工指定 commons_file 的檔（NVIDIA、Qualcomm 橫長字標約 5.4:1）放寬到 8:1，其餘維持 config.LOGO_MAX_ASPECT
+
+
 class Throttled(Exception):
     """Wikimedia 回 429／503（maxlag）：這輪整段收手。"""
 
@@ -266,12 +269,18 @@ def license_of(ext: dict) -> tuple[str | None, str]:
 
 
 def _api(params: dict):
-    url = config.LOGO_COMMONS_API + "?" + urlencode({**params, "format": "json", "formatversion": "2",
-                                                     "maxlag": "5"})
-    res = http.get_bytes(url, headers=_headers(), timeout=20, max_bytes=5_000_000)
-    if res is None:
-        return None
-    status, body, _ct, _final = res
+    # 不帶 maxlag（理由同 _wd_api：10-28 回補日誌 Commons 也對 runner 回 503）；503／429 退避重試兩次
+    url = config.LOGO_COMMONS_API + "?" + urlencode({**params, "format": "json", "formatversion": "2"})
+    status = body = None
+    for wait in (0, 5, 15):
+        if wait:
+            time.sleep(wait)
+        res = http.get_bytes(url, headers=_headers(), timeout=20, max_bytes=5_000_000)
+        if res is None:
+            return None
+        status, body, _ct, _final = res
+        if status not in (429, 503):
+            break
     if status == 429 or status == 503:
         raise Throttled(f"Commons API 回 HTTP {status}")
     try:
@@ -417,7 +426,7 @@ def _fetch_many(rows, reject, deadline, today, max_downloads) -> dict[str, dict]
     return out
 
 
-def _download(lg, info: dict):
+def _download(lg, info: dict, max_aspect: float | None = None):
     """下載 Commons 縮圖（SVG 由 Commons 算繪成 PNG）→ logos.normalize_image。回 (png, 原圖尺寸) 或 LogoReject。"""
     url = info.get("thumb")
     if not url:
@@ -433,7 +442,7 @@ def _download(lg, info: dict):
     try:
         # 不做照片判定：P154 本來就是「標誌圖片」屬性，而且縮圖是 Commons 依原比例算的。
         # 只收 ≥32px（第三方來源的標準，跟 Google s2 一樣），長寬比超過 5:1 的橫長字標照樣判太小。
-        return lg.normalize_image(body, allow_lowres=False)
+        return lg.normalize_image(body, allow_lowres=False, max_aspect=max_aspect)
     except lg.LogoReject as rej:
         return rej
 
@@ -445,11 +454,19 @@ def _download(lg, info: dict):
 
 def _wd_api(params: dict):
     """Wikidata 的 wbsearchentities／wbgetentities。429／503／maxlag 丟 Throttled，其餘壞掉回 None。"""
-    url = config.LOGO_WIKIDATA_API + "?" + urlencode({**params, "format": "json", "maxlag": "5"})
-    res = http.get_bytes(url, headers=_headers(), timeout=20, max_bytes=5_000_000)
-    if res is None:
-        return None
-    status, body, _ct, _final = res
+    # 不帶 maxlag：10-28 回補日誌顯示帶 maxlag=5 時 Wikidata 複寫延遲一高就整批回 503，
+    # 42 個網域全部「沒回應」；唯讀查詢本來就不必帶（maxlag 是給大量寫入的機器人用的）。
+    url = config.LOGO_WIKIDATA_API + "?" + urlencode({**params, "format": "json"})
+    status = body = None
+    for wait in (0, 5, 15):        # 503／429 先退避重試兩次，仍不行才收手，避免一次抖動就放棄整批
+        if wait:
+            time.sleep(wait)
+        res = http.get_bytes(url, headers=_headers(), timeout=20, max_bytes=5_000_000)
+        if res is None:
+            return None
+        status, body, _ct, _final = res
+        if status not in (429, 503):
+            break
     if status in (429, 503):
         raise Throttled(f"Wikidata API 回 HTTP {status}")
     try:
@@ -507,20 +524,85 @@ def logo_by_website(name_en: str, domain: str) -> dict | None:
     return {"file": f if f.startswith("File:") else "File:" + f, "item": hits[0][1], "match": "website"}
 
 
+def logos_by_domains_sparql(domains: list[str]) -> dict[str, dict]:
+    """備援：wbsearchentities（www.wikidata.org/w/api.php）被 GitHub runner 的 IP 擋成 503 時，
+    改走 SPARQL（query.wikidata.org，每週查台灣條目已證實連得上）一次問完：官方網站 P856 含該網域、且有標誌圖 P154。
+    回 {網域: {file, item, match}}；同一網域對到兩個以上不同圖檔就不收（不猜）。連線失敗回 {}。"""
+    from . import logos as lg
+
+    doms = sorted({d.lower() for d in domains if d and re.fullmatch(r"[a-z0-9.-]+", d.lower())})
+    if len(doms) > 10:          # 一次問太多容易逾時：約 10 個一批
+        out: dict[str, dict] = {}
+        for i in range(0, len(doms), 10):
+            if i:
+                time.sleep(config.LOGO_WIKIMEDIA_PAUSE_SEC)
+            out.update(logos_by_domains_sparql(doms[i:i + 10]))
+        return out
+    if not doms:
+        return {}
+    cond = " || ".join(f'CONTAINS(LCASE(STR(?site)), "{d}")' for d in doms)
+    q = f"SELECT DISTINCT ?item ?site ?logo WHERE {{ ?item wdt:P154 ?logo . ?item wdt:P856 ?site . FILTER({cond}) }}"
+    res = http.get_bytes(config.LOGO_WIKIDATA_SPARQL + "?" + urlencode({"query": q, "format": "json"}),
+                         headers={**_headers(), "Accept": "application/sparql-results+json"}, timeout=70, max_bytes=5_000_000)
+    if res is None or res[0] != 200:
+        log.warning("Wikidata SPARQL 備援失敗（HTTP %s）", res[0] if res else "連線失敗")
+        return {}
+    try:
+        rows = json.loads(res[1].decode("utf-8"))["results"]["bindings"]
+    except (ValueError, KeyError, TypeError, UnicodeDecodeError):
+        log.warning("Wikidata SPARQL 備援回應解析失敗（回應前 200 字）：%s", res[1][:200].decode("utf-8", errors="replace"))
+        return {}
+    found: dict[str, set] = {}
+    for b in rows:
+        try:
+            host = (re.sub(r"^[a-z]+://", "", b["site"]["value"].strip().lower()).split("/")[0]).split(":")[0]
+            f = file_title(b["logo"]["value"])
+            q_id = b["item"]["value"].rsplit("/", 1)[-1]
+        except (KeyError, TypeError):
+            continue
+        for d in doms:
+            if f and lg.same_company(host, d):
+                found.setdefault(d, set()).add((f, q_id))
+    out = {}
+    for d, v in found.items():
+        if len({x[0] for x in v}) == 1:
+            f, q_id = sorted(v)[0]
+            out[d] = {"file": f if f.startswith("File:") else "File:" + f, "item": q_id, "match": "website-sparql"}
+    return out
+
+
 def fetch_by_website(rows: list[dict], reject=frozenset(), deadline: float | None = None) -> dict[str, dict]:
     """rows＝[{domain, en}] → {網域: 結果}（格式同 fetch_many，多半 status＝ok／none）。絕不拋例外；被限流就整段收手。"""
     from . import logos as lg
 
     out: dict[str, dict] = {}
+    sp: dict | None = None      # 非 None＝API 被擋，改用 SPARQL 備援的結果
+    strikes = 0     # 被限流的次數：前兩次睡一下再試同一家，第三次才整段收手（10-28 日誌：Commons 503 一次就收手，剩 30 多家全記沒回應）
     try:
-        for r in rows:
-            dom, name = r["domain"], r.get("en")
-            if not name:
+        queue = list(rows)
+        while queue:
+            r = queue.pop(0)
+            dom, name, manual = r["domain"], r.get("en"), r.get("commons_file")
+            if not name and not manual:
                 continue
             if deadline and time.time() >= deadline:
                 break
             try:
-                hit = logo_by_website(name, dom)
+                if manual:      # 人工查證過的 Commons 檔名：不依賴 Wikidata，授權照 license_of 檢查
+                    hit = {"file": manual if manual.startswith("File:") else "File:" + manual,
+                           "item": None, "match": "manual"}
+                elif sp is None:
+                    try:
+                        hit = logo_by_website(name, dom)
+                    except Throttled as exc:
+                        log.warning("Wikimedia（依網域）：%s，改走 SPARQL 備援", exc)
+                        got_sp = logos_by_domains_sparql([x["domain"] for x in rows if x.get("en") and not x.get("commons_file")])
+                        if not got_sp:
+                            raise      # 備援也沒東西：照限流處理（不能把 sp 設成 {}，不然後面全被當成「查不到」）
+                        sp = got_sp
+                        hit = sp.get(dom)
+                else:
+                    hit = sp.get(dom)
                 time.sleep(config.LOGO_WIKIMEDIA_PAUSE_SEC)
                 if not hit:
                     out[dom] = {"status": "none", "domain": dom, "detail": f"Wikidata 查不到官網是 {dom} 的 {name}／沒有標誌圖"}
@@ -539,7 +621,7 @@ def fetch_by_website(rows: list[dict], reject=frozenset(), deadline: float | Non
                                 "detail": f"{short} 需要署名，前端還沒有出處連結，暫不收（{hit['file']}）"[:200]}
                     continue
                 time.sleep(config.LOGO_WIKIMEDIA_PAUSE_SEC)
-                res = _download(lg, info)
+                res = _download(lg, info, MANUAL_MAX_ASPECT if hit.get("match") == "manual" else None)
                 if isinstance(res, Throttled):
                     raise res
                 if isinstance(res, lg.LogoReject):
@@ -553,8 +635,13 @@ def fetch_by_website(rows: list[dict], reject=frozenset(), deadline: float | Non
                             "png": png, "orig": list(orig),
                             "attribution": attribution(hit["file"], info, kind, short, hit)}
             except Throttled as exc:
-                log.warning("Wikimedia（依網域）：%s，這輪收手", exc)
-                break
+                strikes += 1
+                if strikes >= 3 or (deadline and time.time() + 40 >= deadline):
+                    log.warning("Wikimedia（依網域）：%s，這輪收手", exc)
+                    break
+                log.warning("Wikimedia（依網域）：%s，睡 30 秒後重試這一家（第 %d 次）", exc, strikes)
+                time.sleep(30)
+                queue.insert(0, r)
             except Exception as exc:  # noqa: BLE001 —— 一家壞掉不影響下一家
                 out[dom] = {"status": "error", "domain": dom, "detail": str(exc)[:200]}
     except Exception as exc:  # noqa: BLE001

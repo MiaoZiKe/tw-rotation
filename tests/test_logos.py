@@ -1865,3 +1865,66 @@ def test_run_records_group_via_and_site(sandbox):
     lg.run(today=date(2026, 9, 29), fetcher=fetcher)
     rec = lg.read_index()["items"]["9999"]
     assert rec["via"] == "group" and rec["site"] == "www.group.com"
+
+
+def test_依網域_API被擋503時改走SPARQL備援(monkeypatch):
+    """Wikidata API 對 runner 持續 503 時，不要整批『沒回應』：改用 SPARQL 備援一次問完。"""
+    from pipeline.sources import logo_wikimedia as wm
+
+    def boom(name, dom):
+        raise wm.Throttled("Wikidata API 回 HTTP 503")
+    monkeypatch.setattr(wm, "logo_by_website", boom)
+    monkeypatch.setattr(wm, "logos_by_domains_sparql", lambda doms: {})
+    monkeypatch.setattr(wm.time, "sleep", lambda s: None)
+    assert wm.fetch_by_website([{"domain": "nvidia.com", "en": "NVIDIA"}]) == {}    # 備援也空＝照舊收手
+    monkeypatch.setattr(wm, "logos_by_domains_sparql", lambda doms: {})
+    monkeypatch.setattr(wm, "commons_info", lambda t: {})
+    monkeypatch.setattr(wm, "logos_by_domains_sparql",
+                        lambda doms: {"nvidia.com": {"file": "File:N.svg", "item": "Q1", "match": "website-sparql"}})
+    out = wm.fetch_by_website([{"domain": "nvidia.com", "en": "NVIDIA"}])
+    assert out["nvidia.com"]["status"] == "none" and "Commons" in out["nvidia.com"]["detail"]
+
+
+def test_指定commons_file不經Wikidata(monkeypatch):
+    """人工查證過的 Commons 檔名：Wikidata 完全不問，仍走 commons_info／license_of。"""
+    from pipeline.sources import logo_wikimedia as wm
+
+    def nope(*a, **k):
+        raise AssertionError("不該問 Wikidata")
+    monkeypatch.setattr(wm, "logo_by_website", nope)
+    monkeypatch.setattr(wm, "logos_by_domains_sparql", nope)
+    monkeypatch.setattr(wm.time, "sleep", lambda s: None)
+    seen = {}
+    monkeypatch.setattr(wm, "commons_info", lambda t: seen.setdefault("t", t) and {})
+    out = wm.fetch_by_website([{"domain": "nvidia.com", "en": "", "commons_file": "File:NVIDIA logo.svg"}])
+    assert seen["t"] == ["File:NVIDIA logo.svg"] and out["nvidia.com"]["status"] == "none"
+
+
+def test_限流睡一下重試同一家不整段收手(monkeypatch):
+    from pipeline.sources import logo_wikimedia as wm
+    calls = []
+
+    def flaky(name, dom):
+        calls.append(dom)
+        if len(calls) == 1:
+            raise wm.Throttled("Commons API 回 HTTP 503")
+        return None
+    monkeypatch.setattr(wm, "logo_by_website", flaky)
+    monkeypatch.setattr(wm, "logos_by_domains_sparql", lambda doms: {})
+    monkeypatch.setattr(wm.time, "sleep", lambda s: None)
+    out = wm.fetch_by_website([{"domain": "a.com", "en": "A"}, {"domain": "b.com", "en": "B"}])
+    assert calls == ["a.com", "a.com", "b.com"] and set(out) == {"a.com", "b.com"}
+
+
+def test_manual_檔長寬比放寬到8比1():
+    import io
+    from PIL import Image
+    from pipeline.sources import logos as lg
+    buf = io.BytesIO(); _im = Image.new("RGBA", (250, 46), (0, 0, 0, 0)); _im.paste((200, 0, 0, 255), (10, 10, 120, 36)); _im.paste((0, 0, 200, 255), (130, 5, 240, 40)); _im.save(buf, "PNG")
+    try:
+        lg.normalize_image(buf.getvalue())
+        assert False, "預設 5:1 應擋"
+    except lg.LogoReject as rej:
+        assert rej.reason == "too_wide"
+    png, orig = lg.normalize_image(buf.getvalue(), max_aspect=8.0)
+    assert orig == (250, 46)

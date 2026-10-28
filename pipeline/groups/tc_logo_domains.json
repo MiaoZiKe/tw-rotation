@@ -251,7 +251,8 @@
    "names": [
     "NVIDIA"
    ],
-   "en": "Nvidia"
+   "en": "Nvidia",
+   "commons_file": "File:NVIDIA logo.svg"
   },
   {
    "domain": "phihongtech.com",
@@ -265,7 +266,8 @@
    "names": [
     "高通"
    ],
-   "en": "Qualcomm"
+   "en": "Qualcomm",
+   "commons_file": "File:Qualcomm-Logo.svg"
   },
   {
    "domain": "questglobal.com",
