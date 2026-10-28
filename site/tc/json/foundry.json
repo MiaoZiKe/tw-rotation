@@ -23364,7 +23364,10 @@
           "role": "半導體工程師",
           "degree": "碩士",
           "years": null,
-          "base_month_k": null,
+          "base_month_k": [
+            52,
+            52
+          ],
           "bonus_months": null,
           "annual_months": null,
           "annual_total_wan": [
@@ -23375,9 +23378,9 @@
             35,
             48
           ],
-          "overtime": "幾乎不",
+          "overtime": null,
           "travel": null,
-          "n": 4,
+          "n": 5,
           "note": "",
           "sources": [
             {
@@ -23489,9 +23492,31 @@
               "quote_free_note": "自填；日工時 表訂/實際 12/12",
               "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2025-06（20261028_1901 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/穩懋半導體股份有限公司/salary-work-times?p=3",
+              "date": "2025-02",
+              "page_date": "2025-02",
+              "date_confirmed": true,
+              "role": "工程師",
+              "grade": null,
+              "unit_detail": "華亞",
+              "years": "10",
+              "degree": null,
+              "base_k": 52,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 45,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/9",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2025-02（20261028_2010 批）"
             }
           ],
-          "n_stat": 4
+          "n_stat": 5
         },
         {
           "unit": "其他",
@@ -24178,7 +24203,7 @@
           "degree": null,
           "years": null,
           "base_month_k": [
-            63,
+            50,
             63
           ],
           "bonus_months": null,
@@ -24186,15 +24211,15 @@
           "annual_total_wan": null,
           "weekly_hours": [
             40,
-            40
+            42
           ],
           "overtime": "偶爾",
           "travel": null,
-          "n": 1,
+          "n": 2,
           "note": "2026-10-28 GoodJob 1901 批新增職位",
           "confidence": "低",
           "grade": null,
-          "n_stat": 1,
+          "n_stat": 2,
           "samples": [
             {
               "site": "GoodJob",
@@ -24217,6 +24242,28 @@
               "quote_free_note": "自填；日工時 表訂/實際 8/8.5",
               "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2025-07（20261028_1901 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/穩懋半導體股份有限公司/salary-work-times?p=3",
+              "date": "2025-04",
+              "page_date": "2025-04",
+              "date_confirmed": true,
+              "role": "技術開發工程師",
+              "grade": null,
+              "unit_detail": "華亞廠",
+              "years": "1",
+              "degree": null,
+              "base_k": 50,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 42,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/9",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2025-04（20261028_2010 批）"
             }
           ],
           "sources": [
@@ -24224,6 +24271,138 @@
               "site": "GoodJob",
               "url": "https://www.goodjob.life/companies/穩懋半導體股份有限公司/salary-work-times?p=3",
               "date": "2025-07"
+            }
+          ]
+        },
+        {
+          "unit": null,
+          "role": "品質工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": [
+            52.5,
+            60
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": [
+            40,
+            40
+          ],
+          "overtime": "幾乎不",
+          "travel": null,
+          "n": 2,
+          "note": "2026-10-28 GoodJob 2010 批新增職位",
+          "confidence": "低",
+          "grade": null,
+          "n_stat": 2,
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/穩懋半導體股份有限公司/salary-work-times?p=3",
+              "date": "2025-04",
+              "page_date": "2025-04",
+              "date_confirmed": true,
+              "role": "SPC品質工程施",
+              "grade": null,
+              "unit_detail": "華亞廠",
+              "years": "4",
+              "degree": null,
+              "base_k": 60,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 40,
+              "overtime": "幾乎不",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/8；職稱原文如此",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2025-04（20261028_2010 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/穩懋半導體股份有限公司/salary-work-times?p=3",
+              "date": "2025-04",
+              "page_date": "2025-04",
+              "date_confirmed": true,
+              "role": "品質工程師",
+              "grade": null,
+              "unit_detail": "華亞",
+              "years": "1",
+              "degree": null,
+              "base_k": 52.5,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 40,
+              "overtime": "幾乎不",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/8",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2025-04（20261028_2010 批）"
+            }
+          ],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/穩懋半導體股份有限公司/salary-work-times?p=3",
+              "date": "2025-04"
+            }
+          ]
+        },
+        {
+          "unit": null,
+          "role": "整合工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": [
+            90,
+            90
+          ],
+          "weekly_hours": [
+            40,
+            40
+          ],
+          "overtime": "偶爾",
+          "travel": null,
+          "n": 1,
+          "note": "2026-10-28 GoodJob 2010 批新增職位",
+          "confidence": "低",
+          "grade": null,
+          "n_stat": 1,
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/穩懋半導體股份有限公司/salary-work-times?p=3",
+              "date": "2025-03",
+              "page_date": "2025-03",
+              "date_confirmed": true,
+              "role": "整合工程師",
+              "grade": null,
+              "unit_detail": "桃園龜山",
+              "years": "10",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 90,
+              "weekly_hours": 40,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 12/13",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2025-03（20261028_2010 批）"
+            }
+          ],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/穩懋半導體股份有限公司/salary-work-times?p=3",
+              "date": "2025-03"
             }
           ]
         }

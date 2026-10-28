@@ -3221,18 +3221,26 @@
             70
           ],
           "bonus_months": null,
-          "annual_months": null,
+          "annual_months": [
+            14,
+            14
+          ],
           "annual_total_wan": null,
           "weekly_hours": null,
           "overtime": null,
           "travel": null,
-          "n": 1,
+          "n": 2,
           "note": null,
           "sources": [
             {
               "site": "GoodJob",
               "url": "https://www.goodjob.life/experiences/6a748b900f1e83fde6f76a97",
               "date": "2026-08"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/258635659",
+              "date": "2025-04"
             }
           ],
           "confidence": "低",
@@ -3257,9 +3265,85 @@
               "in_window": true,
               "date_note": "GoodJob 標題日期 2026.8.6",
               "role": "製程工程師"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/258635659",
+              "date": "2025-04",
+              "page_date": "2025-04-24",
+              "date_confirmed": true,
+              "role": "量產製程工程師（林口，碩士新人 offer）",
+              "grade": null,
+              "unit_detail": "林口",
+              "years": "0",
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": 14,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "代 PO：全薪 N-5（N＝台積 2024 新人價），保 14，可報加班費；B6-3 稱保 14＝年終 1＋端午 1",
+              "in_window": true,
+              "date_note": "Dcard 頁面發文日期 2025-04-24（20261028_2009 批）",
+              "comment_sample": false
             }
           ],
-          "n_stat": 1
+          "n_stat": 2
+        },
+        {
+          "unit": null,
+          "role": "可靠度工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": [
+            70,
+            70
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n": 1,
+          "note": "2026-10-28 Dcard 2009 批新增職位",
+          "confidence": "低",
+          "grade": null,
+          "n_stat": 1,
+          "samples": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/259355292#留言B9-6",
+              "date": "2025-10",
+              "page_date": "2025-10-11",
+              "date_confirmed": true,
+              "role": "可靠度工程師（龜山，碩畢）",
+              "grade": null,
+              "unit_detail": "桃園龜山",
+              "years": "0",
+              "degree": "碩士",
+              "base_k": 70,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "留言 B9-6／B9-9（交大）：碩畢 7XK（以 70k 記，為下限）",
+              "in_window": true,
+              "date_note": "Dcard 頁面發文日期 2025-10-11（20261028_2009 批）",
+              "comment_sample": true
+            }
+          ],
+          "sources": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/259355292",
+              "date": "2025-10"
+            }
+          ]
         }
       ]
     },

@@ -5337,9 +5337,32 @@
               "date_confirmed": true,
               "date_note": "摘要寫出發文年月",
               "in_window": true
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/259479495",
+              "date": "2025-08",
+              "page_date": "2025-08-05",
+              "date_confirmed": true,
+              "role": "韌體工程師 FW（SSD，碩士新人 offer）",
+              "grade": null,
+              "unit_detail": null,
+              "years": "0",
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": 15,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": "幾乎不",
+              "travel": null,
+              "quote_free_note": "發文者 offer：(N+6)×15（N 未說明）；WLB、不常加班",
+              "in_window": true,
+              "date_note": "Dcard 頁面發文日期 2025-08-05（20261028_2009 批）",
+              "comment_sample": false
             }
           ],
-          "n": 6,
+          "n": 7,
           "sources": [
             {
               "site": "Dcard",
@@ -5350,6 +5373,11 @@
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/260857595",
               "date": "2026-02"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/259479495",
+              "date": "2025-08"
             }
           ],
           "confidence": "低",
@@ -5361,14 +5389,17 @@
             70
           ],
           "bonus_months": null,
-          "annual_months": null,
+          "annual_months": [
+            15,
+            15
+          ],
           "annual_total_wan": [
             100,
             120
           ],
           "weekly_hours": null,
           "travel": null,
-          "n_stat": 6
+          "n_stat": 7
         }
       ]
     },
