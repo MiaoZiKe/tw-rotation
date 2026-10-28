@@ -1,13 +1,13 @@
 {
- "at": "2026-10-28T03:36:12.847373+00:00",
+ "at": "2026-10-28T03:44:13.836018+00:00",
  "done": true,
  "pending": 0,
  "attempted": 41,
  "counts": {
+  "ok": 5,
   "not_logo": 12,
   "robots": 2,
   "none": 13,
-  "ok": 5,
   "error": 1,
   "kept": 1,
   "too_small": 7
@@ -16,7 +16,7 @@
  "have": 66,
  "coverage": 0.653,
  "next_due": "2026-11-27",
- "seconds": 276.3,
+ "seconds": 375.3,
  "failures": [
   {
    "domain": "carmax.com.tw",
@@ -61,6 +61,7 @@
    "status": "none",
    "tried": {
     "site": "none robots.txt 與首頁都回 HTTP 403（對方擋雲端存取），圖檔與 Google 備援都不抓 https://www.hitachi-hightech.com/",
+    "wikimedia": "none Commons too_wide 250x40",
     "google_s2": "官網禁止或擋雲端存取，不問 Google"
    }
   },
@@ -80,6 +81,7 @@
    "tried": {
     "site": "ok [375, 150]",
     "quality": "人工排除：淺灰紋理字標，白底上看不清（CEO 10-27 目視）",
+    "wikimedia": "none Wikidata 查不到官網是 kneron.com 的 Kneron／沒有標誌圖",
     "google_s2": "人工排除（s2 只回通用圖示／官網圖不是自家標誌）"
    }
   },
@@ -88,6 +90,7 @@
    "status": "none",
    "tried": {
     "site": "none robots.txt 與首頁都回 HTTP 403（對方擋雲端存取），圖檔與 Google 備援都不抓 https://www.merckgroup.com/",
+    "wikimedia": "none Commons too_wide 250x43",
     "google_s2": "官網禁止或擋雲端存取，不問 Google"
    }
   },
@@ -96,7 +99,7 @@
    "status": "not_logo",
    "tried": {
     "site": "ok [512, 512]",
-    "wikimedia": "none Commons too_wide 250x46",
+    "wikimedia": "沒回應",
     "quality": "網址像分享圖示／橫幅／框架預設圖，不是公司標誌 https://www.qualcomm.com/etc.clientlibs/qcomm-martech/clientlibs/clientlib-react",
     "google_s2": "ok [32, 32]"
    }
@@ -106,6 +109,7 @@
    "status": "error",
    "tried": {
     "site": "error robots.txt 回 HTTP 500（RFC 9309 §2.3.1.4：伺服器錯誤視為暫時全站禁止，這輪不抓）https://spil.com.tw/",
+    "wikimedia": "none Wikidata 查不到官網是 spil.com.tw 的 Siliconware Precision Industries／沒有標誌圖",
     "google_s2": "none none HTTP 404 https://www.google.com/s2/favicons?domain=spil.com.tw&sz=256"
    }
   },
@@ -114,7 +118,7 @@
    "status": "none",
    "tried": {
     "site": "none robots.txt 與首頁都回 HTTP 403（對方擋雲端存取），圖檔與 Google 備援都不抓 https://uicpaymentsinc.com/",
-    "wikimedia": "none Wikidata 查不到官網是 uicpaymentsinc.com 的 UIC Payments／沒有標誌圖",
+    "wikimedia": "沒回應",
     "google_s2": "人工排除（s2 只回通用圖示／官網圖不是自家標誌）"
    }
   },
