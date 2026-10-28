@@ -9456,7 +9456,7 @@
           ],
           "bonus_months": null,
           "annual_months": [
-            15,
+            14,
             15
           ],
           "annual_total_wan": [
@@ -9469,11 +9469,11 @@
           ],
           "overtime": "偶爾",
           "travel": null,
-          "n": 26,
+          "n": 27,
           "note": "2026-10-29 GoodJob 合併批新增職位",
           "confidence": "低",
           "grade": null,
-          "n_stat": 23,
+          "n_stat": 24,
           "samples": [
             {
               "site": "GoodJob",
@@ -10035,6 +10035,29 @@
               "in_window": true,
               "date_note": "Dcard 頁面發文日期 2026-03-02（20261028_2158 批）",
               "comment_sample": false
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/259995469",
+              "date": "2025-10",
+              "page_date": "2025-10-09",
+              "date_confirmed": true,
+              "role": "晶圓測試設備工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": "學士",
+              "base_k": 45,
+              "bonus_months": null,
+              "annual_months": 14,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "45k×14；需輪班",
+              "in_window": true,
+              "date_note": "Dcard 頁面日期 2025-10-09（20261029_0250 批）",
+              "comment_sample": false
             }
           ],
           "sources": [
@@ -10112,6 +10135,11 @@
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/260992763",
               "date": "2026-03"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/259995469",
+              "date": "2025-10"
             }
           ]
         },
