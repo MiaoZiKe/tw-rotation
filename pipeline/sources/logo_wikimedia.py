@@ -77,7 +77,7 @@ SELECT DISTINCT ?item ?logo ?ticker ?label WHERE {
 # 收的授權（DECISIONS #276）：公有領域、CC0、CC BY、CC BY-SA。任何帶 NC（非商業）、ND（禁止改作）的都不收 ——
 # 我們要縮放成 64px（算改作）而且網站是公開的；GFDL 單授權要求附整份授權全文，也不收。
 # ⚠ CC BY／BY-SA 另外要 config.LOGO_WIKIMEDIA_ALLOW_BY 打開才收（預設關）：署名要做在網站畫面上，前端還沒有出處連結。
-ALLOWED = ("PD", "CC0", "CC BY", "CC BY-SA")
+ALLOWED = ("PD", "CC0", "Apache", "CC BY", "CC BY-SA")
 _CC_CODE = re.compile(r"^cc-by(-sa)?-\d(\.\d)?(-[a-z]{2,})?$")
 _CC_SHORT = re.compile(r"^cc by(-sa)? \d(\.\d)?( [a-z]{2,})?$")
 _TICKER = re.compile(r"(?<!\d)(\d{4,6}[A-Z]?)(?![\d])")
@@ -256,6 +256,8 @@ def license_of(ext: dict) -> tuple[str | None, str]:
         return "PD", short or "Public domain"
     if code == "cc0" or s.startswith("cc0"):
         return "CC0", short or "CC0"
+    if code.startswith("apache") or s.startswith("apache"):
+        return "Apache", short or "Apache License 2.0"
     for pat, txt in ((_CC_CODE, code), (_CC_SHORT, s)):
         m = pat.match(txt)
         if m:
@@ -378,6 +380,10 @@ def _fetch_many(rows, reject, deadline, today, max_downloads) -> dict[str, dict]
         kind, short = license_of(info["ext"])
         if not kind:
             out[code] = {"status": "none", "domain": dom[code], "detail": f"{short}（{f}）"[:200]}
+            continue
+        if kind == "Apache":
+            # Apache 2.0 只開給科技透明圈（fetch_by_website，Andy 2026-10-28「放寬 Apache 2.0」）；個股頁沒有出處連結，不收。
+            out[code] = {"status": "none", "domain": dom[code], "detail": f"{short} 只開給科技透明圈（{f}）"[:200]}
             continue
         if kind in ("CC BY", "CC BY-SA") and not config.LOGO_WIKIMEDIA_ALLOW_BY:
             # 署名義務要在「顯示圖的地方」做到（CC BY 4.0 §3(a)：合理方式，例如連到載明出處的頁面）。

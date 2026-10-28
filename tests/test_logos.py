@@ -1707,6 +1707,7 @@ def test_wikidata_parse_and_lookup():
     ({"License": {"value": "cc-by-nc-4.0"}}, None),
     ({"LicenseShortName": {"value": "CC BY-ND 2.0"}}, None),
     ({"License": {"value": "gfdl"}}, None),
+    ({"License": {"value": "apache-2.0"}, "LicenseShortName": {"value": "Apache License 2.0"}}, "Apache"),
     ({}, None),
 ])
 def test_commons_license_whitelist(ext, kind):

@@ -12,7 +12,7 @@
 -----------------------------------------------------------------------------------
 1. 官網（logos.fetch_logo）：首頁 icon／apple-touch-icon／manifest／頁首 Logo／og:image。
 2. Wikimedia Commons（logo_wikimedia.fetch_by_website）：公司英文名搜尋 Wikidata、**官方網站網域對得上**才收，
-   授權只收 PD／CC0（CC BY 要等前端有署名連結，見 LOGO_WIKIMEDIA_ALLOW_BY）。
+   授權收 PD／CC0／Apache 2.0（Andy 2026-10-28 放寬；出處見科技透明圈頁底連結）（CC BY 要等前端有署名連結，見 LOGO_WIKIMEDIA_ALLOW_BY）。
 3. Google s2 `sz=256`：只在官網沒有 robots 禁止、也沒有「對方擋雲端存取」時才問（同 #264／#267：不繞過對方的存取控制）。
    不用 DuckDuckGo、Clearbit 等任何商用 API。
 
@@ -58,7 +58,7 @@ log = logging.getLogger(__name__)
 DOMAINS_FILE = Path(__file__).resolve().parent.parent / "groups" / "tc_logo_domains.json"
 CODE_DOMAINS_FILE = Path(__file__).resolve().parent.parent / "groups" / "tc_code_domains.json"   # 代號補強
 
-RV = 2   # 失敗紀錄的策略版本：舊策略（rv<2，例如最小邊 64）判失敗的，策略升級後馬上重試，不等 30 天
+RV = 3   # 失敗紀錄的策略版本：舊策略判失敗的，策略升級後馬上重試，不等 30 天（3＝Wikimedia 放寬 Apache 2.0，連 Google s2 小圖也重試一次）
 QV = 2   # 品質關卡版本：索引裡有 qv>=2 的 ok 紀錄＝已經過 quality()，不再重驗
 
 # Andy 目視確認抓錯（橫幅照片／別的圖示／太小）的網域：改 Wikimedia 優先、舊圖一律重抓
@@ -424,7 +424,7 @@ def write_attribution(items: dict) -> None:
             f.unlink()
         return
     text = ("# 科技透明圈外商 Logo 出處（來自 Wikimedia Commons 的圖）\n\n"
-            "只收公有領域、CC0（CC BY／BY-SA 需前端署名後才開）。著作權授權不代表商標授權：各 Logo 之商標權屬各該公司所有，"
+            "只收公有領域、CC0、Apache 2.0（授權全文 <https://www.apache.org/licenses/LICENSE-2.0>；CC BY／BY-SA 需前端署名後才開）。著作權授權不代表商標授權：各 Logo 之商標權屬各該公司所有，"
             "本站僅用於識別，不代表任何合作或背書關係。本檔由 `pipeline/sources/tc_logos.py` 自動產生，請勿手改。\n\n"
             "| 網域 | Commons 檔案 | 作者 | 授權 |\n|---|---|---|---|\n" + "\n".join(rows) + "\n")
     if not f.exists() or f.read_text(encoding="utf-8") != text:
@@ -466,6 +466,9 @@ def revalidate(items: dict, domains: list[dict]) -> list[str]:
     for dom, rec in items.items():
         if dom in want and rec.get("status") not in ("ok", "bad", "kept") and int(rec.get("rv") or 0) < RV:
             rec["fetched"] = "1970-01-01"       # 舊策略的失敗：這輪重試（不算 bad，也不刪檔）
+            continue
+        if dom in want and rec.get("status") == "ok" and rec.get("src") == "google_s2" and int(rec.get("rv") or 0) < RV:
+            rec["fetched"] = "1970-01-01"       # s2 小圖：放寬 Apache 後試一次 Wikimedia；抓不到就保留舊圖（kept）
             continue
         if dom not in want or rec.get("status") != "ok" or rec.get("src") == "wikimedia":
             continue
@@ -531,7 +534,7 @@ def _run(summary, limit, today, time_budget, domains, site_fetcher, wiki_fetcher
                 (tc_dir() / png_name(dom)).unlink(missing_ok=True)
                 rec["detail"] = (rec.get("detail") or "") or str(old.get("detail") or "")
             elif old.get("status") == "ok" and (tc_dir() / png_name(dom)).exists():
-                rec = {**old, "fetched": stamp, "last_fail": st, "tried": rec["tried"]}    # 有舊圖就留著，只延後重抓
+                rec = {**old, "fetched": stamp, "last_fail": st, "tried": rec["tried"], "rv": RV}    # 有舊圖就留著，只延後重抓
                 st = "kept"
         items[dom] = rec
         counts[st] = counts.get(st, 0) + 1
