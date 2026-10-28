@@ -137,6 +137,8 @@ jobs:
         run: |
           pip install playwright pillow requests
           if [ "${{ steps.kind.outputs.kind }}" = "premarket" ] || [ "${{ steps.kind.outputs.kind }}" = "close" ]; then pip install -r requirements.txt; fi      # 盤前、盤後要讀資料湖（pandas／pyarrow）
+          # 2026-10-29：盤中文案也加「📰 新聞焦點」（讀資料湖 news ＋當場抓一次）→ 只裝讀湖與抓新聞要的幾個套件，比整份 requirements 快
+          if [ "${{ steps.kind.outputs.kind }}" = "intraday" ]; then pip install "pandas>=2.2" "pyarrow>=16.0" "PyYAML>=6.0" "feedparser>=6.0" || echo "::warning::盤中新聞焦點套件裝失敗（照發、少新聞段）"; fi
           python -m playwright install chromium
           F=~/.local/share/fonts/tw-rotation
           mkdir -p "$F"
@@ -173,7 +175,7 @@ jobs:
             # 2026-10-27 Andy：「盤後貼文資料到就發」→ 盤後直接從資料湖算那幾份 JSON 蓋上去，不等整站重算＋部署
             if [ "${{ steps.kind.outputs.kind }}" = "close" ] && python -m pipeline.social_close_payload "$RUNNER_TEMP/close_overlay"; then OVL="--data-overlay $RUNNER_TEMP/close_overlay"; fi
             python scripts/social_snap.py --kind "${{ steps.kind.outputs.kind }}" --out "$OUT" \
-              --serve site --data-url https://miaozike.github.io/tw-rotation/data,https://tw-rotation.pages.dev/data,https://liguligu-puipui.com/data --spoof-origin $FORCE $POSTED $LAND $SKIP $OVL
+              --serve site --data-url https://miaozike.github.io/tw-rotation/data,https://tw-rotation.pages.dev/data,https://liguligu-puipui.com/data --spoof-origin --fresh-news $FORCE $POSTED $LAND $SKIP $OVL
           fi
           RC=$?
           set -e
@@ -283,7 +285,7 @@ jobs:
           # 2026-10-27 Andy：「這Mail 只有發不成功才需要 不要一直發」→ 晚到／昨日事件 0 則但有發出去：只寫摘要、不標紅、不寄信
           if [ -f "$F" ]; then
             echo "::warning::$(cat "$F")"
-            { echo "### ⚠ 盤前貼文有狀況（已發出）"; echo ""; cat "$F"; } >> "$GITHUB_STEP_SUMMARY"
+            { echo "### ⚠ ${{ steps.kind.outputs.kind }} 貼文有狀況（已發出）"; echo ""; cat "$F"; } >> "$GITHUB_STEP_SUMMARY"
           fi
 
       # 發布程式的防重複紀錄 posted.json 要寫回 social-snaps，下一輪（含盤後那三次接力）才知道發過了；
