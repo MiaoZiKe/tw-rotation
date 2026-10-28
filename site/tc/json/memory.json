@@ -38,7 +38,7 @@
           ],
           "overtime": "偶爾",
           "travel": null,
-          "n": 31,
+          "n": 32,
           "note": "比薪水統計中位數 5.5 萬（2025 資料）；PTT 傳碩士 5.5 萬起未經公司證實；比薪水 2026 有 4 年 120 萬、6 年 105 萬自述（非新人）；第二輪（Dcard／PTT／GoodJob 各分開搜）：輪班設備起薪 5.5 萬起、台南 TCP Probe 7.4 萬、台中一年經驗 6.1 萬；保 14 個月（含年終 2 個月）＋分紅 0～4 個月（11 月發），內推文稱年薪約 18 個月；夜班津貼 +20%；FY26 公司另發每人 100 萬感謝金（工會質疑）；內推文數字可能偏樂觀；Dcard 日期依文章編號推估；bonus_months、annual_total_wan 區間取自既有來源彙整（公司公告／統計頁等），尚未逐筆對應到 samples；未逐筆對應的舊彙整：bonus_months=[2, 4]；未逐筆對應的舊彙整：annual_total_wan=[80, 100]；未逐筆對應的舊彙整：travel=不用；部分年薪／年薪月數由同一筆樣本的「底薪×月數」推算（樣本標 derived）",
           "sources": [
             {
@@ -180,6 +180,11 @@
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/261804490",
               "date": "2026-07"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261593470",
+              "date": "2026-06"
             }
           ],
           "confidence": "高",
@@ -856,9 +861,32 @@
               "in_window": true,
               "date_note": "Dcard 頁面發文日期 2026-07-13（b29a 批）",
               "comment_sample": true
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261593470",
+              "date": "2026-06",
+              "page_date": "2026-06-02",
+              "date_confirmed": true,
+              "role": "輪班設備工程師（Dry Etch，后里 F16，offer，E1）",
+              "grade": "E1",
+              "unit_detail": "后里 F16 Dry Etch",
+              "years": "1",
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": 14,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "發文者美光核薪：E1，N×14＋津貼＋分紅（N 未給；預估年薪 115 萬為推估不填）；B2-2 稱輪班要 E1 通常比較難",
+              "in_window": true,
+              "date_note": "Dcard 頁面發文日期 2026-06-02（20261028_1206_b 批）",
+              "comment_sample": false
             }
           ],
-          "n_stat": 29,
+          "n_stat": 30,
           "degree_diff": "樣本中位數：學士底薪約 55K、碩士約 58K（差約 3K；學士 1 筆、碩士 4 筆）"
         },
         {
@@ -2783,6 +2811,52 @@
               "in_window": true,
               "date_note": "Dcard 頁面發文日期 2026-07-11（b29a 批）",
               "comment_sample": true
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/259648805#留言B5-4",
+              "date": "2025-08",
+              "page_date": "2025-08-30",
+              "date_confirmed": true,
+              "role": "工程師（新人）",
+              "grade": null,
+              "unit_detail": null,
+              "years": "0",
+              "degree": null,
+              "base_k": 85,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "留言稱外籍新人約 90K、數位無經驗新人 85K up（下限值）；未見台灣新鮮人超過 80K",
+              "in_window": true,
+              "date_note": "Dcard 頁面發文日期 2025-08-30（20261028_1206_a 批）",
+              "comment_sample": true
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/259648805#留言B15-2",
+              "date": "2026-04",
+              "page_date": "2026-04-13",
+              "date_confirmed": true,
+              "role": "工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "1",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 115,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "B15 問美光做三年是否有 160 萬，B15-2 答：第一年含簽約金約 115 萬，第二年後 100 萬出頭慢慢升",
+              "in_window": true,
+              "date_note": "Dcard 頁面發文日期 2026-04-13（20261028_1206_a 批）",
+              "comment_sample": true
             }
           ],
           "sources": [
@@ -2870,10 +2944,15 @@
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/261804490",
               "date": "2026-07"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/259648805",
+              "date": "2025-08"
             }
           ],
           "confidence": "低",
-          "n": 51,
+          "n": 53,
           "years": null,
           "base_month_k": [
             55,
@@ -2891,7 +2970,7 @@
           "weekly_hours": null,
           "overtime": "經常",
           "travel": null,
-          "n_stat": 51,
+          "n_stat": 53,
           "note": null,
           "grade": null
         },
