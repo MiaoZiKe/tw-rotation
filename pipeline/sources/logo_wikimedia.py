@@ -266,12 +266,18 @@ def license_of(ext: dict) -> tuple[str | None, str]:
 
 
 def _api(params: dict):
-    url = config.LOGO_COMMONS_API + "?" + urlencode({**params, "format": "json", "formatversion": "2",
-                                                     "maxlag": "5"})
-    res = http.get_bytes(url, headers=_headers(), timeout=20, max_bytes=5_000_000)
-    if res is None:
-        return None
-    status, body, _ct, _final = res
+    # 不帶 maxlag（理由同 _wd_api：10-28 回補日誌 Commons 也對 runner 回 503）；503／429 退避重試兩次
+    url = config.LOGO_COMMONS_API + "?" + urlencode({**params, "format": "json", "formatversion": "2"})
+    status = body = None
+    for wait in (0, 5, 15):
+        if wait:
+            time.sleep(wait)
+        res = http.get_bytes(url, headers=_headers(), timeout=20, max_bytes=5_000_000)
+        if res is None:
+            return None
+        status, body, _ct, _final = res
+        if status not in (429, 503):
+            break
     if status == 429 or status == 503:
         raise Throttled(f"Commons API 回 HTTP {status}")
     try:
@@ -522,6 +528,13 @@ def logos_by_domains_sparql(domains: list[str]) -> dict[str, dict]:
     from . import logos as lg
 
     doms = sorted({d.lower() for d in domains if d and re.fullmatch(r"[a-z0-9.-]+", d.lower())})
+    if len(doms) > 10:          # 一次問太多容易逾時：約 10 個一批
+        out: dict[str, dict] = {}
+        for i in range(0, len(doms), 10):
+            if i:
+                time.sleep(config.LOGO_WIKIMEDIA_PAUSE_SEC)
+            out.update(logos_by_domains_sparql(doms[i:i + 10]))
+        return out
     if not doms:
         return {}
     cond = " || ".join(f'CONTAINS(LCASE(STR(?site)), "{d}")' for d in doms)
@@ -563,18 +576,21 @@ def fetch_by_website(rows: list[dict], reject=frozenset(), deadline: float | Non
     sp: dict | None = None      # 非 None＝API 被擋，改用 SPARQL 備援的結果
     try:
         for r in rows:
-            dom, name = r["domain"], r.get("en")
-            if not name:
+            dom, name, manual = r["domain"], r.get("en"), r.get("commons_file")
+            if not name and not manual:
                 continue
             if deadline and time.time() >= deadline:
                 break
             try:
-                if sp is None:
+                if manual:      # 人工查證過的 Commons 檔名：不依賴 Wikidata，授權照 license_of 檢查
+                    hit = {"file": manual if manual.startswith("File:") else "File:" + manual,
+                           "item": None, "match": "manual"}
+                elif sp is None:
                     try:
                         hit = logo_by_website(name, dom)
                     except Throttled as exc:
                         log.warning("Wikimedia（依網域）：%s，改走 SPARQL 備援", exc)
-                        sp = logos_by_domains_sparql([x["domain"] for x in rows if x.get("en")])
+                        sp = logos_by_domains_sparql([x["domain"] for x in rows if x.get("en") and not x.get("commons_file")])
                         if not sp:
                             raise
                         hit = sp.get(dom)

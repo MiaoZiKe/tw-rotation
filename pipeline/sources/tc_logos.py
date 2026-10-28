@@ -58,7 +58,7 @@ log = logging.getLogger(__name__)
 DOMAINS_FILE = Path(__file__).resolve().parent.parent / "groups" / "tc_logo_domains.json"
 CODE_DOMAINS_FILE = Path(__file__).resolve().parent.parent / "groups" / "tc_code_domains.json"   # 代號補強
 
-RV = 5   # 失敗紀錄的策略版本（5＝10-28 Wikidata API 對 runner 持續 503、rv3／4 的外商全「沒回應」，改 UA＋SPARQL 備援後重試）；舊策略判失敗的，策略升級後馬上重試，不等 30 天（3＝Wikimedia 放寬 Apache 2.0，連 Google s2 小圖也重試一次）
+RV = 6   # 失敗紀錄的策略版本（5＝10-28 Wikidata API 對 runner 持續 503、rv3／4 的外商全「沒回應」，改 UA＋SPARQL 備援；6＝Commons 也 503 的退避、指定 commons_file）；舊策略判失敗的，策略升級後馬上重試，不等 30 天（3＝Wikimedia 放寬 Apache 2.0，連 Google s2 小圖也重試一次）
 QV = 2   # 品質關卡版本：索引裡有 qv>=2 的 ok 紀錄＝已經過 quality()，不再重驗
 
 # Andy 目視確認抓錯（橫幅照片／別的圖示／太小）的網域：改 Wikimedia 優先、舊圖一律重抓
@@ -128,7 +128,11 @@ def _load_one(p: Path) -> list[dict]:
         if not d or d in seen or not lg._HOST_RE.match(d):
             continue
         seen.add(d)
-        out.append({"domain": d, "names": list(r.get("names") or []), "en": str(r.get("en") or "").strip()})
+        rec = {"domain": d, "names": list(r.get("names") or []), "en": str(r.get("en") or "").strip()}
+        cf = str(r.get("commons_file") or "").strip()
+        if cf:      # 人工查證過的 Commons 檔名（Wikidata 查不到時用；授權仍照 license_of 檢查）
+            rec["commons_file"] = cf
+        out.append(rec)
     return out
 
 
@@ -311,7 +315,7 @@ def resolve(entries: list[dict], reject, deadline: float, *, site_fetcher=None, 
     # ⓪ Wikimedia 優先：Andy 目視確認官網圖抓錯的網域、與「代號補強」的網域（官網圖低解析／錯圖才進補強清單）
     first = [e for e in entries if e["en"] and (e["domain"] in WIKI_FIRST or e.get("supp"))]
     if first and time.time() < deadline:
-        got = wiki_fetcher([{"domain": e["domain"], "en": e["en"]} for e in first], reject, deadline) or {}
+        got = wiki_fetcher([{"domain": e["domain"], "en": e["en"], "commons_file": e.get("commons_file")} for e in first], reject, deadline) or {}
         for e in first:
             w = got.get(e["domain"])
             wtried[e["domain"]] = w or {}
@@ -347,7 +351,7 @@ def resolve(entries: list[dict], reject, deadline: float, *, site_fetcher=None, 
 
     # ② Wikimedia（序列、有間隔，遵守 Commons／Wikidata 的流量規範）
     if need_wiki and time.time() < deadline:
-        got = wiki_fetcher([{"domain": e["domain"], "en": e["en"]} for e in need_wiki], reject, deadline) or {}
+        got = wiki_fetcher([{"domain": e["domain"], "en": e["en"], "commons_file": e.get("commons_file")} for e in need_wiki], reject, deadline) or {}
         for e in need_wiki:
             w = got.get(e["domain"])
             if w is None:

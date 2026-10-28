@@ -1883,3 +1883,18 @@ def test_依網域_API被擋503時改走SPARQL備援(monkeypatch):
                         lambda doms: {"nvidia.com": {"file": "File:N.svg", "item": "Q1", "match": "website-sparql"}})
     out = wm.fetch_by_website([{"domain": "nvidia.com", "en": "NVIDIA"}])
     assert out["nvidia.com"]["status"] == "none" and "Commons" in out["nvidia.com"]["detail"]
+
+
+def test_指定commons_file不經Wikidata(monkeypatch):
+    """人工查證過的 Commons 檔名：Wikidata 完全不問，仍走 commons_info／license_of。"""
+    from pipeline.sources import logo_wikimedia as wm
+
+    def nope(*a, **k):
+        raise AssertionError("不該問 Wikidata")
+    monkeypatch.setattr(wm, "logo_by_website", nope)
+    monkeypatch.setattr(wm, "logos_by_domains_sparql", nope)
+    monkeypatch.setattr(wm.time, "sleep", lambda s: None)
+    seen = {}
+    monkeypatch.setattr(wm, "commons_info", lambda t: seen.setdefault("t", t) and {})
+    out = wm.fetch_by_website([{"domain": "nvidia.com", "en": "", "commons_file": "File:NVIDIA logo.svg"}])
+    assert seen["t"] == ["File:NVIDIA logo.svg"] and out["nvidia.com"]["status"] == "none"
