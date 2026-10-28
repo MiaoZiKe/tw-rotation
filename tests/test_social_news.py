@@ -53,10 +53,10 @@ def test_pick_reserves_exploration():
     assert sum(c["cat"] == "財報" for c in got if not c["explore"]) <= 2
 
 
-def test_publish_base_plus_30_and_floor():
+def test_publish_base_plus_15_and_floor():
     now = datetime(2026, 10, 29, 8, 30, tzinfo=TPE)
     posted = {"premarket-2026-10-29": {"at": "2026-10-29T08:21:00+08:00"}}
-    assert S.publish_base("pre", "2026-10-29", posted, now).strftime("%H:%M") == "08:51"
+    assert S.publish_base("pre", "2026-10-29", posted, now).strftime("%H:%M") == "08:36"
     assert S.publish_base("intra", "2026-10-29", posted, now) is None
 
 

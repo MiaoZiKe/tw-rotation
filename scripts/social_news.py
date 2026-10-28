@@ -45,8 +45,8 @@ LOG_DIR = ROOT / "social" / "news" / "log"
 
 # 時段：主貼文的 posted.json 鍵、固定最早發文時間（台北）、新聞時間窗
 SLOTS = {
-    "pre":   dict(name="盤前", key="premarket", fixed="08:50", since=(-1, "13:30")),
-    "intra": dict(name="盤中", key="intraday",  fixed="12:31", since=(0, "07:30")),
+    "pre":   dict(name="盤前", key="premarket", fixed="08:35", since=(-1, "13:30")),
+    "intra": dict(name="盤中", key="intraday",  fixed="12:16", since=(0, "07:30")),
     "post":  dict(name="盤後", key="close",     fixed=None,    since=(0, "11:30")),
 }
 N_MIN, N_MAX = 3, 5
@@ -719,12 +719,12 @@ def render_cards(posts: list[dict], slot: str, out: Path, day: str = "", usage_p
 
 # ---------------- 主流程 ----------------
 def publish_base(slot: str, day: str, posted: dict, now: datetime) -> datetime | None:
-    """主貼文發出時間 +30 分；固定時間（盤前 08:50、盤中 12:31）較晚就用固定時間；不早於 now+5 分。主貼文還沒發 → None。"""
+    """主貼文發出時間 +15 分（10-28 Andy：「貼文在早一點發布」）；固定時間（盤前 08:35、盤中 12:16）較晚就用固定時間；不早於 now+5 分。主貼文還沒發 → None。"""
     key = f"{SLOTS[slot]['key']}-{day}"
     if key not in posted:
         return None
     at = posted[key].get("at")
-    base = (datetime.fromisoformat(at).astimezone(TPE) + timedelta(minutes=30)) if at else now + timedelta(minutes=30)
+    base = (datetime.fromisoformat(at).astimezone(TPE) + timedelta(minutes=15)) if at else now + timedelta(minutes=15)
     fx = SLOTS[slot]["fixed"]
     if fx:
         base = max(base, datetime.fromisoformat(f"{day}T{fx}:00+08:00"))
