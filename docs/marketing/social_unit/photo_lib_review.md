@@ -9,6 +9,15 @@ Andy 10-28 原話：新聞卡上方的大數字灰框改成「對應的實景圖
 - 每家存 `social/photo_lib/<slug>/photo.jpg`（原色、只縮放到寬 ≤1920）＋`meta.json`（license、author、source_url、file_title、reviewed:false）。
 - 已審核（reviewed:true）的圖排程重抓時不會被覆蓋。
 
+## 一之二、v2 圖池（Andy 10-28 原話：「為何有部分沒有圖片，若是沒有圖片可以改用相關產品圖片，並且圖片可以多樣，相關的也可以」）
+
+- 每家改成圖池：`social/photo_lib/<slug>/photo_1..N.jpg`＋`pool.json`（`photos` 每張一筆 meta，含 `kind`：總部/廠房、產品、相關場景；`rejected` 記退件過的檔名，之後不再抓）。目標每家 3～5 張（總部/廠房 ≤2、產品 ≤2、相關場景 ≤1）。
+- 查詢字在 `targets.json`：`queries`（總部／廠區）、`product_queries`（代表產品）、`related_queries`（相關產業通用圖）、`category`（所屬類別）。
+- 類別通用圖池：`social/photo_lib/_category/<類別>/`（15 類，查詢字在 `categories.json`，每類 ≤8 張）。
+- 產品圖、類別圖同樣不得以 LOGO／商標為主角；產品圖可以是同類產品（例如 HBM 記憶體），不必是該公司品牌，但不得是競爭對手 LOGO 特寫。
+- 選圖順序（`render_news_cards.photo_pick`）：公司已審圖池（同公司近 14 天用過的往後排，輪替；紀錄在 `social/news/log/photo_usage.json`）→ 該公司類別圖池（主體不在名單、主題是總經 → 總經池）→ 灰框大數字。
+- layout 標籤：`D-實景(公司)`／`D-實景(產品)`／`D-實景(類別)`／`D-無圖大數字`；meta 另寫 `photo_kind`。
+
 ## 二、審核流程
 
 1. art-director 用 Read 看 `photo.jpg` 全解析度，並開 `source_url` 的授權資訊（meta.json 已存）。
@@ -22,7 +31,7 @@ Andy 10-28 原話：新聞卡上方的大數字灰框改成「對應的實景圖
 
 | # | 項目 | 通過 | 退回 |
 |---|---|---|---|
-| 1 | 主體正確 | 照片確實是該公司的總部、廠房、園區或該公司的船隊（航運） | 同名不同公司、別家公司建築、只是附近街景 |
+| 1 | 主體正確 | 總部/廠房：確實是該公司建築或船隊；產品：確實是該類產品；類別：確實是該產業場景 | 同名不同公司、別家公司建築、只是附近街景 |
 | 2 | 授權 | CC0／CC BY／CC BY-SA／公有領域，作者欄可辨識；卡上標示「攝影：作者／授權・Wikimedia Commons」 | NC、ND、GFDL-only、授權不明、作者欄空白且無法補 |
 | 3 | 無人臉、無個人 | 無可辨識人臉、車牌 | 主角是人物（執行長演講照等） |
 | 4 | LOGO 佔比 | 建築上的招牌字只是場景的一部分、不是畫面主角 | 畫面主角是 LOGO 或招牌特寫 |

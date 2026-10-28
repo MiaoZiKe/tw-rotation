@@ -1,0 +1,30 @@
+{
+ "slug": "samsung",
+ "photos": [
+  {
+   "slug": "samsung",
+   "name_en": "Samsung Electronics",
+   "query": "Samsung Digital City",
+   "file_title": "File:Samsung headquarters.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:Samsung_headquarters.jpg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/e/e2/Samsung_headquarters.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "CC BY-SA 2.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/2.0",
+   "author": "Oskar Alexanderson",
+   "credit": "originally posted to Flickr as DSC_0234",
+   "description": "The Samsung headquarters",
+   "width": 1920,
+   "height": 1521,
+   "fetched_at": "2026-10-28T10:13:09+00:00",
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第一輪通過：三星首爾瑞草大樓，周邊他牌招牌小；可接受",
+   "reviewed_by": "art-director",
+   "reviewed_at": "2026-10-28",
+   "note": "三星首爾瑞草大樓，周邊他牌招牌小；可接受",
+   "file": "photo_1.jpg",
+   "kind": "總部/廠房"
+  }
+ ],
+ "rejected": []
+}

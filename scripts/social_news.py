@@ -658,8 +658,26 @@ def pack_threads(secs: list[str], lim: int = 480) -> list[str]:
 
 
 # ---------------- 圖卡 ----------------
-def render_cards(posts: list[dict], slot: str, out: Path) -> dict[str, int]:
-    """用 render_news_cards.card_auto（D-實景／--pal D 灰框）逐張渲染＋重疊檢查；回傳 {id: 重疊筆數}；layout 標籤寫回 meta。"""
+PHOTO_USAGE = LOG_DIR / "photo_usage.json"     # 圖池使用紀錄 {"<slug>/<檔名>": ["YYYY-MM-DD", ...]}，給 14 天輪替用
+
+
+def load_usage(path: Path = PHOTO_USAGE) -> dict:
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+
+
+def note_usage(used: dict, key: str, day: str, keep: int = 30) -> None:
+    used.setdefault(key, [])
+    if day not in used[key]:
+        used[key] = (used[key] + [day])[-keep:]
+
+
+def render_cards(posts: list[dict], slot: str, out: Path, day: str = "", usage_path: Path | None = PHOTO_USAGE) -> dict[str, int]:
+    """用 render_news_cards.card_auto 逐張渲染＋重疊檢查；回傳 {id: 重疊筆數}；layout／photo_kind 寫回 meta。
+    選圖（Andy 10-28 v2）：公司已審圖池（近 14 天用過的避開）→ 類別圖池 → 灰框大數字。
+    layout：D-實景(公司)／D-實景(產品)／D-實景(類別)／D-無圖大數字，週報比較用。"""
     pdir = ROOT / "docs" / "marketing" / "posts"
     sys.path.insert(0, str(pdir))
     import render_news_cards as R
@@ -669,26 +687,33 @@ def render_cards(posts: list[dict], slot: str, out: Path) -> dict[str, int]:
     from PIL import Image
     out.mkdir(parents=True, exist_ok=True)
     bad = {}
+    used = load_usage(usage_path) if usage_path else {}
     with sync_playwright() as p:
         b = p.chromium.launch(executable_path=os.environ.get("CHROMIUM") or None)
         R._PG = b.new_page(); R._PG.set_content("<body></body>")
         pg = b.new_page(viewport={"width": 1080, "height": 1350})
         for i, d in enumerate(posts, 1):
-            html, lay = R.card_auto(d, i, len(posts), slot)      # 主體有已審實景照片 → D-實景；否則灰框大數字
+            html, lay, pick = R.card_auto(d, i, len(posts), slot, used=used, today=day or None)
             d["meta"]["layout"] = lay
-            if lay == "D-實景":
-                d["meta"]["has_photo"] = "true"
+            if pick:
+                d["meta"]["has_photo"] = "true"; d["meta"]["photo_kind"] = pick["kind"]
             pg.set_content(f"<html><head><meta charset=utf-8><style>{BASE}</style></head>{html}</html>")
             pg.wait_for_timeout(300)
             res = pg.evaluate(CHECK)
-            if res["bad"] and lay == "D-實景":           # 實景版有重疊 → 退回灰框大數字版，不擋整篇
-                html = R.card_v4(d, i, len(posts), None, slot); d["meta"]["layout"] = "D-無圖大數字"; d["meta"].pop("has_photo", None)
+            if res["bad"] and pick:           # 實景版有重疊 → 退回灰框大數字版，不擋整篇
+                html = R.card_v4(d, i, len(posts), None, slot); d["meta"]["layout"] = "D-無圖大數字"
+                d["meta"].pop("has_photo", None); d["meta"].pop("photo_kind", None); pick = None
                 pg.set_content(f"<html><head><meta charset=utf-8><style>{BASE}</style></head>{html}</html>")
                 pg.wait_for_timeout(300); res = pg.evaluate(CHECK)
             bad[d["id"]] = len(res["bad"])
+            if pick and not res["bad"]:
+                note_usage(used, pick["key"], day)      # 同一輪後面的卡也會避開這張
             Image.open(io.BytesIO(pg.screenshot(clip={"x": 0, "y": 0, "width": 1080, "height": 1350}))).convert("RGB") \
                 .save(out / f"{d['id']}.jpg", quality=92)
         b.close()
+    if usage_path and day:
+        usage_path.parent.mkdir(parents=True, exist_ok=True)
+        usage_path.write_text(json.dumps(used, ensure_ascii=False, indent=1, sort_keys=True), encoding="utf-8")
     return bad
 
 
@@ -756,7 +781,7 @@ def run_slot(slot: str, day: str, now: datetime, posted: dict, dry: bool, out: P
     if not posts:
         return log
     img_out = (out / slot) if dry else IMG_DIR / f"{day}-{slot}"
-    bad = render_cards(posts, slot, img_out)
+    bad = render_cards(posts, slot, img_out, day, None if dry else PHOTO_USAGE)
     keep = []
     for d in posts:
         if bad[d["id"]]:

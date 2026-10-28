@@ -5,6 +5,7 @@ import sys, os, io, json, re, html, base64
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from lib_dplus import *
+from datetime import datetime as datetime
 
 UP, DN = "#C81234", "#07794F"
 CAT = {"美股": "blue", "台股": "green", "財報": "mustard", "總經": "coral", "科技": "ink"}
@@ -311,18 +312,48 @@ def card_v4(d, idx, tot, bg=None, slot="pre"):
             f'<div class="a row T4" style="left:64px;top:1272px;width:952px;height:56px;color:{K["mu"]}"><span class="num">{idx} / {tot}</span></div></body>')
 # ---- D-實景（Andy 10-28）：上方放主體公司的實景照片（原色、只裁切），照片上方帶狀區放小標（主體＋事件），大數字留在下方大標 ----
 PHOTO_LIB = Path(__file__).resolve().parents[3] / "social" / "photo_lib"
-def photo_for(subject, allow_unreviewed=False):
-    """主體名稱 → 素材庫照片 (photo.jpg 路徑, meta)；只認 aliases.json 的完全相同名稱；未審核（reviewed:false）預設不給。"""
-    if not subject: return None
+KIND_LAYOUT = {"總部/廠房": "D-實景(公司)", "產品": "D-實景(產品)", "相關場景": "D-實景(類別)", "類別": "D-實景(類別)"}
+TOPIC_CAT = {"總經": "總經"}          # 主體不在名單時，依新聞主題分類退到類別圖池
+ROTATE_DAYS = 14
+def _pool(d):
+    try: return json.loads((d / "pool.json").read_text(encoding="utf-8"))
+    except Exception: return None
+def _rotate(d, key, used, today, allow_unreviewed):
+    """圖池裡挑一張：只要已審；近 14 天用過的往後排（全都用過就挑最久沒用的）。回傳 (路徑, meta) 或 None。"""
+    pool = _pool(d)
+    if not pool: return None
+    ph = [m for m in pool.get("photos", []) if (m.get("reviewed") or allow_unreviewed) and (d / m.get("file", "")).exists()]
+    if not ph: return None
+    used = used or {}
+    def last(m): return max(used.get(f"{key}/{m['file']}", []) or [""])
+    def recent(m):
+        l = last(m)
+        if not (l and today): return False
+        try: return (datetime.fromisoformat(today) - datetime.fromisoformat(l)).days < ROTATE_DAYS
+        except Exception: return False
+    m = sorted(ph, key=lambda m: (recent(m), last(m), m["file"]))[0]
+    return d / m["file"], m
+def photo_pick(subject, topic=None, used=None, today=None, allow_unreviewed=False):
+    """選圖順序（Andy 10-28 v2）：該公司已審圖池（近 14 天用過的避開、輪替）→ 該公司所屬類別的通用圖池 → None（灰框大數字）。
+    主體名只認 aliases.json 的完全相同名稱。回傳 (路徑, meta, layout 標籤, 使用紀錄鍵) 或 None。"""
     try: aliases = json.loads((PHOTO_LIB / "aliases.json").read_text(encoding="utf-8"))
-    except Exception: return None
-    slug = aliases.get(subject.strip())
-    if not slug: return None
-    d = PHOTO_LIB / slug
-    try: meta = json.loads((d / "meta.json").read_text(encoding="utf-8"))
-    except Exception: return None
-    if not (d / "photo.jpg").exists() or not (meta.get("reviewed") or allow_unreviewed): return None
-    return d / "photo.jpg", meta
+    except Exception: aliases = {}
+    slug = aliases.get((subject or "").strip())
+    cat = None
+    if slug:
+        r = _rotate(PHOTO_LIB / slug, slug, used, today, allow_unreviewed)
+        if r: return r[0], r[1], KIND_LAYOUT.get(r[1].get("kind"), "D-實景(公司)"), f"{slug}/{r[1]['file']}"
+        try: cat = next((t.get("category") for t in json.loads((PHOTO_LIB / "targets.json").read_text(encoding="utf-8")) if t.get("slug") == slug), None)
+        except Exception: cat = None
+    cat = cat or TOPIC_CAT.get(topic or "")
+    if cat:
+        r = _rotate(PHOTO_LIB / "_category" / cat, f"_category/{cat}", used, today, allow_unreviewed)
+        if r: return r[0], r[1], "D-實景(類別)", f"_category/{cat}/{r[1]['file']}"
+    return None
+def photo_for(subject, allow_unreviewed=False):
+    """相容舊呼叫：只回 (路徑, meta)。"""
+    r = photo_pick(subject, allow_unreviewed=allow_unreviewed)
+    return (r[0], r[1]) if r else None
 def credit_of(meta):
     a = re.sub(r"\s+", " ", meta.get("author") or "不詳").strip()
     if len(a) > 24: a = a[:23] + "…"
@@ -364,11 +395,14 @@ def card_photo(d, idx, tot, photo, slot="pre", pending=False):
             f'<div class="a T3" style="left:64px;top:{dtop}px;width:952px;color:{K["sub"]};line-height:52px">' + "".join(f"<div>{e(l)}</div>" for l in dl) + '</div>'
             f'{rows}<div class="a" style="left:64px;top:1264px;width:952px;height:2px;background:{K["rule"]}"></div>'
             f'<div class="a row T4" style="left:64px;top:1272px;width:952px;height:56px;color:{K["mu"]}"><span class="num">{idx} / {tot}</span></div></body>')
-def card_auto(d, idx, tot, slot="pre", allow_unreviewed=False):
-    """自動版：主體有已審照片 → D-實景；否則 → card_v4 灰框大數字。回傳 (html, layout 標籤)。"""
-    ph = photo_for(d["card"].get("subject"), allow_unreviewed)
-    if ph: return card_photo(d, idx, tot, ph, slot, pending=not ph[1].get("reviewed")), "D-實景"
-    return card_v4(d, idx, tot, None, slot), "D-無圖大數字"
+def card_auto(d, idx, tot, slot="pre", allow_unreviewed=False, used=None, today=None):
+    """自動版：公司圖池 → 類別圖池 → card_v4 灰框大數字。回傳 (html, layout 標籤, 選圖資訊 dict 或 None)。
+    選圖資訊＝{key, kind, file}；呼叫端用 key 記使用紀錄（輪替）、kind 寫進 meta.photo_kind。"""
+    ph = photo_pick(d["card"].get("subject"), d.get("meta", {}).get("topic_category") or d["card"].get("category"), used, today, allow_unreviewed)
+    if ph:
+        path, meta, lay, key = ph
+        return card_photo(d, idx, tot, (path, meta), slot, pending=not meta.get("reviewed")), lay, dict(key=key, kind=meta.get("kind", ""), file=str(path))
+    return card_v4(d, idx, tot, None, slot), "D-無圖大數字", None
 if __name__ == "__main__":
     root = Path(sys.argv[1]); slot = sys.argv[2]
     def _opt(k, dv=None): return sys.argv[sys.argv.index(k)+1] if k in sys.argv else dv

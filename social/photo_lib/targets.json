@@ -1,708 +1,1258 @@
 [
- [
-  "tsmc",
-  "TSMC",
-  [
+ {
+  "slug": "tsmc",
+  "name_en": "TSMC",
+  "zh": [
    "台積電",
    "台積"
   ],
-  [
+  "category": "半導體",
+  "queries": [
    "TSMC Fab",
    "TSMC headquarters Hsinchu",
    "TSMC building"
+  ],
+  "product_queries": [
+   "silicon wafer",
+   "300 mm wafer"
+  ],
+  "related_queries": [
+   "semiconductor fab",
+   "silicon wafer"
   ]
- ],
- [
-  "foxconn",
-  "Foxconn",
-  [
+ },
+ {
+  "slug": "foxconn",
+  "name_en": "Foxconn",
+  "zh": [
    "鴻海",
    "富士康"
   ],
-  [
+  "category": "AI伺服器",
+  "queries": [
    "Foxconn building",
    "Hon Hai Precision headquarters",
    "Foxconn factory"
+  ],
+  "product_queries": [
+   "server assembly line",
+   "electronics assembly line"
+  ],
+  "related_queries": [
+   "server rack",
+   "data center servers"
   ]
- ],
- [
-  "mediatek",
-  "MediaTek",
-  [
+ },
+ {
+  "slug": "mediatek",
+  "name_en": "MediaTek",
+  "zh": [
    "聯發科"
   ],
-  [
+  "category": "半導體",
+  "queries": [
    "MediaTek headquarters",
    "MediaTek building Hsinchu"
+  ],
+  "product_queries": [
+   "MediaTek Dimensity",
+   "MediaTek chip",
+   "smartphone motherboard"
+  ],
+  "related_queries": [
+   "semiconductor fab",
+   "silicon wafer"
   ]
- ],
- [
-  "delta",
-  "Delta Electronics",
-  [
+ },
+ {
+  "slug": "delta",
+  "name_en": "Delta Electronics",
+  "zh": [
    "台達電",
    "台達"
   ],
-  [
+  "category": "AI伺服器",
+  "queries": [
    "Delta Electronics building",
    "Delta Electronics headquarters Taipei"
+  ],
+  "product_queries": [
+   "power supply unit",
+   "server power supply",
+   "Delta Electronics fan"
+  ],
+  "related_queries": [
+   "server rack",
+   "data center servers"
   ]
- ],
- [
-  "quanta",
-  "Quanta Computer",
-  [
+ },
+ {
+  "slug": "quanta",
+  "name_en": "Quanta Computer",
+  "zh": [
    "廣達"
   ],
-  [
+  "category": "AI伺服器",
+  "queries": [
    "Quanta Computer headquarters",
    "Quanta Computer building"
+  ],
+  "product_queries": [
+   "server rack",
+   "data center servers"
+  ],
+  "related_queries": [
+   "server rack",
+   "data center servers"
   ]
- ],
- [
-  "fubon",
-  "Fubon Financial",
-  [
+ },
+ {
+  "slug": "fubon",
+  "name_en": "Fubon Financial",
+  "zh": [
    "富邦金",
    "富邦"
   ],
-  [
+  "category": "金融",
+  "queries": [
    "Fubon Financial Center",
    "Fubon building Taipei"
+  ],
+  "product_queries": [
+   "Taipei financial district",
+   "bank branch Taiwan"
+  ],
+  "related_queries": [
+   "Taipei financial district",
+   "Taipei 101"
   ]
- ],
- [
-  "ase",
-  "ASE Technology",
-  [
+ },
+ {
+  "slug": "ase",
+  "name_en": "ASE Technology",
+  "zh": [
    "日月光投控",
    "日月光"
   ],
-  [
+  "category": "半導體",
+  "queries": [
    "ASE Group Kaohsiung",
    "Advanced Semiconductor Engineering building"
+  ],
+  "product_queries": [
+   "chip packaging",
+   "integrated circuit package"
+  ],
+  "related_queries": [
+   "semiconductor fab",
+   "silicon wafer"
   ]
- ],
- [
-  "cathay",
-  "Cathay Financial",
-  [
+ },
+ {
+  "slug": "cathay",
+  "name_en": "Cathay Financial",
+  "zh": [
    "國泰金",
    "國泰"
   ],
-  [
+  "category": "金融",
+  "queries": [
    "Cathay United Bank building",
    "Cathay Financial Holdings building"
+  ],
+  "product_queries": [
+   "Taipei financial district",
+   "bank branch Taiwan"
+  ],
+  "related_queries": [
+   "Taipei financial district",
+   "Taipei 101"
   ]
- ],
- [
-  "chunghwa_telecom",
-  "Chunghwa Telecom",
-  [
+ },
+ {
+  "slug": "chunghwa_telecom",
+  "name_en": "Chunghwa Telecom",
+  "zh": [
    "中華電信",
    "中華電"
   ],
-  [
+  "category": "電信",
+  "queries": [
    "Chunghwa Telecom headquarters",
    "Chunghwa Telecom building"
+  ],
+  "product_queries": [
+   "cell tower",
+   "telecom antenna"
+  ],
+  "related_queries": [
+   "cell tower",
+   "telecommunication tower"
   ]
- ],
- [
-  "wiwynn",
-  "Wiwynn",
-  [
+ },
+ {
+  "slug": "wiwynn",
+  "name_en": "Wiwynn",
+  "zh": [
    "緯穎"
   ],
-  [
+  "category": "AI伺服器",
+  "queries": [
    "Wiwynn building",
    "Wiwynn headquarters"
+  ],
+  "product_queries": [
+   "Open Compute server",
+   "server rack"
+  ],
+  "related_queries": [
+   "server rack",
+   "data center servers"
   ]
- ],
- [
-  "ctbc",
-  "CTBC Financial",
-  [
+ },
+ {
+  "slug": "ctbc",
+  "name_en": "CTBC Financial",
+  "zh": [
    "中信金",
    "中國信託"
   ],
-  [
+  "category": "金融",
+  "queries": [
    "CTBC Financial Park",
    "CTBC building Taipei"
+  ],
+  "product_queries": [
+   "Taipei financial district",
+   "bank branch Taiwan"
+  ],
+  "related_queries": [
+   "Taipei financial district",
+   "Taipei 101"
   ]
- ],
- [
-  "mega",
-  "Mega Financial",
-  [
+ },
+ {
+  "slug": "mega",
+  "name_en": "Mega Financial",
+  "zh": [
    "兆豐金",
    "兆豐"
   ],
-  [
+  "category": "金融",
+  "queries": [
    "Mega International Commercial Bank building"
+  ],
+  "product_queries": [
+   "Taipei financial district",
+   "bank branch Taiwan"
+  ],
+  "related_queries": [
+   "Taipei financial district",
+   "Taipei 101"
   ]
- ],
- [
-  "accton",
-  "Accton Technology",
-  [
+ },
+ {
+  "slug": "accton",
+  "name_en": "Accton Technology",
+  "zh": [
    "智邦"
   ],
-  [
+  "category": "網通",
+  "queries": [
    "Accton Technology building",
    "Accton headquarters Hsinchu"
+  ],
+  "product_queries": [
+   "network switch",
+   "Ethernet switch data center"
+  ],
+  "related_queries": [
+   "network switch",
+   "fiber optic cable"
   ]
- ],
- [
-  "esun",
-  "E.Sun Financial",
-  [
+ },
+ {
+  "slug": "esun",
+  "name_en": "E.Sun Financial",
+  "zh": [
    "玉山金",
    "玉山銀行"
   ],
-  [
+  "category": "金融",
+  "queries": [
    "E.Sun Bank building",
    "E.SUN Commercial Bank headquarters"
+  ],
+  "product_queries": [
+   "Taipei financial district",
+   "bank branch Taiwan"
+  ],
+  "related_queries": [
+   "Taipei financial district",
+   "Taipei 101"
   ]
- ],
- [
-  "umc",
-  "United Microelectronics",
-  [
+ },
+ {
+  "slug": "umc",
+  "name_en": "United Microelectronics",
+  "zh": [
    "聯電"
   ],
-  [
+  "category": "半導體",
+  "queries": [
    "UMC Fab",
    "United Microelectronics Corporation building"
+  ],
+  "product_queries": [
+   "silicon wafer",
+   "wafer fab cleanroom"
+  ],
+  "related_queries": [
+   "semiconductor fab",
+   "silicon wafer"
   ]
- ],
- [
-  "yuanta",
-  "Yuanta Financial",
-  [
+ },
+ {
+  "slug": "yuanta",
+  "name_en": "Yuanta Financial",
+  "zh": [
    "元大金",
    "元大"
   ],
-  [
+  "category": "金融",
+  "queries": [
    "Yuanta Financial building",
    "Yuanta Securities building Taipei"
+  ],
+  "product_queries": [
+   "Taipei financial district",
+   "bank branch Taiwan"
+  ],
+  "related_queries": [
+   "Taipei financial district",
+   "Taipei 101"
   ]
- ],
- [
-  "auras",
-  "Asia Vital Components",
-  [
+ },
+ {
+  "slug": "auras",
+  "name_en": "Asia Vital Components",
+  "zh": [
    "奇鋐"
   ],
-  [
+  "category": "散熱",
+  "queries": [
    "Asia Vital Components building"
+  ],
+  "product_queries": [
+   "heat sink",
+   "CPU cooler",
+   "vapor chamber"
+  ],
+  "related_queries": [
+   "heat sink",
+   "liquid cooling computer"
   ]
- ],
- [
-  "evergreen",
-  "Evergreen Marine",
-  [
+ },
+ {
+  "slug": "evergreen",
+  "name_en": "Evergreen Marine",
+  "zh": [
    "長榮海運",
    "長榮"
   ],
-  [
+  "category": "航運",
+  "queries": [
    "Evergreen Marine building",
    "Evergreen container ship",
    "Evergreen Marine Corporation headquarters"
+  ],
+  "product_queries": [
+   "Evergreen container ship",
+   "Ever Given"
+  ],
+  "related_queries": [
+   "container ship",
+   "container port Kaohsiung"
   ]
- ],
- [
-  "uni_president",
-  "Uni-President",
-  [
+ },
+ {
+  "slug": "uni_president",
+  "name_en": "Uni-President",
+  "zh": [
    "統一企業",
    "統一"
   ],
-  [
+  "category": "總經",
+  "queries": [
    "Uni-President Enterprises headquarters",
    "Uni-President building Tainan"
+  ],
+  "product_queries": [
+   "7-Eleven Taiwan",
+   "Uni-President food"
+  ],
+  "related_queries": [
+   "Taipei skyline",
+   "Taiwan Stock Exchange"
   ]
- ],
- [
-  "asus",
-  "ASUS",
-  [
+ },
+ {
+  "slug": "asus",
+  "name_en": "ASUS",
+  "zh": [
    "華碩"
   ],
-  [
+  "category": "消費電子",
+  "queries": [
    "ASUS headquarters Taipei",
    "Asus building Beitou"
+  ],
+  "product_queries": [
+   "ASUS laptop",
+   "ASUS motherboard",
+   "ASUS ROG"
+  ],
+  "related_queries": [
+   "smartphone",
+   "laptop computer"
   ]
- ],
- [
-  "first_fin",
-  "First Financial",
-  [
+ },
+ {
+  "slug": "first_fin",
+  "name_en": "First Financial",
+  "zh": [
    "第一金",
    "第一銀行"
   ],
-  [
+  "category": "金融",
+  "queries": [
    "First Commercial Bank headquarters Taipei",
    "First Bank building Taipei"
+  ],
+  "product_queries": [
+   "Taipei financial district",
+   "bank branch Taiwan"
+  ],
+  "related_queries": [
+   "Taipei financial district",
+   "Taipei 101"
   ]
- ],
- [
-  "fpcc",
-  "Formosa Petrochemical",
-  [
+ },
+ {
+  "slug": "fpcc",
+  "name_en": "Formosa Petrochemical",
+  "zh": [
    "台塑化"
   ],
-  [
+  "category": "石化",
+  "queries": [
    "Formosa Petrochemical Mailiao",
    "Mailiao refinery"
+  ],
+  "product_queries": [
+   "Mailiao refinery",
+   "oil refinery"
+  ],
+  "related_queries": [
+   "petrochemical plant",
+   "oil refinery"
   ]
- ],
- [
-  "nanya_plastics",
-  "Nan Ya Plastics",
-  [
+ },
+ {
+  "slug": "nanya_plastics",
+  "name_en": "Nan Ya Plastics",
+  "zh": [
    "南亞"
   ],
-  [
+  "category": "石化",
+  "queries": [
    "Nan Ya Plastics building",
    "Formosa Plastics Building Taipei"
+  ],
+  "product_queries": [
+   "PVC pipe",
+   "plastic pellets"
+  ],
+  "related_queries": [
+   "petrochemical plant",
+   "oil refinery"
   ]
- ],
- [
-  "formosa_plastics",
-  "Formosa Plastics",
-  [
+ },
+ {
+  "slug": "formosa_plastics",
+  "name_en": "Formosa Plastics",
+  "zh": [
    "台塑"
   ],
-  [
+  "category": "石化",
+  "queries": [
    "Formosa Plastics Building",
    "Formosa Plastics Group headquarters"
+  ],
+  "product_queries": [
+   "Mailiao",
+   "petrochemical plant"
+  ],
+  "related_queries": [
+   "petrochemical plant",
+   "oil refinery"
   ]
- ],
- [
-  "pegatron",
-  "Pegatron",
-  [
+ },
+ {
+  "slug": "pegatron",
+  "name_en": "Pegatron",
+  "zh": [
    "和碩"
   ],
-  [
+  "category": "消費電子",
+  "queries": [
    "Pegatron headquarters",
    "Pegatron building"
+  ],
+  "product_queries": [
+   "motherboard",
+   "laptop motherboard"
+  ],
+  "related_queries": [
+   "smartphone",
+   "laptop computer"
   ]
- ],
- [
-  "wistron",
-  "Wistron",
-  [
+ },
+ {
+  "slug": "wistron",
+  "name_en": "Wistron",
+  "zh": [
    "緯創"
   ],
-  [
+  "category": "AI伺服器",
+  "queries": [
    "Wistron headquarters",
    "Wistron building"
+  ],
+  "product_queries": [
+   "server motherboard",
+   "server rack"
+  ],
+  "related_queries": [
+   "server rack",
+   "data center servers"
   ]
- ],
- [
-  "alchip",
-  "Alchip Technologies",
-  [
+ },
+ {
+  "slug": "alchip",
+  "name_en": "Alchip Technologies",
+  "zh": [
    "世芯-KY",
    "世芯"
   ],
-  [
+  "category": "半導體",
+  "queries": [
    "Alchip Technologies"
+  ],
+  "product_queries": [
+   "ASIC chip",
+   "integrated circuit die"
+  ],
+  "related_queries": [
+   "semiconductor fab",
+   "silicon wafer"
   ]
- ],
- [
-  "tcfhc",
-  "Taiwan Cooperative Financial",
-  [
+ },
+ {
+  "slug": "tcfhc",
+  "name_en": "Taiwan Cooperative Financial",
+  "zh": [
    "合庫金",
    "合作金庫"
   ],
-  [
+  "category": "金融",
+  "queries": [
    "Taiwan Cooperative Bank headquarters",
    "Taiwan Cooperative Bank building"
+  ],
+  "product_queries": [
+   "Taipei financial district",
+   "bank branch Taiwan"
+  ],
+  "related_queries": [
+   "Taipei financial district",
+   "Taipei 101"
   ]
- ],
- [
-  "hua_nan",
-  "Hua Nan Financial",
-  [
+ },
+ {
+  "slug": "hua_nan",
+  "name_en": "Hua Nan Financial",
+  "zh": [
    "華南金",
    "華南銀行"
   ],
-  [
+  "category": "金融",
+  "queries": [
    "Hua Nan Commercial Bank headquarters",
    "Hua Nan Bank building"
+  ],
+  "product_queries": [
+   "Taipei financial district",
+   "bank branch Taiwan"
+  ],
+  "related_queries": [
+   "Taipei financial district",
+   "Taipei 101"
   ]
- ],
- [
-  "largan",
-  "Largan Precision",
-  [
+ },
+ {
+  "slug": "largan",
+  "name_en": "Largan Precision",
+  "zh": [
    "大立光"
   ],
-  [
+  "category": "消費電子",
+  "queries": [
    "Largan Precision building",
    "Largan Precision headquarters Taichung"
+  ],
+  "product_queries": [
+   "smartphone camera module",
+   "smartphone camera lens"
+  ],
+  "related_queries": [
+   "smartphone",
+   "laptop computer"
   ]
- ],
- [
-  "taishin",
-  "Taishin Financial",
-  [
+ },
+ {
+  "slug": "taishin",
+  "name_en": "Taishin Financial",
+  "zh": [
    "台新金",
    "台新"
   ],
-  [
+  "category": "金融",
+  "queries": [
    "Taishin Bank building",
    "Taishin Financial headquarters"
+  ],
+  "product_queries": [
+   "Taipei financial district",
+   "bank branch Taiwan"
+  ],
+  "related_queries": [
+   "Taipei financial district",
+   "Taipei 101"
   ]
- ],
- [
-  "yageo",
-  "Yageo",
-  [
+ },
+ {
+  "slug": "yageo",
+  "name_en": "Yageo",
+  "zh": [
    "國巨"
   ],
-  [
+  "category": "消費電子",
+  "queries": [
    "Yageo building",
    "Yageo headquarters"
+  ],
+  "product_queries": [
+   "multilayer ceramic capacitor",
+   "surface mount capacitors",
+   "SMD resistor"
+  ],
+  "related_queries": [
+   "smartphone",
+   "laptop computer"
   ]
- ],
- [
-  "csc",
-  "China Steel",
-  [
+ },
+ {
+  "slug": "csc",
+  "name_en": "China Steel",
+  "zh": [
    "中鋼"
   ],
-  [
+  "category": "鋼鐵",
+  "queries": [
    "China Steel Corporation headquarters Kaohsiung",
    "China Steel building"
+  ],
+  "product_queries": [
+   "steel coil",
+   "steel mill"
+  ],
+  "related_queries": [
+   "steel mill",
+   "steel coil"
   ]
- ],
- [
-  "liteon",
-  "Lite-On",
-  [
+ },
+ {
+  "slug": "liteon",
+  "name_en": "Lite-On",
+  "zh": [
    "光寶科",
    "光寶"
   ],
-  [
+  "category": "消費電子",
+  "queries": [
    "Lite-On Technology headquarters",
    "Lite-On building"
+  ],
+  "product_queries": [
+   "power supply unit",
+   "LED lighting"
+  ],
+  "related_queries": [
+   "smartphone",
+   "laptop computer"
   ]
- ],
- [
-  "advantech",
-  "Advantech",
-  [
+ },
+ {
+  "slug": "advantech",
+  "name_en": "Advantech",
+  "zh": [
    "研華"
   ],
-  [
+  "category": "消費電子",
+  "queries": [
    "Advantech headquarters",
    "Advantech building Taipei"
+  ],
+  "product_queries": [
+   "industrial computer",
+   "industrial PC",
+   "embedded computer"
+  ],
+  "related_queries": [
+   "smartphone",
+   "laptop computer"
   ]
- ],
- [
-  "tcc",
-  "Taiwan Cement",
-  [
+ },
+ {
+  "slug": "tcc",
+  "name_en": "Taiwan Cement",
+  "zh": [
    "台泥"
   ],
-  [
+  "category": "鋼鐵",
+  "queries": [
    "Taiwan Cement building Taipei",
    "Taiwan Cement Corporation"
+  ],
+  "product_queries": [
+   "cement plant",
+   "cement kiln"
+  ],
+  "related_queries": [
+   "steel mill",
+   "steel coil"
   ]
- ],
- [
-  "hotai",
-  "Hotai Motor",
-  [
+ },
+ {
+  "slug": "hotai",
+  "name_en": "Hotai Motor",
+  "zh": [
    "和泰車"
   ],
-  [
+  "category": "汽車",
+  "queries": [
    "Hotai Motor building",
    "Hotai Motor headquarters"
+  ],
+  "product_queries": [
+   "Toyota Corolla Altis",
+   "Toyota car Taiwan"
+  ],
+  "related_queries": [
+   "car assembly line",
+   "electric car"
   ]
- ],
- [
-  "realtek",
-  "Realtek",
-  [
+ },
+ {
+  "slug": "realtek",
+  "name_en": "Realtek",
+  "zh": [
    "瑞昱"
   ],
-  [
+  "category": "網通",
+  "queries": [
    "Realtek headquarters Hsinchu",
    "Realtek Semiconductor building"
+  ],
+  "product_queries": [
+   "Realtek chip",
+   "network interface controller",
+   "ethernet controller chip"
+  ],
+  "related_queries": [
+   "network switch",
+   "fiber optic cable"
   ]
- ],
- [
-  "sinopac",
-  "SinoPac Financial",
-  [
+ },
+ {
+  "slug": "sinopac",
+  "name_en": "SinoPac Financial",
+  "zh": [
    "永豐金",
    "永豐"
   ],
-  [
+  "category": "金融",
+  "queries": [
    "SinoPac building Taipei",
    "Bank SinoPac headquarters"
+  ],
+  "product_queries": [
+   "Taipei financial district",
+   "bank branch Taiwan"
+  ],
+  "related_queries": [
+   "Taipei financial district",
+   "Taipei 101"
   ]
- ],
- [
-  "cdf",
-  "China Development Financial",
-  [
+ },
+ {
+  "slug": "cdf",
+  "name_en": "China Development Financial",
+  "zh": [
    "開發金",
    "中華開發"
   ],
-  [
+  "category": "金融",
+  "queries": [
    "China Development Financial building",
    "KGI Bank building"
+  ],
+  "product_queries": [
+   "Taipei financial district",
+   "bank branch Taiwan"
+  ],
+  "related_queries": [
+   "Taipei financial district",
+   "Taipei 101"
   ]
- ],
- [
-  "novatek",
-  "Novatek Microelectronics",
-  [
+ },
+ {
+  "slug": "novatek",
+  "name_en": "Novatek Microelectronics",
+  "zh": [
    "聯詠"
   ],
-  [
+  "category": "消費電子",
+  "queries": [
    "Novatek Microelectronics building"
+  ],
+  "product_queries": [
+   "display driver IC",
+   "LCD panel"
+  ],
+  "related_queries": [
+   "smartphone",
+   "laptop computer"
   ]
- ],
- [
-  "unimicron",
-  "Unimicron",
-  [
+ },
+ {
+  "slug": "unimicron",
+  "name_en": "Unimicron",
+  "zh": [
    "欣興"
   ],
-  [
+  "category": "PCB",
+  "queries": [
    "Unimicron building",
    "Unimicron headquarters"
+  ],
+  "product_queries": [
+   "printed circuit board",
+   "IC substrate",
+   "PCB manufacturing"
+  ],
+  "related_queries": [
+   "printed circuit board"
   ]
- ],
- [
-  "yangming",
-  "Yang Ming Marine",
-  [
+ },
+ {
+  "slug": "yangming",
+  "name_en": "Yang Ming Marine",
+  "zh": [
    "陽明海運",
    "陽明"
   ],
-  [
+  "category": "航運",
+  "queries": [
    "Yang Ming Marine Transport building",
    "Yang Ming container ship"
+  ],
+  "product_queries": [
+   "Yang Ming container ship",
+   "YM container ship"
+  ],
+  "related_queries": [
+   "container ship",
+   "container port Kaohsiung"
   ]
- ],
- [
-  "wanhai",
-  "Wan Hai Lines",
-  [
+ },
+ {
+  "slug": "wanhai",
+  "name_en": "Wan Hai Lines",
+  "zh": [
    "萬海"
   ],
-  [
+  "category": "航運",
+  "queries": [
    "Wan Hai Lines building",
    "Wan Hai container ship"
+  ],
+  "product_queries": [
+   "Wan Hai container ship",
+   "Wan Hai Lines ship"
+  ],
+  "related_queries": [
+   "container ship",
+   "container port Kaohsiung"
   ]
- ],
- [
-  "kingslide",
-  "King Slide Works",
-  [
+ },
+ {
+  "slug": "kingslide",
+  "name_en": "King Slide Works",
+  "zh": [
    "川湖"
   ],
-  [
+  "category": "AI伺服器",
+  "queries": [
    "King Slide Works"
+  ],
+  "product_queries": [
+   "server rail",
+   "server rack rails",
+   "server cabinet"
+  ],
+  "related_queries": [
+   "server rack",
+   "data center servers"
   ]
- ],
- [
-  "taiwan_mobile",
-  "Taiwan Mobile",
-  [
+ },
+ {
+  "slug": "taiwan_mobile",
+  "name_en": "Taiwan Mobile",
+  "zh": [
    "台灣大哥大",
    "台灣大"
   ],
-  [
+  "category": "電信",
+  "queries": [
    "Taiwan Mobile headquarters",
    "Taiwan Mobile building"
+  ],
+  "product_queries": [
+   "cell tower",
+   "5G antenna"
+  ],
+  "related_queries": [
+   "cell tower",
+   "telecommunication tower"
   ]
- ],
- [
-  "fareastone",
-  "Far EasTone",
-  [
+ },
+ {
+  "slug": "fareastone",
+  "name_en": "Far EasTone",
+  "zh": [
    "遠傳"
   ],
-  [
+  "category": "電信",
+  "queries": [
    "Far EasTone building",
    "Far EasTone headquarters"
+  ],
+  "product_queries": [
+   "cell tower",
+   "5G base station"
+  ],
+  "related_queries": [
+   "cell tower",
+   "telecommunication tower"
   ]
- ],
- [
-  "inventec",
-  "Inventec",
-  [
+ },
+ {
+  "slug": "inventec",
+  "name_en": "Inventec",
+  "zh": [
    "英業達"
   ],
-  [
+  "category": "AI伺服器",
+  "queries": [
    "Inventec building",
    "Inventec headquarters"
+  ],
+  "product_queries": [
+   "server rack",
+   "rack server"
+  ],
+  "related_queries": [
+   "server rack",
+   "data center servers"
   ]
- ],
- [
-  "jentech",
-  "Jentech Precision",
-  [
+ },
+ {
+  "slug": "jentech",
+  "name_en": "Jentech Precision",
+  "zh": [
    "健策"
   ],
-  [
+  "category": "散熱",
+  "queries": [
    "Jentech Precision"
+  ],
+  "product_queries": [
+   "heat spreader",
+   "heat sink",
+   "CPU heat spreader"
+  ],
+  "related_queries": [
+   "heat sink",
+   "liquid cooling computer"
   ]
- ],
- [
-  "nvidia",
-  "NVIDIA",
-  [
+ },
+ {
+  "slug": "nvidia",
+  "name_en": "NVIDIA",
+  "zh": [
    "輝達",
    "NVIDIA",
    "Nvidia"
   ],
-  [
+  "category": "半導體",
+  "queries": [
    "Nvidia headquarters Santa Clara",
    "Nvidia Endeavor building",
    "Nvidia Voyager building"
+  ],
+  "product_queries": [
+   "Nvidia GeForce graphics card",
+   "Nvidia GPU",
+   "Nvidia Tesla accelerator"
+  ],
+  "related_queries": [
+   "semiconductor fab",
+   "silicon wafer"
   ]
- ],
- [
-  "apple",
-  "Apple",
-  [
+ },
+ {
+  "slug": "apple",
+  "name_en": "Apple",
+  "zh": [
    "蘋果",
    "Apple"
   ],
-  [
+  "category": "消費電子",
+  "queries": [
    "Apple Park aerial",
    "Apple Park",
    "Apple Campus Cupertino"
+  ],
+  "product_queries": [
+   "iPhone",
+   "MacBook",
+   "Apple Store"
+  ],
+  "related_queries": [
+   "smartphone",
+   "laptop computer"
   ]
- ],
- [
-  "microsoft",
-  "Microsoft",
-  [
+ },
+ {
+  "slug": "microsoft",
+  "name_en": "Microsoft",
+  "zh": [
    "微軟",
    "Microsoft"
   ],
-  [
+  "category": "資料中心",
+  "queries": [
    "Microsoft Redmond campus",
    "Microsoft headquarters Redmond"
+  ],
+  "product_queries": [
+   "Microsoft datacenter",
+   "Microsoft Surface",
+   "Xbox"
+  ],
+  "related_queries": [
+   "data center",
+   "server room"
   ]
- ],
- [
-  "alphabet",
-  "Alphabet",
-  [
+ },
+ {
+  "slug": "alphabet",
+  "name_en": "Alphabet",
+  "zh": [
    "Alphabet",
    "Google",
    "谷歌",
    "Google母公司"
   ],
-  [
+  "category": "資料中心",
+  "queries": [
    "Googleplex",
    "Google headquarters Mountain View",
    "Google Bay View campus",
    "Google headquarters",
    "Google Mountain View building",
    "Google office"
+  ],
+  "product_queries": [
+   "Google data center",
+   "Google TPU",
+   "Pixel phone"
+  ],
+  "related_queries": [
+   "data center",
+   "server room"
   ]
- ],
- [
-  "meta",
-  "Meta Platforms",
-  [
+ },
+ {
+  "slug": "meta",
+  "name_en": "Meta Platforms",
+  "zh": [
    "Meta",
    "臉書"
   ],
-  [
+  "category": "消費電子",
+  "queries": [
    "Meta headquarters Menlo Park",
    "Facebook headquarters Menlo Park",
    "1 Hacker Way"
+  ],
+  "product_queries": [
+   "Oculus Quest",
+   "Meta Quest",
+   "virtual reality headset"
+  ],
+  "related_queries": [
+   "smartphone",
+   "laptop computer"
   ]
- ],
- [
-  "amazon",
-  "Amazon",
-  [
+ },
+ {
+  "slug": "amazon",
+  "name_en": "Amazon",
+  "zh": [
    "亞馬遜",
    "Amazon"
   ],
-  [
+  "category": "資料中心",
+  "queries": [
    "Amazon Spheres Seattle",
    "Amazon headquarters Seattle",
    "Amazon Day 1 building"
+  ],
+  "product_queries": [
+   "Amazon fulfillment center",
+   "Amazon data center",
+   "Amazon delivery van"
+  ],
+  "related_queries": [
+   "data center",
+   "server room"
   ]
- ],
- [
-  "broadcom",
-  "Broadcom",
-  [
+ },
+ {
+  "slug": "broadcom",
+  "name_en": "Broadcom",
+  "zh": [
    "博通",
    "Broadcom"
   ],
-  [
+  "category": "網通",
+  "queries": [
    "Broadcom headquarters San Jose",
    "Broadcom building"
+  ],
+  "product_queries": [
+   "Broadcom chip",
+   "network switch ASIC"
+  ],
+  "related_queries": [
+   "network switch",
+   "fiber optic cable"
   ]
- ],
- [
-  "amd",
-  "AMD",
-  [
+ },
+ {
+  "slug": "amd",
+  "name_en": "AMD",
+  "zh": [
    "超微",
    "AMD"
   ],
-  [
+  "category": "半導體",
+  "queries": [
    "AMD headquarters Santa Clara",
    "AMD campus Austin",
    "Advanced Micro Devices building"
+  ],
+  "product_queries": [
+   "AMD Ryzen processor",
+   "AMD Radeon graphics card",
+   "AMD EPYC"
+  ],
+  "related_queries": [
+   "semiconductor fab",
+   "silicon wafer"
   ]
- ],
- [
-  "intel",
-  "Intel",
-  [
+ },
+ {
+  "slug": "intel",
+  "name_en": "Intel",
+  "zh": [
    "英特爾",
    "Intel"
   ],
-  [
+  "category": "半導體",
+  "queries": [
    "Intel headquarters Santa Clara",
    "Intel Robert Noyce Building",
    "Intel fab"
+  ],
+  "product_queries": [
+   "Intel Core processor",
+   "Intel Xeon",
+   "Intel CPU die"
+  ],
+  "related_queries": [
+   "semiconductor fab",
+   "silicon wafer"
   ]
- ],
- [
-  "samsung",
-  "Samsung Electronics",
-  [
+ },
+ {
+  "slug": "samsung",
+  "name_en": "Samsung Electronics",
+  "zh": [
    "三星電子",
    "三星",
    "Samsung"
   ],
-  [
+  "category": "記憶體",
+  "queries": [
    "Samsung Electronics headquarters Suwon",
    "Samsung Digital City",
    "Samsung Town Seoul",
    "Samsung Pyeongtaek"
+  ],
+  "product_queries": [
+   "Samsung memory",
+   "Samsung SSD",
+   "Samsung DRAM"
+  ],
+  "related_queries": [
+   "DRAM chips",
+   "memory module"
   ]
- ],
- [
-  "sk_hynix",
-  "SK hynix",
-  [
+ },
+ {
+  "slug": "sk_hynix",
+  "name_en": "SK hynix",
+  "zh": [
    "SK海力士",
    "海力士",
    "SK hynix"
   ],
-  [
+  "category": "記憶體",
+  "queries": [
    "SK hynix Icheon",
    "SK hynix headquarters",
    "SK Hynix building",
@@ -712,93 +1262,170 @@
    "SK hynix fab",
    "Hynix Icheon",
    "SK Hynix Wuxi"
+  ],
+  "product_queries": [
+   "SK hynix memory",
+   "SK Hynix DRAM",
+   "HBM memory",
+   "DDR4 memory module"
+  ],
+  "related_queries": [
+   "DRAM chips",
+   "memory module"
   ]
- ],
- [
-  "micron",
-  "Micron Technology",
-  [
+ },
+ {
+  "slug": "micron",
+  "name_en": "Micron Technology",
+  "zh": [
    "美光",
    "Micron"
   ],
-  [
+  "category": "記憶體",
+  "queries": [
    "Micron Technology headquarters Boise",
    "Micron Boise",
    "Micron Technology building"
+  ],
+  "product_queries": [
+   "Micron memory",
+   "Micron DRAM",
+   "Crucial memory module",
+   "DDR5 module"
+  ],
+  "related_queries": [
+   "DRAM chips",
+   "memory module"
   ]
- ],
- [
-  "asml",
-  "ASML",
-  [
+ },
+ {
+  "slug": "asml",
+  "name_en": "ASML",
+  "zh": [
    "艾司摩爾",
    "ASML"
   ],
-  [
+  "category": "半導體",
+  "queries": [
    "ASML Veldhoven",
    "ASML headquarters",
    "ASML building"
+  ],
+  "product_queries": [
+   "ASML EUV",
+   "ASML lithography machine",
+   "EUV lithography"
+  ],
+  "related_queries": [
+   "semiconductor fab",
+   "silicon wafer"
   ]
- ],
- [
-  "tesla",
-  "Tesla",
-  [
+ },
+ {
+  "slug": "tesla",
+  "name_en": "Tesla",
+  "zh": [
    "特斯拉",
    "Tesla"
   ],
-  [
+  "category": "汽車",
+  "queries": [
    "Tesla Gigafactory Texas",
    "Gigafactory Nevada",
    "Tesla Fremont factory",
    "Tesla headquarters Austin"
+  ],
+  "product_queries": [
+   "Tesla Model 3",
+   "Tesla Model Y",
+   "Tesla Cybertruck"
+  ],
+  "related_queries": [
+   "car assembly line",
+   "electric car"
   ]
- ],
- [
-  "nxp",
-  "NXP Semiconductors",
-  [
+ },
+ {
+  "slug": "nxp",
+  "name_en": "NXP Semiconductors",
+  "zh": [
    "恩智浦",
    "NXP"
   ],
-  [
+  "category": "汽車",
+  "queries": [
    "NXP Semiconductors headquarters Eindhoven",
    "NXP building Eindhoven",
    "NXP Nijmegen"
+  ],
+  "product_queries": [
+   "NXP chip",
+   "automotive microcontroller"
+  ],
+  "related_queries": [
+   "car assembly line",
+   "electric car"
   ]
- ],
- [
-  "qualcomm",
-  "Qualcomm",
-  [
+ },
+ {
+  "slug": "qualcomm",
+  "name_en": "Qualcomm",
+  "zh": [
    "高通",
    "Qualcomm"
   ],
-  [
+  "category": "半導體",
+  "queries": [
    "Qualcomm headquarters San Diego",
    "Qualcomm building San Diego"
+  ],
+  "product_queries": [
+   "Qualcomm Snapdragon",
+   "Snapdragon chip"
+  ],
+  "related_queries": [
+   "semiconductor fab",
+   "silicon wafer"
   ]
- ],
- [
-  "anthropic",
-  "Anthropic",
-  [
+ },
+ {
+  "slug": "anthropic",
+  "name_en": "Anthropic",
+  "zh": [
    "Anthropic"
   ],
-  [
+  "category": "資料中心",
+  "queries": [
    "Anthropic office San Francisco",
    "Anthropic headquarters"
+  ],
+  "product_queries": [
+   "data center servers",
+   "AI accelerator"
+  ],
+  "related_queries": [
+   "data center",
+   "server room"
   ]
- ],
- [
-  "openai",
-  "OpenAI",
-  [
+ },
+ {
+  "slug": "openai",
+  "name_en": "OpenAI",
+  "zh": [
    "OpenAI"
   ],
-  [
+  "category": "資料中心",
+  "queries": [
    "OpenAI headquarters San Francisco",
    "OpenAI office Pioneer Building"
+  ],
+  "product_queries": [
+   "data center servers",
+   "GPU cluster"
+  ],
+  "related_queries": [
+   "data center",
+   "server room"
   ]
- ]
+ }
 ]

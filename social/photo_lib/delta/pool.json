@@ -1,0 +1,30 @@
+{
+ "slug": "delta",
+ "photos": [
+  {
+   "slug": "delta",
+   "name_en": "Delta Electronics",
+   "query": "Delta Electronics building",
+   "file_title": "File:Delta Electronics Thailand.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:Delta_Electronics_Thailand.jpg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/4/43/Delta_Electronics_Thailand.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "author": "Benjapol.D",
+   "credit": "Own work",
+   "description": "Delta Electronics (Thailand) Head Office",
+   "width": 1920,
+   "height": 1282,
+   "fetched_at": "2026-10-28T10:09:22+00:00",
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-28 第一輪通過：台達電泰國廠區，LOGO 為小招牌；注意是海外廠區非台灣總部",
+   "reviewed_by": "art-director",
+   "reviewed_at": "2026-10-28",
+   "note": "台達電泰國廠區，LOGO 為小招牌；注意是海外廠區非台灣總部",
+   "file": "photo_1.jpg",
+   "kind": "總部/廠房"
+  }
+ ],
+ "rejected": []
+}

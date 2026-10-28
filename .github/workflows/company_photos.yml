@@ -1,5 +1,5 @@
 # 公司實景照片素材庫（Andy 2026-10-28）：從 Wikimedia Commons 抓 CC0／CC BY／CC BY-SA／公有領域照片
-# 存進 social/photo_lib/<slug>/，meta.reviewed=false，art-director 審過才可用。手動觸發＋每週一次。
+# 存進 social/photo_lib/<slug>/ 圖池（photo_N.jpg＋pool.json）與 _category/<類別>/，reviewed=false，art-director 審過才可用。手動觸發＋每週一次。
 name: 公司實景照片
 on:
   workflow_dispatch:
@@ -7,9 +7,9 @@ on:
       only:
         description: "只抓這些 slug（逗號分隔，空白＝全部）"
         default: ""
-      refresh:
-        description: "重抓未審核（reviewed=false）的照片：true／false"
-        default: "false"
+      category:
+        description: "類別通用圖池：all（公司＋類別）／none（只抓公司）／only（只抓類別）"
+        default: "all"
   schedule:
     - cron: "17 19 * * 0"   # 每週一 03:17 台北
 permissions:
@@ -20,7 +20,7 @@ concurrency:
 jobs:
   fetch:
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -30,11 +30,12 @@ jobs:
       - name: 抓圖
         env:
           ONLY: ${{ github.event.inputs.only }}
-          REFRESH: ${{ github.event.inputs.refresh }}
+          CATEGORY: ${{ github.event.inputs.category }}
         run: |
           args=""
           [ -n "$ONLY" ] && args="$args --only $ONLY"
-          [ "$REFRESH" = "true" ] && args="$args --refresh"
+          [ "$CATEGORY" = "none" ] && args="$args --no-category"
+          [ "$CATEGORY" = "only" ] && args="$args --only-category"
           python scripts/company_photos.py $args
       - name: commit 回 repo
         run: |
