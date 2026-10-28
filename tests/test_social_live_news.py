@@ -117,3 +117,8 @@ def test_errors_never_block(tmp_path):
     r = LN.for_post("intraday", TEXT, NOW_ID, ss.HASHTAGS["intraday"], ss.THREADS_MAX, news="壞掉的資料", used_path=_used(tmp_path), log=lambda *a: None)
     assert r["text"] == TEXT and r["reply"] == "" and r["alert"]
     assert LN.for_post("credit", TEXT, NOW_ID, "#x", 480, news=_news(ROWS))["text"] == TEXT       # 融資融券篇不加
+
+
+def test_empty_summary_uses_rest_of_title():
+    L = LN.lines([{"title": "SK海力士財報出爐！第三季營益衝83.3兆韓元超預期，記憶體漲價威力顯現", "summary": ""}])
+    assert L == ["📰 新聞焦點：", "・SK海力士財報出爐：第三季營益衝83.3兆韓元超預期，記憶體漲價威力顯現"]

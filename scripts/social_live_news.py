@@ -31,7 +31,7 @@ SECTION = "📰 新聞焦點："
 MIN_N, MAX_N = 3, 5
 # 業配／活動：基金或 ETF 募集、講座、說明會、抽獎、贈品、課程、直播、徵才、贊助（盤前 SKIP_RE 之外再多排這些）
 LIVE_SKIP_RE = re.compile(r"募集|開募|限時|講座|說明會|研討會|座談|論壇|抽獎|贈品|好禮|贈送|課程|直播|徵才|贊助|廣編|業配|"
-                          r"活動開跑|系列活動|活動登場|報名|優惠|折扣|開箱|懶人包|還能追|能買嗎|怎麼買|怎麼選|如何透過")
+                          r"活動開跑|系列活動|活動登場|借鏡|利器|報名|優惠|折扣|開箱|懶人包|還能追|能買嗎|怎麼買|怎麼選|如何透過")
 # 摘要開頭／結尾只是在交代消息來源的那一段（「根據外媒…報導」「據媒體統計」），不當描述
 ATTR_RE = re.compile(r"^(根據|據|依據|綜合|外媒|知情人士|消息人士)")
 
@@ -118,9 +118,22 @@ def pick(news, start: datetime, end: datetime, used: list[dict] | None = None, p
     return out
 
 
-def lines(items: list[dict], kn: int = MAX_N, tl: int = 30, dl: int = 40) -> list[str]:
-    """每則一行「・短標題：一句描述」（跟盤前今日焦點同格式）；短標題取不出來的那則跳過、由後面的候選遞補。"""
+def _d(n: dict, dl: int, c: str = "") -> str:
+    """描述＝摘要第一句（同盤前 _desc）；摘要是空的（聯合新聞網、部分鉅亨），改用標題短句之後的其餘部分
+    （「SK海力士財報出爐！第三季營益衝83.3兆韓元超預期」→ 短標題「SK海力士財報出爐」＋描述「第三季營益衝83.3兆韓元超預期」）。"""
     import social_premarket as sp
+    d = sp._desc(strip_attr(n.get("summary") or ""), dl)
+    if not d and c:
+        rest = str(n["title"]).strip()
+        rest = rest[len(c.rstrip("？")):] if rest.startswith(c.rstrip("？")) else ""
+        d = sp._desc(re.sub(r"^[\s！!？?，,：:；;。　｜|]+", "", rest), dl)
+    while d and re.search(r"[，,、；]", d) and ATTR_RE.match(re.split(r"[，,、；]", d)[-1].strip()):      # 截短後尾巴剩「據媒體…」
+        d = re.split(r"[，,、；](?=[^，,、；]*$)", d)[0].strip()
+    return d
+
+
+def lines(items: list[dict], kn: int = MAX_N, tl: int = 30, dl: int = 40) -> list[str]:
+    """每則一行「・短標題：一句描述」（跟盤前今日焦點同格式），照相關度順序；短標題取不出來的那則跳過、由後面的候選遞補。"""
     out: list[str] = []
     for n in items:
         if len(out) >= kn:
@@ -128,9 +141,7 @@ def lines(items: list[dict], kn: int = MAX_N, tl: int = 30, dl: int = 40) -> lis
         c = short_title(n["title"], tl)
         if not c:
             continue
-        d = sp._desc(strip_attr(n.get("summary") or ""), dl)
-        while d and re.search(r"[，,、；]", d) and ATTR_RE.match(re.split(r"[，,、；]", d)[-1].strip()):      # 截短後尾巴剩「據媒體…」
-            d = re.split(r"[，,、；](?=[^，,、；]*$)", d)[0].strip()
+        d = _d(n, dl, c)
         out.append(f"・{c}：{d}" if d and d != c else f"・{c}")
     return [SECTION] + out if out else []
 
