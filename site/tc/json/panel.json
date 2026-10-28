@@ -746,6 +746,62 @@
               "date_note": "Dcard 編號 261548184 ≥259537767，依校準表確認晚於 2025-08-01；搜尋摘要約 12 天前"
             }
           ]
+        },
+        {
+          "unit": null,
+          "role": "EE 電子工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": [
+            14.5,
+            15
+          ],
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": "幾乎不",
+          "travel": null,
+          "n": 1,
+          "note": "2026-10-28 Dcard 1548 批新增職位",
+          "confidence": "低",
+          "grade": null,
+          "n_stat": 1,
+          "samples": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/259978760",
+              "date": "2025-10",
+              "page_date": "2025-10-06",
+              "date_confirmed": true,
+              "role": "EE 電子工程師（新竹，現職 3 年）",
+              "grade": null,
+              "unit_detail": "新竹",
+              "years": "3",
+              "degree": "碩士",
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": [
+                14.5,
+                15
+              ],
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": "幾乎不",
+              "travel": null,
+              "quote_free_note": "發文者現職：月薪約 N+4（N＝2025 台積新人價），整包 (N+4)×14.5～15（區間）；8:00～17:00 鮮少加班",
+              "in_window": true,
+              "date_note": "Dcard 頁面發文日期 2025-10-06（20261028_1548 批）",
+              "comment_sample": false
+            }
+          ],
+          "sources": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/259978760",
+              "date": "2025-10"
+            }
+          ]
         }
       ]
     },
