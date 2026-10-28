@@ -1064,7 +1064,7 @@ def build_pages(D: dict, mode: str, theme: str = "light") -> list[dict]:
     if D["news"]:
         # Andy 10-26 晚：「最後一張圖不要表情好了，就標題」→ 編號＋分類＋標題，不放圖示與摘要
         items = "".join(f'<div class="it cat-{n["category"]}"><div class=ix data-box=ix{i}>{i + 1:02d}</div><div class=bd>'
-                        f'<div class=tg data-box=tg{i}>{n["category"]}</div><div class=tt data-box=tt{i}>{_e(n["title"])}</div>'
+                        f'<div class=tg data-box=tg{i}>{n["category"]}</div><div class=tt data-box=tt{i}{" style=-webkit-line-clamp:3" if D.get("compact_news") else ""}>{_e(n["title"])}</div>'
                         + (f'<div class=sm2 data-box=sm{i}>{_e(PN_desc(n.get("summary"), 30))}</div>' if n.get("summary") and not D.get("compact_news") else "") + '</div></div>'
                         for i, n in enumerate(D["news"]))
         pages.append({"name": "news", "title": "昨日事件", "inner": f'<div class=news>{items}</div>', "charts": {}})
