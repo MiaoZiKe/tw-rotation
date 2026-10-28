@@ -1,7 +1,7 @@
 /* 科技透明圈公司 LOGO（2026-10-26，Andy：「對應公司要附上 LOGO」）
    做法：公司名 → 官網網域，執行時向 Google favicon 服務要小圖；沒有網域或載入失敗，就退成「公司名首字＋產業色」的圓形字標。
    為什麼這樣：不把任何商標圖檔放進 repo（授權與體積），而且對照表只是網域字串，不確定的留空由字標頂上。
-   ⚠ 不碰 tc/json 資料檔；名稱以 json 內的 name 欄原文為鍵。 ｜2026-10-29 補：華通 compeq.com.tw（technews 公司資料／MONEY LINK）｜南茂 chipmos.com（MoneyDJ／StockAnalysis）｜合晶 waferworks.com（histock 6182 公司資料／Craft）｜聯穎光電 查不到官網，不補 ｜明泰 alphanetworks.com（technews 公司資料／goodinfo／年報封面） */
+   ⚠ 不碰 tc/json 資料檔；名稱以 json 內的 name 欄原文為鍵。 ｜2026-10-29 補：華通 compeq.com.tw（technews 公司資料／MONEY LINK）｜南茂 chipmos.com（MoneyDJ／StockAnalysis）｜合晶 waferworks.com（histock 6182 公司資料／Craft）｜聯穎光電 查不到官網，不補 ｜明泰 alphanetworks.com（technews 公司資料／goodinfo／年報封面） ｜譜瑞 paradetech.com（histock／MONEY LINK／wantgoo 公司資料、年報） */
 /* 2026-10-28 補：鴻勁 honprec.com（鉅亨／technews 公司資料）｜德律 tri.com.tw（technews／Statementdog）｜Cadence cadence.com、Siemens EDA siemens.com、HPE hpe.com（原廠主網域）｜環球晶 sas-globalwafers.com（goodinfo／MONEY LINK）｜中美晶 saswafer.com（technews 公司資料）｜宸曜科技 neousys-tech.com（官網公司介紹）｜研華 advantech.com（財報與 Statementdog）｜多方科技 查不到官網，不補｜台星科 winstek.com.tw（MONEY LINK 公司基本資料）｜海華 azurewave.com（商工登記／玩股網）｜超豐 greatek.com.tw（technews 公司資料）｜弘塑 gptc.com.tw（twincn 公司登記資料）｜久元 ytec.com.tw（technews／鉅亨公司資料）｜台灣光罩 tmcnet.com.tw（technews／wantgoo 公司資料）｜台灣荏原 ebara.com（母公司荏原製作所主網域，台灣分公司無獨立網域可查）｜祥茂光電 ao-inc.com（新北市就業平台企業資料，Applied Optoelectronics） */
 /* 2026-10-26 逐家查證（WebSearch，關鍵字「<公司> 官網／網址」「<英文名> official website」）：
    改正：力積電 psmc.tw→powerchip.com（technews 公司資料、維基）｜旺宏 mxic.com.tw→macronix.com（technews）｜穎崴 chpt.com.tw→winwayglobal.com（MONEY LINK）
@@ -51,7 +51,7 @@
     '聯發科': 'mediatek.com', '瑞昱': 'realtek.com', '聯詠': 'novatek.com.tw', '群聯': 'phison.com', '世芯-KY': 'alchip.com', '創意': 'guc-asic.com', '信驊': 'aspeedtech.com',
     '円星': 'm31tech.com', '力旺': 'ememory.com.tw', '天鈺': 'fitipower.com', '奇景': 'himax.com.tw', '奕力': 'ilitek.com', '威鋒': 'via-labs.com', '愛普': 'apmemory.com',
     '慧榮': 'siliconmotion.com', '揚智': 'ali.com.tw', '敦泰': 'focaltech-electronics.com', '普誠': 'princeton.com.tw', '晶相光電': 'soinc.com.tw', '晶豪科': 'esmt.com.tw',
-    '松翰': 'sonix.com.tw', '瑞鼎': 'rad-ic.com', '祥碩': 'asmedia.com.tw', '立錡': 'richtek.com', '義隆': 'emc.com.tw', '耐能智慧': 'kneron.com', '聯陽(ITE)': 'ite.com.tw',
+    '松翰': 'sonix.com.tw', '瑞鼎': 'rad-ic.com', '祥碩': 'asmedia.com.tw', '譜瑞': 'paradetech.com', '立錡': 'richtek.com', '義隆': 'emc.com.tw', '耐能智慧': 'kneron.com', '聯陽(ITE)': 'ite.com.tw',
     '迅杰': 'ene.com.tw', '達發': 'airoha.com', '鈺創': 'etron.com', '點序': 'asolid-tek.com', '工研院': 'itri.org.tw', 'MPS 台灣': 'monolithicpower.com',
     '力林': '', '開酷': 'kaikutek.com',
     // ODM
