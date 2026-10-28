@@ -1898,3 +1898,33 @@ def test_指定commons_file不經Wikidata(monkeypatch):
     monkeypatch.setattr(wm, "commons_info", lambda t: seen.setdefault("t", t) and {})
     out = wm.fetch_by_website([{"domain": "nvidia.com", "en": "", "commons_file": "File:NVIDIA logo.svg"}])
     assert seen["t"] == ["File:NVIDIA logo.svg"] and out["nvidia.com"]["status"] == "none"
+
+
+def test_限流睡一下重試同一家不整段收手(monkeypatch):
+    from pipeline.sources import logo_wikimedia as wm
+    calls = []
+
+    def flaky(name, dom):
+        calls.append(dom)
+        if len(calls) == 1:
+            raise wm.Throttled("Commons API 回 HTTP 503")
+        return None
+    monkeypatch.setattr(wm, "logo_by_website", flaky)
+    monkeypatch.setattr(wm, "logos_by_domains_sparql", lambda doms: {})
+    monkeypatch.setattr(wm.time, "sleep", lambda s: None)
+    out = wm.fetch_by_website([{"domain": "a.com", "en": "A"}, {"domain": "b.com", "en": "B"}])
+    assert calls == ["a.com", "a.com", "b.com"] and set(out) == {"a.com", "b.com"}
+
+
+def test_manual_檔長寬比放寬到8比1():
+    import io
+    from PIL import Image
+    from pipeline.sources import logos as lg
+    buf = io.BytesIO(); _im = Image.new("RGBA", (250, 46), (0, 0, 0, 0)); _im.paste((200, 0, 0, 255), (10, 10, 120, 36)); _im.paste((0, 0, 200, 255), (130, 5, 240, 40)); _im.save(buf, "PNG")
+    try:
+        lg.normalize_image(buf.getvalue())
+        assert False, "預設 5:1 應擋"
+    except lg.LogoReject as rej:
+        assert rej.reason == "too_wide"
+    png, orig = lg.normalize_image(buf.getvalue(), max_aspect=8.0)
+    assert orig == (250, 46)

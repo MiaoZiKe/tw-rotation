@@ -1028,7 +1028,7 @@ def effective_px(w: int, h: int) -> float:
 
 def normalize_image(data: bytes, *, photo_check: bool | str = False,
                     aspect: tuple[float, float] | None = None,
-                    allow_lowres: bool = False) -> tuple[bytes, tuple[int, int]]:
+                    allow_lowres: bool = False, max_aspect: float | None = None) -> tuple[bytes, tuple[int, int]]:
     """任何 Pillow 讀得懂的圖（ICO／PNG／JPEG／GIF／WebP／BMP）或 SVG → 透明底 PNG（通常 64×64）。
 
     ICO 內含多種尺寸時 Pillow 預設開最大的那張。等比縮到 64 以內再置中貼到透明畫布，
@@ -1064,7 +1064,7 @@ def normalize_image(data: bytes, *, photo_check: bool | str = False,
     w, h = img.size
     if not vector and max(w, h) < (config.LOGO_LOWRES_MIN_PX if allow_lowres else config.LOGO_MIN_PX):
         raise LogoReject("too_small", f"{w}x{h}")
-    if min(w, h) <= 0 or max(w, h) / min(w, h) > config.LOGO_MAX_ASPECT:
+    if min(w, h) <= 0 or max(w, h) / min(w, h) > (max_aspect or config.LOGO_MAX_ASPECT):
         raise LogoReject("too_wide", f"{w}x{h}")
     if aspect and not (aspect[0] <= w / h <= aspect[1]):
         raise LogoReject("not_logo", f"長寬比不像 Logo {w}x{h}")

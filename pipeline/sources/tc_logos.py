@@ -58,7 +58,7 @@ log = logging.getLogger(__name__)
 DOMAINS_FILE = Path(__file__).resolve().parent.parent / "groups" / "tc_logo_domains.json"
 CODE_DOMAINS_FILE = Path(__file__).resolve().parent.parent / "groups" / "tc_code_domains.json"   # 代號補強
 
-RV = 6   # 失敗紀錄的策略版本（5＝10-28 Wikidata API 對 runner 持續 503、rv3／4 的外商全「沒回應」，改 UA＋SPARQL 備援；6＝Commons 也 503 的退避、指定 commons_file）；舊策略判失敗的，策略升級後馬上重試，不等 30 天（3＝Wikimedia 放寬 Apache 2.0，連 Google s2 小圖也重試一次）
+RV = 7   # 失敗紀錄的策略版本（5＝10-28 Wikidata API 對 runner 持續 503、rv3／4 的外商全「沒回應」，改 UA＋SPARQL 備援；6＝Commons 也 503 的退避、指定 commons_file；7＝限流睡 30 秒重試、commons_file 長寬比放寬到 8:1）；舊策略判失敗的，策略升級後馬上重試，不等 30 天（3＝Wikimedia 放寬 Apache 2.0，連 Google s2 小圖也重試一次）
 QV = 2   # 品質關卡版本：索引裡有 qv>=2 的 ok 紀錄＝已經過 quality()，不再重驗
 
 # Andy 目視確認抓錯（橫幅照片／別的圖示／太小）的網域：改 Wikimedia 優先、舊圖一律重抓
