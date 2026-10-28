@@ -1,24 +1,583 @@
 {
- "at": "2026-10-28T10:15:53+00:00",
- "ok": 1,
- "miss": [
-  "alphabet",
-  "sk_hynix"
- ],
+ "at": "2026-10-28T16:17:48+00:00",
+ "ok": 67,
+ "miss": [],
  "items": [
   {
-   "slug": "eml",
+   "slug": "tsmc",
    "ok": true,
-   "license": "CC BY-SA 4.0",
-   "file": "File:20180929 UCI Road World Championships Innsbruck Women Elite Road Race Charlotte Becker 850 7872.jpg"
+   "total": 5,
+   "added": 4,
+   "reviewed": 1
+  },
+  {
+   "slug": "foxconn",
+   "ok": true,
+   "total": 5,
+   "added": 5,
+   "reviewed": 0
+  },
+  {
+   "slug": "mediatek",
+   "ok": true,
+   "total": 3,
+   "added": 3,
+   "reviewed": 0
+  },
+  {
+   "slug": "delta",
+   "ok": true,
+   "total": 5,
+   "added": 4,
+   "reviewed": 1
+  },
+  {
+   "slug": "quanta",
+   "ok": true,
+   "total": 5,
+   "added": 5,
+   "reviewed": 0
+  },
+  {
+   "slug": "fubon",
+   "ok": true,
+   "total": 5,
+   "added": 5,
+   "reviewed": 0
+  },
+  {
+   "slug": "ase",
+   "ok": true,
+   "total": 5,
+   "added": 4,
+   "reviewed": 1
+  },
+  {
+   "slug": "cathay",
+   "ok": true,
+   "total": 5,
+   "added": 5,
+   "reviewed": 0
+  },
+  {
+   "slug": "chunghwa_telecom",
+   "ok": true,
+   "total": 5,
+   "added": 4,
+   "reviewed": 1
+  },
+  {
+   "slug": "wiwynn",
+   "ok": true,
+   "total": 3,
+   "added": 3,
+   "reviewed": 0
+  },
+  {
+   "slug": "ctbc",
+   "ok": true,
+   "total": 5,
+   "added": 4,
+   "reviewed": 1
+  },
+  {
+   "slug": "mega",
+   "ok": true,
+   "total": 5,
+   "added": 4,
+   "reviewed": 1
+  },
+  {
+   "slug": "accton",
+   "ok": true,
+   "total": 1,
+   "added": 1,
+   "reviewed": 0
+  },
+  {
+   "slug": "esun",
+   "ok": true,
+   "total": 5,
+   "added": 4,
+   "reviewed": 1
+  },
+  {
+   "slug": "umc",
+   "ok": true,
+   "total": 1,
+   "added": 1,
+   "reviewed": 0
+  },
+  {
+   "slug": "yuanta",
+   "ok": true,
+   "total": 5,
+   "added": 5,
+   "reviewed": 0
+  },
+  {
+   "slug": "auras",
+   "ok": true,
+   "total": 3,
+   "added": 3,
+   "reviewed": 0
+  },
+  {
+   "slug": "evergreen",
+   "ok": true,
+   "total": 5,
+   "added": 4,
+   "reviewed": 1
+  },
+  {
+   "slug": "uni_president",
+   "ok": true,
+   "total": 5,
+   "added": 5,
+   "reviewed": 0
+  },
+  {
+   "slug": "asus",
+   "ok": true,
+   "total": 4,
+   "added": 4,
+   "reviewed": 0
+  },
+  {
+   "slug": "first_fin",
+   "ok": true,
+   "total": 4,
+   "added": 4,
+   "reviewed": 0
+  },
+  {
+   "slug": "fpcc",
+   "ok": true,
+   "total": 3,
+   "added": 3,
+   "reviewed": 0
+  },
+  {
+   "slug": "nanya_plastics",
+   "ok": true,
+   "total": 4,
+   "added": 4,
+   "reviewed": 0
+  },
+  {
+   "slug": "formosa_plastics",
+   "ok": true,
+   "total": 5,
+   "added": 4,
+   "reviewed": 1
+  },
+  {
+   "slug": "pegatron",
+   "ok": true,
+   "total": 5,
+   "added": 5,
+   "reviewed": 0
+  },
+  {
+   "slug": "wistron",
+   "ok": true,
+   "total": 5,
+   "added": 4,
+   "reviewed": 1
+  },
+  {
+   "slug": "alchip",
+   "ok": true,
+   "total": 3,
+   "added": 3,
+   "reviewed": 0
+  },
+  {
+   "slug": "tcfhc",
+   "ok": true,
+   "total": 4,
+   "added": 4,
+   "reviewed": 0
+  },
+  {
+   "slug": "hua_nan",
+   "ok": true,
+   "total": 4,
+   "added": 3,
+   "reviewed": 1
+  },
+  {
+   "slug": "largan",
+   "ok": true,
+   "total": 3,
+   "added": 3,
+   "reviewed": 0
+  },
+  {
+   "slug": "taishin",
+   "ok": true,
+   "total": 4,
+   "added": 4,
+   "reviewed": 0
+  },
+  {
+   "slug": "yageo",
+   "ok": true,
+   "total": 3,
+   "added": 3,
+   "reviewed": 0
+  },
+  {
+   "slug": "csc",
+   "ok": true,
+   "total": 5,
+   "added": 4,
+   "reviewed": 1
+  },
+  {
+   "slug": "liteon",
+   "ok": true,
+   "total": 5,
+   "added": 4,
+   "reviewed": 1
+  },
+  {
+   "slug": "advantech",
+   "ok": true,
+   "total": 3,
+   "added": 3,
+   "reviewed": 0
+  },
+  {
+   "slug": "tcc",
+   "ok": true,
+   "total": 5,
+   "added": 5,
+   "reviewed": 0
+  },
+  {
+   "slug": "hotai",
+   "ok": true,
+   "total": 5,
+   "added": 5,
+   "reviewed": 0
+  },
+  {
+   "slug": "realtek",
+   "ok": true,
+   "total": 3,
+   "added": 3,
+   "reviewed": 0
+  },
+  {
+   "slug": "sinopac",
+   "ok": true,
+   "total": 4,
+   "added": 4,
+   "reviewed": 0
+  },
+  {
+   "slug": "cdf",
+   "ok": true,
+   "total": 4,
+   "added": 3,
+   "reviewed": 1
+  },
+  {
+   "slug": "novatek",
+   "ok": true,
+   "total": 3,
+   "added": 3,
+   "reviewed": 0
+  },
+  {
+   "slug": "unimicron",
+   "ok": true,
+   "total": 3,
+   "added": 3,
+   "reviewed": 0
+  },
+  {
+   "slug": "yangming",
+   "ok": true,
+   "total": 5,
+   "added": 4,
+   "reviewed": 1
+  },
+  {
+   "slug": "wanhai",
+   "ok": true,
+   "total": 5,
+   "added": 5,
+   "reviewed": 0
+  },
+  {
+   "slug": "kingslide",
+   "ok": true,
+   "total": 5,
+   "added": 5,
+   "reviewed": 0
+  },
+  {
+   "slug": "taiwan_mobile",
+   "ok": true,
+   "total": 4,
+   "added": 4,
+   "reviewed": 0
+  },
+  {
+   "slug": "fareastone",
+   "ok": true,
+   "total": 5,
+   "added": 5,
+   "reviewed": 0
+  },
+  {
+   "slug": "inventec",
+   "ok": true,
+   "total": 3,
+   "added": 3,
+   "reviewed": 0
+  },
+  {
+   "slug": "jentech",
+   "ok": true,
+   "total": 3,
+   "added": 3,
+   "reviewed": 0
+  },
+  {
+   "slug": "nvidia",
+   "ok": true,
+   "total": 5,
+   "added": 5,
+   "reviewed": 0
+  },
+  {
+   "slug": "apple",
+   "ok": true,
+   "total": 5,
+   "added": 4,
+   "reviewed": 1
+  },
+  {
+   "slug": "microsoft",
+   "ok": true,
+   "total": 5,
+   "added": 4,
+   "reviewed": 1
   },
   {
    "slug": "alphabet",
-   "ok": false
+   "ok": true,
+   "total": 3,
+   "added": 3,
+   "reviewed": 0
+  },
+  {
+   "slug": "meta",
+   "ok": true,
+   "total": 5,
+   "added": 5,
+   "reviewed": 0
+  },
+  {
+   "slug": "amazon",
+   "ok": true,
+   "total": 5,
+   "added": 4,
+   "reviewed": 1
+  },
+  {
+   "slug": "broadcom",
+   "ok": true,
+   "total": 5,
+   "added": 5,
+   "reviewed": 0
+  },
+  {
+   "slug": "amd",
+   "ok": true,
+   "total": 4,
+   "added": 3,
+   "reviewed": 1
+  },
+  {
+   "slug": "intel",
+   "ok": true,
+   "total": 4,
+   "added": 3,
+   "reviewed": 1
+  },
+  {
+   "slug": "samsung",
+   "ok": true,
+   "total": 5,
+   "added": 4,
+   "reviewed": 1
   },
   {
    "slug": "sk_hynix",
-   "ok": false
+   "ok": true,
+   "total": 3,
+   "added": 3,
+   "reviewed": 0
+  },
+  {
+   "slug": "micron",
+   "ok": true,
+   "total": 5,
+   "added": 5,
+   "reviewed": 0
+  },
+  {
+   "slug": "asml",
+   "ok": true,
+   "total": 4,
+   "added": 4,
+   "reviewed": 0
+  },
+  {
+   "slug": "tesla",
+   "ok": true,
+   "total": 5,
+   "added": 4,
+   "reviewed": 1
+  },
+  {
+   "slug": "nxp",
+   "ok": true,
+   "total": 4,
+   "added": 3,
+   "reviewed": 1
+  },
+  {
+   "slug": "qualcomm",
+   "ok": true,
+   "total": 4,
+   "added": 3,
+   "reviewed": 1
+  },
+  {
+   "slug": "anthropic",
+   "ok": true,
+   "total": 3,
+   "added": 3,
+   "reviewed": 0
+  },
+  {
+   "slug": "openai",
+   "ok": true,
+   "total": 5,
+   "added": 4,
+   "reviewed": 1
+  }
+ ],
+ "categories": [
+  {
+   "slug": "半導體",
+   "ok": true,
+   "total": 8,
+   "added": 8,
+   "reviewed": 0
+  },
+  {
+   "slug": "記憶體",
+   "ok": true,
+   "total": 8,
+   "added": 8,
+   "reviewed": 0
+  },
+  {
+   "slug": "AI伺服器",
+   "ok": true,
+   "total": 8,
+   "added": 8,
+   "reviewed": 0
+  },
+  {
+   "slug": "資料中心",
+   "ok": true,
+   "total": 8,
+   "added": 8,
+   "reviewed": 0
+  },
+  {
+   "slug": "散熱",
+   "ok": true,
+   "total": 8,
+   "added": 8,
+   "reviewed": 0
+  },
+  {
+   "slug": "PCB",
+   "ok": true,
+   "total": 8,
+   "added": 8,
+   "reviewed": 0
+  },
+  {
+   "slug": "網通",
+   "ok": true,
+   "total": 8,
+   "added": 8,
+   "reviewed": 0
+  },
+  {
+   "slug": "航運",
+   "ok": true,
+   "total": 8,
+   "added": 8,
+   "reviewed": 0
+  },
+  {
+   "slug": "金融",
+   "ok": true,
+   "total": 8,
+   "added": 8,
+   "reviewed": 0
+  },
+  {
+   "slug": "鋼鐵",
+   "ok": true,
+   "total": 8,
+   "added": 8,
+   "reviewed": 0
+  },
+  {
+   "slug": "石化",
+   "ok": true,
+   "total": 8,
+   "added": 8,
+   "reviewed": 0
+  },
+  {
+   "slug": "電信",
+   "ok": true,
+   "total": 8,
+   "added": 8,
+   "reviewed": 0
+  },
+  {
+   "slug": "汽車",
+   "ok": true,
+   "total": 8,
+   "added": 8,
+   "reviewed": 0
+  },
+  {
+   "slug": "消費電子",
+   "ok": true,
+   "total": 8,
+   "added": 8,
+   "reviewed": 0
+  },
+  {
+   "slug": "總經",
+   "ok": true,
+   "total": 8,
+   "added": 8,
+   "reviewed": 0
   }
  ]
 }
