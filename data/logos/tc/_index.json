@@ -217,15 +217,16 @@
   },
   "aspeedtech.com": {
    "status": "ok",
-   "fetched": "2026-10-27",
+   "fetched": "2026-10-28",
    "names": [
     "信驊"
    ],
    "tried": {
-    "site": "ok [48, 48]",
-    "wikimedia": "沒回應"
+    "site": "too_small 16x16 https://www.google.com/s2/favicons?domain=aspeedtech.com&sz=128",
+    "wikimedia": "none Wikidata 查不到官網是 aspeedtech.com 的 ASPEED Technology／沒有標誌圖",
+    "google_s2": "too_small too_small 16x16 https://www.google.com/s2/favicons?domain=aspeedtech.com&sz=256"
    },
-   "rv": 2,
+   "rv": 7,
    "src": "site:conventional",
    "url": "https://www.aspeedtech.com/favicon.ico",
    "orig": [
@@ -233,7 +234,8 @@
     48
    ],
    "qv": 2,
-   "sha1": "23b5c6bb188dc1e627d0a335b8b0899e6ad12e16"
+   "sha1": "23b5c6bb188dc1e627d0a335b8b0899e6ad12e16",
+   "last_fail": "too_small"
   },
   "asrockrack.com": {
    "status": "ok",
@@ -388,23 +390,23 @@
   },
   "cyntec.com": {
    "status": "ok",
-   "fetched": "2026-10-27",
+   "fetched": "2026-10-28",
    "names": [
     "乾坤科技"
    ],
    "tried": {
-    "site": "ok [1275, 534]",
-    "wikimedia": "沒回應"
+    "site": "ok [64, 64]",
+    "wikimedia": "none Wikidata 查不到官網是 cyntec.com 的 Cyntec／沒有標誌圖"
    },
-   "rv": 2,
-   "src": "site:header-img",
-   "url": "https://www.cyntec.com/Content/img/logo.png",
+   "rv": 7,
+   "src": "site:conventional",
+   "url": "https://www.cyntec.com/favicon.ico",
    "orig": [
-    1275,
-    534
+    64,
+    64
    ],
    "qv": 2,
-   "sha1": "0659435a8c7bf8a86b34695f3a1763b68397b554"
+   "sha1": "6c8de2f806737b49fcd173e5b3fd7292c1169815"
   },
   "dell.com": {
    "status": "ok",
@@ -1208,15 +1210,15 @@
   },
   "pegatroncorp.com": {
    "status": "ok",
-   "fetched": "2026-10-27",
+   "fetched": "2026-10-28",
    "names": [
     "和碩"
    ],
    "tried": {
     "site": "ok [48, 48]",
-    "wikimedia": "沒回應"
+    "wikimedia": "none Commons too_wide 250x39"
    },
-   "rv": 2,
+   "rv": 7,
    "src": "site:icon",
    "url": "https://www.pegatroncorp.com/favicon.ico",
    "orig": [
@@ -1289,19 +1291,33 @@
    "detail": "HTTP 404 https://www.google.com/s2/favicons?domain=princeton.com.tw&sz=128"
   },
   "qualcomm.com": {
-   "status": "not_logo",
+   "status": "ok",
    "fetched": "2026-10-28",
    "names": [
     "高通"
    ],
    "tried": {
-    "site": "ok [512, 512]",
-    "wikimedia": "沒回應",
-    "quality": "網址像分享圖示／橫幅／框架預設圖，不是公司標誌 https://www.qualcomm.com/etc.clientlibs/qcomm-martech/clientlibs/clientlib-react",
-    "google_s2": "ok [32, 32]"
+    "wikimedia": "ok [250, 46]"
    },
    "rv": 7,
-   "detail": "網址像分享圖示／橫幅／框架預設圖，不是公司標誌 https://www.qualcomm.com/etc.clientlibs/qcomm-martech/clientlibs/clientlib-react"
+   "src": "wikimedia",
+   "url": "https://commons.wikimedia.org/wiki/File:Qualcomm-Logo.svg",
+   "orig": [
+    250,
+    46
+   ],
+   "qv": 2,
+   "sha1": "0de43057b815705a4308c7a8300a05cb9c0011dc",
+   "attribution": {
+    "file": "File:Qualcomm-Logo.svg",
+    "page": "https://commons.wikimedia.org/wiki/File:Qualcomm-Logo.svg",
+    "license": "Public domain",
+    "license_kind": "PD",
+    "artist": "Original: Qualcomm",
+    "credit": "https://www.qualcomm.com/media/documents/files/4g-5g-summit-keynote-cristiano-amon.pdf",
+    "match": "manual",
+    "restrictions": "trademarked"
+   }
   },
   "questglobal.com": {
    "status": "ok",
@@ -1322,15 +1338,15 @@
   },
   "rad-ic.com": {
    "status": "ok",
-   "fetched": "2026-10-27",
+   "fetched": "2026-10-28",
    "names": [
     "瑞鼎"
    ],
    "tried": {
     "site": "ok [48, 48]",
-    "wikimedia": "沒回應"
+    "wikimedia": "none Wikidata 查不到官網是 rad-ic.com 的 Raydium Semiconductor／沒有標誌圖"
    },
-   "rv": 2,
+   "rv": 7,
    "src": "site:conventional",
    "url": "https://www.rad-ic.com/favicon.ico",
    "orig": [
@@ -1816,15 +1832,15 @@
   },
   "winwayglobal.com": {
    "status": "ok",
-   "fetched": "2026-10-27",
+   "fetched": "2026-10-28",
    "names": [
     "穎崴"
    ],
    "tried": {
     "site": "ok [48, 48]",
-    "wikimedia": "沒回應"
+    "wikimedia": "none Wikidata 查不到官網是 winwayglobal.com 的 WinWay Technology／沒有標誌圖"
    },
-   "rv": 2,
+   "rv": 7,
    "src": "site:icon",
    "url": "https://www.winwayglobal.com/static/web/styles/images/web-icon.ico",
    "orig": [
@@ -1914,5 +1930,5 @@
    "detail": "HTTP 404 https://www.google.com/s2/favicons?domain=zdtco.com&sz=128"
   }
  },
- "updated_at": "2026-10-28T03:50:29.144683+00:00"
+ "updated_at": "2026-10-28T03:53:06.704651+00:00"
 }
