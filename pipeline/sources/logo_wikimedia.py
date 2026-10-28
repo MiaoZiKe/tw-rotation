@@ -445,11 +445,19 @@ def _download(lg, info: dict):
 
 def _wd_api(params: dict):
     """Wikidata 的 wbsearchentities／wbgetentities。429／503／maxlag 丟 Throttled，其餘壞掉回 None。"""
-    url = config.LOGO_WIKIDATA_API + "?" + urlencode({**params, "format": "json", "maxlag": "5"})
-    res = http.get_bytes(url, headers=_headers(), timeout=20, max_bytes=5_000_000)
-    if res is None:
-        return None
-    status, body, _ct, _final = res
+    # 不帶 maxlag：10-28 回補日誌顯示帶 maxlag=5 時 Wikidata 複寫延遲一高就整批回 503，
+    # 42 個網域全部「沒回應」；唯讀查詢本來就不必帶（maxlag 是給大量寫入的機器人用的）。
+    url = config.LOGO_WIKIDATA_API + "?" + urlencode({**params, "format": "json"})
+    status = body = None
+    for wait in (0, 5, 15):        # 503／429 先退避重試兩次，仍不行才收手，避免一次抖動就放棄整批
+        if wait:
+            time.sleep(wait)
+        res = http.get_bytes(url, headers=_headers(), timeout=20, max_bytes=5_000_000)
+        if res is None:
+            return None
+        status, body, _ct, _final = res
+        if status not in (429, 503):
+            break
     if status in (429, 503):
         raise Throttled(f"Wikidata API 回 HTTP {status}")
     try:
