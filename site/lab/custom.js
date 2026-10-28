@@ -50,7 +50,7 @@
     let w = '';
     if (h && h.worst && h.worst.length) w = '<br><b>最慘的五筆交易（' + U.esc(h.sym) + '）</b><br>' + h.worst.map((x) => '· ' + x.d0 + ' 買 ' + x.p0 + ' → ' + x.d1 + ' 賣 ' + x.p1 + '（' + U.sgn(x.pct, 1) + '%，持有 ' + x.bars + ' 根' + (x.why ? '，' + U.esc(x.why) : '') + '）').join('<br>');
     return '<b>' + U.esc(d.name) + '</b>（' + U.esc(d.group) + '）' + E_('進場', d.rules.entry) + E_('出場', d.rules.exit) + E_('停損', d.rules.stop) + E_('停利', d.rules.tp) + E_('部位', d.rules.size) + E_('參數', d.rules.params) +
-      E_('適用標的', d.applies) + E_('設計理由', d.why) + E_('出處', d.source) + E_('我們的研究怎麼說', d.evidence) + E_('什麼時候會失效', d.fail) + w +
+      E_('適用標的', d.applies) + E_('設計理由', d.why) + E_('出處', d.source) + E_('我們的研究怎麼說', d.evidence) + E_('什麼時候會失效', d.fail) + (d.recon ? E_('與淘汰賽報告對帳（一次性，2026-10-29）', d.recon) : '') + w +
       '<br><br><b>怎麼讀這些數字</b><br>成交＝訊號收盤後產生、下一根開盤成交；成本含手續費 0.1425%（不打折）、證交稅、滑價；期間＝該標的資料全部，買進持有從同一天的開盤算起。指數無法直接買，以 ETF 稅率近似且不含股息；個股價格已還原股息。參數是教科書預設值，事前定好、沒有看結果調過。' +
       '<br><b>免責</b><br>歷史回測，不代表未來，不構成任何投資建議；所有成交與成本為假設。';
   }
@@ -64,11 +64,14 @@
     const tfs = ['D', 'W', '60'].filter((k) => d.tfs.indexOf(k) >= 0);
     const rows = st.runs.filter((r) => r.tf === tf).map((r) => '<tr' + (r.sym === h.sym && r.tf === h.tf ? ' class="on"' : '') + '><td>' + U.esc(nm(r.sym)) + '</td><td class="num">' + r.n + (r.n < 30 ? ' <i title="交易次數不到 30 筆，統計意義有限">少</i>' : '') + '</td><td class="num ' + U.cls(r.ret) + '">' + pct(r.ret) + '</td><td class="num ' + U.cls(r.ann) + '">' + pct(r.ann) + '</td><td class="num ' + U.cls(r.bhAnn) + '">' + pct(r.bhAnn) + '</td><td class="num ' + U.cls(r.exAnn) + '">' + pct(r.exAnn) + '</td><td class="num">−' + f1(r.mdd) + '% <small>/ −' + f1(r.bhMdd) + '%</small></td><td class="num">' + f1(r.win, 0) + '%</td><td class="num">' + (r.pf == null ? (r.pfInf ? '∞' : '—') : f1(r.pf, 2)) + '</td><td class="num dim">' + r.from.slice(0, 4) + '～' + r.to.slice(0, 4) + '</td></tr>').join('');
     const yr = h.yr.map((y) => '<div class="cu-yr"><span>' + y[0] + '</span><b class="' + U.cls(y[1]) + '">' + U.sgn(y[1], 0) + '</b><small class="' + U.cls(y[2]) + '">' + U.sgn(y[2], 0) + '</small></div>').join('');
-    return head +
+    const pl = st.pool, ps = (x) => (x && x.n ? x.n.toLocaleString() + ' 筆、勝率 ' + f1(x.win, 0) + '%、賺賠比 ' + f1(x.payoff, 2) + '、平均每筆 ' + pct(x.avgPct) + '、平均持有 ' + f1(x.avgBars, 0) + ' 根' : '無交易');
+    const pool = pl ? '<div class="cu-stdpool"><b>全市場單檔合計（' + pl.nStocks + ' 檔各自回測、交易全部加總）</b>　全期：' + ps(pl.all) + '<br>2016～2020：' + ps(pl.train) + '<br>2021 起：' + ps(pl.hold) + '</div>' : '';
+    return head + (d.warn ? '<div class="cu-stdwarn" role="note">⚠ ' + U.esc(d.warn) + '</div>' : '') +
       '<div class="cu-stdn">預設回測：' + U.esc(nm(h.sym)) + '・' + TFN[h.tf] + '・' + h.from + '～' + h.to + '（' + f1(h.years, 1) + ' 年）　資料更新至 ' + U.esc(R.dataThrough || '') + (R.source === 'sample' ? '（樣本資料）' : '') + '</div>' +
       '<div class="lab-stats cu-stdst">' + T('年化報酬', pct(h.ann), '買進持有 ' + pct(h.bhAnn), U.cls(h.ann)) + T('總報酬', pct(h.ret), '買進持有 ' + pct(h.bhRet), U.cls(h.ret)) +
       T('最大回撤', '−' + f1(h.mdd) + '%', '買進持有 −' + f1(h.bhMdd) + '%', 'dn') + T('勝率', f1(h.win, 0) + '%', h.nWin + ' / ' + h.n + ' 筆') + T('獲利因子', h.pf == null ? (h.pfInf ? '∞' : '—') : f1(h.pf, 2), '') + T('交易次數', String(h.n), h.n < 30 ? '樣本偏少' : '期間共 ' + f1(h.years, 0) + ' 年') + '</div>' +
       '<div class="cu-stdv">' + (sm.beatBH === 0 ? '<b class="dn">已知沒有贏過買進持有</b>：' : '') + '日 K 在 ' + sm.nSym + ' 檔標的中，年化報酬勝過買進持有的有 ' + sm.beatBH + ' 檔、為正的有 ' + sm.positive + ' 檔、最大回撤比買進持有小的有 ' + sm.ddBetter + ' 檔（年化超額中位數 ' + U.sgn(sm.medianExAnn, 1) + ' 個百分點）。</div>' +
+      pool +
       '<div class="cu-stdt"><div class="seg" id="cuStdTf" role="tablist" aria-label="週期">' + tfs.map((k) => '<button type="button" role="tab" data-k="' + k + '" class="' + (k === tf ? 'on' : '') + '">' + TFN[k] + '</button>').join('') + '</div></div>' +
       '<div class="cu-stdtb"><table class="lab-tbl"><thead><tr><th>標的</th><th>交易</th><th>總報酬</th><th>年化</th><th>買進持有年化</th><th>超額</th><th>回撤 <small>/ 買進持有</small></th><th>勝率</th><th>獲利因子</th><th>期間</th></tr></thead><tbody>' + rows + '</tbody></table></div>' +
       '<div class="cu-yrs"><span class="cu-yrl">分年度報酬（%）<small>上：策略　下：買進持有</small></span>' + yr + '</div>';
@@ -151,7 +154,7 @@
     return '<div class="cu-mxrow"><button type="button" class="lab-gear lab-mxbtn" id="labMx" aria-expanded="false">我的策略・範本</button></div><div class="cu-wrap"><div class="cu-side lab-mx"><div class="cu-sh">我的策略</div><div class="cu-list" id="cuList"></div>' +
       '<div class="cu-btns"><button type="button" class="lab-gear" id="cuNew">新增</button><label class="lab-clear cu-imp">匯入<input type="file" id="cuImp" accept="application/json,.json" hidden></label><button type="button" class="lab-clear" id="cuExp">匯出</button></div>' +
       '<label class="lab-fld cu-tpl"><span>從範本開始</span><select class="lab-in" id="cuTpl"><option value="">選一個範本…</option>' + TEMPLATES.map((t, i) => '<option value="' + i + '">' + U.esc(t[0]) + '</option>').join('') + '</select></label>' +
-      '<label class="lab-fld cu-tpl"><span>標準策略（10 組，含歷史成績）</span><select class="lab-in" id="cuStdSel"><option value="">選一組標準策略…</option>' + SD.DEFS.map((d) => '<option value="' + d.id + '">' + d.no + '. ' + U.esc(d.group + '｜' + d.name) + '</option>').join('') + '</select></label></div>' +
+      '<label class="lab-fld cu-tpl"><span>標準策略（12 組，含歷史成績）</span><select class="lab-in" id="cuStdSel"><option value="">選一組標準策略…</option>' + SD.DEFS.map((d) => '<option value="' + d.id + '">' + d.no + '. ' + U.esc(d.group + '｜' + d.name) + '</option>').join('') + '</select></label></div>' +
       '<div class="cu-main"><div class="cu-std" id="cuStd"></div><div class="cu-ed" id="cuEd"></div>' +
       '<div class="cu-test"><div class="lab-bar"><div class="lab-f lab-symw"><span>試跑標的</span><input id="labSym" class="lab-in" type="text" autocomplete="off" spellcheck="false" aria-label="搜尋標的" placeholder="代號或名稱"><div class="lab-dd" id="labSymDD" hidden></div></div><button type="button" class="lab-gear" id="cuGo">在歷史回測看完整結果</button></div><div class="lab-stats cu-stats" id="cuStats"></div></div></div></div>';
   }

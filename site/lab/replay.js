@@ -25,8 +25,9 @@
   const pos = () => { const a = A(); return a.lots.length ? a.lots[0].dir : 0; };
   const qtyOf = () => A().lots.reduce((s, x) => s + x.q, 0);
   function equity(c) { const a = A(), it = inst(), fut = it.kind === 'fut'; let e = a.cash; for (const x of a.lots) e += fut ? x.dir * x.q * it.mult * (c - x.p) : x.dir * x.q * c; return e; }
-  const feeOf = (it, p, q) => (it.kind === 'fut' ? it.futFee * q : Math.max(it.feeMin, p * q * it.mult * it.feeRate / 100 * it.feeDisc));
-  const taxOf = (it, p, q, sell) => (it.kind === 'fut' ? p * q * it.mult * it.futTax / 100 : (sell ? p * q * it.taxRate / 100 : 0));
+  // 手續費、稅金取整數元（和歷史回測同一套：股票無條件捨去、手續費最低 feeMin、期交稅四捨五入）
+  const feeOf = (it, p, q) => (it.kind === 'fut' ? it.futFee * q : Math.max(it.feeMin, Math.floor(p * q * it.mult * it.feeRate / 100 * it.feeDisc)));
+  const taxOf = (it, p, q, sell) => (it.kind === 'fut' ? Math.round(p * q * it.mult * it.futTax / 100) : (sell ? Math.floor(p * q * it.taxRate / 100) : 0));
   const slip = (it, p) => (it.kind === 'fut' ? it.slip : p * it.slip / 100);
 
   /** 成交一筆（dir＋1 買／－1 賣）：先反向沖掉既有部位（FIFO，每口一筆交易紀錄），剩下的開新倉。回傳訊息或 ''。 */
@@ -52,6 +53,10 @@
       const f = feeOf(it, p, left), t = taxOf(it, p, left, dir === -1);
       if (dir === 1 && !fut && a.cash < p * left + f) return '現金不足，這筆沒有成交';
       if (fut ? a.cash < f + t : false) return '資金不足，這筆沒有成交';
+      if (fut) {      // 期貨保證金檢查（和歷史回測同一套）：權益要夠付「持有口數 × 價 × 每點 × 原始保證金率」
+        const eqNow = equity(B.c[i]), need = (qtyOf() + left) * p * it.mult * (it.marginInit == null ? 10 : it.marginInit) / 100;
+        if (eqNow < need) return '保證金不足（權益 ' + Math.round(eqNow).toLocaleString() + ' ＜ 原始保證金 ' + Math.round(need).toLocaleString() + '），這筆沒有成交';
+      }
       if (fut) a.cash -= f + t; else if (dir === 1) a.cash -= p * left + f; else a.cash += p * left - f - t;
       a.comm += f + t;
       a.lots.push({ dir, q: left, p, i0: i, fee: f, tax: t, mfe: 0, mae: 0, why: why || '手動', note });
@@ -226,7 +231,11 @@
   function stats() {
     const a = A(), B = R.B, it = inst(), n = R.eq.length;
     const opens = a.lots.map((x) => { const c = B.c[R.i], gross = x.dir * (c - x.p) * x.q * it.mult; return { dir: x.dir, i0: x.i0, i1: R.i, p0: x.p, p1: c, qty: x.q, gross, costs: x.fee + x.tax, pnl: gross - x.fee - x.tax, pnlP: (gross - x.fee - x.tax) / (x.p * x.q * it.mult) * 100, bars: R.i - x.i0, mfe: 0, mae: 0, open: true, why: '未平倉', entryWhy: x.why }; });
-    return { st: E.computeStats(B, a.trades.slice(), Float64Array.from(R.eq), { capital: a.cap, inst: it, sizeMode: 'units', sizeVal: 1 }, R.start, R.i, opens, a.maxQ), opens };
+    const st = E.computeStats(B, a.trades.slice(), Float64Array.from(R.eq), { capital: a.cap, inst: it, sizeMode: 'units', sizeVal: 1 }, R.start, R.i, opens, a.maxQ);
+    // 買進持有只算「重播的這一段」：從起點那一根的收盤（起點當下已經知道、也買得到的價格）持有到目前這一根的收盤
+    const c0 = B.c[R.start], c1 = B.c[R.i], fut = it.kind === 'fut';
+    st.bhRet = fut ? (c1 - c0) * it.mult / a.cap * 100 : (c1 / c0 - 1) * 100; st.bhNet = fut ? (c1 - c0) * it.mult : a.cap * (c1 / c0 - 1);
+    return { st, opens };
   }
   function panel() {
     const el = U.$('#rpPanel'); if (!el) return;

@@ -7,6 +7,9 @@
 #v-lab .cu-stdsub{flex:1 1 220px;min-width:0;font-size:13px;color:var(--ink-2)}
 #v-lab .cu-stdn{font-size:12px;color:var(--ink-3)}
 #v-lab .cu-stdst{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:var(--sp-2);flex:none}
+#v-lab .cu-stdwarn{font-size:13px;padding:var(--sp-1) var(--sp-2);border-radius:var(--r-sm);border:1px solid var(--amber,var(--line));background:color-mix(in srgb,var(--amber,var(--panel-3)) 12%,transparent);color:var(--ink)}
+#v-lab .cu-stdpool{font-size:13px;line-height:1.6;color:var(--ink-2)}
+#v-lab .cu-stdpool b{color:var(--ink)}
 #v-lab .cu-stdv{font-size:13px;color:var(--ink-2)}
 #v-lab .cu-stdt{display:flex}
 #v-lab .cu-stdtb{overflow-x:auto;max-height:260px;overflow-y:auto}
@@ -28,3 +31,5 @@
   #v-lab .cu-std{padding:var(--sp-2)}
   #v-lab .cu-stdtb{max-height:200px}
 }
+#v-lab .lab-tfnote{font-size:12px;color:var(--amber,var(--ink-3));align-self:center;white-space:nowrap}
+#v-lab .lab-tfnote[hidden]{display:none}

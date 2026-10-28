@@ -91,11 +91,33 @@ one(trial('std_kdrsi', bars([10, 11, 10, 11, 11, 9, 9, 9]), { kn: 2, rn: 2, 停�
   const r = trial('std_tx200', bars([10, 10, 10, 12, 12, 9, 9, 9]), { 週: 3 }, inst, { capital: 5000000, sizeMode: 'units', sizeVal: 1 });
   near(one(r, 4, 6, 12, 9, '10').gross, -600, 1e-6, '10 毛損'); }
 
+/* 11 M1216：法人 2 日（縮小）買超占成交量 > 1%、營收年增 > 20%、公布後 ≤ 5 日、最長持有 3 根（停損與移動停損關掉）
+   法人買賣超（外資）[0,0,0,5,5,0,…]、成交量每根 100：第 3 根 (0+5)/200 = 2.5% > 1%，營收年增 30%、公布後第 0 天 → 訊號 → 第 4 根開盤 12 買進
+   持有滿 3 根（第 7 根收盤判斷）→ 第 8 根開盤 9 賣出 → −25% */
+{ const chip = { fn: Float64Array.from([0, 0, 0, 5, 5, 0, 0, 0, 0, 0]), tr: new Float64Array(10), dl: new Float64Array(10), ry: Float64Array.from([0, 0, 0, 30, 30, 30, 30, 30, 30, 30]), ra: Float64Array.from([99, 99, 99, 0, 1, 2, 3, 4, 5, 6]) };
+  const B = bars([10, 10, 10, 12, 12, 12, 12, 12, 9, 9], { chip, v: new Array(10).fill(100) });
+  const d = def('std_m1216'), res = X.compile(d.script.replace('chip_pct("法人",5)', 'chip_pct("法人",2)'), B, { events: [], params: { 停損值: 0, 移動值: 0, 持有: 3 } });
+  eq(res.errors, [], '11 編譯'); const cfg = { mode: 'long', capital: 1000000, sizeMode: 'pct', sizeVal: 100, pyramiding: 1, fillOn: 'open', sl: 0, tp: 0, trail: 0, maxLoss: 0, inst: stock0() };
+  const t = one(E.runStrategy(B, { sig: res.sig, risk: res.risk }, cfg, 'All', null), 4, 8, 12, 9, '11');
+  near(t.pnlP, -25, 1e-9, '11 報酬');
+  const B2 = bars([10, 10, 10, 12, 12, 12, 12, 12, 9, 9], { v: new Array(10).fill(100), chip: Object.assign({}, chip, { ra: Float64Array.from([99, 99, 99, 6, 7, 8, 9, 10, 11, 12]) }) });   // 公布後第 6 天以後才符合 → 不進場
+  const r2 = X.compile(d.script.replace('chip_pct("法人",5)', 'chip_pct("法人",2)'), B2, { events: [], params: { 停損值: 0, 移動值: 0, 持有: 3 } });
+  assert.ok(r2.sig === null && /沒有任何進場訊號/.test(r2.errors[0]), '11 公布後超過 5 個交易日不會有任何進場訊號'); pass++; }
+
+/* 12 M1148：外資 2 日（縮小）占成交量 > 0.5% 且投信同期買超、營收年增 > 20%、公布後 ≤ 3 日、停損 4.9%
+   第 3 根：外資 (0+5)/200 = 2.5% > 0.5%、投信 2 > 0 → 訊號 → 第 4 根開盤 12 買進；第 5 根開盤跳空 11 低於停損價 11.412 → 以開盤價 11 賣出 → −8.33% */
+{ const chip = { fn: Float64Array.from([0, 0, 0, 5, 0, 0, 0, 0, 0]), tr: Float64Array.from([0, 0, 0, 2, 2, 0, 0, 0, 0]), dl: new Float64Array(9), ry: Float64Array.from([0, 0, 0, 30, 30, 30, 30, 30, 30]), ra: Float64Array.from([99, 99, 99, 0, 1, 2, 3, 4, 5]) };
+  const B = bars([10, 10, 10, 12, 12, 11, 11, 11, 11], { chip, v: new Array(9).fill(100) });
+  const d = def('std_m1148'), res = X.compile(d.script.replace('chip_pct("外資",10)', 'chip_pct("外資",2)').replace('chip_pct("投信",10)', 'chip_pct("投信",2)'), B, { events: [] });
+  eq(res.errors, [], '12 編譯'); const cfg = { mode: 'long', capital: 1000000, sizeMode: 'pct', sizeVal: 100, pyramiding: 1, fillOn: 'open', sl: 0, tp: 0, trail: 0, maxLoss: 0, inst: stock0() };
+  const t = one(E.runStrategy(B, { sig: res.sig, risk: res.risk }, cfg, 'All', null), 4, 5, 12, 11, '12');
+  near(t.pnlP, -100 / 12, 1e-6, '12 報酬'); }
+
 /* ② 積木＝腳本 */
 const DIR = fs.existsSync(path.join(__dirname, '../site/data/lab/index.json')) ? path.join(__dirname, '../site/data/lab') : path.join(__dirname, '../site/lab/sample');
 const readJ = (rel) => JSON.parse(fs.readFileSync(path.join(DIR, rel), 'utf8'));
 const IDX = readJ('index.json').items;
-function series(code) { const j = readJ('s/' + code + '.json'), D = E.decode(j.d, 'D'); if ((IDX.find((x) => x.c === code) || {}).ch) E.attachChip(D, readJ('c/' + code + '.json')); return D; }
+function series(code) { const j = readJ('s/' + code + '.json'), D = E.decode(j.d, 'D'); if ((IDX.find((x) => x.c === code) || {}).ch) E.attachChip(D, readJ('c/' + code + '.json')); E.attachUS(D, readJ('us.json')); return D; }
 const blank = () => ({ name: '', blocks: { le: { join: 'and', rows: [] }, lx: { join: 'and', rows: [] }, se: { join: 'and', rows: [] }, sx: { join: 'and', rows: [] } }, risk: {} });
 let nb = 0;
 for (const d of STD.DEFS) {
@@ -109,12 +131,12 @@ for (const d of STD.DEFS) {
   eq(Object.assign({}, z, a.risk), Object.assign({}, z, d.risk), d.id + ' 風控相同（腳本 vs 預設）');
   eq(Object.assign({}, z, b.risk), Object.assign({}, z, d.risk), d.id + ' 積木風控');
 }
-eq(nb, 8, '有積木的組數');
+eq(nb, 10, '有積木的組數');
 
 /* ③ 結果檔 */
 { const f = path.join(__dirname, '../site/lab/standard_results.json'); assert.ok(fs.existsSync(f), '結果檔存在'); pass++;
   const R = JSON.parse(fs.readFileSync(f, 'utf8'));
-  eq(Object.keys(R.strategies).length, 10, '10 組齊全');
+  eq(Object.keys(R.strategies).length, 12, '12 組齊全（10 組標準＋2 組競賽冠軍）');
   for (const d of STD.DEFS) {
     const s = R.strategies[d.id], h = s.runs.find((r) => r.sym === d.headline.sym && r.tf === d.headline.tf);
     assert.ok(h && h.n > 0, d.id + ' 有主要回測'); pass++;

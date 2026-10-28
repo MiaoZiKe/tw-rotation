@@ -31,10 +31,10 @@ const fut0 = () => Object.assign(E.instDefaults('fut'), { slip: 1 });
   const t = r.trades[0];
   eq(t.i0, 2, 'A 進場是訊號後下一根'); eq(t.i1, 4, 'A 出場是訊號後下一根');
   near(t.p0, 100, 1e-9, 'A 進價'); near(t.p1, 110, 1e-9, 'A 出價');
-  near(t.gross, 10000, 1e-6, 'A 毛利'); near(t.costs, 142.5 + 156.75 + 330, 1e-6, 'A 成本'); near(t.pnl, 9370.75, 1e-6, 'A 淨損益');
-  near(r.stats.net, 9370.75, 1e-6, 'A 淨損益＝權益差'); eq(r.stats.win, 100, 'A 勝率');
+  near(t.gross, 10000, 1e-6, 'A 毛利'); near(t.costs, 142 + 156 + 330, 1e-6, 'A 成本（手續費無條件捨去到整數元）'); near(t.pnl, 9372, 1e-6, 'A 淨損益');
+  near(r.stats.net, 9372, 1e-6, 'A 淨損益＝權益差'); eq(r.stats.win, 100, 'A 勝率');
   near(r.stats.pf === Infinity ? 1e9 : r.stats.pf, 1e9, 1, 'A 無虧損 PF 為無限');
-  near(r.eq[5], 1009370.75, 1e-6, 'A 最後權益');
+  near(r.eq[5], 1009372, 1e-6, 'A 最後權益');
 }
 
 /* ---- B. 台指期做空：每點 200、滑價 1 點、期交稅十萬分之二、手續費每口每邊 40 ---- */
@@ -44,7 +44,7 @@ const fut0 = () => Object.assign(E.instDefaults('fut'), { slip: 1 });
   const t = r.trades[0];
   near(t.p0, 19999, 1e-9, 'B 空單進價（賣出滑價低 1 點）'); near(t.p1, 19901, 1e-9, 'B 回補價（買進滑價高 1 點）');
   near(t.gross, 39200, 1e-6, 'B 毛利 98 點×200×2 口');
-  near(t.costs, 80 + 80 + 19999 * 400 * 0.00002 + 19901 * 400 * 0.00002, 1e-6, 'B 成本'); near(t.pnl, 38720.8, 1e-6, 'B 淨損益');
+  near(t.costs, 80 + 80 + 160 + 159, 1e-6, 'B 成本（期交稅四捨五入到整數元）'); near(t.pnl, 38721, 1e-6, 'B 淨損益');
 }
 
 /* ---- C. 停損／停利／跳空 ---- */
@@ -71,7 +71,7 @@ const fut0 = () => Object.assign(E.instDefaults('fut'), { slip: 1 });
   // 最大單根虧損：權益 100 萬、1000 股，上限 1% ＝ 1 萬 ＝ 每股約 10 元；前收 100 → 約 90
   const B6 = mkBars([[100, 100, 100, 100], [100, 100, 100, 100], [100, 100, 100, 100], [99, 99, 85, 86], [86, 86, 86, 86]]);
   r = E.run(B6, sigOf(5, { L: [1] }), base(stock0(), { maxLoss: 1 }), 0, 4);
-  near(r.trades[0].p1, 100 - 0.01 * (1000000 - 142.5) / 1000, 1e-9, 'C 最大單根虧損價（基準＝前一根收盤權益，已扣進場手續費）'); eq(r.trades[0].why, 'Close Position (Max intraday Loss)', 'C 標籤');
+  near(r.trades[0].p1, 100 - 0.01 * (1000000 - 142) / 1000, 1e-9, 'C 最大單根虧損價（基準＝前一根收盤權益，已扣進場手續費）'); eq(r.trades[0].why, 'Close Position (Max intraday Loss)', 'C 標籤');
 }
 
 /* ---- D. 多空模式與反手：只做多時，空訊號只平倉不反手 ---- */
@@ -326,6 +326,49 @@ function randBars(n, seed) {
   near(r2.trades[0].p1, 110, 1e-9, 'Z6 停利 10 點');
   const r3 = E.run(B, sigOf(5, { L: [0] }), base(stock0(), { mode: 'long', sizeMode: 'units', sizeVal: 1, trailPts: 6, trailStart: 10 }), 0, 4);
   near(r3.trades[0].p1, 106, 1e-9, 'Z6 移動停損：賺 ≥ 10 點啟動，最高 112 退 6 點 = 106');
+}
+
+const deq = (a, b, msg) => { assert.deepStrictEqual(a, b, msg); pass++; };
+/* ---- Y. 2026-10-29 第二批（夏普口徑、盤中最大回撤、整數元費用、交易清單進出場各一列） ---- */
+{   // Y1 最大回撤用盤中權益：持有 1000 股，收盤都是 100，但有一根盤中最低 80 → 回撤 20,000（2%），只看收盤會是 0
+  const B = mkBars([[100, 100, 100, 100], [100, 100, 100, 100], [100, 100, 100, 100], [100, 100, 80, 100], [100, 100, 100, 100]]);
+  const r = E.run(B, sigOf(5, { L: [0] }), base(Object.assign(stock0(), { feeRate: 0, taxRate: 0 }), { mode: 'long' }), 0, 4);
+  near(r.stats.mdd, 20000, 1e-6, 'Y1 盤中最大回撤（元）'); near(r.stats.mddP, 2, 1e-9, 'Y1 盤中最大回撤（%）');
+  near(Math.min(...r.stats.dd), 0, 1e-9, 'Y1 圖上的回撤線仍是收盤口徑（收盤沒有虧）');
+}
+{   // Y2 夏普值＝月報酬（月均報酬 − 2%÷12）÷ 月報酬標準差，不再乘 √12（和 TradingView 一致）
+  const rows = []; let px = 100;                       // 每個交易日漲 0.1% 或跌 0.05% 交錯，跨 5 個月
+  for (let i = 0; i < 100; i++) { const c = px * (i % 3 === 0 ? 0.9995 : 1.001); rows.push([px, Math.max(px, c), Math.min(px, c), c]); px = c; }
+  const B = mkBars(rows); B.day.forEach((_, i) => { B.day[i] = 19000 + i * 1.5; B.dayEnd[i] = B.day[i]; });
+  const r = E.run(B, sigOf(100, { L: [0] }), base(stock0(), { mode: 'long', sizeMode: 'pct', sizeVal: 100 }), 0, 99);
+  const mo = []; let prev = 1000000, lastK = null, lastE = 1000000;
+  for (let i = 0; i < r.eq.length; i++) { const d = new Date(B.dayEnd[i] * 86400000), k = d.getUTCFullYear() * 12 + d.getUTCMonth(); if (lastK !== null && k !== lastK) { mo.push(lastE / prev - 1); prev = lastE; } lastK = k; lastE = r.eq[i]; }
+  mo.push(lastE / prev - 1);
+  const mean = mo.reduce((a, b) => a + b, 0) / mo.length, sd = Math.sqrt(mo.reduce((a, b) => a + (b - mean) ** 2, 0) / (mo.length - 1));
+  near(r.stats.sharpe, (mean - 0.02 / 12) / sd, 1e-9, 'Y2 夏普＝月比值、不年化');
+}
+{   // Y3 交易清單：每筆交易兩列（進場、出場）
+  const B = mkBars([[99, 99, 99, 99], [100, 100, 100, 100], [100, 101, 99, 100], [105, 106, 104, 105], [110, 111, 109, 110], [110, 110, 110, 110]]);
+  const r = E.run(B, sigOf(6, { L: [1], XL: [3] }), base(stock0()), 0, 5);
+  const g = E.tradeLegs(r.trades, r.opens);
+  eq(g.length, 2, 'Y3 一筆交易兩列'); deq([g[0].label, g[1].label], ['進場', '出場'], 'Y3 進場在前、出場在後');
+  deq([g[0].i, g[0].price, g[0].signal], [2, 100, '做多訊號'], 'Y3 進場列'); deq([g[1].i, g[1].price, g[1].signal, g[1].pnl], [4, 110, '出場訊號', 9372], 'Y3 出場列（損益在出場列）');
+  const r2 = E.run(B, sigOf(6, { L: [1] }), base(stock0()), 0, 5), g2 = E.tradeLegs(r2.trades, r2.opens);
+  deq([g2.length, g2[1].open, g2[1].label], [2, true, '出場（未平倉）'], 'Y3 未平倉的出場列標示未平倉');
+}
+{   // Y4 手續費無條件捨去到整數元：1,000 股 × 33.3 元 = 33,300 × 0.1425% = 47.45 → 47；賣出稅 0.3% = 99.9 → 99
+  const B = mkBars([[33.3, 33.3, 33.3, 33.3], [33.3, 33.3, 33.3, 33.3], [33.3, 33.3, 33.3, 33.3], [33.3, 33.3, 33.3, 33.3], [33.3, 33.3, 33.3, 33.3]]);
+  const r = E.run(B, sigOf(5, { L: [0], XL: [2] }), base(stock0(), { mode: 'long' }), 0, 4);
+  eq(r.trades[0].costs, 47 + 47 + 99, 'Y4 費用與稅金都是整數元');
+}
+{   // Y5 期間不到 3 個月：夏普／索提諾不計算（顯示「—」），超過才算
+  const mk2 = (n, step) => { const rows = []; let px = 100; for (let i = 0; i < n; i++) { const c = px * (i % 3 === 0 ? 0.999 : 1.002); rows.push([px, Math.max(px, c), Math.min(px, c), c]); px = c; } const B = mkBars(rows); B.day.forEach((_, i) => { B.day[i] = 19000 + i * step; B.dayEnd[i] = B.day[i]; }); return B; };
+  const cfg = base(stock0(), { mode: 'long', sizeMode: 'pct', sizeVal: 100 });
+  let B = mk2(60, 2);        // 跨 118 天、約 4 個日曆月 → 有夏普
+  assert.ok(E.run(B, sigOf(60, { L: [0] }), cfg, 0, 59).stats.sharpe !== null, 'Y5 夠長有夏普'); pass++;
+  B = mk2(60, 1.2);          // 跨 70 天、碰到 3 個日曆月但不到 90 天 → 「—」
+  const st = E.run(B, sigOf(60, { L: [0] }), cfg, 0, 59).stats;
+  eq(st.sharpe, null, 'Y5 不到 90 天夏普不計算'); eq(st.sortino, null, 'Y5 不到 90 天索提諾不計算');
 }
 
 console.log(`lab_engine_check：${pass} 項斷言全數通過`);

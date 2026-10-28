@@ -95,6 +95,58 @@ eq(R.trades.length, 1, '最長持有：一筆'); eq(R.trades[0].i1 - R.trades[0]
   q = X.compile('若 close > open 則 進場("多")\nstrategy.exit("x", stop=95)', B); assert.ok(q.errors.length && /stop/.test(q.errors[0]), 'stop 要報錯'); pass++;
   q = X.compile('若 close > open 則 進場("多")\nstrategy.exit("x", foo=1)', B); assert.ok(q.errors.length && /foo/.test(q.errors[0]), '未知參數要報錯'); pass++;
 }
+
+// 第二批語法：多行 if（縮排）、tuple 解構、ta.bb、ta.stoch
+{
+  const one = X.compile('若 crossover(sma(close,5), sma(close,20)) 則 進場("多")\n若 crossover(sma(close,5), sma(close,20)) 則 進場("空")', B);
+  let q = X.compile('if ta.crossover(ta.sma(close,5), ta.sma(close,20))\n    strategy.entry("L", strategy.long)\n    strategy.entry("S", strategy.short)', B);
+  eq(q.errors, [], '多行 if 可編譯'); assert.ok(same(q.sig, one.sig, ['L', 'S', 'XL', 'XS']), '多行 if（Pine）＝單行'); pass++;
+  q = X.compile('若 crossover(sma(close,5), sma(close,20)) 則\n    進場("多")\n    進場("空")', B);
+  assert.ok(q.errors.length === 0 && same(q.sig, one.sig, ['L', 'S', 'XL', 'XS']), '多行 若…則（中文）＝單行'); pass++;
+  q = X.compile('// 註解\nif close > open\n\n    strategy.entry("L", strategy.long)\n若 close < open 則 進場("空")', B);
+  assert.ok(q.errors.length === 0 && q.sig.L.some((x) => x) && q.sig.S.some((x) => x), '空行不會中斷縮排區塊、縮排結束後的下一行是獨立的一行'); pass++;
+  q = X.compile('if close > open\nx = 1', B);
+  assert.ok(q.errors.length && /第 1 行/.test(q.errors[0]) && /縮排/.test(q.errors[0]), 'if 沒有縮排內容要報錯並指到行號'); pass++;
+  // tuple 解構
+  const mac = X.compile('若 crossover(macd_dif(close,12,26), macd_dea(close,12,26,9)) 則 進場("多")', B);
+  q = X.compile('[m, s, h] = ta.macd()\n若 crossover(m, s) 則 進場("多")', B);
+  eq(q.errors, [], '[m,s,h]=ta.macd() 可編譯'); assert.ok(same(q.sig, mac.sig, ['L']), 'ta.macd() 解構＝macd_dif／macd_dea'); pass++;
+  q = X.compile('[m, s, h] = ta.macd(close, 12, 26, 9)\n若 h > 0 且 h[1] <= 0 則 進場("多")', B);
+  assert.ok(same(q.sig, E.STRAT.macd.build(B, { f: 12, s: 26, g: 9 }), ['L']), '柱狀體由負轉正＝內建 macd'); pass++;
+  const bb = X.compile('若 crossover(close, bb_low(close,20,2)) 則 進場("多")', B);
+  q = X.compile('[mid, up, lo] = ta.bb(close, 20, 2)\n若 crossover(close, lo) 則 進場("多")', B);
+  eq(q.errors, [], 'ta.bb 解構可編譯'); assert.ok(same(q.sig, bb.sig, ['L']), 'ta.bb 下軌＝bb_low'); pass++;
+  q = X.compile('x = ta.bb(close,20,2)\n若 x > 0 則 進場("多")', B); assert.ok(q.errors.length && /多個值/.test(q.errors[0]), 'ta.bb 不解構要報錯'); pass++;
+  q = X.compile('[a, b] = ta.sma(close,5)\n若 a > 0 則 進場("多")', B); assert.ok(q.errors.length, '解構右邊不是 tuple 函式要報錯'); pass++;
+  q = X.compile('[a, b, c, d] = ta.macd()\n若 a > 0 則 進場("多")', B); assert.ok(q.errors.length && /3 個值/.test(q.errors[0]), '解構個數太多要報錯'); pass++;
+}
+{   // ta.stoch：收盤 [10,11,12,9]，3 根：第 2 根 %K = (12−10)/(12−10)×100 = 100；第 3 根 = (9−9)/(12−9)×100 = 0
+  const n = 4, c = [10, 11, 12, 9], S4 = { n, tf: 'D', ts: new Float64Array(n), day: Float64Array.from(c, (_, i) => 19000 + i), dayEnd: Float64Array.from(c, (_, i) => 19000 + i), o: Float64Array.from(c), h: Float64Array.from(c), l: Float64Array.from(c), c: Float64Array.from(c), v: new Float64Array(n).fill(1) };
+  const up = X.compile('若 ta.stoch(close, high, low, 3) > 99 則 進場("多")', S4), dn = X.compile('若 ta.stoch(close, high, low, 3) < 1 則 進場("多")', S4);
+  eq(Array.from(up.sig.L), [0, 0, 1, 0], 'stoch = 100 只在第 2 根'); eq(Array.from(dn.sig.L), [0, 0, 0, 1], 'stoch = 0 只在第 3 根（前面不足 3 根是 NaN，比較為假）');
+}
+
+// 競賽冠軍用到的四種資料：月營收年增率＋公布後第幾個交易日、美股前一晚（T-1）、法人近 N 日淨買超占成交量 %
+{
+  const n = 5, c = [10, 10, 10, 10, 10], mkB = (days) => ({ n, tf: 'D', ts: new Float64Array(n), day: Float64Array.from(days), dayEnd: Float64Array.from(days), o: Float64Array.from(c), h: Float64Array.from(c), l: Float64Array.from(c), c: Float64Array.from(c), v: new Float64Array(n).fill(100) });
+  // 美股 T-1：台股日期 100、101、103、106；美股日期 99、100、101、102、105（漲跌 1、2、3、4、5）→ 嚴格早於當天的最近一筆＝[1, 2, 4, 5]，同一個日曆日的美股收盤不能用
+  const Bu = mkB([100, 101, 103, 106, 107]); E.attachUS(Bu, { sox: { d: [99, 100, 101, 102, 105], r: [1, 2, 3, 4, 5] } });
+  eq(Array.from(Bu.chip.us_sox), [1, 2, 4, 5, 5], '美股前一晚＝日期嚴格早於這一天的最近一筆（T-1）');
+  const u = X.compile('若 chip("美股費半") > 3 則 進場("多")', Bu);
+  eq(u.errors, [], '美股費半可編譯'); eq(Array.from(u.sig.L), [0, 0, 1, 1, 1], '美股前一晚 > 3% 只在第 2 根之後');
+  // 法人占成交量：外資 [10,0,20,−5]（張）、每根成交量 100 → 近 2 日 = 5%、10%、7.5%
+  const Bc = mkB([1, 2, 3, 4, 5]); Bc.chip = { fn: Float64Array.from([10, 0, 20, -5, 0]) };
+  eq(Array.from(X.compile('若 chip_pct("外資",2) > 7 則 進場("多")', Bc).sig.L), [0, 0, 1, 1, 0], '外資近 2 日占成交量 > 7%：10%、7.5% 成立');
+  eq(Array.from(X.compile('若 chip_pct("外資",2) > 9 則 進場("多")', Bc).sig.L), [0, 0, 1, 0, 0], '> 9%：只有 10%');
+  // 營收年增率 > 20 且公布後 ≤ 2 個交易日
+  const Br = mkB([1, 2, 3, 4, 5]); Br.chip = { ry: Float64Array.from([10, 25, 25, 25, 25]), ra: Float64Array.from([99, 0, 1, 2, 3]) };
+  eq(Array.from(X.compile('若 chip("營收年增") > 20 且 chip("營收公布後天數") <= 2 則 進場("多")', Br).sig.L), [0, 1, 1, 1, 0], '營收年增 > 20% 且公布後 ≤ 2 個交易日');
+  // 積木與腳本等價
+  const rule = { name: 't', blocks: { le: { join: 'and', rows: [{ kind: 'cmp', op: 'gt', a: { t: 'cry' }, b: { t: 'num', v: 20 } }, { kind: 'cmp', op: 'le', a: { t: 'cra' }, b: { t: 'num', v: 2 } }, { kind: 'cmp', op: 'gt', a: { t: 'cpfn', n: 2 }, b: { t: 'num', v: 1 } }] } }, risk: {} };
+  Br.chip.fn = Float64Array.from([10, 0, 20, -5, 0]);
+  const ba = X.compile(X.toScript(rule), Br), bb = X.compile('若 chip("營收年增") > 20 且 chip("營收公布後天數") <= 2 且 chip_pct("外資",2) > 1 則 進場("多")', Br);
+  eq(ba.errors, [], '積木（營收年增、公布後天數、法人占比）可編譯'); eq(Array.from(ba.sig.L), Array.from(bb.sig.L), '積木＝腳本');
+}
 console.log('  內建策略↔腳本：' + n + ' 組一致');
 }
 {   // 籌碼函式：中英文別名等價、沒有籌碼資料時有看得懂的錯誤

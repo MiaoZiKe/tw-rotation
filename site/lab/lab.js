@@ -58,6 +58,8 @@
       const D = E.decode(j.d, 'D');
       const it = ((await loadIndex()).items || []).find((x) => x.c === code);
       if (it && it.ch) E.attachChip(D, await getJSON('c/' + code + '.json'));       // 籌碼檔（近期成交值前 1000 大個股才有），按需載入
+      if (!DATA.us) DATA.us = (await getJSON('us.json')) || {};
+      E.attachUS(D, DATA.us);                                                         // 美股前一晚（T-1），給「美股前一晚漲跌」條件用
       B = E.resample(D, tf); B.name = j.n; B.kind = j.k; B.vu = j.vu;
     }
     DATA.ser[k] = B; return B;
@@ -168,7 +170,7 @@
     custom: '<b>怎麼用</b><br>左邊管理策略，右邊用積木組規則：多單進場、多單出場、空單進場、空單出場四格各自加條件，格內用「全部成立」或「任一成立」組合，再設停損、停利、移動停損、最長持有。下方立刻試跑，按「在歷史回測看完整結果」到完整的策略測試器。' +
       '<br><br><b>腳本寫法</b>（切到「腳本」分頁）<br>每行一件事：<br>· 若 條件 則 進場("多")／進場("空")／平倉("多")<br>· 快 = 參數("快線", 5)　宣告可在畫面上調的參數<br>· x = rsi(收盤, 14)　自己的變數；x[1] 是前一根<br>· 出場("風控", 停損%=5, 停利%=10, 移動%=3, 最長持有=30)' +
       '<br>函式：均線 sma、ema、rsi、macd_dif／macd_dea／macd_osc、bb_up／bb_mid／bb_low、kd_k／kd_d、atr、highest、lowest、change、crossover（上穿）、crossunder（下穿）、event("fomc", 前, 後)；籌碼：chip("外資"／"投信"／"自營"／"法人"／"融資"／"融券"／"券資比"／"當沖比"／"當沖量")、streak(x)（連買為正、連賣為負的根數）、csum(x, N)（N 根累計）。也能用 ta.sma、ta.crossover、strategy.entry 這些 TradingView 寫法。不支援迴圈、陣列、跨週期。' +
-      '<br><br><b>標準策略</b><br>左側「標準策略」下拉有 10 組事先定好參數的範本（趨勢、動能、突破、回歸、多週期、籌碼、營收動能、台指期）。點一組會把腳本（有的也附積木）放進編輯器並直接試跑，上方成績卡是它在多檔標的上的過去成績；規則、出處、失效條件在成績卡標題旁的「?」。參數是教科書預設值，沒有看結果調過；結果不好就照實寫。'+'<br><br><b>儲存</b><br>存在這台裝置的瀏覽器（每台裝置各自保存），可匯出成 JSON 帶到別台再匯入；不上傳。'
+      '<br><br><b>標準策略</b><br>左側「標準策略」下拉有 10 組事先定好參數的範本（趨勢、動能、突破、回歸、多週期、籌碼、營收動能、台指期）。點一組會把腳本（有的也附積木）放進編輯器並直接試跑，上方成績卡是它在多檔標的上的過去成績；規則、出處、失效條件在成績卡標題旁的「?」。參數是教科書預設值，沒有看結果調過；結果不好就照實寫。'+'<br><br><b>進階語法</b><br>· 多行 if（縮排）：<br>　若 上穿(均線(收盤,5), 均線(收盤,20)) 則<br>　　進場("多")<br>　　平倉("空")<br>　（Pine 寫法 if 條件 換行縮排接 strategy.entry(…) 也可以）<br>· 解構：[m, s, h] = ta.macd(close,12,26,9)（MACD 線、訊號線、柱）、[mid, up, lo] = ta.bb(close,20,2)（中軌、上軌、下軌）<br>· ta.stoch(close, high, low, 14)＝原始 %K；週均線 wk_sma(20)＝週 K 收盤的 20 週均線（只用已收完的週，日 K 專用）<br>· strategy.exit("x", loss=點數, profit=點數, trail_points=啟動點, trail_offset=回檔點)；stop／limit（絕對價位）不支援，會報錯<br>· input.int(預設, "標題")（Pine v5 順序）與 參數("標題", 預設) 都可以<br><br><b>儲存</b><br>存在這台裝置的瀏覽器（每台裝置各自保存），可匯出成 JSON 帶到別台再匯入；不上傳。'
   };
   const howOf = (sub) => (MODS[sub] && MODS[sub].how) || HOWS[sub] || HOW;
   const TAB_HINT = { fut: '今天該持幾口台指期、前向模擬績效與回測依據', bt: '把一套進出場規則放到歷史上，看賺還是賠', replay: '倒回過去某一天，一根一根往前播，練習下單', evt: '選舉、FOMC 等事件前後，股價平均怎麼走', custom: '用積木或腳本組自己的進出場規則，再拿去回測' };
@@ -340,7 +342,7 @@
       const sd = E.STRAT[S.strat];
       if (sd && sd.needs === 'chip') {      // 籌碼策略：沒有籌碼資料就明講，不要畫一張空的績效
         if (sd.unavail) { renderEmpty(S, sd.desc); return; }
-        if (!B.chip) { renderEmpty(S, '這個標的（或 60 分週期）沒有籌碼資料：籌碼策略只支援近期成交值前 1000 大的個股，且限日、週、月 K。請換標的或週期。'); return; }
+        if (!(B.chip && (B.chip.fn || B.chip.tr))) { renderEmpty(S, '這個標的（或 60 分週期）沒有籌碼資料：籌碼策略只支援近期成交值前 1000 大的個股，且限日、週、月 K。請換標的或週期。'); return; }
       }
       if (S.strat.indexOf('u:') === 0 && window.TwLabCustom) {
         const sg = window.TwLabCustom.compile(S.strat.slice(2), B);
@@ -528,8 +530,8 @@
     R.forEach(([lab, f, tip]) => { h += row(lab, f(A), f(Lg), f(Sh), tip); });
     h += row('買進持有報酬', m(s.bhNet, s.bhRet), '', '', '同期間第一根開盤買入、持有到最後一根收盤；價格已還原除權息');
     h += row('最大上漲', m(s.runup, s.runupP), '', '', '權益從低點到之後高點的最大增幅');
-    h += row('最大回撤', m(-s.mdd, -s.mddP), '', '', '權益（含未平倉浮動損益）從高點到之後低點的最大跌幅');
-    h += row('夏普值', s.sharpe == null ? '—' : s.sharpe.toFixed(3), '', '', '月報酬計：（月均報酬 − 無風險 2%÷12）÷ 月報酬標準差 × √12。期間不足 3 個月不計算');
+    h += row('最大回撤', m(-s.mdd, -s.mddP), '', '', '權益（含未平倉浮動損益）從高點到之後低點的最大跌幅；用盤中最差權益計算（多單看最低價、空單看最高價），所以會比只看收盤的回撤略大');
+    h += row('夏普值', s.sharpe == null ? '—' : s.sharpe.toFixed(3), '', '', '月報酬計：（月均報酬 − 無風險 2%÷12）÷ 月報酬標準差，不年化（和 TradingView 一致）。期間不足 3 個月（90 天）不計算');
     h += row('索提諾值', s.sortino == null ? '—' : s.sortino.toFixed(3), '', '', '同夏普，分母改成只算低於無風險報酬的下檔偏差');
     const R2 = [
       ['獲利因子', (g) => pf(g.pf), '總獲利 ÷ 總虧損'],
@@ -579,8 +581,10 @@
   }
   function csvOf(S) {
     const B = S.B, q = (x) => '"' + String(x).replace(/"/g, '""') + '"';
-    const head = ['編號', '方向', '進場時間', '出場時間', '進場價', '出場價', '數量', '損益', '損益%', '累積損益', 'MFE', 'MAE', '進場訊號', '出場原因'];
-    const lines = [head.map(q).join(',')].concat(tradeRows(S).map((t) => [t.no, t.dir === 1 ? '多' : '空', tstr(B, t.i0), t.open ? '未平倉' : tstr(B, t.i1), t.p0.toFixed(2), t.p1.toFixed(2), t.qty, t.pnl.toFixed(0), t.pnlP.toFixed(2), t.cum.toFixed(0), t.mfe.toFixed(0), t.mae.toFixed(0), t.entryWhy || '', t.why || ''].map(q).join(',')));
+    // 進場、出場各一列（和 TradingView 的交易清單一樣；資料結構在 engine.js 的 tradeLegs）
+    const head = ['交易編號', '類型', '方向', '時間', '價格', '數量', '訊號／原因', '損益', '損益%', '累積損益', 'MFE', 'MAE', '成本'];
+    const f0 = (x) => (x == null ? '' : x.toFixed(0)), f2 = (x) => (x == null ? '' : x.toFixed(2));
+    const lines = [head.map(q).join(',')].concat(E.tradeLegs(S.res.trades, S.res.opens).map((g) => [g.no, g.label, g.side, tstr(B, g.i), g.price.toFixed(2), g.qty, g.signal, f0(g.pnl), f2(g.pnlP), f0(g.cum), f0(g.mfe), f0(g.mae), f0(g.costs)].map(q).join(',')));
     return '﻿' + lines.join('\r\n');
   }
   function downloadCsv(S) {
@@ -607,8 +611,11 @@
     const it = ((DATA.idx || {}).items || []).find((x) => x.c === S.sym);
     $$('#labTf button').forEach((b) => {
       const k = b.dataset.tf; const no60 = k === '60' && !(it && it.h60);
-      b.classList.toggle('on', k === S.tf); b.disabled = no60; b.title = no60 ? '此標的沒有 60 分 K（60 分資料只有 2023-09 之後的個股）' : '';
+      b.classList.toggle('on', k === S.tf); b.disabled = no60; b.title = no60 ? '此標的沒有 60 分 K（60 分資料只有 2023-09 之後的個股）' : (k === '60' && it && it.a60 ? '60 分 K 僅自 ' + it.a60 + ' 起（資料湖的這個標的只存了這一段）' : '');
     });
+    { const tfw = $('#labTf'); let nt = $('#labTfNote');      // 台指期等只有短段 60 分 K 的標的：切到 60 分時畫面上直接寫明資料起點
+      if (tfw && !nt) { nt = document.createElement('span'); nt.id = 'labTfNote'; nt.className = 'lab-tfnote'; tfw.insertAdjacentElement('afterend', nt); }
+      if (nt) { const on = S.tf === '60' && it && it.a60; nt.hidden = !on; nt.textContent = on ? '60 分 K 僅自 ' + it.a60 + ' 起' : ''; } }
     $$('#labMode button').forEach((b) => b.classList.toggle('on', b.dataset.m === S.mode));
     const B = S.B, span = B && B.n ? (B.dayEnd[B.n - 1] - B.day[0]) : 0;
     $$('#labRng button').forEach((b) => {
@@ -692,7 +699,7 @@
         const sm = pin.querySelector('small'); if (sm) sm.textContent = '✓ 已加到圖上';
         return;
       }
-      const pi = t.closest('.lab-pi[data-s]'); if (pi) { S.strat = pi.dataset.s; S.params = {}; const st0 = E.STRAT[S.strat]; if (st0 && st0.risk) Object.assign(S.cfg, st0.risk); $('#labPick').hidden = true; S.pickOpen = false; syncBar(S); recompute(S); return; }
+      const pi = t.closest('.lab-pi[data-s]'); if (pi) { S.strat = pi.dataset.s; S.params = {}; const st0 = E.STRAT[S.strat]; Object.assign(S.cfg, { sl: 0, tp: 0, trail: 0, maxLoss: 0 }, (st0 && st0.risk) || {}); $('#labPick').hidden = true; S.pickOpen = false; syncBar(S); recompute(S); return; }
       if (t.closest('#labSaveStrat')) {
         const C = window.TwLabCustom; if (!C) return;
         const text = window.LabExpr.scriptFor(S.strat, Object.assign(E.defaults(S.strat), S.params));
