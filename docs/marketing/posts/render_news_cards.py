@@ -39,7 +39,7 @@ def breakit(t, fs):
     for i in range(1, len(t)):
         a, b = t[i-1], t[i]
         if a == " ": cands[0].append((i, t[:i].rstrip(), t[i:]))
-        elif ord(a) < 0x2E80 and a != " " and ord(b) > 0x2E80: cands[1].append((i, t[:i], t[i:]))
+        elif ord(a) < 0x2E80 and a != " " and ord(b) > 0x2E80 and b not in "%％兆億萬元點美": cands[1].append((i, t[:i], t[i:]))
         elif any(t[:i].endswith(w) for w in TIMEW): cands[2].append((i, t[:i], t[i:]))
         elif b.isdigit() and not (a.isdigit() or a in ".,"): cands[3].append((i, t[:i], t[i:]))
     for k in range(4):
@@ -100,13 +100,64 @@ def card(d, idx, tot, bg=None):
             f'<div class="a T2" style="left:64px;top:{subt}px;color:var(--co);white-space:nowrap">{e(c["subtitle"])}</div>'
             f'{rows}<div class="hr" style="top:1264px"></div>'
             f'<div class="a row T4" style="left:64px;top:1272px;width:952px;height:64px;color:var(--mu)"><span class="num">{date}・{idx} / {tot}</span><span style="margin-left:auto"></span>{bibi("face_think", 60)}</div></body>')
+# ---- cover_v2：全幅圖封面（Andy 10-28：口袋證券等級的完成度，保留 D+ 品牌）----
+DEEP = "#123325"        # 主綠加深（只用於壓字底，不當前景色）
+CHIP2 = {"美股": ("#4C86B0", "#fff"), "台股": ("#C81234", "#fff"), "財報": (P["mustard"], P["ink"]), "總經": (P["coral"], P["ink"]), "科技": ("#F7F3EA", P["ink"])}   # 深色底上的實心標籤（台股紅底白字）
+ICONS = {"美股": "chart", "台股": "chart", "財報": "coin", "總經": "pct", "科技": "chip", "default": "target"}
+def hl2(line):   # 白字標題裡的第一個數字（含單位）改芥黃＋襯線
+    m = NUM.search(line)
+    if not m: return e(line)
+    return e(line[:m.start()]) + f'<span class="ser num" style="color:var(--my);font-weight:700">{e(m.group(0))}</span>' + e(line[m.end():])
+def lines_of(v):
+    if not v: return []
+    return [x for x in (v if isinstance(v, list) else str(v).replace("／", "\n").split("\n")) if x.strip()]
+def bg_cover(path, w, h):
+    """AI 圖鋪滿 w×h（取上緣，放大用 Lanczos＋輕微銳化；偏暗者提亮）"""
+    from PIL import ImageFilter, ImageStat, ImageEnhance
+    im = Image.open(path).convert("RGB")
+    if "pollinations" in str(path): im = im.crop((0, 0, im.width, im.height - int(im.height*0.07)))
+    m = ImageStat.Stat(im.convert("L")).mean[0]
+    if m < 130: im = ImageEnhance.Brightness(im).enhance(min(1.3, 135/m))
+    sc = max(w/im.width, h/im.height); im = im.resize((int(im.width*sc)+1, int(im.height*sc)+1), Image.LANCZOS)
+    im = im.filter(ImageFilter.UnsharpMask(radius=1.5, percent=50, threshold=3))
+    x0 = (im.width - w)//2; y0 = int((im.height - h)*0.2)
+    im = im.crop((x0, y0, x0+w, y0+h)); b = io.BytesIO(); im.save(b, "JPEG", quality=92)
+    return "data:image/jpeg;base64," + base64.b64encode(b.getvalue()).decode()
+def card_v2(d, idx, tot, bg=None):
+    c = d["card"]; cat = c["category"]; ck = CAT.get(cat, "green")
+    tl = lines_of(c.get("cover_title")) or breakit(c["title"], 88).split("\n")
+    dl = lines_of(c.get("cover_desc"))
+    if not dl:   # 暫代：副標＋關鍵數字串成一句說明（財經編輯補 cover_desc 後即不再使用）
+        nums = "、".join(f'{x["label"]} {x["value"]}{x["unit"]}' for x in c["numbers"][:3])
+        dl = [c["subtitle"] + " " + nums]
+    fs = min(96, int(944 / max(wid(l) for l in tl)) // 4 * 4)
+    tl = tl[:2]; dl = dl[:2]
+    import math
+    nl = sum(max(1, math.ceil(wid(x)*36/96/ (944/96) * 1.04)) for x in dl)   # 說明實際折行數（每行 944px、36px 字）
+    foot = 1272; dh = nl*52; dtop = 1240 - dh; ttop = dtop - 24 - len(tl)*(fs+12); chipt = ttop - 24 - 60
+    if bg: img = f'<div class="a" data-bg=1 style="left:0;top:0;width:1080px;height:1000px;background:url({bg_cover(bg, 1080, 1000)}) center/cover"></div>'
+    else:
+        ic = ICONS.get(cat, ICONS["default"])
+        img = (f'<div class="a" data-bg=1 style="left:0;top:0;width:1080px;height:1350px;background:linear-gradient(135deg,#1E4D3B 0%,#2C6A6E 55%,#3F6F94 100%)"></div>'
+               f'<div class="a" data-bg=1 style="right:48px;top:96px;opacity:.20">{icon(ic, "#fff", 440)}</div>')
+    shade = (f'<div class="a" data-bg=1 style="left:0;top:0;width:1080px;height:1350px;background:linear-gradient(180deg,rgba(12,38,28,.55) 0%,rgba(12,38,28,0) 16%,rgba(12,38,28,0) 34%,rgba(18,51,37,.82) 52%,{DEEP} 66%,{DEEP} 100%)"></div>')
+    sh = "text-shadow:0 2px 14px rgba(0,0,0,.35)"
+    return (f'<body style="{V};background:{DEEP}">{img}{shade}'
+            f'<div class="brand T3b" style="color:#fff;top:48px;{sh}">哩股哩股</div>'
+            f'<div class="a row" style="left:64px;top:{chipt}px"><span class="T3b" style="background:{CHIP2.get(cat, (P["green"], "#fff"))[0]};color:{CHIP2.get(cat, (P["green"], "#fff"))[1]};padding:6px 28px;border-radius:4px;letter-spacing:.12em">{e(cat)}</span></div>'
+            f'<div class="a" style="left:64px;top:{ttop}px;width:952px;color:#fff;font-size:{fs}px;line-height:{fs+12}px;font-weight:800;letter-spacing:-.01em;{sh}">'
+            + "".join(f'<div style="white-space:nowrap">{hl2(l)}</div>' for l in tl) + '</div>'
+            f'<div class="a T3" style="left:64px;top:{dtop}px;width:952px;color:rgba(255,255,255,.92);line-height:52px;{sh}">' + "".join(f"<div>{e(l)}</div>" for l in dl) + '</div>'
+            f'<div class="a" style="left:64px;top:1264px;width:952px;height:2px;background:rgba(255,255,255,.28)"></div>'
+            f'<div class="a row T4" style="left:64px;top:{foot+4}px;width:952px;height:56px;color:rgba(255,255,255,.78)"><span class="num">{d["data_date"][:10].replace("-", "/")}・{idx} / {tot}</span></div></body>')
 if __name__ == "__main__":
     root = Path(sys.argv[1]); slot = sys.argv[2]
     from playwright.sync_api import sync_playwright as _sp
     _pw = _sp().start(); _br = _pw.chromium.launch(executable_path=os.environ.get("CHROMIUM") or None); _PG = _br.new_page(); _PG.set_content("<body></body>")
     items = json.load(open(root/f"{slot}.json", encoding="utf-8"))
     out = root/slot; bgmap = json.load(open(root/"news_bg.json", encoding="utf-8")) if (root/"news_bg.json").exists() else {}
-    pages = [card(d, i, len(items), (root/bgmap[d["id"]]) if bgmap.get(d["id"]) else None) for i, d in enumerate(items, 1)]
+    fn = card if "--v1" in sys.argv else card_v2
+    pages = [fn(d, i, len(items), (root/bgmap[d["id"]]) if bgmap.get(d["id"]) else None) for i, d in enumerate(items, 1)]
     _br.close(); _pw.stop()      # 量字寬用的瀏覽器先關掉，才能開渲染用的
     render("", pages, out)
-    if len(sys.argv) > 3: sheet(out, [f"{i}.jpg" for i in range(1, len(items)+1)], sys.argv[3], len(items), 400)
+    if len(sys.argv) > 3 and not sys.argv[3].startswith("--"): sheet(out, [f"{i}.jpg" for i in range(1, len(items)+1)], sys.argv[3], len(items), 400)
