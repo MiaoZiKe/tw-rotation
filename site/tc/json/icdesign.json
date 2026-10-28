@@ -12181,11 +12181,11 @@
           ],
           "weekly_hours": [
             40,
-            50
+            55
           ],
-          "overtime": "經常",
+          "overtime": null,
           "travel": null,
-          "n": 24,
+          "n": 31,
           "note": "網友自述未經查證；GoodJob 2026-01 FW 月薪 9.2 萬（週 60 小時）、2025-10 韌體 9.2～10.4 萬；年資 3～7 年的筆數已排除，學歷未載，起薪可能更低；GoodJob 自述每週 50～60 小時；分紅月數自述差異大（一則稱 14 個月），不填區間；第二輪：PTT 2026-02 開獎串：2 年 B+ 分紅約 4 個月、5 年 B+ 約 3.5 個月（含年終 2 個月）；尾牙串稱工程師底薪 9 萬多起；GoodJob 2025-12 韌體稱至少 8 萬以上、可報加班費；Dcard 稱 N×14＋簽約金＋分紅、分紅 50% 隔年發；未逐筆對應的舊彙整：{\"base_month_k\": [80, 90], \"bonus_months\": [4, 4], \"annual_total_wan\": [120, 120]}；未逐筆對應的舊彙整：overtime=經常；部分年薪／年薪月數由同一筆樣本的「底薪×月數」推算（樣本標 derived）",
           "sources": [
             {
@@ -12252,6 +12252,11 @@
               "site": "GoodJob",
               "url": "https://www.goodjob.life/companies/群聯電子股份有限公司%20PHISON/salary-work-times?p=2",
               "date": "2026-04"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/群聯電子股份有限公司%20PHISON/salary-work-times?p=3",
+              "date": "2026-02"
             }
           ],
           "confidence": "高",
@@ -12753,9 +12758,163 @@
               "quote_free_note": "自填；日工時 表訂/實際 8/10",
               "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2026-04（20261028_2207 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/群聯電子股份有限公司%20PHISON/salary-work-times?p=2",
+              "date": "2026-03",
+              "page_date": "2026-03",
+              "date_confirmed": true,
+              "role": "資深韌體工程師",
+              "grade": null,
+              "unit_detail": "竹南",
+              "years": "5",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 200,
+              "weekly_hours": 40,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 10/10",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-03（20261028_2235 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/群聯電子股份有限公司%20PHISON/salary-work-times?p=2",
+              "date": "2026-03",
+              "page_date": "2026-03",
+              "date_confirmed": true,
+              "role": "韌體設計工程師",
+              "grade": null,
+              "unit_detail": "台南",
+              "years": "4",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 220,
+              "weekly_hours": 50,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/9",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-03（20261028_2235 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/群聯電子股份有限公司%20PHISON/salary-work-times?p=2",
+              "date": "2026-03",
+              "page_date": "2026-03",
+              "date_confirmed": true,
+              "role": "韌體設計工程師",
+              "grade": null,
+              "unit_detail": "板橋",
+              "years": "3",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 260,
+              "weekly_hours": 40,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 9/4",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-03（20261028_2235 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/群聯電子股份有限公司%20PHISON/salary-work-times?p=2",
+              "date": "2026-02",
+              "page_date": "2026-02",
+              "date_confirmed": true,
+              "role": "SSD FW",
+              "grade": null,
+              "unit_detail": "板橋",
+              "years": "5",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 250,
+              "weekly_hours": 48,
+              "overtime": "幾乎不",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 12/12；職稱未寫工程師",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-02（20261028_2235 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/群聯電子股份有限公司%20PHISON/salary-work-times?p=3",
+              "date": "2026-02",
+              "page_date": "2026-02",
+              "date_confirmed": true,
+              "role": "韌體工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "4",
+              "degree": null,
+              "base_k": 100.3,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 40,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/8",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-02（20261028_2235 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/群聯電子股份有限公司%20PHISON/salary-work-times?p=3",
+              "date": "2026-01",
+              "page_date": "2026-01",
+              "date_confirmed": true,
+              "role": "韌體設計工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 92,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 55,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/11；原選項幾乎每天",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-01（20261028_2235 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/群聯電子股份有限公司%20PHISON/salary-work-times?p=3",
+              "date": "2025-09",
+              "page_date": "2025-09",
+              "date_confirmed": true,
+              "role": "韌體工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "3",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 240,
+              "weekly_hours": 40,
+              "overtime": "幾乎不",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/8",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2025-09（20261028_2235 批）"
             }
           ],
-          "n_stat": 24
+          "n_stat": 31
         },
         {
           "unit": "研發 R&D",
@@ -13201,6 +13360,28 @@
               "quote_free_note": "自填；日工時 表訂/實際 8/9",
               "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2026-04（20261028_2207 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/群聯電子股份有限公司%20PHISON/salary-work-times?p=3",
+              "date": "2026-01",
+              "page_date": "2026-01",
+              "date_confirmed": true,
+              "role": "軟體工程師",
+              "grade": null,
+              "unit_detail": "竹南",
+              "years": "3",
+              "degree": null,
+              "base_k": 100,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 50,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 12/10",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-01（20261028_2235 批）"
             }
           ],
           "sources": [
@@ -13233,15 +13414,20 @@
               "site": "GoodJob",
               "url": "https://www.goodjob.life/companies/群聯電子股份有限公司%20PHISON/salary-work-times?p=2",
               "date": "2026-04"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/群聯電子股份有限公司%20PHISON/salary-work-times?p=3",
+              "date": "2026-01"
             }
           ],
           "confidence": "低",
-          "n": 7,
-          "overtime": null,
+          "n": 8,
+          "overtime": "經常",
           "years": null,
           "base_month_k": [
             92,
-            92
+            100
           ],
           "bonus_months": null,
           "annual_months": [
@@ -13257,7 +13443,7 @@
             50
           ],
           "travel": null,
-          "n_stat": 7,
+          "n_stat": 8,
           "note": null,
           "grade": null
         },
@@ -15238,6 +15424,73 @@
               "quote_free_note": "自填；日工時 表訂/實際 12/12",
               "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2026-06（20261028_2207 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/群聯電子股份有限公司%20PHISON/salary-work-times?p=3",
+              "date": "2026-02",
+              "page_date": "2026-02",
+              "date_confirmed": true,
+              "role": "資深工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "7",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 320,
+              "weekly_hours": 40,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/11；原選項幾乎每天",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-02（20261028_2235 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/群聯電子股份有限公司%20PHISON/salary-work-times?p=3",
+              "date": "2025-12",
+              "page_date": "2025-12",
+              "date_confirmed": true,
+              "role": "工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "1",
+              "degree": null,
+              "base_k": 92,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 45,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/9",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2025-12（20261028_2235 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/群聯電子股份有限公司%20PHISON/salary-work-times?p=3",
+              "date": "2025-12",
+              "page_date": "2025-12",
+              "date_confirmed": true,
+              "role": "工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 92,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 45,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/9；來源註記疑似與同頁 1 年資那筆同一人",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2025-12（20261028_2235 批）",
+              "dup_of": "https://www.goodjob.life/companies/群聯電子股份有限公司%20PHISON/salary-work-times?p=3"
             }
           ],
           "sources": [
@@ -15265,12 +15518,20 @@
               "site": "GoodJob",
               "url": "https://www.goodjob.life/companies/群聯電子股份有限公司%20PHISON/salary-work-times?p=1",
               "date": "2026-10"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/群聯電子股份有限公司%20PHISON/salary-work-times?p=3",
+              "date": "2026-02"
             }
           ],
           "confidence": "低",
-          "n": 87,
+          "n": 90,
           "years": null,
-          "base_month_k": null,
+          "base_month_k": [
+            92,
+            92
+          ],
           "bonus_months": [
             0.6,
             11
@@ -15281,12 +15542,12 @@
             320
           ],
           "weekly_hours": [
-            50,
+            40,
             50
           ],
           "overtime": "經常",
           "travel": null,
-          "n_stat": 87,
+          "n_stat": 89,
           "note": null,
           "grade": null
         },
@@ -15297,7 +15558,7 @@
           "years": null,
           "base_month_k": [
             82,
-            82
+            100
           ],
           "bonus_months": null,
           "annual_months": null,
@@ -15306,13 +15567,13 @@
             40,
             40
           ],
-          "overtime": "偶爾",
+          "overtime": "幾乎不",
           "travel": null,
-          "n": 1,
+          "n": 3,
           "note": "2026-10-28 GoodJob 2207 批新增職位",
           "confidence": "低",
           "grade": null,
-          "n_stat": 1,
+          "n_stat": 3,
           "samples": [
             {
               "site": "GoodJob",
@@ -15335,6 +15596,50 @@
               "quote_free_note": "自填；日工時 表訂/實際 8/8",
               "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2026-08（20261028_2207 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/群聯電子股份有限公司%20PHISON/salary-work-times?p=3",
+              "date": "2025-11",
+              "page_date": "2025-11",
+              "date_confirmed": true,
+              "role": "數位IC設計工程師",
+              "grade": null,
+              "unit_detail": "竹南",
+              "years": "3",
+              "degree": null,
+              "base_k": 100,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 40,
+              "overtime": "幾乎不",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/8",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2025-11（20261028_2235 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/群聯電子股份有限公司%20PHISON/salary-work-times?p=3",
+              "date": "2025-10",
+              "page_date": "2025-10",
+              "date_confirmed": true,
+              "role": "數位IC設計工程師",
+              "grade": null,
+              "unit_detail": "竹南",
+              "years": null,
+              "degree": null,
+              "base_k": 92,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 40,
+              "overtime": "幾乎不",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/8",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2025-10（20261028_2235 批）"
             }
           ],
           "sources": [
@@ -15342,6 +15647,176 @@
               "site": "GoodJob",
               "url": "https://www.goodjob.life/companies/群聯電子股份有限公司%20PHISON/salary-work-times?p=1",
               "date": "2026-08"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/群聯電子股份有限公司%20PHISON/salary-work-times?p=3",
+              "date": "2025-11"
+            }
+          ]
+        },
+        {
+          "unit": null,
+          "role": "APR 工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": [
+            92,
+            92
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": [
+            50,
+            50
+          ],
+          "overtime": "經常",
+          "travel": null,
+          "n": 1,
+          "note": "2026-10-28 GoodJob 2235 批新增職位",
+          "confidence": "低",
+          "grade": null,
+          "n_stat": 1,
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/群聯電子股份有限公司%20PHISON/salary-work-times?p=2",
+              "date": "2026-02",
+              "page_date": "2026-02",
+              "date_confirmed": true,
+              "role": "APR工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "3",
+              "degree": null,
+              "base_k": 92,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 50,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 9/10",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-02（20261028_2235 批）"
+            }
+          ],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/群聯電子股份有限公司%20PHISON/salary-work-times?p=2",
+              "date": "2026-02"
+            }
+          ]
+        },
+        {
+          "unit": null,
+          "role": "SA 系統應用工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": [
+            150,
+            150
+          ],
+          "weekly_hours": [
+            45,
+            45
+          ],
+          "overtime": "偶爾",
+          "travel": null,
+          "n": 1,
+          "note": "2026-10-28 GoodJob 2235 批新增職位",
+          "confidence": "低",
+          "grade": null,
+          "n_stat": 1,
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/群聯電子股份有限公司%20PHISON/salary-work-times?p=2",
+              "date": "2026-02",
+              "page_date": "2026-02",
+              "date_confirmed": true,
+              "role": "系統應用工程師",
+              "grade": null,
+              "unit_detail": "竹南",
+              "years": "3",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 150,
+              "weekly_hours": 45,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 9/9",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-02（20261028_2235 批）"
+            }
+          ],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/群聯電子股份有限公司%20PHISON/salary-work-times?p=2",
+              "date": "2026-02"
+            }
+          ]
+        },
+        {
+          "unit": null,
+          "role": "FAE",
+          "degree": null,
+          "years": null,
+          "base_month_k": [
+            80,
+            80
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": [
+            40,
+            40
+          ],
+          "overtime": "偶爾",
+          "travel": null,
+          "n": 1,
+          "note": "2026-10-28 GoodJob 2235 批新增職位",
+          "confidence": "低",
+          "grade": null,
+          "n_stat": 1,
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/群聯電子股份有限公司%20PHISON/salary-work-times?p=3",
+              "date": "2025-12",
+              "page_date": "2025-12",
+              "date_confirmed": true,
+              "role": "FAE工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 80,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 40,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 12/13",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2025-12（20261028_2235 批）"
+            }
+          ],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/群聯電子股份有限公司%20PHISON/salary-work-times?p=3",
+              "date": "2025-12"
             }
           ]
         }
@@ -15448,10 +15923,13 @@
             127.4,
             300
           ],
-          "weekly_hours": null,
+          "weekly_hours": [
+            36,
+            58
+          ],
           "overtime": "經常",
           "travel": null,
-          "n": 14,
+          "n": 16,
           "note": "網友自述未經查證；GoodJob 韌體設計 2026-04 月薪 9.2 萬（未滿 1 年）、韌體 9.5 萬（1 年）；2025-04 一筆 7 萬早於區間不採；公司頁平均週工時 47、42% 偶爾加班；年資 4～5 年 180～300 萬已排除；第二輪：Dcard 稱碩士起薪已調到約 9 萬、offer 不明寫保 14 但基本會達標；PTT 2026-02 開獎串 3 年 FW 年終 2＋分紅 5 個月（年薪近 300 萬）；GoodJob 韌體 2025-08～10 月薪 9.5～11 萬（範圍外參考）；未逐筆對應的舊彙整：{\"base_month_k\": [90, 90], \"bonus_months\": [5, 5], \"annual_total_wan\": [300, 300]}；未逐筆對應的舊彙整：overtime=偶爾；部分年薪／年薪月數由同一筆樣本的「底薪×月數」推算（樣本標 derived）",
           "sources": [
             {
@@ -15498,6 +15976,11 @@
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/261210598",
               "date": "2026-03"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/慧榮科技股份有限公司/salary-work-times?p=1",
+              "date": "2026-06"
             }
           ],
           "confidence": "中",
@@ -15796,9 +16279,53 @@
               "in_window": true,
               "date_note": "Dcard 頁面發文日期 2026-03-31（20261028_1548 批）",
               "comment_sample": false
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/慧榮科技股份有限公司/salary-work-times?p=1",
+              "date": "2026-06",
+              "page_date": "2026-06",
+              "date_confirmed": true,
+              "role": "韌體設計工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "2",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 220,
+              "weekly_hours": 36,
+              "overtime": "幾乎不",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 6/6",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-06（20261028_2235 批）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/慧榮科技股份有限公司/salary-work-times?p=1",
+              "date": "2025-12",
+              "page_date": "2025-12",
+              "date_confirmed": true,
+              "role": "韌體工程師",
+              "grade": null,
+              "unit_detail": "竹北高鐵",
+              "years": "1",
+              "degree": null,
+              "base_k": 96,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 58,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/12；原選項幾乎每天",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2025-12（20261028_2235 批）"
             }
           ],
-          "n_stat": 14
+          "n_stat": 16
         },
         {
           "unit": "研發 R&D",
@@ -15808,17 +16335,28 @@
           "base_month_k": null,
           "bonus_months": null,
           "annual_months": null,
-          "annual_total_wan": null,
-          "weekly_hours": null,
-          "overtime": null,
+          "annual_total_wan": [
+            220,
+            220
+          ],
+          "weekly_hours": [
+            45,
+            45
+          ],
+          "overtime": "偶爾",
           "travel": null,
-          "n": 1,
+          "n": 2,
           "note": "WebSearch 查「慧榮 碩士 薪資 2026」「GoodJob 慧榮」「PTT Tech_Job offer 慧榮」「Dcard offer 慧榮」「104 ESG 薪資中位數」，摘要未出現 2025-10 後碩士職位數字；GoodJob：責任制、平日加班無加班費；未逐筆對應的舊彙整：overtime=偶爾",
           "sources": [
             {
               "site": "GoodJob",
               "url": "https://www.goodjob.life/experiences/6958ad10a034c21d041126cf",
               "date": "2026-01"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/慧榮科技股份有限公司/salary-work-times?p=1",
+              "date": "2026-02"
             }
           ],
           "confidence": "低",
@@ -15842,9 +16380,31 @@
               "date_confirmed": true,
               "date_note": "GoodJob 標題年月",
               "in_window": true
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/慧榮科技股份有限公司/salary-work-times?p=1",
+              "date": "2026-02",
+              "page_date": "2026-02",
+              "date_confirmed": true,
+              "role": "數位IC設計工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "3",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 220,
+              "weekly_hours": 45,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 9/9",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-02（20261028_2235 批）"
             }
           ],
-          "n_stat": 1
+          "n_stat": 2
         },
         {
           "unit": "新店 / SSD",
@@ -15956,6 +16516,61 @@
             }
           ],
           "n_stat": 1
+        },
+        {
+          "unit": null,
+          "role": "硬體工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": [
+            92,
+            92
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": [
+            40,
+            40
+          ],
+          "overtime": "偶爾",
+          "travel": null,
+          "n": 1,
+          "note": "2026-10-28 GoodJob 2235 批新增職位",
+          "confidence": "低",
+          "grade": null,
+          "n_stat": 1,
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/慧榮科技股份有限公司/salary-work-times?p=1",
+              "date": "2026-03",
+              "page_date": "2026-03",
+              "date_confirmed": true,
+              "role": "硬體工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "1",
+              "degree": null,
+              "base_k": 92,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 40,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/8",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-03（20261028_2235 批）"
+            }
+          ],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/慧榮科技股份有限公司/salary-work-times?p=1",
+              "date": "2026-03"
+            }
+          ]
         }
       ],
       "mops": {
