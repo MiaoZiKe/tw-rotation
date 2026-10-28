@@ -7,6 +7,18 @@ name: Threads 排程發文
 on:
   schedule:
     - cron: "*/15 * * * *"
+    # 保險：固定時點（台北 08:50、12:31、18:00、20:30、21:00 附近，分散避開整點壅塞）。
+    # 每個時點前後各挑一兩個時刻；GitHub 延遲時至少有一輪會落在附近。
+    - cron: "47 0 * * 1-5"    # 台北 08:47
+    - cron: "53 0 * * 1-5"    # 台北 08:53
+    - cron: "28 4 * * 1-5"    # 台北 12:28
+    - cron: "34 4 * * 1-5"    # 台北 12:34
+    - cron: "57 9 * * 1-5"    # 台北 17:57
+    - cron: "3 10 * * 1-5"    # 台北 18:03
+    - cron: "27 12 * * 1-5"   # 台北 20:27
+    - cron: "33 12 * * 1-5"   # 台北 20:33
+    - cron: "57 12 * * 1-5"   # 台北 20:57
+    - cron: "3 13 * * 1-5"    # 台北 21:03
   workflow_dispatch:
     inputs:
       file:
@@ -17,10 +29,16 @@ on:
         description: "忽略 publish_at，立刻發（檔案仍須是 status: approved）"
         type: boolean
         default: false
+      wait_max:
+        description: "publish_at 還沒到時，job 內最多等幾分鐘（上限 20）；0＝不等"
+        type: string
+        default: "0"
 
+# 備援：寫 queue 的流程（social_news／social_daily）結束時會用 gh workflow run 直接叫醒本流程，
+# 並帶 wait_max=20：publish_at 還沒到但 20 分鐘內會到的，job 內等到點再發；更久的交給下一輪。
 # 發文流程自己一個 group（不要和每日資料管線共用鎖，否則會被它卡住好幾十分鐘）；寫回 queue 時用 pull --rebase 重試處理 push 衝突。
 concurrency:
-  group: social-post
+  group: social-post-threads
   cancel-in-progress: false
 
 permissions:
@@ -29,7 +47,7 @@ permissions:
 jobs:
   post:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
         with:
@@ -49,10 +67,12 @@ jobs:
           THREADS_ACCESS_TOKEN: ${{ secrets.THREADS_ACCESS_TOKEN }}
           IN_FILE: ${{ inputs.file }}
           IN_NOW: ${{ inputs.now }}
+          IN_WAIT: ${{ inputs.wait_max }}
         run: |
           args=""
           if [ -n "$IN_FILE" ]; then args="$args --file $IN_FILE"; fi
           if [ "$IN_NOW" = "true" ]; then args="$args --now"; fi
+          case "$IN_WAIT" in ''|*[!0-9.]*) ;; *) args="$args --wait-max $IN_WAIT" ;; esac
           python scripts/threads_post.py $args
 
       - name: 回寫發文結果（只 add queue）

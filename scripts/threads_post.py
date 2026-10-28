@@ -205,11 +205,36 @@ def process(path: Path, now: datetime, token: str | None, force_now: bool = Fals
     return f"已發出 {len(res)} 則"
 
 
+def wait_for_due(files: list, wait_max_min: float) -> None:
+    """備援觸發用：早到的 job 在 wait_max_min 分鐘內等到 publish_at 再發，超過的留給下一輪。"""
+    deadline = time.time() + wait_max_min * 60
+    upcoming = []
+    for f in files:
+        try:
+            meta, _ = parse(f.read_text(encoding="utf-8"))
+            if meta.get("status") == "approved":
+                upcoming.append((when(meta), f))
+        except Exception:
+            continue
+    upcoming.sort(key=lambda x: x[0])
+    for t, f in upcoming:
+        delta = (t - datetime.now(TAIPEI)).total_seconds()
+        if delta <= 0:
+            continue
+        if time.time() + delta > deadline:
+            print(f"{f.name}：{t.isoformat()} 超過等待上限，交給下一輪")
+            break
+        print(f"{f.name}：等 {int(delta)} 秒到 {t.isoformat()}", flush=True)
+        time.sleep(delta + 2)
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--check", action="store_true", help="只檢查格式，不連外")
     ap.add_argument("--file", default="", help="只處理這個檔名（queue 內）")
     ap.add_argument("--now", action="store_true", help="忽略 publish_at，立刻發")
+    ap.add_argument("--wait-max", type=float, default=0.0,
+                    help="publish_at 還沒到但 N 分鐘內會到的，在 job 內等到點再發（上限 20 分；超過交給下一輪）")
     ap.add_argument("--queue", default=str(QUEUE))
     a = ap.parse_args(argv)
     q = Path(a.queue)
@@ -219,6 +244,8 @@ def main(argv: list[str] | None = None) -> int:
         if not files:
             print(f"找不到檔案：{a.file}", file=sys.stderr)
             return 2
+    if a.wait_max > 0 and not a.check and not a.now:
+        wait_for_due(files, min(a.wait_max, 20.0))
     now = datetime.now(TAIPEI)
     token = os.environ.get("THREADS_ACCESS_TOKEN", "").strip() or None
     bad = 0

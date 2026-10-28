@@ -44,6 +44,7 @@ concurrency:
 
 permissions:
   contents: write
+  actions: write      # 排完 queue 後用 gh workflow run 直接叫醒 threads_post／ig_post（不靠 15 分鐘 cron）
 
 jobs:
   news:
@@ -117,7 +118,18 @@ jobs:
           if git diff --staged --quiet; then echo "沒有新排程"; exit 0; fi
           git commit -q -m "新聞貼文排程 $(TZ=Asia/Taipei date '+%Y-%m-%d %H:%M')"
           for i in 1 2 3 4; do
-            git pull --rebase --autostash -q origin main && git push -q origin HEAD:main && exit 0
+            git pull --rebase --autostash -q origin main && git push -q origin HEAD:main && pushed=1 && break
             sleep $((i*3))
           done
-          echo "::error::推回 main 失敗（四次）"; exit 1
+          if [ -z "$pushed" ]; then echo "::error::推回 main 失敗（四次）"; exit 1; fi
+
+      - name: 備援：直接叫醒發文流程（不等 15 分鐘 cron）
+        if: inputs.dry_run != true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          # wait_max=20：publish_at 20 分鐘內會到的就在 job 內等到點再發；更晚的交給之後的 cron／下一次叫醒。
+          # 沒新排程時也叫醒無妨（沒有到點的檔案會直接略過）。失敗不擋本流程。
+          for wf in threads_post.yml ig_post.yml; do
+            gh workflow run "$wf" --ref main -f wait_max=20 || echo "::warning::叫醒 $wf 失敗，仍有 cron 保險"
+          done
