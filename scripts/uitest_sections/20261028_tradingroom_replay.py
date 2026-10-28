@@ -111,6 +111,9 @@ def t_lab_replay(b, base, code):
     pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(str(e)))
     pg.goto(base + "#lab/replay", wait_until="domcontentloaded"); pg.wait_for_timeout(4500)
     pg.click("#rpRand"); pg.wait_for_timeout(600)
+    fs = pg.evaluate("""() => { const k = document.getElementById('rpK').getBoundingClientRect(); const vis = (id) => !!document.getElementById(id).offsetParent;
+      return { vh: innerHeight, kTop: Math.round(k.top), kBot: Math.round(k.bottom), hidden: ['rpSpd', 'rpEnd', 'rpExit', 'rpDraw', 'rpNow'].filter(vis), ctl: ['rpBack', 'rpPlay', 'rpNext'].every(vis) }; }""")
+    ok(f"{T}：手機重播第一屏看得到圖（圖頂 {fs['kTop']}、底 {fs['kBot']}），速度／跳到最新／離開／繪圖工具收進「設定」", fs["kBot"] <= fs["vh"] and fs["kTop"] < 480 and fs["hidden"] == [] and fs["ctl"], fs)
     m = pg.evaluate("() => ({ sw: document.documentElement.scrollWidth, cw: document.documentElement.clientWidth })")
     ok(f"{T}：手機 390 沒有橫向捲軸", m["sw"] <= m["cw"] + 1, m)
     c.close()

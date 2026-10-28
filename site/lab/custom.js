@@ -98,7 +98,7 @@
     return head + body;
   }
   function html() {
-    return '<div class="cu-wrap"><div class="cu-side"><div class="cu-sh">我的策略</div><div class="cu-list" id="cuList"></div>' +
+    return '<div class="cu-mxrow"><button type="button" class="lab-gear lab-mxbtn" id="labMx" aria-expanded="false">我的策略・範本</button></div><div class="cu-wrap"><div class="cu-side lab-mx"><div class="cu-sh">我的策略</div><div class="cu-list" id="cuList"></div>' +
       '<div class="cu-btns"><button type="button" class="lab-gear" id="cuNew">新增</button><label class="lab-clear cu-imp">匯入<input type="file" id="cuImp" accept="application/json,.json" hidden></label><button type="button" class="lab-clear" id="cuExp">匯出</button></div>' +
       '<label class="lab-fld cu-tpl"><span>從範本開始</span><select class="lab-in" id="cuTpl"><option value="">選一個範本…</option>' + TEMPLATES.map((t, i) => '<option value="' + i + '">' + U.esc(t[0]) + '</option>').join('') + '</select></label></div>' +
       '<div class="cu-main"><div class="cu-ed" id="cuEd"></div>' +
@@ -187,8 +187,9 @@
     paintEd();
     body.onclick = async (e) => {
       const t = e.target;
-      const it = t.closest('.cu-item'); if (it) { S.cur = JSON.parse(JSON.stringify(RULES.find((x) => x.id === it.dataset.id))); setDirty(false); paintEd(); schedule(); return; }
-      if (t.closest('#cuNew')) { S.cur = blank(); setDirty(true); paintEd(); schedule(); return; }
+      const mxb = t.closest('#labMx'); if (mxb) { U.toggleMx(body, mxb); return; }
+      const it = t.closest('.cu-item'); if (it) { body.classList.remove('mx-open'); S.cur = JSON.parse(JSON.stringify(RULES.find((x) => x.id === it.dataset.id))); setDirty(false); paintEd(); schedule(); return; }
+      if (t.closest('#cuNew')) { body.classList.remove('mx-open'); S.cur = blank(); setDirty(true); paintEd(); schedule(); return; }
       if (t.closest('#cuSave')) { persist(); return; }
       if (t.closest('#cuDup') && cur()) { const c = JSON.parse(JSON.stringify(cur())); c.id = uid(); c.name = c.name + ' 複本'; S.cur = c; persist(); paintEd(); return; }
       if (t.closest('#cuDel') && cur()) { const id = cur().id; RULES = RULES.filter((x) => x.id !== id); save(RULES); S.cur = RULES[0] ? JSON.parse(JSON.stringify(RULES[0])) : null; setDirty(false); paintEd(); schedule(); return; }

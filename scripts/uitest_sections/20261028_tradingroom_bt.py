@@ -25,6 +25,28 @@ def t_lab_bt(b, base, code):
        pg.evaluate("() => [...document.querySelectorAll('#v-lab .lab-tabs a')].map(a => a.textContent).join('|')") == "台指期|歷史回測|K 線重播|事件分析|自訂策略", None)
     ok(f"{T}：Key stats 四張卡", pg.locator("#labStats .lab-st").count() == 4, None)
 
+    # --- 箭頭太密：交易多時只畫箭頭不畫字；滑過有箭頭的那一根才顯示這一筆損益
+    mk = pg.evaluate("() => { const m = window.TwLab.charts.kv.mk.markers(); return { n: m.length, text: m.filter(x => x.text).length }; }")
+    ok(f"{T}：交易多（{st0['trades']} 筆）時圖上只畫箭頭、不畫損益文字", mk["n"] > 20 and mk["text"] == 0, mk)
+    tm = pg.evaluate("""() => { const S = window.TwLab.state().bt, kv = window.TwLab.charts.kv, r = document.getElementById('labK').getBoundingClientRect(); const L = S.res.trades;
+      for (let k = L.length - 4; k > 0; k--) { const t = L[k], time = window.LabK.ltime(S.B, t.i1), x = kv.chart.timeScale().timeToCoordinate(time); if (x != null && x > 60 && x < r.width - 90) return { x: r.left + x, y: r.top + r.height * 0.3, pnl: t.pnl }; }
+      return null; }""")
+    tip = ""
+    for dx in (0, 1, -1, 2, -2, 3, -3, 4, -4):      # 十字線會吸附最近的 K 棒，座標差一根也算滑到
+        pg.mouse.move(tm["x"] + dx - 20, tm["y"]); pg.mouse.move(tm["x"] + dx, tm["y"], steps=3); pg.wait_for_timeout(120)
+        if pg.is_visible("#labTip"):
+            tip = pg.inner_text("#labTip"); tm["x"] += dx; break
+    ok(f"{T}：滑到有箭頭的 K 棒上，提示框顯示這一筆的方向、進出價與損益", pg.is_visible("#labTip") and "進" in tip and ("多" in tip or "空" in tip) and "%" in tip, tip)
+    pg.mouse.move(tm["x"], 5); pg.wait_for_timeout(300)
+    # 點擊釘住（手機沒有滑過）
+    pg.mouse.click(tm["x"], tm["y"]); pg.wait_for_timeout(300)
+    ok(f"{T}：點擊有箭頭的那一根也會顯示損益", pg.is_visible("#labTip"), None)
+    # 右軸：最新價標籤與價格刻度不相交。掃右軸那一條（最右 64px）有沒有被塗滿的紅／綠色標籤方塊
+    ax = pg.evaluate("""() => { const cv = window.TwLab.charts.kv.chart.takeScreenshot(), ctx = cv.getContext('2d'), w = cv.width, h = cv.height, x0 = w - Math.round(64 * (cv.width / document.getElementById('labK').clientWidth));
+      const d = ctx.getImageData(x0, 0, w - x0, h).data; let n = 0;
+      for (let i = 0; i < d.length; i += 4) { const r = d[i], g = d[i + 1], b = d[i + 2]; if ((r > 190 && g < 110 && b < 130) || (g > 150 && r < 90 && b < 140)) n++; }
+      return { n, opt: window.TwLab.charts.kv.candle.options().lastValueVisible }; }""")
+    ok(f"{T}：右軸沒有壓在刻度上的最新價標籤（最新價標籤關閉、右軸紅綠色塊像素 < 40）", ax["opt"] is False and ax["n"] < 40, ax)
     # --- 切策略 → 交易數改變
     pg.click("#labPickBtn"); pg.fill("#labPq", "RSI"); pg.click(".lab-pi[data-s='rsi']"); pg.wait_for_timeout(1200)
     st1 = pg.evaluate(JS_ST)
@@ -200,6 +222,16 @@ def t_lab_bt(b, base, code):
       return { sw: document.documentElement.scrollWidth, cw: document.documentElement.clientWidth, bad: bad.slice(0, 5), k: document.getElementById('labK').getBoundingClientRect().height }; }""")
     ok(f"{T}：手機 390 沒有橫向捲軸、字不小於 11px", m["sw"] <= m["cw"] + 1 and not m["bad"], m)
     ok(f"{T}：手機 K 線有高度", m["k"] > 200, m)
+    fs = pg.evaluate("""() => { const vh = innerHeight, k = document.getElementById('labK').getBoundingClientRect(), s = [...document.querySelectorAll('#labStats .lab-st')].map(e => e.getBoundingClientRect());
+      const vis = (e) => !!e.offsetParent && getComputedStyle(e).display !== 'none';
+      return { vh, kTop: Math.round(k.top), kBot: Math.round(k.bottom), s0: Math.round(s[0].bottom), s1: Math.round(s[1].bottom), hidden: ['labMode', 'labRng', 'labAdvBtn', 'labParams', 'labIndBtn', 'labDraw'].filter(id => vis(document.getElementById(id))), mx: vis(document.getElementById('labMx')) }; }""")
+    ok(f"{T}：手機第一屏（844）看得到 K 線與 Key stats 前兩格（K 線底 {fs['kBot']}、前兩格底 {fs['s1']}）", fs["kBot"] < fs["vh"] and fs["s0"] < fs["vh"] and fs["s1"] < fs["vh"], fs)
+    ok(f"{T}：手機第一屏只留標的、週期、策略；多空／期間／設定／參數／指標／繪圖工具預設收起，有「設定」鈕", fs["hidden"] == [] and fs["mx"], fs)
+    pg.click("#labMx"); pg.wait_for_timeout(300)
+    op = pg.evaluate("() => ['labMode', 'labRng', 'labIndBtn', 'labDraw'].map(id => !!document.getElementById(id).offsetParent)")
+    ok(f"{T}：點「設定」後多空、期間、指標、繪圖工具出現", all(op), op)
+    pg.click("#labMx"); pg.wait_for_timeout(300)
+    ok(f"{T}：再點「設定」收回去", not pg.evaluate("() => !!document.getElementById('labMode').offsetParent"), None)
     c.close()
     ok(f"{T}：無 JS 錯誤", not errs, errs[:3])
 

@@ -68,6 +68,7 @@
       this.upto = upto == null ? this.B.n - 1 : upto;
       this.kc.setBars(this.rowsNow().slice(0, this.upto + 1), tfName(this.B), !!keep);
       this.applyInd(); this.paintLine();
+      try { this.candle.applyOptions({ lastValueVisible: false, priceLineVisible: false }); } catch (e) { /* 圖剛銷毀 */ }   // 右軸最新價標籤會壓到刻度字（不可重疊）
     }
     applyInd(items) { if (items) this.items = items; try { this.kc.applyIndicators(cfgOf(this.items)); } catch (e) { /* 圖剛銷毀 */ } }
     setType(t) { this.type = t; this.set(this.upto, true); }

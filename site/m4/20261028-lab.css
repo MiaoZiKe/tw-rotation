@@ -254,3 +254,22 @@ html:not(.lab-adm) .tab[data-view="lab"],html:not(.lab-adm) a[href="#lab"],html:
 #v-lab .lab-tbl td,#v-lab .lab-tbl thead th{text-align:center}
 #v-lab .lab-sum tbody th{text-align:left;border-top:1px solid var(--line);width:140px;background:transparent;font-size:14px;padding:0 var(--sp-3)}
 #v-lab .lab-sum thead th:first-child{width:140px}
+
+/* ---- 提示框（滑過／點擊箭頭才顯示損益）、手機「設定」收合面板 ---- */
+#v-lab .lab-kc{position:relative}
+#v-lab .lab-tip{position:absolute;z-index:20;max-width:240px;padding:var(--sp-2) var(--sp-3);background:var(--panel);border:1px solid var(--line-2);border-radius:var(--r-sm);box-shadow:0 6px 18px rgba(0,0,0,.3);font-size:13px;pointer-events:none;display:flex;flex-direction:column;gap:var(--sp-1)}
+#v-lab .lab-tip[hidden]{display:none}
+#v-lab .lab-tipr{display:flex;flex-direction:column;gap:2px;font-family:var(--mono,inherit)}
+#v-lab .lab-tipr b{font-size:14px}
+#v-lab .lab-tipr span{color:var(--ink-2);font-size:12px}
+#v-lab .lab-mxbtn,#v-lab .cu-mxrow{display:none}
+@media (max-width:640px){
+  #v-lab .lab-mxbtn{display:inline-flex;align-items:center;justify-content:center;order:2;flex:none}
+  #v-lab .cu-mxrow{display:block;margin-bottom:var(--sp-2)}
+  #v-lab .lab-bar>.lab-symw{order:0}
+  #v-lab .lab-bar>.lab-tf,#v-lab .lab-bar>#rpTf{order:1;flex:1;min-width:0}
+  #v-lab .lab-bar>.lab-f:not(.lab-symw){order:3}
+  #v-lab .lab-body:not(.mx-open) .lab-mx{display:none!important}
+  #v-lab .lab-mxbtn[aria-expanded="true"]{border-color:var(--cyan);color:var(--cyan)}
+  #v-lab .lab-kc{height:260px}
+}

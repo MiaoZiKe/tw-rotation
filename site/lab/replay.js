@@ -122,8 +122,8 @@
     const cs = R.series.cs; if (!cs || !A()) return; const c = U.pal();
     R.lines.forEach((l) => { try { cs.removePriceLine(l); } catch (e) { /* 忽略 */ } }); R.lines = [];
     const a = A();
-    if (a.lots.length) { const q = qtyOf(), avg = a.lots.reduce((s, x) => s + x.p * x.q, 0) / q; R.lines.push(cs.createPriceLine({ price: avg, color: a.lots[0].dir === 1 ? c.rise : c.fall, lineWidth: 1, lineStyle: 0, axisLabelVisible: true, title: (a.lots[0].dir === 1 ? '多 ' : '空 ') + q })); }
-    a.orders.forEach((o) => { if (o.price) R.lines.push(cs.createPriceLine({ price: o.price, color: c.amber, lineWidth: 1, lineStyle: 2, axisLabelVisible: true, title: (o.dir === 1 ? '買' : '賣') + (o.kind === 'limit' ? '限' : '停') })); });
+    if (a.lots.length) { const q = qtyOf(), avg = a.lots.reduce((s, x) => s + x.p * x.q, 0) / q; R.lines.push(cs.createPriceLine({ price: avg, color: a.lots[0].dir === 1 ? c.rise : c.fall, lineWidth: 1, lineStyle: 0, axisLabelVisible: false, title: (a.lots[0].dir === 1 ? '多 ' : '空 ') + q })); }
+    a.orders.forEach((o) => { if (o.price) R.lines.push(cs.createPriceLine({ price: o.price, color: c.amber, lineWidth: 1, lineStyle: 2, axisLabelVisible: false, title: (o.dir === 1 ? '買' : '賣') + (o.kind === 'limit' ? '限' : '停') })); });
   }
 
   /* ---------------------------------------------------------------- 流程 */
@@ -184,11 +184,11 @@
     return '<div class="lab-bar"><div class="lab-f lab-symw"><span>標的</span><input id="labSym" class="lab-in" type="text" autocomplete="off" spellcheck="false" aria-label="搜尋標的" placeholder="代號或名稱"><div class="lab-dd" id="labSymDD" hidden></div></div>' +
       '<div class="seg" id="rpTf" role="tablist" aria-label="時間週期">' + [['60', '60分'], ['D', '日'], ['W', '週']].map(([k, n]) => '<button type="button" role="tab" data-tf="' + k + '">' + n + '</button>').join('') + '</div>' +
       '<div class="rp-start" id="rpStart"><label class="lab-f"><span>起點</span><input class="lab-in" type="date" id="rpDate" aria-label="起點日期"></label><button type="button" class="lab-clear" id="rpGo">從這天開始</button><button type="button" class="lab-clear" id="rpRand">隨機</button><button type="button" class="lab-clear" id="rpPick">點圖選起點</button></div>' +
-      '<label class="lab-chk rp-blind"><input type="checkbox" id="rpBlind"> 盲測（隱藏標的與日期）</label></div>' +
+      '<button type="button" class="lab-gear lab-mxbtn" id="labMx" aria-expanded="false">設定</button><label class="lab-chk rp-blind lab-mx"><input type="checkbox" id="rpBlind"> 盲測（隱藏標的與日期）</label></div>' +
       '<div class="rp-ctl" id="rpCtl"><button type="button" class="lab-clear" id="rpBack" title="上一根（←）">◀ 上一根</button><button type="button" class="lab-gear on" id="rpPlay" title="播放／暫停（空白鍵）">▶ 播放</button><button type="button" class="lab-clear" id="rpNext" title="下一根（→）">下一根 ▶</button>' +
-      '<div class="seg" id="rpSpd" role="tablist" aria-label="播放速度">' + SPEEDS.map((v, k) => '<button type="button" role="tab" data-s="' + k + '">' + v + ' 根/秒</button>').join('') + '</div>' +
-      '<button type="button" class="lab-clear" id="rpEnd">跳到最新</button><button type="button" class="lab-clear" id="rpExit">離開重播</button><span class="rp-now" id="rpNow"></span></div>' +
-      '<div class="rp-main"><div class="lab-kwrap"><div class="lab-draw" id="rpDraw" aria-label="繪圖工具"></div><div class="lab-kc rp-kc"><div class="lab-ch" id="rpK"></div></div></div>' +
+      '<div class="seg lab-mx" id="rpSpd" role="tablist" aria-label="播放速度">' + SPEEDS.map((v, k) => '<button type="button" role="tab" data-s="' + k + '">' + v + ' 根/秒</button>').join('') + '</div>' +
+      '<button type="button" class="lab-clear lab-mx" id="rpEnd">跳到最新</button><button type="button" class="lab-clear lab-mx" id="rpExit">離開重播</button><span class="rp-now lab-mx" id="rpNow"></span></div>' +
+      '<div class="rp-main"><div class="lab-kwrap"><div class="lab-draw lab-mx" id="rpDraw" aria-label="繪圖工具"></div><div class="lab-kc rp-kc"><div class="lab-ch" id="rpK"></div></div></div>' +
       '<div class="rp-ticket" id="rpTicket"></div></div>' +
       '<div class="rp-tabs"><div class="seg" id="rpTabs" role="tablist" aria-label="交易面板">' + TABS.map(([k, n]) => '<button type="button" role="tab" data-t="' + k + '">' + n + '</button>').join('') + '</div></div>' +
       '<div class="lab-tbody rp-panel" id="rpPanel"></div>';
@@ -279,6 +279,7 @@
       const t = e.target;
       const tf = t.closest('#rpTf button'); if (tf && !tf.disabled) { await setSym(R.sym, tf.dataset.tf); return; }
       const di = t.closest('.lab-di'); if (di) { U.$('#labSymDD').hidden = true; await setSym(di.dataset.c); return; }
+      const mxb = t.closest('#labMx'); if (mxb) { U.toggleMx(body, mxb); return; }
       if (t.closest('#rpGo')) return startFromDate();
       if (t.closest('#rpRand')) { startAt(30 + Math.floor(Math.random() * Math.max(1, R.B.n - 90))); return; }
       if (t.closest('#rpPick')) { R.pick = !R.pick; buildChart(R.B.n - 1); U.$('#rpPick').classList.toggle('on', R.pick); R.msg = ''; return; }

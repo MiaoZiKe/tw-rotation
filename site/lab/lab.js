@@ -171,15 +171,16 @@
       '<div class="lab-f lab-symw"><span>標的</span><input id="labSym" class="lab-in" type="text" autocomplete="off" spellcheck="false" aria-label="搜尋標的" placeholder="代號或名稱"><div class="lab-dd" id="labSymDD" hidden></div></div>' +
       '<div class="seg lab-tf" id="labTf" role="tablist" aria-label="時間週期">' + TFS.map(([k, n]) => '<button type="button" role="tab" data-tf="' + k + '">' + n + '</button>').join('') + '</div>' +
       '<div class="lab-f"><span>策略</span><button type="button" class="lab-pickbtn" id="labPickBtn" aria-haspopup="listbox"></button></div>' +
-      '<div class="seg lab-mode" id="labMode" role="tablist" aria-label="多空"><button type="button" data-m="both">多空</button><button type="button" data-m="long">只做多</button><button type="button" data-m="short">只做空</button></div>' +
-      '<div class="seg lab-rng" id="labRng" role="tablist" aria-label="回測期間">' + RANGES.map((k) => '<button type="button" role="tab" data-r="' + k + '">' + k + '</button>').join('') + '</div>' +
-      '<button type="button" class="lab-gear" id="labAdvBtn" aria-expanded="false">設定</button>' +
+      '<div class="seg lab-mode lab-mx" id="labMode" role="tablist" aria-label="多空"><button type="button" data-m="both">多空</button><button type="button" data-m="long">只做多</button><button type="button" data-m="short">只做空</button></div>' +
+      '<div class="seg lab-rng lab-mx" id="labRng" role="tablist" aria-label="回測期間">' + RANGES.map((k) => '<button type="button" role="tab" data-r="' + k + '">' + k + '</button>').join('') + '</div>' +
+      '<button type="button" class="lab-gear lab-mx" id="labAdvBtn" aria-expanded="false">設定</button>' +
+      '<button type="button" class="lab-gear lab-mxbtn" id="labMx" aria-expanded="false">設定</button>' +
       '</div>' +
-      '<div class="lab-params" id="labParams"></div>' +
+      '<div class="lab-params lab-mx" id="labParams"></div>' +
       '<div class="lab-adv" id="labAdv" hidden></div><div class="lab-pick" id="labPick" hidden></div>' +
-      '<div class="lab-ktool"><button type="button" class="lab-pickbtn lab-indbtn" id="labIndBtn" aria-haspopup="listbox">指標 ▾</button><div class="lab-chips" id="labChips"></div>' +
+      '<div class="lab-ktool lab-mx"><button type="button" class="lab-pickbtn lab-indbtn" id="labIndBtn" aria-haspopup="listbox">指標 ▾</button><div class="lab-chips" id="labChips"></div>' +
       '<div class="seg lab-ct" id="labCt" role="tablist" aria-label="圖表類型">' + LabK.TYPES.map(([k, n]) => '<button type="button" role="tab" data-c="' + k + '">' + n + '</button>').join('') + '</div></div>' +
-      '<div class="lab-kwrap"><div class="lab-draw" id="labDraw" aria-label="繪圖工具"></div><div class="lab-kc"><div class="lab-ch" id="labK"></div></div></div><div class="lab-indset" id="labIndSet" hidden></div>' +
+      '<div class="lab-kwrap"><div class="lab-draw lab-mx" id="labDraw" aria-label="繪圖工具"></div><div class="lab-kc"><div class="lab-ch" id="labK"></div><div class="lab-tip" id="labTip" hidden></div></div></div><div class="lab-indset" id="labIndSet" hidden></div>' +
       '<div class="lab-tester"><div class="lab-thead"><div class="lab-stats" id="labStats"></div>' +
       '<div class="seg lab-tt" id="labTT" role="tablist" aria-label="策略測試器">' + TT.map(([k, n]) => '<button type="button" role="tab" data-t="' + k + '">' + n + '</button>').join('') + '</div></div>' +
       '<div class="lab-tbody" id="labTBody"></div></div>';
@@ -331,11 +332,13 @@
       CH.kv = kv; CH.k = kv.chart; CH.cs = kv.candle; CH.key = key;
       kv.set(B.n - 1, false);
       kv.enableDraw($('#labDraw'));
+      kv.chart.subscribeCrosshairMove((p) => { if (!S.tipPin) tipAt(S, p); });
+      kv.chart.subscribeClick((p) => { tipAt(S, p); S.tipPin = !$('#labTip').hidden; });
       kv.chart.timeScale().setVisibleLogicalRange({ from: Math.max(0, from - 2), to: B.n + 3 });
     }
     S.times = Array.from({ length: n }, (_, i) => LabK.ltime(B, from + i));
     // 進出場箭頭：多單進場＝朝上箭頭（K 棒下方）、空單進場＝朝下箭頭；出場箭頭顏色＝這一筆的損益（紅賺綠賠），字＝損益
-    const all = r.trades.concat(r.opens || []), mks = [], many = all.length > 60;
+    const all = r.trades.concat(r.opens || []), mks = [], many = all.length > 12;
     all.forEach((t) => {
       if (t.i0 < from) return;
       mks.push({ time: LabK.ltime(B, t.i0), position: t.dir === 1 ? 'belowBar' : 'aboveBar', shape: t.dir === 1 ? 'arrowUp' : 'arrowDown', color: t.dir === 1 ? c.rise : c.fall, text: many ? '' : (t.dir === 1 ? '多 ' : '空 ') + (t.entryWhy || '').replace('訊號', ''), size: 1 });
@@ -343,11 +346,37 @@
     });
     mks.sort((a, b) => (a.time < b.time ? -1 : a.time > b.time ? 1 : 0));
     CH.kv.setMarkers(mks);
+    // 滑過（或點擊）有箭頭的那一根才顯示這一筆的損益
+    S.tipMap = {}; S.tipIdx = {};
+    const addTip = (i, t) => { const k = LabK.ltime(B, i); (S.tipMap[k] = S.tipMap[k] || []).push(t); (S.tipIdx[i] = S.tipIdx[i] || []).push(t); };
+    all.forEach((t) => { if (t.i0 >= from) addTip(t.i0, t); if (!t.open) addTip(t.i1, t); });
+    S.timeIdx = null;
     const ch = $('#labChips'); if (ch) ch.innerHTML = chipsHTML(S);
     $$('#labCt button').forEach((b) => b.classList.toggle('on', b.dataset.c === S.ctype));
     paintKeys(S); paintTester(S);
   }
 
+  /* 箭頭的提示框：滑過或點擊（手機點一下）才顯示這一筆的方向、進出價與損益 */
+  function hideTip() { const t = $('#labTip'); if (t) t.hidden = true; }
+  function tipAt(S, p) {
+    const el = $('#labTip'); if (!el) return;
+    const B = S.B;
+    if (!p || !p.time || !p.point || !S.tipIdx) { el.hidden = true; return; }
+    // 全部歷史縮得很小時，一根 K 棒不到 1px：游標附近 ±6px 內有箭頭就算滑到
+    if (!S.timeIdx) { S.timeIdx = {}; for (let i = 0; i < B.n; i++) S.timeIdx[LabK.ltime(B, i)] = i; }
+    const i0 = S.timeIdx[p.time]; let list = null;
+    if (i0 != null) {
+      const vr = CH.k && CH.k.timeScale().getVisibleLogicalRange(), w = (CH.k && CH.k.timeScale().width()) || 1;
+      const ppb = vr ? w / Math.max(1, vr.to - vr.from) : 8, rad = Math.max(0, Math.ceil(6 / Math.max(0.05, ppb)));
+      for (let d = 0; d <= rad && !list; d++) list = S.tipIdx[i0 + d] || S.tipIdx[i0 - d] || null;
+    }
+    if (!list) { el.hidden = true; return; }
+    el.innerHTML = list.slice(0, 2).map((t) => '<div class="lab-tipr"><b class="' + cls(t.pnl) + '">' + (t.dir === 1 ? '多' : '空') + ' ' + (t.open ? '未平倉 ' : '') + sgn(t.pnl, 0) + '（' + sgn(t.pnlP, 2) + '%）</b><span>進 ' + tstr(B, t.i0) + ' @ ' + fmt(t.p0, 2) + '</span><span>' + (t.open ? '現價 ' : '出 ' + tstr(B, t.i1) + ' @ ') + fmt(t.p1, 2) + (t.why && !t.open ? '（' + esc(t.why) + '）' : '') + '</span></div>').join('');
+    el.hidden = false;
+    const box = el.parentElement.getBoundingClientRect();
+    el.style.left = Math.max(4, Math.min(p.point.x + 12, box.width - el.offsetWidth - 8)) + 'px';
+    el.style.top = Math.max(4, Math.min(p.point.y - 20, box.height - el.offsetHeight - 4)) + 'px';
+  }
   /* Key stats 四張卡（對照 TradingView）：總損益、最大回撤、獲利交易、獲利因子 */
   function paintKeys(S) {
     const s = S.res.stats, el = $('#labStats'); if (!el) return;
@@ -477,6 +506,8 @@
     setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 500);
   }
   /* 取景回到回測區間（不是整段歷史） */
+  /* 手機「設定」收合面板：預設收起，第一屏只留標的、週期、策略（規矩 F1／A8） */
+  function toggleMx(body, btn) { const on = body.classList.toggle('mx-open'); if (btn) btn.setAttribute('aria-expanded', String(on)); return on; }
   function resetView(S) { try { if (CH.k && S.res) CH.k.timeScale().setVisibleLogicalRange({ from: Math.max(0, S.res.from - 2), to: S.B.n + 3 }); } catch (e) { /* 圖已銷毀 */ } }
   function focusTrade(S, i) {
     const all = tradeRows(S), t = all[i]; if (!t || !CH.k) return;
@@ -558,6 +589,7 @@
       const tf = t.closest('#labTf button'); if (tf && !tf.disabled) { await setTf(S, tf.dataset.tf); return; }
       const md = t.closest('#labMode button'); if (md) { S.mode = md.dataset.m; syncBar(S); recompute(S); return; }
       const rg = t.closest('#labRng button'); if (rg && !rg.disabled) { S.range = rg.dataset.r; syncBar(S); recompute(S); return; }
+      const mxb = t.closest('#labMx'); if (mxb) { const on = $('#labBody').classList.toggle('mx-open'); mxb.setAttribute('aria-expanded', String(on)); return; }
       if (t.closest('#labAdvBtn')) { S.advOpen = !S.advOpen; syncBar(S); return; }
       const pbtn = t.closest('#labPickBtn, #labIndBtn');
       if (pbtn) {
@@ -691,7 +723,7 @@
   }
 
   /* 給其他子頁共用的小工具（K 重播、事件分析、自訂策略） */
-  const UTIL = { LabK, E, $, $$, esc, fmt, sgn, cls, compact, pal, ltime, tstr, qpop, getJSON, loadIndex, loadSeries, loadEvents, wcall, ensureLoaded, instOf, kindOf, killChart, CH, DATA, summaryHTML, searchItems, KIND_N, stratName, pickHTML, paramsHTML, ST, defaultsBar: () => ({}) };
+  const UTIL = { toggleMx, LabK, E, $, $$, esc, fmt, sgn, cls, compact, pal, ltime, tstr, qpop, getJSON, loadIndex, loadSeries, loadEvents, wcall, ensureLoaded, instOf, kindOf, killChart, CH, DATA, summaryHTML, searchItems, KIND_N, stratName, pickHTML, paramsHTML, ST, defaultsBar: () => ({}) };
 
   window.TwLab = { show, register, mods: MODS, util: UTIL, state: () => ST, data: DATA, wcall, loadSeries, loadIndex, loadEvents, E, charts: CH };
 }());
