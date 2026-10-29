@@ -5434,7 +5434,7 @@
   const HL_CARDS = ['#ovHeatCard', '[data-hlcard="ind"]', '#themeMapCard', '#ovThemeCard'];
   const hlIntra = () => !!(window.Live && window.Live.isIntraday && window.Live.isIntraday());
   const hlCardOn = () => !!(window.Live && window.Live.cardOn && window.Live.cardOn('heat'));
-  const hlUse = () => liveOK() && hlCardOn() && hlIntra();                // 該不該用即時
+  const hlUse = () => liveOK() && hlCardOn() && (hlIntra() || !!(window.Tape && Tape.pinned()));   // 時間軸釘在過去時，收盤後也能回放                // 該不該用即時
   const hlLive = () => hlUse() && HL.ready && HL.at > 0;                  // 已經有即時數字可以套
   const hlShown = () => ['heat', 'indTree', 'themeMap', 'ovTheme'].some(id => { const e = document.getElementById(id); return !!e && e.getClientRects().length > 0; });
   function hlUni() {
@@ -5448,6 +5448,7 @@
     return out;
   }
   function hlFill(room) {
+    if (window.Tape && Tape.pinned()) return [];     // 回放中不需要新報價
     if (!hlIntra() || !hlShown() || !hlCardOn()) return [];
     if (ovsShown()) return [];      // 總覽：搭摘要卡「補位」的班車（名單幾乎重疊），不跟它搶同一批的空位
     // 熱力圖頁沒載過族群成分股（總覽才會）：先去載，載好之後下一輪就有名單
@@ -5556,6 +5557,7 @@
     return Date.now() - HL.pendSince > HL_PEND_MAX ? 'err' : 'pending';
   }
   function hlSnap() {
+    tlSync();
     const s = hlState(); if (s !== 'pending') HL.pendSince = 0;
     HL_CARDS.forEach(sel => { const e = document.querySelector(sel); if (!e) return;
       if (e.dataset.snapLive !== s) e.dataset.snapLive = s;
@@ -5574,6 +5576,7 @@
     if (!liveOK()) return;
     const d = (e && e.detail) || {}, sent = (d.fill && d.fill.heat) || [];
     HL.today = ovlToday();
+    if (window.Tape && Tape.pinned()) return;        // 回放中：不讓即時報價蓋掉釘住的那一格
     const Q = (window.Live && window.Live.quotes) || {};
     const U = hlUni();
     /* 這一輪抓回來的代號只要在名單裡就收（總覽的「補位」會先把空位塞滿 —— 那時熱力圖自己的補位分不到，
@@ -5602,6 +5605,54 @@
   // 盤中→盤後（或剛開盤）狀態一變就重畫一次；pending 轉 err 也靠這個更新旗標
   setInterval(() => { const s = hlState(); const was = HL.painted === 'close' ? 'close' : 'live'; hlSnap();
     if (s !== 'live' && was === 'live') { HL.painted = 'close'; hlRepaint(); } }, 5000);
+
+  /* ================================================================ 今日時間軸接線（tape.js，Andy 2026-10-29，DECISIONS #372）
+     Andy：「即時功能 幫我新增一個時間軸，開盤到最新時間，可以播放當日狀況，資金流水也是」「熱力圖也是」。
+     四個位置各掛一條（只在該圖的「即時」開著時出現）：資金輪盤（#rotBack 旁）、資金分流樹（#sankeyDays 旁）、
+     熱力圖頁的「整個台股一次看」與「題材資金熱力」（卡片標題列下方）。即時模式下原本那條「N 天前」日線回放拉桿藏起來（只留「即時」鈕），
+     兩條不重複；關掉即時就換回日線拉桿。
+     游標是全站一個（Tape.curT）：拖到哪，所有開著即時的圖一起顯示那個時點；最右邊「最新」＝回到即時、繼續跟新資料。
+     各圖怎麼算：輪盤 rlvCompute、分流樹 sklCompute、熱力圖 hlCompute——全部是原本即時用的公式，只是餵「那一格的報價包」。 */
+  const TL_VIEWS = [
+    { id: 'rotTl', host: () => $('#rotBack'), on: () => RLV.on, hide: true },
+    { id: 'sankeyTl', host: () => $('#sankeyDays'), on: () => SKL.on, hide: true },
+    { id: 'indTl', host: () => document.querySelector('[data-hlcard="ind"] > .row'), on: () => liveOK() && hlCardOn(), block: true },
+    { id: 'themeTl', host: () => document.querySelector('#themeMapCard > .row'), on: () => liveOK() && hlCardOn(), block: true },
+  ];
+  function tlSync() {
+    const T = window.Tape; if (!T) return;
+    let any = false;
+    TL_VIEWS.forEach(v => {
+      const h = v.host(), want = !!h && h.getClientRects().length > 0 && liveOK() && v.on();   // 只算畫面上看得到的（SPA 換頁後別頁的卡片還在 DOM）
+      if (want) { any = true; if (T.count() > 0) { T.mountAfter(h, v.id, v.block); if (v.hide) h.classList.add('tlon'); return; } }
+      T.unmount(v.id);
+      if (h && v.hide) h.classList.remove('tlon');
+    });
+    if (any) T.load(false);
+    else if (T.pinned()) T.reset();                   // 沒有任何一張圖開著即時：游標回到最新
+  }
+  /* 熱力圖：釘住時把報價包換成那一格；放開時用「最後一格 ＋ 目前最新的即時報價」接回來（不必重輪一圈 25 秒）。 */
+  function hlTapeSwitch(pin) {
+    const U = hlUni();
+    HL.today = ovlToday();
+    HL.q = {};
+    const base = pin ? Tape.q() : Tape.q(Tape.count() - 1);
+    U.forEach(c => { if (base[c]) HL.q[c] = base[c]; });
+    if (!pin) { const Q = (window.Live && window.Live.quotes) || {}; U.forEach(c => hlMerge(c, Q[c])); }
+    HL.asked = new Set(U); HL.ready = U.length > 0; HL.err = ''; HL.pendSince = 0;
+    hlUpdate();
+    if (!pin && !hlLive()) { HL.painted = ''; hlUpdate(); }
+  }
+  function tlApply() {
+    const T = window.Tape; if (!T) return;
+    const pin = T.pinned();
+    if (RLV.on) { if (pin) rlvTapeApply(); else { RLV.tapeKey = ''; RLV.at = 0; rlvTick(); } }
+    if (SKL.on) { if (pin) sklTapeApply(); else { SKL.tapeKey = ''; SKL.at = 0; sklTick(); } }
+    if (liveOK() && hlCardOn() && hlShown()) hlTapeSwitch(pin);
+    tlSync();
+    rlvStamp();
+  }
+  if (window.Tape) { Tape.on('cur', tlApply); Tape.on('data', tlSync); setInterval(tlSync, 1000); }
 
   // 熱力圖的 option 與資料（放大罩與原圖共用，才不會兩邊畫出不一樣的東西）
   /* ★ 2026-09-24 熱力圖 v2（規格 §3.1）：顏色口徑不變（資金流向 pp；沒有資金流向的族群沿用
@@ -6345,6 +6396,7 @@
        只寫「即時」；盤中與否用顏色（.warn）講，完整口徑仍在它的提示框（#rotLive）。*/
     if (RLV.busy && !RLV.at) return '即時・抓取中';
     if (RLV.err) return '即時抓不到';
+    if (window.Tape && Tape.pinned()) return '回放 ' + Tape.curT;     // 今日時間軸拖到過去的時點（tape.js）
     return '即時';
   }
   function rlvStamp() {
@@ -6354,6 +6406,7 @@
     liveDim('#rotBack', RLV.on); liveDim('#rotZoomBack', RLV.on);
     { const sc = $('#rotClock') && $('#rotClock').closest('.card'); if (sc) sc.dataset.snapLive = !RLV.on ? 'close' : (RLV.err ? 'err' : (RLV.busy && !RLV.at ? 'pending' : 'live')); }   // 截圖就緒旗標（docs/social_snap_targets.md）
     try { rankSubPaint(); } catch (e) { /* 排行還沒畫 */ }
+    tlSync();
     const el = $('#rotLive');
     const tag = $('#rotLiveTag');
     if (tag) {
@@ -6405,6 +6458,7 @@
 
   async function rlvTick() {
     if (!RLV.on || RLV.busy) return;
+    if (window.Tape && Tape.pinned()) { rlvTapeApply(); return; }   // 時間軸釘在過去：用快照算，不打報價
     // ★ 2026-09-29：計時器 5 秒一跳；盤後只在還沒抓過／超過 30 分鐘才真的抓（Live.due）
     if (window.Live && window.Live.due && !window.Live.due(RLV.at)) return;
     /* 換到站內別的分頁時容器還在 DOM、只是被藏起來（offsetParent 是 null）。
@@ -6423,9 +6477,26 @@
     }
   }
 
+  /* 今日時間軸（tape.js，Andy 2026-10-29）：游標釘在過去某一格時，輪盤改吃那一格的報價包，公式與即時完全相同（rlvCompute）。
+     涵蓋率的分母是「現在」的台股總成交值，拿來除過去的分子沒有意義，所以回放時不顯示（cover=null）。*/
+  function rlvTapeApply() {
+    const rrg = rotF3 && rotF3.rrg;
+    if (!rrg || !(rrg.points || []).length) return;
+    const key = Tape.curT;
+    if (RLV.tapeKey === key && Object.keys(RLV.pt).length) return;
+    try {
+      const r = rlvCompute(rrg, Tape.q());
+      RLV.pt = r.pt; RLV.mkt = r.mkt; RLV.uniAmt = r.uni; RLV.cover = null;
+      RLV.hit = r.hit; RLV.skipped = r.skipped; RLV.quoteAt = r.at; RLV.at = Date.now(); RLV.err = ''; RLV.tapeKey = key;
+    } catch (e) { RLV.err = String((e && e.message) || e).slice(0, 90); RLV.pt = {}; RLV.tapeKey = ''; }
+    RLV.busy = false;
+    rlvRedraw(); rlvStamp();
+  }
+
   /* 退出即時。`redraw=false` 給「使用者自己拖時間軸」用 ——
      那一路本來就會接著重畫一次，這裡再畫一次等於同一幀畫兩張圖。*/
   function rlvOff(redraw) {
+    RLV.tapeKey = '';
     if (RLV.timer) { clearInterval(RLV.timer); RLV.timer = null; }
     RLV.on = false; RLV.pt = {}; RLV.err = ''; RLV.cover = null; RLV.mkt = null;
     rlvStamp();
@@ -12702,6 +12773,7 @@
     const btn = $('#sankeyLiveBtn');
     if (btn) { btn.classList.toggle('on', SKL.on); btn.setAttribute('aria-pressed', SKL.on ? 'true' : 'false'); }
     liveDim('#sankeyDays', SKL.on);
+    tlSync();
     { const sc = $('#flowSankeyCard'); if (sc) sc.dataset.snapLive = !SKL.on ? 'close' : (SKL.err ? 'err' : (SKL.busy && !SKL.at ? 'pending' : 'live')); }   // 截圖就緒旗標
     if (!el) return;
     if (!SKL.on) { el.hidden = true; el.innerHTML = ''; return; }
@@ -12712,8 +12784,20 @@
     el.hidden = true; el.innerHTML = '';
   }
 
+  /* 今日時間軸：游標釘在過去時，分流樹改吃那一格的報價包（sklCompute，與即時同一條公式）。 */
+  function sklTapeApply() {
+    const st = sankeyState; if (!st) return;
+    const key = Tape.curT;
+    if (SKL.tapeKey === key && Object.keys(SKL.tv).length) return;
+    const r = sklCompute(st.sd, Tape.q());
+    if (Object.keys(r.tv).length) { SKL.tv = r.tv; SKL.stv = r.stv; SKL.quoteAt = r.at; SKL.at = Date.now(); SKL.err = ''; SKL.tapeKey = key; }
+    else { SKL.tv = {}; SKL.stv = {}; SKL.err = '這個時點沒有快照'; SKL.tapeKey = ''; }
+    SKL.busy = false;
+    renderSankey(st.sd, st.k, sankeySel); sklStamp();
+  }
   async function sklTick() {
     if (!SKL.on || SKL.busy) return;
+    if (window.Tape && Tape.pinned()) { sklTapeApply(); return; }
     // ★ 2026-09-29：計時器 5 秒一跳；盤後只在還沒抓過／超過 30 分鐘才真的抓（Live.due）
     if (window.Live && window.Live.due && !window.Live.due(SKL.at)) return;
     const st = sankeyState; if (!st) return;
@@ -12738,6 +12822,7 @@
   /* 退出即時。`redraw=false` 給「使用者自己拖時間軸」用 ——
      那一路本來就會接著重畫一次，這裡再畫一次等於同一幀畫兩張圖。*/
   function sklOff(redraw) {
+    SKL.tapeKey = '';
     if (SKL.timer) { clearInterval(SKL.timer); SKL.timer = null; }
     SKL.on = false; SKL.tv = {}; SKL.stv = {}; SKL.err = '';
     sklStamp();
@@ -15486,6 +15571,8 @@
          只有 Actions 的 runner 打開線上網站、隔 2.5 分鐘讀兩次這一份，才答得出來。
          ★ 唯讀、淺拷貝：巡檢拿到的東西改不回 RLV，這支**不准**有任何副作用。
          `pts` 是續算出來的資料座標（強弱／動能），畫上去的那一點另外看 `_rotPts`。*/
+      /* 今日時間軸驗收用（唯讀）：分流樹目前的板塊成交值簽名 */
+      sklSig: () => ({ on: SKL.on, err: SKL.err, sig: Object.keys(SKL.tv).sort().map(g => g + ':' + Math.round(SKL.tv[g] / 1e6)).join('|') }),
       rlvState: () => {
         const pts = {};
         Object.keys(RLV.pt).forEach(g => { const v = RLV.pt[g]; pts[g] = { x: v.x, y: v.y }; });

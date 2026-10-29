@@ -7095,3 +7095,13 @@ Andy 原話（10-20，錄「今日事件＋精選文章」功能影片時的選�
 - **口徑**：排除名單＝今天抓到的證交所代號 ∪ 資料湖裡**有 `industry_code` 的代號**（只有證交所版本有這欄）。上櫃／興櫃仍只靠 FinMind、照常刷新。`run_daily.finmind_company_extra()`，測試 `tests/test_company_info_finmind_extra.py`。
 - **資料修復**：用 10-28 11:11（b5d1d979）那版裡 1098 筆證交所列，經 `store.append()` 補回（只增不改的同一條路，不是覆寫檔案）；之後證交所那支恢復就會照常更新。
 - **為什麼不放寬測試**：14 筆全是資料降級造成的假離群，登記進白名單等於把「產業別被蓋掉」這種錯藏起來；那條測試這次正是在替我們抓資料降級。
+
+## #372 今日時間軸（資金輪盤／資金分流樹／熱力圖的「即時」模式可拖拉、可重播當天）：伺服器快照用 Worker Cron ＋ KV（前端專家，2026-10-29；合併時若撞號請改號）
+- **Andy 原話**：「即時功能 幫我新增一個時間軸，開盤到最新時間，他會多一個時間拉Bar 可以播放當日狀況 資金流水也是」「熱力圖也是」。
+- **做法**：圖本身一行公式都沒改。三張圖的即時模式本來就是「一包報價 → 既有公式（rlvCompute／sklCompute／hlCompute）→ 畫面」，所以新增 `site/tape.js` 只負責「提供某個時點的那一包報價」，游標全站一個，拖到哪所有開著即時的圖一起顯示那個時點，最右邊「最新」＝回到即時繼續跟新資料。口徑只有一份。
+- **資料來源選擇**：① Worker Cron（`workers/quote-proxy` 的 `scheduled()`，UTC `*/5 1-5 * * 1-5`＝台北 09:00–13:55）每 5 分鐘抓約 455 檔（`site/data/tape_codes.json`，pipeline 每天產出）mis 報價，存 KV `tape:YYYYMMDD`（NDJSON）；`GET /tape` 一次回當天全部格子。理由：Cloudflare 排程準時（GitHub schedule 會延遲數小時，見 gh_cron_setup.md）、不用 commit 進 repo、頁面沒開著也有、資料源仍是已在白名單的 mis（不碰 www.twse.com.tw/rwd）、KV 免費額度每天 1000 次寫入，這裡約 55 次。② 沒選 Yahoo 分 K：延遲 20 分鐘、一檔一個請求。③ 沒選 Actions 每 5 分鐘派工：一天 54 次 workflow ＋ commit 洗版。④ 備援：伺服器快照不通時，live.js 每 5 秒收到的報價按 5 分鐘一格累積在頁面記憶體（只能從開頁起算，不是主力）。
+- **休市日**：mis 回的日期 ≠ 今天（颱風假、國定假日）→ 整輪不寫。盤前盤後週末不寫。同一格重複觸發不重複寫。
+- **跟日線回放的關係**：即時開著時，原本「N 天前」拉桿藏起來（`.tlon`），只留「即時」鈕與今日時間軸；關掉即時換回日線拉桿，兩條不同時出現。回放時輪盤涵蓋率不顯示（分母是現在的台股總成交值，對過去的分子沒有意義）。
+- **部署需求**：`deploy-worker.yml` 新增「準備 KV」步驟（用既有 CLOUDFLARE_API_TOKEN 找／建命名空間 tw-tape）。**該 Token 需要 Account → Workers KV Storage → Edit 權限**；沒有的話步驟自動把 KV 段拿掉、Worker 照常部署（沒有伺服器快照，前端退回頁面自己累積）。Cron 數量：account-api 2 ＋ gh-cron 1 ＋ 這支 1 ＝ 4（免費上限 5）。
+- **已知風險**：Worker 免費方案每次 10ms CPU，Cron 這輪要 parse 5 份 mis 回應（共約 400KB）；容器連不出去無法實測，離線驗收 `workers/quote-proxy/tests/tape_check.mjs` 驗邏輯不驗 CPU。若上線後 KV 沒有寫入，先看 Worker 日誌是否 CPU 超時，改成每批各寫一個 key。
+- **驗收**：`_uitest --sections 今日時間軸1029`；`node workers/quote-proxy/tests/tape_check.mjs`。

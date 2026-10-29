@@ -225,6 +225,12 @@ export default {
       }, 502, origin);
     }
   },
+
+  /* ★ 2026-10-29 當日時間軸的伺服器端快照（DECISIONS #372）：Cron Trigger 盤中每 5 分鐘叫一次，
+     見下面「當日快照（tape）」那一大段。沒綁 KV（env.TAPE）就整個不做事，不影響其他端點。 */
+  async scheduled(event, env, ctx) {
+    ctx.waitUntil(tapeSnapshot(env, event && event.scheduledTime ? event.scheduledTime : Date.now()).catch(() => {}));
+  },
 };
 
 /** 不可以帶 body 的狀態碼，硬塞會丟 RangeError（那就是 520 的其中一種來源）。 */
@@ -359,18 +365,21 @@ const handle = async (request, env, ctx) => {
          ⚠ `futSession` 從 2026-09-23 起**不再只是給人看的** —— `/futstream`
          用它決定要不要開迴圈，改它會真的改到行為。*/
       return json({ ok: true, service: 'tw-rotation quote-proxy', upstream: 'mis.twse.com.tw',
-                    features: ['quote', 'chart', 'y', 'fut', 'futchart', 'stream', 'futstream'],
+                    features: ['quote', 'chart', 'y', 'fut', 'futchart', 'stream', 'futstream', 'tape'],
                     session: sessionNow(), futSession: futSessionNow() }, 200, origin);
     }
     if (url.pathname !== '/quote' && url.pathname !== '/chart' && url.pathname !== '/y'
         && url.pathname !== '/fut' && url.pathname !== '/futchart'
-        && url.pathname !== '/stream' && url.pathname !== '/futstream') {
+        && url.pathname !== '/stream' && url.pathname !== '/futstream' && url.pathname !== '/tape') {
       return json({ error: 'not found' }, 404, origin);
     }
     if (origin && !ALLOW_ORIGINS.includes(origin)) {
       // 不給 CORS 標頭，瀏覽器那邊自然讀不到；這裡也直接講清楚原因方便除錯
       return json({ error: 'origin not allowed', origin }, 403, '');
     }
+
+    // ---- /tape：今天（或最近一個交易日）盤中每 5 分鐘的族群成分股快照（NDJSON），給前端「今日時間軸」重播
+    if (url.pathname === '/tape') return tapeRead(env, url, origin);
 
     // ---- /stream：SSE 推送即時報價（取代「瀏覽器每分鐘輪詢」）
     if (url.pathname === '/stream') {
@@ -987,3 +996,129 @@ function openFutStream(want, symbol, origin, request, ctx) {
     }, cors(origin)),
   });
 }
+
+/* ================================================================ 當日快照（tape）：給前端「今日時間軸」重播用
+ *
+ * Andy 2026-10-29：「即時功能 幫我新增一個時間軸，開盤到最新時間，可以播放當日狀況，資金流水、熱力圖也是」。
+ * 重播要的是「09:00 以來每個時點，各檔股票的成交價與累積量」——族群層級的所有數字（輪盤座標、分流樹成交值、熱力圖面積與顏色）
+ * 前端都能用既有的即時公式從這份快照算出來，所以伺服器只存**原料**，不存算好的結果（口徑只有一份，不會兩邊分岔）。
+ *
+ * 為什麼是 Worker Cron ＋ KV（沒選 GitHub Actions、也沒選 Yahoo 分 K）：
+ *   · GitHub Actions 的 schedule 會延遲數小時（2026-10-20～23 實測，見 gh_cron_setup.md）；盤中每 5 分鐘一次靠不住，
+ *     就算改用 gh-cron 準時派工，也是一天 54 次 workflow（啟動 20 秒＋commit 進 repo），repo 會被洗版。
+ *   · Yahoo 分 K 延遲 20 分鐘、一檔一個請求，455 檔要 455 個請求。
+ *   · Worker Cron 準時（Cloudflare 排程，不是 GitHub），資料來源仍是 mis（已在白名單 DECISIONS #108），
+ *     一次 5 個請求（每批 100 檔）。KV 免費額度每天 1000 次寫入，這裡每天約 55 次。
+ * 名單（哪些代號）：pipeline/build_payload 每天產出 site/data/tape_codes.json（人工族群＋題材成分股，約 455 檔，含上市／上櫃），
+ *   這裡每天第一次執行時去抓一次、存進 KV（key=codes）。
+ * 格式（KV key = tape:YYYYMMDD，NDJSON，一行一筆，Worker 這邊只做字串串接、不解析整份，省 CPU）：
+ *   第一行 { date, codes:[...], y:[昨收...] }；之後每行 { t:"09:05", p:[成交價...], v:[累積張數...] }（順序同 codes，沒有就 null）
+ * 休市日（颱風假、國定假日）：mis 回的 d 不是今天 → 整輪略過，不寫任何東西。
+ * ⚠ Worker 免費方案每次 10ms CPU：這裡只 parse 5 份 mis 回應（共約 400KB）、其餘是字串串接；若實測被砍，改成只存分批 key。 */
+const TAPE_SITES = ['https://liguligu-puipui.com', 'https://miaozike.github.io/tw-rotation'];
+const TAPE_FIRST_MIN = 9 * 60;           // 09:00
+const TAPE_LAST_MIN = 13 * 60 + 35;      // 13:35（13:30 收盤試撮結果會在 13:30 那筆）
+const TAPE_BATCH = 100;
+const TAPE_TTL = 8 * 24 * 3600;          // 一週後自動過期
+
+/** 台北時間的 { date:'YYYYMMDD', mins, dow }。 */
+function tpeParts(ms) {
+  const d = new Date(ms + 8 * 3600 * 1000);
+  const p = (n) => String(n).padStart(2, '0');
+  return { date: `${d.getUTCFullYear()}${p(d.getUTCMonth() + 1)}${p(d.getUTCDate())}`,
+           mins: d.getUTCHours() * 60 + d.getUTCMinutes(), dow: d.getUTCDay() };
+}
+const tapeHM = (mins) => `${String(Math.floor(mins / 60)).padStart(2, '0')}:${String(mins % 60).padStart(2, '0')}`;
+const tapeNum = (v) => { const n = parseFloat(v); return isFinite(n) ? n : null; };
+
+/** 今天的代號名單：KV 有今天抓的就用，沒有就去網站抓（失敗就沿用舊的）。回 [[code, 't'|'o'], ...]。 */
+async function tapeCodes(env, today) {
+  let cached = null;
+  try { cached = await env.TAPE.get('codes', 'json'); } catch (e) { cached = null; }
+  if (cached && cached.fetched === today && cached.list && cached.list.length) return cached.list;
+  for (const site of TAPE_SITES) {
+    try {
+      const r = await fetch(site + '/data/tape_codes.json', { cf: { cacheTtl: 300, cacheEverything: true } });
+      if (!r.ok) continue;
+      const j = await r.json();
+      const list = (j.codes || []).filter(x => x && /^[0-9A-Za-z]{2,8}$/.test(String(x[0]))).map(x => [String(x[0]), x[1] === 'otc' || x[1] === 'o' ? 'o' : 't']);
+      if (list.length) {
+        await env.TAPE.put('codes', JSON.stringify({ fetched: today, list }), { expirationTtl: TAPE_TTL });
+        return list;
+      }
+    } catch (e) { /* 換下一個網站 */ }
+  }
+  return cached && cached.list ? cached.list : [];
+}
+
+/** 一輪快照。回傳字串給測試看（'ok:0905'、'skip:...'）。 */
+async function tapeSnapshot(env, nowMs) {
+  if (!env || !env.TAPE) return 'skip:no-kv';
+  const tp = tpeParts(nowMs);
+  if (tp.dow === 0 || tp.dow === 6) return 'skip:weekend';
+  if (tp.mins < TAPE_FIRST_MIN || tp.mins > TAPE_LAST_MIN) return 'skip:session';
+  const slot = tapeHM(tp.mins - (tp.mins % 5));
+  const key = 'tape:' + tp.date;
+  const existing = await env.TAPE.get(key);
+  if (existing && existing.indexOf('{"t":"' + slot + '"') >= 0) return 'skip:dup';
+  const list = await tapeCodes(env, tp.date);
+  if (!list.length) return 'skip:no-codes';
+  const toks = list.map(([c, m]) => (m === 'o' ? 'otc_' : 'tse_') + c + '.tw');
+  const chunks = [];
+  for (let i = 0; i < toks.length; i += TAPE_BATCH) chunks.push(toks.slice(i, i + TAPE_BATCH));
+  const heads = { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36',
+                  'Accept': 'application/json, text/plain, */*', 'Referer': 'https://mis.twse.com.tw/stock/index.jsp' };
+  const got = await Promise.all(chunks.map(async (ch) => {
+    try {
+      const r = await fetch(`${UPSTREAM}?json=1&delay=0&ex_ch=${encodeURIComponent(ch.join('|'))}`, { headers: heads });
+      if (!r.ok) return [];
+      const j = await r.json();
+      return j.msgArray || [];
+    } catch (e) { return []; }
+  }));
+  const byCode = {};
+  let today = 0;
+  got.forEach(arr => arr.forEach(m => {
+    if (!m || !m.c) return;
+    if (String(m.d) === tp.date) today++;
+    byCode[m.c] = m;
+  }));
+  if (!today) return 'skip:not-trading-day';           // mis 回的日期不是今天＝休市（颱風假、臨時休市）
+  /* 成交價退位順序與前端 live.js normalise 完全一致（z → trade.z → 最佳買價 → 開盤 → 昨收），否則重播與即時會對不起來 */
+  const pick = (m) => {
+    let price = tapeNum(m.z);
+    if (price === null) price = tapeNum((m.trade || {}).z);
+    if (price === null && m.b) price = tapeNum(String(m.b).split('_')[0]);
+    if (price === null) price = tapeNum(m.o);
+    if (price === null) price = tapeNum(m.y);
+    return price;
+  };
+  let order, header = '';
+  if (existing) {
+    try { order = JSON.parse(existing.slice(0, existing.indexOf('\n'))).codes; } catch (e) { order = null; }
+  }
+  if (!order) {
+    order = list.map(x => x[0]);
+    header = JSON.stringify({ date: `${tp.date.slice(0, 4)}-${tp.date.slice(4, 6)}-${tp.date.slice(6)}`, codes: order,
+                              y: order.map(c => (byCode[c] ? tapeNum(byCode[c].y) : null)) }) + '\n';
+  }
+  const p = order.map(c => (byCode[c] ? pick(byCode[c]) : null));
+  const v = order.map(c => (byCode[c] ? tapeNum(byCode[c].v) : null));
+  const line = JSON.stringify({ t: slot, p, v }) + '\n';
+  await env.TAPE.put(key, (existing || header) + line, { expirationTtl: TAPE_TTL });
+  await env.TAPE.put('latest', tp.date, { expirationTtl: TAPE_TTL });
+  return 'ok:' + slot;
+}
+
+/** GET /tape[?date=YYYYMMDD]：回 NDJSON；沒有就 404（前端會退回「頁面自己累積」）。 */
+async function tapeRead(env, url, origin) {
+  if (!env || !env.TAPE) return json({ error: 'tape not enabled' }, 404, origin);
+  let date = (url.searchParams.get('date') || '').replace(/-/g, '');
+  if (date && !/^\d{8}$/.test(date)) return json({ error: 'bad date' }, 400, origin);
+  if (!date) date = (await env.TAPE.get('latest')) || '';
+  const body = date ? await env.TAPE.get('tape:' + date) : null;
+  if (!body) return json({ error: 'no tape', date }, 404, origin);
+  return new Response(body, { status: 200, headers: Object.assign(
+    { 'content-type': 'application/x-ndjson; charset=utf-8', 'cache-control': 'public, max-age=20' }, cors(origin)) });
+}
+

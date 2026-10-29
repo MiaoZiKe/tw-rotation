@@ -397,7 +397,7 @@ ENRICH_JS = """async ([logos, names]) => {   // 每列前面放公司 LOGO（沒
   return rows.length; }"""
 
 
-CTRL_CSS = ["button:not(.hmcell)", "select", "input", "label:has(> input)", ".howbtn", ".seg", ".ovsum-nav", ".twms-btn", ".zreset", ".livetg", ".m4st", ":has(> select)", ".m3-bar"]
+CTRL_CSS = [".tlbar", "button:not(.hmcell)", "select", "input", "label:has(> input)", ".howbtn", ".seg", ".ovsum-nav", ".twms-btn", ".zreset", ".livetg", ".m4st", ":has(> select)", ".m3-bar"]
 CTRL_TEXT = ["~^走勢$", "~^›$", "~^‹$", "~^\\d+\\s*/\\s*\\d+$"]
 # 2026-10-26 Andy：「所有的備註都不要顯示、不包含來源」—— 社群圖上不准有資料來源、說明小字、註腳、免責小字；
 # 免責與來源只放文案最後一行，估算用標題括號標（例：上市融資維持率（估））。每一片都套：
@@ -474,8 +474,8 @@ TARGETS = [
     # 熱力圖：桌機網頁版（1440）上＝產業「整個台股一次看」、下＝題材資金熱力，合成一張（Threads 與限動共用這張）
     dict(name="heat", kind="intraday", label="資金熱力圖", route="heatmap/industry", card="#indTreeWrap",
          parts=[dict(name="heat-industry", route="heatmap/industry", card="#indTreeWrap", closest_card=True, live="auto", live_ok=None, close_fallback=True,
-                     hide=[".howbtn", ".livetg"], fill=dict(frac=0.60, charts=["#indTreeWrap", "#indTree"])),
-                dict(name="heat-theme", route="heatmap/theme", card="#themeMapCard", live="auto", live_ok=None, close_fallback=True, hide=[".howbtn", ".livetg"], optional=True, fill=dict(frac=0.40, charts=["#themeMap"]))],
+                     hide=[".howbtn", ".livetg", ".tlbar"], fill=dict(frac=0.60, charts=["#indTreeWrap", "#indTree"])),
+                dict(name="heat-theme", route="heatmap/theme", card="#themeMapCard", live="auto", live_ok=None, close_fallback=True, hide=[".howbtn", ".livetg", ".tlbar"], optional=True, fill=dict(frac=0.40, charts=["#themeMap"]))],
          live="auto", live_ok=None, headline=None, d=[dict(name="heat", title="資金熱力圖")], m=[]),
     # 2026-10-26 Andy：「大盤走勢 & 漲跌家數拿掉」→ kind="off"（保留設定，不發）
     dict(name="market-index", kind="off", label="大盤走勢（收盤全日）", route="overview", card="#m3Frame",

@@ -181,6 +181,33 @@ def _write(name: str, payload) -> None:
     log.info("寫出 %s（%.1f KB）", path.name, path.stat().st_size / 1024)
 
 
+def tape_codes(gdetail: dict, th: dict, markets: dict, latest: str) -> dict:
+    """當日時間軸快照的代號名單（Andy 2026-10-29「即時…時間軸」，DECISIONS #372）。
+
+    Cloudflare Worker（workers/quote-proxy）盤中每 5 分鐘去 mis 抓這份名單的報價存進 KV，前端「今日時間軸」重播用。
+    名單 ＝ 前端熱力圖即時層（app.js hlUni）要的那一批：人工族群（非 ind_ 自動桶）成分股 ＋ 題材成分股，去重。
+    市場別決定 mis 的前綴（tse_／otc_）；查不到的當上市（mis 對不存在的代號只是不回，不會錯）。
+    """
+    seen: dict[str, str] = {}
+
+    def add(code, mk=None):
+        c = str(code or "").strip()
+        if not c or c in seen:
+            return
+        m = str(mk or markets.get(c) or "").upper()
+        seen[c] = "otc" if m in ("TPEX", "OTC") else "tse"
+
+    for gid, det in (gdetail or {}).items():
+        if str(gid).startswith("ind_"):
+            continue
+        for m in (det or {}).get("members", []) or []:
+            add(m.get("code"), m.get("market"))
+    for t in (th or {}).get("themes", []) or []:
+        for m in t.get("members", []) or []:
+            add(m.get("code"), m.get("market"))
+    return {"date": latest, "codes": [[c, m] for c, m in seen.items()]}
+
+
 def export_tc_logos() -> dict:
     """科技透明圈沒有台股代號公司的 Logo：複製 data/logos/tc/*.png 到 site/data/tc_logos/，
     並寫 site/data/tc_logos.json（{官網網域: 相對路徑}，例 {"nvidia.com": "data/tc_logos/nvidia.com.png"}）。
@@ -658,10 +685,16 @@ def build() -> None:
                            "periods": [], "bump": {"weeks": [], "series": []},
                            "bumps": {"week": {"weeks": [], "series": []}, "month": {"weeks": [], "series": []}}})
     try:
-        _write("themes", themes.build(price, inst, news_all, names, latest))
+        _th = themes.build(price, inst, news_all, names, latest)
+        _write("themes", _th)
     except Exception as exc:  # noqa: BLE001
         log.warning("題材熱力產出失敗：%s", exc)
-        _write("themes", {"date": latest, "themes": [], "series": {}})
+        _th = {"date": latest, "themes": [], "series": {}}
+        _write("themes", _th)
+    try:
+        _write("tape_codes", tape_codes(gdetail, _th, markets, latest))
+    except Exception as exc:  # noqa: BLE001
+        log.warning("當日快照名單產出失敗：%s", exc)
     try:
         _write("industry_map", industry_map(today, gdetail, fund_rows, gval, latest, odetail))
     except Exception as exc:  # noqa: BLE001

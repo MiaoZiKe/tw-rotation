@@ -5,3 +5,17 @@ compatibility_date = "2026-09-14"
 # 免費方案就夠：每天 10 萬次請求。
 # 盤中每分鐘一次 × 5.5 小時 ≈ 330 次/天/人。
 workers_dev = true
+
+# ★ 2026-10-29 當日時間軸快照（DECISIONS #372）：盤中每 5 分鐘叫 scheduled()，把族群成分股的成交價／累積量存進 KV（env.TAPE）。
+# UTC 01:00–05:55 ＝ 台北 09:00–13:55（週一到五）；程式內再卡 09:00–13:35，並用 mis 回的日期擋休市日。
+# 免費方案整個帳號最多 5 個 Cron：account-api 2 個、gh-cron 1 個、這裡 1 個＝4 個。
+[triggers]
+crons = ["*/5 1-5 * * 1-5"]
+
+# KV 命名空間 id 由 .github/workflows/deploy-worker.yml 的「準備 KV」步驟在部署時填入（用 Cloudflare API 找或建 tw-tape）。
+# 填不進去（金鑰沒有 KV 權限）時，那一步會把這一段整個拿掉，Worker 照常部署，只是沒有伺服器端快照（前端退回頁面自己累積）。
+# KV-BEGIN
+[[kv_namespaces]]
+binding = "TAPE"
+id = "__TAPE_KV_ID__"
+# KV-END
