@@ -1316,7 +1316,7 @@ def run_slot(slot: str, day: str, now: datetime, posted: dict, dry: bool, out: P
         ttl = f"{cfg['name']}{'知識' if d.get('evergreen') else '新聞'} {day} #{i + 1}：{d['card']['title']}"
         status = TOPIC_STATUS if (offday or d.get("evergreen")) else STATUS
         ig = f"---\nstatus: {status}\npublish_at: {pa}\ntitle: {ttl}\nimages: {img_rel}\n{meta}\n---\n{d['caption_ig']}\n"
-        th = f"---\nstatus: {status}\npublish_at: {pa}\ntitle: {ttl}\n{meta}\n---\n" + "\n-----\n".join(d["caption_threads"]) + "\n"
+        th = f"---\nstatus: {status}\npublish_at: {pa}\ntitle: {ttl}\nimages: {img_rel}\n{meta}\n---\n" + "\n-----\n".join(d["caption_threads"]) + "\n"
         name = f"{day}_news-{slot}-{i + 1}.md"
         if dry:
             (out / "ig").mkdir(parents=True, exist_ok=True); (out / "threads").mkdir(parents=True, exist_ok=True)

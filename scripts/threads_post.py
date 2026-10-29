@@ -133,18 +133,33 @@ def _call(method: str, path: str, token: str, params: dict | None = None) -> dic
         raise PostError(f"連線失敗 {path}：{e.reason}") from None
 
 
-def publish_chain(posts: list[str], token: str) -> list[dict]:
+RAW = "https://raw.githubusercontent.com/MiaoZiKe/tw-rotation/main/"
+
+
+def images_of(meta: dict) -> list[str]:
+    """front matter 的 images:（空白或逗號分隔的 repo 相對路徑）。2026-10-29 Andy：「為何沒有貼文?」—— Threads 主題文章原本只發文字，封面圖沒帶上。"""
+    return [x for x in re.split(r"[\s,]+", str(meta.get("images") or "").strip()) if x]
+
+
+def publish_chain(posts: list[str], token: str, images: list[str] | None = None) -> list[dict]:
     me = _call("GET", "/me", token, {"fields": "id,username"})
     uid = me["id"]
     out: list[dict] = []
     reply_to = None
+    urls = [RAW + urllib.parse.quote(x) for x in (images or [])][:20]
     for i, text in enumerate(posts, 1):
         params = {"media_type": "TEXT", "text": text}
+        if i == 1 and len(urls) == 1:      # 第一則帶封面圖
+            params = {"media_type": "IMAGE", "image_url": urls[0], "text": text}
+        elif i == 1 and len(urls) > 1:     # 多張 → 輪播
+            kids = [_call("POST", f"/{uid}/threads", token, {"media_type": "IMAGE", "image_url": u, "is_carousel_item": "true"})["id"] for u in urls]
+            time.sleep(10)
+            params = {"media_type": "CAROUSEL", "children": ",".join(kids), "text": text}
         if reply_to:
             params["reply_to_id"] = reply_to
         c = _call("POST", f"/{uid}/threads", token, params)
         cid = c["id"]
-        time.sleep(8)  # 讓容器建好；官方建議等候，文字貼文通常很快
+        time.sleep(15 if params["media_type"] != "TEXT" else 8)  # 讓容器建好；圖片要多等一下
         p = None
         for wait in (0, 10, 20, 30):  # 容器尚未就緒時重試「發布」；發布前重試不會重複發
             time.sleep(wait)
@@ -196,7 +211,7 @@ def process(path: Path, now: datetime, token: str | None, force_now: bool = Fals
         return f"略過（還沒到 {meta['publish_at']}）"
     if not token:
         raise PostError("沒有 THREADS_ACCESS_TOKEN（請在 GitHub Secrets 設定）")
-    res = publish_chain(posts, token)
+    res = publish_chain(posts, token, images_of(meta))
     rewrite_meta(path, {
         "status": "posted",
         "posted_at": now.astimezone(TAIPEI).strftime("%Y-%m-%dT%H:%M+08:00"),

@@ -45,7 +45,7 @@ def test_due_requires_approved_and_time():
 def test_process_posts_and_rewrites(tmp_path, monkeypatch):
     f = tmp_path / "a.md"
     f.write_text(doc(), encoding="utf-8")
-    monkeypatch.setattr(tp, "publish_chain", lambda posts, token: [{"id": "1", "permalink": "https://threads/x"}, {"id": "2", "permalink": ""}])
+    monkeypatch.setattr(tp, "publish_chain", lambda posts, token, images=None: [{"id": "1", "permalink": "https://threads/x"}, {"id": "2", "permalink": ""}])
     assert "已發出 2 則" in tp.process(f, NOW, "tok")
     meta, _ = tp.parse(f.read_text(encoding="utf-8"))
     assert meta["status"] == "posted" and "https://threads/x" in meta["urls"]
@@ -99,3 +99,31 @@ def test_repo_drafts_within_limit_by_bytes():
     for f in sorted(tp.QUEUE.glob("*.md")):
         meta, posts = tp.parse(f.read_text(encoding="utf-8"))
         assert all(tp._tlen(p) <= tp.MAX_LEN for p in posts), f.name
+
+
+def test_images_of_封面圖帶進第一則():
+    # 2026-10-29 Andy：「為何沒有貼文?」—— 主題文章 Threads 要帶封面圖
+    import scripts.threads_post as tp
+    assert tp.images_of({"images": "social/ig/images/news/a.jpg"}) == ["social/ig/images/news/a.jpg"]
+    assert tp.images_of({"images": "a.jpg, b.jpg"}) == ["a.jpg", "b.jpg"]
+    assert tp.images_of({}) == []
+
+
+def test_publish_chain_第一則用圖片(monkeypatch):
+    import scripts.threads_post as tp
+    calls = []
+    def fake(method, path, token, params=None):
+        calls.append((path, dict(params or {})))
+        if path == "/me":
+            return {"id": "u"}
+        if path.endswith("/threads"):
+            return {"id": f"c{len(calls)}"}
+        if path.endswith("/threads_publish"):
+            return {"id": f"m{len(calls)}"}
+        return {"permalink": "https://x"}
+    monkeypatch.setattr(tp, "_call", fake)
+    monkeypatch.setattr(tp.time, "sleep", lambda s: None)
+    tp.publish_chain(["一", "二"], "tok", ["social/a.jpg"])
+    made = [p for path, p in calls if path == "/u/threads"]
+    assert made[0]["media_type"] == "IMAGE" and made[0]["image_url"].endswith("social/a.jpg")
+    assert made[1]["media_type"] == "TEXT" and made[1]["reply_to_id"]
