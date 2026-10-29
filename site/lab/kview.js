@@ -106,7 +106,7 @@
         const f = (v) => (Math.abs(v) >= 1e4 ? (v / 1e4).toFixed(1) + '萬口' : Math.round(v) + '口');
         const mob = innerWidth <= 640;   // 手機 KChart 另掛 tickmarksFormatter（寫死「張」），只在手機一併蓋掉；桌機不動
         const pf = mob ? { type: 'custom', minMove: 1, formatter: f, tickmarksFormatter: (a) => a.map((v) => (v < 0 ? '' : v === 0 ? '0' : f(v))) } : { type: 'custom', minMove: 1, formatter: f };
-        ps[1].getSeries().forEach((x) => { try { x.applyOptions({ priceFormat: pf }); } catch (e) { /* 不是量序列 */ } });
+        ps[1].getSeries().forEach((x) => { try { x.applyOptions({ priceFormat: pf }); if (mob) x.priceScale().applyOptions({ scaleMargins: { top: 0.28, bottom: 0 } }); } catch (e) { /* 不是量序列 */ } });
       } catch (e) { /* 圖剛銷毀 */ }
     }
     /** 全站 KChart 沒有的指標（EMA、SAR、Supertrend、ATR）：另外畫在同一張圖上，公式與回測引擎同一份（LabEngine.I），只畫到目前這一根（重播不洩漏未來）。 */
@@ -162,7 +162,13 @@
         const vr = this.chart.timeScale().getVisibleRange();
         if (vr) list = list.filter((m) => m.time >= vr.from && m.time <= vr.to);
       } catch (e) { /* 圖剛銷毀 */ }
-      if (list.length > 400) list = [];
+      /* 密度判斷（局部）：把畫面切成每 40px 一格，任何一格的標記數超過 30（約每 1.3px 一個，2330 實測最密 26、台指期 38）就整批不畫。
+         看局部而不是整體平均，因為台指期的交易全擠在 2001–2008 那一小段，整體平均看不出來。 */
+      try {
+        const ts = this.chart.timeScale(), bk = {}; let bad = false;
+        list.forEach((m) => { const x = ts.timeToCoordinate(m.time); if (x == null) return; const k = Math.floor(x / 40); bk[k] = (bk[k] || 0) + 1; if (bk[k] > 30) bad = true; });
+        if (bad) list = [];
+      } catch (e) { /* 圖剛銷毀 */ }
       const sig = list.length + '|' + (list[0] ? list[0].time : '') + '|' + (list.length ? list[list.length - 1].time : '');
       if (sig === this.markSig && this.mk) return;
       this.markSig = sig;

@@ -24,6 +24,12 @@ def t_lab_arrows(b, base, code):
         if mob:
             txt = pg.evaluate("() => { const ss = window.TwLab.charts.k.panes()[1].getSeries(); return ss.map((x) => { const f = x.options().priceFormat; return f.tickmarksFormatter ? f.tickmarksFormatter([400, 400000, 30000000]).join(',') : (f.formatter ? f.formatter(400) : ''); }).join('|'); }")
             _ok(f"{T}（{w}）：手機台指期量軸單位是「口」不是「張」", "口" in txt and "張" not in txt, txt)
+        if mob:
+            nm = pg.evaluate("() => window.TwLab.charts.kv.mk.markers().length")
+            _ok(f"{T}（{w}）：手機台指期 All 標記數為 0（太密不畫）", nm == 0, nm)
+        else:
+            nm = pg.evaluate("() => window.TwLab.charts.kv.mk.markers().length")
+            _ok(f"{T}（{w}）：桌機台指期 All 標記數為 0（太密不畫）", nm == 0, nm)
         pg.goto(base + "#lab/bt", wait_until="domcontentloaded"); pg.wait_for_timeout(4500)
         r = pg.evaluate(js)
         _ok(f"{T}（{w}）：歷史回測價格軸最小值不低於可視最低價－15% 價幅且不為負（箭頭不撐軸）", bool(r) and r[0] >= r[1] - 0.15 * (r[2] - r[1]) and r[0] >= -0.5, r)
