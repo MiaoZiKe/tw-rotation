@@ -76,6 +76,8 @@ jobs:
     outputs:
       # phase=inst 沒新資料時為 false → deploy 整個跳過（其他 phase 這個值是空的，照常部署）
       inst_new: ${{ steps.fetch.outputs.inst_new }}
+      # 2026-10-29 加速：phase=inst 沒有新增「今天的法人」時為 false → 不整站重算、不部署（其他 phase 是空的，照常）
+      rebuild: ${{ steps.fetch.outputs.rebuild }}
     steps:
       # checkout 分支最新 commit 而非觸發當下的 SHA：排在 concurrency 佇列裡等待時，
       # 回補可能已經推了新資料，用舊 SHA 算出來的 JSON 會少掉那批資料
@@ -195,18 +197,19 @@ jobs:
       #   現在：資料湖一 commit 就派 social-live（kind=close）；它自己從湖裡算盤後那幾份 JSON（pipeline/social_close_payload.py，約 1～2 分鐘），
       #   齊了就發、還沒齊就跳過（同一天發過也跳過）。整站重算與部署接著在這裡跑，兩邊不互等。
       - name: 派盤後貼文（不等整站重算）
-        if: steps.fetch.outputs.inst_new != 'false' && steps.fetch.outputs.phase == 'inst'
+        if: steps.fetch.outputs.inst_new != 'false' && steps.fetch.outputs.phase == 'inst' && steps.fetch.outputs.post != 'false'
         continue-on-error: true
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh workflow run social-live.yml --ref "${{ github.ref_name }}" -f kind=close -f dry_run=false
 
       - name: 整站重算（inst 輪延後的那一步）
-        if: steps.fetch.outputs.inst_new != 'false' && steps.fetch.outputs.phase == 'inst'
+        # 2026-10-29：沒有新增今天的法人（只有期貨／診斷檔變）就跳過 24 分鐘重算與部署，讓下一輪 inst 不必排隊；交給後面有新資料的那輪或 18:38／21:38 full 輪
+        if: steps.fetch.outputs.inst_new != 'false' && steps.fetch.outputs.phase == 'inst' && steps.fetch.outputs.rebuild != 'false'
         run: python -m pipeline.build_payload
 
       - name: 前端對齊 main 最新版（避免把開跑時的舊前端蓋上線）
-        if: steps.fetch.outputs.inst_new != 'false'
+        if: steps.fetch.outputs.inst_new != 'false' && steps.fetch.outputs.rebuild != 'false'
         # ★ 2026-09-25：這輪開跑時 checkout 的 main，跑到這裡可能已經落後（中途有人推了前端）。
         #   走「合併重試」那條路時工作區保留的是舊 site/，直接上傳就會把舊前端部署上線、蓋掉推送部署。
         #   site/data 是 gitignore 的產出，checkout 不會動到它。
@@ -221,14 +224,14 @@ jobs:
           fi
           git checkout "origin/${{ github.ref_name }}" -- site/
       - name: 給自家 JS/CSS 加版本戳（不加的話部署完還要按 Ctrl+F5 才看得到新版）
-        if: steps.fetch.outputs.inst_new != 'false'
+        if: steps.fetch.outputs.inst_new != 'false' && steps.fetch.outputs.rebuild != 'false'
         run: python scripts/stamp_assets.py
       # ★ 2026-10-05：這條工作流也會部署 Pages，但以前少了下面兩步，
       #   每天早上的盤後輪一部署，就把 pages.yml 裝好的 preview/<名稱>/ 整包蓋掉（Andy 開預覽網址拿到 404），
       #   也把 account_config.js 換回 repo 裡空的那支（會員登入跟著消失）。
       #   兩步照抄 pages.yml，失敗不擋正式站部署。
       - name: 會員功能設定（同 pages.yml；沒設 ACCOUNT_API_URL 就維持關閉）
-        if: steps.fetch.outputs.inst_new != 'false'
+        if: steps.fetch.outputs.inst_new != 'false' && steps.fetch.outputs.rebuild != 'false'
         env:
           ACCOUNT_API_URL: ${{ secrets.ACCOUNT_API_URL }}
         run: |
@@ -241,11 +244,11 @@ jobs:
             esac
           fi
       - name: 分支預覽（同 pages.yml；不裝的話每日部署會把預覽蓋掉）
-        if: steps.fetch.outputs.inst_new != 'false'
+        if: steps.fetch.outputs.inst_new != 'false' && steps.fetch.outputs.rebuild != 'false'
         continue-on-error: true
         run: python scripts/preview_inject.py
       - name: 上傳網站
-        if: steps.fetch.outputs.inst_new != 'false'
+        if: steps.fetch.outputs.inst_new != 'false' && steps.fetch.outputs.rebuild != 'false'
         uses: actions/upload-pages-artifact@v3
         with:
           path: site
@@ -283,7 +286,7 @@ jobs:
   deploy:
     needs: collect
     # phase=inst 沒有新法人資料時不部署（也沒有 artifact 可部署）
-    if: needs.collect.outputs.inst_new != 'false'
+    if: needs.collect.outputs.inst_new != 'false' && needs.collect.outputs.rebuild != 'false'
     runs-on: ubuntu-latest
     concurrency:
       group: pages

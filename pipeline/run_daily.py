@@ -580,6 +580,30 @@ def _set_gh_output(key: str, value: str) -> None:
             f.write(f"{key}={value}\n")
 
 
+def _inst_rows_on(trade_date: str) -> int:
+    """資料湖 inst_daily 裡 trade_date 那天有幾列（判斷這一輪有沒有「新增今天的法人」用，2026-10-29）。讀不到回 -1。"""
+    try:
+        df = store.read("inst_daily", years=[int(trade_date[:4])])
+        if df is None or df.empty or "date" not in df.columns:
+            return 0
+        return int((df["date"].astype(str).str[:10] == trade_date).sum())
+    except Exception:  # noqa: BLE001
+        log.exception("讀 inst_daily 失敗（當作有新資料，照常重算）")
+        return -1
+
+
+def inst_rebuild_flags(n_today_before: int, n_today_after: int, n_fut: int) -> dict:
+    """phase=inst 這一輪要不要整站重算／部署、要不要派盤後貼文（2026-10-29 加速：沒新增今天的法人就不重算 24 分鐘）。
+
+    · rebuild：今天的法人列數變多了（或讀不到列數，保守照舊重算）。只有期貨／診斷檔變動 → 不重算，
+      交給下一輪有法人新資料的 inst 輪或 18:38／21:38 full 輪；這樣同一個 concurrency group 的下一輪 10 分鐘後就能跑。
+    · post：今天的法人或期貨有新列 → 派 social-live 盤後（它自己從資料湖算那幾份 JSON，不靠整站重算）。
+    """
+    unknown = n_today_before < 0 or n_today_after < 0
+    inst_new = unknown or n_today_after > n_today_before
+    return {"rebuild": bool(inst_new), "post": bool(inst_new or n_fut > 0)}
+
+
 class _Deferred(Exception):
     """inst 輪延後整站重算（INST_DEFER_BUILD=1）時跳出 build 區塊用。"""
 
@@ -638,6 +662,7 @@ def run_inst_phase(args) -> int:
         return 0
 
     n = n_fut
+    n_today_before = _inst_rows_on(trade_date)
     if got:
         # 只抓目標日那一天（lookback=0），把額度與時間留給別的步驟
         # 先整天全市場（1 次額度），再逐檔補剩下的（fetch_institutional 會跳過湖裡已有的）
@@ -660,6 +685,25 @@ def run_inst_phase(args) -> int:
             log.exception("寫官方法人診斷檔失敗")
         log.info("phase=inst：沒有新增列（已到齊），不重算、不部署")
         _set_gh_output("inst_new", "true" if diag_changed else "false")
+        _set_gh_output("rebuild", "false")
+        _set_gh_output("post", "false")
+        return 0
+    flags = inst_rebuild_flags(n_today_before, _inst_rows_on(trade_date), n_fut)
+    RESULT["steps"]["inst_flags"] = flags
+    log.info("phase=inst：今天 %s 的法人列數 %s → %s、期貨新列 %d → 整站重算＝%s、派盤後貼文＝%s",
+             trade_date, n_today_before, _inst_rows_on(trade_date), n_fut, flags["rebuild"], flags["post"])
+    _set_gh_output("rebuild", "true" if flags["rebuild"] else "false")
+    _set_gh_output("post", "true" if flags["post"] else "false")
+    if not flags["rebuild"] and os.environ.get("INST_DEFER_BUILD") == "1":
+        # 沒有新增今天的法人：資料（期貨／診斷）照樣 commit，但不整站重算、不部署（交給後面有新資料的那輪或 full 輪）
+        now = datetime.now(timezone.utc)
+        RESULT.update({"phase": "inst", "started_at": started.isoformat(), "finished_at": now.isoformat(),
+                       "duration_seconds": round((now - started).total_seconds(), 1),
+                       "trade_date": trade_date, "complete": True,
+                       "finmind_budget_left": http.finmind_budget_left()})
+        RESULT["steps"]["build_payload"] = {"ok": True, "skipped": "沒有新增今天的法人"}
+        (config.STATE / "last_run.json").write_text(json.dumps(RESULT, ensure_ascii=False, indent=2))
+        _set_gh_output("inst_new", "true")
         return 0
 
     RESULT["phase"] = "inst"

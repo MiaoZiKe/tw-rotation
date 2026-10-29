@@ -85,4 +85,4 @@ def test_workflow_cron_與_phase_分派():
     text = open(".github/workflows/daily.yml", encoding="utf-8").read()
     assert "PHASE=inst" in text
     assert "cancel-in-progress: false" in text and "cancel-in-progress: true" not in text
-    assert wf["jobs"]["deploy"]["if"] == "needs.collect.outputs.inst_new != 'false'"
+    assert wf["jobs"]["deploy"]["if"] == "needs.collect.outputs.inst_new != 'false' && needs.collect.outputs.rebuild != 'false'"      # 2026-10-29：沒新增今天法人也不部署
