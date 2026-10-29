@@ -124,15 +124,61 @@
   "swagger_path": "/tpex_3insti_qfii_trading"
  },
  {
-  "head": "[ {\"Date\":\"1151028\",\"SecuritiesCompanyCode\":\"00411A\",\"CompanyName\":\"主動統一前沿科技\",\"Foreign Investors include Mainland Area Investors (Foreign Dealers excluded)-Total Buy\":\"1375000\",\" Foreign Investors inc",
+  "head": "[ {\"Date\":\"1151028\",\"Rank\":\"1\",\"SecuritiesCompanyCode\":\"6147\",\"CompanyName\":\"頎邦\",\"Buy\":\"2149\",\"Sell\":\"47\",\"NetBuy\":\"2102\"}, {\"Date\":\"1151028\",\"Rank\":\"2\",\"SecuritiesCompanyCode\":\"6121\",\"CompanyName\":\"新",
   "http": 200,
-  "url": "https://www.tpex.org.tw/openapi/v1/tpex_3insti_daily_trading"
+  "url": "https://www.tpex.org.tw/openapi/v1/tpex_3insti_trading"
+ },
+ {
+  "cols": [
+   "Date",
+   "Rank",
+   "SecuritiesCompanyCode",
+   "CompanyName",
+   "Buy",
+   "Sell",
+   "NetBuy"
+  ],
+  "n": 31,
+  "url": "https://www.tpex.org.tw/openapi/v1/tpex_3insti_trading"
+ },
+ {
+  "head": "<!DOCTYPE html><html lang=\"zh-Hant-tw\"><head><title>404 - è­å¸æ«æª¯è²·è³£ä¸­å¿</title><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, maximum-scale=1, u",
+  "http": 200,
+  "url": "https://www.tpex.org.tw/openapi/tpex_3insti_qfii"
+ },
+ {
+  "head": "<!DOCTYPE html><html lang=\"zh-Hant-tw\"><head><title>404 - è­å¸æ«æª¯è²·è³£ä¸­å¿</title><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, maximum-scale=1, u",
+  "http": 200,
+  "url": "https://www.tpex.org.tw/openapi/tpex_3insti_qfii_industry"
+ },
+ {
+  "head": "<!DOCTYPE html><html lang=\"zh-Hant-tw\"><head><title>404 - è­å¸æ«æª¯è²·è³£ä¸­å¿</title><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, maximum-scale=1, u",
+  "http": 200,
+  "url": "https://www.tpex.org.tw/openapi/tpex_3insti_daily_trading"
+ },
+ {
+  "head": "<!DOCTYPE html><html lang=\"zh-Hant-tw\"><head><title>404 - è­å¸æ«æª¯è²·è³£ä¸­å¿</title><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, maximum-scale=1, u",
+  "http": 200,
+  "url": "https://www.tpex.org.tw/openapi/tpex_3insti_dealer_trading"
+ },
+ {
+  "head": "<!DOCTYPE html><html lang=\"zh-Hant-tw\"><head><title>404 - è­å¸æ«æª¯è²·è³£ä¸­å¿</title><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, maximum-scale=1, u",
+  "http": 200,
+  "url": "https://www.tpex.org.tw/openapi/tpex_3insti_summary"
+ },
+ {
+  "head": "<!DOCTYPE html><html lang=\"zh-Hant-tw\"><head><title>404 - è­å¸æ«æª¯è²·è³£ä¸­å¿</title><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, maximum-scale=1, u",
+  "http": 200,
+  "url": "https://www.tpex.org.tw/openapi/tpex_3insti_trading"
+ },
+ {
+  "head": "<!DOCTYPE html><html lang=\"zh-Hant-tw\"><head><title>404 - è­å¸æ«æª¯è²·è³£ä¸­å¿</title><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, maximum-scale=1, u",
+  "http": 200,
+  "url": "https://www.tpex.org.tw/openapi/tpex_3insti_qfii_trading"
  },
  {
   "market": "上櫃",
-  "parts": [
-   902
-  ],
-  "rows": 902
+  "parts": [],
+  "rows": 0
  }
 ]
