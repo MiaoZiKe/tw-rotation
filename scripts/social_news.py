@@ -401,7 +401,8 @@ def _who(c: dict, names: dict, title: str) -> str:
 # ---------------- v2 結構化產稿（CEO 10-28 退件後：標題由欄位組、大數字＝主旨、具體解讀、觀察點、品質閘） ----------------
 ENT = ["SK海力士", "三星", "輝達", "NVIDIA", "微軟", "蘋果", "Alphabet", "Google", "Meta", "亞馬遜", "特斯拉", "博通", "超微", "AMD",
        "甲骨文", "英特爾", "高通", "美光", "恩智浦", "安謀", "CoreWeave", "OpenAI", "Anthropic", "SpaceX", "費半", "道瓊", "那斯達克",
-       "標普", "聯準會", "Fed", "日銀", "歐洲央行", "TrendForce", "IDC", "加權指數", "台股", "三大法人", "外資", "投信", "自營商"]
+       "標普", "聯準會", "Fed", "日銀", "歐洲央行", "TrendForce", "IDC", "加權指數", "台股", "三大法人", "外資", "投信", "自營商",
+       "長鑫存儲", "長鑫", "中芯", "華為"]
 METRICS = [("EPS", r"每股(純益|盈餘|稅後|賺)|每股$|EPS"), ("經濟成長率", r"GDP|經濟成長"), ("通膨", r"通膨|物價"), ("虧損", r"淨虧|虧損"), ("毛利率", r"毛利率"), ("營業利益", r"營業利益|營益"), ("淨利", r"淨利|純益|獲利|盈餘"),
            ("營收", r"營收"), ("資本支出", r"資本支出"), ("財測", r"財測|指引"), ("指數", r"加權指數|指數|道瓊|那斯達克|標普|費半"),
            ("買超", r"買超"), ("賣超", r"賣超"), ("成交值", r"成交值|成交額"), ("殖利率", r"殖利率"), ("利率", r"利率"), ("融資", r"融資|籌資|增資"), ("產值", r"產值"), ("出貨", r"出貨"), ("餘額", r"餘額"),
@@ -460,7 +461,7 @@ BANKS = r"(?:泰國|美國|日本|英國|南韓|韓國|澳洲|紐西蘭|加拿�
 INST = ["聯準會", "Fed", "FOMC", "歐洲央行", "ECB", "日銀", "日本銀行", "英格蘭銀行", "人行", "人民銀行", "金管會", "主計總處", "國發會",
         "經濟部", "財政部", "美國商務部", "美國勞工部", "OPEC+", "OPEC", "IMF", "世界銀行", "WTO"]
 COMMOD = r"(?:(?:歐洲|美國|亞洲|國際|紐約|倫敦)?(?:天然氣|原油|布蘭特原油|西德州原油|油價|金價|黃金|白銀|銀價|銅價|鐵礦砂|小麥|黃豆|比特幣))"
-STOPW = {"核心", "財報", "法說", "營收", "快訊", "焦點", "盤前", "盤後", "台股", "美股", "陸股", "港股", "日股", "市場", "外資", "投信", "分析師", "專家",
+STOPW = {"核心", "房產", "房市", "焦點股", "風向球", "財報", "法說", "營收", "快訊", "焦點", "盤前", "盤後", "台股", "美股", "陸股", "港股", "日股", "市場", "外資", "投信", "分析師", "專家",
          "今年", "明年", "去年", "全年", "公司", "業者", "法人", "官方", "政府", "報告", "研調", "調查", "美國", "中國", "全球", "國際", "亞洲", "歐洲"}
 ENG_STOP = {"IPO", "AI", "CEO", "CFO", "EPS", "ETF", "GDP", "CPI", "PCE", "HBM", "GPU", "CPU", "ASIC", "Q1", "Q2", "Q3", "Q4", "PC", "EV"}
 VERBS = r"(?:搭上|宣布|公布|推出|發布|發表|營收|獲利|淨利|股價|市值|財報|法說|擬|將|攜手|砸|收購|併購|上市|掛牌|登|第[一二三四1-4]季|Q[1-4]|前三季|上半年|每股|今年|明日|今日|再|又|首度|大舉|傳)"
@@ -485,29 +486,42 @@ def _proper(t: str) -> str:
     for seg in re.split(r"[ 　，,、！!？?：:；;〈〉【】「」『』（）()／]+", t):
         m = re.match(r"([\u4e00-\u9fff]{2,6}?)" + VERBS, seg)
         if m and m.group(1) not in STOPW and not re.search(r"[增減漲跌賺虧億萬元點%]", m.group(1)) \
+                and not re.match(r"房市|房價|市場|台股|美股|陸股|港股|傳統|人類", m.group(1)) \
                 and not re.match(r"[本上下單今明去前近首全各多逾約該此這那其兩三四五六七八九十]", m.group(1)):   # 「本季」「上半年」這類不是名字
             return m.group(1)
     return ""
 
 
+FLOW_WHO = {"三大法人", "外資", "投信", "自營商"}
+
+
 def subject_of(c: dict, names: dict) -> tuple[str, str]:
     """(主體名稱, 台股代號或空)；找不到回 ('', '')。
-    順序：新聞自帶代號 → 標題裡的上市櫃／興櫃簡稱與已知機構（取最前面的）→〈XX法說〉括號標頭 → 央行／機構 →
-    「XX…登興櫃」→ 商品與地區市場 → 標題開頭的專有名詞（外國公司）。"""
+    順序：標題裡的上市櫃／興櫃簡稱與已知機構（取最前面的；新聞代號清單裡有的優先；籌碼類以被買賣的公司為主）→〈XX法說〉括號標頭 → 央行／機構 →
+    「XX…登興櫃」→ 商品與地區市場 → 新聞代號（只有一檔、或摘要寫到它）→ 標題開頭的專有名詞（外國公司）。"""
     t = sanitize(c["lead"]["title"])
     codes = [x for x in str(c["lead"].get("codes") or "").split(",") if x and not x.startswith("US-")]
-    if codes and names.get(codes[0]):
-        return names[codes[0]], codes[0]
     al = _alias(names)
-    best = None
-    for v in al:
-        k = t.find(v)
-        if k >= 0 and (best is None or (k, -len(v)) < (best[0], -len(best[1]))):
-            best = (k, v)
-    for v in ENT + INST:
-        k = t.find(v)
-        if k >= 0 and (best is None or (k, -len(v)) < (best[0], -len(best[1]))):
-            best = (k, v)
+    if codes and names.get(codes[0]) and names[codes[0]] in t:
+        al.setdefault(names[codes[0]], codes[0])          # 名字含英數字（M31）或太泛被 _alias 排掉的，只要真的出現在標題也算
+
+    def first(words):
+        best = None
+        for v in words:
+            k = t.find(v)
+            if k >= 0 and (best is None or (k, -len(v)) < (best[0], -len(best[1]))):
+                best = (k, v)
+        return best
+    # 10-29：新聞自帶的代號清單常常是「內文提到的所有個股」，第一個不一定是主體（「外資大砍友達…」帶 2330,2409 → 被判成台積電，
+    # 相關公司也跟著列錯）。改成以標題為準：標題裡最先出現的公司／機構＝主詞；代號只在標題完全沒有主體時才當備援。
+    tagged = [v for v in al if al[v] in codes]
+    co = first(tagged) or first(al)                        # 台股公司：先找新聞代號清單裡、標題也寫到的那家
+    if co and codes and co[1] not in tagged and len(co[1]) <= 2:
+        co = None                                          # 兩個字的簡稱又不在代號清單 → 多半是一般詞（「回收及再生」的再生、「衛星通訊」的星通）
+    en = first(ENT + INST)                                 # 外國公司、機構、指數、法人
+    if en and co and en[1] in FLOW_WHO:
+        en = None                                          # 籌碼類（外資／投信／自營商／三大法人買賣某檔）：以被買賣的那家為主
+    best = min([x for x in (co, en) if x], key=lambda x: (x[0], -len(x[1])), default=None)
     if best:
         return best[1], al.get(best[1], "")
     m = re.match(r"^[〈【\[]\s*([^〉】\]]{2,8}?)\s*(?:法說|財報|營收|獲利|股東會|重訊|快訊)?[〉】\]]", t)
@@ -522,8 +536,11 @@ def subject_of(c: dict, names: dict) -> tuple[str, str]:
     m = re.search(COMMOD, t)
     if m:
         return m.group(0), ""
+    summ = sanitize(c["lead"].get("summary") or "")
+    if len(codes) == 1 and names.get(codes[0]) or codes and names.get(codes[0]) and names[codes[0]] in summ:
+        return names[codes[0]], codes[0]       # 標題沒寫公司名、摘要開頭寫了 → 才用新聞自帶的代號
     w = _proper(t)
-    if not w:                                  # 標題只寫「沙烏地航運巨頭」→ 摘要裡的英文公司名（Bahri）
+    if not w and not codes:                    # 標題只寫「沙烏地航運巨頭」→ 摘要裡的英文公司名（Bahri）；有台股代號的新聞不這樣撈（10-29：選股專欄被撈成 Anthropic）
         m = re.search(r"(?<![A-Za-z])([A-Z][a-z][A-Za-z0-9&.]{1,20})(?![A-Za-z])", sanitize(c["lead"].get("summary") or ""))
         w = m.group(1) if m and m.group(1) not in ENG_STOP else ""
     return (w, al.get(w, "")) if w else ("", "")
@@ -685,7 +702,7 @@ def rel_news(c: dict, subj: str, code: str, names: dict) -> str:
         sec = rel_section(rel_for_code(code, names))
         if sec:
             return sec
-    t = (subj or "") + " " + sanitize(c["lead"]["title"])
+    t = sanitize(c["lead"]["title"])                     # 產品關鍵字只看標題（主體若是從摘要撈的英文字，不拿來對題材）
     for pat, who, spec in TOPIC_SEG:
         if re.search(pat, t) or (who and re.search(who, subj or "")):
             return rel_section(rel_from_spec(spec, exclude={code} if code else None, cap=5))

@@ -404,3 +404,32 @@ def test_related_news_foreign_topic_by_keyword_not_incidental_mention():
     c = _cand("不只賣自家雲端！Google找上甲骨文 搶輝達AI晶片生意", "Google 擴大 TPU 銷售。")
     assert S.rel_news(c, "Google", "", NAMES) == ""                                         # 標題順帶提「輝達」不算
     assert S.rel_news(_cand("ABF載板缺貨 味之素漲價三成", "ABF 膜漲價。"), "味之素", "", NAMES).count("IC 載板") == 3
+
+
+# ---- 主體判斷（10-29：新聞自帶代號清單的第一檔不一定是主體 →「外資大砍友達」被判成台積電，相關公司跟著列錯）
+def _subj2(title, codes="", summary="", names=None):
+    return S.subject_of({"lead": {"title": title, "summary": summary, "codes": codes}}, names or NAMES2)
+
+
+NAMES2 = {"2330": "台積電", "2409": "友達", "3037": "欣興", "8069": "元太", "8039": "台虹", "8070": "長華",
+          "2344": "華邦電", "6770": "力積電", "2337": "旺宏", "1337": "再生", "7865": "金聯成", "3105": "穩懋",
+          "3025": "星通", "6669": "緯穎", "2850": "新產"}
+
+
+def test_subject_title_beats_tagged_codes():
+    assert _subj2("外資大砍友達9.6萬張最凶 倒貨3檔主動式ETF、連12賣調節0050", "2330,2409,0050") == ("友達", "2409")
+    assert _subj2("欣興決議處分日本子公司全數股權 推估MEIKO可望接手", "2330,3037") == ("欣興", "3037")
+    assert _subj2("台虹財報出爐 前三季稅後純益6.15億元年增79.93% EPS2.33元", "8069,8039,8070") == ("台虹", "8039")
+
+
+def test_subject_flow_news_uses_traded_stock():
+    assert _subj2("外資擴大買超159億元！華邦電、力積電獲加碼 旺宏卻遭砍近3萬張") == ("華邦電", "2344")
+    assert _subj2("外資回補298億元 大買00406A 7.2萬張、友達6.9萬張") == ("友達", "2409")
+    assert _subj2("外資上週賣超2356億元　大砍晶圓代工股")[0] == "外資"                        # 沒寫個股 → 仍是外資
+
+
+def test_subject_rejects_common_word_aliases_and_keeps_single_code():
+    assert _subj2("銘福集團攜大馬Naza集團合作車輛資源回收及再生 下一步延伸到菲國", "7865")[1] != "1337"   # 「再生」是一般詞
+    assert _subj2("衛星通訊｜星艦首度送上V3衛星！每顆PA用量增4至5倍，穩懋(3105)商機看星艦發射節奏", "3105") == ("穩懋", "3105")
+    assert _subj2("《價值型投資 最新產業研究報告》緯穎 (6669-TW) Meta與亞馬遜需求延續", "6669") == ("緯穎", "6669")
+    assert _subj2("台股殺出雙11「折扣行情」！台積電？聯發科？誰有機會脫穎而出？", "2330,2454")[0] == "台股"
