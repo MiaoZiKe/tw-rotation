@@ -127,16 +127,16 @@
 | 順序 | 缺口 | 內容 | 負責 agent | 預估工時 | 依賴 | 要 Andy 動手？ |
 |---|---|---|---|---|---|---|
 | 1 | 缺口 1：utm＋漏斗事件 | 前端存首次 utm、補 `land／signup／trial_start／checkout_click／paid` 事件；Worker 白名單同步（前端、Worker、測試三邊一致，見 `account_analytics.md` 第 1、255 行）；管理頁加漏斗小卡；隱私權條款補一句 | `frontend-ui`（前端）、`security-privacy`（白名單與隱私）、`reviewer`、`deployer` | 1.5～2 天 | 無 | 否（但推 main 前 `inspector` 稽核，且要跑桌機守門） |
-| 1b | 缺口 1 配套 | 自動發文的網址補齊 utm 規則（D-6）；`tests/test_social_caption.py` 同步 | `social-media-manager`、`data-steward` | 0.5 天 | 1 | 否 |
-| 2 | 缺口 5：成效自動回收 | `scripts/social_insights.py` 每天抓 Threads／IG 洞察寫入 `social-snaps` 分支 `state/insights.json`；Actions 排程 | `social-media-manager`（規格）、`data-scraper`（實作） | 1～1.5 天 | Meta 權杖要多開洞察權限（Andy 動手） | **是（一次）**：在 Meta 開發者後台為既有應用程式加「洞察」權限並重新產生權杖；逐格步驟見 O-1 |
-| 3 | 缺口 8：確認自動發文穩定 | 連續觀察 10 個交易日：準時率、重複發文、圖重疊報告；`state/posted.json` 檢查；Cloudflare 排程失敗備援 | `inspector`、`social-media-manager` | 0.5 天設定＋每日自動檢 | 無 | 否 |
+| 1b | 缺口 1 配套 | 自動發文的網址補齊 utm 規則（D-6）；`tests/test_social_caption.py` 同步 | `social-ops-lead`、`data-steward` | 0.5 天 | 1 | 否 |
+| 2 | 缺口 5：成效自動回收 | `scripts/social_insights.py` 每天抓 Threads／IG 洞察寫入 `social-snaps` 分支 `state/insights.json`；Actions 排程 | `social-ops-lead`（規格）、`data-scraper`（實作） | 1～1.5 天 | Meta 權杖要多開洞察權限（Andy 動手） | **是（一次）**：在 Meta 開發者後台為既有應用程式加「洞察」權限並重新產生權杖；逐格步驟見 O-1 |
+| 3 | 缺口 8：確認自動發文穩定 | 連續觀察 10 個交易日：準時率、重複發文、圖重疊報告；`state/posted.json` 檢查；Cloudflare 排程失敗備援 | `inspector`、`social-ops-lead` | 0.5 天設定＋每日自動檢 | 無 | 否 |
 | 4 | 缺口 3：價格統一＋律師 | 採 H-5 建議（Plus 299／Pro 549），寫入後台、`pricing.js` DEMO 與文件同步；付費功能清單整理成一頁給律師 | `marketing-strategist`（建議）、`payments-billing`（落地）、`legal-compliance`（整理清單） | 0.5 天＋律師時間 | 無 | **是**：① 拍板價格（J-1）② 預約律師（J-2） |
 | 5 | 缺口 2：綠界信用卡定期定額 | 先問綠界個人會員能否開、審核天數、文件；開通後做 `/v1/pay/*` 端點（規格已在 `launch_gap_payment_1009.md` 與 `checkout_plan.md` 綠界版，15～23 小時） | `payments-billing`（端點）、`security-privacy`（驗章／金鑰） | 2～3 天工程＋審核天數**未確認** | 價格、律師 | **是**：① 打電話問綠界（`launch_gap_payment_1009.md` 的 P2 六題）② 備身分證與銀行帳戶封面申請（P4）③ 金鑰放 Worker Secret（P8）。逐格步驟見 O-2 |
 | 6 | 缺口 4：到期觸及管道 | (a) 站內通知：試用第 5、7 天登入時跳一次（已有 `#notices` 公告機制可延伸）；(b) 網頁推播（Web Push，需 service worker＋Worker 存訂閱；**可行性與瀏覽器支援未驗證**，iOS Safari 需加入主畫面才支援，中信心）；(c) Email 名單：註冊頁加「願意收到活動通知」獨立勾選（不預設勾），`legal_config.newsletter` 改 true、隱私權條款同步；寄信用外部服務（Worker 目前零寄信能力） | `frontend-ui`、`security-privacy`、`legal-compliance`、`payments-billing`（寄信） | (a) 0.5 天；(b) 2 天；(c) 2～3 天 | 律師看 (c) 的同意文字 | **是**：選一個寄信服務並申請（J-4，逐格見 O-3）；Andy 已明確不做 LINE，本方案不採用 |
 | 7 | 缺口 6：SEO | `sitemap.xml`、`robots.txt`、每頁 meta description、`canonical` 指向 `liguligu-puipui.com`；精選文章改成可索引的真網址頁（建置時產 `/articles/<id>/`）；`github.io` 加 301 或 canonical | `frontend-ui`、`deployer`、`content-planner`（標題與描述） | 2～3 天 | 缺口 1（先有量測才看得到自然流量） | 可能：網域層級的轉址要在 Cloudflare／GitHub 設定頁操作，屆時另寫逐格步驟 |
-| 8 | 缺口 7：短影片停擺 | 見 E 節：產線自動化＋Reels 自動發布 | `video-editor`、`bibi-animator`、`social-media-manager`、`legal-compliance` | 首支 2 天，之後每支約 0.5 天（半自動） | 缺口 5（要看成效）、旁白聲音 Andy 確認 | **是（一次）**：確認旁白聲音（10-18 規則，新片前交 10 秒試聽） |
+| 8 | 缺口 7：短影片停擺 | 見 E 節：產線自動化＋Reels 自動發布 | `video-editor`、`bibi-animator`、`social-ops-lead`、`legal-compliance` | 首支 2 天，之後每支約 0.5 天（半自動） | 缺口 5（要看成效）、旁白聲音 Andy 確認 | **是（一次）**：確認旁白聲音（10-18 規則，新片前交 10 秒試聽） |
 
-C 表新增第 0 項：**C-0 基線擷取（2026-10-27，3 小時，`data-steward`、`social-media-manager`），見下節。** 所有工項的完整日期與驗收標準見 L 節；Andy 動手項目逐格步驟見 O 節。
+C 表新增第 0 項：**C-0 基線擷取（2026-10-27，3 小時，`data-steward`、`social-ops-lead`），見下節。** 所有工項的完整日期與驗收標準見 L 節；Andy 動手項目逐格步驟見 O 節。
 
 不寫在表裡的決定：不做付費廣告。理由：Meta 對台灣金融類廣告主有驗證要求（`launch_gap_legal_1009.md` B1），而且在沒有量測與金流之前買流量等於燒錢。90 天後依 B-3 實測比例再決定。
 
@@ -147,9 +147,9 @@ C 表新增第 0 項：**C-0 基線擷取（2026-10-27，3 小時，`data-stewar
 | 要抄的基線 | 能否取得 | 依據／信心 | 取不到的替代指標 | 誰、何時 |
 |---|---|---|---|---|
 | 每日進站（造訪）次數 | **能**：Worker 已存「台北日期 × `ev:session`」，保留 13 個月，管理頁 `/v1/admin/stats` 可回 | `docs/account_analytics.md` 第 15、19、58 行（讀檔，高）。注意這是「造訪次數」不是「帶 utm 的工作階段」，數字口徑與 B-4 不同，基線只用來比成長倍數 | — | `data-steward`，W1，2026-10-27 |
-| Threads 粉絲數 | **官方文件說能**：`followers_count` 屬 Threads Insights，需 `threads_manage_insights` 權限；不支援 since／until（只能抄當下值） | [Threads Insights API 官方文件](https://developers.facebook.com/docs/threads/insights/)（WebSearch 摘要，中）；**要用我們自己的權杖實測才算數** | Andy 或我打開 App 的個人頁截圖，人工抄數字存 `docs/marketing/baseline_1027.md` | `social-media-manager`，W1 |
+| Threads 粉絲數 | **官方文件說能**：`followers_count` 屬 Threads Insights，需 `threads_manage_insights` 權限；不支援 since／until（只能抄當下值） | [Threads Insights API 官方文件](https://developers.facebook.com/docs/threads/insights/)（WebSearch 摘要，中）；**要用我們自己的權杖實測才算數** | Andy 或我打開 App 的個人頁截圖，人工抄數字存 `docs/marketing/baseline_1027.md` | `social-ops-lead`，W1 |
 | IG 粉絲數 | 理論上 Graph API 的 IG 使用者欄位有粉絲數，**我今天沒查到官方頁面的摘要，未確認**（低） | — | 同上，人工截圖 | 同上 |
-| 影片（Reels）觀看數 | **能，但指標名要改**：舊的 `plays` 已被官方標示棄用（2025-04-21 起對所有版本停用），改用 `views`；`reach` 對 Reels 是否有值有開發者反映不穩（非官方，低） | [IG 媒體洞察官方文件](https://developers.facebook.com/docs/instagram-platform/reference/instagram-media/insights/)（WebSearch 摘要，中）。**本方案原稿寫的 `plays` 已全部改成 `views`** | Andy 每週五截圖 IG「洞察」頁 1 張丟進 `docs/marketing/weekly_report/screens/` | `social-media-manager`，W6 完成前先手動 |
+| 影片（Reels）觀看數 | **能，但指標名要改**：舊的 `plays` 已被官方標示棄用（2025-04-21 起對所有版本停用），改用 `views`；`reach` 對 Reels 是否有值有開發者反映不穩（非官方，低） | [IG 媒體洞察官方文件](https://developers.facebook.com/docs/instagram-platform/reference/instagram-media/insights/)（WebSearch 摘要，中）。**本方案原稿寫的 `plays` 已全部改成 `views`** | Andy 每週五截圖 IG「洞察」頁 1 張丟進 `docs/marketing/weekly_report/screens/` | `social-ops-lead`，W6 完成前先手動 |
 | 現有影片觀看（10-10、10-17、10-18 三支） | 同上，若當時是 Andy 手動上傳到 IG／其他平台，**API 可能抓不到**（未確認） | — | 人工截圖 | 同上 |
 
 **C-0 驗收標準：** `docs/marketing/baseline_1027.md` 存在，五列都有「數字或『取不到＋替代指標已定』」，每個數字附取得方式與日期。**C-0 完成前不啟動第 14 天校正。**
@@ -257,7 +257,7 @@ C 表新增第 0 項：**C-0 基線擷取（2026-10-27，3 小時，`data-stewar
 | 4 旁白 | 台灣口音 TTS（已有 `tts_script.json`、`voice/` 流程）；聲音須 Andy 確認一次 | 有，待確認 | `video-editor` |
 | 5 渲染 | 參考 `render_cowos.py`；輸出 mp4、封面、srt、`overlap_report` | 有範例，需模板化成參數化腳本 | `canvas-motion-engineer` |
 | 6 審核 | 法遵自查（機器掃禁用字＋人工抽查）＋重疊檢查 | 要新做自動掃描 | `legal-compliance`、`reviewer` |
-| 7 發布 | Reels：IG Graph API `media_type=REELS`（需影片的公開網址；**發布 API 支援我仍未查到官方頁摘要，中信心**；洞察欄位已查：用 `views`，不用已棄用的 `plays`，見 C-0）；Shorts：YouTube Data API（需另開 Google 專案，**未評估**）。第一階段退而求其次：成品包放 `social-snaps` 分支，Andy 手機上傳（現有做法）。 | 要新做 | `social-media-manager` |
+| 7 發布 | Reels：IG Graph API `media_type=REELS`（需影片的公開網址；**發布 API 支援我仍未查到官方頁摘要，中信心**；洞察欄位已查：用 `views`，不用已棄用的 `plays`，見 C-0）；Shorts：YouTube Data API（需另開 Google 專案，**未評估**）。第一階段退而求其次：成品包放 `social-snaps` 分支，Andy 手機上傳（現有做法）。 | 要新做 | `social-ops-lead` |
 | 8 回收 | 與圖文同一支 `social_insights.py` | 要新做 | 同 C 節第 2 項 |
 
 首支建議做「30 秒看懂一張圖：資金輪動時鐘」，因為盤中自動貼文第一張就是它，貼文與影片可互相導引。
@@ -438,7 +438,7 @@ E7 注意：價格實驗必須兩個價都真的是「可以付的價格」或�
 | 9 | 平台政策：自動化回覆私訊、機器人互動、大量重複貼文可能被限流或停權；本方案不做自動回覆 | D-5 | 一般認知（我沒今日查證，低） | 低 |
 | 10 | 帳號安全：Meta 權杖不進 repo、不進 log（`social_publish.py` 已做） | 沿用 | 程式註解 | 高 |
 | 11 | 商標：「哩股哩股」是否已被註冊未查 | 上線前查智慧局 | `launch_gap_legal_1009.md` B8 | 未確認 |
-| 12 | 自動發文出錯的名譽風險（資料日期不符、圖重疊） | `social_gate.py`＋重疊報告＋`LIVE_ENABLED`；錯發要有「收回」流程（刪貼文＋更正貼文，`social-media-manager` 寫 SOP） | 現有 | 高 |
+| 12 | 自動發文出錯的名譽風險（資料日期不符、圖重疊） | `social_gate.py`＋重疊報告＋`LIVE_ENABLED`；錯發要有「收回」流程（刪貼文＋更正貼文，`social-ops-lead` 寫 SOP） | 現有 | 高 |
 
 ---
 
@@ -468,7 +468,7 @@ E7 注意：價格實驗必須兩個價都真的是「可以付的價格」或�
 | 資料／服務 | 提供者 | 放哪裡 | 頻率 | 行銷單位可下的指令 | 回覆時限（提議） |
 |---|---|---|---|---|---|
 | 站內事件彙總（進站、註冊、啟用、看價格、結帳點擊、付費） | `data-steward`（讀 Worker）、`security-privacy`（白名單） | `docs/marketing/weekly_report/data/<週一>.json` | 每週一 09:00 前；急件隨時 | 「新增事件鍵」「匯出某日彙總」 | 1 個工作日 |
-| 發文紀錄與準時率（`state/posted.json`、gate 日誌） | `social-media-manager` | `social-snaps` 分支 `state/` | 每日 | 「暫停某時段發文」（`LIVE_ENABLED` 以外的開關，由其執行） | 2 小時（交易日）；暫停指令當下執行 |
+| 發文紀錄與準時率（`state/posted.json`、gate 日誌） | `social-ops-lead` | `social-snaps` 分支 `state/` | 每日 | 「暫停某時段發文」（`LIVE_ENABLED` 以外的開關，由其執行） | 2 小時（交易日）；暫停指令當下執行 |
 | 貼文與影片成效（洞察） | `data-scraper`（W6 完成後）；之前由 Andy 週五截圖 | `state/insights.json` | 每日 | 「補抓某則貼文」 | 1 個工作日 |
 | 金流（付款成功／失敗／退款）彙總 | `payments-billing` | 同週報 json（只給筆數與金額，不含姓名） | 金流開通後每日 | 「列出本週預約／付費筆數」 | 1 個工作日 |
 | 內容法遵審查（新模板、新內容類型、影片） | `legal-compliance` | 工單回覆＋自查表 | 隨時 | 「這則能不能發」 | 模板 24 小時；新內容類型 3 個工作日；**律師題目不在此限** |
@@ -490,26 +490,26 @@ E7 注意：價格實驗必須兩個價都真的是「可以付的價格」或�
 
 | ID | 工項 | 負責 | 工時 | 驗收標準（怎麼證明做完） | 前置 |
 |---|---|---|---|---|---|
-| W1 | C-0 基線擷取 | `data-steward`、`social-media-manager` | 3 | `baseline_1027.md` 五列齊全（見 C-0） | 無 |
+| W1 | C-0 基線擷取 | `data-steward`、`social-ops-lead` | 3 | `baseline_1027.md` 五列齊全（見 C-0） | 無 |
 | W2 | utm＋漏斗事件（C 表第 1 項） | `frontend-ui`、`security-privacy`、`reviewer`、`deployer` | 14（12～16） | `_uitest` 新段落「漏斗事件」：點方案鈕後管理頁漏斗卡 +1；DNT 開啟時送 0 筆；桌機守門 0；`inspector` 稽核 | **W3 的隱私權政策段落先上線**（法遵第 6 條） |
 | W3 | 法遵文件包：隱私權政策 B 段、體驗橫幅文字、提醒文案規則、劃線價規則、帳號簡介免責、禁用字擴充（法遵「要改」第 3、4、6、11、12、14、16 條） | `legal-compliance`、`frontend-ui` | 6 | 逐條對照審查表，每條有「改在哪個檔／哪句」；`legal-compliance` 簽 OK | 無 |
-| W4 | 發文網址補 utm（C 表 1b） | `social-media-manager`、`data-steward` | 4 | `tests/test_social_caption.py` 綠；dry-run 貼文網址含 `?u=`；**未取得 Andy 的 J-3 同意前不得動 `social_snap.py` 網址** | W2、J-3 |
-| W5 | 自動發文穩定觀察 10 個交易日 | `inspector`、`social-media-manager` | 6 | 10 個交易日準時率 ≥ 90%、重複發文 0、重疊報告 0 筆；表格存週報 | 無 |
-| W6 | 洞察自動回收 `social_insights.py` | `social-media-manager`（規格）、`data-scraper` | 10 | `state/insights.json` 連續 3 天有 Threads views／IG views 非空；欄位名對官方文件 | **Andy 動手 O-1** |
+| W4 | 發文網址補 utm（C 表 1b） | `social-ops-lead`、`data-steward` | 4 | `tests/test_social_caption.py` 綠；dry-run 貼文網址含 `?u=`；**未取得 Andy 的 J-3 同意前不得動 `social_snap.py` 網址** | W2、J-3 |
+| W5 | 自動發文穩定觀察 10 個交易日 | `inspector`、`social-ops-lead` | 6 | 10 個交易日準時率 ≥ 90%、重複發文 0、重疊報告 0 筆；表格存週報 | 無 |
+| W6 | 洞察自動回收 `social_insights.py` | `social-ops-lead`（規格）、`data-scraper` | 10 | `state/insights.json` 連續 3 天有 Threads views／IG views 非空；欄位名對官方文件 | **Andy 動手 O-1** |
 | W7 | 文案禁用字機器掃描（含法遵第 13、15 條新增字詞；只用過去式規則做人工抽查） | `legal-compliance`（字表）、`data-scraper`（實作） | 8 | 對 10 則歷史貼文跑：已知命中字 100% 擋下、誤擋 ≤ 1 則；失敗即不發 | 無 |
 | W8 | 價格統一落地（後台、`pricing.js` DEMO、文件）；H-5 標「299 暫定」 | `payments-billing`、`marketing-strategist` | 4 | 三處價格一致（grep 比對）；**但 github.io 網址不得出現價格**（M-6） | J-1 |
 | W9 | 律師資料包（付費功能清單、M3 說法、法遵第五節 5 題） | `legal-compliance` | 6 | 一份 ≤ 6 頁 md，題目照法遵第五節 | 無 |
 | W10 | 站內通知＋體驗剩餘天數標籤＋`ev:trial_start` | `frontend-ui` | 6 | 模擬第 5 天登入跳一次；文案過 W3 規則；`_uitest` 手機＋桌機各一 | W2、W3 |
 | W11 | 週報產生器（G-3） | `data-steward` | 10 | 手動觸發產出 `weekly_report/2026-11-09.md`，欄位齊全，缺資料欄位寫「樣本未達／未取得」不留白 | W1、W2 |
 | W12 | 首支影片「資金輪動時鐘」 | `video-editor`、`bibi-animator`、`legal-compliance` | 16 | 重疊檢查行「程式 N 幀 0 筆；人工 M 格 0 筆」；法遵掃描 0 筆；旁白 Andy 確認（O-5） | O-5 |
-| W13 | 資料授權處理：全站與貼文圖補完整顯名聲明；盤中貼文即時價改「收盤／T-1」或先查證券交易所資訊授權；FinMind 條款存證 | `legal-compliance`、`frontend-ui`、`social-media-manager` | 8 | 顯名聲明出現在每張貼文圖角落與頁尾（截圖）；付費功能與貼文 grep 不到 Yahoo 資料；FinMind 條款截圖存檔；**即時價授權是否需向證交所申請＝律師題** | O-4 |
+| W13 | 資料授權處理：全站與貼文圖補完整顯名聲明；盤中貼文即時價改「收盤／T-1」或先查證券交易所資訊授權；FinMind 條款存證 | `legal-compliance`、`frontend-ui`、`social-ops-lead` | 8 | 顯名聲明出現在每張貼文圖角落與頁尾（截圖）；付費功能與貼文 grep 不到 Yahoo 資料；FinMind 條款截圖存檔；**即時價授權是否需向證交所申請＝律師題** | O-4 |
 | W14 | 綠界詢問＋文件準備 | Andy（O-2）、`payments-billing`（整理答案） | 3（我方 1，Andy 2） | P2 六題都有書面答案存入 `docs/launch_gap_payment_1009.md` 補記 | 無 |
 | W15 | 綠界金流端點 `/v1/pay/*` | `payments-billing`、`security-privacy` | 20（16～24） | 測試商店跑通：下單→付款→驗章→開通；金額以後端為準；金鑰只在 Worker Secret | W14 通過審核、J-1 |
 | W16 | 結帳頁：數位內容獨立勾選、單期方案、自助取消 | `frontend-ui`、`payments-billing` | 8 | 未勾選無法送出；勾選文字與法遵草稿 C 一致且律師看過；`_uitest` | W15、律師 |
 | W17 | Email 名單：註冊頁勾選、`newsletter=true`、一鍵退訂、寄信串接 | `frontend-ui`、`security-privacy`、`payments-billing` | 20（16～24） | 勾選不預設勾；不勾可正常註冊；測試信含退訂連結且點了即停；隱私權政策已列委外與境外傳輸 | O-3、W3 |
 | W18 | SEO（sitemap、robots、meta、canonical、文章真網址頁） | `frontend-ui`、`deployer` | 20（16～24） | sitemap 可開；每頁 `<meta description>` 非空；`_uitest` 桌機守門 0 | W2；第 30 天決定要不要做 |
 | W19 | 網頁推播（第三梯） | `frontend-ui` | 16 | 設定頁可關閉；先說明後授權；iOS 實測結果寫進報告 | W17 之後；第 30 天決定 |
-| W20 | 錯發收回 SOP | `social-media-manager` | 2 | `docs/marketing/social_unit/recall_sop.md` 存在，含刪文＋更正貼文範本 | 無 |
+| W20 | 錯發收回 SOP | `social-ops-lead` | 2 | `docs/marketing/social_unit/recall_sop.md` 存在，含刪文＋更正貼文範本 | 無 |
 
 **總工時**：W1～W20 合計 **190 小時（約 24 個工作日，範圍約 165～225 小時）**。這不含 Andy 本人時間（見 O 節）、不含影片的重複產線（首支之後每支約 4 小時、每週 2～3 支，約每週 8～12 小時，自 11/16 起算）、不含律師與金流審核等外部等待天數。**一個人（Andy）+ 一組 agent 的實際日曆時間，主要被「外部等待」決定，不是工時。**
 
@@ -676,7 +676,7 @@ E7 注意：價格實驗必須兩個價都真的是「可以付的價格」或�
 
 1. 今天（10/27）：Andy 回覆 J-1、J-3、J-8；10/28 打 O-2、約 O-4 律師；10/30 做 O-1。其餘可延後（見 L-2）。
 2. 明天起：`frontend-ui` 做 C 節第 1 項（utm＋事件），完成前**不宣稱任何成效**。
-3. 同時：`social-media-manager` 開始每天記錄自動發文準時率（C 節第 3 項），用現有 `state/posted.json` 手動即可，不必等程式。
+3. 同時：`social-ops-lead` 開始每天記錄自動發文準時率（C 節第 3 項），用現有 `state/posted.json` 手動即可，不必等程式。
 4. 第 14 天：第一份週報（先手動從管理頁抄數字也行），校正 B-4。
 
 ## 來源索引

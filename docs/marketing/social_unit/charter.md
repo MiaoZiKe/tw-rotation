@@ -6,7 +6,7 @@
 
 | 角色 | Agent | 負責 |
 |---|---|---|
-| 社群營運主管（部門主管） | `social-media-manager` | 開帳號、簡介置頂、排程發佈、回覆互動、成效洞察、帳號安全 |
+| 社群營運主管（部門主管） | `social-ops-lead` | 開帳號、簡介置頂、排程發佈、回覆互動、成效洞察、帳號安全 |
 | 財經內容編輯 | `finance-content-editor` | 科技快訊／總經一分鐘／產業拆解三欄目的選題、查證、腳本 |
 | 借調（直接合作，不經 CEO 轉派） | content-planner、storyboard-artist、video-editor、animation-director、motion-designer、market-researcher、marketing-strategist、legal-compliance、各產業分析師、finance-quant | 企劃、分鏡、剪輯、比比動畫、市調、查證、法遵 |
 
@@ -31,9 +31,9 @@ Threads 另放短文字討論與「今日一圖」，不重複貼同一支影片
 | # | 事項 | 負責 | 狀態 |
 |---|---|---|---|
 | 1 | 比比圓形大頭貼＋Reels 封面統一樣板 | motion-designer／animation-director | 待做 |
-| 2 | 帳號開通 SOP 給 Andy（IG 專業帳號→Threads→Meta 商業套件→兩步驟驗證），逐步點擊 | social-media-manager | 待做 |
-| 3 | 首批影片上架包：`video_1010/bibi_promo_9x16_1010_v2.mp4`（完整）、`bibi_promo_short_9x16_1010_v2.mp4`（短版）＋封面＋文案＋hashtag＋utm | social-media-manager＋content-planner | 素材已有，打包待做 |
-| 4 | 首批貼文：`posts/` 三組輪播（資金輪動、季節性、ETF）加上線公告、置頂三則 | social-media-manager | 素材已有，文案待法遵過 |
+| 2 | 帳號開通 SOP 給 Andy（IG 專業帳號→Threads→Meta 商業套件→兩步驟驗證），逐步點擊 | social-ops-lead | 待做 |
+| 3 | 首批影片上架包：`video_1010/bibi_promo_9x16_1010_v2.mp4`（完整）、`bibi_promo_short_9x16_1010_v2.mp4`（短版）＋封面＋文案＋hashtag＋utm | social-ops-lead＋content-planner | 素材已有，打包待做 |
+| 4 | 首批貼文：`posts/` 三組輪播（資金輪動、季節性、ETF）加上線公告、置頂三則 | social-ops-lead | 素材已有，文案待法遵過 |
 | 5 | 第一個月內容日曆（每週 5 則：導覽 2＋快訊 2＋總經或產業 1） | finance-content-editor＋content-planner | 待做 |
 | 6 | 法遵審閱首批文案、帳號簡介 | legal-compliance | 待做 |
 | 7 | utm 追蹤目前網站不讀取（social_setup 5-3），需 CEO 排工 | CEO | 待排 |
