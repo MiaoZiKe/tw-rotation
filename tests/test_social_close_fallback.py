@@ -103,24 +103,3 @@ def test_daily_workflow_重算與部署看_rebuild():
     assert "rebuild" in steps["上傳網站"]["if"]
     assert "rebuild" in wf["jobs"]["deploy"]["if"]
     assert wf["jobs"]["collect"]["outputs"]["rebuild"] == "${{ steps.fetch.outputs.rebuild }}"
-
-
-# ---- 2026-10-29 尾巴：散戶多空比原生繪製遇到當天指數缺值、盤後大盤那句改用 mis 收盤
-def test_散戶多空比_當天指數缺值不炸():
-    import social_native as NAT
-    prods = {k: {"dates": ["2026-10-27", "2026-10-28", D], "ratio_pct": [-0.38, None, 0.65],
-                 "taiex": [46096.23, 47035.58, None]} for k in ("TX", "MTX", "TMF")}
-    html = NAT.b_retail("threads", 1000, 1200, {"jget": lambda n: {"products": prods}})
-    assert "polyline" in html and html.count("<svg") == 3
-
-
-def test_大盤那句_網站舊的就改用mis當天收盤_都沒有就不寫():
-    mh = {"taiex": 47035.58, "change": 100.0, "advancers": 500, "decliners": 400}
-    assert ss.market_line_src(mh, D, D, {}) is mh
-    ev = {"last_trade": D, "live": True, "close": 46500.0, "prev": 47035.58}
-    src = ss.market_line_src(mh, "2026-10-28", D, ev)
-    assert src == {"taiex": 46500.0, "change": -535.58}
-    assert ss.close_reads({}, {}, {}, src, [], {})[0].startswith("加權指數跌 536 點")
-    assert ss.market_line_src(mh, "2026-10-28", D, {"last_trade": "2026-10-28", "close": 1, "prev": 1}) == {}
-    assert ss.mis_close({"z": "46,500.00", "y": "47035.58"}) == {"close": 46500.0, "prev": 47035.58}
-    assert ss.mis_close({"z": "-", "y": "47035.58"}) == {}

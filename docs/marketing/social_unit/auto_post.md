@@ -129,7 +129,6 @@ https://liguligu-puipui.com/
 - 2026-10-26：每點統一 2 個名稱；融資融券排除 ETF；名稱星號拿掉；盤後與融資融券合成一篇（8 張）；拿掉大盤走勢與漲跌家數。
 - 2026-10-29：盤後保底（事故：上市個股法人 FinMind 到 18:25 還沒出，盤後主貼文整段沒發）。台北 19:00（`CLOSE_FALLBACK_AT`／`--fallback-at` 可改）後若法人卡（三大法人、外資／投信排行）資料日仍不是今天：拿掉那幾張、期貨未平倉與散戶多空比等當天卡照發，文案「三大法人：・法人個股明細晚到，稍後補」，盤面分析不引用舊法人與舊指數，寫 alert；posted.json 的 `close-<日期>` 記 `partial`。法人到了下一輪 social-live 自動補發「盤後3分鐘｜法人補充」（只放法人三張＋ETF 買超，鍵 `close-inst-<日期>`，不重發主貼文）。程式：social_gate.close_fallback、social_snap.py `--supplement`、scripts/social_close_state.py。
 - 2026-10-29：daily.yml inst 輪加速：沒有新增「今天的法人」列（只有期貨／診斷檔變）就跳過 24 分鐘整站重算與部署（輸出 `rebuild`／`post`），下一輪 inst 不必排隊；交給後面有新資料的那輪或 18:38／21:38 full 輪。
-- 2026-10-29：根因補記：10-28 晚起每日管線「跑指標庫測試」紅（新聞封面照片 3 個測試要 Playwright，daily.yml 沒裝）→ price／full 輪整段沒抓，價量停在 10-28，inst 輪的目標交易日也跟著是 10-28，法人卡永遠不是今天。已改成沒裝 Playwright 就跳過那 3 個測試。另：散戶多空比原生繪製遇到當天加權指數缺值（None）會炸，改成缺值跳過；盤後盤面分析「加權指數漲跌」那句，網站 market_heat 不是今天就改用 mis 當天收盤指數（social_snap.market_line_src），都不是今天才不寫。
 
 來源（IG 限動不能用自動發文介面加連結貼紙）：
 - https://storrito.com/resources/instagram-story-api/
