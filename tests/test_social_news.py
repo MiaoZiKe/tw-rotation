@@ -296,6 +296,11 @@ def test_sanitize_fly_growth_vs_level():
 
 # ---------------- 2026-10-29 Andy：「封面沒圖片需要添加」→ 每一篇主題文章封面都要有實景照片 ----------------
 def _R():
+    # 2026-10-29 事故：render_news_cards 會載入 Playwright；每日盤後管線（daily.yml）只裝 requirements.txt、沒有 Playwright，
+    # 這三個測試因 ModuleNotFoundError 紅 → 「跑指標庫測試」失敗 → price／full 輪整段沒抓資料（價量、法人、指數全停在 10-28）。
+    # 沒裝 Playwright 的環境就跳過（社群工作流有裝，照樣會驗）。
+    import pytest
+    pytest.importorskip("playwright")
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "docs" / "marketing" / "posts"))
     import render_news_cards as R
     return R
