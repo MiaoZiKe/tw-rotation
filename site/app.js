@@ -5628,6 +5628,9 @@
       T.unmount(v.id);
       if (h && v.hide) h.classList.remove('tlon');
     });
+    // 標題旁的「即時」徽章：釘在過去時寫「回放 HH:MM」，回到最新才是「即時」（輪盤的狀態字在 rlvTagText）
+    const lab = T.pinned() ? '回放 ' + T.curT : '即時';
+    document.querySelectorAll('[data-hlcard="ind"] .livetg-b, #themeMapCard .livetg-b, #sankeyLiveBtn').forEach(b => { if (b.textContent !== lab) b.textContent = lab; });
     if (any) T.load(false);
     else if (T.pinned()) T.reset();                   // 沒有任何一張圖開著即時：游標回到最新
   }
