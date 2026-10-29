@@ -5768,7 +5768,7 @@
       "roles": [
         {
           "unit": "其他",
-          "role": "Software Engineer",
+          "role": "軟體工程師",
           "degree": "碩士",
           "samples": [
             {
@@ -5814,6 +5814,94 @@
               "quote_free_note": "自填；日工時 表訂/實際 8/2 小時",
               "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2026-08（20261029_1541 大檔，1541 檔）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/新思科技/salary-work-times?p=1",
+              "date": "2025-09",
+              "page_date": "2025-09",
+              "date_confirmed": true,
+              "role": "軟體工程師",
+              "grade": null,
+              "unit_detail": "新竹",
+              "years": "4",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 185,
+              "weekly_hours": 40,
+              "overtime": "幾乎不",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/8 小時",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2025-09（20261029_1541 大檔，1541 檔）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/新思科技/salary-work-times?p=1",
+              "date": "2025-09",
+              "page_date": "2025-09",
+              "date_confirmed": true,
+              "role": "軟體工程師",
+              "grade": null,
+              "unit_detail": "新竹",
+              "years": null,
+              "degree": null,
+              "base_k": 115.5,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 40,
+              "overtime": "幾乎不",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/7 小時",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2025-09（20261029_1541 大檔，1541 檔）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/新思科技/salary-work-times?p=1",
+              "date": "2025-07",
+              "page_date": "2025-07",
+              "date_confirmed": true,
+              "role": "軟體工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "4",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 180,
+              "weekly_hours": 40,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/8 小時",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2025-07（20261029_1541 大檔，1541 檔）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/新思科技/salary-work-times?p=1",
+              "date": "2025-05",
+              "page_date": "2025-05",
+              "date_confirmed": true,
+              "role": "軟體工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "5",
+              "degree": null,
+              "base_k": 150,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 35,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/7 小時",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2025-05（20261029_1541 大檔，1541 檔）"
             }
           ],
           "sources": [
@@ -5826,23 +5914,34 @@
               "site": "GoodJob",
               "url": "https://www.goodjob.life/companies/新思科技/salary-work-times?p=1",
               "date": "2026-08"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/新思科技/salary-work-times?p=1",
+              "date": "2025-09"
             }
           ],
           "confidence": "低",
-          "n": 2,
+          "n": 6,
           "bonus_months": null,
           "annual_months": null,
-          "base_month_k": null,
+          "base_month_k": [
+            115.5,
+            150
+          ],
           "years": null,
           "annual_total_wan": [
-            200,
+            180,
             200
           ],
-          "weekly_hours": null,
+          "weekly_hours": [
+            35,
+            40
+          ],
           "overtime": "幾乎不",
           "travel": null,
-          "n_stat": 2,
-          "note": null,
+          "n_stat": 6,
+          "note": "；2026-10-29 改名統一：原「Software Engineer」",
           "grade": null
         },
         {
@@ -6062,130 +6161,6 @@
         },
         {
           "unit": null,
-          "role": "軟體工程師",
-          "degree": null,
-          "years": null,
-          "base_month_k": [
-            115.5,
-            150
-          ],
-          "bonus_months": null,
-          "annual_months": null,
-          "annual_total_wan": [
-            180,
-            185
-          ],
-          "weekly_hours": [
-            35,
-            40
-          ],
-          "overtime": null,
-          "travel": null,
-          "n": 4,
-          "note": "2026-10-29 GoodJob 合併批新增職位",
-          "confidence": "低",
-          "grade": null,
-          "n_stat": 4,
-          "samples": [
-            {
-              "site": "GoodJob",
-              "url": "https://www.goodjob.life/companies/新思科技/salary-work-times?p=1",
-              "date": "2025-09",
-              "page_date": "2025-09",
-              "date_confirmed": true,
-              "role": "軟體工程師",
-              "grade": null,
-              "unit_detail": "新竹",
-              "years": "4",
-              "degree": null,
-              "base_k": null,
-              "bonus_months": null,
-              "annual_months": null,
-              "annual_wan": 185,
-              "weekly_hours": 40,
-              "overtime": "幾乎不",
-              "travel": null,
-              "quote_free_note": "自填；日工時 表訂/實際 8/8 小時",
-              "in_window": true,
-              "date_note": "GoodJob 頁面標示年月 2025-09（20261029_1541 大檔，1541 檔）"
-            },
-            {
-              "site": "GoodJob",
-              "url": "https://www.goodjob.life/companies/新思科技/salary-work-times?p=1",
-              "date": "2025-09",
-              "page_date": "2025-09",
-              "date_confirmed": true,
-              "role": "軟體工程師",
-              "grade": null,
-              "unit_detail": "新竹",
-              "years": null,
-              "degree": null,
-              "base_k": 115.5,
-              "bonus_months": null,
-              "annual_months": null,
-              "annual_wan": null,
-              "weekly_hours": 40,
-              "overtime": "幾乎不",
-              "travel": null,
-              "quote_free_note": "自填；日工時 表訂/實際 8/7 小時",
-              "in_window": true,
-              "date_note": "GoodJob 頁面標示年月 2025-09（20261029_1541 大檔，1541 檔）"
-            },
-            {
-              "site": "GoodJob",
-              "url": "https://www.goodjob.life/companies/新思科技/salary-work-times?p=1",
-              "date": "2025-07",
-              "page_date": "2025-07",
-              "date_confirmed": true,
-              "role": "軟體工程師",
-              "grade": null,
-              "unit_detail": null,
-              "years": "4",
-              "degree": null,
-              "base_k": null,
-              "bonus_months": null,
-              "annual_months": null,
-              "annual_wan": 180,
-              "weekly_hours": 40,
-              "overtime": "偶爾",
-              "travel": null,
-              "quote_free_note": "自填；日工時 表訂/實際 8/8 小時",
-              "in_window": true,
-              "date_note": "GoodJob 頁面標示年月 2025-07（20261029_1541 大檔，1541 檔）"
-            },
-            {
-              "site": "GoodJob",
-              "url": "https://www.goodjob.life/companies/新思科技/salary-work-times?p=1",
-              "date": "2025-05",
-              "page_date": "2025-05",
-              "date_confirmed": true,
-              "role": "軟體工程師",
-              "grade": null,
-              "unit_detail": null,
-              "years": "5",
-              "degree": null,
-              "base_k": 150,
-              "bonus_months": null,
-              "annual_months": null,
-              "annual_wan": null,
-              "weekly_hours": 35,
-              "overtime": "偶爾",
-              "travel": null,
-              "quote_free_note": "自填；日工時 表訂/實際 8/7 小時",
-              "in_window": true,
-              "date_note": "GoodJob 頁面標示年月 2025-05（20261029_1541 大檔，1541 檔）"
-            }
-          ],
-          "sources": [
-            {
-              "site": "GoodJob",
-              "url": "https://www.goodjob.life/companies/新思科技/salary-work-times?p=1",
-              "date": "2025-09"
-            }
-          ]
-        },
-        {
-          "unit": null,
           "role": "硬體工程師",
           "degree": null,
           "years": null,
@@ -6391,24 +6366,30 @@
       "roles": [
         {
           "unit": null,
-          "role": "Product Engineer",
+          "role": "產品工程師",
           "degree": null,
           "years": null,
-          "base_month_k": null,
+          "base_month_k": [
+            120,
+            120
+          ],
           "bonus_months": null,
           "annual_months": null,
           "annual_total_wan": [
             150,
             180
           ],
-          "weekly_hours": null,
-          "overtime": null,
+          "weekly_hours": [
+            40,
+            40
+          ],
+          "overtime": "偶爾",
           "travel": null,
-          "n": 1,
-          "note": "2026-10-28 Dcard 2158 批新增職位",
+          "n": 2,
+          "note": "2026-10-28 Dcard 2158 批新增職位；2026-10-29 改名統一：原「Product Engineer」",
           "confidence": "低",
           "grade": null,
-          "n_stat": 1,
+          "n_stat": 2,
           "samples": [
             {
               "site": "Dcard",
@@ -6435,6 +6416,28 @@
               "in_window": true,
               "date_note": "Dcard 頁面發文日期 2026-05-10（20261028_2158 批）",
               "comment_sample": false
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/CADENCE/salary-work-times?p=1",
+              "date": "2026-06",
+              "page_date": "2026-06",
+              "date_confirmed": true,
+              "role": "產品工程師",
+              "grade": null,
+              "unit_detail": "新竹",
+              "years": "2",
+              "degree": null,
+              "base_k": 120,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 40,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 9/8.5 小時",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-06（20261029_1541 大檔，1541 檔）"
             }
           ],
           "sources": [
@@ -6442,6 +6445,11 @@
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/261452533",
               "date": "2026-05"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/CADENCE/salary-work-times?p=1",
+              "date": "2026-06"
             }
           ]
         },
@@ -6495,61 +6503,6 @@
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/261452533",
               "date": "2026-05"
-            }
-          ]
-        },
-        {
-          "unit": null,
-          "role": "產品工程師",
-          "degree": null,
-          "years": null,
-          "base_month_k": [
-            120,
-            120
-          ],
-          "bonus_months": null,
-          "annual_months": null,
-          "annual_total_wan": null,
-          "weekly_hours": [
-            40,
-            40
-          ],
-          "overtime": "偶爾",
-          "travel": null,
-          "n": 1,
-          "note": "2026-10-29 GoodJob 合併批新增職位",
-          "confidence": "低",
-          "grade": null,
-          "n_stat": 1,
-          "samples": [
-            {
-              "site": "GoodJob",
-              "url": "https://www.goodjob.life/companies/CADENCE/salary-work-times?p=1",
-              "date": "2026-06",
-              "page_date": "2026-06",
-              "date_confirmed": true,
-              "role": "產品工程師",
-              "grade": null,
-              "unit_detail": "新竹",
-              "years": "2",
-              "degree": null,
-              "base_k": 120,
-              "bonus_months": null,
-              "annual_months": null,
-              "annual_wan": null,
-              "weekly_hours": 40,
-              "overtime": "偶爾",
-              "travel": null,
-              "quote_free_note": "自填；日工時 表訂/實際 9/8.5 小時",
-              "in_window": true,
-              "date_note": "GoodJob 頁面標示年月 2026-06（20261029_1541 大檔，1541 檔）"
-            }
-          ],
-          "sources": [
-            {
-              "site": "GoodJob",
-              "url": "https://www.goodjob.life/companies/CADENCE/salary-work-times?p=1",
-              "date": "2026-06"
             }
           ]
         },
