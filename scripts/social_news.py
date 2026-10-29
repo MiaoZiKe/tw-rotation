@@ -79,14 +79,14 @@ LAYOUT = "D-無圖大數字"
 # ---------------- 分類 ----------------
 KW = {
     "財報": r"財報|EPS|每股(純益|盈餘|賺|稅後)|毛利率|營益率|自結|營收|法說|獲利|淨利|財測",
-    "總經": r"Fed|聯準會|央行|利率|降息|升息|CPI|PCE|通膨|非農|GDP|殖利率|美元指數|新台幣|匯率|油價|金價|關稅|PMI|失業率|景氣",
+    "總經": r"Fed|聯準會|央行|利率|降息|升息|CPI|PCE|通膨|非農|GDP|殖利率|美元指數|新台幣|匯率|油價|金價|關稅|PMI|失業率|景氣|天然氣|原油|布蘭特|西德州|大宗商品",
     "美股": r"美股|道瓊|那斯達克|標普|費半|費城半導體|S&P|Nasdaq|輝達|NVIDIA|微軟|蘋果|Apple|Alphabet|Google|Meta|亞馬遜|特斯拉|博通|超微|AMD|甲骨文|ADR",
     "台股": r"台股|加權指數|大盤|三大法人|外資|投信|自營商|成交值|櫃買|集中市場|台指期",
 }
 CTYPE = [
     ("財報數字", r"財報|EPS|每股|毛利率|自結|營收|淨利|獲利|財測|營益率"),
     ("盤勢數字", r"加權指數|大盤|三大法人|外資|投信|自營商|成交值|台指期|收盤|櫃買"),
-    ("總經數據", r"Fed|聯準會|央行|利率|CPI|PCE|通膨|非農|GDP|殖利率|匯率|新台幣|油價|金價|PMI"),
+    ("總經數據", r"Fed|聯準會|央行|利率|CPI|PCE|通膨|非農|GDP|殖利率|匯率|新台幣|油價|金價|PMI|天然氣|原油|布蘭特|TTF|大宗商品"),
     ("產業趨勢", r"AI|伺服器|半導體|晶片|CoWoS|HBM|記憶體|PCB|散熱|光通訊|機器人|電動車|資料中心"),
 ]
 
@@ -187,23 +187,46 @@ def cluster(news: list[dict]) -> list[list[dict]]:
     return groups
 
 
-NUMRE = re.compile(r"(?P<pre>逾|約|近|超過)?(?P<num>[+-]?\d[\d,]*(?:\.\d+)?)\s*(?P<unit>兆韓元|兆美元|億美元|萬美元|美元|億元|萬元|萬張|兆元|兆|億|元|%|％|點|倍|家|張)")
+# 商品報價單位（2026-10-29 第二輪：「97.35歐元/MWh」抓不到 → 歐洲天然氣那則被判「沒有可當主旨的關鍵數字」）
+COMMOD_UNIT = (r"(?:美元|歐元|美分|便士|英鎊|日圓|人民幣|元)\s*/\s*"
+               r"(?:桶|盎司|英兩|公噸|噸|MWh|MMBtu|mmBtu|百萬英熱單位|therm|英斗|蒲式耳|磅|公斤|克|度)")
+# num：可帶區間（「季增1-3%」「185～195億美元」，2026-10-29 第二輪：舊版把「1-3%」讀成「-3%」）；前面緊貼數字的正負號不算正負號。
+# 「成」＝N×10%（「季減約2成」）；排除「成長／成本／成員／成交…」這類詞。
+NUMRE = re.compile(r"(?P<pre>逾|約|近|超過)?(?P<num>(?<![\d.])[+-]?\d[\d,]*(?:\.\d+)?(?:\s*[-~～]\s*\d[\d,]*(?:\.\d+)?)?)\s*"
+                   r"(?P<unit>" + COMMOD_UNIT + r"|兆韓元|兆美元|億美元|萬美元|美元|億元|萬元|萬張|兆元|兆|億|元|%|％|點|倍|家|張"
+                   r"|成(?![長本員交立績功為熟果分品都年效型])"
+                   r")")
+CN_DIGIT = {"一": 1, "二": 2, "兩": 2, "三": 3, "四": 4, "五": 5, "六": 6, "七": 7, "八": 8, "九": 9}
 SPLIT = re.compile(r"[，。；：、！？\s（）()「」『』〈〉【】/／|｜]")
 CHG = ("年增", "季增", "月增", "年減", "季減", "月減", "增加", "減少")
 
 
 def numbers_of(text: str) -> list[dict]:
     """從新聞文字抓「標籤＋數字＋單位」；標籤＝同一子句裡數字前面的字。"""
-    out, prev = [], ""
+    out, prev, last_lab = [], "", ""
+    # 「年增五成」「季減三成」：中文數字＋成 → 阿拉伯數字（「一成不變」「九成九」這類不算）
+    text = re.sub(r"(?<![一二三四五六七八九十])([一二兩三四五六七八九])成(?![長本員交立績功為熟果分品都年效型不一二三四五六七八九])",
+                  lambda mm: f"{CN_DIGIT[mm.group(1)]}成", text)
     ms = list(NUMRE.finditer(text))
     for k, m in enumerate(ms):
         last_end = ms[k - 1].end() if k else 0
         head = text[:m.start()]
-        cut = max((head.rfind(c) for c in "，。；：、！？ （(「/／|｜"), default=-1)
+        if re.search(r"[A-Za-z\u4e00-\u9fff] $", head):     # 「EPS 4.55元」：數字前一個空白不當子句分界（10-29 第二輪：標題的 EPS 全被漏掉）
+            head = head[:-1]
+        # 中英交界的空白（「荷蘭 TTF 近月期貨」）也不是子句分界：先換成不斷行的佔位字，標籤取完再換回空白
+        head = re.sub(r"(?<=[\u4e00-\u9fff]) (?=[A-Za-z])|(?<=[A-Za-z]) (?=[\u4e00-\u9fff])", "\u2007", head)
+        cut = max((head.rfind(c) for c in "，。；：、！？ （(「/／|｜）)」』"), default=-1)
+        same_clause = k > 0 and cut <= last_end - 1
         cut = max(cut, last_end - 1)              # 同一子句裡前面還有數字 → 標籤從那個數字之後算
-        lab = head[cut + 1:].strip()
-        if not any(lab.endswith(c) for c in CHG):
+        lab = head[cut + 1:].replace("\u2007", " ").strip()
+        unit0 = m.group("unit")
+        raw_lab = lab
+        if unit0 in ("%", "％", "成", "點") and re.search(r"(上漲|下跌|漲|跌|下挫|走高|走低|攀升|回落|上升|下降|成長|衰退|增長|增加|減少)$", lab):
+            pass                                  # 「期貨漲1.2%」：漲跌是比較，不能拿掉（拿掉會變成「期貨 1.2%」）
+        elif not any(lab.endswith(c) for c in CHG):
             lab = re.sub(r"(衝上|衝|站上|突破|創|寫下|達到|達|為|約|至|到|來到|共|僅|有|是|再|則|合計|攀升至|升至|降至|增至|減至|增|減|漲|跌|(?<!營)收|上漲|下跌|賺)$", "", lab)
+        if same_clause and len(lab) < 2 and re.fullmatch(r"(至|到|來到|升至|降至|攀升至|漲至|跌至|達|為|收|收在|報)?", raw_lab) and last_lab:
+            lab = re.sub(r"(上漲|下跌|漲|跌|下挫|走高|走低|攀升|回落|年增|年減|季增|季減|月增|月減|增加|減少)$", "", last_lab)   # 「期貨漲1.2%至97.35歐元/MWh」→ 97.35 的標籤＝「期貨」
         lab = re.sub(r"^[〈【\[][^〉】\]]{1,8}[〉】\]]", "", lab)          # 標題的「〈財報〉」標頭不進標籤
         lab = re.sub(r"^(並|且|而|但|雖|其中|另|也|較|比|與|和|及)", "", lab).strip()
         if any(lab.endswith(c) or lab == c for c in CHG) and prev and len(lab) <= 4:
@@ -216,14 +239,26 @@ def numbers_of(text: str) -> list[dict]:
             m0 = re.search(per, prev)
             tail = prev[m0.end():]
             lab = lab + tail if tail else prev[:m0.start()] + lab        # 「今年GDP成長率」→「2027年GDP成長率」；「通膨估今年」→「通膨估明年」
-        num = m.group("num")
+        num = re.sub(r"\s*[-~～]\s*(?=\d)", "～", m.group("num")) if re.search(r"\d\s*[-~～]\s*\d", m.group("num")) else m.group("num")
+        last_lab = lab
         if re.fullmatch(r"(19|20)\d\d", num.replace(",", "")) and m.group("unit") in ("元",):
             continue
+        unit = re.sub(r"\s+", "", m.group("unit")).replace("％", "%")
+        mu = re.search(r"每(桶|盎司|英兩|公噸|噸|磅|英斗|蒲式耳)$", lab)
+        if mu and unit in ("美元", "歐元", "元", "人民幣", "日圓"):          # 「布蘭特原油每桶85美元」→ 85 美元/桶
+            unit = f"{unit}/{mu.group(1)}"; lab = lab[:mu.start()]
         if not (2 <= len(lab) <= 14) or not re.search(r"[一-鿿]", lab) or re.search(r"\d{4,}$", lab):
             prev = lab if 2 <= len(lab) <= 10 else prev
             continue
-        unit = m.group("unit").replace("％", "%")
-        out.append(dict(label=lab, value=(m.group("pre") or "") + num, unit=unit, key=num.replace(",", "") + unit))
+        x = dict(label=lab, value=(m.group("pre") or "") + num, unit=unit)
+        if unit == "成":                          # N 成 ＝ N×10%；原文寫法另存，內文對照用
+            x["orig"] = x["value"] + "成"
+            x["value"] = (m.group("pre") or "") + "～".join(f"{float(v.replace(',', '')) * 10:g}" for v in num.split("～"))
+            x["unit"] = unit = "%"
+        if "～" in num:
+            x["range"] = True
+        x["key"] = x["value"].lstrip("約逾近超過").replace(",", "") + unit
+        out.append(x)
         if not any(lab.endswith(c) for c in CHG):
             prev = lab
     seen, uniq = set(), []
@@ -347,6 +382,7 @@ def _lead_sentence(c: dict) -> str:
             if len(out) + len(x) > 180:
                 break
             out = f"{out}，{x}" if out else x
+        out = out.rstrip("、，；： ")
         if len(out) >= 12:
             c["lead_src"] = n["source"]
             return out + "。"
@@ -366,20 +402,36 @@ def _who(c: dict, names: dict, title: str) -> str:
 ENT = ["SK海力士", "三星", "輝達", "NVIDIA", "微軟", "蘋果", "Alphabet", "Google", "Meta", "亞馬遜", "特斯拉", "博通", "超微", "AMD",
        "甲骨文", "英特爾", "高通", "美光", "恩智浦", "安謀", "CoreWeave", "OpenAI", "Anthropic", "SpaceX", "費半", "道瓊", "那斯達克",
        "標普", "聯準會", "Fed", "日銀", "歐洲央行", "TrendForce", "IDC", "加權指數", "台股", "三大法人", "外資", "投信", "自營商"]
-METRICS = [("EPS", r"每股(純益|盈餘|稅後|賺)|EPS"), ("經濟成長率", r"GDP|經濟成長"), ("通膨", r"通膨|物價"), ("虧損", r"淨虧|虧損"), ("毛利率", r"毛利率"), ("營業利益", r"營業利益|營益"), ("淨利", r"淨利|純益|獲利|盈餘"),
+METRICS = [("EPS", r"每股(純益|盈餘|稅後|賺)|每股$|EPS"), ("經濟成長率", r"GDP|經濟成長"), ("通膨", r"通膨|物價"), ("虧損", r"淨虧|虧損"), ("毛利率", r"毛利率"), ("營業利益", r"營業利益|營益"), ("淨利", r"淨利|純益|獲利|盈餘"),
            ("營收", r"營收"), ("資本支出", r"資本支出"), ("財測", r"財測|指引"), ("指數", r"加權指數|指數|道瓊|那斯達克|標普|費半"),
            ("買超", r"買超"), ("賣超", r"賣超"), ("成交值", r"成交值|成交額"), ("殖利率", r"殖利率"), ("利率", r"利率"), ("融資", r"融資|籌資|增資"), ("產值", r"產值"), ("出貨", r"出貨"), ("餘額", r"餘額"),
            ("市值", r"市值"), ("訂單", r"訂單|合約"), ("油價", r"油價|金價|布蘭特|西德州"), ("股價", r"股價|收盤價|盤後")]
+METRICS_PAT = dict(METRICS)
 FIN = {"EPS", "毛利率", "營業利益", "淨利", "虧損", "營收", "財測", "資本支出"}
 EVENTW = {"指數": "收盤", "買超": "法人動向", "賣超": "法人動向", "成交值": "成交", "殖利率": "利率", "利率": "利率",
-          "資本支出": "資本支出", "財測": "財測", "融資": "融資"}
+          "資本支出": "資本支出", "財測": "財測", "融資": "融資", "價格": "價格"}
+# 標題寫「財報」的條件：報導本身是在講這一期的財報／法說（2026-10-29 第二輪：Google 那則講 TPU 外售、順帶提第 2 季雲端營收，標題卻寫「第2季財報」）
+EARN_EV = r"財報|法說|自結|財務報告|營運報告|季報|每股(純益|盈餘|稅後|賺)|EPS|公布.{0,6}(季|年度?)(營收|業績|獲利)"
+GUIDE = r"估|預估|預期|展望|可望|目標|財測|指引|上看|料|將"
+# 分部營收的限定詞：標題要帶出來（「雲端營收」不能寫成「營收」）
+SEG = r"雲端|AI|資料中心|車用|伺服器|手機|PC|晶圓代工|記憶體|廣告|硬體|軟體|網通|光通訊|遊戲|訂閱|海外|美國|中國|核心|晶片|TPU|GPU"
+UNIT_NOTE = {"MWh": "MWh 是百萬瓦時（1 MWh＝1,000 度電），歐洲天然氣批發價習慣以每 MWh 計價",
+             "therm": "therm（撒姆）是熱量單位（約 10 萬英熱單位），英國天然氣以每 therm 計價",
+             "MMBtu": "MMBtu 是百萬英熱單位，美國天然氣與亞洲液化天然氣常用這個單位計價",
+             "桶": "原油以「桶」計價，1 桶約 159 公升",
+             "盎司": "黃金、白銀以金衡盎司計價，1 盎司約 31.1 公克",
+             "英兩": "黃金、白銀以金衡盎司（英兩）計價，1 英兩約 31.1 公克"}
 JUNK = r"跌停|漲停|家數|檔|張|名|人|歲|年$"
-GROWTH = r"年增|季增|月增|年減|季減|月減|較|同期|成長|衰退|增加|減少|上漲|下跌|漲|跌|下挫|升至|降至|新高|新低"
+GROWTH = r"年增|季增|月增|年減|季減|月減|較|同期|成長|衰退|增加|減少|上漲|下跌|漲|跌|下挫|升至|降至|新高|新低|上升|下降|增長|翻倍"
 EMPTY = ["指數點數反映", "家媒體", "則報導", "營收是公司銷售", "每股純益（EPS）是", "年增減是", "季增減是", "月增減是", "成交值是當天"]
 REL = {"cpi": "美國 CPI 物價", "pce": "美國 PCE 物價", "gdp": "美國 GDP", "nfp": "美國非農就業", "payems": "美國非農就業",
-       "fomc": "FOMC 利率決議", "ppi": "美國 PPI", "retail": "美國零售銷售", "unrate": "美國失業率"}
+       "fomc": "聯準會 FOMC 利率決議", "ppi": "美國 PPI", "retail": "美國零售銷售", "unrate": "美國失業率"}
 TITLE_MAX = 12
-GENERIC = {"全台", "台灣", "中華", "國際", "美國", "大眾", "統一", "華南", "第一", "合庫", "新光", "全國", "亞洲", "世界", "大立", "東方"}
+GENERIC = {"全台", "台灣", "中華", "國際", "美國", "大眾", "統一", "華南", "第一", "合庫", "新光", "全國", "亞洲", "世界", "大立", "東方",
+           "通訊"}     # 「通訊」(6404) 會被「光通訊」誤認（10-29 第二輪：康寧、穩懋兩則主體變成「通訊」）
+# 金額類指標的主旨數字不能是百分比（「光通訊營收飆44%」「AI營收占比25%」是成長率／占比，不是營收本身）
+TW_MARKET = {"指數", "融資", "買超", "賣超", "成交值", "餘額"}     # 台股盤勢／籌碼類：封面用台股通用圖，不照內文順帶的產業字配圖
+AMOUNT_METRIC = {"營收", "淨利", "營業利益", "EPS", "資本支出", "市值", "出貨", "訂單", "產值", "餘額", "買超", "賣超", "成交值", "融資", "虧損"}
 MIN_BODY = 400          # 10-29：500 擋掉 443／453 字、段落都有實際數字的稿；空泛句另有 EMPTY 與「和前期比」閘把關
 
 
@@ -407,7 +459,7 @@ BANKS = r"(?:泰國|美國|日本|英國|南韓|韓國|澳洲|紐西蘭|加拿�
 INST = ["聯準會", "Fed", "FOMC", "歐洲央行", "ECB", "日銀", "日本銀行", "英格蘭銀行", "人行", "人民銀行", "金管會", "主計總處", "國發會",
         "經濟部", "財政部", "美國商務部", "美國勞工部", "OPEC+", "OPEC", "IMF", "世界銀行", "WTO"]
 COMMOD = r"(?:(?:歐洲|美國|亞洲|國際|紐約|倫敦)?(?:天然氣|原油|布蘭特原油|西德州原油|油價|金價|黃金|白銀|銀價|銅價|鐵礦砂|小麥|黃豆|比特幣))"
-STOPW = {"財報", "法說", "營收", "快訊", "焦點", "盤前", "盤後", "台股", "美股", "陸股", "港股", "日股", "市場", "外資", "投信", "分析師", "專家",
+STOPW = {"核心", "財報", "法說", "營收", "快訊", "焦點", "盤前", "盤後", "台股", "美股", "陸股", "港股", "日股", "市場", "外資", "投信", "分析師", "專家",
          "今年", "明年", "去年", "全年", "公司", "業者", "法人", "官方", "政府", "報告", "研調", "調查", "美國", "中國", "全球", "國際", "亞洲", "歐洲"}
 ENG_STOP = {"IPO", "AI", "CEO", "CFO", "EPS", "ETF", "GDP", "CPI", "PCE", "HBM", "GPU", "CPU", "ASIC", "Q1", "Q2", "Q3", "Q4", "PC", "EV"}
 VERBS = r"(?:搭上|宣布|公布|推出|發布|發表|營收|獲利|淨利|股價|市值|財報|法說|擬|將|攜手|砸|收購|併購|上市|掛牌|登|第[一二三四1-4]季|Q[1-4]|前三季|上半年|每股|今年|明日|今日|再|又|首度|大舉|傳)"
@@ -428,6 +480,7 @@ def _proper(t: str) -> str:
         w = m.group(1)
         if w not in ENG_STOP:
             return w
+    t = re.sub(r"(?<=[\u4e00-\u9fff]) (?=Q[1-4]|\d)", "", t)       # 「康寧 Q3 核心營收」：名字後面隔一個空白接期間也算
     for seg in re.split(r"[ 　，,、！!？?：:；;〈〉【】「」『』（）()／]+", t):
         m = re.match(r"([\u4e00-\u9fff]{2,6}?)" + VERBS, seg)
         if m and m.group(1) not in STOPW and not re.search(r"[增減漲跌賺虧億萬元點%]", m.group(1)) \
@@ -503,41 +556,209 @@ def landing(c: dict, code: str) -> str:
     return ""
 
 
-def watch_point(day: str, tw: bool, ctype: str) -> str:
+EARN_VERB = re.compile(r"(公布|發布|揭曉|出爐|舉行|召開|登場|發表)[^，。；]{0,8}(財報|法說|業績|季報|財務報告|營運成果)"
+                       r"|(財報|法說會?|業績)[^，。；]{0,4}(將於|預計|訂於|定於)|(財報|法說會?)[^，。；]{0,3}(陸續)?(登場|出爐|揭曉)")
+WD = "一二三四五六日"
+
+
+def _event_date(cl: str, ts: datetime):
+    """子句裡的日期 → (起, 迄)；相對日期（周四、下周二、今晚、明天）以報導發布日推算；只寫「本週／下週」回那一週（週一～週日）。
+    推不出回 None；已經過去的由呼叫端判斷。"""
+    from datetime import date
+    base = ts.date()
+    m = re.search(r"(\d{1,2})月(\d{1,2})日|(?<![\d/])(\d{1,2})/(\d{1,2})(?![\d/])", cl)
+    if m:
+        mo, dd = int(m.group(1) or m.group(3)), int(m.group(2) or m.group(4))
+        y = base.year + (1 if mo < base.month - 6 else 0)
+        try:
+            return (date(y, mo, dd),) * 2
+        except ValueError:
+            return None
+    m = re.search(r"[（(](\d{1,2})日[）)]", cl)
+    if m:
+        dd = int(m.group(1)); mo, y = (base.month, base.year) if dd >= base.day else (base.month % 12 + 1, base.year + (base.month == 12))
+        try:
+            return (date(y, mo, dd),) * 2
+        except ValueError:
+            return None
+    mon = base - timedelta(days=base.weekday())
+    m = re.search(r"(下)?(?:周|週|星期)([一二三四五六日])", cl)
+    if m:
+        d0 = mon + timedelta(days=WD.index(m.group(2)) + (7 if m.group(1) else 0))
+        return (d0, d0) if d0 >= base else None
+    if re.search(r"明天|明日|明晚", cl):
+        return (base + timedelta(days=1),) * 2
+    if re.search(r"今天|今日|今晚|稍晚", cl):
+        return (base, base)
+    m = re.search(r"(本|這|下)(?:周|週)", cl)
+    if m:
+        w0 = mon + timedelta(days=7 if m.group(1) == "下" else 0)
+        return (w0, w0 + timedelta(days=6))
+    return None
+
+
+def next_corp_event(subj: str, day: str, before: datetime) -> str:
+    # before＝這則報導的時間：同一天「今天公布財報」講的就是這則報導本身，不算「下一次」
+    """資料湖新聞裡「<主體>…將於 X 公布財報／舉行法說會」→ 下一次財報日（只取今天以後、60 天內最近的一個）。
+    2026-10-29 第二輪：美國公司的「接下來觀察」一律接非農，改成先找公司自己的下一次財報日。"""
+    from datetime import date
+    al = aliases_of(subj)
+    d0 = date.fromisoformat(day)
+    best = None
+    for n in _hist_news(before):
+        for cl in re.split(r"[，。；！？]", (n["title"] or "") + "，" + (n["summary"] or "")):
+            if not any(a in cl for a in al):
+                continue
+            mv = EARN_VERB.search(cl)
+            if not mv:
+                continue
+            rng_ = _event_date(cl, n["ts"])
+            if not rng_ or rng_[1] < d0 or rng_[1] <= before.date() or rng_[0] > d0 + timedelta(days=60):
+                continue
+            what = "舉行法說會" if "法說" in mv.group(0) else "公布財報"
+            exact = rng_[0] == rng_[1]
+            cand = (not exact, rng_[1], -n["ts"].timestamp(), rng_, what, n)     # 確切日期優先，其次最近、最新的報導
+            if best is None or cand[:3] < best[:3]:
+                best = cand
+    if not best:
+        return ""
+    _, _, _, (a0, a1), what, n = best
+    when = f"{a0.month}/{a0.day} " if a0 == a1 else f"{a0.month}/{a0.day}～{a1.month}/{a1.day} 這一週"
+    return (f"{subj}預計 {when}{what}（{SRC_NAME.get(n['source'], n['source'])} {n['ts'].month}/{n['ts'].day} 的報導），"
+            f"可以對照這次報導提到的數字，看實際公布的結果。")
+
+
+# 找不到公司自己的財報日 → 跟這個產業／主題相關的總經數據，寫清楚為什麼相關（偵測順序＝表格順序；先看主體與標題，沒中才看摘要）
+MACRO_WHY = [
+    (r"天然氣|原油|油價|布蘭特|西德州|OPEC|能源|油輪|煉油|LNG",
+     (("cpi", "能源價格是 CPI 物價的組成項目，油氣價格的變動會反映在下一次公布的通膨數字"),
+      ("pce", "能源價格是 PCE 物價的組成項目，油氣價格的變動會反映在下一次公布的通膨數字"))),
+    (r"金價|黃金|白銀|銀價",
+     (("fomc", "金價對美元利率很敏感，聯準會的利率決議會影響持有黃金的機會成本"),
+      ("cpi", "金價對通膨與利率預期很敏感，CPI 物價會影響市場對聯準會利率走向的判斷"))),
+    (r"央行|聯準會|Fed|FOMC",
+     (("fomc", "各國央行調整利率時常參考美國聯準會的動向，FOMC 的決議會牽動全球利率"),)),
+    (r"(?<!獲)利率|殖利率|公債|美債|債券|公司債|融資成本",
+     (("fomc", "債券殖利率與企業的融資成本跟市場利率連動，聯準會的利率決議會直接影響借錢的成本"),)),
+    (r"銀行|金融|保險|放款|房貸|信貸",
+     (("fomc", "金融業的利差與資金成本跟利率直接相關，聯準會的利率決議會影響這個產業的獲利"),)),
+    (r"零售|消費|電商|餐飲|蘋果|Apple|亞馬遜|Amazon|特斯拉|Tesla|電動車|汽車|手機",
+     (("pce", "這類公司的營收跟美國民眾的消費力道直接相關，PCE 物價與個人消費支出會反映消費者的購買力"),
+      ("cpi", "這類公司的營收跟美國民眾的消費力道直接相關，CPI 物價高低會影響消費者的實質購買力"))),
+    (r"AI|雲端|晶片|半導體|伺服器|記憶體|HBM|GPU|TPU|ASIC|資料中心|軟體|科技|輝達|微軟|Google|Alphabet|Meta|博通|超微|甲骨文|美光",
+     (("cpi", "大型科技與 AI 股的估值對利率較敏感，CPI 物價的高低會影響市場對聯準會降息時點的預期"),
+      ("fomc", "大型科技與 AI 股的估值對利率較敏感，聯準會的利率決議會直接影響這類股票的評價"))),
+    (r"經濟成長|GDP|景氣|出口|製造業",
+     (("gdp", "經濟成長率直接反映整體景氣的冷熱"), ("nfp", "非農就業反映美國整體景氣與企業的用人需求"))),
+]
+MACRO_DEFAULT = (("nfp", "非農就業反映美國整體景氣與企業的用人需求"), ("cpi", "CPI 物價會影響市場對聯準會利率走向的判斷"))
+
+
+def _macro_dates(day: str) -> dict[str, str]:
+    """{release: 下一個公布日（美東）}；CPI／PCE／GDP／非農用資料湖 macro_calendar，FOMC 用 pipeline/calendar/macro_events.yaml。"""
+    out: dict[str, str] = {}
+    try:
+        import pandas as pd
+        fs = sorted((ROOT / "data" / "macro_calendar").glob("**/*.parquet"))
+        mc = pd.concat([pd.read_parquet(f) for f in fs])
+        for r in mc[mc["date"].astype(str) > day].sort_values("date").to_dict("records"):
+            out.setdefault(str(r["release"]).lower(), str(r["date"])[:10])
+    except Exception:
+        pass
+    try:
+        import yaml
+        cfg = yaml.safe_load((ROOT / "pipeline" / "calendar" / "macro_events.yaml").read_text("utf-8")) or {}
+        ends = sorted(str(m["end"]) for m in (cfg.get("fomc") or {}).get("meetings", []) if str(m.get("end", "")) > day)
+        if ends:
+            out["fomc"] = ends[0]
+    except Exception:
+        pass
+    return out
+
+
+def macro_watch(day: str, focus: str, extra: str = "") -> str:
+    """跟主題相關的下一個總經數據＋為什麼相關。focus＝主體＋標題（先比對），extra＝摘要（沒中才比對）。"""
+    prefs = MACRO_DEFAULT
+    for txt in (focus, extra):
+        hit = next((p for pat, p in MACRO_WHY if re.search(pat, txt)), None)
+        if hit:
+            prefs = hit
+            break
+    dates = _macro_dates(day)
+    got = sorted((dates[r], r, w) for r, w in prefs if r in dates)        # 同一主題的幾個相關數據，取最近公布的那個
+    if not got:
+        return ""
+    dd, r, why = got[0]
+    return f"下一個要看的是 {int(dd[5:7])}/{int(dd[8:10])}（美國時間）公布的{REL[r]}：{why}。"
+
+
+def watch_point(day: str, tw: bool, ctype: str, subj: str = "", focus: str = "", extra: str = "", before: datetime | None = None) -> str:
+    """接下來觀察：① 主體自己的下一次財報日／法說會（新聞裡有寫日期才用）② 台股公司 → 月營收公布期限
+    ③ 其他（美國公司、商品、央行）→ 跟這個產業相關的下一個總經數據，並寫出為什麼相關。"""
+    corp = next_corp_event(subj, day, before) if subj and before else ""
     d = datetime.fromisoformat(day)
     if tw:
         nm = (d.replace(day=1) + timedelta(days=32)).replace(day=1)
         s = f"上市櫃公司每月 10 日前公告上月營收，{d.month} 月營收最晚 {nm.month}/10 公布，可以對照這次的數字。"
         if ctype == "財報數字":
             s += "第 4 季（全年）財報依規定在明年 3 月底前公告。"
-        return s
-    try:
-        import pandas as pd
-        fs = sorted((ROOT / "data" / "macro_calendar").glob("**/*.parquet"))
-        mc = pd.concat([pd.read_parquet(f) for f in fs])
-        mc = mc[mc["date"].astype(str) > day].sort_values("date")
-        for r in mc.to_dict("records"):
-            nm = REL.get(str(r["release"]).lower())
-            if nm:
-                dd = str(r["date"])[:10]
-                return f"下一個要看的總經數據是 {int(dd[5:7])}/{int(dd[8:10])}（美國時間）公布的{nm}，市場會拿來對照這次的數字。"
-    except Exception:
-        pass
-    return ""
+        return (corp + s) if corp else s
+    if corp:
+        return corp
+    return macro_watch(day, focus, extra)
 
 
 _HIST = None
+# 外國公司的中英別名：「之前的報導」找舊聞、「接下來觀察」找下一次財報日都要認得同一家（Google＝Alphabet＝谷歌）
+SUBJ_ALIAS = {"Google": ["Google", "Alphabet", "谷歌", "GOOGL"], "Alphabet": ["Alphabet", "Google", "谷歌", "GOOGL"],
+              "輝達": ["輝達", "NVIDIA", "Nvidia", "NVDA"], "NVIDIA": ["NVIDIA", "輝達", "Nvidia", "NVDA"],
+              "微軟": ["微軟", "Microsoft", "MSFT"], "蘋果": ["蘋果", "Apple", "AAPL"], "亞馬遜": ["亞馬遜", "Amazon", "AWS", "AMZN"],
+              "特斯拉": ["特斯拉", "Tesla", "TSLA"], "博通": ["博通", "Broadcom", "AVGO"], "超微": ["超微", "AMD"], "AMD": ["AMD", "超微"],
+              "甲骨文": ["甲骨文", "Oracle", "ORCL"], "英特爾": ["英特爾", "Intel", "INTC"], "美光": ["美光", "Micron"], "高通": ["高通", "Qualcomm"],
+              "Meta": ["Meta", "臉書"], "台積電": ["台積電", "TSMC"], "SK海力士": ["SK海力士", "海力士"], "三星": ["三星", "Samsung"]}
 
 
-def history(subj: str, before: datetime, n: int = 2) -> list[str]:
-    """資料湖裡同一主體在本則之前 45 天內、含數字的報導重點（給「背景」段做前期對照）。"""
+def aliases_of(subj: str) -> list[str]:
+    return SUBJ_ALIAS.get(subj, [subj])
+
+
+def _hist_news(before: datetime) -> list[dict]:
     global _HIST
     if _HIST is None:
         _HIST = load_news(before - timedelta(days=45), before + timedelta(days=1))
-    rows = [x for x in _HIST if x["ts"] < before - timedelta(hours=12) and subj in x["title"]]
+    return _HIST
+
+
+HIST_METRIC = r"^(第[一二三四1-4]季|Q[1-4]|前三季|前[1-4]季|上半年|全年|今年|單季|[1-9]{1,2}月)?(合併)?(營收|毛利率|營益率|營業利益|EPS|每股|稅後|稅前|淨利|純益|獲利|資本支出|出貨)"
+
+
+def _other_entity(cl: str, subj: str, names: dict | None) -> bool:
+    al = set(aliases_of(subj))
+    pool = ENT + INST + ([v for v in _alias(names)] if names else [])
+    return any(v in cl and v not in al and not any(v in a or a in v for a in al) for v in pool if len(v) >= 2)
+
+
+def hist_clause(cl: str, subj: str, names: dict | None = None) -> str:
+    """「之前的報導」一個子句：有寫主體 → 原樣；沒寫主體但開頭就是財報指標、且沒提到別家 → 補上主體；其他 → 丟掉（回空字串）。
+    2026-10-29 第二輪：出現「10/23 經濟日報：年增24.2％。」這種看不出是誰的片段。"""
+    cl = cl.strip()
+    if len(cl) < 6:
+        return ""
+    if any(a in cl for a in aliases_of(subj)):
+        return cl
+    if re.match(HIST_METRIC, cl) and not _other_entity(cl, subj, names):
+        return subj + cl
+    return ""
+
+
+def history(subj: str, before: datetime, n: int = 2, names: dict | None = None) -> list[str]:
+    """資料湖裡同一主體在本則之前 45 天內、含數字的報導重點（給「背景」段做前期對照）；每個子句都要看得出主體。"""
+    al = aliases_of(subj)
+    rows = [x for x in _hist_news(before) if x["ts"] < before - timedelta(hours=12) and any(a in x["title"] for a in al)]
     out, seen = [], set()
     for x in sorted(rows, key=lambda x: x["ts"], reverse=True):
-        cl = [c for c in sanitize(x["summary"] or x["title"]).replace("。", "，").split("，") if c.strip() and clean_ok(c) and NUMRE.search(c)][:2]
+        cl = [c for c in sanitize(x["summary"] or x["title"]).replace("。", "，").split("，") if c.strip() and clean_ok(c) and NUMRE.search(c)]
+        cl = [h for h in (hist_clause(c, subj, names) for c in cl) if h][:2]
         k = "".join(cl)
         if cl and k not in seen:
             seen.add(k)
@@ -549,6 +770,46 @@ def history(subj: str, before: datetime, n: int = 2) -> list[str]:
 
 def _fmt(x: dict) -> str:
     return f"{x['value']}{'' if x['unit'] == '%' else ' '}{x['unit']}"
+
+
+def _fmt_full(x: dict) -> str:
+    """內文用：原文寫「約2成」的，換算成 % 後把原文寫法附在後面，讀者對得上報導。"""
+    return _fmt(x) + (f"（報導寫「{x['orig']}」）" if x.get("orig") else "")
+
+
+def _quarter_unfinished(period: str, day: str) -> bool:
+    """標題期間還沒結束（10 月講「第4季」、年中講「全年」）→ 這個數字只能是預估，不能叫「財報」。"""
+    d = datetime.fromisoformat(day)
+    m = re.match(r"第([一二三四1-4])季", period)
+    if m:
+        q = {"一": 1, "二": 2, "三": 3, "四": 4}.get(m.group(1)) or int(m.group(1))
+        return q == (d.month - 1) // 3 + 1
+    return period == "全年" and d.month >= 4
+
+
+def title_parts(key: dict, title: str, summary: str, day: str) -> tuple[str, str, str]:
+    """(期間, 事件, 分部限定詞)：期間優先取主旨數字自己的標籤；標籤沒寫期間，只有標題本身在講財報時才借標題的期間。
+    事件：財報類指標＋期間 → 報導是在講財報才寫「財報」；數字是預估（標籤有估／可望、或期間還沒結束）寫「展望」；都不是就不寫事件。"""
+    km, lab = key["metric"], key["label"]
+    earn = bool(re.search(EARN_EV, title)) or bool(re.search(EARN_EV, summary[:80]))
+    period = period_of(lab) or (period_of(title) if earn and km in FIN else "")
+    seg = ""
+    if km in ("營收", "營業利益", "淨利"):
+        mp = re.search(METRICS_PAT[km], lab)
+        ms = re.search(r"(" + SEG + r")$", lab[:mp.start()]) if mp else None
+        seg = ms.group(1) if ms else ""
+    if km in FIN and period:
+        if re.search(GUIDE, lab) or _quarter_unfinished(period, day):
+            ev = "展望"
+        else:
+            ev = "財報" if earn and not seg else ""
+    else:
+        ev = EVENTW.get(km, "")
+        if km == "殖利率":
+            ev = "債券" if re.search(r"債", title) else ""      # 「CoreWeave債券殖利率飆15%」→「CoreWeave債券」，不是「CoreWeave利率」
+        if km == "指數" and re.search(r"盤中|早盤|開盤|午盤", title):
+            ev = "盤中"                   # 「盤中速報」不是收盤
+    return period, ev, seg
 
 
 def compose(c: dict, slot: str, idx: int, day: str, style: str, names: dict) -> dict:
@@ -565,7 +826,7 @@ def compose(c: dict, slot: str, idx: int, day: str, style: str, names: dict) -> 
             if x["unit"] in ("元", "萬元", "億元", "兆元"):
                 x["unit"] = x["unit"][:-1] + cur
     for x in nums:
-        x["metric"] = metric_of(x["label"])
+        x["metric"] = metric_of(x["label"]) or ("價格" if "/" in x["unit"] else None)
         x["growth"] = bool(re.search(GROWTH, re.sub(r"(經濟)?成長率", "", x["label"]) if x["metric"] == "經濟成長率" else x["label"]))
     title_raw = sanitize(lead["title"])
     m_close = re.search(r"收(?:在)?\s*([\d,]+(?:\.\d+)?)\s*點", title_raw)
@@ -575,21 +836,34 @@ def compose(c: dict, slot: str, idx: int, day: str, style: str, names: dict) -> 
         if m_chg:
             nums.insert(1, dict(label=f"較前一交易日{'下跌' if '跌' in m_chg.group(1) else '上漲'}", value=m_chg.group(2), unit="點",
                                 key="chg", metric="指數", growth=True, verified=False))
-    keyc = [x for x in nums if x["metric"] and not x["growth"]]
+    keyc = [x for x in nums if x["metric"] and not x["growth"] and not x.get("range")
+            and not (x["unit"] == "%" and x["metric"] in AMOUNT_METRIC)]
     key = next((x for x in keyc if x["value"].lstrip("約逾近超過") in title_raw), keyc[0] if keyc else None)
     if not key:
         raise Skip("沒有可當主旨的關鍵數字")
     km = key["metric"]
-    period = period_of(key["label"]) or period_of(title_raw)
-    ev = "財報" if km in FIN and period else EVENTW.get(km, "")
-    l1 = f"{subj}{period}{ev}"
+    if km == "指數" and re.search(r"櫃買", title_raw):        # 指數新聞的主體是指數本身，不是新聞順帶標的個股代號（10-29：盤中速報被標成「創意」）
+        subj, code = "櫃買指數", ""
+    elif km == "指數" and re.search(r"加權指數|集中市場|台股|大盤", title_raw):
+        subj, code = "台股", ""
+    period, ev, seg = title_parts(key, title_raw, sanitize(lead.get("summary") or ""), day)
+    if subj.endswith("價") and ev == "價格":
+        ev = ""                           # 「金價價格」→「金價」
+    l1 = f"{subj}{period}{seg if not ev else ''}{ev}"
+    if len(l1) > TITLE_MAX:
+        l1 = f"{subj}{period}{ev}"
     if len(l1) > TITLE_MAX:
         l1 = f"{subj}{ev}"
     if len(l1) > TITLE_MAX:
         l1 = subj                         # 主體太長：事件改由第二行的指標名稱帶出
-    l2 = f"{km} {_fmt(key).replace(' ', '')}" if re.match(r"[A-Za-z]", km) else f"{km}{_fmt(key).replace(' ', '')}"
+    kmd = (seg + km) if seg and seg not in l1 else km
+    l2 = f"{kmd} {_fmt(key).replace(' ', '')}" if re.match(r"[A-Za-z]", kmd[-1]) else f"{kmd}{_fmt(key).replace(' ', '')}"
+    if len(l2) > TITLE_MAX and kmd != km:
+        l2 = f"{km} {_fmt(key).replace(' ', '')}" if re.match(r"[A-Za-z]", km) else f"{km}{_fmt(key).replace(' ', '')}"
     if km == "指數":
         l2 = ("加權" if c["cat"] == "台股" else "") + _fmt(key).replace(" ", "")
+    if km == "價格":
+        l2 = _fmt(key).replace(" ", "")       # 「歐洲天然氣價格」／「97.35歐元/MWh」
     cover = [l1, l2]
     # 資訊列：主旨數字＋同一族（財報類／同指標）的相關數字
     fam = FIN if km in FIN else {km}
@@ -603,15 +877,18 @@ def compose(c: dict, slot: str, idx: int, day: str, style: str, names: dict) -> 
             return None
     kv = _f(key["value"])
     rel = [x for x in rel if not (x["unit"] == key["unit"] and kv and _f(x["value"]) and abs(_f(x["value"]) - kv) <= kv * 0.01)]
+    _seen = {(key["value"], key["unit"])}
+    rel = [x for x in rel if not ((x["value"], x["unit"]) in _seen or _seen.add((x["value"], x["unit"])))]   # 同一個數字只列一次（「較前一交易日上漲 939.35」「上漲 939.35」）
     rows = [key] + rel[:2]
     if len(rows) < 2:
         raise Skip("圖卡資訊列不足 2 列（與主旨相關的數字太少）")
-    comps = [x for x in nums if x["growth"]]
+    _cs = set()
+    comps = [x for x in nums if x["growth"] and not ((x["value"], x["unit"]) in _cs or _cs.add((x["value"], x["unit"])))]
     hi = re.search(r"[^，。]*(新高|新低|首度|首次|上修|下修|連續第?[\d一二三四五六七八九十]+[次度個])[^，。]*", c["text"])
     if not comps and not hi:
         raise Skip("沒有與前期的比較數字（季增／年增／前高）")
     tw = bool(code) or c["cat"] == "台股"
-    wp = watch_point(day, tw, c["ctype"])
+    wp = watch_point(day, tw, c["ctype"], subj, subj + " " + title_raw, sanitize(lead.get("summary") or ""), lead["ts"])
     if c["cat"] == "台股" and c["ctype"] == "盤勢數字":
         try:
             from social_gate import load_holidays, next_open
@@ -630,8 +907,8 @@ def compose(c: dict, slot: str, idx: int, day: str, style: str, names: dict) -> 
     head = [f"#{subj} {l2}" if l1 == subj else f"#{subj} {l1}：{l2}", f"#{TAG[c['cat']]} {SUBQ[c['ctype']]}", ""]
     intro = f"{md}，{srcname}報導：{_lead_sentence(c)}（{SRC_NAME.get(c.get('lead_src'), srcname)}報導摘述）"
     shown = [x for x in nums if (x["metric"] or x["growth"]) and len(x["label"]) >= 2 and not re.match(r"[含約共逾近]", x["label"])]
-    sec_num = "📊 #重點數字\n" + "\n".join(f"▪ {x['label']} {_fmt(x)}{cite(x)}" for x in shown[:5])
-    cmp_lines = [f"▪ {x['label']} {_fmt(x)}" for x in comps[:3]]
+    sec_num = "📊 #重點數字\n" + "\n".join(f"▪ {x['label']} {_fmt_full(x)}{cite(x)}" for x in shown[:5])
+    cmp_lines = [f"▪ {x['label']} {_fmt_full(x)}" for x in comps[:3]]
     if hi:
         cmp_lines.append(f"▪ 報導提到「{hi.group(0).strip()}」")
     sec_cmp = "🔁 #和前期比\n" + "\n".join(cmp_lines)
@@ -656,8 +933,23 @@ def compose(c: dict, slot: str, idx: int, day: str, style: str, names: dict) -> 
             mean.append(f"盤中最高 {high.group(1)} 點，收盤距離當天最高點約 {hv - cv:,.2f} 點（本站計算），代表收在接近當天高點的位置。")
     for x in ([] if idx_mode else comps[:2]):
         dn = re.search(r"減|衰退|較.*少|跌|下挫", x["label"])
-        base = "去年同期" if "年" in x["label"] or "同期" in x["label"] else "上一季" if "季" in x["label"] else "上個月" if "月" in x["label"] else "前一交易日" if re.search(r"漲|跌|挫", x["label"]) else "比較基期"
-        mean.append(f"{x['label']} {_fmt(x)}，代表和{base}相比{'減少' if dn else '增加'}約 {x['value'].lstrip('+-約逾近')}{x['unit']}。")
+        lb = x["label"]
+        base = ("一個月前" if re.search(r"近一?個?月", lb) else "一週前" if re.search(r"近一?[週周]|本[週周]|單[週周]|[週周][漲跌]", lb)
+                else "今年初" if re.search(r"今年以來|年初至今", lb) else "去年同期" if re.search(r"年增|年減|同期|去年|年成長|年衰退", lb) else "上一季" if re.search(r"季增|季減|上季|前季", lb)
+                else "上個月" if re.search(r"月增|月減|上月|前月", lb) else "前一交易日" if re.search(r"漲|跌|挫|走高|走低", lb)
+                else "")
+        if not base:
+            continue                              # 看不出跟哪一期比（「營收增加近1800%」「未來2年產能較目前擴編近6倍」），不硬套「去年同期」
+        updown = ("下跌" if dn else "上漲") if re.search(r"漲|跌|挫|走高|走低", x["label"]) else ("減少" if dn else "增加")
+        mean.append(f"{x['label']} {_fmt_full(x)}，代表和{base}相比{updown}約 {x['value'].lstrip('+-約逾近')}{x['unit']}。")
+    if km == "價格":                              # 商品報價：單位白話（MWh、therm、桶、盎司）
+        unote = next((v for k, v in UNIT_NOTE.items() if key["unit"].endswith("/" + k)), "")
+        sp = lambda t: " " if re.search(r"[A-Za-z]$", t) else ""
+        mean.insert(0, f"{key['label']}{sp(key['label'])}報價 {_fmt(key)}" + (f"；{unote}。" if unote else "。"))
+        for x in nums:
+            if x is not key and x["metric"] == "價格":
+                un = next((v for k, v in UNIT_NOTE.items() if x["unit"].endswith("/" + k)), "")
+                mean.append(f"{x['label']}{sp(x['label'])}報價 {_fmt(x)}" + (f"；{un}。" if un and un not in "".join(mean) else "。"))
     for mk in ("經濟成長率", "通膨"):              # 總經預測：同一指標兩個期間 → 算差幾個百分點（10-29 泰國央行）
         ps = [x for x in nums if x["metric"] == mk and x["unit"] == "%" and not x["growth"]][:2]
         if len(ps) == 2:
@@ -676,7 +968,7 @@ def compose(c: dict, slot: str, idx: int, day: str, style: str, names: dict) -> 
         if cl:
             other.append(f"{SRC_NAME.get(n['source'], n['source'])}報導：{'，'.join(cl)}。")
     sec_more = ("📰 #其他媒體怎麼寫\n" + "\n".join(other[:2])) if other else ""
-    hist = history(subj, lead["ts"])
+    hist = history(subj, lead["ts"], names=names)
     sec_hist = ("📌 #之前的報導\n" + "\n".join(hist)) if hist else ""
     sec_watch = "👀 #接下來觀察\n" + wp
     tail = "以上為公開資料整理，非投資建議"
@@ -686,7 +978,9 @@ def compose(c: dict, slot: str, idx: int, day: str, style: str, names: dict) -> 
     threads = pack_threads(["\n".join(head[:2]) + "\n\n" + intro] + body[1:] + [f"{tail}\n{link_line}\n{url_th}"])
     card = dict(title=l1 + l2, subtitle=SUBQ[c["ctype"]], numbers=[{k: x[k] for k in ("label", "value", "unit")} for x in rows],
                 category=c["cat"], subject=subj, foot="資料：" + "、".join(dict.fromkeys(SRC_NAME.get(n["source"], n["source"]) for n in c["group"])) + "・本站整理", cover_title=cover, cover_desc=_lines("、".join(f"{x['label']} {_fmt(x)}" for x in comps[:2]) or SUBQ[c["ctype"]], 22),
-                hero=key["value"].lstrip("約逾近超過") + key["unit"], hl=_fmt(key).replace(" ", "") if _fmt(key).replace(" ", "") in l2 else "")
+                hero=key["value"].lstrip("約逾近超過") + key["unit"], hl=_fmt(key).replace(" ", "") if _fmt(key).replace(" ", "") in l2 else "",
+                tw=bool(code) or c["cat"] == "台股", photo_hint="tw_market" if km in TW_MARKET and (bool(code) or c["cat"] == "台股") else "",
+                photo_text=sanitize(lead.get("summary") or "")[:200])
     d = dict(id=f"{slot}{idx}", slot=slot, data_date=f"{day} 台北", caption_ig=cap_ig, caption_threads=threads,
              card=card, link=url_th, u_code=ucode,
              sources=[{"name": SRC_NAME.get(n["source"], n["source"]) + "：" + n["title"], "url": n["url"],
@@ -798,10 +1092,10 @@ def compose_evergreen(e: dict, slot: str, idx: int, day: str) -> dict:
     threads = pack_threads(["\n".join(head[:2]) + "\n\n" + e["intro"]] + list(e["sections"]) + [sec_watch, f"{tail}\n{link_line}\n{url_th}"])
     card = dict(title=" ".join(e["cover_title"]), subtitle=e["ctype"], numbers=e["rows"], category=e["cat"], subject="",
                 cover_title=e["cover_title"], cover_desc=e["cover_desc"], hero=e["hero"], hero_label=e.get("hero_label", ""),
-                hl="", hdr=e["ctype"], foot="資料：公開資料整理・本站編輯", no_photo=True)
+                hl="", hdr=e["ctype"], foot="資料：公開資料整理・本站編輯", photo_cats=e.get("photo_cats") or [])
     d = dict(id=f"{slot}{idx}", slot=slot, data_date=f"{day} 台北", caption_ig=cap_ig, caption_threads=threads, card=card,
              link=url_th, u_code=ucode, evergreen=True, sources=[dict(name=x, url="", date="") for x in e.get("sources", [])],
-             meta=dict(topic_category=e["cat"], content_type=e["ctype"], layout="D-知識卡", style="常備文庫", has_ai_image="false",
+             meta=dict(topic_category=e["cat"], content_type=e["ctype"], layout="D-知識卡(實景)", style="常備文庫", has_ai_image="false",
                        explore="false", heat="0", news_ids="", u_code=ucode, evergreen="true", topic_id=e["id"]))
     bad = []
     for l in e["cover_title"]:
@@ -858,18 +1152,21 @@ def render_cards(posts: list[dict], slot: str, out: Path, day: str = "", usage_p
         R._PG = b.new_page(); R._PG.set_content("<body></body>")
         pg = b.new_page(viewport={"width": 1080, "height": 1350})
         for i, d in enumerate(posts, 1):
+            # 2026-10-29 Andy：「封面沒圖片需要添加」→ 封面一律實景照片；有重疊先換精簡版（副標 1 行、資訊列 2 列）再查，
+            # 仍重疊或圖庫選不到圖 → 這篇不排（bad>0），不退回無圖大數字卡。
             html, lay, pick = R.card_auto(d, i, len(posts), slot, used=used, today=day or None)
-            d["meta"]["layout"] = "D-知識卡" if d.get("evergreen") else lay
+            d["meta"]["layout"] = "D-知識卡(實景)" if d.get("evergreen") else lay
+            res = {"bad": ["選不到封面照片"]}
             if pick:
-                d["meta"]["has_photo"] = "true"; d["meta"]["photo_kind"] = pick["kind"]
-            pg.set_content(f"<html><head><meta charset=utf-8><style>{BASE}</style></head>{html}</html>")
-            pg.wait_for_timeout(300)
-            res = pg.evaluate(CHECK)
-            if res["bad"] and pick:           # 實景版有重疊 → 退回灰框大數字版，不擋整篇
-                html = R.card_v4(d, i, len(posts), None, slot); d["meta"]["layout"] = "D-知識卡" if d.get("evergreen") else "D-無圖大數字"
-                d["meta"].pop("has_photo", None); d["meta"].pop("photo_kind", None); pick = None
+                d["meta"]["has_photo"] = "true"; d["meta"]["photo_kind"] = pick["kind"]; d["meta"]["photo"] = pick["key"]
                 pg.set_content(f"<html><head><meta charset=utf-8><style>{BASE}</style></head>{html}</html>")
-                pg.wait_for_timeout(300); res = pg.evaluate(CHECK)
+                pg.wait_for_timeout(300)
+                res = pg.evaluate(CHECK)
+                if res["bad"]:
+                    c0 = d["card"]; slim = dict(d, card=dict(c0, cover_desc=(R.lines_of(c0.get("cover_desc")) or [""])[:1], numbers=c0["numbers"][:2]))
+                    html, lay, pick = R.card_auto(slim, i, len(posts), slot, used=used, today=day or None)
+                    pg.set_content(f"<html><head><meta charset=utf-8><style>{BASE}</style></head>{html}</html>")
+                    pg.wait_for_timeout(300); res = pg.evaluate(CHECK)
             bad[d["id"]] = len(res["bad"])
             if pick and not res["bad"]:
                 note_usage(used, pick["key"], day)      # 同一輪後面的卡也會避開這張
@@ -1005,7 +1302,7 @@ def run_slot(slot: str, day: str, now: datetime, posted: dict, dry: bool, out: P
     keep = []
     for d in posts:
         if bad[d["id"]]:
-            log["skipped"].append(dict(title=d["card"]["title"], why=f"圖卡重疊 {bad[d['id']]} 筆"))
+            log["skipped"].append(dict(title=d["card"]["title"], why=f"圖卡重疊或沒有封面照片 {bad[d['id']]} 筆"))
             (img_out / f"{d['id']}.jpg").unlink(missing_ok=True)
         else:
             keep.append(d)

@@ -401,10 +401,33 @@ def topic_cats(text, topic=None):
         macro = [c for c in macro if c != "總經_匯率"]      # 非總經新聞的「人民幣／歐元」只是計價幣別，不配鈔票圖（10-29 摩爾線程配到歐元）
         out = inds[:2] + macro[:1] + (["總經"] if macro else [])
     return [c for i, c in enumerate(out) if c not in out[:i]]
-def photo_pick(subject, topic=None, used=None, today=None, allow_unreviewed=False, text=None):
+# 總類通用圖池（2026-10-29 Andy：「封面沒圖片需要添加」→ 封面一律要有圖，不准再出無圖大數字卡）：
+# 公司圖、類別圖都選不到時依序退到這裡。(類別池, 只取 query 含這些字的照片；None＝整池)。
+# 「總經」池是台北街景／證交所／新台幣，只配給台灣的題材；外國題材（泰國央行、外商）用通用的工廠／產線與紐約交易所。
+GENERIC_TW = [("總經", ["Taipei 101 skyline"]), ("金融", ["Xinyi District skyline", "bank building"])]   # 證交所看盤螢幕、台北夜景偏暗（灰階 56／86），不當通用圖
+GENERIC_INTL = [("總經_景氣", ["factory production line", "industrial robots factory"]),
+                ("總經_利率債券", ["New York Stock Exchange facade", "Wall Street sign"]), ("金融", ["bank building"])]
+GENERIC_LAST = [("金融", None), ("總經", None), ("半導體", None)]           # 最後保底：一定有一張通用財經圖
+FOREIGN = r"外商|外國|美國|美股|泰國|日本|日銀|歐洲|歐元|英國|英格蘭|南韓|韓國|中國|陸股|港股|澳洲|加拿大|瑞士|印度|印尼|越南|巴西|墨西哥|土耳其|俄羅斯|德國|法國|沙烏地|伊朗|以色列|新加坡|菲律賓|馬來西亞|[A-Za-z]{3,}"
+def generic_cats(subject, topic, text, tw=None):
+    """通用退路：台灣題材 → 台北／證交所／金融；外國或看不出來 → 工廠產線／紐約交易所。
+    tw＝呼叫端已知是不是台股公司（social_news 有代號就 True）；沒給才用主題＋主體名推。"""
+    if tw is None:
+        tw = topic in ("台股", "財報") and not re.search(FOREIGN, subject or "")
+    if topic == "總經" and not tw:      # 外國總經（泰國央行上修 GDP）：貨櫃港口是最通用的「經濟活動」實景
+        return [("航運", ["container port", "container terminal cranes"])] + GENERIC_INTL + GENERIC_TW + GENERIC_LAST
+    return (GENERIC_TW + GENERIC_INTL if tw else GENERIC_INTL + GENERIC_TW) + GENERIC_LAST
+def photo_pick(subject, topic=None, used=None, today=None, allow_unreviewed=False, text=None, prefer=None, tw=None):
     """選圖順序（Andy 10-28 v3）：該公司已審圖池（近 14 天用過的避開、輪替）→ 該公司所屬類別池
     → 依新聞文字對應的類別池（總經新聞先找子類：央行／物價就業／利率債券／匯率／能源／貿易關稅／景氣／房市）→ None（灰框大數字）。
-    主體名只認 aliases.json 的完全相同名稱。回傳 (路徑, meta, layout 標籤, 使用紀錄鍵) 或 None。"""
+    主體名只認 aliases.json 的完全相同名稱。回傳 (路徑, meta, layout 標籤, 使用紀錄鍵) 或 None。
+    prefer＝[(類別池, query 關鍵字清單或 None), ...]：常備文庫指定的圖池，最優先。
+    2026-10-29 起最後一定退到總類通用圖池（generic_cats），只有圖庫整個空掉才回 None。"""
+    if re.search(r"天然氣|LNG|液化氣", f"{subject or ''} {text or ''}"):
+        prefer = list(prefer or []) + [("能源", ["LNG tanker"])]      # 天然氣配 LNG 船，不配抽油機
+    for cat, only in (prefer or []):
+        r = _rotate(PHOTO_LIB / "_category" / cat, f"_category/{cat}", used, today, allow_unreviewed, only)
+        if r: return r[0], r[1], "D-實景(類別)", f"_category/{cat}/{r[1]['file']}"
     try: aliases = json.loads((PHOTO_LIB / "aliases.json").read_text(encoding="utf-8"))
     except Exception: aliases = {}
     slug = aliases.get((subject or "").strip())
@@ -414,17 +437,22 @@ def photo_pick(subject, topic=None, used=None, today=None, allow_unreviewed=Fals
         if r: return r[0], r[1], KIND_LAYOUT.get(r[1].get("kind"), "D-實景(公司)"), f"{slug}/{r[1]['file']}"
         try: cats = [next((t.get("category") for t in json.loads((PHOTO_LIB / "targets.json").read_text(encoding="utf-8")) if t.get("slug") == slug), None)]
         except Exception: cats = []
-    if re.search(r"央行|中央銀行", subject or "") and not cb_filter(subject):
-        return None                      # 其他國家央行：沒有對應照片，總經池又全是台北街景 → 灰框大數字，不配錯圖
-    cats += topic_cats(f"{subject or ''} {text or ''}", topic) + [TOPIC_CAT.get(topic or "")]
+    other_cb = bool(re.search(r"央行|中央銀行", subject or "")) and not cb_filter(subject)
+    if not other_cb:                     # 其他國家央行（泰國央行）：Fed／ECB／日銀大樓與台北街景都是錯配 → 直接走通用圖（工廠產線、交易所）
+        cats += topic_cats(f"{subject or ''} {text or ''}", topic) + [TOPIC_CAT.get(topic or "")]
+    foreign = bool(re.search(FOREIGN, subject or "")) if tw is None else not tw
     seen = set()
     for cat in cats:
         if not cat or cat in seen: continue
         seen.add(cat)
+        if cat == "總經" and foreign: continue       # 台北街景不配外國題材
         only = cb_filter(f"{subject or ''} {text or ''}") if cat == "總經_央行" else None
         if only == []: continue
         r = _rotate(PHOTO_LIB / "_category" / cat, f"_category/{cat}", used, today, allow_unreviewed, only)
         if r: return r[0], r[1], "D-實景(類別)", f"_category/{cat}/{r[1]['file']}"
+    for cat, only in generic_cats(subject, topic, text, tw):
+        r = _rotate(PHOTO_LIB / "_category" / cat, f"_category/{cat}", used, today, allow_unreviewed, only)
+        if r: return r[0], r[1], "D-實景(通用)", f"_category/{cat}/{r[1]['file']}"
     return None
 def photo_for(subject, allow_unreviewed=False):
     """相容舊呼叫：只回 (路徑, meta)。"""
@@ -477,7 +505,13 @@ def card_auto(d, idx, tot, slot="pre", allow_unreviewed=False, used=None, today=
     c = d["card"]
     text = " ".join([c.get("title", ""), c.get("cover_title", "") if isinstance(c.get("cover_title"), str) else " ".join(c.get("cover_title") or []),
                      c.get("kicker", "")] + [x.get("name", "") for x in d.get("sources", [])])
-    ph = None if c.get("no_photo") else photo_pick(c.get("subject"), d.get("meta", {}).get("topic_category") or c.get("category"), used, today, allow_unreviewed, text=text)
+    prefer = [(x["cat"], x.get("query")) for x in (c.get("photo_cats") or [])]      # 常備文庫指定圖池
+    if c.get("photo_hint") == "tw_market" or re.fullmatch(r"台股|櫃買指數|加權指數|三大法人|外資|投信|自營商", c.get("subject") or ""):
+        prefer = GENERIC_TW + prefer        # 台股收盤、法人、融資：配台北 101／信義金融區，不配內文順帶提到的記憶體、港口
+    if c.get("photo_text"):
+        text += " " + c["photo_text"]                  # 新聞導言（含「國產GPU」這類產業字），類別池比對更準
+    ph = photo_pick(c.get("subject"), d.get("meta", {}).get("topic_category") or c.get("category"), used, today, allow_unreviewed, text=text,
+                    prefer=prefer, tw=c.get("tw"))
     if ph:
         path, meta, lay, key = ph
         return card_photo(d, idx, tot, (path, meta), slot, pending=not meta.get("reviewed")), lay, dict(key=key, kind=meta.get("kind", ""), file=str(path))

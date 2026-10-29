@@ -41,8 +41,9 @@ def test_company_pool_rotates_and_skips_unreviewed(R):
 
 def test_fallback_to_category_then_none(R):
     assert R.photo_pick("無圖")[2:] == ("D-實景(類別)", "_category/半導體/photo_1.jpg")
-    assert R.photo_pick("不在名單") is None
-    assert R.photo_pick("不在名單", topic="總經") is None      # 總經池沒有圖 → 灰框
+    # 2026-10-29 Andy：「封面沒圖片需要添加」→ 不在名單也不再回 None，最後退到總類通用圖池（這個測試庫只有半導體池）
+    assert R.photo_pick("不在名單")[2:] == ("D-實景(通用)", "_category/半導體/photo_1.jpg")
+    assert R.photo_pick("不在名單", topic="總經")[2] == "D-實景(通用)"
 
 
 def test_foreign_and_macro_text_fallback(R, tmp_path):
@@ -71,5 +72,6 @@ def test_central_bank_pool_matches_bank(R):
     (d / "pool.json").write_text(json.dumps(dict(photos=ph)), encoding="utf-8")
     assert R.photo_pick("歐洲央行", topic="總經", text="歐洲央行維持利率")[3] == "_category/總經_央行/photo_5.jpg"
     assert R.photo_pick("聯準會", topic="總經", text="聯準會降息")[3] == "_category/總經_央行/photo_1.jpg"
-    assert R.photo_pick("泰國央行", topic="總經", text="泰國央行維持利率不變") is None
+    r = R.photo_pick("泰國央行", topic="總經", text="泰國央行維持利率不變")
+    assert r is None or not r[3].startswith("_category/總經_央行/")        # 不配 Fed／ECB 大樓（10-29 起改退通用圖池，這個測試庫沒有通用池 → None）
     assert "總經_匯率" not in R.topic_cats("摩爾線程 淨利4,930萬人民幣", "財報")      # 非總經新聞的幣別不配鈔票圖

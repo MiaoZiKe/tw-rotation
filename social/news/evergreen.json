@@ -48,6 +48,15 @@
    "sources": [
     "台積電 3DFabric：CoWoS 官方說明 https://3dfabric.tsmc.com/chinese/dedicatedFoundry/technology/cowos.htm",
     "台積電 HPC 晶圓級系統整合 https://www.tsmc.com/chinese/dedicatedFoundry/technology/platform_HPC_tech_WLSI"
+   ],
+   "photo_cats": [
+    {
+     "cat": "半導體",
+     "query": [
+      "wafer fab",
+      "integrated circuit die"
+     ]
+    }
    ]
   },
   {
@@ -97,6 +106,15 @@
    "sources": [
     "JEDEC HBM 標準 JESD235（結構、矽穿孔、基底晶粒）https://en.wikipedia.org/wiki/High_Bandwidth_Memory",
     "Tom's Hardware：美光、三星、SK 海力士 HBM 路線圖 https://www.tomshardware.com/tech-industry/semiconductors/hbm-roadmaps-for-micron-samsung-and-sk-hynix-to-hbm4-and-beyond"
+   ],
+   "photo_cats": [
+    {
+     "cat": "記憶體",
+     "query": [
+      "RAM module",
+      "DDR4 SDRAM"
+     ]
+    }
    ]
   },
   {
@@ -146,6 +164,15 @@
    "sources": [
     "臺灣證券交易所 三大法人買賣金額統計表 https://www.twse.com.tw/zh/trading/foreign/bfi82u.html",
     "櫃買中心 三大法人說明（外資及陸資定義、合計方式）https://www.tpex.org.tw/storage/zh-tw/web/stock/3insti/daily_trade/3itradeM_hedge.htm"
+   ],
+   "photo_cats": [
+    {
+     "cat": "金融",
+     "query": [
+      "Xinyi District skyline",
+      "bank building"
+     ]
+    }
    ]
   },
   {
@@ -195,6 +222,15 @@
    "sources": [
     "臺灣證券交易所 融資融券餘額 https://www.twse.com.tw/zh/trading/exchange/MI_MARGN.html",
     "證交所說明：信用交易擔保維持率採整戶管理（經濟日報報導）https://money.udn.com/money/story/5607/9668168"
+   ],
+   "photo_cats": [
+    {
+     "cat": "金融",
+     "query": [
+      "Xinyi District skyline",
+      "bank building"
+     ]
+    }
    ]
   },
   {
@@ -244,6 +280,14 @@
    "sources": [
     "Federal Reserve FOMC 會議行事曆（一年 8 次例會；3、6、9、12 月會議附經濟預測摘要）https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm",
     "Federal Reserve FOMC 聲明範例（2:00 p.m. 公布）https://www.federalreserve.gov/newsevents/pressreleases/monetary20260128a.htm"
+   ],
+   "photo_cats": [
+    {
+     "cat": "總經_央行",
+     "query": [
+      "Federal Reserve"
+     ]
+    }
    ]
   },
   {
@@ -294,6 +338,11 @@
     "美國勞工統計局 BLS CPI https://www.bls.gov/cpi/",
     "美國經濟分析局 BEA PCE 物價指數 https://www.bea.gov/data/personal-consumption-expenditures-price-index",
     "Federal Reserve：通膨目標以 PCE 衡量 2% https://www.federalreserve.gov/faqs/economy_14400.htm"
+   ],
+   "photo_cats": [
+    {
+     "cat": "總經_物價就業"
+    }
    ]
   },
   {
@@ -343,6 +392,15 @@
    "sources": [
     "台灣半導體產業協會（TSIA）產業鏈說明 https://www.tsia.org.tw/",
     "台積電 3DFabric（封裝屬後段）https://3dfabric.tsmc.com/chinese/dedicatedFoundry/technology/cowos.htm"
+   ],
+   "photo_cats": [
+    {
+     "cat": "半導體",
+     "query": [
+      "wafer fab",
+      "integrated circuit die"
+     ]
+    }
    ]
   },
   {
@@ -392,6 +450,14 @@
    "sources": [
     "Open Compute Project 先進冷卻方案（冷板與浸沒的區分）https://www.opencompute.org/projects/advanced-cooling-solutions",
     "科技新報：液冷是什麼 https://technews.tw/2025/06/09/what-is-liquid-cooling/"
+   ],
+   "photo_cats": [
+    {
+     "cat": "散熱"
+    },
+    {
+     "cat": "資料中心"
+    }
    ]
   },
   {
@@ -441,6 +507,11 @@
    "sources": [
     "TrendForce：味之素 ABF 擴產（ABF 自 1999 年用於 CPU、GPU 封裝）https://www.trendforce.com/news/2026/05/08/news-ajinomoto-ramps-chip-packaging-push-with-¥1-2b-land-buy-for-new-plant-in-2032-abf-margins-top-50-on-ai-boom/",
     "TechRadar：味之素 ABF 擴產 https://www.techradar.com/pro/japanese-firm-behind-ubiquitous-msg-is-ramping-up-production-of-key-material-in-semiconductor-packaging"
+   ],
+   "photo_cats": [
+    {
+     "cat": "PCB"
+    }
    ]
   },
   {
@@ -491,6 +562,17 @@
     "證券交易法第 36 條第 1 項第 3 款（每月 10 日以前公告並申報上月營運情形）https://law.moj.gov.tw/LawClass/LawSingle.aspx?pcode=G0400001&flno=36",
     "公開資訊觀測站（月營收申報）https://mops.twse.com.tw/",
     "中央社：主管機關延後營收公告期限實例 https://www.cna.com.tw/news/afe/202002030173.aspx"
+   ],
+   "photo_cats": [
+    {
+     "cat": "總經",
+     "query": [
+      "Taipei 101 skyline"
+     ]
+    },
+    {
+     "cat": "金融"
+    }
    ]
   },
   {
@@ -540,6 +622,17 @@
    "sources": [
     "IAS 33 每股盈餘（基本 EPS＝歸屬母公司普通股股東損益÷加權平均流通在外股數）https://www.iasplus.com/en/standards/ias/ias33",
     "公開資訊觀測站 財務報告 https://mops.twse.com.tw/"
+   ],
+   "photo_cats": [
+    {
+     "cat": "總經",
+     "query": [
+      "Taipei 101 skyline"
+     ]
+    },
+    {
+     "cat": "金融"
+    }
    ]
   }
  ]

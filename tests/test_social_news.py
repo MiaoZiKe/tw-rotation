@@ -101,7 +101,7 @@ def test_evergreen_library_all_pass_gates():
     assert len(ids) == len(set(ids))
     for e in lib:
         d = S.compose_evergreen(e, "wk1", 1, "2026-10-31")     # 法遵、長度、落點閘不過會丟 Skip
-        assert d["meta"]["has_ai_image"] == "false" and d["card"]["no_photo"] is True
+        assert d["meta"]["has_ai_image"] == "false" and d["card"]["photo_cats"]       # 10-29：常備文庫也要有實景封面
         assert "#stock/" not in d["caption_ig"]
         assert "ig-newswk11-20261031" in d["caption_ig"]
         assert len(d["card"]["numbers"]) == 3
@@ -175,3 +175,173 @@ def test_numbers_of_period_only_label_inherits_metric():
 
 def test_min_body_not_below_400():
     assert 400 <= S.MIN_BODY <= 500
+
+
+# ---------------- 第二輪（2026-10-29）：「成」單位、商品報價、標題期間＋事件、之前的報導主體、接下來觀察 ----------------
+def _cand(title, summary, codes="", ts="2026-10-28T18:00:00+08:00", source="cnyes"):
+    n = dict(title=title, summary=summary, codes=codes, source=source, category="", news_id="x1", url="",
+             ts=datetime.fromisoformat(ts))
+    return S.score([n], {})
+
+
+def _no_lake(monkeypatch, macro=None):
+    monkeypatch.setattr(S, "_HIST", [])
+    monkeypatch.setattr(S, "_macro_dates", lambda day: dict(macro or {"nfp": "2026-11-06", "cpi": "2026-11-10",
+                                                                       "pce": "2026-10-29", "fomc": "2026-12-09"}))
+
+
+def test_numbers_of_cheng_unit_range_and_spaced_eps():
+    got = {x["label"]: x for x in S.numbers_of("Q4營收估季減約2成，全年營收有望年增五成，估營收季增1-3%，第3季EPS 4.55元，營收成長3成長")}
+    assert got["Q4營收估季減"]["value"] == "約20" and got["Q4營收估季減"]["unit"] == "%" and got["Q4營收估季減"]["orig"] == "約2成"
+    assert any(x["value"] == "50" and x["unit"] == "%" for x in got.values())          # 中文「五成」也認得
+    assert got["估營收季增"]["value"] == "1～3" and got["估營收季增"].get("range")       # 不再讀成「-3%」
+    assert got["第3季EPS"]["value"] == "4.55"                                             # 「EPS 4.55元」中間有空白也抓得到
+    assert not any(x["unit"] == "成" for x in got.values())
+
+
+def test_numbers_of_commodity_units():
+    xs = {x["label"]: x for x in S.numbers_of("荷蘭 TTF 近月期貨漲1.2%至97.35歐元/MWh，英國 NBP 漲1.5%至241便士/therm，布蘭特原油每桶85.2美元")}
+    assert xs["荷蘭 TTF 近月期貨"]["unit"] == "歐元/MWh" and xs["荷蘭 TTF 近月期貨"]["value"] == "97.35"
+    assert xs["荷蘭 TTF 近月期貨漲"]["value"] == "1.2"                                  # 漲幅保留「漲」，不會變成「期貨 1.2%」
+    assert xs["英國 NBP"]["unit"] == "便士/therm"
+    assert xs["布蘭特原油"]["unit"] == "美元/桶"
+
+
+def test_compose_commodity_price_passes(monkeypatch):
+    _no_lake(monkeypatch)
+    c = _cand("沙烏地能源樞紐遇襲 歐洲天然氣價格飆升至2022年以來新高",
+              "胡塞組織以彈道飛彈與無人機襲擊沙烏地能源設施，歐洲批發天然氣價格周三漲至 2022 年以來新高。，"
+              "荷蘭 TTF 近月期貨漲1.2%至97.35歐元/MWh，英國 NBP 漲1.5%至241便士/therm，連6日走高。，"
+              "LNG航線受阻、歐盟地下儲氣僅74.6%，11月初歐洲將降溫，市場供應壓力加劇。")
+    d = S.compose(c, "pre", 1, "2026-10-29", "口袋長文", NAMES)
+    assert d["card"]["cover_title"] == ["歐洲天然氣價格", "97.35歐元/MWh"]
+    assert "1,000 度電" in d["caption_ig"]                                              # 單位白話
+    w = d["caption_ig"].split("接下來觀察")[1]
+    assert "PCE" in w and "能源價格" in w and "非農" not in w                           # 寫清楚為什麼相關
+
+
+def test_compose_cheng_unlocks_compare_section(monkeypatch):
+    _no_lake(monkeypatch)
+    c = _cand("〈譜瑞法說〉Q3每股賺7.69元 Q4營收估季減約2成毛利率可望回升",
+              "譜瑞-KY第三季營收41.9億元、稅後純益5.9億元，EPS 7.69元，受PC供應鏈提前拉貨後庫存調節影響，年季雙減。，"
+              "第四季營收季減約2成；毛利率可望回升至41%至45%，獲利結構自谷底改善。", codes="4966")
+    d = S.compose(c, "post", 1, "2026-10-28", "口袋長文", NAMES)
+    assert d["card"]["cover_title"] == ["譜瑞第3季財報", "EPS 7.69元"]
+    cmp_ = d["caption_ig"].split("和前期比")[1].split("🔎")[0]
+    assert "約20%" in cmp_ and "約2成" in cmp_
+
+
+def test_title_period_event_match_key_number():
+    key = dict(label="Google第2季雲端營收", metric="營收", value="250", unit="億美元")
+    p, ev, seg = S.title_parts(key, "不只賣自家雲端！Google找上甲骨文 搶輝達AI晶片生意",
+                               "Google調整雲端策略，透過甲骨文等外部夥伴擴大TPU銷售", "2026-10-29")
+    assert (p, ev, seg) == ("第2季", "", "雲端")                                         # 不是「第2季財報」，帶出「雲端」
+    key = dict(label="Q4毛利率持續站穩", metric="毛利率", value="30", unit="%")
+    assert S.title_parts(key, "穩懋Q3 EPS 4.55元 Q4毛利率持續站穩30%", "", "2026-10-28")[:2] == ("第4季", "展望")
+    key = dict(label="第3季稅後純益", metric="淨利", value="8,829", unit="萬元")
+    assert S.title_parts(key, "昶昕財報／第3季稅後純益8,829萬元", "", "2026-10-28")[:2] == ("第3季", "財報")
+
+
+def test_compose_google_title_not_earnings(monkeypatch):
+    _no_lake(monkeypatch)
+    c = _cand("不只賣自家雲端！Google找上甲骨文 搶輝達AI晶片生意",
+              "Google調整雲端策略，透過甲骨文等外部夥伴擴大TPU銷售，挑戰輝達主導的AI晶片市場。，"
+              "Google第2季雲端營收250億美元，第三季營收估年增約90%；TPU合約收入大多將於2027年認列。，"
+              "TPU對外銷售料稀釋獲利率至約20%，但可降成本；Anthropic、OpenAI等也成TPU客戶。")
+    d = S.compose(c, "pre", 1, "2026-10-29", "口袋長文", NAMES)
+    t = "".join(d["card"]["cover_title"])
+    assert "財報" not in t and "雲端" in t and "250億美元" in t
+
+
+def test_history_clause_needs_subject():
+    names = {"2330": "台積電", "4966": "譜瑞"}
+    assert S.hist_clause("年增24.2％", "譜瑞", names) == ""                              # 看不出是誰 → 丟掉
+    assert S.hist_clause("營收年增20%", "譜瑞", names) == "譜瑞營收年增20%"               # 財報指標開頭 → 補主體
+    assert S.hist_clause("台積電營收年增30%", "譜瑞", names) == ""                         # 講的是別家
+    assert S.hist_clause("Alphabet第3季營收年增15%", "Google", names).startswith("Alphabet")   # 別名也算有主體
+
+
+def test_next_corp_event_from_news(monkeypatch):
+    mk = lambda t, ts: dict(title=t, summary="", source="cnyes", ts=datetime.fromisoformat(ts))
+    monkeypatch.setattr(S, "_HIST", [
+        mk("本周SK海力士與谷歌、微軟等科技財報登場", "2026-10-27T09:00:00+08:00"),
+        mk("閃迪周四將公布財報", "2026-10-28T09:00:00+08:00"),
+        mk("台達電今天公布第3季財報", "2026-10-28T14:00:00+08:00"),
+    ])
+    before = datetime.fromisoformat("2026-10-28T21:00:00+08:00")
+    assert "10/26～11/1 這一週公布財報" in S.next_corp_event("Google", "2026-10-29", before)
+    assert "10/29 公布財報" in S.next_corp_event("閃迪", "2026-10-29", before)
+    assert S.next_corp_event("台達電", "2026-10-28", before) == ""                        # 講的就是這則報導本身
+
+
+def test_us_company_watch_prefers_earnings_then_related_macro(monkeypatch):
+    _no_lake(monkeypatch)
+    before = datetime.fromisoformat("2026-10-28T21:00:00+08:00")
+    w = S.watch_point("2026-10-29", False, "財報數字", "Google", "Google 雲端 TPU", "", before)
+    assert "CPI" in w and "利率" in w and "非農" not in w
+    w = S.watch_point("2026-10-29", False, "總經數據", "泰國央行", "泰國央行維持利率不變", "", before)
+    assert "FOMC" in w and "聯準會" in w
+    monkeypatch.setattr(S, "_HIST", [dict(title="Alphabet將於10月29日公布財報", summary="", source="udn",
+                                          ts=datetime.fromisoformat("2026-10-27T09:00:00+08:00"))])
+    w = S.watch_point("2026-10-29", False, "財報數字", "Google", "Google 雲端", "", before)
+    assert w.startswith("Google預計 10/29 公布財報")
+
+
+def test_sanitize_fly_growth_vs_level():
+    assert L.sanitize("AI 光通訊營收飆 44%") == "AI 光通訊營收成長 44%"
+    assert L.sanitize("債券殖利率飆15%") == "債券殖利率升至15%"
+    assert "升至至" not in L.sanitize("殖利率飆至15%")
+
+
+
+# ---------------- 2026-10-29 Andy：「封面沒圖片需要添加」→ 每一篇主題文章封面都要有實景照片 ----------------
+def _R():
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "docs" / "marketing" / "posts"))
+    import render_news_cards as R
+    return R
+
+
+def _cover_photo(d):
+    R = _R(); c = d["card"]
+    text = " ".join([c.get("title", "")] + list(c.get("cover_title") or []) + [x.get("name", "") for x in d.get("sources", [])])
+    prefer = [(x["cat"], x.get("query")) for x in (c.get("photo_cats") or [])]
+    return R.photo_pick(c.get("subject"), d["meta"].get("topic_category"), None, "2026-10-29", text=text, prefer=prefer)
+
+
+def test_every_evergreen_cover_has_reviewed_photo():
+    for e in S.load_evergreen():
+        d = S.compose_evergreen(e, "pre", 1, "2026-10-29")
+        ph = _cover_photo(d)
+        assert ph, f"{e['id']} 封面沒有照片"
+        assert ph[1].get("reviewed"), f"{e['id']} 用到未審照片"
+        assert ph[3].split("/")[1] == e["photo_cats"][0]["cat"], f"{e['id']} 沒用到指定圖池：{ph[3]}"
+
+
+def test_every_news_cover_has_photo_even_without_company_pool(monkeypatch):
+    _no_lake(monkeypatch)
+    cases = [("泰國央行維持利率不變並調高經濟成長預測", "泰國央行MPC以6票贊成維持基準利率1%不變，央行上修今年GDP成長率至2.4%、2027年2.1%；核心通膨估今年1.2%、明年1.3%。"),
+             ("〈財報〉Q3營收暴增近1800%！摩爾線程搭上中國AI硬體需求潮", "第三季營收年增1,774%至人民幣16億元，獲利4,930萬元，創上市以來最快增速。"),
+             ("某小型外商公布第3季財報 營收年增12%", "某小型外商第3季營收12.5億美元，年增12%，毛利率40%。")]
+    R = _R()
+    for title, summ in cases:
+        c = _cand(title, summ)
+        try:
+            d = S.compose(c, "pre", 1, "2026-10-29", "口袋長文", NAMES)
+        except S.Skip:
+            subj = S.subject_of(c, NAMES)[0]
+            d = dict(card=dict(subject=subj, title=title, cover_title=[subj, ""]), meta=dict(topic_category=c["cat"]), sources=[])
+        ph = _cover_photo(d)
+        assert ph and ph[1].get("reviewed"), f"{title} 封面沒有照片"
+        assert "Federal Reserve" not in (ph[1].get("query") or "") or "泰國" not in title       # 泰國央行不配 Fed 大樓
+        assert not (("泰國" in title or "外商" in title) and ph[3].startswith("_category/總經/")), "外國題材不配台北街景"
+    assert R.photo_pick("完全不在名單的主體", topic="科技", text="") is not None                  # 最後保底一定有圖
+
+
+def test_tw_market_cover_uses_taiwan_generic_photo():
+    R = _R()
+    d = dict(card=dict(subject="台股", title="台股收盤 加權47,035.58點", cover_title=["台股收盤", "加權47,035.58點"], photo_hint="tw_market",
+                       photo_text="華邦電、力積電獲加碼，記憶體族群走強", numbers=[], category="台股"), meta=dict(topic_category="台股"), sources=[])
+    c = d["card"]
+    prefer = R.GENERIC_TW
+    ph = R.photo_pick(c["subject"], "台股", None, "2026-10-29", text=c["photo_text"], prefer=prefer)
+    assert ph and ph[3].split("/")[1] in ("總經", "金融")          # 不因內文提到記憶體就配記憶體晶片
