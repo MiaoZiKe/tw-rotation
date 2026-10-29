@@ -64,6 +64,7 @@
       this.kc.loadOlder = () => {};          // 往左拖到頭不要去抓別的資料：這裡的資料就是全部
       this.line = null; this.mk = null;
       this.fixScale();
+      try { this.chart.applyOptions({ rightPriceScale: { ensureEdgeTickMarksVisible: false } }); } catch (e) { /* 圖剛銷毀 */ }   // 手機 KChart 強制畫最下一格刻度，會把價格軸拉到負數；練習室不要
     }
     /** 進出場箭頭不參與 Y 軸自動縮放：箭頭堆疊會讓價格軸最低衝到負數（台指期「全部」曾到 -7500）。
         自己用可視範圍內的 K 棒高低點算範圍，箭頭再多也撐不動軸。 */
@@ -148,16 +149,42 @@
       const s = getComputedStyle(document.documentElement), up = s.getPropertyValue('--rise').trim() || '#ff4d6d', dn = s.getPropertyValue('--fall').trim() || '#2ee59d';
       this.candle.applyOptions({ upColor: up, downColor: dn, borderUpColor: up, borderDownColor: dn, wickUpColor: up, wickDownColor: dn });
     }
-    /** 同一根 K 棒最多一個進場、一個出場標記；太密（>120 個）就改小圓點、不寫字。 */
+    /** 同一根 K 棒最多一個進場、一個出場標記。 */
     static thin(marks) {
       const seen = {}, out = [];
       marks.forEach((m) => { const k = m.time + '|' + (m.role || m.position); if (!seen[k]) { seen[k] = 1; out.push(m); } });
-      if (out.length > 120) out.forEach((m) => { m.shape = 'circle'; m.size = 0.5; m.text = ''; });
       return out;
     }
+    /** 只畫可視範圍內的標記；可視範圍內超過 400 個就一個都不畫（寧可不畫，也不准糊成色塊蓋住 K 線），放大到夠疏才出現。 */
+    applyMarks() {
+      let list = this.allMarks || [];
+      try {
+        const vr = this.chart.timeScale().getVisibleRange();
+        if (vr) list = list.filter((m) => m.time >= vr.from && m.time <= vr.to);
+      } catch (e) { /* 圖剛銷毀 */ }
+      if (list.length > 400) list = [];
+      const sig = list.length + '|' + (list[0] ? list[0].time : '') + '|' + (list.length ? list[list.length - 1].time : '');
+      if (sig === this.markSig && this.mk) return;
+      this.markSig = sig;
+      if (!this.mk) this.mk = LWC.createSeriesMarkers(this.candle, list); else this.mk.setMarkers(list);
+    }
+    /** 價格不可能是負的：下緣留白依可視最低價限縮，讓軸底不低於 0。 */
+    clampMargin() {
+      try {
+        const rg = this.chart.timeScale().getVisibleLogicalRange(), d = this.kc.data || [];
+        if (!rg || !d.length) return;
+        let lo = Infinity, hi = -Infinity;
+        for (let i = Math.max(0, Math.floor(rg.from)); i <= Math.min(d.length - 1, Math.ceil(rg.to)); i++) { if (d[i].low < lo) lo = d[i].low; if (d[i].high > hi) hi = d[i].high; }
+        if (!(lo > 0) || !(hi > lo)) return;
+        const ps = this.candle.priceScale(), cur = (ps.options() || {}).scaleMargins || {}, t = cur.top != null ? cur.top : 0.2;
+        const b = Math.max(0, Math.min(0.08, 0.9 * lo * (1 - t) / hi));
+        if (Math.abs((cur.bottom != null ? cur.bottom : 0.08) - b) > 0.002 && this.mgB !== b) { this.mgB = b; ps.applyOptions({ scaleMargins: { top: t, bottom: b } }); }
+      } catch (e) { /* 圖剛銷毀 */ }
+    }
     setMarkers(marks) {
-      marks = KView.thin(marks);
-      if (!this.mk) this.mk = LWC.createSeriesMarkers(this.candle, marks); else this.mk.setMarkers(marks);
+      this.allMarks = KView.thin(marks); this.markSig = null;
+      if (!this.rsub) { this.rsub = true; this.chart.timeScale().subscribeVisibleLogicalRangeChange(() => { this.applyMarks(); this.clampMargin(); }); }
+      this.applyMarks(); this.clampMargin();
     }
     enableDraw(barEl) {
       if (!window.DrawTools) return;

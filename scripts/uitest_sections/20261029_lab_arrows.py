@@ -20,13 +20,13 @@ def t_lab_arrows(b, base, code):
         pg.click("#labFSub button[data-f='bt']"); pg.wait_for_timeout(3500)
         pg.evaluate("() => document.querySelector(\"#labRng button[data-r='All']\").click()"); pg.wait_for_timeout(2500)
         r = pg.evaluate(js)
-        _ok(f"{T}（{w}）：台指期全部，價格軸最小值不低於可視最低價－15% 價幅（箭頭不撐軸）", bool(r) and r[0] >= r[1] - 0.15 * (r[2] - r[1]), r)
+        _ok(f"{T}（{w}）：台指期全部，價格軸最小值不低於可視最低價－15% 價幅且不為負（箭頭不撐軸）", bool(r) and r[0] >= r[1] - 0.15 * (r[2] - r[1]) and r[0] >= -0.5, r)
         if mob:
             txt = pg.evaluate("() => { const ss = window.TwLab.charts.k.panes()[1].getSeries(); return ss.map((x) => { const f = x.options().priceFormat; return f.tickmarksFormatter ? f.tickmarksFormatter([400, 400000, 30000000]).join(',') : (f.formatter ? f.formatter(400) : ''); }).join('|'); }")
             _ok(f"{T}（{w}）：手機台指期量軸單位是「口」不是「張」", "口" in txt and "張" not in txt, txt)
         pg.goto(base + "#lab/bt", wait_until="domcontentloaded"); pg.wait_for_timeout(4500)
         r = pg.evaluate(js)
-        _ok(f"{T}（{w}）：歷史回測價格軸最小值不低於可視最低價－15% 價幅（箭頭不撐軸）", bool(r) and r[0] >= r[1] - 0.15 * (r[2] - r[1]), r)
+        _ok(f"{T}（{w}）：歷史回測價格軸最小值不低於可視最低價－15% 價幅且不為負（箭頭不撐軸）", bool(r) and r[0] >= r[1] - 0.15 * (r[2] - r[1]) and r[0] >= -0.5, r)
         _ok(f"{T}（{w}）：無 JS 錯誤", not errs, errs[:3])
         c.close()
 
