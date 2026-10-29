@@ -1,0 +1,31 @@
+{
+ "slot": "intra",
+ "date": "2026-10-29",
+ "run_at": "2026-10-29T13:06+08:00",
+ "posted": [
+  {
+   "file": "2026-10-29_news-intra-1.md",
+   "publish_at": "2026-10-29T13:11+08:00",
+   "title": "ABF 載板 晶片的轉接層",
+   "topic_category": "科技",
+   "content_type": "產業知識",
+   "layout": "D-知識卡(實景)",
+   "style": "常備文庫",
+   "has_ai_image": "false",
+   "explore": "false",
+   "heat": "0",
+   "news_ids": "",
+   "u_code": "newsintra1",
+   "evergreen": "true",
+   "topic_id": "abf",
+   "has_photo": "true",
+   "photo_kind": "類別",
+   "photo": "_category/PCB/photo_1.jpg"
+  }
+ ],
+ "skipped": [],
+ "evergreen": [
+  "abf"
+ ],
+ "overlap": "重疊檢查：程式 1 張 0 筆（有重疊的不排程）"
+}
