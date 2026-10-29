@@ -1,5 +1,5 @@
 {
- "_說明": "常備文庫（2026-10-29）：新聞挑不出可發的稿時的備案，也是週末文的主力。全部是定義型知識、不含需要查證的數字、不放 AI 圖（版型＝D-無圖大數字，幾何版型）。scripts/social_news.py 依 social/news/log/evergreen_usage.json 輪替（30 天內不重複）。新增條目請走 legal-compliance 並跑 scripts/news_evergreen_check.py。欄位：cat 主題分類、ctype 內容型態、head 兩行 hashtag、cover_title 兩行（每行 ≤12 字）、hero 封面大字、rows 三列資訊、sections 小節（emoji＋#小節名稱＋換行＋內容）、route 落點（不得是個股頁）、sources 查證來源（給編輯覆核）。",
+ "_說明": "常備文庫（2026-10-29）：新聞挑不出可發的稿時的備案，也是週末文的主力。全部是定義型知識、不含需要查證的數字、不放 AI 圖（版型＝D-無圖大數字，幾何版型）。scripts/social_news.py 依 social/news/log/evergreen_usage.json 輪替（30 天內不重複）。新增條目請走 legal-compliance 並跑 scripts/news_evergreen_check.py。欄位：cat 主題分類、ctype 內容型態、head 兩行 hashtag、cover_title 兩行（每行 ≤12 字）、hero 封面大字、rows 三列資訊、sections 小節（emoji＋#小節名稱＋換行＋內容）、route 落點（不得是個股頁）、sources 查證來源（給編輯覆核）。 related：相關公司（10-29 Andy：「可以的話需要附上相關股票 公司做哪塊 簡單補充」「以後文章都是，但是跟這類有關才要」）＝{note: 前言, segs: [{seg: supply_chain.yaml 環節 id, n: 前幾家 或 codes: [指定代號]}]}；公司名與「做哪一塊」由 supply_chain.yaml 自動帶出，空物件＝跟產業無關（總經、籌碼、財報名詞）整節不放。",
  "items": [
   {
    "id": "cowos",
@@ -57,7 +57,36 @@
       "integrated circuit die"
      ]
     }
-   ]
+   ],
+   "related": {
+    "segs": [
+     {
+      "seg": "foundry",
+      "codes": [
+       "2330"
+      ]
+     },
+     {
+      "seg": "osat_test",
+      "codes": [
+       "3711"
+      ]
+     },
+     {
+      "seg": "pkg_equipment",
+      "codes": [
+       "3131",
+       "6187"
+      ]
+     },
+     {
+      "seg": "thermal",
+      "codes": [
+       "3653"
+      ]
+     }
+    ]
+   }
   },
   {
    "id": "hbm",
@@ -115,7 +144,31 @@
       "DDR4 SDRAM"
      ]
     }
-   ]
+   ],
+   "related": {
+    "note": "HBM 本體由 SK 海力士、三星、美光自家生產，台股沒有直接的 HBM 供應商；和它相關的台股分工如下：",
+    "segs": [
+     {
+      "seg": "foundry",
+      "codes": [
+       "2330"
+      ]
+     },
+     {
+      "seg": "osat_test",
+      "codes": [
+       "3711",
+       "6239"
+      ]
+     },
+     {
+      "seg": "dram_nor",
+      "codes": [
+       "2408"
+      ]
+     }
+    ]
+   }
   },
   {
    "id": "three_inst",
@@ -173,7 +226,8 @@
       "bank building"
      ]
     }
-   ]
+   ],
+   "related": {}
   },
   {
    "id": "margin",
@@ -231,7 +285,8 @@
       "bank building"
      ]
     }
-   ]
+   ],
+   "related": {}
   },
   {
    "id": "fomc",
@@ -288,7 +343,8 @@
       "Federal Reserve"
      ]
     }
-   ]
+   ],
+   "related": {}
   },
   {
    "id": "cpi_pce",
@@ -343,7 +399,8 @@
     {
      "cat": "總經_物價就業"
     }
-   ]
+   ],
+   "related": {}
   },
   {
    "id": "ic_flow",
@@ -401,7 +458,31 @@
       "integrated circuit die"
      ]
     }
-   ]
+   ],
+   "related": {
+    "segs": [
+     {
+      "seg": "ic_design",
+      "codes": [
+       "2454"
+      ]
+     },
+     {
+      "seg": "foundry",
+      "codes": [
+       "2330",
+       "2303"
+      ]
+     },
+     {
+      "seg": "osat_test",
+      "codes": [
+       "3711",
+       "2449"
+      ]
+     }
+    ]
+   }
   },
   {
    "id": "cooling",
@@ -458,7 +539,21 @@
     {
      "cat": "資料中心"
     }
-   ]
+   ],
+   "related": {
+    "segs": [
+     {
+      "seg": "thermal",
+      "codes": [
+       "3017",
+       "3324",
+       "3653",
+       "2421",
+       "8996"
+      ]
+     }
+    ]
+   }
   },
   {
    "id": "abf",
@@ -512,7 +607,22 @@
     {
      "cat": "PCB"
     }
-   ]
+   ],
+   "related": {
+    "note": "上游 ABF 膜主要由日本味之素供應（非台股）；台股載板廠與下游封裝分工如下：",
+    "segs": [
+     {
+      "seg": "abf_pcb",
+      "n": 3
+     },
+     {
+      "seg": "osat_test",
+      "codes": [
+       "3711"
+      ]
+     }
+    ]
+   }
   },
   {
    "id": "monthly_rev",
@@ -573,7 +683,8 @@
     {
      "cat": "金融"
     }
-   ]
+   ],
+   "related": {}
   },
   {
    "id": "eps",
@@ -633,7 +744,8 @@
     {
      "cat": "金融"
     }
-   ]
+   ],
+   "related": {}
   }
  ]
 }

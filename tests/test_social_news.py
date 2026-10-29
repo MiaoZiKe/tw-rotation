@@ -345,3 +345,62 @@ def test_tw_market_cover_uses_taiwan_generic_photo():
     prefer = R.GENERIC_TW
     ph = R.photo_pick(c["subject"], "台股", None, "2026-10-29", text=c["photo_text"], prefer=prefer)
     assert ph and ph[3].split("/")[1] in ("總經", "金融")          # 不因內文提到記憶體就配記憶體晶片
+
+
+# ---- 相關公司（10-29 Andy：「可以的話需要附上相關股票 公司做哪塊 簡單補充」「以後文章都是，但是跟這類有關才要」）
+def test_related_evergreen_industry_has_section_macro_not():
+    lib = {e["id"]: e for e in S.load_evergreen()}
+    assert all("related" in e for e in lib.values())                                     # 11 篇都要明確標（空物件＝跟產業無關）
+    abf = S.compose_evergreen(lib["abf"], "wk1", 1, "2026-10-31")
+    sec = S.REL_RE.search(abf["caption_ig"]).group(0)
+    for line in ("・欣興（3037）：IC 載板，做 ABF 載板", "・南電（8046）：IC 載板", "・景碩（3189）：IC 載板"):
+        assert line in sec
+    assert 3 <= sec.count("\n・") + sec.startswith("・") <= 6
+    assert any(S.REL_HEAD in t for t in abf["caption_threads"])                           # Threads 也有
+    hbm = S.compose_evergreen(lib["hbm"], "wk1", 1, "2026-10-31")
+    assert "台股沒有直接的 HBM 供應商" in hbm["caption_ig"] and "力成（6239）" in hbm["caption_ig"]
+    for k in ("fomc", "cpi_pce", "three_inst", "margin", "eps", "monthly_rev"):           # 總經、籌碼、財報名詞：整節省略
+        assert S.REL_HEAD not in S.compose_evergreen(lib[k], "wk1", 1, "2026-10-31")["caption_ig"]
+
+
+def test_related_every_evergreen_legal_and_length():
+    for e in S.load_evergreen():
+        d = S.compose_evergreen(e, "wk1", 1, "2026-10-31")
+        sec = S.REL_RE.search(d["caption_ig"])
+        if sec:
+            assert L.check(sec.group(0) + "\n以上為公開資料整理，非投資建議") == []
+            assert not __import__("re").search(r"推薦|受惠|看好|買進|建議", sec.group(0))
+        assert len(d["caption_ig"]) <= 2000 and all(S._tlen(t) <= 480 for t in d["caption_threads"])
+
+
+def test_related_news_tw_company_lists_same_segment(monkeypatch):
+    _no_lake(monkeypatch)
+    names = dict(NAMES, **{"3037": "欣興", "8046": "南電", "3189": "景碩"})
+    c = _cand("欣興Q3再賺逾百億 前三季稅後賺282億元年增7.99倍EPS 17.85元",
+              "欣興第三季稅後純益102億元，季增15%，EPS 6.5元；前三季稅後純益282億元，年增7.99倍，EPS 17.85元。", codes="3037")
+    d = S.compose(c, "post", 1, "2026-10-29", "口袋長文", names)
+    sec = S.REL_RE.search(d["caption_ig"]).group(0)
+    assert "南電（8046）" in sec and "景碩（3189）" in sec and "欣興（3037）" not in sec   # 列同環節「其他」公司
+    assert sec in d["caption_ig"].split("👀")[0]                                           # 放在「接下來觀察」之前
+
+
+def test_related_news_macro_and_market_omitted(monkeypatch):
+    _no_lake(monkeypatch)
+    c = _cand("泰國央行維持利率不變並調高經濟成長預測",
+              "泰國央行MPC以6票贊成維持基準利率1%不變，央行上修今年GDP成長率至2.4%、2027年2.1%；核心通膨估今年1.2%、明年1.3%。")
+    assert S.rel_news(c, "泰國央行", "", NAMES) == ""
+    c = _cand("沙烏地能源樞紐遇襲 歐洲天然氣價格飆升至2022年以來新高", "荷蘭 TTF 近月期貨漲1.2%至97.35歐元/MWh。")
+    assert S.rel_news(c, "歐洲天然氣", "", NAMES) == ""
+    d = S.compose(_cand("沙烏地能源樞紐遇襲 歐洲天然氣價格飆升至2022年以來新高",
+                        "歐洲批發天然氣價格周三漲至 2022 年以來新高。，荷蘭 TTF 近月期貨漲1.2%至97.35歐元/MWh，英國 NBP 漲1.5%至241便士/therm，連6日走高。"),
+                  "pre", 1, "2026-10-29", "口袋長文", NAMES)
+    assert S.REL_HEAD not in d["caption_ig"]
+
+
+def test_related_news_foreign_topic_by_keyword_not_incidental_mention():
+    c = _cand("SK海力士Q3營收創新高 HBM出貨年增逾5成", "SK海力士第三季營收創新高，HBM 出貨年增逾5成。")
+    sec = S.rel_news(c, "SK海力士", "", NAMES)
+    assert "南亞科（2408）" in sec and "力成（6239）" in sec
+    c = _cand("不只賣自家雲端！Google找上甲骨文 搶輝達AI晶片生意", "Google 擴大 TPU 銷售。")
+    assert S.rel_news(c, "Google", "", NAMES) == ""                                         # 標題順帶提「輝達」不算
+    assert S.rel_news(_cand("ABF載板缺貨 味之素漲價三成", "ABF 膜漲價。"), "味之素", "", NAMES).count("IC 載板") == 3
