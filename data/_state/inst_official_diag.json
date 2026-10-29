@@ -41,7 +41,7 @@
   "url": "https://openapi.twse.com.tw/v1/fund/TWT44U"
  },
  {
-  "head": "[ {\"IndustryCat\":\"ETF\",\"Numbers\":\"242\",\"ShareNumber\":\"265533405260\",\"ForeignMainlandAreaShare\":\"3336787983\",\"Percentage\":\"1.26\"}, {\"IndustryCat\":\"水泥工業\",\"Numbers\":\"8\",\"ShareNumber\":\"14107198706\",\"Forei",
+  "head": "[ {\"IndustryCat\":\"ETF\",\"Numbers\":\"244\",\"ShareNumber\":\"266047820260\",\"ForeignMainlandAreaShare\":\"3584321325\",\"Percentage\":\"1.35\"}, {\"IndustryCat\":\"水泥工業\",\"Numbers\":\"8\",\"ShareNumber\":\"14107198706\",\"Forei",
   "http": 200,
   "url": "https://openapi.twse.com.tw/v1/fund/MI_QFIIS_cat"
  },
@@ -57,7 +57,7 @@
   "url": "https://openapi.twse.com.tw/v1/fund/MI_QFIIS_cat"
  },
  {
-  "head": "[ {\"Rank\":\"1\",\"Code\":\"2923\",\"Name\":\"鼎固-KY\",\"ShareNumber\":\"1740296982\",\"AvailableShare\":\"8583946\",\"SharesHeld\":\"1731713036\",\"AvailableInvestPer\":\"0.49\",\"SharesHeldPer\":\"99.50\",\"Upperlimit\":\"100.00\"}, {",
+  "head": "[ {\"Rank\":\"1\",\"Code\":\"2923\",\"Name\":\"鼎固-KY\",\"ShareNumber\":\"1740296982\",\"AvailableShare\":\"8488946\",\"SharesHeld\":\"1731808036\",\"AvailableInvestPer\":\"0.48\",\"SharesHeldPer\":\"99.51\",\"Upperlimit\":\"100.00\"}, {",
   "http": 200,
   "url": "https://openapi.twse.com.tw/v1/fund/MI_QFIIS_sort_20"
  },
