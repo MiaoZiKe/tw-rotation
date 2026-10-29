@@ -1,6 +1,121 @@
 {
- "updated": "2026-10-28",
+ "updated": "2026-10-29",
  "topics": [
+  {
+   "id": "n_alphabet_capex",
+   "cat": "news",
+   "title": "Alphabet 資本支出年增一倍，AI 燒錢誰買單",
+   "why": "10/28 美股盤後 Alphabet 第三季資本支出約 514 億美元、年增約一倍、自由現金流轉負，盤後一度跌逾 10%（今周刊 10/29、Yahoo 股市 10/28，搜尋摘要轉述，微軟指引兩篇口徑不一）；讀者會問 AI 投資還要燒多久、台灣 AI 供應鏈訂單會不會跟著變；寫稿前核對原始財報",
+   "score": 5,
+   "format_hint": "兩者",
+   "site_links": [
+    "#overview",
+    "#industry/ai_server"
+   ],
+   "added": "2026-10-29"
+  },
+  {
+   "id": "n_mem_longterm",
+   "cat": "news",
+   "title": "記憶體廠搶簽長約，缺貨是短期還是結構",
+   "why": "傳陸廠向三星、SK 海力士洽簽最長 10 年供貨協議、美光已簽 26 份長約（中時 10/28、聯合報、自由財經，部分日期待核）；SK 海力士取消價格上限屬傳聞未獲證實；只講機制，不點個股",
+   "score": 4,
+   "format_hint": "文章",
+   "site_links": [
+    "#heatmap/theme/hbm_memory"
+   ],
+   "added": "2026-10-29"
+  },
+  {
+   "id": "n_boj_yen",
+   "cat": "news",
+   "title": "日銀 10/30 決議前，日圓為何賴在 158",
+   "why": "日銀 10/29～30 開會，市場預期維持 1.25%，12 月升息機率約 75%（HK MoneyClub 10/27、聯合報引日經，單一來源須核對）；寫成日圓與套利平倉機制題，非公告預告；10/30 結果出爐可改結果版",
+   "score": 3,
+   "format_hint": "貼文",
+   "site_links": [
+    "#flow",
+    "#overview"
+   ],
+   "added": "2026-10-29"
+  },
+  {
+   "id": "k_euv",
+   "cat": "know",
+   "title": "EUV 曝光機是什麼？一道光怎麼刻出奈米線路",
+   "why": "先進製程新聞常提 EUV 曝光機，但少有人說明原理；站內有 2.5D 圖 semi_equipment（半導體設備與材料），文章＋2.5D 圖，只講原理與取捨，不排受惠；避開已有的設備材料鏈題",
+   "score": 3,
+   "format_hint": "文章",
+   "site_links": [
+    "#heatmap/theme/semi_equipment"
+   ],
+   "added": "2026-10-29"
+  },
+  {
+   "id": "k_leo_sat",
+   "cat": "know",
+   "title": "低軌衛星是什麼？衛星、地面站、終端怎麼接",
+   "why": "低軌衛星常被當題材，但少有人講衛星、地面站與用戶終端的分工；站內有 2.5D 圖 satellite（低軌衛星：天上與地面），文章＋2.5D 圖，只講原理，不排受惠",
+   "score": 3,
+   "format_hint": "文章",
+   "site_links": [
+    "#heatmap/theme/satellite",
+    "#industry/group/satellite"
+   ],
+   "added": "2026-10-29"
+  },
+  {
+   "id": "k_pcb_ccl",
+   "cat": "know",
+   "title": "CCL 銅箔基板是什麼？一片板子怎麼壓出來",
+   "why": "AI 板材升級讓 CCL 常被提到，但多數人不知道它是 PCB 的哪一層；站內有 2.5D 圖 pcb_ccl（高階 PCB 與 CCL），文章＋2.5D 圖，講產品結構，不排受惠；與材料鏈題角度不同",
+   "score": 3,
+   "format_hint": "文章",
+   "site_links": [
+    "#heatmap/theme/pcb_ccl",
+    "#industry/group/ccl"
+   ],
+   "added": "2026-10-29"
+  },
+  {
+   "id": "i_siph_chain",
+   "cat": "intro",
+   "title": "矽光子供應鏈：雷射、晶圓代工到 CPO 封裝",
+   "why": "站內有 siph_* 一組族群（磊晶雷射、外置光源、矽光子代工、3D 堆疊與 CPO 封裝、光纖耦合、測試）；講環節分工，需附供應鏈圖，不排誰受惠；避開已有的光通訊鏈與 CPO 知識文",
+   "score": 3,
+   "format_hint": "文章",
+   "site_links": [
+    "#industry/group/siph_laser",
+    "#industry/group/siph_pkg"
+   ],
+   "added": "2026-10-29"
+  },
+  {
+   "id": "i_ems_chain",
+   "cat": "intro",
+   "title": "電子代工 EMS 鏈：從機構件、組裝到終端品牌",
+   "why": "站內有 ems、smartphone、chassis_rail、precision_parts 族群；讀者常分不清 EMS、ODM 與品牌的分工，需附供應鏈圖，講環節不排受惠；避開蘋果鏈與伺服器代工題",
+   "score": 3,
+   "format_hint": "文章",
+   "site_links": [
+    "#industry/group/ems",
+    "#industry/group/smartphone"
+   ],
+   "added": "2026-10-29"
+  },
+  {
+   "id": "i_cpu_cxl",
+   "cat": "intro",
+   "title": "伺服器 CPU 與 CXL：AI 代理時代的運算分工",
+   "why": "站內有 cpu_agentic_ai、cxl 族群；講 CPU、加速器與記憶體擴充的環節分工，需附供應鏈圖，不排誰受惠",
+   "score": 3,
+   "format_hint": "文章",
+   "site_links": [
+    "#industry/group/cpu_agentic_ai",
+    "#industry/group/cxl"
+   ],
+   "added": "2026-10-29"
+  },
   {
    "id": "n_drop_846",
    "cat": "news",
