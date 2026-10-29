@@ -131,12 +131,19 @@ def freq_label(n: int) -> str:
 _SPLITS = [1 / 10, 1 / 5, 1 / 4, 1 / 3, 1 / 2, 2, 3, 4, 5, 10]
 
 
-def split_factors(dates: list[str], close: list[float]) -> list[float]:
+def split_factors(dates: list[str], close: list[float],
+                  change: list[float] | None = None) -> list[float]:
     """回傳每一天的股數還原因子（最新一天恆為 1）。
 
     偵測：相鄰兩天收盤比落在 [0.55, 1.8] 之外（ETF 含槓桿 2 倍一天最多 ±20%，
     超出就只可能是分割／反分割），取最接近的常見比例，誤差 15% 內才認。
-    分割當天之前的價格乘上「新／舊」比例 —— 例：一拆四，之前的價格 × 1/4。"""
+    分割當天之前的價格乘上「新／舊」比例 —— 例：一拆四，之前的價格 × 1/4。
+
+    有給漲跌價差（change）時優先用它：交易所當天的參考價 ＝ 收盤 − 漲跌價差，
+    參考價 ÷ 前收 就是精確的分割比例（0052 一拆七、00631L 一拆二十二這類
+    不在常見比例表裡的都吃得到）；參考價與前收差不到約三成就判定是真實漲跌，
+    不分割（避免 2020 年 3 月槓桿 ETF 暴漲暴跌被誤判）。
+    漲跌價差為 0 或缺值時，退回上面的比例表。"""
     n = len(close)
     f = [1.0] * n
     acc = 1.0
@@ -144,6 +151,13 @@ def split_factors(dates: list[str], close: list[float]) -> list[float]:
         a, b = close[i - 1], close[i]
         f[i] = acc
         if a and b and a > 0 and b > 0:
+            ch = change[i] if change is not None and change[i] == change[i] else 0.0
+            ref = b - ch
+            if ch and ref > 0:
+                q = ref / a
+                if q < 0.7 or q > 1.45:
+                    acc *= q
+                continue
             r = b / a
             if r < 0.55 or r > 1.8:
                 best = min(_SPLITS, key=lambda s: abs(math.log(r / s)))
@@ -358,7 +372,9 @@ def build(price: pd.DataFrame, names: dict, etf_codes: set[str], div_events: pd.
             continue          # 最近一個月沒成交（下市／暫停）不收
         dates = g["date"].tolist()
         raw = pd.to_numeric(g["close"], errors="coerce").tolist()
-        fac = split_factors(dates, raw)
+        chg = (pd.to_numeric(g["change"], errors="coerce").tolist()
+               if "change" in g.columns else None)
+        fac = split_factors(dates, raw, chg)
         adj = [r * f for r, f in zip(raw, fac)]
         dmap = div_by.get(code, {})
         dd = [0.0] * len(dates)
