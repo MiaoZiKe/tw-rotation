@@ -52,7 +52,7 @@ LOG_DIR = ROOT / "social" / "news" / "log"
 # 2026-10-29：每天主題文章交易日 2 篇（盤前 1＋盤後 1）、休市日 2 篇（wk1＋wk2）；盤中名額 0（主貼文已密集），要開把 n 改 1。
 SLOTS = {
     "pre":   dict(name="盤前", key="premarket", fixed="08:35", since=(-1, "13:30"), n=1, floor=1),   # 10-29 Andy：「主題文章怎麼沒有發 盤前的」→ 盤前也保底（新聞全擋時補常備文庫）
-    "intra": dict(name="盤中", key="intraday",  fixed="12:16", since=(0, "07:30"),  n=0, floor=0),
+    "intra": dict(name="盤中", key="intraday",  fixed="12:16", since=(0, "07:30"),  n=1, floor=1),   # 10-29 Andy：「都沒發文」→ 盤中也發 1 篇主題文章（含保底）
     "post":  dict(name="盤後", key="close",     fixed=None,    since=(0, "11:30"),  n=1, floor=1),
     "wk1":   dict(name="週末", key=None, fixed="10:30", since=(-1, "13:30"), n=1, floor=1, off=True, after="10:00"),
     "wk2":   dict(name="週末", key=None, fixed="19:30", since=(0, "06:00"),  n=1, floor=1, off=True, after="18:45", evergreen_first=True),

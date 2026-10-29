@@ -117,7 +117,7 @@ def test_pick_evergreen_rotates_and_respects_cooldown(monkeypatch):
 
 
 def test_daily_quota_and_auto_slots(tmp_path, monkeypatch):
-    assert S.SLOTS["pre"]["n"] + S.SLOTS["intra"]["n"] + S.SLOTS["post"]["n"] == 2       # 交易日主題文章 2 篇
+    assert S.SLOTS["pre"]["n"] + S.SLOTS["intra"]["n"] + S.SLOTS["post"]["n"] == 3       # 交易日主題文章 3 篇（10-29 盤中加 1 篇）
     assert S.SLOTS["post"]["floor"] >= 1 and S.SLOTS["wk1"]["floor"] >= 1 and S.SLOTS["wk2"]["floor"] >= 1
     monkeypatch.setattr(S, "IG_Q", tmp_path)
     at = lambda h: datetime.fromisoformat(f"2026-10-31T{h}+08:00")
