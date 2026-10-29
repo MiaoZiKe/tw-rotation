@@ -63,6 +63,24 @@
       this.kc = new window.KChart(el, { tf: tfName(B) });
       this.kc.loadOlder = () => {};          // 往左拖到頭不要去抓別的資料：這裡的資料就是全部
       this.line = null; this.mk = null;
+      this.fixScale();
+    }
+    /** 進出場箭頭不參與 Y 軸自動縮放：箭頭堆疊會讓價格軸最低衝到負數（台指期「全部」曾到 -7500）。
+        自己用可視範圍內的 K 棒高低點算範圍，箭頭再多也撐不動軸。 */
+    fixScale() {
+      try {
+        const self = this;
+        this.candle.applyOptions({ autoscaleInfoProvider: (orig) => {
+          try {
+            const rg = self.chart.timeScale().getVisibleLogicalRange(), d = self.kc.data || [];
+            if (!rg || !d.length) return orig();
+            let lo = Infinity, hi = -Infinity;
+            for (let i = Math.max(0, Math.floor(rg.from)); i <= Math.min(d.length - 1, Math.ceil(rg.to)); i++) { if (d[i].low < lo) lo = d[i].low; if (d[i].high > hi) hi = d[i].high; }
+            if (!(hi > lo)) return orig();
+            return { priceRange: { minValue: lo, maxValue: hi } };
+          } catch (e) { return orig(); }
+        } });
+      } catch (e) { /* 圖剛銷毀 */ }
     }
     get chart() { return this.kc.chart; }
     get candle() { return this.kc.candle; }
@@ -85,7 +103,9 @@
       try {
         const ps = this.chart.panes(); if (!ps[1]) return;
         const f = (v) => (Math.abs(v) >= 1e4 ? (v / 1e4).toFixed(1) + '萬口' : Math.round(v) + '口');
-        ps[1].getSeries().forEach((x) => { try { x.applyOptions({ priceFormat: { type: 'custom', minMove: 1, formatter: f } }); } catch (e) { /* 不是量序列 */ } });
+        const mob = innerWidth <= 640;   // 手機 KChart 另掛 tickmarksFormatter（寫死「張」），只在手機一併蓋掉；桌機不動
+        const pf = mob ? { type: 'custom', minMove: 1, formatter: f, tickmarksFormatter: (a) => a.map((v) => (v < 0 ? '' : v === 0 ? '0' : f(v))) } : { type: 'custom', minMove: 1, formatter: f };
+        ps[1].getSeries().forEach((x) => { try { x.applyOptions({ priceFormat: pf }); } catch (e) { /* 不是量序列 */ } });
       } catch (e) { /* 圖剛銷毀 */ }
     }
     /** 全站 KChart 沒有的指標（EMA、SAR、Supertrend、ATR）：另外畫在同一張圖上，公式與回測引擎同一份（LabEngine.I），只畫到目前這一根（重播不洩漏未來）。 */
@@ -128,7 +148,15 @@
       const s = getComputedStyle(document.documentElement), up = s.getPropertyValue('--rise').trim() || '#ff4d6d', dn = s.getPropertyValue('--fall').trim() || '#2ee59d';
       this.candle.applyOptions({ upColor: up, downColor: dn, borderUpColor: up, borderDownColor: dn, wickUpColor: up, wickDownColor: dn });
     }
+    /** 同一根 K 棒最多一個進場、一個出場標記；太密（>120 個）就改小圓點、不寫字。 */
+    static thin(marks) {
+      const seen = {}, out = [];
+      marks.forEach((m) => { const k = m.time + '|' + (m.role || m.position); if (!seen[k]) { seen[k] = 1; out.push(m); } });
+      if (out.length > 120) out.forEach((m) => { m.shape = 'circle'; m.size = 0.5; m.text = ''; });
+      return out;
+    }
     setMarkers(marks) {
+      marks = KView.thin(marks);
       if (!this.mk) this.mk = LWC.createSeriesMarkers(this.candle, marks); else this.mk.setMarkers(marks);
     }
     enableDraw(barEl) {

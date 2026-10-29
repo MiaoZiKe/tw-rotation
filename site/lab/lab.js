@@ -409,8 +409,8 @@
     const all = r.trades.concat(r.opens || []), mks = [], many = all.length > 12;
     all.forEach((t) => {
       if (t.i0 < from) return;
-      mks.push({ time: LabK.ltime(B, t.i0), position: t.dir === 1 ? 'belowBar' : 'aboveBar', shape: t.dir === 1 ? 'arrowUp' : 'arrowDown', color: t.dir === 1 ? c.rise : c.fall, text: many ? '' : (t.dir === 1 ? '多 ' : '空 ') + (t.entryWhy || '').replace('訊號', ''), size: 1 });
-      if (!t.open) mks.push({ time: LabK.ltime(B, t.i1), position: t.dir === 1 ? 'aboveBar' : 'belowBar', shape: t.dir === 1 ? 'arrowDown' : 'arrowUp', color: t.pnl >= 0 ? c.rise : c.fall, text: many ? '' : compact(t.pnl), size: 1 });
+      mks.push({ time: LabK.ltime(B, t.i0), position: t.dir === 1 ? 'belowBar' : 'aboveBar', role: 'in', shape: t.dir === 1 ? 'arrowUp' : 'arrowDown', color: t.dir === 1 ? c.rise : c.fall, text: many ? '' : (t.dir === 1 ? '多 ' : '空 ') + (t.entryWhy || '').replace('訊號', ''), size: 1 });
+      if (!t.open) mks.push({ time: LabK.ltime(B, t.i1), position: t.dir === 1 ? 'aboveBar' : 'belowBar', role: 'out', shape: t.dir === 1 ? 'arrowDown' : 'arrowUp', color: t.pnl >= 0 ? c.rise : c.fall, text: many ? '' : compact(t.pnl), size: 1 });
     });
     mks.sort((a, b) => (a.time < b.time ? -1 : a.time > b.time ? 1 : 0));
     CH.kv.setMarkers(mks);
