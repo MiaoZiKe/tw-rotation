@@ -55918,6 +55918,12 @@ def t_mobile_tap_audit(b, base, code):
             pg.close()
         except Exception:  # noqa: BLE001
             pass
+    # 手機搜尋鈕的選擇器：手機 v4（html.m4，commit 6f4561fb 起）把舊的 #mSearchBtn 用 CSS 藏起來（mobile4.css 第 33 行），
+    # 頂欄放大鏡改成 #m4Search（點了去按 #mSearchBtn）。只認 #mSearchBtn 會 tap 逾時；兩顆都找、取看得到的那顆，
+    # 兩顆都看不到就回傳 #m4Search 讓 tap 照樣逾時（不放寬、不吞錯）。
+    def _msb(pg_):
+        return pg_.evaluate("""() => { for (const s of ['#m4Search', '#mSearchBtn']) { const e = document.querySelector(s);
+            if (e && e.getClientRects().length && getComputedStyle(e).visibility !== 'hidden') return s; } return '#m4Search'; }""")
     # ---- ①b 這一輪修掉的兩件，各自用觸控再驗一次「畫面真的變了」 ----
     for (W, H) in ((390, 844), (360, 780)):
         m = b.new_page(viewport={"width": W, "height": H}, device_scale_factor=2, is_mobile=True, has_touch=True)
@@ -55927,7 +55933,7 @@ def t_mobile_tap_audit(b, base, code):
             m.goto(f"{base}#flow", wait_until="networkidle"); m.wait_for_timeout(2200)
             T = f"[手機按鈕普查 {W}px]"
             # (1) 搜尋列展開後點旁邊空白處 → 收回，左上品牌又點得到
-            m.tap("#mSearchBtn"); m.wait_for_timeout(400)
+            m.tap(_msb(m)); m.wait_for_timeout(400)
             s0 = m.evaluate("() => document.querySelector('.topbar').classList.contains('msearch')")
             brand_hit0 = m.evaluate("""() => { const b = document.querySelector('.brand').getBoundingClientRect();
                 const h = document.elementFromPoint(b.left + b.width / 2, b.top + b.height / 2); return !!h && !!h.closest('.brand'); }""")
@@ -55949,7 +55955,7 @@ def t_mobile_tap_audit(b, base, code):
             if s1:
                 m.keyboard.press("Escape"); m.wait_for_timeout(200)      # 上一條紅了也要能往下驗
             # 點搜尋框本身不算外面（打字到一半不會被收掉）
-            m.tap("#mSearchBtn"); m.wait_for_timeout(300); m.tap("#q"); m.wait_for_timeout(400)
+            m.tap(_msb(m)); m.wait_for_timeout(300); m.tap("#q"); m.wait_for_timeout(400)
             ok(f"{T} 點搜尋框本身不會把搜尋列收掉",
                m.evaluate("() => document.querySelector('.topbar').classList.contains('msearch')"))
             m.tap("#mSearchX"); m.wait_for_timeout(300)
