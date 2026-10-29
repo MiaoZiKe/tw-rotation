@@ -608,6 +608,12 @@ class _Deferred(Exception):
     """inst 輪延後整站重算（INST_DEFER_BUILD=1）時跳出 build 區塊用。"""
 
 
+def pick_inst_target_date(lake_date: str, official_date) -> str:
+    """phase=inst 的目標交易日：湖裡價量最新日 與 官方法人回應日期 取較新者（ISO 字串可直接比大小）。"""
+    o = str(official_date)[:10] if official_date is not None and str(official_date) not in ("", "nan", "NaT", "None") else ""
+    return o if o and o > lake_date else lake_date
+
+
 def run_inst_phase(args) -> int:
     """phase=inst：台北 16:15／16:45／17:15 專門搶「當天三大法人」進資料湖。
 
@@ -634,6 +640,10 @@ def run_inst_phase(args) -> int:
     except Exception:  # noqa: BLE001
         log.exception("官方法人來源失敗，改走 FinMind")
         off = pd.DataFrame()
+    # 2026-10-29 事故：15:30 價量輪因測試紅燈沒跑，price_daily 最新只到 10-28，這一輪就一直追 10-28（湖裡早就齊了，
+    # requested 0），官方開放資料明明已給 10-29 的上櫃法人，上市法人整天沒人去抓。
+    # 官方回應裡的日期比湖裡價量日新，就以官方日期為目標（日期仍是回應裡的，不是執行當下的）。
+    trade_date = pick_inst_target_date(trade_date, off["date"].max() if not off.empty else None)
     RESULT["steps"]["inst_official"] = {"ok": not off.empty, "rows": int(len(off)),
                                         "date": str(off["date"].max()) if not off.empty else None,
                                         "diag": inst_official.DIAG[-40:]}

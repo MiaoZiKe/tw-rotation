@@ -86,3 +86,12 @@ def test_workflow_cron_與_phase_分派():
     assert "PHASE=inst" in text
     assert "cancel-in-progress: false" in text and "cancel-in-progress: true" not in text
     assert wf["jobs"]["deploy"]["if"] == "needs.collect.outputs.inst_new != 'false' && needs.collect.outputs.rebuild != 'false'"      # 2026-10-29：沒新增今天法人也不部署
+
+
+def test_inst_target_date_follows_newer_official_date():
+    """2026-10-29：價量輪沒跑、湖裡只到 10-28，官方法人已給 10-29 → 目標日要改成 10-29，不能一直追 10-28。"""
+    from pipeline.run_daily import pick_inst_target_date
+    assert pick_inst_target_date("2026-10-28", "2026-10-29") == "2026-10-29"
+    assert pick_inst_target_date("2026-10-29", "2026-10-28") == "2026-10-29"   # 官方較舊不退回去
+    assert pick_inst_target_date("2026-10-28", None) == "2026-10-28"
+    assert pick_inst_target_date("2026-10-28", float("nan")) == "2026-10-28"
