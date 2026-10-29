@@ -433,3 +433,10 @@ def test_subject_rejects_common_word_aliases_and_keeps_single_code():
     assert _subj2("衛星通訊｜星艦首度送上V3衛星！每顆PA用量增4至5倍，穩懋(3105)商機看星艦發射節奏", "3105") == ("穩懋", "3105")
     assert _subj2("《價值型投資 最新產業研究報告》緯穎 (6669-TW) Meta與亞馬遜需求延續", "6669") == ("緯穎", "6669")
     assert _subj2("台股殺出雙11「折扣行情」！台積電？聯發科？誰有機會脫穎而出？", "2330,2454")[0] == "台股"
+
+
+def test_clean_name_strips_star_and_suffix():
+    assert S.clean_name("矽力*-KY") == "矽力" and S.clean_name("譜瑞-KY") == "譜瑞" and S.clean_name(" 台積電 ") == "台積電"
+    assert _subj2("11+12月大軋空可期、矽力⊕、金像電⊕、國巨、華新科", "3035,6415,2368",
+                  names=dict(NAMES2, **{"6415": S.clean_name("矽力*-KY"), "2368": "金像電", "3035": "智原"})) == ("矽力", "6415")
+    assert "材料" not in S._alias({"4763": S.clean_name("材料*-KY")})                     # 拿掉星號後變一般詞，列入 GENERIC

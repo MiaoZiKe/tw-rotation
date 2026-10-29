@@ -148,13 +148,18 @@ def load_news(t0: datetime, t1: datetime) -> list[dict]:
     return out
 
 
+def clean_name(v: str) -> str:
+    """社群稿比對用的簡稱：拿掉「*」與 -KY／-創／-DR 後綴（「矽力*-KY」→「矽力」）。只用在這支，不動資料湖。"""
+    return re.sub(r"[-－](KY|創|DR)$", "", re.sub(r"[*＊]", "", str(v)).strip()).strip()
+
+
 def names_map() -> dict[str, str]:
     try:
         import pandas as pd
         fs = sorted((ROOT / "data" / "company_info").glob("**/*.parquet"))
         d = pd.concat([pd.read_parquet(f) for f in fs])
         # 「譜瑞-KY」「XX-創」這類後綴拿掉，標題裡寫的是簡稱（10-29：譜瑞法說被判成找不到主體）
-        return {k: re.sub(r"[-－](KY|創|DR)$", "", v.strip(" *＊")) for k, v in zip(d["code"].astype(str), d["name"].astype(str))}
+        return {k: clean_name(v) for k, v in zip(d["code"].astype(str), d["name"].astype(str))}
     except Exception:
         return {}
 
@@ -428,7 +433,7 @@ EMPTY = ["指數點數反映", "家媒體", "則報導", "營收是公司銷售"
 REL = {"cpi": "美國 CPI 物價", "pce": "美國 PCE 物價", "gdp": "美國 GDP", "nfp": "美國非農就業", "payems": "美國非農就業",
        "fomc": "聯準會 FOMC 利率決議", "ppi": "美國 PPI", "retail": "美國零售銷售", "unrate": "美國失業率"}
 TITLE_MAX = 12
-GENERIC = {"全台", "台灣", "中華", "國際", "美國", "大眾", "統一", "華南", "第一", "合庫", "新光", "全國", "亞洲", "世界", "大立", "東方",
+GENERIC = {"全台", "材料", "台灣", "中華", "國際", "美國", "大眾", "統一", "華南", "第一", "合庫", "新光", "全國", "亞洲", "世界", "大立", "東方",
            "通訊"}     # 「通訊」(6404) 會被「光通訊」誤認（10-29 第二輪：康寧、穩懋兩則主體變成「通訊」）
 # 金額類指標的主旨數字不能是百分比（「光通訊營收飆44%」「AI營收占比25%」是成長率／占比，不是營收本身）
 TW_MARKET = {"指數", "融資", "買超", "賣超", "成交值", "餘額"}     # 台股盤勢／籌碼類：封面用台股通用圖，不照內文順帶的產業字配圖
