@@ -127,6 +127,8 @@ https://liguligu-puipui.com/
 - 2026-10-26：文案最底下改成「👉 更多詳細資料可以點擊以下連結：」＋首頁網址 https://liguligu-puipui.com/（不帶追蹤參數）；標題與段名前加表情符號（🕛盤中 🌙盤後 🎡輪盤 🌳分流樹 🔥熱力圖 📊未平倉 ⚖️散戶 🏦法人 🌏外資 🏢投信 📦ETF 🛡️維持率 📈融資 📉融券），列股票名稱的「・」行不加（Andy：「搭配些表情符號，除了個股」）。程式表在 social_snap.py 的 EMOJI。
 - 2026-10-26：法人排行也排除 ETF；順序改成未平倉第一、散戶多空比第二；新增 ETF 買超排名（外資、投信上下兩張）。
 - 2026-10-26：每點統一 2 個名稱；融資融券排除 ETF；名稱星號拿掉；盤後與融資融券合成一篇（8 張）；拿掉大盤走勢與漲跌家數。
+- 2026-10-29：盤後保底（事故：上市個股法人 FinMind 到 18:25 還沒出，盤後主貼文整段沒發）。台北 19:00（`CLOSE_FALLBACK_AT`／`--fallback-at` 可改）後若法人卡（三大法人、外資／投信排行）資料日仍不是今天：拿掉那幾張、期貨未平倉與散戶多空比等當天卡照發，文案「三大法人：・法人個股明細晚到，稍後補」，盤面分析不引用舊法人與舊指數，寫 alert；posted.json 的 `close-<日期>` 記 `partial`。法人到了下一輪 social-live 自動補發「盤後3分鐘｜法人補充」（只放法人三張＋ETF 買超，鍵 `close-inst-<日期>`，不重發主貼文）。程式：social_gate.close_fallback、social_snap.py `--supplement`、scripts/social_close_state.py。
+- 2026-10-29：daily.yml inst 輪加速：沒有新增「今天的法人」列（只有期貨／診斷檔變）就跳過 24 分鐘整站重算與部署（輸出 `rebuild`／`post`），下一輪 inst 不必排隊；交給後面有新資料的那輪或 18:38／21:38 full 輪。
 
 來源（IG 限動不能用自動發文介面加連結貼紙）：
 - https://storrito.com/resources/instagram-story-api/
@@ -141,5 +143,3 @@ https://liguligu-puipui.com/
 1. 測試輪（`live_test` 或 `force`）一律不寫發布紀錄（`.github/workflows/social-live.yml`）。
 2. 每筆發布紀錄帶 `at`（台北發布時間，`social_publish.py`）；`social_snap.posted_ok()` 只承認正式時段的紀錄：盤中＝當天 09:00～13:30、盤前＝當天 05:00 之後，其他時間寫的紀錄視為測試誤記、照發（log 印 ⚠）。
 3. 手動補發測試要用 `live_test=true`，不准用 `dry_run=false + force=true`。
-- 2026-10-29：盤後保底（事故：上市個股法人 FinMind 到 18:25 還沒出，盤後主貼文整段沒發）。台北 19:00（`CLOSE_FALLBACK_AT`／`--fallback-at` 可改）後若法人卡（三大法人、外資／投信排行）資料日仍不是今天：拿掉那幾張、期貨未平倉與散戶多空比等當天卡照發，文案「三大法人：・法人個股明細晚到，稍後補」，盤面分析不引用舊法人與舊指數，寫 alert；posted.json 的 `close-<日期>` 記 `partial`。法人到了下一輪 social-live 自動補發「盤後3分鐘｜法人補充」（只放法人三張＋ETF 買超，鍵 `close-inst-<日期>`，不重發主貼文）。程式：social_gate.close_fallback、social_snap.py `--supplement`、scripts/social_close_state.py。
-- 2026-10-29：daily.yml inst 輪加速：沒有新增「今天的法人」列（只有期貨／診斷檔變）就跳過 24 分鐘整站重算與部署（輸出 `rebuild`／`post`），下一輪 inst 不必排隊；交給後面有新資料的那輪或 18:38／21:38 full 輪。
