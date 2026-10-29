@@ -43,6 +43,23 @@ export function installArticles(Hub, EXPORT_TABLES) {
       return this.json(req, { ok: true, hidden: hiddenTabs(this) });
     },
   });
+  /* 左側導覽「隱藏分頁」（2026-10-29）：Andy「交易練習室先隱藏，並且分頁都需要新增眼睛圖案方便我隱藏」。
+     沿用上面精選文章分頁的做法：kv 鍵 nav_hidden（JSON 陣列），對所有人生效。
+     鍵的格式：大項 'lab'、子項 'mkt-updown'、整組 'g:hist'（只收小寫英數與 - _ :，2～30 字、最多 60 個；不在 Worker 抄白名單，前端加分頁不必重新部署）。
+     ★ 從來沒存過（kv 空）時回預設 ['lab']（交易練習室預設隱藏）；管理者存過一次（包含存空陣列）就以存的為準。
+     · 公開讀：/v1/nav/hidden → {hidden}
+     · 管理者寫：/v1/nav/hidden/put {t, hidden:[…]} → {hidden}；非管理者 403 */
+  const NAV_RE = /^[a-z0-9][a-z0-9:_-]{1,29}$/, NAV_MAX = 60, NAV_KV = 'nav_hidden', NAV_DEF = ['lab'];
+  const navHidden = (hub) => { const raw = hub.kv(NAV_KV); if (raw == null) return NAV_DEF.slice(); try { const a = JSON.parse(raw); return Array.isArray(a) ? a.filter((x) => typeof x === 'string' && NAV_RE.test(x)).slice(0, NAV_MAX) : NAV_DEF.slice(); } catch (e) { return NAV_DEF.slice(); } };
+  Object.assign(Hub.prototype.subRoutes, {
+    '/v1/nav/hidden': async function (req) { return this.json(req, { hidden: navHidden(this) }); },
+    '/v1/nav/hidden/put': async function (req, b) {
+      if (!(await this.admin(req, b))) return this.json(req, { error: 'forbidden' }, 403);
+      if (!Array.isArray(b.hidden) || b.hidden.length > NAV_MAX || !b.hidden.every((x) => typeof x === 'string' && NAV_RE.test(x))) return this.json(req, { error: 'bad_input' }, 400);
+      this.setKv(NAV_KV, JSON.stringify([...new Set(b.hidden)]));
+      return this.json(req, { ok: true, hidden: navHidden(this) });
+    },
+  });
   /* 科技透明圈「人工刪除清單」（2026-10-28）：Andy「有些數據資訊太少，所以你需要新增刪除功能給我，我會在人工審閱」。
      沿用上面隱藏分頁的做法：存在伺服器 kv（鍵 tc_hidden，JSON 陣列），所有裝置看到一樣；整份取代式寫入。
      · 管理者讀：/v1/tc/hidden {} → {hidden:[…]}（#tc 只有管理者看得到，所以讀也要管理者，不公開被刪的樣本代號）

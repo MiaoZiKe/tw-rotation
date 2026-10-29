@@ -89,7 +89,8 @@
           N.admSubs().forEach(([k, t, , icn]) => rows.push(`<button type="button" class="m4sub${adm === k ? ' on' : ''}" data-h="#admin/${k}" data-adm="${k}">${ic(icn)}<span>${esc(t)}</span></button>`));
           return;
         }
-        if (v === 'stock' || v === 'delivery' || !has(v)) return;    // 個股頁沒有側欄入口；交付清單入口桌機也收掉了
+        if (v === 'stock' || v === 'delivery' || !has(v)) return;
+        if (window.TwNavHide && window.TwNavHide.off('v', v)) return;   // 2026-10-29 管理者用側欄小眼睛隱藏的項目：一般人抽屜不列（管理者照列、半透明＋眼睛）    // 個股頁沒有側欄入口；交付清單入口桌機也收掉了
         if ((v === 'tc' && !root.classList.contains('tc-adm')) || (v === 'lab' && !root.classList.contains('lab-adm'))) return;   // 管理者限定的頁：非管理者抽屜根本不列（光用 CSS 藏會讓「每一項都有圖示」的驗收把隱藏項算進去）
         const P = N.PAGES[v] || { t: v };
         const subs = N.SUBS[v] || [];
@@ -106,6 +107,7 @@
     const ver = (($('#buildver') || {}).textContent || '').trim();
     h += `<div class="m4ver">網頁版號 <span class="mono">${esc(ver || '—')}</span></div>`;
     $('.m4body', drawer).innerHTML = h;
+    if (window.TwNavHide) window.TwNavHide.decorate();   // 2026-10-29 管理者在每列右側補小眼睛、被隱藏的半透明
   }
 
   /* ★ 2026-10-09 帳本 85（Andy：「所有分頁打開來 Default 都是最左邊的子分頁，不會跳到其他分頁」）：
@@ -620,6 +622,7 @@
   }
 
   const SUB_LOCK = { 'etf-cx': 'etf.inc.comp' };   // 子頁格 → 功能鍵（features.js）；沒列的格不掛鎖
+  window.addEventListener('tw:navhide', () => { if (isM() && drawer && !drawer.hidden) render(); });   // 2026-10-29 點眼睛後抽屜馬上重畫
   ['tw:perm', 'tw:grants', 'tw:account', 'tw:quse'].forEach((ev) => window.addEventListener(ev, () => { if (isM()) paintTitle(); }));
   function paintTitle() {
     const N = nav(); if (!title || !N) return;

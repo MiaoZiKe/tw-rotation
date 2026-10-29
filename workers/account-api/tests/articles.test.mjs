@@ -315,6 +315,24 @@ test('隱藏分頁：預設空；管理者可寫；訪客讀得到；非管理�
   assert.deepEqual((await pj(hub, '/v1/articles/tabs/put', { t: andy, hidden: [] })).j.hidden, [], '全部顯示');
 });
 
+/* 左側導覽隱藏分頁（2026-10-29）：預設只有交易練習室；公開可讀、只有管理者能寫、壞輸入擋、存空陣列＝全部顯示 */
+test('導覽隱藏：預設 [lab]；管理者可寫；訪客讀得到；非管理者與壞輸入被擋；存空後不再回預設', async () => {
+  const { hub } = makeHub({ ...env, GOOGLE_CLIENT_ID: CID });
+  const andy = await login(hub, 'andy@example.com'), bob = await login(hub, 'bob@example.com');
+  assert.deepEqual((await pj(hub, '/v1/nav/hidden', {})).j.hidden, ['lab'], '預設交易練習室隱藏');
+  assert.equal((await pj(hub, '/v1/nav/hidden/put', { hidden: ['market'] })).s, 403, '沒登入不能寫');
+  assert.equal((await pj(hub, '/v1/nav/hidden/put', { t: bob, hidden: ['market'] })).s, 403, '一般會員不能寫');
+  assert.deepEqual((await pj(hub, '/v1/nav/hidden', {})).j.hidden, ['lab'], '被擋就不會寫入');
+  assert.equal((await pj(hub, '/v1/nav/hidden/put', { t: andy, hidden: 'lab' })).s, 400);
+  assert.equal((await pj(hub, '/v1/nav/hidden/put', { t: andy, hidden: ['<b>'] })).s, 400);
+  assert.equal((await pj(hub, '/v1/nav/hidden/put', { t: andy, hidden: Array(61).fill('lab') })).s, 400);
+  const r = await pj(hub, '/v1/nav/hidden/put', { t: andy, hidden: ['lab', 'mkt-updown', 'g:hist', 'lab'] });
+  assert.equal(r.s, 200); assert.deepEqual(r.j.hidden, ['lab', 'mkt-updown', 'g:hist'], '重複的收成一個');
+  assert.deepEqual((await pj(hub, '/v1/nav/hidden', {})).j.hidden, ['lab', 'mkt-updown', 'g:hist'], '訪客讀得到');
+  assert.deepEqual((await pj(hub, '/v1/nav/hidden/put', { t: andy, hidden: [] })).j.hidden, [], '全部顯示');
+  assert.deepEqual((await pj(hub, '/v1/nav/hidden', {})).j.hidden, [], '存過空陣列就不再回預設');
+});
+
 /* 科技透明圈人工刪除清單（2026-10-28）：只有管理者能讀寫、壞輸入擋、去重、整份取代 */
 test('科技透明圈刪除清單：管理者讀寫；訪客與一般會員 403；壞輸入 400；去重', async () => {
   const { hub } = makeHub({ ...env, GOOGLE_CLIENT_ID: CID });

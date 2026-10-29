@@ -6228,6 +6228,8 @@ return {load:load,ready:ready,srcs:srcs};})();
 <!-- ★ 2026-10-02 版面 v2 結構（DECISIONS #291）：頁首、本頁功能跳轉列、導覽收合、手機頂欄頁名。
      只讀畫面、只加導覽節點，不碰路由與資料；放最後：要等 theme4.js 插好「外觀」鈕、account.js 掛好帳號列。 -->
 <script src="layout4.js"></script>
+<!-- 2026-10-29 側欄小眼睛：管理者一鍵隱藏／顯示分頁（site/navhide.js；伺服器 /v1/nav/hidden）；要在 layout4.js 之後（它建 .l4grp／.l4subtab），mobile4.js 前後皆可 -->
+<script src="navhide.js"></script>
 <!-- ★ 2026-10-08 手機 v2：漢堡鈕＋側欄抽屜（分組照 layout4.js 的 TwL4Nav）；只在 ≤640 作用 -->
 <script src="mobile4.js"></script>
 <!-- ★ 2026-10-07 逐步導覽（spotlight tour，window.TwTour）：要在 layout4.js 之後 —— 「導覽」鈕掛在它畫的頁首頁名旁邊 -->
