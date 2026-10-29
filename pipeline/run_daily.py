@@ -36,6 +36,29 @@ log = logging.getLogger("run_daily")
 RESULT: dict = {"steps": {}, "errors": [], "empty": []}
 
 
+def finmind_company_extra(info: pd.DataFrame, company: pd.DataFrame,
+                          lake: pd.DataFrame | None) -> pd.DataFrame:
+    """FinMind 總覽裡「可以補進 company_info」的列（只補證交所版本沒有的代號）。
+
+    為什麼要排除資料湖裡已經有證交所版本的代號，不能只看今天抓到的 `company`：
+    2026-10-28 晚上那輪證交所 t187ap03_L 失敗回空，`company` 是空的，於是 FinMind 的
+    3168 列全部被當成「補充」寫進去；store.append 依 code 去重保留後到的那筆，
+    上市公司的證交所產業別（例如志聖＝電子零組件業）整批被 FinMind 的大類「電子工業」蓋掉，
+    全名／上市日／網址也一起變成空值。產業別是族群離群檢查與產業分位的依據，不能被這樣降級。
+
+    證交所版本的列一定有 `industry_code`（FinMind 那支沒有這欄），以它判斷「這筆是證交所給的」。
+    上櫃／興櫃本來就只有 FinMind 來源，照舊每天刷新。
+    """
+    if info is None or info.empty:
+        return pd.DataFrame(columns=["code", "name", "market", "industry"])
+    have = set(company["code"].astype(str)) if company is not None and not company.empty else set()
+    if lake is not None and not lake.empty and "industry_code" in lake.columns:
+        have |= set(lake.loc[lake["industry_code"].notna(), "code"].astype(str))
+    extra = info[~info["code"].astype(str).isin(have)].copy()
+    extra["industry"] = extra["industry_finmind"]
+    return extra[["code", "name", "market", "industry"]]
+
+
 def step(name: str, fn, *args, **kwargs):
     """跑一個抓取步驟，把結果與錯誤都記進 RESULT，絕不讓例外往上炸。"""
     t0 = time.time()
@@ -798,11 +821,9 @@ def main() -> int:
         # 用 append + 去重，FinMind 的列會補上證交所沒有的代號；已有的保留證交所版本的產業別
         info = step("finmind.stock_info", finmind.stock_info)
         if not info.empty:
-            have = set(company["code"]) if not company.empty else set()
-            extra = info[~info["code"].isin(have)].copy()
+            extra = finmind_company_extra(info, company, store.read("company_info"))
             if not extra.empty:
-                extra["industry"] = extra["industry_finmind"]
-                save("company_info", extra[["code", "name", "market", "industry"]])
+                save("company_info", extra)
             RESULT["steps"]["finmind.stock_info"]["added"] = int(len(extra))
         save("revenue_monthly", step("twse.revenue", twse.revenue_monthly))
         save("financial_q", step("twse.financial", twse.financial_q))
