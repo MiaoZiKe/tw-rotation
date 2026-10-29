@@ -148,13 +148,18 @@ def load_news(t0: datetime, t1: datetime) -> list[dict]:
     return out
 
 
+def clean_name(v: str) -> str:
+    """社群稿比對用的簡稱：拿掉「*」與 -KY／-創／-DR 後綴（「矽力*-KY」→「矽力」）。只用在這支，不動資料湖。"""
+    return re.sub(r"[-－](KY|創|DR)$", "", re.sub(r"[*＊]", "", str(v)).strip()).strip()
+
+
 def names_map() -> dict[str, str]:
     try:
         import pandas as pd
         fs = sorted((ROOT / "data" / "company_info").glob("**/*.parquet"))
         d = pd.concat([pd.read_parquet(f) for f in fs])
         # 「譜瑞-KY」「XX-創」這類後綴拿掉，標題裡寫的是簡稱（10-29：譜瑞法說被判成找不到主體）
-        return {k: re.sub(r"[-－](KY|創|DR)$", "", v.strip(" *＊")) for k, v in zip(d["code"].astype(str), d["name"].astype(str))}
+        return {k: clean_name(v) for k, v in zip(d["code"].astype(str), d["name"].astype(str))}
     except Exception:
         return {}
 
@@ -401,7 +406,8 @@ def _who(c: dict, names: dict, title: str) -> str:
 # ---------------- v2 結構化產稿（CEO 10-28 退件後：標題由欄位組、大數字＝主旨、具體解讀、觀察點、品質閘） ----------------
 ENT = ["SK海力士", "三星", "輝達", "NVIDIA", "微軟", "蘋果", "Alphabet", "Google", "Meta", "亞馬遜", "特斯拉", "博通", "超微", "AMD",
        "甲骨文", "英特爾", "高通", "美光", "恩智浦", "安謀", "CoreWeave", "OpenAI", "Anthropic", "SpaceX", "費半", "道瓊", "那斯達克",
-       "標普", "聯準會", "Fed", "日銀", "歐洲央行", "TrendForce", "IDC", "加權指數", "台股", "三大法人", "外資", "投信", "自營商"]
+       "標普", "聯準會", "Fed", "日銀", "歐洲央行", "TrendForce", "IDC", "加權指數", "台股", "三大法人", "外資", "投信", "自營商",
+       "長鑫存儲", "長鑫", "中芯", "華為"]
 METRICS = [("EPS", r"每股(純益|盈餘|稅後|賺)|每股$|EPS"), ("經濟成長率", r"GDP|經濟成長"), ("通膨", r"通膨|物價"), ("虧損", r"淨虧|虧損"), ("毛利率", r"毛利率"), ("營業利益", r"營業利益|營益"), ("淨利", r"淨利|純益|獲利|盈餘"),
            ("營收", r"營收"), ("資本支出", r"資本支出"), ("財測", r"財測|指引"), ("指數", r"加權指數|指數|道瓊|那斯達克|標普|費半"),
            ("買超", r"買超"), ("賣超", r"賣超"), ("成交值", r"成交值|成交額"), ("殖利率", r"殖利率"), ("利率", r"利率"), ("融資", r"融資|籌資|增資"), ("產值", r"產值"), ("出貨", r"出貨"), ("餘額", r"餘額"),
@@ -427,11 +433,12 @@ EMPTY = ["指數點數反映", "家媒體", "則報導", "營收是公司銷售"
 REL = {"cpi": "美國 CPI 物價", "pce": "美國 PCE 物價", "gdp": "美國 GDP", "nfp": "美國非農就業", "payems": "美國非農就業",
        "fomc": "聯準會 FOMC 利率決議", "ppi": "美國 PPI", "retail": "美國零售銷售", "unrate": "美國失業率"}
 TITLE_MAX = 12
-GENERIC = {"全台", "台灣", "中華", "國際", "美國", "大眾", "統一", "華南", "第一", "合庫", "新光", "全國", "亞洲", "世界", "大立", "東方",
+GENERIC = {"全台", "材料", "台灣", "中華", "國際", "美國", "大眾", "統一", "華南", "第一", "合庫", "新光", "全國", "亞洲", "世界", "大立", "東方",
            "通訊"}     # 「通訊」(6404) 會被「光通訊」誤認（10-29 第二輪：康寧、穩懋兩則主體變成「通訊」）
 # 金額類指標的主旨數字不能是百分比（「光通訊營收飆44%」「AI營收占比25%」是成長率／占比，不是營收本身）
 TW_MARKET = {"指數", "融資", "買超", "賣超", "成交值", "餘額"}     # 台股盤勢／籌碼類：封面用台股通用圖，不照內文順帶的產業字配圖
 AMOUNT_METRIC = {"營收", "淨利", "營業利益", "EPS", "資本支出", "市值", "出貨", "訂單", "產值", "餘額", "買超", "賣超", "成交值", "融資", "虧損"}
+IG_MAX = 2000          # IG 貼文說明上限 2,200 字；留 200 字餘裕，與 run_slot 的 2,000 字閘一致
 MIN_BODY = 400          # 10-29：500 擋掉 443／453 字、段落都有實際數字的稿；空泛句另有 EMPTY 與「和前期比」閘把關
 
 
@@ -459,7 +466,7 @@ BANKS = r"(?:泰國|美國|日本|英國|南韓|韓國|澳洲|紐西蘭|加拿�
 INST = ["聯準會", "Fed", "FOMC", "歐洲央行", "ECB", "日銀", "日本銀行", "英格蘭銀行", "人行", "人民銀行", "金管會", "主計總處", "國發會",
         "經濟部", "財政部", "美國商務部", "美國勞工部", "OPEC+", "OPEC", "IMF", "世界銀行", "WTO"]
 COMMOD = r"(?:(?:歐洲|美國|亞洲|國際|紐約|倫敦)?(?:天然氣|原油|布蘭特原油|西德州原油|油價|金價|黃金|白銀|銀價|銅價|鐵礦砂|小麥|黃豆|比特幣))"
-STOPW = {"核心", "財報", "法說", "營收", "快訊", "焦點", "盤前", "盤後", "台股", "美股", "陸股", "港股", "日股", "市場", "外資", "投信", "分析師", "專家",
+STOPW = {"核心", "房產", "房市", "焦點股", "風向球", "財報", "法說", "營收", "快訊", "焦點", "盤前", "盤後", "台股", "美股", "陸股", "港股", "日股", "市場", "外資", "投信", "分析師", "專家",
          "今年", "明年", "去年", "全年", "公司", "業者", "法人", "官方", "政府", "報告", "研調", "調查", "美國", "中國", "全球", "國際", "亞洲", "歐洲"}
 ENG_STOP = {"IPO", "AI", "CEO", "CFO", "EPS", "ETF", "GDP", "CPI", "PCE", "HBM", "GPU", "CPU", "ASIC", "Q1", "Q2", "Q3", "Q4", "PC", "EV"}
 VERBS = r"(?:搭上|宣布|公布|推出|發布|發表|營收|獲利|淨利|股價|市值|財報|法說|擬|將|攜手|砸|收購|併購|上市|掛牌|登|第[一二三四1-4]季|Q[1-4]|前三季|上半年|每股|今年|明日|今日|再|又|首度|大舉|傳)"
@@ -484,29 +491,42 @@ def _proper(t: str) -> str:
     for seg in re.split(r"[ 　，,、！!？?：:；;〈〉【】「」『』（）()／]+", t):
         m = re.match(r"([\u4e00-\u9fff]{2,6}?)" + VERBS, seg)
         if m and m.group(1) not in STOPW and not re.search(r"[增減漲跌賺虧億萬元點%]", m.group(1)) \
+                and not re.match(r"房市|房價|市場|台股|美股|陸股|港股|傳統|人類", m.group(1)) \
                 and not re.match(r"[本上下單今明去前近首全各多逾約該此這那其兩三四五六七八九十]", m.group(1)):   # 「本季」「上半年」這類不是名字
             return m.group(1)
     return ""
 
 
+FLOW_WHO = {"三大法人", "外資", "投信", "自營商"}
+
+
 def subject_of(c: dict, names: dict) -> tuple[str, str]:
     """(主體名稱, 台股代號或空)；找不到回 ('', '')。
-    順序：新聞自帶代號 → 標題裡的上市櫃／興櫃簡稱與已知機構（取最前面的）→〈XX法說〉括號標頭 → 央行／機構 →
-    「XX…登興櫃」→ 商品與地區市場 → 標題開頭的專有名詞（外國公司）。"""
+    順序：標題裡的上市櫃／興櫃簡稱與已知機構（取最前面的；新聞代號清單裡有的優先；籌碼類以被買賣的公司為主）→〈XX法說〉括號標頭 → 央行／機構 →
+    「XX…登興櫃」→ 商品與地區市場 → 新聞代號（只有一檔、或摘要寫到它）→ 標題開頭的專有名詞（外國公司）。"""
     t = sanitize(c["lead"]["title"])
     codes = [x for x in str(c["lead"].get("codes") or "").split(",") if x and not x.startswith("US-")]
-    if codes and names.get(codes[0]):
-        return names[codes[0]], codes[0]
     al = _alias(names)
-    best = None
-    for v in al:
-        k = t.find(v)
-        if k >= 0 and (best is None or (k, -len(v)) < (best[0], -len(best[1]))):
-            best = (k, v)
-    for v in ENT + INST:
-        k = t.find(v)
-        if k >= 0 and (best is None or (k, -len(v)) < (best[0], -len(best[1]))):
-            best = (k, v)
+    if codes and names.get(codes[0]) and names[codes[0]] in t:
+        al.setdefault(names[codes[0]], codes[0])          # 名字含英數字（M31）或太泛被 _alias 排掉的，只要真的出現在標題也算
+
+    def first(words):
+        best = None
+        for v in words:
+            k = t.find(v)
+            if k >= 0 and (best is None or (k, -len(v)) < (best[0], -len(best[1]))):
+                best = (k, v)
+        return best
+    # 10-29：新聞自帶的代號清單常常是「內文提到的所有個股」，第一個不一定是主體（「外資大砍友達…」帶 2330,2409 → 被判成台積電，
+    # 相關公司也跟著列錯）。改成以標題為準：標題裡最先出現的公司／機構＝主詞；代號只在標題完全沒有主體時才當備援。
+    tagged = [v for v in al if al[v] in codes]
+    co = first(tagged) or first(al)                        # 台股公司：先找新聞代號清單裡、標題也寫到的那家
+    if co and codes and co[1] not in tagged and len(co[1]) <= 2:
+        co = None                                          # 兩個字的簡稱又不在代號清單 → 多半是一般詞（「回收及再生」的再生、「衛星通訊」的星通）
+    en = first(ENT + INST)                                 # 外國公司、機構、指數、法人
+    if en and co and en[1] in FLOW_WHO:
+        en = None                                          # 籌碼類（外資／投信／自營商／三大法人買賣某檔）：以被買賣的那家為主
+    best = min([x for x in (co, en) if x], key=lambda x: (x[0], -len(x[1])), default=None)
     if best:
         return best[1], al.get(best[1], "")
     m = re.match(r"^[〈【\[]\s*([^〉】\]]{2,8}?)\s*(?:法說|財報|營收|獲利|股東會|重訊|快訊)?[〉】\]]", t)
@@ -521,8 +541,11 @@ def subject_of(c: dict, names: dict) -> tuple[str, str]:
     m = re.search(COMMOD, t)
     if m:
         return m.group(0), ""
+    summ = sanitize(c["lead"].get("summary") or "")
+    if len(codes) == 1 and names.get(codes[0]) or codes and names.get(codes[0]) and names[codes[0]] in summ:
+        return names[codes[0]], codes[0]       # 標題沒寫公司名、摘要開頭寫了 → 才用新聞自帶的代號
     w = _proper(t)
-    if not w:                                  # 標題只寫「沙烏地航運巨頭」→ 摘要裡的英文公司名（Bahri）
+    if not w and not codes:                    # 標題只寫「沙烏地航運巨頭」→ 摘要裡的英文公司名（Bahri）；有台股代號的新聞不這樣撈（10-29：選股專欄被撈成 Anthropic）
         m = re.search(r"(?<![A-Za-z])([A-Z][a-z][A-Za-z0-9&.]{1,20})(?![A-Za-z])", sanitize(c["lead"].get("summary") or ""))
         w = m.group(1) if m and m.group(1) not in ENG_STOP else ""
     return (w, al.get(w, "")) if w else ("", "")
@@ -554,6 +577,147 @@ def landing(c: dict, code: str) -> str:
     if re.search(r"半導體|晶片|AI|記憶體|HBM|CoWoS|伺服器", c["text"]):
         return "industry/semiconductor"
     return ""
+
+
+# ---------------- 相關公司（10-29 Andy：「可以的話需要附上相關股票 公司做哪塊 簡單補充」「以後文章都是，但是跟這類有關才要」） ----------------
+# 資料來源一律是 Andy 維護的 pipeline/groups/supply_chain.yaml（環節＋公司 tech）與 groups.yaml（族群），不憑記憶編。
+# 只列台股（4 碼代號）；對不到族群／環節的文章（總經、央行、匯率、商品、盤勢籌碼）整節省略，不硬湊。
+# 這一節只是產業分工說明：不寫買賣、推薦、受惠這類字；整節過不了 news_legal.check 就拿掉這一節，不擋整篇。
+REL_HEAD = "🏢 #相關公司"
+REL_FOOT = "（依本站產業地圖整理的產業分工說明）"
+REL_RE = re.compile(re.escape(REL_HEAD) + r"\n.*?" + re.escape(REL_FOOT), re.S)
+_SC = None
+# 外國公司／產業新聞：標題（含主體名）命中關鍵字 → 對應環節的台股。由上往下第一個命中為準（專有名詞在前、泛稱在後）。
+# (產品／技術關鍵字：比對標題＋主體, 外國公司名：只比對主體, 對應環節)。由上往下第一個命中為準（專有名詞在前、泛稱在後）。
+# 外國公司名只看主體，不看標題順帶提到的（10-29 試跑：「Google 找上甲骨文 搶輝達 AI 晶片生意」主體是 Google，不該因為「輝達」帶出 AI 伺服器組裝廠）。
+TOPIC_SEG = [
+    (r"ABF|載板", "", [dict(seg="abf_pcb", n=3)]),
+    (r"CoWoS|先進封裝|SoIC", "", [dict(seg="foundry", codes=["2330"]), dict(seg="osat_test", codes=["3711"]), dict(seg="pkg_equipment", n=2)]),
+    (r"HBM|記憶體|DRAM|NAND", r"SK海力士|海力士|美光|Micron|鎧俠|Kioxia|SanDisk|三星", [dict(seg="dram_nor", n=3), dict(seg="osat_test", codes=["6239"])]),
+    (r"散熱|液冷|水冷", "", [dict(seg="thermal", n=4)]),
+    (r"光通訊|CPO|矽光子|光模組|光收發", "", [dict(seg="optical", n=3)]),
+    (r"CCL|銅箔基板", "", [dict(seg="ccl", n=3)]),
+    (r"PCB|電路板", "", [dict(seg="hdi_pcb", n=3)]),
+    (r"交換器", "", [dict(seg="switch", n=1), dict(seg="ic_design", codes=["2379"])]),
+    (r"ASIC", r"博通|Broadcom|Marvell|邁威爾", [dict(seg="ip_eda", codes=["3443", "3661", "3035"])]),
+    (r"AI ?伺服器|GB[23]00", r"輝達|NVIDIA", [dict(seg="assembly", codes=["2317", "2382", "3231"]), dict(seg="foundry", codes=["2330"])]),
+    (r"晶圓代工", r"英特爾|Intel", [dict(seg="foundry", n=3)]),
+]
+REL_SKIP_SUBJ = r"央行|聯準會|Fed|FOMC|ECB|日銀|英格蘭銀行|人行|金管會|主計總處|國發會|指數|台股|美股|油價|金價|天然氣|原油|黃金|白銀|銅價|比特幣"
+
+
+def _supply_chain() -> dict:
+    global _SC
+    if _SC is None:
+        try:
+            import yaml
+            _SC = yaml.safe_load((ROOT / "pipeline" / "groups" / "supply_chain.yaml").read_text("utf-8")) or {}
+        except Exception:
+            _SC = {}
+    return _SC
+
+
+def _tw(c: dict) -> bool:
+    return bool(re.fullmatch(r"\d{4}", str(c.get("ticker") or "")))
+
+
+def rel_role(c: dict) -> str:
+    """「做哪一塊」：環節短名＋「做」tech 前一兩項（例：「IC 載板，做 ABF 載板、HDI」）。全部取自 supply_chain.yaml。"""
+    seg = {s["id"]: s for s in _supply_chain().get("segments") or []}.get(c.get("segment"), {})
+    name = re.split(r"\s*[（(]", str(seg.get("name") or ""))[0].replace(" / ", "／").strip()
+    tech, n = [], 0
+    for t in (re.sub(r"（[^）]*）|\([^)]*\)", "", str(x)).strip() for x in (c.get("tech") or [])):
+        if not t:
+            continue
+        if tech and (n + len(t) > 22 or len(tech) >= 2):
+            break                          # 只取前面的主力項目；不跳著挑（跳著挑會挑到跟主題無關的副業）
+        tech.append(t); n += len(t)
+    if tech and name:
+        return f"{name}，做{' ' if re.match(r'[A-Za-z0-9]', tech[0]) else ''}{'、'.join(tech)}"
+    return name or "、".join(tech)
+
+
+def rel_line(c: dict) -> str:
+    return f"・{re.sub(r'[-－](KY|創|DR)$', '', c['name'])}（{c['ticker']}）：{rel_role(c)}"
+
+
+def rel_from_spec(spec: list[dict], exclude: set[str] | None = None, cap: int = 6) -> list[str]:
+    """spec：[{seg: 環節 id, n: 取前幾家} 或 {seg, codes: [指定代號]}]，依 supply_chain.yaml 的公司順序。"""
+    ex = set(exclude or ()); out = []
+    comps = [c for c in _supply_chain().get("companies") or [] if _tw(c)]
+    for sp in spec or []:
+        pool = [c for c in comps if c.get("segment") == sp.get("seg") and str(c["ticker"]) not in ex]
+        if sp.get("codes"):
+            order = [str(x) for x in sp["codes"]]
+            pool = sorted([c for c in pool if str(c["ticker"]) in order], key=lambda c: order.index(str(c["ticker"])))
+        for c in pool[: sp.get("n", len(pool))]:
+            if len(out) >= cap:
+                break
+            ex.add(str(c["ticker"])); out.append(rel_line(c))
+    return out
+
+
+def rel_for_code(code: str, names: dict | None = None, cap: int = 5) -> list[str]:
+    """台股主體：同環節其他公司（≤2）＋上游供應商（≤2）＋下游客戶（≤1），取自 supply_chain.yaml 的 segment 與 supplies 邊；
+    supply_chain 沒有這家 → groups.yaml 同族群的其他公司（角色＝族群名稱與說明）。"""
+    sc = _supply_chain(); comps = sc.get("companies") or []
+    me = next((c for c in comps if str(c.get("ticker")) == code), None)
+    if me:
+        byid = {c["id"]: c for c in comps}
+        same = [c for c in comps if c is not me and c.get("segment") == me.get("segment") and _tw(c)][:2]
+        sup = [e for e in sc.get("edges") or [] if e.get("rel") == "supplies"]
+        up = [byid[e["from"]] for e in sup if e.get("to") == me["id"] and e.get("from") in byid and _tw(byid[e["from"]])][:2]
+        down = [byid[e["to"]] for e in sup if e.get("from") == me["id"] and e.get("to") in byid and _tw(byid[e["to"]])][:1]
+        out, seen = [], {code}
+        for c in same + up + down:
+            if str(c["ticker"]) not in seen and len(out) < cap:
+                seen.add(str(c["ticker"])); out.append(rel_line(c))
+        if out:
+            return out
+    try:
+        import yaml
+        cfg = yaml.safe_load((ROOT / "pipeline" / "groups" / "groups.yaml").read_text("utf-8")) or {}
+    except Exception:
+        return []
+    names = names or {}
+    for g in (cfg.get("groups") or {}).values():
+        codes = [str(x) for x in (g.get("codes") or [])] if isinstance(g, dict) else []
+        if code in codes:
+            role = str(g.get("name") or "").strip()
+            known = {str(c.get("ticker")): c for c in comps if _tw(c)}
+            out = [rel_line(known[x]) if x in known else f"・{names[x]}（{x}）：{role}"     # supply_chain 有的用它的「做哪一塊」，沒有才用族群名稱
+                   for x in codes if x != code and (x in known or names.get(x))]
+            return out[:min(cap, 4)]
+    return []
+
+
+def rel_section(lines: list[str], note: str = "", min_n: int = 2) -> str:
+    """組「🏢 #相關公司」一節；家數不足或過不了法遵就回空字串（整節省略，不擋整篇）。"""
+    if len(lines) < min_n:
+        return ""
+    sec = REL_HEAD + "\n" + (note.strip() + "\n" if note.strip() else "") + "\n".join(lines[:6]) + "\n" + REL_FOOT
+    return "" if any(re.search(p, sec) for p, _ in __import__("news_legal").FORBID) else sec
+
+
+def rel_news(c: dict, subj: str, code: str, names: dict) -> str:
+    """新聞稿的相關公司：台股主體 → 同環節＋上下游；外國公司／產業 → 標題命中的題材環節；總經、央行、商品、盤勢 → 省略。"""
+    if c.get("cat") == "總經" or c.get("ctype") in ("總經數據", "盤勢數字") or re.search(REL_SKIP_SUBJ, subj or ""):
+        return ""
+    if code:
+        sec = rel_section(rel_for_code(code, names))
+        if sec:
+            return sec
+    t = sanitize(c["lead"]["title"])                     # 產品關鍵字只看標題（主體若是從摘要撈的英文字，不拿來對題材）
+    for pat, who, spec in TOPIC_SEG:
+        if re.search(pat, t) or (who and re.search(who, subj or "")):
+            return rel_section(rel_from_spec(spec, exclude={code} if code else None, cap=5))
+    return ""
+
+
+def rel_evergreen(e: dict) -> str:
+    """常備文庫：evergreen.json 的 related＝{segs: [spec...], note: 前言}；沒有 related 或空 → 不放（總經、籌碼、財報名詞）。"""
+    r = e.get("related") or {}
+    return rel_section(rel_from_spec(r.get("segs") or []), r.get("note", ""), min_n=3) if r.get("segs") else ""
 
 
 EARN_VERB = re.compile(r"(公布|發布|揭曉|出爐|舉行|召開|登場|發表)[^，。；]{0,8}(財報|法說|業績|季報|財務報告|營運成果)"
@@ -971,10 +1135,14 @@ def compose(c: dict, slot: str, idx: int, day: str, style: str, names: dict) -> 
     hist = history(subj, lead["ts"], names=names)
     sec_hist = ("📌 #之前的報導\n" + "\n".join(hist)) if hist else ""
     sec_watch = "👀 #接下來觀察\n" + wp
+    sec_rel = rel_news(c, subj, code, names)
     tail = "以上為公開資料整理，非投資建議"
-    body = [intro, sec_num, sec_cmp] + ([sec_mean] if style != "精簡重點" else []) + ([sec_more] if sec_more else []) + ([sec_hist] if sec_hist else []) + [sec_watch]
+    body = [intro, sec_num, sec_cmp] + ([sec_mean] if style != "精簡重點" else []) + ([sec_more] if sec_more else []) + ([sec_hist] if sec_hist else []) + ([sec_rel] if sec_rel else []) + [sec_watch]
     link_line = "👉 更多詳細資料可以點擊以下連結："
     cap_ig = "\n".join(head) + "\n" + "\n\n".join(body) + f"\n\n{tail}\n{link_line}\n{url_ig}"
+    if sec_rel and len(cap_ig) > IG_MAX:          # IG 文案上限 2,200 字：放不下就拿掉相關公司這節，不擋整篇
+        body.remove(sec_rel); sec_rel = ""
+        cap_ig = "\n".join(head) + "\n" + "\n\n".join(body) + f"\n\n{tail}\n{link_line}\n{url_ig}"
     threads = pack_threads(["\n".join(head[:2]) + "\n\n" + intro] + body[1:] + [f"{tail}\n{link_line}\n{url_th}"])
     card = dict(title=l1 + l2, subtitle=SUBQ[c["ctype"]], numbers=[{k: x[k] for k in ("label", "value", "unit")} for x in rows],
                 category=c["cat"], subject=subj, foot="資料：" + "、".join(dict.fromkeys(SRC_NAME.get(n["source"], n["source"]) for n in c["group"])) + "・本站整理", cover_title=cover, cover_desc=_lines("、".join(f"{x['label']} {_fmt(x)}" for x in comps[:2]) or SUBQ[c["ctype"]], 22),
@@ -1005,7 +1173,7 @@ def quality_gate(d: dict, key: dict) -> list[str]:
     hv = key["value"].lstrip("約逾近超過")
     if hv not in ct[1] or not d["card"]["hero"].startswith(hv):
         out.append("封面大數字與標題主旨不同")
-    body = d["caption_ig"].rsplit("以上為公開資料整理", 1)[0]
+    body = REL_RE.sub("", d["caption_ig"].rsplit("以上為公開資料整理", 1)[0])    # 相關公司那節不算內文字數（不讓它把太薄的稿撐過門檻）
     if len(body) < MIN_BODY:
         out.append(f"內文 {len(body)} 字（最少 {MIN_BODY}）")
     for w in EMPTY:
@@ -1087,9 +1255,14 @@ def compose_evergreen(e: dict, slot: str, idx: int, day: str) -> dict:
     sec_watch = "👀 #為什麼值得知道\n" + e["watch"]
     tail = "以上為公開資料整理，非投資建議"
     link_line = "👉 更多詳細資料可以點擊以下連結："
-    body = [e["intro"]] + list(e["sections"]) + [sec_watch]
+    sec_rel = rel_evergreen(e)
+    secs = list(e["sections"]) + ([sec_rel] if sec_rel else [])
+    body = [e["intro"]] + secs + [sec_watch]
     cap_ig = "\n".join(head) + "\n" + "\n\n".join(body) + f"\n\n{tail}\n{link_line}\n{url_ig}"
-    threads = pack_threads(["\n".join(head[:2]) + "\n\n" + e["intro"]] + list(e["sections"]) + [sec_watch, f"{tail}\n{link_line}\n{url_th}"])
+    if sec_rel and len(cap_ig) > 2000:            # 常備文庫 IG 上限沿用 2,000（留 200 字餘裕）：放不下就拿掉相關公司，不擋整篇
+        secs.remove(sec_rel); body = [e["intro"]] + secs + [sec_watch]
+        cap_ig = "\n".join(head) + "\n" + "\n\n".join(body) + f"\n\n{tail}\n{link_line}\n{url_ig}"
+    threads = pack_threads(["\n".join(head[:2]) + "\n\n" + e["intro"]] + secs + [sec_watch, f"{tail}\n{link_line}\n{url_th}"])
     card = dict(title=" ".join(e["cover_title"]), subtitle=e["ctype"], numbers=e["rows"], category=e["cat"], subject="",
                 cover_title=e["cover_title"], cover_desc=e["cover_desc"], hero=e["hero"], hero_label=e.get("hero_label", ""),
                 hl="", hdr=e["ctype"], foot="資料：公開資料整理・本站編輯", photo_cats=e.get("photo_cats") or [])
@@ -1101,7 +1274,7 @@ def compose_evergreen(e: dict, slot: str, idx: int, day: str) -> dict:
     for l in e["cover_title"]:
         if not l or len(l) > TITLE_MAX + 2:
             bad.append(f"標題行長度 {len(l)}：{l}")
-    body_len = len(cap_ig.rsplit("以上為公開資料整理", 1)[0])
+    body_len = len(REL_RE.sub("", cap_ig.rsplit("以上為公開資料整理", 1)[0]))
     if body_len < EVG_MIN_BODY:
         bad.append(f"內文 {body_len} 字（最少 {EVG_MIN_BODY}）")
     if "#stock/" in cap_ig:

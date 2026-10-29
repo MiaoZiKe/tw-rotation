@@ -1,5 +1,15 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
+## 2026-10-29 新聞主體誤判修正（「外資大砍友達」被判成台積電，相關公司跟著列錯；最後更新 10-29 台北）
+- `scripts/social_news.py` 的 `subject_of`：改以標題為準（標題最先出現的公司／機構；新聞代號清單裡有的優先）；籌碼類（外資／投信／自營商／三大法人）以被買賣的那家為主；兩字簡稱不在代號清單裡就不採用（「再生」「星通」「新產」）；新聞代號只在標題沒有主體、且只有一檔或摘要寫到它時才當備援；有台股代號的新聞不再從摘要撈英文字當主體。
+- 近三天 443 則重跑：27 則主體改變，逐則確認（清單在本次回報）。可發篇數 74 → 73（少的是原本主體錯的那篇）。這批只驗 `tests/test_social_news.py`、`tests/test_threads_post.py`。
+
+## 2026-10-29 主題文章加「🏢 #相關公司」一節（Andy：「可以的話需要附上相關股票 公司做哪塊 簡單補充」「以後文章都是，但是跟這類有關才要」；最後更新 10-29 台北）
+- `scripts/social_news.py` 的 `rel_news()`（新聞稿）／`rel_evergreen()`（常備文庫）：公司與「做哪一塊」由 `pipeline/groups/supply_chain.yaml`（環節＋tech）／`groups.yaml` 自動帶出；總經、央行、商品、盤勢籌碼整節省略。
+- 常備文庫 `social/news/evergreen.json` 11 篇都加 `related`：cowos／hbm／ic_flow／cooling／abf 有公司，其餘 6 篇 `{}`（跟產業無關）。
+- 法遵或 IG 長度過不了就拿掉這一節、不擋整篇；不算進內文最少字數。規則寫在 `docs/marketing/social_unit/news_post_rules.md` 第十一節、`auto_post.md` 修改紀錄。
+- 這批只驗：`tests/test_social_news.py`、`tests/test_threads_post.py`（含新增 5 條相關公司測試）。下一步：看今天盤後實際發出的那篇有沒有這一節（新聞若是總經類就不會有，屬正常）。
+
 ## 2026-10-31 交易練習室最終版上 main（合併 preview/lab-ux＋preview/standard-strategies；Andy「上線」；最後更新 10-29 台北）
 - 合併：兩分支自動合併無衝突；engine/expr/replay 取 standard-strategies，ux/kview 取 lab-ux，CSV 用 `E.tradeLegs()`。
 - 這批修：台指期回測預設 5Y；資金不足 1 口原始保證金時結論列寫「YYYY-MM-DD 起資金不足 1 口保證金，之後停止交易」；All 的 K 線可視範圍涵蓋整段（minBarSpacing 0.02）；損益圖 Y 軸整數千分位；手機右側多留 12 根避免最右月份被切；`#v-lab #labBHw` 右讓 72px 避開比比客服鈕（site/m4/20261031-lab-final.css）。
