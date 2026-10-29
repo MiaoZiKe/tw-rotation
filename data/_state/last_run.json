@@ -2,8 +2,8 @@
   "steps": {
     "inst_official": {
       "ok": true,
-      "rows": 902,
-      "date": "2026-10-28",
+      "rows": 878,
+      "date": "2026-10-29",
       "diag": [
         {
           "url": "https://openapi.twse.com.tw/v1/swagger.json",
@@ -132,13 +132,13 @@
         {
           "url": "https://www.tpex.org.tw/openapi/v1/tpex_3insti_daily_trading",
           "http": 200,
-          "head": "[ {\"Date\":\"1151028\",\"SecuritiesCompanyCode\":\"00411A\",\"CompanyName\":\"主動統一前沿科技\",\"Foreign Investors include Mainland Area Investors (Foreign Dealers excluded)-Total Buy\":\"1375000\",\" Foreign Investors inc"
+          "head": "[ {\"Date\":\"1151029\",\"SecuritiesCompanyCode\":\"00411A\",\"CompanyName\":\"主動統一前沿科技\",\"Foreign Investors include Mainland Area Investors (Foreign Dealers excluded)-Total Buy\":\"72600\",\" Foreign Investors inclu"
         },
         {
           "market": "上櫃",
-          "rows": 902,
+          "rows": 878,
           "parts": [
-            902
+            878
           ]
         }
       ]
@@ -151,14 +151,14 @@
       "rows": 6
     },
     "fut_inst": {
-      "stored": 9
+      "stored": 0
     },
     "mktfut.fut_inst": {
       "ok": true,
       "rows": 63
     },
     "fut_oi": {
-      "stored": 3
+      "stored": 0
     },
     "mktfut.fut_oi": {
       "ok": true,
@@ -166,11 +166,11 @@
     },
     "finmind.institutional_bulk": {
       "ok": true,
-      "rows": 902,
+      "rows": 878,
       "seconds": 0.2
     },
     "inst_daily": {
-      "stored": 0
+      "stored": 878
     },
     "institutional_codes": {
       "requested": 0,
@@ -196,7 +196,7 @@
     "tables": {
       "inst_daily": {
         "label": "個股三大法人",
-        "latest": "2026-10-28",
+        "latest": "2026-10-29",
         "rows": 1793,
         "median": 2213.0,
         "status": "ok",
@@ -239,9 +239,9 @@
     "warn_labels": []
   },
   "warn": [],
-  "started_at": "2026-10-29T07:18:47.544766+00:00",
-  "finished_at": "2026-10-29T07:19:04.940307+00:00",
-  "duration_seconds": 17.4,
+  "started_at": "2026-10-29T08:19:43.541575+00:00",
+  "finished_at": "2026-10-29T08:20:09.027419+00:00",
+  "duration_seconds": 25.5,
   "trade_date": "2026-10-28",
   "complete": true,
   "finmind_budget_left": 503
