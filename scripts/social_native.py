@@ -489,7 +489,8 @@ def b_retail(mode, w, h, ctx):
     names = {"TX": "大台（TX）", "MTX": "小台（MTX）", "TMF": "微台（TMF）"}
     for k in ("TX", "MTX", "TMF"):
         p = j[k]
-        dates, ratio, tw = p["dates"][-126:], p["ratio_pct"][-126:], p["taiex"][-126:]
+        keep = [i for i, r in enumerate(p["ratio_pct"]) if r is not None][-126:]      # 多空比缺值的日子不畫（指數缺值由 _dual_svg 跳過）
+        dates, ratio, tw = [p["dates"][i] for i in keep], [p["ratio_pct"][i] for i in keep], [p["taiex"][i] for i in keep]
         last, prev = ratio[-1], (ratio[-2] if len(ratio) > 1 else ratio[-1])
         svg = _dual_svg(w - 6, ph - round(70 * s), dates, bars=ratio, line=tw, fs=round(24 * s))
         out.append(f'<div class=sub style="height:{ph:.0f}px"><div class=ptitle><i style="color:{tone(last)}">{sgn(last, 2, "%")}</i>{names[k]}<em>較前日 {sgn(last - prev, 2, "pp")}</em></div>{svg}</div>')
@@ -506,7 +507,8 @@ def _dual_svg(W, H, dates, bars, line, fs, bar_col=None):
     if min(bars) >= 0:
         lo = 0
     Y = lambda v: Tp + (hi - v) / (hi - lo) * ph
-    tlo, thi = min(line), max(line); ts = (thi - tlo) or 1; tlo -= ts * .05; thi += ts * .05
+    lv = [x for x in line if x is not None] or [0]      # 2026-10-29：當天加權指數還沒進湖時最後一點是 None → 折線跳過缺值
+    tlo, thi = min(lv), max(lv); ts = (thi - tlo) or 1; tlo -= ts * .05; thi += ts * .05
     I = lambda v: Tp + (thi - v) / (thi - tlo) * ph
     g = [svg_open(W, H)]
     raw = (hi - lo) / 4; mag = 10 ** math.floor(math.log10(raw)) if raw > 0 else 1
@@ -525,7 +527,7 @@ def _dual_svg(W, H, dates, bars, line, fs, bar_col=None):
     for i, x in enumerate(bars):
         y0, y1 = Y(0), Y(x)
         g.append(f'<rect x="{L + st * i + (st - bw) / 2:.1f}" y="{min(y0, y1):.1f}" width="{bw:.1f}" height="{max(abs(y1 - y0), 1.2):.1f}" fill="{bar_col or T["accent"]}" opacity=".8"/>')
-    pts = " ".join(f"{L + st * i + st / 2:.1f},{I(x):.1f}" for i, x in enumerate(line))
+    pts = " ".join(f"{L + st * i + st / 2:.1f},{I(x):.1f}" for i, x in enumerate(line) if x is not None)
     g.append(f'<polyline points="{pts}" fill="none" stroke="{T["ink"]}" stroke-width="3.5" stroke-linejoin="round"/>')
     for i in sorted({0, n // 3, 2 * n // 3, n - 1}):
         an = "start" if i == 0 else ("end" if i == n - 1 else "middle")

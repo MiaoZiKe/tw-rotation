@@ -2045,6 +2045,29 @@ def build_text(kind: str, stamp: str, shots: list[dict], data_date: str, ymd: st
 MIS_URL = "https://mis.twse.com.tw/stock/api/getStockInfo.jsp?ex_ch=tse_t00.tw&json=1&delay=0"   # CLAUDE.md 白名單內的即時報價端點（DECISIONS #108）
 
 
+def mis_close(m0: dict) -> dict:
+    """mis 加權指數那一筆的收盤值：z＝最新（收盤後即收盤指數）、y＝昨收。缺值或「-」回 {}（2026-10-29）。"""
+    try:
+        z, y = float(str(m0.get("z")).replace(",", "")), float(str(m0.get("y")).replace(",", ""))
+        if z > 0 and y > 0:
+            return {"close": z, "prev": y}
+    except (TypeError, ValueError):
+        pass
+    return {}
+
+
+def market_line_src(mh: dict, breadth_date: str | None, data_date: str, ev: dict | None) -> dict:
+    """盤面分析「加權指數漲跌／家數」那句的資料（2026-10-29）：
+    網站 market_heat 是今天的 → 用它（含漲跌家數）；不是今天 → 改用 mis 當天收盤指數（只有指數漲跌，沒有家數）；
+    兩者都不是今天 → {}（不寫那句，不拿舊的冒充）。"""
+    if mh and (not breadth_date or breadth_date == data_date):
+        return mh
+    ev = ev or {}
+    if ev.get("last_trade") == data_date and ev.get("close") and ev.get("prev"):
+        return {"taiex": ev["close"], "change": round(ev["close"] - ev["prev"], 2)}
+    return {}
+
+
 def fetch_last_trade() -> dict:
     """證交所 mis 即時報價（加權指數）的成交日 d ＝ 現在最新的交易日。颱風等臨時休市靜態表沒有，靠這個判斷（2026-10-26）。
     回 {"last_trade": "YYYY-MM-DD", "live": True}；查不到回 {"last_trade": None, "live": False}（之後只用休市日表、保守不發）。"""
@@ -2053,9 +2076,12 @@ def fetch_last_trade() -> dict:
         req = Request(MIS_URL, headers={"User-Agent": "Mozilla/5.0 (tw-rotation social_snap)", "Referer": "https://mis.twse.com.tw/stock/index.jsp"})
         with urlopen(req, timeout=12) as r:
             j = json.loads(r.read().decode("utf-8"))
-        d = gate._iso(str(((j.get("msgArray") or [{}])[0]).get("d") or ""))
+        m0 = (j.get("msgArray") or [{}])[0]
+        d = gate._iso(str(m0.get("d") or ""))
         if d:
-            return {"last_trade": d, "live": True}
+            out = {"last_trade": d, "live": True}
+            out.update(mis_close(m0))
+            return out
     except Exception as exc:  # noqa: BLE001
         log("查不到即時成交日（mis）：", exc)
     return {"last_trade": None, "live": False}
@@ -2389,9 +2415,8 @@ def main() -> int:
                     rr_ = next((x.get("read") for x in ok if x["name"] == "retail-ratio"), None) or []
                     cr_ = {}      # 融資移到盤前
                     im_ = {} if "inst-today" in PARTIAL else (fetch_json(base, "inst_market") or {})      # 市場總額法人不是今天 → 不寫
-                    mh_ = fetch_json(base, "market_heat") or {}
-                    if PARTIAL and DATE_ISO.get("market-breadth") and DATE_ISO["market-breadth"] != data_date:
-                        mh_ = {}      # 保底時大盤／漲跌家數也要是今天才寫（不拿舊的冒充）
+                    # 大盤那句：網站 market_heat 不是今天 → 用 mis 當天收盤指數；都不是今天就不寫（不拿舊的冒充）
+                    mh_ = market_line_src(fetch_json(base, "market_heat") or {}, DATE_ISO.get("market-breadth"), data_date, ev_)
                     if SUPPLEMENT:      # 補充貼文只寫法人：不重複主貼文的指數、期貨、散戶
                         ok.append({"name": "analysis", "ok": True, "read": close_reads(im_, {}, it_ or {}, {}, [], cr_)})
                     else:
