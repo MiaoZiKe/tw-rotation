@@ -8914,7 +8914,7 @@
       "roles": [
         {
           "unit": null,
-          "role": "Software Engineer",
+          "role": "軟體工程師",
           "degree": null,
           "years": null,
           "base_month_k": null,
@@ -8923,15 +8923,21 @@
             16,
             18
           ],
-          "annual_total_wan": null,
-          "weekly_hours": null,
-          "overtime": null,
+          "annual_total_wan": [
+            100,
+            120
+          ],
+          "weekly_hours": [
+            40,
+            40
+          ],
+          "overtime": "幾乎不",
           "travel": null,
-          "n": 1,
-          "note": "2026-10-28 Dcard 2158 批新增職位",
+          "n": 3,
+          "note": "2026-10-28 Dcard 2158 批新增職位；2026-10-29 改名統一：原「Software Engineer」",
           "confidence": "低",
           "grade": null,
-          "n_stat": 1,
+          "n_stat": 3,
           "samples": [
             {
               "site": "Dcard",
@@ -8958,40 +8964,7 @@
               "in_window": true,
               "date_note": "Dcard 頁面發文日期 2026-01-29（20261028_2158 批）",
               "comment_sample": false
-            }
-          ],
-          "sources": [
-            {
-              "site": "Dcard",
-              "url": "https://www.dcard.tw/f/tech_job/p/260767789",
-              "date": "2026-01"
-            }
-          ]
-        },
-        {
-          "unit": null,
-          "role": "軟體工程師",
-          "degree": null,
-          "years": null,
-          "base_month_k": null,
-          "bonus_months": null,
-          "annual_months": null,
-          "annual_total_wan": [
-            100,
-            120
-          ],
-          "weekly_hours": [
-            40,
-            40
-          ],
-          "overtime": "幾乎不",
-          "travel": null,
-          "n": 2,
-          "note": "2026-10-29 GoodJob 合併批新增職位",
-          "confidence": "低",
-          "grade": null,
-          "n_stat": 2,
-          "samples": [
+            },
             {
               "site": "GoodJob",
               "url": "https://www.goodjob.life/companies/德律科技股份有限公司/salary-work-times?p=1",
@@ -9038,6 +9011,11 @@
             }
           ],
           "sources": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/260767789",
+              "date": "2026-01"
+            },
             {
               "site": "GoodJob",
               "url": "https://www.goodjob.life/companies/德律科技股份有限公司/salary-work-times?p=1",
