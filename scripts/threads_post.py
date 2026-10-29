@@ -157,7 +157,14 @@ def publish_chain(posts: list[str], token: str, images: list[str] | None = None)
             params = {"media_type": "CAROUSEL", "children": ",".join(kids), "text": text}
         if reply_to:
             params["reply_to_id"] = reply_to
-        c = _call("POST", f"/{uid}/threads", token, params)
+        try:
+            c = _call("POST", f"/{uid}/threads", token, params)
+        except PostError as e:
+            if params["media_type"] == "TEXT" or "190" in str(e):
+                raise
+            print(f"::warning::封面圖上傳失敗，改發純文字（不擋整篇）：{e}")
+            params = {"media_type": "TEXT", "text": text, **({"reply_to_id": reply_to} if reply_to else {})}
+            c = _call("POST", f"/{uid}/threads", token, params)
         cid = c["id"]
         time.sleep(15 if params["media_type"] != "TEXT" else 8)  # 讓容器建好；圖片要多等一下
         p = None

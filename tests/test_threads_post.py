@@ -127,3 +127,23 @@ def test_publish_chain_第一則用圖片(monkeypatch):
     made = [p for path, p in calls if path == "/u/threads"]
     assert made[0]["media_type"] == "IMAGE" and made[0]["image_url"].endswith("social/a.jpg")
     assert made[1]["media_type"] == "TEXT" and made[1]["reply_to_id"]
+
+
+def test_封面圖失敗改發純文字(monkeypatch):
+    import scripts.threads_post as tp
+    made = []
+    def fake(method, path, token, params=None):
+        if path == "/me":
+            return {"id": "u"}
+        if path.endswith("/threads"):
+            if params.get("media_type") == "IMAGE":
+                raise tp.PostError("HTTP 400 image")
+            made.append(params)
+            return {"id": "c"}
+        if path.endswith("/threads_publish"):
+            return {"id": "m"}
+        return {"permalink": ""}
+    monkeypatch.setattr(tp, "_call", fake)
+    monkeypatch.setattr(tp.time, "sleep", lambda s: None)
+    tp.publish_chain(["一"], "tok", ["a.jpg"])
+    assert made[0]["media_type"] == "TEXT"
