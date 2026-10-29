@@ -336,11 +336,19 @@ ROTATE_DAYS = 14
 def _pool(d):
     try: return json.loads((d / "pool.json").read_text(encoding="utf-8"))
     except Exception: return None
-def _rotate(d, key, used, today, allow_unreviewed):
-    """圖池裡挑一張：只要已審；近 14 天用過的往後排（全都用過就挑最久沒用的）。回傳 (路徑, meta) 或 None。"""
+# 央行圖池的照片是「特定一家央行」的建築（Fed／ECB／日銀）：只配給講那一家的新聞；泰國央行之類其他央行不配圖（10-29 泰國央行配到 Fed 大樓）
+CB_PHOTO = [(r"Fed|FOMC|聯準會|美國央行|鮑爾", "Federal Reserve"), (r"歐洲央行|ECB|拉加德", "European Central Bank"), (r"日銀|日本央行|日本銀行|植田", "Bank of Japan")]
+def cb_filter(text):
+    """回傳央行圖池可用照片的 query 關鍵字清單；空清單＝這則講的不是這三家，央行圖池整池不用。"""
+    return [q for kw, q in CB_PHOTO if re.search(kw, text or "")]
+def _rotate(d, key, used, today, allow_unreviewed, only=None):
+    """圖池裡挑一張：只要已審；近 14 天用過的往後排（全都用過就挑最久沒用的）。回傳 (路徑, meta) 或 None。
+    only＝照片 query 必須含其中一個字（央行圖池用）。"""
     pool = _pool(d)
     if not pool: return None
     ph = [m for m in pool.get("photos", []) if (m.get("reviewed") or (allow_unreviewed and not m.get("reject_reason") and m.get("prescreen") != "fail")) and (d / m.get("file", "")).exists()]
+    if only is not None:
+        ph = [m for m in ph if not m.get("query") or any(q in m["query"] for q in only)]     # 沒寫 query 的視為通用
     if not ph: return None
     used = used or {}
     def last(m): return max(used.get(f"{key}/{m['file']}", []) or [""])
@@ -390,6 +398,7 @@ def topic_cats(text, topic=None):
     if topic == "總經":
         out = macro[:1] + ["總經"] + inds[:1]
     else:
+        macro = [c for c in macro if c != "總經_匯率"]      # 非總經新聞的「人民幣／歐元」只是計價幣別，不配鈔票圖（10-29 摩爾線程配到歐元）
         out = inds[:2] + macro[:1] + (["總經"] if macro else [])
     return [c for i, c in enumerate(out) if c not in out[:i]]
 def photo_pick(subject, topic=None, used=None, today=None, allow_unreviewed=False, text=None):
@@ -405,12 +414,16 @@ def photo_pick(subject, topic=None, used=None, today=None, allow_unreviewed=Fals
         if r: return r[0], r[1], KIND_LAYOUT.get(r[1].get("kind"), "D-實景(公司)"), f"{slug}/{r[1]['file']}"
         try: cats = [next((t.get("category") for t in json.loads((PHOTO_LIB / "targets.json").read_text(encoding="utf-8")) if t.get("slug") == slug), None)]
         except Exception: cats = []
+    if re.search(r"央行|中央銀行", subject or "") and not cb_filter(subject):
+        return None                      # 其他國家央行：沒有對應照片，總經池又全是台北街景 → 灰框大數字，不配錯圖
     cats += topic_cats(f"{subject or ''} {text or ''}", topic) + [TOPIC_CAT.get(topic or "")]
     seen = set()
     for cat in cats:
         if not cat or cat in seen: continue
         seen.add(cat)
-        r = _rotate(PHOTO_LIB / "_category" / cat, f"_category/{cat}", used, today, allow_unreviewed)
+        only = cb_filter(f"{subject or ''} {text or ''}") if cat == "總經_央行" else None
+        if only == []: continue
+        r = _rotate(PHOTO_LIB / "_category" / cat, f"_category/{cat}", used, today, allow_unreviewed, only)
         if r: return r[0], r[1], "D-實景(類別)", f"_category/{cat}/{r[1]['file']}"
     return None
 def photo_for(subject, allow_unreviewed=False):

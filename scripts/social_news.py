@@ -153,7 +153,8 @@ def names_map() -> dict[str, str]:
         import pandas as pd
         fs = sorted((ROOT / "data" / "company_info").glob("**/*.parquet"))
         d = pd.concat([pd.read_parquet(f) for f in fs])
-        return {k: v.strip(" *＊") for k, v in zip(d["code"].astype(str), d["name"].astype(str))}
+        # 「譜瑞-KY」「XX-創」這類後綴拿掉，標題裡寫的是簡稱（10-29：譜瑞法說被判成找不到主體）
+        return {k: re.sub(r"[-－](KY|創|DR)$", "", v.strip(" *＊")) for k, v in zip(d["code"].astype(str), d["name"].astype(str))}
     except Exception:
         return {}
 
@@ -203,9 +204,18 @@ def numbers_of(text: str) -> list[dict]:
         lab = head[cut + 1:].strip()
         if not any(lab.endswith(c) for c in CHG):
             lab = re.sub(r"(衝上|衝|站上|突破|創|寫下|達到|達|為|約|至|到|來到|共|僅|有|是|再|則|合計|攀升至|升至|降至|增至|減至|增|減|漲|跌|(?<!營)收|上漲|下跌|賺)$", "", lab)
+        lab = re.sub(r"^[〈【\[][^〉】\]]{1,8}[〉】\]]", "", lab)          # 標題的「〈財報〉」標頭不進標籤
         lab = re.sub(r"^(並|且|而|但|雖|其中|另|也|較|比|與|和|及)", "", lab).strip()
         if any(lab.endswith(c) or lab == c for c in CHG) and prev and len(lab) <= 4:
             lab = prev + lab
+        mp = re.search(r"(?:估|預估|預期|預計)?(今年|明年|去年|後年)$", lab)
+        if mp and mp.start() >= 2:                                    # 「核心通膨估今年」→「今年核心通膨」（期間放前面，不被 JUNK 的「年$」擋）
+            lab = mp.group(1) + lab[:mp.start()]
+        per = r"(19|20)\d\d年|今年|明年|去年|後年"
+        if re.fullmatch(per, lab) and prev and re.search(per, prev):      # 只有期間 → 套用前一個標籤、換掉期間
+            m0 = re.search(per, prev)
+            tail = prev[m0.end():]
+            lab = lab + tail if tail else prev[:m0.start()] + lab        # 「今年GDP成長率」→「2027年GDP成長率」；「通膨估今年」→「通膨估明年」
         num = m.group("num")
         if re.fullmatch(r"(19|20)\d\d", num.replace(",", "")) and m.group("unit") in ("元",):
             continue
@@ -356,11 +366,11 @@ def _who(c: dict, names: dict, title: str) -> str:
 ENT = ["SK海力士", "三星", "輝達", "NVIDIA", "微軟", "蘋果", "Alphabet", "Google", "Meta", "亞馬遜", "特斯拉", "博通", "超微", "AMD",
        "甲骨文", "英特爾", "高通", "美光", "恩智浦", "安謀", "CoreWeave", "OpenAI", "Anthropic", "SpaceX", "費半", "道瓊", "那斯達克",
        "標普", "聯準會", "Fed", "日銀", "歐洲央行", "TrendForce", "IDC", "加權指數", "台股", "三大法人", "外資", "投信", "自營商"]
-METRICS = [("EPS", r"每股(純益|盈餘|稅後|賺)|EPS"), ("毛利率", r"毛利率"), ("營業利益", r"營業利益|營益"), ("淨利", r"淨利|純益|獲利|盈餘"),
+METRICS = [("EPS", r"每股(純益|盈餘|稅後|賺)|EPS"), ("經濟成長率", r"GDP|經濟成長"), ("通膨", r"通膨|物價"), ("虧損", r"淨虧|虧損"), ("毛利率", r"毛利率"), ("營業利益", r"營業利益|營益"), ("淨利", r"淨利|純益|獲利|盈餘"),
            ("營收", r"營收"), ("資本支出", r"資本支出"), ("財測", r"財測|指引"), ("指數", r"加權指數|指數|道瓊|那斯達克|標普|費半"),
            ("買超", r"買超"), ("賣超", r"賣超"), ("成交值", r"成交值|成交額"), ("殖利率", r"殖利率"), ("利率", r"利率"), ("融資", r"融資|籌資|增資"), ("產值", r"產值"), ("出貨", r"出貨"), ("餘額", r"餘額"),
            ("市值", r"市值"), ("訂單", r"訂單|合約"), ("油價", r"油價|金價|布蘭特|西德州"), ("股價", r"股價|收盤價|盤後")]
-FIN = {"EPS", "毛利率", "營業利益", "淨利", "營收", "財測", "資本支出"}
+FIN = {"EPS", "毛利率", "營業利益", "淨利", "虧損", "營收", "財測", "資本支出"}
 EVENTW = {"指數": "收盤", "買超": "法人動向", "賣超": "法人動向", "成交值": "成交", "殖利率": "利率", "利率": "利率",
           "資本支出": "資本支出", "財測": "財測", "融資": "融資"}
 JUNK = r"跌停|漲停|家數|檔|張|名|人|歲|年$"
@@ -370,7 +380,7 @@ REL = {"cpi": "美國 CPI 物價", "pce": "美國 PCE 物價", "gdp": "美國 GD
        "fomc": "FOMC 利率決議", "ppi": "美國 PPI", "retail": "美國零售銷售", "unrate": "美國失業率"}
 TITLE_MAX = 12
 GENERIC = {"全台", "台灣", "中華", "國際", "美國", "大眾", "統一", "華南", "第一", "合庫", "新光", "全國", "亞洲", "世界", "大立", "東方"}
-MIN_BODY = 500
+MIN_BODY = 400          # 10-29：500 擋掉 443／453 字、段落都有實際數字的稿；空泛句另有 EMPTY 與「和前期比」閘把關
 
 
 class Skip(Exception):
@@ -392,26 +402,77 @@ def period_of(text: str) -> str:
     return {"Q1": "第1季", "Q2": "第2季", "Q3": "第3季", "Q4": "第4季"}.get(p, p)
 
 
+# 主體辨識的補充規則（2026-10-29 盤前 9 則全被判「找不到主體」後補）：機構、商品、括號標頭、登興櫃、標題開頭的專有名詞
+BANKS = r"(?:泰國|美國|日本|英國|南韓|韓國|澳洲|紐西蘭|加拿大|瑞士|瑞典|挪威|印度|印尼|菲律賓|馬來西亞|越南|巴西|墨西哥|土耳其|俄羅斯|南非|中國|台灣|我國|歐洲|新加坡|香港)?(?:央行|中央銀行)"
+INST = ["聯準會", "Fed", "FOMC", "歐洲央行", "ECB", "日銀", "日本銀行", "英格蘭銀行", "人行", "人民銀行", "金管會", "主計總處", "國發會",
+        "經濟部", "財政部", "美國商務部", "美國勞工部", "OPEC+", "OPEC", "IMF", "世界銀行", "WTO"]
+COMMOD = r"(?:(?:歐洲|美國|亞洲|國際|紐約|倫敦)?(?:天然氣|原油|布蘭特原油|西德州原油|油價|金價|黃金|白銀|銀價|銅價|鐵礦砂|小麥|黃豆|比特幣))"
+STOPW = {"財報", "法說", "營收", "快訊", "焦點", "盤前", "盤後", "台股", "美股", "陸股", "港股", "日股", "市場", "外資", "投信", "分析師", "專家",
+         "今年", "明年", "去年", "全年", "公司", "業者", "法人", "官方", "政府", "報告", "研調", "調查", "美國", "中國", "全球", "國際", "亞洲", "歐洲"}
+ENG_STOP = {"IPO", "AI", "CEO", "CFO", "EPS", "ETF", "GDP", "CPI", "PCE", "HBM", "GPU", "CPU", "ASIC", "Q1", "Q2", "Q3", "Q4", "PC", "EV"}
+VERBS = r"(?:搭上|宣布|公布|推出|發布|發表|營收|獲利|淨利|股價|市值|財報|法說|擬|將|攜手|砸|收購|併購|上市|掛牌|登|第[一二三四1-4]季|Q[1-4]|前三季|上半年|每股|今年|明日|今日|再|又|首度|大舉|傳)"
+
+
+def _alias(names: dict) -> dict[str, str]:
+    """簡稱 → 代號（同名取第一個）；排掉含英數字的（ETF、債券）與太泛的字。"""
+    out = {}
+    for k, v in names.items():
+        if len(v) >= 2 and not re.search(r"[A-Za-z0-9]", v) and v not in GENERIC:
+            out.setdefault(v, k)
+    return out
+
+
+def _proper(t: str) -> str:
+    """標題裡的專有名詞（外國公司、未上市公司）：英文大小寫混合的字，或子句開頭 2～6 個中文字後面接動詞／期間。"""
+    for m in re.finditer(r"(?<![A-Za-z])([A-Z][a-z][A-Za-z0-9&.]{1,20}|[A-Z]{2,}[a-z][A-Za-z]*)(?![A-Za-z])", t):
+        w = m.group(1)
+        if w not in ENG_STOP:
+            return w
+    for seg in re.split(r"[ 　，,、！!？?：:；;〈〉【】「」『』（）()／]+", t):
+        m = re.match(r"([\u4e00-\u9fff]{2,6}?)" + VERBS, seg)
+        if m and m.group(1) not in STOPW and not re.search(r"[增減漲跌賺虧億萬元點%]", m.group(1)) \
+                and not re.match(r"[本上下單今明去前近首全各多逾約該此這那其兩三四五六七八九十]", m.group(1)):   # 「本季」「上半年」這類不是名字
+            return m.group(1)
+    return ""
+
+
 def subject_of(c: dict, names: dict) -> tuple[str, str]:
-    """(主體名稱, 台股代號或空)；找不到回 ('', '')。"""
-    t = c["lead"]["title"]
+    """(主體名稱, 台股代號或空)；找不到回 ('', '')。
+    順序：新聞自帶代號 → 標題裡的上市櫃／興櫃簡稱與已知機構（取最前面的）→〈XX法說〉括號標頭 → 央行／機構 →
+    「XX…登興櫃」→ 商品與地區市場 → 標題開頭的專有名詞（外國公司）。"""
+    t = sanitize(c["lead"]["title"])
     codes = [x for x in str(c["lead"].get("codes") or "").split(",") if x and not x.startswith("US-")]
     if codes and names.get(codes[0]):
         return names[codes[0]], codes[0]
+    al = _alias(names)
     best = None
-    for v in set(names.values()):
-        if len(v) >= 2 and not re.search(r"[A-Za-z0-9]", v) and v not in GENERIC:
-            k = t.find(v)
-            if k >= 0 and (best is None or (k, -len(v)) < (best[0], -len(best[1]))):
-                best = (k, v)
-    for v in ENT:
+    for v in al:
         k = t.find(v)
-        if k >= 0 and (best is None or k < best[0]):
+        if k >= 0 and (best is None or (k, -len(v)) < (best[0], -len(best[1]))):
             best = (k, v)
-    if not best:
-        return "", ""
-    code = next((k for k, v in names.items() if v == best[1]), "")
-    return best[1], code
+    for v in ENT + INST:
+        k = t.find(v)
+        if k >= 0 and (best is None or (k, -len(v)) < (best[0], -len(best[1]))):
+            best = (k, v)
+    if best:
+        return best[1], al.get(best[1], "")
+    m = re.match(r"^[〈【\[]\s*([^〉】\]]{2,8}?)\s*(?:法說|財報|營收|獲利|股東會|重訊|快訊)?[〉】\]]", t)
+    if m and m.group(1) not in STOPW:
+        return m.group(1), al.get(m.group(1), "")
+    m = re.search(BANKS, t)
+    if m:
+        return m.group(0), ""
+    m = re.search(r"([\u4e00-\u9fff]{2,6}?)(?:明日|今日|今天|即將|將|於)?[^，。 ]{0,20}?登(?:錄)?(?:興櫃|創新板|上櫃|上市)", t)
+    if m and m.group(1) not in STOPW:
+        return m.group(1), al.get(m.group(1), "")
+    m = re.search(COMMOD, t)
+    if m:
+        return m.group(0), ""
+    w = _proper(t)
+    if not w:                                  # 標題只寫「沙烏地航運巨頭」→ 摘要裡的英文公司名（Bahri）
+        m = re.search(r"(?<![A-Za-z])([A-Z][a-z][A-Za-z0-9&.]{1,20})(?![A-Za-z])", sanitize(c["lead"].get("summary") or ""))
+        w = m.group(1) if m and m.group(1) not in ENG_STOP else ""
+    return (w, al.get(w, "")) if w else ("", "")
 
 
 def chain_of(code: str) -> str:
@@ -497,8 +558,15 @@ def compose(c: dict, slot: str, idx: int, day: str, style: str, names: dict) -> 
     if not subj:
         raise Skip("找不到主體（公司／機構／指數）")
     nums = [x for x in c["nums"] if not re.search(JUNK, x["label"])]
+    fx = set(re.findall(r"人民幣|日圓|日幣|韓元|歐元|港元|港幣|英鎊", c["text"]))
+    if len(fx) == 1 and not re.search(r"新台幣|台幣", c["text"]):       # 外幣報導：「萬元」實為人民幣等，單位寫清楚（10-29 摩爾線程）
+        cur = fx.pop()
+        for x in nums:
+            if x["unit"] in ("元", "萬元", "億元", "兆元"):
+                x["unit"] = x["unit"][:-1] + cur
     for x in nums:
-        x["metric"] = metric_of(x["label"]); x["growth"] = bool(re.search(GROWTH, x["label"]))
+        x["metric"] = metric_of(x["label"])
+        x["growth"] = bool(re.search(GROWTH, re.sub(r"(經濟)?成長率", "", x["label"]) if x["metric"] == "經濟成長率" else x["label"]))
     title_raw = sanitize(lead["title"])
     m_close = re.search(r"收(?:在)?\s*([\d,]+(?:\.\d+)?)\s*點", title_raw)
     if c["cat"] == "台股" and m_close:         # 台股盤勢：主旨＝加權指數收盤，漲跌點數當前期比較
@@ -528,11 +596,18 @@ def compose(c: dict, slot: str, idx: int, day: str, style: str, names: dict) -> 
     rel = [x for x in nums if x is not key and (x["metric"] in fam or (x["growth"] and (x["metric"] in fam or x["metric"] is None)))]
     if len(rel) < 2:
         rel += [x for x in nums if x is not key and x not in rel and x["growth"]]
+    def _f(v):
+        try:
+            return float(re.sub(r"[^\d.]", "", v))
+        except ValueError:
+            return None
+    kv = _f(key["value"])
+    rel = [x for x in rel if not (x["unit"] == key["unit"] and kv and _f(x["value"]) and abs(_f(x["value"]) - kv) <= kv * 0.01)]
     rows = [key] + rel[:2]
     if len(rows) < 2:
         raise Skip("圖卡資訊列不足 2 列（與主旨相關的數字太少）")
     comps = [x for x in nums if x["growth"]]
-    hi = re.search(r"[^，。]*(新高|新低|首度|首次)[^，。]*", c["text"])
+    hi = re.search(r"[^，。]*(新高|新低|首度|首次|上修|下修|連續第?[\d一二三四五六七八九十]+[次度個])[^，。]*", c["text"])
     if not comps and not hi:
         raise Skip("沒有與前期的比較數字（季增／年增／前高）")
     tw = bool(code) or c["cat"] == "台股"
@@ -583,6 +658,13 @@ def compose(c: dict, slot: str, idx: int, day: str, style: str, names: dict) -> 
         dn = re.search(r"減|衰退|較.*少|跌|下挫", x["label"])
         base = "去年同期" if "年" in x["label"] or "同期" in x["label"] else "上一季" if "季" in x["label"] else "上個月" if "月" in x["label"] else "前一交易日" if re.search(r"漲|跌|挫", x["label"]) else "比較基期"
         mean.append(f"{x['label']} {_fmt(x)}，代表和{base}相比{'減少' if dn else '增加'}約 {x['value'].lstrip('+-約逾近')}{x['unit']}。")
+    for mk in ("經濟成長率", "通膨"):              # 總經預測：同一指標兩個期間 → 算差幾個百分點（10-29 泰國央行）
+        ps = [x for x in nums if x["metric"] == mk and x["unit"] == "%" and not x["growth"]][:2]
+        if len(ps) == 2:
+            a0, a1 = (float(x["value"].lstrip("約逾近")) for x in ps)
+            dlt = round(a1 - a0, 2)
+            how = "持平" if dlt == 0 else f"{'高' if dlt > 0 else '低'} {abs(dlt):g} 個百分點"
+            mean.append(f"{ps[0]['label']} {ps[0]['value']}%、{ps[1]['label']} {ps[1]['value']}%，後者比前者{how}（本站計算）。")
     if km not in ("EPS",) and not mean:
         mean.append(f"{key['label']} {_fmt(key)} 是這則報導的核心數字。")
     sec_mean = "🔎 #這些數字代表什麼\n" + "".join(mean)

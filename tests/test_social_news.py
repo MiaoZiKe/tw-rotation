@@ -136,3 +136,42 @@ def test_daily_quota_and_auto_slots(tmp_path, monkeypatch):
 def test_topic_status_switch_is_separate():
     # 週末／常備文庫用 TOPIC_AUTO_APPROVE，交易日新聞稿用 NEWS_AUTO_APPROVE
     assert S.TOPIC_STATUS in ("draft", "approved")
+
+
+# ---------------- 主體辨識與數字標籤（2026-10-29 盤前 9 則全被判「找不到主體」後補） ----------------
+NAMES = {"4966": "譜瑞", "2330": "台積電", "6669": "緯穎"}
+
+
+def _subj(title, summary=""):
+    return S.subject_of({"lead": {"title": title, "summary": summary}}, NAMES)
+
+
+def test_subject_of_bracket_bank_foreign_emerging_commodity():
+    assert _subj("〈譜瑞法說〉Q3每股賺7.69元 Q4營收估季減約2成毛利率可望回升") == ("譜瑞", "4966")
+    assert _subj("泰國央行維持利率不變並調高經濟成長預測") == ("泰國央行", "")
+    assert _subj("〈財報〉Q3營收暴增近1800%！摩爾線程搭上中國AI硬體需求潮")[0] == "摩爾線程"
+    assert _subj("昆桐明日以每股參考價390元登興櫃 衛星與AI散熱雙引擎迎接高成長期")[0] == "昆桐"
+    assert _subj("沙烏地能源樞紐遇襲 歐洲天然氣價格飆升至2022年以來新高")[0] == "歐洲天然氣"
+    assert _subj("Anthropic IPO招股書15大關鍵！上半年淨虧807億美元")[0] == "Anthropic"
+    assert _subj("伊朗戰爭推升油輪運價 沙烏地航運巨頭Q3獲利衝上10倍", "Bahri第3季淨利51億")[0] == "Bahri"
+    assert _subj("歐洲央行按兵不動")[0] == "歐洲央行"
+    assert _subj("〈財報〉本季營收創高") == ("", "")          # 只有「財報」標頭、沒有名字 → 仍找不到
+
+
+def test_names_map_strips_ky_suffix(monkeypatch):
+    import pandas as pd
+    monkeypatch.setattr(pd, "read_parquet", lambda f: pd.DataFrame({"code": ["4966", "8436"], "name": ["譜瑞-KY", "大江*"]}))
+    monkeypatch.setattr(S, "ROOT", Path(__file__).resolve().parent.parent)
+    n = S.names_map()
+    assert n.get("4966") == "譜瑞" and n.get("8436") == "大江"
+
+
+def test_numbers_of_period_only_label_inherits_metric():
+    xs = S.numbers_of("央行上修今年GDP成長率至2.4%、2027年2.1%；核心通膨估今年1.2%、明年1.3%")
+    labs = [x["label"] for x in xs]
+    assert "2027年GDP成長率" in labs and "今年核心通膨" in labs and "明年核心通膨" in labs
+    assert not any(l.startswith("〈") for l in (x["label"] for x in S.numbers_of("〈財報〉Q3營收年增1,774%")))
+
+
+def test_min_body_not_below_400():
+    assert 400 <= S.MIN_BODY <= 500

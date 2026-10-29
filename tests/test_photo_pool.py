@@ -59,3 +59,17 @@ def test_foreign_and_macro_text_fallback(R, tmp_path):
     assert R.photo_pick("", topic="總經", text="美國 CPI 年增 3%")[3] == "_category/總經/photo_1.jpg"
     assert R.topic_cats("非農新增 25 萬", "總經")[0] == "總經_物價就業"
     assert R.topic_cats("景氣燈號轉紅", "總經")[0] == "總經_景氣"
+
+
+def test_central_bank_pool_matches_bank(R):
+    """央行圖池是 Fed／ECB／日銀的建築：只配給講那一家的新聞；其他國家央行不配圖（10-29 泰國央行配到 Fed 大樓）。"""
+    d = R.PHOTO_LIB / "_category" / "總經_央行"; d.mkdir(parents=True)
+    ph = [dict(file="photo_1.jpg", kind="類別", reviewed=True, query="Federal Reserve Building"),
+          dict(file="photo_5.jpg", kind="類別", reviewed=True, query="European Central Bank Frankfurt")]
+    for m in ph:
+        (d / m["file"]).write_bytes(b"x")
+    (d / "pool.json").write_text(json.dumps(dict(photos=ph)), encoding="utf-8")
+    assert R.photo_pick("歐洲央行", topic="總經", text="歐洲央行維持利率")[3] == "_category/總經_央行/photo_5.jpg"
+    assert R.photo_pick("聯準會", topic="總經", text="聯準會降息")[3] == "_category/總經_央行/photo_1.jpg"
+    assert R.photo_pick("泰國央行", topic="總經", text="泰國央行維持利率不變") is None
+    assert "總經_匯率" not in R.topic_cats("摩爾線程 淨利4,930萬人民幣", "財報")      # 非總經新聞的幣別不配鈔票圖
