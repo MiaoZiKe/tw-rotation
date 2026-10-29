@@ -147,3 +147,16 @@ def test_life_news_only_fills_when_short(tmp_path):
 def test_empty_summary_uses_rest_of_title():
     L = LN.lines([{"title": "SK海力士財報出爐！第三季營益衝83.3兆韓元超預期，記憶體漲價威力顯現", "summary": ""}])
     assert L == ["📰 新聞焦點：", "・SK海力士財報出爐：第三季營益衝83.3兆韓元超預期，記憶體漲價威力顯現"]
+
+
+def test_主文放不下描述就移到回覆串():
+    # 2026-10-29 盤中：主文只剩光標題（沒有「：描述」）→ 應改放回覆串、保留描述
+    import scripts.social_live_news as L
+    items = [dict(title=f"公司{i}財報出爐！第三季營收大增{i}成創新高", summary=f"公司{i}今日公布第三季財報，營收年增{i}0%，毛利率創新高。", rel="A") for i in range(5)]
+    text = "標題\n" + "・很長的盤面分析內容" * 40 + "\n#台股\n👉 連結\nhttps://x"
+    body, reply, n = L.merge(text, items, "#台股", 480)
+    assert n >= 3
+    if not reply:
+        assert all("：" in x for x in body.split("\n") if x.startswith("・公司"))
+    else:
+        assert all("：" in x for x in reply.split("\n")[1:])

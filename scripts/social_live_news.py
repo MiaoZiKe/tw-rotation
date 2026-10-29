@@ -273,6 +273,8 @@ def merge(text: str, items: list[dict], hashtag: str, max_len: int) -> tuple[str
     L = text.split("\n")
     at = L.index(hashtag) if hashtag in L else next((i for i, x in enumerate(L) if x.startswith("👉")), len(L))
     for tl, dl in LEVELS:
+        if dl == 0:      # 2026-10-29：主文只放得下「光標題」時改放回覆串（Andy 要「短標題：一句描述」，不要只有標題）
+            continue
         sec = lines(items, MAX_N, tl, dl)
         if len(sec) - 1 < n:      # 縮短標題後取不出原本那幾則 → 不用這一級
             continue
