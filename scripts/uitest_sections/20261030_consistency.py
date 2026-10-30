@@ -96,7 +96,7 @@ def t_consistency_1030(b, base):
     wait_until(pg4, "() => /領先\\s*\\d+/.test(document.body.innerText)", 20000)
     fr = pg4.evaluate("""() => { const t = document.querySelector('main').innerText.replace(/\\s+/g, ' ');
       const g = (k) => { const m = t.match(new RegExp(k + '\\\\s+(\\\\d+)')); return m ? +m[1] : null; }; return [g('領先'), g('改善'), g('轉弱'), g('落後')]; }""")
-    ok(f"[{T}] ④ 資金輪盤四段家數：總覽摘要卡（領先／改善／轉弱／落後）＝資金輪動頁", bool(s3["r"]) and fr == s3["r"], [s3["r"], fr])
+    ok(f"[{T}] ④ 強弱輪動四段家數：總覽摘要卡（領先／改善／轉弱／落後）＝資金輪動頁", bool(s3["r"]) and fr == s3["r"], [s3["r"], fr])
     ctx4.close()
     # ⑤ 題材
     TH = """(id) => { const el = document.getElementById(id); const i = el && window.echarts && echarts.getInstanceByDom(el); if (!i) return null;

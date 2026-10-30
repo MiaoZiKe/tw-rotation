@@ -191,7 +191,7 @@ def t_heat_live_1020(b, base):
     # ------------------------------------------------------------------ ⑥ 其他截圖目標
     ctx, pg = open_page(CLK_AFTER, "#flow/rotation")
     wait_until(pg, "() => !!document.querySelector('#rotClock canvas, #rotClock svg') && !!document.querySelector('#sankey canvas, #sankey svg')", 25000); pg.wait_for_timeout(1500)
-    ok(f"[{T}] ⑥ #flow/rotation：資金輪盤（含族群資金排行）rot-wheel 有 data-snap 且 TwSnapReady=true",
+    ok(f"[{T}] ⑥ #flow/rotation：強弱輪動（含族群資金排行）rot-wheel 有 data-snap 且 TwSnapReady=true",
        pg.evaluate("() => window.TwSnapReady('rot-wheel')") is True, pg.evaluate("() => window.TwSnapList()"))
     pg.evaluate("() => { location.hash = '#flow/sankey'; }")
     wait_until(pg, "() => window.TwSnapReady('flow-tree')", 20000)

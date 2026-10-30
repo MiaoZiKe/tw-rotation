@@ -1341,8 +1341,8 @@ def t_overview(pg, base):
                  clipped: cs.some(c => { const n = c.querySelector('.osc-n'); const r = n.getBoundingClientRect(), q = c.getBoundingClientRect();
                                          return r.bottom > q.bottom + 1 || r.top < q.top - 1; }) }; }""")
     ok("★ 摘要卡列在大盤三張圖的卡片裡（跟以前的 KPI 同一個位置）", kpi["inM3"], kpi)
-    ok("★ 摘要卡四張：漲跌家數／資金輪盤／資金分流樹／熱門題材",
-       kpi["labels"] == ["漲跌家數", "資金輪盤", "資金分流樹", "熱門題材"], kpi["labels"])
+    ok("★ 摘要卡四張：漲跌家數／強弱輪動／資金分流樹／熱門題材",
+       kpi["labels"] == ["漲跌家數", "強弱輪動", "資金分流樹", "熱門題材"], kpi["labels"])
     ok("★ 舊的 KPI 四格（加權指數／成交值／…／前五族群佔比）拿掉了", kpi["old"] == 0, kpi["old"])
     ok("摘要卡的數字沒有被卡片切掉", not kpi["clipped"], kpi)
     # --- ⑧ 卡片上只留名稱：總覽每張卡的標題裡不再有副標 <small>、圖下不再有「族群／其他題材」那排連結
@@ -1397,7 +1397,7 @@ def t_overview(pg, base):
                      row1: Math.abs(a.top - r.top) <= 2 && Math.abs(a.bottom - r.bottom) <= 2,
                      row2: Math.abs(b.top - f.top) <= 2 && Math.abs(b.bottom - f.bottom) <= 2 }; }""")
         ok("★ 總覽下半左欄：熱門題材在資金熱力圖正下方（同一欄、同寬）", pos2["leftStack"], pos2)
-        ok("★ 總覽下半右欄：昨日資金分流樹在資金輪盤正下方（同一欄、同寬），兩張各自是一張卡", pos2["rightStack"], pos2)
+        ok("★ 總覽下半右欄：昨日資金分流樹在強弱輪動正下方（同一欄、同寬），兩張各自是一張卡", pos2["rightStack"], pos2)
         ok("★ 總覽下半：左欄（熱力圖＋題材）整個在右欄（輪盤＋資金分流樹）的左邊", pos2["leftOfRight"], pos2)
         ok("★ 總覽下半：左上對右上、左下對右下（同一列兩張卡上緣、下緣都差 ≤ 2px，兩欄底線對齊）", pos2["row1"] and pos2["row2"], pos2)
     else:
@@ -8230,7 +8230,7 @@ def t_new_layout(pg, base):
                 const r = e.getBoundingClientRect(); return { t: Math.round(r.top), b: Math.round(r.bottom), h: Math.round(r.height), l: Math.round(r.left), r: Math.round(r.right) }; };
             return { rot: g('ovRotCard'), flow: g('ovFlowCard'), theme: g('ovThemeCard'), heat: g('ovHeatCard') }; }""")
         good = all(hs.get(k) for k in ("flow", "rot", "theme", "heat"))
-        ok(f"[{w}px] ★ 左上對右上：資金熱力圖與資金輪盤上緣、下緣都差 ≤ 2px",
+        ok(f"[{w}px] ★ 左上對右上：資金熱力圖與強弱輪動上緣、下緣都差 ≤ 2px",
            good and abs(hs["heat"]["t"] - hs["rot"]["t"]) <= 2 and abs(hs["heat"]["b"] - hs["rot"]["b"]) <= 2, hs)
         ok(f"[{w}px] ★ 左下對右下：熱門題材與昨日資金分流樹上緣、下緣都差 ≤ 2px（兩欄底線對齊）",
            good and abs(hs["theme"]["t"] - hs["flow"]["t"]) <= 2 and abs(hs["theme"]["b"] - hs["flow"]["b"]) <= 2, hs)
@@ -8390,7 +8390,7 @@ def t_new_layout(pg, base):
         clock, rank = f["ks"][0], f["ks"][1]
         # 2026-09-24 輪動時鐘改名足跡輪盤；★ 2026-09-26 改前→改後：足跡輪盤 → 資金輪盤（腳印拿掉，名字對不上內容）
         ok(f"[{w}px] 左（或上）邊是輪動時鐘、右（或下）邊是族群資金排行（F3）",
-           clock["h3"].startswith(("輪動", "資金輪盤")) and rank["h3"].startswith("資金"), f["ks"])
+           clock["h3"].startswith(("輪動", "強弱輪動")) and rank["h3"].startswith("資金"), f["ks"])
         if w > 1100:
             # ★ 2026-09-24 夜（Andy：「排行區至少占卡片寬 40%」）：2:1 → 1.45:1（排行 ≈ 41%）
             ok(f"[{w}px] 欄寬是 1.45:1（排行 ≥ 40%，2026-09-24 夜由 2:1 改）",
@@ -8798,7 +8798,7 @@ def t_player_1007(pg, base):
     全站三支播放器逐一**真操作**（真的滑鼠點、真的拖拉桿），每一步驗「畫面上的日期真的變了」：
       ① ▶ 播 → 日期變　② 播放中拖拉桿 → 自動暫停、停在拖到的位置　③ 再 ▶ → 日期繼續變
       ④ ⏸ → 停住不再變　⑤ 到最後一格再 ▶ → 從頭播　⑥ 播放中換頁 → 計時器真的停
-    播放器：#rotBack（資金輪盤 dayBar）、#sankeyDays（資金分流樹 playBar）、#peEnd（個股本益比河流 playBar）。
+    播放器：#rotBack（強弱輪動 dayBar）、#sankeyDays（資金分流樹 playBar）、#peEnd（個股本益比河流 playBar）。
     手機 390：有顯示的照跑同一套；沒顯示的（輪盤在手機改成雷達），驗它不會在背景偷播。
     """
     def st(sel):
@@ -8882,18 +8882,18 @@ def t_player_1007(pg, base):
     pg.set_viewport_size({"width": 1440, "height": 900})
     pg.goto(f"{base}#flow", wait_until="networkidle"); pg.wait_for_timeout(2500)
     if ok("[播放器] #rotBack 有 ▶", pg.locator("#rotBack .pb.play").count() == 1):
-        run("#rotBack", "資金輪盤 1440")
+        run("#rotBack", "強弱輪動 1440")
         # 換頁回來之後（route 會再跑一次、但不重建拉Bar）：再按 ▶ 一定要動
         pg.locator("#rotBack").scroll_into_view_if_needed()
         # （上一步把 N 調成 3 天，一下就播完 —— 先按 ＋ 拉回 10 天，350ms 就量：按下去當下要先走一格）
         for _ in range(7):
             pg.click("#rotBack .pb.step >> nth=1"); pg.wait_for_timeout(60)
         s0 = st("#rotBack"); pg.click("#rotBack .pb.play"); pg.wait_for_timeout(350); s1 = st("#rotBack")
-        ok("[資金輪盤 1440] 換頁回來再 ▶ 照樣會動", s1["t"] != s0["t"] and s1["play"] == "⏸", (s0, s1))
+        ok("[強弱輪動 1440] 換頁回來再 ▶ 照樣會動", s1["t"] != s0["t"] and s1["play"] == "⏸", (s0, s1))
         # 這次播放是換頁「之後」才啟動的：以前 route() 把登記表清掉了，再換頁就停不到它（幽靈計時器）
         pg.evaluate("location.hash = '#season'"); pg.wait_for_timeout(1200)
         a = st("#rotBack"); pg.wait_for_timeout(1300); b2 = st("#rotBack")
-        ok("[資金輪盤 1440] 換頁回來後啟動的播放，再換頁一樣停得到", a["t"] == b2["t"] and b2["play"] == "▶", (a, b2))
+        ok("[強弱輪動 1440] 換頁回來後啟動的播放，再換頁一樣停得到", a["t"] == b2["t"] and b2["play"] == "▶", (a, b2))
         # 截圖：播放 → 調日期 → 再播（日期已推進）
         pg.goto(f"{base}#flow", wait_until="networkidle"); pg.wait_for_timeout(2500)
         pg.locator("#rotBack").scroll_into_view_if_needed()
@@ -21234,7 +21234,7 @@ def t_ov_summary_0928(pg, b, base, code):
     m = pg.evaluate(OVS_M)
     if not ok("[摘要卡] 量得到摘要卡列", bool(m), m):
         return
-    ok("★ [摘要卡] 四張依序：漲跌家數／資金輪盤／資金分流樹／熱門題材", m["labels"] == ["漲跌家數", "資金輪盤", "資金分流樹", "熱門題材"], m["labels"])
+    ok("★ [摘要卡] 四張依序：漲跌家數／強弱輪動／資金分流樹／熱門題材", m["labels"] == ["漲跌家數", "強弱輪動", "資金分流樹", "熱門題材"], m["labels"])
     ok("★ [摘要卡] 漲跌家數有上漲／平盤／下跌三個整數，加總 > 0 且等於卡片自報的總檔數",
        len(m["ud"]) == 3 and None not in m["ud"] and sum(m["ud"]) == m["udN"] > 0, [m["ud"], m["udN"]])
     # 跟下方「漲跌家數」分佈卡同一個口徑（stocks.json 逐檔、級距 udBinOf）：切到「全部」時那張卡寫的共 N 檔
@@ -21243,14 +21243,14 @@ def t_ov_summary_0928(pg, b, base, code):
         pg.eval_on_selector('#udMkt button[data-m="all"]', "b => b.click()"); pg.wait_for_timeout(600)
     bt = pg.evaluate("() => { const e = document.getElementById('breadth'); return e ? +e.dataset.total : null; }")
     ok("[摘要卡] 漲跌三數加總＝下方漲跌家數分佈卡「全部」的總檔數（同一個口徑，上下對得起來）", bt == m["udN"], [m["udN"], bt])
-    ok("★ [摘要卡] 資金輪盤有四段（領先／改善／轉弱／落後）的族群數，加總＝全部族群數且 > 0",
+    ok("★ [摘要卡] 強弱輪動有四段（領先／改善／轉弱／落後）的族群數，加總＝全部族群數且 > 0",
        len(m["rot"]) == 4 and None not in m["rot"] and sum(m["rot"]) == m["rotN"] > 0, [m["rot"], m["rotN"]])
     ok("★ [摘要卡] 資金分流樹列出前三大產業鏈的百分比（0～100，由大到小）",
        len(m["flow"]) == 3 and None not in m["flow"] and all(0 < v <= 100 for v in m["flow"]) and m["flow"] == sorted(m["flow"], reverse=True), m["flow"])
     ok("★ [摘要卡] 熱門題材列出前三個題材的熱度（0～100，由高到低）",
        len(m["theme"]) == 3 and None not in m["theme"] and all(0 <= v <= 100 for v in m["theme"]) and m["theme"] == sorted(m["theme"], reverse=True), m["theme"])
     rot_foot = text(pg, '#hero .osc[data-k="rot"] .osc-f')
-    ok("[摘要卡] 資金輪盤寫出重點一句（最強族群）", "最強" in rot_foot and len(rot_foot) > 4, rot_foot)
+    ok("[摘要卡] 強弱輪動寫出重點一句（最強族群）", "最強" in rot_foot and len(rot_foot) > 4, rot_foot)
 
     # ---------------------------------------------------------------- 2. 四種寬度：不擠、不溢出、字 ≥ 11px
     for w in (1440, 1100, 800, 390):
@@ -21287,7 +21287,7 @@ def t_ov_summary_0928(pg, b, base, code):
     #   改前：點「漲跌家數」→ 換到市場明細的漲跌家數（#market/updown）而且有內容。
     #   改後：跟另外三張一樣**同一頁捲動** —— 捲到下方「漲跌家數」分佈卡（#ovBreadthCard），hash 留在 #overview；
     #   所以併進下面那一圈。點數字直接列出那一側在「漲跌連結1006」段驗。
-    for kk, anchor, name in (("updown", "ovBreadthCard", "漲跌家數分佈"), ("rot", "ovRotCard", "資金輪盤"), ("flow", "ovFlowHead", "昨日資金分流樹"), ("theme", "ovThemeCard", "熱門題材")):
+    for kk, anchor, name in (("updown", "ovBreadthCard", "漲跌家數分佈"), ("rot", "ovRotCard", "強弱輪動"), ("flow", "ovFlowHead", "昨日資金分流樹"), ("theme", "ovThemeCard", "熱門題材")):
         # ⚠ 只差 hash 的 goto 不會重新載入頁面（上一張卡的捲動追蹤還在跑）→ goto 之後再 reload 一次，每張卡都從頁首乾淨開始
         pg.goto(f"{base}#overview", wait_until="networkidle"); pg.reload(wait_until="networkidle"); pg.wait_for_timeout(1800)
         # 摘要卡是資料載完才畫的：機器忙時 reload 後 1.8 秒 #hero 還是空的（2026-10-06 漲跌家數排第一張時踩到）→ 等四張都在再點
@@ -21333,13 +21333,13 @@ def t_ov_summary_0928(pg, b, base, code):
         mp.evaluate("() => window.scrollTo(0, 0)"); mp.wait_for_timeout(250)
         mp.eval_on_selector('#hero .osc[data-k="rot"]', "c => c.click()")
         r = _ovs_inview(mp, "ovRotCard")
-        ok("★ [摘要卡 手機] 在第②步點「資金輪盤」→ 自動切回第①步並捲到資金輪盤", bool(r), r)
+        ok("★ [摘要卡 手機] 在第②步點「強弱輪動」→ 自動切回第①步並捲到強弱輪動", bool(r), r)
         # 卡片四段數＝手機輪盤四角徽章的數字（兩邊都是全部族群；半成品原本只數前 10，卡片「改善 6」底下卻寫「改善 17」）
         mk = mp.evaluate(OVS_M)
         badges = mp.evaluate("""() => { const t = (document.getElementById('rotClockMiniWrap') || document.body).innerText;
             const g = (n) => { const m = t.match(new RegExp(n + '[ \\n\\t]*([0-9]+)')); return m ? +m[1] : null; };
             return [g('領先'), g('改善'), g('轉弱'), g('落後')]; }""")
-        ok("★ [摘要卡 手機] 資金輪盤卡的四段數＝下面輪盤四角徽章（領先／改善／轉弱／落後）", badges == mk["rot"] and None not in badges, [mk["rot"], badges])
+        ok("★ [摘要卡 手機] 強弱輪動卡的四段數＝下面輪盤四角徽章（領先／改善／轉弱／落後）", badges == mk["rot"] and None not in badges, [mk["rot"], badges])
         mp.evaluate("() => window.scrollTo(0, 0)"); mp.wait_for_timeout(300)
         mp.eval_on_selector('#hero .osc[data-k="flow"]', "c => c.click()"); mp.wait_for_timeout(2200)
         mk = mp.evaluate(OVS_M)
@@ -23797,7 +23797,7 @@ def t_ov_kpi_live_1002(b, base, code):
        st["from"] == "live" and v1["ud"] and None not in v1["ud"] and sum(v1["ud"]) == st["udN"]
        and 0 < st["udN"] <= st["udUni"] <= 550 and st["udN"] < n_all, [v1["ud"], st, n_all])
     ok("[摘要卡即時] 漲跌家數卡底線寫出「N 檔」的 N（跟三數加總同一個數）", str(st["udN"]) in st["feet"][0], [st["udN"], st["feet"][0]])
-    ok("[摘要卡即時] 資金輪盤四段加總＝全部族群數（即時那一份只換階段、不少族群）",
+    ok("[摘要卡即時] 強弱輪動四段加總＝全部族群數（即時那一份只換階段、不少族群）",
        v1["rot"] and None not in v1["rot"] and sum(v1["rot"]) == pg.evaluate("() => +document.getElementById('hero').dataset.rotN") > 0, v1["rot"])
     ok("[摘要卡即時] 資金分流樹：前三大產業鏈的即時佔比（0～100、由大到小）",
        v1["flow"] and len(v1["flow"]) == 3 and None not in v1["flow"] and all(0 < x <= 100 for x in v1["flow"]) and v1["flow"] == sorted(v1["flow"], reverse=True), v1["flow"])
@@ -24845,7 +24845,7 @@ def t_fit_screen_1003(pg, base, code):
         t_ = f"{tag}總覽 {w}×{h}："
         if not ok(f"{t_}四張卡都量得到（#ovFlowCard 存在）", all(m.get(k) for k in ("heat", "theme", "rot", "flow")), m):
             continue
-        ok(f"★ {t_}左欄上＝資金熱力圖、下＝熱門題材（同左緣、同寬）；右欄上＝資金輪盤、下＝昨日資金分流樹（同左緣、同寬）；左欄在右欄左邊",
+        ok(f"★ {t_}左欄上＝資金熱力圖、下＝熱門題材（同左緣、同寬）；右欄上＝強弱輪動、下＝昨日資金分流樹（同左緣、同寬）；左欄在右欄左邊",
            m["theme"]["t"] >= m["heat"]["b"] - 1 and abs(m["theme"]["l"] - m["heat"]["l"]) <= 2 and abs(m["theme"]["w"] - m["heat"]["w"]) <= 2
            and m["flow"]["t"] >= m["rot"]["b"] - 1 and abs(m["flow"]["l"] - m["rot"]["l"]) <= 2 and abs(m["flow"]["w"] - m["rot"]["w"]) <= 2
            and max(m["heat"]["r"], m["theme"]["r"]) <= min(m["rot"]["l"], m["flow"]["l"]) + 1, m)
@@ -52153,13 +52153,13 @@ def no_old_wheel_name(pg, base):
             nw = pg.evaluate("""() => ({ h3: [...((document.querySelector('#ovRotHead h3') || {}).childNodes || [])].filter(n => n.nodeType === 3).map(n => n.textContent).join('').trim(),
                 aria: (document.querySelector('#ovRotHead .howbtn') || {getAttribute: () => ''}).getAttribute('aria-label') || '',
                 m: (document.querySelector('#mRadarOv svg') || {getAttribute: () => null}).getAttribute('aria-label') })""")
-            ok(f"[{w}] 總覽右欄卡片標題＝「資金輪盤」、「?」的 aria-label＝「資金輪盤怎麼看」",
-               nw["h3"].strip() == "資金輪盤" and nw["aria"] == "資金輪盤怎麼看", nw)
+            ok(f"[{w}] 總覽右欄卡片標題＝「強弱輪動」、「?」的 aria-label＝「強弱輪動怎麼看」",
+               nw["h3"].strip() == "強弱輪動" and nw["aria"] == "強弱輪動怎麼看", nw)
             if w <= 640:
-                ok(f"[{w}] 手機雷達的 aria-label＝「資金輪盤」", nw["m"] == "資金輪盤", nw)
+                ok(f"[{w}] 手機雷達的 aria-label＝「強弱輪動」", nw["m"] == "強弱輪動", nw)
     finally:
         if vp: pg.set_viewport_size(vp)
-    ok("★ 全站可見文字（含 aria-label／title／「?」說明）不再出現「足跡輪盤」（2026-09-26 改名資金輪盤）", not hits, hits[:6])
+    ok("★ 全站可見文字（含 aria-label／title／「?」說明）不再出現「足跡輪盤」（2026-09-26 改名強弱輪動）", not hits, hits[:6])
 
 # ===================================================================== 足跡輪盤（2026-09-24）
 # Andy：「輪動時鐘 改成 足跡輪盤，要有點像是雷達的樣貌，並且軌跡線 改成小小的腳印…圓圈幫我再縮小／
@@ -52186,7 +52186,7 @@ def t_footprint(pg, b, base):
         page: document.getElementById('v-flow').innerText })""")
     # ★ 2026-09-26 改前→改後：改前「改名『足跡輪盤』」→ 改後「資金輪盤」（Andy：腳印已拿掉，名字對不上內容；CEO 定名）
     # 2026-10-06：h4 開頭是 icons.js 的標題圖示（SVG 內的空白字元），先 strip 再比（理由同 no_old_wheel_name 那條註解）
-    ok("① 卡片裡那張圖改名「資金輪盤」", nm["h4"].strip().startswith("資金輪盤"), nm["h4"])
+    ok("① 卡片裡那張圖改名「強弱輪動」", nm["h4"].strip().startswith("強弱輪動"), nm["h4"])
     no_old_wheel_name(pg, base)
     # 上面那支會把頁面帶去七個分頁、切 390 再切回來；後面②③量的是資金流向頁 1440 的盤面，所以回到跟開頭同一個狀態
     #（不重置的話 ③ 會在錯的版面上量到 109 對重疊 —— 那是量測假象，不是畫面）
@@ -52452,7 +52452,7 @@ def t_rot_keep(pg, b, base):
     note = pg.evaluate("() => (document.getElementById('rankPanel')||{}).innerText || ''")
     ok("9 點右邊排行的長條 → 成分股在原地展開", pg.evaluate("() => !document.getElementById('rankPanel').hidden"))
     # 排行依「佔比變化」排、盤上只畫佔比前 16 —— 點到的族群不一定在盤上（同批次2 的兩種正確行為）
-    if "不在輪盤前 16 名" in note:   # ★ 2026-09-26 改前→改後：「不在左邊足跡輪盤」→「不在左邊資金輪盤」；★ 2026-10-06 廢話普查 →「不在輪盤前 16 名」
+    if "不在輪盤前 16 名" in note:   # ★ 2026-09-26 改前→改後：「不在左邊足跡輪盤」→「不在左邊強弱輪動」；★ 2026-10-06 廢話普查 →「不在輪盤前 16 名」
         ok("9 點到盤上沒有的族群 → 盤不准整張灰掉，面板明講原因", max(x if x is not None else 1 for x in op1) > .9, op1[:6])
     else:
         ok("9 點右邊排行的長條 → 盤上只亮那一個、其他壓暗（連動）",
@@ -55074,7 +55074,7 @@ def t_kpi_footer_0926(pg, b, base):
         head: ((document.querySelector('#flowRotCard .rotchead') || {}).innerText || '').trim() })""")
     ok("★ 資金輪動卡、足跡輪盤右上方的「⤢ 放大」不存在了", not zb["btn"] and not zb["txt"], zb)
     # ★ 2026-09-26 改前→改後：標題「足跡輪盤」→「資金輪盤」
-    ok("資金輪盤標題列只剩標題與日期區間", zb["head"].startswith("資金輪盤") and "放大" not in zb["head"], zb["head"])
+    ok("強弱輪動標題列只剩標題與日期區間", zb["head"].startswith("強弱輪動") and "放大" not in zb["head"], zb["head"])
     # 真的在輪盤欄右上角那一帶點一下：不會打開任何放大罩
     pt = pg.evaluate("""() => { const h = document.querySelector('#flowRotCard .rotchead'); if (!h) return null;
         const r = h.getBoundingClientRect(); return { x: r.right - 20, y: r.top + r.height / 2 }; }""")
@@ -55218,7 +55218,7 @@ def t_neutral_1006(b, base, code):
             ok(f"★ {T} 總覽 {s}（含 title）沒有操作建議用字", not _neu_hits(t), (_neu_hits(t), t[:120]))
         if count(pg, '.howbtn[data-how="rotm"]'):
             t = how_text(pg, "rotm")
-            ok(f"★ {T} 總覽資金輪盤「?」說明用相對強度／動能描述、沒有操作建議", "動能" in t and not _neu_hits(t), (_neu_hits(t), t[:160]))
+            ok(f"★ {T} 總覽強弱輪動「?」說明用相對強度／動能描述、沒有操作建議", "動能" in t and not _neu_hits(t), (_neu_hits(t), t[:160]))
 
         # ③ 市場明細「今日候選」：真的點分頁 → 標題、名單、判定欄、「?」說明、免責全文
         pg.goto(f"{base}#market/updown", wait_until="networkidle")
@@ -55494,7 +55494,7 @@ def t_disclaimer_1006(b, base, code):
 
         # ② 總覽「資金輪盤」、資金流向「資金輪動」
         pg.goto(base + "#overview", wait_until="load"); wait_until(pg, "() => !!document.querySelector('#ovRotHead .disc-line')", 10000); pg.wait_for_timeout(600)
-        basic("總覽「資金輪盤」1440", one(pg.evaluate(DISC1006), "rot"))
+        basic("總覽「強弱輪動」1440", one(pg.evaluate(DISC1006), "rot"))
         pg.goto(base + "#flow", wait_until="load"); wait_until(pg, "() => !!document.querySelector('#flowRotDisc')", 10000); pg.wait_for_timeout(800)
         d = one(pg.evaluate(DISC1006), "rot")
         basic("資金流向「資金輪動」1440", d)
@@ -55608,7 +55608,7 @@ def t_watch_disc_1007(b, base, code):
         ok(f"{T} 資金輪動卡只有一句（不重複）", len(lines()) == 1, lines())
         no_old("資金流向")
         pg.goto(base + "#overview", wait_until="load"); wait_until(pg, "() => !!document.querySelector('#ovRotHead .disc-line')", 10000); pg.wait_for_timeout(800)
-        good("總覽「資金輪盤」1440", next((x for x in lines() if x["id"] == "ovRotDisc" or x["card"] == "ovRotCard"), None))
+        good("總覽「強弱輪動」1440", next((x for x in lines() if x["id"] == "ovRotDisc" or x["card"] == "ovRotCard"), None))
         no_old("總覽")
 
         # ③ 選股策略
@@ -58324,7 +58324,7 @@ def _qscan_specs(code):
                 " if (b && !b.classList.contains('on')) { b.click(); return true; } return false; };"
                 " if (pick(document.querySelector('.view.on .mspine'), %s)) await new Promise(r => setTimeout(r, 400));"
                 " pick(document.querySelector('.view.on .mpager'), %s); }") % (json.dumps(spine), json.dumps(pager))
-    OVM = {"ov.summary": None, "ov.index": ("貴不貴", "大盤"), "ov.heat": ("錢往哪跑", "熱力圖"), "ov.theme": ("錢往哪跑", "熱門題材"), "ov.rot": ("錢往哪跑", "資金輪盤"),
+    OVM = {"ov.summary": None, "ov.index": ("貴不貴", "大盤"), "ov.heat": ("錢往哪跑", "熱力圖"), "ov.theme": ("錢往哪跑", "熱門題材"), "ov.rot": ("錢往哪跑", "強弱輪動"),
            "ov.flow": ("錢往哪跑", "資金分流樹"), "ov.breadth": ("貴不貴", "市場寬度"), "events": ("理由", "今日事件")}
     for f, sg in OVM.items():
         S[f] = visit("#overview", None, mseg(*sg) if sg else None)
@@ -63281,7 +63281,7 @@ V4_2A_M = r"""() => {
 
 def t_design_v4_2a(b, base, code):
     """設計 v4 第二批 2A：資金流向頁的空間。驗「畫面真的因此改變了」：
-      ① 1440：「資金輪盤」小標與時間拉 Bar 同一行、輪盤高＝min(欄寬, 640)、排行在右欄
+      ① 1440：「強弱輪動」小標與時間拉 Bar 同一行、輪盤高＝min(欄寬, 640)、排行在右欄
       ② 1080（1060～1100）：兩欄、輪盤欄 ≥ 560（名字寫在盤上，不是編號模式）
       ③ 1000（821～1059）：單欄、排行在輪盤下方、限高 365、沒有橫向捲軸
       ④ 資金分流樹：代表股的字右緣離畫布 ≤ 16px、說明列浮在畫布右上角（不佔高度）、「動態」鈕真的切得動
@@ -63298,7 +63298,7 @@ def t_design_v4_2a(b, base, code):
     pg.goto("about:blank"); pg.goto(base + "#flow/rotation", wait_until="networkidle"); pg.wait_for_timeout(3000)
     pg.evaluate("() => window.scrollTo(0, 0)"); pg.wait_for_timeout(300)
     m = pg.evaluate(V4_2A_M)
-    ok("① [1440] 「資金輪盤」小標跟時間拉 Bar 在同一行（頂端差 ≤ 6px）",
+    ok("① [1440] 「強弱輪動」小標跟時間拉 Bar 在同一行（頂端差 ≤ 6px）",
        bool(m["chead"] and m["time"]) and abs(m["chead"]["t"] - m["time"]["t"]) <= 6 and m["chead"]["r"] <= m["time"]["l"], m)
     # ★ 2026-10-04 改前→改後（驗收過時，DECISIONS #308「一屏看完」）：10-03 起盤高再受「卡高上限 − 卡裡其他東西」限制（下限 340），
     #   1440×900 量到 645 < 664 是設計行為。改成：不超過 min(欄寬, 664)、不低於 340。
@@ -68059,14 +68059,14 @@ def t_free_perm_1010(b, base, code):
             if (si < 0) return null; const d = o.series[si].data.find(d => d && d.row && d.row.gid);
             const p = c.convertToPixel({seriesIndex: si}, d.value); const r = e.getBoundingClientRect();
             return {x: r.left + p[0], y: r.top + p[1], gid: d.row.gid}; }""")
-        if ok(f"{T}【{tag}】算得出總覽資金輪盤上一顆族群點", bool(rp), rp):
+        if ok(f"{T}【{tag}】算得出總覽強弱輪動上一顆族群點", bool(rp), rp):
             pg.mouse.click(rp["x"], rp["y"]); pg.wait_for_timeout(800)
             op = pg.evaluate("""() => { const b = document.getElementById('ovRotPop'); if (!b || b.hidden) return null;
                 const g = b.querySelector('.rp-go'), n = b.querySelector('.rp-note');
                 return { a: !!b.querySelector('a.rp-go[href^="#industry/group/"]'), off: !!(g && g.classList.contains('off')), note: n ? n.textContent : '',
                          fs: n ? parseFloat(getComputedStyle(n).fontSize) : 0, cur: g ? getComputedStyle(g).cursor : '' }; }""")
             if free:
-                ok(f"{T}【{tag}】資金輪盤說明框：「進族群頁 →」反灰（不是連結）＋旁邊「Plus 以上可跳轉」（≥12px）",
+                ok(f"{T}【{tag}】強弱輪動說明框：「進族群頁 →」反灰（不是連結）＋旁邊「Plus 以上可跳轉」（≥12px）",
                    bool(op) and not op["a"] and op["off"] and op["note"] == "Plus 以上可跳轉" and op["fs"] >= 12 and op["cur"] == "not-allowed", op)
                 shot(pg, "free_rotpop_1440.png", "#ovRotCard")
                 pg.click("#ovRotPop .rp-go", force=True); pg.wait_for_timeout(500)
@@ -68076,7 +68076,7 @@ def t_free_perm_1010(b, base, code):
                     ms.first.click(); pg.wait_for_timeout(500)
                     ok(f"{T}【{tag}】說明框裡的成分股：點了單純無效（網址不變、沒有彈出層）", pg.evaluate("() => location.hash") == "#overview" and not pg.evaluate(FP_POP))
             else:
-                ok(f"{T}【{tag}】資金輪盤說明框：「進族群頁 →」是真的連結", bool(op) and op["a"] and not op["off"], op)
+                ok(f"{T}【{tag}】強弱輪動說明框：「進族群頁 →」是真的連結", bool(op) and op["a"] and not op["off"], op)
                 pg.click("#ovRotPop a.rp-go")
                 ok(f"{T}【{tag}】點「進族群頁 →」真的換到族群頁", bool(wait_until(pg, f"() => location.hash.startsWith('#industry/group/')", 5000)), pg.evaluate("() => location.hash"))
                 pg.evaluate("() => { location.hash = '#overview'; }")
@@ -68648,7 +68648,7 @@ def t_free_perm_1012(b, base, code):
         c, pg = new()
         go(pg, "#flow/rotation", "() => !!document.querySelector('#rankFlow canvas') && document.getElementById('flowRotTime').hasAttribute('data-plgray')")
         g = pg.evaluate(P12_GRAY, "#flowRotTime")
-        ok(f"{T} ③資金輪盤標題列整條反灰（inert、≤0.6）＋旁邊「Plus 以上可調整」（≥12px、看得到）",
+        ok(f"{T} ③強弱輪動標題列整條反灰（inert、≤0.6）＋旁邊「Plus 以上可調整」（≥12px、看得到）",
            g and g["gray"] and g["inert"] and g["op"] < 0.6 and g["note"] == "Plus 以上可調整" and g["fs"] >= 12 and g["nv"], g)
         v0 = pg.evaluate("() => ({ v: document.querySelector('#rotBack input').value, ck: [...document.querySelectorAll('#rotTools input')].map(i => i.checked) })")
         bx = pg.locator("#rotBack input").bounding_box()
@@ -68657,7 +68657,7 @@ def t_free_perm_1012(b, base, code):
         pg.click("#rotBack .pb.step >> nth=0", force=True)
         pg.click("#rotTools .rot-line", force=True); pg.click("#rotTools .rot-scan", force=True); pg.wait_for_timeout(400)
         v1 = pg.evaluate("() => ({ v: document.querySelector('#rotBack input').value, ck: [...document.querySelectorAll('#rotTools input')].map(i => i.checked), p: document.getElementById('rotBack').classList.contains('playing') })")
-        ok(f"{T} ③資金輪盤：拖拉桿、按 ▶、按 −、勾軌跡／掃描 → 天數不動、沒播放、勾選不變、沒有彈出層",
+        ok(f"{T} ③強弱輪動：拖拉桿、按 ▶、按 −、勾軌跡／掃描 → 天數不動、沒播放、勾選不變、沒有彈出層",
            v1["v"] == v0["v"] and v1["ck"] == v0["ck"] and not v1["p"] and not pop(pg), (v0, v1))
         pg.evaluate("() => { const b = document.querySelector('#rotBack .pb.play'); if (b && b.onclick) b.onclick(); }"); pg.wait_for_timeout(900)
         ok(f"{T} ③繞過畫面直接叫 ▶ 的處理函式：start() 本身也不播", not pg.evaluate("() => document.getElementById('rotBack').classList.contains('playing')"))
