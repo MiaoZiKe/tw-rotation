@@ -1,5 +1,10 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
+## 2026-10-30 流向驗證的「大盤」改加權指數（使用者測試回報漲跌是加權兩倍；DECISIONS #378；最後更新 10-31 台北）
+- flowcheck 的大盤改成加權指數：日線 index_ohlc TSE、盤中 index_intraday 1 分（之前 60 分）；急跌日、吻合度常態、回測都已重算。主站強弱輪動沒動，要不要改列為建議。
+- index.json 新增 closed_days／missing_days／missing_intraday。10-23 查證是颱風休市（不是缺資料）。
+- 驗證：test_flowcheck 24 條＋全套 pytest；小入口跑真實資料約 85 秒、記憶體 2.2GB。
+
 ## 2026-10-30 流向驗證分頁的資料檔上 main（site/data/flowcheck/；DECISIONS #377；最後更新 10-30 台北）
 - 新增 `pipeline/compute/flowcheck.py`，build_payload 包 try 呼叫（壞了只少這個資料夾）。欄位給前端看 `docs/research/20261030_flowcheck_data.md`。
 - 約 205 檔（day 60／m60 約 59／m5 每天 +1／series 83／index／backtest），站上總檔數約 18,000，離 Cloudflare 20,000 上限約 2,000。

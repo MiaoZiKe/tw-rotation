@@ -15,15 +15,18 @@
   backtest.json         盤中訊號回測（依粒度分開），含事件表
 
 口徑（每一條都寫理由）：
-  · 日漲跌＝flow.group_daily 的 chg_pct（前一日成交值加權，2026-10-30 新口徑），**直接沿用不重算**；
-    大盤日報酬＝rrg.market_index 逐日還原（同一套前一日成交值加權），相對大盤＝兩者相減，同口徑相減才有意義。
+  · 日漲跌＝flow.group_daily 的 chg_pct（前一日成交值加權，2026-10-30 新口徑），**直接沿用不重算**。
+  · ★ 大盤＝**加權指數（TAIEX）**（2026-10-30 使用者測試後改；DECISIONS #378）：日線 index_ohlc TSE，
+    盤中 index_intraday TSE 1 分 K（沒有就 60 分）。相對大盤＝族群 − 加權指數，急跌日＝加權指數 < −1.5%。
+    原本用的 rrg.market_index（全市場前一日成交值加權）漲跌約是加權指數兩倍（10-28 +4.28% vs +2.04%），
+    這一頁是給人跟加權指數比，所以換；主站強弱輪動的口徑另存 mkt_site／rs_*_site 供對照，主站本身不動。
   · 強弱輪動 rs_x/rs_y＝rrg.rrg_axes；資金輪盤 m_x/m_y＝money_wheel.money_axes（CEO 10-30 指定沿用，不另做一套）。
     兩支只用當天以前的資料（rolling／EMA adjust=False／shift），第 D 天的座標不含 D 之後的資訊。
   · dshare＝今日占比 − 前一交易日占比（pp）；rot＝占比 5 日均 − 20 日均（pp，同 flow.rotation_radar）。
   · 背離（規格第三節）：f＝dshare。A＝f 在人工族群前 30% 且 rel < −0.3pp；B＝rel > +0.3pp 且 f 在後 30%。
   · 盤中（5m／60m 同一套）：
       族群漲跌＝成分股相對昨收漲跌，以**前一日成交值**加權（與 group_daily 同口徑，規格 7.3 要求）；
-      成分股掛多個人工族群時權重 ×1/族群數（同 group_daily）。大盤＝名單內全部個股同法加權。
+      成分股掛多個人工族群時權重 ×1/族群數（同 group_daily）。大盤＝加權指數盤中（taiex_slots）。
       ⚠ 預覽版 app.js 即時卡目前是「等權」，回放與即時卡數字會不同 —— 研究文件已請前端對齊這裡。
       累計成交值占比＝族群成分股累計成交值 ÷ 名單內全部個股累計成交值（占比不拆分，同預覽版）。
       殘缺格：該格有報價檔數 < 當天最多那一格的 95% → **整格剔除**（缺一批股票時分母突然變小，畫出來是假跳動）。
@@ -125,18 +128,51 @@ def market_daily(price: pd.DataFrame, n_days: int) -> pd.Series:
     return r
 
 
-def daily_table(group_hist: pd.DataFrame, price: pd.DataFrame, n_days: int = SERIES_DAYS + 60) -> pd.DataFrame:
+def taiex_daily(taiex_ohlc: pd.DataFrame | None, taiex_intra: pd.DataFrame | None = None) -> pd.DataFrame:
+    """加權指數日報酬（%）：index＝日期字串，欄位 chg／close／prev／src。
+
+    主來源 index_ohlc symbol=TSE（證交所加權指數日收，2000 起）：chg＝change ÷ (close − change)。
+    index_ohlc 當天還沒進湖時（盤後第一輪先抓價量），用 index_intraday 的 TSE 1 分 K 最後一根收盤（mis 來源）
+    對前一天官方收盤算暫定值，src 標 "intraday"；兩者都沒有就不給（該天 rel 為 null，不拿別的基準頂替）。"""
+    rows = {}
+    if taiex_ohlc is not None and not taiex_ohlc.empty:
+        t = taiex_ohlc.copy()
+        t["date"] = t["date"].astype(str)
+        t = t.sort_values("date").drop_duplicates("date", keep="last")
+        prev = t["close"] - t["change"]
+        for d, c, pv in zip(t["date"], t["close"], prev):
+            if pv > 0:
+                rows[d] = {"close": float(c), "prev": float(pv), "chg": (c / pv - 1) * 100, "src": "index_ohlc"}
+    if taiex_intra is not None and not taiex_intra.empty and rows:
+        m1 = taiex_intra[taiex_intra["interval"] == "1m"]
+        last = sorted(rows)[-1]
+        for d, sub in m1.groupby(m1["ts"].astype(str).str[:10]):
+            if d > last:
+                c = float(sub.sort_values("ts")["close"].iloc[-1])
+                pv = rows[sorted(k for k in rows if k < d)[-1]]["close"]
+                rows[d] = {"close": c, "prev": pv, "chg": (c / pv - 1) * 100, "src": "intraday"}
+    return pd.DataFrame.from_dict(rows, orient="index").sort_index()
+
+
+def daily_table(group_hist: pd.DataFrame, price: pd.DataFrame, n_days: int = SERIES_DAYS + 60,
+                taiex: pd.DataFrame | None = None) -> pd.DataFrame:
     """每日 × 每族群：相對大盤、dshare、rot、強弱輪動、資金輪盤。只用當天以前的資料
-    （rel_next／date_next 除外：那是評分用的結果標籤，欄名明寫 next）。"""
+    （rel_next／date_next 除外：那是評分用的結果標籤，欄名明寫 next）。
+
+    ★ 2026-10-30（使用者測試）：「大盤」改成**加權指數**（taiex，見 taiex_daily）。原本用主站強弱輪動的
+      rrg.market_index（全市場前一日成交值加權），它的漲跌約是加權指數的兩倍（10-28 +4.28% vs 加權 +2.04%），
+      這一頁是給人跟加權指數比的，基準要是大家看得到的那一個。主站口徑另外留一組（mkt_site／rs_*_site），
+      讓回放的強弱輪動可以和主站那張圖對得上。沒給 taiex 時（單元測試）退回主站口徑。"""
     if group_hist is None or group_hist.empty:
         return pd.DataFrame()
     g = group_hist.sort_values("date").copy()
     g["date"] = g["date"].astype(str)
     keep_dates = sorted(g["date"].unique())[-n_days:]
-    mret = market_daily(price, len(keep_dates))
-    bench = (1 + mret.fillna(0) / 100).cumprod()
+    msite = market_daily(price, len(keep_dates))
+    mret = taiex["chg"] if taiex is not None and not taiex.empty else msite
     g = g[g["date"].isin(keep_dates)].copy()
     g["mkt_chg"] = g["date"].map(mret)
+    g["mkt_site"] = g["date"].map(msite)
     g["rel"] = g["chg_pct"] - g["mkt_chg"]
     gs = g.groupby("group_id")["turnover_share"]
     g["dshare"] = g["turnover_share"] - gs.shift(1)
@@ -144,9 +180,16 @@ def daily_table(group_hist: pd.DataFrame, price: pd.DataFrame, n_days: int = SER
                 - gs.transform(lambda s: s.rolling(20, min_periods=5).mean()))
     g["factor"] = 1 + g["chg_pct"].fillna(0) / 100
     g["gi"] = g.groupby("group_id")["factor"].cumprod()
-    g["bi"] = g["date"].map(bench)
-    r = rrg_axes(g.dropna(subset=["bi"]), "group_id")[["date", "group_id", "rs_ratio", "rs_mom"]]
-    g = g.merge(r, on=["date", "group_id"], how="left")
+    # 指數只在 keep_dates 上累乘（缺的那天記 0 報酬＝持平，同 market_index 的處理）
+    kd = pd.Index(keep_dates)
+    for col, src in (("rs", mret), ("rs_site", msite)):
+        bench = (1 + src.reindex(kd).fillna(0) / 100).cumprod()
+        gg = g[["date", "group_id", "gi"]].copy()
+        gg["bi"] = gg["date"].map(bench)
+        r = rrg_axes(gg.dropna(subset=["bi"]), "group_id")[["date", "group_id", "rs_ratio", "rs_mom"]]
+        sfx = "" if col == "rs" else "_site"
+        g = g.merge(r.rename(columns={"rs_ratio": "rs_ratio" + sfx, "rs_mom": "rs_mom" + sfx}),
+                    on=["date", "group_id"], how="left")
     m = money_axes(g[["date", "group_id", "turnover_share"]].copy())[["date", "group_id", "x", "y"]]
     g = g.merge(m.rename(columns={"x": "m_x", "y": "m_y"}), on=["date", "group_id"], how="left")
     g = g.sort_values(["group_id", "date"])
@@ -270,6 +313,35 @@ def frames_from_60m(bars_day: pd.DataFrame, prev_close: pd.Series,
     return {"gran": "60m", "price": price, "chg": chg, "cum": cum, "gap_0900": gap}
 
 
+def taiex_slots(times: list[str], intra_day: pd.DataFrame | None, prev_close: float | None,
+                day_close: float | None) -> pd.Series:
+    """盤中每一格的加權指數相對昨收（%）。
+
+    格子 HH:MM 取「標籤早於 HH:MM 的最後一根 K 棒」的收盤（K 棒標籤是開始時間：09:14 那根收在 09:15）；
+    有 1 分 K 用 1 分（mis，2023-12 起），沒有就用 60 分（Yahoo，2023-09 起）；
+    09:00（還沒有任何一根收盤）→ 第一根的開盤；13:30 以後 → 官方收盤（index_ohlc），有給才換。
+    只用格子時間以前的 K 棒，不偷看。昨收缺 → 全部 NaN（不拿成分股加權頂替，免得口徑混在一起）。"""
+    out = pd.Series(np.nan, index=times, dtype=float)
+    if not prev_close or prev_close <= 0 or intra_day is None or intra_day.empty:
+        return out
+    iv = "1m" if (intra_day["interval"] == "1m").any() else "60m"
+    b = intra_day[intra_day["interval"] == iv].copy()
+    b["hm"] = b["ts"].astype(str).str[11:16]
+    b = b.sort_values("hm").drop_duplicates("hm", keep="last")
+    hms, closes = b["hm"].tolist(), b["close"].tolist()
+    if not hms:
+        return out
+    for t in times:
+        if t >= "13:30" and day_close:
+            v = day_close
+        else:
+            k = int(np.searchsorted(hms, t, side="left"))     # 標籤 < t 的根數
+            v = float(b["open"].iloc[0]) if k == 0 else closes[k - 1]
+        out[t] = (v / prev_close - 1) * 100
+    out.attrs["interval"] = iv
+    return out
+
+
 def _wavg(chg: pd.DataFrame, w: pd.Series) -> pd.Series:
     """逐格加權平均：權重缺／0 或漲跌缺的那檔不算；整格沒權重 → NaN。"""
     wv = w.reindex(chg.columns).fillna(0).clip(lower=0).values
@@ -279,7 +351,7 @@ def _wavg(chg: pd.DataFrame, w: pd.Series) -> pd.Series:
 
 
 def group_intraday(fr: dict, members: dict[str, list[str]], universe: list[str],
-                   w: pd.Series, nmem: pd.Series) -> dict:
+                   w: pd.Series, nmem: pd.Series, mkt_override: pd.Series | None = None) -> dict:
     """族群盤中序列。w＝前一日成交值（代號→元）；nmem＝代號掛幾個人工族群（族群漲跌權重 ×1/n，同 group_daily）。
 
     用「格子 × 代號」矩陣乘「代號 × 族群」0/1 成員矩陣一次算完全部族群：回測要跑 750 天，
@@ -290,7 +362,8 @@ def group_intraday(fr: dict, members: dict[str, list[str]], universe: list[str],
     mx = cnt.max() if len(cnt) else 0
     keep = list(cnt[cnt >= RESIDUAL_MIN * mx].index) if mx > 0 else []
     price, chg, cum = price.loc[keep], chg.loc[keep], cum.loc[keep]
-    mkt = _wavg(chg, w)
+    # 大盤：有加權指數盤中序列就用它（mkt_override，2026-10-30 起的口徑）；沒有才用名單內個股前一日成交值加權
+    mkt = mkt_override.reindex(keep) if mkt_override is not None else _wavg(chg, w)
     tot = cum.sum(axis=1, min_count=1)
     out = {"times": keep, "mkt": mkt.tolist(), "tot": tot.tolist(), "G": {}, "price": price,
            "chg": chg, "cum": cum, "gran": fr["gran"], "gap_0900": fr["gap_0900"]}
@@ -445,12 +518,49 @@ def _by(df, key_series):
     return {d: s for d, s in df.groupby(key_series)} if df is not None and not df.empty else {}
 
 
+def market_meta(TX: pd.DataFrame, sd: list[str], mser: pd.Series) -> dict:
+    """index.json 的 market：日報酬序列＋來源與起訖（規格要求標註來源）。"""
+    if TX.empty:
+        return {"dates": sd, "chg": [_r(v) for v in mser], "src": "weighted_universe",
+                "note": "沒有加權指數資料，退回全市場前一日成交值加權（主站強弱輪動口徑）"}
+    srcs = [str(TX.at[d, "src"]) if d in TX.index else None for d in sd]
+    have = [d for d in sd if d in TX.index]
+    return {"dates": sd, "chg": [_r(v) for v in mser], "src_by_day": srcs,
+            "src": "TAIEX", "range": [have[0], have[-1]] if have else None,
+            "proxy_0050": None,
+            "note": ("加權指數（證交所發行量加權股價指數 TAIEX）日報酬：index_ohlc symbol=TSE（2000 起），"
+                     "當天還沒進湖時用 index_intraday TSE 1 分 K 最後一根（src_by_day=intraday，暫定值）。"
+                     "盤中用 index_intraday TSE 1 分 K（2023-12 起），之前用 60 分 K。750 日都有加權指數，未用 0050 代理。")}
+
+
+def calendar_gaps(TX: pd.DataFrame, sd: list[str], all_dates: list[str], layers: dict) -> dict:
+    """休市日與缺資料日分開列，前端才能分別顯示「休市」與「資料缺」。
+
+    closed_days：區間內的週一～五，加權指數沒有那天（＝證交所沒開盤：國定假日、補假、颱風休市）。
+    missing_days：加權指數有開盤、但價量資料湖（group_hist）沒有那天 → 真的缺資料，應回補。
+    missing_intraday：有日線、但沒有 60 分／5 分盤中資料的交易日。
+    沒有加權指數資料時無從判斷，三個都給空陣列。"""
+    if TX.empty or not sd:
+        return {"closed_days": [], "missing_days": [], "missing_intraday": []}
+    cal = set(TX.index)
+    have = set(all_dates)
+    wk = pd.bdate_range(sd[0], sd[-1]).strftime("%Y-%m-%d")
+    return {"closed_days": [d for d in wk if d not in cal and d not in have],
+            "missing_days": [d for d in wk if d in cal and d not in have],
+            "missing_intraday": [d for d in sd if not ({"m60", "m5"} & set(layers.get(d, [])))]}
+
+
 def build(group_hist: pd.DataFrame, price: pd.DataFrame, membership: pd.DataFrame,
           tape: pd.DataFrame | None, bars60: pd.DataFrame | None, news: pd.DataFrame | None,
           names: dict[str, str], material: pd.DataFrame | None = None, inst: pd.DataFrame | None = None,
+          taiex_ohlc: pd.DataFrame | None = None, taiex_intra: pd.DataFrame | None = None,
           days: int = FC_DAYS, series_days: int = SERIES_DAYS, backtest_days: int = BACKTEST_DAYS) -> dict:
-    """回傳 {"index","day","m60","m5","series","backtest"}；寫檔另由 write()（測試不必碰硬碟）。"""
-    D = daily_table(group_hist, price, max(series_days, backtest_days) + 60)
+    """回傳 {"index","day","m60","m5","series","backtest"}；寫檔另由 write()（測試不必碰硬碟）。
+
+    taiex_ohlc：index_ohlc 的 TSE 列（date/open/close/change）；taiex_intra：index_intraday 的 TSE 列
+    （ts/interval/open/close）。兩者都沒給 → 大盤退回主站口徑（只在單元測試發生），index.market.src 會寫明。"""
+    TX = taiex_daily(taiex_ohlc, taiex_intra)
+    D = daily_table(group_hist, price, max(series_days, backtest_days) + 60, taiex=TX if not TX.empty else None)
     if D.empty:
         return {"index": {"schema": SCHEMA, "dates": [], "layers": {}}, "day": {}, "m60": {}, "m5": {},
                 "series": {}, "backtest": backtest([], None)}
@@ -490,6 +600,9 @@ def build(group_hist: pd.DataFrame, price: pd.DataFrame, membership: pd.DataFram
             return None, None
         return (None, None) if dn is None or pd.isna(dn) else (_r(rn), str(dn))
 
+    tx_by = (_by(taiex_intra, taiex_intra["ts"].astype(str).str[:10])
+             if taiex_intra is not None and not taiex_intra.empty else {})
+
     def _intraday(d):
         p = PXd.get(d)
         if p is None:
@@ -502,7 +615,14 @@ def build(group_hist: pd.DataFrame, price: pd.DataFrame, membership: pd.DataFram
             return None
         if fr is None:
             return None
-        M = group_intraday(fr, members, universe, p["tv_prev"], nmem)
+        mo, src = None, "weighted_universe"
+        if not TX.empty:
+            tx = TX.loc[d] if d in TX.index else None
+            mo = taiex_slots(list(fr["price"].index), tx_by.get(d),
+                             None if tx is None else tx["prev"], None if tx is None else tx["close"])
+            src = ("taiex_" + mo.attrs.get("interval", "none")) if mo.notna().any() else "none"
+        M = group_intraday(fr, members, universe, p["tv_prev"], nmem, mkt_override=mo)
+        M["mkt_src"] = src
         return M if len(M["times"]) >= 2 and M["G"] else None
 
     # ---- 回測先跑：day 檔的訊號直接取自同一份事件表，回測與頁面口徑只有一份
@@ -536,6 +656,9 @@ def build(group_hist: pd.DataFrame, price: pd.DataFrame, membership: pd.DataFram
                            "chg": _r(r.chg_pct), "rel": _r(r.rel), "adv": _r(r.advancers, 0),
                            "dec": _r(r.decliners, 0), "tv": _r(r.turnover / 1e8, 2),
                            "rs_x": rx, "rs_y": ry, "quadrant": _quad(rx, ry),
+                           # 主站強弱輪動口徑（大盤＝全市場前一日成交值加權），回放要和主站那張圖對照時用
+                           "rs_x_site": _r(r.rs_ratio_site), "rs_y_site": _r(r.rs_mom_site),
+                           "quadrant_site": _quad(_r(r.rs_ratio_site), _r(r.rs_mom_site)),
                            "m_x": mx, "m_y": my, "m_quadrant": _quad(mx, my),
                            "inst": [_r(r.foreign_net / 1000, 0), _r(r.trust_net / 1000, 0), _r(r.dealer_net / 1000, 0)],
                            "div": div.get(gid)}
@@ -565,7 +688,10 @@ def build(group_hist: pd.DataFrame, price: pd.DataFrame, membership: pd.DataFram
                     row["gid"].append(gid)
                     row["share_in_group"][gid] = _r(p.at[c, "turnover"] / tvs * 100, 2) if tvs > 0 else None
                     row["contrib"][gid] = _r(wv[c] * ch / ws, 3) if ws > 0 and _ok(ch) else None
-        payload = {"schema": SCHEMA, "date": d, "mkt_chg": _r(mk), "crash": bool(mk is not None and mk < CRASH),
+        ms = day["mkt_site"].dropna()
+        payload = {"schema": SCHEMA, "date": d, "mkt_chg": _r(mk),
+                   "mkt_src": (str(TX.at[d, "src"]) if d in TX.index else "none") if not TX.empty else "weighted_universe",
+                   "mkt_site": _r(ms.iloc[0]) if len(ms) else None, "crash": bool(mk is not None and mk < CRASH),
                    "agree": agree_stats(day, manual), "div_params": {"pct": DIV_PCT, "rel": DIV_REL, "version": 1},
                    "granularity": None, "groups": groups, "members": mem_out,
                    "signals": ev_by.get(d, []), "news": day_news(news_by.get(d), mat_by.get(d), members, names, gnames),
@@ -579,6 +705,7 @@ def build(group_hist: pd.DataFrame, price: pd.DataFrame, membership: pd.DataFram
                         for gid, g in M["G"].items()}
                 st = stock_series(M)
                 payload["m60"] = {"times": M["times"], "gap_0900": M["gap_0900"], "mkt": [_r(v) for v in M["mkt"]],
+                                  "mkt_src": M["mkt_src"],
                                   "groups": group_series_json(M), "top": tops,
                                   "top_close": {c: st[c]["p"] for cs in tops.values() for c in cs if c in st}}
                 out["m60"][d] = {"schema": SCHEMA, "date": d, "times": M["times"], "gap_0900": M["gap_0900"],
@@ -590,7 +717,7 @@ def build(group_hist: pd.DataFrame, price: pd.DataFrame, membership: pd.DataFram
         if M is None or M["gran"] != "5m":
             continue
         out["m5"][d] = {"schema": SCHEMA, "date": d, "granularity": "5m", "times": M["times"],
-                        "mkt": [_r(v) for v in M["mkt"]], "groups": group_series_json(M),
+                        "mkt": [_r(v) for v in M["mkt"]], "mkt_src": M["mkt_src"], "groups": group_series_json(M),
                         "share_base": None,
                         "share_base_note": "同時段過去 20 日基準需要 20 個 tape_5m 交易日，目前不足，給 null",
                         "signals": ev_by.get(d, []), "stocks": stock_series(M)}
@@ -629,8 +756,8 @@ def build(group_hist: pd.DataFrame, price: pd.DataFrame, membership: pd.DataFram
         "schema": SCHEMA, "latest": all_dates[-1],
         "updated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "dates": dates, "layers": layers, "groups": groups_meta, "baseline": baseline(D, manual, sd),
-        "market": {"dates": sd, "chg": [_r(v) for v in mser],
-                   "note": "全市場「前一日成交值」加權日報酬（rrg.market_index 逐日還原），與族群 chg 同口徑"},
+        "market": market_meta(TX, sd, mser),
+        **calendar_gaps(TX, sd, all_dates, layers),
         "params": {"fc_days": days, "series_days": series_days, "backtest_days": backtest_days,
                    "residual_min": RESIDUAL_MIN, "min_members": MIN_MEMBERS, "r1_mult": R1_MULT, "r2_pp": R2_PP,
                    "r3_open": R3_OPEN, "r3_recover": R3_RECOVER, "sig_window_min": SIG_WIN_MIN,
@@ -718,7 +845,7 @@ def run(store, loader, group_hist: pd.DataFrame, price: pd.DataFrame, names: dic
             f = base / f"year={ym}" / "part.parquet"
             if f.exists():
                 df = pd.read_parquet(f)
-                frames.append(df[df["code"].astype(str).isin(codes)] if codes is not None else df)
+                frames.append(df[df["code"].astype(str).isin(codes)] if codes is not None and "code" in df.columns else df)
         return pd.concat(frames, ignore_index=True) if frames else pd.DataFrame()
 
     tape = _read_monthly("tape_5m")
@@ -726,6 +853,12 @@ def run(store, loader, group_hist: pd.DataFrame, price: pd.DataFrame, names: dic
         want |= set(tape["code"].astype(str))
     bars = _read_monthly("intraday_60m", want)
     inst = store.read("inst_daily", years=sorted({int(d[:4]) for d in dates[-FC_DAYS:]}))
+    # 加權指數：日線 index_ohlc（年分割，只取 TSE）、盤中 index_intraday（月分割，只取 TSE 的 1m／60m）
+    tx = store.read("index_ohlc", years=ys)
+    tx = tx[tx["symbol"] == "TSE"] if not tx.empty and "symbol" in tx.columns else pd.DataFrame()
+    txi = _read_monthly("index_intraday")
+    if not txi.empty:
+        txi = txi[(txi["symbol"] == "TSE") & (txi["interval"].isin(["1m", "60m"]))]
     res = build(group_hist, price, mem, tape, bars, store.read("news", years=ys), names,
-                material=store.read("material_news", years=ys), inst=inst)
+                material=store.read("material_news", years=ys), inst=inst, taiex_ohlc=tx, taiex_intra=txi)
     return write(res, outdir)
