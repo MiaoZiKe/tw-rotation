@@ -110,11 +110,12 @@
    "width": 1920,
    "height": 1277,
    "fetched_at": "2026-10-30T01:48:40+00:00",
-   "reviewed": true,
-   "reviewer": "art-director 審核清單（social-ops-lead 執行）",
-   "review_note": "2026-10-30 第五輪（公司照片優先）通過：廣達雲端伺服器（COSCUP 展示），代表產品，景深乾淨",
+   "reviewed": false,
+   "reviewer": "art-director",
+   "review_note": "2026-10-30 art-director 複審退件：伺服器無廣達標示、可辨識度不足，且右下角有攝影者署名字樣（\"by Aminzai\" 疑似浮水印，複審項 4、6）",
    "origin": "公司分類",
-   "reviewed_at": "2026-10-30"
+   "reviewed_at": "2026-10-30",
+   "reject_reason": "伺服器無廣達標示、可辨識度不足，且右下角有攝影者署名字樣（\"by Aminzai\" 疑似浮水印，複審項 4、6）"
   },
   {
    "file": "photo_6.jpg",

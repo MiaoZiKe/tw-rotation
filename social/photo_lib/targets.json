@@ -10,7 +10,14 @@
   "queries": [
    "TSMC Fab",
    "TSMC headquarters Hsinchu",
-   "TSMC building"
+   "TSMC building",
+   "TSMC Fab 12 Hsinchu",
+   "TSMC Fab 15 Taichung",
+   "TSMC Fab 14 Tainan",
+   "TSMC Baoshan",
+   "TSMC Hsinchu Science Park building",
+   "TSMC Kumamoto JASM",
+   "TSMC Arizona Phoenix fab"
   ],
   "product_queries": [
    "silicon wafer",
@@ -23,7 +30,17 @@
   "commons_categories": [
    "TSMC",
    "Taiwan Semiconductor Manufacturing Company",
-   "TSMC Arizona"
+   "TSMC Arizona",
+   "TSMC Fab 18",
+   "TSMC Fab 14",
+   "TSMC Fab 12",
+   "TSMC Fab 15",
+   "TSMC Fab 5",
+   "Hsinchu Science Park",
+   "Southern Taiwan Science Park",
+   "TSMC Headquarters",
+   "TSMC Nanjing",
+   "TSMC buildings"
   ]
  },
  {
@@ -157,7 +174,13 @@
   "category": "半導體",
   "queries": [
    "ASE Group Kaohsiung",
-   "Advanced Semiconductor Engineering building"
+   "Advanced Semiconductor Engineering building",
+   "ASE Kaohsiung K7 building",
+   "ASE Nantze Export Processing Zone",
+   "ASE Chungli campus",
+   "日月光 高雄 廠",
+   "ASE Penang",
+   "Advanced Semiconductor Engineering Kaohsiung plant"
   ],
   "product_queries": [
    "chip packaging",
@@ -169,7 +192,16 @@
   ],
   "commons_categories": [
    "ASE Technology Holding",
-   "Advanced Semiconductor Engineering"
+   "Advanced Semiconductor Engineering",
+   "ASE Group",
+   "ASE Kaohsiung",
+   "ASE Chungli",
+   "ASE Technology",
+   "ASE Inc.",
+   "Nantze Export Processing Zone",
+   "Kaohsiung Export Processing Zone",
+   "ASE Test",
+   "ASE Singapore"
   ]
  },
  {
@@ -885,7 +917,13 @@
   "category": "PCB",
   "queries": [
    "Unimicron building",
-   "Unimicron headquarters"
+   "Unimicron headquarters",
+   "Unimicron Taoyuan Gueishan",
+   "Unimicron Shanghai",
+   "Unimicron Hsinchu Yangmei",
+   "欣興電子 桃園",
+   "欣興電子 新竹",
+   "Unimicron Technology building"
   ],
   "product_queries": [
    "printed circuit board",
@@ -896,7 +934,13 @@
    "printed circuit board"
   ],
   "commons_categories": [
-   "Unimicron"
+   "Unimicron",
+   "Unimicron Technology",
+   "Unimicron Technology Corp",
+   "Unimicron Shanghai",
+   "Unimicron Taoyuan",
+   "Unimicron Hsinchu",
+   "Unimicron Shenzhen"
   ]
  },
  {
@@ -1053,7 +1097,12 @@
   "queries": [
    "Nvidia headquarters Santa Clara",
    "Nvidia Endeavor building",
-   "Nvidia Voyager building"
+   "Nvidia Voyager building",
+   "Nvidia Endeavor building Santa Clara",
+   "NVIDIA Taiwan Beitou",
+   "Nvidia GeForce RTX card",
+   "Nvidia Jetson",
+   "Nvidia DGX"
   ],
   "product_queries": [
    "Nvidia GeForce graphics card",
@@ -1067,7 +1116,14 @@
   "commons_categories": [
    "Nvidia headquarters",
    "Nvidia buildings",
-   "Nvidia"
+   "Nvidia",
+   "NVIDIA Corporation",
+   "Nvidia products",
+   "Nvidia Endeavor",
+   "Nvidia Voyager",
+   "Nvidia GPUs",
+   "Nvidia graphics cards",
+   "Nvidia Tegra"
   ]
  },
  {
@@ -1170,7 +1226,13 @@
    "Meta headquarters Menlo Park 1 Hacker Way",
    "Meta Platforms campus Menlo Park",
    "MPK 21 Menlo Park",
-   "Meta data center Prineville"
+   "Meta data center Prineville",
+   "Meta Menlo Park campus building",
+   "Facebook Prineville data center",
+   "Meta Quest 3 headset",
+   "Meta Ray-Ban glasses",
+   "Facebook headquarters Hacker Way",
+   "Meta London King's Cross"
   ],
   "product_queries": [
    "Meta Quest 3",
@@ -1184,7 +1246,17 @@
   "commons_categories": [
    "Meta Platforms headquarters",
    "Facebook headquarters",
-   "Meta Platforms offices"
+   "Meta Platforms offices",
+   "Meta Platforms",
+   "Facebook, Inc.",
+   "Meta Quest",
+   "Facebook data center",
+   "Meta Menlo Park",
+   "Facebook Menlo Park Campus",
+   "Meta Prineville data center",
+   "Facebook Prineville data center",
+   "MPK 20",
+   "Ray-Ban Meta"
   ]
  },
  {
@@ -1309,7 +1381,13 @@
    "Samsung Electronics headquarters Suwon",
    "Samsung Digital City",
    "Samsung Town Seoul",
-   "Samsung Pyeongtaek"
+   "Samsung Pyeongtaek",
+   "Samsung Giheung campus",
+   "Samsung Hwaseong semiconductor",
+   "Samsung Electronics Suwon building",
+   "Samsung Austin Semiconductor",
+   "Samsung Seocho Town",
+   "Samsung Galaxy phone"
   ],
   "product_queries": [
    "Samsung memory",
@@ -1323,7 +1401,15 @@
   "commons_categories": [
    "Samsung Digital City",
    "Samsung Electronics buildings",
-   "Samsung Town"
+   "Samsung Town",
+   "Samsung Electronics",
+   "Samsung Electronics headquarters",
+   "Samsung Electronics Pyeongtaek",
+   "Samsung Pyeongtaek Campus",
+   "Samsung Semiconductor",
+   "Samsung Austin Semiconductor",
+   "Samsung Giheung",
+   "Samsung Hwaseong"
   ]
  },
  {
@@ -1395,7 +1481,10 @@
   "queries": [
    "ASML Veldhoven headquarters",
    "ASML campus Veldhoven",
-   "ASML building Veldhoven"
+   "ASML building Veldhoven",
+   "ASML headquarters Veldhoven",
+   "ASML De Run 6501",
+   "ASML campus Veldhoven aerial"
   ],
   "product_queries": [
    "ASML EUV lithography machine",
@@ -1409,7 +1498,14 @@
   "key": "asml",
   "commons_categories": [
    "ASML Holding",
-   "ASML Veldhoven"
+   "ASML Veldhoven",
+   "ASML",
+   "ASML headquarters",
+   "ASML buildings",
+   "ASML Netherlands",
+   "ASML Wilton",
+   "ASML machines",
+   "ASML (company)"
   ]
  },
  {
@@ -1424,7 +1520,12 @@
    "Tesla Gigafactory Texas",
    "Gigafactory Nevada",
    "Tesla Fremont factory",
-   "Tesla headquarters Austin"
+   "Tesla headquarters Austin",
+   "Tesla Giga Texas aerial",
+   "Tesla Fremont Factory building",
+   "Tesla Gigafactory Berlin Grünheide",
+   "Tesla Model Y exterior",
+   "Tesla Cybertruck street"
   ],
   "product_queries": [
    "Tesla Model 3",
@@ -1438,7 +1539,17 @@
   "commons_categories": [
    "Giga Texas",
    "Tesla Fremont Factory",
-   "Giga Berlin"
+   "Giga Berlin",
+   "Gigafactory Nevada",
+   "Gigafactory Shanghai",
+   "Tesla Gigafactory Texas",
+   "Tesla Giga Texas",
+   "Tesla Inc.",
+   "Tesla headquarters",
+   "Tesla Supercharger",
+   "Tesla Model Y",
+   "Tesla Model 3",
+   "Tesla Cybertruck"
   ]
  },
  {
@@ -1497,7 +1608,9 @@
   "category": "資料中心",
   "queries": [
    "Anthropic office San Francisco",
-   "Anthropic headquarters Howard Street"
+   "Anthropic headquarters Howard Street",
+   "Anthropic San Francisco office building",
+   "500 Howard Street"
   ],
   "product_queries": [
    "data center GPU servers",
@@ -1508,7 +1621,10 @@
   ],
   "key": "anthropic",
   "commons_categories": [
-   "Anthropic"
+   "Anthropic",
+   "Claude (language model)",
+   "Anthropic headquarters",
+   "500 Howard Street San Francisco"
   ]
  },
  {
@@ -1520,7 +1636,10 @@
   "category": "資料中心",
   "queries": [
    "OpenAI headquarters San Francisco",
-   "OpenAI office Pioneer Building"
+   "OpenAI office Pioneer Building",
+   "Pioneer Building San Francisco OpenAI",
+   "Stargate Abilene data center",
+   "OpenAI Mission District"
   ],
   "product_queries": [
    "data center servers",
@@ -1531,7 +1650,13 @@
    "server room"
   ],
   "commons_categories": [
-   "OpenAI"
+   "OpenAI",
+   "OpenAI headquarters",
+   "Pioneer Building San Francisco",
+   "Pioneer Building (San Francisco)",
+   "ChatGPT",
+   "OpenAI Stargate",
+   "Stargate Abilene"
   ]
  },
  {
@@ -1571,7 +1696,11 @@
   "category": "半導體",
   "queries": [
    "Arm Holdings headquarters Cambridge",
-   "ARM Ltd building Cambridge"
+   "ARM Ltd building Cambridge",
+   "Arm Limited Cambridge headquarters",
+   "ARM Cortex-A chip die",
+   "110 Fulbourn Road",
+   "Arm Holdings Peterhouse Technology Park"
   ],
   "product_queries": [
    "ARM processor chip",
@@ -1581,7 +1710,17 @@
    "integrated circuit die"
   ],
   "commons_categories": [
-   "Arm Holdings"
+   "Arm Holdings",
+   "Arm Ltd",
+   "ARM architecture",
+   "ARM Holdings",
+   "ARM processors",
+   "Arm Holdings headquarters",
+   "ARM Cambridge",
+   "Raspberry Pi",
+   "Arm Cortex",
+   "Arm Limited Cambridge",
+   "110 Fulbourn Road Cambridge"
   ]
  },
  {
@@ -2259,7 +2398,9 @@
   "category": "資料中心",
   "queries": [
    "CoreWeave data center",
-   "CoreWeave office"
+   "CoreWeave office",
+   "CoreWeave Livingston New Jersey",
+   "CoreWeave headquarters"
   ],
   "product_queries": [
    "GPU servers data center"
@@ -2268,7 +2409,10 @@
    "data center"
   ],
   "commons_categories": [
-   "CoreWeave"
+   "CoreWeave",
+   "CoreWeave, Inc.",
+   "CoreWeave data centers",
+   "Core Scientific"
   ],
   "key": "coreweave"
  },
@@ -2282,7 +2426,10 @@
   "category": "記憶體",
   "queries": [
    "Nanya Technology building",
-   "Nanya Technology headquarters"
+   "Nanya Technology headquarters",
+   "Nanya Technology Corporation Linkou",
+   "Nanya Technology Taoyuan Guishan",
+   "南亞科技 林口"
   ],
   "product_queries": [
    "DRAM module",
@@ -2292,7 +2439,12 @@
    "DRAM chips"
   ],
   "commons_categories": [
-   "Nanya Technology"
+   "Nanya Technology",
+   "Nanya Technology Corporation",
+   "Nanya Technology Corp",
+   "Nanya DRAM",
+   "Nanya Technology buildings",
+   "Taishan, New Taipei"
   ],
   "key": "nanya"
  },
@@ -2306,7 +2458,11 @@
   "category": "PCB",
   "queries": [
    "Nan Ya PCB",
-   "Nan Ya Printed Circuit Board"
+   "Nan Ya Printed Circuit Board",
+   "Nan Ya PCB Shulin",
+   "Nan Ya PCB Kunshan",
+   "南亞電路板 樹林",
+   "南亞電路板 桃園"
   ],
   "product_queries": [
    "IC substrate",
@@ -2316,7 +2472,12 @@
    "printed circuit board"
   ],
   "commons_categories": [
-   "Nan Ya PCB"
+   "Nan Ya PCB",
+   "Nan Ya PCB Corporation",
+   "Nan Ya Printed Circuit Board Corporation",
+   "Nan Ya Printed Circuit Board",
+   "Formosa Plastics Group",
+   "Nanya Plastics"
   ],
   "key": "nan ya"
  },
@@ -2328,7 +2489,11 @@
   ],
   "category": "PCB",
   "queries": [
-   "Elite Material Co building"
+   "Elite Material Co building",
+   "Elite Material Taoyuan Zhongli",
+   "Elite Material Co Ltd building",
+   "台光電子 桃園",
+   "台光電子 楊梅"
   ],
   "product_queries": [
    "copper clad laminate",
@@ -2338,7 +2503,12 @@
    "printed circuit board"
   ],
   "commons_categories": [
-   "Elite Material"
+   "Elite Material",
+   "Elite Material Co., Ltd.",
+   "Elite Material Company",
+   "Elite Material Co.",
+   "Elite Material Taoyuan",
+   "Elite Material Corporation"
   ],
   "key": "elite"
  }

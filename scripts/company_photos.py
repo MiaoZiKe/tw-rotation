@@ -24,7 +24,7 @@ BAD_WORD = re.compile(r"logo|icon|map|chart|graph|diagram|screenshot|portrait|ce
                       r"stock certificate|protest|fire|accident|crash|wreck|selfie|interview|speech|keynote", re.I)
 PLACE = re.compile(r"headquarter|\bhq\b|building|campus|office|fab\b|fab\d|factory|plant|tower|park|center|centre|plex|spheres|"
                    r"gigafactory|refinery|works|ship|vessel|site|facility|總部|本社|大樓|廠|園區", re.I)
-QUOTA = {"公司分類": 4, "總部/廠房": 2, "產品": 2, "相關場景": 1}
+QUOTA = {"公司分類": 6, "總部/廠房": 3, "產品": 2, "相關場景": 1}
 CAT_MAX = 8
 STOP = {"the", "and", "of", "in", "at", "for", "with", "taiwan", "data", "center", "close", "up"}
 

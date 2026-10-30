@@ -135,11 +135,12 @@
    "width": 1920,
    "height": 1280,
    "fetched_at": "2026-10-30T01:49:19+00:00",
-   "reviewed": true,
-   "reviewer": "art-director 審核清單（social-ops-lead 執行）",
-   "review_note": "2026-10-30 第五輪（公司照片優先）通過：Apple Park 環形主建築（樹後），黃昏原色、主體可辨",
+   "reviewed": false,
+   "reviewer": "art-director",
+   "review_note": "2026-10-30 art-director 複審退件：主體（環形屋頂）被樹木遮住大半，裁成封面橫幅後辨識不足（複審項 5）",
    "origin": "公司分類",
-   "reviewed_at": "2026-10-30"
+   "reviewed_at": "2026-10-30",
+   "reject_reason": "主體（環形屋頂）被樹木遮住大半，裁成封面橫幅後辨識不足（複審項 5）"
   },
   {
    "file": "photo_7.jpg",
@@ -206,11 +207,12 @@
    "width": 1920,
    "height": 1280,
    "fetched_at": "2026-10-30T01:49:19+00:00",
-   "reviewed": true,
-   "reviewer": "art-director 審核清單（social-ops-lead 執行）",
-   "review_note": "2026-10-30 第五輪（公司照片優先）通過：Apple Park 建築入口，日間、構圖乾淨",
+   "reviewed": false,
+   "reviewer": "art-director",
+   "review_note": "2026-10-30 art-director 複審退件：畫面無 Apple 招牌或標誌，僅門牌號碼，無法辨識為 Apple（複審項 1）",
    "origin": "公司分類",
-   "reviewed_at": "2026-10-30"
+   "reviewed_at": "2026-10-30",
+   "reject_reason": "畫面無 Apple 招牌或標誌，僅門牌號碼，無法辨識為 Apple（複審項 1）"
   }
  ],
  "rejected": [
