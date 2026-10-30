@@ -1,6 +1,6 @@
 """盤中／盤後社群貼文用的即時截圖＋排版＋manifest（Threads、IG 限動）。
 
-Andy 2026-10-20：「我需要在盤中發布當下即時狀況在 Threads 上和 IG 限動：資金輪盤、分流樹即時截圖
+Andy 2026-10-20：「我需要在盤中發布當下即時狀況在 Threads 上和 IG 限動：強弱輪動、分流樹即時截圖
 （包含旁邊的長條圖）；熱力圖都需要具備即時功能、也是截圖發布的內容；盤後提供當天即時的法人買賣超狀況；
 排版只需要提供當前狀況，大家需要看。」
 
@@ -9,7 +9,7 @@ Andy 2026-10-20：「我需要在盤中發布當下即時狀況在 Threads 上�
 1. Playwright 開網站（預設正式站；--base 可換本機），亮色主題、桌機寬 1440，切到「即時」，等即時資料套上，截卡片。
 2. 把每張截圖排成兩種版型（用瀏覽器渲染，才有真正的中文字型）：
    · IG 限動 1080×1920：改截「手機版面」（viewport 390、輸出 1080 寬），截圖區撐滿畫面（≥75% 高）。
-     太長的卡拆成兩張（資金輪盤＝「輪盤」＋「族群資金排行長條圖」；分流樹＝「樹」＋「排名前 10」）。
+     太長的卡拆成兩張（強弱輪動＝「輪盤」＋「族群資金排行長條圖」；分流樹＝「樹」＋「排名前 10」）。
    · Threads（桌機寬 1440 的截圖）：1080 寬，同樣標題列與底部一行；貼文文字 2～4 行（時間、重點一句、免責、網址）。
 3. 排版後用程式量每個元素的框，兩兩不得相交（layout_report.json），有重疊就非 0 結束。
 4. 寫 manifest.json 給 scripts/social_publish.py。
@@ -215,7 +215,7 @@ def save_recent(out: Path) -> None:
 
 
 def ctx_from_shots(ok: dict) -> dict:
-    """從截圖讀到的資料抽出領漲族群：資金輪盤「領先」→ 資金分流樹「流入前五」→ 熱力圖漲最多。"""
+    """從截圖讀到的資料抽出領漲族群：強弱輪動「領先」→ 資金分流樹「流入前五」→ 熱力圖漲最多。"""
     out: list = []
     d = {k: v for k, v in (ok.get("rotation") or {}).get("lines", [])}
     out += list(d.get("領先") or [])
@@ -237,7 +237,7 @@ def link_lines(kind: str, ymd: str, platform: str = "th", route: str = "", func:
     return [LINK_LINES[0], link_url(kind, ymd, platform, route, func)]
 # 標題與段名前的表情符號（2026-10-26 Andy：「搭配些表情符號，除了個股」→ 只加在標題／段名，列股票名稱的「・」行不加）
 EMOJI = {"盤面分析：": "🧭", "盤中3分鐘": "🕛", "盤後3分鐘": "🌙", "盤後3分鐘｜法人補充": "🌙", "盤後融資融券": "💳",
-         "資金輪盤：": "🎡", "資金分流樹：": "🌳", "熱力圖：": "🔥",
+         "強弱輪動：": "🎡", "資金分流樹：": "🌳", "熱力圖：": "🔥",
          "台指期法人淨未平倉：": "📊", "散戶多空比：": "⚖️", "三大法人買賣超：": "🏦", "外資：": "🌏", "投信：": "🏢",
          "ETF 買超：": "📦", "融資維持率：": "🛡️", "融資：": "📈", "融券：": "📉"}
 
@@ -366,7 +366,7 @@ ROT_UNCHECK = """async (el) => {   // 把「顯示軌跡／顯示腳印／水波
   if (opened) { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); await wait(400); }
   return cbs.length;
 }"""
-ROT_PIECES = [dict(name="rotation-wheel", sel="#rotClockWrap", title="資金輪盤", text="quad", pre=ROT_UNCHECK, trim_bottom_m=32, trim_bottom_d=17),   # 輪盤底下那行「⚡ 即時：灰虛線…」是畫布文字，只能裁掉
+ROT_PIECES = [dict(name="rotation-wheel", sel="#rotClockWrap", title="強弱輪動", text="quad", pre=ROT_UNCHECK, trim_bottom_m=32, trim_bottom_d=17),   # 輪盤底下那行「⚡ 即時：灰虛線…」是畫布文字，只能裁掉
               dict(name="rotation-rank", sel="#rankFlowWrap", title="族群資金排行", pre_m=ROT_RANK_TALLER)]
 SANKEY_STORY_VW, SANKEY_STORY_VH, SANKEY_STORY_DSF = 910, 1300, 1.3
 SANKEY_STORY_COLS = [0.36, 0.70, 1.0]   # 限動版欄位比例（產業鏈／族群／代表股）：葉標籤右緣貼近卡片右內緣
@@ -463,7 +463,7 @@ READ_RK = ("() => { const c = [...document.querySelectorAll('#mfRankBody > *')].
 READ_FUT = "() => ((document.querySelector('#fpBig3') || {}).innerText || '').replace(/\\s+/g, ' ').trim()"
 READ_RET = "() => window.__ret || { pct: '', prod: '' }"
 TARGETS = [
-    dict(name="rotation", snap="rot-wheel", kind="intraday", label="資金輪盤／族群資金排行", route="flow/rotation",
+    dict(name="rotation", snap="rot-wheel", kind="intraday", label="強弱輪動／族群資金排行", route="flow/rotation",
          card="#flowRotCard", live="#rotLiveBtn",
          live_ok="() => { const b = document.querySelector('#rotLiveBtn'); const t = document.querySelector('#rotLiveTag');"
                  " return !!b && b.getAttribute('aria-pressed') === 'true' && !!t && !t.hidden && !/抓取中|抓不到|失敗|逾時|連不到/.test(t.innerText); }",
@@ -527,7 +527,7 @@ TARGETS = [
 
 # 每張的標題＝功能名稱本身（Andy 10-20：「標題就是這功能」），副標是小字；全部畫面與貼文不出現「即時」字樣
 PIECE_META = {
-    "rotation-wheel": ("資金輪盤", "族群在哪個象限"),
+    "rotation-wheel": ("強弱輪動", "族群在哪個象限"),
     "rotation-rank": ("族群資金排行", "各族群資金占比變化（pp）"),
     "sankey-tree": ("資金分流樹", "成交值依產業鏈流向族群"),
     "heat": ("資金熱力圖", "產業一次看（上）、題材資金熱力（下）"),
@@ -1942,7 +1942,7 @@ def _caption_lines(kind: str, stamp: str, shots: list[dict], data_date: str, ymd
         if s:
             d = {k: v for k, v in s.get("lines", [])}
             if d.get("領先") and d.get("落後"):
-                L += ["資金輪盤：", f"・領先 {_join(d['領先'], n)}；", f"・落後 {_join(d['落後'], n)}"]
+                L += ["強弱輪動：", f"・領先 {_join(d['領先'], n)}；", f"・落後 {_join(d['落後'], n)}"]
         s = ok.get("sankey")
         if s:
             d = {k: v for k, v in s.get("notes", [])}

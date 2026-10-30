@@ -59,7 +59,7 @@
       // 2026-10-08 手機 v2：底部那排換成左上角 ☰ 側欄抽屜（mobile4.js），分組跟電腦版一樣
       m: '左上角 ☰ 打開全站目錄，分組跟電腦版一樣。接下來逐頁介紹；不想看，按「跳過導覽」隨時結束。' },
     { t: '總覽：今天市場的全貌', sel: [tab('overview'), '#m4Title'], route: '#overview', routeRe: /^#?(overview)?$/, view: 'overview', fast: true,
-      d: '大盤三張走勢圖、四張摘要卡、資金熱力圖、資金輪盤、熱門題材與資金分流樹都在這一頁，十秒看完今天的大概。' },
+      d: '大盤三張走勢圖、四張摘要卡、資金熱力圖、強弱輪動、熱門題材與資金分流樹都在這一頁，十秒看完今天的大概。' },
     /* 2026-10-16（Andy：「精選文章其他分頁有的功能 他也要有 例如導覽」）：左側選單「今日市場」第二格 */
     { t: '精選文章：整理過的文章', sel: [tab('articles'), '#m4Title'], route: '#articles', routeRe: /^#articles/, view: 'articles', fast: true,
       d: '分比比快訊、比比產業鏈、比比知識三類；文中的數字整理成圖表與示意圖，並連到相關族群與個股頁。' },
@@ -110,7 +110,7 @@
      比對時去掉空白：手機把步驟鈕寫成 <em>①</em><b>錢往哪跑</b>，textContent 中間沒有空白。 */
   /* 2026-10-09：手機 v2（html.m4）總覽的分段只剩三段「大盤｜資金流向｜熱度」（app.js miaPager 把舊的六段併成三段），
      舊字（資金輪盤、熱力圖…）在 m4 上一個都按不到 → 那幾步全被跳過（實測 402 總覽導覽只剩 5 步）。這裡把舊字對到 m4 的新段名。 */
-  const M4SEG = { '資金輪盤': '資金流向', '資金分流樹': '資金流向', '熱力圖': '熱度', '熱門題材': '熱度', '市場寬度': '大盤' };
+  const M4SEG = { '強弱輪動': '資金流向', '資金分流樹': '資金流向', '熱力圖': '熱度', '熱門題材': '熱度', '市場寬度': '大盤' };
   const mseg = (spine, pager0) => async () => {
     const pager = (document.documentElement.classList.contains('m4') && M4SEG[pager0]) || pager0;
     const pick = (box, word) => {
@@ -156,16 +156,16 @@
   ];
   const OVERVIEW = [
     { t: '四張摘要卡', sel: ['#ovSumTrack', '#hero'], route: '#overview', routeRe: /^#?(overview)?$/, view: 'overview',
-      d: '漲跌家數、資金輪盤、資金分流樹、熱門題材各一張，十秒看完今天的大概；點卡片可以看下面更完整的圖。',
-      m: '漲跌家數、資金輪盤、資金分流樹、熱門題材各一張，左右滑看全部；點卡片看更完整的圖。' },
-    { t: '分段看', sel: ['.view.on .mspine', '.view.on .mpager'], union: true, only: 'mob', before: mseg('錢往哪跑', '資金輪盤'),
+      d: '漲跌家數、強弱輪動、資金分流樹、熱門題材各一張，十秒看完今天的大概；點卡片可以看下面更完整的圖。',
+      m: '漲跌家數、強弱輪動、資金分流樹、熱門題材各一張，左右滑看全部；點卡片看更完整的圖。' },
+    { t: '分段看', sel: ['.view.on .mspine', '.view.on .mpager'], union: true, only: 'mob', before: mseg('錢往哪跑', '強弱輪動'),
       d: '手機上的總覽分成幾段：上面那排切段落，下面那排切同一段裡的不同圖，一次顯示一張。接下來依序打開。' },
     { t: '大盤三張圖', sel: ['#m3Mode', '#m3Grid'], union: true, before: mseg('貴不貴', '大盤'),
       d: '加權指數、櫃買指數、台指期今天怎麼走。左上切「走勢圖／K 線」；虛線＝昨天收盤價，線在虛線上面代表比昨天高。',
       m: '加權指數、櫃買指數、台指期今天怎麼走，左右滑看三張。虛線＝昨天收盤價，線在虛線上面代表比昨天高。' },
     { t: '資金熱力圖', sel: '#ovHeatCard', before: mseg('錢往哪跑', '熱力圖'),
       d: '一格是一個族群，越大＝成交值越多。顏色看近 5 日比近 20 日的資金佔比：紅＝錢在流進、綠＝錢在退出，不是今天的漲跌。' },
-    { t: '資金輪盤', sel: '#ovRotCard', before: mseg('錢往哪跑', '資金輪盤'),
+    { t: '強弱輪動', sel: '#ovRotCard', before: mseg('錢往哪跑', '強弱輪動'),
       d: '每顆點是一個族群，依「相對強度」與「動能」（都跟大盤比）分成四段，順時針：落後 → 改善 → 領先 → 轉弱。點越大＝成交值佔比越高。' },
     { t: '熱門題材', sel: '#ovThemeCard', before: mseg('錢往哪跑', '熱門題材'),
       d: '讀法跟資金熱力圖一樣，換成題材（例如 AI 伺服器、CoWoS）：方塊大小＝成交值，顏色＝熱度 0～100（資金、法人、新聞合成）。' },
@@ -177,7 +177,7 @@
     { t: '今日事件', sel: ['#ovEvents', '#m4Burger'], only: 'mob', before: mseg('理由', '今日事件'),
       d: '當天的新聞、公告與行事曆，依時間排列；點一則看內容。',
       m: '當天的新聞、公告與行事曆在左上角 ☰ 最上面的「事件」，數字是今天的則數；點一則看內容。' },
-    { t: '看不懂就按「?」', sel: ['#ovHeatCard .howbtn', '#ovRotCard .howbtn', '.view.on .howbtn'], before: mseg('錢往哪跑', '資金輪盤'),
+    { t: '看不懂就按「?」', sel: ['#ovHeatCard .howbtn', '#ovRotCard .howbtn', '.view.on .howbtn'], before: mseg('錢往哪跑', '強弱輪動'),
       d: '每張卡標題旁都有一顆「?」，點開是這張圖完整的讀法與資料口徑。' },
   ];
 
@@ -187,7 +187,7 @@
     { t: '分段看', sel: ['.view.on .mpager', '#m4Title .m4subtabs'], only: 'mob', route: '#flow/rotation', routeRe: /^#flow/, mrouteRe: /^#flow(\/rotation)?\/?$/, view: 'flow', before: mseg(null, '輪動'),
       d: '手機上的資金流向分四段：輪動、資金分流樹、法人、集中度，點一段只顯示那一張圖。接下來依序打開。',
       m: '上面四格頁籤：資金輪動、資金分流樹、族群×法人、集中度，點一格只顯示那一張圖。接下來依序打開。' },
-    { t: '資金輪盤', sel: ['#rotClockWrap', '#mRadarFlow'], route: '#flow/rotation', routeRe: /^#flow(\/rotation)?$/, mobRe: /^#flow/, view: 'flow', before: mseg(null, '輪動'),
+    { t: '強弱輪動', sel: ['#rotClockWrap', '#mRadarFlow'], route: '#flow/rotation', routeRe: /^#flow(\/rotation)?$/, mobRe: /^#flow/, view: 'flow', before: mseg(null, '輪動'),
       d: '每顆點是一個族群。右上「領先」＝相對強度與動能都高於大盤，左下「落後」＝兩者都低；順時針輪動：落後 → 改善 → 領先 → 轉弱。' },
     { t: '資金排行', sel: ['#rankFlowWrap', '#mRank'],
       d: '這段期間各族群成交值佔比的變化：紅＝錢流進、綠＝錢退出，由多到少排。' },

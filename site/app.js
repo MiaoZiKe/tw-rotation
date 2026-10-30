@@ -2685,7 +2685,7 @@
   };
   /* 手機 v2（html.m4）總覽：舊分段名 → 合併後的組名（Andy 10-08「大盤也是跟市場寬度一樣」「資金輪盤跟分流樹同一個點擊標籤」
      「熱力圖也是上下分」）。miaPager 用它組三組、ovsJump 用它把舊分段名換成組名 —— 只有一份，兩邊不會對不起來。 */
-  const M4_OV_SEG = { '大盤': '大盤', '市場寬度': '大盤', '資金輪盤': '資金流向', '資金分流樹': '資金流向', '熱力圖': '熱度', '熱門題材': '熱度' };
+  const M4_OV_SEG = { '大盤': '大盤', '市場寬度': '大盤', '強弱輪動': '資金流向', '資金分流樹': '資金流向', '熱力圖': '熱度', '熱門題材': '熱度' };
   function miaPager(key, prefer) {
     const view = document.querySelector('main .view.on');
     if (!view) return;
@@ -4196,7 +4196,7 @@
       + '不是買賣建議，也不構成投資建議。本站非證券投資顧問，投資決策與風險由使用者自行判斷並承擔。'],
     rot: [DISC_LINE,
       '改善／領先／轉弱／落後四個階段、族群資金排行，以及旁邊的描述（例如「相對強度仍高、動能轉弱」），都是依族群相對大盤的強弱與動能'
-      + '用固定規則判讀，只描述資金目前的位置，不是買賣建議，也不構成投資建議。本站非證券投資顧問。'],
+      + '用固定規則判讀，描述的是價格強弱（不是資金流入流出），不是買賣建議，也不構成投資建議。本站非證券投資顧問。'],
     tag: [DISC_LINE,
       '符合／未符合是用月營收、季報與籌碼資料套固定條件算出來的描述，不是買賣建議，也不構成投資建議。本站非證券投資顧問。'],
     fund: [DISC_LINE,
@@ -4671,7 +4671,7 @@
       cnt, best,
       bar: OVS_ROT_ORDER.map(k => ovsSeg(cnt[k], OVS_ROT_COL[k], `${STAGE[k].name} ${cnt[k]} 個族群：${STAGE[k].sub}`)).join(''),
       nums: all.length ? OVS_ROT_ORDER.map(k => ovsNum(STAGE[k].name, cnt[k], null, '', ` data-v="${k}" style="--c:${OVS_ROT_COL[k]}"`)).join('')
-        : '<span class="muted">資金輪盤需要至少 20 個交易日</span>',
+        : '<span class="muted">強弱輪動需要至少 20 個交易日</span>',
     };
   }
   const OVS_FLOW_COL = ['var(--cyan)', 'var(--violet)', 'var(--amber)'];
@@ -4732,8 +4732,8 @@
       const P = ovsRotParts(all);
       const best = P.best;
       cards.push(ovsCard('rot', {
-        title: '資金輪盤', icon: 'compass', color: 'var(--cyan)', date: f3 && f3.date,
-        aria: `資金輪盤：${OVS_ROT_ORDER.map(k => STAGE[k].name + ' ' + P.cnt[k]).join('、')}。點一下捲到資金輪盤`,
+        title: '強弱輪動', icon: 'compass', color: 'var(--cyan)', date: f3 && f3.date,
+        aria: `強弱輪動：${OVS_ROT_ORDER.map(k => STAGE[k].name + ' ' + P.cnt[k]).join('、')}。點一下捲到強弱輪動`,
         bar: P.bar, nums: P.nums,
         foot: best ? `最強 <b>${fmt.esc(best.name)}</b><span class="muted">（${STAGE[best.stage] ? STAGE[best.stage].name : '—'}）・成交值前 10 大中</span>` : '',
         ds: { rotN: all.length },
@@ -4805,7 +4805,7 @@
 
     host.classList.add('ovsum');
     host.classList.remove('hero', 'ovstrip');
-    host.setAttribute('aria-label', '今日摘要：漲跌家數、資金輪盤、資金分流樹、熱門題材');
+    host.setAttribute('aria-label', '今日摘要：漲跌家數、強弱輪動、資金分流樹、熱門題材');
     /* ⚠ 最後那個看不見的 [data-lc="t00"]：以前 KPI 細列的「加權指數」格帶著它，live.js 靠掃畫面上的 [data-lc] 決定要跟 mis 要哪些報價
        （codesOnScreen）。那一格拿掉之後總覽上就沒有人要加權 —— 手機指數列（mobile3.js hmLiveIdx）讀的 window.Live.quotes.t00
        會永遠停在盤後值。留一個標記讓 live.js 照舊把加權抓回來；它沒有 data-live，所以 live.js 不會去改它的字。
@@ -4834,7 +4834,7 @@
         ovsJump('熱門題材', 'ovThemeCard');
         return;
       }
-      if (k === 'rot') ovsJump('資金輪盤', 'ovRotCard');
+      if (k === 'rot') ovsJump('強弱輪動', 'ovRotCard');
       if (k === 'flow') ovsJump('資金分流樹', 'ovFlowHead', true);
     };
     $$('.osc', host).forEach(c => {
@@ -4987,7 +4987,7 @@
       html: { bar: P.bar, nums: P.nums,
         foot: `<span class="muted">即時估算 ${liveN} 族群・</span>`
           + (best ? `最強 <b>${fmt.esc(best.name)}</b><span class="muted">（${STAGE[best.stage] ? STAGE[best.stage].name : '—'}）</span>` : ''),
-        aria: `資金輪盤（即時估算，${liveN} 個族群用即時報價續算）：${OVS_ROT_ORDER.map(k => STAGE[k].name + ' ' + P.cnt[k]).join('、')}。點一下捲到資金輪盤`,
+        aria: `強弱輪動（即時估算，${liveN} 個族群用即時報價續算）：${OVS_ROT_ORDER.map(k => STAGE[k].name + ' ' + P.cnt[k]).join('、')}。點一下捲到強弱輪動`,
         ds: { rotN: all.length } },
       info: { n: r.hit, at: r.at, tip: `${liveN} 個族群以 ${r.hit} 檔即時報價續算，其餘 ${r.skipped} 個維持盤後位置。成交值為估算（價 × 量）；大盤為這批的代理值（${fmt.pct((r.mkt || 0) * 100, 2)}）。` },
     };
@@ -7671,7 +7671,7 @@
           was: null, moved: vr.stage0 !== stageOf(vr.x, vr.y) };
       });
     }
-    if (!top0.length) return empty(id, '資金輪盤需要至少 20 個交易日');
+    if (!top0.length) return empty(id, '強弱輪動需要至少 20 個交易日');
     /* 兩個軸的尺度差很多：相對強弱常常差好幾點，動能只差零點幾。
        直接拿原始值算角度，所有族群會擠在水平線上（＝兩段的交界），根本看不出在哪一段。
        所以各自除以自己的最大偏離量再算角度 —— 正負號沒動，四段的歸屬完全不變，
@@ -8780,7 +8780,7 @@
   function renderRotation(rrg, back, ids) {
     const rows = rotRows(rrg, back);
     if (!rows.length) {
-      if (ids.clock) empty(ids.clock, '資金輪盤需要至少 20 個交易日');
+      if (ids.clock) empty(ids.clock, '強弱輪動需要至少 20 個交易日');
       return;
     }
     if (ids.clock) renderRotClock(rows, back, ids.clock, !!ids.compact,
@@ -10057,15 +10057,16 @@
        拿掉的只有「怎麼操作」的長篇解說（畫面上的鈕自己會說話）；**讀法與誠實界線一條都沒少**：
        四段的意思、兩圈虛線、腳印、即時的慣性／今天推的、權重是估的、大盤是代理值，都還在。
        ★ 2026-09-26 晚（Andy：「先退回到有腳印那版本」）：腳印與軌跡恢復，標題沿用改名後的「資金輪盤」。*/
-    rot: `<b>錢往哪個族群跑（右：排行），那個族群跑到循環的哪一段（左：資金輪盤）。</b>
-      <ul><li><b>四段</b>：落後 → 改善 → 領先 → 轉弱，順時針輪一圈。<em>改善</em>＝相對強度低於大盤、動能高於大盤；
+    rot: `<b>左：強弱輪動＝看族群股價相對大盤是變強還是變弱；右：資金排行＝錢（成交值占比）往哪個族群跑。</b>
+      <ul><li><b>注意</b>：左圖是<em>價格</em>強弱，不是資金流入；資金看右邊排行。用法：排行裡錢流進的族群，到左邊看它在哪一段。</li>
+      <li><b>四段</b>：落後 → 改善 → 領先 → 轉弱，順時針輪一圈。<em>改善</em>＝相對強度低於大盤、動能高於大盤；
         <em>領先</em>＝相對強度與動能都高於大盤；<em>轉弱</em>＝相對強度仍高、動能轉弱；<em>落後</em>＝相對強度與動能都低於大盤。</li>
       <li><b>一顆點＝一個族群</b>：越大＝成交值佔比越高；離圓心越遠＝跟大盤差越多。
-        兩圈虛線＝今天最大偏離的 25%／今天偏離最大的那個族群（100%），圈上有標。<em>距離用平方根尺度</em>：靠圓心的點被拉開，所以內圈只代表 25% 而不是一半 —— 比遠近看「在哪一圈」，不要拿尺量。</li>
+        兩圈虛線＝今天最大偏離的 25%／今天偏離最大的那個族群（100%），圈上有標。<em>距離是平方根尺度</em>，看「在哪一圈」，不要拿尺量。</li>
       <li><b>小腳印</b>＝這幾天走過的路，越新越清楚，腳尖朝前進的方向。每顆點都有，佔比前 3 ＋ 最近換段的較清楚、
         其他淡；滑到哪顆就提亮哪顆。外圈多一圈色環＝最近 5 天剛換段。</li>
       <li><b>拉Bar</b>＝看幾天前到最新（1～30 天），排行比的也是這一段。</li>
-      <li><b>篩選</b>：上面兩個下拉（產業鏈、族群）與「只看前 10 大」，排行與輪盤一起篩。</li>
+      <li><b>篩選</b>：兩個下拉與「只看前 10 大」，排行與輪盤一起篩。</li>
       <li><b>排行</b>：長條＝成交值佔比變化（pp），紅＝錢流進、綠＝錢退出。</li>
       <li><b>兩張圖連動</b>：滑到輪盤的點或排行的長條，另一張同一個族群跟著亮、其他變淡 —— 用來對「錢流進最多的族群跑到循環哪一段」。
         點一下＝鎖定，再點一下＝展開成分股；點空白處取消。</li>
@@ -10077,7 +10078,7 @@
        副標是讀數（幾號盤後、幾個族群、合計多少），所以寫成函式：每次打開都讀當下 #ovFlowSub 的內容。*/
     rotm: () => {
       const sub = (($('#ovFlowSub') || {}).textContent || '').split('　·　')[0];
-      return `<b>族群跑到強弱循環的哪一段。</b>
+      return `<b>看族群股價相對大盤是變強還是變弱（價格強弱，不是資金流入）。</b>
       <ul><li>順時針：<em>落後 → 改善 → 領先 → 轉弱</em>。改善＝強度低、動能高；領先＝兩者都高；轉弱＝強度高、動能低；落後＝兩者都低（都是相對大盤）。</li>
       <li>越大＝佔比越高；離圓心越遠＝跟大盤差越多。</li></ul>`;
     },

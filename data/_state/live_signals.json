@@ -1,22 +1,22 @@
 {
  "disclaimer": "研究用，不是買賣建議，不會下單。",
  "rows_added": 0,
- "data_last": "2026-10-29",
+ "data_last": "2026-10-30",
  "signals": {
   "disclaimer": "研究用，不是買賣建議，不會下單。",
-  "asof": "2026-10-29",
+  "asof": "2026-10-30",
   "E2": {
-   "tse_close": 46368.33,
-   "ma200": 40610.2563,
-   "upper": 41422.461426,
-   "lower": 39798.051174,
+   "tse_close": 45211.83,
+   "ma200": 40692.261,
+   "upper": 41506.10622,
+   "lower": 39878.415779999996,
    "state": "線上（持 100% 正二）"
   },
   "F2": {
    "next_settle": "2026-11-18",
    "roll_tomorrow": false,
    "next_check": "2026-11-02",
-   "check_tomorrow": false
+   "check_tomorrow": true
   },
   "E2SAT": {
    "持有衛星": [
@@ -36,33 +36,33 @@
    "目標權重": "80% E2 + 20% 衛星"
   },
   "BENCH_last": {
-   "date": "2026-10-29 00:00:00",
-   "nav": 9880086.465654174,
-   "plan_cum": -0.011991353434582575,
+   "date": "2026-10-30 00:00:00",
+   "nav": 9668205.823500285,
+   "plan_cum": -0.033179417649971454,
    "action": ""
   },
   "E2_last": {
-   "date": "2026-10-29 00:00:00",
-   "nav": 9769563.57780778,
-   "plan_cum": -0.02304364221922195,
+   "date": "2026-10-30 00:00:00",
+   "nav": 9298642.848088987,
+   "plan_cum": -0.07013571519110129,
    "action": ""
   },
   "F2_last": {
-   "date": "2026-10-29 00:00:00",
-   "nav": 9888061.220235607,
-   "plan_cum": -0.011193877976439337,
+   "date": "2026-10-30 00:00:00",
+   "nav": 9535512.537375329,
+   "plan_cum": -0.04644874626246709,
    "action": ""
   },
   "SAT_last": {
-   "date": "2026-10-29 00:00:00",
-   "nav": 9815588.149351647,
-   "plan_cum": -0.018441185064835275,
+   "date": "2026-10-30 00:00:00",
+   "nav": 9599450.36398004,
+   "plan_cum": -0.04005496360199601,
    "action": ""
   },
   "E2SAT_last": {
-   "date": "2026-10-29 00:00:00",
-   "nav": 9778893.134505752,
-   "plan_cum": -0.02211068654942472,
+   "date": "2026-10-30 00:00:00",
+   "nav": 9358926.249049598,
+   "plan_cum": -0.06410737509504016,
    "action": ""
   }
  },
@@ -71,81 +71,9 @@
   "disclaimer": "研究用，不是買賣建議，不會下單。",
   "start": "2026-10-29",
   "status": "ok",
-  "rows_added": 2,
-  "signal_rows_added": 10,
+  "rows_added": 0,
+  "signal_rows_added": 0,
   "data_last": "2026-10-30",
-  "watch_top": [
-   {
-    "rank": 1,
-    "code": "2466",
-    "name": "冠西電",
-    "group": "ind_光電業",
-    "score": 99.7
-   },
-   {
-    "rank": 2,
-    "code": "6179",
-    "name": "亞通",
-    "group": "ind_其他",
-    "score": 97.0
-   },
-   {
-    "rank": 3,
-    "code": "2465",
-    "name": "麗臺",
-    "group": "ai_pc",
-    "score": 96.9
-   },
-   {
-    "rank": 4,
-    "code": "2347",
-    "name": "聯強",
-    "group": "ic_distribution",
-    "score": 92.5
-   },
-   {
-    "rank": 5,
-    "code": "3498",
-    "name": "陽程",
-    "group": "pkg_equipment",
-    "score": 92.0
-   },
-   {
-    "rank": 6,
-    "code": "4526",
-    "name": "東台",
-    "group": "machine_tool",
-    "score": 91.8
-   },
-   {
-    "rank": 7,
-    "code": "6214",
-    "name": "精誠",
-    "group": "cloud_msp",
-    "score": 91.8
-   },
-   {
-    "rank": 8,
-    "code": "2609",
-    "name": "陽明",
-    "group": "shipping_container",
-    "score": 90.8
-   },
-   {
-    "rank": 9,
-    "code": "2615",
-    "name": "萬海",
-    "group": "shipping_container",
-    "score": 90.0
-   },
-   {
-    "rank": 10,
-    "code": "6199",
-    "name": "天品",
-    "group": "ind_其他",
-    "score": 89.0
-   }
-  ],
   "SWING": {
    "nav": 10000000.0,
    "positions": [],
@@ -209,5 +137,5 @@
    ]
   }
  },
- "generated": "2026-10-30T07:34Z"
+ "generated": "2026-10-30T09:15Z"
 }
