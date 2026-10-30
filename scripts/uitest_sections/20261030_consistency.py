@@ -90,19 +90,14 @@ def t_consistency_1030(b, base):
       const c = t('#ovBreadthCard').match(/上漲\\s*([\\d,]+)\\s*家、下跌\\s*([\\d,]+)\\s*家、平盤\\s*([\\d,]+)\\s*家/);
       const n = (x) => x && x.slice(1).map(v => +String(v).replace(/,/g, ''));
       const cc = n(c); return { a: n(a), c: cc && [cc[0], cc[2], cc[1]], r: n(r) }; }   // 分佈卡文字順序是 上漲／下跌／平盤，換成跟摘要卡一樣的 上漲／平盤／下跌""")
-    ctx3, pg3 = open_page("#market")
-    wait_until(pg3, "() => /漲\\s*／/.test((document.getElementById('mktTitle') || {}).innerText || '')", 20000)
-    m = _re.search(r"(\d[\d,]*)\s*漲／\s*(\d[\d,]*)\s*跌", text(pg3, "#mktTitle").replace("\n", " "))
-    mk = [int(m.group(1).replace(",", "")), int(m.group(2).replace(",", ""))] if m else None
     ok(f"[{T}] ③ 漲跌家數：總覽摘要卡（上漲／平盤／下跌）＝總覽漲跌家數分佈卡", bool(s3["a"]) and s3["a"] == s3["c"], s3)
-    ok(f"[{T}] ③ ★ 漲跌家數：市場明細標題的「N 漲／M 跌」＝總覽摘要卡的上漲／下跌（以前差 ETF 那幾十檔）", bool(mk) and bool(s3["a"]) and mk == [s3["a"][0], s3["a"][2]], [mk, s3["a"]])
     # ④ 資金輪盤四段
     ctx4, pg4 = open_page("#flow")
     wait_until(pg4, "() => /領先\\s*\\d+/.test(document.body.innerText)", 20000)
     fr = pg4.evaluate("""() => { const t = document.querySelector('main').innerText.replace(/\\s+/g, ' ');
       const g = (k) => { const m = t.match(new RegExp(k + '\\\\s+(\\\\d+)')); return m ? +m[1] : null; }; return [g('領先'), g('改善'), g('轉弱'), g('落後')]; }""")
     ok(f"[{T}] ④ 資金輪盤四段家數：總覽摘要卡（領先／改善／轉弱／落後）＝資金輪動頁", bool(s3["r"]) and fr == s3["r"], [s3["r"], fr])
-    ctx4.close(); ctx3.close()
+    ctx4.close()
     # ⑤ 題材
     TH = """(id) => { const el = document.getElementById(id); const i = el && window.echarts && echarts.getInstanceByDom(el); if (!i) return null;
       const o = {}; const w = (a) => (a || []).forEach(d => { if (d.children && d.children.length) w(d.children); else o[d.id || d.name] = [d.heat, d.chg, d.share]; });

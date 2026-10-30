@@ -4299,12 +4299,7 @@
          ★ 2026-10-06（Andy：「這類資訊一律拿掉」，DECISIONS #329）：標題不再寫資料日期、「盤後」、「⚡ 即時 HH:MM:SS」——
          資料新鮮度看全站資料狀態徽章與頁首時間。留下的只有「只涵蓋 N 檔（非全市場）」（口徑，不是時段）與抓取中／抓不到（狀態）。
          不改成圖示或滑過提示，直接拿掉（Andy 10-06 再強調「一律拿掉」）。*/
-      /* ★ 2026-10-30（Andy：「總覽的資訊為何和熱力圖對不上……檢查其他資訊是否一樣」普查）：漲跌家數跟總覽摘要卡／漲跌家數分佈卡同一個口徑——
-         stocks.json 逐檔、udBinOf 級距（全部上市＋上櫃、含 ETF）。以前這裡直接印 market_heat 的證交所口徑（530 漲／1620 跌），
-         同一天總覽是 570 漲／1659 跌，差的就是 ETF 那幾十檔，兩邊對不上。逐檔資料缺席（舊 payload）才退回 market_heat。 */
-      let udUp = 0, udDn = 0;
-      st.forEach(r => { const bn = r && udBinOf(r); if (bn == null || bn === false) return; if (bn > 5) udUp++; else if (bn < 5) udDn++; });
-      const eodCnt = `${udUp + udDn ? udUp : (heat.advancers || 0)} 漲／${udUp + udDn ? udDn : (heat.decliners || 0)} 跌・漲停 ${eodLU.length}、跌停 ${eodLD.length}`;
+      const eodCnt = `${heat.advancers || 0} 漲／${heat.decliners || 0} 跌・漲停 ${eodLU.length}、跌停 ${eodLD.length}`;
       title.innerHTML = live
         ? `漲跌家數 <small id="mktTitleLive">只涵蓋 ${lr.length} 檔（<b>非全市場</b>）：${cnt.adv} 漲／${cnt.dec} 跌`
           + `・漲停 ${cnt.lu}、跌停 ${cnt.ld}</small>`
@@ -5653,7 +5648,6 @@
     const lab = T.pinned() ? '回放 ' + T.curT : '即時';
     document.querySelectorAll('[data-hlcard="ind"] .livetg-b, #themeMapCard .livetg-b, #sankeyLiveBtn').forEach(b => { if (b.textContent !== lab) b.textContent = lab; });
     { const rc = document.getElementById('flowRotCard'); if (rc) rc.classList.toggle('tlrows', !!document.getElementById('rotTl')); }
-    if (!RLV.on && TV.gid) { TV.gid = null; tvRender(true); }   // 關掉即時：驗證面板一起收
     if (any) T.load(false);
     else if (T.pinned()) T.reset();                   // 沒有任何一張圖開著即時：游標回到最新
   }
@@ -5679,186 +5673,6 @@
     rlvStamp();
   }
   if (window.Tape) { Tape.on('cur', tlApply); Tape.on('data', tlSync); setInterval(tlSync, 1000); }
-
-  /* ================================================================ 今日走勢驗證（TV，Andy 2026-10-30）
-     Andy：「你找 PCB 他在今日有轉弱，那就可以看他相關族群全部的走勢，是否是開高走低的情況」。
-     即時／今日時間軸開著時，點輪盤上的族群點或右邊排行的長條 → 資金輪盤卡下方開一張「今日走勢驗證」：
-       ① 族群整體：成分股成交值加權漲跌＋成交值占比的 5 分鐘分時線（Tape 的格子，與輪盤同一份原料），標開盤／最高／最低／目前，自動判型態並寫一句白話結論
-       ② 成分股：每檔一條小分時線＋開盤（09:00 那格）、現在、高低、型態標記，依成交值排序，前 10 檔＋看全部
-       ③ 相關族群（同產業鏈）一鍵切換
-     時間軸拖到過去時只算到那一格（回放時也能驗證）。手機（≤640）用底部抽屜。 */
-  const TV = { gid: null, all: false, at: 0, last: null };
-  const TV_RANGE = 0.8;                     // 波動（最高−最低）小於這個百分點才叫盤整
-  /* 型態判斷（2026-10-30 CEO 退件後重寫：看「相對振幅」與「高低點先後」，不是只看開盤到現在的位移）。
-     s＝相對昨收的漲跌百分比序列（時間順序）。R＝最高−最低。
-       · R < 0.8pp → 盤整（只有振幅本身很小才算）
-       · 先高後低（最高點比最低點早），而且現價跌破開盤、或從最高點回落 ≥ R/2：
-           開盤就在高點附近（離最高 < 0.15R）→ 開高走低（開盤 > +0.3%）／一路走低；
-           否則（開盤後又衝上去才回落）→ 衝高回落
-       · 先低後高（對稱）：開盤就在低點附近 → 開低走高（開盤 < −0.3%）／一路走高；否則 → 探底回升
-       · 其餘（振幅大、但沒有明確方向）→ 寬幅震盪
-     ★ 不再有「衝高又回到原點算盤整」：振幅大就是有方向或寬幅震盪，不是盤整。*/
-  function tvPattern(arr) {
-    const a = (arr || []).filter(v => v != null && isFinite(v));
-    if (a.length < 3) return null;
-    const n = a.length, r0 = a[0], cur = a[n - 1];
-    let hi = -1e9, lo = 1e9, hiI = 0, loI = 0;
-    a.forEach((v, i) => { if (v > hi) { hi = v; hiI = i; } if (v < lo) { lo = v; loI = i; } });
-    const R = hi - lo;
-    let name = '盤整';
-    if (R >= TV_RANGE) {
-      const dropFromHi = hi - cur, riseFromLo = cur - lo;
-      if (hiI < loI && (cur < r0 || dropFromHi >= 0.5 * R)) name = (hi - r0 < 0.15 * R) ? (r0 > 0.3 ? '開高走低' : '一路走低') : '衝高回落';
-      else if (loI < hiI && (cur > r0 || riseFromLo >= 0.5 * R)) name = (r0 - lo < 0.15 * R) ? (r0 < -0.3 ? '開低走高' : '一路走高') : '探底回升';
-      else if (cur - r0 >= 0.5 * R) name = '一路走高';
-      else if (r0 - cur >= 0.5 * R) name = '一路走低';
-      else name = '寬幅震盪';
-    }
-    return { name, open: r0, hi, lo, cur, hiI, loI, n, range: R };
-  }
-  const tvF = (v) => (v >= 0 ? '+' : '') + v.toFixed(2) + '%';
-  function tvCalc(gid) {
-    const T = window.Tape, det = D.groups_detail || {}, g = det[gid];
-    if (!T || !T.count() || !g) return null;
-    const w = sklWeights(), manual = Object.keys(det).filter(k => !isAutoBucket(k)), slots = T.slots();
-    const ci = T.cur, last = ci == null ? slots.length - 1 : ci;
-    const mem = (g.members || []).map(m => ({ code: String(m.code), name: m.name }));
-    const stk = {}; mem.forEach(m => { stk[m.code] = { code: m.code, name: m.name, p: [], c: [], v: 0 }; });
-    const times = [], ret = [], share = [];
-    const pushQ = (q, label) => {
-      const stv = {}, chg = {};
-      Object.keys(q).forEach(c => { const x = q[c]; if (!x || x.price == null || x.volume == null) return; const v = x.price * x.volume * 1000; if (v > 0) { stv[c] = v; if (x.chgPct != null) chg[c] = x.chgPct; } });
-      let tot = 0, gto = 0, gw = 0, gc = 0;
-      manual.forEach(k => (det[k].members || []).forEach(m => {
-        const c = String(m.code); if (stv[c] == null) return;
-        const ww = stv[c] / Math.max(1, w[c] || 1); tot += ww;
-        if (k === gid) { gto += ww; if (chg[c] != null) { gw += ww; gc += chg[c] * ww; } }
-      }));
-      if (!(tot > 0) || !(gw > 0)) return;
-      times.push(label); ret.push(gc / gw); share.push(gto / tot * 100);
-      mem.forEach(m => { const x = q[m.code], st = stk[m.code]; st.p.push(x && x.price != null ? x.price : null); st.c.push(x && x.chgPct != null ? x.chgPct : null);
-        if (x && x.price != null && x.volume != null) st.v = x.price * x.volume * 1000; });
-    };
-    for (let i = 0; i <= last; i++) pushQ(T.q(i), slots[i].t);
-    if (ci == null && window.Live && Live.quotes) {       // 最新：接上比最後一格更新的即時報價
-      const Q = {}, day = ovlToday(); let hit = 0;
-      mem.forEach(m => { const x = Live.quotes[m.code]; if (x && x.price != null && (!x.date || x.date === day)) { Q[m.code] = x; hit++; } });
-      if (hit >= Math.max(1, mem.length * 0.6)) {
-        const all = {}; manual.forEach(k => (det[k].members || []).forEach(m => { const x = Live.quotes[String(m.code)]; if (x && (!x.date || x.date === day)) all[String(m.code)] = x; }));
-        pushQ(all, '現在');
-      }
-    }
-    if (times.length < 3) return { gid, name: g.group_name || L.gname[gid] || gid, times, ret, share, pat: null, stocks: [] };
-    const pat = tvPattern(ret); pat.hiT = times[pat.hiI]; pat.loT = times[pat.loI];
-    const stocks = mem.map(m => { const st = stk[m.code], ps = st.p.filter(v => v != null);
-      if (ps.length < 3) return null;
-      const sp = tvPattern(st.c); return { code: m.code, name: m.name, v: st.v, p: st.p, c: st.c, open: ps[0], cur: ps[ps.length - 1], hi: Math.max(...ps), lo: Math.min(...ps), pat: sp }; })
-      .filter(Boolean).sort((a, b) => b.v - a.v);
-    return { gid, name: g.group_name || L.gname[gid] || gid, times, ret, share, pat, stocks };
-  }
-  function tvSentence(r) {
-    const p = r.pat; if (!p) return '今天的快照格數還不夠（至少 3 格）判斷型態。';
-    const base = `${r.name} 今天開盤 ${tvF(p.open)}、最高 ${tvF(p.hi)}（${p.hiT}）、最低 ${tvF(p.lo)}（${p.loT}）、目前 ${tvF(p.cur)}`;
-    const DOWN = ['開高走低', '衝高回落', '一路走低'], UP = ['開低走高', '探底回升', '一路走高'];
-    const sc = r.stocks.filter(x => x.pat), dn = sc.filter(x => DOWN.includes(x.pat.name)).length, up = sc.filter(x => UP.includes(x.pat.name)).length;
-    const mine = sc.length ? `；${sc.length} 檔成分股裡 ${dn} 檔走低型、${up} 檔走高型` : '';
-    const rg = p.range.toFixed(2);
-    const say = { '開高走低': `<b>開高走低</b>：開盤就在高點附近，之後一路回落 ${(p.hi - p.cur).toFixed(2)} 個百分點，目前比開盤低 ${(p.open - p.cur).toFixed(2)}`,
-      '衝高回落': `<b>衝高回落</b>：開盤後先衝到 ${p.hiT} 的最高點（比開盤高 ${(p.hi - p.open).toFixed(2)}），之後回落 ${(p.hi - p.cur).toFixed(2)} 個百分點，振幅 ${rg} 個百分點，目前${p.cur < p.open ? `比開盤低 ${(p.open - p.cur).toFixed(2)}` : `只回到開盤附近`}`,
-      '開低走高': `<b>開低走高</b>：開盤就在低點附近，之後一路回升 ${(p.cur - p.lo).toFixed(2)} 個百分點，目前比開盤高 ${(p.cur - p.open).toFixed(2)}`,
-      '探底回升': `<b>探底回升</b>：開盤後先探到 ${p.loT} 的最低點（比開盤低 ${(p.open - p.lo).toFixed(2)}），之後回升 ${(p.cur - p.lo).toFixed(2)} 個百分點，振幅 ${rg} 個百分點`,
-      '一路走高': `<b>一路走高</b>：從開盤到現在累計 ${(p.cur - p.open).toFixed(2)} 個百分點，振幅 ${rg}`,
-      '一路走低': `<b>一路走低</b>：從開盤到現在累計 ${(p.open - p.cur).toFixed(2)} 個百分點，振幅 ${rg}`,
-      '寬幅震盪': `<b>寬幅震盪</b>：最高到最低相差 ${rg} 個百分點、來回沒有明確方向，目前離開盤 ${(p.cur - p.open >= 0 ? '+' : '') + (p.cur - p.open).toFixed(2)} 個百分點`,
-      '盤整': `<b>盤整</b>：今天波動很小，最高到最低只差 ${rg} 個百分點` }[p.name];
-    return `${base}。${say}${mine}。`;
-  }
-  const tvSpark = (c, color) => {
-    const v = c.map(x => (x == null ? null : x)), ok = v.filter(x => x != null);
-    if (ok.length < 2) return '<svg class="tvspark" viewBox="0 0 120 28" aria-hidden="true"></svg>';
-    const lo = Math.min(0, ...ok), hi = Math.max(0, ...ok), sp = (hi - lo) || 1;
-    const X = (i) => (i / (v.length - 1) * 118 + 1).toFixed(1), Y = (x) => (26 - (x - lo) / sp * 24).toFixed(1);
-    const pts = v.map((x, i) => x == null ? null : X(i) + ',' + Y(x)).filter(Boolean).join(' ');
-    return `<svg class="tvspark" viewBox="0 0 120 28" aria-hidden="true"><line x1="0" x2="120" y1="${Y(0)}" y2="${Y(0)}" stroke="${CH.line}" stroke-dasharray="2 2"/><polyline points="${pts}" fill="none" stroke="${color}" stroke-width="1.6" stroke-linejoin="round"/></svg>`;
-  };
-  function tvEl() {
-    let el = document.getElementById('todayVerify');
-    if (el && el.isConnected) return el;
-    const host = $('#flowRotCard'); if (!host) return null;
-    if (!document.getElementById('tvCss')) {
-      const st = document.createElement('style'); st.id = 'tvCss';
-      st.textContent = '#todayVerify{margin-top:var(--gap-card,12px)}#todayVerify .tvhead{display:flex;align-items:center;gap:8px;flex-wrap:wrap}'
-        + '#todayVerify .tvrel{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}#todayVerify .tvrel button{min-height:28px}#todayVerify .tvrel button.on{border-color:var(--cyan);color:var(--cyan)}'
-        + '#todayVerify .tvconc{margin:4px 0 8px;line-height:1.7;color:var(--ink-2)}#todayVerify #tvChart{height:190px;min-height:190px}'
-        + '#todayVerify .tvrow{display:grid;grid-template-columns:minmax(96px,1.2fr) 128px 1fr 76px 64px;gap:8px;align-items:center;min-height:34px;border-top:1px solid var(--line);font-size:13px}'
-        + '#todayVerify .tvrow .tvnm{color:var(--ink);text-decoration:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#todayVerify .tvrow small{color:var(--ink-3);margin-left:4px}'
-        + '#todayVerify .tvnum{font-family:var(--mono);font-size:12px;color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}'
-        + '#todayVerify .tvtag{font-size:12px;text-align:center}#todayVerify .tvchg{font-family:var(--mono);font-size:13px;text-align:right}'
-        + '#todayVerify .tvmore{margin-top:8px}'
-        + '@media (max-width:640px){html:root body #todayVerify.card{background:var(--panel,#fff)!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important}#todayVerify{position:fixed;left:0;right:0;bottom:0;margin:0;z-index:70;max-height:72vh;overflow:auto;border-radius:14px 14px 0 0;box-shadow:0 -8px 24px rgba(0,0,0,.25)}'
-        + '#todayVerify .tvrow{grid-template-columns:minmax(80px,1fr) 100px 60px;grid-template-areas:"nm sp chg" "num num tag"}#todayVerify .tvrow .tvnm{grid-area:nm}#todayVerify .tvrow .tvspark{grid-area:sp}#todayVerify .tvrow .tvchg{grid-area:chg}#todayVerify .tvrow .tvnum{grid-area:num}#todayVerify .tvrow .tvtag{grid-area:tag}'
-        + '#todayVerify .tvx,#todayVerify .tvmore{min-height:40px}#todayVerify .tvrel button{min-height:36px;font-size:12px}}';
-      document.head.appendChild(st);
-    }
-    el = document.createElement('div'); el.id = 'todayVerify'; el.className = 'card'; el.hidden = true;
-    host.insertAdjacentElement('afterend', el);
-    el.addEventListener('click', (e) => {
-      const b = e.target.closest('button'); if (!b) return;
-      if (b.classList.contains('tvx')) { TV.gid = null; tvRender(true); return; }
-      if (b.classList.contains('tvmore')) { TV.all = !TV.all; tvRender(true); return; }
-      if (b.dataset.g) { TV.all = false; tvOpen(b.dataset.g); try { rankSel = b.dataset.g; highlightClock(b.dataset.g, 'rotClock'); } catch (x) { /* 輪盤沒畫 */ } }
-    });
-    return el;
-  }
-  function tvOpen(gid) { TV.gid = String(gid); if (TV.gid !== TV.last) TV.all = false; tvRender(true); }
-  function tvPick(gid) { if (RLV.on && !RLV.err && window.Tape && Tape.count() > 0 && gid && !isAutoBucket(gid)) tvOpen(gid); }
-  function tvRender(force) {
-    const el = document.getElementById('todayVerify') || (TV.gid ? tvEl() : null); if (!el) return;
-    const show = !!(TV.gid && RLV.on && window.Tape && Tape.count() > 0);
-    if (!show) { if (!el.hidden) { el.hidden = true; el.innerHTML = ''; try { const c = window.echarts && echarts.getInstanceByDom(document.getElementById('tvChart')); if (c) c.dispose(); } catch (e) { /* 已拆掉 */ } } return; }
-    const now = Date.now(); if (!force && now - TV.at < 1500) return; TV.at = now;
-    if (!D.groups_detail) { load('groups_detail').then(() => tvRender(true)).catch(() => {}); return; }
-    const r = tvCalc(TV.gid); if (!r) return;
-    TV.last = TV.gid;
-    const det = D.groups_detail, chainOf = (k) => (rotGroupMeta[k] || {}).chain || L.gchain[k] || '', ch = chainOf(TV.gid);
-    const rel = ch ? Object.keys(det).filter(k => !isAutoBucket(k) && k !== TV.gid && chainOf(k) === ch).sort((a, b) => (L.gidx[a] || 0) - (L.gidx[b] || 0)).slice(0, 8) : [];
-    const shown = TV.all ? r.stocks : r.stocks.slice(0, 10);
-    const tagColor = (n) => (n === '開高走低' || n === '衝高回落' || n === '一路走低') ? CH.down : (n === '開低走高' || n === '探底回升' || n === '一路走高') ? CH.up : CH.ink3;
-    el.hidden = false;
-    // 手機底部抽屜要不透明（全站卡片是半透明玻璃，疊在別的內容上會透字）；inline !important 才壓得過主題的 !important
-    { const mob = window.matchMedia && matchMedia('(max-width:640px)').matches; if (mob) { el.style.setProperty('background', 'var(--panel)', 'important'); el.style.setProperty('backdrop-filter', 'none', 'important'); } else { el.style.removeProperty('background'); el.style.removeProperty('backdrop-filter'); } }
-    el.dataset.gid = TV.gid; el.dataset.pat = r.pat ? r.pat.name : '';
-    el.innerHTML = `<div class="tvhead"><h3 style="margin:0">${fmt.esc(r.name)} <small>今日走勢驗證</small> <button class="howbtn pop" data-how="tverify" data-ttl="今日走勢驗證" type="button" aria-label="今日走勢驗證怎麼看">?</button></h3>`
-      + (r.pat ? `<span class="tvtag" style="color:${tagColor(r.pat.name)};font-weight:700" id="tvPat">${r.pat.name}</span>` : '')
-      + `<span style="flex:1"></span><button type="button" class="btn small tvx" aria-label="關閉">✕</button></div>`
-      + (rel.length ? `<div class="tvrel"><small class="muted">相關族群</small>${rel.map(k => `<button type="button" class="btn small" data-g="${k}">${fmt.esc((det[k].group_name) || L.gname[k] || k)}</button>`).join('')}</div>` : '')
-      + `<div class="tvconc" id="tvConc">${tvSentence(r)}</div><div id="tvChart" class="chart"></div>`
-      + `<div class="tvlist" id="tvList">${shown.map(x => { const p = x.pat, col = upDown(x.cur - x.open);
-          const chg = x.c.filter(v => v != null).slice(-1)[0];
-          return `<div class="tvrow" data-code="${x.code}"><a class="tvnm" href="#stock/${x.code}" title="${fmt.esc(x.name)} ${x.code}">${fmt.esc(x.name)}<small>${x.code}</small></a>${tvSpark(x.c, upDown(chg))}`
-            + `<span class="tvnum">開 ${fmt.n(x.open, 2)}　現 ${fmt.n(x.cur, 2)}　高 ${fmt.n(x.hi, 2)}　低 ${fmt.n(x.lo, 2)}</span>`
-            + `<b class="tvtag" style="color:${p ? tagColor(p.name) : 'var(--ink-3)'}">${p ? p.name : '—'}</b><span class="tvchg" style="color:${col}">${chg != null ? tvF(chg) : '—'}</span></div>`; }).join('')}</div>`
-      + (r.stocks.length > 10 ? `<button type="button" class="btn small tvmore">${TV.all ? '收合' : `看全部 ${r.stocks.length} 檔`}</button>` : '');
-    if (r.times.length >= 2) {
-      const n = r.times.length, mk = (i, nm) => ({ name: nm, coord: [i, r.ret[i]], value: r.ret[i] });
-      const hiI = r.pat ? r.pat.hiI : 0, loI = r.pat ? r.pat.loI : 0;
-      chart('tvChart', {
-        grid: { left: 44, right: 44, top: 22, bottom: 24 },
-        tooltip: { ...tip, trigger: 'axis' },
-        xAxis: { ...axisStyle, type: 'category', data: r.times, boundaryGap: false, axisLabel: { color: CH.ink3, fontSize: 12, hideOverlap: true } },
-        yAxis: [{ ...axisStyle, type: 'value', scale: true, axisLabel: { color: CH.ink3, fontSize: 12, formatter: (v) => v.toFixed(1) + '%' } },
-          { ...axisStyle, type: 'value', scale: true, splitLine: { show: false }, axisLabel: { color: CH.ink3, fontSize: 12, formatter: (v) => v.toFixed(2) + '%' } }],
-        series: [
-          { name: '加權漲跌', type: 'line', data: r.ret.map(v => +v.toFixed(3)), showSymbol: false, smooth: false, lineStyle: { width: 2.4, color: CH.cyan }, itemStyle: { color: CH.cyan },
-            markLine: { silent: true, symbol: 'none', lineStyle: { color: hexA(CH.ink3, .6) }, label: { show: false }, data: [{ yAxis: 0 }] },
-            markPoint: { symbolSize: 40, label: { fontSize: 11, color: '#fff', formatter: (q) => q.name }, data: [mk(0, '開'), mk(hiI, '高'), mk(loI, '低'), mk(n - 1, '現')] } },
-          { name: '成交值占比', type: 'line', yAxisIndex: 1, data: r.share.map(v => +v.toFixed(3)), showSymbol: false, lineStyle: { width: 1.2, color: hexA(CH.ink3, .8), type: 'dashed' }, itemStyle: { color: CH.ink3 }, areaStyle: { color: hexA(CH.ink3, .12) } },
-        ],
-      });
-    }
-    window.App && (window.App._tv = { gid: TV.gid, pat: r.pat && r.pat.name, rows: shown.length, total: r.stocks.length, times: r.times.length, cur: r.times[r.times.length - 1] });
-  }
-  if (window.Tape) { Tape.on('cur', () => tvRender(true)); Tape.on('data', () => tvRender(false)); setInterval(() => tvRender(false), 5000); }
 
   // 熱力圖的 option 與資料（放大罩與原圖共用，才不會兩邊畫出不一樣的東西）
   /* ★ 2026-09-24 熱力圖 v2（規格 §3.1）：顏色口徑不變（資金流向 pp；沒有資金流向的族群沿用
@@ -8868,7 +8682,6 @@
       /* ★ 2026-10-19 多圖連動：資金流向頁的輪盤點族群＝鎖定（rankSel，跟點排行長條同一份狀態）→ 族群資金排行那一根同步亮；
          再點同一顆＝取消（drillClose 會一起還原兩張圖與成分股面板）。*/
       if (id === 'rotClock') {
-        tvPick(r.gid);                               // 即時／今日時間軸開著：開「今日走勢驗證」小面板
         if (linkTap('clk:' + r.gid)) return;
         const step = rotLinkStep(r.gid);
         if (step === 'close') { drillClose(); return; }
@@ -10179,12 +9992,6 @@
   const HOW = {
     /* ★ 2026-09-21：HOW.rank 整段刪掉，內容併進 HOW.rot（兩張圖合併成一張卡，
        只留一顆「怎麼看 ?」）。留著不會被叫到，就是死碼。*/
-    tverify: `<b>這個族群今天是「開高走低」還是「開低走高」？用 5 分鐘格的實際走勢驗證輪盤上的位移。</b>
-      <ul><li><b>上面那條線</b>：族群成分股的成交值加權漲跌（相對昨收），旁邊淡的線是它占全部族群成交值的比重；標出開盤、最高、最低、目前。</li>
-      <li><b>型態</b>：開高走低、衝高回落、開低走高、探底回升、一路走高、一路走低、寬幅震盪、盤整。看「最高最低的先後」與「相對振幅」：先高後低且跌破開盤（或從高點回落超過振幅一半）＝走低型；先低後高＝走高型；只有振幅小於 0.8 個百分點才叫盤整。</li>
-      <li><b>下面每檔</b>：小線是那一檔今天的走勢，依成交值排序；「開」是 09:00 那一格的價格，不是官方開盤價。</li>
-      <li><b>怎麼用</b>：輪盤說某族群轉弱，就看這裡是不是大多數成分股都「開高走低」；只有一兩檔在拖就不是族群共識。上方「相關族群」可以一鍵切到同產業鏈的其他族群比較。</li>
-      <li>資料是盤中每 5 分鐘一格（伺服器快照），不是逐筆；權重用「價 × 量」估算，漲跌幅是真的。拖時間軸到過去時，這裡只算到那一格。</li></ul>`,
     bump: `<b>主流是穩穩的還是一直換人。</b>
       <ul><li>每條線是一個族群，<em>位置越高＝成交值排名越前面</em>（1 名在最上面）。</li>
       <li>線一路往上＝資金連續好幾週往它集中。</li>
@@ -11007,9 +10814,6 @@
     const span0 = (vMax - vMin) || 1;
     const xMin = negs.length ? +(vMin - needL * span0 / Math.max(30, plotW - needL)).toFixed(3) : null;
     const c = chart('rankFlow', {
-      /* 今日時間軸播放／回放中不做更新動畫（Andy 10-30 截圖：「矽晶圓 6↑」那一列兩組數字疊在一起）：
-         每一格排名都會重排，ECharts 的更新動畫讓兩根長條在換位途中經過同一個 y，兩組標籤短暫疊在一起；直接到位就不會交叉。 */
-      ...((window.Tape && (Tape.playing || Tape.pinned())) ? { animationDurationUpdate: 0 } : {}),
       tooltip: {
         ...tip, trigger: 'item', formatter: (q) => { const g = rows[q.dataIndex];
           return `<b>${g.group_name}</b><br>成交值佔比 ${fmt.n(g.share, 2)}%（上一段 ${g.share_prev != null ? fmt.n(g.share_prev, 2) + '%' : '—'}）`
@@ -11051,7 +10855,6 @@
       const gid = q.data && q.data.gid; if (!gid) return;
       if (linkTap('rf:' + gid)) return;                        // 觸控同一下補發的第二個 click 不算（不然「選取→立刻取消」）
       const g = rows.find(x => x.group_id === gid) || {};
-      tvPick(gid);                                              // 即時／今日時間軸開著：開「今日走勢驗證」小面板
       twT('rank_bar', g.group_name || gid);                    // 2026-10-05 埋點：右側排行被點的族群
       if (twGrpBlock(gid, g.group_name)) return;
       /* ★ 2026-09-21：這裡展開的清單改成兩階段共用的那一支（drillOpen）——
@@ -15730,7 +15533,7 @@
     fillDisc();                 // 標題列右側那一行免責小字（2026-10-06）
     const meta = await load('meta');
     if (meta) { renderFreshness(meta); }
-    window.App = { tvPattern, tvOpen, tvCalc, chainLabel, freqBadge, srcInfo, sankeyRankDraw, rotPopMembers, msDD, load, chart, howHTML, fmt, tip, axisStyle, NUM_FONT, CH, PALETTE, chgColor, heatColor, treeSkin, hexA,
+    window.App = { chainLabel, freqBadge, srcInfo, sankeyRankDraw, rotPopMembers, msDD, load, chart, howHTML, fmt, tip, axisStyle, NUM_FONT, CH, PALETTE, chgColor, heatColor, treeSkin, hexA,
       HL: { overlay: hlOverlay, themes: hlThemes, reg: hlReg, live: hlLive, use: hlUse, state: hlState, data: HL }, hmBin, hmColor, hmItem, hmSeries, hmLegend, hmRelabel, hmTip, hmTipOpt, hmLS, hmLSset, HM_KIND, upDown, empty, charts, goStock, hmGo, D, L, wheelZoom, zoomClick, rangeBar, playBar, theme, applyTheme, liveMerge, onLive, LIVE_KEYS,
       /* 給 scripts/_uitest.py 量「小圓點真的在動」用：回傳當下每一顆點的座標。
          用座標而不是 canvas 指紋 —— WebGL/Canvas 的指紋在這個容器裡量過是
