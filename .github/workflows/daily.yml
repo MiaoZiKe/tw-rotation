@@ -98,7 +98,20 @@ jobs:
         # phase=inst 例外：它只 append 法人、一天最多跑三輪，每輪多 7 分鐘不划算；
         # 同一份程式碼在 15:30／18:30 那輪都已經跑過測試。
         if: ${{ !(github.event_name == 'schedule' && (github.event.schedule == '15,45 8 * * 1-5' || github.event.schedule == '15 9 * * 1-5')) && inputs.phase != 'inst' }}
-        run: python -m pytest tests/ -q
+        # 2026-10-30：只跑跟資料管線有關的測試。社群貼文（tests/test_social*，其中封面測試要 Playwright，daily 沒裝）
+        # 10-28 起因此紅燈、整條資料管線停擺 12 小時；那類測試由 social 自己的 workflow／本機關卡負責。
+        # tests/test_daily_test_scope.py 會檢查這份清單沒有放進需要 Playwright 的檔。
+        id: pytest
+        run: python -m pytest tests/ -q --ignore-glob='tests/test_social*'
+
+      - name: 指標庫測試失敗警示
+        if: ${{ failure() && steps.pytest.conclusion == 'failure' }}
+        run: |
+          {
+            echo "## 指標庫測試失敗，資料管線已停"
+            echo "測試沒過就不抓資料（避免壞計算污染資料湖）。到上一步看哪幾個測試紅，修好再重跑 daily.yml。"
+            echo "只跑管線測試：python -m pytest tests/ -q --ignore-glob='tests/test_social*'"
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: 抓取與計算
         id: fetch
