@@ -1,0 +1,94 @@
+/* 流向驗證頁（#flowcheck）樣式 —— 桌機為主；≤640 的手機規則在 m4/20261030-flowcheck.css（桌機手機互不侵犯）。
+   間距只用 4／8／12／16／24；卡距 12。圖卡固定高度，換族群、換日期不晃（andy_ui_rules 9）。 */
+#v-flowcheck .fc{display:flex;flex-direction:column;gap:var(--gap-card,12px);min-width:0}
+#v-flowcheck .fc>.card,#v-flowcheck .fc-grid>.fc-col>.card{margin:0}
+.fc-bar{display:flex;align-items:center;gap:var(--sp-3,12px);flex-wrap:wrap;padding:12px 16px}
+.fc-title{margin:0;font-size:18px;display:flex;align-items:center;gap:8px}
+.fc-sp{flex:1 1 auto}
+.fc-dl{color:var(--ink-3);font-size:13px;margin-right:8px}
+.fc-date{display:flex;align-items:center}
+.fc-dgrp{display:inline-flex;align-items:center;border:1px solid var(--line-2);border-radius:9px;overflow:hidden}
+.fc-dgrp .btn{border:0;border-radius:0;min-height:32px;padding:0 12px;background:var(--panel-3)}
+.fc-dv{position:relative;display:inline-flex;align-items:center;padding:0 12px;min-height:32px;font-family:var(--mono);font-size:14px;color:var(--ink);background:var(--cyan);color:var(--ontop);font-weight:700;cursor:pointer}
+.fc-dv input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%}
+.fc-stale{margin-left:8px;padding:2px 8px;border-radius:6px;background:rgba(255,180,84,.16);color:var(--amber,#ffb454);font-size:12px}
+.fc-range{color:var(--ink-3);font-size:12px}
+.fc-verdict{padding:12px 16px;display:flex;gap:16px;align-items:center;justify-content:space-between;flex-wrap:wrap;border-left:3px solid var(--cyan)}
+.fc-vt{flex:1 1 520px;line-height:1.7;font-size:14px}
+.fc-vt b{font-weight:700}.fc-ok{color:var(--down,#2ee59d)}.fc-warn{color:var(--amber,#ffb454)}.fc-crash{color:var(--ink-3);font-size:13px}
+.fc-vc,.fc-rr{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.fc-fl{color:var(--ink-3);font-size:12px;white-space:nowrap}
+.fc-chip{display:inline-flex;align-items:center;gap:8px;min-height:28px;padding:2px 12px;border:1px solid var(--line-2);border-radius:999px;background:transparent;color:var(--ink);font-size:13px;cursor:pointer}
+.fc-chip:hover{border-color:var(--cyan)}.fc-chip.on{border-color:var(--cyan);background:rgba(62,224,255,.12);font-weight:700}
+.fc-chip.div,.fc-chip.warn{border-color:var(--amber,#ffb454)}
+.fc-chip b{font-family:var(--mono);font-weight:600}.fc-chip i{display:inline-block;height:4px;border-radius:2px;min-width:3px}
+.fc-grid{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:var(--gap-card,12px);align-items:stretch}
+.fc-col{display:flex;flex-direction:column;gap:var(--gap-card,12px);min-width:0}
+.fc-left>.card:first-child{flex:0 0 auto}
+.fc-left>.card:last-child,.fc-right>.card:last-child{flex:1 1 auto}
+.fc-card{padding:12px 16px;min-width:0}
+.fc-hd{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:8px}
+.fc-hd h3{margin:0;font-size:15px;display:flex;align-items:center;gap:8px;flex:0 1 auto}
+.fc-hd .seg{margin-left:auto}.fc-hd .fc-sp+*{margin-left:0}
+.fc-sub{font-size:12px;margin-left:auto}.fc-tog{display:none}
+.fc-wheel{height:400px;min-height:400px}.fc-trend{height:340px;min-height:340px}.fc-inst{height:200px;min-height:200px}
+.fc-note{margin-top:4px;color:var(--ink-3);font-size:12px}
+.fc-rr{margin-top:8px}
+.fc-badge{display:inline-block;padding:2px 8px;border-radius:6px;font-size:12px;font-weight:600;max-width:100%}
+.fc-badge.fit{background:rgba(46,229,157,.16);color:var(--down,#2ee59d)}.fc-badge.div{background:rgba(255,180,84,.16);color:var(--amber,#ffb454)}.fc-badge.mid{background:rgba(160,170,190,.16);color:var(--ink-2)}
+.fc-badge:empty{display:none}
+.fc-minis{display:grid;grid-template-columns:repeat(auto-fill,minmax(212px,1fr));gap:8px;margin-bottom:12px}
+.fc-mini{border:1px solid var(--line);border-radius:8px;padding:4px;min-width:0}
+.fc-mini .chart{height:110px;min-height:110px}
+.fc-mn{display:flex;align-items:baseline;gap:4px;width:100%;background:none;border:0;color:var(--ink);cursor:pointer;padding:4px 0;font-size:13px;text-align:left;min-height:24px}
+.fc-mn span{color:var(--ink-3);font-size:11px;font-family:var(--mono)}.fc-mn em{margin-left:auto;font-style:normal;font-family:var(--mono);font-weight:600}
+.fc-tw{max-height:240px;overflow:auto}
+.fc-tw table{width:100%;border-collapse:collapse;font-size:13px}
+.fc-tw th{position:sticky;top:0;background:var(--panel,#0f172b);color:var(--ink-3);font-weight:400;font-size:12px;text-align:right;padding:4px 8px;white-space:nowrap;z-index:1}
+.fc-tw th:first-child,.fc-tw td:first-child{text-align:left}
+.fc-tw td{padding:4px 8px;border-top:1px solid var(--line);white-space:nowrap}
+.fc-tw td.n{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums}
+.fc-tw tr.on td{background:rgba(62,224,255,.08)}.fc-gray td{color:var(--ink-3)}
+.fc-lk{background:none;border:0;color:var(--ink);cursor:pointer;padding:0;font-size:13px;text-align:left}.fc-lk:hover{color:var(--cyan);text-decoration:underline}
+.fc-cb{display:inline-block;height:8px;border-radius:2px}
+.fc-exp{display:inline-block;padding:2px 8px;border-radius:6px;background:rgba(255,180,84,.16);color:var(--amber,#ffb454);font-size:12px;font-weight:600}
+.fc-sigwrap{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px}
+.fc-sub2{color:var(--ink-3);font-size:12px;margin:4px 0 8px}
+.fc-strip{position:relative;height:36px;border:1px solid var(--line);border-radius:6px;margin-bottom:12px;background:var(--panel-3)}
+.fc-sm{position:absolute;top:0;bottom:0;width:3px;margin-left:-1px;padding:0;border:0;background:var(--amber,#ffb454);cursor:pointer}
+.fc-sm::after{content:"";position:absolute;left:-10px;right:-10px;top:0;bottom:0}
+.fc-sc{position:absolute;top:0;bottom:0;width:2px;background:var(--ink)}
+.fc-row2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:var(--gap-card,12px)}
+.fc-news{max-height:200px;overflow:auto;display:flex;flex-direction:column}
+.fc-nw{display:grid;grid-template-columns:48px minmax(0,1fr) auto;gap:8px;align-items:baseline;padding:6px 0;border-top:1px solid var(--line);color:var(--ink);text-decoration:none;font-size:13px;min-height:32px}
+.fc-nw time{font-family:var(--mono);color:var(--ink-3);font-size:12px}.fc-nw small{color:var(--ink-3)}.fc-nw:hover span{color:var(--cyan)}.fc-nw.fut{opacity:.45}
+.fc-tl{position:sticky;bottom:0;z-index:30;display:flex;align-items:center;gap:12px;padding:8px 16px;flex-wrap:nowrap;box-shadow:0 -6px 16px rgba(0,0,0,.2)}
+.fc-play{min-width:40px;min-height:32px}
+.fc-axis{position:relative;flex:1 1 auto;min-width:80px;height:32px;display:flex;align-items:center}
+.fc-axis input{width:100%;margin:0;position:relative;z-index:2;background:transparent}
+.fc-marks{position:absolute;left:8px;right:8px;top:6px;bottom:6px;pointer-events:none}
+.fc-marks i{position:absolute;top:0;bottom:0;width:2px;background:var(--amber,#ffb454);opacity:.8}
+.fc-tlab{font-family:var(--mono);font-size:13px;white-space:nowrap;color:var(--ink)}
+.fc-gtxt{font-size:12px;color:var(--ink-3);padding:0 8px}
+.fc-toast{position:fixed;left:50%;bottom:80px;transform:translateX(-50%);z-index:90;background:var(--panel-3,#1b2440);color:var(--ink);border:1px solid var(--line-2);border-radius:8px;padding:8px 16px;font-size:13px;opacity:0;pointer-events:none;transition:opacity .2s}
+.fc-toast.on{opacity:1}
+@media (max-width:1100px){.fc-grid{grid-template-columns:minmax(0,1fr)}.fc-sigwrap,.fc-row2{grid-template-columns:minmax(0,1fr)}.fc-minis{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (min-width:641px){.fc-fold>.fc-bd{display:block!important}}
+@media (min-width:641px){#fcHeatCard{display:flex;flex-direction:column}#fcHeatCard .fc-bd{display:flex!important;flex-direction:column;flex:1 1 auto;min-height:0}#fcHeatCard .fc-heat{flex:1 1 auto}}
+/* 2026-10-30 Andy：大螢幕（≥1440）三種輪盤並排，共用焦點與時間；以下退成三選一 */
+.fc-tri{display:none}.fc-tp h4{margin:0 0 4px;font-size:14px;color:var(--ink-2);font-weight:600}.fc-tp{min-width:0}
+@media (min-width:1440px){
+  .fc-tri{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+  #fcWheel,#fcView{display:none}
+  .fc-tri .fc-wheel{height:340px;min-height:340px}
+  .fc-grid{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr)}
+  .fc-grid>.fc-col{display:contents}
+  #fcWheelCard{grid-column:1/-1}#fcMemCard{grid-column:1/-1}
+  .fc-minis{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .fc-trend{height:300px;min-height:300px}
+}
+#fcDayCard .fc-dsw{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
+#fcDayCard .fc-tw{max-height:300px}
+.fc-tag{display:inline-block;padding:1px 6px;border-radius:4px;background:rgba(255,180,84,.16);color:var(--amber,#ffb454);font-size:11px;font-weight:600;margin-left:4px}
+.fc-reason{white-space:normal!important;min-width:220px;max-width:340px;line-height:1.5}
+#fcDayCard th:nth-child(-n+5){text-align:left}

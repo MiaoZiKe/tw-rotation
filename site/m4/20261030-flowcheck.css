@@ -1,0 +1,36 @@
+/* 流向驗證頁手機（≤640）。順序：控制列、結論列、焦點籤、走勢圖、輪盤、（收起列）成分股、熱力圖、提前判斷、新聞、法人；時間軸貼底，右下留給客服鈕。
+   手機五條：第一屏看到主圖＋摘要；整頁 ≤ 3 屏（次要卡一律收起）；所有收展預設收起；只留重點；時間軸把手 ≥ 32px。 */
+@media (max-width:640px){
+  #v-flowcheck .fc{gap:12px;padding-bottom:8px}
+  .fc-bar{padding:8px 12px;gap:8px}
+  .fc-title{font-size:16px;flex:1 1 100%}
+  .fc-range{display:none}
+  .fc-bar .seg button{padding:4px 8px;font-size:13px}
+  .fc-verdict{padding:8px 12px;gap:8px}
+  .fc-vt{flex-basis:100%;font-size:13px;line-height:1.6;}
+  .fc-grid{display:flex;flex-direction:column;gap:12px}
+  .fc-grid .fc-col{display:contents}
+  #fcTrendCard{order:1}#fcWheelCard{order:2}#fcMemCard{order:3}#fcHeatCard{order:4}
+  #fcSigCard{order:5}.fc-row2{order:6}
+  .fc-trend{height:220px;min-height:220px;touch-action:pan-y}.fc-wheel{height:300px;min-height:300px}
+  .fc-card{padding:8px 12px}
+  .fc-hd{gap:8px}
+  .fc-hd .seg{margin-left:0}
+  .fc-badge{white-space:normal;flex:1 1 100%;order:9}
+  .fc-tog{display:inline-flex;align-items:center;margin-left:auto;min-height:32px;padding:0 12px;background:transparent;border:1px solid var(--line-2);border-radius:8px;color:var(--ink-2);font-size:13px}
+  .fc-fold:not(.open)>.fc-bd{display:none}
+  .fc-fold:not(.open){padding-top:4px;padding-bottom:4px}.fc-fold:not(.open) .fc-hd{margin-bottom:0}
+  .fc-sub{display:none}
+  .fc-minis{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .fc-mini .chart{height:96px;min-height:96px}
+  .fc-tw .hm{display:none}
+  .fc-sigwrap,.fc-row2{grid-template-columns:minmax(0,1fr);gap:12px}
+  .fc-tl{gap:8px;padding:8px 12px;padding-right:64px;flex-wrap:wrap}
+  .fc-axis{flex:1 1 100%;order:5;height:40px}
+  .fc-axis input{height:40px}
+  .fc-tlab{font-size:12px}
+  .fc-play{min-height:36px}
+  #fcDayT{order:6;max-width:100%;overflow-x:auto}
+  .fc-chip{min-height:32px}
+  .fc-rr{margin-top:4px}
+}

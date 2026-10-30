@@ -135,6 +135,9 @@
   :root.l4 .tab[data-view="lab"]{order:6;--l4-ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 17l5-6 4 3 8-9'/%3E%3Cpath d='M15 5h5v5'/%3E%3C/svg%3E")}
   :root.l4 .tab[data-view="flow"]{order:2}
   :root.l4 .tab[data-view="heatmap"]{order:3}
+  /* 2026-10-30 流向驗證：資金流水組，緊接熱力圖（同 order 3、DOM 較後）；圖示＝折線＋勾 */
+  :root.l4 .tab[data-view="flowcheck"]{order:3;--l4-ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 3v18h18'/%3E%3Cpath d='M7 15l4-5 3 3 5-7'/%3E%3Cpath d='m15 18 2 2 4-4'/%3E%3C/svg%3E")}
+  :root.l4m .tab[data-view="flowcheck"],:root.l4m body.m3on .tab[data-view="flowcheck"]{--l4-ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 3v18h18'/%3E%3Cpath d='M7 15l4-5 3 3 5-7'/%3E%3Cpath d='m15 18 2 2 4-4'/%3E%3C/svg%3E")}
   :root.l4 .tab[data-view="industry"]{order:4}
   :root.l4 .tab[data-view="market"]{order:5}
   :root.l4 .tab[data-view="explore"]{order:5}   /* 2026-10-05 選股探索：DOM 緊接在市場明細後面，同 order 就照 DOM 排在它下面 */
@@ -525,7 +528,7 @@
   :root.l4.l4g:not(.l4-mini) .tabs[data-cg~="today"]>:is(.tab[data-view="overview"],.tab[data-view="earnings"],.tab[data-view="articles"],.tab[data-view="tc"]),
   :root.l4.l4g:not(.l4-mini) .tabs[data-cg~="today"]>.l4subtab[data-parent="articles"],
   :root.l4.l4g:not(.l4-mini) .tabs[data-cs~="articles"]>.l4subtab[data-parent="articles"],
-  :root.l4.l4g:not(.l4-mini) .tabs[data-cg~="money"]>:is(.tab[data-view="flow"],.tab[data-view="heatmap"]),
+  :root.l4.l4g:not(.l4-mini) .tabs[data-cg~="money"]>:is(.tab[data-view="flow"],.tab[data-view="heatmap"],.tab[data-view="flowcheck"]),
   :root.l4.l4g:not(.l4-mini) .tabs[data-cg~="money"]>.l4subtab:is([data-parent="flow"],[data-parent="heatmap"]),
   :root.l4.l4g:not(.l4-mini) .tabs[data-cg~="stock"]>:is(.tab[data-view="industry"],.tab[data-view="stock"],.tab[data-view="market"],.tab[data-view="explore"],.tab[data-view="etf"]),
   :root.l4.l4g:not(.l4-mini) .tabs[data-cg~="hist"]>:is(.tab[data-view="season"],.tab[data-view="lab"]),

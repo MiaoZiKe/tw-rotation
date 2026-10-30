@@ -5572,6 +5572,7 @@ h3 .howbtn.pop{font-family:inherit}
 <link rel="stylesheet" href="theme4.css">
 <!-- 版面 v2 結構（左側導覽、頁首、本頁功能跳轉列、手機頁名與線條圖示）。只排版、不寫任何色值，顏色全部吃上面 theme4.css 的變數，所以放在它後面。 -->
 <link rel="stylesheet" href="layout4.css">
+<link rel="stylesheet" href="flowcheck.css"><!-- 2026-10-30 流向驗證頁 #flowcheck（手機規則在 m4/20261030-flowcheck.css） -->
 <link rel="stylesheet" href="mobile4.css">
 <!-- m4:css 開始（scripts/m4_css_links.py 依 site/m4/*.css 檔名排序產生，不要手改；合併撞到這段就重跑那支） -->
 <link rel="stylesheet" href="m4/20261016-01-card-frame.css">
@@ -5606,6 +5607,7 @@ h3 .howbtn.pop{font-family:inherit}
 <link rel="stylesheet" href="m4/20261028-tc-pay-compact.css">
 <link rel="stylesheet" href="m4/20261029-lab-futures.css">
 <link rel="stylesheet" href="m4/20261029-lab-std.css">
+<link rel="stylesheet" href="m4/20261030-flowcheck.css">
 <link rel="stylesheet" href="m4/20261030-lab-ux.css">
 <link rel="stylesheet" href="m4/20261031-lab-final.css">
 <!-- m4:css 結束 -->
@@ -5635,6 +5637,7 @@ h3 .howbtn.pop{font-family:inherit}
     <button class="tab" data-view="industry">產業地圖</button>
     <button class="tab" data-view="tc">科技透明圈</button>
     <button class="tab" data-view="heatmap">熱力圖</button>
+    <button class="tab" data-view="flowcheck">流向驗證</button>
     <!-- ★ 2026-09-24（Andy：「題材內 熱力圖 放到熱力圖分頁」，截圖上把「熱力圖」「題材」框在一起寫「合併」）：
          「題材」分頁併進「熱力圖」—— 題材資金熱力＋題材細節（剖析圖）整塊搬到 #v-heatmap 的全市場熱力圖下面。
          舊網址 `#themes`、`#themes/<id>` **不准壞**（交付清單的「去看」、外面存的連結都指著它），
@@ -6012,6 +6015,7 @@ h3 .howbtn.pop{font-family:inherit}
   <section class="view" id="v-articles"></section>
   <!-- 科技透明圈（#tc，2026-10-25）整頁由 site/tc/tc.js 畫 -->
   <section class="view" id="v-tc"></section>
+  <section class="view" id="v-flowcheck"></section>
   <!-- 交易練習室（#lab，2026-10-28）整頁由 site/lab/lab.js 畫 -->
   <section class="view" id="v-lab"></section>
 
@@ -6206,6 +6210,7 @@ return {load:load,ready:ready,srcs:srcs};})();
 <!-- 2026-10-06 全站共用的下拉多選（window.TwMS）：選項多的篩選一律用它，不准膠囊牆（docs/style_guide.md 五）；app.js 會叫它，所以放在前面 -->
 <script src="multiselect.js"></script>
 <script src="tape.js"></script>
+<script src="flowcheck.js"></script><!-- 2026-10-30 流向驗證頁（#flowcheck）：輪盤／資金樹／熱力圖與族群走勢、成分股走勢同步 -->
 <script src="app.js"></script>
 <script src="theme4.js"></script>
 <!-- ★ 2026-09-28 自選分頁（#watch）的整頁畫面；資料層是上面的 watchlists.js -->

@@ -2344,7 +2344,7 @@
   // 2026-10-05：'etf'＝ETF 專區（site/etfpage.js）、'explore'＝選股策略
   // 2026-10-05（晚）：'earnings'＝財報日曆（site/earnings.js）
   // 2026-10-14：'articles'＝精選文章（site/articles.js）；單篇 #article/<id> 也落在這個 view（見 route() 的 view 對照）
-  const VIEWS = ['overview', 'flow', 'market', 'industry', 'heatmap', 'season', 'etf', 'tasks', 'delivery', 'watch', 'explore', 'earnings', 'articles', 'tc', 'lab'];
+  const VIEWS = ['overview', 'flow', 'market', 'industry', 'heatmap', 'season', 'etf', 'tasks', 'delivery', 'watch', 'explore', 'earnings', 'articles', 'tc', 'lab', 'flowcheck'];
   // 2026-10-03 電腦版資金流向的子分頁（側欄縮排子項；第一個是 #flow 的預設）。layout4.js 的側欄子項用同一份名單
   const FLOW_SUBS = ['rotation', 'sankey', 'inst'];
   const rendered = {};
@@ -3196,7 +3196,7 @@
     /* ★ 2026-10-08 權限矩陣（site/quota.js TwQuota.routeOk）：產業鏈頁、題材剖析每日上限用完 → 網址換回上一層（產業地圖／題材熱力圖）並跳卡片。
        放在最前面：被擋的那一頁一格都不畫，不會先閃一下內容再被拿掉。location.replace 會再觸發一次 hashchange → route() 畫上一層。*/
     if (window.TwQuota && !window.TwQuota.routeOk(location.hash)) return;
-    const h = location.hash.replace('#', '') || 'overview';
+    const h = (location.hash.replace('#', '') || 'overview').replace(/^flowcheck\?.*$/, 'flowcheck');   // #flowcheck?g=&d=&t=&v= 的狀態由 flowcheck.js 自己讀網址
     const h0 = location.hash;   // 等 lazy 腳本時使用者可能又換頁了，回來比對用
     /* ★ 2026-09-19：一定要逐段 decodeURIComponent。
        法定產業別的族群 id 是中文（ind_半導體業），瀏覽器把 hash 存成百分比編碼，
@@ -3402,6 +3402,7 @@
     }
     // 2026-10-14 精選文章：列表換分類／換篩選、點進單篇都由 articles.js 自己決定要重畫哪一塊（篩選狀態留在它的 S 裡），所以每次都交給它
     if (view === 'lab') { if (window.TwLab) await window.TwLab.show(head, rest); mia(); return; }   // 2026-10-28 交易練習室（管理者限定）：子頁狀態留在 lab.js 的 ST
+    if (view === 'flowcheck') { if (window.TwFlowcheck) await window.TwFlowcheck.show(); else console.warn('flowcheck.js 沒載入'); mia(); setTimeout(resizeVisibleCharts, 30); return; }   // 2026-10-30 流向驗證：狀態在網址，每次進來都交給它
     if (view === 'tc') { if (window.TwTc) await window.TwTc.show(head, rest); mia(); return; }   // 2026-10-25 科技透明圈：每次進來都交給 tc.js（篩選狀態留在它的 S）
     if (view === 'articles') { if (window.TwArticles) await window.TwArticles.show(head, rest); mia(); return; }
     if (view === 'industry') { if (!(await needLazy('ind', '#v-industry'))) return; if (location.hash !== h0) return; await window.Industry.route(head, rest); mia(); setTimeout(mia, 500); return; }
