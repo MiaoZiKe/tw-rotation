@@ -6778,7 +6778,8 @@
     if (same && run && el._twRaf) { run.paint = paint; paint(run.t0 == null ? 0 : run.ease(Math.min(1, (performance.now() - run.t0) / run.dur)), run.from); return; }
     if (!a.sameShape || a.reduce || !disp || same || !prevT || prevT.shape !== target.shape) { settle(); return; }
     const now = performance.now();
-    const chained = !!(run && el._twRaf) || (now - (el._twEndAt || 0) < 150);
+    // 今日時間軸播放中一律視為接續（機器忙、一格畫得比 420ms 久時，不要掉回「單次補間」變成走一步停一下）
+    const chained = !!(run && el._twRaf) || (now - (el._twEndAt || 0) < 150) || !!(window.Tape && Tape.playing);
     if (el._twRaf) { cancelAnimationFrame(el._twRaf); el._twRaf = 0; }
     /* t0 從「第一個 rAF」才開始算，不是從這裡：重畫之後的第一幀要付 ECharts 整張重繪的錢（本機忙的時候 300～400ms），
        從這裡起算的話那一幀就把 400ms 吃光，畫面直接跳到終點 —— 驗收量到過「29 幀裡 0 幀在中間」。*/
