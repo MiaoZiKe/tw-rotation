@@ -249,6 +249,7 @@
       if (p === 'fcSpd') { playSpd = +b.dataset.v; $$('#fcSpd button').forEach(function (x) { x.classList.toggle('on', x === b); }); return; }
       if (p === 'fcDayT') { setT(b.dataset.v); return; }
       if (p === 'fcMode') { setMode(b.dataset.v); return; }
+      if (b.id === 'fcDayMore') { S.dayAll = !S.dayAll; paint(); return; }
       if (b.id === 'fcPlay') { togglePlay(); return; }
       if (b.id === 'fcPrev') { stepDate(-1); return; }
       if (b.id === 'fcNext') { stepDate(1); return; }
@@ -388,13 +389,14 @@
     var rng = function (arr, mid, minHalf) { var lo = qt(arr, 0.04), hi = qt(arr, 0.96), h = Math.max(Math.abs(lo - mid), Math.abs(hi - mid), minHalf) * 1.25; return [mid - h, mid + h]; };
     var xr = rng(vis.map(X), c0, money ? 0.5 : 4), yr = rng(vis.map(Y), c0, money ? 0.4 : 4);        // 用 4%～96% 分位決定座標範圍：少數離群族群不再把其餘壓成一團，離群點貼在框邊（提示框仍顯示真值）
     var clamp = function (v, r) { return Math.max(r[0], Math.min(r[1], v)); };
-    var data = vis.map(function (x) { return { name: x.name, gid: x.gid, value: [clamp(X(x), xr), clamp(Y(x), yr)], symbolSize: size(x), r: x.r, f: x.f, share: x.share, div: x.div, rx: X(x), ry: Y(x), itemStyle: { color: a.chgColor(x.r, 2), borderColor: ch.line, borderWidth: 1 }, label: { show: x.gid === S.gid || (x.div && vis.length < 30) } }; });
+    var lab = {}; vis.slice().sort(function (u, v) { return v.f - u.f; }).slice(0, 5).forEach(function (x) { lab[x.gid] = 1; }); if (S.gid) lab[S.gid] = 1;      // 只標焦點＋流入前 5，其餘靠提示框（不重疊規則）
+    var data = vis.map(function (x) { return { name: x.name, gid: x.gid, value: [clamp(X(x), xr), clamp(Y(x), yr)], symbolSize: size(x), r: x.r, f: x.f, share: x.share, div: x.div, rx: X(x), ry: Y(x), itemStyle: { color: a.chgColor(x.r, 2), borderColor: ch.line, borderWidth: 1 }, label: { show: !!lab[x.gid] } }; });
     var cur = vis.filter(function (x) { return x.gid === S.gid; })[0];
     var qn = money ? ['資金回流', '資金湧入', '資金轉出', '資金續進'] : ['轉強', '領先', '落後', '轉弱'];
-    var qa = function (nm, x0, x1, y0, y1) { return [{ name: nm, xAxis: x0, yAxis: y0, label: { color: ch.ink3, fontSize: 12, position: 'inside' }, itemStyle: { color: 'transparent' } }, { xAxis: x1, yAxis: y1 }]; };
+    var qa = function (nm, x0, x1, y0, y1, pos) { return [{ name: nm, xAxis: x0, yAxis: y0, label: { color: ch.ink3, fontSize: 12, position: pos }, itemStyle: { color: 'transparent' } }, { xAxis: x1, yAxis: y1 }]; };
     var series = [
-      { type: 'scatter', data: data, z: 3, label: { formatter: '{b}', position: 'right', color: ch.ink, fontSize: 12 }, emphasis: { scale: 1.15 },
-        markArea: { silent: true, data: [qa(qn[0], xr[0], c0, c0, yr[1]), qa(qn[1], c0, xr[1], c0, yr[1]), qa(qn[2], xr[0], c0, yr[0], c0), qa(qn[3], c0, xr[1], yr[0], c0)] },
+      { type: 'scatter', data: data, z: 3, label: { formatter: '{b}', position: 'right', distance: 8, color: ch.ink, fontSize: 12 }, labelLayout: { hideOverlap: true }, emphasis: { scale: 1.15 },
+        markArea: { silent: true, data: [qa(qn[0], xr[0], c0, c0, yr[1], 'insideTopLeft'), qa(qn[1], c0, xr[1], c0, yr[1], 'insideTopRight'), qa(qn[2], xr[0], c0, yr[0], c0, 'insideBottomLeft'), qa(qn[3], c0, xr[1], yr[0], c0, 'insideBottomRight')] },
         markLine: { silent: true, symbol: 'none', lineStyle: { color: ch.ink3, type: 'dashed', opacity: .6 }, label: { show: false }, data: [{ xAxis: c0 }, { yAxis: c0 }] } },
       { type: 'scatter', z: 2, silent: true, data: vis.filter(function (x) { return x.div; }).map(function (x) { return { value: [clamp(X(x), xr), clamp(Y(x), yr)], symbolSize: size(x) + 10 }; }), itemStyle: { color: 'transparent', borderColor: ch.amber, borderWidth: 2.5 } }
     ];
@@ -403,7 +405,7 @@
       var tr = money ? trailOf(cur.gid) : null; if (tr) series.push({ type: 'line', z: 1, silent: true, data: tr, symbolSize: 4, lineStyle: { color: ch.ink2, width: 1.5, type: 'dashed' }, itemStyle: { color: ch.ink2 } });
     }
     DOWN(el, Object.assign(baseOpt(), {
-      grid: { left: 48, right: 16, top: 24, bottom: 36 },
+      grid: { left: 48, right: 16, top: 34, bottom: 36 },
       tooltip: Object.assign({}, a.tip, { trigger: 'item', formatter: function (p) { if (!p.data || !p.data.gid) return ''; var d = p.data; return '<b>' + esc(d.name) + '</b><br>資金 f ' + sg(d.f, 2, 'pp') + '<br>相對大盤 ' + sg(d.r, 2, '%') + '<br>占比 ' + f2(d.share, 2) + '%' + (d.div ? '<br><span style="color:' + ch.amber + '">背離</span>' : ''); } }),
       xAxis: Object.assign({ type: 'value', min: xr[0], max: xr[1], name: money ? '趨勢：占比 5 日均 − 20 日均（pp）' : '相對強度（RS-Ratio）', nameLocation: 'middle', nameGap: 24, nameTextStyle: { color: ch.ink3, fontSize: 12 }, axisLabel: { color: ch.ink3, fontSize: 12, formatter: function (v) { return (+v).toFixed(1); } } }, { axisLine: a.axisStyle.axisLine, splitLine: a.axisStyle.splitLine }),
       yAxis: Object.assign({ type: 'value', min: yr[0], max: yr[1], name: money ? (S.t === 'close' ? '今日占比變化（pp）' : '該時點占比 − 同時段 20 日均') : '動能', nameTextStyle: { color: ch.ink3, fontSize: 12 }, axisLabel: { color: ch.ink3, fontSize: 12, formatter: function (v) { return (+v).toFixed(1); } } }, { axisLine: a.axisStyle.axisLine, splitLine: a.axisStyle.splitLine }),
@@ -420,14 +422,14 @@
     var chains = {}, nodes = [{ name: '全市場', itemStyle: { color: ch.ink3 } }], links = [];
     leaves.forEach(function (l) { var cn = l.chain; chains[cn] = (chains[cn] || 0) + l.tv; });
     Object.keys(chains).forEach(function (cn) { nodes.push({ name: cn, itemStyle: { color: ch.violet }, chainNode: true }); links.push({ source: '全市場', target: cn, value: chains[cn] }); });
-    leaves.sort(function (x, y) { return y.tv - x.tv; }).slice(0, 24).forEach(function (l) {
-      var x = byG[l.gid]; nodes.push({ name: l.name, gid: l.gid, itemStyle: { color: a.chgColor(x ? x.r : 0, 2), borderColor: l.gid === S.gid ? ch.ink : 'transparent', borderWidth: l.gid === S.gid ? 3 : 0 } });
+    leaves.sort(function (x, y) { return y.tv - x.tv; }).slice(0, 24).forEach(function (l, li) {
+      var x = byG[l.gid]; nodes.push({ name: l.name, gid: l.gid, label: { show: li < 12 || l.gid === S.gid }, itemStyle: { color: a.chgColor(x ? x.r : 0, 2), borderColor: l.gid === S.gid ? ch.ink : 'transparent', borderWidth: l.gid === S.gid ? 3 : 0 } });
       links.push({ source: l.chain, target: l.name, value: l.tv });
     });
     DOWN(el, Object.assign(baseOpt(), {
       tooltip: Object.assign({}, a.tip, { trigger: 'item', formatter: function (p) { return p.data && p.data.gid ? '<b>' + esc(p.name) + '</b><br>成交值 ' + (p.value / 1e8).toFixed(0) + ' 億' : (p.data && p.data.source ? esc(p.data.source) + ' → ' + esc(p.data.target) + '<br>' + (p.value / 1e8).toFixed(0) + ' 億' : esc(p.name)); } }),
       series: [{ type: 'sankey', left: 8, right: 90, top: 8, bottom: 8, nodeWidth: 14, nodeGap: 5, draggable: false, emphasis: { focus: 'adjacency' }, data: nodes, links: links,
-        label: { color: ch.ink, fontSize: 12 }, lineStyle: { color: 'gradient', opacity: .3, curveness: .5 } }]
+        label: { color: ch.ink, fontSize: 12 }, labelLayout: { hideOverlap: true }, lineStyle: { color: 'gradient', opacity: .3, curveness: .5 } }]
     }));
     var inst = echarts.getInstanceByDom(el);
     if (inst && !el._fcBound2) { el._fcBound2 = 1; inst.on('click', function (p) { if (p.data && p.data.gid) pick(p.data.gid); }); }
@@ -553,6 +555,19 @@
   function normDaily(j) { return j && j.rules ? j : null; }
   function getDaily() { if (C.dsig !== undefined) return Promise.resolve(C.dsig); return jget('daily_signals.json').then(function (j) { C.dsig = normDaily(j) || false; return C.dsig; }); }
   function gidByName(nm) { var g = (C.idx.groups || []).filter(function (x) { return x.name === nm; })[0]; return g ? g.gid : null; }
+  /* 觸發數字縮成一行：只留最有意義的 2 個 */
+  function trigTxt(rule, t) {
+    t = t || {};
+    var n = function (v, d) { return typeof v === 'number' ? (v >= 0 ? '+' : '') + v.toFixed(d == null ? 1 : d) : v; };
+    if (t.quadrant) return (t.from ? t.from + '→' : '') + t.quadrant;
+    var o = [];
+    if (t.share != null) o.push('占比 ' + n(t.share, 2) + 'pp');
+    if (t.rel5 != null) o.push('5 日相對 ' + n(t.rel5) + '%');
+    if (t.net5 != null) o.push('法人 5 日 ' + n(t.net5 / 1000, 0) + ' 千張');
+    if (t.ratio != null) o.push('量比 ' + (+t.ratio).toFixed(1));
+    if (t.ret5 != null) o.push('5 日 ' + n(t.ret5) + '%');
+    return o.slice(0, 3).join('・');
+  }
   function drawDaily(rows) {
     var el = $('#fcDay'); if (!el) return; var my = painting;
     getDaily().then(function (D) {
@@ -560,22 +575,32 @@
       if (!D) { el.innerHTML = '<p class="muted">日級別訊號資料尚未上線（data/flowcheck/daily_signals.json）。</p>'; return; }
       var rid = S.rule || 'all', byG = {}; rows.forEach(function (x) { byG[x.gid] = x; });
       var rl = {}; D.rules.forEach(function (r) { rl[r.id] = r; });
-      var items = (D.recent || []).filter(function (it) { return it.date <= S.date && (rid === 'all' || it.rule === rid); }).sort(function (a, b) { return a.date < b.date ? 1 : a.date > b.date ? -1 : 0; }).slice(0, 80);
-      var cur = items.filter(function (it) { return it.date === S.date; }).length;
+      var all = (D.recent || []).filter(function (it) { return it.date <= S.date && (rid === 'all' || it.rule === rid); }).sort(function (a, b) { return a.date < b.date ? 1 : a.date > b.date ? -1 : 0; }).slice(0, 200);
+      var showAll = !!S.dayAll, items = showAll ? all : all.slice(0, 10);
+      var cur = all.filter(function (it) { return it.date === S.date; }).length;
       var pc = function (v) { return v == null ? '<span class="muted">—</span>' : '<span style="color:' + col(v) + '">' + sg(v, 1, '%') + '</span>'; };
-      var stat = function (r) { var t = r && r.stats && r.stats['5'] && r.stats['5'].test; if (!t || t.n == null) return '—'; if (t.n < 30) return '<span class="muted">n=' + t.n + '，樣本不足</span>'; return '樣本外 n=' + t.n + '　命中 ' + f2(t.hit * (t.hit <= 1 ? 100 : 1), 0) + '%　5 日 <span style="color:' + col(t.mean) + '">' + sg(t.mean, 2, '%') + '</span>　扣成本 <span style="color:' + col(t.net) + '">' + sg(t.net, 2, '%') + '</span>' + (t.vs_rand != null ? '<br><small class="muted">比隨機多 ' + sg(t.vs_rand, 2) + '</small>' : ''); };
+      var sstat = function (r) { var t = r && r.stats && r.stats['5'] && r.stats['5'].test; return t && t.n != null ? t : null; };
+      /* 規則統計放在表格上方：點某條規則只顯示它那一行；「全部規則」顯示每條規則一行（樣本外、5 日） */
+      var sumRow = function (r) {
+        var t = sstat(r), tag = r.verdict === 'pass' ? '' : '<span class="fc-tag" title="' + esc(r.verdict_text || '') + '">實驗</span>';
+        var nums = !t ? '—' : t.n < 30 ? '<span class="muted">n=' + t.n + '，樣本不足，不下結論</span>' : '樣本外 n=' + t.n + '　命中 ' + f2(t.hit * (t.hit <= 1 ? 100 : 1), 0) + '%　5 日 <span style="color:' + col(t.mean) + '">' + sg(t.mean, 2, '%') + '</span>　扣成本 <span style="color:' + col(t.net) + '">' + sg(t.net, 2, '%') + '</span>' + (t.vs_rand != null ? '　比隨機多 ' + sg(t.vs_rand, 2) : '');
+        return '<div class="fc-rs"><b>' + esc(r.id) + '</b> ' + esc(String(r.name).split('：')[0]) + tag + '<span class="fc-rn">' + nums + '</span>' + (r.verdict_text ? '<small class="muted">' + esc(r.verdict_text) + '</small>' : '') + '</div>';
+      };
+      var sumHtml = rid === 'all' ? D.rules.map(sumRow).join('') : (rl[rid] ? '<div class="fc-rt">' + esc(rl[rid].text || '') + '</div>' + sumRow(rl[rid]) : '');
       var gname = function (g) { return (byG[g] || gInfo(g)).name || g; };
-      el.innerHTML = '<div class="fc-dsw">' + seg('fcRule', [['all', '全部規則']].concat(D.rules.map(function (r) { return [r.id, r.id + ' ' + String(r.name).split('：')[0]]; })), rid, '規則篩選') + '<span class="fc-note">' + S.date + ' 當天觸發 ' + cur + ' 筆；列出 ' + S.date + ' 以前的觸發（最多 80 筆）。候選不是買進建議</span></div>'
-        + '<div class="fc-tw"><table><thead><tr><th>觸發日</th><th>規則</th><th>族群</th><th>個股</th><th>理由</th><th>後 5 日</th><th>後 10 日</th><th>後 20 日</th><th class="hm">規則回測</th></tr></thead><tbody>'
+      el.innerHTML = '<div class="fc-dsw">' + seg('fcRule', [['all', '全部規則']].concat(D.rules.map(function (r) { return [r.id, r.id + ' ' + String(r.name).split('：')[0]]; })), rid, '規則篩選') + '</div>'
+        + '<div class="fc-rsum">' + sumHtml + '</div>'
+        + '<div class="fc-note">' + S.date + ' 當天觸發 ' + cur + ' 筆；列出 ' + S.date + ' 以前的觸發。候選不是買進建議。</div>'
+        + '<div class="fc-tw"><table class="fc-dtb"><thead><tr><th>觸發日</th><th>規則</th><th>族群</th><th>個股</th><th>理由</th><th>後 5 日</th><th>後 10 日</th><th>後 20 日</th></tr></thead><tbody>'
         + (items.length ? items.map(function (it) {
-          var r = rl[it.rule] || {}, f = it.fwd || {}, gs = it.groups || [], trg = it.trigger || {};
-          var reason = Object.keys(trg).map(function (k) { return k + ' ' + (typeof trg[k] === 'number' ? f2(trg[k], 2) : trg[k]); }).join('，');
-          var gb = it.level === 'group' ? '<button type="button" class="fc-lk" data-g="' + esc(it.code) + '">' + esc(it.name || gname(it.code)) + '</button>' : gs.map(function (nm) { var gg = gidByName(nm); return gg ? '<button type="button" class="fc-lk" data-g="' + esc(gg) + '">' + esc(nm) + '</button>' : esc(nm); }).join('、');
-          return '<tr class="' + ((it.level === 'group' ? it.code : gidByName(gs[0])) === S.gid ? 'on' : '') + '"><td class="n">' + esc(it.date) + '</td><td>' + esc(it.rule) + ' ' + esc(r.name || '') + (r.verdict === 'pass' ? '' : '<span class="fc-tag" title="' + esc(r.verdict_text || '') + '">實驗</span>') + '</td><td>' + (gb || '<span class="muted">—</span>') + '</td>'
-            + '<td>' + (it.level === 'stock' ? '<button type="button" class="fc-lk" data-go="' + esc(it.code) + '">' + esc(it.name || '') + ' ' + esc(it.code) + '</button>' : '<span class="muted">（族群層）</span>') + '</td><td class="fc-reason">' + esc(r.text || '') + '<br><small class="muted">' + esc(reason) + '</small></td>'
-            + '<td class="n">' + pc(f['5']) + '</td><td class="n">' + pc(f['10']) + '</td><td class="n">' + pc(f['20']) + '</td><td class="hm">' + stat(r) + '</td></tr>';
-        }).join('') : '<tr><td colspan="9" class="muted">這個日期以前沒有符合的觸發</td></tr>')
-        + '</tbody></table></div><div class="fc-note">後 N 日＝觸發後（隔日開盤進場）相對大盤的超額報酬；「—」表示還沒到期。' + esc((D.meta && D.meta.disclaimer) || '研究顯示沒有任何規則站得住，只是觀察名單，不是買賣建議。') + '</div>';
+          var r = rl[it.rule] || {}, f = it.fwd || {}, gs = it.groups || [];
+          var gb = it.level === 'group' ? '<button type="button" class="fc-lk" data-g="' + esc(it.code) + '">' + esc(it.name || gname(it.code)) + '</button>' : gs.slice(0, 1).map(function (nm) { var gg = gidByName(nm); return gg ? '<button type="button" class="fc-lk" data-g="' + esc(gg) + '">' + esc(nm) + '</button>' : esc(nm); }).join('');
+          return '<tr class="' + ((it.level === 'group' ? it.code : gidByName(gs[0])) === S.gid ? 'on' : '') + '"><td class="n">' + esc(it.date.slice(5)) + '</td><td>' + esc(it.rule) + (r.verdict === 'pass' ? '' : '<span class="fc-tag">實驗</span>') + '</td><td>' + (gb || '<span class="muted">—</span>') + '</td>'
+            + '<td>' + (it.level === 'stock' ? '<button type="button" class="fc-lk" data-go="' + esc(it.code) + '">' + esc(it.name || '') + ' ' + esc(it.code) + '</button>' : '<span class="muted">（族群層）</span>') + '</td><td class="fc-reason">' + esc(trigTxt(it.rule, it.trigger)) + '</td>'
+            + '<td class="n">' + pc(f['5']) + '</td><td class="n">' + pc(f['10']) + '</td><td class="n">' + pc(f['20']) + '</td></tr>';
+        }).join('') : '<tr><td colspan="8" class="muted">這個日期以前沒有符合的觸發</td></tr>')
+        + '</tbody></table></div>' + (all.length > 10 ? '<button type="button" class="btn small fc-more" id="fcDayMore">' + (showAll ? '只看前 10 筆' : '看全部 ' + all.length + ' 筆') + '</button>' : '')
+        + '<div class="fc-note">後 N 日＝觸發後（隔日開盤進場）相對大盤的超額報酬；「—」表示還沒到期。' + esc((D.meta && D.meta.disclaimer) || '統計研究輔助，不是買賣建議。') + '</div>';
     });
   }
   function getBt() { if (C.bt !== null) return Promise.resolve(C.bt || null); return jget('backtest.json').then(function (j) { C.bt = j || false; return j; }); }

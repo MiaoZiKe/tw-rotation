@@ -90,7 +90,15 @@
 #fcDayCard .fc-dsw{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
 #fcDayCard .fc-tw{max-height:300px}
 .fc-tag{display:inline-block;padding:1px 6px;border-radius:4px;background:rgba(255,180,84,.16);color:var(--amber,#ffb454);font-size:11px;font-weight:600;margin-left:4px}
-.fc-reason{white-space:normal!important;min-width:220px;max-width:340px;line-height:1.5}
+
 #fcDayCard th:nth-child(-n+5){text-align:left}
 .fc-tw td.hm{white-space:normal}
 #fcDayCard td.hm,#fcDayCard th.hm{min-width:230px}
+#fcDayCard td.hm,#fcDayCard th.hm{min-width:0}
+#fcDayCard .fc-dtb td{white-space:nowrap;height:32px}
+#fcDayCard .fc-dtb td.fc-reason{max-width:260px;overflow:hidden;text-overflow:ellipsis;min-width:0;line-height:1.4}
+.fc-rsum{display:flex;flex-direction:column;gap:4px;margin:4px 0 8px}
+.fc-rs{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;font-size:13px;line-height:1.5}
+.fc-rs .fc-rn{color:var(--ink-2)}.fc-rs small{margin-left:auto}
+.fc-rt{color:var(--ink-3);font-size:12px}
+.fc-more{margin-top:8px}
