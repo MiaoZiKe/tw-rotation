@@ -27,6 +27,7 @@ def env(monkeypatch, tmp_path):
     monkeypatch.setattr(run_daily.inst_official, "fetch_all", lambda *a, **k: pd.DataFrame())
     monkeypatch.setattr(run_daily.inst_bulk, "site_codes", lambda: [])
     monkeypatch.setattr(run_daily.freshness, "check", lambda *a, **k: {})
+    monkeypatch.setattr(run_daily.tape, "collect", lambda *a, **k: pd.DataFrame())   # 不打真 Worker（tape 落地另有 test_tape_lake）
     # inst_official.DIAG 是模組層級全域清單，別的測試（test_inst_official 等）跑過會留下內容，
     # 讓「已到齊」誤判診斷檔有變而回 inst_new=true（2026-10-20 全量 pytest 因此紅、擋住整輪 full）
     monkeypatch.setattr(run_daily.inst_official, "DIAG", [])
