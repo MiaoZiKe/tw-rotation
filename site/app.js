@@ -5384,8 +5384,8 @@
     const s = STAGE[r.stage] || { name: '', color: 'var(--ink)' };
     const sg = (v) => (v >= 0 ? '+' : '') + fmt.n(v, 2);
     box.innerHTML = `<div class="rp-h"><b>${fmt.esc(r.name)}</b><span class="rp-st" style="color:${s.color}">${s.name}</span></div>`
-      + `<dl class="rp-kv"><dt>相對大盤強弱</dt><dd class="num">${sg(r.rs - 100)}</dd>`
-      + `<dt>動能</dt><dd class="num">${sg(r.mo - 100)}</dd>`
+      + `<dl class="rp-kv"><dt>${rotAx().x}</dt><dd class="num">${sg(r.rs - 100)}</dd>`
+      + `<dt>${rotAx().y}</dt><dd class="num">${sg(r.mo - 100)}</dd>`
       + `<dt>成交值佔比</dt><dd class="num">${fmt.n(r.share, 1)}%</dd></dl>`
       + (r.was && STAGE[r.was] ? `<div class="rp-was">${back} 天前在「${STAGE[r.was].name}」${r.moved ? '，剛換段' : ''}</div>` : '')
       + rotPopMembers(r.gid)
@@ -5912,6 +5912,15 @@
   /* ★ 2026-10-06（Andy：「好言論改中性」，DECISIONS #333）：`act` 原本是操作短評
      （「最早可以布局」「回檔找買點、不要追高」「先設好停利」「別急著抄底」），公開網站讀起來就是買賣建議。
      改成只描述 RRG 兩個座標（相對強度 RS-Ratio、動能 RS-Momentum）相對大盤的位置；四段名稱是 RRG 標準術語，保留。*/
+  /* 輪盤模式：price＝強弱輪動（族群價格相對大盤，預設）／money＝資金輪盤（成交值占比相對自身均值）。不寫進 localStorage，每次進頁預設強弱輪動。 */
+  let ROT_MODE = 'price';
+  const rotMoney = () => ROT_MODE === 'money' && /^#flow/.test(location.hash || '');
+  /* 兩種盤的軸名：x／y 的叫法、提示框用的短詞。tooltip、象限面板、欄名一律從這裡取，不各寫各的。 */
+  const rotAx = () => (rotMoney()
+    ? { x: '占比水準', xt: '近 5 日占比 ÷ 近 20 日占比（0＝跟自己平常一樣）', xs: '占比水準', y: '動能', yt: '占比水準的 5 日變化（0＝不快不慢）', far: '離圓心遠＝跟自己平常差多' }
+    : { x: '相對大盤強弱', xt: '相對大盤強弱（0＝跟大盤一樣）', xs: '強弱', y: '動能', yt: '動能（0＝不快不慢）', far: '離圓心遠＝差大盤多' });
+  /* 目前畫哪一份 rrg：資金輪盤用 flow_v3.money_rrg（後端 compute/money_wheel.py），格式與 rrg 相同，所以繪圖／軌跡／回放／象限面板原封不動共用。 */
+  const rotRrgOf = (f3) => ((ROT_MODE === 'money' && f3 && f3.money_rrg && (f3.money_rrg.points || []).length) ? f3.money_rrg : (f3 && f3.rrg));
   const STAGE = (() => {
     const raw = {
       improving: { name: '改善', ck: 'cyan', sub: '還是比大盤弱，但動能轉強了', act: '相對強度低於大盤、動能高於大盤' },
@@ -5921,6 +5930,18 @@
     };
     Object.keys(raw).forEach(k => Object.defineProperty(raw[k], 'color', {
       get() { return CH[raw[k].ck]; }, enumerable: true,
+    }));
+    /* ★ 2026-10-30 資金輪盤（成交值占比版，可從「強弱輪動」切過去）：四段位置與顏色不變，名稱與一句話換成「資金」的講法。
+       只在資金流向頁、而且切到資金輪盤時才換（rotMoney()）；總覽小圖永遠是強弱輪動，所以不能只看模式變數、還要看目前在哪一頁。 */
+    const money = {
+      improving: { name: '升溫', sub: '占比還低於平常，但在往上', act: '成交值占比低於自身均值、動能向上' },
+      leading: { name: '集中', sub: '占比高於平常，而且還在升', act: '成交值占比高於自身均值、動能向上' },
+      weakening: { name: '退燒', sub: '占比仍高，但動能轉下', act: '成交值占比仍高於均值、動能轉下' },
+      lagging: { name: '冷落', sub: '占比低於平常，而且還在降', act: '成交值占比與動能都低於均值' },
+    };
+    Object.keys(raw).forEach(k => ['name', 'sub', 'act'].forEach(f => {
+      const base = raw[k][f];
+      Object.defineProperty(raw[k], f, { get() { return rotMoney() ? money[k][f] : base; }, enumerable: true });
     }));
     return raw;
   })();
@@ -5962,8 +5983,8 @@
       ? `<span class="jmp" style="--c:${STAGE[r.was].color}" title="${ROT_BOARD_WIN} 個交易日前在「${STAGE[r.was].name}」，這幾天換進「${STAGE[r.stage].name}」">←${STAGE[r.was].name}</span>` : '';
     const mo = r.mo != null ? rotSgn(r.mo - 100) : '—';
     return `<li data-gid="${r.gid}"${open ? ' class="ison"' : ''}><span class="gc"><span class="tw2" aria-hidden="true">${open ? '▾' : '▸'}</span><span class="g" title="${fmt.esc(r.name)}">${fmt.esc(r.name)}</span>${jump}</span>`
-      + `<span class="v" title="相對大盤強弱">${rotSgn(r.rs - 100)}</span>`
-      + `<span class="v" title="動能">${mo}</span>`
+      + `<span class="v" title="${rotAx().x}">${rotSgn(r.rs - 100)}</span>`
+      + `<span class="v" title="${rotAx().y}">${mo}</span>`
       + `<span class="v" title="成交值佔比">${fmt.n(r.share, 1)}%</span>${arrow}</li>`;
   }
 
@@ -5988,7 +6009,7 @@
        ③ 盤中即時（RLV）—— 開著即時就用續算出來的那一點，和時鐘上的點同一個口徑
      ②③ 互斥（拖時間軸本來就會退出即時），所以這裡也只會套到其中一個。*/
   function rotStageAll() {
-    const rows = rotRows(rotF3 && rotF3.rrg, ROT_BOARD_WIN);
+    const rows = rotRows(rotRrgOf(rotF3), ROT_BOARD_WIN);
     const pick = rotPickSet();
     const frame = Math.max(0, +rotFrame || 0);
     const liveOn = !!(RLV.on && !RLV.err && frame === 0 && Object.keys(RLV.pt).length);
@@ -6158,7 +6179,7 @@
      openGid＝就地展開的那一列，在它正下方插一列成分股小表（memHtml）。*/
   function rotQuadRows(list, onW, openGid, memHtml) {
     if (!list.length) return '<li class="none">這一段沒有族群</li>';
-    return `<li class="cols" aria-hidden="true"><span>族群</span><span title="相對大盤強弱（0＝跟大盤一樣）">強弱</span><span title="動能（0＝不快不慢）">動能</span><span title="成交值佔全市場">佔比</span><span title="最近 ${ROT_BOARD_WIN} 個交易日動能往哪走">趨勢</span></li>`
+    return `<li class="cols" aria-hidden="true"><span>族群</span><span title="${rotAx().xt}">${rotAx().xs}</span><span title="${rotAx().yt}">動能</span><span title="成交值佔全市場">佔比</span><span title="最近 ${ROT_BOARD_WIN} 個交易日動能往哪走">趨勢</span></li>`
       + list.map(r => {
         const on = r.gid === openGid;
         let h = rotItem(r, on);
@@ -6282,6 +6303,73 @@
     return { codes, gids };
   }
 
+  /* ★ 2026-10-30 資金輪盤的盤中即時續算（和 rlvCompute 吃同一包報價、回同樣形狀的 pt，所以時鐘／箭頭／象限面板／今日時間軸都原封不動共用）。
+     口徑與後端 compute/money_wheel.py 一致（pytest test_live_step_matches_batch 釘住）：
+       x ＝ 100 × mean(前 4 日占比 + 今天) ÷ mean(前 19 日占比 + 今天)；y ＝ 100 + 100 × (x ÷ 5 天前的 x − 1)。
+     今天的占比怎麼估：每檔「價 × 量」做 1/n 拆分後加成族群成交值 gto；分母若直接用「抓得到的股票加總」會偏大
+     （報價只涵蓋手寫族群的成分股，歷史占比的分母是全部族群含自動桶），所以把這批族群今天的占比總和**校準成昨天同一批族群的占比總和**：
+       s_g ＝ gto_g ÷ Σ gto × Σ(昨日占比)。也就是只用報價決定「這批族群之間怎麼分」，總量沿用昨天 —— 估算，不是真值。
+     「持平基準」＝今天占比與昨天一樣時會走到哪（慣性），亮色箭頭＝今天占比真的變動推出來的那一段，跟價格版同一套講法。*/
+  function mwCompute(rrg, q) {
+    const P = rrg && rrg.live_params;
+    if (!P || !P.short || !P.long || !P.mom) throw new Error('尚無即時續算參數');
+    const det = D.groups_detail || {};
+    const w = sklWeights();
+    const stv = {}, chg = {};
+    let uni = 0, at = '', hit = 0;
+    Object.keys(q).forEach(c => {
+      const x = q[c];
+      if (!x || x.price == null || x.volume == null) return;
+      const v = x.price * x.volume * 1000;
+      if (!(v > 0)) return;
+      stv[c] = v; uni += v; hit++;
+      if (x.chgPct != null) chg[c] = x.chgPct / 100;
+      if (x.time && x.time > at) at = x.time;
+    });
+    let mw = 0, mc = 0;
+    Object.keys(stv).forEach(c => { if (chg[c] == null) return; mw += stv[c]; mc += chg[c] * stv[c]; });
+    if (!(mw > 0)) throw new Error('報價不足以計算今日占比');
+    const mkt = mc / mw;
+    const rows = [];
+    let skipped = 0, tot = 0, prevSum = 0;
+    ((rrg && rrg.points) || []).forEach(p => {
+      const ls = p.live_state, t = p.trail || [];
+      if (!ls || !(ls.sh_tail || []).length || isAutoBucket(p.group_id) || t.length < P.mom) { skipped++; return; }
+      let gto = 0, gw = 0, gc = 0, n = 0;
+      ((det[p.group_id] || {}).members || []).forEach(m => {
+        const c = String(m.code);
+        if (stv[c] == null) return;
+        const ww = stv[c] / Math.max(1, w[c] || 1);
+        gto += ww; n++;
+        if (chg[c] != null) { gw += ww; gc += chg[c] * ww; }
+      });
+      if (!(gto > 0)) { skipped++; return; }
+      rows.push({ p, gto, ret: gw > 0 ? gc / gw : 0, n });
+      tot += gto; prevSum += ls.sh_tail[ls.sh_tail.length - 1];
+    });
+    const pt = {};
+    rows.forEach(r => {
+      const p = r.p, tail = p.live_state.sh_tail, t = p.trail;
+      const xPrev = t[t.length - P.mom][1];                       // 新的一天往前數第 mom 天（trail 最後一筆是今天之前的收盤）
+      if (!(xPrev > 0)) { skipped++; return; }
+      const step = (s) => {
+        const a = tail.slice(-(P.short - 1)).concat([s]), b = tail.slice(-(P.long - 1)).concat([s]);
+        const ma = a.reduce((u, v) => u + v, 0) / a.length, mb = b.reduce((u, v) => u + v, 0) / b.length;
+        if (!(mb > 0)) return null;
+        const xx = 100 * ma / mb;
+        return { x: xx, y: 100 + 100 * (xx / xPrev - 1) };
+      };
+      const sNow = prevSum > 0 ? r.gto / tot * prevSum : tail[tail.length - 1];
+      const now = step(sNow), flat = step(tail[tail.length - 1]);
+      if (!now || !flat || !isFinite(now.x) || !isFinite(now.y)) { skipped++; return; }
+      const x = now.x, y = now.y, x0 = p.x, y0 = p.y;
+      pt[p.group_id] = { x, y, x0, y0, fx: flat.x, fy: flat.y, to: r.gto, dx: x - x0, dy: y - y0,
+        tdx: x - flat.x, tdy: y - flat.y, ret: r.ret, n: r.n, sh: sNow, stage: stageOf(x, y), stage0: p.quadrant || stageOf(x0, y0) };
+    });
+    if (!Object.keys(pt).length) throw new Error('報價回來了，但沒有一個族群算得出即時占比');
+    return { pt, mkt, uni, at, hit, skipped };
+  }
+
   /* 把報價續算成「現在這一刻」的時鐘座標。
      ★ 族群報酬用**成交值加權、而且做 1/n 拆分** —— 後端 `compute/flow.py` 的族群 chg_pct
        就是這樣算的（`_chgw / _wsum`，權重是 turnover × 1/n）。兩邊口徑一定要一樣，
@@ -6289,6 +6377,7 @@
      ★ 大盤報酬**不做 1/n 拆分**：`rrg.market_index()` 是逐檔成交值加權，
        那張表裡一檔股票就是一列，沒有「掛在幾個族群」這回事。*/
   function rlvCompute(rrg, q) {
+    if (rrg && rrg.kind === 'money') return mwCompute(rrg, q);   // 資金輪盤：同一包報價，換成「占比」續算
     const P = rrg && rrg.live_params;
     if (!P || !P.rs_smooth || !P.rs_base || !P.mom_roc) {
       throw new Error('尚無即時續算參數');
@@ -6369,7 +6458,7 @@
 
   async function rlvFetch() {
     if (!window.Live || !window.Live.fetchQuotes) throw new Error('即時報價載入失敗');
-    const rrg = rotF3 && rotF3.rrg;
+    const rrg = rotRrgOf(rotF3);
     if (!rrg || !(rrg.points || []).length) throw new Error('輪動資料還沒載入');
     const codes = rlvCodes(rrg).codes;
     if (!codes.length) throw new Error('尚無成分股資料');
@@ -6517,7 +6606,7 @@
   /* 今日時間軸（tape.js，Andy 2026-10-29）：游標釘在過去某一格時，輪盤改吃那一格的報價包，公式與即時完全相同（rlvCompute）。
      涵蓋率的分母是「現在」的台股總成交值，拿來除過去的分子沒有意義，所以回放時不顯示（cover=null）。*/
   function rlvTapeApply() {
-    const rrg = rotF3 && rotF3.rrg;
+    const rrg = rotRrgOf(rotF3);
     if (!rrg || !(rrg.points || []).length) return;
     const key = Tape.curT;
     if (RLV.tapeKey === key && Object.keys(RLV.pt).length) return;
@@ -8001,22 +8090,22 @@
           if (r.isStock) {
             return `<b>${fmt.esc(r.name)} ${fmt.esc(r.code)}</b>　<span style="color:${s.color}">${s.name}</span>`
               + `<br><span class="muted">屬於「${fmt.esc(r.gname || '')}」的成分股</span>`
-              + `<br>相對大盤強弱 ${r.rs >= 100 ? '+' : ''}${fmt.n(r.rs - 100, 2)}`
+              + `<br>${rotAx().x} ${r.rs >= 100 ? '+' : ''}${fmt.n(r.rs - 100, 2)}`
               + `<br>動能 ${r.mo >= 100 ? '+' : ''}${fmt.n(r.mo - 100, 2)}`
               + `<br>佔族群成交值 ${fmt.n(r.share, 1)}%`
               ;
           }
           return `<b>${fmt.esc(r.name)}</b>　<span style="color:${s.color}">${s.name}</span>`
-            + `<br>相對大盤強弱 ${r.rs >= 100 ? '+' : ''}${fmt.n(r.rs - 100, 2)}`
+            + `<br>${rotAx().x} ${r.rs >= 100 ? '+' : ''}${fmt.n(r.rs - 100, 2)}`
             + `<br>動能 ${r.mo >= 100 ? '+' : ''}${fmt.n(r.mo - 100, 2)}`
             + (r.was ? `<br>${back} 天前在「${STAGE[r.was].name}」${r.moved ? '　<b>已經換段</b>' : ''}` : '')
             /* 即時模式：把「上一個收盤在哪、現在在哪、走了多遠」三件事一次講完。
                只寫「現在在哪」的話，使用者看到一顆幾乎沒動的點會以為功能壞了。*/
             + (r.live ? `<br><span style="color:${s.color}">⚡ 盤中即時</span>`
               + `　族群報酬 ${fmt.pct((r.live.raw || r.live).ret * 100, 2)}（大盤代理值 ${fmt.pct((RLV.mkt || 0) * 100, 2)}）`
-              + `<br>上一個收盤 強弱 ${fmt.n((r.live.raw || r.live).x0 - 100, 2)} / 動能 ${fmt.n((r.live.raw || r.live).y0 - 100, 2)}`
-              + `<br><span class="muted">慣性（平盤也會走）強弱 ${(r.live.raw || r.live).fx - (r.live.raw || r.live).x0 >= 0 ? '+' : ''}${fmt.n((r.live.raw || r.live).fx - (r.live.raw || r.live).x0, 2)}　動能 ${(r.live.raw || r.live).fy - (r.live.raw || r.live).y0 >= 0 ? '+' : ''}${fmt.n((r.live.raw || r.live).fy - (r.live.raw || r.live).y0, 2)}</span>`
-              + `<br><b>今天推的</b> 強弱 ${(r.live.raw || r.live).tdx >= 0 ? '+' : ''}${fmt.n((r.live.raw || r.live).tdx, 2)}　動能 ${(r.live.raw || r.live).tdy >= 0 ? '+' : ''}${fmt.n((r.live.raw || r.live).tdy, 2)}`
+              + `<br>上一個收盤 ${rotAx().xs} ${fmt.n((r.live.raw || r.live).x0 - 100, 2)} / 動能 ${fmt.n((r.live.raw || r.live).y0 - 100, 2)}`
+              + `<br><span class="muted">慣性（平盤也會走）${rotAx().xs} ${(r.live.raw || r.live).fx - (r.live.raw || r.live).x0 >= 0 ? '+' : ''}${fmt.n((r.live.raw || r.live).fx - (r.live.raw || r.live).x0, 2)}　動能 ${(r.live.raw || r.live).fy - (r.live.raw || r.live).y0 >= 0 ? '+' : ''}${fmt.n((r.live.raw || r.live).fy - (r.live.raw || r.live).y0, 2)}</span>`
+              + `<br><b>今天推的</b> ${rotAx().xs} ${(r.live.raw || r.live).tdx >= 0 ? '+' : ''}${fmt.n((r.live.raw || r.live).tdx, 2)}　動能 ${(r.live.raw || r.live).tdy >= 0 ? '+' : ''}${fmt.n((r.live.raw || r.live).tdy, 2)}`
               + ((r.live.raw || r.live).stage0 !== (r.live.raw || r.live).stage
                 ? `　<b>跨過象限：${STAGE[(r.live.raw || r.live).stage0].name} → ${STAGE[(r.live.raw || r.live).stage].name}</b>` : '')
               + `<br><span class="muted">權重是「價 × 量」估的，漲跌幅是真的</span>${r.live.raw ? `<br><span class="muted">圖上位移已放大 ×${RLV.k}（數字是真實值）</span>` : ''}` : '')
@@ -8386,7 +8475,7 @@
               /* 即時模式時多一行講箭頭是什麼。只有一行、而且刻意不寫數字 ——
                  數字全部在圖下方那條狀態列裡，圖上塞數字一定會撞到族群名。*/
               + (liveArr.length ? '⚡ 即時：灰虛線＝慣性　亮色箭頭＝今天推的' + (RLV.k > 1 ? `（位移已放大 ×${RLV.k}）` : '') + '\n' : '')
-              + '圈圈大＝佔比高　·　離圓心遠＝差大盤多',
+              + '圈圈大＝佔比高　·　' + rotAx().far,
             fill: hexA(CH.ink2, .55), fontSize: 12, lineHeight: 16, textAlign: 'right' },
         })],
     };
@@ -10004,7 +10093,12 @@
        拿掉的只有「怎麼操作」的長篇解說（畫面上的鈕自己會說話）；**讀法與誠實界線一條都沒少**：
        四段的意思、兩圈虛線、腳印、即時的慣性／今天推的、權重是估的、大盤是代理值，都還在。
        ★ 2026-09-26 晚（Andy：「先退回到有腳印那版本」）：腳印與軌跡恢復，標題沿用改名後的「資金輪盤」。*/
-    rot: `<b>左：強弱輪動＝看族群股價相對大盤是變強還是變弱；右：資金排行＝錢（成交值占比）往哪個族群跑。</b>
+    rot: () => (rotMoney() ? `<b>資金輪盤：看錢（成交值占比）集中到哪個族群、集中度在升還是在降。</b>
+      <ul><li><b>注意</b>：占比的變化跟價格<em>同步發生，不是提前訊號</em>；它告訴你錢現在在哪，不保證接下來會漲。</li>
+      <li><b>橫軸</b>＝近 5 日平均占比 ÷ 近 20 日平均占比（中心＝跟自己平常一樣，右＝比平常多）；<b>縱軸</b>＝這個比值的 5 日變化（上＝還在升）。</li>
+      <li><b>四段</b>：冷落 → 升溫 → 集中 → 退燒，順時針。升溫＝占比還低但在升；集中＝占比高且還在升；退燒＝占比高但在降；冷落＝低且還在降。</li>
+      <li><b>用法</b>：「集中」代表錢正擠進來，到「強弱輪動」切回去看它的價格是否已經領先；「退燒」代表錢在撤，追高前先想想。</li>
+      <li>點大小＝占比；拉Bar、播放、篩選、即時都跟強弱輪動一樣。即時的占比是用報價估的。</li></ul>` : `<b>左：強弱輪動＝看族群股價相對大盤是變強還是變弱；右：資金排行＝錢（成交值占比）往哪個族群跑。</b>
       <ul><li><b>注意</b>：左圖是<em>價格</em>強弱，不是資金流入；資金看右邊排行。用法：排行裡錢流進的族群，到左邊看它在哪一段。</li>
       <li><b>四段</b>：落後 → 改善 → 領先 → 轉弱，順時針輪一圈。<em>改善</em>＝相對強度低於大盤、動能高於大盤；
         <em>領先</em>＝相對強度與動能都高於大盤；<em>轉弱</em>＝相對強度仍高、動能轉弱；<em>落後</em>＝相對強度與動能都低於大盤。</li>
@@ -10020,7 +10114,7 @@
       <li><b>空心圓</b>＝畫到盤上的個股。</li>
       <li data-live-ui><b>即時</b>：用當下價量往前續算一步，每 5 秒更新。灰虛線＝<b>慣性</b>（平盤也會走），
         亮色箭頭＝<b>今天真正推出來的</b>（很短是正常的，<b>沒有放大</b>）。
-        ⚠ 成交值是「價 × 量」<b>估</b>的（漲跌幅是真的）；盤中的<b>大盤是代理值</b>（只用這批股票）。</li></ul>`,
+        ⚠ 成交值是「價 × 量」<b>估</b>的（漲跌幅是真的）；盤中的<b>大盤是代理值</b>（只用這批股票）。</li></ul>`),
     /* ★ 2026-09-24 總覽改版：卡片上「昨日資金分流樹」的副標與註腳（1/n 拆分那段）都拿掉了，搬進這裡。
        副標是讀數（幾號盤後、幾個族群、合計多少），所以寫成函式：每次打開都讀當下 #ovFlowSub 的內容。*/
     rotm: () => {
@@ -10473,7 +10567,7 @@
 
     // ---- 輪動階段：和幾天前比，用來判斷誰剛換階段
     // N2：兩張圖共用的完整族群名單（依成交值佔比排序），在畫圖之前就算好
-    rotAllGroups = rotRows(f3 && f3.rrg, ROT_BOARD_WIN)
+    rotAllGroups = rotRows(rotRrgOf(f3), ROT_BOARD_WIN)
       .map(r => ({ gid: r.gid, name: r.name }));
     /* ★ 2026-09-23：對照表要在**畫任何一張圖之前**建好 —— 資金分流樹（桑基）下面那排下拉
        的第一層也讀 `rotGroupMeta`，而它有可能比 `wireRotFilter()` 早畫。
@@ -10491,7 +10585,7 @@
          那一整塊已經併進時鐘的四個象限卡（`quads`）。
          ★ 2026-09-23 追加：`move`（最近 5 個交易日換階段的族群）也拿掉了（Andy 指定），
            所以這裡只剩 `clock` 與 `quads`。*/
-      renderRotation(f3 && f3.rrg, ROT_BOARD_WIN,
+      renderRotation(rotRrgOf(f3), ROT_BOARD_WIN,
         { clock: 'rotClock', quads: true,
           pick: rotPickSet(), frame: frame || 0,
           /* 軌跡固定畫滿 30 天：拉Bar 是「看哪一天」，不是「畫多長」（A4 第 7 條）。
@@ -10557,6 +10651,28 @@
        刻意**不叫 `rotRedraw`** —— 它連排行與期間卡一起重畫，那兩張和即時完全無關，
        每分鐘白重建一次只會讓畫面閃一下。*/
     rlvRedraw = () => { drawRot(rotFrame); renderStagePanel(); if (rotZoomDraw) rotZoomDraw(); { const rf = document.getElementById('rankFlow'); if (rf && rf._rfRedraw) rf._rfRedraw(); } };   // 2026-10-20：旁邊的族群資金排行吃同一份即時資料，一起重畫
+    /* ★ 2026-10-30 輪盤模式切換：強弱輪動（價格）｜資金輪盤（成交值占比）。
+       切換＝換掉餵給時鐘的那份 rrg（rotRrgOf），其餘（軌跡／腳印／回放／象限面板／今日時間軸／即時）都吃同一份 rrg，所以只要重畫。
+       即時開著時要把舊模式算出來的 RLV.pt 清掉重算（兩種模式的座標意義不同，混著畫會錯）。 */
+    const rotModeApply = () => {
+      const money = ROT_MODE === 'money';
+      const tt = $('#rotModeTitle'); if (tt) tt.textContent = money ? '資金輪盤' : '強弱輪動';
+      const nt = $('#rotModeNote'); if (nt) nt.hidden = !money;
+      $$('#rotModeSeg button').forEach(b => { const on = b.dataset.rm === ROT_MODE; b.classList.toggle('on', on); b.setAttribute('aria-pressed', String(on)); });
+      rotAllGroups = rotRows(rotRrgOf(f3), ROT_BOARD_WIN).map(r => ({ gid: r.gid, name: r.name }));
+      RLV.pt = {}; RLV.tapeKey = ''; RLV.at = 0;
+      drawRot(rotFrame); renderStagePanel();
+      if (RLV.on) { RLV.busy = false; rlvTick(); }
+    };
+    (() => {
+      const box = $('#rotModeSeg'); if (!box) return;
+      ROT_MODE = 'price';                    // 每次進資金流向頁預設強弱輪動（不記模式）
+      const has = !!(f3 && f3.money_rrg && (f3.money_rrg.points || []).length);
+      if (!has) { box.innerHTML = ''; return; }
+      box.innerHTML = `<span class="seg tiny" role="group" aria-label="輪盤看價格強弱還是看資金占比">${[['price', '強弱輪動', '族群股價相對大盤是變強還是變弱（價格）'], ['money', '資金輪盤', '族群成交值占比相對自己平常是升還是降（資金）']].map(([k, l, t]) =>
+        `<button type="button" data-rm="${k}" class="${ROT_MODE === k ? 'on' : ''}" aria-pressed="${ROT_MODE === k}" title="${t}">${l}</button>`).join('')}</span>`;
+      $$('button', box).forEach(b => b.onclick = () => { if (ROT_MODE === b.dataset.rm) return; ROT_MODE = b.dataset.rm; rotModeApply(); });
+    })();
     /* 放大視窗關掉時把卡片補回來：天數（rotFrame）與篩選都是在放大視窗裡改的，
        卡片那張圖在那段期間刻意沒有跟著重畫（每 420ms 重畫兩張會掉幀）。*/
     rotSyncCard = () => {
@@ -15646,7 +15762,7 @@
       sklSig: () => ({ on: SKL.on, err: SKL.err, sig: Object.keys(SKL.tv).sort().map(g => g + ':' + Math.round(SKL.tv[g] / 1e6)).join('|') }),
       rlvState: () => {
         const pts = {};
-        Object.keys(RLV.pt).forEach(g => { const v = RLV.pt[g]; pts[g] = { x: v.x, y: v.y }; });
+        Object.keys(RLV.pt).forEach(g => { const v = RLV.pt[g]; pts[g] = { x: v.x, y: v.y, mode: v.sh != null ? 'money' : 'price', sh: v.sh != null ? v.sh : 0 }; });
         return { on: RLV.on, k: RLV.k || 1, at: RLV.at, quoteAt: RLV.quoteAt, hit: RLV.hit, codes: RLV.codes,
           reqs: RLV.reqs, err: RLV.err, cover: RLV.cover, pts };
       },

@@ -20,7 +20,7 @@ from .compute import explore, inst_market, inst_today
 from .compute import mktfut as mktfut_c
 from .compute import futures_page
 from .compute import lab as lab_compute
-from .compute import analysis, digest, earnings, etf, etf_holdings, flow, fundamental, mtf, rrg, scoring, season, stockpage, technical, themes
+from .compute import analysis, digest, earnings, etf, etf_holdings, flow, fundamental, mtf, money_wheel, rrg, scoring, season, stockpage, technical, themes
 from .groups import loader
 # TechNews 的分類在讀取端重跑（見下面 news_df 那一段的註解），所以要 import 抓取層的分類器
 from .sources import news as news_src
@@ -120,6 +120,15 @@ def _clean(obj):
 
 
 RRG_LITE_KEYS = ("date", "rrg", "sankey")
+
+
+def _money_rrg_safe(group_hist):
+    """資金輪盤是加掛的第二張盤：它算壞了不能連累整份 flow_v3（強弱輪動、桑基、排行都在裡面），失敗就給空盤、前端自動隱藏切換鈕。"""
+    try:
+        return money_wheel.money_rrg(group_hist)
+    except Exception as exc:  # noqa: BLE001
+        log.warning("money_rrg 產出失敗：%s", exc)
+        return {"points": [], "date": None, "kind": "money"}
 
 
 def rrg_lite(flow_v3: dict) -> dict:
@@ -648,6 +657,8 @@ def build() -> None:
         f3 = {
             "date": latest,
             "rrg": r3,
+            # ★ 2026-10-30 資金輪盤（成交值占比版，可從「強弱輪動」切換）；口徑見 compute/money_wheel.py
+            "money_rrg": _money_rrg_safe(group_hist),
             "sankey": rrg.sankey(today, gdetail),
             "share": rrg.share_series(group_hist),
             # 族群 × 法人的逐日序列：30 → 120 天（Andy 2026-09-18 圖八要「截止日」回放，
