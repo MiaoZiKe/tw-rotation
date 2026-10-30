@@ -95,6 +95,13 @@ TABLES: dict[str, list[str]] = {
     # —— 見 DECISIONS #155（通則：會重複用到的就要存）與 #156（分 K 的分層策略）。
     # 1/5/15 分只要當天，不進湖；240 分、週、月都由這一層推出來。
     "intraday_60m":       ["ts", "code"],
+    # v18（2026-10-30，盤中每 5 分鐘一格的個股報價快照）：來源是我們自己的 Cloudflare Worker（workers/quote-proxy）
+    #   盤中 Cron 每 5 分鐘從 mis（白名單）抓約 455 檔族群成分股存進 KV，GET /tape 回 NDJSON；KV 只留約 8 天，
+    #   所以每天盤後落地進湖（pipeline/sources/tape.py），為了研究「盤中資金占比能否提前判斷族群強弱」（至少累積 60 個交易日）。
+    #   ts＝台北時間 5 分鐘格（ISO +08:00）；price＝該格成交價；cum_lots＝累計成交張數（mis v，不含盤後定價／鉅額）；
+    #   cum_value＝累計成交值（元）**估算**＝逐格「新增張數×1000×該格成交價」累加（tape 沒有成交值欄位），val_src 標 est；
+    #   prev_close＝昨收；src＝tape。同一格重抓以 (ts, code) 去重。
+    "tape_5m":            ["ts", "code"],
     # v7（2026-09-25）：大盤三張圖 1H／4H 用的指數與台指期分 K。
     # symbol：TSE（^TWII）/ OTC（^TWOII）/ FUT（台指期日盤）/ FUT_N（夜盤）；
     # interval：60m（Yahoo 保留 730 天，當長歷史）/ 15m（Yahoo 60 天，補最近的細節）。
@@ -130,7 +137,7 @@ TABLES: dict[str, list[str]] = {
 # 為什麼要這個：`store.append()` 每次會**重寫整個分割檔**，而 data/ 每天都會 commit 進 repo。
 # 60 分 K 一年約 100 萬列，照年分割的話每天的資料 commit 都要重寫 26 MB，
 # 一年下來 git 歷史會多好幾 GB。按月分割之後每天只重寫當月那一個檔（約 1 MB）。
-PARTITION_MONTHLY: set[str] = {"intraday_60m", "index_intraday"}
+PARTITION_MONTHLY: set[str] = {"intraday_60m", "index_intraday", "tape_5m"}
 
 # ---------------------------------------------------------------- 端點
 TWSE_OPENAPI = "https://openapi.twse.com.tw/v1"

@@ -1,0 +1,69 @@
+name: 盤中快照落地（tape → 資料湖）
+
+# 2026-10-30：Worker（workers/quote-proxy）盤中每 5 分鐘把成分股報價存進 KV（只留約 8 天），
+# 這支每天收盤後把它落地進資料湖 data/tape_5m（pipeline/sources/tape.py），給「盤中資金占比能否提前判斷族群強弱」研究累積 ≥ 60 個交易日。
+#
+# 為什麼獨立一支，不只靠 daily.yml：
+#   · daily 的 tape 步驟每一輪（15:37／18:37／21:37／清晨 news 輪）也會補抓，所以這支是「多一道保險」，不是唯一一道。
+#   · 這支可以單獨 workflow_dispatch（補歷史、除錯），不用跑 daily 的 pytest 與整站重算。
+#   · 不走 run_daily，所以不會蓋掉 last_run.json（heal_daily.py 靠它判斷價量 phase 補過沒）。
+# 排程：台北 14:07、15:07（UTC 06:07、07:07，週一到週五，避開 :00／:30）。收盤 13:30，Worker 最後一格 13:35，所以 14:07 起就收得齊；
+#   兩次之間重複抓是安全的（依 (ts, code) 去重；湖裡已收齊的日期不會再打 Worker）。
+on:
+  schedule:
+    - cron: "7 6,7 * * 1-5"
+  workflow_dispatch:
+
+# 與 daily／backfill 共用寫入佇列，避免互相踩 data/ 的 push
+concurrency:
+  group: tw-rotation-data-write
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  tape:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: 安裝相依套件
+        run: pip install -r requirements.txt
+
+      # 抓取是冪等的（去重），所以推送被拒時不做 rebase 合併 Parquet，而是對齊遠端後「重抓重寫」再推，最多 5 次。
+      - name: 抓取、落地、回寫資料湖
+        run: |
+          git config user.name  "tw-rotation-bot"
+          git config user.email "actions@github.com"
+          for i in 1 2 3 4 5; do
+            python -m pipeline.sources.tape || echo "::warning::tape 落地失敗（第 $i 次），不擋流程"
+            git add data/tape_5m data/_state/tape_last.json
+            if git diff --staged --quiet; then
+              echo "沒有資料變動，跳過 commit"
+              break
+            fi
+            git commit -m "盤中快照落地 $(TZ=Asia/Taipei date '+%Y-%m-%d %H:%M')"
+            if git push origin "${{ github.ref_name }}"; then
+              echo "推送成功"
+              break
+            fi
+            echo "推送被拒（第 $i 次），對齊遠端後重抓…"
+            git fetch origin "${{ github.ref_name }}"
+            git reset -q --hard "origin/${{ github.ref_name }}"
+            sleep $((i * 5))
+          done
+
+      - name: 執行摘要
+        if: always()
+        run: |
+          {
+            echo "### 盤中快照落地"
+            if [ -f data/_state/tape_last.json ]; then echo '```json'; cat data/_state/tape_last.json; echo; echo '```'; fi
+          } >> "$GITHUB_STEP_SUMMARY"
