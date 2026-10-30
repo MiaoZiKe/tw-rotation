@@ -1,0 +1,37 @@
+name: 檢查當日快照（/tape）
+
+# 2026-10-30：Worker（workers/quote-proxy）盤中每 5 分鐘把成分股報價存進 KV，GET /tape 回 NDJSON。
+# 開發容器打不開 workers.dev，所以由 Actions 帶正確 Origin 去打，把格數與時間範圍寫進 step summary。
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 打 /health 與 /tape
+        run: |
+          B=https://tw-quote.kcq01010909.workers.dev
+          O="Origin: https://liguligu-puipui.com"
+          {
+            echo "### /health"; echo '```'
+            curl -s -m 20 -H "$O" "$B/health" | head -c 600; echo; echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+          code=$(curl -s -m 30 -o /tmp/tape.txt -w '%{http_code}' -H "$O" "$B/tape")
+          echo "HTTP $code"; head -c 300 /tmp/tape.txt; echo
+          python3 - "$code" <<'PY' >> "$GITHUB_STEP_SUMMARY"
+          import json, sys
+          code = sys.argv[1]
+          txt = open("/tmp/tape.txt", encoding="utf-8").read()
+          print(f"### /tape：HTTP {code}")
+          if code != "200":
+              print("內容：`" + txt[:300] + "`")
+          else:
+              ls = [l for l in txt.split("\n") if l.strip()]
+              h = json.loads(ls[0]); sl = [json.loads(l) for l in ls[1:]]
+              print(f"日期 {h.get('date')}，代號 {len(h['codes'])} 檔，格數 {len(sl)}")
+              if sl:
+                  print(f"第一格 {sl[0]['t']}，最後一格 {sl[-1]['t']}；時間：" + " ".join(s['t'] for s in sl))
+                  print(f"最後一格有價格的檔數：{sum(1 for p in sl[-1]['p'] if p is not None)}")
+          PY
