@@ -55889,7 +55889,10 @@ def t_mobile_tap_audit(b, base, code):
     au = A.Auditor(b, base, 390, log=lambda *a, **k: None)
     pg = au.new_page()
     try:
-        st = {"name": "種壞鈕", "hash": "#overview"}
+        # 2026-10-29：種壞鈕改種在 #season（季節性，靜態頁）。原本種在 #overview：點一顆鈕前頁面會被捲動，總覽有一堆跟著捲動
+        #   更新的節點（#mM3Pos 第 n 張、#ovEvents、#m4Title、m3 圖表 lazy 重畫），「沒反應」那顆被別處的 DOM×4～12 當成有反應，
+        #   這一條三輪裡紅三輪（量測的嚴格度沒變：真的沒反應的鈕在靜態頁照樣被抓到；換頁只是讓「別處的雜訊」不再干擾）。
+        st = {"name": "種壞鈕", "hash": "#season"}
         au.load(st)
         pg.evaluate("""() => {
           const box = document.createElement('div'); box.id = 'taPlant';
