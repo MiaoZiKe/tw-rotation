@@ -1,6 +1,121 @@
 {
- "updated": "2026-10-29",
+ "updated": "2026-10-30",
  "topics": [
+  {
+   "id": "n_tsmc_gm",
+   "title": "2奈米量產，台積電毛利為何先掉1.3個百分點",
+   "why": "台積電 2026-10-15 法說：Q3 毛利率 66.4%、季減約 130 基點，主因 2 奈米量產初期稀釋；Q3 EPS 29.43 元創單季新高（鉅亨網、TVBS；毛利率季減幅度以鉅亨網為主，寫稿前須以法說簡報核對）；角度放毛利結構，避開已上架的法說五個數字題",
+   "score": 4,
+   "format_hint": "兩者",
+   "site_links": [
+    "#overview",
+    "#industry/semiconductor",
+    "#themes"
+   ],
+   "cat": "news",
+   "added": "2026-10-30"
+  },
+  {
+   "id": "n_tsmc_capex27",
+   "title": "台積電資本支出一年六百億美元，明年還會更多嗎",
+   "why": "台積電 2026-10-15 法說維持 2026 資本支出 600～640 億美元（7 月已由 520～560 億上調），並預告 2026～2028 明顯高於前三年；2027 年法人預估 650～900 億美元為單一來源估計（鉅亨網、TVBS）；角度放設備與材料需求，寫稿前須核對法說原文",
+   "score": 3,
+   "format_hint": "貼文",
+   "site_links": [
+    "#industry/semiconductor",
+    "#flow",
+    "#overview"
+   ],
+   "cat": "news",
+   "added": "2026-10-30"
+  },
+  {
+   "id": "n_liquid_cool",
+   "title": "液冷散熱為何成AI伺服器供應鏈的討論焦點",
+   "why": "搜尋摘要顯示大摩預估散熱廠營收續創高，Vera Rubin 平台的 CPO 交換器機櫃也採液冷（經濟日報、鉅亨網；日期與數字僅單一摘要，寫稿前須另行查證）；與已上架水冷知識題角度不同，講供應鏈討論而非原理，不排受惠",
+   "score": 3,
+   "format_hint": "文章",
+   "site_links": [
+    "#industry/ai_server",
+    "#themes"
+   ],
+   "cat": "news",
+   "added": "2026-10-30"
+  },
+  {
+   "id": "k_phone_struct",
+   "cat": "know",
+   "title": "智慧型手機結構是什麼？一支手機拆開有哪幾塊",
+   "why": "秋季新機出貨期，讀者常分不清主機板、鏡頭、面板、電池各自的位置；站內有 2.5D 圖 apple_chain（蘋果供應鏈：一支手機怎麼組起來），文章＋2.5D 圖，只講結構與原理，不排受惠",
+   "score": 3,
+   "format_hint": "文章",
+   "site_links": [
+    "#heatmap/theme/apple_chain",
+    "#industry"
+   ],
+   "added": "2026-10-30"
+  },
+  {
+   "id": "k_naphtha_cracker",
+   "cat": "know",
+   "title": "輕油裂解是什麼？一桶油怎麼變成塑膠原料",
+   "why": "油價在高檔震盪，石化新聞常提輕油裂解但少有人說明流程；站內有 2.5D 圖 petrochemical（輕油怎麼變塑膠），文章＋2.5D 圖，只講原理，不排受惠",
+   "score": 3,
+   "format_hint": "文章",
+   "site_links": [
+    "#heatmap/theme/petrochemical"
+   ],
+   "added": "2026-10-30"
+  },
+  {
+   "id": "k_defense_platform",
+   "cat": "know",
+   "title": "軍工載具是什麼？一筆國防預算拆成哪幾類裝備",
+   "why": "國防預算與無人機議題常見於新聞，但裝備分類少有人整理；站內有 2.5D 圖 defense（軍工國防：預算變成哪些載具），文章＋2.5D 圖，只講分類與原理，不排受惠",
+   "score": 3,
+   "format_hint": "文章",
+   "site_links": [
+    "#heatmap/theme/defense"
+   ],
+   "added": "2026-10-30"
+  },
+  {
+   "id": "i_nand_storage",
+   "cat": "intro",
+   "title": "儲存產業鏈：NAND 顆粒、主控到 SSD 模組",
+   "why": "記憶體缺貨新聞常把 DRAM 與 NAND 混談；站內有 memory_module、nor_niche_memory 族群頁與 SSD 3D 圖，需附供應鏈圖，講環節分工，不排受惠",
+   "score": 3,
+   "format_hint": "文章",
+   "site_links": [
+    "#industry/group/memory_module",
+    "#industry/group/nor_niche_memory"
+   ],
+   "added": "2026-10-30"
+  },
+  {
+   "id": "i_drone_chain",
+   "cat": "intro",
+   "title": "無人機供應鏈：飛控、馬達、電池到整機",
+   "why": "國防預算與無人機題材常被討論；站內有 2.5D 圖 drone（四旋翼供應鏈）與無人機題材頁，需附供應鏈圖，講環節分工，不排受惠",
+   "score": 3,
+   "format_hint": "文章",
+   "site_links": [
+    "#heatmap/theme/drone"
+   ],
+   "added": "2026-10-30"
+  },
+  {
+   "id": "i_hdi_pcb",
+   "cat": "intro",
+   "title": "HDI 與高階 PCB 鏈：基板、鑽孔到壓合",
+   "why": "高階 PCB 吃緊的新聞多，但 HDI、硬板、載板的分工常被混談；站內有 pcb_rigid 族群頁與 PCB 3D 圖，需附供應鏈圖，講環節不排受惠；避開已上架板材鏈總覽",
+   "score": 3,
+   "format_hint": "文章",
+   "site_links": [
+    "#industry/group/pcb_rigid"
+   ],
+   "added": "2026-10-30"
+  },
   {
    "id": "n_alphabet_capex",
    "cat": "news",
