@@ -16,17 +16,19 @@ from urllib.parse import unquote, urljoin, urlparse
 MAX_PAGES = 30          # 每家最多開幾頁
 MAX_NEW = 14            # 每家一次最多新增幾張候選（待審）
 MIN_W, MIN_H, MIN_AR = 800, 420, 1.25     # 封面照片區 952×約 440；再小的網頁橫幅裁成封面會糊（審核時再看清晰度）
+MAX_PDF = 3             # 官網找不到照片時，再從官方永續報告書／年報 PDF 裡取照片（每家最多開 2 份）
+PDF_KW = re.compile(r"永續|ESG|CSR|sustainab|annual|年報|企業社會責任|報告書", re.I)
 PREFIX_CAP = 3          # 同一路徑前綴（前兩層）最多開幾頁，避免被產品清單頁灌爆
 # 連結優先序：廠區／據點／總部／圖庫 > 關於／媒體 > 產品 > 其他
 LINK_PRI = [(re.compile(r"facilit|fab\b|fabs|plant|factory|campus|location|headquart|site-?tour|gallery|photo|image|multimedia|media-?(kit|library|asset)|廠|據點|園區|總部", re.I), 0),
-            (re.compile(r"about|company|corporate|overview|press|newsroom|關於|公司|簡介|新聞|媒體", re.I), 1),
+            (re.compile(r"about|company|corporate|overview|press|newsroom|esg|csr|sustainab|report|關於|公司|簡介|新聞|媒體|永續|報告", re.I), 1),
             (re.compile(r"product|technolog|data-?center|infrastructure|產品|技術", re.I), 2)]
 BROWSER_UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
               "Chrome/126.0 Safari/537.36")
 # 連結：像「關於／廠區／據點／產品／新聞室／媒體／圖庫」的頁面才跟進
 LINK_OK = re.compile(r"about|company|corporate|overview|facilit|fab\b|fabs|plant|factory|campus|location|site|office|headquart|"
                      r"manufactur|operation|global|news|press|media|gallery|image|photo|multimedia|product|technolog|data-?center|"
-                     r"infrastructure|cloud|關於|公司|簡介|廠|據點|營運|新聞|媒體|產品|技術|全球", re.I)
+                     r"infrastructure|cloud|esg|csr|sustainab|report|關於|公司|簡介|廠|據點|營運|新聞|媒體|產品|技術|全球|永續|報告", re.I)
 LINK_BAD = re.compile(r"career|job|recruit|investor|ir\.|financial|login|signin|account|privacy|legal|terms|cookie|contact|"
                       r"\.pdf$|\.zip$|mailto:|javascript:|tel:|#|人才|招募|投資人|財務|隱私|條款|登入", re.I)
 # 圖：網址或 alt 像這些字的不抓（標誌、人像、活動、獎項、圖示）
@@ -101,14 +103,37 @@ def _prefix(url: str) -> str:
 def _download(dl, sess, src: str, referer: str) -> bytes:
     """先用瀏覽器分頁開圖（帶 cookie、真瀏覽器指紋，擋爬蟲的 CDN 也開得了）；失敗再用 requests。"""
     try:
-        r = dl.goto(src, timeout=45000, referer=referer)
-        if r and r.ok:
-            b = r.body()
-            if b: return b
+        if re.search(r"\.pdf(\?|$)", src, re.I):      # 瀏覽器開 PDF 會回內建閱讀器的 HTML，改用同一個瀏覽器環境的 API 請求（帶 cookie）
+            r = dl.context.request.get(src, timeout=120000, headers={"Referer": referer})
+            if r.ok and r.body()[:4] == b"%PDF": return r.body()
+        else:
+            r = dl.goto(src, timeout=45000, referer=referer)
+            if r and r.ok:
+                b = r.body()
+                if b: return b
     except Exception:
         pass
     r = sess.get(src, timeout=60, headers={"User-Agent": BROWSER_UA, "Referer": referer}); r.raise_for_status()
     return r.content
+
+
+def _pdf_images(data: bytes):
+    """官方 PDF 內嵌的點陣圖（照片），依頁序回傳 (PIL 影像, 頁碼)。需要 PyMuPDF（工作流程官方來源步驟有裝）。"""
+    try:
+        import pymupdf as fitz
+    except ImportError:
+        import fitz
+    from PIL import Image
+    doc = fitz.open(stream=data, filetype="pdf")
+    for pno, page in enumerate(doc, 1):
+        for x in page.get_images(full=True):
+            try:
+                pix = fitz.Pixmap(doc, x[0])
+                if pix.n - pix.alpha >= 4: pix = fitz.Pixmap(fitz.csRGB, pix)
+                if pix.width < MIN_W: continue
+                yield Image.open(io.BytesIO(pix.tobytes("png"))).convert("RGB"), pno
+            except Exception:
+                continue
 
 
 def fetch_official(t: dict, d: Path, sess, gseen: set[str]) -> dict:
@@ -128,7 +153,7 @@ def fetch_official(t: dict, d: Path, sess, gseen: set[str]) -> dict:
         ctx = br.new_context(user_agent=BROWSER_UA, viewport=dict(width=1600, height=1000), locale="zh-TW")
         pg = ctx.new_page(); dl = ctx.new_page()
         queue = [(-1, i, u) for i, u in enumerate(sites)]      # (優先序, 先後, 網址)；種子頁最優先
-        visited, per_prefix, seq = set(), {}, len(sites)
+        visited, per_prefix, seq, pdfs = set(), {}, len(sites), [u for u in sites if re.search(r"\.pdf(\?|$)", u, re.I)]
         while queue and len(visited) < MAX_PAGES and added < MAX_NEW:
             queue.sort(); _, _, url = queue.pop(0); url = url.split("#")[0]
             if url in visited: continue
@@ -179,11 +204,44 @@ def fetch_official(t: dict, d: Path, sess, gseen: set[str]) -> dict:
             queued = {u for _, _, u in queue}
             for a in info["links"]:
                 href = (a.get("href") or "").split("#")[0]
+                if re.search(r"\.pdf(\?|$)", href, re.I) and _domain_ok(href, sites) and href not in pdfs \
+                        and (PDF_KW.search(href) or PDF_KW.search(a.get("text") or "")):
+                    pdfs.append(href); continue
                 if not href.startswith("http") or href in visited or href in queued: continue
                 if not _domain_ok(href, sites) or LINK_BAD.search(href): continue
                 if LINK_OK.search(href) or LINK_OK.search(a.get("text") or ""):
                     seq += 1; queue.append((_pri(href, a.get("text")), seq, href)); queued.add(href)
             time.sleep(1)
+        for pdf in pdfs[:MAX_PDF]:
+            if added >= MAX_NEW: break
+            n0 = added
+            try:
+                data = _download(dl, sess, pdf, pdf)
+                if len(data) > 80_000_000: raise ValueError("PDF 超過 80MB")
+                for img, pno in _pdf_images(data):
+                    if added >= MAX_NEW: break
+                    key = f"{pdf}#p{pno}-{img.width}x{img.height}"
+                    if key in seen: continue
+                    seen.add(key)
+                    if img.width < MIN_W or img.height < MIN_H or img.width / max(1, img.height) < MIN_AR or _flat(img): continue
+                    h = hashlib.sha1(img.resize((32, 16)).tobytes()).hexdigest()
+                    if h in hashes: continue
+                    hashes.add(h)
+                    if img.width > 1920: img = img.resize((1920, int(img.height * 1920 / img.width)), Image.LANCZOS)
+                    n = 1
+                    while n in used_n: n += 1
+                    fn = f"photo_{n}.jpg"; d.mkdir(parents=True, exist_ok=True)
+                    img.save(d / fn, quality=86, optimize=True)
+                    used_n.add(n); added += 1
+                    pool["photos"].append(dict(file=fn, kind="總部/廠房", slug=slug, name_en=t["name_en"], origin="official", query="official-pdf",
+                                               file_title=key, source_page=pdf, source_url=pdf, image_url=key, pdf_page=pno,
+                                               license="official-press", license_url="", author=credit_for(t, pdf).removeprefix("圖："),
+                                               credit=credit_for(t, pdf), description=f"官方報告書 PDF 第 {pno} 頁", width=img.width, height=img.height,
+                                               sha1=h, fetched_at=today, fetched_at_utc=datetime.now(timezone.utc).isoformat(timespec="seconds"),
+                                               reviewed=False, reviewer="", review_note=""))
+                pages_log.append(dict(url=pdf, pdf=True, saved=added - n0))
+            except Exception as ex:
+                pages_log.append(dict(url=pdf, pdf=True, error=str(ex)[:160]))
         br.close()
     d.mkdir(parents=True, exist_ok=True)
     (d / "pool.json").write_text(json.dumps(pool, ensure_ascii=False, indent=1), encoding="utf-8")

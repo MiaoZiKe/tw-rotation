@@ -32,7 +32,7 @@ jobs:
       - run: pip install -q requests pillow
       - name: 官方來源要真瀏覽器
         if: github.event.inputs.source == 'official'
-        run: pip install -q playwright && python -m playwright install --with-deps chromium
+        run: pip install -q playwright pymupdf && python -m playwright install --with-deps chromium
       - name: 抓圖
         env:
           ONLY: ${{ github.event.inputs.only }}
