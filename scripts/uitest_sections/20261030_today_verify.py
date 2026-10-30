@@ -82,10 +82,12 @@ def t_today_verify_1030(b, base):
     ctx, pg = open_page("#flow/rotation")
     wait_until(pg, "() => !!window.App && !!App.tvPattern", 20000)
     cases = {"開高走低": [1.0, 1.2, 0.9, 0.4, -0.2, -0.6], "開低走高": [-1.0, -0.8, -0.2, 0.4, 0.9], "盤整": [0.1, 0.2, 0.0, 0.15, 0.1],
-             "一路走高": [0.1, 0.4, 0.8, 1.2, 1.6], "一路走低": [-0.1, -0.5, -0.9, -1.4], "盤整2": [0.5, 1.4, 1.0, 0.2, 0.55]}
+             "一路走高": [0.1, 0.4, 0.8, 1.2, 1.6], "一路走低": [-0.1, -0.5, -0.9, -1.4], "衝高回落": [0.5, 1.4, 1.0, 0.2, 0.55],
+             "MLCC": [-2.34, -1.9, -1.4, -0.9, -0.7, -0.55, -0.51, -1.6, -2.4, -3.0, -3.4, -3.9, -4.1, -4.3, -4.43, -4.0, -3.6, -3.33], "探底回升": [0.2, -0.9, -1.4, -0.6, 0.1, 0.4],
+             "寬幅震盪": [0.0, 1.2, -0.3, 1.1, 0.1, 0.9, 0.05], "小振幅盤整": [0.1, 0.5, 0.2, 0.6, 0.3]}
     got = {k: pg.evaluate("(a) => (App.tvPattern(a) || {}).name", v) for k, v in cases.items()}
-    ok(f"[{T}] 型態判斷：開高走低／開低走高／盤整／一路走高／一路走低 都判得對（衝高回到原點算盤整）",
-       got == {"開高走低": "開高走低", "開低走高": "開低走高", "盤整": "盤整", "一路走高": "一路走高", "一路走低": "一路走低", "盤整2": "盤整"}, got)
+    ok(f"[{T}] 型態判斷：開高走低／衝高回落／開低走高／探底回升／一路走高／一路走低／寬幅震盪／盤整 都判得對（★ MLCC 那條「開盤後衝高、再跌破開盤」＝衝高回落，不是盤整）",
+       got == {"開高走低": "開高走低", "開低走高": "開低走高", "盤整": "盤整", "一路走高": "一路走高", "一路走低": "一路走低", "衝高回落": "衝高回落", "MLCC": "衝高回落", "探底回升": "探底回升", "寬幅震盪": "寬幅震盪", "小振幅盤整": "盤整"}, got)
     # ------------------------------------------------------------------ 即時：位移放大、開面板
     wait_until(pg, "() => !!document.getElementById('rotLiveBtn')", 25000); pg.click("#rotLiveBtn")
     wait_until(pg, "() => { const s = App.rlvState(); return s.on && !s.err && s.at > 0 && Object.keys(s.pts).length > 0; }", 60000, 400)
@@ -102,8 +104,10 @@ def t_today_verify_1030(b, base):
     wait_until(pg, "() => { const e = document.getElementById('todayVerify'); return !!e && !e.hidden && !!e.querySelector('.tvrow'); }", 15000)
     st = pg.evaluate("() => ({ gid: document.getElementById('todayVerify').dataset.gid, pat: (document.getElementById('tvPat') || {}).textContent, rows: document.querySelectorAll('#tvList .tvrow').length, sp: document.querySelectorAll('#tvList .tvrow svg.tvspark polyline').length, canvas: document.querySelectorAll('#tvChart canvas, #tvChart svg').length, tv: App._tv, conc: (document.getElementById('tvConc') || {}).textContent })")
     ok(f"[{T}] ★ 點排行長條 → 開「今日走勢驗證」面板（族群正確、有分時圖、有結論）", st["gid"] == pos["gid"] and st["canvas"] > 0 and len(st["conc"] or "") > 20, [st, pos])
+    conc = st["conc"] or ""
+    ok(f"[{T}] ★ 結論文字不自相矛盾：只有「盤整」才會出現「只差」", ("只差" not in conc) or (st["pat"] == "盤整"), [st["pat"], conc])
     calc = pg.evaluate("(g) => { const r = App.tvCalc(g); return { pat: r.pat && r.pat.name, n: r.stocks.length, times: r.times.length }; }", pos["gid"])
-    ok(f"[{T}] ★ 型態判斷：面板寫的型態（{st['pat']}）＝ 用同一份分時資料重算的結果，且是五種之一", st["pat"] == calc["pat"] and st["pat"] in ("開高走低", "開低走高", "盤整", "一路走高", "一路走低"), [st["pat"], calc])
+    ok(f"[{T}] ★ 型態判斷：面板寫的型態（{st['pat']}）＝ 用同一份分時資料重算的結果，且是五種之一", st["pat"] == calc["pat"] and st["pat"] in ("開高走低", "衝高回落", "開低走高", "探底回升", "一路走高", "一路走低", "寬幅震盪", "盤整"), [st["pat"], calc])
     ok(f"[{T}] ★ 成分股每檔一條小分時線：列數 {st['rows']}＝min(10, {calc['n']})，每列都有 sparkline（{st['sp']} 條）", st["rows"] == min(10, calc["n"]) and st["sp"] == st["rows"] and st["rows"] > 0)
     if calc["n"] > 10:
         pg.click("#todayVerify .tvmore"); pg.wait_for_timeout(500)

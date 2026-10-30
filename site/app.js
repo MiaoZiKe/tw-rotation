@@ -5688,23 +5688,33 @@
        ③ 相關族群（同產業鏈）一鍵切換
      時間軸拖到過去時只算到那一格（回放時也能驗證）。手機（≤640）用底部抽屜。 */
   const TV = { gid: null, all: false, at: 0, last: null };
-  const TV_RANGE = 0.5;                     // 波動（最高−最低）小於這個百分點＝盤整
-  /* 型態判斷。s＝相對昨收的漲跌百分比序列（時間順序）。
-     盤整：波動 < 0.5pp；走高／走低：開盤到目前的位移 ≥ 波動的一半；開盤高於 +0.3% 才叫「開高」、低於 −0.3% 才叫「開低」，其餘叫一路走高／走低；
-     位移不到波動一半（衝高又回來、或來回震盪）一律算盤整。 */
+  const TV_RANGE = 0.8;                     // 波動（最高−最低）小於這個百分點才叫盤整
+  /* 型態判斷（2026-10-30 CEO 退件後重寫：看「相對振幅」與「高低點先後」，不是只看開盤到現在的位移）。
+     s＝相對昨收的漲跌百分比序列（時間順序）。R＝最高−最低。
+       · R < 0.8pp → 盤整（只有振幅本身很小才算）
+       · 先高後低（最高點比最低點早），而且現價跌破開盤、或從最高點回落 ≥ R/2：
+           開盤就在高點附近（離最高 < 0.15R）→ 開高走低（開盤 > +0.3%）／一路走低；
+           否則（開盤後又衝上去才回落）→ 衝高回落
+       · 先低後高（對稱）：開盤就在低點附近 → 開低走高（開盤 < −0.3%）／一路走高；否則 → 探底回升
+       · 其餘（振幅大、但沒有明確方向）→ 寬幅震盪
+     ★ 不再有「衝高又回到原點算盤整」：振幅大就是有方向或寬幅震盪，不是盤整。*/
   function tvPattern(arr) {
     const a = (arr || []).filter(v => v != null && isFinite(v));
     if (a.length < 3) return null;
     const n = a.length, r0 = a[0], cur = a[n - 1];
     let hi = -1e9, lo = 1e9, hiI = 0, loI = 0;
     a.forEach((v, i) => { if (v > hi) { hi = v; hiI = i; } if (v < lo) { lo = v; loI = i; } });
-    const range = hi - lo, drift = cur - r0;
+    const R = hi - lo;
     let name = '盤整';
-    if (range >= TV_RANGE) {
-      if (drift >= 0.5 * range) name = r0 < -0.3 ? '開低走高' : '一路走高';
-      else if (drift <= -0.5 * range) name = r0 > 0.3 ? '開高走低' : '一路走低';
+    if (R >= TV_RANGE) {
+      const dropFromHi = hi - cur, riseFromLo = cur - lo;
+      if (hiI < loI && (cur < r0 || dropFromHi >= 0.5 * R)) name = (hi - r0 < 0.15 * R) ? (r0 > 0.3 ? '開高走低' : '一路走低') : '衝高回落';
+      else if (loI < hiI && (cur > r0 || riseFromLo >= 0.5 * R)) name = (r0 - lo < 0.15 * R) ? (r0 < -0.3 ? '開低走高' : '一路走高') : '探底回升';
+      else if (cur - r0 >= 0.5 * R) name = '一路走高';
+      else if (r0 - cur >= 0.5 * R) name = '一路走低';
+      else name = '寬幅震盪';
     }
-    return { name, open: r0, hi, lo, cur, hiI, loI, n, range };
+    return { name, open: r0, hi, lo, cur, hiI, loI, n, range: R };
   }
   const tvF = (v) => (v >= 0 ? '+' : '') + v.toFixed(2) + '%';
   function tvCalc(gid) {
@@ -5749,13 +5759,18 @@
   function tvSentence(r) {
     const p = r.pat; if (!p) return '今天的快照格數還不夠（至少 3 格）判斷型態。';
     const base = `${r.name} 今天開盤 ${tvF(p.open)}、最高 ${tvF(p.hi)}（${p.hiT}）、最低 ${tvF(p.lo)}（${p.loT}）、目前 ${tvF(p.cur)}`;
-    const sc = r.stocks.filter(x => x.pat), dn = sc.filter(x => x.pat.name === '開高走低' || x.pat.name === '一路走低').length, up = sc.filter(x => x.pat.name === '開低走高' || x.pat.name === '一路走高').length;
-    const mine = sc.length ? `；${sc.length} 檔成分股裡 ${dn} 檔走低、${up} 檔走高` : '';
-    const say = { '開高走低': `<b>開高走低</b>：高點在 ${p.hiT}，之後回落 ${(p.hi - p.cur).toFixed(2)} 個百分點，目前比開盤低 ${(p.open - p.cur).toFixed(2)}`,
-      '開低走高': `<b>開低走高</b>：低點在 ${p.loT}，之後回升 ${(p.cur - p.lo).toFixed(2)} 個百分點，目前比開盤高 ${(p.cur - p.open).toFixed(2)}`,
-      '一路走高': `<b>一路走高</b>：從開盤到現在累計 ${(p.cur - p.open).toFixed(2)} 個百分點`,
-      '一路走低': `<b>一路走低</b>：從開盤到現在累計 ${(p.open - p.cur).toFixed(2)} 個百分點`,
-      '盤整': `<b>盤整</b>：今天最高到最低只差 ${p.range.toFixed(2)} 個百分點，目前離開盤 ${tvF(p.cur - p.open).replace('%', '')} 個百分點` }[p.name];
+    const DOWN = ['開高走低', '衝高回落', '一路走低'], UP = ['開低走高', '探底回升', '一路走高'];
+    const sc = r.stocks.filter(x => x.pat), dn = sc.filter(x => DOWN.includes(x.pat.name)).length, up = sc.filter(x => UP.includes(x.pat.name)).length;
+    const mine = sc.length ? `；${sc.length} 檔成分股裡 ${dn} 檔走低型、${up} 檔走高型` : '';
+    const rg = p.range.toFixed(2);
+    const say = { '開高走低': `<b>開高走低</b>：開盤就在高點附近，之後一路回落 ${(p.hi - p.cur).toFixed(2)} 個百分點，目前比開盤低 ${(p.open - p.cur).toFixed(2)}`,
+      '衝高回落': `<b>衝高回落</b>：開盤後先衝到 ${p.hiT} 的最高點（比開盤高 ${(p.hi - p.open).toFixed(2)}），之後回落 ${(p.hi - p.cur).toFixed(2)} 個百分點，振幅 ${rg} 個百分點，目前${p.cur < p.open ? `比開盤低 ${(p.open - p.cur).toFixed(2)}` : `只回到開盤附近`}`,
+      '開低走高': `<b>開低走高</b>：開盤就在低點附近，之後一路回升 ${(p.cur - p.lo).toFixed(2)} 個百分點，目前比開盤高 ${(p.cur - p.open).toFixed(2)}`,
+      '探底回升': `<b>探底回升</b>：開盤後先探到 ${p.loT} 的最低點（比開盤低 ${(p.open - p.lo).toFixed(2)}），之後回升 ${(p.cur - p.lo).toFixed(2)} 個百分點，振幅 ${rg} 個百分點`,
+      '一路走高': `<b>一路走高</b>：從開盤到現在累計 ${(p.cur - p.open).toFixed(2)} 個百分點，振幅 ${rg}`,
+      '一路走低': `<b>一路走低</b>：從開盤到現在累計 ${(p.open - p.cur).toFixed(2)} 個百分點，振幅 ${rg}`,
+      '寬幅震盪': `<b>寬幅震盪</b>：最高到最低相差 ${rg} 個百分點、來回沒有明確方向，目前離開盤 ${(p.cur - p.open >= 0 ? '+' : '') + (p.cur - p.open).toFixed(2)} 個百分點`,
+      '盤整': `<b>盤整</b>：今天波動很小，最高到最低只差 ${rg} 個百分點` }[p.name];
     return `${base}。${say}${mine}。`;
   }
   const tvSpark = (c, color) => {
@@ -5808,7 +5823,7 @@
     const det = D.groups_detail, chainOf = (k) => (rotGroupMeta[k] || {}).chain || L.gchain[k] || '', ch = chainOf(TV.gid);
     const rel = ch ? Object.keys(det).filter(k => !isAutoBucket(k) && k !== TV.gid && chainOf(k) === ch).sort((a, b) => (L.gidx[a] || 0) - (L.gidx[b] || 0)).slice(0, 8) : [];
     const shown = TV.all ? r.stocks : r.stocks.slice(0, 10);
-    const tagColor = (n) => (n === '開高走低' || n === '一路走低') ? CH.down : (n === '開低走高' || n === '一路走高') ? CH.up : CH.ink3;
+    const tagColor = (n) => (n === '開高走低' || n === '衝高回落' || n === '一路走低') ? CH.down : (n === '開低走高' || n === '探底回升' || n === '一路走高') ? CH.up : CH.ink3;
     el.hidden = false;
     // 手機底部抽屜要不透明（全站卡片是半透明玻璃，疊在別的內容上會透字）；inline !important 才壓得過主題的 !important
     { const mob = window.matchMedia && matchMedia('(max-width:640px)').matches; if (mob) { el.style.setProperty('background', 'var(--panel)', 'important'); el.style.setProperty('backdrop-filter', 'none', 'important'); } else { el.style.removeProperty('background'); el.style.removeProperty('backdrop-filter'); } }
@@ -10166,7 +10181,7 @@
        只留一顆「怎麼看 ?」）。留著不會被叫到，就是死碼。*/
     tverify: `<b>這個族群今天是「開高走低」還是「開低走高」？用 5 分鐘格的實際走勢驗證輪盤上的位移。</b>
       <ul><li><b>上面那條線</b>：族群成分股的成交值加權漲跌（相對昨收），旁邊淡的線是它占全部族群成交值的比重；標出開盤、最高、最低、目前。</li>
-      <li><b>型態</b>：開高走低、開低走高、一路走高、一路走低、盤整，用「開盤到目前」與「最高最低」自動判斷（波動小於 0.5 個百分點算盤整）。</li>
+      <li><b>型態</b>：開高走低、衝高回落、開低走高、探底回升、一路走高、一路走低、寬幅震盪、盤整。看「最高最低的先後」與「相對振幅」：先高後低且跌破開盤（或從高點回落超過振幅一半）＝走低型；先低後高＝走高型；只有振幅小於 0.8 個百分點才叫盤整。</li>
       <li><b>下面每檔</b>：小線是那一檔今天的走勢，依成交值排序；「開」是 09:00 那一格的價格，不是官方開盤價。</li>
       <li><b>怎麼用</b>：輪盤說某族群轉弱，就看這裡是不是大多數成分股都「開高走低」；只有一兩檔在拖就不是族群共識。上方「相關族群」可以一鍵切到同產業鏈的其他族群比較。</li>
       <li>資料是盤中每 5 分鐘一格（伺服器快照），不是逐筆；權重用「價 × 量」估算，漲跌幅是真的。拖時間軸到過去時，這裡只算到那一格。</li></ul>`,
