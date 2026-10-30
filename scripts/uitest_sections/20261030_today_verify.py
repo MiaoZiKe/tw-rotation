@@ -112,8 +112,8 @@ def t_today_verify_1030(b, base):
        and pg.evaluate("() => [...document.querySelectorAll('#tvList .tvrow')].every(r => r.querySelectorAll('svg.tvspark rect').length > 0 && /%/.test(r.querySelector('.tvsh').textContent))"), st)
     srt = pg.evaluate("() => { const a = [...document.querySelectorAll('#tvList .tvsh')].map(e => parseFloat(e.textContent)); return a.every((v, i) => i === 0 || a[i - 1] >= v); }")
     ok(f"[{T}] ★ 成分股依「占族群資金」由大到小排序（第一眼看出錢集中在哪幾檔）", srt is True)
-    fl = pg.evaluate("() => ({ rows: [...document.querySelectorAll('#tvFlow .tvfr')].map(e => e.textContent), head: (document.querySelector('#tvFlow .tvfs') || {}).textContent, groups: document.querySelectorAll('#tvFlow .tvfl').length })")
-    ok(f"[{T}] ★ 「資金去向」：本族群占比 ±pp、流入最多／流出最多各 5 個族群，每列都有數字（{len(fl['rows'])} 列）", len(fl["rows"]) >= 10 and "pp" in (fl["head"] or "") and all("pp" in r and any(c.isdigit() for c in r) for r in fl["rows"]), fl)
+    fl = pg.evaluate("() => ({ rows: [...document.querySelectorAll('#tvFlow .tvfr')].map(e => e.textContent), head: (document.querySelector('#tvFlow .tvfs') || {}).textContent, groups: document.querySelectorAll('#tvFlow .tvfl').length, vis: [...document.querySelectorAll('#tvFlow .tvfr')].every(e => e.getClientRects().length > 0 && e.getBoundingClientRect().width > 40) })")
+    ok(f"[{T}] ★ 「資金去向」：本族群占比 ±pp、流入最多／流出最多各 5 個族群，每列都有數字（{len(fl['rows'])} 列）", len(fl["rows"]) >= 10 and fl["vis"] and "pp" in (fl["head"] or "") and all("pp" in r and any(c.isdigit() for c in r) for r in fl["rows"]), fl)
     sg = pg.evaluate("() => { const e = document.getElementById('todaySignals'); return e && !e.hidden ? { txt: e.textContent, big: (e.querySelector('.tsbig') || {}).textContent, ts: App._ts } : null; }")
     ok(f"[{T}] ★ 「盤中訊號」卡：大字寫「實驗訊號，回測尚未證實有效」、有觸發統計與事後檢驗（命中／沒中）", bool(sg) and "實驗訊號，回測尚未證實有效" in (sg["big"] or "") and ("命中" in sg["txt"] or "沒中" in sg["txt"] or "剛觸發" in sg["txt"] or "目前沒有族群觸發" in sg["txt"]) and "已能檢驗" in sg["txt"], sg)
     if sg and sg["ts"] and sg["ts"]["n"] > 0:

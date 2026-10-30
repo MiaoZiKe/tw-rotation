@@ -5925,9 +5925,9 @@
       + r.stocks.map(x => `<div class="tvrow" data-code="${x.code}"><a class="tvnm" href="#stock/${x.code}" title="${fmt.esc(x.name)} ${x.code}">${fmt.esc(x.name)}<small>${x.code}</small></a>`
         + `<span class="tvsh"><i style="width:${Math.max(2, Math.min(100, x.share)).toFixed(0)}%;max-width:42px"></i>${x.share.toFixed(0)}%</span>${tvSpark(x)}`
         + `<span class="tvchg" style="color:${upDown(x.chg)}">${x.chg != null ? tvF(x.chg) : '—'}</span></div>`).join('') + `</div></div>`
-      + `<aside class="tvflow" id="tvFlow"><h4>資金去向</h4><div class="tvfs"><b style="color:${upDown(f.d)}">${r.name} 資金占比 ${f.s0.toFixed(2)}% → ${f.s1.toFixed(2)}%（${tvP(f.d)}pp）</b></div>`
+      + `<div class="tvflow" id="tvFlow"><h4>資金去向</h4><div class="tvfs"><b style="color:${upDown(f.d)}">${r.name} 資金占比 ${f.s0.toFixed(2)}% → ${f.s1.toFixed(2)}%（${tvP(f.d)}pp）</b></div>`
       + `<div class="tvfl"><small>同時段全市場流入最多</small>${f.up5.map(fr).join('')}</div><div class="tvfl"><small>同時段全市場流出最多</small>${f.dn5.map(fr).join('')}</div>`
-      + (f.related.length ? `<div class="tvfl"><small>相關族群（同產業鏈）</small>${f.related.map(fr).join('')}</div>` : '') + `</aside></div>`;
+      + (f.related.length ? `<div class="tvfl"><small>相關族群（同產業鏈）</small>${f.related.map(fr).join('')}</div>` : '') + `</div></div>`;
     if (r.times.length >= 2) {
       const n = r.times.length, mk = (i, nm) => ({ name: nm, coord: [i, r.rel[i]], value: r.rel[i] });
       const hiI = r.pat ? r.pat.hiI : 0, loI = r.pat ? r.pat.loI : 0;
