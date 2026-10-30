@@ -19,6 +19,10 @@ jobs:
             curl -s -m 20 -H "$O" "$B/health" | head -c 600; echo; echo '```'
           } >> "$GITHUB_STEP_SUMMARY"
           echo "::notice title=health::$(curl -s -m 20 -H "$O" "$B/health" | head -c 400)"
+          for H in https://liguligu-puipui.com https://miaozike.github.io/tw-rotation; do
+            echo "::notice title=codes::$H $(curl -s -m 20 -o /tmp/c.json -w '%{http_code} %{size_download}' $H/data/tape_codes.json) $(head -c 120 /tmp/c.json)"
+          done
+          echo "::notice title=diag::$(curl -s -m 20 -H "$O" "$B/tape?diag=1" | head -c 600)"
           code=$(curl -s -m 30 -o /tmp/tape.txt -w '%{http_code}' -H "$O" "$B/tape")
           echo "HTTP $code"; head -c 300 /tmp/tape.txt; echo
           python3 - "$code" <<'PY' >> "$GITHUB_STEP_SUMMARY" 2> /tmp/ann.txt; cat /tmp/ann.txt
