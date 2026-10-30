@@ -391,6 +391,31 @@
    "review_note": "2026-10-30 art-director 複審（補圖第二輪）退件：與台光電無關（商品論壇人物／他牌電路板）（主體錯誤）",
    "reject_reason": "與台光電無關（商品論壇人物／他牌電路板）（主體錯誤）",
    "reviewed_at": "2026-10-30"
+  },
+  {
+   "file": "photo_18.jpg",
+   "kind": "總部/廠房",
+   "slug": "eml",
+   "name_en": "Elite Material",
+   "origin": "official",
+   "query": "official",
+   "file_title": "https://www.emctw.com/upload/media/New_about/achievements/revenue_20260119.JPG",
+   "source_page": "https://www.emctw.com/en-global/achievements/index",
+   "source_url": "https://www.emctw.com/en-global/achievements/index",
+   "image_url": "https://www.emctw.com/upload/media/New_about/achievements/revenue_20260119.JPG",
+   "license": "official-press",
+   "license_url": "",
+   "author": "台光電官方",
+   "credit": "圖：台光電官方",
+   "description": "emc-achievements-01",
+   "width": 1005,
+   "height": 501,
+   "sha1": "d55bc37c6dd7ad9bcefc7b70fcef820e24eb834f",
+   "fetched_at": "2026-10-30",
+   "fetched_at_utc": "2026-10-30T03:14:44+00:00",
+   "reviewed": false,
+   "reviewer": "",
+   "review_note": ""
   }
  ],
  "rejected": [
