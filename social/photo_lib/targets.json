@@ -19,6 +19,11 @@
   "related_queries": [
    "semiconductor fab",
    "silicon wafer"
+  ],
+  "commons_categories": [
+   "TSMC",
+   "Taiwan Semiconductor Manufacturing Company",
+   "TSMC Arizona"
   ]
  },
  {
@@ -41,6 +46,11 @@
   "related_queries": [
    "server rack",
    "data center servers"
+  ],
+  "commons_categories": [
+   "Foxconn",
+   "Hon Hai Precision Industry",
+   "Foxconn buildings"
   ]
  },
  {
@@ -62,6 +72,10 @@
   "related_queries": [
    "semiconductor fab",
    "silicon wafer"
+  ],
+  "commons_categories": [
+   "MediaTek",
+   "MediaTek buildings"
   ]
  },
  {
@@ -84,6 +98,9 @@
   "related_queries": [
    "server rack",
    "data center servers"
+  ],
+  "commons_categories": [
+   "Delta Electronics"
   ]
  },
  {
@@ -104,6 +121,9 @@
   "related_queries": [
    "server rack",
    "data center servers"
+  ],
+  "commons_categories": [
+   "Quanta Computer"
   ]
  },
  {
@@ -146,6 +166,10 @@
   "related_queries": [
    "semiconductor fab",
    "silicon wafer"
+  ],
+  "commons_categories": [
+   "ASE Technology Holding",
+   "Advanced Semiconductor Engineering"
   ]
  },
  {
@@ -310,6 +334,10 @@
   "related_queries": [
    "semiconductor fab",
    "silicon wafer"
+  ],
+  "commons_categories": [
+   "United Microelectronics Corporation",
+   "UMC"
   ]
  },
  {
@@ -536,6 +564,9 @@
   "related_queries": [
    "server rack",
    "data center servers"
+  ],
+  "commons_categories": [
+   "Wistron"
   ]
  },
  {
@@ -863,6 +894,9 @@
   ],
   "related_queries": [
    "printed circuit board"
+  ],
+  "commons_categories": [
+   "Unimicron"
   ]
  },
  {
@@ -1029,6 +1063,11 @@
   "related_queries": [
    "semiconductor fab",
    "silicon wafer"
+  ],
+  "commons_categories": [
+   "Nvidia headquarters",
+   "Nvidia buildings",
+   "Nvidia"
   ]
  },
  {
@@ -1052,6 +1091,11 @@
   "related_queries": [
    "smartphone",
    "laptop computer"
+  ],
+  "commons_categories": [
+   "Apple Park",
+   "Apple Campus (Infinite Loop)",
+   "Apple Store buildings"
   ]
  },
  {
@@ -1074,6 +1118,10 @@
   "related_queries": [
    "data center",
    "server room"
+  ],
+  "commons_categories": [
+   "Microsoft Redmond campus",
+   "Microsoft buildings"
   ]
  },
  {
@@ -1102,6 +1150,12 @@
   "related_queries": [
    "data center",
    "server room"
+  ],
+  "commons_categories": [
+   "Googleplex",
+   "Google Bay View",
+   "Google offices",
+   "Google buildings"
   ]
  },
  {
@@ -1126,7 +1180,12 @@
    "smartphone",
    "laptop computer"
   ],
-  "key": "meta"
+  "key": "meta",
+  "commons_categories": [
+   "Meta Platforms headquarters",
+   "Facebook headquarters",
+   "Meta Platforms offices"
+  ]
  },
  {
   "slug": "amazon",
@@ -1149,6 +1208,11 @@
   "related_queries": [
    "data center",
    "server room"
+  ],
+  "commons_categories": [
+   "Amazon Spheres",
+   "Amazon headquarters",
+   "Amazon fulfillment centers"
   ]
  },
  {
@@ -1170,6 +1234,10 @@
   "related_queries": [
    "network switch",
    "fiber optic cable"
+  ],
+  "commons_categories": [
+   "Broadcom Inc.",
+   "Broadcom buildings"
   ]
  },
  {
@@ -1193,6 +1261,11 @@
   "related_queries": [
    "semiconductor fab",
    "silicon wafer"
+  ],
+  "commons_categories": [
+   "AMD buildings",
+   "Advanced Micro Devices buildings",
+   "AMD headquarters"
   ]
  },
  {
@@ -1216,6 +1289,11 @@
   "related_queries": [
    "semiconductor fab",
    "silicon wafer"
+  ],
+  "commons_categories": [
+   "Intel headquarters",
+   "Robert Noyce Building",
+   "Intel buildings"
   ]
  },
  {
@@ -1241,6 +1319,11 @@
   "related_queries": [
    "DRAM chips",
    "memory module"
+  ],
+  "commons_categories": [
+   "Samsung Digital City",
+   "Samsung Electronics buildings",
+   "Samsung Town"
   ]
  },
  {
@@ -1267,7 +1350,11 @@
    "DRAM chips",
    "memory module"
   ],
-  "key": "hynix"
+  "key": "hynix",
+  "commons_categories": [
+   "SK Hynix",
+   "SK hynix buildings"
+  ]
  },
  {
   "slug": "micron",
@@ -1291,6 +1378,10 @@
   "related_queries": [
    "DRAM chips",
    "memory module"
+  ],
+  "commons_categories": [
+   "Micron Technology",
+   "Micron Technology buildings"
   ]
  },
  {
@@ -1315,7 +1406,11 @@
    "semiconductor fab",
    "silicon wafer"
   ],
-  "key": "asml"
+  "key": "asml",
+  "commons_categories": [
+   "ASML Holding",
+   "ASML Veldhoven"
+  ]
  },
  {
   "slug": "tesla",
@@ -1339,6 +1434,11 @@
   "related_queries": [
    "car assembly line",
    "electric car"
+  ],
+  "commons_categories": [
+   "Giga Texas",
+   "Tesla Fremont Factory",
+   "Giga Berlin"
   ]
  },
  {
@@ -1382,6 +1482,10 @@
   "related_queries": [
    "semiconductor fab",
    "silicon wafer"
+  ],
+  "commons_categories": [
+   "Qualcomm buildings",
+   "Qualcomm headquarters"
   ]
  },
  {
@@ -1402,7 +1506,10 @@
   "related_queries": [
    "San Francisco SoMa skyline"
   ],
-  "key": "anthropic"
+  "key": "anthropic",
+  "commons_categories": [
+   "Anthropic"
+  ]
  },
  {
   "slug": "openai",
@@ -1422,6 +1529,9 @@
   "related_queries": [
    "data center",
    "server room"
+  ],
+  "commons_categories": [
+   "OpenAI"
   ]
  },
  {
@@ -1443,6 +1553,11 @@
   ],
   "related_queries": [
    "data center"
+  ],
+  "commons_categories": [
+   "Oracle headquarters",
+   "Oracle Corporation buildings",
+   "Oracle Corporation"
   ]
  },
  {
@@ -1464,6 +1579,9 @@
   ],
   "related_queries": [
    "integrated circuit die"
+  ],
+  "commons_categories": [
+   "Arm Holdings"
   ]
  },
  {
@@ -2131,5 +2249,97 @@
   "related_queries": [
    "solid state drive"
   ]
+ },
+ {
+  "slug": "coreweave",
+  "name_en": "CoreWeave",
+  "zh": [
+   "CoreWeave"
+  ],
+  "category": "資料中心",
+  "queries": [
+   "CoreWeave data center",
+   "CoreWeave office"
+  ],
+  "product_queries": [
+   "GPU servers data center"
+  ],
+  "related_queries": [
+   "data center"
+  ],
+  "commons_categories": [
+   "CoreWeave"
+  ],
+  "key": "coreweave"
+ },
+ {
+  "slug": "nanya_tech",
+  "name_en": "Nanya Technology",
+  "zh": [
+   "南亞科",
+   "南亞科技"
+  ],
+  "category": "記憶體",
+  "queries": [
+   "Nanya Technology building",
+   "Nanya Technology headquarters"
+  ],
+  "product_queries": [
+   "DRAM module",
+   "DDR5 memory module"
+  ],
+  "related_queries": [
+   "DRAM chips"
+  ],
+  "commons_categories": [
+   "Nanya Technology"
+  ],
+  "key": "nanya"
+ },
+ {
+  "slug": "nan_ya_pcb",
+  "name_en": "Nan Ya PCB",
+  "zh": [
+   "南電",
+   "南亞電路板"
+  ],
+  "category": "PCB",
+  "queries": [
+   "Nan Ya PCB",
+   "Nan Ya Printed Circuit Board"
+  ],
+  "product_queries": [
+   "IC substrate",
+   "printed circuit board"
+  ],
+  "related_queries": [
+   "printed circuit board"
+  ],
+  "commons_categories": [
+   "Nan Ya PCB"
+  ],
+  "key": "nan ya"
+ },
+ {
+  "slug": "eml",
+  "name_en": "Elite Material",
+  "zh": [
+   "台光電"
+  ],
+  "category": "PCB",
+  "queries": [
+   "Elite Material Co building"
+  ],
+  "product_queries": [
+   "copper clad laminate",
+   "printed circuit board"
+  ],
+  "related_queries": [
+   "printed circuit board"
+  ],
+  "commons_categories": [
+   "Elite Material"
+  ],
+  "key": "elite"
  }
 ]

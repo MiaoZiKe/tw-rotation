@@ -24,7 +24,7 @@ BAD_WORD = re.compile(r"logo|icon|map|chart|graph|diagram|screenshot|portrait|ce
                       r"stock certificate|protest|fire|accident|crash|wreck|selfie|interview|speech|keynote", re.I)
 PLACE = re.compile(r"headquarter|\bhq\b|building|campus|office|fab\b|fab\d|factory|plant|tower|park|center|centre|plex|spheres|"
                    r"gigafactory|refinery|works|ship|vessel|site|facility|總部|大樓|廠|園區", re.I)
-QUOTA = {"總部/廠房": 2, "產品": 2, "相關場景": 1}
+QUOTA = {"公司分類": 4, "總部/廠房": 2, "產品": 2, "相關場景": 1}
 CAT_MAX = 8
 STOP = {"the", "and", "of", "in", "at", "for", "with", "taiwan", "data", "center", "close", "up"}
 
@@ -39,6 +39,8 @@ def strip_html(s: str) -> str:
 
 
 def search(sess, q: str, limit: int = 25) -> list[dict]:
+    if q.startswith("cat:"):                       # targets.json 的 commons_categories：Commons 分類裡的檔案
+        q = f'incategory:"{q[4:]}"'
     r = sess.get(API, params=dict(action="query", format="json", generator="search", gsrsearch=f"{q} filetype:bitmap",
                                   gsrnamespace=6, gsrlimit=limit, prop="imageinfo", iiprop="url|size|mime|extmetadata",
                                   iiurlwidth=1920), timeout=60)
@@ -65,7 +67,9 @@ def candidates(pages: list[dict], kind: str, name_en: str, q: str, seen: set[str
         if (ii.get("width") or 1) / (ii.get("height") or 1) < 0.9: continue      # 直式圖裁成橫幅會失真，跳過
         if BAD_WORD.search(title): continue
         text = f"{title} {desc}".lower().replace("-", "")
-        if kind == "總部/廠房":
+        if kind == "公司分類":
+            pass                                   # Commons 分類本身就是「這家公司」（例：Category:Googleplex），不再要求檔名含公司名
+        elif kind == "總部/廠房":
             if key not in text or not PLACE.search(text): continue
         elif qt and not any(w in text for w in qt):
             continue
@@ -106,7 +110,10 @@ def fill(sess, d: Path, slug: str, name_en: str, plan: list[tuple[str, list[str]
     used_n = {int(m.group(1)) for x in pool["photos"] if (m := re.match(r"photo_(\d+)\.jpg", x.get("file", "")))}
     added = 0
     for kind, qs, cap in plan:
-        have = sum(1 for x in pool["photos"] if x.get("kind") == kind and not x.get("reject_reason"))   # 複審退件的不佔名額
+        if kind == "公司分類":                     # 分類抓到的照片依內容歸「總部/廠房」或「產品」，名額另計（origin=公司分類）
+            have = sum(1 for x in pool["photos"] if x.get("origin") == "公司分類" and not x.get("reject_reason"))
+        else:
+            have = sum(1 for x in pool["photos"] if x.get("kind") == kind and not x.get("reject_reason"))   # 複審退件的不佔名額
         for q in qs:
             if have >= cap: break
             try:
@@ -118,7 +125,12 @@ def fill(sess, d: Path, slug: str, name_en: str, plan: list[tuple[str, list[str]
                 n = 1
                 while n in used_n: n += 1
                 try:
-                    pool["photos"].append(save(sess, d, n, c, kind, q, slug, name_en))
+                    if kind == "公司分類":
+                        k2 = "總部/廠房" if PLACE.search(f"{c['title']} {c['desc']}") else "產品"
+                        m = save(sess, d, n, c, k2, q, slug, name_en); m["origin"] = "公司分類"
+                        pool["photos"].append(m)
+                    else:
+                        pool["photos"].append(save(sess, d, n, c, kind, q, slug, name_en))
                 except Exception as ex:
                     print(slug, c["title"], "下載失敗", ex); continue
                 used_n.add(n); seen.add(c["title"]); have += 1; added += 1
@@ -141,7 +153,9 @@ def main(argv=None) -> int:
     if "--only-category" not in argv:
         for t in targets:
             if only and t["slug"] not in only: continue
-            plan = [("總部/廠房", t["queries"] + [t["name_en"]], QUOTA["總部/廠房"]),
+            # 2026-10-30 Andy：「相這種跟公司有關的 優先附上公司圖片」→ 先從該公司的 Commons 分類抓（總部、招牌、廠區、代表產品），最多 4 張
+            plan = [("公司分類", ["cat:" + c for c in t.get("commons_categories", [])], QUOTA["公司分類"]),
+                    ("總部/廠房", t["queries"] + [t["name_en"]], QUOTA["總部/廠房"]),
                     ("產品", t.get("product_queries", []), QUOTA["產品"]),
                     ("相關場景", t.get("related_queries", []), QUOTA["相關場景"])]
             res = fill(sess, LIB / t["slug"], t["slug"], t["name_en"], plan, gseen, t.get("key", "")); print(res); log.append(res)
