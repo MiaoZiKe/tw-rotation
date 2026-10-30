@@ -231,6 +231,7 @@ var POLL_MS = 60 * 1000;      // 有時間軸在畫面上時，每分鐘問一�
   }
   /** 播放速度拉桿（×1～×5，0.5 一格）。播放中也能拖，下一格起生效；所有時間軸／日線回放共用同一個設定。 */
   function speedCtl() {
+    injectCss();
     var c = document.createElement('span'); c.className = 'spdctl'; c.setAttribute('data-spd', '1');
     c.title = '播放速度：×1～×5，拖動即時生效';
     var i = document.createElement('input'); i.type = 'range'; i.min = 1; i.max = 5; i.step = 0.5; i.value = speed;

@@ -167,6 +167,11 @@ def t_today_timeline_1029(b, base):
         if w == 390:
             h = pg2.evaluate("() => Math.min(...[...document.querySelectorAll('#rotTl input')].map(e => e.getBoundingClientRect().height))")
             ok(f"[{T}] ①c 手機速度拉桿與時間軸拉桿高度 ≥32px", h >= 32, h)
+            ctx2.close()
+            ctx2, pg2 = open_page("#flow/rotation", vp={"width": 390, "height": 900}, mobile=True)
+            wait_until(pg2, "() => !!document.querySelector('#rotBack .spdctl')", 25000); pg2.wait_for_timeout(800)
+            dm = pg2.evaluate("() => { const c = document.querySelector('#rotBack .spdctl').getBoundingClientRect(), i = document.querySelector('#rotBack .spdctl input').getBoundingClientRect(); return { right: c.right, h: i.height, sw: document.documentElement.scrollWidth, iw: innerWidth }; }")
+            ok(f"[{T}] ①c 手機日線回放那條的速度拉桿：不超出畫面、無橫向捲軸、拉桿高 ≥32px", dm["right"] <= dm["iw"] + 1 and dm["sw"] <= dm["iw"] + 1 and dm["h"] >= 32, dm)
         ctx2.close()
     ctx, pg = open_page("#flow/rotation")
     wait_until(pg, "() => !!document.getElementById('rotLiveBtn')", 25000); pg.click("#rotLiveBtn")
