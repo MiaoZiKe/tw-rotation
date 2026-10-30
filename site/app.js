@@ -5780,7 +5780,7 @@
         + '#todayVerify .tvnum{font-family:var(--mono);font-size:12px;color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}'
         + '#todayVerify .tvtag{font-size:12px;text-align:center}#todayVerify .tvchg{font-family:var(--mono);font-size:13px;text-align:right}'
         + '#todayVerify .tvmore{margin-top:8px}'
-        + '@media (max-width:640px){#todayVerify{background:var(--panel,var(--card,#fff))!important;position:fixed;left:0;right:0;bottom:0;margin:0;z-index:70;max-height:72vh;overflow:auto;border-radius:14px 14px 0 0;box-shadow:0 -8px 24px rgba(0,0,0,.25)}'
+        + '@media (max-width:640px){html:root body #todayVerify.card{background:var(--panel,#fff)!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important}#todayVerify{position:fixed;left:0;right:0;bottom:0;margin:0;z-index:70;max-height:72vh;overflow:auto;border-radius:14px 14px 0 0;box-shadow:0 -8px 24px rgba(0,0,0,.25)}'
         + '#todayVerify .tvrow{grid-template-columns:minmax(80px,1fr) 100px 60px;grid-template-areas:"nm sp chg" "num num tag"}#todayVerify .tvrow .tvnm{grid-area:nm}#todayVerify .tvrow .tvspark{grid-area:sp}#todayVerify .tvrow .tvchg{grid-area:chg}#todayVerify .tvrow .tvnum{grid-area:num}#todayVerify .tvrow .tvtag{grid-area:tag}'
         + '#todayVerify .tvx,#todayVerify .tvmore{min-height:40px}#todayVerify .tvrel button{min-height:36px;font-size:12px}}';
       document.head.appendChild(st);
@@ -5810,6 +5810,8 @@
     const shown = TV.all ? r.stocks : r.stocks.slice(0, 10);
     const tagColor = (n) => (n === '開高走低' || n === '一路走低') ? CH.down : (n === '開低走高' || n === '一路走高') ? CH.up : CH.ink3;
     el.hidden = false;
+    // 手機底部抽屜要不透明（全站卡片是半透明玻璃，疊在別的內容上會透字）；inline !important 才壓得過主題的 !important
+    { const mob = window.matchMedia && matchMedia('(max-width:640px)').matches; if (mob) { el.style.setProperty('background', 'var(--panel)', 'important'); el.style.setProperty('backdrop-filter', 'none', 'important'); } else { el.style.removeProperty('background'); el.style.removeProperty('backdrop-filter'); } }
     el.dataset.gid = TV.gid; el.dataset.pat = r.pat ? r.pat.name : '';
     el.innerHTML = `<div class="tvhead"><h3 style="margin:0">${fmt.esc(r.name)} <small>今日走勢驗證</small> <button class="howbtn pop" data-how="tverify" data-ttl="今日走勢驗證" type="button" aria-label="今日走勢驗證怎麼看">?</button></h3>`
       + (r.pat ? `<span class="tvtag" style="color:${tagColor(r.pat.name)};font-weight:700" id="tvPat">${r.pat.name}</span>` : '')
