@@ -4292,7 +4292,12 @@
          ★ 2026-10-06（Andy：「這類資訊一律拿掉」，DECISIONS #329）：標題不再寫資料日期、「盤後」、「⚡ 即時 HH:MM:SS」——
          資料新鮮度看全站資料狀態徽章與頁首時間。留下的只有「只涵蓋 N 檔（非全市場）」（口徑，不是時段）與抓取中／抓不到（狀態）。
          不改成圖示或滑過提示，直接拿掉（Andy 10-06 再強調「一律拿掉」）。*/
-      const eodCnt = `${heat.advancers || 0} 漲／${heat.decliners || 0} 跌・漲停 ${eodLU.length}、跌停 ${eodLD.length}`;
+      /* ★ 2026-10-30（Andy：「總覽的資訊為何和熱力圖對不上……檢查其他資訊是否一樣」普查）：漲跌家數跟總覽摘要卡／漲跌家數分佈卡同一個口徑——
+         stocks.json 逐檔、udBinOf 級距（全部上市＋上櫃、含 ETF）。以前這裡直接印 market_heat 的證交所口徑（530 漲／1620 跌），
+         同一天總覽是 570 漲／1659 跌，差的就是 ETF 那幾十檔，兩邊對不上。逐檔資料缺席（舊 payload）才退回 market_heat。 */
+      let udUp = 0, udDn = 0;
+      st.forEach(r => { const bn = r && udBinOf(r); if (bn == null || bn === false) return; if (bn > 5) udUp++; else if (bn < 5) udDn++; });
+      const eodCnt = `${udUp + udDn ? udUp : (heat.advancers || 0)} 漲／${udUp + udDn ? udDn : (heat.decliners || 0)} 跌・漲停 ${eodLU.length}、跌停 ${eodLD.length}`;
       title.innerHTML = live
         ? `漲跌家數 <small id="mktTitleLive">只涵蓋 ${lr.length} 檔（<b>非全市場</b>）：${cnt.adv} 漲／${cnt.dec} 跌`
           + `・漲停 ${cnt.lu}、跌停 ${cnt.ld}</small>`
@@ -5674,16 +5679,22 @@
   let heatFocus = null;
   /* 第二行寫「顏色是依什麼上的色」：有資金流向就寫資金；沒有的族群（新板塊還沒累積到 20 日）顏色是用漲跌幅換算的，
      這時第二行老實寫「漲跌 +9.9%」—— 以前寫「資金 —」卻塗成大紅，看的人會以為是資金大量流入。*/
-  const heatVal = (d) => (d && d.gid ? (d.rot != null ? '資金 ' + (d.rot > 0 ? '+' : '') + d.rot.toFixed(1) + 'pp'
-    : (d.chg != null ? '漲跌 ' + fmt.pct(d.chg) : '資金 —')) : '');
-  function heatOption(gt, rot, chain, big, focus) {
+  /* ★ 2026-10-30（Andy：「總覽的資訊為何和熱力圖對不上」）：整張圖只用一種指標，不再「有資金流向的寫資金、沒有的寫漲跌」混著寫。
+     預設＝漲跌幅，跟熱力圖頁「整個台股一次看」同一把尺同一個數字；右上「顏色：漲跌幅｜資金流向」可切成 5 日 vs 20 日資金流向（pp），
+     切過去之後整張一致，沒有資金流向的族群寫「資金 —」、塗無資料灰，不再偷偷改用漲跌上色。偏好記在 tw.heatMode。 */
+  let heatMode = hmLS('tw.heatMode', 'chg') === 'flow' ? 'flow' : 'chg';
+  const heatVal = (d) => (!d || !d.gid ? '' : heatMode === 'flow'
+    ? (d.rot != null ? '資金 ' + (d.rot > 0 ? '+' : '') + d.rot.toFixed(1) + 'pp' : '資金 —')
+    : (d.chg != null ? fmt.pct(d.chg) : '—'));
+  function heatOption(gt, rot, chain, big, focus, mode) {
+    mode = mode || heatMode;
     const rotMap = {}; (rot || []).forEach(r => { rotMap[r.group_id] = r.rotation; });
     const chains = {}; gt.forEach(g => { const c = g.chain || 'industry'; (chains[c] = chains[c] || []).push(g); });
     const mk = (g) => {
       const rv = rotMap[g.group_id];
-      const bin = hmBin(rv != null ? rv : (g.chg_pct != null ? g.chg_pct / 3 : null), 'flow');
+      const bin = mode === 'flow' ? hmBin(rv, 'flow') : hmBin(g.chg_pct, 'chg');
       return { name: g.group_name, value: g.turnover, gid: g.group_id, chg: g.chg_pct, chain: chainLabel(g.chain || 'industry'),
-        rot: rv, share: g.turnover_share, ...hmItem(bin, 'flow', focus) };
+        rot: rv, share: g.turnover_share, ...hmItem(bin, mode, focus) };
     };
     const inChain = chain && chains[chain] ? chains[chain] : null;
     // 產業鏈節點自己的底色：子方塊全部小於 visibleMin 時，畫面上看到的就是它 —— 給「無資料」灰，
@@ -5695,11 +5706,11 @@
       tooltip: { ...hmTipOpt(), formatter: p => {
         const d = p.data || {};
         if (!d.gid) return hmTip(p.name, '', [], '');
-        const fb = d.rot == null ? hmBin(d.chg != null ? d.chg / 3 : null, 'flow') : hmBin(d.rot, 'flow');
+        const fb = hmBin(d.rot, 'flow');
         return hmTip(p.name, d.chain, [
           { k: '漲跌幅', v: fmt.pct(d.chg, 2), c: upDown(d.chg), dot: hmColor(hmBin(d.chg, 'chg'), 'chg') },
           { k: '成交值', v: `${fmt.yi(p.value)}（${fmt.n(d.share, 1)}%）` },
-          { k: '資金流向', v: d.rot != null ? (d.rot > 0 ? '流入 +' : '流出 ') + d.rot.toFixed(2) + ' pp' : '—（顏色依漲跌幅換算）',
+          { k: '資金流向', v: d.rot != null ? (d.rot > 0 ? '流入 +' : '流出 ') + d.rot.toFixed(2) + ' pp' : '—（還沒累積到 20 日）',
             c: upDown(d.rot), dot: hmColor(fb, 'flow') },
         ], '');
       } },
@@ -5823,15 +5834,26 @@
       }, true);
     }
   }
+  /* 「顏色：漲跌幅｜資金流向」分段開關（全站同款 .seg）。切換整張圖一起換：方塊顏色、第二行字、圖例、提示框的點，圖例聚焦重置。 */
+  function heatModeSeg(redraw) {
+    const box = $('#heatMode'); if (!box) return;
+    box.innerHTML = `<span class="seg tiny" role="group" aria-label="熱力圖顏色依什麼上色">${[['chg', '漲跌幅'], ['flow', '資金流向']].map(([k, l]) =>
+      `<button type="button" data-hm="${k}" class="${heatMode === k ? 'on' : ''}" aria-pressed="${heatMode === k}" title="顏色依${l}${k === 'flow' ? '（5 日 vs 20 日成交值佔比，pp）' : '（今日，紅漲綠跌）'}">${l}</button>`).join('')}</span>`;
+    $$('button', box).forEach(b => b.onclick = () => {
+      if (heatMode === b.dataset.hm) return;
+      heatMode = b.dataset.hm; hmLSset('tw.heatMode', heatMode); heatFocus = null; redraw();
+    });
+  }
   let heatNoRot = 0;               // 還沒有 5 日 vs 20 日資金流向、改用漲跌上色的族群數（給 HOW.heat 讀）
   function renderHeat(gt, rot) {
     if (!gt || !gt.length) return empty('heat');
     // ★ 2026-10-20 熱力圖即時（HL）：盤中把列換成即時版；原本的 gt／rot 留給「切產業鏈」「圖例」重畫用
     const hlView = () => { const o = hlOverlay(gt, { id: 'group_id', to: 'turnover', chg: 'chg_pct', share: 'turnover_share' });
-      return { gt: o ? o.rows : gt, rot: o ? (rot || []).filter(r => !o.live.has(r.group_id)) : rot }; };
+      return { gt: o ? o.rows : gt, rot }; };
     hlReg('heat', () => renderHeat(gt, rot));
     const hv0 = hlView();
-    const { chains, inChain, option } = heatOption(hv0.gt, hv0.rot, heatChain, false, heatFocus);
+    const { chains, inChain, option } = heatOption(hv0.gt, hv0.rot, heatChain, false, heatFocus, heatMode);
+    heatModeSeg(() => renderHeat(gt, rot));
     if (heatChain && !chains[heatChain]) heatChain = null;
     heatChips(chains, $('#heatCtl'), heatChain, (c) => { heatChain = c; renderHeat(gt, rot); }, 'heatDD');
     const list = inChain || gt.filter(g => !g.group_id.startsWith('ind_'));
@@ -5840,8 +5862,8 @@
        圖下那排「族群」連結列、圖例前面「N 塊標『漲跌』＝依漲跌上色」那句都拿掉。
        · 族群一樣點得到：點方塊就在原地列出成分股（#heatPanel），面板上有「進族群頁 →」。
        · 「依漲跌上色」的口徑搬進「?」（HOW.heat 最下面那行小字，數字即時算，見 heatNoRot）。*/
-    hmLegend('heat', 'flow', heatFocus, (f) => { heatFocus = f; renderHeat(gt, rot); });
-    heatNoRot = list.filter(g => !(hv0.rot || []).some(r => r.group_id === g.group_id)).length;
+    hmLegend('heat', heatMode, heatFocus, (f) => { heatFocus = f; renderHeat(gt, rot); });
+    heatNoRot = heatMode !== 'flow' ? 0 : list.filter(g => !(hv0.rot || []).some(r => r.group_id === g.group_id)).length;
     const c = chart('heat', option);
     hmRelabel(c, heatVal);
     wheelZoom($('#heatWrap'), { onZoom: () => { const i = echarts.getInstanceByDom($('#heat')); if (i) i.resize(); } });
@@ -5863,7 +5885,7 @@
     if (zb) zb.onclick = () => openZoom('資金熱力圖', (body, chipBox) => {
       let ch = heatChain;
       const draw = () => {
-        const hv = hlView(), r = heatOption(hv.gt, hv.rot, ch, true, heatFocus);
+        const hv = hlView(), r = heatOption(hv.gt, hv.rot, ch, true, heatFocus, heatMode);
         heatChips(r.chains, chipBox, ch, (c2) => { ch = c2; draw(); }, 'heatZoomDD');
         const bc = chart(body, r.option);
         hmRelabel(bc, heatVal);
@@ -10006,11 +10028,13 @@
       + '每一列都點得進個股頁，族群名稱點得進族群頁。'),
     heat: () => howHTML('今天的錢集中在哪些族群。', [
       '方塊大小＝族群吃掉多少成交值',
-      '顏色＝5 日減 20 日成交值佔比（pp），非今天漲跌',
-      '紅方塊但今天收綠＝股價回檔，錢還在進',
+      heatMode === 'flow' ? '顏色＝5 日減 20 日成交值佔比（pp），非今天漲跌' : '顏色＝今日漲跌幅，紅漲綠跌；跟熱力圖頁「整個台股一次看」同一把尺',
+      '右上「顏色」可切成資金流向；方塊上的字跟顏色永遠是同一種指標',
+      heatMode === 'flow' ? '紅方塊但今天收綠＝股價回檔，錢還在進' : '又大又紅＝錢多而且在漲；大而綠＝權值區退潮',
       '點族群方塊＝進族群頁看成分股（Plus 以上）；點產業鏈標題只看那條鏈',
-    ], '顏色看的是 5 日成交值佔比減 20 日佔比，不是今天的漲跌。'
-      + (heatNoRot ? `目前有 ${heatNoRot} 個族群還沒有 5 日 vs 20 日的資金流向，第二行標「漲跌」，顏色改用當日漲跌幅 ÷3 對到同一把尺。` : '')),
+    ], heatMode === 'flow' ? '顏色看的是 5 日成交值佔比減 20 日佔比，不是今天的漲跌。'
+      + (heatNoRot ? `目前有 ${heatNoRot} 個族群還沒累積到 20 日資料，標「資金 —」、塗灰色。` : '')
+      : '盤中「即時」開著時，漲跌幅與成交值是同一批即時報價，兩張熱力圖看到的數字一致。'),
     /* ★ 2026-10-04（docs/howto_audit_1004.md 第三節）：補「?」的卡。說明只寫畫面上看得到的東西；
        口徑一律寫進條列（第三參數 fine 從 09-26 起不顯示）。*/
     mktdist: howHTML('今天大家都在漲，還是少數幾檔撐盤。', [
