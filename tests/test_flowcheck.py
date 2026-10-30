@@ -277,3 +277,67 @@ def test_build_end_to_end_small():
     assert contrib == pytest.approx((p["chg"] * p["tv_prev"]).sum() / p["tv_prev"].sum(), abs=1e-2)
     assert len(res["series"]["g0"]["dates"]) == 30
     assert math.isclose(res["series"]["g0"]["idx"][0], 100 * (1 + gh[(gh.group_id == "g0") & (gh.date == dates[-30])]["chg_pct"].iloc[0] / 100), rel_tol=1e-3)
+
+
+# ------------------------------------------------------------------ 2026-10-30：大盤改加權指數
+def _tx_ohlc():
+    return pd.DataFrame({"date": ["2026-10-22", "2026-10-27", "2026-10-28"], "open": [100.0, 100, 102],
+                         "close": [100.0, 102.0, 104.04], "change": [-1.0, 2.0, 2.04]})
+
+
+def test_taiex_daily_and_intraday_fallback():
+    intra = pd.DataFrame({"ts": ["2026-10-29T09:00:00+08:00", "2026-10-29T13:30:00+08:00"], "interval": ["1m", "1m"],
+                          "open": [104.0, 103.0], "close": [103.5, 101.9592]})
+    tx = fc.taiex_daily(_tx_ohlc(), intra)
+    assert tx.at["2026-10-28", "chg"] == pytest.approx(2.0)
+    assert tx.at["2026-10-28", "src"] == "index_ohlc"
+    assert tx.at["2026-10-29", "src"] == "intraday"                  # 官方日線還沒進湖 → 盤中最後一根暫定
+    assert tx.at["2026-10-29", "chg"] == pytest.approx(-2.0)
+    assert fc.taiex_daily(None).empty
+
+
+def test_taiex_slots_uses_only_closed_bars():
+    intra = pd.DataFrame({"ts": [f"2026-10-28T{h}:00+08:00" for h in ("09:00", "09:01", "09:14", "13:29")],
+                          "interval": "1m", "open": [101.0, 101, 101, 101], "close": [101.5, 102.0, 103.0, 104.0]})
+    s = fc.taiex_slots(["09:00", "09:01", "09:15", "13:00", "13:30"], intra, 100.0, 104.04)
+    assert s["09:00"] == pytest.approx(1.0)        # 還沒有任何一根收盤 → 第一根開盤
+    assert s["09:01"] == pytest.approx(1.5)        # 09:00 那根收在 09:01
+    assert s["09:15"] == pytest.approx(3.0)        # 09:14 那根收在 09:15
+    assert s["13:00"] == pytest.approx(3.0)        # 13:29 那根還沒收，不准偷看
+    assert s["13:30"] == pytest.approx(4.04)       # 收盤用官方收盤
+    assert fc.taiex_slots(["09:00"], intra, None, None).isna().all()   # 昨收缺 → 不給
+    assert fc.taiex_slots(["09:00"], None, 100.0, None).isna().all()
+
+
+def test_daily_table_rel_vs_taiex():
+    gh, px, dates = _synth(40, 5)
+    tx = pd.DataFrame({"date": dates, "open": 100.0, "close": 100.0, "change": 0.0})
+    tx.loc[tx["date"] == dates[10], ["close", "change"]] = [102.0, 2.0]
+    T = fc.taiex_daily(tx)
+    D = fc.daily_table(gh, px, 100, taiex=T)
+    r = D[(D["date"] == dates[10]) & (D["group_id"] == "g1")].iloc[0]
+    assert r["mkt_chg"] == pytest.approx(2.0)
+    assert r["rel"] == pytest.approx(r["chg_pct"] - 2.0)
+    assert r["mkt_site"] != pytest.approx(2.0)              # 主站口徑另存，不混進 rel
+    assert "rs_ratio_site" in D.columns
+
+
+def test_calendar_gaps_split_closed_and_missing():
+    T = fc.taiex_daily(pd.DataFrame({"date": ["2026-10-21", "2026-10-22", "2026-10-27"],
+                                     "open": 1.0, "close": [100.0, 100, 100], "change": 0.0}))
+    sd = ["2026-10-21", "2026-10-27"]
+    g = fc.calendar_gaps(T, sd, ["2026-10-21", "2026-10-27"], {"2026-10-21": ["daily", "m60"], "2026-10-27": ["daily"]})
+    assert g["closed_days"] == ["2026-10-23", "2026-10-26"]     # 加權指數沒開＝休市
+    assert g["missing_days"] == ["2026-10-22"]                  # 加權有開、價量湖沒有＝缺資料
+    assert g["missing_intraday"] == ["2026-10-27"]
+    assert fc.calendar_gaps(pd.DataFrame(), sd, sd, {}) == {"closed_days": [], "missing_days": [], "missing_intraday": []}
+
+
+def test_group_intraday_mkt_override():
+    times = ["09:15", "09:20"]
+    price = pd.DataFrame(10.0, index=times, columns=list("ABC"))
+    chg = pd.DataFrame(1.0, index=times, columns=list("ABC"))
+    M = fc.group_intraday(_fr(price, chg, price), {"g": list("ABC")}, list("ABC"), pd.Series(1.0, index=list("ABC")),
+                          pd.Series(dtype=float), mkt_override=pd.Series({"09:15": 0.5, "09:20": float("nan")}))
+    assert M["G"]["g"]["rel"][0] == pytest.approx(0.5)
+    assert math.isnan(M["G"]["g"]["rel"][1])                   # 加權指數那格缺 → 相對大盤 null，不拿別的頂替
