@@ -517,6 +517,31 @@
    "review_note": "2026-10-30 art-director 複審（補圖第二輪）退件：南亞理工學院、南亞塑膠、Samsung／他牌 DRAM，非南亞科技（主體錯誤）",
    "reject_reason": "南亞理工學院、南亞塑膠、Samsung／他牌 DRAM，非南亞科技（主體錯誤）",
    "reviewed_at": "2026-10-30"
+  },
+  {
+   "file": "photo_23.jpg",
+   "kind": "總部/廠房",
+   "slug": "nanya_tech",
+   "name_en": "Nanya Technology",
+   "origin": "official",
+   "query": "official",
+   "file_title": "https://www.nanya.com/Upload/FixpageImages/20180629/2018062914505737.jpg",
+   "source_page": "https://www.nanya.com/tw/About/7/%e8%81%af%e7%b5%a1%e6%88%91%e5%80%91",
+   "source_url": "https://www.nanya.com/tw/About/7/%e8%81%af%e7%b5%a1%e6%88%91%e5%80%91",
+   "image_url": "https://www.nanya.com/Upload/FixpageImages/20180629/2018062914505737.jpg",
+   "license": "official-press",
+   "license_url": "",
+   "author": "南亞科官方",
+   "credit": "圖：南亞科官方",
+   "description": "聯絡我們",
+   "width": 1920,
+   "height": 1468,
+   "sha1": "c4deeeec8fc21a7b7f4c0054469829a9b998084d",
+   "fetched_at": "2026-10-30",
+   "fetched_at_utc": "2026-10-30T03:26:55+00:00",
+   "reviewed": false,
+   "reviewer": "",
+   "review_note": ""
   }
  ],
  "rejected": [
