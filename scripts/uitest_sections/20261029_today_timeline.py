@@ -69,7 +69,7 @@ def t_today_timeline_1029(b, base):
         return ctx, pg
 
     def drag(pg, bar_id, pos):
-        pg.evaluate("([id, p]) => { const i = document.querySelector('#' + id + ' input'); i.value = p; i.dispatchEvent(new Event('input', {bubbles: true})); }", [bar_id, pos])
+        pg.evaluate("([id, p]) => { const i = document.querySelector('#' + id + ' input.tlr'); i.value = p; i.dispatchEvent(new Event('input', {bubbles: true})); }", [bar_id, pos])
         pg.wait_for_timeout(700)
 
     def val(pg, bar_id):
@@ -89,7 +89,7 @@ def t_today_timeline_1029(b, base):
     ok(f"[{T}] ① 開即時後出現「今日時間軸」，且日線拉桿藏起來（兩條不重複）、只剩「即時」鈕",
        count(pg, "#rotTl") == 1 and pg.evaluate("() => { const b = document.getElementById('rotBack'); return b.classList.contains('tlon') && ![...b.children].some(e => !e.classList.contains('livebtn') && e.getClientRects().length > 0); }"))
     ok(f"[{T}] ① 時間軸左端 09:00、共 {NSLOT} 格、目前在「最新」",
-       pg.evaluate("() => document.querySelector('#rotTl .tl0').textContent") == "09:00" and pg.evaluate("() => +document.querySelector('#rotTl input').max") == NSLOT and val(pg, "rotTl") == "最新")
+       pg.evaluate("() => document.querySelector('#rotTl .tl0').textContent") == "09:00" and pg.evaluate("() => +document.querySelector('#rotTl input.tlr').max") == NSLOT and val(pg, "rotTl") == "最新")
     live_sig = pg.evaluate(ROT)
     drag(pg, "rotTl", 12)       # 10:00
     s10 = pg.evaluate(ROT)
@@ -233,7 +233,7 @@ def t_today_timeline_1029(b, base):
     wait_until(pg, "() => !!document.getElementById('rotLiveBtn')", 25000)
     pg.click("#rotLiveBtn")
     wait_until(pg, "() => !!document.getElementById('rotTl')", 60000, 400)
-    m = pg.evaluate("""() => { const bar = document.getElementById('rotTl').getBoundingClientRect(), i = document.querySelector('#rotTl input').getBoundingClientRect();
+    m = pg.evaluate("""() => { const bar = document.getElementById('rotTl').getBoundingClientRect(), i = document.querySelector('#rotTl input.tlr').getBoundingClientRect();
       return { bw: bar.width, ih: i.height, sw: document.documentElement.scrollWidth, iw: window.innerWidth, right: bar.right,
         btn: Math.min(...[...document.querySelectorAll('#rotTl .pb')].map(e => e.getBoundingClientRect().height)) }; }""")
     ok(f"[{T}] ④ 手機 390：時間軸不超出畫面、無橫向捲軸、拉桿高度與按鈕 ≥32px", m["right"] <= m["iw"] + 1 and m["sw"] <= m["iw"] + 1 and m["ih"] >= 32 and m["btn"] >= 32, m)

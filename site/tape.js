@@ -257,7 +257,7 @@ var POLL_MS = 60 * 1000;      // 有時間軸在畫面上時，每分鐘問一�
     var bMinus = mkBtn('step', '−', '前一格');
     var l0 = document.createElement('span'); l0.className = 't tl0';
     var inp = document.createElement('input'); inp.type = 'range'; inp.min = 0; inp.max = 0; inp.step = 1; inp.value = 0;
-    inp.setAttribute('aria-label', '今日時間軸');
+    inp.setAttribute('aria-label', '今日時間軸'); inp.className = 'tlr';
     var bPlus = mkBtn('step', '＋', '後一格');
     var val = document.createElement('span'); val.className = 'val';
     var bLast = mkBtn('latest', '最新', '回到最新（繼續跟著即時更新）');
