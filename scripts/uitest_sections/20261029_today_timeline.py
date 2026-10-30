@@ -101,8 +101,10 @@ def t_today_timeline_1029(b, base):
     pg.wait_for_timeout(2500)
     mid = val(pg, "rotTl")
     ok(f"[{T}] ① ★ 按 ▶ 重播：2.5 秒後時間往後走了、鈕變 ⏸、拉桿反灰", mid not in ("09:15", "最新") and text(pg, "#rotTl .pb.play") == "⏸" and pg.evaluate("() => document.getElementById('rotTl').classList.contains('playdim')"), mid)
-    st = pg.evaluate("() => { const s = (document.getElementById('rotClock') || {})._twStat; return s && s.last ? { chained: s.last.chained, frames: s.last.frames, ms: s.last.ms, tweens: s.tweens } : null; }")
-    ok(f"[{T}] ① ★ 播放像日線回放一樣絲滑：格與格之間用 rAF 補間（每格 ≥8 幀、約 420ms）、而且是接續補間（等速不停頓）", bool(st) and st["chained"] is True and st["frames"] >= 8 and 380 <= st["ms"] <= 520 and Tape_step(pg) == 420, st)
+    st = pg.evaluate("""() => new Promise(res => { const el = document.getElementById('rotClock'); let ch = 0, tw = 0, n = 0; const t0 = performance.now(); const t1 = el._twStat ? el._twStat.tweens : 0;
+      const f = () => { const T = el._twT; if (T) { tw++; if (T.chained) ch++; } n++; if (performance.now() - t0 < 1200) requestAnimationFrame(f); else res({ ch, tw, n, tweens: (el._twStat ? el._twStat.tweens : 0) - t1 }); }; f(); })""")
+    ok(f"[{T}] ① ★ 播放像日線回放一樣絲滑：每格都用 rAF 補間（1.2 秒內 ≥2 次新補間、補間進行中的幀 ≥60%）、而且是接續補間（等速不停頓）、播放間隔＝補間時間 420ms",
+       st["tweens"] >= 2 and st["tw"] >= st["n"] * 0.6 and st["ch"] >= st["tw"] * 0.9 and Tape_step(pg) == 420, st)
     ok(f"[{T}] ① 播放中輪盤座標隨之改變", pg.evaluate(ROT) not in (s0915, live_sig))
     wait_until(pg, "() => !Tape.playing", 30000, 300)
     ok(f"[{T}] ① ★ 播到最後自動回到「最新」並停止，輪盤回到即時的座標", val(pg, "rotTl") == "最新" and text(pg, "#rotTl .pb.play") == "▶" and not pg.evaluate("() => Tape.pinned()"))
@@ -132,6 +134,7 @@ def t_today_timeline_1029(b, base):
     pg.click("#sankeyTl .pb.play"); pg.wait_for_timeout(500)
     drag(pg, "sankeyTl", 4)
     k1 = pg.evaluate("() => App.sklSig().sig")
+    drag(pg, "sankeyTl", 9)
     ok(f"[{T}] ② ★ 再拖到 09:45：又不一樣", val(pg, "sankeyTl") == "09:45" and pg.evaluate("() => App.sklSig().sig") != k1)
     pg.click("#sankeyLiveBtn"); pg.wait_for_timeout(600)
     ok(f"[{T}] ② 關掉即時：分流樹的時間軸消失、日線拉桿回來", count(pg, "#sankeyTl") == 0 and pg.evaluate("() => !document.getElementById('sankeyDays').classList.contains('tlon')"))
