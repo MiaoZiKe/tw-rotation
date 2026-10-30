@@ -1,5 +1,11 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
+## 2026-10-30 盤後主題文章沒發 → 修好並補發（最後更新 10-30 台北）
+- 根因：盤後主貼文 18:07 由 daily.yml 用 GITHUB_TOKEN 派的 social-live 發出；GITHUB_TOKEN 觸發的 run 完成時 GitHub 不發 workflow_run，social_news.yml 沒被叫醒（17:15～18:02 的幾輪都在主貼文前，下一個備援 19:35）。
+- 修：social-live.yml 發出主貼文後直接 dispatch social_news.yml（slot=auto、dry_run=false，加 actions: write）；social_news.yml 加 18:25／18:55 備援；social_news.py 拿掉「超過 3 小時不補排」。
+- 補發：workflow_dispatch social_news.yml slot=post（run 41040456174）。
+- 這批只驗：`pytest tests/ -q -k social`（新測試過；另 6 條在 sparse worktree 缺 site/、data/ 照片圖池而紅，origin/main 原樣也一樣紅，與本修改無關）。
+
 ## 2026-10-30 主題文章新增分類「國際」（Andy：講三星的文章封面標「美股」不對；最後更新 10-30 台北）
 - `scripts/social_news.py`：`topic_of()` 加「國際」（三星、SK海力士、日銀、歐洲央行…）；`refine_cat()` 在 `compose()` 取得主體後依主體國籍校正（非美國、非台股 → 國際；被判國際但主體是美國公司 → 美股）；`subject_of()` 的「三星」只有新聞代號帶 5007 才算台股三星科技；國際稿不導 `#earnings`。TAG／ROUTE 加國際。
 - `docs/marketing/posts/render_news_cards.py`：國際配色青綠 #2A8C82（CAT／CVAR／CHIP2；正式發文走的淺底封面 card_v4／card_photo 原本各類共用磚紅 acc，另加 CHIP4 讓「國際」改青綠，其他類維持磚紅）、圖示與比比 globe。
