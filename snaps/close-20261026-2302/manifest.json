@@ -1,0 +1,31 @@
+{
+  "kind": "close",
+  "taken_at": "2026-10-26T23:03:07+08:00",
+  "data_date": "2026-10-22",
+  "threads": {
+    "text": "盤後消息\n台指期法人淨未平倉：\n・外資 -87,297 口、投信 +83,601 口；\n・自營商 +3,260 口\n散戶多空比：\n・大台 +0.37%、小台 +33.81%；\n・微台 +47.79%\n三大法人買賣超：\n・外資 -815.8億、投信 +94.9億；\n・自營 -273.8億、合計 -994.7億\n外資：\n・買超 緯穎、精材；\n・賣超 台積電、國巨\n投信：\n・買超 台積電、欣興；\n・賣超 緯穎、健策\nETF 買超：\n・外資 國泰20年美債、元大美債20年；\n・投信 元大台灣50、復華台灣科技優息\n融資維持率：\n・上市（估算）176.99%，較前日 -5.85pp\n融資：\n・增加 誠美材、榮科；\n・減少 台玻、盟立\n融券：\n・增加 群創、友達；\n・減少 誠美材、佳龍\n#台股 #法人買賣超 #外資 #投信 #融資融券\nhttps://liguligu-puipui.com/?utm_source=threads&utm_campaign=close_1026#market/inst",
+    "images": [
+      "threads_fut-oi.png",
+      "threads_retail-ratio.png",
+      "threads_inst-today.png",
+      "threads_streak-foreign.png",
+      "threads_streak-trust.png",
+      "threads_etf-buy.png",
+      "threads_credit-ratio.png",
+      "threads_credit-rank.png",
+      "threads_credit-short.png"
+    ]
+  },
+  "story": [
+    "story_fut-oi.png",
+    "story_retail-ratio.png",
+    "story_inst-today.png",
+    "story_streak-foreign.png",
+    "story_streak-trust.png",
+    "story_etf-buy.png",
+    "story_credit-ratio.png",
+    "story_credit-rank.png",
+    "story_credit-short.png",
+    "story_outro.png"
+  ]
+}

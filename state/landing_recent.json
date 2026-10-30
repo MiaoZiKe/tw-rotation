@@ -1,0 +1,52 @@
+{
+ "intraday": [
+  {
+   "d": "20261027",
+   "r": "flow/rotation"
+  },
+  {
+   "d": "20261028",
+   "r": "flow/rotation"
+  },
+  {
+   "d": "20261029",
+   "r": "industry/traditional"
+  },
+  {
+   "d": "20261030",
+   "r": "industry/traditional"
+  }
+ ],
+ "close": [
+  {
+   "d": "20261027",
+   "r": "market/inst"
+  },
+  {
+   "d": "20261028",
+   "r": "market/inst"
+  },
+  {
+   "d": "20261029",
+   "r": "market/inst"
+  },
+  {
+   "d": "20261030",
+   "r": "market/inst"
+  }
+ ],
+ "premarket": [
+  {
+   "d": "20261028",
+   "r": "earnings"
+  },
+  {
+   "d": "20261029",
+   "r": "earnings"
+  },
+  {
+   "d": "20261030",
+   "r": "industry/semiconductor"
+  }
+ ]
+}

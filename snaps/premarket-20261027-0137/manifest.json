@@ -1,0 +1,101 @@
+{
+  "kind": "premarket",
+  "taken_at": "2026-10-27T01:38:10+08:00",
+  "data_date": "2026-10-27",
+  "slot_key": "premarket-2026-10-27",
+  "threads": {
+    "text": "🌅 盤前3分鐘 10/27\n🧭 昨日盤面（美股 10/26 盤中）：\n・美股四大指數全數上漲，費半 +1.65% 表現最強、道瓊 +0.59% 最弱\n・費半 +1.65%，開高走高\n・那斯達克 +0.91%，開高走高\n・標普 +0.77%，開高走高\n・台積電 ADR +1.09%，平盤開出後走高\n・台指期夜盤 45,654，較日盤 −618 點（−1.34%）\n📰 昨日事件：\n・【科技】馬斯克喊 SpaceX 籌得…\n・【科技】蘋果iPhone Duo需求…\n・【新聞】PHP爆重大漏洞 全網恐慌4…\n💳 融資融券（10/22）：\n・上市融資維持率（估算）176.99%，單日下降 5.85 個百分點\n・融資：\n　增加 誠美材、榮科、東台、廣宇、華新科\n　減少 台玻、盟立、景碩、友達、台虹\n・融券：\n　增加 群創、友達、台虹、旺宏、南亞科\n　減少 誠美材、佳龍、晶心科、今國光、彩晶\n#台股 #盤前 #美股 #台指期 #台積電\n👉 更多詳細資料可以點擊以下連結：\nhttps://liguligu-puipui.com/\n💬 想看完整內容，留言『消息』",
+    "images": [
+      "threads_us-close.png",
+      "threads_tx.png",
+      "threads_news.png",
+      "threads_credit-ratio.png",
+      "threads_credit-rank.png",
+      "threads_credit-short.png"
+    ]
+  },
+  "story": [
+    "story_us-close.png",
+    "story_tx.png",
+    "story_news.png",
+    "story_credit-ratio.png",
+    "story_credit-rank.png",
+    "story_credit-short.png"
+  ],
+  "premarket_news": {
+    "version": 1,
+    "target_date": "2026-10-27",
+    "window": {
+      "start": "2026-10-26T01:38:10.002887+08:00",
+      "end": "2026-10-27T01:38:10.002887+08:00"
+    },
+    "categories": [
+      "新聞",
+      "事件",
+      "科技",
+      "總經"
+    ],
+    "items": [
+      {
+        "category": "科技",
+        "title": "馬斯克喊 SpaceX 籌得 400 億美元買輝達晶片！嗆新雲端將被淘汰",
+        "url": "https://finance.technews.tw/2026/10/26/predicts-neocloud-shakeout/",
+        "source": "科技新報",
+        "published_at": "2026-10-26T09:03:21+08:00",
+        "coverage": {
+          "sources": 2,
+          "articles": 5
+        },
+        "summary": "全球 AI 晶片搶購潮白熱化，特斯拉執行長馬斯克（Elon Musk）週日正式宣布，旗下 SpaceX 已完成 [&#8230;]"
+      },
+      {
+        "category": "科技",
+        "title": "蘋果iPhone Duo需求爆發！追加三成訂單 鴻海、台積電、新日興受惠",
+        "url": "https://news.cnyes.com/news/id/6637609",
+        "source": "鉅亨",
+        "published_at": "2026-10-26T12:10:03+08:00",
+        "coverage": {
+          "sources": 2,
+          "articles": 5
+        },
+        "summary": "iPhone Duo開賣需求超預期，首日售罄，蘋果要求供應鏈加快生產並追加三成訂單&#10;今年備貨量估由600萬支上修至800萬至1,000萬支，2027年出貨量更上看3,300萬支&#10;鴻海、台積電、新日興可望受惠，但鉸鏈產能與整機組裝良率仍是出貨關鍵"
+      },
+      {
+        "category": "新聞",
+        "title": "PHP爆重大漏洞 全網恐慌48小時！救火者竟是位20年志工",
+        "url": "https://news.cnyes.com/news/id/6637044",
+        "source": "鉅亨",
+        "published_at": "2026-10-26T06:20:03+08:00",
+        "coverage": {
+          "sources": 2,
+          "articles": 2
+        },
+        "summary": "PHP驚爆漏洞使全球約七成網站拉警報，攻擊嘗試在公開後2小時內飆至數十萬次&#10;德國、芬蘭、法國、比利時緊急保護政府網站；CISA、CERT-EU、NCSC接連警告，部分商用與開源產品也可能受影響&#10;捷克志工協助打包修補套件；PHP基金會坦承修復線索早在2024年出現，延宕近兩年，凸顯開源維護資源不足"
+      },
+      {
+        "category": "事件",
+        "title": "油價突然下跌！伊朗將與沙國、土耳其、巴基斯坦會談 川普保留攻伊選項",
+        "url": "https://news.cnyes.com/news/id/6637775",
+        "source": "鉅亨",
+        "published_at": "2026-10-26T19:12:33+08:00",
+        "coverage": {
+          "sources": 1,
+          "articles": 3
+        },
+        "summary": "布蘭特跌破110美元、WTI近100美元；伊朗稱沙國、巴基斯坦、土耳其高層今赴德黑蘭會談。&#10;川普稱暫不攻擊伊朗但保留軍事與談判選項；美國削減中東使館人員，稱伊朗威脅進入高級階段。&#10;高盛指中東運費飆升，亞洲煉油廠幾乎停買11月美原油；橋水第三季加碼原油，看好第四季油價。"
+      },
+      {
+        "category": "總經",
+        "title": "Fed 12月升息添變數！高盛示警美債殖利率風險：AI交易反轉、能源通膨升溫",
+        "url": "https://news.cnyes.com/news/id/6637395",
+        "source": "鉅亨",
+        "published_at": "2026-10-26T06:30:04+08:00",
+        "coverage": {
+          "sources": 1,
+          "articles": 2
+        },
+        "summary": "美債殖利率自高點回落，10年期美債22日單日跌17基點、重返5%下方&#10;高盛稱AI股賣壓帶動資金回流長債，但AI融資需求與能源通膨風險未消&#10;高盛仍看好Fed 12月升息，市場對升息25基點重新定價難度高"
+      }
+    ]
+  }
+}

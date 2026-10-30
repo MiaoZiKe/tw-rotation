@@ -1,0 +1,18 @@
+{
+  "kind": "close",
+  "taken_at": "2026-10-21T21:46:29+08:00",
+  "data_date": "2026-10-21",
+  "threads": {
+    "text": "台股盤後籌碼｜10/21\n三大法人當日買賣超：外資 +22.4億、投信 +128.0億、自營 -135.7億、合計 +14.7億 → https://liguligu-puipui.com/?utm_source=threads&utm_campaign=close_1021#market/inst\n台指期三大法人淨未平倉：外資 -86,072、投信 +83,778、自營商 +1,716 → https://liguligu-puipui.com/?utm_source=threads&utm_campaign=close_1021#market/fut\n散戶多空比：大台 +0.46%、小台 +24.09%、微台 +31.36%\n資料：證交所／櫃買公開資料整理，僅供參考，不構成投資建議\n#台股 #法人買賣超 #投信 #外資",
+    "images": [
+      "threads_inst-today.png",
+      "threads_fut-oi.png",
+      "threads_retail-ratio.png"
+    ]
+  },
+  "story": [
+    "story_inst-today.png",
+    "story_fut-oi.png",
+    "story_retail-ratio.png"
+  ]
+}
