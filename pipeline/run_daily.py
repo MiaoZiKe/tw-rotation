@@ -614,6 +614,45 @@ def pick_inst_target_date(lake_date: str, official_date) -> str:
     return o if o and o > lake_date else lake_date
 
 
+def _gh_output_last(key: str) -> str | None:
+    """本輪已寫進 GITHUB_OUTPUT 的某個 key 的最後一個值（同 key 多次寫入以最後為準）。"""
+    path = os.environ.get("GITHUB_OUTPUT")
+    if not path or not os.path.exists(path):
+        return None
+    val = None
+    for line in open(path, encoding="utf-8").read().splitlines():
+        if line.startswith(key + "="):
+            val = line.split("=", 1)[1]
+    return val
+
+
+def run_inst_with_tape(args) -> int:
+    """phase=inst 前先把盤中 5 分鐘快照落地（tape_5m）。
+
+    為什麼放在 inst 輪（2026-10-30）：台北 16:15～17:15 每 10 分鐘就有一輪 inst，是收盤後最密的排程；
+    tape-lake.yml 手動／排程跑會被同一個 concurrency 佇列的新 pending 擠掉（一個 group 只留一個 pending）。
+    tape 步驟是冪等的（湖裡收齊的日子不再打 Worker），inst 輪多跑只是多 1 次請求。
+    ★ inst 輪「沒有新法人」會把 inst_new 設成 false → 工作流不 commit。這裡若有新 tape 列，要把 inst_new 改回 true
+      （rebuild／post 維持 false：沒有新價量與法人，不必整站重算也不必發文），資料才會被 commit。
+    失敗只記錄，不影響 inst 本身。
+    """
+    n_tape = 0
+    try:
+        _tp = step("tape.collect", tape.collect)
+        if _tp.empty and "tape.collect" in RESULT["empty"]:
+            RESULT["empty"].remove("tape.collect")
+        n_tape = save("tape_5m", _tp) if not _tp.empty else 0
+    except Exception:  # noqa: BLE001
+        log.exception("inst 輪 tape 落地失敗（不影響法人）")
+    rc = run_inst_phase(args)
+    if n_tape > 0 and _gh_output_last("inst_new") == "false":
+        log.info("tape_5m 新增 %d 列，inst_new 改為 true 讓資料湖被 commit（rebuild／post 維持 false）", n_tape)
+        _set_gh_output("inst_new", "true")
+        _set_gh_output("rebuild", "false")
+        _set_gh_output("post", "false")
+    return rc
+
+
 def run_inst_phase(args) -> int:
     """phase=inst：台北 16:15／16:45／17:15 專門搶「當天三大法人」進資料湖。
 
@@ -758,7 +797,7 @@ def main() -> int:
     args = ap.parse_args()
     if args.phase == "inst":
         RESULT["phase"] = "inst"
-        return run_inst_phase(args)
+        return run_inst_with_tape(args)
     light = args.phase == "price"
     news_only = args.phase == "news"
     RESULT["phase"] = args.phase

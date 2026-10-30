@@ -14,9 +14,11 @@ on:
     - cron: "7 6,7 * * 1-5"
   workflow_dispatch:
 
-# 與 daily／backfill 共用寫入佇列，避免互相踩 data/ 的 push
+# 獨立的 concurrency group（2026-10-30 修）：以前與 daily／backfill 共用 tw-rotation-data-write，
+# 但 GitHub 一個 group 只留一個 pending、新的進來會把舊 pending 取消 —— 收盤後 inst 輪每 10 分鐘一輪，tape-lake 永遠排不上。
+# 推送衝突由下面的「對齊遠端後重抓重推」處理（抓取冪等，且這支只動 data/tape_5m 與 data/_state/tape_last.json）。
 concurrency:
-  group: tw-rotation-data-write
+  group: tape-lake
   cancel-in-progress: false
 
 permissions:

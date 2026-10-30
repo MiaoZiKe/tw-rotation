@@ -53,6 +53,28 @@ def _attach_groups(price: pd.DataFrame, company: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
+def _prev_by_code(df: pd.DataFrame, col: str, keys: list[str]) -> np.ndarray:
+    """同一 keys 內依日期排序，取上一列的 col；每組第一列給 NaN。只建 numpy 陣列，不複製 DataFrame。
+
+    0 成交值照原值傳回（呼叫端會把 0／NaN 都當權重 0）。"""
+    n = len(df)
+    if n == 0:
+        return np.array([], dtype=float)
+    k = [pd.factorize(df[c])[0] for c in keys]
+    d = pd.factorize(df["date"].astype(str), sort=True)[0]
+    order = np.lexsort([d] + k[::-1])          # 最後一個鍵最優先：keys[0] → keys[1] → date
+    v = pd.to_numeric(df[col], errors="coerce").to_numpy(dtype=float)[order]
+    same = np.ones(n, dtype=bool)
+    for a in k:
+        s = a[order]
+        same[1:] &= s[1:] == s[:-1]
+    prev = np.full(n, np.nan)
+    prev[1:] = np.where(same[1:], v[:-1], np.nan)
+    out = np.empty(n)
+    out[order] = prev
+    return out
+
+
 def group_daily(price: pd.DataFrame, company: pd.DataFrame,
                 inst: pd.DataFrame | None = None,
                 margin: pd.DataFrame | None = None) -> pd.DataFrame:
@@ -60,12 +82,23 @@ def group_daily(price: pd.DataFrame, company: pd.DataFrame,
     if price.empty:
         return pd.DataFrame()
 
+    # ★ 2026-10-30 Andy 拍板（「直接改上線」）：族群漲跌幅的權重改用「前一日成交值」。
+    #   當天成交值加權＝前視偏差：當天漲的股票自然爆量，等於事後知道誰漲再加重它
+    #   （族群日漲跌近 120 天平均偏高 0.25pp／天，收容桶族群最嚴重；docs/research/20261030_rrg_audit.md B-3）。
+    #   tv_prev＝同一檔股票**上一筆交易紀錄**的成交值（前一天收盤就已知）；
+    #   沒有上一筆（新上市第一天、資料起點）→ 缺值 → 該股當天不進漲跌幅權重（剔除，不退回用當天）。
+    #   ⚠ 只有「漲跌幅的權重」改；族群成交值（turnover、占比、資金流）仍是當天的實際成交值 ——
+    #   那是當天已發生的事實，不是拿來加權別的東西，沒有前視問題。
+    #   ⚠ 記憶體：price 是全歷史（數百萬列），這裡不准再複製整張表（2026-10-30 第一版多 copy 兩份，
+    #   build_payload 在這一步被 OOM 砍掉，離開碼 137）。做法是 attach 之後在 df 上用 numpy 原地算：
+    #   同一檔 × 同一族群的列依日期排好，上一列就是該股上一筆交易紀錄（族群歸屬不隨日期變）。
     df = _attach_groups(price, company)
     if df.empty:
         log.warning("沒有任何個股對得上族群，請檢查 groups.yaml 與 company_info")
         return pd.DataFrame()
 
     df["turnover"] = pd.to_numeric(df["turnover"], errors="coerce").fillna(0)
+    df["tv_prev"] = _prev_by_code(df, "turnover", ["code", "group_id"])
     df["prev_close"] = df["close"] - df["change"].fillna(0)
     df["chg_pct"] = np.where(df["prev_close"] > 0,
                              df["change"] / df["prev_close"] * 100, np.nan)
@@ -104,8 +137,10 @@ def group_daily(price: pd.DataFrame, company: pd.DataFrame,
     keys = ["date", "group_id", "group_name", "tier", "chain"]
     w = df["weight"]
     tv = df["turnover"] * w
-    # 漲跌幅用成交值加權，否則會被冷門小型股主導；沒有漲跌幅的那幾檔權重算 0
-    ww = tv.where(df["chg_pct"].notna(), 0)
+    # 漲跌幅用「前一日」成交值加權（×1/n 拆分），否則會被冷門小型股主導；
+    # 沒有漲跌幅、或沒有前一日成交值的那幾檔權重算 0（理由見函式開頭 tv_prev 那段）
+    tvp = df["tv_prev"].fillna(0).clip(lower=0) * w
+    ww = tvp.where(df["chg_pct"].notna(), 0)
     tmp = pd.DataFrame({
         "_tv": tv, "_ww": ww, "_chgw": df["chg_pct"].fillna(0) * ww,
         "_adv": (df["chg_pct"] > 0).astype("int64"),

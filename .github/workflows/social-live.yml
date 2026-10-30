@@ -70,6 +70,7 @@ concurrency:
 
 permissions:
   contents: write
+  actions: write      # 2026-10-30：主貼文發出後直接叫醒 social_news.yml（主題文章同時發），見最後一步
 
 jobs:
   snap-and-post:
@@ -317,3 +318,15 @@ jobs:
           git add -A
           git commit -q -m "發布紀錄 ${{ steps.kind.outputs.stamp }}"
           git push --force "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" social-snaps
+
+      # ★ 2026-10-30 事故：盤後主貼文 18:07 由每日管線用 GITHUB_TOKEN 派的 social-live 發出，
+      #   GitHub 不會為「GITHUB_TOKEN 觸發的 run」再發 workflow_run 事件 → social_news.yml 沒被叫醒，盤後主題文章沒發。
+      #   修法：主貼文真的發出（有 posted.json）就在這裡直接用 workflow_dispatch 叫醒主題文章（dispatch 不受上述限制）。
+      #   social_news.py 自己看 posted.json 排還沒排的段落，已排過的跳過，重複叫醒無害。
+      - name: 叫醒主題文章（跟主貼文同時發）
+        if: always() && steps.post.outputs.save == '1' && inputs.live_test != true && inputs.force != true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh workflow run social_news.yml --ref main -f slot=auto -f dry_run=false \
+            || echo "::warning::叫醒 social_news.yml 失敗，仍有 social_news.yml 自己的備援排程"

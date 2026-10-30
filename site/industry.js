@@ -450,15 +450,18 @@
        見 app.js rlvCompute 的誠實界線 ①）。這件事一定要寫在畫面上。*/
     const liveAgg = (members) => {
       if (!q || !members) return null;
-      let v = 0, c = 0, n = 0;
+      let v = 0, c = 0, n = 0, pw = 0;
       members.forEach(m => {
         const x = q[String(m.code)];
         if (!x || x.price == null || x.volume == null || x.chgPct == null) return;
         const amt = x.price * x.volume * 1000;
         if (!(amt > 0)) return;
-        v += amt; c += x.chgPct * amt; n++;
+        // 成交值（占比）用盤中估算值；漲跌幅的權重用前一日成交值（2026-10-30 Andy 拍板，口徑同 app.js prevTv）
+        const pv = A.prevTvOf ? A.prevTvOf(m, x) : 0;
+        v += amt; n++;
+        if (pv > 0) { pw += pv; c += x.chgPct * pv; }
       });
-      return n ? { val: v, chg: c / v, n } : null;
+      return n ? { val: v, chg: pw > 0 ? c / pw : null, n } : null;
     };
     const shownGroups = () => all.slice().sort(byTurn).slice(0, GP_TOP);
     const liveCodes = () => {
@@ -872,7 +875,7 @@
       /* ★ 2026-09-24 說明精簡：同一份內容改成「一句問題 → 條列 → 最下面一行小字」，住在「怎麼看 ?」裡。*/
       const gpFine = '占比＝占這張圖列出的族群成交值合計；熱力圖提示框的「（x%）」是占全部族群成交值合計，分母不同所以數字不一樣。甜甜圈其餘併成「其他」，中心寫前五大合計；滑過任一邊，另一邊對應的那一塊同步標起來，下方那行寫出它的數字。'
         + '按「即時」＝盤中暫定值，每 5 秒更新：成交值是<b>估算</b>的（最新價 × 累積張數），'
-        + '漲跌幅是這批個股的成交值加權；抓不到報價的仍用收盤值，所以占比只能當「相對大小」看。';
+        + '漲跌幅是這批個股的前一日成交值加權；抓不到報價的仍用收盤值，所以占比只能當「相對大小」看。';
       // 彈窗開著時 #gpHint 被搬到 body 底下的 #howPop，host 裡找不到 —— 退回全域找，不然即時每分鐘重畫會丟例外
       ($('#gpHint', host) || document.getElementById('gpHint') || {}).innerHTML = drill
         ? A.howHTML('這個族群裡今天是誰在漲、量能集中在哪幾檔。', [

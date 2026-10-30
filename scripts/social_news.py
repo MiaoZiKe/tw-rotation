@@ -1455,8 +1455,10 @@ def run_slot(slot: str, day: str, now: datetime, posted: dict, dry: bool, out: P
         if when is None and not dry:
             return dict(log, note=f"主貼文 {cfg['key']}-{day} 還沒發，先不排")
         at = (posted.get(f"{cfg['key']}-{day}") or {}).get("at")
-        if at and not force and not dry and now - datetime.fromisoformat(at).astimezone(TPE) > timedelta(hours=3):
-            return dict(log, note="主貼文已發超過 3 小時，新聞時效已過，這段不補排")
+        # 2026-10-30：原本「主貼文已發超過 3 小時 → 這段不補排」是一條 0 篇的路徑（違反「沒有條件不符就不發」），拿掉。
+        # 晚到照樣補發（立刻發）；新聞挑不到就由 floor 用常備文庫補。
+        if at and now - datetime.fromisoformat(at).astimezone(TPE) > timedelta(hours=3):
+            log["late"] = "主貼文已發超過 3 小時，晚到補發"
     when = when or now + timedelta(minutes=30)
     dd, hh = cfg["since"]
     t0 = datetime.fromisoformat(f"{day}T{hh}:00+08:00") + timedelta(days=dd)

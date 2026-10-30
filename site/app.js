@@ -5023,7 +5023,8 @@
       ms.forEach(m => { const c = String(m.code), q = OVL.q[c];
         if (!q || q.chgPct == null || q.price == null || q.volume == null) return;
         const v = q.price * q.volume * 1000; if (!(v > 0)) return;
-        w += v; cw += q.chgPct * v; n++; hitAll.add(c);
+        const pv = prevTvOf(m, q); if (!(pv > 0)) return;     // 權重＝前一日成交值（見 prevTv；2026-10-30 Andy 拍板）
+        w += pv; cw += q.chgPct * pv; n++; hitAll.add(c);
         if (Math.round(q.chgPct * 100) / 100 > 0) up++;
         if (q.time && q.time > at) at = q.time; });
       // 成分股有 6 成以上拿到報價才排：2 檔裡只抓到 1 檔的題材，漲跌其實是那 1 檔的漲跌
@@ -5482,7 +5483,7 @@
     HL.q[c] = nq;
   }
   function hlCompute() {
-    const det = D.groups_detail || {}, w = sklWeights(), stv = {}, chg = {};
+    const det = D.groups_detail || {}, w = sklWeights(), stv = {}, chg = {}, pw = prevTvMap(HL.q);   // pw：漲跌權重＝前一日成交值（見 prevTv）
     let at = '', hit = 0;
     Object.keys(HL.q).forEach(c => {
       const x = HL.q[c]; if (!x || x.price == null || x.volume == null) return;
@@ -5497,7 +5498,7 @@
       ((det[gid] || {}).members || []).forEach(m => {
         const c = String(m.code); if (stv[c] == null) return;
         const ww = stv[c] / Math.max(1, w[c] || 1);
-        to += ww; n++; if (chg[c] != null) { gw += ww; gc += chg[c] * ww; }
+        to += ww; n++; const pv = (pw[c] || 0) / Math.max(1, w[c] || 1); if (chg[c] != null && pv > 0) { gw += pv; gc += chg[c] * pv; }
       });
       if (n && gw > 0) g[gid] = { to, chg: gc / gw, n };
     });
@@ -5535,7 +5536,8 @@
         const c = String(m.code), v = HL.stv[c];
         const mt = v != null ? v : (m.turnover || 0) * k, mc = v != null && HL.chg[c] != null ? HL.chg[c] : m.chg_pct;
         if (v != null) hit++;
-        to += mt; if (mc != null) { gw += mt; gc += mc * mt; }
+        const pv = prevTvOf(m, HL.q[c]);                     // 漲跌權重＝前一日成交值（見 prevTv）；成交值占比仍用 mt
+        to += mt; if (mc != null && pv > 0) { gw += pv; gc += mc * pv; }
         return Object.assign({}, m, { turnover: mt, chg_pct: mc });
       });
       tot += to;
@@ -6371,11 +6373,58 @@
   }
 
   /* 把報價續算成「現在這一刻」的時鐘座標。
-     ★ 族群報酬用**成交值加權、而且做 1/n 拆分** —— 後端 `compute/flow.py` 的族群 chg_pct
-       就是這樣算的（`_chgw / _wsum`，權重是 turnover × 1/n）。兩邊口徑一定要一樣，
+     ★ 族群報酬用**前一日成交值加權、而且做 1/n 拆分** —— 後端 `compute/flow.py` 的族群 chg_pct
+       就是這樣算的（`_chgw / _wsum`，權重是 tv_prev × 1/n；2026-10-30 起，見 prevTv）。兩邊口徑一定要一樣，
        不然盤中畫的點和收盤後重算出來的點會對不起來。
-     ★ 大盤報酬**不做 1/n 拆分**：`rrg.market_index()` 是逐檔成交值加權，
+     ★ 大盤報酬**不做 1/n 拆分**：`rrg.market_index()` 是逐檔前一日成交值加權，
        那張表裡一檔股票就是一列，沒有「掛在幾個族群」這回事。*/
+  /* ★ 2026-10-30 Andy 拍板（「直接改上線」，DECISIONS 前一日成交值加權）：盤中即時的族群／大盤漲跌，
+     權重一律用「前一個交易日的成交值」，不用盤中累積成交值 —— 跟後端 flow.group_daily／rrg.market_index 同一口徑。
+     盤中累積成交值加權＝前視：越漲越爆量，權重跟著漲幅一起變大，漲幅系統性偏高（近 32 天日均 +0.371%，
+     改前日權重 −0.045%，加權指數 −0.042%）。
+     哪一欄才是「前一日」：
+       · 報價日 > payload 最新日（正常盤中）→ 成分股的 turnover 就是前一日。
+       · 報價日 == payload 最新日（收盤後 payload 已重算、或今日時間軸回放）→ 用 turnover_prev。
+       · 不知道 payload 日期時，用「報價的昨收 == 成分股收盤」判斷 payload 是不是昨天（除權息日會判成否 →
+         改用更早一天的成交值；寧遲勿早，不會偷看）。
+     沒有前一日成交值 → 權重 0（剔除），不退回用當天。*/
+  const tvRefDate = () => {
+    const f3 = D.flow_v3 || D.rrg_lite;
+    return String((f3 && f3.rrg && f3.rrg.date) || '').replace(/-/g, '');
+  };
+  function prevTv(m, x, rd) {
+    if (!m) return 0;
+    const qd = String((x && x.date) || '').replace(/-/g, '');
+    let useNow;
+    if (qd && rd) useNow = qd > rd;
+    else useNow = !!(x && x.prevClose != null && m.close != null && Math.abs(x.prevClose - m.close) < 1e-6);
+    const v = useNow ? m.turnover : m.turnover_prev;
+    return (v > 0) ? v : 0;
+  }
+  /* code → 前一日成交值（groups_detail 成分股去重；同一檔在各族群的 turnover 都一樣）。*/
+  function prevTvMap(q) {
+    const det = D.groups_detail || {}, rd = tvRefDate(), out = {};
+    Object.keys(det).forEach(gid => ((det[gid] || {}).members || []).forEach(m => {
+      const c = String(m.code); if (c in out) return;
+      out[c] = prevTv(m, q && q[c], rd);
+    }));
+    return out;
+  }
+
+  /* 單一成分股的前一日成交值：先查 groups_detail（有 turnover_prev），查不到才用手上這筆成分股物件自己的欄位。
+     題材、產業頁的成分股物件不一定帶 turnover_prev —— 那種在「報價日 == payload 日」時會拿到 0（剔除），寧缺勿偷看。*/
+  let ptvCache = null;
+  function prevTvOf(m, x) {
+    const det = D.groups_detail;
+    if (!ptvCache || ptvCache.det !== det) {
+      const by = {};
+      Object.keys(det || {}).forEach(gid => ((det[gid] || {}).members || []).forEach(mm => { const c = String(mm.code); if (!(c in by)) by[c] = mm; }));
+      ptvCache = { det, by };
+    }
+    const c = String((m && m.code) || '');
+    return prevTv(ptvCache.by[c] || m, x, tvRefDate());
+  }
+
   function rlvCompute(rrg, q) {
     if (rrg && rrg.kind === 'money') return mwCompute(rrg, q);   // 資金輪盤：同一包報價，換成「占比」續算
     const P = rrg && rrg.live_params;
@@ -6384,6 +6433,7 @@
     }
     const det = D.groups_detail || {};
     const w = sklWeights();                        // 和資金分流樹共用同一份 1/n 權重
+    const pw = prevTvMap(q);                       // 漲跌幅的權重：前一日成交值（見 prevTv）
     const stv = {}, chg = {};
     let uni = 0, at = '', hit = 0;
     Object.keys(q).forEach(c => {
@@ -6396,7 +6446,7 @@
       if (x.time && x.time > at) at = x.time;
     });
     let mw = 0, mc = 0;
-    Object.keys(stv).forEach(c => { if (chg[c] == null) return; mw += stv[c]; mc += chg[c] * stv[c]; });
+    Object.keys(stv).forEach(c => { if (chg[c] == null || !(pw[c] > 0)) return; mw += pw[c]; mc += chg[c] * pw[c]; });
     if (!(mw > 0)) throw new Error('報價不足以計算大盤報酬');
     const mkt = mc / mw;                           // 大盤今日報酬（代理值，見誠實界線 2）
     const alpha = 2 / (P.rs_smooth + 1);
@@ -6408,15 +6458,18 @@
       if (isAutoBucket(p.group_id)) { skipped++; return; }
       const t = p.trail || [];
       if (t.length <= P.mom_roc) { skipped++; return; }   // 軌跡不夠長就算不出 y（ROC 的分母）
-      let gw = 0, gc = 0, n = 0;
+      let gw = 0, gc = 0, n = 0, gto = 0;
       ((det[p.group_id] || {}).members || []).forEach(m => {
         const c = String(m.code);
         if (stv[c] == null || chg[c] == null) return;
-        const ww = stv[c] / Math.max(1, w[c] || 1);
+        const nn = Math.max(1, w[c] || 1);
+        gto += stv[c] / nn;                               // 今天這一刻的估算成交值（資金排行用，不是權重）
+        const ww = (pw[c] || 0) / nn;                     // 漲跌權重：前一日成交值 × 1/n
+        if (!(ww > 0)) return;
         gw += ww; gc += chg[c] * ww; n++;
       });
       if (!(gw > 0)) { skipped++; return; }              // 這個族群一檔都沒抓到 → 維持盤後位置
-      const gr = gc / gw;                                 // 族群今日報酬（成交值加權）
+      const gr = gc / gw;                                 // 族群今日報酬（前一日成交值加權）
       const xPrev = t[t.length - 1 - P.mom_roc][1];
       if (!(xPrev > 0)) { skipped++; return; }
       /* 續算一步。`ret` 帶進來的相對報酬只影響第 ① 步，其餘完全一樣，
@@ -6447,7 +6500,7 @@
       const flat = step(mkt);
       if (!now || !flat || !isFinite(now.x) || !isFinite(now.y)) { skipped++; return; }
       const x = now.x, y = now.y, x0 = p.x, y0 = p.y;
-      pt[p.group_id] = { x, y, x0, y0, fx: flat.x, fy: flat.y, to: gw,   // to＝今天這一刻的估算成交值（1/n 拆分），族群資金排行即時版用
+      pt[p.group_id] = { x, y, x0, y0, fx: flat.x, fy: flat.y, to: gto,   // to＝今天這一刻的估算成交值（1/n 拆分），族群資金排行即時版用
         dx: x - x0, dy: y - y0,                 // 總位移（收盤 → 現在）
         tdx: x - flat.x, tdy: y - flat.y,       // 今天真正推出來的那一段（持平基準 → 現在）
         ret: gr, n, stage: stageOf(x, y), stage0: p.quadrant || stageOf(x0, y0) };
@@ -15650,7 +15703,7 @@
     fillDisc();                 // 標題列右側那一行免責小字（2026-10-06）
     const meta = await load('meta');
     if (meta) { renderFreshness(meta); }
-    window.App = { chainLabel, freqBadge, srcInfo, sankeyRankDraw, rotPopMembers, msDD, load, chart, howHTML, fmt, tip, axisStyle, NUM_FONT, CH, PALETTE, chgColor, heatColor, treeSkin, hexA,
+    window.App = { prevTvOf, chainLabel, freqBadge, srcInfo, sankeyRankDraw, rotPopMembers, msDD, load, chart, howHTML, fmt, tip, axisStyle, NUM_FONT, CH, PALETTE, chgColor, heatColor, treeSkin, hexA,
       HL: { overlay: hlOverlay, themes: hlThemes, reg: hlReg, live: hlLive, use: hlUse, state: hlState, data: HL }, hmBin, hmColor, hmItem, hmSeries, hmLegend, hmRelabel, hmTip, hmTipOpt, hmLS, hmLSset, HM_KIND, upDown, empty, charts, goStock, hmGo, D, L, wheelZoom, zoomClick, rangeBar, playBar, theme, applyTheme, liveMerge, onLive, LIVE_KEYS,
       /* 給 scripts/_uitest.py 量「小圓點真的在動」用：回傳當下每一顆點的座標。
          用座標而不是 canvas 指紋 —— WebGL/Canvas 的指紋在這個容器裡量過是

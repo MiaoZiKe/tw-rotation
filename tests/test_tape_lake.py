@@ -146,3 +146,28 @@ def test_主程式寫狀態檔(lake, monkeypatch):
 
 def test_已註冊且按月分割():
     assert config.TABLES["tape_5m"] == ["ts", "code"] and "tape_5m" in config.PARTITION_MONTHLY
+
+
+def test_inst輪也落地tape且有新列時把inst_new改回true(lake, monkeypatch):
+    from pipeline import run_daily
+    out = lake / "gh_out.txt"
+    monkeypatch.setenv("GITHUB_OUTPUT", str(out))
+    monkeypatch.setattr(run_daily.tape, "collect", lambda: tape.parse(ndjson("2026-10-30")))
+
+    def fake_inst(args):          # 模擬「沒有新法人」那條路
+        run_daily._set_gh_output("inst_new", "false")
+        return 0
+    monkeypatch.setattr(run_daily, "run_inst_phase", fake_inst)
+    assert run_daily.run_inst_with_tape(None) == 0
+    assert run_daily._gh_output_last("inst_new") == "true"
+    assert run_daily._gh_output_last("rebuild") == "false" and run_daily._gh_output_last("post") == "false"
+    assert len(store.read("tape_5m")) > 0
+
+
+def test_inst輪tape失敗不影響法人(lake, monkeypatch):
+    from pipeline import run_daily
+    monkeypatch.setenv("GITHUB_OUTPUT", str(lake / "o.txt"))
+    monkeypatch.setattr(run_daily.tape, "collect", lambda: (_ for _ in ()).throw(RuntimeError("x")))
+    monkeypatch.setattr(run_daily, "run_inst_phase", lambda a: 0)
+    assert run_daily.run_inst_with_tape(None) == 0
+    assert run_daily._gh_output_last("inst_new") is None
