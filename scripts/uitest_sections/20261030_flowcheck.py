@@ -59,7 +59,8 @@ def t_flowcheck_1030(b, base):
     ok(f"[{T}] ① 提前判斷分頁：標「實驗」、回測未達顯著、沒有內部欄名", "實驗" in text(pg, "#fcMoreCard") + text(pg, "#fcPaneSig") or "未達顯著" in text(pg, "#fcPaneSig"))
     ok(f"[{T}] ① 提前判斷畫面沒有 passed_multiple_test 等內部欄名、期間用「～」", "passed_multiple" not in text(pg, "#v-flowcheck") and "未達顯著" in text(pg, "#fcPaneSig") and "," not in text(pg, "#fcSigR").split("全族群")[0])
     pg.click("#fcTab button[data-v='daily']"); pg.wait_for_timeout(600)
-    ok(f"[{T}] ① 全頁沒有「大盤」字樣（口徑改稱市場，成交值加權）", "大盤" not in pg.evaluate("() => document.getElementById('v-flowcheck').innerText"))
+    vt = pg.evaluate("() => document.getElementById('v-flowcheck').innerText")
+    ok(f"[{T}] ① 畫面用「相對加權指數」：沒有「大盤」「相對市場」字樣", "大盤" not in vt and "相對市場" not in vt and "相對加權指數" in vt)
     ok(f"[{T}] ① 吻合度旁印近 3 年常態", "近 3 年常態" in text(pg, "#fcVerdict"))
 
     # ② 點輪盤的點 → 焦點換、走勢／成分股／網址同步
@@ -138,7 +139,9 @@ def t_flowcheck_1030(b, base):
     wk = next((x.isoformat() for x in allday if x.weekday() >= 5), None)
     gap = next((x.isoformat() for x in allday if x.weekday() < 5 and x.isoformat() not in dset), None)
     keep = st(pg)["date"]
-    for kind, dd, want in (("週末", wk, "休市"), ("平日缺檔", gap, "資料缺")):
+    closed = [x for x in IDX.get("closed_days", []) if d0.isoformat() < x < d1.isoformat()]
+    miss = [x for x in IDX.get("missing_days", []) if d0.isoformat() < x < d1.isoformat()]
+    for kind, dd, want in (("週末", wk, "休市"), ("休市日（index.closed_days，如颱風）", closed[-1] if closed else None, "休市"), ("資料缺（index.missing_days）", miss[-1] if miss else None, "資料缺")):
         if not dd:
             continue
         pg.evaluate("(d) => { const i = document.querySelector('#fcDatePick'); i.value = d; i.dispatchEvent(new Event('change', {bubbles: true})); }", dd); pg.wait_for_timeout(500)
@@ -231,6 +234,11 @@ def t_flowcheck_1030(b, base):
     pg.evaluate("(g) => { const b = [...document.querySelectorAll('#fcSame .fc-chip.same')].find(x => x.dataset.g !== g) || document.querySelector('#fcSame .fc-chip.same'); b.click(); }", g_s); pg.wait_for_timeout(600)
     ok(f"[{T}] ⑫ 點同向籤：選到該族群", pg.evaluate("() => TwFlowcheck.state().gid") != "" and pg.evaluate("(g) => [...document.querySelectorAll('#fcSame .fc-chip.same')].some(x => x.dataset.g === TwFlowcheck.state().gid)", g_s) or st(pg)["gid"] != g_s)
     # 資金樹節點大小
+    ws0 = pg.evaluate("() => JSON.stringify(echarts.getInstanceByDom(document.getElementById('fcW_strength')).getOption().series[0].data.map(d => d.rx))")
+    pg.click("#fcRsBase button[data-v='site']"); pg.wait_for_timeout(700)
+    ws1 = pg.evaluate("() => JSON.stringify(echarts.getInstanceByDom(document.getElementById('fcW_strength')).getOption().series[0].data.map(d => d.rx))")
+    ok(f"[{T}] ⑫ 強弱輪盤可切「主站口徑」：座標真的換成 rs_x_site（與主站強弱輪動對得上）", ws0 != ws1)
+    pg.click("#fcRsBase button[data-v='index']"); pg.wait_for_timeout(500)
     pg.click("#fcView button[data-v='tree']") if pg.evaluate("() => document.getElementById('fcView').getBoundingClientRect().width") > 0 else None
     mins = pg.evaluate("() => { const d = echarts.getInstanceByDom(document.getElementById('fcW_tree')).getModel().getSeriesByIndex(0).getData(); const o = []; for (let i = 0; i < d.count(); i++) { const r = d.getRawDataItem(i), l = d.getItemLayout(i); if (r.gid) o.push([l.dx, l.dy]); } return [Math.min(...o.map(x => x[0])), Math.min(...o.map(x => x[1])), o.length]; }")
     ok(f"[{T}] ⑫ 資金樹族群節點可點範圍：寬 ≥ 24、高 ≥ 24px（共 {mins[2]} 個）", mins[0] >= 24 and mins[1] >= 24, str(mins))
