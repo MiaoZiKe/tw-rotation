@@ -1,5 +1,5 @@
 ---
-status: approved
+status: posted
 publish_at: 2026-10-30T09:11+08:00
 title: 美股快訊 2026-10-30：Alphabet 單日跌 12.6%，Intel 盤後再跌近兩成
 images: social/ig/images/news/2026-10-30-urgent/urgent1.jpg
@@ -15,6 +15,8 @@ u_code: newsurgent
 has_photo: true
 photo_kind: 產品
 photo: intel/photo_3.jpg
+posted_at: 2026-10-30T09:11+08:00
+urls: https://www.threads.com/@liguligu0818/post/DfGXxNElmTW https://www.threads.com/@liguligu0818/post/DfGX0a5lvbI https://www.threads.com/@liguligu0818/post/DfGX2wGlqYE https://www.threads.com/@liguligu0818/post/DfGX5BwlvkZ
 ---
 #美股 Alphabet 單日跌 12.6%，Intel 盤後再跌近兩成
 #科技股 #財報
