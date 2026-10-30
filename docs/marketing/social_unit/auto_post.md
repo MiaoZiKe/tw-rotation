@@ -129,6 +129,7 @@ https://liguligu-puipui.com/
 - 2026-10-26：每點統一 2 個名稱；融資融券排除 ETF；名稱星號拿掉；盤後與融資融券合成一篇（8 張）；拿掉大盤走勢與漲跌家數。
 - 2026-10-29：盤後保底（事故：上市個股法人 FinMind 到 18:25 還沒出，盤後主貼文整段沒發）。台北 19:00（`CLOSE_FALLBACK_AT`／`--fallback-at` 可改）後若法人卡（三大法人、外資／投信排行）資料日仍不是今天：拿掉那幾張、期貨未平倉與散戶多空比等當天卡照發，文案「三大法人：・法人個股明細晚到，稍後補」，盤面分析不引用舊法人與舊指數，寫 alert；posted.json 的 `close-<日期>` 記 `partial`。法人到了下一輪 social-live 自動補發「盤後3分鐘｜法人補充」（只放法人三張＋ETF 買超，鍵 `close-inst-<日期>`，不重發主貼文）。程式：social_gate.close_fallback、social_snap.py `--supplement`、scripts/social_close_state.py。
 - 2026-10-29：daily.yml inst 輪加速：沒有新增「今天的法人」列（只有期貨／診斷檔變）就跳過 24 分鐘整站重算與部署（輸出 `rebuild`／`post`），下一輪 inst 不必排隊；交給後面有新資料的那輪或 18:38／21:38 full 輪。
+- 2026-10-30：主題文章／新聞貼文封面「跟公司有關一律先用該公司照片」（Andy：「相這種跟公司有關的 優先附上公司圖片」；事故：緊急加發「Alphabet 跌 12.6%」配到 Intel 處理器照）。`photo_pick` 改成主體公司圖池最優先（蓋過常備文庫指定池、台股大盤圖）、主體名稱模糊比對（`company_slug`），手動加發改用 `scripts/news_cover.py` 走同一套選圖。規則見 `news_post_rules.md` 第十二節。
 
 來源（IG 限動不能用自動發文介面加連結貼紙）：
 - https://storrito.com/resources/instagram-story-api/

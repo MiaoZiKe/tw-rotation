@@ -92,7 +92,7 @@
 
 ## 五之一、D-實景（公司實景照片，Andy 10-28）
 
-- 卡片：`render_news_cards.card_auto()`。主體（`card.subject`）在 `social/photo_lib/aliases.json` 有對應、且圖池 `pool.json` 有 `reviewed` 為 true 的照片（或其類別圖池有）→ **D-實景**：照片上方乾淨帶狀區放小標（主體＋事件，即 cover_title 第一行），中間放 952 寬實景照（原色、只裁切，不套色調遮罩），照片下方右側 28px 灰字標「攝影：作者／授權・Wikimedia Commons」（CC BY／CC BY-SA 必要標示），下方大標只留數字那一行。
+- 卡片：`render_news_cards.card_auto()`。★ 2026-10-30：主體公司有已審圖就一定用（排在常備文庫指定池、台股大盤圖之前），主體名稱用 `company_slug()` 模糊比對；手動加發用 `scripts/news_cover.py`，規則見 `news_post_rules.md` 第十二節。主體（`card.subject`）在 `social/photo_lib/aliases.json` 有對應、且圖池 `pool.json` 有 `reviewed` 為 true 的照片（或其類別圖池有）→ **D-實景**：照片上方乾淨帶狀區放小標（主體＋事件，即 cover_title 第一行），中間放 952 寬實景照（原色、只裁切，不套色調遮罩），照片下方右側 28px 灰字標「攝影：作者／授權・Wikimedia Commons」（CC BY／CC BY-SA 必要標示），下方大標只留數字那一行。
 - ~~找不到主體照片 → 退回 D-無圖大數字~~（**2026-10-29 廢止**，Andy：「封面沒圖片需要添加」）：**封面一律要有實景照片**，不再出無圖大數字卡或純文字知識卡。
   選圖順序：公司已審圖池（14 天輪替）→ 公司所屬類別池 → 新聞文字對應的類別池（含導言摘要，例「國產GPU」→ 半導體）→ **總類通用圖池**
   （`render_news_cards.generic_cats`：台股題材 → 台北 101 日景／信義金融區；外國題材 → 工廠產線／紐約交易所；外國總經（泰國央行）→ 貨櫃港口；最後保底金融／總經／半導體池）。
