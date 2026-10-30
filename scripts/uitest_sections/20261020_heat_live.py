@@ -135,6 +135,8 @@ def t_heat_live_1020(b, base):
     ctx, pg = open_page(CLK_INTRA, "#heatmap/industry")
     wait_until(pg, "() => !!document.querySelector('#indTree canvas, #indTree svg')", 20000)
     wait_until(pg, "() => !!document.querySelector('[data-hlcard=ind] .livetg-b')", 8000)
+    # data-snap 由 snap.js 的 MutationObserver 去抖 200ms 後補標（截圖程式問 TwSnapReady 時也會先補標一次）：先等標記出現再數，不是放寬斷言
+    wait_until(pg, "() => document.querySelectorAll('[data-snap=\"heat-industry\"]').length === 1", 8000)
     ok(f"[{T}] heat-industry：卡片有 data-snap、標題旁有即時鈕", count(pg, '[data-snap="heat-industry"]') == 1 and count(pg, "[data-hlcard=ind] .livetg-b") == 1,
        [count(pg, '[data-snap="heat-industry"]'), count(pg, "[data-hlcard=ind] .livetg-b"), count(pg, ".livetg")])
     isig0 = pg.evaluate(HL_SIG, "indTree")
