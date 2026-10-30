@@ -71,19 +71,143 @@
   "disclaimer": "研究用，不是買賣建議，不會下單。",
   "start": "2026-10-29",
   "status": "ok",
-  "rows_added": 0,
-  "signal_rows_added": 0,
-  "data_last": "2026-10-29",
+  "rows_added": 2,
+  "signal_rows_added": 10,
+  "data_last": "2026-10-30",
+  "watch_top": [
+   {
+    "rank": 1,
+    "code": "2466",
+    "name": "冠西電",
+    "group": "ind_光電業",
+    "score": 99.7
+   },
+   {
+    "rank": 2,
+    "code": "6179",
+    "name": "亞通",
+    "group": "ind_其他",
+    "score": 97.0
+   },
+   {
+    "rank": 3,
+    "code": "2465",
+    "name": "麗臺",
+    "group": "ai_pc",
+    "score": 96.9
+   },
+   {
+    "rank": 4,
+    "code": "2347",
+    "name": "聯強",
+    "group": "ic_distribution",
+    "score": 92.5
+   },
+   {
+    "rank": 5,
+    "code": "3498",
+    "name": "陽程",
+    "group": "pkg_equipment",
+    "score": 92.0
+   },
+   {
+    "rank": 6,
+    "code": "4526",
+    "name": "東台",
+    "group": "machine_tool",
+    "score": 91.8
+   },
+   {
+    "rank": 7,
+    "code": "6214",
+    "name": "精誠",
+    "group": "cloud_msp",
+    "score": 91.8
+   },
+   {
+    "rank": 8,
+    "code": "2609",
+    "name": "陽明",
+    "group": "shipping_container",
+    "score": 90.8
+   },
+   {
+    "rank": 9,
+    "code": "2615",
+    "name": "萬海",
+    "group": "shipping_container",
+    "score": 90.0
+   },
+   {
+    "rank": 10,
+    "code": "6199",
+    "name": "天品",
+    "group": "ind_其他",
+    "score": 89.0
+   }
+  ],
   "SWING": {
    "nav": 10000000.0,
    "positions": [],
-   "tomorrow_candidates": []
+   "tomorrow_candidates": [
+    [
+     "2609",
+     "S1",
+     8
+    ],
+    [
+     "2615",
+     "S1",
+     9
+    ],
+    [
+     "6811",
+     "S1",
+     11
+    ],
+    [
+     "3029",
+     "S1",
+     13
+    ],
+    [
+     "3147",
+     "S1",
+     18
+    ]
+   ]
   },
   "SWING_BRAKE": {
    "nav": 10000000.0,
    "positions": [],
-   "tomorrow_candidates": []
+   "tomorrow_candidates": [
+    [
+     "2609",
+     "S1",
+     8
+    ],
+    [
+     "2615",
+     "S1",
+     9
+    ],
+    [
+     "6811",
+     "S1",
+     11
+    ],
+    [
+     "3029",
+     "S1",
+     13
+    ],
+    [
+     "3147",
+     "S1",
+     18
+    ]
+   ]
   }
  },
- "generated": "2026-10-30T06:18Z"
+ "generated": "2026-10-30T07:34Z"
 }
