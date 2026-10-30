@@ -108,14 +108,19 @@ def t_today_verify_1030(b, base):
     ok(f"[{T}] ★ 結論文字不自相矛盾：只有「盤整」才會出現「只差」", ("只差" not in conc) or (st["pat"] == "盤整"), [st["pat"], conc])
     calc = pg.evaluate("(g) => { const r = App.tvCalc(g); return { pat: r.pat && r.pat.name, n: r.stocks.length, times: r.times.length }; }", pos["gid"])
     ok(f"[{T}] ★ 型態判斷：面板寫的型態（{st['pat']}）＝ 用同一份分時資料重算的結果，且是五種之一", st["pat"] == calc["pat"] and st["pat"] in ("開高走低", "衝高回落", "開低走高", "探底回升", "一路走高", "一路走低", "寬幅震盪", "盤整"), [st["pat"], calc])
-    ok(f"[{T}] ★ 成分股每檔一條小分時線：列數 {st['rows']}＝min(10, {calc['n']})，每列都有 sparkline（{st['sp']} 條）", st["rows"] == min(10, calc["n"]) and st["sp"] == st["rows"] and st["rows"] > 0)
-    if calc["n"] > 10:
-        pg.click("#todayVerify .tvmore"); pg.wait_for_timeout(500)
-        ok(f"[{T}] 「看全部」展開到全部 {calc['n']} 檔", pg.evaluate("() => document.querySelectorAll('#tvList .tvrow').length") == calc["n"])
-        pg.click("#todayVerify .tvmore"); pg.wait_for_timeout(300)
-    ml = pg.evaluate("() => { for (const g of Object.keys(App.rlvState().pts)) { const r = App.tvCalc(g); if (r && r.name === '被動元件 MLCC') return { pat: r.pat && r.pat.name, open: r.pat && r.pat.open, hi: r.pat && r.pat.hi, lo: r.pat && r.pat.lo, cur: r.pat && r.pat.cur, hiI: r.pat && r.pat.hiI, loI: r.pat && r.pat.loI, conc: '' }; } return null; }")
-    ok(f"[{T}] ★ 實際資料（被動元件 MLCC：開盤後衝高、再跌破開盤、振幅 {(ml['hi'] - ml['lo']):.2f}pp）判為開高走低／衝高回落，不是盤整", bool(ml) and ml["pat"] in ("開高走低", "衝高回落") and ml["hi"] - ml["lo"] > 0.8 and ml["cur"] < ml["open"], ml)
-    # 拖時間軸到 09:30：面板只算到那一格
+    ok(f"[{T}] ★ 列出「全部」成分股（{calc['n']} 檔）：列數＝成分股數，每列都有價格線（polyline）與每 5 分鐘新增成交值的柱（rect），並標占族群資金的比例", st["rows"] == calc["n"] and st["sp"] == st["rows"] and st["rows"] > 0
+       and pg.evaluate("() => [...document.querySelectorAll('#tvList .tvrow')].every(r => r.querySelectorAll('svg.tvspark rect').length > 0 && /%/.test(r.querySelector('.tvsh').textContent))"), st)
+    srt = pg.evaluate("() => { const a = [...document.querySelectorAll('#tvList .tvsh')].map(e => parseFloat(e.textContent)); return a.every((v, i) => i === 0 || a[i - 1] >= v); }")
+    ok(f"[{T}] ★ 成分股依「占族群資金」由大到小排序（第一眼看出錢集中在哪幾檔）", srt is True)
+    fl = pg.evaluate("() => ({ rows: [...document.querySelectorAll('#tvFlow .tvfr')].map(e => e.textContent), head: (document.querySelector('#tvFlow .tvfs') || {}).textContent, groups: document.querySelectorAll('#tvFlow .tvfl').length })")
+    ok(f"[{T}] ★ 「資金去向」：本族群占比 ±pp、流入最多／流出最多各 5 個族群，每列都有數字（{len(fl['rows'])} 列）", len(fl["rows"]) >= 10 and "pp" in (fl["head"] or "") and all("pp" in r and any(c.isdigit() for c in r) for r in fl["rows"]), fl)
+    sg = pg.evaluate("() => { const e = document.getElementById('todaySignals'); return e && !e.hidden ? { txt: e.textContent, big: (e.querySelector('.tsbig') || {}).textContent, ts: App._ts } : null; }")
+    ok(f"[{T}] ★ 「盤中訊號」卡：大字寫「實驗訊號，回測尚未證實有效」、有觸發統計與事後檢驗（命中／沒中）", bool(sg) and "實驗訊號，回測尚未證實有效" in (sg["big"] or "") and ("命中" in sg["txt"] or "沒中" in sg["txt"] or "剛觸發" in sg["txt"] or "目前沒有族群觸發" in sg["txt"]) and "已能檢驗" in sg["txt"], sg)
+    if sg and sg["ts"] and sg["ts"]["n"] > 0:
+        g1 = pg.evaluate("() => document.querySelector('#todaySignals button.tsrow').dataset.g")
+        pg.click("#todaySignals button.tsrow"); pg.wait_for_timeout(1200)
+        ok(f"[{T}] ★ 點訊號列 → 面板換成該族群", pg.evaluate("() => document.getElementById('todayVerify').dataset.gid") == g1, g1)
+        pg.mouse.click(pos["x"], pos["y"]); pg.wait_for_timeout(1000)
     pg.evaluate("() => { const i = document.querySelector('#rotTl input.tlr'); i.value = 6; i.dispatchEvent(new Event('input', {bubbles: true})); }")
     pg.wait_for_timeout(1200)
     t6 = pg.evaluate("() => App._tv")
