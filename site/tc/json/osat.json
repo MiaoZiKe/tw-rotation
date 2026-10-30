@@ -19335,83 +19335,6 @@
               "date": "2025-01"
             }
           ]
-        },
-        {
-          "unit": null,
-          "role": "工程師",
-          "degree": null,
-          "years": null,
-          "base_month_k": null,
-          "bonus_months": null,
-          "annual_months": null,
-          "annual_total_wan": [
-            60,
-            150
-          ],
-          "weekly_hours": [
-            50,
-            50
-          ],
-          "overtime": "經常",
-          "travel": null,
-          "n": 2,
-          "note": "2026-10-29 GoodJob 合併批新增職位",
-          "confidence": "低",
-          "grade": null,
-          "n_stat": 2,
-          "samples": [
-            {
-              "site": "GoodJob",
-              "url": "https://www.goodjob.life/companies/超豐電子股份有限公司/salary-work-times?p=2",
-              "date": "2025-09",
-              "page_date": "2025-09",
-              "date_confirmed": true,
-              "role": "保稅管理",
-              "grade": null,
-              "unit_detail": "公義廠",
-              "years": "3",
-              "degree": null,
-              "base_k": null,
-              "bonus_months": null,
-              "annual_months": null,
-              "annual_wan": 60,
-              "weekly_hours": 50,
-              "overtime": "經常",
-              "travel": null,
-              "quote_free_note": "自填；日工時 表訂/實際 9/9 小時；職稱未寫工程師",
-              "in_window": true,
-              "date_note": "GoodJob 頁面標示年月 2025-09（20261029_職稱未寫工程師補回（10-30 Andy 拍板），1541 檔）"
-            },
-            {
-              "site": "GoodJob",
-              "url": "https://www.goodjob.life/companies/超豐電子股份有限公司/salary-work-times?p=2",
-              "date": "2025-09",
-              "page_date": "2025-09",
-              "date_confirmed": true,
-              "role": "課長",
-              "grade": null,
-              "unit_detail": null,
-              "years": "20",
-              "degree": null,
-              "base_k": null,
-              "bonus_months": null,
-              "annual_months": null,
-              "annual_wan": 150,
-              "weekly_hours": 50,
-              "overtime": "經常",
-              "travel": null,
-              "quote_free_note": "自填；日工時 表訂/實際 8/10 小時；職稱未寫工程師",
-              "in_window": true,
-              "date_note": "GoodJob 頁面標示年月 2025-09（20261029_職稱未寫工程師補回（10-30 Andy 拍板），1541 檔）"
-            }
-          ],
-          "sources": [
-            {
-              "site": "GoodJob",
-              "url": "https://www.goodjob.life/companies/超豐電子股份有限公司/salary-work-times?p=2",
-              "date": "2025-09"
-            }
-          ]
         }
       ]
     },
@@ -20827,10 +20750,7 @@
           "role": "工程師",
           "degree": null,
           "years": null,
-          "base_month_k": [
-            50,
-            50
-          ],
+          "base_month_k": null,
           "bonus_months": null,
           "annual_months": null,
           "annual_total_wan": [
@@ -20841,13 +20761,13 @@
             48,
             60
           ],
-          "overtime": "經常",
+          "overtime": null,
           "travel": null,
-          "n": 3,
+          "n": 2,
           "note": "2026-10-29 GoodJob 合併批新增職位",
           "confidence": "低",
           "grade": null,
-          "n_stat": 3,
+          "n_stat": 2,
           "samples": [
             {
               "site": "GoodJob",
@@ -20892,28 +20812,6 @@
               "quote_free_note": "自填；日工時 表訂/實際 5/12 小時",
               "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2025-02（20261029_1541 大檔，1541 檔）"
-            },
-            {
-              "site": "GoodJob",
-              "url": "https://www.goodjob.life/companies/矽格/salary-work-times?p=1",
-              "date": "2025-07",
-              "page_date": "2025-07",
-              "date_confirmed": true,
-              "role": "副課長",
-              "grade": null,
-              "unit_detail": "湖口",
-              "years": "4",
-              "degree": null,
-              "base_k": 50,
-              "bonus_months": null,
-              "annual_months": null,
-              "annual_wan": null,
-              "weekly_hours": 60,
-              "overtime": "經常",
-              "travel": null,
-              "quote_free_note": "自填；日工時 表訂/實際 8/10 小時；原選項幾乎每天；職稱未寫工程師；矽格 頁",
-              "in_window": true,
-              "date_note": "GoodJob 頁面標示年月 2025-07（20261029_職稱未寫工程師補回（10-30 Andy 拍板），1541 檔）"
             }
           ],
           "sources": [

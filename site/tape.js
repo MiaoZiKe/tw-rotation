@@ -18,7 +18,7 @@
 (function () {
   'use strict';
   var STEP_MIN = 5;             // 一格 5 分鐘（Worker 的 Cron 間隔）
-  var FRAME_MS = 600;           // 播放：每格停多久（一天約 54 格 ≈ 32 秒播完）
+  var FRAME_MS = 420;           // 播放：每格的間隔。★ 必須等於 app.js 的 ROT_ANIM_MS（輪盤每格補間 420ms 等速）：兩者相等才一格接著一格、不會「走一步停一下」（日線回放同一條規矩）；一天約 54 格 ≈ 23 秒
   var POLL_MS = 60 * 1000;      // 有時間軸在畫面上時，每分鐘問一次伺服器有沒有新的一格
 
   var srv = null;               // { date:'YYYY-MM-DD', day8, codes:[], y:[], slots:[{t,p,v}] }

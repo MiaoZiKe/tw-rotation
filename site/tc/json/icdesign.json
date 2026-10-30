@@ -25707,61 +25707,6 @@
           "travel": null,
           "n_stat": 1,
           "grade": null
-        },
-        {
-          "unit": null,
-          "role": "產品工程師",
-          "degree": null,
-          "years": null,
-          "base_month_k": [
-            70,
-            70
-          ],
-          "bonus_months": null,
-          "annual_months": null,
-          "annual_total_wan": null,
-          "weekly_hours": [
-            40,
-            40
-          ],
-          "overtime": "幾乎不",
-          "travel": null,
-          "n": 1,
-          "note": "2026-10-29 GoodJob 合併批新增職位",
-          "confidence": "低",
-          "grade": null,
-          "n_stat": 1,
-          "samples": [
-            {
-              "site": "GoodJob",
-              "url": "https://www.goodjob.life/companies/愛普科技股份有限公司/salary-work-times?p=1",
-              "date": "2026-02",
-              "page_date": "2026-02",
-              "date_confirmed": true,
-              "role": "產品企劃開發人員",
-              "grade": null,
-              "unit_detail": null,
-              "years": "2",
-              "degree": null,
-              "base_k": 70,
-              "bonus_months": null,
-              "annual_months": null,
-              "annual_wan": null,
-              "weekly_hours": 40,
-              "overtime": "幾乎不",
-              "travel": null,
-              "quote_free_note": "自填；日工時 表訂/實際 8/9 小時；職稱未寫工程師",
-              "in_window": true,
-              "date_note": "GoodJob 頁面標示年月 2026-02（20261029_職稱未寫工程師補回（10-30 Andy 拍板），1541 檔）"
-            }
-          ],
-          "sources": [
-            {
-              "site": "GoodJob",
-              "url": "https://www.goodjob.life/companies/愛普科技股份有限公司/salary-work-times?p=1",
-              "date": "2026-02"
-            }
-          ]
         }
       ]
     },
@@ -27577,61 +27522,6 @@
               "site": "GoodJob",
               "url": "https://www.goodjob.life/companies/揚智科技股份有限公司/salary-work-times?p=1",
               "date": "2025-02"
-            }
-          ]
-        },
-        {
-          "unit": null,
-          "role": "工程師",
-          "degree": null,
-          "years": null,
-          "base_month_k": [
-            53,
-            53
-          ],
-          "bonus_months": null,
-          "annual_months": null,
-          "annual_total_wan": null,
-          "weekly_hours": [
-            40.5,
-            40.5
-          ],
-          "overtime": "偶爾",
-          "travel": null,
-          "n": 1,
-          "note": "2026-10-29 GoodJob 合併批新增職位",
-          "confidence": "低",
-          "grade": null,
-          "n_stat": 1,
-          "samples": [
-            {
-              "site": "GoodJob",
-              "url": "https://www.goodjob.life/companies/揚智科技股份有限公司/salary-work-times?p=1",
-              "date": "2026-06",
-              "page_date": "2026-06",
-              "date_confirmed": true,
-              "role": "職員",
-              "grade": null,
-              "unit_detail": null,
-              "years": "6",
-              "degree": null,
-              "base_k": 53,
-              "bonus_months": null,
-              "annual_months": null,
-              "annual_wan": null,
-              "weekly_hours": 40.5,
-              "overtime": "偶爾",
-              "travel": null,
-              "quote_free_note": "自填；日工時 表訂/實際 9/8.5 小時；職稱未寫工程師",
-              "in_window": true,
-              "date_note": "GoodJob 頁面標示年月 2026-06（20261029_職稱未寫工程師補回（10-30 Andy 拍板），1541 檔）"
-            }
-          ],
-          "sources": [
-            {
-              "site": "GoodJob",
-              "url": "https://www.goodjob.life/companies/揚智科技股份有限公司/salary-work-times?p=1",
-              "date": "2026-06"
             }
           ]
         }
