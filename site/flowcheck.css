@@ -92,3 +92,5 @@
 .fc-tag{display:inline-block;padding:1px 6px;border-radius:4px;background:rgba(255,180,84,.16);color:var(--amber,#ffb454);font-size:11px;font-weight:600;margin-left:4px}
 .fc-reason{white-space:normal!important;min-width:220px;max-width:340px;line-height:1.5}
 #fcDayCard th:nth-child(-n+5){text-align:left}
+.fc-tw td.hm{white-space:normal}
+#fcDayCard td.hm,#fcDayCard th.hm{min-width:230px}
