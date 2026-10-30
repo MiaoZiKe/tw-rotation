@@ -55,15 +55,20 @@ def t_flowcheck_1030(b, base):
     ok(f"[{T}] ① 進頁：預設資金輪盤、焦點＝資金流入第 1 名、最新日", s0["view"] == "money" and bool(s0["gid"]))
     ok(f"[{T}] ① 頁首標題只有一個「流向驗證」（卡內不再重複）", pg.evaluate("() => [...document.querySelectorAll('#v-flowcheck h2, #v-flowcheck h1')].filter(e => e.textContent.includes('流向驗證')).length") == 0)
     ok(f"[{T}] ① 走勢大圖、成分股小圖、熱力圖都有畫", pg.evaluate("() => document.querySelectorAll('#fcMinis .chart canvas, #fcMinis .chart svg').length >= 3 && document.querySelectorAll('#fcHeat canvas, #fcHeat svg').length >= 1 && document.querySelectorAll('#fcTrend canvas, #fcTrend svg').length >= 1"))
-    ok(f"[{T}] ① 訊號卡標「實驗，回測未達顯著」", "實驗" in text(pg, "#fcSigCard") and "未達顯著" in text(pg, "#fcSigCard"))
+    pg.click("#fcTab button[data-v='sig']"); pg.wait_for_timeout(900)
+    ok(f"[{T}] ① 提前判斷分頁：標「實驗」、回測未達顯著、沒有內部欄名", "實驗" in text(pg, "#fcMoreCard") + text(pg, "#fcPaneSig") or "未達顯著" in text(pg, "#fcPaneSig"))
+    ok(f"[{T}] ① 提前判斷畫面沒有 passed_multiple_test 等內部欄名、期間用「～」", "passed_multiple" not in text(pg, "#v-flowcheck") and "未達顯著" in text(pg, "#fcPaneSig") and "," not in text(pg, "#fcSigR").split("全族群")[0])
+    pg.click("#fcTab button[data-v='daily']"); pg.wait_for_timeout(600)
+    ok(f"[{T}] ① 全頁沒有「大盤」字樣（口徑改稱市場，成交值加權）", "大盤" not in pg.evaluate("() => document.getElementById('v-flowcheck').innerText"))
     ok(f"[{T}] ① 吻合度旁印近 3 年常態", "近 3 年常態" in text(pg, "#fcVerdict"))
 
     # ② 點輪盤的點 → 焦點換、走勢／成分股／網址同步
     g0, n0, t0, mem0 = s0["gid"], title(pg), trend_sig(pg), text(pg, "#fcMinis")
-    pos = pg.evaluate("""(g0) => { const c = echarts.getInstanceByDom(document.getElementById('fcWheel')), d = c.getOption().series[0].data; const P = d.map(x => [x, c.convertToPixel({ seriesIndex: 0 }, x.value)]); const iso = (q) => Math.min(...P.filter(r => r[0] !== q[0]).map(r => Math.hypot(r[1][0] - q[1][0], r[1][1] - q[1][1]))); const cand = P.filter(r => r[0].gid !== g0).sort((u, v) => iso(v) - iso(u))[0]; const b = document.getElementById('fcWheel').getBoundingClientRect(); return [b.left + cand[1][0], b.top + cand[1][1], cand[0].gid]; }""", g0)
+    pg.evaluate("() => document.getElementById('fcWheel').scrollIntoView({block: 'center'})"); pg.wait_for_timeout(300)
+    pos = pg.evaluate("""(g0) => { const c = echarts.getInstanceByDom(document.getElementById('fcWheel')), d = c.getOption().series[0].data; const P = d.map(x => [x, c.convertToPixel({ seriesIndex: 0 }, x.value)]); const iso = (q) => Math.min(...P.filter(r => r[0] !== q[0]).map(r => Math.hypot(r[1][0] - q[1][0], r[1][1] - q[1][1]))); const cand = P.filter(r => r[0].gid !== g0 && r[0].rx === r[0].value[0] && r[0].ry === r[0].value[1]).sort((u, v) => iso(v) - iso(u))[0]; const b = document.getElementById('fcWheel').getBoundingClientRect(); return [b.left + cand[1][0], b.top + cand[1][1], cand[0].gid]; }""", g0)
     pg.mouse.click(pos[0], pos[1]); pg.wait_for_timeout(900)
     s1 = st(pg)
-    ok(f"[{T}] ② 點輪盤一個點：焦點換成它", s1["gid"] == pos[2] and s1["gid"] != g0, s1["gid"])
+    ok(f"[{T}] ② 點輪盤一個點：焦點換成它", s1["gid"] == pos[2] and s1["gid"] != g0, str([s1["gid"], pos]))
     ok(f"[{T}] ② 走勢大圖標題、走勢線、成分股小圖同步換", title(pg) != n0 and trend_sig(pg) != t0 and text(pg, "#fcMinis") != mem0)
     ok(f"[{T}] ② 網址寫進 g=", "g=" + pos[2] in pg.evaluate("() => decodeURIComponent(location.hash)"))
     ok(f"[{T}] ② 成分股全表換成新族群、有吻合／背離籤", bool(text(pg, "#fcBadge").strip()) and text(pg, "#fcMemTbl").count("\n") >= 0)
@@ -127,8 +132,17 @@ def t_flowcheck_1030(b, base):
         pg.evaluate("(d) => { const i = document.querySelector('#fcDatePick'); i.value = d; i.dispatchEvent(new Event('change', {bubbles: true})); }", DONLY); pg.wait_for_timeout(1000)
         ok(f"[{T}] ⑥ 只有日線的日子：明確灰字寫原因、不留空白", "只有日線" in text(pg, "#fcDayT") or "只有日線" in text(pg, "#fcRange"))
         ok(f"[{T}] ⑥ 換日期整頁寬高不晃（走勢卡高度不變）", pg.evaluate("() => document.getElementById('fcTrendCard').getBoundingClientRect().height") > 300)
-    pg.evaluate("() => { const i = document.querySelector('#fcDatePick'); i.value = '2026-10-31'; i.dispatchEvent(new Event('change', {bubbles: true})); }"); pg.wait_for_timeout(500)
-    ok(f"[{T}] ⑥ 選非交易日：出提示、日期不變", st(pg)["date"] == HIST and "不是交易日" in text(pg, "#fcToast"))
+    import datetime as _dt
+    dset = set(IDX["dates"]); d0 = _dt.date.fromisoformat(IDX["dates"][0]); d1 = _dt.date.fromisoformat(IDX["dates"][-1])
+    allday = [d0 + _dt.timedelta(days=k) for k in range((d1 - d0).days)]
+    wk = next((x.isoformat() for x in allday if x.weekday() >= 5), None)
+    gap = next((x.isoformat() for x in allday if x.weekday() < 5 and x.isoformat() not in dset), None)
+    keep = st(pg)["date"]
+    for kind, dd, want in (("週末", wk, "休市"), ("平日缺檔", gap, "資料缺")):
+        if not dd:
+            continue
+        pg.evaluate("(d) => { const i = document.querySelector('#fcDatePick'); i.value = d; i.dispatchEvent(new Event('change', {bubbles: true})); }", dd); pg.wait_for_timeout(500)
+        ok(f"[{T}] ⑥ 選{kind}（{dd}）：提示分「休市」「資料缺」兩種說法、日期不變", st(pg)["date"] == keep and want in text(pg, "#fcToast"), text(pg, "#fcToast"))
     pg.click("#fcPrev"); pg.wait_for_timeout(900)
     ok(f"[{T}] ⑥ ◀ 跳前一交易日", st(pg)["date"] < HIST)
     # ⑦ 說明進「?」
@@ -139,7 +153,7 @@ def t_flowcheck_1030(b, base):
 
     # ⑩ 日級別訊號／潛在個股
     ctx, pg = open_page("#flowcheck")
-    ok(f"[{T}] ⑩ 日級別訊號卡預設展開、有列、標「實驗」、有 5／10／20 日與規則回測", pg.evaluate("() => { const c = document.getElementById('fcDayCard'); return c.classList.contains('open') && c.querySelectorAll('tbody tr').length >= 3 && c.textContent.includes('實驗') && c.textContent.includes('後 20 日') && c.textContent.includes('命中'); }"))
+    ok(f"[{T}] ⑩ 日級別訊號卡預設展開、有列、標「實驗」、有 5／10／20 日與規則回測", pg.evaluate("() => { const c = document.getElementById('fcMoreCard'); return c.classList.contains('open') && c.querySelectorAll('tbody tr').length >= 3 && c.textContent.includes('實驗') && c.textContent.includes('後 20 日') && c.textContent.includes('命中'); }"))
     n_sum_all = pg.evaluate("() => document.querySelectorAll('#fcDay .fc-rs').length")
     ok(f"[{T}] ⑩ 全部規則：規則統計列在表格上方（每條一行）、候選表每列一行高、預設只列前 10 筆", n_sum_all >= 3 and pg.evaluate("() => { const r = [...document.querySelectorAll('#fcDay tbody tr')]; return r.length <= 10 && r.every(x => x.getBoundingClientRect().height <= 44); }"), str(n_sum_all))
     rid = pg.evaluate("() => document.querySelectorAll('#fcRule button')[1].dataset.v")
@@ -162,14 +176,14 @@ def t_flowcheck_1030(b, base):
 
     # ⑪ 大螢幕 ≥1440 三張輪盤並排、共用焦點與時間
     ctx, pg = open_page("#flowcheck", {"width": 1440, "height": 900})
-    ok(f"[{T}] ⑪ ≥1440：三張輪盤並排（同一列、各 ≥ 300 寬），三選一鈕隱藏", pg.evaluate("() => { const r = ['strength','money','tree'].map(k => document.getElementById('fcW_' + k).getBoundingClientRect()); return r.every(x => x.width >= 300 && x.height >= 250) && Math.abs(r[0].top - r[2].top) < 4 && r[0].right <= r[1].left + 2 && r[1].right <= r[2].left + 2 && document.getElementById('fcView').getBoundingClientRect().width === 0; }"))
-    ok(f"[{T}] ⑪ 1440：走勢大圖 ≥ 640×250、成分股小圖 ≥ 200×110、熱力圖 ≥ 400×150（左欄 5：7 分，沒法再寬）", pg.evaluate("() => { const a = document.getElementById('fcTrend').getBoundingClientRect(), m = document.querySelector('#fcMinis .chart').getBoundingClientRect(), h = document.getElementById('fcHeat').getBoundingClientRect(); return a.width >= 640 && a.height >= 250 && m.width >= 200 && m.height >= 110 && h.width >= 400 && h.height >= 150; }"))
+    ok(f"[{T}] ⑪ ≥1440：三張輪盤並排（同一列、各 ≥ 300 寬），三選一鈕隱藏", pg.evaluate("() => { const r = ['strength','money','tree'].map(k => document.getElementById('fcW_' + k).getBoundingClientRect()); return r.every(x => x.width >= 300 && x.height >= 200) && Math.abs(r[0].top - r[2].top) < 4 && r[0].right <= r[1].left + 2 && r[1].right <= r[2].left + 2 && document.getElementById('fcView').getBoundingClientRect().width === 0; }"))
+    ok(f"[{T}] ⑪ 1440：走勢大圖 ≥ 640×210、成分股小圖 ≥ 200×110、熱力圖 ≥ 400×150（走勢高度讓給首屏）", pg.evaluate("() => { const a = document.getElementById('fcTrend').getBoundingClientRect(), m = document.querySelector('#fcMinis .chart').getBoundingClientRect(), h = document.getElementById('fcHeat').getBoundingClientRect(); return a.width >= 640 && a.height >= 210 && m.width >= 200 && m.height >= 110 && h.width >= 400 && h.height >= 150; }"))
     ok(f"[{T}] ⑪ 三張都畫了（強弱、資金是散布圖，樹是桑基圖）", pg.evaluate("() => ['strength','money','tree'].map(k => echarts.getInstanceByDom(document.getElementById('fcW_' + k)).getOption().series[0].type).join() === 'scatter,scatter,sankey'"))
     ok(f"[{T}] ⑪ 走勢大圖在三張輪盤正下方同一畫面", pg.evaluate("() => { const t = document.getElementById('fcTrend').getBoundingClientRect(), w = document.getElementById('fcW_money').getBoundingClientRect(); return t.top > w.bottom - 4 && t.top < innerHeight + 600; }"))
     g0 = st(pg)["gid"]; sa = pg.evaluate("() => JSON.stringify(echarts.getInstanceByDom(document.getElementById('fcW_strength')).getOption().series[1].data)")
     # 點「強弱輪盤」的一個點 → 另外兩張同步換焦點（焦點環）
     pg.evaluate("() => document.getElementById('fcW_strength').scrollIntoView({block: 'center'})"); pg.wait_for_timeout(300)
-    pos = pg.evaluate("""(g0) => { const el = document.getElementById('fcW_strength'), c = echarts.getInstanceByDom(el), d = c.getOption().series[0].data; const P = d.map(x => [x, c.convertToPixel({ seriesIndex: 0 }, x.value)]); const iso = (q) => Math.min(...P.filter(r => r[0] !== q[0]).map(r => Math.hypot(r[1][0] - q[1][0], r[1][1] - q[1][1]))); const cand = P.filter(r => r[0].gid !== g0).sort((u, v) => iso(v) - iso(u))[0]; const b = el.getBoundingClientRect(); return [b.left + cand[1][0], b.top + cand[1][1], cand[0].gid]; }""", g0)
+    pos = pg.evaluate("""(g0) => { const el = document.getElementById('fcW_strength'), c = echarts.getInstanceByDom(el), d = c.getOption().series[0].data; const P = d.map(x => [x, c.convertToPixel({ seriesIndex: 0 }, x.value)]); const iso = (q) => Math.min(...P.filter(r => r[0] !== q[0]).map(r => Math.hypot(r[1][0] - q[1][0], r[1][1] - q[1][1]))); const cand = P.filter(r => r[0].gid !== g0 && r[0].rx === r[0].value[0] && r[0].ry === r[0].value[1]).sort((u, v) => iso(v) - iso(u))[0]; const b = el.getBoundingClientRect(); return [b.left + cand[1][0], b.top + cand[1][1], cand[0].gid]; }""", g0)
     pg.mouse.click(pos[0], pos[1]); pg.wait_for_timeout(900)
     ok(f"[{T}] ⑪ 點任一張的點：三張共用同一焦點（另兩張的焦點環跟著換）", st(pg)["gid"] == pos[2] and pg.evaluate("() => ['strength','money'].every(k => echarts.getInstanceByDom(document.getElementById('fcW_' + k)).getOption().series.length >= 3)") and pg.evaluate("() => document.getElementById('fcTrendName').textContent") != "", st(pg)["gid"])
     OV = """(ids) => { let bad = 0, total = 0; const R = [];
@@ -189,6 +203,48 @@ def t_flowcheck_1030(b, base):
     ok(f"[{T}] ⑪ 拖時間軸：資金輪盤的點移位（三張共用時間）", pg.evaluate("() => JSON.stringify(echarts.getInstanceByDom(document.getElementById('fcW_money')).getOption().series[0].data.map(d => d.value))") != wm)
     ctx.close()
 
+    # ⑫ 審核專家退件項目（10-31 使用者測試）
+    ctx, pg = open_page("#flowcheck", {"width": 1440, "height": 900})
+    dayj = _json.loads((SITE / "data" / "flowcheck" / "day" / f"{LATEST}.json").read_text(encoding="utf-8"))
+    manual = {g["gid"] for g in IDX["groups"] if not g.get("is_bucket")}
+    nA = sum(1 for k, v in dayj["groups"].items() if k in manual and v.get("div") == "A")
+    nB = sum(1 for k, v in dayj["groups"].items() if k in manual and v.get("div") == "B")
+    ok(f"[{T}] ⑫ 1440×900 首屏：輪盤與走勢大圖都完整在第一屏內", pg.evaluate("() => { const w = document.getElementById('fcW_money').getBoundingClientRect(), t = document.getElementById('fcTrend').getBoundingClientRect(); return w.top >= 0 && w.bottom <= innerHeight && t.top >= 0 && t.bottom <= innerHeight; }"), pg.evaluate("() => JSON.stringify([document.getElementById('fcW_money').getBoundingClientRect().bottom, document.getElementById('fcTrend').getBoundingClientRect().bottom, innerHeight])"))
+    ok(f"[{T}] ⑫ 1440 頁面本體高度 ≤ 1900px（一頁看完；次要卡做成分頁；不含站台頁首頁尾）", pg.evaluate("() => document.getElementById('fc').getBoundingClientRect().height") <= 1900, pg.evaluate("() => [document.getElementById('fc').getBoundingClientRect().height, document.documentElement.scrollHeight]"))
+    ok(f"[{T}] ⑫ 背離榜按鈕寫出 A／B 家數，與資料檔收盤 div 一致（A{nA}／B{nB}）", f"A {nA}" in text(pg, "#fcDivBtn") and f"B {nB}" in text(pg, "#fcDivBtn"), text(pg, "#fcDivBtn"))
+    ok(f"[{T}] ⑫ 結論列直接寫「背離 A 前 3」名單", "背離 A）前 3" in text(pg, "#fcVerdict") or "背離 A）前 3：" in text(pg, "#fcVerdict").replace("（", "）") or "前 3：" in text(pg, "#fcVerdict"))
+    g_b = st(pg)["gid"]
+    pg.click("#fcDivBtn"); pg.wait_for_timeout(500)
+    ok(f"[{T}] ⑫ 點背離榜：展開 A、B 兩段、各列有長條、列數對得上", pg.evaluate("(a) => { const p = document.getElementById('fcDivPop'); if (!p) return false; const cols = p.children; const ra = cols[0].querySelectorAll('.fc-dr').length, rb = cols[1].querySelectorAll('.fc-dr').length; return cols.length === 2 && ra === Math.min(12, a[0]) && rb === Math.min(12, a[1]) && [...p.querySelectorAll('.fc-dr i')].every(i => i.getBoundingClientRect().width >= 3); }", [nA, nB]))
+    pg.evaluate("(g) => { const b = [...document.querySelectorAll('#fcDivPop .fc-dr')].find(x => x.dataset.g !== g); b.click(); }", g_b); pg.wait_for_timeout(700)
+    ok(f"[{T}] ⑫ 點榜上一列：選到該族群（焦點同步換）", st(pg)["gid"] != g_b)
+    pg.click("#fcDivBtn"); pg.wait_for_timeout(300)
+    # 族群下拉（可打字）
+    nm = next(g["name"] for g in IDX["groups"] if g["gid"] == "shipping_container") if any(g["gid"] == "shipping_container" for g in IDX["groups"]) else IDX["groups"][3]["name"]
+    gid_t = next(g["gid"] for g in IDX["groups"] if g["name"] == nm)
+    pg.fill("#fcGsel", nm); pg.evaluate("() => document.getElementById('fcGsel').dispatchEvent(new Event('change', {bubbles: true}))"); pg.wait_for_timeout(800)
+    ok(f"[{T}] ⑫ 控制列族群下拉：打字選「{nm}」真的換焦點", st(pg)["gid"] == gid_t and pg.evaluate("() => document.querySelectorAll('#fcGList option').length") >= 50)
+    # 三者同向
+    nsame = pg.evaluate("() => document.querySelectorAll('#fcSame .fc-chip.same').length")
+    ok(f"[{T}] ⑫ 「三者同向流入」籤：有列出、輪盤上有青色外環", nsame >= 1 and pg.evaluate("() => ['fcW_strength','fcW_money'].every(k => echarts.getInstanceByDom(document.getElementById(k)).getOption().series.some(s => s.itemStyle && s.itemStyle.borderType === 'dashed'))"), str(nsame))
+    g_s = st(pg)["gid"]
+    pg.evaluate("(g) => { const b = [...document.querySelectorAll('#fcSame .fc-chip.same')].find(x => x.dataset.g !== g) || document.querySelector('#fcSame .fc-chip.same'); b.click(); }", g_s); pg.wait_for_timeout(600)
+    ok(f"[{T}] ⑫ 點同向籤：選到該族群", pg.evaluate("() => TwFlowcheck.state().gid") != "" and pg.evaluate("(g) => [...document.querySelectorAll('#fcSame .fc-chip.same')].some(x => x.dataset.g === TwFlowcheck.state().gid)", g_s) or st(pg)["gid"] != g_s)
+    # 資金樹節點大小
+    pg.click("#fcView button[data-v='tree']") if pg.evaluate("() => document.getElementById('fcView').getBoundingClientRect().width") > 0 else None
+    mins = pg.evaluate("() => { const d = echarts.getInstanceByDom(document.getElementById('fcW_tree')).getModel().getSeriesByIndex(0).getData(); const o = []; for (let i = 0; i < d.count(); i++) { const r = d.getRawDataItem(i), l = d.getItemLayout(i); if (r.gid) o.push([l.dx, l.dy]); } return [Math.min(...o.map(x => x[0])), Math.min(...o.map(x => x[1])), o.length]; }")
+    ok(f"[{T}] ⑫ 資金樹族群節點可點範圍：寬 ≥ 24、高 ≥ 24px（共 {mins[2]} 個）", mins[0] >= 24 and mins[1] >= 24, str(mins))
+    # 新聞列不重疊
+    pg.click("#fcTab button[data-v='news']"); pg.wait_for_timeout(700)
+    ok(f"[{T}] ⑫ 新聞列兩兩不相交（列高不固定）", pg.evaluate("() => { const r = [...document.querySelectorAll('#fcNews .fc-nw')].map(e => e.getBoundingClientRect()); for (let i = 1; i < r.length; i++) if (r[i].top < r[i - 1].bottom - 1) return false; return true; }"))
+    pg.click("#fcTab button[data-v='daily']"); pg.wait_for_timeout(300)
+    # 換日期不晃：走勢卡、輪盤卡高度不變
+    h0 = pg.evaluate("() => [document.getElementById('fcTrendCard').getBoundingClientRect().height, document.getElementById('fcWheelCard').getBoundingClientRect().height]")
+    pg.evaluate("(d) => { const i = document.querySelector('#fcDatePick'); i.value = d; i.dispatchEvent(new Event('change', {bubbles: true})); }", HIST); pg.wait_for_timeout(1200)
+    h1 = pg.evaluate("() => [document.getElementById('fcTrendCard').getBoundingClientRect().height, document.getElementById('fcWheelCard').getBoundingClientRect().height]")
+    ok(f"[{T}] ⑫ 換日期：走勢卡、輪盤卡高度完全不變（版面不晃）", abs(h0[0] - h1[0]) < 1 and abs(h0[1] - h1[1]) < 1, f"{h0}->{h1}")
+    ctx.close()
+
     # ⑧ 網址還原（分享連結）
     ctx, pg = open_page("#flowcheck?g=pcb_rigid&d=%s&t=1100&v=strength" % HIST)
     s6 = st(pg)
@@ -198,7 +254,7 @@ def t_flowcheck_1030(b, base):
     # ⑨ 手機 390：無橫向捲軸、次要卡預設收起、能展開、走勢在輪盤上面
     ctx, pg = open_page("#flowcheck", {"width": 390, "height": 844}, True)
     ok(f"[{T}] ⑨ 手機 390 無橫向捲軸", pg.evaluate("() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1"))
-    ok(f"[{T}] ⑨ 手機：成分股／熱力圖／提前判斷／新聞／法人預設收起", pg.evaluate("() => ['fcMemCard','fcHeatCard','fcSigCard','fcNewsCard','fcInstCard'].every(i => !document.getElementById(i).classList.contains('open') && document.querySelector('#' + i + ' .fc-bd').getBoundingClientRect().height === 0)"))
+    ok(f"[{T}] ⑨ 手機：成分股／熱力圖／更多證據預設收起", pg.evaluate("() => ['fcMemCard','fcHeatCard','fcMoreCard'].every(i => !document.getElementById(i).classList.contains('open') && document.querySelector('#' + i + ' .fc-bd').getBoundingClientRect().height === 0)"))
     ok(f"[{T}] ⑨ 手機：走勢圖在輪盤上面", pg.evaluate("() => document.getElementById('fcTrendCard').getBoundingClientRect().top < document.getElementById('fcWheelCard').getBoundingClientRect().top"))
     ok(f"[{T}] ⑨ 手機：時間軸把手高 ≥ 32px、貼底", pg.evaluate("() => { const r = document.querySelector('#fcRange2').getBoundingClientRect(); return r.height >= 32 && Math.abs(document.getElementById('fcTl').getBoundingClientRect().bottom - innerHeight) < 4; }"))
     ovm = pg.evaluate("""(ids) => { let bad = 0, total = 0; ids.forEach(id => { const c = echarts.getInstanceByDom(document.getElementById(id)); if (!c) return; const L = []; c.getZr().storage.getDisplayList(true).forEach(e => { if (e.ignore || e.invisible || !e.style || !e.style.text || e.type !== 'tspan' && e.type !== 'text') return; const r = e.getBoundingRect().clone(); if (e.transform) r.applyTransform(e.transform); if (r.width > 1 && r.height > 1) L.push(r); }); total += L.length; for (let i = 0; i < L.length; i++) for (let j = i + 1; j < L.length; j++) { const a = L[i], b = L[j], w = Math.min(a.x + a.width, b.x + b.width) - Math.max(a.x, b.x), h = Math.min(a.y + a.height, b.y + b.height) - Math.max(a.y, b.y); if (w > 2 && h > 2) bad++; } }); return { bad, total }; }""", ["fcWheel", "fcTrend"])

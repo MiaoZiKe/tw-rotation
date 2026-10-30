@@ -7,19 +7,18 @@
   .fc-range{display:none}
   .fc-bar .seg button{padding:4px 8px;font-size:13px}
   .fc-verdict{padding:8px 12px;gap:8px}
-  .fc-vt{flex-basis:100%;font-size:13px;line-height:1.6;}
+  .fc-vt{flex-basis:100%;font-size:13px;line-height:1.6}
   .fc-grid{display:flex;flex-direction:column;gap:12px}
   .fc-grid .fc-col{display:contents}
   #fcTrendCard{order:1}#fcWheelCard{order:2}#fcMemCard{order:3}#fcHeatCard{order:4}
-  #fcSigCard{order:5}.fc-row2{order:6}
+  #fcMoreCard{order:5}
   .fc-trend{height:220px;min-height:220px;touch-action:pan-y}.fc-wheel{height:300px;min-height:300px}
   .fc-card{padding:8px 12px}
   .fc-hd{gap:8px}
   .fc-hd .seg{margin-left:0}
   .fc-badge{white-space:normal;flex:1 1 100%;order:9}
-  .fc-tog{display:inline-flex;align-items:center;margin-left:auto;min-height:32px;padding:0 12px;background:transparent;border:1px solid var(--line-2);border-radius:8px;color:var(--ink-2);font-size:13px}
-  .fc-fold:not(.open)>.fc-bd{display:none}
-  .fc-fold:not(.open){padding-top:4px;padding-bottom:4px}.fc-fold:not(.open) .fc-hd{margin-bottom:0}
+  .fc-tog{min-height:32px}
+  .fc-fold:not(.open){padding-top:4px;padding-bottom:4px}
   .fc-sub{display:none}
   .fc-minis{grid-template-columns:repeat(2,minmax(0,1fr))}
   .fc-mini .chart{height:96px;min-height:96px}
@@ -33,4 +32,15 @@
   #fcDayT{order:6;max-width:100%;overflow-x:auto}
   .fc-chip{min-height:32px}
   .fc-rr{margin-top:4px}
+  .fc-vl{display:none}.fc-vs{display:inline;font-weight:600}
+  .fc-divpop{grid-template-columns:minmax(0,1fr)}
+  .fc-gs{flex:1 1 140px;max-width:none}
+  .fc-same{flex:1 1 100%;margin-left:0}
+  #v-flowcheck .fc{padding-bottom:56px}
+  .fc-tw{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .fc-tw th.mh,.fc-tw td.mh{display:none}
+  #fcMoreCard .fc-hd .seg{margin-left:0;max-width:100%;overflow-x:auto}
+  #fcMoreCard .fc-hd .seg button{padding:4px 8px}
+  #fcTrendCard .fc-hd{flex-wrap:wrap;min-height:0}#fcTrendCard .fc-hd h3{white-space:normal}
+  .fc-tnote{height:auto;min-height:28px;flex-wrap:wrap}
 }

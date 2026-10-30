@@ -30,12 +30,12 @@
 .fc-hd{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:8px}
 .fc-hd h3{margin:0;font-size:15px;display:flex;align-items:center;gap:8px;flex:0 1 auto}
 .fc-hd .seg{margin-left:auto}.fc-hd .fc-sp+*{margin-left:0}
-.fc-sub{font-size:12px;margin-left:auto}.fc-tog{display:none}
+.fc-sub{font-size:12px;margin-left:auto}.fc-tog{display:inline-flex;align-items:center;margin-left:auto;min-height:28px;padding:0 12px;background:transparent;border:1px solid var(--line-2);border-radius:8px;color:var(--ink-2);font-size:13px;cursor:pointer}.fc-fold:not(.open)>.fc-bd{display:none}.fc-fold:not(.open) .fc-hd{margin-bottom:0}
 .fc-wheel{height:400px;min-height:400px}.fc-trend{height:340px;min-height:340px}.fc-inst{height:200px;min-height:200px}
 .fc-note{margin-top:4px;color:var(--ink-3);font-size:12px}
 .fc-rr{margin-top:8px}
 .fc-badge{display:inline-block;padding:2px 8px;border-radius:6px;font-size:12px;font-weight:600;max-width:100%}
-.fc-badge.fit{background:rgba(46,229,157,.16);color:var(--down,#2ee59d)}.fc-badge.div{background:rgba(255,180,84,.16);color:var(--amber,#ffb454)}.fc-badge.mid{background:rgba(160,170,190,.16);color:var(--ink-2)}
+.fc-badge{color:var(--ink);border-left:4px solid var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:46ch}.fc-badge.fit{background:rgba(46,229,157,.18);border-left-color:var(--down,#2ee59d)}.fc-badge.div{background:rgba(255,180,84,.2);border-left-color:var(--amber,#ffb454)}.fc-badge.mid{background:rgba(160,170,190,.16)}
 .fc-badge:empty{display:none}
 .fc-minis{display:grid;grid-template-columns:repeat(auto-fill,minmax(212px,1fr));gap:8px;margin-bottom:12px}
 .fc-mini{border:1px solid var(--line);border-radius:8px;padding:4px;min-width:0}
@@ -60,7 +60,8 @@
 .fc-sc{position:absolute;top:0;bottom:0;width:2px;background:var(--ink)}
 .fc-row2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:var(--gap-card,12px)}
 .fc-news{max-height:200px;overflow:auto;display:flex;flex-direction:column}
-.fc-nw{display:grid;grid-template-columns:48px minmax(0,1fr) auto;gap:8px;align-items:baseline;padding:6px 0;border-top:1px solid var(--line);color:var(--ink);text-decoration:none;font-size:13px;min-height:32px}
+.fc-nw{flex:0 0 auto;display:grid;grid-template-columns:48px minmax(0,1fr) auto;gap:8px;align-items:baseline;padding:6px 0;border-top:1px solid var(--line);color:var(--ink);text-decoration:none;font-size:13px;min-height:32px;line-height:1.5}
+.fc-nw span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .fc-nw time{font-family:var(--mono);color:var(--ink-3);font-size:12px}.fc-nw small{color:var(--ink-3)}.fc-nw:hover span{color:var(--cyan)}.fc-nw.fut{opacity:.45}
 .fc-tl{position:sticky;bottom:0;z-index:30;display:flex;align-items:center;gap:12px;padding:8px 16px;flex-wrap:nowrap;box-shadow:0 -6px 16px rgba(0,0,0,.2)}
 .fc-play{min-width:40px;min-height:32px}
@@ -73,7 +74,6 @@
 .fc-toast{position:fixed;left:50%;bottom:80px;transform:translateX(-50%);z-index:90;background:var(--panel-3,#1b2440);color:var(--ink);border:1px solid var(--line-2);border-radius:8px;padding:8px 16px;font-size:13px;opacity:0;pointer-events:none;transition:opacity .2s}
 .fc-toast.on{opacity:1}
 @media (max-width:1100px){.fc-grid{grid-template-columns:minmax(0,1fr)}.fc-sigwrap,.fc-row2{grid-template-columns:minmax(0,1fr)}.fc-minis{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media (min-width:641px){.fc-fold>.fc-bd{display:block!important}}
 @media (min-width:641px){#fcHeatCard{display:flex;flex-direction:column}#fcHeatCard .fc-bd{display:flex!important;flex-direction:column;flex:1 1 auto;min-height:0}#fcHeatCard .fc-heat{flex:1 1 auto}}
 /* 2026-10-30 Andy：大螢幕（≥1440）三種輪盤並排，共用焦點與時間；以下退成三選一 */
 .fc-tri{display:none}.fc-tp h4{margin:0 0 4px;font-size:14px;color:var(--ink-2);font-weight:600}.fc-tp{min-width:0}
@@ -83,7 +83,8 @@
   .fc-tri .fc-wheel{height:340px;min-height:340px}
   .fc-grid{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr)}
   .fc-grid>.fc-col{display:contents}
-  #fcWheelCard{grid-column:1/-1}#fcMemCard{grid-column:1/-1}
+  .fc-grid{grid-template-areas:'wheel wheel' 'heat trend' 'heat mem'}
+  #fcWheelCard{grid-area:wheel}#fcHeatCard{grid-area:heat}#fcTrendCard{grid-area:trend}#fcMemCard{grid-area:mem}
   .fc-minis{grid-template-columns:repeat(3,minmax(0,1fr))}
   .fc-trend{height:300px;min-height:300px}
 }
@@ -102,3 +103,37 @@
 .fc-rs .fc-rn{color:var(--ink-2)}.fc-rs small{margin-left:auto}
 .fc-rt{color:var(--ink-3);font-size:12px}
 .fc-more{margin-top:8px}
+
+/* 2026-10-31 審核專家退件：背離榜、三者同向、族群下拉、更多證據分頁、固定高度 */
+.fc-gs{min-width:150px;max-width:200px;height:32px;padding:0 12px;border:1px solid var(--line-2);border-radius:9px;background:var(--panel-3);color:var(--ink);font-size:13px}
+.fc-chip.same{border-color:var(--cyan);background:rgba(62,224,255,.10)}
+.fc-same{margin-left:8px;flex:1 1 auto}
+.fc-divpop{flex:1 1 100%;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;padding-top:8px;border-top:1px solid var(--line);margin-top:8px;max-height:340px;overflow:auto}
+.fc-dr{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 8px;align-items:center;width:100%;min-height:36px;padding:2px 4px;background:transparent;border:0;border-top:1px solid var(--line);color:var(--ink);cursor:pointer;text-align:left;font-size:13px}
+.fc-dr:hover{background:rgba(62,224,255,.08)}.fc-dr em{font-style:normal;font-family:var(--mono);font-size:12px;color:var(--ink-3);grid-column:1}.fc-dr i{grid-column:2;grid-row:1/3;height:6px;border-radius:3px}
+.fc-vs{display:none}
+.fc-pane[hidden]{display:none}
+.fc-det{margin-top:8px}.fc-det summary{cursor:pointer;color:var(--ink-2);font-size:13px;min-height:28px}
+#fcMoreCard .fc-hd .seg{margin-left:auto}
+.fc-trend{height:300px;min-height:300px}.fc-note{min-height:20px;height:20px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+#fcTrendCard .fc-hd{flex-wrap:nowrap;min-height:34px}#fcTrendCard .fc-hd h3{white-space:nowrap}
+#fcTrendCard,#fcWheelCard{overflow:hidden}
+.fc-chips{min-height:30px}
+@media (min-width:1440px){
+  .fc-tri .fc-wheel{height:215px;min-height:215px}
+  .fc-trend{height:215px;min-height:215px}
+  .fc-verdict{padding:8px 16px}.fc-vt{line-height:1.5;font-size:13px}
+  .fc-hd{margin-bottom:4px}
+  .fc-bar{padding:8px 16px}
+}
+
+.fc-range{display:none}
+.seg button{white-space:nowrap}
+.fc-badge{max-width:30ch}
+@media (min-width:1440px){
+  .fc-rr:nth-child(2){display:none}
+  .fc-bar{flex-wrap:nowrap}
+}
+.fc-tnote{display:flex;align-items:center;gap:12px;height:28px;min-height:28px;margin-top:4px}.fc-tnote .fc-badge{flex:0 1 auto;max-width:60%}.fc-tnote #fcNoteTx{color:var(--ink-3);font-size:12px;white-space:nowrap}
+#fcDay .fc-tw{max-height:230px}
+.fc-rs{line-height:1.3!important;font-size:12.5px!important}.fc-rsum{gap:2px!important;margin:2px 0 6px!important}
