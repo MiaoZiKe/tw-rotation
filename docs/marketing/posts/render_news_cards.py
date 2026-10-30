@@ -279,6 +279,8 @@ def card_v3(d, idx, tot, bg=None, pal="A", slot="pre"):
             f'<div class="a row T4" style="left:64px;top:1272px;width:952px;height:56px;color:{P3["foot"]}"><span class="num">{idx} / {tot}</span></div></body>')
 # ---- cover_v4（--pal D，Andy 10-28 退件：AI 圖不可染色、色調要舒適）----
 D4 = dict(bg="#FAF9F6", ink="#1F2328", sub="#4B5563", mu="#6B7280", acc="#A85D49", tile="#FFFFFF", tbd="#E5E2DA", bar="#CFCBC2", panel="#EFEDE8", rule="#D9D5CB")
+# 淺底封面（card_v4／card_photo，正式發文走這條）的分類標籤：D4 定案版各類共用磚紅 acc；「國際」（10-30）另給青綠，避免跟其他類同色
+CHIP4 = {"國際": "#2A8C82"}
 def bg_plain(path, w, h, ya=0.6):
     """AI 圖保持原色：只裁切與縮放（取上緣），不套任何色調、遮罩、亮度調整"""
     im = Image.open(path).convert("RGB")
@@ -323,7 +325,7 @@ def card_v4(d, idx, tot, bg=None, slot="pre"):
     return (f'<body style="{V};background:{K["bg"]}"><div class="a" style="left:64px;top:40px;width:952px;height:4px;background:{K["ink"]}" data-bg=1></div>'
             f'<div class="brand T3b" style="color:{K["ink"]}">哩股哩股</div><div class="hdate T4b num" style="color:{K["mu"]}">{hdr_of(c, slot)}・{date}</div>'
             f'<div class="a" style="left:64px;top:112px;width:952px;height:2px;background:{K["rule"]}" data-bg=1></div>{art}'
-            f'<div class="a row" style="left:64px;top:{chipt}px"><span class="T3b" style="background:{K["acc"]};color:#fff;padding:4px 28px;border-radius:4px;letter-spacing:.12em">{e(cat)}</span></div>'
+            f'<div class="a row" style="left:64px;top:{chipt}px"><span class="T3b" style="background:{CHIP4.get(cat, K["acc"])};color:#fff;padding:4px 28px;border-radius:4px;letter-spacing:.12em">{e(cat)}</span></div>'
             f'<div class="a" style="left:64px;top:{ttop}px;width:952px;color:{K["ink"]};font-size:{fs}px;line-height:{fs+12}px;font-weight:800">'
             + "".join(f'<div style="white-space:nowrap">{hl4(l) if i == hi else e(l)}</div>' for i, l in enumerate(tl)) + '</div>'
             f'<div class="a T3" style="left:64px;top:{dtop}px;width:952px;color:{K["sub"]};line-height:52px">' + "".join(f"<div>{e(l)}</div>" for l in dl) + '</div>'
@@ -538,7 +540,7 @@ def card_photo(d, idx, tot, photo, slot="pre", pending=False):
             f'<div class="a row" style="left:64px;top:{ktop}px;width:952px;height:72px"><span class="T2" style="font-weight:800;color:{K["ink"]};white-space:nowrap">{e(kicker)}</span>{tag}</div>'
             f'<img class="a" data-g=1 style="left:64px;top:{ptop}px;width:952px;height:{imgh}px;border-radius:4px" src="{bg_plain(path, 952, imgh, 0.5)}">'
             f'<div class="a row" style="left:64px;top:{credt}px;width:952px;height:40px;justify-content:flex-end"><span style="font-size:28px;line-height:40px;color:{K["mu"]};white-space:nowrap">{e(credit_of(meta))}</span></div>'
-            f'<div class="a row" style="left:64px;top:{chipt}px"><span class="T3b" style="background:{K["acc"]};color:#fff;padding:4px 28px;border-radius:4px;letter-spacing:.12em">{e(cat)}</span></div>'
+            f'<div class="a row" style="left:64px;top:{chipt}px"><span class="T3b" style="background:{CHIP4.get(cat, K["acc"])};color:#fff;padding:4px 28px;border-radius:4px;letter-spacing:.12em">{e(cat)}</span></div>'
             f'<div class="a" style="left:64px;top:{ttop}px;width:952px;color:{K["ink"]};font-size:{fs}px;line-height:{fs+12}px;font-weight:800">'
             + "".join(f'<div style="white-space:nowrap">{hl5(l) if NUM.search(l) or (c.get("hl") and c["hl"] in l) else e(l)}</div>' for l in tl) + '</div>'
             f'<div class="a T3" style="left:64px;top:{dtop}px;width:952px;color:{K["sub"]};line-height:52px">' + "".join(f"<div>{e(l)}</div>" for l in dl) + '</div>'
