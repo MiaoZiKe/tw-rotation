@@ -5887,6 +5887,8 @@
   function tvOpen(gid) { TV.gid = String(gid); tvRender(true); }
   function tvPick(gid) { if (RLV.on && !RLV.err && window.Tape && Tape.count() > 0 && gid && !isAutoBucket(gid)) tvOpen(gid); }
   function tvRenderSig() {
+    // 播放中（一格 84～420ms）不要每格都重建訊號列表（會拖慢輪盤補間）：最多一秒一次，停下來那一刻補畫
+    if (window.Tape && Tape.playing) { const n = Date.now(); if (n - (TV.sigAt || 0) < 1000) { clearTimeout(TV.tt); TV.tt = setTimeout(() => tvRender(true), 1100); return; } TV.sigAt = n; }
     const live = !!(RLV.on && window.Tape && Tape.count() > 0 && D.groups_detail);
     const el = document.getElementById('todaySignals') || (live ? tvSigEl() : null); if (!el) return;
     if (!live) { if (!el.hidden) { el.hidden = true; el.innerHTML = ''; } return; }
@@ -5905,7 +5907,7 @@
     const el = document.getElementById('todayVerify') || (TV.gid ? tvEl() : null); if (!el) return;
     const show = !!(TV.gid && RLV.on && window.Tape && Tape.count() > 0);
     if (!show) { if (!el.hidden) { el.hidden = true; el.innerHTML = ''; try { const c = window.echarts && echarts.getInstanceByDom(document.getElementById('tvChart')); if (c) c.dispose(); } catch (e) { /* 已拆掉 */ } } return; }
-    const now = Date.now(); if (!force && now - TV.at < 1500) return; TV.at = now;
+    const now = Date.now(); if ((!force || (window.Tape && Tape.playing)) && now - TV.at < (window.Tape && Tape.playing ? 1000 : 1500)) { if (force) { clearTimeout(TV.tt); TV.tt = setTimeout(() => tvRender(true), 1100); } return; } TV.at = now;
     if (!D.groups_detail) { load('groups_detail').then(() => tvRender(true)).catch(() => {}); return; }
     const r = tvCalc(TV.gid); if (!r) return;
     TV.last = TV.gid;
