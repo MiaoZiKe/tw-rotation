@@ -182,10 +182,11 @@
    "width": 1920,
    "height": 1080,
    "fetched_at": "2026-10-30T01:49:41+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": "",
-   "origin": "公司分類"
+   "reviewed": true,
+   "reviewer": "art-director 審核清單（social-ops-lead 執行）",
+   "review_note": "2026-10-30 第五輪（公司照片優先）通過：Amazon Spheres 空拍，西雅圖總部園區",
+   "origin": "公司分類",
+   "reviewed_at": "2026-10-30"
   },
   {
    "file": "photo_9.jpg",
@@ -204,10 +205,11 @@
    "width": 1920,
    "height": 1280,
    "fetched_at": "2026-10-30T01:49:41+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": "",
-   "origin": "公司分類"
+   "reviewed": true,
+   "reviewer": "art-director 審核清單（social-ops-lead 執行）",
+   "review_note": "2026-10-30 第五輪（公司照片優先）通過：Amazon Spheres 外觀，日間",
+   "origin": "公司分類",
+   "reviewed_at": "2026-10-30"
   },
   {
    "file": "photo_10.jpg",
@@ -227,13 +229,15 @@
    "height": 1280,
    "fetched_at": "2026-10-30T01:49:41+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": "",
-   "origin": "公司分類"
+   "reviewer": "art-director 審核清單（social-ops-lead 執行）",
+   "review_note": "2026-10-30 第五輪退件：Spheres 室內噴霧特寫，辨識不足",
+   "origin": "公司分類",
+   "reviewed_at": "2026-10-30",
+   "reject_reason": "Spheres 室內噴霧特寫，辨識不足"
   },
   {
    "file": "photo_11.jpg",
-   "kind": "產品",
+   "kind": "總部/廠房",
    "slug": "amazon",
    "name_en": "Amazon",
    "query": "cat:Amazon Spheres",
@@ -248,10 +252,11 @@
    "width": 1920,
    "height": 1080,
    "fetched_at": "2026-10-30T01:49:41+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": "",
-   "origin": "公司分類"
+   "reviewed": true,
+   "reviewer": "art-director 審核清單（social-ops-lead 執行）",
+   "review_note": "2026-10-30 第五輪（公司照片優先）通過：Amazon Spheres 外觀，日間（檔名為西雅圖街景，畫面主體即 Spheres）",
+   "origin": "公司分類",
+   "reviewed_at": "2026-10-30"
   }
  ],
  "rejected": [

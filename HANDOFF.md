@@ -1,5 +1,11 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
+## 2026-10-30 封面照片：跟公司有關一律先用主體公司照片（Andy：「相這種跟公司有關的 優先附上公司圖片」；最後更新 10-30 台北）
+- 事故：10-30 早上緊急加發「Alphabet 跌 12.6%」，手寫渲染腳本直接指定 Intel 圖池 → 封面配成 Intel 處理器。
+- 改：`render_news_cards.photo_pick` 主體公司已審圖池最優先（蓋過常備文庫指定池／台股大盤圖）、`company_slug()` 主體名稱模糊比對、公司池「相關場景」排最後；手動加發一律 `python scripts/news_cover.py <post.json> <輸出.jpg>`。規則：`news_post_rules.md` 第十二節。測試：`tests/test_photo_pool.py`。
+- 照片：`company_photos.py` 加 Commons 公司分類抓法（`targets.json` 的 `commons_categories`），新增 CoreWeave／南亞科／南電／台光電；run 40987929655 抓 103 張，第五輪審核通過 27／退件 76（`photo_lib_review.md` 第七節）。
+- 待處理：CoreWeave、Anthropic、南亞科、南電、台光電、ASML 仍 0 張已審公司圖（退該公司類別池）；台積電、鴻海、聯發科、廣達、三星、OpenAI 只有 1～3 張 → 換更精準的 Commons 分類名重抓。這批只跑了 pytest 全套（1532 passed）＋ test_social_news／test_photo_pool；沒動 site/，不需部署。
+
 ## 2026-10-29 盤後保底＋法人補充貼文＋inst 輪加速（事故：盤後主貼文到 18:25 沒發；最後更新 10-29 台北）
 - 盤後 19:00 後法人卡仍是昨天 → 拿掉法人三張、其他當天卡照發（文案標「法人個股明細晚到，稍後補」），法人到了自動補發 `close-inst-<日期>`。細節見 docs/marketing/social_unit/auto_post.md 修改紀錄。
 - daily.yml inst 輪沒新增今天法人就不整站重算、不部署（`rebuild` 輸出）。

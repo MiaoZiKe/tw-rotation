@@ -19,8 +19,10 @@
    "height": 1440,
    "fetched_at": "2026-10-30T01:51:38+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewer": "art-director 審核清單（social-ops-lead 執行）",
+   "review_note": "2026-10-30 第五輪退件：倫敦街景倒影，非台光電（主體錯誤）",
+   "reviewed_at": "2026-10-30",
+   "reject_reason": "倫敦街景倒影，非台光電（主體錯誤）"
   },
   {
    "file": "photo_2.jpg",
@@ -40,8 +42,10 @@
    "height": 1440,
    "fetched_at": "2026-10-30T01:51:39+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewer": "art-director 審核清單（social-ops-lead 執行）",
+   "review_note": "2026-10-30 第五輪退件：倫敦街景倒影，非台光電（主體錯誤）",
+   "reviewed_at": "2026-10-30",
+   "reject_reason": "倫敦街景倒影，非台光電（主體錯誤）"
   },
   {
    "file": "photo_3.jpg",
@@ -61,8 +65,10 @@
    "height": 1440,
    "fetched_at": "2026-10-30T01:51:41+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewer": "art-director 審核清單（social-ops-lead 執行）",
+   "review_note": "2026-10-30 第五輪退件：他牌 DVD 電路板，非台光電",
+   "reviewed_at": "2026-10-30",
+   "reject_reason": "他牌 DVD 電路板，非台光電"
   },
   {
    "file": "photo_4.jpg",
@@ -82,8 +88,10 @@
    "height": 1472,
    "fetched_at": "2026-10-30T01:51:41+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewer": "art-director 審核清單（social-ops-lead 執行）",
+   "review_note": "2026-10-30 第五輪退件：他牌電路板，非台光電",
+   "reviewed_at": "2026-10-30",
+   "reject_reason": "他牌電路板，非台光電"
   },
   {
    "file": "photo_5.jpg",
@@ -103,8 +111,10 @@
    "height": 1440,
    "fetched_at": "2026-10-30T01:51:42+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewer": "art-director 審核清單（social-ops-lead 執行）",
+   "review_note": "2026-10-30 第五輪退件：他牌電路板，非台光電",
+   "reviewed_at": "2026-10-30",
+   "reject_reason": "他牌電路板，非台光電"
   }
  ],
  "rejected": []

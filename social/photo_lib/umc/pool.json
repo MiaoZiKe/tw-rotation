@@ -42,9 +42,11 @@
    "height": 720,
    "fetched_at": "2026-10-30T01:48:51+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": "",
-   "origin": "公司分類"
+   "reviewer": "art-director 審核清單（social-ops-lead 執行）",
+   "review_note": "2026-10-30 第五輪退件：招牌立牌為畫面主角（審核項 4）",
+   "origin": "公司分類",
+   "reviewed_at": "2026-10-30",
+   "reject_reason": "招牌立牌為畫面主角（審核項 4）"
   },
   {
    "file": "photo_3.jpg",
@@ -63,10 +65,11 @@
    "width": 1920,
    "height": 1440,
    "fetched_at": "2026-10-30T01:48:51+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": "",
-   "origin": "公司分類"
+   "reviewed": true,
+   "reviewer": "art-director 審核清單（social-ops-lead 執行）",
+   "review_note": "2026-10-30 第五輪（公司照片優先）通過：聯電 8AB 廠外觀，日間",
+   "origin": "公司分類",
+   "reviewed_at": "2026-10-30"
   },
   {
    "file": "photo_4.jpg",
@@ -85,10 +88,11 @@
    "width": 1920,
    "height": 1440,
    "fetched_at": "2026-10-30T01:48:52+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": "",
-   "origin": "公司分類"
+   "reviewed": true,
+   "reviewer": "art-director 審核清單（social-ops-lead 執行）",
+   "review_note": "2026-10-30 第五輪（公司照片優先）通過：聯電竹科聯合大樓，日間藍天",
+   "origin": "公司分類",
+   "reviewed_at": "2026-10-30"
   }
  ],
  "rejected": [

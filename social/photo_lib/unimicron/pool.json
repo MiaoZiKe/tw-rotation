@@ -113,8 +113,10 @@
    "height": 869,
    "fetched_at": "2026-10-30T01:49:07+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewer": "art-director 審核清單（social-ops-lead 執行）",
+   "review_note": "2026-10-30 第五輪退件：1970 年代他牌電路板，非欣興",
+   "reviewed_at": "2026-10-30",
+   "reject_reason": "1970 年代他牌電路板，非欣興"
   }
  ],
  "rejected": [

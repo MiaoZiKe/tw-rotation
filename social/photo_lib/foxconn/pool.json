@@ -110,10 +110,11 @@
    "width": 1920,
    "height": 1080,
    "fetched_at": "2026-10-30T01:48:18+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": "",
-   "origin": "公司分類"
+   "reviewed": true,
+   "reviewer": "art-director 審核清單（social-ops-lead 執行）",
+   "review_note": "2026-10-30 第五輪（公司照片優先）通過：鴻海土城頂埔廠大門與廠區，日間、無人臉",
+   "origin": "公司分類",
+   "reviewed_at": "2026-10-30"
   },
   {
    "file": "photo_6.jpg",
@@ -133,9 +134,11 @@
    "height": 1280,
    "fetched_at": "2026-10-30T01:48:18+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": "",
-   "origin": "公司分類"
+   "reviewer": "art-director 審核清單（social-ops-lead 執行）",
+   "review_note": "2026-10-30 第五輪退件：人物為主角（審核項 3）",
+   "origin": "公司分類",
+   "reviewed_at": "2026-10-30",
+   "reject_reason": "人物為主角（審核項 3）"
   },
   {
    "file": "photo_7.jpg",
@@ -155,9 +158,11 @@
    "height": 1920,
    "fetched_at": "2026-10-30T01:48:18+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": "",
-   "origin": "公司分類"
+   "reviewer": "art-director 審核清單（social-ops-lead 執行）",
+   "review_note": "2026-10-30 第五輪退件：主機板局部，看不出鴻海",
+   "origin": "公司分類",
+   "reviewed_at": "2026-10-30",
+   "reject_reason": "主機板局部，看不出鴻海"
   },
   {
    "file": "photo_8.jpg",
@@ -177,9 +182,11 @@
    "height": 1920,
    "fetched_at": "2026-10-30T01:48:19+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": "",
-   "origin": "公司分類"
+   "reviewer": "art-director 審核清單（social-ops-lead 執行）",
+   "review_note": "2026-10-30 第五輪退件：散熱片局部，辨識不足",
+   "origin": "公司分類",
+   "reviewed_at": "2026-10-30",
+   "reject_reason": "散熱片局部，辨識不足"
   }
  ],
  "rejected": [

@@ -135,10 +135,11 @@
    "width": 1920,
    "height": 1280,
    "fetched_at": "2026-10-30T01:49:19+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": "",
-   "origin": "公司分類"
+   "reviewed": true,
+   "reviewer": "art-director 審核清單（social-ops-lead 執行）",
+   "review_note": "2026-10-30 第五輪（公司照片優先）通過：Apple Park 環形主建築（樹後），黃昏原色、主體可辨",
+   "origin": "公司分類",
+   "reviewed_at": "2026-10-30"
   },
   {
    "file": "photo_7.jpg",
@@ -158,9 +159,11 @@
    "height": 1280,
    "fetched_at": "2026-10-30T01:49:19+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": "",
-   "origin": "公司分類"
+   "reviewer": "art-director 審核清單（social-ops-lead 執行）",
+   "review_note": "2026-10-30 第五輪退件：Apple Park 模型、室內偏暗",
+   "origin": "公司分類",
+   "reviewed_at": "2026-10-30",
+   "reject_reason": "Apple Park 模型、室內偏暗"
   },
   {
    "file": "photo_8.jpg",
@@ -180,9 +183,11 @@
    "height": 1281,
    "fetched_at": "2026-10-30T01:49:19+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": "",
-   "origin": "公司分類"
+   "reviewer": "art-director 審核清單（social-ops-lead 執行）",
+   "review_note": "2026-10-30 第五輪退件：人物為主角（審核項 3）",
+   "origin": "公司分類",
+   "reviewed_at": "2026-10-30",
+   "reject_reason": "人物為主角（審核項 3）"
   },
   {
    "file": "photo_9.jpg",
@@ -201,10 +206,11 @@
    "width": 1920,
    "height": 1280,
    "fetched_at": "2026-10-30T01:49:19+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": "",
-   "origin": "公司分類"
+   "reviewed": true,
+   "reviewer": "art-director 審核清單（social-ops-lead 執行）",
+   "review_note": "2026-10-30 第五輪（公司照片優先）通過：Apple Park 建築入口，日間、構圖乾淨",
+   "origin": "公司分類",
+   "reviewed_at": "2026-10-30"
   }
  ],
  "rejected": [

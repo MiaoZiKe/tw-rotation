@@ -205,9 +205,11 @@
    "height": 1280,
    "fetched_at": "2026-10-30T01:48:38+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": "",
-   "origin": "公司分類"
+   "reviewer": "art-director 審核清單（social-ops-lead 執行）",
+   "review_note": "2026-10-30 第五輪退件：警告標籤為主角",
+   "origin": "公司分類",
+   "reviewed_at": "2026-10-30",
+   "reject_reason": "警告標籤為主角"
   },
   {
    "file": "photo_10.jpg",
@@ -227,9 +229,11 @@
    "height": 1440,
    "fetched_at": "2026-10-30T01:48:38+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": "",
-   "origin": "公司分類"
+   "reviewer": "art-director 審核清單（social-ops-lead 執行）",
+   "review_note": "2026-10-30 第五輪退件：陰天灰暗、建築同框他家公司，主體存疑",
+   "origin": "公司分類",
+   "reviewed_at": "2026-10-30",
+   "reject_reason": "陰天灰暗、建築同框他家公司，主體存疑"
   },
   {
    "file": "photo_11.jpg",
@@ -248,10 +252,11 @@
    "width": 1920,
    "height": 1440,
    "fetched_at": "2026-10-30T01:48:38+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": "",
-   "origin": "公司分類"
+   "reviewed": true,
+   "reviewer": "art-director 審核清單（social-ops-lead 執行）",
+   "review_note": "2026-10-30 第五輪（公司照片優先）通過：台達電太陽能逆變器（2019 電腦展），代表產品",
+   "origin": "公司分類",
+   "reviewed_at": "2026-10-30"
   },
   {
    "file": "photo_12.jpg",
@@ -270,10 +275,11 @@
    "width": 1920,
    "height": 1440,
    "fetched_at": "2026-10-30T01:48:38+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": "",
-   "origin": "公司分類"
+   "reviewed": true,
+   "reviewer": "art-director 審核清單（social-ops-lead 執行）",
+   "review_note": "2026-10-30 第五輪（公司照片優先）通過：台達電鋰電池模組（2019 電腦展），代表產品",
+   "origin": "公司分類",
+   "reviewed_at": "2026-10-30"
   }
  ],
  "rejected": []

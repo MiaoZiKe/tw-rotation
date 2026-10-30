@@ -135,9 +135,11 @@
    "height": 1280,
    "fetched_at": "2026-10-30T01:48:16+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": "",
-   "origin": "公司分類"
+   "reviewer": "art-director 審核清單（social-ops-lead 執行）",
+   "review_note": "2026-10-30 第五輪退件：人物為主角（審核項 3）",
+   "origin": "公司分類",
+   "reviewed_at": "2026-10-30",
+   "reject_reason": "人物為主角（審核項 3）"
   },
   {
    "file": "photo_7.jpg",
@@ -157,9 +159,11 @@
    "height": 1280,
    "fetched_at": "2026-10-30T01:48:16+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": "",
-   "origin": "公司分類"
+   "reviewer": "art-director 審核清單（social-ops-lead 執行）",
+   "review_note": "2026-10-30 第五輪退件：人物為主角（審核項 3）",
+   "origin": "公司分類",
+   "reviewed_at": "2026-10-30",
+   "reject_reason": "人物為主角（審核項 3）"
   },
   {
    "file": "photo_8.jpg",
@@ -179,9 +183,11 @@
    "height": 1440,
    "fetched_at": "2026-10-30T01:48:16+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": "",
-   "origin": "公司分類"
+   "reviewer": "art-director 審核清單（social-ops-lead 執行）",
+   "review_note": "2026-10-30 第五輪退件：徵才活動人群（審核項 3）",
+   "origin": "公司分類",
+   "reviewed_at": "2026-10-30",
+   "reject_reason": "徵才活動人群（審核項 3）"
   },
   {
    "file": "photo_9.jpg",
@@ -201,9 +207,11 @@
    "height": 1272,
    "fetched_at": "2026-10-30T01:48:16+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": "",
-   "origin": "公司分類"
+   "reviewer": "art-director 審核清單（social-ops-lead 執行）",
+   "review_note": "2026-10-30 第五輪退件：攤位人物（審核項 3）",
+   "origin": "公司分類",
+   "reviewed_at": "2026-10-30",
+   "reject_reason": "攤位人物（審核項 3）"
   }
  ],
  "rejected": [

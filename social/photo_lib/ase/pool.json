@@ -159,9 +159,11 @@
    "height": 1224,
    "fetched_at": "2026-10-30T01:48:48+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": "",
-   "origin": "公司分類"
+   "reviewer": "art-director 審核清單（social-ops-lead 執行）",
+   "review_note": "2026-10-30 第五輪退件：上海「日月光」住宅區，同名不同公司（主體錯誤）",
+   "origin": "公司分類",
+   "reviewed_at": "2026-10-30",
+   "reject_reason": "上海「日月光」住宅區，同名不同公司（主體錯誤）"
   },
   {
    "file": "photo_8.jpg",
@@ -181,9 +183,11 @@
    "height": 1440,
    "fetched_at": "2026-10-30T01:48:48+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": "",
-   "origin": "公司分類"
+   "reviewer": "art-director 審核清單（social-ops-lead 執行）",
+   "review_note": "2026-10-30 第五輪退件：汐止「日月光中心」，同名不同公司（主體錯誤）",
+   "origin": "公司分類",
+   "reviewed_at": "2026-10-30",
+   "reject_reason": "汐止「日月光中心」，同名不同公司（主體錯誤）"
   },
   {
    "file": "photo_9.jpg",
@@ -203,9 +207,11 @@
    "height": 1280,
    "fetched_at": "2026-10-30T01:48:49+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": "",
-   "origin": "公司分類"
+   "reviewer": "art-director 審核清單（social-ops-lead 執行）",
+   "review_note": "2026-10-30 第五輪退件：無塵衣人物為主角（審核項 3）",
+   "origin": "公司分類",
+   "reviewed_at": "2026-10-30",
+   "reject_reason": "無塵衣人物為主角（審核項 3）"
   },
   {
    "file": "photo_10.jpg",
@@ -225,9 +231,11 @@
    "height": 1280,
    "fetched_at": "2026-10-30T01:48:50+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": "",
-   "origin": "公司分類"
+   "reviewer": "art-director 審核清單（social-ops-lead 執行）",
+   "review_note": "2026-10-30 第五輪退件：無塵衣人物為主角（審核項 3）",
+   "origin": "公司分類",
+   "reviewed_at": "2026-10-30",
+   "reject_reason": "無塵衣人物為主角（審核項 3）"
   }
  ],
  "rejected": [

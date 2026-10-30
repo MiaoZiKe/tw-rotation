@@ -289,3 +289,119 @@ _category/網通、advantech、anthropic、asml、cathay、fareastone、first_fi
 | social/photo_lib/wanhai | 2 | 1 |
 | social/photo_lib/wdc | 2 | 0 |
 | social/photo_lib/yangming | 1 | 1 |
+
+
+## 第七節　第五輪：公司照片優先（2026-10-30）
+
+> Andy 10-30（看著緊急加發「Alphabet 跌 12.6%」封面配了 Intel 處理器照片）：「相這種跟公司有關的 優先附上公司圖片」。
+> 抓圖：`company_photos.yml` run 40987929655（2026-10-30 09:47 台北，32 家，`category=none`），新增 Commons 公司分類抓法（`targets.json` 的 `commons_categories`）。commit a1b0fb52。
+> 審核：照第三節 9 項逐張看（952×424 中段裁切聯絡表＋關鍵幾張全解析度），執行者 social-ops-lead（照 art-director 清單）。共 103 張：通過 27／退件 76。授權全部是 CC0／CC BY／CC BY-SA／公有領域，作者與原始網址已存在 pool.json。
+> 退件主因：人物為主角（官方參訪照）、施工中、同名不同公司（上海／汐止「日月光」住宅區）、他牌產品、LOGO 為主角。
+
+| slug／檔名 | 授權 | 結論 | 說明 |
+|---|---|---|---|
+| alphabet/photo_5.jpg | CC BY-SA 4.0 | 通過 | Google 山景城園區的公司自行車（Google 配色），辨識度高、原色、無人臉 |
+| alphabet/photo_6.jpg | CC BY-SA 4.0 | 退件 | Google LOGO 特寫為畫面主角（審核項 4） |
+| alphabet/photo_7.jpg | CC BY-SA 4.0 | 退件 | 地面自行車標線，辨識不足 |
+| alphabet/photo_8.jpg | CC BY-SA 4.0 | 通過 | Google 園區公司自行車，日間、構圖乾淨 |
+| microsoft/photo_9.jpg | CC BY 2.0 | 通過 | Microsoft 雷德蒙園區 Building 42，日間、雪景，無人臉 |
+| microsoft/photo_10.jpg | CC BY 2.0 | 退件 | 雜亂工作台，與 Microsoft 無直接關聯（審核項 9） |
+| microsoft/photo_11.jpg | CC0 | 退件 | 線材特寫，無法辨識公司 |
+| microsoft/photo_12.jpg | Public domain | 通過 | Microsoft 園區 Building 17 正門，日間、構圖乾淨 |
+| microsoft/photo_13.jpg | Public domain | 退件 | 地圖（非實景照片） |
+| apple/photo_6.jpg | CC BY-SA 4.0 | 通過 | Apple Park 環形主建築（樹後），黃昏原色、主體可辨 |
+| apple/photo_7.jpg | CC BY-SA 4.0 | 退件 | Apple Park 模型、室內偏暗 |
+| apple/photo_8.jpg | CC BY 2.0 | 退件 | 人物為主角（審核項 3） |
+| apple/photo_9.jpg | CC BY-SA 4.0 | 通過 | Apple Park 建築入口，日間、構圖乾淨 |
+| amazon/photo_8.jpg | CC BY-SA 4.0 | 通過 | Amazon Spheres 空拍，西雅圖總部園區 |
+| amazon/photo_9.jpg | CC BY-SA 4.0 | 通過 | Amazon Spheres 外觀，日間 |
+| amazon/photo_10.jpg | CC BY-SA 2.0 | 退件 | Spheres 室內噴霧特寫，辨識不足 |
+| amazon/photo_11.jpg | CC BY-SA 4.0 | 通過 | Amazon Spheres 外觀，日間（檔名為西雅圖街景，畫面主體即 Spheres） |
+| nvidia/photo_6.jpg | CC BY 2.0 | 退件 | 展場人群可辨識人臉（審核項 3） |
+| nvidia/photo_7.jpg | CC BY 2.0 | 退件 | 人物為主角（審核項 3） |
+| nvidia/photo_8.jpg | CC BY 2.0 | 退件 | 特斯拉汽車，非 NVIDIA（主體錯誤） |
+| nvidia/photo_9.jpg | CC BY-SA 4.0 | 通過 | NVIDIA GPU 晶片特寫（代表產品），清晰，字樣為產品本身印字 |
+| nvidia/photo_10.jpg | CC0 | 退件 | 他家展示機台，非 NVIDIA（主體錯誤） |
+| intel/photo_6.jpg | CC BY-SA 4.0 | 通過 | Intel 聖塔克拉拉總部，日間、藍天 |
+| amd/photo_6.jpg | CC BY-SA 3.0 | 通過 | AMD 森尼韋爾總部，日間 |
+| amd/photo_7.jpg | CC BY-SA 3.0 de | 退件 | 港口筒倉，非 AMD（主體錯誤） |
+| amd/photo_8.jpg | CC BY-SA 4.0 | 退件 | 2004 年施工中工地（審核項 8） |
+| amd/photo_9.jpg | CC BY-SA 3.0 de | 退件 | 港口筒倉，非 AMD（主體錯誤） |
+| broadcom/photo_4.jpg | CC BY-SA 4.0 | 通過 | Broadcom 晶片特寫（代表產品），清晰 |
+| micron/photo_7.jpg | Public domain | 退件 | 人物為主角（審核項 3） |
+| micron/photo_8.jpg | CC BY 2.0 | 退件 | 人物為主角（審核項 3） |
+| micron/photo_9.jpg | Public domain | 退件 | 人物為主角（審核項 3） |
+| micron/photo_10.jpg | CC BY-SA 4.0 | 通過 | Micron（Crucial）DDR4 伺服器記憶體模組（代表產品），背景乾淨 |
+| tesla/photo_10.jpg | CC BY 4.0 | 退件 | 施工中鋼構（審核項 8） |
+| tesla/photo_11.jpg | CC BY 4.0 | 退件 | 施工現場（審核項 8） |
+| tesla/photo_12.jpg | CC BY 4.0 | 退件 | 施工中鋼構（審核項 8） |
+| oracle/photo_4.jpg | CC BY-SA 4.0 | 退件 | 印度科技園區夜景，看不出 Oracle |
+| oracle/photo_5.jpg | CC0 | 通過 | Oracle 聖荷西大樓仰角，招牌為建築一部分 |
+| oracle/photo_6.jpg | CC BY-SA 3.0 | 退件 | 灰暗、看不出 Oracle |
+| oracle/photo_7.jpg | CC BY-SA 4.0 | 通過 | Oracle 科羅拉多泉辦公大樓，日間、招牌小 |
+| oracle/photo_8.jpg | CC BY 2.0 | 退件 | 人物為主角（審核項 3） |
+| coreweave/photo_1.jpg | CC0 | 退件 | 債券殖利率圖表（非實景照片） |
+| coreweave/photo_2.jpg | CC BY 4.0 | 退件 | Microsoft 資料中心，非 CoreWeave（主體錯誤） |
+| openai/photo_9.jpg | Public domain | 退件 | 賽車塗裝，與 OpenAI 公司實景無關、易誤導 |
+| openai/photo_10.jpg | Public domain | 退件 | 賽車塗裝，易誤導 |
+| openai/photo_11.jpg | Public domain | 退件 | 賽車塗裝，易誤導 |
+| anthropic/photo_6.jpg | CC BY 2.0 | 退件 | 人物為主角（審核項 3） |
+| anthropic/photo_7.jpg | CC BY 2.0 | 退件 | 人物為主角（審核項 3） |
+| anthropic/photo_8.jpg | CC BY-SA 2.0 | 退件 | 舊金山夜景，非 Anthropic 公司主體 |
+| samsung/photo_8.jpg | CC BY 2.0 | 退件 | 首爾街景，看不出三星 |
+| samsung/photo_9.jpg | CC BY-SA 3.0 | 退件 | 首爾街景，看不出三星 |
+| samsung/photo_10.jpg | CC BY-SA 2.0 | 退件 | 漢江人工島，非三星 |
+| samsung/photo_11.jpg | CC BY-SA 4.0 | 退件 | 首爾街景，看不出三星 |
+| sk_hynix/photo_5.jpg | CC0 | 退件 | 多家公司 LOGO 拼貼（審核項 4） |
+| sk_hynix/photo_6.jpg | CC BY-SA 4.0 | 通過 | SK hynix DDR5 記憶體模組（代表產品），標籤清楚 |
+| sk_hynix/photo_7.jpg | CC BY-SA 4.0 | 通過 | SK hynix DDR5 SO-DIMM（代表產品） |
+| tsmc/photo_6.jpg | CC BY 2.0 | 退件 | 人物為主角（審核項 3） |
+| tsmc/photo_7.jpg | CC BY 2.0 | 退件 | 人物為主角（審核項 3） |
+| tsmc/photo_8.jpg | CC BY-SA 4.0 | 退件 | 徵才活動人群（審核項 3） |
+| tsmc/photo_9.jpg | CC0 | 退件 | 攤位人物（審核項 3） |
+| mediatek/photo_4.jpg | CC BY-SA 2.0 | 退件 | 手部與小產品特寫、辨識不足 |
+| mediatek/photo_5.jpg | CC BY-SA 4.0 | 通過 | 聯發科新竹總部（篤行一路 1 號），招牌立牌為場景一部分，日間 |
+| foxconn/photo_5.jpg | CC BY-SA 4.0 | 通過 | 鴻海土城頂埔廠大門與廠區，日間、無人臉 |
+| foxconn/photo_6.jpg | Public domain | 退件 | 人物為主角（審核項 3） |
+| foxconn/photo_7.jpg | CC BY-SA 4.0 | 退件 | 主機板局部，看不出鴻海 |
+| foxconn/photo_8.jpg | CC BY-SA 4.0 | 退件 | 散熱片局部，辨識不足 |
+| quanta/photo_5.jpg | CC BY-SA 2.0 | 通過 | 廣達雲端伺服器（COSCUP 展示），代表產品，景深乾淨 |
+| quanta/photo_6.jpg | CC BY 2.0 | 退件 | 人物為主角（審核項 3） |
+| quanta/photo_7.jpg | CC BY 2.0 | 退件 | 2008 年舊產品、他牌展示卡入鏡 |
+| quanta/photo_8.jpg | CC BY-SA 2.0 | 退件 | LOGO 牆為主角（審核項 4） |
+| wistron/photo_8.jpg | CC0 | 通過 | 緯創越南廠區，招牌為場景一部分 |
+| wistron/photo_9.jpg | CC BY-SA 4.0 | 退件 | 子公司緯創軟體大廳、LOGO 為主角 |
+| wistron/photo_10.jpg | CC0 | 退件 | 公車亭為主角，非公司建築 |
+| wistron/photo_11.jpg | CC0 | 通過 | 緯創捷克廠區建築，黃昏原色 |
+| ase/photo_7.jpg | CC BY 3.0 | 退件 | 上海「日月光」住宅區，同名不同公司（主體錯誤） |
+| ase/photo_8.jpg | CC BY 3.0 | 退件 | 汐止「日月光中心」，同名不同公司（主體錯誤） |
+| ase/photo_9.jpg | CC BY 2.0 | 退件 | 無塵衣人物為主角（審核項 3） |
+| ase/photo_10.jpg | CC BY 2.0 | 退件 | 無塵衣人物為主角（審核項 3） |
+| umc/photo_2.jpg | CC BY-SA 3.0 | 退件 | 招牌立牌為畫面主角（審核項 4） |
+| umc/photo_3.jpg | CC BY-SA 4.0 | 通過 | 聯電 8AB 廠外觀，日間 |
+| umc/photo_4.jpg | CC BY-SA 4.0 | 通過 | 聯電竹科聯合大樓，日間藍天 |
+| unimicron/photo_5.jpg | CC BY-SA 4.0 | 退件 | 1970 年代他牌電路板，非欣興 |
+| nanya_tech/photo_1.jpg | CC BY 2.0 | 退件 | 人物為主角（審核項 3） |
+| nanya_tech/photo_2.jpg | CC BY 2.0 | 退件 | 動土典禮會場（事件畫面） |
+| nanya_tech/photo_3.jpg | CC BY 2.0 | 退件 | 祭祀供品特寫，非公司實景 |
+| nanya_tech/photo_4.jpg | CC BY 2.0 | 退件 | 人物與媒體（審核項 3） |
+| nanya_tech/photo_5.jpg | CC BY-SA 4.0 | 退件 | Infineon 產品，他牌 LOGO（主體錯誤） |
+| nanya_tech/photo_6.jpg | CC BY-SA 4.0 | 退件 | Infineon 產品，他牌 LOGO（主體錯誤） |
+| nanya_tech/photo_7.jpg | CC BY-SA 4.0 | 退件 | TI 晶片，他牌 LOGO（主體錯誤） |
+| nan_ya_pcb/photo_1.jpg | CC BY-SA 4.0 | 退件 | 1970 年代他牌電路板，非南電 |
+| nan_ya_pcb/photo_2.jpg | CC BY 4.0 | 退件 | 他牌音響電路板，非南電 |
+| nan_ya_pcb/photo_3.jpg | CC BY-SA 3.0 | 退件 | 他牌電路板，非南電 |
+| eml/photo_1.jpg | CC BY-SA 4.0 | 退件 | 倫敦街景倒影，非台光電（主體錯誤） |
+| eml/photo_2.jpg | CC BY-SA 4.0 | 退件 | 倫敦街景倒影，非台光電（主體錯誤） |
+| eml/photo_3.jpg | CC BY-SA 4.0 | 退件 | 他牌 DVD 電路板，非台光電 |
+| eml/photo_4.jpg | CC BY-SA 4.0 | 退件 | 他牌電路板，非台光電 |
+| eml/photo_5.jpg | CC BY 2.0 | 退件 | 他牌電路板，非台光電 |
+| delta/photo_9.jpg | CC BY-SA 4.0 | 退件 | 警告標籤為主角 |
+| delta/photo_10.jpg | CC BY-SA 3.0 | 退件 | 陰天灰暗、建築同框他家公司，主體存疑 |
+| delta/photo_11.jpg | CC BY-SA 4.0 | 通過 | 台達電太陽能逆變器（2019 電腦展），代表產品 |
+| delta/photo_12.jpg | CC BY-SA 4.0 | 通過 | 台達電鋰電池模組（2019 電腦展），代表產品 |
+| arm/photo_5.jpg | Public domain | 退件 | 手寫信件，與 Arm 無關（主體錯誤） |
+| arm/photo_6.jpg | CC BY-SA 4.0 | 退件 | Raspberry Pi 板子，非 Arm（他牌） |
+| arm/photo_7.jpg | CC BY-SA 4.0 | 退件 | 他牌 PROM 晶片，非 Arm |
+
+審完各家已審張數：Alphabet 5、Microsoft 5、Apple 6、Amazon 7、Meta 2、NVIDIA 3、Intel 5、AMD 4、Broadcom 2、Micron 4、Tesla 1、Oracle 4、OpenAI 1、三星 1、SK 海力士 2、台積電 3、聯發科 1、鴻海 1、廣達 1、緯創 4、日月光 2、聯電 2、欣興 2、台達電 5、Qualcomm 2、Arm 1。**仍是 0 張**（主體出現時退到該公司類別池，不會用別家公司圖）：CoreWeave、Anthropic、南亞科、南電、台光電、ASML。下一步：`targets.json` 換更精準的 Commons 分類名重抓。

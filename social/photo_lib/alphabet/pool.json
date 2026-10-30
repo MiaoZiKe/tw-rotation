@@ -112,10 +112,11 @@
    "width": 1920,
    "height": 1440,
    "fetched_at": "2026-10-30T01:49:25+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": "",
-   "origin": "公司分類"
+   "reviewed": true,
+   "reviewer": "art-director 審核清單（social-ops-lead 執行）",
+   "review_note": "2026-10-30 第五輪（公司照片優先）通過：Google 山景城園區的公司自行車（Google 配色），辨識度高、原色、無人臉",
+   "origin": "公司分類",
+   "reviewed_at": "2026-10-30"
   },
   {
    "file": "photo_6.jpg",
@@ -135,9 +136,11 @@
    "height": 1920,
    "fetched_at": "2026-10-30T01:49:25+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": "",
-   "origin": "公司分類"
+   "reviewer": "art-director 審核清單（social-ops-lead 執行）",
+   "review_note": "2026-10-30 第五輪退件：Google LOGO 特寫為畫面主角（審核項 4）",
+   "origin": "公司分類",
+   "reviewed_at": "2026-10-30",
+   "reject_reason": "Google LOGO 特寫為畫面主角（審核項 4）"
   },
   {
    "file": "photo_7.jpg",
@@ -157,9 +160,11 @@
    "height": 1080,
    "fetched_at": "2026-10-30T01:49:25+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": "",
-   "origin": "公司分類"
+   "reviewer": "art-director 審核清單（social-ops-lead 執行）",
+   "review_note": "2026-10-30 第五輪退件：地面自行車標線，辨識不足",
+   "origin": "公司分類",
+   "reviewed_at": "2026-10-30",
+   "reject_reason": "地面自行車標線，辨識不足"
   },
   {
    "file": "photo_8.jpg",
@@ -178,10 +183,11 @@
    "width": 1920,
    "height": 1280,
    "fetched_at": "2026-10-30T01:49:25+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": "",
-   "origin": "公司分類"
+   "reviewed": true,
+   "reviewer": "art-director 審核清單（social-ops-lead 執行）",
+   "review_note": "2026-10-30 第五輪（公司照片優先）通過：Google 園區公司自行車，日間、構圖乾淨",
+   "origin": "公司分類",
+   "reviewed_at": "2026-10-30"
   }
  ],
  "rejected": [

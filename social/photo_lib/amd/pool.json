@@ -134,10 +134,11 @@
    "width": 1503,
    "height": 868,
    "fetched_at": "2026-10-30T01:49:54+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": "",
-   "origin": "公司分類"
+   "reviewed": true,
+   "reviewer": "art-director 審核清單（social-ops-lead 執行）",
+   "review_note": "2026-10-30 第五輪（公司照片優先）通過：AMD 森尼韋爾總部，日間",
+   "origin": "公司分類",
+   "reviewed_at": "2026-10-30"
   },
   {
    "file": "photo_7.jpg",
@@ -157,9 +158,11 @@
    "height": 1280,
    "fetched_at": "2026-10-30T01:49:54+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": "",
-   "origin": "公司分類"
+   "reviewer": "art-director 審核清單（social-ops-lead 執行）",
+   "review_note": "2026-10-30 第五輪退件：港口筒倉，非 AMD（主體錯誤）",
+   "origin": "公司分類",
+   "reviewed_at": "2026-10-30",
+   "reject_reason": "港口筒倉，非 AMD（主體錯誤）"
   },
   {
    "file": "photo_8.jpg",
@@ -179,9 +182,11 @@
    "height": 1338,
    "fetched_at": "2026-10-30T01:49:54+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": "",
-   "origin": "公司分類"
+   "reviewer": "art-director 審核清單（social-ops-lead 執行）",
+   "review_note": "2026-10-30 第五輪退件：2004 年施工中工地（審核項 8）",
+   "origin": "公司分類",
+   "reviewed_at": "2026-10-30",
+   "reject_reason": "2004 年施工中工地（審核項 8）"
   },
   {
    "file": "photo_9.jpg",
@@ -201,9 +206,11 @@
    "height": 1280,
    "fetched_at": "2026-10-30T01:49:54+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": "",
-   "origin": "公司分類"
+   "reviewer": "art-director 審核清單（social-ops-lead 執行）",
+   "review_note": "2026-10-30 第五輪退件：港口筒倉，非 AMD（主體錯誤）",
+   "origin": "公司分類",
+   "reviewed_at": "2026-10-30",
+   "reject_reason": "港口筒倉，非 AMD（主體錯誤）"
   }
  ],
  "rejected": [

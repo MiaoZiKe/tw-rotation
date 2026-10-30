@@ -19,9 +19,11 @@
    "height": 1222,
    "fetched_at": "2026-10-30T01:51:19+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": "",
-   "origin": "公司分類"
+   "reviewer": "art-director 審核清單（social-ops-lead 執行）",
+   "review_note": "2026-10-30 第五輪退件：人物為主角（審核項 3）",
+   "origin": "公司分類",
+   "reviewed_at": "2026-10-30",
+   "reject_reason": "人物為主角（審核項 3）"
   },
   {
    "file": "photo_2.jpg",
@@ -41,9 +43,11 @@
    "height": 1280,
    "fetched_at": "2026-10-30T01:51:20+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": "",
-   "origin": "公司分類"
+   "reviewer": "art-director 審核清單（social-ops-lead 執行）",
+   "review_note": "2026-10-30 第五輪退件：動土典禮會場（事件畫面）",
+   "origin": "公司分類",
+   "reviewed_at": "2026-10-30",
+   "reject_reason": "動土典禮會場（事件畫面）"
   },
   {
    "file": "photo_3.jpg",
@@ -63,9 +67,11 @@
    "height": 1175,
    "fetched_at": "2026-10-30T01:51:21+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": "",
-   "origin": "公司分類"
+   "reviewer": "art-director 審核清單（social-ops-lead 執行）",
+   "review_note": "2026-10-30 第五輪退件：祭祀供品特寫，非公司實景",
+   "origin": "公司分類",
+   "reviewed_at": "2026-10-30",
+   "reject_reason": "祭祀供品特寫，非公司實景"
   },
   {
    "file": "photo_4.jpg",
@@ -85,9 +91,11 @@
    "height": 1238,
    "fetched_at": "2026-10-30T01:51:23+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": "",
-   "origin": "公司分類"
+   "reviewer": "art-director 審核清單（social-ops-lead 執行）",
+   "review_note": "2026-10-30 第五輪退件：人物與媒體（審核項 3）",
+   "origin": "公司分類",
+   "reviewed_at": "2026-10-30",
+   "reject_reason": "人物與媒體（審核項 3）"
   },
   {
    "file": "photo_5.jpg",
@@ -107,8 +115,10 @@
    "height": 484,
    "fetched_at": "2026-10-30T01:51:24+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewer": "art-director 審核清單（social-ops-lead 執行）",
+   "review_note": "2026-10-30 第五輪退件：Infineon 產品，他牌 LOGO（主體錯誤）",
+   "reviewed_at": "2026-10-30",
+   "reject_reason": "Infineon 產品，他牌 LOGO（主體錯誤）"
   },
   {
    "file": "photo_6.jpg",
@@ -128,8 +138,10 @@
    "height": 968,
    "fetched_at": "2026-10-30T01:51:24+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewer": "art-director 審核清單（social-ops-lead 執行）",
+   "review_note": "2026-10-30 第五輪退件：Infineon 產品，他牌 LOGO（主體錯誤）",
+   "reviewed_at": "2026-10-30",
+   "reject_reason": "Infineon 產品，他牌 LOGO（主體錯誤）"
   },
   {
    "file": "photo_7.jpg",
@@ -149,8 +161,10 @@
    "height": 1592,
    "fetched_at": "2026-10-30T01:51:26+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewer": "art-director 審核清單（social-ops-lead 執行）",
+   "review_note": "2026-10-30 第五輪退件：TI 晶片，他牌 LOGO（主體錯誤）",
+   "reviewed_at": "2026-10-30",
+   "reject_reason": "TI 晶片，他牌 LOGO（主體錯誤）"
   }
  ],
  "rejected": []

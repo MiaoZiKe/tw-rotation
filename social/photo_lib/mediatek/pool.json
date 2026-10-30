@@ -88,13 +88,15 @@
    "height": 1277,
    "fetched_at": "2026-10-30T01:48:26+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": "",
-   "origin": "公司分類"
+   "reviewer": "art-director 審核清單（social-ops-lead 執行）",
+   "review_note": "2026-10-30 第五輪退件：手部與小產品特寫、辨識不足",
+   "origin": "公司分類",
+   "reviewed_at": "2026-10-30",
+   "reject_reason": "手部與小產品特寫、辨識不足"
   },
   {
    "file": "photo_5.jpg",
-   "kind": "產品",
+   "kind": "總部/廠房",
    "slug": "mediatek",
    "name_en": "MediaTek",
    "query": "cat:MediaTek",
@@ -109,10 +111,11 @@
    "width": 1920,
    "height": 1440,
    "fetched_at": "2026-10-30T01:48:26+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": "",
-   "origin": "公司分類"
+   "reviewed": true,
+   "reviewer": "art-director 審核清單（social-ops-lead 執行）",
+   "review_note": "2026-10-30 第五輪（公司照片優先）通過：聯發科新竹總部（篤行一路 1 號），招牌立牌為場景一部分，日間",
+   "origin": "公司分類",
+   "reviewed_at": "2026-10-30"
   }
  ],
  "rejected": [

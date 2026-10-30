@@ -227,9 +227,11 @@
    "height": 1080,
    "fetched_at": "2026-10-30T01:50:33+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": "",
-   "origin": "公司分類"
+   "reviewer": "art-director 審核清單（social-ops-lead 執行）",
+   "review_note": "2026-10-30 第五輪退件：施工中鋼構（審核項 8）",
+   "origin": "公司分類",
+   "reviewed_at": "2026-10-30",
+   "reject_reason": "施工中鋼構（審核項 8）"
   },
   {
    "file": "photo_11.jpg",
@@ -249,9 +251,11 @@
    "height": 1080,
    "fetched_at": "2026-10-30T01:50:33+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": "",
-   "origin": "公司分類"
+   "reviewer": "art-director 審核清單（social-ops-lead 執行）",
+   "review_note": "2026-10-30 第五輪退件：施工現場（審核項 8）",
+   "origin": "公司分類",
+   "reviewed_at": "2026-10-30",
+   "reject_reason": "施工現場（審核項 8）"
   },
   {
    "file": "photo_12.jpg",
@@ -271,9 +275,11 @@
    "height": 1080,
    "fetched_at": "2026-10-30T01:50:33+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": "",
-   "origin": "公司分類"
+   "reviewer": "art-director 審核清單（social-ops-lead 執行）",
+   "review_note": "2026-10-30 第五輪退件：施工中鋼構（審核項 8）",
+   "origin": "公司分類",
+   "reviewed_at": "2026-10-30",
+   "reject_reason": "施工中鋼構（審核項 8）"
   }
  ],
  "rejected": []

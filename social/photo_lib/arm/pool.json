@@ -114,8 +114,10 @@
    "height": 1546,
    "fetched_at": "2026-10-30T01:50:56+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewer": "art-director 審核清單（social-ops-lead 執行）",
+   "review_note": "2026-10-30 第五輪退件：手寫信件，與 Arm 無關（主體錯誤）",
+   "reviewed_at": "2026-10-30",
+   "reject_reason": "手寫信件，與 Arm 無關（主體錯誤）"
   },
   {
    "file": "photo_6.jpg",
@@ -135,8 +137,10 @@
    "height": 2087,
    "fetched_at": "2026-10-30T01:50:59+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewer": "art-director 審核清單（social-ops-lead 執行）",
+   "review_note": "2026-10-30 第五輪退件：Raspberry Pi 板子，非 Arm（他牌）",
+   "reviewed_at": "2026-10-30",
+   "reject_reason": "Raspberry Pi 板子，非 Arm（他牌）"
   },
   {
    "file": "photo_7.jpg",
@@ -156,8 +160,10 @@
    "height": 1920,
    "fetched_at": "2026-10-30T01:51:02+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewer": "art-director 審核清單（social-ops-lead 執行）",
+   "review_note": "2026-10-30 第五輪退件：他牌 PROM 晶片，非 Arm",
+   "reviewed_at": "2026-10-30",
+   "reject_reason": "他牌 PROM 晶片，非 Arm"
   }
  ],
  "rejected": []

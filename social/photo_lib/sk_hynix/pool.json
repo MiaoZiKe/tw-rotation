@@ -111,9 +111,11 @@
    "height": 1080,
    "fetched_at": "2026-10-30T01:50:05+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": "",
-   "origin": "公司分類"
+   "reviewer": "art-director 審核清單（social-ops-lead 執行）",
+   "review_note": "2026-10-30 第五輪退件：多家公司 LOGO 拼貼（審核項 4）",
+   "origin": "公司分類",
+   "reviewed_at": "2026-10-30",
+   "reject_reason": "多家公司 LOGO 拼貼（審核項 4）"
   },
   {
    "file": "photo_6.jpg",
@@ -132,10 +134,11 @@
    "width": 1920,
    "height": 1073,
    "fetched_at": "2026-10-30T01:50:05+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": "",
-   "origin": "公司分類"
+   "reviewed": true,
+   "reviewer": "art-director 審核清單（social-ops-lead 執行）",
+   "review_note": "2026-10-30 第五輪（公司照片優先）通過：SK hynix DDR5 記憶體模組（代表產品），標籤清楚",
+   "origin": "公司分類",
+   "reviewed_at": "2026-10-30"
   },
   {
    "file": "photo_7.jpg",
@@ -154,10 +157,11 @@
    "width": 1920,
    "height": 1920,
    "fetched_at": "2026-10-30T01:50:05+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": "",
-   "origin": "公司分類"
+   "reviewed": true,
+   "reviewer": "art-director 審核清單（social-ops-lead 執行）",
+   "review_note": "2026-10-30 第五輪（公司照片優先）通過：SK hynix DDR5 SO-DIMM（代表產品）",
+   "origin": "公司分類",
+   "reviewed_at": "2026-10-30"
   }
  ],
  "rejected": [

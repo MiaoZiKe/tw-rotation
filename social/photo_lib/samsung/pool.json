@@ -182,9 +182,11 @@
    "height": 1050,
    "fetched_at": "2026-10-30T01:50:04+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": "",
-   "origin": "公司分類"
+   "reviewer": "art-director 審核清單（social-ops-lead 執行）",
+   "review_note": "2026-10-30 第五輪退件：首爾街景，看不出三星",
+   "origin": "公司分類",
+   "reviewed_at": "2026-10-30",
+   "reject_reason": "首爾街景，看不出三星"
   },
   {
    "file": "photo_9.jpg",
@@ -204,9 +206,11 @@
    "height": 495,
    "fetched_at": "2026-10-30T01:50:04+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": "",
-   "origin": "公司分類"
+   "reviewer": "art-director 審核清單（social-ops-lead 執行）",
+   "review_note": "2026-10-30 第五輪退件：首爾街景，看不出三星",
+   "origin": "公司分類",
+   "reviewed_at": "2026-10-30",
+   "reject_reason": "首爾街景，看不出三星"
   },
   {
    "file": "photo_10.jpg",
@@ -226,9 +230,11 @@
    "height": 1134,
    "fetched_at": "2026-10-30T01:50:04+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": "",
-   "origin": "公司分類"
+   "reviewer": "art-director 審核清單（social-ops-lead 執行）",
+   "review_note": "2026-10-30 第五輪退件：漢江人工島，非三星",
+   "origin": "公司分類",
+   "reviewed_at": "2026-10-30",
+   "reject_reason": "漢江人工島，非三星"
   },
   {
    "file": "photo_11.jpg",
@@ -248,9 +254,11 @@
    "height": 979,
    "fetched_at": "2026-10-30T01:50:04+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": "",
-   "origin": "公司分類"
+   "reviewer": "art-director 審核清單（social-ops-lead 執行）",
+   "review_note": "2026-10-30 第五輪退件：首爾街景，看不出三星",
+   "origin": "公司分類",
+   "reviewed_at": "2026-10-30",
+   "reject_reason": "首爾街景，看不出三星"
   }
  ],
  "rejected": [

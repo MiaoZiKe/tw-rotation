@@ -206,10 +206,11 @@
    "width": 1920,
    "height": 1440,
    "fetched_at": "2026-10-30T01:49:21+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": "",
-   "origin": "公司分類"
+   "reviewed": true,
+   "reviewer": "art-director 審核清單（social-ops-lead 執行）",
+   "review_note": "2026-10-30 第五輪（公司照片優先）通過：Microsoft 雷德蒙園區 Building 42，日間、雪景，無人臉",
+   "origin": "公司分類",
+   "reviewed_at": "2026-10-30"
   },
   {
    "file": "photo_10.jpg",
@@ -229,9 +230,11 @@
    "height": 1440,
    "fetched_at": "2026-10-30T01:49:21+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": "",
-   "origin": "公司分類"
+   "reviewer": "art-director 審核清單（social-ops-lead 執行）",
+   "review_note": "2026-10-30 第五輪退件：雜亂工作台，與 Microsoft 無直接關聯（審核項 9）",
+   "origin": "公司分類",
+   "reviewed_at": "2026-10-30",
+   "reject_reason": "雜亂工作台，與 Microsoft 無直接關聯（審核項 9）"
   },
   {
    "file": "photo_11.jpg",
@@ -251,9 +254,11 @@
    "height": 1277,
    "fetched_at": "2026-10-30T01:49:21+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": "",
-   "origin": "公司分類"
+   "reviewer": "art-director 審核清單（social-ops-lead 執行）",
+   "review_note": "2026-10-30 第五輪退件：線材特寫，無法辨識公司",
+   "origin": "公司分類",
+   "reviewed_at": "2026-10-30",
+   "reject_reason": "線材特寫，無法辨識公司"
   },
   {
    "file": "photo_12.jpg",
@@ -272,10 +277,11 @@
    "width": 1920,
    "height": 1440,
    "fetched_at": "2026-10-30T01:49:21+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": "",
-   "origin": "公司分類"
+   "reviewed": true,
+   "reviewer": "art-director 審核清單（social-ops-lead 執行）",
+   "review_note": "2026-10-30 第五輪（公司照片優先）通過：Microsoft 園區 Building 17 正門，日間、構圖乾淨",
+   "origin": "公司分類",
+   "reviewed_at": "2026-10-30"
   },
   {
    "file": "photo_13.jpg",
@@ -295,8 +301,10 @@
    "height": 1242,
    "fetched_at": "2026-10-30T01:49:23+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewer": "art-director 審核清單（social-ops-lead 執行）",
+   "review_note": "2026-10-30 第五輪退件：地圖（非實景照片）",
+   "reviewed_at": "2026-10-30",
+   "reject_reason": "地圖（非實景照片）"
   }
  ],
  "rejected": []
