@@ -1799,6 +1799,8 @@
              砍成數字＋亮框的意思；「淡的也能點」在圖上點下去就知道，不必寫。*/
           ? `${stat.nSeg} 格、${stat.nTw} 檔、${stat.nEdge} 條上下游；亮框＝剖析圖畫到的 ${relScope.size} 格`
           : `這條鏈 ${stat.nSeg} 格、${stat.nTw} 檔台股、${stat.nEdge} 條上下游關係`);
+        /* 2026-10-29 手機（html.m4）：關聯圖延後畫完才有橫向捲動寬度，請 app.js 補上右緣淡出提示（桌機不呼叫） */
+        if (document.documentElement.classList.contains('m4') && window.twSwipeScan) { setTimeout(window.twSwipeScan, 60); setTimeout(window.twSwipeScan, 600); }
       };
       /* ★ 2026-09-25 效能（perf-2）：關聯圖在剖析圖下面（1440×900 首屏看不到），改成捲近了（或瀏覽器閒下來）才畫。
          以前跟剖析圖在同一個任務裡畫：drawMap 一開頭讀 clientWidth，逼整頁（含剛插進去的剖析圖）當場排版，

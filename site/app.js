@@ -2555,6 +2555,13 @@
         }
         paintSwipe(el);
       });
+      /* 2026-10-29 手機按鈕普查：產業鏈關聯圖 #chainMap 在 390 寬是 768～922px 的橫向捲動面板（本來就左右滑），
+         但沒有淡出提示，右邊的環節標題被切掉卻看不出能滑。只在手機版（html.m4，≤640）補上右緣淡出（.hsc）；
+         桌機與 641～820 完全不掛（沒進 SWIPE_SEL，所以桌機路徑一個字都不動）。 */
+      if (document.documentElement.classList.contains('m4')) document.querySelectorAll('#chainMap').forEach(el => {
+        if (!el._swipeWired) { el._swipeWired = true; el.addEventListener('scroll', () => paintSwipe(el), { passive: true }); }
+        paintSwipe(el);
+      });
       document.querySelectorAll(STICKY_SCROLL_SEL).forEach(el => {
         if (!el._stickyWired) {
           el._stickyWired = true;

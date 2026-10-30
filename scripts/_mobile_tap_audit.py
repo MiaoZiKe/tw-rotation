@@ -72,6 +72,10 @@ EXEMPT: dict[str, str] = {
     #   「送出／新增之後真的生效」由 訂閱與客服1005、個股的自訂週期各自的段落驗。
     "select#fbCat": "客服表單的「類別」下拉：只是表單欄位，選了不變是正常（送出才有反應）",
     "select#tfU": "自訂週期的「單位」下拉：只是表單欄位，選了不變是正常（按新增才生效）",
+    # 2026-10-29：ETF 配息行事曆沒有除息的日子（data-n="0"）是 <button tabindex="-1">，etfpage.js 只幫 .cald.has 綁點擊
+    #   （c.onclick 只掛在 `.cald.has`），空白日子本來就不會有反應；有除息的日子（.cald.has）仍一顆一顆驗點得到、點了真的選日。
+    #   以前剛好都抽樣到有除息的日子，這次排序抽到 10-01、10-10 兩個空格才冒出來。
+    'button.cald[data-n="0"]': "ETF 配息行事曆沒有除息的日子：刻意不綁點擊（tabindex=-1），點了不變是設計",
 }
 
 # ---------------------------------------------------------------------------- 瀏覽器端的量測
@@ -389,8 +393,19 @@ BLANK_JS = r"""
   for (let y = 120; y < innerHeight - 90; y += 31) for (let x = 6; x < innerWidth - 4; x += 23) {
     const h = document.elementFromPoint(x, y); if (!h) continue;
     if (h.closest(INTER) || h.closest('header,#tabs,nav,svg,canvas')) continue;
+    // 2026-10-29：分段晶片列（鏈別 #chainSwitch、.m4seg、.mpager）晶片之間的縫隙不算空白 —— 手機觸控會自動貼向隔壁晶片，
+    // 「點空白處」實際點到 AI 伺服器那顆，整頁換鏈，後面 replay 的分段步驟全部對不上（切不到分段 #dgPick > :nth-child(4～9)）。
+    if (h.closest('.chainsw,.m4seg,.mpager,#chainSwitch,#dgPick')) continue;
     let p = false; for (let n = h; n; n = n.parentElement) { if (getComputedStyle(n).cursor === 'pointer') { p = true; break; } }
     if (p) continue;
+    // 2026-10-29：手機觸控的點擊會自動貼向 ~24px 內最近的可點元素（Chrome touch adjustment）。「空白」點旁邊 24px 內有可點的鈕，
+    // 實際點到的就是那顆鈕 —— 分段列捲動後，露出左邊緣幾 px 的鏈別晶片（AI 伺服器）被點中、整頁換鏈、之後 replay 的分段步驟全部對不上。
+    let near = false;
+    for (const [dx, dy] of [[-24, 0], [24, 0], [0, -24], [0, 24], [-17, -17], [17, -17], [-17, 17], [17, 17]]) {
+      const e = document.elementFromPoint(Math.max(0, Math.min(innerWidth - 1, x + dx)), Math.max(0, Math.min(innerHeight - 1, y + dy)));
+      if (e && e.closest(INTER)) { near = true; break; }
+    }
+    if (near) continue;
     return {x, y};
   }
   return null;
@@ -500,11 +515,17 @@ OUTSIDE_JS = r"""
 () => {
   const L = window.__taLayer && window.__taLayer.isConnected ? window.__taLayer : null; if (!L) return null;
   const lr = L.getBoundingClientRect();
+  // 2026-10-29（保險）：手機觸控的點擊會貼向 ~24px 內最近的可點元素，「外面」不選緊貼可點元素的點。
+  const NEAR_I = 'button,a[href],summary,label,select,input,textarea,[role=button],[role=tab],[role=link],[onclick]';
+  const nearInter = (x, y) => [[-24, 0], [24, 0], [0, -24], [0, 24], [-17, -17], [17, -17], [-17, 17], [17, 17]].some(([dx, dy]) => {
+    const e = document.elementFromPoint(Math.max(0, Math.min(innerWidth - 1, x + dx)), Math.max(0, Math.min(innerHeight - 1, y + dy)));
+    return !!(e && e.closest(NEAR_I) && !(L.contains(e)) && !/back|scrim|mask|shade|overlay/i.test(String(e.className) + e.id));
+  });
   // 浮層本身就是整片的背板（例如只量到 #howBack、氣泡在它上面）：點背板露出來的地方就是「點外面」
   if (lr.width >= innerWidth * 0.9 && lr.height >= innerHeight * 0.5 && /back|scrim|mask|shade|overlay/i.test(String(L.className) + L.id)) {
     for (let y = 70; y < innerHeight - 70; y += 37) for (let x = 8; x < innerWidth - 4; x += 29) {
       const h = document.elementFromPoint(x, y);
-      if (h === L) return {x, y, on: (L.id ? '#' + L.id : '') + '.' + String(L.className).split(' ')[0]};
+      if (h === L && !nearInter(x, y)) return {x, y, on: (L.id ? '#' + L.id : '') + '.' + String(L.className).split(' ')[0]};
     }
     return null;
   }
@@ -523,6 +544,7 @@ OUTSIDE_JS = r"""
     if (!scrim && getComputedStyle(h).cursor === 'pointer') continue;
     // 不要點在 header／底部導覽上
     if (h.closest('header,.topbar,#tabs,nav')) continue;
+    if (nearInter(x, y)) continue;
     return {x, y, on: (h.id ? '#' + h.id : '') + '.' + String(h.className).split(' ')[0]};
   }
   return null;
@@ -657,7 +679,15 @@ class Auditor:
             try:
                 loc = pg.locator(sel).first
                 loc.scroll_into_view_if_needed(timeout=3000)
+                # 2026-10-29（保險）：分段列可能還在捲，等位置連續兩次量到一樣（最多 1.5 秒）再點。
+                # （「切不到分段 #dgPick > :nth-child(4～9)」的真正原因是 baseline 的空白點見 BLANK_JS，不是這裡。）
                 box = loc.bounding_box()
+                for _ in range(15):
+                    pg.wait_for_timeout(100)
+                    b2 = loc.bounding_box()
+                    if b2 and box and abs(b2["x"] - box["x"]) < 0.5 and abs(b2["y"] - box["y"]) < 0.5:
+                        break
+                    box = b2
                 if box:
                     pg.touchscreen.tap(box["x"] + box["width"] / 2, box["y"] + box["height"] / 2)
                 pg.wait_for_timeout(900)
@@ -715,6 +745,10 @@ class Auditor:
             for bt in bar["btns"]:
                 if bt["on"]:
                     continue
+                # 2026-10-29：「＋」是「新增一份自選清單」（寫入資料），不是切換分段。往下走會在重放時（localStorage 已清空）
+                # 點到根本不存在的第 4 個頁籤 → 誤報「切不到分段 #wpTabs > :nth-child(4)」。「＋」本身照樣在它所在的畫面被點到、驗有反應。
+                if bt["label"].strip() in ("＋", "+"):
+                    continue
                 s2 = {"name": f"{st['name']}／{bt['label']}", "hash": st["hash"], "parent_cur": cur,
                       "steps": st.get("steps", []) + [f"{bar['sel']} > :nth-child({bt['nth']})"]}
                 if depth < 2:
@@ -731,6 +765,10 @@ class Auditor:
                 continue
             for bt in bar["btns"]:
                 if bt["on"]:
+                    continue
+                # 2026-10-29：「＋」是「新增一份自選清單」（寫入資料），不是切換分段。往下走會在重放時（localStorage 已清空）
+                # 點到根本不存在的第 4 個頁籤 → 誤報「切不到分段 #wpTabs > :nth-child(4)」。「＋」本身照樣在它所在的畫面被點到、驗有反應。
+                if bt["label"].strip() in ("＋", "+"):
                     continue
                 s2 = {"name": f"{st['name']}／{bt['label']}", "hash": st["hash"],
                       "steps": st.get("steps", []) + [f"{bar['sel']} > :nth-child({bt['nth']})"]}
@@ -882,6 +920,10 @@ class Auditor:
         兩條路都關不掉才算「收不回來」。"""
         pg = self.pg
         tried = []
+        # 2026-10-29：底部抽屜是「點零件開的」時，網站刻意把開啟後 450ms 內落在背景（#mSheetBack）上的 click 吃掉
+        # （diagrams.js sheetOpen 的 ghost 擋板、mobile3.js 的 eat：3D／zrender 手指放開後補發的幽靈 click）。
+        # 量測的 REACT 一偵測到反應就往下走，點外面常落在 450ms 內 → 被吃掉 → 誤報「點外面之後浮層還在」。真人不會在 0.45 秒內關掉，等過去再點。
+        pg.wait_for_timeout(550)
 
         def still_open() -> bool:
             pg.wait_for_timeout(200)
@@ -1080,8 +1122,15 @@ class Auditor:
 
         def restore(force: bool = False):
             cur = "#" + self.pg.url.split("#", 1)[1] if "#" in self.pg.url else ""
-            if force or cur != st.get("cur", st["hash"]):
-                self.load(st, fresh=bool(st.get("steps")) or force)
+            # 2026-10-29：總覽的「導覽」鈕直接開導覽（#twTour 遮罩全頁、帶著走到別頁）。只把 hash 改回來遮罩還在，
+            # 下一顆再點「導覽」鈕就被 .twt-block 蓋住（假紅）。導覽開著就整頁重載。
+            tour_on = False
+            try:
+                tour_on = bool(self.pg.evaluate("() => !!document.getElementById('twTour')"))
+            except Exception:  # noqa: BLE001
+                pass
+            if force or tour_on or cur != st.get("cur", st["hash"]):
+                self.load(st, fresh=bool(st.get("steps")) or force or tour_on)
             return True
         self.audit_scope(st, None, 0, restore)
 
