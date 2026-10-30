@@ -9274,22 +9274,22 @@
           "years": null,
           "base_month_k": [
             53,
-            80
+            53
           ],
           "bonus_months": null,
           "annual_months": null,
           "annual_total_wan": null,
           "weekly_hours": [
             40,
-            65
+            40
           ],
-          "overtime": null,
+          "overtime": "偶爾",
           "travel": null,
-          "n": 2,
+          "n": 1,
           "note": "2026-10-29 GoodJob 合併批新增職位",
           "confidence": "低",
           "grade": null,
-          "n_stat": 2,
+          "n_stat": 1,
           "samples": [
             {
               "site": "GoodJob",
@@ -9312,28 +9312,6 @@
               "quote_free_note": "自填；日工時 表訂/實際 8/8 小時",
               "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2025-05（20261029_1541 大檔，1541 檔）"
-            },
-            {
-              "site": "GoodJob",
-              "url": "https://www.goodjob.life/companies/辛耘企業股份有限公司/salary-work-times?p=1",
-              "date": "2026-03",
-              "page_date": "2026-03",
-              "date_confirmed": true,
-              "role": "技術副理",
-              "grade": null,
-              "unit_detail": "台南",
-              "years": "10",
-              "degree": null,
-              "base_k": 80,
-              "bonus_months": null,
-              "annual_months": null,
-              "annual_wan": null,
-              "weekly_hours": 65,
-              "overtime": "經常",
-              "travel": null,
-              "quote_free_note": "自填；日工時 表訂/實際 8/12 小時；原選項幾乎每天；職稱未寫工程師",
-              "in_window": true,
-              "date_note": "GoodJob 頁面標示年月 2026-03（20261029_職稱未寫工程師補回（10-30 Andy 拍板），1541 檔）"
             }
           ],
           "sources": [
@@ -10552,7 +10530,7 @@
           "annual_months": null,
           "annual_total_wan": [
             60,
-            120
+            80
           ],
           "weekly_hours": [
             40,
@@ -10560,11 +10538,11 @@
           ],
           "overtime": "偶爾",
           "travel": null,
-          "n": 8,
+          "n": 6,
           "note": "2026-10-29 GoodJob 合併批新增職位",
           "confidence": "低",
           "grade": null,
-          "n_stat": 8,
+          "n_stat": 6,
           "samples": [
             {
               "site": "GoodJob",
@@ -10697,50 +10675,6 @@
               "quote_free_note": "自填；日工時 表訂/實際 8/6 小時",
               "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2025-08（20261029_1541 大檔，1541 檔）"
-            },
-            {
-              "site": "GoodJob",
-              "url": "https://www.goodjob.life/companies/帆宣系統科技股份有限公司/salary-work-times?p=1",
-              "date": "2026-10",
-              "page_date": "2026-10",
-              "date_confirmed": true,
-              "role": "副課長",
-              "grade": null,
-              "unit_detail": "tsmc",
-              "years": "9",
-              "degree": null,
-              "base_k": null,
-              "bonus_months": null,
-              "annual_months": null,
-              "annual_wan": 120,
-              "weekly_hours": 45,
-              "overtime": "偶爾",
-              "travel": null,
-              "quote_free_note": "自填；日工時 表訂/實際 8/9 小時；職稱未寫工程師",
-              "in_window": true,
-              "date_note": "GoodJob 頁面標示年月 2026-10（20261029_職稱未寫工程師補回（10-30 Andy 拍板），1541 檔）"
-            },
-            {
-              "site": "GoodJob",
-              "url": "https://www.goodjob.life/companies/帆宣系統科技股份有限公司/salary-work-times?p=2",
-              "date": "2025-09",
-              "page_date": "2025-09",
-              "date_confirmed": true,
-              "role": "監工",
-              "grade": null,
-              "unit_detail": null,
-              "years": null,
-              "degree": null,
-              "base_k": null,
-              "bonus_months": null,
-              "annual_months": null,
-              "annual_wan": 70,
-              "weekly_hours": 40,
-              "overtime": "偶爾",
-              "travel": null,
-              "quote_free_note": "自填；日工時 表訂/實際 8/8 小時；職稱未寫工程師",
-              "in_window": true,
-              "date_note": "GoodJob 頁面標示年月 2025-09（20261029_職稱未寫工程師補回（10-30 Andy 拍板），1541 檔）"
             }
           ],
           "sources": [
@@ -11116,13 +11050,13 @@
             40,
             45
           ],
-          "overtime": null,
+          "overtime": "經常",
           "travel": null,
-          "n": 4,
+          "n": 3,
           "note": "2026-10-29 GoodJob 合併批新增職位",
           "confidence": "低",
           "grade": null,
-          "n_stat": 4,
+          "n_stat": 3,
           "samples": [
             {
               "site": "GoodJob",
@@ -11189,28 +11123,6 @@
               "quote_free_note": "自填；日工時 表訂/實際 8/8 小時；漢唐集成 頁",
               "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2026-07（20261029_1541 大檔，1541 檔）"
-            },
-            {
-              "site": "GoodJob",
-              "url": "https://www.goodjob.life/companies/漢唐集成股份有限公司/salary-work-times?p=1",
-              "date": "2026-07",
-              "page_date": "2026-07",
-              "date_confirmed": true,
-              "role": "繪圖員",
-              "grade": null,
-              "unit_detail": "新竹",
-              "years": null,
-              "degree": null,
-              "base_k": 46,
-              "bonus_months": null,
-              "annual_months": null,
-              "annual_wan": null,
-              "weekly_hours": 45,
-              "overtime": "偶爾",
-              "travel": null,
-              "quote_free_note": "自填；日工時 表訂/實際 8/9 小時；職稱未寫工程師",
-              "in_window": true,
-              "date_note": "GoodJob 頁面標示年月 2026-07（20261029_職稱未寫工程師補回（10-30 Andy 拍板），1541 檔）"
             }
           ],
           "sources": [
@@ -11412,10 +11324,7 @@
           "role": "工程師",
           "degree": null,
           "years": null,
-          "base_month_k": [
-            45,
-            45
-          ],
+          "base_month_k": null,
           "bonus_months": null,
           "annual_months": null,
           "annual_total_wan": [
@@ -11423,16 +11332,16 @@
             150
           ],
           "weekly_hours": [
-            40,
+            42,
             42
           ],
-          "overtime": null,
+          "overtime": "經常",
           "travel": null,
-          "n": 2,
+          "n": 1,
           "note": "2026-10-29 GoodJob 合併批新增職位",
           "confidence": "低",
           "grade": null,
-          "n_stat": 2,
+          "n_stat": 1,
           "samples": [
             {
               "site": "GoodJob",
@@ -11455,28 +11364,6 @@
               "quote_free_note": "自填；日工時 表訂/實際 8.5/14 小時；職稱未寫工程師",
               "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2026-05（20261029_職稱未寫工程師補回（10-30 Andy 拍板），1541 檔）"
-            },
-            {
-              "site": "GoodJob",
-              "url": "https://www.goodjob.life/companies/京鼎精密科技股份有限公司/salary-work-times?p=1",
-              "date": "2025-01",
-              "page_date": "2025-01",
-              "date_confirmed": true,
-              "role": "成本管理",
-              "grade": null,
-              "unit_detail": "泰國外派",
-              "years": null,
-              "degree": null,
-              "base_k": 45,
-              "bonus_months": null,
-              "annual_months": null,
-              "annual_wan": null,
-              "weekly_hours": 40,
-              "overtime": "幾乎不",
-              "travel": null,
-              "quote_free_note": "自填；日工時 表訂/實際 8/8 小時；職稱未寫工程師",
-              "in_window": true,
-              "date_note": "GoodJob 頁面標示年月 2025-01（20261029_職稱未寫工程師補回（10-30 Andy 拍板），1541 檔）"
             }
           ],
           "sources": [
@@ -12761,63 +12648,7 @@
       "grade_system": null,
       "mops": null,
       "note": "2026-10-29 由 GoodJob 樣本新增的公司（1541 大檔）",
-      "roles": [
-        {
-          "unit": null,
-          "role": "工程師",
-          "degree": null,
-          "years": null,
-          "base_month_k": [
-            60,
-            60
-          ],
-          "bonus_months": null,
-          "annual_months": null,
-          "annual_total_wan": null,
-          "weekly_hours": [
-            40,
-            40
-          ],
-          "overtime": "經常",
-          "travel": null,
-          "n": 1,
-          "note": "2026-10-29 GoodJob 合併批新增職位",
-          "confidence": "低",
-          "grade": null,
-          "n_stat": 1,
-          "samples": [
-            {
-              "site": "GoodJob",
-              "url": "https://www.goodjob.life/companies/崇越科技股份有限公司/salary-work-times?p=1",
-              "date": "2026-09",
-              "page_date": "2026-09",
-              "date_confirmed": true,
-              "role": "影音製作",
-              "grade": null,
-              "unit_detail": "台北",
-              "years": "13",
-              "degree": null,
-              "base_k": 60,
-              "bonus_months": null,
-              "annual_months": null,
-              "annual_wan": null,
-              "weekly_hours": 40,
-              "overtime": "經常",
-              "travel": null,
-              "quote_free_note": "自填；日工時 表訂/實際 9/9 小時；職稱未寫工程師",
-              "in_window": true,
-              "date_note": "GoodJob 頁面標示年月 2026-09（20261029_職稱未寫工程師補回（10-30 Andy 拍板），1541 檔）"
-            }
-          ],
-          "sources": [
-            {
-              "site": "GoodJob",
-              "url": "https://www.goodjob.life/companies/崇越科技股份有限公司/salary-work-times?p=1",
-              "date": "2026-09"
-            }
-          ]
-        }
-      ]
+      "roles": []
     }
   ]
 }
