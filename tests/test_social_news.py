@@ -53,12 +53,10 @@ def test_pick_reserves_exploration():
     assert sum(c["cat"] == "財報" for c in got if not c["explore"]) <= 2
 
 
-def test_publish_base_same_time_and_floor():
-    # 10-30 Andy：「主題文章 也是 同時間發布」→ 主貼文一發就排（不早於 now+1 分）
-    now = datetime(2026, 10, 29, 8, 22, tzinfo=TPE)
+def test_publish_base_plus_15_and_floor():
+    now = datetime(2026, 10, 29, 8, 30, tzinfo=TPE)
     posted = {"premarket-2026-10-29": {"at": "2026-10-29T08:21:00+08:00"}}
-    assert S.publish_base("pre", "2026-10-29", posted, now).strftime("%H:%M") == "08:23"
-    assert S.publish_base("pre", "2026-10-29", posted, datetime(2026, 10, 29, 8, 15, tzinfo=TPE)).strftime("%H:%M") == "08:21"
+    assert S.publish_base("pre", "2026-10-29", posted, now).strftime("%H:%M") == "08:36"
     assert S.publish_base("intra", "2026-10-29", posted, now) is None
 
 

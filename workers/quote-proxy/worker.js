@@ -229,7 +229,7 @@ export default {
   /* ★ 2026-10-29 當日時間軸的伺服器端快照（DECISIONS #372）：Cron Trigger 盤中每 5 分鐘叫一次，
      見下面「當日快照（tape）」那一大段。沒綁 KV（env.TAPE）就整個不做事，不影響其他端點。 */
   async scheduled(event, env, ctx) {
-    ctx.waitUntil(tapeRun(env, event && event.scheduledTime ? event.scheduledTime : Date.now()));
+    ctx.waitUntil(tapeSnapshot(env, event && event.scheduledTime ? event.scheduledTime : Date.now()).catch(() => {}));
   },
 };
 
@@ -1051,14 +1051,6 @@ async function tapeCodes(env, today) {
   return cached && cached.list ? cached.list : [];
 }
 
-/** 跑一輪並把結果（或例外）記在 KV 的 diag，方便從外面查「Cron 到底有沒有跑、卡在哪」。 */
-async function tapeRun(env, nowMs) {
-  let result;
-  try { result = await tapeSnapshot(env, nowMs); } catch (e) { result = 'error:' + String((e && e.message) || e).slice(0, 200); }
-  try { if (env && env.TAPE) await env.TAPE.put('diag', JSON.stringify({ at: new Date(nowMs).toISOString(), result }), { expirationTtl: TAPE_TTL }); } catch (e) { /* 忽略 */ }
-  return result;
-}
-
 /** 一輪快照。回傳字串給測試看（'ok:0905'、'skip:...'）。 */
 async function tapeSnapshot(env, nowMs) {
   if (!env || !env.TAPE) return 'skip:no-kv';
@@ -1121,9 +1113,6 @@ async function tapeSnapshot(env, nowMs) {
 /** GET /tape[?date=YYYYMMDD]：回 NDJSON；沒有就 404（前端會退回「頁面自己累積」）。 */
 async function tapeRead(env, url, origin) {
   if (!env || !env.TAPE) return json({ error: 'tape not enabled' }, 404, origin);
-  // ?diag=1：最近一次排程的結果（Cron 有沒有被叫、做了什麼、丟了什麼例外）；?run=1：現在手動跑一輪（同一格會去重，安全）
-  if (url.searchParams.get('run') === '1') return json({ ran: await tapeRun(env, Date.now()) }, 200, origin);
-  if (url.searchParams.get('diag') === '1') return json({ diag: await env.TAPE.get('diag', 'json'), latest: await env.TAPE.get('latest') }, 200, origin);
   let date = (url.searchParams.get('date') || '').replace(/-/g, '');
   if (date && !/^\d{8}$/.test(date)) return json({ error: 'bad date' }, 400, origin);
   if (!date) date = (await env.TAPE.get('latest')) || '';

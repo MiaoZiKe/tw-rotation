@@ -5,7 +5,7 @@ const ok = (n, c, d = '') => { console.log((c ? '  OK  ' : '  XX  ') + n + (c ? 
 globalThis.caches = { default: { async match() { return null; }, async put() {} } };
 const kv = new Map(); let puts = 0;
 const TAPE = { async get(k, t) { const v = kv.get(k); if (v == null) return null; return t === 'json' ? JSON.parse(v) : v; },
-               async put(k, v) { if (k !== 'diag') puts++; kv.set(k, v); } };
+               async put(k, v) { puts++; kv.set(k, v); } };
 const realNow = Date.now.bind(Date);
 let misDay = '20261029', misReqs = 0, siteReqs = 0, k = 0;
 globalThis.fetch = async (u) => {
