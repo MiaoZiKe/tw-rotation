@@ -1845,14 +1845,34 @@ def shortlist(rows: list[dict], per_facet: int = CAND_PER_FACET) -> list[dict]:
 
 
 def _member_ctx(day_px: pd.DataFrame, inst: pd.DataFrame, latest: str, cand_rows: list[dict],
-                names: dict, markets: dict | None) -> dict:
-    """成分股明細共用的查表（當日價量、法人、個股頁摘要）。"""
+                names: dict, markets: dict | None, tv_prev: dict | None = None) -> dict:
+    """成分股明細共用的查表（當日價量、法人、個股頁摘要）。
+
+    tv_prev：code → 「latest 之前最後一筆」成交值（見 _tv_prev_map），寫進成分股的 turnover_prev。"""
     return {
+        "tv_prev": tv_prev or {},
         "day": day_px.set_index("code"),
         "inst_today": inst[inst["date"] == latest].set_index("code") if not inst.empty else pd.DataFrame(),
         "cand_idx": {r["code"]: r for r in cand_rows},
         "names": names, "markets": markets,
     }
+
+
+def _tv_prev_map(price: pd.DataFrame, latest: str) -> dict:
+    """code → 該股在 latest 之前最後一筆交易紀錄的成交值。
+
+    ★ 2026-10-30 Andy 拍板（前一日成交值加權）：前端盤中續算（app.js rlvCompute／hlCompute）要用
+      「報價那天的前一個交易日」成交值當權重。盤中（報價日 > latest）用成分股的 turnover 即可；
+      但收盤後 payload 已經重算到今天（報價日 == latest），那時 turnover 就是當天的 —— 再拿它加權就是前視，
+      所以要多帶一欄 turnover_prev 給這種情況用。只看最近 30 天，找不到就不給（前端當權重 0 剔除）。"""
+    lo = (pd.Timestamp(latest) - pd.Timedelta(days=30)).date().isoformat()
+    ds = price["date"].astype(str)
+    px = price[(ds < str(latest)) & (ds >= lo)][["date", "code", "turnover"]]
+    if px.empty:
+        return {}
+    px = px.assign(_d=px["date"].astype(str)).sort_values("_d").drop_duplicates("code", keep="last")
+    tv = pd.to_numeric(px["turnover"], errors="coerce")
+    return {c: float(v) for c, v in zip(px["code"], tv) if pd.notna(v)}
 
 
 def _member_rows(codes, ctx: dict) -> list[dict]:
@@ -1878,6 +1898,7 @@ def _member_rows(codes, ctx: dict) -> list[dict]:
             "close": _clean(r["close"]),
             "chg_pct": _clean((r["change"] / prev * 100) if prev else None),
             "turnover": _clean(r["turnover"]),
+            "turnover_prev": _clean(ctx.get("tv_prev", {}).get(c)),   # 前一交易日成交值（前端即時漲跌的權重，見 _tv_prev_map）
             "foreign": _clean(it["foreign_total"]) if it is not None else None,
             "trust": _clean(it["trust"]) if it is not None else None,
             "dealer": _clean(it["dealer"]) if it is not None else None,
@@ -1902,7 +1923,8 @@ def overlay_detail(price: pd.DataFrame, inst: pd.DataFrame, latest: str, cand_ro
         return {}
     m = loader.membership(include_overlay=True)
     m = m[m["group_id"].isin(ids)][["code", "group_id"]].drop_duplicates()
-    ctx = _member_ctx(price[price["date"] == latest], inst, latest, cand_rows, names, markets)
+    ctx = _member_ctx(price[price["date"] == latest], inst, latest, cand_rows, names, markets,
+                      _tv_prev_map(price, latest))
     tags = {gid: (g.get("member_tags") or {}) for gid, g in (loader.load().get("groups") or {}).items()}
     out = {}
     for gid, g in m.groupby("group_id"):
@@ -1929,7 +1951,7 @@ def group_detail(price: pd.DataFrame, company: pd.DataFrame, inst: pd.DataFrame,
     if m.empty:
         m = loader.membership()
     m = m[["code", "group_id", "group_name"]].drop_duplicates()
-    ctx = _member_ctx(day_px, inst, latest, cand_rows, names, markets)
+    ctx = _member_ctx(day_px, inst, latest, cand_rows, names, markets, _tv_prev_map(price, latest))
     out = {}
     for gid, g in m.groupby("group_id"):
         out[gid] = {"group_name": g["group_name"].iloc[0], "members": _member_rows(g["code"], ctx)}
