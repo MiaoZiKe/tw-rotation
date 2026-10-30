@@ -1,5 +1,5 @@
 {
- "at": "2026-10-30T03:34:43+00:00",
+ "at": "2026-10-30T03:49:11+00:00",
  "items": [
   {
    "slug": "tsmc",
@@ -141,7 +141,7 @@
      "skipped": {
       "檔名像標誌/人像/活動": 1,
       "svg/gif": 1,
-      "看過": 14
+      "看過": 28
      }
     }
    ]
@@ -965,7 +965,7 @@
   {
    "slug": "nanya_tech",
    "source": "official",
-   "added": 1,
+   "added": 14,
    "pages": [
     {
      "url": "https://www.nanya.com/ESG/tw",
@@ -1080,211 +1080,13 @@
      }
     },
     {
-     "url": "https://www.nanya.com/tw/About/7/%e8%81%af%e7%b5%a1%e6%88%91%e5%80%91",
-     "title": "聯絡我們",
-     "imgs": 11,
-     "saved": 1,
+     "url": "https://www.nanya.com/ESG/tw/news_list",
+     "title": "南亞科技 - 企業永續ESG",
+     "imgs": 76,
+     "saved": 14,
      "skipped": {
-      "檔名像標誌/人像/活動": 1,
-      "太小": 7,
-      "svg/gif": 2
-     }
-    },
-    {
-     "url": "https://www.nanya.com/en/About",
-     "title": "Our Company",
-     "imgs": 9,
-     "saved": 0,
-     "skipped": {
-      "檔名像標誌/人像/活動": 1,
-      "太小": 5,
-      "直式": 1,
-      "svg/gif": 2
-     }
-    },
-    {
-     "url": "https://www.nanya.com/en/Page/102/System%20error?aspxerrorpath=/en/AboutDefault.aspx",
-     "title": "System error",
-     "imgs": 3,
-     "saved": 0,
-     "skipped": {
-      "檔名像標誌/人像/活動": 1,
-      "svg/gif": 2
-     }
-    },
-    {
-     "url": "https://www.nanya.com/tw/Page/102/System%20error?aspxerrorpath=/en/AboutDefault.aspx",
-     "title": "系統錯誤",
-     "imgs": 3,
-     "saved": 0,
-     "skipped": {
-      "檔名像標誌/人像/活動": 1,
-      "svg/gif": 2
-     }
-    },
-    {
-     "url": "https://www.nanya.com/cn/Page/102/System%20error?aspxerrorpath=/en/AboutDefault.aspx",
-     "title": "系统错误",
-     "imgs": 3,
-     "saved": 0,
-     "skipped": {
-      "檔名像標誌/人像/活動": 1,
-      "svg/gif": 2
-     }
-    },
-    {
-     "url": "https://www.nanya.com/en/About/102/System%20error",
-     "title": "Our Company",
-     "imgs": 9,
-     "saved": 0,
-     "skipped": {
-      "檔名像標誌/人像/活動": 1,
-      "看過": 6,
-      "svg/gif": 2
-     }
-    },
-    {
-     "url": "https://www.nanya.com/en/IR/35",
-     "title": "Company Profile",
-     "imgs": 3,
-     "saved": 0,
-     "skipped": {
-      "檔名像標誌/人像/活動": 1,
-      "svg/gif": 2
-     }
-    },
-    {
-     "url": "https://www.nanya.com/en/IR/80",
-     "title": "Ethical Corporate Management",
-     "imgs": 3,
-     "saved": 0,
-     "skipped": {
-      "檔名像標誌/人像/活動": 1,
-      "svg/gif": 2
-     }
-    },
-    {
-     "url": "https://www.nanya.com/tw/IR/35",
-     "title": "公司基本資料",
-     "imgs": 3,
-     "saved": 0,
-     "skipped": {
-      "檔名像標誌/人像/活動": 1,
-      "svg/gif": 2
-     }
-    },
-    {
-     "url": "https://www.nanya.com/tw/IR/42",
-     "title": "公司年報",
-     "imgs": 3,
-     "saved": 0,
-     "skipped": {
-      "檔名像標誌/人像/活動": 1,
-      "svg/gif": 2
-     }
-    },
-    {
-     "url": "https://www.nanya.com/cn/About/31/%e9%8a%b7%e5%94%ae%e6%9c%8d%e5%8b%99%e6%93%9a%e9%bb%9e",
-     "title": "销售服务据点",
-     "imgs": 3,
-     "saved": 0,
-     "skipped": {
-      "檔名像標誌/人像/活動": 1,
-      "svg/gif": 2
-     }
-    },
-    {
-     "url": "https://www.nanya.com/cn/IR/16/Press%20Release?IRId=14185",
-     "title": "新闻稿",
-     "imgs": 3,
-     "saved": 0,
-     "skipped": {
-      "檔名像標誌/人像/活動": 1,
-      "svg/gif": 2
-     }
-    },
-    {
-     "url": "https://www.nanya.com/cn/About/7/%e8%81%af%e7%b5%a1%e6%88%91%e5%80%91",
-     "title": "联络我们",
-     "imgs": 11,
-     "saved": 0,
-     "skipped": {
-      "檔名像標誌/人像/活動": 1,
-      "看過": 7,
-      "太小": 1,
-      "svg/gif": 2
-     }
-    },
-    {
-     "url": "https://www.nanya.com/cn/About",
-     "title": "公司简介",
-     "imgs": 9,
-     "saved": 0,
-     "skipped": {
-      "檔名像標誌/人像/活動": 1,
-      "看過": 5,
-      "直式": 1,
-      "svg/gif": 2
-     }
-    },
-    {
-     "url": "https://www.nanya.com/tw/Page/102/%e7%b3%bb%e7%b5%b1%e9%8c%af%e8%aa%a4?aspxerrorpath=/en/AboutDefault.aspx",
-     "title": "系統錯誤",
-     "imgs": 3,
-     "saved": 0,
-     "skipped": {
-      "檔名像標誌/人像/活動": 1,
-      "svg/gif": 2
-     }
-    },
-    {
-     "url": "https://www.nanya.com/en/Page/102/%e7%b3%bb%e7%b5%b1%e9%8c%af%e8%aa%a4?aspxerrorpath=/en/AboutDefault.aspx",
-     "title": "System error",
-     "imgs": 3,
-     "saved": 0,
-     "skipped": {
-      "檔名像標誌/人像/活動": 1,
-      "svg/gif": 2
-     }
-    },
-    {
-     "url": "https://www.nanya.com/cn/Page/102/%e7%b3%bb%e7%b5%b1%e9%8c%af%e8%aa%a4?aspxerrorpath=/en/AboutDefault.aspx",
-     "title": "系统错误",
-     "imgs": 3,
-     "saved": 0,
-     "skipped": {
-      "檔名像標誌/人像/活動": 1,
-      "svg/gif": 2
-     }
-    },
-    {
-     "url": "https://www.nanya.com/cn/Page/102/%e7%b3%bb%e7%bb%9f%e9%94%99%e8%af%af?aspxerrorpath=/en/AboutDefault.aspx",
-     "title": "系统错误",
-     "imgs": 3,
-     "saved": 0,
-     "skipped": {
-      "檔名像標誌/人像/活動": 1,
-      "svg/gif": 2
-     }
-    },
-    {
-     "url": "https://www.nanya.com/en/Page/102/%e7%b3%bb%e7%bb%9f%e9%94%99%e8%af%af?aspxerrorpath=/en/AboutDefault.aspx",
-     "title": "System error",
-     "imgs": 3,
-     "saved": 0,
-     "skipped": {
-      "檔名像標誌/人像/活動": 1,
-      "svg/gif": 2
-     }
-    },
-    {
-     "url": "https://www.nanya.com/tw/Page/102/%e7%b3%bb%e7%bb%9f%e9%94%99%e8%af%af?aspxerrorpath=/en/AboutDefault.aspx",
-     "title": "系統錯誤",
-     "imgs": 3,
-     "saved": 0,
-     "skipped": {
-      "檔名像標誌/人像/活動": 1,
-      "svg/gif": 2
+      "svg/gif": 1,
+      "太小": 2
      }
     }
    ]
@@ -1495,6 +1297,18 @@
      }
     },
     {
+     "url": "https://www.emctw.com/zh-TW/annual_reports/index",
+     "title": "EMC",
+     "imgs": 7,
+     "saved": 0,
+     "skipped": {
+      "檔名像標誌/人像/活動": 4,
+      "svg/gif": 1,
+      "看過": 1,
+      "太小": 1
+     }
+    },
+    {
      "url": "https://www.emctw.com/zh-TW/corporate_governance_officer/index",
      "title": "EMC",
      "imgs": 7,
@@ -1503,6 +1317,184 @@
       "檔名像標誌/人像/活動": 4,
       "svg/gif": 1,
       "看過": 2
+     }
+    },
+    {
+     "url": "https://www.emctw.com/zh-TW/esg_sustainable_governance/index",
+     "title": "EMC",
+     "imgs": 7,
+     "saved": 0,
+     "skipped": {
+      "檔名像標誌/人像/活動": 4,
+      "svg/gif": 1,
+      "看過": 1,
+      "太小": 1
+     }
+    },
+    {
+     "url": "https://www.emctw.com/zh-TW/esg_performance/index",
+     "title": "EMC",
+     "imgs": 7,
+     "saved": 0,
+     "skipped": {
+      "檔名像標誌/人像/活動": 4,
+      "svg/gif": 1,
+      "看過": 2
+     }
+    },
+    {
+     "url": "https://www.emctw.com/zh-TW/esg_policy_commitment/index",
+     "title": "EMC",
+     "imgs": 7,
+     "saved": 0,
+     "skipped": {
+      "檔名像標誌/人像/活動": 4,
+      "svg/gif": 1,
+      "看過": 2
+     }
+    },
+    {
+     "url": "https://www.emctw.com/zh-TW/esg_ethics/index",
+     "title": "EMC",
+     "imgs": 7,
+     "saved": 0,
+     "skipped": {
+      "檔名像標誌/人像/活動": 4,
+      "svg/gif": 1,
+      "看過": 2
+     }
+    },
+    {
+     "url": "https://www.emctw.com/zh-TW/esg_risk_management/index",
+     "title": "EMC",
+     "imgs": 7,
+     "saved": 0,
+     "skipped": {
+      "檔名像標誌/人像/活動": 4,
+      "svg/gif": 1,
+      "看過": 2
+     }
+    },
+    {
+     "url": "https://www.emctw.com/zh-TW/esg_supply_chain/index",
+     "title": "EMC",
+     "imgs": 7,
+     "saved": 0,
+     "skipped": {
+      "檔名像標誌/人像/活動": 4,
+      "svg/gif": 1,
+      "看過": 2
+     }
+    },
+    {
+     "url": "https://www.emctw.com/zh-TW/esg_environment/index",
+     "title": "EMC",
+     "imgs": 7,
+     "saved": 0,
+     "skipped": {
+      "檔名像標誌/人像/活動": 4,
+      "svg/gif": 1,
+      "看過": 2
+     }
+    },
+    {
+     "url": "https://www.emctw.com/zh-TW/esg_energy_ghg_inventory/index",
+     "title": "EMC",
+     "imgs": 7,
+     "saved": 0,
+     "skipped": {
+      "檔名像標誌/人像/活動": 4,
+      "svg/gif": 1,
+      "看過": 2
+     }
+    },
+    {
+     "url": "https://www.emctw.com/zh-TW/esg_climate_tcfd/index",
+     "title": "EMC",
+     "imgs": 7,
+     "saved": 0,
+     "skipped": {
+      "檔名像標誌/人像/活動": 4,
+      "svg/gif": 1,
+      "看過": 2
+     }
+    },
+    {
+     "url": "https://www.emctw.com/zh-TW/esg_resources/index",
+     "title": "EMC",
+     "imgs": 7,
+     "saved": 0,
+     "skipped": {
+      "檔名像標誌/人像/活動": 4,
+      "svg/gif": 1,
+      "看過": 2
+     }
+    },
+    {
+     "url": "https://www.emctw.com/zh-TW/esg_employee_care_and_social_participation/index",
+     "title": "EMC",
+     "imgs": 7,
+     "saved": 0,
+     "skipped": {
+      "檔名像標誌/人像/活動": 4,
+      "svg/gif": 1,
+      "看過": 2
+     }
+    },
+    {
+     "url": "https://www.emctw.com/zh-TW/esg_health_and_safety/index",
+     "title": "EMC",
+     "imgs": 7,
+     "saved": 0,
+     "skipped": {
+      "檔名像標誌/人像/活動": 4,
+      "svg/gif": 1,
+      "看過": 2
+     }
+    },
+    {
+     "url": "https://www.emctw.com/zh-TW/esg_employee_care/index",
+     "title": "EMC",
+     "imgs": 7,
+     "saved": 0,
+     "skipped": {
+      "檔名像標誌/人像/活動": 4,
+      "svg/gif": 1,
+      "看過": 2
+     }
+    },
+    {
+     "url": "https://www.emctw.com/zh-TW/esg_social_participation/index",
+     "title": "EMC",
+     "imgs": 7,
+     "saved": 0,
+     "skipped": {
+      "檔名像標誌/人像/活動": 4,
+      "svg/gif": 1,
+      "看過": 2
+     }
+    },
+    {
+     "url": "https://www.emctw.com/zh-TW/esg_stakeholdes/index",
+     "title": "EMC",
+     "imgs": 7,
+     "saved": 0,
+     "skipped": {
+      "檔名像標誌/人像/活動": 4,
+      "svg/gif": 1,
+      "看過": 2
+     }
+    },
+    {
+     "url": "https://www.emctw.com/zh-TW/csr_report/index",
+     "title": "EMC",
+     "imgs": 8,
+     "saved": 0,
+     "skipped": {
+      "檔名像標誌/人像/活動": 4,
+      "svg/gif": 1,
+      "看過": 2,
+      "太小": 1
      }
     },
     {
@@ -1540,6 +1532,17 @@
      }
     },
     {
+     "url": "https://www.emctw.com/en-global/annual_reports/index",
+     "title": "EMC",
+     "imgs": 7,
+     "saved": 0,
+     "skipped": {
+      "檔名像標誌/人像/活動": 4,
+      "svg/gif": 1,
+      "看過": 2
+     }
+    },
+    {
      "url": "https://www.emctw.com/en-global/corporate_governance_officer/index",
      "title": "EMC",
      "imgs": 7,
@@ -1551,210 +1554,19 @@
      }
     },
     {
-     "url": "https://www.emctw.com/en-global/esg_sustainable_governance/index",
-     "title": "EMC",
-     "imgs": 7,
-     "saved": 0,
-     "skipped": {
-      "檔名像標誌/人像/活動": 4,
-      "svg/gif": 1,
-      "看過": 1,
-      "太小": 1
-     }
+     "url": "https://www.emctw.com/upload/media/New_Investors/Financial_Information/Annual_Reports/CH/2025.pdf",
+     "pdf": true,
+     "saved": 0
     },
     {
-     "url": "https://www.emctw.com/en-global/esg_environment/index",
-     "title": "EMC",
-     "imgs": 7,
-     "saved": 0,
-     "skipped": {
-      "檔名像標誌/人像/活動": 4,
-      "svg/gif": 1,
-      "看過": 2
-     }
+     "url": "https://www.emctw.com/upload/media/New_Investors/Financial_Information/Annual_Reports/CH/2024.pdf",
+     "pdf": true,
+     "saved": 0
     },
     {
-     "url": "https://www.emctw.com/en-global/esg_employee_care_and_social_participation/index",
-     "title": "EMC",
-     "imgs": 7,
-     "saved": 0,
-     "skipped": {
-      "檔名像標誌/人像/活動": 4,
-      "svg/gif": 1,
-      "看過": 2
-     }
-    },
-    {
-     "url": "https://www.emctw.com/zh-TW",
-     "title": "首頁-EMC",
-     "imgs": 35,
-     "saved": 0,
-     "skipped": {
-      "檔名像標誌/人像/活動": 4,
-      "svg/gif": 27,
-      "看過": 4
-     }
-    },
-    {
-     "url": "https://www.emctw.com/zh-TW/leading_technology/index",
-     "title": "EMC",
-     "imgs": 11,
-     "saved": 0,
-     "skipped": {
-      "檔名像標誌/人像/活動": 5,
-      "svg/gif": 3,
-      "看過": 3
-     }
-    },
-    {
-     "url": "https://www.emctw.com/zh-TW/product_name/index",
-     "title": "EMC",
-     "imgs": 7,
-     "saved": 0,
-     "skipped": {
-      "檔名像標誌/人像/活動": 4,
-      "svg/gif": 1,
-      "看過": 2
-     }
-    },
-    {
-     "url": "https://www.emctw.com/zh-TW/applications/index/Infrastructure",
-     "title": "EMC",
-     "imgs": 10,
-     "saved": 0,
-     "skipped": {
-      "檔名像標誌/人像/活動": 4,
-      "svg/gif": 1,
-      "看過": 2,
-      "太小": 3
-     }
-    },
-    {
-     "url": "https://www.emctw.com/en-global/leading_technology/index",
-     "title": "EMC",
-     "imgs": 11,
-     "saved": 0,
-     "skipped": {
-      "檔名像標誌/人像/活動": 5,
-      "svg/gif": 3,
-      "看過": 3
-     }
-    },
-    {
-     "url": "https://www.emctw.com/en-global/product_name/index",
-     "title": "EMC",
-     "imgs": 7,
-     "saved": 0,
-     "skipped": {
-      "檔名像標誌/人像/活動": 4,
-      "svg/gif": 1,
-      "看過": 1,
-      "太小": 1
-     }
-    },
-    {
-     "url": "https://www.emctw.com/en-global/applications/index/infrastructure",
-     "title": "EMC",
-     "imgs": 10,
-     "saved": 0,
-     "skipped": {
-      "檔名像標誌/人像/活動": 4,
-      "svg/gif": 1,
-      "看過": 1,
-      "太小": 4
-     }
-    },
-    {
-     "url": "https://www.emctw.com/zh-TW/applications/detail/Infrastructure/Server_Storage",
-     "title": "EMC",
-     "imgs": 7,
-     "saved": 0,
-     "skipped": {
-      "檔名像標誌/人像/活動": 4,
-      "svg/gif": 1,
-      "看過": 2
-     }
-    },
-    {
-     "url": "https://www.emctw.com/zh-TW/applications/detail/Infrastructure/Switch-Router",
-     "title": "EMC",
-     "imgs": 7,
-     "saved": 0,
-     "skipped": {
-      "檔名像標誌/人像/活動": 4,
-      "svg/gif": 1,
-      "看過": 2
-     }
-    },
-    {
-     "url": "https://www.emctw.com/en-global/applications/detail/infrastructure/Server_Storage",
-     "title": "EMC",
-     "imgs": 7,
-     "saved": 0,
-     "skipped": {
-      "檔名像標誌/人像/活動": 4,
-      "svg/gif": 1,
-      "看過": 2
-     }
-    },
-    {
-     "url": "https://www.emctw.com/en-global/applications/detail/infrastructure/Switch_and_Router",
-     "title": "EMC",
-     "imgs": 7,
-     "saved": 0,
-     "skipped": {
-      "檔名像標誌/人像/活動": 4,
-      "svg/gif": 1,
-      "看過": 2
-     }
-    },
-    {
-     "url": "https://www.emctw.com/en-global",
-     "title": "Homepage-EMC",
-     "imgs": 35,
-     "saved": 0,
-     "skipped": {
-      "檔名像標誌/人像/活動": 4,
-      "svg/gif": 27,
-      "看過": 4
-     }
-    },
-    {
-     "url": "https://www.emctw.com/en-global/no1_digital/index",
-     "title": "EMC",
-     "imgs": 10,
-     "saved": 0,
-     "skipped": {
-      "檔名像標誌/人像/活動": 5,
-      "svg/gif": 1,
-      "看過": 2,
-      "太小": 1,
-      "直式": 1
-     }
-    },
-    {
-     "url": "https://www.emctw.com/en-global/our_values/index",
-     "title": "EMC",
-     "imgs": 11,
-     "saved": 0,
-     "skipped": {
-      "檔名像標誌/人像/活動": 4,
-      "svg/gif": 1,
-      "看過": 2,
-      "太小": 4
-     }
-    },
-    {
-     "url": "https://www.emctw.com/en-global/achievements/index",
-     "title": "EMC",
-     "imgs": 13,
-     "saved": 0,
-     "skipped": {
-      "檔名像標誌/人像/活動": 5,
-      "svg/gif": 1,
-      "看過": 3,
-      "太小": 4
-     }
+     "url": "https://www.emctw.com/upload/media/New_Investors/Financial_Information/Annual_Reports/CH/2023.pdf",
+     "pdf": true,
+     "saved": 0
     }
    ]
   }
