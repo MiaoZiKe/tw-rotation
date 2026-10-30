@@ -4,6 +4,11 @@ from pathlib import Path
 
 import pytest
 
+
+def _lic(photos):
+    """測試用照片預設授權 CC0（2026-10-30 起 _rotate 只收允許的授權值，見 render_news_cards.LICENSE_OK）。"""
+    return [{**m, "license": m.get("license", "CC0")} for m in photos]
+
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "docs" / "marketing" / "posts"))
 
 
@@ -15,7 +20,7 @@ def R(tmp_path, monkeypatch):
         d.mkdir(parents=True)
         for m in photos:
             (d / m["file"]).write_bytes(b"x")
-        (d / "pool.json").write_text(json.dumps(dict(photos=photos)), encoding="utf-8")
+        (d / "pool.json").write_text(json.dumps(dict(photos=_lic(photos))), encoding="utf-8")
     pool(lib / "acme", [dict(file="photo_1.jpg", kind="總部/廠房", reviewed=True),
                         dict(file="photo_2.jpg", kind="產品", reviewed=True),
                         dict(file="photo_3.jpg", kind="產品", reviewed=False)])
@@ -51,7 +56,7 @@ def test_foreign_and_macro_text_fallback(R, tmp_path):
     for cat in ("總經_央行", "總經", "能源"):
         d = lib / "_category" / cat; d.mkdir(parents=True)
         (d / "photo_1.jpg").write_bytes(b"x")
-        (d / "pool.json").write_text(json.dumps(dict(photos=[dict(file="photo_1.jpg", kind="類別", reviewed=True)])), encoding="utf-8")
+        (d / "pool.json").write_text(json.dumps(dict(photos=_lic([dict(file="photo_1.jpg", kind="類別", reviewed=True)]))), encoding="utf-8")
     # 外商不在名單：依文字對應產業池
     assert R.photo_pick("某外商", topic="美股", text="某外商 HBM 晶片出貨")[3] == "_category/半導體/photo_1.jpg"   # 記憶體池沒圖 → 半導體
     assert R.photo_pick("埃克森", topic="美股", text="油價大漲 煉油")[3] == "_category/能源/photo_1.jpg"
@@ -69,7 +74,7 @@ def test_central_bank_pool_matches_bank(R):
           dict(file="photo_5.jpg", kind="類別", reviewed=True, query="European Central Bank Frankfurt")]
     for m in ph:
         (d / m["file"]).write_bytes(b"x")
-    (d / "pool.json").write_text(json.dumps(dict(photos=ph)), encoding="utf-8")
+    (d / "pool.json").write_text(json.dumps(dict(photos=_lic(ph))), encoding="utf-8")
     assert R.photo_pick("歐洲央行", topic="總經", text="歐洲央行維持利率")[3] == "_category/總經_央行/photo_5.jpg"
     assert R.photo_pick("聯準會", topic="總經", text="聯準會降息")[3] == "_category/總經_央行/photo_1.jpg"
     r = R.photo_pick("泰國央行", topic="總經", text="泰國央行維持利率不變")
@@ -86,7 +91,7 @@ def RC(tmp_path, monkeypatch):
         d.mkdir(parents=True)
         for m in photos:
             (d / m["file"]).write_bytes(b"x")
-        (d / "pool.json").write_text(json.dumps(dict(photos=photos)), encoding="utf-8")
+        (d / "pool.json").write_text(json.dumps(dict(photos=_lic(photos))), encoding="utf-8")
     pool(lib / "alphabet", [dict(file="photo_1.jpg", kind="相關場景", reviewed=True),
                             dict(file="photo_2.jpg", kind="總部/廠房", reviewed=True)])
     pool(lib / "intel", [dict(file="photo_1.jpg", kind="產品", reviewed=True)])
@@ -132,3 +137,26 @@ def test_card_auto_uses_subject_company(RC, monkeypatch):
                        photo_cats=[dict(cat="半導體")]), meta={})
     html, lay, pick = RC.card_auto(d, 1, 1, today="2026-10-30")
     assert pick["key"].startswith("alphabet/")
+
+
+# ---- 2026-10-30 Andy：「改成接用 並標明出處 是可以的」→ 公司官方照片 license=official-press，署名「圖：<公司>官方」----
+def test_official_press_allowed_and_credited(R):
+    d = R.PHOTO_LIB / "offco"; d.mkdir(parents=True)
+    ph = [dict(file="photo_1.jpg", kind="總部/廠房", reviewed=True, license="press-kit"),          # 不在允許值 → 不准用
+          dict(file="photo_2.jpg", kind="總部/廠房", reviewed=True, license="official-press", author="某司", credit="圖：某司官方"),
+          dict(file="photo_3.jpg", kind="產品", reviewed=False, license="official-press", credit="圖：某司官方")]   # 未審 → 不准用
+    for m in ph:
+        (d / m["file"]).write_bytes(b"x")
+    (d / "pool.json").write_text(json.dumps(dict(photos=ph)), encoding="utf-8")
+    al = json.loads((R.PHOTO_LIB / "aliases.json").read_text(encoding="utf-8")); al["某司"] = "offco"
+    (R.PHOTO_LIB / "aliases.json").write_text(json.dumps(al), encoding="utf-8")
+    p, m, lay, key = R.photo_pick("某司", today="2026-10-30")
+    assert key == "offco/photo_2.jpg" and lay == "D-實景(公司)"          # 主體公司官方圖照樣排在類別圖前面
+    assert R.credit_of(m) == "圖：某司官方"
+    assert R.credit_of(dict(license="official-press", credit="圖：Samsung Semiconductor Newsroom")) == "圖：Samsung Semiconductor Newsroom"
+    assert R.credit_of(dict(license="official-press", author="南亞科")) == "圖：南亞科官方"
+    assert R.credit_of(dict(license="CC BY 2.0", author="Ann")).startswith("攝影：Ann／CC BY 2.0")
+    for bad in ("", "press-kit", "editorial", "CC BY-NC 2.0", "CC BY-ND 4.0"):
+        assert not R.license_ok(bad), bad
+    for ok in ("CC0", "CC BY-SA 3.0 de", "CC BY 3.0 br", "Public domain", "official-press", "written-permission"):
+        assert R.license_ok(ok), ok

@@ -41,6 +41,13 @@
    "TSMC Headquarters",
    "TSMC Nanjing",
    "TSMC buildings"
+  ],
+  "credit_name": "台積電",
+  "official_sites": [
+   "https://www.tsmc.com/english/aboutTSMC/TSMC_Fabs",
+   "https://www.tsmc.com/english/dedicatedFoundry/manufacturing/gigafab",
+   "https://pr.tsmc.com/english/latest-news",
+   "https://www.tsmc.com/english"
   ]
  },
  {
@@ -216,6 +223,12 @@
    "ASE Technology Holding Co",
    "日月光",
    "日月光半導體"
+  ],
+  "credit_name": "日月光",
+  "official_sites": [
+   "https://ase.aseglobal.com/about-us/",
+   "https://ase.aseglobal.com/press-room/",
+   "https://ase.aseglobal.com/"
   ]
  },
  {
@@ -965,6 +978,11 @@
    "欣興電子",
    "Unimicron Taoyuan plant",
    "Unimicron building"
+  ],
+  "credit_name": "欣興",
+  "official_sites": [
+   "https://www.unimicron.com/",
+   "https://www.unimicron.com/en/"
   ]
  },
  {
@@ -1148,6 +1166,13 @@
    "Nvidia GPUs",
    "Nvidia graphics cards",
    "Nvidia Tegra"
+  ],
+  "credit_name": "NVIDIA",
+  "official_sites": [
+   "https://nvidianews.nvidia.com/multimedia",
+   "https://www.nvidia.com/en-us/about-nvidia/",
+   "https://nvidianews.nvidia.com/",
+   "https://www.nvidia.com/en-us/data-center/"
   ]
  },
  {
@@ -1450,7 +1475,17 @@
    "Samsung Digital City Suwon",
    "Samsung Semiconductor Pyeongtaek",
    "Samsung Electronics Co. buildings"
-  ]
+  ],
+  "credit_name": "三星",
+  "official_sites": [
+   "https://semiconductor.samsung.com/about-us/",
+   "https://news.samsungsemiconductor.com/global/",
+   "https://news.samsung.com/global/",
+   "https://semiconductor.samsung.com/about-us/locations/"
+  ],
+  "official_credit": {
+   "samsungsemiconductor.com": "圖：Samsung Semiconductor Newsroom"
+  }
  },
  {
   "slug": "sk_hynix",
@@ -1675,6 +1710,12 @@
    "500 Howard Street",
    "Salesforce Tower San Francisco",
    "Anthropic Claude"
+  ],
+  "credit_name": "Anthropic",
+  "official_sites": [
+   "https://www.anthropic.com/company",
+   "https://www.anthropic.com/news",
+   "https://www.anthropic.com/"
   ]
  },
  {
@@ -1783,6 +1824,12 @@
    "Arm Neoverse",
    "ARM Cortex",
    "Arm Holdings Cambridge Peterhouse Technology Park"
+  ],
+  "credit_name": "Arm",
+  "official_sites": [
+   "https://www.arm.com/company",
+   "https://newsroom.arm.com/",
+   "https://www.arm.com/"
   ]
  },
  {
@@ -2486,7 +2533,14 @@
    "CoreWeave Nvidia GB200",
    "Data centers in New Jersey"
   ],
-  "key": "coreweave"
+  "key": "coreweave",
+  "credit_name": "CoreWeave",
+  "official_sites": [
+   "https://www.coreweave.com/about-us",
+   "https://www.coreweave.com/newsroom",
+   "https://www.coreweave.com/",
+   "https://www.coreweave.com/data-centers"
+  ]
  },
  {
   "slug": "nanya_tech",
@@ -2529,7 +2583,13 @@
    "Nanya DRAM modules",
    "Nanya Technology Taoyuan"
   ],
-  "key": "nanya"
+  "key": "nanya",
+  "credit_name": "南亞科",
+  "official_sites": [
+   "https://www.nanya.com/tw/About/",
+   "https://www.nanya.com/tw/",
+   "https://www.nanya.com/en/"
+  ]
  },
  {
   "slug": "nan_ya_pcb",
@@ -2573,7 +2633,12 @@
    "Nan Ya PCB Taoyuan plant",
    "Nanya PCB"
   ],
-  "key": "nan ya"
+  "key": "nan ya",
+  "credit_name": "南電",
+  "official_sites": [
+   "https://www.nanyapcb.com.tw/",
+   "https://www.nanyapcb.com.tw/en/"
+  ]
  },
  {
   "slug": "eml",
@@ -2614,6 +2679,11 @@
    "Elite Material Corporation Taiwan",
    "Taoyuan Zhongli Industrial Zone"
   ],
-  "key": "elite"
+  "key": "elite",
+  "credit_name": "台光電",
+  "official_sites": [
+   "https://www.emctw.com/",
+   "https://www.emctw.com/en/"
+  ]
  }
 ]

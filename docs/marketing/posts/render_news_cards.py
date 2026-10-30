@@ -341,12 +341,18 @@ CB_PHOTO = [(r"Fed|FOMC|聯準會|美國央行|鮑爾", "Federal Reserve"), (r"�
 def cb_filter(text):
     """回傳央行圖池可用照片的 query 關鍵字清單；空清單＝這則講的不是這三家，央行圖池整池不用。"""
     return [q for kw, q in CB_PHOTO if re.search(kw, text or "")]
+# 照片授權允許值（photo_lib_review.md 第九節第五項；DECISIONS #373）：Commons 的 CC0／CC BY*／CC BY-SA*／公有領域，
+# 書面授權 written-permission，以及 2026-10-30 Andy 拍板「改成接用 並標明出處 是可以的」的公司官方照片 official-press。其他值（press-kit、editorial…）不准用。
+LICENSE_OK = re.compile(r"^(cc0|cc[- ]by(-sa)?([- ]\d(\.\d)?)?( [a-z]{2})?|public domain|pd(-.*)?|written-permission|official-press)$", re.I)
+def license_ok(lic):
+    return bool(LICENSE_OK.match((lic or "").strip()))
 def _rotate(d, key, used, today, allow_unreviewed, only=None):
     """圖池裡挑一張：只要已審；近 14 天用過的往後排（全都用過就挑最久沒用的）。回傳 (路徑, meta) 或 None。
     only＝照片 query 必須含其中一個字（央行圖池用）。"""
     pool = _pool(d)
     if not pool: return None
-    ph = [m for m in pool.get("photos", []) if (m.get("reviewed") or (allow_unreviewed and not m.get("reject_reason") and m.get("prescreen") != "fail")) and (d / m.get("file", "")).exists()]
+    ph = [m for m in pool.get("photos", []) if (m.get("reviewed") or (allow_unreviewed and not m.get("reject_reason") and m.get("prescreen") != "fail"))
+          and license_ok(m.get("license")) and (d / m.get("file", "")).exists()]
     if only is not None:
         ph = [m for m in ph if not m.get("query") or any(q in m["query"] for q in only)]     # 沒寫 query 的視為通用
     if not ph: return None
@@ -493,6 +499,10 @@ def photo_for(subject, allow_unreviewed=False):
     r = photo_pick(subject, allow_unreviewed=allow_unreviewed)
     return (r[0], r[1]) if r else None
 def credit_of(meta):
+    lic = (meta.get("license") or "").strip().lower()
+    if lic in ("official-press", "written-permission"):      # 公司官方照片：「圖：<公司名>官方」；官方指定署名時 pool.json 的 credit 照官方寫
+        cr = (meta.get("credit") or "").strip()
+        return cr if cr.startswith("圖：") else f"圖：{meta.get('author') or meta.get('name_en') or '公司'}官方"
     a = re.sub(r"\s+", " ", meta.get("author") or "不詳").strip()
     if len(a) > 24: a = a[:23] + "…"
     return f"攝影：{a}／{meta.get('license', '')}・Wikimedia Commons"
