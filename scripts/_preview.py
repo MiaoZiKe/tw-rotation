@@ -28,6 +28,8 @@ OVERLAP_JS = r"""
   const els = Array.from(document.querySelectorAll('main *')).filter(e => {
     if (!(e instanceof HTMLElement)) return false;
     if (['SCRIPT','STYLE','CANVAS','SVG','INPUT','BUTTON'].includes(e.tagName)) return false;
+    { const dt = e.closest('details:not([open])'); if (dt && !e.closest('summary')) return false; }     // 沒展開的 <details>：內容不顯示，但 getBoundingClientRect 仍回版面上的位置，會量出不存在的重疊
+    if (e.closest('.fc-tl')) return false;     // 2026-10-31 流向驗證頁底部的時間軸是貼視窗底部的浮動列（設計如此），不跟被它蓋住的內容算重疊
     const hasText = Array.from(e.childNodes).some(n => n.nodeType === 3 && n.textContent.trim().length > 1);
     if (!hasText) return false;
     const r = e.getBoundingClientRect(); const cs = getComputedStyle(e);
@@ -415,6 +417,13 @@ def main() -> int:
             pg.screenshot(path=str(out / "v3_theme_diagram.png"), full_page=True)
         state["theme_diagrams"] = tstat
         visit("season", "season")
+        # ★ 2026-10-31 流向驗證分頁 #flowcheck（審核專家：這頁沒被走訪，重疊偵測對它不算數）：預設狀態＋切歷史日各走一次文字重疊掃描
+        info = visit("flowcheck", "flowcheck", wait=2500)
+        if info["overlaps"]:
+            problems.append(f"流向驗證頁文字重疊：{info['overlaps'][:3]}")
+        info = visit("flowcheck?g=pcb_rigid&v=strength", "flowcheck_strength", wait=2500)
+        if info["overlaps"]:
+            problems.append(f"流向驗證頁（強弱輪盤）文字重疊：{info['overlaps'][:3]}")
         # ★ 2026-10-05 財報日曆（site/earnings.js）：月曆標籤與右側面板走一次文字重疊掃描
         info = visit("earnings", "earnings", wait=1200)
         if info["overlaps"]:
