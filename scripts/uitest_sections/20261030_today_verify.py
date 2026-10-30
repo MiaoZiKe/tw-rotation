@@ -113,6 +113,8 @@ def t_today_verify_1030(b, base):
         pg.click("#todayVerify .tvmore"); pg.wait_for_timeout(500)
         ok(f"[{T}] 「看全部」展開到全部 {calc['n']} 檔", pg.evaluate("() => document.querySelectorAll('#tvList .tvrow').length") == calc["n"])
         pg.click("#todayVerify .tvmore"); pg.wait_for_timeout(300)
+    ml = pg.evaluate("() => { for (const g of Object.keys(App.rlvState().pts)) { const r = App.tvCalc(g); if (r && r.name === '被動元件 MLCC') return { pat: r.pat && r.pat.name, open: r.pat && r.pat.open, hi: r.pat && r.pat.hi, lo: r.pat && r.pat.lo, cur: r.pat && r.pat.cur, hiI: r.pat && r.pat.hiI, loI: r.pat && r.pat.loI, conc: '' }; } return null; }")
+    ok(f"[{T}] ★ 實際資料（被動元件 MLCC：開盤後衝高、再跌破開盤、振幅 {(ml['hi'] - ml['lo']):.2f}pp）判為開高走低／衝高回落，不是盤整", bool(ml) and ml["pat"] in ("開高走低", "衝高回落") and ml["hi"] - ml["lo"] > 0.8 and ml["cur"] < ml["open"], ml)
     # 拖時間軸到 09:30：面板只算到那一格
     pg.evaluate("() => { const i = document.querySelector('#rotTl input.tlr'); i.value = 6; i.dispatchEvent(new Event('input', {bubbles: true})); }")
     pg.wait_for_timeout(1200)
