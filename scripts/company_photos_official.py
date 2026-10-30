@@ -13,9 +13,14 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from urllib.parse import urljoin, urlparse
 
-MAX_PAGES = 18          # 每家最多開幾頁
+MAX_PAGES = 30          # 每家最多開幾頁
 MAX_NEW = 14            # 每家一次最多新增幾張候選（待審）
-MIN_W, MIN_AR = 1000, 1.25
+MIN_W, MIN_H, MIN_AR = 900, 480, 1.25     # 封面照片區 952×約 440；高 < 480 的網頁橫幅裁成封面會糊
+PREFIX_CAP = 3          # 同一路徑前綴（前兩層）最多開幾頁，避免被產品清單頁灌爆
+# 連結優先序：廠區／據點／總部／圖庫 > 關於／媒體 > 產品 > 其他
+LINK_PRI = [(re.compile(r"facilit|fab\b|fabs|plant|factory|campus|location|headquart|site-?tour|gallery|photo|image|multimedia|media-?(kit|library|asset)|廠|據點|園區|總部", re.I), 0),
+            (re.compile(r"about|company|corporate|overview|press|newsroom|關於|公司|簡介|新聞|媒體", re.I), 1),
+            (re.compile(r"product|technolog|data-?center|infrastructure|產品|技術", re.I), 2)]
 BROWSER_UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
               "Chrome/126.0 Safari/537.36")
 # 連結：像「關於／廠區／據點／產品／新聞室／媒體／圖庫」的頁面才跟進
@@ -76,13 +81,36 @@ def _flat(im) -> bool:
     return ImageStat.Stat(sm).stddev[0] < 18 or len(set(im.convert("RGB").resize((48, 24)).getdata())) < 120
 
 
+def _pri(href: str, text: str) -> int:
+    for rx, p in LINK_PRI:
+        if rx.search(href) or rx.search(text or ""): return p
+    return 3
+
+
+def _prefix(url: str) -> str:
+    u = urlparse(url); return u.netloc + "/".join(u.path.split("/")[:3])
+
+
+def _download(dl, sess, src: str, referer: str) -> bytes:
+    """先用瀏覽器分頁開圖（帶 cookie、真瀏覽器指紋，擋爬蟲的 CDN 也開得了）；失敗再用 requests。"""
+    try:
+        r = dl.goto(src, timeout=45000, referer=referer)
+        if r and r.ok:
+            b = r.body()
+            if b: return b
+    except Exception:
+        pass
+    r = sess.get(src, timeout=60, headers={"User-Agent": BROWSER_UA, "Referer": referer}); r.raise_for_status()
+    return r.content
+
+
 def fetch_official(t: dict, d: Path, sess, gseen: set[str]) -> dict:
     from PIL import Image
     from playwright.sync_api import sync_playwright
     slug, sites = t["slug"], t.get("official_sites") or []
     pool = json.loads((d / "pool.json").read_text(encoding="utf-8")) if (d / "pool.json").exists() else dict(slug=slug, photos=[], rejected=[])
     seen = gseen | {x.get("image_url") for x in pool["photos"]} | {x.get("file_title") for x in pool.get("rejected", [])}
-    hashes = {x.get("sha1") for x in pool["photos"] if x.get("sha1")}
+    hashes = {x.get("sha1") for x in pool["photos"] + pool.get("rejected", []) if x.get("sha1")}
     used_n = {int(m.group(1)) for x in pool["photos"] if (m := re.match(r"photo_(\d+)\.jpg", x.get("file", "")))}
     pages_log, added = [], 0
     today = (datetime.now(timezone.utc) + timedelta(hours=8)).date().isoformat()
@@ -91,35 +119,40 @@ def fetch_official(t: dict, d: Path, sess, gseen: set[str]) -> dict:
     with sync_playwright() as pw:
         br = pw.chromium.launch(executable_path=os.environ.get("CHROMIUM") or None)
         ctx = br.new_context(user_agent=BROWSER_UA, viewport=dict(width=1600, height=1000), locale="zh-TW")
-        pg = ctx.new_page()
-        queue, visited = list(sites), set()
+        pg = ctx.new_page(); dl = ctx.new_page()
+        queue = [(-1, i, u) for i, u in enumerate(sites)]      # (優先序, 先後, 網址)；種子頁最優先
+        visited, per_prefix, seq = set(), {}, len(sites)
         while queue and len(visited) < MAX_PAGES and added < MAX_NEW:
-            url = queue.pop(0).split("#")[0]
+            queue.sort(); _, _, url = queue.pop(0); url = url.split("#")[0]
             if url in visited: continue
-            visited.add(url)
+            px = _prefix(url)
+            if per_prefix.get(px, 0) >= PREFIX_CAP and url not in sites: continue
+            visited.add(url); per_prefix[px] = per_prefix.get(px, 0) + 1
             try:
                 pg.goto(url, wait_until="domcontentloaded", timeout=45000); pg.wait_for_timeout(2500)
                 info = _collect(pg)
             except Exception as ex:
                 pages_log.append(dict(url=url, error=str(ex)[:160])); continue
-            n_img = 0
+            n_img, why = 0, {}
+            def skip(k): why[k] = why.get(k, 0) + 1
             for im in info["imgs"]:
                 src = im.get("src")
-                if not src or src.startswith("data:"): continue
+                if not src or src.startswith("data:"): skip("無網址"); continue
                 src = urljoin(url, src)
-                if src in seen or re.search(r"\.(svg|gif)(\?|$)", src, re.I): continue
-                if IMG_BAD.search(src) or IMG_BAD.search(im.get("alt") or ""): continue
+                if src in seen: skip("看過"); continue
+                if re.search(r"\.(svg|gif)(\?|$)", src, re.I): skip("svg/gif"); continue
+                if IMG_BAD.search(src) or IMG_BAD.search(im.get("alt") or ""): skip("檔名像標誌/人像/活動"); continue
                 seen.add(src)
                 try:
-                    r = sess.get(src, timeout=60, headers={"User-Agent": BROWSER_UA, "Referer": url}); r.raise_for_status()
-                    img = Image.open(io.BytesIO(r.content)); img.load()
+                    img = Image.open(io.BytesIO(_download(dl, sess, src, url))); img.load()
                 except Exception:
-                    continue
-                if img.width < MIN_W or img.width / max(1, img.height) < MIN_AR: continue
+                    skip("下載失敗"); continue
+                if img.width < MIN_W or img.height < MIN_H: skip("太小"); continue
+                if img.width / max(1, img.height) < MIN_AR: skip("直式"); continue
                 rgb = img.convert("RGB")
-                if _flat(rgb): continue
+                if _flat(rgb): skip("單色/插畫底"); continue
                 h = hashlib.sha1(rgb.resize((32, 16)).tobytes()).hexdigest()
-                if h in hashes: continue
+                if h in hashes: skip("重複"); continue
                 hashes.add(h)
                 if rgb.width > 1920: rgb = rgb.resize((1920, int(rgb.height * 1920 / rgb.width)), Image.LANCZOS)
                 n = 1
@@ -134,13 +167,14 @@ def fetch_official(t: dict, d: Path, sess, gseen: set[str]) -> dict:
                                            width=rgb.width, height=rgb.height, sha1=h, fetched_at=today, fetched_at_utc=datetime.now(timezone.utc).isoformat(timespec="seconds"),
                                            reviewed=False, reviewer="", review_note=""))
                 if added >= MAX_NEW: break
-            pages_log.append(dict(url=url, title=info.get("title", "")[:80], imgs=len(info["imgs"]), saved=n_img))
+            pages_log.append(dict(url=url, title=info.get("title", "")[:80], imgs=len(info["imgs"]), saved=n_img, skipped=why))
+            queued = {u for _, _, u in queue}
             for a in info["links"]:
                 href = (a.get("href") or "").split("#")[0]
-                if not href.startswith("http") or href in visited or href in queue: continue
+                if not href.startswith("http") or href in visited or href in queued: continue
                 if not _domain_ok(href, sites) or LINK_BAD.search(href): continue
                 if LINK_OK.search(href) or LINK_OK.search(a.get("text") or ""):
-                    queue.append(href)
+                    seq += 1; queue.append((_pri(href, a.get("text")), seq, href)); queued.add(href)
             time.sleep(1)
         br.close()
     d.mkdir(parents=True, exist_ok=True)

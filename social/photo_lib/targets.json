@@ -226,6 +226,10 @@
   ],
   "credit_name": "日月光",
   "official_sites": [
+   "https://www.aseglobal.com/",
+   "https://www.aseglobal.com/press-room/ase-breaks-ground-on-new-renwu-plant-to-build-hi-tech-testing-cluster",
+   "https://www.aseglobal.com/about-us/",
+   "https://www.aseglobal.com/press-room/",
    "https://ase.aseglobal.com/about-us/",
    "https://ase.aseglobal.com/press-room/",
    "https://ase.aseglobal.com/"
@@ -981,6 +985,8 @@
   ],
   "credit_name": "欣興",
   "official_sites": [
+   "https://www.unimicron.com/about05.html",
+   "https://www.unimicron.com/about04.html",
    "https://www.unimicron.com/",
    "https://www.unimicron.com/en/"
   ]
@@ -1169,6 +1175,12 @@
   ],
   "credit_name": "NVIDIA",
   "official_sites": [
+   "https://www.nvidia.com/en-us/data-center/gb200-nvl72/",
+   "https://www.nvidia.com/en-us/data-center/dgx-b200/",
+   "https://www.nvidia.com/en-us/data-center/dgx-superpod/",
+   "https://www.nvidia.com/en-us/data-center/hgx/",
+   "https://nvidianews.nvidia.com/multimedia/corporate",
+   "https://www.nvidia.com/en-us/about-nvidia/headquarters/",
    "https://nvidianews.nvidia.com/multimedia",
    "https://www.nvidia.com/en-us/about-nvidia/",
    "https://nvidianews.nvidia.com/",
@@ -1478,6 +1490,10 @@
   ],
   "credit_name": "三星",
   "official_sites": [
+   "https://news.samsungsemiconductor.com/global/a-scale-beyond-imagination-inside-samsungs-massive-semiconductor-fabs/",
+   "https://news.samsungsemiconductor.com/global/?p=2899",
+   "https://semiconductor.samsung.com/dram/hbm/",
+   "https://news.samsung.com/global/photos",
    "https://semiconductor.samsung.com/about-us/",
    "https://news.samsungsemiconductor.com/global/",
    "https://news.samsung.com/global/",
@@ -1713,6 +1729,9 @@
   ],
   "credit_name": "Anthropic",
   "official_sites": [
+   "https://www.claude.com/product/overview",
+   "https://www.anthropic.com/claude",
+   "https://www.claude.com/",
    "https://www.anthropic.com/company",
    "https://www.anthropic.com/news",
    "https://www.anthropic.com/"
@@ -1827,6 +1846,9 @@
   ],
   "credit_name": "Arm",
   "official_sites": [
+   "https://newsroom.arm.com/media",
+   "https://newsroom.arm.com/news",
+   "https://www.arm.com/company/offices",
    "https://www.arm.com/company",
    "https://newsroom.arm.com/",
    "https://www.arm.com/"
@@ -2536,10 +2558,12 @@
   "key": "coreweave",
   "credit_name": "CoreWeave",
   "official_sites": [
+   "https://www.coreweave.com/data-centers",
+   "https://www.coreweave.com/products/gpu-compute",
+   "https://www.coreweave.com/blog",
    "https://www.coreweave.com/about-us",
    "https://www.coreweave.com/newsroom",
-   "https://www.coreweave.com/",
-   "https://www.coreweave.com/data-centers"
+   "https://www.coreweave.com/"
   ]
  },
  {
@@ -2586,6 +2610,8 @@
   "key": "nanya",
   "credit_name": "南亞科",
   "official_sites": [
+   "https://www.nanya.com/en/About/",
+   "https://www.nanya.com/tw/CSR/",
    "https://www.nanya.com/tw/About/",
    "https://www.nanya.com/tw/",
    "https://www.nanya.com/en/"
@@ -2636,6 +2662,8 @@
   "key": "nan ya",
   "credit_name": "南電",
   "official_sites": [
+   "https://www.nanyapcb.com.tw/nypcb/chinese/AboutNanYaPCB/Locations/Location",
+   "https://www.nanyapcb.com.tw/nypcb/english/index",
    "https://www.nanyapcb.com.tw/",
    "https://www.nanyapcb.com.tw/en/"
   ]
@@ -2682,6 +2710,8 @@
   "key": "elite",
   "credit_name": "台光電",
   "official_sites": [
+   "https://www.emctw.com/zh-TW/about_production/index",
+   "https://www.emctw.com/en-global/about_production/index",
    "https://www.emctw.com/",
    "https://www.emctw.com/en/"
   ]
