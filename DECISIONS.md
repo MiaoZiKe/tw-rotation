@@ -7122,3 +7122,9 @@ Andy 原話（10-20，錄「今日事件＋精選文章」功能影片時的選�
 - **驗收**：`_uitest --sections 一致性普查1030`（scripts/uitest_sections/20261030_consistency.py）逐項比對。別順手改回去：不要讓同一張熱力圖的方塊文字與顏色用不同指標。
 
 - **2026-10-30 退回：今日走勢驗證面板、排行播放關更新動畫、市場明細漲跌家數同口徑**（Andy：「這先退回上一版，先預覽版本就好」）。三項已從 main 移除；含三項的完整版保存在預覽分支 `preview/verify-panel`（https://miaozike.github.io/tw-rotation/preview/verify-panel/）。保留：總覽熱力圖 heatMode、即時模式位移放大 ×N、今日時間軸／播放／速度拉桿、熱力圖即時1020 斷言修正。
+## #375 盤中 5 分鐘快照（Worker /tape）每天盤後落地進資料湖 `tape_5m`（爬蟲專家，2026-10-30；合併時若撞號請改號）
+- **為什麼**：研究「盤中資金占比能否提前判斷族群強弱」（docs/research/20261030_flow_vs_price.md）發現 60 分 K 的 09:00–10:00 那根幾乎沒成交量，需要更細的盤中資料，且至少累積 60 個交易日；但 Worker KV 的 TTL 只有 8 天（TAPE_TTL），不落地就消失。依 CLAUDE.md「會重複用到的就進資料湖」。
+- **表**：`tape_5m`，鍵 (ts, code)，按月分割。欄位 ts（台北 5 分鐘格，ISO +08:00）、code、price、cum_lots（mis `v` 累計成交張，不含盤後定價／鉅額）、cum_value（累計成交值，元，**估算**＝逐格「新增張數×1000×該格價」累加，tape 本身沒有成交值，val_src=est）、prev_close、src=tape。
+- **來源**：讀我們自己的 Worker `GET /tape?date=YYYYMMDD`（資料源仍是白名單 mis，沒有新增第三方來源）。Python 端 `pipeline/sources/tape.py`，失敗（404／連不上／格式不符）回空並把回應前 200 字記 log。
+- **保底**：KV 留 8 天，所以不擠單一時間點 —— daily 每一輪（含清晨與盤中 news 輪）都回頭掃最近 8 天，湖裡沒有 13:30 之後那格的交易日就補抓，收齊的不再打 Worker；另有 `tape-lake.yml` 台北 14:07／15:07 專抓（可手動觸發補歷史）。休市日 Worker 不寫 KV → 404 → 天然略過。
+- **別順手改**：① 不走 `run_daily --phase`，避免蓋掉 `last_run.json`（heal_daily 靠它）；② 沒有要補的是常態，不記進「沒回資料的來源」；③ 成交值是估算，研究時要說明，要精確值得另找來源。

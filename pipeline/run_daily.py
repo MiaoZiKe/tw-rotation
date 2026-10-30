@@ -19,7 +19,7 @@ import pandas as pd
 from . import config, inst_bulk
 from .compute import flow
 from .groups import loader
-from .sources import inst_official, etf_pcf, finmind, macro, mis, mktfut, mops, news, taifex, tdcc, tpex, twse
+from .sources import inst_official, etf_pcf, finmind, macro, mis, mktfut, mops, news, taifex, tape, tdcc, tpex, twse
 from .util import freshness, http, store
 from .util.roc import is_tradable_security
 
@@ -823,6 +823,17 @@ def main() -> int:
     # ★ 刻意連 news 那幾輪（週末、清晨 05:00、盤中）也抓：那時檔案裡是上一個交易日的殘留或今天的半盤，
     #   照檔案內每一筆的時間歸日、append 依 (ts, symbol, interval) 去重，多抓只是多一次保險
     #   （排程延遲、15:30 那輪失敗時，隔天清晨或週末那輪還撿得回來）。一輪只有三個小請求。
+    # -------------------------------------------------- 盤中 5 分鐘快照落地（Worker KV 只留約 8 天，不存就消失）
+    # 2026-10-30：研究「盤中資金占比能否提前判斷族群強弱」要累積 ≥ 60 個交易日。每一輪（含 news 輪）都回頭掃 KV 還留著、
+    # 湖裡還沒收齊的交易日，所以 15:30 那輪失敗也會被後面幾輪補回來。沒有要補的 ＝ 常態，不記進「沒回資料的來源」（避免天天黃燈）。
+    # 失敗只記錄、不擋其他步驟（step() 吃例外；save() 也吃例外）。
+    _tp = step("tape.collect", tape.collect)
+    if _tp.empty and "tape.collect" in RESULT["empty"]:
+        RESULT["empty"].remove("tape.collect")
+    if not _tp.empty or _tp.attrs.get("miss"):
+        RESULT["steps"]["tape.collect"].update({"dates_todo": _tp.attrs.get("todo"), "dates_miss": _tp.attrs.get("miss")})
+    save("tape_5m", _tp)
+
     minute = step("mis.index_minute", collect_index_minute)
     if minute.empty and news_only and "mis.index_minute" in RESULT["empty"]:
         # 盤前檔案可能已經清空 —— 那是「還沒開盤」不是「壞了」，不記進「沒回資料的來源」
