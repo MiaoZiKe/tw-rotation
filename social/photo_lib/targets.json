@@ -985,6 +985,10 @@
   ],
   "credit_name": "欣興",
   "official_sites": [
+   "https://www.unimicron.com/product_HDI.html",
+   "https://www.unimicron.com/product_FCCSP.html",
+   "https://www.unimicron.com/about02.html",
+   "https://www.unimicron.com/about03.html",
    "https://www.unimicron.com/about05.html",
    "https://www.unimicron.com/about04.html",
    "https://www.unimicron.com/",
@@ -1490,14 +1494,14 @@
   ],
   "credit_name": "三星",
   "official_sites": [
+   "https://semiconductor.samsung.com/about-us/locations/",
    "https://news.samsungsemiconductor.com/global/a-scale-beyond-imagination-inside-samsungs-massive-semiconductor-fabs/",
+   "https://semiconductor.samsung.com/about-us/",
    "https://news.samsungsemiconductor.com/global/?p=2899",
    "https://semiconductor.samsung.com/dram/hbm/",
    "https://news.samsung.com/global/photos",
-   "https://semiconductor.samsung.com/about-us/",
    "https://news.samsungsemiconductor.com/global/",
-   "https://news.samsung.com/global/",
-   "https://semiconductor.samsung.com/about-us/locations/"
+   "https://news.samsung.com/global/"
   ],
   "official_credit": {
    "samsungsemiconductor.com": "圖：Samsung Semiconductor Newsroom"
@@ -1729,6 +1733,9 @@
   ],
   "credit_name": "Anthropic",
   "official_sites": [
+   "https://www.anthropic.com/careers",
+   "https://claude.com/download",
+   "https://www.claude.com/product/claude-code",
    "https://www.claude.com/product/overview",
    "https://www.anthropic.com/claude",
    "https://www.claude.com/",
@@ -2558,11 +2565,12 @@
   "key": "coreweave",
   "credit_name": "CoreWeave",
   "official_sites": [
+   "https://www.coreweave.com/newsroom",
+   "https://www.coreweave.com/platform",
    "https://www.coreweave.com/data-centers",
    "https://www.coreweave.com/products/gpu-compute",
    "https://www.coreweave.com/blog",
    "https://www.coreweave.com/about-us",
-   "https://www.coreweave.com/newsroom",
    "https://www.coreweave.com/"
   ]
  },
@@ -2610,6 +2618,8 @@
   "key": "nanya",
   "credit_name": "南亞科",
   "official_sites": [
+   "https://www.nanya.com/ESG/tw",
+   "https://www.nanya.com/ESG/en",
    "https://www.nanya.com/en/About/",
    "https://www.nanya.com/tw/CSR/",
    "https://www.nanya.com/tw/About/",

@@ -517,31 +517,6 @@
    "review_note": "2026-10-30 art-director 複審（補圖第二輪）退件：南亞理工學院、南亞塑膠、Samsung／他牌 DRAM，非南亞科技（主體錯誤）",
    "reject_reason": "南亞理工學院、南亞塑膠、Samsung／他牌 DRAM，非南亞科技（主體錯誤）",
    "reviewed_at": "2026-10-30"
-  },
-  {
-   "file": "photo_23.jpg",
-   "kind": "總部/廠房",
-   "slug": "nanya_tech",
-   "name_en": "Nanya Technology",
-   "origin": "official",
-   "query": "official",
-   "file_title": "https://www.nanya.com/ESG/storage/file/fec95aca-d5f2-4b65-a02e-acac9918e547?v=1793329385",
-   "source_page": "https://www.nanya.com/ESG/en",
-   "source_url": "https://www.nanya.com/ESG/en",
-   "image_url": "https://www.nanya.com/ESG/storage/file/fec95aca-d5f2-4b65-a02e-acac9918e547?v=1793329385",
-   "license": "official-press",
-   "license_url": "",
-   "author": "南亞科官方",
-   "credit": "圖：南亞科官方",
-   "description": "Nanya Technology Corporate Sustainability",
-   "width": 1375,
-   "height": 688,
-   "sha1": "b46801b88f6f93c44d9ca2bdaa32f485350d8ae0",
-   "fetched_at": "2026-10-30",
-   "fetched_at_utc": "2026-10-30T03:03:21+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
   }
  ],
  "rejected": [
@@ -598,6 +573,13 @@
    "reason": "官方照片退件：官網橫幅為人物、圖庫意象與 CG 合成，無南亞科廠區或產品實景",
    "at": "2026-10-30",
    "source_page": "https://www.nanya.com/tw/"
+  },
+  {
+   "file_title": "https://www.nanya.com/ESG/storage/file/fec95aca-d5f2-4b65-a02e-acac9918e547?v=1793329385",
+   "reason": "官方照片退件：獎項字卡",
+   "at": "2026-10-30",
+   "source_page": "https://www.nanya.com/ESG/en",
+   "sha1": "b46801b88f6f93c44d9ca2bdaa32f485350d8ae0"
   }
  ]
 }

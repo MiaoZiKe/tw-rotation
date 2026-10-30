@@ -545,31 +545,6 @@
    "origin": "公司分類",
    "reject_reason": "門市／展場，行人或人群可辨識人臉、非總部或產品主體（審核項 3）",
    "reviewed_at": "2026-10-30"
-  },
-  {
-   "file": "photo_24.jpg",
-   "kind": "總部/廠房",
-   "slug": "samsung",
-   "name_en": "Samsung Electronics",
-   "origin": "official",
-   "query": "official",
-   "file_title": "https://cf-images.ap-northeast-1.prod.boltdns.net/v1/jit/1275380501001/6b854558-04d1-4abd-b582-2727dbac72dd/main/1280x720/1m11s850ms/match/image.jpg",
-   "source_page": "https://semiconductor.samsung.com/foundry/manufacturing/fab-automation/",
-   "source_url": "https://semiconductor.samsung.com/foundry/manufacturing/fab-automation/",
-   "image_url": "https://cf-images.ap-northeast-1.prod.boltdns.net/v1/jit/1275380501001/6b854558-04d1-4abd-b582-2727dbac72dd/main/1280x720/1m11s850ms/match/image.jpg",
-   "license": "official-press",
-   "license_url": "",
-   "author": "三星官方",
-   "credit": "圖：三星官方",
-   "description": "Fab Automation | Manufacturing | Samsung Semiconductor Global",
-   "width": 1280,
-   "height": 720,
-   "sha1": "fa3e3436bcc5f3b42e3c94b270773c997c05449a",
-   "fetched_at": "2026-10-30",
-   "fetched_at_utc": "2026-10-30T02:53:28+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
   }
  ],
  "rejected": [
@@ -582,6 +557,13 @@
    "file_title": "File:Intel Optane Memory 32GB.jpg",
    "reason": "Intel 產品，與三星無關",
    "at": "2026-10-28"
+  },
+  {
+   "file_title": "https://cf-images.ap-northeast-1.prod.boltdns.net/v1/jit/1275380501001/6b854558-04d1-4abd-b582-2727dbac72dd/main/1280x720/1m11s850ms/match/image.jpg",
+   "reason": "官方照片退件：互動遊戲介面截圖，非實景",
+   "at": "2026-10-30",
+   "source_page": "https://semiconductor.samsung.com/foundry/manufacturing/fab-automation/",
+   "sha1": "fa3e3436bcc5f3b42e3c94b270773c997c05449a"
   }
  ]
 }

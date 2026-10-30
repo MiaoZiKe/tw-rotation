@@ -11,11 +11,11 @@ from __future__ import annotations
 import hashlib, io, json, os, re, time
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from urllib.parse import urljoin, urlparse
+from urllib.parse import unquote, urljoin, urlparse
 
 MAX_PAGES = 30          # 每家最多開幾頁
 MAX_NEW = 14            # 每家一次最多新增幾張候選（待審）
-MIN_W, MIN_H, MIN_AR = 900, 480, 1.25     # 封面照片區 952×約 440；高 < 480 的網頁橫幅裁成封面會糊
+MIN_W, MIN_H, MIN_AR = 800, 420, 1.25     # 封面照片區 952×約 440；再小的網頁橫幅裁成封面會糊（審核時再看清晰度）
 PREFIX_CAP = 3          # 同一路徑前綴（前兩層）最多開幾頁，避免被產品清單頁灌爆
 # 連結優先序：廠區／據點／總部／圖庫 > 關於／媒體 > 產品 > 其他
 LINK_PRI = [(re.compile(r"facilit|fab\b|fabs|plant|factory|campus|location|headquart|site-?tour|gallery|photo|image|multimedia|media-?(kit|library|asset)|廠|據點|園區|總部", re.I), 0),
@@ -30,7 +30,7 @@ LINK_OK = re.compile(r"about|company|corporate|overview|facilit|fab\b|fabs|plant
 LINK_BAD = re.compile(r"career|job|recruit|investor|ir\.|financial|login|signin|account|privacy|legal|terms|cookie|contact|"
                       r"\.pdf$|\.zip$|mailto:|javascript:|tel:|#|人才|招募|投資人|財務|隱私|條款|登入", re.I)
 # 圖：網址或 alt 像這些字的不抓（標誌、人像、活動、獎項、圖示）
-IMG_BAD = re.compile(r"logo|icon|favicon|sprite|avatar|headshot|portrait|people|person|team|leader|executive|ceo|cfo|founder|"
+IMG_BAD = re.compile(r"logo|(?<![a-z])icons?(?![a-z])|favicon|sprite|avatar|headshot|portrait|people|person|team|leader|executive|ceo|cfo|founder|"
                      r"board-?of|boardroom|chairman|president|speaker|keynote|award|ceremony|signing|event|staff|employee|selfie|interview|"
                      r"(?<![a-z])qr|badge|flag|(?<![a-z])map(?![a-z])|chart|infographic|diagram|banner-text|placeholder|blank|loading|"
                      r"董事|總經理|執行長|人物|頒獎|典禮|活動|標誌", re.I)
@@ -44,9 +44,16 @@ def credit_for(t: dict, url: str) -> str:
     return f"圖：{t.get('credit_name') or (t.get('zh') or [t['name_en']])[0]}官方"
 
 
+def _root(host: str) -> str:
+    """註冊網域：nanyapcb.com.tw → nanyapcb.com.tw（不是 com.tw）；www.arm.com → arm.com。"""
+    p = host.lower().split(".")
+    n = 3 if len(p) >= 3 and len(p[-1]) == 2 and p[-2] in ("com", "co", "org", "net", "gov", "edu", "ac") else 2
+    return ".".join(p[-n:])
+
+
 def _domain_ok(url: str, sites: list[str]) -> bool:
     host = urlparse(url).netloc.lower()
-    roots = {".".join(urlparse(s).netloc.lower().split(".")[-2:]) for s in sites}
+    roots = {_root(urlparse(s).netloc) for s in sites}
     return any(host == r or host.endswith("." + r) for r in roots)
 
 
@@ -141,7 +148,8 @@ def fetch_official(t: dict, d: Path, sess, gseen: set[str]) -> dict:
                 src = urljoin(url, src)
                 if src in seen: skip("看過"); continue
                 if re.search(r"\.(svg|gif)(\?|$)", src, re.I): skip("svg/gif"); continue
-                if IMG_BAD.search(src) or IMG_BAD.search(im.get("alt") or ""): skip("檔名像標誌/人像/活動"); continue
+                fname = unquote(urlparse(src).path.rsplit("/", 1)[-1])      # 只看檔名（網域「semiconductor」含 icon 字樣，不能整串比）
+                if IMG_BAD.search(fname) or IMG_BAD.search(im.get("alt") or ""): skip("檔名像標誌/人像/活動"); continue
                 seen.add(src)
                 try:
                     img = Image.open(io.BytesIO(_download(dl, sess, src, url))); img.load()
