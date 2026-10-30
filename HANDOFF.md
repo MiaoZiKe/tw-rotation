@@ -1,5 +1,12 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
+## 2026-10-30 公司封面照片改可用官方照片（Andy：「改成接用 並標明出處 是可以的」；DECISIONS #373；最後更新 10-30 台北）
+- 規則：`photo_lib_review.md` 第九節〇（license=`official-press`、署名「圖：<公司名>官方」、仍不准人物主角／媒體照／標誌主視覺／AI 圖）；`render_news_cards.license_ok()` 只收允許的授權值、`credit_of()` 印官方署名；選圖順序不變（主體公司已審圖 → 類別池 → 通用池）。
+- 抓圖：`company_photos.yml` 手動觸發 `source=official`（`scripts/company_photos_official.py`，Playwright＋報告書 PDF 取圖），`targets.json` 的 `official_sites`／`credit_name`／`official_credit`。
+- 第一批審核（第十節）：台積電 8（官方 5）、NVIDIA 6（官方 3）、三星 5（官方 3）、Arm 3、日月光 3、CoreWeave 2、欣興 2、南電 1、Anthropic 0、南亞科 0、台光電 0。
+- **待處理**：Anthropic／南亞科／台光電／南電／CoreWeave／欣興未達 3 張——官網沒有可用實景（人物、CG、字卡為主）；這幾家封面仍走類別池（有圖、不擋發文）。下一步在 `official_sites` 直接填官方永續報告書 PDF 網址再跑一輪，或請公關提供。
+- 這批只驗：`pytest tests/test_photo_pool.py tests/test_social_news.py`（48 passed）＋ 6 張範例封面重疊檢查 0 筆。
+
 ## 2026-10-30 封面照片：跟公司有關一律先用主體公司照片（Andy：「相這種跟公司有關的 優先附上公司圖片」；最後更新 10-30 台北）
 - 事故：10-30 早上緊急加發「Alphabet 跌 12.6%」，手寫渲染腳本直接指定 Intel 圖池 → 封面配成 Intel 處理器。
 - 改：`render_news_cards.photo_pick` 主體公司已審圖池最優先（蓋過常備文庫指定池／台股大盤圖）、`company_slug()` 主體名稱模糊比對、公司池「相關場景」排最後；手動加發一律 `python scripts/news_cover.py <post.json> <輸出.jpg>`。規則：`news_post_rules.md` 第十二節。測試：`tests/test_photo_pool.py`。

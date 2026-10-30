@@ -601,3 +601,62 @@ _category/網通、advantech、anthropic、asml、cathay、fareastone、first_fi
 - 著作權法第 37 條「約定不明推定未授權」：https://www.rootlaw.com.tw/LetterContent.aspx?LCode=13&SOID=251813 — 信心度高
 - 中央社版權聲明（不得轉載）：https://www.cna.com.tw/news/afe/202510073004.aspx — 信心度高
 - 查不到條款的公司（南亞科、南電、台光電、日月光、欣興、CoreWeave、Anthropic）用過的關鍵字：「新聞中心 圖片 下載」「網站使用條款」「版權所有」「media kit images」「press kit terms」「photo courtesy」；來源類型：官網、Business Wire、財經媒體、股市資料站。
+
+## 第十節　官方照片第一批審核（art-director，2026-10-30）
+
+> 依第九節〇（Andy 10-30「改成接用 並標明出處 是可以的」）。`company_photos.yml` source=official 跑了 4 輪（run 40991426187、40993722974 及之後兩輪），每輪抓完逐張看「全圖＋952×424 中段裁切」聯絡表，照第三節清單＋第九節〇的「仍然不准」審。通過的寫 `reviewed:true`；退件的刪檔、記進 `pool.json` 的 `rejected`（含 sha1，之後不再抓）。
+
+### 一、各公司張數（已審可用）
+
+| 公司 | Commons | 官方（新增） | 合計 | 官方退件 | 達 3 張 |
+|---|---|---|---|---|---|
+| 台積電 `tsmc` | 3 | 5 | 8 | 9 | 是 |
+| NVIDIA `nvidia` | 3 | 3 | 6 | 25 | 是 |
+| CoreWeave `coreweave` | 0 | 2 | 2 | 40 | 否 |
+| Anthropic `anthropic` | 0 | 0 | 0 | 35 | 否 |
+| 南亞科 `nanya_tech` | 0 | 0 | 0 | 25 | 否 |
+| 南電 `nan_ya_pcb` | 0 | 1 | 1 | 11 | 否 |
+| 台光電 `eml` | 0 | 0 | 0 | 11 | 否 |
+| Arm `arm` | 1 | 2 | 3 | 26 | 是 |
+| 三星 `samsung` | 2 | 3 | 5 | 12 | 是 |
+| 日月光 `ase` | 2 | 1 | 3 | 13 | 是 |
+| 欣興 `unimicron` | 2 | 0 | 2 | 42 | 否 |
+
+### 二、通過的官方照片（來源頁）
+
+| 檔名 | 內容 | 來源頁 |
+|---|---|---|
+| tsmc/photo_16.jpg | 台積電廠區辦公大樓（官網 TSMC_Fabs 頁），建築上台積電字樣只是場景一部分，裁切後主體在 | https://www.tsmc.com/english/aboutTSMC/TSMC_Fabs |
+| tsmc/photo_17.jpg | 台積電廠區大樓正面，日間、原色，左上角標誌很小 | https://www.tsmc.com/english/aboutTSMC/TSMC_Fabs |
+| tsmc/photo_18.jpg | 台積電廠區大樓入口（紅色雨遮），黃昏實景，無人物 | https://www.tsmc.com/english/aboutTSMC/TSMC_Fabs |
+| tsmc/photo_19.jpg | 台積電廠區弧形大樓，日間實景 | https://www.tsmc.com/english/aboutTSMC/TSMC_Fabs |
+| tsmc/photo_20.jpg | 台積電廠區大樓，建築上標誌只是場景一部分 | https://www.tsmc.com/english/aboutTSMC/TSMC_Fabs |
+| nvidia/photo_25.jpg | NVIDIA DGX B200 官方產品形象照，黑底置中 | https://www.nvidia.com/en-us/data-center/dgx-b200/ |
+| nvidia/photo_27.jpg | NVIDIA DGX 機櫃走道官方形象照（資料中心），標誌極小 | https://www.nvidia.com/en-us/data-center/dgx-superpod/ |
+| nvidia/photo_28.jpg | NVIDIA DGX SuperPOD 機櫃官方產品照，黑底置中 | https://www.nvidia.com/en-us/data-center/dgx-superpod/ |
+| coreweave/photo_16.jpg | CoreWeave 新聞室的 GPU 叢集機櫃實景（線材、伺服器），無人物 | https://www.coreweave.com/newsroom |
+| coreweave/photo_9.jpg | CoreWeave GPU 運算產品頁的伺服器機櫃實景（線材、GPU 節點），無人物 | https://www.coreweave.com/products/gpu-compute |
+| nan_ya_pcb/photo_23.jpg | 南電廠區大樓實景（門口有南亞塑膠／南亞電路板門牌），日間原色；原圖高 300，裁成封面會略放大，之後有更清楚的就替換 | https://www.nanyapcb.com.tw/nypcb/chinese/AboutNanYaPCB/CompanyProfile/Vision |
+| arm/photo_29.jpg | Arm 官方晶片產品形象照（封裝上 arm 字樣小），主體在右、裁切後完整 | https://newsroom.arm.com/ |
+| arm/photo_30.jpg | Arm 架構伺服器主機板產品形象照，晶片在畫面中央 | https://newsroom.arm.com/ |
+| samsung/photo_28.jpg | 三星半導體官網「據點」頁的園區大樓入口實景，日間、無人物 | https://semiconductor.samsung.com/about-us/locations/ |
+| samsung/photo_35.jpg | 三星晶圓廠無塵室天車（OHT）實景，兩側人員模糊入鏡不是主角 | https://semiconductor.samsung.com/about-us/ |
+| samsung/photo_36.jpg | 三星 HBM4E 官方產品照（封裝上的 SAMSUNG 是產品印字，不是標誌特寫）；寬 936 略放大 | https://semiconductor.samsung.com/dram/hbm/ |
+| ase/photo_24.jpg | 日月光官網新聞室的封裝基板／晶片產品形象照，白底、無人物無標誌 | https://www.aseglobal.com/press-room/ |
+
+### 三、退件類型（共通）
+- 人物當主角：主管訪談、團體照、ESG 公益活動照（欣興官網最新消息頁幾乎全是這類）、典禮。
+- 非實景：建築完工效果圖、抽象 CG、插畫、字卡、互動遊戲截圖、疑似 AI 生成的圖庫意象（CoreWeave 新聞室大量使用）。
+- 標誌／品牌字卡為主視覺、影片封面（播放鍵、字幕）、資訊圖、組織圖、營收圖表。
+- 原圖壓了深色遮罩（三星據點頁 24／27）、與他張重複、他牌產品（Arm 成功案例頁的 NVIDIA 產品）。
+- 網域判斷錯誤抓到證交所／指數公司橫幅（南電，已修 `.com.tw` 網域判斷）。
+
+### 四、仍不足 3 張的公司（已查過的官方來源）
+- **Anthropic（0）**：anthropic.com（company、news、careers）、claude.com（product、enterprise、resources、download、platform）、docs 站。官方只有人物訪談截圖、插畫、文件封面字卡，**沒有辦公室或機房實景照**。
+- **南亞科（0）**：nanya.com（tw／en 首頁、About、Product、ESG 新聞列表、CSR）。官網橫幅是 CG 合成與人物；ESG 頁是影片封面（主管人物、動土典禮）；交通圖裡的大樓照片太小。
+- **台光電（0）**：emctw.com（首頁、about_production、no1_*、milestone、achievements）＋2023～2025 年報 PDF（抽不到 ≥800px 照片）。官網只有字卡、圖表、組織圖。
+- **南電（1）**：nanyapcb.com.tw（首頁、Locations、Product、Technology、英文版）。廠區頁照片寬 < 800（plant1／plant2.jpg）；唯一一張首頁大樓照通過，但原圖只有 300 高，之後有更清楚的就替換。
+- **CoreWeave（2）**：coreweave.com（about-us、newsroom、data-centers、gpu-compute、blog、platform）。新聞室多為 AI 生成風格的圖庫意象與抽象圖形，只取到 2 張機櫃實景。
+- **欣興（2，皆 Commons）**：unimicron.com 首頁、about01～07、rd、product 各頁。官方照片幾乎全是 ESG 公益活動團體照；產品頁圖寬 < 800。
+- **日月光（3）、Arm（3）**：剛好達標，Arm 官網其餘都是抽象 CG 與他牌產品。
+- 這幾家短期仍會走「該公司類別池」（記憶體、PCB、資料中心），封面一樣有圖（見範例 fallback_南亞科、fallback_Anthropic）。下一步：①跑每週一次的 official 排程時再撈新的新聞稿圖；②官方永續報告書 PDF（PyMuPDF 取圖已接好，但這幾家官網的報告書連結是 JS 下載鈕，爬蟲拿不到網址，要在 targets.json 的 `official_sites` 直接填 PDF 網址）；③或由公司公關提供。

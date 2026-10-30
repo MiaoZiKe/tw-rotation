@@ -16,7 +16,7 @@ from urllib.parse import unquote, urljoin, urlparse
 MAX_PAGES = 30          # 每家最多開幾頁
 MAX_NEW = 14            # 每家一次最多新增幾張候選（待審）
 MIN_W, MIN_H, MIN_AR = 800, 420, 1.25     # 封面照片區 952×約 440；再小的網頁橫幅裁成封面會糊（審核時再看清晰度）
-MAX_PDF = 3             # 官網找不到照片時，再從官方永續報告書／年報 PDF 裡取照片（每家最多開 2 份）
+MAX_PDF = 3             # 官網找不到照片時，再從官方永續報告書／年報 PDF 裡取照片（每家最多開 3 份）
 PDF_KW = re.compile(r"永續|ESG|CSR|sustainab|annual|年報|企業社會責任|報告書", re.I)
 PREFIX_CAP = 3          # 同一路徑前綴（前兩層）最多開幾頁，避免被產品清單頁灌爆
 # 連結優先序：廠區／據點／總部／圖庫 > 關於／媒體 > 產品 > 其他
