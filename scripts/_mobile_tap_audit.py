@@ -804,6 +804,16 @@ class Auditor:
             row["note"] = "重畫後不在了（略過）"
             return row
         if p.get("off"):
+            # 2026-10-29：機器忙時清單剛重畫完，捲動還沒到位（單獨重跑同一頁 0 問題）。再捲一次、等 500ms 重量；還是捲不進才算。
+            pg.wait_for_timeout(500)
+            r1 = pg.evaluate(REACH_JS, it["i"])
+            if not r1.get("gone"):
+                pg.wait_for_timeout(300)
+                p = pg.evaluate(POINT_JS, it["i"])
+            if p.get("gone"):
+                row["note"] = "重畫後不在了（略過）"
+                return row
+        if p.get("off"):
             row["blocked"] = f"捲不進畫面（位置 {p.get('rect')}）"
             return row
         if p.get("nested"):

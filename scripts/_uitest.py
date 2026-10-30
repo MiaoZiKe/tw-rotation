@@ -55906,6 +55906,9 @@ def t_mobile_tap_audit(b, base, code):
             p.textContent = '沒有關閉鈕、點外面也不關'; document.body.appendChild(p); };
         }""")
         pg.evaluate("() => window.scrollTo({top: 0, behavior: 'instant'})")
+        # 2026-10-29：機器忙的時候總覽的圖表還在延後畫，「沒反應」那顆第二次點的 1.5 秒窗口裡別處冒出 DOM×11
+        #   被當成「有反應」→ 這條偶爾假紅（三輪裡紅一輪）。先等畫面閒下來（3 秒）再量雜訊，量測本身的嚴格度不變。
+        pg.wait_for_timeout(3000)
         au.baseline()
         au.audit_scope(st, "#taPlant", 0, lambda force=False: True, budget=10)
         rows = {r["txt"]: r for r in au.rows}
