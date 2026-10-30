@@ -92,6 +92,27 @@
    "review_note": "",
    "prescreen": "fail",
    "prescreen_note": "2026-10-28 工程初篩（v3）：不建議：LOGO／人物／車牌／他牌／舊照或主體不明"
+  },
+  {
+   "file": "photo_4.jpg",
+   "kind": "產品",
+   "slug": "broadcom",
+   "name_en": "Broadcom",
+   "query": "Broadcom chip",
+   "file_title": "File:IPad, model A1337 - logic board Broadcom BCM5974-3963.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:IPad,_model_A1337_-_logic_board_Broadcom_BCM5974-3963.jpg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/d/df/IPad%2C_model_A1337_-_logic_board_Broadcom_BCM5974-3963.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "author": "Raimond Spekking",
+   "credit": "Own work",
+   "description": "IPad, model A1337 - logic board  Broadcom BCM5974 - Touch IC Chip Chipset",
+   "width": 1360,
+   "height": 1360,
+   "fetched_at": "2026-10-30T01:49:52+00:00",
+   "reviewed": false,
+   "reviewer": "",
+   "review_note": ""
   }
  ],
  "rejected": [

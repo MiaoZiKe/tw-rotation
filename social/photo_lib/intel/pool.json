@@ -118,6 +118,28 @@
    "prescreen": "pass",
    "prescreen_note": "2026-10-28 工程初篩（v3）：通過，待 art-director 正式複審",
    "reviewed_by": "art-director"
+  },
+  {
+   "file": "photo_6.jpg",
+   "kind": "總部/廠房",
+   "slug": "intel",
+   "name_en": "Intel",
+   "query": "cat:Intel headquarters",
+   "file_title": "File:2200missioncollegeblvd.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:2200missioncollegeblvd.jpg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/c/ce/2200missioncollegeblvd.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "author": "Coolcaesar",
+   "credit": "Own work",
+   "description": "Intel headquarters at 2200 Mission College Boulevard in Santa Clara, California. The objects on the roof are wind microturbines installed in May 2015 as part of a green energy project. Photographed by user Coolcaesar on April 29, 2017.",
+   "width": 1920,
+   "height": 1291,
+   "fetched_at": "2026-10-30T01:49:56+00:00",
+   "reviewed": false,
+   "reviewer": "",
+   "review_note": "",
+   "origin": "公司分類"
   }
  ],
  "rejected": [
