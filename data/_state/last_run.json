@@ -1,5 +1,10 @@
 {
   "steps": {
+    "tape.collect": {
+      "ok": false,
+      "rows": 0,
+      "seconds": 1.0
+    },
     "inst_official": {
       "ok": true,
       "rows": 914,
@@ -65,22 +70,7 @@
         {
           "url": "https://openapi.twse.com.tw/v1/fund/MI_QFIIS_sort_20",
           "http": 200,
-          "head": "[ {\"Rank\":\"1\",\"Code\":\"2923\",\"Name\":\"鼎固-KY\",\"ShareNumber\":\"1740296982\",\"AvailableShare\":\"8493946\",\"SharesHeld\":\"1731803036\",\"AvailableInvestPer\":\"0.48\",\"SharesHeldPer\":\"99.51\",\"Upperlimit\":\"100.00\"}, {"
-        },
-        {
-          "url": "https://openapi.twse.com.tw/v1/fund/MI_QFIIS_sort_20",
-          "cols": [
-            "Rank",
-            "Code",
-            "Name",
-            "ShareNumber",
-            "AvailableShare",
-            "SharesHeld",
-            "AvailableInvestPer",
-            "SharesHeldPer",
-            "Upperlimit"
-          ],
-          "n": 20
+          "head": "<html><head><meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\"> <script type=\"application/javascript\">     var contactPhone = \"(02)8101-5921, (02)8101-5836\";     </script> </head> <bod"
         },
         {
           "market": "上市",
@@ -167,19 +157,19 @@
     "finmind.institutional_bulk": {
       "ok": true,
       "rows": 914,
-      "seconds": 0.2
+      "seconds": 0.4
     },
     "inst_daily": {
-      "stored": 166
+      "stored": 295
     },
     "institutional_codes": {
-      "requested": 463,
-      "returned": 166
+      "requested": 297,
+      "returned": 295
     },
     "finmind.institutional": {
       "ok": true,
-      "rows": 166,
-      "seconds": 45.2
+      "rows": 295,
+      "seconds": 125.0
     },
     "inst_flags": {
       "rebuild": true,
@@ -199,7 +189,7 @@
       "inst_daily": {
         "label": "個股三大法人",
         "latest": "2026-10-30",
-        "rows": 1080,
+        "rows": 1375,
         "median": 2202.5,
         "status": "pending",
         "reason": "thin"
@@ -241,10 +231,10 @@
     "warn_labels": []
   },
   "warn": [],
-  "started_at": "2026-10-30T09:14:07.825124+00:00",
-  "finished_at": "2026-10-30T09:15:06.465293+00:00",
-  "duration_seconds": 58.6,
+  "started_at": "2026-10-30T10:00:52.715812+00:00",
+  "finished_at": "2026-10-30T10:03:36.968401+00:00",
+  "duration_seconds": 164.3,
   "trade_date": "2026-10-30",
   "complete": true,
-  "finmind_budget_left": 0
+  "finmind_budget_left": 205
 }
