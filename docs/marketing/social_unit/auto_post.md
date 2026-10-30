@@ -145,3 +145,4 @@ https://liguligu-puipui.com/
 1. 測試輪（`live_test` 或 `force`）一律不寫發布紀錄（`.github/workflows/social-live.yml`）。
 2. 每筆發布紀錄帶 `at`（台北發布時間，`social_publish.py`）；`social_snap.posted_ok()` 只承認正式時段的紀錄：盤中＝當天 09:00～13:30、盤前＝當天 05:00 之後，其他時間寫的紀錄視為測試誤記、照發（log 印 ⚠）。
 3. 手動補發測試要用 `live_test=true`，不准用 `dry_run=false + force=true`。
+- 2026-10-30：主題文章新增分類「國際」（Andy：三星文章標「美股」不對）。非美國公司／央行／地區為主體 → 國際；美股只給美股盤勢與美國公司；三星不再被對到台股 5007 三星科技。規則見 `news_post_rules.md` 十一之一。

@@ -72,7 +72,7 @@ STATUS = "approved" if os.environ.get("NEWS_AUTO_APPROVE") == "1" else "draft"  
 TOPIC_STATUS = "approved" if os.environ.get("TOPIC_AUTO_APPROVE") == "1" else "draft"
 GAP_MIN = 5                       # 同一段多篇之間錯開 5 分鐘，避免洗版
 SRC_NAME = {"cnyes": "鉅亨", "udn": "經濟日報", "technews": "科技新報"}
-CATS = ["台股", "財報", "總經", "科技", "美股"]
+CATS = ["台股", "財報", "總經", "科技", "美股", "國際"]
 STYLES = ["口袋長文", "精簡重點"]
 LAYOUT = "D-無圖大數字"
 
@@ -91,12 +91,34 @@ CTYPE = [
 ]
 
 
+# 「國際」（2026-10-30 Andy：講三星的主題文章封面標成「美股」不對）：非美國的公司、央行、地區 → 國際。
+# 美股只留給「美股盤勢」與美國公司；文中同時出現美國公司時，以主體（標題最先出現的那家）的國籍決定。
+US_MKT = r"美股|道瓊|那斯達克|標普|費半|費城半導體|S&P|Nasdaq|ADR"
+US_CO = r"輝達|NVIDIA|微軟|蘋果|Apple|Alphabet|Google|Meta|亞馬遜|特斯拉|博通|超微|AMD|甲骨文"      # ＝原本 KW["美股"] 的公司名，判美股的範圍不擴大
+US_SUBJ = US_CO + r"|英特爾|高通|美光|CoreWeave|OpenAI|Anthropic|SpaceX|聯準會|Fed|FOMC|美國"   # 只用在「主體被判國際、其實是美國」的校正
+INTL_CO = (r"三星|Samsung|SK海力士|SK Hynix|海力士|(?<![A-Za-z])LG(?![A-Za-z])|樂金|Sony|索尼|豐田|Toyota|軟銀|SoftBank|ASML|艾司摩爾|鎧俠|Kioxia|瑞薩|任天堂|"
+           r"東京威力|信越|愛德萬|村田|本田|日產|現代汽車|起亞|恩智浦|英飛凌|意法半導體|西門子|福斯|賓士|寶馬|安謀|(?<![A-Za-z])Arm(?![A-Za-z])|雀巢|"
+           r"長鑫存儲|長鑫|中芯|華為|小米|比亞迪|騰訊|阿里巴巴|寧德時代|摩爾線程|"
+           r"日銀|日本銀行|歐洲央行|ECB|英格蘭銀行|人行|人民銀行|(?:南韓|韓國|日本|中國|歐洲|英國|德國|法國|印度|澳洲|加拿大|瑞士|泰國|越南|印尼)央行")
+INTL_REGION = r"南韓|韓國|韓股|日本|日股|日經|歐洲|歐盟|歐元區|英國|德國|法國|中國|陸股|港股|恒生|印度|澳洲|越南|泰國|印尼|沙烏地|俄羅斯|烏克蘭|以色列|伊朗"
+
+
+def _first(pat: str, text: str) -> int:
+    m = re.search(pat, text)
+    return m.start() if m else 10 ** 6
+
+
 def topic_of(text: str, src_cat: str) -> str:
-    for cat in ("財報", "美股"):
-        if re.search(KW[cat], text):
-            return cat
+    if re.search(KW["財報"], text):
+        return "財報"
+    if re.search(US_MKT, text):                        # 明確在講美股盤勢
+        return "美股"
+    if re.search(US_CO, text):
+        return "國際" if _first(INTL_CO, text) < _first(US_CO, text) else "美股"   # 三星在前、順帶提 Google → 國際
     if re.search(r"台股|加權指數|三大法人|集中市場|櫃買", text):
         return "台股"
+    if re.search(INTL_CO, text):
+        return "國際"
     if re.search(KW["總經"], text):
         return "總經"
     if src_cat == "科技":
@@ -104,6 +126,18 @@ def topic_of(text: str, src_cat: str) -> str:
     if re.search(KW["台股"], text):
         return "台股"
     return {"總經": "總經", "科技": "科技"}.get(src_cat, "台股")
+
+
+def refine_cat(cat: str, subj: str, code: str) -> str:
+    """主體確定後再校正分類：主體是非美國公司／機構／地區（且不是台股公司）→ 國際（連財報也算：三星財報不是台股財報）；
+    主體是美國公司卻被判國際 → 美股。台股公司（有代號）不動。"""
+    if code or not subj or re.search(COMMOD, subj):    # 台股公司、商品（「歐洲天然氣」仍是總經）不動
+        return cat
+    if re.search(INTL_CO, subj) or re.match(INTL_REGION, subj):
+        return "國際"
+    if cat == "國際" and re.search(US_SUBJ + "|" + US_MKT, subj):
+        return "美股"
+    return cat
 
 
 def ctype_of(text: str) -> str:
@@ -335,8 +369,8 @@ EXPLAIN = [
 ]
 SUBQ = {"財報數字": "和前期比，差多少？", "盤勢數字": "今天的關鍵數字有哪些？", "總經數據": "這個數字代表什麼？",
         "產業趨勢": "報導提到哪些數字？", "公司動態": "公告的重點數字是什麼？"}
-ROUTE = {"財報": "earnings", "台股": "overview", "總經": "overview", "科技": "industry", "美股": "overview"}
-TAG = {"財報": "財報", "台股": "台股", "總經": "總經", "科技": "科技新聞", "美股": "美股"}
+ROUTE = {"財報": "earnings", "台股": "overview", "總經": "overview", "科技": "industry", "美股": "overview", "國際": "overview"}
+TAG = {"財報": "財報", "台股": "台股", "總經": "總經", "科技": "科技新聞", "美股": "美股", "國際": "國際"}
 
 
 def _clean_title(t: str) -> str:
@@ -407,7 +441,7 @@ def _who(c: dict, names: dict, title: str) -> str:
 ENT = ["SK海力士", "三星", "輝達", "NVIDIA", "微軟", "蘋果", "Alphabet", "Google", "Meta", "亞馬遜", "特斯拉", "博通", "超微", "AMD",
        "甲骨文", "英特爾", "高通", "美光", "恩智浦", "安謀", "CoreWeave", "OpenAI", "Anthropic", "SpaceX", "費半", "道瓊", "那斯達克",
        "標普", "聯準會", "Fed", "日銀", "歐洲央行", "TrendForce", "IDC", "加權指數", "台股", "三大法人", "外資", "投信", "自營商",
-       "長鑫存儲", "長鑫", "中芯", "華為"]
+       "長鑫存儲", "長鑫", "中芯", "華為", "艾司摩爾", "ASML", "軟銀", "豐田", "索尼", "鎧俠"]     # 10-30 補幾家常見的非美國公司，主體才認得出「國際」
 METRICS = [("EPS", r"每股(純益|盈餘|稅後|賺)|每股$|EPS"), ("經濟成長率", r"GDP|經濟成長"), ("通膨", r"通膨|物價"), ("虧損", r"淨虧|虧損"), ("毛利率", r"毛利率"), ("營業利益", r"營業利益|營益"), ("淨利", r"淨利|純益|獲利|盈餘"),
            ("營收", r"營收"), ("資本支出", r"資本支出"), ("財測", r"財測|指引"), ("指數", r"加權指數|指數|道瓊|那斯達克|標普|費半"),
            ("買超", r"買超"), ("賣超", r"賣超"), ("成交值", r"成交值|成交額"), ("殖利率", r"殖利率"), ("利率", r"利率"), ("融資", r"融資|籌資|增資"), ("產值", r"產值"), ("出貨", r"出貨"), ("餘額", r"餘額"),
@@ -528,7 +562,10 @@ def subject_of(c: dict, names: dict) -> tuple[str, str]:
         en = None                                          # 籌碼類（外資／投信／自營商／三大法人買賣某檔）：以被買賣的那家為主
     best = min([x for x in (co, en) if x], key=lambda x: (x[0], -len(x[1])), default=None)
     if best:
-        return best[1], al.get(best[1], "")
+        code = al.get(best[1], "")
+        if code and code not in codes and re.fullmatch(INTL_CO, best[1]):
+            code = ""        # 10-30：「三星」是韓國三星電子，不是台股 5007 三星科技（新聞代號清單沒帶 5007 就當外國公司）
+        return best[1], code
     m = re.match(r"^[〈【\[]\s*([^〉】\]]{2,8}?)\s*(?:法說|財報|營收|獲利|股東會|重訊|快訊)?[〉】\]]", t)
     if m and m.group(1) not in STOPW:
         return m.group(1), al.get(m.group(1), "")
@@ -570,8 +607,8 @@ def landing(c: dict, code: str) -> str:
         ch = chain_of(code)
         if ch:
             return f"industry/{ch}"
-    if c["ctype"] == "財報數字" or c["cat"] == "財報":
-        return "earnings"
+    if c["cat"] != "國際" and (c["ctype"] == "財報數字" or c["cat"] == "財報"):
+        return "earnings"                    # 國際（三星財報）不導台股財報頁（10-30）
     if c["cat"] == "台股":
         return "market/inst"
     if re.search(r"半導體|晶片|AI|記憶體|HBM|CoWoS|伺服器", c["text"]):
@@ -982,6 +1019,7 @@ def compose(c: dict, slot: str, idx: int, day: str, style: str, names: dict) -> 
     subj, code = subject_of(c, names)
     if not subj:
         raise Skip("找不到主體（公司／機構／指數）")
+    c["cat"] = refine_cat(c["cat"], subj, code)      # 10-30：主體國籍決定「國際／美股」
     nums = [x for x in c["nums"] if not re.search(JUNK, x["label"])]
     fx = set(re.findall(r"人民幣|日圓|日幣|韓元|歐元|港元|港幣|英鎊", c["text"]))
     if len(fx) == 1 and not re.search(r"新台幣|台幣", c["text"]):       # 外幣報導：「萬元」實為人民幣等，單位寫清楚（10-29 摩爾線程）

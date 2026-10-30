@@ -6,11 +6,12 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from lib_dplus import *
 from datetime import datetime as datetime
+V = V + ";--te:#2A8C82"     # 「國際」分類色（10-30）：青綠，避開霧藍（美股）、主綠（台股）、芥黃、珊瑚、字深
 
 UP, DN = "#C81234", "#07794F"
-CAT = {"美股": "blue", "台股": "green", "財報": "mustard", "總經": "coral", "科技": "ink"}
-CVAR = {"blue": "--bl", "green": "--gr", "mustard": "--my", "coral": "--co", "ink": "--ink"}
-CTXT = {"blue": "#fff", "green": "#fff", "mustard": P["ink"], "coral": P["ink"], "ink": "#fff"}
+CAT = {"美股": "blue", "台股": "green", "財報": "mustard", "總經": "coral", "科技": "ink", "國際": "teal"}   # 國際（10-30）：青綠，和其他五色不撞
+CVAR = {"blue": "--bl", "green": "--gr", "mustard": "--my", "coral": "--co", "ink": "--ink", "teal": "--te"}
+CTXT = {"blue": "#fff", "green": "#fff", "mustard": P["ink"], "coral": P["ink"], "ink": "#fff", "teal": "#fff"}
 STRIPE = ["--gr", "--co", "--bl", "--my"]; TINT = ["--tg", "--tc", "--tb", "--tm"]
 NUM = re.compile(r"(?<![A-Za-z\d])\d[\d,.]*\s*[%％兆億萬]*(?:美元|元|點)?")   # 「億美元」整段保留（Andy 10-28：單位改成億美元）
 e = html.escape
@@ -103,8 +104,8 @@ def card(d, idx, tot, bg=None):
             f'<div class="a row T4" style="left:64px;top:1272px;width:952px;height:64px;color:var(--mu)"><span class="num">{date}・{idx} / {tot}</span><span style="margin-left:auto"></span>{bibi("face_think", 60)}</div></body>')
 # ---- cover_v2：全幅圖封面（Andy 10-28：口袋證券等級的完成度，保留 D+ 品牌）----
 DEEP = "#123325"        # 主綠加深（只用於壓字底，不當前景色）
-CHIP2 = {"美股": ("#4C86B0", "#fff"), "台股": ("#C81234", "#fff"), "財報": (P["mustard"], P["ink"]), "總經": (P["coral"], P["ink"]), "科技": ("#F7F3EA", P["ink"])}   # 深色底上的實心標籤（台股紅底白字）
-ICONS = {"美股": "chart", "台股": "chart", "財報": "coin", "總經": "pct", "科技": "chip", "default": "target"}
+CHIP2 = {"美股": ("#4C86B0", "#fff"), "台股": ("#C81234", "#fff"), "財報": (P["mustard"], P["ink"]), "總經": (P["coral"], P["ink"]), "科技": ("#F7F3EA", P["ink"]), "國際": ("#2A8C82", "#fff")}   # 深色底上的實心標籤（台股紅底白字）
+ICONS = {"美股": "chart", "台股": "chart", "財報": "coin", "總經": "pct", "科技": "chip", "國際": "globe", "default": "target"}
 def hl2(line):   # 白字標題裡的第一個數字（含單位）改芥黃＋襯線
     m = NUM.search(line)
     if not m: return e(line)
@@ -124,7 +125,7 @@ def bg_cover(path, w, h):
     x0 = (im.width - w)//2; y0 = int((im.height - h)*0.2)
     im = im.crop((x0, y0, x0+w, y0+h)); b = io.BytesIO(); im.save(b, "JPEG", quality=92)
     return "data:image/jpeg;base64," + base64.b64encode(b.getvalue()).decode()
-BIBI_BY_CAT = {"科技": "face_think", "台股": "magnifier", "財報": "trophy", "美股": "rocket", "總經": "calendar"}
+BIBI_BY_CAT = {"科技": "face_think", "台股": "magnifier", "財報": "trophy", "美股": "rocket", "總經": "calendar", "國際": "globe"}
 def hero_art(c, tl, cat):
     """沒有合格 AI 圖時的上半部：D+ 色系幾何圖形＋放大的關鍵數字（取自大標第一個數字）＋比比"""
     hero = None

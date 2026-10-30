@@ -447,3 +447,45 @@ def test_clean_name_strips_star_and_suffix():
     assert _subj2("11+12月大軋空可期、矽力⊕、金像電⊕、國巨、華新科", "3035,6415,2368",
                   names=dict(NAMES2, **{"6415": S.clean_name("矽力*-KY"), "2368": "金像電", "3035": "智原"})) == ("矽力", "6415")
     assert "材料" not in S._alias({"4763": S.clean_name("材料*-KY")})                     # 拿掉星號後變一般詞，列入 GENERIC
+
+
+# ---------------- 「國際」分類（2026-10-30 Andy：講三星的文章封面標成「美股」不對） ----------------
+def test_topic_intl_vs_us():
+    assert S.topic_of("三星HBM4打進Google與NVIDIA供應鏈", "科技") == "國際"      # 主體三星在前，順帶提美國公司
+    assert S.topic_of("SK海力士HBM4開始量產", "科技") == "國際"
+    assert S.topic_of("日銀維持利率不變", "總經") == "國際"
+    assert S.topic_of("Google找上甲骨文 搶輝達AI晶片生意", "科技") == "美股"
+    assert S.topic_of("美股四大指數收紅 費半漲2%", "") == "美股"
+    assert S.topic_of("台積電法說 毛利率59%", "") == "財報"
+    assert S.topic_of("歐洲天然氣價格下跌", "總經") == "總經"
+    assert S.topic_of("出貨給LGA插槽廠", "科技") == "科技"                  # 英文 LG／Arm 要整字比對
+
+
+def test_refine_cat_by_subject_nationality():
+    assert S.refine_cat("美股", "三星", "") == "國際"
+    assert S.refine_cat("財報", "三星", "") == "國際"          # 三星財報不是台股財報
+    assert S.refine_cat("總經", "南韓央行", "") == "國際"
+    assert S.refine_cat("國際", "Google", "") == "美股"
+    assert S.refine_cat("財報", "台積電", "2330") == "財報"    # 台股公司不動
+    assert S.refine_cat("總經", "歐洲天然氣", "") == "總經"    # 商品不動
+    assert S.TAG["國際"] == "國際" and S.ROUTE["國際"] == "overview" and "國際" in S.CATS
+
+
+def test_compose_samsung_with_us_mentions_is_intl(monkeypatch):
+    _no_lake(monkeypatch)
+    c = _cand("三星第3季營業利益12.2兆韓元 HBM打進Google與輝達",
+              "三星電子公布第3季營業利益12.2兆韓元，年增32%，記憶體部門受惠HBM出貨給Google、輝達，第3季營收86兆韓元，年增9%。")
+    try:
+        d = S.compose(c, "intra", 1, "2026-10-30", "口袋長文", NAMES)
+        assert d["card"]["category"] == "國際" and d["meta"]["topic_category"] == "國際"
+    except S.Skip:
+        pass                              # 測試稿字數不足被品質閘擋，分類在品質閘之前就已校正
+    assert c["cat"] == "國際"
+
+
+def test_samsung_not_mapped_to_tw_namesake():
+    names = dict(NAMES, **{"5007": "三星"})
+    c = {"lead": {"title": "一家抵兩家！三星營益直逼微軟加Google總和 記憶體客戶有長約還要搶貨", "summary": "", "codes": ""}}
+    assert S.subject_of(c, names) == ("三星", "")                 # 沒帶 5007 → 韓國三星
+    c["lead"]["codes"] = "5007"
+    assert S.subject_of(c, names) == ("三星", "5007")             # 新聞明確標 5007 才是台股三星科技

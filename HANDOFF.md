@@ -1,5 +1,11 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
+## 2026-10-30 主題文章新增分類「國際」（Andy：講三星的文章封面標「美股」不對；最後更新 10-30 台北）
+- `scripts/social_news.py`：`topic_of()` 加「國際」（三星、SK海力士、日銀、歐洲央行…）；`refine_cat()` 在 `compose()` 取得主體後依主體國籍校正（非美國、非台股 → 國際；被判國際但主體是美國公司 → 美股）；`subject_of()` 的「三星」只有新聞代號帶 5007 才算台股三星科技；國際稿不導 `#earnings`。TAG／ROUTE 加國際。
+- `docs/marketing/posts/render_news_cards.py`：國際配色青綠 #2A8C82（CAT／CVAR／CHIP2）、圖示與比比 globe。
+- 排程中未發的 queue（10-28 盤後 3 篇 draft：台股、是方、台光電）沒有誤標；10-30 盤中三星那篇已發出（標「財報」），照規定不動。
+- 這批只驗：`pytest tests/ -q -k social`（165 passed）＋ 三星範例封面重疊 0 筆。
+
 ## 2026-10-30 公司封面照片改可用官方照片（Andy：「改成接用 並標明出處 是可以的」；DECISIONS #373；最後更新 10-30 台北）
 - 規則：`photo_lib_review.md` 第九節〇（license=`official-press`、署名「圖：<公司名>官方」、仍不准人物主角／媒體照／標誌主視覺／AI 圖）；`render_news_cards.license_ok()` 只收允許的授權值、`credit_of()` 印官方署名；選圖順序不變（主體公司已審圖 → 類別池 → 通用池）。
 - 抓圖：`company_photos.yml` 手動觸發 `source=official`（`scripts/company_photos_official.py`，Playwright＋報告書 PDF 取圖），`targets.json` 的 `official_sites`／`credit_name`／`official_credit`。
