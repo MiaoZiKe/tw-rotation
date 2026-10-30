@@ -4474,7 +4474,7 @@ def t_flow(pg, base):
     #   改前：雙把手區間桿（右把手＝截止日、左把手＝起點；讀數「最近 12 天 · 截止 5 天前」）
     #   改後：一支拉Bar（N 天前，1～30；讀數「N 天前」），「看哪一天」變成 ▶ 回放時走到的那一天
     bar = pg.evaluate("""() => { const i = document.querySelector('#rotBack input.days');
-        return i && { min: +i.min, max: +i.max, v: +i.value, n: document.querySelectorAll('#rotBack input[type=range]').length,
+        return i && { min: +i.min, max: +i.max, v: +i.value, n: document.querySelectorAll('#rotBack > input[type=range]').length,
                       play: !!document.querySelector('#rotBack .pb.play') }; }""")
     ok("時間只剩**一支**拉Bar（不是雙把手、不是兩條）", bool(bar) and bar["n"] == 1, bar)
     ok("拉Bar 的範圍是 1～30 天（至多 30）", bool(bar) and bar["min"] == 1 and bar["max"] == 30, bar)
@@ -9393,7 +9393,7 @@ def t_new_clock(pg, base):
     #   改後：一支拉Bar「N 天前」（1～30）＋ ▶ 回放；「看哪一天」＝回放停在哪一天（rot_seek）
     bar = pg.evaluate("""() => { const i = document.querySelector('#rotBack input.days');
         return i && { min: +i.min, max: +i.max, v: +i.value,
-                      n: document.querySelectorAll('#rotBack input[type=range]').length,
+                      n: document.querySelectorAll('#rotBack > input[type=range]').length,
                       steps: document.querySelectorAll('#rotBack .pb.step').length,
                       play: document.querySelectorAll('#rotBack .pb.play').length }; }""")
     if not ok("足跡輪盤的時間只有一支拉Bar「N 天前」（不再是雙把手）", bool(bar) and bar["n"] == 1, bar):
@@ -10280,7 +10280,7 @@ def t_rotmerge(pg, base):
                         `#rotBack` 裡的左把手 `input.lo`（數它，不是數已經不存在的 id）。*/
                      /* ★ 2026-09-24：時間只剩一支拉Bar「N 天前」（`#rotBack input.days`），數它 */
                      days: card.querySelectorAll('#rotBack input.days').length,
-                     ranges: card.querySelectorAll('#rotBack input[type=range]').length,
+                     ranges: card.querySelectorAll('#rotBack > input[type=range]').length,
                      out,
                      sideways: document.documentElement.scrollWidth
                                > document.documentElement.clientWidth + 1 }; }""")

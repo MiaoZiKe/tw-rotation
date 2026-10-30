@@ -69,7 +69,7 @@ def t_today_timeline_1029(b, base):
         return ctx, pg
 
     def drag(pg, bar_id, pos):
-        pg.evaluate("([id, p]) => { const i = document.querySelector('#' + id + ' input'); i.value = p; i.dispatchEvent(new Event('input', {bubbles: true})); }", [bar_id, pos])
+        pg.evaluate("([id, p]) => { const i = document.querySelector('#' + id + ' input.tlr'); i.value = p; i.dispatchEvent(new Event('input', {bubbles: true})); }", [bar_id, pos])
         pg.wait_for_timeout(700)
 
     def val(pg, bar_id):
@@ -89,7 +89,7 @@ def t_today_timeline_1029(b, base):
     ok(f"[{T}] ① 開即時後出現「今日時間軸」，且日線拉桿藏起來（兩條不重複）、只剩「即時」鈕",
        count(pg, "#rotTl") == 1 and pg.evaluate("() => { const b = document.getElementById('rotBack'); return b.classList.contains('tlon') && ![...b.children].some(e => !e.classList.contains('livebtn') && e.getClientRects().length > 0); }"))
     ok(f"[{T}] ① 時間軸左端 09:00、共 {NSLOT} 格、目前在「最新」",
-       pg.evaluate("() => document.querySelector('#rotTl .tl0').textContent") == "09:00" and pg.evaluate("() => +document.querySelector('#rotTl input').max") == NSLOT and val(pg, "rotTl") == "最新")
+       pg.evaluate("() => document.querySelector('#rotTl .tl0').textContent") == "09:00" and pg.evaluate("() => +document.querySelector('#rotTl input.tlr').max") == NSLOT and val(pg, "rotTl") == "最新")
     live_sig = pg.evaluate(ROT)
     drag(pg, "rotTl", 12)       # 10:00
     s10 = pg.evaluate(ROT)
@@ -113,6 +113,69 @@ def t_today_timeline_1029(b, base):
     drag(pg, "rotTl", 6)
     pg.click("#rotTl .pb.latest"); pg.wait_for_timeout(700)
     ok(f"[{T}] ① 「最新」鈕：回到最新", val(pg, "rotTl") == "最新")
+    # ①b 播放速度拉桿（Andy 10-30：「調速功能改成拉Bar 可以到5」）
+    sp = pg.evaluate("() => { const i = document.querySelector('#rotTl .spdctl input'); return i ? { min: +i.min, max: +i.max, step: +i.step, v: +i.value, lab: document.querySelector('#rotTl .spdctl .spv').textContent, ms: Tape.stepMs } : null; }")
+    ok(f"[{T}] ①b 今日時間軸有播放速度拉桿：×1～×5、0.5 一格、預設 ×1（每格 420ms）", bool(sp) and sp["min"] == 1 and sp["max"] == 5 and sp["step"] == 0.5 and sp["v"] == 1 and sp["lab"] == "×1" and sp["ms"] == 420, sp)
+    def setspd(v):
+        pg.evaluate("(v) => { const i = document.querySelector('#rotTl .spdctl input'); i.value = v; i.dispatchEvent(new Event('input', {bubbles: true})); }", v)
+    def advance(ms):
+        return pg.evaluate("(ms) => new Promise(res => { const t0 = Tape.cur == null ? 0 : Tape.cur; let n = 0, last = Tape.curT, dur = 0; const T0 = performance.now();"
+                           " const f = () => { if (Tape.curT !== last) { n++; last = Tape.curT; } const el = document.getElementById('rotClock'); if (el._twT && el._twT.chained) dur = Math.round(el._twT.dur);"
+                           " if (performance.now() - T0 < ms) requestAnimationFrame(f); else res({ n, dur, playing: Tape.playing, cur: Tape.curT }); }; f(); })", ms)
+    drag(pg, "rotTl", 1)
+    pg.click("#rotTl .pb.play"); a1 = advance(1600); pg.click("#rotTl .pb.play"); pg.wait_for_timeout(300)
+    setspd(3)
+    sp3 = pg.evaluate("() => ({ v: Tape.speed, ms: Tape.stepMs, lab: document.querySelector('#rotTl .spdctl .spv').textContent, ls: localStorage.getItem('tw.play.speed') })")
+    ok(f"[{T}] ①b ★ 拖到 ×3：標籤「×3」、每格間隔 140ms、設定記進 localStorage", sp3["v"] == 3 and abs(sp3["ms"] - 140) < 1 and sp3["lab"] == "×3" and sp3["ls"] == "3", sp3)
+    drag(pg, "rotTl", 1)
+    pg.click("#rotTl .pb.play"); a3 = advance(1600)
+    ok(f"[{T}] ①b ★ ×3 播放：同樣 1.6 秒時間前進的格數明顯比 ×1 多（{a1['n']} → {a3['n']}），輪盤接續補間時間約 140ms（{a3['dur']}）",
+       a3["n"] >= a1["n"] * 2 and 100 <= a3["dur"] <= 190, [a1, a3])
+    setspd(5); a5 = advance(900)
+    ok(f"[{T}] ①b ★ 播放中拖到 ×5：沒有被打斷、繼續播（每格 84ms）", abs(pg.evaluate("() => Tape.stepMs") - 84) < 1 and (a5["playing"] or a5["cur"] is None), a5)
+    wait_until(pg, "() => !Tape.playing", 30000, 200)
+    pg.reload(wait_until="load"); wait_until(pg, "() => !!window.Tape", 15000)
+    ok(f"[{T}] ①b 重新整理後記得選擇（×5）", pg.evaluate("() => Tape.speed") == 5)
+    wait_until(pg, "() => !!document.getElementById('rotLiveBtn')", 25000)
+    # 非即時：日線拉桿旁有同一條速度拉桿
+    day = pg.evaluate("() => { const c = document.querySelector('#rotBack .spdctl'); return c ? { lab: c.querySelector('.spv').textContent, shown: c.getClientRects().length > 0 } : null; }")
+    ok(f"[{T}] ①b 日線回放那條（#rotBack）有速度拉桿、顯示 ×5、同一個設定", bool(day) and day["lab"] == "×5" and day["shown"], day)
+    pg.evaluate("() => Tape.setSpeed(1)")
+    # 各列不重疊、間距一致
+    pg.click("#rotLiveBtn"); wait_until(pg, "() => !!document.getElementById('rotTl')", 60000, 400); pg.wait_for_timeout(800)
+    ROWS = "() => { const q = (s) => { const e = document.querySelector(s); if (!e || !e.getClientRects().length) return null; const r = e.getBoundingClientRect(); return [r.top, r.bottom, r.left, r.right]; }; return { filter: q('#flowRotFilter'), back: q('#rotBack'), tl: q('#rotTl'), tools: q('#rotTools'), sw: document.documentElement.scrollWidth, iw: innerWidth }; }"
+    def rows_ok(r):
+        a, b_, c, d = r["filter"], r["back"], r["tl"], r["tools"]
+        gaps = []
+        # 時間軸列（即時鈕＋時間軸）與上一列、下一列：不重疊、至少 4px（同一列並排者以垂直範圍重疊判同列）
+        same = lambda x, y: not (x[1] <= y[0] or y[1] <= x[0])
+        seq = [a, b_, c, d]
+        for i in range(len(seq) - 1):
+            x, y = seq[i], seq[i + 1]
+            if x and y and not same(x, y):
+                gaps.append(round(y[0] - x[1], 1))
+        return all(g >= 4 for g in gaps) and r["sw"] <= r["iw"] + 1, gaps
+    g1 = pg.evaluate(ROWS); okk, gaps = rows_ok(g1)
+    ok(f"[{T}] ①c 1440：篩選列、即時鈕、時間軸、顯示軌跡列互不重疊、列距 ≥4px（{gaps}）", okk, g1)
+    ctx.close()
+    for w in (800, 390):
+        ctx2, pg2 = open_page("#flow/rotation", vp={"width": w, "height": 900}, mobile=(w == 390))
+        wait_until(pg2, "() => !!document.getElementById('rotLiveBtn')", 25000); pg2.click("#rotLiveBtn")
+        wait_until(pg2, "() => !!document.getElementById('rotTl')", 60000, 400); pg2.wait_for_timeout(800)
+        g2 = pg2.evaluate(ROWS); okk, gaps = rows_ok(g2)
+        ok(f"[{T}] ①c {w} 寬：各列不重疊、列距 ≥4px、無橫向捲軸（{gaps}）", okk, g2)
+        if w == 390:
+            h = pg2.evaluate("() => Math.min(...[...document.querySelectorAll('#rotTl input')].map(e => e.getBoundingClientRect().height))")
+            ok(f"[{T}] ①c 手機速度拉桿與時間軸拉桿高度 ≥32px", h >= 32, h)
+            ctx2.close()
+            ctx2, pg2 = open_page("#flow/rotation", vp={"width": 390, "height": 900}, mobile=True)
+            wait_until(pg2, "() => !!document.querySelector('#rotBack .spdctl')", 25000); pg2.wait_for_timeout(800)
+            dm = pg2.evaluate("() => { const c = document.querySelector('#rotBack .spdctl').getBoundingClientRect(), i = document.querySelector('#rotBack .spdctl input').getBoundingClientRect(); return { right: c.right, h: i.height, sw: document.documentElement.scrollWidth, iw: innerWidth }; }")
+            ok(f"[{T}] ①c 手機日線回放那條的速度拉桿：不超出畫面、無橫向捲軸、拉桿高 ≥32px", dm["right"] <= dm["iw"] + 1 and dm["sw"] <= dm["iw"] + 1 and dm["h"] >= 32, dm)
+        ctx2.close()
+    ctx, pg = open_page("#flow/rotation")
+    wait_until(pg, "() => !!document.getElementById('rotLiveBtn')", 25000); pg.click("#rotLiveBtn")
+    wait_until(pg, "() => !!document.getElementById('rotTl')", 60000, 400)
     # ② 資金分流樹（同頁）
     pg.evaluate("() => { location.hash = '#flow/sankey'; }")
     wait_until(pg, "() => !!document.getElementById('sankeyLiveBtn')", 20000)
@@ -175,7 +238,7 @@ def t_today_timeline_1029(b, base):
     wait_until(pg, "() => !!document.getElementById('rotLiveBtn')", 25000)
     pg.click("#rotLiveBtn")
     wait_until(pg, "() => !!document.getElementById('rotTl')", 60000, 400)
-    m = pg.evaluate("""() => { const bar = document.getElementById('rotTl').getBoundingClientRect(), i = document.querySelector('#rotTl input').getBoundingClientRect();
+    m = pg.evaluate("""() => { const bar = document.getElementById('rotTl').getBoundingClientRect(), i = document.querySelector('#rotTl input.tlr').getBoundingClientRect();
       return { bw: bar.width, ih: i.height, sw: document.documentElement.scrollWidth, iw: window.innerWidth, right: bar.right,
         btn: Math.min(...[...document.querySelectorAll('#rotTl .pb')].map(e => e.getBoundingClientRect().height)) }; }""")
     ok(f"[{T}] ④ 手機 390：時間軸不超出畫面、無橫向捲軸、拉桿高度與按鈕 ≥32px", m["right"] <= m["iw"] + 1 and m["sw"] <= m["iw"] + 1 and m["ih"] >= 32 and m["btn"] >= 32, m)

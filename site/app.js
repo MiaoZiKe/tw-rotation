@@ -1882,6 +1882,7 @@
     let agoEl = null;
     if (o.ago) { agoEl = document.createElement('span'); agoEl.className = 'ago'; bPlus.parentNode.insertBefore(agoEl, bPlus.nextSibling); }
     box.appendChild(bPlay);
+    if (window.Tape && PLAY_GATED.includes(box.id)) box.appendChild(Tape.speedCtl());   // 播放速度拉桿（×1～×5，與今日時間軸共用）
 
     const lim = () => ({ min: +inp.min, max: +inp.max, st: +inp.step || 1 });
     // 改值走真的事件，才會觸發 rangeBar 既有的 onChange 與 localStorage
@@ -1919,7 +1920,7 @@
         if (id !== runId || !timer) return;
         tick();
         if (timer && id === runId) sched();
-      }), o.frame || 600);
+      }), (o.frame || 600) / ((window.Tape && PLAY_GATED.includes(box.id)) ? Tape.speed : 1));
     };
     const stop = () => { if (timer) { clearTimeout(timer); timer = null; runId++; } paintBtn(); swrResume(); };
     /* dir = -1：播放時值**由大往小**跑。
@@ -2260,6 +2261,7 @@
     const bMinus = mk('step', '−', '少看一天'), bPlus = mk('step', '＋', '多看一天');
     const bPlay = mk('play', '▶', '回放：從 N 天前一天一天走到最新');
     box.insertBefore(bMinus, inp); box.insertBefore(bPlus, inp.nextSibling); box.appendChild(bPlay);
+    if (window.Tape) box.appendChild(Tape.speedCtl());   // 播放速度拉桿（×1～×5，與今日時間軸共用）
     let timer = null, api = null;
     const paint = () => {
       inp.value = days;
@@ -2302,7 +2304,12 @@
       if (frame <= 0) seek(days);          // 已經在最新就從 N 天前出發
       else seek(frame - 1);                // 播放器1007：從暫停的那一天接著播，按下去當下就走一格（不要空等一個 step）
       if (frame <= 0) { paint(); return; } // 剛好走到最新：這一格就是最後一格，不必再開計時器
-      timer = setInterval(() => { if (frame <= 0) { stop(); return; } seek(frame - 1); if (frame <= 0) stop(); }, o.step || 600);
+      const every = () => (o.step || 600) / (window.Tape ? Tape.speed : 1);
+      const run = () => { timer = setInterval(() => { if (frame <= 0) { stop(); return; } seek(frame - 1); if (frame <= 0) stop(); }, every()); };
+      run();
+      // 播放中拖速度拉桿：重排計時器（setInterval 的間隔不能中途改）
+      const onSpd = () => { if (!timer || !box.isConnected) { window.removeEventListener('tw:speed', onSpd); return; } clearInterval(timer); run(); };
+      window.addEventListener('tw:speed', onSpd);
       paint();
     };
     bPlay.onclick = () => { if (timer) { stop(); stopPlayGroup(o.group, null); } else start(); };
@@ -5645,6 +5652,7 @@
     // 標題旁的「即時」徽章：釘在過去時寫「回放 HH:MM」，回到最新才是「即時」（輪盤的狀態字在 rlvTagText）
     const lab = T.pinned() ? '回放 ' + T.curT : '即時';
     document.querySelectorAll('[data-hlcard="ind"] .livetg-b, #themeMapCard .livetg-b, #sankeyLiveBtn').forEach(b => { if (b.textContent !== lab) b.textContent = lab; });
+    { const rc = document.getElementById('flowRotCard'); if (rc) rc.classList.toggle('tlrows', !!document.getElementById('rotTl')); }
     if (any) T.load(false);
     else if (T.pinned()) T.reset();                   // 沒有任何一張圖開著即時：游標回到最新
   }
@@ -6628,6 +6636,8 @@
      一天固定走 420ms（60fps 下約 25 幀），速率完全一致，中間沒有停頓。
      順帶一提這樣整段 30 天播完是 12.6 秒，比舊的 24.6 秒還快。 */
   const ROT_ANIM_MS = 420;
+  /* 播放速度倍率（×1～×5，Tape.speed）：只在「正在播放」（今日時間軸或日線回放）時套用到補間時間；平常即時更新的補間不受影響。 */
+  const playSpd = () => ((window.Tape && (Tape.playing || document.querySelector('.rbar.playing'))) ? Tape.speed : 1);
   const LBL_FS = 12;                   // 標籤字級；排版與驗收都用同一個值
   /* ★ 2026-09-24 設計系統 v2 第 2 批：11.5 → 12（字級 12px 是下限，docs/design_system_v2.md §2.1）。*/
   /* 這一輪排好的標籤位置：`rotLbl[圖表 id][scatter 的 dataIndex]`。
@@ -6812,7 +6822,7 @@
     if (el._twRaf) { cancelAnimationFrame(el._twRaf); el._twRaf = 0; }
     /* t0 從「第一個 rAF」才開始算，不是從這裡：重畫之後的第一幀要付 ECharts 整張重繪的錢（本機忙的時候 300～400ms），
        從這裡起算的話那一幀就把 400ms 吃光，畫面直接跳到終點 —— 驗收量到過「29 幀裡 0 幀在中間」。*/
-    const T = { from: disp, t0: null, dur: chained ? ROT_ANIM_MS : ROT_TW_MS, ease: chained ? (u) => u : rotEase,
+    const T = { from: disp, t0: null, dur: chained ? ROT_ANIM_MS / playSpd() : ROT_TW_MS, ease: chained ? (u) => u : rotEase,
       paint, frames: 0, maxGap: 0, lastT: now, chained };
     el._twT = T;
     const S = el._twStat || (el._twStat = { tweens: 0, frames: 0, ms: 0, maxGap: 0, last: null });
@@ -13453,7 +13463,7 @@
         layout: sankeyStyle() === 'fx' ? 'classic' : 'topo',
         /* ★ 2026-09-25：拓撲版換日依排名換位（補間）；回放中用等速、時長＝回放一格（650ms）*/
         playing: () => { const b = document.getElementById('sankeyDays'); return !!(b && b.classList.contains('playing')) || !!(window.Tape && Tape.playing); },
-        playFrame: (window.Tape && Tape.playing) ? Tape.stepMs : 650,     // 今日時間軸播放：與輪盤同一個節奏（ROT_ANIM_MS），一格接著一格
+        playFrame: (window.Tape && Tape.playing) ? Tape.stepMs : 650 / playSpd(),     // 今日時間軸播放：與輪盤同一個節奏（ROT_ANIM_MS），一格接著一格
         colorOf: (gid) => L.gcolor[gid],
         rootLines: rootLbl.split('\n'),
         /* ★ 2026-09-25：圖例句（粒子＝資金流動、線越粗＝錢越多、點族群長出成分股）搬進「?」（HOW.sankey）；
