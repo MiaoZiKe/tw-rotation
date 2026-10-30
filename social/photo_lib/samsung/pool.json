@@ -444,9 +444,11 @@
    "height": 1200,
    "fetched_at": "2026-10-30T02:06:55+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": "",
-   "origin": "公司分類"
+   "reviewer": "art-director",
+   "review_note": "2026-10-30 art-director 複審（補圖第二輪）退件：門市／展場，行人或人群可辨識人臉、非總部或產品主體（審核項 3）",
+   "origin": "公司分類",
+   "reject_reason": "門市／展場，行人或人群可辨識人臉、非總部或產品主體（審核項 3）",
+   "reviewed_at": "2026-10-30"
   },
   {
    "file": "photo_20.jpg",
@@ -466,9 +468,11 @@
    "height": 1440,
    "fetched_at": "2026-10-30T02:06:55+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": "",
-   "origin": "公司分類"
+   "reviewer": "art-director",
+   "review_note": "2026-10-30 art-director 複審（補圖第二輪）退件：門市／展場，行人或人群可辨識人臉、非總部或產品主體（審核項 3）",
+   "origin": "公司分類",
+   "reject_reason": "門市／展場，行人或人群可辨識人臉、非總部或產品主體（審核項 3）",
+   "reviewed_at": "2026-10-30"
   },
   {
    "file": "photo_21.jpg",
@@ -488,9 +492,11 @@
    "height": 1200,
    "fetched_at": "2026-10-30T02:06:56+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": "",
-   "origin": "公司分類"
+   "reviewer": "art-director",
+   "review_note": "2026-10-30 art-director 複審（補圖第二輪）退件：門市／展場，行人或人群可辨識人臉、非總部或產品主體（審核項 3）",
+   "origin": "公司分類",
+   "reject_reason": "門市／展場，行人或人群可辨識人臉、非總部或產品主體（審核項 3）",
+   "reviewed_at": "2026-10-30"
   },
   {
    "file": "photo_22.jpg",
@@ -510,9 +516,11 @@
    "height": 1463,
    "fetched_at": "2026-10-30T02:06:56+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": "",
-   "origin": "公司分類"
+   "reviewer": "art-director",
+   "review_note": "2026-10-30 art-director 複審（補圖第二輪）退件：門市／展場，行人或人群可辨識人臉、非總部或產品主體（審核項 3）",
+   "origin": "公司分類",
+   "reject_reason": "門市／展場，行人或人群可辨識人臉、非總部或產品主體（審核項 3）",
+   "reviewed_at": "2026-10-30"
   },
   {
    "file": "photo_23.jpg",
@@ -532,9 +540,11 @@
    "height": 1440,
    "fetched_at": "2026-10-30T02:06:56+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": "",
-   "origin": "公司分類"
+   "reviewer": "art-director",
+   "review_note": "2026-10-30 art-director 複審（補圖第二輪）退件：門市／展場，行人或人群可辨識人臉、非總部或產品主體（審核項 3）",
+   "origin": "公司分類",
+   "reject_reason": "門市／展場，行人或人群可辨識人臉、非總部或產品主體（審核項 3）",
+   "reviewed_at": "2026-10-30"
   }
  ],
  "rejected": [

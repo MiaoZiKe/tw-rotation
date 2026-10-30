@@ -253,9 +253,11 @@
    "height": 1280,
    "fetched_at": "2026-10-30T02:07:04+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": "",
-   "origin": "公司分類"
+   "reviewer": "art-director",
+   "review_note": "2026-10-30 art-director 複審（補圖第二輪）退件：人物（Dario Amodei／政要）為主角或與 Anthropic 無關（審核項 3）",
+   "origin": "公司分類",
+   "reject_reason": "人物（Dario Amodei／政要）為主角或與 Anthropic 無關（審核項 3）",
+   "reviewed_at": "2026-10-30"
   },
   {
    "file": "photo_12.jpg",
@@ -275,9 +277,11 @@
    "height": 1280,
    "fetched_at": "2026-10-30T02:07:04+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": "",
-   "origin": "公司分類"
+   "reviewer": "art-director",
+   "review_note": "2026-10-30 art-director 複審（補圖第二輪）退件：人物（Dario Amodei／政要）為主角或與 Anthropic 無關（審核項 3）",
+   "origin": "公司分類",
+   "reject_reason": "人物（Dario Amodei／政要）為主角或與 Anthropic 無關（審核項 3）",
+   "reviewed_at": "2026-10-30"
   },
   {
    "file": "photo_13.jpg",
@@ -297,9 +301,11 @@
    "height": 1280,
    "fetched_at": "2026-10-30T02:07:04+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": "",
-   "origin": "公司分類"
+   "reviewer": "art-director",
+   "review_note": "2026-10-30 art-director 複審（補圖第二輪）退件：人物（Dario Amodei／政要）為主角或與 Anthropic 無關（審核項 3）",
+   "origin": "公司分類",
+   "reject_reason": "人物（Dario Amodei／政要）為主角或與 Anthropic 無關（審核項 3）",
+   "reviewed_at": "2026-10-30"
   },
   {
    "file": "photo_14.jpg",
@@ -319,9 +325,11 @@
    "height": 1280,
    "fetched_at": "2026-10-30T02:07:04+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": "",
-   "origin": "公司分類"
+   "reviewer": "art-director",
+   "review_note": "2026-10-30 art-director 複審（補圖第二輪）退件：人物（Dario Amodei／政要）為主角或與 Anthropic 無關（審核項 3）",
+   "origin": "公司分類",
+   "reject_reason": "人物（Dario Amodei／政要）為主角或與 Anthropic 無關（審核項 3）",
+   "reviewed_at": "2026-10-30"
   },
   {
    "file": "photo_15.jpg",
@@ -341,9 +349,11 @@
    "height": 1280,
    "fetched_at": "2026-10-30T02:07:04+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": "",
-   "origin": "公司分類"
+   "reviewer": "art-director",
+   "review_note": "2026-10-30 art-director 複審（補圖第二輪）退件：人物（Dario Amodei／政要）為主角或與 Anthropic 無關（審核項 3）",
+   "origin": "公司分類",
+   "reject_reason": "人物（Dario Amodei／政要）為主角或與 Anthropic 無關（審核項 3）",
+   "reviewed_at": "2026-10-30"
   },
   {
    "file": "photo_16.jpg",
@@ -363,9 +373,11 @@
    "height": 1280,
    "fetched_at": "2026-10-30T02:07:04+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": "",
-   "origin": "公司分類"
+   "reviewer": "art-director",
+   "review_note": "2026-10-30 art-director 複審（補圖第二輪）退件：人物（Dario Amodei／政要）為主角或與 Anthropic 無關（審核項 3）",
+   "origin": "公司分類",
+   "reject_reason": "人物（Dario Amodei／政要）為主角或與 Anthropic 無關（審核項 3）",
+   "reviewed_at": "2026-10-30"
   }
  ],
  "rejected": [

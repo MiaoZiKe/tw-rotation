@@ -396,9 +396,11 @@
    "height": 1440,
    "fetched_at": "2026-10-30T02:07:28+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": "",
-   "origin": "公司分類"
+   "reviewer": "art-director",
+   "review_note": "2026-10-30 art-director 複審（補圖第二輪）退件：Raspberry Pi／手稿／他牌晶片，非 Arm 公司或其 IP 標示（主體錯誤）",
+   "origin": "公司分類",
+   "reject_reason": "Raspberry Pi／手稿／他牌晶片，非 Arm 公司或其 IP 標示（主體錯誤）",
+   "reviewed_at": "2026-10-30"
   },
   {
    "file": "photo_18.jpg",
@@ -418,9 +420,11 @@
    "height": 1920,
    "fetched_at": "2026-10-30T02:07:29+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": "",
-   "origin": "公司分類"
+   "reviewer": "art-director",
+   "review_note": "2026-10-30 art-director 複審（補圖第二輪）退件：Raspberry Pi／手稿／他牌晶片，非 Arm 公司或其 IP 標示（主體錯誤）",
+   "origin": "公司分類",
+   "reject_reason": "Raspberry Pi／手稿／他牌晶片，非 Arm 公司或其 IP 標示（主體錯誤）",
+   "reviewed_at": "2026-10-30"
   },
   {
    "file": "photo_19.jpg",
@@ -440,9 +444,11 @@
    "height": 1277,
    "fetched_at": "2026-10-30T02:07:29+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": "",
-   "origin": "公司分類"
+   "reviewer": "art-director",
+   "review_note": "2026-10-30 art-director 複審（補圖第二輪）退件：Raspberry Pi／手稿／他牌晶片，非 Arm 公司或其 IP 標示（主體錯誤）",
+   "origin": "公司分類",
+   "reject_reason": "Raspberry Pi／手稿／他牌晶片，非 Arm 公司或其 IP 標示（主體錯誤）",
+   "reviewed_at": "2026-10-30"
   },
   {
    "file": "photo_20.jpg",
@@ -462,9 +468,11 @@
    "height": 1080,
    "fetched_at": "2026-10-30T02:07:29+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": "",
-   "origin": "公司分類"
+   "reviewer": "art-director",
+   "review_note": "2026-10-30 art-director 複審（補圖第二輪）退件：Raspberry Pi／手稿／他牌晶片，非 Arm 公司或其 IP 標示（主體錯誤）",
+   "origin": "公司分類",
+   "reject_reason": "Raspberry Pi／手稿／他牌晶片，非 Arm 公司或其 IP 標示（主體錯誤）",
+   "reviewed_at": "2026-10-30"
   },
   {
    "file": "photo_21.jpg",
@@ -484,9 +492,11 @@
    "height": 1080,
    "fetched_at": "2026-10-30T02:07:30+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": "",
-   "origin": "公司分類"
+   "reviewer": "art-director",
+   "review_note": "2026-10-30 art-director 複審（補圖第二輪）退件：Raspberry Pi／手稿／他牌晶片，非 Arm 公司或其 IP 標示（主體錯誤）",
+   "origin": "公司分類",
+   "reject_reason": "Raspberry Pi／手稿／他牌晶片，非 Arm 公司或其 IP 標示（主體錯誤）",
+   "reviewed_at": "2026-10-30"
   },
   {
    "file": "photo_22.jpg",
@@ -506,9 +516,11 @@
    "height": 1080,
    "fetched_at": "2026-10-30T02:07:30+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": "",
-   "origin": "公司分類"
+   "reviewer": "art-director",
+   "review_note": "2026-10-30 art-director 複審（補圖第二輪）退件：Raspberry Pi／手稿／他牌晶片，非 Arm 公司或其 IP 標示（主體錯誤）",
+   "origin": "公司分類",
+   "reject_reason": "Raspberry Pi／手稿／他牌晶片，非 Arm 公司或其 IP 標示（主體錯誤）",
+   "reviewed_at": "2026-10-30"
   },
   {
    "file": "photo_23.jpg",
@@ -528,8 +540,10 @@
    "height": 1522,
    "fetched_at": "2026-10-30T02:07:36+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewer": "art-director",
+   "review_note": "2026-10-30 art-director 複審（補圖第二輪）退件：Raspberry Pi／手稿／他牌晶片，非 Arm 公司或其 IP 標示（主體錯誤）",
+   "reject_reason": "Raspberry Pi／手稿／他牌晶片，非 Arm 公司或其 IP 標示（主體錯誤）",
+   "reviewed_at": "2026-10-30"
   },
   {
    "file": "photo_24.jpg",
@@ -549,8 +563,10 @@
    "height": 1522,
    "fetched_at": "2026-10-30T02:07:39+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewer": "art-director",
+   "review_note": "2026-10-30 art-director 複審（補圖第二輪）退件：Raspberry Pi／手稿／他牌晶片，非 Arm 公司或其 IP 標示（主體錯誤）",
+   "reject_reason": "Raspberry Pi／手稿／他牌晶片，非 Arm 公司或其 IP 標示（主體錯誤）",
+   "reviewed_at": "2026-10-30"
   },
   {
    "file": "photo_25.jpg",
@@ -570,8 +586,10 @@
    "height": 1574,
    "fetched_at": "2026-10-30T02:07:41+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewer": "art-director",
+   "review_note": "2026-10-30 art-director 複審（補圖第二輪）退件：Raspberry Pi／手稿／他牌晶片，非 Arm 公司或其 IP 標示（主體錯誤）",
+   "reject_reason": "Raspberry Pi／手稿／他牌晶片，非 Arm 公司或其 IP 標示（主體錯誤）",
+   "reviewed_at": "2026-10-30"
   }
  ],
  "rejected": []

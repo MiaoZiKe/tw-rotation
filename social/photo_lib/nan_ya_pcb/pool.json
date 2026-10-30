@@ -301,9 +301,11 @@
    "height": 1125,
    "fetched_at": "2026-10-30T02:08:47+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": "",
-   "origin": "公司分類"
+   "reviewer": "art-director",
+   "review_note": "2026-10-30 art-director 複審（補圖第二輪）退件：台塑集團他廠、貨車、他牌電路板，非南亞電路板（主體錯誤）",
+   "origin": "公司分類",
+   "reject_reason": "台塑集團他廠、貨車、他牌電路板，非南亞電路板（主體錯誤）",
+   "reviewed_at": "2026-10-30"
   },
   {
    "file": "photo_14.jpg",
@@ -323,9 +325,11 @@
    "height": 1280,
    "fetched_at": "2026-10-30T02:08:47+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": "",
-   "origin": "公司分類"
+   "reviewer": "art-director",
+   "review_note": "2026-10-30 art-director 複審（補圖第二輪）退件：台塑集團他廠、貨車、他牌電路板，非南亞電路板（主體錯誤）",
+   "origin": "公司分類",
+   "reject_reason": "台塑集團他廠、貨車、他牌電路板，非南亞電路板（主體錯誤）",
+   "reviewed_at": "2026-10-30"
   },
   {
    "file": "photo_15.jpg",
@@ -345,9 +349,11 @@
    "height": 1440,
    "fetched_at": "2026-10-30T02:08:50+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": "",
-   "origin": "公司分類"
+   "reviewer": "art-director",
+   "review_note": "2026-10-30 art-director 複審（補圖第二輪）退件：台塑集團他廠、貨車、他牌電路板，非南亞電路板（主體錯誤）",
+   "origin": "公司分類",
+   "reject_reason": "台塑集團他廠、貨車、他牌電路板，非南亞電路板（主體錯誤）",
+   "reviewed_at": "2026-10-30"
   },
   {
    "file": "photo_16.jpg",
@@ -367,9 +373,11 @@
    "height": 1440,
    "fetched_at": "2026-10-30T02:08:50+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": "",
-   "origin": "公司分類"
+   "reviewer": "art-director",
+   "review_note": "2026-10-30 art-director 複審（補圖第二輪）退件：台塑集團他廠、貨車、他牌電路板，非南亞電路板（主體錯誤）",
+   "origin": "公司分類",
+   "reject_reason": "台塑集團他廠、貨車、他牌電路板，非南亞電路板（主體錯誤）",
+   "reviewed_at": "2026-10-30"
   },
   {
    "file": "photo_17.jpg",
@@ -389,8 +397,10 @@
    "height": 1144,
    "fetched_at": "2026-10-30T02:08:59+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewer": "art-director",
+   "review_note": "2026-10-30 art-director 複審（補圖第二輪）退件：台塑集團他廠、貨車、他牌電路板，非南亞電路板（主體錯誤）",
+   "reject_reason": "台塑集團他廠、貨車、他牌電路板，非南亞電路板（主體錯誤）",
+   "reviewed_at": "2026-10-30"
   },
   {
    "file": "photo_18.jpg",
@@ -410,8 +420,10 @@
    "height": 1440,
    "fetched_at": "2026-10-30T02:09:01+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewer": "art-director",
+   "review_note": "2026-10-30 art-director 複審（補圖第二輪）退件：台塑集團他廠、貨車、他牌電路板，非南亞電路板（主體錯誤）",
+   "reject_reason": "台塑集團他廠、貨車、他牌電路板，非南亞電路板（主體錯誤）",
+   "reviewed_at": "2026-10-30"
   }
  ],
  "rejected": []

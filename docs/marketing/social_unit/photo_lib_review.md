@@ -405,3 +405,55 @@ _category/網通、advantech、anthropic、asml、cathay、fareastone、first_fi
 | arm/photo_7.jpg | CC BY-SA 4.0 | 退件 | 他牌 PROM 晶片，非 Arm |
 
 審完各家已審張數：Alphabet 5、Microsoft 5、Apple 6、Amazon 7、Meta 2、NVIDIA 3、Intel 5、AMD 4、Broadcom 2、Micron 4、Tesla 1、Oracle 4、OpenAI 1、三星 1、SK 海力士 2、台積電 3、聯發科 1、鴻海 1、廣達 1、緯創 4、日月光 2、聯電 2、欣興 2、台達電 5、Qualcomm 2、Arm 1。**仍是 0 張**（主體出現時退到該公司類別池，不會用別家公司圖）：CoreWeave、Anthropic、南亞科、南電、台光電、ASML。下一步：`targets.json` 換更精準的 Commons 分類名重抓。
+
+## 第八節　art-director 複審 10-30（2026-10-30）
+
+> 任務：複審第七節新通過的 27 張，並補齊缺圖公司。逐張看 952×424 中段裁切聯絡表，疑慮張再看全解析度。檢查：確實是該公司（總部／廠區／產品）、非同名別家、無人物為主角、無浮水印、裁成封面橫幅後主體仍在、授權可商用且作者／原始網址完整（pool.json 已有，全部 CC0／CC BY／CC BY-SA／公有領域）。
+> 附註：第七節表格漏列 delta/photo_11、photo_12（Delta 產品，品牌字樣清楚），這兩張也在 27 張內，複審通過。
+
+### 一、27 張複審：通過 23／退件 4
+
+| 檔名 | 結論 | 說明 |
+|---|---|---|
+| apple/photo_6.jpg | 退件 | 環形屋頂被樹木遮住大半，裁成橫幅後主體辨識不足 |
+| apple/photo_9.jpg | 退件 | 畫面無 Apple 招牌或標誌（只有門牌號碼），無法辨識為 Apple |
+| micron/photo_10.jpg | 退件 | 記憶體條在畫面中很小、置於紙板上，無 Micron／Crucial 字樣可辨 |
+| quanta/photo_5.jpg | 退件 | 伺服器無廣達標示，右下角有攝影者署名字樣（疑似浮水印） |
+| 其餘 23 張 | 通過 | alphabet 5／8、amazon 8／9／11、amd 6、broadcom 4、delta 11／12、foxconn 5、intel 6、mediatek 5、microsoft 9／12、nvidia 9、oracle 5／7、sk_hynix 6／7、umc 3／4、wistron 8／11 |
+
+通過但有提醒：mediatek/photo_5 招牌在畫面下緣，取封面橫幅時裁切要偏下（置中裁會切掉招牌，建築仍在）；foxconn/photo_5 廠區在畫面上半部，裁切要偏上；兩家都不要置中硬裁。
+
+### 二、補圖（company_photos.yml run 40988913001、40989565773，改 `commons_categories`／queries，公司分類名額 4→6、總部/廠房 2→3）
+
+第一輪共抓 65 張新圖：通過 10／退件 55；第二輪抓 41 張：通過 0／退件 41（全是主體錯誤或有人物）。
+
+通過的 10 張：asml 3（ASML 品牌貨櫃）、asml 4（維爾德霍芬 Gebouw 3）、asml 7（維爾德霍芬總部）、openai 12／14（Pioneer Building，OpenAI 舊金山總部，14 有「PIONEER BUILDING」招牌）、samsung 13（Galaxy Fold 展示，勉強通過：背景略暗）、tesla 13（Powertrain 展示）／15（總部大門＋Tesla Semi）／18（帕羅奧圖總部）、meta 8（Ray-Ban Meta 眼鏡）。
+
+| 公司 | 已審通過張數（補前→補後） | 備註 |
+|---|---|---|
+| 台積電 tsmc | 3→3 | 兩輪都補不到無人物新圖（Commons 的 TSMC 分類以人物活動照為主，全退） |
+| NVIDIA | 3→3 | 新抓 0 張 |
+| OpenAI | 1→3 | 達標 |
+| 三星 samsung | 1→2 | 差 1 張：Commons 只有門市／展場（行人入鏡）與他牌記憶體條 |
+| Tesla | 1→4 | 達標 |
+| Arm | 1→1 | 只有 Raspberry Pi／手稿等無關圖 |
+| Meta | 2→3 | 達標 |
+| 日月光 ase | 2→2 | 新抓 0 張（上一輪的同名住宅區已列退件名單，不再抓） |
+| 欣興 unimicron | 2→2 | 新抓 0 張 |
+| ASML | 0→3 | 達標 |
+| CoreWeave | 0→0 | 找不到 |
+| Anthropic | 0→0 | 找不到 |
+| 南亞科 nanya_tech | 0→0 | 找不到 |
+| 南電 nan_ya_pcb | 0→0 | 找不到 |
+| 台光電 eml | 0→0 | 找不到 |
+
+### 三、仍不足的公司與查過的分類／關鍵字（容器連不到 Commons，只能靠 Actions 搜尋；WebSearch 搜不到 Commons 頁面）
+
+- CoreWeave：分類 CoreWeave、CoreWeave Inc.、CoreWeave data centers、Core Scientific、Livingston New Jersey；查詢 CoreWeave headquarters／Livingston office／Lancaster data center／Ellendale／GB200 NVL72 rack。結果只抓到無關資料中心與州景。公司 2017 年成立、2025 年上市，Commons 幾乎沒有實景照。
+- Anthropic：分類 Anthropic、Anthropic PBC、Claude (language model／chatbot)、Anthropic headquarters、500 Howard Street、Salesforce Tower San Francisco；查詢辦公室、Seattle office。結果只有 Dario Amodei 人物照與無關場景，全退。
+- 南亞科：分類 Nanya Technology（含 Corporation／Corp／headquarters／Linkou／Taoyuan／DDR4／buildings）、Taishan New Taipei、Linkou District；查詢含中文「南亞科技 林口／泰山」。只有動土典禮人物與他牌 DRAM（Infineon、Samsung），全退。
+- 南電：分類 Nan Ya PCB（含 Corp／Corporation／Printed Circuit Board／Kunshan／Shulin Plant／Taoyuan plant）、Nanya PCB、Formosa Plastics Group、Nanya Plastics；查詢含「南亞電路板 樹林廠」、ABF substrate。抓到的是台塑集團他廠（南亞塑膠、台塑化纖）與他牌電路板，不是南電，全退。
+- 台光電：分類 Elite Material（含 Co Ltd／Co., Ltd.／Corporation Taiwan／EMC laminate）、Taoyuan Zhongli Industrial Zone；查詢含「台光電子材料」「台光電子 楊梅」。抓到倫敦／休士頓／曼徹斯特無關建築與他牌電路板，全退。
+- Arm：分類 Arm Holdings（含 Ltd／headquarters／Cortex／Neoverse／Cambridge Peterhouse Technology Park／110 Fulbourn Road）；只有 Raspberry Pi 等非 Arm 品牌圖。
+- 三星、日月光、欣興：各補到上限仍差 1 張，查過分類見 targets.json 的 commons_categories。
+- 建議（Commons 找不到的公司）：這些公司短期內封面維持用類別通用圖池（資料中心、記憶體、PCB 基板等），或由 Andy 提供／授權公司新聞稿官方圖；不要用人物照或他牌圖頂替。

@@ -397,9 +397,11 @@
    "height": 1279,
    "fetched_at": "2026-10-30T02:08:10+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": "",
-   "origin": "公司分類"
+   "reviewer": "art-director",
+   "review_note": "2026-10-30 art-director 複審（補圖第二輪）退件：動土典禮人物／活動畫面（審核項 3）",
+   "origin": "公司分類",
+   "reject_reason": "動土典禮人物／活動畫面（審核項 3）",
+   "reviewed_at": "2026-10-30"
   },
   {
    "file": "photo_18.jpg",
@@ -419,8 +421,10 @@
    "height": 1440,
    "fetched_at": "2026-10-30T02:08:23+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewer": "art-director",
+   "review_note": "2026-10-30 art-director 複審（補圖第二輪）退件：南亞理工學院、南亞塑膠、Samsung／他牌 DRAM，非南亞科技（主體錯誤）",
+   "reject_reason": "南亞理工學院、南亞塑膠、Samsung／他牌 DRAM，非南亞科技（主體錯誤）",
+   "reviewed_at": "2026-10-30"
   },
   {
    "file": "photo_19.jpg",
@@ -440,8 +444,10 @@
    "height": 1440,
    "fetched_at": "2026-10-30T02:08:37+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewer": "art-director",
+   "review_note": "2026-10-30 art-director 複審（補圖第二輪）退件：南亞理工學院、南亞塑膠、Samsung／他牌 DRAM，非南亞科技（主體錯誤）",
+   "reject_reason": "南亞理工學院、南亞塑膠、Samsung／他牌 DRAM，非南亞科技（主體錯誤）",
+   "reviewed_at": "2026-10-30"
   },
   {
    "file": "photo_20.jpg",
@@ -461,8 +467,10 @@
    "height": 484,
    "fetched_at": "2026-10-30T02:08:39+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewer": "art-director",
+   "review_note": "2026-10-30 art-director 複審（補圖第二輪）退件：南亞理工學院、南亞塑膠、Samsung／他牌 DRAM，非南亞科技（主體錯誤）",
+   "reject_reason": "南亞理工學院、南亞塑膠、Samsung／他牌 DRAM，非南亞科技（主體錯誤）",
+   "reviewed_at": "2026-10-30"
   },
   {
    "file": "photo_21.jpg",
@@ -482,8 +490,10 @@
    "height": 1792,
    "fetched_at": "2026-10-30T02:08:39+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewer": "art-director",
+   "review_note": "2026-10-30 art-director 複審（補圖第二輪）退件：南亞理工學院、南亞塑膠、Samsung／他牌 DRAM，非南亞科技（主體錯誤）",
+   "reject_reason": "南亞理工學院、南亞塑膠、Samsung／他牌 DRAM，非南亞科技（主體錯誤）",
+   "reviewed_at": "2026-10-30"
   },
   {
    "file": "photo_22.jpg",
@@ -503,8 +513,10 @@
    "height": 1280,
    "fetched_at": "2026-10-30T02:08:40+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewer": "art-director",
+   "review_note": "2026-10-30 art-director 複審（補圖第二輪）退件：南亞理工學院、南亞塑膠、Samsung／他牌 DRAM，非南亞科技（主體錯誤）",
+   "reject_reason": "南亞理工學院、南亞塑膠、Samsung／他牌 DRAM，非南亞科技（主體錯誤）",
+   "reviewed_at": "2026-10-30"
   }
  ],
  "rejected": []
