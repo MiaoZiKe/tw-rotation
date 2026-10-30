@@ -1,5 +1,5 @@
 {
- "at": "2026-10-30T02:02:50+00:00",
+ "at": "2026-10-30T02:09:27+00:00",
  "ok": 105,
  "miss": [],
  "items": [
@@ -294,7 +294,7 @@
    "slug": "unimicron",
    "ok": true,
    "total": 6,
-   "added": 1,
+   "added": 0,
    "reviewed": 2
   },
   {
@@ -412,9 +412,9 @@
   {
    "slug": "samsung",
    "ok": true,
-   "total": 18,
-   "added": 7,
-   "reviewed": 1
+   "total": 23,
+   "added": 5,
+   "reviewed": 2
   },
   {
    "slug": "sk_hynix",
@@ -461,8 +461,8 @@
   {
    "slug": "anthropic",
    "ok": true,
-   "total": 10,
-   "added": 2,
+   "total": 16,
+   "added": 6,
    "reviewed": 0
   },
   {
@@ -482,7 +482,7 @@
   {
    "slug": "arm",
    "ok": true,
-   "total": 16,
+   "total": 25,
    "added": 9,
    "reviewed": 1
   },
@@ -713,28 +713,28 @@
   {
    "slug": "coreweave",
    "ok": true,
-   "total": 3,
-   "added": 1,
+   "total": 6,
+   "added": 3,
    "reviewed": 0
   },
   {
    "slug": "nanya_tech",
    "ok": true,
-   "total": 16,
-   "added": 9,
+   "total": 22,
+   "added": 6,
    "reviewed": 0
   },
   {
    "slug": "nan_ya_pcb",
    "ok": true,
-   "total": 12,
-   "added": 9,
+   "total": 18,
+   "added": 6,
    "reviewed": 0
   },
   {
    "slug": "eml",
    "ok": true,
-   "total": 11,
+   "total": 17,
    "added": 6,
    "reviewed": 0
   }
