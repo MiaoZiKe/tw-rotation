@@ -208,7 +208,9 @@
     // 動效上限 240ms（全站那條規矩；chart() 的預設是 500）；使用者要求減少動態就整個關掉
     let reduce = false; try { reduce = matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { /* 舊瀏覽器 */ }
     return {
-      animation: !reduce, animationDuration: 240, animationDurationUpdate: 240,
+      /* 今日時間軸播放中（Andy 10-30「即時的播放要跟原來一樣絲滑」）：補間時間＝一格的間隔、等速，一格接著一格，色塊面積與顏色漸變不跳 */
+      animation: !reduce, animationDuration: 240,
+      animationDurationUpdate: (window.Tape && Tape.playing) ? Tape.stepMs : 240, animationEasingUpdate: (window.Tape && Tape.playing) ? 'linear' : 'cubicInOut',
       itemStyle: { borderWidth: 0, gapWidth: 2, borderColor: gapC, borderRadius: 3 },
       label: { show: true, fontSize: 12, fontWeight: 700, lineHeight: 16, color: '#fff', textShadowBlur: 0,
         overflow: 'truncate', ellipsis: '…', fontFamily: 'Noto Sans TC, JetBrains Mono, sans-serif' },
@@ -13418,8 +13420,8 @@
         /* ★ 2026-09-25：「經典光纖」＝經典版面（四層常駐、代表股三檔、描邊標籤）＋拓撲版的線與粒子 */
         layout: sankeyStyle() === 'fx' ? 'classic' : 'topo',
         /* ★ 2026-09-25：拓撲版換日依排名換位（補間）；回放中用等速、時長＝回放一格（650ms）*/
-        playing: () => { const b = document.getElementById('sankeyDays'); return !!(b && b.classList.contains('playing')); },
-        playFrame: 650,
+        playing: () => { const b = document.getElementById('sankeyDays'); return !!(b && b.classList.contains('playing')) || !!(window.Tape && Tape.playing); },
+        playFrame: (window.Tape && Tape.playing) ? Tape.stepMs : 650,     // 今日時間軸播放：與輪盤同一個節奏（ROT_ANIM_MS），一格接著一格
         colorOf: (gid) => L.gcolor[gid],
         rootLines: rootLbl.split('\n'),
         /* ★ 2026-09-25：圖例句（粒子＝資金流動、線越粗＝錢越多、點族群長出成分股）搬進「?」（HOW.sankey）；
