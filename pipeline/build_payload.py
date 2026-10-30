@@ -391,6 +391,19 @@ def build() -> None:
     today = (group_hist[group_hist["date"] == latest]
              if not group_hist.empty else pd.DataFrame())
 
+    # ★ 2026-10-30 流向驗證頁「找訊號」：日線規則的回測＋近 60 日觸發清單（compute/daily_signals.py，只讀資料湖）。
+    #   獨立、包 try：算壞只影響 flowcheck/daily_signals.json，不拖垮整份 payload。
+    try:
+        import gc
+        from .compute import daily_signals
+        (config.SITE_DATA / "flowcheck").mkdir(parents=True, exist_ok=True)
+        daily_signals.write(daily_signals.build(price, inst, company, names),
+                            config.SITE_DATA / "flowcheck" / "daily_signals.json")
+        gc.collect()
+        lap("流向驗證日線訊號")
+    except Exception as exc:  # noqa: BLE001
+        log.warning("日線訊號產出失敗（只影響流向驗證頁的找訊號區）：%s", exc)
+
     _write("groups_today", today.to_dict("records"))
     _write("rotation", flow.rotation_radar(group_hist).head(25).to_dict("records"))
     # 120 → 400 天（Andy 2026-09-18：均線要能到 240 日，只留 120 天算不出來）。
