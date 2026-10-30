@@ -14828,6 +14828,242 @@
           ]
         }
       ]
+    },
+    {
+      "name": "創見",
+      "code": null,
+      "heat": null,
+      "benefits": null,
+      "stock_plan": null,
+      "bonus_timing": null,
+      "bonus_structure": [],
+      "culture": null,
+      "interview": null,
+      "grade_system": null,
+      "mops": null,
+      "note": "2026-10-29 由 GoodJob 樣本新增的公司（20261031_0432 新公司批）",
+      "roles": [
+        {
+          "unit": null,
+          "role": "FAE",
+          "degree": null,
+          "years": null,
+          "base_month_k": [
+            44,
+            44
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": [
+            120,
+            120
+          ],
+          "weekly_hours": [
+            40,
+            40
+          ],
+          "overtime": null,
+          "travel": null,
+          "n": 2,
+          "note": "2026-10-29 GoodJob 合併批新增職位",
+          "confidence": "低",
+          "grade": null,
+          "n_stat": 2,
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/創見資訊股份有限公司/salary-work-times?p=1",
+              "date": "2026-10",
+              "page_date": "2026-10",
+              "date_confirmed": true,
+              "role": "高級應用工程師",
+              "grade": null,
+              "unit_detail": "內湖/總部/技術服務處",
+              "years": "10",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 120,
+              "weekly_hours": 40,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/8 小時",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-10（20261029_20261031_0432 新公司批，0432 檔）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/創見資訊股份有限公司/salary-work-times?p=1",
+              "date": "2025-03",
+              "page_date": "2025-03",
+              "date_confirmed": true,
+              "role": "FAE工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "0",
+              "degree": null,
+              "base_k": 44,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 40,
+              "overtime": "幾乎不",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/8 小時",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2025-03（20261029_20261031_0432 新公司批，0432 檔）"
+            }
+          ],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/創見資訊股份有限公司/salary-work-times?p=1",
+              "date": "2026-10"
+            }
+          ]
+        },
+        {
+          "unit": null,
+          "role": "硬體工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": [
+            58,
+            58
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": [
+            110,
+            110
+          ],
+          "weekly_hours": [
+            40,
+            42.5
+          ],
+          "overtime": null,
+          "travel": null,
+          "n": 2,
+          "note": "2026-10-29 GoodJob 合併批新增職位",
+          "confidence": "低",
+          "grade": null,
+          "n_stat": 2,
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/創見資訊股份有限公司/salary-work-times?p=1",
+              "date": "2025-05",
+              "page_date": "2025-05",
+              "date_confirmed": true,
+              "role": "硬體研發工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "1",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 110,
+              "weekly_hours": 40,
+              "overtime": "幾乎不",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/8 小時",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2025-05（20261029_20261031_0432 新公司批，0432 檔）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/創見資訊股份有限公司/salary-work-times?p=2",
+              "date": "2025-02",
+              "page_date": "2025-02",
+              "date_confirmed": true,
+              "role": "硬體研發工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "0",
+              "degree": null,
+              "base_k": 58,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 42.5,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8.5/8.5 小時",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2025-02（20261029_20261031_0432 新公司批，0432 檔）"
+            }
+          ],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/創見資訊股份有限公司/salary-work-times?p=1",
+              "date": "2025-05"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/創見資訊股份有限公司/salary-work-times?p=2",
+              "date": "2025-02"
+            }
+          ]
+        },
+        {
+          "unit": null,
+          "role": "產品工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": [
+            36,
+            36
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": [
+            40,
+            40
+          ],
+          "overtime": "幾乎不",
+          "travel": null,
+          "n": 1,
+          "note": "2026-10-29 GoodJob 合併批新增職位",
+          "confidence": "低",
+          "grade": null,
+          "n_stat": 1,
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/創見資訊股份有限公司/salary-work-times?p=1",
+              "date": "2025-05",
+              "page_date": "2025-05",
+              "date_confirmed": true,
+              "role": "產品維修工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "0",
+              "degree": null,
+              "base_k": 36,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 40,
+              "overtime": "幾乎不",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/8 小時",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2025-05（20261029_20261031_0432 新公司批，0432 檔）"
+            }
+          ],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/創見資訊股份有限公司/salary-work-times?p=1",
+              "date": "2025-05"
+            }
+          ]
+        }
+      ]
     }
   ]
 }

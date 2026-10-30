@@ -489,3 +489,21 @@ def test_samsung_not_mapped_to_tw_namesake():
     assert S.subject_of(c, names) == ("三星", "")                 # 沒帶 5007 → 韓國三星
     c["lead"]["codes"] = "5007"
     assert S.subject_of(c, names) == ("三星", "5007")             # 新聞明確標 5007 才是台股三星科技
+
+
+def test_close_post_wakes_news_and_no_late_skip():
+    """2026-10-30 事故：盤後主貼文由 GITHUB_TOKEN 派的 social-live 發出，workflow_run 不會觸發 → 盤後主題文章 0 篇。
+    social-live 發出後要直接 dispatch social_news.yml；social_news 不准有「晚到就不補排」的 0 篇路徑。"""
+    import yaml
+    root = Path(__file__).resolve().parents[1]
+    live = yaml.safe_load((root / ".github/workflows/social-live.yml").read_text(encoding="utf-8"))
+    assert live["permissions"].get("actions") == "write"
+    steps = live["jobs"]["snap-and-post"]["steps"]
+    wake = [s for s in steps if "social_news.yml" in str(s.get("run", ""))]
+    assert wake, "social-live 發出主貼文後要叫醒 social_news.yml"
+    assert "dry_run=false" in wake[0]["run"] and "slot=auto" in wake[0]["run"]
+    assert "steps.post.outputs.save" in wake[0]["if"]
+    src = (root / "scripts/social_news.py").read_text(encoding="utf-8")
+    assert "新聞時效已過，這段不補排" not in src
+    news = (root / ".github/workflows/social_news.yml").read_text(encoding="utf-8")
+    assert '"25 10 * * 1-5"' in news and '"55 10 * * 1-5"' in news      # 盤後 18:25／18:55 備援

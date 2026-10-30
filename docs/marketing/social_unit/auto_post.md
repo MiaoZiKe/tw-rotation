@@ -146,3 +146,4 @@ https://liguligu-puipui.com/
 2. 每筆發布紀錄帶 `at`（台北發布時間，`social_publish.py`）；`social_snap.posted_ok()` 只承認正式時段的紀錄：盤中＝當天 09:00～13:30、盤前＝當天 05:00 之後，其他時間寫的紀錄視為測試誤記、照發（log 印 ⚠）。
 3. 手動補發測試要用 `live_test=true`，不准用 `dry_run=false + force=true`。
 - 2026-10-30：主題文章新增分類「國際」（Andy：三星文章標「美股」不對）。非美國公司／央行／地區為主體 → 國際；美股只給美股盤勢與美國公司；三星不再被對到台股 5007 三星科技。規則見 `news_post_rules.md` 十一之一。
+- 2026-10-30：盤後主題文章沒發（事故：盤後主貼文 18:07 由每日管線用 GITHUB_TOKEN 派的 social-live 發出，GitHub 不會為 GITHUB_TOKEN 觸發的 run 再發 workflow_run 事件，social_news.yml 沒被叫醒；17:15～18:02 那幾輪都在主貼文發出前，下一個備援排程 19:35）。修法：① social-live.yml 主貼文真的發出（有 posted.json）後最後一步直接 `gh workflow run social_news.yml -f slot=auto -f dry_run=false`（加 `actions: write`）；② social_news.yml 加交易日 18:25、18:55 備援排程；③ social_news.py 拿掉「主貼文已發超過 3 小時就不補排」的 0 篇路徑，改成晚到照樣補發（log 記 late）。測試 `test_close_post_wakes_news_and_no_late_skip`。

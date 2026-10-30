@@ -39,7 +39,7 @@ JdK 原版公式未公開，這裡用常見的均值標準化近似，趨勢與�
     一日步長中位數 **0.053**（降 4.8 倍）、最大 **0.280**（降 6.6 倍）、
     直線度 **0.38**（提升 5.4 倍）、順時針步數比例 0.65 → 0.71。
 
-大盤指數用全市場成交值加權漲跌幅累乘還原，跟族群指數同一套算法，避免兩邊口徑不同。
+大盤指數用全市場「前一日」成交值加權漲跌幅累乘還原，跟族群指數同一套算法，避免兩邊口徑不同。
 """
 from __future__ import annotations
 
@@ -64,16 +64,39 @@ def _v(x, nd=2):
 
 
 def market_index(price: pd.DataFrame, days: int = 160) -> pd.Series:
-    """全市場成交值加權日報酬累乘成指數（index=date 字串）。"""
-    cutoff = (pd.Timestamp(price["date"].max()) - pd.Timedelta(days=days * 1.6)).date().isoformat()
-    px = price[price["date"].astype(str) >= cutoff][["date", "code", "close", "change", "turnover"]].copy()
+    """全市場「前一日成交值」加權日報酬累乘成指數（index=date 字串）。
+
+    公式：大盤日報酬 r_t ＝ Σ_i r_{i,t} × TV_{i,t-1} ÷ Σ_i TV_{i,t-1}；指數＝Π(1＋r_t)（複利，不是相加）。
+      · TV_{i,t-1}＝**同一檔股票上一筆交易紀錄的成交值**（前一個它有成交的交易日），前一天收盤就已知。
+      · ★ 2026-10-30 Andy 拍板（DECISIONS #，「直接改上線」）：原本用**當天**成交值加權＝前視偏差 ——
+        當天漲的股票自然爆量（漲 2% 以上者成交值中位數是前日 1.37 倍、跌 2% 以上者 0.99 倍），
+        等於「事後知道誰漲再加重它」。近 32 天日均 +0.371%，改前日權重後 −0.045%，加權指數同期 −0.042%
+        （研究：docs/research/20261030_rrg_audit.md B 節）。
+    例外處理：
+      · 沒有前一筆紀錄（新上市第一天、或剛好是資料起點）→ **當天剔除**（權重 0），不退回用當天成交值，
+        理由是退回當天就把前視偏差從後門放回來；寧可少一檔，不可偷看。
+      · 前一日成交值為 0／缺值 → 權重 0。某天全部權重為 0 → 那天報酬記 0（指數持平）。
+      · 前一日收盤 ≤ 0（算不出報酬）→ 剔除。
+    取前一筆紀錄時多往前留 30 天緩衝，讓視窗第一天也有前一日權重可用。
+    """
+    end = pd.Timestamp(price["date"].max())
+    cutoff = (end - pd.Timedelta(days=days * 1.6)).date().isoformat()
+    buf = (end - pd.Timedelta(days=days * 1.6 + 30)).date().isoformat()
+    ds = price["date"].astype(str)
+    px = price[ds >= buf][["date", "code", "close", "change", "turnover"]].copy()
+    px["date"] = px["date"].astype(str)
     px = px[px["code"].map(is_tradable_security)]
     px["turnover"] = pd.to_numeric(px["turnover"], errors="coerce").fillna(0)
+    px = px.sort_values(["code", "date"])
+    px["w"] = px.groupby("code", sort=False)["turnover"].shift(1).fillna(0)
+    px = px[px["date"] >= cutoff]
     prev = px["close"] - px["change"].fillna(0)
     px["chg"] = np.where(prev > 0, px["change"] / prev, np.nan)
     px = px.dropna(subset=["chg"])
-    w = px.groupby("date").apply(lambda g: float((g["chg"] * g["turnover"]).sum() / g["turnover"].sum())
-                                 if g["turnover"].sum() > 0 else 0.0)
+    px["_cw"] = px["chg"] * px["w"]
+    agg = px.groupby("date")[["_cw", "w"]].sum()
+    w = pd.Series(np.where(agg["w"] > 0, agg["_cw"] / agg["w"].where(agg["w"] > 0, 1), 0.0),
+                  index=agg.index)
     return (1 + w).cumprod()
 
 

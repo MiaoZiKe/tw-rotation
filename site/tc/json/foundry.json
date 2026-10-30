@@ -24712,6 +24712,1150 @@
           ]
         }
       ]
+    },
+    {
+      "name": "宏捷科",
+      "code": null,
+      "heat": null,
+      "benefits": null,
+      "stock_plan": null,
+      "bonus_timing": null,
+      "bonus_structure": [],
+      "culture": null,
+      "interview": null,
+      "grade_system": null,
+      "mops": null,
+      "note": "2026-10-29 由 GoodJob 樣本新增的公司（20261031_0432 新公司批）",
+      "roles": [
+        {
+          "unit": null,
+          "role": "工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": [
+            70,
+            70
+          ],
+          "weekly_hours": [
+            40,
+            40
+          ],
+          "overtime": "幾乎不",
+          "travel": null,
+          "n": 1,
+          "note": "2026-10-29 GoodJob 合併批新增職位",
+          "confidence": "低",
+          "grade": null,
+          "n_stat": 1,
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/宏捷科技股份有限公司/salary-work-times?p=1",
+              "date": "2026-08",
+              "page_date": "2026-08",
+              "date_confirmed": true,
+              "role": "工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "5",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 70,
+              "weekly_hours": 40,
+              "overtime": "幾乎不",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/8 小時",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-08（20261029_20261031_0432 新公司批，0432 檔）"
+            }
+          ],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/宏捷科技股份有限公司/salary-work-times?p=1",
+              "date": "2026-08"
+            }
+          ]
+        },
+        {
+          "unit": null,
+          "role": "製程工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": [
+            38,
+            38
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": [
+            60,
+            60
+          ],
+          "weekly_hours": [
+            40,
+            50
+          ],
+          "overtime": "經常",
+          "travel": null,
+          "n": 2,
+          "note": "2026-10-29 GoodJob 合併批新增職位",
+          "confidence": "低",
+          "grade": null,
+          "n_stat": 2,
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/宏捷科技股份有限公司/salary-work-times?p=1",
+              "date": "2026-04",
+              "page_date": "2026-04",
+              "date_confirmed": true,
+              "role": "生產技術╱製程工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "0",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 60,
+              "weekly_hours": 40,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/8 小時",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-04（20261029_20261031_0432 新公司批，0432 檔）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/宏捷科技股份有限公司/salary-work-times?p=1",
+              "date": "2026-01",
+              "page_date": "2026-01",
+              "date_confirmed": true,
+              "role": "白光製程副工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "0",
+              "degree": null,
+              "base_k": 38,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 50,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 12/13.5 小時",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-01（20261029_20261031_0432 新公司批，0432 檔）"
+            }
+          ],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/宏捷科技股份有限公司/salary-work-times?p=1",
+              "date": "2026-04"
+            }
+          ]
+        },
+        {
+          "unit": null,
+          "role": "測試工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": [
+            46,
+            46
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": [
+            64,
+            64
+          ],
+          "weekly_hours": [
+            40,
+            40
+          ],
+          "overtime": "偶爾",
+          "travel": null,
+          "n": 2,
+          "note": "2026-10-29 GoodJob 合併批新增職位",
+          "confidence": "低",
+          "grade": null,
+          "n_stat": 2,
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/宏捷科技股份有限公司/salary-work-times?p=1",
+              "date": "2026-01",
+              "page_date": "2026-01",
+              "date_confirmed": true,
+              "role": "IC封裝╱測試工程師",
+              "grade": null,
+              "unit_detail": "台南大利廠",
+              "years": "5",
+              "degree": null,
+              "base_k": 46,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 40,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/8 小時",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-01（20261029_20261031_0432 新公司批，0432 檔）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/宏捷科技股份有限公司/salary-work-times?p=1",
+              "date": "2025-12",
+              "page_date": "2025-12",
+              "date_confirmed": true,
+              "role": "測試工程師",
+              "grade": null,
+              "unit_detail": "台南新市廠",
+              "years": "5",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 64,
+              "weekly_hours": 40,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/8 小時",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2025-12（20261029_20261031_0432 新公司批，0432 檔）"
+            }
+          ],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/宏捷科技股份有限公司/salary-work-times?p=1",
+              "date": "2026-01"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "富采（晶電）",
+      "code": null,
+      "heat": null,
+      "benefits": null,
+      "stock_plan": null,
+      "bonus_timing": null,
+      "bonus_structure": [],
+      "culture": null,
+      "interview": null,
+      "grade_system": null,
+      "mops": null,
+      "note": "2026-10-29 由 GoodJob 樣本新增的公司（20261031_0432 新公司批）",
+      "roles": [
+        {
+          "unit": null,
+          "role": "工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": [
+            55,
+            81.25
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": [
+            65,
+            80
+          ],
+          "weekly_hours": [
+            40,
+            43
+          ],
+          "overtime": "幾乎不",
+          "travel": null,
+          "n": 5,
+          "note": "2026-10-29 GoodJob 合併批新增職位",
+          "confidence": "低",
+          "grade": null,
+          "n_stat": 5,
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/富采光電/salary-work-times?p=1",
+              "date": "2026-08",
+              "page_date": "2026-08",
+              "date_confirmed": true,
+              "role": "工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "1",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 80,
+              "weekly_hours": 40,
+              "overtime": "幾乎不",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/8 小時；富采光電 頁",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-08（20261029_20261031_0432 新公司批，0432 檔）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/富采光電/salary-work-times?p=1",
+              "date": "2026-05",
+              "page_date": "2026-05",
+              "date_confirmed": true,
+              "role": "工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "1",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 80,
+              "weekly_hours": 40,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/8.5 小時；富采光電 頁",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-05（20261029_20261031_0432 新公司批，0432 檔）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/富采光電/salary-work-times?p=2",
+              "date": "2026-02",
+              "page_date": "2026-02",
+              "date_confirmed": true,
+              "role": "工程師",
+              "grade": null,
+              "unit_detail": "新竹",
+              "years": "15",
+              "degree": null,
+              "base_k": 81.25,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 43,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/8.5 小時；富采光電 頁",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-02（20261029_20261031_0432 新公司批，0432 檔）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/晶元光電股份有限公司/salary-work-times?p=1",
+              "date": "2025-10",
+              "page_date": "2025-10",
+              "date_confirmed": true,
+              "role": "磊晶工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "4",
+              "degree": null,
+              "base_k": 55,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 40,
+              "overtime": "幾乎不",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/8 小時",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2025-10（20261029_20261031_0432 新公司批，0432 檔）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/晶元光電股份有限公司/salary-work-times?p=1",
+              "date": "2025-03",
+              "page_date": "2025-03",
+              "date_confirmed": true,
+              "role": "工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "3",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 65,
+              "weekly_hours": 40,
+              "overtime": "幾乎不",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/8 小時",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2025-03（20261029_20261031_0432 新公司批，0432 檔）"
+            }
+          ],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/富采光電/salary-work-times?p=1",
+              "date": "2026-08"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/富采光電/salary-work-times?p=2",
+              "date": "2026-02"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/晶元光電股份有限公司/salary-work-times?p=1",
+              "date": "2026-07"
+            }
+          ]
+        },
+        {
+          "unit": null,
+          "role": "廠務工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": [
+            46,
+            55
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": [
+            40.5,
+            48
+          ],
+          "overtime": null,
+          "travel": null,
+          "n": 2,
+          "note": "2026-10-29 GoodJob 合併批新增職位",
+          "confidence": "低",
+          "grade": null,
+          "n_stat": 2,
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/富采光電/salary-work-times?p=1",
+              "date": "2026-06",
+              "page_date": "2026-06",
+              "date_confirmed": true,
+              "role": "廠務工程師",
+              "grade": null,
+              "unit_detail": "竹南",
+              "years": "0",
+              "degree": null,
+              "base_k": 55,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 40.5,
+              "overtime": "幾乎不",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/8.5 小時；富采光電 頁",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-06（20261029_20261031_0432 新公司批，0432 檔）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/晶元光電股份有限公司/salary-work-times?p=1",
+              "date": "2026-03",
+              "page_date": "2026-03",
+              "date_confirmed": true,
+              "role": "廠務工程師",
+              "grade": null,
+              "unit_detail": "新竹",
+              "years": "5",
+              "degree": null,
+              "base_k": 46,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 48,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/10 小時",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-03（20261029_20261031_0432 新公司批，0432 檔）"
+            }
+          ],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/富采光電/salary-work-times?p=1",
+              "date": "2026-06"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/晶元光電股份有限公司/salary-work-times?p=1",
+              "date": "2026-03"
+            }
+          ]
+        },
+        {
+          "unit": null,
+          "role": "軟體工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": [
+            50,
+            56
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": [
+            40,
+            45
+          ],
+          "overtime": null,
+          "travel": null,
+          "n": 2,
+          "note": "2026-10-29 GoodJob 合併批新增職位",
+          "confidence": "低",
+          "grade": null,
+          "n_stat": 2,
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/富采光電/salary-work-times?p=1",
+              "date": "2026-06",
+              "page_date": "2026-06",
+              "date_confirmed": true,
+              "role": "IT",
+              "grade": null,
+              "unit_detail": null,
+              "years": "1",
+              "degree": null,
+              "base_k": 50,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 40,
+              "overtime": "幾乎不",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/9 小時；職稱未寫工程師；富采光電 頁",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-06（20261029_20261031_0432 新公司批，0432 檔）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/富采投資控股股份有限公司 (83202930)/salary-work-times?p=1",
+              "date": "2025-03",
+              "page_date": "2025-03",
+              "date_confirmed": true,
+              "role": "軟體工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "3",
+              "degree": null,
+              "base_k": 56,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 45,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/9 小時；原選項幾乎每天",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2025-03（20261029_20261031_0432 新公司批，0432 檔）"
+            }
+          ],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/富采光電/salary-work-times?p=1",
+              "date": "2026-06"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/富采投資控股股份有限公司 (83202930)/salary-work-times?p=1",
+              "date": "2025-03"
+            }
+          ]
+        },
+        {
+          "unit": null,
+          "role": "設備工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": [
+            65,
+            65
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": [
+            50,
+            50
+          ],
+          "overtime": "經常",
+          "travel": null,
+          "n": 1,
+          "note": "2026-10-29 GoodJob 合併批新增職位",
+          "confidence": "低",
+          "grade": null,
+          "n_stat": 1,
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/富采光電/salary-work-times?p=1",
+              "date": "2026-05",
+              "page_date": "2026-05",
+              "date_confirmed": true,
+              "role": "生產設備工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "10",
+              "degree": null,
+              "base_k": 65,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 50,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/10 小時；富采光電 頁",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-05（20261029_20261031_0432 新公司批，0432 檔）"
+            }
+          ],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/富采光電/salary-work-times?p=1",
+              "date": "2026-05"
+            }
+          ]
+        },
+        {
+          "unit": null,
+          "role": "資深工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": [
+            48,
+            88.7
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": [
+            40,
+            45
+          ],
+          "overtime": "偶爾",
+          "travel": null,
+          "n": 3,
+          "note": "2026-10-29 GoodJob 合併批新增職位",
+          "confidence": "低",
+          "grade": null,
+          "n_stat": 3,
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/富采光電/salary-work-times?p=2",
+              "date": "2026-03",
+              "page_date": "2026-03",
+              "date_confirmed": true,
+              "role": "高級工程師",
+              "grade": null,
+              "unit_detail": "竹科A1",
+              "years": "5",
+              "degree": null,
+              "base_k": 48,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 40,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/10 小時；富采光電 頁",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-03（20261029_20261031_0432 新公司批，0432 檔）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/富采光電/salary-work-times?p=2",
+              "date": "2025-10",
+              "page_date": "2025-10",
+              "date_confirmed": true,
+              "role": "資深工程師",
+              "grade": null,
+              "unit_detail": "新竹",
+              "years": "3",
+              "degree": null,
+              "base_k": 49,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 45,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/8.5 小時；富采光電 頁",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2025-10（20261029_20261031_0432 新公司批，0432 檔）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/富采投資控股股份有限公司/salary-work-times?p=1",
+              "date": "2026-02",
+              "page_date": "2026-02",
+              "date_confirmed": true,
+              "role": "資深工程師",
+              "grade": null,
+              "unit_detail": "A1",
+              "years": "17",
+              "degree": null,
+              "base_k": 88.7,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 40,
+              "overtime": "幾乎不",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/9 小時",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-02（20261029_20261031_0432 新公司批，0432 檔）"
+            }
+          ],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/富采光電/salary-work-times?p=2",
+              "date": "2026-03"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/富采投資控股股份有限公司/salary-work-times?p=1",
+              "date": "2026-02"
+            }
+          ]
+        },
+        {
+          "unit": null,
+          "role": "研發工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": [
+            60,
+            60
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": [
+            86.8,
+            86.8
+          ],
+          "weekly_hours": [
+            40,
+            40
+          ],
+          "overtime": "幾乎不",
+          "travel": null,
+          "n": 2,
+          "note": "2026-10-29 GoodJob 合併批新增職位",
+          "confidence": "低",
+          "grade": null,
+          "n_stat": 2,
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/晶元光電股份有限公司/salary-work-times?p=1",
+              "date": "2025-11",
+              "page_date": "2025-11",
+              "date_confirmed": true,
+              "role": "研發工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "2",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 86.8,
+              "weekly_hours": 40,
+              "overtime": "幾乎不",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/8 小時",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2025-11（20261029_20261031_0432 新公司批，0432 檔）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/晶元光電股份有限公司/salary-work-times?p=1",
+              "date": "2025-04",
+              "page_date": "2025-04",
+              "date_confirmed": true,
+              "role": "研發工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "2",
+              "degree": null,
+              "base_k": 60,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 40,
+              "overtime": "幾乎不",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/8 小時",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2025-04（20261029_20261031_0432 新公司批，0432 檔）"
+            }
+          ],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/晶元光電股份有限公司/salary-work-times?p=1",
+              "date": "2025-11"
+            }
+          ]
+        },
+        {
+          "unit": null,
+          "role": "製程整合工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": [
+            64,
+            64
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": [
+            100,
+            100
+          ],
+          "weekly_hours": [
+            40,
+            45
+          ],
+          "overtime": "偶爾",
+          "travel": null,
+          "n": 2,
+          "note": "2026-10-29 GoodJob 合併批新增職位",
+          "confidence": "低",
+          "grade": null,
+          "n_stat": 2,
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/晶元光電股份有限公司/salary-work-times?p=1",
+              "date": "2025-10",
+              "page_date": "2025-10",
+              "date_confirmed": true,
+              "role": "整合工程師",
+              "grade": null,
+              "unit_detail": "新竹",
+              "years": "4",
+              "degree": null,
+              "base_k": 64,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 45,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/9 小時",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2025-10（20261029_20261031_0432 新公司批，0432 檔）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/晶元光電股份有限公司/salary-work-times?p=1",
+              "date": "2025-03",
+              "page_date": "2025-03",
+              "date_confirmed": true,
+              "role": "製程整合工程師",
+              "grade": null,
+              "unit_detail": "台中",
+              "years": "8",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 100,
+              "weekly_hours": 40,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/8.5 小時",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2025-03（20261029_20261031_0432 新公司批，0432 檔）"
+            }
+          ],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/晶元光電股份有限公司/salary-work-times?p=1",
+              "date": "2025-10"
+            }
+          ]
+        },
+        {
+          "unit": null,
+          "role": "製程工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": [
+            51,
+            51
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": [
+            48,
+            48
+          ],
+          "overtime": "偶爾",
+          "travel": null,
+          "n": 1,
+          "note": "2026-10-29 GoodJob 合併批新增職位",
+          "confidence": "低",
+          "grade": null,
+          "n_stat": 1,
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/晶元光電股份有限公司/salary-work-times?p=1",
+              "date": "2025-01",
+              "page_date": "2025-01",
+              "date_confirmed": true,
+              "role": "生產技術╱製程工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "0",
+              "degree": null,
+              "base_k": 51,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 48,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 9/9 小時",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2025-01（20261029_20261031_0432 新公司批，0432 檔）"
+            }
+          ],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/晶元光電股份有限公司/salary-work-times?p=1",
+              "date": "2025-01"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "聯亞",
+      "code": null,
+      "heat": null,
+      "benefits": null,
+      "stock_plan": null,
+      "bonus_timing": null,
+      "bonus_structure": [],
+      "culture": null,
+      "interview": null,
+      "grade_system": null,
+      "mops": null,
+      "note": "2026-10-29 由 GoodJob 樣本新增的公司（20261031_0432 新公司批）",
+      "roles": [
+        {
+          "unit": null,
+          "role": "工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": [
+            70,
+            70
+          ],
+          "weekly_hours": [
+            40,
+            40
+          ],
+          "overtime": "偶爾",
+          "travel": null,
+          "n": 1,
+          "note": "2026-10-29 GoodJob 合併批新增職位",
+          "confidence": "低",
+          "grade": null,
+          "n_stat": 1,
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯亞光電工業股份有限公司/salary-work-times?p=1",
+              "date": "2026-10",
+              "page_date": "2026-10",
+              "date_confirmed": true,
+              "role": "量測工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "13",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 70,
+              "weekly_hours": 40,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 10/10 小時",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-10（20261029_20261031_0432 新公司批，0432 檔）"
+            }
+          ],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯亞光電工業股份有限公司/salary-work-times?p=1",
+              "date": "2026-10"
+            }
+          ]
+        },
+        {
+          "unit": null,
+          "role": "製程工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": [
+            40,
+            42
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": [
+            43.5,
+            50
+          ],
+          "overtime": "偶爾",
+          "travel": null,
+          "n": 2,
+          "note": "2026-10-29 GoodJob 合併批新增職位",
+          "confidence": "低",
+          "grade": null,
+          "n_stat": 2,
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯亞光電工業股份有限公司/salary-work-times?p=1",
+              "date": "2026-03",
+              "page_date": "2026-03",
+              "date_confirmed": true,
+              "role": "半導體製程工程師",
+              "grade": null,
+              "unit_detail": "1廠",
+              "years": "3",
+              "degree": null,
+              "base_k": 40,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 43.5,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/8.7 小時",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-03（20261029_20261031_0432 新公司批，0432 檔）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯亞光電工業股份有限公司/salary-work-times?p=1",
+              "date": "2026-03",
+              "page_date": "2026-03",
+              "date_confirmed": true,
+              "role": "製程工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "1",
+              "degree": null,
+              "base_k": 42,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 50,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/10 小時",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-03（20261029_20261031_0432 新公司批，0432 檔）"
+            }
+          ],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯亞光電工業股份有限公司/salary-work-times?p=1",
+              "date": "2026-03"
+            }
+          ]
+        },
+        {
+          "unit": null,
+          "role": "資深工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": [
+            48,
+            48
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": [
+            45,
+            45
+          ],
+          "overtime": "經常",
+          "travel": null,
+          "n": 1,
+          "note": "2026-10-29 GoodJob 合併批新增職位",
+          "confidence": "低",
+          "grade": null,
+          "n_stat": 1,
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯亞光電工業股份有限公司/salary-work-times?p=1",
+              "date": "2025-12",
+              "page_date": "2025-12",
+              "date_confirmed": true,
+              "role": "高級工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "0",
+              "degree": null,
+              "base_k": 48,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 45,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/10 小時",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2025-12（20261029_20261031_0432 新公司批，0432 檔）"
+            }
+          ],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/聯亞光電工業股份有限公司/salary-work-times?p=1",
+              "date": "2025-12"
+            }
+          ]
+        }
+      ]
     }
   ]
 }

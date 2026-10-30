@@ -1948,6 +1948,8 @@ tr.whyrow>td{padding:2px var(--sp-2) var(--sp-2);border-top:0}
 @media (max-width:640px){.m3-bar{gap:10px;margin-bottom:10px}}
 .m3-bar .note{flex:1;min-width:200px}
 .seg.tiny button{padding:3px 8px;font-size:12.5px}
+.rotmodenote{font-size:12px;color:var(--amber,#e0a030);margin:2px 0 4px;line-height:1.5}
+#rotModeSeg{flex:none}
 .minisel{background:var(--panel-3);color:var(--ink);border:1px solid var(--line-2);border-radius:8px;
   padding:var(--sp-1) var(--sp-2);font-size:12.5px;font-family:inherit;cursor:pointer}
 @media (max-width:640px){.minisel{padding:4px 7px}}
@@ -5833,7 +5835,7 @@ h3 .howbtn.pop{font-family:inherit}
           <!-- ★ 2026-09-25（Andy：「所有說明都拿掉，改成 ? 點擊後可觀看說明，文字只需要留名稱」）：
                副標「錢往哪跑、跑到哪一段」拿掉；原本右欄那顆「怎麼看 ?」改成標題旁的「?」（howPop，跟總覽同一套）。
                說明盒 #how-rot 留在卡片裡（howPop 關的時候搬回原位，驗收照 id 找得到）。 -->
-          <div class="row spread rothead"><h3>資金輪動 <button class="howbtn pop" data-how="rot" type="button" aria-label="資金輪動怎麼看">?</button></h3><small data-disc="rot" id="flowRotDisc"></small></div>
+          <div class="row spread rothead"><h3>資金輪動 <button class="howbtn pop" data-how="rot" type="button" aria-label="資金輪動怎麼看">?</button></h3><span id="rotModeSeg"></span><small data-disc="rot" id="flowRotDisc"></small></div>
           <div class="howtxt" id="how-rot" hidden></div>
           <!-- 共用篩選區（**整張卡只有這一份**）：產業鏈 seg → 族群晶片列 → 只看前 10 大／清除篩選／狀態說明。
                data-rf="flow" 是合併後的名字（原本 rot／rank 兩份）。 -->
@@ -5861,7 +5863,9 @@ h3 .howbtn.pop{font-family:inherit}
                改前：點了開 openZoom 的足跡輪盤放大視窗（拉Bar／篩選／即時鈕各一份）。改後：卡片上的輪盤本身就是完整版
                （2026-09-25 起高＝欄寬×0.8、四張象限卡推到盤外），篩選、時間軸、即時都在卡片上，放大視窗沒有多給東西。
                其他卡的「放大／展開」（資金熱力圖、大盤三張圖、法人、河流圖…）不動。 -->
-          <div class="row spread rotchead"><h4 class="subh">強弱輪動 <small id="rotSub"></small></h4></div>
+          <div class="row spread rotchead"><h4 class="subh"><span id="rotModeTitle">強弱輪動</span> <small id="rotSub"></small></h4></div>
+          <!-- ★ 2026-10-30：輪盤可切換「強弱輪動（價格相對大盤）｜資金輪盤（成交值占比）」；資金輪盤要標明「與價格同步，不是提前訊號」（#rotModeNote，只在資金輪盤時顯示） -->
+          <div class="rotmodenote" id="rotModeNote" hidden>與價格同步，不是提前訊號：這張看的是成交值占比（錢集中在哪），不是預測。</div>
           <!-- ★ 2026-09-23 D2（Andy：「我點選領先，底下資訊是顯示在旁邊的」）：
                象限的展開面板從「時鐘正下方」搬到**時鐘右邊**那塊空白（`.rotstagerow` 第二欄）。
                盤是圓的、欄是長方形的，右邊那一塊本來就畫不到東西，放面板剛好，卡片也不會變高。
