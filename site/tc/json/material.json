@@ -2721,7 +2721,7 @@
           "years": null,
           "base_month_k": [
             50,
-            52
+            60
           ],
           "bonus_months": null,
           "annual_months": null,
@@ -2732,11 +2732,11 @@
           ],
           "overtime": null,
           "travel": null,
-          "n": 4,
+          "n": 5,
           "note": "2026-10-28 Dcard 2009 批新增職位",
           "confidence": "低",
           "grade": null,
-          "n_stat": 4,
+          "n_stat": 5,
           "samples": [
             {
               "site": "Dcard",
@@ -2826,6 +2826,29 @@
               "quote_free_note": "自填；日工時 表訂/實際 8/11 小時；職稱未寫工程師",
               "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2025-02（20261029_職稱未寫工程師補回（10-30 Andy 拍板），1541 檔）"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/258243502",
+              "date": "2025-03",
+              "page_date": "2025-03-12",
+              "date_confirmed": true,
+              "role": "工程師",
+              "grade": null,
+              "unit_detail": "蘆竹",
+              "years": null,
+              "degree": null,
+              "base_k": 60,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "原文「大概6w上下」;本薪約薪水70%;年終預估3個月;三節共1個月",
+              "comment_sample": false,
+              "in_window": true,
+              "date_note": "Dcard 頁面日期 2025-03-12（20261029_1541 大檔，0526 檔）"
             }
           ],
           "sources": [
@@ -2848,6 +2871,11 @@
               "site": "GoodJob",
               "url": "https://www.goodjob.life/companies/南亞電路板股份有限公司/salary-work-times?p=1",
               "date": "2026-08"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.dcard.tw/f/tech_job/p/258243502",
+              "date": "2025-03"
             }
           ]
         },
@@ -5859,7 +5887,10 @@
           "years": null,
           "base_month_k": null,
           "bonus_months": null,
-          "annual_months": null,
+          "annual_months": [
+            14,
+            14
+          ],
           "annual_total_wan": [
             81,
             81
@@ -5870,11 +5901,11 @@
           ],
           "overtime": "幾乎不",
           "travel": null,
-          "n": 1,
+          "n": 2,
           "note": "2026-10-29 GoodJob 合併批新增職位",
           "confidence": "低",
           "grade": null,
-          "n_stat": 1,
+          "n_stat": 2,
           "samples": [
             {
               "site": "GoodJob",
@@ -5897,6 +5928,29 @@
               "quote_free_note": "自填；日工時 表訂/實際 8/8 小時",
               "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2025-12（20261029_1541 大檔，1541 檔）"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/259567071",
+              "date": "2025-08",
+              "page_date": "2025-08-17",
+              "date_confirmed": true,
+              "role": "工程師(面試)",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": 14,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "保14,無季獎金/分紅",
+              "comment_sample": false,
+              "in_window": true,
+              "date_note": "Dcard 頁面日期 2025-08-17（20261029_1541 大檔，0526 檔）"
             }
           ],
           "sources": [
@@ -5904,6 +5958,11 @@
               "site": "GoodJob",
               "url": "https://www.goodjob.life/companies/台灣光罩股份有限公司/salary-work-times?p=1",
               "date": "2025-12"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.dcard.tw/f/tech_job/p/259567071",
+              "date": "2025-08"
             }
           ]
         }

@@ -7234,6 +7234,29 @@
               "quote_free_note": "留言 B16-2（非發文者）轉述朋友：年資 5 年，含補助年薪約 160 萬；工時不高，客戶趕案時偶爾半夜遠端",
               "date_note": "Dcard 頁面發文日期 2025-07-19（2026-10-26 1923 批，非 Andy 親眼讀）",
               "in_window": true
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/260150875",
+              "date": "2025-10",
+              "page_date": "2025-10-30",
+              "date_confirmed": true,
+              "role": "工程師(offer)",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": 14,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "(N-3)*14+20K(車補電話補),有分紅;原文寫「愛得萬」;N為代碼",
+              "comment_sample": false,
+              "in_window": true,
+              "date_note": "Dcard 頁面日期 2025-10-30（20261029_1541 大檔，0526 檔）"
             }
           ],
           "sources": [
@@ -7241,16 +7264,25 @@
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/259343449",
               "date": "2025-07"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.dcard.tw/f/tech_job/p/260150875",
+              "date": "2025-10"
             }
           ],
           "confidence": "低",
-          "n": 1,
-          "n_stat": 1,
+          "n": 2,
+          "n_stat": 2,
           "annual_total_wan": [
             160,
             160
           ],
-          "overtime": "偶爾"
+          "overtime": "偶爾",
+          "annual_months": [
+            14,
+            14
+          ]
         },
         {
           "unit": "其他",
@@ -7965,7 +7997,7 @@
           ],
           "overtime": "經常",
           "travel": null,
-          "n": 7,
+          "n": 8,
           "note": "",
           "sources": [
             {
@@ -8141,9 +8173,32 @@
               "quote_free_note": "自填；日工時 表訂/實際 8/10 小時；原選項幾乎每天",
               "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2025-03（20261029_1541 大檔，1541 檔）"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261593284",
+              "date": "2026-06",
+              "page_date": "2026-06-02",
+              "date_confirmed": true,
+              "role": "職稱未寫(offer)",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 48,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "48k(底薪+職等津貼?);聽人資主管說這幾年有到22個月;常日班",
+              "comment_sample": false,
+              "in_window": true,
+              "date_note": "Dcard 頁面日期 2026-06-02（20261029_1541 大檔，0526 檔）"
             }
           ],
-          "n_stat": 7
+          "n_stat": 8
         },
         {
           "unit": "研發",
@@ -8337,18 +8392,18 @@
           "base_month_k": null,
           "bonus_months": null,
           "annual_months": [
-            20,
+            14,
             20
           ],
           "annual_total_wan": null,
           "weekly_hours": null,
           "overtime": null,
           "travel": null,
-          "n": 1,
+          "n": 2,
           "note": "2026-10-29 GoodJob 合併批新增職位",
           "confidence": "低",
           "grade": null,
-          "n_stat": 1,
+          "n_stat": 2,
           "samples": [
             {
               "site": "Dcard",
@@ -8372,6 +8427,29 @@
               "comment_sample": false,
               "in_window": true,
               "date_note": "Dcard 頁面日期 2025-09-20（20261029_1541 大檔，1648 檔）"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/259853111",
+              "date": "2025-09",
+              "page_date": "2025-09-20",
+              "date_confirmed": true,
+              "role": "軟體工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": 14,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "N-11*14,主管說年終可以領到20;N為代碼",
+              "comment_sample": false,
+              "in_window": true,
+              "date_note": "Dcard 頁面日期 2025-09-20（20261029_1541 大檔，0526 檔）"
             }
           ],
           "sources": [
@@ -9437,9 +9515,32 @@
               "derived": [
                 "annual_wan"
               ]
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/262332324",
+              "date": "2026-10",
+              "page_date": "2026-10-21",
+              "date_confirmed": true,
+              "role": "CDSEM設備工程師",
+              "grade": null,
+              "unit_detail": "南科",
+              "years": null,
+              "degree": null,
+              "base_k": 75,
+              "bonus_months": null,
+              "annual_months": 12,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "月75k,年:月×12+分紅40-50w",
+              "comment_sample": false,
+              "in_window": true,
+              "date_note": "Dcard 頁面日期 2026-10-21（20261029_1541 大檔，0526 檔）"
             }
           ],
-          "n": 1,
+          "n": 2,
           "sources": [
             {
               "site": "Dcard",
@@ -9466,7 +9567,7 @@
           "weekly_hours": null,
           "overtime": null,
           "travel": null,
-          "n_stat": 1
+          "n_stat": 2
         },
         {
           "unit": null,
@@ -9612,11 +9713,11 @@
           "weekly_hours": null,
           "overtime": null,
           "travel": null,
-          "n": 1,
+          "n": 2,
           "note": "2026-10-28 Dcard 1449 批新增職位",
           "confidence": "低",
           "grade": null,
-          "n_stat": 1,
+          "n_stat": 2,
           "samples": [
             {
               "site": "Dcard",
@@ -9640,12 +9741,40 @@
               "in_window": true,
               "date_note": "Dcard 頁面發文日期 2025-12-26（20261028_1449 批）",
               "comment_sample": false
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/260488600",
+              "date": "2025-12",
+              "page_date": "2025-12-17",
+              "date_confirmed": true,
+              "role": "CMP工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 44,
+              "bonus_months": null,
+              "annual_months": 14,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "44000*14+分紅;常日值班oncall",
+              "comment_sample": false,
+              "in_window": true,
+              "date_note": "Dcard 頁面日期 2025-12-17（20261029_1541 大檔，0526 檔）"
             }
           ],
           "sources": [
             {
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/260548064",
+              "date": "2025-12"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.dcard.tw/f/tech_job/p/260488600",
               "date": "2025-12"
             }
           ]
@@ -10015,7 +10144,10 @@
             55
           ],
           "bonus_months": null,
-          "annual_months": null,
+          "annual_months": [
+            18,
+            18
+          ],
           "annual_total_wan": null,
           "weekly_hours": [
             40,
@@ -10023,11 +10155,11 @@
           ],
           "overtime": "偶爾",
           "travel": null,
-          "n": 1,
+          "n": 2,
           "note": "2026-10-29 GoodJob 合併批新增職位",
           "confidence": "低",
           "grade": null,
-          "n_stat": 1,
+          "n_stat": 2,
           "samples": [
             {
               "site": "GoodJob",
@@ -10050,6 +10182,29 @@
               "quote_free_note": "自填；日工時 表訂/實際 8/8 小時",
               "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2026-05（20261029_1541 大檔，1541 檔）"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/260661575",
+              "date": "2026-01",
+              "page_date": "2026-01-13",
+              "date_confirmed": true,
+              "role": "工程師(offer)",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": 18,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "N+2,年薪約18個月;N為代碼",
+              "comment_sample": false,
+              "in_window": true,
+              "date_note": "Dcard 頁面日期 2026-01-13（20261029_1541 大檔，0526 檔）"
             }
           ],
           "sources": [
@@ -10057,6 +10212,11 @@
               "site": "GoodJob",
               "url": "https://www.goodjob.life/companies/弘塑科技股份有限公司/salary-work-times?p=1",
               "date": "2026-05"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.dcard.tw/f/tech_job/p/260661575",
+              "date": "2026-01"
             }
           ]
         }
@@ -10081,7 +10241,10 @@
           "role": "工程師",
           "degree": null,
           "years": null,
-          "base_month_k": null,
+          "base_month_k": [
+            50,
+            50
+          ],
           "bonus_months": null,
           "annual_months": null,
           "annual_total_wan": [
@@ -10091,11 +10254,11 @@
           "weekly_hours": null,
           "overtime": "經常",
           "travel": null,
-          "n": 1,
+          "n": 2,
           "note": "2026-10-28 Dcard 2158 批新增職位",
           "confidence": "低",
           "grade": null,
-          "n_stat": 1,
+          "n_stat": 2,
           "samples": [
             {
               "site": "Dcard",
@@ -10119,6 +10282,29 @@
               "in_window": true,
               "date_note": "Dcard 頁面發文日期 2025-08-31（20261028_2158 批）",
               "comment_sample": true
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261802599",
+              "date": "2026-07",
+              "page_date": "2026-07-10",
+              "date_confirmed": true,
+              "role": "職稱未寫(offer)",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 50,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "鴻勁底薪50000",
+              "comment_sample": false,
+              "in_window": true,
+              "date_note": "Dcard 頁面日期 2026-07-10（20261029_1541 大檔，0526 檔）"
             }
           ],
           "sources": [
@@ -10126,6 +10312,11 @@
               "site": "Dcard",
               "url": "https://www.dcard.tw/f/tech_job/p/259668770",
               "date": "2025-08"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.dcard.tw/f/tech_job/p/261802599",
+              "date": "2026-07"
             }
           ]
         },
@@ -10139,7 +10330,10 @@
             42
           ],
           "bonus_months": null,
-          "annual_months": null,
+          "annual_months": [
+            12,
+            12
+          ],
           "annual_total_wan": null,
           "weekly_hours": [
             60,
@@ -10147,11 +10341,11 @@
           ],
           "overtime": "經常",
           "travel": null,
-          "n": 1,
+          "n": 2,
           "note": "2026-10-29 GoodJob 合併批新增職位",
           "confidence": "低",
           "grade": null,
-          "n_stat": 1,
+          "n_stat": 2,
           "samples": [
             {
               "site": "GoodJob",
@@ -10174,6 +10368,29 @@
               "quote_free_note": "自填；日工時 表訂/實際 8/12 小時；原選項幾乎每天",
               "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2025-04（20261029_1541 大檔，1541 檔）"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/259474209",
+              "date": "2025-08",
+              "page_date": "2025-08-04",
+              "date_confirmed": true,
+              "role": "硬體工程師",
+              "grade": null,
+              "unit_detail": "台中",
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": 12,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "N+10K(保12);N為代碼",
+              "comment_sample": false,
+              "in_window": true,
+              "date_note": "Dcard 頁面日期 2025-08-04（20261029_1541 大檔，0526 檔）"
             }
           ],
           "sources": [
@@ -10181,6 +10398,11 @@
               "site": "GoodJob",
               "url": "https://www.goodjob.life/companies/鴻勁精密股份有限公司/salary-work-times?p=1",
               "date": "2025-04"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.dcard.tw/f/tech_job/p/259474209",
+              "date": "2025-08"
             }
           ]
         }
@@ -11373,6 +11595,59 @@
               "date": "2026-05"
             }
           ]
+        },
+        {
+          "unit": null,
+          "role": "品保工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": [
+            14,
+            14
+          ],
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n": 1,
+          "note": "2026-10-29 GoodJob 合併批新增職位",
+          "confidence": "低",
+          "grade": null,
+          "n_stat": 1,
+          "samples": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261441547",
+              "date": "2026-05",
+              "page_date": "2026-05-07",
+              "date_confirmed": true,
+              "role": "品保工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": 14,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "N-14k*14(主管說平均18~20);N為代碼",
+              "comment_sample": false,
+              "in_window": true,
+              "date_note": "Dcard 頁面日期 2026-05-07（20261029_1541 大檔，0526 檔）"
+            }
+          ],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.dcard.tw/f/tech_job/p/261441547",
+              "date": "2026-05"
+            }
+          ]
         }
       ]
     },
@@ -11815,7 +12090,10 @@
             60
           ],
           "bonus_months": null,
-          "annual_months": null,
+          "annual_months": [
+            16,
+            18
+          ],
           "annual_total_wan": [
             90,
             100
@@ -11826,11 +12104,11 @@
           ],
           "overtime": null,
           "travel": null,
-          "n": 3,
+          "n": 6,
           "note": "2026-10-29 GoodJob 合併批新增職位",
           "confidence": "低",
           "grade": null,
-          "n_stat": 3,
+          "n_stat": 6,
           "samples": [
             {
               "site": "GoodJob",
@@ -11897,6 +12175,81 @@
               "quote_free_note": "自填；日工時 表訂/實際 8/8 小時；職稱未寫工程師",
               "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2025-03（20261029_職稱未寫工程師補回（10-30 Andy 拍板），1541 檔）"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/258245986",
+              "date": "2025-03",
+              "page_date": "2025-03-12",
+              "date_confirmed": true,
+              "role": "工程師(offer)",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": [
+                16,
+                18
+              ],
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "月薪N+9;年薪12+2(績效年終)+2~4(分紅);N為代碼",
+              "comment_sample": false,
+              "in_window": true,
+              "date_note": "Dcard 頁面日期 2025-03-12（20261029_1541 大檔，0526 檔）"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/260028204",
+              "date": "2025-10",
+              "page_date": "2025-10-13",
+              "date_confirmed": true,
+              "role": "電控工程師",
+              "grade": null,
+              "unit_detail": "龜山",
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": [
+                16,
+                18
+              ],
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "N-9,16-18個月;N為代碼",
+              "comment_sample": false,
+              "in_window": true,
+              "date_note": "Dcard 頁面日期 2025-10-13（20261029_1541 大檔，0526 檔）"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261267343",
+              "date": "2026-04",
+              "page_date": "2026-04-09",
+              "date_confirmed": true,
+              "role": "工程師(offer)",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 60,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "60k",
+              "comment_sample": false,
+              "in_window": true,
+              "date_note": "Dcard 頁面日期 2026-04-09（20261029_1541 大檔，0526 檔）"
             }
           ],
           "sources": [
@@ -11909,6 +12262,21 @@
               "site": "GoodJob",
               "url": "https://www.goodjob.life/companies/致茂電子股份有限公司/salary-work-times?p=2",
               "date": "2025-03"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.dcard.tw/f/tech_job/p/258245986",
+              "date": "2025-03"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.dcard.tw/f/tech_job/p/260028204",
+              "date": "2025-10"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.dcard.tw/f/tech_job/p/261267343",
+              "date": "2026-04"
             }
           ]
         },
@@ -12632,6 +13000,59 @@
               "date": "2025-10"
             }
           ]
+        },
+        {
+          "unit": null,
+          "role": "工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": [
+            14,
+            14
+          ],
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n": 1,
+          "note": "2026-10-29 GoodJob 合併批新增職位",
+          "confidence": "低",
+          "grade": null,
+          "n_stat": 1,
+          "samples": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/259974970",
+              "date": "2025-10",
+              "page_date": "2025-10-06",
+              "date_confirmed": true,
+              "role": "工程師(offer)",
+              "grade": null,
+              "unit_detail": "新竹",
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": 14,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "分紅:考績不要墊底都有14以上",
+              "comment_sample": false,
+              "in_window": true,
+              "date_note": "Dcard 頁面日期 2025-10-06（20261029_1541 大檔，0526 檔）"
+            }
+          ],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.dcard.tw/f/tech_job/p/259974970",
+              "date": "2025-10"
+            }
+          ]
         }
       ]
     },
@@ -12648,7 +13069,61 @@
       "grade_system": null,
       "mops": null,
       "note": "2026-10-29 由 GoodJob 樣本新增的公司（1541 大檔）",
-      "roles": []
+      "roles": [
+        {
+          "unit": null,
+          "role": "工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": [
+            17,
+            17
+          ],
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n": 1,
+          "note": "2026-10-29 GoodJob 合併批新增職位",
+          "confidence": "低",
+          "grade": null,
+          "n_stat": 1,
+          "samples": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/260526164",
+              "date": "2025-12",
+              "page_date": "2025-12-23",
+              "date_confirmed": true,
+              "role": "工程師(面試)",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": 17,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "HR說年薪17個月(獎金+年終);職稱未寫",
+              "comment_sample": false,
+              "in_window": true,
+              "date_note": "Dcard 頁面日期 2025-12-23（20261029_1541 大檔，0526 檔）"
+            }
+          ],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.dcard.tw/f/tech_job/p/260526164",
+              "date": "2025-12"
+            }
+          ]
+        }
+      ]
     },
     {
       "name": "天虹",
