@@ -4,7 +4,7 @@ Andy 10-28 原話：新聞卡上方的大數字灰框改成「對應的實景圖
 
 ## 一、來源與入庫
 
-- 只用 Wikimedia Commons 的 **CC0／CC BY／CC BY-SA／公有領域**照片；禁止新聞媒體照片、Google 圖片、公司官網照片、任何 LOGO 圖。（官方新聞圖例外條件見第九節：須書面授權）
+- 來源兩種：① Wikimedia Commons 的 **CC0／CC BY／CC BY-SA／公有領域**照片；② **公司官方新聞室／媒體資源／官網的照片**（2026-10-30 Andy 拍板「改成接用 並標明出處 是可以的」，`license=official-press`，卡上標「圖：<公司名>官方」，規則見第九節〇）。禁止新聞媒體（新聞社）拍的照片、Google 圖片、任何 LOGO 圖、AI 生圖。
 - 抓圖：`.github/workflows/company_photos.yml`（手動觸發＋每週一 03:17 台北）跑 `scripts/company_photos.py`，名單在 `social/photo_lib/targets.json`，中文主體名→slug 對照在 `social/photo_lib/aliases.json`（只做「完全相同名稱」比對，避免「南亞」吃到「南亞科」）。
 - 每家存 `social/photo_lib/<slug>/photo.jpg`（原色、只縮放到寬 ≤1920）＋`meta.json`（license、author、source_url、file_title、reviewed:false）。
 - 已審核（reviewed:true）的圖排程重抓時不會被覆蓋。
@@ -458,7 +458,38 @@ _category/網通、advantech、anthropic、asml、cathay、fareastone、first_fi
 - 三星、日月光、欣興：各補到上限仍差 1 張，查過分類見 targets.json 的 commons_categories。
 - 建議（Commons 找不到的公司）：這些公司短期內封面維持用類別通用圖池（資料中心、記憶體、PCB 基板等），或由 Andy 提供／授權公司新聞稿官方圖；不要用人物照或他牌圖頂替。
 
-## 第九節　官方新聞圖使用規則（法遵初判，2026-10-30）
+## 第九節　官方新聞圖使用規則（法遵初判，2026-10-30；同日 Andy 拍板改為可用，見〇）
+
+### 〇、2026-10-30 Andy 拍板：官方照片可以接用，並標明出處（蓋掉下面「一、先講結論」的「預設不可以」）
+
+> Andy 原話：「**改成接用 並標明出處 是可以的**」。DECISIONS #373。下面一～七是法遵當天的風險盤點，留著當風險紀錄，不再是使用門檻。
+
+**可以用**：公司自己發布的照片——官方新聞室、媒體資源（press kit／media library）、官網「關於我們／廠區／據點／產品」頁面上的照片。
+
+| 欄位 | 規則 |
+|---|---|
+| `license` | `official-press`（允許值見第五項，已改） |
+| `credit` | 「圖：<公司名>官方」，例如「圖：南亞科官方」「圖：NVIDIA官方」；官方條款指定署名時照官方（三星半導體新聞室 → 「圖：Samsung Semiconductor Newsroom」，寫在 targets.json 的 `official_credit`） |
+| `source_page` | 抓圖那一頁的網址（必填） |
+| `image_url` | 圖片原始網址（必填） |
+| `fetched_at` | 抓取日期（台北，YYYY-MM-DD） |
+| `origin` | `official` |
+| 抓取 | `company_photos.yml` 手動觸發選 `source=official`（`scripts/company_photos_official.py`，Playwright 開 targets.json 的 `official_sites`，同網域跟進「關於／廠區／產品／新聞室」連結，每家最多 18 頁、一次最多 14 張候選） |
+| 審核 | 一樣 reviewed=false 入庫，art-director 逐張照第三節清單審，通過才可用；審查紀錄寫第十節起 |
+
+**仍然不准**（官方網站上有也不准）：
+1. **人物當主角**的照片（主管、員工、活動、典禮、頒獎）。
+2. **媒體（新聞社）拍的照片**——即使掛在官方新聞室，圖說寫「中央社／Reuters／Getty／AP／記者攝」之類的一律不用。
+3. **標誌當主視覺**（logo 特寫、招牌特寫、品牌字卡）。
+4. **AI 生成圖**、3D 渲染示意圖（會被誤認為實景）；插畫風、純色底圖、資訊圖也不用。
+5. 有浮水印的圖。
+
+**法遵提醒的風險（Andy 已知悉並接受，2026-10-30）**：
+- **非書面授權**：多數公司條款沒有明文允許社群轉貼；著作權法第 37 條「約定不明推定未授權」，所以這是**接受風險**，不是取得授權。標示出處是第 64 條的義務，不等於授權。
+- **裁切修改**：我們的版型會等比縮放並裁成橫幅；三星半導體新聞室等明文「禁止任意修改」。裁切只取中段、不疊字在照片上、不改色。
+- **網站收費後要重評**：網站一旦收費或放廣告，「非商業」的主張變弱，本節全部重新評估（帳在 confirm_ledger）。
+- **有人要求下架 → 當天撤**：公司或攝影者來信要求，當天把該張從 pool.json 改 `reviewed:false`＋`reject_reason`、刪檔，已發的貼文能刪就刪，記在第六項，不爭辯。
+
 
 > ★ 這是**風險盤點與待確認清單，不是法律意見**。每條標「出處＋信心度＋要不要找專業人士」。
 > 查證方式：只用 WebSearch 摘要（容器打不開原網頁），所以多數公司的「原文條款」是**未確認**，不是「沒有條款」。
@@ -540,7 +571,7 @@ _category/網通、advantech、anthropic、asml、cathay、fareastone、first_fi
 
 ### 五、實作規則（給 social-live 與 art-director）
 
-1. `meta.json` 的 `license` 只准是：`CC0`、`CC BY*`、`CC BY-SA*`、`PD`、`written-permission`。其他值（含 `press-kit`、`newsroom`、`editorial`）一律不准排程。
+1. `meta.json`／`pool.json` 的 `license` 只准是：`CC0`、`CC BY*`、`CC BY-SA*`、`PD`／`Public domain`、`written-permission`、**`official-press`**（2026-10-30 Andy 拍板加入）。其他值（含 `press-kit`、`newsroom`、`editorial`）一律不准排程——`render_news_cards.license_ok()` 程式擋，`tests/test_photo_pool.py::test_official_press_allowed_and_credited` 驗。
 2. `written-permission` 必須有同資料夾的授權信存檔，且信中用途涵蓋「社群貼文封面＋裁切」；沒涵蓋裁切就只能完整放。
 3. 授權有期限的，到期前 7 天要從圖池移除。
 4. 有人（公司或攝影者）來信要求下架 → 當天下架、回信、記在本節第六項，不爭辯。

@@ -7105,3 +7105,10 @@ Andy 原話（10-20，錄「今日事件＋精選文章」功能影片時的選�
 - **部署需求**：`deploy-worker.yml` 新增「準備 KV」步驟（用既有 CLOUDFLARE_API_TOKEN 找／建命名空間 tw-tape）。**該 Token 需要 Account → Workers KV Storage → Edit 權限**；沒有的話步驟自動把 KV 段拿掉、Worker 照常部署（沒有伺服器快照，前端退回頁面自己累積）。Cron 數量：account-api 2 ＋ gh-cron 1 ＋ 這支 1 ＝ 4（免費上限 5）。
 - **已知風險**：Worker 免費方案每次 10ms CPU，Cron 這輪要 parse 5 份 mis 回應（共約 400KB）；容器連不出去無法實測，離線驗收 `workers/quote-proxy/tests/tape_check.mjs` 驗邏輯不驗 CPU。若上線後 KV 沒有寫入，先看 Worker 日誌是否 CPU 超時，改成每批各寫一個 key。
 - **驗收**：`_uitest --sections 今日時間軸1029`；`node workers/quote-proxy/tests/tape_check.mjs`。
+
+## #373 公司封面照片可以接用官方新聞室／媒體資源／官網照片，標「圖：<公司名>官方」（social-ops-lead，2026-10-30；合併時若撞號請改號）
+- **Andy 原話**：「改成接用 並標明出處 是可以的」。起因：法遵 10-30 在 `docs/marketing/social_unit/photo_lib_review.md` 第九節判定官方新聞圖「預設不可用、要書面授權」；Commons 找不到 CoreWeave、Anthropic、南亞科、南電、台光電、Arm 的實景照，三星／日月光／欣興也不足。Andy 決定接受風險改為可用。
+- **口徑**：`license` 允許值加 `official-press`（`render_news_cards.license_ok()` 程式擋其他值）；署名統一「圖：<公司名>官方」，官方指定署名就照官方（三星半導體新聞室 → 「圖：Samsung Semiconductor Newsroom」）；每張記 `source_page`、`image_url`、`fetched_at`、`origin=official`。抓取 `company_photos.yml` 選 `source=official`（`scripts/company_photos_official.py`）。選圖順序不變：主體公司已審圖（Commons 與官方同一池）→ 類別池 → 通用池。
+- **仍然不准**：人物當主角的照片、媒體（新聞社）拍的照片、標誌當主視覺、AI 生圖（含 3D 渲染示意圖）、有浮水印的圖。一樣要 art-director 逐張審過（reviewed:true）才可用。
+- **法遵提醒的風險（Andy 已知悉）**：① 這不是書面授權——多數公司條款沒明文允許社群轉貼，著作權法第 37 條約定不明推定未授權，標示出處（第 64 條）不等於授權；② 版型會裁切縮放，三星等條款明文禁止任意修改；③ 網站一旦收費或放廣告，「非商業」主張變弱，要整批重評；④ 公司或攝影者要求下架 → 當天撤（pool.json 改 reviewed:false＋reject_reason、刪檔、能刪的貼文刪掉），不爭辯。
+- **別順手改回去**：不要把 official-press 從允許值拿掉、也不要把署名改成攝影者／授權條款格式；不要因為「官方的」就放寬人物／媒體照／標誌／AI 圖這四條。
