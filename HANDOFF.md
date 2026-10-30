@@ -1,5 +1,11 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
+## 2026-10-30 流向驗證分頁的資料檔上 main（site/data/flowcheck/；DECISIONS #377；最後更新 10-30 台北）
+- 新增 `pipeline/compute/flowcheck.py`，build_payload 包 try 呼叫（壞了只少這個資料夾）。欄位給前端看 `docs/research/20261030_flowcheck_data.md`。
+- 約 205 檔（day 60／m60 約 59／m5 每天 +1／series 83／index／backtest），站上總檔數約 18,000，離 Cloudflare 20,000 上限約 2,000。
+- 驗證：`tests/test_flowcheck.py` 19 條＋全套 pytest；用小入口跑真資料（近 750 日）約 75 秒、記憶體 2.1GB。**這批沒在本機跑完整 build_payload**（當時可用記憶體 11GB < 12GB 門檻），雲端 pages.yml 會重算。
+- 待辦：前端即時卡（app.js tvModel）改成和這裡同口徑（前一日成交值加權、cum_value 占比）；09:00 成交量的 1 分 K 來源還沒查；backtest 的 ic／t_nw 要和 strategy-backtest 一起定義。
+
 ## 2026-10-30 盤後主題文章沒發 → 修好並補發（最後更新 10-30 台北）
 - 根因：盤後主貼文 18:07 由 daily.yml 用 GITHUB_TOKEN 派的 social-live 發出；GITHUB_TOKEN 觸發的 run 完成時 GitHub 不發 workflow_run，social_news.yml 沒被叫醒（17:15～18:02 的幾輪都在主貼文前，下一個備援 19:35）。
 - 修：social-live.yml 發出主貼文後直接 dispatch social_news.yml（slot=auto、dry_run=false，加 actions: write）；social_news.yml 加 18:25／18:55 備援；social_news.py 拿掉「超過 3 小時不補排」。
