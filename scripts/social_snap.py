@@ -62,6 +62,8 @@ import social_native as NAT  # noqa: E402  原生繪製的卡片（2026-10-26）
 import social_gate as gate  # noqa: E402  資料日／交易日把關（2026-10-26）
 
 DATE_LABEL = ""
+PARTIAL: list = []    # 盤後保底：這一輪拿掉的過期卡（2026-10-29）
+SUPPLEMENT = False    # 盤後法人補充貼文（--supplement，2026-10-29）
 KIND = ""             # 本輪種類（intraday／close／credit），版型標題列的時段膠囊用
 LOGO_MAP: dict = {}      # 代號→logo 網址（site/data/logos.json 的相對路徑，--data-url 時改成正式站的絕對網址）
 DATA_SRC = ""            # sync_data 實際採用的資料來源網址（logo 圖檔不下載到本機，直接讀這裡）
@@ -234,7 +236,7 @@ def link_lines(kind: str, ymd: str, platform: str = "th", route: str = "", func:
     """文案最底下兩行：「👉 …」＋帶來源參數與落點的網址（整篇只放這一個網址）。"""
     return [LINK_LINES[0], link_url(kind, ymd, platform, route, func)]
 # 標題與段名前的表情符號（2026-10-26 Andy：「搭配些表情符號，除了個股」→ 只加在標題／段名，列股票名稱的「・」行不加）
-EMOJI = {"盤面分析：": "🧭", "盤中3分鐘": "🕛", "盤後3分鐘": "🌙", "盤後融資融券": "💳",
+EMOJI = {"盤面分析：": "🧭", "盤中3分鐘": "🕛", "盤後3分鐘": "🌙", "盤後3分鐘｜法人補充": "🌙", "盤後融資融券": "💳",
          "資金輪盤：": "🎡", "資金分流樹：": "🌳", "熱力圖：": "🔥",
          "台指期法人淨未平倉：": "📊", "散戶多空比：": "⚖️", "三大法人買賣超：": "🏦", "外資：": "🌏", "投信：": "🏢",
          "ETF 買超：": "📦", "融資維持率：": "🛡️", "融資：": "📈", "融券：": "📉"}
@@ -648,8 +650,10 @@ def credit_ready(meta: dict, mf: dict) -> tuple[bool, str, str]:
     return True, d, ""
 
 
-def slot_key_for(kind: str, data_date: str, taken_at: str) -> str:
+def slot_key_for(kind: str, data_date: str, taken_at: str, supplement: bool = False) -> str:
     """發布紀錄的時段鍵（跟 scripts/social_publish.py 的 slot_key 同一套規則）。"""
+    if kind == "close" and supplement:      # 盤後保底後的法人補充貼文（2026-10-29）：另一個鍵，不會重發主貼文
+        return f"close-inst-{(data_date or taken_at)[:10]}"
     if kind == "close":      # 合併後以資料日為鍵（可能隔天清晨才發）
         return f"close-{(data_date or taken_at)[:10]}"
     if kind == "credit":
@@ -1967,7 +1971,7 @@ def _caption_lines(kind: str, stamp: str, shots: list[dict], data_date: str, ymd
     else:
         # 同上：Andy 盤中格式套到盤後
         n = min(n, 2)      # 2026-10-26 Andy：「統一兩個」
-        L.append("盤後3分鐘")      # 2026-10-26 Andy：標題「盤後3分鐘」；段落順序跟圖一樣：期貨法人未平倉 → 散戶多空比 → 三大法人 → 外資 → 投信 → 融資融券（2026-10-26 Andy）
+        L.append("盤後3分鐘｜法人補充" if SUPPLEMENT else "盤後3分鐘")      # 2026-10-26 Andy：標題「盤後3分鐘」；段落順序跟圖一樣：期貨法人未平倉 → 散戶多空比 → 三大法人 → 外資 → 投信 → 融資融券（2026-10-26 Andy）
         ar = ((ok.get("analysis") or {}).get("read") or [])
         if ar:
             L += ["盤面分析："] + [f"・{x}" for x in ar[:7]]
@@ -1994,6 +1998,8 @@ def _caption_lines(kind: str, stamp: str, shots: list[dict], data_date: str, ymd
         r = (ok.get("etf-buy") or {}).get("read") or {}
         if r.get("foreign") or r.get("trust"):      # 2026-10-26 Andy：ETF 買超排名
             L += ["ETF 買超："] + [f"・{lab} {_join(r[k], n)}" + ("；" if k == "foreign" and r.get("trust") else "") for k, lab in (("foreign", "外資"), ("trust", "投信")) if r.get(k)]
+        if PARTIAL and any(n in PARTIAL for n in gate.INST_CARDS):      # 保底（2026-10-29）：法人卡晚到 → 標明稍後補
+            L += ["三大法人：", "・法人個股明細晚到，稍後補"]
         # 2026-10-27 Andy：融資融券移到隔天盤前，盤後不再列
         L.append(HASHTAGS[kind])
         if links != "none":
@@ -2092,7 +2098,7 @@ def decide(kind: str, now: datetime, meta: dict, mf: dict, card_dates: dict, nam
 
 # ---------------------------------------------------------------------------- 主程式
 def main() -> int:
-    global DATE_LABEL, KIND
+    global DATE_LABEL, KIND, SUPPLEMENT
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--kind", choices=["intraday", "close", "credit"], required=True, help="intraday＝盤中；close＝盤後法人；credit＝盤後融資（資料到齊那輪才發）")
     ap.add_argument("--out", required=True, help="輸出資料夾（manifest.json 與圖片都放這裡）")
@@ -2123,6 +2129,8 @@ def main() -> int:
     ap.add_argument("--today", default="", help="覆寫「今天」（YYYY-MM-DD，示範／測試用）")
     ap.add_argument("--no-mis", action="store_true", help="不查 mis 即時成交日（離線測試用；臨時休市就只能靠休市日表）")
     ap.add_argument("--now", default="", help="覆寫「現在」（台北，YYYY-MM-DDTHH:MM，測試日期把關用；會連帶覆寫 --today）")
+    ap.add_argument("--supplement", action="store_true", help="盤後法人補充貼文：主貼文已用保底發出（拿掉法人卡），法人資料到了再補發法人那幾張（鍵 close-inst-<日期>）")
+    ap.add_argument("--fallback-at", default=os.environ.get("CLOSE_FALLBACK_AT", ""), help="盤後保底時間（台北 HH:MM，預設 19:00）：過了還有卡不是今天 → 拿掉那幾張、其他照發")
     ap.add_argument("--fresh-news", action="store_true", help="新聞焦點除了資料湖 news，再當場抓一次鉅亨／科技新報／聯合（只併進記憶體，不寫湖；失敗就只用湖）")
     args = ap.parse_args()
     KIND = args.kind
@@ -2172,7 +2180,25 @@ def main() -> int:
         ev_ = fetch_last_trade() if args.kind in ("close", "credit") and not args.no_mis else {}
         if ev_:
             log(f"即時成交日（mis 加權指數）：{ev_.get('last_trade') or '查不到'}")
+        SUPPLEMENT = bool(args.supplement and args.kind == "close")
+        if SUPPLEMENT:      # 補充貼文只做法人那幾張；把關一樣嚴格（那幾張都要是今天）
+            names_ = [n for n in names_ if n in gate.INST_CARDS]
+            args.only = ",".join(names_)
+            log("盤後法人補充貼文：只做 " + "、".join(names_))
         go_, data_date, why_ = decide(args.kind, now_, meta, mf_, DATE_ISO, names_, holidays_, ev_)
+        if not go_ and args.kind == "close" and not SUPPLEMENT and not args.force:
+            # 2026-10-29 鐵則「沒有條件不符就不發」：過了保底時間 → 拿掉過期卡、當天的照發，寫 alert，法人晚到再補發
+            cd_ = {n: DATE_ISO.get(n, "") for n in names_}
+            fb_ok, fb_why, fb_drop = gate.close_fallback(now_.date().isoformat(), cd_, holidays_, ev_.get("last_trade"), bool(ev_.get("live")), now_, args.fallback_at)
+            if fb_ok:
+                log(f"close：{why_} → {fb_why}")
+                PARTIAL[:] = fb_drop
+                names_ = [n for n in names_ if n not in fb_drop]
+                args.only = ",".join(names_)
+                go_, data_date, why_ = True, now_.date().isoformat(), ""
+                (out / "alert.txt").write_text(f"盤後主貼文走保底：{fb_why}；法人個股明細到了會自動補發一則（close-inst-{data_date}）。\n", "utf-8")
+            else:
+                log(f"close 保底也不成立：{fb_why}")
         if not go_:
             if not args.force:
                 log(f"{args.kind}：{why_} → 不發")
@@ -2184,7 +2210,7 @@ def main() -> int:
         DATE_BY.update({k: mmdd(v) for k, v in DATE_ISO.items()})
         DATE_LABEL = mmdd(data_date)
         if args.posted_json and not args.force:
-            key_ = slot_key_for(args.kind, data_date, now_.isoformat(timespec="seconds"))
+            key_ = slot_key_for(args.kind, data_date, now_.isoformat(timespec="seconds"), SUPPLEMENT)
             try:
                 done_ = json.loads(Path(args.posted_json).read_text("utf-8"))
             except Exception:  # noqa: BLE001
@@ -2348,6 +2374,9 @@ def main() -> int:
         if args.kind in ("close", "credit"):      # 融資／融券文案改讀資料檔、只列個股（跟圖同一份：social_native.credit_top），2026-10-26 Andy「排除ETF只列個股」
             mf_ = (fetch_json(base, "market_fut") or {}).get("margin") or {}
             it_ = fetch_json(base, "inst_today") if args.kind == "close" else {}
+            stale_inst_ = args.kind == "close" and any(n in PARTIAL for n in ("streak-foreign", "streak-trust"))
+            if stale_inst_:      # 保底：個股法人是舊的那天 → 文案不引用（不拿昨天的數字冒充今天）
+                it_ = {}
             for s_ in ok:
                 if s_["name"] in ("streak-foreign", "streak-trust") and it_:      # 法人排行也只列個股（2026-10-26 Andy「法人也排除ETF」）
                     b_, s2_ = NAT.inst_top(it_, "foreign" if s_["name"] == "streak-foreign" else "trust", 10, dict(NAME_MAP))
@@ -2359,8 +2388,15 @@ def main() -> int:
                 try:
                     rr_ = next((x.get("read") for x in ok if x["name"] == "retail-ratio"), None) or []
                     cr_ = {}      # 融資移到盤前
-                    ok.append({"name": "analysis", "ok": True, "read": close_reads(fetch_json(base, "inst_market") or {}, fetch_json(base, "fut_oi") or {},
-                                                                                   it_ or {}, fetch_json(base, "market_heat") or {}, rr_, cr_)})
+                    im_ = {} if "inst-today" in PARTIAL else (fetch_json(base, "inst_market") or {})      # 市場總額法人不是今天 → 不寫
+                    mh_ = fetch_json(base, "market_heat") or {}
+                    if PARTIAL and DATE_ISO.get("market-breadth") and DATE_ISO["market-breadth"] != data_date:
+                        mh_ = {}      # 保底時大盤／漲跌家數也要是今天才寫（不拿舊的冒充）
+                    if SUPPLEMENT:      # 補充貼文只寫法人：不重複主貼文的指數、期貨、散戶
+                        ok.append({"name": "analysis", "ok": True, "read": close_reads(im_, {}, it_ or {}, {}, [], cr_)})
+                    else:
+                        ok.append({"name": "analysis", "ok": True, "read": close_reads(im_, fetch_json(base, "fut_oi") or {},
+                                                                                       it_ or {}, mh_, rr_, cr_)})
                 except Exception as exc:  # noqa: BLE001
                     log("  ⚠ 盤面分析失敗（不擋發文）：", str(exc)[:120])
             if it_:
@@ -2389,6 +2425,8 @@ def main() -> int:
             "data_date": data_date,
             "threads": {"text": text_, "images": threads_imgs, **({"reply": reply_} if reply_ else {})},
             "story": stories,
+            **({"partial": list(PARTIAL)} if PARTIAL else {}),
+            **({"supplement": True} if SUPPLEMENT else {}),
         }
         (out / "manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2), "utf-8")
         save_recent(out)

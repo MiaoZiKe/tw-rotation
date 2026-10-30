@@ -116,6 +116,268 @@
    "prescreen": "pass",
    "prescreen_note": "2026-10-28 工程初篩（v3）：通過，待 art-director 正式複審",
    "reject_reason": "舊金山天際線，非 Anthropic 公司主體"
+  },
+  {
+   "file": "photo_6.jpg",
+   "kind": "產品",
+   "slug": "anthropic",
+   "name_en": "Anthropic",
+   "query": "cat:Anthropic",
+   "file_title": "File:Secretary of State Peter Kyle visits Anthropic in San Francisco. (54098999333).jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:Secretary_of_State_Peter_Kyle_visits_Anthropic_in_San_Francisco._(54098999333).jpg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/0/02/Secretary_of_State_Peter_Kyle_visits_Anthropic_in_San_Francisco._%2854098999333%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "CC BY 2.0",
+   "license_url": "https://creativecommons.org/licenses/by/2.0",
+   "author": "Department for Science, Innovation and Technology",
+   "credit": "Secretary of State Peter Kyle visits Anthropic in San Francisco.",
+   "description": "25/10/2024. San Francisco, United States. Secretary of State Peter Kyle visits Anthropic in San Francisco. Picture by Alecsandra Dragoi / DSIT",
+   "width": 1920,
+   "height": 1281,
+   "fetched_at": "2026-10-30T01:50:41+00:00",
+   "reviewed": false,
+   "reviewer": "art-director 審核清單（social-ops-lead 執行）",
+   "review_note": "2026-10-30 第五輪退件：人物為主角（審核項 3）",
+   "origin": "公司分類",
+   "reviewed_at": "2026-10-30",
+   "reject_reason": "人物為主角（審核項 3）"
+  },
+  {
+   "file": "photo_7.jpg",
+   "kind": "產品",
+   "slug": "anthropic",
+   "name_en": "Anthropic",
+   "query": "cat:Anthropic",
+   "file_title": "File:Secretary of State Peter Kyle visits Anthropic in San Francisco. (54099081629).jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:Secretary_of_State_Peter_Kyle_visits_Anthropic_in_San_Francisco._(54099081629).jpg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/4/46/Secretary_of_State_Peter_Kyle_visits_Anthropic_in_San_Francisco._%2854099081629%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "CC BY 2.0",
+   "license_url": "https://creativecommons.org/licenses/by/2.0",
+   "author": "Department for Science, Innovation and Technology",
+   "credit": "Secretary of State Peter Kyle visits Anthropic in San Francisco.",
+   "description": "25/10/2024. San Francisco, United States. Secretary of State Peter Kyle visits Anthropic in San Francisco. Picture by Alecsandra Dragoi / DSIT",
+   "width": 1920,
+   "height": 1281,
+   "fetched_at": "2026-10-30T01:50:41+00:00",
+   "reviewed": false,
+   "reviewer": "art-director 審核清單（social-ops-lead 執行）",
+   "review_note": "2026-10-30 第五輪退件：人物為主角（審核項 3）",
+   "origin": "公司分類",
+   "reviewed_at": "2026-10-30",
+   "reject_reason": "人物為主角（審核項 3）"
+  },
+  {
+   "file": "photo_8.jpg",
+   "kind": "相關場景",
+   "slug": "anthropic",
+   "name_en": "Anthropic",
+   "query": "San Francisco SoMa skyline",
+   "file_title": "File:Good Night San Francisco (8671736602).jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:Good_Night_San_Francisco_(8671736602).jpg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/9/90/Good_Night_San_Francisco_%288671736602%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "CC BY-SA 2.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/2.0",
+   "author": "jason jenkins from stockton, california",
+   "credit": "Good Night San Francisco",
+   "description": "Blue hour approaches as San Francisco city skyline adapts with luminous color. I waited for the light to balance in the sky with the urban landscape showcasing the layers of contrast within the architecture of the city. Residential homes of the mission, bernal heights, and Potrero hill contrast the ",
+   "width": 1448,
+   "height": 896,
+   "fetched_at": "2026-10-30T01:50:47+00:00",
+   "reviewed": false,
+   "reviewer": "art-director 審核清單（social-ops-lead 執行）",
+   "review_note": "2026-10-30 第五輪退件：舊金山夜景，非 Anthropic 公司主體",
+   "reviewed_at": "2026-10-30",
+   "reject_reason": "舊金山夜景，非 Anthropic 公司主體"
+  },
+  {
+   "file": "photo_9.jpg",
+   "kind": "產品",
+   "slug": "anthropic",
+   "name_en": "Anthropic",
+   "query": "cat:Claude (language model)",
+   "file_title": "File:Wikimedia CEE Meeting 2026-Day 1-Photo 08.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:Wikimedia_CEE_Meeting_2026-Day_1-Photo_08.jpg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/d/d0/Wikimedia_CEE_Meeting_2026-Day_1-Photo_08.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "author": "Knovisuals",
+   "credit": "Own work",
+   "description": "Wikimedia CEE Meeting 2026-Day 1",
+   "width": 1920,
+   "height": 1280,
+   "fetched_at": "2026-10-30T02:01:06+00:00",
+   "reviewed": false,
+   "reviewer": "art-director",
+   "review_note": "2026-10-30 art-director 複審（補圖）退件：維基聚會講者人物、與 Anthropic 無關（主體錯誤）",
+   "origin": "公司分類",
+   "reviewed_at": "2026-10-30",
+   "reject_reason": "維基聚會講者人物、與 Anthropic 無關（主體錯誤）"
+  },
+  {
+   "file": "photo_10.jpg",
+   "kind": "相關場景",
+   "slug": "anthropic",
+   "name_en": "Anthropic",
+   "query": "San Francisco SoMa skyline",
+   "file_title": "File:Yet another SF skyline (3897483777).jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:Yet_another_SF_skyline_(3897483777).jpg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/f/fc/Yet_another_SF_skyline_%283897483777%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "CC BY 2.0",
+   "license_url": "https://creativecommons.org/licenses/by/2.0",
+   "author": "Angelo DeSantis from Berkeley, US",
+   "credit": "yet another SF skyline\n\nUploaded by AVIA BavARia",
+   "description": "yet another SF skyline",
+   "width": 1920,
+   "height": 1341,
+   "fetched_at": "2026-10-30T02:01:19+00:00",
+   "reviewed": false,
+   "reviewer": "art-director",
+   "review_note": "2026-10-30 art-director 複審（補圖）退件：舊金山天際線，非 Anthropic 公司主體",
+   "reviewed_at": "2026-10-30",
+   "reject_reason": "舊金山天際線，非 Anthropic 公司主體"
+  },
+  {
+   "file": "photo_11.jpg",
+   "kind": "產品",
+   "slug": "anthropic",
+   "name_en": "Anthropic",
+   "query": "cat:Dario Amodei",
+   "file_title": "File:Dario Amodei at TechCrunch Disrupt 2023 04.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:Dario_Amodei_at_TechCrunch_Disrupt_2023_04.jpg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/3/35/Dario_Amodei_at_TechCrunch_Disrupt_2023_04.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "CC BY 2.0",
+   "license_url": "https://creativecommons.org/licenses/by/2.0",
+   "author": "TechCrunch",
+   "credit": "https://www.flickr.com/photos/techcrunch/53201932199/",
+   "description": "Dario Amodei at TechCrunch Disrupt 2023",
+   "width": 1920,
+   "height": 1280,
+   "fetched_at": "2026-10-30T02:07:04+00:00",
+   "reviewed": false,
+   "reviewer": "art-director",
+   "review_note": "2026-10-30 art-director 複審（補圖第二輪）退件：人物（Dario Amodei／政要）為主角或與 Anthropic 無關（審核項 3）",
+   "origin": "公司分類",
+   "reject_reason": "人物（Dario Amodei／政要）為主角或與 Anthropic 無關（審核項 3）",
+   "reviewed_at": "2026-10-30"
+  },
+  {
+   "file": "photo_12.jpg",
+   "kind": "產品",
+   "slug": "anthropic",
+   "name_en": "Anthropic",
+   "query": "cat:Dario Amodei",
+   "file_title": "File:Sanae Takaichi and Dario Amodei in 2025 (1).jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:Sanae_Takaichi_and_Dario_Amodei_in_2025_(1).jpg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/d/df/Sanae_Takaichi_and_Dario_Amodei_in_2025_%281%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "CC BY 4.0",
+   "license_url": "https://creativecommons.org/licenses/by/4.0",
+   "author": "Cabinet Secretariat",
+   "credit": "https://www.kantei.go.jp/jp/104/actions/202510/29hyoukei.html",
+   "description": "令和７年１０月２９日、高市総理は、総理大臣官邸でアンソロピック社のダリオ・アモデイＣＥＯ（最高経営責任者）による表敬を受けました。",
+   "width": 1920,
+   "height": 1280,
+   "fetched_at": "2026-10-30T02:07:04+00:00",
+   "reviewed": false,
+   "reviewer": "art-director",
+   "review_note": "2026-10-30 art-director 複審（補圖第二輪）退件：人物（Dario Amodei／政要）為主角或與 Anthropic 無關（審核項 3）",
+   "origin": "公司分類",
+   "reject_reason": "人物（Dario Amodei／政要）為主角或與 Anthropic 無關（審核項 3）",
+   "reviewed_at": "2026-10-30"
+  },
+  {
+   "file": "photo_13.jpg",
+   "kind": "產品",
+   "slug": "anthropic",
+   "name_en": "Anthropic",
+   "query": "cat:Dario Amodei",
+   "file_title": "File:The Prime Minister meets with AI developers - 52923262183.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:The_Prime_Minister_meets_with_AI_developers_-_52923262183.jpg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/5/5e/The_Prime_Minister_meets_with_AI_developers_-_52923262183.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "CC BY 2.0",
+   "license_url": "https://creativecommons.org/licenses/by/2.0",
+   "author": "UK Prime Minister",
+   "credit": "https://www.flickr.com/photos/49707497@N06/52923262183/",
+   "description": "24/05/2023. London, United Kingdom. The Prime Minister Rishi Sunak meets with Demis Hassabis, CEO DeepMind, Dario Amodei, CEO Anthropic, and Sam Altman, CEO OpenAI, in 10 Downing Street. Picture by Simon Walker / No 10 Downing Street",
+   "width": 1920,
+   "height": 1280,
+   "fetched_at": "2026-10-30T02:07:04+00:00",
+   "reviewed": false,
+   "reviewer": "art-director",
+   "review_note": "2026-10-30 art-director 複審（補圖第二輪）退件：人物（Dario Amodei／政要）為主角或與 Anthropic 無關（審核項 3）",
+   "origin": "公司分類",
+   "reject_reason": "人物（Dario Amodei／政要）為主角或與 Anthropic 無關（審核項 3）",
+   "reviewed_at": "2026-10-30"
+  },
+  {
+   "file": "photo_14.jpg",
+   "kind": "產品",
+   "slug": "anthropic",
+   "name_en": "Anthropic",
+   "query": "cat:Dario Amodei",
+   "file_title": "File:Dario Amodei at TechCrunch Disrupt 2023 06.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:Dario_Amodei_at_TechCrunch_Disrupt_2023_06.jpg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/8/8b/Dario_Amodei_at_TechCrunch_Disrupt_2023_06.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "CC BY 2.0",
+   "license_url": "https://creativecommons.org/licenses/by/2.0",
+   "author": "TechCrunch",
+   "credit": "https://www.flickr.com/photos/techcrunch/53202070905/",
+   "description": "Dario Amodei at TechCrunch Disrupt 2023",
+   "width": 1920,
+   "height": 1280,
+   "fetched_at": "2026-10-30T02:07:04+00:00",
+   "reviewed": false,
+   "reviewer": "art-director",
+   "review_note": "2026-10-30 art-director 複審（補圖第二輪）退件：人物（Dario Amodei／政要）為主角或與 Anthropic 無關（審核項 3）",
+   "origin": "公司分類",
+   "reject_reason": "人物（Dario Amodei／政要）為主角或與 Anthropic 無關（審核項 3）",
+   "reviewed_at": "2026-10-30"
+  },
+  {
+   "file": "photo_15.jpg",
+   "kind": "產品",
+   "slug": "anthropic",
+   "name_en": "Anthropic",
+   "query": "cat:Dario Amodei",
+   "file_title": "File:The Prime Minister meets with AI developers - 52923262063.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:The_Prime_Minister_meets_with_AI_developers_-_52923262063.jpg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/3/30/The_Prime_Minister_meets_with_AI_developers_-_52923262063.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "CC BY 2.0",
+   "license_url": "https://creativecommons.org/licenses/by/2.0",
+   "author": "UK Prime Minister",
+   "credit": "https://www.flickr.com/photos/49707497@N06/52923262063/",
+   "description": "24/05/2023. London, United Kingdom. The Prime Minister Rishi Sunak meets with Demis Hassabis, CEO DeepMind, Dario Amodei, CEO Anthropic, and Sam Altman, CEO OpenAI, in 10 Downing Street. Picture by Simon Walker / No 10 Downing Street",
+   "width": 1920,
+   "height": 1280,
+   "fetched_at": "2026-10-30T02:07:04+00:00",
+   "reviewed": false,
+   "reviewer": "art-director",
+   "review_note": "2026-10-30 art-director 複審（補圖第二輪）退件：人物（Dario Amodei／政要）為主角或與 Anthropic 無關（審核項 3）",
+   "origin": "公司分類",
+   "reject_reason": "人物（Dario Amodei／政要）為主角或與 Anthropic 無關（審核項 3）",
+   "reviewed_at": "2026-10-30"
+  },
+  {
+   "file": "photo_16.jpg",
+   "kind": "產品",
+   "slug": "anthropic",
+   "name_en": "Anthropic",
+   "query": "cat:Dario Amodei",
+   "file_title": "File:V20230504LJ-0199-2.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:V20230504LJ-0199-2.jpg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/2/2e/V20230504LJ-0199-2.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "Public domain",
+   "license_url": "",
+   "author": "The White House",
+   "credit": "https://www.flickr.com/photos/191819781@N02/53007979827/",
+   "description": "Vice President Kamala Harris attends a meeting with Artificial Intelligence (AI) CEO’s, Cabinet members and senior advisers, Thursday, May 4, 2023, in the Roosevelt Room of the White House. CEO’s in attendance are Sam Altman of OpenAI, Dario Amodei of Anthropic, Satya Nadella of Microsoft, and Sunda",
+   "width": 1920,
+   "height": 1280,
+   "fetched_at": "2026-10-30T02:07:04+00:00",
+   "reviewed": false,
+   "reviewer": "art-director",
+   "review_note": "2026-10-30 art-director 複審（補圖第二輪）退件：人物（Dario Amodei／政要）為主角或與 Anthropic 無關（審核項 3）",
+   "origin": "公司分類",
+   "reject_reason": "人物（Dario Amodei／政要）為主角或與 Anthropic 無關（審核項 3）",
+   "reviewed_at": "2026-10-30"
   }
  ],
  "rejected": [
@@ -123,6 +385,237 @@
    "file_title": "File:Jack Clark, co-founder of Anthropic, giving a talk on AI at the Schwarzman Centre in Oxford.jpg",
    "reason": "主角是人物演講與簡報螢幕，非公司建築（且為講座場地）",
    "at": "2026-10-28"
+  },
+  {
+   "file_title": "https://www.anthropic.com/_next/image?url=https%3A%2F%2Fwww-cdn.anthropic.com%2Fimages%2F4zrzovbb%2Fwebsite%2F1536d2a2d317fb4714ab907cb5b103379ebb0be0-1152x864.jpg&w=3840&q=75",
+   "reason": "官方照片退件：官網只有人物照、文字字卡、拼貼插畫與無關風景，無公司實景或產品照",
+   "at": "2026-10-30",
+   "source_page": "https://www.anthropic.com/company"
+  },
+  {
+   "file_title": "https://www.anthropic.com/_next/image?url=https%3A%2F%2Fwww-cdn.anthropic.com%2Fimages%2F4zrzovbb%2Fwebsite%2F49810dc8aa0de730866f49a164df84646226e880-1152x864.jpg&w=3840&q=75",
+   "reason": "官方照片退件：官網只有人物照、文字字卡、拼貼插畫與無關風景，無公司實景或產品照",
+   "at": "2026-10-30",
+   "source_page": "https://www.anthropic.com/company"
+  },
+  {
+   "file_title": "https://www.anthropic.com/_next/image?url=https%3A%2F%2Fcdn.sanity.io%2Fimages%2F4zrzovbb%2Fwebsite%2Ff4d37a1d1f582f53f4e89440062b649b6273a093-1200x630.jpg&w=3840&q=75",
+   "reason": "官方照片退件：官網只有人物照、文字字卡、拼貼插畫與無關風景，無公司實景或產品照",
+   "at": "2026-10-30",
+   "source_page": "https://www.anthropic.com/news"
+  },
+  {
+   "file_title": "https://www.anthropic.com/_next/image?url=https%3A%2F%2Fwww-cdn.anthropic.com%2Fimages%2F4zrzovbb%2Fwebsite%2Fcbdc2eac6dfb37cf596d8f9fb32783036b5737c2-2000x1125.jpg&w=3840&q=75",
+   "reason": "官方照片退件：官網只有人物照、文字字卡、拼貼插畫與無關風景，無公司實景或產品照",
+   "at": "2026-10-30",
+   "source_page": "https://www.anthropic.com/news"
+  },
+  {
+   "file_title": "https://www.anthropic.com/_next/image?url=https%3A%2F%2Fwww-cdn.anthropic.com%2Fimages%2F4zrzovbb%2Fwebsite%2Fe7cbb46184df120426bc360cf9c6410d0f6dbb7f-2000x1334.webp%3Ffm%3Dwebp&w=3840&q=75",
+   "reason": "官方照片退件：官網只有人物照、文字字卡、拼貼插畫與無關風景，無公司實景或產品照",
+   "at": "2026-10-30",
+   "source_page": "https://www.anthropic.com/news"
+  },
+  {
+   "file_title": "https://www.anthropic.com/_next/image?url=https%3A%2F%2Fwww-cdn.anthropic.com%2Fimages%2F4zrzovbb%2Fwebsite%2Ffccf43cf4e36b0c26b4215861d909aadabbc32ce-1920x1080.png&w=3840&q=75",
+   "reason": "官方照片退件：官網只有人物照、文字字卡、拼貼插畫與無關風景，無公司實景或產品照",
+   "at": "2026-10-30",
+   "source_page": "https://www.anthropic.com/news"
+  },
+  {
+   "file_title": "https://www.anthropic.com/_next/image?url=https%3A%2F%2Fwww-cdn.anthropic.com%2Fimages%2F4zrzovbb%2Fwebsite%2Fbfd4aa0ef6a657e6f22fe214dc177aeff4c4c247-1200x630.gif&w=3840&q=75",
+   "reason": "官方照片退件：官網只有人物照、文字字卡、拼貼插畫與無關風景，無公司實景或產品照",
+   "at": "2026-10-30",
+   "source_page": "https://www.anthropic.com/news"
+  },
+  {
+   "file_title": "https://www.anthropic.com/_next/image?url=https%3A%2F%2Fwww-cdn.anthropic.com%2Fimages%2F4zrzovbb%2Fwebsite%2F701946d96f607f199fd7d65c8f5e2f50bf9336e4-1200x630.png&w=3840&q=75",
+   "reason": "官方照片退件：官網只有人物照、文字字卡、拼貼插畫與無關風景，無公司實景或產品照",
+   "at": "2026-10-30",
+   "source_page": "https://www.anthropic.com/news"
+  },
+  {
+   "file_title": "https://www.anthropic.com/_next/image?url=https%3A%2F%2Fwww-cdn.anthropic.com%2Fimages%2F4zrzovbb%2Fwebsite%2Fabd2e56dedd42b609ec27783edba421fa2bfee4e-1200x630.png&w=3840&q=75",
+   "reason": "官方照片退件：官網只有人物照、文字字卡、拼貼插畫與無關風景，無公司實景或產品照",
+   "at": "2026-10-30",
+   "source_page": "https://www.anthropic.com/news"
+  },
+  {
+   "file_title": "https://www.anthropic.com/_next/image?url=https%3A%2F%2Fwww-cdn.anthropic.com%2Fimages%2F4zrzovbb%2Fwebsite%2Fcbdc2eac6dfb37cf596d8f9fb32783036b5737c2-2000x1125.jpg&w=1920&q=75",
+   "reason": "官方照片退件：官網只有人物照、文字字卡、拼貼插畫與無關風景，無公司實景或產品照",
+   "at": "2026-10-30",
+   "source_page": "https://www.anthropic.com/news/public-benefit-fund"
+  },
+  {
+   "file_title": "https://www-cdn.anthropic.com/images/4zrzovbb/website/85648c93880ac27347f8e6a4008650a65c12ede8-1200x630.jpg",
+   "reason": "官方照片退件：官網只有人物照、文字字卡、拼貼插畫與無關風景，無公司實景或產品照",
+   "at": "2026-10-30",
+   "source_page": "https://www.anthropic.com/news/public-benefit-fund"
+  },
+  {
+   "file_title": "https://www.anthropic.com/_next/image?url=https%3A%2F%2Fwww-cdn.anthropic.com%2Fimages%2F4zrzovbb%2Fwebsite%2F5b18c53b35c0425fda21efaf2c3bcf10761798ec-2000x1125.jpg&w=1920&q=75",
+   "reason": "官方照片退件：官網只有人物照、文字字卡、拼貼插畫與無關風景，無公司實景或產品照",
+   "at": "2026-10-30",
+   "source_page": "https://www.anthropic.com/news/ai-for-science-expands-foundations-research-institutions"
+  },
+  {
+   "file_title": "https://www-cdn.anthropic.com/images/4zrzovbb/website/2c317246f4ac7eaf0667d90a76ac05a7a7b601fc-1200x630.jpg",
+   "reason": "官方照片退件：官網只有人物照、文字字卡、拼貼插畫與無關風景，無公司實景或產品照",
+   "at": "2026-10-30",
+   "source_page": "https://www.anthropic.com/news/ai-for-science-expands-foundations-research-institutions"
+  },
+  {
+   "file_title": "https://www.anthropic.com/_next/image?url=https%3A%2F%2Fwww-cdn.anthropic.com%2Fimages%2F4zrzovbb%2Fwebsite%2Fef0faa4dc389400ab9c9019ecdec7f1257cc6843-2000x1125.jpg&w=1920&q=75",
+   "reason": "官方照片退件：官網只有人物照、文字字卡、拼貼插畫與無關風景，無公司實景或產品照",
+   "at": "2026-10-30",
+   "source_page": "https://www.anthropic.com/news/expanding-partnership-gsa"
+  },
+  {
+   "file_title": "https://assets.claude.com/34484a65640fb6585c2bfd40fe7f0743a429df61.jpg?fm=webp&fit=max&w=960",
+   "reason": "官方照片退件：人物訪談影片截圖、文字字卡、產品文件截圖、插畫，無公司實景或產品照",
+   "at": "2026-10-30",
+   "source_page": "https://www.claude.com/product/overview",
+   "sha1": "5bee8e25db8d430392f495603d0cd0f992c1cdd8"
+  },
+  {
+   "file_title": "https://assets.claude.com/2ec4bf68b8f42d0c232437207c5ff2ff914675e0.jpg?fm=webp&w=1200",
+   "reason": "官方照片退件：人物訪談影片截圖、文字字卡、產品文件截圖、插畫，無公司實景或產品照",
+   "at": "2026-10-30",
+   "source_page": "https://www.claude.com/product/overview",
+   "sha1": "86c34ae6f1cf790ce44f155089b6b4d4630b4c8c"
+  },
+  {
+   "file_title": "https://assets.claude.com/e25eeb1c92abffd5ed51c24672cb6157fee38c88.jpg?fm=webp&w=1200",
+   "reason": "官方照片退件：人物訪談影片截圖、文字字卡、產品文件截圖、插畫，無公司實景或產品照",
+   "at": "2026-10-30",
+   "source_page": "https://www.claude.com/product/overview",
+   "sha1": "5ec05e15f34872a6a02df6a849e1993fbf04efe3"
+  },
+  {
+   "file_title": "https://claude-code.mintlify.app/_mintlify/api/og/v2?division=Getting+started&title=Overview&description=Claude+Code+is+an+agentic+coding+tool+that+reads+your+codebase%2C+edits+files%2C+runs+commands%2C+and+integrates+with+your+development+tools.+Available+in+your+termin&theme=8d9812df31da293aba4e8103&signature=cd48661c819838a7b3cf407ae2a1c37f89e6e34833443538a75f097a9386c016",
+   "reason": "官方照片退件：人物訪談影片截圖、文字字卡、產品文件截圖、插畫，無公司實景或產品照",
+   "at": "2026-10-30",
+   "source_page": "https://code.claude.com/docs/en/overview",
+   "sha1": "6073f0e163e2aabf7784d13c32d1a2d04536f15e"
+  },
+  {
+   "file_title": "https://assets.claude.com/b8b7348bebaf2bd3bfb65b1800cce67c11342963.jpg",
+   "reason": "官方照片退件：人物訪談影片截圖、文字字卡、產品文件截圖、插畫，無公司實景或產品照",
+   "at": "2026-10-30",
+   "source_page": "https://claude.com/solutions/enterprise",
+   "sha1": "27c1c42d0ba9c31a0ab65a3c8633e0572f8d61e5"
+  },
+  {
+   "file_title": "https://assets.claude.com/e5c63aefb441175c709122d56a9670da3604726c.jpg",
+   "reason": "官方照片退件：人物訪談影片截圖、文字字卡、產品文件截圖、插畫，無公司實景或產品照",
+   "at": "2026-10-30",
+   "source_page": "https://claude.com/solutions/enterprise",
+   "sha1": "9e48c75515ddc51f233d9a6fd6071b5d2f4f9aa7"
+  },
+  {
+   "file_title": "https://assets.claude.com/972974c5d13e2c9aa5bdeb15b6a1911ff95535f4.jpg",
+   "reason": "官方照片退件：人物訪談影片截圖、文字字卡、產品文件截圖、插畫，無公司實景或產品照",
+   "at": "2026-10-30",
+   "source_page": "https://claude.com/solutions/enterprise",
+   "sha1": "40c7c3987068a292f1cccee47a0373bbc364fc29"
+  },
+  {
+   "file_title": "https://assets.claude.com/922f32dbd47ffa8d43f3a9dc7f44b9e2f803f76a.jpg?w=2400&q=75&fm=webp&fit=max",
+   "reason": "官方照片退件：人物訪談影片截圖、文字字卡、產品文件截圖、插畫，無公司實景或產品照",
+   "at": "2026-10-30",
+   "source_page": "https://claude.com/solutions/enterprise",
+   "sha1": "369f34aa571469632a3f9e98395a8d65cfd7fd7e"
+  },
+  {
+   "file_title": "https://assets.claude.com/922f32dbd47ffa8d43f3a9dc7f44b9e2f803f76a.jpg?w=2400&q=75&fm=avif&fit=max",
+   "reason": "官方照片退件：人物訪談影片截圖、文字字卡、產品文件截圖、插畫，無公司實景或產品照",
+   "at": "2026-10-30",
+   "source_page": "https://claude.com/solutions/enterprise",
+   "sha1": "a13c9824a0788d3f11422a348e93ea089438ff4a"
+  },
+  {
+   "file_title": "https://assets.claude.com/50a00469e498d2c960d9e45f1a4a37d2d7a92f2e.jpg?w=1200&h=630&fit=crop",
+   "reason": "官方照片退件：人物訪談影片截圖、文字字卡、產品文件截圖、插畫，無公司實景或產品照",
+   "at": "2026-10-30",
+   "source_page": "https://claude.com/solutions/enterprise",
+   "sha1": "bfb70e73a95daab46b37286cf5642158790875eb"
+  },
+  {
+   "file_title": "https://assets.claude.com/cb73c5210f2a19db4dc73e3cf37772518df70e49.jpg?w=2400&q=75&fm=webp&fit=max",
+   "reason": "官方照片退件：人物訪談影片截圖、文字字卡、產品文件截圖、插畫，無公司實景或產品照",
+   "at": "2026-10-30",
+   "source_page": "https://claude.com/resources",
+   "sha1": "ab9fdcbb5acb22381be876c38b152078d3b4ab35"
+  },
+  {
+   "file_title": "https://assets.claude.com/cb73c5210f2a19db4dc73e3cf37772518df70e49.jpg?w=2400&q=75&fm=avif&fit=max",
+   "reason": "官方照片退件：人物訪談影片截圖、文字字卡、產品文件截圖、插畫，無公司實景或產品照",
+   "at": "2026-10-30",
+   "source_page": "https://claude.com/resources",
+   "sha1": "7b5b21aa252fa853581026f47e459f81a586b081"
+  },
+  {
+   "file_title": "https://claude-code.mintlify.app/_mintlify/api/og/v2?division=Core+concepts&title=Extend+Claude+Code&description=Understand+when+to+use+CLAUDE.md%2C+Skills%2C+subagents%2C+hooks%2C+MCP%2C+and+plugins.&theme=8d9812df31da293aba4e8103&signature=0ab15b49505f6b2bbd35ff8cde88584e809fd57eb0852b340a48807fd8c2ff75",
+   "reason": "官方照片退件：人物訪談影片截圖、文字字卡、產品文件截圖、插畫，無公司實景或產品照",
+   "at": "2026-10-30",
+   "source_page": "https://code.claude.com/docs/en/features-overview",
+   "sha1": "b9f1496a913bbd29ba0adffe04c4d0f00e200035"
+  },
+  {
+   "file_title": "https://claude-code.mintlify.app/_mintlify/api/og/v2?division=Platforms+and+integrations&title=Platforms+and+integrations&description=Choose+where+to+run+Claude+Code+and+what+to+connect+it+to.+Compare+the+CLI%2C+Desktop%2C+VS+Code%2C+JetBrains%2C+web%2C+mobile%2C+and+integrations+like+Chrome%2C+Slack%2C+and+C&theme=8d9812df31da293aba4e8103&signature=b8bb493a71d266e3b0bebb24f964705c0fa6fdb652d74758f32cd3a44194cd51",
+   "reason": "官方照片退件：人物訪談影片截圖、文字字卡、產品文件截圖、插畫，無公司實景或產品照",
+   "at": "2026-10-30",
+   "source_page": "https://code.claude.com/docs/en/platforms",
+   "sha1": "3d91997936fa0c89c767da30a9ec296d2703a525"
+  },
+  {
+   "file_title": "https://www.anthropic.com/_next/image?url=https%3A%2F%2Fcdn.sanity.io%2Fimages%2F4zrzovbb%2Fwebsite%2Fdaa9ebf989c197cae5ef84a639302083713a611e-1760x988.jpg&w=3840&q=75",
+   "reason": "官方照片退件：人物團體照、插畫、文件封面字卡、產品介面截圖壓大標題",
+   "at": "2026-10-30",
+   "source_page": "https://www.anthropic.com/careers",
+   "sha1": "14284875a223a7badf9670c6328c26fdc2c2cbc2"
+  },
+  {
+   "file_title": "https://assets.claude.com/1eec21fd9f2fe2cdc0afbb00e826d0bdccac7895.jpg?w=1200&h=630&fit=crop",
+   "reason": "官方照片退件：人物團體照、插畫、文件封面字卡、產品介面截圖壓大標題",
+   "at": "2026-10-30",
+   "source_page": "https://claude.com/download",
+   "sha1": "18cb7986bc51ff3b042d26cb32db6c0773376ed1"
+  },
+  {
+   "file_title": "https://assets.claude.com/47d7f15e3a1a7ee8c9303a801582d2eaeb183fb6.png?w=2400&q=75&fm=webp&fit=max",
+   "reason": "官方照片退件：人物團體照、插畫、文件封面字卡、產品介面截圖壓大標題",
+   "at": "2026-10-30",
+   "source_page": "https://claude.com/platform/api",
+   "sha1": "04e45490847bb52d81409163b4d6c075e88c17af"
+  },
+  {
+   "file_title": "https://assets.claude.com/cbd2591e5af9bc49b1d7557d997cb73d4d85b068.jpg?w=1200&h=630&fit=crop",
+   "reason": "官方照片退件：人物團體照、插畫、文件封面字卡、產品介面截圖壓大標題",
+   "at": "2026-10-30",
+   "source_page": "https://claude.com/platform/api",
+   "sha1": "97731665ff4b0829776e0a2318d3948b3a16b485"
+  },
+  {
+   "file_title": "https://platform.claude.com/web-api/og/docs/en/managed-agents/overview?design-rev=4",
+   "reason": "官方照片退件：人物團體照、插畫、文件封面字卡、產品介面截圖壓大標題",
+   "at": "2026-10-30",
+   "source_page": "https://platform.claude.com/docs/en/managed-agents/overview",
+   "sha1": "3b80641d21d7a3cb7562099448cd4e5df6a45146"
+  },
+  {
+   "file_title": "https://claude.com/resources/articles/idc-brings-quanta-into-claude-and-adopts-claude-across-the-company/opengraph-image/og",
+   "reason": "官方照片退件：人物團體照、插畫、文件封面字卡、產品介面截圖壓大標題",
+   "at": "2026-10-30",
+   "source_page": "https://claude.com/resources/articles/idc-brings-quanta-into-claude-and-adopts-claude-across-the-company",
+   "sha1": "9d9d3ad26ad6f6feda44419345d6c7dd3b31f3f6"
+  },
+  {
+   "file_title": "https://claude-ai.mintlify.app/_mintlify/api/og/v2?division=Claude+Desktop&title=Overview&description=Run+Claude+Desktop+against+your+own+cloud+inference+provider&theme=c937feb09b37748e448783d0&signature=95bf4dfb3a3c6616540f4f0770b714c01608df22a6ff278443cfd95768c37fd1",
+   "reason": "官方照片退件：人物團體照、插畫、文件封面字卡、產品介面截圖壓大標題",
+   "at": "2026-10-30",
+   "source_page": "https://claude.com/docs/third-party/claude-desktop/overview",
+   "sha1": "822df91bc37bf9b3a098b3ef94f703c9f5db9f79"
   }
  ]
 }

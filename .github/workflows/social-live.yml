@@ -109,10 +109,15 @@ jobs:
             # 近幾天落點紀錄（2026-10-27）：貼文網址「同一落點連續 2 天就換」靠它
             git show FETCH_HEAD:state/landing_recent.json > "$RUNNER_TEMP/landing_recent.json" 2>/dev/null || echo '{}' > "$RUNNER_TEMP/landing_recent.json"
             if [ "${{ steps.kind.outputs.kind }}" != "close" ]; then exit 0; fi
-            KEY="close-$(date '+%F')"
-            if git show FETCH_HEAD:state/posted.json 2>/dev/null | grep -q "\"$KEY\""; then
-              echo "今天的盤後法人已經發過（$KEY）→ 跳過"
+            # 2026-10-29 盤後保底：主貼文若是拿掉法人卡發的（紀錄有 partial），法人到了就補發一則（鍵 close-inst-<日期>），不重發主貼文
+            ST="$(python3 scripts/social_close_state.py "$RUNNER_TEMP/posted.json" "$(date '+%F')")"
+            echo "盤後發布狀態：$ST"
+            if [ "$ST" = "skip" ]; then
+              echo "今天的盤後法人已經發過（close-$(date '+%F')）→ 跳過"
               echo "skip=1" >> "$GITHUB_OUTPUT"
+            elif [ "$ST" = "supplement" ]; then
+              echo "主貼文走過保底（法人卡晚到）→ 這輪做法人補充貼文"
+              echo "supplement=1" >> "$GITHUB_OUTPUT"
             fi
           fi
 
@@ -174,7 +179,9 @@ jobs:
             OVL=""
             # 2026-10-27 Andy：「盤後貼文資料到就發」→ 盤後直接從資料湖算那幾份 JSON 蓋上去，不等整站重算＋部署
             if [ "${{ steps.kind.outputs.kind }}" = "close" ] && python -m pipeline.social_close_payload "$RUNNER_TEMP/close_overlay"; then OVL="--data-overlay $RUNNER_TEMP/close_overlay"; fi
-            python scripts/social_snap.py --kind "${{ steps.kind.outputs.kind }}" --out "$OUT" \
+            SUPP=""
+            if [ "${{ steps.done.outputs.supplement }}" = "1" ]; then SUPP="--supplement"; fi
+            python scripts/social_snap.py --kind "${{ steps.kind.outputs.kind }}" --out "$OUT" $SUPP \
               --serve site --data-url https://miaozike.github.io/tw-rotation/data,https://tw-rotation.pages.dev/data,https://liguligu-puipui.com/data --spoof-origin --fresh-news $FORCE $POSTED $LAND $SKIP $OVL
           fi
           RC=$?

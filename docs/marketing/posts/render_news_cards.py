@@ -341,12 +341,18 @@ CB_PHOTO = [(r"Fed|FOMC|聯準會|美國央行|鮑爾", "Federal Reserve"), (r"�
 def cb_filter(text):
     """回傳央行圖池可用照片的 query 關鍵字清單；空清單＝這則講的不是這三家，央行圖池整池不用。"""
     return [q for kw, q in CB_PHOTO if re.search(kw, text or "")]
+# 照片授權允許值（photo_lib_review.md 第九節第五項；DECISIONS #373）：Commons 的 CC0／CC BY*／CC BY-SA*／公有領域，
+# 書面授權 written-permission，以及 2026-10-30 Andy 拍板「改成接用 並標明出處 是可以的」的公司官方照片 official-press。其他值（press-kit、editorial…）不准用。
+LICENSE_OK = re.compile(r"^(cc0|cc[- ]by(-sa)?([- ]\d(\.\d)?)?( [a-z]{2})?|public domain|pd(-.*)?|written-permission|official-press)$", re.I)
+def license_ok(lic):
+    return bool(LICENSE_OK.match((lic or "").strip()))
 def _rotate(d, key, used, today, allow_unreviewed, only=None):
     """圖池裡挑一張：只要已審；近 14 天用過的往後排（全都用過就挑最久沒用的）。回傳 (路徑, meta) 或 None。
     only＝照片 query 必須含其中一個字（央行圖池用）。"""
     pool = _pool(d)
     if not pool: return None
-    ph = [m for m in pool.get("photos", []) if (m.get("reviewed") or (allow_unreviewed and not m.get("reject_reason") and m.get("prescreen") != "fail")) and (d / m.get("file", "")).exists()]
+    ph = [m for m in pool.get("photos", []) if (m.get("reviewed") or (allow_unreviewed and not m.get("reject_reason") and m.get("prescreen") != "fail"))
+          and license_ok(m.get("license")) and (d / m.get("file", "")).exists()]
     if only is not None:
         ph = [m for m in ph if not m.get("query") or any(q in m["query"] for q in only)]     # 沒寫 query 的視為通用
     if not ph: return None
@@ -357,7 +363,8 @@ def _rotate(d, key, used, today, allow_unreviewed, only=None):
         if not (l and today): return False
         try: return (datetime.fromisoformat(today) - datetime.fromisoformat(l)).days < ROTATE_DAYS
         except Exception: return False
-    m = sorted(ph, key=lambda m: (recent(m), last(m), m["file"]))[0]
+    # 公司圖池裡「相關場景」是通用畫面（資料中心、機櫃），排在該公司自己的總部／招牌／廠區／產品照之後（Andy 10-30：「跟公司有關的 優先附上公司圖片」）
+    m = sorted(ph, key=lambda m: (recent(m), m.get("kind") == "相關場景", last(m), m["file"]))[0]
     return d / m["file"], m
 # 主體不在名單（或名單裡沒有可用圖）時，依新聞文字對應類別池（Andy 10-28：「如果是外商，或是總經面相關呢？」）。依序比對，先中先用。
 TOPIC_KW = [
@@ -417,24 +424,57 @@ def generic_cats(subject, topic, text, tw=None):
     if topic == "總經" and not tw:      # 外國總經（泰國央行上修 GDP）：貨櫃港口是最通用的「經濟活動」實景
         return [("航運", ["container port", "container terminal cranes"])] + GENERIC_INTL + GENERIC_TW + GENERIC_LAST
     return (GENERIC_TW + GENERIC_INTL if tw else GENERIC_INTL + GENERIC_TW) + GENERIC_LAST
+def _norm(x):
+    return re.sub(r"[\s　·・.,，、]+", "", (x or "")).lower()
+def company_slug(subject):
+    """主體名稱 → 公司圖池 slug（沒有對應回 ""）。
+    先比 aliases.json 完全相同；再忽略大小寫／空白；再看主體字串裡有沒有包含某個別名（「Google（Alphabet）」「Alphabet Inc.」），
+    多個命中時取在主體字串裡最前面、最長的那個（主體就是標題主詞，最前面的才是它）。"""
+    s = (subject or "").strip()
+    if not s: return ""
+    try: aliases = json.loads((PHOTO_LIB / "aliases.json").read_text(encoding="utf-8"))
+    except Exception: aliases = {}
+    if s in aliases: return aliases[s]
+    n = _norm(s); low = {_norm(k): v for k, v in aliases.items()}
+    if n in low: return low[n]
+    best = None
+    for k, v in low.items():
+        if len(k) < 2: continue
+        if re.fullmatch(r"[a-z0-9]+", k):        # 英文別名要整字比對（「Arm」不能吃到「Harmony」、「Meta」不能吃到「Metal」）
+            m = re.search(rf"(?<![a-z0-9]){re.escape(k)}(?![a-z0-9])", s.lower())
+            i = m.start() if m else -1
+        elif len(k) >= 3:                        # 中文別名至少 3 字才做包含比對（「南亞」不能吃到「南亞科」）
+            i = n.find(k)
+        else:
+            continue
+        if i >= 0 and (best is None or (i, -len(k)) < (best[0], -len(best[1]))):
+            best = (i, k, v)
+    return best[2] if best else ""
+def company_pick(subject, used=None, today=None, allow_unreviewed=False):
+    """只看主體公司自己的圖池；有已審圖就回 (路徑, meta, layout, key)，沒有回 None。"""
+    slug = company_slug(subject)
+    if not slug: return None
+    r = _rotate(PHOTO_LIB / slug, slug, used, today, allow_unreviewed)
+    if r: return r[0], r[1], KIND_LAYOUT.get(r[1].get("kind"), "D-實景(公司)"), f"{slug}/{r[1]['file']}"
+    return None
 def photo_pick(subject, topic=None, used=None, today=None, allow_unreviewed=False, text=None, prefer=None, tw=None):
     """選圖順序（Andy 10-28 v3）：該公司已審圖池（近 14 天用過的避開、輪替）→ 該公司所屬類別池
     → 依新聞文字對應的類別池（總經新聞先找子類：央行／物價就業／利率債券／匯率／能源／貿易關稅／景氣／房市）→ None（灰框大數字）。
     主體名只認 aliases.json 的完全相同名稱。回傳 (路徑, meta, layout 標籤, 使用紀錄鍵) 或 None。
     prefer＝[(類別池, query 關鍵字清單或 None), ...]：常備文庫指定的圖池，最優先。
     2026-10-29 起最後一定退到總類通用圖池（generic_cats），只有圖庫整個空掉才回 None。"""
+    # ★ 2026-10-30 Andy：「相這種跟公司有關的 優先附上公司圖片」→ 主體有公司圖就一定用，排在常備文庫指定圖池、台股大盤圖、天然氣圖之前；
+    #   不准跳去用別家公司或類別圖（10-30 緊急加發「Alphabet 跌 12.6%」配了 Intel 處理器照片）。
+    r = company_pick(subject, used, today, allow_unreviewed)
+    if r: return r
     if re.search(r"天然氣|LNG|液化氣", f"{subject or ''} {text or ''}"):
         prefer = list(prefer or []) + [("能源", ["LNG tanker"])]      # 天然氣配 LNG 船，不配抽油機
     for cat, only in (prefer or []):
         r = _rotate(PHOTO_LIB / "_category" / cat, f"_category/{cat}", used, today, allow_unreviewed, only)
         if r: return r[0], r[1], "D-實景(類別)", f"_category/{cat}/{r[1]['file']}"
-    try: aliases = json.loads((PHOTO_LIB / "aliases.json").read_text(encoding="utf-8"))
-    except Exception: aliases = {}
-    slug = aliases.get((subject or "").strip())
+    slug = company_slug(subject)
     cats = []
-    if slug:
-        r = _rotate(PHOTO_LIB / slug, slug, used, today, allow_unreviewed)
-        if r: return r[0], r[1], KIND_LAYOUT.get(r[1].get("kind"), "D-實景(公司)"), f"{slug}/{r[1]['file']}"
+    if slug:                             # 公司圖池沒有已審圖 → 退到該公司所屬類別池（不是別家公司）
         try: cats = [next((t.get("category") for t in json.loads((PHOTO_LIB / "targets.json").read_text(encoding="utf-8")) if t.get("slug") == slug), None)]
         except Exception: cats = []
     other_cb = bool(re.search(r"央行|中央銀行", subject or "")) and not cb_filter(subject)
@@ -459,6 +499,10 @@ def photo_for(subject, allow_unreviewed=False):
     r = photo_pick(subject, allow_unreviewed=allow_unreviewed)
     return (r[0], r[1]) if r else None
 def credit_of(meta):
+    lic = (meta.get("license") or "").strip().lower()
+    if lic in ("official-press", "written-permission"):      # 公司官方照片：「圖：<公司名>官方」；官方指定署名時 pool.json 的 credit 照官方寫
+        cr = (meta.get("credit") or "").strip()
+        return cr if cr.startswith("圖：") else f"圖：{meta.get('author') or meta.get('name_en') or '公司'}官方"
     a = re.sub(r"\s+", " ", meta.get("author") or "不詳").strip()
     if len(a) > 24: a = a[:23] + "…"
     return f"攝影：{a}／{meta.get('license', '')}・Wikimedia Commons"

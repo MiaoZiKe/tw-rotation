@@ -10,7 +10,14 @@
   "queries": [
    "TSMC Fab",
    "TSMC headquarters Hsinchu",
-   "TSMC building"
+   "TSMC building",
+   "TSMC Fab 12 Hsinchu",
+   "TSMC Fab 15 Taichung",
+   "TSMC Fab 14 Tainan",
+   "TSMC Baoshan",
+   "TSMC Hsinchu Science Park building",
+   "TSMC Kumamoto JASM",
+   "TSMC Arizona Phoenix fab"
   ],
   "product_queries": [
    "silicon wafer",
@@ -19,6 +26,28 @@
   "related_queries": [
    "semiconductor fab",
    "silicon wafer"
+  ],
+  "commons_categories": [
+   "TSMC",
+   "Taiwan Semiconductor Manufacturing Company",
+   "TSMC Arizona",
+   "TSMC Fab 18",
+   "TSMC Fab 14",
+   "TSMC Fab 12",
+   "TSMC Fab 15",
+   "TSMC Fab 5",
+   "Hsinchu Science Park",
+   "Southern Taiwan Science Park",
+   "TSMC Headquarters",
+   "TSMC Nanjing",
+   "TSMC buildings"
+  ],
+  "credit_name": "台積電",
+  "official_sites": [
+   "https://www.tsmc.com/english/aboutTSMC/TSMC_Fabs",
+   "https://www.tsmc.com/english/dedicatedFoundry/manufacturing/gigafab",
+   "https://pr.tsmc.com/english/latest-news",
+   "https://www.tsmc.com/english"
   ]
  },
  {
@@ -41,6 +70,11 @@
   "related_queries": [
    "server rack",
    "data center servers"
+  ],
+  "commons_categories": [
+   "Foxconn",
+   "Hon Hai Precision Industry",
+   "Foxconn buildings"
   ]
  },
  {
@@ -62,6 +96,10 @@
   "related_queries": [
    "semiconductor fab",
    "silicon wafer"
+  ],
+  "commons_categories": [
+   "MediaTek",
+   "MediaTek buildings"
   ]
  },
  {
@@ -84,6 +122,9 @@
   "related_queries": [
    "server rack",
    "data center servers"
+  ],
+  "commons_categories": [
+   "Delta Electronics"
   ]
  },
  {
@@ -104,6 +145,9 @@
   "related_queries": [
    "server rack",
    "data center servers"
+  ],
+  "commons_categories": [
+   "Quanta Computer"
   ]
  },
  {
@@ -137,7 +181,19 @@
   "category": "半導體",
   "queries": [
    "ASE Group Kaohsiung",
-   "Advanced Semiconductor Engineering building"
+   "Advanced Semiconductor Engineering building",
+   "ASE Kaohsiung K7 building",
+   "ASE Nantze Export Processing Zone",
+   "ASE Chungli campus",
+   "日月光 高雄 廠",
+   "ASE Penang",
+   "Advanced Semiconductor Engineering Kaohsiung plant",
+   "ASE Kaohsiung",
+   "ASE Nantze factory",
+   "日月光 楠梓",
+   "ASE Group Chungli plant",
+   "ASE Technology headquarters Kaohsiung",
+   "Advanced Semiconductor Engineering Zhongli"
   ],
   "product_queries": [
    "chip packaging",
@@ -146,6 +202,37 @@
   "related_queries": [
    "semiconductor fab",
    "silicon wafer"
+  ],
+  "commons_categories": [
+   "ASE Technology Holding",
+   "Advanced Semiconductor Engineering",
+   "ASE Group",
+   "ASE Kaohsiung",
+   "ASE Chungli",
+   "ASE Technology",
+   "ASE Inc.",
+   "Nantze Export Processing Zone",
+   "Kaohsiung Export Processing Zone",
+   "ASE Test",
+   "ASE Singapore",
+   "ASE Group Kaohsiung",
+   "ASE Group Taiwan",
+   "ASE Kaohsiung plant",
+   "Nantze",
+   "ASE Weihai",
+   "ASE Technology Holding Co",
+   "日月光",
+   "日月光半導體"
+  ],
+  "credit_name": "日月光",
+  "official_sites": [
+   "https://www.aseglobal.com/",
+   "https://www.aseglobal.com/press-room/ase-breaks-ground-on-new-renwu-plant-to-build-hi-tech-testing-cluster",
+   "https://www.aseglobal.com/about-us/",
+   "https://www.aseglobal.com/press-room/",
+   "https://ase.aseglobal.com/about-us/",
+   "https://ase.aseglobal.com/press-room/",
+   "https://ase.aseglobal.com/"
   ]
  },
  {
@@ -310,6 +397,10 @@
   "related_queries": [
    "semiconductor fab",
    "silicon wafer"
+  ],
+  "commons_categories": [
+   "United Microelectronics Corporation",
+   "UMC"
   ]
  },
  {
@@ -536,6 +627,9 @@
   "related_queries": [
    "server rack",
    "data center servers"
+  ],
+  "commons_categories": [
+   "Wistron"
   ]
  },
  {
@@ -854,7 +948,18 @@
   "category": "PCB",
   "queries": [
    "Unimicron building",
-   "Unimicron headquarters"
+   "Unimicron headquarters",
+   "Unimicron Taoyuan Gueishan",
+   "Unimicron Shanghai",
+   "Unimicron Hsinchu Yangmei",
+   "欣興電子 桃園",
+   "欣興電子 新竹",
+   "Unimicron Technology building",
+   "Unimicron Taiwan factory",
+   "欣興電子 桃園 龜山",
+   "Unimicron Technology Shenzhen",
+   "Unimicron Yangmei",
+   "IC substrate flip chip"
   ],
   "product_queries": [
    "printed circuit board",
@@ -863,6 +968,31 @@
   ],
   "related_queries": [
    "printed circuit board"
+  ],
+  "commons_categories": [
+   "Unimicron",
+   "Unimicron Technology",
+   "Unimicron Technology Corp",
+   "Unimicron Shanghai",
+   "Unimicron Taoyuan",
+   "Unimicron Hsinchu",
+   "Unimicron Shenzhen",
+   "Unimicron Technology Corporation",
+   "Unimicron Corp",
+   "欣興電子",
+   "Unimicron Taoyuan plant",
+   "Unimicron building"
+  ],
+  "credit_name": "欣興",
+  "official_sites": [
+   "https://www.unimicron.com/product_HDI.html",
+   "https://www.unimicron.com/product_FCCSP.html",
+   "https://www.unimicron.com/about02.html",
+   "https://www.unimicron.com/about03.html",
+   "https://www.unimicron.com/about05.html",
+   "https://www.unimicron.com/about04.html",
+   "https://www.unimicron.com/",
+   "https://www.unimicron.com/en/"
   ]
  },
  {
@@ -1019,7 +1149,12 @@
   "queries": [
    "Nvidia headquarters Santa Clara",
    "Nvidia Endeavor building",
-   "Nvidia Voyager building"
+   "Nvidia Voyager building",
+   "Nvidia Endeavor building Santa Clara",
+   "NVIDIA Taiwan Beitou",
+   "Nvidia GeForce RTX card",
+   "Nvidia Jetson",
+   "Nvidia DGX"
   ],
   "product_queries": [
    "Nvidia GeForce graphics card",
@@ -1029,6 +1164,31 @@
   "related_queries": [
    "semiconductor fab",
    "silicon wafer"
+  ],
+  "commons_categories": [
+   "Nvidia headquarters",
+   "Nvidia buildings",
+   "Nvidia",
+   "NVIDIA Corporation",
+   "Nvidia products",
+   "Nvidia Endeavor",
+   "Nvidia Voyager",
+   "Nvidia GPUs",
+   "Nvidia graphics cards",
+   "Nvidia Tegra"
+  ],
+  "credit_name": "NVIDIA",
+  "official_sites": [
+   "https://www.nvidia.com/en-us/data-center/gb200-nvl72/",
+   "https://www.nvidia.com/en-us/data-center/dgx-b200/",
+   "https://www.nvidia.com/en-us/data-center/dgx-superpod/",
+   "https://www.nvidia.com/en-us/data-center/hgx/",
+   "https://nvidianews.nvidia.com/multimedia/corporate",
+   "https://www.nvidia.com/en-us/about-nvidia/headquarters/",
+   "https://nvidianews.nvidia.com/multimedia",
+   "https://www.nvidia.com/en-us/about-nvidia/",
+   "https://nvidianews.nvidia.com/",
+   "https://www.nvidia.com/en-us/data-center/"
   ]
  },
  {
@@ -1052,6 +1212,11 @@
   "related_queries": [
    "smartphone",
    "laptop computer"
+  ],
+  "commons_categories": [
+   "Apple Park",
+   "Apple Campus (Infinite Loop)",
+   "Apple Store buildings"
   ]
  },
  {
@@ -1074,6 +1239,10 @@
   "related_queries": [
    "data center",
    "server room"
+  ],
+  "commons_categories": [
+   "Microsoft Redmond campus",
+   "Microsoft buildings"
   ]
  },
  {
@@ -1102,6 +1271,12 @@
   "related_queries": [
    "data center",
    "server room"
+  ],
+  "commons_categories": [
+   "Googleplex",
+   "Google Bay View",
+   "Google offices",
+   "Google buildings"
   ]
  },
  {
@@ -1116,7 +1291,13 @@
    "Meta headquarters Menlo Park 1 Hacker Way",
    "Meta Platforms campus Menlo Park",
    "MPK 21 Menlo Park",
-   "Meta data center Prineville"
+   "Meta data center Prineville",
+   "Meta Menlo Park campus building",
+   "Facebook Prineville data center",
+   "Meta Quest 3 headset",
+   "Meta Ray-Ban glasses",
+   "Facebook headquarters Hacker Way",
+   "Meta London King's Cross"
   ],
   "product_queries": [
    "Meta Quest 3",
@@ -1126,7 +1307,22 @@
    "smartphone",
    "laptop computer"
   ],
-  "key": "meta"
+  "key": "meta",
+  "commons_categories": [
+   "Meta Platforms headquarters",
+   "Facebook headquarters",
+   "Meta Platforms offices",
+   "Meta Platforms",
+   "Facebook, Inc.",
+   "Meta Quest",
+   "Facebook data center",
+   "Meta Menlo Park",
+   "Facebook Menlo Park Campus",
+   "Meta Prineville data center",
+   "Facebook Prineville data center",
+   "MPK 20",
+   "Ray-Ban Meta"
+  ]
  },
  {
   "slug": "amazon",
@@ -1149,6 +1345,11 @@
   "related_queries": [
    "data center",
    "server room"
+  ],
+  "commons_categories": [
+   "Amazon Spheres",
+   "Amazon headquarters",
+   "Amazon fulfillment centers"
   ]
  },
  {
@@ -1170,6 +1371,10 @@
   "related_queries": [
    "network switch",
    "fiber optic cable"
+  ],
+  "commons_categories": [
+   "Broadcom Inc.",
+   "Broadcom buildings"
   ]
  },
  {
@@ -1193,6 +1398,11 @@
   "related_queries": [
    "semiconductor fab",
    "silicon wafer"
+  ],
+  "commons_categories": [
+   "AMD buildings",
+   "Advanced Micro Devices buildings",
+   "AMD headquarters"
   ]
  },
  {
@@ -1216,6 +1426,11 @@
   "related_queries": [
    "semiconductor fab",
    "silicon wafer"
+  ],
+  "commons_categories": [
+   "Intel headquarters",
+   "Robert Noyce Building",
+   "Intel buildings"
   ]
  },
  {
@@ -1231,7 +1446,21 @@
    "Samsung Electronics headquarters Suwon",
    "Samsung Digital City",
    "Samsung Town Seoul",
-   "Samsung Pyeongtaek"
+   "Samsung Pyeongtaek",
+   "Samsung Giheung campus",
+   "Samsung Hwaseong semiconductor",
+   "Samsung Electronics Suwon building",
+   "Samsung Austin Semiconductor",
+   "Samsung Seocho Town",
+   "Samsung Galaxy phone",
+   "Samsung Digital City Suwon building",
+   "Samsung Electronics Giheung",
+   "Samsung Electronics Pyeongtaek Campus",
+   "Samsung Galaxy S24",
+   "Samsung Galaxy S23 smartphone",
+   "Samsung Galaxy Z Flip",
+   "Samsung Seocho Samsung Town",
+   "삼성전자 수원 디지털시티"
   ],
   "product_queries": [
    "Samsung memory",
@@ -1241,7 +1470,42 @@
   "related_queries": [
    "DRAM chips",
    "memory module"
-  ]
+  ],
+  "commons_categories": [
+   "Samsung Digital City",
+   "Samsung Electronics buildings",
+   "Samsung Town",
+   "Samsung Electronics",
+   "Samsung Electronics headquarters",
+   "Samsung Electronics Pyeongtaek",
+   "Samsung Pyeongtaek Campus",
+   "Samsung Semiconductor",
+   "Samsung Austin Semiconductor",
+   "Samsung Giheung",
+   "Samsung Hwaseong",
+   "Samsung Electronics headquarters Suwon",
+   "Samsung Electronics Giheung Campus",
+   "Samsung Electronics Hwaseong Campus",
+   "Samsung Electronics Seocho",
+   "Samsung Seocho Tower",
+   "Samsung Digital City Suwon",
+   "Samsung Semiconductor Pyeongtaek",
+   "Samsung Electronics Co. buildings"
+  ],
+  "credit_name": "三星",
+  "official_sites": [
+   "https://semiconductor.samsung.com/about-us/locations/",
+   "https://news.samsungsemiconductor.com/global/a-scale-beyond-imagination-inside-samsungs-massive-semiconductor-fabs/",
+   "https://semiconductor.samsung.com/about-us/",
+   "https://news.samsungsemiconductor.com/global/?p=2899",
+   "https://semiconductor.samsung.com/dram/hbm/",
+   "https://news.samsung.com/global/photos",
+   "https://news.samsungsemiconductor.com/global/",
+   "https://news.samsung.com/global/"
+  ],
+  "official_credit": {
+   "samsungsemiconductor.com": "圖：Samsung Semiconductor Newsroom"
+  }
  },
  {
   "slug": "sk_hynix",
@@ -1267,7 +1531,11 @@
    "DRAM chips",
    "memory module"
   ],
-  "key": "hynix"
+  "key": "hynix",
+  "commons_categories": [
+   "SK Hynix",
+   "SK hynix buildings"
+  ]
  },
  {
   "slug": "micron",
@@ -1291,6 +1559,10 @@
   "related_queries": [
    "DRAM chips",
    "memory module"
+  ],
+  "commons_categories": [
+   "Micron Technology",
+   "Micron Technology buildings"
   ]
  },
  {
@@ -1304,7 +1576,10 @@
   "queries": [
    "ASML Veldhoven headquarters",
    "ASML campus Veldhoven",
-   "ASML building Veldhoven"
+   "ASML building Veldhoven",
+   "ASML headquarters Veldhoven",
+   "ASML De Run 6501",
+   "ASML campus Veldhoven aerial"
   ],
   "product_queries": [
    "ASML EUV lithography machine",
@@ -1315,7 +1590,18 @@
    "semiconductor fab",
    "silicon wafer"
   ],
-  "key": "asml"
+  "key": "asml",
+  "commons_categories": [
+   "ASML Holding",
+   "ASML Veldhoven",
+   "ASML",
+   "ASML headquarters",
+   "ASML buildings",
+   "ASML Netherlands",
+   "ASML Wilton",
+   "ASML machines",
+   "ASML (company)"
+  ]
  },
  {
   "slug": "tesla",
@@ -1329,7 +1615,12 @@
    "Tesla Gigafactory Texas",
    "Gigafactory Nevada",
    "Tesla Fremont factory",
-   "Tesla headquarters Austin"
+   "Tesla headquarters Austin",
+   "Tesla Giga Texas aerial",
+   "Tesla Fremont Factory building",
+   "Tesla Gigafactory Berlin Grünheide",
+   "Tesla Model Y exterior",
+   "Tesla Cybertruck street"
   ],
   "product_queries": [
    "Tesla Model 3",
@@ -1339,6 +1630,21 @@
   "related_queries": [
    "car assembly line",
    "electric car"
+  ],
+  "commons_categories": [
+   "Giga Texas",
+   "Tesla Fremont Factory",
+   "Giga Berlin",
+   "Gigafactory Nevada",
+   "Gigafactory Shanghai",
+   "Tesla Gigafactory Texas",
+   "Tesla Giga Texas",
+   "Tesla Inc.",
+   "Tesla headquarters",
+   "Tesla Supercharger",
+   "Tesla Model Y",
+   "Tesla Model 3",
+   "Tesla Cybertruck"
   ]
  },
  {
@@ -1382,6 +1688,10 @@
   "related_queries": [
    "semiconductor fab",
    "silicon wafer"
+  ],
+  "commons_categories": [
+   "Qualcomm buildings",
+   "Qualcomm headquarters"
   ]
  },
  {
@@ -1393,7 +1703,13 @@
   "category": "資料中心",
   "queries": [
    "Anthropic office San Francisco",
-   "Anthropic headquarters Howard Street"
+   "Anthropic headquarters Howard Street",
+   "Anthropic San Francisco office building",
+   "500 Howard Street",
+   "Anthropic Claude logo office",
+   "Anthropic San Francisco 500 Howard",
+   "Anthropic Seattle office",
+   "Google TPU data center"
   ],
   "product_queries": [
    "data center GPU servers",
@@ -1402,7 +1718,31 @@
   "related_queries": [
    "San Francisco SoMa skyline"
   ],
-  "key": "anthropic"
+  "key": "anthropic",
+  "commons_categories": [
+   "Anthropic",
+   "Claude (language model)",
+   "Anthropic headquarters",
+   "500 Howard Street San Francisco",
+   "Claude (chatbot)",
+   "Anthropic PBC",
+   "Dario Amodei",
+   "500 Howard Street",
+   "Salesforce Tower San Francisco",
+   "Anthropic Claude"
+  ],
+  "credit_name": "Anthropic",
+  "official_sites": [
+   "https://www.anthropic.com/careers",
+   "https://claude.com/download",
+   "https://www.claude.com/product/claude-code",
+   "https://www.claude.com/product/overview",
+   "https://www.anthropic.com/claude",
+   "https://www.claude.com/",
+   "https://www.anthropic.com/company",
+   "https://www.anthropic.com/news",
+   "https://www.anthropic.com/"
+  ]
  },
  {
   "slug": "openai",
@@ -1413,7 +1753,10 @@
   "category": "資料中心",
   "queries": [
    "OpenAI headquarters San Francisco",
-   "OpenAI office Pioneer Building"
+   "OpenAI office Pioneer Building",
+   "Pioneer Building San Francisco OpenAI",
+   "Stargate Abilene data center",
+   "OpenAI Mission District"
   ],
   "product_queries": [
    "data center servers",
@@ -1422,6 +1765,15 @@
   "related_queries": [
    "data center",
    "server room"
+  ],
+  "commons_categories": [
+   "OpenAI",
+   "OpenAI headquarters",
+   "Pioneer Building San Francisco",
+   "Pioneer Building (San Francisco)",
+   "ChatGPT",
+   "OpenAI Stargate",
+   "Stargate Abilene"
   ]
  },
  {
@@ -1443,6 +1795,11 @@
   ],
   "related_queries": [
    "data center"
+  ],
+  "commons_categories": [
+   "Oracle headquarters",
+   "Oracle Corporation buildings",
+   "Oracle Corporation"
   ]
  },
  {
@@ -1456,7 +1813,17 @@
   "category": "半導體",
   "queries": [
    "Arm Holdings headquarters Cambridge",
-   "ARM Ltd building Cambridge"
+   "ARM Ltd building Cambridge",
+   "Arm Limited Cambridge headquarters",
+   "ARM Cortex-A chip die",
+   "110 Fulbourn Road",
+   "Arm Holdings Peterhouse Technology Park",
+   "Arm headquarters Cambridge England building",
+   "ARM Holdings Fulbourn Road Cambridge",
+   "ARM Cortex-M chip",
+   "Arm Limited Cambridge",
+   "Arm Holdings office Cambridge",
+   "ARM1 processor"
   ],
   "product_queries": [
    "ARM processor chip",
@@ -1464,6 +1831,34 @@
   ],
   "related_queries": [
    "integrated circuit die"
+  ],
+  "commons_categories": [
+   "Arm Holdings",
+   "Arm Ltd",
+   "ARM architecture",
+   "ARM Holdings",
+   "ARM processors",
+   "Arm Holdings headquarters",
+   "ARM Cambridge",
+   "Raspberry Pi",
+   "Arm Cortex",
+   "Arm Limited Cambridge",
+   "110 Fulbourn Road Cambridge",
+   "ARM Holdings headquarters Cambridge",
+   "ARM architecture chip",
+   "Arm Cortex-A",
+   "Arm Neoverse",
+   "ARM Cortex",
+   "Arm Holdings Cambridge Peterhouse Technology Park"
+  ],
+  "credit_name": "Arm",
+  "official_sites": [
+   "https://newsroom.arm.com/media",
+   "https://newsroom.arm.com/news",
+   "https://www.arm.com/company/offices",
+   "https://www.arm.com/company",
+   "https://newsroom.arm.com/",
+   "https://www.arm.com/"
   ]
  },
  {
@@ -2130,6 +2525,205 @@
   ],
   "related_queries": [
    "solid state drive"
+  ]
+ },
+ {
+  "slug": "coreweave",
+  "name_en": "CoreWeave",
+  "zh": [
+   "CoreWeave"
+  ],
+  "category": "資料中心",
+  "queries": [
+   "CoreWeave data center",
+   "CoreWeave office",
+   "CoreWeave Livingston New Jersey",
+   "CoreWeave headquarters",
+   "CoreWeave Livingston office",
+   "CoreWeave Lancaster data center",
+   "CoreWeave Ellendale",
+   "Nvidia GB200 NVL72 rack",
+   "Nvidia H100 server"
+  ],
+  "product_queries": [
+   "GPU servers data center"
+  ],
+  "related_queries": [
+   "data center"
+  ],
+  "commons_categories": [
+   "CoreWeave",
+   "CoreWeave, Inc.",
+   "CoreWeave data centers",
+   "Core Scientific",
+   "CoreWeave headquarters",
+   "Livingston, New Jersey",
+   "Core Scientific data centers",
+   "CoreWeave Nvidia GB200",
+   "Data centers in New Jersey"
+  ],
+  "key": "coreweave",
+  "credit_name": "CoreWeave",
+  "official_sites": [
+   "https://www.coreweave.com/newsroom",
+   "https://www.coreweave.com/platform",
+   "https://www.coreweave.com/data-centers",
+   "https://www.coreweave.com/products/gpu-compute",
+   "https://www.coreweave.com/blog",
+   "https://www.coreweave.com/about-us",
+   "https://www.coreweave.com/"
+  ]
+ },
+ {
+  "slug": "nanya_tech",
+  "name_en": "Nanya Technology",
+  "zh": [
+   "南亞科",
+   "南亞科技"
+  ],
+  "category": "記憶體",
+  "queries": [
+   "Nanya Technology building",
+   "Nanya Technology headquarters",
+   "Nanya Technology Corporation Linkou",
+   "Nanya Technology Taoyuan Guishan",
+   "南亞科技 林口",
+   "Nanya DDR4 memory module",
+   "Nanya DDR3 SDRAM module",
+   "Nanya Technology DRAM chip",
+   "南亞科技 新北 泰山",
+   "Nanya Technology Corporation Taishan campus"
+  ],
+  "product_queries": [
+   "DRAM module",
+   "DDR5 memory module"
+  ],
+  "related_queries": [
+   "DRAM chips"
+  ],
+  "commons_categories": [
+   "Nanya Technology",
+   "Nanya Technology Corporation",
+   "Nanya Technology Corp",
+   "Nanya DRAM",
+   "Nanya Technology buildings",
+   "Taishan, New Taipei",
+   "Nanya Technology Corporation headquarters",
+   "Nanya Technology Linkou",
+   "Linkou District",
+   "Nanya DDR4",
+   "Nanya DRAM modules",
+   "Nanya Technology Taoyuan"
+  ],
+  "key": "nanya",
+  "credit_name": "南亞科",
+  "official_sites": [
+   "https://www.nanya.com/ESG/tw",
+   "https://www.nanya.com/ESG/en",
+   "https://www.nanya.com/en/About/",
+   "https://www.nanya.com/tw/CSR/",
+   "https://www.nanya.com/tw/About/",
+   "https://www.nanya.com/tw/",
+   "https://www.nanya.com/en/"
+  ]
+ },
+ {
+  "slug": "nan_ya_pcb",
+  "name_en": "Nan Ya PCB",
+  "zh": [
+   "南電",
+   "南亞電路板"
+  ],
+  "category": "PCB",
+  "queries": [
+   "Nan Ya PCB",
+   "Nan Ya Printed Circuit Board",
+   "Nan Ya PCB Shulin",
+   "Nan Ya PCB Kunshan",
+   "南亞電路板 樹林",
+   "南亞電路板 桃園",
+   "Nan Ya PCB ABF substrate",
+   "Nan Ya PCB Kunshan factory",
+   "南亞電路板 樹林廠",
+   "Nan Ya Printed Circuit Board Taoyuan",
+   "ABF substrate flip chip BGA"
+  ],
+  "product_queries": [
+   "IC substrate",
+   "printed circuit board"
+  ],
+  "related_queries": [
+   "printed circuit board"
+  ],
+  "commons_categories": [
+   "Nan Ya PCB",
+   "Nan Ya PCB Corporation",
+   "Nan Ya Printed Circuit Board Corporation",
+   "Nan Ya Printed Circuit Board",
+   "Formosa Plastics Group",
+   "Nanya Plastics",
+   "Nan Ya PCB Corp",
+   "Nan Ya Printed Circuit Board Corp.",
+   "Nan Ya PCB Kunshan",
+   "Nan Ya PCB Shulin Plant",
+   "Nan Ya PCB Taoyuan plant",
+   "Nanya PCB"
+  ],
+  "key": "nan ya",
+  "credit_name": "南電",
+  "official_sites": [
+   "https://www.nanyapcb.com.tw/nypcb/chinese/AboutNanYaPCB/Locations/Location",
+   "https://www.nanyapcb.com.tw/nypcb/english/index",
+   "https://www.nanyapcb.com.tw/",
+   "https://www.nanyapcb.com.tw/en/"
+  ]
+ },
+ {
+  "slug": "eml",
+  "name_en": "Elite Material",
+  "zh": [
+   "台光電"
+  ],
+  "category": "PCB",
+  "queries": [
+   "Elite Material Co building",
+   "Elite Material Taoyuan Zhongli",
+   "Elite Material Co Ltd building",
+   "台光電子 桃園",
+   "台光電子 楊梅",
+   "Elite Material Co. Ltd Taiwan",
+   "EMC Elite Material laminate",
+   "Elite Material Taoyuan Yangmei plant",
+   "台光電子材料",
+   "Elite Material Kunshan"
+  ],
+  "product_queries": [
+   "copper clad laminate",
+   "printed circuit board"
+  ],
+  "related_queries": [
+   "printed circuit board"
+  ],
+  "commons_categories": [
+   "Elite Material",
+   "Elite Material Co., Ltd.",
+   "Elite Material Company",
+   "Elite Material Co.",
+   "Elite Material Taoyuan",
+   "Elite Material Corporation",
+   "Elite Material Co Ltd",
+   "Elite Material Co., Ltd",
+   "EMC copper clad laminate",
+   "Elite Material Corporation Taiwan",
+   "Taoyuan Zhongli Industrial Zone"
+  ],
+  "key": "elite",
+  "credit_name": "台光電",
+  "official_sites": [
+   "https://www.emctw.com/zh-TW/about_production/index",
+   "https://www.emctw.com/en-global/about_production/index",
+   "https://www.emctw.com/",
+   "https://www.emctw.com/en/"
   ]
  }
 ]

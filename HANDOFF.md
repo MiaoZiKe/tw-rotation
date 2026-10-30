@@ -1,5 +1,23 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
+## 2026-10-30 公司封面照片改可用官方照片（Andy：「改成接用 並標明出處 是可以的」；DECISIONS #373；最後更新 10-30 台北）
+- 規則：`photo_lib_review.md` 第九節〇（license=`official-press`、署名「圖：<公司名>官方」、仍不准人物主角／媒體照／標誌主視覺／AI 圖）；`render_news_cards.license_ok()` 只收允許的授權值、`credit_of()` 印官方署名；選圖順序不變（主體公司已審圖 → 類別池 → 通用池）。
+- 抓圖：`company_photos.yml` 手動觸發 `source=official`（`scripts/company_photos_official.py`，Playwright＋報告書 PDF 取圖），`targets.json` 的 `official_sites`／`credit_name`／`official_credit`。
+- 第一批審核（第十節）：台積電 8（官方 5）、NVIDIA 6（官方 3）、三星 5（官方 3）、Arm 3、日月光 3、CoreWeave 2、欣興 2、南電 1、Anthropic 0、南亞科 0、台光電 0。
+- **待處理**：Anthropic／南亞科／台光電／南電／CoreWeave／欣興未達 3 張——官網沒有可用實景（人物、CG、字卡為主）；這幾家封面仍走類別池（有圖、不擋發文）。下一步在 `official_sites` 直接填官方永續報告書 PDF 網址再跑一輪，或請公關提供。
+- 這批只驗：`pytest tests/test_photo_pool.py tests/test_social_news.py`（48 passed）＋ 6 張範例封面重疊檢查 0 筆。
+
+## 2026-10-30 封面照片：跟公司有關一律先用主體公司照片（Andy：「相這種跟公司有關的 優先附上公司圖片」；最後更新 10-30 台北）
+- 事故：10-30 早上緊急加發「Alphabet 跌 12.6%」，手寫渲染腳本直接指定 Intel 圖池 → 封面配成 Intel 處理器。
+- 改：`render_news_cards.photo_pick` 主體公司已審圖池最優先（蓋過常備文庫指定池／台股大盤圖）、`company_slug()` 主體名稱模糊比對、公司池「相關場景」排最後；手動加發一律 `python scripts/news_cover.py <post.json> <輸出.jpg>`。規則：`news_post_rules.md` 第十二節。測試：`tests/test_photo_pool.py`。
+- 照片：`company_photos.py` 加 Commons 公司分類抓法（`targets.json` 的 `commons_categories`），新增 CoreWeave／南亞科／南電／台光電；run 40987929655 抓 103 張，第五輪審核通過 27／退件 76（`photo_lib_review.md` 第七節）。
+- 待處理：CoreWeave、Anthropic、南亞科、南電、台光電、ASML 仍 0 張已審公司圖（退該公司類別池）；台積電、鴻海、聯發科、廣達、三星、OpenAI 只有 1～3 張 → 換更精準的 Commons 分類名重抓。這批只跑了 pytest 全套（1532 passed）＋ test_social_news／test_photo_pool；沒動 site/，不需部署。
+
+## 2026-10-29 盤後保底＋法人補充貼文＋inst 輪加速（事故：盤後主貼文到 18:25 沒發；最後更新 10-29 台北）
+- 盤後 19:00 後法人卡仍是昨天 → 拿掉法人三張、其他當天卡照發（文案標「法人個股明細晚到，稍後補」），法人到了自動補發 `close-inst-<日期>`。細節見 docs/marketing/social_unit/auto_post.md 修改紀錄。
+- daily.yml inst 輪沒新增今天法人就不整站重算、不部署（`rebuild` 輸出）。
+- 這批驗了：tests/test_social*.py、test_gh_cron.py、test_inst_phase.py；本機 --now 19:05 跑 social_snap close 保底實測產出 2 張圖＋文案。
+
 ## 2026-10-29 新聞主體誤判修正（「外資大砍友達」被判成台積電，相關公司跟著列錯；最後更新 10-29 台北）
 - `scripts/social_news.py` 的 `subject_of`：改以標題為準（標題最先出現的公司／機構；新聞代號清單裡有的優先）；籌碼類（外資／投信／自營商／三大法人）以被買賣的那家為主；兩字簡稱不在代號清單裡就不採用（「再生」「星通」「新產」）；新聞代號只在標題沒有主體、且只有一檔或摘要寫到它時才當備援；有台股代號的新聞不再從摘要撈英文字當主體。
 - 近三天 443 則重跑：27 則主體改變，逐則確認（清單在本次回報）。可發篇數 74 → 73（少的是原本主體錯的那篇）。這批只驗 `tests/test_social_news.py`、`tests/test_threads_post.py`。

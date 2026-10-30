@@ -4,7 +4,7 @@ Andy 10-28 原話：新聞卡上方的大數字灰框改成「對應的實景圖
 
 ## 一、來源與入庫
 
-- 只用 Wikimedia Commons 的 **CC0／CC BY／CC BY-SA／公有領域**照片；禁止新聞媒體照片、Google 圖片、公司官網照片、任何 LOGO 圖。
+- 來源兩種：① Wikimedia Commons 的 **CC0／CC BY／CC BY-SA／公有領域**照片；② **公司官方新聞室／媒體資源／官網的照片**（2026-10-30 Andy 拍板「改成接用 並標明出處 是可以的」，`license=official-press`，卡上標「圖：<公司名>官方」，規則見第九節〇）。禁止新聞媒體（新聞社）拍的照片、Google 圖片、任何 LOGO 圖、AI 生圖。
 - 抓圖：`.github/workflows/company_photos.yml`（手動觸發＋每週一 03:17 台北）跑 `scripts/company_photos.py`，名單在 `social/photo_lib/targets.json`，中文主體名→slug 對照在 `social/photo_lib/aliases.json`（只做「完全相同名稱」比對，避免「南亞」吃到「南亞科」）。
 - 每家存 `social/photo_lib/<slug>/photo.jpg`（原色、只縮放到寬 ≤1920）＋`meta.json`（license、author、source_url、file_title、reviewed:false）。
 - 已審核（reviewed:true）的圖排程重抓時不會被覆蓋。
@@ -289,3 +289,374 @@ _category/網通、advantech、anthropic、asml、cathay、fareastone、first_fi
 | social/photo_lib/wanhai | 2 | 1 |
 | social/photo_lib/wdc | 2 | 0 |
 | social/photo_lib/yangming | 1 | 1 |
+
+
+## 第七節　第五輪：公司照片優先（2026-10-30）
+
+> Andy 10-30（看著緊急加發「Alphabet 跌 12.6%」封面配了 Intel 處理器照片）：「相這種跟公司有關的 優先附上公司圖片」。
+> 抓圖：`company_photos.yml` run 40987929655（2026-10-30 09:47 台北，32 家，`category=none`），新增 Commons 公司分類抓法（`targets.json` 的 `commons_categories`）。commit a1b0fb52。
+> 審核：照第三節 9 項逐張看（952×424 中段裁切聯絡表＋關鍵幾張全解析度），執行者 social-ops-lead（照 art-director 清單）。共 103 張：通過 27／退件 76。授權全部是 CC0／CC BY／CC BY-SA／公有領域，作者與原始網址已存在 pool.json。
+> 退件主因：人物為主角（官方參訪照）、施工中、同名不同公司（上海／汐止「日月光」住宅區）、他牌產品、LOGO 為主角。
+
+| slug／檔名 | 授權 | 結論 | 說明 |
+|---|---|---|---|
+| alphabet/photo_5.jpg | CC BY-SA 4.0 | 通過 | Google 山景城園區的公司自行車（Google 配色），辨識度高、原色、無人臉 |
+| alphabet/photo_6.jpg | CC BY-SA 4.0 | 退件 | Google LOGO 特寫為畫面主角（審核項 4） |
+| alphabet/photo_7.jpg | CC BY-SA 4.0 | 退件 | 地面自行車標線，辨識不足 |
+| alphabet/photo_8.jpg | CC BY-SA 4.0 | 通過 | Google 園區公司自行車，日間、構圖乾淨 |
+| microsoft/photo_9.jpg | CC BY 2.0 | 通過 | Microsoft 雷德蒙園區 Building 42，日間、雪景，無人臉 |
+| microsoft/photo_10.jpg | CC BY 2.0 | 退件 | 雜亂工作台，與 Microsoft 無直接關聯（審核項 9） |
+| microsoft/photo_11.jpg | CC0 | 退件 | 線材特寫，無法辨識公司 |
+| microsoft/photo_12.jpg | Public domain | 通過 | Microsoft 園區 Building 17 正門，日間、構圖乾淨 |
+| microsoft/photo_13.jpg | Public domain | 退件 | 地圖（非實景照片） |
+| apple/photo_6.jpg | CC BY-SA 4.0 | 通過 | Apple Park 環形主建築（樹後），黃昏原色、主體可辨 |
+| apple/photo_7.jpg | CC BY-SA 4.0 | 退件 | Apple Park 模型、室內偏暗 |
+| apple/photo_8.jpg | CC BY 2.0 | 退件 | 人物為主角（審核項 3） |
+| apple/photo_9.jpg | CC BY-SA 4.0 | 通過 | Apple Park 建築入口，日間、構圖乾淨 |
+| amazon/photo_8.jpg | CC BY-SA 4.0 | 通過 | Amazon Spheres 空拍，西雅圖總部園區 |
+| amazon/photo_9.jpg | CC BY-SA 4.0 | 通過 | Amazon Spheres 外觀，日間 |
+| amazon/photo_10.jpg | CC BY-SA 2.0 | 退件 | Spheres 室內噴霧特寫，辨識不足 |
+| amazon/photo_11.jpg | CC BY-SA 4.0 | 通過 | Amazon Spheres 外觀，日間（檔名為西雅圖街景，畫面主體即 Spheres） |
+| nvidia/photo_6.jpg | CC BY 2.0 | 退件 | 展場人群可辨識人臉（審核項 3） |
+| nvidia/photo_7.jpg | CC BY 2.0 | 退件 | 人物為主角（審核項 3） |
+| nvidia/photo_8.jpg | CC BY 2.0 | 退件 | 特斯拉汽車，非 NVIDIA（主體錯誤） |
+| nvidia/photo_9.jpg | CC BY-SA 4.0 | 通過 | NVIDIA GPU 晶片特寫（代表產品），清晰，字樣為產品本身印字 |
+| nvidia/photo_10.jpg | CC0 | 退件 | 他家展示機台，非 NVIDIA（主體錯誤） |
+| intel/photo_6.jpg | CC BY-SA 4.0 | 通過 | Intel 聖塔克拉拉總部，日間、藍天 |
+| amd/photo_6.jpg | CC BY-SA 3.0 | 通過 | AMD 森尼韋爾總部，日間 |
+| amd/photo_7.jpg | CC BY-SA 3.0 de | 退件 | 港口筒倉，非 AMD（主體錯誤） |
+| amd/photo_8.jpg | CC BY-SA 4.0 | 退件 | 2004 年施工中工地（審核項 8） |
+| amd/photo_9.jpg | CC BY-SA 3.0 de | 退件 | 港口筒倉，非 AMD（主體錯誤） |
+| broadcom/photo_4.jpg | CC BY-SA 4.0 | 通過 | Broadcom 晶片特寫（代表產品），清晰 |
+| micron/photo_7.jpg | Public domain | 退件 | 人物為主角（審核項 3） |
+| micron/photo_8.jpg | CC BY 2.0 | 退件 | 人物為主角（審核項 3） |
+| micron/photo_9.jpg | Public domain | 退件 | 人物為主角（審核項 3） |
+| micron/photo_10.jpg | CC BY-SA 4.0 | 通過 | Micron（Crucial）DDR4 伺服器記憶體模組（代表產品），背景乾淨 |
+| tesla/photo_10.jpg | CC BY 4.0 | 退件 | 施工中鋼構（審核項 8） |
+| tesla/photo_11.jpg | CC BY 4.0 | 退件 | 施工現場（審核項 8） |
+| tesla/photo_12.jpg | CC BY 4.0 | 退件 | 施工中鋼構（審核項 8） |
+| oracle/photo_4.jpg | CC BY-SA 4.0 | 退件 | 印度科技園區夜景，看不出 Oracle |
+| oracle/photo_5.jpg | CC0 | 通過 | Oracle 聖荷西大樓仰角，招牌為建築一部分 |
+| oracle/photo_6.jpg | CC BY-SA 3.0 | 退件 | 灰暗、看不出 Oracle |
+| oracle/photo_7.jpg | CC BY-SA 4.0 | 通過 | Oracle 科羅拉多泉辦公大樓，日間、招牌小 |
+| oracle/photo_8.jpg | CC BY 2.0 | 退件 | 人物為主角（審核項 3） |
+| coreweave/photo_1.jpg | CC0 | 退件 | 債券殖利率圖表（非實景照片） |
+| coreweave/photo_2.jpg | CC BY 4.0 | 退件 | Microsoft 資料中心，非 CoreWeave（主體錯誤） |
+| openai/photo_9.jpg | Public domain | 退件 | 賽車塗裝，與 OpenAI 公司實景無關、易誤導 |
+| openai/photo_10.jpg | Public domain | 退件 | 賽車塗裝，易誤導 |
+| openai/photo_11.jpg | Public domain | 退件 | 賽車塗裝，易誤導 |
+| anthropic/photo_6.jpg | CC BY 2.0 | 退件 | 人物為主角（審核項 3） |
+| anthropic/photo_7.jpg | CC BY 2.0 | 退件 | 人物為主角（審核項 3） |
+| anthropic/photo_8.jpg | CC BY-SA 2.0 | 退件 | 舊金山夜景，非 Anthropic 公司主體 |
+| samsung/photo_8.jpg | CC BY 2.0 | 退件 | 首爾街景，看不出三星 |
+| samsung/photo_9.jpg | CC BY-SA 3.0 | 退件 | 首爾街景，看不出三星 |
+| samsung/photo_10.jpg | CC BY-SA 2.0 | 退件 | 漢江人工島，非三星 |
+| samsung/photo_11.jpg | CC BY-SA 4.0 | 退件 | 首爾街景，看不出三星 |
+| sk_hynix/photo_5.jpg | CC0 | 退件 | 多家公司 LOGO 拼貼（審核項 4） |
+| sk_hynix/photo_6.jpg | CC BY-SA 4.0 | 通過 | SK hynix DDR5 記憶體模組（代表產品），標籤清楚 |
+| sk_hynix/photo_7.jpg | CC BY-SA 4.0 | 通過 | SK hynix DDR5 SO-DIMM（代表產品） |
+| tsmc/photo_6.jpg | CC BY 2.0 | 退件 | 人物為主角（審核項 3） |
+| tsmc/photo_7.jpg | CC BY 2.0 | 退件 | 人物為主角（審核項 3） |
+| tsmc/photo_8.jpg | CC BY-SA 4.0 | 退件 | 徵才活動人群（審核項 3） |
+| tsmc/photo_9.jpg | CC0 | 退件 | 攤位人物（審核項 3） |
+| mediatek/photo_4.jpg | CC BY-SA 2.0 | 退件 | 手部與小產品特寫、辨識不足 |
+| mediatek/photo_5.jpg | CC BY-SA 4.0 | 通過 | 聯發科新竹總部（篤行一路 1 號），招牌立牌為場景一部分，日間 |
+| foxconn/photo_5.jpg | CC BY-SA 4.0 | 通過 | 鴻海土城頂埔廠大門與廠區，日間、無人臉 |
+| foxconn/photo_6.jpg | Public domain | 退件 | 人物為主角（審核項 3） |
+| foxconn/photo_7.jpg | CC BY-SA 4.0 | 退件 | 主機板局部，看不出鴻海 |
+| foxconn/photo_8.jpg | CC BY-SA 4.0 | 退件 | 散熱片局部，辨識不足 |
+| quanta/photo_5.jpg | CC BY-SA 2.0 | 通過 | 廣達雲端伺服器（COSCUP 展示），代表產品，景深乾淨 |
+| quanta/photo_6.jpg | CC BY 2.0 | 退件 | 人物為主角（審核項 3） |
+| quanta/photo_7.jpg | CC BY 2.0 | 退件 | 2008 年舊產品、他牌展示卡入鏡 |
+| quanta/photo_8.jpg | CC BY-SA 2.0 | 退件 | LOGO 牆為主角（審核項 4） |
+| wistron/photo_8.jpg | CC0 | 通過 | 緯創越南廠區，招牌為場景一部分 |
+| wistron/photo_9.jpg | CC BY-SA 4.0 | 退件 | 子公司緯創軟體大廳、LOGO 為主角 |
+| wistron/photo_10.jpg | CC0 | 退件 | 公車亭為主角，非公司建築 |
+| wistron/photo_11.jpg | CC0 | 通過 | 緯創捷克廠區建築，黃昏原色 |
+| ase/photo_7.jpg | CC BY 3.0 | 退件 | 上海「日月光」住宅區，同名不同公司（主體錯誤） |
+| ase/photo_8.jpg | CC BY 3.0 | 退件 | 汐止「日月光中心」，同名不同公司（主體錯誤） |
+| ase/photo_9.jpg | CC BY 2.0 | 退件 | 無塵衣人物為主角（審核項 3） |
+| ase/photo_10.jpg | CC BY 2.0 | 退件 | 無塵衣人物為主角（審核項 3） |
+| umc/photo_2.jpg | CC BY-SA 3.0 | 退件 | 招牌立牌為畫面主角（審核項 4） |
+| umc/photo_3.jpg | CC BY-SA 4.0 | 通過 | 聯電 8AB 廠外觀，日間 |
+| umc/photo_4.jpg | CC BY-SA 4.0 | 通過 | 聯電竹科聯合大樓，日間藍天 |
+| unimicron/photo_5.jpg | CC BY-SA 4.0 | 退件 | 1970 年代他牌電路板，非欣興 |
+| nanya_tech/photo_1.jpg | CC BY 2.0 | 退件 | 人物為主角（審核項 3） |
+| nanya_tech/photo_2.jpg | CC BY 2.0 | 退件 | 動土典禮會場（事件畫面） |
+| nanya_tech/photo_3.jpg | CC BY 2.0 | 退件 | 祭祀供品特寫，非公司實景 |
+| nanya_tech/photo_4.jpg | CC BY 2.0 | 退件 | 人物與媒體（審核項 3） |
+| nanya_tech/photo_5.jpg | CC BY-SA 4.0 | 退件 | Infineon 產品，他牌 LOGO（主體錯誤） |
+| nanya_tech/photo_6.jpg | CC BY-SA 4.0 | 退件 | Infineon 產品，他牌 LOGO（主體錯誤） |
+| nanya_tech/photo_7.jpg | CC BY-SA 4.0 | 退件 | TI 晶片，他牌 LOGO（主體錯誤） |
+| nan_ya_pcb/photo_1.jpg | CC BY-SA 4.0 | 退件 | 1970 年代他牌電路板，非南電 |
+| nan_ya_pcb/photo_2.jpg | CC BY 4.0 | 退件 | 他牌音響電路板，非南電 |
+| nan_ya_pcb/photo_3.jpg | CC BY-SA 3.0 | 退件 | 他牌電路板，非南電 |
+| eml/photo_1.jpg | CC BY-SA 4.0 | 退件 | 倫敦街景倒影，非台光電（主體錯誤） |
+| eml/photo_2.jpg | CC BY-SA 4.0 | 退件 | 倫敦街景倒影，非台光電（主體錯誤） |
+| eml/photo_3.jpg | CC BY-SA 4.0 | 退件 | 他牌 DVD 電路板，非台光電 |
+| eml/photo_4.jpg | CC BY-SA 4.0 | 退件 | 他牌電路板，非台光電 |
+| eml/photo_5.jpg | CC BY 2.0 | 退件 | 他牌電路板，非台光電 |
+| delta/photo_9.jpg | CC BY-SA 4.0 | 退件 | 警告標籤為主角 |
+| delta/photo_10.jpg | CC BY-SA 3.0 | 退件 | 陰天灰暗、建築同框他家公司，主體存疑 |
+| delta/photo_11.jpg | CC BY-SA 4.0 | 通過 | 台達電太陽能逆變器（2019 電腦展），代表產品 |
+| delta/photo_12.jpg | CC BY-SA 4.0 | 通過 | 台達電鋰電池模組（2019 電腦展），代表產品 |
+| arm/photo_5.jpg | Public domain | 退件 | 手寫信件，與 Arm 無關（主體錯誤） |
+| arm/photo_6.jpg | CC BY-SA 4.0 | 退件 | Raspberry Pi 板子，非 Arm（他牌） |
+| arm/photo_7.jpg | CC BY-SA 4.0 | 退件 | 他牌 PROM 晶片，非 Arm |
+
+審完各家已審張數：Alphabet 5、Microsoft 5、Apple 6、Amazon 7、Meta 2、NVIDIA 3、Intel 5、AMD 4、Broadcom 2、Micron 4、Tesla 1、Oracle 4、OpenAI 1、三星 1、SK 海力士 2、台積電 3、聯發科 1、鴻海 1、廣達 1、緯創 4、日月光 2、聯電 2、欣興 2、台達電 5、Qualcomm 2、Arm 1。**仍是 0 張**（主體出現時退到該公司類別池，不會用別家公司圖）：CoreWeave、Anthropic、南亞科、南電、台光電、ASML。下一步：`targets.json` 換更精準的 Commons 分類名重抓。
+
+## 第八節　art-director 複審 10-30（2026-10-30）
+
+> 任務：複審第七節新通過的 27 張，並補齊缺圖公司。逐張看 952×424 中段裁切聯絡表，疑慮張再看全解析度。檢查：確實是該公司（總部／廠區／產品）、非同名別家、無人物為主角、無浮水印、裁成封面橫幅後主體仍在、授權可商用且作者／原始網址完整（pool.json 已有，全部 CC0／CC BY／CC BY-SA／公有領域）。
+> 附註：第七節表格漏列 delta/photo_11、photo_12（Delta 產品，品牌字樣清楚），這兩張也在 27 張內，複審通過。
+
+### 一、27 張複審：通過 23／退件 4
+
+| 檔名 | 結論 | 說明 |
+|---|---|---|
+| apple/photo_6.jpg | 退件 | 環形屋頂被樹木遮住大半，裁成橫幅後主體辨識不足 |
+| apple/photo_9.jpg | 退件 | 畫面無 Apple 招牌或標誌（只有門牌號碼），無法辨識為 Apple |
+| micron/photo_10.jpg | 退件 | 記憶體條在畫面中很小、置於紙板上，無 Micron／Crucial 字樣可辨 |
+| quanta/photo_5.jpg | 退件 | 伺服器無廣達標示，右下角有攝影者署名字樣（疑似浮水印） |
+| 其餘 23 張 | 通過 | alphabet 5／8、amazon 8／9／11、amd 6、broadcom 4、delta 11／12、foxconn 5、intel 6、mediatek 5、microsoft 9／12、nvidia 9、oracle 5／7、sk_hynix 6／7、umc 3／4、wistron 8／11 |
+
+通過但有提醒：mediatek/photo_5 招牌在畫面下緣，取封面橫幅時裁切要偏下（置中裁會切掉招牌，建築仍在）；foxconn/photo_5 廠區在畫面上半部，裁切要偏上；兩家都不要置中硬裁。
+
+### 二、補圖（company_photos.yml run 40988913001、40989565773，改 `commons_categories`／queries，公司分類名額 4→6、總部/廠房 2→3）
+
+第一輪共抓 65 張新圖：通過 10／退件 55；第二輪抓 41 張：通過 0／退件 41（全是主體錯誤或有人物）。
+
+通過的 10 張：asml 3（ASML 品牌貨櫃）、asml 4（維爾德霍芬 Gebouw 3）、asml 7（維爾德霍芬總部）、openai 12／14（Pioneer Building，OpenAI 舊金山總部，14 有「PIONEER BUILDING」招牌）、samsung 13（Galaxy Fold 展示，勉強通過：背景略暗）、tesla 13（Powertrain 展示）／15（總部大門＋Tesla Semi）／18（帕羅奧圖總部）、meta 8（Ray-Ban Meta 眼鏡）。
+
+| 公司 | 已審通過張數（補前→補後） | 備註 |
+|---|---|---|
+| 台積電 tsmc | 3→3 | 兩輪都補不到無人物新圖（Commons 的 TSMC 分類以人物活動照為主，全退） |
+| NVIDIA | 3→3 | 新抓 0 張 |
+| OpenAI | 1→3 | 達標 |
+| 三星 samsung | 1→2 | 差 1 張：Commons 只有門市／展場（行人入鏡）與他牌記憶體條 |
+| Tesla | 1→4 | 達標 |
+| Arm | 1→1 | 只有 Raspberry Pi／手稿等無關圖 |
+| Meta | 2→3 | 達標 |
+| 日月光 ase | 2→2 | 新抓 0 張（上一輪的同名住宅區已列退件名單，不再抓） |
+| 欣興 unimicron | 2→2 | 新抓 0 張 |
+| ASML | 0→3 | 達標 |
+| CoreWeave | 0→0 | 找不到 |
+| Anthropic | 0→0 | 找不到 |
+| 南亞科 nanya_tech | 0→0 | 找不到 |
+| 南電 nan_ya_pcb | 0→0 | 找不到 |
+| 台光電 eml | 0→0 | 找不到 |
+
+### 三、仍不足的公司與查過的分類／關鍵字（容器連不到 Commons，只能靠 Actions 搜尋；WebSearch 搜不到 Commons 頁面）
+
+- CoreWeave：分類 CoreWeave、CoreWeave Inc.、CoreWeave data centers、Core Scientific、Livingston New Jersey；查詢 CoreWeave headquarters／Livingston office／Lancaster data center／Ellendale／GB200 NVL72 rack。結果只抓到無關資料中心與州景。公司 2017 年成立、2025 年上市，Commons 幾乎沒有實景照。
+- Anthropic：分類 Anthropic、Anthropic PBC、Claude (language model／chatbot)、Anthropic headquarters、500 Howard Street、Salesforce Tower San Francisco；查詢辦公室、Seattle office。結果只有 Dario Amodei 人物照與無關場景，全退。
+- 南亞科：分類 Nanya Technology（含 Corporation／Corp／headquarters／Linkou／Taoyuan／DDR4／buildings）、Taishan New Taipei、Linkou District；查詢含中文「南亞科技 林口／泰山」。只有動土典禮人物與他牌 DRAM（Infineon、Samsung），全退。
+- 南電：分類 Nan Ya PCB（含 Corp／Corporation／Printed Circuit Board／Kunshan／Shulin Plant／Taoyuan plant）、Nanya PCB、Formosa Plastics Group、Nanya Plastics；查詢含「南亞電路板 樹林廠」、ABF substrate。抓到的是台塑集團他廠（南亞塑膠、台塑化纖）與他牌電路板，不是南電，全退。
+- 台光電：分類 Elite Material（含 Co Ltd／Co., Ltd.／Corporation Taiwan／EMC laminate）、Taoyuan Zhongli Industrial Zone；查詢含「台光電子材料」「台光電子 楊梅」。抓到倫敦／休士頓／曼徹斯特無關建築與他牌電路板，全退。
+- Arm：分類 Arm Holdings（含 Ltd／headquarters／Cortex／Neoverse／Cambridge Peterhouse Technology Park／110 Fulbourn Road）；只有 Raspberry Pi 等非 Arm 品牌圖。
+- 三星、日月光、欣興：各補到上限仍差 1 張，查過分類見 targets.json 的 commons_categories。
+- 建議（Commons 找不到的公司）：這些公司短期內封面維持用類別通用圖池（資料中心、記憶體、PCB 基板等），或由 Andy 提供／授權公司新聞稿官方圖；不要用人物照或他牌圖頂替。
+
+## 第九節　官方新聞圖使用規則（法遵初判，2026-10-30；同日 Andy 拍板改為可用，見〇）
+
+### 〇、2026-10-30 Andy 拍板：官方照片可以接用，並標明出處（蓋掉下面「一、先講結論」的「預設不可以」）
+
+> Andy 原話：「**改成接用 並標明出處 是可以的**」。DECISIONS #373。下面一～七是法遵當天的風險盤點，留著當風險紀錄，不再是使用門檻。
+
+**可以用**：公司自己發布的照片——官方新聞室、媒體資源（press kit／media library）、官網「關於我們／廠區／據點／產品」頁面上的照片。
+
+| 欄位 | 規則 |
+|---|---|
+| `license` | `official-press`（允許值見第五項，已改） |
+| `credit` | 「圖：<公司名>官方」，例如「圖：南亞科官方」「圖：NVIDIA官方」；官方條款指定署名時照官方（三星半導體新聞室 → 「圖：Samsung Semiconductor Newsroom」，寫在 targets.json 的 `official_credit`） |
+| `source_page` | 抓圖那一頁的網址（必填） |
+| `image_url` | 圖片原始網址（必填） |
+| `fetched_at` | 抓取日期（台北，YYYY-MM-DD） |
+| `origin` | `official` |
+| 抓取 | `company_photos.yml` 手動觸發選 `source=official`（`scripts/company_photos_official.py`，Playwright 開 targets.json 的 `official_sites`，同網域跟進「關於／廠區／產品／新聞室」連結，每家最多 18 頁、一次最多 14 張候選） |
+| 審核 | 一樣 reviewed=false 入庫，art-director 逐張照第三節清單審，通過才可用；審查紀錄寫第十節起 |
+
+**仍然不准**（官方網站上有也不准）：
+1. **人物當主角**的照片（主管、員工、活動、典禮、頒獎）。
+2. **媒體（新聞社）拍的照片**——即使掛在官方新聞室，圖說寫「中央社／Reuters／Getty／AP／記者攝」之類的一律不用。
+3. **標誌當主視覺**（logo 特寫、招牌特寫、品牌字卡）。
+4. **AI 生成圖**；**建築完工示意圖**（還沒蓋好的廠房 3D 效果圖，會被誤認為實景）；抽象 CG 背景、插畫、字卡、資訊圖、組織圖。產品官方形象照（棚拍或官方產品渲染，例如晶片封裝、伺服器主機板）可以，歸「產品」。
+6. 網頁橫幅：圖上已經壓了大字、或一側漸層到白／黑的，裁成封面會怪，不用。
+5. 有浮水印的圖。
+
+**法遵提醒的風險（Andy 已知悉並接受，2026-10-30）**：
+- **非書面授權**：多數公司條款沒有明文允許社群轉貼；著作權法第 37 條「約定不明推定未授權」，所以這是**接受風險**，不是取得授權。標示出處是第 64 條的義務，不等於授權。
+- **裁切修改**：我們的版型會等比縮放並裁成橫幅；三星半導體新聞室等明文「禁止任意修改」。裁切只取中段、不疊字在照片上、不改色。
+- **網站收費後要重評**：網站一旦收費或放廣告，「非商業」的主張變弱，本節全部重新評估（帳在 confirm_ledger）。
+- **有人要求下架 → 當天撤**：公司或攝影者來信要求，當天把該張從 pool.json 改 `reviewed:false`＋`reject_reason`、刪檔，已發的貼文能刪就刪，記在第六項，不爭辯。
+
+
+> ★ 這是**風險盤點與待確認清單，不是法律意見**。每條標「出處＋信心度＋要不要找專業人士」。
+> 查證方式：只用 WebSearch 摘要（容器打不開原網頁），所以多數公司的「原文條款」是**未確認**，不是「沒有條款」。
+> 起因：Andy 10-30「跟公司有關的優先附上公司圖片」；第八節列出 Commons 找不到實景照的公司（CoreWeave、Anthropic、南亞科、南電、台光電、Arm），以及照片偏少的三星、日月光、欣興。
+
+### 一、先講結論
+
+**預設不可以**直接把公司新聞室／press kit／新聞稿附圖拿來當 IG／Threads 封面。要用，只有兩條路：
+1. 該公司條款**明文**允許「非媒體、在社群轉貼、可裁切」的用途（目前查到的公司**沒有一家**明文允許）；或
+2. **書面授權**（寄信給公關窗口，拿到回覆信，存檔）。
+
+理由（三點，逐條附出處）：
+
+| # | 理由 | 出處 | 信心度 | 要不要找專業人士 |
+|---|---|---|---|---|
+| 1 | 授權範圍「約定不明的部分推定為未授權」。press kit 通常寫給媒體報導用，我們不是媒體，超出範圍就是未授權。 | 著作權法第 37 條第 1 項（植根法律網轉載條文摘要） | 高 | 否（條文明確） |
+| 2 | 第 52 條「引用」要以**自己的著作為主、被引用的為附屬**；臺北地院 113 年度智字第 16 號把他人照片原樣上傳臉書，認定不適用第 52、65 條。封面圖是整張圖片的主視覺，不是附屬。 | 著作權法第 52、64、65 條；臺北地院 113 智 16 判決（司法院判決書 PDF 摘要） | 中高 | 是（若要主張合理使用） |
+| 3 | 第 49 條「時事報導」限**報導者在報導過程中接觸到的著作**，且法院見解偏向「當日事件的單純報導」；新聞室圖庫的照片不是報導過程中接觸到的，而且我們的帳號是網站行銷管道，主張「報導者」身分偏弱。 | 著作權法第 49 條；理律／淡江時報整理的智慧財產法院見解；智財法院 105 民著上易 2（營利媒體使用攝影著作不構成合理使用） | 中 | 是 |
+
+另外兩個加重因素：
+- **帳號性質**：IG／Threads 是網站的導流管道，網站之後可能收訂閱費（見本專案證顧法熱點）。「非商業」的主張會隨收費而變弱。信心度：中。
+- **加工**：我們的版型會**裁切**＋在下方白底加字。多家條款寫「不得修改」（三星半導體新聞室明文「禁止任意修改」），裁切可能就踩線。信心度：中。
+
+### 二、逐家結果（2026-10-30 查證）
+
+| 公司 | 官方媒體資源 | 查到的條款 | 判斷 | 信心度 | 專業確認 |
+|---|---|---|---|---|---|
+| CoreWeave | 新聞室在官網 Newsroom；新聞稿經 Business Wire 發布、部分附多媒體；媒體窗口 press@coreweave.com | **未確認**（沒找到媒體資源頁或圖片條款） | **不可用**（待授權） | 中 | 取得授權後免 |
+| Anthropic | anthropic.com/news 有「下載 press kit」；窗口 press@anthropic.com | **未確認**（press kit 授權文字查不到） | **不可用**（待授權）；另注意 Anthropic 標誌屬商標，即使能下載也不代表可當行銷封面 | 中 | 取得授權後免 |
+| 南亞科（2408） | 官網 nanya.com 有新聞稿區（未驗證）；沒找到圖庫 | **未確認** | **不可用**（待授權） | 中 | 取得授權後免 |
+| 南電（8046） | 官網 nanyapcb.com.tw（Yahoo 股市公司資料頁列出）；沒找到圖庫 | **未確認** | **不可用**（待授權） | 中 | 取得授權後免 |
+| 台光電（2383） | 沒找到官方媒體資源頁 | **未確認** | **不可用**（待授權） | 中 | 取得授權後免 |
+| Arm | newsroom.arm.com/media 只提供**公司標誌與使用規範**下載；其他素材（含企業影片）要寫信給 Global-PRteam@arm.com | 新聞稿文字可「署名、不修改」自由分享，但**這句只涵蓋新聞稿文字，不涵蓋照片** | **不可用**（照片沒有公開圖庫，要申請） | 中高 | 取得授權後免 |
+| 三星（記憶體／半導體） | 三星半導體新聞室 news.samsungsemiconductor.com；三星全球新聞室圖庫 news.samsung.com/medialibrary | 半導體新聞室：依 CCL 授權，**僅限個人、非商業**、須標示原作者、**禁止商業用途與任意修改**；三星開發者論壇的三星人員回覆「新聞室圖片只能用於媒體刊物」（非正式） | **有條件可用（很窄）**：①不裁切、不疊字（整張完整放、四周留白）②標「圖：Samsung Semiconductor Newsroom」③帳號與網站**沒有收費、沒有廣告**時才成立。網站一旦收費 → 改成不可用 | 中低 | **是**（「行銷導流帳號是否算非商業」要專業確認） |
+| 日月光 | 官網 ase.aseglobal.com 有新聞稿；沒找到圖庫；北美／歐洲與亞太媒體窗口在 Business Wire 新聞稿中有列 | **未確認** | **不可用**（待授權） | 中 | 取得授權後免 |
+| 欣興 | 官網 unimicron.com；沒找到圖庫 | **未確認** | **不可用**（待授權） | 中 | 取得授權後免 |
+
+⚠ 表中「未確認」的意思是**查不到條款原文**，不代表「沒禁止所以可以用」。著作權法第 37 條：約定不明推定為未授權。
+
+### 三、三堆分開
+
+**可以做**
+- 用 Wikimedia Commons 的 CC0／CC BY／CC BY-SA／公有領域照片（第一節既有規則，不變）。信心度：高。
+- 用類別通用圖池（資料中心、記憶體、PCB 基板等，第八節建議）。信心度：高。
+- 用我們自己畫的圖（K 線、營收長條、站內圖表截圖）當封面。信心度：高。
+- 封面用**文字**寫公司名（例如「南亞科（2408）」），不放標誌。信心度：高。
+
+**要改做法才能做**
+- **官方新聞圖** → 先寄信取得書面授權（範本見第四節），回信存 `social/photo_lib/<slug>/license_email.txt`（**不得含個人信箱以外的敏感資料；repo 是 public，對方姓名與電話要遮掉**），`meta.json` 的 license 寫 `written-permission`，再走 art-director 審核。
+- **三星半導體新聞室圖** → 只在「完整不裁切、不疊字、標來源、帳號未收費」四條件同時成立時用；收費前要整批下架或換圖。這條要專業人士確認後才上線。
+
+**不要做**（每條附替代做法）
+| 不要做 | 替代做法 |
+|---|---|
+| 直接從新聞室、press kit、Business Wire 新聞稿附圖、公司官網抓圖當封面 | Commons 圖／類別通用圖池／自製圖表；或先拿書面授權 |
+| 用「圖：公司官方」標示當作已取得授權 | 標示是第 64 條的義務，**不是授權**；先授權、再標示 |
+| 用媒體報導裡的照片（中央社、工商、Getty 等） | 同上。中央社明文「非經授權不得轉載」；Getty 是付費授權 |
+| 用公司標誌（logo）當封面主視覺 | 文字寫公司名；標誌涉及商標與著作權，非必要不用 |
+| 用人物照（董事長、執行長）當封面 | 人像另有肖像權問題；改用總部／產品／類別圖 |
+| 用 AI 生成「看起來像某公司廠房」的圖 | 會讓人誤以為是實景，也可能被當成仿冒；不做 |
+
+### 四、取得授權信範本（可直接貼上）
+
+主旨：申請使用貴公司新聞照片於財經資訊社群貼文
+
+> 您好，我們是「台股資金輪動儀表板」（https://liguligu-puipui.com/）的經營者，在 Instagram 與 Threads 發布台股與科技產業的公開資料整理貼文。
+>
+> 想申請使用貴公司新聞室的下列照片：〔照片標題或網址〕，用途如下：
+> 1. 作為報導貴公司相關公開消息（例如月營收、法說會、重大訊息）貼文的封面圖；
+> 2. 版面會將照片等比例縮放，可能裁切邊緣，並在照片**下方**白底區加上標題文字，不會在照片上覆蓋文字、不改變顏色與內容；
+> 3. 每篇標示「圖：〔公司名〕官方」；
+> 4. 貼文為免費公開內容，不作為任何產品的廣告。
+>
+> 請問是否同意上述使用？若有署名格式、使用期限或不得使用的情境，也請告知，我們會照辦。若不同意，我們不會使用。
+>
+> 謝謝。〔署名〕〔聯絡信箱〕
+
+外商（CoreWeave、Anthropic、Arm、三星）寄出前翻成對方語言；窗口：press@coreweave.com、press@anthropic.com、Global-PRteam@arm.com（窗口以寄信當下官網為準）。
+
+### 五、實作規則（給 social-live 與 art-director）
+
+1. `meta.json`／`pool.json` 的 `license` 只准是：`CC0`、`CC BY*`、`CC BY-SA*`、`PD`／`Public domain`、`written-permission`、**`official-press`**（2026-10-30 Andy 拍板加入）。其他值（含 `press-kit`、`newsroom`、`editorial`）一律不准排程——`render_news_cards.license_ok()` 程式擋，`tests/test_photo_pool.py::test_official_press_allowed_and_credited` 驗。
+2. `written-permission` 必須有同資料夾的授權信存檔，且信中用途涵蓋「社群貼文封面＋裁切」；沒涵蓋裁切就只能完整放。
+3. 授權有期限的，到期前 7 天要從圖池移除。
+4. 有人（公司或攝影者）來信要求下架 → 當天下架、回信、記在本節第六項，不爭辯。
+5. 網站開始收費前，本節全部重新評估一次（特別是三星「非商業」那條）。
+
+### 六、待專業人士確認（法遵帳）
+
+| # | 問題 | 為什麼要確認 | 優先度 |
+|---|---|---|---|
+| 1 | 網站導流用的社群帳號，發免費新聞整理貼文，算不算「商業使用」？收費後呢？ | 決定三星「非商業」條款能不能用，也影響第 65 條合理使用判斷 | 高 |
+| 2 | 我們的貼文能不能主張第 49 條「時事報導者」？ | 若可以，當日重大訊息的配圖空間會變大；目前判斷偏弱 | 中 |
+| 3 | 等比例縮放＋裁切邊緣，算不算條款中的「修改」？ | 決定拿到「不得修改」授權時能不能照現在的版型 | 中 |
+
+### 七、查證來源（WebSearch 摘要，非原文）
+
+- 三星半導體新聞室使用條款：https://news.samsungsemiconductor.com/global/terms-of-use （CCL、個人非商業、須標示原作者、禁止商業與任意修改）— 信心度中
+- 三星開發者論壇（新聞室圖片僅供媒體刊物）：https://forum.developer.samsung.com/t/using-an-official-samsung-image-as-a-store-asset/22012 — 非正式，信心度低中
+- 三星行動媒體網站條款：https://samsungmobilepress.com/terms （個人、資訊性、非商業）— 信心度中
+- Arm 新聞室媒體頁：https://newsroom.arm.com/media （只提供標誌下載，其他素材洽 Global PR）— 信心度中高
+- Anthropic 新聞室（press kit 連結、press@anthropic.com）：https://www.anthropic.com/news （透過封存頁摘要得知）— 信心度中
+- CoreWeave 新聞稿（Business Wire，媒體窗口）：https://www.businesswire.com/news/home/20250715975958/en — 信心度中
+- 日月光 Business Wire 新聞稿（媒體窗口）：https://www.businesswire.com/news/home/20240320843248/en — 信心度中
+- 南電官網網址：https://tw.stock.yahoo.com/quote/8046.TW/profile — 信心度中
+- 著作權法第 49、52、65 條判決見解整理：https://www.leeandli.com/TW/Newsletters/5895.htm 、https://tkutimes.az.tku.edu.tw/fpdf/59263.pdf — 信心度中
+- 臺北地院 113 年度智字第 16 號（臉書上傳他人照片不適用第 52、65 條）：https://judgment.judicial.gov.tw/FILES/TPDV/113,智,16,20241206,1.pdf — 信心度中高
+- 著作權法第 37 條「約定不明推定未授權」：https://www.rootlaw.com.tw/LetterContent.aspx?LCode=13&SOID=251813 — 信心度高
+- 中央社版權聲明（不得轉載）：https://www.cna.com.tw/news/afe/202510073004.aspx — 信心度高
+- 查不到條款的公司（南亞科、南電、台光電、日月光、欣興、CoreWeave、Anthropic）用過的關鍵字：「新聞中心 圖片 下載」「網站使用條款」「版權所有」「media kit images」「press kit terms」「photo courtesy」；來源類型：官網、Business Wire、財經媒體、股市資料站。
+
+## 第十節　官方照片第一批審核（art-director，2026-10-30）
+
+> 依第九節〇（Andy 10-30「改成接用 並標明出處 是可以的」）。`company_photos.yml` source=official 跑了 4 輪（run 40991426187、40993722974 及之後兩輪），每輪抓完逐張看「全圖＋952×424 中段裁切」聯絡表，照第三節清單＋第九節〇的「仍然不准」審。通過的寫 `reviewed:true`；退件的刪檔、記進 `pool.json` 的 `rejected`（含 sha1，之後不再抓）。
+
+### 一、各公司張數（已審可用）
+
+| 公司 | Commons | 官方（新增） | 合計 | 官方退件 | 達 3 張 |
+|---|---|---|---|---|---|
+| 台積電 `tsmc` | 3 | 5 | 8 | 9 | 是 |
+| NVIDIA `nvidia` | 3 | 3 | 6 | 25 | 是 |
+| CoreWeave `coreweave` | 0 | 2 | 2 | 40 | 否 |
+| Anthropic `anthropic` | 0 | 0 | 0 | 35 | 否 |
+| 南亞科 `nanya_tech` | 0 | 0 | 0 | 25 | 否 |
+| 南電 `nan_ya_pcb` | 0 | 1 | 1 | 11 | 否 |
+| 台光電 `eml` | 0 | 0 | 0 | 11 | 否 |
+| Arm `arm` | 1 | 2 | 3 | 26 | 是 |
+| 三星 `samsung` | 2 | 3 | 5 | 12 | 是 |
+| 日月光 `ase` | 2 | 1 | 3 | 13 | 是 |
+| 欣興 `unimicron` | 2 | 0 | 2 | 42 | 否 |
+
+### 二、通過的官方照片（來源頁）
+
+| 檔名 | 內容 | 來源頁 |
+|---|---|---|
+| tsmc/photo_16.jpg | 台積電廠區辦公大樓（官網 TSMC_Fabs 頁），建築上台積電字樣只是場景一部分，裁切後主體在 | https://www.tsmc.com/english/aboutTSMC/TSMC_Fabs |
+| tsmc/photo_17.jpg | 台積電廠區大樓正面，日間、原色，左上角標誌很小 | https://www.tsmc.com/english/aboutTSMC/TSMC_Fabs |
+| tsmc/photo_18.jpg | 台積電廠區大樓入口（紅色雨遮），黃昏實景，無人物 | https://www.tsmc.com/english/aboutTSMC/TSMC_Fabs |
+| tsmc/photo_19.jpg | 台積電廠區弧形大樓，日間實景 | https://www.tsmc.com/english/aboutTSMC/TSMC_Fabs |
+| tsmc/photo_20.jpg | 台積電廠區大樓，建築上標誌只是場景一部分 | https://www.tsmc.com/english/aboutTSMC/TSMC_Fabs |
+| nvidia/photo_25.jpg | NVIDIA DGX B200 官方產品形象照，黑底置中 | https://www.nvidia.com/en-us/data-center/dgx-b200/ |
+| nvidia/photo_27.jpg | NVIDIA DGX 機櫃走道官方形象照（資料中心），標誌極小 | https://www.nvidia.com/en-us/data-center/dgx-superpod/ |
+| nvidia/photo_28.jpg | NVIDIA DGX SuperPOD 機櫃官方產品照，黑底置中 | https://www.nvidia.com/en-us/data-center/dgx-superpod/ |
+| coreweave/photo_16.jpg | CoreWeave 新聞室的 GPU 叢集機櫃實景（線材、伺服器），無人物 | https://www.coreweave.com/newsroom |
+| coreweave/photo_9.jpg | CoreWeave GPU 運算產品頁的伺服器機櫃實景（線材、GPU 節點），無人物 | https://www.coreweave.com/products/gpu-compute |
+| nan_ya_pcb/photo_23.jpg | 南電廠區大樓實景（門口有南亞塑膠／南亞電路板門牌），日間原色；原圖高 300，裁成封面會略放大，之後有更清楚的就替換 | https://www.nanyapcb.com.tw/nypcb/chinese/AboutNanYaPCB/CompanyProfile/Vision |
+| arm/photo_29.jpg | Arm 官方晶片產品形象照（封裝上 arm 字樣小），主體在右、裁切後完整 | https://newsroom.arm.com/ |
+| arm/photo_30.jpg | Arm 架構伺服器主機板產品形象照，晶片在畫面中央 | https://newsroom.arm.com/ |
+| samsung/photo_28.jpg | 三星半導體官網「據點」頁的園區大樓入口實景，日間、無人物 | https://semiconductor.samsung.com/about-us/locations/ |
+| samsung/photo_35.jpg | 三星晶圓廠無塵室天車（OHT）實景，兩側人員模糊入鏡不是主角 | https://semiconductor.samsung.com/about-us/ |
+| samsung/photo_36.jpg | 三星 HBM4E 官方產品照（封裝上的 SAMSUNG 是產品印字，不是標誌特寫）；寬 936 略放大 | https://semiconductor.samsung.com/dram/hbm/ |
+| ase/photo_24.jpg | 日月光官網新聞室的封裝基板／晶片產品形象照，白底、無人物無標誌 | https://www.aseglobal.com/press-room/ |
+
+### 三、退件類型（共通）
+- 人物當主角：主管訪談、團體照、ESG 公益活動照（欣興官網最新消息頁幾乎全是這類）、典禮。
+- 非實景：建築完工效果圖、抽象 CG、插畫、字卡、互動遊戲截圖、疑似 AI 生成的圖庫意象（CoreWeave 新聞室大量使用）。
+- 標誌／品牌字卡為主視覺、影片封面（播放鍵、字幕）、資訊圖、組織圖、營收圖表。
+- 原圖壓了深色遮罩（三星據點頁 24／27）、與他張重複、他牌產品（Arm 成功案例頁的 NVIDIA 產品）。
+- 網域判斷錯誤抓到證交所／指數公司橫幅（南電，已修 `.com.tw` 網域判斷）。
+
+### 四、仍不足 3 張的公司（已查過的官方來源）
+- **Anthropic（0）**：anthropic.com（company、news、careers）、claude.com（product、enterprise、resources、download、platform）、docs 站。官方只有人物訪談截圖、插畫、文件封面字卡，**沒有辦公室或機房實景照**。
+- **南亞科（0）**：nanya.com（tw／en 首頁、About、Product、ESG 新聞列表、CSR）。官網橫幅是 CG 合成與人物；ESG 頁是影片封面（主管人物、動土典禮）；交通圖裡的大樓照片太小。
+- **台光電（0）**：emctw.com（首頁、about_production、no1_*、milestone、achievements）＋2023～2025 年報 PDF（抽不到 ≥800px 照片）。官網只有字卡、圖表、組織圖。
+- **南電（1）**：nanyapcb.com.tw（首頁、Locations、Product、Technology、英文版）。廠區頁照片寬 < 800（plant1／plant2.jpg）；唯一一張首頁大樓照通過，但原圖只有 300 高，之後有更清楚的就替換。
+- **CoreWeave（2）**：coreweave.com（about-us、newsroom、data-centers、gpu-compute、blog、platform）。新聞室多為 AI 生成風格的圖庫意象與抽象圖形，只取到 2 張機櫃實景。
+- **欣興（2，皆 Commons）**：unimicron.com 首頁、about01～07、rd、product 各頁。官方照片幾乎全是 ESG 公益活動團體照；產品頁圖寬 < 800。
+- **日月光（3）、Arm（3）**：剛好達標，Arm 官網其餘都是抽象 CG 與他牌產品。
+- 這幾家短期仍會走「該公司類別池」（記憶體、PCB、資料中心），封面一樣有圖（見範例 fallback_南亞科、fallback_Anthropic）。下一步：①跑每週一次的 official 排程時再撈新的新聞稿圖；②官方永續報告書 PDF（PyMuPDF 取圖已接好，但這幾家官網的報告書連結是 JS 下載鈕，爬蟲拿不到網址，要在 targets.json 的 `official_sites` 直接填 PDF 網址）；③或由公司公關提供。

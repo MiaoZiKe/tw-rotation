@@ -245,6 +245,8 @@ def publish_story(uid, token, url):
 def slot_key(m: dict) -> str:
     t = m.get("taken_at", "")
     date = t[:10]
+    if m.get("kind") == "close" and m.get("supplement"):      # 2026-10-29 盤後保底後的法人補充貼文：另一個鍵，不會重發主貼文
+        return f"close-inst-{(m.get('data_date') or date)[:10]}"
     if m.get("kind") == "close":      # 2026-10-26 盤後法人＋融資融券合併：以資料日為鍵（融資到齊可能已過午夜）
         return f"close-{(m.get('data_date') or date)[:10]}"
     if m.get("kind") == "credit":      # 盤後融資：以融資資料日為鍵（常在隔天清晨才到齊，用發文日會錯天）
@@ -355,6 +357,8 @@ def run(manifest_path, base_url, dry_run=False, env=None, flag=None) -> int:
 
     if done and not off:
         # 記下台北發布時間：social_snap.posted_ok 用它判斷紀錄是不是正式時段發的（測試誤記不算）
+        if m.get("partial"):      # 盤後保底：記下拿掉了哪幾張，social-live 之後看到就補發法人（close-inst-<日期>）
+            done["partial"] = list(m["partial"])
         done.setdefault("at", datetime.now(timezone(timedelta(hours=8))).isoformat(timespec="seconds"))
         posted[key] = done
         posted_file.write_text(json.dumps(posted, ensure_ascii=False, indent=1), encoding="utf-8")

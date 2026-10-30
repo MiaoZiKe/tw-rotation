@@ -1,41 +1,41 @@
 {
- "at": "2026-10-28T17:02:01+00:00",
- "ok": 101,
+ "at": "2026-10-30T02:09:27+00:00",
+ "ok": 105,
  "miss": [],
  "items": [
   {
    "slug": "tsmc",
    "ok": true,
-   "total": 5,
-   "added": 1,
+   "total": 15,
+   "added": 6,
    "reviewed": 3
   },
   {
    "slug": "foxconn",
    "ok": true,
-   "total": 4,
-   "added": 3,
+   "total": 8,
+   "added": 4,
    "reviewed": 0
   },
   {
    "slug": "mediatek",
    "ok": true,
-   "total": 3,
-   "added": 3,
+   "total": 5,
+   "added": 2,
    "reviewed": 0
   },
   {
    "slug": "delta",
    "ok": true,
-   "total": 8,
-   "added": 3,
-   "reviewed": 2
+   "total": 12,
+   "added": 4,
+   "reviewed": 3
   },
   {
    "slug": "quanta",
    "ok": true,
-   "total": 4,
-   "added": 3,
+   "total": 8,
+   "added": 4,
    "reviewed": 0
   },
   {
@@ -48,9 +48,9 @@
   {
    "slug": "ase",
    "ok": true,
-   "total": 6,
-   "added": 4,
-   "reviewed": 1
+   "total": 10,
+   "added": 0,
+   "reviewed": 2
   },
   {
    "slug": "cathay",
@@ -104,8 +104,8 @@
   {
    "slug": "umc",
    "ok": true,
-   "total": 1,
-   "added": 1,
+   "total": 4,
+   "added": 3,
    "reviewed": 0
   },
   {
@@ -181,8 +181,8 @@
   {
    "slug": "wistron",
    "ok": true,
-   "total": 7,
-   "added": 3,
+   "total": 11,
+   "added": 4,
    "reviewed": 2
   },
   {
@@ -293,9 +293,9 @@
   {
    "slug": "unimicron",
    "ok": true,
-   "total": 4,
-   "added": 2,
-   "reviewed": 1
+   "total": 6,
+   "added": 0,
+   "reviewed": 2
   },
   {
    "slug": "yangming",
@@ -349,99 +349,99 @@
   {
    "slug": "nvidia",
    "ok": true,
-   "total": 5,
-   "added": 2,
-   "reviewed": 2
+   "total": 16,
+   "added": 6,
+   "reviewed": 3
   },
   {
    "slug": "apple",
    "ok": true,
-   "total": 5,
-   "added": 2,
-   "reviewed": 3
+   "total": 9,
+   "added": 4,
+   "reviewed": 4
   },
   {
    "slug": "microsoft",
    "ok": true,
-   "total": 8,
-   "added": 3,
-   "reviewed": 2
+   "total": 13,
+   "added": 5,
+   "reviewed": 3
   },
   {
    "slug": "alphabet",
    "ok": true,
-   "total": 4,
-   "added": 2,
-   "reviewed": 1
+   "total": 8,
+   "added": 4,
+   "reviewed": 3
   },
   {
    "slug": "meta",
    "ok": true,
-   "total": 6,
-   "added": 5,
-   "reviewed": 0
-  },
-  {
-   "slug": "amazon",
-   "ok": true,
-   "total": 7,
+   "total": 9,
    "added": 3,
    "reviewed": 2
   },
   {
+   "slug": "amazon",
+   "ok": true,
+   "total": 11,
+   "added": 4,
+   "reviewed": 4
+  },
+  {
    "slug": "broadcom",
    "ok": true,
-   "total": 4,
-   "added": 2,
+   "total": 5,
+   "added": 1,
    "reviewed": 1
   },
   {
    "slug": "amd",
    "ok": true,
-   "total": 5,
-   "added": 2,
+   "total": 9,
+   "added": 4,
    "reviewed": 3
   },
   {
    "slug": "intel",
    "ok": true,
-   "total": 5,
-   "added": 2,
-   "reviewed": 2
+   "total": 6,
+   "added": 1,
+   "reviewed": 4
   },
   {
    "slug": "samsung",
    "ok": true,
-   "total": 7,
-   "added": 4,
-   "reviewed": 1
+   "total": 23,
+   "added": 5,
+   "reviewed": 2
   },
   {
    "slug": "sk_hynix",
    "ok": true,
-   "total": 4,
+   "total": 7,
    "added": 3,
    "reviewed": 0
   },
   {
    "slug": "micron",
    "ok": true,
-   "total": 6,
-   "added": 3,
-   "reviewed": 1
+   "total": 10,
+   "added": 4,
+   "reviewed": 3
   },
   {
    "slug": "asml",
    "ok": true,
-   "total": 1,
-   "added": 0,
+   "total": 8,
+   "added": 7,
    "reviewed": 0
   },
   {
    "slug": "tesla",
    "ok": true,
-   "total": 9,
-   "added": 4,
+   "total": 18,
+   "added": 6,
    "reviewed": 1
   },
   {
@@ -455,36 +455,36 @@
    "slug": "qualcomm",
    "ok": true,
    "total": 5,
-   "added": 3,
-   "reviewed": 1
+   "added": 0,
+   "reviewed": 2
   },
   {
    "slug": "anthropic",
    "ok": true,
-   "total": 5,
-   "added": 2,
+   "total": 16,
+   "added": 6,
    "reviewed": 0
   },
   {
    "slug": "openai",
    "ok": true,
-   "total": 8,
-   "added": 3,
+   "total": 17,
+   "added": 6,
    "reviewed": 1
   },
   {
    "slug": "oracle",
    "ok": true,
-   "total": 3,
-   "added": 3,
-   "reviewed": 0
+   "total": 8,
+   "added": 5,
+   "reviewed": 2
   },
   {
    "slug": "arm",
    "ok": true,
-   "total": 4,
-   "added": 4,
-   "reviewed": 0
+   "total": 25,
+   "added": 9,
+   "reviewed": 1
   },
   {
    "slug": "supermicro",
@@ -708,6 +708,34 @@
    "ok": true,
    "total": 5,
    "added": 5,
+   "reviewed": 0
+  },
+  {
+   "slug": "coreweave",
+   "ok": true,
+   "total": 6,
+   "added": 3,
+   "reviewed": 0
+  },
+  {
+   "slug": "nanya_tech",
+   "ok": true,
+   "total": 22,
+   "added": 6,
+   "reviewed": 0
+  },
+  {
+   "slug": "nan_ya_pcb",
+   "ok": true,
+   "total": 18,
+   "added": 6,
+   "reviewed": 0
+  },
+  {
+   "slug": "eml",
+   "ok": true,
+   "total": 17,
+   "added": 6,
    "reviewed": 0
   }
  ],

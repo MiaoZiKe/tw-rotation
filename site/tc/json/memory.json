@@ -12205,20 +12205,20 @@
             16
           ],
           "annual_total_wan": [
-            90,
+            70,
             90
           ],
           "weekly_hours": [
             40,
             40
           ],
-          "overtime": "偶爾",
+          "overtime": null,
           "travel": null,
-          "n": 2,
+          "n": 3,
           "note": "2026-10-29 GoodJob 合併批新增職位",
           "confidence": "低",
           "grade": null,
-          "n_stat": 2,
+          "n_stat": 3,
           "samples": [
             {
               "site": "GoodJob",
@@ -12267,6 +12267,28 @@
               "comment_sample": false,
               "in_window": true,
               "date_note": "Dcard 頁面日期 2025-01-13（20261029_1541 大檔，1648 檔）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/建興儲存科技/salary-work-times?p=1",
+              "date": "2026-02",
+              "page_date": "2026-02",
+              "date_confirmed": true,
+              "role": "驗證",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 70,
+              "weekly_hours": 40,
+              "overtime": "幾乎不",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/8 小時；職稱未寫工程師",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-02（20261029_職稱未寫工程師補回（10-30 Andy 拍板），1541 檔）"
             }
           ],
           "sources": [
@@ -12279,6 +12301,11 @@
               "site": "GoodJob",
               "url": "https://www.dcard.tw/f/tech_job/p/257745040",
               "date": "2025-01"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/建興儲存科技/salary-work-times?p=1",
+              "date": "2026-02"
             }
           ]
         },
@@ -12442,6 +12469,61 @@
               "site": "GoodJob",
               "url": "https://www.dcard.tw/f/tech_job/p/261850347",
               "date": "2026-07"
+            }
+          ]
+        },
+        {
+          "unit": null,
+          "role": "品保工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": [
+            66,
+            66
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": [
+            40,
+            40
+          ],
+          "overtime": "偶爾",
+          "travel": null,
+          "n": 1,
+          "note": "2026-10-29 GoodJob 合併批新增職位",
+          "confidence": "低",
+          "grade": null,
+          "n_stat": 1,
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/建興儲存科技/salary-work-times?p=2",
+              "date": "2025-03",
+              "page_date": "2025-03",
+              "date_confirmed": true,
+              "role": "DQA",
+              "grade": null,
+              "unit_detail": "新竹",
+              "years": "2",
+              "degree": null,
+              "base_k": 66,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 40,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/7 小時；職稱未寫工程師",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2025-03（20261029_職稱未寫工程師補回（10-30 Andy 拍板），1541 檔）"
+            }
+          ],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/建興儲存科技/salary-work-times?p=2",
+              "date": "2025-03"
             }
           ]
         }

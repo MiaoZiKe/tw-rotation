@@ -140,6 +140,129 @@
    "review_note": "",
    "prescreen": "fail",
    "prescreen_note": "2026-10-28 工程初篩（v3）：不建議：LOGO／人物／車牌／他牌／舊照或主體不明"
+  },
+  {
+   "file": "photo_7.jpg",
+   "kind": "產品",
+   "slug": "ase",
+   "name_en": "ASE Technology",
+   "query": "cat:Advanced Semiconductor Engineering",
+   "file_title": "File:上海日月光生活區 - panoramio.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:%E4%B8%8A%E6%B5%B7%E6%97%A5%E6%9C%88%E5%85%89%E7%94%9F%E6%B4%BB%E5%8D%80_-_panoramio.jpg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/b/b9/%E4%B8%8A%E6%B5%B7%E6%97%A5%E6%9C%88%E5%85%89%E7%94%9F%E6%B4%BB%E5%8D%80_-_panoramio.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "CC BY 3.0",
+   "license_url": "https://creativecommons.org/licenses/by/3.0",
+   "author": "miling",
+   "credit": "https://web.archive.org/web/20161010091902/http://www.panoramio.com/photo/5145624",
+   "description": "上海日月光生活區",
+   "width": 1632,
+   "height": 1224,
+   "fetched_at": "2026-10-30T01:48:48+00:00",
+   "reviewed": false,
+   "reviewer": "art-director 審核清單（social-ops-lead 執行）",
+   "review_note": "2026-10-30 第五輪退件：上海「日月光」住宅區，同名不同公司（主體錯誤）",
+   "origin": "公司分類",
+   "reviewed_at": "2026-10-30",
+   "reject_reason": "上海「日月光」住宅區，同名不同公司（主體錯誤）"
+  },
+  {
+   "file": "photo_8.jpg",
+   "kind": "產品",
+   "slug": "ase",
+   "name_en": "ASE Technology",
+   "query": "cat:Advanced Semiconductor Engineering",
+   "file_title": "File:汐止-伯爵山莊-日月光中心 - panoramio.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:%E6%B1%90%E6%AD%A2-%E4%BC%AF%E7%88%B5%E5%B1%B1%E8%8E%8A-%E6%97%A5%E6%9C%88%E5%85%89%E4%B8%AD%E5%BF%83_-_panoramio.jpg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/6/69/%E6%B1%90%E6%AD%A2-%E4%BC%AF%E7%88%B5%E5%B1%B1%E8%8E%8A-%E6%97%A5%E6%9C%88%E5%85%89%E4%B8%AD%E5%BF%83_-_panoramio.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "CC BY 3.0",
+   "license_url": "https://creativecommons.org/licenses/by/3.0",
+   "author": "miling",
+   "credit": "https://web.archive.org/web/20161010020645/http://www.panoramio.com/photo/5020897",
+   "description": "​新北市汐止區康寧街751巷，伯爵山莊、日月光國際家飾展覽館。",
+   "width": 1920,
+   "height": 1440,
+   "fetched_at": "2026-10-30T01:48:48+00:00",
+   "reviewed": false,
+   "reviewer": "art-director 審核清單（social-ops-lead 執行）",
+   "review_note": "2026-10-30 第五輪退件：汐止「日月光中心」，同名不同公司（主體錯誤）",
+   "origin": "公司分類",
+   "reviewed_at": "2026-10-30",
+   "reject_reason": "汐止「日月光中心」，同名不同公司（主體錯誤）"
+  },
+  {
+   "file": "photo_9.jpg",
+   "kind": "總部/廠房",
+   "slug": "ase",
+   "name_en": "ASE Technology",
+   "query": "cat:Advanced Semiconductor Engineering",
+   "file_title": "File:10.18 總統參訪日月光半導體公司 - 48917433872.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:10.18_%E7%B8%BD%E7%B5%B1%E5%8F%83%E8%A8%AA%E6%97%A5%E6%9C%88%E5%85%89%E5%8D%8A%E5%B0%8E%E9%AB%94%E5%85%AC%E5%8F%B8_-_48917433872.jpg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/d/d8/10.18_%E7%B8%BD%E7%B5%B1%E5%8F%83%E8%A8%AA%E6%97%A5%E6%9C%88%E5%85%89%E5%8D%8A%E5%B0%8E%E9%AB%94%E5%85%AC%E5%8F%B8_-_48917433872.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "CC BY 2.0",
+   "license_url": "https://creativecommons.org/licenses/by/2.0",
+   "author": "總統府",
+   "credit": "https://www.flickr.com/photos/presidentialoffice/48917433872/",
+   "description": "Official Photo by Makoto Lin / Office of the President",
+   "width": 1920,
+   "height": 1280,
+   "fetched_at": "2026-10-30T01:48:49+00:00",
+   "reviewed": false,
+   "reviewer": "art-director 審核清單（social-ops-lead 執行）",
+   "review_note": "2026-10-30 第五輪退件：無塵衣人物為主角（審核項 3）",
+   "origin": "公司分類",
+   "reviewed_at": "2026-10-30",
+   "reject_reason": "無塵衣人物為主角（審核項 3）"
+  },
+  {
+   "file": "photo_10.jpg",
+   "kind": "總部/廠房",
+   "slug": "ase",
+   "name_en": "ASE Technology",
+   "query": "cat:Advanced Semiconductor Engineering",
+   "file_title": "File:10.18 總統參訪日月光半導體公司 - 48917228711.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:10.18_%E7%B8%BD%E7%B5%B1%E5%8F%83%E8%A8%AA%E6%97%A5%E6%9C%88%E5%85%89%E5%8D%8A%E5%B0%8E%E9%AB%94%E5%85%AC%E5%8F%B8_-_48917228711.jpg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/c/ca/10.18_%E7%B8%BD%E7%B5%B1%E5%8F%83%E8%A8%AA%E6%97%A5%E6%9C%88%E5%85%89%E5%8D%8A%E5%B0%8E%E9%AB%94%E5%85%AC%E5%8F%B8_-_48917228711.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "CC BY 2.0",
+   "license_url": "https://creativecommons.org/licenses/by/2.0",
+   "author": "總統府",
+   "credit": "https://www.flickr.com/photos/presidentialoffice/48917228711/",
+   "description": "Official Photo by Makoto Lin / Office of the President",
+   "width": 1920,
+   "height": 1280,
+   "fetched_at": "2026-10-30T01:48:50+00:00",
+   "reviewed": false,
+   "reviewer": "art-director 審核清單（social-ops-lead 執行）",
+   "review_note": "2026-10-30 第五輪退件：無塵衣人物為主角（審核項 3）",
+   "origin": "公司分類",
+   "reviewed_at": "2026-10-30",
+   "reject_reason": "無塵衣人物為主角（審核項 3）"
+  },
+  {
+   "file": "photo_24.jpg",
+   "kind": "產品",
+   "slug": "ase",
+   "name_en": "ASE Technology",
+   "origin": "official",
+   "query": "official",
+   "file_title": "https://cdn.prod.website-files.com/6a4c7cf038139cd8999ff310/6a4c7cf038139cd8999ffc1b_Panel-310x310-1.webp",
+   "source_page": "https://www.aseglobal.com/press-room/",
+   "source_url": "https://www.aseglobal.com/press-room/",
+   "image_url": "https://cdn.prod.website-files.com/6a4c7cf038139cd8999ff310/6a4c7cf038139cd8999ffc1b_Panel-310x310-1.webp",
+   "license": "official-press",
+   "license_url": "",
+   "author": "日月光官方",
+   "credit": "圖：日月光官方",
+   "description": "Press Room | ASE Holdings",
+   "width": 1644,
+   "height": 1056,
+   "sha1": "09f6a41bd5525b528e727c8280232759a161cbce",
+   "fetched_at": "2026-10-30",
+   "fetched_at_utc": "2026-10-30T02:49:14+00:00",
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-30 官方照片審核通過：日月光官網新聞室的封裝基板／晶片產品形象照，白底、無人物無標誌",
+   "reviewed_by": "art-director",
+   "reviewed_at": "2026-10-30"
   }
  ],
  "rejected": [
@@ -157,6 +280,97 @@
    "file_title": "File:Minimal Fab exhibit at Tsukuba Science Square 7.jpg",
    "reason": "展示機台，主體弱",
    "at": "2026-10-28"
+  },
+  {
+   "file_title": "https://cdn.prod.website-files.com/6a4c7cf038139cd8999ff317/6a4c7cf038139cd8999ffa3c_3711-index-2025-0519-4.jpg",
+   "reason": "官方照片退件：人物活動／公益活動照、標誌字卡、拼貼牆、海龜等與公司無關",
+   "at": "2026-10-30",
+   "source_page": "https://www.aseglobal.com/",
+   "sha1": "e185a4597d165768c159e5dd83c9a8ff54b35c92"
+  },
+  {
+   "file_title": "https://cdn.prod.website-files.com/6a4c7cf038139cd8999ff317/6a4c7cf038139cd8999ff35e_%E6%88%AA%E5%9C%96%202023-05-22%20%E4%B8%8B%E5%8D%8812.58.51.jpg",
+   "reason": "官方照片退件：人物活動／公益活動照、標誌字卡、拼貼牆、海龜等與公司無關",
+   "at": "2026-10-30",
+   "source_page": "https://www.aseglobal.com/",
+   "sha1": "5428b9b03b82c36e554b9ccdc1f0f22ddeabc275"
+  },
+  {
+   "file_title": "https://cdn.prod.website-files.com/6a4c7cf038139cd8999ff317/6a4c7cf038139cd8999ffa1a_turtle.webp",
+   "reason": "官方照片退件：人物活動／公益活動照、標誌字卡、拼貼牆、海龜等與公司無關",
+   "at": "2026-10-30",
+   "source_page": "https://www.aseglobal.com/",
+   "sha1": "be22e4cb6b57817eb86be6a14b2c9d7c255f849d"
+  },
+  {
+   "file_title": "https://cdn.prod.website-files.com/6a4c7cf038139cd8999ff317/6a4c7cf038139cd8999ff83d_%E6%B5%B7%E6%B4%8B%E6%97%A5%E5%A4%A7%E5%90%88%E7%85%A7_(Security%20C)__23H17vp4d1.jpg",
+   "reason": "官方照片退件：人物活動／公益活動照、標誌字卡、拼貼牆、海龜等與公司無關",
+   "at": "2026-10-30",
+   "source_page": "https://www.aseglobal.com/",
+   "sha1": "ba6e789e5f68e2fa1ae2409bd5dcd18e4e1d0420"
+  },
+  {
+   "file_title": "https://cdn.prod.website-files.com/6a4c7cf038139cd8999ff317/6a4c7cf038139cd8999ff8a5_6.webp",
+   "reason": "官方照片退件：人物活動／公益活動照、標誌字卡、拼貼牆、海龜等與公司無關",
+   "at": "2026-10-30",
+   "source_page": "https://www.aseglobal.com/",
+   "sha1": "c86762be8d39b6ac6b2a1e27d9ff00686f3a95e7"
+  },
+  {
+   "file_title": "https://cdn.prod.website-files.com/6a4c7cf038139cd8999ff317/6a4c7cf038139cd8999ff6d6_2.webp",
+   "reason": "官方照片退件：人物活動／公益活動照、標誌字卡、拼貼牆、海龜等與公司無關",
+   "at": "2026-10-30",
+   "source_page": "https://www.aseglobal.com/",
+   "sha1": "a332d43df7037c2cd2ab09d32f13d4c4bb740690"
+  },
+  {
+   "file_title": "https://cdn.prod.website-files.com/6a4c7cf038139cd8999ff317/6a4c7cf038139cd8999ff7d7_4.webp",
+   "reason": "官方照片退件：人物活動／公益活動照、標誌字卡、拼貼牆、海龜等與公司無關",
+   "at": "2026-10-30",
+   "source_page": "https://www.aseglobal.com/",
+   "sha1": "1c5efc8fac1c4058e613994d46f89677472f7e46"
+  },
+  {
+   "file_title": "https://cdn.prod.website-files.com/6a4c7cf038139cd8999ff310/6a9632abbc6a8b111e1e12d0_pic-discovery-camp-empowers-youth.jpg",
+   "reason": "官方照片退件：人物活動／公益活動照、標誌字卡、拼貼牆、海龜等與公司無關",
+   "at": "2026-10-30",
+   "source_page": "https://www.aseglobal.com/",
+   "sha1": "e3a618fd4b7da53a76410cd604c4f671811ec97b"
+  },
+  {
+   "file_title": "https://cdn.prod.website-files.com/6a4c7cf038139cd8999ff310/6a90f233cf9ab981aa8967c8_pic-ainos-and-ase-partner-to-power-ai.jpg",
+   "reason": "官方照片退件：人物活動／公益活動照、標誌字卡、拼貼牆、海龜等與公司無關",
+   "at": "2026-10-30",
+   "source_page": "https://www.aseglobal.com/",
+   "sha1": "c3a5d4c92798d0931539274d8c8a9d313894ad97"
+  },
+  {
+   "file_title": "https://cdn.prod.website-files.com/64367fc53a6c9c22a4baffe3/65f3acb9dff58082d4891f76_Demo.png",
+   "reason": "官方照片退件：人物活動／公益活動照、標誌字卡、拼貼牆、海龜等與公司無關",
+   "at": "2026-10-30",
+   "source_page": "https://www.aseglobal.com/",
+   "sha1": "e9d1ff9f0002966c3b992a43bc8dec5999f16922"
+  },
+  {
+   "file_title": "https://cdn.prod.website-files.com/6a4c7cf038139cd8999ff310/6a4c7cf038139cd8999ffc15_IMG_1153.jpeg",
+   "reason": "官方照片退件：人物活動／公益活動照、標誌字卡、拼貼牆、海龜等與公司無關",
+   "at": "2026-10-30",
+   "source_page": "https://www.aseglobal.com/press-room/ase-breaks-ground-on-new-renwu-plant-to-build-hi-tech-testing-cluster",
+   "sha1": "4fa4febeaa68bdb4b4624fae5006c6253bb6ba40"
+  },
+  {
+   "file_title": "https://cdn.prod.website-files.com/6a4c7cf038139cd8999ff310/6a4c7cf038139cd8999ffb1f_IMG_2901_OG%20image.jpg",
+   "reason": "官方照片退件：人物活動／公益活動照、標誌字卡、拼貼牆、海龜等與公司無關",
+   "at": "2026-10-30",
+   "source_page": "https://www.aseglobal.com/press-room/ase-breaks-ground-on-new-renwu-plant-to-build-hi-tech-testing-cluster",
+   "sha1": "aa5fb53eec10878e9013c857a77639e708339c3e"
+  },
+  {
+   "file_title": "https://cdn.prod.website-files.com/6a4c7cf038139cd8999ff310/6a90f3564a80dca8e1cb68ae_pic-uniting-across-taiwan.jpg",
+   "reason": "官方照片退件：人物活動／公益活動照、標誌字卡、拼貼牆、海龜等與公司無關",
+   "at": "2026-10-30",
+   "source_page": "https://www.aseglobal.com/press-room/",
+   "sha1": "1fa03e36d9df010a8ab336e0a2473ce9cc8e5eba"
   }
  ]
 }

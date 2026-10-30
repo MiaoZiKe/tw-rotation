@@ -1,0 +1,31 @@
+{
+ "slot": "intra",
+ "date": "2026-10-30",
+ "run_at": "2026-10-30T12:09+08:00",
+ "posted": [
+  {
+   "file": "2026-10-30_news-intra-1.md",
+   "publish_at": "2026-10-30T12:10+08:00",
+   "title": "三星第3季營業利益107.4兆韓元",
+   "topic_category": "財報",
+   "content_type": "財報數字",
+   "layout": "D-實景(產品)",
+   "style": "口袋長文",
+   "has_ai_image": "false",
+   "explore": "false",
+   "heat": "5.4",
+   "news_ids": "cnyes-6641088",
+   "u_code": "newsintra1",
+   "has_photo": "true",
+   "photo_kind": "產品",
+   "photo": "samsung/photo_13.jpg"
+  }
+ ],
+ "skipped": [
+  {
+   "title": "盤中速報 - 櫃買市場加權指數下跌-8.29點至379.08點，跌幅2.14%",
+   "why": "品質閘：內文 316 字（最少 400）"
+  }
+ ],
+ "overlap": "重疊檢查：程式 1 張 0 筆（有重疊的不排程）"
+}

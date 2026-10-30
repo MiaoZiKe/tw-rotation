@@ -797,6 +797,28 @@
               "quote_free_note": "自填；日工時 表訂/實際 8/8 小時",
               "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2026-04（20261029_1541 大檔，1541 檔）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/群創光電股份有限公司 INNOLUX/salary-work-times?p=8",
+              "date": "2025-10",
+              "page_date": "2025-10",
+              "date_confirmed": true,
+              "role": "機構設計",
+              "grade": null,
+              "unit_detail": "toc",
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 70,
+              "weekly_hours": 50,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/9 小時；職稱未寫工程師",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2025-10（20261029_職稱未寫工程師補回（10-30 Andy 拍板），1541 檔）"
             }
           ],
           "sources": [
@@ -809,25 +831,33 @@
               "site": "GoodJob",
               "url": "https://www.goodjob.life/companies/群創光電股份有限公司 INNOLUX/salary-work-times?p=5",
               "date": "2026-04"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/群創光電股份有限公司 INNOLUX/salary-work-times?p=8",
+              "date": "2025-10"
             }
           ],
           "confidence": "低",
-          "n": 2,
+          "n": 3,
           "base_month_k": [
             65,
             66
           ],
           "bonus_months": null,
           "annual_months": null,
-          "annual_total_wan": null,
+          "annual_total_wan": [
+            70,
+            70
+          ],
           "weekly_hours": [
             40,
-            40
+            50
           ],
           "years": null,
           "overtime": "偶爾",
           "travel": null,
-          "n_stat": 2,
+          "n_stat": 3,
           "note": null,
           "grade": null
         },
@@ -2066,19 +2096,19 @@
           "annual_months": null,
           "annual_total_wan": [
             75,
-            86
+            90
           ],
           "weekly_hours": [
             40,
             50
           ],
-          "overtime": "偶爾",
+          "overtime": null,
           "travel": null,
-          "n": 15,
+          "n": 17,
           "note": "2026-10-29 GoodJob 合併批新增職位",
           "confidence": "低",
           "grade": null,
-          "n_stat": 15,
+          "n_stat": 17,
           "samples": [
             {
               "site": "GoodJob",
@@ -2409,6 +2439,50 @@
               "quote_free_note": "自填；日工時 表訂/實際 12/12 小時",
               "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2025-03（20261029_1541 大檔，1541 檔）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/群創光電股份有限公司 INNOLUX/salary-work-times?p=3",
+              "date": "2026-06",
+              "page_date": "2026-06",
+              "date_confirmed": true,
+              "role": "ACD",
+              "grade": null,
+              "unit_detail": "T2",
+              "years": "5",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 90,
+              "weekly_hours": 40,
+              "overtime": "幾乎不",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/8 小時；職稱未寫工程師",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-06（20261029_職稱未寫工程師補回（10-30 Andy 拍板），1541 檔）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/群創光電股份有限公司 INNOLUX/salary-work-times?p=12",
+              "date": "2025-06",
+              "page_date": "2025-06",
+              "date_confirmed": true,
+              "role": "QC",
+              "grade": null,
+              "unit_detail": "竹南",
+              "years": null,
+              "degree": null,
+              "base_k": 63,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 40,
+              "overtime": "幾乎不",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/8 小時；職稱未寫工程師",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2025-06（20261029_職稱未寫工程師補回（10-30 Andy 拍板），1541 檔）"
             }
           ],
           "sources": [
@@ -2451,6 +2525,21 @@
               "site": "GoodJob",
               "url": "https://www.goodjob.life/companies/群創光電股份有限公司 INNOLUX/salary-work-times?p=15",
               "date": "2025-03"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/群創光電股份有限公司 INNOLUX/salary-work-times?p=3",
+              "date": "2026-06"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/群創光電股份有限公司 INNOLUX/salary-work-times?p=6",
+              "date": "2026-03"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/群創光電股份有限公司 INNOLUX/salary-work-times?p=12",
+              "date": "2025-06"
             }
           ]
         },
@@ -2475,11 +2564,11 @@
           ],
           "overtime": "偶爾",
           "travel": null,
-          "n": 15,
+          "n": 16,
           "note": "2026-10-29 GoodJob 合併批新增職位",
           "confidence": "低",
           "grade": null,
-          "n_stat": 15,
+          "n_stat": 16,
           "samples": [
             {
               "site": "GoodJob",
@@ -2810,6 +2899,28 @@
               "quote_free_note": "自填；日工時 表訂/實際 8/8 小時",
               "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2025-01（20261029_1541 大檔，1541 檔）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/群創光電股份有限公司 INNOLUX/salary-work-times?p=7",
+              "date": "2025-12",
+              "page_date": "2025-12",
+              "date_confirmed": true,
+              "role": "技術開發",
+              "grade": null,
+              "unit_detail": "竹南",
+              "years": "4",
+              "degree": null,
+              "base_k": 66,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 42.5,
+              "overtime": "幾乎不",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/8.5 小時；職稱未寫工程師",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2025-12（20261029_職稱未寫工程師補回（10-30 Andy 拍板），1541 檔）"
             }
           ],
           "sources": [
@@ -2867,6 +2978,11 @@
               "site": "GoodJob",
               "url": "https://www.goodjob.life/companies/群創光電股份有限公司 INNOLUX/salary-work-times?p=17",
               "date": "2025-01"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/群創光電股份有限公司 INNOLUX/salary-work-times?p=7",
+              "date": "2025-12"
             }
           ]
         },
@@ -3600,13 +3716,13 @@
             40,
             50
           ],
-          "overtime": null,
+          "overtime": "偶爾",
           "travel": null,
-          "n": 10,
+          "n": 11,
           "note": "2026-10-29 GoodJob 合併批新增職位",
           "confidence": "低",
           "grade": null,
-          "n_stat": 10,
+          "n_stat": 11,
           "samples": [
             {
               "site": "GoodJob",
@@ -3827,6 +3943,28 @@
               "quote_free_note": "自填；日工時 表訂/實際 8/8.5 小時",
               "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2025-01（20261029_1541 大檔，1541 檔）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/群創光電股份有限公司 INNOLUX/salary-work-times?p=16",
+              "date": "2025-03",
+              "page_date": "2025-03",
+              "date_confirmed": true,
+              "role": "ARRAY製程整合",
+              "grade": null,
+              "unit_detail": "路竹F8",
+              "years": "7",
+              "degree": null,
+              "base_k": 68,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 45,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8.5/8.5 小時；職稱未寫工程師",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2025-03（20261029_職稱未寫工程師補回（10-30 Andy 拍板），1541 檔）"
             }
           ],
           "sources": [
@@ -3891,13 +4029,13 @@
             40,
             48
           ],
-          "overtime": null,
+          "overtime": "幾乎不",
           "travel": null,
-          "n": 4,
+          "n": 5,
           "note": "2026-10-29 GoodJob 合併批新增職位",
           "confidence": "低",
           "grade": null,
-          "n_stat": 4,
+          "n_stat": 5,
           "samples": [
             {
               "site": "GoodJob",
@@ -3986,6 +4124,28 @@
               "quote_free_note": "自填；日工時 表訂/實際 12/12 小時",
               "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2025-01（20261029_1541 大檔，1541 檔）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/群創光電股份有限公司 INNOLUX/salary-work-times?p=10",
+              "date": "2025-09",
+              "page_date": "2025-09",
+              "date_confirmed": true,
+              "role": "廠務",
+              "grade": null,
+              "unit_detail": null,
+              "years": "2",
+              "degree": null,
+              "base_k": 60,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 40,
+              "overtime": "幾乎不",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 12/12 小時；職稱未寫工程師",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2025-09（20261029_職稱未寫工程師補回（10-30 Andy 拍板），1541 檔）"
             }
           ],
           "sources": [
@@ -4008,6 +4168,11 @@
               "site": "GoodJob",
               "url": "https://www.goodjob.life/companies/群創光電股份有限公司 INNOLUX/salary-work-times?p=17",
               "date": "2025-01"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/群創光電股份有限公司 INNOLUX/salary-work-times?p=10",
+              "date": "2025-09"
             }
           ]
         },
@@ -4208,15 +4373,15 @@
           "annual_total_wan": null,
           "weekly_hours": [
             40,
-            42.5
+            45
           ],
-          "overtime": null,
+          "overtime": "幾乎不",
           "travel": null,
-          "n": 4,
+          "n": 7,
           "note": "2026-10-29 GoodJob 合併批新增職位",
           "confidence": "低",
           "grade": null,
-          "n_stat": 4,
+          "n_stat": 6,
           "samples": [
             {
               "site": "GoodJob",
@@ -4305,6 +4470,73 @@
               "quote_free_note": "自填；日工時 表訂/實際 8/8.5 小時",
               "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2025-01（20261029_1541 大檔，1541 檔）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/群創光電股份有限公司 INNOLUX/salary-work-times?p=2",
+              "date": "2026-08",
+              "page_date": "2026-08",
+              "date_confirmed": true,
+              "role": "RD",
+              "grade": null,
+              "unit_detail": "竹南",
+              "years": "14",
+              "degree": null,
+              "base_k": 63,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 40,
+              "overtime": "幾乎不",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 9/8 小時；職稱未寫工程師",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-08（20261029_職稱未寫工程師補回（10-30 Andy 拍板），1541 檔）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/群創光電股份有限公司 INNOLUX/salary-work-times?p=11",
+              "date": "2025-07",
+              "page_date": "2025-07",
+              "date_confirmed": true,
+              "role": "材料研發人員",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 60,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 45,
+              "overtime": "幾乎不",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/8 小時；職稱未寫工程師",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2025-07（20261029_職稱未寫工程師補回（10-30 Andy 拍板），1541 檔）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/群創光電股份有限公司 INNOLUX/salary-work-times?p=12",
+              "date": "2025-07",
+              "page_date": "2025-07",
+              "date_confirmed": true,
+              "role": "材料研發人員",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": 60,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 45,
+              "overtime": "幾乎不",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/8 小時；職稱未寫工程師",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2025-07（20261029_職稱未寫工程師補回（10-30 Andy 拍板），1541 檔）",
+              "dup_of": "https://www.goodjob.life/companies/群創光電股份有限公司 INNOLUX/salary-work-times?p=11"
             }
           ],
           "sources": [
@@ -4322,6 +4554,21 @@
               "site": "GoodJob",
               "url": "https://www.goodjob.life/companies/群創光電股份有限公司 INNOLUX/salary-work-times?p=17",
               "date": "2025-01"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/群創光電股份有限公司 INNOLUX/salary-work-times?p=2",
+              "date": "2026-08"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/群創光電股份有限公司 INNOLUX/salary-work-times?p=11",
+              "date": "2025-07"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/群創光電股份有限公司 INNOLUX/salary-work-times?p=12",
+              "date": "2025-07"
             }
           ]
         },
@@ -4462,6 +4709,11 @@
               "site": "GoodJob",
               "url": "https://www.goodjob.life/companies/群創光電股份有限公司 INNOLUX/salary-work-times?p=8",
               "date": "2025-10"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/群創光電股份有限公司 INNOLUX/salary-work-times?p=13",
+              "date": "2025-05"
             }
           ]
         },
@@ -4796,6 +5048,28 @@
               "comment_sample": false,
               "in_window": true,
               "date_note": "Dcard 頁面日期 2026-07-19（20261029_1541 大檔，1648 檔）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/大立光股份有限公司/salary-work-times?p=1",
+              "date": "2026-02",
+              "page_date": "2026-02",
+              "date_confirmed": true,
+              "role": "RD",
+              "grade": null,
+              "unit_detail": "台中",
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 140,
+              "weekly_hours": 72,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 12/14 小時；原選項幾乎每天；職稱未寫工程師；大立光股份有限公司 頁",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-02（20261029_職稱未寫工程師補回（10-30 Andy 拍板），1541 檔）"
             }
           ],
           "sources": [
@@ -4808,17 +5082,22 @@
               "site": "GoodJob",
               "url": "https://www.goodjob.life/companies/大立光電股份有限公司/salary-work-times?p=3",
               "date": "2025-04"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/大立光股份有限公司/salary-work-times?p=1",
+              "date": "2026-02"
             }
           ],
           "confidence": "低",
-          "n": 4,
+          "n": 5,
           "annual_months": [
             14,
             14
           ],
           "weekly_hours": [
             63,
-            69
+            72
           ],
           "overtime": "經常",
           "years": "0",
@@ -4828,11 +5107,11 @@
           ],
           "bonus_months": null,
           "annual_total_wan": [
-            150,
+            140,
             150
           ],
           "travel": null,
-          "n_stat": 4,
+          "n_stat": 5,
           "note": "；2026-10-29 改名統一：原「RD」",
           "grade": null
         },
@@ -5170,17 +5449,17 @@
           "bonus_months": null,
           "annual_months": null,
           "annual_total_wan": [
-            180,
+            120,
             180
           ],
           "weekly_hours": [
             50,
-            60
+            70
           ],
           "overtime": "經常",
           "travel": null,
-          "n": 3,
-          "n_stat": 3,
+          "n": 4,
+          "n_stat": 4,
           "note": null,
           "grade": null,
           "sources": [
@@ -5267,6 +5546,28 @@
               "quote_free_note": "自填；日工時 表訂/實際 8/11 小時；原選項幾乎每天",
               "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2025-02（20261029_1541 大檔，1541 檔）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/大立光電股份有限公司/salary-work-times?p=1",
+              "date": "2026-09",
+              "page_date": "2026-09",
+              "date_confirmed": true,
+              "role": "AI演算法",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 120,
+              "weekly_hours": 70,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/10 小時；原選項幾乎每天；職稱未寫工程師",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-09（20261029_職稱未寫工程師補回（10-30 Andy 拍板），1541 檔）"
             }
           ]
         },
@@ -5432,6 +5733,146 @@
               "site": "GoodJob",
               "url": "https://www.goodjob.life/companies/大立光電股份有限公司/salary-work-times?p=3",
               "date": "2025-01"
+            }
+          ]
+        },
+        {
+          "unit": null,
+          "role": "製造工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": [
+            45,
+            45
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": [
+            130,
+            130
+          ],
+          "weekly_hours": [
+            50,
+            55
+          ],
+          "overtime": "經常",
+          "travel": null,
+          "n": 2,
+          "note": "2026-10-29 GoodJob 合併批新增職位",
+          "confidence": "低",
+          "grade": null,
+          "n_stat": 2,
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/大立光電股份有限公司/salary-work-times?p=1",
+              "date": "2026-03",
+              "page_date": "2026-03",
+              "date_confirmed": true,
+              "role": "生管",
+              "grade": null,
+              "unit_detail": "台中",
+              "years": "2",
+              "degree": null,
+              "base_k": 45,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 50,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/11 小時；職稱未寫工程師",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-03（20261029_職稱未寫工程師補回（10-30 Andy 拍板），1541 檔）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/大立光電股份有限公司/salary-work-times?p=2",
+              "date": "2025-12",
+              "page_date": "2025-12",
+              "date_confirmed": true,
+              "role": "生管",
+              "grade": null,
+              "unit_detail": null,
+              "years": "4",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 130,
+              "weekly_hours": 55,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/10 小時；原選項幾乎每天；職稱未寫工程師",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2025-12（20261029_職稱未寫工程師補回（10-30 Andy 拍板），1541 檔）"
+            }
+          ],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/大立光電股份有限公司/salary-work-times?p=1",
+              "date": "2026-03"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/大立光電股份有限公司/salary-work-times?p=2",
+              "date": "2025-12"
+            }
+          ]
+        },
+        {
+          "unit": null,
+          "role": "廠務工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": [
+            120,
+            120
+          ],
+          "weekly_hours": [
+            66,
+            66
+          ],
+          "overtime": "經常",
+          "travel": null,
+          "n": 1,
+          "note": "2026-10-29 GoodJob 合併批新增職位",
+          "confidence": "低",
+          "grade": null,
+          "n_stat": 1,
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/大立光電股份有限公司/salary-work-times?p=1",
+              "date": "2026-01",
+              "page_date": "2026-01",
+              "date_confirmed": true,
+              "role": "廠務",
+              "grade": null,
+              "unit_detail": null,
+              "years": "5",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 120,
+              "weekly_hours": 66,
+              "overtime": "經常",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 11/11 小時；原選項幾乎每天；職稱未寫工程師",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-01（20261029_職稱未寫工程師補回（10-30 Andy 拍板），1541 檔）"
+            }
+          ],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/大立光電股份有限公司/salary-work-times?p=1",
+              "date": "2026-01"
             }
           ]
         }
@@ -6210,6 +6651,61 @@
               "site": "GoodJob",
               "url": "https://www.goodjob.life/companies/瀚宇彩晶股份有限公司/salary-work-times?p=1",
               "date": "2025-05"
+            }
+          ]
+        },
+        {
+          "unit": null,
+          "role": "工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": [
+            65,
+            65
+          ],
+          "bonus_months": null,
+          "annual_months": null,
+          "annual_total_wan": null,
+          "weekly_hours": [
+            50,
+            50
+          ],
+          "overtime": "幾乎不",
+          "travel": null,
+          "n": 1,
+          "note": "2026-10-29 GoodJob 合併批新增職位",
+          "confidence": "低",
+          "grade": null,
+          "n_stat": 1,
+          "samples": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/瀚宇彩晶股份有限公司/salary-work-times?p=1",
+              "date": "2026-08",
+              "page_date": "2026-08",
+              "date_confirmed": true,
+              "role": "面板設計",
+              "grade": null,
+              "unit_detail": null,
+              "years": "9",
+              "degree": null,
+              "base_k": 65,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 50,
+              "overtime": "幾乎不",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 10/10 小時；職稱未寫工程師",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-08（20261029_職稱未寫工程師補回（10-30 Andy 拍板），1541 檔）"
+            }
+          ],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/瀚宇彩晶股份有限公司/salary-work-times?p=1",
+              "date": "2026-08"
             }
           ]
         }

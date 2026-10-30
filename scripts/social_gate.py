@@ -116,6 +116,45 @@ def close_gate(today: str, card_dates: dict[str, str], holidays: dict[str, str],
     return True, ""
 
 
+# 2026-10-29 事故：上市個股法人（FinMind）到 18:25 還沒出，盤後主貼文整段沒發 → 鐵則「沒有條件不符就不發」。
+# 過了保底時間（預設台北 19:00，環境變數 CLOSE_FALLBACK_AT 可改）還有卡不是今天：拿掉過期的那幾張、當天的照發；
+# 法人那幾張晚到再由 social_snap.py --supplement 另發一則補充（posted.json 另一個鍵 close-inst-<日期>）。
+CLOSE_FALLBACK_AT = "19:00"
+INST_CARDS = ("inst-today", "streak-foreign", "streak-trust")
+
+
+def close_fallback(today: str, card_dates: dict[str, str], holidays: dict[str, str],
+                   last_trade: str | None = None, live: bool = False, now: datetime | None = None,
+                   fallback_at: str = "") -> tuple[bool, str, list[str]]:
+    """盤後保底：回 (發不發, 說明, 要拿掉的卡)。
+
+    只有這些情況才走保底：今天是交易日（休市日表＋至少一張卡是今天）、不是臨時休市、
+    現在已過保底時間、至少還剩一張卡是今天。過期的卡（資料日不是今天）一律拿掉，絕不拿舊資料冒充今天。"""
+    t = _iso(today)
+    if now is None or not card_dates:
+        return False, "沒有現在時間或沒有卡", []
+    hm = (fallback_at or CLOSE_FALLBACK_AT).strip()
+    now = now.astimezone(TPE)
+    try:
+        cut = datetime.combine(date.fromisoformat(t), datetime.strptime(hm, "%H:%M").time(), TPE)
+    except ValueError:
+        cut = datetime.combine(date.fromisoformat(t), datetime.strptime(CLOSE_FALLBACK_AT, "%H:%M").time(), TPE)
+    if now < cut:
+        return False, f"還沒到保底時間 {cut:%H:%M}", []
+    if t in holidays:
+        return False, f"{t} 是休市日（{holidays[t]}）", []
+    if closed_by_evidence(date.fromisoformat(t), now, last_trade, live):
+        return False, f"今天 {t} 臨時休市", []
+    good = [k for k, v in card_dates.items() if _iso(v) == t]
+    drop = [k for k, v in card_dates.items() if _iso(v) != t]
+    if not good:
+        return False, "沒有任何一張卡是今天的資料", drop
+    if not drop:
+        return True, "", []
+    return True, (f"過了 {cut:%H:%M} 保底：拿掉資料日不是今天的 " + "、".join(f"{k}＝{_iso(card_dates[k]) or '沒有日期'}" for k in drop)
+                  + "，其他 " + "、".join(good) + " 照發"), drop
+
+
 def credit_gate(now: datetime, data_date: str, holidays: dict[str, str],
                 last_trade: str | None = None, live: bool = False) -> tuple[bool, str]:
     """盤後融資：資料日收盤（13:30）之後、下一個交易日 09:00 之前才發；過了就不發舊的。

@@ -1,0 +1,1574 @@
+{
+ "at": "2026-10-30T03:49:11+00:00",
+ "items": [
+  {
+   "slug": "tsmc",
+   "source": "official",
+   "added": 14,
+   "pages": [
+    {
+     "url": "https://www.tsmc.com/english/aboutTSMC/TSMC_Fabs",
+     "title": "TSMC Fabs - Taiwan Semiconductor Manufacturing Company Limited",
+     "imgs": 34,
+     "saved": 8
+    },
+    {
+     "url": "https://www.tsmc.com/english/dedicatedFoundry/manufacturing/gigafab",
+     "title": "GIGAFAB® Facilities - Taiwan Semiconductor Manufacturing Company Limited",
+     "imgs": 8,
+     "saved": 0
+    },
+    {
+     "url": "https://pr.tsmc.com/english/latest-news",
+     "title": "Latest News - Taiwan Semiconductor Manufacturing Company Limited",
+     "imgs": 9,
+     "saved": 1
+    },
+    {
+     "url": "https://www.tsmc.com/english",
+     "title": "Taiwan Semiconductor Manufacturing Company Limited",
+     "imgs": 20,
+     "saved": 5
+    }
+   ]
+  },
+  {
+   "slug": "ase",
+   "source": "official",
+   "added": 14,
+   "pages": [
+    {
+     "url": "https://www.aseglobal.com/",
+     "title": "Home | ASE Holdings",
+     "imgs": 36,
+     "saved": 10,
+     "skipped": {
+      "檔名像標誌/人像/活動": 16,
+      "太小": 3,
+      "看過": 6,
+      "svg/gif": 1
+     }
+    },
+    {
+     "url": "https://www.aseglobal.com/press-room/ase-breaks-ground-on-new-renwu-plant-to-build-hi-tech-testing-cluster",
+     "title": "ASE Breaks Ground on New Renwu Plant to Build Hi-tech Testing Cluster | ASE Hold",
+     "imgs": 18,
+     "saved": 2,
+     "skipped": {
+      "檔名像標誌/人像/活動": 12,
+      "太小": 2,
+      "svg/gif": 1,
+      "看過": 1
+     }
+    },
+    {
+     "url": "https://www.aseglobal.com/about-us/",
+     "title": "Error Page 404 | ASE Holdings",
+     "imgs": 14,
+     "saved": 0,
+     "skipped": {
+      "檔名像標誌/人像/活動": 12,
+      "svg/gif": 1,
+      "看過": 1
+     }
+    },
+    {
+     "url": "https://www.aseglobal.com/press-room/",
+     "title": "Press Room | ASE Holdings",
+     "imgs": 39,
+     "saved": 2,
+     "skipped": {
+      "檔名像標誌/人像/活動": 13,
+      "看過": 3
+     }
+    }
+   ]
+  },
+  {
+   "slug": "unimicron",
+   "source": "official",
+   "added": 14,
+   "pages": [
+    {
+     "url": "https://www.unimicron.com/product_HDI.html",
+     "title": "高密度連結板",
+     "imgs": 6,
+     "saved": 0,
+     "skipped": {
+      "檔名像標誌/人像/活動": 3,
+      "svg/gif": 1,
+      "太小": 2
+     }
+    },
+    {
+     "url": "https://www.unimicron.com/product_FCCSP.html",
+     "title": "晶片尺寸覆晶載板",
+     "imgs": 6,
+     "saved": 0,
+     "skipped": {
+      "檔名像標誌/人像/活動": 3,
+      "svg/gif": 1,
+      "太小": 2
+     }
+    },
+    {
+     "url": "https://www.unimicron.com/about02.html",
+     "title": "公司組織表",
+     "imgs": 5,
+     "saved": 0,
+     "skipped": {
+      "檔名像標誌/人像/活動": 3,
+      "svg/gif": 1,
+      "太小": 1
+     }
+    },
+    {
+     "url": "https://www.unimicron.com/about03.html",
+     "title": "願景與經營理念",
+     "imgs": 5,
+     "saved": 0,
+     "skipped": {
+      "檔名像標誌/人像/活動": 3,
+      "svg/gif": 1,
+      "太小": 1
+     }
+    },
+    {
+     "url": "https://www.unimicron.com/about05.html",
+     "title": "最新消息",
+     "imgs": 337,
+     "saved": 14,
+     "skipped": {
+      "檔名像標誌/人像/活動": 1,
+      "svg/gif": 1,
+      "看過": 28
+     }
+    }
+   ]
+  },
+  {
+   "slug": "nvidia",
+   "source": "official",
+   "added": 14,
+   "pages": [
+    {
+     "url": "https://www.nvidia.com/en-us/data-center/gb200-nvl72/",
+     "title": "GB200 NVL72 | NVIDIA",
+     "imgs": 29,
+     "saved": 5,
+     "skipped": {
+      "單色/插畫底": 1,
+      "svg/gif": 10,
+      "無網址": 2,
+      "太小": 1,
+      "檔名像標誌/人像/活動": 1,
+      "看過": 8,
+      "下載失敗": 1
+     }
+    },
+    {
+     "url": "https://www.nvidia.com/en-us/data-center/dgx-b200/",
+     "title": "DGX B200: The Foundation for Your AI Factory | NVIDIA",
+     "imgs": 18,
+     "saved": 4,
+     "skipped": {
+      "單色/插畫底": 1,
+      "無網址": 4,
+      "svg/gif": 4,
+      "太小": 3,
+      "檔名像標誌/人像/活動": 1,
+      "看過": 1
+     }
+    },
+    {
+     "url": "https://www.nvidia.com/en-us/data-center/dgx-superpod/",
+     "title": "DGX SuperPOD: AI Infrastructure for Enterprise Deployments | NVIDIA",
+     "imgs": 64,
+     "saved": 5,
+     "skipped": {
+      "單色/插畫底": 3,
+      "無網址": 20,
+      "svg/gif": 9,
+      "太小": 12,
+      "下載失敗": 1,
+      "檔名像標誌/人像/活動": 1,
+      "看過": 1
+     }
+    }
+   ]
+  },
+  {
+   "slug": "samsung",
+   "source": "official",
+   "added": 14,
+   "pages": [
+    {
+     "url": "https://semiconductor.samsung.com/about-us/locations/",
+     "title": "Locations | About Us | Samsung Semiconductor Global",
+     "imgs": 138,
+     "saved": 7,
+     "skipped": {
+      "svg/gif": 49,
+      "檔名像標誌/人像/活動": 3,
+      "太小": 57,
+      "單色/插畫底": 4,
+      "看過": 18
+     }
+    },
+    {
+     "url": "https://news.samsungsemiconductor.com/global/a-scale-beyond-imagination-inside-samsungs-massive-semiconductor-fabs/",
+     "title": "A Scale Beyond Imagination: Inside Samsung’s Massive Semiconductor Fabs – Samsun",
+     "imgs": 15,
+     "saved": 1,
+     "skipped": {
+      "svg/gif": 6,
+      "太小": 6,
+      "直式": 2
+     }
+    },
+    {
+     "url": "https://semiconductor.samsung.com/about-us/",
+     "title": "About Us | Samsung Semiconductor Global",
+     "imgs": 104,
+     "saved": 4,
+     "skipped": {
+      "svg/gif": 51,
+      "檔名像標誌/人像/活動": 1,
+      "看過": 30,
+      "太小": 18
+     }
+    },
+    {
+     "url": "https://news.samsungsemiconductor.com/global/?p=2899",
+     "title": "A Scale Beyond Imagination: Inside Samsung’s Massive Semiconductor Fabs – Samsun",
+     "imgs": 15,
+     "saved": 0,
+     "skipped": {
+      "svg/gif": 6,
+      "看過": 9
+     }
+    },
+    {
+     "url": "https://semiconductor.samsung.com/dram/hbm/",
+     "title": "HBM | DRAM | Samsung Semiconductor Global",
+     "imgs": 109,
+     "saved": 2,
+     "skipped": {
+      "svg/gif": 47,
+      "檔名像標誌/人像/活動": 2,
+      "看過": 1,
+      "單色/插畫底": 1,
+      "太小": 5
+     }
+    }
+   ]
+  },
+  {
+   "slug": "anthropic",
+   "source": "official",
+   "added": 7,
+   "pages": [
+    {
+     "url": "https://www.anthropic.com/careers",
+     "title": "Careers \\ Anthropic",
+     "imgs": 9,
+     "saved": 1,
+     "skipped": {
+      "svg/gif": 7,
+      "單色/插畫底": 1
+     }
+    },
+    {
+     "url": "https://claude.com/download",
+     "title": "Download Claude | Claude by Anthropic",
+     "imgs": 6,
+     "saved": 1,
+     "skipped": {
+      "svg/gif": 5
+     }
+    },
+    {
+     "url": "https://www.claude.com/product/claude-code",
+     "title": "Claude Code by Anthropic | AI Coding Agent, Terminal, IDE",
+     "imgs": 76,
+     "saved": 0,
+     "skipped": {
+      "svg/gif": 72,
+      "直式": 3,
+      "單色/插畫底": 1
+     }
+    },
+    {
+     "url": "https://www.claude.com/product/overview",
+     "title": "The AI for problem solvers | Claude by Anthropic",
+     "imgs": 200,
+     "saved": 0,
+     "skipped": {
+      "svg/gif": 181,
+      "太小": 14,
+      "看過": 3,
+      "無網址": 1,
+      "單色/插畫底": 1
+     }
+    },
+    {
+     "url": "https://www.anthropic.com/claude",
+     "title": "The AI for problem solvers | Claude by Anthropic",
+     "imgs": 200,
+     "saved": 0,
+     "skipped": {
+      "svg/gif": 181,
+      "看過": 18,
+      "無網址": 1
+     }
+    },
+    {
+     "url": "https://www.claude.com/",
+     "title": "Claude",
+     "imgs": 1,
+     "saved": 0,
+     "skipped": {
+      "看過": 1
+     }
+    },
+    {
+     "url": "https://www.anthropic.com/company",
+     "title": "Company \\ Anthropic",
+     "imgs": 5,
+     "saved": 0,
+     "skipped": {
+      "看過": 3,
+      "檔名像標誌/人像/活動": 2
+     }
+    },
+    {
+     "url": "https://www.anthropic.com/news",
+     "title": "Newsroom \\ Anthropic",
+     "imgs": 11,
+     "saved": 0,
+     "skipped": {
+      "看過": 8,
+      "svg/gif": 3
+     }
+    },
+    {
+     "url": "https://www.anthropic.com/",
+     "title": "Home \\ Anthropic",
+     "imgs": 5,
+     "saved": 0,
+     "skipped": {
+      "直式": 3,
+      "太小": 1,
+      "看過": 1
+     }
+    },
+    {
+     "url": "https://claude.com/programs/campus",
+     "title": "Claude Campus program | Claude by Anthropic",
+     "imgs": 1,
+     "saved": 0,
+     "skipped": {
+      "看過": 1
+     }
+    },
+    {
+     "url": "https://www.anthropic.com/company/leadership",
+     "title": "Leadership at Anthropic \\ Anthropic",
+     "imgs": 16,
+     "saved": 0,
+     "skipped": {
+      "檔名像標誌/人像/活動": 15,
+      "看過": 1
+     }
+    },
+    {
+     "url": "https://claude.com/product/overview",
+     "title": "The AI for problem solvers | Claude by Anthropic",
+     "imgs": 200,
+     "saved": 0,
+     "skipped": {
+      "svg/gif": 181,
+      "看過": 18,
+      "無網址": 1
+     }
+    },
+    {
+     "url": "https://code.claude.com/docs/en/overview",
+     "title": "Overview - Claude Code Docs",
+     "imgs": 5,
+     "saved": 0,
+     "skipped": {
+      "svg/gif": 4,
+      "看過": 1
+     }
+    },
+    {
+     "url": "https://claude.com/solutions/enterprise",
+     "title": "Claude Enterprise plan | Claude by Anthropic",
+     "imgs": 64,
+     "saved": 0,
+     "skipped": {
+      "看過": 8,
+      "svg/gif": 49,
+      "太小": 1,
+      "無網址": 6
+     }
+    },
+    {
+     "url": "https://claude.com/platform/api",
+     "title": "Claude Platform | Claude by Anthropic",
+     "imgs": 98,
+     "saved": 2,
+     "skipped": {
+      "svg/gif": 88,
+      "太小": 6,
+      "檔名像標誌/人像/活動": 1,
+      "重複": 1
+     }
+    },
+    {
+     "url": "https://claude.com/resources",
+     "title": "Claude Resources | Claude by Anthropic",
+     "imgs": 5,
+     "saved": 0,
+     "skipped": {
+      "svg/gif": 2,
+      "看過": 2,
+      "單色/插畫底": 1
+     }
+    },
+    {
+     "url": "https://claude.com/pricing",
+     "title": "Plans & pricing | Claude by Anthropic",
+     "imgs": 2,
+     "saved": 0,
+     "skipped": {
+      "太小": 1,
+      "看過": 1
+     }
+    },
+    {
+     "url": "https://www.anthropic.com/press-kit",
+     "error": "Page.goto: Download is starting\nCall log:\n  - navigating to \"https://www.anthropic.com/press-kit\", waiting until \"domcontentloaded\"\n"
+    },
+    {
+     "url": "https://code.claude.com/docs/en/features-overview",
+     "title": "Extend Claude Code - Claude Code Docs",
+     "imgs": 7,
+     "saved": 0,
+     "skipped": {
+      "svg/gif": 6,
+      "看過": 1
+     }
+    },
+    {
+     "url": "https://code.claude.com/docs/en/platforms",
+     "title": "Platforms and integrations - Claude Code Docs",
+     "imgs": 5,
+     "saved": 0,
+     "skipped": {
+      "svg/gif": 4,
+      "看過": 1
+     }
+    },
+    {
+     "url": "https://claude.com/pricing?utm_source=claude_code&utm_medium=docs&utm_content=overview_pricing",
+     "title": "Plans & pricing | Claude by Anthropic",
+     "imgs": 2,
+     "saved": 0,
+     "skipped": {
+      "看過": 2
+     }
+    },
+    {
+     "url": "https://claude.com/programs/campus?utm_source=claude_code&utm_medium=docs&utm_content=overview_pricing",
+     "title": "Claude Campus program | Claude by Anthropic",
+     "imgs": 1,
+     "saved": 0,
+     "skipped": {
+      "看過": 1
+     }
+    },
+    {
+     "url": "https://claude.com/pricing?utm_source=claude_code&utm_medium=docs&utm_content=overview_desktop_pricing",
+     "title": "Plans & pricing | Claude by Anthropic",
+     "imgs": 2,
+     "saved": 0,
+     "skipped": {
+      "看過": 2
+     }
+    },
+    {
+     "url": "https://claude.com/programs/campus?utm_source=claude_code&utm_medium=docs&utm_content=overview_desktop_pricing",
+     "title": "Claude Campus program | Claude by Anthropic",
+     "imgs": 1,
+     "saved": 0,
+     "skipped": {
+      "看過": 1
+     }
+    },
+    {
+     "url": "https://platform.claude.com/docs/en/about-claude/pricing",
+     "title": "Pricing - Claude Platform Docs",
+     "imgs": 12,
+     "saved": 0,
+     "skipped": {
+      "svg/gif": 11,
+      "單色/插畫底": 1
+     }
+    },
+    {
+     "url": "https://platform.claude.com/docs/en/managed-agents/overview",
+     "title": "Claude Managed Agents overview - Claude Platform Docs",
+     "imgs": 1,
+     "saved": 1,
+     "skipped": {}
+    },
+    {
+     "url": "https://platform.claude.com/docs/en/build-with-claude/vision",
+     "title": "Vision - Claude Platform Docs",
+     "imgs": 1,
+     "saved": 0,
+     "skipped": {
+      "單色/插畫底": 1
+     }
+    },
+    {
+     "url": "https://claude.com/resources/articles/idc-brings-quanta-into-claude-and-adopts-claude-across-the-company",
+     "title": "IDC brings Quanta into Claude and adopts Claude across the company | Claude by A",
+     "imgs": 1,
+     "saved": 1,
+     "skipped": {}
+    },
+    {
+     "url": "https://claude.com/docs/third-party/claude-desktop/overview",
+     "title": "Overview - Claude.ai Documentation",
+     "imgs": 5,
+     "saved": 1,
+     "skipped": {
+      "svg/gif": 4
+     }
+    },
+    {
+     "url": "https://claude.com/?utm_source=claude_code&utm_medium=docs&utm_content=overview_pricing",
+     "title": "Sign in - Claude",
+     "imgs": 1,
+     "saved": 0,
+     "skipped": {
+      "單色/插畫底": 1
+     }
+    }
+   ]
+  },
+  {
+   "slug": "arm",
+   "source": "official",
+   "added": 14,
+   "pages": [
+    {
+     "url": "https://newsroom.arm.com/media",
+     "title": "Media - Arm Newsroom",
+     "imgs": 13,
+     "saved": 0,
+     "skipped": {
+      "太小": 2,
+      "無網址": 7,
+      "檔名像標誌/人像/活動": 1,
+      "svg/gif": 3
+     }
+    },
+    {
+     "url": "https://newsroom.arm.com/news",
+     "title": "News Archive - Arm Newsroom",
+     "imgs": 13,
+     "saved": 0,
+     "skipped": {
+      "看過": 1,
+      "無網址": 7,
+      "檔名像標誌/人像/活動": 1,
+      "svg/gif": 3,
+      "太小": 1
+     }
+    },
+    {
+     "url": "https://www.arm.com/company/offices",
+     "title": "Arm worldwide office – Arm®",
+     "imgs": 110,
+     "saved": 0,
+     "skipped": {
+      "svg/gif": 76,
+      "檔名像標誌/人像/活動": 28,
+      "太小": 4,
+      "看過": 1,
+      "直式": 1
+     }
+    },
+    {
+     "url": "https://www.arm.com/company",
+     "title": "About Arm, company value and history – Arm® – Arm®",
+     "imgs": 116,
+     "saved": 0,
+     "skipped": {
+      "svg/gif": 76,
+      "檔名像標誌/人像/活動": 29,
+      "看過": 3,
+      "太小": 6,
+      "直式": 2
+     }
+    },
+    {
+     "url": "https://newsroom.arm.com/",
+     "title": "Arm Newsroom",
+     "imgs": 38,
+     "saved": 0,
+     "skipped": {
+      "看過": 13,
+      "太小": 7,
+      "檔名像標誌/人像/活動": 10,
+      "下載失敗": 5,
+      "svg/gif": 3
+     }
+    },
+    {
+     "url": "https://www.arm.com/",
+     "title": "Where intelligence goes next – Arm®",
+     "imgs": 151,
+     "saved": 0,
+     "skipped": {
+      "svg/gif": 79,
+      "檔名像標誌/人像/活動": 35,
+      "看過": 8,
+      "單色/插畫底": 2,
+      "太小": 14,
+      "直式": 13
+     }
+    },
+    {
+     "url": "https://www.arm.com/products/silicon-ip-multimedia?families=Mali%20Graphics%20Processors",
+     "title": "Arm Multimedia IP: Accelerating AI – Arm®",
+     "imgs": 109,
+     "saved": 0,
+     "skipped": {
+      "svg/gif": 76,
+      "檔名像標誌/人像/活動": 32,
+      "太小": 1
+     }
+    },
+    {
+     "url": "https://www.arm.com/products/silicon-ip-multimedia?families=Lumex%20Mali%20G1,Mali%20Graphics%20Processors",
+     "title": "Arm Multimedia IP: Accelerating AI – Arm®",
+     "imgs": 109,
+     "saved": 0,
+     "skipped": {
+      "svg/gif": 76,
+      "檔名像標誌/人像/活動": 32,
+      "看過": 1
+     }
+    },
+    {
+     "url": "https://www.arm.com/products/silicon-ip-multimedia/gpu/mali-g2-ultra-nx",
+     "title": "Arm Mali G2-Ultra NX | The first AI-native Mali GPU for mobile – Arm®",
+     "imgs": 143,
+     "saved": 2,
+     "skipped": {
+      "svg/gif": 92,
+      "檔名像標誌/人像/活動": 40,
+      "太小": 6,
+      "看過": 1,
+      "單色/插畫底": 1,
+      "直式": 1
+     }
+    },
+    {
+     "url": "https://www.arm.com/company/policies/trademarks/guidelines-corporate-logo",
+     "title": "Corporate logo guidelines – Arm®",
+     "imgs": 120,
+     "saved": 0,
+     "skipped": {
+      "svg/gif": 77,
+      "檔名像標誌/人像/活動": 40,
+      "看過": 2,
+      "無網址": 1
+     }
+    },
+    {
+     "url": "https://newsroom.arm.com/subscribe-for-news-alerts",
+     "title": "Subscribe for News Alerts - Arm Newsroom",
+     "imgs": 13,
+     "saved": 0,
+     "skipped": {
+      "看過": 1,
+      "無網址": 7,
+      "檔名像標誌/人像/活動": 1,
+      "svg/gif": 3,
+      "太小": 1
+     }
+    },
+    {
+     "url": "https://www.arm.com/company/success-library/made-possible/meta",
+     "title": "Meta Technologies optimized for AI and ML on Arm – Arm®",
+     "imgs": 114,
+     "saved": 0,
+     "skipped": {
+      "svg/gif": 76,
+      "檔名像標誌/人像/活動": 28,
+      "太小": 4,
+      "單色/插畫底": 1,
+      "看過": 2,
+      "直式": 3
+     }
+    },
+    {
+     "url": "https://www.arm.com/company/success-library",
+     "title": "Success Stories – Arm®",
+     "imgs": 134,
+     "saved": 8,
+     "skipped": {
+      "svg/gif": 86,
+      "檔名像標誌/人像/活動": 30,
+      "太小": 5,
+      "看過": 4,
+      "無網址": 1
+     }
+    },
+    {
+     "url": "https://newsroom.arm.com/partner_news?type=partner_news",
+     "title": "Partner News Archive - Arm Newsroom",
+     "imgs": 13,
+     "saved": 0,
+     "skipped": {
+      "看過": 1,
+      "無網址": 7,
+      "檔名像標誌/人像/活動": 1,
+      "svg/gif": 3,
+      "太小": 1
+     }
+    },
+    {
+     "url": "https://www.arm.com/company/board",
+     "title": "Board of directors – Arm®",
+     "imgs": 119,
+     "saved": 0,
+     "skipped": {
+      "svg/gif": 76,
+      "檔名像標誌/人像/活動": 41,
+      "太小": 1,
+      "無網址": 1
+     }
+    },
+    {
+     "url": "https://www.arm.com/company/leadership",
+     "title": "Leadership – Arm®",
+     "imgs": 123,
+     "saved": 0,
+     "skipped": {
+      "svg/gif": 76,
+      "檔名像標誌/人像/活動": 46,
+      "無網址": 1
+     }
+    },
+    {
+     "url": "https://www.arm.com/company/diversity-equity-inclusion",
+     "title": "Diversity, Equity, and Inclusion – Arm®",
+     "imgs": 138,
+     "saved": 0,
+     "skipped": {
+      "svg/gif": 83,
+      "檔名像標誌/人像/活動": 47,
+      "太小": 6,
+      "看過": 1,
+      "直式": 1
+     }
+    },
+    {
+     "url": "https://www.arm.com/company/sustainability",
+     "title": "Sustainability – Arm®",
+     "imgs": 121,
+     "saved": 0,
+     "skipped": {
+      "svg/gif": 84,
+      "檔名像標誌/人像/活動": 29,
+      "太小": 7,
+      "直式": 1
+     }
+    },
+    {
+     "url": "https://www.arm.com/company/arm-advantage",
+     "title": "The Arm advantage – Arm®",
+     "imgs": 119,
+     "saved": 0,
+     "skipped": {
+      "svg/gif": 82,
+      "檔名像標誌/人像/活動": 29,
+      "太小": 6,
+      "看過": 1,
+      "直式": 1
+     }
+    },
+    {
+     "url": "https://www.arm.com/company/events",
+     "title": "Events – Arm®",
+     "imgs": 125,
+     "saved": 0,
+     "skipped": {
+      "svg/gif": 76,
+      "檔名像標誌/人像/活動": 47,
+      "單色/插畫底": 1,
+      "直式": 1
+     }
+    },
+    {
+     "url": "https://www.arm.com/company/research",
+     "title": "Research and innovation at Arm – Arm®",
+     "imgs": 119,
+     "saved": 0,
+     "skipped": {
+      "svg/gif": 84,
+      "檔名像標誌/人像/活動": 29,
+      "太小": 4,
+      "看過": 1,
+      "直式": 1
+     }
+    },
+    {
+     "url": "https://www.arm.com/company/arm-compute-platform",
+     "title": "Arm compute platform: Scalable, secure compute for AI – Arm®",
+     "imgs": 121,
+     "saved": 0,
+     "skipped": {
+      "svg/gif": 86,
+      "檔名像標誌/人像/活動": 28,
+      "太小": 4,
+      "看過": 2,
+      "直式": 1
+     }
+    },
+    {
+     "url": "https://www.arm.com/company/executive-insights",
+     "title": "Executive insights: AI trends, challenges & innovation – Arm®",
+     "imgs": 120,
+     "saved": 0,
+     "skipped": {
+      "svg/gif": 76,
+      "檔名像標誌/人像/活動": 44
+     }
+    },
+    {
+     "url": "https://www.arm.com/company/suppliers",
+     "title": "Suppliers – Arm®",
+     "imgs": 111,
+     "saved": 0,
+     "skipped": {
+      "svg/gif": 76,
+      "檔名像標誌/人像/活動": 28,
+      "太小": 5,
+      "看過": 1,
+      "無網址": 1
+     }
+    },
+    {
+     "url": "https://www.arm.com/company/quality",
+     "title": "Quality – Arm®",
+     "imgs": 111,
+     "saved": 0,
+     "skipped": {
+      "svg/gif": 76,
+      "檔名像標誌/人像/活動": 29,
+      "太小": 4,
+      "看過": 1,
+      "無網址": 1
+     }
+    },
+    {
+     "url": "https://www.arm.com/company/trust",
+     "title": "Security at Arm – Arm®",
+     "imgs": 112,
+     "saved": 2,
+     "skipped": {
+      "svg/gif": 76,
+      "檔名像標誌/人像/活動": 28,
+      "太小": 4,
+      "看過": 1,
+      "無網址": 1
+     }
+    },
+    {
+     "url": "https://www.arm.com/company/policies",
+     "title": "Policies – Arm®",
+     "imgs": 110,
+     "saved": 0,
+     "skipped": {
+      "svg/gif": 76,
+      "檔名像標誌/人像/活動": 28,
+      "太小": 4,
+      "看過": 1,
+      "無網址": 1
+     }
+    },
+    {
+     "url": "https://www.arm.com/company/policies/accessibility",
+     "title": "Accessibility – Arm®",
+     "imgs": 110,
+     "saved": 0,
+     "skipped": {
+      "svg/gif": 76,
+      "檔名像標誌/人像/活動": 28,
+      "看過": 4,
+      "太小": 1,
+      "無網址": 1
+     }
+    },
+    {
+     "url": "https://www.arm.com/company/sustainability/modern-slavery-act-transparency-statement",
+     "title": "Sustainability | Modern Slavery Statement – Arm®",
+     "imgs": 111,
+     "saved": 0,
+     "skipped": {
+      "svg/gif": 76,
+      "檔名像標誌/人像/活動": 28,
+      "太小": 5,
+      "看過": 1,
+      "直式": 1
+     }
+    },
+    {
+     "url": "https://www.arm.com/company/why-arm",
+     "title": "Why Arm | Powering AI and intelligent computing everywhere – Arm®",
+     "imgs": 147,
+     "saved": 2,
+     "skipped": {
+      "svg/gif": 89,
+      "檔名像標誌/人像/活動": 31,
+      "太小": 1
+     }
+    }
+   ]
+  },
+  {
+   "slug": "coreweave",
+   "source": "official",
+   "added": 14,
+   "pages": [
+    {
+     "url": "https://www.coreweave.com/newsroom",
+     "title": "News and Press Releases | CoreWeave",
+     "imgs": 290,
+     "saved": 14,
+     "skipped": {
+      "svg/gif": 64,
+      "單色/插畫底": 7,
+      "看過": 11
+     }
+    }
+   ]
+  },
+  {
+   "slug": "nanya_tech",
+   "source": "official",
+   "added": 14,
+   "pages": [
+    {
+     "url": "https://www.nanya.com/ESG/tw",
+     "title": "南亞科技 - 企業永續ESG",
+     "imgs": 43,
+     "saved": 0,
+     "skipped": {
+      "svg/gif": 1,
+      "直式": 2,
+      "重複": 1,
+      "太小": 33,
+      "下載失敗": 6
+     }
+    },
+    {
+     "url": "https://www.nanya.com/ESG/en",
+     "title": "Nanya Technology Corporate Sustainability",
+     "imgs": 43,
+     "saved": 0,
+     "skipped": {
+      "svg/gif": 1,
+      "直式": 2,
+      "重複": 1,
+      "太小": 32,
+      "下載失敗": 6,
+      "看過": 1
+     }
+    },
+    {
+     "url": "https://www.nanya.com/en/About/",
+     "title": "System error",
+     "imgs": 3,
+     "saved": 0,
+     "skipped": {
+      "檔名像標誌/人像/活動": 1,
+      "svg/gif": 2
+     }
+    },
+    {
+     "url": "https://www.nanya.com/tw/CSR/",
+     "title": "系統錯誤",
+     "imgs": 3,
+     "saved": 0,
+     "skipped": {
+      "檔名像標誌/人像/活動": 1,
+      "svg/gif": 2
+     }
+    },
+    {
+     "url": "https://www.nanya.com/tw/About/",
+     "title": "系統錯誤",
+     "imgs": 3,
+     "saved": 0,
+     "skipped": {
+      "檔名像標誌/人像/活動": 1,
+      "svg/gif": 2
+     }
+    },
+    {
+     "url": "https://www.nanya.com/tw/",
+     "title": "南亞科技",
+     "imgs": 19,
+     "saved": 0,
+     "skipped": {
+      "檔名像標誌/人像/活動": 1,
+      "下載失敗": 1,
+      "看過": 9,
+      "太小": 3,
+      "svg/gif": 2,
+      "直式": 3
+     }
+    },
+    {
+     "url": "https://www.nanya.com/en/",
+     "title": "Nanya",
+     "imgs": 19,
+     "saved": 0,
+     "skipped": {
+      "檔名像標誌/人像/活動": 1,
+      "看過": 16,
+      "svg/gif": 2
+     }
+    },
+    {
+     "url": "https://www.nanya.com/tw/About/31/%e9%8a%b7%e5%94%ae%e6%9c%8d%e5%8b%99%e6%93%9a%e9%bb%9e",
+     "title": "銷售服務據點",
+     "imgs": 3,
+     "saved": 0,
+     "skipped": {
+      "檔名像標誌/人像/活動": 1,
+      "svg/gif": 2
+     }
+    },
+    {
+     "url": "https://www.nanya.com/tw/IR/16?IRId=14185",
+     "title": "新聞稿",
+     "imgs": 3,
+     "saved": 0,
+     "skipped": {
+      "檔名像標誌/人像/活動": 1,
+      "svg/gif": 2
+     }
+    },
+    {
+     "url": "https://www.nanya.com/en/IR/16?IRId=14185",
+     "title": "Press Release",
+     "imgs": 3,
+     "saved": 0,
+     "skipped": {
+      "檔名像標誌/人像/活動": 1,
+      "svg/gif": 2
+     }
+    },
+    {
+     "url": "https://www.nanya.com/ESG/tw/news_list",
+     "title": "南亞科技 - 企業永續ESG",
+     "imgs": 76,
+     "saved": 14,
+     "skipped": {
+      "svg/gif": 1,
+      "太小": 2
+     }
+    }
+   ]
+  },
+  {
+   "slug": "nan_ya_pcb",
+   "source": "official",
+   "added": 0,
+   "pages": [
+    {
+     "url": "https://www.nanyapcb.com.tw/nypcb/chinese/AboutNanYaPCB/Locations/Location",
+     "title": "廠房位置",
+     "imgs": 16,
+     "saved": 0,
+     "skipped": {
+      "svg/gif": 7,
+      "檔名像標誌/人像/活動": 1,
+      "太小": 8
+     }
+    },
+    {
+     "url": "https://www.nanyapcb.com.tw/nypcb/english/index",
+     "title": "Nan Ya PCB Corporation",
+     "imgs": 11,
+     "saved": 0,
+     "skipped": {
+      "svg/gif": 6,
+      "檔名像標誌/人像/活動": 1,
+      "太小": 4
+     }
+    },
+    {
+     "url": "https://www.nanyapcb.com.tw/",
+     "title": "南電首頁",
+     "imgs": 11,
+     "saved": 0,
+     "skipped": {
+      "svg/gif": 6,
+      "檔名像標誌/人像/活動": 1,
+      "看過": 4
+     }
+    },
+    {
+     "url": "https://www.nanyapcb.com.tw/en/",
+     "title": "404 - 找不到檔案或目錄。",
+     "imgs": 0,
+     "saved": 0,
+     "skipped": {}
+    },
+    {
+     "url": "https://www.nanyapcb.com.tw/nypcb/images/AboutNanYaPCB/map_e.gif",
+     "title": "map_e.gif (900×600)",
+     "imgs": 1,
+     "saved": 0,
+     "skipped": {
+      "svg/gif": 1
+     }
+    },
+    {
+     "url": "https://www.nanyapcb.com.tw/nypcb/images/AboutNanYaPCB/plant1.jpg",
+     "title": "plant1.jpg (290×166)",
+     "imgs": 1,
+     "saved": 0,
+     "skipped": {
+      "看過": 1
+     }
+    },
+    {
+     "url": "https://www.nanyapcb.com.tw/nypcb/images/AboutNanYaPCB/plant2.jpg",
+     "title": "plant2.jpg (290×172)",
+     "imgs": 1,
+     "saved": 0,
+     "skipped": {
+      "看過": 1
+     }
+    },
+    {
+     "url": "https://www.nanyapcb.com.tw/nypcb/english/AboutNanYaPCB/Locations/Location",
+     "title": "Office&FactoryLocations",
+     "imgs": 16,
+     "saved": 0,
+     "skipped": {
+      "svg/gif": 7,
+      "檔名像標誌/人像/活動": 1,
+      "看過": 8
+     }
+    },
+    {
+     "url": "https://www.nanyapcb.com.tw/nypcb/chinese/AboutNanYaPCB/CompanyProfile/Vision",
+     "title": "經營理念及願景",
+     "imgs": 6,
+     "saved": 0,
+     "skipped": {
+      "svg/gif": 3,
+      "檔名像標誌/人像/活動": 1,
+      "看過": 1,
+      "太小": 1
+     }
+    },
+    {
+     "url": "https://www.nanyapcb.com.tw/nypcb/chinese/AboutNanYaPCB/CompanyProfile/Company",
+     "title": "公司簡介",
+     "imgs": 4,
+     "saved": 0,
+     "skipped": {
+      "svg/gif": 3,
+      "檔名像標誌/人像/活動": 1
+     }
+    },
+    {
+     "url": "https://www.nanyapcb.com.tw/nypcb/english/AboutNanYaPCB/CompanyProfile/Vision",
+     "title": "CorporatePhilosophy",
+     "imgs": 8,
+     "saved": 0,
+     "skipped": {
+      "svg/gif": 5,
+      "檔名像標誌/人像/活動": 1,
+      "看過": 2
+     }
+    }
+   ]
+  },
+  {
+   "slug": "eml",
+   "source": "official",
+   "added": 0,
+   "pages": [
+    {
+     "url": "https://www.emctw.com/zh-TW/about_production/index",
+     "title": "EMC",
+     "imgs": 13,
+     "saved": 0,
+     "skipped": {
+      "檔名像標誌/人像/活動": 4,
+      "svg/gif": 1,
+      "太小": 7,
+      "看過": 1
+     }
+    },
+    {
+     "url": "https://www.emctw.com/en-global/about_production/index",
+     "title": "EMC",
+     "imgs": 13,
+     "saved": 0,
+     "skipped": {
+      "檔名像標誌/人像/活動": 4,
+      "svg/gif": 1,
+      "看過": 7,
+      "太小": 1
+     }
+    },
+    {
+     "url": "https://www.emctw.com/",
+     "title": "首頁-EMC",
+     "imgs": 35,
+     "saved": 0,
+     "skipped": {
+      "檔名像標誌/人像/活動": 4,
+      "svg/gif": 27,
+      "看過": 1,
+      "太小": 3
+     }
+    },
+    {
+     "url": "https://www.emctw.com/en/",
+     "title": "首頁-EMC",
+     "imgs": 35,
+     "saved": 0,
+     "skipped": {
+      "檔名像標誌/人像/活動": 4,
+      "svg/gif": 27,
+      "看過": 4
+     }
+    },
+    {
+     "url": "https://www.emctw.com/zh-TW/no1_worldwide/index",
+     "title": "EMC",
+     "imgs": 8,
+     "saved": 0,
+     "skipped": {
+      "檔名像標誌/人像/活動": 4,
+      "svg/gif": 2,
+      "看過": 2
+     }
+    },
+    {
+     "url": "https://www.emctw.com/zh-TW/about_milestone/index",
+     "title": "EMC",
+     "imgs": 15,
+     "saved": 0,
+     "skipped": {
+      "檔名像標誌/人像/活動": 5,
+      "svg/gif": 1,
+      "看過": 2,
+      "太小": 7
+     }
+    },
+    {
+     "url": "https://www.emctw.com/zh-TW/about_quality/index",
+     "title": "EMC",
+     "imgs": 8,
+     "saved": 0,
+     "skipped": {
+      "檔名像標誌/人像/活動": 4,
+      "svg/gif": 1,
+      "看過": 2,
+      "太小": 1
+     }
+    },
+    {
+     "url": "https://www.emctw.com/zh-TW/annual_reports/index",
+     "title": "EMC",
+     "imgs": 7,
+     "saved": 0,
+     "skipped": {
+      "檔名像標誌/人像/活動": 4,
+      "svg/gif": 1,
+      "看過": 1,
+      "太小": 1
+     }
+    },
+    {
+     "url": "https://www.emctw.com/zh-TW/corporate_governance_officer/index",
+     "title": "EMC",
+     "imgs": 7,
+     "saved": 0,
+     "skipped": {
+      "檔名像標誌/人像/活動": 4,
+      "svg/gif": 1,
+      "看過": 2
+     }
+    },
+    {
+     "url": "https://www.emctw.com/zh-TW/esg_sustainable_governance/index",
+     "title": "EMC",
+     "imgs": 7,
+     "saved": 0,
+     "skipped": {
+      "檔名像標誌/人像/活動": 4,
+      "svg/gif": 1,
+      "看過": 1,
+      "太小": 1
+     }
+    },
+    {
+     "url": "https://www.emctw.com/zh-TW/esg_performance/index",
+     "title": "EMC",
+     "imgs": 7,
+     "saved": 0,
+     "skipped": {
+      "檔名像標誌/人像/活動": 4,
+      "svg/gif": 1,
+      "看過": 2
+     }
+    },
+    {
+     "url": "https://www.emctw.com/zh-TW/esg_policy_commitment/index",
+     "title": "EMC",
+     "imgs": 7,
+     "saved": 0,
+     "skipped": {
+      "檔名像標誌/人像/活動": 4,
+      "svg/gif": 1,
+      "看過": 2
+     }
+    },
+    {
+     "url": "https://www.emctw.com/zh-TW/esg_ethics/index",
+     "title": "EMC",
+     "imgs": 7,
+     "saved": 0,
+     "skipped": {
+      "檔名像標誌/人像/活動": 4,
+      "svg/gif": 1,
+      "看過": 2
+     }
+    },
+    {
+     "url": "https://www.emctw.com/zh-TW/esg_risk_management/index",
+     "title": "EMC",
+     "imgs": 7,
+     "saved": 0,
+     "skipped": {
+      "檔名像標誌/人像/活動": 4,
+      "svg/gif": 1,
+      "看過": 2
+     }
+    },
+    {
+     "url": "https://www.emctw.com/zh-TW/esg_supply_chain/index",
+     "title": "EMC",
+     "imgs": 7,
+     "saved": 0,
+     "skipped": {
+      "檔名像標誌/人像/活動": 4,
+      "svg/gif": 1,
+      "看過": 2
+     }
+    },
+    {
+     "url": "https://www.emctw.com/zh-TW/esg_environment/index",
+     "title": "EMC",
+     "imgs": 7,
+     "saved": 0,
+     "skipped": {
+      "檔名像標誌/人像/活動": 4,
+      "svg/gif": 1,
+      "看過": 2
+     }
+    },
+    {
+     "url": "https://www.emctw.com/zh-TW/esg_energy_ghg_inventory/index",
+     "title": "EMC",
+     "imgs": 7,
+     "saved": 0,
+     "skipped": {
+      "檔名像標誌/人像/活動": 4,
+      "svg/gif": 1,
+      "看過": 2
+     }
+    },
+    {
+     "url": "https://www.emctw.com/zh-TW/esg_climate_tcfd/index",
+     "title": "EMC",
+     "imgs": 7,
+     "saved": 0,
+     "skipped": {
+      "檔名像標誌/人像/活動": 4,
+      "svg/gif": 1,
+      "看過": 2
+     }
+    },
+    {
+     "url": "https://www.emctw.com/zh-TW/esg_resources/index",
+     "title": "EMC",
+     "imgs": 7,
+     "saved": 0,
+     "skipped": {
+      "檔名像標誌/人像/活動": 4,
+      "svg/gif": 1,
+      "看過": 2
+     }
+    },
+    {
+     "url": "https://www.emctw.com/zh-TW/esg_employee_care_and_social_participation/index",
+     "title": "EMC",
+     "imgs": 7,
+     "saved": 0,
+     "skipped": {
+      "檔名像標誌/人像/活動": 4,
+      "svg/gif": 1,
+      "看過": 2
+     }
+    },
+    {
+     "url": "https://www.emctw.com/zh-TW/esg_health_and_safety/index",
+     "title": "EMC",
+     "imgs": 7,
+     "saved": 0,
+     "skipped": {
+      "檔名像標誌/人像/活動": 4,
+      "svg/gif": 1,
+      "看過": 2
+     }
+    },
+    {
+     "url": "https://www.emctw.com/zh-TW/esg_employee_care/index",
+     "title": "EMC",
+     "imgs": 7,
+     "saved": 0,
+     "skipped": {
+      "檔名像標誌/人像/活動": 4,
+      "svg/gif": 1,
+      "看過": 2
+     }
+    },
+    {
+     "url": "https://www.emctw.com/zh-TW/esg_social_participation/index",
+     "title": "EMC",
+     "imgs": 7,
+     "saved": 0,
+     "skipped": {
+      "檔名像標誌/人像/活動": 4,
+      "svg/gif": 1,
+      "看過": 2
+     }
+    },
+    {
+     "url": "https://www.emctw.com/zh-TW/esg_stakeholdes/index",
+     "title": "EMC",
+     "imgs": 7,
+     "saved": 0,
+     "skipped": {
+      "檔名像標誌/人像/活動": 4,
+      "svg/gif": 1,
+      "看過": 2
+     }
+    },
+    {
+     "url": "https://www.emctw.com/zh-TW/csr_report/index",
+     "title": "EMC",
+     "imgs": 8,
+     "saved": 0,
+     "skipped": {
+      "檔名像標誌/人像/活動": 4,
+      "svg/gif": 1,
+      "看過": 2,
+      "太小": 1
+     }
+    },
+    {
+     "url": "https://www.emctw.com/zh-TW/organization_structure/index",
+     "title": "EMC",
+     "imgs": 9,
+     "saved": 0,
+     "skipped": {
+      "檔名像標誌/人像/活動": 4,
+      "svg/gif": 1,
+      "看過": 4
+     }
+    },
+    {
+     "url": "https://www.emctw.com/en-global/about_milestone/index",
+     "title": "EMC",
+     "imgs": 15,
+     "saved": 0,
+     "skipped": {
+      "檔名像標誌/人像/活動": 5,
+      "svg/gif": 1,
+      "看過": 3,
+      "太小": 6
+     }
+    },
+    {
+     "url": "https://www.emctw.com/en-global/about_quality/index",
+     "title": "EMC",
+     "imgs": 8,
+     "saved": 0,
+     "skipped": {
+      "檔名像標誌/人像/活動": 4,
+      "svg/gif": 1,
+      "看過": 3
+     }
+    },
+    {
+     "url": "https://www.emctw.com/en-global/annual_reports/index",
+     "title": "EMC",
+     "imgs": 7,
+     "saved": 0,
+     "skipped": {
+      "檔名像標誌/人像/活動": 4,
+      "svg/gif": 1,
+      "看過": 2
+     }
+    },
+    {
+     "url": "https://www.emctw.com/en-global/corporate_governance_officer/index",
+     "title": "EMC",
+     "imgs": 7,
+     "saved": 0,
+     "skipped": {
+      "檔名像標誌/人像/活動": 4,
+      "svg/gif": 1,
+      "看過": 2
+     }
+    },
+    {
+     "url": "https://www.emctw.com/upload/media/New_Investors/Financial_Information/Annual_Reports/CH/2025.pdf",
+     "pdf": true,
+     "saved": 0
+    },
+    {
+     "url": "https://www.emctw.com/upload/media/New_Investors/Financial_Information/Annual_Reports/CH/2024.pdf",
+     "pdf": true,
+     "saved": 0
+    },
+    {
+     "url": "https://www.emctw.com/upload/media/New_Investors/Financial_Information/Annual_Reports/CH/2023.pdf",
+     "pdf": true,
+     "saved": 0
+    }
+   ]
+  }
+ ]
+}

@@ -1,0 +1,469 @@
+{
+ "slug": "coreweave",
+ "photos": [
+  {
+   "file": "photo_1.jpg",
+   "kind": "產品",
+   "slug": "coreweave",
+   "name_en": "CoreWeave",
+   "query": "cat:CoreWeave",
+   "file_title": "File:CoreWeave bond yields.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:CoreWeave_bond_yields.jpg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/9/92/CoreWeave_bond_yields.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "CC0",
+   "license_url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+   "author": "Wikideas1",
+   "credit": "Own work made with Numbers for Mac and data from  \n\nhttps://atlantisdatasolutions.com/bond/21873SAC2?",
+   "description": "CoreWeave bond yields",
+   "width": 1920,
+   "height": 1153,
+   "fetched_at": "2026-10-30T01:51:03+00:00",
+   "reviewed": false,
+   "reviewer": "art-director 審核清單（social-ops-lead 執行）",
+   "review_note": "2026-10-30 第五輪退件：債券殖利率圖表（非實景照片）",
+   "origin": "公司分類",
+   "reviewed_at": "2026-10-30",
+   "reject_reason": "債券殖利率圖表（非實景照片）"
+  },
+  {
+   "file": "photo_2.jpg",
+   "kind": "相關場景",
+   "slug": "coreweave",
+   "name_en": "CoreWeave",
+   "query": "data center",
+   "file_title": "File:Microsoft Data Center Middenmeer, the Netherlands - 1.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:Microsoft_Data_Center_Middenmeer,_the_Netherlands_-_1.jpg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/8/87/Microsoft_Data_Center_Middenmeer%2C_the_Netherlands_-_1.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "CC BY 4.0",
+   "license_url": "https://creativecommons.org/licenses/by/4.0",
+   "author": "Hay Kranen",
+   "credit": "Own work",
+   "description": "Microsoft Data Center in Middenmeer, the Netherlands in 2023",
+   "width": 1920,
+   "height": 1440,
+   "fetched_at": "2026-10-30T01:51:17+00:00",
+   "reviewed": false,
+   "reviewer": "art-director 審核清單（social-ops-lead 執行）",
+   "review_note": "2026-10-30 第五輪退件：Microsoft 資料中心，非 CoreWeave（主體錯誤）",
+   "reviewed_at": "2026-10-30",
+   "reject_reason": "Microsoft 資料中心，非 CoreWeave（主體錯誤）"
+  },
+  {
+   "file": "photo_3.jpg",
+   "kind": "相關場景",
+   "slug": "coreweave",
+   "name_en": "CoreWeave",
+   "query": "data center",
+   "file_title": "File:Virginia Tech - data center.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:Virginia_Tech_-_data_center.jpg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/d/d5/Virginia_Tech_-_data_center.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "CC BY-SA 2.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/2.0",
+   "author": "Christopher Bowns",
+   "credit": "https://www.flickr.com/photos/cipherswarm/2414578731/",
+   "description": "Virginia Tech - data center",
+   "width": 1920,
+   "height": 1440,
+   "fetched_at": "2026-10-30T02:02:04+00:00",
+   "reviewed": false,
+   "reviewer": "art-director",
+   "review_note": "2026-10-30 art-director 複審（補圖）退件：Virginia Tech 資料中心，非 CoreWeave（主體錯誤）",
+   "reviewed_at": "2026-10-30",
+   "reject_reason": "Virginia Tech 資料中心，非 CoreWeave（主體錯誤）"
+  },
+  {
+   "file": "photo_4.jpg",
+   "kind": "產品",
+   "slug": "coreweave",
+   "name_en": "CoreWeave",
+   "query": "cat:Livingston, New Jersey",
+   "file_title": "File:New Jersey (5211687647).jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:New_Jersey_(5211687647).jpg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/7/76/New_Jersey_%285211687647%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "CC BY 2.0",
+   "license_url": "https://creativecommons.org/licenses/by/2.0",
+   "author": "JOHN LLOYD from Concrete, Washington, United States",
+   "credit": "New Jersey",
+   "description": "New Jersey sometimes has this image as being populated by many tasteless people.  I try to be accepting, but when I passed this frame shop, in a nice neighborhood, I was stunned by the crap on display in the front window.",
+   "width": 1920,
+   "height": 1440,
+   "fetched_at": "2026-10-30T02:07:48+00:00",
+   "reviewed": false,
+   "reviewer": "art-director",
+   "review_note": "2026-10-30 art-director 複審（補圖第二輪）退件：與 CoreWeave 無關的一般場景（州景、路面、資料中心屋頂）（主體錯誤）",
+   "origin": "公司分類",
+   "reject_reason": "與 CoreWeave 無關的一般場景（州景、路面、資料中心屋頂）（主體錯誤）",
+   "reviewed_at": "2026-10-30"
+  },
+  {
+   "file": "photo_5.jpg",
+   "kind": "產品",
+   "slug": "coreweave",
+   "name_en": "CoreWeave",
+   "query": "cat:Livingston, New Jersey",
+   "file_title": "File:Road surface deterioration by pavement markings.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:Road_surface_deterioration_by_pavement_markings.jpg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/f/f1/Road_surface_deterioration_by_pavement_markings.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "CC BY-SA 3.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/3.0",
+   "author": "z22",
+   "credit": "Own work",
+   "description": "Road surface raveling and potholes found exclusively along the pavement markings.",
+   "width": 1920,
+   "height": 1440,
+   "fetched_at": "2026-10-30T02:07:48+00:00",
+   "reviewed": false,
+   "reviewer": "art-director",
+   "review_note": "2026-10-30 art-director 複審（補圖第二輪）退件：與 CoreWeave 無關的一般場景（州景、路面、資料中心屋頂）（主體錯誤）",
+   "origin": "公司分類",
+   "reject_reason": "與 CoreWeave 無關的一般場景（州景、路面、資料中心屋頂）（主體錯誤）",
+   "reviewed_at": "2026-10-30"
+  },
+  {
+   "file": "photo_6.jpg",
+   "kind": "相關場景",
+   "slug": "coreweave",
+   "name_en": "CoreWeave",
+   "query": "data center",
+   "file_title": "File:Data center roof.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:Data_center_roof.jpg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/f/f5/Data_center_roof.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "CC0",
+   "license_url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+   "author": "Rsparks3",
+   "credit": "Own work",
+   "description": "Roof of a data center featuring cooling towers and backup generators",
+   "width": 1920,
+   "height": 1440,
+   "fetched_at": "2026-10-30T02:08:07+00:00",
+   "reviewed": false,
+   "reviewer": "art-director",
+   "review_note": "2026-10-30 art-director 複審（補圖第二輪）退件：與 CoreWeave 無關的一般場景（州景、路面、資料中心屋頂）（主體錯誤）",
+   "reject_reason": "與 CoreWeave 無關的一般場景（州景、路面、資料中心屋頂）（主體錯誤）",
+   "reviewed_at": "2026-10-30"
+  },
+  {
+   "file": "photo_16.jpg",
+   "kind": "產品",
+   "slug": "coreweave",
+   "name_en": "CoreWeave",
+   "origin": "official",
+   "query": "official",
+   "file_title": "https://cdn.prod.website-files.com/62bc66d283fd9c34ffec780a/6abc422f3ac49cfa86bac9b9_THUMBNAIL_VR%20LA%20%2520%20Cognition_1520%20x%201200.jpg",
+   "source_page": "https://www.coreweave.com/newsroom",
+   "source_url": "https://www.coreweave.com/newsroom",
+   "image_url": "https://cdn.prod.website-files.com/62bc66d283fd9c34ffec780a/6abc422f3ac49cfa86bac9b9_THUMBNAIL_VR%20LA%20%2520%20Cognition_1520%20x%201200.jpg",
+   "license": "official-press",
+   "license_url": "",
+   "author": "CoreWeave官方",
+   "credit": "圖：CoreWeave官方",
+   "description": "CoreWeave Delivers NVIDIA Vera Rubin NVL72 Performance at Production Scale, Starting With Cognition",
+   "width": 1520,
+   "height": 1098,
+   "sha1": "16260f75a89386bf88604195292dcda2094b768d",
+   "fetched_at": "2026-10-30",
+   "fetched_at_utc": "2026-10-30T02:35:30+00:00",
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-30 官方照片審核通過：CoreWeave 新聞室的 GPU 叢集機櫃實景（線材、伺服器），無人物",
+   "reviewed_by": "art-director",
+   "reviewed_at": "2026-10-30"
+  },
+  {
+   "file": "photo_9.jpg",
+   "kind": "產品",
+   "slug": "coreweave",
+   "name_en": "CoreWeave",
+   "origin": "official",
+   "query": "official",
+   "file_title": "https://cdn.prod.website-files.com/62ba1fb86485b6d5029975c4/69c07fcda53c4b37f2cdb700_The%20CW%20AI%20Data%20Center_YouTube%20Thumbnail%201280x720%20(2).jpg",
+   "source_page": "https://www.coreweave.com/products/gpu-compute",
+   "source_url": "https://www.coreweave.com/products/gpu-compute",
+   "image_url": "https://cdn.prod.website-files.com/62ba1fb86485b6d5029975c4/69c07fcda53c4b37f2cdb700_The%20CW%20AI%20Data%20Center_YouTube%20Thumbnail%201280x720%20(2).jpg",
+   "license": "official-press",
+   "license_url": "",
+   "author": "CoreWeave官方",
+   "credit": "圖：CoreWeave官方",
+   "description": "GPU Compute | High-Performance NVIDIA GPUs | CoreWeave",
+   "width": 1280,
+   "height": 720,
+   "sha1": "1db52f002fff9689264f9bf6510a0de5de5223b1",
+   "fetched_at": "2026-10-30",
+   "fetched_at_utc": "2026-10-30T03:01:46+00:00",
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-30 官方照片審核通過：CoreWeave GPU 運算產品頁的伺服器機櫃實景（線材、GPU 節點），無人物",
+   "reviewed_by": "art-director",
+   "reviewed_at": "2026-10-30"
+  }
+ ],
+ "rejected": [
+  {
+   "file_title": "https://cdn.prod.website-files.com/62ba1fb86485b6d5029975c4/6ac575e78c9a023ae89ad3c8_4.avif",
+   "reason": "官方照片退件：人物為主角／標誌字卡／抽象圖形／敲鐘活動照",
+   "at": "2026-10-30",
+   "source_page": "https://www.coreweave.com/about-us"
+  },
+  {
+   "file_title": "https://cdn.prod.website-files.com/62bc66d283fd9c34ffec780a/69d822dfa425198ef61b06b7_META_Anthropic_1520x1098.jpg",
+   "reason": "官方照片退件：人物為主角／標誌字卡／抽象圖形／敲鐘活動照",
+   "at": "2026-10-30",
+   "source_page": "https://www.coreweave.com/about-us"
+  },
+  {
+   "file_title": "https://cdn.prod.website-files.com/62bc66d283fd9c34ffec780a/69e80c5932d9468459f32b83_2026-04-21_HeroImages_1.jpg",
+   "reason": "官方照片退件：人物為主角／標誌字卡／抽象圖形／敲鐘活動照",
+   "at": "2026-10-30",
+   "source_page": "https://www.coreweave.com/about-us"
+  },
+  {
+   "file_title": "https://cdn.prod.website-files.com/62bc66d283fd9c34ffec780a/6818dda4a9f1f722b64087fa_67eafd07f9fd3aef392ec9e2_mo_032825_highres8.avif",
+   "reason": "官方照片退件：人物為主角／標誌字卡／抽象圖形／敲鐘活動照",
+   "at": "2026-10-30",
+   "source_page": "https://www.coreweave.com/about-us"
+  },
+  {
+   "file_title": "https://cdn.prod.website-files.com/62ba1fb86485b6d5029975c4/6ab300179b7285af9e85d251_kat26-about-us-newsletter-img.avif",
+   "reason": "官方照片退件：人物為主角／標誌字卡／抽象圖形／敲鐘活動照",
+   "at": "2026-10-30",
+   "source_page": "https://www.coreweave.com/about-us"
+  },
+  {
+   "file_title": "https://cdn.prod.website-files.com/62ba1fb86485b6d5029975c4/67782a9cb02bc934fae303cb_coreweave_share_v2.png",
+   "reason": "官方照片退件：人物為主角／標誌字卡／抽象圖形／敲鐘活動照",
+   "at": "2026-10-30",
+   "source_page": "https://www.coreweave.com/about-us"
+  },
+  {
+   "file_title": "https://cdn.prod.website-files.com/62bc66d283fd9c34ffec780a/6adf89a89b54a5d9be886fa6_coreweave-earth-network_thumbnail_1520x1098.jpg",
+   "reason": "官方照片退件：人物為主角／標誌字卡／抽象圖形／敲鐘活動照",
+   "at": "2026-10-30",
+   "source_page": "https://www.coreweave.com/newsroom"
+  },
+  {
+   "file_title": "https://cdn.prod.website-files.com/62bc66d283fd9c34ffec780a/6ad7f193726b2f20381f5747_THUMBNAIL_Reflection%E2%80%99s%20Beam_1520%20x%201099.jpg",
+   "reason": "官方照片退件：人物為主角／標誌字卡／抽象圖形／敲鐘活動照",
+   "at": "2026-10-30",
+   "source_page": "https://www.coreweave.com/newsroom"
+  },
+  {
+   "file_title": "https://cdn.prod.website-files.com/62bc66d283fd9c34ffec780a/6abc452357312550093ac1fd_THUMBNAIL_VR%20LA%20%2520%20Cognition_1520%20x%201202.jpg",
+   "reason": "官方照片退件：人物為主角／標誌字卡／抽象圖形／敲鐘活動照",
+   "at": "2026-10-30",
+   "source_page": "https://www.coreweave.com/newsroom"
+  },
+  {
+   "file_title": "https://cdn.prod.website-files.com/62bc66d283fd9c34ffec780a/6abaefbb95ed305dde2c0292_THUMBNAIL_Ennoble_1520%20x%201098.jpg",
+   "reason": "官方照片退件：人物為主角／標誌字卡／抽象圖形／敲鐘活動照",
+   "at": "2026-10-30",
+   "source_page": "https://www.coreweave.com/newsroom"
+  },
+  {
+   "file_title": "https://cdn.prod.website-files.com/62bc66d283fd9c34ffec780a/6ab42c0313465e92330c54a2_THUMBNAIL_Name_1520%20x%201116.jpg",
+   "reason": "官方照片退件：人物為主角／標誌字卡／抽象圖形／敲鐘活動照",
+   "at": "2026-10-30",
+   "source_page": "https://www.coreweave.com/newsroom"
+  },
+  {
+   "file_title": "https://cdn.prod.website-files.com/62bc66d283fd9c34ffec780a/6ab2d8ed86311e973f95ffc9_THUMBNAIL_Name_1520%20x%201130.jpg",
+   "reason": "官方照片退件：人物為主角／標誌字卡／抽象圖形／敲鐘活動照",
+   "at": "2026-10-30",
+   "source_page": "https://www.coreweave.com/newsroom"
+  },
+  {
+   "file_title": "https://cdn.prod.website-files.com/62bc66d283fd9c34ffec780a/6aa99ecdde8a4b0aa06e78de_THUMBNAIL_Name_1520%20x%201126.jpg",
+   "reason": "官方照片退件：人物為主角／標誌字卡／抽象圖形／敲鐘活動照",
+   "at": "2026-10-30",
+   "source_page": "https://www.coreweave.com/newsroom"
+  },
+  {
+   "file_title": "https://cdn.prod.website-files.com/62ba1fb86485b6d5029975c4/6ab069df7fc14af3a2892088_coreweave-arena-4-1200x750.webp",
+   "reason": "官方照片退件：人物（執行長）、抽象圖形、品牌字卡、他牌產品（NVIDIA 運算板）、疊了數據圖層的資料中心",
+   "at": "2026-10-30",
+   "source_page": "https://www.coreweave.com/data-centers",
+   "sha1": "6785105f88589d2bc2a5b85262393b8926a2df1d"
+  },
+  {
+   "file_title": "https://cdn.prod.website-files.com/62ba1fb86485b6d5029975c4/6ac5247e360e08b9429ae3cb_klzy1lI-PHI-poster.avif",
+   "reason": "官方照片退件：人物（執行長）、抽象圖形、品牌字卡、他牌產品（NVIDIA 運算板）、疊了數據圖層的資料中心",
+   "at": "2026-10-30",
+   "source_page": "https://www.coreweave.com/products/gpu-compute",
+   "sha1": "e3f6754b8cfacc913cfa8e1c346e2fd55b1ad7bb"
+  },
+  {
+   "file_title": "https://cdn.prod.website-files.com/62ba1fb86485b6d5029975c4/6ab082027a28c5816a00c515_yasa-design-studio-hCwcoMy007M-unsplash-4-1200x750.webp",
+   "reason": "官方照片退件：人物（執行長）、抽象圖形、品牌字卡、他牌產品（NVIDIA 運算板）、疊了數據圖層的資料中心",
+   "at": "2026-10-30",
+   "source_page": "https://www.coreweave.com/products/gpu-compute",
+   "sha1": "db6300215e95da2be2ccdf39e54a714bdf84fc75"
+  },
+  {
+   "file_title": "https://cdn.prod.website-files.com/62ba1fb86485b6d5029975c4/6ab08201f661aa2fdfe0ccc7_joshua-earle-sjbyV3jIy-w-unsplash-3-1200x750.webp",
+   "reason": "官方照片退件：人物（執行長）、抽象圖形、品牌字卡、他牌產品（NVIDIA 運算板）、疊了數據圖層的資料中心",
+   "at": "2026-10-30",
+   "source_page": "https://www.coreweave.com/products/gpu-compute",
+   "sha1": "2c17d03644b7af9fcaae1441c12f1b52b19d0d5c"
+  },
+  {
+   "file_title": "https://cdn.prod.website-files.com/62ba1fb86485b6d5029975c4/6ab98acea6e9cc715264578e_Light%20to%20Dark.jpg",
+   "reason": "官方照片退件：人物（執行長）、抽象圖形、品牌字卡、他牌產品（NVIDIA 運算板）、疊了數據圖層的資料中心",
+   "at": "2026-10-30",
+   "source_page": "https://www.coreweave.com/products/gpu-compute",
+   "sha1": "b568115193052f781300b193ad59b81a6b0fc4f4"
+  },
+  {
+   "file_title": "https://cdn.prod.website-files.com/62bc66d283fd9c34ffec780a/6ad772e28c5c40cd8c72ad5d_rubin-tech-blog-hgx-rubin-nvl8-1520x1098.avif",
+   "reason": "官方照片退件：人物（執行長）、抽象圖形、品牌字卡、他牌產品（NVIDIA 運算板）、疊了數據圖層的資料中心",
+   "at": "2026-10-30",
+   "source_page": "https://www.coreweave.com/blog",
+   "sha1": "2c6d113756bf6878502a05d30e5ca5d19a271dbd"
+  },
+  {
+   "file_title": "https://cdn.prod.website-files.com/62bc66d283fd9c34ffec780a/6ad7b825596d3f75c0cd83ed_THUMBNAIL_Reflection%E2%80%99s%20Beam_1520%20x%201099.avif",
+   "reason": "官方照片退件：人物（執行長）、抽象圖形、品牌字卡、他牌產品（NVIDIA 運算板）、疊了數據圖層的資料中心",
+   "at": "2026-10-30",
+   "source_page": "https://www.coreweave.com/blog",
+   "sha1": "56a5e01c9e97d762bd83182585d951210aaf4f9a"
+  },
+  {
+   "file_title": "https://cdn.prod.website-files.com/62bc66d283fd9c34ffec780a/6ace99a783558fb8b5d55657_hall_telemetry_1520x1098.webp",
+   "reason": "官方照片退件：人物（執行長）、抽象圖形、品牌字卡、他牌產品（NVIDIA 運算板）、疊了數據圖層的資料中心",
+   "at": "2026-10-30",
+   "source_page": "https://www.coreweave.com/blog",
+   "sha1": "44dee4c0988f654edd73f6b78766ba6e1611f3f7"
+  },
+  {
+   "file_title": "https://cdn.prod.website-files.com/62bc66d283fd9c34ffec780a/6ac57cf3151163db5007e865_Direct-to-Expert%20Blog%201520x1098.avif",
+   "reason": "官方照片退件：人物（執行長）、抽象圖形、品牌字卡、他牌產品（NVIDIA 運算板）、疊了數據圖層的資料中心",
+   "at": "2026-10-30",
+   "source_page": "https://www.coreweave.com/blog",
+   "sha1": "972c351e04253e45433dc56a5d1f6be735a68aad"
+  },
+  {
+   "file_title": "https://cdn.prod.website-files.com/62bc66d283fd9c34ffec780a/6ac3c22814f0e1cc88558e4c_infinity-mark_featured-image_1520x1098.avif",
+   "reason": "官方照片退件：人物（執行長）、抽象圖形、品牌字卡、他牌產品（NVIDIA 運算板）、疊了數據圖層的資料中心",
+   "at": "2026-10-30",
+   "source_page": "https://www.coreweave.com/blog",
+   "sha1": "e247eadf72e2d8a7c4ba02d14dbd2738b756b415"
+  },
+  {
+   "file_title": "https://cdn.prod.website-files.com/62bc66d283fd9c34ffec780a/6abfe2c5c36c99e2042a93cb_fc26-blog-tile-1520x1098.webp",
+   "reason": "官方照片退件：人物（執行長）、抽象圖形、品牌字卡、他牌產品（NVIDIA 運算板）、疊了數據圖層的資料中心",
+   "at": "2026-10-30",
+   "source_page": "https://www.coreweave.com/blog",
+   "sha1": "b7da3970fd5ea02056a6724b6a09b3e3cabceaf9"
+  },
+  {
+   "file_title": "https://cdn.prod.website-files.com/62bc66d283fd9c34ffec780a/6abd5c62c75918827130a6b3_Pattern-12-1520x1098.webp",
+   "reason": "官方照片退件：人物（執行長）、抽象圖形、品牌字卡、他牌產品（NVIDIA 運算板）、疊了數據圖層的資料中心",
+   "at": "2026-10-30",
+   "source_page": "https://www.coreweave.com/blog",
+   "sha1": "1e3ddbbf83d21c2f95340f5d4c0a250a0a9db8e3"
+  },
+  {
+   "file_title": "https://cdn.prod.website-files.com/62bc66d283fd9c34ffec780a/6abd54f32ab366f0af4c64bc_Pattern-11-1520x1098.avif",
+   "reason": "官方照片退件：人物（執行長）、抽象圖形、品牌字卡、他牌產品（NVIDIA 運算板）、疊了數據圖層的資料中心",
+   "at": "2026-10-30",
+   "source_page": "https://www.coreweave.com/blog",
+   "sha1": "9c06544090494ea2290b42253602b8ed39da1930"
+  },
+  {
+   "file_title": "https://cdn.prod.website-files.com/62bc66d283fd9c34ffec780a/6aa1d0f5e62fb09ce890f6fb_Coreweave_30_WIP02_250401_1_prob4-3%20(2).jpg",
+   "reason": "官方照片退件：疑似 AI 生成的圖庫意象（人物實驗室、交易室、機械手臂）、抽象圖形、散景燈光、機器人格鬥活動照；無法確認是 CoreWeave 實景",
+   "at": "2026-10-30",
+   "source_page": "https://www.coreweave.com/newsroom",
+   "sha1": "237415f4f954fa461c2261fe5780dda7c2608665"
+  },
+  {
+   "file_title": "https://cdn.prod.website-files.com/62bc66d283fd9c34ffec780a/6aa064c9442d9f04ecd1c276_THUMBNAIL_parallel%20works_1520%20x%201117.jpg",
+   "reason": "官方照片退件：疑似 AI 生成的圖庫意象（人物實驗室、交易室、機械手臂）、抽象圖形、散景燈光、機器人格鬥活動照；無法確認是 CoreWeave 實景",
+   "at": "2026-10-30",
+   "source_page": "https://www.coreweave.com/newsroom",
+   "sha1": "cd97065f5355990493c00954de0ff68aff3c881a"
+  },
+  {
+   "file_title": "https://cdn.prod.website-files.com/62bc66d283fd9c34ffec780a/6a8cb2f8740cf83bf69d7076_engine-wireframe-blue_featured-image_1520x1098.webp",
+   "reason": "官方照片退件：疑似 AI 生成的圖庫意象（人物實驗室、交易室、機械手臂）、抽象圖形、散景燈光、機器人格鬥活動照；無法確認是 CoreWeave 實景",
+   "at": "2026-10-30",
+   "source_page": "https://www.coreweave.com/newsroom",
+   "sha1": "a66aa0187de6c1902f94e4e02c1f8a75a5a9336d"
+  },
+  {
+   "file_title": "https://cdn.prod.website-files.com/62bc66d283fd9c34ffec780a/6a7374c67981f6ef79899c79_META%20SHARE_NAME_1200x630%20(6).jpg",
+   "reason": "官方照片退件：疑似 AI 生成的圖庫意象（人物實驗室、交易室、機械手臂）、抽象圖形、散景燈光、機器人格鬥活動照；無法確認是 CoreWeave 實景",
+   "at": "2026-10-30",
+   "source_page": "https://www.coreweave.com/newsroom",
+   "sha1": "2270ff5c87f4e4bb88fa4a03cba58e05e8908335"
+  },
+  {
+   "file_title": "https://cdn.prod.website-files.com/62bc66d283fd9c34ffec780a/6a85f7c72e4ee0c9bc07214f_Zonos%20thumbnail_1520x1098%20(2).jpg",
+   "reason": "官方照片退件：疑似 AI 生成的圖庫意象（人物實驗室、交易室、機械手臂）、抽象圖形、散景燈光、機器人格鬥活動照；無法確認是 CoreWeave 實景",
+   "at": "2026-10-30",
+   "source_page": "https://www.coreweave.com/newsroom",
+   "sha1": "8d469dcfbd3b3598b2f793f901d0dd890c30994c"
+  },
+  {
+   "file_title": "https://cdn.prod.website-files.com/62bc66d283fd9c34ffec780a/6a724e8f728245b1321c4d8f_THUMBNAIL_Name_1520%20x%201098%20(1).jpg",
+   "reason": "官方照片退件：疑似 AI 生成的圖庫意象（人物實驗室、交易室、機械手臂）、抽象圖形、散景燈光、機器人格鬥活動照；無法確認是 CoreWeave 實景",
+   "at": "2026-10-30",
+   "source_page": "https://www.coreweave.com/newsroom",
+   "sha1": "82dafb95922a0d6cb44bf771933d8341b82efeb4"
+  },
+  {
+   "file_title": "https://cdn.prod.website-files.com/62bc66d283fd9c34ffec780a/6a71cc687f76827071d72d0b_1520%20x%201113%20(1).jpg",
+   "reason": "官方照片退件：疑似 AI 生成的圖庫意象（人物實驗室、交易室、機械手臂）、抽象圖形、散景燈光、機器人格鬥活動照；無法確認是 CoreWeave 實景",
+   "at": "2026-10-30",
+   "source_page": "https://www.coreweave.com/newsroom",
+   "sha1": "9d972b0b8928f78074764400d819300d1351d25a"
+  },
+  {
+   "file_title": "https://cdn.prod.website-files.com/62bc66d283fd9c34ffec780a/6a67f23fbd7c5610e305aae6_Press%20Release-Thumbnail%201520x1098.jpg",
+   "reason": "官方照片退件：疑似 AI 生成的圖庫意象（人物實驗室、交易室、機械手臂）、抽象圖形、散景燈光、機器人格鬥活動照；無法確認是 CoreWeave 實景",
+   "at": "2026-10-30",
+   "source_page": "https://www.coreweave.com/newsroom",
+   "sha1": "b63926d1a24a92d30dde4a43703f1d414610c6de"
+  },
+  {
+   "file_title": "https://cdn.prod.website-files.com/62bc66d283fd9c34ffec780a/6a4fd1d2c1c1c6f6d8b15850_Gartner%20MQ%20AI%20Cloud%20Infrastructure%20Hero%201520%20x%201098.jpeg",
+   "reason": "官方照片退件：疑似 AI 生成的圖庫意象（人物實驗室、交易室、機械手臂）、抽象圖形、散景燈光、機器人格鬥活動照；無法確認是 CoreWeave 實景",
+   "at": "2026-10-30",
+   "source_page": "https://www.coreweave.com/newsroom",
+   "sha1": "ba991fa3efe240ed2a61569b4cec843cd4615333"
+  },
+  {
+   "file_title": "https://cdn.prod.website-files.com/62bc66d283fd9c34ffec780a/6a3bf195bd470ba5c363f282_CoreWeave%20Partners%20with%20Conapto%201520x1098.avif",
+   "reason": "官方照片退件：疑似 AI 生成的圖庫意象（人物實驗室、交易室、機械手臂）、抽象圖形、散景燈光、機器人格鬥活動照；無法確認是 CoreWeave 實景",
+   "at": "2026-10-30",
+   "source_page": "https://www.coreweave.com/newsroom",
+   "sha1": "3072fdb0b6d3f1c39830fffcbb60ce58be363b1a"
+  },
+  {
+   "file_title": "https://cdn.prod.website-files.com/62bc66d283fd9c34ffec780a/6a39a80e4c873f8211583739_Battlebots%20sponsorship%20thumbnail%20%E2%80%93%201520x1098.avif",
+   "reason": "官方照片退件：疑似 AI 生成的圖庫意象（人物實驗室、交易室、機械手臂）、抽象圖形、散景燈光、機器人格鬥活動照；無法確認是 CoreWeave 實景",
+   "at": "2026-10-30",
+   "source_page": "https://www.coreweave.com/newsroom",
+   "sha1": "ada16395a3f843c6ca300dde5d73dd4bcfc20342"
+  },
+  {
+   "file_title": "https://cdn.prod.website-files.com/62bc66d283fd9c34ffec780a/6a30a2679dfd9a31fef47f28_MLPerf%20Press%20Release%201520x1098.avif",
+   "reason": "官方照片退件：疑似 AI 生成的圖庫意象（人物實驗室、交易室、機械手臂）、抽象圖形、散景燈光、機器人格鬥活動照；無法確認是 CoreWeave 實景",
+   "at": "2026-10-30",
+   "source_page": "https://www.coreweave.com/newsroom",
+   "sha1": "6c50380bec491de69dd51668afe35a03063a76c4"
+  },
+  {
+   "file_title": "https://cdn.prod.website-files.com/62bc66d283fd9c34ffec780a/6a1cf0a69165c2dad2912bd6_THUMBNAIL_Vera%20Rubin_1520%20x%201098.jpg",
+   "reason": "官方照片退件：疑似 AI 生成的圖庫意象（人物實驗室、交易室、機械手臂）、抽象圖形、散景燈光、機器人格鬥活動照；無法確認是 CoreWeave 實景",
+   "at": "2026-10-30",
+   "source_page": "https://www.coreweave.com/newsroom",
+   "sha1": "a2917dcec6a0c529469711539ecf8eed545b1c2b"
+  },
+  {
+   "file_title": "https://cdn.prod.website-files.com/62bc66d283fd9c34ffec780a/6a1739026a10ed608c203b5d_Autonomous%20Agents%20Blog.avif",
+   "reason": "官方照片退件：疑似 AI 生成的圖庫意象（人物實驗室、交易室、機械手臂）、抽象圖形、散景燈光、機器人格鬥活動照；無法確認是 CoreWeave 實景",
+   "at": "2026-10-30",
+   "source_page": "https://www.coreweave.com/newsroom",
+   "sha1": "b96536e62e582f89cbed45c6c2c8a32c70616ba6"
+  }
+ ]
+}
