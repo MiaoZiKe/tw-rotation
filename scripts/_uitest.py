@@ -4474,7 +4474,7 @@ def t_flow(pg, base):
     #   改前：雙把手區間桿（右把手＝截止日、左把手＝起點；讀數「最近 12 天 · 截止 5 天前」）
     #   改後：一支拉Bar（N 天前，1～30；讀數「N 天前」），「看哪一天」變成 ▶ 回放時走到的那一天
     bar = pg.evaluate("""() => { const i = document.querySelector('#rotBack input.days');
-        return i && { min: +i.min, max: +i.max, v: +i.value, n: document.querySelectorAll('#rotBack input[type=range]').length,
+        return i && { min: +i.min, max: +i.max, v: +i.value, n: document.querySelectorAll('#rotBack > input[type=range]').length,
                       play: !!document.querySelector('#rotBack .pb.play') }; }""")
     ok("時間只剩**一支**拉Bar（不是雙把手、不是兩條）", bool(bar) and bar["n"] == 1, bar)
     ok("拉Bar 的範圍是 1～30 天（至多 30）", bool(bar) and bar["min"] == 1 and bar["max"] == 30, bar)
