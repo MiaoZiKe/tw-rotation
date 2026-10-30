@@ -5736,13 +5736,29 @@
     const idx = []; cnt.forEach((c, i) => { if (c >= 0.95 * mx) idx.push(i); });         // 殘缺格整格剔除
     const times = idx.map(i => slots[i].t), tot = [], mkt = [], G = {};
     manual.forEach(k => { G[k] = { gid: k, name: det[k].group_name || L.gname[k] || k, chain: (rotGroupMeta[k] || {}).chain || L.gchain[k] || '', mem: (det[k].members || []).map(m => String(m.code)), chg: [], val: [], br: [] }; });
+    /* ★ 2026-10-31 口徑對齊資料檔（docs/research/20261030_flowcheck_data.md 第七節）：
+       ① 族群、大盤漲跌＝前一日成交值加權（權重再 ×1/所屬人工族群數；查不到前一日成交值的檔剔除，全部查不到才退回等權）——以前是等權平均，
+          和網站 group_daily／流向驗證頁的口徑不同，同一天兩邊數字對不起來；
+       ② 資金占比的「成交值」＝逐格新增張數 × 該格成交價 的累加（同 tape_5m 的 cum_value），不是「現價 × 累計張數」——後者會讓早盤的量被後來的價格重新估價。 */
+    const nGrp = {}; manual.forEach(k => G[k].mem.forEach(c => { nGrp[c] = (nGrp[c] || 0) + 1; }));
+    const cumNow = {}, lastVol = {}, cumAt = {};
+    slots.forEach((s, si) => {
+      const q = qs[si];
+      Object.keys(q).forEach(code => { const x = q[code]; if (!x || x.price == null || x.volume == null) return;
+        const inc = Math.max(0, x.volume - (lastVol[code] || 0)); lastVol[code] = x.volume; cumNow[code] = (cumNow[code] || 0) + inc * x.price * 1000; });
+      if (idx.includes(si)) cumAt[si] = Object.assign({}, cumNow);
+    });
+    const wOf = {};
     idx.forEach(si => {
-      const q = qs[si], v = {}, c = {}; let t = 0, cs = 0, cn = 0;
-      Object.keys(q).forEach(code => { const x = q[code]; if (!x || x.price == null || x.volume == null) return; v[code] = x.price * x.volume * 1000; t += v[code]; if (x.chgPct != null) { c[code] = x.chgPct; cs += x.chgPct; cn++; } });
-      tot.push(t); mkt.push(cn ? cs / cn : 0);
-      manual.forEach(k => { const g = G[k]; let sv = 0, sc = 0, n = 0, up = 0;
-        g.mem.forEach(code => { if (v[code] != null) sv += v[code]; if (c[code] != null) { sc += c[code]; n++; if (c[code] > 0) up++; } });
-        g.val.push(sv); g.chg.push(n ? sc / n : null); g.br.push(n ? up / n * 100 : null); });
+      const q = qs[si], v = cumAt[si] || {}, c = {}, w = {}; let t = 0;
+      Object.keys(q).forEach(code => { const x = q[code]; if (!x || x.price == null || x.volume == null) return; t += v[code] || 0; if (x.chgPct != null) { c[code] = x.chgPct; const pv = prevTvOf({ code }, x); w[code] = pv > 0 ? pv / (nGrp[code] || 1) : 0; } });
+      const wsum = Object.keys(w).reduce((a, k2) => a + w[k2], 0), useW = wsum > 0;
+      const wt = (code) => (useW ? w[code] : 1);
+      let ms = 0, mw = 0; Object.keys(c).forEach(code => { const x2 = wt(code); if (x2 > 0) { ms += c[code] * x2; mw += x2; } });
+      tot.push(t); mkt.push(mw ? ms / mw : 0);
+      manual.forEach(k => { const g = G[k]; let sv = 0, sc = 0, sw = 0, n = 0, up = 0;
+        g.mem.forEach(code => { if (v[code] != null) sv += v[code]; if (c[code] != null) { const x2 = wt(code); if (x2 > 0) { sc += c[code] * x2; sw += x2; n++; if (c[code] > 0) up++; } } });
+        g.val.push(sv); g.chg.push(sw ? sc / sw : null); g.br.push(n ? up / n * 100 : null); });
     });
     manual.forEach(k => { const g = G[k];
       g.rel = g.chg.map((c, i) => (c == null ? null : c - mkt[i]));
