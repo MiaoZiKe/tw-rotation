@@ -1,0 +1,776 @@
+{
+ "at": "2026-10-30T02:42:48+00:00",
+ "items": [
+  {
+   "slug": "tsmc",
+   "source": "official",
+   "added": 14,
+   "pages": [
+    {
+     "url": "https://www.tsmc.com/english/aboutTSMC/TSMC_Fabs",
+     "title": "TSMC Fabs - Taiwan Semiconductor Manufacturing Company Limited",
+     "imgs": 34,
+     "saved": 8
+    },
+    {
+     "url": "https://www.tsmc.com/english/dedicatedFoundry/manufacturing/gigafab",
+     "title": "GIGAFAB® Facilities - Taiwan Semiconductor Manufacturing Company Limited",
+     "imgs": 8,
+     "saved": 0
+    },
+    {
+     "url": "https://pr.tsmc.com/english/latest-news",
+     "title": "Latest News - Taiwan Semiconductor Manufacturing Company Limited",
+     "imgs": 9,
+     "saved": 1
+    },
+    {
+     "url": "https://www.tsmc.com/english",
+     "title": "Taiwan Semiconductor Manufacturing Company Limited",
+     "imgs": 20,
+     "saved": 5
+    }
+   ]
+  },
+  {
+   "slug": "ase",
+   "source": "official",
+   "added": 0,
+   "pages": [
+    {
+     "url": "https://ase.aseglobal.com/about-us/",
+     "title": "請稍候...",
+     "imgs": 1,
+     "saved": 0
+    },
+    {
+     "url": "https://ase.aseglobal.com/press-room/",
+     "title": "請稍候...",
+     "imgs": 1,
+     "saved": 0
+    },
+    {
+     "url": "https://ase.aseglobal.com/",
+     "title": "請稍候...",
+     "imgs": 1,
+     "saved": 0
+    }
+   ]
+  },
+  {
+   "slug": "unimicron",
+   "source": "official",
+   "added": 0,
+   "pages": [
+    {
+     "url": "https://www.unimicron.com/",
+     "title": "欣興電子股份有限公司（UNIMICRON®） | 首頁",
+     "imgs": 23,
+     "saved": 0
+    },
+    {
+     "url": "https://www.unimicron.com/en/",
+     "title": "Unimicron | Home",
+     "imgs": 23,
+     "saved": 0
+    },
+    {
+     "url": "https://www.unimicron.com/about01.html",
+     "title": "公司里程碑",
+     "imgs": 4,
+     "saved": 0
+    },
+    {
+     "url": "https://www.unimicron.com/about02.html",
+     "title": "公司組織表",
+     "imgs": 5,
+     "saved": 0
+    },
+    {
+     "url": "https://www.unimicron.com/about03.html",
+     "title": "願景與經營理念",
+     "imgs": 5,
+     "saved": 0
+    },
+    {
+     "url": "https://www.unimicron.com/about04.html",
+     "title": "全球生產基地",
+     "imgs": 24,
+     "saved": 0
+    },
+    {
+     "url": "https://www.unimicron.com/about05.html",
+     "title": "最新消息",
+     "imgs": 337,
+     "saved": 0
+    },
+    {
+     "url": "https://www.unimicron.com/about06.html",
+     "title": "關係企業",
+     "imgs": 4,
+     "saved": 0
+    },
+    {
+     "url": "https://www.unimicron.com/about07.html",
+     "title": "供應鏈入口平台",
+     "imgs": 7,
+     "saved": 0
+    },
+    {
+     "url": "https://www.unimicron.com/rd01.html",
+     "title": "技術合作",
+     "imgs": 7,
+     "saved": 0
+    },
+    {
+     "url": "https://www.unimicron.com/rd02.html",
+     "title": "技術發展",
+     "imgs": 7,
+     "saved": 0
+    },
+    {
+     "url": "https://www.unimicron.com/rd03_03.html",
+     "title": "CSP Technology Roadmap",
+     "imgs": 4,
+     "saved": 0
+    },
+    {
+     "url": "https://www.unimicron.com/rd03_04.html",
+     "title": "FCBGA Technology Roadmap",
+     "imgs": 4,
+     "saved": 0
+    },
+    {
+     "url": "https://www.unimicron.com/product_HDI.html",
+     "title": "高密度連結板",
+     "imgs": 6,
+     "saved": 0
+    },
+    {
+     "url": "https://www.unimicron.com/product_ELIC.html",
+     "title": "全層互連高密度連結板",
+     "imgs": 6,
+     "saved": 0
+    },
+    {
+     "url": "https://www.unimicron.com/product_Multilayer.html",
+     "title": "多層板",
+     "imgs": 6,
+     "saved": 0
+    },
+    {
+     "url": "https://www.unimicron.com/product_RigidFlex.html",
+     "title": "軟硬結合板",
+     "imgs": 18,
+     "saved": 0
+    },
+    {
+     "url": "https://www.unimicron.com/product_FCCSP.html",
+     "title": "晶片尺寸覆晶載板",
+     "imgs": 6,
+     "saved": 0
+    }
+   ]
+  },
+  {
+   "slug": "nvidia",
+   "source": "official",
+   "added": 14,
+   "pages": [
+    {
+     "url": "https://nvidianews.nvidia.com/multimedia",
+     "title": "Media Assets | NVIDIA Newsroom",
+     "imgs": 40,
+     "saved": 0
+    },
+    {
+     "url": "https://www.nvidia.com/en-us/about-nvidia/",
+     "title": "About Us: Company Leadership, History, Jobs, News | NVIDIA",
+     "imgs": 37,
+     "saved": 5
+    },
+    {
+     "url": "https://nvidianews.nvidia.com/",
+     "title": "Home | NVIDIA Newsroom",
+     "imgs": 58,
+     "saved": 1
+    },
+    {
+     "url": "https://www.nvidia.com/en-us/data-center/",
+     "title": "Data Centers Built for Advanced AI Reasoning | NVIDIA",
+     "imgs": 54,
+     "saved": 8
+    }
+   ]
+  },
+  {
+   "slug": "samsung",
+   "source": "official",
+   "added": 0,
+   "pages": [
+    {
+     "url": "https://semiconductor.samsung.com/about-us/",
+     "title": "About Us | Samsung Semiconductor Global",
+     "imgs": 104,
+     "saved": 0
+    },
+    {
+     "url": "https://news.samsungsemiconductor.com/global/",
+     "title": "Samsung Semiconductor Global Newsroom – Samsung Semiconductor Global Newsroom",
+     "imgs": 20,
+     "saved": 0
+    },
+    {
+     "url": "https://news.samsung.com/global/",
+     "error": "Page.goto: Timeout 45000ms exceeded.\nCall log:\n  - navigating to \"https://news.samsung.com/global/\", waiting until \"domcontentloaded\"\n"
+    },
+    {
+     "url": "https://semiconductor.samsung.com/about-us/locations/",
+     "title": "Locations | About Us | Samsung Semiconductor Global",
+     "imgs": 138,
+     "saved": 0
+    },
+    {
+     "url": "https://semiconductor.samsung.com/dram/",
+     "title": "DRAM | Memory | Samsung Semiconductor Global",
+     "imgs": 93,
+     "saved": 0
+    },
+    {
+     "url": "https://semiconductor.samsung.com/ssd/",
+     "title": "SSD (Solid State Drive) | Samsung Semiconductor Global",
+     "imgs": 89,
+     "saved": 0
+    },
+    {
+     "url": "https://semiconductor.samsung.com/ssd/datacenter-ssd/",
+     "title": "Data center SSD | SATA SSD | Samsung Semiconductor Global",
+     "imgs": 123,
+     "saved": 0
+    },
+    {
+     "url": "https://semiconductor.samsung.com/estorage/",
+     "title": "eStorage | Flash Memory | Samsung Semiconductor Global",
+     "imgs": 85,
+     "saved": 0
+    },
+    {
+     "url": "https://semiconductor.samsung.com/cxl-memory/",
+     "title": "CXL Memory | Memory | Samsung Semiconductor Global",
+     "imgs": 80,
+     "saved": 0
+    },
+    {
+     "url": "https://semiconductor.samsung.com/mcp/",
+     "title": "MCP | Memory | Samsung Semiconductor Global",
+     "imgs": 77,
+     "saved": 0
+    },
+    {
+     "url": "https://semiconductor.samsung.com/processor/",
+     "title": "Samsung Exynos Processor | Samsung Semiconductor Global",
+     "imgs": 129,
+     "saved": 0
+    },
+    {
+     "url": "https://semiconductor.samsung.com/image-sensor/",
+     "title": "ISOCELL Image Sensor | Samsung Semiconductor Global",
+     "imgs": 113,
+     "saved": 0
+    },
+    {
+     "url": "https://semiconductor.samsung.com/image-sensor/mobile-image-sensor/",
+     "title": "Mobile Image Sensor | ISOCELL | Samsung Semiconductor Global",
+     "imgs": 95,
+     "saved": 0
+    },
+    {
+     "url": "https://semiconductor.samsung.com/image-sensor/automotive-image-sensor/",
+     "title": "Automotive Image Sensor | ISOCELL | Samsung Semiconductor Global",
+     "imgs": 87,
+     "saved": 0
+    },
+    {
+     "url": "https://semiconductor.samsung.com/image-sensor/global-shutter-image-sensor/",
+     "title": "Global Shutter Image Sensor | Image Sensor | Samsung Semiconductor Global",
+     "imgs": 79,
+     "saved": 0
+    },
+    {
+     "url": "https://semiconductor.samsung.com/image-sensor/tof-sensor/",
+     "title": "ToF Sensor | ISOCELL Vizion | Samsung Semiconductor Global",
+     "imgs": 73,
+     "saved": 0
+    },
+    {
+     "url": "https://semiconductor.samsung.com/display-ic/",
+     "title": "DDI | Display IC | Samsung Semiconductor Global",
+     "imgs": 85,
+     "saved": 0
+    },
+    {
+     "url": "https://semiconductor.samsung.com/security-solution/",
+     "title": "Security Solutions | Samsung Semiconductor Global",
+     "imgs": 93,
+     "saved": 0
+    }
+   ]
+  },
+  {
+   "slug": "anthropic",
+   "source": "official",
+   "added": 14,
+   "pages": [
+    {
+     "url": "https://www.anthropic.com/company",
+     "title": "Company \\ Anthropic",
+     "imgs": 5,
+     "saved": 2
+    },
+    {
+     "url": "https://www.anthropic.com/news",
+     "title": "Newsroom \\ Anthropic",
+     "imgs": 11,
+     "saved": 7
+    },
+    {
+     "url": "https://www.anthropic.com/",
+     "title": "Home \\ Anthropic",
+     "imgs": 5,
+     "saved": 0
+    },
+    {
+     "url": "https://www.anthropic.com/news/the-long-term-benefit-trust",
+     "title": "The Long-Term Benefit Trust \\ Anthropic",
+     "imgs": 1,
+     "saved": 0
+    },
+    {
+     "url": "https://www.anthropic.com/news/announcements",
+     "title": "Announcements \\ Anthropic",
+     "imgs": 4,
+     "saved": 0
+    },
+    {
+     "url": "https://www.anthropic.com/news/public-benefit-fund",
+     "title": "Investing in the public benefit \\ Anthropic",
+     "imgs": 2,
+     "saved": 2
+    },
+    {
+     "url": "https://www.anthropic.com/news/s1-sec",
+     "title": "Anthropic files S-1 with the SEC for proposed initial public offering \\ Anthropi",
+     "imgs": 1,
+     "saved": 0
+    },
+    {
+     "url": "https://www.anthropic.com/news/features",
+     "title": "Features \\ Anthropic",
+     "imgs": 4,
+     "saved": 0
+    },
+    {
+     "url": "https://www.anthropic.com/news/ai-for-science-expands-foundations-research-institutions",
+     "title": "AI for Science expands to foundations and institutions \\ Anthropic",
+     "imgs": 2,
+     "saved": 2
+    },
+    {
+     "url": "https://www.anthropic.com/news/expanding-partnership-gsa",
+     "title": "Expanding our partnership with GSA to bring Claude to all levels of government \\",
+     "imgs": 2,
+     "saved": 1
+    }
+   ]
+  },
+  {
+   "slug": "arm",
+   "source": "official",
+   "added": 14,
+   "pages": [
+    {
+     "url": "https://www.arm.com/company",
+     "title": "About Arm, company value and history – Arm® – Arm®",
+     "imgs": 116,
+     "saved": 2
+    },
+    {
+     "url": "https://newsroom.arm.com/",
+     "title": "Arm Newsroom",
+     "imgs": 38,
+     "saved": 9
+    },
+    {
+     "url": "https://www.arm.com/",
+     "title": "Where intelligence goes next – Arm®",
+     "imgs": 151,
+     "saved": 3
+    }
+   ]
+  },
+  {
+   "slug": "coreweave",
+   "source": "official",
+   "added": 14,
+   "pages": [
+    {
+     "url": "https://www.coreweave.com/about-us",
+     "title": "About CoreWeave | The Essential Cloud for AI",
+     "imgs": 94,
+     "saved": 6
+    },
+    {
+     "url": "https://www.coreweave.com/newsroom",
+     "title": "News and Press Releases | CoreWeave",
+     "imgs": 290,
+     "saved": 8
+    }
+   ]
+  },
+  {
+   "slug": "nanya_tech",
+   "source": "official",
+   "added": 9,
+   "pages": [
+    {
+     "url": "https://www.nanya.com/tw/About/",
+     "title": "系統錯誤",
+     "imgs": 3,
+     "saved": 0
+    },
+    {
+     "url": "https://www.nanya.com/tw/",
+     "title": "南亞科技",
+     "imgs": 19,
+     "saved": 9
+    },
+    {
+     "url": "https://www.nanya.com/en/",
+     "title": "Nanya",
+     "imgs": 19,
+     "saved": 0
+    },
+    {
+     "url": "https://www.nanya.com/tw/About",
+     "title": "公司簡介",
+     "imgs": 9,
+     "saved": 0
+    },
+    {
+     "url": "https://www.nanya.com/tw/Product/",
+     "title": "南亞科技",
+     "imgs": 9,
+     "saved": 0
+    },
+    {
+     "url": "https://www.nanya.com/tw/Product/List/450/2478",
+     "title": "南亞科技",
+     "imgs": 3,
+     "saved": 0
+    },
+    {
+     "url": "https://www.nanya.com/tw/Product/List/450/2264",
+     "title": "南亞科技",
+     "imgs": 3,
+     "saved": 0
+    },
+    {
+     "url": "https://www.nanya.com/tw/Product/List/450/2249",
+     "title": "南亞科技",
+     "imgs": 3,
+     "saved": 0
+    },
+    {
+     "url": "https://www.nanya.com/tw/Product/List/450/7591",
+     "title": "南亞科技",
+     "imgs": 3,
+     "saved": 0
+    },
+    {
+     "url": "https://www.nanya.com/tw/Product/List/450/2250",
+     "title": "南亞科技",
+     "imgs": 3,
+     "saved": 0
+    },
+    {
+     "url": "https://www.nanya.com/tw/Product/List/547/6587",
+     "title": "南亞科技",
+     "imgs": 3,
+     "saved": 0
+    },
+    {
+     "url": "https://www.nanya.com/tw/Product/List/547/6586",
+     "title": "南亞科技",
+     "imgs": 3,
+     "saved": 0
+    },
+    {
+     "url": "https://www.nanya.com/tw/Product/List/547/2251",
+     "title": "南亞科技",
+     "imgs": 3,
+     "saved": 0
+    },
+    {
+     "url": "https://www.nanya.com/tw/Product/List/547/2252",
+     "title": "南亞科技",
+     "imgs": 3,
+     "saved": 0
+    },
+    {
+     "url": "https://www.nanya.com/tw/Product/List/452/2264",
+     "title": "南亞科技",
+     "imgs": 3,
+     "saved": 0
+    },
+    {
+     "url": "https://www.nanya.com/tw/Product/List/452/2249",
+     "title": "南亞科技",
+     "imgs": 3,
+     "saved": 0
+    },
+    {
+     "url": "https://www.nanya.com/tw/Product/List/452/6587",
+     "title": "南亞科技",
+     "imgs": 3,
+     "saved": 0
+    },
+    {
+     "url": "https://www.nanya.com/tw/Product/List/452/6586",
+     "title": "南亞科技",
+     "imgs": 3,
+     "saved": 0
+    }
+   ]
+  },
+  {
+   "slug": "nan_ya_pcb",
+   "source": "official",
+   "added": 8,
+   "pages": [
+    {
+     "url": "https://www.nanyapcb.com.tw/",
+     "title": "南電首頁",
+     "imgs": 11,
+     "saved": 4
+    },
+    {
+     "url": "https://www.nanyapcb.com.tw/en/",
+     "title": "404 - 找不到檔案或目錄。",
+     "imgs": 0,
+     "saved": 0
+    },
+    {
+     "url": "https://www.nanyapcb.com.tw/nypcb/chinese/index",
+     "title": "南電首頁",
+     "imgs": 11,
+     "saved": 0
+    },
+    {
+     "url": "https://www.nanyapcb.com.tw/nypcb/chinese/AboutNanYaPCB/CompanyProfile/Vision",
+     "title": "經營理念及願景",
+     "imgs": 6,
+     "saved": 1
+    },
+    {
+     "url": "https://www.nanyapcb.com.tw/nypcb/chinese/AboutNanYaPCB/CompanyProfile/Company",
+     "title": "公司簡介",
+     "imgs": 4,
+     "saved": 0
+    },
+    {
+     "url": "https://www.nanyapcb.com.tw/nypcb/chinese/AboutNanYaPCB/CompanyProfile/Organization",
+     "title": "公司組織",
+     "imgs": 7,
+     "saved": 0
+    },
+    {
+     "url": "https://www.nanyapcb.com.tw/nypcb/chinese/AboutNanYaPCB/CompanyProfile/Milestone",
+     "title": "公司沿革",
+     "imgs": 4,
+     "saved": 0
+    },
+    {
+     "url": "https://www.nanyapcb.com.tw/nypcb/chinese/AboutNanYaPCB/QualityPolicy/Awards",
+     "title": "獲獎與認證",
+     "imgs": 105,
+     "saved": 0
+    },
+    {
+     "url": "https://www.nanyapcb.com.tw/nypcb/chinese/AboutNanYaPCB/Locations/Location",
+     "title": "廠房位置",
+     "imgs": 16,
+     "saved": 0
+    },
+    {
+     "url": "https://www.nanyapcb.com.tw/nypcb/chinese/SocialResponsibility/EPPolicyT",
+     "title": "產品出貨檢驗與管制",
+     "imgs": 9,
+     "saved": 0
+    },
+    {
+     "url": "https://www.nanyapcb.com.tw/nypcb/chinese/Product/PCBIntroduction",
+     "title": "印刷電路板產品介紹與應用",
+     "imgs": 18,
+     "saved": 0
+    },
+    {
+     "url": "https://www.nanyapcb.com.tw/nypcb/chinese/Product/PCBDevelopment",
+     "title": "印刷電路板趨勢演進",
+     "imgs": 9,
+     "saved": 1
+    },
+    {
+     "url": "https://www.nanyapcb.com.tw/nypcb/chinese/Product/ICIntroduction",
+     "title": "覆晶載板產品介紹與應用",
+     "imgs": 12,
+     "saved": 1
+    },
+    {
+     "url": "https://www.nanyapcb.com.tw/nypcb/chinese/Product/WBIntroduction",
+     "title": "打線載板產品介紹與應用",
+     "imgs": 16,
+     "saved": 0
+    },
+    {
+     "url": "https://www.nanyapcb.com.tw/nypcb/chinese/Product/ICDevelopment",
+     "title": "IC載板趨勢演進",
+     "imgs": 10,
+     "saved": 1
+    },
+    {
+     "url": "https://www.nanyapcb.com.tw/nypcb/chinese/Technology/StandardPCBRoadmap",
+     "title": "PCB HLC Technology Roadmap",
+     "imgs": 5,
+     "saved": 0
+    },
+    {
+     "url": "https://www.nanyapcb.com.tw/nypcb/chinese/Technology/HDIPCBRoadmap",
+     "title": "HDI Technology Roadmap",
+     "imgs": 5,
+     "saved": 0
+    },
+    {
+     "url": "https://www.nanyapcb.com.tw/nypcb/chinese/Technology/ABFSRoadmap",
+     "title": "ABF Substrate TechnologyRoadmap",
+     "imgs": 6,
+     "saved": 0
+    }
+   ]
+  },
+  {
+   "slug": "eml",
+   "source": "official",
+   "added": 10,
+   "pages": [
+    {
+     "url": "https://www.emctw.com/",
+     "title": "首頁-EMC",
+     "imgs": 35,
+     "saved": 0
+    },
+    {
+     "url": "https://www.emctw.com/en/",
+     "title": "首頁-EMC",
+     "imgs": 35,
+     "saved": 0
+    },
+    {
+     "url": "https://www.emctw.com/en-global",
+     "title": "Homepage-EMC",
+     "imgs": 35,
+     "saved": 0
+    },
+    {
+     "url": "https://www.emctw.com/zh-TW/about_milestone/index",
+     "title": "EMC",
+     "imgs": 15,
+     "saved": 1
+    },
+    {
+     "url": "https://www.emctw.com/zh-TW/leading_technology/index",
+     "title": "EMC",
+     "imgs": 11,
+     "saved": 1
+    },
+    {
+     "url": "https://www.emctw.com/zh-TW/about_quality/index",
+     "title": "EMC",
+     "imgs": 8,
+     "saved": 0
+    },
+    {
+     "url": "https://www.emctw.com/zh-TW/about_production/index",
+     "title": "EMC",
+     "imgs": 13,
+     "saved": 0
+    },
+    {
+     "url": "https://www.emctw.com/zh-TW/product_name/index",
+     "title": "EMC",
+     "imgs": 7,
+     "saved": 1
+    },
+    {
+     "url": "https://www.emctw.com/zh-TW/applications/index/Infrastructure",
+     "title": "EMC",
+     "imgs": 10,
+     "saved": 1
+    },
+    {
+     "url": "https://www.emctw.com/zh-TW/corporate_governance_officer/index",
+     "title": "EMC",
+     "imgs": 7,
+     "saved": 1
+    },
+    {
+     "url": "https://www.emctw.com/zh-TW",
+     "title": "首頁-EMC",
+     "imgs": 35,
+     "saved": 0
+    },
+    {
+     "url": "https://www.emctw.com/zh-TW/no1_speed/index",
+     "title": "EMC",
+     "imgs": 9,
+     "saved": 1
+    },
+    {
+     "url": "https://www.emctw.com/zh-TW/no1_digital/index",
+     "title": "EMC",
+     "imgs": 10,
+     "saved": 1
+    },
+    {
+     "url": "https://www.emctw.com/zh-TW/no1_worldwide/index",
+     "title": "EMC",
+     "imgs": 8,
+     "saved": 1
+    },
+    {
+     "url": "https://www.emctw.com/zh-TW/organization_structure/index",
+     "title": "EMC",
+     "imgs": 9,
+     "saved": 2
+    },
+    {
+     "url": "https://www.emctw.com/en-global/about_milestone/index",
+     "title": "EMC",
+     "imgs": 15,
+     "saved": 0
+    },
+    {
+     "url": "https://www.emctw.com/en-global/our_values/index",
+     "title": "EMC",
+     "imgs": 11,
+     "saved": 0
+    },
+    {
+     "url": "https://www.emctw.com/en-global/leading_technology/index",
+     "title": "EMC",
+     "imgs": 11,
+     "saved": 0
+    }
+   ]
+  }
+ ]
+}
