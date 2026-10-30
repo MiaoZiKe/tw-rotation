@@ -70,54 +70,27 @@
         {
           "url": "https://openapi.twse.com.tw/v1/fund/MI_QFIIS_sort_20",
           "http": 200,
-          "head": "<html><head><meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\"> <script type=\"application/javascript\">     var contactPhone = \"(02)8101-5921, (02)8101-5836\";     </script> </head> <bod"
+          "head": "[ {\"Rank\":\"1\",\"Code\":\"2923\",\"Name\":\"鼎固-KY\",\"ShareNumber\":\"1740296982\",\"AvailableShare\":\"8493946\",\"SharesHeld\":\"1731803036\",\"AvailableInvestPer\":\"0.48\",\"SharesHeldPer\":\"99.51\",\"Upperlimit\":\"100.00\"}, {"
+        },
+        {
+          "url": "https://openapi.twse.com.tw/v1/fund/MI_QFIIS_sort_20",
+          "cols": [
+            "Rank",
+            "Code",
+            "Name",
+            "ShareNumber",
+            "AvailableShare",
+            "SharesHeld",
+            "AvailableInvestPer",
+            "SharesHeldPer",
+            "Upperlimit"
+          ],
+          "n": 20
         },
         {
           "market": "上市",
           "rows": 0,
           "parts": []
-        },
-        {
-          "url": "https://www.tpex.org.tw/openapi/swagger.json",
-          "http": 200,
-          "head": "{\"openapi\":\"3.0.0\",\"info\":{\"description\":\"\\u672c\\u5e73\\u81fa\\u63d0\\u4f9b\\u6ac3\\u6aaf\\u8cb7\\u8ce3\\u5e02\\u5834\\u8cc7\\u6599\\u670d\\u52d9API\\uff0c\\u5305\\u542b\\u4e0a\\u6ac3\\u3001\\u8208\\u6ac3\\u3001\\u5275\\u6ac"
-        },
-        {
-          "swagger": "https://www.tpex.org.tw/openapi/swagger.json",
-          "n_paths": 225,
-          "fund_paths": [
-            "/tpex_opfund_latest",
-            "/tpex_opfund_market_highlight",
-            "/tpex_opfund_recommended_dealer"
-          ]
-        },
-        {
-          "swagger_path": "/tpex_3insti_qfii",
-          "summary": "上櫃僑外資及陸資持股比例排行表"
-        },
-        {
-          "swagger_path": "/tpex_3insti_qfii_industry",
-          "summary": "上櫃各類股僑外資及陸資持股比例表"
-        },
-        {
-          "swagger_path": "/tpex_3insti_daily_trading",
-          "summary": "上櫃股票三大法人買賣明細資訊"
-        },
-        {
-          "swagger_path": "/tpex_3insti_dealer_trading",
-          "summary": "上櫃股票自營商買賣超彙總表"
-        },
-        {
-          "swagger_path": "/tpex_3insti_summary",
-          "summary": "上櫃股票三大法人買賣金額彙總表"
-        },
-        {
-          "swagger_path": "/tpex_3insti_trading",
-          "summary": "上櫃股票投信買賣超彙總表"
-        },
-        {
-          "swagger_path": "/tpex_3insti_qfii_trading",
-          "summary": "上櫃股票外資及陸資買賣超彙總表"
         },
         {
           "url": "https://www.tpex.org.tw/openapi/v1/tpex_3insti_daily_trading",
@@ -134,11 +107,11 @@
       ]
     },
     "margin_total": {
-      "stored": 0
+      "stored": 1
     },
     "mktfut.margin_total": {
       "ok": true,
-      "rows": 6
+      "rows": 7
     },
     "fut_inst": {
       "stored": 0
@@ -160,81 +133,35 @@
       "seconds": 0.4
     },
     "inst_daily": {
-      "stored": 295
+      "stored": 0
     },
     "institutional_codes": {
-      "requested": 297,
-      "returned": 295
+      "requested": 2,
+      "returned": 0
     },
     "finmind.institutional": {
-      "ok": true,
-      "rows": 295,
-      "seconds": 125.0
+      "ok": false,
+      "rows": 0,
+      "seconds": 1.4
     },
     "inst_flags": {
-      "rebuild": true,
+      "rebuild": false,
       "post": true
     },
     "build_payload": {
       "ok": true,
-      "deferred": true
+      "skipped": "沒有新增今天的法人"
     }
   },
   "errors": [],
-  "empty": [],
+  "empty": [
+    "finmind.institutional"
+  ],
   "phase": "inst",
-  "freshness": {
-    "trade_date": "2026-10-30",
-    "tables": {
-      "inst_daily": {
-        "label": "個股三大法人",
-        "latest": "2026-10-30",
-        "rows": 1375,
-        "median": 2202.5,
-        "status": "pending",
-        "reason": "thin"
-      },
-      "inst_market_daily": {
-        "label": "全市場三大法人金額",
-        "latest": "2026-10-30",
-        "rows": 1,
-        "median": 1.0,
-        "status": "ok",
-        "reason": null
-      },
-      "margin_total": {
-        "label": "整體融資融券",
-        "latest": "2026-10-29",
-        "rows": 0,
-        "median": 1.0,
-        "status": "pending",
-        "reason": "behind"
-      },
-      "fut_inst": {
-        "label": "期貨三大法人",
-        "latest": "2026-10-30",
-        "rows": 9,
-        "median": 9.0,
-        "status": "ok",
-        "reason": null
-      },
-      "fut_oi": {
-        "label": "期貨全市場未平倉",
-        "latest": "2026-10-30",
-        "rows": 3,
-        "median": 3.0,
-        "status": "ok",
-        "reason": null
-      }
-    },
-    "warn": [],
-    "warn_labels": []
-  },
-  "warn": [],
-  "started_at": "2026-10-30T10:00:52.715812+00:00",
-  "finished_at": "2026-10-30T10:03:36.968401+00:00",
-  "duration_seconds": 164.3,
+  "started_at": "2026-10-30T13:17:50.326622+00:00",
+  "finished_at": "2026-10-30T13:18:09.159412+00:00",
+  "duration_seconds": 18.8,
   "trade_date": "2026-10-30",
   "complete": true,
-  "finmind_budget_left": 205
+  "finmind_budget_left": 500
 }
