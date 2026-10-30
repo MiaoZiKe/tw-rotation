@@ -197,6 +197,10 @@ jobs:
             git rebase -X ours "origin/${{ github.ref_name }}" || {
               git rebase --abort || true
               git reset --soft "origin/${{ github.ref_name }}"
+              # 2026-10-30：只有 data 用我們的版本；其他檔（程式、社群 queue…）一律對齊遠端。
+              # 以前 reset --soft 後直接 commit，索引裡是開跑時的舊程式 → 把別人中途推的改動整批還原（e5c06b17 事故）。
+              git reset -q "origin/${{ github.ref_name }}" -- . ':(exclude)data' ':(exclude)site/articles/postmarket.json'
+              git checkout -- . ':(exclude)data' ':(exclude)site/articles/postmarket.json'
               git add data site/articles/postmarket.json
               git commit -m "資料更新 $(date -u '+%Y-%m-%d') (合併重試)"
             }
