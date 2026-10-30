@@ -183,9 +183,11 @@
    "height": 1280,
    "fetched_at": "2026-10-30T02:01:40+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": "",
-   "origin": "公司分類"
+   "reviewer": "art-director",
+   "review_note": "2026-10-30 art-director 複審（補圖）退件：講者人物（審核項 3）",
+   "origin": "公司分類",
+   "reviewed_at": "2026-10-30",
+   "reject_reason": "講者人物（審核項 3）"
   },
   {
    "file": "photo_9.jpg",
@@ -205,9 +207,11 @@
    "height": 1440,
    "fetched_at": "2026-10-30T02:01:40+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": "",
-   "origin": "公司分類"
+   "reviewer": "art-director",
+   "review_note": "2026-10-30 art-director 複審（補圖）退件：Raspberry Pi 外殼，非 Arm（主體錯誤）",
+   "origin": "公司分類",
+   "reviewed_at": "2026-10-30",
+   "reject_reason": "Raspberry Pi 外殼，非 Arm（主體錯誤）"
   },
   {
    "file": "photo_10.jpg",
@@ -227,9 +231,11 @@
    "height": 1536,
    "fetched_at": "2026-10-30T02:01:41+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": "",
-   "origin": "公司分類"
+   "reviewer": "art-director",
+   "review_note": "2026-10-30 art-director 複審（補圖）退件：Raspberry Pi 板，非 Arm 品牌",
+   "origin": "公司分類",
+   "reviewed_at": "2026-10-30",
+   "reject_reason": "Raspberry Pi 板，非 Arm 品牌"
   },
   {
    "file": "photo_11.jpg",
@@ -249,9 +255,11 @@
    "height": 1327,
    "fetched_at": "2026-10-30T02:01:43+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": "",
-   "origin": "公司分類"
+   "reviewer": "art-director",
+   "review_note": "2026-10-30 art-director 複審（補圖）退件：Wikidata 標誌貼紙，非 Arm",
+   "origin": "公司分類",
+   "reviewed_at": "2026-10-30",
+   "reject_reason": "Wikidata 標誌貼紙，非 Arm"
   },
   {
    "file": "photo_12.jpg",
@@ -271,9 +279,11 @@
    "height": 1080,
    "fetched_at": "2026-10-30T02:01:44+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": "",
-   "origin": "公司分類"
+   "reviewer": "art-director",
+   "review_note": "2026-10-30 art-director 複審（補圖）退件：Raspberry Pi 外殼，非 Arm",
+   "origin": "公司分類",
+   "reviewed_at": "2026-10-30",
+   "reject_reason": "Raspberry Pi 外殼，非 Arm"
   },
   {
    "file": "photo_13.jpg",
@@ -293,9 +303,11 @@
    "height": 1440,
    "fetched_at": "2026-10-30T02:01:44+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": "",
-   "origin": "公司分類"
+   "reviewer": "art-director",
+   "review_note": "2026-10-30 art-director 複審（補圖）退件：Raspberry Pi 外殼，非 Arm",
+   "origin": "公司分類",
+   "reviewed_at": "2026-10-30",
+   "reject_reason": "Raspberry Pi 外殼，非 Arm"
   },
   {
    "file": "photo_14.jpg",
@@ -315,8 +327,10 @@
    "height": 1546,
    "fetched_at": "2026-10-30T02:01:46+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewer": "art-director",
+   "review_note": "2026-10-30 art-director 複審（補圖）退件：歷史手稿，非 Arm（主體錯誤）",
+   "reviewed_at": "2026-10-30",
+   "reject_reason": "歷史手稿，非 Arm（主體錯誤）"
   },
   {
    "file": "photo_15.jpg",
@@ -336,8 +350,10 @@
    "height": 1547,
    "fetched_at": "2026-10-30T02:01:47+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewer": "art-director",
+   "review_note": "2026-10-30 art-director 複審（補圖）退件：歷史手稿，非 Arm（主體錯誤）",
+   "reviewed_at": "2026-10-30",
+   "reject_reason": "歷史手稿，非 Arm（主體錯誤）"
   },
   {
    "file": "photo_16.jpg",
@@ -357,8 +373,10 @@
    "height": 1907,
    "fetched_at": "2026-10-30T02:01:49+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewer": "art-director",
+   "review_note": "2026-10-30 art-director 複審（補圖）退件：他牌晶片裸晶，非 Arm",
+   "reviewed_at": "2026-10-30",
+   "reject_reason": "他牌晶片裸晶，非 Arm"
   }
  ],
  "rejected": []

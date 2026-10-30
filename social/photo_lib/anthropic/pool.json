@@ -206,9 +206,11 @@
    "height": 1280,
    "fetched_at": "2026-10-30T02:01:06+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": "",
-   "origin": "公司分類"
+   "reviewer": "art-director",
+   "review_note": "2026-10-30 art-director 複審（補圖）退件：維基聚會講者人物、與 Anthropic 無關（主體錯誤）",
+   "origin": "公司分類",
+   "reviewed_at": "2026-10-30",
+   "reject_reason": "維基聚會講者人物、與 Anthropic 無關（主體錯誤）"
   },
   {
    "file": "photo_10.jpg",
@@ -228,8 +230,10 @@
    "height": 1341,
    "fetched_at": "2026-10-30T02:01:19+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewer": "art-director",
+   "review_note": "2026-10-30 art-director 複審（補圖）退件：舊金山天際線，非 Anthropic 公司主體",
+   "reviewed_at": "2026-10-30",
+   "reject_reason": "舊金山天際線，非 Anthropic 公司主體"
   }
  ],
  "rejected": [

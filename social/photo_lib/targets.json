@@ -180,7 +180,13 @@
    "ASE Chungli campus",
    "日月光 高雄 廠",
    "ASE Penang",
-   "Advanced Semiconductor Engineering Kaohsiung plant"
+   "Advanced Semiconductor Engineering Kaohsiung plant",
+   "ASE Kaohsiung",
+   "ASE Nantze factory",
+   "日月光 楠梓",
+   "ASE Group Chungli plant",
+   "ASE Technology headquarters Kaohsiung",
+   "Advanced Semiconductor Engineering Zhongli"
   ],
   "product_queries": [
    "chip packaging",
@@ -201,7 +207,15 @@
    "Nantze Export Processing Zone",
    "Kaohsiung Export Processing Zone",
    "ASE Test",
-   "ASE Singapore"
+   "ASE Singapore",
+   "ASE Group Kaohsiung",
+   "ASE Group Taiwan",
+   "ASE Kaohsiung plant",
+   "Nantze",
+   "ASE Weihai",
+   "ASE Technology Holding Co",
+   "日月光",
+   "日月光半導體"
   ]
  },
  {
@@ -923,7 +937,12 @@
    "Unimicron Hsinchu Yangmei",
    "欣興電子 桃園",
    "欣興電子 新竹",
-   "Unimicron Technology building"
+   "Unimicron Technology building",
+   "Unimicron Taiwan factory",
+   "欣興電子 桃園 龜山",
+   "Unimicron Technology Shenzhen",
+   "Unimicron Yangmei",
+   "IC substrate flip chip"
   ],
   "product_queries": [
    "printed circuit board",
@@ -940,7 +959,12 @@
    "Unimicron Shanghai",
    "Unimicron Taoyuan",
    "Unimicron Hsinchu",
-   "Unimicron Shenzhen"
+   "Unimicron Shenzhen",
+   "Unimicron Technology Corporation",
+   "Unimicron Corp",
+   "欣興電子",
+   "Unimicron Taoyuan plant",
+   "Unimicron building"
   ]
  },
  {
@@ -1387,7 +1411,15 @@
    "Samsung Electronics Suwon building",
    "Samsung Austin Semiconductor",
    "Samsung Seocho Town",
-   "Samsung Galaxy phone"
+   "Samsung Galaxy phone",
+   "Samsung Digital City Suwon building",
+   "Samsung Electronics Giheung",
+   "Samsung Electronics Pyeongtaek Campus",
+   "Samsung Galaxy S24",
+   "Samsung Galaxy S23 smartphone",
+   "Samsung Galaxy Z Flip",
+   "Samsung Seocho Samsung Town",
+   "삼성전자 수원 디지털시티"
   ],
   "product_queries": [
    "Samsung memory",
@@ -1409,7 +1441,15 @@
    "Samsung Semiconductor",
    "Samsung Austin Semiconductor",
    "Samsung Giheung",
-   "Samsung Hwaseong"
+   "Samsung Hwaseong",
+   "Samsung Electronics headquarters Suwon",
+   "Samsung Electronics Giheung Campus",
+   "Samsung Electronics Hwaseong Campus",
+   "Samsung Electronics Seocho",
+   "Samsung Seocho Tower",
+   "Samsung Digital City Suwon",
+   "Samsung Semiconductor Pyeongtaek",
+   "Samsung Electronics Co. buildings"
   ]
  },
  {
@@ -1610,7 +1650,11 @@
    "Anthropic office San Francisco",
    "Anthropic headquarters Howard Street",
    "Anthropic San Francisco office building",
-   "500 Howard Street"
+   "500 Howard Street",
+   "Anthropic Claude logo office",
+   "Anthropic San Francisco 500 Howard",
+   "Anthropic Seattle office",
+   "Google TPU data center"
   ],
   "product_queries": [
    "data center GPU servers",
@@ -1624,7 +1668,13 @@
    "Anthropic",
    "Claude (language model)",
    "Anthropic headquarters",
-   "500 Howard Street San Francisco"
+   "500 Howard Street San Francisco",
+   "Claude (chatbot)",
+   "Anthropic PBC",
+   "Dario Amodei",
+   "500 Howard Street",
+   "Salesforce Tower San Francisco",
+   "Anthropic Claude"
   ]
  },
  {
@@ -1700,7 +1750,13 @@
    "Arm Limited Cambridge headquarters",
    "ARM Cortex-A chip die",
    "110 Fulbourn Road",
-   "Arm Holdings Peterhouse Technology Park"
+   "Arm Holdings Peterhouse Technology Park",
+   "Arm headquarters Cambridge England building",
+   "ARM Holdings Fulbourn Road Cambridge",
+   "ARM Cortex-M chip",
+   "Arm Limited Cambridge",
+   "Arm Holdings office Cambridge",
+   "ARM1 processor"
   ],
   "product_queries": [
    "ARM processor chip",
@@ -1720,7 +1776,13 @@
    "Raspberry Pi",
    "Arm Cortex",
    "Arm Limited Cambridge",
-   "110 Fulbourn Road Cambridge"
+   "110 Fulbourn Road Cambridge",
+   "ARM Holdings headquarters Cambridge",
+   "ARM architecture chip",
+   "Arm Cortex-A",
+   "Arm Neoverse",
+   "ARM Cortex",
+   "Arm Holdings Cambridge Peterhouse Technology Park"
   ]
  },
  {
@@ -2400,7 +2462,12 @@
    "CoreWeave data center",
    "CoreWeave office",
    "CoreWeave Livingston New Jersey",
-   "CoreWeave headquarters"
+   "CoreWeave headquarters",
+   "CoreWeave Livingston office",
+   "CoreWeave Lancaster data center",
+   "CoreWeave Ellendale",
+   "Nvidia GB200 NVL72 rack",
+   "Nvidia H100 server"
   ],
   "product_queries": [
    "GPU servers data center"
@@ -2412,7 +2479,12 @@
    "CoreWeave",
    "CoreWeave, Inc.",
    "CoreWeave data centers",
-   "Core Scientific"
+   "Core Scientific",
+   "CoreWeave headquarters",
+   "Livingston, New Jersey",
+   "Core Scientific data centers",
+   "CoreWeave Nvidia GB200",
+   "Data centers in New Jersey"
   ],
   "key": "coreweave"
  },
@@ -2429,7 +2501,12 @@
    "Nanya Technology headquarters",
    "Nanya Technology Corporation Linkou",
    "Nanya Technology Taoyuan Guishan",
-   "南亞科技 林口"
+   "南亞科技 林口",
+   "Nanya DDR4 memory module",
+   "Nanya DDR3 SDRAM module",
+   "Nanya Technology DRAM chip",
+   "南亞科技 新北 泰山",
+   "Nanya Technology Corporation Taishan campus"
   ],
   "product_queries": [
    "DRAM module",
@@ -2444,7 +2521,13 @@
    "Nanya Technology Corp",
    "Nanya DRAM",
    "Nanya Technology buildings",
-   "Taishan, New Taipei"
+   "Taishan, New Taipei",
+   "Nanya Technology Corporation headquarters",
+   "Nanya Technology Linkou",
+   "Linkou District",
+   "Nanya DDR4",
+   "Nanya DRAM modules",
+   "Nanya Technology Taoyuan"
   ],
   "key": "nanya"
  },
@@ -2462,7 +2545,12 @@
    "Nan Ya PCB Shulin",
    "Nan Ya PCB Kunshan",
    "南亞電路板 樹林",
-   "南亞電路板 桃園"
+   "南亞電路板 桃園",
+   "Nan Ya PCB ABF substrate",
+   "Nan Ya PCB Kunshan factory",
+   "南亞電路板 樹林廠",
+   "Nan Ya Printed Circuit Board Taoyuan",
+   "ABF substrate flip chip BGA"
   ],
   "product_queries": [
    "IC substrate",
@@ -2477,7 +2565,13 @@
    "Nan Ya Printed Circuit Board Corporation",
    "Nan Ya Printed Circuit Board",
    "Formosa Plastics Group",
-   "Nanya Plastics"
+   "Nanya Plastics",
+   "Nan Ya PCB Corp",
+   "Nan Ya Printed Circuit Board Corp.",
+   "Nan Ya PCB Kunshan",
+   "Nan Ya PCB Shulin Plant",
+   "Nan Ya PCB Taoyuan plant",
+   "Nanya PCB"
   ],
   "key": "nan ya"
  },
@@ -2493,7 +2587,12 @@
    "Elite Material Taoyuan Zhongli",
    "Elite Material Co Ltd building",
    "台光電子 桃園",
-   "台光電子 楊梅"
+   "台光電子 楊梅",
+   "Elite Material Co. Ltd Taiwan",
+   "EMC Elite Material laminate",
+   "Elite Material Taoyuan Yangmei plant",
+   "台光電子材料",
+   "Elite Material Kunshan"
   ],
   "product_queries": [
    "copper clad laminate",
@@ -2508,7 +2607,12 @@
    "Elite Material Company",
    "Elite Material Co.",
    "Elite Material Taoyuan",
-   "Elite Material Corporation"
+   "Elite Material Corporation",
+   "Elite Material Co Ltd",
+   "Elite Material Co., Ltd",
+   "EMC copper clad laminate",
+   "Elite Material Corporation Taiwan",
+   "Taoyuan Zhongli Industrial Zone"
   ],
   "key": "elite"
  }

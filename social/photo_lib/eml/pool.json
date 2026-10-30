@@ -134,8 +134,10 @@
    "height": 2131,
    "fetched_at": "2026-10-30T02:02:44+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewer": "art-director",
+   "review_note": "2026-10-30 art-director 複審（補圖）退件：休士頓住宅大樓，非台光電（主體錯誤）",
+   "reviewed_at": "2026-10-30",
+   "reject_reason": "休士頓住宅大樓，非台光電（主體錯誤）"
   },
   {
    "file": "photo_7.jpg",
@@ -155,8 +157,10 @@
    "height": 1536,
    "fetched_at": "2026-10-30T02:02:45+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewer": "art-director",
+   "review_note": "2026-10-30 art-director 複審（補圖）退件：休士頓住宅，非台光電（主體錯誤）",
+   "reviewed_at": "2026-10-30",
+   "reject_reason": "休士頓住宅，非台光電（主體錯誤）"
   },
   {
    "file": "photo_8.jpg",
@@ -176,8 +180,10 @@
    "height": 1316,
    "fetched_at": "2026-10-30T02:02:45+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewer": "art-director",
+   "review_note": "2026-10-30 art-director 複審（補圖）退件：曼徹斯特建築，非台光電（主體錯誤）",
+   "reviewed_at": "2026-10-30",
+   "reject_reason": "曼徹斯特建築，非台光電（主體錯誤）"
   },
   {
    "file": "photo_9.jpg",
@@ -197,8 +203,10 @@
    "height": 1033,
    "fetched_at": "2026-10-30T02:02:48+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewer": "art-director",
+   "review_note": "2026-10-30 art-director 複審（補圖）退件：手工蝕刻電路板，非台光電",
+   "reviewed_at": "2026-10-30",
+   "reject_reason": "手工蝕刻電路板，非台光電"
   },
   {
    "file": "photo_10.jpg",
@@ -218,8 +226,10 @@
    "height": 960,
    "fetched_at": "2026-10-30T02:02:48+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewer": "art-director",
+   "review_note": "2026-10-30 art-director 複審（補圖）退件：他牌電路板，非台光電",
+   "reviewed_at": "2026-10-30",
+   "reject_reason": "他牌電路板，非台光電"
   },
   {
    "file": "photo_11.jpg",
@@ -239,8 +249,10 @@
    "height": 869,
    "fetched_at": "2026-10-30T02:02:50+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewer": "art-director",
+   "review_note": "2026-10-30 art-director 複審（補圖）退件：他牌電路板，非台光電",
+   "reviewed_at": "2026-10-30",
+   "reject_reason": "他牌電路板，非台光電"
   }
  ],
  "rejected": []

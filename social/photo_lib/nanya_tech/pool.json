@@ -184,9 +184,11 @@
    "height": 1156,
    "fetched_at": "2026-10-30T02:02:07+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": "",
-   "origin": "公司分類"
+   "reviewer": "art-director",
+   "review_note": "2026-10-30 art-director 複審（補圖）退件：動土典禮致詞人物為主角（審核項 3）",
+   "origin": "公司分類",
+   "reviewed_at": "2026-10-30",
+   "reject_reason": "動土典禮致詞人物為主角（審核項 3）"
   },
   {
    "file": "photo_9.jpg",
@@ -206,9 +208,11 @@
    "height": 1280,
    "fetched_at": "2026-10-30T02:02:08+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": "",
-   "origin": "公司分類"
+   "reviewer": "art-director",
+   "review_note": "2026-10-30 art-director 複審（補圖）退件：新廠模型空拍，無公司標示、活動素材，辨識不足",
+   "origin": "公司分類",
+   "reviewed_at": "2026-10-30",
+   "reject_reason": "新廠模型空拍，無公司標示、活動素材，辨識不足"
   },
   {
    "file": "photo_10.jpg",
@@ -228,9 +232,11 @@
    "height": 1141,
    "fetched_at": "2026-10-30T02:02:09+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": "",
-   "origin": "公司分類"
+   "reviewer": "art-director",
+   "review_note": "2026-10-30 art-director 複審（補圖）退件：祝賀花籃特寫，非公司實景",
+   "origin": "公司分類",
+   "reviewed_at": "2026-10-30",
+   "reject_reason": "祝賀花籃特寫，非公司實景"
   },
   {
    "file": "photo_11.jpg",
@@ -250,9 +256,11 @@
    "height": 1023,
    "fetched_at": "2026-10-30T02:02:10+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": "",
-   "origin": "公司分類"
+   "reviewer": "art-director",
+   "review_note": "2026-10-30 art-director 複審（補圖）退件：典禮人群，可辨識人臉（審核項 3）",
+   "origin": "公司分類",
+   "reviewed_at": "2026-10-30",
+   "reject_reason": "典禮人群，可辨識人臉（審核項 3）"
   },
   {
    "file": "photo_12.jpg",
@@ -272,9 +280,11 @@
    "height": 1047,
    "fetched_at": "2026-10-30T02:02:11+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": "",
-   "origin": "公司分類"
+   "reviewer": "art-director",
+   "review_note": "2026-10-30 art-director 複審（補圖）退件：新廠模型，無公司標示、辨識不足",
+   "origin": "公司分類",
+   "reviewed_at": "2026-10-30",
+   "reject_reason": "新廠模型，無公司標示、辨識不足"
   },
   {
    "file": "photo_13.jpg",
@@ -294,9 +304,11 @@
    "height": 1076,
    "fetched_at": "2026-10-30T02:02:12+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": "",
-   "origin": "公司分類"
+   "reviewer": "art-director",
+   "review_note": "2026-10-30 art-director 複審（補圖）退件：動土典禮會場人群（事件畫面）",
+   "origin": "公司分類",
+   "reviewed_at": "2026-10-30",
+   "reject_reason": "動土典禮會場人群（事件畫面）"
   },
   {
    "file": "photo_14.jpg",
@@ -316,8 +328,10 @@
    "height": 1317,
    "fetched_at": "2026-10-30T02:02:14+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewer": "art-director",
+   "review_note": "2026-10-30 art-director 複審（補圖）退件：Infineon 晶片，他牌 LOGO（主體錯誤）",
+   "reviewed_at": "2026-10-30",
+   "reject_reason": "Infineon 晶片，他牌 LOGO（主體錯誤）"
   },
   {
    "file": "photo_15.jpg",
@@ -337,8 +351,10 @@
    "height": 1333,
    "fetched_at": "2026-10-30T02:02:14+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewer": "art-director",
+   "review_note": "2026-10-30 art-director 複審（補圖）退件：Infineon 晶片，他牌 LOGO（主體錯誤）",
+   "reviewed_at": "2026-10-30",
+   "reject_reason": "Infineon 晶片，他牌 LOGO（主體錯誤）"
   },
   {
    "file": "photo_16.jpg",
@@ -358,8 +374,10 @@
    "height": 1440,
    "fetched_at": "2026-10-30T02:02:16+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewer": "art-director",
+   "review_note": "2026-10-30 art-director 複審（補圖）退件：舊電路板 DRAM 晶片，他牌、非南亞科",
+   "reviewed_at": "2026-10-30",
+   "reject_reason": "舊電路板 DRAM 晶片，他牌、非南亞科"
   }
  ],
  "rejected": []

@@ -278,9 +278,11 @@
    "height": 1440,
    "fetched_at": "2026-10-30T02:00:26+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": "",
-   "origin": "公司分類"
+   "reviewer": "art-director",
+   "review_note": "2026-10-30 art-director 複審（補圖）退件：概念車展示，看不出三星",
+   "origin": "公司分類",
+   "reviewed_at": "2026-10-30",
+   "reject_reason": "概念車展示，看不出三星"
   },
   {
    "file": "photo_13.jpg",
@@ -299,10 +301,11 @@
    "width": 1920,
    "height": 1440,
    "fetched_at": "2026-10-30T02:00:26+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": "",
-   "origin": "公司分類"
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-30 art-director 複審（補圖）通過：Samsung Galaxy Fold 展示（品牌字樣清楚）；背景有他牌展櫃、略暗，屬勉強通過",
+   "origin": "公司分類",
+   "reviewed_at": "2026-10-30"
   },
   {
    "file": "photo_14.jpg",
@@ -322,9 +325,11 @@
    "height": 1078,
    "fetched_at": "2026-10-30T02:00:26+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": "",
-   "origin": "公司分類"
+   "reviewer": "art-director",
+   "review_note": "2026-10-30 art-director 複審（補圖）退件：足球隊員人物為主角（審核項 3）",
+   "origin": "公司分類",
+   "reviewed_at": "2026-10-30",
+   "reject_reason": "足球隊員人物為主角（審核項 3）"
   },
   {
    "file": "photo_15.jpg",
@@ -344,9 +349,11 @@
    "height": 1278,
    "fetched_at": "2026-10-30T02:00:26+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": "",
-   "origin": "公司分類"
+   "reviewer": "art-director",
+   "review_note": "2026-10-30 art-director 複審（補圖）退件：展場人群，辨識不足",
+   "origin": "公司分類",
+   "reviewed_at": "2026-10-30",
+   "reject_reason": "展場人群，辨識不足"
   },
   {
    "file": "photo_16.jpg",
@@ -366,9 +373,11 @@
    "height": 1080,
    "fetched_at": "2026-10-30T02:00:27+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": "",
-   "origin": "公司分類"
+   "reviewer": "art-director",
+   "review_note": "2026-10-30 art-director 複審（補圖）退件：展覽走廊人群，三星僅為贊助字樣",
+   "origin": "公司分類",
+   "reviewed_at": "2026-10-30",
+   "reject_reason": "展覽走廊人群，三星僅為贊助字樣"
   },
   {
    "file": "photo_17.jpg",
@@ -388,9 +397,11 @@
    "height": 1919,
    "fetched_at": "2026-10-30T02:00:27+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": "",
-   "origin": "公司分類"
+   "reviewer": "art-director",
+   "review_note": "2026-10-30 art-director 複審（補圖）退件：記憶體條置於紙板、無字樣可辨（與 micron/photo_10 同因）",
+   "origin": "公司分類",
+   "reviewed_at": "2026-10-30",
+   "reject_reason": "記憶體條置於紙板、無字樣可辨（與 micron/photo_10 同因）"
   },
   {
    "file": "photo_18.jpg",
@@ -410,8 +421,10 @@
    "height": 1280,
    "fetched_at": "2026-10-30T02:00:34+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewer": "art-director",
+   "review_note": "2026-10-30 art-director 複審（補圖）退件：拜登與尹錫悅參訪，人物為主角（審核項 3）",
+   "reviewed_at": "2026-10-30",
+   "reject_reason": "拜登與尹錫悅參訪，人物為主角（審核項 3）"
   }
  ],
  "rejected": [

@@ -276,10 +276,11 @@
    "width": 1920,
    "height": 1043,
    "fetched_at": "2026-10-30T02:01:25+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": "",
-   "origin": "公司分類"
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-30 art-director 複審（補圖）通過：OpenAI 舊金山總部 Pioneer Building 外觀，日間",
+   "origin": "公司分類",
+   "reviewed_at": "2026-10-30"
   },
   {
    "file": "photo_13.jpg",
@@ -299,9 +300,11 @@
    "height": 778,
    "fetched_at": "2026-10-30T02:01:25+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": "",
-   "origin": "公司分類"
+   "reviewer": "art-director",
+   "review_note": "2026-10-30 art-director 複審（補圖）退件：同名「Pioneer Trunk Factory」，建築外觀與 12／14 不一致，無法確認是 OpenAI 總部（主體存疑）",
+   "origin": "公司分類",
+   "reviewed_at": "2026-10-30",
+   "reject_reason": "同名「Pioneer Trunk Factory」，建築外觀與 12／14 不一致，無法確認是 OpenAI 總部（主體存疑）"
   },
   {
    "file": "photo_14.jpg",
@@ -320,10 +323,11 @@
    "width": 1920,
    "height": 1440,
    "fetched_at": "2026-10-30T02:01:25+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": "",
-   "origin": "公司分類"
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-30 art-director 複審（補圖）通過：OpenAI 總部 Pioneer Building，招牌「PIONEER BUILDING」可辨，日間",
+   "origin": "公司分類",
+   "reviewed_at": "2026-10-30"
   },
   {
    "file": "photo_15.jpg",
@@ -343,9 +347,11 @@
    "height": 1212,
    "fetched_at": "2026-10-30T02:01:30+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": "",
-   "origin": "公司分類"
+   "reviewer": "art-director",
+   "review_note": "2026-10-30 art-director 複審（補圖）退件：ChatGPT 手機與鈔票合成情境圖，非公司實景、易誤導",
+   "origin": "公司分類",
+   "reviewed_at": "2026-10-30",
+   "reject_reason": "ChatGPT 手機與鈔票合成情境圖，非公司實景、易誤導"
   },
   {
    "file": "photo_16.jpg",
@@ -365,9 +371,11 @@
    "height": 1183,
    "fetched_at": "2026-10-30T02:01:30+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": "",
-   "origin": "公司分類"
+   "reviewer": "art-director",
+   "review_note": "2026-10-30 art-director 複審（補圖）退件：ChatGPT 字樣（LOGO 為主角）",
+   "origin": "公司分類",
+   "reviewed_at": "2026-10-30",
+   "reject_reason": "ChatGPT 字樣（LOGO 為主角）"
   },
   {
    "file": "photo_17.jpg",
@@ -387,9 +395,11 @@
    "height": 1430,
    "fetched_at": "2026-10-30T02:01:30+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": "",
-   "origin": "公司分類"
+   "reviewer": "art-director",
+   "review_note": "2026-10-30 art-director 複審（補圖）退件：書店 ChatGPT 書籍，非公司實景",
+   "origin": "公司分類",
+   "reviewed_at": "2026-10-30",
+   "reject_reason": "書店 ChatGPT 書籍，非公司實景"
   }
  ],
  "rejected": []

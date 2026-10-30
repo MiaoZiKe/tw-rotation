@@ -159,9 +159,11 @@
    "height": 1127,
    "fetched_at": "2026-10-30T02:00:01+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": "",
-   "origin": "公司分類"
+   "reviewer": "art-director",
+   "review_note": "2026-10-30 art-director 複審（補圖）退件：Ray-Ban 標誌為畫面主角（審核項 4）",
+   "origin": "公司分類",
+   "reviewed_at": "2026-10-30",
+   "reject_reason": "Ray-Ban 標誌為畫面主角（審核項 4）"
   },
   {
    "file": "photo_8.jpg",
@@ -180,10 +182,11 @@
    "width": 1920,
    "height": 1440,
    "fetched_at": "2026-10-30T02:00:01+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": "",
-   "origin": "公司分類"
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-30 art-director 複審（補圖）通過：Ray-Ban Meta 智慧眼鏡（Meta 代表產品），背景乾淨、無他牌 LOGO 為主角",
+   "origin": "公司分類",
+   "reviewed_at": "2026-10-30"
   },
   {
    "file": "photo_9.jpg",
@@ -203,8 +206,10 @@
    "height": 1280,
    "fetched_at": "2026-10-30T02:00:20+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewer": "art-director",
+   "review_note": "2026-10-30 art-director 複審（補圖）退件：會議人物（審核項 3）",
+   "reviewed_at": "2026-10-30",
+   "reject_reason": "會議人物（審核項 3）"
   }
  ],
  "rejected": [

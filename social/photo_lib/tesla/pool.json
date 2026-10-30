@@ -298,10 +298,11 @@
    "width": 1920,
    "height": 1280,
    "fetched_at": "2026-10-30T02:01:02+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": "",
-   "origin": "公司分類"
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-30 art-director 複審（補圖）通過：Tesla Powertrain 動力總成展示，品牌牌清楚；左緣有少許腳部入鏡，裁橫幅後大致裁掉",
+   "origin": "公司分類",
+   "reviewed_at": "2026-10-30"
   },
   {
    "file": "photo_14.jpg",
@@ -321,9 +322,11 @@
    "height": 1439,
    "fetched_at": "2026-10-30T02:01:02+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": "",
-   "origin": "公司分類"
+   "reviewer": "art-director",
+   "review_note": "2026-10-30 art-director 複審（補圖）退件：工廠內部看不出 Tesla、無品牌標示（辨識不足）",
+   "origin": "公司分類",
+   "reviewed_at": "2026-10-30",
+   "reject_reason": "工廠內部看不出 Tesla、無品牌標示（辨識不足）"
   },
   {
    "file": "photo_15.jpg",
@@ -342,10 +345,11 @@
    "width": 1920,
    "height": 1316,
    "fetched_at": "2026-10-30T02:01:03+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": "",
-   "origin": "公司分類"
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-30 art-director 複審（補圖）通過：Tesla 總部大門＋Tesla Semi 卡車，招牌字樣清楚、日間",
+   "origin": "公司分類",
+   "reviewed_at": "2026-10-30"
   },
   {
    "file": "photo_16.jpg",
@@ -365,9 +369,11 @@
    "height": 1440,
    "fetched_at": "2026-10-30T02:01:03+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": "",
-   "origin": "公司分類"
+   "reviewer": "art-director",
+   "review_note": "2026-10-30 art-director 複審（補圖）退件：立牌 LOGO 為畫面主角，整體辨識偏弱（審核項 4）",
+   "origin": "公司分類",
+   "reviewed_at": "2026-10-30",
+   "reject_reason": "立牌 LOGO 為畫面主角，整體辨識偏弱（審核項 4）"
   },
   {
    "file": "photo_17.jpg",
@@ -387,9 +393,11 @@
    "height": 1439,
    "fetched_at": "2026-10-30T02:01:03+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": "",
-   "origin": "公司分類"
+   "reviewer": "art-director",
+   "review_note": "2026-10-30 art-director 複審（補圖）退件：展示牆畫面模糊、品牌字樣不清",
+   "origin": "公司分類",
+   "reviewed_at": "2026-10-30",
+   "reject_reason": "展示牆畫面模糊、品牌字樣不清"
   },
   {
    "file": "photo_18.jpg",
@@ -408,10 +416,11 @@
    "width": 1920,
    "height": 1440,
    "fetched_at": "2026-10-30T02:01:04+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": "",
-   "origin": "公司分類"
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-10-30 art-director 複審（補圖）通過：Tesla 帕羅奧圖總部建築，招牌字樣清楚",
+   "origin": "公司分類",
+   "reviewed_at": "2026-10-30"
   }
  ],
  "rejected": []

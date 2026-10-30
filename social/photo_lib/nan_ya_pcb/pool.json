@@ -88,9 +88,11 @@
    "height": 1440,
    "fetched_at": "2026-10-30T02:02:24+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": "",
-   "origin": "公司分類"
+   "reviewer": "art-director",
+   "review_note": "2026-10-30 art-director 複審（補圖）退件：桃園客運公車，非南電（主體錯誤）",
+   "origin": "公司分類",
+   "reviewed_at": "2026-10-30",
+   "reject_reason": "桃園客運公車，非南電（主體錯誤）"
   },
   {
    "file": "photo_5.jpg",
@@ -110,9 +112,11 @@
    "height": 1110,
    "fetched_at": "2026-10-30T02:02:26+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": "",
-   "origin": "公司分類"
+   "reviewer": "art-director",
+   "review_note": "2026-10-30 art-director 複審（補圖）退件：台塑化纖廠房，非南亞電路板（主體錯誤）",
+   "origin": "公司分類",
+   "reviewed_at": "2026-10-30",
+   "reject_reason": "台塑化纖廠房，非南亞電路板（主體錯誤）"
   },
   {
    "file": "photo_6.jpg",
@@ -132,9 +136,11 @@
    "height": 1280,
    "fetched_at": "2026-10-30T02:02:26+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": "",
-   "origin": "公司分類"
+   "reviewer": "art-director",
+   "review_note": "2026-10-30 art-director 複審（補圖）退件：台塑集團石化廠空拍，非南電（主體錯誤）",
+   "origin": "公司分類",
+   "reviewed_at": "2026-10-30",
+   "reject_reason": "台塑集團石化廠空拍，非南電（主體錯誤）"
   },
   {
    "file": "photo_7.jpg",
@@ -154,9 +160,11 @@
    "height": 1440,
    "fetched_at": "2026-10-30T02:02:27+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": "",
-   "origin": "公司分類"
+   "reviewer": "art-director",
+   "review_note": "2026-10-30 art-director 複審（補圖）退件：南亞塑膠嘉義廠，是南亞塑膠、不是南亞電路板（主體錯誤）",
+   "origin": "公司分類",
+   "reviewed_at": "2026-10-30",
+   "reject_reason": "南亞塑膠嘉義廠，是南亞塑膠、不是南亞電路板（主體錯誤）"
   },
   {
    "file": "photo_8.jpg",
@@ -176,9 +184,11 @@
    "height": 1440,
    "fetched_at": "2026-10-30T02:02:27+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": "",
-   "origin": "公司分類"
+   "reviewer": "art-director",
+   "review_note": "2026-10-30 art-director 複審（補圖）退件：南亞塑膠樹林廠，是南亞塑膠、不是南亞電路板（主體錯誤）",
+   "origin": "公司分類",
+   "reviewed_at": "2026-10-30",
+   "reject_reason": "南亞塑膠樹林廠，是南亞塑膠、不是南亞電路板（主體錯誤）"
   },
   {
    "file": "photo_9.jpg",
@@ -198,9 +208,11 @@
    "height": 1440,
    "fetched_at": "2026-10-30T02:02:31+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": "",
-   "origin": "公司分類"
+   "reviewer": "art-director",
+   "review_note": "2026-10-30 art-director 複審（補圖）退件：台塑新港廠遠景（稻田為主），非南電",
+   "origin": "公司分類",
+   "reviewed_at": "2026-10-30",
+   "reject_reason": "台塑新港廠遠景（稻田為主），非南電"
   },
   {
    "file": "photo_10.jpg",
@@ -220,8 +232,10 @@
    "height": 1440,
    "fetched_at": "2026-10-30T02:02:34+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewer": "art-director",
+   "review_note": "2026-10-30 art-director 複審（補圖）退件：他牌 DVD 電路板，非南電",
+   "reviewed_at": "2026-10-30",
+   "reject_reason": "他牌 DVD 電路板，非南電"
   },
   {
    "file": "photo_11.jpg",
@@ -241,8 +255,10 @@
    "height": 1472,
    "fetched_at": "2026-10-30T02:02:34+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewer": "art-director",
+   "review_note": "2026-10-30 art-director 複審（補圖）退件：他牌電路板，非南電",
+   "reviewed_at": "2026-10-30",
+   "reject_reason": "他牌電路板，非南電"
   },
   {
    "file": "photo_12.jpg",
@@ -262,8 +278,10 @@
    "height": 1440,
    "fetched_at": "2026-10-30T02:02:36+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewer": "art-director",
+   "review_note": "2026-10-30 art-director 複審（補圖）退件：手工蝕刻電路板，非南電",
+   "reviewed_at": "2026-10-30",
+   "reject_reason": "手工蝕刻電路板，非南電"
   }
  ],
  "rejected": []

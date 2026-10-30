@@ -66,8 +66,10 @@
    "height": 1440,
    "fetched_at": "2026-10-30T02:02:04+00:00",
    "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewer": "art-director",
+   "review_note": "2026-10-30 art-director 複審（補圖）退件：Virginia Tech 資料中心，非 CoreWeave（主體錯誤）",
+   "reviewed_at": "2026-10-30",
+   "reject_reason": "Virginia Tech 資料中心，非 CoreWeave（主體錯誤）"
   }
  ],
  "rejected": []
