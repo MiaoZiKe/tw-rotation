@@ -1,13 +1,13 @@
 {
- "at": "2026-10-30T01:51:42+00:00",
+ "at": "2026-10-30T02:02:50+00:00",
  "ok": 105,
  "miss": [],
  "items": [
   {
    "slug": "tsmc",
    "ok": true,
-   "total": 9,
-   "added": 4,
+   "total": 15,
+   "added": 6,
    "reviewed": 3
   },
   {
@@ -49,7 +49,7 @@
    "slug": "ase",
    "ok": true,
    "total": 10,
-   "added": 4,
+   "added": 0,
    "reviewed": 2
   },
   {
@@ -293,7 +293,7 @@
   {
    "slug": "unimicron",
    "ok": true,
-   "total": 5,
+   "total": 6,
    "added": 1,
    "reviewed": 2
   },
@@ -349,9 +349,9 @@
   {
    "slug": "nvidia",
    "ok": true,
-   "total": 10,
-   "added": 5,
-   "reviewed": 2
+   "total": 16,
+   "added": 6,
+   "reviewed": 3
   },
   {
    "slug": "apple",
@@ -377,8 +377,8 @@
   {
    "slug": "meta",
    "ok": true,
-   "total": 6,
-   "added": 0,
+   "total": 9,
+   "added": 3,
    "reviewed": 2
   },
   {
@@ -412,8 +412,8 @@
   {
    "slug": "samsung",
    "ok": true,
-   "total": 11,
-   "added": 4,
+   "total": 18,
+   "added": 7,
    "reviewed": 1
   },
   {
@@ -433,15 +433,15 @@
   {
    "slug": "asml",
    "ok": true,
-   "total": 1,
-   "added": 0,
+   "total": 8,
+   "added": 7,
    "reviewed": 0
   },
   {
    "slug": "tesla",
    "ok": true,
-   "total": 12,
-   "added": 3,
+   "total": 18,
+   "added": 6,
    "reviewed": 1
   },
   {
@@ -461,15 +461,15 @@
   {
    "slug": "anthropic",
    "ok": true,
-   "total": 8,
-   "added": 3,
+   "total": 10,
+   "added": 2,
    "reviewed": 0
   },
   {
    "slug": "openai",
    "ok": true,
-   "total": 11,
-   "added": 3,
+   "total": 17,
+   "added": 6,
    "reviewed": 1
   },
   {
@@ -482,8 +482,8 @@
   {
    "slug": "arm",
    "ok": true,
-   "total": 7,
-   "added": 3,
+   "total": 16,
+   "added": 9,
    "reviewed": 1
   },
   {
@@ -713,29 +713,29 @@
   {
    "slug": "coreweave",
    "ok": true,
-   "total": 2,
-   "added": 2,
+   "total": 3,
+   "added": 1,
    "reviewed": 0
   },
   {
    "slug": "nanya_tech",
    "ok": true,
-   "total": 7,
-   "added": 7,
+   "total": 16,
+   "added": 9,
    "reviewed": 0
   },
   {
    "slug": "nan_ya_pcb",
    "ok": true,
-   "total": 3,
-   "added": 3,
+   "total": 12,
+   "added": 9,
    "reviewed": 0
   },
   {
    "slug": "eml",
    "ok": true,
-   "total": 5,
-   "added": 5,
+   "total": 11,
+   "added": 6,
    "reviewed": 0
   }
  ],

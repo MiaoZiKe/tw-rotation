@@ -117,6 +117,27 @@
    "review_note": "2026-10-30 第五輪退件：1970 年代他牌電路板，非欣興",
    "reviewed_at": "2026-10-30",
    "reject_reason": "1970 年代他牌電路板，非欣興"
+  },
+  {
+   "file": "photo_6.jpg",
+   "kind": "產品",
+   "slug": "unimicron",
+   "name_en": "Unimicron",
+   "query": "printed circuit board",
+   "file_title": "File:RS 42471-12 PCB.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:RS_42471-12_PCB.jpg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/c/cb/RS_42471-12_PCB.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "author": "Mister rf",
+   "credit": "Own work",
+   "description": "Rohde & Schwarz 42471-12 printed circuit board assembly, 1970s.",
+   "width": 1920,
+   "height": 843,
+   "fetched_at": "2026-10-30T01:59:38+00:00",
+   "reviewed": false,
+   "reviewer": "",
+   "review_note": ""
   }
  ],
  "rejected": [
