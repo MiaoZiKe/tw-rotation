@@ -1,0 +1,138 @@
+# 流向驗證分頁的資料檔：欄位說明（金融專家，2026-10-30）
+
+> 給前端用。**欄位名以本文件為準**。程式：`pipeline/compute/flowcheck.py`；由 `pipeline/build_payload.py` 每次部署重產（包 try，壞了只少這個資料夾）。
+> 對齊設計規格 `docs/design/20261030_flow_verify_page.md` 第七節；與規格不同的地方集中寫在最後一節「與規格的差異」。
+
+## 一、檔案結構（`site/data/flowcheck/`）
+
+| 檔案 | 何時載 | 內容 | 數量 | 大小（gzip 前，10-30 實測） |
+|---|---|---|---|---|
+| `index.json` | 進頁就載 | 可選日期、每天有哪些層、族群名單、大盤日報酬（750 日）、吻合度常態、參數 | 1 | 約 55 KB |
+| `day/<YYYY-MM-DD>.json` | 換日期才載 | 近 60 個交易日：族群日線、成分股日線、背離、訊號、新聞、60 分 K 族群序列 | 60 | 最大約 190 KB |
+| `m60/<YYYY-MM-DD>.json` | 要看成分股 60 分走勢時 | 全部成分股 60 分序列 | 約 59（有 60 分 K 的日子） | 最大約 55 KB |
+| `m5/<YYYY-MM-DD>.json` | 有 tape 的日子 | 族群＋全部成分股 5 分鐘序列、當天訊號 | 目前 1（10-30 起每天 +1） | 約 460 KB |
+| `series/<gid>.json` | 走勢大圖切日線 | 人工族群近 750 交易日日線＋前 6 大成分股收盤 | 83 | 最大約 65 KB |
+| `backtest.json` | 打開「提前判斷」卡 | 訊號回測彙總（依粒度 × 訊號）＋事件表 | 1 | 約 1.3 MB（事件表 2 萬列；gzip 後約 0.25 MB） |
+| `daily_signals.json` | — | **不是我的**，strategy-backtest 同事產出；我的 `write()` 只清 `day/ m60/ m5/ series/` 四個子資料夾，不會刪它 | — | — |
+
+總檔數約 205（+ 每天 1 個 m5）。站上現有約 17,800 檔（含 site/data 約 17,460），加上這批約 18,000，離 Cloudflare 單次 20,000 上限約 2,000 檔餘裕。
+
+數字慣例：`null`＝算不出來（資料缺、樣本不足），**不是 0**。百分比單位是 %、差值單位是 pp（百分點）。
+
+## 二、`index.json`
+
+| 欄位 | 說明 |
+|---|---|
+| `schema` | 1 |
+| `latest` | 最新交易日 |
+| `updated_at` | 產出時間（UTC ISO） |
+| `dates` | 有 `day/` 檔的日期（近 60 交易日，舊到新） |
+| `layers[date]` | 近 750 交易日每天有哪些層：`daily`（一定有，可從 `series/` 畫）、`m60` 或 `m5`（盤中，二選一，有 tape 就是 m5）、`day`（有 `day/` 檔）。範例：`["daily","m60","day"]` |
+| `groups[]` | `{gid, name, chain, tier, members:[代號], is_bucket}`。人工族群 `is_bucket:false`；`ind_*` 法定產業收容桶 `is_bucket:true`、`members:[]`（成員隨上市櫃名單變動，不列） |
+| `baseline` | 近 750 日吻合度常態：`all／up／down／crash` 各 `{agree, ic, n_days}`、`period`。agree＝人工族群 dshare 與 rel 同號比率（%），ic＝兩者橫斷面 Spearman 相關的日平均。**10-30 實測：全部 60.9%／IC 0.263；上漲日 64.0%；下跌日 56.7%；急跌日（大盤 < −1.5%，97 天）54.1%** |
+| `market` | `{dates, chg, note}`：大盤日報酬（%），全市場「前一日成交值」加權（`rrg.market_index`），與族群 chg 同口徑 |
+| `params` | 所有門檻（訊號、背離、殘缺格、成本），前端顯示「?」說明時直接讀，不要寫死 |
+
+## 三、`day/<日期>.json`
+
+頂層：`schema`、`date`、`mkt_chg`（大盤日報酬 %）、`crash`（大盤 < −1.5%）、`agree`（當天 `{agree, ic, n}`）、`div_params`（`{pct:0.3, rel:0.3, version:1}`）、`granularity`（`"5m"`／`"60m"`／`null`＝當天無盤中資料）、`groups`、`members`、`signals`、`news`、`m60`。
+
+### `groups[gid]`（人工族群＋ind_ 收容桶，約 110 個）
+| 欄位 | 公式／單位 |
+|---|---|
+| `share` | 成交值占比 %（多族群股成交值 ×1/族群數，同 `group_daily`） |
+| `dshare` | 今日占比 − 前一交易日占比（pp）；第一天 null |
+| `rot` | 占比 5 日均 − 20 日均（pp，同 `flow.rotation_radar`） |
+| `chg` | 族群漲跌 %（前一日成交值加權，`group_daily.chg_pct` 原值） |
+| `rel` | `chg − mkt_chg`（pp） |
+| `adv`／`dec` | 上漲／下跌家數 |
+| `tv` | 族群成交值（億元，已 ×1/族群數） |
+| `rs_x`／`rs_y`／`quadrant` | 強弱輪動（價格相對大盤，`rrg.rrg_axes`）；象限 leading／weakening／improving／lagging |
+| `m_x`／`m_y`／`m_quadrant` | 資金輪盤（`money_wheel.money_axes`：x＝100×近 5 日均占比÷近 20 日均，y＝x 的 5 日變化率，中心 100） |
+| `inst` | `[外資, 投信, 自營]` 淨買超（張；成員股數 ×1/族群數 加總，同 `flow.inst_daily_series`）；法人資料未到 → null |
+| `div` | `"A"`＝資金進但走勢弱（dshare 在人工族群前 30% 且 rel < −0.3pp）、`"B"`＝走勢強但資金退（rel > +0.3pp 且 dshare 在後 30%）、`null`。人工族群 < 5 個有值時整天不判斷；ind_ 桶不判斷 |
+
+座標只用當天以前的資料（rolling／EMA／shift），已有測試釘住「砍掉 D 之後的資料，D 的座標不變」。5 日軌跡：前端往前取 5 個 `day/` 檔，或直接從 `series/` 不夠（series 不含座標）——要軌跡就載前 5 天的 day 檔。
+
+### `members[code]`（人工族群成分股，約 440 檔）
+`name`、`gid[]`（屬於哪些族群）、`close`、`chg`（%）、`rel`（chg − mkt_chg）、`tv`（億元，不拆分）、
+`share_in_group{gid: %}`（該股當天成交值 ÷ 族群成分股成交值合計，不拆分）、
+`contrib{gid: pp}`（對族群漲跌的貢獻＝該股權重×漲跌 ÷ 權重合計，權重＝前一日成交值 ×1/族群數；族群內加總＝族群漲跌）、
+`inst`（`[外資, 投信, 自營]` 張，查無 → null）。
+
+### `signals[]`
+`{gid, type, t, ti, rel_at_trigger, rel_to_close, rel_next_day, next_date, fresh, granularity, num}`
+- `type`：`flow_lead`（資金先行）／`breadth`（擴散）／`open_low_recover`（開低回升）
+- `t`：觸發格的時間 HH:MM；`ti`：格子序號（對應 `m60.times`／`m5.times` 的索引）
+- `rel_to_close`：收盤格相對大盤 − 觸發格相對大盤（pp）；`fresh:true`（在最後一格觸發）時 null、不計回測
+- `rel_next_day`：下一交易日族群日線 rel（pp）；最新一天為 null
+- `num`：觸發當下的數字（flow_lead：`win` 最近 30 分鐘新增占比、`avg` 累計占比、`x` 倍數；breadth：`br0→br1`；open_low_recover：`rel0`、`rec` 回升%、`s0→s` 占比）
+
+### `news[]`
+`{id, t, title, url, source, kind, codes, gids}`。`kind`：`news`（`data/news`）／`material`（重大訊息 `data/material_news`，url 為 null、source「公開資訊觀測站」）。
+比對規則：新聞代號欄含成分股、或標題含成分股名稱（≥2 字）、或標題含族群名稱；每族群最多 8 則（比中檔數多者優先，再新到舊），同一則只出現一次、`gids` 列出所屬族群。前端依焦點族群篩 `gids`。
+
+### `m60`（只有 60 分 K 的日子，其餘 null）
+`times`（`["09:00","10:00","11:00","12:00","13:00","13:30"]`）、`gap_0900:true`、`mkt[]`（大盤相對昨收 %）、
+`groups[gid]{idx_rel[], chg[], share[], adv[], dec[], br[]}`、`top{gid:[前 6 大代號]}`、`top_close{code:[價]}`。
+
+## 四、盤中序列口徑（`m60` 與 `m5` 相同）
+
+- **格子**：5m＝tape 的 5 分鐘格；60m＝K 棒**收盤時刻**（09:00 那根→10:00 … 13:00 那根→13:30），最前面補 09:00＝第一根開盤價；13:30 那格的價換成 price_daily 官方收盤（Yahoo 那根不含收盤集合競價，不換的話族群收盤漲跌與日線差中位數 0.16pp、最大 1.5pp；換了之後 60m 收盤格與日線一致）。
+- **60m 還原權值校正**：Yahoo 歷史分 K 是還原權值價（之後的除權息會回頭縮小整天價格），昨收是原始價。用「官方開盤 ÷ Yahoo 第一根開盤」把整天乘回原始價（只用 09:00 就知道的開盤，不偷看收盤）；比例在 0.5～2 倍以外的那檔整天剔除。只換收盤格、沒做這個校正時，回測的資金先行平均超額被算成 +6.8pp（還原價與原始價混在同一天，假的）。
+- **idx_rel**：族群漲跌 − 大盤漲跌（pp）。族群漲跌＝成分股相對昨收漲跌以**前一日成交值 ×1/族群數**加權；大盤＝名單內全部個股以前一日成交值加權。名單＝最新一天 tape 的代號（約 456 檔，含 12 檔非族群成分股）。5m 收盤格與日線 chg **完全一致**（實測 74 族群差 0.00）。
+- **share**：族群成分股累計成交值 ÷ 名單全部累計成交值 ×100（**不拆分**，所以和日線 share 的水準不能直接比，只看盤中變化）。5m 用 tape 的 `cum_value`（逐格新增張數×成交價累加）；60m 用每根 量×收盤 累加。
+- **60m 的 09:00 量缺**：Yahoo 09:00 那根約六成是 0，**整根視為缺**，累計從 10:00 那根開始 → `share` 在 09:00、10:00 兩格是 null，11:00 起才有，而且不含第一個小時。前端要灰底標「此時段無成交量資料」。
+- **殘缺格剔除**：某格有報價檔數 < 當天最多那格的 95% → 整格不出現在 `times` 裡（不補值）。10-30 的 tape 50 格剔除後剩 48 格。
+- **成分股少於 3 檔有報價的族群不出現**。
+- `adv`／`dec`／`br`：上漲、下跌檔數與上漲比例 %。
+
+### `m60/<日期>.json`、`m5/<日期>.json` 的 `stocks[code]`
+`p[]` 價、`c[]` 相對昨收 %、`v[]` 該格新增成交值（萬元，負值夾 0）。與 `times` 等長。
+`m5` 另含 `groups`（同上）、`mkt`、`signals`（同 day 檔）、`share_base:null` 與 `share_base_note`（規格要的「同時段過去 20 日基準」需要 20 個 tape 交易日，目前只有 1 天）。
+
+## 五、`series/<gid>.json`
+`{gid, name, dates[750], idx[], idx_rel[], share[], dshare[], chg[], rel[], top:[{code, name, close[]}]}`。
+`idx`＝族群指數（第一天前一日＝100，複利連乘 chg）；`idx_rel`＝idx ÷ 大盤指數 ×100；`top`＝近 60 日成交值前 6 大成分股的日收盤（未上市的日子 null）。只做人工族群（ind_ 桶沒有）。
+
+## 六、`backtest.json`
+`{schema, as_of, passed_multiple_test:false, cost:0.47, summary[], events_cols, events[]}`
+- `summary[]`：**依 `granularity` × `type` 分列，5m 與 60m 絕不混算**。欄位：`n_trig`（觸發數）、`n`（可評分數，扣掉最後一格觸發）、`hit_rate`（到收盤相對大盤 > 0 的比例 %）、`ci95`（Wilson 95% CI）、`avg_excess`、`avg_excess_net`（−0.47）、`n_next`、`hit_rate_next`、`ci95_next`、`avg_next`、`avg_next_net`、`low_n`（n < 30 → 前端灰字不下結論）、`ci_has_50`（CI 含 50% → 標「無法區分於隨機」）、`ic`、`t_nw`（目前 null，見限制）、`period`、`days`。
+- `events`：陣列的陣列，欄位順序見 `events_cols`：`[date, gid, type, granularity, t, rel_to_close, rel_next_day]`。
+- `passed_multiple_test` **固定 false**：不做任何讓它變 true 的調參。
+
+10-30 實測（60m，2023-09-26～2026-10-29，近 750 日）：
+
+| 訊號 | n | 到收盤命中率（95% CI） | 平均超額 | 扣成本 | 隔日命中率 | 隔日平均 |
+|---|---|---|---|---|---|---|
+| 資金先行 | 2,934 | 48.4%（46.6–50.2） | +0.030pp | −0.440 | 42.6% | −0.153pp |
+| 擴散 | 14,867 | 47.4%（46.6–48.2） | +0.014pp | −0.456 | 44.3% | −0.028pp |
+| 開低回升 | 1,642 | 53.2%（50.7–55.6） | +0.099pp | −0.371 | 45.1% | −0.028pp |
+
+（n＝可評分到收盤的筆數；隔日的樣本另含「在收盤那格才觸發」的訊號，所以 `n_next` 比 `n` 多。）
+
+白話：到收盤的命中率只有開低回升略高於 50%（CI 下緣 50.7%，但這是 3 條 × 2 個期間裡挑出來的一個，沒有做多重比較校正前不算數），平均超額都不到 0.1pp，扣 0.47% 成本後三條都是負的；隔日命中率三條都**低於** 50%（資金先行隔日平均 −0.15pp）。與 `flow_vs_price.md`「測不出領先性」一致。5m 只有 10-30 一天（n＝3～18），全部 `low_n`。
+
+## 七、與規格（第七節）的差異
+
+| 規格 | 實作 | 理由 |
+|---|---|---|
+| 資金輪盤 x＝rot、y＝dshare，後端新算 | `m_x/m_y` 用既有 `money_wheel.money_axes`（比值版）；`rot`、`dshare` 也都給 | CEO 10-30 指定沿用 money_wheel，不另做一套；前端要差值版可直接用 rot／dshare 畫 |
+| m60 只給前 6 大成分股 `{t,close}` | day 檔 `m60.top_close` 給前 6 大；**全部**成分股另放 `m60/<日期>.json` | Andy 原需求要全部成分股；拆檔讓 day 檔不會因此變大 |
+| m5 只給前 6 大成分股 | 給全部成分股 | 同上；10-30 一天約 460 KB |
+| m5 `share`＝累積占比 − 同時段 20 日基準 | `share` 是累積占比本身；基準 `share_base:null` 並附原因 | tape 目前只有 1 天，20 日基準要等 20 個交易日 |
+| day 檔 ≤ 150 KB | 最大約 190 KB（gzip 後約 40 KB） | members 440 檔 × share_in_group／contrib（多族群股是字典）占一半；要壓可以拿掉 contrib 改前端算 |
+| `sankey` 每日放進 day 檔 | 不放；沿用既有 `site/data/sankey_daily.json`（近 60 日） | 已存在同一份資料，不重複 |
+| 新聞只列焦點族群成分股（`news.codes`） | 另加名稱與族群名比對、含重大訊息 | `news.codes` 只有約 24% 有填，只比代號會漏掉大半 |
+| backtest `ic`、`t_nw` | null | 事件型訊號的 IC 要另定義（訊號強度 vs 報酬），NW 要事件時間序列聚合，兩者口徑要跟 strategy-backtest 同事一起定，先不給假數字 |
+| 盤中族群漲跌「與 group_daily 同口徑（成交值加權）」 | 已照做（前一日成交值加權） | ⚠ 預覽版 `app.js` 即時卡（tvModel）目前是**等權**、占比用「現價×累計張數」，回放與即時卡數字會不同 —— **請前端改成和這裡一樣**（權重用 payload 已有的前一日成交值，占比用 tape 的 cum_value） |
+
+## 八、資料覆蓋與限制（7.6 的回覆）
+
+- **可選日期**：`day/` 近 60 交易日（目前 2026-08-03～2026-10-30）；`series/` 與 `layers` 近 750 交易日（2023-09-25 起）。60 分 K 從 2023-09 起，近 60 個交易日每天都有（10-30 是 5m）。
+- **5 分鐘**：tape_5m 目前只有 2026-10-30 一天、456 檔（約 455 檔名單已全進湖），之後每天盤後累積。
+- **09:00–10:00 量**：60 分 K 無法補，只能靠 tape 往後累積。本次沒有另外去找 FinMind／Yahoo 1 分 K 的歷史量（不在這批範圍），列為待辦。
+- **新聞**：`data/news` 從 2026-09-10 起（近 60 日裡前約 25 天沒有新聞）；重大訊息從 2026-09-19 起。
+- **族群歸屬**用目前的 groups.yaml（存活者偏差：後來才加入的公司，歷史上也算進去）。
+- **法人**：族群層是「股數」加總（不同股價的張數直接相加），和網站既有 `inst_daily_series` 同口徑；要看金額需另算。
+- **建置時間**：build_payload 多約 75 秒（750 日回測已改矩陣運算，原本 7 分鐘）。

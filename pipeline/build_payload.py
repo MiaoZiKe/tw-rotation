@@ -20,7 +20,7 @@ from .compute import explore, inst_market, inst_today
 from .compute import mktfut as mktfut_c
 from .compute import futures_page
 from .compute import lab as lab_compute
-from .compute import analysis, digest, earnings, etf, etf_holdings, flow, fundamental, mtf, money_wheel, rrg, scoring, season, stockpage, technical, themes
+from .compute import analysis, digest, earnings, etf, etf_holdings, flow, flowcheck, fundamental, mtf, money_wheel, rrg, scoring, season, stockpage, technical, themes
 from .groups import loader
 # TechNews 的分類在讀取端重跑（見下面 news_df 那一段的註解），所以要 import 抓取層的分類器
 from .sources import news as news_src
@@ -391,6 +391,19 @@ def build() -> None:
     today = (group_hist[group_hist["date"] == latest]
              if not group_hist.empty else pd.DataFrame())
 
+    # ★ 2026-10-30 流向驗證頁「找訊號」：日線規則的回測＋近 60 日觸發清單（compute/daily_signals.py，只讀資料湖）。
+    #   獨立、包 try：算壞只影響 flowcheck/daily_signals.json，不拖垮整份 payload。
+    try:
+        import gc
+        from .compute import daily_signals
+        (config.SITE_DATA / "flowcheck").mkdir(parents=True, exist_ok=True)
+        daily_signals.write(daily_signals.build(price, inst, company, names),
+                            config.SITE_DATA / "flowcheck" / "daily_signals.json")
+        gc.collect()
+        lap("流向驗證日線訊號")
+    except Exception as exc:  # noqa: BLE001
+        log.warning("日線訊號產出失敗（只影響流向驗證頁的找訊號區）：%s", exc)
+
     _write("groups_today", today.to_dict("records"))
     _write("rotation", flow.rotation_radar(group_hist).head(25).to_dict("records"))
     # 120 → 400 天（Andy 2026-09-18：均線要能到 240 日，只留 120 天算不出來）。
@@ -695,6 +708,17 @@ def build() -> None:
                            "share_daily": {"dates": [], "groups": []},
                            "periods": [], "bump": {"weeks": [], "series": []},
                            "bumps": {"week": {"weeks": [], "series": []}, "month": {"weeks": [], "series": []}}})
+
+    # ★ 2026-10-30 流向驗證分頁（預覽版 preview/verify-panel）：挑歷史任一天回放資金流向與盤中走勢、回測盤中訊號。
+    #   只新增 site/data/flowcheck/ 底下的檔案、不動任何既有輸出；自己包 try，壞了只少這個資料夾，不連累其他輸出。
+    #   口徑與欄位：compute/flowcheck.py、docs/research/20261030_flowcheck_data.md。
+    try:
+        _fc = flowcheck.run(store, loader, group_hist, price, names, config.SITE_DATA / "flowcheck")
+        log.info("流向驗證資料：%s", _fc)
+    except Exception as exc:  # noqa: BLE001
+        log.warning("流向驗證資料產出失敗（只影響流向驗證分頁）：%s", exc)
+    lap("流向驗證")
+
     try:
         _th = themes.build(price, inst, news_all, names, latest)
         _write("themes", _th)
