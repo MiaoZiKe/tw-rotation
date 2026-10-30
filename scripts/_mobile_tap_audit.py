@@ -390,23 +390,27 @@ NOISE_JS = r"""
 BLANK_JS = r"""
 () => {
   const INTER = 'button,a[href],summary,label,select,input,textarea,[role=button],[role=tab],[role=link],[onclick]';
-  for (let y = 120; y < innerHeight - 90; y += 31) for (let x = 6; x < innerWidth - 4; x += 23) {
-    const h = document.elementFromPoint(x, y); if (!h) continue;
-    if (h.closest(INTER) || h.closest('header,#tabs,nav,svg,canvas')) continue;
-    // 2026-10-29：分段晶片列（鏈別 #chainSwitch、.m4seg、.mpager）晶片之間的縫隙不算空白 —— 手機觸控會自動貼向隔壁晶片，
-    // 「點空白處」實際點到 AI 伺服器那顆，整頁換鏈，後面 replay 的分段步驟全部對不上（切不到分段 #dgPick > :nth-child(4～9)）。
-    if (h.closest('.chainsw,.m4seg,.mpager,#chainSwitch,#dgPick')) continue;
-    let p = false; for (let n = h; n; n = n.parentElement) { if (getComputedStyle(n).cursor === 'pointer') { p = true; break; } }
-    if (p) continue;
-    // 2026-10-29：手機觸控的點擊會自動貼向 ~24px 內最近的可點元素（Chrome touch adjustment）。「空白」點旁邊 24px 內有可點的鈕，
-    // 實際點到的就是那顆鈕 —— 分段列捲動後，露出左邊緣幾 px 的鏈別晶片（AI 伺服器）被點中、整頁換鏈、之後 replay 的分段步驟全部對不上。
-    let near = false;
-    for (const [dx, dy] of [[-24, 0], [24, 0], [0, -24], [0, 24], [-17, -17], [17, -17], [-17, 17], [17, 17]]) {
-      const e = document.elementFromPoint(Math.max(0, Math.min(innerWidth - 1, x + dx)), Math.max(0, Math.min(innerHeight - 1, y + dy)));
-      if (e && e.closest(INTER)) { near = true; break; }
+  // 兩輪：第一輪嚴格（旁邊 24px 內沒有任何可點元素）；找不到才退回第二輪（只排除分段晶片列）。
+  // 2026-10-29 背景：手機觸控的點擊會自動貼向 ~24px 內最近的可點元素。分段列捲動後露出左邊緣幾 px 的鏈別晶片（AI 伺服器），
+  // 「點空白處」實際點到那顆 → 整頁換鏈 → 後面 replay 的分段步驟全對不上（切不到分段 #dgPick > :nth-child(4～9)）。
+  // 只有嚴格輪、找不到點就整個不量雜訊的話，「點了沒反應」的種壞鈕會被別處的 DOM 雜訊當成有反應，所以要有第二輪。
+  for (const strict of [true, false]) {
+    for (let y = 120; y < innerHeight - 90; y += 31) for (let x = 6; x < innerWidth - 4; x += 23) {
+      const h = document.elementFromPoint(x, y); if (!h) continue;
+      if (h.closest(INTER) || h.closest('header,#tabs,nav,svg,canvas')) continue;
+      if (h.closest('.chainsw,.m4seg,.mpager,#chainSwitch,#dgPick')) continue;
+      let p = false; for (let n = h; n; n = n.parentElement) { if (getComputedStyle(n).cursor === 'pointer') { p = true; break; } }
+      if (p) continue;
+      if (strict) {
+        let near = false;
+        for (const [dx, dy] of [[-24, 0], [24, 0], [0, -24], [0, 24], [-17, -17], [17, -17], [-17, 17], [17, 17]]) {
+          const e = document.elementFromPoint(Math.max(0, Math.min(innerWidth - 1, x + dx)), Math.max(0, Math.min(innerHeight - 1, y + dy)));
+          if (e && e.closest(INTER)) { near = true; break; }
+        }
+        if (near) continue;
+      }
+      return {x, y};
     }
-    if (near) continue;
-    return {x, y};
   }
   return null;
 }
