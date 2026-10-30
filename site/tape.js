@@ -18,8 +18,13 @@
 (function () {
   'use strict';
   var STEP_MIN = 5;             // 一格 5 分鐘（Worker 的 Cron 間隔）
-  var FRAME_MS = 420;           // 播放：每格的間隔。★ 必須等於 app.js 的 ROT_ANIM_MS（輪盤每格補間 420ms 等速）：兩者相等才一格接著一格、不會「走一步停一下」（日線回放同一條規矩）；一天約 54 格 ≈ 23 秒
-  var POLL_MS = 60 * 1000;      // 有時間軸在畫面上時，每分鐘問一次伺服器有沒有新的一格
+  var FRAME_BASE = 420;           // 播放：每格的間隔。★ 必須等於 app.js 的 ROT_ANIM_MS（輪盤每格補間 420ms 等速）：兩者相等才一格接著一格、不會「走一步停一下」（日線回放同一條規矩）；一天約 54 格 ≈ 23 秒
+  var SPD_KEY = 'tw.play.speed';   // 播放速度（×1～×5，0.5 一格）：今日時間軸與日線回放共用一個設定
+var speed = 1;
+try { var sv0 = +localStorage.getItem(SPD_KEY); if (sv0 >= 1 && sv0 <= 5) speed = Math.round(sv0 * 2) / 2; } catch (e) { /* 私密視窗 */ }
+var spdCtls = [];
+function frameMs() { return FRAME_BASE / speed; }     // 每格間隔；輪盤補間時間也用這個（app.js rotAnimMs），一格接著一格
+var POLL_MS = 60 * 1000;      // 有時間軸在畫面上時，每分鐘問一次伺服器有沒有新的一格
 
   var srv = null;               // { date:'YYYY-MM-DD', day8, codes:[], y:[], slots:[{t,p,v}] }
   var loc = {};                 // 本機累積：'HH:MM' → { day8, q:{code:{...}} }
@@ -179,23 +184,63 @@
     '.tlbar input[type=range]{flex:1 1 180px;min-width:72px;max-width:420px;accent-color:var(--cyan);height:24px}' +
     '.tlbar .val{font-family:var(--mono);font-size:12px;color:var(--ink);min-width:52px;text-align:center;font-variant-numeric:tabular-nums}' +
     '.tlbar .pb.latest{width:auto;padding:0 var(--sp-2);font-size:12px}' +
+    '.spdctl{display:inline-flex;align-items:center;gap:4px;flex:none;color:var(--ink-3);font-size:12px}' +
+    '.spdctl input[type=range]{width:72px;min-width:56px;max-width:72px;flex:none;accent-color:var(--cyan);height:24px;margin:0}' +
+    '.spdctl .spv{font-family:var(--mono);font-size:12px;color:var(--ink);min-width:32px;text-align:left;font-variant-numeric:tabular-nums}' +
     '.tlbar.playdim > input,.tlbar.playdim > .pb.step,.tlbar.playdim > .pb.latest{opacity:.32;filter:grayscale(1);pointer-events:none;cursor:not-allowed}' +
     '.tlbar.playing .pb.play{border-color:var(--cyan);color:var(--cyan);box-shadow:var(--glow)}' +
     '.tlbar.tlblock{width:100%;margin:var(--sp-1) 0 var(--sp-2)}' +
     '.rbar.tlon > :not(.livebtn){display:none!important}' +
+    /* 各列之間固定 8px（10-30 Andy：時間軸那列壓到上一列「族群／只看前 10 大」、下一列「顯示軌跡…」貼太近）；只在時間軸出現時才套，平常版面不動 */
+    '#flowRotCard.tlrows .rotleft{row-gap:var(--sp-2)}' +
+    '#flowRotCard.tlrows .rottime{row-gap:var(--sp-2);margin:0}' +
+    '#flowRotCard.tlrows .rotfilter{margin-bottom:0}' +
     '@media (max-width:640px){' +
     '.tlbar{gap:6px;width:100%}' +
     '.tlbar .pb{width:32px;height:32px}' +
     '.tlbar .pb.latest{width:auto;padding:0 8px}' +
     '.tlbar input[type=range]{height:32px;min-height:32px;touch-action:none;flex:1 1 60px;min-width:48px}' +
+    '.tlbar{flex-wrap:wrap!important}' +
+    '.tlbar .pb.latest{order:9}' +
+    '.tlbar .spdctl{order:10;flex:1 1 120px}' +
+    '.tlbar .spdctl input[type=range]{flex:1 1 auto;max-width:none;width:auto}' +
+    ':root.m4 #v-flow .rbar:is(#rotBack,#sankeyDays){flex-wrap:wrap!important}' +
+    '.rbar > .spdctl{order:10;flex:1 1 100%}' +
+    '.rbar > .spdctl input[type=range]{flex:1 1 auto;max-width:none;width:auto}' +
     '.tlbar .tl0,.tlbar .tl1,.tlbar .tlt{display:none}' +
     '.tlbar .val{min-width:44px}' +
+    '.spdctl input[type=range]{height:32px;min-height:32px;touch-action:none;width:56px;min-width:48px}' +
+    '.spdctl .spv{min-width:28px}' +
     '}';
   function injectCss() {
     if (document.getElementById('tapeCss')) return;
     var st = document.createElement('style'); st.id = 'tapeCss'; st.textContent = CSS; document.head.appendChild(st);
   }
 
+  function syncSpeed() {
+    spdCtls = spdCtls.filter(function (c) { return c.isConnected; });
+    spdCtls.forEach(function (c) { var i = c.querySelector('input'), v = c.querySelector('.spv'); if (+i.value !== speed) i.value = speed; v.textContent = '×' + speed; i.title = '播放速度 ×' + speed; });
+  }
+  function setSpeed(v) {
+    v = Math.max(1, Math.min(5, Math.round((+v || 1) * 2) / 2));
+    if (v === speed) return;
+    speed = v;
+    try { localStorage.setItem(SPD_KEY, String(v)); } catch (e) { /* 忽略 */ }
+    syncSpeed();
+    try { window.dispatchEvent(new CustomEvent('tw:speed', { detail: v })); } catch (e) { /* 舊瀏覽器 */ }
+  }
+  /** 播放速度拉桿（×1～×5，0.5 一格）。播放中也能拖，下一格起生效；所有時間軸／日線回放共用同一個設定。 */
+  function speedCtl() {
+    var c = document.createElement('span'); c.className = 'spdctl'; c.setAttribute('data-spd', '1');
+    c.title = '播放速度：×1～×5，拖動即時生效';
+    var i = document.createElement('input'); i.type = 'range'; i.min = 1; i.max = 5; i.step = 0.5; i.value = speed;
+    i.setAttribute('aria-label', '播放速度');
+    var v = document.createElement('span'); v.className = 'spv'; v.textContent = '×' + speed;
+    i.oninput = function () { setSpeed(+i.value); };
+    c.appendChild(i); c.appendChild(v);
+    spdCtls.push(c);
+    return c;
+  }
   function mkBtn(cls, txt, title) {
     var b = document.createElement('button');
     b.type = 'button'; b.className = 'pb ' + cls; b.textContent = txt; b.title = title; b.setAttribute('aria-label', title);
@@ -213,11 +258,10 @@
     var l0 = document.createElement('span'); l0.className = 't tl0';
     var inp = document.createElement('input'); inp.type = 'range'; inp.min = 0; inp.max = 0; inp.step = 1; inp.value = 0;
     inp.setAttribute('aria-label', '今日時間軸');
-    var l1 = document.createElement('span'); l1.className = 't tl1'; l1.textContent = '最新';
     var bPlus = mkBtn('step', '＋', '後一格');
     var val = document.createElement('span'); val.className = 'val';
     var bLast = mkBtn('latest', '最新', '回到最新（繼續跟著即時更新）');
-    [tlt, bPlay, bMinus, l0, inp, l1, bPlus, val, bLast].forEach(function (n) { el.appendChild(n); });
+    [tlt, bPlay, speedCtl(), bMinus, l0, inp, bPlus, val, bLast].forEach(function (n) { el.appendChild(n); });
     el._tl = { inp: inp, l0: l0, val: val, bPlay: bPlay, bMinus: bMinus, bPlus: bPlus, bLast: bLast };
 
     var pos = function () { return +inp.value; };
@@ -276,7 +320,7 @@
         if (nx >= b.length) { playTimer = null; setCur(null); syncBars(); return; }   // 播到最新：回到即時，繼續跟新資料
         setCur(b[nx].t);
         step();
-      }, FRAME_MS);
+      }, frameMs());
     };
     step();
     syncBars();
@@ -328,7 +372,10 @@
     get playing() { return !!playTimer; },
     get source() { var a = slots(); return !a.length ? 'none' : (a[0].src === 's' ? 'server' : 'local'); },
     get date() { return srv ? srv.date : ''; },
-    stepMs: FRAME_MS,
+    get stepMs() { return frameMs(); },
+    get speed() { return speed; },
+    setSpeed: setSpeed,
+    speedCtl: speedCtl,
     /** 驗收用：直接塞一份本機格子（不經 live.js）。 */
     _debugLoc: function () { return loc; },
   };
