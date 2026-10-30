@@ -84,7 +84,7 @@ def test_short_title_does_not_split_mixed_language_space():
     assert LN.strip_attr("AI 模型商申請 IPO，據媒體統計。後段") == "AI 模型商申請 IPO。後段"
 
 
-TEXT = "\n".join(["盤中3分鐘", "盤面分析：", "・族群漲多跌少", "🎡 資金輪盤：", "・領先 半導體、PCB；", "・落後 航運、鋼鐵",
+TEXT = "\n".join(["盤中3分鐘", "盤面分析：", "・族群漲多跌少", "🎡 強弱輪動：", "・領先 半導體、PCB；", "・落後 航運、鋼鐵",
                   ss.HASHTAGS["intraday"], "👉 更多詳細資料可以點擊以下連結：", "https://liguligu-puipui.com/?u=th-id-20261029"])
 
 

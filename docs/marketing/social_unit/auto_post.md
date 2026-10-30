@@ -10,7 +10,7 @@
 | 時段 | 發文時間（台北） | Threads 輪播（順序固定） | IG 限動 | 狀態 |
 |---|---|---|---|---|
 | 盤前 | 08:20 | 美股收盤、台指期＋台積電 ADR、事件與消息、總結 | 同左＋結尾頁 | 版型確認中 |
-| 盤中 | **12:00 固定**（資料抓 12:00 那一刻） | ① 資金輪盤 ② 資金分流樹 ③ 資金排行 ④ 熱力圖（**只有這 4 張**） | 同左 4 張＋結尾頁 | ✅ Andy 10-26 確認 |
+| 盤中 | **12:00 固定**（資料抓 12:00 那一刻） | ① 強弱輪動 ② 資金分流樹 ③ 資金排行 ④ 熱力圖（**只有這 4 張**） | 同左 4 張＋結尾頁 | ✅ Andy 10-26 確認 |
 | 盤後（法人＋融資融券**一篇**） | 法人與融資融券**都到齊**那輪（通常當晚；融資晚到就隔天 09:00 前補發） | ① 台指期法人未平倉 ② 散戶多空比 ③ 三大法人買賣超 ④ 外資個股買賣超 ⑤ 投信個股買賣超 ⑥ ETF 買超排名（外資、投信上下兩張，各前 5 名） ⑦ 融資維持率 ⑧ 融資增減排行 ⑨ 融券增減排行 | 同左 9 張＋結尾頁 | 審核中 |
 
 - 盤中、盤後都**不放**大盤走勢、漲跌家數（10-26 Andy：「大盤走勢 & 漲跌家數拿掉」）。
@@ -29,7 +29,7 @@
 
 ```
 盤中3分鐘
-資金輪盤：
+強弱輪動：
 ・領先 ○○、○○；
 ・落後 ○○、○○
 資金分流樹：
@@ -52,7 +52,7 @@ https://liguligu-puipui.com/
 2. 每段一行「段名：」，底下每點用「・」開頭；同一段的第一點結尾用「；」。
 3. 每點列 **2 個**名稱（盤中、盤後統一，10-26 Andy：「統一兩個」）；字數超過 480 字時程式自動縮短。
 4. **網址只放最底下一行，整篇只有一個**（10-26 Andy：「連結只需要附在最底下就好」）。網址一律帶短參數 `?u=<平台>-<時段>-<yyyymmdd>`（**10-26 Andy 核准 J-3**，行銷方案 `growth_command_1026.md`）：平台 `th`＝Threads、`ig`＝Instagram；時段 `pm` 盤前、`id` 盤中、`cl` 盤後、`mg` 融資融券；日期＝發文當天。例：`https://liguligu-puipui.com/?u=th-id-20261026`。網站讀到後存成「第一次來源」，註冊時記進帳號（隱私權政策「行銷來源與使用統計」已寫明；開 DNT／GPC 的人不記）。程式：`social_snap.py` 的 `link_lines()`／`link_url()`；站內映射：`site/account.js` 的 `SRC_PLAT`／`SRC_SLOT`，改代碼兩邊一起改。不用 `utm_*` 長參數（視覺太吵）；IG 個人簡介連結位只有一個，另用 `?utm_source=ig_bio&utm_medium=profile`。
-   - **落點（2026-10-27 Andy 授權「照建議，全部執行」，`feature_funnel_1027.md` 第四節；`scripts/social_snap.py` 的 `pick_landing`）**：網址形式 `https://liguligu-puipui.com/?u=<平台碼>-<功能碼>-<yyyymmdd>#<路由>`，`?u=` 一定在 `#` 前。盤中／盤後：領漲族群（資金輪盤領先 → 分流樹流入 → 熱力圖漲最多）對得到產業鏈 → `#industry/<鏈>`，沒對應才退回盤中 `#flow/rotation`、盤後 `#market/inst`、融資融券 `#market/credit`；盤前：事件含 FOMC／CPI／財報／非農 → `#earnings`，ETF 除息 → `#etf/cal`，美股解讀提到半導體／AI → `#industry/semiconductor`，否則首頁。路由必須過 `route_ok` 白名單（`#pricing` 與不存在的鏈一律退回保底）。平台碼統一 `th`（舊 `threads` 站內歸併成 th）；功能推廣篇的功能碼見 `feature_funnel_1027.md` 第三節（`f2d f3d etfd etfi etfl earn ev* hot`）。
+   - **落點（2026-10-27 Andy 授權「照建議，全部執行」，`feature_funnel_1027.md` 第四節；`scripts/social_snap.py` 的 `pick_landing`）**：網址形式 `https://liguligu-puipui.com/?u=<平台碼>-<功能碼>-<yyyymmdd>#<路由>`，`?u=` 一定在 `#` 前。盤中／盤後：領漲族群（強弱輪動領先 → 分流樹流入 → 熱力圖漲最多）對得到產業鏈 → `#industry/<鏈>`，沒對應才退回盤中 `#flow/rotation`、盤後 `#market/inst`、融資融券 `#market/credit`；盤前：事件含 FOMC／CPI／財報／非農 → `#earnings`，ETF 除息 → `#etf/cal`，美股解讀提到半導體／AI → `#industry/semiconductor`，否則首頁。路由必須過 `route_ok` 白名單（`#pricing` 與不存在的鏈一律退回保底）。平台碼統一 `th`（舊 `threads` 站內歸併成 th）；功能推廣篇的功能碼見 `feature_funnel_1027.md` 第三節（`f2d f3d etfd etfi etfl earn ev* hot`）。
 5. hashtag 一行，放在網址上面。
 6. **不放**「資料：證交所／櫃買公開資料整理，僅供參考，不構成投資建議」這行（10-26 Andy：「底下資訊不用」）。免責放個人簡介與網站。
 7. **盤中、盤後都要有「📰 新聞焦點：」**（2026-10-29 Andy：「目前只要開盤就一定會有三篇文章，分別是盤前、盤中、盤後。但是這三篇文章除了基本的盤面解讀之外，還需要搭配當下的一些新聞消息，三到五個主題」）。程式：`scripts/social_live_news.py`，`social_snap.py` 產完文案後呼叫。

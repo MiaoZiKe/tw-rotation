@@ -4,7 +4,7 @@
 這裡改成跟 social_premarket.py 同一招：用 HTML／SVG 直接畫，字級全部 ≥24px（排行類每列字 ≥28px），圖撐滿畫布。
 資料來源：網站 data/*.json（inst_market、inst_today、fut_oi、retail_ratio、market_fut）；盤中即時那幾張（族群資金排行、
 資金分流樹、大盤走勢、漲跌家數）在截圖瀏覽器已套上即時資料的頁面上，由 social_snap 的 dump 讀出（echarts 資料或 DOM 數字）。
-網站截圖只保留「資金熱力圖」與「資金輪盤圓盤」。
+網站截圖只保留「資金熱力圖」與「強弱輪動圓盤」。
 
 入口：render(browser, name, mode, ctx, out_png) → 回傳版面檢查報告（欄位同 social_snap.compose 的報告）。
 ctx＝dict(kind, title, date, jget(name)->json, site(Path), dump(dict), reads(dict), names(dict), logos(dict))。
