@@ -23,6 +23,7 @@ jobs:
             echo "::notice title=codes::$H $(curl -s -m 20 -o /tmp/c.json -w '%{http_code} %{size_download}' $H/data/tape_codes.json) $(head -c 120 /tmp/c.json)"
           done
           echo "::notice title=diag::$(curl -s -m 20 -H "$O" "$B/tape?diag=1" | head -c 600)"
+          echo "::notice title=run::$(curl -s -m 60 -H "$O" "$B/tape?run=1" | head -c 600)"
           code=$(curl -s -m 30 -o /tmp/tape.txt -w '%{http_code}' -H "$O" "$B/tape")
           echo "HTTP $code"; head -c 300 /tmp/tape.txt; echo
           python3 - "$code" <<'PY' >> "$GITHUB_STEP_SUMMARY" 2> /tmp/ann.txt; cat /tmp/ann.txt
