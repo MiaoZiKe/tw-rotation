@@ -1,9 +1,24 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
-## 2026-11-01 提前找下一波研究（Andy：「有科學根據、多個標的回測、驗證是否有效、成功失敗案例」；最後更新 11-01 台北）
-- 研究 `docs/research/20261101_next_wave_signals.md`；程式 `pipeline/compute/next_wave.py`（獨立可重跑）＋`tests/test_next_wave.py`；輸出 `site/data/flowcheck/next_wave.json`（build_payload 結尾 `run_next_wave()` 子行程產出，可用記憶體 < 6.5GB 略過）。
-- 結論：120 個假設只有「族群法人 10 日淨買超」樣本外過 Holm 校正（5～10 日多賺 0.5～1.0%、扣成本後 +0.07～0.5%、空頭無效）；月營收年增率、綜合分數有線索未過關；日內、費半、客戶動能、融資券、動能、量增皆無效。勝率 46%、中位數為負。
-- 下一步：前端「流向驗證」接「找下一波」區（只顯示 pass 方法，其餘實驗收合）；集保／估值／新聞資料累積約 1～2 年後補測；請 finance-quant 複核口徑。沒動 site/**，前端關卡不必跑。
+## 2026-11-01 提前找下一波研究 第二版（依 finance-quant 複核；最後更新 11-01 台北）
+- 研究 `docs/research/20261101_next_wave_signals.md`（取代第一版）；複核 `20261101_next_wave_review.md`；程式 `pipeline/compute/next_wave.py`（預設 2012 起、每天排名、NW 滯後＝max(持有,因子記憶)、保留樣本 2012～2019）；輸出 `site/data/flowcheck/next_wave.json`（build_payload 結尾 `run_next_wave()` 子行程產出，可用記憶體 < 11GB 略過；完整跑峰值約 9.3GB、約 4 分鐘）。
+- 結論：INST10 族群層降為「實驗訊號」（樣本外過 Holm、保留樣本扣成本為負、2026 轉弱、空頭無效、個股層不成立），網站只放這一個（`show_on_site`）；個股 REVHIGH、外資單獨標待查不上網站。報酬用官方參考價已含現金股利。
+- 前瞻紀錄：`config.TABLES["next_wave_forward"]`，run_daily 完整階段每日 store.append；下架條件寫死（50 期、10 日平均 ≤ 0 → 已失效）。**第一次雲端 daily 跑完後請確認 data/next_wave_forward 有新檔**。
+- 下一步：前端「流向驗證」接「找下一波」區（只顯示 INST10、四句警語、前瞻狀態）；個股 REVHIGH 複驗；毛利率季改善；集保／估值／新聞資料累積。沒動 site/**，前端關卡不必跑。驗證：pytest 全套。
+
+## 2026-11-01 驗收「新-產業與個股」390px 兩條長期紅燈修正（個股 3443；最後更新 11-01 台北）
+- 現象：「390px 窄畫面照樣點得到個股標籤」「390px 窄畫面點下去畫面真的變了」在 origin/main 原樣就紅。
+- 根因（實測）：**不是產品壞**。手機（html.m4）環節卡清單依 Andy 10-09「只留關聯圖」整段 display:none（mobile4.css 第 6 節），
+  關聯圖每一格預設收成「名稱＋檔數 ▸」（industry.js isFolded／m4OpenSeg），公司卡要先點環節標題才畫出來。
+  驗收輔助 `_cg_click_dot` 在 m4 下直接找 `#chainMap .co[data-code]`，少了「先展開那一格」這一步 → 找不到就回失敗。
+  照真人兩步點（點「IP / EDA」標題 → 點創意 3443）：資訊欄 #coBox 開、.segcard.sel＝1、hash 不變。
+- 修正：只改 `scripts/_uitest.py` 的 `_cg_click_dot`：m4 下找不到公司卡時先點它那一格的環節標題。site/** 沒動，桌機不受影響。
+- 這批驗了：`新-產業與個股` 0、`產業` 0、`桌機守門1008` 0、`_preview.py` 1（下一條）、`手機按鈕普查` 2（再下一條）。pytest 跳過：只動 `scripts/_uitest.py`（tests/ 不 import 它）。
+- `手機按鈕普查` 2 條，與本批無關（普查只借 `_uitest.serve()`，不呼叫 `_cg_click_dot`）—— **待處理**：
+  ① ETF 現金流試算／自訂組合自己挑：「我的組合 自訂組合 N」label 與 `select#cuSel` 在 360／390 點了「沒反應」（10-31 新功能 e71c872）；
+  ② 「產業鏈-半導體／矽光子／CPO42」390、「產業鏈-AI伺服器／法定產業別1878」360 切不到分段 `#chainSwitch > :nth-child(N)` 逾時。
+- `_preview.py` 另有 1 條與本批無關：「財報日曆 #earnings 月曆上一個標籤都沒有」——台北已進 11 月、預設分頁「公司財報」，
+  本機 earnings.json（asof 10-30）11 月 0 筆財報董事會事件（只有法說 63、FED 5）。**待查**：Q3 財報董事會是來源未公告還是漏抓。
 
 ## 2026-11-01 Threads 發文系統改版 v2＋IG 熱度優化（Andy：「CEO 交給對應單位 將發文 Thread 系統修改」「IG Thread 上面也需要進行優化 讓熱度提升，並且 盡量不要千篇一律」；最後更新 11-01 台北）
 - 規則原文 `docs/marketing/social_unit/threads_rules.md`；落地說明 `auto_post.md` 第三之一節；IG 計畫 `ig_growth_plan.md`。**11-02（週一）盤前起正式套用**，監工照舊（盤前 08:40／盤中 12:15／盤後 18:20 查 posted.json；v2 多了 `threads_chain` 串文紀錄）。

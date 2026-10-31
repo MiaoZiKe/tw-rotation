@@ -2122,8 +2122,8 @@ def run_next_wave() -> None:
             if line.startswith("MemAvailable"):
                 avail = int(line.split()[1]) / 1e6
                 break
-        if avail and avail < 6.5:
-            log.warning("可用記憶體 %.1fGB 不足 6.5GB，略過找下一波", avail)
+        if avail and avail < 11.0:
+            log.warning("可用記憶體 %.1fGB 不足 11GB，略過找下一波", avail)
             return
         r = subprocess.run([sys.executable, "-m", "pipeline.compute.next_wave"], cwd=str(config.ROOT),
                            timeout=1500, capture_output=True, text=True)
