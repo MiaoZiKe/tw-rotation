@@ -40,6 +40,7 @@
     report: { g: 'rep', lab: '已公布財報', cls: 'kboard' },
     invite: { g: 'conf', lab: '受邀法說（券商論壇）', cls: 'kinv' },
     est: { g: 'rep', lab: '預估財報日', cls: 'kest' },
+    cest: { g: 'conf', lab: '預估法說（依上一場推算）', cls: 'kest' },
     rev: { g: 'rep', lab: '營收期限', cls: 'ktw' },
     qdl: { g: 'rep', lab: '財報法定期限', cls: 'ktw' },
     fomc: { g: 'fed', lab: 'FOMC 利率決議', cls: 'kfomc' },
@@ -47,7 +48,7 @@
     cpi: { g: 'fed', lab: 'CPI', cls: 'kdata' }, nfp: { g: 'fed', lab: '非農', cls: 'kdata' },
     pce: { g: 'fed', lab: 'PCE', cls: 'kdata' }, gdp: { g: 'fed', lab: 'GDP', cls: 'kdata' },
   };
-  const ORDER = { fomc: 0, minutes: 1, cpi: 2, nfp: 3, pce: 4, gdp: 5, conf: 10, board: 11, report: 12, invite: 13, est: 20, rev: 30, qdl: 31 };
+  const ORDER = { fomc: 0, minutes: 1, cpi: 2, nfp: 3, pce: 4, gdp: 5, conf: 10, board: 11, report: 12, invite: 13, est: 20, cest: 21, rev: 30, qdl: 31 };
   /* 小圖示（currentColor）：公司＝文件、FED＝柱廊建築、美國數據＝長條、台股期限＝沙漏 */
   const IC = {
     co: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 1.5h5.5L13 5v9.5H4z" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M6 8h5M6 11h5" stroke="currentColor" stroke-width="1.4"/></svg>',
@@ -123,6 +124,8 @@
 #v-earnings .kinv svg{color:var(--amber)}
 #v-earnings .kest{background:transparent;border:1px dashed var(--line-2);color:var(--ink-2)}
 #v-earnings .kest svg{color:var(--cyan)}
+#v-earnings .chip.est{color:var(--ink-3)}
+#v-earnings .chip .eb{flex:none;margin-left:auto;font-size:12px;color:var(--ink-3);border:1px dashed var(--line-2);border-radius:999px;padding:0 4px;line-height:14px}
 #v-earnings .ktw{background:transparent;color:var(--ink-2);border:1px solid var(--line)}
 #v-earnings .ktw svg{color:var(--cyan)}
 #v-earnings .kfomc{background:color-mix(in srgb,var(--violet) 30%,var(--panel-2));color:var(--ink)}
@@ -285,10 +288,12 @@
     const t = e.code ? `<span class="cd">${esc(e.code)}</span><span class="nm">${esc(e.name || '')}</span>`
       : `<span class="lb">${esc(SHORT[e.k] || '')}</span>`;
     const tip = `${e.d}（${wdOf(e.d)}）${e.code ? e.code + ' ' + (e.name || '') + '：' : ''}${e.title}`;
-    return `<button type="button" class="chip ${k.cls}${on}" data-i="${idxOf(e)}" data-k="${e.k}"${e.code ? ` data-code="${esc(e.code)}"` : ''} title="${esc(tip)}">${icOf(e.k)}${t}</button>`;
+    const estTag = e.status === '預估' ? '<span class="eb">預估</span>' : '';
+    return `<button type="button" class="chip ${k.cls}${on}${estTag ? ' est' : ''}" data-i="${idxOf(e)}" data-k="${e.k}"${e.code ? ` data-code="${esc(e.code)}"` : ''} title="${esc(tip)}">${icOf(e.k)}${t}${estTag}</button>`;
   }
   /* 圖例＝只列目前分類有的種類（Andy：「法說就法說、財報就是財報，不可以參雜其他分頁內容」）；最後固定附週末／休市說明 */
-  const LEG = [['rep', 'kboard', 'co', '財報董事會／已公布財報'], ['conf', 'kconf', 'mic', '自辦法說'], ['conf', 'kinv', 'mic', '受邀法說'],
+  const LEG = [['rep', 'kboard', 'co', '財報董事會／已公布財報'], ['rep', 'kest', 'co', '預估財報日（灰字）'], ['rep', 'ktw', 'tw', '營收／財報法定期限'],
+    ['conf', 'kconf', 'mic', '自辦法說'], ['conf', 'kinv', 'mic', '受邀法說'], ['conf', 'kest', 'mic', '預估法說（灰字）'],
     ['fed', 'kfomc', 'fed', 'FOMC'], ['fed', 'kdata', 'data', '美國數據']];
   function drawLegend() {
     const box = $('#earnLegend'); if (!box) return;
@@ -560,7 +565,7 @@
   }
   function panelCo(e) {
     const c = co(e.code);
-    if (!c) return `${phead(`${e.name || ''} ${e.code}`, '<span class="badge ann">已公告</span>', { code: e.code, name: e.name })}
+    if (!c) return `${phead(`${e.name || ''} ${e.code}`, e.status === '預估' ? '<span class="badge est">預估</span>' : '<span class="badge ann">已公告</span>', { code: e.code, name: e.name })}
       <div class="ps" title="${esc(e.title)}">${esc(e.title)}</div>${confSec(e)}`;
     const nxt = c.next;
     const isEst = e.status === '預估';
@@ -629,6 +634,10 @@
     await loadData();
     const d = S.data;
     $('#earnSub').textContent = !d ? '' : `大公司＝市值前 ${(d.universe && d.universe.n) || 50}`;
+    /* 2026-11-01（Andy：「財經日曆也一樣每週更新」）：頁底標資料更新日；有預估時說明灰字虛線是依規則推算，不是公司公告 */
+    const nEst = d ? (d.events || []).filter((e) => e.status === '預估').length : 0;
+    $('#earnDisc').textContent = 'ⓘ 純資料整理，不構成投資建議。' + (d ? `資料更新：${d.updated || d.asof}` + (nEst ? '　灰字「預估」＝依規則推算，非公司公告' : '') : '');
+    $('#earnDisc').title = nEst ? `灰字「預估」${nEst} 筆是依法定期限／上一場法說推算，不是公司公告，公告後自動換成正式日期。` : '';
     /* 2026-10-08 權限矩陣 earn.tab：切到其他月份算一次（回本月不算） */
     const goQ = (m) => { if (m !== todayTW().slice(0, 7) && window.TwQuota && !window.TwQuota.act('earn.tab', 'tab', m)) return; go(m); };
     $('#earnPrev').onclick = () => { const [y, m] = S.month.split('-').map(Number); goQ(new Date(Date.UTC(y, m - 2, 1)).toISOString().slice(0, 7)); };

@@ -25735,7 +25735,7 @@ def t_earnings_1005(pg, b, base):
         ok(f"[{tag}] 副標只寫大公司口徑、不放資料日期（Andy 10-06 全站規則）", "市值前" in sub and not _re.search(r"\d{4}-\d\d-\d\d", sub) and "資料日" not in sub, sub)
         lg = text(lp, "#earnLegend")
         # 2026-10-06 12:10 改前→改後（Andy：「全部拿掉，並平均分散 三個分頁」）：預設「全部」、圖例四類 → 預設公司財報、圖例只有這一類
-        ok(f"★ [{tag}] 預設公司財報：圖例只有財報（沒有法說、FOMC、美國數據、預估）", "財報" in lg and not any(w in lg for w in ("法說", "FOMC", "美國數據", "預估")), lg)
+        ok(f"★ [{tag}] 預設公司財報：圖例只有財報類（沒有法說、FOMC、美國數據；11-01 起有灰字預估與法定期限）", "財報" in lg and not any(w in lg for w in ("法說", "FOMC", "美國數據")), lg)
         tb = J("() => " + TABCHK)
         ok(f"★ [{tag}] 分頁只剩 公司財報｜公司法說｜FED 消息（沒有「全部」）、預設公司財報", tb["labs"] == ["公司財報", "公司法說", "FED 消息"] and tb["on"] == ["rep"], tb)
         ok(f"★ [{tag}] 1440 三顆分頁等寬（差 ≤ 2px）、填滿整排（＝下面內容框寬）、一行", tb["dw"] <= 2 and tb["fill"] <= 3 and abs(tb["rowW"] - tb["bodyW"]) <= 3 and tb["oneLine"], tb)
@@ -25801,9 +25801,10 @@ def t_earnings_1005(pg, b, base):
         ok(f"★ [{tag}] FED 面板（含 ⓘ 滑過提示）沒有查證紀錄／網址／退回值字樣、出處 ⓘ 用全站 .srcinfo 寫法",
            not _re.search(r"https?://|查證|WebSearch|未讀原文|退回值|未取得", fq["t"]) and all(x.startswith("出處：") for x in fq["src"]), fq)
         # ---- 5. 沒有任何推估（Andy 1005 晚：「裡面不可以有推估數據」）＋ 點日期 → 當天清單
-        ok(f"★ [{tag}] 資料與畫面上沒有任何預估：events 沒有 est／rev／qdl、月曆沒有 .kest／.ktw、整頁看不到「預估」",
-           not any(e["k"] in ("est", "rev", "qdl") or e.get("status") == "預估" for e in D["events"])
-           and count(lp, "#v-earnings .kest, #v-earnings .ktw") == 0 and "預估" not in J("() => document.querySelector('#v-earnings').innerText"))
+        ok(f"★ [{tag}] 預估與已公告分開（11-01 起）：est／cest 一律 status=預估、rev／qdl 一律 status=期限、月曆上每個 .kest 標籤都有「預估」字",
+           all(e.get("status") == "預估" for e in D["events"] if e["k"] in ("est", "cest"))
+           and all(e.get("status") == "期限" for e in D["events"] if e["k"] in ("rev", "qdl"))
+           and J("() => [...document.querySelectorAll('#v-earnings .chip.kest')].every(c => c.querySelector('.eb'))"))
         dd = conf["d"]
         lp.click("#earnFilt button[data-v='conf']"); lp.wait_for_timeout(150)
         goto_month(dd)

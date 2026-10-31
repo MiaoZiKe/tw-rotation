@@ -200,7 +200,10 @@ def test_build_小資料組出完整結構():
     assert d["asof"] == "2026-10-02" and d["universe"]["n"] == 2
     ks = {(e["k"], e.get("code")) for e in d["events"]}
     assert ("conf", "2330") in ks and ("fomc", None) in ks
-    assert not any(e["k"] in ("est", "rev", "qdl") or e.get("status") == "預估" for e in d["events"])   # Andy：不可以有推估數據
+    # 11-01 Andy：「財經日曆也一樣每週更新」→ 預估放回來但 status='預估' 與已公告分開；營收／財報法定期限 status='期限'
+    assert all(e["status"] == "預估" for e in d["events"] if e["k"] in ("est", "cest"))
+    assert all(e["status"] == "期限" for e in d["events"] if e["k"] in ("rev", "qdl"))
+    assert any(e["k"] == "est" and e["code"] == "2454" for e in d["events"]) and not any(e["k"] == "est" and e["code"] == "2330" for e in d["events"])
     assert d["companies"]["2330"]["next"]["d"] == "2026-10-15" and d["companies"]["2330"]["target"] == "2026Q3"
     assert any(s["key"] == "inst" for s in d["companies"]["2330"]["secs"])
     assert d["fed"]["snap"] == {} and "fomc" in d["fed"]["next"]
@@ -233,7 +236,7 @@ def test_種子檔結構():
 def test_YAML日程格式():
     cfg = E.load_macro_yaml()
     ms = cfg["fomc"]["meetings"]
-    assert len(ms) == 8 and all(m["start"] < m["end"] < m["minutes"] for m in ms)
+    assert len(ms) == 16 and all(m["start"] < m["end"] < m["minutes"] for m in ms)
     for k, spec in cfg["releases"].items():
         assert k in E.FED_INFO and spec["source"].startswith("https://")
 
