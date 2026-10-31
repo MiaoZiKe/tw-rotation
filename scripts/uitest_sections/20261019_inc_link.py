@@ -167,8 +167,8 @@ def t_inc_link_1019(b, base, code):
         # 清單整列可點＝切換勾選（Andy 11-01：「應該要點選上面的欄位就可以選取」）：點名稱 → 取消勾選、圖少一檔；再點 → 勾回並自動聚焦
         J("() => { const S = window.TwEtfPage.state; S.inc.det = null; }")
         n0 = len(codes)
-        pg.locator(f"#incList .ilr[data-code='{c2}'] .iln").scroll_into_view_if_needed()
-        pg.click(f"#incList .ilr[data-code='{c2}'] .iln"); pg.wait_for_timeout(600); away()
+        pg.locator(f"#incList .ilr[data-code='{c2}'] .cd").scroll_into_view_if_needed()
+        pg.click(f"#incList .ilr[data-code='{c2}'] .cd"); pg.wait_for_timeout(600); away()
         st = J(_INC_JS)
         ok(f"{T}（{W}）：點清單名稱 {c2} → 取消勾選、圖少一檔（{n0}→{len(st['codes'])}）", len(st["codes"]) == n0 - 1 and c2 not in st["codes"], st)
         pg.click(f"#incList .ilr[data-code='{c2}'] .lt"); pg.wait_for_timeout(700); away()

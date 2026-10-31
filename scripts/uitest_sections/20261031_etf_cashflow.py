@@ -13,7 +13,7 @@
 _SEL_JS = """() => ({
   n: +(document.getElementById('incBar').dataset.n || 0),
   codes: (document.getElementById('incBar').dataset.codes || '').split(',').filter(Boolean),
-  rows: [...document.querySelectorAll('#incChips button.snk[data-n]')].map(r => ({ code: r.dataset.n.split(' ').pop(), txt: r.textContent })),
+  rows: [...document.querySelectorAll('#incChips .snk[data-n]')].map(r => ({ code: r.dataset.n.split(' ').pop(), txt: r.textContent })),
   lots: (document.getElementById('incBar').dataset.lots || '').split(','),
   sq: (document.getElementById('incSQ') || {}).textContent || '',
 })"""

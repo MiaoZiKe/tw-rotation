@@ -63,25 +63,43 @@ def t_etf_ui_1031(b, base, code):
             op = J("() => [...document.querySelectorAll('#incList .ilr')].filter(r => r.querySelector('input').checked).map(r => +getComputedStyle(r).opacity)")
             ok(f"{T}（{W}）②e：選取其中一檔後，5 個勾選列都不淡掉（opacity 全 1）", len(op) == 5 and all(o >= 0.99 for o in op), op)
             # 色塊 ×
-            pg.locator("#incChips button.snk[data-n] b").first.click(); pg.wait_for_timeout(500)
+            pg.locator("#incChips .snk[data-n] b").first.click(); pg.wait_for_timeout(500)
             ok(f"{T}（{W}）②f：色塊 × → 圖上少 1 檔、清單勾選同步", J("() => +document.getElementById('incBar').dataset.n") == 4 and J("() => document.querySelectorAll('#incList .ilr input:checked').length") == 4)
             # 整列可點：點名稱文字 → 勾選 +1、圖多一組柱；再點 → 取消（Andy 11-01）
             pg.click("#incClear"); pg.wait_for_timeout(500)
-            for k, sel in enumerate(("#incList .ilr:nth-child(3) .nm", "#incList .ilr:nth-child(5) .mv")):
+            for k, sel in enumerate(("#incList .ilr:nth-child(3) .cd", "#incList .ilr:nth-child(5) .mv")):
                 pg.click(sel); pg.wait_for_timeout(500)
                 r = J("() => ({ ck: document.querySelectorAll('#incList .ilr input:checked').length, n: +document.getElementById('incBar').dataset.n, ser: echarts.getInstanceByDom(document.getElementById('incBar')).getOption().series.filter(s => s.type === 'bar').length })")
-                ok(f"{T}（{W}）⑨a{k}：點列（{'名稱' if k == 0 else '殖利率'}）→ 勾選 {k + 1}、圖 {k + 1} 組柱", r["ck"] == k + 1 and r["n"] == k + 1 and r["ser"] == k + 1, r)
-            pg.click("#incList .ilr:nth-child(3) .nm"); pg.wait_for_timeout(500)
+                ok(f"{T}（{W}）⑨a{k}：點列（{'代號' if k == 0 else '殖利率'}）→ 勾選 {k + 1}、圖 {k + 1} 組柱", r["ck"] == k + 1 and r["n"] == k + 1 and r["ser"] == k + 1, r)
+            pg.click("#incList .ilr:nth-child(3) .cd"); pg.wait_for_timeout(500)
             r = J("() => ({ ck: document.querySelectorAll('#incList .ilr input:checked').length, n: +document.getElementById('incBar').dataset.n })")
             ok(f"{T}（{W}）⑨b：再點同一列 → 取消勾選（剩 1）", r["ck"] == 1 and r["n"] == 1, r)
             hv = J("() => { const r = document.querySelector('#incList .ilr:nth-child(8)'); return { cur: getComputedStyle(r).cursor, bar: getComputedStyle(document.querySelector('#incList .ilr.in')).boxShadow }; }")
             ok(f"{T}（{W}）⑨c：列是手指游標、勾選中的列有左側色條", hv["cur"] == "pointer" and "inset" in hv["bar"], hv)
-            # 鍵盤：名稱鈕 Enter／空白鍵切換
-            pg.focus("#incList .ilr:nth-child(6) .iln"); pg.keyboard.press("Enter"); pg.wait_for_timeout(400)
+            # 鍵盤：方框上 Enter／空白鍵切換
+            pg.focus("#incList .ilr:nth-child(6) input"); pg.keyboard.press("Enter"); pg.wait_for_timeout(400)
             k1 = J("() => document.querySelectorAll('#incList .ilr input:checked').length")
-            pg.focus("#incList .ilr:nth-child(6) .iln"); pg.keyboard.press("Space"); pg.wait_for_timeout(400)
+            pg.focus("#incList .ilr:nth-child(6) input"); pg.keyboard.press("Space"); pg.wait_for_timeout(400)
             k2 = J("() => document.querySelectorAll('#incList .ilr input:checked').length")
             ok(f"{T}（{W}）⑨d：鍵盤 Enter 勾選（1→{k1}）、空白鍵取消（→{k2}）", k1 == 2 and k2 == 1, (k1, k2))
+            # 名稱＝超連結（Andy 11-01：「股票還是要具備超連結功能」）：真的 <a href>，點名稱進個股頁；點殖利率只切換勾選、路由不變
+            lk = J("() => { const a = document.querySelector('#incList .ilr:nth-child(4) a.nm'); return a ? { href: a.getAttribute('href'), code: a.closest('.ilr').dataset.code, deco: getComputedStyle(a).textDecorationLine } : null; }")
+            ok(f"{T}（{W}）⑫a：清單名稱是 <a href=#stock/代號> 且有底線（{lk}）", bool(lk) and lk["href"] == "#stock/" + lk["code"] and "underline" in lk["deco"], lk)
+            chl = J("() => [...document.querySelectorAll('#incChips .snk[data-n] a.snl')].map(a => [a.getAttribute('href'), a.closest('.snk').dataset.n])")
+            ok(f"{T}（{W}）⑫b：圖上方色塊的名稱也是連結（{len(chl)} 顆）且 href 對得上代號", len(chl) >= 1 and all(h == "#stock/" + n.split(" ")[-1] for h, n in chl), chl)
+            h0 = J("() => location.hash"); n0 = J("() => document.querySelectorAll('#incList .ilr input:checked').length")
+            pg.locator("#incList .ilr:nth-child(4) .mv").click(); pg.wait_for_timeout(500)
+            ok(f"{T}（{W}）⑫c：點殖利率 → 勾選切換（{n0}→{J('() => document.querySelectorAll(\'#incList .ilr input:checked\').length')}）、路由不變（{h0}）", J("() => document.querySelectorAll('#incList .ilr input:checked').length") != n0 and J("() => location.hash") == h0)
+            pg.locator("#incList .ilr:nth-child(4) .mv").click(); pg.wait_for_timeout(400)
+            pg.locator("#incChips .snk[data-n] a.snl").first.click(); pg.wait_for_timeout(900)
+            hh = J("() => location.hash"); ok(f"{T}（{W}）⑫d：點色塊名稱 → 進個股頁（{hh}）、色塊沒被拿掉", hh.startswith("#stock/"))
+            pg.go_back(); pg.wait_for_timeout(1500)
+            wait_until(pg, "() => !!document.getElementById('incList') && document.querySelectorAll('#incList .ilr').length > 5", 15000)
+            nc = J("() => document.querySelector('#incList .ilr:nth-child(2) a.nm').closest('.ilr').dataset.code")
+            pg.locator("#incList .ilr:nth-child(2) a.nm").click(); pg.wait_for_timeout(900)
+            ok(f"{T}（{W}）⑫e：點清單名稱 → 路由變 #stock/{nc}", J("() => location.hash") == "#stock/" + nc, J("() => location.hash"))
+            pg.go_back(); pg.wait_for_timeout(1500)
+            wait_until(pg, "() => !!document.getElementById('incList') && document.querySelectorAll('#incList .ilr').length > 5", 15000)
             # 列與列不相交（預設、選取、捲動後）
             OV = """() => { const rows = [...document.querySelectorAll('#incList .ilr')]; const bad = [];
               rows.forEach((e, i) => { if (i && rows[i - 1].getBoundingClientRect().bottom > e.getBoundingClientRect().top + 0.5) bad.push(i);
@@ -132,9 +150,11 @@ def t_etf_ui_1031(b, base, code):
             ok(f"{T}（{W}）⑥a：自動配有兩種切換，預設＝各檔金額平均，兩種每月入帳都 ≥ 目標（{ev['target']}）", ev["alloc"] and ev["on"] == "even" and min(ev["vals"]) >= ev["target"] - 1, (ev, mn))
             ok(f"{T}（{W}）⑥b：各檔金額平均 ≥ 總投入最少的總投入、且張數比較不懸殊（最大/最小張數比：平均 {max(ev['lots'])/max(1,min(ev['lots'])):.1f} vs 最少 {max(mn['lots'])/max(1,min(mn['lots'])):.1f}）", ev["cost"] >= mn["cost"] - 1 and min(mn["vals"]) >= ev["target"] - 1, (ev["lots"], mn["lots"], ev["cost"], mn["cost"]))
             ok(f"{T}（{W}）⑥c：畫面有白話說明（平均＝「金額大致相同」；最少＝「總投入最少」）", "大致相同" in ev["note"] and "總投入最少" in mn["note"], (ev["note"], mn["note"]))
-            # 自訂清單：點列（名稱文字）＝勾選 +1，再點＝取消；列不相交
+            # 自訂清單：名稱是連結；點代號＝勾選 +1，再點＝取消；列不相交
+            lk2 = J("() => { const a = document.querySelector('#cuList .ilr a.nm'); return a ? a.getAttribute('href') === '#stock/' + a.closest('.ilr').dataset.code : false; }")
+            ok(f"{T}（{W}）⑪c：自訂清單名稱也是 <a href=#stock/代號>", lk2)
             n_a = J("() => document.querySelectorAll('#incCuBox .cut tbody tr[data-code]').length")
-            pg.locator("#cuList .ilr:not(.in) .nm").first.click(); pg.wait_for_timeout(500)
+            pg.locator("#cuList .ilr:not(.in) .cd").first.click(); pg.wait_for_timeout(500)
             n_b = J("() => document.querySelectorAll('#incCuBox .cut tbody tr[data-code]').length")
             pg.locator("#cuList .ilr.in .cd").last.click(); pg.wait_for_timeout(500)
             n_c = J("() => document.querySelectorAll('#incCuBox .cut tbody tr[data-code]').length")

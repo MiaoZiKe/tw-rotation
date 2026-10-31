@@ -385,6 +385,9 @@ html.m4 #v-etf #etfInc[data-inclk] .inclknote.m4o{display:flex;margin:-4px 0 8px
 #v-etf #incChips .snd{display:inline-flex;gap:0;margin-left:2px;font:12px var(--mono);color:var(--ink-2)}
 #v-etf #incChips .snd em{font-style:normal}#v-etf #incChips .snd em::before{content:"・"}
 #v-etf #incChips .snhint{color:var(--ink-3);font-size:13px;padding:3px 0}
+#v-etf .ilr .nm,#v-etf .cut a.nm,#v-etf #incChips a.snl{color:var(--ink);text-decoration:underline;text-decoration-color:var(--ink-3);text-decoration-thickness:1px;text-underline-offset:2px;cursor:pointer}
+#v-etf .ilr .nm:hover,#v-etf .cut a.nm:hover,#v-etf #incChips a.snl:hover{color:var(--cyan);text-decoration-color:var(--cyan)}
+#v-etf #incChips .snk[data-n]{cursor:pointer}#v-etf #incChips .snk[data-n]:hover{border-color:var(--c)}
 #v-etf .inclist .ilact{display:flex;align-items:center;gap:6px;margin:6px 0 0}
 #v-etf .inclist .ilcnt{flex:1;font-size:12px;color:var(--ink-3)}
 #v-etf .inclist .srchx{background:var(--panel-3);border:1px solid var(--line-2);color:var(--ink-2);width:22px;height:22px;top:3px;right:3px}
@@ -392,7 +395,8 @@ html.m4 #v-etf #etfInc[data-inclk] .inclknote.m4o{display:flex;margin:-4px 0 8px
 @media(min-width:1101px){
   #v-etf #incChips{min-height:62px;align-content:flex-start}
   #v-etf #incChips .addk{display:none}
-  #v-etf .incsg .inclist{height:524px;max-height:none}
+  #v-etf .incsg.incsg{align-items:stretch}
+  #v-etf .incsg.incsg>.inclist{height:auto;max-height:none;contain:size}
   #v-etf .cug{height:372px;grid-template-rows:minmax(0,1fr);align-items:stretch}
   #v-etf .cusel{overflow-y:auto;overflow-x:auto;padding-top:0}
   #v-etf .cusel .cut thead th{position:sticky;top:0;background:var(--panel-2);z-index:1}
@@ -2280,7 +2284,11 @@ html.m4 #v-etf #etfInc[data-inclk] .inclknote.m4o{display:flex;margin:-4px 0 8px
         S.inc.sel = top.map((r) => r.it.code).filter((x) => x !== c.code); drawIncSingle();
       }, `<span class="snk avg" title="這幾檔的平均（細灰線）"><i></i>平均</span>`);
       /* Andy 10-31「這太不美觀了」：已選明細直接寫在色塊本身（名稱・張數・金額），取代右上獨立小表；滑過看現價與殖利率 */
-      $$('button.snk[data-n]', key).forEach((b) => { const r = top.find((x) => `${x.it.name} ${x.it.code}` === b.dataset.n); if (!r) return;
+      /* 色塊名稱＝連結（Andy 11-01「股票還是要具備超連結功能」）：button 裡不能放 <a>，所以色塊改成 span，× 仍是移除 */
+      $$('button.snk[data-n]', key).forEach((b0) => { const sp = document.createElement('span'); [...b0.attributes].forEach((at) => sp.setAttribute(at.name, at.value)); sp.removeAttribute('type');
+        sp.className = b0.className; sp.innerHTML = b0.innerHTML; sp.onclick = b0.onclick; sp.tabIndex = 0; sp.setAttribute('role', 'group'); b0.replaceWith(sp); });
+      $$('.snk[data-n]', key).forEach((b) => { const r = top.find((x) => `${x.it.name} ${x.it.code}` === b.dataset.n); if (!r) return;
+        { const i0 = b.querySelector('i'); if (i0 && i0.nextSibling && i0.nextSibling.nodeType === 3) { const a1 = document.createElement('a'); a1.className = 'snl'; a1.href = '#stock/' + r.it.code; a1.textContent = i0.nextSibling.textContent; i0.nextSibling.replaceWith(a1); } }
         const x = b.querySelector('b'); if (x) x.insertAdjacentHTML('beforebegin', `<span class="snd"><em>${r.lots.toLocaleString()} 張</em><em>${wan1(r.cost)}</em></span>`);
         b.title = `${r.it.name} ${r.it.code}\n現價 NT$ ${a.fmt.n(r.it.close, 2)}・殖利率 ${pctU(r.y, 1)}\n需要 ${r.lots.toLocaleString()} 張・${ntw(r.cost)}\n（按一下從圖上拿掉，清單也會取消勾選）`; });
       if (!top.length) key.insertAdjacentHTML('afterbegin', `<span class="snhint">請從右側清單勾選 ETF（最多 5 檔）</span>`);
@@ -2294,6 +2302,7 @@ html.m4 #v-etf #etfInc[data-inclk] .inclknote.m4o{display:flex;margin:-4px 0 8px
   /* 清單整列可點＝切換勾選（單檔、自訂組合共用）；點到方框本身交給原生，名稱鈕的 click 會冒泡上來所以 Enter／空白鍵也能切換 */
   function rowToggle(row) {
     const cb = $('input', row); if (!cb) return;
+    cb.onkeydown = (e) => { if (e.key === 'Enter') { e.preventDefault(); cb.checked = !cb.checked; cb.dispatchEvent(new Event('change')); } };
     row.onclick = (e) => { if (e.target === cb || e.target.closest('a')) return; if (cb.disabled && !cb.checked) { const m = $('#incListMsg') && row.closest('#incList') ? $('#incListMsg') : $('#cuMsg'); if (m) m.textContent = '最多 5 檔，請先取消一檔'.replace('5', row.closest('#cuList') ? String(CU_MAX) : '5'); return; } cb.checked = !cb.checked; cb.dispatchEvent(new Event('change')); };
   }
   function drawIncList(R) {
@@ -2311,7 +2320,7 @@ html.m4 #v-etf #etfInc[data-inclk] .inclknote.m4o{display:flex;margin:-4px 0 8px
     const rows = R.filter((r) => fq === 'all' || r.it.freq === fq).map((r, i) => ({ r, i })).filter(({ r }) => !q || r.it.code.toLowerCase().includes(q) || (r.it.name || '').toLowerCase().includes(q));
     list.innerHTML = rows.map(({ r, i }) => `<div class="ilr${sel.includes(r.it.code) ? ' in' : ''}${S.inc.det === r.it.code ? ' on' : ''}" data-code="${esc(r.it.code)}" data-fq="${esc(r.it.freq || '')}">
       <input type="checkbox" aria-label="加入主圖" ${sel.includes(r.it.code) ? 'checked' : full ? 'disabled title="最多 5 檔，先取消一檔"' : ''}><span class="rk">${i + 1}</span>
-      <button type="button" class="iln" title="${esc(r.it.name)} ${esc(r.it.code)}">${fqBadge(r.it.freq)}<span class="nm">${esc(r.it.name)}</span><span class="cd">${esc(r.it.code)}</span></button>
+      <span class="iln">${fqBadge(r.it.freq)}<a class="nm" href="#stock/${esc(r.it.code)}" title="進 ${esc(r.it.name)} ${esc(r.it.code)} 個股頁">${esc(r.it.name)}</a><span class="cd">${esc(r.it.code)}</span></span>
       <span class="mv">${metricTxt(r, k)}</span><span class="lt">現價 NT$ ${A().fmt.n(r.it.close, 2)}・需 ${r.lots.toLocaleString()} 張・${ntw(r.cost)}</span></div>`).join('') || '<div class="etfprep">找不到</div>';
     list.dataset.n = String(rows.length);
     { const cn = $('#incCnt'); if (cn) cn.textContent = `已勾 ${sel.length}／5 檔`; }
@@ -2385,7 +2394,7 @@ html.m4 #v-etf #etfInc[data-inclk] .inclknote.m4o{display:flex;margin:-4px 0 8px
       const c = b.dataset.n.split(' ').pop(), rm = b.onclick;
       b.title = (b.title || b.dataset.n).replace(/\n（按一下[^]*$/, '') + '\n點名字＝在圖上標出這檔；點 × 從圖上拿掉（清單也會取消勾選）';
       b.onmouseenter = () => hover(c); b.onmouseleave = () => hover(null);
-      b.onclick = (e) => { if (e.target.closest('b')) { if (rm) rm.call(b, e); return; } pick(c, 'chip'); };
+      b.onclick = (e) => { if (e.target.closest('a')) return; if (e.target.closest('b')) { if (rm) rm.call(b, e); return; } pick(c, 'chip'); };
     });
     // 卡片內的空白處＝取消；卡片外的空白處也算（整頁只掛一次，靠 S._sPick 拿到目前這一份）
     if (!box._sBlank) { box._sBlank = true;
@@ -2624,7 +2633,7 @@ html.m4 #v-etf #etfInc[data-inclk] .inclknote.m4o{display:flex;margin:-4px 0 8px
     const lotOf = (code) => { const i = c && c.mem ? c.mem.findIndex((x) => x.it.code === code) : -1; return i >= 0 ? c.lots[i] : null; };
     const selRows = picked.map((code) => {
       const it = items().find((x) => x.code === code), L = lotOf(code), mm = incMonths()[code];
-      const nm = it ? `${esc(it.name)} <small>${esc(code)}</small>` : esc(code);
+      const nm = it ? `<a class="nm" href="#stock/${esc(code)}" title="進 ${esc(it.name)} ${esc(code)} 個股頁">${esc(it.name)}</a> <small>${esc(code)}</small>` : esc(code);
       const cost = L && it ? L * 1000 * it.close : null;
       const inp = cu.mode === 'manual' ? `<input type="number" class="culot" min="1" step="1" value="${L || (+cu.lots[code] || 1)}" data-code="${esc(code)}" aria-label="${esc(it ? it.name : code)} 張數">` : (L ? L.toLocaleString() : '—');
       return `<tr data-code="${esc(code)}"><td title="${it ? esc(it.name) : ''} ${esc(code)}">${nm}</td><td>${it ? a.fmt.n(it.close, 2) : '—'}</td><td>${inp} 張</td><td>${ntw(cost)}</td><td>${mm && it ? pctU(mm.sum / it.close, 1) : '無配息'}</td><td><button type="button" class="cux" data-code="${esc(code)}" aria-label="移除 ${esc(code)}" title="從組合移除">×</button></td></tr>`;
@@ -2646,7 +2655,7 @@ ${howH('cuh', ['<b>挑選</b>：從右側清單勾選 1～10 檔（搜尋、配�
     <div class="ilact"><span class="ilcnt" id="cuCnt">已勾 ${picked.length}／${CU_MAX} 檔</span><button type="button" class="btn small" id="cuClear" title="取消所有勾選">清除勾選</button></div>
     <p class="ilmsg" id="cuMsg"></p>
     <div class="ilbody" id="cuList" data-n="${rows.length}">${rows.map((it) => `<div class="ilr${picked.includes(it.code) ? ' in' : ''}" data-code="${esc(it.code)}"><input type="checkbox" aria-label="加入組合"${picked.includes(it.code) ? ' checked' : full ? ' disabled title="最多 ' + CU_MAX + ' 檔"' : ''}><span class="rk"></span>
-      <button type="button" class="iln" title="${esc(it.name)} ${esc(it.code)}">${fqBadge(it.freq)}<span class="nm">${esc(it.name)}</span><span class="cd">${esc(it.code)}</span></button>
+      <span class="iln">${fqBadge(it.freq)}<a class="nm" href="#stock/${esc(it.code)}" title="進 ${esc(it.name)} ${esc(it.code)} 個股頁">${esc(it.name)}</a><span class="cd">${esc(it.code)}</span></span>
       <span class="mv">殖利率 ${pctU(incMonths()[it.code].sum / it.close, 1)}</span><span class="lt">現價 NT$ ${a.fmt.n(it.close, 2)}</span></div>`).join('') || '<div class="etfprep">找不到</div>'}</div></div></div>`;
     const sk = c && c.skip && c.skip.length ? `（${c.skip.join('、')} 近 12 個月沒有配息資料，不計入）` : '';
     $('#cuNote').innerHTML = !picked.length ? '還沒挑 ETF：從右側清單勾選。' : c && c.mem.length ? `${esc(c.note)}${esc(sk)}` : '挑的 ETF 都沒有近 12 個月配息資料。';
