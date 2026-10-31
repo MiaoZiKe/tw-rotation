@@ -55,4 +55,20 @@
   #v-flowcheck #fcTl.card.fc-tl{background:var(--panel)!important;background-image:none!important}
   #fcTrendCard>*{flex-shrink:0}#fcTrendCard>.fc-trend{flex-shrink:1}
   #fcTrendCard .fc-hd h3{flex:1 1 100%;position:static}#fcTrendCard .fc-hd .fc-sp{display:none}#fcTrendCard .fc-hd>span#fcSpanBox{flex:0 0 auto}
+  /* 換日期不晃：徽章與灰字列兩行高固定、輪盤卡鎖高、結論列鎖高 */
+  .fc-tnote{height:52px!important;min-height:52px!important;overflow:hidden;align-items:flex-start;flex-wrap:wrap}
+  .fc-tnote .fc-badge{max-width:100%;white-space:nowrap}
+  #fcVerdict{height:150px;overflow:hidden}
+  .fc-vc{max-height:88px;overflow:hidden}
+  .fc-same{height:76px;overflow:hidden;align-content:flex-start}
+  #fcRank{height:172px;overflow:hidden}.fc-rr:nth-child(2){display:none}
+  /* 「⋯」彈層：左右撐滿、時點列可換行（13:30 不被切）、不留上半空白 */
+  .fc-tlx{display:none;left:8px;right:8px;max-width:none;flex-direction:row!important;flex-wrap:wrap;justify-content:flex-end;align-items:center;gap:8px}
+  .fc-tl.xopen .fc-tlx{display:flex}
+  #fcTl #fcDayT{display:flex!important;flex:1 1 100%!important;min-width:0!important;flex-wrap:wrap!important;overflow:visible!important;max-width:100%!important;justify-content:flex-end}
+  #fcTl #fcDayT[hidden]{display:none!important}
+  /* 表格：右側漸層提示可左右滑，並在表下加一行字 */
+  .fc-tw{position:relative}
+  .fc-swipe{display:block;font-size:11px;color:var(--ink-3);text-align:right;padding:2px 0}
+  .fc-divpop{max-height:none}
 }

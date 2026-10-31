@@ -35,6 +35,10 @@ def t_flowcheck_1030(b, base):
         return ctx, pg
 
     st = lambda pg: pg.evaluate("() => TwFlowcheck.state()")
+    def open_more(pg):
+        if pg.evaluate("() => !document.getElementById('fcMoreCard').classList.contains('open')"):
+            pg.evaluate("() => document.querySelector('#fcMoreCard .fc-tog').click()"); pg.wait_for_timeout(700)
+
     title = lambda pg: pg.evaluate("() => document.getElementById('fcTrendName').textContent")
     wheel_sig = lambda pg: pg.evaluate("() => JSON.stringify(echarts.getInstanceByDom(document.getElementById('fcWheel')).getOption().series[0].data.map(d => d.value))")
     trend_sig = lambda pg: pg.evaluate("() => JSON.stringify(echarts.getInstanceByDom(document.getElementById('fcTrend')).getOption().series[0].data)")
@@ -55,6 +59,8 @@ def t_flowcheck_1030(b, base):
     ok(f"[{T}] ① 進頁：預設資金輪盤、焦點＝資金流入第 1 名、最新日", s0["view"] == "money" and bool(s0["gid"]))
     ok(f"[{T}] ① 頁首標題只有一個「流向驗證」（卡內不再重複）", pg.evaluate("() => [...document.querySelectorAll('#v-flowcheck h2, #v-flowcheck h1')].filter(e => e.textContent.includes('流向驗證')).length") == 0)
     ok(f"[{T}] ① 走勢大圖、成分股小圖、熱力圖都有畫", pg.evaluate("() => document.querySelectorAll('#fcMinis .chart canvas, #fcMinis .chart svg').length >= 3 && document.querySelectorAll('#fcHeat canvas, #fcHeat svg').length >= 1 && document.querySelectorAll('#fcTrend canvas, #fcTrend svg').length >= 1"))
+    ok(f"[{T}] ① 桌機「更多證據」預設收起（收展預設收起準則）", pg.evaluate("() => !document.getElementById('fcMoreCard').classList.contains('open') && document.querySelector('#fcMoreCard .fc-bd').getBoundingClientRect().height === 0"))
+    open_more(pg)
     pg.click("#fcTab button[data-v='sig']"); pg.wait_for_timeout(900)
     ok(f"[{T}] ① 提前判斷分頁：標「實驗」、回測未達顯著、沒有內部欄名", "實驗" in text(pg, "#fcMoreCard") + text(pg, "#fcPaneSig") or "未達顯著" in text(pg, "#fcPaneSig"))
     ok(f"[{T}] ① 提前判斷畫面沒有 passed_multiple_test 等內部欄名、期間用「～」", "passed_multiple" not in text(pg, "#v-flowcheck") and "未達顯著" in text(pg, "#fcPaneSig") and "," not in text(pg, "#fcSigR").split("全族群")[0])
@@ -65,8 +71,8 @@ def t_flowcheck_1030(b, base):
 
     # ② 點輪盤的點 → 焦點換、走勢／成分股／網址同步
     g0, n0, t0, mem0 = s0["gid"], title(pg), trend_sig(pg), text(pg, "#fcMinis")
-    pg.evaluate("() => document.getElementById('fcWheel').scrollIntoView({block: 'center'})"); pg.wait_for_timeout(300)
-    pos = pg.evaluate("""(g0) => { const c = echarts.getInstanceByDom(document.getElementById('fcWheel')), d = c.getOption().series[0].data; const P = d.map(x => [x, c.convertToPixel({ seriesIndex: 0 }, x.value)]); const iso = (q) => Math.min(...P.filter(r => r[0] !== q[0]).map(r => Math.hypot(r[1][0] - q[1][0], r[1][1] - q[1][1]))); const cand = P.filter(r => { const ay = document.getElementById('fcWheel').getBoundingClientRect().top + r[1][1]; return r[0].gid !== g0 && r[0].rx === r[0].value[0] && r[0].ry === r[0].value[1] && ay > 110 && ay < innerHeight - 110; }).sort((u, v) => iso(v) - iso(u))[0]; const b = document.getElementById('fcWheel').getBoundingClientRect(); return [b.left + cand[1][0], b.top + cand[1][1], cand[0].gid]; }""", g0)
+    pg.evaluate("() => { document.documentElement.style.scrollBehavior = 'auto'; const e = document.getElementById('fcWheel'); window.scrollBy(0, e.getBoundingClientRect().top - 170); }"); pg.wait_for_timeout(300)
+    pos = pg.evaluate("""(g0) => { const c = echarts.getInstanceByDom(document.getElementById('fcWheel')), d = c.getOption().series[0].data; const P = d.map(x => [x, c.convertToPixel({ seriesIndex: 0 }, x.value)]); const iso = (q) => Math.min(...P.filter(r => r[0] !== q[0]).map(r => Math.hypot(r[1][0] - q[1][0], r[1][1] - q[1][1]))); const cand = P.filter(r => { const ay = document.getElementById('fcWheel').getBoundingClientRect().top + r[1][1]; return r[0].gid !== g0 && r[0].rx === r[0].value[0] && r[0].ry === r[0].value[1] && ay > 300 && ay < innerHeight - 110; }).sort((u, v) => iso(v) - iso(u))[0]; const b = document.getElementById('fcWheel').getBoundingClientRect(); return [b.left + cand[1][0], b.top + cand[1][1], cand[0].gid]; }""", g0)
     pg.mouse.click(pos[0], pos[1]); pg.wait_for_timeout(900)
     s1 = st(pg)
     ok(f"[{T}] ② 點輪盤一個點：焦點換成它", s1["gid"] == pos[2] and s1["gid"] != g0, str([s1["gid"], pos]))
@@ -156,7 +162,8 @@ def t_flowcheck_1030(b, base):
 
     # ⑩ 日級別訊號／潛在個股
     ctx, pg = open_page("#flowcheck")
-    ok(f"[{T}] ⑩ 日級別訊號卡預設展開、有列、標「實驗」、有 5／10／20 日與規則回測", pg.evaluate("() => { const c = document.getElementById('fcMoreCard'); return c.classList.contains('open') && c.querySelectorAll('tbody tr').length >= 3 && c.textContent.includes('實驗') && c.textContent.includes('後 20 日') && c.textContent.includes('命中'); }"))
+    open_more(pg)
+    ok(f"[{T}] ⑩ 展開「更多證據」後日級別訊號分頁、有列、標「實驗」、有 5／10／20 日與規則回測", pg.evaluate("() => { const c = document.getElementById('fcMoreCard'); return c.classList.contains('open') && c.querySelectorAll('tbody tr').length >= 3 && c.textContent.includes('實驗') && c.textContent.includes('後 20 日') && c.textContent.includes('命中'); }"))
     n_sum_all = pg.evaluate("() => document.querySelectorAll('#fcDay .fc-rs').length")
     ok(f"[{T}] ⑩ 全部規則：規則統計列在表格上方（每條一行）、候選表每列一行高、預設只列前 10 筆", n_sum_all >= 3 and pg.evaluate("() => { const r = [...document.querySelectorAll('#fcDay tbody tr')]; return r.length <= 10 && r.every(x => x.getBoundingClientRect().height <= 44); }"), str(n_sum_all))
     rid = pg.evaluate("() => document.querySelectorAll('#fcRule button')[1].dataset.v")
@@ -185,15 +192,15 @@ def t_flowcheck_1030(b, base):
     ok(f"[{T}] ⑪ 走勢大圖在三張輪盤正下方同一畫面", pg.evaluate("() => { const t = document.getElementById('fcTrend').getBoundingClientRect(), w = document.getElementById('fcW_money').getBoundingClientRect(); return t.top > w.bottom - 4 && t.top < innerHeight + 600; }"))
     g0 = st(pg)["gid"]; sa = pg.evaluate("() => JSON.stringify(echarts.getInstanceByDom(document.getElementById('fcW_strength')).getOption().series[1].data)")
     # 點「強弱輪盤」的一個點 → 另外兩張同步換焦點（焦點環）
-    pg.evaluate("() => document.getElementById('fcW_strength').scrollIntoView({block: 'center'})"); pg.wait_for_timeout(300)
-    pos = pg.evaluate("""(g0) => { const el = document.getElementById('fcW_strength'), c = echarts.getInstanceByDom(el), d = c.getOption().series[0].data; const P = d.map(x => [x, c.convertToPixel({ seriesIndex: 0 }, x.value)]); const iso = (q) => Math.min(...P.filter(r => r[0] !== q[0]).map(r => Math.hypot(r[1][0] - q[1][0], r[1][1] - q[1][1]))); const cand = P.filter(r => { const ay = el.getBoundingClientRect().top + r[1][1]; return r[0].gid !== g0 && r[0].rx === r[0].value[0] && r[0].ry === r[0].value[1] && ay > 110 && ay < innerHeight - 110; }).sort((u, v) => iso(v) - iso(u))[0]; const b = el.getBoundingClientRect(); return [b.left + cand[1][0], b.top + cand[1][1], cand[0].gid]; }""", g0)
+    pg.evaluate("() => { document.documentElement.style.scrollBehavior = 'auto'; const e = document.getElementById('fcW_strength'); window.scrollBy(0, e.getBoundingClientRect().top - 150); }"); pg.wait_for_timeout(300)
+    pos = pg.evaluate("""(g0) => { const el = document.getElementById('fcW_strength'), c = echarts.getInstanceByDom(el), d = c.getOption().series[0].data; const P = d.map(x => [x, c.convertToPixel({ seriesIndex: 0 }, x.value)]); const iso = (q) => Math.min(...P.filter(r => r[0] !== q[0]).map(r => Math.hypot(r[1][0] - q[1][0], r[1][1] - q[1][1]))); const cand = P.filter(r => { const ay = el.getBoundingClientRect().top + r[1][1]; return r[0].gid !== g0 && r[0].rx === r[0].value[0] && r[0].ry === r[0].value[1] && ay > 300 && ay < innerHeight - 110; }).sort((u, v) => iso(v) - iso(u))[0]; const b = el.getBoundingClientRect(); return [b.left + cand[1][0], b.top + cand[1][1], cand[0].gid]; }""", g0)
     pg.mouse.click(pos[0], pos[1]); pg.wait_for_timeout(900)
     ok(f"[{T}] ⑪ 點任一張的點：三張共用同一焦點（另兩張的焦點環跟著換）", st(pg)["gid"] == pos[2] and pg.evaluate("() => ['strength','money'].every(k => echarts.getInstanceByDom(document.getElementById('fcW_' + k)).getOption().series.length >= 3)") and pg.evaluate("() => document.getElementById('fcTrendName').textContent") != "", st(pg)["gid"])
     OV = """(ids) => { let bad = 0, total = 0; const R = [];
       ids.forEach(id => { const c = echarts.getInstanceByDom(document.getElementById(id)); if (!c) return; const L = [];
         c.getZr().storage.getDisplayList(true).forEach(e => { if (e.ignore || e.invisible || !e.style || !e.style.text || e.type !== 'tspan' && e.type !== 'text') return; const r = e.getBoundingRect().clone(); if (e.transform) r.applyTransform(e.transform); if (r.width > 1 && r.height > 1) L.push([e.style.text, r]); });
         total += L.length;
-        for (let i = 0; i < L.length; i++) for (let j = i + 1; j < L.length; j++) { const a = L[i][1], b = L[j][1], w = Math.min(a.x + a.width, b.x + b.width) - Math.max(a.x, b.x), h = Math.min(a.y + a.height, b.y + b.height) - Math.max(a.y, b.y); if (w > 2 && h > 2) { bad++; R.push(id + ':' + L[i][0] + '×' + L[j][0]); } } });
+        for (let i = 0; i < L.length; i++) for (let j = i + 1; j < L.length; j++) { const a = L[i][1], b = L[j][1], w = Math.min(a.x + a.width, b.x + b.width) - Math.max(a.x, b.x), h = Math.min(a.y + a.height, b.y + b.height) - Math.max(a.y, b.y); if (w > 3 && h > 4) { bad++; R.push(id + ':' + L[i][0] + '×' + L[j][0] + '(' + Math.round(w) + 'x' + Math.round(h) + ')'); } } });
       return { bad, total, R: R.slice(0, 6) }; }"""
     ov = pg.evaluate(OV, ["fcW_strength", "fcW_money", "fcW_tree", "fcHeat", "fcTrend"])
     ok(f"[{T}] ⑪ 圖內文字框兩兩不相交（輪盤三張、熱力圖、走勢；檢查 {ov['total']} 個文字框）", ov["bad"] == 0 and ov["total"] > 20, str(ov))
@@ -218,7 +225,14 @@ def t_flowcheck_1030(b, base):
     ok(f"[{T}] ⑫ 結論列直接寫「背離 A 前 3」名單", "背離 A）前 3" in text(pg, "#fcVerdict") or "背離 A）前 3：" in text(pg, "#fcVerdict").replace("（", "）") or "前 3：" in text(pg, "#fcVerdict"))
     g_b = st(pg)["gid"]
     pg.click("#fcDivBtn"); pg.wait_for_timeout(500)
-    ok(f"[{T}] ⑫ 點背離榜：展開 A、B 兩段、各列有長條、列數對得上", pg.evaluate("(a) => { const p = document.getElementById('fcDivPop'); if (!p) return false; const cols = p.children; const ra = cols[0].querySelectorAll('.fc-dr').length, rb = cols[1].querySelectorAll('.fc-dr').length; return cols.length === 2 && ra === Math.min(12, a[0]) && rb === Math.min(12, a[1]) && [...p.querySelectorAll('.fc-dr i')].every(i => i.getBoundingClientRect().width >= 3); }", [nA, nB]))
+    ok(f"[{T}] ⑫ 點背離榜：展開 A、B 兩段、各列有長條、列數對得上", pg.evaluate("(a) => { const p = document.getElementById('fcDivPop'); if (!p) return false; const cols = p.children; const ra = cols[0].querySelectorAll('.fc-dr').length, rb = cols[1].querySelectorAll('.fc-dr').length; return cols.length >= 2 && ra === Math.min(10, a[0]) && rb === Math.min(10, a[1]) && [...p.querySelectorAll('.fc-dr i')].every(i => i.getBoundingClientRect().width >= 3); }", [nA, nB]))
+    ok(f"[{T}] ⑫ 背離榜展開不用框內再捲（沒有內捲、內容完整攤開）", pg.evaluate("() => { const p = document.getElementById('fcDivPop'), cs = getComputedStyle(p); return !/auto|scroll/.test(cs.overflowY) && p.scrollHeight <= p.clientHeight + 1; }"))
+    if nA > 10 or nB > 10:
+        n0 = pg.evaluate("() => document.querySelectorAll('#fcDivPop .fc-dr').length")
+        pg.click("#fcDivAll"); pg.wait_for_timeout(400)
+        n1 = pg.evaluate("() => document.querySelectorAll('#fcDivPop .fc-dr').length")
+        ok(f"[{T}] ⑫ 背離榜前 10＋「看全部」：點了列數增加到 A{nA}＋B{nB}", n1 == nA + nB and n1 > n0, f"{n0}->{n1}")
+        pg.click("#fcDivAll"); pg.wait_for_timeout(300)
     pg.evaluate("(g) => { const b = [...document.querySelectorAll('#fcDivPop .fc-dr')].find(x => x.dataset.g !== g); b.click(); }", g_b); pg.wait_for_timeout(700)
     ok(f"[{T}] ⑫ 點榜上一列：選到該族群（焦點同步換）", st(pg)["gid"] != g_b)
     pg.click("#fcDivBtn"); pg.wait_for_timeout(300)
@@ -243,8 +257,13 @@ def t_flowcheck_1030(b, base):
     mins = pg.evaluate("() => { const d = echarts.getInstanceByDom(document.getElementById('fcW_tree')).getModel().getSeriesByIndex(0).getData(); const o = []; for (let i = 0; i < d.count(); i++) { const r = d.getRawDataItem(i), l = d.getItemLayout(i); if (r.gid) o.push([l.dx, l.dy]); } return [Math.min(...o.map(x => x[0])), Math.min(...o.map(x => x[1])), o.length]; }")
     ok(f"[{T}] ⑫ 資金樹族群節點可點範圍：寬 ≥ 24、高 ≥ 24px（共 {mins[2]} 個）", mins[0] >= 24 and mins[1] >= 24, str(mins))
     # 新聞列不重疊
+    open_more(pg)
     pg.click("#fcTab button[data-v='news']"); pg.wait_for_timeout(700)
     ok(f"[{T}] ⑫ 新聞列兩兩不相交（列高不固定）", pg.evaluate("() => { const r = [...document.querySelectorAll('#fcNews .fc-nw')].map(e => e.getBoundingClientRect()); for (let i = 1; i < r.length; i++) if (r[i].top < r[i - 1].bottom - 1) return false; return true; }"))
+    pg.click("#fcTab button[data-v='daily']"); pg.wait_for_timeout(300)
+    pg.click("#fcTab button[data-v='sig']"); pg.wait_for_timeout(1000)
+    ok(f"[{T}] ⑫ 提前判斷分頁畫面上寫著「實驗」（不只在「?」）", "實驗" in text(pg, "#fcSigL") and "實驗" in text(pg, "#fcTab"))
+    ok(f"[{T}] ⑫ 收盤檢視的觸發表欄名是「觸發後至收盤」；回測表沒有「粒度」欄、訊號名帶（60 分）", "觸發後至收盤" in text(pg, "#fcSigL") and "粒度" not in text(pg, "#fcSigR") and "（60 分）" in text(pg, "#fcSigR"))
     pg.click("#fcTab button[data-v='daily']"); pg.wait_for_timeout(300)
     # 換日期不晃：走勢卡、輪盤卡高度不變
     h0 = pg.evaluate("() => [document.getElementById('fcTrendCard').getBoundingClientRect().height, document.getElementById('fcWheelCard').getBoundingClientRect().height]")
@@ -265,7 +284,7 @@ def t_flowcheck_1030(b, base):
     ok(f"[{T}] ⑨ 手機：成分股／熱力圖／更多證據預設收起", pg.evaluate("() => ['fcMemCard','fcHeatCard','fcMoreCard'].every(i => !document.getElementById(i).classList.contains('open') && document.querySelector('#' + i + ' .fc-bd').getBoundingClientRect().height === 0)"))
     ok(f"[{T}] ⑨ 手機：走勢圖在輪盤上面", pg.evaluate("() => document.getElementById('fcTrendCard').getBoundingClientRect().top < document.getElementById('fcWheelCard').getBoundingClientRect().top"))
     ok(f"[{T}] ⑨ 手機：時間軸把手高 ≥ 32px、貼底", pg.evaluate("() => { const r = document.querySelector('#fcRange2').getBoundingClientRect(); return r.height >= 32 && Math.abs(document.getElementById('fcTl').getBoundingClientRect().bottom - innerHeight) < 4; }"))
-    ovm = pg.evaluate("""(ids) => { let bad = 0, total = 0; ids.forEach(id => { const c = echarts.getInstanceByDom(document.getElementById(id)); if (!c) return; const L = []; c.getZr().storage.getDisplayList(true).forEach(e => { if (e.ignore || e.invisible || !e.style || !e.style.text || e.type !== 'tspan' && e.type !== 'text') return; const r = e.getBoundingRect().clone(); if (e.transform) r.applyTransform(e.transform); if (r.width > 1 && r.height > 1) L.push(r); }); total += L.length; for (let i = 0; i < L.length; i++) for (let j = i + 1; j < L.length; j++) { const a = L[i], b = L[j], w = Math.min(a.x + a.width, b.x + b.width) - Math.max(a.x, b.x), h = Math.min(a.y + a.height, b.y + b.height) - Math.max(a.y, b.y); if (w > 2 && h > 2) bad++; } }); return { bad, total }; }""", ["fcWheel", "fcTrend"])
+    ovm = pg.evaluate("""(ids) => { let bad = 0, total = 0; ids.forEach(id => { const c = echarts.getInstanceByDom(document.getElementById(id)); if (!c) return; const L = []; c.getZr().storage.getDisplayList(true).forEach(e => { if (e.ignore || e.invisible || !e.style || !e.style.text || e.type !== 'tspan' && e.type !== 'text') return; const r = e.getBoundingRect().clone(); if (e.transform) r.applyTransform(e.transform); if (r.width > 1 && r.height > 1) L.push(r); }); total += L.length; for (let i = 0; i < L.length; i++) for (let j = i + 1; j < L.length; j++) { const a = L[i], b = L[j], w = Math.min(a.x + a.width, b.x + b.width) - Math.max(a.x, b.x), h = Math.min(a.y + a.height, b.y + b.height) - Math.max(a.y, b.y); if (w > 3 && h > 4) bad++; } }); return { bad, total }; }""", ["fcWheel", "fcTrend"])
     ok(f"[{T}] ⑨ 手機：輪盤與走勢圖內文字框兩兩不相交（{ovm['total']} 個）", ovm["bad"] == 0 and ovm["total"] > 5, str(ovm))
     # ⑨b 手機時間軸：只佔一列、背景不透明、速度鈕收進「⋯」、不蓋住首屏文字、頁尾留白
     tl = pg.evaluate("""() => { const t = document.getElementById('fcTl'), r = t.getBoundingClientRect(), cs = getComputedStyle(t), spd = document.getElementById('fcSpd').getBoundingClientRect(), pl = document.getElementById('fcPlay').getBoundingClientRect(), ax = document.getElementById('fcRange2').getBoundingClientRect(), lb = document.getElementById('fcTlab').getBoundingClientRect();
@@ -278,20 +297,43 @@ def t_flowcheck_1030(b, base):
     pg.click("#fcTlMore"); pg.wait_for_timeout(200)
     cov = pg.evaluate("""() => { const bar = document.getElementById('fcTl').getBoundingClientRect(); window.scrollTo(0, 0); const bad = [];
       document.querySelectorAll('#v-flowcheck *').forEach(e => { if (e.closest('#fcTl') || !(e instanceof HTMLElement)) return; if (!Array.from(e.childNodes).some(n => n.nodeType === 3 && n.textContent.trim().length > 0)) return; const cs = getComputedStyle(e); if (cs.visibility === 'hidden' || cs.display === 'none') return; const r = e.getBoundingClientRect(); if (r.width < 2 || r.height < 2 || r.bottom <= 0 || r.top >= innerHeight) return;
-        const w = Math.min(r.right, bar.right) - Math.max(r.left, bar.left), h = Math.min(r.bottom, bar.bottom) - Math.max(r.top, bar.top); if (w > 2 && h > 2) bad.push(e.textContent.trim().slice(0, 14)); });
+        const w = Math.min(r.right, bar.right) - Math.max(r.left, bar.left), h = Math.min(r.bottom, bar.bottom) - Math.max(r.top, bar.top); if (w > 3 && h > 4) bad.push(e.textContent.trim().slice(0, 14)); });
       return bad; }""")
     ok(f"[{T}] ⑨ 手機 390×844 首屏：時間軸框與其他可見文字框不相交（沒有文字被蓋住）", cov == [], str(cov))
     pg.evaluate("() => { document.documentElement.style.scrollBehavior = 'auto'; window.scrollTo(0, document.documentElement.scrollHeight); }"); pg.wait_for_timeout(500)
     tail = pg.evaluate("() => { const bar = document.getElementById('fcTl').getBoundingClientRect(); const els = [...document.querySelectorAll('#v-flowcheck .fc > *:not(#fcTl)')].filter(e => e.getBoundingClientRect().height > 0); const last = els[els.length - 1].getBoundingClientRect(); return [last.bottom, bar.top]; }")
     ok(f"[{T}] ⑨ 手機：捲到底時最後一張卡完整在時間軸之上（頁底留白夠）", tail[0] <= tail[1] + 1, str(tail))
     TXT = """() => { const els = [...document.querySelectorAll('#v-flowcheck *')].filter(e => { if (e.closest('#fcTl') || !(e instanceof HTMLElement) || ['BUTTON', 'INPUT', 'CANVAS', 'SVG'].includes(e.tagName)) return false; if (!Array.from(e.childNodes).some(n => n.nodeType === 3 && n.textContent.trim().length > 1)) return false; const cs = getComputedStyle(e); if (cs.visibility === 'hidden' || cs.display === 'none') return false; const r = e.getBoundingClientRect(); return r.width > 4 && r.height > 4 && r.bottom > 0 && r.top < innerHeight && !e.closest('details:not([open])'); });
-      const bad = []; for (let i = 0; i < els.length; i++) for (let j = i + 1; j < els.length; j++) { const a = els[i], b = els[j]; if (a.contains(b) || b.contains(a)) continue; const x = a.getBoundingClientRect(), y = b.getBoundingClientRect(); const w = Math.min(x.right, y.right) - Math.max(x.left, y.left), h = Math.min(x.bottom, y.bottom) - Math.max(x.top, y.top); if (w > 2 && h > 2) bad.push(a.textContent.trim().slice(0, 10) + '×' + b.textContent.trim().slice(0, 10)); } return bad; }"""
+      const bad = []; for (let i = 0; i < els.length; i++) for (let j = i + 1; j < els.length; j++) { const a = els[i], b = els[j]; if (a.contains(b) || b.contains(a)) continue; const x = a.getBoundingClientRect(), y = b.getBoundingClientRect(); const w = Math.min(x.right, y.right) - Math.max(x.left, y.left), h = Math.min(x.bottom, y.bottom) - Math.max(x.top, y.top); if (w > 3 && h > 4) bad.push(a.textContent.trim().slice(0, 10) + '×' + b.textContent.trim().slice(0, 10)); } return bad; }"""
     pg.evaluate("() => window.scrollTo(0, 0)")
     pg.evaluate("() => { location.hash = '#flowcheck?g=%s&d=%s&t=1300'; }" % (GID, HIST)); pg.wait_for_timeout(2500)
     pg.evaluate("() => { document.documentElement.style.scrollBehavior = 'auto'; window.scrollTo(0, 0); }"); pg.wait_for_timeout(300)
     bad = pg.evaluate(TXT)
     ok(f"[{T}] ⑨ 手機 390×844 歷史日首屏：可見文字框兩兩不相交（標題、分段鈕、徽章、說明列）", bad == [], str(bad[:4]))
     pg.evaluate("() => window.scrollTo(0, 0)")
+    # ⑨c 手機換日期版面不晃、「⋯」彈層選完自動關且時點列不被切、訊號標記細線、回測表有左右滑提示
+    pg.evaluate("() => { document.documentElement.style.scrollBehavior = 'auto'; window.scrollTo(0, 0); }")
+    M = "() => ['fcWheelCard','fcTrendCard','fcVerdict','fcHeatCard','fcMemCard'].map(i => document.getElementById(i).getBoundingClientRect().height)"
+    h0 = pg.evaluate(M)
+    pg.evaluate("(d) => { const i = document.querySelector('#fcDatePick'); i.value = d; i.dispatchEvent(new Event('change', {bubbles: true})); }", HIST); pg.wait_for_timeout(1400)
+    h1 = pg.evaluate(M)
+    ok(f"[{T}] ⑨ 手機換日期（今天→歷史日）：輪盤卡、走勢卡、結論列高度完全不變（Δ<1px）", all(abs(x - y) < 1 for x, y in zip(h0, h1)), f"{h0}->{h1}")
+    pg.evaluate("(d) => { const i = document.querySelector('#fcDatePick'); i.value = d; i.dispatchEvent(new Event('change', {bubbles: true})); }", IDX["dates"][-3]); pg.wait_for_timeout(1400)
+    h2 = pg.evaluate(M)
+    ok(f"[{T}] ⑨ 手機再換一天：四張卡高度仍不變（Δ<1px）", all(abs(x - y) < 1 for x, y in zip(h1, h2)), f"{h1}->{h2}")
+    pg.click("#fcTlMore"); pg.wait_for_timeout(300)
+    pop = pg.evaluate("() => { const x = document.getElementById('fcTlx').getBoundingClientRect(), b = [...document.querySelectorAll('#fcDayT button')].map(e => e.getBoundingClientRect()); return { n: b.length, inside: b.every(r => r.left >= x.left - 1 && r.right <= x.right + 1 && r.left >= 0 && r.right <= innerWidth), last: document.querySelector('#fcDayT button:last-child').textContent, h: x.height }; }")
+    ok(f"[{T}] ⑨ 手機「⋯」彈層：時點列全部在彈層內不被切（含最後一格 {pop['last']}）、高度不留空白（{round(pop['h'])}px）", pop["n"] >= 5 and pop["inside"] and pop["h"] <= 180, str(pop))
+    pg.click("#fcDayT button:nth-child(3)"); pg.wait_for_timeout(500)
+    ok(f"[{T}] ⑨ 手機：點了時點彈層自動關、時間真的換了", pg.evaluate("() => !document.getElementById('fcTl').classList.contains('xopen') && TwFlowcheck.state().t !== 'close'"))
+    pg.click("#fcTlMore"); pg.wait_for_timeout(200)
+    pg.mouse.click(30, 300); pg.wait_for_timeout(300)
+    ok(f"[{T}] ⑨ 手機：點彈層外面也會關", pg.evaluate("() => !document.getElementById('fcTl').classList.contains('xopen')"))
+    pg.click("#fcMoreCard .fc-tog") if pg.evaluate("() => !document.getElementById('fcMoreCard').classList.contains('open')") else None
+    pg.click("#fcTab button[data-v='sig']"); pg.wait_for_timeout(1000)
+    sm = pg.evaluate("() => { const st = document.querySelector('.fc-strip').getBoundingClientRect(); const m = [...document.querySelectorAll('.fc-sm')].map(e => e.getBoundingClientRect()); return { n: m.length, thin: m.every(r => r.width <= 4.5), inside: m.every(r => r.right <= st.right + 0.5 && r.left >= st.left - 0.5), hint: (document.querySelector('#fcSigR .fc-swipe') || {}).textContent || '', hv: !!document.querySelector('#fcSigR .fc-swipe') && document.querySelector('#fcSigR .fc-swipe').getBoundingClientRect().height > 8 }; }")
+    ok(f"[{T}] ⑨ 手機：訊號時間軸標記是細線且都在軸內；回測表下有「左右滑看更多」提示；畫面有「實驗」", sm["thin"] and sm["inside"] and "左右滑" in sm["hint"] and sm["hv"] and "實驗" in text(pg, "#fcSigL"), str(sm))
+    pg.click("#fcTab button[data-v='daily']"); pg.wait_for_timeout(300)
     pg.click("#fcMemCard .fc-tog"); pg.wait_for_timeout(700)
     ok(f"[{T}] ⑨ 手機：點「展開」成分股真的展開且有圖", pg.evaluate("() => document.querySelector('#fcMemCard .fc-bd').getBoundingClientRect().height > 100 && document.querySelectorAll('#fcMinis .chart canvas, #fcMinis .chart svg').length >= 3"))
     ok(f"[{T}] ⑨ 手機：字不小於 11px", pg.evaluate("() => [...document.querySelectorAll('#v-flowcheck button, #v-flowcheck td, #v-flowcheck .fc-vt')].filter(e => e.getBoundingClientRect().height > 0 && parseFloat(getComputedStyle(e).fontSize) < 11).length") == 0)

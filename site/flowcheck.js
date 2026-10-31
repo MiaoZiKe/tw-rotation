@@ -196,7 +196,7 @@
     return '<div class="seg" id="' + id + '" role="group" aria-label="' + esc(label) + '">' + arr.map(function (p) { return '<button type="button" data-v="' + p[0] + '" class="' + (p[0] === cur ? 'on' : '') + '" aria-pressed="' + (p[0] === cur) + '">' + esc(p[1]) + '</button>'; }).join('') + '</div>';
   }
   function fold(id, title, extra, body) {
-    var op = !isM() || open[id];
+    var op = (id !== 'fcMoreCard' && !isM()) || !!open[id];      // 「更多證據」桌機也預設收起（收展預設收起準則，也讓整頁壓到一頁多一點）；手動展開過才記住
     return '<section class="card fc-card fc-fold' + (op ? ' open' : '') + '" id="' + id + '"><div class="fc-hd"><h3>' + title + '</h3>' + (extra || '') + '<button type="button" class="fc-tog" data-fold="' + id + '" aria-expanded="' + !!op + '">' + (op ? '收起' : '展開') + '</button></div><div class="fc-bd">' + body + '</div></section>';
   }
   function build() {
@@ -223,7 +223,7 @@
       + '<div id="fcTrend" class="chart fc-trend"></div><div class="fc-note fc-tnote" id="fcTrendNote"><span class="fc-badge" id="fcBadge"></span><span id="fcNoteTx"></span></div></section>'
       + fold('fcMemCard', '成分股走勢（前 6 大） ' + howBox('mem'), '', howDiv('mem') + '<div class="fc-minis" id="fcMinis"></div><details class="fc-det" id="fcTblDet"><summary>全部成分股表</summary><div class="fc-tbl" id="fcMemTbl"></div></details>')
       + '</div></div>'
-      + fold('fcMoreCard', '更多證據 ' + howBox('more'), seg('fcTab', [['daily', '日級別訊號'], ['sig', '提前判斷'], ['news', '新聞與法人']], S.tab, '更多證據分頁'),
+      + fold('fcMoreCard', '更多證據 ' + howBox('more'), seg('fcTab', [['daily', '日級別訊號'], ['sig', '提前判斷（實驗）'], ['news', '新聞與法人']], S.tab, '更多證據分頁'),
         howDiv('more') + '<div class="fc-pane" id="fcPaneDaily">' + howDiv('day') + '<div id="fcDay"></div></div>'
         + '<div class="fc-pane" id="fcPaneSig" hidden>' + howDiv('sig') + '<div class="fc-sigwrap"><div class="fc-sigl" id="fcSigL"></div><div class="fc-sigr" id="fcSigR"></div></div></div>'
         + '<div class="fc-pane" id="fcPaneNews" hidden>' + howDiv('news') + howDiv('inst') + '<div class="fc-row2"><div><div class="fc-sub2">當日相關新聞／事件 <button class="howbtn pop" type="button" data-how="fc_news" data-ttl="新聞與事件" aria-label="新聞怎麼看">?</button></div><div class="fc-news" id="fcNews"></div></div>'
@@ -240,6 +240,8 @@
     try { window.matchMedia('(min-width:1440px)').addEventListener('change', function () { if (C.idx) setTimeout(paint, 80); }); } catch (e) { /* 舊瀏覽器 */ }
     return true;
   }
+  function closeTlx() { var tl = $('#fcTl'); if (tl && tl.classList.contains('xopen')) { tl.classList.remove('xopen'); var m = $('#fcTlMore'); if (m) m.setAttribute('aria-expanded', 'false'); } }
+  document.addEventListener('click', function (e) { var tl = $('#fcTl'); if (tl && tl.classList.contains('xopen') && !e.target.closest('#fcTl')) closeTlx(); });
   function wire(v) {
     v.addEventListener('click', function (e) {
       var b = e.target.closest('button'); if (!b) return;
@@ -253,9 +255,10 @@
       if (p === 'fcTab') { S.tab = b.dataset.v; paint(); return; }
       if (p === 'fcCmp') { S.cmp = b.dataset.v; paint(); return; }
       if (p === 'fcSpan') { S.span = b.dataset.v; paint(); return; }
-      if (p === 'fcSpd') { playSpd = +b.dataset.v; $$('#fcSpd button').forEach(function (x) { x.classList.toggle('on', x === b); }); return; }
-      if (p === 'fcDayT') { setT(b.dataset.v); return; }
+      if (p === 'fcSpd') { playSpd = +b.dataset.v; $$('#fcSpd button').forEach(function (x) { x.classList.toggle('on', x === b); }); closeTlx(); return; }
+      if (p === 'fcDayT') { setT(b.dataset.v); closeTlx(); return; }
       if (p === 'fcMode') { setMode(b.dataset.v); return; }
+      if (b.id === 'fcDivAll') { S.divAll = !S.divAll; paint(); return; }
       if (b.id === 'fcDivBtn') { S.divOpen = !S.divOpen; paint(); return; }
       if (b.id === 'fcDayMore') { S.dayAll = !S.dayAll; paint(); return; }
       if (b.id === 'fcTlMore') { var tl = $('#fcTl'), on = !tl.classList.contains('xopen'); tl.classList.toggle('xopen', on); b.setAttribute('aria-expanded', on); return; }
@@ -307,8 +310,13 @@
       ensureFocus(); writeUrl(true); paint();
     });
   }
-  function isIntraNow() {                  // 今天且盤中（台北 09:00–13:30）才停在「最新一格」，盤後停收盤
-    try { var p = new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Taipei', hour12: false, hour: '2-digit', minute: '2-digit' }).formatToParts(new Date()), h = +p[0].value, m = +p[2].value; return h * 60 + m >= 540 && h * 60 + m < 810; } catch (e) { return false; }
+  function isIntraNow() {                  // 今天且盤中（台北週一～五 09:00–13:30、且最新交易日就是今天）才停在「最新一格」，其他一律停收盤
+    try {
+      var p = new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Taipei', hour12: false, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', weekday: 'short' }).formatToParts(new Date()), o = {};
+      p.forEach(function (x) { o[x.type] = x.value; });
+      var m = (+o.hour) * 60 + (+o.minute), ymd = o.year + '-' + o.month + '-' + o.day;
+      return !/Sat|Sun/.test(o.weekday) && m >= 540 && m < 810 && C.idx && ymd === C.idx.latest;
+    } catch (e) { return false; }
   }
   function toast(msg) { var n = $('#fcToast'); if (!n) { n = document.createElement('div'); n.id = 'fcToast'; n.className = 'fc-toast'; n.setAttribute('role', 'status'); document.body.appendChild(n); } n.textContent = msg; n.classList.add('on'); clearTimeout(n._t); n._t = setTimeout(function () { n.classList.remove('on'); }, 3500); }
   /* 日期沒資料時分兩種說法：休市（週末或 index.holidays 列的日子）、資料缺（平日、在資料範圍內卻沒檔） */
@@ -400,9 +408,10 @@
     var divBtn = '<button type="button" class="fc-chip warn' + (S.divOpen ? ' on' : '') + '" id="fcDivBtn" aria-expanded="' + !!S.divOpen + '">背離榜 A ' + dA.length + '／B ' + dB.length + '</button>';
     var chips = (S.gid ? '<span class="fc-fl">焦點</span><button type="button" class="fc-chip on" data-g="' + esc(S.gid) + '">' + esc(gInfo(S.gid).name) + '</button>' : '')
       + top.filter(function (x) { return x.gid !== S.gid; }).slice(0, 2).map(function (x) { return '<button type="button" class="fc-chip" data-g="' + esc(x.gid) + '">' + esc(x.name) + '</button>'; }).join('') + divBtn;
-    var lst = function (a, key, mx) { return a.slice(0, 12).map(function (x) { var v = key === 'f' ? x.f : x.r; return '<button type="button" class="fc-dr" data-g="' + esc(x.gid) + '"><span>' + esc(x.name) + '</span><em>資金 ' + sg(x.f, 2) + 'pp　相對加權指數 ' + sg(x.r, 1, '%') + '</em><i style="width:' + Math.max(3, Math.abs(v) / mx * 60).toFixed(0) + 'px;background:' + col(v) + '"></i></button>'; }).join('') || '<p class="muted">沒有</p>'; };
+    var lst = function (a, key, mx) { return (S.divAll ? a : a.slice(0, 10)).map(function (x) { var v = key === 'f' ? x.f : x.r; return '<button type="button" class="fc-dr" data-g="' + esc(x.gid) + '"><span>' + esc(x.name) + '</span><em>資金 ' + sg(x.f, 2) + 'pp　相對加權指數 ' + sg(x.r, 1, '%') + '</em><i style="width:' + Math.max(3, Math.abs(v) / mx * 60).toFixed(0) + 'px;background:' + col(v) + '"></i></button>'; }).join('') || '<p class="muted">沒有</p>'; };
+    var moreBtn = (dA.length > 10 || dB.length > 10) ? '<button type="button" class="btn small fc-more" id="fcDivAll">' + (S.divAll ? '只看前 10 名' : '看全部（A ' + dA.length + '／B ' + dB.length + '）') + '</button>' : '';
     var mA = Math.max.apply(null, dA.map(function (x) { return Math.abs(x.f); }).concat([0.01])), mB = Math.max.apply(null, dB.map(function (x) { return Math.abs(x.r); }).concat([0.01]));
-    var pop = S.divOpen ? '<div class="fc-divpop" id="fcDivPop"><div><div class="fc-sub2">A　資金進、走勢弱（依資金占比變化排序）</div>' + lst(dA, 'f', mA) + '</div><div><div class="fc-sub2">B　走勢強、資金退（依相對加權指數排序）</div>' + lst(dB, 'r', mB) + '</div></div>' : '';
+    var pop = S.divOpen ? '<div class="fc-divpop" id="fcDivPop"><div><div class="fc-sub2">A　資金進、走勢弱（依資金占比變化排序）</div>' + lst(dA, 'f', mA) + '</div><div><div class="fc-sub2">B　走勢強、資金退（依相對加權指數排序）</div>' + lst(dB, 'r', mB) + '</div>' + (moreBtn ? '<div class="fc-divmore">' + moreBtn + '</div>' : '') + '</div>' : '';
     el.innerHTML = '<div class="fc-vt"><span class="fc-vl">' + when + s + '</span><span class="fc-vs">' + short + '</span></div><div class="fc-vc">' + chips + '</div>' + pop;
     $('#fcSame').innerHTML = sm.length ? '<span class="fc-fl">三者同向流入 ' + sm.length + '</span>' + sm.slice(0, 4).map(function (x) { return '<button type="button" class="fc-chip same" data-g="' + esc(x.gid) + '">' + esc(x.name) + '</button>'; }).join('') : '<span class="fc-fl">三者同向流入：無</span>';
   }
@@ -439,7 +448,7 @@
     var qn = money ? ['資金回流', '資金湧入', '資金轉出', '資金續進'] : ['轉強', '領先', '落後', '轉弱'];
     var qa = function (nm, x0, x1, y0, y1, pos) { return [{ name: nm, xAxis: x0, yAxis: y0, label: { color: ch.ink3, fontSize: 12, position: pos }, itemStyle: { color: 'transparent' } }, { xAxis: x1, yAxis: y1 }]; };
     var series = [
-      { type: 'scatter', data: data, z: 3, label: { formatter: '{b}', position: 'right', distance: 8, color: ch.ink, fontSize: 12 }, labelLayout: { hideOverlap: true }, emphasis: { scale: 1.15 },
+      { type: 'scatter', data: data, z: 3, label: { formatter: '{b}', position: 'right', distance: 8, color: ch.ink, fontSize: 12, padding: [3, 5] }, labelLayout: { hideOverlap: true }, emphasis: { scale: 1.15 },
         markLine: { silent: true, symbol: 'none', lineStyle: { color: ch.ink3, type: 'dashed', opacity: .6 }, label: { show: false }, data: [{ xAxis: c0 }, { yAxis: c0 }] } },
       { type: 'scatter', z: 2, silent: true, data: vis.filter(function (x) { return x.same3; }).map(function (x) { return { value: [clamp(X(x), xr), clamp(Y(x), yr)], symbolSize: size(x) + 16 }; }), itemStyle: { color: 'transparent', borderColor: ch.cyan, borderWidth: 2, borderType: 'dashed' } },
       { type: 'scatter', z: 2, silent: true, data: vis.filter(function (x) { return x.div; }).map(function (x) { return { value: [clamp(X(x), xr), clamp(Y(x), yr)], symbolSize: size(x) + 10 }; }), itemStyle: { color: 'transparent', borderColor: ch.amber, borderWidth: 2.5 } }
@@ -589,17 +598,17 @@
       var x = byG[s.gid] || {}, now = x.r != null ? x.r - s.rel_at_trigger : null, nowTxt = S.t === 'close' ? s.rel_to_close : now;
       return '<tr class="' + (s.gid === S.gid ? 'on' : '') + '"><td>' + tn[s.type] + '</td><td><button type="button" class="fc-lk" data-g="' + esc(s.gid) + '">' + esc(x.name || s.gid) + '</button></td><td class="n">' + esc(s.t) + '</td><td class="n" style="color:' + col(nowTxt) + '">' + sg(nowTxt, 2, '%') + '</td><td class="n hm" style="color:' + col(s.rel_to_close) + '">' + sg(s.rel_to_close, 2, '%') + '</td><td class="n hm" style="color:' + col(s.rel_next_day) + '">' + (s.rel_next_day == null ? '—' : sg(s.rel_next_day, 2, '%')) + '</td></tr>';
     }).join('');
-    $('#fcSigL').innerHTML = '<div class="fc-sub2">訊號時間軸</div><div class="fc-strip">' + marks + cursor + '</div>'
-      + '<div class="fc-tw"><table><thead><tr><th>訊號</th><th>族群</th><th>觸發時間</th><th>觸發後至目前</th><th class="hm">收盤前</th><th class="hm">隔日</th></tr></thead><tbody>' + (trs || '<tr><td colspan="6" class="muted">這一天沒有訊號</td></tr>') + '</tbody></table></div>';
+    $('#fcSigL').innerHTML = '<div class="fc-sub2"><span class="fc-exp">實驗，回測未達顯著</span>　訊號時間軸</div><div class="fc-strip">' + marks + cursor + '</div>'
+      + '<div class="fc-tw"><table><thead><tr><th>訊號</th><th>族群</th><th>觸發時間</th><th>' + (S.t === 'close' ? '觸發後至收盤' : '觸發後至目前') + '</th><th class="hm">收盤前</th><th class="hm">隔日</th></tr></thead><tbody>' + (trs || '<tr><td colspan="6" class="muted">這一天沒有訊號</td></tr>') + '</tbody></table></div><div class="fc-swipe">← 左右滑看更多 →</div>';
     getBt().then(function (bt) {
       if (!bt) { $('#fcSigR').innerHTML = '<div class="fc-sub2">歷史回測</div><p class="muted">回測資料尚未上線</p>'; return; }
       var gn = { '60m': '60 分', '5m': '5 分' }, tl = { flow_lead: '資金先行', breadth: '擴散', open_low_recover: '開低回升' };
       var rowsB = (bt.summary || []).slice().sort(function (a, b) { return (a.granularity === '60m' ? 0 : 1) - (b.granularity === '60m' ? 0 : 1); });
-      $('#fcSigR').innerHTML = '<div class="fc-sub2">歷史回測（' + esc(String((rowsB[0] && rowsB[0].period) || '近 3 年').replace(',', '～')) + '，全族群；成本 ' + (bt.cost != null ? bt.cost : 0.47) + '%）</div><div class="fc-tw"><table><thead><tr><th>訊號</th><th>粒度</th><th>樣本</th><th>到收盤命中率（95% CI）</th><th class="hm">平均超額</th><th>扣成本後</th><th class="hm">隔日命中／平均</th></tr></thead><tbody>'
+      $('#fcSigR').innerHTML = '<div class="fc-sub2">歷史回測（' + esc(String((rowsB[0] && rowsB[0].period) || '近 3 年').replace(',', '～')) + '，全族群；成本 ' + (bt.cost != null ? bt.cost : 0.47) + '%）</div><div class="fc-tw"><table><thead><tr><th>訊號</th><th>樣本</th><th>到收盤命中率（95% CI）</th><th class="hm">平均超額</th><th>扣成本後</th><th class="hm">隔日命中／平均</th></tr></thead><tbody>'
         + rowsB.map(function (r) {
           var small = r.low_n || r.n < 30, rnd = r.ci_has_50;
-          return '<tr class="' + (small ? 'fc-gray' : '') + '"><td>' + esc(tl[r.type] || r.type) + '</td><td>' + (gn[r.granularity] || esc(r.granularity)) + '</td><td class="n">' + r.n + '</td><td class="n">' + (small ? '樣本不足，不下結論' : f2(r.hit_rate, 1) + '%（' + f2(r.ci95[0], 0) + '–' + f2(r.ci95[1], 0) + '%）' + (rnd ? '<br><small>無法區分於隨機</small>' : '')) + '</td><td class="n hm">' + (small ? '—' : sg(r.avg_excess, 2, '%')) + '</td><td class="n" style="color:' + col(r.avg_excess_net) + '">' + (small ? '—' : sg(r.avg_excess_net, 2, '%')) + '</td><td class="n hm">' + (small || r.hit_rate_next == null ? '—' : f2(r.hit_rate_next, 0) + '% / ' + sg(r.avg_next, 2)) + '</td></tr>';
-        }).join('') + '</tbody></table></div><div class="fc-note">' + (bt.passed_multiple_test ? '' : '回測未達顯著（多重比較檢定未通過）') + '</div>';
+          return '<tr class="' + (small ? 'fc-gray' : '') + '"><td>' + esc(tl[r.type] || r.type) + '<small class="muted">（' + (gn[r.granularity] || esc(r.granularity)) + '）</small></td><td class="n">' + r.n + '</td><td class="n">' + (small ? '樣本不足，不下結論' : f2(r.hit_rate, 1) + '%（' + f2(r.ci95[0], 0) + '–' + f2(r.ci95[1], 0) + '%）' + (rnd ? '<br><small>無法區分於隨機</small>' : '')) + '</td><td class="n hm">' + (small ? '—' : sg(r.avg_excess, 2, '%')) + '</td><td class="n" style="color:' + col(r.avg_excess_net) + '">' + (small ? '—' : sg(r.avg_excess_net, 2, '%')) + '</td><td class="n hm">' + (small || r.hit_rate_next == null ? '—' : f2(r.hit_rate_next, 0) + '% / ' + sg(r.avg_next, 2)) + '</td></tr>';
+        }).join('') + '</tbody></table></div><div class="fc-swipe">← 左右滑看更多 →</div><div class="fc-note">' + (bt.passed_multiple_test ? '' : '回測未達顯著（多重比較檢定未通過）') + '</div>';
     });
   }
   /* 日級別訊號：daily_signals.json（strategy-backtest 產出；欄位以 docs/research/20261030_daily_signals.md 為準，這裡先照假設結構，變動只改 normDaily） */
