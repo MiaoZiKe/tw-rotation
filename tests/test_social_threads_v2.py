@@ -228,3 +228,34 @@ def test_long_content_trimmed_to_six_posts_and_points_to_site():
 def test_fit_keeps_everything_when_it_fits():
     posts, cut = V.fit([("🔥 熱力圖：", ["・漲最多 貨櫃航運 +2.9%、資安防護 +1.8%；", "・跌最多 電源供應器 -8.8%"])], "🕛 盤中3分鐘", 145)
     assert cut == [] and len(posts) == 1
+
+
+# ---------------- IG 主題文章改晚上發（2026-11-01 Andy「OK」；Threads 維持同時間） ----------------
+def test_ig_publish_at_evening_and_late_fallback():
+    import social_news as S
+    tz = timezone(timedelta(hours=8))
+    th = datetime(2026, 11, 2, 8, 20, tzinfo=tz)
+    now = datetime(2026, 11, 2, 8, 5, tzinfo=tz)
+    assert S.ig_publish_at("pre", "2026-11-02", now, th).strftime("%H:%M") == "20:00"
+    assert S.ig_publish_at("intra", "2026-11-02", now, th).strftime("%H:%M") == "20:50"
+    assert S.ig_publish_at("post", "2026-11-02", now, th).strftime("%H:%M") == "21:40"
+    assert S.ig_publish_at("wk1", "2026-11-07", now, th).strftime("%H:%M") == "20:00"
+    assert S.ig_publish_at("wk2", "2026-11-07", now, th).strftime("%H:%M") == "20:50"
+    assert S.ig_publish_at("post", "2026-11-02", now, th, 1).strftime("%H:%M") == "21:45"     # 同段第 2 篇錯開
+    late = datetime(2026, 11, 2, 22, 30, tzinfo=tz)                                               # 產稿已過時間 → 晚到照發
+    assert S.ig_publish_at("post", "2026-11-02", late, late).strftime("%H:%M") == "22:35"
+
+
+def test_ig_news_check(tmp_path, monkeypatch):
+    import ig_news_check as C
+    q = tmp_path / "social" / "ig" / "queue"; q.mkdir(parents=True)
+    mk = lambda n, st, at: (q / n).write_text(f"---\nstatus: {st}\npublish_at: {at}\ntitle: t\n---\nx\n", encoding="utf-8")
+    mk("2026-11-02_news-pre-1.md", "posted", "2026-11-02T20:00+08:00")
+    mk("2026-11-02_news-intra-1.md", "approved", "2026-11-02T20:50+08:00")
+    monkeypatch.setattr(C, "expected_slots", lambda d: ("pre", "intra", "post"))
+    now = datetime(2026, 11, 2, 22, 10, tzinfo=timezone(timedelta(hours=8)))
+    r = C.check("2026-11-02", now, tmp_path)
+    assert any("逾時" in p for p in r["problems"]) and any("post 段" in p for p in r["problems"])
+    mk("2026-11-02_news-intra-1.md", "posted", "2026-11-02T20:50+08:00")
+    mk("2026-11-02_news-post-1.md", "posted", "2026-11-02T21:40+08:00")
+    assert C.check("2026-11-02", now, tmp_path)["problems"] == []

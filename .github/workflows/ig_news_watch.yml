@@ -1,0 +1,43 @@
+name: IG 主題文章晚間監工
+
+# 2026-11-01 Andy「OK」（IG 主題文章改晚上 20:00／20:50／21:40 發）＋ CEO：「監工排程增加 22:10 檢查 IG 主題文章是否發出」。
+# 台北每天 22:10：今天該有的 IG 主題文章（交易日盤前／盤中／盤後、休市日週末兩篇）是否都 posted。
+#   逾時未發 → 先叫醒 ig_post.yml 補發、等 4 分鐘再查；仍有缺稿／逾時／失敗 → 這一輪標紅（GitHub 寄信），CEO 22:10 監工同時接手處理到發出。
+on:
+  schedule:
+    - cron: "10 14 * * *"     # 台北 22:10
+  workflow_dispatch:
+concurrency:
+  group: ig-news-watch
+  cancel-in-progress: false
+permissions:
+  contents: read
+  actions: write
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      TZ: Asia/Taipei
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -q pyyaml pandas pyarrow
+      - name: 查今天的 IG 主題文章
+        id: c1
+        continue-on-error: true
+        run: python scripts/ig_news_check.py | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: 逾時就叫醒 ig_post 補發，4 分鐘後再查
+        if: steps.c1.outcome == 'failure'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh workflow run ig_post.yml --ref main -f wait_max=0 || echo "::warning::叫醒 ig_post 失敗"
+          sleep 240
+          git pull -q origin main
+          echo "### 補發後再查" >> "$GITHUB_STEP_SUMMARY"
+          python scripts/ig_news_check.py | tee -a "$GITHUB_STEP_SUMMARY"

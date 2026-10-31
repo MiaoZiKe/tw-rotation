@@ -7,7 +7,8 @@
 - 驗證：`pytest -k "social or threads or ig_post or news"` 260 passed（新 tests/test_social_threads_v2.py 28 條）；沒動 site/**，前端關卡不必跑。dry-run 範例（10/30 真資料）在 scratchpad threads_v2/。
 - 沒有 LLM 金鑰（workflow 引用的 Secrets 沒有 ANTHROPIC_API_KEY），全用模板；要不要加金鑰待 Andy 決定。
 - 11-01 CEO 追加：串文壓到最多 6 則（10/30 範例：盤前 6、盤中 6、盤後 5、主題文章 6），每則 ≤150；放不下的次要數據改寫「完整盤勢見網站」。
-- 待觀察：第一個交易日盤前 v2 的實際串文是否完整發出；第二張數字卡在 Actions 上的字型是 Noto Sans CJK TC Bold（social_news.yml 已裝）。
+- 11-01 Andy「OK」：IG 主題文章改晚上發（盤前篇 20:00、盤中 20:50、盤後 21:40、備案 21:50、週末 20:00／20:50），Threads 不變；ig_post.yml 加晚間補發 cron；新 `ig_news_watch.yml`（每天 22:10）＋CEO 監工排程「IG 主題文章 22:10」。
+- 待觀察：第一個交易日盤前 v2 的實際串文是否完整發出；11-02 晚上 IG 三篇是否 20:00／20:50／21:40 發出；第二張數字卡在 Actions 上的字型是 Noto Sans CJK TC Bold（social_news.yml 已裝）。
 
 ## 2026-10-30 流向驗證的「大盤」改加權指數（使用者測試回報漲跌是加權兩倍；DECISIONS #378；最後更新 10-31 台北）
 - flowcheck 的大盤改成加權指數：日線 index_ohlc TSE、盤中 index_intraday 1 分（之前 60 分）；急跌日、吻合度常態、回測都已重算。主站強弱輪動沒動，要不要改列為建議。

@@ -58,6 +58,10 @@ SLOTS = {
     "wk2":   dict(name="週末", key=None, fixed="19:30", since=(0, "06:00"),  n=1, floor=1, off=True, after="18:45", evergreen_first=True),
     "fb":    dict(name="備案", key=None, fixed="21:15", since=(0, "06:00"),  n=1, floor=1, off=False, after="20:50", evergreen_first=True),
 }
+# 2026-11-01 Andy（CEO 問「主題文章改到晚上 8～10 點發？」）：「OK」→ 只改 IG：IG 主題文章改晚上發（台灣社群互動高峰 20～22 點，
+# ig_growth_plan.md）；Threads 主題文章維持跟主貼文同時間（10-30 Andy：「主題文章 也是 同時間發布」）。
+# 晚到（產稿時已過這個時間）就 now+5 分鐘照發，不跳過。
+IG_EVENING = {"pre": "20:00", "intra": "20:50", "post": "21:40", "wk1": "20:00", "wk2": "20:50", "fb": "21:50"}
 WEEKDAY_SLOTS = ("pre", "intra", "post")
 OFFDAY_SLOTS = ("wk1", "wk2")
 EVERGREEN = ROOT / "social" / "news" / "evergreen.json"
@@ -1561,6 +1565,7 @@ def run_slot(slot: str, day: str, now: datetime, posted: dict, dry: bool, out: P
     for i, d in enumerate(keep):
         t = when + timedelta(minutes=GAP_MIN * i)
         pa = t.strftime("%Y-%m-%dT%H:%M+08:00")
+        pa_ig = ig_publish_at(slot, day, now, t, i).strftime("%Y-%m-%dT%H:%M+08:00")
         d["publish_at"] = pa
         img_rel = (img_out / f"{d['id']}.jpg").relative_to(ROOT).as_posix() if not dry else f"{slot}/{d['id']}.jpg"
         # 2026-11-01 Threads v2：第二張「鉤子＋重點數字卡」（版型 3 套輪替）→ Threads／IG 都 2 張；畫不出來 Threads 0 張、IG 留封面 1 張，不擋整篇
@@ -1597,7 +1602,7 @@ def run_slot(slot: str, day: str, now: datetime, posted: dict, dry: bool, out: P
         meta = "\n".join(f"{k}: {v}" for k, v in d["meta"].items())
         ttl = f"{cfg['name']}{'知識' if d.get('evergreen') else '新聞'} {day} #{i + 1}：{d['card']['title']}"
         status = TOPIC_STATUS if (offday or d.get("evergreen")) else STATUS
-        ig = f"---\nstatus: {status}\npublish_at: {pa}\ntitle: {ttl}\nimages: {', '.join(ig_imgs)}\n{meta}\n---\n{d['caption_ig']}\n"
+        ig = f"---\nstatus: {status}\npublish_at: {pa_ig}\ntitle: {ttl}\nimages: {', '.join(ig_imgs)}\n{meta}\n---\n{d['caption_ig']}\n"
         th = f"---\nstatus: {status}\npublish_at: {pa}\ntitle: {ttl}\nimages: {', '.join(th_imgs)}\n{meta}\n---\n" + "\n-----\n".join(th_posts) + "\n"
         name = f"{day}_news-{slot}-{i + 1}.md"
         if dry:
@@ -1605,7 +1610,7 @@ def run_slot(slot: str, day: str, now: datetime, posted: dict, dry: bool, out: P
             (out / "ig" / name).write_text(ig, encoding="utf-8"); (out / "threads" / name).write_text(th, encoding="utf-8")
         else:
             (IG_Q / name).write_text(ig, encoding="utf-8"); (TH_Q / name).write_text(th, encoding="utf-8")
-        log["posted"].append(dict(file=name, publish_at=pa, title=d["card"]["title"], **d["meta"]))
+        log["posted"].append(dict(file=name, publish_at=pa, publish_at_ig=pa_ig, title=d["card"]["title"], **d["meta"]))
     __import__("threads_v2").save_state(hstate, HOOK_STATE if not dry else (out / "hook_history.json"), today=day)
     if dry:
         (out / f"{slot}.json").write_text(json.dumps(keep, ensure_ascii=False, indent=1, default=str), encoding="utf-8")
@@ -1619,6 +1624,16 @@ def run_slot(slot: str, day: str, now: datetime, posted: dict, dry: bool, out: P
         if any(d.get("evergreen") for d in keep):
             EVG_USAGE.write_text(json.dumps(used, ensure_ascii=False, indent=1, sort_keys=True), encoding="utf-8")
     return log
+
+
+def ig_publish_at(slot: str, day: str, now: datetime, th_time: datetime, i: int = 0) -> datetime:
+    """IG 主題文章發文時間：該段的晚間時間（IG_EVENING）＋同段第 i 篇錯開 GAP_MIN；已經過了就 now+5 分鐘（晚到照發）；
+    不早於 Threads 那篇。沒設晚間時間的段落跟 Threads 同時。"""
+    ev = IG_EVENING.get(slot)
+    if not ev:
+        return th_time
+    t = datetime.fromisoformat(f"{day}T{ev}:00+08:00") + timedelta(minutes=GAP_MIN * i)
+    return max(t, th_time, (now + timedelta(minutes=5)).replace(second=0, microsecond=0))
 
 
 def is_trading(day: str) -> bool:
