@@ -74,6 +74,9 @@ function wheelSvg(W,H,o){o=o||{};const t=S.t,lo=Math.max(0,t-(o.tail||5)),pad={l
  const xr=Math.max(25,Math.abs(q(xs,.04)-100),Math.abs(q(xs,.96)-100))*1.08,yr=Math.max(25,Math.abs(q(ys,.04)-100),Math.abs(q(ys,.96)-100))*1.08;
  const X=v=>pad.l+(Math.max(100-xr,Math.min(100+xr,v))-(100-xr))/(2*xr)*(W-pad.l-pad.r),Y=v=>pad.t+(1-(Math.max(100-yr,Math.min(100+yr,v))-(100-yr))/(2*yr))*(H-pad.t-pad.b);
  const R=g=>Math.max(4,Math.min(22,Math.sqrt(g.share[t])*5.2));
+ const boxes=[[W-pad.r-70,pad.t,W-pad.r,pad.t+18],[pad.l,H-pad.b-20,pad.l+70,H-pad.b],[pad.l,pad.t,pad.l+56,pad.t+18],[W-pad.r-56,H-pad.b-20,W-pad.r,H-pad.b]];
+ const hit=b=>boxes.some(a=>a[0]<b[2]&&b[0]<a[2]&&a[1]<b[3]&&b[1]<a[3]);
+ const lbl=(g,x,y,r)=>{const nm=g.name.length>7?g.name.slice(0,7)+'…':g.name,w=nm.length*12+6;const c=[[x,y-r-4],[x,y+r+14],[x+r+4+w/2,y+4],[x-r-4-w/2,y+4]];for(const [cx_,cy_] of c){const px=Math.max(pad.l+w/2,Math.min(W-pad.r-w/2,cx_)),py=Math.max(pad.t+12,Math.min(H-pad.b-4,cy_)),b=[px-w/2,py-12,px+w/2,py+3];if(!hit(b)){boxes.push(b);return `<text x="${px}" y="${py}" text-anchor="middle" class="big" style="font-size:12px;paint-order:stroke;stroke:var(--card);stroke-width:3px">${nm}</text>`}}return ''};
  const o2=[];const cx=X(100),cy=Y(100);
  o2.push(`<rect x="${cx}" y="${pad.t}" width="${W-pad.r-cx}" height="${cy-pad.t}" fill="var(--acc)" opacity=".06"/><rect x="${pad.l}" y="${cy}" width="${cx-pad.l}" height="${H-pad.b-cy}" fill="var(--ink3)" opacity=".05"/>`);
  o2.push(`<line x1="${pad.l}" x2="${W-pad.r}" y1="${cy}" y2="${cy}" stroke="var(--line)"/><line x1="${cx}" x2="${cx}" y1="${pad.t}" y2="${H-pad.b}" stroke="var(--line)"/>`);
@@ -89,7 +92,7 @@ function wheelSvg(W,H,o){o=o||{};const t=S.t,lo=Math.max(0,t-(o.tail||5)),pad={l
   o2.push(`<polyline fill="none" stroke="${CHC[g.chain]||'#888'}" stroke-width="2" opacity=".7" points="${p.map(a=>a.join(',')).join(' ')}"/>`+p.slice(0,-1).map((a,i)=>`<circle cx="${a[0]}" cy="${a[1]}" r="${1.5+i/p.length*2}" fill="${CHC[g.chain]||'#888'}" opacity=".6"/>`).join(''))});
  // 點
  pts.sort((a,b)=>b.share[t]-a.share[t]).forEach(g=>{const on=sg&&sg.gid===g.gid,dim=S.sel&&!on&&!lab.has(g.gid);
-  o2.push(`<g data-g="${g.gid}" style="cursor:pointer"><circle cx="${X(g.mx[t])}" cy="${Y(g.my[t])}" r="${R(g)}" fill="${col(g.chg[t])}" stroke="${on?'var(--ink)':(CHC[g.chain]||'#888')}" stroke-width="${on?3:2}" opacity="${dim?.45:.92}"/>`+(lab.has(g.gid)?`<text x="${Math.max(50,Math.min(W-50,X(g.mx[t])))}" y="${Math.max(14,Y(g.my[t])-R(g)-4)}" text-anchor="middle" class="big" style="font-size:12px;paint-order:stroke;stroke:var(--card);stroke-width:3px">${g.name.length>8?g.name.slice(0,8)+'…':g.name}</text>`:'')+'</g>')});
+  o2.push(`<g data-g="${g.gid}" style="cursor:pointer"><circle cx="${X(g.mx[t])}" cy="${Y(g.my[t])}" r="${R(g)}" fill="${col(g.chg[t])}" stroke="${on?'var(--ink)':(CHC[g.chain]||'#888')}" stroke-width="${on?3:2}" opacity="${dim?.45:.92}"/>`+(lab.has(g.gid)?lbl(g,X(g.mx[t]),Y(g.my[t]),R(g)):'')+'</g>')});
  return `<svg width="${W}" height="${H}">${o2.join('')}</svg>`}
 function bindWheel(root){root.querySelectorAll('g[data-g]').forEach(e=>{e.onclick=()=>sel(e.dataset.g);e.onmousemove=ev=>{const g=byId[e.dataset.g],t=S.t;tip(`<b>${g.name}</b>（${D.chains[g.chain]}）<br>占比 ${g.share[t].toFixed(1)}%（${f2(g.dshare[t])}）<br>當天 <span class="${cls(g.chg[t])}">${f1(g.chg[t])}%</span>・${QL[g.q[t]]||''}`,ev)};e.onmouseleave=()=>tip(null)})}
 function miniLine(W,H,g){const lo=T-S.win,t=S.t,pad={l:50,r:52,t:10,b:20};const a=[],m=[];for(let k=lo;k<T;k++){a.push(g.cum[k]/g.cum[lo]*100-100);m.push(D.mcum[k]/D.mcum[lo]*100-100)}
