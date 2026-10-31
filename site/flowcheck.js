@@ -229,9 +229,11 @@
         + '<div class="fc-pane" id="fcPaneNews" hidden>' + howDiv('news') + howDiv('inst') + '<div class="fc-row2"><div><div class="fc-sub2">當日相關新聞／事件 <button class="howbtn pop" type="button" data-how="fc_news" data-ttl="新聞與事件" aria-label="新聞怎麼看">?</button></div><div class="fc-news" id="fcNews"></div></div>'
         + '<div><div class="fc-sub2">法人買賣超（近 20 日） <button class="howbtn pop" type="button" data-how="fc_inst" data-ttl="法人買賣超" aria-label="法人怎麼看">?</button></div><div id="fcInst" class="chart fc-inst"></div><div class="fc-note" id="fcInstNote"></div></div></div></div>')
       + '<div class="card fc-tl" id="fcTl"><button type="button" class="btn fc-play" id="fcPlay" aria-label="播放">▶</button>'
-      + '<div class="seg tiny" id="fcSpd" role="group" aria-label="播放速度">' + [1, 2, 5].map(function (n) { return '<button type="button" data-v="' + n + '" class="' + (n === playSpd ? 'on' : '') + '">×' + n + '</button>'; }).join('') + '</div>'
       + '<div class="fc-axis"><input type="range" class="tlr" id="fcRange2" min="0" max="0" step="1" value="0" aria-label="時間軸"><div class="fc-marks" id="fcMarks"></div></div>'
-      + '<span class="fc-tlab" id="fcTlab">—</span><div class="seg tiny" id="fcDayT" role="group" aria-label="日內時點"></div></div>'
+      + '<span class="fc-tlab" id="fcTlab">—</span>'
+      + '<button type="button" class="btn fc-tlmore" id="fcTlMore" aria-label="更多播放選項" aria-expanded="false">⋯</button>'
+      + '<div class="fc-tlx" id="fcTlx"><div class="seg tiny" id="fcSpd" role="group" aria-label="播放速度">' + [1, 2, 5].map(function (n) { return '<button type="button" data-v="' + n + '" class="' + (n === playSpd ? 'on' : '') + '">×' + n + '</button>'; }).join('') + '</div>'
+      + '<div class="seg tiny" id="fcDayT" role="group" aria-label="日內時點"></div></div></div>'
       + '</div>';
     wire(v);
     built = true;
@@ -256,6 +258,7 @@
       if (p === 'fcMode') { setMode(b.dataset.v); return; }
       if (b.id === 'fcDivBtn') { S.divOpen = !S.divOpen; paint(); return; }
       if (b.id === 'fcDayMore') { S.dayAll = !S.dayAll; paint(); return; }
+      if (b.id === 'fcTlMore') { var tl = $('#fcTl'), on = !tl.classList.contains('xopen'); tl.classList.toggle('xopen', on); b.setAttribute('aria-expanded', on); return; }
       if (b.id === 'fcPlay') { togglePlay(); return; }
       if (b.id === 'fcPrev') { stepDate(-1); return; }
       if (b.id === 'fcNext') { stepDate(1); return; }
@@ -352,11 +355,20 @@
     $('#fcTrendName').textContent = (cur && cur.name) || '—';
     var bd = $('#fcBadge'); if (cur) { var tg = tagOf(cur); bd.className = 'fc-badge ' + tg.k; bd.textContent = tg.txt; } else { bd.className = 'fc-badge'; bd.textContent = ''; }
     getSer(S.gid).then(function (ser) { if (my !== painting) return; drawTrend(cur, ser); drawMinis(cur, ser); });
-    drawMemTbl(cur);
+    drawMemTbl(cur); fitTrendM();
     ['daily', 'sig', 'news'].forEach(function (k) { var e = $('#fcPane' + k.charAt(0).toUpperCase() + k.slice(1)); if (e) e.hidden = k !== S.tab; });
     $$('#fcTab button').forEach(function (b) { b.classList.toggle('on', b.dataset.v === S.tab); b.setAttribute('aria-pressed', b.dataset.v === S.tab); });
     if (S.tab === 'daily') drawDaily(rows); else if (S.tab === 'sig') drawSig(rows); else { drawNews(); drawInst(); }       // 只畫看得到的那一頁（回測檔 1.5MB 也只在點「提前判斷」才載）
   }
+  /* 手機：走勢卡的下緣剛好貼在首屏底（視窗高度），下一張卡從首屏之外開始，貼底時間軸蓋住的只有圖下方那 64px 空白 */
+  function fitTrendM() {
+    var c = $('#fcTrendCard'); if (!c) return;
+    if (!isM()) { c.style.minHeight = ''; return; }
+    c.style.minHeight = '';
+    var top = c.getBoundingClientRect().top + (window.pageYOffset || 0);
+    c.style.minHeight = Math.max(330, Math.round(window.innerHeight - top)) + 'px';
+  }
+  window.addEventListener('resize', function () { if (built) fitTrendM(); });
   function drawBar() {
     var ds = dates(), i = ds.indexOf(S.date), today = modeIsToday(), L = layersOf(S.date);
     $('#fcModeBox').innerHTML = seg('fcMode', [['today', '今天 5 分鐘'], ['hist', '歷史回放']], today ? 'today' : 'hist', '模式');

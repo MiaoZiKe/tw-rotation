@@ -24,12 +24,11 @@
   .fc-mini .chart{height:96px;min-height:96px}
   .fc-tw .hm{display:none}
   .fc-sigwrap,.fc-row2{grid-template-columns:minmax(0,1fr);gap:12px}
-  .fc-tl{gap:8px;padding:8px 12px;padding-right:64px;flex-wrap:wrap}
-  .fc-axis{flex:1 1 100%;order:5;height:40px}
+  .fc-tl{gap:8px;padding:6px 12px;padding-right:64px;flex-wrap:nowrap;position:sticky}
+  .fc-axis{flex:1 1 auto;order:0;height:40px;min-width:60px}
   .fc-axis input{height:40px}
   .fc-tlab{font-size:12px}
   .fc-play{min-height:36px}
-  #fcDayT{order:6;max-width:100%;overflow-x:auto}
   .fc-chip{min-height:32px}
   .fc-rr{margin-top:4px}
   .fc-vl{display:none}.fc-vs{display:inline;font-weight:600}
@@ -43,4 +42,17 @@
   #fcMoreCard .fc-hd .seg button{padding:4px 8px}
   #fcTrendCard .fc-hd{flex-wrap:wrap;min-height:0}#fcTrendCard .fc-hd h3{white-space:normal}
   .fc-tnote{height:auto;min-height:28px;flex-wrap:wrap}
+  .fc-tlab{flex:0 0 auto;max-width:96px;white-space:normal;line-height:1.2;font-size:11px;overflow:hidden}
+  .fc-tlmore{display:inline-flex;align-items:center;justify-content:center;min-width:36px;min-height:36px;padding:0}
+  .fc-tlx{display:none;position:absolute;right:8px;bottom:100%;margin-bottom:6px;padding:8px;flex-direction:column;align-items:flex-end;gap:8px;max-width:calc(100% - 16px);background:var(--panel);border:1px solid var(--line-2);border-radius:10px;box-shadow:0 -6px 16px rgba(0,0,0,.2)}
+  .fc-tl.xopen .fc-tlx{display:flex}
+  #fcDayT{max-width:100%;overflow-x:auto}
+  #v-flowcheck .fc{padding-bottom:76px}
+  /* 走勢卡撐滿到首屏底（JS 設 min-height），說明列移到圖上方、圖下留 64px 空白：貼底時間軸蓋在空白上，不蓋任何文字 */
+  #fcTrendCard{display:flex;flex-direction:column}
+  #fcTrendCard .fc-tnote{order:1}#fcTrendCard .fc-trend{order:2;flex:1 1 auto;min-height:220px;height:auto;margin-bottom:64px}
+  #fcTl{order:99}
+  #v-flowcheck #fcTl.card.fc-tl{background:var(--panel)!important;background-image:none!important}
+  #fcTrendCard>*{flex-shrink:0}#fcTrendCard>.fc-trend{flex-shrink:1}
+  #fcTrendCard .fc-hd h3{flex:1 1 100%;position:static}#fcTrendCard .fc-hd .fc-sp{display:none}#fcTrendCard .fc-hd>span#fcSpanBox{flex:0 0 auto}
 }

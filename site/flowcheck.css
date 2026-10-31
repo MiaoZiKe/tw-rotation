@@ -138,3 +138,7 @@
 #fcDay .fc-tw{max-height:230px}
 .fc-rs{line-height:1.3!important;font-size:12.5px!important}.fc-rsum{gap:2px!important;margin:2px 0 6px!important}
 #fcRsBase{margin-left:auto}#fcRsBase+#fcView{margin-left:0}@media (max-width:640px){#fcRsBase button{font-size:12px;padding:4px 8px}}
+
+.fc-tl{background:var(--panel)!important;border-top:1px solid var(--line-2)}
+.fc-tlx{display:flex;align-items:center;gap:12px}.fc-tlmore{display:none}
+#v-flowcheck #fcTl.card.fc-tl{background:var(--panel)!important;background-image:none!important}
