@@ -2114,8 +2114,13 @@ def run_next_wave() -> None:
     """★ 2026-11-01 流向驗證頁「找下一波」（Andy：「有科學根據、多個標的回測、驗證是否有效」）。
     獨立子行程、包 try：build() 回傳後主行程的大表已釋放，且 next_wave 自己吃約 5GB，
     不跟 payload 搶記憶體；可用記憶體不足就略過（只影響 flowcheck/next_wave.json，不拖垮整份 payload）。"""
+    import os
     import subprocess
     import sys
+    if os.environ.get("GITHUB_ACTIONS"):
+        # 雲端由 .github/workflows/pages.yml 的獨立步驟跑（build_payload 本身就吃約 11.6GB，這裡一定記憶體不足）
+        log.info("雲端環境：找下一波由 workflow 獨立步驟產出，這裡略過")
+        return
     try:
         avail = 0.0
         for line in open("/proc/meminfo", encoding="utf-8"):

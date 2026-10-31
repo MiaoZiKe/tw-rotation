@@ -173,9 +173,21 @@ def rank_z(df: pd.DataFrame) -> pd.DataFrame:
     return r.sub(mu, axis=0).div(sd.replace(0, np.nan), axis=0)
 
 
+def _t_sf(t: float, df: int) -> float:
+    """Student-t 的上尾機率（單尾）。純 numpy 數值積分，免裝 scipy（雲端 requirements.txt 沒有 scipy）。"""
+    if not np.isfinite(t):
+        return float("nan")
+    sign = 1.0 if t >= 0 else -1.0
+    a = abs(t)
+    xs = np.linspace(a, a + 80.0, 40001)
+    c = math.exp(math.lgamma((df + 1) / 2) - math.lgamma(df / 2)) / math.sqrt(df * math.pi)
+    pdf = c * (1 + xs * xs / df) ** (-(df + 1) / 2)
+    tail = float((getattr(np, "trapezoid", None) or np.trapz)(pdf, xs))
+    return tail if sign > 0 else 1.0 - tail
+
+
 def nw_t(y: np.ndarray, lag: int) -> tuple[float, float]:
     """平均數的 Newey-West t 值（Bartlett 權重）與單尾 p（H1：平均 > 0）。"""
-    from scipy import stats
     y = np.asarray(y, dtype=float)
     y = y[np.isfinite(y)]
     n = len(y)
@@ -189,7 +201,7 @@ def nw_t(y: np.ndarray, lag: int) -> tuple[float, float]:
         v += 2 * w * (e[k:] * e[:-k]).sum() / n
     se = math.sqrt(max(v, 1e-18) / n)
     t = m / se
-    return float(t), float(stats.t.sf(t, n - 1))
+    return float(t), _t_sf(t, n - 1)
 
 
 def wilson(k: int, n: int, z: float = 1.96) -> tuple[float, float]:

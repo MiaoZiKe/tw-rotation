@@ -96,6 +96,26 @@ jobs:
         if: ${{ steps.payload-cache.outputs.cache-hit != 'true' }}
         run: python -m pipeline.build_payload
 
+      # ★ 2026-11-01 流向驗證「找下一波」（compute/next_wave.py）：build_payload 本身就吃約 11.6GB，
+      #   放在它裡面會因記憶體不足被略過（runner 約 16GB）。所以獨立成一步、等 build_payload 結束記憶體釋放後才跑
+      #   （自己峰值約 9.3GB、約 4 分鐘）。失敗只警告、不擋部署。快取命中且 JSON 已在快取裡就不重算。
+      - name: 找下一波（獨立步驟，失敗不擋部署）
+        id: nextwave
+        if: ${{ steps.payload-cache.outputs.cache-hit != 'true' || hashFiles('site/data/flowcheck/next_wave.json') == '' }}
+        continue-on-error: true
+        run: |
+          mkdir -p site/data/flowcheck
+          free -g | sed -n 2p
+          if python -m pipeline.compute.next_wave --out site/data/flowcheck/next_wave.json 2> nw_err.log; then
+            SZ=$(du -k site/data/flowcheck/next_wave.json | cut -f1)
+            echo "::notice title=找下一波::已產出 next_wave.json ${SZ}KB"
+            echo "找下一波：已產出 1 檔（${SZ}KB）" | tee -a "$GITHUB_STEP_SUMMARY"
+          else
+            echo "::warning title=找下一波::略過／失敗：$(tail -n 3 nw_err.log | tr '\n' ' ')"
+            echo "找下一波：略過（失敗原因見下）" | tee -a "$GITHUB_STEP_SUMMARY"
+            tail -n 15 nw_err.log | tee -a "$GITHUB_STEP_SUMMARY"
+          fi
+
       - name: 快取命中，沿用上一次的 JSON
         if: ${{ steps.payload-cache.outputs.cache-hit == 'true' }}
         run: |
