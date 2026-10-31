@@ -3059,7 +3059,7 @@ def t_etf_income_v2(pg, b, base):
         wait_until(lp, "() => document.querySelector('#v-etf') && document.querySelector('#v-etf').dataset.ready === 'full'", 20000)
         lp.click("#tabs .l4subtab[data-l4sub='etf-inc']"); lp.wait_for_timeout(1500)
         wait_until(lp, "() => document.querySelector('#incBar') && document.querySelector('#incBar').dataset.codes", 20000)
-        ok(f"★ [{tag}] 兩大分頁「月配試算表｜複利試算表」，月配內「單檔 ETF｜組合 A～E」同一排", J("() => [...document.querySelectorAll('#incMain button')].map(b => b.textContent).join('|') === '月配試算表|複利試算表' && [...document.querySelectorAll('#incTabs button')].map(b => b.textContent.slice(0, 4)).join('|') === '單檔 E|組合 A|組合 B|組合 C|組合 D|組合 E' && !document.querySelector('#incPM').hidden && document.querySelector('#incPX').hidden"))
+        ok(f"★ [{tag}] 兩大分頁「月配試算表｜複利試算表」，月配內「單檔 ETF｜組合 A～E」同一排", J("() => [...document.querySelectorAll('#incMain button')].map(b => b.textContent).join('|') === '月配試算表|複利試算表' && [...document.querySelectorAll('#incTabs button')].map(b => b.textContent.slice(0, 4)).join('|') === '單檔 E|組合 A|組合 B|組合 C|組合 D|組合 E|自訂組合' && !document.querySelector('#incPM').hidden && document.querySelector('#incPX').hidden"))
         ok(f"[{tag}] 免責一行、用語中性", J("() => { const t = document.querySelector('#incDisc').textContent; return /不代表未來/.test(t) && /槓桿型/.test(t) && /不構成投資建議/.test(t) && !/推薦|建議買/.test(document.querySelector('#etfInc').innerText); }"))
         y0 = J(BAR)
         ok(f"★ [{tag}] 單檔＝週期統計同款：1～12 月並排直條、預設前 5 檔＋平均線、上方膠囊 5 個", y0["n"] == 5 and J("() => { const o = echarts.getInstanceByDom(document.getElementById('incBar')).getOption(); return o.xAxis[0].data.length === 12 && o.series.some(s => s.type === 'line' && s.name === '平均'); }") and len(y0["chips"].split("|")) == 5, y0)

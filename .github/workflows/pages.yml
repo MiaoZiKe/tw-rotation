@@ -61,7 +61,7 @@ jobs:
         run: |
           gh workflow run pages.yml --repo "${{ github.repository }}" --ref main
           N="${GITHUB_REF_NAME#preview/}"
-          echo "已排入 main 的部署；完成後預覽網址：https://miaozike.github.io/tw-rotation/preview/${N//\//-}/"
+          echo "已排入 main 的部署；完成後預覽網址：https://liguligu-puipui.com/preview/${N//\//-}/ （備援：https://miaozike.github.io/tw-rotation/preview/${N//\//-}/）"
 
   deploy:
     # main 的 push／手動執行，或刪掉的是 preview/* 分支時才部署。其他分支刪除、preview 推送一律不跑。
@@ -213,39 +213,98 @@ jobs:
       # 2026-10-28 起不再 continue-on-error：失敗會讓這一輪變紅（GitHub Pages 已在前一步部署完，不受影響），deploy_wait.py 也靠這一步結果確認正式網域。
       # 只部署 main（preview 分支的預覽機制仍走 GitHub Pages）；
       # 不用 wrangler-action，直接 npx wrangler，才能分辨「缺金鑰／缺權限／部署失敗」。
-      - name: 雙部署到 Cloudflare Pages（失敗不擋 GitHub Pages）
+      - name: 雙部署到 Cloudflare Pages（主站）
         id: cfpages
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
-          sum() { echo "$1" >> "$GITHUB_STEP_SUMMARY"; }
+          set -o pipefail
+          sum() { echo "$1" | tee -a "$GITHUB_STEP_SUMMARY"; }
           if [ "${GITHUB_REF_NAME}" != "main" ]; then echo "非 main，跳過 Cloudflare Pages"; exit 0; fi
           if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
-            echo "::warning::缺 CLOUDFLARE_API_TOKEN／CLOUDFLARE_ACCOUNT_ID，跳過 Cloudflare Pages"
-            sum "### Cloudflare Pages：已跳過（缺 Secret）"; exit 1
+            echo "::error::缺 CLOUDFLARE_API_TOKEN／CLOUDFLARE_ACCOUNT_ID，Cloudflare Pages 沒部署"
+            sum "### Cloudflare Pages（主站）：已跳過（缺 Secret）"; exit 1
           fi
           # 2026-10-28 根因：Cloudflare Pages 單次部署上限 20,000 檔，site/ 含 preview/* 預覽就爆量，
           # 步驟又被 continue-on-error 吞掉（顯示成功），正式網域因此一直停在舊版。
-          # 正式網域只需要 main，所以預覽目錄不送，並把檔數寫進 log。
+          # 2026-10-31：主站只送「GitHub Pages 部署包去掉 preview/」；預覽改送另一個專案 tw-rotation-preview
+          # （下一步），由主站的 _worker.js 把 liguligu-puipui.com/preview/* 轉過去。
           rm -rf cf_site && mkdir cf_site && tar -C site --exclude='./preview' -cf - . | tar -C cf_site -xf -
-          echo "Cloudflare 部署檔數：$(find cf_site -type f | wc -l)（上限 20000）"
+          cp workers/pages-preview-proxy/_worker.js cf_site/_worker.js
+          echo '{"version":1,"include":["/preview/*"],"exclude":[]}' > cf_site/_routes.json
+          N=$(find cf_site -type f | wc -l)
+          echo "Cloudflare 主站部署檔數：$N（上限 20000）"
+          if [ "$N" -gt 19800 ]; then echo "::error::主站檔數 $N 逼近 Cloudflare 上限 20000，請合併或排除資料檔"; sum "### Cloudflare Pages（主站）：檔數 $N 逼近上限"; exit 1; fi
           # 專案不存在就建（已存在會回錯，忽略）；真正的權限問題由下面 deploy 的錯誤訊息判斷
           npx --yes wrangler@3 pages project create tw-rotation --production-branch main > cf_create.log 2>&1 || true
           cat cf_create.log
-          if npx --yes wrangler@3 pages deploy cf_site --project-name tw-rotation --branch main --commit-hash "$GITHUB_SHA" --commit-dirty=true > cf_deploy.log 2>&1; then
-            cat cf_deploy.log
-            sum "### Cloudflare Pages：部署成功"
-            sum '```'; tail -n 5 cf_deploy.log | sed 's/^/ /' >> "$GITHUB_STEP_SUMMARY"; sum '```'
-          else
+          if ! npx --yes wrangler@3 pages deploy cf_site --project-name tw-rotation --branch main --commit-hash "$GITHUB_SHA" --commit-dirty=true > cf_deploy.log 2>&1; then
             cat cf_deploy.log
             if grep -qiE "authentication|permission|10000|unauthorized|forbidden" cf_deploy.log cf_create.log; then
-              sum "### Cloudflare Pages：失敗，疑似缺 Pages 權限"
+              sum "### Cloudflare Pages（主站）：失敗，疑似缺 Pages 權限"
               sum "請到 Cloudflare 後台 My Profile → API Tokens，編輯 CLOUDFLARE_API_TOKEN 對應的 token，加上 **Account → Cloudflare Pages → Edit**，存檔後重跑本工作流。"
             else
-              sum "### Cloudflare Pages：部署失敗"
+              sum "### Cloudflare Pages（主站）：部署失敗"
             fi
             sum '```'; tail -n 15 cf_deploy.log >> "$GITHUB_STEP_SUMMARY"; sum '```'
-            echo "::warning::Cloudflare Pages 部署失敗（不影響 GitHub Pages），原因見 Step Summary"
+            echo "::error::Cloudflare Pages（主站）部署失敗，原因見 Step Summary"
             exit 1
           fi
+          cat cf_deploy.log
+          DURL=$(grep -oE 'https://[a-z0-9]+\.tw-rotation\.pages\.dev' cf_deploy.log | tail -1)
+          sum "### Cloudflare Pages（主站）：部署成功（$N 檔）$DURL"
+          # 驗證 ①：這次部署的每一個檔，Cloudflare 那邊都拿得到（缺漏清單 = 修前 18,900 檔時看不到的東西）
+          python scripts/cf_verify.py cf_site "$DURL" --out cf_missing_deploy.txt | tee cf_verify1.log || { sum "### 檔案清單不一致（部署網址缺檔）"; sum '```'; head -40 cf_missing_deploy.txt >> "$GITHUB_STEP_SUMMARY"; sum '```'; echo "::error::Cloudflare 部署缺檔"; exit 1; }
+          sum "- 逐檔核對（部署網址）：$(head -1 cf_verify1.log)"
+          # 驗證 ②：正式網域真的換成這一版（版本戳一致＋抽樣 400 檔）。邊緣快取可能晚幾十秒 → 重試 6 次
+          ok=0
+          for i in 1 2 3 4 5 6; do
+            if python scripts/cf_verify.py cf_site https://liguligu-puipui.com --sample 400 --stamp --out cf_missing_domain.txt > cf_verify2.log 2>&1; then ok=1; break; fi
+            echo "第 $i 次正式網域核對未過，20 秒後重試"; cat cf_verify2.log | head -8; sleep 20
+          done
+          cat cf_verify2.log
+          sum "- 正式網域 liguligu-puipui.com 核對：$(head -1 cf_verify2.log)；$(grep '版本戳' cf_verify2.log || true)"
+          if [ "$ok" != 1 ]; then sum "### 正式網域與本次部署內容不一致"; sum '```'; head -40 cf_verify2.log >> "$GITHUB_STEP_SUMMARY"; sum '```'; echo "::error::liguligu-puipui.com 沒有換成這次部署"; exit 1; fi
+
+      # 2026-10-31 Andy：「給人看的一律是 liguligu-puipui.com」→ 預覽也要能從正式網域開。
+      # 預覽（每份約 340 檔、目前 50 多份）放進主站會爆 2 萬檔，所以另開 Pages 專案 tw-rotation-preview，
+      # 主站的 _worker.js 把 /preview/* 轉過去。放不下全部時留最新的（cf_preview_pack.py），其餘只在備援網域。
+      - name: 雙部署到 Cloudflare Pages（預覽）
+        id: cfpreview
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -o pipefail
+          sum() { echo "$1" | tee -a "$GITHUB_STEP_SUMMARY"; }
+          if [ "${GITHUB_REF_NAME}" != "main" ]; then echo "非 main，跳過"; exit 0; fi
+          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then echo "::error::缺 Cloudflare Secret"; exit 1; fi
+          python scripts/cf_preview_pack.py | tee cf_pack.log
+          sum "- $(cat cf_pack.log)"
+          npx --yes wrangler@3 pages project create tw-rotation-preview --production-branch main > cf_create_prev.log 2>&1 || true
+          cat cf_create_prev.log
+          if ! npx --yes wrangler@3 pages deploy cf_prev --project-name tw-rotation-preview --branch main --commit-hash "$GITHUB_SHA" --commit-dirty=true > cf_deploy_prev.log 2>&1; then
+            cat cf_deploy_prev.log; sum "### Cloudflare Pages（預覽）：部署失敗"; sum '```'; tail -n 15 cf_deploy_prev.log >> "$GITHUB_STEP_SUMMARY"; sum '```'
+            echo "::error::Cloudflare Pages（預覽）部署失敗"; exit 1
+          fi
+          cat cf_deploy_prev.log
+          PURL=$(grep -oE 'https://[a-z0-9]+\.tw-rotation-preview\.pages\.dev' cf_deploy_prev.log | tail -1)
+          python scripts/cf_verify.py cf_prev "$PURL" --out cf_missing_prev.txt | tee cf_verify3.log || { sum "### 預覽檔案清單不一致"; sum '```'; head -40 cf_missing_prev.txt >> "$GITHUB_STEP_SUMMARY"; sum '```'; exit 1; }
+          sum "- 預覽逐檔核對：$(head -1 cf_verify3.log)"
+          # 正式網域的轉送真的通：每一份預覽的首頁都要 200（第一份重試等邊緣更新）
+          fail=0
+          while read -r line; do
+            nm="${line%@*}"
+            c=000
+            for i in 1 2 3 4 5 6; do
+              c=$(curl -s -o /dev/null -w '%{http_code}' -L "https://liguligu-puipui.com/preview/$nm/" || echo 000)
+              [ "$c" = 200 ] && break; sleep 15
+            done
+            echo "https://liguligu-puipui.com/preview/$nm/ → $c"
+            [ "$c" = 200 ] || fail=1
+          done < cf_prev_included.txt
+          # deploy_wait.py 讀這一行確認「你推的那份預覽（含 commit）」真的在正式網域
+          echo "CF_PREVIEW_INCLUDED: $(tr '\n' ' ' < cf_prev_included.txt)"
+          if [ "$fail" = 1 ]; then sum "### 正式網域 /preview/ 轉送不通（見 log）"; echo "::error::liguligu-puipui.com/preview/ 有頁面不是 200"; exit 1; fi
+          sum "### Cloudflare Pages（預覽）：成功，liguligu-puipui.com/preview/<名稱>/ 可開"

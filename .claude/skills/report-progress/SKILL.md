@@ -148,7 +148,7 @@ curl -s https://api.github.com/repos/MiaoZiKe/tw-rotation/actions/runs?per_page=
 
 #### ① 網址與該看哪裡（永遠放最前面）
 
-- 網址：<https://miaozike.github.io/tw-rotation/>
+- 網址：<https://liguligu-puipui.com/>（正式網域；備援 <https://miaozike.github.io/tw-rotation/>）。預覽版一律給 `https://liguligu-puipui.com/preview/<名稱>/`
 - **版號徽章**（右上角）應該是 `YYYY-MM-DD 第 N 版｜HH:MM`
 - 我自己驗到什麼程度（誠實講，打不開就說打不開）
 

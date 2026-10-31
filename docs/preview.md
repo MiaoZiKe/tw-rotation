@@ -14,8 +14,18 @@ git push origin <你的分支>:preview/<名稱>
 git push origin claude/layout-v2-desktop:preview/layout-v2
 ```
 
-網址：`https://miaozike.github.io/tw-rotation/preview/<名稱>/`
-（例：<https://miaozike.github.io/tw-rotation/preview/layout-v2/>）
+網址（給人看的一律用正式網域）：`https://liguligu-puipui.com/preview/<名稱>/`
+（例：<https://liguligu-puipui.com/preview/layout-v2/>）
+備援網域同一份：`https://miaozike.github.io/tw-rotation/preview/<名稱>/`
+
+### 正式網域預覽怎麼來的（2026-10-31，Andy：「給人看的一律是 liguligu-puipui.com」）
+
+- 主站 Cloudflare 專案 `tw-rotation` 已有約 1.89 萬檔，逼近單次上限 2 萬，放不下預覽。
+  所以預覽另放 Pages 專案 **`tw-rotation-preview`**（`scripts/cf_preview_pack.py` 打包，只有程式碼與資產，資料讀正式站 `/data/`，不複製）。
+- 主站部署包多一支 `_worker.js`（`workers/pages-preview-proxy/`）＋ `_routes.json`（只攔 `/preview/*`），把 `liguligu-puipui.com/preview/*` 轉給預覽專案。不需要 Zone 的 Workers Routes 權限，也不影響主站其他網址。
+- 預覽專案放不下全部分支時，依分支最新 commit 時間**由新到舊**留到 1.8 萬檔為止；沒放進去的只在備援網域（`pages.yml` 的 log 會寫「未放入」清單）。收掉不用的預覽分支就會騰出空間。
+- `python scripts/deploy_wait.py --branch preview/<名稱>` 會多印一行 `✅ liguligu-puipui.com（Cloudflare Pages，預覽）`，且確認你這次推的 `名稱@sha` 在 Cloudflare 的預覽清單裡。
+- 部署後 `scripts/cf_verify.py` 會逐檔核對（部署網址）＋抽樣核對正式網域（含 `index.html` 版本戳）；任何缺漏或不一致 → 該步驟紅燈，`deploy_wait.py` 不會印 ✅。
 
 頁面最上方有一條黃色橫幅「預覽版：<名稱>（分支 <sha 前 7 碼>），不是正式站」，附「回正式站」連結；
 分頁標題前面也會多「［預覽 <名稱>］」。
