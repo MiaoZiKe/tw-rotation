@@ -1,6 +1,6 @@
 {
  "enabled": true,
- "at": "2026-10-31T19:14:46.383086+00:00",
+ "at": "2026-10-31T20:44:58.040103+00:00",
  "manual": {
   "files": 0,
   "applied": [],
@@ -15,15 +15,13 @@
  },
  "done": true,
  "pending": 0,
- "attempted": 1,
- "counts": {
-  "ok": 1
- },
+ "attempted": 0,
+ "counts": {},
  "generic": 0,
  "sites": 1991,
  "have": 1741,
  "next_due": "2026-11-27",
- "seconds": 1.3,
+ "seconds": 0.1,
  "deadline_hit": false,
  "strategy": 4,
  "svg": true,
