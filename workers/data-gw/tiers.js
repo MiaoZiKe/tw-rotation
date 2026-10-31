@@ -31,7 +31,7 @@ export const TIERS = [
   ['fundamental', ['stock.profit']], ['news', ['stock.news']], ['broker_views', ['stock.ai']],
   [/^stock\/[0-9A-Z]{4,6}$/, ['stock.overview']],
   [/^m60\/[0-9A-Z]{4,6}$/, ['stock.k_hour']],
-  [/^hist\/[0-9A-Z]{4,6}\/p[0-9]{1,3}$/, ['stock.k_day']],
+  [/^hist\/[0-9A-Z]{4,6}(?:\/p[0-9]{1,3})?$/, ['stock.k_day']],
   // ---- 選股、ETF、財經日曆
   ['explore', ['explore.page']], ['etf', ['etf.list']], ['etf_series', ['etf.returns']], ['earnings', ['earn.page']],
 ];
@@ -67,7 +67,7 @@ export function allowed(tier, feats) {
 export function unitOf(name, tier) {
   tier = tier || tierOf(name);
   if (!tier || !tier.feats.length) return null;
-  let m = /^(?:stock|m60)\/([0-9A-Z]{4,6})$/.exec(name) || /^hist\/([0-9A-Z]{4,6})\/p[0-9]{1,3}$/.exec(name);
+  let m = /^(?:stock|m60)\/([0-9A-Z]{4,6})$/.exec(name) || /^hist\/([0-9A-Z]{4,6})(?:\/p[0-9]{1,3})?$/.exec(name);
   if (m) return m[1];
   m = /^chain\/([a-z0-9_]{1,30})$/.exec(name);
   if (m) return 'c.' + m[1];
@@ -85,7 +85,7 @@ export function unitOf(name, tier) {
 export function limUnitOf(name, tier) {
   tier = tier || tierOf(name);
   if (!tier || !tier.feats.length) return null;
-  const m = /^(?:stock|m60)\/([0-9A-Z]{4,6})$/.exec(name) || /^hist\/([0-9A-Z]{4,6})\/p[0-9]{1,3}$/.exec(name);
+  const m = /^(?:stock|m60)\/([0-9A-Z]{4,6})$/.exec(name) || /^hist\/([0-9A-Z]{4,6})(?:\/p[0-9]{1,3})?$/.exec(name);
   if (!m) return null;
   return { unit: m[1], feats: [...tier.feats, 'stock.page'] };
 }

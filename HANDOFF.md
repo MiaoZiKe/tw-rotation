@@ -1,5 +1,20 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
+## 2026-11-01 提前找下一波研究（Andy：「有科學根據、多個標的回測、驗證是否有效、成功失敗案例」；最後更新 11-01 台北）
+- 研究 `docs/research/20261101_next_wave_signals.md`；程式 `pipeline/compute/next_wave.py`（獨立可重跑）＋`tests/test_next_wave.py`；輸出 `site/data/flowcheck/next_wave.json`（build_payload 結尾 `run_next_wave()` 子行程產出，可用記憶體 < 6.5GB 略過）。
+- 結論：120 個假設只有「族群法人 10 日淨買超」樣本外過 Holm 校正（5～10 日多賺 0.5～1.0%、扣成本後 +0.07～0.5%、空頭無效）；月營收年增率、綜合分數有線索未過關；日內、費半、客戶動能、融資券、動能、量增皆無效。勝率 46%、中位數為負。
+- 下一步：前端「流向驗證」接「找下一波」區（只顯示 pass 方法，其餘實驗收合）；集保／估值／新聞資料累積約 1～2 年後補測；請 finance-quant 複核口徑。沒動 site/**，前端關卡不必跑。
+
+## 2026-11-01 Threads 發文系統改版 v2＋IG 熱度優化（Andy：「CEO 交給對應單位 將發文 Thread 系統修改」「IG Thread 上面也需要進行優化 讓熱度提升，並且 盡量不要千篇一律」；最後更新 11-01 台北）
+- 規則原文 `docs/marketing/social_unit/threads_rules.md`；落地說明 `auto_post.md` 第三之一節；IG 計畫 `ig_growth_plan.md`。**11-02（週一）盤前起正式套用**，監工照舊（盤前 08:40／盤中 12:15／盤後 18:20 查 posted.json；v2 多了 `threads_chain` 串文紀錄）。
+- 新程式：`scripts/threads_v2.py`（舊文案 → 鉤子主文＋串文＋留言連結；模板 64 個、14 天輪替）、`scripts/threads_lint.py`（檢查器）、`scripts/social_numcard.py`（主題文章第二張數字卡，3 套版型）、`scripts/threads_hook_stats.py`（改版前後成效）。
+- 改到：social-live.yml（產完 manifest 多一步「Threads v2 改寫」，continue-on-error；state/hook_history.json 寫回 social-snaps）、social_publish.py（主文→逐則串文→最後留言連結，中間失敗照樣往下發）、social_news.py（queue 檔直接寫 v2、2 張圖、IG 文案首行鉤子）、threads_post.py（舊格式檔發前自動改寫）、news_cover.py（`--numcard`）、news_insights.py（多開頭類型／情緒維度）、social_insights.yml（每晚算 hook_stats.json）。
+- 驗證：`pytest -k "social or threads or ig_post or news"` 260 passed（新 tests/test_social_threads_v2.py 28 條）；沒動 site/**，前端關卡不必跑。dry-run 範例（10/30 真資料）在 scratchpad threads_v2/。
+- 沒有 LLM 金鑰（workflow 引用的 Secrets 沒有 ANTHROPIC_API_KEY），全用模板；要不要加金鑰待 Andy 決定。
+- 11-01 CEO 追加：串文壓到最多 6 則（10/30 範例：盤前 6、盤中 6、盤後 5、主題文章 6），每則 ≤150；放不下的次要數據改寫「完整盤勢見網站」。
+- 11-01 Andy「OK」：IG 主題文章改晚上發（盤前篇 20:00、盤中 20:50、盤後 21:40、備案 21:50、週末 20:00／20:50），Threads 不變；ig_post.yml 加晚間補發 cron；新 `ig_news_watch.yml`（每天 22:10）＋CEO 監工排程「IG 主題文章 22:10」。
+- 待觀察：第一個交易日盤前 v2 的實際串文是否完整發出；11-02 晚上 IG 三篇是否 20:00／20:50／21:40 發出；第二張數字卡在 Actions 上的字型是 Noto Sans CJK TC Bold（social_news.yml 已裝）。
+
 ## 2026-10-30 流向驗證的「大盤」改加權指數（使用者測試回報漲跌是加權兩倍；DECISIONS #378；最後更新 10-31 台北）
 - flowcheck 的大盤改成加權指數：日線 index_ohlc TSE、盤中 index_intraday 1 分（之前 60 分）；急跌日、吻合度常態、回測都已重算。主站強弱輪動沒動，要不要改列為建議。
 - index.json 新增 closed_days／missing_days／missing_intraday。10-23 查證是颱風休市（不是缺資料）。

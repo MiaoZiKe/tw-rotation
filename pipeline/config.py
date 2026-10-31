@@ -152,6 +152,8 @@ TWSE_ENDPOINTS = {
     "revenue_monthly": "/opendata/t187ap05_L",
     "financial_q":     "/opendata/t187ap14_L",
     "dividend":        "/opendata/t187ap45_L",
+    # 除權除息預告表（2026-11-01 加入，ETF 配息行事曆補下個月；欄位尚未實測，見 sources/exright_notice.py）
+    "exright_notice":  "/exchangeReport/TWT48U_ALL",
     # 重大訊息（公司自己公告的，不是媒體寫的）。2026-09-14 的 probe fixture 兩支都回 200。
     "material_news_twse": "/opendata/t187ap04_L",
     "material_news_tpex": "/opendata/t187ap04_O",
@@ -192,6 +194,7 @@ TPEX_OPENAPI = "https://www.tpex.org.tw/openapi/v1"
 TPEX_ENDPOINTS = {
     "price_daily":  "/tpex_mainboard_daily_close_quotes",
     "company_info": "/mopsfin_t187ap03_O",
+    "exright_notice": "/tpex_exright_prepost",     # 上櫃除權息預告（名稱依 swagger 推定，對雲端 IP 可能 403，可失敗）
 }
 
 # 上櫃／興櫃公司基本資料（只拿「網址」一欄給 Logo 用）。兩個候選依序試，第一個拿到就停：

@@ -967,6 +967,21 @@ def meta_payload(latest: str, history_days: int) -> dict:
     # 資料新鮮度把關（2026-10-20）：直接讀資料湖算，不靠 last_run.json（inst 階段它比 build 晚寫）
     fresh = freshness.check()
 
+    # 2026-11-01 Meta 權杖續期（scripts/meta_token_refresh.py 寫的狀態檔，不含權杖）：
+    # 到期前 10 天仍未續期成功 → 算一項「更新失敗」，資料狀態燈轉紅。只給狀態與天數，不給任何權杖資訊。
+    errors = list(last_run.get("errors", []))
+    meta_token: dict = {}
+    mt = config.STATE / "meta_token.json"
+    if mt.exists():
+        try:
+            _mt = json.loads(mt.read_text())
+            meta_token = {"status": _mt.get("status"), "updated_at": _mt.get("updated_at"),
+                          "days_left": {k: (v or {}).get("days_left") for k, v in (_mt.get("platforms") or {}).items()}}
+            if _mt.get("alert"):
+                errors.append("meta_token_refresh")
+        except ValueError:
+            pass
+
     return {
         "status": "ok",
         "data_date": latest,
@@ -986,7 +1001,8 @@ def meta_payload(latest: str, history_days: int) -> dict:
         "last_run_phase": last_run.get("phase", "full"),
         "groups_health": loader.health(),
         "table_summary": tbl,
-        "last_run_errors": last_run.get("errors", []),
+        "last_run_errors": errors,
+        "meta_token": meta_token,
         "last_run_empty": last_run.get("empty", []),
     }
 
@@ -1505,14 +1521,13 @@ def candidates(price: pd.DataFrame, valuation: pd.DataFrame,
         if len(older):
             chunks = stockpage.history_chunks(_bars(older, "date"))
             if chunks:
-                d = hist_dir / code
-                d.mkdir(parents=True, exist_ok=True)
-                for ch in chunks:
-                    (d / f"p{ch['page']}.json").write_text(
-                        json.dumps(dict(ch, code=code, tf="1d"), ensure_ascii=False), encoding="utf-8")
+                # 2026-11-01 檔數瘦身：一檔一個 hist/<代號>.json（原本每段一個檔，全站約 7,800 檔）
+                shutil.rmtree(hist_dir / code, ignore_errors=True)      # 本機 site/data 不會被清空：清掉舊格式的 hist/<代號>/
+                (hist_dir / f"{code}.json").write_text(
+                    json.dumps(stockpage.pack_history(code, chunks), ensure_ascii=False), encoding="utf-8")
                 hist_pages[code] = len(chunks)
                 hist_stat["codes"] += 1
-                hist_stat["files"] += len(chunks)
+                hist_stat["files"] += 1
                 hist_stat["bars"] += sum(len(c["bars"]) for c in chunks)
 
     # 目錄檔：哪幾檔有更舊的歷史、各有幾段。前端第一次要回補時先讀它 ——
@@ -2095,7 +2110,33 @@ def industry_map(today: pd.DataFrame, gdetail: dict, fund_rows: list[dict],
     return {"date": latest, "chains": out_chains, "industries": industries, "segments_pe": seg_pe}
 
 
+def run_next_wave() -> None:
+    """★ 2026-11-01 流向驗證頁「找下一波」（Andy：「有科學根據、多個標的回測、驗證是否有效」）。
+    獨立子行程、包 try：build() 回傳後主行程的大表已釋放，且 next_wave 自己吃約 5GB，
+    不跟 payload 搶記憶體；可用記憶體不足就略過（只影響 flowcheck/next_wave.json，不拖垮整份 payload）。"""
+    import subprocess
+    import sys
+    try:
+        avail = 0.0
+        for line in open("/proc/meminfo", encoding="utf-8"):
+            if line.startswith("MemAvailable"):
+                avail = int(line.split()[1]) / 1e6
+                break
+        if avail and avail < 6.5:
+            log.warning("可用記憶體 %.1fGB 不足 6.5GB，略過找下一波", avail)
+            return
+        r = subprocess.run([sys.executable, "-m", "pipeline.compute.next_wave"], cwd=str(config.ROOT),
+                           timeout=1500, capture_output=True, text=True)
+        if r.returncode != 0:
+            log.warning("找下一波產出失敗（只影響流向驗證頁的找下一波區）：%s", r.stderr[-500:])
+        else:
+            log.info("找下一波已產出")
+    except Exception as exc:  # noqa: BLE001
+        log.warning("找下一波產出失敗：%s", exc)
+
+
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)-7s | %(message)s",
                         datefmt="%H:%M:%S")
     build()
+    run_next_wave()

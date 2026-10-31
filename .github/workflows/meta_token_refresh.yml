@@ -1,0 +1,81 @@
+name: meta_token_refresh
+# 2026-11-01 Andy：「好像可以幫忙免費自動發文 不用 60 天後 重新申請權杖一次」
+# Meta（Threads／IG）長效權杖每週自動續期一次（官方：滿 24 小時、未過期即可再延 60 天）。
+# 設計與風險：docs/security/20261101_meta_token_refresh.md
+# - 權杖只在環境變數；腳本對每個值印 ::add-mask::，log 只有狀態與天數。
+# - Meta 回傳新字串時，用 META_SECRETS_PAT（只限本 repo、只有 Secrets 讀寫）寫回 *_ACCESS_TOKEN_AUTO；
+#   Andy 原本設的 THREADS_ACCESS_TOKEN／IG_ACCESS_TOKEN 永遠不動。
+# - 手動觸發預設 dry_run＝true：只用 /me 驗證權杖能用，不續期、不寫回、不寫狀態檔。
+on:
+  schedule:
+    - cron: "23 2 * * 0"   # 每週日 02:23 UTC＝台北 10:23（避開盤前／盤中／盤後發文時段）
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "只驗證不續期（true＝安全試跑；false＝真的續期並寫回）"
+        type: boolean
+        default: true
+permissions:
+  contents: write   # 把 data/_state/meta_token.json 推回 main（不含權杖）
+  issues: write     # 到期前 10 天仍未續期成功 → 開 issue 提醒（GitHub 會寄信給 repo 擁有者）
+concurrency:
+  group: meta-token-refresh
+  cancel-in-progress: false
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -q requests
+      - name: 續期（失敗會紅燈）
+        id: r
+        env:
+          THREADS_ACCESS_TOKEN: ${{ secrets.THREADS_ACCESS_TOKEN }}
+          THREADS_ACCESS_TOKEN_AUTO: ${{ secrets.THREADS_ACCESS_TOKEN_AUTO }}
+          IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
+          IG_ACCESS_TOKEN_AUTO: ${{ secrets.IG_ACCESS_TOKEN_AUTO }}
+          META_SECRETS_PAT: ${{ secrets.META_SECRETS_PAT }}
+        run: |
+          DRY=""
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.dry_run }}" != "false" ]; then DRY="--dry-run"; fi
+          python scripts/meta_token_refresh.py $DRY
+      - name: 狀態寫回 main（只有日期與天數，沒有權杖）
+        if: always() && !(github.event_name == 'workflow_dispatch' && inputs.dry_run != false)
+        run: |
+          [ -f data/_state/meta_token.json ] || { echo "沒有狀態檔"; exit 0; }
+          git config user.name  "tw-rotation-bot"
+          git config user.email "actions@github.com"
+          git add data/_state/meta_token.json
+          if git diff --staged --quiet; then echo "狀態沒變"; exit 0; fi
+          git commit -q -m "Meta 權杖續期狀態 $(date -u '+%Y-%m-%d')"
+          for i in 1 2 3 4 5; do
+            if git push origin HEAD:main; then echo "推送成功"; exit 0; fi
+            # 被拒：對齊遠端最新 main，只把這一個狀態檔放回去重新 commit（不碰別人的檔案）
+            cp data/_state/meta_token.json "$RUNNER_TEMP/meta_token.json"
+            git fetch -q origin main && git reset -q --hard origin/main
+            cp "$RUNNER_TEMP/meta_token.json" data/_state/meta_token.json
+            git add data/_state/meta_token.json
+            git diff --staged --quiet && { echo "遠端已是同一份狀態"; exit 0; }
+            git commit -q -m "Meta 權杖續期狀態 $(date -u '+%Y-%m-%d')"
+            sleep $((i * 5))
+          done
+          echo "::warning::狀態檔推不上 main（不影響續期本身）"
+      - name: 到期前 10 天仍未續期成功 → 開 issue 提醒
+        if: always() && steps.r.outputs.alert == '1'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REASONS: ${{ steps.r.outputs.reasons }}
+        run: |
+          T="⚠️ Meta 權杖續期需要處理"
+          if gh issue list -R "${{ github.repository }}" --state open --search "in:title Meta 權杖續期需要處理" --json number -q '.[0].number' | grep -q .; then
+            N=$(gh issue list -R "${{ github.repository }}" --state open --search "in:title Meta 權杖續期需要處理" --json number -q '.[0].number')
+            gh issue comment "$N" -R "${{ github.repository }}" --body "$(date -u '+%Y-%m-%d') 仍未解決：${REASONS}（run：${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}）"
+          else
+            gh issue create -R "${{ github.repository }}" --title "$T" --body "原因：${REASONS}
+
+          這次執行：${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          處理方式：docs/security/20261101_meta_token_refresh.md 第 6 節。" || echo "::warning::開 issue 失敗"
+          fi

@@ -19,7 +19,7 @@ import pandas as pd
 from . import config, inst_bulk
 from .compute import flow
 from .groups import loader
-from .sources import inst_official, etf_pcf, finmind, macro, mis, mktfut, mops, news, taifex, tape, tdcc, tpex, twse
+from .sources import exright_notice, inst_official, etf_pcf, finmind, macro, mis, mktfut, mops, news, taifex, tape, tdcc, tpex, twse
 from .util import freshness, http, store
 from .util.roc import is_tradable_security
 
@@ -84,6 +84,28 @@ def step(name: str, fn, *args, **kwargs):
         log.warning("%s 沒有取得資料%s", name, f"：{err}" if err else "")
         RESULT["empty"].append(name)          # ← 不再只寫 log
     return df if df is not None else pd.DataFrame()
+
+
+def _etf_notice_step() -> pd.DataFrame:
+    """ETF 除權除息預告（證交所／櫃買預告表）。不走 step()：預告表只有 ETF 已排定的才有列，
+    端點回得了資料但今天沒有 ETF 列是正常的；只有「兩支端點都沒回應」才算失敗（記進 empty，資料狀態變黃）。"""
+    t0 = time.time()
+    try:
+        df = exright_notice.fetch()
+    except Exception as exc:  # noqa: BLE001
+        log.exception("ETF 除權除息預告失敗")
+        df = pd.DataFrame()
+        df.attrs["error"] = str(exc)[:300]
+        df.attrs["raw_ok"] = False
+    rows = 0 if df.empty else len(df)
+    raw_ok = bool((getattr(df, "attrs", None) or {}).get("raw_ok"))
+    RESULT["steps"]["etf.exright_notice"] = {"ok": raw_ok, "rows": rows, "seconds": round(time.time() - t0, 1)}
+    err = (getattr(df, "attrs", None) or {}).get("error")
+    if err:
+        RESULT["steps"]["etf.exright_notice"]["error"] = str(err)[:500]
+    if not raw_ok:
+        RESULT["empty"].append("etf.exright_notice")
+    return df
 
 
 def _inst_bulk_step() -> pd.DataFrame:
@@ -936,6 +958,11 @@ def main() -> int:
         # 已由 FinMind 回補（含除息日、發放日）的列不要被蓋掉
         save("dividend_events", only_new_keys("dividend_events",
                                               step("twse.dividend_events", twse.dividend_events)))
+
+        # ETF 除權除息預告（Andy 2026-11-01：「ETF 行事曆每個禮拜都要更新 到下個月」）：
+        # 交易所預告表比 FinMind 早知道下個月的除息；每天跟著跑（只打兩支端點、不耗 FinMind 額度）。
+        # 只補資料湖還沒有的 (code, period, kind, ex_date)，FinMind 之後同一期進來有發放日，不會被預告蓋掉。
+        save("etf_dividend_events", only_new_keys("etf_dividend_events", _etf_notice_step()))
 
         # ---------------------------------------------- 集保（每週）
         save("shareholding_weekly", step("tdcc.shareholding", tdcc.shareholding_weekly))

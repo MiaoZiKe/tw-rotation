@@ -278,6 +278,42 @@ def estimate_events(univ: list[dict], announced: list[dict], asof: str, end: str
     return out
 
 
+def _prev_bizday(d: str) -> str:
+    """週末回推到前一個週五（法定期限落在週末時，公司實際會在前一個營業日以前公布）。"""
+    t = pd.Timestamp(d)
+    while t.weekday() >= 5:
+        t -= pd.Timedelta(days=1)
+    return t.strftime("%Y-%m-%d")
+
+
+def estimate_conf(announced: list[dict], asof: str, end: str, lookback: int = 130) -> list[dict]:
+    """公司自辦法說會的「依上一場推算」（Andy 11-01：「財經日曆也一樣每週更新」，未公告者灰字標預估）。
+
+    為什麼這樣推：上市櫃公司多半每季開一次法說，間隔約三個月；資料湖的重大訊息自 2026-09-19 才有，
+    還沒有「去年同月」可比，所以先用「上一場 ＋ 3 個月」。只推 asof～end 之間、而且前後 21 天內該公司
+    沒有任何已公告法說（含受邀）的。累積滿一年之後，改用去年同月的證據會更準（見 DECISIONS）。
+    輸出 k='cest'、status='預估'，前端灰字虛線＋「預估」標籤，永遠和已公告分開。"""
+    out, seen = [], set()
+    by_code: dict[str, list[str]] = {}
+    for e in announced:
+        if e.get("code") and e["k"] in ("conf", "invite"):
+            by_code.setdefault(e["code"], []).append(e["d"])
+    lo = (pd.Timestamp(asof) - pd.Timedelta(days=lookback)).strftime("%Y-%m-%d")
+    for e in announced:
+        if e["k"] != "conf" or not e.get("code") or not (lo <= e["d"] < asof):
+            continue
+        tgt = _prev_bizday((pd.Timestamp(e["d"]) + pd.DateOffset(months=3)).strftime("%Y-%m-%d"))
+        if not (asof < tgt <= end) or e["code"] in seen:
+            continue
+        if any(abs((pd.Timestamp(x) - pd.Timestamp(tgt)).days) <= 21 for x in by_code.get(e["code"], [])):
+            continue
+        seen.add(e["code"])
+        out.append({"d": tgt, "k": "cest", "code": e["code"], "name": e.get("name"), "status": "預估",
+                    "title": f"法說會（預估，依上一場 {e['d'][5:].replace('-', '/')} 推算）",
+                    "basis": f"上一場自辦法說 {e['d']}，以每季一場推算", "src": "依公司上一場法說推算"})
+    return out
+
+
 def market_events(start: str, end: str) -> list[dict]:
     """台股全市場的固定期限：月營收（每月 10 日前公告上月）與季報法定期限。"""
     out = []
@@ -680,6 +716,31 @@ def company_analysis(code: str, *, rev: dict, prof: dict, pe_now, pe_hist, close
 
 
 # ------------------------------------------------------------------ 組裝
+def cal_today() -> str:
+    """日曆「本月／下個月」以台北今天為準（月曆是給人看今天起的行程，不是交易日；盤後資料日 latest 常落後一兩天，月底會差一個月）。"""
+    from datetime import datetime, timedelta, timezone
+    return datetime.now(timezone(timedelta(hours=8))).strftime("%Y-%m-%d")
+
+
+GROUP_OF = {"conf": "conf", "invite": "conf", "cest": "conf", "board": "rep", "report": "rep", "est": "rep", "rev": "rep", "qdl": "rep",
+            "fomc": "fed", "minutes": "fed", "cpi": "fed", "nfp": "fed", "pce": "fed", "gdp": "fed"}
+
+
+def coverage(events: list[dict], latest: str) -> dict:
+    """本月與下個月各分類的筆數（已公告／預估分開數），給前端與資料狀態告警用。"""
+    t = pd.Timestamp(latest)
+    months = [t.strftime("%Y-%m"), (t.replace(day=1) + pd.DateOffset(months=1)).strftime("%Y-%m")]
+    out = {}
+    for m in months:
+        row = {g: {"announced": 0, "est": 0} for g in ("rep", "conf", "fed")}
+        for e in events:
+            g = GROUP_OF.get(e["k"])
+            if g and e["d"][:7] == m:
+                row[g]["est" if e.get("status") == "預估" else "announced"] += 1
+        out[m] = row
+    return out
+
+
 def build(*, val: pd.DataFrame, names: dict, latest: str, price: pd.DataFrame, price_adj: pd.DataFrame | None,
           revenue: pd.DataFrame, financial: pd.DataFrame, inst: pd.DataFrame, news: pd.DataFrame | None,
           material_news: pd.DataFrame | None, macro: pd.DataFrame | None, macro_cal: pd.DataFrame | None,
@@ -695,6 +756,14 @@ def build(*, val: pd.DataFrame, names: dict, latest: str, price: pd.DataFrame, p
     # 2026-10-05（晚，Andy：「裡面不可以有推估數據」）：只放已公告／官方公布的日子。
     # estimate_events（預估財報日）與 market_events（營收／財報法定期限）函式保留給測試與日後參考，但不再進 events。
     events = ann_in + macro_events(cfg if cfg is not None else load_macro_yaml(), macro_cal, start, end)
+    # 2026-11-01（Andy：「財經日曆也一樣每週更新」，接在 ETF 行事曆之後）：把「預估」放回來，但和已公告永遠分開 ——
+    # status='預估'（前端灰字虛線＋「預估」標籤）。這不推翻 10-05 的「不可以有推估數據」：那條是怕預估混在已公告裡被當成事實，
+    # 現在的做法是分開標示，而且 Andy 明確要求下個月不准整月空白。營收／財報法定期限是法規日期不是推估，status='期限'。
+    for e in estimate_events(univ, ann, latest, end):
+        e["d"] = max(_prev_bizday(e["d"]), latest)
+        events.append(e)
+    events += estimate_conf(ann, latest, end)
+    events += [e for e in market_events(latest, end)]
     for e in events:
         if e.get("code"):
             e["name"] = names.get(e["code"]) or e.get("name") or e["code"]
@@ -781,7 +850,10 @@ def build(*, val: pd.DataFrame, names: dict, latest: str, price: pd.DataFrame, p
         if e["k"] in FED_INFO and e["d"] >= latest and e["k"] not in nxt:
             nxt[e["k"]] = {"d": e["d"], "tw": e.get("tw"), "title": e["title"]}
     return {
-        "v": 2, "asof": latest, "window": [start, end],
+        "v": 2, "asof": latest, "window": [start, end], "updated": latest,
+        "coverage": coverage(events, max(latest, cal_today())),
+        "src_dates": {"mops": str(material_news["date"].max())[:10] if material_news is not None and not material_news.empty else None,
+                      "fred": str(macro_cal["fetched"].max())[:10] if macro_cal is not None and not macro_cal.empty and "fetched" in macro_cal.columns else None},
         "universe": {"basis": f"市值前 {UNIVERSE_N}（收盤 × 最新一季財報股數；上市＋上櫃普通股，排除 ETF）",
                      "n": UNIVERSE_N if len(univ) >= UNIVERSE_N else len(univ), "asof": latest, "list": [u for u in univ if not u.get("_extra")]},
         "mops_since": str(material_news["date"].min())[:10] if material_news is not None and not material_news.empty else None,
