@@ -411,11 +411,15 @@ html.m4 #v-etf #etfInc[data-inclk] .inclknote.m4o{display:flex;margin:-4px 0 8px
 #v-etf .inclist .ilbody{overflow-y:auto;margin-top:6px;flex:1;min-height:0}
 #v-etf .ilr{display:grid;grid-template-columns:18px 22px minmax(0,1fr) auto;grid-template-rows:auto auto;column-gap:6px;align-items:center;padding:4px 4px;border-bottom:1px solid var(--line);font-size:12.5px}
 #v-etf .ilr.on{background:var(--panel-3)}
+#v-etf .ilr{cursor:pointer;position:relative;transition:background .12s}
+#v-etf .ilbody .ilr{flex:none;min-height:40px;box-sizing:border-box;overflow:hidden}
+#v-etf .ilr:hover{background:color-mix(in srgb,var(--cyan) 9%,var(--panel-2))}
+#v-etf .ilr.in{background:color-mix(in srgb,var(--cyan) 15%,var(--panel-2));box-shadow:inset 3px 0 0 var(--cyan)}
+#v-etf .ilr.in:hover{background:color-mix(in srgb,var(--cyan) 21%,var(--panel-2))}
 #v-etf .ilr input{grid-row:1/3;margin:0;cursor:pointer}
 #v-etf .ilr .rk{grid-row:1/3;font:11px var(--mono);color:var(--ink-3);text-align:right}
 #v-etf .ilr .iln{display:flex;align-items:center;gap:5px;background:none;border:0;padding:0;color:var(--ink);font:inherit;cursor:pointer;min-width:0;text-align:left}
 #v-etf .ilr .iln .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
-#v-etf .ilr .iln:hover .nm{text-decoration:underline}
 #v-etf .ilr .cd{font:11.5px var(--mono);color:var(--ink-3)}
 #v-etf .ilr .mv{font:12px var(--mono);color:var(--ink);text-align:right}
 #v-etf .ilr .lt{grid-column:3/5;font:11.5px var(--mono);color:var(--ink-3)}
@@ -2280,6 +2284,11 @@ html.m4 #v-etf #etfInc[data-inclk] .inclknote.m4o{display:flex;margin:-4px 0 8px
     el.dataset.n = String(top.length);
     el.dataset.groups = vals.map((v) => v.join('/')).join(',');
   }
+  /* 清單整列可點＝切換勾選（單檔、自訂組合共用）；點到方框本身交給原生，名稱鈕的 click 會冒泡上來所以 Enter／空白鍵也能切換 */
+  function rowToggle(row) {
+    const cb = $('input', row); if (!cb) return;
+    row.onclick = (e) => { if (e.target === cb || e.target.closest('a')) return; if (cb.disabled && !cb.checked) { const m = $('#incListMsg') && row.closest('#incList') ? $('#incListMsg') : $('#cuMsg'); if (m) m.textContent = '最多 5 檔，請先取消一檔'.replace('5', row.closest('#cuList') ? String(CU_MAX) : '5'); return; } cb.checked = !cb.checked; cb.dispatchEvent(new Event('change')); };
+  }
   function drawIncList(R) {
     const k = S.inc.sort, q = (S.inc.q || '').toLowerCase(), list = $('#incList'); if (!list) return;
     const sel = S.inc.sel || R.slice(0, 5).map((r) => r.it.code), full = sel.length >= 5;
@@ -2306,10 +2315,12 @@ html.m4 #v-etf #etfInc[data-inclk] .inclknote.m4o{display:flex;margin:-4px 0 8px
         let cur = (S.inc.sel || R.slice(0, 5).map((r) => r.it.code)).slice();
         if (e.target.checked) { if (cur.length >= 5) { e.target.checked = false; $('#incListMsg').textContent = '最多 5 檔，請先取消一檔'; return; } cur.push(c); }
         else cur = cur.filter((x) => x !== c);
-        $('#incListMsg').textContent = ''; S.inc.sel = cur; drawIncSingle();
+        $('#incListMsg').textContent = ''; S.inc.sel = cur;
+        S.inc.ssel = e.target.checked ? c : (S.inc.ssel === c ? null : S.inc.ssel);   // 勾選後自動聚焦最新那檔；取消就放掉
+        drawIncSingle();
       };
-      // 名稱鈕：圖上有這檔 → 第一下選取（三處連動）、已選中再點才開明細；圖上沒有的檔沒東西可連動，照舊一下就開明細
-      $('.iln', row).onclick = (e) => { e.stopPropagation(); if (!S._sCodes || !S._sCodes.includes(c) || S.inc.ssel === c) openDet(S.inc.det === c ? null : c); else if (S._sPick) S._sPick(c, 'iln'); };
+      // Andy 11-01「應該要點選上面的欄位就可以選取」：整列可點（名稱、現價、殖利率都算）＝切換勾選；鍵盤 Enter／空白鍵由名稱鈕與方框原生處理
+      rowToggle(row);
     });
   }
   /* ★ 10-19 單檔三處連動（Andy：「圖表是有連動關係的，像這種同個資訊多張圖表，都需要有像是 ETF 月配那樣的連動效果」）：
@@ -2361,7 +2372,6 @@ html.m4 #v-etf #etfInc[data-inclk] .inclknote.m4o{display:flex;margin:-4px 0 8px
     $$('#incList .ilr[data-code]').forEach((r) => {
       const c = r.dataset.code; if (!codes.includes(c)) return;
       r.onmouseenter = () => hover(c); r.onmouseleave = () => hover(null);
-      r.onclick = (e) => { if (e.target.closest('input, button, a')) return; pick(c, 'row'); };
     });
     // 膠囊：滑過＝連動；點名字＝鎖定；點 ×＝拿掉那檔（msTags 原本整顆都是拿掉，改成只有 × 拿掉）
     $$('#incChips .snk[data-n]').forEach((b) => {
@@ -2646,7 +2656,7 @@ ${howH('cuh', ['<b>挑選</b>：從右側清單勾選 1～10 檔（搜尋、配�
     $$('#cuFq button').forEach((b) => { b.onclick = () => { S.cuFq = (b.dataset.v === fq && fq !== 'all') ? 'all' : b.dataset.v; drawCustom(); }; });
     $$('#cuList .ilr').forEach((row) => { const code = row.dataset.code;
       $('input', row).onchange = (e) => { if (e.target.checked) { if (cu.codes.length >= CU_MAX) { e.target.checked = false; $('#cuMsg').textContent = `最多 ${CU_MAX} 檔，請先取消一檔`; return; } if (!cu.codes.includes(code)) cu.codes.push(code); } else cu.codes = cu.codes.filter((x) => x !== code); save(); };
-      $('.iln', row).onclick = () => { A().goStock(code); }; });
+      rowToggle(row); });
     $$('#incCuBox .cux').forEach((b) => { b.onclick = () => { cu.codes = cu.codes.filter((x) => x !== b.dataset.code); save(); }; });
     $$('#incCuBox .culot').forEach((inp) => { inp.onchange = () => { const v = Math.max(1, Math.floor(+inp.value) || 1); cu.lots[inp.dataset.code] = v; save(); }; });
     const out = $('#incCombos');

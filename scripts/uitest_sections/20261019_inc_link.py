@@ -164,20 +164,17 @@ def t_inc_link_1019(b, base, code):
         pg.mouse.click(bl["x"], bl["y"]); pg.wait_for_timeout(400); away()
         st = J(_INC_JS)
         ok(f"{T}（{W}）：點圖內空白 → 取消選取、全部恢復", normal(st), [bl, st])
-        # 清單名稱：第一下選取、第二下開明細（換一檔，先把明細收掉）
+        # 清單整列可點＝切換勾選（Andy 11-01：「應該要點選上面的欄位就可以選取」）：點名稱 → 取消勾選、圖少一檔；再點 → 勾回並自動聚焦
         J("() => { const S = window.TwEtfPage.state; S.inc.det = null; }")
+        n0 = len(codes)
         pg.locator(f"#incList .ilr[data-code='{c2}'] .iln").scroll_into_view_if_needed()
-        pg.click(f"#incList .ilr[data-code='{c2}'] .iln"); pg.wait_for_timeout(500); away()
+        pg.click(f"#incList .ilr[data-code='{c2}'] .iln"); pg.wait_for_timeout(600); away()
         st = J(_INC_JS)
-        ok(f"{T}（{W}）：點清單名稱 {c2} 第一下 → 選取三處連動，明細卡不換成它", lit(st, c2, 2) and st["det"] != c2, st)
-        pg.click(f"#incList .ilr[data-code='{c2}'] .iln"); pg.wait_for_timeout(900); away()
+        ok(f"{T}（{W}）：點清單名稱 {c2} → 取消勾選、圖少一檔（{n0}→{len(st['codes'])}）", len(st["codes"]) == n0 - 1 and c2 not in st["codes"], st)
+        pg.click(f"#incList .ilr[data-code='{c2}'] .lt"); pg.wait_for_timeout(700); away()
         st = J(_INC_JS)
-        ok(f"{T}（{W}）：再點一次 → 開 {c2} 的明細卡", st["detShown"] and st["det"] == c2, st)
-        # 點清單列空白處（.lt）＝鎖定／再點取消
-        pg.click(f"#incList .ilr[data-code='{c1}'] .lt"); pg.wait_for_timeout(400); away()
-        ok(f"{T}（{W}）：點清單列 {c1} → 鎖定換成它", lit(J(_INC_JS), c1, 2), J(_INC_JS))
-        pg.click(f"#incList .ilr[data-code='{c1}'] .lt"); pg.wait_for_timeout(500); away()
-        ok(f"{T}（{W}）：再點同一列 → 取消", normal(J(_INC_JS)), J(_INC_JS))
+        ok(f"{T}（{W}）：再點同一列的現價那行 → 勾回、圖多一檔並自動聚焦它", len(st["codes"]) == n0 and c2 in st["codes"] and lit(st, c2, 2), st)
+        pg.click("#incSQ"); pg.wait_for_timeout(400); away()
         if W == 1440:
             # 膠囊：點名字＝鎖定，× 照舊拿掉
             c3 = codes[2]
