@@ -3,7 +3,8 @@
 
 把原本一整篇的盤前／盤中／盤後／主題文章文案，改成：
   main_post   主文 30–80 字：鉤子（對話／冷知識／反差）＋情緒（好笑／吐槽）＋恰 1 個事件型標籤，不放網址
-  thread_posts 串文：原本的盤勢、族群、新聞焦點、相關公司逐段搬過來（每則 30–80 字，最多 150），數據一個都不少
+  thread_posts 串文：原本的盤勢、族群、新聞焦點、相關公司同類合併，**最多 6 則**、每則目標 80～130 字、硬上限 150
+               （2026-11-01 CEO：10～12 則太長）；放不下的次要數據精簡，留言那則寫「完整盤勢見網站」
   reply_post  留言串最後一則：網站連結（帶 ?u= 來源參數）
   圖 0 或 2 張（主貼文從原本的卡片挑最強的 2 張）
 
@@ -28,7 +29,7 @@ from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from threads_lint import BANNED, GENERIC_TAGS, HARD_MAX, THREAD_MIN, THREAD_TARGET, clen, lint, split_tag  # noqa: E402,F401
+from threads_lint import BANNED, GENERIC_TAGS, HARD_MAX, MAX_THREADS, THREAD_MIN, THREAD_TARGET, clen, lint, split_tag  # noqa: E402,F401
 
 TPE = timezone(timedelta(hours=8))
 COOLDOWN_DAYS = 14
@@ -420,7 +421,7 @@ def from_posts(posts: list[str], n_images: int, today: str, state: dict | None =
     ex = dict(subj=subj[:10], num1=(m.group(1) if m else ""), hero=(m.group(1) if m else ""))
     ex.update(extra or {})
     return build("article", allt, images=["x"] * (n_images if n_images in (0, 2) else 0), url=url, state=state, today=today,
-                 extra=ex, sections=secs, title=title, legal=legal, item_max=THREAD_TARGET,
+                 extra=ex, sections=secs, title=title, legal=legal, item_max=HARD_MAX - 5,
                  tag_text=title + "\n" + "\n".join(secs[0][1] if secs else []))
 
 
@@ -516,13 +517,108 @@ def idea_of(path: str) -> str:
     return next((v for k, v in IMG_IDEA.items() if k in st), st)
 
 
+# ---------------------------------------------------------------- 壓到 ≤6 則（2026-11-01 CEO：「串文 10～12 則太長，讀者不會滑完、也容易撞頻率限制」）
+PACK_TARGET = 130          # 每則目標 80～130 字，硬上限 150
+DROP_FIRST = ("之前的報導", "其他媒體", "和前期比")          # 主題文章：放不下先整段拿掉的次要段落（重點數字已涵蓋）
+NEWS_HEADS = ("新聞焦點", "今日焦點")
+DETAIL_HEADS = ("昨日盤面", "盤面分析", "這些數字代表什麼")
+
+
+def _hn(h: str) -> str:
+    return _norm_head(h)
+
+
+def _render(secs, title, item_max):
+    return pack(section_units(secs, title, target=HARD_MAX - 5, item_max=item_max), target=PACK_TARGET)
+
+
+def fit(secs, title: str, item_max: int, max_posts: int = MAX_THREADS) -> tuple[list[str], list[str]]:
+    """同類數據合併成一則（盤勢、法人、族群、新聞焦點 3～5 條、昨日盤面），還超過 6 則就依序精簡次要數據：
+    ① 主題文章拿掉「之前的報導／其他媒體／和前期比」 ② 新聞焦點描述縮到 28 字 ③ 新聞焦點最多 3 條
+    ④ 盤面分析／昨日盤面每條只留第一個分號前 ⑤ 從最長的段落尾巴逐條拿掉。回傳（串文, 被精簡的段名）。"""
+    secs = [(h, list(items)) for h, items in secs]
+    cut: list[str] = []
+    posts = _render(secs, title, item_max)
+    if len(posts) <= max_posts:
+        return posts, cut
+
+    def step_drop():
+        nonlocal secs
+        for kw in DROP_FIRST:
+            hit = [x for x in secs if kw in _hn(x[0])]
+            if hit:
+                secs = [x for x in secs if x not in hit]; cut.append(kw); return True
+        return False
+
+    def step_news_short():
+        ch = False
+        for h, items in secs:
+            if any(k in _hn(h) for k in NEWS_HEADS):
+                for i, it in enumerate(items):
+                    a, sep, b = it.partition("：")
+                    if sep and clen(b) > 28:
+                        items[i] = f"{a}：{b[:27]}…"; ch = True
+        if ch:
+            cut.append("新聞描述")
+        return ch
+
+    def step_news_three():
+        ch = False
+        for h, items in secs:
+            if any(k in _hn(h) for k in NEWS_HEADS):
+                real = [i for i, it in enumerate(items) if not it.lstrip("・").startswith("美股四大指數")]
+                while len(real) > 3:
+                    items.pop(real.pop()); ch = True
+        if ch:
+            cut.append("其餘新聞")
+        return ch
+
+    def step_detail():
+        ch = False
+        for h, items in secs:
+            if any(k in _hn(h) for k in DETAIL_HEADS):
+                for i, it in enumerate(items):
+                    a = re.split(r"[；;]", it, maxsplit=1)[0]
+                    if a != it:
+                        items[i] = a; ch = True
+        if ch:
+            cut.append("盤面細項")
+        return ch
+
+    def step_tail():
+        cand = [x for x in secs if len(x[1]) > 1]
+        if not cand:
+            cand = [x for x in secs if x[1]]
+            if len(cand) <= 1:
+                return False
+            x = min(cand, key=lambda x: clen("".join(x[1])))
+            secs.remove(x); cut.append(_hn(x[0]) or "段落"); return True
+        x = max(cand, key=lambda x: clen("".join(x[1])))
+        x[1].pop(); cut.append(_hn(x[0]) or "段落")
+        return True
+
+    for step in (step_drop, step_drop, step_drop, step_news_short, step_news_three, step_detail):
+        if step():
+            posts = _render(secs, title, item_max)
+            if len(posts) <= max_posts:
+                return posts, cut
+    for _ in range(200):
+        if not step_tail():
+            break
+        posts = _render(secs, title, item_max)
+        if len(posts) <= max_posts:
+            break
+    return posts[:max_posts], cut
+
+
 # ---------------------------------------------------------------- 組裝
-def reply_text(url: str, kind: str, legal: str = "") -> str:
+def reply_text(url: str, kind: str, legal: str = "", cut: list[str] | None = None) -> str:
     lead = {"intraday": "完整熱力圖、資金分流樹都在網站，族群一個一個點得開：",
             "close": "法人、融資融券完整排行都在網站，個股一檔一檔查得到：",
             "premarket": "美股、台指期夜盤與今天的事件行事曆都在網站：",
             "credit": "融資融券完整排行都在網站："}.get(kind, "整理好的圖表與產業鏈都在網站：")
-    return ((legal + "\n") if legal else "") + "👉 " + lead + "\n" + url
+    more = ("完整盤勢見網站（" + "、".join(dict.fromkeys(c for c in cut if c)) + "等）\n") if cut else ""
+    return ((legal + "\n") if legal else "") + more + "👉 " + lead + "\n" + url
 
 
 def assemble(kind: str, hook, hook_txt: str, tag: str, threads: list[str], reply: str, images: list[str], level: str = "") -> dict:
@@ -547,9 +643,8 @@ def build(kind: str, text: str, reply: str = "", images: list[str] | None = None
     ttl = p1["title"] if title is None else title
     f = facts(kind, text, reply, extra)
     tag = pick_tag(kind, (text + "\n" + reply) if tag_text is None else tag_text, f)
-    units = section_units(secs, ttl, item_max=item_max)
-    threads = pack(units)
-    rp = reply_text(url, kind, legal)
+    threads, cut = fit(secs, ttl, item_max)
+    rp = reply_text(url, kind, legal, cut)
     imgs = list(images or [])
     if kind != "article":
         imgs = pick_images(kind, imgs)

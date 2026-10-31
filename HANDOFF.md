@@ -6,7 +6,8 @@
 - 改到：social-live.yml（產完 manifest 多一步「Threads v2 改寫」，continue-on-error；state/hook_history.json 寫回 social-snaps）、social_publish.py（主文→逐則串文→最後留言連結，中間失敗照樣往下發）、social_news.py（queue 檔直接寫 v2、2 張圖、IG 文案首行鉤子）、threads_post.py（舊格式檔發前自動改寫）、news_cover.py（`--numcard`）、news_insights.py（多開頭類型／情緒維度）、social_insights.yml（每晚算 hook_stats.json）。
 - 驗證：`pytest -k "social or threads or ig_post or news"` 260 passed（新 tests/test_social_threads_v2.py 28 條）；沒動 site/**，前端關卡不必跑。dry-run 範例（10/30 真資料）在 scratchpad threads_v2/。
 - 沒有 LLM 金鑰（workflow 引用的 Secrets 沒有 ANTHROPIC_API_KEY），全用模板；要不要加金鑰待 Andy 決定。
-- 待觀察：第一個交易日盤前 v2 的實際串文則數（盤前約 11 則、盤中／盤後約 10 則）是否撞 Threads 頻率限制；第二張數字卡在 Actions 上的字型是 Noto Sans CJK TC Bold（social_news.yml 已裝）。
+- 11-01 CEO 追加：串文壓到最多 6 則（10/30 範例：盤前 6、盤中 6、盤後 5、主題文章 6），每則 ≤150；放不下的次要數據改寫「完整盤勢見網站」。
+- 待觀察：第一個交易日盤前 v2 的實際串文是否完整發出；第二張數字卡在 Actions 上的字型是 Noto Sans CJK TC Bold（social_news.yml 已裝）。
 
 ## 2026-10-30 流向驗證的「大盤」改加權指數（使用者測試回報漲跌是加權兩倍；DECISIONS #378；最後更新 10-31 台北）
 - flowcheck 的大盤改成加權指數：日線 index_ohlc TSE、盤中 index_intraday 1 分（之前 60 分）；急跌日、吻合度常態、回測都已重算。主站強弱輪動沒動，要不要改列為建議。

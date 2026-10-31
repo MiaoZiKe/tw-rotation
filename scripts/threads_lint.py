@@ -2,7 +2,7 @@
 規則全文見 docs/marketing/social_unit/threads_rules.md）。
 
 檢查一篇 v2 貼文（JSON：hook_type, emotion, main_post, thread_posts, reply_post, image_count, tag …）：
-  1. 主文 30–80 字（標點也算、換行不算、標籤不算），整則 ≤150；串文每則 30–150（目標 30–80，超過 80 只警告）
+  1. 主文 30–80 字（標點也算、換行不算、標籤不算），整則 ≤150；串文最多 6 則、每則 30–150（2026-11-01 CEO 改：超過 80 不再警告）
   2. 開頭類型恰為 對話／冷知識／反差；情緒恰為 好笑／吐槽
   3. 禁用字詞（客套結尾、私訊、連結在留言、喊單字）；主文不得有網址
   4. 第一句完整（≥10 字）；主文結尾不是句號（用感嘆或停在半句）
@@ -25,6 +25,7 @@ HOOK_TYPES = ("對話", "冷知識", "反差")
 EMOTIONS = ("好笑", "吐槽")
 MAIN_MIN, MAIN_MAX, HARD_MAX = 30, 80, 150
 THREAD_MIN, THREAD_TARGET = 30, 80
+MAX_THREADS = 6            # 2026-11-01 CEO：主文＋≤6 串文＋1 則留言連結
 # 客套結尾、導流、喊單（主文、串文、留言全部適用）
 BANNED = ("歡迎留言", "謝謝大家", "留言告訴我", "你怎麼看", "私訊", "連結在留言", "連結在下方", "看留言", "買進", "加碼",
           "推薦", "快上車", "必買", "穩賺", "跟單", "抄底", "飆股", "報明牌", "目標價", "趕快買", "現在進場")
@@ -93,12 +94,12 @@ def lint(p: dict) -> tuple[list[str], list[str]]:
             err.append(f"串文{i} {c} 字，超過 {HARD_MAX}")
         elif c < THREAD_MIN:
             err.append(f"串文{i} 只有 {c} 字（最少 {THREAD_MIN}）")
-        elif c > THREAD_TARGET:
-            warn.append(f"串文{i} {c} 字（目標 ≤{THREAD_TARGET}）")
         if TAG_RE.search(t):
             err.append(f"串文{i} 又掛了標籤 {TAG_RE.findall(t)}")
         if URL_RE.search(t):
             err.append(f"串文{i} 有網址（網址只放留言）")
+    if len(p.get("thread_posts") or []) > MAX_THREADS:
+        err.append(f"串文 {len(p['thread_posts'])} 則（最多 {MAX_THREADS} 則）")
     rp = p.get("reply_post") or ""
     if len(re.findall(r"https?://", rp)) != 1:
         err.append("留言（reply_post）要恰好 1 個網址")

@@ -1414,7 +1414,7 @@ def to_threads_v2(d: dict, slot: str, day: str, state: dict, cover: str, card2: 
                  n_nums=str(len(rows)), cat=c.get("category", ""))
     imgs = [cover, card2] if card2 else []
     v2 = V.build("article", "\n".join(d["caption_threads"]), images=imgs, url=url or d.get("link", ""), state=state, today=day,
-                 extra=extra, sections=secs, title=title, legal=LEGAL_TAIL, item_max=V.THREAD_TARGET,
+                 extra=extra, sections=secs, title=title, legal=LEGAL_TAIL, item_max=V.HARD_MAX - 5,
                  tag_text=title + "\n" + "\n".join(secs[0][1] if secs else []))      # 標籤只看標題＋導言（「接下來觀察」的 CPI 行事曆不算）
     V.record(state, v2, "article", day, f"news-{slot}-{d['id']}")
     return v2

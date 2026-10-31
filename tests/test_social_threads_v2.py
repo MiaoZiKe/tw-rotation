@@ -40,6 +40,7 @@ def test_lint_good_passes():
     (dict(hook_type="新聞"), "開頭類型"),
     (dict(emotion="平鋪"), "情緒"),
     (dict(thread_posts=["甲" * 160]), "超過"),
+    (dict(thread_posts=["甲" * 100] * 7), "最多 6 則"),
     (dict(thread_posts=["#標籤 " + "甲" * 40]), "標籤"),
     (dict(reply_post="沒有網址的留言"), "網址"),
     (dict(main_post="冷知識：今天八十三個族群只有八個是紅的，比我這個月的存款餘額還少見。\n#台股大跌"), "句號"),
@@ -80,6 +81,7 @@ def test_build_main_post_keeps_all_data(kind):
         if line.startswith("・"):
             assert V._rewrite(line) in joined, line
     assert all(clen <= 150 for clen in map(L.clen, d["thread_posts"]))
+    assert len(d["thread_posts"]) <= 6            # 2026-11-01 CEO：主文＋≤6 串文＋1 則留言
     assert d["tag"] not in L.GENERIC_TAGS
 
 
@@ -209,3 +211,20 @@ def test_numcard_no_overlap(tmp_path):
                       label="財報｜台股", date_md="10/30", layout=lay)
         assert r["bad"] == [] and Path(r["path"]).exists()
     assert len({NC.layout_for(f"2026-11-{d:02d}", "post0") for d in range(1, 10)}) == 3     # 三套版型都會輪到
+
+
+def test_long_content_trimmed_to_six_posts_and_points_to_site():
+    """數據很多（新聞 10 條、盤面細項很長）→ 同類合併＋精簡次要數據，壓到 6 則，留言寫「完整盤勢見網站」。"""
+    th = man("close")["threads"]
+    news = "📰 新聞焦點：\n" + "\n".join(f"・第{i}則新聞的短標題：這是一段很長很長的描述，用來把串文撐爆，看看會不會被精簡到網站連結那則去{i}" for i in range(10))
+    d = V.build("close", th["text"], th["reply"] + "\n" + news, th["images"], today="2026-11-02")
+    assert len(d["thread_posts"]) <= 6 and d["checklist_passed"], L.lint(d)
+    assert "完整盤勢見網站" in d["reply_post"]
+    joined = "\n".join(d["thread_posts"])
+    for must in ("外資 -1,124.7億", "買超 大立光", "加權指數跌 1,156 點"):     # 主要數據（盤勢、法人）一定留著
+        assert must in joined
+
+
+def test_fit_keeps_everything_when_it_fits():
+    posts, cut = V.fit([("🔥 熱力圖：", ["・漲最多 貨櫃航運 +2.9%、資安防護 +1.8%；", "・跌最多 電源供應器 -8.8%"])], "🕛 盤中3分鐘", 145)
+    assert cut == [] and len(posts) == 1
