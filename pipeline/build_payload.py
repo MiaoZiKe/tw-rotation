@@ -967,6 +967,21 @@ def meta_payload(latest: str, history_days: int) -> dict:
     # 資料新鮮度把關（2026-10-20）：直接讀資料湖算，不靠 last_run.json（inst 階段它比 build 晚寫）
     fresh = freshness.check()
 
+    # 2026-11-01 Meta 權杖續期（scripts/meta_token_refresh.py 寫的狀態檔，不含權杖）：
+    # 到期前 10 天仍未續期成功 → 算一項「更新失敗」，資料狀態燈轉紅。只給狀態與天數，不給任何權杖資訊。
+    errors = list(last_run.get("errors", []))
+    meta_token: dict = {}
+    mt = config.STATE / "meta_token.json"
+    if mt.exists():
+        try:
+            _mt = json.loads(mt.read_text())
+            meta_token = {"status": _mt.get("status"), "updated_at": _mt.get("updated_at"),
+                          "days_left": {k: (v or {}).get("days_left") for k, v in (_mt.get("platforms") or {}).items()}}
+            if _mt.get("alert"):
+                errors.append("meta_token_refresh")
+        except ValueError:
+            pass
+
     return {
         "status": "ok",
         "data_date": latest,
@@ -986,7 +1001,8 @@ def meta_payload(latest: str, history_days: int) -> dict:
         "last_run_phase": last_run.get("phase", "full"),
         "groups_health": loader.health(),
         "table_summary": tbl,
-        "last_run_errors": last_run.get("errors", []),
+        "last_run_errors": errors,
+        "meta_token": meta_token,
         "last_run_empty": last_run.get("empty", []),
     }
 

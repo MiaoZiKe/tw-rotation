@@ -58,6 +58,10 @@ SLOTS = {
     "wk2":   dict(name="週末", key=None, fixed="19:30", since=(0, "06:00"),  n=1, floor=1, off=True, after="18:45", evergreen_first=True),
     "fb":    dict(name="備案", key=None, fixed="21:15", since=(0, "06:00"),  n=1, floor=1, off=False, after="20:50", evergreen_first=True),
 }
+# 2026-11-01 Andy（CEO 問「主題文章改到晚上 8～10 點發？」）：「OK」→ 只改 IG：IG 主題文章改晚上發（台灣社群互動高峰 20～22 點，
+# ig_growth_plan.md）；Threads 主題文章維持跟主貼文同時間（10-30 Andy：「主題文章 也是 同時間發布」）。
+# 晚到（產稿時已過這個時間）就 now+5 分鐘照發，不跳過。
+IG_EVENING = {"pre": "20:00", "intra": "20:50", "post": "21:40", "wk1": "20:00", "wk2": "20:50", "fb": "21:50"}
 WEEKDAY_SLOTS = ("pre", "intra", "post")
 OFFDAY_SLOTS = ("wk1", "wk2")
 EVERGREEN = ROOT / "social" / "news" / "evergreen.json"
@@ -1390,6 +1394,42 @@ def render_cards(posts: list[dict], slot: str, out: Path, day: str = "", usage_p
     return bad
 
 
+# ---------------- Threads v2（2026-11-01 Andy：「將發文 Thread 系統修改」「IG Thread 上面也需要進行優化 讓熱度提升，
+#                   並且 盡量不要千篇一律的方式要有點變化」；規則 docs/marketing/social_unit/threads_rules.md） ----------------
+HOOK_STATE = LOG_DIR / "hook_history.json"     # 主題文章的鉤子輪替紀錄（主貼文的在 social-snaps state/hook_history.json）
+LEGAL_TAIL = "以上為公開資料整理，非投資建議"
+
+
+def article_sections(posts: list[str]) -> tuple[str, list, str]:
+    import threads_v2 as V
+    return V.sections_from_posts(posts)
+
+
+def to_threads_v2(d: dict, slot: str, day: str, state: dict, cover: str, card2: str | None) -> dict:
+    """一篇主題文章 → v2 JSON（鉤子主文＋串文＋留言連結＋恰 1 個事件標籤＋圖 0 或 2）；永遠回得出一篇。"""
+    import threads_v2 as V
+    title, secs, url = article_sections(d["caption_threads"])
+    c = d["card"]
+    rows = [x for x in (c.get("numbers") or []) if str(x.get("value", "")).strip()]
+    subj = c.get("subject") or (c.get("cover_title") or [""])[0] or ""
+    r0 = rows[0] if rows else {}
+    extra = dict(subj=re.sub(r"\s+", "", subj)[:10], hero=str(c.get("hero") or ""),
+                 num1=(f"{r0.get('label', '')} {r0.get('value', '')}{r0.get('unit', '')}".strip() if r0 else ""),
+                 n_nums=str(len(rows)), cat=c.get("category", ""))
+    imgs = [cover, card2] if card2 else []
+    v2 = V.build("article", "\n".join(d["caption_threads"]), images=imgs, url=url or d.get("link", ""), state=state, today=day,
+                 extra=extra, sections=secs, title=title, legal=LEGAL_TAIL, item_max=V.HARD_MAX - 5,
+                 tag_text=title + "\n" + "\n".join(secs[0][1] if secs else []))      # 標籤只看標題＋導言（「接下來觀察」的 CPI 行事曆不算）
+    V.record(state, v2, "article", day, f"news-{slot}-{d['id']}")
+    return v2
+
+
+def ig_caption_v2(cap: str, hook: str, tag: str) -> str:
+    """IG 文案：第一行改鉤子句（IG 只顯示前 1～2 行）；段落標題的 # 拿掉（IG 標籤收斂到 3～5 個）；最後掛事件標籤。"""
+    body = re.sub(r"(?m)^(\S{1,2}\s)#", r"\1", cap)
+    return f"{hook}\n\n{body}\n#{tag}"
+
+
 # ---------------- 主流程 ----------------
 def publish_base(slot: str, day: str, posted: dict, now: datetime) -> datetime | None:
     """跟主貼文同時間發（10-30 Andy：「主題文章 也是 同時間發布」；原本 +15 分）：主貼文一發出就排、不早於 now+1 分；
@@ -1521,23 +1561,57 @@ def run_slot(slot: str, day: str, now: datetime, posted: dict, dry: bool, out: P
         else:
             keep.append(d)
     log["overlap"] = f"重疊檢查：程式 {len(posts)} 張 {sum(bad.values())} 筆（有重疊的不排程）"
+    hstate = __import__("threads_v2").load_state(HOOK_STATE if not dry else (out / "hook_history.json"))
     for i, d in enumerate(keep):
         t = when + timedelta(minutes=GAP_MIN * i)
         pa = t.strftime("%Y-%m-%dT%H:%M+08:00")
+        pa_ig = ig_publish_at(slot, day, now, t, i).strftime("%Y-%m-%dT%H:%M+08:00")
         d["publish_at"] = pa
         img_rel = (img_out / f"{d['id']}.jpg").relative_to(ROOT).as_posix() if not dry else f"{slot}/{d['id']}.jpg"
+        # 2026-11-01 Threads v2：第二張「鉤子＋重點數字卡」（版型 3 套輪替）→ Threads／IG 都 2 張；畫不出來 Threads 0 張、IG 留封面 1 張，不擋整篇
+        img2_rel, th_imgs, ig_imgs = None, [], [img_rel]
+        try:
+            import social_numcard as NC
+            import threads_v2 as V
+            pre = to_threads_v2(d, slot, day, {"history": list(hstate.get("history", []))}, img_rel, None)
+            hook = V.split_tag(pre["main_post"])[0]
+            lay = NC.layout_for(day, f"{slot}{i}")
+            rr = NC.render(img_out / f"{d['id']}_n.jpg", hook, d["card"].get("numbers") or [],
+                           label=f"{d['card'].get('category', '')}｜{d['card'].get('subject') or ''}".strip("｜"),
+                           date_md=f"{int(day[5:7])}/{int(day[8:10])}", layout=lay)
+            d["meta"]["numcard"] = f"{lay}／重疊 {len(rr['bad'])} 筆"
+            if not rr["bad"]:
+                img2_rel = (img_out / f"{d['id']}_n.jpg").relative_to(ROOT).as_posix() if not dry else f"{slot}/{d['id']}_n.jpg"
+            else:
+                log.setdefault("alerts", []).append(f"{d['id']} 數字卡重疊 {rr['bad']}，Threads 改 0 張圖")
+        except Exception as ex:      # noqa: BLE001
+            log.setdefault("alerts", []).append(f"{d['id']} 數字卡失敗：{type(ex).__name__} {ex}")
+        try:
+            v2 = to_threads_v2(d, slot, day, hstate, img_rel, img2_rel)
+            th_posts = [v2["main_post"], *v2["thread_posts"], v2["reply_post"]]
+            th_imgs = [img_rel, img2_rel] if img2_rel else []
+            ig_imgs = [img_rel, img2_rel] if img2_rel else [img_rel]
+            hook = __import__("threads_v2").split_tag(v2["main_post"])[0]
+            d["caption_ig"] = ig_caption_v2(d["caption_ig"], hook, v2["tag"])
+            d["threads_v2"] = v2
+            d["meta"].update(format="threads_v2", hook_type=v2["hook_type"], emotion=v2["emotion"], hook_id=v2["template"],
+                             tag=v2["tag"], lint="pass" if v2["checklist_passed"] else "fail")
+        except Exception as ex:      # noqa: BLE001  v2 出錯 → 舊版照發（不准整篇不發）
+            log.setdefault("alerts", []).append(f"{d['id']} Threads v2 失敗、照舊版發：{type(ex).__name__} {ex}")
+            th_posts, th_imgs = d["caption_threads"], [img_rel]
         meta = "\n".join(f"{k}: {v}" for k, v in d["meta"].items())
         ttl = f"{cfg['name']}{'知識' if d.get('evergreen') else '新聞'} {day} #{i + 1}：{d['card']['title']}"
         status = TOPIC_STATUS if (offday or d.get("evergreen")) else STATUS
-        ig = f"---\nstatus: {status}\npublish_at: {pa}\ntitle: {ttl}\nimages: {img_rel}\n{meta}\n---\n{d['caption_ig']}\n"
-        th = f"---\nstatus: {status}\npublish_at: {pa}\ntitle: {ttl}\nimages: {img_rel}\n{meta}\n---\n" + "\n-----\n".join(d["caption_threads"]) + "\n"
+        ig = f"---\nstatus: {status}\npublish_at: {pa_ig}\ntitle: {ttl}\nimages: {', '.join(ig_imgs)}\n{meta}\n---\n{d['caption_ig']}\n"
+        th = f"---\nstatus: {status}\npublish_at: {pa}\ntitle: {ttl}\nimages: {', '.join(th_imgs)}\n{meta}\n---\n" + "\n-----\n".join(th_posts) + "\n"
         name = f"{day}_news-{slot}-{i + 1}.md"
         if dry:
             (out / "ig").mkdir(parents=True, exist_ok=True); (out / "threads").mkdir(parents=True, exist_ok=True)
             (out / "ig" / name).write_text(ig, encoding="utf-8"); (out / "threads" / name).write_text(th, encoding="utf-8")
         else:
             (IG_Q / name).write_text(ig, encoding="utf-8"); (TH_Q / name).write_text(th, encoding="utf-8")
-        log["posted"].append(dict(file=name, publish_at=pa, title=d["card"]["title"], **d["meta"]))
+        log["posted"].append(dict(file=name, publish_at=pa, publish_at_ig=pa_ig, title=d["card"]["title"], **d["meta"]))
+    __import__("threads_v2").save_state(hstate, HOOK_STATE if not dry else (out / "hook_history.json"), today=day)
     if dry:
         (out / f"{slot}.json").write_text(json.dumps(keep, ensure_ascii=False, indent=1, default=str), encoding="utf-8")
     else:
@@ -1550,6 +1624,16 @@ def run_slot(slot: str, day: str, now: datetime, posted: dict, dry: bool, out: P
         if any(d.get("evergreen") for d in keep):
             EVG_USAGE.write_text(json.dumps(used, ensure_ascii=False, indent=1, sort_keys=True), encoding="utf-8")
     return log
+
+
+def ig_publish_at(slot: str, day: str, now: datetime, th_time: datetime, i: int = 0) -> datetime:
+    """IG 主題文章發文時間：該段的晚間時間（IG_EVENING）＋同段第 i 篇錯開 GAP_MIN；已經過了就 now+5 分鐘（晚到照發）；
+    不早於 Threads 那篇。沒設晚間時間的段落跟 Threads 同時。"""
+    ev = IG_EVENING.get(slot)
+    if not ev:
+        return th_time
+    t = datetime.fromisoformat(f"{day}T{ev}:00+08:00") + timedelta(minutes=GAP_MIN * i)
+    return max(t, th_time, (now + timedelta(minutes=5)).replace(second=0, microsecond=0))
 
 
 def is_trading(day: str) -> bool:
