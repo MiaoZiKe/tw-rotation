@@ -35,8 +35,8 @@ jobs:
         id: run
         continue-on-error: true
         env:
-          IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN }}
-          THREADS_ACCESS_TOKEN: ${{ secrets.THREADS_ACCESS_TOKEN }}
+          IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN_AUTO || secrets.IG_ACCESS_TOKEN }}
+          THREADS_ACCESS_TOKEN: ${{ secrets.THREADS_ACCESS_TOKEN_AUTO || secrets.THREADS_ACCESS_TOKEN }}
           INSIGHTS_PATH: state/insights.json
           CATALOG_PATH: state/posts_catalog.json
           CATALOG_FULL: ${{ github.event.inputs.full == '1' && '1' || '' }}
