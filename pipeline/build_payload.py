@@ -2110,7 +2110,33 @@ def industry_map(today: pd.DataFrame, gdetail: dict, fund_rows: list[dict],
     return {"date": latest, "chains": out_chains, "industries": industries, "segments_pe": seg_pe}
 
 
+def run_next_wave() -> None:
+    """★ 2026-11-01 流向驗證頁「找下一波」（Andy：「有科學根據、多個標的回測、驗證是否有效」）。
+    獨立子行程、包 try：build() 回傳後主行程的大表已釋放，且 next_wave 自己吃約 5GB，
+    不跟 payload 搶記憶體；可用記憶體不足就略過（只影響 flowcheck/next_wave.json，不拖垮整份 payload）。"""
+    import subprocess
+    import sys
+    try:
+        avail = 0.0
+        for line in open("/proc/meminfo", encoding="utf-8"):
+            if line.startswith("MemAvailable"):
+                avail = int(line.split()[1]) / 1e6
+                break
+        if avail and avail < 6.5:
+            log.warning("可用記憶體 %.1fGB 不足 6.5GB，略過找下一波", avail)
+            return
+        r = subprocess.run([sys.executable, "-m", "pipeline.compute.next_wave"], cwd=str(config.ROOT),
+                           timeout=1500, capture_output=True, text=True)
+        if r.returncode != 0:
+            log.warning("找下一波產出失敗（只影響流向驗證頁的找下一波區）：%s", r.stderr[-500:])
+        else:
+            log.info("找下一波已產出")
+    except Exception as exc:  # noqa: BLE001
+        log.warning("找下一波產出失敗：%s", exc)
+
+
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)-7s | %(message)s",
                         datefmt="%H:%M:%S")
     build()
+    run_next_wave()
