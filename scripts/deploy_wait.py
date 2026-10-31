@@ -48,8 +48,12 @@ def is_ancestor(a, b):
 
 
 def job_log(job_id):
-    out = subprocess.run(["gh", "api", f"repos/{REPO}/actions/jobs/{job_id}/logs"], capture_output=True, text=True)
-    return out.stdout if out.returncode == 0 else ""
+    """預覽清單放在 check-run annotation（title=CF_PREVIEW_INCLUDED）——容器讀不到 job log（blob 網域被擋），讀得到 annotations。"""
+    try:
+        anns = gh(f"repos/{REPO}/check-runs/{job_id}/annotations?per_page=100")
+    except RuntimeError:
+        return ""
+    return " ".join(str(x.get("message", "")) for x in anns if "CF_PREVIEW_INCLUDED" in str(x.get("title", "")))
 
 
 def wait_cloudflare(sha, pushed, t0, timeout, preview=None):
@@ -64,18 +68,22 @@ def wait_cloudflare(sha, pushed, t0, timeout, preview=None):
         runs = gh(f"repos/{REPO}/actions/workflows/pages.yml/runs?branch=main&per_page=15")["workflow_runs"]
         runs = [r for r in runs if ts(r["created_at"]) >= pushed - timedelta(minutes=1)
                 and (preview or is_ancestor(sha, r["head_sha"])) and r["conclusion"] != "cancelled"]
-        runs.sort(key=lambda r: r["created_at"])
+        runs.sort(key=lambda r: r["created_at"], reverse=True)   # 新的先看：舊的失敗輪不能蓋掉後面成功的輪
+        last_fail, pending = None, False
         for r in runs:
+            if r["status"] != "completed":
+                pending = True
             jobs = gh(f"repos/{REPO}/actions/runs/{r['id']}/jobs")["jobs"]
             for j in jobs:
                 for st in j.get("steps", []):
                     if "Cloudflare" not in st["name"] or f"（{kind}）" not in st["name"]:
                         continue
                     if st["status"] != "completed":
+                        pending = True
                         break
                     if st["conclusion"] != "success":
-                        print(f"❌ Cloudflare Pages（{kind}）步驟 {st['conclusion']}（run {r['id']}，{r['html_url']}）——正式網域沒同步，不可回報「好了」")
-                        return 1
+                        last_fail = f"❌ Cloudflare Pages（{kind}）步驟 {st['conclusion']}（run {r['id']}，{r['html_url']}）——正式網域沒同步，不可回報「好了」"
+                        continue
                     if preview:
                         tag = f"{preview}@{sha[:7]}"
                         if tag not in job_log(j["id"]):
@@ -88,6 +96,9 @@ def wait_cloudflare(sha, pushed, t0, timeout, preview=None):
                         print(f"   網址：https://liguligu-puipui.com/preview/{preview}/")
                     print("   ⚠ 容器打不開網站，依 Actions 步驟結果確認；請 Andy 重新整理看一眼。")
                     return 0
+        if last_fail and not pending:
+            print(last_fail)
+            return 1
         time.sleep(20)
     print("⏳ Cloudflare Pages 還沒部署完成 —— 不可以回報「好了」。")
     return 2

@@ -1,0 +1,4 @@
+/* 搜尋框清除 ×（site/searchclear.js）手機規格：觸控點 ≥32px；× 的底色在深淺主題都用 token */
+@media (max-width: 640px) {
+  .scx { min-width: 32px; min-height: 32px; font-size: 19px; }
+}

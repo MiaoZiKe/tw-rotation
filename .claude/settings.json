@@ -1,0 +1,15 @@
+{
+  "language": "繁體中文（台灣）",
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "printf '%s' '{\"hookSpecificOutput\":{\"hookEventName\":\"UserPromptSubmit\",\"additionalContext\":\"【Andy 規定】所有回覆一律繁體中文（台灣），一句英文都不准出現（含進度回報、部署回報、子 agent 回報轉述）。程式碼、檔名、指令、產品原名除外。送出前最後檢查一次。\"}}'"
+          }
+        ]
+      }
+    ]
+  }
+}

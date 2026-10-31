@@ -64,6 +64,26 @@ def evaluate(counts: dict[str, pd.Series], trade_date: str | None, *, pending: b
             "warn_labels": [WATCH[t] for t in warn]}
 
 
+ETF_CAL_LABEL = "ETF 配息行事曆"
+ETF_CAL_GUARD_DAY = 15      # 每月 15 日起還是 0 筆才算異常：月初投信還沒公告本月除息是正常的
+
+
+def etf_cal_guard(ex_dates, today: str) -> dict | None:
+    """ETF 配息行事曆保底（Andy 2026-11-01：行事曆整月空白沒人發現）。
+
+    當月（以台北「今天」為準）已公告除息 0 筆、但去年同月有除息，而且已過當月 ETF_CAL_GUARD_DAY 日 → 回告警 dict。
+    純函式，方便用假資料測。"""
+    ex = [str(x)[:10] for x in ex_dates if x is not None and str(x)[:4].isdigit()]
+    ym = today[:7]
+    last = f"{int(ym[:4]) - 1}{ym[4:]}"
+    cur_n = sum(1 for x in ex if x[:7] == ym)
+    prev_n = sum(1 for x in ex if x[:7] == last)
+    if cur_n == 0 and prev_n > 0 and int(today[8:10]) >= ETF_CAL_GUARD_DAY:
+        return {"label": ETF_CAL_LABEL, "month": ym, "rows": 0, "last_year_rows": prev_n, "status": "warn",
+                "reason": "empty_month"}
+    return None
+
+
 def _counts(table: str) -> pd.Series:
     try:
         df = store.read(table)
@@ -84,7 +104,17 @@ def check(now: datetime | None = None) -> dict:
         trade_date = str(px["date"].astype(str).max())[:10] if not px.empty else None
         tp = (now or datetime.now(TAIPEI)).astimezone(TAIPEI)
         pending = bool(trade_date == tp.date().isoformat() and tp.hour < EVENING_HOUR)
-        return evaluate({t: _counts(t) for t in WATCH}, trade_date, pending=pending)
+        res = evaluate({t: _counts(t) for t in WATCH}, trade_date, pending=pending)
+        try:
+            ev = store.read("etf_dividend_events")
+            g = etf_cal_guard(ev["ex_date"].dropna().tolist() if not ev.empty else [], tp.date().isoformat())
+            if g:
+                res["tables"]["etf_dividend_events"] = g
+                res["warn"].append("etf_dividend_events")
+                res["warn_labels"].append(ETF_CAL_LABEL)
+        except Exception as exc:  # noqa: BLE001
+            log.warning("ETF 行事曆保底檢查失敗（不影響管線）：%s", exc)
+        return res
     except Exception as exc:  # noqa: BLE001
         log.warning("資料新鮮度檢查失敗（不影響管線）：%s", exc)
         return {}

@@ -394,7 +394,7 @@
 
   // ---------------------------------------------------------------- ③ 歷史無限回溯
   /* 往左拖到頭就自動載入更舊的 K 棒。
-     - 資料來自 `data/hist/<代號>/p<N>.json`，由 `pipeline/build_payload.py` 從資料湖產出：
+     - 資料來自 `data/hist/<代號>.json`（裡面 pages 依序是 p0、p1…；2026-11-01 前是每段一個檔），由 `pipeline/build_payload.py` 從資料湖產出：
        p0 是「個股頁那 1,250～1,500 根再往前的第一段」，p1 更舊，依此類推。
        每一份自己帶 `prev`：prev 是 null 就代表**這已經是資料湖裡最早的一段**，
        前端看到 null 就收手，不會再往下打請求（Andy 要的「拖到最早一筆要停下來」）。
@@ -419,17 +419,24 @@
   function histState(code) {
     return HIST[code] || (HIST[code] = { pages: {}, daily: [], next: 0, done: false, fetches: 0, hits: 0 });
   }
+  /* 2026-11-01 檔數瘦身：一檔一個 `data/hist/<代號>.json`（{pages:[p0,p1,…]}），不再是每段一個檔。
+     第一次要某一檔的更舊歷史時整份讀進來（約 3～6 段、gzip 後數十 KB），之後每一段都從記憶體拿，
+     使用者往左拖仍然一段一段接上去；`fetches` 現在是「這一檔打了幾次網路」（一次），`hits` 是之後用快取的次數。 */
   async function histFetch(code, n) {
     const st = histState(code);
     if (st.pages[n] !== undefined) { st.hits++; return st.pages[n]; }
+    if (st.loaded) return null;           // 整份已經讀過、沒有第 n 段 ＝ 沒有更舊的了
     st.fetches++;
     let j = null;
     try {
-      if (window.TwGw && window.TwGw.on()) j = await window.TwGw.json(`hist/${code}/p${n}`, { cache: 'force-cache' });   // data-gw：付費檔走 gateway
-      else { const r = await fetch(`data/hist/${code}/p${n}.json`, { cache: 'force-cache' }); j = r.ok ? await r.json() : null; }
+      if (window.TwGw && window.TwGw.on()) j = await window.TwGw.json(`hist/${code}`, { cache: 'force-cache' });   // data-gw：付費檔走 gateway
+      else { const r = await fetch(`data/hist/${code}.json`, { cache: 'force-cache' }); j = r.ok ? await r.json() : null; }
     } catch (e) { j = null; }
-    st.pages[n] = j;      // 連「沒有這一段」都要記下來，不然每拖一次就再打一次 404
-    return j;
+    st.loaded = true;
+    const pages = (j && Array.isArray(j.pages)) ? j.pages : [];
+    pages.forEach((pg, i) => { st.pages[pg && pg.page !== undefined ? pg.page : i] = pg; });
+    if (st.pages[n] === undefined) st.pages[n] = null;     // 連「沒有這一段」都要記下來，不然每拖一次就再打一次
+    return st.pages[n];
   }
 
   // ---------------------------------------------------------------- 圖表

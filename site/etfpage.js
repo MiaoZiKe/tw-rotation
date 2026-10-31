@@ -181,6 +181,8 @@
 #v-etf .cald .dn b{font:600 12px var(--mono)}
 #v-etf .cald .dn i{font-style:normal;font-size:11px;padding:0 5px;border-radius:999px;background:var(--cyan);color:var(--ontop);line-height:15px}
 #v-etf .cald .ce{display:flex;gap:4px;white-space:nowrap;line-height:16px;min-width:0}
+#v-etf .cald .ce.est .cc,#v-etf .cald .ce.est .ca{color:var(--ink-3);font-style:italic}
+#v-etf tr.est td{color:var(--ink-3)} #v-etf .estb{border:1px dashed var(--line-2);border-radius:999px;padding:0 5px;font-size:11px}
 #v-etf .cald .ce .cc{font:600 11.5px var(--mono);color:var(--ink);overflow:hidden;text-overflow:ellipsis;min-width:0}
 #v-etf .cald .ce .ca{font:11.5px var(--mono);color:var(--amber);margin-left:auto;flex:none}
 #v-etf .cald .cm{font-size:11px;color:var(--cyan);line-height:15px;white-space:nowrap}
@@ -1089,7 +1091,7 @@ html.m4 #v-etf #etfInc[data-inclk] .inclknote.m4o{display:flex;margin:-4px 0 8px
   /* ------------------------------------------------------------------ 3. 配息行事曆（7 欄真月曆） */
   function drawCal() {
     const box = $('#etfCal');
-    const cal = (S.data && S.data.calendar) || [];
+    const cal = calAll();      // 正式公告＋預估（依往年同期，灰字標「預估」）
     const today = todayTW(), curM = today.slice(0, 7);
     if (!S.month) S.month = curM;
     const [y, mo] = S.month.split('-').map(Number);
@@ -1098,7 +1100,8 @@ html.m4 #v-etf #etfInc[data-inclk] .inclknote.m4o{display:flex;margin:-4px 0 8px
     S.rh = S.rh || 76; S.capE = Math.min(2, Math.max(1, Math.floor((S.rh - 8 - 16 + 2) / 16)));
     const by = {}; cal.forEach((e) => { (by[e.ex] = by[e.ex] || []).push(e); });
     const nIn = cal.filter((e) => e.ex.slice(0, 7) === S.month).length;
-    const status = S.fallback || !cal.length ? '' : nIn ? `${y} 年 ${mo} 月共 ${nIn} 筆除息` : '本月無除息';
+    const nEst = cal.filter((e) => e.est && e.ex.slice(0, 7) === S.month).length;
+    const status = S.fallback || !cal.length ? '' : nIn ? `${y} 年 ${mo} 月共 ${nIn} 筆除息${nEst ? `（含預估 ${nEst}）` : ''}` : '本月無除息';
     $('#etfCalSub').textContent = '';
     let cells = WD.map((w) => `<div class="wd">${w}</div>`).join('');
     const start = new Date(first); start.setUTCDate(1 - first.getUTCDay());
@@ -1110,7 +1113,7 @@ html.m4 #v-etf #etfInc[data-inclk] .inclknote.m4o{display:flex;margin:-4px 0 8px
       const hol = CG.tag(k), nE = Math.max(1, S.capE - (hol ? 1 : 0));
       const isT = k === today;
       // 格內金額去掉尾巴的 0（0.700 → 0.7）：格子窄，代號才不會被省略號吃掉；完整金額在右側清單
-      const ent = L.slice(0, nE).map((e) => `<span class="ce" data-c="${esc(e.code)}"><span class="cc">${esc(e.code)}</span><span class="ca">${String(+(+e.amt).toFixed(3))}</span></span>`).join('');
+      const ent = L.slice(0, nE).map((e) => `<span class="ce${e.est ? ' est' : ''}" data-c="${esc(e.code)}"><span class="cc">${esc(e.code)}</span><span class="ca">${String(+(+e.amt).toFixed(3))}</span></span>`).join('');
       const more = L.length > nE ? `<span class="cm">+${L.length - nE} 檔</span>` : '';
       cells += `<button type="button" class="cald${CG.cls(k)}${L.length ? ' has' : ''}${isT ? ' today' : ''}${S.day === k ? ' sel' : ''}" data-d="${k}" data-n="${L.length}"
         ${L.length ? '' : 'tabindex="-1"'} aria-label="${k}${isT ? '（今天）' : ''}${L.length ? ' 有 ' + L.length + ' 檔除息' : ''}"><span class="dn"><b>${d}</b>${isT ? '<i>今天</i>' : ''}</span>${hol}${ent}${more}</button>`;
@@ -1154,9 +1157,11 @@ html.m4 #v-etf #etfInc[data-inclk] .inclknote.m4o{display:flex;margin:-4px 0 8px
     $$('#etfRetTbl tr[data-code]').forEach((tr) => { tr.onclick = () => A().goStock(tr.dataset.code); });
   }
   const COLS = '<colgroup><col><col style="width:56px"><col style="width:80px"><col style="width:58px"><col style="width:162px"></colgroup>';
+  /* 2026-11-01（Andy：「ETF 行事曆每個禮拜都要更新 到下個月」）：投信還沒公告的下個月除息，依往年同期預估（calendar_est），灰字＋「預估」 */
+  const calAll = () => (((S.data && S.data.calendar) || []).concat((S.data && S.data.calendar_est) || []));
   function calRows(L, withDate, idxOf) {
-    return L.map((e, k) => `<tr data-code="${esc(e.code)}" data-ex="${esc(e.ex)}"${idxOf ? ` data-i="${idxOf(k)}"` : ''} title="${esc(e.name)} ${esc(e.code)}：除息 ${e.ex}，配 ${e.amt} 元">
-      <td><span class="cw">${withDate ? `<span class="note">${e.ex.slice(5)}</span> ` : ''}<span class="cn">${esc(e.name)}</span> <span class="note">${esc(e.code)}</span></span></td>
+    return L.map((e, k) => `<tr data-code="${esc(e.code)}" data-ex="${esc(e.ex)}"${e.est ? ' class="est"' : ''}${idxOf ? ` data-i="${idxOf(k)}"` : ''} title="${esc(e.name)} ${esc(e.code)}：${e.est ? '預估除息（依往年同期，投信尚未公告）' : '除息'} ${e.ex}，配 ${e.amt} 元${e.est ? '（暫用最近一次）' : ''}">
+      <td><span class="cw">${withDate ? `<span class="note">${e.ex.slice(5)}</span> ` : ''}<span class="cn">${esc(e.name)}</span> <span class="note">${esc(e.code)}</span>${e.est ? ' <span class="na estb">預估</span>' : ''}</span></td>
       <td>${A().fmt.n(e.amt, 3)}</td><td title="${esc(e.basis)}">${pctU(e.y)}${/估/.test(e.basis || '') ? '<span class="na">估</span>' : ''}</td>
       <td>${e.pay ? e.pay.slice(5) : '<span class="na">—</span>'}</td>
       <td class="fill${e.fill == null && e.fill_wait != null ? ' down' : ''}">${fillTxt(e.fill, e.fill_wait).replace(/（.*）$/, '<span class="nw">$&</span>')}</td></tr>`).join('');
@@ -1222,7 +1227,7 @@ html.m4 #v-etf #etfInc[data-inclk] .inclknote.m4o{display:flex;margin:-4px 0 8px
     const grid = $('#etfCalGrid', box), lst = $('#etfCalList', box);
     if (!grid || !lst) return;
     const code = S.code || null;
-    const K = new Set(((S.data && S.data.calendar) || []).map((e) => e.code + '|' + e.ex));
+    const K = new Set(calAll().map((e) => e.code + '|' + e.ex));
     const cells = $$('.cald.has', grid);
     const rows = $$(code ? '#etfCodeTbl tr[data-i][data-ex]' : 'tr[data-code][data-ex]:not([data-i])', lst);
     const mini = () => $('.cgmini', lst);
@@ -1284,8 +1289,10 @@ html.m4 #v-etf #etfInc[data-inclk] .inclknote.m4o{display:flex;margin:-4px 0 8px
       <table class="et" id="etfDayTbl">${COLS}${THEAD('ETF')}<tbody>${calRows(L, false)}</tbody></table>`;
   }
   function monthList(L, y, mo) {
-    const head = `<b class="lt">${y} 年 ${mo} 月除息一覽（${L.length} 筆）</b>`;
-    if (!L.length) return head + `<p class="note">${S.fallback || !((S.data && S.data.calendar) || []).length ? '尚無除息資料' : '本月無除息'}</p>`;
+    const asof = S.data && S.data.calendar_asof, nE = L.filter((e) => e.est).length;
+    const tip = '正式公告來自證交所／櫃買預告表與 FinMind，每個交易日盤後更新；灰字標「預估」的是投信還沒公告、依往年同一天推算的除息日，金額暫用最近一次，公告後會自動換成正式資料。';
+    const head = `<b class="lt">${y} 年 ${mo} 月除息一覽（${L.length} 筆${nE ? `，預估 ${nE}` : ''}）${asof ? ` <span class="note">資料更新：${esc(asof)}</span>` : ''} ${srcI(tip)}</b>`;
+    if (!L.length) return head + `<p class="note">${S.fallback || !calAll().length ? '尚無除息資料' : '本月無除息'}</p>`;
     return head + `<table class="et">${COLS}${THEAD('除息日 ETF')}<tbody>${calRows(L, true)}</tbody></table>`;
   }
 

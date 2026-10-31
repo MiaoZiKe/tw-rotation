@@ -1268,3 +1268,19 @@ def history_chunks(bars: list, chunk: int = HIST_CHUNK) -> list[dict]:
             "bars": seg,
         })
     return out
+
+
+def pack_history(code: str, chunks: list[dict]) -> dict:
+    """把一檔的歷史分段合成一個檔（hist/<代號>.json）。
+
+    2026-11-01 檔數瘦身：原本每段一個檔（hist/<代號>/p<N>.json，全站約 7,800 檔，佔部署包四成），
+    Cloudflare Pages 單次上限 20,000 檔。改成一檔一個 JSON，裡面的 pages 就是原本每段的內容（欄位完全一樣：
+    page／prev／from／to／bars／code／tf），前端一次讀進來、仍然一段一段接到圖上。
+    """
+    return {"code": code, "tf": "1d", "chunk": HIST_CHUNK,
+            "pages": [dict(ch, code=code, tf="1d") for ch in chunks]}
+
+
+def unpack_history(obj: dict) -> list[dict]:
+    """pack_history 的反向：回原本「一段一個檔」的內容清單（測試用，前端有同樣邏輯）。"""
+    return list(obj.get("pages") or [])

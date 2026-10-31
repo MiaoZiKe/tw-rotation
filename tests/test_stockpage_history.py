@@ -51,3 +51,24 @@ def test_剛好整除時不會多出一段空的():
     ch = stockpage.history_chunks(_bars(20), chunk=10)
     assert len(ch) == 2
     assert all(len(c["bars"]) == 10 for c in ch)
+
+
+def test_pack_history_每段內容與原本一致():
+    """2026-11-01 檔數瘦身：一檔一個 hist/<代號>.json，裡面每一段要跟原本「一段一個檔」的內容逐欄相同。"""
+    import json
+    bars = [[f"2000-{(i // 28) % 12 + 1:02d}-{i % 28 + 1:02d}#{i}", 1, 2, 0.5, 1.5, 100 + i] for i in range(2350)]
+    chunks = stockpage.history_chunks(bars)
+    assert len(chunks) == 3
+    packed = stockpage.pack_history("2330", chunks)
+    # 經過 JSON 寫檔／讀檔一輪之後比對
+    back = stockpage.unpack_history(json.loads(json.dumps(packed, ensure_ascii=False)))
+    assert len(back) == len(chunks)
+    for n, (orig, got) in enumerate(zip(chunks, back)):
+        assert got == dict(orig, code="2330", tf="1d")          # 就是原本 p<N>.json 的內容
+        assert got["page"] == n
+    assert back[-1]["prev"] is None and back[0]["prev"] == "p1"
+    assert packed["code"] == "2330" and packed["tf"] == "1d"
+
+
+def test_pack_history_沒有分段就是空清單():
+    assert stockpage.unpack_history(stockpage.pack_history("2330", [])) == []

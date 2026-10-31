@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import math
 import re
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 
 import pandas as pd
 
@@ -326,6 +326,46 @@ def _holders(sh: pd.DataFrame, codes: set[str]) -> dict:
     return out
 
 
+def estimate_calendar(divs: pd.DataFrame, today: str, *, active_days: int = 120) -> list[dict]:
+    """依往年同期預估「還沒公告」的除息（Andy 2026-11-01：行事曆要排到下個月）。
+
+    規則（刻意保守，寧可少列也不亂列）：
+      · 視窗 ＝ today 到「下個月月底」；
+      · 一檔 ETF 在去年同一天（±0 日，遇週末順延到週一）有除息，今年視窗內就預估一筆；
+      · 該檔近 active_days 天內要有過除息（已下市／停配的不預估）；
+      · 該檔在候選日 ±20 天內、或同一個月已有正式公告的除息，就不預估（月配 ETF 一個月只一筆）；
+      · 金額用該檔最近一次正式配息（只是參考，前端標灰字＋「預估」）。
+    回傳 [{code, ex, amt}]，名稱與殖利率由呼叫端補。"""
+    if divs is None or divs.empty:
+        return []
+    t = date.fromisoformat(today)
+    end = date(t.year + (t.month == 12), (t.month % 12) + 1, 1)           # 下個月 1 號
+    end = date(end.year + (end.month == 12), (end.month % 12) + 1, 1) - timedelta(days=1)   # 下個月月底
+    out = []
+    for code, g in divs.groupby("code"):
+        g = g.sort_values("ex_date")
+        exs = [date.fromisoformat(x) for x in g["ex_date"]]
+        if not exs or (t - max([e for e in exs if e <= t] or [date(1990, 1, 1)])).days > active_days:
+            continue
+        last_amt = float(g["amount"].iloc[-1])
+        have = set(exs)
+        seen_m = set()
+        for e in exs:
+            try:
+                c = e.replace(year=e.year + 1)
+            except ValueError:                                              # 2/29
+                c = e + timedelta(days=365)
+            while c.weekday() >= 5:
+                c += timedelta(days=1)
+            if not (t <= c <= end) or (c.year, c.month) in seen_m:
+                continue
+            if any(abs((h - c).days) <= 20 or (h.year, h.month) == (c.year, c.month) for h in have):
+                continue
+            seen_m.add((c.year, c.month))
+            out.append({"code": str(code), "ex": c.isoformat(), "amt": round(last_amt, 4)})
+    return out
+
+
 def build(price: pd.DataFrame, names: dict, etf_codes: set[str], div_events: pd.DataFrame,
           div_results: pd.DataFrame, shareholding: pd.DataFrame, latest: str,
           done_keys: set[str] | None = None, top_n: int = 5,
@@ -460,6 +500,19 @@ def build(price: pd.DataFrame, names: dict, etf_codes: set[str], div_events: pd.
                     "fill": fd, "fill_wait": fw})
     cal.sort(key=lambda x: (x["ex"], x["code"]))
 
+    # 預估（依往年同期）：另放一個清單，不混進 calendar —— calendar 還給殖利率、填息、報酬比較用，預估值不能污染它們
+    cal_est = []
+    # 視窗起點用台北「今天」（不是最新價量日：週末／休市時最新價量日還在上週，會少排一個月）
+    today_tw = max(latest, datetime.now(timezone(timedelta(hours=8))).date().isoformat())
+    for x in estimate_calendar(divs, today_tw):
+        if x["code"] not in by:
+            continue
+        ref = by[x["code"]]["close"]
+        cal_est.append({"code": x["code"], "name": by[x["code"]]["name"], "ex": x["ex"], "pay": None, "amt": x["amt"],
+                        "y": round(x["amt"] / ref, 5) if ref else None, "basis": "預估（依往年同期，金額用最近一次）估",
+                        "fill": None, "fill_wait": None, "est": True})
+    cal_est.sort(key=lambda x: (x["ex"], x["code"]))
+
     # 只送前五名會用到的走勢（整包 300 檔 × 十年週線太大）
     keep = set(sum(top.values(), [])) | set(pop_holders) | set(pop_tv)
     return {
@@ -470,6 +523,9 @@ def build(price: pd.DataFrame, names: dict, etf_codes: set[str], div_events: pd.
         "popular": {"holders": pop_holders, "turnover": pop_tv,
                     "holders_week": [hd.get("prev_date"), hd.get("date")]},
         "calendar": cal,
+        "calendar_est": cal_est,
+        # 行事曆資料更新日：正式公告裡最新的除息日；前端寫「資料更新」用（build 時間由 meta 另外給）
+        "calendar_asof": today_tw,
         "periods": periods,
         "series": {c: series[c] for c in keep if c in series},
         # 全部 ETF 的週線走勢（自選比較用）：build_payload 拆成 etf_series.json，前端要比較時才讀
