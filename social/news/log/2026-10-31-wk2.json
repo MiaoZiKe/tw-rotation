@@ -1,0 +1,31 @@
+{
+ "slot": "wk2",
+ "date": "2026-10-31",
+ "run_at": "2026-10-31T19:02+08:00",
+ "posted": [
+  {
+   "file": "2026-10-31_news-wk2-1.md",
+   "publish_at": "2026-10-31T19:30+08:00",
+   "title": "CPI 與 PCE 兩種物價指標",
+   "topic_category": "總經",
+   "content_type": "總經知識",
+   "layout": "D-知識卡(實景)",
+   "style": "常備文庫",
+   "has_ai_image": "false",
+   "explore": "false",
+   "heat": "0",
+   "news_ids": "",
+   "u_code": "newswk21",
+   "evergreen": "true",
+   "topic_id": "cpi_pce",
+   "has_photo": "true",
+   "photo_kind": "類別",
+   "photo": "_category/總經_物價就業/photo_2.jpg"
+  }
+ ],
+ "skipped": [],
+ "evergreen": [
+  "cpi_pce"
+ ],
+ "overlap": "重疊檢查：程式 1 張 0 筆（有重疊的不排程）"
+}
