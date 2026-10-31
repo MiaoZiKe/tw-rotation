@@ -3,26 +3,24 @@
     "tape.collect": {
       "ok": false,
       "rows": 0,
-      "seconds": 1.0,
+      "seconds": 0.6,
       "dates_todo": [
         "20261029",
         "20261028",
         "20261027",
-        "20261026",
-        "20261023"
+        "20261026"
       ],
       "dates_miss": [
         "20261029",
         "20261028",
         "20261027",
-        "20261026",
-        "20261023"
+        "20261026"
       ]
     },
     "mis.index_minute": {
       "ok": true,
       "rows": 840,
-      "seconds": 1.5
+      "seconds": 1.9
     },
     "index_intraday": {
       "stored": 0
@@ -34,11 +32,11 @@
     },
     "news.collect": {
       "ok": true,
-      "rows": 135,
-      "seconds": 2.9
+      "rows": 131,
+      "seconds": 3.1
     },
     "news": {
-      "stored": 41
+      "stored": 15
     },
     "news.broker_views": {
       "ok": true,
@@ -46,7 +44,7 @@
       "seconds": 0.0
     },
     "broker_views": {
-      "stored": 2
+      "stored": 0
     },
     "mops.material_news": {
       "ok": true,
@@ -54,28 +52,28 @@
       "seconds": 2.5
     },
     "material_news": {
-      "stored": 170
+      "stored": 0
     },
     "macro.intl": {
       "ok": true,
       "rows": 4515,
-      "seconds": 2.2
+      "seconds": 1.8
     },
     "intl_daily": {
       "stored": 0
     },
     "macro.fred": {
       "ok": true,
-      "rows": 15590,
-      "seconds": 2.6
+      "rows": 15592,
+      "seconds": 3.5
     },
     "macro": {
-      "stored": 0
+      "stored": 2
     },
     "macro.fred_calendar": {
       "ok": true,
       "rows": 23,
-      "seconds": 0.7
+      "seconds": 1.1
     },
     "macro_calendar": {
       "stored": 0
@@ -119,9 +117,9 @@
       "2026-10-30"
     ]
   },
-  "started_at": "2026-10-31T08:25:18.273815+00:00",
-  "finished_at": "2026-10-31T08:49:53.609540+00:00",
-  "duration_seconds": 1475.3,
+  "started_at": "2026-10-31T17:20:13.343931+00:00",
+  "finished_at": "2026-10-31T17:47:39.502125+00:00",
+  "duration_seconds": 1646.2,
   "trade_date": null,
   "complete": true,
   "freshness": {
@@ -206,8 +204,8 @@
     },
     {
       "table": "opt_pc",
-      "rows": 3999,
-      "latest": "2024-06-28"
+      "rows": 4179,
+      "latest": "2025-03-31"
     },
     {
       "table": "index_daily",
@@ -266,17 +264,17 @@
     },
     {
       "table": "revenue_monthly",
-      "rows": 292946,
+      "rows": 300147,
       "latest": "2026-09"
     },
     {
       "table": "financial_q",
-      "rows": 95783,
+      "rows": 98042,
       "latest": "—"
     },
     {
       "table": "balance_q",
-      "rows": 93693,
+      "rows": 95672,
       "latest": "—"
     },
     {
@@ -296,8 +294,8 @@
     },
     {
       "table": "news",
-      "rows": 8632,
-      "latest": "2026-10-31"
+      "rows": 8647,
+      "latest": "2026-11-01"
     },
     {
       "table": "broker_views",
@@ -311,8 +309,8 @@
     },
     {
       "table": "macro",
-      "rows": 15590,
-      "latest": "2026-10-30"
+      "rows": 15592,
+      "latest": "2026-10-31"
     },
     {
       "table": "macro_calendar",
@@ -321,13 +319,13 @@
     },
     {
       "table": "dividend_events",
-      "rows": 26123,
+      "rows": 26126,
       "latest": "—"
     },
     {
       "table": "dividend_results",
-      "rows": 26671,
-      "latest": "2026-10-05"
+      "rows": 26675,
+      "latest": "2026-10-29"
     },
     {
       "table": "etf_dividend_events",
