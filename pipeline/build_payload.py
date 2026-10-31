@@ -1505,14 +1505,13 @@ def candidates(price: pd.DataFrame, valuation: pd.DataFrame,
         if len(older):
             chunks = stockpage.history_chunks(_bars(older, "date"))
             if chunks:
-                d = hist_dir / code
-                d.mkdir(parents=True, exist_ok=True)
-                for ch in chunks:
-                    (d / f"p{ch['page']}.json").write_text(
-                        json.dumps(dict(ch, code=code, tf="1d"), ensure_ascii=False), encoding="utf-8")
+                # 2026-11-01 檔數瘦身：一檔一個 hist/<代號>.json（原本每段一個檔，全站約 7,800 檔）
+                shutil.rmtree(hist_dir / code, ignore_errors=True)      # 本機 site/data 不會被清空：清掉舊格式的 hist/<代號>/
+                (hist_dir / f"{code}.json").write_text(
+                    json.dumps(stockpage.pack_history(code, chunks), ensure_ascii=False), encoding="utf-8")
                 hist_pages[code] = len(chunks)
                 hist_stat["codes"] += 1
-                hist_stat["files"] += len(chunks)
+                hist_stat["files"] += 1
                 hist_stat["bars"] += sum(len(c["bars"]) for c in chunks)
 
     # 目錄檔：哪幾檔有更舊的歷史、各有幾段。前端第一次要回補時先讀它 ——

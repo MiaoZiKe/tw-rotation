@@ -235,6 +235,8 @@ jobs:
           echo '{"version":1,"include":["/preview/*"],"exclude":[]}' > cf_site/_routes.json
           N=$(find cf_site -type f | wc -l)
           echo "Cloudflare 主站部署檔數：$N（上限 20000）"
+          # 2026-11-01：各大類檔數（日後追蹤哪一類在長；一行）
+          echo "檔數分類：$(for d in data/hist data/stock data/m60 data/lab data/logos data/flowcheck data brand; do printf '%s=%s ' "$d" "$(find cf_site/$d -type f 2>/dev/null | wc -l)"; done) 合計=$N" | tee -a "$GITHUB_STEP_SUMMARY"
           if [ "$N" -gt 19800 ]; then echo "::error::主站檔數 $N 逼近 Cloudflare 上限 20000，請合併或排除資料檔"; sum "### Cloudflare Pages（主站）：檔數 $N 逼近上限"; exit 1; fi
           # 專案不存在就建（已存在會回錯，忽略）；真正的權限問題由下面 deploy 的錯誤訊息判斷
           npx --yes wrangler@3 pages project create tw-rotation --production-branch main > cf_create.log 2>&1 || true
