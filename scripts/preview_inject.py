@@ -29,7 +29,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 SITE = ROOT / "site"
 BOOT = Path(__file__).resolve().parent / "preview_boot.js"
-PROD_URL = "https://miaozike.github.io/tw-rotation/"
+PROD_URL = "https://liguligu-puipui.com/"   # 2026-10-31 Andy：給人看的一律正式網域；github.io 只是備援
 PREFIX = "preview/"
 
 sys.path.insert(0, str(ROOT / "scripts"))
@@ -123,6 +123,7 @@ def main() -> int:
         print("沒有 preview/* 分支，不產出預覽")
         return 0
     seen: set[str] = set()
+    manifest: list[dict] = []
     import tempfile
     for branch, sha in branches:
         name = safe_name(branch)
@@ -136,9 +137,16 @@ def main() -> int:
                 print(f"::warning::{branch} 沒有 site/，略過")
                 continue
             dst = install(name, src, sha, branch)
+        try:   # 分支最新 commit 的時間：Cloudflare 檔數有上限，放不下時留最新的（見 scripts/cf_preview_pack.py）
+            ts = int(git("log", "-1", "--format=%ct", f"refs/twpreview/{sha}").strip())
+        except Exception:
+            ts = 0
+        manifest.append({"name": name, "branch": branch, "sha": sha, "ts": ts})
         size = sum(f.stat().st_size for f in dst.rglob("*") if f.is_file())
         print(f"預覽 {branch} @ {sha[:7]} → preview/{name}/（{size / 1e6:.1f} MB，不含資料）"
               f"  {PROD_URL}preview/{name}/")
+    # 清單放在 repo 根目錄（不進 site/、不公開）；pages.yml 的 Cloudflare 預覽步驟讀它
+    (ROOT / "preview_manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=1), encoding="utf-8")
     return 0
 
 
