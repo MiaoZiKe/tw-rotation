@@ -1,0 +1,8 @@
+📌 2/4｜合作一部分，不等於承作整套。
+
+SK hynix在2024/4/19公告與台積電合作HBM4，重點包括base die與CoWoS整合。這不能改寫成「所有HBM的base都由台積電做」，也不能當成目前交付或訂單證據。
+
+查閱2026/10/19。來源：SK hynix合作公告
+https://news.skhynix.com/en/sk-hynix-partners-with-tsmc-to-strengthen-hbm-technological-leadership/
+
+整理公開資訊，非投顧，投資請自行判斷。

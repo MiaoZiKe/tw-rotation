@@ -1,0 +1,72 @@
+[
+  {
+    "page": 1,
+    "width": 1122,
+    "height": 1402,
+    "bytes": 2120679,
+    "sha256": "6f1a52c8c48376e616f9665561323b2cbea02bddef6319a22cecdca196dc058d"
+  },
+  {
+    "page": 2,
+    "width": 1122,
+    "height": 1402,
+    "bytes": 2072727,
+    "sha256": "22653b9e41d8fca77567312de92aa665e35f4a4f4008f867a1ab808a9f257f5b"
+  },
+  {
+    "page": 3,
+    "width": 1122,
+    "height": 1402,
+    "bytes": 2110038,
+    "sha256": "956c2dd39c971732979e071ec1c0b2d7a37da0a4b9573c37ef1b818464edd6be"
+  },
+  {
+    "page": 4,
+    "width": 1122,
+    "height": 1402,
+    "bytes": 2120072,
+    "sha256": "15ac451751ac4b9da9d1dffd74619a60fc0f705244a2ecd02134014665b96ba5"
+  },
+  {
+    "page": 5,
+    "width": 1122,
+    "height": 1402,
+    "bytes": 2082352,
+    "sha256": "615dd89fa4e0c548568f778dec1339ee2a205663142581826ad89739e250b891"
+  },
+  {
+    "page": 6,
+    "width": 1122,
+    "height": 1402,
+    "bytes": 2096430,
+    "sha256": "ca0ac8819b3410d6eee7555452db98e205413c86c750940362abcb85b3e83b4d"
+  },
+  {
+    "page": 7,
+    "width": 1122,
+    "height": 1402,
+    "bytes": 2161108,
+    "sha256": "a3a8c85a7a959a7afe967f50d67a0d7725fa507b8848a44acad3435c78f2d565"
+  },
+  {
+    "page": 8,
+    "width": 1122,
+    "height": 1402,
+    "bytes": 2151502,
+    "sha256": "144c668b6cc069ec45890028f9c19e305681e2249777d542046ab94e1002c6e4"
+  },
+  {
+    "page": 9,
+    "width": 1122,
+    "height": 1402,
+    "bytes": 2206139,
+    "sha256": "2034ea8bbf202f13ae758225be1b7e9717f022e683dc82099792fb95f39e2a14"
+  },
+  {
+    "page": 10,
+    "width": 1122,
+    "height": 1402,
+    "bytes": 2217294,
+    "sha256": "30d2a9f7cb84ec322dbdfb70efcc7b9a27254a5851fc2a030b0e45f3915d69d7"
+  }
+]

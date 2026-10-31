@@ -1,0 +1,11 @@
+💬 5/5 技術方向，還要連條件一起看。
+
+高密度整合仍要測試與散熱，也得符合系統與成本。這些不是特定產品的良率、出貨或訂單預估。
+
+先看工作負載，再看容量、帶寬與系統配置。你會先問哪一項？
+
+官網：https://liguligu-puipui.com/?utm_source=threads&utm_medium=social&utm_campaign=hbm_series_20261019&utm_content=hbm-middle#overview
+來源：Micron HBM4
+https://www.micron.com/products/memory/hbm/hbm4
+資料查核：2026/10/19（台北）；架構與流程為示意，依模型與系統而異。
+整理公開資訊，非投顧，投資請自行判斷。

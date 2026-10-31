@@ -1,0 +1,11 @@
+🔍 1/5 AI越強，記憶體壓力就一定越大？
+
+容量＝能放多少資料。
+帶寬（頻寬）＝每秒能搬多少資料。
+裝得下，不代表搬得快；兩種限制要分開看。
+
+來源：Micron HBM4／AI說明
+https://www.micron.com/products/memory/hbm/hbm4
+https://www.micron.com/markets-industries/ai
+資料查核：2026/10/19（台北）；架構與流程為示意，依模型與系統而異。
+整理公開資訊，非投顧，投資請自行判斷。

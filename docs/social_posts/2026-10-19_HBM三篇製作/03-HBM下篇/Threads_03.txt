@@ -1,0 +1,12 @@
+🧩 3/4｜測試，不是最後才出場。
+
+Micron的HBM4製造說明提到：組裝前先篩選合格晶粒，堆疊完成後還要檢查連接。單顆合格，不代表整疊自然過關。
+
+做完HBM堆疊，還需與運算晶粒整合；CoWoS是先進封裝技術之一，兩者不是同一步。
+
+查閱2026/10/19。來源：Micron、TSMC
+https://www.micron.com/products/memory/hbm/hbm4
+https://www.tsmc.com/english/news-events/blog-article-20200803
+
+結構示意，非實物比例。
+整理公開資訊，非投顧，投資請自行判斷。
