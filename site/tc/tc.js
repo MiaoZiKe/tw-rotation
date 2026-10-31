@@ -60,7 +60,7 @@
     { k: 'annual', t: '年薪', opts: [['全部'], ['≥100萬', (r) => has(mid(r.annual_total_wan)) && mid(r.annual_total_wan) >= 100], ['≥150萬', (r) => has(mid(r.annual_total_wan)) && mid(r.annual_total_wan) >= 150], ['≥200萬', (r) => has(mid(r.annual_total_wan)) && mid(r.annual_total_wan) >= 200], ['≥300萬', (r) => has(mid(r.annual_total_wan)) && mid(r.annual_total_wan) >= 300]], tip: '年薪總額（萬）區間的中點' },
     { k: 'ot', t: '加班', opts: [['全部'], ['幾乎不', (r) => otIs(r, '幾乎不')], ['偶爾', (r) => otIs(r, '偶爾')], ['經常', (r) => otIs(r, '經常')]], tip: '加班狀況' },
   ];
-  const S = { ind: '', co: '', f: {}, sort: { k: '', d: -1 }, fopen: false, data: {}, loaded: false, chm: 'base', payI: null, hid: new Set(), raw: {}, lab: {}, dellist: [], hidAt: 0, delOpen: false, openK: null, rk: { m: 'ann', ind: 'all', all: false }, agg: null };
+  const S = { ind: '', co: '', f: {}, sort: { k: '', d: -1 }, fopen: false, data: {}, loaded: false, chm: 'base', payI: null, hid: new Set(), raw: {}, lab: {}, dellist: [], hidAt: 0, delOpen: false, openK: null, rk: { m: 'ann', ind: 'all', all: false, q: '' }, csort: { k: '', d: -1 }, agg: null };
 
   /* 分紅發放欄只放「幾月」：從公司層 bonus_timing 抓出所有「N 月」，抓不到顯示「—」（完整說明留在公司頁頂端） */
   /* 展開「2、5、8、11 月」「2／5／8 月」這種列表＋單獨的「7 月」，去重後依數字排序輸出「2月、5月、…」；(?<!\d) 避免把 114 年的「14」當月份 */
@@ -322,7 +322,7 @@
       const d = S.data[id]; if (!d) return; let all = [];
       (d.companies || []).forEach((c) => {
         const sm = [].concat(...(c.roles || []).map((r) => (r.samples || []).filter(inWin))); if (!sm.length) return;
-        all = all.concat(sm); cos.push(Object.assign({ ind: id, indName: n, name: c.name, key: c._k }, mk(sm)));
+        all = all.concat(sm); cos.push(Object.assign({ ind: id, indName: n, name: c.name, code: c.code, alias: [c.en_name, c.english_name, c.alias].concat(c.aliases || []).filter(Boolean).join(' '), key: c._k }, mk(sm)));
       });
       if (all.length) inds.push(Object.assign({ id, name: n }, mk(all)));
     });
@@ -331,23 +331,37 @@
   const RK_SHOW_D = 15, RK_SHOW_M = 10, mob = () => matchMedia('(max-width:640px)').matches;
   function rankHtml(A) {
     const m = S.rk.m, key = m === 'base' ? 'base' : 'ann', unit = m === 'base' ? 'K/月' : '萬/年';
-    const list = A.cos.filter((c) => c[key] && (S.rk.ind === 'all' || c.ind === S.rk.ind)).sort((a, b) => b[key].med - a[key].med);
-    const top = S.rk.all ? list : list.slice(0, (mob() ? RK_SHOW_M : RK_SHOW_D)), mx = Math.max(1, ...list.map((c) => c[key].max));
+    const base = A.cos.filter((c) => c[key] && (S.rk.ind === 'all' || c.ind === S.rk.ind)).sort((a, b) => b[key].med - a[key].med);
+    base.forEach((c, i) => { c._rk = i + 1; });   // 名次在「搜尋前」的全體排行上定，搜尋只是篩顯示，不重新編號
+    const q = (S.rk.q || '').trim().toLowerCase();
+    const list = q ? base.filter((c) => (c.name + ' ' + (c.code || '') + ' ' + (c.alias || '')).toLowerCase().indexOf(q) >= 0) : base;
+    const top = (S.rk.all || q) ? list : list.slice(0, (mob() ? RK_SHOW_M : RK_SHOW_D)), mx = Math.max(1, ...base.map((c) => c[key].max));
     const seg = (k, arr) => '<div class="seg" data-rk="' + k + '">' + arr.map(([v, t]) => '<button type="button" data-v="' + v + '" class="' + (String(S.rk[k]) === v ? 'on' : '') + '">' + esc(t) + '</button>').join('') + '</div>';
     const indOpts = [['all', '全部產業']].concat(A.inds.map((x) => [x.id, x.name]));
     return '<div class="tc-rkbar"><span class="tc-fl">排行依</span>' + seg('m', [['ann', '年薪'], ['base', '底薪']]) + '<span class="tc-fl">產業</span>' + seg('ind', indOpts) + '</div>' +
-      '<div class="tc-cnt">共 <b>' + list.length + '</b> 家有樣本（中位數由高到低；細線＝最低到最高；單位 ' + unit + '）</div>' +
+      '<div class="tc-srch"><input type="search" id="tcRkQ" placeholder="搜尋公司" aria-label="搜尋公司" autocomplete="off" value="' + esc(S.rk.q || '') + '"></div>' +
+      '<div id="tcRkBody">' + rankBody(A, list, top, mx, key, unit, q) + '</div>';
+  }
+  function rankBody(A, list, top, mx, key, unit, q) {
+    return '<div class="tc-cnt">共 <b>' + list.length + '</b> 家有樣本（中位數由高到低；細線＝最低到最高；單位 ' + unit + '）</div>' +
       (list.length ? '<div class="tc-rk">' + top.map((c, i) => { const v = c[key], w = Math.max(2, v.med / mx * 100), l = v.min / mx * 100, r = v.max / mx * 100;
-        return '<div class="tc-rkrow"><a class="tc-rkr" href="#tc/' + c.ind + '/' + encodeURIComponent(c.name) + '" data-co="' + esc(c.name) + '"><span class="tc-rkn">' + (i + 1) + '</span>' + TL(c.name, c.ind, 24) + '<span class="tc-rkt">' + esc(c.name) + '<small>' + esc(c.indName) + '・' + c.n + ' 筆' + fewTag(c.n) + '</small></span>' +
+        return '<div class="tc-rkrow"><a class="tc-rkr" href="#tc/' + c.ind + '/' + encodeURIComponent(c.name) + '" data-co="' + esc(c.name) + '"><span class="tc-rkn">' + c._rk + '</span>' + TL(c.name, c.ind, 24) + '<span class="tc-rkt">' + esc(c.name) + '<small>' + esc(c.indName) + '・' + c.n + ' 筆' + fewTag(c.n) + '</small></span>' +
           '<span class="tc-rkb"><i class="tc-rkbar" style="width:' + w.toFixed(1) + '%"></i><i class="tc-rkrg" style="left:' + l.toFixed(1) + '%;width:' + Math.max(0.5, r - l).toFixed(1) + '%"></i></span>' +
           '<span class="tc-rkv"><b>' + v.med + '</b><small>' + v.min + '–' + v.max + '</small></span></a>' + delBtn('c', c.key, c.name, c.n) + '</div>'; }).join('') + '</div>' +
-        (list.length > (mob() ? RK_SHOW_M : RK_SHOW_D) ? '<button type="button" class="tc-rkmore">' + (S.rk.all ? '只看前 ' + (mob() ? RK_SHOW_M : RK_SHOW_D) : '看全部 ' + list.length + ' 家') + '</button>' : '') : '<div class="empty isempty tc-empty">這個產業沒有樣本</div>');
+        (!q && list.length > (mob() ? RK_SHOW_M : RK_SHOW_D) ? '<button type="button" class="tc-rkmore">' + (S.rk.all ? '只看前 ' + (mob() ? RK_SHOW_M : RK_SHOW_D) : '看全部 ' + list.length + ' 家') + '</button>' : '') : '<div class="empty isempty tc-empty">' + (q ? '找不到符合的公司' : '這個產業沒有樣本') + '</div>');
   }
   const TL = (name, ind, sz) => (window.TcLogo ? window.TcLogo.html(name, ind, sz) : '');
   function bindRank(root) {
     $$('.seg[data-chm] button', root).forEach((b) => b.onclick = () => { S.chm = b.dataset.v; $$('.seg[data-chm] button', root).forEach((x) => x.classList.toggle('on', x === b)); drawStats(); });
     const A = S.agg, box = $('#tcRank', root); if (!box) return;
     $$('.seg[data-rk] button', box).forEach((b) => b.onclick = () => { const k = b.parentNode.dataset.rk; S.rk[k] = b.dataset.v; S.rk.all = false; box.innerHTML = rankHtml(A); bindRank(root); });
+    const qi = $('#tcRkQ', box);   // 清除鈕（×）由全站 searchclear.js 在 input[type=search] 後自動補，按下會發 input 事件
+    if (qi) {
+      qi.oninput = () => { S.rk.q = qi.value; const tmp = document.createElement('div'); tmp.innerHTML = rankHtml(A); $('#tcRkBody', box).innerHTML = $('#tcRkBody', tmp).innerHTML; bindRankBody(box, A); };
+    }
+    bindRankBody(box, A);
+  }
+  function bindRankBody(box, A) {
     const mo = $('.tc-rkmore', box); if (mo) mo.onclick = () => { S.rk.all = !S.rk.all; box.innerHTML = rankHtml(A); bindRank(root); };
   }
   const cv = (n, d) => { try { return getComputedStyle(document.documentElement).getPropertyValue(n).trim() || d; } catch (e) { return d; } };
@@ -509,15 +523,31 @@
     const tot = P.parts.reduce((x, p) => x + p.m, 0), R = 15, C = 2 * Math.PI * R; let off = 0;
     return '<div class="tc-mini" title="' + esc('薪資組成（月數）：' + P.parts.map((p) => p.name + p.m).join('／')) + '"><svg viewBox="0 0 40 40" width="44" height="44" aria-hidden="true">' + P.parts.map((p) => { const l = p.m / tot * C, e = '<circle cx="20" cy="20" r="' + R + '" fill="none" stroke="' + partColor(p.k) + '" stroke-width="6" stroke-dasharray="' + l.toFixed(2) + ' ' + (C - l).toFixed(2) + '" stroke-dashoffset="' + (-off).toFixed(2) + '" transform="rotate(-90 20 20)"/>'; off += l; return e; }).join('') + '</svg></div>';
   }
+  function cardMet(matched) {
+    const col = (f) => matched.map((r) => mdp(r[f])).filter((v) => v != null), m1 = (a) => (a.length ? Math.round(med(a) * 10) / 10 : null);
+    const hr = col('weekly_hours');
+    return { ann: m1(col('annual_total_wan')), base: m1(col('base_month_k')), bonus: m1(col('bonus_months')), hours: hr.length ? Math.round(hr.reduce((x, y) => x + y, 0) / hr.length) : null, n: matched.reduce((x, r) => x + (r.n || 0), 0) };
+  }
+  const SORTS = [['ann', '年薪'], ['base', '底薪'], ['bonus', '分紅月數'], ['hours', '週工時'], ['n', '樣本數']];
+  try { const v = JSON.parse(localStorage.getItem('tw.tc.csort') || 'null'); if (v && SORTS.some((x) => x[0] === v.k) && (v.d === 1 || v.d === -1)) S.csort = v; } catch (e) { /* 無痕等情況讀不到就用預設 */ }
+  /* 預設＝資料原順序（編輯者排好的）；選了排序鍵才重排，缺值一律排最後，不論高低方向 */
+  function sortCos(list) {
+    const k = S.csort.k; if (!k) return list;
+    const d = S.csort.d, v = (x) => cardMet(x[1])[k];
+    return list.map((x, i) => [x, i]).sort((a, b) => { const va = v(a[0]), vb = v(b[0]); if (va == null && vb == null) return a[1] - b[1]; if (va == null) return 1; if (vb == null) return -1; return (va - vb) * d || a[1] - b[1]; }).map((x) => x[0]);
+  }
+  function sortBar() {
+    return '<div class="tc-sortbar" role="group" aria-label="排序"><span class="tc-fl">排序</span><div class="seg" data-csort="1">' + SORTS.map(([k, t]) => { const on = S.csort.k === k; return '<button type="button" data-k="' + k + '" class="' + (on ? 'on' : '') + '" title="' + (on ? '再按一次反轉方向' : '依' + t + '由高到低') + '">' + t + (on ? (S.csort.d < 0 ? ' ↓' : ' ↑') : '') + '</button>'; }).join('') + '</div></div>';
+  }
   function coCard(ind, c, matched) {
     const mini = miniDonut(c), col = (f) => matched.map((r) => mdp(r[f])).filter((v) => v != null);
-    const mA = col('annual_total_wan'), mB = col('base_month_k'), hr = col('weekly_hours'), nn = matched.reduce((x, r) => x + (r.n || 0), 0);
+    const mA = col('annual_total_wan'), mB = col('base_month_k'), hr = col('weekly_hours'), mBo = col('bonus_months'), nn = matched.reduce((x, r) => x + (r.n || 0), 0);
     const ann = mA.length ? Math.round(med(mA) * 10) / 10 : null, bs = mB.length ? Math.round(med(mB) * 10) / 10 : null, hh = hr.length ? Math.round(hr.reduce((x, y) => x + y, 0) / hr.length) : null;
-    const none = ann == null && bs == null;
+    const none = ann == null && bs == null, bo = mBo.length ? Math.round(med(mBo) * 10) / 10 : null;
     return '<a class="tc-co' + (matched.some(roleHasData) ? '' : ' tc-nod') + '" href="#tc/' + ind + '/' + encodeURIComponent(c.name) + '" data-co="' + esc(c.name) + '">' +
       '<div class="tc-coh">' + TL(c.name, ind, 36) + '<span class="tc-con"><b>' + esc(c.name) + '</b>' + (c.code ? '<small>' + esc(c.code) + '</small>' : '') + '</span>' + (c.heat ? '<span class="tc-heat">' + esc(String(c.heat).replace(/^.*熱度：?/, '熱度 ')) + '</span>' : '') + '</div>' +
       '<div class="tc-cok' + (mini ? ' has-pay' : '') + '"><div class="tc-bigv"><em>' + (ann == null ? '—' : ann) + '</em><span>年薪中位數（萬）</span></div>' + mini + '</div>' +
-      '<div class="tc-cof"><span>底薪 <b>' + (bs == null ? '—' : bs + 'K') + '</b></span><span>週工時 <b>' + (hh == null ? '—' : hh) + '</b></span><span>樣本 <b>' + nn + '</b></span><span>符合職位 <b>' + matched.length + '</b></span></div></a>';
+      '<div class="tc-cof"><span>底薪 <b>' + (bs == null ? '—' : bs + 'K') + '</b></span><span>週工時 <b>' + (hh == null ? '—' : hh) + '</b></span><span>分紅 <b>' + (bo == null ? '—' : bo + ' 月') + '</b></span><span>樣本 <b>' + nn + '</b></span><span>符合職位 <b>' + matched.length + '</b></span></div></a>';
   }
 
   function paint() {
@@ -546,7 +576,7 @@
       } else {
         const list = d.companies.map((c) => [c, (c.roles || []).filter((r) => roleShown(r) && roleOk(r))]).filter((x) => x[1].length);
         h += '<div class="tc-cnt" id="tcCnt">符合篩選 <b>' + list.length + '</b> / ' + d.companies.length + ' 家公司</div>' +
-          (list.length ? '<div class="tc-grid">' + list.map((x) => coCard(S.ind, x[0], x[1])).join('') + '</div>' : '<div class="empty isempty tc-empty">沒有符合篩選的公司</div>');
+          (list.length ? sortBar() + '<div class="tc-grid">' + sortCos(list).map((x) => coCard(S.ind, x[0], x[1])).join('') + '</div>' : '<div class="empty isempty tc-empty">沒有符合篩選的公司</div>');
       }
     }
     h += delBox() + '</div></div><div class="tc-foot">' + esc(FOOT) + '・<a href="https://github.com/MiaoZiKe/tw-rotation/blob/main/data/logos/tc/ATTRIBUTION.md" target="_blank" rel="noopener">LOGO 出處與授權</a>（部分取自 Wikimedia Commons；商標屬各公司）</div>';
@@ -559,6 +589,7 @@
     $$('.tc-tbl td', root).forEach((td) => { if (td.textContent.trim() === '—') td.classList.add('tc-dash'); });
     if (S.ind === 'stats') { drawStats(); bindRank(root); }
     else if (S.co && S.data[S.ind]) { const co2 = (S.data[S.ind].companies || []).find((x) => x.name === S.co); if (co2) { drawPay(co2); const sel = $('#tcPaySel', root); if (sel) sel.onchange = () => { S.payI = +sel.value; drawPay(co2); }; } }
+    $$('.seg[data-csort] button', root).forEach((b) => b.onclick = () => { const k = b.dataset.k; S.csort = S.csort.k === k ? { k, d: -S.csort.d } : { k, d: -1 }; try { localStorage.setItem('tw.tc.csort', JSON.stringify(S.csort)); } catch (e) { /* 存不了不影響使用 */ } paint(); });
     $$('.tc-fbar .seg', root).forEach((sg) => $$('button', sg).forEach((b) => b.onclick = () => { S.f[sg.dataset.fk] = +b.dataset.i; paint(); }));
     /* 手機：職位列超過 10 列先收起，按「看全部」才展開（整頁 ≤4 屏準則）；桌機不動 */
     const tw = $('.tc-tw', root);
