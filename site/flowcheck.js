@@ -223,7 +223,7 @@
       + '<div id="fcTrend" class="chart fc-trend"></div><div class="fc-note fc-tnote" id="fcTrendNote"><span class="fc-badge" id="fcBadge"></span><span id="fcNoteTx"></span></div></section>'
       + fold('fcMemCard', '成分股走勢（前 6 大） ' + howBox('mem'), '', howDiv('mem') + '<div class="fc-minis" id="fcMinis"></div><details class="fc-det" id="fcTblDet"><summary>全部成分股表</summary><div class="fc-tbl" id="fcMemTbl"></div></details>')
       + '</div></div>'
-      + fold('fcMoreCard', '更多證據 ' + howBox('more'), seg('fcTab', [['daily', '日級別訊號'], ['sig', '提前判斷（實驗）'], ['news', '新聞與法人']], S.tab, '更多證據分頁'),
+      + fold('fcMoreCard', '更多證據 ' + howBox('more'), '<span class="fc-msum" id="fcMsum"></span>' + seg('fcTab', [['daily', '日級別訊號'], ['sig', '提前判斷（實驗）'], ['news', '新聞與法人']], S.tab, '更多證據分頁'),
         howDiv('more') + '<div class="fc-pane" id="fcPaneDaily">' + howDiv('day') + '<div id="fcDay"></div></div>'
         + '<div class="fc-pane" id="fcPaneSig" hidden>' + howDiv('sig') + '<div class="fc-sigwrap"><div class="fc-sigl" id="fcSigL"></div><div class="fc-sigr" id="fcSigR"></div></div></div>'
         + '<div class="fc-pane" id="fcPaneNews" hidden>' + howDiv('news') + howDiv('inst') + '<div class="fc-row2"><div><div class="fc-sub2">當日相關新聞／事件 <button class="howbtn pop" type="button" data-how="fc_news" data-ttl="新聞與事件" aria-label="新聞怎麼看">?</button></div><div class="fc-news" id="fcNews"></div></div>'
@@ -240,11 +240,30 @@
     try { window.matchMedia('(min-width:1440px)').addEventListener('change', function () { if (C.idx) setTimeout(paint, 80); }); } catch (e) { /* 舊瀏覽器 */ }
     return true;
   }
+  /* 「更多證據」收起時標題列右側的摘要：不展開也知道有沒有東西；數字點了展開到對應分頁 */
+  function drawMsum() {
+    var el = $('#fcMsum'); if (!el) return; var my = painting, dy = C.day[S.date], gid = S.gid;
+    getDaily().then(function (D) {
+      if (my !== painting) return;
+      var its = D ? (D.recent || []).filter(function (it) { return it.date === S.date; }) : null;
+      var ng = its ? its.filter(function (it) { return it.level === 'group'; }).length : null, ns = its ? its.length - ng : null;
+      var nsig = (dy.signals || []).length, nn = (dy.news || []).filter(function (n) { return (n.gids || []).indexOf(gid) >= 0; }).length;
+      var b = function (tab, txt) { return '<button type="button" class="fc-ms" data-msum="' + tab + '">' + txt + '</button>'; };
+      el.innerHTML = b('daily', '日級別候選：' + (its ? '族群 ' + ng + '・個股 ' + ns : '—')) + '<span class="fc-msep">｜</span>' + b('sig', '盤中訊號 ' + nsig + ' 次') + '<span class="fc-msep">｜</span>' + b('news', '新聞 ' + nn + ' 則');
+    });
+  }
+  function openMore(tab) {
+    var card = $('#fcMoreCard'); if (!card) return;
+    card.classList.add('open'); var t = card.querySelector('.fc-tog'); if (t) { t.textContent = '收起'; t.setAttribute('aria-expanded', 'true'); }
+    open.fcMoreCard = true; try { localStorage.setItem('fc.open', JSON.stringify(open)); } catch (x) { /* 私密視窗 */ }
+    S.tab = tab; paint(); setTimeout(function () { window.dispatchEvent(new Event('resize')); }, 30);
+  }
   function closeTlx() { var tl = $('#fcTl'); if (tl && tl.classList.contains('xopen')) { tl.classList.remove('xopen'); var m = $('#fcTlMore'); if (m) m.setAttribute('aria-expanded', 'false'); } }
   document.addEventListener('click', function (e) { var tl = $('#fcTl'); if (tl && tl.classList.contains('xopen') && !e.target.closest('#fcTl')) closeTlx(); });
   function wire(v) {
     v.addEventListener('click', function (e) {
       var b = e.target.closest('button'); if (!b) return;
+      if (b.dataset.msum) { openMore(b.dataset.msum); return; }
       if (b.dataset.fold) { var id = b.dataset.fold, card = $('#' + id), on = !card.classList.contains('open'); card.classList.toggle('open', on); b.textContent = on ? '收起' : '展開'; b.setAttribute('aria-expanded', on);
         open[id] = on; try { localStorage.setItem('fc.open', JSON.stringify(open)); } catch (x) { /* 私密視窗 */ } setTimeout(function () { paint(); window.dispatchEvent(new Event('resize')); }, 30); return; }
       var p = b.parentElement && b.parentElement.id;
@@ -363,7 +382,7 @@
     $('#fcTrendName').textContent = (cur && cur.name) || '—';
     var bd = $('#fcBadge'); if (cur) { var tg = tagOf(cur); bd.className = 'fc-badge ' + tg.k; bd.textContent = tg.txt; } else { bd.className = 'fc-badge'; bd.textContent = ''; }
     getSer(S.gid).then(function (ser) { if (my !== painting) return; drawTrend(cur, ser); drawMinis(cur, ser); });
-    drawMemTbl(cur); fitTrendM();
+    drawMemTbl(cur); fitTrendM(); drawMsum();
     ['daily', 'sig', 'news'].forEach(function (k) { var e = $('#fcPane' + k.charAt(0).toUpperCase() + k.slice(1)); if (e) e.hidden = k !== S.tab; });
     $$('#fcTab button').forEach(function (b) { b.classList.toggle('on', b.dataset.v === S.tab); b.setAttribute('aria-pressed', b.dataset.v === S.tab); });
     if (S.tab === 'daily') drawDaily(rows); else if (S.tab === 'sig') drawSig(rows); else { drawNews(); drawInst(); }       // 只畫看得到的那一頁（回測檔 1.5MB 也只在點「提前判斷」才載）

@@ -71,4 +71,5 @@
   .fc-tw{position:relative}
   .fc-swipe{display:block;font-size:11px;color:var(--ink-3);text-align:right;padding:2px 0}
   .fc-divpop{max-height:none}
+  .fc-msum{flex:1 1 100%;margin-left:0;order:3}
 }

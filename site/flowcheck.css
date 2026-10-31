@@ -152,3 +152,9 @@
 #fcDay .fc-tw{max-height:200px}
 @media (max-width:1100px){.fc-rsum{grid-template-columns:minmax(0,1fr)}}
 .fc-swipe{display:none}
+
+/* 更多證據收起時：標題列右側摘要（點數字展開到對應分頁）；展開後改顯示分頁鈕 */
+.fc-msum{display:none;flex:1 1 auto;flex-wrap:wrap;align-items:center;gap:4px 8px;font-size:13px;margin-left:12px}
+.fc-fold:not(.open) .fc-msum{display:flex}.fc-fold:not(.open) #fcTab{display:none}
+.fc-ms{background:none;border:0;border-bottom:1px dashed var(--ink-3);padding:2px 0;color:var(--ink);font-size:13px;cursor:pointer;min-height:28px}.fc-ms:hover{color:var(--cyan)}
+.fc-msep{color:var(--ink-3)}

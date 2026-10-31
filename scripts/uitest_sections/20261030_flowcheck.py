@@ -60,6 +60,16 @@ def t_flowcheck_1030(b, base):
     ok(f"[{T}] ① 頁首標題只有一個「流向驗證」（卡內不再重複）", pg.evaluate("() => [...document.querySelectorAll('#v-flowcheck h2, #v-flowcheck h1')].filter(e => e.textContent.includes('流向驗證')).length") == 0)
     ok(f"[{T}] ① 走勢大圖、成分股小圖、熱力圖都有畫", pg.evaluate("() => document.querySelectorAll('#fcMinis .chart canvas, #fcMinis .chart svg').length >= 3 && document.querySelectorAll('#fcHeat canvas, #fcHeat svg').length >= 1 && document.querySelectorAll('#fcTrend canvas, #fcTrend svg').length >= 1"))
     ok(f"[{T}] ① 桌機「更多證據」預設收起（收展預設收起準則）", pg.evaluate("() => !document.getElementById('fcMoreCard').classList.contains('open') && document.querySelector('#fcMoreCard .fc-bd').getBoundingClientRect().height === 0"))
+    dsj = _json.loads((SITE / "data" / "flowcheck" / "daily_signals.json").read_text(encoding="utf-8"))
+    dayl = _json.loads((SITE / "data" / "flowcheck" / "day" / f"{LATEST}.json").read_text(encoding="utf-8"))
+    its = [x for x in dsj.get("recent", []) if x["date"] == LATEST]
+    eg = sum(1 for x in its if x["level"] == "group"); es = len(its) - eg
+    es_sig = len(dayl.get("signals", []))
+    en = sum(1 for n in dayl.get("news", []) if st(pg)["gid"] in (n.get("gids") or []))
+    msum = text(pg, "#fcMsum")
+    ok(f"[{T}] ① 「更多證據」收起時標題列右側直接顯示摘要，數字與資料檔一致（族群{eg}・個股{es}／盤中訊號{es_sig}／新聞{en}）", f"族群 {eg}・個股 {es}" in msum and f"盤中訊號 {es_sig} 次" in msum and f"新聞 {en} 則" in msum and pg.evaluate("() => document.getElementById('fcMsum').getBoundingClientRect().width > 100"), msum)
+    pg.click("#fcMsum [data-msum='sig']"); pg.wait_for_timeout(900)
+    ok(f"[{T}] ① 點摘要的「盤中訊號」：卡片展開並切到提前判斷分頁", pg.evaluate("() => document.getElementById('fcMoreCard').classList.contains('open') && !document.getElementById('fcPaneSig').hidden && TwFlowcheck.state().tab === 'sig' && document.querySelector('#fcMsum').getBoundingClientRect().width === 0"))
     open_more(pg)
     pg.click("#fcTab button[data-v='sig']"); pg.wait_for_timeout(900)
     ok(f"[{T}] ① 提前判斷分頁：標「實驗」、回測未達顯著、沒有內部欄名", "實驗" in text(pg, "#fcMoreCard") + text(pg, "#fcPaneSig") or "未達顯著" in text(pg, "#fcPaneSig"))
@@ -286,6 +296,8 @@ def t_flowcheck_1030(b, base):
     ok(f"[{T}] ⑨ 手機：時間軸把手高 ≥ 32px、貼底", pg.evaluate("() => { const r = document.querySelector('#fcRange2').getBoundingClientRect(); return r.height >= 32 && Math.abs(document.getElementById('fcTl').getBoundingClientRect().bottom - innerHeight) < 4; }"))
     ovm = pg.evaluate("""(ids) => { let bad = 0, total = 0; ids.forEach(id => { const c = echarts.getInstanceByDom(document.getElementById(id)); if (!c) return; const L = []; c.getZr().storage.getDisplayList(true).forEach(e => { if (e.ignore || e.invisible || !e.style || !e.style.text || e.type !== 'tspan' && e.type !== 'text') return; const r = e.getBoundingRect().clone(); if (e.transform) r.applyTransform(e.transform); if (r.width > 1 && r.height > 1) L.push(r); }); total += L.length; for (let i = 0; i < L.length; i++) for (let j = i + 1; j < L.length; j++) { const a = L[i], b = L[j], w = Math.min(a.x + a.width, b.x + b.width) - Math.max(a.x, b.x), h = Math.min(a.y + a.height, b.y + b.height) - Math.max(a.y, b.y); if (w > 3 && h > 4) bad++; } }); return { bad, total }; }""", ["fcWheel", "fcTrend"])
     ok(f"[{T}] ⑨ 手機：輪盤與走勢圖內文字框兩兩不相交（{ovm['total']} 個）", ovm["bad"] == 0 and ovm["total"] > 5, str(ovm))
+    ms = pg.evaluate("() => { const e = document.getElementById('fcMsum'), r = e.getBoundingClientRect(); return { w: r.width, h: r.height, right: r.right, vw: innerWidth, t: e.textContent, btn: e.querySelectorAll('button').length }; }")
+    ok(f"[{T}] ⑨ 手機：「更多證據」收起時摘要可見、可換行、不超出視窗、三個數字都在", ms["h"] > 18 and ms["right"] <= ms["vw"] + 1 and ms["btn"] == 3 and "盤中訊號" in ms["t"], str(ms))
     # ⑨b 手機時間軸：只佔一列、背景不透明、速度鈕收進「⋯」、不蓋住首屏文字、頁尾留白
     tl = pg.evaluate("""() => { const t = document.getElementById('fcTl'), r = t.getBoundingClientRect(), cs = getComputedStyle(t), spd = document.getElementById('fcSpd').getBoundingClientRect(), pl = document.getElementById('fcPlay').getBoundingClientRect(), ax = document.getElementById('fcRange2').getBoundingClientRect(), lb = document.getElementById('fcTlab').getBoundingClientRect();
       const cv = document.createElement('canvas'); cv.width = cv.height = 1; const cx = cv.getContext('2d'); cx.clearRect(0, 0, 1, 1); cx.fillStyle = cs.backgroundColor; cx.fillRect(0, 0, 1, 1); const alpha = cx.getImageData(0, 0, 1, 1).data[3] / 255;
