@@ -73,6 +73,7 @@ def t_flowcheck_v3(b, base):
     ok(f"[{T}] ① 進頁：預設河流、30 日、最新日、主圖有畫", s0["view"] == "river" and s0["win"] == 30 and s0["date"] == FILES["index.json"]["latest"] and J(pg, "() => document.querySelectorAll('#fc3Stage g.fc3-row').length") == 10, s0)
     ok(f"[{T}] ① 流入 3＋流出 3 共 6 張卡，每張有名稱與當天漲跌", J(pg, "() => [...document.querySelectorAll('#fc3Ans .fc3-chip')].every(c => c.querySelector('.n').textContent && /%/.test(c.querySelector('.v').textContent))") and J(pg, "() => document.querySelectorAll('#fc3Ans .fc3-chip').length") == 6)
     ok(f"[{T}] ① 一句白話結論有寫出第 1 名與「加權指數」", "加權指數" in J(pg, "() => document.getElementById('fc3Sent').textContent"))
+    ok(f"[{T}] ① 卡片寫「今日 +x 百分點」（不再是看不懂的「占比 +x」）", J(pg, "() => [...document.querySelectorAll('#fc3Ans .fc3-chip .v .a')].every(e => /今日 [+-]?\\d+\\.\\d+ 百分點/.test(e.textContent))"))
     _day = FILES["index.json"]["latest"]; _gs = FILES[f"day/{_day}.json"]["groups"]; _nm = {g["gid"]: g["name"] for g in FILES["index.json"]["groups"]}
     _r = sorted([k for k, v in _gs.items() if (v["share"] or 0) >= 1 and v["dshare"] is not None], key=lambda k: -_gs[k]["dshare"])
     _want_in = [_nm[k] for k in _r[:3]]; _want_out = [_nm[k] for k in _r[::-1][:3]]
@@ -101,6 +102,16 @@ def t_flowcheck_v3(b, base):
     ok(f"[{T}] ④ 輪盤視圖：畫出圓點，且點數 ≥ 20", J(pg, "() => document.querySelectorAll('#fc3Stage g.fc3-pt').length") >= 20)
     ok(f"[{T}] ④ 輪盤文字框不重疊", not J(pg, OVERLAP), J(pg, OVERLAP))
     ok(f"[{T}] ④ 輪盤沒有箭頭（marker）", J(pg, "() => !document.querySelector('#fc3Stage marker, #fc3Stage [marker-end]')"))
+    pp = J(pg, "() => [...document.querySelectorAll('#fc3Stage g.fc3-pt')].map(e => ({g: e.dataset.g, x: +e.dataset.x, y: +e.dataset.y, r: +e.dataset.r}))")
+    pairs = sorted(((((a['x'] - c['x']) ** 2 + (a['y'] - c['y']) ** 2) ** .5, a, c) for i, a in enumerate(pp) for c in pp[i + 1:]), key=lambda z: z[0])[:3]
+    sb = J(pg, "() => { const r = document.querySelector('#fc3Stage svg.fc3-svg').getBoundingClientRect(); return [r.left, r.top]; }")
+    good = 0
+    for d_, a, c in pairs:
+        small = a if a['r'] <= c['r'] else c
+        pg.mouse.click(sb[0] + small['x'], sb[1] + small['y']); pg.wait_for_timeout(250)
+        good += st(pg)["sel"] == small['g']
+    ok(f"[{T}] ④ 輪盤點最擠的 3 對點：點小點的中心，選到的就是它（不被蓋住的大點吃掉），選到 {good}/3", good == 3, (good, [(round(d_, 1), a['g'], c['g']) for d_, a, c in pairs]))
+    ok(f"[{T}] ④ 被選的點畫在最上層（最後一個 fc3-pt）並有標籤", J(pg, "(g) => { const l = [...document.querySelectorAll('#fc3Stage g.fc3-pt')]; return l[l.length - 1].dataset.g === g; }", st(pg)["sel"]))
     pg.click("#fc3Ans .fc3-grp:nth-child(2) .fc3-chip:nth-child(2)"); pg.wait_for_timeout(300); hs.append(card_h(pg))
     g_pick = st(pg)["sel"]
     pg.click("#fc3View [data-v='river']"); pg.wait_for_timeout(300); hs.append(card_h(pg))
@@ -144,9 +155,11 @@ def t_flowcheck_v3(b, base):
     sg_txt = J(pg, "() => document.getElementById('fc3SigWrap').innerText")
     ok(f"[{T}] ⑧ 訊號列首屏一行：有「實驗訊號」字樣與「近兩年略有利、空頭與 2026 年轉弱」，今日候選只列族群", "實驗訊號" in sg_txt and "近兩年略有利" in sg_txt and "空頭與 2026 年轉弱" in sg_txt, sg_txt[:120])
     pg.click("[data-sig='toggle']"); pg.wait_for_timeout(300)
+    sg_row = sg_txt
     sg_txt = J(pg, "() => document.getElementById('fc3SigWrap').innerText")
-    ok(f"[{T}] ⑧ 點開證據：出現四句固定說明（2024～2025、2012～2019、2026、空頭）與候選族群連結", all(k in sg_txt for k in ("2024", "2012", "2026", "空頭", "+0.98%", "65%", "三分之一")) and J(pg, "() => document.querySelectorAll('#fc3Sig [data-sig=pick]').length") >= 1, sg_txt[:80])
-    ok(f"[{T}] ⑧ 全區沒有「推薦」「買進」「有效」字樣、不列個股", not any(w in sg_txt for w in ("推薦", "買進", "有效")), [w for w in ("推薦", "買進", "有效") if w in sg_txt])
+    ok(f"[{T}] ⑧ 點開證據：出現四句固定說明（2024～2025、2012～2019、2026、空頭）與候選族群連結", all(k in sg_txt for k in ("2024", "2012", "2026", "空頭", "+0.96%", "+0.50%", "0.185%", "前瞻紀錄：收集中", "臨界")) and J(pg, "() => document.querySelectorAll('#fc3Sig [data-sig=pick]').length") >= 1, [k for k in ('2024','2012','2026','空頭','+0.96%','+0.50%','0.185%','前瞻紀錄：收集中','臨界') if k not in sg_txt])
+    ok(f"[{T}] ⑧ 全區沒有「推薦」「買進」「有效」字樣、不列個股", not any(w in sg_txt.replace("不是買進建議", "") for w in ("推薦", "買進", "有效", "HBM")), [w for w in ("推薦", "買進", "有效", "HBM") if w in sg_txt.replace("不是買進建議", "")])
+    ok(f"[{T}] ⑧ 訊號列加「僅供觀察，不是買進建議」；展開按鈕寫明是 INST10 自己的證據", "僅供觀察，不是買進建議" in sg_row and "INST10" in sg_row, sg_row)
     pg.click("#fc3Sig [data-sig='pick']"); pg.wait_for_timeout(300)
     ok(f"[{T}] ⑧ 點候選族群：主圖選取它", st(pg)["sel"] is not None)
     pg.click("[data-sig='toggle']"); pg.wait_for_timeout(200)
@@ -158,7 +171,8 @@ def t_flowcheck_v3(b, base):
     n_ok = J(pg, "() => document.querySelectorAll('#fcCases .fc3-case.ok').length"); n_bad = J(pg, "() => document.querySelectorAll('#fcCases .fc3-case.bad').length")
     ok(f"[{T}] ⑨ 驗證與案例：成功 {n_ok} 例、失敗 {n_bad} 例（各 ≥ 3）", n_ok >= 3 and n_bad >= 3)
     cs_txt = J(pg, "() => document.getElementById('fcCases').innerText")
-    ok(f"[{T}] ⑨ 整體統計：414 筆、20 日平均 +1.28%、中位數 −0.86%（或 -0.86%）、勝率 45.9%，白話寫「機率略有利、波動極大，不是穩賺」", "414" in cs_txt and "+1.28%" in cs_txt and ("0.86%" in cs_txt) and "45.9%" in cs_txt and "不是穩賺" in cs_txt, cs_txt[:160])
+    ok(f"[{T}] ⑨ 整體統計：413 筆、+1.24%、-0.92%、46.0%、保留樣本 1,158 筆 49.7%、第二版案例日期與數字、白話三句", "413" in cs_txt and "+1.24%" in cs_txt and "0.92%" in cs_txt and "46.0%" in cs_txt and "1,158" in cs_txt and "49.7%" in cs_txt and "不能當成穩定獲利工具" in cs_txt and "2026-03-17" in cs_txt and "+45.2%" in cs_txt and "-31.0%" in cs_txt, cs_txt[:160])
+    ok(f"[{T}] ⑨ 案例區標題寫明是「綜合分數 A」，與今天的訊號 INST10 是不同方法", "綜合分數 A" in cs_txt and "INST10" in cs_txt and "不同" in cs_txt)
     ok(f"[{T}] ⑨ 案例都寫了日期、族群、之後 5／20／60 日、當時與教訓", J(pg, "() => [...document.querySelectorAll('#fcCases .fc3-case')].every(c => /20\\d\\d-\\d\\d-\\d\\d/.test(c.textContent) && /60 日/.test(c.textContent) && /教訓/.test(c.textContent))"))
     for key, probe in [("heat", "#fcHeat canvas, #fcHeat svg"), ("trend", "#fcTrend canvas, #fcTrend svg"), ("div", "#fcDivPane .fc-dr, #fcDivPane .muted"),
                        ("strength", "#fcWheel canvas, #fcWheel svg"), ("daily", "#fcDay *"), ("sig", "#fcSigL *"), ("news", "#fcNews *, #fcInst canvas, #fcInst svg")]:
@@ -198,7 +212,15 @@ def t_flowcheck_v3(b, base):
     ok(f"[{T}] ⑪ 手機：沒有橫向捲軸", J(pg, "() => document.documentElement.scrollWidth <= innerWidth + 1"))
     top = J(pg, "() => document.getElementById('v-flowcheck').getBoundingClientRect().top + scrollY")
     bot = J(pg, "() => document.getElementById('fcAdv').getBoundingClientRect().bottom + scrollY")
-    ok(f"[{T}] ⑪ 手機整頁 ≤ 1.5 屏（內容高 {round(bot - top)}px ≤ {round(844 * 1.5)}）", bot - top <= 844 * 1.5, bot - top)
+    ok(f"[{T}] ⑪ 手機整頁 ≤ 1.3 屏（內容高 {round(bot - top)}px ≤ {round(844 * 1.3)}）", bot - top <= 844 * 1.3, bot - top)
+    rg = J(pg, """() => { const r = document.getElementById('fc3Range'), b = r.getBoundingClientRect(); let th = 0;
+      const walk = rules => [...rules].forEach(x => { if (x.selectorText) { if (/fc3-ctl input\\[type=.?range.?\\]::-webkit-slider-thumb/.test(x.selectorText)) th = Math.max(th, parseFloat(x.style.width) || 0); } else if (x.cssRules) walk(x.cssRules); });
+      [...document.styleSheets].forEach(sh => { try { walk(sh.cssRules); } catch (e) {} });
+      return [Math.round(b.width), Math.round(b.height), th, Math.round(document.getElementById('fc3Stage').getBoundingClientRect().right)]; }""")
+    ok(f"[{T}] ⑪ 手機滑桿：寬 ≥ 280、高 ≥ 40、把手 ≥ 32px、主圖右側留 32px 安全區（{rg}）", rg[0] >= 279 and rg[1] >= 40 and rg[2] >= 31.5 and rg[3] <= 390 - 32 + 1, rg)
+    pg.evaluate("() => { const r = document.getElementById('fc3Range'); r.value = +r.min; r.dispatchEvent(new Event('input', {bubbles: true})); }"); pg.wait_for_timeout(200)
+    pg.tap("#fc3Latest"); pg.wait_for_timeout(300)
+    ok(f"[{T}] ⑪ 手機拖滑桿到最早後，手指點一下「回最新」就回到最新日", st(pg)["t"] == st(pg)["T"] - 1, st(pg))
     first4 = J(pg, "() => [...document.querySelectorAll('#fc3Stage g.fc3-row')].slice(0, 4).every(r => r.getBoundingClientRect().bottom <= innerHeight)")
     ok(f"[{T}] ⑪ 手機首屏看得到：切換鈕、結論句、6 張卡、主圖前 4 列", first4 and J(pg, "() => ['#fc3View', '#fc3Sent', '#fc3Ans'].every(s => document.querySelector(s).getBoundingClientRect().bottom <= innerHeight)"))
     ok(f"[{T}] ⑪ 手機最小字 ≥ 12px、文字框不重疊（河流）", not J(pg, MINFONT) and not J(pg, OVERLAP), (J(pg, MINFONT), J(pg, OVERLAP)))
@@ -210,9 +232,13 @@ def t_flowcheck_v3(b, base):
     mh = [card_h(pg)]
     pg.click("#fc3View [data-v='wheel']"); pg.wait_for_timeout(300); mh.append(card_h(pg))
     ok(f"[{T}] ⑪ 手機輪盤：文字框不重疊、選取不丟、主圖卡高度不變（{sorted(set(mh))}）", not J(pg, OVERLAP) and st(pg)["sel"] is not None and len(set(mh)) == 1, (J(pg, OVERLAP), mh))
+    ok(f"[{T}] ⑪ 手機輪盤下方有被選族群的累計走勢小圖（含起訖日）", J(pg, "() => !!document.querySelector('#fc3Stage .fc3-minibox svg.fc3-mini') && document.querySelectorAll('#fc3Stage .fc3-minibox text').length >= 4"))
     pg.click("#fc3View [data-v='river']"); pg.wait_for_timeout(200)
     pg.click("#fc3Win [data-w='10']"); pg.wait_for_timeout(300); mh.append(card_h(pg))
     ok(f"[{T}] ⑪ 手機切 10 日：主圖卡高度不變", len(set(mh)) == 1, mh)
+    pg.click("[data-sig='toggle']"); pg.wait_for_timeout(300)
+    ok(f"[{T}] ⑪ 手機證據表下方有「← 左右滑 →」提示、表可橫向捲", J(pg, "() => { const s = document.querySelector('#fc3Sig .fc3-swipe'); return !!s && s.offsetParent !== null && /左右滑/.test(s.textContent) && getComputedStyle(document.querySelector('#fc3Sig .fc3-tw')).overflowX !== 'visible'; }"))
+    pg.click("[data-sig='toggle']"); pg.wait_for_timeout(200)
     pg.click("#fcAdvTog"); pg.wait_for_timeout(500)
     ok(f"[{T}] ⑪ 手機進階：分段列可橫向滑（不撐破版面）、整頁沒有橫捲", J(pg, "() => document.documentElement.scrollWidth <= innerWidth + 1"))
     ctx.close()

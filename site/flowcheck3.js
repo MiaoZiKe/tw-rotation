@@ -25,12 +25,12 @@
   var S = { t: 0, sel: null, win: 30, view: 'river', play: null, sigOpen: false };
   var QL = { leading: '持續升溫', improving: '降溫放緩', weakening: '升溫放緩', lagging: '持續降溫' };
   var NROWS = 10;
-  var RH = function () { return isMob() ? 40 : 32; }, CHH = function () { return isMob() ? 18 : 16; };
+  var RH = function () { return isMob() ? 35 : 32; }, CHH = function () { return 16; };
   var stageH = function () { return 6 + NROWS * RH() + V.mh * CHH() + 28; };
   var CATS = ['semiconductor', 'ai_server', 'siph_cpo', 'electronics', 'software', 'financial', 'traditional', 'infrastructure'];
 
-  var f1 = function (v) { return v == null || !isFinite(v) ? '—' : (v > 0 ? '+' : '') + (+v).toFixed(1); };
-  var f2 = function (v) { return v == null || !isFinite(v) ? '—' : (v > 0 ? '+' : '') + (+v).toFixed(2); };
+  var f1 = function (v) { return v == null || !isFinite(v) ? '—' : (v > 0 ? '+' : '') + (Math.round(+v * 10 + 1e-9 * Math.sign(v)) / 10).toFixed(1); };
+  var f2 = function (v) { return v == null || !isFinite(v) ? '—' : (v > 0 ? '+' : '') + (Math.round(+v * 100 + 1e-9 * Math.sign(v)) / 100).toFixed(2); };
   var p1 = function (v) { return v == null || !isFinite(v) ? '—' : (+v).toFixed(1); };
   var cls = function (v) { return v == null || !isFinite(v) || v === 0 ? '' : (v > 0 ? 'fc3-up' : 'fc3-dn'); };
   var vcol = function (v) { return 'var(' + (v >= 0 ? '--rise' : '--fall') + ')'; };
@@ -133,7 +133,9 @@
     $('#fc3Win').addEventListener('click', function (e) { var b = e.target.closest('button'); if (!b || b.disabled) return; setWin(+b.dataset.w); });
     $('#fc3Ans').addEventListener('click', function (e) { var c = e.target.closest('.fc3-chip'); if (c) select(c.dataset.g); });
     $('#fc3Play').addEventListener('click', togglePlay);
-    $('#fc3Latest').addEventListener('click', function () { stopPlay(); setT(V.T - 1); });
+    var lastGo = 0, goLatest = function (e) { if (e && e.preventDefault && e.type === 'pointerup') e.preventDefault(); var n = Date.now(); if (n - lastGo < 400) return; lastGo = n; stopPlay(); setT(V.T - 1); };
+    $('#fc3Latest').addEventListener('pointerup', goLatest);      // 手機：滑桿剛拖完、按鈕剛從隱藏變可見，第一下 click 偶爾被吞，pointerup 一定到
+    $('#fc3Latest').addEventListener('click', goLatest);
     $('#fc3Range').addEventListener('input', function (e) { stopPlay(); setT(+e.target.value); });
     $('#fc3Sig').addEventListener('click', function (e) {
       var b = e.target.closest('[data-sig]'); if (!b) return;
@@ -199,7 +201,7 @@
     var mk = function (g, i, k) {
       return '<button type="button" class="fc3-chip' + (S.sel === g.gid ? ' on' : '') + '" data-g="' + esc(g.gid) + '" aria-pressed="' + (S.sel === g.gid) + '" title="' + esc(g.name) + '">'
         + '<span class="k">' + k + (i + 1) + '</span><span class="n">' + esc(g.name) + '</span>'
-        + '<span class="v"><span class="a">占比 ' + f2(g.dshare[t]) + '・</span><span class="' + cls(g.chg[t]) + '">' + f1(g.chg[t]) + '%</span></span></button>';
+        + '<span class="v"><span class="a">今日 ' + f2(g.dshare[t]) + ' 百分點・</span><span class="' + cls(g.chg[t]) + '">' + f1(g.chg[t]) + '%</span></span></button>';
     };
     var empty = '<div class="fc3-none">今天沒有占比 ≥ 1% 的族群</div>';
     $('#fc3Ans').innerHTML = '<div class="fc3-grp"><div class="fc3-gt">今日資金流入</div>' + (tn.inn.length ? tn.inn.map(function (g, i) { return mk(g, i, '流入第 '); }).join('') : empty) + '</div>'
@@ -256,9 +258,9 @@
       var g = i.g, cy = i.y + ROWH / 2, on = S.sel === g.gid, dim = S.sel && !on;
       var nm = fitName(g.name, mob ? LW - 14 : LW - 6 - 52 - 12);
       out.push('<g data-g="' + esc(g.gid) + '" class="fc3-row' + (on ? ' on' : '') + '" role="button" tabindex="0" aria-label="' + esc(g.name) + '"><rect x="0" y="' + i.y + '" width="' + W + '" height="' + ROWH + '" class="fc3-rowbg"/>');
-      out.push('<text x="6" y="' + (mob ? cy - 2 : cy + 4) + '" class="big"><title>' + esc(g.name) + '</title>' + esc(nm) + '</text>');
+      out.push('<text x="6" y="' + (mob ? cy - 3 : cy + 4) + '" class="big"><title>' + esc(g.name) + '</title>' + esc(nm) + '</text>');
       var s0 = g.share[L] || 0, s1 = g.share[t] || 0, arrow = s1 >= s0 ? '↑' : '↓';
-      if (mob) out.push('<text x="6" y="' + (cy + 13) + '">占比 ' + s0.toFixed(1) + '→' + s1.toFixed(1) + ' ' + arrow + '</text>');
+      if (mob) out.push('<text x="6" y="' + (cy + 11) + '">占比 ' + s0.toFixed(1) + '→' + s1.toFixed(1) + ' ' + arrow + '</text>');
       else out.push('<text x="' + (LW - 6) + '" y="' + (cy + 4) + '" text-anchor="end">' + (QL[g.q[t]] || '') + '</text>');
       var cc = catVar(g.chain);
       for (var k = L; k < T - 1; k++) {
@@ -314,7 +316,7 @@
       var nm = g.name.length > 7 ? g.name.slice(0, 7) + '…' : g.name, w = nm.length * 13 + 10;
       var c = [[x, y - r - 4], [x, y + r + 14], [x + r + 4 + w / 2, y + 4], [x - r - 4 - w / 2, y + 4]];
       for (var i = 0; i < c.length; i++) {
-        var px = Math.max(pad.l + w / 2, Math.min(W - pad.r - w / 2, c[i][0])), py = Math.max(pad.t + 12, Math.min(H - pad.b - 4, c[i][1])), b = [px - w / 2, py - 12, px + w / 2, py + 3];
+        var px = Math.max(pad.l + w / 2, Math.min(W - pad.r - w / 2, c[i][0])), py = Math.max(pad.t + 12, Math.min(H - pad.b - 4, c[i][1])), b = [px - w / 2 - 3, py - 15, px + w / 2 + 3, py + 6];
         if (!hit(b)) { boxes.push(b); return '<text x="' + px + '" y="' + py + '" text-anchor="middle" class="big fc3-halo">' + esc(nm) + '</text>'; }
       }
       return '';
@@ -338,9 +340,9 @@
         + p.slice(0, -1).map(function (a, i) { return '<circle cx="' + a[0] + '" cy="' + a[1] + '" r="' + (1.5 + i / p.length * 2) + '" fill="' + c + '" opacity=".6"/>'; }).join(''));
     });
     var labs = [];
-    pts.sort(function (a, b) { return b.share[t] - a.share[t]; }).forEach(function (g) {
+    pts.sort(function (a, b) { return (S.sel === a.gid ? 1 : S.sel === b.gid ? -1 : 0) || (b.share[t] - a.share[t]); }).forEach(function (g) {      // 被選的點畫最上層
       var on = sg && sg.gid === g.gid, dim = S.sel && !on && !lab[g.gid], c = catVar(g.chain), x = X(g.mx[t]), y = Y(g.my[t]), r = R(g);
-      o.push('<g data-g="' + esc(g.gid) + '" class="fc3-pt" role="button" tabindex="0" aria-label="' + esc(g.name) + '"><circle cx="' + x + '" cy="' + y + '" r="' + r + '" fill="' + c + '" fill-opacity=".55" style="stroke:' + (on ? 'var(--ink)' : c) + '" stroke-width="' + (on ? 3 : 1.5) + '" opacity="' + (dim ? 0.4 : 1) + '"/>'
+      o.push('<g data-g="' + esc(g.gid) + '" data-x="' + x + '" data-y="' + y + '" data-r="' + r + '" class="fc3-pt" role="button" tabindex="0" aria-label="' + esc(g.name) + '"><circle cx="' + x + '" cy="' + y + '" r="' + r + '" fill="' + c + '" fill-opacity=".55" style="stroke:' + (on ? 'var(--ink)' : c) + '" stroke-width="' + (on ? 3 : 1.5) + '" opacity="' + (dim ? 0.4 : 1) + '"/>'
         + '</g>');
       if (lab[g.gid]) labs.push(lbl(g, x, y, r));
     });
@@ -363,24 +365,29 @@
   }
   function drawWheel(el) {
     var W = el.clientWidth, mob = W < 640, SW = mob ? 0 : 300, WW = mob ? W : W - SW - 12, H = stageH(), g = focusG(), t = S.t;
-    var side = '';
+    var side = '', MH = 104, hasMini = mob && !!g, WH = hasMini ? H - MH : H;
     if (!mob && g) {
       side = '<div class="fc3-side"><div class="fc3-sname">' + esc(g.name) + ' <span class="fc3-mut">' + esc(chainName(g.chain)) + '</span></div>'
         + '<div class="fc3-sline">占比 <b>' + p1(g.share[t]) + '%</b>（' + f2(g.dshare[t]) + '）・今日 <b class="' + cls(g.chg[t]) + '">' + f1(g.chg[t]) + '%</b><br><span class="fc3-mut">加權 ' + f1(V.mk[t]) + '%・' + (QL[g.q[t]] || '') + '</span></div>'
         + miniLine(SW - 8, 170, g) + '<div class="fc3-mut fc3-snote">實線＝' + esc(g.name) + '累計漲跌，虛線＝加權指數；起點 ' + mdl(V.dates[lo()]) + '</div></div>';
     }
-    el.innerHTML = '<div class="fc3-wheelwrap"><div style="width:' + WW + 'px">' + wheelSvg(WW, H, mob ? 2 : 3) + '</div>' + (mob ? '' : '<div style="width:' + SW + 'px">' + side + '</div>') + '</div>';
-    $$('g[data-g]', el).forEach(function (e) {
-      e.addEventListener('click', function () { select(e.dataset.g); });
-      e.addEventListener('keydown', function (ev) { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); select(e.dataset.g); } });
-      if (!mob) {
-        e.addEventListener('mousemove', function (ev) {
-          var q = V.by[e.dataset.g];
-          tip('<b>' + esc(q.name) + '</b>（' + esc(chainName(q.chain)) + '）<br>占比 ' + p1(q.share[t]) + '%（' + f2(q.dshare[t]) + '）<br>當天 <span class="' + cls(q.chg[t]) + '">' + f1(q.chg[t]) + '%</span>・' + (QL[q.q[t]] || ''), ev);
-        });
-        e.addEventListener('mouseleave', function () { tip(null); });
-      }
-    });
+    el.innerHTML = '<div class="fc3-wheelwrap' + (mob ? ' mob' : '') + '"><div style="width:' + WW + 'px">' + wheelSvg(WW, WH, 2) + (hasMini ? '<div class="fc3-minibox">' + miniLine(W, MH, g) + '</div>' : '') + '</div>' + (mob ? '' : '<div style="width:' + SW + 'px">' + side + '</div>') + '</div>';
+    /* 點擊／滑過一律選「離游標（手指）最近的點中心」：點互相蓋住時，小點不會被大點吃掉（PCB 載板被電源供應器蓋住只剩 4px 的事故） */
+    var svg = $('svg.fc3-svg', el), pts = $$('g.fc3-pt', el).map(function (e) { return { gid: e.dataset.g, x: +e.dataset.x, y: +e.dataset.y, r: +e.dataset.r }; });
+    var nearest = function (ev) {
+      var b = svg.getBoundingClientRect(), x = ev.clientX - b.left, y = ev.clientY - b.top, best = null, bd = 1e9;
+      pts.forEach(function (q) { var d = Math.hypot(q.x - x, q.y - y); if (d < bd) { bd = d; best = q; } });
+      return best && bd <= Math.max(best.r, 14) + 14 ? best : null;
+    };
+    svg.addEventListener('click', function (ev) { var q = nearest(ev); if (q) select(q.gid); });
+    $$('g.fc3-pt', el).forEach(function (e) { e.addEventListener('keydown', function (ev) { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); select(e.dataset.g); } }); });
+    if (!mob) {
+      svg.addEventListener('mousemove', function (ev) {
+        var q = nearest(ev); if (!q) { tip(null); return; } var o = V.by[q.gid];
+        tip('<b>' + esc(o.name) + '</b>（' + esc(chainName(o.chain)) + '）<br>占比 ' + p1(o.share[t]) + '%（' + f2(o.dshare[t]) + '）<br>當天 <span class="' + cls(o.chg[t]) + '">' + f1(o.chg[t]) + '%</span>・' + (QL[o.q[t]] || ''), ev);
+      });
+      svg.addEventListener('mouseleave', function () { tip(null); });
+    }
   }
   function tip(html, ev) {
     var t = $('#fc3Tip'); if (!t) return;
@@ -396,7 +403,7 @@
     if (V.nw !== undefined) return Promise.resolve(V.nw);
     return API.jget('next_wave.json').then(function (j) { V.nw = j && j.methods ? j : false; return V.nw; });
   }
-  function instMethod(nw) { return (nw.methods || []).filter(function (m) { return m.id === 'INST10' && m.level === 'group'; })[0] || null; }
+  function instMethod(nw) { return (nw.methods || []).filter(function (m) { return m.show_on_site === true && m.level === 'group'; })[0] || null; }
   function bearText(nw) {
     var r = (nw.robust || []).filter(function (x) { return x.method === 'group-INST10'; })[0], reg = r && r.regime, k = reg && Object.keys(reg).filter(function (z) { return z.indexOf('空頭') === 0; })[0];
     if (!k || reg[k].spread == null) return '空頭期未驗證';
@@ -408,29 +415,30 @@
       var head = '<span class="fc3-sigk">今天的訊號</span>';
       if (!nw) { el.innerHTML = '<div class="fc3-sigrow">' + head + '<span class="fc3-mut">訊號資料尚未上線</span></div>'; return; }
       var m = instMethod(nw), st = m && m.stats && m.stats['10'] && m.stats['10'].test;
-      var cands = ((nw.latest && nw.latest.candidates) || []).filter(function (c) { return c.method === 'group-INST10'; });
+      var cands = ((nw.latest && nw.latest.candidates) || []).filter(function (c) { return c.show_on_site === true && c.level === 'group'; });
       var when = nw.latest && nw.latest.date && V.dates.length && nw.latest.date !== V.dates[V.T - 1] ? '（訊號日 ' + mdl(nw.latest.date) + '）' : '';
       var back = '實驗訊號・近兩年略有利、空頭與 2026 年轉弱';
       var names = cands.slice(0, 3).map(function (c) { return c.name; }).join('、');
       var line = cands.length ? '外資＋投信近 10 日持續買超的族群：' + esc(names) + (cands.length > 3 ? ' 等 ' + cands.length + ' 個' : '') + when : '今天沒有候選族群' + when;
       var s = '<button type="button" class="fc3-sigrow" data-sig="toggle" aria-expanded="' + S.sigOpen + '">' + head + '<span class="fc3-exp">實驗訊號</span>'
-        + '<span class="fc3-sigtx">' + line + '<span class="fc3-mut">　近兩年略有利、空頭與 2026 年轉弱</span></span><span class="fc3-car">' + (S.sigOpen ? '收起 ▴' : '看證據 ▾') + '</span></button>';
+        + '<span class="fc3-sigtx">' + line + '<span class="fc3-mut">　近兩年略有利、空頭與 2026 年轉弱。僅供觀察，不是買進建議</span></span><span class="fc3-car">' + (S.sigOpen ? '收起 ▴' : '看 INST10 證據 ▾') + '</span></button>';
       if (S.sigOpen) {
         var rowSt = function (h) {
           var z = m && m.stats && m.stats[h] && m.stats[h].test; if (!z) return '';
-          return '<tr><td>' + h + ' 日</td><td class="n">' + z.n_eff + '</td><td class="n">' + f2(z.spread) + '%（' + f2(z.spread_ci[0]) + '～' + f2(z.spread_ci[1]) + '）</td><td class="n">' + Math.round(z.hit * 100) + '%（' + Math.round(z.hit_ci[0] * 100) + '～' + Math.round(z.hit_ci[1] * 100) + '%）</td><td class="n">' + f2(z.net) + '%</td></tr>';
+          var nt = z.net <= 0.1 ? '（幾乎被成本吃掉）' : z.net < 0.5 ? '（臨界）' : '';
+          return '<tr><td>' + h + ' 日</td><td class="n">' + z.n_dates + '</td><td class="n">' + f2(z.spread) + '%（' + f2(z.spread_ci[0]) + '～' + f2(z.spread_ci[1]) + '）</td><td class="n">' + Math.round(z.hit * 100) + '%（' + Math.round(z.hit_ci[0] * 100) + '～' + Math.round(z.hit_ci[1] * 100) + '%）</td><td class="n">' + f2(z.net) + '%' + nt + '</td></tr>';
         };
-        var z5 = m && m.stats && m.stats['5'] && m.stats['5'].test, z10 = st;
+        var cav = (nw.meta && nw.meta.caveats) || [];
+        if (!cav.length) cav = ['2024～2025 樣本外：10 日比隨機多、5 日也略多。', '2012～2019 保留樣本：效果只剩約三分之一，扣成本後為負。', '2026 年至今：效果接近零。', '空頭期（大盤 60 日為負）：無效。'];
+        var fw = nw.forward, fwTx = fw ? ({ collecting: '收集中', alive: '仍有效', retired: '已失效' }[fw.status] || fw.status) : '';
         s += '<div class="fc3-evid"><p class="fc3-evh">怎麼選：每個族群近 10 個交易日「外資＋投信淨買超占成交量」排名，前 20% 入選；只看族群，不列個股（個股層檢驗不成立）。</p>'
-          + '<ol class="fc3-four"><li>2024～2025 樣本外：10 日比隨機多 ' + (z10 ? f2(z10.spread) : '+0.98') + '%、5 日 ' + (z5 ? f2(z5.spread) : '+0.54') + '%（樣本數 ' + ((z5 || z10) ? (z5 || z10).n_dates : 136) + ' 期）。</li>'
-          + '<li>2012～2019 保留樣本：效果只剩約三分之一，扣成本後為負。</li>'
-          + '<li>2026 年至今：效果接近零。</li>'
-          + '<li>空頭期（大盤 60 日為負）：無效。</li></ol>'
-          + '<div class="fc3-tw"><table><thead><tr><th>持有</th><th>樣本期數</th><th>比隨機入選多賺（95% 區間）</th><th>命中率（95% 區間）</th><th>扣成本後</th></tr></thead><tbody>' + rowSt('5') + rowSt('10') + '</tbody></table></div>'
+          + '<ol class="fc3-four">' + cav.map(function (c) { return '<li>' + esc(String(c).replace(/有效獨立期/g, '獨立期數')) + '</li>'; }).join('') + '</ol>'
+          + '<div class="fc3-tw"><table><thead><tr><th>持有</th><th>樣本期數</th><th>比隨機入選多賺（95% 區間）</th><th>命中率（95% 區間）</th><th>扣成本後</th></tr></thead><tbody>' + rowSt('5') + rowSt('10') + '</tbody></table></div><div class="fc3-swipe">← 左右滑看更多 →</div>'
+          + (fw ? '<p class="fc3-evn"><b>前瞻紀錄：' + esc(fwTx) + '</b><span class="fc3-mut">　' + esc(fw.status_text || '') + '　下架規則：' + esc(fw.retire_rule || '') + '</span></p>' : '')
           + '<p class="fc3-evn">樣本外 ' + esc((nw.meta && nw.meta.test_start) || '2024-01-01') + ' 起。今日候選族群：'
           + cands.map(function (c) { return V.by[c.code] ? '<button type="button" class="fc3-lk" data-sig="pick" data-g="' + esc(c.code) + '">' + esc(c.name) + '</button>' : '<span>' + esc(c.name) + '</span>'; }).join('、') + '</p>'
           + '<p class="fc3-evn fc3-mut">' + esc((nw.meta && nw.meta.disclaimer) || '統計研究輔助，不是買賣建議；歷史表現不代表未來。') + ((nw.meta && nw.meta.limits || [])[2] ? '　限制：' + esc(nw.meta.limits[2]) : '') + '</p>'
-          + '<button type="button" class="fc3-lk fc3-casesbtn" data-sig="cases">看驗證與案例（成功與失敗各 3 個）▸</button></div>';
+          + '<button type="button" class="fc3-lk fc3-casesbtn" data-sig="cases">看另一個方法的案例：綜合分數 A（成功與失敗各 3 個）▸</button></div>';
       }
       el.innerHTML = s;
     });
@@ -440,12 +448,12 @@
   /* 6 個案例來自 docs/research/20261101_next_wave_signals.md 第六節「6 個使用案例」：族群綜合分數 A 樣本外的
      最好 12 筆與最差 12 筆裡各挑 3 筆講解；5／20／60 日是相對大盤的超額報酬。nw.cases 讀得到同日同族群就以 json 為準。 */
   var CASES = [
-    { ok: true, date: '2026-03-12', name: '前段製程設備', f: [7.5, 66.5, 31.2], why: '月營收年增約 32%、過去約 3 個月只漲 19%（沒有過熱）、法人 10 日淨買約占成交量 9.3%、成交值放大 1.4 倍。', lesson: '基本面與籌碼一起來、價格還沒透支，是最好的組合。' },
-    { ok: true, date: '2026-05-12', name: '被動元件 MLCC', f: [22.9, 90.0, 31.6], why: '3 個月漲 23%、法人淨買約 7%、成交值放大 2.5 倍；營收分數不高，主要靠籌碼與量能。', lesson: '它發生在大盤 20 日 +22% 的強勢期，大盤本身也在漲，不能全算訊號的功勞。' },
-    { ok: true, date: '2026-01-19', name: 'PCB 載板', f: [8.2, 51.8, 169.8], why: '法人買、成交量放大，但融資同時暴增 61%。', lesson: '融資暴增本來是警訊，這次反而續漲：熱門多頭裡融資增加只是跟風，所以這個假說沒有通過驗證。' },
-    { ok: false, date: '2026-03-19', name: 'NOR Flash 利基記憶體', f: [-17.7, -43.9, -22.1], why: '營收年增 147%、3 個月漲 137%；四個月前（2025-12-18）同族群入選，之後 20 日 +46%。', lesson: '基本面數字更漂亮，但價格已經先漲完：同一族群可以前次成功、這次慘敗。' },
-    { ok: false, date: '2026-03-12', name: '太陽能產業', f: [-7.4, -42.8, -78.0], why: '3 個月暴漲 197%、成交值放大 2.1 倍，基本面（營收年增 16%、加速 0）跟不上。', lesson: '與「前段製程設備」同一天入選：一檔 +66%、一檔 −43%。榜單只是機率篩選，不是個別預測。' },
-    { ok: false, date: '2026-04-13', name: '玻纖布', f: [-0.4, -27.2, -50.9], why: '營收年增 52%、法人持續買，大盤同期 20 日 +12.6%（強勢），族群卻大幅落後。', lesson: '沒有任何單一資料能事先解釋：這就是「訊號失靈」，多數失敗案例找不到單一原因。' }
+    { ok: true, date: '2026-03-17', name: '前段製程設備', f: [16.4, 45.2, 20.5], why: '月營收年增約 32%、過去約 3 個月只漲 18%（沒過熱）、法人 10 日淨買約占成交量 11.1%、成交值放大 1.9 倍。', lesson: '基本面與籌碼同向、價格還沒透支。' },
+    { ok: true, date: '2026-05-15', name: '被動元件 MLCC', f: [24.9, 69.5, 22.0], why: '3 個月漲 45%、法人淨買占成交量 10.5%、成交值放大 2.3 倍。', lesson: '但當時大盤 20 日 +14%，是強勢期的順風，不能全算訊號的功勞。' },
+    { ok: true, date: '2026-01-22', name: 'PCB 載板', f: [5.0, 39.1, 164.7], why: '法人買、成交值放大 3.0 倍，但融資 20 日同時增 27%（偏熱警訊）。', lesson: '熱門多頭裡融資增加只是跟風，所以融資過熱假說沒有通過驗證。' },
+    { ok: false, date: '2026-03-24', name: 'NOR Flash 利基記憶體', f: [-2.3, -31.0, 6.4], why: '營收年增 147%、3 個月已漲 137%。同一族群 2026-01-29 入選（營收年增 94%、3 個月漲 89%、融資增 46%）也輸：20 日 −10.0%、60 日 −28.4%。', lesson: '基本面數字越漂亮、價格越先漲完。' },
+    { ok: false, date: '2026-03-10', name: '太陽能產業', f: [3.3, -33.5, -79.9], why: '3 個月暴漲 209%、營收年增只有 16%、加速為 0。', lesson: '一週後（03-17）同一份榜單的「前段製程設備」卻 +45%：榜單是機率篩選，不是個別預測。' },
+    { ok: false, date: '2026-04-09', name: '玻纖布', f: [-7.1, -29.2, -61.4], why: '營收年增 45%、法人 10 日淨買占 7.2%；大盤同期 20 日 +15.3%，族群卻大幅落後。', lesson: '多數失敗案例找不到單一原因，這就是「訊號失靈」。' }
   ];
   function caseCard(c, nw) {
     var f = c.f.slice();
@@ -458,13 +466,18 @@
   function renderCases(el) {
     el.innerHTML = '<p class="fc3-mut">載入中…</p>';
     getNW().then(function (nw) {
-      var cs = nw && (nw.case_stats || []).filter(function (x) { return x.method === 'group-A' && x.period === '樣本外'; })[0];
-      var n = cs ? cs.n : 414, m20 = cs ? cs.mean20 : 1.28, md20 = cs ? cs.median20 : -0.86, w20 = cs ? cs.win20 : 0.459, ci = cs && cs.win20_ci ? cs.win20_ci : [0.412, 0.507];
+      var gA = function (per) { return nw && (nw.case_stats || []).filter(function (x) { return x.method === 'group-A' && x.period === per; })[0]; };
+      var cs = gA('樣本外'), hd = gA('保留樣本');
+      var n = cs ? cs.n : 413, m20 = cs ? cs.mean20 : 1.24, md20 = cs ? cs.median20 : -0.92, w20 = cs ? cs.win20 : 0.46, ci = cs && cs.win20_ci ? cs.win20_ci : [0.413, 0.508];
+      var hn = hd ? hd.n : 1158, hw = hd ? hd.win20 : 0.497;
       var stat = function (k, v, c) { return '<div class="fc3-stat"><span class="fc3-mut">' + k + '</span><b class="' + (c || '') + '">' + v + '</b></div>'; };
       var unt = (nw && nw.meta && nw.meta.untestable) || [];
-      el.innerHTML = '<div class="fc3-verdict"><b>工具成效：機率略有利、波動極大，不是穩賺。</b> 我們把「族群綜合分數 A」（基本面＋籌碼＋價量排名）每次新進入前 8 名當成一次訊號，樣本外歷次結果如下，成功失敗都列：</div>'
+      el.innerHTML = '<p class="fc3-readme"><b>這一段是「族群綜合分數 A」的歷次結果（基本面＋籌碼＋價量排名）</b>，和上面「今天的訊號」用的 INST10（外資＋投信買超）是兩個不同的方法；INST10 自己的統計在訊號列「看 INST10 證據」。</p><div class="fc3-verdict"><b>這套數據工具的成效（白話）</b><ol class="fc3-three"><li>它能誠實說出「哪些聽起來合理的方法其實沒用」（動能、量增、資金占比、融資券、費半傳導、日內都沒用），這本身就在幫你省錢。</li>'
+        + '<li>它找得到一個「在多頭裡、幅度薄、可能已經鈍化」的族群籌碼訊號，並且附上保留樣本、2026、空頭、成本的全部壞消息。</li>'
+        + '<li>勝率只有約 46～49%、中位數為負，贏的靠少數大贏家，所以不能當成穩定獲利工具。</li></ol></div>'
+        + '<p class="fc3-readme">我們把「族群綜合分數 A」（基本面＋籌碼＋價量排名）每次新進入前 8 名當成一次訊號，樣本外歷次結果如下，成功失敗都列：</p>'
         + '<div class="fc3-stats">' + stat('樣本外訊號', n + ' 筆') + stat('20 日平均', f2(m20) + '%', cls(m20)) + stat('20 日中位數', f2(md20) + '%', cls(md20)) + stat('20 日勝率', (w20 * 100).toFixed(1) + '%（' + Math.round(ci[0] * 100) + '～' + Math.round(ci[1] * 100) + '%）') + '</div>'
-        + '<p class="fc3-mut fc3-readme">白話：少數大贏家撐起平均，多數案例其實輸給大盤（勝率不到一半）；所以它是「篩選觀察名單」的工具，不是買賣依據。下面 6 個案例取自樣本外最好 12 筆與最差 12 筆，各挑 3 筆講解（不是隨機抽樣），數字是相對大盤的超額報酬。</p>'
+        + '<p class="fc3-mut fc3-readme">2012～2019 保留樣本：' + hn.toLocaleString('en-US') + ' 筆，20 日勝率 ' + (hw * 100).toFixed(1) + '%（同規則在更早的資料上也只有一半不到）。下面 6 個案例取自樣本外最好 12 筆與最差 12 筆，各挑 3 筆講解（不是隨機抽樣），數字是相對大盤的超額報酬。</p>'
         + '<div class="fc3-cases"><div class="fc3-col ok"><h4>成功 3 例</h4>' + CASES.filter(function (c) { return c.ok; }).map(function (c) { return caseCard(c, nw); }).join('') + '</div>'
         + '<div class="fc3-col bad"><h4>失敗 3 例</h4>' + CASES.filter(function (c) { return !c.ok; }).map(function (c) { return caseCard(c, nw); }).join('') + '</div></div>'
         + (unt.length ? '<details class="fc3-unt"><summary>還不能驗證的方法（' + unt.length + ' 項，資料累積中）</summary><ul>' + unt.map(function (u) { return '<li><b>' + esc(u.name) + '</b>：' + esc(u.why) + '</li>'; }).join('') + '</ul></details>' : '')

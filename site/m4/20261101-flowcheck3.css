@@ -17,10 +17,17 @@
   .fc3-chip{min-height:0;padding:4px 8px}
   .fc3-chip .n{font-size:13px}.fc3-chip .k,.fc3-chip .v .a{display:none}.fc3-chip .v{font-size:12px}
   .fc3-stagecard{padding:8px 12px}
-  .fc3-info{display:block;height:40px;overflow:hidden;font-size:13px;line-height:20px;margin-bottom:4px}
-  .fc3-ctl{gap:8px}
+  .fc3-info{display:block;height:24px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-size:13px;line-height:24px;margin-bottom:4px}
+  .fc3-stage{margin-right:32px;width:auto}      /* 右側留 32px 安全區：客服鈕固定在右下角，不蓋到「累計」數字 */
+  .fc3-ctl{gap:4px 8px;flex-wrap:wrap}
+  .fc3-play{order:1}.fc3-tl{order:3;flex:1 1 auto}.fc3-latest{order:4;min-height:32px;height:32px}.fc3-gap{display:none}
+  .fc3-ctl input[type=range]{order:2;flex:1 1 0;width:auto;min-width:280px;height:44px;-webkit-appearance:none;appearance:none;background:transparent;margin:0}
+  .fc3-ctl input[type=range]::-webkit-slider-runnable-track{height:6px;border-radius:3px;background:var(--line-2)}
+  .fc3-ctl input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:32px;height:32px;border-radius:50%;background:var(--cyan);border:0;margin-top:-13px}
+  .fc3-ctl input[type=range]::-moz-range-track{height:6px;border-radius:3px;background:var(--line-2)}
+  .fc3-ctl input[type=range]::-moz-range-thumb{width:32px;height:32px;border-radius:50%;background:var(--cyan);border:0}
+  .fc3-swipe{display:block;font-size:12px;color:var(--ink-3);text-align:right;padding:2px 0}
   .fc3-play{width:44px;height:44px}
-  .fc3-ctl input[type=range]{height:44px;min-width:60px}
   .fc3-latest{min-height:40px}
   .fc3-sigrow{flex-wrap:wrap;padding:8px 12px;gap:4px 8px}
   .fc3-sigtx{flex:1 1 100%}
@@ -39,5 +46,5 @@
   .fc-divpop{grid-template-columns:minmax(0,1fr)}
   .fc-badge{white-space:normal}
   .fc-swipe{display:block;font-size:12px;color:var(--ink-3);text-align:right;padding:2px 0}
-  #v-flowcheck .fc{padding-bottom:56px}
+  #v-flowcheck .fc{padding-bottom:16px}
 }

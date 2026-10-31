@@ -92,3 +92,8 @@ div.fc3-sigrow{cursor:default}
 .fc-adv .fc-bd>.seg{margin-bottom:12px;max-width:100%;overflow-x:auto;flex-wrap:nowrap}
 .fc-adv .fc-bd>.seg button{white-space:nowrap}
 .fc-adv .fc-pane[hidden]{display:none}
+.fc3-three{margin:8px 0 0;padding-left:20px;font-size:13px;line-height:1.7}
+
+.fc3-swipe{display:none}
+.fc3-minibox{margin-top:0}
+.fc3-latest,.fc3-play,.fc3-chip,.fc3-sigrow{touch-action:manipulation}
