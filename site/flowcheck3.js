@@ -312,14 +312,24 @@
     var R = function (g) { return Math.max(4, Math.min(22, Math.sqrt(g.share[t]) * 5.2)); };
     var boxes = [[W - pad.r - 70, pad.t, W - pad.r, pad.t + 18], [pad.l, H - pad.b - 20, pad.l + 70, H - pad.b], [pad.l, pad.t, pad.l + 56, pad.t + 18], [W - pad.r - 56, H - pad.b - 20, W - pad.r, H - pad.b]];
     var hit = function (b) { return boxes.some(function (a) { return a[0] < b[2] && b[0] < a[2] && a[1] < b[3] && b[1] < a[3]; }); };
+    var circ = [];      // 所有點的外框：標籤盡量不壓在點上
+    var tw = function (nm) { var w = 0; for (var i = 0; i < nm.length; i++) w += nm.charCodeAt(i) > 255 ? 13 : (nm.charAt(i) === ' ' ? 4 : 7.5); return w; };
+    /* 標籤避讓：8 個方向 × 2 種距離依序試放，先找「不碰其他標籤、也不壓在別的點上」的位置，找不到才退而求其次「只不碰其他標籤」，
+       還是放不下就不標（滑過仍有提示）。呼叫順序＝優先序：焦點族群最先，所以它一定先拿到位置。 */
     var lbl = function (g, x, y, r) {
-      var nm = g.name.length > 7 ? g.name.slice(0, 7) + '…' : g.name, w = nm.length * 13 + 10;
-      var c = [[x, y - r - 4], [x, y + r + 14], [x + r + 4 + w / 2, y + 4], [x - r - 4 - w / 2, y + 4]];
-      for (var i = 0; i < c.length; i++) {
-        var px = Math.max(pad.l + w / 2, Math.min(W - pad.r - w / 2, c[i][0])), py = Math.max(pad.t + 12, Math.min(H - pad.b - 4, c[i][1])), b = [px - w / 2 - 3, py - 15, px + w / 2 + 3, py + 6];
-        if (!hit(b)) { boxes.push(b); return '<text x="' + px + '" y="' + py + '" text-anchor="middle" class="big fc3-halo">' + esc(nm) + '</text>'; }
-      }
-      return '';
+      var nm = g.name.length > 7 ? g.name.slice(0, 7) + '…' : g.name, w = tw(nm) + 6;
+      var pos = [];
+      [4, 12, 26, 44].forEach(function (e) { var d = r + e; pos.push([x, y - d], [x, y + d + 11], [x + d + w / 2, y + 4], [x - d - w / 2, y + 4], [x + d * .7 + w / 2, y - d * .7], [x - d * .7 - w / 2, y - d * .7], [x + d * .7 + w / 2, y + d * .7 + 8], [x - d * .7 - w / 2, y + d * .7 + 8]); });
+      var cand = pos.map(function (c) { var px = Math.max(pad.l + w / 2, Math.min(W - pad.r - w / 2, c[0])), py = Math.max(pad.t + 12, Math.min(H - pad.b - 4, c[1])); return { px: px, py: py, b: [px - w / 2 - 3, py - 14, px + w / 2 + 3, py + 5] }; });
+      var score = function (b) {      // 壓到幾個點的外框（×1）、幾個點的中心（×10）：越小越好
+        var n = 0; circ.forEach(function (q) { if (q.g === g.gid) return; if (q.b[0] < b[2] && b[0] < q.b[2] && q.b[1] < b[3] && b[1] < q.b[3]) { n += 1; var cx_ = (q.b[0] + q.b[2]) / 2, cy_ = (q.b[1] + q.b[3]) / 2; if (cx_ > b[0] && cx_ < b[2] && cy_ > b[1] && cy_ < b[3]) n += 10; } });
+        return n;
+      };
+      var pick = null, best = 1e9;
+      cand.forEach(function (c, i) { if (hit(c.b)) return; var sc = score(c.b) + i * 0.01; if (sc < best) { best = sc; pick = c; } });
+      if (!pick) return '';
+      boxes.push(pick.b);
+      return '<text x="' + pick.px + '" y="' + pick.py + '" text-anchor="middle" class="big fc3-halo">' + esc(nm) + '</text>';
     };
     var cx = X(100), cy = Y(100), o = [];
     o.push('<rect x="' + cx + '" y="' + pad.t + '" width="' + (W - pad.r - cx) + '" height="' + (cy - pad.t) + '" style="fill:var(--cyan)" opacity=".07"/><rect x="' + pad.l + '" y="' + cy + '" width="' + (cx - pad.l) + '" height="' + (H - pad.b - cy) + '" style="fill:var(--ink-3)" opacity=".07"/>');
@@ -339,13 +349,15 @@
       o.push('<polyline fill="none" stroke="' + c + '" stroke-width="2" opacity=".7" points="' + p.map(function (a) { return a.join(','); }).join(' ') + '"/>'
         + p.slice(0, -1).map(function (a, i) { return '<circle cx="' + a[0] + '" cy="' + a[1] + '" r="' + (1.5 + i / p.length * 2) + '" fill="' + c + '" opacity=".6"/>'; }).join(''));
     });
-    var labs = [];
+    var labs = [], lq = [];
     pts.sort(function (a, b) { return (S.sel === a.gid ? 1 : S.sel === b.gid ? -1 : 0) || (b.share[t] - a.share[t]); }).forEach(function (g) {      // 被選的點畫最上層
       var on = sg && sg.gid === g.gid, dim = S.sel && !on && !lab[g.gid], c = catVar(g.chain), x = X(g.mx[t]), y = Y(g.my[t]), r = R(g);
       o.push('<g data-g="' + esc(g.gid) + '" data-x="' + x + '" data-y="' + y + '" data-r="' + r + '" class="fc3-pt" role="button" tabindex="0" aria-label="' + esc(g.name) + '"><circle cx="' + x + '" cy="' + y + '" r="' + r + '" fill="' + c + '" fill-opacity=".55" style="stroke:' + (on ? 'var(--ink)' : c) + '" stroke-width="' + (on ? 3 : 1.5) + '" opacity="' + (dim ? 0.4 : 1) + '"/>'
         + '</g>');
-      if (lab[g.gid]) labs.push(lbl(g, x, y, r));
+      circ.push({ g: g.gid, b: [x - r, y - r, x + r, y + r] });
+      if (lab[g.gid]) lq.push({ g: g, x: x, y: y, r: r, pri: (sg && sg.gid === g.gid) ? 0 : (tn.inn.indexOf(g) >= 0 ? 1 : 2) });
     });
+    lq.sort(function (u, v) { return u.pri - v.pri || (v.g.share[t] || 0) - (u.g.share[t] || 0); }).forEach(function (q) { labs.push(lbl(q.g, q.x, q.y, q.r)); });
     o.push('<g pointer-events="none">' + labs.join('') + '</g>');
     return '<svg width="' + W + '" height="' + H + '" class="fc3-svg" role="img" aria-label="資金輪盤">' + o.join('') + '</svg>';
   }
@@ -409,6 +421,13 @@
     if (!k || reg[k].spread == null) return '空頭期未驗證';
     return reg[k].spread <= 0 ? '空頭無效' : '空頭效果較弱';
   }
+  /* 證據句白話化：去掉「Rank IC」「有效」這類新手看不懂或不准用的詞；百分比一律兩位小數（0.955% → 0.96%） */
+  function plainCav(c) {
+    c = String(c).replace(/有效獨立期/g, '獨立期數');
+    c = c.replace(/(\d+) 日 Rank IC 只有 (-?\d+(?:\.\d+)?)（接近 0），效果幾乎消失/g, function (m, h, v) { return '排名與之後 ' + h + ' 日漲跌幾乎沒有關係（相關 ' + (Math.round(parseFloat(v) * 100 + 1e-9 * Math.sign(v)) / 100).toFixed(2) + '），效果幾乎消失'; });
+    c = c.replace(/Rank IC/g, '排名相關');
+    return c.replace(/(-?)(\d+\.\d+)%/g, function (m, sgn, n) { return sgn + (Math.round(parseFloat(n) * 100 + 1e-9) / 100).toFixed(2) + '%'; });
+  }
   function drawSignal() {
     var el = $('#fc3Sig'); if (!el) return;
     getNW().then(function (nw) {
@@ -432,7 +451,7 @@
         if (!cav.length) cav = ['2024～2025 樣本外：10 日比隨機多、5 日也略多。', '2012～2019 保留樣本：效果只剩約三分之一，扣成本後為負。', '2026 年至今：效果接近零。', '空頭期（大盤 60 日為負）：無效。'];
         var fw = nw.forward, fwTx = fw ? ({ collecting: '收集中', alive: '仍有效', retired: '已失效' }[fw.status] || fw.status) : '';
         s += '<div class="fc3-evid"><p class="fc3-evh">怎麼選：每個族群近 10 個交易日「外資＋投信淨買超占成交量」排名，前 20% 入選；只看族群，不列個股（個股層檢驗不成立）。</p>'
-          + '<ol class="fc3-four">' + cav.map(function (c) { return '<li>' + esc(String(c).replace(/有效獨立期/g, '獨立期數')) + '</li>'; }).join('') + '</ol>'
+          + '<ol class="fc3-four">' + cav.map(function (c) { return '<li>' + esc(plainCav(c)) + '</li>'; }).join('') + '</ol>'
           + '<div class="fc3-tw"><table><thead><tr><th>持有</th><th>樣本期數</th><th>比隨機入選多賺（95% 區間）</th><th>命中率（95% 區間）</th><th>扣成本後</th></tr></thead><tbody>' + rowSt('5') + rowSt('10') + '</tbody></table></div><div class="fc3-swipe">← 左右滑看更多 →</div>'
           + (fw ? '<p class="fc3-evn"><b>前瞻紀錄：' + esc(fwTx) + '</b><span class="fc3-mut">　' + esc(fw.status_text || '') + '　下架規則：' + esc(fw.retire_rule || '') + '</span></p>' : '')
           + '<p class="fc3-evn">樣本外 ' + esc((nw.meta && nw.meta.test_start) || '2024-01-01') + ' 起。今日候選族群：'

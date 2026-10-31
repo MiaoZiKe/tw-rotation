@@ -57,6 +57,13 @@ def t_flowcheck_v3(b, base):
       const own = [...e.childNodes].some(n => n.nodeType === 3 && n.textContent.trim()); if (!own) return;
       if (e.closest('[hidden]') || !e.getBoundingClientRect().width) return;
       const fs = parseFloat(getComputedStyle(e).fontSize); if (fs < 12) out.push(e.tagName + ':' + e.textContent.trim().slice(0, 8) + '=' + fs); }); return out.slice(0, 6); }"""
+    LABELS = """() => { const svg = document.querySelector('#fc3Stage svg.fc3-svg'); if (!svg) return ['no svg'];
+      const L = [...svg.querySelectorAll('text.fc3-halo')].map(e => ({ n: e.textContent, r: e.getBoundingClientRect() })), bad = [];
+      for (let i = 0; i < L.length; i++) for (let j = i + 1; j < L.length; j++) { const a = L[i].r, c = L[j].r;
+        if (Math.min(a.right, c.right) - Math.max(a.left, c.left) > -2 && Math.min(a.bottom, c.bottom) - Math.max(a.top, c.top) > -2) bad.push('標籤相碰 ' + L[i].n + '×' + L[j].n); }
+      const pts = [...svg.querySelectorAll('g.fc3-pt')].map(g => { const c = g.querySelector('circle').getBoundingClientRect(); return { g: g.dataset.g, x: c.left + c.width / 2, y: c.top + c.height / 2 }; });
+      L.forEach(l => { const n = pts.filter(p => p.x > l.r.left && p.x < l.r.right && p.y > l.r.top && p.y < l.r.bottom).length; if (n > 1) bad.push('標籤「' + l.n + '」壓在 ' + n + ' 個點中心上'); });
+      return bad.slice(0, 6); }"""
     RGSCAN = """() => { const probe = v => { const e = document.createElement('i'); e.style.color = 'var(' + v + ')'; document.body.appendChild(e); const c = getComputedStyle(e).color; e.remove(); return c; };
       const R = probe('--rise'), G = probe('--fall'), bad = []; const isRG = c => c === R || c === G;
       document.querySelectorAll('#fc3root *').forEach(e => { const cs = getComputedStyle(e), tag = e.tagName.toLowerCase();
@@ -101,6 +108,9 @@ def t_flowcheck_v3(b, base):
     pg.click("#fc3View [data-v='wheel']"); pg.wait_for_timeout(300); hs.append(card_h(pg))
     ok(f"[{T}] ④ 輪盤視圖：畫出圓點，且點數 ≥ 20", J(pg, "() => document.querySelectorAll('#fc3Stage g.fc3-pt').length") >= 20)
     ok(f"[{T}] ④ 輪盤文字框不重疊", not J(pg, OVERLAP), J(pg, OVERLAP))
+    ok(f"[{T}] ④ 輪盤標籤兩兩不相碰（留 2px 間隙）、不壓在點中心上", not J(pg, LABELS), J(pg, LABELS))
+    _fn = J(pg, "() => (TwFlowV3.state(), document.querySelector('.fc3-sname') ? document.querySelector('.fc3-sname').textContent : '')")
+    ok(f"[{T}] ④ 焦點族群（右側面板寫的那個）在輪盤上有標籤", J(pg, "(n) => [...document.querySelectorAll('#fc3Stage text.fc3-halo')].some(e => n.indexOf(e.textContent.replace('…', '')) === 0)", _fn.strip()), _fn)
     ok(f"[{T}] ④ 輪盤沒有箭頭（marker）", J(pg, "() => !document.querySelector('#fc3Stage marker, #fc3Stage [marker-end]')"))
     pp = J(pg, "() => [...document.querySelectorAll('#fc3Stage g.fc3-pt')].map(e => ({g: e.dataset.g, x: +e.dataset.x, y: +e.dataset.y, r: +e.dataset.r}))")
     pairs = sorted(((((a['x'] - c['x']) ** 2 + (a['y'] - c['y']) ** 2) ** .5, a, c) for i, a in enumerate(pp) for c in pp[i + 1:]), key=lambda z: z[0])[:3]
@@ -157,7 +167,11 @@ def t_flowcheck_v3(b, base):
     pg.click("[data-sig='toggle']"); pg.wait_for_timeout(300)
     sg_row = sg_txt
     sg_txt = J(pg, "() => document.getElementById('fc3SigWrap').innerText")
-    ok(f"[{T}] ⑧ 點開證據：出現四句固定說明（2024～2025、2012～2019、2026、空頭）與候選族群連結", all(k in sg_txt for k in ("2024", "2012", "2026", "空頭", "+0.96%", "+0.50%", "0.185%", "前瞻紀錄：收集中", "臨界")) and J(pg, "() => document.querySelectorAll('#fc3Sig [data-sig=pick]').length") >= 1, [k for k in ('2024','2012','2026','空頭','+0.96%','+0.50%','0.185%','前瞻紀錄：收集中','臨界') if k not in sg_txt])
+    ok(f"[{T}] ⑧ 點開證據：出現四句固定說明（2024～2025、2012～2019、2026、空頭）與候選族群連結", all(k in sg_txt for k in ("2024", "2012", "2026", "空頭", "+0.96%", "+0.50%", "0.19%", "前瞻紀錄：收集中", "臨界")) and J(pg, "() => document.querySelectorAll('#fc3Sig [data-sig=pick]').length") >= 1, [k for k in ('2024','2012','2026','空頭','+0.96%','+0.50%','0.19%','前瞻紀錄：收集中','臨界') if k not in sg_txt])
+    _four = J(pg, "() => document.querySelector('#fc3Sig .fc3-four').innerText")
+    import re as _re2
+    _pcts = _re2.findall(r"\d+\.(\d+)%", _four)
+    ok(f"[{T}] ⑧ 證據句沒有「Rank IC」、改白話（相關 -0.01）、百分比一律兩位小數", "Rank IC" not in sg_txt and "相關 -0.01" in _four and _pcts and all(len(x) == 2 for x in _pcts), (_four, _pcts))
     ok(f"[{T}] ⑧ 全區沒有「推薦」「買進」「有效」字樣、不列個股", not any(w in sg_txt.replace("不是買進建議", "") for w in ("推薦", "買進", "有效", "HBM")), [w for w in ("推薦", "買進", "有效", "HBM") if w in sg_txt.replace("不是買進建議", "")])
     ok(f"[{T}] ⑧ 訊號列加「僅供觀察，不是買進建議」；展開按鈕寫明是 INST10 自己的證據", "僅供觀察，不是買進建議" in sg_row and "INST10" in sg_row, sg_row)
     pg.click("#fc3Sig [data-sig='pick']"); pg.wait_for_timeout(300)
@@ -232,6 +246,7 @@ def t_flowcheck_v3(b, base):
     mh = [card_h(pg)]
     pg.click("#fc3View [data-v='wheel']"); pg.wait_for_timeout(300); mh.append(card_h(pg))
     ok(f"[{T}] ⑪ 手機輪盤：文字框不重疊、選取不丟、主圖卡高度不變（{sorted(set(mh))}）", not J(pg, OVERLAP) and st(pg)["sel"] is not None and len(set(mh)) == 1, (J(pg, OVERLAP), mh))
+    ok(f"[{T}] ⑪ 手機輪盤標籤兩兩不相碰、不壓在點中心上", not J(pg, LABELS), J(pg, LABELS))
     ok(f"[{T}] ⑪ 手機輪盤下方有被選族群的累計走勢小圖（含起訖日）", J(pg, "() => !!document.querySelector('#fc3Stage .fc3-minibox svg.fc3-mini') && document.querySelectorAll('#fc3Stage .fc3-minibox text').length >= 4"))
     pg.click("#fc3View [data-v='river']"); pg.wait_for_timeout(200)
     pg.click("#fc3Win [data-w='10']"); pg.wait_for_timeout(300); mh.append(card_h(pg))
