@@ -806,6 +806,22 @@ def run_inst_phase(args) -> int:
     return 0
 
 
+def _next_wave_forward_step() -> pd.DataFrame:
+    """前瞻紀錄：讀最近兩年價量與法人（只取最近 ~120 個交易日計算），回傳當日入選名單（compute.next_wave.forward_candidates）。"""
+    from .compute import next_wave
+    yrs = [datetime.now(timezone.utc).year - 1, datetime.now(timezone.utc).year]
+    price = store.read("price_daily", years=yrs)
+    inst = store.read("inst_daily", years=yrs)
+    if price is None or price.empty or inst is None or inst.empty:
+        return pd.DataFrame()
+    latest = str(price["date"].astype(str).max())
+    if int((inst["date"].astype(str) == latest).sum()) < 500:
+        log.info("前瞻紀錄：%s 三大法人未到齊，略過", latest)
+        return pd.DataFrame()
+    price = price[price["date"].astype(str) <= latest]
+    return next_wave.forward_candidates(price, inst, store.read("company_info"))
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description="台股資金輪動儀表板 — 每日盤後管線")
     ap.add_argument("--skip-finmind", action="store_true",
@@ -975,6 +991,11 @@ def main() -> int:
         # 2026-10-08（Andy：「所有 ETF 的成分股分頁都要有圖、有清單」）：官網抓不到的那幾檔用公會每月前十大補（月資料）。
         # 一個月只會真的抓一次（湖裡有最新月份就跳過），十幾個 POST、不耗額度。
         save("etf_holdings_monthly", step("sitca.etf_top10", collect_etf_holdings_monthly))
+
+        # ---------------------------------------------- 提前找下一波：前瞻紀錄（2026-11-01）
+        # 每天把當日「族群法人買超前 20%」入選名單寫進資料湖（只增不改）。當天三大法人沒到齊（< 500 檔）就不寫，
+        # 免得用殘缺資料排名；失敗只記錄，不影響其他步驟。
+        save("next_wave_forward", step("next_wave.forward_log", _next_wave_forward_step))
 
         # ---------------------------------------------- 新聞與國際
         news_df = step("news.collect", news.collect)

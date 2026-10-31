@@ -1,9 +1,10 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
-## 2026-11-01 提前找下一波研究（Andy：「有科學根據、多個標的回測、驗證是否有效、成功失敗案例」；最後更新 11-01 台北）
-- 研究 `docs/research/20261101_next_wave_signals.md`；程式 `pipeline/compute/next_wave.py`（獨立可重跑）＋`tests/test_next_wave.py`；輸出 `site/data/flowcheck/next_wave.json`（build_payload 結尾 `run_next_wave()` 子行程產出，可用記憶體 < 6.5GB 略過）。
-- 結論：120 個假設只有「族群法人 10 日淨買超」樣本外過 Holm 校正（5～10 日多賺 0.5～1.0%、扣成本後 +0.07～0.5%、空頭無效）；月營收年增率、綜合分數有線索未過關；日內、費半、客戶動能、融資券、動能、量增皆無效。勝率 46%、中位數為負。
-- 下一步：前端「流向驗證」接「找下一波」區（只顯示 pass 方法，其餘實驗收合）；集保／估值／新聞資料累積約 1～2 年後補測；請 finance-quant 複核口徑。沒動 site/**，前端關卡不必跑。
+## 2026-11-01 提前找下一波研究 第二版（依 finance-quant 複核；最後更新 11-01 台北）
+- 研究 `docs/research/20261101_next_wave_signals.md`（取代第一版）；複核 `20261101_next_wave_review.md`；程式 `pipeline/compute/next_wave.py`（預設 2012 起、每天排名、NW 滯後＝max(持有,因子記憶)、保留樣本 2012～2019）；輸出 `site/data/flowcheck/next_wave.json`（build_payload 結尾 `run_next_wave()` 子行程產出，可用記憶體 < 11GB 略過；完整跑峰值約 9.3GB、約 4 分鐘）。
+- 結論：INST10 族群層降為「實驗訊號」（樣本外過 Holm、保留樣本扣成本為負、2026 轉弱、空頭無效、個股層不成立），網站只放這一個（`show_on_site`）；個股 REVHIGH、外資單獨標待查不上網站。報酬用官方參考價已含現金股利。
+- 前瞻紀錄：`config.TABLES["next_wave_forward"]`，run_daily 完整階段每日 store.append；下架條件寫死（50 期、10 日平均 ≤ 0 → 已失效）。**第一次雲端 daily 跑完後請確認 data/next_wave_forward 有新檔**。
+- 下一步：前端「流向驗證」接「找下一波」區（只顯示 INST10、四句警語、前瞻狀態）；個股 REVHIGH 複驗；毛利率季改善；集保／估值／新聞資料累積。沒動 site/**，前端關卡不必跑。驗證：pytest 全套。
 
 ## 2026-11-01 Threads 發文系統改版 v2＋IG 熱度優化（Andy：「CEO 交給對應單位 將發文 Thread 系統修改」「IG Thread 上面也需要進行優化 讓熱度提升，並且 盡量不要千篇一律」；最後更新 11-01 台北）
 - 規則原文 `docs/marketing/social_unit/threads_rules.md`；落地說明 `auto_post.md` 第三之一節；IG 計畫 `ig_growth_plan.md`。**11-02（週一）盤前起正式套用**，監工照舊（盤前 08:40／盤中 12:15／盤後 18:20 查 posted.json；v2 多了 `threads_chain` 串文紀錄）。

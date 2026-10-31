@@ -70,6 +70,9 @@ TABLES: dict[str, list[str]] = {
     # v3：FinMind 股利公告（一期展開成 cash / stock 兩列）與除權息結果（參考價、當日開盤）
     "dividend_events":    ["code", "period", "kind"],
     "dividend_results":   ["code", "date"],
+    # 2026-11-01（提前找下一波第二版）：前瞻紀錄。每個交易日把「族群法人買超（INST10）前 20%」入選名單寫進來（只增不改），
+    #   之後才有不受回填與多重比較影響的真實驗證；下架條件寫死在 compute/next_wave.py（累積 50 期平均 ≤ 0 → 已失效）。
+    "next_wave_forward":  ["date", "method", "group_id"],
     # v14（2026-10-05，ETF 配息補齊）：dividend_events 的鍵是 (code, period, kind)，period 是民國年，
     #   季配／月配 ETF 同一年好幾期會被去重成 1 列（00919 湖裡只剩 4 列、實際 14 期）。
     #   不能直接改 dividend_events 的鍵：證交所每日公告與 FinMind 回補共用那個鍵，換鍵後
