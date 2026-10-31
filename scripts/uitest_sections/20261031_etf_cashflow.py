@@ -13,9 +13,8 @@
 _SEL_JS = """() => ({
   n: +(document.getElementById('incBar').dataset.n || 0),
   codes: (document.getElementById('incBar').dataset.codes || '').split(',').filter(Boolean),
-  rows: [...document.querySelectorAll('#incSel tbody tr')].map(r => ({ code: r.dataset.code, txt: r.textContent })),
+  rows: [...document.querySelectorAll('#incChips button.snk[data-n]')].map(r => ({ code: r.dataset.n.split(' ').pop(), txt: r.textContent })),
   lots: (document.getElementById('incBar').dataset.lots || '').split(','),
-  head: (document.querySelector('#incSel thead th') || {}).textContent || '',
   sq: (document.getElementById('incSQ') || {}).textContent || '',
 })"""
 _PER_JS = """() => ({ g: document.getElementById('incBar').dataset.groups || '', lab: (document.getElementById('incPerLab') || {}).textContent || '',
@@ -45,20 +44,20 @@ def t_etf_cashflow_1031(b, base, code):
         if not ready:
             c.close(); continue
         pg.wait_for_timeout(500)
-        # ① 右上小表
+        # ① 已選色塊
         s0 = J(_SEL_JS)
-        ok(f"{T}（{W}）①a：右上小表列數＝圖上檔數（{s0['n']}），每列有「張」與「NT$」", len(s0["rows"]) == s0["n"] >= 3 and all("張" in r["txt"] and "NT$" in r["txt"] for r in s0["rows"]), s0["rows"][:2])
-        ok(f"{T}（{W}）①b：小表代號順序＝圖上順序；張數＝圖上資料", [r["code"] for r in s0["rows"]] == s0["codes"] and all((l + " 張") in r["txt"].replace(",", "") or (l in r["txt"].replace(",", "")) for l, r in zip(s0["lots"], s0["rows"])), s0)
+        ok(f"{T}（{W}）①a：已選色塊列數＝圖上檔數（{s0['n']}），每顆色塊有「張」與金額（萬）", len(s0["rows"]) == s0["n"] >= 3 and all("張" in r["txt"] and "萬" in r["txt"] for r in s0["rows"]), s0["rows"][:2])
+        ok(f"{T}（{W}）①b：色塊代號順序＝圖上順序；張數＝圖上資料", [r["code"] for r in s0["rows"]] == s0["codes"] and all((l + " 張") in r["txt"].replace(",", "") or (l in r["txt"].replace(",", "")) for l, r in zip(s0["lots"], s0["rows"])), s0)
         ok(f"{T}（{W}）①c：卡片標題下那句長說明不再只講一檔（沒有「投入最少的是」）", "投入最少的是" not in s0["sq"], s0["sq"])
         # 取消最後兩檔 → 表只剩 n-2 列；再勾回一檔 → +1 列
         rows = pg.locator("#incList .ilr input[type=checkbox]:checked")
         n0 = rows.count()
         rows.nth(n0 - 1).click(); pg.wait_for_timeout(300); rows = pg.locator("#incList .ilr input[type=checkbox]:checked"); rows.nth(rows.count() - 1).click(); pg.wait_for_timeout(500)
         s1 = J(_SEL_JS)
-        ok(f"{T}（{W}）①d：取消 2 檔 → 右上小表剩 {n0 - 2} 列、跟圖上一致", len(s1["rows"]) == n0 - 2 == s1["n"] and [r["code"] for r in s1["rows"]] == s1["codes"], s1["codes"])
+        ok(f"{T}（{W}）①d：取消 2 檔 → 已選色塊剩 {n0 - 2} 列、跟圖上一致", len(s1["rows"]) == n0 - 2 == s1["n"] and [r["code"] for r in s1["rows"]] == s1["codes"], s1["codes"])
         pg.locator("#incList .ilr input[type=checkbox]:not(:checked)").first.click(); pg.wait_for_timeout(500)
         s2 = J(_SEL_JS)
-        ok(f"{T}（{W}）①e：再勾 1 檔 → 小表 {n0 - 1} 列且多出的那檔內容對得上", len(s2["rows"]) == n0 - 1 and s2["codes"][-1] in [r["code"] for r in s2["rows"]], s2["codes"])
+        ok(f"{T}（{W}）①e：再勾 1 檔 → 色塊 {n0 - 1} 列且多出的那檔內容對得上", len(s2["rows"]) == n0 - 1 and s2["codes"][-1] in [r["code"] for r in s2["rows"]], s2["codes"])
         # ② 搜尋 ×
         tot = int(J("() => document.getElementById('incList').dataset.n"))
         pg.fill("#incSearch", "00919"); pg.wait_for_timeout(400)
@@ -93,7 +92,7 @@ def t_etf_cashflow_1031(b, base, code):
                 pg.select_option("#etfIncRng .rpsel", "3y"); pg.wait_for_timeout(900); pg.screenshot(path=f"{shot_dir}/per3y-{W}.png")
         if W == 390:
             sw = J("() => document.documentElement.scrollWidth <= window.innerWidth + 1")
-            ok(f"{T}（390）：沒有橫向捲軸、小表在畫面內", sw)
+            ok(f"{T}（390）：沒有橫向捲軸、色塊在畫面內", sw)
         c.close()
     ok(f"{T}：沒有網頁錯誤", not errs, errs[:3])
 

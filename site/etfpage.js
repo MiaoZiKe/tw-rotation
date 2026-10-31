@@ -356,17 +356,7 @@ html.m4 #v-etf #etfInc[data-inclk] .inclknote.m4o{display:flex;margin:-4px 0 8px
 #v-etf .inclist .srchx:hover{background:var(--panel);color:var(--ink)}
 #v-etf .inclist .srchx[hidden]{display:none}
 /* 2026-10-31 Andy：圖上選中的每一檔，旁邊直接看到現價／張數／金額（右上小表）*/
-#v-etf .incsel{margin-left:auto;max-width:100%;overflow-x:auto}
-#v-etf .incsel:empty{display:none}
-#v-etf .incsel table{border-collapse:collapse;font-size:12px;line-height:18px}
-#v-etf .incsel th{font-weight:500;color:var(--ink-3);text-align:right;padding:0 8px 2px;white-space:nowrap}
-#v-etf .incsel th:first-child,#v-etf .incsel td:first-child{text-align:left}
-#v-etf .incsel td{padding:1px 8px;text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums;border-top:1px solid var(--line)}
-#v-etf .incsel td:first-child{max-width:190px;overflow:hidden;text-overflow:ellipsis}
-#v-etf .incsel td i{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:5px;vertical-align:0}
-#v-etf .incsel td small{color:var(--ink-3);margin-left:4px}
 #v-etf #incSingle>.row.spread{align-items:flex-start}
-@media(max-width:640px){#v-etf .incsel{margin-left:0;width:100%;order:3;overflow-x:visible}#v-etf .incsel table{width:100%;font-size:12px}#v-etf .incsel th,#v-etf .incsel td{padding-left:5px;padding-right:5px}#v-etf .incsel td:first-child{max-width:118px}#v-etf .incsel td small,#v-etf .incsel th:nth-child(5),#v-etf .incsel td:nth-child(5){display:none}}
 #v-etf .cubar{display:flex;flex-wrap:wrap;gap:8px 10px;align-items:center;margin:2px 0 8px}
 #v-etf .cubar select,#v-etf .cubar input[type=text]{height:30px;border-radius:8px;border:1px solid var(--line-2);background:var(--panel-3);color:var(--ink);padding:0 8px;font-size:13px;max-width:100%}
 #v-etf .cubar input[type=text]{width:150px}
@@ -383,6 +373,31 @@ html.m4 #v-etf #etfInc[data-inclk] .inclknote.m4o{display:flex;margin:-4px 0 8px
 #v-etf .cut .cux:hover{background:var(--panel);color:var(--ink)}
 #v-etf .inclist.cuic{max-height:340px;width:auto;max-width:none;min-width:0;resize:none}
 #v-etf .cmbhd[hidden],#v-etf .incu[hidden]{display:none}
+/* ---- 單檔／自訂組合版面重排（Andy 2026-10-31「這太不美觀了」「固定版面 不該隨清單數量而改變」「上面分頁幫我用不同顏色標註」）
+   已選明細寫在色塊上、清單與圖同高、自訂組合上半部固定高度；分頁各有識別色（--tc，深淺主題同一組，避開漲跌紅綠） */
+#v-etf [data-tc=s]{--tc:#5B86B8}#v-etf [data-tc=A]{--tc:#17A2B8}#v-etf [data-tc=B]{--tc:#7C5CE0}#v-etf [data-tc=C]{--tc:#C25AA8}#v-etf [data-tc=D]{--tc:#D9922E}#v-etf [data-tc=E]{--tc:#8A6D3B}#v-etf [data-tc=u]{--tc:#7A8794}
+#v-etf .inctabs button[data-tc]{border-top:3px solid var(--tc);background:color-mix(in srgb,var(--tc) 9%,var(--panel-2))}
+#v-etf .inctabs button[data-tc].on{background:color-mix(in srgb,var(--tc) 24%,var(--panel));font-weight:700;color:var(--ink)}
+#v-etf .combo[data-tc]{border-top:3px solid var(--tc)}
+#v-etf .combo[data-tc] .ch .rk{color:color-mix(in srgb,var(--tc) 72%,var(--ink))}
+#v-etf #incChips .snd{display:inline-flex;gap:0;margin-left:2px;font:12px var(--mono);color:var(--ink-2)}
+#v-etf #incChips .snd em{font-style:normal}#v-etf #incChips .snd em::before{content:"・"}
+#v-etf #incChips .snhint{color:var(--ink-3);font-size:13px;padding:3px 0}
+#v-etf .inclist .ilact{display:flex;align-items:center;gap:6px;margin:6px 0 0}
+#v-etf .inclist .ilcnt{flex:1;font-size:12px;color:var(--ink-3)}
+#v-etf .inclist .srchx{background:var(--panel-3);border:1px solid var(--line-2);color:var(--ink-2);width:22px;height:22px;top:3px;right:3px}
+#v-etf .inclist .ilfq button.on::after{content:" ×";opacity:.85}
+@media(min-width:1101px){
+  #v-etf #incChips{min-height:62px;align-content:flex-start}
+  #v-etf #incChips .addk{display:none}
+  #v-etf .incsg .inclist{height:524px;max-height:none}
+  #v-etf .cug{height:372px;grid-template-rows:minmax(0,1fr);align-items:stretch}
+  #v-etf .cusel{overflow-y:auto;overflow-x:auto;padding-top:0}
+  #v-etf .cusel .cut thead th{position:sticky;top:0;background:var(--panel-2);z-index:1}
+  #v-etf .inclist.cuic{height:auto;max-height:none}
+}
+@media(max-width:1100px){#v-etf .cusel{max-height:300px;overflow-y:auto}}
+
 @media(max-width:1100px){#v-etf .cug{grid-template-columns:minmax(0,1fr)}}
 @media(max-width:640px){#v-etf .cug{grid-template-columns:minmax(0,1fr)}#v-etf .cut th:nth-child(5),#v-etf .cut td:nth-child(5){display:none}#v-etf .cut td small{display:none}#v-etf .cut th,#v-etf .cut td{padding-left:4px;padding-right:4px}#v-etf .cut .culot{width:52px}#v-etf .cubar input[type=text]{width:120px}#v-etf .cut td:first-child{max-width:130px}}
 #v-etf .incperlab{margin:2px 0 6px;font-size:12px;color:var(--ink-2)}
@@ -1669,6 +1684,16 @@ html.m4 #v-etf #etfInc[data-inclk] .inclknote.m4o{display:flex;margin:-4px 0 8px
     if (lots.some((l) => l < 1)) { if (!keep) return null; for (let i = 0; i < k; i++) lots[i] = Math.max(1, lots[i]); }   // 自訂組合：每一檔都是使用者指定要買的，用不到也至少 1 張
     return comboOf(mem, lots);
   }
+  /* 「各檔金額平均」配法（自訂組合預設）：每一檔投入的錢大致一樣（張數＝預算 ÷ 每張價格，四捨五入、至少 1 張），
+     二分搜尋「每檔預算」找出每個月都 ≥ 目標的最小預算。配息月份湊不滿 12 個月就找不到 → 回 null，交給呼叫端退回年領達標。 */
+  function evenCombo(mem, N) {
+    const P = mem.map((x) => x.it.close * 1000), mk = (B) => mem.map((x, i) => Math.max(1, Math.round(B / P[i])));
+    const ok = (B) => { const c = comboOf(mem, mk(B)); return c.min >= N; };
+    let lo = Math.min(...P), hi = 1e7;
+    if (!ok(hi)) return null;
+    while (hi - lo > 1e3) { const mid = (lo + hi) / 2; if (ok(mid)) hi = mid; else lo = mid; }
+    return comboOf(mem, mk(hi));
+  }
   /* 由張數算出一個組合的全部數字（solveCombo 與自訂組合共用）*/
   function comboOf(mem, lots) {
     const k = mem.length, A = mem.map((x) => x.mm.m.map((v) => v * 1000)), P = mem.map((x) => x.it.close * 1000);
@@ -1748,7 +1773,7 @@ html.m4 #v-etf #etfInc[data-inclk] .inclknote.m4o{display:flex;margin:-4px 0 8px
   /* ★ 2026-10-12 Andy 註冊會員權限表第 14 點：「單檔ETF 右側篩選不開放使用」→ 右側清單上方的搜尋框（#incSearch）、配息頻率標籤（#incFq）也一起鎖
      （勾選清單、回前 5 本來就在裡面），右側清單上方多一行同樣的小字。 */
   const LK_BOX = ['#incPM .incctl > .grp', '#incPM .incctl > label.chk', '#incChips', '#incPX .cxctl > .grp', '#incPX .cmpw', '#cxChips', '#incFq'];
-  const LK_ONE = ['#incList .ilr > input[type=checkbox]', '#incReset', '#incDetCx', '#incToCx', '#m4EtfSet-inc', '#m4EtfSegs[data-p="inc"] button', '#incSearch'];
+  const LK_ONE = ['#incList .ilr > input[type=checkbox]', '#incReset', '#incClear', '#incDetCx', '#incToCx', '#m4EtfSet-inc', '#m4EtfSegs[data-p="inc"] button', '#incSearch'];
   const LK_SEL = LK_BOX.concat(LK_ONE).join(',');
   const LK_NOTE = 'Plus 以上可自訂參數';
   /* ★ 2026-10-11（DECISIONS #354，Andy：「功能要曝光度…我們可以開放…但就是限制功能」→「限制次數才對」）：
@@ -2024,20 +2049,20 @@ html.m4 #v-etf #etfInc[data-inclk] .inclknote.m4o{display:flex;margin:-4px 0 8px
   <label class="chk"><input type="checkbox" id="incNhi"${S.inc.nhi ? ' checked' : ''}>扣除二代健保（單筆 ≥ 2 萬扣 2.11%）</label>
   <div class="grp"><b>報酬期間</b><span id="etfIncRngBox"></span></div>
 </div>
-<div class="inctabrow"><div class="nbsw inctabs" id="incTabs" role="tablist"><button type="button" role="tab" data-v="s">單檔 ETF</button></div></div>
+<div class="inctabrow"><div class="nbsw inctabs" id="incTabs" role="tablist"><button type="button" role="tab" data-v="s" data-tc="s">單檔 ETF</button></div></div>
 <div class="incsec" id="incSingle">
   <div class="row spread"><h3 data-icon="coins" data-tone="yield">單檔：要幾張、要多少錢 <small id="incYLab"></small> ${hbtnH('incs', '單檔試算怎麼看')}</h3>
-    <div class="incsel" id="incSel" aria-label="圖上選中的 ETF：現價、張數、金額"></div>
     <span class="row" style="gap:6px"><small class="lbl">排序</small>${segH('incSort', SORT_L, S.inc.sort)}</span></div>
   ${howH('incs', ['<b>每單位年配息</b>＝近 12 個月（含已公告、還沒除息的）每次現金配息加總；依「發放月」算，同一個月只算最新一筆。',
     '<b>張數</b>＝年目標 ÷（每單位年配息 × 1000），無條件進位；月領模式的年目標＝月領 × 12。<b>金額</b>＝張數 × 1000 × 最新收盤。',
     '<b>殖利率</b>＝每單位年配息 ÷ 最新收盤。<b>含息年化</b>＝「報酬期間」的含息總報酬年化；<b>價格年化</b>＝不含息（只看價格）的年化。這三種決定排序。',
-    '右上小表＝圖上選中的每一檔（最多 5 檔）的現價、需要張數、需要金額、殖利率；全部 N 檔裡投入最少的是哪一檔，把右側清單依「需 N 張・金額」找即可。',
+    '圖上方每顆色塊＝選中的一檔：<b>名稱・需要張數・需要金額</b>（滑過看現價與殖利率），按 × 取消；右側清單每一列也寫了「需 N 張・金額」，全部 N 檔裡投入最少的是哪一檔一找就知道。清單上的「清除勾選」＝全部取消，「回前 5」＝回到預設。',
     '直條＝選中的每一檔「依上述張數、在報酬期間內平均每年該月入帳多少（萬）」，灰線＝平均；<b>報酬期間</b>選近 1 年＝近 12 個月實際入帳，選更長＝期間內各月配息平均（歷史配息由週線含息指數反推，會有些微誤差）。右側清單勾選替換（最多 5 檔），上方膠囊按 × 也會同步取消。點直條或清單名稱看該檔細節。想看「配息再投入能多賺多少」請到上方「複利試算表」。'])}
   <p class="incq" id="incSQ"></p>
   <div class="incsg"><div class="incbarw"><div class="snkey" id="incChips"></div><p class="incperlab" id="incPerLab"></p><div id="incBar" class="chart"></div></div>
-    <div class="inclist" id="incListBox"><div class="ilhd"><span class="srchw"><input type="search" id="incSearch" placeholder="搜尋名稱或代號" aria-label="搜尋 ETF"><button type="button" class="srchx" id="incSearchX" aria-label="清除搜尋，恢復全部" title="清除搜尋，恢復全部" hidden>×</button></span><button type="button" class="btn small" id="incReset">回前 5</button></div>
+    <div class="inclist" id="incListBox"><div class="ilhd"><span class="srchw"><input type="search" id="incSearch" placeholder="搜尋名稱或代號" aria-label="搜尋 ETF"><button type="button" class="srchx" id="incSearchX" aria-label="清除搜尋，恢復全部" title="清除搜尋，恢復全部" hidden>×</button></span></div>
       <div class="ilfq" id="incFq" role="tablist" aria-label="依配息頻率分類"></div>
+      <div class="ilact"><span class="ilcnt" id="incCnt"></span><button type="button" class="btn small" id="incClear" title="取消所有勾選，圖變空">清除勾選</button><button type="button" class="btn small" id="incReset" title="回到前 5 名">回前 5</button></div>
       <p class="ilmsg" id="incListMsg"></p><div class="ilbody" id="incList"></div></div></div>
   <div class="incdet" id="incDet" hidden></div>
 </div>
@@ -2083,6 +2108,7 @@ html.m4 #v-etf #etfInc[data-inclk] .inclknote.m4o{display:flex;margin:-4px 0 8px
     $('#incSearch').oninput = (e) => { S.inc.q = e.target.value.trim(); $('#incSearchX').hidden = !e.target.value; drawIncList(S._incR || []); };
     // 2026-10-31 Andy：「所有的清單都要有移除篩選功能」→ × 一鍵清空搜尋並恢復全部（頻率篩選也回「全部」）
     $('#incSearchX').onclick = () => { const i = $('#incSearch'); i.value = ''; S.inc.q = ''; S.inc.fq = 'all'; LS.set('tw.etf.inc.fq', 'all'); $('#incSearchX').hidden = true; drawIncList(S._incR || []); i.focus(); };
+    $('#incClear').onclick = () => { S.inc.sel = []; S.inc.ssel = null; $('#incListMsg').textContent = ''; drawIncSingle(); };
     // v7（Andy：清單要依月配／雙月配／季配／半年配分類）：「回前 5」取目前這一類的前 5 檔；「全部」時照舊回整體前 5
     $('#incReset').onclick = () => { const fq = S.inc.fq || 'all', R0 = S._incR || [];
       S.inc.sel = fq === 'all' ? null : R0.filter((r) => r.it.freq === fq).slice(0, 5).map((r) => r.it.code);
@@ -2160,8 +2186,7 @@ html.m4 #v-etf #etfInc[data-inclk] .inclknote.m4o{display:flex;margin:-4px 0 8px
     if (S.inc.sel) S.inc.sel = sel;
     const top = R.filter((r) => sel.includes(r.it.code));
     const best = R.slice().sort((a, b) => a.cost - b.cost)[0];
-    $('#incSQ').innerHTML = R.length ? `要${S.inc.mode === 'm' ? `每月領 <b>${wan(S.inc.mon)}</b>` : `每年領 <b>${wan(T)}</b>`}：圖上選中的 ${top.length} 檔，各需要幾張、多少錢見右上表。` : '這個範圍沒有近 12 個月有配息的 ETF';
-    drawSel(top);
+    $('#incSQ').innerHTML = R.length ? `要${S.inc.mode === 'm' ? `每月領 <b>${wan(S.inc.mon)}</b>` : `每年領 <b>${wan(T)}</b>`}：圖上選中的 ${top.length} 檔，各需要幾張、多少錢寫在下方色塊與右側清單。` : '這個範圍沒有近 12 個月有配息的 ETF';
     const el = $('#incBar');
     el.dataset.codes = top.map((r) => r.it.code).join(',');
     el.dataset.lots = top.map((r) => r.lots).join(',');
@@ -2205,15 +2230,6 @@ html.m4 #v-etf #etfInc[data-inclk] .inclknote.m4o{display:flex;margin:-4px 0 8px
     evs.forEach((e) => { const mo = +String(e.pay).slice(5, 7) - 1; if (mo >= 0 && mo < 12) m[mo] += e.amt; });
     return { m: m.map((v) => +(v / yrs).toFixed(4)), src: `期間內平均（${evs.length} 次配息、${yrs.toFixed(1)} 年）`, ok: true };
   }
-  /* 右上小表：圖上選中的每一檔 ＝ 名稱代號｜現價｜需要張數｜需要金額｜殖利率（Andy 2026-10-31：「旁邊直接看到對應股票需要多少金額多少張數」）*/
-  function drawSel(top) {
-    const el = $('#incSel'); if (!el) return;
-    if (!top.length) { el.innerHTML = ''; el.dataset.n = '0'; return; }
-    const a = A(), colOf = (i) => (a.snColor ? a.snColor(i) : a.donut.color(i));
-    el.dataset.n = String(top.length);
-    el.innerHTML = `<table><thead><tr><th>已選 ${top.length} 檔</th><th>現價</th><th>需要張數</th><th>需要金額</th><th>殖利率</th></tr></thead><tbody>`
-      + top.map((r, i) => `<tr data-code="${esc(r.it.code)}"><td title="${esc(r.it.name)} ${esc(r.it.code)}"><i style="background:${colOf(i)}"></i>${esc(r.it.name)}<small>${esc(r.it.code)}</small></td><td>${a.fmt.n(r.it.close, 2)}</td><td>${r.lots.toLocaleString()} 張</td><td>${ntw(r.cost)}</td><td>${pctU(r.y, 1)}</td></tr>`).join('') + '</tbody></table>';
-  }
   function drawSingleCurve(top) {
     const el = $('#incBar'), a = A(), CH = a.CH, mob = window.matchMedia && window.matchMedia('(max-width: 640px)').matches;
     const MONTHS = Array.from({ length: 12 }, (_, i) => `${i + 1} 月`), AVG = '平均';
@@ -2252,6 +2268,11 @@ html.m4 #v-etf #etfInc[data-inclk] .inclknote.m4o{display:flex;margin:-4px 0 8px
         const c = (top.find((r) => `${r.it.name} ${r.it.code}` === n) || {}).it; if (!c) return;
         S.inc.sel = top.map((r) => r.it.code).filter((x) => x !== c.code); drawIncSingle();
       }, `<span class="snk avg" title="這幾檔的平均（細灰線）"><i></i>平均</span>`);
+      /* Andy 10-31「這太不美觀了」：已選明細直接寫在色塊本身（名稱・張數・金額），取代右上獨立小表；滑過看現價與殖利率 */
+      $$('button.snk[data-n]', key).forEach((b) => { const r = top.find((x) => `${x.it.name} ${x.it.code}` === b.dataset.n); if (!r) return;
+        const x = b.querySelector('b'); if (x) x.insertAdjacentHTML('beforebegin', `<span class="snd"><em>${r.lots.toLocaleString()} 張</em><em>${wan1(r.cost)}</em></span>`);
+        b.title = `${r.it.name} ${r.it.code}\n現價 NT$ ${a.fmt.n(r.it.close, 2)}・殖利率 ${pctU(r.y, 1)}\n需要 ${r.lots.toLocaleString()} 張・${ntw(r.cost)}\n（按一下從圖上拿掉，清單也會取消勾選）`; });
+      if (!top.length) key.insertAdjacentHTML('afterbegin', `<span class="snhint">請從右側清單勾選 ETF（最多 5 檔）</span>`);
       key.insertAdjacentHTML('beforeend', `<button type="button" class="snk addk" id="incChipAdd" title="從右側清單勾選加入（最多 5 檔）">＋加入</button>`);
       const ad = $('#incChipAdd'); if (ad) ad.onclick = () => { const s = $('#incSearch'); if (s) { s.focus(); s.scrollIntoView({ block: 'nearest' }); } };
     }
@@ -2277,6 +2298,7 @@ html.m4 #v-etf #etfInc[data-inclk] .inclknote.m4o{display:flex;margin:-4px 0 8px
       <button type="button" class="iln" title="${esc(r.it.name)} ${esc(r.it.code)}">${fqBadge(r.it.freq)}<span class="nm">${esc(r.it.name)}</span><span class="cd">${esc(r.it.code)}</span></button>
       <span class="mv">${metricTxt(r, k)}</span><span class="lt">現價 NT$ ${A().fmt.n(r.it.close, 2)}・需 ${r.lots.toLocaleString()} 張・${ntw(r.cost)}</span></div>`).join('') || '<div class="etfprep">找不到</div>';
     list.dataset.n = String(rows.length);
+    { const cn = $('#incCnt'); if (cn) cn.textContent = `已勾 ${sel.length}／5 檔`; }
     const sx = $('#incSearchX'); if (sx) sx.hidden = !(S.inc.q || ($('#incSearch') && $('#incSearch').value));
     $$('.ilr', list).forEach((row) => {
       const c = row.dataset.code;
@@ -2315,7 +2337,7 @@ html.m4 #v-etf #etfInc[data-inclk] .inclknote.m4o{display:flex;margin:-4px 0 8px
         try { ch.setOption({ series: codes.map((c, i) => { const l = lvl(c);
           return { z: l ? 3 : 2, itemStyle: { color: a.snColor ? a.snColor(i) : a.donut.color(i), borderRadius: [3, 3, 0, 0], opacity: op(c), borderColor: l ? CH.ink : 'transparent', borderWidth: l === 2 ? 1.5 : l ? 1 : 0 } }; }) }); } catch (e) { /* 競態 */ }
       }
-      $$('#incList .ilr[data-code]').forEach((r) => { const c = r.dataset.code; r.classList.toggle('hl', c === sel || c === hov); r.classList.toggle('lk', c === sel); r.classList.toggle('dim', any && !lvl(c)); });
+      $$('#incList .ilr[data-code]').forEach((r) => { const c = r.dataset.code; r.classList.toggle('hl', c === sel || c === hov); r.classList.toggle('lk', c === sel); r.classList.remove('dim'); });   /* 勾選中的列一律同一種樣式，不淡掉（Andy 10-31：其他勾選列看起來像停用） */
       $$('#incChips .snk[data-n]').forEach((b) => { const c = b.dataset.n.split(' ').pop(); b.classList.toggle('hl', c === sel || c === hov); b.classList.toggle('lk', c === sel); b.classList.toggle('dim', any && !lvl(c)); });
     }
     const hover = (c) => { if (hov !== c) { hov = c; paint(); } };
@@ -2344,7 +2366,7 @@ html.m4 #v-etf #etfInc[data-inclk] .inclknote.m4o{display:flex;margin:-4px 0 8px
     // 膠囊：滑過＝連動；點名字＝鎖定；點 ×＝拿掉那檔（msTags 原本整顆都是拿掉，改成只有 × 拿掉）
     $$('#incChips .snk[data-n]').forEach((b) => {
       const c = b.dataset.n.split(' ').pop(), rm = b.onclick;
-      b.title = `點名字＝在圖上標出 ${b.dataset.n}；點 × 從圖上拿掉（清單也會取消勾選）`;
+      b.title = (b.title || b.dataset.n).replace(/\n（按一下[^]*$/, '') + '\n點名字＝在圖上標出這檔；點 × 從圖上拿掉（清單也會取消勾選）';
       b.onmouseenter = () => hover(c); b.onmouseleave = () => hover(null);
       b.onclick = (e) => { if (e.target.closest('b')) { if (rm) rm.call(b, e); return; } pick(c, 'chip'); };
     });
@@ -2372,7 +2394,7 @@ html.m4 #v-etf #etfInc[data-inclk] .inclknote.m4o{display:flex;margin:-4px 0 8px
     const o = a.donut.option(parts, dop).option;
     o.tooltip = { ...o.tooltip, confine: true, position: clampPos(o.tooltip.position) };   // ★ 18:50（219）：提示框限制在圖框內，不會跑到側欄底下（appendToBody 每次重畫 echarts 會掃整頁 DOM，降速 4 倍時一次 150ms，不用）
     // ★ 18:20「圓餅圖內資訊不可以有換行」：環跟時鐘同尺寸（內徑 50%、外徑 94%），扇區內單行「N 張・X 萬」，放不下就不畫（滑過看）
-    o.series[0] = { ...o.series[0], radius: ['50%', '94%'], minAngle: 6, label: { show: !!op.label, position: 'inside', color: '#fff', textBorderColor: 'rgba(0,0,0,.5)', textBorderWidth: 2, fontSize: 11.5, overflow: 'none', formatter: op.label || '' }, labelLine: { show: false }, labelLayout: { hideOverlap: true } };
+    o.series[0] = { ...o.series[0], radius: ['50%', '94%'], minAngle: 6, label: { show: !!op.label, position: 'inside', color: '#fff', textBorderColor: 'rgba(0,0,0,.5)', textBorderWidth: 2, fontSize: 11.5, overflow: 'none', formatter: op.label ? (p) => (p.percent < 9 ? '' : op.label(p)) : '' }, labelLine: { show: false }, labelLayout: { hideOverlap: true } };
     o.series[1] = { ...o.series[1], radius: ['48%', '48.6%'] };
     o.title = a.donut.center(op.centerLabel, op.centerValue, DN, 0.5);
     $('#' + id).style.height = DN + 'px';
@@ -2477,7 +2499,7 @@ html.m4 #v-etf #etfInc[data-inclk] .inclknote.m4o{display:flex;margin:-4px 0 8px
     const rows = c.mem.map((x, i) => `<div class="cmr" data-i="${i}" data-code="${esc(x.it.code)}"><button type="button" class="cmn" data-code="${esc(x.it.code)}" title="點一下選取這檔（三張圖一起標出它的入帳月份），再點一次進個股頁"><i style="background:${a.donut.color(i)}"></i>${esc(x.it.name)} ${esc(x.it.code)}</button>${fqBadge(x.it.freq)}
       <dl><dt>現價</dt><dd>NT$ ${A().fmt.n(x.it.close, 2)}</dd><dt>張數</dt><dd>${c.lots[i].toLocaleString()} 張</dd><dt>投入金額</dt><dd>${ntw(c.costs[i])}</dd><dt>一年領</dt><dd>${ntw(c.by.reduce((s, m) => s + m[i], 0))}</dd></dl></div>`).join('');
     disposeIn(box);
-    box.innerHTML = `<div class="combo" data-ci="${ci}" data-cost="${Math.round(c.cost)}" data-min="${Math.round(c.min)}" data-tr="${c.tr == null ? '' : c.tr}" data-codes="${c.mem.map((x) => x.it.code).join(',')}" data-lots="${c.lots.join(',')}" data-vals="${c.mon.map((v) => Math.round(v)).join(',')}">
+    box.innerHTML = `<div class="combo" data-tc="${ci < 0 ? 'u' : CMB[ci] || 'A'}" data-ci="${ci}" data-cost="${Math.round(c.cost)}" data-min="${Math.round(c.min)}" data-tr="${c.tr == null ? '' : c.tr}" data-codes="${c.mem.map((x) => x.it.code).join(',')}" data-lots="${c.lots.join(',')}" data-vals="${c.mon.map((v) => Math.round(v)).join(',')}">
       <div class="ch"><span class="rk">${esc(label)}</span><span class="kp"><span>總投入<b>${ntw(c.cost)}</b></span><span>年領<b>${ntw(c.year)}</b></span><span>最低月<b>${ntw(c.min)}</b></span>
       <span>整體殖利率<b>${pctU(c.y)}</b></span><span>含息年化<b>${c.tr == null ? '—' : pct(c.tr, 2)}</b></span><button type="button" class="btn small" id="incToCx">看複利試算 →</button></span></div>
       <div class="c3"><div class="c3c"><div class="sth">總投入（各檔張數・金額）</div><div id="incCdn" class="chart dnbig"></div></div>
@@ -2487,7 +2509,7 @@ html.m4 #v-etf #etfInc[data-inclk] .inclknote.m4o{display:flex;margin:-4px 0 8px
       <div class="sth">每月入帳（單位：萬；顏色＝當月主要入帳那檔）</div><div id="incCmb" class="chart mbars"></div></div>`;
     const parts = c.mem.map((x, i) => ({ name: `${x.it.name} ${x.it.code}`, value: Math.round(c.costs[i]), color: a.donut.color(i), lots: c.lots[i] }));
     donutBig('incCdn', parts, { valLabel: '投入', centerLabel: '總投入', centerValue: wan(c.cost), label: (p) => `${parts[p.dataIndex].lots.toLocaleString()} 張・${wan1(p.value)}` });
-    $('#incCdn').dataset.labels = parts.map((p) => `${p.lots.toLocaleString()} 張・${wan1(p.value)}`).join('|');
+    { const tt = parts.reduce((t, d) => t + d.value, 0) || 1; $('#incCdn').dataset.labels = parts.map((p) => (p.value / tt * 100 < 9 ? '' : `${p.lots.toLocaleString()} 張・${wan1(p.value)}`)).join('|'); }
     let ck = null;
     if (clock) {
       const el = $('#incClk'); el.style.height = DN + 'px';
@@ -2520,7 +2542,7 @@ html.m4 #v-etf #etfInc[data-inclk] .inclknote.m4o{display:flex;margin:-4px 0 8px
     if (S.cu) return S.cu;
     let o = null; try { o = JSON.parse(LS.get(CU_KEY, '') || 'null'); } catch (e) { o = null; }
     if (!o || !Array.isArray(o.list)) o = { v: 1, list: [], cur: '' };
-    o.list = o.list.filter((x) => x && typeof x.id === 'string' && Array.isArray(x.codes)).map((x) => ({ id: x.id, name: String(x.name || '自訂組合').slice(0, 20), codes: x.codes.filter((c) => typeof c === 'string').slice(0, CU_MAX), mode: x.mode === 'manual' ? 'manual' : 'auto', lots: x.lots && typeof x.lots === 'object' ? x.lots : {} }));
+    o.list = o.list.filter((x) => x && typeof x.id === 'string' && Array.isArray(x.codes)).map((x) => ({ id: x.id, name: String(x.name || '自訂組合').slice(0, 20), codes: x.codes.filter((c) => typeof c === 'string').slice(0, CU_MAX), mode: x.mode === 'manual' ? 'manual' : 'auto', alloc: x.alloc === 'min' ? 'min' : 'even', lots: x.lots && typeof x.lots === 'object' ? x.lots : {} }));
     if (!o.list.some((x) => x.id === o.cur)) o.cur = o.list.length ? o.list[0].id : '';
     S.cu = o; return o;
   }
@@ -2529,7 +2551,7 @@ html.m4 #v-etf #etfInc[data-inclk] .inclknote.m4o{display:flex;margin:-4px 0 8px
   const cuNow = () => { const st = cuState(); return st.list.find((x) => x.id === st.cur) || null; };
   function cuNew() {
     const st = cuState(), n = st.list.length + 1;
-    const cu = { id: 'u' + Date.now().toString(36) + Math.floor(Math.random() * 1e4).toString(36), name: `自訂組合 ${n}`, codes: [], mode: 'auto', lots: {} };
+    const cu = { id: 'u' + Date.now().toString(36) + Math.floor(Math.random() * 1e4).toString(36), name: `自訂組合 ${n}`, codes: [], mode: 'auto', alloc: 'even', lots: {} };
     st.list.push(cu); st.cur = cu.id; cuSave(); return cu;
   }
   /* 把一組自訂設定算成組合物件（同 solveCombo 的輸出格式）。沒有近 12 個月配息的檔不計入（回傳 skip）。 */
@@ -2548,9 +2570,16 @@ html.m4 #v-etf #etfInc[data-inclk] .inclknote.m4o{display:flex;margin:-4px 0 8px
       const lots = mem.map((x) => Math.max(1, Math.floor(+cu.lots[x.it.code]) || 1));
       c = comboOf(mem, lots); note = '自己填張數：每月入帳依你填的張數算。';
     } else {
-      const N = incMonT();
-      c = solveCombo(mem, N, true);
-      if (c) note = `依每月目標 ${wan(N)}${S.inc.nhi ? '（扣健保後）' : ''}配張數：每個月入帳都 ≥ 目標，總投入最少。`;
+      const N = incMonT(), cmin = solveCombo(mem, N, true), ceven = mem.length > 1 ? evenCombo(mem, N) : cmin;
+      c = cu.alloc === 'min' ? cmin : (ceven || cmin);
+      if (c) {
+        const tg = `每月目標 ${wan(N)}${S.inc.nhi ? '（扣健保後）' : ''}`;
+        if (mem.length < 2 || !ceven || !cmin) note = `依${tg}配張數：每個月入帳都 ≥ 目標。`;
+        else if (cu.alloc === 'min') {
+          const ti = cmin.costs.indexOf(Math.max(...cmin.costs)), sh = cmin.costs[ti] / cmin.cost;
+          note = `依${tg}配張數，總投入最少（${wan(cmin.cost)}）。` + (sh >= 0.6 ? `${mem[ti].it.name} 配息月份多、每投入 1 元領得最多，所以最省錢的做法是主要靠它（占 ${Math.round(sh * 100)}% 的錢），其他檔只買少少幾張；想每檔都買得像樣，改選「各檔金額平均」。` : '每個月都達標、投入最少的張數組合。');
+        } else note = `依${tg}配張數，每一檔投入金額大致相同（總投入 ${wan(c.cost)}），每個月入帳都 ≥ 目標；比「總投入最少」多花約 ${wan(Math.max(0, c.cost - cmin.cost))}，換來每檔都有實質部位、不押單一檔。`;
+      }
       else {
         // 這幾檔湊不滿 12 個月（有月份完全沒配息）→ 退而求其次：年領總額達標，各檔投入金額輪流加碼、大致平均
         const T = incYearT(), lots = mem.map(() => 1);
@@ -2588,15 +2617,16 @@ html.m4 #v-etf #etfInc[data-inclk] .inclknote.m4o{display:flex;margin:-4px 0 8px
 <div class="cubar"><label>我的組合 <select id="cuSel" aria-label="切換自訂組合">${st.list.map((x) => `<option value="${esc(x.id)}"${x.id === cu.id ? ' selected' : ''}>${esc(x.name)}（${x.codes.length} 檔）</option>`).join('')}</select></label>
   <input type="text" id="cuName" value="${esc(cu.name)}" maxlength="20" aria-label="組合名稱" placeholder="組合名稱">
   <button type="button" class="btn small" id="cuNew">＋新增組合</button><button type="button" class="btn small" id="cuDel" title="刪除目前這個組合">刪除</button>
-  <span class="csortw"><b>配置</b>${segH('cuMode', [['auto', '依目標自動配張數'], ['manual', '自己填張數']], cu.mode)}${hbtnH('cuh', '自訂組合怎麼用')}</span></div>
+  <span class="csortw"><b>配置</b>${segH('cuMode', [['auto', '依目標自動配張數'], ['manual', '自己填張數']], cu.mode)}${cu.mode === 'auto' ? segH('cuAlloc', [['even', '各檔金額平均'], ['min', '總投入最少']], cu.alloc || 'even') : ''}${hbtnH('cuh', '自訂組合怎麼用')}</span></div>
 ${howH('cuh', ['<b>挑選</b>：從右側清單勾選 1～10 檔（搜尋、配息頻率標籤、× 清除都可用）；組合名稱可改、可存多組、可刪除，存在這台瀏覽器。',
-  '<b>依目標自動配張數</b>：用上方「目標」（月領或年領）找出總投入最少的張數；每一檔至少 1 張。這幾檔的配息月份湊不滿 12 個月時，改成年領總額達標、各檔投入金額大致平均。',
+  '<b>依目標自動配張數</b>：用上方「目標」（月領或年領）配張數，每一檔至少 1 張。<b>各檔金額平均</b>（預設）＝每檔投入的錢大致一樣、每個月都 ≥ 目標；<b>總投入最少</b>＝總花費最低，但通常會主要靠「每元配息最多」的那一檔、其他檔只買 1 張。這幾檔的配息月份湊不滿 12 個月時，改成年領總額達標、各檔投入金額大致平均。',
   '<b>自己填張數</b>：每檔直接輸入張數，每月入帳、總投入、年領立刻重算。',
   '下方四張圖與組合 A～E 一樣；上方「扣除二代健保」「報酬期間」都會生效（期間影響含息年化）。'])}
 <p class="incq" id="cuNote"></p>
 <div class="cug"><div class="cusel"><table class="cut"><thead><tr><th>已選 ${picked.length}／${CU_MAX} 檔</th><th>現價</th><th>張數</th><th>需要金額</th><th>殖利率</th><th></th></tr></thead><tbody>${selRows || `<tr><td colspan="6" class="cuempty">從右側清單勾選 ETF（1～${CU_MAX} 檔）</td></tr>`}</tbody></table></div>
-  <div class="inclist cuic"><div class="ilhd"><span class="srchw"><input type="search" id="cuSearch" placeholder="搜尋名稱或代號" aria-label="搜尋 ETF" value="${esc(S.cuQ || '')}"><button type="button" class="srchx" id="cuSearchX" aria-label="清除搜尋，恢復全部" title="清除搜尋，恢復全部"${S.cuQ ? '' : ' hidden'}>×</button></span><button type="button" class="btn small" id="cuClear" title="取消所有勾選">清空</button></div>
+  <div class="inclist cuic"><div class="ilhd"><span class="srchw"><input type="search" id="cuSearch" placeholder="搜尋名稱或代號" aria-label="搜尋 ETF" value="${esc(S.cuQ || '')}"><button type="button" class="srchx" id="cuSearchX" aria-label="清除搜尋，恢復全部" title="清除搜尋，恢復全部"${S.cuQ ? '' : ' hidden'}>×</button></span></div>
     <div class="ilfq" id="cuFq" role="tablist" aria-label="依配息頻率分類">${[['all', '全部', R.length]].concat(FQS.filter((x) => cnt[x]).map((x) => [x, x, cnt[x]])).map(([v, t, n]) => `<button type="button" role="tab" data-v="${esc(v)}"${v === fq ? ' class="on"' : ''}>${esc(t)}<small>${n}</small></button>`).join('')}</div>
+    <div class="ilact"><span class="ilcnt" id="cuCnt">已勾 ${picked.length}／${CU_MAX} 檔</span><button type="button" class="btn small" id="cuClear" title="取消所有勾選">清除勾選</button></div>
     <p class="ilmsg" id="cuMsg"></p>
     <div class="ilbody" id="cuList" data-n="${rows.length}">${rows.map((it) => `<div class="ilr${picked.includes(it.code) ? ' in' : ''}" data-code="${esc(it.code)}"><input type="checkbox" aria-label="加入組合"${picked.includes(it.code) ? ' checked' : full ? ' disabled title="最多 ' + CU_MAX + ' 檔"' : ''}><span class="rk"></span>
       <button type="button" class="iln" title="${esc(it.name)} ${esc(it.code)}">${fqBadge(it.freq)}<span class="nm">${esc(it.name)}</span><span class="cd">${esc(it.code)}</span></button>
@@ -2608,6 +2638,7 @@ ${howH('cuh', ['<b>挑選</b>：從右側清單勾選 1～10 檔（搜尋、配�
     $('#cuName').onchange = (e) => { cu.name = (e.target.value.trim() || '自訂組合').slice(0, 20); save(); };
     $('#cuNew').onclick = () => { cuNew(); S.cuQ = ''; drawCustom(); };
     $('#cuDel').onclick = () => { st.list = st.list.filter((x) => x.id !== cu.id); st.cur = st.list.length ? st.list[0].id : ''; cuSave(); drawCustom(); };
+    $$('#cuAlloc button').forEach((b) => { b.onclick = () => { cu.alloc = b.dataset.v; save(); }; });
     $$('#cuMode button').forEach((b) => { b.onclick = () => { cu.mode = b.dataset.v; if (cu.mode === 'manual' && c && c.mem) c.mem.forEach((x, i) => { if (!(+cu.lots[x.it.code] > 0)) cu.lots[x.it.code] = c.lots[i]; }); save(); }; });
     $('#cuSearch').oninput = (e) => { S.cuQ = e.target.value.trim(); drawCustomList(); };
     $('#cuSearchX').onclick = () => { S.cuQ = ''; S.cuFq = 'all'; drawCustom(); const i = $('#cuSearch'); if (i) i.focus(); };
@@ -2721,9 +2752,9 @@ ${howH('cuh', ['<b>挑選</b>：從右側清單勾選 1～10 檔（搜尋、配�
     const C = pt ? withPt(null, combosNow) : combosNow();
     if (S.inc.ci >= C.list.length) S.inc.ci = 0;
     const costOf = (c, i) => { if (!pt || !pt['c' + i]) return c.cost; const own = withPt('c' + i, combosNow).list[i]; return own ? own.cost : null; };
-    tabs.innerHTML = `<button type="button" role="tab" data-v="s"${S.inc.tab === 's' ? ' class="on"' : ''}>單檔 ETF</button>`
-      + C.list.map((c, i) => { const v = costOf(c, i); return `<button type="button" role="tab" data-v="c" data-i="${i}"${pt && pt['c' + i] ? ' data-own="1"' : ''}${S.inc.tab === 'c' && i === S.inc.ci ? ' class="on"' : ''}>組合 ${CMB[i]}<small>投入 ${v == null ? '—' : wan(v)}</small></button>`; }).join('')
-      + `<button type="button" role="tab" data-v="u" class="${S.inc.tab === 'u' ? 'on' : ''}" id="incTabU">自訂組合<small>${cuNow() ? esc(cuNow().name) : '自己挑'}</small></button>`;
+    tabs.innerHTML = `<button type="button" role="tab" data-v="s" data-tc="s"${S.inc.tab === 's' ? ' class="on"' : ''}>單檔 ETF</button>`
+      + C.list.map((c, i) => { const v = costOf(c, i); return `<button type="button" role="tab" data-v="c" data-i="${i}" data-tc="${CMB[i]}"${pt && pt['c' + i] ? ' data-own="1"' : ''}${S.inc.tab === 'c' && i === S.inc.ci ? ' class="on"' : ''}>組合 ${CMB[i]}<small>投入 ${v == null ? '—' : wan(v)}</small></button>`; }).join('')
+      + `<button type="button" role="tab" data-v="u" data-tc="u" class="${S.inc.tab === 'u' ? 'on' : ''}" id="incTabU">自訂組合<small>${cuNow() ? esc(cuNow().name) : '自己挑'}</small></button>`;
     $$('button', tabs).forEach((b) => { b.onclick = () => { S.inc.tab = b.dataset.v; LS.set('tw.etf.inc.tab', S.inc.tab); if (b.dataset.i != null) S.inc.ci = +b.dataset.i; drawInc(); }; });
   }
   /* v7（圖二：單檔直條被擠成左邊一條細縫）：圖在 hidden 的分頁裡初始化會量到 0 寬；分頁一顯示就把裡面每個 ECharts 實例 resize 一次。 */
