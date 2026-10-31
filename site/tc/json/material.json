@@ -12429,7 +12429,10 @@
           "role": "產品工程師",
           "degree": null,
           "years": null,
-          "base_month_k": null,
+          "base_month_k": [
+            60,
+            60
+          ],
           "bonus_months": null,
           "annual_months": null,
           "annual_total_wan": [
@@ -12442,11 +12445,11 @@
           ],
           "overtime": "偶爾",
           "travel": null,
-          "n": 1,
+          "n": 2,
           "note": "2026-10-29 GoodJob 合併批新增職位",
           "confidence": "低",
           "grade": null,
-          "n_stat": 1,
+          "n_stat": 2,
           "samples": [
             {
               "site": "GoodJob",
@@ -12469,6 +12472,28 @@
               "quote_free_note": "自填；日工時 表訂/實際 9/9 小時",
               "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2025-04（20261029_20261101_0020 指定公司批，0020 檔）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/健策股份有限公司 (91089171)/salary-work-times?p=1",
+              "date": "2026-10",
+              "page_date": "2026-10",
+              "date_confirmed": true,
+              "role": "產品開發工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "11",
+              "degree": null,
+              "base_k": 60,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 45,
+              "overtime": "偶爾",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/9 小時",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2026-10（20261029_20261101_0341 指定公司批，0341 檔）"
             }
           ],
           "sources": [
@@ -12476,6 +12501,11 @@
               "site": "GoodJob",
               "url": "https://www.goodjob.life/companies/健策精密工業股份有限公司/salary-work-times?p=2",
               "date": "2025-04"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/健策股份有限公司 (91089171)/salary-work-times?p=1",
+              "date": "2026-10"
             }
           ]
         },

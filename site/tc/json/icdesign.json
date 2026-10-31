@@ -32396,6 +32396,75 @@
           ]
         }
       ]
+    },
+    {
+      "name": "致新",
+      "code": null,
+      "heat": null,
+      "benefits": null,
+      "stock_plan": null,
+      "bonus_timing": null,
+      "bonus_structure": [],
+      "culture": null,
+      "interview": null,
+      "grade_system": null,
+      "mops": null,
+      "note": "2026-10-29 由 GoodJob 樣本新增的公司（20261101_0341 指定公司批）",
+      "roles": [
+        {
+          "unit": null,
+          "role": "工程師",
+          "degree": null,
+          "years": null,
+          "base_month_k": null,
+          "bonus_months": null,
+          "annual_months": [
+            14,
+            14
+          ],
+          "annual_total_wan": null,
+          "weekly_hours": null,
+          "overtime": null,
+          "travel": null,
+          "n": 1,
+          "note": "2026-10-29 GoodJob 合併批新增職位",
+          "confidence": "低",
+          "grade": null,
+          "n_stat": 1,
+          "samples": [
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/262360436",
+              "date": "2026-10",
+              "page_date": "2026-10-27",
+              "date_confirmed": true,
+              "role": "副工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": null,
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": 14,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "月薪 N+2（N 未說明，與威聯通設計工程師 N 比較）；保 14、分紅依考績；工作內容為驗 IC、架環境；同篇威聯通不在本輪名單未收",
+              "comment_sample": false,
+              "in_window": true,
+              "date_note": "Dcard 頁面日期 2026-10-27（20261029_1541 大檔，0347 檔）"
+            }
+          ],
+          "sources": [
+            {
+              "site": "GoodJob",
+              "url": "https://www.dcard.tw/f/tech_job/p/262360436",
+              "date": "2026-10"
+            }
+          ]
+        }
+      ]
     }
   ]
 }

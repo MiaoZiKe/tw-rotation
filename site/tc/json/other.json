@@ -3206,7 +3206,10 @@
             60
           ],
           "bonus_months": null,
-          "annual_months": null,
+          "annual_months": [
+            12,
+            12
+          ],
           "annual_total_wan": [
             90,
             130
@@ -3217,11 +3220,11 @@
           ],
           "overtime": "幾乎不",
           "travel": null,
-          "n": 21,
+          "n": 24,
           "note": "2026-10-29 GoodJob 合併批新增職位",
           "confidence": "低",
           "grade": null,
-          "n_stat": 21,
+          "n_stat": 24,
           "samples": [
             {
               "site": "GoodJob",
@@ -3684,6 +3687,75 @@
               "quote_free_note": "自填；日工時 表訂/實際 8/8 小時",
               "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2025-01（20261029_20261101_0020 指定公司批，0020 檔）"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/259528330",
+              "date": "2025-08",
+              "page_date": "2025-08-12",
+              "date_confirmed": true,
+              "role": "網分工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "4.5",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": 90,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "中興、現職石頭 web 4 年半（年薪約 95 萬）；中華電信月薪 N-10（N＝現職），年薪約 90 萬；需北漂租屋",
+              "comment_sample": false,
+              "in_window": true,
+              "date_note": "Dcard 頁面日期 2025-08-12（20261029_1541 大檔，0347 檔）"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261091645",
+              "date": "2026-03",
+              "page_date": "2026-03-15",
+              "date_confirmed": true,
+              "role": "新人（學士起薪）",
+              "grade": null,
+              "unit_detail": null,
+              "years": "0",
+              "degree": "學士",
+              "base_k": 50,
+              "bonus_months": null,
+              "annual_months": 12,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "團隊整理、單一網友提供之 2026 年新人薪資結構；學士起薪 50k、保 12；三節 1.6 個月、考績正常績效 2.6 個月、全勤 0.4 個月；伙食＋通勤津貼每月 5.5k；調薪每年 1.x%",
+              "comment_sample": false,
+              "in_window": true,
+              "date_note": "Dcard 頁面日期 2026-03-15（20261029_1541 大檔，0347 檔）"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/261091645",
+              "date": "2026-03",
+              "page_date": "2026-03-15",
+              "date_confirmed": true,
+              "role": "新人（碩士起薪）",
+              "grade": null,
+              "unit_detail": null,
+              "years": "0",
+              "degree": "碩士",
+              "base_k": 59,
+              "bonus_months": null,
+              "annual_months": 12,
+              "annual_wan": null,
+              "weekly_hours": null,
+              "overtime": null,
+              "travel": null,
+              "quote_free_note": "同篇；碩畢起薪 59k，其餘結構同上",
+              "comment_sample": false,
+              "in_window": true,
+              "date_note": "Dcard 頁面日期 2026-03-15（20261029_1541 大檔，0347 檔）"
             }
           ],
           "sources": [
@@ -3721,6 +3793,16 @@
               "site": "GoodJob",
               "url": "https://www.goodjob.life/companies/中華電信股份有限公司/salary-work-times?p=6",
               "date": "2025-01"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.dcard.tw/f/tech_job/p/259528330",
+              "date": "2025-08"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.dcard.tw/f/tech_job/p/261091645",
+              "date": "2026-03"
             }
           ]
         },
@@ -3730,7 +3812,7 @@
           "degree": null,
           "years": null,
           "base_month_k": [
-            50.02,
+            50,
             60
           ],
           "bonus_months": null,
@@ -3745,11 +3827,11 @@
           ],
           "overtime": "幾乎不",
           "travel": null,
-          "n": 11,
+          "n": 12,
           "note": "2026-10-29 GoodJob 合併批新增職位",
           "confidence": "低",
           "grade": null,
-          "n_stat": 11,
+          "n_stat": 12,
           "samples": [
             {
               "site": "GoodJob",
@@ -3992,6 +4074,28 @@
               "quote_free_note": "自填；日工時 表訂/實際 8/8 小時",
               "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2025-12（20261029_20261101_0020 指定公司批，0020 檔）"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.goodjob.life/companies/中華電信股份有限公司/salary-work-times?p=4",
+              "date": "2025-05",
+              "page_date": "2025-05",
+              "date_confirmed": true,
+              "role": "軟體工程師",
+              "grade": null,
+              "unit_detail": null,
+              "years": "0",
+              "degree": null,
+              "base_k": 50,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": null,
+              "weekly_hours": 40,
+              "overtime": "幾乎不",
+              "travel": null,
+              "quote_free_note": "自填；日工時 表訂/實際 8/8 小時",
+              "in_window": true,
+              "date_note": "GoodJob 頁面標示年月 2025-05（20261029_20261101_0341 指定公司批，0341 檔）"
             }
           ],
           "sources": [
@@ -4380,11 +4484,11 @@
           ],
           "overtime": "幾乎不",
           "travel": null,
-          "n": 3,
+          "n": 4,
           "note": "2026-10-29 GoodJob 合併批新增職位",
           "confidence": "低",
           "grade": null,
-          "n_stat": 3,
+          "n_stat": 4,
           "samples": [
             {
               "site": "GoodJob",
@@ -4451,6 +4555,32 @@
               "quote_free_note": "自填；日工時 表訂/實際 8/8 小時",
               "in_window": true,
               "date_note": "GoodJob 頁面標示年月 2026-04（20261029_20261101_0020 指定公司批，0020 檔）"
+            },
+            {
+              "site": "Dcard",
+              "url": "https://www.dcard.tw/f/tech_job/p/260950801",
+              "date": "2026-02",
+              "page_date": "2026-02-26",
+              "date_confirmed": true,
+              "role": "雲端架構與AI技術開發工程師（研替）",
+              "grade": null,
+              "unit_detail": "中正區",
+              "years": "0",
+              "degree": null,
+              "base_k": null,
+              "bonus_months": null,
+              "annual_months": null,
+              "annual_wan": [
+                110,
+                120
+              ],
+              "weekly_hours": null,
+              "overtime": "幾乎不",
+              "travel": null,
+              "quote_free_note": "台大、研替 offer；月薪約 N-5（N 未說明）；人資年薪試算含津貼約 110～120 萬（區間原樣保存）；日班、原則上不加班；原 PO 後來決定去華擎（不在本輪名單）",
+              "comment_sample": false,
+              "in_window": true,
+              "date_note": "Dcard 頁面日期 2026-02-26（20261029_1541 大檔，0347 檔）"
             }
           ],
           "sources": [
@@ -4468,6 +4598,11 @@
               "site": "GoodJob",
               "url": "https://www.goodjob.life/companies/中華電信資訊技術分公司/salary-work-times?p=1",
               "date": "2026-04"
+            },
+            {
+              "site": "GoodJob",
+              "url": "https://www.dcard.tw/f/tech_job/p/260950801",
+              "date": "2026-02"
             }
           ]
         },
