@@ -21,8 +21,8 @@
   var TH = { r: 0.3, top: 0.3, fEps: 0.05, crash: -1.5 };      // 背離門檻（規格第三節：先定的預設值，回測後再調）
   var CATS = [['all', '全部族群'], ['semi', '半導體'], ['ai', 'AI 伺服器'], ['other', '其他']];
   var C = { idx: null, day: {}, m5: {}, m60: {}, ser: {}, bt: null, fail: {} };
-  var S = { gid: null, date: null, t: 'close', view: 'money', cat: 'all', cmp: 'rel', span: 'auto', tab: 'daily', divOpen: false, rsBase: 'index' };
-  var built = false, seq = 0, playT = null, playSpd = 1;
+  var S = { gid: null, date: null, dateWant: null, t: 'close', view: 'strength', cat: 'all', cmp: 'rel', span: 'auto', tab: 'daily', rsBase: 'index', adv: false, advTab: 'cases' };
+  var built = false, seq = 0;
   var open = {};                  // 手機收展（使用者手動展開才記住）
   try { open = JSON.parse(localStorage.getItem('fc.open') || '{}') || {}; } catch (e) { open = {}; }
   var isM = function () { return window.matchMedia && window.matchMedia('(max-width:640px)').matches; };
@@ -53,11 +53,12 @@
     return o;
   }
   function writeUrl(push) {
-    var q = [];
-    if (S.gid) q.push('g=' + encodeURIComponent(S.gid));
-    if (S.date) q.push('d=' + S.date);
-    if (S.t && S.t !== 'close') q.push('t=' + S.t.replace(':', ''));
-    if (S.view !== 'money') q.push('v=' + S.view);
+    var q = [], v3 = window.TwFlowV3 && window.TwFlowV3.query ? window.TwFlowV3.query() : null;
+    if (v3 && v3.g) q.push('g=' + encodeURIComponent(v3.g));
+    if (v3 && v3.d) q.push('d=' + v3.d);
+    if (v3 && v3.v && v3.v !== 'river') q.push('v=' + v3.v);
+    if (v3 && v3.w && v3.w !== 30) q.push('w=' + v3.w);
+    if (S.adv && S.advTab) q.push('a=' + S.advTab);
     var u = '#flowcheck' + (q.length ? '?' + q.join('&') : '');
     if (u === location.hash) return;
     try { (push ? history.pushState : history.replaceState).call(history, null, '', u); } catch (e) { /* 預覽環境 */ }
@@ -123,7 +124,7 @@
   function wantTrail() {
     var ds = dates(), i = ds.indexOf(S.date), key = S.date; if (trailAsk === key) return; trailAsk = key;
     var need = ds.slice(Math.max(0, i - 4), i).filter(function (d) { return C.day[d] === undefined; });
-    if (need.length) Promise.all(need.map(getDay)).then(function () { if (trailAsk === key && S.date === key) drawWheel(catRows(rowsAt())); });
+    if (need.length) Promise.all(need.map(getDay)).then(function () { if (trailAsk === key && S.date === key && S.adv && S.advTab === 'strength') drawWheelOne(catRows(rowsAt()), $('#fcWheel'), 'strength'); });
   }
   function catRows(rows) { return S.cat === 'all' ? rows : rows.filter(function (x) { return x.cat === S.cat; }); }
 
@@ -158,6 +159,14 @@
 
   /* ---------------------------------------------------------------- 骨架 */
   var HOWS = {
+    v3: ['怎麼看這張圖',
+      ['<b>先看上面兩排卡</b>：今天資金流入前 3、流出前 3（只算占全市場成交額 ≥ 1% 的族群），每張卡標當天漲跌，點一張就在圖上選住它。',
+        '<b>河流</b>：每列一個族群，依產業鏈分組。色帶粗細＝占全市場成交額比例；實線＝這段期間累計漲跌（紅漲綠跌），灰虛線＝加權指數；各列刻度不同，以右邊數字為準。「今日占比」＝比前一天多或少幾個百分點；「期間占比」＝期間起點到目前日期的占比。',
+        '<b>輪盤</b>：同一批族群放在座標上。越右＝近 5 日占比比近 20 日高（升溫），越上＝變化越快；點大小＝占比，顏色＝產業鏈。點一個點＝選族群，右側看它的累計走勢。',
+        '<b>注意兩個詞不同</b>：「今日流入／流出」是今天比前一天，「近期趨勢（持續升溫…）」是近 5 日比近 20 日，兩者可以相反。',
+        '<b>用法</b>：拖底下的日期或按播放，看資金在 10／20／30 日內怎麼換手；河流與輪盤共用日期、期間與選取。']],
+    cases: ['驗證與案例怎麼看',
+      ['上面是「族群綜合分數 A」樣本外全部結果，下面是成功與失敗各 3 個例子。看勝率與中位數，不要只看平均；少數大贏家會把平均拉高。']],
     page: ['這一頁在做什麼',
       ['<b>用途</b>：把「錢往哪跑」（輪盤、資金樹）跟「那個族群真的有沒有漲」（走勢、成分股）放在同一個畫面，一點就全部同步，不用自己來回比對。',
         '<b>點</b>輪盤的點、樹的節點、熱力方塊、焦點籤、背離榜或成分股列＝換焦點族群，右邊走勢、成分股、新聞、法人、訊號一起換。',
@@ -195,128 +204,75 @@
   function seg(id, arr, cur, label) {
     return '<div class="seg" id="' + id + '" role="group" aria-label="' + esc(label) + '">' + arr.map(function (p) { return '<button type="button" data-v="' + p[0] + '" class="' + (p[0] === cur ? 'on' : '') + '" aria-pressed="' + (p[0] === cur) + '">' + esc(p[1]) + '</button>'; }).join('') + '</div>';
   }
-  function fold(id, title, extra, body) {
-    var op = (id !== 'fcMoreCard' && !isM()) || !!open[id];      // 「更多證據」桌機也預設收起（收展預設收起準則，也讓整頁壓到一頁多一點）；手動展開過才記住
-    return '<section class="card fc-card fc-fold' + (op ? ' open' : '') + '" id="' + id + '"><div class="fc-hd"><h3>' + title + '</h3>' + (extra || '') + '<button type="button" class="fc-tog" data-fold="' + id + '" aria-expanded="' + !!op + '">' + (op ? '收起' : '展開') + '</button></div><div class="fc-bd">' + body + '</div></section>';
-  }
+  var ADV = [['cases', '驗證與案例'], ['heat', '熱力圖'], ['trend', '走勢大圖'], ['mem', '成分股'], ['div', '背離榜'], ['daily', '日級別訊號'], ['sig', '提前判斷'], ['news', '新聞法人'], ['strength', '強弱輪盤']];
+  function pane(k, inner) { return '<div class="fc-pane" id="fcAP_' + k + '"' + (S.advTab === k ? '' : ' hidden') + '>' + inner + '</div>'; }
   function build() {
     var v = $('#v-flowcheck'); if (!v) return false;
+    S.adv = !!open.fcAdv;
     v.innerHTML =
-      '<div class="fc" id="fc">'
-      + '<div class="card fc-bar" id="fcBar">' + howDiv('page')
-      + '<div id="fcModeBox"></div><div class="fc-date" id="fcDate"></div><span class="fc-range" id="fcRange"></span>'
-      + '<input id="fcGsel" class="fc-gs" list="fcGList" placeholder="找族群（可打字）" aria-label="選族群" autocomplete="off"><datalist id="fcGList"></datalist>'
-      + '<div class="fc-sp"></div>' + seg('fcCat', CATS, S.cat, '族群篩選') + howBox('page') + '</div>'
-      + '<div class="card fc-verdict" id="fcVerdict" aria-live="polite"></div>'
-      + '<div class="fc-grid">'
-      + '<div class="fc-col fc-left">'
-      + '<section class="card fc-card" id="fcWheelCard"><div class="fc-hd"><h3>錢往哪跑 ' + howBox('wheel') + '</h3><div class="fc-chips fc-same" id="fcSame"></div>'
-      + seg('fcRsBase', [['index', '強弱：加權指數'], ['site', '強弱：主站口徑']], S.rsBase, '強弱輪盤口徑') + seg('fcView', [['strength', '強弱輪盤'], ['money', '資金輪盤'], ['tree', '資金分流樹']], S.view, '輪盤種類') + '</div>' + howDiv('wheel')
-      + '<div id="fcWheel" class="chart fc-wheel"></div>'
-      + '<div class="fc-tri" id="fcTri">' + [['strength', '強弱輪盤', '右上領先・左下落後'], ['money', '資金輪盤', '右上湧入・左下轉出'], ['tree', '資金分流樹', '點節點選族群']].map(function (k) { return '<div class="fc-tp"><h4>' + k[1] + ' <small class="muted">' + k[2] + '</small></h4><div class="chart fc-wheel" id="fcW_' + k[0] + '"></div></div>'; }).join('') + '</div>'
-      + '<div class="fc-chips" id="fcRank"></div></section>'
-      + fold('fcHeatCard', '全族群熱力圖 ' + howBox('heat'), '', howDiv('heat') + '<div id="fcHeat" class="chart fc-heat"></div>')
-      + '</div>'
-      + '<div class="fc-col fc-right">'
-      + '<section class="card fc-card" id="fcTrendCard"><div class="fc-hd"><h3><span id="fcTrendName">—</span>：有在漲嗎？ ' + howBox('trend') + '</h3><div class="fc-sp"></div>'
-      + '<span id="fcSpanBox"></span>' + seg('fcCmp', [['rel', '相對加權指數'], ['abs', '絕對']], S.cmp, '走勢口徑') + '</div>' + howDiv('trend')
-      + '<div id="fcTrend" class="chart fc-trend"></div><div class="fc-note fc-tnote" id="fcTrendNote"><span class="fc-badge" id="fcBadge"></span><span id="fcNoteTx"></span></div></section>'
-      + fold('fcMemCard', '成分股走勢（前 6 大） ' + howBox('mem'), '', howDiv('mem') + '<div class="fc-minis" id="fcMinis"></div><details class="fc-det" id="fcTblDet"><summary>全部成分股表</summary><div class="fc-tbl" id="fcMemTbl"></div></details>')
-      + '</div></div>'
-      + fold('fcMoreCard', '更多證據 ' + howBox('more'), '<span class="fc-msum" id="fcMsum"></span>' + seg('fcTab', [['daily', '日級別訊號'], ['sig', '提前判斷（實驗）'], ['news', '新聞與法人']], S.tab, '更多證據分頁'),
-        howDiv('more') + '<div class="fc-pane" id="fcPaneDaily">' + howDiv('day') + '<div id="fcDay"></div></div>'
-        + '<div class="fc-pane" id="fcPaneSig" hidden>' + howDiv('sig') + '<div class="fc-sigwrap"><div class="fc-sigl" id="fcSigL"></div><div class="fc-sigr" id="fcSigR"></div></div></div>'
-        + '<div class="fc-pane" id="fcPaneNews" hidden>' + howDiv('news') + howDiv('inst') + '<div class="fc-row2"><div><div class="fc-sub2">當日相關新聞／事件 <button class="howbtn pop" type="button" data-how="fc_news" data-ttl="新聞與事件" aria-label="新聞怎麼看">?</button></div><div class="fc-news" id="fcNews"></div></div>'
-        + '<div><div class="fc-sub2">法人買賣超（近 20 日） <button class="howbtn pop" type="button" data-how="fc_inst" data-ttl="法人買賣超" aria-label="法人怎麼看">?</button></div><div id="fcInst" class="chart fc-inst"></div><div class="fc-note" id="fcInstNote"></div></div></div></div>')
-      + '<div class="card fc-tl" id="fcTl"><button type="button" class="btn fc-play" id="fcPlay" aria-label="播放">▶</button>'
-      + '<div class="fc-axis"><input type="range" class="tlr" id="fcRange2" min="0" max="0" step="1" value="0" aria-label="時間軸"><div class="fc-marks" id="fcMarks"></div></div>'
-      + '<span class="fc-tlab" id="fcTlab">—</span>'
-      + '<button type="button" class="btn fc-tlmore" id="fcTlMore" aria-label="更多播放選項" aria-expanded="false">⋯</button>'
-      + '<div class="fc-tlx" id="fcTlx"><div class="seg tiny" id="fcSpd" role="group" aria-label="播放速度">' + [1, 2, 5].map(function (n) { return '<button type="button" data-v="' + n + '" class="' + (n === playSpd ? 'on' : '') + '">×' + n + '</button>'; }).join('') + '</div>'
-      + '<div class="seg tiny" id="fcDayT" role="group" aria-label="日內時點"></div></div></div>'
-      + '</div>';
+      '<div class="fc" id="fc"><div id="fc3"></div>'
+      + '<section class="card fc-card fc-fold fc-adv' + (S.adv ? ' open' : '') + '" id="fcAdv"><div class="fc-hd"><h3>進階</h3><span class="fc-advsum">驗證與案例、熱力圖、走勢、成分股、背離榜、訊號回測、新聞法人</span>'
+      + '<button type="button" class="fc-tog" id="fcAdvTog" aria-expanded="' + S.adv + '">' + (S.adv ? '收起' : '展開') + '</button></div>'
+      + '<div class="fc-bd">' + seg('fcAdvSeg', ADV, S.advTab, '進階分段')
+      + pane('cases', howDiv('cases') + '<div class="fc-hd"><h3>驗證與案例 ' + howBox('cases') + '</h3></div><div id="fcCases"></div>')
+      + pane('heat', '<div class="fc-hd"><h3>全族群熱力圖 ' + howBox('heat') + '</h3></div>' + howDiv('heat') + '<div id="fcHeat" class="chart fc-heat"></div>')
+      + pane('trend', '<div class="fc-hd"><h3><span id="fcTrendName">—</span>：有在漲嗎？ ' + howBox('trend') + '</h3><div class="fc-sp"></div><span id="fcSpanBox"></span>' + seg('fcCmp', [['rel', '相對加權指數'], ['abs', '絕對']], S.cmp, '走勢口徑') + '</div>' + howDiv('trend')
+        + '<div id="fcTrend" class="chart fc-trend"></div><div class="fc-note fc-tnote"><span class="fc-badge" id="fcBadge"></span><span id="fcNoteTx"></span></div>')
+      + pane('mem', '<div class="fc-hd"><h3>成分股走勢（前 6 大） ' + howBox('mem') + '</h3></div>' + howDiv('mem') + '<div class="fc-minis" id="fcMinis"></div><details class="fc-det" id="fcTblDet"><summary>全部成分股表</summary><div class="fc-tbl" id="fcMemTbl"></div></details>')
+      + pane('div', '<div class="fc-hd"><h3>背離榜 ' + howBox('verdict') + '</h3></div>' + howDiv('verdict') + '<div id="fcDivPane"></div>')
+      + pane('daily', howDiv('day') + '<div class="fc-hd"><h3>日級別訊號 ' + howBox('day') + '</h3></div><div id="fcDay"></div>')
+      + pane('sig', howDiv('sig') + '<div class="fc-hd"><h3>提前判斷（實驗） ' + howBox('sig') + '</h3></div><div class="fc-sigwrap"><div class="fc-sigl" id="fcSigL"></div><div class="fc-sigr" id="fcSigR"></div></div>')
+      + pane('news', howDiv('news') + howDiv('inst') + '<div class="fc-row2"><div><div class="fc-sub2">當日相關新聞／事件 <button class="howbtn pop" type="button" data-how="fc_news" data-ttl="新聞與事件" aria-label="新聞怎麼看">?</button></div><div class="fc-news" id="fcNews"></div></div>'
+        + '<div><div class="fc-sub2">法人買賣超（近 20 日） <button class="howbtn pop" type="button" data-how="fc_inst" data-ttl="法人買賣超" aria-label="法人怎麼看">?</button></div><div id="fcInst" class="chart fc-inst"></div><div class="fc-note" id="fcInstNote"></div></div></div>')
+      + pane('strength', '<div class="fc-hd"><h3>強弱輪盤 ' + howBox('wheel') + '</h3><div class="fc-sp"></div>' + seg('fcRsBase', [['index', '強弱：加權指數'], ['site', '強弱：主站口徑']], S.rsBase, '強弱輪盤口徑') + '</div>' + howDiv('wheel') + '<div id="fcWheel" class="chart fc-wheel"></div>')
+      + '</div></section></div>';
     wire(v);
     built = true;
-    try { window.matchMedia('(min-width:1440px)').addEventListener('change', function () { if (C.idx) setTimeout(paint, 80); }); } catch (e) { /* 舊瀏覽器 */ }
     return true;
   }
-  /* 「更多證據」收起時標題列右側的摘要：不展開也知道有沒有東西；數字點了展開到對應分頁 */
-  function drawMsum() {
-    var el = $('#fcMsum'); if (!el) return; var my = painting, dy = C.day[S.date], gid = S.gid;
-    getDaily().then(function (D) {
-      if (my !== painting) return;
-      var its = D ? (D.recent || []).filter(function (it) { return it.date === S.date; }) : null;
-      var ng = its ? its.filter(function (it) { return it.level === 'group'; }).length : null, ns = its ? its.length - ng : null;
-      var nsig = (dy.signals || []).length, nn = (dy.news || []).filter(function (n) { return (n.gids || []).indexOf(gid) >= 0; }).length;
-      var b = function (tab, txt) { return '<button type="button" class="fc-ms" data-msum="' + tab + '">' + txt + '</button>'; };
-      el.innerHTML = b('daily', '日級別候選：' + (its ? '族群 ' + ng + '・個股 ' + ns : '—')) + '<span class="fc-msep">｜</span>' + b('sig', '盤中訊號 ' + nsig + ' 次') + '<span class="fc-msep">｜</span>' + b('news', '新聞 ' + nn + ' 則');
-    });
+  /* 進階：開關預設收起；手動開過才記住（手機五條 5）。從訊號列的連結打開不寫記憶 */
+  function setAdvUI() {
+    var card = $('#fcAdv'); if (!card) return;
+    card.classList.toggle('open', !!S.adv);
+    var t = $('#fcAdvTog'); if (t) { t.textContent = S.adv ? '收起' : '展開'; t.setAttribute('aria-expanded', !!S.adv); }
+    ADV.forEach(function (a) { var e = $('#fcAP_' + a[0]); if (e) e.hidden = a[0] !== S.advTab; });
+    $$('#fcAdvSeg button').forEach(function (b) { var on = b.dataset.v === S.advTab; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on); });
   }
-  function openMore(tab) {
-    var card = $('#fcMoreCard'); if (!card) return;
-    card.classList.add('open'); var t = card.querySelector('.fc-tog'); if (t) { t.textContent = '收起'; t.setAttribute('aria-expanded', 'true'); }
-    open.fcMoreCard = true; try { localStorage.setItem('fc.open', JSON.stringify(open)); } catch (x) { /* 私密視窗 */ }
-    S.tab = tab; paint(); setTimeout(function () { window.dispatchEvent(new Event('resize')); }, 30);
+  function syncAdv() { if (!S.adv) return; if (S.dateWant && S.dateWant !== S.date) setDate(S.dateWant); else paint(); }
+  function openAdv(tab, scroll) {
+    if (tab && ADV.some(function (a) { return a[0] === tab; })) S.advTab = tab;
+    S.adv = true; setAdvUI(); writeUrl(false); syncAdv();
+    if (scroll) { var c = $('#fcAdv'); if (c && c.scrollIntoView) c.scrollIntoView({ block: 'start', behavior: 'smooth' }); }
+    setTimeout(function () { window.dispatchEvent(new Event('resize')); }, 30);
   }
-  function closeTlx() { var tl = $('#fcTl'); if (tl && tl.classList.contains('xopen')) { tl.classList.remove('xopen'); var m = $('#fcTlMore'); if (m) m.setAttribute('aria-expanded', 'false'); } }
-  document.addEventListener('click', function (e) { var tl = $('#fcTl'); if (tl && tl.classList.contains('xopen') && !e.target.closest('#fcTl')) closeTlx(); });
   function wire(v) {
     v.addEventListener('click', function (e) {
       var b = e.target.closest('button'); if (!b) return;
-      if (b.dataset.msum) { openMore(b.dataset.msum); return; }
-      if (b.dataset.fold) { var id = b.dataset.fold, card = $('#' + id), on = !card.classList.contains('open'); card.classList.toggle('open', on); b.textContent = on ? '收起' : '展開'; b.setAttribute('aria-expanded', on);
-        open[id] = on; try { localStorage.setItem('fc.open', JSON.stringify(open)); } catch (x) { /* 私密視窗 */ } setTimeout(function () { paint(); window.dispatchEvent(new Event('resize')); }, 30); return; }
+      if (b.id === 'fcAdvTog') {
+        S.adv = !S.adv; open.fcAdv = S.adv; try { localStorage.setItem('fc.open', JSON.stringify(open)); } catch (x) { /* 私密視窗 */ }
+        setAdvUI(); writeUrl(false); syncAdv(); setTimeout(function () { window.dispatchEvent(new Event('resize')); }, 30); return;
+      }
       var p = b.parentElement && b.parentElement.id;
-      if (p === 'fcCat') { S.cat = b.dataset.v; ensureFocus(); paint(); return; }
-      if (p === 'fcView') { S.view = b.dataset.v; writeUrl(true); paint(); return; }
+      if (p === 'fcAdvSeg') { S.advTab = b.dataset.v; setAdvUI(); writeUrl(false); syncAdv(); setTimeout(function () { window.dispatchEvent(new Event('resize')); }, 30); return; }
       if (p === 'fcRule') { S.rule = b.dataset.v; paint(); return; }
       if (p === 'fcRsBase') { S.rsBase = b.dataset.v; $$('#fcRsBase button').forEach(function (x) { x.classList.toggle('on', x === b); }); paint(); return; }
-      if (p === 'fcTab') { S.tab = b.dataset.v; paint(); return; }
       if (p === 'fcCmp') { S.cmp = b.dataset.v; paint(); return; }
       if (p === 'fcSpan') { S.span = b.dataset.v; paint(); return; }
-      if (p === 'fcSpd') { playSpd = +b.dataset.v; $$('#fcSpd button').forEach(function (x) { x.classList.toggle('on', x === b); }); closeTlx(); return; }
-      if (p === 'fcDayT') { setT(b.dataset.v); closeTlx(); return; }
-      if (p === 'fcMode') { setMode(b.dataset.v); return; }
       if (b.id === 'fcDivAll') { S.divAll = !S.divAll; paint(); return; }
-      if (b.id === 'fcDivBtn') { S.divOpen = !S.divOpen; paint(); return; }
       if (b.id === 'fcDayMore') { S.dayAll = !S.dayAll; paint(); return; }
-      if (b.id === 'fcTlMore') { var tl = $('#fcTl'), on = !tl.classList.contains('xopen'); tl.classList.toggle('xopen', on); b.setAttribute('aria-expanded', on); return; }
-      if (b.id === 'fcPlay') { togglePlay(); return; }
-      if (b.id === 'fcPrev') { stepDate(-1); return; }
-      if (b.id === 'fcNext') { stepDate(1); return; }
       if (b.dataset.g) { pick(b.dataset.g); return; }
       if (b.dataset.go) { location.hash = '#stock/' + b.dataset.go; }
-    });
-    $('#fcRange2').addEventListener('input', function (e) { onSlider(+e.target.value); });
-    v.addEventListener('change', function (e) {
-      if (e.target.id === 'fcGsel') {
-        var q = e.target.value.trim(), gs = (C.idx.groups || []).filter(function (g) { return !g.is_bucket; });
-        var hit = gs.filter(function (g) { return g.name === q; })[0] || (gs.filter(function (g) { return g.name.indexOf(q) >= 0; }).length === 1 ? gs.filter(function (g) { return g.name.indexOf(q) >= 0; })[0] : null);
-        if (hit) { e.target.value = ''; e.target.blur(); pick(hit.gid); } else if (q) toast('找不到「' + q + '」，請從清單挑一個族群');
-        return;
-      }
-      if (e.target.id !== 'fcDatePick') return;
-      var d = e.target.value, ds = dates();
-      if (ds.indexOf(d) >= 0) { setDate(d); return; }
-      toast(noDataMsg(d));
-      e.target.value = S.date;
     });
   }
 
   /* ---------------------------------------------------------------- 狀態變更 */
-  function pick(gid) { if (!gid || gid === S.gid) return; S.gid = gid; writeUrl(true); paint(); }
+  function pick(gid) { if (!gid) return; S.gid = gid; if (window.TwFlowV3) window.TwFlowV3.setSel(gid); writeUrl(false); paint(); }
   function ensureFocus() {
     var rows = catRows(rowsAt()); if (!rows.length) return;
     if (!S.gid || !rows.some(function (x) { return x.gid === S.gid; })) { var top = rows.slice().sort(function (a, b) { return b.f - a.f; })[0]; S.gid = top.gid; }
   }
   function m5First() { var ds = dates(); for (var i = 0; i < ds.length; i++) if (layersOf(ds[i]).indexOf('m5') >= 0) return ds[i]; return null; }
   function dates() { return (C.idx && C.idx.dates) || []; }
-  function setMode(m) {
-    stopPlay();
-    var ds = dates();
-    if (m === 'today') setDate(C.idx.latest);
-    else if (S.date === C.idx.latest && ds.length > 1) setDate(ds[ds.length - 2]);
-  }
   function setDate(d, keepT) {
     if (!d || dates().indexOf(d) < 0) return Promise.resolve();
     var my = ++seq, was = S.date;
@@ -324,9 +280,9 @@
       if (my !== seq) return;
       S.date = d;
       var sl = slotList(d);
-      if (!keepT || sl.times.indexOf(S.t) < 0) S.t = (d === C.idx.latest && sl.times.length && isIntraNow()) ? sl.times[sl.times.length - 1] : 'close';
+      S.t = 'close';
       if (was && was !== d && S.gid && C.day[d] && !C.day[d].groups[S.gid]) { S.gid = null; toast('這一天沒有「' + gInfo(S.gid || '').name + '」，已改選資金流入第 1 名'); }
-      ensureFocus(); writeUrl(true); paint();
+      ensureFocus(); paint();
     });
   }
   function isIntraNow() {                  // 今天且盤中（台北週一～五 09:00–13:30、且最新交易日就是今天）才停在「最新一格」，其他一律停收盤
@@ -350,94 +306,37 @@
     return d + ' 沒有這一天的資料（日級資料只提供近 60 個交易日）';
   }
   function stepDate(k) { var ds = dates(), i = ds.indexOf(S.date) + k; if (i >= 0 && i < ds.length) setDate(ds[i]); }
-  function setT(t) { S.t = t; writeUrl(false); paint(); }
-  function modeIsToday() { return S.date === C.idx.latest; }
-  function onSlider(i) {
-    if (modeIsToday()) { var sl = slotList(S.date); if (sl.times.length) setT(sl.times[Math.min(i, sl.times.length - 1)]); }
-    else { var d = dates()[i]; if (d && d !== S.date) setDate(d, true); }
-  }
-  function togglePlay() { if (playT) { stopPlay(); return; } startPlay(); }
-  function stopPlay() { if (playT) { clearInterval(playT); playT = null; } var b = $('#fcPlay'); if (b) { b.textContent = '▶'; b.setAttribute('aria-label', '播放'); } }
-  function startPlay() {
-    var b = $('#fcPlay'); b.textContent = '⏸'; b.setAttribute('aria-label', '暫停');
-    var busy = false;
-    playT = setInterval(function () {
-      if (busy) return; var r = $('#fcRange2'), i = +r.value;
-      if (i >= +r.max) { if (modeIsToday() || +r.max === 0) { stopPlay(); return; } stopPlay(); return; }
-      busy = true; Promise.resolve(modeIsToday() ? setT(slotList(S.date).times[i + 1]) : setDate(dates()[i + 1], true)).then(function () { busy = false; }, function () { busy = false; });
-    }, 700 / playSpd);
-  }
-
   /* ---------------------------------------------------------------- 繪製 */
   var painting = 0;
+  /* 只畫「進階」目前打開的那一段：收著、沒選的段落一律不畫（圖表在 display:none 裡初始化會是 0×0，也省 CPU） */
   function paint() {
-    if (!built || !C.idx || !C.day[S.date]) return;
-    var my = ++painting;
-    var rows = rowsAt(), all = judge(rows), vis = catRows(rows);
-    rows.forEach(function (x) { x.same3 = (x.quad === 'leading' || x.quad === 'improving') && x.mx > 0 && x.f > 0; });   // 三者同向：強弱輪盤（領先／改善）、資金輪盤（趨勢與今日皆向上）、資金分流樹（占比上升）
-    ensureFocus();
-    drawBar(); drawVerdict(vis, all, rows); drawTimebar();
-    drawWheel(vis); drawRank(vis); drawHeat(vis);
+    if (!built || !C.idx || !C.day[S.date] || !S.adv) return;
+    var my = ++painting, k = S.advTab;
+    var rows = rowsAt(); judge(rows); ensureFocus();
     var cur = rows.filter(function (x) { return x.gid === S.gid; })[0];
-    $('#fcTrendName').textContent = (cur && cur.name) || '—';
-    var bd = $('#fcBadge'); if (cur) { var tg = tagOf(cur); bd.className = 'fc-badge ' + tg.k; bd.textContent = tg.txt; } else { bd.className = 'fc-badge'; bd.textContent = ''; }
-    getSer(S.gid).then(function (ser) { if (my !== painting) return; drawTrend(cur, ser); drawMinis(cur, ser); });
-    drawMemTbl(cur); fitTrendM(); drawMsum();
-    ['daily', 'sig', 'news'].forEach(function (k) { var e = $('#fcPane' + k.charAt(0).toUpperCase() + k.slice(1)); if (e) e.hidden = k !== S.tab; });
-    $$('#fcTab button').forEach(function (b) { b.classList.toggle('on', b.dataset.v === S.tab); b.setAttribute('aria-pressed', b.dataset.v === S.tab); });
-    if (S.tab === 'daily') drawDaily(rows); else if (S.tab === 'sig') drawSig(rows); else { drawNews(); drawInst(); }       // 只畫看得到的那一頁（回測檔 1.5MB 也只在點「提前判斷」才載）
+    if (k === 'cases') { if (window.TwFlowV3 && !$('#fcCases').dataset.done) { $('#fcCases').dataset.done = '1'; window.TwFlowV3.renderCases($('#fcCases')); } }
+    else if (k === 'heat') drawHeat(rows);
+    else if (k === 'trend' || k === 'mem') {
+      var nm = $('#fcTrendName'); if (nm) nm.textContent = (cur && cur.name) || '—';
+      var bd = $('#fcBadge'); if (bd) { if (cur) { var tg = tagOf(cur); bd.className = 'fc-badge ' + tg.k; bd.textContent = tg.txt; } else { bd.className = 'fc-badge'; bd.textContent = ''; } }
+      getSer(S.gid).then(function (ser) { if (my !== painting) return; if (k === 'trend') drawTrend(cur, ser); else drawMinis(cur, ser); });
+      if (k === 'mem') drawMemTbl(cur);
+    }
+    else if (k === 'div') drawDivPane(rows);
+    else if (k === 'daily') drawDaily(rows);
+    else if (k === 'sig') drawSig(rows);
+    else if (k === 'news') { drawNews(); drawInst(); }
+    else if (k === 'strength') drawWheelOne(rows, $('#fcWheel'), 'strength');
   }
-  /* 手機：走勢卡的下緣剛好貼在首屏底（視窗高度），下一張卡從首屏之外開始，貼底時間軸蓋住的只有圖下方那 64px 空白 */
-  function fitTrendM() {
-    var c = $('#fcTrendCard'); if (!c) return;
-    if (!isM()) { c.style.minHeight = ''; return; }
-    c.style.minHeight = '';
-    var top = c.getBoundingClientRect().top + (window.pageYOffset || 0);
-    c.style.minHeight = Math.max(330, Math.round(window.innerHeight - top)) + 'px';
-  }
-  window.addEventListener('resize', function () { if (built) fitTrendM(); });
-  function drawBar() {
-    var ds = dates(), i = ds.indexOf(S.date), today = modeIsToday(), L = layersOf(S.date);
-    $('#fcModeBox').innerHTML = seg('fcMode', [['today', '今天 5 分鐘'], ['hist', '歷史回放']], today ? 'today' : 'hist', '模式');
-    $('#fcDate').innerHTML = '<span class="fc-dl">日期</span><div class="fc-dgrp"><button type="button" class="btn fc-dn" id="fcPrev" aria-label="前一交易日"' + (i <= 0 ? ' disabled' : '') + '>◀</button>'
-      + '<label class="fc-dv"><span id="fcDtxt">' + S.date + ' (' + weekday(S.date) + ')</span><input type="date" id="fcDatePick" value="' + S.date + '" min="' + ds[0] + '" max="' + ds[ds.length - 1] + '" aria-label="選擇日期"></label>'
-      + '<button type="button" class="btn fc-dn" id="fcNext" aria-label="後一交易日"' + (i >= ds.length - 1 ? ' disabled' : '') + '>▶</button></div>'
-      + (today ? '' : '<span class="fc-stale">歷史回放</span>');
-    $('#fcRange').textContent = '可選 ' + ds[0] + ' ～ ' + ds[ds.length - 1] + (m5First() ? '；5 分鐘僅 ' + m5First().slice(5) + ' 起' : '；盤中為 60 分 K') + (L.indexOf('m5') < 0 && L.indexOf('m60') < 0 ? '；這一天只有日線' : '');
-    $$('#fcCat button').forEach(function (b) { b.classList.toggle('on', b.dataset.v === S.cat); b.setAttribute('aria-pressed', b.dataset.v === S.cat); });
-    $$('#fcView button').forEach(function (b) { b.classList.toggle('on', b.dataset.v === S.view); b.setAttribute('aria-pressed', b.dataset.v === S.view); });
-    $$('#fcCmp button').forEach(function (b) { b.classList.toggle('on', b.dataset.v === S.cmp); });
-  }
-  function drawVerdict(vis, all, rows) {
-    var el = $('#fcVerdict'), top = vis.slice().sort(function (a, b) { return b.f - a.f; }).slice(0, 5);
-    var fitN = top.filter(function (x) { return x.fit === 'fit'; }).length, dv = top.filter(function (x) { return x.div; });
-    var dA = vis.filter(function (x) { return x.div === 'A'; }).sort(function (a, b) { return b.f - a.f; });
-    var dB = vis.filter(function (x) { return x.div === 'B'; }).sort(function (a, b) { return b.r - a.r; });
-    var base = C.idx.baseline || {}, bs = base.all && base.all.agree != null ? Math.round(base.all.agree) : null;
-    var mk = C.day[S.date].mkt_chg, crash = mk != null && mk < TH.crash;
-    var sc = all.score != null ? Math.round(all.score * 100) : null;
-    var when = S.t === 'close' ? '' : '（' + S.t + (noVol ? '，此時點無成交量資料、資金方向不可判斷' : '') + (noMkt ? '，該日缺加權指數盤中資料、相對加權指數不可判斷' : '') + '）';
-    var names = function (a, n) { return a.slice(0, n).map(function (x) { return '<b>' + esc(x.name) + '</b>'; }).join('、'); };
-    var s = '資金流入前 5：' + names(top, 5) + '（<b class="fc-ok">' + fitN + ' 吻合</b>' + (dv.length ? '・<b class="fc-warn">' + dv.length + ' 背離</b>' : '') + '）。'
-      + '<b class="fc-warn">背離 A（資金進、走勢弱）前 3：</b>' + (dA.length ? dA.slice(0, 3).map(function (x) { return '<b>' + esc(x.name) + '</b> ' + sg(x.r, 1, '%'); }).join('、') : '無') + '。'
-      + (sc != null ? '吻合度 <b>' + sc + '%</b>' + (bs != null ? '（近 3 年常態 ' + bs + '%）' : '') : '')
-      + (C.day[S.date].mkt_src === 'intraday' ? '<span class="fc-crash">　加權指數收盤為暫定值</span>' : '') + (crash ? '<span class="fc-crash">　加權指數急跌 ' + sg(mk, 1, '%') + '，一致率常態偏低</span>' : '');
-    var short = '背離 A ' + dA.length + '：' + (dA.length ? dA.slice(0, 2).map(function (x) { return esc(x.name); }).join('、') : '無') + '・吻合度 ' + (sc != null ? sc + '%' : '—');
-    var sm = rows.filter(function (x) { return x.same3; }).sort(function (a, b) { return b.f - a.f; });
-    var divBtn = '<button type="button" class="fc-chip warn' + (S.divOpen ? ' on' : '') + '" id="fcDivBtn" aria-expanded="' + !!S.divOpen + '">背離榜 A ' + dA.length + '／B ' + dB.length + '</button>';
-    var chips = (S.gid ? '<span class="fc-fl">焦點</span><button type="button" class="fc-chip on" data-g="' + esc(S.gid) + '">' + esc(gInfo(S.gid).name) + '</button>' : '')
-      + top.filter(function (x) { return x.gid !== S.gid; }).slice(0, 2).map(function (x) { return '<button type="button" class="fc-chip" data-g="' + esc(x.gid) + '">' + esc(x.name) + '</button>'; }).join('') + divBtn;
-    var lst = function (a, key, mx) { return (S.divAll ? a : a.slice(0, 10)).map(function (x) { var v = key === 'f' ? x.f : x.r; return '<button type="button" class="fc-dr" data-g="' + esc(x.gid) + '"><span>' + esc(x.name) + '</span><em>資金 ' + sg(x.f, 2) + 'pp　相對加權指數 ' + sg(x.r, 1, '%') + '</em><i style="width:' + Math.max(3, Math.abs(v) / mx * 60).toFixed(0) + 'px;background:' + col(v) + '"></i></button>'; }).join('') || '<p class="muted">沒有</p>'; };
-    var moreBtn = (dA.length > 10 || dB.length > 10) ? '<button type="button" class="btn small fc-more" id="fcDivAll">' + (S.divAll ? '只看前 10 名' : '看全部（A ' + dA.length + '／B ' + dB.length + '）') + '</button>' : '';
+  /* 背離榜：A＝資金進、走勢弱（依資金占比變化排序）；B＝走勢強、資金退（依相對加權指數排序）。公式只有 judge() 一份 */
+  function drawDivPane(rows) {
+    var el = $('#fcDivPane'); if (!el) return;
+    var dA = rows.filter(function (x) { return x.div === 'A'; }).sort(function (a, b) { return b.f - a.f; });
+    var dB = rows.filter(function (x) { return x.div === 'B'; }).sort(function (a, b) { return b.r - a.r; });
     var mA = Math.max.apply(null, dA.map(function (x) { return Math.abs(x.f); }).concat([0.01])), mB = Math.max.apply(null, dB.map(function (x) { return Math.abs(x.r); }).concat([0.01]));
-    var pop = S.divOpen ? '<div class="fc-divpop" id="fcDivPop"><div><div class="fc-sub2">A　資金進、走勢弱（依資金占比變化排序）</div>' + lst(dA, 'f', mA) + '</div><div><div class="fc-sub2">B　走勢強、資金退（依相對加權指數排序）</div>' + lst(dB, 'r', mB) + '</div>' + (moreBtn ? '<div class="fc-divmore">' + moreBtn + '</div>' : '') + '</div>' : '';
-    el.innerHTML = '<div class="fc-vt"><span class="fc-vl">' + when + s + '</span><span class="fc-vs">' + short + '</span></div><div class="fc-vc">' + chips + '</div>' + pop;
-    $('#fcSame').innerHTML = sm.length ? '<span class="fc-fl">三者同向流入 ' + sm.length + '</span>' + sm.slice(0, 4).map(function (x) { return '<button type="button" class="fc-chip same" data-g="' + esc(x.gid) + '">' + esc(x.name) + '</button>'; }).join('') : '<span class="fc-fl">三者同向流入：無</span>';
-  }
-  function drawRank(vis) {
-    var s = vis.slice().sort(function (a, b) { return b.f - a.f; }), inn = s.slice(0, 5), out = s.slice(-5).reverse(), mx = Math.max.apply(null, s.map(function (x) { return Math.abs(x.f); }).concat([0.01]));
-    var chip = function (x) { return '<button type="button" class="fc-chip' + (x.gid === S.gid ? ' on' : '') + (x.div ? ' div' : '') + '" data-g="' + esc(x.gid) + '"><span>' + esc(x.name) + '</span><b style="color:' + col(x.f) + '">' + sg(x.f, 2) + '</b><i style="width:' + Math.max(3, Math.abs(x.f) / mx * 28).toFixed(0) + 'px;background:' + col(x.f) + '"></i></button>'; };
-    $('#fcRank').innerHTML = '<div class="fc-rr"><span class="fc-fl">流入前 5</span>' + inn.map(chip).join('') + '</div><div class="fc-rr"><span class="fc-fl">流出前 5</span>' + out.map(chip).join('') + '</div>';
+    var lst = function (a, key, mx) { return (S.divAll ? a : a.slice(0, 10)).map(function (x) { var v = key === 'f' ? x.f : x.r; return '<button type="button" class="fc-dr" data-g="' + esc(x.gid) + '"><span>' + esc(x.name) + '</span><em>資金 ' + sg(x.f, 2) + 'pp　相對加權指數 ' + sg(x.r, 1, '%') + '</em><i style="width:' + Math.max(3, Math.abs(v) / mx * 60).toFixed(0) + 'px;background:' + col(v) + '"></i></button>'; }).join('') || '<p class="muted">沒有</p>'; };
+    var more = (dA.length > 10 || dB.length > 10) ? '<div class="fc-divmore"><button type="button" class="btn small fc-more" id="fcDivAll">' + (S.divAll ? '只看前 10 名' : '看全部（A ' + dA.length + '／B ' + dB.length + '）') + '</button></div>' : '';
+    el.innerHTML = '<div class="fc-note">' + S.date + '：點族群＝換焦點（走勢、成分股同步）</div><div class="fc-divpop" id="fcDivPop"><div><div class="fc-sub2">A　資金進、走勢弱（' + dA.length + '）</div>' + lst(dA, 'f', mA) + '</div><div><div class="fc-sub2">B　走勢強、資金退（' + dB.length + '）</div>' + lst(dB, 'r', mB) + '</div>' + more + '</div>';
   }
   var DOWN = function (c, o) { return A().chart(c, o, { notMerge: true }); };
   function baseOpt() {
@@ -445,13 +344,8 @@
     return { animationDurationUpdate: 250, textStyle: { color: ch.ink2 }, tooltip: Object.assign({}, a.tip, { trigger: 'item' }) };
   }
   var wide = function () { return !!(window.matchMedia && window.matchMedia('(min-width:1440px)').matches); };
-  function drawWheel(vis) {          // ≥1440 三張並排（共用焦點與時間）；以下退成三選一
-    if (wide()) ['strength', 'money', 'tree'].forEach(function (k) { drawWheelOne(vis, $('#fcW_' + k), k); });
-    else drawWheelOne(vis, $('#fcWheel'), S.view);
-  }
   function drawWheelOne(vis, el, view) {
     if (!el) return;
-    if (view === 'tree') return drawTree(vis, el);
     var a = A(), ch = a.CH, money = view === 'money';
     if (!vis.length) { a.empty && a.empty(el, '沒有資料'); return; }
     var X = function (x) { return money ? x.mx : x.rsx; }, Y = function (x) { return money ? x.my : x.rsy; }, c0 = money ? 0 : 100;
@@ -485,32 +379,7 @@
     }));
     var inst = echarts.getInstanceByDom(el);
     if (inst && !el._fcBound) { el._fcBound = 1; inst.on('click', function (p) { if (p.data && p.data.gid) pick(p.data.gid); }); }
-    wantTrail();
-  }
-  function drawTree(vis, el) {
-    var a = A(), ch = a.CH, leaves = vis.filter(function (x) { return x.tv > 0; }).map(function (x) { return { gid: x.gid, name: x.name, chain: x.chainName, tv: x.tv * 1e8 }; });   // 樹用同一時點每族群一列（日線成交值，億元→元）
-    if (!leaves.length) { a.empty && a.empty(el, '這一天沒有資金分流資料'); return; }
-    var byG = {}; vis.forEach(function (x) { byG[x.gid] = x; });
-    var sq = function (v) { return Math.sqrt(v / 1e8) * 10; };      // 節點高度用平方根縮放：小族群也有夠大的點擊範圍；提示框顯示真實成交值
-    leaves.sort(function (x, y) { return y.tv - x.tv; });
-    var TOPN = 6, top = leaves.slice(0, TOPN), rest = leaves.slice(TOPN).reduce(function (t, l) { return t + l.tv; }, 0);      // 只畫前 6 個族群，節點才夠高可點（其餘族群請用輪盤、熱力圖或上方下拉選）
-    var off = top.reduce(function (t, l) { return t + sq(l.tv); }, 0) / top.length * 3.5;      // 加底量，讓最小的節點也有 ≥24px 高
-    var chainSum = {}, nodes = [{ name: '全市場', itemStyle: { color: ch.ink3 } }], links = [];
-    top.forEach(function (l) { chainSum[l.chain] = (chainSum[l.chain] || 0) + sq(l.tv) + off; });
-    Object.keys(chainSum).forEach(function (cn) { nodes.push({ name: cn, itemStyle: { color: ch.violet } }); links.push({ source: '全市場', target: cn, value: chainSum[cn] }); });
-    top.forEach(function (l) {
-      var x = byG[l.gid];
-      nodes.push({ name: l.name, gid: l.gid, real: l.tv, itemStyle: { color: a.chgColor(x ? x.r : 0, 2), borderColor: l.gid === S.gid ? ch.ink : 'transparent', borderWidth: l.gid === S.gid ? 3 : 0 } });
-      links.push({ source: l.chain, target: l.name, value: sq(l.tv) + off, real: l.tv });
-    });
-    if (rest > 0) { nodes.push({ name: '其他族群', real: rest, itemStyle: { color: ch.ink3 } }); links.push({ source: '全市場', target: '其他族群', value: sq(rest) * 0.5 + off, real: rest }); }
-    DOWN(el, Object.assign(baseOpt(), {
-      tooltip: Object.assign({}, a.tip, { trigger: 'item', formatter: function (p) { var d = p.data || {}; var tv = d.real != null ? d.real : null; return d.source ? esc(d.source) + ' → ' + esc(d.target) + (tv != null ? '<br>' + (tv / 1e8).toFixed(0) + ' 億' : '') : '<b>' + esc(p.name) + '</b>' + (tv != null ? '<br>成交值 ' + (tv / 1e8).toFixed(0) + ' 億' : ''); } }),
-      series: [{ type: 'sankey', left: 8, right: 96, top: 8, bottom: 8, nodeWidth: 24, nodeGap: 3, draggable: false, emphasis: { focus: 'adjacency' }, data: nodes, links: links,
-        label: { color: ch.ink, fontSize: 12 }, labelLayout: { hideOverlap: true }, lineStyle: { color: 'gradient', opacity: .3, curveness: .5 } }]
-    }));
-    var inst = echarts.getInstanceByDom(el);
-    if (inst && !el._fcBound2) { el._fcBound2 = 1; inst.on('click', function (p) { if (p.data && p.data.gid) pick(p.data.gid); }); }
+    if (money) wantTrail();
   }
   function drawHeat(vis) {
     var el = $('#fcHeat'); if (!el) return; var a = A(), ch = a.CH;
@@ -707,43 +576,28 @@
       $('#fcInstNote').textContent = S.date + ' 外資 ' + sg(cols[0][k], 1) + '、投信 ' + sg(cols[1][k], 1) + '、自營 ' + sg(cols[2][k], 1) + ' 千張（成員股數 ×1/族群數 加總）';
     });
   }
-  function drawTimebar() {
-    var r = $('#fcRange2'), today = modeIsToday(), sl = slotList(S.date), ds = dates(), lab = $('#fcTlab'), dt = $('#fcDayT');
-    var mk = '';
-    if (today) {
-      var n = sl.times.length; r.max = Math.max(0, n - 1); r.disabled = n < 2;
-      var ti = S.t === 'close' ? n - 1 : sl.times.indexOf(S.t); r.value = Math.max(0, ti);
-      lab.textContent = n ? (S.t === 'close' ? '收盤 13:30' : S.t) + ' / 13:30' : '此日無盤中資料（只有日線）';
-      dt.innerHTML = ''; dt.hidden = true;
-      (C.day[S.date].signals || []).forEach(function (s) { var i = sl.times.indexOf(s.t); if (i < 0) i = nearest(sl.times, s.t); if (n > 1 && i >= 0) mk += '<i style="left:' + (i / (n - 1) * 100).toFixed(1) + '%"></i>'; });
-    } else {
-      r.max = Math.max(0, ds.length - 1); r.disabled = ds.length < 2; r.value = Math.max(0, ds.indexOf(S.date));
-      lab.textContent = S.date + ' (' + weekday(S.date) + ')' + (S.t === 'close' ? '　收盤' : '　' + S.t) + '　歷史交易日軸';
-      if (sl.times.length) { dt.hidden = false; dt.innerHTML = [['close', '收盤']].concat(sl.times.filter(function (x, i, a) { return sl.kind === 'm60' || /:00$/.test(x) || i === a.length - 1; }).map(function (x) { return [x, x]; })).map(function (p) { return '<button type="button" data-v="' + p[0] + '" class="' + (S.t === p[0] ? 'on' : '') + '">' + p[1] + '</button>'; }).join(''); }
-      else { dt.hidden = false; dt.innerHTML = '<span class="fc-gtxt">' + ((C.idx.missing_intraday || []).indexOf(S.date) >= 0 ? '此日盤中資料缺（只有日線）' : '此日只有日線，沒有盤中時點') + '</span>'; }
-    }
-    $('#fcMarks').innerHTML = mk;
-  }
-
   /* ---------------------------------------------------------------- 進入點 */
+  var apiObj = {
+    A: A, getDay: getDay, jget: jget, url: writeUrl, openAdv: function (t) { openAdv(t, true); }, howBox: howBox, howDiv: howDiv,
+    pick: function (g) { S.gid = g; if (S.adv) paint(); },
+    date: function (d) { S.dateWant = d; if (S.adv) syncAdv(); }
+  };
+  Object.defineProperty(apiObj, 'idx', { get: function () { return C.idx; } });
   function show() {
     if (!built && !build()) return Promise.resolve();
     var u = readUrl();
     return (C.idx ? Promise.resolve(C.idx) : jget('index.json')).then(function (idx) {
       if (!idx) { $('#fc').innerHTML = '<div class="card"><p class="muted">流向驗證資料尚未上線（data/flowcheck/index.json 還沒產出）。</p></div>'; built = false; return; }
       C.idx = idx;
-      (function () { var dl = $('#fcGList'); if (dl) dl.innerHTML = (idx.groups || []).filter(function (g) { return !g.is_bucket; }).map(function (g) { return '<option value="' + esc(g.name) + '"></option>'; }).join(''); })();
-      if (u.v && ['strength', 'money', 'tree'].indexOf(u.v) >= 0) S.view = u.v;
-      var d = u.d && idx.dates.indexOf(u.d) >= 0 ? u.d : (S.date || idx.latest);
+      if (!window.TwFlowV3) { $('#fc3').innerHTML = '<div class="card"><p class="muted">flowcheck3.js 沒載入</p></div>'; return; }
+      window.TwFlowV3.init(apiObj, $('#fc3'));
+      var d = u.d && idx.dates.indexOf(u.d) >= 0 ? u.d : idx.latest;
+      S.date = S.date || d;
+      if (u.a && ADV.some(function (a) { return a[0] === u.a; })) { S.advTab = u.a; S.adv = true; setAdvUI(); }
       if (u.g) S.gid = u.g;
-      var tt = u.t ? (/^\d{4}$/.test(u.t) ? u.t.slice(0, 2) + ':' + u.t.slice(2) : u.t) : null;
-      return Promise.all([getDay(d), getDay(dates()[Math.max(0, dates().indexOf(d) - 1)]), layersOf(d).indexOf('m5') >= 0 ? getM5(d) : null, layersOf(d).indexOf('m60') >= 0 ? getM60(d) : null]).then(function () {
-        S.date = d; var sl = slotList(d);
-        S.t = tt && sl.times.indexOf(tt) >= 0 ? tt : (d === idx.latest && sl.times.length && isIntraNow() ? sl.times[sl.times.length - 1] : 'close');
-        ensureFocus(); paint(); writeUrl(false);
-      });
+      return window.TwFlowV3.show({ g: u.g, d: u.d, v: u.v, w: u.w }).then(function () { setAdvUI(); syncAdv(); });
     });
   }
-  function leave() { stopPlay(); }
-  window.TwFlowcheck = { show: show, leave: leave, state: function () { return JSON.parse(JSON.stringify(S)); }, judge: judge, TH: TH };
+  function leave() { if (window.TwFlowV3) window.TwFlowV3.leave(); }
+  window.TwFlowcheck = { show: show, leave: leave, state: function () { return JSON.parse(JSON.stringify(S)); }, judge: judge, TH: TH, openAdv: openAdv };
 })();

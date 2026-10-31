@@ -1,0 +1,43 @@
+/* 流向驗證 v3 手機（≤640）。手機五條：首屏看到主圖＋摘要（整頁 ≤ 1.5 屏）、只留重點、觸控 ≥ 40、進階預設收起。
+   規格 5.2：卡片只留名稱＋當天漲跌；主圖前 4 列在首屏；播放 44、滑桿 44。 */
+@media (max-width:640px){
+  .fc3{gap:8px}
+  .fc3-hd{padding:8px 12px;gap:8px}
+  .fc3-date{display:none}
+  .fc3-hd{justify-content:flex-start}
+  :root.m4 #v-flowcheck.view.on .fc3-hd .seg:not(.m4subtabs):not(#mbTabs):not(.hmbar)>button{padding:0 8px!important}
+  #v-flowcheck .fc3-hd .seg button{min-height:40px;font-size:13px;min-width:0!important}
+  #v-flowcheck .fc3-hd .seg{padding:2px!important;gap:0;margin:0!important;width:auto!important}
+  .fc3-sp{display:none}
+  #v-flowcheck .fc3-hd .howbtn{min-width:32px!important;min-height:32px!important;width:32px!important;height:32px!important;margin-left:auto}
+  .fc3-hd .seg{flex:0 0 auto}
+  .fc3-sent{font-size:14px;min-height:0;padding:0 2px;line-height:1.5}
+  .fc3-ans{grid-template-columns:1fr;gap:4px}
+  .fc3-grp{gap:4px;padding-top:16px}
+  .fc3-chip{min-height:0;padding:4px 8px}
+  .fc3-chip .n{font-size:13px}.fc3-chip .k,.fc3-chip .v .a{display:none}.fc3-chip .v{font-size:12px}
+  .fc3-stagecard{padding:8px 12px}
+  .fc3-info{display:block;height:40px;overflow:hidden;font-size:13px;line-height:20px;margin-bottom:4px}
+  .fc3-ctl{gap:8px}
+  .fc3-play{width:44px;height:44px}
+  .fc3-ctl input[type=range]{height:44px;min-width:60px}
+  .fc3-latest{min-height:40px}
+  .fc3-sigrow{flex-wrap:wrap;padding:8px 12px;gap:4px 8px}
+  .fc3-sigtx{flex:1 1 100%}
+  .fc3-evid{padding:0 12px 12px}
+  .fc3-stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .fc3-cases{grid-template-columns:minmax(0,1fr)}
+  .fc-advsum{display:none}
+  .fc-adv .fc-tog{min-height:40px}
+  .fc-adv .fc-bd>.seg button{min-height:40px}
+  .fc-trend{height:220px;min-height:220px;touch-action:pan-y}.fc-wheel{height:300px;min-height:300px}
+  .fc-minis{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .fc-mini .chart{height:96px;min-height:96px}
+  .fc-sigwrap,.fc-row2{grid-template-columns:minmax(0,1fr);gap:12px}
+  .fc-tw{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .fc-tw .hm,.fc-tw th.mh,.fc-tw td.mh{display:none}
+  .fc-divpop{grid-template-columns:minmax(0,1fr)}
+  .fc-badge{white-space:normal}
+  .fc-swipe{display:block;font-size:12px;color:var(--ink-3);text-align:right;padding:2px 0}
+  #v-flowcheck .fc{padding-bottom:56px}
+}

@@ -421,9 +421,14 @@ def main() -> int:
         info = visit("flowcheck", "flowcheck", wait=2500)
         if info["overlaps"]:
             problems.append(f"流向驗證頁文字重疊：{info['overlaps'][:3]}")
-        info = visit("flowcheck?g=pcb_rigid&v=strength", "flowcheck_strength", wait=2500)
+        info = visit("flowcheck?v=wheel", "flowcheck_wheel", wait=2500)
         if info["overlaps"]:
-            problems.append(f"流向驗證頁（強弱輪盤）文字重疊：{info['overlaps'][:3]}")
+            problems.append(f"流向驗證頁（資金輪盤）文字重疊：{info['overlaps'][:3]}")
+        # 2026-11-01 v3：進階（預設收起）展開到「驗證與案例」與「強弱輪盤」各走一次
+        for adv in ("cases", "strength"):
+            info = visit(f"flowcheck?a={adv}", f"flowcheck_adv_{adv}", wait=2500)
+            if info["overlaps"]:
+                problems.append(f"流向驗證頁（進階・{adv}）文字重疊：{info['overlaps'][:3]}")
         # ★ 2026-10-05 財報日曆（site/earnings.js）：月曆標籤與右側面板走一次文字重疊掃描
         info = visit("earnings", "earnings", wait=1200)
         if info["overlaps"]:
