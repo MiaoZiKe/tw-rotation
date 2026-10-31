@@ -282,8 +282,17 @@ jobs:
           if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then echo "::error::缺 Cloudflare Secret"; exit 1; fi
           python scripts/cf_preview_pack.py | tee cf_pack.log
           sum "- $(cat cf_pack.log)"
-          npx --yes wrangler@3 pages project create tw-rotation-preview --production-branch main > cf_create_prev.log 2>&1 || true
-          cat cf_create_prev.log
+          # 建專案改用 REST API 並把回應印出來（wrangler 只回「unknown error 8000000」看不出原因）；已存在（8000002）算正常
+          API=https://api.cloudflare.com/client/v4/accounts/$CLOUDFLARE_ACCOUNT_ID/pages/projects
+          H=(-H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" -H "Content-Type: application/json")
+          for i in 1 2 3; do
+            r=$(curl -sS "${H[@]}" "$API/tw-rotation-preview" || echo '{}')
+            if [ "$(echo "$r" | jq -r '.success')" = true ]; then echo "預覽專案已存在"; break; fi
+            r=$(curl -sS -X POST "${H[@]}" "$API" --data '{"name":"tw-rotation-preview","production_branch":"main"}' || echo '{}')
+            echo "建立預覽專案回應：$(echo "$r" | jq -c '{success, errors}')"
+            [ "$(echo "$r" | jq -r '.success')" = true ] && break
+            sleep 10
+          done
           if ! npx --yes wrangler@3 pages deploy cf_prev --project-name tw-rotation-preview --branch main --commit-hash "$GITHUB_SHA" --commit-dirty=true > cf_deploy_prev.log 2>&1; then
             cat cf_deploy_prev.log; sum "### Cloudflare Pages（預覽）：部署失敗"; sum '```'; tail -n 15 cf_deploy_prev.log >> "$GITHUB_STEP_SUMMARY"; sum '```'
             echo "::error::Cloudflare Pages（預覽）部署失敗"; exit 1
@@ -305,6 +314,7 @@ jobs:
             [ "$c" = 200 ] || fail=1
           done < cf_prev_included.txt
           # deploy_wait.py 讀這一行確認「你推的那份預覽（含 commit）」真的在正式網域
-          echo "CF_PREVIEW_INCLUDED: $(tr '\n' ' ' < cf_prev_included.txt)"
+          # 用 annotation 存（容器讀不到 job log，但讀得到 check-run annotations）
+          echo "::notice title=CF_PREVIEW_INCLUDED::$(tr '\n' ' ' < cf_prev_included.txt)"
           if [ "$fail" = 1 ]; then sum "### 正式網域 /preview/ 轉送不通（見 log）"; echo "::error::liguligu-puipui.com/preview/ 有頁面不是 200"; exit 1; fi
           sum "### Cloudflare Pages（預覽）：成功，liguligu-puipui.com/preview/<名稱>/ 可開"

@@ -48,8 +48,12 @@ def is_ancestor(a, b):
 
 
 def job_log(job_id):
-    out = subprocess.run(["gh", "api", f"repos/{REPO}/actions/jobs/{job_id}/logs"], capture_output=True, text=True)
-    return out.stdout if out.returncode == 0 else ""
+    """預覽清單放在 check-run annotation（title=CF_PREVIEW_INCLUDED）——容器讀不到 job log（blob 網域被擋），讀得到 annotations。"""
+    try:
+        anns = gh(f"repos/{REPO}/check-runs/{job_id}/annotations?per_page=100")
+    except RuntimeError:
+        return ""
+    return " ".join(str(x.get("message", "")) for x in anns if "CF_PREVIEW_INCLUDED" in str(x.get("title", "")))
 
 
 def wait_cloudflare(sha, pushed, t0, timeout, preview=None):
