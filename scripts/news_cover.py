@@ -8,6 +8,7 @@
 post.json 要有 {"d": {...}}（或直接是 d）：d.card.subject＝標題主體（例：Alphabet），選圖照
   主體公司圖池（14 天輪替）→ 該公司類別池 → 新聞文字類別池 → 總類通用圖池。
 --record：把這張記進 social/photo_lib 的使用紀錄（輪替用；正式發出的才加）。
+--numcard <輸出2.jpg>：另出第二張「鉤子＋重點數字卡」（2026-11-01 Threads 規則：圖只能 0 或 2 張；scripts/social_numcard.py）。
 重疊 0 筆才回 0；有重疊或選不到圖回 1。
 """
 import json, shutil, sys, tempfile
@@ -30,6 +31,14 @@ def main(argv):
         bad = S.render_cards([d], slot, Path(td), day, usage_path=S.PHOTO_USAGE if "--record" in argv else None)
         out.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy(Path(td) / f"{d['id']}.jpg", out)
+    if "--numcard" in argv:
+        import social_numcard as NC
+        rr = NC.render(opt("--numcard"), d["card"].get("title") or d["card"].get("subject") or "", d["card"].get("numbers") or [],
+                       label=f"{d['card'].get('category', '')}｜{d['card'].get('subject') or ''}".strip("｜"),
+                       date_md=f"{int(day[5:7])}/{int(day[8:10])}" if len(day) >= 10 else "", layout=NC.layout_for(day, slot))
+        print(f"第二張數字卡：{rr['layout']}　重疊：{len(rr['bad'])} 筆　→ {rr['path']}")
+        if rr["bad"]:
+            return 1
     m = d["meta"]
     print(f"主體：{d['card'].get('subject')}　選圖：{m.get('photo')}（{m.get('layout')}／{m.get('photo_kind')}）　重疊：{bad[d['id']]} 筆　→ {out}")
     return 1 if bad[d["id"]] else 0

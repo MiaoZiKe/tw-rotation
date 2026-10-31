@@ -25,8 +25,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 TPE = timezone(timedelta(hours=8))
-DIMS = ["topic_category", "content_type", "layout", "style", "has_ai_image", "slot"]
-DIM_NAME = {"topic_category": "主題", "content_type": "內容型態", "layout": "版面", "style": "風格", "has_ai_image": "AI 圖", "slot": "時段"}
+DIMS = ["topic_category", "content_type", "layout", "style", "has_ai_image", "slot", "hook_type", "emotion"]   # 11-01 加鉤子類型與情緒（Threads v2）
+DIM_NAME = {"topic_category": "主題", "content_type": "內容型態", "layout": "版面", "style": "風格", "has_ai_image": "AI 圖", "slot": "時段", "hook_type": "開頭類型", "emotion": "情緒"}
 SLOT_NAME = {"pre": "盤前", "intra": "盤中", "post": "盤後"}
 EXPLORE = 0.2
 

@@ -1,5 +1,13 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
+## 2026-11-01 Threads 發文系統改版 v2＋IG 熱度優化（Andy：「CEO 交給對應單位 將發文 Thread 系統修改」「IG Thread 上面也需要進行優化 讓熱度提升，並且 盡量不要千篇一律」；最後更新 11-01 台北）
+- 規則原文 `docs/marketing/social_unit/threads_rules.md`；落地說明 `auto_post.md` 第三之一節；IG 計畫 `ig_growth_plan.md`。**11-02（週一）盤前起正式套用**，監工照舊（盤前 08:40／盤中 12:15／盤後 18:20 查 posted.json；v2 多了 `threads_chain` 串文紀錄）。
+- 新程式：`scripts/threads_v2.py`（舊文案 → 鉤子主文＋串文＋留言連結；模板 64 個、14 天輪替）、`scripts/threads_lint.py`（檢查器）、`scripts/social_numcard.py`（主題文章第二張數字卡，3 套版型）、`scripts/threads_hook_stats.py`（改版前後成效）。
+- 改到：social-live.yml（產完 manifest 多一步「Threads v2 改寫」，continue-on-error；state/hook_history.json 寫回 social-snaps）、social_publish.py（主文→逐則串文→最後留言連結，中間失敗照樣往下發）、social_news.py（queue 檔直接寫 v2、2 張圖、IG 文案首行鉤子）、threads_post.py（舊格式檔發前自動改寫）、news_cover.py（`--numcard`）、news_insights.py（多開頭類型／情緒維度）、social_insights.yml（每晚算 hook_stats.json）。
+- 驗證：`pytest -k "social or threads or ig_post or news"` 260 passed（新 tests/test_social_threads_v2.py 28 條）；沒動 site/**，前端關卡不必跑。dry-run 範例（10/30 真資料）在 scratchpad threads_v2/。
+- 沒有 LLM 金鑰（workflow 引用的 Secrets 沒有 ANTHROPIC_API_KEY），全用模板；要不要加金鑰待 Andy 決定。
+- 待觀察：第一個交易日盤前 v2 的實際串文則數（盤前約 11 則、盤中／盤後約 10 則）是否撞 Threads 頻率限制；第二張數字卡在 Actions 上的字型是 Noto Sans CJK TC Bold（social_news.yml 已裝）。
+
 ## 2026-10-30 流向驗證的「大盤」改加權指數（使用者測試回報漲跌是加權兩倍；DECISIONS #378；最後更新 10-31 台北）
 - flowcheck 的大盤改成加權指數：日線 index_ohlc TSE、盤中 index_intraday 1 分（之前 60 分）；急跌日、吻合度常態、回測都已重算。主站強弱輪動沒動，要不要改列為建議。
 - index.json 新增 closed_days／missing_days／missing_intraday。10-23 查證是颱風休市（不是缺資料）。

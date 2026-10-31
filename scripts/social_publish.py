@@ -318,8 +318,38 @@ def run(manifest_path, base_url, dry_run=False, env=None, flag=None) -> int:
         except Exception as e:  # noqa: BLE001
             fail = True
             log(f"[threads] 發布失敗：{redact(e)}")
+    # 2026-11-01 Threads v2（Andy：「將發文 Thread 系統修改」；docs/marketing/social_unit/threads_rules.md）：
+    #   主文（鉤子）→ thread_posts 一則接一則串下去 → 最後 reply_post 放網站連結。
+    #   中途某一則失敗：記下來、接著發下一則（回覆對象用最後一則成功的），不讓一則失敗擋掉後面的數據；工作流標紅。
+    chain = list(th.get("thread_posts") or []) + ([th["reply_post"]] if th.get("reply_post") else [])
+    if "thread_posts" in th and only != "ig" and "threads" in done:
+        sent = done.setdefault("threads_chain", [])
+        have = {x.get("i") for x in sent}
+        ctok = None
+        for i, t in enumerate(chain):
+            if i in have:
+                continue
+            if off or not (th_uid and env.get("THREADS_ACCESS_TOKEN")):
+                log(f"[threads] dry-run 串文 {i + 1}/{len(chain)}：\n{t}")
+                continue
+            parent = (sent[-1]["id"] if sent else done["threads"]["id"])
+            try:
+                ctok = ctok or refresh_token("threads", env["THREADS_ACCESS_TOKEN"])
+                r = publish_threads_reply(th_uid, ctok, t, parent)
+                sent.append(dict(r, i=i))
+                log(f"[threads] 串文 {i + 1}/{len(chain)} 已發布 {r['link'] or r['id']}")
+            except Exception as e:  # noqa: BLE001
+                fail = True
+                log(f"[threads] 串文 {i + 1}/{len(chain)} 發布失敗（接著發下一則）：{redact(e)}")
+        if not sent and off:
+            done.pop("threads_chain", None)
+    elif "thread_posts" in th and off and only != "ig":
+        for i, t in enumerate(chain):
+            log(f"[threads] dry-run 串文 {i + 1}/{len(chain)}：\n{t}")
     # 同一篇底下的第一則回覆（盤前：盤面解讀＋融資）；主文已發、回覆還沒發才補
-    if th.get("reply") and only != "ig" and "threads" in done and "threads_reply" not in done:
+    if "thread_posts" in th:
+        pass
+    elif th.get("reply") and only != "ig" and "threads" in done and "threads_reply" not in done:
         if off or not (th_uid and env.get("THREADS_ACCESS_TOKEN")):
             log(f"[threads] dry-run 回覆：\n{th['reply']}")
         else:

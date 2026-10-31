@@ -189,6 +189,27 @@ def publish_chain(posts: list[str], token: str, images: list[str] | None = None)
     return out
 
 
+def legacy_v2(meta: dict, posts: list[str], imgs: list[str], now: datetime) -> tuple[list[str], list[str]]:
+    """2026-11-01 Threads v2（docs/marketing/social_unit/threads_rules.md）：檔頭沒有 format: threads_v2 的舊格式檔
+    （手動加發、舊排程）發文前自動改成 鉤子主文＋串文＋留言連結＋1 個事件標籤。改寫失敗 → 原文照發（不擋）。
+    圖：只有 1 張時不能自己補第二張（這裡沒有字型與繪圖），照原檔帶 1 張並在 log 警告；手動加發請用 news_cover.py --numcard 出第二張。"""
+    if meta.get("format") == "threads_v2" or os.environ.get("THREADS_V2_LEGACY", "1") != "1":
+        return posts, imgs
+    try:
+        sys.path.insert(0, str(ROOT / "scripts"))
+        import threads_v2 as V
+        v2 = V.from_posts(posts, len(imgs), now.astimezone(TAIPEI).strftime("%Y-%m-%d"),
+                          V.load_state(ROOT / "social" / "news" / "log" / "hook_history.json"))
+        out = [v2["main_post"], *v2["thread_posts"], v2["reply_post"]]
+        print(f"舊格式檔已改寫成 v2（{v2['hook_type']}／{v2['emotion']}／#{v2['tag']}，lint {'通過' if v2['checklist_passed'] else '未全過、照發'}）")
+        if len(imgs) == 1:
+            print("::warning::舊格式檔只有 1 張圖（Threads 規則要 0 或 2 張）；照發 1 張，之後手動加發請附第二張")
+        return out, imgs
+    except Exception as e:  # noqa: BLE001
+        print(f"::warning::舊格式檔改寫 v2 失敗，原文照發：{type(e).__name__} {e}")
+        return posts, imgs
+
+
 # ---------- 檔案寫回 ----------
 
 def rewrite_meta(path: Path, updates: dict) -> None:
@@ -218,7 +239,9 @@ def process(path: Path, now: datetime, token: str | None, force_now: bool = Fals
         return f"略過（還沒到 {meta['publish_at']}）"
     if not token:
         raise PostError("沒有 THREADS_ACCESS_TOKEN（請在 GitHub Secrets 設定）")
-    res = publish_chain(posts, token, images_of(meta))
+    imgs = images_of(meta)
+    posts, imgs = legacy_v2(meta, posts, imgs, now)
+    res = publish_chain(posts, token, imgs)
     rewrite_meta(path, {
         "status": "posted",
         "posted_at": now.astimezone(TAIPEI).strftime("%Y-%m-%dT%H:%M+08:00"),

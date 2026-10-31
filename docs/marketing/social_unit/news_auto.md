@@ -138,3 +138,8 @@
 - 點擊（?u= 漏斗）數字在帳號 Worker 管理區，Actions 沒有管理者權限讀不到；週報點擊欄先顯示「—」。要接的話需新增一組唯讀的漏斗匯出端點與 Secret，或設 `FUNNEL_JSON`。
 - `posts_catalog.json` 每晚只更新最近 30 則貼文的成效；新聞文一天最多 15 則，較早貼文的數字會停在最後一次更新。
 - 模板文案沒有 LLM 改寫，語句較制式；標題沿用媒體標題清理後的版本（去掉「XX財報／」前綴與誇飾字）。
+
+## 2026-11-01 Threads v2 與 IG 兩張輪播
+Andy 11-01：「CEO 交給對應單位 將發文 Thread 系統修改」「IG Thread 上面也需要進行優化 讓熱度提升，並且 盡量不要千篇一律」。
+主題文章的 Threads queue 檔改成 v2（檔頭 `format: threads_v2`、`hook_type`、`emotion`、`hook_id`、`tag`）：第 1 則鉤子主文＋1 個事件標籤、中間串文放原本各節內容、最後一則放法遵句與網址；
+圖改 2 張（實景封面＋`social_numcard.py` 數字卡，版型 3 套輪替），IG 同樣 2 張輪播、文案第一行改鉤子句。規則 `threads_rules.md`，IG 計畫 `ig_growth_plan.md`。

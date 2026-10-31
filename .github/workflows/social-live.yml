@@ -109,6 +109,8 @@ jobs:
             git show FETCH_HEAD:state/posted.json > "$RUNNER_TEMP/posted.json" 2>/dev/null || echo '{}' > "$RUNNER_TEMP/posted.json"
             # 近幾天落點紀錄（2026-10-27）：貼文網址「同一落點連續 2 天就換」靠它
             git show FETCH_HEAD:state/landing_recent.json > "$RUNNER_TEMP/landing_recent.json" 2>/dev/null || echo '{}' > "$RUNNER_TEMP/landing_recent.json"
+            # 2026-11-01 Threads v2：鉤子模板輪替紀錄（同一類型不連續、同一模板 14 天不重複）
+            git show FETCH_HEAD:state/hook_history.json > "$RUNNER_TEMP/hook_history.json" 2>/dev/null || echo '{}' > "$RUNNER_TEMP/hook_history.json"
             if [ "${{ steps.kind.outputs.kind }}" != "close" ]; then exit 0; fi
             # 2026-10-29 盤後保底：主貼文若是拿掉法人卡發的（紀錄有 partial），法人到了就補發一則（鍵 close-inst-<日期>），不重發主貼文
             ST="$(python3 scripts/social_close_state.py "$RUNNER_TEMP/posted.json" "$(date '+%F')")"
@@ -198,6 +200,17 @@ jobs:
           fi
           echo "### ${{ steps.kind.outputs.kind }}：本輪產出" >> "$GITHUB_STEP_SUMMARY"
           cat "$OUT/manifest.json" >> "$GITHUB_STEP_SUMMARY"
+
+      # ★ 2026-11-01 Andy：「CEO 交給對應單位 將發文 Thread 系統修改」＋「Threads 發文規則」（docs/marketing/social_unit/threads_rules.md）
+      #   主文改鉤子 30–80 字＋1 個事件標籤、數據搬到串文、網址放最後一則留言、圖 0 或 2 張（scripts/threads_v2.py，過 threads_lint.py）。
+      #   這一步出任何錯都不擋發文：manifest 維持舊版照發（continue-on-error）。
+      - name: Threads v2 改寫（鉤子主文＋串文＋留言連結）
+        if: steps.snap.outcome == 'success' && steps.snap.outputs.rc == '0'
+        continue-on-error: true
+        run: |
+          OUT="${{ steps.snap.outputs.out }}"
+          python scripts/threads_v2.py --manifest "$OUT/manifest.json" --state "$RUNNER_TEMP/hook_history.json" --out-state "$OUT/hook_history.json" \
+            | tee -a "$GITHUB_STEP_SUMMARY" || echo "::warning::Threads v2 改寫失敗，照舊版文案發（不擋發文）"
 
       - name: 存成 Actions artifact（保留 7 天）
         if: steps.snap.outcome == 'success' && steps.snap.outputs.rc == '0'
@@ -310,6 +323,7 @@ jobs:
           cp "$OUT/posted.json" "$WORK/state/posted.json"
           # 這一輪真的發了，才把選到的落點記下（dry-run 與測試不會走到這裡）
           if [ -f "$OUT/landing_recent.json" ]; then cp "$OUT/landing_recent.json" "$WORK/state/landing_recent.json"; fi
+          if [ -f "$OUT/hook_history.json" ]; then cp "$OUT/hook_history.json" "$WORK/state/hook_history.json"; fi
           cd "$WORK"
           git init -q
           git checkout -q --orphan social-snaps

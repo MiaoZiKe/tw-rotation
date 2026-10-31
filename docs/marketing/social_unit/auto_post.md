@@ -25,7 +25,19 @@
 3. 盤中標題列日期寫「MM/DD 12:00」。
 4. 元素兩兩不得重疊，程式逐張檢查（`layout_report.json`），有一張重疊就不發。
 
-## 三、Threads 文案（Andy 指定格式）
+## 三之一、★ 2026-11-01 起 Threads 改版（蓋掉下面第三節的「一整篇」格式）
+
+> Andy 11-01：「CEO 交給對應單位 將發文 Thread 系統修改」「目前已經發布一陣子了 所以在 IG Thread 上面也需要進行優化 讓熱度提升，並且 盡量不要千篇一律的方式要有點變化」，並給了「Threads 發文規則」（原文 `threads_rules.md`）。
+> 正式套用：2026-11-02（週一）盤前起。
+
+1. **結構**：主文（鉤子 30–80 字＋1 個事件型標籤，**不放網址**）→ 串文 thread_posts（第三節原本的盤勢、族群、法人、新聞焦點、昨日盤面**一條都不少**，逐段搬過來，每則 30–80 字、最多 150）→ 最後一則留言 reply_post 放網站連結（仍帶 `?u=` 與 `#路由`，規則 4 不變）。
+2. **圖**：Threads 主貼文從原本的卡片挑 2 張（盤中：熱力圖＋資金分流樹；盤後：三大法人／外資個股＋台指期未平倉；盤前：美股收盤＋台指期夜盤）；**不准 1 張**。IG 限動照舊全部張數、不加結尾頁。
+3. **鉤子**：對話／冷知識／反差三類 × 好笑／吐槽，模板 64 個依當天數據填（`scripts/threads_v2.py`）；同類型不連續、同模板 14 天不重複。
+4. **標籤**：只 1 個事件型（Fed／CPI／大盤 ±500 點／財報法說／熱門個股事件），不用 #台股 #投資 這類泛用標籤；原本的 hashtag 那一行拿掉。
+5. **檢查**：`scripts/threads_lint.py` 每篇必過；不過就換模板，全部不過用保底模板**照發**並寫 alert（不准整篇不發）。
+6. 流程：`social_snap.py`／`social_premarket.py` 照舊產第三節格式 → social-live.yml「Threads v2 改寫」一步把 manifest 改成 v2（舊版留在 `threads_v1`；這一步失敗就照舊版發）→ `social_publish.py` 發主文、逐則串文、最後留言連結（中間一則失敗照樣往下發）。主題文章由 `social_news.py` 直接寫 v2 queue 檔（檔頭 `format: threads_v2`），手動加發的舊格式檔由 `threads_post.py` 發文前自動改寫。
+
+## 三、Threads 文案（Andy 指定格式；2026-11-01 起改當「串文的數據內容」來源，主文改鉤子，見三之一）
 
 ```
 盤中3分鐘
@@ -147,3 +159,4 @@ https://liguligu-puipui.com/
 3. 手動補發測試要用 `live_test=true`，不准用 `dry_run=false + force=true`。
 - 2026-10-30：主題文章新增分類「國際」（Andy：三星文章標「美股」不對）。非美國公司／央行／地區為主體 → 國際；美股只給美股盤勢與美國公司；三星不再被對到台股 5007 三星科技。規則見 `news_post_rules.md` 十一之一。
 - 2026-10-30：盤後主題文章沒發（事故：盤後主貼文 18:07 由每日管線用 GITHUB_TOKEN 派的 social-live 發出，GitHub 不會為 GITHUB_TOKEN 觸發的 run 再發 workflow_run 事件，social_news.yml 沒被叫醒；17:15～18:02 那幾輪都在主貼文發出前，下一個備援排程 19:35）。修法：① social-live.yml 主貼文真的發出（有 posted.json）後最後一步直接 `gh workflow run social_news.yml -f slot=auto -f dry_run=false`（加 `actions: write`）；② social_news.yml 加交易日 18:25、18:55 備援排程；③ social_news.py 拿掉「主貼文已發超過 3 小時就不補排」的 0 篇路徑，改成晚到照樣補發（log 記 late）。測試 `test_close_post_wakes_news_and_no_late_skip`。
+- 2026-11-01：Threads 改版 v2（Andy：「CEO 交給對應單位 將發文 Thread 系統修改」「IG Thread 上面也需要進行優化 讓熱度提升，並且 盡量不要千篇一律的方式要有點變化」＋「Threads 發文規則」）。改的是 10-26 Andy 確認的第三節格式：主文改鉤子＋1 個事件標籤、數據搬串文、網址移到最後一則留言、圖 0 或 2 張；數據內容不減。主題文章加第二張「鉤子＋重點數字卡」（3 套版型輪替），IG 文案第一行改鉤子句、段落標題的 # 拿掉、最後掛事件標籤。成效比較：`scripts/threads_hook_stats.py`（social_insights 每晚，`state/hook_stats.json`）。規則與對照表 `threads_rules.md`、IG 計畫 `ig_growth_plan.md`。

@@ -28,6 +28,8 @@ jobs:
             git fetch --depth=1 origin social-snaps
             git show FETCH_HEAD:state/insights.json > state/insights.json 2>/dev/null || rm -f state/insights.json
             git show FETCH_HEAD:state/posts_catalog.json > state/posts_catalog.json 2>/dev/null || rm -f state/posts_catalog.json
+            git show FETCH_HEAD:state/posted.json > state/posted.json 2>/dev/null || echo '{}' > state/posted.json
+            git show FETCH_HEAD:state/hook_history.json > state/hook_history.json 2>/dev/null || echo '{}' > state/hook_history.json
           fi
       - name: 抓洞察並檢查權杖
         id: run
@@ -42,6 +44,11 @@ jobs:
       - name: 新聞貼文成效依標籤聚合（state/news_insights.json）
         continue-on-error: true
         run: python3 scripts/news_insights.py --catalog state/posts_catalog.json --out state/news_insights.json
+      # 2026-11-01 Threads v2 改版前後比較（Andy：「IG Thread 上面也需要進行優化 讓熱度提升」）：依版本／開頭類型／情緒／模板
+      - name: Threads 改版成效比較（state/hook_stats.json）
+        continue-on-error: true
+        run: python3 scripts/threads_hook_stats.py --posted state/posted.json --hooks state/hook_history.json --catalog state/posts_catalog.json --out state/hook_stats.json | tee -a "$GITHUB_STEP_SUMMARY"
+
       - name: 寫回 social-snaps
         run: |
           [ -f state/insights.json ] || { echo "沒有產出"; exit 1; }
@@ -53,6 +60,7 @@ jobs:
             cp state/insights.json "$WORK/state/insights.json"
             [ -f state/posts_catalog.json ] && cp state/posts_catalog.json "$WORK/state/posts_catalog.json"
             [ -f state/news_insights.json ] && cp state/news_insights.json "$WORK/state/news_insights.json"
+            [ -f state/hook_stats.json ] && cp state/hook_stats.json "$WORK/state/hook_stats.json"
             (cd "$WORK" && git init -q && git checkout -q --orphan social-snaps \
               && git config user.name tw-rotation-bot && git config user.email actions@github.com \
               && git add -A && git commit -q -m "成效洞察 $(TZ=Asia/Taipei date +%F)" \
