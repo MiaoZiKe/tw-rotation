@@ -44900,6 +44900,18 @@ def _cg_click_dot(pg, code: str, wait: int = 1400) -> bool:
     #   改前：一律點 `.seglist .sco`；改後：字卡看不到時改點 `#chainMap .co[data-code]`。手機照舊點字卡。
     if not pg.evaluate("() => { const l = document.querySelector('.seglist'); return !!l && l.getClientRects().length > 0; }"):
         card = f'#chainMap .co[data-code="{code}"]'
+        # ★ 2026-11-01（390px 兩條長期紅燈：「窄畫面照樣點得到個股標籤」「點下去畫面真的變了」，個股 3443）：
+        #   手機（html.m4）的環節卡清單依 Andy 10-09「只留關聯圖」整段 display:none（mobile4.css 第 6 節），
+        #   而關聯圖每一格預設只留「名稱＋檔數 ▸」膠囊、公司卡不畫（industry.js isFolded／m4OpenSeg，Andy「所有收展預設收起」）。
+        #   真人的路徑是「先點那一格的環節標題展開 → 再點公司卡」；這支以前少了第一步，於是 #chainMap 裡找不到 .co 就回 False。
+        #   實測同一份資料照真人兩步點：資訊欄 #coBox 打開、那一格 .segcard.sel＝1、hash 不變 —— 功能是好的，是驗收少走一步。
+        #   改前：m4 下直接找公司卡，找不到就失敗；改後：m4 下找不到時先點它那一格的環節標題（只在收著時點，點兩次會收回去）。桌機不走這段。
+        if not pg.query_selector(card) and pg.evaluate("() => document.documentElement.classList.contains('m4')"):
+            seg = pg.evaluate("(c) => { const e = document.querySelector('.seglist .sco[data-code=\"' + c + '\"]');"
+                              " return e ? e.dataset.segment : null; }", code)
+            tsel = f'#chainMap .segtitle[data-seg="{seg}"]' if seg else None
+            if tsel and pg.query_selector(tsel):
+                click(pg, tsel, 900)
         if not pg.query_selector(card):
             return False
         pg.eval_on_selector(card, "e => e.scrollIntoView({block:'center'})")
