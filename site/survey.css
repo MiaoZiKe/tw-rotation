@@ -53,3 +53,4 @@
 .svprv { padding: 0 var(--sp-4) var(--sp-2); text-align: right; font-size: var(--fs-min); background: var(--panel); }
 .svprv a { color: var(--ink-3); text-decoration: underline; }
 .svtest { margin-left: var(--sp-2); padding: 1px 6px; font-size: var(--fs-min); color: var(--amber); border: 1px solid var(--amber); border-radius: var(--r-pill); }
+.svbox:focus, .svbox:focus-visible { outline: 0; }

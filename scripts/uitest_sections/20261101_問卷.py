@@ -5,13 +5,13 @@
 # Andy 11-01：快到期時打開首頁跳出問卷，填完再送 7 天。用 page.route 假後端，真的操作每一步，
 # 並驗「送出的 JSON 符合契約」「第 6 個母分頁被擋」「稍後再說 24 小時內不再跳」。
 
-SV_API = "http://127.0.0.1:9"
+SVP_API = "http://127.0.0.1:9"
 
 
-def _sv_ctx(b, W, trial, submit=None, logged=True, admin=False):
+def _svp_ctx(b, W, trial, submit=None, logged=True, admin=False):
     import json as _j
     c = b.new_context(viewport={"width": W, "height": 844 if W < 641 else 900})
-    init = "window.TW_ACCOUNT_OVERRIDE = " + _j.dumps({"api": SV_API}) + "; try { localStorage.setItem('tw.tour','done'); localStorage.setItem('tw.live.on','0');"
+    init = "window.TW_ACCOUNT_OVERRIDE = " + _j.dumps({"api": SVP_API}) + "; try { localStorage.setItem('tw.tour','done'); localStorage.setItem('tw.live.on','0');"
     if logged:
         init += " localStorage.setItem('tw.acct.tok','tok-sv'); localStorage.setItem('tw.acct.user', JSON.stringify({email:'m@example.com',name:'測試會員'}));"
     c.add_init_script(init + " } catch (e) {}")
@@ -20,7 +20,7 @@ def _sv_ctx(b, W, trial, submit=None, logged=True, admin=False):
 
     def handle(route):
         req = route.request
-        path = req.url.replace(SV_API, "").split("?")[0]
+        path = req.url.replace(SVP_API, "").split("?")[0]
         h = {"access-control-allow-origin": "*", "access-control-allow-headers": "*", "access-control-allow-methods": "POST", "content-type": "application/json"}
         if req.method == "OPTIONS":
             return route.fulfill(status=204, headers=h)
@@ -41,11 +41,11 @@ def _sv_ctx(b, W, trial, submit=None, logged=True, admin=False):
         elif path == "/v1/notices":
             out = {"notices": []}
         route.fulfill(status=st, body=_j.dumps(out), headers=h)
-    c.route(SV_API + "/**", handle)
+    c.route(SVP_API + "/**", handle)
     return c, log
 
 
-def _sv_open(c, base, hsh="#overview"):
+def _svp_open(c, base, hsh="#overview"):
     pg = c.new_page()
     pg.goto(base + hsh, wait_until="domcontentloaded")
     agree = pg.get_by_role("button", name="同意並繼續")
@@ -57,7 +57,7 @@ def _sv_open(c, base, hsh="#overview"):
     return pg
 
 
-def t_survey_1101(b, base, code):
+def t_survey_popup_1101(b, base, code):
     import os as _os
     T = "問卷1101"
     shots = _os.environ.get("TW_SURVEY_SHOT")
@@ -72,8 +72,8 @@ def t_survey_1101(b, base, code):
     # ---- A. 條件：不成立都不跳
     for label, trial, logged, hsh in (("沒登入", {}, False, "#overview"), ("沒有資格", {"survey_eligible": False}, True, "#overview"),
                                       ("已填過", {"survey_done": True, "survey_eligible": False}, True, "#overview"), ("不在首頁(#flow)", {}, True, "#flow")):
-        c, log = _sv_ctx(b, 1440, trial, logged=logged)
-        pg = _sv_open(c, base, hsh); pg.on("pageerror", lambda e: errs.append(str(e)))
+        c, log = _svp_ctx(b, 1440, trial, logged=logged)
+        pg = _svp_open(c, base, hsh); pg.on("pageerror", lambda e: errs.append(str(e)))
         pg.wait_for_timeout(3500)
         ok(f"{T}：{label} → 不跳問卷", not pg.evaluate(VIS), log["reqs"])
         if label == "不在首頁(#flow)":
@@ -82,16 +82,16 @@ def t_survey_1101(b, base, code):
             ok(f"{T}：從別頁回到首頁 → 才跳出", bool(got))
         c.close()
     # 後端 404（尚未部署）→ 靜默
-    c, log = _sv_ctx(b, 1440, {})
-    c.unroute(SV_API + "/**")
-    c.route(SV_API + "/**", lambda r: r.fulfill(status=404, body="{}", headers={"access-control-allow-origin": "*", "access-control-allow-headers": "*", "content-type": "application/json"}))
-    pg = _sv_open(c, base); pg.wait_for_timeout(3500)
+    c, log = _svp_ctx(b, 1440, {})
+    c.unroute(SVP_API + "/**")
+    c.route(SVP_API + "/**", lambda r: r.fulfill(status=404, body="{}", headers={"access-control-allow-origin": "*", "access-control-allow-headers": "*", "content-type": "application/json"}))
+    pg = _svp_open(c, base); pg.wait_for_timeout(3500)
     ok(f"{T}：後端回 404 → 靜默不跳", not pg.evaluate(VIS))
     c.close()
 
     # ---- B. 桌機整段操作
-    c, log = _sv_ctx(b, 1440, {})
-    pg = _sv_open(c, base); pg.on("pageerror", lambda e: errs.append(str(e)))
+    c, log = _svp_ctx(b, 1440, {})
+    pg = _svp_open(c, base); pg.on("pageerror", lambda e: errs.append(str(e)))
     got = wait_until(pg, VIS, 15000)
     ok(f"{T}：已登入＋有資格＋首頁 → 跳出問卷", bool(got), log["reqs"])
     ok(f"{T}：用 POST 打 /v1/me/trial", ("POST", "/v1/me/trial") in log["reqs"], log["reqs"])
@@ -154,8 +154,8 @@ def t_survey_1101(b, base, code):
     c.close()
 
     # ---- C. 稍後再說
-    c, log = _sv_ctx(b, 1440, {})
-    pg = _sv_open(c, base); wait_until(pg, VIS, 15000)
+    c, log = _svp_ctx(b, 1440, {})
+    pg = _svp_open(c, base); wait_until(pg, VIS, 15000)
     pg.click("#svLater2"); pg.wait_for_timeout(200)
     snz = pg.evaluate("() => +localStorage.getItem('tw.survey.snooze')")
     import time as _t
@@ -165,8 +165,8 @@ def t_survey_1101(b, base, code):
     c.close()
 
     # ---- D. 後端失敗訊息
-    c, log = _sv_ctx(b, 1440, {}, submit=({"ok": False, "error": "你已經填寫過囉"}, 409))
-    pg = _sv_open(c, base); wait_until(pg, VIS, 15000)
+    c, log = _svp_ctx(b, 1440, {}, submit=({"ok": False, "error": "你已經填寫過囉"}, 409))
+    pg = _svp_open(c, base); wait_until(pg, VIS, 15000)
     pg.click("[data-sat='5']"); pg.click("#svNext"); pg.click("#svNext"); pg.click("#svNext"); pg.click("#svSend"); pg.wait_for_timeout(500)
     ok(f"{T}：送出失敗 → 顯示後端訊息、仍在問卷內", "你已經填寫過囉" in pg.locator(".sverr").inner_text() and pg.evaluate(VIS))
     c.close()
@@ -175,7 +175,7 @@ def t_survey_1101(b, base, code):
     c = b.new_context(viewport={"width": 1440, "height": 900})
     c.add_init_script("try{localStorage.setItem('tw.tour','done');localStorage.setItem('tw.live.on','0')}catch(e){}; window.__fcnt = 0; const _f = window.fetch; window.fetch = function(u){ if (/survey\\/submit/.test(String(u))) window.__fcnt++; return _f.apply(this, arguments); };")
     c.route("**/fonts.googleapis.com/**", lambda r: r.abort())
-    pg = _sv_open(c, base); pg.on("pageerror", lambda e: errs.append(str(e)))
+    pg = _svp_open(c, base); pg.on("pageerror", lambda e: errs.append(str(e)))
     pg.wait_for_timeout(2500)
     ok(f"{T}：（正式路徑、沒登入）不跳", not pg.evaluate(VIS))
     pg.evaluate("history.replaceState(null, '', '/preview/member-invite/#overview')")
@@ -194,7 +194,7 @@ def t_survey_1101(b, base, code):
     c = b.new_context(viewport={"width": 1440, "height": 900})
     c.add_init_script("try{localStorage.setItem('tw.tour','done');localStorage.setItem('tw.live.on','0')}catch(e){}")
     c.route("**/fonts.googleapis.com/**", lambda r: r.abort())
-    pg = _sv_open(c, base); pg.wait_for_timeout(1500)
+    pg = _svp_open(c, base); pg.wait_for_timeout(1500)
     pg.evaluate("history.replaceState(null, '', '/preview/member-invite/#overview')"); pg.evaluate("window.TwSurvey.check()")
     wait_until(pg, VIS, 6000)
     pg.click("#svLater2"); pg.wait_for_timeout(200)
@@ -204,8 +204,8 @@ def t_survey_1101(b, base, code):
     c.close()
     # 正式站 ?survey=test：站主強制顯示（即使沒資格），一般會員不行
     for who, admin, want in (("站主", True, True), ("一般會員", False, False)):
-        c, log = _sv_ctx(b, 1440, {"survey_eligible": False, "survey_done": True}, admin=admin)
-        pg = _sv_open(c, base + "?survey=test", "#overview"); pg.on("pageerror", lambda e: errs.append(str(e)))
+        c, log = _svp_ctx(b, 1440, {"survey_eligible": False, "survey_done": True}, admin=admin)
+        pg = _svp_open(c, base + "?survey=test", "#overview"); pg.on("pageerror", lambda e: errs.append(str(e)))
         got = wait_until(pg, VIS, 15000 if want else 3500) if want else (pg.wait_for_timeout(4000) or pg.evaluate(VIS))
         ok(f"{T}：正式站 ?survey=test + {who}（沒資格）→ {'強制跳出' if want else '不跳'}", bool(got) == want, log["reqs"])
         if want:
@@ -216,8 +216,8 @@ def t_survey_1101(b, base, code):
         c.close()
 
     # ---- E. 手機 390
-    c, log = _sv_ctx(b, 390, {})
-    pg = _sv_open(c, base); pg.on("pageerror", lambda e: errs.append(str(e)))
+    c, log = _svp_ctx(b, 390, {})
+    pg = _svp_open(c, base); pg.on("pageerror", lambda e: errs.append(str(e)))
     got = wait_until(pg, VIS, 15000)
     ok(f"{T}（390）跳出問卷", bool(got))
     M = """() => { const r = document.querySelector('#svOv .svbox').getBoundingClientRect(), f = (document.querySelector('.svft') || document.querySelector('.svbox')).getBoundingClientRect();
@@ -245,4 +245,4 @@ def t_survey_1101(b, base, code):
     ok(f"{T}：整段沒有 JS 錯誤", not errs, errs[:3])
 
 
-register("問卷1101", lambda pg, b, base, code: t_survey_1101(b, base, code))
+register("問卷1101", lambda pg, b, base, code: t_survey_popup_1101(b, base, code))
