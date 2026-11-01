@@ -1,39 +1,34 @@
 {
-  "updated_at": "2026-11-01T09:21:57+00:00",
+  "updated_at": "2026-11-01T11:49:55+00:00",
   "mode": "refresh",
   "platforms": {
     "threads": {
       "source": "original",
-      "ok": false,
-      "last_ok_at": null,
-      "expires_at": null,
-      "status": "writeback-failed",
-      "saved": "not_saved",
-      "error": "寫回 Secret 失敗",
-      "days_left": null
+      "ok": true,
+      "last_ok_at": "2026-11-01T11:49:55+00:00",
+      "expires_at": "2026-12-31T03:39:11+00:00",
+      "status": "refreshed",
+      "saved": "written",
+      "source_after": "auto",
+      "days_left": 59.7
     },
     "ig": {
       "source": "original",
-      "ok": false,
-      "last_ok_at": null,
-      "expires_at": null,
-      "status": "writeback-failed",
-      "saved": "not_saved",
-      "error": "寫回 Secret 失敗",
-      "days_left": null
+      "ok": true,
+      "last_ok_at": "2026-11-01T11:49:55+00:00",
+      "expires_at": "2026-12-31T03:39:10+00:00",
+      "status": "refreshed",
+      "saved": "written",
+      "source_after": "auto",
+      "days_left": 59.7
     }
   },
-  "alert": true,
-  "alert_reasons": [
-    "threads 權杖續期失敗，到期日未知",
-    "ig 權杖續期失敗，到期日未知",
-    "寫回用 META_SECRETS_PAT 無法使用（可能已到期或權限不對）"
-  ],
+  "alert": false,
+  "alert_reasons": [],
   "pat": {
     "present": true,
-    "ok": false,
-    "error": "HTTP 403",
+    "ok": true,
     "days_left": null
   },
-  "status": "bad"
+  "status": "ok"
 }
