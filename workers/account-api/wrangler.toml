@@ -15,7 +15,8 @@ SEED_PLANS = "plus,pro"
 # 2026-10-09 每天台北 03:17 清一次過期的「七天保證比對碼」（benefit_hash 保存 365 天，worker.js 取消訂閱／退款區塊）
 [triggers]
 # 2026-10-11 金流：每 10 分鐘補開通（查單）／定期定額對帳／到期降級紀錄（pay.js paySweep）
-crons = ["17 19 * * *", "*/10 * * * *"]
+# 2026-11-02 自設提醒 email：週一到五台北 18:40（UTC 10:40）比對 digest.json（alertmail.js）；資料日沒變就跳過，所以假日不會寄
+crons = ["17 19 * * *", "*/10 * * * *", "40 10 * * 1-5"]
 
 # 單一 Durable Object（SQLite 儲存）。免費方案可用：每天 10 萬列寫入、500 萬列讀取、1 GB。
 [[durable_objects.bindings]]

@@ -111,6 +111,7 @@ const CODE_RE = /^[0-9A-Z]{4,6}$/;
 
 import { installPay } from './pay.js';
 import { installArticles } from './articles.js';
+import { installAlertMail } from './alertmail.js';
 
 export default {
   async fetch(req, env) {
@@ -123,6 +124,8 @@ export default {
   async scheduled(ev, env) {
     const id = env.HUB.idFromName('hub');
     /* 2026-10-11 金流：每 10 分鐘一次的 cron（wrangler.toml）→ 補開通／定期定額對帳／到期紀錄（pay.js paySweep）；每天那一次照舊清比對碼 */
+    /* 2026-11-02 自設提醒 email：台北 18:40（UTC 10:40）週一到五，比對 digest.json（alertmail.js）*/
+    if (ev && ev.cron === '40 10 * * 1-5') { await env.HUB.get(id).fetch(new Request('https://internal.cron/cron/alert-mail', { method: 'POST' })); return; }
     if (ev && ev.cron && ev.cron !== '17 19 * * *') { await env.HUB.get(id).fetch(new Request('https://internal.cron/cron/pay-sweep', { method: 'POST' })); return; }
     await env.HUB.get(id).fetch(new Request('https://internal.cron/cron/bill-clean', { method: 'POST' }));
   },
@@ -2742,6 +2745,7 @@ for (const t of ['grant_defs', 'grants', 'grant_hits']) if (!EXPORT_TABLES.inclu
    ============================================================================ */
 installPay(Hub, { rand, safeEq, tpeDay, subClean, EXPORT_TABLES });
 installArticles(Hub, EXPORT_TABLES);   // 2026-10-16 精選文章點閱次數
+installAlertMail(Hub, { tpeDay });    // 2026-11-02 自設提醒 email 通知（alertmail.js；cron 18:40 比對 digest.json、寫進 pay.js 的寄信佇列）
 
 /* ============================================================================ 今日造訪人數 dayvis（2026-10-17）
    Andy 10-17：「改顯示今天造訪人數」（原本頂欄顯示「N 人在線」，剛上線人少；改成今天有幾台裝置打開過網站，數字是真的）。
@@ -2837,7 +2841,9 @@ Hub.prototype.subRoutes['/v1/me/src'] = async function (req, b) {
 export const ALERT_HARD = 200;
 const ALERT_TYPES = ['rev', 'streak', 'above', 'below', 'exdiv'];
 /* 範本沒寫 watch.alert 時的預設（site/features.js 的 defBy 同一組數，改一邊要改另一邊）；其他付費範本比照 Plus */
-const ALERT_DEF = { guest: 0, free: 1, plus: 5, pro: ALERT_HARD };
+/* 2026-11-02 Andy：「自設提醒條數 plus = 體驗 最多 5 條，pro 先 20 條」→ Pro 由「不限（200）」改 20；硬上限 200 仍保留（管理者與個別微調用）*/
+const ALERT_DEF = { guest: 0, free: 1, plus: 5, pro: 20 };
+const ALERT_TRIAL_CAP = 5;      // 新會員體驗期內至少可設 5 條
 Hub.prototype.alertInit = function () {
   if (this._alOk) return;
   this.q('CREATE TABLE IF NOT EXISTS alerts (uid TEXT PRIMARY KEY, data TEXT, rev INTEGER, updated INTEGER)');
@@ -2847,10 +2853,13 @@ Hub.prototype.alertCap = function (user) {
   if (this.isAdmin(user)) return ALERT_HARD;
   const e = this.effective(String(user.email || '').toLowerCase());
   const v = (e.feats || {})['watch.alert'];
-  if (Number.isInteger(v)) return Math.max(0, Math.min(ALERT_HARD, v));
-  if (v === false) return 0;
-  const k = e.expired ? 'free' : e.plan;
-  return Object.prototype.hasOwnProperty.call(ALERT_DEF, k) ? ALERT_DEF[k] : ALERT_DEF.plus;
+  let cap;
+  if (Number.isInteger(v)) cap = Math.max(0, Math.min(ALERT_HARD, v));
+  else if (v === false) cap = 0;
+  else { const k = e.expired ? 'free' : e.plan; cap = Object.prototype.hasOwnProperty.call(ALERT_DEF, k) ? ALERT_DEF[k] : ALERT_DEF.plus; }
+  /* 新會員體驗期內（welcome 種類的體驗還沒到期）至少 5 條：取 max(原上限, 5) */
+  try { this.promoInit(); if (this.promoWelcome(user.uid)) cap = Math.max(cap, ALERT_TRIAL_CAP); } catch (err) { /* 查不到體驗就用原上限 */ }
+  return cap;
 };
 Hub.prototype.cleanAlerts = function (rules) {
   if (!Array.isArray(rules) || rules.length > ALERT_HARD) return null;
@@ -2863,6 +2872,8 @@ Hub.prototype.cleanAlerts = function (rules) {
     const code = String(r.code || '');
     if (!CODE_RE.test(code) || !ALERT_TYPES.includes(r.type)) return null;
     const o = { id, code, type: r.type, on: r.on !== false };
+    /* 2026-11-02 通知方式（跨裝置）：w＝網頁通知（預設開）、m＝email（預設關）；只收這兩個布林，其他一律丟掉 */
+    if (r.nt && typeof r.nt === 'object') o.nt = { w: r.nt.w !== false && r.nt.w !== 0, m: r.nt.m === true || r.nt.m === 1 };
     if (r.type === 'streak') {
       if (!Number.isInteger(r.n) || r.n < 2 || r.n > 30) return null;
       if (!['buy', 'sell'].includes(r.side) || !['total', 'foreign', 'trust'].includes(r.who)) return null;
