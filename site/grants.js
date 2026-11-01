@@ -316,6 +316,6 @@
   { let rt = 0; window.addEventListener('resize', () => { clearTimeout(rt); rt = setTimeout(() => { if (document.getElementById('grantBar')) banner(); }, 250); }); }
   /* 到期：每分鐘看一次（過期的那一份從畫面拿掉、鎖頭蓋回來）*/
   setInterval(() => { if (G.me && (G.me.grants || []).some((g) => g.end <= Date.now() && !g._gone)) { G.me.grants.forEach((g) => { if (g.end <= Date.now()) g._gone = true; }); paint(); } }, 60000);
-  window.TwGrants = { welcomeRules, open, has, extra, use, cardHtml, pending, unitOf, refresh, rules, banner, state, left: leftOf };
+  window.TwGrants = { inWelcome: () => !!welcomeGrant(), welcomeRules, open, has, extra, use, cardHtml, pending, unitOf, refresh, rules, banner, state, left: leftOf };
   if (window.TW_ACCOUNT_ON) later();
 })();

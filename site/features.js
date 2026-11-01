@@ -173,6 +173,18 @@
       veil: [['#mktBody', '#instView button[data-v="streak"].on']], mark: ['#instView button[data-v="streak"]'], block: [] },
     { id: 'mkt.ma', name: '市場明細：站上均線', cat: 'market', def: true, kind: 'bool', desc: '站上均線名單', limBy: { free: 5 }, qnote: '站上均線今日 {n} 次已用完・Plus 以上可增加',
       veil: [['#mktBody', '#mktSeg2 button[data-k="ma"].on']], mark: ['#mktSeg2 button[data-k="ma"]'], block: [] },
+    /* ★★ 2026-11-02 Andy：「信用交易、期貨籌碼是新加入的功能，以後只要有新加入功能都需要限制使用次數在權限那邊進行設定，這次也是」
+       →  市場明細三塊原本全開放（沒有鍵、沒有閘門）：信用交易（#market/credit）、期貨籌碼（#market/fut）、三大法人「當天報告」（#market/inst 預設那一頁）。
+       口徑跟上面漲跌家數／法人連買賣／站上均線一樣：每日次數，一次＝這個瀏覽器分頁進來一次；訪客 3、註冊會員 5（limBy，範本沒寫時的預設；plan_presets.js 同步）、
+       Plus 50、Pro 不限。用完：內容反灰＋一行字（qnote），有體驗額度時多一顆「繼續看」。擁有者／管理員不受限。
+       route 限定各自的頁：#mktBody 在市場明細每一頁共用，不限 route 會蓋到別的分頁。
+       三大法人當天報告只蓋 #instToday（報告本體），不蓋上面的「當天／連買賣」切換列 —— 蓋住的話用完之後連切去別頁的路都沒了。 */
+    { id: 'mkt.credit', name: '市場明細：信用交易', cat: 'market', def: true, kind: 'bool', desc: '融資融券餘額、融資維持率與加權指數', limBy: { guest: 3, free: 5 },
+      qnote: '信用交易今日 {n} 次已用完・Plus 以上可增加', route: /^#market\/credit/, veil: [['#mktBody']], mark: [], block: [] },
+    { id: 'mkt.fut', name: '市場明細：期貨籌碼', cat: 'market', def: true, kind: 'bool', desc: '台指期三大法人未平倉、微台指散戶多空比', limBy: { guest: 3, free: 5 },
+      qnote: '期貨籌碼今日 {n} 次已用完・Plus 以上可增加', route: /^#market\/fut/, veil: [['#mktBody']], mark: [], block: [] },
+    { id: 'mkt.inst.day', name: '市場明細：三大法人當天報告', cat: 'market', def: true, kind: 'bool', desc: '全市場外資／投信／自營當天淨買賣超與買賣超前 10（「連買賣」另有 mkt.streak）', limBy: { guest: 3, free: 5 },
+      qnote: '三大法人當天報告今日 {n} 次已用完・Plus 以上可增加', route: /^#market\/inst/, veil: [['#instToday']], mark: [], block: [] },
     /* 2026-10-10 Andy：「註冊免費會員 今日關注限制不可以看」→ defBy 訪客／註冊會員關（範本沒寫這一項時的預設；範本寫了以範本為準），
        plan_presets.js 訪客／註冊會員也寫 false。今日關注依法遵不能放進體驗額度（grants GRANT_BAN）。*/
     /* 關掉時不再蓋需開通卡（veil 拿掉）：app.js 在原位置畫一塊反灰示意＋「Plus 以上可查看今日關注」（Andy 10-10：不要跳出視窗），名單根本不畫進畫面 */
@@ -305,11 +317,11 @@
       desc: '每一頁自選清單最多放幾檔（已經放的不會被刪，只是不能再加）', veil: [], mark: [], block: [] },
     /* ★ 2026-10-27（Andy 拍板 T-4「自選日報＋自設提醒」，docs/marketing/tier_plan_1027.md W7；「原有的參數設定不可以動」→ 兩個都是新鍵）：
        watch.digest 自選日報（Pro）：每天盤後把「你自選的股票今天發生什麼」彙整成一則站內通知＋自選頁一張表，只列事實（收盤價量、法人買賣超、月營收、公告事件）。
-       watch.alert 自設提醒條數：註冊會員 1、Plus 5、Pro 不限（硬上限 200）；條件一律使用者自己設，站方不提供任何預設條件。
+       watch.alert 自設提醒條數：註冊會員 1、Plus 5、Pro 20（11-02 Andy 改：Pro 先給 20 條；硬上限仍 200，管理頁可再調；新會員體驗期間視同 Plus＝5，見 perm.js）；條件一律使用者自己設，站方不提供任何預設條件。
        defBy＝範本沒寫這一鍵時依身分的預設（account-api 的 ALERT_DEF 同一組數）；日報預設只有 Pro 開，其他付費範本沒寫＝關。 */
     { id: 'watch.digest', name: '自選日報', cat: 'watch', def: false, defBy: { pro: true }, kind: 'bool',
       desc: '每天盤後依你的自選清單整理「今天發生什麼事」（收盤價量、法人買賣超、月營收、公告事件），放進通知鈴鐺；只列事實，不含評分或建議', veil: [], mark: [], block: [] },
-    { id: 'watch.alert', name: '自設提醒條數', cat: 'watch', def: 1, defBy: { guest: 0, free: 1, plus: 5, pro: 200 }, kind: 'limit', max: 200, unit: '條', opts: [0, 1, 3, 5, 10, 20, 50, 200],
+    { id: 'watch.alert', name: '自設提醒條數', cat: 'watch', def: 1, defBy: { guest: 0, free: 1, plus: 5, pro: 20 }, kind: 'limit', max: 200, unit: '條', opts: [0, 1, 3, 5, 10, 20, 50, 200],
       desc: '最多能設幾條自己的提醒條件（營收公布、法人連買／連賣、收盤價高於／低於、除息前 N 天），條件成立時通知鈴鐺會響；已經設好的不會被刪，只是不能再新增', veil: [], mark: [], block: [] }
   ];
 
@@ -417,7 +429,7 @@
      清單＝方案草案裡訪客要計次的那 41 項（總覽、產業地圖首頁、事件、自選、工具類不算 —— 那些是鉤子或不是「看資料」）。
      共用額度存在範本的 dq 欄位（account-api 每日額度區塊；TwPerm.lim('quota.all') 讀它），不是一個開關 —— 所以這裡不另外列一項「quota.all」，
      不然 #admin/perm 會把它畫成一顆開關。單位＝這一頁（site/quota.js 的 pageKey：個股代號／剖析圖／題材／族群／一次造訪）。*/
-  var METERED = ["earn.cal", "earn.page", "etf.calendar", "etf.list", "etf.popular", "etf.rettop", "etf.yldtop", "explore.chart", "explore.combo", "explore.list", "explore.page", "flow.conc", "flow.inst", "flow.rot", "flow.sankey", "heat.detail", "heat.market", "heat.theme", "ind.diagram", "ind.groups", "ind.rel", "mkt.cand", "mkt.ma", "mkt.streak", "mkt.updown", "season.month", "stock.ai", "stock.basics", "stock.dividend", "stock.holders", "stock.inst", "stock.k_day", "stock.k_hour", "stock.margin", "stock.news", "stock.overview", "stock.page", "stock.profit", "stock.revenue", "stock.tags", "stock.tick"];
+  var METERED = ["earn.cal", "earn.page", "etf.calendar", "etf.list", "etf.popular", "etf.rettop", "etf.yldtop", "explore.chart", "explore.combo", "explore.list", "explore.page", "flow.conc", "flow.inst", "flow.rot", "flow.sankey", "heat.detail", "heat.market", "heat.theme", "ind.diagram", "ind.groups", "ind.rel", "mkt.cand", "mkt.credit", "mkt.fut", "mkt.inst.day", "mkt.ma", "mkt.streak", "mkt.updown", "season.month", "stock.ai", "stock.basics", "stock.dividend", "stock.holders", "stock.inst", "stock.k_day", "stock.k_hour", "stock.margin", "stock.news", "stock.overview", "stock.page", "stock.profit", "stock.revenue", "stock.tags", "stock.tick"];
   METERED.forEach(function (id) { var f = LIST.filter(function (x) { return x.id === id; })[0]; if (f) f.metered = true; });
 
   /* ★ 2026-10-10（網頁手機同步稽核 7-1、Andy 10-10 經手機 session 轉達）：側欄子分頁 → 功能鍵。
@@ -429,6 +441,7 @@
     'flow.rot': ['flow-rotation'], 'flow.sankey': ['flow-sankey'], 'flow.inst': ['flow-inst'],
     'heat.market': ['heat-industry'], 'heat.theme': ['heat-theme'],
     'mkt.updown': ['mkt-updown'], 'mkt.streak': ['mkt-inst'], 'mkt.ma': ['mkt-ma'], 'mkt.cand': ['mkt-cand'],
+    'mkt.credit': ['mkt-credit'], 'mkt.fut': ['mkt-fut'], 'flow.conc': ['flow-conc'],   // 2026-11-02 新鍵；flow-conc 是手機頁首子分頁（桌機側欄沒有這一格，perm.js 找不到就不掛）
     'etf.calendar': ['etf-cal'], 'etf.list': ['etf-list'], 'etf.cashflow': ['etf-inc'], 'etf.inc.comp': ['etf-cx']
   };
   /* ★ 2026-10-16 精選文章分級（Andy：「精選貼文限制給 Pro 可以看，Plus 只能所有類別共 5 篇，其他的只能看到標題」）。
