@@ -728,7 +728,11 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
 #v-admin table.memtbl th.c-cr,#v-admin table.memtbl td.c-cr,#v-admin table.memtbl th.c-exp,#v-admin table.memtbl td.c-exp,#v-admin table.memtbl th.c-seen,#v-admin table.memtbl td.c-seen,
 #v-admin table.memtbl th.c-on,#v-admin table.memtbl td.c-on,#v-admin table.memtbl th.c-vis,#v-admin table.memtbl td.c-vis,#v-admin table.memtbl th.c-vw,#v-admin table.memtbl td.c-vw,
 #v-admin table.memtbl th.c-st,#v-admin table.memtbl td.c-st{width:1%;white-space:nowrap!important;overflow-wrap:normal}
-#v-admin table.memtbl td.c-cr,#v-admin table.memtbl td.c-exp,#v-admin table.memtbl td.c-seen,#v-admin table.memtbl td.c-st,#v-admin table.memtbl th.c-st{text-align:center}
+#v-admin table.memtbl td.c-cr,#v-admin table.memtbl td.c-exp,#v-admin table.memtbl td.c-seen,#v-admin table.memtbl td.c-st,#v-admin table.memtbl th.c-st,#v-admin table.memtbl td.c-wel,#v-admin table.memtbl th.c-wel{text-align:center}
+#v-admin table.memtbl th.c-wel,#v-admin table.memtbl td.c-wel{width:1%;white-space:nowrap!important}
+#v-admin .memtbl .wel small{display:inline!important;margin-left:4px;font-size:11px;color:var(--ink-3)}
+#v-admin .memtbl .wel.soon{color:var(--amber,#e0a030);font-weight:600}
+#v-admin .memtbl .wel.exp{color:var(--ink-3)}
 #v-admin table.memtbl td.c-who b{display:inline-block;vertical-align:top;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;overflow-wrap:normal;max-width:calc(100% - 1.4em)}
 #v-admin table.memtbl td.c-who{min-width:10em}
 @media (max-width:1500px){#v-admin .memtbl .c-cr{display:none}}
@@ -1860,7 +1864,7 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
     v.querySelector('#pmCancel').onclick = () => { PS.draft = null; paintTarget(); paintCats(); setStat('已取消，回到上次儲存的設定'); };
     await loadFeatures();
     if (!FT()) { v.querySelector('#pmCats').innerHTML = '<div class="card"><p class="err">讀不到功能清單</p></div>'; return; }
-    const [pl, li, mm] = await Promise.all([A.call('/v1/admin/plans/get', {}), A.call('/v1/admin/perm/list', {}), A.call('/v1/admin/members', {})]);
+    const [pl, li, mm, gd] = await Promise.all([A.call('/v1/admin/plans/get', {}), A.call('/v1/admin/perm/list', {}), A.call('/v1/admin/members', {}), A.call('/v1/admin/grants/defs/list', {})]);
     if (tabOf() !== tab) return;
     if (!pl || pl._s !== 200) {
       v.querySelector('#pmCats').innerHTML = `<div class="card" style="grid-column:1/-1"><p class="err">讀不到方案範本（${esc(errText(pl))}）</p></div>`;
@@ -1869,6 +1873,7 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
     PS.plans = pl.plans || [];
     PS.list = li && li._s === 200 ? li : { rows: [], users: [] };
     PS.mem = mm && mm._s === 200 && Array.isArray(mm.members) ? mm : null;
+    PS.gd = gd && gd._s === 200 && Array.isArray(gd.defs) ? gd.defs : null;   // 新會員體驗活動（算「體驗到期」用；讀不到就欄位顯示 —）
     if (tab === 'perm') pickTierPlan();
     paintAll();
   }
@@ -2092,8 +2097,29 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
       const m = st.get(r.email) || {};
       return Object.assign(r, { paid: r.tier === 'paid' && r.st !== 'exp', planName: (planOf(r.plan) || {}).name || r.plan,
         onlineMs: m.onlineMs || 0, online30: m.online30 || 0, visits30: m.visits30 != null ? m.visits30 : r.visits || 0, days30: m.days30 || 0,
-        views30: m.views30 || 0, topFeat: m.topFeat || [], topStock: m.topStock || [], hasStats: !!st.size });
+        views30: m.views30 || 0, topFeat: m.topFeat || [], topStock: m.topStock || [], hasStats: !!st.size }, welOf(r, m));
     });
+  }
+  /* 2026-11-01 會員名單「體驗到期」（Andy：「有新註冊的會員標註他註冊當天可以用這體驗的時間截止日期」）：
+     截止 ＝ 加入時間 ＋ 那個「新會員體驗」活動的有效天數（活動有限定註冊期間 t0～t1 的，要註冊落在期間內才適用）。
+     之後若因問卷／邀請延長，伺服器的 /v1/admin/members 若帶 welcomeEnd（毫秒）就用它（標「延長」）；沒帶就照基本算法並標「基本」。
+     只在管理區顯示，不碰一般使用者畫面。 */
+  function welOf(r, m) {
+    const out = { welEnd: 0, welKind: '' };
+    if (typeof m.welcomeEnd === 'number' && m.welcomeEnd > 0) { out.welEnd = m.welcomeEnd; out.welKind = 'ext'; return out; }
+    if (!r.created || !Array.isArray(PS.gd)) return out;
+    const hit = PS.gd.filter((d) => d.kind === 'welcome' && d.on && d.days > 0 && (!d.t0 || (r.created >= d.t0 && r.created < d.t1)))
+      .map((d) => r.created + d.days * 86400000).sort((a, b) => b - a)[0];
+    if (hit) { out.welEnd = hit; out.welKind = 'base'; }
+    return out;
+  }
+  /* 快到期（≤3 天）琥珀、已過期灰字；日期後面小字標「基本」或「延長」 */
+  function welCell(r) {
+    if (!r.welEnd) return '<span class="mdim" title="這位會員沒有適用的新會員體驗（沒有開著的活動，或註冊時間不在活動期間內）">—</span>';
+    const now = (PS.list && PS.list.now) || Date.now(), left = r.welEnd - now;
+    const cls = left <= 0 ? 'wel exp' : left <= 3 * 86400000 ? 'wel soon' : 'wel';
+    const tip = (left <= 0 ? '體驗已過期' : `體驗還有約 ${Math.ceil(left / 86400000)} 天`) + `・截止 ${dstr(r.welEnd)}・` + (r.welKind === 'ext' ? '含問卷／邀請延長' : '照註冊時間＋活動天數的基本算法');
+    return `<span class="${cls}" title="${esc(tip)}">${dday(r.welEnd)}<small>${r.welKind === 'ext' ? '延長' : '基本'}</small></span>`;
   }
   const ST_NAME = { ok: '有效', soon: '即將到期', exp: '過期', new: '未登入過' };
   /* 顯示用的狀態（perm-v4）：有效裡面再分出「7 天內到期」—— 名單的狀態欄與上方甜甜圈用同一個函式，兩邊數字一定對得上。
@@ -2822,7 +2848,8 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
   }
   async function refreshList() {
     PS.mst = {};      // 名單變了 → 上方統計重抓（狀態、人數由名單算，Top 8／活躍由伺服器算）
-    const [li, mm] = await Promise.all([PS.A.call('/v1/admin/perm/list', {}), PS.A.call('/v1/admin/members', {})]);
+    const [li, mm, gd] = await Promise.all([PS.A.call('/v1/admin/perm/list', {}), PS.A.call('/v1/admin/members', {}), PS.A.call('/v1/admin/grants/defs/list', {})]);
+    if (gd && gd._s === 200 && Array.isArray(gd.defs)) PS.gd = gd.defs;
     if (li && li._s === 200) PS.list = li;
     if (mm && mm._s === 200 && Array.isArray(mm.members)) PS.mem = mm;
     paintTabs(); if (PS.mode === 'plan' && !PS.cfg) paintTarget(); paintList();
@@ -2833,7 +2860,7 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
      欄位與理由（Andy B 要的＋我補的，回報有列）：
        會員（email、名字、付費金色徽章＋方案名）｜方案｜加入日｜到期日｜最後上線｜累計在線｜近 30 天造訪｜觀看次數（近 30 天頁面瀏覽）｜
        最常用的功能 Top3｜最常看的股票 Top3｜狀態。展開：近 14 天每日活躍、各分頁瀏覽、功能次數、常看股票、活躍天數、平均每次停留。 */
-  const COLS = [['email', '會員', 'c-who'], ['plan', '方案', 'c-tpl'], ['created', '加入日', 'c-cr'], ['expires', '到期日', 'c-exp'], ['seen', '最後上線', 'c-seen'],
+  const COLS = [['email', '會員', 'c-who'], ['plan', '方案', 'c-tpl'], ['created', '加入日', 'c-cr'], ['expires', '到期日', 'c-exp'], ['wel', '體驗到期', 'c-wel'], ['seen', '最後上線', 'c-seen'],
     ['online', '累計在線', 'c-on num'], ['visits', '近 30 天造訪', 'c-vis num'], ['views', '觀看次數', 'c-vw num'], ['feat', '最常用的功能 Top3', 'c-feat'],
     ['stock', '最常看的股票 Top3', 'c-stk'], ['st', '狀態', 'c-st']];
   /* 會員權限 → 會員名單：註冊會員＝所有註冊會員（付費的也在、金色標示）；付費＝這個範本的人 */
@@ -2847,6 +2874,7 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
   function sortVal(r, key) {
     switch (key) {
       case 'plan': return (r.paid ? '0' : '1') + r.planName;
+      case 'wel': return r.welEnd || 0;
       case 'online': return r.onlineMs; case 'visits': return r.visits30; case 'views': return r.views30;
       case 'feat': return (r.topFeat[0] || [, 0])[1]; case 'stock': return (r.topStock[0] || [, 0])[1];
       case 'st': return ['ok', 'soon', 'new', 'exp'].indexOf(stOf(r));
@@ -2864,7 +2892,7 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
       return `<tr data-email="${esc(r.email)}" class="${PS.rec && r.email === PS.rec.email ? 'on' : ''}${r.paid ? ' paid' : ''}" aria-expanded="${open}">`
         + `<td class="c-who"><span class="who1"><span class="car" aria-hidden="true">${open ? '▾' : '▸'}</span><b title="${esc(r.email)}">${esc(r.email)}</b>${r.name ? `<small title="${esc(r.name)}">${esc(r.name)}</small>` : ''}${badge(r)}</span></td>`
         + `<td class="c-tpl"${r.set ? '' : ' title="尚未個別設定"'}>${r.tier === 'paid' ? esc(r.planName) : '註冊會員'}</td>`
-        + `<td class="c-cr">${dday(r.created)}</td><td class="c-exp">${dday(r.expires)}</td><td class="c-seen" title="${r.seen ? dstr(r.seen) : ''}">${seenTxt(r.seen)}</td>`
+        + `<td class="c-cr">${dday(r.created)}</td><td class="c-exp">${dday(r.expires)}</td><td class="c-wel">${welCell(r)}</td><td class="c-seen" title="${r.seen ? dstr(r.seen) : ''}">${seenTxt(r.seen)}</td>`
         + `<td class="c-on num">${dur(r.onlineMs)}</td><td class="c-vis num">${nf(r.visits30)}</td><td class="c-vw num">${nf(r.views30)}</td>`
         + `<td class="c-feat">${top(r.topFeat, compName)}</td><td class="c-stk">${top(r.topStock, (k) => k)}</td>`
         + `<td class="c-st"><span class="stt ${stOf(r)}">${ST_NAME[stOf(r)]}</span></td></tr>`
