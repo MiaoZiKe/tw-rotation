@@ -37,3 +37,10 @@
 #pwOv.pw-still .pw-rib{display:flex;position:absolute;left:18px;right:56px;top:0;height:8px;gap:6px;transform:translateY(-4px)}
 #pwOv.pw-still .pw-rib i{flex:1;border-radius:4px;display:block}
 @media (prefers-reduced-motion:reduce){#pwOv .pw-card{animation:none!important}}
+#pwOv .pw-tag{position:absolute;right:10px;bottom:6px;font-size:12px;line-height:1.2;color:var(--ink-2,#666);opacity:.85}
+#v-promodemo .pd{max-width:640px;margin:24px auto}
+#v-promodemo .pd-btns{display:flex;flex-direction:column;gap:12px;margin-top:16px}
+#v-promodemo .pd-b{min-height:60px;padding:0 20px;border-radius:14px;border:1px solid var(--line-2,rgba(120,110,200,.4));background:var(--panel-2,#fbfaff);color:var(--ink,#1c1a2e);font-size:18px;font-weight:700;cursor:pointer}
+#v-promodemo .pd-b:first-child{background:var(--accent,#5643d1);color:var(--on-accent,#fff);border-color:transparent}
+#v-promodemo .pd-msg{min-height:1.4em;margin:12px 0 0;font-size:14px;color:var(--ink-2,#666)}
+@media (max-width:640px){#v-promodemo .pd{margin:12px 0}#v-promodemo .pd-b{min-height:64px}}

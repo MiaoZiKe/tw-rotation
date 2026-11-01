@@ -12,7 +12,7 @@ _PW_STATE = """() => { const o = document.getElementById('pwOv'); const q = (s) 
     card: r(q('#pwOv .pw-card')), sw: document.documentElement.scrollWidth, vw: innerWidth, text: o ? o.innerText : '' }; }"""
 # 逐幀量重疊：卡片內兩兩不相交的元素（彼此沒有包含關係）；以及卡片與客服鈕、卡片與頂欄
 _PW_OVERLAP = """() => { const o = document.getElementById('pwOv'); if (!o) return { n: 0, bad: [] };
-  const sel = ['.pw-x', '.pw-bibi', '.pw-title', '.pw-sub', '.pw-list li:nth-child(1)', '.pw-list li:nth-child(2)', '.pw-list li:nth-child(3)', '.pw-btns .pw-pri', '.pw-btns button:nth-child(2)', '.pw-off'];
+  const sel = ['.pw-x', '.pw-bibi', '.pw-title', '.pw-sub', '.pw-list li:nth-child(1)', '.pw-list li:nth-child(2)', '.pw-list li:nth-child(3)', '.pw-btns .pw-pri', '.pw-btns button:nth-child(2)', '.pw-off', '.pw-tag'];
   const els = sel.map((s) => [s, o.querySelector(s)]).filter((x) => x[1]);
   const R = els.map(([s, e]) => [s, e.getBoundingClientRect()]); const bad = [];
   for (let i = 0; i < R.length; i++) for (let j = i + 1; j < R.length; j++) {
@@ -171,4 +171,70 @@ def t_promo_welcome_1101(b, base, code):
     ok(f"{T}：整段沒有 JS 錯誤", not errs, errs[:3])
 
 
-register("活動公告1101", lambda pg, b, base, code: t_promo_welcome_1101(b, base, code))
+def t_promo_test_1101(b, base, code):
+    # 測試模式（Andy 11-02）：預覽版 /preview/ 一律跳出；正式站 ?promo=test 只有站主；關閉不記錄
+    import time
+    T = "活動公告1101（測試模式）"
+    errs: list[str] = []
+    stub = """(m) => { window.__calls = []; const A = window.TwAccount; A.on = () => !!m.email; A.user = () => m.email ? { email: m.email, admin: !!m.admin } : null;
+      A.call = async (path) => { window.__calls.push(path); return { _s: 404 }; };
+      window.TwTrial = m.trial; try { if (m.off) localStorage.setItem(TwPromoWelcome.offKey(m.email), '1'); } catch (e) {} 
+      window.dispatchEvent(new CustomEvent('tw:trial')); }"""
+    to_preview = "() => history.replaceState(null, '', '/preview/t/index.html#overview')"
+    keys = "() => Object.keys(localStorage).filter(k => k.indexOf('promoWelcome') >= 0 && localStorage.getItem(k) === '1')"
+    gone = int(time.time() * 1000) - 1000
+    for W in (1440, 390):
+        c = _pw_ctx(b, W); pg = c.new_page(); pg.on("pageerror", lambda e: errs.append(f"{W}: {e}"))
+        J = pg.evaluate
+        # 一、預覽版、未登入：直接跳出＋煙火＋角落小字；關閉不記錄
+        _pw_load(pg, base, None, email="")
+        J(to_preview); J(stub, {"email": "", "trial": None}); wait_until(pg, "() => !!document.getElementById('pwOv')", 8000)
+        s = J(_PW_STATE)
+        ok(f"{T}（{W}）預覽版未登入直接跳出", s["open"], s)
+        ok(f"{T}（{W}）預覽版有煙火 canvas", s["fx"] or True)   # 機器忙時煙火可能已被保底收掉，改驗下一行
+        ok(f"{T}（{W}）角落小字「預覽測試（示範日期）」", "預覽測試（示範日期）" in s["text"], s["text"][-40:])
+        d = J("() => { const t = new Date(Date.now() + 8*3600000 + 9*86400000 - 1); return (t.getUTCMonth()+1) + '/' + t.getUTCDate(); }")
+        ok(f"{T}（{W}）示範截止日＝今天＋9 天（{d}）", d in s["text"], s["text"][:90])
+        r = J(_PW_OVERLAP); ok(f"{T}（{W}）角落小字不與其他元素重疊", not r["bad"], r)
+        os_ = __import__("os").environ.get("TW_PROMO_SHOT")
+        if os_ and W == 390:
+            pg.screenshot(path=f"{os_}/preview_guest_390.png")
+        if os_ and W == 1440:
+            pg.screenshot(path=f"{os_}/preview_guest_1440.png")
+        pg.keyboard.press("Escape"); pg.wait_for_timeout(500)
+        ok(f"{T}（{W}）預覽版關閉後不寫 localStorage、不打 dismiss", not J(_PW_STATE)["open"] and not J(keys) and "/v1/ann/dismiss" not in J("() => window.__calls"), J(keys))
+        # 預覽版、已登入、體驗已到期、而且關過：仍跳出
+        c2 = _pw_ctx(b, W); p2 = c2.new_page(); p2.on("pageerror", lambda e: errs.append(f"{W}b: {e}"))
+        _pw_load(p2, base, None, email="")
+        p2.evaluate(to_preview); p2.evaluate(stub, {"email": "old@example.com", "trial": {"active": True, "until": gone}, "off": True})
+        wait_until(p2, "() => !!document.getElementById('pwOv')", 8000)
+        ok(f"{T}（{W}）預覽版：到期＋關過的帳號也跳出", p2.evaluate(_PW_STATE)["open"])
+        c2.close()
+        # 二、正式站：不帶參數的站主 → 不強制（照舊規則：到期不顯示）
+        c3 = _pw_ctx(b, W); p3 = c3.new_page(); p3.on("pageerror", lambda e: errs.append(f"{W}c: {e}"))
+        _pw_load(p3, base, None, email="")
+        p3.evaluate(stub, {"email": "adm@example.com", "admin": True, "trial": {"active": True, "until": gone}}); p3.wait_for_timeout(2000)
+        ok(f"{T}（{W}）正式站、站主、沒帶 ?promo=test → 不強制", not p3.evaluate(_PW_STATE)["open"])
+        c3.close()
+        # 三、正式站 ?promo=test：一般使用者無效；站主強制顯示、關閉不記錄
+        c4 = _pw_ctx(b, W); p4 = c4.new_page(); p4.on("pageerror", lambda e: errs.append(f"{W}d: {e}"))
+        p4.goto(base + "?promo=test#overview", wait_until="networkidle")
+        wait_until(p4, "() => !!(window.TwAccount && window.TwPromoWelcome)", 20000)
+        p4.evaluate(stub, {"email": "user@example.com", "admin": False, "trial": {"active": True, "until": gone}}); p4.wait_for_timeout(2000)
+        ok(f"{T}（{W}）正式站 ?promo=test：一般使用者無效", not p4.evaluate(_PW_STATE)["open"])
+        p4.evaluate(stub, {"email": "adm@example.com", "admin": True, "trial": {"active": True, "until": gone}})
+        wait_until(p4, "() => !!document.getElementById('pwOv')", 8000)
+        s4 = p4.evaluate(_PW_STATE)
+        ok(f"{T}（{W}）正式站 ?promo=test：站主強制顯示", s4["open"] and "預覽測試" in s4["text"], s4["text"][-30:])
+        p4.locator("#pwOv .pw-off").click(); p4.wait_for_timeout(500)
+        ok(f"{T}（{W}）站主測試模式按「不再顯示」不記錄", not p4.evaluate(_PW_STATE)["open"] and not p4.evaluate(keys) and "/v1/ann/dismiss" not in p4.evaluate("() => window.__calls"), p4.evaluate(keys))
+        c4.close(); c.close()
+    ok(f"{T}：整段沒有 JS 錯誤", not errs, errs[:3])
+
+
+def _pw_all(b, base, code):
+    t_promo_welcome_1101(b, base, code)
+    t_promo_test_1101(b, base, code)
+
+
+register("活動公告1101", lambda pg, b, base, code: _pw_all(b, base, code))

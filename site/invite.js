@@ -53,6 +53,7 @@
   function me() { const a = A(); return a && a.on && a.on() ? a.user() : null; }
 
   function refresh() {
+    if (S.demo) return Promise.resolve();   // 預覽展示（#promo-demo）：用假資料，不打 API
     const u = me();
     if (!u) { S.data = null; S.wish = null; S.st = 'none'; S.who = ''; return Promise.resolve(); }
     const who = String(u.email || '');
@@ -131,7 +132,13 @@
       <textarea id="invWt" maxlength="500" placeholder="想怎麼用、解決什麼問題（6～500 字）" aria-label="願望內容">${cur ? esc(cur.text) : ''}</textarea>
       <div class="row2" style="margin-top:6px"><button type="button" class="pri invbtn" id="invWgo" data-inv="wish">${cur ? '更新願望' : '送出願望'}</button></div><p class="msg" id="invWmsg" role="status"></p>`;
   }
-  function dlg() {
+  function dlg(demo) {
+    S.demo = demo === true;
+    if (S.demo) {   // 預覽展示用的假資料：邀請碼 DEMO1234、已邀請 3 人（再邀 2 人升級 Pro）、Pro 期內顯示許願表單
+      S.st = 'ok'; S.fly = null;
+      S.data = { code: 'DEMO1234', link: location.origin + '/?invite=DEMO1234', redeemed_count: 3, reward_days_total: 42, pro_days: 14, can_redeem: true, redeemed: null, next_pro_need: 2 };
+      S.wish = { ok: true, wish: null };
+    } else if (S.data && S.data.code === 'DEMO1234') { S.data = null; S.wish = null; S.st = 'none'; S.who = ''; }
     let d = document.getElementById('invDlg');
     if (!d) {
       d = document.createElement('div'); d.id = 'invDlg'; d.className = 'acctdlg'; d.setAttribute('role', 'dialog'); d.setAttribute('aria-modal', 'true'); d.setAttribute('aria-label', '邀請好友與許願');
@@ -150,7 +157,7 @@
     }
     d.innerHTML = '<div class="box">' + body() + '</div>';
     d.hidden = false;
-    refresh();
+    if (!S.demo) refresh();
   }
   function repaintDlg() {
     const d = document.getElementById('invDlg');
@@ -171,6 +178,7 @@
   async function redeem(d) {
     const inp = d.querySelector('#invIn'), go = d.querySelector('#invGo'); if (!inp || go.disabled) return;
     const code = inp.value.trim().toUpperCase();
+    if (S.demo) { say('invMsg', '示範模式：不會真的兌換。', true); return; }
     if (!code) { say('invMsg', '請先輸入邀請碼。'); return; }
     go.disabled = true; say('invMsg', '兌換中…');
     const j = await A().call('/v1/invite/redeem', { code });
@@ -200,6 +208,7 @@
     const feature = f.value.trim(), text = t.value.trim();
     if (!feature) { say('invWmsg', '請寫一個功能名稱。'); return; }
     if (text.length < 6) { say('invWmsg', '願望內容至少要 6 個字。'); return; }
+    if (S.demo) { S.wish = { ok: true, wish: { feature, text, status: 'new' } }; repaintDlg(); say('invWmsg', '示範模式：已模擬送出，不會真的寫入。', true); return; }
     go.disabled = true; say('invWmsg', '送出中…');
     const j = await A().call('/v1/wish', { text, feature });
     if (j && j._s === 200 && j.ok) {
@@ -226,5 +235,5 @@
   window.addEventListener('tw:account', () => { S.st = 'none'; S.fly = null; refresh(); });
   window.addEventListener('tw:perm', () => { repaintMenu(); });
 
-  window.TwInvite = { menuHTML, refresh, state: () => ({ st: S.st, data: S.data, wish: S.wish }), open: dlg };
+  window.TwInvite = { menuHTML, refresh, state: () => ({ st: S.st, data: S.data, wish: S.wish }), open: (o) => dlg(!!(o && o.demo)) };
 })();

@@ -66,10 +66,28 @@
     if (!u && t.until) { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(t.until); u = m ? Date.UTC(+m[1], +m[2] - 1, +m[3]) - 8 * 3600000 + DAY : Date.parse(t.until); }
     return u > Date.now() ? u : 0;
   }
+  /* 測試模式（Andy 11-02「幫我改成直接可以測試預覽」；不改正式規則）：
+     ① 預覽版（網址含 /preview/）：不論登入、體驗到期、關過與否，打開首頁就跳出；
+     ② 正式站：網址帶 ?promo=test 且是站主帳號（TwAccount.user().admin）才強制顯示；一般使用者帶參數無效。
+     測試模式關閉不寫 localStorage、不打 /v1/ann/dismiss，重新整理就再出現。 */
+  function testMode() {
+    if (/\/preview\//.test(location.pathname || '')) return true;
+    try {
+      const a = window.TwAccount, u = a && a.on && a.on() && a.user && a.user();
+      return !!(u && u.admin && /[?&]promo=test(&|$)/.test(location.search || ''));
+    } catch (e) { return false; }
+  }
   async function check() {
-    const em = email();
-    if (!em || !onHome()) { if (P.el) hide(); return false; }
+    const em = email(), tm = testMode();
+    if (P.forced && P.el) return true;   // 展示頁強制開的，不被「不在首頁」收掉
+    if (P.testClosed && tm) return false;
+    if ((!em && !tm) || !onHome()) { if (P.el) hide(); return false; }
     if (P.el) return true;
+    if (tm) {
+      if (busy()) { schedule(1500); return false; }
+      const real = em ? trialEnd() : 0;
+      show(em, real || Date.now() + 9 * DAY, { test: true, demo: !real }); return true;
+    }
     const seq = ++P.seq, d = await fetchSrv(em);
     if (seq !== P.seq || P.el || email() !== em || !onHome()) return false;
     let end;
@@ -82,7 +100,9 @@
   function schedule(ms) { clearTimeout(P.timer); P.timer = setTimeout(check, ms); }
 
   // ------------------------------------------------------------------ 訊息框
-  function show(em, end) {
+  function show(em, end, opt) {
+    opt = opt || {};
+    P.test = !!opt.test;
     const left = Math.max(1, Math.ceil((end - Date.now()) / DAY));
     const still = reduced();
     const ov = document.createElement('div');
@@ -102,6 +122,7 @@
       </ul>
       <div class="pw-btns"><button type="button" class="pw-pri" data-go="trial">看我的體驗</button><button type="button" data-go="invite">邀請好友</button></div>
       <button type="button" class="pw-off">不再顯示</button>
+      ${opt.test ? '<span class="pw-tag">預覽測試' + (opt.demo ? '（示範日期）' : '') + '</span>' : ''}
     </div>`;
     document.body.appendChild(ov); P.el = ov; P.lastFocus = document.activeElement;
     ov.addEventListener('click', (e) => {
@@ -113,7 +134,7 @@
     ov.addEventListener('keydown', trap);
     document.addEventListener('keydown', onKey, true);
     requestAnimationFrame(() => { ov.classList.add('on'); const b = ov.querySelector('.pw-pri'); if (b) b.focus({ preventScroll: true }); });
-    if (!still && !P.played) { P.played = true; fireworks(); }
+    if (!still && (!P.played || P.test)) { P.played = true; fireworks(); }
   }
   function go(which) {
     close(true);
@@ -133,11 +154,13 @@
     if (e.shiftKey && a === first) { e.preventDefault(); last.focus(); } else if (!e.shiftKey && a === last) { e.preventDefault(); first.focus(); }
   }
   function hide() {
+    P.forced = false;
     stopFx();
     document.removeEventListener('keydown', onKey, true);
     if (P.el) { P.el.remove(); P.el = null; }
   }
   function close(remember) {
+    if (P.test) { P.testClosed = true; remember = false; }   // 測試模式：不記錄
     if (remember) {
       const em = email();
       if (em) { ls.set(offKey(em), '1'); try { const a = window.TwAccount; if (a && a.call) Promise.resolve(a.call('/v1/ann/dismiss', { aid: AID })).catch(() => {}); } catch (e) { /* 後端沒部署：只有本機記住 */ } }
@@ -211,10 +234,41 @@
     if (P.fx) { P.fx.width = 0; P.fx.height = 0; P.fx.remove(); P.fx = null; }
   }
 
+
+  // ------------------------------------------------------------------ 預覽版展示頁 #promo-demo（只在 /preview/ 路徑；正式站這個路由不存在）
+  /* Andy 11-02：「我要先看到預覽畫面…直接讓我都看得到」。三顆大按鈕：公告（含煙火）、邀請碼／許願視窗（假資料）、到期前問卷。 */
+  function force() {
+    P.testClosed = false; hide(); P.forced = true;
+    show(email(), Date.now() + 9 * DAY, { test: true, demo: true });
+  }
+  if (/\/preview\//.test(location.pathname || '')) {
+    (window.TwSubRoutes = window.TwSubRoutes || []).push((head) => {
+      if (head !== 'promo-demo') return null;
+      let v = document.getElementById('v-promodemo');
+      if (!v) { const main = document.querySelector('main'); if (!main) return null; v = document.createElement('section'); v.className = 'view'; v.id = 'v-promodemo'; main.insertBefore(v, document.getElementById('siteFoot') || null); }
+      v.innerHTML = `<div class="card pd"><h3>活動預覽展示</h3><p class="muted">這一頁只有預覽版才有。三顆鈕都用示範資料，按了不會寫入任何真實資料。</p>
+        <div class="pd-btns"><button type="button" class="pd-b" data-pd="promo">看活動公告（含煙火）</button>
+        <button type="button" class="pd-b" data-pd="invite">看邀請碼／許願視窗</button>
+        <button type="button" class="pd-b" data-pd="survey">看到期前問卷</button></div><p class="pd-msg" id="pdMsg" role="status"></p></div>`;
+      if (!v.dataset.bound) {
+        v.dataset.bound = '1';
+        v.addEventListener('click', (e) => {
+          const b = e.target.closest('[data-pd]'); if (!b) return;
+          const msg = document.getElementById('pdMsg'); if (msg) msg.textContent = '';
+          if (b.dataset.pd === 'promo') force();
+          else if (b.dataset.pd === 'invite') { if (window.TwInvite && window.TwInvite.open) window.TwInvite.open({ demo: true }); else if (msg) msg.textContent = '邀請視窗還沒上預覽。'; }
+          else if (window.TwSurvey && window.TwSurvey.open) window.TwSurvey.open({ demo: true });
+          else if (msg) msg.textContent = '問卷製作中：做好並部署到預覽後，這顆鈕會直接打開問卷（示範資料）。';
+        });
+      }
+      return 'v-promodemo';
+    });
+  }
+
   // ------------------------------------------------------------------ 觸發
   window.addEventListener('tw:account', () => { P.srv = null; });
   ['tw:account', 'tw:grants', 'tw:trial', 'hashchange'].forEach((ev) => window.addEventListener(ev, () => schedule(ev === 'hashchange' ? 200 : 600)));
   window.addEventListener('tw:tour', () => schedule(800));
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', () => schedule(1200)); else schedule(1200);
-  window.TwPromoWelcome = { check, close, isOpen: () => !!P.el, offKey, email };
+  window.TwPromoWelcome = { check, force, close, isOpen: () => !!P.el, offKey, email };
 })();
