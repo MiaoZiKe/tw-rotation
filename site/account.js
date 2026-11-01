@@ -592,6 +592,7 @@ html:not(.m4) .m4deldlg .msg{min-height:1.4em;font-size:13px;color:#ff6b7a;margi
       + (u.admin ? `<button type="button" role="menuitem" data-a="admin">管理區：流量觀測與線上名單</button><button type="button" role="menuitem" data-a="perm">管理區：會員功能權限</button>` : '')
       + (u.admin && window.TwGw && window.TwGw.on() ? `<button type="button" role="menuitem" data-a="gw">管理區：付費資料異常</button>` : '')   // 2026-10-06 data-gw 第三階段（site/admingw.js）
       + deskRows(u)
+      + (u.admin && window.TwOwner ? window.TwOwner.menuHTML('desk') : '')   // 2026-11-01 站主工具：錄影模式（隱藏名稱）
       + `<button type="button" role="menuitem" data-a="privacy">隱私權政策</button>`
       /* 10-05 Andy 拿掉「刪除我的資料」；10-10 Andy 選 B「都能直接刪除」→ 加回「刪除帳號」（deskDel，流程同手機）*/
       + deskDel(u)

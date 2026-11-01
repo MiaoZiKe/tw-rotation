@@ -258,6 +258,7 @@ html.m4 .m4deldlg .msg{min-height:1.4em;font-size:13px;color:#ff6b7a;margin:4px 
       + `<button type="button" class="m4i" role="menuitem" data-m="quota"><span class="t">額度上限</span><span class="r">${esc(remText())}</span></button>`
       + `<button type="button" class="m4i" role="menuitem" data-m="feedback"><span class="t">意見回饋</span></button>`
       + sw('fab', !fabOff(), '客服功能')
+      + (u && u.admin && window.TwOwner ? window.TwOwner.menuHTML('m4') : '')   // 2026-11-01 站主工具：錄影模式
       + '<div class="m4styrow" data-m="style"><span class="t" id="m4StyLbl">版面風格</span>'
       + '<div class="m4seg4" role="radiogroup" aria-labelledby="m4StyLbl">' + styIds().map((k) => `<button type="button" role="radio" aria-checked="${k === styCur()}" data-m="sty" data-sty="${k}">${esc(styName(k))}</button>`).join('') + '</div></div>';
     if (u && u.admin) {
