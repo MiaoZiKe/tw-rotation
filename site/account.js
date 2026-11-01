@@ -514,9 +514,9 @@ html:not(.m4) .m4deldlg .msg{min-height:1.4em;font-size:13px;color:#ff6b7a;margi
     const on = document.getElementById('acctOnline'); if (!on) return;
     if (!S.on || S.online == null) { on.hidden = true; return; }
     
-    const MIN_USERS = 200; // 最小人數
+    const MIN_USERS = 300; // 最小人數
     const MAX_USERS = 500; // 最大人數
-    const JUMP_INTERVAL_SEC = 60; // 60秒跳動一次
+    const JUMP_INTERVAL_SEC = ; // 10秒跳動一次
 
     const timeSeed = Math.floor(Date.now() / (JUMP_INTERVAL_SEC * 1000));
     const pseudoRandom = Math.abs(Math.sin(timeSeed * 12345.6789));
