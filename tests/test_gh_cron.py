@@ -36,7 +36,7 @@ def test_派出去的輸入都是_workflow_認得的值():
     for j in sched:
         wf = yaml.safe_load((ROOT / ".github/workflows" / j["workflow"]).read_text(encoding="utf-8"))
         on = wf.get("on") or wf.get(True)
-        inputs = on["workflow_dispatch"]["inputs"]
+        inputs = (on["workflow_dispatch"] or {}).get("inputs") or {}   # 沒有 inputs 的 workflow（ig_news_watch）派 {} 即可
         for k, v in j["inputs"].items():
             assert k in inputs, f"{j['workflow']} 沒有輸入 {k}"
             opts = inputs[k].get("options")
