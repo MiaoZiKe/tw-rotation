@@ -247,9 +247,9 @@
       let v = document.getElementById('v-promodemo');
       if (!v) { const main = document.querySelector('main'); if (!main) return null; v = document.createElement('section'); v.className = 'view'; v.id = 'v-promodemo'; main.insertBefore(v, document.getElementById('siteFoot') || null); }
       v.innerHTML = `<div class="card pd"><h3>活動預覽展示</h3><p class="muted">這一頁只有預覽版才有。三顆鈕都用示範資料，按了不會寫入任何真實資料。</p>
-        <div class="pd-btns"><button type="button" class="pd-b" data-pd="promo">看活動公告（含煙火）</button>
-        <button type="button" class="pd-b" data-pd="invite">看邀請碼／許願視窗</button>
-        <button type="button" class="pd-b" data-pd="survey">看到期前問卷</button></div><p class="pd-msg" id="pdMsg" role="status"></p></div>`;
+        <div class="pd-btns"><button type="button" class="pd-b" style="min-height:64px!important" data-pd="promo">看活動公告（含煙火）</button>
+        <button type="button" class="pd-b" style="min-height:64px!important" data-pd="invite">看邀請碼／許願視窗</button>
+        <button type="button" class="pd-b" style="min-height:64px!important" data-pd="survey">看到期前問卷</button></div><p class="pd-msg" id="pdMsg" role="status"></p></div>`;
       if (!v.dataset.bound) {
         v.dataset.bound = '1';
         v.addEventListener('click', (e) => {
