@@ -2130,15 +2130,16 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
      只在管理區顯示，不碰一般使用者畫面。 */
   /* 邀請欄（2026-11-02）：後端會提供 invited_count、invite_reward_days（在 /v1/admin/members 每人一筆，或 /v1/admin/invite/stats）；沒有就顯示「—」，不報錯 */
   function invOf(r, m) {
-    const x = (PS.inv && PS.inv.get(String(r.email).toLowerCase())) || {};
-    const n = m.invited_count != null ? m.invited_count : x.invited_count, d = m.invite_reward_days != null ? m.invite_reward_days : x.invite_reward_days;
-    return { invN: Number.isFinite(+n) && n != null ? +n : null, invD: Number.isFinite(+d) && d != null ? +d : null };
+    /* 後端實際格式：/v1/admin/invite/stats → { stats: { <uid>: { email, invited, reward_days } } }（只列有邀請或有獎勵的人，reward_days 含待用）；
+       /v1/admin/perm/list 的 users[] 每位另有 invited_count、invite_reward_days。以 email 對到名單列；兩邊都沒有（舊後端／404）就是 null＝顯示「—」。 */
+    const em = String(r.email).toLowerCase(), x = PS.inv && PS.inv.get(em), u = (PS.list && PS.list.users || []).find((z) => String(z.email).toLowerCase() === em) || {};
+    const pick = (...v) => { const f = v.find((y) => y != null && Number.isFinite(+y)); return f == null ? null : +f; };
+    return { invN: pick(x && x.invited, m.invited_count, u.invited_count), invD: pick(x && x.reward_days, m.invite_reward_days, u.invite_reward_days) };
   }
   function setInv(j) {
     PS.inv = new Map();
-    if (!j || j._s !== 200) return;
-    const a = Array.isArray(j.members) ? j.members : Array.isArray(j.users) ? j.users : Array.isArray(j.rows) ? j.rows : [];
-    a.forEach((x) => { if (x && x.email) PS.inv.set(String(x.email).toLowerCase(), x); });
+    if (!j || j._s !== 200 || !j.stats || typeof j.stats !== 'object') return;
+    Object.values(j.stats).forEach((x) => { if (x && x.email) PS.inv.set(String(x.email).toLowerCase(), x); });
   }
   function welOf(r, m) {
     const out = { welEnd: 0, welKind: '' };
