@@ -57,7 +57,13 @@
     if (S.src === 'default' && !(acct() && acct().on && acct().on())) return f.kind === 'limit' ? f.def : true;
     const v = S.feats[id];
     /* 範本沒寫 → 依身分的預設（features.js defBy；點擊次數上限：訪客、註冊會員各有預設，付費不限）*/
-    if (f.kind === 'limit') return Number.isInteger(v) ? Math.max(0, Math.min(f.max, v)) : (v === false ? 0 : F.defOf ? F.defOf(f, planKey()) : f.def);
+    if (f.kind === 'limit') {
+      const base = Number.isInteger(v) ? Math.max(0, Math.min(f.max, v)) : (v === false ? 0 : F.defOf ? F.defOf(f, planKey()) : f.def);
+      /* ★ 2026-11-02 Andy：「自設提醒 plus＝體驗 5 條」→ 新會員體驗（welcome）期間，自設提醒條數上限視同 Plus（至少 5）。
+         limit 類不能放進體驗編輯器（它只列開關類），所以在這裡讀「體驗中」直接抬高；伺服器那關的檢查見回報（後端另改）。*/
+      if (id === 'watch.alert') { try { if (window.TwGrants && window.TwGrants.inWelcome && window.TwGrants.inWelcome()) return Math.max(base, 5); } catch (e) { /* 取不到體驗狀態＝照方案值 */ } }
+      return base;
+    }
     return typeof v === 'boolean' ? v : F.defOf ? F.defOf(f, planKey()) : f.def;
   }
   /* ★ admin-v3：瀏覽次數上限 0＝「不能看」，跟關掉開關同一個效果（同一套鎖頭＋升級鈕）；N＞0 的計數在 quota.js */

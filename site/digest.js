@@ -23,6 +23,14 @@
   const A = () => window.TwAccount;
   const K = () => { const a = A(), u = a && a.on && a.on() && a.user && a.user(); return u && u.email ? 'tw.digest.v1.' + String(u.email).toLowerCase() : ''; };
   const S = { d: null, rules: null, rev: 0, cap: null, view: 'digest', msg: '', form: { type: 'above' }, busy: false };
+  /* ★ 2026-11-02 每條提醒的通知方式（nt.w＝網頁通知／站內鈴鐺＋瀏覽器通知、nt.m＝email）。
+     Worker 的 cleanAlerts 目前只收白名單欄位、會把 nt 丟掉，所以偏好另存本機（依帳號 email），載入條件時併回去；
+     也一起送出去，等 Worker 開始保存 nt 就自動跨裝置。預設：網頁通知開、email 關。 */
+  const NK = () => { const a = A(), u = a && a.on && a.on() && a.user && a.user(); return u && u.email ? 'tw.digest.nt.v1.' + String(u.email).toLowerCase() : ''; };
+  const ntLoad = () => { const k = NK(); if (!k) return {}; try { const j = JSON.parse(ls.get(k) || '{}'); return j && typeof j === 'object' ? j : {}; } catch (e) { return {}; } };
+  const ntSave = (m) => { const k = NK(); if (k) ls.set(k, JSON.stringify(m)); };
+  const ntOf = (r) => { const m = ntLoad()[r.id] || r.nt || {}; return { w: m.w !== false && m.w !== 0, m: m.m === true || m.m === 1 }; };
+  const withNt = (rules) => { const m = ntLoad(); return (rules || []).map((r) => (m[r.id] ? { ...r, nt: m[r.id] } : r)); };
   const num = (v, d) => (v == null || !isFinite(v) ? '—' : Number(v).toLocaleString('en-US', { maximumFractionDigits: d == null ? 0 : d, minimumFractionDigits: d || 0 }));
   const sgn = (v, d) => (v == null || !isFinite(v) ? '—' : (v > 0 ? '+' : '') + num(v, d));
   const md = (iso) => String(iso || '').slice(5).replace('-', '/');
@@ -83,7 +91,12 @@
     if (!S.d || !K()) return;
     const m = load(), asof = S.d.asof, ymd = asof.replace(/-/g, '');
     let changed = false;
-    const push = (n) => { if (!m.notes.some((x) => x.id === n.id)) { m.notes.unshift(n); changed = true; } };
+    const push = (n, r) => {
+      if (m.notes.some((x) => x.id === n.id)) return;
+      m.notes.unshift(n); changed = true;
+      /* 瀏覽器通知：只有提醒（不是日報）、這條勾了「網頁通知」、而且使用者在瀏覽器允許過才跳 */
+      if (r && ntOf(r).w) { try { if (window.Notification && Notification.permission === 'granted') new Notification(n.title, { body: n.body.split('\n')[0] }); } catch (e) { /* 不支援就只有鈴鐺 */ } }
+    };
     // 1) 日報（Pro）：自選清單全部頁籤的股票，一天一則
     const W = window.TwWatch;
     if (can('watch.digest') && W && m.last !== asof) {
@@ -103,10 +116,10 @@
       const e = evalRule(r, S.d.s[r.code]);
       if (r.type === 'rev') {
         if (st.key === undefined) st.key = e.key || '';                 // 新建：記下現有那一期，不補響
-        else if (e.met && e.key !== st.key) { st.key = e.key; push(mkAlert(r, ymd, e.text, asof)); }
+        else if (e.met && e.key !== st.key) { st.key = e.key; push(mkAlert(r, ymd, e.text, asof), r); }
       } else if (r.type === 'exdiv') {
-        if (e.met && e.key !== st.key) { st.key = e.key; push(mkAlert(r, ymd, e.text, asof)); }
-      } else if (e.met && !st.met) push(mkAlert(r, ymd, e.text, asof));
+        if (e.met && e.key !== st.key) { st.key = e.key; push(mkAlert(r, ymd, e.text, asof), r); }
+      } else if (e.met && !st.met) push(mkAlert(r, ymd, e.text, asof), r);
       st.met = !!e.met; st.asof = asof; changed = true;
     });
     // 已刪的條件的紀錄順手清掉
@@ -125,7 +138,7 @@
   }
   function loadRules() {
     const a = A(); if (!a || !a.on() || !a.user()) { S.rules = null; return Promise.resolve(); }
-    return call('/v1/alerts/get', {}).then((j) => { if (j && j._s === 200) { S.rules = j.alerts || []; S.rev = j.rev || 0; S.cap = j.cap; } });
+    return call('/v1/alerts/get', {}).then((j) => { if (j && j._s === 200) { S.rules = withNt(j.alerts || []); S.rev = j.rev || 0; S.cap = j.cap; } });
   }
   function boot() {
     const a = A(); if (!a || !a.on() || !a.user()) return;
@@ -133,11 +146,11 @@
   }
   async function saveRules(next, okMsg) {
     S.busy = true;
-    const j = await call('/v1/alerts/put', { alerts: next, rev: S.rev });
+    const j = await call('/v1/alerts/put', { alerts: withNt(next), rev: S.rev });
     S.busy = false;
-    if (j && j._s === 200) { S.rules = j.alerts; S.rev = j.rev; S.cap = j.cap; S.msg = okMsg || ''; run(); }
-    else if (j && j._s === 403 && j.error === 'alert_limit') { S.rules = j.alerts; S.rev = j.rev; S.cap = j.limit; S.msg = `目前方案最多 ${j.limit} 條提醒`; }
-    else if (j && j._s === 409) { S.rules = j.alerts; S.rev = j.rev; S.msg = '另一台裝置剛改過，已更新，請再操作一次'; }
+    if (j && j._s === 200) { S.rules = withNt(j.alerts); S.rev = j.rev; S.cap = j.cap; S.msg = okMsg || ''; run(); }
+    else if (j && j._s === 403 && j.error === 'alert_limit') { S.rules = withNt(j.alerts); S.rev = j.rev; S.cap = j.limit; S.msg = `目前方案最多 ${j.limit} 條提醒`; }
+    else if (j && j._s === 409) { S.rules = withNt(j.alerts); S.rev = j.rev; S.msg = '另一台裝置剛改過，已更新，請再操作一次'; }
     else S.msg = '儲存失敗，稍後再試';
     repaint();
     // 成功提示只閃一下就收掉：原本「已刪除」一直留在清單標題的位置，390 寬時看起來像下面那條仍啟用的提醒被刪了
@@ -170,15 +183,19 @@
 #wdCard .wdrule{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--line);font-size:14px}
 #wdCard .wdrule .tx{flex:1;min-width:0;overflow-wrap:anywhere}
 #wdCard .wdrule label{display:inline-flex;align-items:center;gap:4px;font-size:13px;color:var(--ink-2);white-space:nowrap}
+#wdCard .wdrule{flex-wrap:wrap}
+#wdCard .wdrule .nt{flex-basis:100%;display:flex;gap:14px;flex-wrap:wrap;padding-left:2px}
+#wdCard .wdform .ntf{display:inline-flex;align-items:center;gap:4px;font-size:13.5px;color:var(--ink-2);white-space:nowrap}
+#wdCard .wdform .ntf input{width:auto;height:auto}
 #wdCard .wdrule .del{border:1px solid var(--line-2);background:var(--panel-2);color:var(--ink-2);border-radius:8px;width:32px;height:32px;cursor:pointer}
 @media (max-width:640px){#wdCard .wdform input{width:84px}#wdCard .wdform select{max-width:46vw}#wdCard .wdscroll{max-height:300px}}`);
 
   const HOWTXT = `<b class="howq">自選日報整理你自選股票今天的公開資料；提醒只在你自己設的條件成立時通知。</b><ul>
     <li>日報只列事實：收盤價與成交量、三大法人買賣超、最新月營收、公告的除息與法說日期</li>
     <li>資料每個交易日盤後更新一次，不是盤中即時</li>
-    <li>提醒條件由你自己設定，成立時通知鈴鐺響一次</li>
+    <li>提醒條件由你自己設定，成立時依你勾的方式通知一次：「網頁通知」＝通知鈴鐺（第一次勾選時瀏覽器會問你要不要允許桌面通知）；「email」＝寄到你的登入信箱（寄信功能開通前，勾選會先記住設定）</li>
     <li>本功能為公開資料整理，不構成投資建議或買賣推介；提醒成立只代表你設的條件發生，不代表買進或賣出時機，投資盈虧自行負責</li>
-    <li>日報為 Pro 功能；提醒條數：註冊會員 1 條、Plus 5 條、Pro 不限</li></ul>`;
+    <li>日報為 Pro 功能；提醒條數：註冊會員 1 條、Plus 5 條、Pro 20 條；新會員體驗期間可設 5 條</li></ul>`;
 
   function digestHTML() {
     if (!can('watch.digest')) return `<div class="wdlock"><span>自選日報為 Pro 方案功能（每天盤後整理自選股票的公開資料）</span><a href="#pricing">看方案</a></div>`;
@@ -211,14 +228,15 @@
       + `<input id="wdN" type="number" inputmode="numeric" min="2" max="30" placeholder="連續天數" value="${esc(f.n || '')}" aria-label="連續天數">`;
     if (f.type === 'exdiv') ex = `<input id="wdN" type="number" inputmode="numeric" min="1" max="30" placeholder="天數" value="${esc(f.n || '')}" aria-label="天數">`;
     const full = (S.rules || []).length >= capNow();
-    return `<div class="wdform"><select id="wdCode" aria-label="股票">${opts}</select>${sel('wdType', ty, f.type)}${ex}<button type="button" id="wdAdd"${full || !codes.length ? ' disabled' : ''}>加入提醒</button></div>`;
+    return `<div class="wdform"><select id="wdCode" aria-label="股票">${opts}</select>${sel('wdType', ty, f.type)}${ex}<label class="ntf"><input type="checkbox" id="wdNtW"${f.w === false ? '' : ' checked'}>網頁通知</label><label class="ntf"><input type="checkbox" id="wdNtM"${f.m ? ' checked' : ''}>email</label><button type="button" id="wdAdd"${full || !codes.length ? ' disabled' : ''}>加入提醒</button></div>`;
   }
   function rulesHTML() {
     const W = window.TwWatch;
     if (S.rules == null) return '<div class="wdmsg">載入中…</div>';
     const full = S.rules.length >= capNow();
     const list = S.rules.map((r) => `<div class="wdrule" data-rid="${esc(r.id)}"><span class="tx">${esc(r.code)} ${esc(nameOf(r.code))}：${esc(ruleText(r))}</span>
-      <label><input type="checkbox" data-wdon="${esc(r.id)}"${r.on !== false ? ' checked' : ''}>啟用</label><button type="button" class="del" data-wddel="${esc(r.id)}" aria-label="刪除這條提醒">✕</button></div>`).join('');
+      <label><input type="checkbox" data-wdon="${esc(r.id)}"${r.on !== false ? ' checked' : ''}>啟用</label><button type="button" class="del" data-wddel="${esc(r.id)}" aria-label="刪除這條提醒">✕</button>
+      <span class="nt"><label><input type="checkbox" data-wdnt="w" data-rid="${esc(r.id)}"${ntOf(r).w ? ' checked' : ''}>網頁通知</label><label><input type="checkbox" data-wdnt="m" data-rid="${esc(r.id)}"${ntOf(r).m ? ' checked' : ''}>email</label></span></div>`).join('');
     return (W.curTab().codes.length ? formHTML() : '<div class="wdmsg">先把股票加進這一頁自選，才能設提醒</div>')
       + `<div class="wdmsg" id="wdMsg">${esc(S.msg || (full ? `已達目前方案的 ${capNow()} 條上限，升級可設更多` : ''))}${full ? ' <a href="#pricing">看方案</a>' : ''}</div>` + list;
   }
@@ -241,17 +259,28 @@
   function addRule() {
     const g = (id) => { const x = document.getElementById(id); return x ? x.value : ''; };
     const f = S.form = { type: g('wdType'), code: g('wdCode'), who: g('wdWho') || undefined, side: g('wdSide') || undefined, x: g('wdX'), n: g('wdN') };
+    const w = !!(document.getElementById('wdNtW') || {}).checked, mail = !!(document.getElementById('wdNtM') || {}).checked;
+    f.w = w; f.m = mail;
     const r = { id: Math.random().toString(36).slice(2, 10), code: f.code, type: f.type, on: true };
     if (f.type === 'above' || f.type === 'below') { r.x = parseFloat(f.x); if (!(r.x > 0)) { S.msg = '請填價格（大於 0）'; paint(); return; } }
     if (f.type === 'streak') { r.n = parseInt(f.n, 10); r.who = f.who || 'total'; r.side = f.side || 'buy'; if (!(r.n >= 2 && r.n <= 30)) { S.msg = '連續天數請填 2～30'; paint(); return; } }
     if (f.type === 'exdiv') { r.n = parseInt(f.n, 10); if (!(r.n >= 1 && r.n <= 30)) { S.msg = '天數請填 1～30'; paint(); return; } }
     if (!r.code) { S.msg = '請先選股票'; paint(); return; }
-    S.form = { type: f.type, code: f.code, who: f.who, side: f.side };
+    S.form = { type: f.type, code: f.code, who: f.who, side: f.side, w: w, m: mail };
+    { const m = ntLoad(); m[r.id] = { w: w, m: mail }; ntSave(m); }
+    if (w) askBrowser();
     saveRules((S.rules || []).concat([r]), '已加入提醒');
   }
+  /* 第一次勾「網頁通知」才在使用者手勢裡請求瀏覽器通知權限；拒絕或不支援都沒關係，鈴鐺照響 */
+  function askBrowser() { try { if (window.Notification && Notification.permission === 'default') Notification.requestPermission(); } catch (e) { /* 略 */ } }
   function onChange(e) {
     const t = e.target;
-    if (t.id === 'wdType') { S.form = { type: t.value, code: (document.getElementById('wdCode') || {}).value }; paint(); return; }
+    if (t.id === 'wdType') { S.form = { type: t.value, code: (document.getElementById('wdCode') || {}).value, w: !!(document.getElementById('wdNtW') || {}).checked, m: !!(document.getElementById('wdNtM') || {}).checked }; paint(); return; }
+    if (t.dataset && t.dataset.wdnt) {
+      const m = ntLoad(), cur = ntOf({ id: t.dataset.rid }); m[t.dataset.rid] = { w: cur.w, m: cur.m, ...{ [t.dataset.wdnt]: t.checked } }; ntSave(m);
+      if (t.dataset.wdnt === 'w' && t.checked) askBrowser();
+      S.rules = withNt(S.rules); saveRules(S.rules, '已更新通知方式'); return;
+    }
     if (t.dataset && t.dataset.wdon) saveRules(S.rules.map((r) => (r.id === t.dataset.wdon ? { ...r, on: t.checked } : r)), '');
   }
   function mount(host) {
@@ -266,6 +295,7 @@
   window.addEventListener('tw:account', () => { S.rules = null; S.msg = ''; boot(); });
   window.addEventListener('tw:watch', () => { run(); repaint(); });
   window.addEventListener('tw:perm', () => { run(); repaint(); });
+  window.addEventListener('tw:grants', () => repaint());   // 新會員體驗開始／到期 → 條數上限跟著變
   window.TwDigest = { notes, mount, run, rules: () => (S.rules || []).slice(), data: () => S.d, ruleText, factLine };
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
 })();

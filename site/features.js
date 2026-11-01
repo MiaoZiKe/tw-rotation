@@ -305,11 +305,11 @@
       desc: '每一頁自選清單最多放幾檔（已經放的不會被刪，只是不能再加）', veil: [], mark: [], block: [] },
     /* ★ 2026-10-27（Andy 拍板 T-4「自選日報＋自設提醒」，docs/marketing/tier_plan_1027.md W7；「原有的參數設定不可以動」→ 兩個都是新鍵）：
        watch.digest 自選日報（Pro）：每天盤後把「你自選的股票今天發生什麼」彙整成一則站內通知＋自選頁一張表，只列事實（收盤價量、法人買賣超、月營收、公告事件）。
-       watch.alert 自設提醒條數：註冊會員 1、Plus 5、Pro 不限（硬上限 200）；條件一律使用者自己設，站方不提供任何預設條件。
+       watch.alert 自設提醒條數：註冊會員 1、Plus 5、Pro 20（11-02 Andy 改：Pro 先給 20 條；硬上限仍 200，管理頁可再調；新會員體驗期間視同 Plus＝5，見 perm.js）；條件一律使用者自己設，站方不提供任何預設條件。
        defBy＝範本沒寫這一鍵時依身分的預設（account-api 的 ALERT_DEF 同一組數）；日報預設只有 Pro 開，其他付費範本沒寫＝關。 */
     { id: 'watch.digest', name: '自選日報', cat: 'watch', def: false, defBy: { pro: true }, kind: 'bool',
       desc: '每天盤後依你的自選清單整理「今天發生什麼事」（收盤價量、法人買賣超、月營收、公告事件），放進通知鈴鐺；只列事實，不含評分或建議', veil: [], mark: [], block: [] },
-    { id: 'watch.alert', name: '自設提醒條數', cat: 'watch', def: 1, defBy: { guest: 0, free: 1, plus: 5, pro: 200 }, kind: 'limit', max: 200, unit: '條', opts: [0, 1, 3, 5, 10, 20, 50, 200],
+    { id: 'watch.alert', name: '自設提醒條數', cat: 'watch', def: 1, defBy: { guest: 0, free: 1, plus: 5, pro: 20 }, kind: 'limit', max: 200, unit: '條', opts: [0, 1, 3, 5, 10, 20, 50, 200],
       desc: '最多能設幾條自己的提醒條件（營收公布、法人連買／連賣、收盤價高於／低於、除息前 N 天），條件成立時通知鈴鐺會響；已經設好的不會被刪，只是不能再新增', veil: [], mark: [], block: [] }
   ];
 
