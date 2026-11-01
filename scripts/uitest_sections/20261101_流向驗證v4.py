@@ -80,7 +80,9 @@ def t_flowcheck_v4(b, base):
     # ---------------------------------------------------------------- A. 桌機 1440×900，沒有 verify.json（前端算）
     ctx, pg = open_page(1440, 900)
     s0 = v4(pg)
-    ok(f"[{T}] A1 沒有 verify.json 時用 day 檔在前端算（來源 day）、預設最新交易日 {dates[-1]}", s0["src"] == "day" and s0["d"] == dates[-1], s0)
+    DEF = dates[-6]       # 最近一個「已有之後 5 日結果」的交易日（最新日之後還沒滿 5 日）
+    ok(f"[{T}] A1 沒有 verify.json 時用 day 檔在前端算（來源 day）、預設日＝最近一個已有 5 日結果的交易日 {DEF}（不是最新日 {dates[-1]}）", s0["src"] == "day" and s0["d"] == DEF, s0)
+    ok(f"[{T}] A1b 預設日第一眼就有 ✓／✗：6 張卡的「5 日」判定都不是 —；看細節裡的河流停在同一天", J(pg, "() => [...document.querySelectorAll('#fc4Cols .fc4-c5')].every(c => !/5 日 —/.test(c.innerText))") and J(pg, "() => TwFlowV3.state().date") == DEF, J(pg, "() => TwFlowV3.state().date"))
     ok(f"[{T}] A2 第一屏（1440×900）就看到：吻合率、① 選一天、② 流入前 3、流出前 3 共 6 張卡", J(pg, "() => ['#fc4Hit', '#fc4S1', '#fc4Inn', '#fc4Out'].every(s => { const r = document.querySelector(s).getBoundingClientRect(); return r.height > 0 && r.bottom <= innerHeight; })"), J(pg, "() => ['#fc4Hit','#fc4S1','#fc4Inn','#fc4Out'].map(s => Math.round(document.querySelector(s).getBoundingClientRect().bottom))"))
     txt = J(pg, "() => document.getElementById('fc4Card').innerText")
     ok(f"[{T}] A3 三步驟字樣都在：選一天／我們的數據說／實際股價怎麼走", all(k in txt for k in ("選一天", "我們的數據說", "實際股價怎麼走", "吻合率")), txt[:120])
@@ -88,7 +90,7 @@ def t_flowcheck_v4(b, base):
     ok(f"[{T}] A5 每張卡有一句白話說明（含「加權指數」與「吻合」或「不吻合」或「還沒滿 5 個交易日」）", J(pg, "() => [...document.querySelectorAll('#fc4Cols .fc4-say')].every(e => /加權指數/.test(e.textContent) && /吻合|不吻合|還沒/.test(e.textContent))"))
     ok(f"[{T}] A6 同一列的欄位彼此不重疊", not J(pg, OVL), J(pg, OVL))
     # 判定與資料一致：最新日第一張流入卡，用 FILES 重算判定
-    last = dates[-1]; dy = FILES[f"day/{last}.json"]
+    last = DEF; dy = FILES[f"day/{last}.json"]
     cand = sorted([(g, r) for g, r in dy["groups"].items() if r["share"] is not None and r["share"] >= 1 and r["dshare"] is not None], key=lambda x: -x[1]["dshare"])
     g1, r1 = cand[0]
     nm1 = next(g["name"] for g in FILES["index.json"]["groups"] if g["gid"] == g1)
@@ -144,7 +146,7 @@ def t_flowcheck_v4(b, base):
     ok(f"[{T}] C4 展開的圖有兩條線＋資金占比長條（族群、加權指數、資金占比）", J(pg, "() => { const c = document.querySelector('.fc4-item.open .fc4-chart'); const i = echarts.getInstanceByDom(c); if (!i) return false; const o = i.getOption(); return o.series.map(s => s.name).join(',').includes('加權指數') && o.series.some(s => s.name === '資金占比'); }"))
     pg.click("#fc4Out .fc4-item:nth-child(2) .fc4-row"); pg.wait_for_timeout(500)
     ok(f"[{T}] C5 再點流出第 1 張卡：新的展開、舊的收起（同一時間只有一張）", J(pg, "() => document.querySelectorAll('.fc4-item.open').length") == 1 and v4(pg)["open"] != gopen and J(pg, "() => !!document.querySelector('#fc4Out .fc4-item.open')"))
-    ok(f"[{T}] C6 點卡也選住該族群（看細節的河流同步高亮）", J(pg, "() => TwFlowV3.state().sel") == v4(pg)["open"])
+    ok(f"[{T}] C6 點卡只展開走勢、不動看細節（河流選取不變、看細節仍收起）；河流選族群改按「在資金河流圖看它」", J(pg, "() => TwFlowV3.state().sel") is None and J(pg, "() => document.getElementById('fc3DetBd').hidden"))
     pg.click("#fc4Out .fc4-item.open .fc4-row"); pg.wait_for_timeout(250)
     ok(f"[{T}] C7 再點同一張＝收起", J(pg, "() => document.querySelectorAll('.fc4-item.open').length") == 0)
     pg.click("#fc4Inn .fc4-item:nth-child(2) .fc4-row"); pg.wait_for_timeout(500)
@@ -159,6 +161,9 @@ def t_flowcheck_v4(b, base):
     ok(f"[{T}] D2 輪盤保留：切輪盤後主圖換成輪盤", J(pg, "() => TwFlowV3.state().view") == "wheel" and J(pg, "() => !!document.querySelector('#fc3Stage .fc3-wheelwrap, #fc3Stage svg')"))
     pg.click("#fc3DetTog"); pg.wait_for_timeout(200)
     ok(f"[{T}] D3 再按一次收起，頁面回到只剩三步驟", J(pg, "() => document.getElementById('fc3DetBd').hidden"))
+    pg.click("#fc4Inn .fc4-item:nth-child(3) .fc4-row"); pg.wait_for_timeout(500)
+    gr = v4(pg)["open"]; pg.click(".fc4-item.open [data-act='river']"); pg.wait_for_timeout(900)
+    ok(f"[{T}] D3b 按小卡展開區的「在資金河流圖看它」：看細節自動展開、河流選取＝該族群（{gr}）、主圖有畫（列高亮由 v3 段落 ⑥ 驗）", J(pg, "() => !document.getElementById('fc3DetBd').hidden") and J(pg, "() => TwFlowV3.state().sel") == gr and J(pg, "() => !!document.querySelector('#fc3Stage svg')"), J(pg, "() => TwFlowV3.state().sel"))
     sub = J(pg, "() => document.getElementById('fc3SigWrap').innerText")
     ok(f"[{T}] D4 最下方標「訂閱功能預覽（規劃中）」徽章與「之後訂閱會員可使用」，標題改「條件追蹤」，內容照常顯示、沒有上鎖", "訂閱功能預覽（規劃中）" in sub and "之後訂閱會員可使用" in sub and "條件追蹤" in sub and not J(pg, "() => !!document.querySelector('#fc3SigWrap [data-plk], #fc3SigWrap [inert]')"), sub[:120])
     _all = J(pg, "() => document.getElementById('v-flowcheck').textContent")
@@ -167,6 +172,26 @@ def t_flowcheck_v4(b, base):
     ok(f"[{T}] D5 版面順序：吻合率／三步驟在最上、看細節在中間、訂閱預覽在最下", J(pg, "() => { const y = s => document.querySelector(s).getBoundingClientRect().top; return y('#fc4Card') < y('#fc3Detail') && y('#fc3Detail') < y('#fc3SigWrap'); }"))
     ok(f"[{T}] D6 畫面沒有 pageerror、沒有 11px 以下的字", not J(pg, MINFONT), J(pg, MINFONT))
     ctx.close()
+
+    # 網址帶 d= 時以網址為準；▶ 從預設日往後一天
+    ctx, pg = open_page(1440, 900, h=f"#flowcheck?d={dates[-3]}")
+    ok(f"[{T}] A12 網址帶 ?d={dates[-3]}：以網址為準（不是預設日）、河流同一天；之後 5 日未滿的卡照現在顯示「未滿 5 日」", v4(pg)["d"] == dates[-3] and J(pg, "() => TwFlowV3.state().date") == dates[-3] and J(pg, "() => [...document.querySelectorAll('#fc4Cols .fc4-c4')].every(c => /未滿 5 日/.test(c.innerText))"), v4(pg))
+    ctx.close()
+    ctx, pg = open_page(1440, 900)
+    pg.click("#fc4Next"); pg.wait_for_timeout(300)
+    ok(f"[{T}] A13 預設日按 ▶：切到下一天 {dates[-5]}，「回最新」鈕還在（沒到最新）", v4(pg)["d"] == dates[-5] and J(pg, "() => getComputedStyle(document.getElementById('fc4Latest')).visibility") == "visible")
+    ctx.close()
+
+    # 客服鈕（右下角固定）不蓋住「看細節」「進階」的展開鈕：捲到頁底後兩顆鈕都在客服鈕範圍外
+    for W, H in ((1440, 900), (390, 844)):
+        ctx, pg = open_page(W, H, with_verify=True)
+        pg.evaluate("() => window.scrollTo(0, document.documentElement.scrollHeight)"); pg.wait_for_timeout(600)
+        hit = pg.evaluate("""() => { const f = document.getElementById('supFab'); if (!f) return 'no fab'; const fr = f.getBoundingClientRect(), bad = [];
+          ['fc3DetTog', 'fcAdvTog'].forEach(id => { const r = document.getElementById(id).getBoundingClientRect();
+            if (Math.min(r.right, fr.right) - Math.max(r.left, fr.left) > 0 && Math.min(r.bottom, fr.bottom) - Math.max(r.top, fr.top) > 0) bad.push(id); });
+          return bad; }""")
+        ok(f"[{T}] A14 {W}px 捲到頁底：客服鈕沒有蓋住「看細節」「進階」的展開鈕", hit == [] or hit == "no fab", hit)
+        ctx.close()
 
     # ---------------------------------------------------------------- B. 有 verify.json（後端實際算出）
     ctx, pg = open_page(1440, 900, with_verify=True)
@@ -193,7 +218,7 @@ def t_flowcheck_v4(b, base):
     ok(f"[{T}] F2 第 1 步高亮的是「① 選一天」那一列（遮罩洞與 #fc4S1 重疊）", J(pg, "() => { const h = TwTour.state().hole, r = document.getElementById('fc4S1').getBoundingClientRect(); return Math.min(h.r, r.right) - Math.max(h.l, r.left) > 50 && Math.min(h.b, r.bottom) - Math.max(h.t, r.top) > 10; }"), ts)
     titles = [J(pg, "() => document.getElementById('twTourT').textContent")]
     for k in range(4):
-        pg.click("#twTourNext"); pg.wait_for_timeout(700)
+        pg.click("#twTourNext"); pg.wait_for_timeout(1300)
         titles.append(J(pg, "() => document.getElementById('twTourT').textContent"))
     ok(f"[{T}] F3 按「下一步」五次走完 5 步，標題各不同：{' → '.join(titles)}", len(set(titles)) == 5 and J(pg, "() => TwTour.state().i") == 4, titles)
     pg.wait_for_timeout(1200)
@@ -221,7 +246,7 @@ def t_flowcheck_v4(b, base):
     ok(f"[{T}] G4 手機觸控：日期列與 20／60 日鈕高 ≥ 40", not small, small)
     sg = rowsig(pg)
     pg.tap("#fc4Prev"); pg.wait_for_timeout(250)
-    ok(f"[{T}] G5 手機點 ◀：日期往前一天、6 張卡跟著換", v4(pg)["d"] == dates[-2] and rowsig(pg) != sg)
+    ok(f"[{T}] G5 手機點 ◀：日期往前一天、6 張卡跟著換", v4(pg)["d"] == dates[-7] and rowsig(pg) != sg)
     pg.tap("#fc4Inn .fc4-item:nth-child(2) .fc4-row"); pg.wait_for_timeout(700)
     ok(f"[{T}] G6 手機點卡：展開圖與族群頁連結，沒有橫捲", J(pg, "() => !!document.querySelector('.fc4-item.open .fc4-chart canvas, .fc4-item.open .fc4-chart svg') && !!document.querySelector('.fc4-item.open .fc4-lk') && document.documentElement.scrollWidth <= innerWidth + 1"))
     ok(f"[{T}] G7 手機展開的說明一句話看得到（桌機列內說明在手機收進展開區）", J(pg, "() => { const p = document.querySelector('.fc4-item.open .fc4-ps'); return !!p && p.getBoundingClientRect().width > 100; }"))

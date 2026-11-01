@@ -214,7 +214,6 @@
       p.hidden = !on; if (!on) p.innerHTML = '';
     });
     if (S.open) {
-      if (hooks.pick) hooks.pick(S.open);
       drawPanel(S.open);
     }
   }
@@ -279,10 +278,19 @@
   }
 
   /* ---------------------------------------------------------------- 對外 */
+  /* 預設日期＝最近一個「已經有之後 5 日結果」的交易日：第一眼就看得到 ✓／✗（最新那天的 5 日還沒發生，全是「未滿 5 日」）。
+     網址帶 d= 時以網址為準；最新日用 ▶ 或「回最新」切過去。 */
+  function defaultDate(vd) {
+    for (var i = vd.dates.length - 1; i >= 0; i--) {
+      var day = vd.days[vd.dates[i]];
+      if (day && day.inn.concat(day.out).some(function (r) { return r.rel5 != null; })) return vd.dates[i];
+    }
+    return vd.dates[vd.dates.length - 1];
+  }
   function show(want) {
     return ensure().then(function (vd) {
       if (!vd.dates.length) { $('#fc4Cols').innerHTML = '<div class="fc4-none">驗證資料尚未上線</div>'; return; }
-      var d = want && vd.dates.indexOf(want) >= 0 ? want : (S.d && vd.dates.indexOf(S.d) >= 0 ? S.d : vd.dates[vd.dates.length - 1]);
+      var d = want && vd.dates.indexOf(want) >= 0 ? want : (S.d && vd.dates.indexOf(S.d) >= 0 ? S.d : defaultDate(vd));
       S.d = d; S.open = null; drawDate(); drawCols();
       if (hooks.date) hooks.date(d);
       maybeAutoTour();

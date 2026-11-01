@@ -112,8 +112,9 @@
     root.innerHTML =
       '<div class="fc3" id="fc3root">'
       + '<div id="fc4"></div>'
-      + '<section class="card fc3-detail" id="fc3Detail"><div class="fc3-dethd"><h3>看細節</h3><span class="fc3-detsum">資金河流圖、資金輪盤：看資金在族群之間怎麼換手</span>'
-      + '<button type="button" class="fc-tog" id="fc3DetTog" aria-expanded="false" aria-controls="fc3DetBd">展開</button></div>'
+      + '<section class="card fc3-detail" id="fc3Detail"><div class="fc3-dethd"><h3>看細節</h3>'
+      + '<button type="button" class="fc-tog" id="fc3DetTog" aria-expanded="false" aria-controls="fc3DetBd">展開</button>'
+      + '<span class="fc3-detsum">資金河流圖、資金輪盤：看資金在族群之間怎麼換手</span></div>'
       + '<div class="fc3-detbd" id="fc3DetBd" hidden>'
       + '<div class="fc3-hd"><span class="fc3-date" id="fc3Date"></span><span class="fc3-sp"></span>'
       + '<div class="seg" id="fc3View" role="group" aria-label="圖的種類"><button type="button" data-v="river" class="on" aria-pressed="true">河流</button><button type="button" data-v="wheel" aria-pressed="false">輪盤</button></div>'
@@ -121,7 +122,6 @@
       + API.howBox('v3') + '</div>'
       + API.howDiv('v3')
       + '<div class="fc3-sent" id="fc3Sent" aria-live="polite"></div>'
-      + '<div class="fc3-ans" id="fc3Ans"></div>'
       + '<div class="card fc3-stagecard" id="fc3Card"><div class="fc3-info" id="fc3Info"></div><div class="fc3-stage" id="fc3Stage"></div><div class="fc3-tip" id="fc3Tip" role="tooltip"></div>'
       + '<div class="fc3-ctl"><button type="button" class="fc3-play" id="fc3Play" aria-label="播放">▶</button>'
       + '<input type="range" id="fc3Range" min="0" max="0" step="1" value="0" aria-label="日期">'
@@ -138,7 +138,6 @@
   function wire(root) {
     $('#fc3View').addEventListener('click', function (e) { var b = e.target.closest('button'); if (!b) return; setView(b.dataset.v); });
     $('#fc3Win').addEventListener('click', function (e) { var b = e.target.closest('button'); if (!b || b.disabled) return; setWin(+b.dataset.w); });
-    $('#fc3Ans').addEventListener('click', function (e) { var c = e.target.closest('.fc3-chip'); if (c) select(c.dataset.g); });
     $('#fc3Play').addEventListener('click', togglePlay);
     var lastGo = 0, goLatest = function (e) { if (e && e.preventDefault && e.type === 'pointerup') e.preventDefault(); var n = Date.now(); if (n - lastGo < 400) return; lastGo = n; stopPlay(); setT(V.T - 1); };
     $('#fc3Latest').addEventListener('pointerup', goLatest);      // 手機：滑桿剛拖完、按鈕剛從隱藏變可見，第一下 click 偶爾被吞，pointerup 一定到
@@ -203,7 +202,7 @@
     });
     $('#fc3Tl').textContent = mdl(d);
     $('#fc3Latest').style.visibility = S.t < V.T - 1 ? 'visible' : 'hidden';
-    drawSentence(); drawChips(); if (S.detOpen) { drawStage(); } drawInfo(); drawGapNote();
+    drawSentence(); if (S.detOpen) { drawStage(); } drawInfo(); drawGapNote();
   }
   function drawSentence() {
     var t = S.t, g = topN(t, 1).inn[0], m = V.mk[t], el = $('#fc3Sent');
@@ -211,17 +210,6 @@
     var rel = g.rel[t], w = rel == null ? '' : Math.abs(rel) < 0.3 ? '和加權指數差不多' : (rel > 0 ? '比加權指數強' : '比加權指數弱');
     el.innerHTML = mdl(V.dates[t]) + ' 資金往 <b>' + esc(g.name) + '</b> 集中（占全市場成交額 ' + p1(g.share[t]) + '%，比前一天多 ' + p1(g.dshare[t]) + ' 個百分點）；它當天 <b class="' + cls(g.chg[t]) + '">' + f1(g.chg[t]) + '%</b>'
       + (w ? '，' + w : '') + '（加權指數 <span class="' + cls(m) + '">' + f1(m) + '%</span>）。';
-  }
-  function drawChips() {
-    var t = S.t, tn = topN(t, 3);
-    var mk = function (g, i, k) {
-      return '<button type="button" class="fc3-chip' + (S.sel === g.gid ? ' on' : '') + '" data-g="' + esc(g.gid) + '" aria-pressed="' + (S.sel === g.gid) + '" title="' + esc(g.name) + '">'
-        + '<span class="k">' + k + (i + 1) + '</span><span class="n">' + esc(g.name) + '</span>'
-        + '<span class="v"><span class="a">今日 ' + f2(g.dshare[t]) + ' 百分點・</span><span class="' + cls(g.chg[t]) + '">' + f1(g.chg[t]) + '%</span></span></button>';
-    };
-    var empty = '<div class="fc3-none">今天沒有占比 ≥ 1% 的族群</div>';
-    $('#fc3Ans').innerHTML = '<div class="fc3-grp"><div class="fc3-gt">今日資金流入</div>' + (tn.inn.length ? tn.inn.map(function (g, i) { return mk(g, i, '流入第 '); }).join('') : empty) + '</div>'
-      + '<div class="fc3-grp"><div class="fc3-gt">今日資金流出</div>' + (tn.out.length ? tn.out.map(function (g, i) { return mk(g, i, '流出第 '); }).join('') : empty) + '</div>';
   }
   function drawStage() {
     var el = $('#fc3Stage'); if (!el || !V.ready) return;
@@ -535,9 +523,11 @@
       API.date(V.dates[S.t]);
       all(); drawSignal();
     };
-    if (V.ready) { go(); return v4; }
+    /* 第一屏的日期（預設＝最近一個已有 5 日結果的日子）決定後，河流也停在同一天 */
+    var sync4 = function () { var d = window.TwFlowV4 && window.TwFlowV4.date(); if (d) window.TwFlowV3.setDate(d); };
+    if (V.ready) { go(); return v4.then(sync4); }
     $('#fc3Sent').textContent = '載入近 30 個交易日資料…';
-    return Promise.all([load(idx).then(go), v4]);
+    return Promise.all([load(idx).then(go), v4]).then(sync4);
   }
   window.TwFlowV3 = {
     init: function (api, root) {

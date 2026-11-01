@@ -39,13 +39,17 @@ def t_flowcheck_v3(b, base):
             agree.first.click()
         pg.evaluate("t => document.documentElement.setAttribute('data-theme', t)", theme)
         # v4（11-01 20:20）：河流／輪盤收進「看細節」、預設收起 → 這段先展開再驗；新手導覽用 fc.tour4 擋掉
-        wait_until(pg, "() => document.querySelectorAll('#fc3Ans .fc3-chip').length >= 6 && !!document.getElementById('fc3DetTog')", 15000)
+        wait_until(pg, "() => !!document.getElementById('fc3DetTog') && document.querySelectorAll('#fc4Cols .fc4-row').length >= 6", 15000)
         pg.evaluate("() => { if (document.getElementById('fc3DetBd').hidden) document.getElementById('fc3DetTog').click(); }")
         wait_until(pg, "() => !!document.querySelector('#fc3Stage svg')", 15000)
         pg.wait_for_timeout(500)
         return ctx, pg
 
     J = lambda pg, js, *a: pg.evaluate(js, *a)
+
+    def pick_card(pg, sec, n):          # v4：河流選族群＝點第一屏小卡展開，再按「在資金河流圖看它」
+        pg.click(f"#fc4{sec} .fc4-item:nth-child({n + 1}) .fc4-row"); pg.wait_for_timeout(500)
+        pg.click(".fc4-item.open [data-act='river']"); pg.wait_for_timeout(900)
     st = lambda pg: pg.evaluate("() => TwFlowV3.state()")
     card_h = lambda pg: pg.evaluate("() => Math.round(document.getElementById('fc3Card').getBoundingClientRect().height)")
     sig = lambda pg: pg.evaluate("() => document.getElementById('fc3Stage').innerHTML.length + '|' + document.getElementById('fc3Sent').textContent")
@@ -80,14 +84,14 @@ def t_flowcheck_v3(b, base):
     # ---------------------------------------------------------------- 桌機 1440×900
     ctx, pg = open_page(1440, 900)
     s0 = st(pg)
-    ok(f"[{T}] ① 進頁：預設河流、30 日、最新日、主圖有畫", s0["view"] == "river" and s0["win"] == 30 and s0["date"] == FILES["index.json"]["latest"] and J(pg, "() => document.querySelectorAll('#fc3Stage g.fc3-row').length") == 10, s0)
-    ok(f"[{T}] ① 流入 3＋流出 3 共 6 張卡，每張有名稱與當天漲跌", J(pg, "() => [...document.querySelectorAll('#fc3Ans .fc3-chip')].every(c => c.querySelector('.n').textContent && /%/.test(c.querySelector('.v').textContent))") and J(pg, "() => document.querySelectorAll('#fc3Ans .fc3-chip').length") == 6)
+    _dts = FILES["index.json"]["dates"]
+    ok(f"[{T}] ① 進頁：預設河流、30 日、第一屏預設日（最近一個已有 5 日結果的日子 {_dts[-6]}）、主圖有畫、河流與第一屏同一天", s0["view"] == "river" and s0["win"] == 30 and s0["date"] == _dts[-6] and J(pg, "() => document.querySelectorAll('#fc3Stage g.fc3-row').length") == 10, s0)
+    ok(f"[{T}] ① 「看細節」裡舊的今日資金流入／流出小卡已拿掉（與第一屏不重複）", J(pg, "() => !document.getElementById('fc3Ans') && !document.querySelector('.fc3-chip') && document.querySelectorAll('#fc4Cols .fc4-row').length === 6"))
     ok(f"[{T}] ① 一句白話結論有寫出第 1 名與「加權指數」", "加權指數" in J(pg, "() => document.getElementById('fc3Sent').textContent"))
-    ok(f"[{T}] ① 卡片寫「今日 +x 百分點」（不再是看不懂的「占比 +x」）", J(pg, "() => [...document.querySelectorAll('#fc3Ans .fc3-chip .v .a')].every(e => /今日 [+-]?\\d+\\.\\d+ 百分點/.test(e.textContent))"))
-    _day = FILES["index.json"]["latest"]; _gs = FILES[f"day/{_day}.json"]["groups"]; _nm = {g["gid"]: g["name"] for g in FILES["index.json"]["groups"]}
+    _day = FILES["index.json"]["dates"][-6]; _gs = FILES[f"day/{_day}.json"]["groups"]; _nm = {g["gid"]: g["name"] for g in FILES["index.json"]["groups"]}
     _r = sorted([k for k, v in _gs.items() if (v["share"] or 0) >= 1 and v["dshare"] is not None], key=lambda k: -_gs[k]["dshare"])
     _want_in = [_nm[k] for k in _r[:3]]; _want_out = [_nm[k] for k in _r[::-1][:3]]
-    _got = J(pg, "() => [...document.querySelectorAll('#fc3Ans .fc3-chip')].map(e => e.title)")
+    _got = J(pg, "() => [...document.querySelectorAll('#fc4Cols .fc4-nm b')].map(e => e.textContent)")
     ok(f"[{T}] ① 流入前 3／流出前 3 與資料算出的一致（占比 ≥ 1% 才參與）：{_got}", _got == _want_in + _want_out, (_got, _want_in, _want_out))
     top_det = J(pg, "() => Math.round(document.getElementById('fc3Detail').getBoundingClientRect().top)")
     ok(f"[{T}] ② 1440×900 一屏（v4）：第一屏是驗證三步驟，「看細節」（河流／輪盤）的標題列也在 900px 內（頂＝{top_det}）；河流主圖在它裡面、不再佔首屏", top_det <= 900, top_det)
@@ -126,23 +130,23 @@ def t_flowcheck_v3(b, base):
         good += st(pg)["sel"] == small['g']
     ok(f"[{T}] ④ 輪盤點最擠的 3 對點：點小點的中心，選到的就是它（不被蓋住的大點吃掉），選到 {good}/3", good == 3, (good, [(round(d_, 1), a['g'], c['g']) for d_, a, c in pairs]))
     ok(f"[{T}] ④ 被選的點畫在最上層（最後一個 fc3-pt）並有標籤", J(pg, "(g) => { const l = [...document.querySelectorAll('#fc3Stage g.fc3-pt')]; return l[l.length - 1].dataset.g === g; }", st(pg)["sel"]))
-    pg.click("#fc3Ans .fc3-grp:nth-child(2) .fc3-chip:nth-child(2)"); pg.wait_for_timeout(300); hs.append(card_h(pg))
+    pick_card(pg, "Out", 2); hs.append(card_h(pg))
     g_pick = st(pg)["sel"]
     pg.click("#fc3View [data-v='river']"); pg.wait_for_timeout(300); hs.append(card_h(pg))
     pg.click("#fc3Win [data-w='30']"); pg.wait_for_timeout(300); hs.append(card_h(pg))
     ok(f"[{T}] ⑤ 換日期／窗口／切河流輪盤／點卡：主圖卡高度不變（{sorted(set(hs + [h0]))}）", len(set(hs + [h0])) == 1, hs + [h0])
 
     # 選取：點卡、點列、點輪盤的點三處一致；再點取消；切視圖不丟
-    ok(f"[{T}] ⑥ 點流出第 2 張卡：選取＝它、卡片高亮、河流該列高亮", bool(g_pick) and J(pg, "(g) => !!document.querySelector('#fc3Ans .fc3-chip.on[data-g=\"' + g + '\"]') && !!document.querySelector('#fc3Stage g.fc3-row.on[data-g=\"' + g + '\"]')", g_pick), g_pick)
+    ok(f"[{T}] ⑥ 點第一屏流出第 2 張卡再按「在資金河流圖看它」：選取＝它、河流該列高亮", bool(g_pick) and J(pg, "(g) => !!document.querySelector('.fc4-item.open[data-gid=\"' + g + '\"]') && !!document.querySelector('#fc3Stage g.fc3-row.on[data-g=\"' + g + '\"]')", g_pick), g_pick)
     pg.click("#fc3View [data-v='wheel']"); pg.wait_for_timeout(300)
-    ok(f"[{T}] ⑥ 切到輪盤：選取沒有丟（同一個族群、輪盤右側面板寫它的名字）", st(pg)["sel"] == g_pick and J(pg, "(g) => document.querySelector('.fc3-side .fc3-sname').textContent.includes(window.TwFlowV3 && document.querySelector('#fc3Ans .fc3-chip.on .n').textContent.slice(0, 3))", g_pick))
+    ok(f"[{T}] ⑥ 切到輪盤：選取沒有丟（同一個族群、輪盤右側面板寫它的名字）", st(pg)["sel"] == g_pick and J(pg, "(g) => document.querySelector('.fc3-side .fc3-sname').textContent.includes(window.TwFlowV3 && document.querySelector('.fc4-item.open .fc4-nm b').textContent.slice(0, 3))", g_pick))
     pts = pg.locator("#fc3Stage g.fc3-pt"); other = None
     for i in range(min(pts.count(), 40)):
         gid = pts.nth(i).get_attribute("data-g")
         if gid != g_pick:
             other = gid; pts.nth(i).click(force=True); break
     pg.wait_for_timeout(300)
-    ok(f"[{T}] ⑥ 點輪盤的一個點：選取換成它、河流卡片同步高亮", st(pg)["sel"] == other and J(pg, "(g) => !!document.querySelector('#fc3Ans .fc3-chip.on[data-g=\"' + g + '\"]') || !document.querySelector('#fc3Ans .fc3-chip.on')", other), (st(pg)["sel"], other))
+    ok(f"[{T}] ⑥ 點輪盤的一個點：選取換成它", st(pg)["sel"] == other, (st(pg)["sel"], other))
     pg.click("#fc3View [data-v='river']"); pg.wait_for_timeout(300)
     pg.locator(f"#fc3Stage g.fc3-row[data-g='{other}']").click(); pg.wait_for_timeout(300)
     ok(f"[{T}] ⑥ 在河流再點同一列：取消選取，高亮消失，提示不殘留", st(pg)["sel"] is None and J(pg, "() => !document.querySelector('#fc3Stage g.fc3-row.on') && document.getElementById('fc3Tip').style.display !== 'block'"))
@@ -204,9 +208,9 @@ def t_flowcheck_v3(b, base):
     pg.click("#fcAdvSeg [data-v='trend']"); pg.wait_for_timeout(500)
     nm0 = J(pg, "() => document.getElementById('fcTrendName').textContent")
     pg.evaluate("() => { window.scrollTo(0, 0); }");
-    chips = pg.locator("#fc3Ans .fc3-chip"); chips.nth(0).click(); pg.wait_for_timeout(600)
+    pick_card(pg, "Inn", 1); pg.wait_for_timeout(300)
     nm1 = J(pg, "() => document.getElementById('fcTrendName').textContent")
-    ok(f"[{T}] ⑨ 進階與首屏同步：在上面點一張卡，進階走勢大圖換成同一個族群（{nm0}→{nm1}）", nm1 == J(pg, "() => document.querySelector('#fc3Ans .fc3-chip.on .n').textContent") and nm1 != "—", (nm0, nm1))
+    ok(f"[{T}] ⑨ 進階與首屏同步：在上面點一張卡，進階走勢大圖換成同一個族群（{nm0}→{nm1}）", nm1 == J(pg, "() => document.querySelector('.fc4-item.open .fc4-nm b').textContent") and nm1 != "—", (nm0, nm1))
     ctx.close()
 
     # ---------------------------------------------------------------- 淺色主題：對比
@@ -242,7 +246,7 @@ def t_flowcheck_v3(b, base):
     ok(f"[{T}] ⑪ 手機拖滑桿到最早後，手指點一下「回最新」就回到最新日", st(pg)["t"] == st(pg)["T"] - 1, st(pg))
     pg.evaluate("() => document.getElementById('fc3Detail').scrollIntoView()"); pg.wait_for_timeout(300)
     first4 = J(pg, "() => [...document.querySelectorAll('#fc3Stage g.fc3-row')].slice(0, 4).every(r => r.getBoundingClientRect().bottom <= innerHeight)")
-    ok(f"[{T}] ⑪ 手機首屏看得到：切換鈕、結論句、6 張卡、主圖前 4 列", first4 and J(pg, "() => ['#fc3View', '#fc3Sent', '#fc3Ans'].every(s => document.querySelector(s).getBoundingClientRect().bottom <= innerHeight)"))
+    ok(f"[{T}] ⑪ 手機捲到「看細節」後看得到：切換鈕、結論句、主圖前 4 列", first4 and J(pg, "() => ['#fc3View', '#fc3Sent'].every(s => document.querySelector(s).getBoundingClientRect().bottom <= innerHeight)"))
     ok(f"[{T}] ⑪ 手機最小字 ≥ 12px、文字框不重疊（河流）", not J(pg, MINFONT) and not J(pg, OVERLAP), (J(pg, MINFONT), J(pg, OVERLAP)))
     small = J(pg, "() => [...document.querySelectorAll('#fc3View button, #fc3Win button, #fc3Play, #fc3Latest')].filter(e => e.getBoundingClientRect().width && e.getBoundingClientRect().height < 39.5).map(e => e.textContent.trim() + ':' + Math.round(e.getBoundingClientRect().height))")
     ok(f"[{T}] ⑪ 手機觸控：期間／切換鈕高 ≥ 40、播放 ≥ 44", not small and J(pg, "() => document.getElementById('fc3Play').getBoundingClientRect().height >= 43.5"), small)

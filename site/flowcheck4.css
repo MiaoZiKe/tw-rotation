@@ -64,7 +64,9 @@
 .fc3-dethd{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
 .fc3-dethd h3{margin:0;font-size:16px;font-weight:600}
 .fc3-detsum{font-size:12px;color:var(--ink-3)}
-.fc3-dethd .fc-tog{margin-left:auto}
+.fc3-dethd .fc-tog{margin-left:0}   /* 展開鈕放在標題右邊、不靠右：右下角固定的客服鈕會蓋住靠右的鈕 */
+#fcAdv .fc-hd .fc-tog{margin-left:0;order:1}#fcAdv .fc-hd .fc-advsum{order:2}
+#v-flowcheck .fc{padding-bottom:72px}
 .fc3-detbd{display:flex;flex-direction:column;gap:8px;margin-top:12px}
 .fc3-detbd[hidden]{display:none}
 .fc3-detbd>.card{margin:0}
