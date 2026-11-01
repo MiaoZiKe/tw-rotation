@@ -18,8 +18,8 @@
   const tpeHm = (ms) => (ms ? new Date(ms + 8 * 3600000).toISOString().slice(0, 16).replace('T', ' ') : '—');
   const fromYmd = (s) => Date.parse(s + 'T00:00:00+08:00');
   /* 跟 worker.js GRANT_BAN 同一份（Worker 回的 ban 為準，這裡只是 Worker 還沒回來時的備用）*/
-  const BAN0 = ['mkt.cand', 'mkt.cand.n', 'explore.list', 'explore.list.n', 'stock.ai', 'stock.mtf', 'live.tick', 'stock.k_min'];
-  const ERR = { banned: '含不能放進體驗的功能', bad_feats: '至少要勾一個功能', bad_m: '每項次數要是 1～999 的整數', bad_time: '起訖日不對（結束要在開始之後）',
+  const BAN0 = ['live.tick', 'stock.k_min'];   // 2026-11-02 Andy 決定：只剩盤中即時、分 K 不能放進體驗（四週期同看／今日關注／選股完整名單／AI 分析開放）
+  const ERR = { banned: '含不能放進體驗的功能；若勾的是四週期同看、今日關注、選股完整名單、AI 分析，是後端尚未更新（黑名單縮小在待部署批次，部署後才存得進去）', bad_feats: '至少要勾一個功能', bad_m: '每項次數要是 1～999 的整數', bad_time: '起訖日不對（結束要在開始之後）',
     bad_days: '新會員天數要是 1～60', bad_name: '請填名稱（20 字內）', bad_id: '代號只能用小寫英數、- 與 _', kind_fixed: '已建立的活動不能改種類', too_many: '活動最多 50 個', forbidden: '不是管理者' };
   const S = { d: null, edit: null, ban: BAN0 };
   function feats() {
@@ -56,7 +56,9 @@
   background:var(--panel);color:var(--ink);border:1px solid var(--line-2);border-radius:8px;padding:6px 10px;font:inherit;font-size:14px;min-width:0;box-sizing:border-box}
 #v-subadm .agr .frm .inl{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 #v-subadm .agr .fg{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:6px 14px;max-height:340px;overflow:auto;padding:8px;border:1px solid var(--line);border-radius:10px}
-#v-subadm .agr .fg .cat{grid-column:1/-1;font-size:12px;font-weight:700;color:var(--ink-3);margin-top:4px}
+#v-subadm .agr .fg .cat{grid-column:1/-1;font-size:12px;font-weight:700;color:var(--ink-3);margin-top:4px;display:flex;align-items:center;gap:8px}
+#v-subadm .agr .fg .cat .catbtn{height:26px;padding:0 10px;font-size:12px;font-weight:600}
+#v-subadm .agr .fbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px}
 #v-subadm .agr .fg label{display:flex;align-items:center;gap:6px;font-size:13.5px;min-width:0}
 #v-subadm .agr .fg label span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #v-subadm .agr .fg input[type=number]{width:62px;padding:3px 6px;background:var(--panel);color:var(--ink);border:1px solid var(--line-2);border-radius:6px;font:inherit;font-size:13px}
@@ -97,7 +99,7 @@
     const j = await T().call('/v1/admin/grants/defs/list', {});
     if (!(location.hash || '').startsWith('#admin/grants')) return;
     if (!j || j._s !== 200) { v.innerHTML = `<div class="card agr"><h3>體驗額度</h3><p class="muted">${j && j._s === 403 ? '這個帳號不是管理者。' : '讀不到體驗活動（' + esc(j ? j._s : '連不到會員伺服器') + '）。'}</p></div>`; return; }
-    S.d = j; if (Array.isArray(j.ban)) S.ban = j.ban;
+    S.d = j; /* 不再採用 Worker 回的 ban：後端黑名單縮小還沒部署，採用會把 Andy 已決定開放的四項又藏起來 */
     paint(v);
   }
   function paint(v) {
@@ -155,10 +157,10 @@
         <label for="agrPer">次數算法</label><select id="agrPer"><option value="total"${d.per !== 'day' ? ' selected' : ''}>期間合計（整段期間每項 M 次）</option><option value="day"${d.per === 'day' ? ' selected' : ''}>每天（每天每項 M 次）</option></select>
         <label for="agrAud">對象</label><select id="agrAud"><option value="free"${d.audience !== 'member' ? ' selected' : ''}>只給註冊會員</option><option value="member"${d.audience === 'member' ? ' selected' : ''}>所有登入會員（付費會員本來就能用，不會被扣）</option></select>
         <label for="agrM">每項次數</label><div class="inl"><input type="number" id="agrM" min="1" max="999" value="${esc(m0)}" style="width:90px"><button type="button" id="agrMAll">套用到已勾的功能</button></div>
-        <label>功能</label><div><div class="fg" id="agrFeats">${groups.map(([c, a]) => `<div class="cat">${esc(c.name)}</div>` + a.map((f) => {
+        <label>功能</label><div><div class="fbar" id="agrFBar"><button type="button" id="agrAllOn">全部全選</button><button type="button" id="agrAllOff">全部清除</button><span class="muted" id="agrFCnt" role="status" style="margin:0"></span></div><div class="fg" id="agrFeats">${groups.map(([c, a]) => `<div class="cat"><span>${esc(c.name)}</span><button type="button" class="catbtn" data-cat="${esc(c.id)}" aria-label="${esc(c.name)} 全選或全不選">全選</button></div>` + a.map((f) => {
           const on = Object.prototype.hasOwnProperty.call(d.feats, f.id);
-          return `<label title="${esc(f.desc || '')}"><input type="checkbox" data-fk="${esc(f.id)}"${on ? ' checked' : ''}><span>${esc(f.name)}</span><input type="number" min="1" max="999" data-fm="${esc(f.id)}" value="${esc(on ? d.feats[f.id] : m0)}"${on ? '' : ' disabled'} aria-label="${esc(f.name)} 次數"></label>`; }).join('')).join('')}</div>
-          <p class="ban">不能放進體驗（法遵）：今日關注完整名單、選股完整名單、AI 分析、券商觀點、盤中即時、四週期同看 —— 清單裡不列，存了也會被伺服器擋下。</p></div>
+          return `<label title="${esc(f.desc || '')}"><input type="checkbox" data-fk="${esc(f.id)}" data-fc="${esc(f.cat)}"${on ? ' checked' : ''}><span>${esc(f.name)}</span><input type="number" min="1" max="999" data-fm="${esc(f.id)}" value="${esc(on ? d.feats[f.id] : m0)}"${on ? '' : ' disabled'} aria-label="${esc(f.name)} 次數"></label>`; }).join('')).join('')}</div>
+          <p class="ban">不能放進體驗：盤中即時、分 K。</p></div>
         <label for="agrOn">開關</label><label class="sw"><input type="checkbox" id="agrOn"${d.on ? ' checked' : ''}> 存檔後立刻生效</label>
       </div>
       <div class="st" id="agrFSt" role="status"></div>
@@ -170,7 +172,20 @@
     $('#agrKind').onchange = kindSync; $('#agrT0').onchange = kindSync;
     $('#agrId').oninput = () => { $('#agrId').dataset.touched = '1'; }; $('#agrName').oninput = () => { $('#agrName').dataset.touched = '1'; };
     kindSync();
-    box.querySelectorAll('input[data-fk]').forEach((c) => { c.onchange = () => { const n = box.querySelector(`input[data-fm="${c.dataset.fk}"]`); if (n) n.disabled = !c.checked; }; });
+    /* 2026-11-01 一次全選（Andy：「不想一個個點」）：勾選狀態、存檔格式都不變，只是代替手點；
+       新勾起來的格子次數自動填上方「每項次數」的值，原本就勾著的保留自己的次數。 */
+    const cks = () => [...box.querySelectorAll('input[data-fk]')];
+    const setOne = (c, on, fill) => { c.checked = on; const n = box.querySelector(`input[data-fm="${c.dataset.fk}"]`); if (n) { n.disabled = !on; if (on && fill) n.value = $('#agrM').value; } };
+    const sync = () => {
+      const all = cks(), on = all.filter((c) => c.checked).length;
+      $('#agrFCnt').textContent = `已勾 ${on}／${all.length} 項`;
+      box.querySelectorAll('button[data-cat]').forEach((b) => { const g = all.filter((c) => c.dataset.fc === b.dataset.cat); const full = g.length && g.every((c) => c.checked); b.textContent = full ? '全不選' : '全選'; b.dataset.full = full ? '1' : '0'; });
+    };
+    cks().forEach((c) => { c.onchange = () => { setOne(c, c.checked, c.checked); sync(); }; });
+    box.querySelectorAll('button[data-cat]').forEach((b) => { b.onclick = () => { const to = b.dataset.full !== '1'; cks().filter((c) => c.dataset.fc === b.dataset.cat).forEach((c) => setOne(c, to, to && !c.checked)); sync(); }; });
+    $('#agrAllOn').onclick = () => { cks().forEach((c) => setOne(c, true, !c.checked)); sync(); };
+    $('#agrAllOff').onclick = () => { cks().forEach((c) => setOne(c, false, false)); sync(); };
+    sync();
     $('#agrMAll').onclick = () => { const m = $('#agrM').value; box.querySelectorAll('input[data-fk]:checked').forEach((c) => { const n = box.querySelector(`input[data-fm="${c.dataset.fk}"]`); if (n) n.value = m; }); };
     $('#agrCancel').onclick = () => { box.hidden = true; box.innerHTML = ''; };
     const st = (m, bad) => { const e = $('#agrFSt'); e.textContent = m; e.className = 'st ' + (bad ? 'bad' : 'ok'); };

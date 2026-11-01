@@ -546,7 +546,7 @@ window.TW_PLAN_PRESETS = {
     "stock.page": true,
     "watch.size": 200,
     "watch.digest": true,
-    "watch.alert": 200,
+    "watch.alert": 20,
     "mkt.grp.pick": 999,
     "explore.list.n": 999,
     "mkt.cand.n": 999,

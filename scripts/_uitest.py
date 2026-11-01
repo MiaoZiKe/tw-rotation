@@ -60494,7 +60494,7 @@ def t_trial_grants_1009(b, base):
         ok(f"{T}：桌機側欄管理區多一格「體驗額度」而且是目前這格", "體驗額度" in side and ad.evaluate("() => !!document.querySelector('.l4subtab[data-adm=grants].on')"), side)
         ban_ui = ad.evaluate("() => { document.querySelector('#agrList button[data-edit=\"promo-launch\"]').click(); return [...document.querySelectorAll('#agrFeats input[data-fk]')].map(i => i.dataset.fk); }")
         ok(f"{T}：編輯表單的功能清單不列法遵禁止項（今日關注／選股完整名單、AI 分析、盤中即時、四週期同看）",
-           len(ban_ui) > 10 and not any(k in ban_ui for k in ("mkt.cand", "mkt.cand.n", "explore.list", "explore.list.n", "stock.ai", "live.tick", "stock.mtf", "stock.k_min", "watch.tabs")), ban_ui)
+           len(ban_ui) > 10 and not any(k in ban_ui for k in ("live.tick", "stock.k_min", "watch.tabs")), ban_ui)
         today = ad.evaluate("() => new Date(Date.now() + 8*3600000).toISOString().slice(0,10)")
         end = ad.evaluate("() => new Date(Date.now() + 8*3600000 + 13*86400000).toISOString().slice(0,10)")
         ad.fill("#agrT0", today); ad.fill("#agrT1", end)
