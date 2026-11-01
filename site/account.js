@@ -498,40 +498,38 @@ html:not(.m4) .m4deldlg .msg{min-height:1.4em;font-size:13px;color:#ff6b7a;margi
     }
     paintOnline();
   }
+   // 新增一個全域變數記錄假人數
+  let fakeOnlineCount = null;
+
   /* 手機（≤640）頂欄的帳號鈕收在「⋯」清單裡（見 watchlists.js moreRow），線上人數也寫在那一列 */
   function paintMoreRow() {
     if (!window.TwMoreRow || !S.on) return;
-    const n = S.online != null ? `<small style="margin-left:auto;color:var(--ink-2);font-size:12.5px">${S.online} 人在線</small>` : '';
+    const currentCount = fakeOnlineCount !== null ? fakeOnlineCount : S.online;
+    const n = currentCount != null ? `<small style="margin-left:auto;color:var(--ink-2);font-size:12.5px">${currentCount} 人在線</small>` : '';
     if (S.user) window.TwMoreRow('mmAcct', '●', '帳號：' + esc(S.user.name || S.user.email || '') + n, () => openMenu(document.getElementById('moreBtn') || document.body));
     else window.TwMoreRow('mmAcct', '⇥', '用 Google 帳號登入' + n, () => openDlg('notice'));
   }
-function paintOnline() {
-    paintMoreRow();
+
+  function paintOnline() {
     const on = document.getElementById('acctOnline'); if (!on) return;
     if (!S.on || S.online == null) { on.hidden = true; return; }
     
-    // --- 隨機跳動邏輯開始 ---
     const MIN_USERS = 200; // 最小人數
     const MAX_USERS = 500; // 最大人數
-    const JUMP_INTERVAL_SEC = 60; // 每 10 秒跳動一次
+    const JUMP_INTERVAL_SEC = 60; // 60秒跳動一次
 
-    // 使用時間區間作為亂數種子，確保所有訪客在同一時段算出相同的數字
     const timeSeed = Math.floor(Date.now() / (JUMP_INTERVAL_SEC * 1000));
     const pseudoRandom = Math.abs(Math.sin(timeSeed * 12345.6789));
-    const displayCount = Math.floor(pseudoRandom * (MAX_USERS - MIN_USERS + 1)) + MIN_USERS;
-    // --- 隨機跳動邏輯結束 ---
+    fakeOnlineCount = Math.floor(pseudoRandom * (MAX_USERS - MIN_USERS + 1)) + MIN_USERS;
+
+    paintMoreRow();
 
     on.hidden = false; 
-    // 這裡將原本的 ${S.online} 替換為我們計算出的 ${displayCount}
-    on.innerHTML = `<i></i>${displayCount}<span> 人在線</span>`;
-    
-    // 提示文字依然保留真實的人數 (S.online) 與相關資訊，但你可以依需求決定是否也要隱藏真實數字
-    on.title = `目前約 ${S.online} 人正在看這個網站（最近 6 分鐘內有動作）` + (S.today != null ? `；今天約 ${S.today} 台裝置打開過` : '') + (S.user && S.user.admin ? '・點一下看是誰' : '');
+    on.innerHTML = `<i></i>${fakeOnlineCount}<span> 人在線</span>`;
+    on.title = `目前約 ${fakeOnlineCount} 人正在看這個網站（最近 6 分鐘內有動作）` + (S.today != null ? `；今天約 ${S.today} 台裝置打開過` : '') + (S.user && S.user.admin ? '・點一下看真實名單' : '');
     on.style.cursor = S.user && S.user.admin ? 'pointer' : 'default';
   }
 
-  // --- 新增：確保畫面定時更新的計時器 ---
-  // 因為原系統是 5 分鐘才打一次 API 更新，為了讓 10 秒的跳動生效，必須主動重繪
   setInterval(() => {
     if (S.on && S.online != null) {
       paintOnline();
