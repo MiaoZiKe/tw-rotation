@@ -150,3 +150,41 @@ test('公告：不再顯示記在後端', async () => {
   const st = (await pj(hub, '/v1/ann/state', { t: bob })).j;
   assert.equal(st.seen, true); assert.equal(st.trial.active, true);
 });
+
+test('邀請人獎勵：每成功邀請 1 人 +14 天 Pro 可累計；內部上限 12 次且不外露；付費邀請人改記待用天數', async () => {
+  const { hub, andy } = await setup();
+  const alice = await login(hub, 'alice@example.com', '198.51.100.1');
+  const code = (await pj(hub, '/v1/invite/me', { t: alice })).j.code;
+  const t0 = clock;
+  const me0 = (await pj(hub, '/v1/invite/me', { t: alice })).j;
+  assert.equal(me0.reward_days_total, 0);
+  for (let i = 1; i <= 2; i++) {
+    const f = await login(hub, `f${i}@example.com`, '198.51.100.' + (10 + i));
+    assert.equal((await pj(hub, '/v1/invite/redeem', { t: f, code })).s, 200);
+  }
+  let me = (await pj(hub, '/v1/invite/me', { t: alice })).j;
+  assert.equal(me.reward_days_total, 28); assert.equal(me.redeemed_count, 2);
+  const pm = (await pj(hub, '/v1/perm/me', { t: alice })).j;
+  assert.equal(pm.plan, 'pro');
+  const perm = (await pj(hub, '/v1/admin/perm/get', { t: andy, email: 'alice@example.com' })).j;
+  assert.equal(perm.expires, t0 + 28 * DAY, '兩次從現有到期日往後疊加');
+  /* 上限 12：第 13 位起仍能領（被邀請者），但邀請人不再加；回應不出現 cap */
+  for (let i = 3; i <= 14; i++) {
+    const f = await login(hub, `f${i}@example.com`, '198.51.100.' + (10 + i));
+    assert.equal((await pj(hub, '/v1/invite/redeem', { t: f, code })).s, 200);
+  }
+  me = (await pj(hub, '/v1/invite/me', { t: alice })).j;
+  assert.equal(me.reward_days_total, 12 * 14); assert.equal(me.redeemed_count, 14);
+  assert.ok(!/cap|limit|上限/i.test(JSON.stringify(me)), '回應不顯示上限');
+  /* 付費邀請人：不動付費方案，改記待用天數 */
+  const pay = await login(hub, 'pay@example.com', '198.51.101.1');
+  await pj(hub, '/v1/admin/plans/put', { t: andy, id: 'plus', name: 'Plus', feats: {} });
+  assert.equal((await pj(hub, '/v1/admin/perm/put', { t: andy, email: 'pay@example.com', plan: 'plus', over: {}, expires: clock + 30 * DAY })).s, 200);
+  const pcode = (await pj(hub, '/v1/invite/me', { t: pay })).j.code;
+  const g = await login(hub, 'g@example.com', '198.51.101.2');
+  assert.equal((await pj(hub, '/v1/invite/redeem', { t: g, code: pcode })).s, 200);
+  const pp = (await pj(hub, '/v1/admin/perm/get', { t: andy, email: 'pay@example.com' })).j;
+  assert.equal(pp.plan, 'plus'); assert.equal(pp.expires, clock + 30 * DAY, '付費方案與到期日不動');
+  const pme = (await pj(hub, '/v1/invite/me', { t: pay })).j;
+  assert.equal(pme.reward_days_total, 14); assert.equal(pme.reward_pending_days, 14);
+});

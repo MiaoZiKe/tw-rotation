@@ -2923,6 +2923,7 @@ Hub.prototype.deleteMe = async function (req, b) {
 const INV_ALPHA = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';     // 去掉 0 O 1 I L，手抄不會抄錯
 const INV_RE = /^[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{8}$/;
 const INV_NEW_DAYS = 7, INV_PRO_DAYS = 14, INV_TRY_DAY = 8, INV_IP_KEEP_DAYS = 30, SV_BONUS_DAYS = 7, SV_DUE_DAYS = 3, WISH_MAX = 3;
+const INV_REWARD_CAP = 12;     // 內部上限：每位邀請人最多拿 12 次獎勵；只在後端，回應與畫面都不顯示
 const PM_KEY_RE = /^[A-Za-z0-9_-]{1,40}$/;
 const ANN_RE = /^[a-z0-9-]{1,24}$/;
 Hub.prototype.promoInit = function () {
@@ -2930,6 +2931,7 @@ Hub.prototype.promoInit = function () {
   this.q('CREATE TABLE IF NOT EXISTS survey (uid TEXT PRIMARY KEY, at INTEGER, stars INTEGER, useful TEXT, improve TEXT, improve_note TEXT, wish_feat TEXT, wish_note TEXT)');
   this.q('CREATE TABLE IF NOT EXISTS invites (uid TEXT PRIMARY KEY, code TEXT UNIQUE, created INTEGER)');
   this.q('CREATE TABLE IF NOT EXISTS invite_uses (invitee TEXT PRIMARY KEY, inviter TEXT, at INTEGER, iph TEXT, pro_end INTEGER)');
+  this.q('CREATE TABLE IF NOT EXISTS invite_reward (invitee TEXT PRIMARY KEY, inviter TEXT, at INTEGER, days INTEGER, kind TEXT, until INTEGER)');
   this.q('CREATE TABLE IF NOT EXISTS invite_ip (uid TEXT PRIMARY KEY, iph TEXT, at INTEGER)');
   this.q('CREATE TABLE IF NOT EXISTS invite_try (uid TEXT, day TEXT, n INTEGER, PRIMARY KEY (uid, day))');
   this.q('CREATE TABLE IF NOT EXISTS wishes (id INTEGER PRIMARY KEY AUTOINCREMENT, uid TEXT, at INTEGER, feat TEXT, body TEXT, status TEXT DEFAULT \'new\')');
@@ -2983,6 +2985,32 @@ const PROMO_LINK = 'https://liguligu-puipui.com/?invite=';
 Hub.prototype.promoInviteePro = function (uid) {
   const r = this.q('SELECT at, pro_end FROM invite_uses WHERE invitee = ?', uid)[0];
   return r ? { at: r.at, end: r.pro_end, active: r.pro_end > this.now() } : null;
+};
+/* 邀請人獎勵（Andy 11-02）：每成功邀請 1 人，邀請人得 14 天 Pro，可疊加（從現有 Pro 到期日或現在較晚者往後加）。
+   邀請人本身是付費方案 → 不動他的方案，改記一筆 kind='pending' 的待用天數。內部上限 INV_REWARD_CAP 次，超過就不再給。 */
+Hub.prototype.promoRewardInviter = function (inviterUid, inviteeUid) {
+  const now = this.now();
+  if (this.q('SELECT COUNT(*) AS c FROM invite_reward WHERE inviter = ?', inviterUid)[0].c >= INV_REWARD_CAP) return null;
+  const u = this.q('SELECT email FROM users WHERE uid = ?', inviterUid)[0];
+  const email = u ? String(u.email || '').toLowerCase() : '';
+  if (!email) return null;
+  const e = this.effective(email), live = !e.expired && e.plan !== 'free' && e.plan !== 'guest';
+  const own = this.promoInviteePro(inviterUid);      // 邀請人自己靠邀請拿到的 Pro（還沒到期）
+  /* 「靠活動拿到的 Pro」＝到期日不超過 自己被邀請得到的 Pro 到期日 或 先前邀請獎勵的 Pro 到期日；其餘（含人工設的 Pro）一律當付費方案不動 */
+  const trialEnd = Math.max(own ? own.end : 0, this.q("SELECT COALESCE(MAX(until), 0) AS u FROM invite_reward WHERE inviter = ? AND kind = 'pro'", inviterUid)[0].u);
+  const trialPro = live && e.plan === 'pro' && e.expires && e.expires <= trialEnd + 1000;
+  const days = INV_PRO_DAYS;
+  if (live && !trialPro) {
+    this.q("INSERT INTO invite_reward (invitee, inviter, at, days, kind) VALUES (?, ?, ?, ?, 'pending')", inviteeUid, inviterUid, now, days);
+    return { kind: 'pending', days };
+  }
+  const base = Math.max(now, live && e.plan === 'pro' ? e.expires || 0 : 0);
+  const end = base + days * 86400 * 1000;
+  const row = this.q('SELECT over FROM perm WHERE email = ?', email)[0];
+  this.q('INSERT INTO perm (email, plan, over, updated, expires) VALUES (?, ?, ?, ?, ?) ON CONFLICT(email) DO UPDATE SET plan = excluded.plan, over = excluded.over, updated = excluded.updated, expires = excluded.expires',
+    email, 'pro', row ? row.over || '{}' : '{}', now, end);
+  this.q("INSERT INTO invite_reward (invitee, inviter, at, days, kind, until) VALUES (?, ?, ?, ?, 'pro', ?)", inviteeUid, inviterUid, now, days, end);
+  return { kind: 'pro', days, end };
 };
 Hub.prototype.promoTrial = function (user) {
   const uid = user.uid, now = this.now();
@@ -3040,6 +3068,8 @@ Object.assign(Hub.prototype.subRoutes, {
     const paid = !e.expired && e.plan !== 'free' && e.plan !== 'guest';
     const inv = this.promoInviteePro(uid);
     return this.json(req, { code, link: PROMO_LINK + code, redeemed_count: this.q('SELECT COUNT(*) AS c FROM invite_uses WHERE inviter = ?', uid)[0].c,
+      reward_days_total: this.q('SELECT COALESCE(SUM(days), 0) AS d FROM invite_reward WHERE inviter = ?', uid)[0].d,
+      reward_pending_days: this.q("SELECT COALESCE(SUM(days), 0) AS d FROM invite_reward WHERE inviter = ? AND kind = 'pending'", uid)[0].d,
       /* 額外欄位：這個人自己能不能輸入別人的碼、領過沒 */
       can_redeem: !inv && !paid && (v.user.created || 0) >= now - INV_NEW_DAYS * 86400 * 1000,
       redeemed: inv ? { at: inv.at, pro_until: promoYmd(inv.end - 1) } : null, pro_days: INV_PRO_DAYS });
@@ -3076,6 +3106,7 @@ Object.assign(Hub.prototype.subRoutes, {
     this.q('INSERT INTO perm (email, plan, over, updated, expires) VALUES (?, ?, ?, ?, ?) ON CONFLICT(email) DO UPDATE SET plan = excluded.plan, over = excluded.over, updated = excluded.updated, expires = excluded.expires',
       email, 'pro', row ? row.over || '{}' : '{}', now, end);
     this.q('INSERT INTO invite_uses (invitee, inviter, at, iph, pro_end) VALUES (?, ?, ?, ?, ?)', uid, inv.uid, now, iph, end);
+    try { this.promoRewardInviter(inv.uid, uid); } catch (err) { /* 邀請人獎勵失敗不影響被邀請者已拿到的 */ }
     return this.json(req, { ok: true, pro_until: promoYmd(end - 1), pro_end: end, days: INV_PRO_DAYS });
   },
   /* 許願：Pro 體驗期內、一人一個、可覆寫 */
@@ -3161,13 +3192,14 @@ Hub.prototype.deleteMe = async function (req, b) {
     try {
       this.promoInit();
       const uid = v.user.uid;
-      for (const [t, c] of [['survey', 'uid'], ['invites', 'uid'], ['invite_ip', 'uid'], ['invite_try', 'uid'], ['wishes', 'uid'], ['ann_seen', 'uid']]) this.q(`DELETE FROM ${t} WHERE ${c} = ?`, uid);
+      for (const [t, c] of [['survey', 'uid'], ['invites', 'uid'], ['invite_ip', 'uid'], ['invite_try', 'uid'], ['wishes', 'uid'], ['ann_seen', 'uid'], ['invite_reward', 'inviter']]) this.q(`DELETE FROM ${t} WHERE ${c} = ?`, uid);
       this.q('DELETE FROM invite_uses WHERE invitee = ? OR inviter = ?', uid, uid);
+      this.q('DELETE FROM invite_reward WHERE invitee = ?', uid);
     } catch (e) { /* 略 */ }
   }
   return res;
 };
 const promoOrigExpInit = Hub.prototype.expInit;
 Hub.prototype.expInit = function () { promoOrigExpInit.call(this); this.promoInit(); };
-for (const t of ['survey', 'invites', 'invite_uses', 'wishes', 'ann_seen']) if (!EXPORT_TABLES.includes(t)) EXPORT_TABLES.push(t);
+for (const t of ['survey', 'invites', 'invite_uses', 'invite_reward', 'wishes', 'ann_seen']) if (!EXPORT_TABLES.includes(t)) EXPORT_TABLES.push(t);
 /* ============================================================================ 問卷／邀請／公告區塊結束 */
