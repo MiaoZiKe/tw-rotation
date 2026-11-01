@@ -90,7 +90,18 @@ def t_testacct_1102(b, base):
         trial = TRIAL_TEST_EMAIL
         ok(f"{T}：①站主本人預設標測試帳（徽章）、體驗測試帳沒有", ad.evaluate(BAD, andy) is True and ad.evaluate(BAD, trial) is False, [andy, trial])
         ok(f"{T}：①統計總人數＝名單 {n_all} 人 − 1（站主）", ad.evaluate(TOT) == n_all - 1, [ad.evaluate(TOT), n_all])
-        ok(f"{T}：①標題旁寫「已排除 1 個測試帳」", "已排除 1 個測試帳" in (ad.inner_text("#msEx") if ad.locator("#msEx").count() else ""), ad.locator("#msEx").count())
+        ok(f"{T}：①統計區頂端醒目提示列寫「已排除 1 個測試帳」、字 ≥14px、有紫色左框", ad.locator("#msExBar").count() == 1 and "已排除 1 個測試帳" in ad.inner_text("#msEx")
+           and ad.evaluate("() => { const e = document.getElementById('msExBar'), c = getComputedStyle(e); return parseFloat(c.fontSize) >= 14 && parseFloat(c.borderLeftWidth) >= 4; }"), ad.inner_text("#msEx"))
+        # 測試帳整列區隔：色條、淡化、實心徽章；圖例顏色對得上實際用色
+        rowv = ad.evaluate("""(e) => { const tr = document.querySelector('#ptTable tr[data-email="' + e + '"]'); const w = tr.querySelector('td.c-who'), b = tr.querySelector('.tbadge'), o = tr.querySelector('td.c-seen');
+          const lg = (sel, prop) => { const x = document.querySelector(sel); return x ? getComputedStyle(x)[prop] : null; };
+          return { cls: tr.className, shadow: getComputedStyle(w).boxShadow, badgeBg: getComputedStyle(b).backgroundColor, badgeFs: parseFloat(getComputedStyle(b).fontSize), badgeFw: +getComputedStyle(b).fontWeight, op: getComputedStyle(o).opacity,
+            lgBar: lg('#pmLegend .bar.tst', 'backgroundColor'), lgBadge: lg('#pmLegend .tbadge', 'backgroundColor'), lgOk: lg('#pmLegend .stt.ok', 'backgroundColor'), okReal: lg('#ptTable .stt.ok', 'backgroundColor'),
+            lgSoon: lg('#lgSoon', 'color'), lgExp: lg('#lgExp', 'color'), n: document.querySelectorAll("#pmLegend .lgi").length }; }""", andy)
+        ok(f"{T}：①測試帳列有 tst 類別、4px 紫色左條、其他格淡化（.55）", "tst" in rowv["cls"] and "4px" in rowv["shadow"] and abs(float(rowv["op"]) - 0.55) < 0.01, rowv)
+        ok(f"{T}：①徽章是實心色塊（≥12px 粗體）、顏色＝圖例的色條與徽章", rowv["badgeFs"] >= 12 and rowv["badgeFw"] >= 600 and rowv["badgeBg"] == rowv["lgBadge"] == rowv["lgBar"] and rowv["badgeBg"] != "rgba(0, 0, 0, 0)", rowv)
+        ok(f"{T}：①圖例有 {rowv['n']} 項，「有效」綠色＝名單實際狀態色、琥珀與灰字兩色不同", rowv["n"] >= 6 and rowv["lgOk"] == rowv["okReal"] and rowv["lgSoon"] != rowv["lgExp"], rowv)
+        ok(f"{T}：①「隱藏測試帳」旁顯示數量（1）", "（1）" in ad.inner_text("#pmHideTxt"), ad.inner_text("#pmHideTxt"))
         if shots:
             ad.locator("#ptStats").screenshot(path=str(pathlib.Path(shots) / "01_統計已排除.png"))
         # ② 展開 trial → 不列入統計

@@ -18,8 +18,8 @@
   const tpeHm = (ms) => (ms ? new Date(ms + 8 * 3600000).toISOString().slice(0, 16).replace('T', ' ') : '—');
   const fromYmd = (s) => Date.parse(s + 'T00:00:00+08:00');
   /* 跟 worker.js GRANT_BAN 同一份（Worker 回的 ban 為準，這裡只是 Worker 還沒回來時的備用）*/
-  const BAN0 = ['mkt.cand', 'mkt.cand.n', 'explore.list', 'explore.list.n', 'stock.ai', 'stock.mtf', 'live.tick', 'stock.k_min'];
-  const ERR = { banned: '含不能放進體驗的功能', bad_feats: '至少要勾一個功能', bad_m: '每項次數要是 1～999 的整數', bad_time: '起訖日不對（結束要在開始之後）',
+  const BAN0 = ['live.tick', 'stock.k_min'];   // 2026-11-02 Andy 決定：只剩盤中即時、分 K 不能放進體驗（四週期同看／今日關注／選股完整名單／AI 分析開放）
+  const ERR = { banned: '含不能放進體驗的功能；若勾的是四週期同看、今日關注、選股完整名單、AI 分析，是後端尚未更新（黑名單縮小在待部署批次，部署後才存得進去）', bad_feats: '至少要勾一個功能', bad_m: '每項次數要是 1～999 的整數', bad_time: '起訖日不對（結束要在開始之後）',
     bad_days: '新會員天數要是 1～60', bad_name: '請填名稱（20 字內）', bad_id: '代號只能用小寫英數、- 與 _', kind_fixed: '已建立的活動不能改種類', too_many: '活動最多 50 個', forbidden: '不是管理者' };
   const S = { d: null, edit: null, ban: BAN0 };
   function feats() {
@@ -99,7 +99,7 @@
     const j = await T().call('/v1/admin/grants/defs/list', {});
     if (!(location.hash || '').startsWith('#admin/grants')) return;
     if (!j || j._s !== 200) { v.innerHTML = `<div class="card agr"><h3>體驗額度</h3><p class="muted">${j && j._s === 403 ? '這個帳號不是管理者。' : '讀不到體驗活動（' + esc(j ? j._s : '連不到會員伺服器') + '）。'}</p></div>`; return; }
-    S.d = j; if (Array.isArray(j.ban)) S.ban = j.ban;
+    S.d = j; /* 不再採用 Worker 回的 ban：後端黑名單縮小還沒部署，採用會把 Andy 已決定開放的四項又藏起來 */
     paint(v);
   }
   function paint(v) {
@@ -160,7 +160,7 @@
         <label>功能</label><div><div class="fbar" id="agrFBar"><button type="button" id="agrAllOn">全部全選</button><button type="button" id="agrAllOff">全部清除</button><span class="muted" id="agrFCnt" role="status" style="margin:0"></span></div><div class="fg" id="agrFeats">${groups.map(([c, a]) => `<div class="cat"><span>${esc(c.name)}</span><button type="button" class="catbtn" data-cat="${esc(c.id)}" aria-label="${esc(c.name)} 全選或全不選">全選</button></div>` + a.map((f) => {
           const on = Object.prototype.hasOwnProperty.call(d.feats, f.id);
           return `<label title="${esc(f.desc || '')}"><input type="checkbox" data-fk="${esc(f.id)}" data-fc="${esc(f.cat)}"${on ? ' checked' : ''}><span>${esc(f.name)}</span><input type="number" min="1" max="999" data-fm="${esc(f.id)}" value="${esc(on ? d.feats[f.id] : m0)}"${on ? '' : ' disabled'} aria-label="${esc(f.name)} 次數"></label>`; }).join('')).join('')}</div>
-          <p class="ban">不能放進體驗（法遵）：今日關注完整名單、選股完整名單、AI 分析、券商觀點、盤中即時、分 K、四週期同看 —— 清單裡不列，存了也會被伺服器擋下。</p></div>
+          <p class="ban">不能放進體驗：盤中即時、分 K。</p></div>
         <label for="agrOn">開關</label><label class="sw"><input type="checkbox" id="agrOn"${d.on ? ' checked' : ''}> 存檔後立刻生效</label>
       </div>
       <div class="st" id="agrFSt" role="status"></div>
