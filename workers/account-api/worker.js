@@ -2392,7 +2392,10 @@ for (const t of ['bill_flags', 'benefit_hash']) if (!EXPORT_TABLES.includes(t)) 
      （比對碼前 Gmail 去點、去 + 後綴）；同 IP（CF-Connecting-IP 的 HMAC）每天最多發 3 份 welcome，超過照樣註冊但不送。
    ★ 同前面幾個區塊：只在檔尾新增、包一層 prototype，既有函式一行不動。
    ============================================================================ */
-export const GRANT_BAN = ['mkt.cand', 'mkt.cand.n', 'explore.list', 'explore.list.n', 'stock.ai', 'stock.mtf', 'live.tick', 'stock.k_min'];
+/* 2026-11-02 Andy 拍板縮小：只剩「盤中即時」與「分 K」不能放進體驗額度（原話：「盤中即時、分 K 不能放；四週期同看、今日關注、選股完整名單、AI 分析（我會限制次數）」）。
+   法遵風險已告知 Andy（docs/legal/20261101_subscription_signals.md、docs/launch_gap_legal_1009.md 2-3）；mkt.cand.n、explore.list.n 是「上限類」，
+   管理區編輯器本來就不列，從黑名單移除無妨。原本的八項：mkt.cand、mkt.cand.n、explore.list、explore.list.n、stock.ai、stock.mtf、live.tick、stock.k_min。 */
+export const GRANT_BAN = ['live.tick', 'stock.k_min'];
 /* 2026-10-27 新會員體驗額度（tier_plan_1027 4-7；Andy 拍板 T-1/T-6）：Plus 等級 A 級功能、14 天、每天每項各 M 次。
    刻意不放：今日關注、選股名單、四面向資料整理（stock.ai）、四週期同看、分 K（都在 GRANT_BAN）、自選擴充、精選全文。 */
 export const WELCOME_1027_FEATS = { 'ind.3d': 10, 'ind.rel': 10, 'ind.groups': 15, 'ind.diagram': 15, 'heat.detail': 15, 'heat.link': 10, 'flow.play': 5,
@@ -2922,8 +2925,8 @@ Hub.prototype.deleteMe = async function (req, b) {
    ============================================================================ */
 const INV_ALPHA = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';     // 去掉 0 O 1 I L，手抄不會抄錯
 const INV_RE = /^[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{8}$/;
-const INV_NEW_DAYS = 7, INV_PRO_DAYS = 14, INV_TRY_DAY = 8, INV_IP_KEEP_DAYS = 30, SV_BONUS_DAYS = 7, SV_DUE_DAYS = 3, WISH_MAX = 3;
-const INV_REWARD_CAP = 12;     // 內部上限：每位邀請人最多拿 12 次獎勵；只在後端，回應與畫面都不顯示
+const INV_NEW_DAYS = 7, INV_PRO_DAYS = 14, INV_TRY_DAY = 8, INV_IP_KEEP_DAYS = 30, INV_IP_MAX = 3, SV_BONUS_DAYS = 7, SV_DUE_DAYS = 3, WISH_MAX = 3;
+const INV_REWARD_CAP = 30;     // 內部上限：每位邀請人最多拿 12 次獎勵；只在後端，回應與畫面都不顯示
 const PM_KEY_RE = /^[A-Za-z0-9_-]{1,40}$/;
 const ANN_RE = /^[a-z0-9-]{1,24}$/;
 Hub.prototype.promoInit = function () {
@@ -2987,7 +2990,7 @@ Hub.prototype.promoInviteePro = function (uid) {
   return r ? { at: r.at, end: r.pro_end, active: r.pro_end > this.now() } : null;
 };
 /* 邀請人獎勵（Andy 11-02）：每成功邀請 1 人，邀請人得 14 天 Pro，可疊加（從現有 Pro 到期日或現在較晚者往後加）。
-   邀請人本身是付費方案 → 不動他的方案，改記一筆 kind='pending' 的待用天數。內部上限 INV_REWARD_CAP 次，超過就不再給。 */
+   邀請人本身是付費方案 → 不動他的方案，改記一筆 kind='pending' 的待用天數。內部上限 INV_REWARD_CAP 次（Andy 11-02 改 30），超過就不再給。 */
 Hub.prototype.promoRewardInviter = function (inviterUid, inviteeUid) {
   const now = this.now();
   if (this.q('SELECT COUNT(*) AS c FROM invite_reward WHERE inviter = ?', inviterUid)[0].c >= INV_REWARD_CAP) return null;
@@ -3093,13 +3096,11 @@ Object.assign(Hub.prototype.subRoutes, {
     const e = this.effective(email);
     if (!e.expired && e.plan !== 'free' && e.plan !== 'guest') return this.json(req, { error: 'already_paid' }, 403);
     if (!this.plan('pro')) return this.json(req, { error: 'no_pro_plan' }, 503);
-    /* 同 IP：與邀請人同一個 IP、或這個 IP 30 天內已經領過一次 → 擋（只比 HMAC，不存原始 IP）*/
+    /* 同 IP（Andy 11-02 決定 B）：同一個網路（IP 的 HMAC）30 天內最多兌換 INV_IP_MAX 次。
+       與邀請人同 IP **不再直接擋**，而是跟其他人一樣計入這 3 次：直接擋會誤擋同住的家人與同公司同事（共用同一個對外 IP），
+       而「自己用兩個帳號邀自己」本來就被這 3 次上限、新會員 7 天、每個 Google 帳號一份體驗限制住了。 */
     const iph = await this.promoIph(req);
-    if (iph) {
-      const ir = this.q('SELECT iph FROM invite_ip WHERE uid = ?', inv.uid)[0];
-      if (ir && ir.iph === iph) return this.json(req, { error: 'same_ip' }, 403);
-      if (this.q('SELECT 1 FROM invite_uses WHERE iph = ? AND at >= ?', iph, now - INV_IP_KEEP_DAYS * 86400 * 1000).length) return this.json(req, { error: 'same_ip' }, 403);
-    }
+    if (iph && this.q('SELECT COUNT(*) AS c FROM invite_uses WHERE iph = ? AND at >= ?', iph, now - INV_IP_KEEP_DAYS * 86400 * 1000)[0].c >= INV_IP_MAX) return this.json(req, { error: 'same_ip' }, 403);
     const end = now + INV_PRO_DAYS * 86400 * 1000;
     /* 直接寫 perm（不走 adminPermPut）：不記 first_paid；個別微調保留原樣 */
     const row = this.q('SELECT over FROM perm WHERE email = ?', email)[0];
@@ -3183,6 +3184,32 @@ Object.assign(Hub.prototype.subRoutes, {
     return this.json(req, { ok: true });
   },
 });
+/* 管理區每位會員「邀請了幾人、因邀請延長了幾天」（Andy 11-02）：
+   · /v1/admin/invite/stats → { stats: { uid: { email, invited, reward_days } }, now }（reward_days 含待用 pending）
+   · 既有 /v1/admin/perm/list 的 users[] 每位也多 invited_count、invite_reward_days（欄位只增不改） */
+Hub.prototype.promoInviteStats = function () {
+  this.promoInit();
+  const out = {};
+  for (const r of this.q('SELECT u.uid AS uid, u.email AS email, (SELECT COUNT(*) FROM invite_uses i WHERE i.inviter = u.uid) AS invited, (SELECT COALESCE(SUM(days), 0) FROM invite_reward r WHERE r.inviter = u.uid) AS d FROM users u')) {
+    if (r.invited || r.d) out[r.uid] = { email: String(r.email || '').toLowerCase(), invited: r.invited, reward_days: r.d };
+  }
+  return out;
+};
+Hub.prototype.subRoutes['/v1/admin/invite/stats'] = async function (req, b) {
+  if (!(await this.admin(req, b))) return this.json(req, { error: 'forbidden' }, 403);
+  return this.json(req, { stats: this.promoInviteStats(), now: this.now() });
+};
+const promoOrigPermList = Hub.prototype.adminPermList;
+Hub.prototype.adminPermList = async function (req, b) {
+  const res = await promoOrigPermList.call(this, req, b);
+  if (res.status !== 200) return res;
+  try {
+    const j = await res.clone().json(), by = {};
+    for (const v of Object.values(this.promoInviteStats())) by[v.email] = v;
+    j.users = (j.users || []).map((u) => ({ ...u, invited_count: (by[u.email] || {}).invited || 0, invite_reward_days: (by[u.email] || {}).reward_days || 0 }));
+    return this.json(req, j);
+  } catch (e) { return res; }
+};
 /* 刪帳號：問卷、邀請、許願、公告紀錄一起刪（原本的 deleteMe 會把 users 那列刪掉，所以先記 uid）*/
 const promoOrigDelete = Hub.prototype.deleteMe;
 Hub.prototype.deleteMe = async function (req, b) {

@@ -25,8 +25,8 @@
 錯誤碼：`done`(409)｜`no_trial`(403)｜`too_early`(403)｜`bad_sat`｜`bad_pick`｜`need_useful`｜`bad_want`(400)。
 
 ### 邀請後端驗證
-`bad_code`(400)｜`self`(400 自己的碼)｜`used`(409 已用過)｜`not_new`(403 註冊超過 7 天)｜`already_paid`(403 已是付費)｜`same_ip`(403 與邀請人同 IP，或該 IP 30 天內已領過；只比 HMAC，不存原始 IP)｜`too_many`(429 每人每天猜 8 次)｜`no_pro_plan`(503 沒有 pro 方案範本)。
-獎勵＝直接寫 perm（plan=pro、expires=現在+14 天），不經 adminPermPut，所以不記 first_paid、不會出現退款。**邀請人獎勵（Andy 11-02）：** 被邀請者兌換成功，邀請人也得 14 天 Pro，可累計（從現有 Pro 到期日或現在較晚者往後加）。邀請人若是付費方案，不動他的方案，改記一筆 `pending`（待用 Pro 天數，目前只記錄不兌現）。內部上限 12 次，只在後端常數，回應與畫面都不顯示。`/v1/invite/me` 多回 `reward_days_total`（累計獎勵天數，含待用）與 `reward_pending_days`（其中待用天數）。新表 `invite_reward`。
+`bad_code`(400)｜`self`(400 自己的碼)｜`used`(409 已用過)｜`not_new`(403 註冊超過 7 天)｜`already_paid`(403 已是付費)｜`same_ip`(403 同一個網路 30 天內已兌換滿 3 次；與邀請人同 IP 也只是計入這 3 次、不直接擋；只比 HMAC，不存原始 IP)｜`too_many`(429 每人每天猜 8 次)｜`no_pro_plan`(503 沒有 pro 方案範本)。
+獎勵＝直接寫 perm（plan=pro、expires=現在+14 天），不經 adminPermPut，所以不記 first_paid、不會出現退款。**邀請人獎勵（Andy 11-02）：** 被邀請者兌換成功，邀請人也得 14 天 Pro，可累計（從現有 Pro 到期日或現在較晚者往後加）。邀請人若是付費方案，不動他的方案，改記一筆 `pending`（待用 Pro 天數，目前只記錄不兌現）。內部上限 30 次（Andy 11-02），只在後端常數，回應與畫面都不顯示。`/v1/invite/me` 多回 `reward_days_total`（累計獎勵天數，含待用）與 `reward_pending_days`（其中待用天數）。新表 `invite_reward`。
 
 ### 許願錯誤碼
 `no_pro`(403)｜`bad_feature`｜`bad_text`(400)。
@@ -41,3 +41,11 @@
 ## 資料與隱私
 - 問卷只存 `uid` 與答案，不存 email（管理區顯示時才用 uid 去 users 查）；邀請 IP 只存 HMAC；刪帳號時問卷、邀請碼、使用紀錄、許願、公告紀錄一起刪。
 - 新表：`survey`、`invites`、`invite_uses`、`invite_ip`、`invite_try`、`wishes`、`ann_seen`（皆進備份匯出）。
+
+## 管理區：邀請成效（Andy 11-02）
+- `/v1/admin/invite/stats`（站主限定）→ `{ stats:{ uid:{ email, invited, reward_days } }, now }`；只列有邀請或有獎勵的人，`reward_days` 含待用 pending。
+- 既有 `/v1/admin/perm/list` 的 `users[]` 每位多 `invited_count`、`invite_reward_days`（含 pending）。
+
+## 體驗額度黑名單縮小（Andy 11-02）
+`GRANT_BAN` 只剩 `['live.tick','stock.k_min']`（盤中即時、分 K）。今日關注、選股完整名單、AI 分析、四週期同看可放進體驗額度（Andy 自行限制次數）。法遵風險已告知（docs/legal/20261101_subscription_signals.md、docs/launch_gap_legal_1009.md 2-3）。
+注意：`site/admin_grants.js` 的 `BAN0` 備用清單仍是舊的八項（Worker 回的 `ban` 為準；該檔另有同事在改，未動）。

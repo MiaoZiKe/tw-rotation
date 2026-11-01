@@ -104,11 +104,18 @@ test('邀請：碼不可猜且固定、用碼拿 14 天 Pro、不能用自己的
   assert.equal((await pj(hub, '/v1/invite/me', { t: alice })).j.redeemed_count, 1);
   /* 沒有 first_paid → 不會變成可退款 */
   assert.equal((await pj(hub, '/v1/billing/me', { t: bob })).j.canRefund, false);
-  /* 同 IP 的第二個新帳號領不到；與邀請人同 IP 也領不到 */
+  /* 同 IP（Andy 11-02 規則 B）：同一個網路 30 天內最多兌換 3 次；與邀請人同 IP 也只是計入額度、不直接擋（家人／同事共用網路）*/
   const dan = await login(hub, 'dan@example.com', '198.51.100.2');
-  assert.equal((await pj(hub, '/v1/invite/redeem', { t: dan, code: a.code })).j.error, 'same_ip');
+  assert.equal((await pj(hub, '/v1/invite/redeem', { t: dan, code: a.code })).s, 200, '同網路第 2 次可以');
   const eve = await login(hub, 'eve@example.com', '198.51.100.1');
-  assert.equal((await pj(hub, '/v1/invite/redeem', { t: eve, code: a.code })).j.error, 'same_ip');
+  assert.equal((await pj(hub, '/v1/invite/redeem', { t: eve, code: a.code })).s, 200, '與邀請人同 IP 不直接擋');
+  const fay = await login(hub, 'fay@example.com', '198.51.100.2');
+  assert.equal((await pj(hub, '/v1/invite/redeem', { t: fay, code: a.code })).s, 200, '同網路第 3 次可以');
+  const gus = await login(hub, 'gus@example.com', '198.51.100.2');
+  assert.equal((await pj(hub, '/v1/invite/redeem', { t: gus, code: a.code })).j.error, 'same_ip', '同網路第 4 次被擋');
+  clock += 31 * DAY; /* 30 天後額度恢復（但 gus 已超過新會員 7 天，這裡只驗 IP 不再是擋的原因）*/
+  assert.notEqual((await pj(hub, '/v1/invite/redeem', { t: gus, code: a.code })).j.error, 'same_ip');
+  clock -= 31 * DAY;
   /* 註冊超過 7 天不算新會員 */
   const old = await login(hub, 'old@example.com', '198.51.100.9');
   clock += 8 * DAY;
@@ -151,7 +158,7 @@ test('公告：不再顯示記在後端', async () => {
   assert.equal(st.seen, true); assert.equal(st.trial.active, true);
 });
 
-test('邀請人獎勵：每成功邀請 1 人 +14 天 Pro 可累計；內部上限 12 次且不外露；付費邀請人改記待用天數', async () => {
+test('邀請人獎勵：每成功邀請 1 人 +14 天 Pro 可累計；內部上限 30 次且不外露；付費邀請人改記待用天數', async () => {
   const { hub, andy } = await setup();
   const alice = await login(hub, 'alice@example.com', '198.51.100.1');
   const code = (await pj(hub, '/v1/invite/me', { t: alice })).j.code;
@@ -168,13 +175,13 @@ test('邀請人獎勵：每成功邀請 1 人 +14 天 Pro 可累計；內部上�
   assert.equal(pm.plan, 'pro');
   const perm = (await pj(hub, '/v1/admin/perm/get', { t: andy, email: 'alice@example.com' })).j;
   assert.equal(perm.expires, t0 + 28 * DAY, '兩次從現有到期日往後疊加');
-  /* 上限 12：第 13 位起仍能領（被邀請者），但邀請人不再加；回應不出現 cap */
-  for (let i = 3; i <= 14; i++) {
+  /* 上限 30：第 31 位起仍能領（被邀請者），但邀請人不再加；回應不出現 cap */
+  for (let i = 3; i <= 34; i++) {
     const f = await login(hub, `f${i}@example.com`, '198.51.100.' + (10 + i));
     assert.equal((await pj(hub, '/v1/invite/redeem', { t: f, code })).s, 200);
   }
   me = (await pj(hub, '/v1/invite/me', { t: alice })).j;
-  assert.equal(me.reward_days_total, 12 * 14); assert.equal(me.redeemed_count, 14);
+  assert.equal(me.reward_days_total, 30 * 14); assert.equal(me.redeemed_count, 34);
   assert.ok(!/cap|limit|上限/i.test(JSON.stringify(me)), '回應不顯示上限');
   /* 付費邀請人：不動付費方案，改記待用天數 */
   const pay = await login(hub, 'pay@example.com', '198.51.101.1');
@@ -187,4 +194,23 @@ test('邀請人獎勵：每成功邀請 1 人 +14 天 Pro 可累計；內部上�
   assert.equal(pp.plan, 'plus'); assert.equal(pp.expires, clock + 30 * DAY, '付費方案與到期日不動');
   const pme = (await pj(hub, '/v1/invite/me', { t: pay })).j;
   assert.equal(pme.reward_days_total, 14); assert.equal(pme.reward_pending_days, 14);
+});
+
+test('管理區：每位會員邀請了幾人、因邀請延長幾天；GRANT_BAN 只剩盤中即時與分 K', async () => {
+  const { hub, andy } = await setup();
+  const alice = await login(hub, 'alice@example.com', '198.51.100.1');
+  const code = (await pj(hub, '/v1/invite/me', { t: alice })).j.code;
+  for (let i = 1; i <= 2; i++) await pj(hub, '/v1/invite/redeem', { t: await login(hub, `f${i}@example.com`, '198.51.100.' + (20 + i)), code });
+  assert.equal((await pj(hub, '/v1/admin/invite/stats', { t: alice })).s, 403);
+  const st = (await pj(hub, '/v1/admin/invite/stats', { t: andy })).j.stats;
+  const row = Object.values(st).find((x) => x.email === 'alice@example.com');
+  assert.deepEqual([row.invited, row.reward_days], [2, 28]);
+  const L = (await pj(hub, '/v1/admin/perm/list', { t: andy })).j;
+  const u = L.users.find((x) => x.email === 'alice@example.com');
+  assert.deepEqual([u.invited_count, u.invite_reward_days], [2, 28]);
+  assert.deepEqual(L.users.find((x) => x.email === 'f1@example.com').invited_count, 0);
+  assert.deepEqual(GRANT_BAN, ['live.tick', 'stock.k_min']);
+  /* 縮小後 stock.ai 可以放進體驗額度，盤中即時仍被擋 */
+  const put = (k) => pj(hub, '/v1/admin/grants/defs/put', { t: andy, id: 'promo-x', kind: 'promo', name: 'x', feats: { [k]: 3 }, per: 'total', t0: clock, t1: clock + DAY, on: false });
+  assert.equal((await put('stock.ai')).s, 200); assert.equal((await put('live.tick')).s, 400);
 });
