@@ -588,6 +588,7 @@ html:not(.m4) .m4deldlg .msg{min-height:1.4em;font-size:13px;color:#ff6b7a;margi
       + `<button type="button" role="menuitem" data-a="pricing">訂閱方案</button>`
       /* 2026-10-09（帳本 48，Andy 明確要網頁版也加）：取消訂閱／申請退款 —— 只有付費方案顯示、站主停用；內容與規則在 site/billing.js */
       + (window.TwBilling ? window.TwBilling.menuHTML('desk') : '')
+      + (window.TwInvite ? window.TwInvite.menuHTML('desk') : '')   // 2026-11-01 邀請好友／許願（site/invite.js；後端沒開就是空字串）
       + (u.admin ? `<button type="button" role="menuitem" data-a="feedback">管理區：意見反饋與訂閱申請</button><button type="button" role="menuitem" data-a="pay">管理區：付款與訂單</button><button type="button" role="menuitem" data-a="notices">管理區：公告</button>` : '')
       + (u.admin ? `<button type="button" role="menuitem" data-a="admin">管理區：流量觀測與線上名單</button><button type="button" role="menuitem" data-a="perm">管理區：會員功能權限</button>` : '')
       + (u.admin && window.TwGw && window.TwGw.on() ? `<button type="button" role="menuitem" data-a="gw">管理區：付費資料異常</button>` : '')   // 2026-10-06 data-gw 第三階段（site/admingw.js）

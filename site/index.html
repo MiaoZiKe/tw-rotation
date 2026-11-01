@@ -5609,6 +5609,7 @@ h3 .howbtn.pop{font-family:inherit}
 <link rel="stylesheet" href="m4/20261030-lab-ux.css">
 <link rel="stylesheet" href="m4/20261031-lab-final.css">
 <link rel="stylesheet" href="m4/20261031-tc-search.css">
+<link rel="stylesheet" href="m4/20261101-promo.css">
 <link rel="stylesheet" href="m4/20261101-searchclear.css">
 <!-- m4:css 結束 -->
 <!-- ★ 2026-10-03 一屏看完（DECISIONS #308，fit.css／fit.js）：每張圖表卡完整落在一屏可視高度內，只動桌機（≥821）的卡高與圖高。 -->
@@ -6197,6 +6198,7 @@ return {load:load,ready:ready,srcs:srcs};})();
 <script src="bibi.js"></script><!-- 2026-10-11 比比：情境待機（假日／週末／深夜／盤中漲跌／分頁）＋環狀互動選單；接手 support.js 的 #supFab -->
 <script src="notices.js"></script>
 <script src="billing.js"></script><!-- 2026-10-09 取消訂閱／申請退款＋七天保證防呆（桌機與手機帳號選單共用；選單收著時不插任何節點）-->
+<script src="invite.js"></script><!-- 2026-11-01 邀請好友碼＋Pro 許願（帳號選單一項＋對話框；後端沒開就整個不顯示）-->
 <script src="acctm4.js"></script><!-- 2026-10-09 手機（html.m4）帳號選單：身分徽章、通知、額度上限、客服開關、刪除帳號；桌機不插任何節點 -->
 <script src="admingw.js"></script><!-- 管理區：付費資料異常 #admin/gw（docs/datagw_plan.md 第三階段） -->
 <script src="admin_grants.js"></script>
@@ -6242,6 +6244,9 @@ return {load:load,ready:ready,srcs:srcs};})();
 <script src="mobile4.js"></script>
 <!-- ★ 2026-10-07 逐步導覽（spotlight tour，window.TwTour）：要在 layout4.js 之後 —— 「導覽」鈕掛在它畫的頁首頁名旁邊 -->
 <script src="tour.js"></script>
+<!-- 2026-11-01 新會員體驗活動訊息框（煙火）：登入且在體驗期內的會員在首頁看到，關閉就不再出現；要在 grants.js／account.js 之後 -->
+<link rel="stylesheet" href="promo_welcome.css">
+<script src="promo_welcome.js"></script>
 <div class="zoomov" id="zoomOv" hidden>
   <div class="zh"><b id="zoomTitle"></b><div class="chainchips" id="zoomChips"></div>
     <button class="btn small" id="zoomClose">關閉 ✕</button></div>
