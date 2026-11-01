@@ -376,7 +376,22 @@
   const CHAIN = INDUSTRY.slice(2).map((st, k) => Object.assign({}, st, { route: null, routeRe: null },
     k === 0 ? { view: 'industry', d: '第二排是族群：「族群總覽」看整條鏈，其他每一格是一個族群的產品剖析圖。' } : {}));
 
+  /* 2026-11-01 流向驗證頁（#flowcheck）：Andy 20:20「數據有點太多了 看不懂怎麼用，幫我給個導覽吧」。
+     5 步，每步講「這塊是什麼、怎麼看、看完得到什麼」；第一次進這一頁自動跑一次（flowcheck4.js 負責，記在 fc.tour4），右上「導覽」或頁內「? 導覽」可重看。 */
+  const FLOWCHECK = [
+    { t: '這一頁讓你自己驗證', sel: ['#fc4S1'], route: '#flowcheck', routeRe: /^#flowcheck/, view: 'flowcheck',
+      d: '我們每天算出哪些族群資金流入、流出；這一頁讓你自己對照它們實際的股價走勢，看數據對不對得上。第一步：選一天，預設是最新交易日，可用 ◀ ▶ 或下拉回看。' },
+    { t: '② 我們的數據說', sel: ['#fc4Inn'], view: 'flowcheck',
+      d: '資金流入前 3：這天占全市場成交額的比例比前一天增加最多的族群；下面是流出前 3。每列的「占比」就是我們給的資金數據。' },
+    { t: '③ 實際股價怎麼走', sel: ['#fc4Inn .fc4-row'], view: 'flowcheck',
+      d: '同一列右邊是這個族群實際的當天漲跌、之後 5 日漲跌。✓＝方向吻合（流入且跑贏加權指數、流出且跑輸）。點一列可展開走勢圖，看資金占比和股價是不是一起動。' },
+    { t: '吻合率', sel: ['#fc4Hit'], view: 'flowcheck',
+      d: '把每天的比對累積起來：最近 20 或 60 個交易日有幾成吻合。隨機大約 50%，樣本少於 30 筆會標「樣本不足」。沒有哪個數字會是 100%，用它判斷這份資料可不可信。' },
+    { t: '看細節', sel: ['#fc3Detail'], view: 'flowcheck',
+      d: '想看資金怎麼在族群之間換手，展開這裡的河流圖與資金輪盤；最下方的訊號是之後訂閱會員的功能預覽。' },
+  ];
   const TOURS = {
+    flowcheck: { name: '流向驗證導覽', steps: FLOWCHECK },
     site: { name: '全站導覽', steps: SITE },
     etfcal: { name: '配息行事曆導覽', steps: ETFCAL },
     etflist: { name: 'ETF 總覽導覽', steps: ETFLIST },

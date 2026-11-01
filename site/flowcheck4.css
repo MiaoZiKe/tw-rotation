@@ -1,0 +1,73 @@
+/* 流向驗證 v4（flowcheck4.js）—— 驗證三步驟＋吻合率。桌機為主；≤640 的手機規則在 m4/20261101-flowcheck4.css（桌機手機互不侵犯）。
+   判定用青（吻合）／琥珀（不吻合）＋符號 ✓ ✗，不拿紅綠當對錯（紅綠只表示漲跌）。間距只用 4／8／12／16。 */
+#fc4{min-width:0}
+.fc4{padding:12px 16px;display:flex;flex-direction:column;gap:12px;margin:0}
+.fc4-mut{color:var(--ink-3)}
+.fc4-sp{flex:1 1 auto}
+.fc4-no{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;background:var(--cyan);color:var(--ontop);font-size:12px;font-weight:700;margin-right:8px;flex:0 0 auto}
+/* 吻合率 */
+.fc4-hit{display:flex;flex-direction:column;gap:8px}
+.fc4-hh{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13px}
+.fc4-hh b{font-size:16px;font-weight:600;color:var(--ink)}
+.fc4-hh .seg button{min-height:32px}
+.fc4-tiles{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.fc4-tile{display:flex;flex-direction:column;gap:0;padding:8px 12px;background:var(--panel-2);border:1px solid var(--line-2);border-radius:10px;min-width:0}
+.fc4-tl{font-size:12px;color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fc4-tv{font-size:24px;line-height:1.2;font-weight:700;font-family:var(--mono);color:var(--cyan)}
+.fc4-tile.low .fc4-tv{color:var(--ink-3)}
+.fc4-ts{font-size:12px;color:var(--ink-3)}
+.fc4-hn{font-size:12px}
+/* 第 1 步：選一天 */
+.fc4-s1{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:8px 12px;border:1px solid var(--line-2);border-radius:10px;background:var(--panel-2)}
+.fc4-sl{font-weight:600;font-size:14px;margin-right:4px}
+.fc4-s1 select{min-height:32px;padding:0 8px;background:var(--panel);color:var(--ink);border:1px solid var(--line-2);border-radius:8px;font-size:14px;font-family:var(--mono)}
+.fc4-nav,.fc4-latest,.fc4-tourbtn,.fc4-lkb{min-height:32px;padding:0 12px;border:1px solid var(--line-2);border-radius:8px;background:var(--panel);color:var(--ink-2);cursor:pointer;font-size:13px}
+.fc4-nav:disabled{opacity:.4;cursor:default}
+.fc4-latest,.fc4-tourbtn,.fc4-lkb{color:var(--cyan)}
+.fc4-nav:hover:not(:disabled),.fc4-latest:hover,.fc4-tourbtn:hover,.fc4-lkb:hover{border-color:var(--cyan)}
+/* 第 2、3 步：小卡 */
+.fc4-cols{display:flex;flex-direction:column;gap:8px}
+.fc4-gh{display:grid;grid-template-columns:minmax(0,3fr) minmax(0,2fr) minmax(0,1.5fr) minmax(0,2fr) minmax(0,2.5fr);gap:4px 12px;padding:0 13px;font-size:13px;color:var(--ink)}
+.fc4-g2,.fc4-g3{display:flex;align-items:center;font-weight:600}
+.fc4-g2{grid-column:1/3}.fc4-g3{grid-column:3/6}
+.fc4-gc{font-size:12px;color:var(--ink-3)}
+.fc4-gc.c5{text-align:right}
+.fc4-sec{display:flex;flex-direction:column;gap:4px}
+.fc4-sh{font-size:12px;color:var(--ink-3);padding:4px 12px 0}
+.fc4-none{color:var(--ink-3);font-size:13px;padding:8px 12px}
+.fc4-item{border:1px solid var(--line-2);border-radius:10px;background:var(--panel);min-width:0}
+.fc4-item.open{border-color:var(--cyan)}
+.fc4-row{display:grid;grid-template-columns:minmax(0,3fr) minmax(0,2fr) minmax(0,1.5fr) minmax(0,2fr) minmax(0,2.5fr);gap:0 12px;align-items:center;padding:8px 12px;cursor:pointer;outline:none}
+.fc4-row:hover{background:var(--panel-3)}
+.fc4-row:focus-visible{box-shadow:0 0 0 2px var(--cyan) inset;border-radius:10px}
+.fc4-nm{display:flex;align-items:center;gap:8px;min-width:0}
+.fc4-nm b{font-size:16px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fc4-rk{font-size:12px;color:var(--ink-3);border:1px solid var(--line-2);border-radius:6px;padding:0 4px;flex:0 0 auto}
+.fc4-car{color:var(--ink-3);font-size:12px;margin-left:auto}
+.fc4-c{font-size:14px;font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+.fc4-cl{display:none}
+.fc4-nfs{display:none}
+.fc4-c5{display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end}
+.fc4-v{display:inline-block;padding:0 8px;border-radius:6px;font-size:12px;font-weight:600;line-height:20px;white-space:nowrap;font-family:inherit}
+.fc4-v.ok{background:rgba(45,212,212,.16);color:var(--cyan)}
+.fc4-v.bad{background:rgba(255,180,84,.16);color:var(--amber)}
+.fc4-v.na{background:var(--panel-3);color:var(--ink-3)}
+.fc4-say{grid-column:1/-1;font-size:12px;color:var(--ink-3);margin-top:4px;line-height:1.5}
+.fc4-panel{padding:0 12px 12px}
+.fc4-ps{display:none;margin:0 0 8px;font-size:13px;line-height:1.5}   /* 桌機：同一句已經在列內，不重複；手機列內收起，展開才看 */
+.fc4-chart{width:100%;height:220px;min-height:220px}
+.fc4-pl{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:8px;font-size:12px}
+.fc4-lk{color:var(--cyan);font-size:13px;text-decoration:none;margin-left:auto}
+.fc4-lk:hover{text-decoration:underline}
+/* 看細節（河流／輪盤）收合卡 */
+.fc3-detail{padding:12px 16px}
+.fc3-dethd{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.fc3-dethd h3{margin:0;font-size:16px;font-weight:600}
+.fc3-detsum{font-size:12px;color:var(--ink-3)}
+.fc3-dethd .fc-tog{margin-left:auto}
+.fc3-detbd{display:flex;flex-direction:column;gap:8px;margin-top:12px}
+.fc3-detbd[hidden]{display:none}
+.fc3-detbd>.card{margin:0}
+/* 訂閱功能預覽 */
+.fc4-sub{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:8px 16px 0;font-size:12px}
+.fc4-badge{display:inline-block;padding:2px 8px;border-radius:6px;background:rgba(255,180,84,.16);color:var(--amber);font-size:12px;font-weight:600;white-space:nowrap}

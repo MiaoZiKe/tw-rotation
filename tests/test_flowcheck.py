@@ -341,3 +341,41 @@ def test_group_intraday_mkt_override():
                           pd.Series(dtype=float), mkt_override=pd.Series({"09:15": 0.5, "09:20": float("nan")}))
     assert M["G"]["g"]["rel"][0] == pytest.approx(0.5)
     assert math.isnan(M["G"]["g"]["rel"][1])                   # 加權指數那格缺 → 相對大盤 null，不拿別的頂替
+
+
+# ------------------------------------------------------------------ 驗證三步驟（verify）
+def _vD(n=12):
+    """3 個人工族群 × n 天：A 每天占比 +、漲 1%；C 每天占比 −、跌 1%；B 居中；大盤每天 +0.1%。"""
+    dates = [f"2026-10-{i + 1:02d}" for i in range(n)]
+    rows = []
+    for i, d in enumerate(dates):
+        for gid, sh, ds, chg in (("A", 5 + i * .1, 0.5, 1.0), ("B", 3.0, 0.0, 0.1), ("C", 4 - i * .1, -0.5, -1.0), ("S", 0.4, 0.9, 5.0)):
+            rows.append({"date": d, "group_id": gid, "turnover_share": sh, "dshare": ds, "chg_pct": chg,
+                         "mkt_chg": 0.1, "rel": chg - 0.1})
+    return pd.DataFrame(rows), dates
+
+
+def test_verify_topn_forward_and_hit():
+    D, dates = _vD()
+    v = fc.verify(D, {"A", "B", "C", "S"}, dates, days=12, topn=1, fwd=5)
+    d0 = v["days"][dates[0]]
+    assert [r["gid"] for r in d0["inn"]] == ["A"] and [r["gid"] for r in d0["out"]] == ["C"]   # S 占比 < 1% 不參與排名
+    assert d0["inn"][0]["f5"] == pytest.approx(5.10, abs=0.01) and d0["inn"][0]["m5"] == pytest.approx(0.50, abs=0.01)
+    assert d0["inn"][0]["rel5"] == pytest.approx(4.60, abs=0.02)
+    assert v["days"][dates[-1]]["inn"][0]["f5"] is None          # 最後幾天之後不滿 5 日：不估
+    st = v["stats"]["20"]
+    assert st["days"] == 12 and st["inn_day"] == {"n": 12, "k": 12} and st["out_day"] == {"n": 12, "k": 12}
+    assert st["inn_f5"]["n"] == 7 and st["inn_f5"]["k"] == 7     # 12 天裡只有前 7 天有「之後 5 日」
+
+
+def test_verify_no_future_and_empty(tmp_path):
+    D, dates = _vD()
+    v = fc.verify(D, {"A", "B", "C", "S"}, dates, days=12, topn=3)
+    # 排名只用當天資料：把最後一天之後的資料拿掉，前面各天的 inn/out/當天相對完全不變
+    v2 = fc.verify(D[D["date"] < dates[-1]], {"A", "B", "C", "S"}, dates[:-1], days=11, topn=3)
+    for d in dates[:-1]:
+        a, b = v["days"][d], v2["days"][d]
+        assert [(r["gid"], r["rel"]) for r in a["inn"]] == [(r["gid"], r["rel"]) for r in b["inn"]]
+    assert fc.verify(pd.DataFrame(), set(), [])["dates"] == []
+    fc.write({"index": {}, "backtest": {}, "verify": v}, tmp_path)
+    assert (tmp_path / "verify.json").exists()

@@ -28,7 +28,7 @@ def t_flowcheck_v3(b, base):
         if W < 641:
             kw.update(is_mobile=True, has_touch=True, device_scale_factor=2)
         ctx = b.new_context(**kw)
-        ctx.add_init_script("try{localStorage.setItem('tw.tour','done');localStorage.setItem('tw.live.on','0')}catch(e){}")
+        ctx.add_init_script("try{localStorage.setItem('fc.tour4','1');localStorage.setItem('tw.tour','done');localStorage.setItem('tw.live.on','0')}catch(e){}")
         ctx.route("**/fonts.googleapis.com/**", lambda r: r.abort())
         ctx.route("**/data/flowcheck/**", route)
         pg = ctx.new_page()
@@ -38,7 +38,10 @@ def t_flowcheck_v3(b, base):
         if agree.count() and agree.first.is_visible():
             agree.first.click()
         pg.evaluate("t => document.documentElement.setAttribute('data-theme', t)", theme)
-        wait_until(pg, "() => !!document.querySelector('#fc3Stage svg') && document.querySelectorAll('#fc3Ans .fc3-chip').length >= 6", 15000)
+        # v4（11-01 20:20）：河流／輪盤收進「看細節」、預設收起 → 這段先展開再驗；新手導覽用 fc.tour4 擋掉
+        wait_until(pg, "() => document.querySelectorAll('#fc3Ans .fc3-chip').length >= 6 && !!document.getElementById('fc3DetTog')", 15000)
+        pg.evaluate("() => { if (document.getElementById('fc3DetBd').hidden) document.getElementById('fc3DetTog').click(); }")
+        wait_until(pg, "() => !!document.querySelector('#fc3Stage svg')", 15000)
         pg.wait_for_timeout(500)
         return ctx, pg
 
@@ -86,8 +89,8 @@ def t_flowcheck_v3(b, base):
     _want_in = [_nm[k] for k in _r[:3]]; _want_out = [_nm[k] for k in _r[::-1][:3]]
     _got = J(pg, "() => [...document.querySelectorAll('#fc3Ans .fc3-chip')].map(e => e.title)")
     ok(f"[{T}] ① 流入前 3／流出前 3 與資料算出的一致（占比 ≥ 1% 才參與）：{_got}", _got == _want_in + _want_out, (_got, _want_in, _want_out))
-    bottom = J(pg, "() => Math.round(document.getElementById('fcAdv').getBoundingClientRect().bottom + scrollY)")
-    ok(f"[{T}] ② 1440×900 一屏：結論、6 卡、主圖、滑桿、訊號列、進階列全在 900px 內（底＝{bottom}）", bottom <= 900, bottom)
+    top_det = J(pg, "() => Math.round(document.getElementById('fc3Detail').getBoundingClientRect().top)")
+    ok(f"[{T}] ② 1440×900 一屏（v4）：第一屏是驗證三步驟，「看細節」（河流／輪盤）的標題列也在 900px 內（頂＝{top_det}）；河流主圖在它裡面、不再佔首屏", top_det <= 900, top_det)
     ok(f"[{T}] ② 沒有三輪盤並排／三者同向籤／琥珀時間軸標記（已拿掉）", J(pg, "() => !document.querySelector('#fcW_strength, #fcSame, .fc-marks, #fcTl')"))
     ok(f"[{T}] ② 進階預設收起（收展預設收起準則）", J(pg, "() => !document.getElementById('fcAdv').classList.contains('open') && !document.querySelector('#fcAdv .fc-bd').offsetParent"))
     ok(f"[{T}] ② 桌機沒有橫向捲軸", J(pg, "() => document.documentElement.scrollWidth <= innerWidth + 1"))
@@ -114,6 +117,7 @@ def t_flowcheck_v3(b, base):
     ok(f"[{T}] ④ 輪盤沒有箭頭（marker）", J(pg, "() => !document.querySelector('#fc3Stage marker, #fc3Stage [marker-end]')"))
     pp = J(pg, "() => [...document.querySelectorAll('#fc3Stage g.fc3-pt')].map(e => ({g: e.dataset.g, x: +e.dataset.x, y: +e.dataset.y, r: +e.dataset.r}))")
     pairs = sorted(((((a['x'] - c['x']) ** 2 + (a['y'] - c['y']) ** 2) ** .5, a, c) for i, a in enumerate(pp) for c in pp[i + 1:]), key=lambda z: z[0])[:3]
+    pg.evaluate("() => document.getElementById('fc3Stage').scrollIntoView({ block: 'center', behavior: 'instant' })"); pg.wait_for_timeout(1200)     # v4：主圖在「看細節」裡、離首屏較遠，座標點擊前先捲到可見
     sb = J(pg, "() => { const r = document.querySelector('#fc3Stage svg.fc3-svg').getBoundingClientRect(); return [r.left, r.top]; }")
     good = 0
     for d_, a, c in pairs:
@@ -163,7 +167,7 @@ def t_flowcheck_v3(b, base):
 
     # 今天的訊號
     sg_txt = J(pg, "() => document.getElementById('fc3SigWrap').innerText")
-    ok(f"[{T}] ⑧ 訊號列首屏一行：有「實驗訊號」字樣與「近兩年略有利、空頭與 2026 年轉弱」，今日候選只列族群", "實驗訊號" in sg_txt and "近兩年略有利" in sg_txt and "空頭與 2026 年轉弱" in sg_txt, sg_txt[:120])
+    ok(f"[{T}] ⑧ 條件追蹤列首屏一行（法遵口吻）：標題「條件追蹤：外資＋投信 10 日買超前 20% 的族群」、「條件成立的族群」、「歷史統計不代表未來結果，非投資建議」，只列族群", "條件追蹤：外資＋投信 10 日買超前 20% 的族群" in sg_txt and "條件成立的族群" in sg_txt and "歷史統計不代表未來結果，非投資建議" in sg_txt, sg_txt[:160])
     pg.click("[data-sig='toggle']"); pg.wait_for_timeout(300)
     sg_row = sg_txt
     sg_txt = J(pg, "() => document.getElementById('fc3SigWrap').innerText")
@@ -172,8 +176,9 @@ def t_flowcheck_v3(b, base):
     import re as _re2
     _pcts = _re2.findall(r"\d+\.(\d+)%", _four)
     ok(f"[{T}] ⑧ 證據句沒有「Rank IC」、改白話（相關 -0.01）、百分比一律兩位小數", "Rank IC" not in sg_txt and "相關 -0.01" in _four and _pcts and all(len(x) == 2 for x in _pcts), (_four, _pcts))
-    ok(f"[{T}] ⑧ 全區沒有「推薦」「買進」「有效」字樣、不列個股", not any(w in sg_txt.replace("不是買進建議", "") for w in ("推薦", "買進", "有效", "HBM")), [w for w in ("推薦", "買進", "有效", "HBM") if w in sg_txt.replace("不是買進建議", "")])
-    ok(f"[{T}] ⑧ 訊號列加「僅供觀察，不是買進建議」；展開按鈕寫明是 INST10 自己的證據", "僅供觀察，不是買進建議" in sg_row and "INST10" in sg_row, sg_row)
+    _bw = ("推薦", "買進", "HBM", "埋伏", "進場", "出場", "布局", "燈號", "建議買")
+    ok(f"[{T}] ⑧ 全區沒有「推薦」「買進」「埋伏」「進場」「出場」「布局」「燈號」「建議買」字樣、不列個股", not any(w in sg_txt for w in _bw), [w for w in _bw if w in sg_txt])
+    ok(f"[{T}] ⑧ 條件追蹤列底部揭示「歷史統計不代表未來結果，非投資建議」；展開按鈕寫「看歷史統計」，表頭是「平均／比全部族群好的期數比例／樣本數」", "歷史統計不代表未來結果，非投資建議" in sg_row and "看歷史統計" in sg_row and all(k in sg_txt for k in ("平均（比全部族群多", "樣本數", "好的期數比例")), sg_row)
     pg.click("#fc3Sig [data-sig='pick']"); pg.wait_for_timeout(300)
     ok(f"[{T}] ⑧ 點候選族群：主圖選取它", st(pg)["sel"] is not None)
     pg.click("[data-sig='toggle']"); pg.wait_for_timeout(200)
@@ -186,7 +191,7 @@ def t_flowcheck_v3(b, base):
     ok(f"[{T}] ⑨ 驗證與案例：成功 {n_ok} 例、失敗 {n_bad} 例（各 ≥ 3）", n_ok >= 3 and n_bad >= 3)
     cs_txt = J(pg, "() => document.getElementById('fcCases').innerText")
     ok(f"[{T}] ⑨ 整體統計：413 筆、+1.24%、-0.92%、46.0%、保留樣本 1,158 筆 49.7%、第二版案例日期與數字、白話三句", "413" in cs_txt and "+1.24%" in cs_txt and "0.92%" in cs_txt and "46.0%" in cs_txt and "1,158" in cs_txt and "49.7%" in cs_txt and "不能當成穩定獲利工具" in cs_txt and "2026-03-17" in cs_txt and "+45.2%" in cs_txt and "-31.0%" in cs_txt, cs_txt[:160])
-    ok(f"[{T}] ⑨ 案例區標題寫明是「綜合分數 A」，與今天的訊號 INST10 是不同方法", "綜合分數 A" in cs_txt and "INST10" in cs_txt and "不同" in cs_txt)
+    ok(f"[{T}] ⑨ 案例區標題寫明是「綜合分數 A」，與上面的條件追蹤是不同方法", "綜合分數 A" in cs_txt and "條件追蹤" in cs_txt and "不同" in cs_txt)
     ok(f"[{T}] ⑨ 案例都寫了日期、族群、之後 5／20／60 日、當時與教訓", J(pg, "() => [...document.querySelectorAll('#fcCases .fc3-case')].every(c => /20\\d\\d-\\d\\d-\\d\\d/.test(c.textContent) && /60 日/.test(c.textContent) && /教訓/.test(c.textContent))"))
     for key, probe in [("heat", "#fcHeat canvas, #fcHeat svg"), ("trend", "#fcTrend canvas, #fcTrend svg"), ("div", "#fcDivPane .fc-dr, #fcDivPane .muted"),
                        ("strength", "#fcWheel canvas, #fcWheel svg"), ("daily", "#fcDay *"), ("sig", "#fcSigL *"), ("news", "#fcNews *, #fcInst canvas, #fcInst svg")]:
@@ -226,7 +231,7 @@ def t_flowcheck_v3(b, base):
     ok(f"[{T}] ⑪ 手機：沒有橫向捲軸", J(pg, "() => document.documentElement.scrollWidth <= innerWidth + 1"))
     top = J(pg, "() => document.getElementById('v-flowcheck').getBoundingClientRect().top + scrollY")
     bot = J(pg, "() => document.getElementById('fcAdv').getBoundingClientRect().bottom + scrollY")
-    ok(f"[{T}] ⑪ 手機整頁 ≤ 1.3 屏（內容高 {round(bot - top)}px ≤ {round(844 * 1.3)}）", bot - top <= 844 * 1.3, bot - top)
+    ok(f"[{T}] ⑪ 手機整頁 ≤ 3 屏（內容高 {round(bot - top)}px ≤ {844 * 3}；v4 加了驗證三步驟，上限從 1.3 屏放寬到手機準則的 3 屏）", bot - top <= 844 * 3, bot - top)
     rg = J(pg, """() => { const r = document.getElementById('fc3Range'), b = r.getBoundingClientRect(); let th = 0;
       const walk = rules => [...rules].forEach(x => { if (x.selectorText) { if (/fc3-ctl input\\[type=.?range.?\\]::-webkit-slider-thumb/.test(x.selectorText)) th = Math.max(th, parseFloat(x.style.width) || 0); } else if (x.cssRules) walk(x.cssRules); });
       [...document.styleSheets].forEach(sh => { try { walk(sh.cssRules); } catch (e) {} });
@@ -235,6 +240,7 @@ def t_flowcheck_v3(b, base):
     pg.evaluate("() => { const r = document.getElementById('fc3Range'); r.value = +r.min; r.dispatchEvent(new Event('input', {bubbles: true})); }"); pg.wait_for_timeout(200)
     pg.tap("#fc3Latest"); pg.wait_for_timeout(300)
     ok(f"[{T}] ⑪ 手機拖滑桿到最早後，手指點一下「回最新」就回到最新日", st(pg)["t"] == st(pg)["T"] - 1, st(pg))
+    pg.evaluate("() => document.getElementById('fc3Detail').scrollIntoView()"); pg.wait_for_timeout(300)
     first4 = J(pg, "() => [...document.querySelectorAll('#fc3Stage g.fc3-row')].slice(0, 4).every(r => r.getBoundingClientRect().bottom <= innerHeight)")
     ok(f"[{T}] ⑪ 手機首屏看得到：切換鈕、結論句、6 張卡、主圖前 4 列", first4 and J(pg, "() => ['#fc3View', '#fc3Sent', '#fc3Ans'].every(s => document.querySelector(s).getBoundingClientRect().bottom <= innerHeight)"))
     ok(f"[{T}] ⑪ 手機最小字 ≥ 12px、文字框不重疊（河流）", not J(pg, MINFONT) and not J(pg, OVERLAP), (J(pg, MINFONT), J(pg, OVERLAP)))

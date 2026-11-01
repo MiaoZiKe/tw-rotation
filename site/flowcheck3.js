@@ -20,9 +20,9 @@
   var $ = function (s, r) { return (r || document).querySelector(s); };
   var $$ = function (s, r) { return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
   var esc = function (s) { return String(s == null ? '' : s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); };
-  var API = null, built = false;
+  var API = null, built = false, built4 = false;
   var V = { dates: [], T: 0, G: [], by: {}, mk: [], mcum: [], mh: 1, fix: null, nw: undefined, ready: false };
-  var S = { t: 0, sel: null, win: 30, view: 'river', play: null, sigOpen: false };
+  var S = { t: 0, sel: null, win: 30, view: 'river', play: null, sigOpen: false, detOpen: false };
   var QL = { leading: '持續升溫', improving: '降溫放緩', weakening: '升溫放緩', lagging: '持續降溫' };
   var NROWS = 10;
   var RH = function () { return isMob() ? 35 : 32; }, CHH = function () { return 16; };
@@ -111,6 +111,10 @@
   function mount(root) {
     root.innerHTML =
       '<div class="fc3" id="fc3root">'
+      + '<div id="fc4"></div>'
+      + '<section class="card fc3-detail" id="fc3Detail"><div class="fc3-dethd"><h3>看細節</h3><span class="fc3-detsum">資金河流圖、資金輪盤：看資金在族群之間怎麼換手</span>'
+      + '<button type="button" class="fc-tog" id="fc3DetTog" aria-expanded="false" aria-controls="fc3DetBd">展開</button></div>'
+      + '<div class="fc3-detbd" id="fc3DetBd" hidden>'
       + '<div class="fc3-hd"><span class="fc3-date" id="fc3Date"></span><span class="fc3-sp"></span>'
       + '<div class="seg" id="fc3View" role="group" aria-label="圖的種類"><button type="button" data-v="river" class="on" aria-pressed="true">河流</button><button type="button" data-v="wheel" aria-pressed="false">輪盤</button></div>'
       + '<div class="seg" id="fc3Win" role="group" aria-label="期間">' + [10, 20, 30].map(function (n) { return '<button type="button" data-w="' + n + '"' + (n === 30 ? ' class="on" aria-pressed="true"' : ' aria-pressed="false"') + '>' + n + ' 日</button>'; }).join('') + '</div>'
@@ -122,10 +126,13 @@
       + '<div class="fc3-ctl"><button type="button" class="fc3-play" id="fc3Play" aria-label="播放">▶</button>'
       + '<input type="range" id="fc3Range" min="0" max="0" step="1" value="0" aria-label="日期">'
       + '<span class="fc3-tl" id="fc3Tl"></span><button type="button" class="fc3-latest" id="fc3Latest">回最新</button><span class="fc3-gap" id="fc3Gap"></span></div></div>'
-      + '<div class="card fc3-sigwrap" id="fc3SigWrap"><div id="fc3Sig"></div></div>'
+      + '</div></section>'
+      + '<div class="card fc3-sigwrap" id="fc3SigWrap"><div class="fc4-sub"><span class="fc4-badge">訂閱功能預覽（規劃中）</span><span class="fc4-mut">之後訂閱會員可使用；目前先免費試看</span></div><div id="fc3Sig"></div></div>'
       + '</div>';
     wire(root);
-    try { new ResizeObserver(function () { if (V.ready) drawStage(); }).observe($('#fc3Stage')); } catch (e) { /* 舊瀏覽器 */ }
+    var dt = $('#fc3DetTog');
+    dt.addEventListener('click', function () { setDetail(!S.detOpen, true); });
+    try { new ResizeObserver(function () { if (V.ready && S.detOpen) drawStage(); }).observe($('#fc3Stage')); } catch (e) { /* 舊瀏覽器 */ }
     built = true;
   }
   function wire(root) {
@@ -145,6 +152,15 @@
     });
   }
 
+  /* ---------------------------------------------------------------- 看細節（預設收起；使用者手動展開才記住） */
+  function setDetail(on, manual) {
+    S.detOpen = !!on;
+    var bd = $('#fc3DetBd'), t = $('#fc3DetTog'); if (!bd) return;
+    bd.hidden = !S.detOpen; t.textContent = S.detOpen ? '收起' : '展開'; t.setAttribute('aria-expanded', S.detOpen);
+    if (manual) { try { localStorage.setItem('fc.det4', S.detOpen ? '1' : '0'); } catch (e) { /* 私密視窗 */ } }
+    if (S.detOpen) { all(); setTimeout(function () { window.dispatchEvent(new Event('resize')); }, 30); }
+  }
+
   /* ---------------------------------------------------------------- 狀態 */
   function select(gid, force) {
     if (!gid) return;
@@ -154,7 +170,7 @@
   }
   function setT(t) {
     S.t = Math.max(lo(), Math.min(V.T - 1, t));
-    API.date(V.dates[S.t]); API.url(false); all();
+    API.date(V.dates[S.t]); if (window.TwFlowV4) window.TwFlowV4.onDate(V.dates[S.t]); API.url(false); all();
   }
   function setWin(n) {
     if (n > V.T) return;
@@ -187,7 +203,7 @@
     });
     $('#fc3Tl').textContent = mdl(d);
     $('#fc3Latest').style.visibility = S.t < V.T - 1 ? 'visible' : 'hidden';
-    drawSentence(); drawChips(); drawStage(); drawInfo(); drawGapNote();
+    drawSentence(); drawChips(); if (S.detOpen) { drawStage(); } drawInfo(); drawGapNote();
   }
   function drawSentence() {
     var t = S.t, g = topN(t, 1).inn[0], m = V.mk[t], el = $('#fc3Sent');
@@ -431,16 +447,15 @@
   function drawSignal() {
     var el = $('#fc3Sig'); if (!el) return;
     getNW().then(function (nw) {
-      var head = '<span class="fc3-sigk">今天的訊號</span>';
-      if (!nw) { el.innerHTML = '<div class="fc3-sigrow">' + head + '<span class="fc3-mut">訊號資料尚未上線</span></div>'; return; }
+      var head = '<span class="fc3-sigk">條件追蹤：外資＋投信 10 日買超前 20% 的族群</span>';
+      if (!nw) { el.innerHTML = '<div class="fc3-sigrow">' + head + '<span class="fc3-mut">統計資料尚未上線</span></div>'; return; }
       var m = instMethod(nw), st = m && m.stats && m.stats['10'] && m.stats['10'].test;
       var cands = ((nw.latest && nw.latest.candidates) || []).filter(function (c) { return c.show_on_site === true && c.level === 'group'; });
-      var when = nw.latest && nw.latest.date && V.dates.length && nw.latest.date !== V.dates[V.T - 1] ? '（訊號日 ' + mdl(nw.latest.date) + '）' : '';
-      var back = '實驗訊號・近兩年略有利、空頭與 2026 年轉弱';
-      var names = cands.slice(0, 3).map(function (c) { return c.name; }).join('、');
-      var line = cands.length ? '外資＋投信近 10 日持續買超的族群：' + esc(names) + (cands.length > 3 ? ' 等 ' + cands.length + ' 個' : '') + when : '今天沒有候選族群' + when;
-      var s = '<button type="button" class="fc3-sigrow" data-sig="toggle" aria-expanded="' + S.sigOpen + '">' + head + '<span class="fc3-exp">實驗訊號</span>'
-        + '<span class="fc3-sigtx">' + line + '<span class="fc3-mut">　近兩年略有利、空頭與 2026 年轉弱。僅供觀察，不是買進建議</span></span><span class="fc3-car">' + (S.sigOpen ? '收起 ▴' : '看 INST10 證據 ▾') + '</span></button>';
+      var when = nw.latest && nw.latest.date && V.dates.length && nw.latest.date !== V.dates[V.T - 1] ? '（資料日 ' + mdl(nw.latest.date) + '）' : '';
+            var names = cands.slice(0, 3).map(function (c) { return c.name; }).join('、');
+      var line = cands.length ? '條件成立的族群：' + esc(names) + (cands.length > 3 ? ' 等 ' + cands.length + ' 個' : '') + when : '目前沒有條件成立的族群' + when;
+      var s = '<button type="button" class="fc3-sigrow" data-sig="toggle" aria-expanded="' + S.sigOpen + '">' + head + '<span class="fc3-exp">實驗統計</span>'
+        + '<span class="fc3-sigtx">' + line + '<span class="fc3-mut">　歷史統計不代表未來結果，非投資建議</span></span><span class="fc3-car">' + (S.sigOpen ? '收起 ▴' : '看歷史統計 ▾') + '</span></button>';
       if (S.sigOpen) {
         var rowSt = function (h) {
           var z = m && m.stats && m.stats[h] && m.stats[h].test; if (!z) return '';
@@ -450,13 +465,13 @@
         var cav = (nw.meta && nw.meta.caveats) || [];
         if (!cav.length) cav = ['2024～2025 樣本外：10 日比隨機多、5 日也略多。', '2012～2019 保留樣本：效果只剩約三分之一，扣成本後為負。', '2026 年至今：效果接近零。', '空頭期（大盤 60 日為負）：無效。'];
         var fw = nw.forward, fwTx = fw ? ({ collecting: '收集中', alive: '仍有效', retired: '已失效' }[fw.status] || fw.status) : '';
-        s += '<div class="fc3-evid"><p class="fc3-evh">怎麼選：每個族群近 10 個交易日「外資＋投信淨買超占成交量」排名，前 20% 入選；只看族群，不列個股（個股層檢驗不成立）。</p>'
+        s += '<div class="fc3-evid"><p class="fc3-evh">條件：每個族群近 10 個交易日「外資＋投信淨買超占成交量」排名，前 20% 成立；只列族群，不列個股。下表是過去條件成立後 5／10 日的統計。</p>'
           + '<ol class="fc3-four">' + cav.map(function (c) { return '<li>' + esc(plainCav(c)) + '</li>'; }).join('') + '</ol>'
-          + '<div class="fc3-tw"><table><thead><tr><th>持有</th><th>樣本期數</th><th>比隨機入選多賺（95% 區間）</th><th>命中率（95% 區間）</th><th>扣成本後</th></tr></thead><tbody>' + rowSt('5') + rowSt('10') + '</tbody></table></div><div class="fc3-swipe">← 左右滑看更多 →</div>'
+          + '<div class="fc3-tw"><table><thead><tr><th>之後</th><th>樣本數（期）</th><th>平均（比全部族群多，95% 區間）</th><th>比全部族群好的期數比例（95% 區間）</th><th>扣成本後平均</th></tr></thead><tbody>' + rowSt('5') + rowSt('10') + '</tbody></table></div><div class="fc3-swipe">← 左右滑看更多 →</div>'
           + (fw ? '<p class="fc3-evn"><b>前瞻紀錄：' + esc(fwTx) + '</b><span class="fc3-mut">　' + esc(fw.status_text || '') + '　下架規則：' + esc(fw.retire_rule || '') + '</span></p>' : '')
-          + '<p class="fc3-evn">樣本外 ' + esc((nw.meta && nw.meta.test_start) || '2024-01-01') + ' 起。今日候選族群：'
+          + '<p class="fc3-evn">樣本外 ' + esc((nw.meta && nw.meta.test_start) || '2024-01-01') + ' 起。條件成立的族群：'
           + cands.map(function (c) { return V.by[c.code] ? '<button type="button" class="fc3-lk" data-sig="pick" data-g="' + esc(c.code) + '">' + esc(c.name) + '</button>' : '<span>' + esc(c.name) + '</span>'; }).join('、') + '</p>'
-          + '<p class="fc3-evn fc3-mut">' + esc((nw.meta && nw.meta.disclaimer) || '統計研究輔助，不是買賣建議；歷史表現不代表未來。') + ((nw.meta && nw.meta.limits || [])[2] ? '　限制：' + esc(nw.meta.limits[2]) : '') + '</p>'
+          + '<p class="fc3-evn fc3-mut">' + '歷史統計不代表未來結果，非投資建議。' + ((nw.meta && nw.meta.limits || [])[2] ? '　限制：' + esc(nw.meta.limits[2]) : '') + '</p>'
           + '<button type="button" class="fc3-lk fc3-casesbtn" data-sig="cases">看另一個方法的案例：綜合分數 A（成功與失敗各 3 個）▸</button></div>';
       }
       el.innerHTML = s;
@@ -491,7 +506,7 @@
       var hn = hd ? hd.n : 1158, hw = hd ? hd.win20 : 0.497;
       var stat = function (k, v, c) { return '<div class="fc3-stat"><span class="fc3-mut">' + k + '</span><b class="' + (c || '') + '">' + v + '</b></div>'; };
       var unt = (nw && nw.meta && nw.meta.untestable) || [];
-      el.innerHTML = '<p class="fc3-readme"><b>這一段是「族群綜合分數 A」的歷次結果（基本面＋籌碼＋價量排名）</b>，和上面「今天的訊號」用的 INST10（外資＋投信買超）是兩個不同的方法；INST10 自己的統計在訊號列「看 INST10 證據」。</p><div class="fc3-verdict"><b>這套數據工具的成效（白話）</b><ol class="fc3-three"><li>它能誠實說出「哪些聽起來合理的方法其實沒用」（動能、量增、資金占比、融資券、費半傳導、日內都沒用），這本身就在幫你省錢。</li>'
+      el.innerHTML = '<p class="fc3-readme"><b>這一段是「族群綜合分數 A」的歷次結果（基本面＋籌碼＋價量排名）</b>，和上面「條件追蹤」的外資＋投信買超條件是兩個不同的方法；那個條件的歷史統計在條件追蹤列「看歷史統計」。</p><div class="fc3-verdict"><b>這套數據工具的成效（白話）</b><ol class="fc3-three"><li>它能誠實說出「哪些聽起來合理的方法其實沒用」（動能、量增、資金占比、融資券、費半傳導、日內都沒用），這本身就在幫你省錢。</li>'
         + '<li>它找得到一個「在多頭裡、幅度薄、可能已經鈍化」的族群籌碼訊號，並且附上保留樣本、2026、空頭、成本的全部壞消息。</li>'
         + '<li>勝率只有約 46～49%、中位數為負，贏的靠少數大贏家，所以不能當成穩定獲利工具。</li></ol></div>'
         + '<p class="fc3-readme">我們把「族群綜合分數 A」（基本面＋籌碼＋價量排名）每次新進入前 8 名當成一次訊號，樣本外歷次結果如下，成功失敗都列：</p>'
@@ -500,7 +515,7 @@
         + '<div class="fc3-cases"><div class="fc3-col ok"><h4>成功 3 例</h4>' + CASES.filter(function (c) { return c.ok; }).map(function (c) { return caseCard(c, nw); }).join('') + '</div>'
         + '<div class="fc3-col bad"><h4>失敗 3 例</h4>' + CASES.filter(function (c) { return !c.ok; }).map(function (c) { return caseCard(c, nw); }).join('') + '</div></div>'
         + (unt.length ? '<details class="fc3-unt"><summary>還不能驗證的方法（' + unt.length + ' 項，資料累積中）</summary><ul>' + unt.map(function (u) { return '<li><b>' + esc(u.name) + '</b>：' + esc(u.why) + '</li>'; }).join('') + '</ul></details>' : '')
-        + '<p class="fc3-mut fc3-readme">' + esc((nw && nw.meta && nw.meta.disclaimer) || '統計研究輔助，不是買賣建議；歷史表現不代表未來。') + ' 樣本約 6.8 年，樣本外 2024 年起以多頭為主，缺完整空頭樣本。</p>';
+        + '<p class="fc3-mut fc3-readme">' + '歷史統計不代表未來結果，非投資建議。' + ' 樣本約 6.8 年，樣本外 2024 年起以多頭為主，缺完整空頭樣本。</p>';
     });
   }
 
@@ -509,6 +524,9 @@
     var idx = API.idx;
     if (o.v === 'river' || o.v === 'wheel') S.view = o.v;
     if (o.w && [10, 20, 30].indexOf(+o.w) >= 0) S.win = +o.w;
+    var det = false; try { det = localStorage.getItem('fc.det4') === '1'; } catch (e) { det = false; }
+    if (det !== S.detOpen && !built4) { built4 = true; setDetail(det, false); }
+    var v4 = window.TwFlowV4 ? window.TwFlowV4.show(o.d) : Promise.resolve();
     var go = function () {
       S.win = Math.min(S.win, V.T) || V.T;
       var di = o.d ? V.dates.indexOf(o.d) : -1;
@@ -517,18 +535,28 @@
       API.date(V.dates[S.t]);
       all(); drawSignal();
     };
-    if (V.ready) { go(); return Promise.resolve(); }
+    if (V.ready) { go(); return v4; }
     $('#fc3Sent').textContent = '載入近 30 個交易日資料…';
-    return load(idx).then(go);
+    return Promise.all([load(idx).then(go), v4]);
   }
   window.TwFlowV3 = {
-    init: function (api, root) { API = api; if (!built) mount(root); },
+    init: function (api, root) {
+      API = api; if (!built) mount(root);
+      if (window.TwFlowV4) window.TwFlowV4.init(api, $('#fc4'), {
+        date: function (d) { window.TwFlowV3.setDate(d); },
+        pick: function (g) { if (V.ready && V.by[g]) { S.sel = g; API.pick(g); } },
+        river: function (g) { if (V.ready && V.by[g]) { S.sel = g; API.pick(g); } setDetail(true, false); all(); var c = $('#fc3Detail'); if (c && c.scrollIntoView) c.scrollIntoView({ block: 'start', behavior: 'smooth' }); },
+        beforeTour: function () { }
+      });
+    },
+    setDate: function (d) { var i = V.dates.indexOf(d); if (V.ready && i >= 0 && i !== S.t) { stopPlay(); setT(i); } },
+    openDetail: function (on) { setDetail(on !== false, false); },
     show: show,
     leave: function () { stopPlay(); tip(null); },
     renderCases: renderCases,
     setSel: function (gid) { if (V.ready && V.by[gid] && S.sel !== gid) { S.sel = gid; all(); } },
-    query: function () { return { v: S.view, w: S.win, d: V.dates[S.t], g: S.sel }; },
-    state: function () { return { t: S.t, date: V.dates[S.t], sel: S.sel, win: S.win, view: S.view, playing: !!S.play, T: V.T, stageH: stageH() }; },
+    query: function () { return { v: S.view, w: S.win, d: (window.TwFlowV4 && window.TwFlowV4.date()) || V.dates[S.t], g: S.sel }; },
+    state: function () { return { detOpen: S.detOpen, t: S.t, date: V.dates[S.t], sel: S.sel, win: S.win, view: S.view, playing: !!S.play, T: V.T, stageH: stageH() }; },
     redraw: function () { all(); }
   };
 })();

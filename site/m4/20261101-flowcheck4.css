@@ -1,0 +1,45 @@
+/* 流向驗證 v4 手機（≤640）。手機五條：第一屏看到「吻合率＋選一天＋三步驟小卡」，只留重點（一句話說明點開才看）、觸控 ≥ 40。 */
+@media (max-width:640px){
+  .fc4{padding:8px 12px;gap:8px}
+  .fc4-hh{gap:4px 8px}
+  .fc4-hh .fc4-mut{display:none}
+  #v-flowcheck .fc4-hh .seg button{min-height:40px}
+  .fc4-tiles{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  .fc4-tile{padding:4px 8px;display:grid;grid-template-columns:auto 1fr;align-items:baseline;column-gap:8px}
+  .fc4-tl{font-size:12px;grid-column:1/-1}
+  .fc4-tv{font-size:20px;line-height:1.3}
+  .fc4-hn{display:none}
+  .fc4-s1{gap:4px 8px;padding:4px 8px;flex-wrap:nowrap}
+  .fc4-sl{display:none}
+  .fc4-tourbtn{padding:0 8px;white-space:nowrap}
+  .fc4-s1 select{min-height:40px;flex:1 1 auto;min-width:0;width:100%}
+  .fc4-nav,.fc4-latest,.fc4-tourbtn{min-height:40px}
+  .fc4-nav{min-width:40px;padding:0}
+  .fc4-latest{padding:0 8px}
+  .fc4-sp{display:none}
+  .fc4-s1 .howbtn{min-width:32px!important;min-height:32px!important;width:32px!important;height:32px!important}
+  .fc4-gh{display:none}
+  .fc4-row{grid-template-columns:auto auto minmax(0,1fr) auto;gap:0 12px;padding:8px}
+  .fc4-nm{grid-column:1/4;grid-row:1}
+  .fc4-c5{grid-column:4;grid-row:1;justify-self:end;flex-wrap:nowrap}
+  .fc4-c2,.fc4-c3,.fc4-c4{grid-row:2;font-size:13px}
+  .fc4-c2{grid-column:1}.fc4-c3{grid-column:2}.fc4-c4{grid-column:3;justify-self:start}
+  .fc4-c2::before,.fc4-c3::before,.fc4-c4::before{color:var(--ink-3);font-size:12px;margin-right:4px;font-family:inherit}
+  .fc4-c2::before{content:'占比'}.fc4-c3::before{content:'當天'}.fc4-c4::before{content:'5 日'}
+  .fc4-nfl{display:none}.fc4-nfs{display:inline}
+  .fc4-sx{display:none}
+  .fc4-nm b{font-size:15px}
+  .fc4-v{padding:0 4px}
+  .fc4-dsh{display:none}
+  .fc4-say{display:none}
+  .fc4-ps{display:block}
+  .fc4-sh{padding:0 4px}
+  .fc4-chart{height:200px;min-height:200px}
+  .fc4-pl{gap:8px}
+  .fc4-lk{margin-left:0}
+  .fc4-lkb{min-height:40px}
+  .fc3-detail{padding:8px 12px}
+  .fc3-detsum{display:none}
+  .fc3-dethd .fc-tog{min-height:40px}
+  .fc4-sub{padding:8px 12px 0}
+}
