@@ -478,7 +478,7 @@ html[data-theme="light"] #v-admin{--pgL:40%}
 #v-admin .memtbl td{vertical-align:top}
 #v-admin .memtbl td.c-who b{font-weight:600;overflow-wrap:anywhere}
 #v-admin .memtbl td.c-who .car{color:var(--ink-2);margin-right:4px}
-#v-admin .memtbl tr.paid td.c-who{box-shadow:inset 3px 0 0 #e8b54a}
+#v-admin .memtbl tr.paid td.c-who{box-shadow:inset 3px 0 0 var(--paidbar,#e8b54a)}
 #v-admin .pdbadge{display:inline-block;margin-top:3px;font-size:12px;font-weight:700;padding:1px 8px;border-radius:999px;color:#2a1a00;background:linear-gradient(135deg,#ffd86b,#e8a93a);white-space:nowrap}
 #v-admin .pdbadge.off{background:var(--panel-3);color:var(--ink-2);font-weight:500}
 #v-admin .mchip{display:inline-flex;align-items:center;gap:4px;margin:0 4px 3px 0;padding:1px 7px;border-radius:8px;background:var(--panel-3);font-size:12px;white-space:nowrap}
@@ -731,10 +731,24 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
 #v-admin table.memtbl td.c-cr,#v-admin table.memtbl td.c-exp,#v-admin table.memtbl td.c-seen,#v-admin table.memtbl td.c-st,#v-admin table.memtbl th.c-st,#v-admin table.memtbl td.c-wel,#v-admin table.memtbl th.c-wel{text-align:center}
 #v-admin table.memtbl th.c-wel,#v-admin table.memtbl td.c-wel{width:1%;white-space:nowrap!important}
 #v-admin .memtbl .wel small{display:inline!important;margin-left:4px;font-size:11px;color:var(--ink-3)}
-#v-admin .memtbl .wel.soon{color:var(--amber,#e0a030);font-weight:600}
-#v-admin .memtbl .wel.exp{color:var(--ink-3)}
+#v-admin .wel.soon{color:var(--amber,#e0a030);font-weight:600}
+#v-admin .wel.exp{color:var(--ink-3)}
 #v-admin table.memtbl th.c-inv,#v-admin table.memtbl td.c-inv,#v-admin table.memtbl th.c-invd,#v-admin table.memtbl td.c-invd{width:1%;white-space:nowrap!important}
-#v-admin .memtbl .tbadge{margin-left:6px;font-size:11px;padding:0 6px;border-radius:999px;border:1px solid var(--line-2);color:var(--ink-3);background:var(--panel-2);white-space:nowrap;flex:none}
+#v-admin{--tst:#7c3aed;--paidbar:#e8b54a}
+#v-admin .tbadge{margin-left:6px;font-size:12px;font-weight:700;padding:1px 8px;border-radius:999px;color:#fff;background:var(--tst);white-space:nowrap;flex:none}
+#v-admin .memtbl tr.tst td:not(.c-who){opacity:.55}
+#v-admin .memtbl tr.tst td.c-who>.who1>*:not(.tbadge){opacity:.55}
+#v-admin .memtbl tr.tst td.c-who,#v-admin .memtbl tr.paid.tst td.c-who{box-shadow:inset 4px 0 0 var(--tst)}
+#v-admin .msexbar{margin:10px 0 0;padding:10px 14px;border-radius:8px;background:color-mix(in srgb,var(--tst) 16%,transparent);border-left:4px solid var(--tst);font-size:14px;line-height:1.6;color:var(--ink)}
+#v-admin .msexbar summary{cursor:pointer;font-weight:700}
+#v-admin .msexbar .msexl{margin:6px 0 0;font-weight:400;font-size:13px;color:var(--ink-2);word-break:break-all}
+#v-admin .msexbar .msexp{margin:6px 0 0;font-size:13px;color:var(--ink)}
+#v-admin .tstlegend{display:flex;flex-wrap:wrap;gap:6px 16px;align-items:center;margin:8px 0;padding:8px 12px;border:1px solid var(--line);border-radius:8px;font-size:13px;color:var(--ink-2)}
+#v-admin .tstlegend b{color:var(--ink);font-size:13px}
+#v-admin .tstlegend .lgi{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+#v-admin .tstlegend .bar{display:inline-block;width:4px;height:16px;border-radius:2px}
+#v-admin .tstlegend .bar.gold{background:var(--paidbar)}#v-admin .tstlegend .bar.tst{background:var(--tst)}
+#v-admin .tstlegend .tint{display:inline-block;width:18px;height:14px;border-radius:3px;background:color-mix(in srgb,var(--cyan) 12%,transparent);border:1px solid var(--line-2)}
 #v-admin .pmhide{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--ink-2);white-space:nowrap}
 #v-admin .pmtest{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:6px 0}
 #v-admin .pmtest input{flex:1 1 260px;min-width:0}
@@ -2930,8 +2944,8 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
     const badge = (r) => (r.paid ? `<span class="pdbadge" title="付費會員：${esc(r.planName)}" aria-label="付費會員：${esc(r.planName)}">★</span>` : r.tier === 'paid' ? `<span class="pdbadge off" title="付費已過期：${esc(r.planName)}" aria-label="付費已過期">★</span>` : '');
     const body = rows.map((r) => {
       const open = PS.exp.has(r.email);
-      return `<tr data-email="${esc(r.email)}" class="${PS.rec && r.email === PS.rec.email ? 'on' : ''}${r.paid ? ' paid' : ''}" aria-expanded="${open}">`
-        + `<td class="c-who"><span class="who1"><span class="car" aria-hidden="true">${open ? '▾' : '▸'}</span><b title="${esc(r.email)}">${esc(r.email)}</b>${r.name ? `<small title="${esc(r.name)}">${esc(r.name)}</small>` : ''}${badge(r)}${r.test ? '<span class="tbadge" title="這個帳號不列入上方統計（站主自己標記的測試帳）">測試・不計</span>' : ''}</span></td>`
+      return `<tr data-email="${esc(r.email)}" class="${PS.rec && r.email === PS.rec.email ? 'on' : ''}${r.paid ? ' paid' : ''}${r.test ? ' tst' : ''}" aria-expanded="${open}">`
+        + `<td class="c-who"><span class="who1"><span class="car" aria-hidden="true">${open ? '▾' : '▸'}</span><b title="${esc(r.email)}">${esc(r.email)}</b>${r.name ? `<small title="${esc(r.name)}">${esc(r.name)}</small>` : ''}${badge(r)}${r.test ? '<span class="tbadge" title="這個帳號不列入上方統計（站主自己標記的測試帳）">🧪 測試帳・不計入統計</span>' : ''}</span></td>`
         + `<td class="c-tpl"${r.set ? '' : ' title="尚未個別設定"'}>${r.tier === 'paid' ? esc(r.planName) : '註冊會員'}</td>`
         + `<td class="c-cr">${dday(r.created)}</td><td class="c-exp">${dday(r.expires)}</td><td class="c-wel">${welCell(r)}</td><td class="c-inv num">${r.invN == null ? '<span class="mdim">—</span>' : nf(r.invN)}</td><td class="c-invd num">${r.invD == null ? '<span class="mdim">—</span>' : nf(r.invD)}</td><td class="c-seen" title="${r.seen ? dstr(r.seen) : ''}">${seenTxt(r.seen)}</td>`
         + `<td class="c-on num">${dur(r.onlineMs)}</td><td class="c-vis num">${nf(r.visits30)}</td><td class="c-vw num">${nf(r.views30)}</td>`
@@ -3082,6 +3096,11 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
       s = Object.assign({}, s, { active: Math.max(0, (s.active || 0) - ex.filter((x) => x.days30 > 0).length), visits: Math.max(0, (s.visits || 0) - sum(ex.map((x) => x.visits30))),
         pv: Math.max(0, (s.pv || 0) - sum(ex.map((x) => x.views30))), ms: Math.max(0, (s.ms || 0) - sum(ex.map((x) => x.online30))) });
     }
+    const nm = (x) => x.name || String(x.email).split('@')[0];
+    const stillKpi = exact ? '' : '活躍人數、造訪次數、頁面瀏覽、平均每人在線、平均每次停留、';
+    const exBar = ex.length ? `<details class="msexbar" id="msExBar"><summary id="msEx">📊 以下統計已排除 ${ex.length} 個測試帳：${esc(ex.slice(0, 3).map(nm).join('、'))}${ex.length > 3 ? '…' : ''}（點可展開名單）</summary>
+      <p class="msexl">${esc(ex.map((x) => x.email).join('、'))}</p>
+      <p class="msexp">${exact ? '總人數、狀態、免費付費占比、活躍、造訪、瀏覽、在線都已排除；' : '已排除：總人數、狀態圓環、免費付費占比；'}${exact ? '' : `仍含測試帳：${stillKpi}`}「每天有多少人在用」「最常用哪些功能」「最常看哪些股票」${exact ? '仍含測試帳（伺服器彙總，目前沒有排除參數）。' : '三張圖也仍含（伺服器彙總，目前沒有排除參數）。'}</p></details>` : '';
     const kp = kpi(nf(rows.length), '總人數', 'msTotal', `目前全部會員（含還沒登入過的）；不隨期間變動${wait ? '' : `。${pt}內新加入 ${nf(s.joined)} 人`}`)
       + kpi(val(() => nf(s.active)), `活躍人數`, 'msActive', `${pt}內有開站、在線或使用功能的不同人數`)
       + kpi(val(() => nf(s.visits)), '造訪次數', 'msVisits', `${pt}內開啟網站的次數（登入狀態）`)
@@ -3112,8 +3131,8 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
     cards.push(card('msFeatC', '最常用哪些功能？', `${pt}・前 8 名`, wait ? ph(wait) : ((s.feats || []).length ? bars(s.feats, compName, s.featTotal || sum(s.feats.map((x) => x[1])), { id: 'msFeat' }) : none), cls),
       card('msStockC', '最常看哪些股票？', `${pt}・前 8 名`, wait ? ph(wait) : ((s.stocks || []).length ? bars(s.stocks, stockNm, s.stockTotal || sum(s.stocks.map((x) => x[1])), { id: 'msStock' }) : none), cls));
     const keep = s.keepDays || 90, note = !wait && r.from < dayAdd(todayTpe(), -(keep - 1)) ? `個人使用紀錄只保留近 ${keep} 天：期間內更早的活動不在活躍人數、功能、股票的統計裡。` : (!wait && s.since && s.since > r.from ? `使用紀錄從 ${s.since} 起；更早的日子沒有資料。` : '');
-    return `<div class="secttl trhead"><h2>會員使用概況</h2><small>${esc(PS.tier === 'free' ? '註冊會員（含付費）' : (planOf(PS.planSel) || {}).name || '')}・${esc(pt)}</small>${ex.length ? `<small class="msex" id="msEx" title="${exact ? '總人數、狀態、占比、活躍、造訪、瀏覽、在線都已排除' : '總人數、狀態、占比已排除；活躍、造訪、瀏覽、在線、每天圖、功能與股票排行由伺服器彙總（期間不是近 30 天時伺服器沒有排除參數），仍含測試帳'}">已排除 ${ex.length} 個測試帳${exact ? '' : '（部分圖表尚含）'}</small>` : ''}<span class="sp"></span>${periodCtlHtml(per, 'msPer')}</div>
-      <div class="mkpis">${kp}</div>${note ? `<p class="msnote" id="msNote">${esc(note)}</p>` : ''}<div class="admgrid msgrid" id="msCharts">${cards.join('')}</div>`;
+    return `<div class="secttl trhead"><h2>會員使用概況</h2><small>${esc(PS.tier === 'free' ? '註冊會員（含付費）' : (planOf(PS.planSel) || {}).name || '')}・${esc(pt)}</small><span class="sp"></span>${periodCtlHtml(per, 'msPer')}</div>
+      ${exBar}<div class="mkpis">${kp}</div>${note ? `<p class="msnote" id="msNote">${esc(note)}</p>` : ''}<div class="admgrid msgrid" id="msCharts">${cards.join('')}</div>`;
   }
   /* 統計區的唯一畫法：每次都先確認快取在不在（不在＝去讀），再畫；內容沒變（同一期間、同一份名單、同一個讀取狀態）就不重畫，免得搜尋打字時圖一直閃 */
   function paintStats() {
@@ -3177,10 +3196,17 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
         box.dataset.shell = shellKey;
         box.innerHTML = `<div class="ptinner" id="ptMail"><div class="mstats" id="ptStats"></div>
           <div class="pmbar pmfbar"><input type="search" id="pmSearch" placeholder="搜尋 email、名字、層級或範本" aria-label="搜尋會員" value="${esc(PS.q)}">
-            <select id="pmStatF" aria-label="依狀態篩選"><option value="">全部狀態</option><option value="ok">有效</option><option value="exp">過期</option><option value="new">未登入過</option></select><label class="pmhide"><input type="checkbox" id="pmHideTest"> 隱藏測試帳</label><span class="pmcnt" id="pmCnt"></span>
+            <select id="pmStatF" aria-label="依狀態篩選"><option value="">全部狀態</option><option value="ok">有效</option><option value="exp">過期</option><option value="new">未登入過</option></select><label class="pmhide"><input type="checkbox" id="pmHideTest"> <span id="pmHideTxt">隱藏測試帳</span></label><span class="pmcnt" id="pmCnt"></span>
             ${PS.tier === 'paid' ? '<span class="sp"></span><button type="button" class="pri pmadd" id="pmAddBtn">＋ 加入會員</button>' : ''}</div>
           ${PS.tier === 'paid' ? '<div class="pmaddf" id="pmAddF" hidden><input type="email" id="pmAddMail" placeholder="輸入 email，指定到這個方案" aria-label="要加入的 email"><button type="button" class="pri" id="pmAddGo">加入</button><button type="button" id="pmAddX">取消</button></div>' : ''}
           <div class="pmbar pmtest" id="pmTestBar"><input type="text" id="pmTestMail" placeholder="依 email 標記測試帳（整個 email 或開頭幾個字）" aria-label="依 email 標記測試帳" autocomplete="off"><button type="button" id="pmTestGo">標記為測試帳</button><span class="muted" id="pmTestSt" role="status"></span></div>
+          <div class="tstlegend" id="pmLegend"><b>顏色說明</b>
+            <span class="lgi"><span class="bar gold"></span><span class="pdbadge" style="margin:0">★</span> 付費會員（付費方案有效）</span>
+            <span class="lgi"><span class="pdbadge off" style="margin:0">★</span> 付費方案已過期</span>
+            <span class="lgi"><span class="bar tst"></span><span class="tbadge" style="margin:0">🧪 測試帳</span> 不計入統計，整列淡化</span>
+            <span class="lgi"><span class="tint" id="lgOn"></span> 淡青底＝目前展開的那一列</span>
+            <span class="lgi">狀態：<span class="stt ok">有效</span><span class="stt soon">即將到期</span>（7 天內）<span class="stt exp">過期</span><span class="stt new">未登入過</span></span>
+            <span class="lgi">體驗到期：<span class="wel soon" id="lgSoon">琥珀</span> 3 天內到期・<span class="wel exp" id="lgExp">灰字</span> 已過期</span></div>
           <div id="ptTableBox"></div></div>`;
         const vv = PS.v; vv.querySelector('#pmStatF').value = PS.stf;
         vv.querySelector('#pmSearch').oninput = (e) => { PS.q = e.target.value; paintList(); };
@@ -3206,6 +3232,7 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
       if (PS.stf) fr = fr.filter((r) => r.st === PS.stf);
       const cnt = box.querySelector('#pmCnt'); if (cnt) cnt.textContent = (q || PS.stf) ? `${fr.length} ／ ${rows.length} 位` : `共 ${rows.length} 位`;
       if (cnt) cnt.title = use;
+      { const ht = box.querySelector('#pmHideTxt'); if (ht) ht.textContent = `隱藏測試帳（${listRows0().filter((x) => x.test).length}）`; }
       const tb = box.querySelector('#ptTableBox');
       /* ★ 2026-10-07 Andy：「下方移除會員部分 幫我優化介面」「更直觀操作」→ 付費範本的名單改成一列一人的操作列（改方案／移出／勾選批次移出），
          空的時候是一張置中小卡（不再一大片空白「沒有人」）。註冊會員那層（所有人員）維持原本的統計表。 */
