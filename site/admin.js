@@ -2127,7 +2127,41 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
     return (PS.testSet = new Set(arr));
   }
   function testSave() { try { localStorage.setItem(TEST_KEY, JSON.stringify([...testSet()])); } catch (e) { /* 私密視窗 */ } PS.mst = {}; }
-  const isTest = (r) => testSet().has(String(r.email || '').toLowerCase());
+  /* Andy 11-02 指定的 4 個測試帳（雜湊）：repo 是 public，只放「小寫 email 的 SHA-256 十六進位」，不放明文。
+     會員名單每位的 email 用 crypto.subtle.digest 算雜湊比對，命中即視同已標記（與 localStorage 標記取聯集）；
+     站主手動「恢復計入統計」會在 localStorage 記一筆例外（EX_KEY）覆蓋預設。window.__TW_TEST_HASHES 只給驗收段落補測試用的雜湊。 */
+  const DEF_TEST_HASH = [
+    '4a2a3c5cccfd962424f46cf736a3e95b40c763ecd1bc95e6dd97c6bc2e822775',
+    '1fd49fac5d653bc836aba8ab44b99509f0818f8a9039cc0be513171ed50f483f',
+    'b65f9eafc170a3f1feaefe829a63649f827d11480be7d1e8632b2f92f86ce4c2',
+    '7c5045f200b2d52cfcd0b83117b568ce4e0e50fdb174b21dc64fea86d3831285'
+  ];
+  const EX_KEY = 'tw.adm.testAcctEx';
+  function exSet() {
+    if (PS.exSet) return PS.exSet;
+    let a = []; try { a = JSON.parse(localStorage.getItem(EX_KEY) || '[]'); } catch (e) { a = []; }
+    return (PS.exSet = new Set(Array.isArray(a) ? a : []));
+  }
+  function exSave() { try { localStorage.setItem(EX_KEY, JSON.stringify([...exSet()])); } catch (e) { /* 私密視窗 */ } }
+  async function sha256Hex(t) {
+    const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(t));
+    return [...new Uint8Array(b)].map((x) => x.toString(16).padStart(2, '0')).join('');
+  }
+  /* 名單裡還沒算過雜湊的 email 算一次；有新命中才重畫（命中是非同步的，所以要補畫一次） */
+  function hashScan() {
+    if (!(window.crypto && crypto.subtle)) return;
+    PS.dh = PS.dh || new Map();
+    const hs = new Set(DEF_TEST_HASH.concat(window.__TW_TEST_HASHES || []));
+    const todo = people().map((r) => String(r.email || '').toLowerCase()).filter((e) => e && !PS.dh.has(e));
+    if (!todo.length || PS.dhBusy) return;
+    PS.dhBusy = true;
+    Promise.all(todo.map((e) => sha256Hex(e).then((h) => [e, hs.has(h)]).catch(() => [e, false]))).then((res) => {
+      PS.dhBusy = false; let hit = false;
+      res.forEach(([e, v]) => { PS.dh.set(e, v); if (v) hit = true; });
+      if (hit) { PS.mst = {}; paintList(); }
+    });
+  }
+  const isTest = (r) => { const e = String(r.email || '').toLowerCase(); return testSet().has(e) || !!(PS.dh && PS.dh.get(e) && !exSet().has(e)); };
   /* 名單的每一列 = people() ＋ /v1/admin/members 的使用數據（新 Worker 才有；舊的就只有造訪次數）*/
   function members() {
     const st = new Map(((PS.mem && PS.mem.members) || []).map((m) => [m.email, m]));
@@ -3185,6 +3219,7 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
   }
   function paintList() {
     if (!PS.v) return;
+    hashScan();
     if (PS.mode === 'plan') {
       const box = PS.v.querySelector('#ptListBox'); if (!box || box.hidden) return;
       const rows = listRows(), use = (PS.tier === 'free' ? '所有人員（含付費與尚未登入過的）；金色徽章＝付費會員（後面是方案名）、過期的標「過期」。' : '被指定到這個範本的會員。')
@@ -3363,7 +3398,9 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
     box.onclick = (e) => {
       const th = e.target.closest('th[data-sort]');
       if (th) { if (PS.sort === th.dataset.sort) PS.dir = -PS.dir; else { PS.sort = th.dataset.sort; PS.dir = th.dataset.sort === 'email' ? 1 : -1; } paintList(); return; }
-      const tt = e.target.closest('button[data-test]'); if (tt) { const em = tt.dataset.test.toLowerCase(), S = testSet(); if (S.has(em)) S.delete(em); else S.add(em); testSave(); paintList(); return; }
+      const tt = e.target.closest('button[data-test]'); if (tt) { const em = tt.dataset.test.toLowerCase(), S = testSet(), X = exSet(), dh = !!(PS.dh && PS.dh.get(em));
+        if (isTest({ email: em })) { S.delete(em); if (dh) { X.add(em); exSave(); } } else { X.delete(em); exSave(); S.add(em); }
+        testSave(); paintList(); return; }
       const tu = e.target.closest('button[data-tune]'); if (tu) { enterMember(tu.dataset.tune); return; }
       if (e.target.closest('tr.pmdet')) return;
       const tr = e.target.closest('tr[data-email]'); if (!tr) return;
