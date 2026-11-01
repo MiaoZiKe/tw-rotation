@@ -231,6 +231,27 @@
    "review_note": "",
    "prescreen": "fail",
    "prescreen_note": "2026-10-28 工程初篩（v3）：不建議：LOGO／人物／車牌／他牌／舊照或主體不明"
+  },
+  {
+   "file": "photo_11.jpg",
+   "kind": "類別",
+   "slug": "鋼鐵",
+   "name_en": "鋼鐵",
+   "query": "hot rolled steel",
+   "file_title": "File:CSIRO ScienceImage 1784 Freshly Rolled Red Hot Steel.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:CSIRO_ScienceImage_1784_Freshly_Rolled_Red_Hot_Steel.jpg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/c/ca/CSIRO_ScienceImage_1784_Freshly_Rolled_Red_Hot_Steel.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "CC BY 3.0",
+   "license_url": "https://creativecommons.org/licenses/by/3.0",
+   "author": "Robert Kerton, CSIRO",
+   "credit": "http://www.scienceimage.csiro.au/image/1784",
+   "description": "Smorgon steel mill, Laverton North, Victoria. Freshly rolled, red hot steel beams being cut with oxy-acetylene torches in foundry. February 1990.   Photo credit: Robert Kerton",
+   "width": 1920,
+   "height": 1247,
+   "fetched_at": "2026-11-01T23:06:18+00:00",
+   "reviewed": false,
+   "reviewer": "",
+   "review_note": ""
   }
  ],
  "rejected": [

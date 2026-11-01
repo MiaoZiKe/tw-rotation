@@ -140,6 +140,27 @@
    "review_note": "",
    "prescreen": "fail",
    "prescreen_note": "2026-10-28 工程初篩（v3）：不建議：LOGO／人物／車牌／他牌／舊照或主體不明"
+  },
+  {
+   "file": "photo_7.jpg",
+   "kind": "總部/廠房",
+   "slug": "esun",
+   "name_en": "E.Sun Financial",
+   "query": "E.Sun Bank building",
+   "file_title": "File:Mingsheng Building main entrance 20190814.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:Mingsheng_Building_main_entrance_20190814.jpg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/a/a8/Mingsheng_Building_main_entrance_20190814.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "author": "Diamo Laung Bobpuao",
+   "credit": "Own work",
+   "description": "The main entrance of Mingsheng Building (left) and Chungshan Branch, E.SUN Commercial Bank (right).",
+   "width": 1920,
+   "height": 1280,
+   "fetched_at": "2026-11-01T22:51:12+00:00",
+   "reviewed": false,
+   "reviewer": "",
+   "review_note": ""
   }
  ],
  "rejected": [

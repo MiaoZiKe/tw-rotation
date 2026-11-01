@@ -115,6 +115,27 @@
    "review_note": "",
    "prescreen": "fail",
    "prescreen_note": "2026-10-28 工程初篩（v3）：不建議：LOGO／人物／車牌／他牌／舊照或主體不明"
+  },
+  {
+   "file": "photo_6.jpg",
+   "kind": "總部/廠房",
+   "slug": "uni_president",
+   "name_en": "Uni-President",
+   "query": "Uni-President",
+   "file_title": "File:Uni-President Vender Changhua Office tag 20210425.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:Uni-President_Vender_Changhua_Office_tag_20210425.jpg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/4/42/Uni-President_Vender_Changhua_Office_tag_20210425.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "author": "Solomon203",
+   "credit": "Own work",
+   "description": "​統一速邁自販彰化營業所貼於自動販賣機正面右上角的標籤。",
+   "width": 1440,
+   "height": 1080,
+   "fetched_at": "2026-11-01T22:51:51+00:00",
+   "reviewed": false,
+   "reviewer": "",
+   "review_note": ""
   }
  ],
  "rejected": [

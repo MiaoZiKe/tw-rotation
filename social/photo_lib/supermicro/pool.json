@@ -71,6 +71,27 @@
    "prescreen": "pass",
    "prescreen_note": "2026-10-28 工程初篩（v3）：通過，待 art-director 正式複審",
    "reject_reason": "失焦糊"
+  },
+  {
+   "file": "photo_4.jpg",
+   "kind": "產品",
+   "slug": "supermicro",
+   "name_en": "Supermicro",
+   "query": "Supermicro server",
+   "file_title": "File:Supermicro, Server, X8DTU-F, 2.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:Supermicro,_Server,_X8DTU-F,_2.jpg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/f/f2/Supermicro%2C_Server%2C_X8DTU-F%2C_2.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "author": ".mw-parser-output .template-designermadsen-source{border:1px solid #a2a9b1;background-color:#f8f9fa;display:grid;padding",
+   "credit": "Own work",
+   "description": "Image of a Supermicro Server",
+   "width": 1920,
+   "height": 1440,
+   "fetched_at": "2026-11-01T23:00:16+00:00",
+   "reviewed": false,
+   "reviewer": "",
+   "review_note": ""
   }
  ],
  "rejected": []

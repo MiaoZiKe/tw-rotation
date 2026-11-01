@@ -209,6 +209,27 @@
    "review_note": "",
    "prescreen": "fail",
    "prescreen_note": "2026-10-28 工程初篩（v3）：不建議：LOGO／人物／車牌／他牌／舊照或主體不明"
+  },
+  {
+   "file": "photo_10.jpg",
+   "kind": "類別",
+   "slug": "汽車",
+   "name_en": "汽車",
+   "query": "electric vehicle",
+   "file_title": "File:DHL \"This vehicle is powered by electric drive\".jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:DHL_%22This_vehicle_is_powered_by_electric_drive%22.jpg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/2/20/DHL_%22This_vehicle_is_powered_by_electric_drive%22.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "CC0",
+   "license_url": "http://creativecommons.org/publicdomain/zero/1.0/deed.en",
+   "author": "Syced",
+   "credit": "Own work",
+   "description": "DHL \"This vehicle is powered by electric drive\"",
+   "width": 1920,
+   "height": 1446,
+   "fetched_at": "2026-11-01T23:06:21+00:00",
+   "reviewed": false,
+   "reviewer": "",
+   "review_note": ""
   }
  ],
  "rejected": [

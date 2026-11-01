@@ -93,6 +93,27 @@
    "prescreen": "pass",
    "prescreen_note": "2026-10-28 工程初篩（v3）：通過，待 art-director 正式複審",
    "reject_reason": "他牌且藍光風格化"
+  },
+  {
+   "file": "photo_5.jpg",
+   "kind": "相關場景",
+   "slug": "inventec",
+   "name_en": "Inventec",
+   "query": "server rack",
+   "file_title": "File:Colorful metal bicycle parking rack in Lysekil 2.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:Colorful_metal_bicycle_parking_rack_in_Lysekil_2.jpg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/9/98/Colorful_metal_bicycle_parking_rack_in_Lysekil_2.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "author": "W.carter",
+   "credit": "Own work",
+   "description": "A colorful metal bicycle parking rack at Valbogatan in autumn, Lysekil, Sweden.",
+   "width": 1920,
+   "height": 1280,
+   "fetched_at": "2026-11-01T22:55:46+00:00",
+   "reviewed": false,
+   "reviewer": "",
+   "review_note": ""
   }
  ],
  "rejected": [

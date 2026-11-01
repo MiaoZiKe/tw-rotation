@@ -162,6 +162,27 @@
    "review_note": "",
    "prescreen": "fail",
    "prescreen_note": "2026-10-28 工程初篩（v3）：不建議：LOGO／人物／車牌／他牌／舊照或主體不明"
+  },
+  {
+   "file": "photo_8.jpg",
+   "kind": "總部/廠房",
+   "slug": "mega",
+   "name_en": "Mega Financial",
+   "query": "Mega International Commercial Bank building",
+   "file_title": "File:Mega Bank Nanjing East Road Branch 20110605.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:Mega_Bank_Nanjing_East_Road_Branch_20110605.jpg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/9/9e/Mega_Bank_Nanjing_East_Road_Branch_20110605.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "CC BY 3.0",
+   "license_url": "https://creativecommons.org/licenses/by/3.0",
+   "author": "Tianmu peter",
+   "credit": "https://web.archive.org/web/20161020100135/http://www.panoramio.com/photo/53830729",
+   "description": "​兆豐國際商業銀行南京東路分行，地址：臺北市中山區南京東路二段53號1樓（再保大樓）。",
+   "width": 1920,
+   "height": 1079,
+   "fetched_at": "2026-11-01T22:51:04+00:00",
+   "reviewed": false,
+   "reviewer": "",
+   "review_note": ""
   }
  ],
  "rejected": [

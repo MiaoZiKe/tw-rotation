@@ -187,6 +187,27 @@
    "review_note": "",
    "prescreen": "fail",
    "prescreen_note": "2026-10-28 工程初篩（v3）：不建議：LOGO／人物／車牌／他牌／舊照或主體不明"
+  },
+  {
+   "file": "photo_9.jpg",
+   "kind": "類別",
+   "slug": "總經_匯率",
+   "name_en": "總經_匯率",
+   "query": "coins currency",
+   "file_title": "File:New Generation Currency Series (coins) 08.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:New_Generation_Currency_Series_(coins)_08.jpg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/d/df/New_Generation_Currency_Series_%28coins%29_08.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "author": "SwarmCheng",
+   "credit": "Own work",
+   "description": "New Generation Currency Series (coins)",
+   "width": 1920,
+   "height": 1778,
+   "fetched_at": "2026-11-01T23:06:39+00:00",
+   "reviewed": false,
+   "reviewer": "",
+   "review_note": ""
   }
  ],
  "rejected": []

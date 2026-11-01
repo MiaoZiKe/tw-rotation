@@ -139,6 +139,27 @@
    "review_note": "",
    "prescreen": "fail",
    "prescreen_note": "2026-10-28 工程初篩（v3）：不建議：LOGO／人物／車牌／他牌／舊照或主體不明"
+  },
+  {
+   "file": "photo_7.jpg",
+   "kind": "總部/廠房",
+   "slug": "cathay",
+   "name_en": "Cathay Financial",
+   "query": "Cathay United Bank building",
+   "file_title": "File:Asia Building and Cathay United Bank Tower 20081115.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:Asia_Building_and_Cathay_United_Bank_Tower_20081115.jpg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/4/48/Asia_Building_and_Cathay_United_Bank_Tower_20081115.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "CC BY 3.0",
+   "license_url": "https://creativecommons.org/licenses/by/3.0",
+   "author": "Tianmu Zhan",
+   "credit": "https://web.archive.org/web/20161021032519/http://www.panoramio.com/photo/66568082",
+   "description": "​亞洲大廈、國泰世華銀行仁愛大樓。",
+   "width": 1920,
+   "height": 1440,
+   "fetched_at": "2026-11-01T22:50:45+00:00",
+   "reviewed": false,
+   "reviewer": "",
+   "review_note": ""
   }
  ],
  "rejected": [

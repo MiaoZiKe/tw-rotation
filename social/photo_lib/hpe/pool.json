@@ -96,6 +96,27 @@
    "prescreen": "pass",
    "prescreen_note": "2026-10-28 工程初篩（v3）：通過，待 art-director 正式複審",
    "reject_reason": "機箱開蓋雜亂、紙箱電線"
+  },
+  {
+   "file": "photo_5.jpg",
+   "kind": "產品",
+   "slug": "hpe",
+   "name_en": "Hewlett Packard Enterprise",
+   "query": "HPE ProLiant",
+   "file_title": "File:HP ProLiant DL580 G7 in 2023.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:HP_ProLiant_DL580_G7_in_2023.jpg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/d/d9/HP_ProLiant_DL580_G7_in_2023.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "author": "Btrs",
+   "credit": "Own work",
+   "description": "View on a HP ProLiant DL580 G7 server. Formerly (2012-2016) used as a VMWare ESXi node, since then in use as part of a 3-node Elasticsearch cluster.\nServer specifications:\n\nQuad Intel Xeon E7530 CPU (6 physical cores per socket - 1.87 GHz base clock speed - 2.13 GHz turbo)\n256 GB DDR3-RAM\nHP Smart A",
+   "width": 1920,
+   "height": 1081,
+   "fetched_at": "2026-11-01T23:00:33+00:00",
+   "reviewed": false,
+   "reviewer": "",
+   "review_note": ""
   }
  ],
  "rejected": []

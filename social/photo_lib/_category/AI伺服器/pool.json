@@ -233,6 +233,27 @@
    "review_note": "",
    "prescreen": "fail",
    "prescreen_note": "2026-10-28 工程初篩（v3）：不建議：LOGO／人物／車牌／他牌／舊照或主體不明"
+  },
+  {
+   "file": "photo_11.jpg",
+   "kind": "類別",
+   "slug": "AI伺服器",
+   "name_en": "AI伺服器",
+   "query": "blade server",
+   "file_title": "File:IBM HS20 blade server.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:IBM_HS20_blade_server.jpg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/2/20/IBM_HS20_blade_server.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "CC BY-SA 2.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/2.0",
+   "author": "Robert Kloosterhuis",
+   "credit": "https://www.flickr.com/photos/jemimus/66531212/ (original size version)",
+   "description": "An IBM HS20 series blade server.",
+   "width": 1920,
+   "height": 1440,
+   "fetched_at": "2026-11-01T23:06:00+00:00",
+   "reviewed": false,
+   "reviewer": "",
+   "review_note": ""
   }
  ],
  "rejected": [

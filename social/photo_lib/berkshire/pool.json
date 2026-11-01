@@ -93,6 +93,27 @@
    "prescreen": "pass",
    "prescreen_note": "2026-10-28 工程初篩（v3）：通過，待 art-director 正式複審",
    "reject_reason": "紐交所國旗，與波克夏無關"
+  },
+  {
+   "file": "photo_5.jpg",
+   "kind": "相關場景",
+   "slug": "berkshire",
+   "name_en": "Berkshire Hathaway",
+   "query": "Wall Street",
+   "file_title": "File:Wall Street by Paul Strand, 1915.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:Wall_Street_by_Paul_Strand,_1915.jpg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/3/30/Wall_Street_by_Paul_Strand%2C_1915.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "Public domain",
+   "license_url": "",
+   "author": "Paul Strand",
+   "credit": "[1]",
+   "description": "Paul Strand took this photograph from the steps of the New York Federal Hall during morning rush hour. The recently completed building of white marble at 23 Wall Street (on the southeast corner of Wall and Broad Streets) was located in one of the most expensive areas of real estate in New York City.",
+   "width": 1920,
+   "height": 1511,
+   "fetched_at": "2026-11-01T23:01:56+00:00",
+   "reviewed": false,
+   "reviewer": "",
+   "review_note": ""
   }
  ],
  "rejected": []

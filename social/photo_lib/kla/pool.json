@@ -94,6 +94,27 @@
    "review_note": "",
    "prescreen": "fail",
    "prescreen_note": "2026-10-28 工程初篩（v3）：不建議：LOGO／人物／車牌／他牌／舊照或主體不明"
+  },
+  {
+   "file": "photo_5.jpg",
+   "kind": "產品",
+   "slug": "kla",
+   "name_en": "KLA",
+   "query": "semiconductor metrology",
+   "file_title": "File:VLT 4LGSF OTA L2 lens measurement on NANOMEFOS (tno kamphues 40).jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:VLT_4LGSF_OTA_L2_lens_measurement_on_NANOMEFOS_(tno_kamphues_40).jpg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/3/39/VLT_4LGSF_OTA_L2_lens_measurement_on_NANOMEFOS_%28tno_kamphues_40%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "CC BY 4.0",
+   "license_url": "https://creativecommons.org/licenses/by/4.0",
+   "author": "F. Kamphues/TNO/ESO",
+   "credit": "This media was produced by the European Southern Observatory (ESO), under the identifier tno_kamphues_40\nThis tag does not indicate the copyright status of the ",
+   "description": "VLT 4LGSF OTA L2 lens measurement on NANOMEFOS Aspherical and freeform optics enable significant improvements in the performance of optical instruments for the semiconductor industry, medical applications, space, astronomy and other scientific research fields. Freeform optics results in fewer optica",
+   "width": 1920,
+   "height": 1275,
+   "fetched_at": "2026-11-01T23:01:21+00:00",
+   "reviewed": false,
+   "reviewer": "",
+   "review_note": ""
   }
  ],
  "rejected": []

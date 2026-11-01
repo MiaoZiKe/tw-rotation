@@ -165,6 +165,27 @@
    "prescreen": "pass",
    "prescreen_note": "2026-10-28 工程初篩（v3）：通過，待 art-director 正式複審",
    "reviewed_by": "art-director"
+  },
+  {
+   "file": "photo_8.jpg",
+   "kind": "總部/廠房",
+   "slug": "csc",
+   "name_en": "China Steel",
+   "query": "China Steel Corporation headquarters Kaohsiung",
+   "file_title": "File:Kaohsiung China Steel Corporation Headquarters 12.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:Kaohsiung_China_Steel_Corporation_Headquarters_12.jpg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/b/b3/Kaohsiung_China_Steel_Corporation_Headquarters_12.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "author": "Zairon",
+   "credit": "Own work",
+   "description": "China Steel Corporation Headquarters, Kaohsiung, Taiwan",
+   "width": 1920,
+   "height": 1435,
+   "fetched_at": "2026-11-01T22:53:22+00:00",
+   "reviewed": false,
+   "reviewer": "",
+   "review_note": ""
   }
  ],
  "rejected": [

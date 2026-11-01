@@ -139,6 +139,27 @@
    "review_note": "",
    "prescreen": "fail",
    "prescreen_note": "2026-10-28 工程初篩（v3）：不建議：LOGO／人物／車牌／他牌／舊照或主體不明"
+  },
+  {
+   "file": "photo_7.jpg",
+   "kind": "總部/廠房",
+   "slug": "ctbc",
+   "name_en": "CTBC Financial",
+   "query": "CTBC Financial Park",
+   "file_title": "File:CTBC Financial Park 20141121.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:CTBC_Financial_Park_20141121.jpg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/a/a4/CTBC_Financial_Park_20141121.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "CC BY-SA 2.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/2.0",
+   "author": "pang yu liu",
+   "credit": "https://www.flickr.com/photos/pangyuliu/15835738421",
+   "description": "​從香港商雅虎資訊股份有限公司台灣分公司總部拍攝接近完工的中國信託金融園區。",
+   "width": 1920,
+   "height": 1440,
+   "fetched_at": "2026-11-01T22:51:00+00:00",
+   "reviewed": false,
+   "reviewer": "",
+   "review_note": ""
   }
  ],
  "rejected": [

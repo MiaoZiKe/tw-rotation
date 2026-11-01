@@ -92,6 +92,27 @@
    "review_note": "",
    "prescreen": "fail",
    "prescreen_note": "2026-10-28 工程初篩（v3）：不建議：LOGO／人物／車牌／他牌／舊照或主體不明"
+  },
+  {
+   "file": "photo_5.jpg",
+   "kind": "總部/廠房",
+   "slug": "tcfhc",
+   "name_en": "Taiwan Cooperative Financial",
+   "query": "Taiwan Cooperative Bank headquarters",
+   "file_title": "File:Tamshui Bus 331-U5 right side and Taiwan Cooperative Bank Keelung Building 20220326.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:Tamshui_Bus_331-U5_right_side_and_Taiwan_Cooperative_Bank_Keelung_Building_20220326.jpg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/6/6c/Tamshui_Bus_331-U5_right_side_and_Taiwan_Cooperative_Bank_Keelung_Building_20220326.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "author": "Solomon203",
+   "credit": "Own work",
+   "description": "​淡水客運2014年金龍汽車製造大客車331-U5右側，行經基隆市第二信用合作社總社大樓與合作金庫銀行基隆大樓仁二路側，暫停服務。",
+   "width": 1920,
+   "height": 1080,
+   "fetched_at": "2026-11-01T22:52:47+00:00",
+   "reviewed": false,
+   "reviewer": "",
+   "review_note": ""
   }
  ],
  "rejected": [

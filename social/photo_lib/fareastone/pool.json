@@ -232,6 +232,27 @@
    "prescreen": "pass",
    "prescreen_note": "2026-10-28 工程初篩（v3）：通過，待 art-director 正式複審",
    "reject_reason": "非遠傳（北馬其頓電視塔）"
+  },
+  {
+   "file": "photo_11.jpg",
+   "kind": "總部/廠房",
+   "slug": "fareastone",
+   "name_en": "Far EasTone",
+   "query": "Far EasTone",
+   "file_title": "File:Far Eastone Telecommunications Beitou Shipai Store 20161210.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:Far_Eastone_Telecommunications_Beitou_Shipai_Store_20161210.jpg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/7/7d/Far_Eastone_Telecommunications_Beitou_Shipai_Store_20161210.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "author": "Solomon203",
+   "credit": "Own work",
+   "description": "​遠傳電信北投石牌直營門市，位於臺北市北投區石牌路二段77號1樓。",
+   "width": 1920,
+   "height": 1440,
+   "fetched_at": "2026-11-01T22:55:38+00:00",
+   "reviewed": false,
+   "reviewer": "",
+   "review_note": ""
   }
  ],
  "rejected": [

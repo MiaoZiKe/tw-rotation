@@ -92,6 +92,27 @@
    "review_note": "",
    "prescreen": "fail",
    "prescreen_note": "2026-10-28 工程初篩（v3）：不建議：LOGO／人物／車牌／他牌／舊照或主體不明"
+  },
+  {
+   "file": "photo_5.jpg",
+   "kind": "總部/廠房",
+   "slug": "foxconn_overseas",
+   "name_en": "Foxconn overseas",
+   "query": "Foxconn Wisconsin",
+   "file_title": "File:Milwaukee Public School Teachers and Supporters Picket Outside Milwaukee Public Schools Adminstration Building Milwaukee Wisconsin 4-24-18 1174 (27863912368).jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:Milwaukee_Public_School_Teachers_and_Supporters_Picket_Outside_Milwaukee_Public_Schools_Adminstration_Building_Milwaukee_Wisconsin_4-24-18_1174_(27863912368).jpg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/8/86/Milwaukee_Public_School_Teachers_and_Supporters_Picket_Outside_Milwaukee_Public_Schools_Adminstration_Building_Milwaukee_Wisconsin_4-24-18_1174_%2827863912368%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "CC BY-SA 2.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/2.0",
+   "author": "Charles Edward Miller from Chicago, United States",
+   "credit": "Milwaukee Public School Teachers and Supporters Picket Outside Milwaukee Public Schools Adminstration Building Milwaukee Wisconsin 4-24-18  1174",
+   "description": "Milwaukee public school teachers, parents, students and supporters staged a large picket line outside MPS administration building on Vliet Street on Milwaukee's west side late Tuesday afternoon. \nThe purpose was to protest yet another round of funding cuts to K-12 schools in Milwaukee. Classrooms an",
+   "width": 1920,
+   "height": 1280,
+   "fetched_at": "2026-11-01T23:03:19+00:00",
+   "reviewed": false,
+   "reviewer": "",
+   "review_note": ""
   }
  ],
  "rejected": []

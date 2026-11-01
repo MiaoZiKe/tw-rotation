@@ -94,6 +94,27 @@
    "review_note": "",
    "prescreen": "fail",
    "prescreen_note": "2026-10-28 工程初篩（v3）：不建議：LOGO／人物／車牌／他牌／舊照或主體不明"
+  },
+  {
+   "file": "photo_5.jpg",
+   "kind": "總部/廠房",
+   "slug": "cdf",
+   "name_en": "China Development Financial",
+   "query": "China Development Financial building",
+   "file_title": "File:China Life Taipei College development construction site 20200726.jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:China_Life_Taipei_College_development_construction_site_20200726.jpg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/2/25/China_Life_Taipei_College_development_construction_site_20200726.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "CC BY-SA 4.0",
+   "license_url": "https://creativecommons.org/licenses/by-sa/4.0",
+   "author": "Solomon203",
+   "credit": "Own work",
+   "description": "​從臺北市松山區南京東路四段仰望中國人壽臺北學苑投資開發案新建工程工地背面。",
+   "width": 1920,
+   "height": 1440,
+   "fetched_at": "2026-11-01T22:54:24+00:00",
+   "reviewed": false,
+   "reviewer": "",
+   "review_note": ""
   }
  ],
  "rejected": [

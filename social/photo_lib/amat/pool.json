@@ -46,6 +46,27 @@
    "review_note": "",
    "prescreen": "fail",
    "prescreen_note": "2026-10-28 工程初篩（v3）：不建議：LOGO／人物／車牌／他牌／舊照或主體不明"
+  },
+  {
+   "file": "photo_3.jpg",
+   "kind": "總部/廠房",
+   "slug": "amat",
+   "name_en": "Applied Materials",
+   "query": "Applied Materials",
+   "file_title": "File:Secretary Blinken Visits Applied Materials Maydan Technology Center (52437252795).jpg",
+   "source_url": "https://commons.wikimedia.org/wiki/File:Secretary_Blinken_Visits_Applied_Materials_Maydan_Technology_Center_(52437252795).jpg",
+   "image_url": "https://upload.wikimedia.org/wikipedia/commons/1/13/Secretary_Blinken_Visits_Applied_Materials_Maydan_Technology_Center_%2852437252795%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=imageinfo&utm_content=original",
+   "license": "Public domain",
+   "license_url": "",
+   "author": "U.S. Department of State from United States",
+   "credit": "Secretary Blinken Visits Applied Materials Maydan Technology Center",
+   "description": "Secretary of State Antony J. Blinken visits Applied Materials Maydan Technology Center in Sunnyvale, California, on October 17, 2022. [State Department photo by Ron Przysucha/ Public Domain]",
+   "width": 1920,
+   "height": 1280,
+   "fetched_at": "2026-11-01T23:00:58+00:00",
+   "reviewed": false,
+   "reviewer": "",
+   "review_note": ""
   }
  ],
  "rejected": []

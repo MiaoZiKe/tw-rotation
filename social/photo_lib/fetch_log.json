@@ -1,293 +1,293 @@
 {
- "at": "2026-10-30T02:09:27+00:00",
+ "at": "2026-11-01T23:06:47+00:00",
  "ok": 105,
  "miss": [],
  "items": [
   {
    "slug": "tsmc",
    "ok": true,
-   "total": 15,
-   "added": 6,
-   "reviewed": 3
+   "total": 20,
+   "added": 0,
+   "reviewed": 8
   },
   {
    "slug": "foxconn",
    "ok": true,
-   "total": 8,
-   "added": 4,
-   "reviewed": 0
+   "total": 13,
+   "added": 5,
+   "reviewed": 1
   },
   {
    "slug": "mediatek",
+   "ok": true,
+   "total": 5,
+   "added": 0,
+   "reviewed": 1
+  },
+  {
+   "slug": "delta",
+   "ok": true,
+   "total": 16,
+   "added": 4,
+   "reviewed": 5
+  },
+  {
+   "slug": "quanta",
+   "ok": true,
+   "total": 14,
+   "added": 6,
+   "reviewed": 0
+  },
+  {
+   "slug": "fubon",
+   "ok": true,
+   "total": 9,
+   "added": 2,
+   "reviewed": 1
+  },
+  {
+   "slug": "ase",
+   "ok": true,
+   "total": 11,
+   "added": 0,
+   "reviewed": 3
+  },
+  {
+   "slug": "cathay",
+   "ok": true,
+   "total": 7,
+   "added": 1,
+   "reviewed": 1
+  },
+  {
+   "slug": "chunghwa_telecom",
+   "ok": true,
+   "total": 9,
+   "added": 2,
+   "reviewed": 2
+  },
+  {
+   "slug": "wiwynn",
    "ok": true,
    "total": 5,
    "added": 2,
    "reviewed": 0
   },
   {
-   "slug": "delta",
-   "ok": true,
-   "total": 12,
-   "added": 4,
-   "reviewed": 3
-  },
-  {
-   "slug": "quanta",
-   "ok": true,
-   "total": 8,
-   "added": 4,
-   "reviewed": 0
-  },
-  {
-   "slug": "fubon",
-   "ok": true,
-   "total": 7,
-   "added": 5,
-   "reviewed": 0
-  },
-  {
-   "slug": "ase",
-   "ok": true,
-   "total": 10,
-   "added": 0,
-   "reviewed": 2
-  },
-  {
-   "slug": "cathay",
-   "ok": true,
-   "total": 6,
-   "added": 5,
-   "reviewed": 0
-  },
-  {
-   "slug": "chunghwa_telecom",
-   "ok": true,
-   "total": 7,
-   "added": 3,
-   "reviewed": 2
-  },
-  {
-   "slug": "wiwynn",
-   "ok": true,
-   "total": 3,
-   "added": 1,
-   "reviewed": 0
-  },
-  {
    "slug": "ctbc",
    "ok": true,
-   "total": 6,
-   "added": 3,
+   "total": 7,
+   "added": 1,
    "reviewed": 2
   },
   {
    "slug": "mega",
    "ok": true,
-   "total": 7,
-   "added": 4,
+   "total": 8,
+   "added": 1,
    "reviewed": 1
   },
   {
    "slug": "accton",
    "ok": true,
    "total": 3,
-   "added": 3,
-   "reviewed": 0
+   "added": 0,
+   "reviewed": 1
   },
   {
    "slug": "esun",
    "ok": true,
-   "total": 6,
-   "added": 4,
-   "reviewed": 1
+   "total": 7,
+   "added": 1,
+   "reviewed": 2
   },
   {
    "slug": "umc",
    "ok": true,
    "total": 4,
-   "added": 3,
-   "reviewed": 0
+   "added": 0,
+   "reviewed": 2
   },
   {
    "slug": "yuanta",
    "ok": true,
-   "total": 7,
-   "added": 4,
+   "total": 9,
+   "added": 2,
    "reviewed": 0
   },
   {
    "slug": "auras",
    "ok": true,
    "total": 3,
-   "added": 1,
+   "added": 0,
    "reviewed": 2
   },
   {
    "slug": "evergreen",
    "ok": true,
-   "total": 7,
-   "added": 4,
-   "reviewed": 1
+   "total": 10,
+   "added": 3,
+   "reviewed": 2
   },
   {
    "slug": "uni_president",
    "ok": true,
-   "total": 5,
-   "added": 4,
+   "total": 6,
+   "added": 1,
    "reviewed": 1
   },
   {
    "slug": "asus",
    "ok": true,
    "total": 5,
-   "added": 2,
+   "added": 0,
    "reviewed": 2
   },
   {
    "slug": "first_fin",
    "ok": true,
-   "total": 5,
-   "added": 4,
-   "reviewed": 0
+   "total": 7,
+   "added": 2,
+   "reviewed": 1
   },
   {
    "slug": "fpcc",
    "ok": true,
-   "total": 6,
-   "added": 3,
+   "total": 8,
+   "added": 2,
    "reviewed": 0
   },
   {
    "slug": "nanya_plastics",
    "ok": true,
-   "total": 5,
-   "added": 3,
+   "total": 7,
+   "added": 2,
    "reviewed": 0
   },
   {
    "slug": "formosa_plastics",
    "ok": true,
-   "total": 7,
-   "added": 4,
-   "reviewed": 1
+   "total": 9,
+   "added": 2,
+   "reviewed": 2
   },
   {
    "slug": "pegatron",
    "ok": true,
-   "total": 5,
-   "added": 5,
+   "total": 7,
+   "added": 2,
    "reviewed": 0
   },
   {
    "slug": "wistron",
    "ok": true,
-   "total": 11,
-   "added": 4,
-   "reviewed": 2
+   "total": 13,
+   "added": 2,
+   "reviewed": 4
   },
   {
    "slug": "alchip",
    "ok": true,
    "total": 4,
-   "added": 2,
+   "added": 0,
    "reviewed": 1
   },
   {
    "slug": "tcfhc",
    "ok": true,
-   "total": 4,
-   "added": 4,
+   "total": 5,
+   "added": 1,
    "reviewed": 0
   },
   {
    "slug": "hua_nan",
    "ok": true,
-   "total": 4,
-   "added": 3,
+   "total": 5,
+   "added": 1,
    "reviewed": 1
   },
   {
    "slug": "largan",
    "ok": true,
    "total": 3,
-   "added": 3,
+   "added": 0,
    "reviewed": 0
   },
   {
    "slug": "taishin",
    "ok": true,
    "total": 5,
-   "added": 3,
+   "added": 0,
    "reviewed": 0
   },
   {
    "slug": "yageo",
    "ok": true,
    "total": 3,
-   "added": 2,
+   "added": 0,
    "reviewed": 1
   },
   {
    "slug": "csc",
    "ok": true,
-   "total": 7,
-   "added": 3,
-   "reviewed": 2
+   "total": 8,
+   "added": 1,
+   "reviewed": 5
   },
   {
    "slug": "liteon",
    "ok": true,
-   "total": 6,
-   "added": 3,
+   "total": 11,
+   "added": 5,
    "reviewed": 1
   },
   {
    "slug": "advantech",
    "ok": true,
-   "total": 5,
-   "added": 3,
+   "total": 7,
+   "added": 2,
    "reviewed": 0
   },
   {
    "slug": "tcc",
    "ok": true,
-   "total": 7,
-   "added": 4,
+   "total": 9,
+   "added": 2,
    "reviewed": 1
   },
   {
    "slug": "hotai",
    "ok": true,
-   "total": 6,
-   "added": 4,
+   "total": 7,
+   "added": 1,
    "reviewed": 0
   },
   {
    "slug": "realtek",
    "ok": true,
    "total": 3,
-   "added": 2,
+   "added": 0,
    "reviewed": 1
   },
   {
    "slug": "sinopac",
    "ok": true,
-   "total": 4,
-   "added": 4,
+   "total": 5,
+   "added": 1,
    "reviewed": 0
   },
   {
    "slug": "cdf",
    "ok": true,
-   "total": 4,
-   "added": 2,
-   "reviewed": 1
+   "total": 5,
+   "added": 1,
+   "reviewed": 2
   },
   {
    "slug": "novatek",
    "ok": true,
    "total": 3,
-   "added": 3,
+   "added": 0,
    "reviewed": 0
   },
   {
@@ -300,442 +300,442 @@
   {
    "slug": "yangming",
    "ok": true,
-   "total": 8,
-   "added": 4,
-   "reviewed": 1
+   "total": 10,
+   "added": 2,
+   "reviewed": 2
   },
   {
    "slug": "wanhai",
    "ok": true,
-   "total": 7,
-   "added": 3,
-   "reviewed": 2
+   "total": 9,
+   "added": 2,
+   "reviewed": 4
   },
   {
    "slug": "kingslide",
    "ok": true,
    "total": 5,
-   "added": 3,
+   "added": 0,
    "reviewed": 0
   },
   {
    "slug": "taiwan_mobile",
    "ok": true,
-   "total": 5,
-   "added": 5,
+   "total": 7,
+   "added": 2,
    "reviewed": 0
   },
   {
    "slug": "fareastone",
    "ok": true,
-   "total": 10,
-   "added": 5,
+   "total": 11,
+   "added": 1,
    "reviewed": 0
   },
   {
    "slug": "inventec",
    "ok": true,
-   "total": 4,
-   "added": 3,
+   "total": 5,
+   "added": 1,
    "reviewed": 0
   },
   {
    "slug": "jentech",
    "ok": true,
    "total": 3,
-   "added": 3,
+   "added": 0,
    "reviewed": 0
   },
   {
    "slug": "nvidia",
    "ok": true,
-   "total": 16,
-   "added": 6,
-   "reviewed": 3
+   "total": 19,
+   "added": 0,
+   "reviewed": 6
   },
   {
    "slug": "apple",
    "ok": true,
-   "total": 9,
-   "added": 4,
+   "total": 15,
+   "added": 6,
    "reviewed": 4
   },
   {
    "slug": "microsoft",
    "ok": true,
-   "total": 13,
+   "total": 18,
    "added": 5,
-   "reviewed": 3
+   "reviewed": 5
   },
   {
    "slug": "alphabet",
    "ok": true,
-   "total": 8,
+   "total": 12,
    "added": 4,
-   "reviewed": 3
+   "reviewed": 5
   },
   {
    "slug": "meta",
    "ok": true,
-   "total": 9,
-   "added": 3,
-   "reviewed": 2
+   "total": 14,
+   "added": 5,
+   "reviewed": 3
   },
   {
    "slug": "amazon",
    "ok": true,
-   "total": 11,
-   "added": 4,
-   "reviewed": 4
+   "total": 14,
+   "added": 3,
+   "reviewed": 7
   },
   {
    "slug": "broadcom",
-   "ok": true,
-   "total": 5,
-   "added": 1,
-   "reviewed": 1
-  },
-  {
-   "slug": "amd",
-   "ok": true,
-   "total": 9,
-   "added": 4,
-   "reviewed": 3
-  },
-  {
-   "slug": "intel",
-   "ok": true,
-   "total": 6,
-   "added": 1,
-   "reviewed": 4
-  },
-  {
-   "slug": "samsung",
-   "ok": true,
-   "total": 23,
-   "added": 5,
-   "reviewed": 2
-  },
-  {
-   "slug": "sk_hynix",
-   "ok": true,
-   "total": 7,
-   "added": 3,
-   "reviewed": 0
-  },
-  {
-   "slug": "micron",
-   "ok": true,
-   "total": 10,
-   "added": 4,
-   "reviewed": 3
-  },
-  {
-   "slug": "asml",
-   "ok": true,
-   "total": 8,
-   "added": 7,
-   "reviewed": 0
-  },
-  {
-   "slug": "tesla",
-   "ok": true,
-   "total": 18,
-   "added": 6,
-   "reviewed": 1
-  },
-  {
-   "slug": "nxp",
-   "ok": true,
-   "total": 4,
-   "added": 2,
-   "reviewed": 2
-  },
-  {
-   "slug": "qualcomm",
    "ok": true,
    "total": 5,
    "added": 0,
    "reviewed": 2
   },
   {
-   "slug": "anthropic",
+   "slug": "amd",
    "ok": true,
-   "total": 16,
-   "added": 6,
-   "reviewed": 0
+   "total": 12,
+   "added": 3,
+   "reviewed": 4
   },
   {
-   "slug": "openai",
+   "slug": "intel",
    "ok": true,
-   "total": 17,
-   "added": 6,
-   "reviewed": 1
+   "total": 6,
+   "added": 0,
+   "reviewed": 5
   },
   {
-   "slug": "oracle",
+   "slug": "samsung",
    "ok": true,
-   "total": 8,
-   "added": 5,
+   "total": 28,
+   "added": 2,
+   "reviewed": 5
+  },
+  {
+   "slug": "sk_hynix",
+   "ok": true,
+   "total": 7,
+   "added": 0,
    "reviewed": 2
   },
   {
-   "slug": "arm",
+   "slug": "micron",
    "ok": true,
-   "total": 25,
-   "added": 9,
-   "reviewed": 1
+   "total": 17,
+   "added": 7,
+   "reviewed": 3
   },
   {
-   "slug": "supermicro",
+   "slug": "asml",
    "ok": true,
-   "total": 3,
+   "total": 8,
+   "added": 0,
+   "reviewed": 3
+  },
+  {
+   "slug": "tesla",
+   "ok": true,
+   "total": 21,
    "added": 3,
-   "reviewed": 0
+   "reviewed": 4
   },
   {
-   "slug": "dell",
-   "ok": true,
-   "total": 4,
-   "added": 4,
-   "reviewed": 0
-  },
-  {
-   "slug": "hpe",
-   "ok": true,
-   "total": 4,
-   "added": 4,
-   "reviewed": 0
-  },
-  {
-   "slug": "cisco",
+   "slug": "nxp",
    "ok": true,
    "total": 5,
-   "added": 5,
-   "reviewed": 0
+   "added": 1,
+   "reviewed": 2
   },
   {
-   "slug": "marvell",
-   "ok": true,
-   "total": 3,
-   "added": 3,
-   "reviewed": 0
-  },
-  {
-   "slug": "ti",
-   "ok": true,
-   "total": 4,
-   "added": 4,
-   "reviewed": 0
-  },
-  {
-   "slug": "amat",
-   "ok": true,
-   "total": 2,
-   "added": 2,
-   "reviewed": 0
-  },
-  {
-   "slug": "lam",
-   "ok": true,
-   "total": 2,
-   "added": 2,
-   "reviewed": 0
-  },
-  {
-   "slug": "kla",
-   "ok": true,
-   "total": 4,
-   "added": 4,
-   "reviewed": 0
-  },
-  {
-   "slug": "tel",
-   "ok": true,
-   "total": 4,
-   "added": 4,
-   "reviewed": 0
-  },
-  {
-   "slug": "sony",
-   "ok": true,
-   "total": 5,
-   "added": 5,
-   "reviewed": 0
-  },
-  {
-   "slug": "nintendo",
-   "ok": true,
-   "total": 5,
-   "added": 5,
-   "reviewed": 0
-  },
-  {
-   "slug": "toyota",
-   "ok": true,
-   "total": 5,
-   "added": 5,
-   "reviewed": 0
-  },
-  {
-   "slug": "netflix",
-   "ok": true,
-   "total": 5,
-   "added": 5,
-   "reviewed": 0
-  },
-  {
-   "slug": "berkshire",
-   "ok": true,
-   "total": 4,
-   "added": 4,
-   "reviewed": 0
-  },
-  {
-   "slug": "jpmorgan",
-   "ok": true,
-   "total": 5,
-   "added": 5,
-   "reviewed": 0
-  },
-  {
-   "slug": "goldman",
-   "ok": true,
-   "total": 5,
-   "added": 5,
-   "reviewed": 0
-  },
-  {
-   "slug": "walmart",
-   "ok": true,
-   "total": 5,
-   "added": 5,
-   "reviewed": 0
-  },
-  {
-   "slug": "cocacola",
-   "ok": true,
-   "total": 5,
-   "added": 5,
-   "reviewed": 0
-  },
-  {
-   "slug": "nike",
-   "ok": true,
-   "total": 5,
-   "added": 5,
-   "reviewed": 0
-  },
-  {
-   "slug": "boeing",
-   "ok": true,
-   "total": 4,
-   "added": 4,
-   "reviewed": 0
-  },
-  {
-   "slug": "exxon",
-   "ok": true,
-   "total": 5,
-   "added": 5,
-   "reviewed": 0
-  },
-  {
-   "slug": "aramco",
-   "ok": true,
-   "total": 4,
-   "added": 4,
-   "reviewed": 0
-  },
-  {
-   "slug": "alibaba",
-   "ok": true,
-   "total": 5,
-   "added": 5,
-   "reviewed": 0
-  },
-  {
-   "slug": "tencent",
-   "ok": true,
-   "total": 3,
-   "added": 3,
-   "reviewed": 0
-  },
-  {
-   "slug": "byd",
-   "ok": true,
-   "total": 4,
-   "added": 4,
-   "reviewed": 0
-  },
-  {
-   "slug": "xiaomi",
-   "ok": true,
-   "total": 4,
-   "added": 4,
-   "reviewed": 0
-  },
-  {
-   "slug": "huawei",
-   "ok": true,
-   "total": 5,
-   "added": 5,
-   "reviewed": 0
-  },
-  {
-   "slug": "foxconn_overseas",
-   "ok": true,
-   "total": 4,
-   "added": 4,
-   "reviewed": 0
-  },
-  {
-   "slug": "rapidus",
-   "ok": true,
-   "total": 2,
-   "added": 2,
-   "reviewed": 0
-  },
-  {
-   "slug": "kioxia",
-   "ok": true,
-   "total": 4,
-   "added": 4,
-   "reviewed": 0
-  },
-  {
-   "slug": "wdc",
-   "ok": true,
-   "total": 5,
-   "added": 5,
-   "reviewed": 0
-  },
-  {
-   "slug": "coreweave",
+   "slug": "qualcomm",
    "ok": true,
    "total": 6,
-   "added": 3,
-   "reviewed": 0
+   "added": 1,
+   "reviewed": 2
   },
   {
-   "slug": "nanya_tech",
+   "slug": "anthropic",
    "ok": true,
    "total": 22,
    "added": 6,
    "reviewed": 0
   },
   {
+   "slug": "openai",
+   "ok": true,
+   "total": 21,
+   "added": 4,
+   "reviewed": 3
+  },
+  {
+   "slug": "oracle",
+   "ok": true,
+   "total": 13,
+   "added": 5,
+   "reviewed": 4
+  },
+  {
+   "slug": "arm",
+   "ok": true,
+   "total": 36,
+   "added": 9,
+   "reviewed": 3
+  },
+  {
+   "slug": "supermicro",
+   "ok": true,
+   "total": 4,
+   "added": 1,
+   "reviewed": 1
+  },
+  {
+   "slug": "dell",
+   "ok": true,
+   "total": 7,
+   "added": 3,
+   "reviewed": 1
+  },
+  {
+   "slug": "hpe",
+   "ok": true,
+   "total": 5,
+   "added": 1,
+   "reviewed": 2
+  },
+  {
+   "slug": "cisco",
+   "ok": true,
+   "total": 7,
+   "added": 2,
+   "reviewed": 2
+  },
+  {
+   "slug": "marvell",
+   "ok": true,
+   "total": 3,
+   "added": 0,
+   "reviewed": 1
+  },
+  {
+   "slug": "ti",
+   "ok": true,
+   "total": 6,
+   "added": 2,
+   "reviewed": 1
+  },
+  {
+   "slug": "amat",
+   "ok": true,
+   "total": 3,
+   "added": 1,
+   "reviewed": 0
+  },
+  {
+   "slug": "lam",
+   "ok": true,
+   "total": 2,
+   "added": 0,
+   "reviewed": 0
+  },
+  {
+   "slug": "kla",
+   "ok": true,
+   "total": 5,
+   "added": 1,
+   "reviewed": 1
+  },
+  {
+   "slug": "tel",
+   "ok": true,
+   "total": 6,
+   "added": 2,
+   "reviewed": 1
+  },
+  {
+   "slug": "sony",
+   "ok": true,
+   "total": 7,
+   "added": 2,
+   "reviewed": 3
+  },
+  {
+   "slug": "nintendo",
+   "ok": true,
+   "total": 8,
+   "added": 3,
+   "reviewed": 1
+  },
+  {
+   "slug": "toyota",
+   "ok": true,
+   "total": 7,
+   "added": 2,
+   "reviewed": 2
+  },
+  {
+   "slug": "netflix",
+   "ok": true,
+   "total": 7,
+   "added": 2,
+   "reviewed": 1
+  },
+  {
+   "slug": "berkshire",
+   "ok": true,
+   "total": 5,
+   "added": 1,
+   "reviewed": 0
+  },
+  {
+   "slug": "jpmorgan",
+   "ok": true,
+   "total": 7,
+   "added": 2,
+   "reviewed": 1
+  },
+  {
+   "slug": "goldman",
+   "ok": true,
+   "total": 6,
+   "added": 1,
+   "reviewed": 2
+  },
+  {
+   "slug": "walmart",
+   "ok": true,
+   "total": 8,
+   "added": 3,
+   "reviewed": 0
+  },
+  {
+   "slug": "cocacola",
+   "ok": true,
+   "total": 7,
+   "added": 2,
+   "reviewed": 0
+  },
+  {
+   "slug": "nike",
+   "ok": true,
+   "total": 6,
+   "added": 1,
+   "reviewed": 1
+  },
+  {
+   "slug": "boeing",
+   "ok": true,
+   "total": 8,
+   "added": 4,
+   "reviewed": 1
+  },
+  {
+   "slug": "exxon",
+   "ok": true,
+   "total": 8,
+   "added": 3,
+   "reviewed": 0
+  },
+  {
+   "slug": "aramco",
+   "ok": true,
+   "total": 6,
+   "added": 2,
+   "reviewed": 1
+  },
+  {
+   "slug": "alibaba",
+   "ok": true,
+   "total": 7,
+   "added": 2,
+   "reviewed": 2
+  },
+  {
+   "slug": "tencent",
+   "ok": true,
+   "total": 5,
+   "added": 2,
+   "reviewed": 0
+  },
+  {
+   "slug": "byd",
+   "ok": true,
+   "total": 6,
+   "added": 2,
+   "reviewed": 2
+  },
+  {
+   "slug": "xiaomi",
+   "ok": true,
+   "total": 4,
+   "added": 0,
+   "reviewed": 0
+  },
+  {
+   "slug": "huawei",
+   "ok": true,
+   "total": 7,
+   "added": 2,
+   "reviewed": 0
+  },
+  {
+   "slug": "foxconn_overseas",
+   "ok": true,
+   "total": 5,
+   "added": 1,
+   "reviewed": 0
+  },
+  {
+   "slug": "rapidus",
+   "ok": true,
+   "total": 2,
+   "added": 0,
+   "reviewed": 0
+  },
+  {
+   "slug": "kioxia",
+   "ok": true,
+   "total": 4,
+   "added": 0,
+   "reviewed": 1
+  },
+  {
+   "slug": "wdc",
+   "ok": true,
+   "total": 6,
+   "added": 1,
+   "reviewed": 2
+  },
+  {
+   "slug": "coreweave",
+   "ok": true,
+   "total": 9,
+   "added": 1,
+   "reviewed": 2
+  },
+  {
+   "slug": "nanya_tech",
+   "ok": true,
+   "total": 25,
+   "added": 3,
+   "reviewed": 0
+  },
+  {
    "slug": "nan_ya_pcb",
    "ok": true,
-   "total": 18,
-   "added": 6,
-   "reviewed": 0
+   "total": 22,
+   "added": 3,
+   "reviewed": 1
   },
   {
    "slug": "eml",
    "ok": true,
-   "total": 17,
-   "added": 6,
+   "total": 21,
+   "added": 4,
    "reviewed": 0
   }
  ],
@@ -744,190 +744,190 @@
    "slug": "半導體",
    "ok": true,
    "total": 9,
-   "added": 3,
-   "reviewed": 5
+   "added": 0,
+   "reviewed": 8
   },
   {
    "slug": "記憶體",
    "ok": true,
    "total": 10,
-   "added": 4,
+   "added": 0,
    "reviewed": 4
   },
   {
    "slug": "AI伺服器",
    "ok": true,
-   "total": 10,
-   "added": 4,
-   "reviewed": 4
+   "total": 11,
+   "added": 1,
+   "reviewed": 6
   },
   {
    "slug": "資料中心",
    "ok": true,
-   "total": 13,
-   "added": 7,
-   "reviewed": 1
+   "total": 16,
+   "added": 3,
+   "reviewed": 2
   },
   {
    "slug": "散熱",
    "ok": true,
    "total": 9,
-   "added": 4,
-   "reviewed": 4
+   "added": 0,
+   "reviewed": 6
   },
   {
    "slug": "PCB",
    "ok": true,
-   "total": 10,
-   "added": 4,
+   "total": 12,
+   "added": 2,
    "reviewed": 4
   },
   {
    "slug": "網通",
    "ok": true,
    "total": 9,
-   "added": 8,
-   "reviewed": 0
+   "added": 0,
+   "reviewed": 1
   },
   {
    "slug": "航運",
    "ok": true,
    "total": 9,
-   "added": 1,
-   "reviewed": 7
+   "added": 0,
+   "reviewed": 8
   },
   {
    "slug": "金融",
    "ok": true,
    "total": 9,
-   "added": 7,
-   "reviewed": 1
+   "added": 0,
+   "reviewed": 5
   },
   {
    "slug": "鋼鐵",
    "ok": true,
-   "total": 10,
-   "added": 6,
+   "total": 11,
+   "added": 1,
    "reviewed": 2
   },
   {
    "slug": "石化",
    "ok": true,
    "total": 11,
-   "added": 7,
-   "reviewed": 1
+   "added": 0,
+   "reviewed": 5
   },
   {
    "slug": "電信",
    "ok": true,
    "total": 9,
-   "added": 7,
-   "reviewed": 1
+   "added": 0,
+   "reviewed": 2
   },
   {
    "slug": "汽車",
    "ok": true,
-   "total": 9,
-   "added": 7,
-   "reviewed": 1
+   "total": 10,
+   "added": 1,
+   "reviewed": 2
   },
   {
    "slug": "消費電子",
    "ok": true,
    "total": 9,
-   "added": 5,
+   "added": 0,
    "reviewed": 3
   },
   {
    "slug": "總經",
    "ok": true,
-   "total": 11,
-   "added": 5,
-   "reviewed": 3
+   "total": 13,
+   "added": 2,
+   "reviewed": 6
   },
   {
    "slug": "能源",
    "ok": true,
    "total": 8,
-   "added": 8,
-   "reviewed": 0
+   "added": 0,
+   "reviewed": 7
   },
   {
    "slug": "航太",
    "ok": true,
    "total": 8,
-   "added": 8,
-   "reviewed": 0
+   "added": 0,
+   "reviewed": 2
   },
   {
    "slug": "零售消費",
    "ok": true,
-   "total": 8,
-   "added": 8,
-   "reviewed": 0
+   "total": 12,
+   "added": 4,
+   "reviewed": 1
   },
   {
    "slug": "娛樂媒體",
    "ok": true,
-   "total": 8,
-   "added": 8,
+   "total": 9,
+   "added": 1,
    "reviewed": 0
   },
   {
    "slug": "總經_央行",
    "ok": true,
    "total": 8,
-   "added": 8,
-   "reviewed": 0
+   "added": 0,
+   "reviewed": 5
   },
   {
    "slug": "總經_物價就業",
    "ok": true,
-   "total": 8,
-   "added": 8,
-   "reviewed": 0
+   "total": 10,
+   "added": 2,
+   "reviewed": 1
   },
   {
    "slug": "總經_利率債券",
    "ok": true,
    "total": 8,
-   "added": 8,
-   "reviewed": 0
+   "added": 0,
+   "reviewed": 4
   },
   {
    "slug": "總經_匯率",
    "ok": true,
-   "total": 8,
-   "added": 8,
-   "reviewed": 0
+   "total": 9,
+   "added": 1,
+   "reviewed": 2
   },
   {
    "slug": "總經_能源",
    "ok": true,
-   "total": 8,
-   "added": 8,
-   "reviewed": 0
+   "total": 11,
+   "added": 3,
+   "reviewed": 1
   },
   {
    "slug": "總經_貿易關稅",
    "ok": true,
    "total": 8,
-   "added": 8,
-   "reviewed": 0
+   "added": 0,
+   "reviewed": 3
   },
   {
    "slug": "總經_景氣",
    "ok": true,
-   "total": 8,
-   "added": 8,
-   "reviewed": 0
+   "total": 9,
+   "added": 1,
+   "reviewed": 5
   },
   {
    "slug": "總經_房市",
    "ok": true,
    "total": 8,
-   "added": 8,
-   "reviewed": 0
+   "added": 0,
+   "reviewed": 4
   }
  ]
 }
