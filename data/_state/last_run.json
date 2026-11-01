@@ -3,7 +3,7 @@
     "tape.collect": {
       "ok": false,
       "rows": 0,
-      "seconds": 0.8,
+      "seconds": 0.6,
       "dates_todo": [
         "20261029",
         "20261028",
@@ -20,7 +20,7 @@
     "mis.index_minute": {
       "ok": true,
       "rows": 840,
-      "seconds": 1.3
+      "seconds": 1.4
     },
     "index_intraday": {
       "stored": 0
@@ -32,15 +32,15 @@
     },
     "news.collect": {
       "ok": true,
-      "rows": 131,
-      "seconds": 3.2
+      "rows": 130,
+      "seconds": 3.6
     },
     "news": {
-      "stored": 6
+      "stored": 41
     },
     "news.broker_views": {
       "ok": true,
-      "rows": 3,
+      "rows": 2,
       "seconds": 0.0
     },
     "broker_views": {
@@ -48,16 +48,16 @@
     },
     "mops.material_news": {
       "ok": true,
-      "rows": 170,
-      "seconds": 1.8
+      "rows": 3,
+      "seconds": 1.5
     },
     "material_news": {
-      "stored": 0
+      "stored": 3
     },
     "macro.intl": {
       "ok": true,
-      "rows": 4515,
-      "seconds": 2.9
+      "rows": 4514,
+      "seconds": 1.4
     },
     "intl_daily": {
       "stored": 0
@@ -65,7 +65,7 @@
     "macro.fred": {
       "ok": true,
       "rows": 15592,
-      "seconds": 3.0
+      "seconds": 4.0
     },
     "macro": {
       "stored": 0
@@ -73,10 +73,31 @@
     "macro.fred_calendar": {
       "ok": true,
       "rows": 23,
-      "seconds": 0.8
+      "seconds": 1.1
     },
     "macro_calendar": {
       "stored": 0
+    },
+    "margin_total": {
+      "stored": 0
+    },
+    "mktfut.margin_total": {
+      "ok": true,
+      "rows": 5
+    },
+    "fut_inst": {
+      "stored": 0
+    },
+    "mktfut.fut_inst": {
+      "ok": true,
+      "rows": 45
+    },
+    "fut_oi": {
+      "stored": 0
+    },
+    "mktfut.fut_oi": {
+      "ok": true,
+      "rows": 15
     },
     "build_payload": {
       "ok": true
@@ -96,9 +117,9 @@
       "2026-10-30"
     ]
   },
-  "started_at": "2026-10-31T19:57:59.949679+00:00",
-  "finished_at": "2026-10-31T20:23:06.477278+00:00",
-  "duration_seconds": 1506.5,
+  "started_at": "2026-11-01T09:10:48.452337+00:00",
+  "finished_at": "2026-11-01T09:35:59.801801+00:00",
+  "duration_seconds": 1511.3,
   "trade_date": null,
   "complete": true,
   "freshness": {
@@ -107,7 +128,7 @@
       "inst_daily": {
         "label": "個股三大法人",
         "latest": "2026-10-30",
-        "rows": 1781,
+        "rows": 2052,
         "median": 2203.0,
         "status": "ok",
         "reason": null
@@ -149,7 +170,7 @@
     "warn_labels": []
   },
   "warn": [],
-  "finmind_budget_left": 456,
+  "finmind_budget_left": 449,
   "tables": [
     {
       "table": "price_daily",
@@ -163,7 +184,7 @@
     },
     {
       "table": "margin_daily",
-      "rows": 2689372,
+      "rows": 2689481,
       "latest": "2026-10-30"
     },
     {
@@ -183,8 +204,8 @@
     },
     {
       "table": "opt_pc",
-      "rows": 4240,
-      "latest": "2025-06-30"
+      "rows": 4419,
+      "latest": "2026-04-30"
     },
     {
       "table": "index_daily",
@@ -198,7 +219,7 @@
     },
     {
       "table": "inst_daily",
-      "rows": 5490233,
+      "rows": 5490505,
       "latest": "2026-10-30"
     },
     {
@@ -273,7 +294,7 @@
     },
     {
       "table": "news",
-      "rows": 8662,
+      "rows": 8703,
       "latest": "2026-11-01"
     },
     {
@@ -305,6 +326,11 @@
       "table": "dividend_results",
       "rows": 26776,
       "latest": "2026-10-29"
+    },
+    {
+      "table": "next_wave_forward",
+      "rows": 0,
+      "latest": "—"
     },
     {
       "table": "etf_dividend_events",
@@ -343,8 +369,8 @@
     },
     {
       "table": "material_news",
-      "rows": 2675,
-      "latest": "2026-10-30"
+      "rows": 2678,
+      "latest": "2026-10-31"
     },
     {
       "table": "company_website",
@@ -369,7 +395,7 @@
   ],
   "groups_health": {
     "reviewed": "2026-09-21",
-    "days_since_review": 40,
+    "days_since_review": 41,
     "is_stale": false,
     "group_count": 95,
     "code_count": 444,
