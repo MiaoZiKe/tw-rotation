@@ -158,7 +158,7 @@ test('公告：不再顯示記在後端', async () => {
   assert.equal(st.seen, true); assert.equal(st.trial.active, true);
 });
 
-test('邀請人獎勵：每成功邀請 1 人 +14 天 Pro 可累計；內部上限 30 次且不外露；付費邀請人改記待用天數', async () => {
+test('邀請人獎勵：每成功邀請 1 人 +14 天 Pro 可累計；內部上限 3 次且不外露；付費邀請人改記待用天數', async () => {
   const { hub, andy } = await setup();
   const alice = await login(hub, 'alice@example.com', '198.51.100.1');
   const code = (await pj(hub, '/v1/invite/me', { t: alice })).j.code;
@@ -175,13 +175,13 @@ test('邀請人獎勵：每成功邀請 1 人 +14 天 Pro 可累計；內部上�
   assert.equal(pm.plan, 'pro');
   const perm = (await pj(hub, '/v1/admin/perm/get', { t: andy, email: 'alice@example.com' })).j;
   assert.equal(perm.expires, t0 + 28 * DAY, '兩次從現有到期日往後疊加');
-  /* 上限 30：第 31 位起仍能領（被邀請者），但邀請人不再加；回應不出現 cap */
-  for (let i = 3; i <= 34; i++) {
+  /* 上限 3：第 4 位起仍能領（被邀請者），但邀請人不再加；回應不出現 cap */
+  for (let i = 3; i <= 6; i++) {
     const f = await login(hub, `f${i}@example.com`, '198.51.100.' + (10 + i));
     assert.equal((await pj(hub, '/v1/invite/redeem', { t: f, code })).s, 200);
   }
   me = (await pj(hub, '/v1/invite/me', { t: alice })).j;
-  assert.equal(me.reward_days_total, 30 * 14); assert.equal(me.redeemed_count, 34);
+  assert.equal(me.reward_days_total, 3 * 14); assert.equal(me.redeemed_count, 6);
   assert.ok(!/cap|limit|上限/i.test(JSON.stringify(me)), '回應不顯示上限');
   /* 付費邀請人：不動付費方案，改記待用天數 */
   const pay = await login(hub, 'pay@example.com', '198.51.101.1');

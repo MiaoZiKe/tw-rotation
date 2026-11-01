@@ -2926,7 +2926,7 @@ Hub.prototype.deleteMe = async function (req, b) {
 const INV_ALPHA = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';     // 去掉 0 O 1 I L，手抄不會抄錯
 const INV_RE = /^[ABCDEFGHJKMNPQRSTUVWXYZ23456789]{8}$/;
 const INV_NEW_DAYS = 7, INV_PRO_DAYS = 14, INV_TRY_DAY = 8, INV_IP_KEEP_DAYS = 30, INV_IP_MAX = 3, SV_BONUS_DAYS = 7, SV_DUE_DAYS = 3, WISH_MAX = 3;
-const INV_REWARD_CAP = 30;     // 內部上限：每位邀請人最多拿 12 次獎勵；只在後端，回應與畫面都不顯示
+const INV_REWARD_CAP = 3;      // 內部上限：每位邀請人最多拿 3 次獎勵（Andy 11-02 更正：3 次，不是 30）；只在後端，回應與畫面都不顯示
 const PM_KEY_RE = /^[A-Za-z0-9_-]{1,40}$/;
 const ANN_RE = /^[a-z0-9-]{1,24}$/;
 Hub.prototype.promoInit = function () {
@@ -2990,7 +2990,7 @@ Hub.prototype.promoInviteePro = function (uid) {
   return r ? { at: r.at, end: r.pro_end, active: r.pro_end > this.now() } : null;
 };
 /* 邀請人獎勵（Andy 11-02）：每成功邀請 1 人，邀請人得 14 天 Pro，可疊加（從現有 Pro 到期日或現在較晚者往後加）。
-   邀請人本身是付費方案 → 不動他的方案，改記一筆 kind='pending' 的待用天數。內部上限 INV_REWARD_CAP 次（Andy 11-02 改 30），超過就不再給。 */
+   邀請人本身是付費方案 → 不動他的方案，改記一筆 kind='pending' 的待用天數。內部上限 INV_REWARD_CAP 次（Andy 11-02 定 3 次），超過就不再給。 */
 Hub.prototype.promoRewardInviter = function (inviterUid, inviteeUid) {
   const now = this.now();
   if (this.q('SELECT COUNT(*) AS c FROM invite_reward WHERE inviter = ?', inviterUid)[0].c >= INV_REWARD_CAP) return null;
