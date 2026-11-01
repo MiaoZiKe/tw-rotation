@@ -49,3 +49,18 @@
 ## 體驗額度黑名單縮小（Andy 11-02）
 `GRANT_BAN` 只剩 `['live.tick','stock.k_min']`（盤中即時、分 K）。今日關注、選股完整名單、AI 分析、四週期同看可放進體驗額度（Andy 自行限制次數）。法遵風險已告知（docs/legal/20261101_subscription_signals.md、docs/launch_gap_legal_1009.md 2-3）。
 注意：`site/admin_grants.js` 的 `BAN0` 備用清單仍是舊的八項（Worker 回的 `ban` 為準；該檔另有同事在改，未動）。
+
+## 2026-11-02 改版：獎勵一律是 Plus，邀滿 5 人升 Pro（以這節為準，蓋過前面寫 Pro 14 天／延長 7 天的地方）
+- 被邀請者兌換成功 → **14 天 Plus**。邀請人每成功 1 人 → **14 天 Plus**（可累計，內部上限 3 次，不外露）。
+- 問卷填完 → **7 天 Plus**（取代「新會員體驗延長 7 天」；體驗截止日不再變動，`until` 與 `base_until` 相同）。
+- 邀請人累計成功邀請達 **5 人** → 升級 **Pro 7 天**（只觸發一次；從現有 Pro 到期日或現在較晚者起算）。
+- 疊加：活動給的方案不寫 perm，記在 `promo_tier`，由 `effective()` 疊上去。**付費／人工方案優先、完全不動**；其次 Pro，Pro 到期自動回 Plus（Plus 沒到期的話）。
+  付費者拿到的獎勵改記 `promo_pending`／`invite_reward.kind=plus_pending`／`invite_upg.kind=pending`（待用天數，目前只記錄）。
+- 許願：實際生效方案是 Pro（含邀滿 5 人的 Pro，也含付費 Pro）才可許，一人一個可覆寫。
+
+欄位異動：
+- `/v1/me/trial` → `{ active, until, base_until, survey_done, survey_eligible, plus_until, pro_until, end, now }`（`plus_until`、`pro_until` 為活動給的方案到期日，沒有為 `null`）。
+- `/v1/survey/submit` → `{ ok, until(體驗截止日，不變), end, plus_until, plus_end, days:7, pending }`。
+- `/v1/invite/me` → 多 `next_pro_need`（還差幾人升 Pro，已達成為 0）、`pro_unlocked`；`redeemed` 變 `{at, plus_until}`；`plus_days:14`、`pro_days:7`；`reward_days_total`／`reward_pending_days` 含 Plus 與 Pro 升級天數。
+- `/v1/invite/redeem` → `{ ok, plus_until, plus_end, days:14 }`（不再回 `pro_until`）；新錯誤碼 `no_plus_plan`(503) 取代 `no_pro_plan`。
+- 新表：`promo_tier`、`promo_pending`、`invite_upg`（皆進備份匯出，刪帳號時一起刪）。
