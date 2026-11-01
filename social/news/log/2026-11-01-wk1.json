@@ -1,0 +1,39 @@
+{
+ "slot": "wk1",
+ "date": "2026-11-01",
+ "run_at": "2026-11-01T10:17+08:00",
+ "posted": [
+  {
+   "file": "2026-11-01_news-wk1-1.md",
+   "publish_at": "2026-11-01T10:30+08:00",
+   "publish_at_ig": "2026-11-01T20:00+08:00",
+   "title": "鴻勁前三季財報EPS 93.47元",
+   "topic_category": "財報",
+   "content_type": "財報數字",
+   "layout": "D-實景(通用)",
+   "style": "口袋長文",
+   "has_ai_image": "false",
+   "explore": "false",
+   "heat": "5.4",
+   "news_ids": "udn-5ba3482b41fb597b",
+   "u_code": "newswk11",
+   "has_photo": "true",
+   "photo_kind": "類別",
+   "photo": "_category/總經/photo_6.jpg",
+   "numcard": "hook_top／重疊 0 筆",
+   "format": "threads_v2",
+   "hook_type": "對話",
+   "emotion": "吐槽",
+   "hook_id": "a_d2",
+   "tag": "鴻勁財報",
+   "lint": "pass"
+  }
+ ],
+ "skipped": [
+  {
+   "title": "台股擂台／挑戰者「股市軒昂」張嘉軒 本周青睞研華、新代",
+   "why": "沒有可當主旨的關鍵數字"
+  }
+ ],
+ "overlap": "重疊檢查：程式 1 張 0 筆（有重疊的不排程）"
+}
