@@ -45,6 +45,8 @@
 #invDlg .ok{color:var(--green,#2fd18b)}#invDlg .msg{min-height:1.3em;font-size:13px;margin:4px 0 0;color:#ff6b7a}#invDlg .msg.good{color:var(--green,#2fd18b)}
 #invDlg .invtag{display:inline-block;padding:1px 8px;border-radius:99px;border:1px solid var(--line-2);font-size:12px;color:var(--ink-2)}
 #invDlg .invprog{margin:8px 0}#invDlg .invbar{height:8px;border-radius:99px;background:var(--panel-2);border:1px solid var(--line-2);overflow:hidden;margin-top:6px}#invDlg .invbar i{display:block;height:100%;background:var(--cyan)}
+/* 送出鈕不用 .row2：手機的 .row2 是 sticky 底列，會跟底部「關閉」列疊在一起 */
+#invDlg .invsub{display:flex;justify-content:flex-end;margin-top:6px}
 #invDlg .invsec{border-top:1px solid var(--line-2);padding-top:4px;margin-top:12px}
 @media (max-width:640px){#invDlg .invbtn{height:44px}#invDlg input[type=text]{height:44px;font-size:16px}#invDlg textarea{font-size:16px}#invDlg .invlink{height:44px;font-size:14px}}`;
     document.head.appendChild(s);
@@ -130,13 +132,13 @@
     return `${was}<p class="muted">每人一個願望，再送一次會取代上一個。</p>
       <input type="text" id="invWf" maxlength="60" placeholder="功能名稱（60 字內）" aria-label="功能名稱" value="${cur ? esc(cur.feature) : ''}">
       <textarea id="invWt" maxlength="500" placeholder="想怎麼用、解決什麼問題（6～500 字）" aria-label="願望內容">${cur ? esc(cur.text) : ''}</textarea>
-      <div class="row2" style="margin-top:6px"><button type="button" class="pri invbtn" id="invWgo" data-inv="wish">${cur ? '更新願望' : '送出願望'}</button></div><p class="msg" id="invWmsg" role="status"></p>`;
+      <div class="invsub"><button type="button" class="pri invbtn" id="invWgo" data-inv="wish">${cur ? '更新願望' : '送出願望'}</button></div><p class="msg" id="invWmsg" role="status"></p>`;
   }
   function dlg(demo) {
     S.demo = demo === true;
     if (S.demo) {   // 預覽展示用的假資料：邀請碼 DEMO1234、已邀請 3 人（再邀 2 人升級 Pro）、Pro 期內顯示許願表單
       S.st = 'ok'; S.fly = null;
-      S.data = { code: 'DEMO1234', link: location.origin + '/?invite=DEMO1234', redeemed_count: 3, reward_days_total: 42, pro_days: 14, can_redeem: true, redeemed: null, next_pro_need: 2 };
+      S.data = { code: 'DEMO1234', link: 'https://liguligu-puipui.com/?invite=DEMO1234', redeemed_count: 3, reward_days_total: 42, pro_days: 14, can_redeem: true, redeemed: null, next_pro_need: 2 };
       S.wish = { ok: true, wish: null };
     } else if (S.data && S.data.code === 'DEMO1234') { S.data = null; S.wish = null; S.st = 'none'; S.who = ''; }
     let d = document.getElementById('invDlg');

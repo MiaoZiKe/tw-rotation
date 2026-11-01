@@ -124,6 +124,16 @@ def t_invite_wish_1101(b, base, code):
             wait_until(pg, "() => !!document.getElementById('invWf')", 5000)
             if os.environ.get("TW_INV_SHOT"):
                 pg.screenshot(path=f"{os.environ['TW_INV_SHOT']}/invite_{W}_b.png")
+            RECT = """(pos) => { const bx = document.querySelector('#invDlg .box'); bx.scrollTop = pos < 0 ? bx.scrollHeight : pos;
+              const g = document.getElementById('invWgo').getBoundingClientRect(); const rows = bx.querySelectorAll(':scope > .row2'); const c = rows[rows.length - 1].getBoundingClientRect();
+              const hit = !(g.right <= c.left || g.left >= c.right || g.bottom <= c.top || g.top >= c.bottom);
+              return { hit, g: [g.top, g.bottom], c: [c.top, c.bottom], st: getComputedStyle(document.getElementById('invWgo').parentElement).position } }"""
+            for pos in (0, -1):
+                rr = pg.evaluate(RECT, pos)
+                ok(f"★ {tag}捲動位置 {'頂端' if pos == 0 else '底端'}：「送出願望」鈕與底部「關閉」列不相交", not rr["hit"], rr)
+            if os.environ.get("TW_INV_SHOT"):
+                pg.screenshot(path=f"{os.environ['TW_INV_SHOT']}/invite_{W}_bottom.png")
+            pg.evaluate("() => { document.querySelector('#invDlg .box').scrollTop = 0; }")
             pg.fill("#invWf", "自選提醒"); pg.fill("#invWt", "短"); pg.click("#invWgo")
             ok(f"{tag}願望內容太短 → 提示至少 6 字、不打 API", "6" in pg.inner_text("#invWmsg") and not [x for x in st["calls"] if x[0] == "wish"])
             pg.fill("#invWt", "到價時用 Email 通知我，不用一直盯盤"); pg.click("#invWgo")
@@ -133,10 +143,13 @@ def t_invite_wish_1101(b, base, code):
             pg.fill("#invWt", "改成：到價時用 LINE 通知我"); pg.click("#invWgo"); pg.wait_for_timeout(600)
             w2 = [x for x in st["calls"] if x[0] == "wish"]
             ok(f"{tag}再送一次 → 覆寫（後端第二筆是新內容）", len(w2) == 2 and "LINE" in w2[1][1]["text"], w2[-1:])
+            pg.evaluate("() => TwInvite.open({ demo: true })"); pg.wait_for_selector("#invLink", timeout=3000)
+            ok(f"★ {tag}示範模式的連結是正式網域、不是 localhost", pg.input_value("#invLink") == "https://liguligu-puipui.com/?invite=DEMO1234", pg.input_value("#invLink"))
             pg.keyboard.press("Escape"); pg.wait_for_timeout(200)
             ok(f"{tag}Esc 關閉對話框", pg.evaluate("() => document.getElementById('invDlg').hidden"))
             # 隱私：底部小字連結 → 隱私權政策「意見問卷、許願與邀請碼」展開
             pg.evaluate("() => TwInvite.open()"); pg.wait_for_selector("#invDlg:not([hidden])", timeout=3000)
+            wait_until(pg, "() => !!document.querySelector('#invDlg a[href*=privacy-promo]')", 6000)
             lk = pg.locator("#invDlg a[href='#privacy-promo']")
             ok(f"{tag}對話框底部有一行小字連結「資料怎麼使用」", lk.count() == 1 and lk.inner_text() == "資料怎麼使用")
             lk.click(); pg.wait_for_timeout(3500)
