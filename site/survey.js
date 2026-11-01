@@ -33,7 +33,10 @@
   function snooze() { if (testMode()) return; memSnooze = Date.now() + SNOOZE_MS; ls.set(SNOOZE_KEY, String(memSnooze)); }
 
   /* ---------- 母／子分頁清單（動態讀側欄） ---------- */
-  const SKIP = ['admin', 'delivery'];   // 管理區、交付清單不是給一般會員評的
+  const ADMIN_ONLY = ['admin', 'delivery', 'tc', 'lab'];   // 管理區、交付清單、科技透明圈、交易練習室：只給管理員，一般會員在側欄看不到，不能讓他們評
+  const isAdm = () => { const a = A(); const u = a && a.user && a.user(); return !!(u && u.admin === true); };
+  const hiddenTab = (k) => { const e = document.querySelector('#tabs .tab[data-view="' + k + '"]'); return !!(e && (e.hidden || e.style.display === 'none')); };   // 側欄對這位會員有藏的也跳過（權限、導覽隱藏）
+  const skip = (k) => (ADMIN_ONLY.includes(k) && !isAdm()) || hiddenTab(k);
   function navList() {
     const N = window.TwL4Nav, out = [];
     if (N && N.PAGES) {
@@ -41,14 +44,14 @@
       Object.keys(N.PAGES).forEach((k) => { if (!order.includes(k)) order.push(k); });
       const subs = N.SUBS_DESK || N.SUBS || {};
       order.forEach((k) => {
-        if (SKIP.includes(k) || !N.PAGES[k]) return;
+        if (skip(k) || !N.PAGES[k]) return;
         out.push({ k, t: N.PAGES[k].t, subs: (subs[k] || []).map((s) => ({ k: s.k, t: s.t })) });
       });
     }
     if (out.length) return out;
     /* 退路：直接讀 DOM 的側欄 */
     document.querySelectorAll('#tabs .tab[data-view]').forEach((b) => {
-      const k = b.dataset.view; if (SKIP.includes(k) || out.some((o) => o.k === k)) return;
+      const k = b.dataset.view; if (skip(k) || out.some((o) => o.k === k)) return;
       out.push({ k, t: (b.textContent || k).trim(), subs: [...document.querySelectorAll('#tabs .l4subtab[data-parent="' + k + '"]')].map((s) => ({ k: s.dataset.l4sub || s.dataset.adm || s.textContent.trim(), t: s.textContent.trim() })) });
     });
     return out;
