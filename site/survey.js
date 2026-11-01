@@ -84,7 +84,7 @@
     const box = ov && ov.querySelector('.svbox'); if (!box) return;
     const body = box.querySelector('.svbody'), top = body ? body.scrollTop : 0;
     if (st.done) { box.innerHTML = successHtml(); const k = box.querySelector('#svOk'); k.addEventListener('click', close); k.focus(); return; }
-    box.innerHTML = '<div class="svhd"><div class="svprog" aria-live="polite">第 <b id="svStepNo">' + st.step + '</b> / ' + STEPS + ' 題</div>' +
+    box.innerHTML = '<div class="svhd"><div class="svprog" aria-live="polite">第 <b id="svStepNo">' + st.step + '</b> / ' + STEPS + ' 題' + (testMode() ? ' <span class="svtest">測試模式・不會送出</span>' : '') + '</div>' +
       '<button type="button" class="svx" id="svLater" aria-label="稍後再說" title="稍後再說">×</button></div>' +
       '<div class="svbar" aria-hidden="true"><i style="width:' + (st.step / STEPS * 100) + '%"></i></div>' +
       '<div class="svbody"><h2 id="svTitle">' + TITLES[st.step] + '</h2><p class="svhint">' + HINTS[st.step] + '</p>' + stepHtml() +

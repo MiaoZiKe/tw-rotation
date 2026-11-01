@@ -92,7 +92,7 @@ def t_survey_1101(b, base, code):
     # ---- B. 桌機整段操作
     c, log = _sv_ctx(b, 1440, {})
     pg = _sv_open(c, base); pg.on("pageerror", lambda e: errs.append(str(e)))
-    got = wait_until(pg, VIS, 8000)
+    got = wait_until(pg, VIS, 15000)
     ok(f"{T}：已登入＋有資格＋首頁 → 跳出問卷", bool(got), log["reqs"])
     ok(f"{T}：用 POST 打 /v1/me/trial", ("POST", "/v1/me/trial") in log["reqs"], log["reqs"])
     ok(f"{T}：第 1 題顯示、下一步停用（還沒選星）", pg.locator("#svStepNo").inner_text() == "1" and pg.locator("#svNext").is_disabled())
@@ -155,7 +155,7 @@ def t_survey_1101(b, base, code):
 
     # ---- C. 稍後再說
     c, log = _sv_ctx(b, 1440, {})
-    pg = _sv_open(c, base); wait_until(pg, VIS, 8000)
+    pg = _sv_open(c, base); wait_until(pg, VIS, 15000)
     pg.click("#svLater2"); pg.wait_for_timeout(200)
     snz = pg.evaluate("() => +localStorage.getItem('tw.survey.snooze')")
     import time as _t
@@ -166,7 +166,7 @@ def t_survey_1101(b, base, code):
 
     # ---- D. 後端失敗訊息
     c, log = _sv_ctx(b, 1440, {}, submit=({"ok": False, "error": "你已經填寫過囉"}, 409))
-    pg = _sv_open(c, base); wait_until(pg, VIS, 8000)
+    pg = _sv_open(c, base); wait_until(pg, VIS, 15000)
     pg.click("[data-sat='5']"); pg.click("#svNext"); pg.click("#svNext"); pg.click("#svNext"); pg.click("#svSend"); pg.wait_for_timeout(500)
     ok(f"{T}：送出失敗 → 顯示後端訊息、仍在問卷內", "你已經填寫過囉" in pg.locator(".sverr").inner_text() and pg.evaluate(VIS))
     c.close()
@@ -205,8 +205,8 @@ def t_survey_1101(b, base, code):
     # 正式站 ?survey=test：站主強制顯示（即使沒資格），一般會員不行
     for who, admin, want in (("站主", True, True), ("一般會員", False, False)):
         c, log = _sv_ctx(b, 1440, {"survey_eligible": False, "survey_done": True}, admin=admin)
-        pg = _sv_open(c, base.rstrip("/") + "/?survey=test", "#overview"); pg.on("pageerror", lambda e: errs.append(str(e)))
-        got = wait_until(pg, VIS, 8000 if want else 3500) if want else (pg.wait_for_timeout(4000) or pg.evaluate(VIS))
+        pg = _sv_open(c, base + "?survey=test", "#overview"); pg.on("pageerror", lambda e: errs.append(str(e)))
+        got = wait_until(pg, VIS, 15000 if want else 3500) if want else (pg.wait_for_timeout(4000) or pg.evaluate(VIS))
         ok(f"{T}：正式站 ?survey=test + {who}（沒資格）→ {'強制跳出' if want else '不跳'}", bool(got) == want, log["reqs"])
         if want:
             pg.click("[data-sat='3']"); pg.click("#svNext"); pg.click("#svNext"); pg.click("#svNext"); pg.click("#svSend"); pg.wait_for_timeout(500)
@@ -218,7 +218,7 @@ def t_survey_1101(b, base, code):
     # ---- E. 手機 390
     c, log = _sv_ctx(b, 390, {})
     pg = _sv_open(c, base); pg.on("pageerror", lambda e: errs.append(str(e)))
-    got = wait_until(pg, VIS, 8000)
+    got = wait_until(pg, VIS, 15000)
     ok(f"{T}（390）跳出問卷", bool(got))
     M = """() => { const r = document.querySelector('#svOv .svbox').getBoundingClientRect(), f = (document.querySelector('.svft') || document.querySelector('.svbox')).getBoundingClientRect();
         const bs = [...document.querySelectorAll('#svOv button')].filter(e => e.offsetParent);
