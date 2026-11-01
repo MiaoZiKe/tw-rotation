@@ -253,7 +253,7 @@ test('保存期限：離線 7 分鐘即刪、13 個月前的統計刪掉、24 �
   await post(hub, '/v1/beat', { sid: 'guest-dddd', r: 'overview', ev: { 'pv:overview': 1 } });
   db.prepare("INSERT INTO usage (day,k,n) VALUES ('2025-07-01','pv:flow',9), ('2025-09-28','pv:flow',3)").run();
   const t0 = clock;
-  clock += 8 * 60 * 1000;   // 2026-10-06 流量批次：線上門檻 6 分鐘、紀錄 7 分鐘才刪（原本 3 分鐘）
+  clock += 33 * 60 * 1000;  // 2026-11-02：線上門檻 30 分鐘、紀錄 32 分鐘才刪（原本 6／7 分鐘）
   await hub.alarm();
   assert.equal(db.prepare('SELECT COUNT(*) c FROM presence').get().c, 0, '離線即刪');
   const days = db.prepare("SELECT day FROM usage WHERE k='pv:flow' ORDER BY day").all().map((r) => r.day);
