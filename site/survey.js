@@ -57,6 +57,21 @@
     return out;
   }
 
+  /* ---------- 問卷 key → 中文名（管理區「問卷與願望」頁讀 window.TwSurveyLabels）----------
+     母分頁 key＝側欄 view（flow），子分頁 key＝「母/子」（flow/flow-inst）。管理員專屬頁一律不列（不管看的人是誰）。
+     用 getter：側欄清單（TwL4Nav）晚於本檔載入也沒關係，每次讀都是現算，新增分頁自動多一筆。 */
+  function buildLabels() {
+    const o = {}, N = window.TwL4Nav; if (!N || !N.PAGES) return o;
+    const subs = N.SUBS_DESK || N.SUBS || {};
+    Object.keys(N.PAGES).forEach((k) => {
+      if (ADMIN_ONLY.includes(k) || !N.PAGES[k]) return;
+      o[k] = N.PAGES[k].t;
+      (subs[k] || []).forEach((x) => { o[k + '/' + x.k] = x.t; });
+    });
+    return o;
+  }
+  try { Object.defineProperty(window, 'TwSurveyLabels', { configurable: true, get: buildLabels }); } catch (e) { /* 略 */ }
+
   /* ---------- 作答狀態 ---------- */
   function fresh() { return { step: 1, sat: 0, useful: new Map(), improve: new Map(), act: { useful: '', improve: '' }, improve_text: '', want: new Set(), want_text: '', busy: false, err: '', warn: '', done: null }; }
   let st = fresh(), nav = [];

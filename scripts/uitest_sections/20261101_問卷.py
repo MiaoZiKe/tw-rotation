@@ -109,6 +109,8 @@ def t_survey_popup_1101(b, base, code):
     ok(f"{T}：母分頁卡片數＝側欄清單（動態讀，{navn}）", cards == navn and cards >= 10, [cards, navn])
     ok(f"{T}：母分頁有「總覽」「產業地圖」「ETF」", all(pg.locator(f".svpar:has-text('{t}')").count() for t in ("總覽", "產業地圖", "ETF")))
     ok(f"{T}：一般會員的母分頁沒有科技透明圈、交易練習室、管理區、交付清單", all(pg.locator(f"[data-par='{k}']").count() == 0 for k in ("tc", "lab", "admin", "delivery")))
+    lab = pg.evaluate("() => window.TwSurveyLabels")
+    ok(f"{T}：window.TwSurveyLabels 有母分頁與「母/子」中文名、沒有管理員專屬頁", lab.get("flow") == "資金流向" and any("/" in k and v for k, v in lab.items()) and not any(k.split("/")[0] in ("tc", "lab", "admin", "delivery") for k in lab), list(lab.items())[:4])
     pg.click("[data-par='flow']"); pg.wait_for_timeout(150)
     chips = pg.locator("#svSub .svchip").count()
     ok(f"{T}：點母分頁「資金流向」→ 展開 3 個子分頁小籤", chips == 3, chips)
