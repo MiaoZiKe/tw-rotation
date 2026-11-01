@@ -119,6 +119,7 @@
     close(true);
     if (which === 'trial') { location.hash = '#pricing'; return; }
     /* 邀請好友：會員中心的邀請碼區（另一位同事做）。有 TwMemberCenter 就開到邀請區，沒有就開帳號選單（會員中心入口） */
+    if (window.TwInvite && typeof window.TwInvite.open === 'function') { window.TwInvite.open(); return; }   // 帳號選單的「邀請好友／許願」對話框
     const M = window.TwMemberCenter;
     if (M && typeof M.open === 'function') { M.open('invite'); return; }
     const b = document.querySelector('#acctBar .abtn.ame, .abtn.ame');
