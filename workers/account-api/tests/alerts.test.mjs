@@ -34,7 +34,7 @@ async function login(hub, email) {
 }
 
 /* 每日額度區塊（plans.dq、SEED_PLANS 種 Plus／Pro、/v1/perm/me 回 dq）的驗收。跑法：node --test workers/account-api/tests/ */
-test('自設提醒（alerts）：註冊 1、Plus 5、Pro 不限；只擋變多；欄位白名單；未登入 401；版本衝突 409；管理者不限', async () => {
+test('自設提醒（alerts）：註冊 1、Plus 5、Pro 20；只擋變多；欄位白名單；未登入 401；版本衝突 409；管理者不限', async () => {
   const { hub } = makeHub({ ...env(), SEED_PLANS: 'plus,pro' });
   const andy = await login(hub, 'andy@example.com');
   const free = await login(hub, 'free@example.com');
@@ -55,10 +55,12 @@ test('自設提醒（alerts）：註冊 1、Plus 5、Pro 不限；只擋變多�
   assert.equal((await put(plus, mk(5), 0)).s, 200);
   r = await put(plus, mk(6), 1);
   assert.equal(r.s, 403); assert.equal(r.j.limit, 5);
-  // Pro 不限（硬上限 200）
-  assert.equal((await put(pro, mk(50), 0)).s, 200);
+  // Pro 20 條（2026-11-02 Andy 先定 20；硬上限 200 仍保留給管理者）；第 21 條 403
+  assert.equal((await put(pro, mk(20), 0)).s, 200);
   r = await pj(hub, '/v1/alerts/get', { t: pro });
-  assert.equal(r.j.alerts.length, 50); assert.equal(r.j.cap, 200);
+  assert.equal(r.j.alerts.length, 20); assert.equal(r.j.cap, 20);
+  r = await put(pro, mk(21), 1);
+  assert.equal(r.s, 403); assert.equal(r.j.limit, 20);
   // 降級只擋變多：Plus 改回免費，原本 5 條照樣能改能刪，不能加
   await pj(hub, '/v1/admin/perm/put', { t: andy, email: 'plus@example.com', plan: 'free', over: {} });
   r = await put(plus, mk(5).slice(0, 4), 1);
