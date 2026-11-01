@@ -45,6 +45,10 @@
    · ★ 2026-10-16（Andy：「精選貼文限制給 Pro 可以看，Plus 只能所有類別共 5 篇，其他的只能看到標題」）：新鍵 art.read.n（精選文章可讀全文篇數，**累計、不是每日**，
      所有分類合計）——訪客 0、註冊會員 0（只看標題與分類）、Plus 5、Pro 999（＝不限）。features.js 的 defBy 也寫了同樣的預設，按「套用建議方案」之前就照這個跑。
      計數在 site/quota.js 的 TwQuota.total，只擋畫面、非伺服器端。
+   · ★★ 2026-11-02（Andy：「『信用交易』『期貨籌碼』是新加入的功能，以後只要有新加入功能都需要限制使用次數在權限那邊進行設定，這次也是，但體驗就 Follow 我設定的次數」）：
+     新鍵 mkt.credit（信用交易）、mkt.fut（期貨籌碼）、mkt.inst.day（三大法人當天報告）：四個方案都開；每日次數 訪客 3、註冊會員 5、Plus 50、Pro 不設＝不限
+     （跟市場明細漲跌家數／法人連買賣／站上均線同一口徑，單位＝一次造訪；features.js 的 limBy 也寫了 訪客 3／註冊會員 5，按「套用建議方案」之前就照這個跑）。
+     這三個鍵不在 GRANT_BAN，會自動出現在「編輯：新會員體驗」清單；體驗的次數由 Andy 自己在那邊設，這裡不預設。
    這支是**資料**，不是設定：改了不會自動生效，要管理者在 #admin/perm 按一次「套用建議方案」。
    ============================================================================ */
 window.TW_PLAN_PRESETS = {
@@ -81,6 +85,9 @@ window.TW_PLAN_PRESETS = {
     "mkt.updown": true,
     "mkt.streak": true,
     "mkt.ma": true,
+    "mkt.credit": true,
+    "mkt.fut": true,
+    "mkt.inst.day": true,
     "mkt.cand": false,
     "season.month": true,
     "stock.k_day": true,
@@ -163,6 +170,9 @@ window.TW_PLAN_PRESETS = {
     "flow.rank.click": 3,
     "flow.filter": 3,
     "mkt.updown.filter": 3,
+    "mkt.credit": 3,
+    "mkt.fut": 3,
+    "mkt.inst.day": 3,
     "etf.cal.click": 3,
     "earn.click": 3,
     "search": 5
@@ -212,6 +222,9 @@ window.TW_PLAN_PRESETS = {
     "mkt.updown": true,
     "mkt.streak": true,
     "mkt.ma": true,
+    "mkt.credit": true,
+    "mkt.fut": true,
+    "mkt.inst.day": true,
     "mkt.cand": false,
     "season.month": true,
     "stock.k_day": true,
@@ -302,6 +315,9 @@ window.TW_PLAN_PRESETS = {
     "mkt.updown": 5,
     "mkt.streak": 5,
     "mkt.ma": 5,
+    "mkt.credit": 5,
+    "mkt.fut": 5,
+    "mkt.inst.day": 5,
     "season.month": 10,
     "flow.rank.click": 5,
     "flow.filter": 5,
@@ -357,6 +373,9 @@ window.TW_PLAN_PRESETS = {
     "mkt.updown": true,
     "mkt.streak": true,
     "mkt.ma": true,
+    "mkt.credit": true,
+    "mkt.fut": true,
+    "mkt.inst.day": true,
     "mkt.cand": true,
     "season.month": true,
     "stock.k_day": true,
@@ -425,7 +444,10 @@ window.TW_PLAN_PRESETS = {
     "ind.diagram": 50,
     "ind.3d": 50,
     "ind.rel": 50,
-    "stock.page": 50
+    "stock.page": 50,
+    "mkt.credit": 50,
+    "mkt.fut": 50,
+    "mkt.inst.day": 50
    },
    "meta": {
     "badge": "最受歡迎",
@@ -474,6 +496,9 @@ window.TW_PLAN_PRESETS = {
     "mkt.updown": true,
     "mkt.streak": true,
     "mkt.ma": true,
+    "mkt.credit": true,
+    "mkt.fut": true,
+    "mkt.inst.day": true,
     "mkt.cand": true,
     "season.month": true,
     "stock.k_day": true,

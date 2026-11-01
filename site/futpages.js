@@ -8,7 +8,7 @@
    連動（style_guide §18）：圖、表、大數字同一個「焦點日期」——滑過一起亮、點一下鎖定、再點同一天或點圖外取消；
    時間序列沒有「一個扇區」可以變淡，所以圖上是垂直標示線（鎖定＝實線、滑過＝虛線），表格那列 .hl／.sel，大數字換成那一天。
    自動解讀的規則寫在 docs/futpages_rules.md（只陳述資料，不給買賣建議）。
-   免付費牆：功能開關歸 features.js／plan_presets，這兩頁先全開放（Andy：不自己做 Pro 鎖）。
+   功能鍵：mkt.fut（features.js／plan_presets.js，2026-11-02 起訪客 3／註冊會員 5／Plus 50／Pro 不限，閘門在 perm.js／quota.js，本檔不自己做鎖）。
    驗收：scripts/uitest_sections/20261020_futpages.py。
    ========================================================================== */
 (function () {
