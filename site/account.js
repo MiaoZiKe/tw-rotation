@@ -501,33 +501,52 @@ html:not(.m4) .m4deldlg .msg{min-height:1.4em;font-size:13px;color:#ff6b7a;margi
    // 新增一個全域變數記錄假人數
   let fakeOnlineCount = null;
 
-  /* 手機（≤640）頂欄的帳號鈕收在「⋯」清單裡（見 watchlists.js moreRow），線上人數也寫在那一列 */
+// 新增一個全域變數記錄假人數
+  let fakeOnlineCount = null;
+
+  /* 手機（≤640）頂欄的帳號鈕收在「⋯」清單裡 */
   function paintMoreRow() {
     if (!window.TwMoreRow || !S.on) return;
-    const currentCount = fakeOnlineCount !== null ? fakeOnlineCount : S.online;
-    const n = currentCount != null ? `<small style="margin-left:auto;color:var(--ink-2);font-size:12.5px">${currentCount} 人在線</small>` : '';
+    const currentCount = fakeOnlineCount !== null ? fakeOnlineCount : (S.online || 200);
+    const n = `<small style="margin-left:auto;color:var(--ink-2);font-size:12.5px">${currentCount} 人在線</small>`;
     if (S.user) window.TwMoreRow('mmAcct', '●', '帳號：' + esc(S.user.name || S.user.email || '') + n, () => openMenu(document.getElementById('moreBtn') || document.body));
     else window.TwMoreRow('mmAcct', '⇥', '用 Google 帳號登入' + n, () => openDlg('notice'));
   }
 
   function paintOnline() {
     const on = document.getElementById('acctOnline'); if (!on) return;
-    if (!S.on || S.online == null) { on.hidden = true; return; }
     
-    const MIN_USERS = 300; // 最小人數
+    // ★ 關鍵修改：移除了原本會把按鈕隱藏的 S.online == null 限制，強制顯示！
+    if (!S.on) { on.hidden = true; return; }
+    
+    // --- 隨機跳動邏輯開始 ---
+    const MIN_USERS = 200; // 最小人數
     const MAX_USERS = 500; // 最大人數
-    const JUMP_INTERVAL_SEC = ; // 10秒跳動一次
+    const JUMP_INTERVAL_SEC = 60; // 60秒跳動一次
 
+    // 使用時間區間作為亂數種子，確保所有訪客在同一時段算出相同的數字
     const timeSeed = Math.floor(Date.now() / (JUMP_INTERVAL_SEC * 1000));
     const pseudoRandom = Math.abs(Math.sin(timeSeed * 12345.6789));
     fakeOnlineCount = Math.floor(pseudoRandom * (MAX_USERS - MIN_USERS + 1)) + MIN_USERS;
+    // --- 隨機跳動邏輯結束 ---
 
     paintMoreRow();
 
     on.hidden = false; 
     on.innerHTML = `<i></i>${fakeOnlineCount}<span> 人在線</span>`;
-    on.title = `目前約 ${fakeOnlineCount} 人正在看這個網站（最近 6 分鐘內有動作）` + (S.today != null ? `；今天約 ${S.today} 台裝置打開過` : '') + (S.user && S.user.admin ? '・點一下看真實名單' : '');
+    
+    // 滑鼠游標移過去顯示的文字
+    on.title = `目前約 ${fakeOnlineCount} 人正在看這個網站`;
     on.style.cursor = S.user && S.user.admin ? 'pointer' : 'default';
+  }
+
+  // 強制確保畫面每秒都在檢查並更新，不受 API 回傳限制
+  if (!window.fakeOnlineTimer) {
+    window.fakeOnlineTimer = setInterval(() => {
+      if (S.on) {
+        paintOnline();
+      }
+    }, 1000);
   }
 
   setInterval(() => {
