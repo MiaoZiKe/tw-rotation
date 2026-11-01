@@ -8,7 +8,7 @@
 SV_API = "http://127.0.0.1:9"
 
 
-def _sv_ctx(b, W, trial, submit=None, logged=True):
+def _sv_ctx(b, W, trial, submit=None, logged=True, admin=False):
     import json as _j
     c = b.new_context(viewport={"width": W, "height": 844 if W < 641 else 900})
     init = "window.TW_ACCOUNT_OVERRIDE = " + _j.dumps({"api": SV_API}) + "; try { localStorage.setItem('tw.tour','done'); localStorage.setItem('tw.live.on','0');"
@@ -27,7 +27,7 @@ def _sv_ctx(b, W, trial, submit=None, logged=True):
         log["reqs"].append((req.method, path))
         out, st = {}, 200
         if path == "/v1/me":
-            out = {"user": {"email": "m@example.com", "name": "測試會員", "admin": False}}
+            out = {"user": {"email": "m@example.com", "name": "測試會員", "admin": admin}}
         elif path == "/v1/me/trial":
             out = dict({"active": True, "until": "2026-11-03", "base_until": "2026-11-03", "survey_done": False, "survey_eligible": True, "pro_until": None}, **trial)
         elif path == "/v1/survey/submit":
@@ -170,6 +170,50 @@ def t_survey_1101(b, base, code):
     pg.click("[data-sat='5']"); pg.click("#svNext"); pg.click("#svNext"); pg.click("#svNext"); pg.click("#svSend"); pg.wait_for_timeout(500)
     ok(f"{T}：送出失敗 → 顯示後端訊息、仍在問卷內", "你已經填寫過囉" in pg.locator(".sverr").inner_text() and pg.evaluate(VIS))
     c.close()
+
+    # ---- D2. 測試模式（Andy 11-02）：預覽版直接跳；正式站 ?survey=test 只有站主
+    c = b.new_context(viewport={"width": 1440, "height": 900})
+    c.add_init_script("try{localStorage.setItem('tw.tour','done');localStorage.setItem('tw.live.on','0')}catch(e){}; window.__fcnt = 0; const _f = window.fetch; window.fetch = function(u){ if (/survey\\/submit/.test(String(u))) window.__fcnt++; return _f.apply(this, arguments); };")
+    c.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+    pg = _sv_open(c, base); pg.on("pageerror", lambda e: errs.append(str(e)))
+    pg.wait_for_timeout(2500)
+    ok(f"{T}：（正式路徑、沒登入）不跳", not pg.evaluate(VIS))
+    pg.evaluate("history.replaceState(null, '', '/preview/member-invite/#overview')")
+    pg.evaluate("window.TwSurvey.check()")
+    got = wait_until(pg, VIS, 6000)
+    ok(f"{T}：預覽版路徑（/preview/）首頁、沒登入也直接跳出", bool(got))
+    ok(f"{T}：預覽版有「測試模式・不會送出」標示", pg.locator(".svtest").count() == 1)
+    shot(pg, "12_preview_direct")
+    pg.click("[data-sat='5']"); pg.click("#svNext"); pg.click("#svNext"); pg.click("#svNext"); pg.click("#svSend"); pg.wait_for_timeout(400)
+    ok(f"{T}：預覽版送出 → 「預覽測試：已獲得 7 天 Plus（示範）」且沒打後端", "預覽測試：已獲得 7 天 Plus（示範）" in pg.locator("#svOkMsg").inner_text() and pg.evaluate("() => window.__fcnt") == 0)
+    shot(pg, "13_preview_success")
+    pg.click("#svOk")
+    pg.evaluate("location.hash = '#flow'"); pg.wait_for_timeout(200); pg.evaluate("location.hash = '#overview'"); pg.wait_for_timeout(300)
+    pg.evaluate("window.__x = 1")
+    c.close()
+    c = b.new_context(viewport={"width": 1440, "height": 900})
+    c.add_init_script("try{localStorage.setItem('tw.tour','done');localStorage.setItem('tw.live.on','0')}catch(e){}")
+    c.route("**/fonts.googleapis.com/**", lambda r: r.abort())
+    pg = _sv_open(c, base); pg.wait_for_timeout(1500)
+    pg.evaluate("history.replaceState(null, '', '/preview/member-invite/#overview')"); pg.evaluate("window.TwSurvey.check()")
+    wait_until(pg, VIS, 6000)
+    pg.click("#svLater2"); pg.wait_for_timeout(200)
+    ok(f"{T}：預覽版「稍後再說」不寫 24 小時記錄", pg.evaluate("() => localStorage.getItem('tw.survey.snooze')") is None)
+    pg.evaluate("window.TwSurvey.check()")
+    ok(f"{T}：預覽版再檢查一次又跳出（沒被擋）", bool(wait_until(pg, VIS, 4000)))
+    c.close()
+    # 正式站 ?survey=test：站主強制顯示（即使沒資格），一般會員不行
+    for who, admin, want in (("站主", True, True), ("一般會員", False, False)):
+        c, log = _sv_ctx(b, 1440, {"survey_eligible": False, "survey_done": True}, admin=admin)
+        pg = _sv_open(c, base.rstrip("/") + "/?survey=test", "#overview"); pg.on("pageerror", lambda e: errs.append(str(e)))
+        got = wait_until(pg, VIS, 8000 if want else 3500) if want else (pg.wait_for_timeout(4000) or pg.evaluate(VIS))
+        ok(f"{T}：正式站 ?survey=test + {who}（沒資格）→ {'強制跳出' if want else '不跳'}", bool(got) == want, log["reqs"])
+        if want:
+            pg.click("[data-sat='3']"); pg.click("#svNext"); pg.click("#svNext"); pg.click("#svNext"); pg.click("#svSend"); pg.wait_for_timeout(500)
+            ok(f"{T}：站主測試送出 → 示範成功、沒打 /v1/survey/submit", "示範" in pg.locator("#svOkMsg").inner_text() and not any(r[1] == "/v1/survey/submit" for r in log["reqs"]), log["reqs"])
+            pg.click("#svOk")
+            ok(f"{T}：站主測試不寫 24 小時記錄", pg.evaluate("() => localStorage.getItem('tw.survey.snooze')") is None)
+        c.close()
 
     # ---- E. 手機 390
     c, log = _sv_ctx(b, 390, {})

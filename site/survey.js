@@ -18,8 +18,19 @@
   let doneFlag = false, failAt = -1e9, memSnooze = 0, trial = null, checking = false, shown = false, ov = null, lastFocus = null;
   const A = () => window.TwAccount || null;
   const isHome = () => { const h = (location.hash || '').replace(/^#\/?/, ''); return h === '' || h === 'overview'; };
+  /* 測試模式（2026-11-02 Andy：他已註冊、不符合條件沒辦法測）：
+     ① 預覽版（網址有 /preview/）首頁一律直接跳出，不論登入與資格；② 正式站網址加 ?survey=test，只有站主帳號（user.admin）強制顯示。
+     兩種都不打後端（送出走假成功、顯示「示範」）、不寫「稍後再說」的 24 小時記錄。 */
+  let demoForce = false;   // TwSurvey.open({demo:true})：展示頁（#promo-demo）叫出來的示範，假資料、送出走假成功
+  const testMode = () => {
+    if (demoForce) return 'demo';
+    if (/\/preview\//.test(location.pathname)) return 'preview';
+    const q = (location.search || '') + '&' + ((location.hash || '').split('?')[1] || '');
+    const a = A(); const u = a && a.user && a.user();
+    return /(^|[?&])survey=test(&|$)/.test(q) && u && u.admin === true ? 'admin' : '';
+  };
   const snoozed = () => { const t = Math.max(memSnooze, +ls.get(SNOOZE_KEY) || 0); return Date.now() < t; };
-  function snooze() { memSnooze = Date.now() + SNOOZE_MS; ls.set(SNOOZE_KEY, String(memSnooze)); }
+  function snooze() { if (testMode()) return; memSnooze = Date.now() + SNOOZE_MS; ls.set(SNOOZE_KEY, String(memSnooze)); }
 
   /* ---------- 母／子分頁清單（動態讀側欄） ---------- */
   const SKIP = ['admin', 'delivery'];   // 管理區、交付清單不是給一般會員評的
@@ -118,7 +129,7 @@
       '<label class="svlbl" for="svWant">其他想法（選填）</label><input id="svWant" class="svin" type="text" maxlength="200" placeholder="想要的功能，一行就好" value="' + esc(st.want_text) + '">';
   }
   function successHtml() {
-    return '<div class="svok"><div class="svokic" aria-hidden="true">✓</div><h2 id="svTitle">謝謝你的回饋</h2><p class="svokp" id="svOkMsg">已獲得 7 天 Plus，到 <b>' + esc(st.done.until || '') + '</b></p>' +
+    return '<div class="svok"><div class="svokic" aria-hidden="true">✓</div><h2 id="svTitle">謝謝你的回饋</h2><p class="svokp" id="svOkMsg">' + (st.done.demo ? '預覽測試：已獲得 7 天 Plus（示範）' : '已獲得 7 天 Plus，到 <b>' + esc(st.done.until || '') + '</b>') + '</p>' +
       '<button type="button" class="svbtn pri" id="svOk">好</button></div>';
   }
 
@@ -161,27 +172,32 @@
     else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
   }
   function later() { snooze(); close(); }
-  function close() { if (ov) { ov.remove(); ov = null; } shown = false; document.documentElement.classList.remove('svopen'); if (lastFocus && lastFocus.focus) { try { lastFocus.focus(); } catch (e) { /* 略 */ } } }
+  function close() { demoForce = false; if (ov) { ov.remove(); ov = null; } shown = false; document.documentElement.classList.remove('svopen'); if (lastFocus && lastFocus.focus) { try { lastFocus.focus(); } catch (e) { /* 略 */ } } }
 
   async function send() {
-    if (st.busy) return; st.busy = true; st.err = ''; paint(true);
+    if (st.busy) return;
+    if (testMode()) { doneFlag = true; st.done = { demo: true }; paint(); return; }   // 測試模式：假成功，不打後端
+    st.busy = true; st.err = ''; paint(true);
     const a = A(); const j = a ? await a.call('/v1/survey/submit', payload()) : null;
     st.busy = false;
     if (j && j.ok) {
-      doneFlag = true; st.done = { until: j.plus_until || j.until || '' }; if (trial) { trial.survey_done = true; trial.survey_eligible = false; if (j.plus_until) trial.pro_until = j.plus_until; }
+      if (!testMode()) doneFlag = true; st.done = { until: j.plus_until || j.until || '' }; if (trial) { trial.survey_done = true; trial.survey_eligible = false; if (j.plus_until) trial.pro_until = j.plus_until; }
       try { window.dispatchEvent(new CustomEvent('tw:survey-done', { detail: { until: j.plus_until || j.until } })); } catch (e) { /* 略 */ }
       paint();
     } else { st.err = (j && (j.error || j.msg || j.message)) ? String(j.error || j.msg || j.message) : '送出失敗，請稍後再試（網路連不到伺服器）'; paint(true); }
   }
 
   /* ---------- 條件 ---------- */
-  function open() {
-    if (shown) return; shown = true; st = fresh(); nav = navList(); lastFocus = document.activeElement;
+  function open(opts) {
+    if (shown) return;
+    demoForce = !!(opts && opts.demo); shown = true; st = fresh(); nav = navList(); lastFocus = document.activeElement;
     document.documentElement.classList.add('svopen'); build();
     const b = ov.querySelector('.svbox'); if (b) b.focus({ preventScroll: true });
   }
   async function check() {
-    const a = A(); if (doneFlag || !a || !a.on() || !a.user() || shown || checking || !isHome() || snoozed()) return;
+    if (shown || checking || !isHome()) return;
+    if (testMode()) { if (!doneFlag) open(); return; }   // 測試模式：不看登入、資格、稍後再說
+    const a = A(); if (doneFlag || !a || !a.on() || !a.user() || snoozed()) return;
     if (trial && !trial.survey_eligible) return;
     if (Date.now() - failAt < 300e3) return;   // 後端還沒部署（404）或連不到：靜默，五分鐘內不重打
     checking = true;
