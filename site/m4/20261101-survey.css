@@ -1,0 +1,13 @@
+/* 問卷手機版（≤640）：底部抽屜、390×844 一屏內可操作；觸控點 ≥40px。桌機不受影響。 */
+@media (max-width: 640px) {
+  html .svov { align-items: flex-end; padding: 0; }
+  html .svbox { width: 100%; max-height: 92dvh; border-radius: var(--r-md) var(--r-md) 0 0; }
+  html .svbody { padding: var(--sp-3); }
+  html .svbody h2 { font-size: var(--fs-h3); }
+  html .svhint { margin-bottom: var(--sp-3); }
+  html .svgrid { grid-template-columns: repeat(2, 1fr); }
+  html .svstar { width: 48px; height: 48px; }
+  html .svchip { min-height: 40px; }
+  html .svft { padding: var(--sp-2) var(--sp-3); }
+  html .svlink { min-width: 44px; }
+}
