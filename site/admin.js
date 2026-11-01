@@ -733,6 +733,11 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
 #v-admin .memtbl .wel small{display:inline!important;margin-left:4px;font-size:11px;color:var(--ink-3)}
 #v-admin .memtbl .wel.soon{color:var(--amber,#e0a030);font-weight:600}
 #v-admin .memtbl .wel.exp{color:var(--ink-3)}
+#v-admin .memtbl .tbadge{margin-left:6px;font-size:11px;padding:0 6px;border-radius:999px;border:1px solid var(--line-2);color:var(--ink-3);background:var(--panel-2);white-space:nowrap;flex:none}
+#v-admin .pmhide{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--ink-2);white-space:nowrap}
+#v-admin .pmtest{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:6px 0}
+#v-admin .pmtest input{flex:1 1 260px;min-width:0}
+#v-admin .msex{margin-left:8px;color:var(--amber,#e0a030)}
 #v-admin table.memtbl td.c-who b{display:inline-block;vertical-align:top;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;overflow-wrap:normal;max-width:calc(100% - 1.4em)}
 #v-admin table.memtbl td.c-who{min-width:10em}
 @media (max-width:1500px){#v-admin .memtbl .c-cr{display:none}}
@@ -2090,6 +2095,23 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
     });
     return all;
   }
+  /* ★ 2026-11-02 測試帳（Andy：統計要排除他自己的測試帳號）：標記只存在站主這個瀏覽器的 localStorage（存 email 小寫，**絕不進 repo**）。
+     後端目前沒有通用的管理設定儲存（adminSettings 只有 public_online），所以先這樣；之後 Worker 加端點再搬。
+     第一次（localStorage 還沒有這個鍵）預設把「登入中的站主本人」標成測試帳；其他帳號用名單上方「依 email 標記」小工具。 */
+  const TEST_KEY = 'tw.adm.testAcct';
+  function testSet() {
+    if (PS.testSet) return PS.testSet;
+    let arr = null;
+    try { const raw = localStorage.getItem(TEST_KEY); if (raw !== null) arr = JSON.parse(raw); } catch (e) { arr = null; }
+    if (!Array.isArray(arr)) {
+      const me = ((PS.A && PS.A.user && PS.A.user()) || {}).email;
+      arr = me ? [String(me).toLowerCase()] : [];
+      if (me) { try { localStorage.setItem(TEST_KEY, JSON.stringify(arr)); } catch (e) { /* 私密視窗：本次有效 */ } }
+    }
+    return (PS.testSet = new Set(arr));
+  }
+  function testSave() { try { localStorage.setItem(TEST_KEY, JSON.stringify([...testSet()])); } catch (e) { /* 私密視窗 */ } PS.mst = {}; }
+  const isTest = (r) => testSet().has(String(r.email || '').toLowerCase());
   /* 名單的每一列 = people() ＋ /v1/admin/members 的使用數據（新 Worker 才有；舊的就只有造訪次數）*/
   function members() {
     const st = new Map(((PS.mem && PS.mem.members) || []).map((m) => [m.email, m]));
@@ -2097,7 +2119,7 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
       const m = st.get(r.email) || {};
       return Object.assign(r, { paid: r.tier === 'paid' && r.st !== 'exp', planName: (planOf(r.plan) || {}).name || r.plan,
         onlineMs: m.onlineMs || 0, online30: m.online30 || 0, visits30: m.visits30 != null ? m.visits30 : r.visits || 0, days30: m.days30 || 0,
-        views30: m.views30 || 0, topFeat: m.topFeat || [], topStock: m.topStock || [], hasStats: !!st.size }, welOf(r, m));
+        views30: m.views30 || 0, topFeat: m.topFeat || [], topStock: m.topStock || [], hasStats: !!st.size, test: isTest(r) }, welOf(r, m));
     });
   }
   /* 2026-11-01 會員名單「體驗到期」（Andy：「有新註冊的會員標註他註冊當天可以用這體驗的時間截止日期」）：
@@ -2864,7 +2886,9 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
     ['online', '累計在線', 'c-on num'], ['visits', '近 30 天造訪', 'c-vis num'], ['views', '觀看次數', 'c-vw num'], ['feat', '最常用的功能 Top3', 'c-feat'],
     ['stock', '最常看的股票 Top3', 'c-stk'], ['st', '狀態', 'c-st']];
   /* 會員權限 → 會員名單：註冊會員＝所有註冊會員（付費的也在、金色標示）；付費＝這個範本的人 */
-  function listRows() {
+  function listRows() { const a = listRows0(); return PS.hideTest ? a.filter((r) => !r.test) : a; }
+  const statRows = () => listRows0().filter((r) => !r.test);   // 統計區一律排除測試帳（不管有沒有勾「隱藏測試帳」）
+  function listRows0() {
     const all = members();
     if (PS.mode !== 'plan') return all;
     if (PS.tier === 'free') return all;      // 2026-10-05 會員管理併進來：註冊會員的名單＝所有人員（含付費、尚未登入過的）
@@ -2890,7 +2914,7 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
     const body = rows.map((r) => {
       const open = PS.exp.has(r.email);
       return `<tr data-email="${esc(r.email)}" class="${PS.rec && r.email === PS.rec.email ? 'on' : ''}${r.paid ? ' paid' : ''}" aria-expanded="${open}">`
-        + `<td class="c-who"><span class="who1"><span class="car" aria-hidden="true">${open ? '▾' : '▸'}</span><b title="${esc(r.email)}">${esc(r.email)}</b>${r.name ? `<small title="${esc(r.name)}">${esc(r.name)}</small>` : ''}${badge(r)}</span></td>`
+        + `<td class="c-who"><span class="who1"><span class="car" aria-hidden="true">${open ? '▾' : '▸'}</span><b title="${esc(r.email)}">${esc(r.email)}</b>${r.name ? `<small title="${esc(r.name)}">${esc(r.name)}</small>` : ''}${badge(r)}${r.test ? '<span class="tbadge" title="這個帳號不列入上方統計（站主自己標記的測試帳）">測試・不計</span>' : ''}</span></td>`
         + `<td class="c-tpl"${r.set ? '' : ' title="尚未個別設定"'}>${r.tier === 'paid' ? esc(r.planName) : '註冊會員'}</td>`
         + `<td class="c-cr">${dday(r.created)}</td><td class="c-exp">${dday(r.expires)}</td><td class="c-wel">${welCell(r)}</td><td class="c-seen" title="${r.seen ? dstr(r.seen) : ''}">${seenTxt(r.seen)}</td>`
         + `<td class="c-on num">${dur(r.onlineMs)}</td><td class="c-vis num">${nf(r.visits30)}</td><td class="c-vw num">${nf(r.views30)}</td>`
@@ -3029,10 +3053,18 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
   }
   /* 名單上方的統計：狀態、人數由「同一份名單 rows」算（跟下面的表一定一致）；活躍、造訪、在線、瀏覽、Top 8、每日活躍由伺服器依期間彙總 */
   function statsHtml(rows, k, r, bin) {
-    const per = perOf(), s = (PS.mst || {})[k] || { loading: true };
+    const per = perOf();
+    let s = (PS.mst || {})[k] || { loading: true };
     const wait = s.loading ? '載入中…' : s.err ? s.err : '', pt = perTxt(per, r);
     const ph = (msg) => `<div class="msph${s.err ? ' bad' : ''}" role="status">${esc(msg)}${s.err ? ' <button type="button" class="msretry">重新讀取</button>' : ''}</div>`;
     const val = (f) => (wait ? (s.err ? '—' : '…') : f());
+    /* 測試帳排除：總人數、狀態圓環、免費付費占比由名單算（rows 已不含測試帳，精確）。
+       活躍／造訪／頁面瀏覽／在線＝伺服器依期間彙總；/v1/admin/members 只給每人「近 30 天」值，所以期間是近 30 天時用它精確扣掉，其他期間（以及每天圖、最常用功能、最常看股票）伺服器沒有排除參數，標註「尚含測試帳」。 */
+    const ex = listRows0().filter((x) => x.test), exact = per.period === '30' && ex.every((x) => x.hasStats);
+    if (!wait && ex.length && exact) {
+      s = Object.assign({}, s, { active: Math.max(0, (s.active || 0) - ex.filter((x) => x.days30 > 0).length), visits: Math.max(0, (s.visits || 0) - sum(ex.map((x) => x.visits30))),
+        pv: Math.max(0, (s.pv || 0) - sum(ex.map((x) => x.views30))), ms: Math.max(0, (s.ms || 0) - sum(ex.map((x) => x.online30))) });
+    }
     const kp = kpi(nf(rows.length), '總人數', 'msTotal', `目前全部會員（含還沒登入過的）；不隨期間變動${wait ? '' : `。${pt}內新加入 ${nf(s.joined)} 人`}`)
       + kpi(val(() => nf(s.active)), `活躍人數`, 'msActive', `${pt}內有開站、在線或使用功能的不同人數`)
       + kpi(val(() => nf(s.visits)), '造訪次數', 'msVisits', `${pt}內開啟網站的次數（登入狀態）`)
@@ -3063,16 +3095,16 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
     cards.push(card('msFeatC', '最常用哪些功能？', `${pt}・前 8 名`, wait ? ph(wait) : ((s.feats || []).length ? bars(s.feats, compName, s.featTotal || sum(s.feats.map((x) => x[1])), { id: 'msFeat' }) : none), cls),
       card('msStockC', '最常看哪些股票？', `${pt}・前 8 名`, wait ? ph(wait) : ((s.stocks || []).length ? bars(s.stocks, stockNm, s.stockTotal || sum(s.stocks.map((x) => x[1])), { id: 'msStock' }) : none), cls));
     const keep = s.keepDays || 90, note = !wait && r.from < dayAdd(todayTpe(), -(keep - 1)) ? `個人使用紀錄只保留近 ${keep} 天：期間內更早的活動不在活躍人數、功能、股票的統計裡。` : (!wait && s.since && s.since > r.from ? `使用紀錄從 ${s.since} 起；更早的日子沒有資料。` : '');
-    return `<div class="secttl trhead"><h2>會員使用概況</h2><small>${esc(PS.tier === 'free' ? '註冊會員（含付費）' : (planOf(PS.planSel) || {}).name || '')}・${esc(pt)}</small><span class="sp"></span>${periodCtlHtml(per, 'msPer')}</div>
+    return `<div class="secttl trhead"><h2>會員使用概況</h2><small>${esc(PS.tier === 'free' ? '註冊會員（含付費）' : (planOf(PS.planSel) || {}).name || '')}・${esc(pt)}</small>${ex.length ? `<small class="msex" id="msEx" title="${exact ? '總人數、狀態、占比、活躍、造訪、瀏覽、在線都已排除' : '總人數、狀態、占比已排除；活躍、造訪、瀏覽、在線、每天圖、功能與股票排行由伺服器彙總（期間不是近 30 天時伺服器沒有排除參數），仍含測試帳'}">已排除 ${ex.length} 個測試帳${exact ? '' : '（部分圖表尚含）'}</small>` : ''}<span class="sp"></span>${periodCtlHtml(per, 'msPer')}</div>
       <div class="mkpis">${kp}</div>${note ? `<p class="msnote" id="msNote">${esc(note)}</p>` : ''}<div class="admgrid msgrid" id="msCharts">${cards.join('')}</div>`;
   }
   /* 統計區的唯一畫法：每次都先確認快取在不在（不在＝去讀），再畫；內容沒變（同一期間、同一份名單、同一個讀取狀態）就不重畫，免得搜尋打字時圖一直閃 */
   function paintStats() {
     if (!PS.v || PS.mode !== 'plan' || PS.tier === 'guest') return;
     const el = PS.v.querySelector('#ptStats'); if (!el) return;
-    const per = perOf(), rows = listRows(), r = perRange(per), bin = perBin(r), k = `${mKey()}|${r.from}|${r.to}|${bin}`;
+    const per = perOf(), rows = statRows(), r = perRange(per), bin = perBin(r), k = `${mKey()}|${r.from}|${r.to}|${bin}`;
     loadMStats(k, r, bin);
-    const e = PS.mst[k], sig = [k, e.loading ? 'L' : e.err ? 'E' : 'D', rows.length, rows.map((x) => stOf(x) + (x.paid ? 1 : 0) + x.plan).join(',')].join('|');
+    const e = PS.mst[k], sig = [k, e.loading ? 'L' : e.err ? 'E' : 'D', rows.length, listRows0().length - rows.length, rows.map((x) => stOf(x) + (x.paid ? 1 : 0) + x.plan).join(',')].join('|');
     if (el.dataset.sig === sig) return;
     el.dataset.sig = sig;
     const af = document.activeElement && el.contains(document.activeElement) ? document.activeElement.id : '';
@@ -3086,7 +3118,8 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
   function detailHtml(r) {
     const tune = PS.mode === 'member' ? '' : `<div class="pmbar"><button type="button" class="pri" data-tune="${esc(r.email)}">逐人微調…</button></div>`;
     const body = detailBody(r);
-    return body.replace(/<\/div>$/, tune + '</div>');
+    const tst = `<div class="pmbar"><button type="button" data-test="${esc(r.email)}">${r.test ? '恢復計入統計' : '不列入統計'}</button><small class="muted">${r.test ? '目前標為測試帳，上方統計已排除' : '標成測試帳：上方人數、活躍、狀態圖都不算他'}</small></div>`;
+    return body.replace(/<\/div>$/, tune + tst + '</div>');
   }
   function detailBody(r) {
     const d = PS.det[r.email];
@@ -3127,13 +3160,24 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
         box.dataset.shell = shellKey;
         box.innerHTML = `<div class="ptinner" id="ptMail"><div class="mstats" id="ptStats"></div>
           <div class="pmbar pmfbar"><input type="search" id="pmSearch" placeholder="搜尋 email、名字、層級或範本" aria-label="搜尋會員" value="${esc(PS.q)}">
-            <select id="pmStatF" aria-label="依狀態篩選"><option value="">全部狀態</option><option value="ok">有效</option><option value="exp">過期</option><option value="new">未登入過</option></select><span class="pmcnt" id="pmCnt"></span>
+            <select id="pmStatF" aria-label="依狀態篩選"><option value="">全部狀態</option><option value="ok">有效</option><option value="exp">過期</option><option value="new">未登入過</option></select><label class="pmhide"><input type="checkbox" id="pmHideTest"> 隱藏測試帳</label><span class="pmcnt" id="pmCnt"></span>
             ${PS.tier === 'paid' ? '<span class="sp"></span><button type="button" class="pri pmadd" id="pmAddBtn">＋ 加入會員</button>' : ''}</div>
           ${PS.tier === 'paid' ? '<div class="pmaddf" id="pmAddF" hidden><input type="email" id="pmAddMail" placeholder="輸入 email，指定到這個方案" aria-label="要加入的 email"><button type="button" class="pri" id="pmAddGo">加入</button><button type="button" id="pmAddX">取消</button></div>' : ''}
+          <div class="pmbar pmtest" id="pmTestBar"><input type="text" id="pmTestMail" placeholder="依 email 標記測試帳（整個 email 或開頭幾個字）" aria-label="依 email 標記測試帳" autocomplete="off"><button type="button" id="pmTestGo">標記為測試帳</button><span class="muted" id="pmTestSt" role="status"></span></div>
           <div id="ptTableBox"></div></div>`;
         const vv = PS.v; vv.querySelector('#pmStatF').value = PS.stf;
         vv.querySelector('#pmSearch').oninput = (e) => { PS.q = e.target.value; paintList(); };
         vv.querySelector('#pmStatF').onchange = (e) => { PS.stf = e.target.value; paintList(); };
+        const ht = vv.querySelector('#pmHideTest'); if (ht) { ht.checked = !!PS.hideTest; ht.onchange = () => { PS.hideTest = ht.checked; paintList(); }; }
+        const tg = vv.querySelector('#pmTestGo');
+        if (tg) tg.onclick = () => {
+          const q = vv.querySelector('#pmTestMail').value.trim().toLowerCase(), st = vv.querySelector('#pmTestSt');
+          if (q.length < 3) { st.textContent = '請輸入至少 3 個字'; return; }
+          const hit = listRows0().filter((r) => (q.includes('@') ? r.email.toLowerCase() === q : r.email.toLowerCase().startsWith(q)));
+          if (!hit.length) { st.textContent = '名單裡找不到符合的 email'; return; }
+          hit.forEach((r) => testSet().add(r.email.toLowerCase())); testSave(); vv.querySelector('#pmTestMail').value = '';
+          st.textContent = `已標記 ${hit.length} 位為測試帳（不列入統計）`; paintList();
+        };
         const ab = vv.querySelector('#pmAddBtn'); if (ab) ab.onclick = () => openAdd();
         const ag = vv.querySelector('#pmAddGo'); if (ag) ag.onclick = () => addMember();
         const am = vv.querySelector('#pmAddMail'); if (am) am.onkeydown = (e) => { if (e.key === 'Enter') addMember(); if (e.key === 'Escape') openAdd(false); };
@@ -3275,6 +3319,7 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
     box.onclick = (e) => {
       const th = e.target.closest('th[data-sort]');
       if (th) { if (PS.sort === th.dataset.sort) PS.dir = -PS.dir; else { PS.sort = th.dataset.sort; PS.dir = th.dataset.sort === 'email' ? 1 : -1; } paintList(); return; }
+      const tt = e.target.closest('button[data-test]'); if (tt) { const em = tt.dataset.test.toLowerCase(), S = testSet(); if (S.has(em)) S.delete(em); else S.add(em); testSave(); paintList(); return; }
       const tu = e.target.closest('button[data-tune]'); if (tu) { enterMember(tu.dataset.tune); return; }
       if (e.target.closest('tr.pmdet')) return;
       const tr = e.target.closest('tr[data-email]'); if (!tr) return;
