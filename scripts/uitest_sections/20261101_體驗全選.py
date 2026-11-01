@@ -74,9 +74,9 @@ def t_grantsel_1101(b, base):
         keys = ad.evaluate("() => [...document.querySelectorAll('#agrFeats input[data-fk]')].map(i => i.dataset.fk)")
         for k in ("mkt.ma", "flow.rot", "stock.k_day"):
             ok(f"{T}：①功能清單有 {k}", k in keys, len(keys))
-        ok(f"{T}：①清單仍不列法遵禁止項", not any(k in keys for k in ("mkt.cand", "explore.list", "stock.ai", "stock.mtf", "live.tick", "stock.k_min")), keys[:5])
+        ok(f"{T}：①清單不列盤中即時、分 K，但四週期同看／今日關注／選股完整名單／AI 分析可勾", not any(k in keys for k in ("live.tick", "stock.k_min")) and all(k in keys for k in ("mkt.cand", "explore.list", "stock.ai", "stock.mtf")), keys[:5])
         ban_txt = ad.inner_text("#agrFeats + .ban")
-        ok(f"{T}：①禁止清單灰字有「分 K」", "分 K" in ban_txt, ban_txt)
+        ok(f"{T}：①禁止清單灰字＝盤中即時、分 K", "盤中即時" in ban_txt and "分 K" in ban_txt and "AI" not in ban_txt, ban_txt)
 
         # ---------- ② 全選／全不選
         CNT = "() => document.querySelectorAll('#agrFeats input[data-fk]:checked').length"

@@ -733,6 +733,7 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
 #v-admin .memtbl .wel small{display:inline!important;margin-left:4px;font-size:11px;color:var(--ink-3)}
 #v-admin .memtbl .wel.soon{color:var(--amber,#e0a030);font-weight:600}
 #v-admin .memtbl .wel.exp{color:var(--ink-3)}
+#v-admin table.memtbl th.c-inv,#v-admin table.memtbl td.c-inv,#v-admin table.memtbl th.c-invd,#v-admin table.memtbl td.c-invd{width:1%;white-space:nowrap!important}
 #v-admin .memtbl .tbadge{margin-left:6px;font-size:11px;padding:0 6px;border-radius:999px;border:1px solid var(--line-2);color:var(--ink-3);background:var(--panel-2);white-space:nowrap;flex:none}
 #v-admin .pmhide{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--ink-2);white-space:nowrap}
 #v-admin .pmtest{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:6px 0}
@@ -1869,7 +1870,8 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
     v.querySelector('#pmCancel').onclick = () => { PS.draft = null; paintTarget(); paintCats(); setStat('已取消，回到上次儲存的設定'); };
     await loadFeatures();
     if (!FT()) { v.querySelector('#pmCats').innerHTML = '<div class="card"><p class="err">讀不到功能清單</p></div>'; return; }
-    const [pl, li, mm, gd] = await Promise.all([A.call('/v1/admin/plans/get', {}), A.call('/v1/admin/perm/list', {}), A.call('/v1/admin/members', {}), A.call('/v1/admin/grants/defs/list', {})]);
+    const [pl, li, mm, gd, iv] = await Promise.all([A.call('/v1/admin/plans/get', {}), A.call('/v1/admin/perm/list', {}), A.call('/v1/admin/members', {}), A.call('/v1/admin/grants/defs/list', {}), A.call('/v1/admin/invite/stats', {}).catch(() => null)]);
+    setInv(iv);
     if (tabOf() !== tab) return;
     if (!pl || pl._s !== 200) {
       v.querySelector('#pmCats').innerHTML = `<div class="card" style="grid-column:1/-1"><p class="err">讀不到方案範本（${esc(errText(pl))}）</p></div>`;
@@ -2119,13 +2121,25 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
       const m = st.get(r.email) || {};
       return Object.assign(r, { paid: r.tier === 'paid' && r.st !== 'exp', planName: (planOf(r.plan) || {}).name || r.plan,
         onlineMs: m.onlineMs || 0, online30: m.online30 || 0, visits30: m.visits30 != null ? m.visits30 : r.visits || 0, days30: m.days30 || 0,
-        views30: m.views30 || 0, topFeat: m.topFeat || [], topStock: m.topStock || [], hasStats: !!st.size, test: isTest(r) }, welOf(r, m));
+        views30: m.views30 || 0, topFeat: m.topFeat || [], topStock: m.topStock || [], hasStats: !!st.size, test: isTest(r) }, invOf(r, m), welOf(r, m));
     });
   }
   /* 2026-11-01 會員名單「體驗到期」（Andy：「有新註冊的會員標註他註冊當天可以用這體驗的時間截止日期」）：
      截止 ＝ 加入時間 ＋ 那個「新會員體驗」活動的有效天數（活動有限定註冊期間 t0～t1 的，要註冊落在期間內才適用）。
      之後若因問卷／邀請延長，伺服器的 /v1/admin/members 若帶 welcomeEnd（毫秒）就用它（標「延長」）；沒帶就照基本算法並標「基本」。
      只在管理區顯示，不碰一般使用者畫面。 */
+  /* 邀請欄（2026-11-02）：後端會提供 invited_count、invite_reward_days（在 /v1/admin/members 每人一筆，或 /v1/admin/invite/stats）；沒有就顯示「—」，不報錯 */
+  function invOf(r, m) {
+    const x = (PS.inv && PS.inv.get(String(r.email).toLowerCase())) || {};
+    const n = m.invited_count != null ? m.invited_count : x.invited_count, d = m.invite_reward_days != null ? m.invite_reward_days : x.invite_reward_days;
+    return { invN: Number.isFinite(+n) && n != null ? +n : null, invD: Number.isFinite(+d) && d != null ? +d : null };
+  }
+  function setInv(j) {
+    PS.inv = new Map();
+    if (!j || j._s !== 200) return;
+    const a = Array.isArray(j.members) ? j.members : Array.isArray(j.users) ? j.users : Array.isArray(j.rows) ? j.rows : [];
+    a.forEach((x) => { if (x && x.email) PS.inv.set(String(x.email).toLowerCase(), x); });
+  }
   function welOf(r, m) {
     const out = { welEnd: 0, welKind: '' };
     if (typeof m.welcomeEnd === 'number' && m.welcomeEnd > 0) { out.welEnd = m.welcomeEnd; out.welKind = 'ext'; return out; }
@@ -2870,7 +2884,8 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
   }
   async function refreshList() {
     PS.mst = {};      // 名單變了 → 上方統計重抓（狀態、人數由名單算，Top 8／活躍由伺服器算）
-    const [li, mm, gd] = await Promise.all([PS.A.call('/v1/admin/perm/list', {}), PS.A.call('/v1/admin/members', {}), PS.A.call('/v1/admin/grants/defs/list', {})]);
+    const [li, mm, gd, iv] = await Promise.all([PS.A.call('/v1/admin/perm/list', {}), PS.A.call('/v1/admin/members', {}), PS.A.call('/v1/admin/grants/defs/list', {}), PS.A.call('/v1/admin/invite/stats', {}).catch(() => null)]);
+    setInv(iv);
     if (gd && gd._s === 200 && Array.isArray(gd.defs)) PS.gd = gd.defs;
     if (li && li._s === 200) PS.list = li;
     if (mm && mm._s === 200 && Array.isArray(mm.members)) PS.mem = mm;
@@ -2882,7 +2897,7 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
      欄位與理由（Andy B 要的＋我補的，回報有列）：
        會員（email、名字、付費金色徽章＋方案名）｜方案｜加入日｜到期日｜最後上線｜累計在線｜近 30 天造訪｜觀看次數（近 30 天頁面瀏覽）｜
        最常用的功能 Top3｜最常看的股票 Top3｜狀態。展開：近 14 天每日活躍、各分頁瀏覽、功能次數、常看股票、活躍天數、平均每次停留。 */
-  const COLS = [['email', '會員', 'c-who'], ['plan', '方案', 'c-tpl'], ['created', '加入日', 'c-cr'], ['expires', '到期日', 'c-exp'], ['wel', '體驗到期', 'c-wel'], ['seen', '最後上線', 'c-seen'],
+  const COLS = [['email', '會員', 'c-who'], ['plan', '方案', 'c-tpl'], ['created', '加入日', 'c-cr'], ['expires', '到期日', 'c-exp'], ['wel', '體驗到期', 'c-wel'], ['inv', '邀請人數', 'c-inv num'], ['invd', '邀請延長天數', 'c-invd num'], ['seen', '最後上線', 'c-seen'],
     ['online', '累計在線', 'c-on num'], ['visits', '近 30 天造訪', 'c-vis num'], ['views', '觀看次數', 'c-vw num'], ['feat', '最常用的功能 Top3', 'c-feat'],
     ['stock', '最常看的股票 Top3', 'c-stk'], ['st', '狀態', 'c-st']];
   /* 會員權限 → 會員名單：註冊會員＝所有註冊會員（付費的也在、金色標示）；付費＝這個範本的人 */
@@ -2899,6 +2914,7 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
     switch (key) {
       case 'plan': return (r.paid ? '0' : '1') + r.planName;
       case 'wel': return r.welEnd || 0;
+      case 'inv': return r.invN == null ? -1 : r.invN; case 'invd': return r.invD == null ? -1 : r.invD;
       case 'online': return r.onlineMs; case 'visits': return r.visits30; case 'views': return r.views30;
       case 'feat': return (r.topFeat[0] || [, 0])[1]; case 'stock': return (r.topStock[0] || [, 0])[1];
       case 'st': return ['ok', 'soon', 'new', 'exp'].indexOf(stOf(r));
@@ -2916,7 +2932,7 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
       return `<tr data-email="${esc(r.email)}" class="${PS.rec && r.email === PS.rec.email ? 'on' : ''}${r.paid ? ' paid' : ''}" aria-expanded="${open}">`
         + `<td class="c-who"><span class="who1"><span class="car" aria-hidden="true">${open ? '▾' : '▸'}</span><b title="${esc(r.email)}">${esc(r.email)}</b>${r.name ? `<small title="${esc(r.name)}">${esc(r.name)}</small>` : ''}${badge(r)}${r.test ? '<span class="tbadge" title="這個帳號不列入上方統計（站主自己標記的測試帳）">測試・不計</span>' : ''}</span></td>`
         + `<td class="c-tpl"${r.set ? '' : ' title="尚未個別設定"'}>${r.tier === 'paid' ? esc(r.planName) : '註冊會員'}</td>`
-        + `<td class="c-cr">${dday(r.created)}</td><td class="c-exp">${dday(r.expires)}</td><td class="c-wel">${welCell(r)}</td><td class="c-seen" title="${r.seen ? dstr(r.seen) : ''}">${seenTxt(r.seen)}</td>`
+        + `<td class="c-cr">${dday(r.created)}</td><td class="c-exp">${dday(r.expires)}</td><td class="c-wel">${welCell(r)}</td><td class="c-inv num">${r.invN == null ? '<span class="mdim">—</span>' : nf(r.invN)}</td><td class="c-invd num">${r.invD == null ? '<span class="mdim">—</span>' : nf(r.invD)}</td><td class="c-seen" title="${r.seen ? dstr(r.seen) : ''}">${seenTxt(r.seen)}</td>`
         + `<td class="c-on num">${dur(r.onlineMs)}</td><td class="c-vis num">${nf(r.visits30)}</td><td class="c-vw num">${nf(r.views30)}</td>`
         + `<td class="c-feat">${top(r.topFeat, compName)}</td><td class="c-stk">${top(r.topStock, (k) => k)}</td>`
         + `<td class="c-st"><span class="stt ${stOf(r)}">${ST_NAME[stOf(r)]}</span></td></tr>`
