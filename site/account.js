@@ -535,11 +535,11 @@ html:not(.m4) .m4deldlg .msg{min-height:1.4em;font-size:13px;color:#ff6b7a;margi
       } else if (currentTime >= 900 && currentTime <= 1330) {
         _b = 300; _t = 400;
       } else if (currentTime > 1330 && currentTime <= 1500) {
-        _b = 200; _t = 300;
+        _b = 150; _t = 300;
       } else if (currentTime > 1500 && currentTime <= 2359) {
-        _b = 100; _t = 200;
+        _b = 50; _t = 200;
       } else {
-        _b = 30; _t = 80;
+        _b = 10; _t = 50;
       }
     } else {
       if (currentTime >= 900 && currentTime <= 2200) {
