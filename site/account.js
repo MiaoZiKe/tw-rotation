@@ -505,15 +505,39 @@ html:not(.m4) .m4deldlg .msg{min-height:1.4em;font-size:13px;color:#ff6b7a;margi
     if (S.user) window.TwMoreRow('mmAcct', '●', '帳號：' + esc(S.user.name || S.user.email || '') + n, () => openMenu(document.getElementById('moreBtn') || document.body));
     else window.TwMoreRow('mmAcct', '⇥', '用 Google 帳號登入' + n, () => openDlg('notice'));
   }
-  function paintOnline() {
+function paintOnline() {
     paintMoreRow();
     const on = document.getElementById('acctOnline'); if (!on) return;
     if (!S.on || S.online == null) { on.hidden = true; return; }
-    /* 10-17 Andy 先要「改顯示今天造訪人數」，看過之後：「上線改回原本的樣式」→ 頂欄照舊顯示「N 人在線」；今日造訪數（S.today）只放在滑過提示裡 */
-    on.hidden = false; on.innerHTML = `<i></i>${S.online}<span> 人在線</span>`;
+    
+    // --- 隨機跳動邏輯開始 ---
+    const MIN_USERS = 200; // 最小人數
+    const MAX_USERS = 500; // 最大人數
+    const JUMP_INTERVAL_SEC = 60; // 每 10 秒跳動一次
+
+    // 使用時間區間作為亂數種子，確保所有訪客在同一時段算出相同的數字
+    const timeSeed = Math.floor(Date.now() / (JUMP_INTERVAL_SEC * 1000));
+    const pseudoRandom = Math.abs(Math.sin(timeSeed * 12345.6789));
+    const displayCount = Math.floor(pseudoRandom * (MAX_USERS - MIN_USERS + 1)) + MIN_USERS;
+    // --- 隨機跳動邏輯結束 ---
+
+    on.hidden = false; 
+    // 這裡將原本的 ${S.online} 替換為我們計算出的 ${displayCount}
+    on.innerHTML = `<i></i>${displayCount}<span> 人在線</span>`;
+    
+    // 提示文字依然保留真實的人數 (S.online) 與相關資訊，但你可以依需求決定是否也要隱藏真實數字
     on.title = `目前約 ${S.online} 人正在看這個網站（最近 6 分鐘內有動作）` + (S.today != null ? `；今天約 ${S.today} 台裝置打開過` : '') + (S.user && S.user.admin ? '・點一下看是誰' : '');
     on.style.cursor = S.user && S.user.admin ? 'pointer' : 'default';
   }
+
+  // --- 新增：確保畫面定時更新的計時器 ---
+  // 因為原系統是 5 分鐘才打一次 API 更新，為了讓 10 秒的跳動生效，必須主動重繪
+  setInterval(() => {
+    if (S.on && S.online != null) {
+      paintOnline();
+    }
+  }, 1000);
+   
   /* 10-17 Andy：「點擊後我可以看到目前有誰上線，需要顯示 Mail list」→ 站主點「N 人在線」直接在下方展開線上名單（名字、email、所在頁、多久前），
      可一鍵複製全部 email；完整流量頁仍在 #admin/traffic。只有站主看得到（/v1/admin/online 本來就只認站主）。 */
   const RT = { overview: '總覽', articles: '精選文章', article: '精選文章', calendar: '財經日曆', flow: '資金流向', rotation: '資金輪動', sankey: '資金分流樹', heat: '熱力圖',
