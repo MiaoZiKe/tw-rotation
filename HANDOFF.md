@@ -1,5 +1,12 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
+## 2026-11-01 IG 晚間主題文章沒準時發 → 補發＋每個晚間時段都有派發者（最後更新 11-01 台北）
+- 事故：wk2（publish_at 20:50）到 21:08 仍 approved；21:09 手動派 ig_post 補發成功 https://www.instagram.com/p/DfMzr6fHD6w/ （兩張實景圖輪播）。
+- 根因：IG 晚間時段（20:00／20:50／21:40／21:50）只有 social_news 19:00／19:40 叫醒 ig_post（wait_max=20），只罩得到 20:00；GitHub schedule 不可靠。
+- 修：`workers/gh-cron/src/schedule.js` 加每天 ig_post 到點前派發與到點後補派、交易日 20:58／21:08 social_news、22:12 ig_news_watch；`.github/workflows/ig_post.yml` 加四條到點前 cron（自動 wait_max=20）。推 main 後 deploy-gh-cron.yml 自動部署 Worker。
+- 這批只驗：`node --test workers/gh-cron/test/schedule.test.mjs`、`pytest tests/test_gh_cron.py tests/test_ig_post.py tests/test_social_news.py`。
+- 下一次驗證：11-02（週一）20:00／20:50／21:40 三篇 IG 主題文章。
+
 ## 2026-11-01 提前找下一波研究 第二版（依 finance-quant 複核；最後更新 11-01 台北）
 - 研究 `docs/research/20261101_next_wave_signals.md`（取代第一版）；複核 `20261101_next_wave_review.md`；程式 `pipeline/compute/next_wave.py`（預設 2012 起、每天排名、NW 滯後＝max(持有,因子記憶)、保留樣本 2012～2019）；輸出 `site/data/flowcheck/next_wave.json`（build_payload 結尾 `run_next_wave()` 子行程產出，可用記憶體 < 11GB 略過；完整跑峰值約 9.3GB、約 4 分鐘）。
 - 結論：INST10 族群層降為「實驗訊號」（樣本外過 Holm、保留樣本扣成本為負、2026 轉弱、空頭無效、個股層不成立），網站只放這一個（`show_on_site`）；個股 REVHIGH、外資單獨標待查不上網站。報酬用官方參考價已含現金股利。

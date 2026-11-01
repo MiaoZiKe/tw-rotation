@@ -10,10 +10,13 @@ const TPE_OFFSET_MS = 8 * 3600 * 1000;
 // days：
 //   trading  台股交易日（週一到週五，且不在休市日清單）
 //   tueSat   台北週二到週六（對應美股週一到週五收盤後的清晨），不看休市日——新聞照常更新
+//   all      每天（含週末、休市日）——IG 晚間主題文章用
 //   offday   休市日（週末、國定假日；臨時休市 Worker 不知道，由 social_news.py 自己用主貼文狀態判斷）——週末主題文章用
 const D = 'daily.yml';
 const S = 'social-live.yml';
 const N = 'social_news.yml';
+const I = 'ig_post.yml';
+const W = 'ig_news_watch.yml';
 export const SCHEDULE = [
   // 盤前（先預留：social-live.yml 要有 kind=premarket 才能開，見 wrangler.toml 的 ENABLE_PREMARKET）
   { at: '08:20', days: 'trading', workflow: S, inputs: { kind: 'premarket', dry_run: 'false' }, gate: 'premarket' },
@@ -32,6 +35,17 @@ export const SCHEDULE = [
   // 週末與休市日的主題文章（2026-10-29 Andy：週末也要每天 1～2 篇、全自動）。social_news.py 自己判斷是不是休市日、
   // 排哪一段（wk1 10:30 發、wk2 19:30 發）；已排過的段落自動跳過，所以每段派兩次當備援。交易日這幾分鐘 Worker 不派。
   ...['10:15', '10:45', '19:00', '19:40'].map((at) => ({ at, days: 'offday', workflow: N, inputs: { slot: 'auto', dry_run: 'false' } })),
+  // 2026-11-01 事故：IG 主題文章改晚上發（social_news.py 的 IG_EVENING：20:00／20:50／21:40／備案 21:50，週末 20:00／20:50），
+  // 但 queue 白天就寫好，晚上沒有任何派發者準時叫醒 ig_post.yml（GitHub 的 schedule 實測一天只觸發一兩輪），wk2 20:50 那篇到 21:08 還沒發。
+  // → 每個晚間時段「到點前 18 分鐘」派一次 wait_max=20（job 內等到點再發），到點後 4 分鐘再派一次 wait_max=0 補發。每天都派
+  //   （沒有到點的檔案時 ig_post.py 約 1 分鐘空跑收工，無害；已 posted 的不會重發）。GitHub 端 ig_post.yml 有同時段的 cron 當備援。
+  ...['19:42', '20:32', '21:22', '21:32'].map((at) => ({ at, days: 'all', workflow: I, inputs: { wait_max: '20' } })),
+  ...['20:04', '20:54', '21:44', '21:54', '22:04'].map((at) => ({ at, days: 'all', workflow: I, inputs: { wait_max: '0' } })),
+  // 交易日的「備案」主題文章（盤後沒排任何一篇 → 20:50 後補 1 篇，IG 21:50 發）：social_news.py 要在 20:50 後跑過才會產生。
+  // 原本只靠 GitHub cron 21:05／22:35，不可靠 → 由這裡 20:58、21:08 各派一次（已排過的段落自動跳過）。
+  ...['20:58', '21:08'].map((at) => ({ at, days: 'trading', workflow: N, inputs: { slot: 'auto', dry_run: 'false' } })),
+  // 22:10 晚間監工（ig_news_watch.yml 原本只靠 GitHub cron）
+  { at: '22:12', days: 'all', workflow: W, inputs: {} },
   // 清晨：新聞、國際盤、總經。GitHub 原本的 05:07 排程（週一到週五）同樣不可靠，所以也由這裡準時派一次。
   { at: '05:07', days: 'tueSat', workflow: D, inputs: { phase: 'news' } },
 ];
@@ -66,6 +80,7 @@ export function dueJobs(scheduledTimeMs, opts = {}) {
     if (j.days === 'trading') return trading;
     if (j.days === 'tueSat') return dow >= 2 && dow <= 6;
     if (j.days === 'offday') return !trading;
+    if (j.days === 'all') return true;
     return false;
   }).map((j) => ({ workflow: j.workflow, inputs: { ...j.inputs }, label: `${date} ${hhmm} ${j.workflow} ${JSON.stringify(j.inputs)}` }));
 }

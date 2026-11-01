@@ -27,6 +27,12 @@ on:
     - cron: "43 13 * * *"     # 台北 21:43
     - cron: "53 13 * * *"     # 台北 21:53
     - cron: "3 14 * * *"      # 台北 22:03
+    # 2026-11-01 事故（wk2 20:50 那篇到 21:08 沒發）：到點前 19 分鐘的備援，這四條在下面「發文」那步自動帶 wait_max=20（job 內等到點再發）。
+    # 主力是 gh-cron Worker（workers/gh-cron/src/schedule.js 19:42／20:32／21:22／21:32）；GitHub 的 schedule 常延遲或整輪不觸發，只當保險。
+    - cron: "41 11 * * *"     # 台北 19:41（→20:00）
+    - cron: "31 12 * * *"     # 台北 20:31（→20:50）
+    - cron: "21 13 * * *"     # 台北 21:21（→21:40）
+    - cron: "31 13 * * *"     # 台北 21:31（→21:50）
   workflow_dispatch:
     inputs:
       file:
@@ -75,7 +81,8 @@ jobs:
           IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN_AUTO || secrets.IG_ACCESS_TOKEN }}
           IN_FILE: ${{ inputs.file }}
           IN_NOW: ${{ inputs.now }}
-          IN_WAIT: ${{ inputs.wait_max }}
+          # 手動／Worker 派發用 inputs.wait_max；上面那四條「到點前」cron 沒有 inputs，固定等 20 分鐘；其他 cron 不等
+          IN_WAIT: ${{ inputs.wait_max || (contains(fromJSON('["41 11 * * *","31 12 * * *","21 13 * * *","31 13 * * *"]'), github.event.schedule) && '20') || '0' }}
         run: |
           args=""
           if [ -n "$IN_FILE" ]; then args="$args --file $IN_FILE"; fi

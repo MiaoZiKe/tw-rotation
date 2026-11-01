@@ -89,3 +89,24 @@ test('週末與休市日派主題文章（social_news.yml），交易日不派',
   }
   for (const t of ['10:15', '10:45', '19:00', '19:40']) assert.deepEqual(names(tpe(`2026-10-21 ${t}`)), [], `交易日 ${t}`);
 });
+
+test('2026-11-01 事故：IG 晚間主題文章每個時段到點前都有派 ig_post（wait_max=20），到點後再補一次，每天都派', () => {
+  for (const day of ['2026-11-01', '2026-11-02', '2026-10-31']) {   // 週日、週一（交易日）、週六
+    for (const t of ['19:42', '20:32', '21:22', '21:32']) assert.deepEqual(names(tpe(`${day} ${t}`)), ['ig_post.yml:{"wait_max":"20"}'], `${day} ${t}`);
+    for (const t of ['20:04', '20:54', '21:44', '21:54', '22:04']) assert.deepEqual(names(tpe(`${day} ${t}`)), ['ig_post.yml:{"wait_max":"0"}'], `${day} ${t}`);
+    assert.deepEqual(names(tpe(`${day} 22:12`)), ['ig_news_watch.yml:{}']);
+  }
+  // 每個 IG 發文時間（20:00、20:50、21:40、21:50）前 20 分鐘內都有一筆 wait_max=20 的派發
+  const pre = SCHEDULE.filter((j) => j.workflow === 'ig_post.yml' && j.inputs.wait_max === '20').map((j) => j.at);
+  const m = (s) => +s.slice(0, 2) * 60 + +s.slice(3);
+  for (const slot of ['20:00', '20:50', '21:40', '21:50']) {
+    assert.ok(pre.some((a) => m(slot) - m(a) > 0 && m(slot) - m(a) <= 20), slot);
+  }
+});
+
+test('交易日 20:58、21:08 派 social_news（備案段），休市日不派', () => {
+  for (const t of ['20:58', '21:08']) {
+    assert.deepEqual(names(tpe(`2026-11-02 ${t}`)), ['social_news.yml:{"slot":"auto","dry_run":"false"}']);
+    assert.deepEqual(names(tpe(`2026-11-01 ${t}`)), []);
+  }
+});
