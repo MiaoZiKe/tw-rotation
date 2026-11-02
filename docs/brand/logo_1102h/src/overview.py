@@ -7,7 +7,7 @@ from playwright.sync_api import sync_playwright
 css = f"""
 @font-face{{font-family:T;font-weight:900;src:url('file://{FD}/noto-sans-tc-chinese-traditional-900-normal.woff2')}}
 @font-face{{font-family:T;font-weight:700;src:url('file://{FD}/noto-sans-tc-chinese-traditional-700-normal.woff2')}}
-body{{margin:0;background:#fff;font-family:T,sans-serif;color:#1F2A44;width:2200px}}
+body{{margin:0;background:#fff;font-family:T,sans-serif;color:#1F2A44;width:2420px}}
 h1{{font-size:30px;margin:0;padding:26px 34px 4px;font-weight:900}}
 .sub{{padding:0 34px 14px;font-size:15px;color:#555}}
 .hd,.row{{display:flex;align-items:center;padding:0 34px}}
@@ -43,7 +43,7 @@ html = f"""<html><head><meta charset="utf-8"><style>{css}</style></head><body>
 open(os.path.join(os.path.dirname(__file__), '_ov.html'), 'w').write(html)
 with sync_playwright() as pw:
     b = pw.chromium.launch(executable_path=glob.glob("/opt/pw-browsers/chromium_headless_shell-*/*/chrome-headless-shell")[0], args=['--allow-file-access-from-files'])
-    pg = b.new_page(viewport={'width': 2200, 'height': 900})
+    pg = b.new_page(viewport={'width': 2420, 'height': 900})
     pg.goto('file://' + os.path.join(os.path.dirname(__file__), '_ov.html')); pg.wait_for_timeout(600)
     pg.screenshot(path=os.path.join(OUT, 'overview.png'), full_page=True)
     # 大圖：每種一格，橫式 A淺/B深 大張
