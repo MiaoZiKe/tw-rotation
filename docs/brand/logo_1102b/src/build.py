@@ -46,7 +46,7 @@ def threads(c,dark=False):
  <div style="margin-top:12px;border:1px solid {line};border-radius:9px;text-align:center;padding:7px 0;font-size:14px;font-weight:700;font-family:NSTC,Inter">追蹤</div></div>'''
 
 def card(c):
-    return f'''<section style="width:456px;background:#fff;border-radius:18px;padding:22px 22px 24px;box-shadow:0 1px 3px rgba(0,0,0,.08)">
+    return f'''<section style="box-sizing:border-box;width:456px;background:#fff;border-radius:18px;padding:22px 22px 24px;box-shadow:0 1px 3px rgba(0,0,0,.08)">
  <div style="display:flex;align-items:baseline;gap:10px"><b style="font-size:22px;font-family:NSTC,Inter">{c['id'][0].upper()}　{c['name']}</b></div>
  <p style="font-size:13.5px;line-height:1.6;color:#555b6b;margin:6px 0 16px;min-height:66px">{c['idea']}</p>
  <div style="display:flex;gap:14px;align-items:flex-end">{tile(c,'brand',150)}{tile(c,'cream',150)}
@@ -70,7 +70,7 @@ def overview():
         for it in items: cells+=f'<div style="width:60px;height:60px;border-radius:14px;background:{next(g)}"></div>' if it is None else f'<div style="text-align:center">{tile(c,"brand",60)}<div class="cjk" style="font-size:11px;margin-top:4px;color:#fff">哩股哩股</div></div>'
         return f'<div style="display:flex;gap:16px;align-items:flex-start;padding:16px;background:linear-gradient(135deg,#7aa6d6,#c7b3e3);border-radius:16px">{cells}</div>'
     homes=''.join(home(c) for c in CANDS)
-    return f'''<html><head><meta charset="utf-8"><style>{FONTCSS}</style></head><body style="background:#E8EBF1;padding:32px 36px;width:2060px;box-sizing:border-box">
+    return f'''<html><head><meta charset="utf-8"><style>{FONTCSS}</style></head><body style="background:#E8EBF1;padding:32px 36px;width:2000px;box-sizing:border-box">
  <h1 style="margin:0;font-size:30px;font-family:NSTC,Inter">哩股哩股 LOGO 第二輪：四個方向（2026-11-02 美編）</h1>
  <p style="margin:6px 0 22px;font-size:14px;color:#555b6b">不用吉祥物。符號為座標格＋一致圓角的向量（非 AI 描圖，原因見 ai_review.md）；字用真字型：Noto Sans TC（SIL OFL，可商用）＋Inter Display。A／B／C 走明亮親切，D 是穩重企業款。</p>
  <div style="display:flex;gap:22px;align-items:flex-start">{''.join(card(c) for c in CANDS)}</div>
@@ -95,5 +95,5 @@ with sync_playwright() as p:
                 page_png(f'<style>body{{margin:0;background:transparent}}svg{{display:block}}</style>{circle(c,w,s)}',f"{OUT}/{c['id']}_ig_{w}_{s}.png",s,s,omit=True)
         pg.set_viewport_size({'width':1000,'height':400}); pg.set_content(f'<html><head><meta charset="utf-8"><style>{FONTCSS}</style></head><body>{horizontal(c,120)}</body></html>'); pg.wait_for_timeout(300)
         pg.locator('body > div').screenshot(path=f"{OUT}/{c['id']}_horizontal.png")
-    page_png(overview(),f"{OUT}/overview.png",2060,1000)
+    page_png(overview(),f"{OUT}/overview.png",2000,1000)
     b.close()
