@@ -2344,7 +2344,7 @@
   // 2026-10-05：'etf'＝ETF 專區（site/etfpage.js）、'explore'＝選股策略
   // 2026-10-05（晚）：'earnings'＝財報日曆（site/earnings.js）
   // 2026-10-14：'articles'＝精選文章（site/articles.js）；單篇 #article/<id> 也落在這個 view（見 route() 的 view 對照）
-  const VIEWS = ['overview', 'flow', 'market', 'industry', 'heatmap', 'season', 'etf', 'tasks', 'delivery', 'watch', 'explore', 'earnings', 'articles', 'tc', 'lab'];
+  const VIEWS = ['overview', 'flow', 'market', 'industry', 'heatmap', 'season', 'etf', 'tasks', 'delivery', 'watch', 'explore', 'earnings', 'articles', 'tc', 'lab', 'flowcheck'];
   // 2026-10-03 電腦版資金流向的子分頁（側欄縮排子項；第一個是 #flow 的預設）。layout4.js 的側欄子項用同一份名單
   const FLOW_SUBS = ['rotation', 'sankey', 'inst'];
   const rendered = {};
@@ -3196,7 +3196,7 @@
     /* ★ 2026-10-08 權限矩陣（site/quota.js TwQuota.routeOk）：產業鏈頁、題材剖析每日上限用完 → 網址換回上一層（產業地圖／題材熱力圖）並跳卡片。
        放在最前面：被擋的那一頁一格都不畫，不會先閃一下內容再被拿掉。location.replace 會再觸發一次 hashchange → route() 畫上一層。*/
     if (window.TwQuota && !window.TwQuota.routeOk(location.hash)) return;
-    const h = location.hash.replace('#', '') || 'overview';
+    const h = (location.hash.replace('#', '') || 'overview').replace(/^flowcheck\?.*$/, 'flowcheck');   // #flowcheck?g=&d=&t=&v= 的狀態由 flowcheck.js 自己讀網址
     const h0 = location.hash;   // 等 lazy 腳本時使用者可能又換頁了，回來比對用
     /* ★ 2026-09-19：一定要逐段 decodeURIComponent。
        法定產業別的族群 id 是中文（ind_半導體業），瀏覽器把 hash 存成百分比編碼，
@@ -3402,6 +3402,7 @@
     }
     // 2026-10-14 精選文章：列表換分類／換篩選、點進單篇都由 articles.js 自己決定要重畫哪一塊（篩選狀態留在它的 S 裡），所以每次都交給它
     if (view === 'lab') { if (window.TwLab) await window.TwLab.show(head, rest); mia(); return; }   // 2026-10-28 交易練習室（管理者限定）：子頁狀態留在 lab.js 的 ST
+    if (view === 'flowcheck') { if (window.TwFlowcheck) await window.TwFlowcheck.show(); else console.warn('flowcheck.js 沒載入'); mia(); setTimeout(resizeVisibleCharts, 30); return; }   // 2026-10-30 流向驗證：狀態在網址，每次進來都交給它
     if (view === 'tc') { if (window.TwTc) await window.TwTc.show(head, rest); mia(); return; }   // 2026-10-25 科技透明圈：每次進來都交給 tc.js（篩選狀態留在它的 S）
     if (view === 'articles') { if (window.TwArticles) await window.TwArticles.show(head, rest); mia(); return; }
     if (view === 'industry') { if (!(await needLazy('ind', '#v-industry'))) return; if (location.hash !== h0) return; await window.Industry.route(head, rest); mia(); setTimeout(mia, 500); return; }
@@ -4299,7 +4300,12 @@
          ★ 2026-10-06（Andy：「這類資訊一律拿掉」，DECISIONS #329）：標題不再寫資料日期、「盤後」、「⚡ 即時 HH:MM:SS」——
          資料新鮮度看全站資料狀態徽章與頁首時間。留下的只有「只涵蓋 N 檔（非全市場）」（口徑，不是時段）與抓取中／抓不到（狀態）。
          不改成圖示或滑過提示，直接拿掉（Andy 10-06 再強調「一律拿掉」）。*/
-      const eodCnt = `${heat.advancers || 0} 漲／${heat.decliners || 0} 跌・漲停 ${eodLU.length}、跌停 ${eodLD.length}`;
+      /* ★ 2026-10-30（Andy：「總覽的資訊為何和熱力圖對不上……檢查其他資訊是否一樣」普查）：漲跌家數跟總覽摘要卡／漲跌家數分佈卡同一個口徑——
+         stocks.json 逐檔、udBinOf 級距（全部上市＋上櫃、含 ETF）。以前這裡直接印 market_heat 的證交所口徑（530 漲／1620 跌），
+         同一天總覽是 570 漲／1659 跌，差的就是 ETF 那幾十檔，兩邊對不上。逐檔資料缺席（舊 payload）才退回 market_heat。 */
+      let udUp = 0, udDn = 0;
+      st.forEach(r => { const bn = r && udBinOf(r); if (bn == null || bn === false) return; if (bn > 5) udUp++; else if (bn < 5) udDn++; });
+      const eodCnt = `${udUp + udDn ? udUp : (heat.advancers || 0)} 漲／${udUp + udDn ? udDn : (heat.decliners || 0)} 跌・漲停 ${eodLU.length}、跌停 ${eodLD.length}`;
       title.innerHTML = live
         ? `漲跌家數 <small id="mktTitleLive">只涵蓋 ${lr.length} 檔（<b>非全市場</b>）：${cnt.adv} 漲／${cnt.dec} 跌`
           + `・漲停 ${cnt.lu}、跌停 ${cnt.ld}</small>`
@@ -5650,6 +5656,7 @@
     const lab = T.pinned() ? '回放 ' + T.curT : '即時';
     document.querySelectorAll('[data-hlcard="ind"] .livetg-b, #themeMapCard .livetg-b, #sankeyLiveBtn').forEach(b => { if (b.textContent !== lab) b.textContent = lab; });
     { const rc = document.getElementById('flowRotCard'); if (rc) rc.classList.toggle('tlrows', !!document.getElementById('rotTl')); }
+    if (!RLV.on && (TV.gid || document.getElementById('todaySignals'))) { TV.gid = null; tvRender(true); }   // 關掉即時：驗證面板一起收
     if (any) T.load(false);
     else if (T.pinned()) T.reset();                   // 沒有任何一張圖開著即時：游標回到最新
   }
@@ -5675,6 +5682,294 @@
     rlvStamp();
   }
   if (window.Tape) { Tape.on('cur', tlApply); Tape.on('data', tlSync); setInterval(tlSync, 1000); }
+
+  /* ================================================================ 今日走勢驗證 v2（TV，Andy 2026-10-30）
+     Andy 10-30 18:10：「我可以點擊對應群組，他會顯示所有對應該群組股票走勢圖，並且也需要標註資金流到哪裡，我這樣才能確定他是否有用，
+     以及我說的第二步：如何看到一點訊號進行判斷埋伏」。
+     口徑（與研究腳本 scratchpad/verify/v.py、docs/research/20261030_flow_vs_price.md 同一套）：
+       · 族群走勢 ＝ 成分股相對昨收漲跌的等權平均 − 全部（tape 名單）個股相對昨收漲跌的等權平均（相對大盤，實線）
+       · 資金占比 ＝ 族群成分股累計成交值（價 × 累計張數 × 1000）÷ 全部個股累計成交值（虛線）；成分股同時掛多個族群時各算各的
+       · 檔數不足 95% 的殘缺格整格剔除；成分股少於 3 檔的族群不算
+     面板（點輪盤的族群點或排行長條開，時間軸拖到哪只算到哪一格）：
+       ① 主圖：走勢＋資金占比雙軸，標開／高／低／現與型態，一句白話結論
+       ② 全部成分股：價格走勢線＋每 5 分鐘新增成交值的柱（資金進出），標占族群成交值的比例，依占比排序
+       ③ 資金去向：本族群占比 ±pp；同時段全市場流入最多／流出最多各 5 個族群；同產業鏈的相關族群各自增減
+     「盤中訊號（實驗）」另開一張卡（不必先點族群）：三條規則掃全部族群，列觸發時間與數字，並檢驗「觸發後到目前相對大盤的表現」。
+     ⚠ 研究結論是 3 年 60 分 K 測不出領先性，所以畫面上大字標「實驗訊號，回測尚未證實有效」。手機（≤640）面板用底部抽屜。 */
+  const TV = { gid: null, at: 0, last: null };
+  const TV_RANGE = 0.8;                     // 波動（最高−最低）小於這個百分點才叫盤整
+  /* 型態判斷（看「相對振幅」與「高低點先後」）。s＝相對大盤的漲跌百分比序列（時間順序）。R＝最高−最低。
+       · R < 0.8pp → 盤整（只有振幅本身很小才算）
+       · 先高後低（最高點比最低點早），而且現價跌破開盤、或從最高點回落 ≥ R/2：
+           開盤就在高點附近（離最高 < 0.15R）→ 開高走低（開盤 > +0.3%）／一路走低；否則 → 衝高回落
+       · 先低後高（對稱）：開盤就在低點附近 → 開低走高（開盤 < −0.3%）／一路走高；否則 → 探底回升
+       · 其餘（振幅大、但沒有明確方向）→ 寬幅震盪 */
+  function tvPattern(arr) {
+    const a = (arr || []).filter(v => v != null && isFinite(v));
+    if (a.length < 3) return null;
+    const n = a.length, r0 = a[0], cur = a[n - 1];
+    let hi = -1e9, lo = 1e9, hiI = 0, loI = 0;
+    a.forEach((v, i) => { if (v > hi) { hi = v; hiI = i; } if (v < lo) { lo = v; loI = i; } });
+    const R = hi - lo;
+    let name = '盤整';
+    if (R >= TV_RANGE) {
+      const dropFromHi = hi - cur, riseFromLo = cur - lo;
+      if (hiI < loI && (cur < r0 || dropFromHi >= 0.5 * R)) name = (hi - r0 < 0.15 * R) ? (r0 > 0.3 ? '開高走低' : '一路走低') : '衝高回落';
+      else if (loI < hiI && (cur > r0 || riseFromLo >= 0.5 * R)) name = (r0 - lo < 0.15 * R) ? (r0 < -0.3 ? '開低走高' : '一路走高') : '探底回升';
+      else if (cur - r0 >= 0.5 * R) name = '一路走高';
+      else if (r0 - cur >= 0.5 * R) name = '一路走低';
+      else name = '寬幅震盪';
+    }
+    return { name, open: r0, hi, lo, cur, hiI, loI, n, range: R };
+  }
+  const tvF = (v) => (v >= 0 ? '+' : '') + v.toFixed(2) + '%';
+  const tvP = (v) => (v >= 0 ? '+' : '') + v.toFixed(2);
+  /* ---- 模型：每格、每個族群的（成分股等權漲跌、累計成交值、上漲家數比例），一次算好、同一份 tape 只算一次 */
+  let TVM = null;
+  function tvModel() {
+    const T = window.Tape, det = D.groups_detail;
+    if (!T || !T.count() || !det) return null;
+    const slots = T.slots(), key = (T.date || '') + '|' + slots.length + '|' + slots[slots.length - 1].t;
+    if (TVM && TVM.key === key) return TVM;
+    const manual = Object.keys(det).filter(k => !isAutoBucket(k) && (det[k].members || []).length >= 3);
+    const qs = slots.map((s, i) => T.q(i)), cnt = qs.map(q => Object.keys(q).length), mx = Math.max(1, ...cnt);
+    const idx = []; cnt.forEach((c, i) => { if (c >= 0.95 * mx) idx.push(i); });         // 殘缺格整格剔除
+    const times = idx.map(i => slots[i].t), tot = [], mkt = [], G = {};
+    manual.forEach(k => { G[k] = { gid: k, name: det[k].group_name || L.gname[k] || k, chain: (rotGroupMeta[k] || {}).chain || L.gchain[k] || '', mem: (det[k].members || []).map(m => String(m.code)), chg: [], val: [], br: [] }; });
+    /* ★ 2026-10-31 口徑對齊資料檔（docs/research/20261030_flowcheck_data.md 第七節）：
+       ① 族群、大盤漲跌＝前一日成交值加權（權重再 ×1/所屬人工族群數；查不到前一日成交值的檔剔除，全部查不到才退回等權）——以前是等權平均，
+          和網站 group_daily／流向驗證頁的口徑不同，同一天兩邊數字對不起來；
+       ② 資金占比的「成交值」＝逐格新增張數 × 該格成交價 的累加（同 tape_5m 的 cum_value），不是「現價 × 累計張數」——後者會讓早盤的量被後來的價格重新估價。 */
+    const nGrp = {}; manual.forEach(k => G[k].mem.forEach(c => { nGrp[c] = (nGrp[c] || 0) + 1; }));
+    const cumNow = {}, lastVol = {}, cumAt = {};
+    slots.forEach((s, si) => {
+      const q = qs[si];
+      Object.keys(q).forEach(code => { const x = q[code]; if (!x || x.price == null || x.volume == null) return;
+        const inc = Math.max(0, x.volume - (lastVol[code] || 0)); lastVol[code] = x.volume; cumNow[code] = (cumNow[code] || 0) + inc * x.price * 1000; });
+      if (idx.includes(si)) cumAt[si] = Object.assign({}, cumNow);
+    });
+    const wOf = {};
+    idx.forEach(si => {
+      const q = qs[si], v = cumAt[si] || {}, c = {}, w = {}; let t = 0;
+      Object.keys(q).forEach(code => { const x = q[code]; if (!x || x.price == null || x.volume == null) return; t += v[code] || 0; if (x.chgPct != null) { c[code] = x.chgPct; const pv = prevTvOf({ code }, x); w[code] = pv > 0 ? pv / (nGrp[code] || 1) : 0; } });
+      const wsum = Object.keys(w).reduce((a, k2) => a + w[k2], 0), useW = wsum > 0;
+      const wt = (code) => (useW ? w[code] : 1);
+      let ms = 0, mw = 0; Object.keys(c).forEach(code => { const x2 = wt(code); if (x2 > 0) { ms += c[code] * x2; mw += x2; } });
+      tot.push(t); mkt.push(mw ? ms / mw : 0);
+      manual.forEach(k => { const g = G[k]; let sv = 0, sc = 0, sw = 0, n = 0, up = 0;
+        g.mem.forEach(code => { if (v[code] != null) sv += v[code]; if (c[code] != null) { const x2 = wt(code); if (x2 > 0) { sc += c[code] * x2; sw += x2; n++; if (c[code] > 0) up++; } } });
+        g.val.push(sv); g.chg.push(sw ? sc / sw : null); g.br.push(n ? up / n * 100 : null); });
+    });
+    manual.forEach(k => { const g = G[k];
+      g.rel = g.chg.map((c, i) => (c == null ? null : c - mkt[i]));
+      g.share = g.val.map((v, i) => (tot[i] > 0 ? v / tot[i] * 100 : null)); });
+    TVM = { key, idx, times, tot, mkt, G };
+    return TVM;
+  }
+  const tvUpto = (M) => { const ci = Tape.cur; if (ci == null) return M.idx.length - 1; let up = -1; M.idx.forEach((si, ti) => { if (si <= ci) up = ti; }); return up; };
+  function tvCalc(gid) {
+    const M = tvModel(), T = window.Tape; if (!M || !M.G[gid]) return null;
+    const g = M.G[gid], up = tvUpto(M); if (up < 0) return null;
+    const times = M.times.slice(0, up + 1), rel = g.rel.slice(0, up + 1), share = g.share.slice(0, up + 1), chg = g.chg.slice(0, up + 1);
+    if (rel.some(v => v == null)) return null;
+    const pat = times.length >= 3 ? tvPattern(rel) : null;
+    if (pat) { pat.hiT = times[pat.hiI]; pat.loT = times[pat.loI]; }
+    const qs = M.idx.slice(0, up + 1).map(si => T.q(si)), mem = (D.groups_detail[gid].members || []);
+    const stocks = g.mem.map((code, mi) => {
+      const p = [], c = [], v = [];
+      qs.forEach(q => { const x = q[code]; p.push(x && x.price != null ? x.price : null); c.push(x && x.chgPct != null ? x.chgPct : null); v.push(x && x.price != null && x.volume != null ? x.price * x.volume * 1000 : null); });
+      const ps = p.filter(n => n != null); if (ps.length < 3) return null;
+      const newv = v.map((val, i) => (val == null ? 0 : Math.max(0, val - (i > 0 && v[i - 1] != null ? v[i - 1] : 0))));
+      const cs = c.filter(n => n != null), vl = v.filter(n => n != null);
+      return { code, name: (mem[mi] || {}).name || L.cname[code] || code, v: vl.length ? vl[vl.length - 1] : 0, p, c, newv, open: ps[0], cur: ps[ps.length - 1], hi: Math.max(...ps), lo: Math.min(...ps),
+        chg: cs.length ? cs[cs.length - 1] : null, pat: tvPattern(c) };
+    }).filter(Boolean);
+    const gv = stocks.reduce((a, x) => a + x.v, 0) || 1;
+    stocks.forEach(x => { x.share = x.v / gv * 100; });
+    stocks.sort((a, b) => b.share - a.share);
+    // 資金去向：全部族群同一段（開盤 → 現在）的占比增減
+    const all = Object.keys(M.G).map(k => { const h = M.G[k]; return { gid: k, name: h.name, chain: h.chain, d: h.share[up] - h.share[0], rel: h.rel[up], share: h.share[up] }; }).filter(x => isFinite(x.d));
+    const others = all.filter(x => x.gid !== gid);
+    const flow = { s0: share[0], s1: share[share.length - 1], d: share[share.length - 1] - share[0],
+      up5: others.slice().sort((a, b) => b.d - a.d).slice(0, 5), dn5: others.slice().sort((a, b) => a.d - b.d).slice(0, 5),
+      related: g.chain ? others.filter(x => x.chain === g.chain).sort((a, b) => Math.abs(b.d) - Math.abs(a.d)).slice(0, 8) : [] };
+    return { gid, name: g.name, times, ret: chg, rel, share, pat, stocks, flow, chain: g.chain };
+  }
+  /* ---- 盤中訊號（實驗）：三條規則掃全部族群。第 t 格（t ≥ 6，也就是開盤 30 分鐘後）才開始判斷，每條每個族群只記第一次觸發。 */
+  const TV_SIG = { r1: '資金先行', r2: '擴散', r3: '開低回升' };
+  function tvSignals() {
+    const M = tvModel(); if (!M) return null;
+    const up = tvUpto(M); if (up < 6) return { up, list: [], times: M.times };
+    const list = [];
+    Object.keys(M.G).forEach(k => {
+      const g = M.G[k]; if (g.rel[0] == null) return;
+      const hit = {};
+      for (let t = 6; t <= up && !(hit.r1 && hit.r2 && hit.r3); t++) {
+        if (g.rel[t] == null || g.share[t] == null) continue;
+        if (!hit.r1) { const dv = g.val[t] - g.val[t - 6], dt = M.tot[t] - M.tot[t - 6], win = dt > 0 ? dv / dt * 100 : null, avg = g.share[t];
+          if (win != null && avg > 0 && win > 1.5 * avg && g.rel[t] <= 0) hit.r1 = { t, txt: `最近 30 分鐘新增資金占比 ${win.toFixed(2)}%，是開盤以來平均 ${avg.toFixed(2)}% 的 ${(win / avg).toFixed(1)} 倍；相對大盤 ${tvF(g.rel[t])}（價格還沒動）` }; }
+        if (!hit.r2 && g.br[t] != null && g.br[t - 6] != null && g.br[t] - g.br[t - 6] >= 20) hit.r2 = { t, txt: `上漲家數比例 30 分鐘內 ${g.br[t - 6].toFixed(0)}% → ${g.br[t].toFixed(0)}%（+${(g.br[t] - g.br[t - 6]).toFixed(0)} 個百分點）` };
+        if (!hit.r3 && g.rel[0] < -1 && (g.rel[t] - g.rel[0]) / -g.rel[0] > 0.5 && g.share[t] > g.share[0]) hit.r3 = { t, txt: `開盤相對大盤 ${tvF(g.rel[0])} → ${tvF(g.rel[t])}，已回升 ${((g.rel[t] - g.rel[0]) / -g.rel[0] * 100).toFixed(0)}%；資金占比 ${g.share[0].toFixed(2)}% → ${g.share[t].toFixed(2)}%` };
+      }
+      Object.keys(hit).forEach(r => { const h = hit[r], perf = g.rel[up] - g.rel[h.t];
+        list.push({ gid: k, name: g.name, rule: r, label: TV_SIG[r], t: h.t, time: M.times[h.t], txt: h.txt, perf, fresh: h.t === up, hit: h.t < up && perf > 0 }); });
+    });
+    list.sort((a, b) => b.t - a.t || (a.name < b.name ? -1 : 1));
+    const judged = list.filter(x => !x.fresh), win = judged.filter(x => x.hit).length;
+    return { up, list, times: M.times, judged: judged.length, win, now: M.times[up] };
+  }
+  function tvSentence(r) {
+    const p = r.pat; if (!p) return '今天的快照格數還不夠（至少 3 格）判斷型態。';
+    const base = `${r.name} 今天（相對大盤）開盤 ${tvF(p.open)}、最高 ${tvF(p.hi)}（${p.hiT}）、最低 ${tvF(p.lo)}（${p.loT}）、目前 ${tvF(p.cur)}`;
+    const DOWN = ['開高走低', '衝高回落', '一路走低'], UP = ['開低走高', '探底回升', '一路走高'];
+    const sc = r.stocks.filter(x => x.pat), dn = sc.filter(x => DOWN.includes(x.pat.name)).length, up = sc.filter(x => UP.includes(x.pat.name)).length;
+    const mine = sc.length ? `；${sc.length} 檔成分股裡 ${dn} 檔走低型、${up} 檔走高型` : '';
+    const rg = p.range.toFixed(2);
+    const say = { '開高走低': `<b>開高走低</b>：開盤就在高點附近，之後一路回落 ${(p.hi - p.cur).toFixed(2)} 個百分點，目前比開盤低 ${(p.open - p.cur).toFixed(2)}`,
+      '衝高回落': `<b>衝高回落</b>：開盤後先衝到 ${p.hiT} 的最高點（比開盤高 ${(p.hi - p.open).toFixed(2)}），之後回落 ${(p.hi - p.cur).toFixed(2)} 個百分點，振幅 ${rg} 個百分點，目前${p.cur < p.open ? `比開盤低 ${(p.open - p.cur).toFixed(2)}` : `只回到開盤附近`}`,
+      '開低走高': `<b>開低走高</b>：開盤就在低點附近，之後一路回升 ${(p.cur - p.lo).toFixed(2)} 個百分點，目前比開盤高 ${(p.cur - p.open).toFixed(2)}`,
+      '探底回升': `<b>探底回升</b>：開盤後先探到 ${p.loT} 的最低點（比開盤低 ${(p.open - p.lo).toFixed(2)}），之後回升 ${(p.cur - p.lo).toFixed(2)} 個百分點，振幅 ${rg} 個百分點`,
+      '一路走高': `<b>一路走高</b>：從開盤到現在累計 ${(p.cur - p.open).toFixed(2)} 個百分點，振幅 ${rg}`,
+      '一路走低': `<b>一路走低</b>：從開盤到現在累計 ${(p.open - p.cur).toFixed(2)} 個百分點，振幅 ${rg}`,
+      '寬幅震盪': `<b>寬幅震盪</b>：最高到最低相差 ${rg} 個百分點、來回沒有明確方向，目前離開盤 ${(p.cur - p.open >= 0 ? '+' : '') + (p.cur - p.open).toFixed(2)} 個百分點`,
+      '盤整': `<b>盤整</b>：今天波動很小，最高到最低只差 ${rg} 個百分點` }[p.name];
+    const f = r.flow, fl = `資金占比 ${f.s0.toFixed(2)}% → ${f.s1.toFixed(2)}%（${f.d >= 0 ? '流入' : '流出'} ${Math.abs(f.d).toFixed(2)} 個百分點）`;
+    return `${base}。${say}${mine}。${fl}。`;
+  }
+  /* 每檔小圖：上面是價格走勢（相對昨收 %，虛線＝0%），下面是每 5 分鐘新增成交值的柱（顏色＝那一格價格漲跌：紅漲綠跌） */
+  const tvSpark = (x) => {
+    const W = 156, H = 36, hl = 24, c = x.c, ok = c.filter(v => v != null);
+    if (ok.length < 2) return `<svg class="tvspark" viewBox="0 0 ${W} ${H}" aria-hidden="true"></svg>`;
+    const lo = Math.min(0, ...ok), hi = Math.max(0, ...ok), sp = (hi - lo) || 1, n = c.length;
+    const X = (i) => (i / (n - 1) * (W - 2) + 1), Y = (v) => (hl - 2 - (v - lo) / sp * (hl - 4));
+    const pts = c.map((v, i) => (v == null ? null : X(i).toFixed(1) + ',' + Y(v).toFixed(1))).filter(Boolean).join(' ');
+    const mxv = Math.max(1, ...x.newv), bw = Math.max(1.2, (W - 2) / n - 0.8);
+    const bars = x.newv.map((v, i) => { const h = Math.max(0.5, v / mxv * (H - hl - 2)), d = i > 0 && x.p[i] != null && x.p[i - 1] != null ? x.p[i] - x.p[i - 1] : 0;
+      return `<rect x="${(X(i) - bw / 2).toFixed(1)}" y="${(H - h).toFixed(1)}" width="${bw.toFixed(1)}" height="${h.toFixed(1)}" fill="${d > 0 ? CH.up : d < 0 ? CH.down : CH.ink3}" opacity=".75"/>`; }).join('');
+    const col = upDown(ok[ok.length - 1]);
+    return `<svg class="tvspark" viewBox="0 0 ${W} ${H}" aria-hidden="true"><line x1="0" x2="${W}" y1="${Y(0).toFixed(1)}" y2="${Y(0).toFixed(1)}" stroke="${CH.line}" stroke-dasharray="2 2"/>${bars}<polyline points="${pts}" fill="none" stroke="${col}" stroke-width="1.6" stroke-linejoin="round"/></svg>`;
+  };
+  function tvCss() {
+    if (document.getElementById('tvCss')) return;
+    const st = document.createElement('style'); st.id = 'tvCss';
+    st.textContent = '#todayVerify,#todaySignals{margin-top:var(--gap-card,12px)}#todayVerify .tvhead,#todaySignals .tvhead{display:flex;align-items:center;gap:8px;flex-wrap:wrap}'
+      + '#todayVerify .tvrel{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0}#todayVerify .tvrel button{min-height:28px}'
+      + '#todayVerify .tvgrid{display:grid;grid-template-columns:minmax(0,1fr) 280px;gap:16px;align-items:start}'
+      + '#todayVerify .tvconc{margin:4px 0 8px;line-height:1.7;color:var(--ink-2)}#todayVerify #tvChart{height:200px;min-height:200px}'
+      + '#todayVerify .tvlist{max-height:420px;overflow:auto;margin-top:8px;border-top:1px solid var(--line)}'
+      + '#todayVerify .tvlisthead,#todayVerify .tvrow{display:grid;grid-template-columns:minmax(104px,1.1fr) 92px 156px 62px;gap:8px;align-items:center;font-size:13px}'
+      + '#todayVerify .tvlisthead{position:sticky;top:0;background:var(--panel,#fff);z-index:1;font-size:12px;color:var(--ink-3);min-height:26px}'
+      + '#todayVerify .tvrow{min-height:42px;border-top:1px solid var(--line)}'
+      + '#todayVerify .tvnm{color:var(--ink);text-decoration:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#todayVerify .tvnm small{color:var(--ink-3);margin-left:4px}'
+      + '#todayVerify .tvsh{display:flex;align-items:center;gap:6px;font-family:var(--mono);font-size:12px}#todayVerify .tvsh i{display:block;height:6px;border-radius:3px;background:var(--cyan);opacity:.7;min-width:2px}'
+      + '#todayVerify .tvchg{font-family:var(--mono);font-size:13px;text-align:right}#todayVerify .tvspark{width:156px;height:36px}'
+      + '#todayVerify .tvflow h4{margin:0 0 6px;font-size:14px}#todayVerify .tvflow .tvfs{margin:0 0 8px;font-size:13px;line-height:1.6}'
+      + '#todayVerify .tvflow .tvfl{display:grid;gap:2px;margin-bottom:10px}#todayVerify .tvflow .tvfl small{color:var(--ink-3)}'
+      + '#todayVerify .tvflow button.tvfr{display:flex;justify-content:space-between;gap:8px;background:transparent;border:0;border-bottom:1px solid var(--line);padding:5px 2px;min-height:30px;cursor:pointer;color:var(--ink);font-size:13px;text-align:left}'
+      + '#todayVerify .tvflow button.tvfr b{font-family:var(--mono);font-weight:600}'
+      + '#todaySignals .tsbig{margin:8px 0 4px;padding:8px 12px;border-radius:8px;border:1px solid var(--amber,#E8A33D);color:var(--amber,#B87A1E);font-size:18px;font-weight:700}'
+      + '#todaySignals .tssum{margin:4px 0 8px;color:var(--ink-2);font-size:13px}#todaySignals .tslist{max-height:300px;overflow:auto}'
+      + '#todaySignals button.tsrow{display:grid;grid-template-columns:48px 128px 74px minmax(0,1fr) 108px;gap:8px;align-items:center;width:100%;min-height:40px;background:transparent;border:0;border-top:1px solid var(--line);padding:4px 2px;cursor:pointer;color:var(--ink);font-size:13px;text-align:left}'
+      + '#todaySignals .tsrow .tsnum{color:var(--ink-2);font-size:12px;line-height:1.4}#todaySignals .tsrow .tsres{font-family:var(--mono);font-size:12px;text-align:right}'
+      + '@media (max-width:900px){#todayVerify .tvgrid{grid-template-columns:minmax(0,1fr)}}'
+      + '@media (max-width:640px){#todayVerify{position:fixed;left:0;right:0;bottom:0;margin:0;z-index:70;max-height:72vh;overflow:auto;border-radius:14px 14px 0 0;box-shadow:0 -8px 24px rgba(0,0,0,.25)}'
+      + '#todayVerify .tvlisthead,#todayVerify .tvrow{grid-template-columns:minmax(80px,1fr) 62px 156px 54px}#todayVerify .tvlisthead span:nth-child(2),#todayVerify .tvsh i{display:none}'
+      + '#todayVerify .tvx,#todayVerify .tvmore{min-height:40px}#todayVerify .tvrel button{min-height:36px;font-size:12px}'
+      + '#todaySignals button.tsrow{grid-template-columns:44px minmax(0,1fr) 92px;grid-template-areas:"tm nm rs" "ru ru ru" "nu nu nu"}#todaySignals .tsrow .tstime{grid-area:tm}#todaySignals .tsrow .tsname{grid-area:nm}#todaySignals .tsrow .tsres{grid-area:rs}#todaySignals .tsrow .tsrule{grid-area:ru}#todaySignals .tsrow .tsnum{grid-area:nu}'
+      + '#todaySignals .tsbig{font-size:16px}}';
+    document.head.appendChild(st);
+  }
+  function tvEl() {
+    let el = document.getElementById('todayVerify');
+    if (el && el.isConnected) return el;
+    const host = $('#flowRotCard'); if (!host) return null;
+    tvCss();
+    el = document.createElement('div'); el.id = 'todayVerify'; el.className = 'card'; el.hidden = true;
+    host.insertAdjacentElement('afterend', el);
+    el.addEventListener('click', (e) => {
+      const b = e.target.closest('button'); if (!b) return;
+      if (b.classList.contains('tvx')) { TV.gid = null; tvRender(true); return; }
+      if (b.dataset.g) { tvOpen(b.dataset.g); try { rankSel = b.dataset.g; highlightClock(b.dataset.g, 'rotClock'); } catch (x) { /* 輪盤沒畫 */ } }
+    });
+    return el;
+  }
+  function tvSigEl() {
+    let el = document.getElementById('todaySignals');
+    if (el && el.isConnected) return el;
+    const host = document.getElementById('todayVerify') || tvEl(); if (!host) return null;
+    tvCss();
+    el = document.createElement('div'); el.id = 'todaySignals'; el.className = 'card'; el.hidden = true;
+    host.insertAdjacentElement('afterend', el);
+    el.addEventListener('click', (e) => { const b = e.target.closest('button[data-g]'); if (b) { tvOpen(b.dataset.g); try { rankSel = b.dataset.g; highlightClock(b.dataset.g, 'rotClock'); } catch (x) { /* 輪盤沒畫 */ } } });
+    return el;
+  }
+  function tvOpen(gid) { TV.gid = String(gid); tvRender(true); }
+  function tvPick(gid) { if (RLV.on && !RLV.err && window.Tape && Tape.count() > 0 && gid && !isAutoBucket(gid)) tvOpen(gid); }
+  function tvRenderSig() {
+    // 播放中（一格 84～420ms）不要每格都重建訊號列表（會拖慢輪盤補間）：最多一秒一次，停下來那一刻補畫
+    if (window.Tape && Tape.playing) { const n = Date.now(); if (n - (TV.sigAt || 0) < 1000) { clearTimeout(TV.tt); TV.tt = setTimeout(() => tvRender(true), 1100); return; } TV.sigAt = n; }
+    const live = !!(RLV.on && window.Tape && Tape.count() > 0 && D.groups_detail);
+    const el = document.getElementById('todaySignals') || (live ? tvSigEl() : null); if (!el) return;
+    if (!live) { if (!el.hidden) { el.hidden = true; el.innerHTML = ''; } return; }
+    const S = tvSignals(); if (!S) return;
+    el.hidden = false;
+    const rows = S.list.map(x => { const res = x.fresh ? '<span class="tsres" style="color:var(--ink-3)">剛觸發</span>' : `<span class="tsres" style="color:${x.hit ? CH.up : CH.down}">${x.hit ? '命中' : '沒中'} ${tvP(x.perf)}pp</span>`;
+      return `<button type="button" class="tsrow" data-g="${x.gid}" title="點開這個族群的走勢驗證"><span class="tstime">${x.time}</span><b class="tsname">${fmt.esc(x.name)}</b><em class="tsrule" style="font-style:normal;color:var(--cyan)">${x.label}</em><span class="tsnum">${fmt.esc(x.txt)}</span>${res}</button>`; }).join('');
+    el.innerHTML = `<div class="tvhead"><h3 style="margin:0">盤中訊號 <small>實驗</small> <button class="howbtn pop" data-how="tsig" data-ttl="盤中訊號（實驗）" type="button" aria-label="盤中訊號怎麼看">?</button></h3></div>`
+      + `<div class="tsbig">實驗訊號，回測尚未證實有效</div>`
+      + `<div class="tssum" id="tsSum">${S.up < 6 ? '開盤滿 30 分鐘後才開始判斷。' : `到 ${S.now} 為止，三條規則共觸發 ${S.list.length} 次；已能檢驗的 ${S.judged} 次裡，觸發後到 ${S.now} 相對大盤變強的有 ${S.win} 次（${S.judged ? Math.round(S.win / S.judged * 100) : 0}%）。`}</div>`
+      + `<div class="tslist" id="tsList">${rows || '<div class="muted" style="padding:8px 0">目前沒有族群觸發。</div>'}</div>`;
+    window.App && (window.App._ts = { n: S.list.length, judged: S.judged, win: S.win, up: S.up, rules: [...new Set(S.list.map(x => x.rule))] });
+  }
+  function tvRender(force) {
+    tvRenderSig();
+    const el = document.getElementById('todayVerify') || (TV.gid ? tvEl() : null); if (!el) return;
+    const show = !!(TV.gid && RLV.on && window.Tape && Tape.count() > 0);
+    if (!show) { if (!el.hidden) { el.hidden = true; el.innerHTML = ''; try { const c = window.echarts && echarts.getInstanceByDom(document.getElementById('tvChart')); if (c) c.dispose(); } catch (e) { /* 已拆掉 */ } } return; }
+    const now = Date.now(); if ((!force || (window.Tape && Tape.playing)) && now - TV.at < (window.Tape && Tape.playing ? 1000 : 1500)) { if (force) { clearTimeout(TV.tt); TV.tt = setTimeout(() => tvRender(true), 1100); } return; } TV.at = now;
+    if (!D.groups_detail) { load('groups_detail').then(() => tvRender(true)).catch(() => {}); return; }
+    const r = tvCalc(TV.gid); if (!r) return;
+    TV.last = TV.gid;
+    const det = D.groups_detail;
+    const tagColor = (n) => (n === '開高走低' || n === '衝高回落' || n === '一路走低') ? CH.down : (n === '開低走高' || n === '探底回升' || n === '一路走高') ? CH.up : CH.ink3;
+    const rel = r.chain ? Object.keys(det).filter(k => !isAutoBucket(k) && k !== TV.gid && ((rotGroupMeta[k] || {}).chain || L.gchain[k] || '') === r.chain).sort((a, b) => (L.gidx[a] || 0) - (L.gidx[b] || 0)).slice(0, 8) : [];
+    const f = r.flow, fr = (x) => `<button type="button" class="tvfr" data-g="${x.gid}"><span>${fmt.esc(x.name)}</span><b style="color:${upDown(x.d)}">${tvP(x.d)}pp</b></button>`;
+    el.hidden = false;
+    { const mob = window.matchMedia && matchMedia('(max-width:640px)').matches; if (mob) { el.style.setProperty('background', 'var(--panel)', 'important'); el.style.setProperty('backdrop-filter', 'none', 'important'); } else { el.style.removeProperty('background'); el.style.removeProperty('backdrop-filter'); } }
+    el.dataset.gid = TV.gid; el.dataset.pat = r.pat ? r.pat.name : '';
+    el.innerHTML = `<div class="tvhead"><h3 style="margin:0">${fmt.esc(r.name)} <small>今日走勢驗證</small> <button class="howbtn pop" data-how="tverify" data-ttl="今日走勢驗證" type="button" aria-label="今日走勢驗證怎麼看">?</button></h3>`
+      + (r.pat ? `<span class="tvtag" style="color:${tagColor(r.pat.name)};font-weight:700" id="tvPat">${r.pat.name}</span>` : '')
+      + `<span style="flex:1"></span><button type="button" class="btn small tvx" aria-label="關閉">✕</button></div>`
+      + (rel.length ? `<div class="tvrel"><small class="muted">相關族群</small>${rel.map(k => `<button type="button" class="btn small" data-g="${k}">${fmt.esc((det[k].group_name) || L.gname[k] || k)}</button>`).join('')}</div>` : '')
+      + `<div class="tvgrid"><div class="tvmain"><div class="tvconc" id="tvConc">${tvSentence(r)}</div><div id="tvChart" class="chart"></div>`
+      + `<div class="tvlist" id="tvList"><div class="tvlisthead"><span>全部成分股 ${r.stocks.length} 檔</span><span>占族群資金</span><span>價格線＋每 5 分鐘新增成交值</span><span style="text-align:right">相對昨收</span></div>`
+      + r.stocks.map(x => `<div class="tvrow" data-code="${x.code}"><a class="tvnm" href="#stock/${x.code}" title="${fmt.esc(x.name)} ${x.code}">${fmt.esc(x.name)}<small>${x.code}</small></a>`
+        + `<span class="tvsh"><i style="width:${Math.max(2, Math.min(100, x.share)).toFixed(0)}%;max-width:42px"></i>${x.share.toFixed(0)}%</span>${tvSpark(x)}`
+        + `<span class="tvchg" style="color:${upDown(x.chg)}">${x.chg != null ? tvF(x.chg) : '—'}</span></div>`).join('') + `</div></div>`
+      + `<div class="tvflow" id="tvFlow"><h4>資金去向</h4><div class="tvfs"><b style="color:${upDown(f.d)}">${r.name} 資金占比 ${f.s0.toFixed(2)}% → ${f.s1.toFixed(2)}%（${tvP(f.d)}pp）</b></div>`
+      + `<div class="tvfl"><small>同時段全市場流入最多</small>${f.up5.map(fr).join('')}</div><div class="tvfl"><small>同時段全市場流出最多</small>${f.dn5.map(fr).join('')}</div>`
+      + (f.related.length ? `<div class="tvfl"><small>相關族群（同產業鏈）</small>${f.related.map(fr).join('')}</div>` : '') + `</div></div>`;
+    if (r.times.length >= 2) {
+      const n = r.times.length, mk = (i, nm) => ({ name: nm, coord: [i, r.rel[i]], value: r.rel[i] });
+      const hiI = r.pat ? r.pat.hiI : 0, loI = r.pat ? r.pat.loI : 0;
+      chart('tvChart', {
+        grid: { left: 44, right: 50, top: 22, bottom: 24 },
+        tooltip: { ...tip, trigger: 'axis' },
+        legend: { show: false },
+        xAxis: { ...axisStyle, type: 'category', data: r.times, boundaryGap: false, axisLabel: { color: CH.ink3, fontSize: 12, hideOverlap: true } },
+        yAxis: [{ ...axisStyle, type: 'value', scale: true, axisLabel: { color: CH.ink3, fontSize: 12, formatter: (v) => v.toFixed(1) + '%' } },
+          { ...axisStyle, type: 'value', scale: true, splitLine: { show: false }, axisLabel: { color: '#B87A1E', fontSize: 12, formatter: (v) => v.toFixed(2) + '%' } }],
+        series: [
+          { name: '走勢（相對大盤）', type: 'line', data: r.rel.map(v => +v.toFixed(3)), showSymbol: false, smooth: false, lineStyle: { width: 2.4, color: CH.cyan }, itemStyle: { color: CH.cyan },
+            markLine: { silent: true, symbol: 'none', lineStyle: { color: hexA(CH.ink3, .6) }, label: { show: false }, data: [{ yAxis: 0 }] },
+            markPoint: { symbolSize: 40, label: { fontSize: 11, color: '#fff', formatter: (q) => q.name }, data: [mk(0, '開'), mk(hiI, '高'), mk(loI, '低'), mk(n - 1, '現')] } },
+          { name: '資金占比', type: 'line', yAxisIndex: 1, data: r.share.map(v => +v.toFixed(3)), showSymbol: false, lineStyle: { width: 2, color: '#E8A33D', type: 'dashed' }, itemStyle: { color: '#E8A33D' } },
+        ],
+      });
+    }
+    window.App && (window.App._tv = { gid: TV.gid, pat: r.pat && r.pat.name, rows: r.stocks.length, total: r.stocks.length, times: r.times.length, cur: r.times[r.times.length - 1] });
+  }
+  if (window.Tape) { Tape.on('cur', () => tvRender(true)); Tape.on('data', () => tvRender(false)); setInterval(() => tvRender(false), 5000); }
 
   // 熱力圖的 option 與資料（放大罩與原圖共用，才不會兩邊畫出不一樣的東西）
   /* ★ 2026-09-24 熱力圖 v2（規格 §3.1）：顏色口徑不變（資金流向 pp；沒有資金流向的族群沿用
@@ -8824,6 +9119,7 @@
       /* ★ 2026-10-19 多圖連動：資金流向頁的輪盤點族群＝鎖定（rankSel，跟點排行長條同一份狀態）→ 族群資金排行那一根同步亮；
          再點同一顆＝取消（drillClose 會一起還原兩張圖與成分股面板）。*/
       if (id === 'rotClock') {
+        tvPick(r.gid);                               // 即時／今日時間軸開著：開「今日走勢驗證」小面板
         if (linkTap('clk:' + r.gid)) return;
         const step = rotLinkStep(r.gid);
         if (step === 'close') { drillClose(); return; }
@@ -10134,6 +10430,20 @@
   const HOW = {
     /* ★ 2026-09-21：HOW.rank 整段刪掉，內容併進 HOW.rot（兩張圖合併成一張卡，
        只留一顆「怎麼看 ?」）。留著不會被叫到，就是死碼。*/
+    tverify: `<b>這個族群今天的走勢，和錢流到哪裡，一次對起來看。</b>
+      <ul><li><b>主圖</b>：實線＝族群走勢（成分股漲跌的等權平均，減掉全部個股的等權平均＝相對大盤）；<em>橘色虛線＝資金占比</em>（族群成交值 ÷ 全部個股成交值，右軸）。標出開、高、低、現與型態。</li>
+      <li><b>型態</b>：開高走低、衝高回落、開低走高、探底回升、一路走高、一路走低、寬幅震盪、盤整。看「最高最低的先後」與「相對振幅」；只有振幅小於 0.8 個百分點才叫盤整。</li>
+      <li><b>全部成分股</b>：每檔一條價格線（相對昨收，虛線＝0%），下面的柱是「每 5 分鐘新增的成交值」（紅＝那 5 分鐘價格上漲、綠＝下跌）；「占族群資金」是這檔累計成交值占族群的比例，依它排序，第一眼看出錢集中在哪幾檔。點名字進個股頁。</li>
+      <li><b>資金去向</b>：這個族群從開盤到現在資金占比增減幾個百分點；同一段時間全市場流入最多、流出最多各 5 個族群；同產業鏈的相關族群各自增減。點任何一個族群名就切過去看它。</li>
+      <li><b>怎麼用</b>：輪盤說某族群轉弱，就看成分股是不是大多數都走低、錢是不是從它流到右邊「流入最多」的那幾個族群。拖時間軸到過去，這裡只算到那一格。</li>
+      <li>資料是盤中每 5 分鐘一格（伺服器快照），不是逐筆；成交值用「價 × 累計張數」估算，漲跌幅是真的；檔數不足 95% 的殘缺格整格剔除；成分股少於 3 檔的族群不算。</li></ul>`,
+    tsig: `<b>盤中訊號（實驗）：錢先進來、價格還沒動的族群，有沒有？</b>
+      <ul><li><b>實驗訊號，回測尚未證實有效。</b>研究（docs/research/20261030_flow_vs_price.md）用 3 年 60 分 K 測，資金占比與族群走勢同向（一致率約 62%）但有一半是機械性的（動得大量就大），<em>測不出領先性</em>；這裡的規則只是讓你自己觀察、自己檢驗，不是買賣建議。</li>
+      <li><b>資金先行</b>：最近 30 分鐘「新增成交值占全市場新增成交值」的比例，超過該族群開盤以來平均占比的 1.5 倍，而且相對大盤漲跌仍 ≤ 0（錢進來但價格還沒動）。</li>
+      <li><b>擴散</b>：族群內上漲家數比例，30 分鐘內上升 ≥ 20 個百分點。</li>
+      <li><b>開低回升</b>：開盤相對大盤 &lt; −1%，目前已回升超過一半，且資金占比比開盤高。</li>
+      <li>開盤滿 30 分鐘後才開始判斷；每條規則每個族群只記第一次觸發。<b>訊號事後檢驗</b>：觸發後到「目前」（拖時間軸就是那一格）該族群相對大盤變強＝命中、變弱＝沒中；「剛觸發」還不能檢驗。命中率只是今天這一天的樣本。</li>
+      <li><b>歷史檢驗還沒做</b>（下一步）：資料湖已經每天存 5 分鐘快照（data/tape_5m），累積幾天後要輸出近 20 日的訊號紀錄才能看長期準不準；現在預覽版只用今天的 /tape 資料。</li></ul>`,
     bump: `<b>主流是穩穩的還是一直換人。</b>
       <ul><li>每條線是一個族群，<em>位置越高＝成交值排名越前面</em>（1 名在最上面）。</li>
       <li>線一路往上＝資金連續好幾週往它集中。</li>
@@ -10984,6 +11294,9 @@
     const span0 = (vMax - vMin) || 1;
     const xMin = negs.length ? +(vMin - needL * span0 / Math.max(30, plotW - needL)).toFixed(3) : null;
     const c = chart('rankFlow', {
+      /* 今日時間軸播放／回放中不做更新動畫（Andy 10-30 截圖：「矽晶圓 6↑」那一列兩組數字疊在一起）：
+         每一格排名都會重排，ECharts 的更新動畫讓兩根長條在換位途中經過同一個 y，兩組標籤短暫疊在一起；直接到位就不會交叉。 */
+      ...((window.Tape && (Tape.playing || Tape.pinned())) ? { animationDurationUpdate: 0 } : {}),
       tooltip: {
         ...tip, trigger: 'item', formatter: (q) => { const g = rows[q.dataIndex];
           return `<b>${g.group_name}</b><br>成交值佔比 ${fmt.n(g.share, 2)}%（上一段 ${g.share_prev != null ? fmt.n(g.share_prev, 2) + '%' : '—'}）`
@@ -11025,6 +11338,7 @@
       const gid = q.data && q.data.gid; if (!gid) return;
       if (linkTap('rf:' + gid)) return;                        // 觸控同一下補發的第二個 click 不算（不然「選取→立刻取消」）
       const g = rows.find(x => x.group_id === gid) || {};
+      tvPick(gid);                                              // 即時／今日時間軸開著：開「今日走勢驗證」小面板
       twT('rank_bar', g.group_name || gid);                    // 2026-10-05 埋點：右側排行被點的族群
       if (twGrpBlock(gid, g.group_name)) return;
       /* ★ 2026-09-21：這裡展開的清單改成兩階段共用的那一支（drillOpen）——
@@ -15703,7 +16017,7 @@
     fillDisc();                 // 標題列右側那一行免責小字（2026-10-06）
     const meta = await load('meta');
     if (meta) { renderFreshness(meta); }
-    window.App = { prevTvOf, chainLabel, freqBadge, srcInfo, sankeyRankDraw, rotPopMembers, msDD, load, chart, howHTML, fmt, tip, axisStyle, NUM_FONT, CH, PALETTE, chgColor, heatColor, treeSkin, hexA,
+    window.App = { prevTvOf, tvPattern, tvOpen, tvCalc, tvSignals, tvRenderSig, chainLabel, freqBadge, srcInfo, sankeyRankDraw, rotPopMembers, msDD, load, chart, howHTML, fmt, tip, axisStyle, NUM_FONT, CH, PALETTE, chgColor, heatColor, treeSkin, hexA,
       HL: { overlay: hlOverlay, themes: hlThemes, reg: hlReg, live: hlLive, use: hlUse, state: hlState, data: HL }, hmBin, hmColor, hmItem, hmSeries, hmLegend, hmRelabel, hmTip, hmTipOpt, hmLS, hmLSset, HM_KIND, upDown, empty, charts, goStock, hmGo, D, L, wheelZoom, zoomClick, rangeBar, playBar, theme, applyTheme, liveMerge, onLive, LIVE_KEYS,
       /* 給 scripts/_uitest.py 量「小圓點真的在動」用：回傳當下每一顆點的座標。
          用座標而不是 canvas 指紋 —— WebGL/Canvas 的指紋在這個容器裡量過是

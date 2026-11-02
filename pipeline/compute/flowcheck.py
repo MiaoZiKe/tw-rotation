@@ -64,6 +64,11 @@ log = logging.getLogger(__name__)
 
 SCHEMA = 1
 FC_DAYS = 60            # day/ 檔：近幾個交易日
+VERIFY_DAYS = 90        # verify.json：可選日期數（吻合率最多看 60 日，再留餘裕給「之後 5 日」）
+VERIFY_TOPN = 3         # 流入／流出前幾名
+VERIFY_MIN_SHARE = 1.0  # 占全市場成交額 ≥ 1% 才參與排名（與前端 topN 同口徑）
+VERIFY_FWD = 5          # 「之後幾日」
+VERIFY_MIN_N = 30       # 吻合率樣本數低於這個就標「樣本不足」
 SERIES_DAYS = 750       # series/ 與 index.market：近幾個交易日（約 3 年）
 BACKTEST_DAYS = 750     # 回測：近幾個交易日（60 分 K 起點 2023-09-19，實際以資料為準）
 RESIDUAL_MIN = 0.95     # 殘缺格門檻：該格檔數 ÷ 當天最多那一格
@@ -764,7 +769,74 @@ def build(group_hist: pd.DataFrame, price: pd.DataFrame, membership: pd.DataFram
                    "div_pct": DIV_PCT, "div_rel": DIV_REL, "crash": CRASH, "cost": COST},
     }
     out["backtest"] = backtest(events, all_dates[-1])
+    out["verify"] = verify(D, manual, all_dates)
     return out
+
+
+def _compound(x: pd.Series) -> float | None:
+    """一串日報酬（%）複利成總報酬（%）；任何一天缺值就回 None（不補 0，缺資料不能當持平）。"""
+    if x.isna().any() or len(x) == 0:
+        return None
+    return float((np.prod(1 + x.to_numpy() / 100) - 1) * 100)
+
+
+def verify(D: pd.DataFrame, manual: set, all_dates: list[str], days: int = VERIFY_DAYS,
+           topn: int = VERIFY_TOPN, fwd: int = VERIFY_FWD) -> dict:
+    """「驗證三步驟」用：每天資金流入／流出前 N 名族群，與它們「當天」「之後 fwd 日」實際跑贏跑輸加權指數的紀錄＋吻合率。
+
+    ★ 為什麼：Andy 11-01「我要的是可以搭配看、驗證我的數據」——資金數據（占比變化）是否對得上族群實際股價。
+    口徑（全部沿用本檔既有口徑，不另做一套；share／dshare 與 day 檔同為 3 位小數，前端用 day 檔算的備援路徑才會逐字相同）：
+      · 排名＝人工族群、占比 ≥ VERIFY_MIN_SHARE、依 dshare（今日占比 − 前一日）；流入＝前 N，流出＝後 N（不與流入重複）。
+      · 當天相對＝rel（族群 chg_pct − 加權指數）；之後 fwd 日相對＝兩邊各自把「之後 fwd 個交易日」日報酬複利後相減。
+        之後的交易日不足 fwd 天（最近幾天）或有缺值 → None，不估、不補。
+      · 吻合：流入且相對 > 0、流出且相對 < 0（剛好 0 算不吻合，寧可保守）。
+      · 吻合率視窗＝verify 日期裡最近 20／60 個交易日，樣本以「族群×日」計；n < VERIFY_MIN_N 前端標樣本不足。
+    ⚠ 當天相對大盤與資金占比變化同在一天，本來就容易同向；「之後 fwd 日」才是真正的前瞻檢驗，兩個一起列。"""
+    if D is None or D.empty or not all_dates:
+        return {"schema": SCHEMA, "dates": [], "days": {}, "stats": {}}
+    d0 = D[D["group_id"].isin(manual)]
+    chg = d0.pivot(index="date", columns="group_id", values="chg_pct").reindex(all_dates)
+    mk = D.drop_duplicates("date").set_index("date")["mkt_chg"].reindex(all_dates)
+    pos = {d: i for i, d in enumerate(all_dates)}
+
+    def _fwd(gid, d):
+        i = pos[d]
+        if i + fwd >= len(all_dates):
+            return None, None
+        g = _compound(chg[gid].iloc[i + 1:i + 1 + fwd])
+        m = _compound(mk.iloc[i + 1:i + 1 + fwd])
+        return (None, None) if g is None or m is None else (g, m)
+
+    vd = all_dates[-days:]
+    out_days = {}
+    for d in vd:
+        day = d0[(d0["date"] == d) & (d0["turnover_share"] >= VERIFY_MIN_SHARE) & d0["dshare"].notna()].sort_values("dshare", ascending=False)
+        inn = list(day.head(topn).itertuples())
+        out = [r for r in reversed(list(day.itertuples())) if r.group_id not in {x.group_id for x in inn}][:topn]
+
+        def _row(r):
+            g5, m5 = _fwd(str(r.group_id), d)
+            return {"gid": str(r.group_id), "share": _r(r.turnover_share, 3), "dshare": _r(r.dshare, 3),
+                    "chg": _r(r.chg_pct), "rel": _r(r.rel),
+                    "f5": _r(g5) if g5 is not None else None, "m5": _r(m5) if m5 is not None else None,
+                    "rel5": _r(g5 - m5) if g5 is not None else None}
+        mkd = mk.get(d)
+        out_days[d] = {"mkt": None if pd.isna(mkd) else _r(mkd), "inn": [_row(r) for r in inn], "out": [_row(r) for r in out]}
+
+    def _hit(rows, key, want_pos):
+        v = [r[key] for r in rows if r[key] is not None]
+        return {"n": len(v), "k": sum((x > 0) if want_pos else (x < 0) for x in v)}
+
+    stats = {}
+    for w in (20, 60):
+        ds = vd[-w:]
+        inn = [r for d in ds for r in out_days[d]["inn"]]
+        out = [r for d in ds for r in out_days[d]["out"]]
+        stats[str(w)] = {"days": len(ds), "from": ds[0], "to": ds[-1],
+                         "inn_day": _hit(inn, "rel", True), "out_day": _hit(out, "rel", False),
+                         "inn_f5": _hit(inn, "rel5", True), "out_f5": _hit(out, "rel5", False)}
+    return {"schema": SCHEMA, "dates": vd, "topn": topn, "fwd": fwd, "min_share": VERIFY_MIN_SHARE,
+            "min_n": VERIFY_MIN_N, "days": out_days, "stats": stats}
 
 
 def backtest(events: list[dict], as_of) -> dict:
@@ -822,6 +894,8 @@ def write(result: dict, outdir: Path) -> dict:
             _w(d / f"{k}.json", obj)
     _w(outdir / "index.json", result["index"])
     _w(outdir / "backtest.json", result["backtest"])
+    if result.get("verify"):
+        _w(outdir / "verify.json", result["verify"])
     stats["max"] = {k: round(v / 1024, 1) for k, v in stats["max"].items()}
     stats["total_kb"] = round(stats.pop("bytes") / 1024, 1)
     return stats

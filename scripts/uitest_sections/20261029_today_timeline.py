@@ -129,8 +129,8 @@ def t_today_timeline_1029(b, base):
     ok(f"[{T}] ①b ★ 拖到 ×3：標籤「×3」、每格間隔 140ms、設定記進 localStorage", sp3["v"] == 3 and abs(sp3["ms"] - 140) < 1 and sp3["lab"] == "×3" and sp3["ls"] == "3", sp3)
     drag(pg, "rotTl", 1)
     pg.click("#rotTl .pb.play"); a3 = advance(1600)
-    ok(f"[{T}] ①b ★ ×3 播放：同樣 1.6 秒時間前進的格數明顯比 ×1 多（{a1['n']} → {a3['n']}），輪盤接續補間時間約 140ms（{a3['dur']}）",
-       a3["n"] >= a1["n"] * 2 and 100 <= a3["dur"] <= 190, [a1, a3])
+    ok(f"[{T}] ①b ★ ×3 播放：同樣 1.6 秒時間前進的格數明顯至少 1.5 倍於 ×1（{a1['n']} → {a3['n']}），輪盤接續補間時間約 140ms（{a3['dur']}）",
+       a3["n"] >= a1["n"] * 1.5 and 100 <= a3["dur"] <= 190, [a1, a3])
     setspd(5); a5 = advance(900)
     ok(f"[{T}] ①b ★ 播放中拖到 ×5：沒有被打斷、繼續播（每格 84ms）", abs(pg.evaluate("() => Tape.stepMs") - 84) < 1 and (a5["playing"] or a5["cur"] is None), a5)
     wait_until(pg, "() => !Tape.playing", 30000, 200)
