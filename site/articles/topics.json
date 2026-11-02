@@ -1,6 +1,120 @@
 {
- "updated": "2026-10-30",
+ "updated": "2026-11-02",
  "topics": [
+  {
+   "id": "n_rareearth_nov10",
+   "cat": "news",
+   "title": "稀土出口管制暫停11/10到期，晶片供應鏈在擔心什麼",
+   "why": "中國暫停稀土管制的期限為 2026/11/10，只剩一週多，讀者會問到期後會怎樣、對半導體與電子供應鏈有何影響（世界新聞網、udn，日期須核對；FXStreet 10/14 提到可能延至 2027/1/10 等三種情境）；尚未查到延期或恢復管制的最新決定，發稿前須核對官方公告；與已有的美中休戰題角度不同，講稀土",
+   "score": 4,
+   "format_hint": "兩者",
+   "added": "2026-11-02",
+   "site_links": [
+    "#industry/semiconductor",
+    "#industry/ai_server"
+   ]
+  },
+  {
+   "id": "n_fed_hawkhold",
+   "cat": "news",
+   "title": "聯準會按兵不動卻有兩票要升息，利率路徑怎麼看",
+   "why": "10/28 FOMC 維持利率不變，投票 10 比 2、兩位委員主張升息，市場押 12 月升息機率約 84%～85%（Admiral Markets、InvestingLive 10/28，利率區間與機率須對照聯準會官網與 CME FedWatch 核對）；讀者會問利率還會升嗎、對科技股與台股資金的影響；角度放決議結果，避開已有的升息成因題",
+   "score": 4,
+   "format_hint": "貼文",
+   "added": "2026-11-02",
+   "site_links": [
+    "#overview",
+    "#flow"
+   ]
+  },
+  {
+   "id": "n_aicapex_margin",
+   "cat": "news",
+   "title": "AI 燒錢吃掉利潤率，市場為何開始追問回收期",
+   "why": "美國大型科技財報季後，市場對 AI 投資能否回收的疑慮升高，被視為 10/30 台股 AI 供應鏈收黑的背景（uanalyze 10/30 彙整；Gotrade 10/23 稱 Meta 營業利益率由 40% 降至 20%，單一來源須核對財報原文）；與 Alphabet 資本支出題、AI 借錢題不同，焦點放利潤率與回收期，不點名個股",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-02",
+   "site_links": [
+    "#industry/ai_server",
+    "#overview"
+   ]
+  },
+  {
+   "id": "k_tsv_hbm",
+   "cat": "know",
+   "title": "TSV 矽穿孔是什麼？HBM 的十二層晶粒怎麼接通",
+   "why": "HBM 缺貨新聞常提堆疊層數，卻少有人說明層與層之間靠 TSV 垂直導通；站內有 HBM 3D 圖 hbm（堆疊記憶體與底下邏輯晶粒），已上架 HBM 文可銜接，本題只講 TSV 與微凸塊結構，不排受惠",
+   "score": 3,
+   "format_hint": "文章＋3D 圖",
+   "added": "2026-11-02",
+   "site_links": [
+    "#industry/group/hbm"
+   ]
+  },
+  {
+   "id": "k_vrm_power",
+   "cat": "know",
+   "title": "VRM 是什麼？機櫃 48V 怎麼一路降到晶片 0.8V",
+   "why": "AI 機櫃單櫃功耗拉高，電源新聞常提 800V 與 PSU；站內有 3D 圖 server_psu（PSU 拆開到晶片核心電壓），已上架 PSU 與 BBU 文可銜接，本題講逐級降壓與 VRM 結構，不排受惠",
+   "score": 3,
+   "format_hint": "文章＋3D 圖",
+   "added": "2026-11-02",
+   "site_links": [
+    "#industry/group/server_psu"
+   ]
+  },
+  {
+   "id": "k_fab_loop",
+   "cat": "know",
+   "title": "製程迴圈是什麼？一片晶圓為何要重複上百道工序",
+   "why": "先進製程新聞常講層數與工序，但少有人拆開沉積、微影、蝕刻的循環；站內有 3D 圖 foundry（一顆電晶體與一個製程迴圈），已上架 IC 代工文可銜接，本題講製程迴圈，避開 GAA 結構題",
+   "score": 3,
+   "format_hint": "文章＋3D 圖",
+   "added": "2026-11-02",
+   "site_links": [
+    "#industry/group/foundry"
+   ]
+  },
+  {
+   "id": "i_flex_pcb",
+   "cat": "intro",
+   "title": "軟板產業鏈：基材、軟板廠到終端模組",
+   "why": "站內有 flex_pcb 與 ccl 族群頁；讀者常把軟板與硬板、載板混為一談，需附供應鏈圖，講環節分工，不排受惠；避開已有的硬板與板材鏈題",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-02",
+   "site_links": [
+    "#industry/group/flex_pcb",
+    "#industry/group/ccl"
+   ]
+  },
+  {
+   "id": "i_cloud_saas",
+   "cat": "intro",
+   "title": "雲端服務鏈：機房、託管服務到企業軟體",
+   "why": "站內有 cloud_msp、saas 族群頁；雲端大廠資本支出新聞多，但雲端服務由基礎設施到軟體的分工少有人整理，需附供應鏈圖，講環節不排受惠",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-02",
+   "site_links": [
+    "#industry/group/cloud_msp",
+    "#industry/group/saas"
+   ]
+  },
+  {
+   "id": "i_telecom",
+   "cat": "intro",
+   "title": "電信服務鏈：基地台設備、電信商到用戶終端",
+   "why": "站內有 telecom、switch_wireless 族群頁；讀者想知道電信商與設備商的分工，需附供應鏈圖，講環節不排受惠，避開低軌衛星與網通鏈題",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-02",
+   "site_links": [
+    "#industry/group/telecom",
+    "#industry/group/switch_wireless"
+   ]
+  },
   {
    "id": "n_tsmc_gm",
    "title": "2奈米量產，台積電毛利為何先掉1.3個百分點",
