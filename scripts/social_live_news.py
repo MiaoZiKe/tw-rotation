@@ -2,7 +2,7 @@
 還需要搭配當下的一些新聞消息，三到五個主題」）。
 
 · 挑法沿用盤前（scripts/social_premarket.py 的 pick_news：相關度 → 幾家媒體報導 → 幾篇），每則一行「短標題：一句描述」
-  （_clause／_desc，跟盤前「📌 今日焦點」同一套）。
+  （social_premarket.news_line，跟盤前「📌 今日焦點」同一套；2026-11-02 起描述只用新聞裡的數字、不取摘要句子，scripts/news_facts.py）。
 · 時間窗：盤中＝當天 07:30 到發文當下；盤後＝當天 11:30 到發文當下（NEWS_FROM）。
 · 排除：盤前 SKIP_RE（喊盤、權證…）＋這裡的 LIVE_SKIP_RE（基金募集、講座、抽獎這類業配／活動）；
   同一天盤前已用過的（site/articles/premarket.json 當天那筆，網址或標題相同、或標題很像）不再用；相似標題去重。
@@ -198,20 +198,6 @@ def pick(news, start: datetime, end: datetime, used: list[dict] | None = None, p
     return sorted(out, key=lambda it: "ABC".index(it["rel"]))
 
 
-def _d(n: dict, dl: int, c: str = "") -> str:
-    """描述＝摘要第一句（同盤前 _desc）；摘要是空的（聯合新聞網、部分鉅亨），改用標題短句之後的其餘部分
-    （「SK海力士財報出爐！第三季營益衝83.3兆韓元超預期」→ 短標題「SK海力士財報出爐」＋描述「第三季營益衝83.3兆韓元超預期」）。"""
-    import social_premarket as sp
-    d = sp._desc(strip_attr(n.get("summary") or ""), dl)
-    if not d and c:
-        rest = str(n["title"]).strip()
-        rest = rest[len(c.rstrip("？")):] if rest.startswith(c.rstrip("？")) else ""
-        d = sp._desc(re.sub(r"^[\s！!？?，,：:；;。　｜|]+", "", rest), dl)
-    while d and re.search(r"[，,、；]", d) and ATTR_RE.match(re.split(r"[，,、；]", d)[-1].strip()):      # 截短後尾巴剩「據媒體…」
-        d = re.split(r"[，,、；](?=[^，,、；]*$)", d)[0].strip()
-    return d
-
-
 def lines(items: list[dict], kn: int = MAX_N, tl: int = 30, dl: int = 40) -> list[str]:
     """每則一行「・短標題：一句描述」（跟盤前今日焦點同格式），照相關度順序；短標題取不出來的那則跳過、由後面的候選遞補。"""
     out: list[str] = []
@@ -221,11 +207,12 @@ def lines(items: list[dict], kn: int = MAX_N, tl: int = 30, dl: int = 40) -> lis
                 break
             if (n.get("rel") == "C") != low:
                 continue
-            c = short_title(n["title"], tl)
-            if not c:
-                continue
-            d = _d(n, dl, c)
-            out.append(f"・{c}：{d}" if d and d != c else f"・{c}")
+            # 11-02 法遵（數字照用、句子自己寫）：描述不再取摘要第一句，改用新聞裡的數字（本站格式）；
+            # 短標題中文字 ≥ 15 改由主體組；跟原文仍有連續 ≥ 15 個中文字相同就換下一則（social_premarket.news_line）
+            import social_premarket as sp
+            x = sp.news_line(n, tl, dl, short=short_title(n["title"], tl))
+            if x:
+                out.append(f"・{x}")
     return [SECTION] + out if out else []
 
 

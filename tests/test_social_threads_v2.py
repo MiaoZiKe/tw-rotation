@@ -321,3 +321,16 @@ def test_conditional_hook_keeps_premise():
 def test_title_line_drops_repeated_category_word():
     t, _, _ = V.sections_from_posts(["#台股 融資：約4200億元\n#台股 今天的關鍵數字有哪些？\n\n導言一句話，夠長夠長夠長。"])
     assert t == "台股 融資：約4200億元｜今天的關鍵數字有哪些？"
+
+
+
+def test_lint_verbatim_15_chars():
+    # 2026-11-02 法遵：貼文與來源新聞原文連續 ≥15 個中文字相同 → 錯誤；數字照用、本站句型不算
+    src = "光寶科（2301）30日公布2026年第3季營運成果，單季合併營收574億元，季增9%，每股純益3.27元，年增60%，締歷史新猷"
+    assert L.verbatim_issues(["10/30，經濟日報報導：光寶科（2301）30日公布2026年第3季營運成果，單季合併營收574億元"], [src])
+    assert not L.verbatim_issues(["10/30，光寶科（2301）第3季財報：單季合併營收 574 億元；季增 9%；EPS 3.27 元。"], [src])
+    assert not L.verbatim_issues(["公布2026年第3季營運成果"], [src])                 # 10 個中文字：不到門檻
+    assert L.verbatim_issues(["一二三四五六七八九十一二三四五"], ["前言一二三四五六七八九十一二三四五後記"])   # 剛好 15 字
+    assert not L.verbatim_issues(["一二三四五六七八九十一二三四"], ["前言一二三四五六七八九十一二三四五後記"])   # 14 字
+    p = dict(hook_type="對話", emotion="好笑", main_post="x", source_texts=[src])
+    assert any("照抄原文" in e for e in L.lint(dict(p, main_post="朋友問我光寶科怎樣，我說：「單季合併營收574億元，季增9%，每股純益3.27元，年增60%，締歷史新猷」！\n#光寶科財報"))[0])

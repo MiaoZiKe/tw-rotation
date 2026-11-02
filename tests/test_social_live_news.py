@@ -74,8 +74,9 @@ def test_focus_lines_format():
     L = LN.lines(LN.pick(_news(ROWS), s, e, []))
     assert L[0] == "📰 新聞焦點：" and 3 <= len(L) - 1 <= 5
     assert all(x.startswith("・") and "https://" not in x and "…" not in x for x in L[1:])
-    assert "・美債殖利率急跌：十年期美債殖利率跌破 4%，市場押注年底再降息" in L                          # 摘要開頭「根據外媒報導」不當描述
-    assert "・輝達 GB300 出貨放量：輝達 GB300 本季出貨放量，台廠組裝與散熱同步受惠" in L
+    # 2026-11-02 法遵：描述只放新聞裡的數字（本站格式），不再取摘要第一句
+    assert "・美債殖利率急跌：十年期美債殖利率跌破 4%" in L
+    assert "・輝達 GB300 出貨放量" in L and not any("台廠組裝與散熱同步受惠" in x or "市場押注年底再降息" in x for x in L)
 
 
 def test_short_title_does_not_split_mixed_language_space():
@@ -139,14 +140,14 @@ def test_relevance_tiers():
 def test_life_news_only_fills_when_short(tmp_path):
     s, e = LN.window("intraday", NOW_ID)
     L = LN.lines(LN.pick(_news(ROWS + LIFE), s, e, []))
-    assert len(L) - 1 == 5 and not any("MacBook" in x or "醫護" in x for x in L)            # 有財經新聞可用 → 兩則反例排不進來
-    few = LN.lines(LN.pick(_news([ROWS[2]] + LIFE), s, e, []))
-    assert len(few) - 1 == 3 and "GB300" in few[1]                                          # 湊不到 3 則才用 C 級補，而且排在後面
+    assert 3 <= len(L) - 1 <= 5 and not any("MacBook" in x or "醫護" in x for x in L)       # 有財經新聞可用 → 兩則反例排不進來
+    few = LN.lines(LN.pick(_news([ROWS[1]] + LIFE), s, e, []))      # 11-02：ROWS[2]「GB300 放量 散熱廠接單滿」看不出主體、沒數字，新版不收 → 改用 ROWS[1]
+    assert len(few) - 1 >= 2 and "GB300" in few[1] and any("MacBook" in x for x in few[2:])   # 湊不到 3 則才用 C 級補，而且排在後面（11-02：C 級也要取得到事實欄位才收）
 
 
 def test_empty_summary_uses_rest_of_title():
     L = LN.lines([{"title": "SK海力士財報出爐！第三季營益衝83.3兆韓元超預期，記憶體漲價威力顯現", "summary": ""}])
-    assert L == ["📰 新聞焦點：", "・SK海力士財報出爐：第三季營益衝83.3兆韓元超預期，記憶體漲價威力顯現"]
+    assert L == ["📰 新聞焦點：", "・SK海力士財報出爐：第三季營益 83.3 兆韓元"]          # 11-02：標題後半句不照貼，只取數字
 
 
 def test_主文放不下描述就移到回覆串():
@@ -160,3 +161,16 @@ def test_主文放不下描述就移到回覆串():
         assert all("：" in x for x in body.split("\n") if x.startswith("・公司"))
     else:
         assert all("：" in x for x in reply.split("\n")[1:])
+
+
+
+def test_focus_line_never_copies_15_chars():
+    # 2026-11-02 法遵：盤前 91APP 那條描述是原文句子 → 描述改數字；標題短句中文字 ≥15 改由主體組；仍照抄就換下一則
+    import news_facts as NF
+    n = {"title": "91APP 公布資安事件調查報告", "summary": "91APP*-KY 29 日召開記者會並公布資安事件的 25 天調查報告，影響範圍限於部分商家。"}
+    x = LN.lines([n])
+    assert all(not NF.verbatim_runs(l, [n["title"], n["summary"]]) for l in x)
+    long_ = {"title": "與黃仁勳往來密切客戶高層被懷疑是共諜！輝達正式出面回應了", "summary": ""}
+    assert LN.lines([long_]) == []                          # 標題短句 18 個中文字、又沒有數字 → 不收，由下一則遞補
+    hook = {"title": "兩晚興奮到失眠！奧特曼曝新模型進展", "summary": ""}
+    assert LN.lines([hook]) == []                           # 看不出主體的標題鉤子不收

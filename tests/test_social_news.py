@@ -177,7 +177,8 @@ def test_numbers_of_period_only_label_inherits_metric():
 
 def test_min_body_not_below_400():
     # 2026-11-02：「和前期比」不再照抄重點數字、「代表什麼」不再重述數字，同樣內容少 40～60 字 → 下限 400 換算成 360（實質厚度不變）
-    assert 360 <= S.MIN_BODY <= 500
+    # 2026-11-02 法遵：導言不再貼媒體摘要（100～180 字）改本站句型 → 360 換算成 280（拿掉的是照抄的字，數字沒少）
+    assert 280 <= S.MIN_BODY <= 500
 
 
 # ---------------- 第二輪（2026-10-29）：「成」單位、商品報價、標題期間＋事件、之前的報導主體、接下來觀察 ----------------
@@ -559,3 +560,50 @@ def test_premarket_watch_point_says_today(monkeypatch):
     assert "今天（11/2）09:00 開盤" in pre and "下一個交易日 11/2" not in pre
     intra = S.compose(c, "intra", 1, "2026-11-02", "口袋長文", NAMES)["caption_ig"]
     assert "下一個交易日 11/3 09:00 開盤" in intra                                    # 盤中發：今天已開盤 → 講下一個
+
+
+import pytest  # noqa: E402
+
+# ---------------- 2026-11-02 法遵：數字照用、句子自己寫（diagnosis_1102/legal_tech_transparency.md 6-2） ----------------
+LITEON = ("光寶科第3季EPS 3.27元 年增60%",
+          "光寶科（2301）30日公布2026年第3季營運成果，單季合併營收574億元，季增9%，年增28%，每股純益3.27元，年增60%，"
+          "締歷史新猷；累計今年前3季每股純益8.08元。")
+
+
+def test_compose_intro_is_own_sentence_not_media_summary(monkeypatch):
+    _no_lake(monkeypatch)
+    c = _cand(*LITEON, codes="2301", ts="2026-10-30T18:00:00+08:00", source="udn")
+    d = S.compose(c, "post", 1, "2026-10-30", S.STYLES[0], {"2301": "光寶科"})
+    allt = d["caption_ig"] + "\n".join(d["caption_threads"])
+    assert "摘述" not in allt and "締歷史新猷" not in allt                   # 不標摘述、不貼記者用語
+    assert "資料：公司公告／經濟日報報導" in allt                           # 出處行
+    assert "574 億元" in allt and "3.27 元" in allt                          # 數字照用
+    import threads_lint as TL
+    assert TL.verbatim_issues([allt], [LITEON[0] + "，" + LITEON[1]]) == []   # 跟原文沒有連續 ≥15 字相同
+
+
+def test_quality_gate_blocks_verbatim_and_slot_falls_back(monkeypatch):
+    _no_lake(monkeypatch)
+    c = _cand(*LITEON, codes="2301", ts="2026-10-30T18:00:00+08:00", source="udn")
+    # 模擬產生器又把原文整句放回導言 → 品質閘要擋（換下一則／常備文庫，不是整段不發）
+    monkeypatch.setattr(S, "fact_intro", lambda *a, **k: "10/30，經濟日報報導：" + LITEON[1])
+    with pytest.raises(S.Skip, match="照抄原文"):
+        S.compose(c, "post", 1, "2026-10-30", S.STYLES[0], {"2301": "光寶科"})
+
+
+def test_other_media_and_history_no_clauses(monkeypatch):
+    _no_lake(monkeypatch)
+    old = dict(title="光寶科9月營收 190 億元", summary="光寶科（2301）公布9月合併營收190億元，月增5%，年增20%，表現優於預期且創同期新高紀錄。",
+               codes="2301", source="udn", category="", news_id="h1", url="", ts=datetime.fromisoformat("2026-10-08T18:00:00+08:00"))
+    monkeypatch.setattr(S, "_HIST", [old])
+    a = dict(title=LITEON[0], summary=LITEON[1], codes="2301", source="udn", category="", news_id="a", url="",
+             ts=datetime.fromisoformat("2026-10-30T18:00:00+08:00"))
+    b = dict(title="光寶科Q3每股純益3.27元", summary="光寶科第三季營收574億元，季增9%，每股純益3.27元，法人看好明年AI電源訂單持續放量成長。",
+             codes="2301", source="cnyes", category="", news_id="b", url="", ts=datetime.fromisoformat("2026-10-30T17:00:00+08:00"))
+    d = S.compose(S.score([a, b], {}), "post", 1, "2026-10-30", S.STYLES[0], {"2301": "光寶科"})
+    cap = d["caption_ig"]
+    assert "法人看好明年AI電源訂單持續放量成長" not in cap and "表現優於預期且創同期新高紀錄" not in cap
+    if "其他媒體" in cap:
+        assert "另有鉅亨報導同一件事" in cap
+    if "之前的報導" in cap:
+        assert "10/8 經濟日報報導，光寶科" in cap and "190 億元" in cap
