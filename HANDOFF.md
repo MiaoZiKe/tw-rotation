@@ -1,5 +1,11 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
+## 2026-11-02 主題文章生成瑕疵修正（CEO 看 08:28 盤前那篇「台股融資融資約4200億元」；最後更新 11-02 台北）
+- 已發那篇不刪不改；修的是產生器（`scripts/social_news.py`、`scripts/threads_v2.py`、`scripts/threads_lint.py`），細節寫在 `docs/marketing/social_unit/auto_post.md` 修改紀錄 11-02。
+- 五項：標題重複詞、分類（台股被判美股）、「和前期比」照抄重點數字、鉤子把條件句寫成事實、「代表什麼」只重述數字。lint 加對應檢查；主題文章品質閘跑同一組，不過換下一則／常備文庫，不會整段不發。
+- 這批只驗：`pytest tests/test_social_news.py tests/test_social_threads_v2.py tests/test_threads_post.py tests/test_social_publish.py tests/test_premarket_news.py tests/test_postmarket_news.py tests/test_social_live_news.py`；另用近 5 天 248 群新聞只產生不發跑一輪：可發 105 篇（舊版 104）、新 lint 0 錯（舊版產出 104 篇中 103 篇有新規則抓得到的瑕疵）。
+- 待觀察：今天盤中／盤後主題文章的 `lint:` 欄與 `log.skipped` 有沒有新增「品質閘：同詞重複／照抄前段」被擋的比例異常。
+
 ## 2026-11-01 IG 晚間主題文章沒準時發 → 補發＋每個晚間時段都有派發者（最後更新 11-01 台北）
 - 事故：wk2（publish_at 20:50）到 21:08 仍 approved；21:09 手動派 ig_post 補發成功 https://www.instagram.com/p/DfMzr6fHD6w/ （兩張實景圖輪播）。
 - 根因：IG 晚間時段（20:00／20:50／21:40／21:50）只有 social_news 19:00／19:40 叫醒 ig_post（wait_max=20），只罩得到 20:00；GitHub schedule 不可靠。

@@ -176,7 +176,8 @@ def test_numbers_of_period_only_label_inherits_metric():
 
 
 def test_min_body_not_below_400():
-    assert 400 <= S.MIN_BODY <= 500
+    # 2026-11-02：「和前期比」不再照抄重點數字、「代表什麼」不再重述數字，同樣內容少 40～60 字 → 下限 400 換算成 360（實質厚度不變）
+    assert 360 <= S.MIN_BODY <= 500
 
 
 # ---------------- 第二輪（2026-10-29）：「成」單位、商品報價、標題期間＋事件、之前的報導主體、接下來觀察 ----------------
@@ -382,6 +383,7 @@ def test_related_every_evergreen_legal_and_length():
 
 def test_related_news_tw_company_lists_same_segment(monkeypatch):
     _no_lake(monkeypatch)
+    monkeypatch.setattr(S, "MIN_BODY", 0)       # 這段只驗相關公司；樣本只有一句摘要，11-02 拿掉重述句後內文不到下限
     names = dict(NAMES, **{"3037": "欣興", "8046": "南電", "3189": "景碩"})
     c = _cand("欣興Q3再賺逾百億 前三季稅後賺282億元年增7.99倍EPS 17.85元",
               "欣興第三季稅後純益102億元，季增15%，EPS 6.5元；前三季稅後純益282億元，年增7.99倍，EPS 17.85元。", codes="3037")
@@ -507,3 +509,31 @@ def test_close_post_wakes_news_and_no_late_skip():
     assert "新聞時效已過，這段不補排" not in src
     news = (root / ".github/workflows/social_news.yml").read_text(encoding="utf-8")
     assert '"25 10 * * 1-5"' in news and '"55 10 * * 1-5"' in news      # 盤後 18:25／18:55 備援
+
+
+# ---------------- 2026-11-02 CEO：「台股融資融資約4200億元」那篇 ----------------
+def test_1102_margin_article_title_category_sections(monkeypatch):
+    _no_lake(monkeypatch)
+    c = _cand("〈台股風向球〉融資恐殺出引爆補跌壓力 台股走勢可能有2種情境",
+              "費半上周五崩跌逾7%、台積電ADR重挫近6%，台股11月開局恐面臨補跌壓力。，"
+              "永豐投顧稱45000點半年線為多空分水嶺，指數若跌破年線，融資恐需降至約4200億元才止穩。",
+              ts="2026-11-01T16:43:18+08:00")
+    assert c["cat"] == "台股"                                                    # 2. 不再因順帶提費半／ADR 判成美股
+    monkeypatch.setattr(S, "MIN_BODY", 0)
+    d = S.compose(c, "intra", 1, "2026-11-02", "口袋長文", NAMES)
+    title = "".join(d["card"]["cover_title"])
+    assert "融資融資" not in title and "推估" in title                            # 1. 不重複；4. 有前提的數字標推估
+    cap = d["caption_ig"]
+    assert "#台股 台股" not in cap
+    assert "和前期比" not in cap                                                 # 3. 沒有真正的前期資料 → 整段不出
+    assert "前提是「指數若跌破年線」" in cap                                      # 5. 解讀講前提，不重述數字
+    assert "代表和前一交易日相比" not in cap
+    assert d.get("cond") == "指數若跌破年線"
+
+
+def test_prior_value_only_same_metric():
+    key = dict(label="欣興第三季稅後純益", value="102", unit="億元", metric="淨利", subj="欣興")
+    ok = S.prior_lines(key, [dict(label="欣興第三季稅後純益季增", value="15", unit="%")])
+    assert ok and "上一季約 88.70 億元" in ok[0]
+    assert S.prior_lines(key, [dict(label="營業利益年增", value="632.1", unit="%")]) == []      # 別的指標不能拿來換算
+    assert S.prior_lines(dict(key, label="Alphabet第三季營收", metric="營收"), [dict(label="Cloud營收年增", value="103", unit="%")]) == []

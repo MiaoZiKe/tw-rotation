@@ -259,3 +259,53 @@ def test_ig_news_check(tmp_path, monkeypatch):
     mk("2026-11-02_news-intra-1.md", "posted", "2026-11-02T20:50+08:00")
     mk("2026-11-02_news-post-1.md", "posted", "2026-11-02T21:40+08:00")
     assert C.check("2026-11-02", now, tmp_path)["problems"] == []
+
+
+# ---------------- 2026-11-02 CEO：盤前主題文章「台股融資融資約4200億元」生成瑕疵 ----------------
+POSTED_1102 = dict(
+    hook_type="反差", emotion="吐槽", tag="台積電股價", image_count=2, category="美股",
+    main_post="說台股不重要的人，看到融資恐需 約4200億元應該會想把話默默收回去…\n#台積電股價",
+    thread_posts=[
+        "台股 台股融資：融資約4200億元｜美股 公告的重點數字是什麼？\n11/1，鉅亨報導：費半上周五下跌逾7%、台積電ADR下跌近6%，"
+        "台股11月開局恐面臨補跌壓力，永豐投顧稱45000點半年線為多空分水嶺，指數若跌破年線，融資恐需降至約4200億元才止穩。",
+        "📊 重點數字\n▪ 費半上周五下跌 逾7%（鉅亨報導）\n▪ 台積電ADR下跌 近6%（鉅亨報導）\n▪ 融資恐需 約4200 億元（鉅亨報導）\n"
+        "🔁 和前期比\n▪ 費半上周五下跌 逾7%\n▪ 台積電ADR下跌 近6%",
+        "🔎 這些數字代表什麼\n費半上周五下跌 逾7%，代表和前一交易日相比下跌約 7%。台積電ADR下跌 近6%，代表和前一交易日相比下跌約 6%。",
+    ],
+    reply_post="以上為公開資料整理，非投資建議\n👉 整理好的圖表與產業鏈都在網站：\nhttps://liguligu-puipui.com/?u=th-newspre1-20261102",
+)
+
+
+def test_lint_catches_1102_defects():
+    e = "；".join(L.lint(POSTED_1102)[0])
+    assert "同詞重複「台股 台股」" in e and "同詞重複「融資：融資」" in e       # 1. 標題重複詞
+    assert "分類「美股」但標題講的是台股" in e                                  # 2. 分類錯
+    assert "照抄前段：費半上周五下跌 逾7%" in e                                 # 3. 和前期比＝重點數字
+    assert "主文把條件句寫成事實" in e                                          # 4. 條件句改寫成事實
+    assert "解讀只是重述數字" in e                                              # 5. 代表什麼只重述
+
+
+def test_lint_no_false_positive_on_normal_text():
+    assert L.dup_words("這是一段很長很長的描述") == []
+    assert L.dup_words("下一個要看的是 11/6 公布的美國非農就業：非農就業反映美國整體景氣與企業的用人需求，這句夠長了") == []
+    assert L.dup_words("https://liguligu-puipui.com/") == []
+    assert L.dup_lines(["台股 收盤：加權45,211點\n導言", "📊 重點數字\n▪ 加權指數收盤 45,211 點（鉅亨報導）"]) == []   # 標題跟第一條同數字不算
+    assert not L.dup_lines(["x", "毛利率 56.9%（鉅亨報導）\n毛利率 56.9%，代表每 100 元營收扣掉直接成本後約剩 56.9 元毛利（本站換算）。"])
+    # 若看好就買進殖利率15%的債：15% 是現況，不是條件的結果
+    assert "15" not in L.conditional_numbers("克雷默稱黃仁勳若看好CoreWeave，應買進其殖利率約15%的高收益債")
+    assert L.conditional_numbers("指數若跌破年線，融資恐需降至約4200億元才止穩")["4200"] == "cond"
+
+
+def test_conditional_hook_keeps_premise():
+    posts = POSTED_1102["thread_posts"][:1]
+    d = V.build("article", "\n".join(posts), url="https://liguligu-puipui.com/", today="2026-11-02", sections=[("", posts[0].splitlines()[1:])],
+                title="台股 融資推估：約4200億元｜今天的關鍵數字有哪些？", legal="x",
+                extra=dict(subj="台股", num1="融資恐需約4200億元", hero="4200億元", cat="台股", cond="指數若跌破年線"), images=[])
+    body = L.split_tag(d["main_post"])[0]
+    assert "4200" not in body or "若" in body or "前提" in body
+    assert not L.cond_as_fact(d["main_post"], "\n".join(d["thread_posts"]))
+
+
+def test_title_line_drops_repeated_category_word():
+    t, _, _ = V.sections_from_posts(["#台股 融資：約4200億元\n#台股 今天的關鍵數字有哪些？\n\n導言一句話，夠長夠長夠長。"])
+    assert t == "台股 融資：約4200億元｜今天的關鍵數字有哪些？"

@@ -89,7 +89,7 @@ KW = {
 }
 CTYPE = [
     ("財報數字", r"財報|EPS|每股|毛利率|自結|營收|淨利|獲利|財測|營益率"),
-    ("盤勢數字", r"加權指數|大盤|三大法人|外資|投信|自營商|成交值|台指期|收盤|櫃買"),
+    ("盤勢數字", r"加權指數|大盤|三大法人|外資|投信|自營商|成交值|台指期|收盤|櫃買|半年線|年線|季線|融資餘額|維持率"),
     ("總經數據", r"Fed|聯準會|央行|利率|CPI|PCE|通膨|非農|GDP|殖利率|匯率|新台幣|油價|金價|PMI|天然氣|原油|布蘭特|TTF|大宗商品"),
     ("產業趨勢", r"AI|伺服器|半導體|晶片|CoWoS|HBM|記憶體|PCB|散熱|光通訊|機器人|電動車|資料中心"),
 ]
@@ -98,6 +98,7 @@ CTYPE = [
 # 「國際」（2026-10-30 Andy：講三星的主題文章封面標成「美股」不對）：非美國的公司、央行、地區 → 國際。
 # 美股只留給「美股盤勢」與美國公司；文中同時出現美國公司時，以主體（標題最先出現的那家）的國籍決定。
 US_MKT = r"美股|道瓊|那斯達克|標普|費半|費城半導體|S&P|Nasdaq|ADR"
+TW_MKT_KW = r"台股|加權指數|大盤|三大法人|集中市場|櫃買|融資|融券|台指期|半年線|年線|季線"
 US_CO = r"輝達|NVIDIA|微軟|蘋果|Apple|Alphabet|Google|Meta|亞馬遜|特斯拉|博通|超微|AMD|甲骨文"      # ＝原本 KW["美股"] 的公司名，判美股的範圍不擴大
 US_SUBJ = US_CO + r"|英特爾|高通|美光|CoreWeave|OpenAI|Anthropic|SpaceX|聯準會|Fed|FOMC|美國"   # 只用在「主體被判國際、其實是美國」的校正
 INTL_CO = (r"三星|Samsung|SK海力士|SK Hynix|海力士|(?<![A-Za-z])LG(?![A-Za-z])|樂金|Sony|索尼|豐田|Toyota|軟銀|SoftBank|ASML|艾司摩爾|鎧俠|Kioxia|瑞薩|任天堂|"
@@ -116,6 +117,9 @@ def topic_of(text: str, src_cat: str) -> str:
     if re.search(KW["財報"], text):
         return "財報"
     if re.search(US_MKT, text):                        # 明確在講美股盤勢
+        # 2026-11-02 CEO：「台股融資恐降至4200億」那則只因順帶提費半、台積電ADR 就標成美股 → 台股字眼比美股多就是台股
+        if len(re.findall(TW_MKT_KW, text)) > len(re.findall(US_MKT, text)):
+            return "台股"
         return "美股"
     if re.search(US_CO, text):
         return "國際" if _first(INTL_CO, text) < _first(US_CO, text) else "美股"   # 三星在前、順帶提 Google → 國際
@@ -477,7 +481,8 @@ GENERIC = {"全台", "材料", "台灣", "中華", "國際", "美國", "大眾",
 TW_MARKET = {"指數", "融資", "買超", "賣超", "成交值", "餘額"}     # 台股盤勢／籌碼類：封面用台股通用圖，不照內文順帶的產業字配圖
 AMOUNT_METRIC = {"營收", "淨利", "營業利益", "EPS", "資本支出", "市值", "出貨", "訂單", "產值", "餘額", "買超", "賣超", "成交值", "融資", "虧損"}
 IG_MAX = 2000          # IG 貼文說明上限 2,200 字；留 200 字餘裕，與 run_slot 的 2,000 字閘一致
-MIN_BODY = 400          # 10-29：500 擋掉 443／453 字、段落都有實際數字的稿；空泛句另有 EMPTY 與「和前期比」閘把關
+MIN_BODY = 360          # 10-29：500 擋掉 443／453 字、段落都有實際數字的稿；空泛句另有 EMPTY 與「和前期比」閘把關
+                        # 11-02：「和前期比」不再照抄重點數字、「代表什麼」不再重述，同樣內容少 40～60 字 → 400 降到 360（近 5 天 248 群新聞實測：可發篇數 104→105，實質厚度不變）
 
 
 class Skip(Exception):
@@ -1017,6 +1022,70 @@ def title_parts(key: dict, title: str, summary: str, day: str) -> tuple[str, str
     return period, ev, seg
 
 
+COND_PAT = r"若|如果|一旦|假如|萬一|倘若"
+COND_RESULT = r"恐|才|將|會|需|可能|就|降至|升至|上看|下看"
+
+
+def cond_of(text: str, key: dict) -> str:
+    """主旨數字所在的句子裡，數字前面有「若／如果／一旦…」子句 → 回傳那個前提（「指數若跌破年線」）；沒有回空字串。"""
+    v = key["value"].lstrip("約逾近超過")
+    if not v or key.get("key") in ("close", "chg"):
+        return ""
+    for sent in re.split(r"[。！？；\n]", text or ""):
+        if v not in sent:
+            continue
+        cls = re.split(r"[，,]", sent)
+        idx = next((i for i, cl in enumerate(cls) if v in cl), None)
+        if idx is None:
+            continue
+        if not re.search(COND_RESULT, cls[idx]):
+            continue                      # 數字那句不是條件的「結果」（「若看好就買進殖利率15%的債」的15%是現況）
+        for cl in reversed(cls[max(0, idx - 1):idx + 1]):     # 只看同一子句與緊接在前的那一個子句
+            m = re.search(COND_PAT, cl)
+            if m:
+                pre = (cl.split(v)[0] if v in cl else cl).strip(" ，、")
+                if len(pre) > 20:                 # 太長：從條件字前 6 個字開始取
+                    k = max(0, re.search(COND_PAT, pre).start() - 6)
+                    pre = pre[k:k + 20]
+                return pre if len(pre) >= 3 else ""
+    return ""
+
+
+def prior_lines(key: dict, comps: list[dict]) -> list[str]:
+    """真正的前期比較：主旨是金額、又有年增／季增／月增 % → 換算前期大約多少（本站換算）。算不出來就不寫。"""
+    out = []
+    try:
+        kv = float(key["value"].lstrip("約逾近超過+").replace(",", ""))
+    except ValueError:
+        return out
+    if key["unit"] in ("%", "點") or key.get("range"):
+        return out
+    for x in comps:
+        if x["unit"] != "%" or x.get("range"):
+            continue
+        lb = x["label"]
+        gb = re.sub(r"(年增|季增|月增|年減|季減|月減|年成長|年衰退)$", "", lb)
+        extra = key["label"][:-len(gb)] if gb and key["label"].endswith(gb) else None
+        if extra is None or (extra and not re.fullmatch(r"(" + re.escape(key.get("subj", "")) + r")?(第[一二三四1-4]季|Q[1-4]|單季)?", extra)):
+            continue                      # 成長率要是同一個指標、同一個口徑（「營業利益年增」「雲端營收年增」不能拿來換算總營收）
+        base = ("去年同期" if re.search(r"年增|年減|年成長|年衰退", lb) else "上一季" if re.search(r"季增|季減", lb)
+                else "上個月" if re.search(r"月增|月減", lb) else "")
+        if not base:
+            continue
+        try:
+            p = float(x["value"].lstrip("約逾近超過+-").replace(",", "")) / 100
+        except ValueError:
+            continue
+        r = 1 - p if re.search(r"減|衰退", lb) else 1 + p
+        if r <= 0:
+            continue
+        prev = kv / r
+        fmt = f"{prev:,.2f}" if prev < 100 else f"{prev:,.0f}"
+        out.append(f"▪ {base}約 {fmt} {key['unit']}，本期 {_fmt(key)}（本站依「{lb} {x['value']}%」換算）")
+        break
+    return out
+
+
 def compose(c: dict, slot: str, idx: int, day: str, style: str, names: dict) -> dict:
     """結構化產稿；資料不足或品質閘不過丟 Skip(原因)。"""
     lead = c["lead"]; ymd = day.replace("-", ""); md = f"{lead['ts'].month}/{lead['ts'].day}"
@@ -1055,6 +1124,12 @@ def compose(c: dict, slot: str, idx: int, day: str, style: str, names: dict) -> 
     period, ev, seg = title_parts(key, title_raw, sanitize(lead.get("summary") or ""), day)
     if subj.endswith("價") and ev == "價格":
         ev = ""                           # 「金價價格」→「金價」
+    kmd0 = (seg + km) if seg else km
+    # 2026-11-02 CEO：「台股融資融資約4200億元」—事件字跟第二行的指標是同一個詞 → 第一行保留（「台股融資」），第二行只放數字
+    same_ev = bool(ev) and (kmd0.endswith(ev) or kmd0.startswith(ev) or ev.endswith(km))     # 「成交」＋「成交值」也算
+    cond = cond_of(c["text"], key)        # 主旨數字是有前提的推估（「指數若跌破年線，融資恐需降至約4200億元」）
+    if cond and ev != "展望" and len(f"{subj}{period}{ev}推估") <= TITLE_MAX:
+        ev += "推估"
     l1 = f"{subj}{period}{seg if not ev else ''}{ev}"
     if len(l1) > TITLE_MAX:
         l1 = f"{subj}{period}{ev}"
@@ -1070,6 +1145,8 @@ def compose(c: dict, slot: str, idx: int, day: str, style: str, names: dict) -> 
         l2 = ("加權" if c["cat"] == "台股" else "") + _fmt(key).replace(" ", "")
     if km == "價格":
         l2 = _fmt(key).replace(" ", "")       # 「歐洲天然氣價格」／「97.35歐元/MWh」
+    if same_ev and l1.endswith(ev):
+        l2 = _fmt(key).replace(" ", "")       # 「台股融資」／「約4200億元」
     cover = [l1, l2]
     # 資訊列：主旨數字＋同一族（財報類／同指標）的相關數字
     fam = FIN if km in FIN else {km}
@@ -1110,15 +1187,22 @@ def compose(c: dict, slot: str, idx: int, day: str, style: str, names: dict) -> 
     ucode = f"news{slot}{idx}"
     url_ig = f"{SITE}?u=ig-{ucode}-{ymd}" + (f"#{route}" if route else "")
     url_th = f"{SITE}?u=th-{ucode}-{ymd}" + (f"#{route}" if route else "")
-    head = [f"#{subj} {l2}" if l1 == subj else f"#{subj} {l1}：{l2}", f"#{TAG[c['cat']]} {SUBQ[c['ctype']]}", ""]
+    l1r = l1[len(subj):] if l1.startswith(subj) else l1      # 2026-11-02：「#台股 台股融資：…」主體重複 → 「#台股 融資：…」
+    head = [f"#{subj} {l1r}：{l2}" if l1r else f"#{subj} {l2}", f"#{TAG[c['cat']]} {SUBQ[c['ctype']]}", ""]
     intro = f"{md}，{srcname}報導：{_lead_sentence(c)}（{SRC_NAME.get(c.get('lead_src'), srcname)}報導摘述）"
     shown = [x for x in nums if (x["metric"] or x["growth"]) and len(x["label"]) >= 2 and not re.match(r"[含約共逾近]", x["label"])]
     sec_num = "📊 #重點數字\n" + "\n".join(f"▪ {x['label']} {_fmt_full(x)}{cite(x)}" for x in shown[:5])
-    cmp_lines = [f"▪ {x['label']} {_fmt_full(x)}" for x in comps[:3]]
-    if hi:
+    # 2026-11-02 CEO：「和前期比」兩條跟「重點數字」照抄同一個數字 → 只放重點數字沒列過的比較、本站換算的前期值、報導寫的新高／首度；
+    # 一條都沒有就整段不出
+    listed = {(x["value"], x["unit"]) for x in shown[:5]}
+    cmp_lines = [f"▪ {x['label']} {_fmt_full(x)}" for x in comps[:3] if (x["value"], x["unit"]) not in listed]
+    cmp_lines += prior_lines(dict(key, subj=subj), comps)
+    if hi and not any(hi.group(0).strip() in l for l in cmp_lines):
         cmp_lines.append(f"▪ 報導提到「{hi.group(0).strip()}」")
-    sec_cmp = "🔁 #和前期比\n" + "\n".join(cmp_lines)
+    sec_cmp = ("🔁 #和前期比\n" + "\n".join(cmp_lines)) if cmp_lines else ""
     mean = []
+    if cond:
+        mean.append(f"{key['label']} {_fmt(key)} 是報導引述的推估，前提是「{cond}」，不是已經發生的數字。")
     if km == "EPS":
         net = next((x for x in nums if x["metric"] == "淨利" and not x["growth"]), None)
         mean.append(f"{subj}{period}每股賺 {key['value']} 元" + (f"，對應稅後淨利 {_fmt(net)}" if net else "") + "。")
@@ -1137,7 +1221,9 @@ def compose(c: dict, slot: str, idx: int, day: str, style: str, names: dict) -> 
         if high:
             hv = float(high.group(1).replace(",", "")); cv = float(key["value"].replace(",", ""))
             mean.append(f"盤中最高 {high.group(1)} 點，收盤距離當天最高點約 {hv - cv:,.2f} 點（本站計算），代表收在接近當天高點的位置。")
-    for x in ([] if idx_mode else comps[:2]):
+    # 2026-11-02 CEO：「下跌逾7%，代表和前一交易日相比下跌約7%」只是把數字再講一次 → 不再產生這種句子；
+    # 前期比較改由 prior_lines() 換算前期值放進「和前期比」
+    for x in []:
         dn = re.search(r"減|衰退|較.*少|跌|下挫", x["label"])
         lb = x["label"]
         base = ("一個月前" if re.search(r"近一?個?月", lb) else "一週前" if re.search(r"近一?[週周]|本[週周]|單[週周]|[週周][漲跌]", lb)
@@ -1148,6 +1234,8 @@ def compose(c: dict, slot: str, idx: int, day: str, style: str, names: dict) -> 
             continue                              # 看不出跟哪一期比（「營收增加近1800%」「未來2年產能較目前擴編近6倍」），不硬套「去年同期」
         updown = ("下跌" if dn else "上漲") if re.search(r"漲|跌|挫|走高|走低", x["label"]) else ("減少" if dn else "增加")
         mean.append(f"{x['label']} {_fmt_full(x)}，代表和{base}相比{updown}約 {x['value'].lstrip('+-約逾近')}{x['unit']}。")
+    for x in [x for x in shown[:5] if re.search(r"估|預期|可望|料|上看|目標", x["label"]) and not (cond and x is key)][:2]:
+        mean.append(f"{x['label']} {_fmt_full(x)} 是預估值，不是已經公布的實際數字，實際結果要等正式公布才確定。")   # 11-02：分清楚預估與實際
     if km == "價格":                              # 商品報價：單位白話（MWh、therm、桶、盎司）
         unote = next((v for k, v in UNIT_NOTE.items() if key["unit"].endswith("/" + k)), "")
         sp = lambda t: " " if re.search(r"[A-Za-z]$", t) else ""
@@ -1163,9 +1251,7 @@ def compose(c: dict, slot: str, idx: int, day: str, style: str, names: dict) -> 
             dlt = round(a1 - a0, 2)
             how = "持平" if dlt == 0 else f"{'高' if dlt > 0 else '低'} {abs(dlt):g} 個百分點"
             mean.append(f"{ps[0]['label']} {ps[0]['value']}%、{ps[1]['label']} {ps[1]['value']}%，後者比前者{how}（本站計算）。")
-    if km not in ("EPS",) and not mean:
-        mean.append(f"{key['label']} {_fmt(key)} 是這則報導的核心數字。")
-    sec_mean = "🔎 #這些數字代表什麼\n" + "".join(mean)
+    sec_mean = ("🔎 #這些數字代表什麼\n" + "".join(mean)) if mean else ""     # 沒有真的解讀就整段不出（不放「是核心數字」這種空話）
     other = []
     for n in c["group"]:
         if n is lead or n["source"] == lead["source"]:
@@ -1179,7 +1265,7 @@ def compose(c: dict, slot: str, idx: int, day: str, style: str, names: dict) -> 
     sec_watch = "👀 #接下來觀察\n" + wp
     sec_rel = rel_news(c, subj, code, names)
     tail = "以上為公開資料整理，非投資建議"
-    body = [intro, sec_num, sec_cmp] + ([sec_mean] if style != "精簡重點" else []) + ([sec_more] if sec_more else []) + ([sec_hist] if sec_hist else []) + ([sec_rel] if sec_rel else []) + [sec_watch]
+    body = [intro, sec_num] + ([sec_cmp] if sec_cmp else []) + ([sec_mean] if style != "精簡重點" and sec_mean else []) + ([sec_more] if sec_more else []) + ([sec_hist] if sec_hist else []) + ([sec_rel] if sec_rel else []) + [sec_watch]
     link_line = "👉 更多詳細資料可以點擊以下連結："
     cap_ig = "\n".join(head) + "\n" + "\n\n".join(body) + f"\n\n{tail}\n{link_line}\n{url_ig}"
     if sec_rel and len(cap_ig) > IG_MAX:          # IG 文案上限 2,200 字：放不下就拿掉相關公司這節，不擋整篇
@@ -1198,6 +1284,8 @@ def compose(c: dict, slot: str, idx: int, day: str, style: str, names: dict) -> 
              meta=dict(topic_category=c["cat"], content_type=c["ctype"], layout=LAYOUT, style=style,
                        has_ai_image="false", explore=str(bool(c.get("explore"))).lower(), heat=str(c["heat"]),
                        news_ids=",".join(n["news_id"] for n in c["group"][:8]), u_code=ucode))
+    if cond:
+        d["cond"] = cond
     bad = quality_gate(d, key)
     if bad:
         raise Skip("品質閘：" + "；".join(bad))
@@ -1223,6 +1311,17 @@ def quality_gate(d: dict, key: dict) -> list[str]:
             out.append(f"空泛句：{w}")
     if "#stock/" in d["caption_ig"] or any("#stock/" in t for t in d["caption_threads"]):
         out.append("落點不得為個股頁")
+    # 2026-11-02 CEO：同詞重複、段落照抄前段、解讀只重述數字、分類與內容不符 → 這篇不排，換下一則新聞，都不行補常備文庫（不會整段不發）
+    try:
+        import threads_lint as TL
+        cap = "\n".join(d["caption_threads"])
+        ttl = "｜".join(l.lstrip("#").strip() for l in cap.splitlines()[:2] if l.startswith("#"))   # 開頭兩行 hashtag 句＝標題
+        body_t = [l for l in cap.splitlines()[2:] if not re.fullmatch(r"\(\d+/\d+\)", l.strip())]
+        posts = [ttl, re.sub(r"(?m)^(\S{1,2}\s)#", r"\1", "\n".join(body_t))]
+        title = ttl
+        out += TL.content_issues(posts, (d.get("meta") or {}).get("topic_category", ""), title)
+    except ImportError:
+        pass
     return out
 
 
@@ -1412,10 +1511,15 @@ def to_threads_v2(d: dict, slot: str, day: str, state: dict, cover: str, card2: 
     c = d["card"]
     rows = [x for x in (c.get("numbers") or []) if str(x.get("value", "")).strip()]
     subj = c.get("subject") or (c.get("cover_title") or [""])[0] or ""
-    r0 = rows[0] if rows else {}
+    r0 = dict(rows[0]) if rows else {}
+    sj = re.sub(r"\s+", "", subj)
+    if r0 and sj and str(r0.get("label", "")).startswith(sj) and len(r0["label"]) > len(sj) + 1:
+        r0["label"] = r0["label"][len(sj):]     # 2026-11-02：「亞馬遜的亞馬遜今年資本支出」→ 鉤子的數字標籤去掉主體
     extra = dict(subj=re.sub(r"\s+", "", subj)[:10], hero=str(c.get("hero") or ""),
-                 num1=(f"{r0.get('label', '')} {r0.get('value', '')}{r0.get('unit', '')}".strip() if r0 else ""),
-                 n_nums=str(len(rows)), cat=c.get("category", ""))
+                 num1=(re.sub(r"(?<=[一-鿿]) (?=[約逾近超\d])", "", f"{r0.get('label', '')} {r0.get('value', '')}{r0.get('unit', '')}".strip()) if r0 else ""),
+                 n_nums=str(len(rows)), cat=c.get("category", ""), cond=d.get("cond", ""))
+    if d.get("evergreen"):           # 11-02：常備文庫不是新聞，「媒體標題只寫一半」「{subj}的{num1}」這類新聞鉤子會變成「一顆IC的設計 IC 設計公司」→ 用保底鉤子
+        extra.update(num1="", hero="", n_nums="0", kind_name="這篇產業知識")
     imgs = [cover, card2] if card2 else []
     v2 = V.build("article", "\n".join(d["caption_threads"]), images=imgs, url=url or d.get("link", ""), state=state, today=day,
                  extra=extra, sections=secs, title=title, legal=LEGAL_TAIL, item_max=V.HARD_MAX - 5,

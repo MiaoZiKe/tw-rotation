@@ -29,7 +29,7 @@ from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from threads_lint import BANNED, GENERIC_TAGS, HARD_MAX, MAX_THREADS, THREAD_MIN, THREAD_TARGET, clen, lint, split_tag  # noqa: E402,F401
+from threads_lint import BANNED, GENERIC_TAGS, HARD_MAX, MAX_THREADS, THREAD_MIN, THREAD_TARGET, clen, content_issues, lint, split_tag  # noqa: E402,F401
 
 TPE = timezone(timedelta(hours=8))
 COOLDOWN_DAYS = 14
@@ -116,7 +116,12 @@ HOOKS = [
     ("a_f1", "article", "反差", "好笑", "標題看起來很平淡，{subj}的{num1}卻一點都不平淡，這反差我先笑為敬！", None),
     ("a_f2", "article", "反差", "吐槽", "大家都在吵別的題目，{subj}卻默默交出{num1}，安靜的人最可怕…", None),
     ("a_f3", "article", "反差", "好笑", "以為{subj}只是例行公事，結果{num1}一攤開，連標題都要重寫！", None),
-    ("a_f4", "article", "反差", "吐槽", "說{subj}不重要的人，看到{num1}應該會想把話默默收回去…", None),
+    # a_f4 舊版「說{subj}不重要的人，看到{num1}應該會想把話默默收回去…」2026-11-02 CEO：語意牽強 → 改寫
+    ("a_f4", "article", "反差", "吐槽", "{subj}這則標題看起來很普通，真正該停下來看的是{num1}，往下滑才知道為什麼…", None),
+    # ---- 主題文章：主旨數字是有前提的推估（原文「若…才…」「恐…」）→ 鉤子一定把前提講出來（2026-11-02 CEO：鉤子要忠於原文條件）
+    ("a_c1", "article", "反差", "吐槽", "很多人只看到{num1}，卻漏看前提：{cond}，這個數字才會成立…", lambda f: f.get("cond")),
+    ("a_c2", "article", "冷知識", "好笑", "冷知識：{subj}這則的{num1}是有條件的，前提是{cond}，只看標題會誤會！", lambda f: f.get("cond")),
+    ("a_c3", "article", "對話", "吐槽", "朋友只轉了一句「{num1}」，我說先等等，報導寫的前提是{cond}…", lambda f: f.get("cond")),
     # ---- 保底（任何時段、任何資料都填得起來）----
     ("g_d1", "any", "對話", "好笑", "朋友問我{kind_name}重點能不能一句話講完，我說可以，但你一定會想看完整串！", None),
     ("g_d2", "any", "對話", "吐槽", "同事問今天{kind_name}有什麼好看，我說一言難盡，所以直接拆成一整串給他…", None),
@@ -357,8 +362,34 @@ def section_units(secs, title: str = "", target: int = THREAD_TARGET, item_max: 
         if cur.strip() and cur.strip() not in (h, cont):
             units.append(cur.strip())
     if title:
-        units.insert(0, _rewrite(_strip_tags(title)))
+        t = _rewrite(_strip_tags(title))
+        if clen(t) < THREAD_MIN and units:
+            units[0:1] = _lead_with_title(t, units[0], item_max)
+        else:
+            units.insert(0, t)
     return [u for u in units if u.strip()]
+
+
+def _lead_with_title(t: str, first: str, hard: int) -> list[str]:
+    """標題太短（<30 字）自己一則會不合規 → 跟下一段合併；合起來太長就把下一段開頭幾個子句（句號優先、再逗號）搬上來，
+    兩則都 ≥30 字、≤上限（2026-11-02：標題拿掉重複詞後變短）。"""
+    if clen(t + "\n" + first) <= hard:
+        return [t + "\n" + first]
+    if "\n" in first:
+        return [t, first]                 # 下一段是「段名＋條列」（主貼文）：不拆條列，交給 pack() 合併
+    for pat in (r"(?<=[。！？；])", r"(?<=[，、])"):
+        pieces = [x for x in re.split(pat, first) if x]
+        head, best = "", None
+        for k, pc in enumerate(pieces):
+            if clen(t + "\n" + head + pc) > hard:
+                break
+            head += pc
+            rest = "".join(pieces[k + 1:])
+            if clen(t + head) >= THREAD_MIN and clen(rest) >= THREAD_MIN:
+                best = [t + "\n" + head.strip(), rest.strip()]      # 盡量多搬（不要只搬「11/1，」）
+        if best:
+            return best
+    return [t, first]
 
 
 def pack(units: list[str], target: int = THREAD_TARGET, hard: int = HARD_MAX, min_n: int = THREAD_MIN) -> list[str]:
@@ -401,7 +432,14 @@ def sections_from_posts(posts: list[str]) -> tuple[str, list, str]:
             continue
         lines = b.splitlines()
         if not title and not secs and all(l.startswith("#") for l in lines):
-            title = "｜".join(l.lstrip("#").strip() for l in lines)
+            parts = []
+            for l in lines:
+                t = l.lstrip("#").strip()
+                w0, sp, rest = t.partition(" ")
+                if parts and sp and w0 in "".join(parts):
+                    t = rest.strip()          # 2026-11-02：「台股 融資…｜台股 今天的…」第二行開頭的分類標籤跟標題重複 → 拿掉
+                parts.append(t)
+            title = "｜".join(parts)
             continue
         if len(lines) > 1 and len(lines[0]) <= 20 and not lines[0].startswith(("▪", "・")):
             secs.append((lines[0], lines[1:]))
@@ -649,11 +687,19 @@ def build(kind: str, text: str, reply: str = "", images: list[str] | None = None
     if kind != "article":
         imgs = pick_images(kind, imgs)
 
+    cat = f.get("cat", "") if kind == "article" else ""
+    content = set(content_issues(threads, cat))      # 串文本身的問題（同詞重複、照抄前段…）換鉤子也修不好，不拿來淘汰鉤子
+
     def check(h, txt):
-        return not lint(assemble(kind, h, txt, tag, threads, rp, imgs))[0]
+        d0 = assemble(kind, h, txt, tag, threads, rp, imgs)
+        d0["category"] = cat
+        return not [e for e in lint(d0)[0] if e not in content]
 
     hook, txt, level = choose_hook(kind, f, state, today, tag, check)
     d = assemble(kind, hook, txt, tag, threads, rp, imgs, level)
+    if cat:
+        d["category"] = cat
+        d["checklist_passed"] = not lint(d)[0]
     d["images"] = imgs
     return d
 

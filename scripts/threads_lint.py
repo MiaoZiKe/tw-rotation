@@ -9,6 +9,10 @@
   5. 主文問句（「」裡的對話除外）必須具體：二選一（還是）或帶數字
   6. 圖 0 或 2 張；標籤恰 1 個、不在泛用黑名單、串文與留言不再掛標籤
   7. reply_post 恰 1 個網址
+  8.（2026-11-02 CEO：盤前主題文章「台股融資融資約4200億元」那篇的生成瑕疵）
+     同詞重複（「融資融資」「台股 台股」）、段落內容照抄前段（「和前期比」＝「重點數字」）、
+     解讀只是重述數字（「下跌逾7%，代表…下跌約7%」）、分類與內容不符（講台股融資標成美股）、
+     條件句被改寫成事實（原文「指數若跌破年線，融資恐需降至約4200億元」→ 鉤子當成已發生）
 
 用法：
   python scripts/threads_lint.py <v2 JSON 檔 | manifest.json | queue .md> [...]
@@ -52,6 +56,143 @@ def split_tag(main: str) -> tuple[str, list[str]]:
 def first_sentence(s: str) -> str:
     s = re.sub(r"「[^」]*」", lambda m: m.group(0).replace("。", "").replace("！", "").replace("？", ""), s)
     return re.split(r"[。！？!?…\n]", s, maxsplit=1)[0]
+
+
+# ---------------- 8. 內容品質（2026-11-02 CEO） ----------------
+REPEAT_OK = {"一點", "一步", "一檔", "一個", "一家", "一天", "一季", "一年", "一月", "哈哈", "呵呵", "很長", "很多", "好多", "好久", "一再",
+             "一次", "一波", "一層", "不斷", "越來"}       # 口語疊用（「很長很長」「一波一波」）不算重複
+REPEAT_RE = re.compile(r"([一-鿿A-Za-z]{2,6})[\s　：:的]*\1")      # 「融資融資」「台股 台股」「亞馬遜的亞馬遜」
+
+
+def dup_words(text: str) -> list[str]:
+    """相鄰重複的詞（「融資融資」「台股 台股」）；「一點一點」這種疊字不算。"""
+    out = []
+    for line in (text or "").splitlines():
+        line = re.sub(r"https?://\S+|www\.\S+", "", line)
+        for m in REPEAT_RE.finditer(line):
+            w = m.group(1)
+            if w in REPEAT_OK or not re.search(r"[一-鿿]", w):
+                continue
+            if re.search(r"[：:]", m.group(0)) and len(line) > 40:
+                continue          # 內文的「美國非農就業：非農就業反映…」是先點名再解釋；標題行（短）才算重複
+            out.append(m.group(0))
+    return list(dict.fromkeys(out))
+
+
+def _norm_line(s: str) -> str:
+    s = re.sub(r"（[^）]*(報導|來源|換算|計算|摘述)[^）]*）", "", s)
+    return re.sub(r"[^一-鿿A-Za-z0-9.%]", "", s)
+
+
+HEAD_LINE = re.compile(r"^\S{1,2}\s*#?[^\s▪・]{2,14}$")      # 「📊 重點數字」這種段名行
+
+
+def dup_lines(posts: list[str]) -> list[str]:
+    """後面段落照抄前面段落的內容（整行一樣），或解讀句只是把前面的數字再講一次（「X，代表…」的 X 前面已經列過）。
+    第一則的第一行是標題，標題跟「重點數字」第一條同一個數字是正常的，不算照抄。"""
+    seen: set[str] = set()
+    out = []
+    for pi, t in enumerate(posts):
+        for li, raw in enumerate((t or "").splitlines()):
+            if pi == 0 and li == 0:
+                continue
+            line = raw.strip().lstrip("▪・").strip()
+            if not line or HEAD_LINE.match(raw.strip()):
+                continue
+            for sent in re.split(r"(?<=。)", line):
+                n = _norm_line(sent)
+                if len(n) < 6:
+                    continue
+                if n in seen:
+                    out.append(f"照抄前段：{sent.strip()[:40]}")
+                    continue
+                if "代表" in sent:
+                    a, b = sent.split("代表", 1)
+                    pre = _norm_line(a)
+                    nums = NUM_RE.findall(a)
+                    same = bool(nums) and all(re.search(r"(?<![\d.])" + re.escape(re.sub(r"\.0+$", "", v)) + r"(?![\d])", b) for v in nums)
+                    if len(pre) >= 6 and pre in seen and same and re.search(r"相比|較|增加|減少|上漲|下跌|成長|衰退", b):
+                        out.append(f"解讀只是重述數字：{sent.strip()[:40]}")
+                seen.add(n)
+    return out
+
+
+CAT_KW = {
+    "台股": r"台股|加權指數|加權|大盤|上市櫃|集中市場|櫃買|融資|融券|三大法人|台指期|年線|半年線|季線|月線",
+    "美股": r"美股|道瓊|那斯達克|標普|費半|費城半導體|S&P|Nasdaq|輝達|NVIDIA|微軟|蘋果|Apple|Alphabet|Google|Meta|亞馬遜|特斯拉|博通|超微|AMD|甲骨文|美國",
+}
+
+
+def cat_mismatch(cat: str, title: str, body: str = "") -> str:
+    """分類（topic_category）跟內容對不起來：只比台股／美股這組最容易混的。標題有判定力就看標題，標題都沒有再看導言多數。"""
+    if cat not in CAT_KW:
+        return ""
+    other = "美股" if cat == "台股" else "台股"
+    t_self, t_other = len(re.findall(CAT_KW[cat], title or "")), len(re.findall(CAT_KW[other], title or ""))
+    if t_self == 0 and t_other > 0:
+        return f"分類「{cat}」但標題講的是{other}：{(title or '')[:30]}"
+    if t_self == 0 and t_other == 0 and body:
+        b_self, b_other = len(re.findall(CAT_KW[cat], body)), len(re.findall(CAT_KW[other], body))
+        if b_other >= b_self + 2:
+            return f"分類「{cat}」但內容多在講{other}（{b_other} 比 {b_self}）"
+    return ""
+
+
+COND_W = r"若|如果|一旦|假如|萬一|倘若|假設"
+COND_RESULT = r"恐|才|將|會|需|可能|就|降至|升至|上看|下看"
+SPEC_W = r"恐|可能|預估|估計|估|可望|或將|有望|預期|料將|上看"
+HEDGE_COND = r"若|如果|一旦|假如|萬一|倘若|假設|前提|條件|情境|推估"
+HEDGE_SPEC = HEDGE_COND + "|" + SPEC_W
+NUM_RE = re.compile(r"\d[\d,]*(?:\.\d+)?")
+
+
+def _nkey(v: str) -> str:
+    return v.replace(",", "")
+
+
+def conditional_numbers(text: str) -> dict[str, str]:
+    """{數字: "cond"／"spec"}：數字所在子句前面（同一句）有「若／如果／一旦…」→ cond；子句本身有「恐／可能／預估…」→ spec。"""
+    out: dict[str, str] = {}
+    for sent in re.split(r"[。！？\n；]", text or ""):
+        prev_cond = False
+        for cl in re.split(r"[，,]", sent):
+            here = bool(re.search(COND_W, cl))
+            cond = (here or prev_cond) and bool(re.search(COND_RESULT, cl) or here)   # 條件只管同一子句與緊接的「結果」子句
+            prev_cond = here
+            kind = "cond" if cond else ("spec" if re.search(SPEC_W, cl) else "")
+            if not kind:
+                continue
+            for v in NUM_RE.findall(cl):
+                if len(_nkey(v)) >= 2 and out.get(_nkey(v)) != "cond":
+                    out[_nkey(v)] = kind
+    return out
+
+
+def cond_as_fact(main: str, source: str) -> list[str]:
+    """主文用了原文裡「有條件／推估」的數字，卻沒帶出條件或推估語氣 → 把條件句改寫成事實。"""
+    cn = conditional_numbers(source)
+    body = split_tag(main)[0]
+    out = []
+    for v in NUM_RE.findall(body):
+        k = cn.get(_nkey(v))
+        if k == "cond" and not re.search(HEDGE_COND, body):
+            out.append(f"主文把條件句寫成事實：原文 {v} 有前提條件（若／一旦…），主文沒寫")
+        elif k == "spec" and not re.search(HEDGE_SPEC, body):
+            out.append(f"主文把推估寫成事實：原文 {v} 是推估（恐／預估…），主文沒寫")
+    return out
+
+
+def content_issues(posts: list[str], category: str = "", title: str = "") -> list[str]:
+    """串文內容檢查（主題文章產稿的品質閘也用這支）：同詞重複、照抄前段、解讀只重述、分類不符。"""
+    err = [f"同詞重複「{w}」" for w in dup_words("\n".join(posts))]
+    err += dup_lines(posts)
+    if category:
+        first = title or ((posts[0].splitlines() or [""])[0] if posts else "")
+        first = re.split(r"[｜|]", first, maxsplit=1)[0]          # 「｜」後面是分類標籤＋小問句，不算標題內容
+        c = cat_mismatch(category, first, "\n".join(posts[:2]))
+        if c:
+            err.append(c)
+    return err
 
 
 def lint(p: dict) -> tuple[list[str], list[str]]:
@@ -121,6 +262,10 @@ def lint(p: dict) -> tuple[list[str], list[str]]:
         err.append(f"tag 欄位「{tag}」跟主文標籤「{tags[0]}」不一致")
     if tag and (len(tag) > 50 or re.search(r"[.&\s]", tag)):
         err.append(f"標籤格式不合（≤50 字、不含 . & 空白）：{tag}")
+    # 8. 內容品質（2026-11-02）：主文同詞重複、條件句改寫成事實；串文同詞重複／照抄前段／解讀只重述／分類不符
+    err += [f"主文同詞重複「{w}」" for w in dup_words(body)]
+    err += cond_as_fact(main, "\n".join(p.get("thread_posts") or []))
+    err += content_issues(p.get("thread_posts") or [], p.get("category") or p.get("topic_category") or "")
     return err, warn
 
 
@@ -140,7 +285,7 @@ def _load(path: Path) -> list[tuple[str, dict]]:
         imgs = [x for x in re.split(r"[\s,]+", meta.get("images", "")) if x]
         return [(path.name, dict(hook_type=meta.get("hook_type"), emotion=meta.get("emotion"), main_post=posts[0] if posts else "",
                                  thread_posts=posts[1:-1], reply_post=posts[-1] if len(posts) > 1 else "",
-                                 image_count=len(imgs), tag=meta.get("tag", "")))]
+                                 image_count=len(imgs), tag=meta.get("tag", ""), category=meta.get("topic_category", "")))]
     d = json.loads(txt)
     if "threads" in d and isinstance(d["threads"], dict):
         v2 = d["threads"].get("v2")
