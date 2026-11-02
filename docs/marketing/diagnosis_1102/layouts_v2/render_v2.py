@@ -328,7 +328,7 @@ T2B = dict(key="2B", no=2, name="午夜香檳", dark=True, bg="#0D1B2A", band="#
 T2C = dict(key="2C", no=3, name="瑞士極簡", dark=False, bg="#FFFFFF", band="#FFFFFF", bandtx="#111111", rule="#111111",
            ink="#111111", ink2="#333333", ink3="#595959", line="#CFCFCF", panel="#FFFFFF", panel2="#EFEFEF",
            acc="#D4231A", accdeep="#C0190F", acctint="#FFFFFF", onacc="#FFFFFF", good="#EDEDED", goodbd="#BDBDBD", bad="#D4231A", zebra=False,
-           x=""".top{height:104px;border-bottom:4px solid #111}.top .t{color:#595959}.top .b{letter-spacing:.02em}
+           x=""".top{height:128px;border-bottom:4px solid #111}.top .t{color:#595959}.top .b{letter-spacing:.02em}
 .tag{background:none!important;border:2px solid #111;color:#111!important;border-radius:0}.tag.g{border-color:#BDBDBD;color:#595959!important}
 .ph{border:none;border-bottom:4px solid #D4231A;background:none;border-radius:0;color:#111;padding:0 4px}
 .box{border:none;border-top:3px solid #111;border-radius:0;background:#fff}
@@ -342,7 +342,7 @@ T2D = dict(key="2D", no=4, name="電光深灰", dark=True, bg="#0A0B0E", band="#
            ink="#F5F7FA", ink2="#C5CBD5", ink3="#8E97A6", line="#272B33", panel="#14161B", panel2="#1C1F26",
            acc="#2F6BFF", accdeep="#7FA6FF", acctint="#101A33", onacc="#FFFFFF", good="#1C1F26", goodbd="#3A404B", bad="#3D7BFF", zebra=False,
            x="""body{background-image:radial-gradient(900px 520px at 88% -6%,rgba(47,107,255,.30),transparent 62%),radial-gradient(700px 420px at -10% 108%,rgba(47,107,255,.14),transparent 60%)}
-.top{background:transparent!important;height:112px;border-bottom:1px solid #272B33}
+.top{background:transparent!important;height:128px;border-bottom:1px solid #272B33}
 .tag{border-radius:999px;background:#101A33;color:#8FB3FF!important;border:1px solid #2F6BFF}.tag.g{background:#1C1F26;color:#C5CBD5!important;border:1px solid #333843}
 .ph{border:1.5px solid #2F6BFF;background:#101A33;border-radius:999px;color:#9DBBFF;padding:2px 18px}
 .box{border-radius:24px;border:1px solid #2A2E37;background:#14161B}
@@ -367,7 +367,7 @@ T2E = dict(key="2E", no=5, name="墨綠研究", dark=False, bg="#F7F5EE", band="
 T2F = dict(key="2F", no=6, name="終端琥珀", dark=True, bg="#000000", band="#000000", bandtx="#FFFFFF", rule="#FF8A00",
            ink="#FFFFFF", ink2="#E0E0E0", ink3="#A6A6A6", line="#3A3A3A", panel="#0D0D0D", panel2="#1A1A1A",
            acc="#FF8A00", accdeep="#FF9F2E", acctint="#1F1200", onacc="#000000", good="#1A1A1A", goodbd="#555555", bad="#FF8A00", zebra=True,
-           x=""".top{height:104px;border-bottom:4px solid #FF8A00}.top .b{color:#FF9F2E}
+           x=""".top{height:128px;border-bottom:4px solid #FF8A00}.top .b{color:#FF9F2E}
 .n,.mono{font-family:'JetBrains Mono','Noto Sans TC',monospace!important;letter-spacing:-.02em}
 .tag{background:#FF8A00!important;color:#000!important;border-radius:0}.tag.g{background:#262626!important;color:#E0E0E0!important}
 .ph{border:1px solid #FF8A00;background:#1F1200;border-radius:0;color:#FF9F2E;font-family:'JetBrains Mono','Noto Sans TC',monospace}
