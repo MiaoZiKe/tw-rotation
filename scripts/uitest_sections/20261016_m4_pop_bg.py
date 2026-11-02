@@ -61,6 +61,19 @@ M4POP_JS = r"""() => {
     const near = (x, y) => AV.some(r => x > r.left - 24 && x < r.right + 24 && y > r.top - 24 && y < r.bottom + 24);
     const hard = (x, y) => { const e = document.elementFromPoint(x, y); return !e || !!e.closest(INT) || open.some(o => o.contains(e) && !/back/i.test(o.id + o.className)); };
     const bad = (x, y) => near(x, y) || hard(x, y);
+    /* ★ 2026-11-02 修腳本（不是網站的錯）：「?」彈窗開著時，#howBack 半透明背景蓋滿整個畫面，底下的鈕與連結手指根本碰不到，
+       可是上面 AV（±24px 避開名單）仍把「背景底下」的每一顆鈕都算進去 —— 輪動時鐘／熱力圖／產業地圖首頁底下按鈕又多又密，
+       畫面上每一個點都落在某顆底下的鈕 ±24px 內，於是 bg() 回傳 null、判成「找不到可以點的背景」。
+       人工複驗（390，三頁各一次手指點 #howBack）：點下去都關得掉。所以背景開著時直接找「手指落下去就是背景本人（elementFromPoint 命中 #howBack／#mSheetBack）」的點，
+       只避開開它的那顆鈕（±24px，原因同上面 ①）。 */
+    const bk = ['howBack', 'mSheetBack'].map(id => document.getElementById(id)).find(e => e && vis(e));
+    if (bk) {
+      const opener = [...document.querySelectorAll('[data-m4pop], .howbtn.on')].filter(vis).map(e => e.getBoundingClientRect());
+      const nearOpener = (x, y) => opener.some(r => x > r.left - 24 && x < r.right + 24 && y > r.top - 24 && y < r.bottom + 24);
+      const onBk = (x, y) => document.elementFromPoint(x, y) === bk && !nearOpener(x, y);
+      for (let y = H * 0.12; y < H * 0.95; y += 13) for (let x = 12; x < W - 12; x += 17)
+        if (onBk(x, y) && onBk(x - 10, y) && onBk(x + 10, y) && onBk(x, y - 10) && onBk(x, y + 10)) return [x, y, bk.id];
+    }
     for (let y = H * 0.18; y < H * 0.88; y += 19) for (let x = 14; x < W - 14; x += 23)
       if (!bad(x, y) && !bad(x - 22, y) && !bad(x + 22, y) && !bad(x, y - 22) && !bad(x, y + 22)) { const e = document.elementFromPoint(x, y); return [x, y, e.id || String(e.className).slice(0, 24)]; }
     // 整片都是圖／清單（例：430 輪動時鐘開著成分股清單）→ 鄰近範圍放寬到 10px 再找一次

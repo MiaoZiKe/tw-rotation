@@ -3790,6 +3790,74 @@
     }
   }
   let m4OpenSeg = null;   // 手機 v2 關聯圖：目前展開的那一格（一次一格）
+  /* ★ 2026-11-02 手機關聯圖導覽（見 drawChainMap 的呼叫處）。host 是會捲動的 #chainMap，導覽列是它前面的兄弟 .relmini。 */
+  function m4MapNav(host, g) {
+    const svg = host.querySelector('svg'); if (!svg || !g.W) return;
+    const mini = (() => { let e = host.previousElementSibling; if (e && e.classList && e.classList.contains('relmini')) return e;
+      e = document.createElement('div'); e.className = 'relmini'; host.parentNode.insertBefore(e, host); return e; })();
+    const cw0 = host.clientWidth || (window.innerWidth - 40);
+    const kMin = Math.min(1, Math.max(0.25, cw0 / g.W));
+    const clampK = (k) => Math.min(1.6, Math.max(kMin, k));
+    let k = clampK(host._rgk || 1);
+    const apply = (nk, cx) => {
+      const old = k, sl = host.scrollLeft, st = host.scrollTop;
+      k = clampK(nk); host._rgk = k;
+      const ww = Math.round(g.W * k);
+      svg.style.width = ww + 'px'; svg.style.minWidth = ww + 'px';
+      const f = cx == null ? 0 : (sl + cx) / (g.W * old);
+      host.scrollLeft = cx == null ? sl * (k / old) : Math.max(0, f * g.W * k - cx);
+      host.scrollTop = st * (k / old);
+      sync();
+    };
+    const colOf = (i) => (g.padX + i * (g.colW + g.colGap)) * k;
+    const sync = () => {
+      const over = host.scrollWidth - host.clientWidth > 4;
+      host.classList.toggle('rgL', over && host.scrollLeft > 4);
+      host.classList.toggle('rgR', over && host.scrollLeft + host.clientWidth < host.scrollWidth - 4);
+      mini.hidden = !over && k >= 0.999;
+      const l = host.scrollLeft, r = l + host.clientWidth; let a = -1, z = -1;
+      mini.querySelectorAll('.rgc').forEach((c, i) => { const x0 = colOf(i), x1 = x0 + g.colW * k, vis = Math.min(r, x1) - Math.max(l, x0) > g.colW * k * 0.4;
+        c.classList.toggle('on', vis); if (vis) { if (a < 0) a = i; z = i; } });
+      const t = mini.querySelector('.rgt'); if (t) t.textContent = a < 0 ? '' : (a === z ? `第 ${a + 1} 欄` : `第 ${a + 1}–${z + 1} 欄`) + `／共 ${g.cols} 欄（左上游→右下游）`;
+      const L = mini.querySelector('.rgp[data-d="-1"]'), R = mini.querySelector('.rgp[data-d="1"]');
+      if (L) L.disabled = !(host.scrollLeft > 4); if (R) R.disabled = !(host.scrollLeft + host.clientWidth < host.scrollWidth - 4);
+      const z1 = mini.querySelector('.rgz'); if (z1) { z1.textContent = k < 0.999 ? '回到 100%' : '全景'; z1.setAttribute('aria-pressed', k < 0.999 ? 'true' : 'false'); }
+    };
+    host._rgSync = sync;
+    mini.hidden = false;
+    mini.innerHTML = `<div class="rgrow"><span class="rgt" aria-live="polite"></span><button type="button" class="rgz" title="縮到整張一屏寬／回到原大小（也可以雙指縮放）">全景</button></div>`
+      + `<div class="rgrow"><button type="button" class="rgp" data-d="-1" aria-label="往上游（左）捲一頁">‹</button>`
+      + `<div class="rgcs" role="group" aria-label="關聯圖欄位（左上游、右下游）">${Array.from({ length: g.cols }, (_, i) => `<button type="button" class="rgc" data-i="${i}" aria-label="捲到第 ${i + 1} 欄">${i + 1}</button>`).join('')}</div>`
+      + `<button type="button" class="rgp" data-d="1" aria-label="往下游（右）捲一頁">›</button></div>`;
+    if (!mini._rgW) {
+      mini._rgW = 1;
+      mini.addEventListener('click', (e) => {
+        const t = e.target.closest && e.target.closest('button'); if (!t || !mini.contains(t)) return;
+        const hh = mini.nextElementSibling; if (!hh) return;
+        if (t.classList.contains('rgc')) { const i = +t.dataset.i, f = hh._rgCol; if (f) hh.scrollTo({ left: Math.max(0, f(i) - 8), behavior: 'smooth' }); }
+        else if (t.classList.contains('rgp')) hh.scrollBy({ left: +t.dataset.d * hh.clientWidth * 0.8, behavior: 'smooth' });
+        else if (t.classList.contains('rgz') && hh._rgApply) { const kk = hh._rgK(); hh._rgApply(kk < 0.999 ? 1 : 0, null); }
+      });
+    }
+    host._rgCol = colOf; host._rgApply = apply; host._rgK = () => k;
+    if (!host._rgWired) {
+      host._rgWired = 1;
+      host.addEventListener('scroll', () => host._rgSync && host._rgSync(), { passive: true });
+      let d0 = 0, k0 = 1;
+      const dist = (t) => Math.hypot(t[0].clientX - t[1].clientX, t[0].clientY - t[1].clientY);
+      host.addEventListener('touchstart', (e) => { if (e.touches.length === 2) { d0 = dist(e.touches); k0 = host._rgK ? host._rgK() : 1; } }, { passive: true });
+      host.addEventListener('touchmove', (e) => {
+        if (e.touches.length !== 2 || !d0 || !host._rgApply) return;
+        e.preventDefault();
+        const cx = (e.touches[0].clientX + e.touches[1].clientX) / 2 - host.getBoundingClientRect().left;
+        host._rgApply(k0 * dist(e.touches) / d0, cx);
+      }, { passive: false });
+      host.addEventListener('touchend', (e) => { if (e.touches.length < 2) d0 = 0; }, { passive: true });
+    }
+    if (host._rgk && Math.abs(host._rgk - 1) > 0.001) { const ww = Math.round(g.W * k); svg.style.width = ww + 'px'; svg.style.minWidth = ww + 'px'; }
+    sync();
+  }
+
   function drawChainMap(host, sc, chainId, im, handlers) {
     sc = scFor(sc, chainId);
     if (!host) return;
@@ -4135,6 +4203,11 @@
     host.innerHTML = `${empty}${foldBar}<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;${vert ? '' : `min-width:${M4c ? W : Math.min(W, 860)}px;`}display:block"${vert ? ' data-vert="1"' : ''}>${defs}${nodes}<g class="elayer">${edges}</g></svg>`;
     markFit(host, fit);
     paintRelFocus(host, focus, cos);
+    /* ★ 2026-11-02（Andy：手機產業地圖「確保每個功能每個按鈕都被使用過」→ 關聯圖在 390 寬被切、只能左右拖、沒有提示）：
+       只在手機（html.m4）。圖仍是水平排（Andy 10-08 晚拍板，不再改上下排）、字級不縮；補三樣「看得到、不必猜」的東西：
+       ① 圖上方一條欄位導覽（第 N 欄＝一顆鈕，亮的是現在看得到的欄，點了捲過去，兩端 ‹ › 是翻頁鈕）；
+       ② 圖左右邊緣淡出（還有東西的那一側）；③ 雙指縮放 ＋「全景」鈕（縮到整張一屏寬、再按回 100%）。桌機這一行 M4c 為 false，整段不執行。 */
+    if (M4c) m4MapNav(host, { W, H, cols: layerCols, colW, colGap, padX });
     /* ★ 2026-09-23 C5 優化：hover 一張卡，**線與另一端的公司卡一起提亮**。
        舊版只提亮線 —— 線一多（半導體鏈 140 條）就看不出那條線通到誰，
        使用者還要自己用眼睛沿著線找過去，那正是「看不懂」的典型形態。
