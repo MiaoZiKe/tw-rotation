@@ -974,7 +974,10 @@ def history(subj: str, before: datetime, n: int = 2, names: dict | None = None) 
         for h in cl:
             for y in numbers_of(h):
                 lab = y["label"][len(subj):] if y["label"].startswith(subj) else y["label"]      # 「威剛威剛 157.3 億元」→ 標籤只剩主體的不收
-                if clean_ok(lab) and not re.search(JUNK, lab) and len(re.findall(r"[一-鿿]", lab)) >= 2:
+                lab = lab.replace("新台幣", "")
+                if len(re.findall(r"[一-鿿]", lab)) > 10:
+                    continue          # 標籤太長（「外資及陸資轉買超台股」）接上數字就是原文半句，不收
+                if clean_ok(lab) and not re.search(JUNK, lab) and len(re.findall(r"[一-鿿]", lab)) >= 2 and _ml(subj, lab):
                     facts.append(f"{lab} {_fmt(y)}")
         facts = list(dict.fromkeys(facts))[:2]
         k = "".join(facts)
@@ -1175,11 +1178,12 @@ def compose(c: dict, slot: str, idx: int, day: str, style: str, names: dict) -> 
     rel = [x for x in rel if not (x["unit"] == key["unit"] and kv and _f(x["value"]) and abs(_f(x["value"]) - kv) <= kv * 0.01)]
     _seen = {(key["value"], key["unit"])}
     rel = [x for x in rel if not ((x["value"], x["unit"]) in _seen or _seen.add((x["value"], x["unit"])))]   # 同一個數字只列一次（「較前一交易日上漲 939.35」「上漲 939.35」）
+    rel = [x for x in rel if _ml(subj, x["label"])]       # 11-02 CEO：數字要帶著意義（「使用率 5%」這種看不出是什麼的不放）
     rows = [key] + rel[:2]
     if len(rows) < 2:
         raise Skip("圖卡資訊列不足 2 列（與主旨相關的數字太少）")
     _cs = set()
-    comps = [x for x in nums if x["growth"] and not ((x["value"], x["unit"]) in _cs or _cs.add((x["value"], x["unit"])))]
+    comps = [x for x in nums if x["growth"] and _ml(subj, x["label"]) and not ((x["value"], x["unit"]) in _cs or _cs.add((x["value"], x["unit"])))]
     hi = re.search(r"[^，。]*(新高|新低|首度|首次|上修|下修|連續第?[\d一二三四五六七八九十]+[次度個])[^，。]*", c["text"])
     if not comps and not hi:
         raise Skip("沒有與前期的比較數字（季增／年增／前高）")
@@ -1212,7 +1216,8 @@ def compose(c: dict, slot: str, idx: int, day: str, style: str, names: dict) -> 
     # 2026-11-02 法遵（數字照用、句子自己寫；diagnosis_1102/legal_tech_transparency.md 6-2）：導言不再貼媒體摘要第一句、
     # 不再標「報導摘述」→ 本站固定句型（主體＋代號＋期間＋事件＋主旨數字），下一行出處「資料：公司公告／〇〇報導」
     intro = fact_intro(md, subj, code, l1, rows, c, srcname)
-    shown = [x for x in nums if (x["metric"] or x["growth"]) and len(x["label"]) >= 2 and not re.match(r"[含約共逾近]", x["label"])]
+    shown = [x for x in nums if (x["metric"] or x["growth"]) and len(x["label"]) >= 2 and not re.match(r"[含約共逾近]", x["label"])
+             and (x is key or _ml(subj, x["label"]))]
     nolead = lambda lb: lb[len(subj):] if lb.startswith(subj) and len(re.findall(r"[一-鿿]", lb[len(subj):])) >= 2 else lb   # 11-02：主體已在標題與導言
     sec_num = "📊 #重點數字\n" + "\n".join(f"▪ {nolead(x['label'])} {_fmt_full(x)}{cite(x)}" for x in shown[:5])
     # 2026-11-02 CEO：「和前期比」兩條跟「重點數字」照抄同一個數字 → 只放重點數字沒列過的比較、本站換算的前期值、報導寫的新高／首度；
@@ -1315,6 +1320,15 @@ def compose(c: dict, slot: str, idx: int, day: str, style: str, names: dict) -> 
     if bad:
         raise Skip("品質閘：" + "；".join(bad))
     return d
+
+
+def _ml(subj: str, lab: str) -> bool:
+    """數字標籤看得出意義（2026-11-02 CEO 退件：「使用率 5%」「擬參與 1,850 億美元」看不懂）；主體已知時把主體加回去再判斷。"""
+    try:
+        import news_facts as NF
+    except ImportError:
+        return True
+    return NF.meaningful_label(lab if not subj or lab.startswith(subj) else subj + lab)
 
 
 def fact_intro(md: str, subj: str, code: str, l1: str, rows: list[dict], c: dict, srcname: str) -> str:

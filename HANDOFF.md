@@ -2,7 +2,8 @@
 
 ## 2026-11-02 新聞句子不照抄（法遵 diagnosis_1102/legal_tech_transparency.md 6-2；分支 `fix/news-no-verbatim`，**等 CEO 審過才推 main**；最後更新 11-02 12:20 台北）
 - 改產生器：主題文章導言改本站句型＋「資料：公司公告／〇〇報導」、拿掉「報導摘述」；其他媒體／之前的報導只取數字；盤前今日焦點、盤中盤後新聞焦點、盤前昨日事件卡的描述改新聞數字；`threads_lint` 加「與原文連續 ≥15 個中文字相同」檢查（品質閘擋下換下一則／常備文庫）。細節 `auto_post.md` 修改紀錄 11-02「新聞句子不照抄」。
-- 這批只驗：`pytest tests/test_social_news.py tests/test_social_threads_v2.py tests/test_threads_post.py tests/test_social_publish.py tests/test_premarket_news.py tests/test_postmarket_news.py tests/test_social_live_news.py tests/test_social_premarket.py`＋`-k "social or threads or ig_post or news or premarket or postmarket"`；近 5 天 175 群新聞只產生不發：可發 74→79、照抄 74→0、lint 0 錯。沒動 site/**。
+- 這批只驗：`pytest tests/test_social_news.py tests/test_social_threads_v2.py tests/test_threads_post.py tests/test_social_publish.py tests/test_premarket_news.py tests/test_postmarket_news.py tests/test_social_live_news.py tests/test_social_premarket.py`＋`-k "social or threads or ig_post or news or premarket or postmarket"`；近 5 天 175 群新聞只產生不發：可發 74→78、照抄 74→0、lint 0 錯；11-02 盤前卡實際渲染（重疊 0 筆）5 條逐條目視看得懂。沒動 site/**。
+- CEO 退件補：短標題必須「主體＋事件動作」、描述數字必須帶意義（`news_facts.has_action`／`meaningful_label`）。
 - 沒改（另案）：網站「精選文章 → 盤前／盤後消息」頁仍存媒體原標題＋摘要（`pipeline/premarket_news.py`、`postmarket_news.py` 的 desc），要不要一起改請法遵判斷。
 
 ## 2026-11-02 Threads 濃縮到主文（Andy：「這頁不需要 都濃縮到第一頁，另外下面留言太多了 盡可能都是在主業面就好」；最後更新 11-02 台北）

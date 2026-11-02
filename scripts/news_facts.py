@@ -33,6 +33,62 @@ def cjk_len(s: str) -> int:
     return len(CJK.findall(s or ""))
 
 
+# 2026-11-02 CEO 退件（盤前卡「OpenAI奧特曼／使用率 5%」「Google／擬參與 1,850 億美元」看不懂發生什麼事）：
+#   短標題必須是「主體＋事件動作」（「超微單日重挫11%」），只有主體名一律不收；
+#   描述的數字必須帶著意義（「XX 營收 YY 億元」），「使用率 5%」「擬參與 1,850 億美元」這種脫離脈絡的數字片語不放。
+ACTION = re.compile(
+    r"漲|跌|挫|崩|飆|暴|彈|揚|走高|走低|收高|收低|拉抬|升|降|增|減|創|破|突破|擴|砸|投資|收購|併購|合併|入股|出售|發表|推出|展示|亮相|登場|公布|宣布|發布|上修|下修|"
+    r"調升|調降|調漲|上調|下調|漲價|降價|加徵|課徵|禁|限|暫停|停|恢復|追回|簽|合作|攜手|結盟|聯手|拿下|贏得|獲|接單|出貨|量產|"
+    r"擴產|建廠|設廠|裁員|請辭|辭職|卸任|接任|上任|上市|上櫃|掛牌|IPO|申請|募資|融資|發債|財報|營收|獲利|虧損|賺|賠|法說|股利|配息|除息|"
+    r"降息|升息|利率|通膨|關稅|制裁|管制|罷工|遭駭|竊|事件|需求|報價|成長|衰退|新高|新低|上路|生效|啟動|鎖定|擬|布局|轉型|搶|"
+    r"警告|示警|看好|看淡|預估|上看|喊|回應|澄清|否認|批准|核准|通過|否決|起訴|調查|罰|大選|選舉|失守|站上|站回|收復|翻紅|翻黑|"
+    r"買|賣|買超|賣超|加碼|減碼|釋出|開出|交貨|供貨|缺貨|斷貨|延後|提前|取消|退出|進軍|跨足|切入|打入|開發|研發|導入|採用|訂購|下單")
+# 有意義的數字標籤：財報／市場指標（metric_of）或可量測的名詞；否則要寫出是誰（標籤裡有公司／機構／指數名稱）的什麼動作
+MEAS = re.compile(r"銷量|銷售|產能|產量|估值|市占|價格|報價|成本|規模|需求|出口|進口|金額|預算|罰款|薪資|人數|用戶|庫存|稅|利潤|現金流|"
+                  r"支出|投資額|交易額|交易量|成交量|持股|股價|匯率|殖利率|指數|油價|金價|房價|物價|訂單|合約|營業額|業績")
+
+
+_ALIAS = None
+
+
+def _who_in(s: str) -> str:
+    """s 裡寫到的主體：只認名單上的（台股簡稱、外國公司／機構名單、央行、商品）與英文專有名詞（Google、OpenAI），
+    不用「開頭兩三個字接動詞」那種猜法（會把「估本季再成長」的「估本季」當主體）。沒有回空字串。"""
+    import social_news as S
+    global _ALIAS
+    if _ALIAS is None:
+        _ALIAS = sorted(set(S._alias(_names())) | set(S.ENT) | set(S.INST), key=len, reverse=True)
+    for v in _ALIAS:
+        if len(v) >= 2 and v in s:
+            return v
+    m = re.search(S.BANKS, s) or re.search(S.COMMOD, s)
+    if m:
+        return m.group(0)
+    for m in re.finditer(r"(?<![A-Za-z])([A-Z][A-Za-z0-9&.]{1,20})(?![A-Za-z])", s):
+        if m.group(1) not in S.ENG_STOP:
+            return m.group(1)
+    return ""
+
+
+def has_action(short: str) -> bool:
+    """短標題是「主體＋事件動作」：拿掉主體名與英數字後，還要有一個事件動作字（漲跌、公布、收購、財報…）。
+    「OpenAI奧特曼」「Google」這種只有名字的不算。"""
+    w = _who_in(short)
+    rest = short.replace(w, "") if w else short
+    rest = re.sub(r"[A-Za-z0-9.,%\s]+", "", rest)
+    return bool(ACTION.search(rest))
+
+
+def meaningful_label(lab: str) -> bool:
+    """數字標籤看得出意義：是財報／市場指標或可量測的名詞（營收、銷量、市值…），或寫了「主體＋動作」（「英特爾崩」）。
+    「使用率」「擬參與」這種看不出是誰的什麼 → False。"""
+    import social_news as S
+    if S.metric_of(lab) or MEAS.search(lab):
+        return True
+    w = _who_in(lab)
+    return bool(w) and cjk_len(lab.replace(w, "")) >= 1 and bool(ACTION.search(lab.replace(w, "")) or re.search(S.GROWTH, lab))
+
+
 _NAMES = None
 
 
@@ -69,11 +125,19 @@ def _num_items(title: str, summary: str, subj: str, skip: str = "", k: int = 2) 
         v = re.sub(r"[^\d.]", "", x["value"])
         if not v or re.search(r"(?<![\d.])" + re.escape(v) + r"(?![\d])", sk):
             continue
+        try:                       # 短標題已寫的數字換個寫法（標題「8836億美元」、內文「8835.81 億美元」）也算重複，不再列一次
+            fv = float(v)
+            if any(abs(fv - float(w)) <= max(abs(float(w)) * 0.01, 1e-9) for w in re.findall(r"\d+(?:\.\d+)?", sk)):
+                continue
+        except ValueError:
+            pass
         lab = x["label"]
         if subj and lab.startswith(subj) and len(lab) > len(subj) + 1:
             lab = lab[len(subj):]
         lab = LAB_HEAD.sub("", lab).strip(" 的")
         if cjk_len(lab) < 2 or re.search(r"\d", lab) and cjk_len(lab) < 3 or VERB_ONLY.match(lab):
+            continue
+        if not meaningful_label(lab if not subj else subj + lab):      # 主體在短標題，標籤加回主體再判斷（「營收」→「三星營收」）
             continue
         sep = "" if x["unit"] == "%" else " "
         out.append(f"{lab} {x['value']}{sep}{x['unit']}")
@@ -89,7 +153,8 @@ def fact_parts(title: str, summary: str = "", short: str = "", codes: str = "", 
     """(短標題, 一句描述)，不放任何媒體摘要句子：
     短標題＝呼叫端從標題取的第一個短句（short），但中文字 ≥ 15 個就不用，改成「主體（＋財報／營收／法說會）」；
     描述＝新聞裡的數字，用本站格式「標籤 數字單位」，最多 2 個、跳過短標題已經寫到的數字；沒有就空字串（只放短標題）。
-    短標題是主體組出來的又沒有數字（「輝達」一個詞）→ ("", "")，呼叫端換下一則。"""
+    短標題是主體組出來的又沒有數字（「輝達」一個詞）→ ("", "")，呼叫端換下一則。
+    11-02 CEO 退件補：短標題必須「主體＋事件動作」（has_action）；描述的數字標籤必須看得出意義（meaningful_label）。"""
     import social_news as S
     t = S.sanitize(re.sub(r"\s+", " ", html.unescape(str(title or ""))).strip())
     sm = S.sanitize(re.sub(r"\s+", " ", html.unescape(str(summary or ""))).strip())
@@ -104,7 +169,9 @@ def fact_parts(title: str, summary: str = "", short: str = "", codes: str = "", 
         if not subj or len(subj) > 12:
             return "", ""
         ev = event_of(t)
-        short, built = (f"{subj}{ev}" if ev and ev not in subj else subj), True
+        if not ev or ev in subj:
+            return "", ""              # 只有主體名（「Google」「OpenAI奧特曼」）一律不收，換下一則（11-02 CEO 退件）
+        short, built = f"{subj}{ev}", True
     subj0 = re.sub(r"(財報|營收|法說會)$", "", short) if built else ""
     nums = _num_items(t, sm, subj0, skip=short)
     desc = ""
@@ -114,7 +181,9 @@ def fact_parts(title: str, summary: str = "", short: str = "", codes: str = "", 
             desc = d
             break
     if built and not desc:
-        return "", ""              # 主體一個詞＋沒有數字＝沒有內容，不自己編動作句，換下一則
+        return "", ""              # 主體＋財報兩個詞、沒有數字＝沒有內容，不自己編動作句，換下一則
+    if not built and not has_action(short):
+        return "", ""              # 標題短句只有名字、沒有事件動作（「OpenAI奧特曼」）→ 換下一則
     if not desc:
         # 只有短標題：至少要看得出主體（公司／機構／指數／商品），「兩晚興奮到失眠」「2027年上路」這種標題鉤子不收
         try:

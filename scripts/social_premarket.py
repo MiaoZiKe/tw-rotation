@@ -677,7 +677,7 @@ def collect(target: date, intl, price, intra, ohlc, news, cal) -> dict:
         start = min(start, us_close_tpe(us["date"]))
     return {"target": target.isoformat(), "us": us, "adr": adr, "tx": tx, "night": night, "last_td": last_td,
             "closure": closure_note(last_td, target), "news_window": [start.isoformat(), end.isoformat()],
-            "news": pick_news(news, start, end), "news_pool": pick_news(news, start, end, n=20),      # 今日焦點至少 5 則（Andy 10-27），候選多抓（11-02：取不到事實欄位的會跳過，候選 10→20）
+            "news": pick_news(news, start, end), "news_pool": pick_news(news, start, end, n=30),      # 今日焦點至少 5 則（Andy 10-27），候選多抓（11-02：取不到事實欄位、只有主體名的會跳過，候選 10→30）
             "events": upcoming_events(target, cal),
             "summary": summary_line(us, adr, tx, night), "reads": market_reads(us, adr, night, partial=bool(us["date"]) and datetime.now(TPE) < us_close_tpe(us["date"])),
             "us_partial": bool(us["date"]) and datetime.now(TPE) < us_close_tpe(us["date"]),

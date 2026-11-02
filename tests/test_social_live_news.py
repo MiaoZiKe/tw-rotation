@@ -142,7 +142,7 @@ def test_life_news_only_fills_when_short(tmp_path):
     L = LN.lines(LN.pick(_news(ROWS + LIFE), s, e, []))
     assert 3 <= len(L) - 1 <= 5 and not any("MacBook" in x or "醫護" in x for x in L)       # 有財經新聞可用 → 兩則反例排不進來
     few = LN.lines(LN.pick(_news([ROWS[1]] + LIFE), s, e, []))      # 11-02：ROWS[2]「GB300 放量 散熱廠接單滿」看不出主體、沒數字，新版不收 → 改用 ROWS[1]
-    assert len(few) - 1 >= 2 and "GB300" in few[1] and any("MacBook" in x for x in few[2:])   # 湊不到 3 則才用 C 級補，而且排在後面（11-02：C 級也要取得到事實欄位才收）
+    assert len(few) - 1 >= 1 and "GB300" in few[1]          # A／B 級排前面；C 級（MacBook 回顧、醫護荒）11-02 起還要「主體＋事件動作」才收，這兩則都不收
 
 
 def test_empty_summary_uses_rest_of_title():
@@ -174,3 +174,17 @@ def test_focus_line_never_copies_15_chars():
     assert LN.lines([long_]) == []                          # 標題短句 18 個中文字、又沒有數字 → 不收，由下一則遞補
     hook = {"title": "兩晚興奮到失眠！奧特曼曝新模型進展", "summary": ""}
     assert LN.lines([hook]) == []                           # 看不出主體的標題鉤子不收
+
+
+def test_focus_line_needs_subject_action_and_meaningful_number():
+    # 2026-11-02 CEO 退件（盤前卡 02「OpenAI奧特曼／使用率 5%」、05「Google／擬參與 1,850 億美元」看不懂發生什麼事）
+    import news_facts as NF
+    assert not NF.has_action("OpenAI奧特曼") and not NF.has_action("Google")
+    assert NF.has_action("超微單日重挫11%") and NF.has_action("外資連三賣")
+    assert not NF.meaningful_label("使用率") and not NF.meaningful_label("擬參與")
+    assert NF.meaningful_label("英特爾崩") and NF.meaningful_label("三星營收")
+    bad = [{"title": "OpenAI奧特曼：ChatGPT 使用率 5% 的人每天用", "summary": ""},
+           {"title": "Google：擬參與 1,850 億美元計畫", "summary": ""}]
+    assert LN.lines(bad) == []                                   # 只有主體名＋孤立數字 → 不收，由下一則遞補
+    ok = LN.lines(bad + [{"title": "超微單日重挫11%", "summary": "英特爾PC晶片銷量年減45%。"}])
+    assert ok == ["📰 新聞焦點：", "・超微單日重挫11%：英特爾PC晶片銷量年減 45%"]
