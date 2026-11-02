@@ -517,3 +517,73 @@ if __name__ == "__main__":
                 print("    ", k, x)
     print(f"重疊檢查：程式 {len(res)} 張 {total} 筆")
     print(f"良率圖：小 {nS} 顆壞 {bS}（良率 {yS:.2f}）；大 {nB} 顆壞 {bB}（良率 {yB:.2f}）")
+
+
+# ---------------- 總覽圖與 33% 縮圖檢查 ----------------
+META = {
+ "ch1_A1_hotcover": ("A 熱點解讀輪播 1/5 封面", "IG 輪播＋Threads 前 3 張"),
+ "ch1_A3_hotwhy": ("A 熱點解讀輪播 3/5 因果鏈", "第 2 張＝發生什麼，同款"),
+ "ch1_A4_hotimpact": ("A 熱點解讀輪播 4/5 台股影響", "紅漲綠跌＋箭頭"),
+ "ch1_A5_hotcta": ("A 熱點解讀輪播 5/5 結尾", "階段 0 不放網址"),
+ "ch1_B_bignumber": ("B 單一數字大字卡", "單張，Threads／IG 皆可"),
+ "ch1_C_etftable": ("C ETF 配息比較表卡", "輪播第 2 張起，4 列"),
+ "ch1_D_rotation": ("D 產業輪動圖卡", "直條排名，只亮第 1 名"),
+ "ch1_E_textthread": ("E 純文字串規格", "Threads 不附圖"),
+ "ch2_F1_salarycover": ("F 薪資行情欄位卡 1/3 封面", "IG 輪播＋Threads"),
+ "ch2_F2_fields": ("F 薪資行情欄位卡 2/3 七欄位", "數字一律〔待填〕"),
+ "ch2_F3_cta": ("F 薪資行情欄位卡 3/3 結尾", "邀請同業補行情"),
+ "ch2_G_textnote": ("G 純文字手寫風規格", "Threads 不附圖，七段"),
+ "ch2_H1_interviewQ": ("H 面試題卡 1/3 題目", "IG 輪播／Threads"),
+ "ch2_H2_interviewA": ("H 面試題卡 2/3 答題框架", "含「常見踩雷」"),
+ "ch2_I_diagram": ("I 知識圖解", "單張，圖形算出來的"),
+}
+def sw(hexv, name, light=False):
+    fg = "#000" if light else "#fff"
+    return f'<div style="display:flex;flex-direction:column;align-items:flex-start;gap:4px"><div style="width:120px;height:64px;border-radius:8px;background:{hexv};border:1px solid rgba(0,0,0,.25)"></div><div style="font-size:20px;font-weight:700">{name}</div><div style="font-size:20px;font-family:monospace">{hexv}</div></div>'
+def thumbs(prefix):
+    out = ""
+    for k, (t, sub) in META.items():
+        if k.startswith(prefix):
+            out += f'<div style="width:300px"><img src="{k}.png" style="width:300px;display:block;border:1px solid #888;border-radius:6px"><div style="font-size:22px;font-weight:800;margin-top:8px;line-height:1.3">{t}</div><div style="font-size:20px;color:#555">{sub}</div></div>'
+    return out
+OV = f"""<!doctype html><meta charset=utf-8><body style="margin:0;width:2100px;background:#E9E9E6;font-family:{FONT};color:#111;padding:48px 60px">
+<div style="font-size:56px;font-weight:900">兩個頻道版型總覽（2026-11-02）</div>
+<div style="font-size:26px;color:#444;margin:6px 0 30px">全部為示意：內容是假資料，薪資數字一律〔待填〕。IG 輪播與 Threads 圖皆 1080×1350（4:5）；限動不在範圍。</div>
+<div style="background:{C1['bg']};color:#fff;border-radius:16px;padding:28px 32px 32px;margin-bottom:36px">
+  <div style="font-size:40px;font-weight:900">頻道一　哩股哩股（liguligu0818）　深海軍藍＋一個黃　＝　「財經儀表」感</div>
+  <div style="font-size:24px;color:{C1['t2']};margin:6px 0 18px">字體：Noto Sans CJK TC（標題 900／內文 600）＋ Inter ExtraBold（數字）。紅漲綠跌、黃色只標「最重要的一個數字或詞」。比比只當配角。</div>
+  <div style="display:flex;gap:26px;margin-bottom:26px">{sw(C1['bg'],'底')}{sw(C1['panel'],'卡片底')}{sw(C1['line'],'線')}{sw(C1['t1'],'主字',True)}{sw(C1['t2'],'次字',True)}{sw(C1['t3'],'輔助字',True)}{sw(C1['key'],'重點黃',True)}{sw(C1['rise'],'漲（紅）',True)}{sw(C1['fall'],'跌（綠）',True)}{sw(C1['bar'],'非重點直條')}</div>
+  <div style="display:flex;flex-wrap:wrap;gap:28px">{thumbs('ch1')}</div>
+</div>
+<div style="background:{C2['paper']};color:{C2['ink']};border-radius:16px;padding:28px 32px 32px;border:3px solid {C2['ink']}">
+  <div style="font-size:40px;font-weight:900">頻道二　科技圈薪水透明（暫名）　暖紙＋墨黑＋一支紅橘筆　＝　「圈內人的筆記」感</div>
+  <div style="font-size:24px;color:{C2['ink2']};margin:6px 0 18px">字體：Noto Sans CJK TC（標題 900／內文 600）＋ JetBrains Mono（編號、標籤、公式）。無比比、無漸層；硬陰影卡片、虛線〔待填〕框、藍原子筆旁註。</div>
+  <div style="display:flex;gap:26px;margin-bottom:26px">{sw(C2['paper'],'紙底',True)}{sw(C2['card'],'卡片底',True)}{sw(C2['line'],'點格線',True)}{sw(C2['ink'],'墨黑')}{sw(C2['ink2'],'次字')}{sw(C2['ink3'],'輔助字')}{sw(C2['pen'],'紅橘筆（大字）')}{sw(C2['pen2'],'紅橘筆（小字）')}{sw(C2['blue'],'藍原子筆旁註')}{sw(C2['hl'],'螢光底',True)}</div>
+  <div style="display:flex;flex-wrap:wrap;gap:28px">{thumbs('ch2')}</div>
+</div></body>"""
+
+
+def overview():
+    import glob
+    exe = next(iter(sorted(glob.glob("/opt/pw-browsers/chromium-*/chrome-linux64/chrome"))), None)
+    (HERE / "_overview.html").write_text(OV, encoding="utf-8")
+    with sync_playwright() as p:
+        br = p.chromium.launch(executable_path=exe)
+        pg = br.new_page(viewport={"width": 2100, "height": 1000})
+        pg.goto((HERE / "_overview.html").as_uri())
+        pg.wait_for_timeout(400)
+        pg.screenshot(path=str(HERE / "overview.png"), full_page=True)
+        # 33% 縮圖（手機實際看到的大小），全部排在一張
+        names = list(META)
+        cells = "".join(f'<img src="{n}.png" style="width:356px;display:block">' for n in names)
+        (HERE / "_t33.html").write_text(f'<body style="margin:0;background:#888;display:grid;grid-template-columns:repeat(5,356px);gap:8px;padding:8px;width:1860px">{cells}</body>', encoding="utf-8")
+        pg.set_viewport_size({"width": 1880, "height": 800})
+        pg.goto((HERE / "_t33.html").as_uri())
+        pg.wait_for_timeout(400)
+        pg.screenshot(path=str(HERE / "check_33pct.png"), full_page=True)
+        br.close()
+    (HERE / "_overview.html").unlink(); (HERE / "_t33.html").unlink()
+
+
+if __name__ == "__main__":
+    overview()
