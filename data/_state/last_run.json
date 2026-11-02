@@ -1,155 +1,152 @@
 {
   "steps": {
-    "twse.price_daily": {
-      "ok": true,
-      "rows": 1336,
-      "seconds": 1.9
-    },
-    "price_daily": {
-      "stored": 2347
-    },
-    "twse.valuation": {
-      "ok": true,
-      "rows": 1088,
-      "seconds": 0.2
-    },
-    "valuation_daily": {
-      "stored": 0
-    },
-    "twse.index": {
-      "ok": true,
-      "rows": 267,
-      "seconds": 0.2
-    },
-    "index_daily": {
-      "stored": 0
-    },
-    "twse.market": {
-      "ok": true,
-      "rows": 19,
-      "seconds": 0.2
-    },
-    "market_daily": {
-      "stored": 1
-    },
-    "tpex.price_daily": {
-      "ok": true,
-      "rows": 1011,
-      "seconds": 22.8
-    },
-    "mis.date_check": {
-      "mis_date": "2026-11-02",
-      "openapi_date": "2026-10-30",
-      "lake_latest": "2026-10-30",
-      "twse_rows_on_mis_date": 0,
-      "min_needed": 800,
-      "session_closed": true,
-      "will_fill": true
-    },
-    "mis.price_snapshot": {
-      "ok": true,
-      "rows": 2347,
-      "seconds": 33.4
-    },
-    "mis.market_snapshot": {
-      "ok": true,
-      "rows": 1,
-      "seconds": 0.2
-    },
-    "intraday.since": {
-      "since": "2026-10-30T13:00:00+08:00",
-      "codes": 2048,
-      "skipped_no_data": 0,
-      "period": "8d",
-      "lake_last": "2026-10-30T13:00:00+08:00",
-      "got_codes": 2047,
-      "rows": 9261
-    },
-    "yahoo.intraday_60m": {
-      "ok": true,
-      "rows": 9261,
-      "seconds": 173.7
-    },
-    "intraday_60m": {
-      "stored": 9261
-    },
-    "yahoo.index_intraday": {
-      "ok": true,
-      "rows": 46,
-      "seconds": 0.9
-    },
-    "index_intraday": {
-      "stored": 840
-    },
     "tape.collect": {
       "ok": false,
       "rows": 0,
-      "seconds": 0.6,
-      "dates_todo": [
-        "20261029",
-        "20261028",
-        "20261027",
-        "20261026"
-      ],
-      "dates_miss": [
-        "20261029",
-        "20261028",
-        "20261027",
-        "20261026"
+      "seconds": 0.6
+    },
+    "inst_official": {
+      "ok": true,
+      "rows": 881,
+      "date": "2026-11-02",
+      "diag": [
+        {
+          "url": "https://openapi.twse.com.tw/v1/swagger.json",
+          "http": 200,
+          "head": "{\"swagger\":\"2.0\",\"info\":{\"description\":\"\\u672c\\u5e73\\u81fa\\u63d0\\u4f9b\\u81fa\\u7063\\u8b49\\u5238\\u4ea4\\u6613\\u6240\\u670d\\u52d9API\\uff0c\\u6b61\\u8fce\\u5404\\u4f4d\\u4ecb\\u63a5\\u4f7f\\u7528\\u3002<br><br>[\\u4f"
+        },
+        {
+          "swagger": "https://openapi.twse.com.tw/v1/swagger.json",
+          "n_paths": 143,
+          "fund_paths": [
+            "/fund/MI_QFIIS_cat",
+            "/fund/MI_QFIIS_sort_20"
+          ]
+        },
+        {
+          "swagger_path": "/fund/MI_QFIIS_cat",
+          "summary": "集中市場外資及陸資投資類股持股比率表"
+        },
+        {
+          "swagger_path": "/fund/MI_QFIIS_sort_20",
+          "summary": "集中市場外資及陸資持股前 20 名彙總表"
+        },
+        {
+          "url": "https://openapi.twse.com.tw/v1/fund/T86",
+          "http": 200,
+          "head": "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\"> <html xmlns=\"http://www.w3.org/1999/xhtml\"> <head> <meta http-equiv=\"Content-T"
+        },
+        {
+          "url": "https://openapi.twse.com.tw/v1/fund/TWT38U",
+          "http": 200,
+          "head": "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\"> <html xmlns=\"http://www.w3.org/1999/xhtml\"> <head> <meta http-equiv=\"Content-T"
+        },
+        {
+          "url": "https://openapi.twse.com.tw/v1/fund/TWT43U",
+          "http": 200,
+          "head": "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\"> <html xmlns=\"http://www.w3.org/1999/xhtml\"> <head> <meta http-equiv=\"Content-T"
+        },
+        {
+          "url": "https://openapi.twse.com.tw/v1/fund/TWT44U",
+          "http": 200,
+          "head": "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\"> <html xmlns=\"http://www.w3.org/1999/xhtml\"> <head> <meta http-equiv=\"Content-T"
+        },
+        {
+          "url": "https://openapi.twse.com.tw/v1/fund/MI_QFIIS_cat",
+          "http": 200,
+          "head": "[ {\"IndustryCat\":\"ETF\",\"Numbers\":\"244\",\"ShareNumber\":\"270055320260\",\"ForeignMainlandAreaShare\":\"3218751680\",\"Percentage\":\"1.19\"}, {\"IndustryCat\":\"水泥工業\",\"Numbers\":\"8\",\"ShareNumber\":\"14107198706\",\"Forei"
+        },
+        {
+          "url": "https://openapi.twse.com.tw/v1/fund/MI_QFIIS_cat",
+          "cols": [
+            "IndustryCat",
+            "Numbers",
+            "ShareNumber",
+            "ForeignMainlandAreaShare",
+            "Percentage"
+          ],
+          "n": 36
+        },
+        {
+          "url": "https://openapi.twse.com.tw/v1/fund/MI_QFIIS_sort_20",
+          "http": 200,
+          "head": "[ {\"Rank\":\"1\",\"Code\":\"2923\",\"Name\":\"鼎固-KY\",\"ShareNumber\":\"1740296982\",\"AvailableShare\":\"8407946\",\"SharesHeld\":\"1731889036\",\"AvailableInvestPer\":\"0.48\",\"SharesHeldPer\":\"99.51\",\"Upperlimit\":\"100.00\"}, {"
+        },
+        {
+          "url": "https://openapi.twse.com.tw/v1/fund/MI_QFIIS_sort_20",
+          "cols": [
+            "Rank",
+            "Code",
+            "Name",
+            "ShareNumber",
+            "AvailableShare",
+            "SharesHeld",
+            "AvailableInvestPer",
+            "SharesHeldPer",
+            "Upperlimit"
+          ],
+          "n": 20
+        },
+        {
+          "market": "上市",
+          "rows": 0,
+          "parts": []
+        },
+        {
+          "url": "https://www.tpex.org.tw/openapi/swagger.json",
+          "http": 200,
+          "head": "{\"openapi\":\"3.0.0\",\"info\":{\"description\":\"\\u672c\\u5e73\\u81fa\\u63d0\\u4f9b\\u6ac3\\u6aaf\\u8cb7\\u8ce3\\u5e02\\u5834\\u8cc7\\u6599\\u670d\\u52d9API\\uff0c\\u5305\\u542b\\u4e0a\\u6ac3\\u3001\\u8208\\u6ac3\\u3001\\u5275\\u6ac"
+        },
+        {
+          "swagger": "https://www.tpex.org.tw/openapi/swagger.json",
+          "n_paths": 225,
+          "fund_paths": [
+            "/tpex_opfund_latest",
+            "/tpex_opfund_market_highlight",
+            "/tpex_opfund_recommended_dealer"
+          ]
+        },
+        {
+          "swagger_path": "/tpex_3insti_qfii",
+          "summary": "上櫃僑外資及陸資持股比例排行表"
+        },
+        {
+          "swagger_path": "/tpex_3insti_qfii_industry",
+          "summary": "上櫃各類股僑外資及陸資持股比例表"
+        },
+        {
+          "swagger_path": "/tpex_3insti_daily_trading",
+          "summary": "上櫃股票三大法人買賣明細資訊"
+        },
+        {
+          "swagger_path": "/tpex_3insti_dealer_trading",
+          "summary": "上櫃股票自營商買賣超彙總表"
+        },
+        {
+          "swagger_path": "/tpex_3insti_summary",
+          "summary": "上櫃股票三大法人買賣金額彙總表"
+        },
+        {
+          "swagger_path": "/tpex_3insti_trading",
+          "summary": "上櫃股票投信買賣超彙總表"
+        },
+        {
+          "swagger_path": "/tpex_3insti_qfii_trading",
+          "summary": "上櫃股票外資及陸資買賣超彙總表"
+        },
+        {
+          "url": "https://www.tpex.org.tw/openapi/v1/tpex_3insti_daily_trading",
+          "http": 200,
+          "head": "[ {\"Date\":\"1151102\",\"SecuritiesCompanyCode\":\"00411A\",\"CompanyName\":\"主動統一前沿科技\",\"Foreign Investors include Mainland Area Investors (Foreign Dealers excluded)-Total Buy\":\"188000\",\" Foreign Investors incl"
+        },
+        {
+          "market": "上櫃",
+          "rows": 881,
+          "parts": [
+            881
+          ]
+        }
       ]
-    },
-    "mis.index_minute": {
-      "ok": true,
-      "rows": 840,
-      "seconds": 1.6
-    },
-    "news.collect": {
-      "ok": true,
-      "rows": 134,
-      "seconds": 2.6
-    },
-    "news": {
-      "stored": 92
-    },
-    "news.broker_views": {
-      "ok": true,
-      "rows": 3,
-      "seconds": 0.0
-    },
-    "broker_views": {
-      "stored": 3
-    },
-    "mops.material_news": {
-      "ok": true,
-      "rows": 4,
-      "seconds": 1.4
-    },
-    "material_news": {
-      "stored": 0
-    },
-    "finmind.index_ohlc": {
-      "ok": true,
-      "rows": 48,
-      "seconds": 0.8
-    },
-    "index_ohlc": {
-      "stored": 1
-    },
-    "finmind.futures_ohlc": {
-      "ok": true,
-      "rows": 48,
-      "seconds": 0.7
-    },
-    "finmind.market_institutional": {
-      "ok": true,
-      "rows": 24,
-      "seconds": 0.9
-    },
-    "inst_market_daily": {
-      "stored": 1
-    },
-    "inst_market_first": {
-      "stored": 1
     },
     "margin_total": {
       "stored": 0
@@ -172,40 +169,45 @@
       "ok": true,
       "rows": 15
     },
+    "finmind.institutional_bulk": {
+      "ok": true,
+      "rows": 881,
+      "seconds": 0.3
+    },
+    "inst_daily": {
+      "stored": 53
+    },
+    "institutional_codes": {
+      "requested": 459,
+      "returned": 53
+    },
+    "finmind.institutional": {
+      "ok": true,
+      "rows": 53,
+      "seconds": 111.8
+    },
+    "inst_flags": {
+      "rebuild": true,
+      "post": true
+    },
     "build_payload": {
-      "ok": true
+      "ok": true,
+      "deferred": true
     }
   },
   "errors": [],
   "empty": [],
-  "phase": "price",
-  "provisional_date": "2026-11-02",
-  "index_minute_days": {
-    "FUT": [
-      "2026-11-02"
-    ],
-    "OTC": [
-      "2026-11-02"
-    ],
-    "TSE": [
-      "2026-11-02"
-    ]
-  },
-  "started_at": "2026-11-02T07:42:27.166223+00:00",
-  "finished_at": "2026-11-02T08:13:03.766956+00:00",
-  "duration_seconds": 1836.6,
-  "trade_date": "2026-10-30",
-  "complete": true,
+  "phase": "inst",
   "freshness": {
     "trade_date": "2026-11-02",
     "tables": {
       "inst_daily": {
         "label": "個股三大法人",
-        "latest": "2026-10-30",
-        "rows": 0,
+        "latest": "2026-11-02",
+        "rows": 934,
         "median": 2199.0,
         "status": "pending",
-        "reason": "behind"
+        "reason": "thin"
       },
       "inst_market_daily": {
         "label": "全市場三大法人金額",
@@ -244,258 +246,10 @@
     "warn_labels": []
   },
   "warn": [],
-  "finmind_budget_left": 445,
-  "tables": [
-    {
-      "table": "price_daily",
-      "rows": 10005199,
-      "latest": "2026-11-02"
-    },
-    {
-      "table": "valuation_daily",
-      "rows": 35720,
-      "latest": "2026-10-30"
-    },
-    {
-      "table": "margin_daily",
-      "rows": 2689481,
-      "latest": "2026-10-30"
-    },
-    {
-      "table": "margin_total",
-      "rows": 1412,
-      "latest": "2026-10-30"
-    },
-    {
-      "table": "fut_inst",
-      "rows": 12027,
-      "latest": "2026-11-02"
-    },
-    {
-      "table": "fut_oi",
-      "rows": 3375,
-      "latest": "2026-11-02"
-    },
-    {
-      "table": "opt_pc",
-      "rows": 4542,
-      "latest": "2026-10-30"
-    },
-    {
-      "table": "index_daily",
-      "rows": 8835,
-      "latest": "2026-10-30"
-    },
-    {
-      "table": "market_daily",
-      "rows": 40,
-      "latest": "2026-11-02"
-    },
-    {
-      "table": "inst_daily",
-      "rows": 5490505,
-      "latest": "2026-10-30"
-    },
-    {
-      "table": "inst_market_daily",
-      "rows": 1413,
-      "latest": "2026-11-02"
-    },
-    {
-      "table": "inst_market_first",
-      "rows": 6,
-      "latest": "2026-11-02"
-    },
-    {
-      "table": "paper/ledger",
-      "rows": 24,
-      "latest": "2026-10-30"
-    },
-    {
-      "table": "paper/satellite",
-      "rows": 10,
-      "latest": "2026-10-27"
-    },
-    {
-      "table": "paper/e2sat_holdings",
-      "rows": 38,
-      "latest": "2026-10-30"
-    },
-    {
-      "table": "paper/swing_signals",
-      "rows": 10,
-      "latest": "2026-10-30"
-    },
-    {
-      "table": "paper/swing_holdings",
-      "rows": 0,
-      "latest": "—"
-    },
-    {
-      "table": "paper/swing_watch",
-      "rows": 60,
-      "latest": "2026-10-30"
-    },
-    {
-      "table": "revenue_monthly",
-      "rows": 300147,
-      "latest": "2026-09"
-    },
-    {
-      "table": "financial_q",
-      "rows": 98042,
-      "latest": "—"
-    },
-    {
-      "table": "balance_q",
-      "rows": 95672,
-      "latest": "—"
-    },
-    {
-      "table": "dividend",
-      "rows": 1206,
-      "latest": "—"
-    },
-    {
-      "table": "shareholding_weekly",
-      "rows": 624257,
-      "latest": "2026-10-30"
-    },
-    {
-      "table": "company_info",
-      "rows": 3173,
-      "latest": "—"
-    },
-    {
-      "table": "news",
-      "rows": 8863,
-      "latest": "2026-11-02"
-    },
-    {
-      "table": "broker_views",
-      "rows": 226,
-      "latest": "2026-11-02"
-    },
-    {
-      "table": "intl_daily",
-      "rows": 42670,
-      "latest": "2026-11-02"
-    },
-    {
-      "table": "macro",
-      "rows": 15594,
-      "latest": "2026-11-01"
-    },
-    {
-      "table": "macro_calendar",
-      "rows": 27,
-      "latest": "2026-12-23"
-    },
-    {
-      "table": "dividend_events",
-      "rows": 26127,
-      "latest": "—"
-    },
-    {
-      "table": "dividend_results",
-      "rows": 26776,
-      "latest": "2026-10-29"
-    },
-    {
-      "table": "next_wave_forward",
-      "rows": 0,
-      "latest": "—"
-    },
-    {
-      "table": "etf_dividend_events",
-      "rows": 4422,
-      "latest": "—"
-    },
-    {
-      "table": "etf_holdings",
-      "rows": 413391,
-      "latest": "2026-10-30"
-    },
-    {
-      "table": "etf_holdings_monthly",
-      "rows": 6040,
-      "latest": "2026-09-30"
-    },
-    {
-      "table": "index_ohlc",
-      "rows": 20923,
-      "latest": "2026-11-02"
-    },
-    {
-      "table": "intraday_60m",
-      "rows": 7497861,
-      "latest": "—"
-    },
-    {
-      "table": "tape_5m",
-      "rows": 47525,
-      "latest": "—"
-    },
-    {
-      "table": "index_intraday",
-      "rows": 262644,
-      "latest": "—"
-    },
-    {
-      "table": "material_news",
-      "rows": 2682,
-      "latest": "2026-11-01"
-    },
-    {
-      "table": "company_website",
-      "rows": 894,
-      "latest": "—"
-    },
-    {
-      "table": "daytrade_daily",
-      "rows": 730762,
-      "latest": "2026-10-30"
-    },
-    {
-      "table": "sbl_daily",
-      "rows": 802438,
-      "latest": "2026-10-30"
-    },
-    {
-      "table": "insider_holding",
-      "rows": 3954,
-      "latest": "2026-09"
-    }
-  ],
-  "groups_health": {
-    "reviewed": "2026-09-21",
-    "days_since_review": 42,
-    "is_stale": false,
-    "group_count": 95,
-    "code_count": 444,
-    "multi_group_codes": {
-      "2317": 2,
-      "2354": 2,
-      "2467": 2,
-      "2486": 2,
-      "3008": 2,
-      "3017": 2,
-      "3211": 2,
-      "3324": 2,
-      "3653": 2,
-      "3711": 2,
-      "4938": 2,
-      "5269": 2,
-      "5289": 2,
-      "5351": 2,
-      "5388": 2,
-      "6121": 2,
-      "6223": 2,
-      "6239": 2,
-      "6285": 2,
-      "6789": 2,
-      "6805": 2
-    },
-    "empty_groups": []
-  }
+  "started_at": "2026-11-02T08:20:19.238583+00:00",
+  "finished_at": "2026-11-02T08:22:28.976752+00:00",
+  "duration_seconds": 129.7,
+  "trade_date": "2026-11-02",
+  "complete": true,
+  "finmind_budget_left": 43
 }
