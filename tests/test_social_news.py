@@ -537,3 +537,25 @@ def test_prior_value_only_same_metric():
     assert ok and "上一季約 88.70 億元" in ok[0]
     assert S.prior_lines(key, [dict(label="營業利益年增", value="632.1", unit="%")]) == []      # 別的指標不能拿來換算
     assert S.prior_lines(dict(key, label="Alphabet第三季營收", metric="營收"), [dict(label="Cloud營收年增", value="103", unit="%")]) == []
+
+
+# ---------------- 2026-11-02 CEO 第二輪：封面副標數字不折行、盤前「接下來觀察」寫今天 ----------------
+def test_cover_desc_keeps_number_with_prefix_and_unit():
+    assert S.desc_lines(["費半上周五下跌 逾7%", "台積電ADR下跌 近6%"], 22) == ["費半上周五下跌 逾7%", "台積電ADR下跌 近6%"]
+    for ln in S._lines("費半上周五下跌 逾7%、台積電ADR下跌 近6%", 22):
+        assert not ln.endswith(("近", "逾", "約")) and not ln.startswith("%")             # 「近／6%」不拆
+    assert S.desc_lines(["營收年增 30%", "EPS 5.2 元"], 22) == ["營收年增 30%、EPS 5.2 元"]
+    assert S.desc_lines(["甲" * 12 + " 約4200億元", "乙" * 15 + " 近6%", "丙" * 15 + " 逾7%"], 22, 2) == ["甲" * 12 + " 約4200億元", "乙" * 15 + " 近6%"]   # 放不下整項不放
+
+
+def test_premarket_watch_point_says_today(monkeypatch):
+    _no_lake(monkeypatch)
+    monkeypatch.setattr(S, "MIN_BODY", 0)
+    c = _cand("〈台股風向球〉融資恐殺出引爆補跌壓力 台股走勢可能有2種情境",
+              "費半上周五崩跌逾7%、台積電ADR重挫近6%，台股11月開局恐面臨補跌壓力。，"
+              "永豐投顧稱45000點半年線為多空分水嶺，指數若跌破年線，融資恐需降至約4200億元才止穩。",
+              ts="2026-11-01T16:43:18+08:00")
+    pre = S.compose(c, "pre", 1, "2026-11-02", "口袋長文", NAMES)["caption_ig"]
+    assert "今天（11/2）09:00 開盤" in pre and "下一個交易日 11/2" not in pre
+    intra = S.compose(c, "intra", 1, "2026-11-02", "口袋長文", NAMES)["caption_ig"]
+    assert "下一個交易日 11/3 09:00 開盤" in intra                                    # 盤中發：今天已開盤 → 講下一個

@@ -392,9 +392,13 @@ def _clean_title(t: str) -> str:
     return re.sub(r"\s+", " ", t).strip(" ！!")
 
 
+NUM_TOK = r"(?:約|逾|近|超過|達|增|減)?[+\-]?[A-Za-z0-9.,%]+(?:\s?(?:億元|萬元|兆元|美元|億|兆|元|點|倍|%))?"
+
+
 def _lines(t: str, per: int, nmax: int = 2) -> list[str]:
-    """切成最多 nmax 行、每行 ≤ per 字；只在空白／標點／中英數交界切，不切斷數字；放不下的尾段整段捨去。"""
-    toks = re.findall(r"[A-Za-z0-9.,%+\-]+|[^A-Za-z0-9.,%+\-]", t)
+    """切成最多 nmax 行、每行 ≤ per 字；只在空白／標點／中英數交界切，不切斷數字；放不下的尾段整段捨去。
+    11-02 CEO：「近／6%」被拆到兩行 → 「近／逾／約」＋數字＋單位當成一個整體，不在中間換行。"""
+    toks = re.findall(NUM_TOK + r"|[^A-Za-z0-9.,%+\-]", t)
     out, cur = [], ""
     for tk in toks:
         if len(cur) + len(tk) <= per:
@@ -414,6 +418,20 @@ def _lines(t: str, per: int, nmax: int = 2) -> list[str]:
         last = out[-1]; k = max(last.rfind(" "), last.rfind("，"), last.rfind("、"), last.rfind("！"), last.rfind("？"))
         if k >= 4:
             out[-1] = last[:k].strip(" ，、！？")
+    return out
+
+
+def desc_lines(items: list[str], per: int, nmax: int = 2) -> list[str]:
+    """封面副標：以「、」分隔的每一項整項放進同一行，不把一項拆到兩行；放不下的項整項不放（至少放第一項）。
+    第一項自己就超過一行 → 才退回 _lines 逐字切（數字仍不拆）。"""
+    out: list[str] = []
+    for it in [x.strip() for x in items if x and x.strip()]:
+        if out and len(out[-1]) + 1 + len(it) <= per:
+            out[-1] += "、" + it
+        elif len(it) <= per and len(out) < nmax:
+            out.append(it)
+        elif not out:
+            return _lines(it, per, nmax)
     return out
 
 
@@ -1175,8 +1193,15 @@ def compose(c: dict, slot: str, idx: int, day: str, style: str, names: dict) -> 
     if c["cat"] == "台股" and c["ctype"] == "盤勢數字":
         try:
             from social_gate import load_holidays, next_open
-            nx = next_open(lead["ts"].strftime("%Y-%m-%d"), load_holidays())
-            wp = f"下一個交易日 {nx.month}/{nx.day} 09:00 開盤；三大法人買賣超通常在收盤後下午公布，可以對照今天的收盤與法人動向。"
+            hol = load_holidays()
+            nx = next_open(lead["ts"].strftime("%Y-%m-%d"), hol)
+            if nx.strftime("%Y-%m-%d") == day and slot == "pre":
+                # 11-02 CEO：盤前（當天開盤前發）寫「下一個交易日 11/2」不對 → 「今天」
+                wp = f"今天（{nx.month}/{nx.day}）09:00 開盤；三大法人買賣超通常在收盤後下午公布，可以對照今天的收盤與法人動向。"
+            else:
+                if nx.strftime("%Y-%m-%d") <= day:          # 盤中／盤後發：今天已經開盤 → 講再下一個交易日
+                    nx = next_open(day, hol)
+                wp = f"下一個交易日 {nx.month}/{nx.day} 09:00 開盤；三大法人買賣超通常在收盤後下午公布，可以對照今天的收盤與法人動向。"
         except Exception:
             pass
     if not wp:
@@ -1273,7 +1298,7 @@ def compose(c: dict, slot: str, idx: int, day: str, style: str, names: dict) -> 
         cap_ig = "\n".join(head) + "\n" + "\n\n".join(body) + f"\n\n{tail}\n{link_line}\n{url_ig}"
     threads = pack_threads(["\n".join(head[:2]) + "\n\n" + intro] + body[1:] + [f"{tail}\n{link_line}\n{url_th}"])
     card = dict(title=l1 + l2, subtitle=SUBQ[c["ctype"]], numbers=[{k: x[k] for k in ("label", "value", "unit")} for x in rows],
-                category=c["cat"], subject=subj, foot="資料：" + "、".join(dict.fromkeys(SRC_NAME.get(n["source"], n["source"]) for n in c["group"])) + "・本站整理", cover_title=cover, cover_desc=_lines("、".join(f"{x['label']} {_fmt(x)}" for x in comps[:2]) or SUBQ[c["ctype"]], 22),
+                category=c["cat"], subject=subj, foot="資料：" + "、".join(dict.fromkeys(SRC_NAME.get(n["source"], n["source"]) for n in c["group"])) + "・本站整理", cover_title=cover, cover_desc=desc_lines([f"{x['label']} {_fmt(x)}" for x in comps[:2]] or [SUBQ[c["ctype"]]], 22),
                 hero=key["value"].lstrip("約逾近超過") + key["unit"], hl=_fmt(key).replace(" ", "") if _fmt(key).replace(" ", "") in l2 else "",
                 tw=bool(code) or c["cat"] == "台股", photo_hint="tw_market" if km in TW_MARKET and (bool(code) or c["cat"] == "台股") else "",
                 photo_text=sanitize(lead.get("summary") or "")[:200])
