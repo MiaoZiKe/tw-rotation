@@ -86,3 +86,6 @@ preview_manifest.json
 cf_site/
 cf_prev/
 cf_*.log
+
+# social_delete.py 的清單／結果輸出（只在本機或 Actions artifact，不進版控）
+out/social_delete/

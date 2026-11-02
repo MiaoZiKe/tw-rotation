@@ -93,6 +93,13 @@ if t:
     if first:
         st, b = get("https://graph.threads.net/v1.0/%s/insights" % first, metric="views,likes,replies", access_token=t)
         show("Threads 單則貼文 insights views,likes,replies", st, b)
+    st, b = get("https://graph.threads.net/v1.0/me/threads_publishing_limit",
+                fields="delete_quota_usage,delete_config", access_token=t)
+    if show("刪除額度 threads_publishing_limit delete_quota_usage（需 threads_delete；失敗＝權杖沒有刪文權限）", st, b):
+        d = (b.get("data") or [{}])[0]
+        print("  24 小時內已刪:", d.get("delete_quota_usage"), "| 上限:", (d.get("delete_config") or {}).get("quota_total"))
+    st, b = get("https://graph.threads.net/v1.0/me/replies", fields="id", limit=1, access_token=t)
+    show("me/replies 自己的回覆清單（threads_read_replies；刪串文要先列得出來）", st, b)
     st, b = get("https://graph.threads.net/v1.0/debug_token", input_token=t, access_token=t)
     show("debug_token（Threads，預期可能失敗）", st, b)
 else:
