@@ -536,6 +536,8 @@ def choose_hook(kind: str, f: dict, state: dict, today: str, tag: str, check) ->
 
 
 # ---------------------------------------------------------------- 圖：0 或 2 張
+# 2026-11-02 Andy：「主貼文也改成只放 1 張」→ 每時段只貼排第一的那張（其他圖不上 Threads；IG 限時動態照舊多張）
+#   盤中＝熱力圖；盤後＝三大法人買賣超（當日盤勢總覽，沒有就外資個股排名…）；盤前＝美股四大指數收盤；融資融券＝融資維持率
 IMG_PRIORITY = {
     "intraday": ["heat", "sankey-tree", "rotation-wheel", "rotation-rank"],
     "close": ["inst-today", "streak-foreign", "fut-oi", "credit-rank", "margin", "retail-ratio", "streak-trust", "etf-buy"],
@@ -549,11 +551,9 @@ IMG_IDEA = {"heat": "熱力圖：哪些族群漲最多、跌最兇", "sankey-tre
 
 
 def pick_images(kind: str, imgs: list[str]) -> list[str]:
-    if len(imgs) < 2:
-        return []           # 只有 1 張不准發 1 張 → 0 張（規則 8）；呼叫端寫 alert
     pri = IMG_PRIORITY.get(kind, [])
     ranked = sorted(imgs, key=lambda x: next((i for i, k in enumerate(pri) if k in Path(x).stem), 99))
-    return ranked[:2]
+    return ranked[:1]       # 11-02 Andy「主貼文也改成只放 1 張」
 
 
 def idea_of(path: str) -> str:
@@ -773,8 +773,6 @@ def convert_manifest(mp: Path, state_in: str | None, state_out: str | None) -> d
     m["threads_v1"] = dict(th)
     m["threads"] = dict(text=d["main_post"], images=d["images"], thread_posts=d["thread_posts"],
                         reply_post=d["reply_post"], v2={k: v for k, v in d.items() if k != "images"})
-    if len(th.get("images", [])) and not d["images"]:
-        (mp.parent / "alert.txt").open("a", encoding="utf-8").write("Threads 只有 1 張圖可用，依規則改成 0 張\n")
     if not d["checklist_passed"]:
         (mp.parent / "alert.txt").open("a", encoding="utf-8").write(
             "Threads v2 檢查未全過（照發）：" + "；".join(lint(d)[0]) + "\n")

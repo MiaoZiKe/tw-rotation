@@ -24,7 +24,7 @@ def man(kind):
 GOOD = dict(hook_type="冷知識", emotion="吐槽",
             main_post="冷知識：今天八十三個族群只有八個是紅的，比我這個月的存款餘額還少見！\n\n🔥 熱力圖：\n・漲最多 貨櫃航運 +2.9%、資安防護 +1.8%；\n"
                       "・跌最多 電源供應器 -8.8%\n#台股大跌",
-            thread_posts=[], reply_post="👉 完整圖表都在網站：\nhttps://liguligu-puipui.com/", image_count=2, tag="台股大跌", kind="intraday")
+            thread_posts=[], reply_post="👉 完整圖表都在網站：\nhttps://liguligu-puipui.com/", image_count=1, tag="台股大跌", kind="intraday")
 
 
 # ---------------- lint ----------------
@@ -38,7 +38,7 @@ def test_lint_good_passes():
     (dict(main_post="冷知識：今天八十三個族群只有八個是紅的 https://x.com 比存款還少見！\n#台股大跌"), "網址"),
     (dict(main_post="冷知識：今天八十三個族群只有八個是紅的，比我這個月的存款餘額還少見！\n#台股 #大跌"), "標籤"),
     (dict(main_post=GOOD["main_post"].replace("#台股大跌", "#投資"), tag="投資"), "泛用"),
-    (dict(image_count=1), "配圖"),                                  # 主貼文照舊 0 或 2
+    (dict(image_count=2), "配圖"),                                  # 11-02 Andy「主貼文也改成只放 1 張」
     (dict(kind="article", image_count=2), "配圖"),                  # 11-02：主題文章只能 0 或 1
     (dict(main_post=GOOD["main_post"].replace("#台股大跌", "甲" * 480 + "\n#台股大跌")), "超過 Threads 上限"),
     (dict(hook_type="新聞"), "開頭類型"),
@@ -77,7 +77,9 @@ def test_build_main_post_condensed_into_one(kind):
     th = m["threads"]
     d = V.build(kind, th["text"], th.get("reply", ""), th["images"], today="2026-10-30")
     assert d["checklist_passed"], L.lint(d)
-    assert d["image_count"] == 2 and len(d["images"]) == 2 and set(d["images"]) <= set(th["images"])
+    assert d["image_count"] == 1 and set(d["images"]) <= set(th["images"])            # 11-02「主貼文也改成只放 1 張」
+    want = {"intraday": "threads_heat.png", "premarket": "threads_us-close.png", "close": "threads_streak-foreign.png"}[kind]
+    assert d["images"] == [want]
     assert "http" not in d["main_post"] and d["reply_post"].count("https://") == 1
     assert d["thread_posts"] == [] and 300 <= L.tlen(d["main_post"]) <= 500          # 用滿主文、不超過上限
     hook, rest = L.hook_of(L.split_tag(d["main_post"])[0])
@@ -122,10 +124,18 @@ def test_never_blocks_even_with_empty_text():
     assert d["main_post"] and d["reply_post"] and d["image_count"] == 0
 
 
-def test_one_image_becomes_zero():
+def test_one_image_kept():
     th = man("intraday")["threads"]
     d = V.build("intraday", th["text"], th["reply"], th["images"][:1], today="2026-11-02")
-    assert d["image_count"] == 0
+    assert d["image_count"] == 1                     # 11-02：只有 1 張也照帶（不再要求 0 或 2）
+
+
+def test_main_post_picks_most_representative_one():
+    pick = V.pick_images
+    assert pick("close", ["a/threads_fut-oi.png", "a/threads_inst-today.png", "a/threads_margin.png"]) == ["a/threads_inst-today.png"]
+    assert pick("premarket", ["threads_news.png", "threads_tx.png", "threads_us-close.png"]) == ["threads_us-close.png"]
+    assert pick("credit", ["threads_credit.png", "threads_margin.png"]) == ["threads_margin.png"]
+    assert pick("intraday", []) == []
 
 
 def test_convert_manifest_writes_state(tmp_path):
@@ -167,7 +177,7 @@ def test_publish_chain(tmp_path, monkeypatch):
     texts = [c[2]["data"]["text"] for c in replies]
     want = th["thread_posts"] + [th["reply_post"]]
     assert th["thread_posts"] == [] and texts == [th["reply_post"]] and rc == 0     # 11-02：主文之後只剩 1 則留言（網址）
-    main = [c for c in calls if c[0] == "POST" and c[2].get("data", {}).get("media_type") == "CAROUSEL"]
+    main = [c for c in calls if c[0] == "POST" and c[2].get("data", {}).get("media_type") == "IMAGE" and "reply_to_id" not in c[2].get("data", {})]
     assert len(main) == 1 and main[0][2]["data"]["text"] == th["text"]
     posted = json.loads((tmp_path / "posted.json").read_text(encoding="utf-8"))
     assert len(posted["intraday-2026-10-30"]["threads_chain"]) == len(want)
