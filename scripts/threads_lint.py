@@ -14,6 +14,8 @@
      同詞重複（「融資融資」「台股 台股」）、段落內容照抄前段（「和前期比」＝「重點數字」）、
      解讀只是重述數字（「下跌逾7%，代表…下跌約7%」）、分類與內容不符（講台股融資標成美股）、
      條件句被改寫成事實（原文「指數若跌破年線，融資恐需降至約4200億元」→ 鉤子當成已發生）
+  9.（2026-11-02 法遵：數字照用、句子自己寫）貼文與來源新聞原文有連續 ≥ 15 個中文字相同 → 照抄原文（錯誤）；
+     貼文 JSON 帶 source_texts（來源新聞標題＋摘要）才比對。主題文章品質閘擋下後換下一則新聞／常備文庫，不會整段不發。
 
 用法：
   python scripts/threads_lint.py <v2 JSON 檔 | manifest.json | queue .md> [...]
@@ -203,6 +205,15 @@ def cond_as_fact(main: str, source: str) -> list[str]:
     return out
 
 
+def verbatim_issues(posts: list[str], sources: list[str], n: int = 15) -> list[str]:
+    """貼文跟來源新聞原文連續 ≥ n 個中文字相同 → 「照抄原文：…」（演算法在 scripts/news_facts.verbatim_runs）。"""
+    if not sources:
+        return []
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    from news_facts import verbatim_runs
+    return [f"照抄原文（連續 ≥{n} 個中文字相同）：{x[:30]}" for x in verbatim_runs([p for p in posts if p], sources, n)]
+
+
 def content_issues(posts: list[str], category: str = "", title: str = "") -> list[str]:
     """串文內容檢查（主題文章產稿的品質閘也用這支）：同詞重複、照抄前段、解讀只重述、分類不符。"""
     err = [f"同詞重複「{w}」" for w in dup_words("\n".join(posts))]
@@ -288,6 +299,8 @@ def lint(p: dict) -> tuple[list[str], list[str]]:
     err += [f"主文同詞重複「{w}」" for w in dup_words(hook)]
     err += cond_as_fact(hook, "\n".join([rest] + list(p.get("thread_posts") or [])))
     err += content_issues([x for x in [rest] + list(p.get("thread_posts") or []) if x], p.get("category") or p.get("topic_category") or "")
+    # 9. 照抄原文（2026-11-02 法遵）：有附來源原文才比
+    err += verbatim_issues([main, *(p.get("thread_posts") or []), p.get("reply_post") or ""], p.get("source_texts") or [])
     return err, warn
 
 

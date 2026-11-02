@@ -677,7 +677,7 @@ def collect(target: date, intl, price, intra, ohlc, news, cal) -> dict:
         start = min(start, us_close_tpe(us["date"]))
     return {"target": target.isoformat(), "us": us, "adr": adr, "tx": tx, "night": night, "last_td": last_td,
             "closure": closure_note(last_td, target), "news_window": [start.isoformat(), end.isoformat()],
-            "news": pick_news(news, start, end), "news_pool": pick_news(news, start, end, n=10),      # 今日焦點至少 5 則（Andy 10-27），候選多抓
+            "news": pick_news(news, start, end), "news_pool": pick_news(news, start, end, n=30),      # 今日焦點至少 5 則（Andy 10-27），候選多抓（11-02：取不到事實欄位、只有主體名的會跳過，候選 10→30）
             "events": upcoming_events(target, cal),
             "summary": summary_line(us, adr, tx, night), "reads": market_reads(us, adr, night, partial=bool(us["date"]) and datetime.now(TPE) < us_close_tpe(us["date"])),
             "us_partial": bool(us["date"]) and datetime.now(TPE) < us_close_tpe(us["date"]),
@@ -966,6 +966,20 @@ def PN_desc(v, n: int) -> str:
     return t if len(t) <= n else t[:n] + "…"
 
 
+def card_news(D: dict, k: int = 5) -> list[tuple[dict, str, str]]:
+    """昨日事件卡的 k 則：(消息, 短標題, 數字描述)；取不到事實欄位的跳過、由候選遞補。"""
+    out, seen = [], set()
+    for n in [*D.get("news", []), *(D.get("news_pool") or [])]:
+        if n["title"] in seen or len(out) >= k:
+            continue
+        seen.add(n["title"])
+        x = news_line(n, 30, 30)
+        if x:
+            ct, _, cd = x.partition("：")
+            out.append((n, ct, cd))
+    return out
+
+
 def news_icon(n: dict) -> str:
     t = n.get("title", "")
     return next((e for pat, e in NEWS_ICON if re.search(pat, t, re.I)), CAT_ICON.get(n.get("category"), "📰"))
@@ -1061,12 +1075,14 @@ def build_pages(D: dict, mode: str, theme: str = "light") -> list[dict]:
         pages.append({"name": "tx", "title": "・".join(names), "inner": box(rd, "rb") + ma_legend() + f'<div class=kps>{"".join(secs)}</div>', "charts": charts})
 
     # 3 昨日事件（原「今日焦點」；Andy：給剛起床的讀者馬上接收昨天發生的事）＋配圖示＋一句摘要
-    if D["news"]:
+    cards = card_news(D)
+    if cards:
         # Andy 10-26 晚：「最後一張圖不要表情好了，就標題」→ 編號＋分類＋標題，不放圖示與摘要
+        # 11-02 法遵：圖上也不放媒體原標題與摘要句 → 短標題＋數字描述（同 news_line，scripts/news_facts.py）
         items = "".join(f'<div class="it cat-{n["category"]}"><div class=ix data-box=ix{i}>{i + 1:02d}</div><div class=bd>'
-                        f'<div class=tg data-box=tg{i}>{n["category"]}</div><div class=tt data-box=tt{i}{" style=-webkit-line-clamp:3" if D.get("compact_news") else ""}>{_e(n["title"])}</div>'
-                        + (f'<div class=sm2 data-box=sm{i}>{_e(PN_desc(n.get("summary"), 30))}</div>' if n.get("summary") and not D.get("compact_news") else "") + '</div></div>'
-                        for i, n in enumerate(D["news"]))
+                        f'<div class=tg data-box=tg{i}>{n["category"]}</div><div class=tt data-box=tt{i}{" style=-webkit-line-clamp:3" if D.get("compact_news") else ""}>{_e(ct)}</div>'
+                        + (f'<div class=sm2 data-box=sm{i}>{_e(cd)}</div>' if cd and not D.get("compact_news") else "") + '</div></div>'
+                        for i, (n, ct, cd) in enumerate(cards))
         pages.append({"name": "news", "title": "昨日事件", "inner": f'<div class=news>{items}</div>', "charts": {}})
     return pages
 
@@ -1169,12 +1185,28 @@ def focus_lines(D: dict, kn: int = 5, tl: int = 30, dl: int = 40) -> list[str]:
         seen.add(n["title"])
         if len(out) - bool(rows) >= kn:
             break
-        c = _clause(n["title"], tl)
-        if not c:
-            continue
-        d = _desc(n.get("summary") or n.get("desc") or "", dl)
-        out.append(f"{c}：{d}" if d and d != c else c)
+        x = news_line(n, tl, dl)
+        if x:
+            out.append(x)
     return ["📌 今日焦點："] + [f"・{x}" for x in out] if out else []
+
+
+def news_line(n: dict, tl: int = 30, dl: int = 40, short: str | None = None) -> str:
+    """一則消息 →「短標題：一句描述」（2026-11-02 法遵：數字照用、句子自己寫，`scripts/news_facts.py`）：
+    短標題＝標題第一個短句（中文字 ≥ 15 就改由主體組）；描述＝新聞裡的數字（本站格式），不再取摘要第一句。
+    組出來跟原文仍有連續 ≥ 15 個中文字相同 → 回空字串，由下一則遞補（不會整段不發）。"""
+    import news_facts as NF
+    c = _clause(n["title"], tl) if short is None else short
+    try:
+        c, d = NF.fact_parts(n["title"], n.get("summary") or n.get("desc") or "", c, dl=dl)
+    except Exception:  # noqa: BLE001  事實欄位取不到就換下一則
+        return ""
+    if not c or len(c) > tl:
+        return ""
+    x = f"{c}：{d}" if d and d != c else c
+    if NF.verbatim_runs(x, [n["title"], n.get("summary") or n.get("desc") or ""]):
+        return ""
+    return x
 
 
 def caption(D: dict, ymd: str, max_len: int = ss.THREADS_MAX) -> str:

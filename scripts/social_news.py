@@ -435,26 +435,6 @@ def desc_lines(items: list[str], per: int, nmax: int = 2) -> list[str]:
     return out
 
 
-def _lead_sentence(c: dict) -> str:
-    """導言句：同群各篇摘要的第一句；含法遵禁用字眼的子句整段拿掉（只刪不改），剩不到 12 字就換下一篇，都不行退回標題。"""
-    for n in [c["lead"]] + [x for x in c["group"] if x is not c["lead"]]:
-        s = sanitize(n["summary"] or "")
-        first = "，".join(re.split(r"(?<=。)", s)[:2]).replace("。", "，").strip("， ")
-        first = re.sub(r"[A-Za-z0-9\u4e00-\u9fff]{1,12}：(?=，|$)", "", first)      # 去掉黏在句尾的「來源：」殘段
-        keep = [x for x in first.split("，") if x.strip() and clean_ok(x)]
-        out = ""
-        for x in keep:
-            if len(out) + len(x) > 180:
-                break
-            out = f"{out}，{x}" if out else x
-        out = out.rstrip("、，；： ")
-        if len(out) >= 12:
-            c["lead_src"] = n["source"]
-            return out + "。"
-    c["lead_src"] = c["lead"]["source"]
-    return _clean_title(c["lead"]["title"]) + "。"
-
-
 def _who(c: dict, names: dict, title: str) -> str:
     codes = [x for x in str(c["lead"].get("codes") or "").split(",") if x and not x.startswith("US-")]
     if codes and names.get(codes[0]):
@@ -499,8 +479,9 @@ GENERIC = {"全台", "材料", "台灣", "中華", "國際", "美國", "大眾",
 TW_MARKET = {"指數", "融資", "買超", "賣超", "成交值", "餘額"}     # 台股盤勢／籌碼類：封面用台股通用圖，不照內文順帶的產業字配圖
 AMOUNT_METRIC = {"營收", "淨利", "營業利益", "EPS", "資本支出", "市值", "出貨", "訂單", "產值", "餘額", "買超", "賣超", "成交值", "融資", "虧損"}
 IG_MAX = 2000          # IG 貼文說明上限 2,200 字；留 200 字餘裕，與 run_slot 的 2,000 字閘一致
-MIN_BODY = 360          # 10-29：500 擋掉 443／453 字、段落都有實際數字的稿；空泛句另有 EMPTY 與「和前期比」閘把關
+MIN_BODY = 280          # 10-29：500 擋掉 443／453 字、段落都有實際數字的稿；空泛句另有 EMPTY 與「和前期比」閘把關
                         # 11-02：「和前期比」不再照抄重點數字、「代表什麼」不再重述，同樣內容少 40～60 字 → 400 降到 360（近 5 天 248 群新聞實測：可發篇數 104→105，實質厚度不變）
+                        # 11-02 法遵：導言不再貼媒體摘要（原本 100～180 字）、改本站句型（約 50～80 字）→ 360 降到 280；拿掉的是照抄的字，數字一個沒少
 
 
 class Skip(Exception):
@@ -984,16 +965,33 @@ def history(subj: str, before: datetime, n: int = 2, names: dict | None = None) 
     al = aliases_of(subj)
     rows = [x for x in _hist_news(before) if x["ts"] < before - timedelta(hours=12) and any(a in x["title"] for a in al)]
     out, seen = [], set()
+    used = []
     for x in sorted(rows, key=lambda x: x["ts"], reverse=True):
         cl = [c for c in sanitize(x["summary"] or x["title"]).replace("。", "，").split("，") if c.strip() and clean_ok(c) and NUMRE.search(c)]
-        cl = [h for h in (hist_clause(c, subj, names) for c in cl) if h][:2]
-        k = "".join(cl)
-        if cl and k not in seen:
+        cl = [h for h in (hist_clause(c, subj, names) for c in cl) if h]
+        # 2026-11-02 法遵（數字照用、句子自己寫）：不再貼原文子句，只取子句裡的「標籤＋數字」用本站格式重組
+        facts = []
+        for h in cl:
+            for y in numbers_of(h):
+                lab = y["label"][len(subj):] if y["label"].startswith(subj) else y["label"]      # 「威剛威剛 157.3 億元」→ 標籤只剩主體的不收
+                lab = lab.replace("新台幣", "")
+                if len(re.findall(r"[一-鿿]", lab)) > 10:
+                    continue          # 標籤太長（「外資及陸資轉買超台股」）接上數字就是原文半句，不收
+                if clean_ok(lab) and not re.search(JUNK, lab) and len(re.findall(r"[一-鿿]", lab)) >= 2 and _ml(subj, lab):
+                    facts.append(f"{lab} {_fmt(y)}")
+        facts = list(dict.fromkeys(facts))[:2]
+        k = "".join(facts)
+        if facts and k not in seen:
             seen.add(k)
-            out.append(f"{x['ts'].month}/{x['ts'].day} {SRC_NAME.get(x['source'], x['source'])}：{'，'.join(cl)}。")
+            used.append(x)
+            out.append(f"{x['ts'].month}/{x['ts'].day} {SRC_NAME.get(x['source'], x['source'])}報導，{subj}{'、'.join(facts)}。")
         if len(out) >= n:
             break
+    HIST_USED[(subj, before)] = used
     return out
+
+
+HIST_USED: dict = {}          # history() 實際用到的舊報導（品質閘比對照抄用）
 
 
 def _fmt(x: dict) -> str:
@@ -1062,9 +1060,9 @@ def cond_of(text: str, key: dict) -> str:
             m = re.search(COND_PAT, cl)
             if m:
                 pre = (cl.split(v)[0] if v in cl else cl).strip(" ，、")
-                if len(pre) > 20:                 # 太長：從條件字前 6 個字開始取
-                    k = max(0, re.search(COND_PAT, pre).start() - 6)
-                    pre = pre[k:k + 20]
+                if len(pre) > 14:                 # 太長：從條件字前 4 個字開始取（11-02：最多 14 字，避免整句照抄原文）
+                    k = max(0, re.search(COND_PAT, pre).start() - 4)
+                    pre = pre[k:k + 14]
                 return pre if len(pre) >= 3 else ""
     return ""
 
@@ -1180,11 +1178,12 @@ def compose(c: dict, slot: str, idx: int, day: str, style: str, names: dict) -> 
     rel = [x for x in rel if not (x["unit"] == key["unit"] and kv and _f(x["value"]) and abs(_f(x["value"]) - kv) <= kv * 0.01)]
     _seen = {(key["value"], key["unit"])}
     rel = [x for x in rel if not ((x["value"], x["unit"]) in _seen or _seen.add((x["value"], x["unit"])))]   # 同一個數字只列一次（「較前一交易日上漲 939.35」「上漲 939.35」）
+    rel = [x for x in rel if _ml(subj, x["label"])]       # 11-02 CEO：數字要帶著意義（「使用率 5%」這種看不出是什麼的不放）
     rows = [key] + rel[:2]
     if len(rows) < 2:
         raise Skip("圖卡資訊列不足 2 列（與主旨相關的數字太少）")
     _cs = set()
-    comps = [x for x in nums if x["growth"] and not ((x["value"], x["unit"]) in _cs or _cs.add((x["value"], x["unit"])))]
+    comps = [x for x in nums if x["growth"] and _ml(subj, x["label"]) and not ((x["value"], x["unit"]) in _cs or _cs.add((x["value"], x["unit"])))]
     hi = re.search(r"[^，。]*(新高|新低|首度|首次|上修|下修|連續第?[\d一二三四五六七八九十]+[次度個])[^，。]*", c["text"])
     if not comps and not hi:
         raise Skip("沒有與前期的比較數字（季增／年增／前高）")
@@ -1214,16 +1213,20 @@ def compose(c: dict, slot: str, idx: int, day: str, style: str, names: dict) -> 
     url_th = f"{SITE}?u=th-{ucode}-{ymd}" + (f"#{route}" if route else "")
     l1r = l1[len(subj):] if l1.startswith(subj) else l1      # 2026-11-02：「#台股 台股融資：…」主體重複 → 「#台股 融資：…」
     head = [f"#{subj} {l1r}：{l2}" if l1r else f"#{subj} {l2}", f"#{TAG[c['cat']]} {SUBQ[c['ctype']]}", ""]
-    intro = f"{md}，{srcname}報導：{_lead_sentence(c)}（{SRC_NAME.get(c.get('lead_src'), srcname)}報導摘述）"
-    shown = [x for x in nums if (x["metric"] or x["growth"]) and len(x["label"]) >= 2 and not re.match(r"[含約共逾近]", x["label"])]
-    sec_num = "📊 #重點數字\n" + "\n".join(f"▪ {x['label']} {_fmt_full(x)}{cite(x)}" for x in shown[:5])
+    # 2026-11-02 法遵（數字照用、句子自己寫；diagnosis_1102/legal_tech_transparency.md 6-2）：導言不再貼媒體摘要第一句、
+    # 不再標「報導摘述」→ 本站固定句型（主體＋代號＋期間＋事件＋主旨數字），下一行出處「資料：公司公告／〇〇報導」
+    intro = fact_intro(md, subj, code, l1, rows, c, srcname)
+    shown = [x for x in nums if (x["metric"] or x["growth"]) and len(x["label"]) >= 2 and not re.match(r"[含約共逾近]", x["label"])
+             and (x is key or _ml(subj, x["label"]))]
+    nolead = lambda lb: lb[len(subj):] if lb.startswith(subj) and len(re.findall(r"[一-鿿]", lb[len(subj):])) >= 2 else lb   # 11-02：主體已在標題與導言
+    sec_num = "📊 #重點數字\n" + "\n".join(f"▪ {nolead(x['label'])} {_fmt_full(x)}{cite(x)}" for x in shown[:5])
     # 2026-11-02 CEO：「和前期比」兩條跟「重點數字」照抄同一個數字 → 只放重點數字沒列過的比較、本站換算的前期值、報導寫的新高／首度；
     # 一條都沒有就整段不出
     listed = {(x["value"], x["unit"]) for x in shown[:5]}
     cmp_lines = [f"▪ {x['label']} {_fmt_full(x)}" for x in comps[:3] if (x["value"], x["unit"]) not in listed]
     cmp_lines += prior_lines(dict(key, subj=subj), comps)
     if hi and not any(hi.group(0).strip() in l for l in cmp_lines):
-        cmp_lines.append(f"▪ 報導提到「{hi.group(0).strip()}」")
+        cmp_lines += [x for x in [hi_line(hi)] if x]          # 11-02：不再整句加引號照貼（「締歷史新猷」這種記者用語），改本站句型
     sec_cmp = ("🔁 #和前期比\n" + "\n".join(cmp_lines)) if cmp_lines else ""
     mean = []
     if cond:
@@ -1277,15 +1280,15 @@ def compose(c: dict, slot: str, idx: int, day: str, style: str, names: dict) -> 
             how = "持平" if dlt == 0 else f"{'高' if dlt > 0 else '低'} {abs(dlt):g} 個百分點"
             mean.append(f"{ps[0]['label']} {ps[0]['value']}%、{ps[1]['label']} {ps[1]['value']}%，後者比前者{how}（本站計算）。")
     sec_mean = ("🔎 #這些數字代表什麼\n" + "".join(mean)) if mean else ""     # 沒有真的解讀就整段不出（不放「是核心數字」這種空話）
+    # 11-02 法遵：「其他媒體怎麼寫」不再貼別家的摘要子句 → 只寫哪幾家也報導、哪些數字兩家寫的一樣（交叉核對是事實）
+    others = list(dict.fromkeys(SRC_NAME.get(n["source"], n["source"]) for n in c["group"] if n["source"] != lead["source"]))
     other = []
-    for n in c["group"]:
-        if n is lead or n["source"] == lead["source"]:
-            continue
-        cl = [x for x in sanitize(n["summary"]).split("，") if x.strip() and clean_ok(x)][:2]
-        if cl:
-            other.append(f"{SRC_NAME.get(n['source'], n['source'])}報導：{'，'.join(cl)}。")
+    if others:
+        ver = [f"{x['label']} {_fmt(x)}" for x in shown[:5] if x.get("verified")][:2]
+        other.append(f"另有{'、'.join(others[:3])}報導同一件事" + (f"，{'、'.join(ver)}兩家寫的數字一致。" if ver else "。"))
     sec_more = ("📰 #其他媒體怎麼寫\n" + "\n".join(other[:2])) if other else ""
     hist = history(subj, lead["ts"], names=names)
+    hist_src = HIST_USED.get((subj, lead["ts"]), [])
     sec_hist = ("📌 #之前的報導\n" + "\n".join(hist)) if hist else ""
     sec_watch = "👀 #接下來觀察\n" + wp
     sec_rel = rel_news(c, subj, code, names)
@@ -1311,10 +1314,45 @@ def compose(c: dict, slot: str, idx: int, day: str, style: str, names: dict) -> 
                        news_ids=",".join(n["news_id"] for n in c["group"][:8]), u_code=ucode))
     if cond:
         d["cond"] = cond
+    # 照抄比對用的來源原文：這一群的每一篇＋「之前的報導」用到的舊報導（只在記憶體，不寫進 queue 檔）
+    d["src_texts"] = [f"{n['title']}，{n['summary']}" for n in c["group"]] + [f"{n['title']}，{n['summary']}" for n in hist_src]
     bad = quality_gate(d, key)
     if bad:
         raise Skip("品質閘：" + "；".join(bad))
     return d
+
+
+def _ml(subj: str, lab: str) -> bool:
+    """數字標籤看得出意義（2026-11-02 CEO 退件：「使用率 5%」「擬參與 1,850 億美元」看不懂）；主體已知時把主體加回去再判斷。"""
+    try:
+        import news_facts as NF
+    except ImportError:
+        return True
+    return NF.meaningful_label(lab if not subj or lab.startswith(subj) else subj + lab)
+
+
+def fact_intro(md: str, subj: str, code: str, l1: str, rows: list[dict], c: dict, srcname: str) -> str:
+    """導言（2026-11-02 法遵）：「10/30，光寶科（2301）第3季財報：營收 574 億元；季增 9%；EPS 3.27 元。」（用「；」分隔：每個數字各自一句，推估語氣不會跨到別的數字）＋換行「資料：公司公告／經濟日報報導」。
+    句子由本站欄位組成（主體、代號、期間＋事件＝封面第一行、主旨數字＋最多 2 個相關數字），媒體只當出處。
+    台股公司的財報／營收數字依規定由公司在公開資訊觀測站公告，出處寫「公司公告／〇〇報導」；其他寫「〇〇報導」。"""
+    who = f"{subj}（{code}）" if code else subj
+    what = l1[len(subj):] if l1.startswith(subj) else ""
+    facts = "；".join(f"{x['label'][len(subj):] if x['label'].startswith(subj) and len(x['label']) > len(subj) + 1 else x['label']} {_fmt(x)}"
+                      for x in rows[:3])
+    srcs = list(dict.fromkeys(SRC_NAME.get(n["source"], n["source"]) for n in c["group"]))[:3] or [srcname]
+    pub = "公司公告／" if code and c.get("ctype") == "財報數字" else ""
+    return f"{md}，{who}{what}：{facts}。\n資料：{pub}{'、'.join(srcs)}報導"
+
+
+def hi_line(hi) -> str:
+    """報導寫到的新高／上修／連續 N 次：只留「指標＋關鍵詞」，用本站句型（「▪ 報導指出：EPS 創新高」）；不整句加引號照貼。
+    「首度／首次」離開原句就看不出是什麼第一次 → 不寫（回空字串）。"""
+    w = hi.group(1)
+    if w in ("首度", "首次"):
+        return ""
+    w = {"新高": "創新高", "新低": "創新低"}.get(w, w)
+    m = metric_of(hi.group(0)) or ""
+    return f"▪ 報導指出：{m}{' ' if m and re.search(r'[A-Za-z]$', m) else ''}{w}"
 
 
 def quality_gate(d: dict, key: dict) -> list[str]:
@@ -1336,6 +1374,13 @@ def quality_gate(d: dict, key: dict) -> list[str]:
             out.append(f"空泛句：{w}")
     if "#stock/" in d["caption_ig"] or any("#stock/" in t for t in d["caption_threads"]):
         out.append("落點不得為個股頁")
+    if "摘述" in d["caption_ig"] or any("摘述" in t for t in d["caption_threads"]):
+        out.append("出現「摘述」字樣（11-02 起導言是本站句型，不准標摘述）")
+    try:
+        import threads_lint as TL0
+        out += TL0.verbatim_issues([d["caption_ig"], *d["caption_threads"], json.dumps({k: v for k, v in d["card"].items() if k != "photo_text"}, ensure_ascii=False)], d.get("src_texts") or [])   # photo_text 只給選圖用、不上圖不上文
+    except ImportError:
+        pass
     # 2026-11-02 CEO：同詞重複、段落照抄前段、解讀只重述數字、分類與內容不符 → 這篇不排，換下一則新聞，都不行補常備文庫（不會整段不發）
     try:
         import threads_lint as TL

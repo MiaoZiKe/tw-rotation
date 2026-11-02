@@ -665,8 +665,8 @@ def fit(secs, title: str, item_max: int, max_posts: int = 6, budget: int | None 
 
     def step_intro():
         nonlocal secs
-        if budget and secs and not secs[0][0] and len(secs) > 1:      # 導言（新聞摘述）在重點數字之後才捨
-            secs = secs[1:]; cut.append("新聞摘述"); return True
+        if budget and secs and not secs[0][0] and len(secs) > 1:      # 導言（11-02 起是本站句型＋出處行，不再是報導摘述）在重點數字之後才捨
+            secs = secs[1:]; cut.append("導言"); return True
         return False
 
     steps = (step_drop,) * (4 if budget else 3) + ((step_intro,) if budget else ()) + (step_news_short, step_news_three, step_detail)
