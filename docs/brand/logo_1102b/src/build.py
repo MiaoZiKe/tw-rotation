@@ -38,7 +38,7 @@ def horizontal(c,h=96,bg=WHITE):
  <div class="lat" style="font-size:{h*0.15:.1f}px;letter-spacing:.42em;color:#6b7080;margin-top:{h*0.12:.0f}px;padding-left:.2em">LIGULIGU</div></div></div>'''
 def threads(c,dark=False):
     bgc,fg,sub,line=('#101010','#F3F5F7','#8d9198','#2a2a2a') if dark else ('#fff',INK,'#8d9198','#e6e6e6')
-    return f'''<div style="width:392px;background:{bgc};border:1px solid {line};border-radius:14px;padding:18px 18px 16px;color:{fg}">
+    return f'''<div style="box-sizing:border-box;width:412px;background:{bgc};border:1px solid {line};border-radius:14px;padding:18px 18px 16px;color:{fg}">
  <div style="display:flex;justify-content:space-between;align-items:flex-start">
   <div><div style="font-size:21px;font-weight:700;font-family:NSTC,Inter">哩股哩股</div><div style="font-size:14px;color:{sub};margin-top:3px;font-family:Inter">liguligu0818</div></div>
   {circle(c,'brand',76)}</div>
