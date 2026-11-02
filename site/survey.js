@@ -33,7 +33,7 @@
   function snooze() { if (testMode()) return; memSnooze = Date.now() + SNOOZE_MS; ls.set(SNOOZE_KEY, String(memSnooze)); }
 
   /* ---------- 母／子分頁清單（動態讀側欄） ---------- */
-  const ADMIN_ONLY = ['admin', 'delivery', 'tc', 'lab'];   // 管理區、交付清單、科技透明圈、交易練習室：只給管理員，一般會員在側欄看不到，不能讓他們評
+  const ADMIN_ONLY = ['admin', 'delivery', 'tc', 'lab', 'flowcheck'];   // 管理區、交付清單、科技透明圈、交易練習室：只給管理員，一般會員在側欄看不到，不能讓他們評
   const isAdm = () => { const a = A(); const u = a && a.user && a.user(); return !!(u && u.admin === true); };
   const hiddenTab = (k) => { const e = document.querySelector('#tabs .tab[data-view="' + k + '"]'); return !!(e && (e.hidden || e.style.display === 'none')); };   // 側欄對這位會員有藏的也跳過（權限、導覽隱藏）
   const skip = (k) => (ADMIN_ONLY.includes(k) && !isAdm()) || hiddenTab(k);
