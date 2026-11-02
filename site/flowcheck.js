@@ -27,6 +27,33 @@
   try { open = JSON.parse(localStorage.getItem('fc.open') || '{}') || {}; } catch (e) { open = {}; }
   var isM = function () { return window.matchMedia && window.matchMedia('(max-width:640px)').matches; };
 
+  /* ---------------------------------------------------------------- 只給站主／管理員（Andy 11-02：「流向驗證 推上去 但須要先隱藏 不給其他人看」）
+     做法與交易練習室（lab.js）一致：html 掛 .fc-adm 才顯示側欄／手機抽屜入口（CSS 在 m4/20261102-flowcheck-admin.css，mobile4.js 抽屜也判斷）；
+     非管理者直接打 #flowcheck 導回 #overview。管理者名單仍只在 Worker，這裡只是入口與路由閘。
+     預覽版（TW_PREVIEW）與本機 127.0.0.1 覆寫（TW_LAB_OVERRIDE）同 lab.js 的規則，方便驗收。 */
+  var fcKnown = false;
+  function isAdm() {
+    try {
+      if (window.TW_PREVIEW) return true;
+      var h = location.hostname;
+      if ((h === '127.0.0.1' || h === 'localhost') && (window.TW_LAB_OVERRIDE === true || window.TW_LAB_OVERRIDE === false)) return window.TW_LAB_OVERRIDE;
+      var Ac = window.TwAccount, u = null;
+      if (Ac && typeof Ac.user === 'function') u = Ac.user();
+      else if (localStorage.getItem('tw.acct.tok')) u = JSON.parse(localStorage.getItem('tw.acct.user') || 'null');
+      return !!(u && (u.admin === true || u.owner === true));
+    } catch (e) { return false; }
+  }
+  function fcGate() {
+    var on = isAdm();
+    document.documentElement.classList.toggle('fc-adm', on);
+    if (!on && fcKnown && /^#flowcheck(\?|$)/.test(location.hash || '')) location.replace('#overview');
+    return on;
+  }
+  fcGate();
+  window.addEventListener('tw:account', function () { fcKnown = true; if (fcGate() && /^#flowcheck(\?|$)/.test(location.hash || '')) window.dispatchEvent(new HashChangeEvent('hashchange')); });
+  setTimeout(function () { if (!fcKnown) { fcKnown = true; fcGate(); } }, 6000);
+  window.addEventListener('hashchange', fcGate);
+
   /* ---------------------------------------------------------------- 資料 */
   function jget(path) {
     if (C.fail[path]) return Promise.resolve(null);
@@ -590,6 +617,7 @@
   };
   Object.defineProperty(apiObj, 'idx', { get: function () { return C.idx; } });
   function show() {
+    if (!fcGate()) return Promise.resolve();      // 非管理者：不載入、不畫（帳號還沒確認時先空著，確認後 tw:account 會重新路由；確認不是管理者就導回總覽）
     if (!built && !build()) return Promise.resolve();
     var u = readUrl();
     return (C.idx ? Promise.resolve(C.idx) : jget('index.json')).then(function (idx) {

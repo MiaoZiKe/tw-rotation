@@ -1,0 +1,2 @@
+/* 流向驗證只限管理者（2026-11-02）：html 沒有 .fc-adm 時，側欄／手機導覽的入口一律藏（路由本身在 flowcheck.js 導回總覽）。同交易練習室的做法。 */
+html:not(.fc-adm) .tab[data-view="flowcheck"],html:not(.fc-adm) a[href="#flowcheck"],html:not(.fc-adm) [data-v="flowcheck"],html:not(.fc-adm) [data-h="#flowcheck"]{display:none!important}

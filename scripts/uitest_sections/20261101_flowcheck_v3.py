@@ -28,7 +28,7 @@ def t_flowcheck_v3(b, base):
         if W < 641:
             kw.update(is_mobile=True, has_touch=True, device_scale_factor=2)
         ctx = b.new_context(**kw)
-        ctx.add_init_script("try{localStorage.setItem('fc.tour4','1');localStorage.setItem('tw.tour','done');localStorage.setItem('tw.live.on','0')}catch(e){}")
+        ctx.add_init_script("window.TW_LAB_OVERRIDE=true;try{localStorage.setItem('fc.tour4','1');localStorage.setItem('tw.tour','done');localStorage.setItem('tw.live.on','0')}catch(e){}")
         ctx.route("**/fonts.googleapis.com/**", lambda r: r.abort())
         ctx.route("**/data/flowcheck/**", route)
         pg = ctx.new_page()
