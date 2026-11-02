@@ -29,12 +29,11 @@ name: 社群即時貼文（Threads／IG 限動）
 # ★ 非交易日不發：看「資料」＋休市日表（pipeline/calendar/tw_holidays.yaml），不看執行當下的星期幾（scripts/social_gate.py，2026-10-26）：
 #   盤後法人＝每張卡的資料日都要是今天；盤後融資＝最近一個已收盤交易日、下一個交易日 09:00 前才發；盤中＝交易日 09:00～13:30 且報價成交日是今天。
 # ★ 即時沒套上（抓不到報價）的那張不發，不拿盤後舊圖冒充即時。
+# ★★ 2026-11-02 降量模式（Andy：「同意降量」；docs/marketing/social_unit/post_quota.json）：
+#   盤中 12:01、盤前 08:20／08:50／09:40 的 GitHub 排程拿掉（盤中、盤前已不發 Threads／IG 限動）。
+#   盤前仍由 gh-cron Worker 08:20 派一輪：只為了把「盤前消息」寫回網站（site/articles/premarket.json），發布那步被降量開關擋下。
+#   盤後主貼文（kind=close）照舊由每日管線接力，Threads 照發、IG 限動不發。要放量：改 post_quota.json；盤中／盤前的備援排程要一起加回來（git log 找這一筆）。
 on:
-  schedule:
-    - cron: "1 4 * * 1-5"     # 台北 12:01 盤中（一天一篇，備援；準時由 Cloudflare Worker 12:00 派）
-    - cron: "20 0 * * 1-5"    # 台北 08:20 盤前（2026-10-27 Andy「開始發」；休市日由 social_premarket.py 自己不發）
-    - cron: "50 0 * * 1-5"    # 台北 08:50 盤前備援 1（08:20 那輪被 GitHub 吃掉時補發；已發過就跳過）
-    - cron: "40 1 * * 1-5"    # 台北 09:40 盤前備援 2（2026-10-27 Andy：「晚到也不能不發，有問題就Mail通知」→ 晚到照發；10-27 晚：只有發不成功才寄信）
   workflow_run:
     workflows: ["每日盤後管線"]
     types: [completed]        # 每日管線跑完（含部署）→ 盤後法人；資料日不是今天就自己跳過
@@ -103,6 +102,19 @@ jobs:
         # 2026-10-27：盤後改由每日管線 inst 輪直接派（workflow_dispatch），這一步每一種、每一個觸發來源都要跑，否則會重複發
         if: always()
         run: |
+          # 2026-11-02 降量模式（Andy：「同意降量」）：這一種貼文 Threads／IG 限動都關 → 整輪不做（成功結束、不寄信、不補發）。
+          #   例外：盤前照做截圖＋寫回網站「盤前消息」，只是不發文（發布那步被 social_publish.py 擋下）。
+          Q="$(python3 scripts/post_quota.py any "${{ steps.kind.outputs.kind }}")"
+          if [ "$Q" = "off" ]; then
+            echo "quota_off=1" >> "$GITHUB_OUTPUT"
+            if [ "${{ steps.kind.outputs.kind }}" != "premarket" ]; then
+              echo "降量模式：略過（post_quota.json live.${{ steps.kind.outputs.kind }} 全關）"
+              echo "### 降量模式：略過 ${{ steps.kind.outputs.kind }}（docs/marketing/social_unit/post_quota.json）" >> "$GITHUB_STEP_SUMMARY"
+              echo "skip=1" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+            echo "### 降量模式：盤前只更新網站「盤前消息」，不發 Threads／IG 限動" >> "$GITHUB_STEP_SUMMARY"
+          fi
           if git ls-remote --exit-code --heads origin social-snaps >/dev/null 2>&1; then
             git fetch --depth=1 origin social-snaps
             # 盤後融資的鍵是「融資資料日」，要截之前才知道 → 把發布紀錄交給 social_snap.py 的 --posted-json 自己比
@@ -194,6 +206,11 @@ jobs:
             echo "### ${{ steps.kind.outputs.kind }}：本輪刻意不發（法人／融資資料未到齊、已發過、非交易日或不在盤中時段），正常結束" >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
+          if [ "$RC" != "0" ] && [ "${{ steps.done.outputs.quota_off }}" = "1" ]; then
+            # 降量模式：這一種本來就不發文（盤前只為了網站盤前消息）→ 產圖失敗只記警告，不標紅、不寄信、不觸發補發
+            echo "::warning::降量模式：${{ steps.kind.outputs.kind }} 產圖結束碼 $RC（本來就不發文，網站盤前消息這輪沒更新）"
+            exit 0
+          fi
           if [ "$RC" != "0" ]; then
             echo "::error::產圖程式結束碼 $RC（2＝一張都沒截成／讀不到資料、3＝版面有重疊、4＝盤前美股資料太舊）"
             exit "$RC"
@@ -227,7 +244,8 @@ jobs:
       # 否則每天幾十張 PNG 的歷史會把 repo 撐爆）；保留最近 3 天的圖與 state/posted.json。
       - name: 推圖到 social-snaps 分支
         id: pub
-        if: steps.snap.outcome == 'success' && steps.snap.outputs.rc == '0'
+        # 降量模式全關的那一種（盤前）不發文 → 不必推圖、不動發布紀錄
+        if: steps.snap.outcome == 'success' && steps.snap.outputs.rc == '0' && steps.done.outputs.quota_off != '1'
         run: |
           OUT="${{ steps.snap.outputs.out }}"
           NAME="$(basename "$OUT")"
@@ -342,5 +360,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          # 2026-11-02 降量模式：主題文章 Threads／IG 都關 → 不叫醒（省一輪 Actions）
+          if [ "$(python3 scripts/post_quota.py any news)" = "off" ]; then echo "降量模式：略過（主題文章停發，不叫醒 social_news.yml）"; exit 0; fi
           gh workflow run social_news.yml --ref main -f slot=auto -f dry_run=false \
             || echo "::warning::叫醒 social_news.yml 失敗，仍有 social_news.yml 自己的備援排程"

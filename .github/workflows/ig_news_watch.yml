@@ -3,9 +3,10 @@ name: IG 主題文章晚間監工
 # 2026-11-01 Andy「OK」（IG 主題文章改晚上 20:00／20:50／21:40 發）＋ CEO：「監工排程增加 22:10 檢查 IG 主題文章是否發出」。
 # 台北每天 22:10：今天該有的 IG 主題文章（交易日盤前／盤中／盤後、休市日週末兩篇）是否都 posted。
 #   逾時未發 → 先叫醒 ig_post.yml 補發、等 4 分鐘再查；仍有缺稿／逾時／失敗 → 這一輪標紅（GitHub 寄信），CEO 22:10 監工同時接手處理到發出。
+# ★★ 2026-11-02 降量模式（Andy：「同意降量」；docs/marketing/social_unit/post_quota.json queue.news.ig=false）：
+#   IG 主題文章停發 → 22:10 排程與 gh-cron Worker 22:12 派工拿掉；手動跑也只印「降量模式：略過」、成功結束、不叫醒補發。
+#   要放量：post_quota.json 改 true，並把 schedule（cron "10 14 * * *"）加回來。
 on:
-  schedule:
-    - cron: "10 14 * * *"     # 台北 22:10
   workflow_dispatch:
 concurrency:
   group: ig-news-watch

@@ -9,6 +9,8 @@
     Threads  GET https://graph.threads.net/v1.0/me?fields=id
     IG       GET https://graph.instagram.com/v24.0/me?fields=user_id,username（取 user_id）
   查到的編號只在 log 印末 4 碼。
+★ 降量開關（2026-11-02 Andy：「同意降量」）：docs/marketing/social_unit/post_quota.json 的 live.<kind>.threads／ig_story
+  是 false 的平台，真的呼叫 API 之前就略過（印「降量模式：略過」），不算失敗、不寫發布紀錄。
 ★ 總開關（2026-10-26）：repo 檔 docs/marketing/social_unit/LIVE_ENABLED 存在才真的發；不存在＝一律 dry-run（即使有金鑰）。
   Andy 說「開始發」之前不建立這個檔。
 權杖絕不寫檔、不進 log（輸出一律先過 redact）。
@@ -27,6 +29,9 @@ from pathlib import Path
 from urllib.parse import quote
 
 import requests
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import post_quota  # noqa: E402  2026-11-02 降量模式：docs/marketing/social_unit/post_quota.json
 
 THREADS_HOST = "https://graph.threads.net"
 THREADS_ME = "https://graph.threads.net/v1.0/me"
@@ -291,11 +296,25 @@ def run(manifest_path, base_url, dry_run=False, env=None, flag=None) -> int:
     st_urls = [pub(i) for i in m.get("story", [])]
     fail = False
     log(f"時段 {key}（{m.get('taken_at')}）")
-    # 帳號編號：只有真的要發（總開關開、不是 dry-run、有權杖）才去查
+    # 2026-11-02 降量模式（Andy：「同意降量」）：關掉的平台在這裡就擋下，後面一律不送任何請求（含串文、回覆、查帳號）
+    kind = m.get("kind", "intraday")
+    q = post_quota.load()
+    q_th, q_st = post_quota.live_allowed(kind, "threads", q), post_quota.live_allowed(kind, "ig_story", q)
+    if th.get("text") and not q_th:
+        log(f"[threads] {post_quota.SKIP_MSG}（post_quota.json live.{kind}.threads=false）")
+    if st_urls and not q_st:
+        log(f"[ig] {post_quota.SKIP_MSG}（post_quota.json live.{kind}.ig_story=false，限動 {len(st_urls)} 張不發）")
+    if not q_th:
+        th, th_urls = {}, []
+    if not q_st:
+        st_urls = []
+    # 帳號編號：只有真的要發（總開關開、不是 dry-run、有權杖、降量開關開著）才去查
     th_uid = ig_uid = ""
     if not off:
-        th_uid = resolve_user_id("threads", env.get("THREADS_USER_ID", ""), env.get("THREADS_ACCESS_TOKEN", ""))
-        ig_uid = resolve_user_id("ig", env.get("IG_USER_ID", ""), env.get("IG_ACCESS_TOKEN", ""))
+        if th.get("text"):
+            th_uid = resolve_user_id("threads", env.get("THREADS_USER_ID", ""), env.get("THREADS_ACCESS_TOKEN", ""))
+        if st_urls:
+            ig_uid = resolve_user_id("ig", env.get("IG_USER_ID", ""), env.get("IG_ACCESS_TOKEN", ""))
 
     # Threads
     only = os.environ.get("SOCIAL_ONLY", "")      # 測試補發用：ig＝只發 IG 限動（Threads 已發過）、threads＝只發 Threads

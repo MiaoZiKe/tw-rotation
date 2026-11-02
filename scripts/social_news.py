@@ -1834,6 +1834,12 @@ def main(argv=None) -> int:
     out = Path(a.out) if a.out else None
     if a.dry_run and not out:
         ap.error("--dry-run 要搭配 --out")
+    # 2026-11-02 降量模式（Andy：「同意降量」）：主題文章 Threads／IG 都關 → 不產稿、不寫 queue（演練 --dry-run 照做，不會發）
+    if not a.dry_run:
+        import post_quota
+        if not post_quota.any_on("news"):
+            print(f"{post_quota.SKIP_MSG}：主題文章（post_quota.json queue.news 的 threads／ig 都是 false）→ 不產稿、不寫 queue")
+            return 0
     slots = [a.slot] if a.slot != "auto" else auto_slots(day, now, posted)
     if not slots:
         print(f"{day} 目前沒有該排的主題文章時段（交易日要等主貼文發出；休市日要等排定時間）")

@@ -42,6 +42,9 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+sys.path.insert(0, str(ROOT / "scripts"))
+import post_quota  # noqa: E402  2026-11-02 降量模式：docs/marketing/social_unit/post_quota.json
+
 QUEUE = ROOT / "social" / "ig" / "queue"
 API = "https://graph.instagram.com"
 RAW = "https://raw.githubusercontent.com/MiaoZiKe/tw-rotation/main/"
@@ -218,6 +221,12 @@ def process(path: Path, now: datetime, token: str | None, force_now: bool = Fals
         return "略過（status 不是 approved）"
     if not force_now and not is_due(meta, now):
         return f"略過（還沒到 {meta['publish_at']}）"
+    # 2026-11-02 降量模式（Andy：「同意降量」）：關掉的類別不連 Meta；改回 draft 並註記，之後放量也不會把舊稿補發出去
+    if not post_quota.queue_allowed("ig", path.name):
+        grp = "news" if post_quota.is_auto_news(path.name) else "manual"
+        rewrite_meta(path, {"status": "draft",
+                            "quota_skipped": f"{now.astimezone(TAIPEI).strftime('%Y-%m-%dT%H:%M+08:00')} post_quota.json queue.{grp}.ig=false"})
+        return f"{post_quota.SKIP_MSG}（post_quota.json queue.{grp}.ig=false；已改回 draft）"
     if not token:
         raise PostError("沒有 IG_ACCESS_TOKEN（請在 GitHub Secrets 設定）")
     r = publish(images_of(meta), caption, token)
@@ -250,7 +259,7 @@ def wait_for_due(files: list, wait_max_min: float) -> None:
     for f in files:
         try:
             meta, _ = parse(f.read_text(encoding="utf-8"))
-            if meta.get("status") == "approved":
+            if meta.get("status") == "approved" and post_quota.queue_allowed("ig", f.name):   # 降量關掉的不等
                 upcoming.append((when(meta), f))
         except Exception:
             continue

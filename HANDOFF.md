@@ -1,5 +1,8 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
+## ★ 最高警戒
+- **2026-11-02 社群自動發文降量模式（Andy：「同意降量」）**：自動只發交易日盤後主貼文 Threads 1 則（第 2 則留給 Andy 手寫）；盤前、盤中、所有 IG 限動、主題文章／新聞文、IG 晚間補發與 22:10 監工全停。唯一開關 `docs/marketing/social_unit/post_quota.json`（Andy 說了才准改）；被停的時段**不准補發**，監工只剩盤後 18:20。細節 `docs/marketing/social_unit/auto_post.md` 第〇節。分支 `social/quota-1102`（CEO 審過推 main；推 main 前今晚 20:00／20:50 兩篇已 approved 的 IG 主題文章仍會發）。這批只驗：`pytest -k "social or threads or ig_post or news or premarket or postmarket or gh_cron"`＋`tests/test_social_quota_1102.py`＋`node --test workers/gh-cron/test/schedule.test.mjs`。
+
 ## 2026-11-02 新聞句子不照抄（法遵 diagnosis_1102/legal_tech_transparency.md 6-2；分支 `fix/news-no-verbatim`，**等 CEO 審過才推 main**；最後更新 11-02 12:20 台北）
 - 改產生器：主題文章導言改本站句型＋「資料：公司公告／〇〇報導」、拿掉「報導摘述」；其他媒體／之前的報導只取數字；盤前今日焦點、盤中盤後新聞焦點、盤前昨日事件卡的描述改新聞數字；`threads_lint` 加「與原文連續 ≥15 個中文字相同」檢查（品質閘擋下換下一則／常備文庫）。細節 `auto_post.md` 修改紀錄 11-02「新聞句子不照抄」。
 - 這批只驗：`pytest tests/test_social_news.py tests/test_social_threads_v2.py tests/test_threads_post.py tests/test_social_publish.py tests/test_premarket_news.py tests/test_postmarket_news.py tests/test_social_live_news.py tests/test_social_premarket.py`＋`-k "social or threads or ig_post or news or premarket or postmarket"`；近 5 天 175 群新聞只產生不發：可發 74→78、照抄 74→0、lint 0 錯；11-02 盤前卡實際渲染（重疊 0 筆）5 條逐條目視看得懂。沒動 site/**。

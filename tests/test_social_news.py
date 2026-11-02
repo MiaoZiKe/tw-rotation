@@ -509,7 +509,9 @@ def test_close_post_wakes_news_and_no_late_skip():
     src = (root / "scripts/social_news.py").read_text(encoding="utf-8")
     assert "新聞時效已過，這段不補排" not in src
     news = (root / ".github/workflows/social_news.yml").read_text(encoding="utf-8")
-    assert '"25 10 * * 1-5"' in news and '"55 10 * * 1-5"' in news      # 盤後 18:25／18:55 備援
+    # 2026-11-02 降量模式（Andy：「同意降量」）：主題文章停發，18:25／18:55 等備援排程拿掉；
+    # 叫醒那步與 social_news.yml 都先看 post_quota.json（放量時改開關檔＋把排程加回來，見 auto_post.md「2026-11-02 降量模式」）
+    assert "post_quota.py any news" in wake[0]["run"] and "post_quota.py any news" in news
 
 
 # ---------------- 2026-11-02 CEO：「台股融資融資約4200億元」那篇 ----------------

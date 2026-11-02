@@ -16,20 +16,10 @@ on:
   workflow_run:
     workflows: ["社群即時貼文（Threads／IG 限動）"]
     types: [completed]
-  schedule:
-    # 2026-10-29：主題文章每天自動（週末也有）。下面四個是每天（含週末）的備援，主力由 gh-cron Worker 準時派（workers/gh-cron/src/schedule.js）；
-    # social_news.py 自己判斷是交易日還是休市日、排哪一段，已排過的段落跳過。
-    - cron: "15 2 * * *"      # 台北 10:15（週末精選 wk1）
-    - cron: "45 2 * * *"      # 台北 10:45（wk1 備援）
-    - cron: "0 11 * * *"      # 台北 19:00（週末精選 wk2）
-    - cron: "40 11 * * *"     # 台北 19:40（wk2 備援）
-    - cron: "30 0 * * 1-5"    # 台北 08:30
-    - cron: "10 4 * * 1-5"    # 台北 12:10
-    - cron: "25 10 * * 1-5"   # 台北 18:25（10-30 補：盤後主貼文常在 17:30～18:30 發出）
-    - cron: "55 10 * * 1-5"   # 台北 18:55
-    - cron: "35 11 * * 1-5"   # 台北 19:35
-    - cron: "5 13 * * 1-5"    # 台北 21:05
-    - cron: "35 14 * * 1-5"   # 台北 22:35
+  # ★★ 2026-11-02 降量模式（Andy：「同意降量」；docs/marketing/social_unit/post_quota.json queue.news 全關）：
+  #   原本 11 條備援排程（08:30、12:10、18:25、18:55、19:35、21:05、22:35、週末 10:15／10:45／19:00／19:40）拿掉；
+  #   gh-cron Worker 的主題文章派工也拿掉。workflow_run／手動派工還在，但下面 gate 這一關看開關檔，全關就整輪不做（成功結束）。
+  #   要放量：post_quota.json 改 true，並把這段排程與 Worker 的派工加回來（git log 找這一筆）。
   workflow_dispatch:
     inputs:
       slot:
@@ -55,7 +45,34 @@ permissions:
   actions: write      # 排完 queue 後用 gh workflow run 直接叫醒 threads_post／ig_post（不靠 15 分鐘 cron）
 
 jobs:
+  # 2026-11-02 降量模式：先看開關檔（約 10 秒），主題文章 Threads／IG 都關就不跑後面的產稿（不裝 Playwright、不寫 queue）。
+  #   演練（dry_run=true）照跑：只產 artifact、不寫 queue、不會發。
+  gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      on: ${{ steps.q.outputs.on }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          sparse-checkout: |
+            scripts/post_quota.py
+            docs/marketing/social_unit/post_quota.json
+          sparse-checkout-cone-mode: false
+      - id: q
+        run: |
+          Q="$(python3 scripts/post_quota.py any news)"
+          if [ "$Q" = "off" ] && [ "${{ inputs.dry_run }}" != "true" ]; then
+            echo "降量模式：略過（post_quota.json queue.news 全關，主題文章不產稿）" | tee -a "$GITHUB_STEP_SUMMARY"
+            echo "on=0" >> "$GITHUB_OUTPUT"
+          else
+            echo "on=1" >> "$GITHUB_OUTPUT"
+          fi
+
   news:
+    needs: gate
+    if: needs.gate.outputs.on == '1'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:

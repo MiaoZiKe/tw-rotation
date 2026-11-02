@@ -1,0 +1,15 @@
+{
+  "note": "2026-11-02 Andy：「同意降量」。依據 docs/marketing/diagnosis_1102/strategy_diagnosis.md 6-2「先停什麼（第 1 天）」：自動發文從每天十幾則降到每天自動最多 2 則；第 2 則名額先保留給 Andy 手寫，不自動填。手寫內容另計。",
+  "updated": "2026-11-02",
+  "how_to": "要放量只改這個檔：把對應的 false 改成 true、推上 main 即可（所有發文程式在真的呼叫 Meta API 前都會讀這個檔）。false＝記錄「降量模式：略過」並以成功結束，不寄失敗信、不觸發補發。說明：docs/marketing/social_unit/auto_post.md 最上面「2026-11-02 降量模式」一節。",
+  "live": {
+    "premarket": {"threads": false, "ig_story": false},
+    "intraday":  {"threads": false, "ig_story": false},
+    "close":     {"threads": true,  "ig_story": false},
+    "credit":    {"threads": false, "ig_story": false}
+  },
+  "queue": {
+    "news":   {"threads": false, "ig": false},
+    "manual": {"threads": true,  "ig": true}
+  }
+}

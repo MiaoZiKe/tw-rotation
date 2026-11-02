@@ -5,6 +5,36 @@
 > 圖的版型（亮色 HUD、色票、安全邊距）另見 `post_design_system.md`；這份管「發什麼、什麼順序、文案怎麼寫、連結放哪」。
 > 改格式要同時改程式與 `tests/test_social_caption.py`，並在這份記一行 Andy 原話。
 
+## 〇、★★ 2026-11-02 降量模式（蓋掉下面「四個時段」與主題文章的發文範圍）
+
+> Andy 11-02：「**同意降量**」。依據 `docs/marketing/diagnosis_1102/strategy_diagnosis.md` 6-2「先停什麼（第 1 天）」：自動文一天十幾則（Threads 4～9＋IG 限動 7～21＋IG 主題文章 3），單則觀看崩到幾十；改成**每天自動最多 2 則**，手寫內容另計。
+
+**現在每天實際自動發的（台北）：**
+
+| 日子 | 時間 | 平台 | 內容 |
+|---|---|---|---|
+| 交易日 | 盤後資料到齊那輪（通常 17:30～18:40；19:00 後走保底） | Threads 1 則 | 盤後主貼文（kind=close），格式照第三之一節。法人晚到走保底時，法人到了另補 1 則「法人補充」（`close-inst-<日期>`，10-29 保底規則，保留不變） |
+| 交易日 | — | — | 第 2 則名額**保留給 Andy 手寫**，不自動填 |
+| 週末／休市日 | — | — | 不自動發（手寫照發） |
+
+**停掉的：** 盤前（08:20）與盤中（12:00）的 Threads 與 IG 限動、**所有 IG 限動**（含盤後那份；盤後 IG 本來就只有限動、沒有動態貼文，所以 IG 盤後整個停）、主題文章／新聞文（social_news 的 Threads 與 IG，含週末 wk1／wk2、交易日備案段）、IG 主題文章晚間補發與 22:10 監工（ig_news_watch）。
+
+**唯一開關檔：`docs/marketing/social_unit/post_quota.json`**（程式 `scripts/post_quota.py`）
+
+| 欄位 | 現在 | 管什麼 |
+|---|---|---|
+| `live.close.threads` | `true` | 盤後主貼文 Threads（保留的那一則，監工 18:20、重試、保底照舊） |
+| `live.close.ig_story` | `false` | 盤後 IG 限動 |
+| `live.premarket.*`、`live.intraday.*`、`live.credit.*` | `false` | 盤前、盤中、舊融資那篇的 Threads 與限動 |
+| `queue.news.threads`、`queue.news.ig` | `false` | social_news 自動產生的主題文章（佇列檔名 `<日期>_news-<段>-<n>.md`） |
+| `queue.manual.threads`、`queue.manual.ig` | `true` | 其他佇列檔（手寫、手動加發；仍要人工把 status 改成 approved 才會發） |
+
+- 關掉的：在**真的呼叫 Meta API 之前**就擋下，印「降量模式：略過」並以成功結束 —— 不算失敗、不寄失敗信、不寫 posted.json、不觸發補發。佇列裡被擋的主題文章檔會改回 `status: draft` 並加 `quota_skipped:`（之後放量也不會把舊稿補發出去）。
+- 盤前仍由 gh-cron Worker 08:20 派一輪：只為了更新網站「精選文章 → 盤前消息」（`site/articles/premarket.json`），發文那步被擋；產圖失敗只記警告不標紅。
+- 排程拿掉的（省 Actions、避免監工誤判）：social-live 的 12:01／08:20／08:50／09:40 cron；social_news 的 11 條 cron；threads_post 10 條、ig_post 20 條主題文章時段 cron（`*/15` 留著給手寫）；ig_news_watch 22:10；Worker 的 12:00 盤中、週末 10:15／10:45／19:00／19:40、交易日 20:58／21:08、IG 晚間 9 條、22:12 監工。**資料管線 daily.yml 一條都沒動。**
+- **要放量（只有 Andy 說了才改）**：① 把 `post_quota.json` 對應的 `false` 改 `true` 推 main —— 盤後限動、主貼文類立刻生效；② 盤中／盤前備援、主題文章、IG 晚間這些要準時跑的，再把上面拿掉的排程加回來（`git log -- workers/gh-cron/src/schedule.js .github/workflows/social_news.yml` 找 11-02 這一筆還原）。
+- 監工：只剩盤後 18:20（CLAUDE.md 11-02 條）。被停掉的時段**不准補發**。
+
 ## 一、四個時段
 
 | 時段 | 發文時間（台北） | Threads 輪播（順序固定） | IG 限動 | 狀態 |
@@ -135,6 +165,7 @@ https://liguligu-puipui.com/
 
 ## 修改紀錄
 
+- 2026-11-02：**降量模式**（Andy：「同意降量」）。新增唯一開關檔 `post_quota.json`＋`scripts/post_quota.py`；`social_publish.py`、`threads_post.py`、`ig_post.py` 在呼叫 Meta API 前讀它，`social_news.py`、`ig_news_check.py`、`social-live.yml`、`social_news.yml`（新增 gate 工作）在動手前讀它；拿掉只為停發內容派工的 cron 與 Worker 派工（資料管線沒動）。只留交易日盤後主貼文 Threads 1 則。細節第〇節；測試 `tests/test_social_quota_1102.py`、`workers/gh-cron/test/schedule.test.mjs`。
 - 2026-11-01：IG 晚間主題文章 wk2（20:50）到 21:08 沒發（21:09 手動補發 https://www.instagram.com/p/DfMzr6fHD6w/ ）。根因：queue 白天寫好、publish_at 在晚上，但晚上沒有準時的派發者（social_news 只在 19:00／19:40 叫醒 ig_post 並等 20 分鐘，只罩得到 20:00；GitHub 的 schedule 11-01 整天只觸發一兩輪）。修法：gh-cron Worker 每天 19:42／20:32／21:22／21:32 派 ig_post（wait_max=20），20:04／20:54／21:44／21:54／22:04 再補派（wait_max=0），22:12 派晚間監工；交易日 20:58／21:08 派 social_news 產「備案」段；ig_post.yml 加 19:41／20:31／21:21／21:31 cron 備援（自動等 20 分鐘）。
 - 2026-10-26：盤中 4 張與文案格式 Andy 確認；網址只放最底下；限動用 C 方案結尾頁；同一格式套到盤後與融資融券。
 - 2026-10-26：文案最底下改成「👉 更多詳細資料可以點擊以下連結：」＋首頁網址 https://liguligu-puipui.com/（不帶追蹤參數）；標題與段名前加表情符號（🕛盤中 🌙盤後 🎡輪盤 🌳分流樹 🔥熱力圖 📊未平倉 ⚖️散戶 🏦法人 🌏外資 🏢投信 📦ETF 🛡️維持率 📈融資 📉融券），列股票名稱的「・」行不加（Andy：「搭配些表情符號，除了個股」）。程式表在 social_snap.py 的 EMOJI。

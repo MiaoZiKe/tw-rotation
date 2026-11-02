@@ -64,6 +64,12 @@ def main(argv=None) -> int:
     ap.add_argument("--date", default="")
     ap.add_argument("--json", action="store_true")
     a = ap.parse_args(argv)
+    # 2026-11-02 降量模式（Andy：「同意降量」）：IG 主題文章停發 → 不查缺稿、不標紅、不叫醒補發
+    sys.path.insert(0, str(ROOT / "scripts"))
+    import post_quota
+    if not post_quota.group_allowed("news", "ig"):
+        print(f"{post_quota.SKIP_MSG}：IG 主題文章（post_quota.json queue.news.ig=false）→ 不檢查、不補發")
+        return 0
     now = datetime.now(TPE)
     r = check(a.date or now.strftime("%Y-%m-%d"), now)
     if a.json:

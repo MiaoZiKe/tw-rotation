@@ -6,19 +6,10 @@ name: Threads 排程發文
 # GitHub 的排程可能延遲數分鐘到十幾分鐘，這是平台特性，不是 bug。
 on:
   schedule:
-    - cron: "*/15 * * * *"
-    # 保險：固定時點（台北 08:50、12:31、18:00、20:30、21:00 附近，分散避開整點壅塞）。
-    # 每個時點前後各挑一兩個時刻；GitHub 延遲時至少有一輪會落在附近。
-    - cron: "47 0 * * 1-5"    # 台北 08:47
-    - cron: "53 0 * * 1-5"    # 台北 08:53
-    - cron: "28 4 * * 1-5"    # 台北 12:28
-    - cron: "34 4 * * 1-5"    # 台北 12:34
-    - cron: "57 9 * * 1-5"    # 台北 17:57
-    - cron: "3 10 * * 1-5"    # 台北 18:03
-    - cron: "27 12 * * 1-5"   # 台北 20:27
-    - cron: "33 12 * * 1-5"   # 台北 20:33
-    - cron: "57 12 * * 1-5"   # 台北 20:57
-    - cron: "3 13 * * 1-5"    # 台北 21:03
+    - cron: "*/15 * * * *"    # 手寫／手動核准的貼文（queue.manual）靠這條發
+    # ★★ 2026-11-02 降量模式（Andy：「同意降量」；docs/marketing/social_unit/post_quota.json）：
+    #   Threads 主題文章（queue.news.threads=false）停發 → 原本為主題文章各時段加的 10 條保險排程（08:47～21:03）拿掉。
+    #   threads_post.py 碰到主題文章檔會印「降量模式：略過」、改回 draft，不連 Meta。要放量：改 post_quota.json 並把排程加回來。
   workflow_dispatch:
     inputs:
       file:

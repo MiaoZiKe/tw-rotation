@@ -49,6 +49,23 @@ def _官方法人來源不打網路(monkeypatch):
     yield
 
 
+@pytest.fixture(autouse=True)
+def _發文名額全開(monkeypatch, tmp_path_factory):
+    """2026-11-02 降量模式：repo 的 docs/marketing/social_unit/post_quota.json 關掉了盤前／盤中／限動／主題文章。
+    既有的發文測試驗的是「開著時怎麼發」→ 預設指到一份全開的暫存開關檔；
+    降量本身的測試（test_post_quota_1102）自己設 POST_QUOTA_FILE 指回真檔或關閉版。"""
+    import json
+
+    p = tmp_path_factory.getbasetemp() / "post_quota_all_on.json"
+    if not p.exists():
+        on = {"threads": True, "ig_story": True}
+        p.write_text(json.dumps({"live": {k: dict(on) for k in ("premarket", "intraday", "close", "credit")},
+                                 "queue": {"news": {"threads": True, "ig": True}, "manual": {"threads": True, "ig": True}}}),
+                     encoding="utf-8")
+    monkeypatch.setenv("POST_QUOTA_FILE", str(p))
+    yield
+
+
 class 測試連了真網路(RuntimeError):
     """測試呼叫了沒被替身的外部網路。"""
 

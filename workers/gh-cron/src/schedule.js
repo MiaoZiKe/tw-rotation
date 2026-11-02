@@ -14,14 +14,15 @@ const TPE_OFFSET_MS = 8 * 3600 * 1000;
 //   offday   休市日（週末、國定假日；臨時休市 Worker 不知道，由 social_news.py 自己用主貼文狀態判斷）——週末主題文章用
 const D = 'daily.yml';
 const S = 'social-live.yml';
-const N = 'social_news.yml';
-const I = 'ig_post.yml';
-const W = 'ig_news_watch.yml';
+// ★★ 2026-11-02 降量模式（Andy：「同意降量」；docs/marketing/social_unit/post_quota.json）：
+//   自動發文降到每天最多 2 則（只留交易日盤後主貼文 Threads 1 則；第 2 則保留給 Andy 手寫）。
+//   拿掉的派工：盤中 12:00（social-live intraday）、週末主題文章 10:15／10:45／19:00／19:40、交易日備案主題文章 20:58／21:08（social_news.yml）、
+//   IG 主題文章晚間 19:42／20:32／21:22／21:32／20:04／20:54／21:44／21:54／22:04（ig_post.yml）、22:12 晚間監工（ig_news_watch.yml）。
+//   留著的盤前 08:20：只為了把「盤前消息」寫回網站（site/articles/premarket.json），發文那步被開關檔擋下。
+//   資料管線（daily.yml）一條都沒動。要放量：改 post_quota.json，並把上面這些派工加回來（git log 找這一筆）。
 export const SCHEDULE = [
-  // 盤前（先預留：social-live.yml 要有 kind=premarket 才能開，見 wrangler.toml 的 ENABLE_PREMARKET）
+  // 盤前（wrangler.toml 的 ENABLE_PREMARKET）：降量模式下只更新網站盤前消息，不發文
   { at: '08:20', days: 'trading', workflow: S, inputs: { kind: 'premarket', dry_run: 'false' }, gate: 'premarket' },
-  // 盤中貼文：一天一篇、台北 12:00（Andy 2026-10-26；真發與否由 repo 的總開關檔決定，這裡一律 dry_run=false）
-  { at: '12:00', days: 'trading', workflow: S, inputs: { kind: 'intraday', dry_run: 'false' } },
   // 盤後資料
   // 2026-10-27 Andy：「拿到資料就要發布了 關盤後 每半小時就要確認一次，資料齊全就發布」→ 收盤後每 30 分鐘抓一次法人＋期貨，
   // 有新資料就重算部署，部署完 social-live 接著判斷盤後貼文齊了沒（齊了就發、發過就跳過）。沒新資料的輪約 1 分鐘收工。
@@ -32,20 +33,6 @@ export const SCHEDULE = [
   { at: '18:38', days: 'trading', workflow: D, inputs: { phase: 'full' } },
   ...['19:16', '19:46', '20:16', '20:46', '21:16'].map((at) => ({ at, days: 'trading', workflow: D, inputs: { phase: 'inst' } })),
   { at: '21:38', days: 'trading', workflow: D, inputs: { phase: 'full' } },
-  // 週末與休市日的主題文章（2026-10-29 Andy：週末也要每天 1～2 篇、全自動）。social_news.py 自己判斷是不是休市日、
-  // 排哪一段（wk1 10:30 發、wk2 19:30 發）；已排過的段落自動跳過，所以每段派兩次當備援。交易日這幾分鐘 Worker 不派。
-  ...['10:15', '10:45', '19:00', '19:40'].map((at) => ({ at, days: 'offday', workflow: N, inputs: { slot: 'auto', dry_run: 'false' } })),
-  // 2026-11-01 事故：IG 主題文章改晚上發（social_news.py 的 IG_EVENING：20:00／20:50／21:40／備案 21:50，週末 20:00／20:50），
-  // 但 queue 白天就寫好，晚上沒有任何派發者準時叫醒 ig_post.yml（GitHub 的 schedule 實測一天只觸發一兩輪），wk2 20:50 那篇到 21:08 還沒發。
-  // → 每個晚間時段「到點前 18 分鐘」派一次 wait_max=20（job 內等到點再發），到點後 4 分鐘再派一次 wait_max=0 補發。每天都派
-  //   （沒有到點的檔案時 ig_post.py 約 1 分鐘空跑收工，無害；已 posted 的不會重發）。GitHub 端 ig_post.yml 有同時段的 cron 當備援。
-  ...['19:42', '20:32', '21:22', '21:32'].map((at) => ({ at, days: 'all', workflow: I, inputs: { wait_max: '20' } })),
-  ...['20:04', '20:54', '21:44', '21:54', '22:04'].map((at) => ({ at, days: 'all', workflow: I, inputs: { wait_max: '0' } })),
-  // 交易日的「備案」主題文章（盤後沒排任何一篇 → 20:50 後補 1 篇，IG 21:50 發）：social_news.py 要在 20:50 後跑過才會產生。
-  // 原本只靠 GitHub cron 21:05／22:35，不可靠 → 由這裡 20:58、21:08 各派一次（已排過的段落自動跳過）。
-  ...['20:58', '21:08'].map((at) => ({ at, days: 'trading', workflow: N, inputs: { slot: 'auto', dry_run: 'false' } })),
-  // 22:10 晚間監工（ig_news_watch.yml 原本只靠 GitHub cron）
-  { at: '22:12', days: 'all', workflow: W, inputs: {} },
   // 清晨：新聞、國際盤、總經。GitHub 原本的 05:07 排程（週一到週五）同樣不可靠，所以也由這裡準時派一次。
   { at: '05:07', days: 'tueSat', workflow: D, inputs: { phase: 'news' } },
 ];
