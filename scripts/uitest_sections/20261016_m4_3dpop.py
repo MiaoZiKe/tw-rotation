@@ -19,7 +19,11 @@ M43DPOP_ST = r"""() => { const s = document.getElementById('mSheet'), k = docume
 M43DPOP_XY = r"""(q) => { let e = null;
   if (q.startsWith('txt:')) { const [sel, re] = q.slice(4).split('|'); e = [...document.querySelectorAll(sel)].find(x => new RegExp(re).test(x.textContent)); }
   else e = document.querySelector(q);
-  if (!e) return null; const r = e.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; }"""
+  if (!e) return null; const r = e.getBoundingClientRect();
+  /* 只露出一半的分頁（橫向捲動列的邊緣）：手指點的是「看得到的那一段」的中心，不是整顆的中心（那個點可能已經在捲動列外面）。 */
+  let l = Math.max(r.left, 0), rt = Math.min(r.right, innerWidth);
+  for (let p = e.parentElement; p; p = p.parentElement) { const o = getComputedStyle(p).overflowX; if ((o === 'auto' || o === 'scroll') && p.scrollWidth > p.clientWidth) { const pr = p.getBoundingClientRect(); l = Math.max(l, pr.left); rt = Math.min(rt, pr.right); break; } }
+  return [(l + rt) / 2, r.top + r.height / 2]; }"""
 
 
 def t_m4_3dpop_1016(b, base):

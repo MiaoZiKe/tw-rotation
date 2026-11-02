@@ -14,7 +14,7 @@
   /* 泡泡：30px、字 12px；命中範圍外擴到 36px（上下排距 34、同排間距 ≥34，不會蓋到隔壁） */
   :root.m4 .mnumlayer .mnum{width:30px;height:30px;margin:-15px 0 0 -15px;font-size:12px;border-width:2px;box-shadow:0 1px 5px rgba(0,0,0,.35)}
   :root.m4 .mnumlayer .mnum::after{inset:-3px}
-  :root.m4 .mnumlayer.m3d .mnum{transition:left .35s ease,top .35s ease}
+  /* 3D 泡泡重排＝瞬間換位（不滑動）：滑動中兩顆泡泡會交錯、手指底下的那顆會換號 */
   :root.m4 .mnumlayer svg path{stroke-dasharray:3 3}
 }
 

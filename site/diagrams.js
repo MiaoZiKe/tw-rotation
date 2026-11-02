@@ -2427,11 +2427,30 @@
   window.DG.mobileFolds = mobileFolds;
   /* 手機 v2（html.m4）的 2D 編號：圖滿寬、上下兩排。圖框上下加 padding 當排的位置（--mnTop／--mnBot，mobile 4 css 20261102），
      所以 SVG 本身的寬度／位置不受編號影響。先用目前版面量錨點的相對高度決定每側幾排 → 設 padding → 重新量一次再放。*/
+  /* ★ 2026-11-02：只有 2px 線條的零件（例如編碼器回授線）手指點不到 —— 在同一個 <g> 裡補一條 16px 寬、透明、只收 stroke 的「點擊墊」，
+     點到墊＝點到零件（click 照樣冒泡到 <g> 的 onclick）。只在手機 2D（m4）；每個零件只補一次。*/
+  function padThinParts(host) {
+    $$('g[data-part]', host).forEach((g) => {
+      if (g.closest('.mnumlayer') || g.querySelector(':scope > .hitpad')) return;
+      let bb; try { bb = g.getBBox(); } catch (e) { return; }
+      if (bb.width >= 14 && bb.height >= 14) return;
+      const lines = $$(':scope > path, :scope > line, :scope > polyline', g).filter(el => {
+        const st = el.getAttribute('stroke'); return st && st !== 'none' && (el.getAttribute('fill') || 'none') === 'none'; });
+      lines.forEach((el) => {
+        const c = el.cloneNode(false);
+        ['class', 'stroke', 'stroke-width', 'stroke-dasharray', 'marker-end', 'marker-start', 'style', 'opacity'].forEach(a => c.removeAttribute(a));
+        c.setAttribute('class', 'hitpad'); c.setAttribute('stroke', 'transparent'); c.setAttribute('stroke-width', '16'); c.setAttribute('fill', 'none');
+        c.setAttribute('stroke-linecap', 'round'); c.setAttribute('stroke-linejoin', 'round'); c.setAttribute('pointer-events', 'stroke');
+        g.appendChild(c);
+      });
+    });
+  }
   function layout2dRows(host) {
     const layer = cur.layer;
     const svgEl = host.querySelector('.dgcanvas svg') || host.querySelector('svg.dg');
     if (!svgEl) return;
     host.classList.add('mlead', 'mrows'); layer.classList.add('mrow'); layer.classList.remove('msm');
+    padThinParts(host);
     const measure = () => {
       const base = host.getBoundingClientRect(), sr = svgEl.getBoundingClientRect();
       const cl = host.clientLeft || 0, ct = host.clientTop || 0;
@@ -2471,7 +2490,10 @@
     if (cnt) cnt.textContent = `${P.length} 個編號`;
   }
   function layout2d(host) {
-    if (!cur || cur.host !== host || !host.isConnected) return;
+    /* ★ 2026-11-02：用這張圖自己的 ctx，不是全域 cur —— 3D 點過編號後 cur 會指到 3D 的 ctx，切回 2D 時
+       原本這行直接 return（2D 編號不再重排），而 2D 編號的 onclick 也會用 3D 的項目開抽屜（點 02 開出別號）。*/
+    if (!host.isConnected || !host._mctx || host._mctx.host !== host) return;
+    cur = host._mctx;
     if (isM4()) return layout2dRows(host);
     const layer = cur.layer;
     /* 2026-10-08（Andy：「編號…不要直接標在物件上，需要拉一條虛線，將編號放旁邊」）：整張模式（不是「放大」）圖的左右各讓出一條窄邊，
@@ -2610,7 +2632,7 @@
     cur = { host, layer, items, scroller: host, sel: null };
     host._mctx = cur;
     ensureViewBtn(host);
-    layer.onclick = (e) => { const b = e.target.closest('.mnum'); if (b) { e.stopPropagation(); openNo(+b.dataset.i); } };
+    layer.onclick = (e) => { const b = e.target.closest('.mnum'); if (b) { e.stopPropagation(); cur = host._mctx; openNo(+b.dataset.i); } };
     requestAnimationFrame(() => requestAnimationFrame(() => layout2d(host)));
     setTimeout(() => layout2d(host), 400);
     /* 2026-10-06：躲字要用「字排定之後」的位置 —— 字型晚到、externalize 補排會讓圖上的字在 400ms 之後還移動，
@@ -2708,23 +2730,31 @@
       layer._btnsBuilt = n;
       layer.innerHTML = '<svg style="position:absolute;left:0;top:0;overflow:hidden"></svg>' + ctx.items.map((it, i) =>
         `<button type="button" class="mnum" data-i="${i}" data-no="${esc(it.no)}" style="--c:${esc(it.color)}" aria-label="編號 ${esc(it.no)}：${esc(it.title)}">${esc(it.no)}</button>`).join('');
-      layer.addEventListener('pointerdown', () => { ctx._touch = performance.now(); }, true);
+      /* 手指按下一顆泡泡：在放開之前，泡泡不准被重排（freeze），而且 click 一律開「按下那一刻命中的那顆」（press），
+         不再用 click 當下的 target 重新判斷。pointercancel／放開後 400ms 才解凍（click 在放開之後才來）。*/
+      const unfreeze = () => { clearTimeout(ctx._unf); ctx._unf = setTimeout(() => { ctx._freeze = false; }, 400); };
+      layer.addEventListener('pointerdown', (e) => {
+        ctx._touch = performance.now(); ctx._freeze = true; clearTimeout(ctx._unf);
+        const b = e.target.closest && e.target.closest('.mnum');
+        ctx._press = b ? { i: +b.dataset.i, t: performance.now() } : null;
+      }, true);
+      ['pointerup', 'pointercancel'].forEach(t => layer.addEventListener(t, unfreeze, true));
     }
     P.forEach(q => { const a = ctx._asg && ctx._asg[q.no]; q.relS = q.rel + (a ? (a.side === 'top' ? -0.15 : 0.15) : 0); });
     const sp = splitRows(P, W, F, 40);
     // 新的切法：每側依 x0 排序後的編號串；跟黏住的比
     const order = (arr) => arr.slice().sort((a, b) => a.x0 - b.x0).map(q => q.no).join(',');
     const ordKey = order(sp.top) + '|' + order(sp.bot);
-    const touched = performance.now() - (ctx._touch || 0) < 1500;
+    const touched = ctx._freeze || performance.now() - (ctx._touch || 0) < 1500;
     const missing = !ctx._asg || P.some(q => !ctx._asg[q.no]);       // 新出現（以前沒有投影）的零件沒有黏住的位置 → 一定要重排，不然會疊在別顆上
-    const settled = performance.now() - (ctx._asgT || 0) > 2500;       // 重排至少隔 2.5 秒：手指瞄著的泡泡不會一直換位置
-    if (missing || (ctx._ordKey !== ordKey && !touched && settled)) {
-      ctx._asgT = performance.now();
+    const settled = performance.now() - (ctx._asgT || 0) > 4000;       // 重排至少隔 4 秒：手指瞄著的泡泡不會一直換位置
+    if (!ctx._asg || (!ctx._freeze && (missing || (ctx._ordKey !== ordKey && !touched && settled)))) {   // 手指按著（freeze）時一律不重排，連「新出現的零件」也等放開
+      ctx._asgT = performance.now(); ctx._gen = (ctx._gen || 0) + 1;
       placeSide(sp.top, W, sp.Rt, 'top', 40); placeSide(sp.bot, W, sp.Rb, 'bot');
       ctx._asg = {}; P.forEach(q => { ctx._asg[q.no] = { sx: q.sx, row: q.row, side: q.side }; });
       ctx._ordKey = ordKey;
     }
-    P.forEach(q => { const a = ctx._asg[q.no]; if (a) { q.sx = a.sx; q.row = a.row; q.side = a.side; } else { q.sx = Math.max(RBR + 4, Math.min(W - RBR - 4, q.x0)); q.row = 0; q.side = q.rel < 0.5 ? 'top' : 'bot'; } });
+    P.forEach(q => { const a = ctx._asg && ctx._asg[q.no]; if (a) { q.sx = a.sx; q.row = a.row; q.side = a.side; } else { q.sx = Math.max(RBR + 4, Math.min(W - RBR - 4, q.x0)); q.row = 0; q.side = q.rel < 0.5 ? 'top' : 'bot'; } });
     putRows(P, T, T + H);
     const LH = H + T + B;
     layer.style.cssText = `left:0;top:${-T}px;width:${W}px;height:${LH}px`;
@@ -2740,20 +2770,26 @@
       b.classList.toggle('on', ctx.sel === ctx.items[q.i].no);
     });
     const sd = (el, k, v) => { v = String(v); if (el.dataset[k] !== v) el.dataset[k] = v; };
-    sd(layer, 'overlap', minGap(P) < 30); sd(layer, 'n', P.length); sd(layer, 'rows', sp.Rt + '/' + sp.Rb); sd(h3, 'mn', n);
+    sd(layer, 'overlap', minGap(P) < 30); sd(layer, 'n', P.length); sd(layer, 'rows', sp.Rt + '/' + sp.Rb); sd(h3, 'mn', n); sd(layer, 'gen', ctx._gen || 0);
   }
   function mobileNums3d(h3, view) {
     if (!h3) return;
     const old = h3.querySelector(':scope > .mnumlayer'); if (old) old.remove();
+    if (h3._mctx) { clearTimeout(h3._mctx._unf); h3._mctx.dead = true; h3._mctx = null; }   // 換圖／重建：舊泡泡層的計時器與狀態清掉
     if (!isM() || !view || !view.pointOf) { h3.classList.remove('mnum3d'); return; }
     h3.classList.add('mnum3d');
     const layer = document.createElement('div'); layer.className = 'mnumlayer m3d'; h3.appendChild(layer);
     const ctx = { host: h3, layer, items: [], scroller: null, sel: null };
     h3._mctx = ctx;
-    layer.onclick = (e) => { const b = e.target.closest('.mnum'); if (b) { e.stopPropagation(); cur = ctx; openNo(+b.dataset.i); } };
+    layer.onclick = (e) => {
+      const b = e.target.closest('.mnum'); if (!b) return;
+      e.stopPropagation(); cur = ctx;
+      const pr = ctx._press; ctx._press = null;
+      openNo(pr && performance.now() - pr.t < 2000 ? pr.i : +b.dataset.i);   // 以按下那一刻命中的為準
+    };
     let tries = 0;
     const tick = () => {
-      if (!layer.isConnected) return;
+      if (!layer.isConnected || ctx.dead) return;
       /* ★ 2026-10-10（Andy：「3D圖的編號不見了」）：以前一跨出 640（手機轉橫、Safari 視窗重排）這圈就永遠停了，
          轉回直的編號層停在舊位置或空著。改成：不在手機寬度時慢慢等（0.5 秒看一次），回來就整層重排。桌機從沒建過這層，不受影響。*/
       if (!isM()) { ctx._sig = null; setTimeout(tick, 500); return; }
