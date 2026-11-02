@@ -1,5 +1,12 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
+## 2026-11-02 手機產業地圖普查與剖析圖改版（CEO；全部已上線，最後更新 15:30 台北）
+- Andy 原話：「手機版本…產業地圖發現最多錯誤，編號不能點擊 無法看圖片…需將2D 3D圖片放大，而他們的編號需要改到一條線引導到上下兩邊」。
+- 11:24 剖析圖編號改上下兩排＋引線、2D 滿寬＋⤢ 放大大圖（m4-dglayout1102）；11:43 產業地圖小按鈕擴大觸控範圍（普查表 docs/audit/m4_industry_1102.md）；12:16 關聯圖欄位導覽列＋全景（m4-relgraph1102，並修正「手機彈窗點背景1016」驗收腳本誤判）；12:35 手機 3D 模型放大、收合鈕移上排右端（m4-dg3dzoom1102）；15:27 3D 自轉時編號點錯號（重排換位＋滑動）修正、細線零件點擊墊、2D/3D ctx 混用修正（m4-dgfix1102）。
+- 這批驗了：手機剖析圖上下編號1102（390 全 32 張、360/430 各 13 張）、手機產業地圖普查1102、手機關聯圖一屏1102、手機彈窗點背景1016、手機3D編號1010、手機3D說明1009、手機3D分頁1016、產業關係面板、手機產業鏈1016、桌機守門1008，皆 0。
+- 待 Andy iPhone 實機確認：剖析圖編號點擊、關聯圖雙指縮放（容器只有 Chromium）。
+- 容器 11-02 重開：/tmp/claude-0/locks/run_gate.sh、precheck.sh、csscheck.py 已重建（備份在 CEO scratchpad）；python3 需 `python3 -m pip install -r requirements.txt playwright`。
+
 ## ★ 最高警戒
 - **2026-11-02 社群自動發文降量模式（Andy：「同意降量」）**：自動只發交易日盤後主貼文 Threads 1 則（第 2 則留給 Andy 手寫）；盤前、盤中、所有 IG 限動、主題文章／新聞文、IG 晚間補發與 22:10 監工全停。唯一開關 `docs/marketing/social_unit/post_quota.json`（Andy 說了才准改）；被停的時段**不准補發**，監工只剩盤後 18:20。細節 `docs/marketing/social_unit/auto_post.md` 第〇節。分支 `social/quota-1102`（CEO 審過推 main；推 main 前今晚 20:00／20:50 兩篇已 approved 的 IG 主題文章仍會發）。這批只驗：`pytest -k "social or threads or ig_post or news or premarket or postmarket or gh_cron"`＋`tests/test_social_quota_1102.py`＋`node --test workers/gh-cron/test/schedule.test.mjs`。
 
