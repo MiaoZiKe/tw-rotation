@@ -67,11 +67,11 @@ T1C = dict(key="1C", no=3, name="薄荷清新", bg="#F0FAF6", bgx="", ink="#123B
                  rot=("#2B7FD1", "#DBEBFB", "#1F5FA8", "#A6CDF0"), know=("#F4B400", "#FFF1C2", "#7F5C00", "#FADE7A", "#123B33")),
            bandcss=lambda P: f"margin:28px 28px 0;border-radius:56px;background:linear-gradient(155deg,{P['tint']} 0%,#FFFFFF 100%);border:3px solid {P['main']};color:#123B33;padding:32px 36px 44px;overflow:hidden",
            bandtx=lambda P: "#123B33", bandsub=lambda P: "#3D5F57", chipbg=lambda P: "#FFFFFF", chiptx=lambda P: "#123B33",
-           bignum=lambda P: P["deep"], brandcss="background:#123B33;color:#fff;border-radius:36px;padding:0 30px;font-size:36px;font-weight:900",
+           bignum=lambda P: "#123B33", brandcss="background:#123B33;color:#fff;border-radius:36px;padding:0 30px;font-size:36px;font-weight:900",
            cardcss="border-radius:36px;box-shadow:0 10px 26px rgba(20,120,100,.12);border:2px solid #D7EFE6", hw=800, pre="",
            hl=lambda P: f"background:{P['main']};border-radius:14px;padding:0 14px;color:{P['on']}",
            eqhi=lambda P: dict(bg=P["tint"], col=P["deep"], sub="#3D5F57", bd=f"border:4px solid {P['main']};"),
-           x=lambda P: f".band::after{{content:'';position:absolute;right:-70px;bottom:-90px;width:300px;height:300px;border-radius:50%;background:{P['main']};opacity:.16}}"
+           x=lambda P: f".band::after{{content:'';position:absolute;right:-70px;bottom:-90px;width:300px;height:300px;border-radius:50%;background:{P['main']};opacity:.16;z-index:0}}.band>*{{position:relative;z-index:1}}.band>.deco{{position:absolute}}"
                        f".chip{{border:2px solid {P['main']}}}.chip svg{{stroke:{P['deep']}}}")
 
 # --- 4 日系雜誌：莫蘭迪低飽和、大留白、細線、無整塊色帶、細體大數字 ---
@@ -274,7 +274,7 @@ def build_ch1(T):
     S[f"ch1_s{n}_3_etf_table"] = (css1(T, "etf"), f"""{mk('etf')}
 <div class="band" style="padding-bottom:52px">
   {hd1(T,'etf','2 / 6')}
-  {deco(svg_pie(P, T, 176), 170 if n not in (3, 6) else 190)}
+  {deco(svg_pie(P, T, 176 if n not in (3, 6) else 140), 170 if n not in (3, 6) else 176)}
   <div class="kick" style="margin-top:36px">ETF 配息比較</div>
   <div class="h2" style="font-size:72px;margin-top:10px">這 4 檔，誰配最多？</div>
 </div>
@@ -678,7 +678,7 @@ def scheme_panel(k, tw, only=None, blurb=True):
     swh = "".join(sw(h, n) for n, h in SW[k])
     note = f'<div style="font-size:23px;line-height:1.5;margin-top:14px;color:#3A4756">{BLURB[k][1]}</div>' if blurb else ""
     return (f'<div style="background:#fff;border-radius:18px;padding:24px 26px 28px;border:2px solid #D8DCE2;color:#14202E">'
-            f'<div style="display:flex;align-items:baseline;gap:16px"><div style="font-size:44px;font-weight:900"><span style="color:#fff;background:#14202E;border-radius:10px;padding:0 14px;margin-right:12px">{T["no"]}</span>{T["name"]}</div><div style="font-size:24px;font-weight:700;color:#5A6676">{chname(k)}・{sub}</div></div>'
+            f'<div style="display:flex;align-items:baseline;gap:16px;white-space:nowrap"><div style="font-size:44px;font-weight:900"><span style="color:#fff;background:#14202E;border-radius:10px;padding:0 14px;margin-right:12px">{T["no"]}</span>{T["name"]}</div></div><div style="font-size:23px;font-weight:700;color:#5A6676;margin-top:2px">{chname(k)}・{sub}</div>'
             f'<div style="font-size:25px;font-weight:600;margin:8px 0 14px;color:#2B3846">{BLURB[k][0]}</div>'
             f'<div style="display:flex;flex-wrap:wrap;gap:10px 12px;margin-bottom:16px">{swh}</div>'
             f'<div style="display:flex;gap:16px">{imgs}</div>{note}</div>')

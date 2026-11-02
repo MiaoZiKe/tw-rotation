@@ -49,36 +49,43 @@ def s4(v, uid=[0]):  # 柔和漸層球
     a, b, c = ('#7DE3F4', '#8091FF', '#D49BFF') if v == 'L' else ('#6AD8EE', '#7384F5', '#C487F5')
     return (f'<defs><linearGradient id="{g}" x1="0.15" y1="0.1" x2="0.85" y2="0.95"><stop offset="0" stop-color="{a}"/><stop offset=".55" stop-color="{b}"/><stop offset="1" stop-color="{c}"/></linearGradient></defs>'
             f'<circle cx="50" cy="50" r="29" fill="url(#{g})"/>'
-            f'<circle cx="50" cy="50" r="14" fill="#fff" fill-opacity=".26" stroke="#fff" stroke-opacity=".75" stroke-width="2.6"/>'
-            f'<path d="M30.5 40 A21.5 21.5 0 0 1 44 28.5" fill="none" stroke="#fff" stroke-opacity=".8" stroke-width="4" stroke-linecap="round"/>')
+            f'<circle cx="58" cy="58" r="11" fill="#fff" fill-opacity=".3"/>'
+            f'<path d="M30 42 A21.5 21.5 0 0 1 43 29" fill="none" stroke="#fff" stroke-opacity=".85" stroke-width="4.4" stroke-linecap="round"/>')
 
-def s5(v):  # 手寫圈
+def s5(v):  # 手寫圈：略帶傾斜的橢圓螺旋 1.08 圈，頭尾錯開一點像一筆畫完
     loop, ink = ('#FFB400', '#1D2B3A') if v == 'L' else ('#FFC32B', '#F5F1E4')
-    return (f'<path d="M23 54 C19 32 41 20 60 23 C81 27 85 52 73 68 C61 85 31 85 24 66 C20 56 22 45 31 36" fill="none" stroke="{loop}" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>'
-            f'<text x="51" y="64" font-family="\'LXGW WenKai TC\'" font-weight="700" font-size="40" text-anchor="middle" fill="{ink}">透</text>')
+    pts = []
+    for i in range(0, 79):
+        t = math.radians(150 + i * 4.8)           # 150° → 約 530°
+        k = i / 78
+        r = 1 + 0.07 * (k - .5) * 2               # 半徑由 0.93 漲到 1.07
+        x = 50 + 28.5 * r * math.cos(t) * 1.0
+        y = 50 + 25.5 * r * math.sin(t)
+        # 輕微傾斜 -8°
+        dx, dy = x - 50, y - 50; c, sn = math.cos(math.radians(-8)), math.sin(math.radians(-8))
+        pts.append((50 + dx * c - dy * sn, 50 + dx * sn + dy * c))
+    d = 'M' + ' L'.join(f'{x:.2f} {y:.2f}' for x, y in pts)
+    return (f'<path d="{d}" fill="none" stroke="{loop}" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>'
+            f'<text x="50" y="63.5" font-family="\'LXGW WenKai TC\'" font-weight="700" font-size="36" text-anchor="middle" fill="{ink}">透</text>')
 
 def s6(v):  # 幾何積木
     k = '#14263B' if v == 'L' else '#E8EEF5'
-    return ('<circle cx="39" cy="39" r="11" fill="#2F6BFF"/>'
-            '<path d="M54 28 L76 28 A22 22 0 0 1 54 50 Z" fill="#14B8A6"/>'
-            '<path d="M28 76 A11 11 0 0 1 50 76 Z" fill="#FFB020"/>'
-            f'<rect x="54" y="54" width="22" height="22" rx="6" fill="{k}"/>')
+    return ('<circle cx="35" cy="35" r="13" fill="#2F6BFF"/>'
+            '<path d="M52 22 L78 22 A26 26 0 0 1 52 48 Z" fill="#14B8A6"/>'
+            '<path d="M22 78 A13 13 0 0 1 48 78 Z" fill="#FFB020"/>'
+            f'<rect x="52" y="52" width="26" height="26" rx="7" fill="{k}"/>')
 
 def s7(v):  # 單色字標
     ink, dot = ('#111827', '#00A38D') if v == 'L' else ('#FFFFFF', '#2EE6C5')
-    return (f'<text x="47" y="68" font-family="\'Noto Sans TC\'" font-weight="700" font-size="56" text-anchor="middle" fill="{ink}">圈</text>'
-            f'<circle cx="75" cy="64" r="4.6" fill="{dot}"/>')
+    return (f'<text x="46" y="64" font-family="\'Noto Sans TC\'" font-weight="700" font-size="46" text-anchor="middle" letter-spacing="-1" fill="{ink}">tc</text>'
+            f'<circle cx="72" cy="60.5" r="4.6" fill="{dot}"/>')
 
-def s8(v):  # 點陣圈
+def s8(v):  # 點陣圈：12 顆等距圓點排成一圈，-45° 那顆是暖色
     base, hi = ('#0E7C86', '#FF9F1C') if v == 'L' else ('#5ED0D6', '#FFC266')
-    out = []; hit = None; best = 9
-    cells = [(i, j) for i in range(-3, 4) for j in range(-3, 4) if 2.35 <= math.hypot(i, j) <= 3.2]
-    for (i, j) in cells:
-        ang = math.degrees(math.atan2(j, i)); d = abs((ang + 45 + 180) % 360 - 180)
-        if d < best: best, hit = d, (i, j)
-    for (i, j) in cells:
-        col = hi if (i, j) == hit else base
-        out.append(f'<circle cx="{50 + i * 9.4:.1f}" cy="{50 + j * 9.4:.1f}" r="3.9" fill="{col}"/>')
+    out = []
+    for k in range(12):
+        x, y = pol(50, 50, 27, -45 + 30 * k)
+        out.append(f'<circle cx="{x:.2f}" cy="{y:.2f}" r="{5.0 if k else 5.6}" fill="{hi if k == 0 else base}"/>')
     return ''.join(out)
 
 CANDS = [
@@ -89,7 +96,7 @@ CANDS = [
  dict(id='c4', name='柔光球', idea='柔和漸層的玻璃球，裡面一圈亮環：像手機 App 圖示一樣讓人想點。', fn=s4, bgL='#F4F5FD', bgD='#12162B', font='zen', w=700, acc=('#7A86F5', '#A5AEFF')),
  dict(id='c5', name='手寫圈', idea='螢光筆隨手畫一個圈、圈住「透」：像朋友在你筆記上畫重點。', fn=s5, bgL='#FFFCF2', bgD='#1B2230', font='lxgw', w=700, acc=('#F2A900', '#FFC32B')),
  dict(id='c6', name='積木圓', idea='圓、四分之一圓、半圓、方塊，像一組積木：科技知識一塊塊拼起來。', fn=s6, bgL='#F4F7FB', bgD='#14263B', font='noto', w=900, acc=('#2F6BFF', '#6C97FF')),
- dict(id='c7', name='單字標', idea='只有「圈」一個字加一顆薄荷點，黑白極簡，像 Notion 那種安靜的品牌。', fn=s7, bgL='#FFFFFF', bgD='#111827', font='noto', w=700, acc=('#00A38D', '#2EE6C5')),
+ dict(id='c7', name='單字標', idea='小寫 tc（tech circle）加一顆薄荷句點，黑白極簡，像 Notion 那種安靜的品牌。', fn=s7, bgL='#F3F4F6', bgD='#111827', font='noto', w=700, acc=('#00A38D', '#2EE6C5')),
  dict(id='c8', name='點陣圈', idea='小圓點排成一圈，一顆暖色點亮著：晶片接腳與載入中的休閒版。', fn=s8, bgL='#F1F7F8', bgD='#0F2630', font='noto', w=500, acc=('#0E7C86', '#5ED0D6')),
 ]
 
@@ -136,25 +143,25 @@ def main():
             if sel: pg.locator(sel).first.screenshot(path=str(path))
             else: pg.screenshot(path=str(path), full_page=True)
             ctx.close()
-        for c in CANDS:
+        for c in (CANDS if len(sys.argv) < 3 else []):
             d = OUT / f"{c['id']}_{c['name']}"; d.mkdir(exist_ok=True)
             for v, nm in (('L', 'light'), ('D', 'dark')):
                 (d / f'icon_{nm}.svg').write_text(svg_tile(c, v, 512), encoding='utf-8')
-                render(page(f'<div id="t" style="display:inline-block">{svg_tile(c, v, 1024)}</div>', 1024), d / f'icon_{nm}.png', 1024, 1, '#t')
+                render(page(f'<div id="t" style="display:flex;width:fit-content">{svg_tile(c, v, 1024)}</div>', 1024), d / f'icon_{nm}.png', 1024, 1, '#t')
                 for s in (110, 40):
-                    render(page(f'<div id="t" style="display:inline-block">{svg_tile(c, v, s, "ci")}</div>', 200), d / f'circle{s}_{nm}.png', 200, 1, '#t')
+                    render(page(f'<div id="t" style="display:flex;width:fit-content">{svg_tile(c, v, s, "ci")}</div>', 200), d / f'circle{s}_{nm}.png', 200, 1, '#t')
                 bgc = '#fff' if v == 'L' else '#0E1726'
-                render(page(f'<div id="t" style="display:inline-block;background:{bgc};padding:36px 56px;border-radius:0">{lockup(c, v, 96)}</div>', 900), d / f'horizontal_{nm}.png', 900, 2, '#t')
-                render(page(f'<div id="t" style="display:inline-block">{profile(c, v)}</div>', 500), d / f'profile_{nm}.png', 500, 2, '#t')
+                render(page(f'<div id="t" style="display:flex;width:fit-content;background:{bgc};padding:36px 56px;border-radius:0">{lockup(c, v, 96)}</div>', 900), d / f'horizontal_{nm}.png', 900, 2, '#t')
+                render(page(f'<div id="t" style="display:flex;width:fit-content">{profile(c, v)}</div>', 500), d / f'profile_{nm}.png', 500, 2, '#t')
         # 總覽
         cards = ''
         for i, c in enumerate(CANDS):
-            cards += (f'<div style="background:#fff;border-radius:18px;padding:20px 22px;width:452px;box-sizing:border-box">'
+            cards += (f'<div style="background:#fff;border-radius:18px;padding:20px 18px;width:452px;box-sizing:border-box">'
                       f'<div style="display:flex;align-items:baseline;gap:10px"><b style="font-size:22px;color:#6B7A90">{i+1}</b><b style="font-size:26px">{c["name"]}</b></div>'
                       f'<div style="font-size:13px;color:#586879;line-height:1.55;margin:8px 0 14px;min-height:40px">{c["idea"]}</div>'
-                      f'<div style="display:flex;gap:12px;align-items:flex-end">{svg_tile(c,"L",132)}{svg_tile(c,"D",132)}'
-                      f'<div style="display:flex;flex-direction:column;gap:6px"><div style="display:flex;gap:8px;align-items:flex-end">{svg_tile(c,"L",110,"ci")}{svg_tile(c,"L",40,"ci")}</div>'
-                      f'<div style="display:flex;gap:8px;align-items:flex-end">{svg_tile(c,"D",110,"ci")}{svg_tile(c,"D",40,"ci")}</div></div></div></div>')
+                      f'<div style="display:flex;flex-direction:column;gap:10px">'
+                      f'<div style="display:flex;gap:14px;align-items:flex-end">{svg_tile(c,"L",112)}{svg_tile(c,"L",110,"ci")}{svg_tile(c,"L",40,"ci")}</div>'
+                      f'<div style="display:flex;gap:14px;align-items:flex-end">{svg_tile(c,"D",112)}{svg_tile(c,"D",110,"ci")}{svg_tile(c,"D",40,"ci")}</div></div></div>')
         hdr = ('<div style="padding:30px 36px 6px"><div style="font-size:34px;font-weight:700">科技透明圈 LOGO：八個風格（2026-11-02）</div>'
                '<div style="font-size:15px;color:#586879;margin-top:8px">簡約休閒、不用吉祥物、無 AI 圖（座標格＋一致圓角的向量）；每張卡：方形圖示（淺／深）＋右側 IG 圓形 110／40px 實際像素（上淺下深，不放大）。字型 Noto Sans TC／粉圓 Huninn／M PLUS Rounded 1c／Zen Maru Gothic／霞鶩文楷 TC（皆 SIL OFL）。</div></div>')
         render(page(f'{hdr}<div style="display:flex;flex-wrap:wrap;gap:20px;padding:18px 36px 36px">{cards}</div>', 2000), OUT / 'overview.png', 2000, 1)
@@ -167,7 +174,7 @@ def main():
                      f'<div style="padding:18px 24px;border-radius:12px;background:#0E1726">{lockup(c,"D",58)}</div></div>'
                      f'{profile(c,"L",360)}{profile(c,"D",360)}</div>')
         hdr2 = '<div style="padding:30px 36px 10px"><div style="font-size:30px;font-weight:700">科技透明圈 LOGO：橫式 LOGO 與 Threads 個人頁模擬（淺／深）</div></div>'
-        render(page(f'{hdr2}<div style="padding:10px 36px 30px">{rows}</div>', 1560), OUT / 'overview_detail.png', 1560, 1)
+        render(page(f'{hdr2}<div style="padding:10px 36px 30px">{rows}</div>', 1400), OUT / 'overview_detail.png', 1400, 1)
         br.close()
     (OUT / 'src' / '_tmp.html').unlink(missing_ok=True)
 
