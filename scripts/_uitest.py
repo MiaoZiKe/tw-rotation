@@ -30935,7 +30935,7 @@ def t_m4_3d_1009(b, base):
             m.goto(base + hsh, wait_until="domcontentloaded")
             if not wait_until(m, "() => { const h = document.querySelector('#prod3d'); return !!(h && !h.hidden && window.Rack3D && Rack3D.current && h.querySelector('.mnumlayer .mnum')); }", 30000, 400):
                 no3d.append(sid); continue
-            J("() => document.querySelector('#prod3d').scrollIntoView({ block: 'start', behavior: 'instant' })"); m.wait_for_timeout(900)
+            J("() => { document.querySelector('#prod3d').scrollIntoView({ block: 'start', behavior: 'instant' }); scrollBy(0, -150); }"); m.wait_for_timeout(900)   # 2026-11-02：模型放大後頂到畫布上緣，要讓開頂欄／子分頁列（約 130px），不然點到的是頂欄
             r = J(M43D_CENSUS)
             if r.get("err") or r["bad"] or r["lines"] == 0:
                 census_bad.append((sid, r))

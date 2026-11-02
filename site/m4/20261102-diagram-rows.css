@@ -39,3 +39,8 @@
   /* 3D 時不出「放大」（那是 2D 圖的全螢幕檢視）*/
   :root.m4 #dgSec:has(#prod3d:not([hidden])) #dgTools .mdvbtn{display:none!important}
 }
+
+/* 3D 收合鈕搬進上排最右端（上排編號讓出 40px），不再壓在圖上、不蓋到引線與泡泡（2026-11-02 追加）；收合後（沒有編號排）回右上角 */
+@media (max-width:640px){
+  :root.m4 #prod3d.mnum3d:not(.m4c3dmin)>.m4c3d{top:-37px!important;right:2px!important;width:34px!important;height:34px!important;min-width:34px!important;min-height:34px!important}
+}

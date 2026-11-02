@@ -10017,7 +10017,8 @@
       if (document.documentElement.classList.contains('m4')) controls.maxDistance = dist;
       camera.updateProjectionMatrix();
       controls.update();
-      if (o.below) centerFit();
+      /* ★ 2026-11-02（Andy：「2D 3D圖片放大」）：手機（html.m4）3D 也走收攏狀態的置中取景（佔畫布長邊約 92%）；編號搬到畫布外的上下排之後，畫布整個留給模型。桌機照舊。 */
+      if (o.below || (document.documentElement.classList.contains('m4') && !compactH)) centerFit();   // 收合縮圖（compactH）照舊用「拆開後外接盒」精確取景，整台一定在框內
       if (keepT !== 1) applyExplode(keepT);       // 還原成量之前的展開程度
       fitPose = { p: camera.position.clone(), t: controls.target.clone() };
     };
