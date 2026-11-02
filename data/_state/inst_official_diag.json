@@ -1,5 +1,82 @@
 [
  {
+  "head": "{\"swagger\":\"2.0\",\"info\":{\"description\":\"\\u672c\\u5e73\\u81fa\\u63d0\\u4f9b\\u81fa\\u7063\\u8b49\\u5238\\u4ea4\\u6613\\u6240\\u670d\\u52d9API\\uff0c\\u6b61\\u8fce\\u5404\\u4f4d\\u4ecb\\u63a5\\u4f7f\\u7528\\u3002<br><br>[\\u4f",
+  "http": 200,
+  "url": "https://openapi.twse.com.tw/v1/swagger.json"
+ },
+ {
+  "fund_paths": [
+   "/fund/MI_QFIIS_cat",
+   "/fund/MI_QFIIS_sort_20"
+  ],
+  "n_paths": 143,
+  "swagger": "https://openapi.twse.com.tw/v1/swagger.json"
+ },
+ {
+  "summary": "集中市場外資及陸資投資類股持股比率表",
+  "swagger_path": "/fund/MI_QFIIS_cat"
+ },
+ {
+  "summary": "集中市場外資及陸資持股前 20 名彙總表",
+  "swagger_path": "/fund/MI_QFIIS_sort_20"
+ },
+ {
+  "head": "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\"> <html xmlns=\"http://www.w3.org/1999/xhtml\"> <head> <meta http-equiv=\"Content-T",
+  "http": 200,
+  "url": "https://openapi.twse.com.tw/v1/fund/T86"
+ },
+ {
+  "head": "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\"> <html xmlns=\"http://www.w3.org/1999/xhtml\"> <head> <meta http-equiv=\"Content-T",
+  "http": 200,
+  "url": "https://openapi.twse.com.tw/v1/fund/TWT38U"
+ },
+ {
+  "head": "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\"> <html xmlns=\"http://www.w3.org/1999/xhtml\"> <head> <meta http-equiv=\"Content-T",
+  "http": 200,
+  "url": "https://openapi.twse.com.tw/v1/fund/TWT43U"
+ },
+ {
+  "head": "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\"> <html xmlns=\"http://www.w3.org/1999/xhtml\"> <head> <meta http-equiv=\"Content-T",
+  "http": 200,
+  "url": "https://openapi.twse.com.tw/v1/fund/TWT44U"
+ },
+ {
+  "head": "[ {\"IndustryCat\":\"ETF\",\"Numbers\":\"244\",\"ShareNumber\":\"270055320260\",\"ForeignMainlandAreaShare\":\"3218751680\",\"Percentage\":\"1.19\"}, {\"IndustryCat\":\"水泥工業\",\"Numbers\":\"8\",\"ShareNumber\":\"14107198706\",\"Forei",
+  "http": 200,
+  "url": "https://openapi.twse.com.tw/v1/fund/MI_QFIIS_cat"
+ },
+ {
+  "cols": [
+   "IndustryCat",
+   "Numbers",
+   "ShareNumber",
+   "ForeignMainlandAreaShare",
+   "Percentage"
+  ],
+  "n": 36,
+  "url": "https://openapi.twse.com.tw/v1/fund/MI_QFIIS_cat"
+ },
+ {
+  "head": "[ {\"Rank\":\"1\",\"Code\":\"2923\",\"Name\":\"鼎固-KY\",\"ShareNumber\":\"1740296982\",\"AvailableShare\":\"8407946\",\"SharesHeld\":\"1731889036\",\"AvailableInvestPer\":\"0.48\",\"SharesHeldPer\":\"99.51\",\"Upperlimit\":\"100.00\"}, {",
+  "http": 200,
+  "url": "https://openapi.twse.com.tw/v1/fund/MI_QFIIS_sort_20"
+ },
+ {
+  "cols": [
+   "Rank",
+   "Code",
+   "Name",
+   "ShareNumber",
+   "AvailableShare",
+   "SharesHeld",
+   "AvailableInvestPer",
+   "SharesHeldPer",
+   "Upperlimit"
+  ],
+  "n": 20,
+  "url": "https://openapi.twse.com.tw/v1/fund/MI_QFIIS_sort_20"
+ },
+ {
   "market": "上市",
   "parts": [],
   "rows": 0
