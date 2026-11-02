@@ -3,7 +3,7 @@
     "tape.collect": {
       "ok": false,
       "rows": 0,
-      "seconds": 0.5
+      "seconds": 0.6
     },
     "inst_official": {
       "ok": false,
@@ -218,19 +218,19 @@
     "finmind.institutional_bulk": {
       "ok": false,
       "rows": 0,
-      "seconds": 0.5
+      "seconds": 0.3
     },
     "institutional_codes": {
-      "requested": 406,
-      "returned": 158
+      "requested": 248,
+      "returned": 248
     },
     "finmind.institutional": {
       "ok": true,
-      "rows": 158,
-      "seconds": 36.3
+      "rows": 248,
+      "seconds": 48.9
     },
     "inst_daily": {
-      "stored": 158
+      "stored": 248
     },
     "inst_flags": {
       "rebuild": true,
@@ -250,7 +250,7 @@
       "inst_daily": {
         "label": "個股三大法人",
         "latest": "2026-11-02",
-        "rows": 1092,
+        "rows": 1340,
         "median": 2199.0,
         "status": "pending",
         "reason": "thin"
@@ -292,10 +292,10 @@
     "warn_labels": []
   },
   "warn": [],
-  "started_at": "2026-11-02T08:48:25.502211+00:00",
-  "finished_at": "2026-11-02T08:49:35.762092+00:00",
-  "duration_seconds": 70.3,
+  "started_at": "2026-11-02T09:39:25.524478+00:00",
+  "finished_at": "2026-11-02T09:40:45.995166+00:00",
+  "duration_seconds": 80.5,
   "trade_date": "2026-11-02",
   "complete": true,
-  "finmind_budget_left": 0
+  "finmind_budget_left": 253
 }
