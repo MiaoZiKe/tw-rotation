@@ -16,23 +16,17 @@ def main(only=None):
         def measure(inner):
             mp.set_content(f'<svg xmlns="http://www.w3.org/2000/svg" width="2000" height="1000" viewBox="-500 -500 2000 1000"><g id="g">{inner}</g></svg>')
             r = mp.evaluate('(()=>{const b=document.getElementById("g").getBBox();return [b.x,b.y,b.x+b.width,b.y+b.height]})()')
-            return (r[0] - 9, r[1] - 9, r[2] + 9, r[3] + 9)
+            return (r[0] - 3, r[1] - 3, r[2] + 3, r[3] + 3)
         jobs = []
         for D in designs.DESIGNS:
             if only and D['id'] not in only: continue
-            for mode in ('light', 'dark'):
-                P = PAL['A'][mode]
-                word, ico = D['mk'](P, mode)
-                body = R(0, 0, 1200, 400, P['bg']) + fit(word, measure(word), 1200, 400, 880, 220)
-                jobs.append((f"{D['id']}_{mode}", svg(1200, 400, body)))
-                bg = P[D['icon_bg']] if D['icon_bg'] else P['bg']
-                if D['icon_bg']:
-                    P2 = dict(P); P2['bg'] = P['bg']; word, ico = D['mk'](P2, mode)
-                body = R(0, 0, 512, 512, bg) + fit(ico, measure(ico), 512, 512, *D['box'])
-                jobs.append((f"{D['id']}_icon512_{mode}", svg(512, 512, body, 'squircle')))
-                jobs.append((f"{D['id']}_ig400_{mode}", svg(512, 512, body, 'circle', (400, 400))))
-                jobs.append((f"{D['id']}_ig110_{mode}", svg(512, 512, body, 'circle', (110, 110))))
-                jobs.append((f"{D['id']}_ig40_{mode}", svg(512, 512, body, 'circle', (40, 40))))
+            P = designs.PALS[D['pal']]
+            word, av = D['mk'](P)
+            body = R(0, 0, 1200, 400, P['bg']) + fit(word, measure(word), 1200, 400, 900, 230)
+            jobs.append((f"{D['id']}_word", svg(1200, 400, body)))
+            body = R(0, 0, 512, 512, P['bg']) + fit(av, measure(av), 512, 512, D['box'], D['box'])
+            jobs.append((f"{D['id']}_icon512", svg(512, 512, body, 'squircle')))
+            for n in (400, 110, 40): jobs.append((f"{D['id']}_ig{n}", svg(512, 512, body, 'circle', (n, n))))
         for fn, s in jobs:
             open(os.path.join(SV, fn + '.svg'), 'w').write(s)
             m = re.search(r'width="([\d.]+)" height="([\d.]+)"', s); w, h = int(float(m.group(1))), int(float(m.group(2)))
