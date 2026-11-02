@@ -355,7 +355,7 @@ SLIDES["ch2_H2_interviewA"] = (CSS2, f"""
 <div class="grow" style="gap:22px;justify-content:flex-start;margin-top:26px">
   {step("01","先講結論","比一半更少，良率會被「平方」")}
   {step("02","缺陷是隨機落點","面積越大，被打到的機率越高")}
-  {step("03","一條公式收尾",'<span class="m">Y = e<sup>−A·D</sup></span>　面積 ×2 → 良率²',True)}
+  {step("03","一條公式收尾",'<span class="m">Y = e<sup style="font-size:36px">−A·D</sup></span>　面積 ×2 → 良率²',True)}
 </div>
 {ft2()}""")
 
@@ -408,7 +408,7 @@ SLIDES["ch2_I_diagram"] = (CSS2, f"""
      <div class="m pen" style="font-size:56px">{yB*100:.0f}%</div></div>
 </div>
 <div class="card box" style="margin-top:auto;margin-bottom:22px;padding:20px 34px;display:flex;align-items:center;gap:28px">
-  <div class="m" style="font-size:60px">Y = e<sup>−A·D</sup></div>
+  <div class="m" style="font-size:60px">Y = e<sup style="font-size:36px">−A·D</sup></div>
   <div style="font-size:38px;font-weight:700;color:{C2['ink2']};line-height:1.35">面積 ×2，<br>良率變平方</div></div>
 {ft2("業內知識")}""")
 
@@ -433,7 +433,7 @@ CHECK_JS = """
     const rects = [];
     for (const n of nodes) {
       const r = document.createRange(); r.selectNodeContents(n);
-      for (const q of r.getClientRects()) if (q.width > 1 && q.height > 1) rects.push(q);
+      for (const q of r.getClientRects()) if (q.width > 1 && q.height > 1) { const d = q.height * 0.1; rects.push({left:q.left, right:q.right, top:q.top + d, bottom:q.bottom - d}); }
     }
     if (!rects.length) continue;
     const cs = getComputedStyle(el);
@@ -481,7 +481,9 @@ CHECK_JS = """
 def render():
     results = {}
     with sync_playwright() as p:
-        br = p.chromium.launch()
+        import glob, os
+        exe = next(iter(sorted(glob.glob("/opt/pw-browsers/chromium-*/chrome-linux64/chrome"))), None)
+        br = p.chromium.launch(executable_path=exe) if exe and not os.environ.get("PW_DEFAULT") else p.chromium.launch()
         pg = br.new_page(viewport={"width": W, "height": H}, device_scale_factor=1)
         for name in ORDER:
             css, body = SLIDES[name]
