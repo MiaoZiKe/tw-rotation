@@ -1,0 +1,11 @@
+/* 2026-11-02 手機頂欄：「剩 N 次」計數＋額度圓環出現（flow／market／earnings…計次頁）時，登入圖示被推出畫面外
+   （390 寬實測：登入鈕右緣 413／409，視窗只有 390，整顆人形圖示一半出框）。
+   做法：這時把「線上人數」那顆（綠點＋人數，#acctOnline，約 41px）先讓出位置 —— 它在沒有計數的頁面照常顯示，
+   計次頁頂欄要留給「剩幾次」跟登入。≤380（360 寬的小手機）再把圖示鈕 36→32，兩顆計數都留著。
+   只動手機頂欄（html.m4＝≤640）；桌機沒有 .m4tools，一個字都不影響。 */
+@media (max-width:640px){
+  :root.m4 .m4tools:has(>.twqp:not([hidden]),>#twQRing:not([hidden])) #acctOnline{display:none}
+}
+@media (max-width:380px){
+  :root.m4 .m4tools:has(>.twqp:not([hidden]),>#twQRing:not([hidden])) :is(.m4srch,#themeBtn,#t4Btn,#twPageTourBtn,#acctBtn,#ntBell){width:32px!important;min-width:32px!important}
+}

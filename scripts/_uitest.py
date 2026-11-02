@@ -51074,18 +51074,22 @@ def t_legal(b, base):
         const r = b.getBoundingClientRect(), t = tbOn ? tb.getBoundingClientRect() : { top: innerHeight },
               a = document.getElementById('lgAccept').getBoundingClientRect(), d = document.getElementById('lgDecline').getBoundingClientRect();
         return { bb: r.bottom, tt: t.top, gap: innerHeight - r.bottom, tbOn, l: r.left, rr: innerWidth - r.right, aw: a.width, bw: r.width, stacked: a.bottom <= d.top + 1,
-                 docW: document.documentElement.scrollWidth, winW: innerWidth, ah: a.height }; }""")
+                 docW: document.documentElement.scrollWidth, winW: innerWidth, ah: a.height, bh: r.height, dw: d.width, at: a.top, dt: d.top }; }""")
     # 2026-10-16 改前→改後：底部分頁列 2026-10-08 已拿掉（#tabs 在手機是 display:none，量到的 top 是 0，這條改前其實一直是紅的）。
     #   改後：有固定在底部的分頁列時仍要在它上方；沒有時貼底只留 12px（＋安全區）—— 改前多空 114px（launch_standard 第 9 條的瑕疵①）。
-    ok("[開 390] 橫幅貼底（有底部分頁列時在它上方；沒有時離視窗底 ≤ 13px）、左右各留 12px",
-       r and r["bb"] <= r["tt"] and (r["tbOn"] or r["gap"] <= 13) and abs(r["l"] - 12) <= 1 and abs(r["rr"] - 12) <= 1, r)
-    ok("[開 390] 兩顆按鈕上下排、滿寬、高 44（「同意並繼續」在上）",
-       r and r["stacked"] and r["aw"] >= r["bw"] - 42 and r["ah"] >= 43, r)
+    # 2026-11-02 改前→改後（社群導流進站：橫幅蓋住首屏 23%，site/m4/20261102-consent-strip.css）：
+    #   改前驗「浮卡：離視窗底 12px、左右各留 12px、兩顆按鈕上下排滿寬」；改後是貼底細條：貼到視窗底（≤1px）、左右滿版、
+    #   高度 ≤ 120px（不蓋首屏主內容）、兩顆按鈕同一列（「同意並繼續」在右、較寬、仍 ≥ 44 高）。
+    ok("[開 390] 橫幅是貼底細條（有底部分頁列時在它上方；沒有時貼到視窗底）、左右滿版、高度 ≤ 120px",
+       r and r["bb"] <= r["tt"] + 1 and (r["tbOn"] or r["gap"] <= 1) and r["l"] <= 1 and r["rr"] <= 1 and r["bh"] <= 120, r)
+    ok("[開 390] 兩顆按鈕同一列、「同意並繼續」比「不同意」寬、高 ≥ 44",
+       r and not r["stacked"] and abs(r["at"] - r["dt"]) <= 1 and r["aw"] > r["dw"] and r["ah"] >= 43, r)
     ok("[開 390] 沒有橫向捲軸", r and r["docW"] <= r["winW"] + 1, r)
     # 2026-10-17 改前→改後：改前驗「手機的舊導覽彈窗是底部抽屜、按『到總覽看這一步』切到 ② 貴不貴」；
     #   改後同意之後開的是 tour.js 的全站導覽（舊彈窗不再自動出現）→ 驗它開了、說明卡貼底在畫面內、跳過能關。
     pg.click("#lgAccept")
     wait_until(pg, "() => { const s = window.TwTour && TwTour.state(); return !!s && s.active && !s.busy && s.i >= 0; }", 10000)
+    pg.wait_for_timeout(600)    # 2026-11-02：說明卡是滑進來的（683→633），i>=0 那一刻量到的是途中位置；等它停下來再量（改前只是剛好沒撞到）
     r = pg.evaluate("() => { const s = TwTour.state(); return s.active ? { tour: s.tour, place: s.place, card: s.card, vw: s.vw, vh: s.vh, old: !!document.getElementById('lgTour') } : null; }")
     ok("[開 390] 同意後開的是全站導覽（不是舊彈窗）、說明卡貼底且在畫面內",
        r and r["tour"] == "site" and not r["old"] and r["place"] in ("sheet-bottom", "sheet-top")

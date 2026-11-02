@@ -37,7 +37,16 @@
   /* tw.tour 只看「有沒有」（tourSeen），不比版本：有值就不再自動開。這個字串只是記錄「是哪一版自動開過的」。
      2026-10-17 起自動開的是 tour.js 的全站導覽（頁首「平台導覽」那一套），舊的置中彈窗不再自動出現。*/
   const TOUR_V = '2026-10-17-site';
-  const K_CONSENT = 'tw.consent', K_TOUR = 'tw.tour';
+  const K_CONSENT = 'tw.consent', K_TOUR = 'tw.tour', K_DEFER = 'tw.tour.defer';
+  /* ★ 2026-11-02（社群導流進站就流失）：從貼文連結進來的人，網址是深層路由（#market/inst…）或帶來源參數（?u=、?src=、utm_*）——
+     他是為了「那一頁」來的，同意條款後不能把網址換成 #overview、再蓋一層「全站導覽 1/19」（貼文連的那頁被換掉 ＝ 流失）。
+     這種進站：同意後不自動跑導覽、不改網址；把「導覽還沒跑」記成 tw.tour.defer，等這位訪客之後自己走到首頁才補跑一次。
+     從 #overview／沒有 hash 進來的行為不變（Andy 10-17：導覽可以輕鬆跳過，不是拿掉）。桌機、手機同一條邏輯（只動導覽時機，不動版面）。*/
+  const INIT_HASH = location.hash || '';
+  const LAND_SRC = /[?&](?:u|src|utm_[a-z_]+)=/i.test(String(location.search || '') + INIT_HASH);
+  const headOf = (h) => String(h == null ? location.hash : h).replace(/^#/, '').split(/[/?]/)[0];
+  const isHome = () => { const h = headOf(); return h === '' || h === 'overview'; };
+  let navigated = false;                       // 進站之後使用者自己換過頁（route() 會更新）
 
   const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) =>
     ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
@@ -1073,8 +1082,7 @@
        （否則每次重新整理都會跳出來），只留頁首「平台導覽」的入口。*/
     const seen = tourSeen();
     if (storeOK && seen === false) {
-      markTour();                            // 開之前就記：導覽跑到一半重新整理，也不會再自動跑一次
-      pendingTour = true;
+      pendingTour = true;                    // 是自動開、還是延後，由 autoTour 看「現在在哪一頁」決定（markTour 也在那邊、開之前才記）
       setTimeout(autoTour, fromBanner ? 200 : 400);
     }
   }
@@ -1083,13 +1091,36 @@
      不再跳舊的置中大視窗「四步看懂今天的資金」。舊彈窗（openTour）只留給「tour.js 沒載入」這種退路。
      在法律頁（#terms 等）上按同意的人正在讀條文：不把他拉走，等他離開法律頁、到一般頁面時才開（route() 會再叫這支）。*/
   let pendingTour = false;
-  function autoTour() {
-    if (!pendingTour) return;
-    const h = (location.hash.replace('#', '').split('/')[0]) || '';
-    if (ROUTES.includes(h)) return;          // 還在法律頁或 #leave：先不開，pendingTour 留著
-    pendingTour = false;
+  function startSiteTour() {
+    markTour();                              // 開之前就記：導覽跑到一半重新整理，也不會再自動跑一次
+    try { localStorage.removeItem(K_DEFER); } catch (e) { /* 忽略 */ }
     if (window.TwTour && typeof window.TwTour.start === 'function') window.TwTour.start('site');
     else openTour(null);
+  }
+  function autoTour() {
+    if (!pendingTour) return;
+    const h = headOf();
+    if (ROUTES.includes(h)) return;          // 還在法律頁或 #leave：先不開，pendingTour 留著
+    pendingTour = false;
+    if (LAND_SRC || !isHome()) {             // 深層連結／來源參數進站：不開、不改網址，記下「導覽延後」（見檔頭常數那段）
+      try { localStorage.setItem(K_DEFER, '1'); } catch (e) { /* 忽略 */ }
+      return;
+    }
+    startSiteTour();
+  }
+  /* 延後的導覽：這位訪客已同意、導覽還沒跑過（tw.tour 空）、有 tw.tour.defer —— 他自己走到首頁（#overview／沒有 hash）才補跑一次。
+     帶來源參數進站的那一次瀏覽，要等他自己換過頁再回首頁才算「自己走進來」（落地當下就在首頁也不彈）。*/
+  let resumeT = 0;
+  function maybeResumeTour() {
+    if (pendingTour || !isHome() || !storeOK) return;
+    let defer = null; try { defer = localStorage.getItem(K_DEFER); } catch (e) { return; }
+    if (defer !== '1' || tourSeen() !== false || !readConsent()) return;
+    if (LAND_SRC && !navigated) return;
+    clearTimeout(resumeT);
+    resumeT = setTimeout(() => {
+      if (!isHome() || tourSeen() !== false || bannerEl() || (window.TwTour && TwTour.state && TwTour.state().active)) return;
+      startSiteTour();
+    }, 600);
   }
 
   // ------------------------------------------------------------------ 平台導覽
@@ -1216,7 +1247,9 @@
       return 'legal';
     }
     if (declined && active() && !readConsent()) { location.replace('#leave'); return 'redirect'; }
+    if ((location.hash || '') !== INIT_HASH) navigated = true;
     if (pendingTour) setTimeout(autoTour, 300);   // 在法律頁同意、現在換到一般頁面：這時才自動開導覽（等新頁先畫出來）
+    else maybeResumeTour();                       // 之前因深層連結延後的導覽：走到首頁才補跑
     return null;
   }
 
