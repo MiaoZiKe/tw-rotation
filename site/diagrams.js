@@ -2102,32 +2102,33 @@
   const rowCap = (W) => Math.max(3, Math.floor((W - 24) / RG));
   const rowGap = (R) => (R <= 1 ? RG : 22);                  // 疊兩排時，相鄰（不同排）泡泡的 x 距；同排＝R×gap ≥ 44
   /* n 顆泡泡在寬 W 的一側要幾排：至少 ceil(n/cap)，而且 (n−1)×gap 要塞得進可用寬度 */
-  function rowsFor(n, W) {
+  function rowsFor(n, W, res) {
     if (!n) return 0;
-    const span = W - 2 * (RBR + 4);
+    const span = W - 2 * (RBR + 4) - (res || 0);
     for (let R = Math.max(1, Math.ceil(n / rowCap(W))); R < 8; R++) if ((n - 1) * rowGap(R) <= span) return R;
     return 8;
   }
   /* 把 P（每顆有 x0,y0 錨點與 rel＝錨點在圖上的相對高度 0..1）分到上／下兩排。
      fixedRows 有值（3D：排數要固定，不然轉動時圖會上下跳）→ 每側最多 fixedRows 排；否則取「總排數最少」。
      同樣可行時取最接近「上半部上排、下半部下排」的切法。回傳 { top, bot, Rt, Rb }。*/
-  function splitRows(P, W, fixedRows) {
-    const by = P.slice().sort((a, b) => a.rel - b.rel), n = by.length;
-    const nat = by.filter(q => q.rel < 0.5).length;
+  function splitRows(P, W, fixedRows, resTop) {
+    const rl = (q) => (q.relS != null ? q.relS : q.rel);                 // relS＝3D 加了「黏住上次那一側」的偏移，轉動時靠近中線的零件不會在上下排之間來回跳
+    const by = P.slice().sort((a, b) => rl(a) - rl(b)), n = by.length;
+    const nat = by.filter(q => rl(q) < 0.5).length;
     let best = null;
     for (let k = 0; k <= n; k++) {
-      const rt = rowsFor(k, W), rb = rowsFor(n - k, W);
+      const rt = rowsFor(k, W, resTop), rb = rowsFor(n - k, W);
       if (fixedRows && (rt > fixedRows || rb > fixedRows)) continue;
       const cost = rt + rb, d = Math.abs(k - nat);
       if (!best || cost < best.cost || (cost === best.cost && d < best.d)) best = { k, cost, d, rt, rb };
     }
-    if (!best) best = { k: nat, rt: rowsFor(nat, W), rb: rowsFor(n - nat, W) };
+    if (!best) best = { k: nat, rt: rowsFor(nat, W, resTop), rb: rowsFor(n - nat, W) };
     return { top: by.slice(0, best.k), bot: by.slice(best.k), Rt: best.rt, Rb: best.rb };
   }
   /* 一側的泡泡：依 x0 排序、一維推開（間距 ≥ rowGap）、夾在 [lo,hi]；第 k 顆放第 k % R 排（0＝貼著圖那一排）*/
-  function placeSide(arr, W, R, side) {
+  function placeSide(arr, W, R, side, res) {
     const n = arr.length; if (!n) return;
-    const lo = RBR + 4, hi = W - RBR - 4, gap = rowGap(R);
+    const lo = RBR + 4, hi = W - RBR - 4 - (res || 0), gap = rowGap(R);
     const s = arr.slice().sort((a, b) => a.x0 - b.x0);
     const xs = s.map(q => Math.max(lo, Math.min(hi, q.x0)));
     for (let it = 0; it < 3; it++) {
@@ -2177,7 +2178,8 @@
     document.body.appendChild(o);
     document.documentElement.classList.add('mdgview-on');
     const Z = [1, 1.5, 2, 3];
-    let zi = Math.max(0, Z.indexOf(viewZoom));
+    viewZoom = 1;                                   // 每次開都從 100% 開始（不記上一次的倍率）
+    let zi = 0;
     const apply = () => { viewZoom = Z[zi]; fig.style.width = (viewZoom * 100) + '%'; o.querySelector('.mdv-z i').textContent = Math.round(viewZoom * 100) + '%'; o.dataset.zoom = viewZoom; };
     apply();
     o.addEventListener('click', (e) => {
@@ -2681,7 +2683,7 @@
     const box = h3.closest('.dg3dbox');
     const base0 = h3.getBoundingClientRect(), W = base0.width, H = base0.height;
     if (!W || !H) return;
-    const n = ctx.items.length, F = Math.max(1, rowsFor(Math.ceil(n / 2), W));
+    const n = ctx.items.length, F = Math.max(1, rowsFor(Math.ceil(n / 2), W, 40));   // 上排右端留 40px 給收合鈕
     const T = rowPad(F), B = rowPad(F);
     if (box && box.dataset.mnpad !== T + '|' + B) { box.dataset.mnpad = T + '|' + B; box.style.setProperty('--mnTop', T + 'px'); box.style.setProperty('--mnBot', B + 'px'); box.classList.add('mrows'); }
     const base = h3.getBoundingClientRect();
@@ -2708,14 +2710,17 @@
         `<button type="button" class="mnum" data-i="${i}" data-no="${esc(it.no)}" style="--c:${esc(it.color)}" aria-label="編號 ${esc(it.no)}：${esc(it.title)}">${esc(it.no)}</button>`).join('');
       layer.addEventListener('pointerdown', () => { ctx._touch = performance.now(); }, true);
     }
-    const sp = splitRows(P, W, F);
+    P.forEach(q => { const a = ctx._asg && ctx._asg[q.no]; q.relS = q.rel + (a ? (a.side === 'top' ? -0.15 : 0.15) : 0); });
+    const sp = splitRows(P, W, F, 40);
     // 新的切法：每側依 x0 排序後的編號串；跟黏住的比
     const order = (arr) => arr.slice().sort((a, b) => a.x0 - b.x0).map(q => q.no).join(',');
     const ordKey = order(sp.top) + '|' + order(sp.bot);
     const touched = performance.now() - (ctx._touch || 0) < 1500;
     const missing = !ctx._asg || P.some(q => !ctx._asg[q.no]);       // 新出現（以前沒有投影）的零件沒有黏住的位置 → 一定要重排，不然會疊在別顆上
-    if (missing || (ctx._ordKey !== ordKey && !touched)) {
-      placeSide(sp.top, W, sp.Rt, 'top'); placeSide(sp.bot, W, sp.Rb, 'bot');
+    const settled = performance.now() - (ctx._asgT || 0) > 2500;       // 重排至少隔 2.5 秒：手指瞄著的泡泡不會一直換位置
+    if (missing || (ctx._ordKey !== ordKey && !touched && settled)) {
+      ctx._asgT = performance.now();
+      placeSide(sp.top, W, sp.Rt, 'top', 40); placeSide(sp.bot, W, sp.Rb, 'bot');
       ctx._asg = {}; P.forEach(q => { ctx._asg[q.no] = { sx: q.sx, row: q.row, side: q.side }; });
       ctx._ordKey = ordKey;
     }

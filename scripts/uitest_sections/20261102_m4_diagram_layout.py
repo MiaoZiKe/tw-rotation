@@ -94,8 +94,17 @@ def t_m4_dglayout_1102(b, base):
             side = [q for q in r["nums"] if not (q["cy"] < fy0 - 4 or q["cy"] > fy1 + 4)]
             ok(f"【{T}】{W} {tag} {mode} {n} 顆編號全在圖的上方或下方（{len(side)} 顆落在圖範圍內）", n > 0 and not side, [q["no"] for q in side])
             ok(f"【{T}】{W} {tag} {mode} 編號全在畫面左右邊界內（不被切）", all(q["cx"] - q["w"] / 2 >= -0.5 and q["cx"] + q["w"] / 2 <= r["vw"] + 0.5 for q in r["nums"]), r["vw"])
-            bad = []
-            for a in range(n):
+            def pairs(r):
+                out = []
+                for a in range(len(r["nums"])):
+                    for c in range(a + 1, len(r["nums"])):
+                        d = ((r["nums"][a]["cx"] - r["nums"][c]["cx"]) ** 2 + (r["nums"][a]["cy"] - r["nums"][c]["cy"]) ** 2) ** 0.5
+                        if d < 30: out.append((r["nums"][a]["no"], r["nums"][c]["no"], round(d, 1)))
+                return out
+            if pairs(r):                       # 重排時泡泡用 .35 秒滑位，滑完再量一次
+                m.wait_for_timeout(800); r = J(DGL_MEASURE, mode)
+            bad = pairs(r)
+            for a in range(0):
                 for c in range(a + 1, n):
                     d = ((r["nums"][a]["cx"] - r["nums"][c]["cx"]) ** 2 + (r["nums"][a]["cy"] - r["nums"][c]["cy"]) ** 2) ** 0.5
                     if d < 30: bad.append((r["nums"][a]["no"], r["nums"][c]["no"], round(d, 1)))
@@ -114,21 +123,23 @@ def t_m4_dglayout_1102(b, base):
                 m.wait_for_timeout(250)
                 p = xy(f"{HOST[mode]} .mnumlayer .mnum[data-i='{q['i']}']")
                 if not p: ok(f"【{T}】{W} {tag} {mode} 編號 {q['no']} 找得到", False); continue
+                topno = J("([x, y]) => { const t = document.elementFromPoint(x, y); return t ? (t.dataset && t.dataset.no) || t.tagName + '.' + (t.className.baseVal !== undefined ? 'svg' : t.className) : null; }", p)
                 m.touchscreen.tap(*p); m.wait_for_timeout(500)
-                s = J(DGL_ST)
+                s = J(DGL_ST); s['top'] = topno; s['p'] = [round(p[0]), round(p[1])]
                 good = s["sheet"] and s["no"] == q["no"] and q["no"] in s["title"]
                 if not good: ok(f"【{T}】{W} {tag} {mode} 點編號 {q['no']} 開抽屜且標題對應（{s}）", False, s)
                 else: k += 1
                 # 關掉：點抽屜上方背景
-                bk = J("() => { const sh = document.getElementById('mSheet').getBoundingClientRect(); return [innerWidth / 2, Math.max(8, sh.top - 30)]; }")
-                m.touchscreen.tap(*bk); m.wait_for_timeout(450)
+                J("() => { const k = document.getElementById('mSheetBack'); if (k && !k.hidden) k.click(); }"); m.wait_for_timeout(450)   # 抽屜背景在頂欄／子分頁上方時，用手指點會點到分頁而換頁，所以關抽屜走背景的 click
             ok(f"【{T}】{W} {tag} {mode} 用手指點每一顆編號：{k}/{min(limit, len(r['nums']))} 顆都開了對應抽屜", k == min(limit, len(r['nums'])), k)
 
         try:
             m.goto(base + "#industry/semiconductor/dg/foundry", wait_until="domcontentloaded"); wait_until(m, "() => !!(window.DiagramSlots && window.Diagrams && Object.keys(window.Diagrams).length > 5)", 40000, 300)
             ids = J("() => Object.keys(window.Diagrams || {}).map(id => [window.DiagramSlots.chainOf(id), id, window.DiagramSlots.level(id)]).filter(x => x[0])")
+            PART = os.environ.get("TW_DGL_PART")
+            if PART: k0, kn = [int(x) for x in PART.split("/")]; ids = [x for i, x in enumerate(ids) if i % kn == k0]
             pick = ids if ALL else [x for x in ids if x[1] in (ONLY or ("foundry", "adv_pkg", "ai_server", "hbm"))][:4]
-            ok(f"【{T}】{W} 找得到剖析圖清單（{len(ids)} 張，驗 {len(pick)} 張）", len(ids) >= 10 and len(pick) >= 3, [x[1] for x in pick])
+            ok(f"【{T}】{W} 找得到剖析圖清單（{len(ids)} 張，驗 {len(pick)} 張）", (len(ids) >= 10 or PART) and len(pick) >= 3, [x[1] for x in pick])
             for chain, dg, lv in pick:
                 tag = dg
                 J("() => window.DG && DG.closeView && DG.closeView()")
@@ -138,16 +149,17 @@ def t_m4_dglayout_1102(b, base):
                 if SHOT: J("() => document.querySelector('#dgSec').scrollIntoView({ block: 'start' })"); m.wait_for_timeout(300); m.screenshot(path=os.path.join(SHOT, f"dglayout_{dg}_2d_{W}.png"))
                 tap_all(r2, "2d", tag, limit=(99 if W == 390 else 4))
                 # 點零件本身（2D）→ 抽屜
-                p = J("""() => { const h = document.querySelector('#prodDiagram'); const part = [...h.querySelectorAll('[data-part]')].find(e => e.getClientRects().length && e.getBoundingClientRect().width > 8);
+                p = J("""() => { const h = document.querySelector('#prodDiagram'); const keys = new Set(((h._mctx && h._mctx.items) || []).map(i => i.part).filter(Boolean)); const part = [...h.querySelectorAll('[data-part]')].find(e => keys.has(e.dataset.part) && getComputedStyle(e).pointerEvents !== 'none' && !/^card:/.test(e.dataset.part) && e.getClientRects().length && e.getBoundingClientRect().width > 8);
                   if (!part) return null; part.scrollIntoView({ block: 'center', behavior: 'instant' }); const r = part.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2, part.dataset.part]; }""")
                 if p:
                     m.wait_for_timeout(250)
                     p = J("""(k) => { const e = document.querySelector('#prodDiagram [data-part="' + k + '"]'); const r = e.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; }""", p[2])
-                    m.touchscreen.tap(*p); m.wait_for_timeout(600)
+                    h0 = J("() => location.hash"); m.touchscreen.tap(*p); m.wait_for_timeout(600)
+                    if J("() => location.hash") != h0:          # 這個零件是「連到別頁」的連結（環節連結）：換頁不是抽屜，回來繼續
+                        goto(chain, dg)
                     s = J(DGL_ST)
                     ok(f"【{T}】{W} {tag} 2d 點零件本身也開抽屜（{s['no']} {s['title'][:12]}）", s["sheet"], s)
-                    bk = J("() => { const sh = document.getElementById('mSheet').getBoundingClientRect(); return [innerWidth / 2, Math.max(8, sh.top - 30)]; }")
-                    m.touchscreen.tap(*bk); m.wait_for_timeout(450)
+                    J("() => { const k = document.getElementById('mSheetBack'); if (k && !k.hidden) k.click(); }"); m.wait_for_timeout(450)
                 # 大圖：⤢ → 開、＋ 變大、點背景關
                 J("() => document.querySelector('#dgSec').scrollIntoView({ block: 'start', behavior: 'instant' })"); m.wait_for_timeout(300)
                 p = xy("#dgTools .mdvbtn")
@@ -166,7 +178,8 @@ def t_m4_dglayout_1102(b, base):
                         bg = J("() => { const body = document.querySelector('#mDgView .mdv-body').getBoundingClientRect(); return [body.left + 4, body.top + body.height / 2]; }")
                         m.touchscreen.tap(*bg); m.wait_for_timeout(300)
                         ok(f"【{T}】{W} {tag} 2d 點背景關大圖", J("() => !document.getElementById('mDgView')"))
-                # 3D
+                # 3D（沒有 3D 場景的圖跳過）
+                if not J("(k) => !!window.DiagramSlots.scene(k)", dg): continue
                 if not ok(f"【{T}】{W} {tag} 切到 3D 有編號", to3d()): continue
                 r3 = check_layout("3d", tag)
                 if r3 is None: continue
@@ -176,7 +189,7 @@ def t_m4_dglayout_1102(b, base):
                 a = J(DGL_MEASURE, "3d"); m.wait_for_timeout(1400); c = J(DGL_MEASURE, "3d")
                 if "nums" not in a or "nums" not in c: ok(f"【{T}】{W} {tag} 3d 自轉取樣量得到", False, [a, c]); continue
                 by = {q["no"]: q for q in c["nums"]}
-                drift = max([abs(q["cx"] - by[q["no"]]["cx"]) + abs(q["cy"] - by[q["no"]]["cy"]) for q in a["nums"] if q["no"] in by] or [0])
+                drift = max([abs((q["cx"] - a["fr"][0]) - (by[q["no"]]["cx"] - c["fr"][0])) + abs((q["cy"] - a["fr"][1]) - (by[q["no"]]["cy"] - c["fr"][1])) for q in a["nums"] if q["no"] in by] or [0])   # 相對畫布量，頁面自己捲動不算
                 moved = sum(1 for p0, p1 in zip(a["leads"], c["leads"]) if abs(p0[0] - p1[0]) + abs(p0[1] - p1[1]) > 0.5)
                 ok(f"【{T}】{W} {tag} 3d 自轉 1.4 秒：泡泡最大位移 {drift:.1f}px（≤ 40，不滿天亂跑）、引線端點有 {moved} 個跟著零件動", drift <= 40, [drift, moved])
                 # 切回 2D，下一張
@@ -188,7 +201,7 @@ def t_m4_dglayout_1102(b, base):
             if p:
                 m.wait_for_timeout(250); p = J("() => { const b = document.querySelector('.mdgfolds .mdgfold, .mdgfolds button, .mdgfolds summary'); const r = b.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; }")
                 m.touchscreen.tap(*p); m.wait_for_timeout(900)
-                q = xy("#mSheet .mdvtap")
+                q = J("() => { const e = document.querySelector('#mSheet .mdvtap'); if (!e) return null; const r = e.getBoundingClientRect(); return [r.left + r.width / 2, Math.max(r.top, 0) + 60]; }")
                 if ok(f"【{T}】{W} 延伸閱讀抽屜裡的圖可點", bool(q)):
                     m.touchscreen.tap(*q); m.wait_for_timeout(500)
                     ok(f"【{T}】{W} 點延伸閱讀的圖開全螢幕大圖", J("() => !!document.getElementById('mDgView')"))
