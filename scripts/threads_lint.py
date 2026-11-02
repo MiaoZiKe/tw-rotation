@@ -2,12 +2,13 @@
 規則全文見 docs/marketing/social_unit/threads_rules.md）。
 
 檢查一篇 v2 貼文（JSON：hook_type, emotion, main_post, thread_posts, reply_post, image_count, tag …）：
-  1. 主文 30–80 字（標點也算、換行不算、標籤不算），整則 ≤150；串文最多 6 則、每則 30–150（2026-11-01 CEO 改：超過 80 不再警告）
+  1. 主文第一段（鉤子）30–80 字（標點也算、換行不算、標籤不算）；整則主文 ≤500（Threads 上限，emoji 以位元組計）；
+     串文 0 則、只剩 1 則留言放網址（2026-11-02 Andy：「都濃縮到第一頁」「下面留言太多了 盡可能都是在主業面就好」）
   2. 開頭類型恰為 對話／冷知識／反差；情緒恰為 好笑／吐槽
   3. 禁用字詞（客套結尾、私訊、連結在留言、喊單字）；主文不得有網址
   4. 第一句完整（≥10 字）；主文結尾不是句號（用感嘆或停在半句）
   5. 主文問句（「」裡的對話除外）必須具體：二選一（還是）或帶數字
-  6. 圖 0 或 2 張；標籤恰 1 個、不在泛用黑名單、串文與留言不再掛標籤
+  6. 圖：主題文章 0 或 1 張（11-02 Andy，數字卡併進封面）；主貼文 0 或 2 張；標籤恰 1 個、不在泛用黑名單、串文與留言不再掛標籤
   7. reply_post 恰 1 個網址
   8.（2026-11-02 CEO：盤前主題文章「台股融資融資約4200億元」那篇的生成瑕疵）
      同詞重複（「融資融資」「台股 台股」）、段落內容照抄前段（「和前期比」＝「重點數字」）、
@@ -27,9 +28,13 @@ from pathlib import Path
 
 HOOK_TYPES = ("對話", "冷知識", "反差")
 EMOTIONS = ("好笑", "吐槽")
-MAIN_MIN, MAIN_MAX, HARD_MAX = 30, 80, 150
+MAIN_MIN, MAIN_MAX, HARD_MAX = 30, 80, 150      # MAIN_MIN／MAIN_MAX 管的是主文第一段「鉤子」
 THREAD_MIN, THREAD_TARGET = 30, 80
-MAX_THREADS = 6            # 2026-11-01 CEO：主文＋≤6 串文＋1 則留言連結
+# 2026-11-02 Andy：「這頁不需要 都濃縮到第一頁，另外下面留言太多了 盡可能都是在主業面就好」
+#   → 主文＝鉤子＋重點數據（用滿 Threads 單則 500 字上限）；串文 0 則；只剩 1 則留言放網址。
+MAIN_LIMIT = 500           # Threads 單則上限（emoji 以 UTF-8 位元組計，tlen()）
+MAIN_BUDGET = 490          # 產文用的目標上限，留 10 字餘裕
+MAX_THREADS = 0            # 11-01 CEO 的「≤6 則串文」→ 11-02 Andy 改成全部進主文
 # 客套結尾、導流、喊單（主文、串文、留言全部適用）
 BANNED = ("歡迎留言", "謝謝大家", "留言告訴我", "你怎麼看", "私訊", "連結在留言", "連結在下方", "看留言", "買進", "加碼",
           "推薦", "快上車", "必買", "穩賺", "跟單", "抄底", "飆股", "報明牌", "目標價", "趕快買", "現在進場")
@@ -44,6 +49,22 @@ TAG_RE = re.compile(r"#[^\s#，。！？、：；]+")
 def clen(s: str) -> int:
     """字數：標點也算、換行不算。"""
     return len((s or "").replace("\n", ""))
+
+
+def _is_emoji(c: str) -> bool:
+    o = ord(c)
+    return o >= 0x1F000 or 0x2190 <= o <= 0x2BFF or o in (0xFE0F, 0x200D, 0x20E3)
+
+
+def tlen(s: str) -> int:
+    """Threads 500 字上限的算法（同 threads_post._tlen）：emoji 以 UTF-8 位元組數計，其他字元（含換行）算 1。"""
+    return sum(len(c.encode("utf-8")) if _is_emoji(c) else 1 for c in (s or ""))
+
+
+def hook_of(body: str) -> tuple[str, str]:
+    """主文（不含標籤）→（第一段鉤子, 其餘重點內容）。"""
+    a, _, b = (body or "").strip().partition("\n\n")
+    return a.strip(), b.strip()
 
 
 def split_tag(main: str) -> tuple[str, list[str]]:
@@ -205,19 +226,20 @@ def lint(p: dict) -> tuple[list[str], list[str]]:
         err.append(f"情緒 {p.get('emotion')!r} 不是 好笑／吐槽")
     main = p.get("main_post") or ""
     body, tags = split_tag(main)
-    n = clen(body)
+    hook, rest = hook_of(body)
+    n = clen(hook)
     if not MAIN_MIN <= n <= MAIN_MAX:
-        err.append(f"主文 {n} 字（要 {MAIN_MIN}–{MAIN_MAX}）")
-    if clen(main) > HARD_MAX:
-        err.append(f"主文含標籤 {clen(main)} 字，超過 {HARD_MAX}")
+        err.append(f"主文鉤子 {n} 字（要 {MAIN_MIN}–{MAIN_MAX}）")
+    if tlen(main) > MAIN_LIMIT:
+        err.append(f"主文 {tlen(main)} 字，超過 Threads 上限 {MAIN_LIMIT}")
     if URL_RE.search(main):
         err.append("主文有網址")
-    fs = first_sentence(body)
+    fs = first_sentence(hook)
     if clen(fs) < 10:
         err.append(f"第一句太短（{clen(fs)} 字）：{fs}")
-    if body.endswith("。"):
-        err.append("主文用句號收尾（要用感嘆或停在半句）")
-    q = re.sub(r"「[^」]*」", "", body)
+    if hook.endswith("。"):
+        err.append("主文鉤子用句號收尾（要用感嘆或停在半句）")
+    q = re.sub(r"「[^」]*」", "", hook)
     for qs in re.findall(r"[^。！？!?…]*[？?]", q):
         if not re.search(r"還是|\d|幾|哪一?(個|檔|邊)", qs):
             err.append(f"問句太空泛：{qs}")
@@ -249,8 +271,10 @@ def lint(p: dict) -> tuple[list[str], list[str]]:
     if clen(rp) > 500:
         err.append("留言超過 500 字")
     ic = p.get("image_count")
-    if ic not in (0, 2):
-        err.append(f"配圖 {ic} 張（只能 0 或 2）")
+    kind = p.get("kind") or ""
+    allow = (0, 1) if kind == "article" else (0, 2) if kind else (0, 1, 2)   # 11-02 Andy：主題文章只留 1 張；主貼文照 11-01 的 0 或 2
+    if ic not in allow:
+        err.append(f"配圖 {ic} 張（只能 {' 或 '.join(map(str, allow))}）")
     if len(tags) != 1:
         err.append(f"主文標籤 {len(tags)} 個（要恰好 1 個）")
     tag = (p.get("tag") or "").lstrip("#")
@@ -263,9 +287,9 @@ def lint(p: dict) -> tuple[list[str], list[str]]:
     if tag and (len(tag) > 50 or re.search(r"[.&\s]", tag)):
         err.append(f"標籤格式不合（≤50 字、不含 . & 空白）：{tag}")
     # 8. 內容品質（2026-11-02）：主文同詞重複、條件句改寫成事實；串文同詞重複／照抄前段／解讀只重述／分類不符
-    err += [f"主文同詞重複「{w}」" for w in dup_words(body)]
-    err += cond_as_fact(main, "\n".join(p.get("thread_posts") or []))
-    err += content_issues(p.get("thread_posts") or [], p.get("category") or p.get("topic_category") or "")
+    err += [f"主文同詞重複「{w}」" for w in dup_words(hook)]
+    err += cond_as_fact(hook, "\n".join([rest] + list(p.get("thread_posts") or [])))
+    err += content_issues([x for x in [rest] + list(p.get("thread_posts") or []) if x], p.get("category") or p.get("topic_category") or "")
     return err, warn
 
 
@@ -285,7 +309,8 @@ def _load(path: Path) -> list[tuple[str, dict]]:
         imgs = [x for x in re.split(r"[\s,]+", meta.get("images", "")) if x]
         return [(path.name, dict(hook_type=meta.get("hook_type"), emotion=meta.get("emotion"), main_post=posts[0] if posts else "",
                                  thread_posts=posts[1:-1], reply_post=posts[-1] if len(posts) > 1 else "",
-                                 image_count=len(imgs), tag=meta.get("tag", ""), category=meta.get("topic_category", "")))]
+                                 image_count=len(imgs), tag=meta.get("tag", ""), category=meta.get("topic_category", ""),
+                                 kind="article" if "_news-" in path.name else ""))]
     d = json.loads(txt)
     if "threads" in d and isinstance(d["threads"], dict):
         v2 = d["threads"].get("v2")

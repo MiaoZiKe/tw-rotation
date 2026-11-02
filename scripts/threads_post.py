@@ -192,7 +192,7 @@ def publish_chain(posts: list[str], token: str, images: list[str] | None = None)
 def legacy_v2(meta: dict, posts: list[str], imgs: list[str], now: datetime) -> tuple[list[str], list[str]]:
     """2026-11-01 Threads v2（docs/marketing/social_unit/threads_rules.md）：檔頭沒有 format: threads_v2 的舊格式檔
     （手動加發、舊排程）發文前自動改成 鉤子主文＋串文＋留言連結＋1 個事件標籤。改寫失敗 → 原文照發（不擋）。
-    圖：只有 1 張時不能自己補第二張（這裡沒有字型與繪圖），照原檔帶 1 張並在 log 警告；手動加發請用 news_cover.py --numcard 出第二張。"""
+    圖：照原檔帶（11-02 起主題文章只留 1 張實景封面；2 張以上照發並在 log 警告）。"""
     if meta.get("format") == "threads_v2" or os.environ.get("THREADS_V2_LEGACY", "1") != "1":
         return posts, imgs
     try:
@@ -202,8 +202,8 @@ def legacy_v2(meta: dict, posts: list[str], imgs: list[str], now: datetime) -> t
                           V.load_state(ROOT / "social" / "news" / "log" / "hook_history.json"))
         out = [v2["main_post"], *v2["thread_posts"], v2["reply_post"]]
         print(f"舊格式檔已改寫成 v2（{v2['hook_type']}／{v2['emotion']}／#{v2['tag']}，lint {'通過' if v2['checklist_passed'] else '未全過、照發'}）")
-        if len(imgs) == 1:
-            print("::warning::舊格式檔只有 1 張圖（Threads 規則要 0 或 2 張）；照發 1 張，之後手動加發請附第二張")
+        if len(imgs) > 1:
+            print("::warning::舊格式檔有 2 張以上的圖（11-02 起主題文章只留 1 張封面）；照原檔發，之後手動加發只附封面")
         return out, imgs
     except Exception as e:  # noqa: BLE001
         print(f"::warning::舊格式檔改寫 v2 失敗，原文照發：{type(e).__name__} {e}")

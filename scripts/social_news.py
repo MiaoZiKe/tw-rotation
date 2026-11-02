@@ -1505,7 +1505,7 @@ def article_sections(posts: list[str]) -> tuple[str, list, str]:
 
 
 def to_threads_v2(d: dict, slot: str, day: str, state: dict, cover: str, card2: str | None) -> dict:
-    """一篇主題文章 → v2 JSON（鉤子主文＋串文＋留言連結＋恰 1 個事件標籤＋圖 0 或 2）；永遠回得出一篇。"""
+    """一篇主題文章 → v2 JSON（鉤子＋重點數據的主文（≤500）＋1 則留言連結＋恰 1 個事件標籤＋圖 0 或 1（11-02））；永遠回得出一篇。"""
     import threads_v2 as V
     title, secs, url = article_sections(d["caption_threads"])
     c = d["card"]
@@ -1520,7 +1520,7 @@ def to_threads_v2(d: dict, slot: str, day: str, state: dict, cover: str, card2: 
                  n_nums=str(len(rows)), cat=c.get("category", ""), cond=d.get("cond", ""))
     if d.get("evergreen"):           # 11-02：常備文庫不是新聞，「媒體標題只寫一半」「{subj}的{num1}」這類新聞鉤子會變成「一顆IC的設計 IC 設計公司」→ 用保底鉤子
         extra.update(num1="", hero="", n_nums="0", kind_name="這篇產業知識")
-    imgs = [cover, card2] if card2 else []
+    imgs = [cover] if cover else []          # 11-02：只留實景封面 1 張
     v2 = V.build("article", "\n".join(d["caption_threads"]), images=imgs, url=url or d.get("link", ""), state=state, today=day,
                  extra=extra, sections=secs, title=title, legal=LEGAL_TAIL, item_max=V.HARD_MAX - 5,
                  tag_text=title + "\n" + "\n".join(secs[0][1] if secs else []))      # 標籤只看標題＋導言（「接下來觀察」的 CPI 行事曆不算）
@@ -1672,30 +1672,14 @@ def run_slot(slot: str, day: str, now: datetime, posted: dict, dry: bool, out: P
         pa_ig = ig_publish_at(slot, day, now, t, i).strftime("%Y-%m-%dT%H:%M+08:00")
         d["publish_at"] = pa
         img_rel = (img_out / f"{d['id']}.jpg").relative_to(ROOT).as_posix() if not dry else f"{slot}/{d['id']}.jpg"
-        # 2026-11-01 Threads v2：第二張「鉤子＋重點數字卡」（版型 3 套輪替）→ Threads／IG 都 2 張；畫不出來 Threads 0 張、IG 留封面 1 張，不擋整篇
-        img2_rel, th_imgs, ig_imgs = None, [], [img_rel]
-        try:
-            import social_numcard as NC
-            import threads_v2 as V
-            pre = to_threads_v2(d, slot, day, {"history": list(hstate.get("history", []))}, img_rel, None)
-            hook = V.split_tag(pre["main_post"])[0]
-            lay = NC.layout_for(day, f"{slot}{i}")
-            rr = NC.render(img_out / f"{d['id']}_n.jpg", hook, d["card"].get("numbers") or [],
-                           label=f"{d['card'].get('category', '')}｜{d['card'].get('subject') or ''}".strip("｜"),
-                           date_md=f"{int(day[5:7])}/{int(day[8:10])}", layout=lay)
-            d["meta"]["numcard"] = f"{lay}／重疊 {len(rr['bad'])} 筆"
-            if not rr["bad"]:
-                img2_rel = (img_out / f"{d['id']}_n.jpg").relative_to(ROOT).as_posix() if not dry else f"{slot}/{d['id']}_n.jpg"
-            else:
-                log.setdefault("alerts", []).append(f"{d['id']} 數字卡重疊 {rr['bad']}，Threads 改 0 張圖")
-        except Exception as ex:      # noqa: BLE001
-            log.setdefault("alerts", []).append(f"{d['id']} 數字卡失敗：{type(ex).__name__} {ex}")
+        # 2026-11-02 Andy：「這頁不需要 都濃縮到第一頁」→ 不再產生第二張數字卡；Threads／IG 都只帶實景封面 1 張
+        #   （封面本身已有標題、大數字與 3 列數字表）。11-01 的數字卡程式 social_numcard.py 保留給手動加發用。
+        img2_rel, th_imgs, ig_imgs = None, [img_rel], [img_rel]
         try:
             v2 = to_threads_v2(d, slot, day, hstate, img_rel, img2_rel)
             th_posts = [v2["main_post"], *v2["thread_posts"], v2["reply_post"]]
-            th_imgs = [img_rel, img2_rel] if img2_rel else []
-            ig_imgs = [img_rel, img2_rel] if img2_rel else [img_rel]
-            hook = __import__("threads_v2").split_tag(v2["main_post"])[0]
+            th_imgs = ig_imgs = [img_rel]
+            hook = __import__("threads_lint").hook_of(__import__("threads_v2").split_tag(v2["main_post"])[0])[0]   # IG 第一行只放鉤子
             d["caption_ig"] = ig_caption_v2(d["caption_ig"], hook, v2["tag"])
             d["threads_v2"] = v2
             d["meta"].update(format="threads_v2", hook_type=v2["hook_type"], emotion=v2["emotion"], hook_id=v2["template"],

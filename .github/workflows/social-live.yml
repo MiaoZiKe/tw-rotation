@@ -202,7 +202,7 @@ jobs:
           cat "$OUT/manifest.json" >> "$GITHUB_STEP_SUMMARY"
 
       # ★ 2026-11-01 Andy：「CEO 交給對應單位 將發文 Thread 系統修改」＋「Threads 發文規則」（docs/marketing/social_unit/threads_rules.md）
-      #   主文改鉤子 30–80 字＋1 個事件標籤、數據搬到串文、網址放最後一則留言、圖 0 或 2 張（scripts/threads_v2.py，過 threads_lint.py）。
+      #   主文＝鉤子＋重點數據（≤500 字，11-02 Andy「都濃縮到第一頁」）＋1 個事件標籤、串文 0 則、網址放唯一 1 則留言、圖 0 或 2 張（scripts/threads_v2.py，過 threads_lint.py）。
       #   這一步出任何錯都不擋發文：manifest 維持舊版照發（continue-on-error）。
       - name: Threads v2 改寫（鉤子主文＋串文＋留言連結）
         if: steps.snap.outcome == 'success' && steps.snap.outputs.rc == '0'

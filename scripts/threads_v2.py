@@ -1,6 +1,12 @@
 """Threads 發文 v2（2026-11-01 Andy：「CEO 交給對應單位 將發文 Thread 系統修改」「在 IG Thread 上面也需要進行優化
 讓熱度提升，並且 盡量不要千篇一律的方式要有點變化」；規則全文 docs/marketing/social_unit/threads_rules.md）。
 
+★ 2026-11-02 Andy：「這頁不需要 都濃縮到第一頁，另外下面留言太多了 盡可能都是在主業面就好」
+  → 主文＝鉤子（第一段 30–80 字）＋重點數據（標題、重點數字、代表什麼、接下來觀察…），用滿 Threads 單則 500 字；
+    串文 0 則；只剩 1 則留言放網址（＋「完整盤勢見網站」）。放不下依序拿掉次要段落（fit(budget=…)）。
+    主題文章圖只留 1 張（實景封面，數字卡不再產生）；主貼文圖照舊 0 或 2 張。
+  下面是 11-01 的原始設計（串文 ≤6 則那段已被上面取代）。
+
 把原本一整篇的盤前／盤中／盤後／主題文章文案，改成：
   main_post   主文 30–80 字：鉤子（對話／冷知識／反差）＋情緒（好笑／吐槽）＋恰 1 個事件型標籤，不放網址
   thread_posts 串文：原本的盤勢、族群、新聞焦點、相關公司同類合併，**最多 6 則**、每則目標 80～130 字、硬上限 150
@@ -29,7 +35,7 @@ from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from threads_lint import BANNED, GENERIC_TAGS, HARD_MAX, MAX_THREADS, THREAD_MIN, THREAD_TARGET, clen, content_issues, lint, split_tag  # noqa: E402,F401
+from threads_lint import BANNED, GENERIC_TAGS, HARD_MAX, MAIN_BUDGET, MAIN_LIMIT, MAX_THREADS, THREAD_MIN, THREAD_TARGET, clen, content_issues, lint, split_tag, tlen  # noqa: E402,F401
 
 TPE = timezone(timedelta(hours=8))
 COOLDOWN_DAYS = 14
@@ -458,7 +464,7 @@ def from_posts(posts: list[str], n_images: int, today: str, state: dict | None =
     m = re.search(r"([\d,.]+\s?(?:%|億元|億|元|點|美元))", allt)
     ex = dict(subj=subj[:10], num1=(m.group(1) if m else ""), hero=(m.group(1) if m else ""))
     ex.update(extra or {})
-    return build("article", allt, images=["x"] * (n_images if n_images in (0, 2) else 0), url=url, state=state, today=today,
+    return build("article", allt, images=["x"] * min(n_images, 1), url=url, state=state, today=today,
                  extra=ex, sections=secs, title=title, legal=legal, item_max=HARD_MAX - 5,
                  tag_text=title + "\n" + "\n".join(secs[0][1] if secs else []))
 
@@ -570,19 +576,41 @@ def _render(secs, title, item_max):
     return pack(section_units(secs, title, target=HARD_MAX - 5, item_max=item_max), target=PACK_TARGET)
 
 
-def fit(secs, title: str, item_max: int, max_posts: int = MAX_THREADS) -> tuple[list[str], list[str]]:
+BUDGET_DROP = ("之前的報導", "其他媒體", "相關公司", "和前期比")     # 11-02 濃縮進主文：先拿掉這些（重點數字／代表什麼／接下來觀察留著）
+
+
+def _render_one(secs, title: str) -> str:
+    """全部段落排成一段文字（主文用）：標題一行、每段「段名＋條列」，段與段之間換行。"""
+    blocks = [_rewrite(_strip_tags(title))] if title else []
+    for h, items in secs:
+        items = [_rewrite(_strip_tags(x)) for x in items if x.strip()]
+        h = _rewrite(_strip_tags(h))
+        b = "\n".join(([h] if h else []) + items)
+        if b.strip():
+            blocks.append(b)
+    return "\n".join(blocks)
+
+
+def fit(secs, title: str, item_max: int, max_posts: int = 6, budget: int | None = None) -> tuple[list[str], list[str]]:
     """同類數據合併成一則（盤勢、法人、族群、新聞焦點 3～5 條、昨日盤面），還超過 6 則就依序精簡次要數據：
     ① 主題文章拿掉「之前的報導／其他媒體／和前期比」 ② 新聞焦點描述縮到 28 字 ③ 新聞焦點最多 3 條
     ④ 盤面分析／昨日盤面每條只留第一個分號前 ⑤ 從最長的段落尾巴逐條拿掉。回傳（串文, 被精簡的段名）。"""
     secs = [(h, list(items)) for h, items in secs]
     cut: list[str] = []
-    posts = _render(secs, title, item_max)
-    if len(posts) <= max_posts:
+
+    def render():
+        return [_render_one(secs, title)] if budget else _render(secs, title, item_max)
+
+    def good(ps):
+        return tlen(ps[0]) <= budget if budget else len(ps) <= max_posts
+
+    posts = render()
+    if good(posts):
         return posts, cut
 
     def step_drop():
         nonlocal secs
-        for kw in DROP_FIRST:
+        for kw in (BUDGET_DROP if budget else DROP_FIRST):
             hit = [x for x in secs if kw in _hn(x[0])]
             if hit:
                 secs = [x for x in secs if x not in hit]; cut.append(kw); return True
@@ -635,17 +663,29 @@ def fit(secs, title: str, item_max: int, max_posts: int = MAX_THREADS) -> tuple[
         x[1].pop(); cut.append(_hn(x[0]) or "段落")
         return True
 
-    for step in (step_drop, step_drop, step_drop, step_news_short, step_news_three, step_detail):
+    def step_intro():
+        nonlocal secs
+        if budget and secs and not secs[0][0] and len(secs) > 1:      # 導言（新聞摘述）在重點數字之後才捨
+            secs = secs[1:]; cut.append("新聞摘述"); return True
+        return False
+
+    steps = (step_drop,) * (4 if budget else 3) + ((step_intro,) if budget else ()) + (step_news_short, step_news_three, step_detail)
+    for step in steps:
         if step():
-            posts = _render(secs, title, item_max)
-            if len(posts) <= max_posts:
+            posts = render()
+            if good(posts):
                 return posts, cut
     for _ in range(200):
         if not step_tail():
             break
-        posts = _render(secs, title, item_max)
-        if len(posts) <= max_posts:
+        posts = render()
+        if good(posts):
             break
+    if budget:
+        t = posts[0]
+        while t and tlen(t) > budget:                 # 最後手段：從尾巴截（不會整篇不發）
+            t = t[:-1]
+        return [t.rstrip() + ("…" if t != posts[0] else "")] if t else [""], cut
     return posts[:max_posts], cut
 
 
@@ -659,9 +699,10 @@ def reply_text(url: str, kind: str, legal: str = "", cut: list[str] | None = Non
     return ((legal + "\n") if legal else "") + more + "👉 " + lead + "\n" + url
 
 
-def assemble(kind: str, hook, hook_txt: str, tag: str, threads: list[str], reply: str, images: list[str], level: str = "") -> dict:
-    main = f"{hook_txt}\n#{tag}"
-    d = dict(hook_type=hook[2], emotion=hook[3], main_post=main, main_post_length=clen(hook_txt),
+def assemble(kind: str, hook, hook_txt: str, tag: str, threads: list[str], reply: str, images: list[str], level: str = "",
+             body: str = "") -> dict:
+    main = f"{hook_txt}\n\n{body}\n#{tag}" if body else f"{hook_txt}\n#{tag}"
+    d = dict(kind=kind, hook_type=hook[2], emotion=hook[3], main_post=main, main_post_length=clen(split_tag(main)[0]),
              thread_posts=threads, reply_post=reply, image_count=len(images),
              image_ideas=[idea_of(x) for x in images], tag=tag, template=hook[0], level=level)
     d["checklist_passed"] = not lint(d)[0]
@@ -681,22 +722,32 @@ def build(kind: str, text: str, reply: str = "", images: list[str] | None = None
     ttl = p1["title"] if title is None else title
     f = facts(kind, text, reply, extra)
     tag = pick_tag(kind, (text + "\n" + reply) if tag_text is None else tag_text, f)
-    threads, cut = fit(secs, ttl, item_max)
+    # 11-02 Andy「都濃縮到第一頁」：重點數據全部進主文（≤500），串文 0 則；標題「｜」後面的小問句不放（主文只有鉤子能問問題）
+    ttl_main = re.split(r"[｜|]", ttl or "", maxsplit=1)[0].strip()
+    threads: list[str] = []
+    budget0 = MAIN_BUDGET - 92 - tlen(tag) - 3          # 鉤子最長約 80 字＋換行
+    (body,), cut = fit(secs, ttl_main, item_max, budget=budget0)
     rp = reply_text(url, kind, legal, cut)
     imgs = list(images or [])
-    if kind != "article":
+    if kind == "article":
+        imgs = imgs[:1]                                   # 主題文章只留實景封面 1 張
+    else:
         imgs = pick_images(kind, imgs)
 
     cat = f.get("cat", "") if kind == "article" else ""
-    content = set(content_issues(threads, cat))      # 串文本身的問題（同詞重複、照抄前段…）換鉤子也修不好，不拿來淘汰鉤子
+    content = set(content_issues([body] if body else [], cat))   # 內容本身的問題換鉤子也修不好，不拿來淘汰鉤子
 
     def check(h, txt):
-        d0 = assemble(kind, h, txt, tag, threads, rp, imgs)
+        d0 = assemble(kind, h, txt, tag, threads, rp, imgs, body=body)
         d0["category"] = cat
-        return not [e for e in lint(d0)[0] if e not in content]
+        return not [e for e in lint(d0)[0] if e not in content and "超過 Threads 上限" not in e]
 
     hook, txt, level = choose_hook(kind, f, state, today, tag, check)
-    d = assemble(kind, hook, txt, tag, threads, rp, imgs, level)
+    exact = MAIN_BUDGET - tlen(f"{txt}\n\n\n#{tag}")      # 鉤子定了 → 用實際剩下的字數重排一次，用滿 500
+    if exact != budget0:
+        (body,), cut = fit(secs, ttl_main, item_max, budget=max(60, exact))
+        rp = reply_text(url, kind, legal, cut)
+    d = assemble(kind, hook, txt, tag, threads, rp, imgs, level, body=body)
     if cat:
         d["category"] = cat
         d["checklist_passed"] = not lint(d)[0]
