@@ -3,12 +3,12 @@
     "tape.collect": {
       "ok": false,
       "rows": 0,
-      "seconds": 0.6
+      "seconds": 0.5
     },
     "inst_official": {
-      "ok": true,
-      "rows": 881,
-      "date": "2026-11-02",
+      "ok": false,
+      "rows": 0,
+      "date": null,
       "diag": [
         {
           "url": "https://openapi.twse.com.tw/v1/swagger.json",
@@ -135,16 +135,62 @@
           "summary": "上櫃股票外資及陸資買賣超彙總表"
         },
         {
-          "url": "https://www.tpex.org.tw/openapi/v1/tpex_3insti_daily_trading",
+          "url": "https://www.tpex.org.tw/openapi/v1/tpex_3insti_trading",
           "http": 200,
-          "head": "[ {\"Date\":\"1151102\",\"SecuritiesCompanyCode\":\"00411A\",\"CompanyName\":\"主動統一前沿科技\",\"Foreign Investors include Mainland Area Investors (Foreign Dealers excluded)-Total Buy\":\"188000\",\" Foreign Investors incl"
+          "head": "[ {\"Date\":\"1151102\",\"Rank\":\"1\",\"SecuritiesCompanyCode\":\"1815\",\"CompanyName\":\"富喬\",\"Buy\":\"2617\",\"Sell\":\"0\",\"NetBuy\":\"2617\"}, {\"Date\":\"1151102\",\"Rank\":\"2\",\"SecuritiesCompanyCode\":\"3105\",\"CompanyName\":\"穩懋"
+        },
+        {
+          "url": "https://www.tpex.org.tw/openapi/v1/tpex_3insti_trading",
+          "cols": [
+            "Date",
+            "Rank",
+            "SecuritiesCompanyCode",
+            "CompanyName",
+            "Buy",
+            "Sell",
+            "NetBuy"
+          ],
+          "n": 38
+        },
+        {
+          "url": "https://www.tpex.org.tw/openapi/tpex_3insti_qfii",
+          "http": 200,
+          "head": "<!DOCTYPE html><html lang=\"zh-Hant-tw\"><head><title>404 - è­å¸æ«æª¯è²·è³£ä¸­å¿</title><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, maximum-scale=1, u"
+        },
+        {
+          "url": "https://www.tpex.org.tw/openapi/tpex_3insti_qfii_industry",
+          "http": 200,
+          "head": "<!DOCTYPE html><html lang=\"zh-Hant-tw\"><head><title>404 - è­å¸æ«æª¯è²·è³£ä¸­å¿</title><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, maximum-scale=1, u"
+        },
+        {
+          "url": "https://www.tpex.org.tw/openapi/tpex_3insti_daily_trading",
+          "http": 200,
+          "head": "<!DOCTYPE html><html lang=\"zh-Hant-tw\"><head><title>404 - è­å¸æ«æª¯è²·è³£ä¸­å¿</title><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, maximum-scale=1, u"
+        },
+        {
+          "url": "https://www.tpex.org.tw/openapi/tpex_3insti_dealer_trading",
+          "http": 200,
+          "head": "<!DOCTYPE html><html lang=\"zh-Hant-tw\"><head><title>404 - è­å¸æ«æª¯è²·è³£ä¸­å¿</title><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, maximum-scale=1, u"
+        },
+        {
+          "url": "https://www.tpex.org.tw/openapi/tpex_3insti_summary",
+          "http": 200,
+          "head": "<!DOCTYPE html><html lang=\"zh-Hant-tw\"><head><title>404 - è­å¸æ«æª¯è²·è³£ä¸­å¿</title><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, maximum-scale=1, u"
+        },
+        {
+          "url": "https://www.tpex.org.tw/openapi/tpex_3insti_trading",
+          "http": 200,
+          "head": "<!DOCTYPE html><html lang=\"zh-Hant-tw\"><head><title>404 - è­å¸æ«æª¯è²·è³£ä¸­å¿</title><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, maximum-scale=1, u"
+        },
+        {
+          "url": "https://www.tpex.org.tw/openapi/tpex_3insti_qfii_trading",
+          "http": 200,
+          "head": "<!DOCTYPE html><html lang=\"zh-Hant-tw\"><head><title>404 - è­å¸æ«æª¯è²·è³£ä¸­å¿</title><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, maximum-scale=1, u"
         },
         {
           "market": "上櫃",
-          "rows": 881,
-          "parts": [
-            881
-          ]
+          "rows": 0,
+          "parts": []
         }
       ]
     },
@@ -170,21 +216,21 @@
       "rows": 15
     },
     "finmind.institutional_bulk": {
-      "ok": true,
-      "rows": 881,
-      "seconds": 0.3
-    },
-    "inst_daily": {
-      "stored": 53
+      "ok": false,
+      "rows": 0,
+      "seconds": 0.5
     },
     "institutional_codes": {
-      "requested": 459,
-      "returned": 53
+      "requested": 406,
+      "returned": 158
     },
     "finmind.institutional": {
       "ok": true,
-      "rows": 53,
-      "seconds": 111.8
+      "rows": 158,
+      "seconds": 36.3
+    },
+    "inst_daily": {
+      "stored": 158
     },
     "inst_flags": {
       "rebuild": true,
@@ -204,7 +250,7 @@
       "inst_daily": {
         "label": "個股三大法人",
         "latest": "2026-11-02",
-        "rows": 934,
+        "rows": 1092,
         "median": 2199.0,
         "status": "pending",
         "reason": "thin"
@@ -246,10 +292,10 @@
     "warn_labels": []
   },
   "warn": [],
-  "started_at": "2026-11-02T08:20:19.238583+00:00",
-  "finished_at": "2026-11-02T08:22:28.976752+00:00",
-  "duration_seconds": 129.7,
+  "started_at": "2026-11-02T08:48:25.502211+00:00",
+  "finished_at": "2026-11-02T08:49:35.762092+00:00",
+  "duration_seconds": 70.3,
   "trade_date": "2026-11-02",
   "complete": true,
-  "finmind_budget_left": 43
+  "finmind_budget_left": 0
 }
