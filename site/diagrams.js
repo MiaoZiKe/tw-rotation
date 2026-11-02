@@ -2088,6 +2088,120 @@
       return `<button type="button" class="mnum${sel === it.no ? ' on' : ''}" data-i="${p.i}" data-no="${esc(it.no)}" style="left:${p.x.toFixed(1)}px;top:${p.y.toFixed(1)}px;--c:${esc(it.color)}${p.back ? ';opacity:.55' : ''}" aria-label="編號 ${esc(it.no)}：${esc(it.title)}">${esc(it.no)}</button>`; }).join('');
   }
 
+  /* ============================================================================
+     ★ 2026-11-02 手機（html.m4）剖析圖「編號上下兩排＋引線」（Andy：「因為空間有限 所以你需將 2D 3D 圖片放大，
+     而他們的編號需要改到一條線引導到上下兩邊 這樣才有足夠空間看圖」）
+     以前編號排在圖左右兩側的窄欄（2D 還替它在畫布左右各留 24px），圖被擠到 ~300px。現在：
+       · 圖佔滿卡片寬；編號泡泡排在圖「上方」與「下方」的橫排（圖的上半部零件 → 上排，下半部 → 下排；排序依 x，引線不交叉）
+       · 每個零件一條引線：零件上的圓點 → 走到圖的上／下邊緣（跟泡泡同一個 x）→ 垂直到泡泡（一個轉折）
+       · 一排放不下（≥11 顆）就疊成兩排，外排的泡泡錯開在內排兩顆之間，垂直線從縫裡穿過
+       · 泡泡 30px、命中範圍 36px（::after 外擴）；左右不再放編號
+     這幾支只在 html.m4 用；桌機與 m4 之前的 body.m3on 舊版面（sideCols）一行沒動。
+     ============================================================================ */
+  const RG = 34, RBR = 15;                                   // 排距、泡泡半徑
+  const rowCap = (W) => Math.max(3, Math.floor((W - 24) / RG));
+  const rowGap = (R) => (R <= 1 ? RG : 22);                  // 疊兩排時，相鄰（不同排）泡泡的 x 距；同排＝R×gap ≥ 44
+  /* n 顆泡泡在寬 W 的一側要幾排：至少 ceil(n/cap)，而且 (n−1)×gap 要塞得進可用寬度 */
+  function rowsFor(n, W) {
+    if (!n) return 0;
+    const span = W - 2 * (RBR + 4);
+    for (let R = Math.max(1, Math.ceil(n / rowCap(W))); R < 8; R++) if ((n - 1) * rowGap(R) <= span) return R;
+    return 8;
+  }
+  /* 把 P（每顆有 x0,y0 錨點與 rel＝錨點在圖上的相對高度 0..1）分到上／下兩排。
+     fixedRows 有值（3D：排數要固定，不然轉動時圖會上下跳）→ 每側最多 fixedRows 排；否則取「總排數最少」。
+     同樣可行時取最接近「上半部上排、下半部下排」的切法。回傳 { top, bot, Rt, Rb }。*/
+  function splitRows(P, W, fixedRows) {
+    const by = P.slice().sort((a, b) => a.rel - b.rel), n = by.length;
+    const nat = by.filter(q => q.rel < 0.5).length;
+    let best = null;
+    for (let k = 0; k <= n; k++) {
+      const rt = rowsFor(k, W), rb = rowsFor(n - k, W);
+      if (fixedRows && (rt > fixedRows || rb > fixedRows)) continue;
+      const cost = rt + rb, d = Math.abs(k - nat);
+      if (!best || cost < best.cost || (cost === best.cost && d < best.d)) best = { k, cost, d, rt, rb };
+    }
+    if (!best) best = { k: nat, rt: rowsFor(nat, W), rb: rowsFor(n - nat, W) };
+    return { top: by.slice(0, best.k), bot: by.slice(best.k), Rt: best.rt, Rb: best.rb };
+  }
+  /* 一側的泡泡：依 x0 排序、一維推開（間距 ≥ rowGap）、夾在 [lo,hi]；第 k 顆放第 k % R 排（0＝貼著圖那一排）*/
+  function placeSide(arr, W, R, side) {
+    const n = arr.length; if (!n) return;
+    const lo = RBR + 4, hi = W - RBR - 4, gap = rowGap(R);
+    const s = arr.slice().sort((a, b) => a.x0 - b.x0);
+    const xs = s.map(q => Math.max(lo, Math.min(hi, q.x0)));
+    for (let it = 0; it < 3; it++) {
+      for (let i = 1; i < n; i++) xs[i] = Math.max(xs[i], xs[i - 1] + gap);
+      xs[n - 1] = Math.min(xs[n - 1], hi);
+      for (let i = n - 2; i >= 0; i--) xs[i] = Math.min(xs[i], xs[i + 1] - gap);
+      xs[0] = Math.max(xs[0], lo);
+    }
+    s.forEach((q, k) => { q.sx = xs[k]; q.row = R > 1 ? k % R : 0; q.side = side; });
+  }
+  /* 算出泡泡中心：topEdge／botEdge＝圖的上／下邊緣（跟泡泡層同一個座標系）*/
+  function putRows(P, topEdge, botEdge) {
+    P.forEach((q) => { q.x = q.sx; q.y = q.side === 'top' ? topEdge - 20 - q.row * RG : botEdge + 20 + q.row * RG; q.ey = q.side === 'top' ? topEdge : botEdge; });
+  }
+  const rowPad = (R) => (R ? R * RG + 4 : 0);
+  /* 引線：零件圓點 → (泡泡 x, 圖邊緣) → 泡泡。lead 為假（零件被藏起來／在畫布外）不畫。*/
+  function rowLeaders(P) {
+    return P.filter(p => p.lead !== false && p.ey != null).map(p => {
+      const ty = p.y;                                            // 線一直畫到泡泡中心（泡泡在線上面，看起來接在泡泡邊上）
+      return `<path data-part="${esc(p.part || '')}" data-no="${esc(p.no || '')}" d="M${p.x0.toFixed(1)},${p.y0.toFixed(1)}L${p.x.toFixed(1)},${p.ey.toFixed(1)}L${p.x.toFixed(1)},${ty.toFixed(1)}" stroke="${esc(p.c)}" stroke-width="1.2" fill="none" opacity=".85"/>`
+        + `<circle cx="${p.x0.toFixed(1)}" cy="${p.y0.toFixed(1)}" r="2.8" fill="${esc(p.c)}"/>`;
+    }).join('');
+  }
+  const minGap = (P) => { let m = 1e9; for (let i = 0; i < P.length; i++) for (let j = i + 1; j < P.length; j++) m = Math.min(m, Math.hypot(P[i].x - P[j].x, P[i].y - P[j].y)); return m; };
+
+  /* ============================================================================
+     ★ 2026-11-02 手機剖析圖「點圖放大」（Andy：「無法看圖片…你需將 2D 3D 圖片放大」「圖片點了能全螢幕看大圖」）
+     全螢幕看圖：2D 主圖（右上角 ⤢ 鈕）與「延伸閱讀」抽屜裡的圖（點圖本身）都開這一層。
+     內容是把 SVG 複製一份放進可上下左右拖的框（手指原生捲動），上方 ✕ 關閉、－／＋ 改倍率（100／150／200／300%）、點背景（圖外的暗處）也關；
+     倍率只改圖寬，字跟著圖放大，所以小字放到夠大就讀得到。只在 html.m4＋≤640 用，桌機不會建這層。
+     ============================================================================ */
+  let viewZoom = 1;
+  function closeView() { const o = document.getElementById('mDgView'); if (o) o.remove(); document.documentElement.classList.remove('mdgview-on'); }
+  function openView(svg, title) {
+    if (!svg || !isM() || !isM4()) return null;
+    closeView();
+    const clone = svg.cloneNode(true);
+    clone.removeAttribute('height'); clone.removeAttribute('style');
+    clone.querySelectorAll('.anc').forEach(a => a.remove());
+    clone.id = ''; clone.querySelectorAll('[id]').forEach(e => e.removeAttribute('id'));   // 重複 id 會讓漸層／濾鏡指到原圖
+    const o = document.createElement('div');
+    o.id = 'mDgView'; o.setAttribute('role', 'dialog'); o.setAttribute('aria-label', (title || '剖析圖') + ' 大圖');
+    o.innerHTML = `<div class="mdv-bar"><b>${esc(title || '剖析圖')}</b><span class="mdv-z"><button type="button" data-z="-1" aria-label="縮小">－</button><i>100%</i><button type="button" data-z="1" aria-label="放大">＋</button></span><button type="button" class="mdv-x" aria-label="關閉大圖">✕</button></div><div class="mdv-body"><div class="mdv-fig"></div></div>`;
+    const fig = o.querySelector('.mdv-fig');
+    try { const cs = getComputedStyle(svg); for (let i = 0; i < cs.length; i++) { const nm = cs[i]; if (nm.startsWith('--dg')) fig.style.setProperty(nm, cs.getPropertyValue(nm)); } } catch (e) { /* 忽略 */ }
+    fig.appendChild(clone);
+    document.body.appendChild(o);
+    document.documentElement.classList.add('mdgview-on');
+    const Z = [1, 1.5, 2, 3];
+    let zi = Math.max(0, Z.indexOf(viewZoom));
+    const apply = () => { viewZoom = Z[zi]; fig.style.width = (viewZoom * 100) + '%'; o.querySelector('.mdv-z i').textContent = Math.round(viewZoom * 100) + '%'; o.dataset.zoom = viewZoom; };
+    apply();
+    o.addEventListener('click', (e) => {
+      const z = e.target.closest('[data-z]');
+      if (z) { zi = Math.max(0, Math.min(Z.length - 1, zi + (+z.dataset.z))); apply(); return; }
+      if (e.target.closest('.mdv-x')) { closeView(); return; }
+      if (!e.target.closest('svg')) closeView();                  // 點圖外的暗處＝關
+    });
+    return o;
+  }
+  /* 2D 主圖的「放大」鈕：住在剖析圖設定列（#dgTools：2D｜3D、編號、圖說 同一排），不蓋在圖上（圖上下是編號排、左右是圖）。
+     掛在 barOf(host)（.mdgbar，m4 時已併進 #dgTools）；已有就不重複建。*/
+  function ensureViewBtn(host) {
+    if (!isM4()) return;
+    const bar = barOf(host); if (!bar) return;
+    let b = bar.querySelector('.mdvbtn');
+    if (!b) {
+      b = document.createElement('button'); b.type = 'button'; b.className = 'mdvbtn'; b.setAttribute('aria-label', '全螢幕看大圖'); b.textContent = '⤢ 放大';
+      bar.appendChild(b);
+    }
+    b.onclick = (e) => { e.stopPropagation(); const h = host.isConnected ? host : document.getElementById('prodDiagram'); const sv = h && (h.querySelector('.dgcanvas svg') || h.querySelector('svg.dg')); const t = document.querySelector('#dgTitle'); openView(sv, t && t.textContent.trim().slice(0, 24)); };
+  }
+  window.DG.openView = openView; window.DG.closeView = closeView;
+
   /* ---------------- 2D ---------------- */
   function items2d(host) {
     return $$('.dgcards .dgc', host).filter(c => c.querySelector('.no') && c.dataset.anc).map(c => ({
@@ -2236,6 +2350,7 @@
     // 圖的配色變數掛在外層容器上（.dgwrap／host），抽屜在 body 底下吃不到 → 把 host 量到的 --dg-* 抄到抽屜的框上
     try { const cs = getComputedStyle(svg); for (let i = 0; i < cs.length; i++) { const nm = cs[i]; if (nm.startsWith('--dg')) box.style.setProperty(nm, cs.getPropertyValue(nm)); } } catch (e) { /* 忽略 */ }
     box.appendChild(c);
+    if (isM4() && !box._mdv) { box._mdv = 1; box.classList.add('mdvtap'); box.addEventListener('click', (e) => { if (e.target.closest('a,button')) return; const sv = box.querySelector('svg'); if (sv) openView(sv, (box.closest('.msheet') || document).querySelector('.mshhead b') ? (box.closest('.msheet') || document).querySelector('.mshhead b').textContent : '延伸閱讀'); }); }
     try { const b = foldBox(c) || c.getBBox(); if (b && b.width > 0 && b.height > 0) c.setAttribute('viewBox', `${(b.x - 8).toFixed(1)} ${(b.y - 8).toFixed(1)} ${(b.width + 16).toFixed(1)} ${(b.height + 16).toFixed(1)}`); } catch (e) { /* 量不到就用原本的 viewBox */ }
     foldFit(box, c);
     $$('.mshnav button', sh).forEach(b => b.onclick = (e) => { e.stopPropagation(); foldSheet(host, (k + (+b.dataset.d) + n) % n); });
@@ -2308,8 +2423,54 @@
     box.appendChild(tx);
   }
   window.DG.mobileFolds = mobileFolds;
+  /* 手機 v2（html.m4）的 2D 編號：圖滿寬、上下兩排。圖框上下加 padding 當排的位置（--mnTop／--mnBot，mobile 4 css 20261102），
+     所以 SVG 本身的寬度／位置不受編號影響。先用目前版面量錨點的相對高度決定每側幾排 → 設 padding → 重新量一次再放。*/
+  function layout2dRows(host) {
+    const layer = cur.layer;
+    const svgEl = host.querySelector('.dgcanvas svg') || host.querySelector('svg.dg');
+    if (!svgEl) return;
+    host.classList.add('mlead', 'mrows'); layer.classList.add('mrow'); layer.classList.remove('msm');
+    const measure = () => {
+      const base = host.getBoundingClientRect(), sr = svgEl.getBoundingClientRect();
+      const cl = host.clientLeft || 0, ct = host.clientTop || 0;
+      const P = cur.items.map((it, i) => {
+        const g = host.querySelector(`g.anc[data-for="${CSS.escape(it.anc)}"]`);
+        const a = g && (g.querySelector('.anchor') || g);
+        if (!a) return null;
+        const r = a.getBoundingClientRect();
+        if (!r.width && !r.height) return null;
+        const x = r.left + r.width / 2 - base.left - cl, y = r.top + r.height / 2 - base.top - ct;
+        return { i, x0: x, y0: y, c: it.color, part: it.part, no: it.no, rel: (r.top + r.height / 2 - sr.top) / Math.max(1, sr.height) };
+      }).filter(Boolean);
+      return { P, sr, top: sr.top - base.top - ct, bot: sr.bottom - base.top - ct };
+    };
+    let m = measure();
+    /* 圖還沒排好（冷快取／CPU 忙：SVG 寬 0 或錨點還沒量到）→ 不留空白：每 0.7 秒再試，最多 14 次（約 10 秒）*/
+    if (!m.sr.width || !m.P.length) { host._mretry = (host._mretry || 0) + 1; if (host._mretry <= 14) setTimeout(() => layout2d(host), 700); return; }
+    host._mretry = 0;
+    const W = host.clientWidth;
+    const sp = splitRows(m.P, W);
+    const pt = rowPad(sp.Rt), pb = rowPad(sp.Rb), key = pt + '|' + pb;
+    if (host.dataset.mnpad !== key) {
+      host.dataset.mnpad = key; host.style.setProperty('--mnTop', pt + 'px'); host.style.setProperty('--mnBot', pb + 'px');
+      m = measure();
+    }
+    const P = m.P;
+    const sp2 = splitRows(P, W);
+    placeSide(sp2.top, W, sp2.Rt, 'top'); placeSide(sp2.bot, W, sp2.Rb, 'bot');
+    putRows(P, m.top, m.bot);
+    const H = host.clientHeight;
+    layer.style.width = W + 'px'; layer.style.height = H + 'px';
+    layer.dataset.texthit = 0; layer.dataset.rad = RBR;
+    layer.innerHTML = `<svg width="${W}" height="${H}" style="position:absolute;left:0;top:0;overflow:visible">${rowLeaders(P)}</svg>` + numBtns(P, cur.items, cur.sel);
+    P.forEach(q => { const b = layer.querySelector(`.mnum[data-i="${q.i}"]`); if (b) b.dataset.side = q.side; });
+    layer.dataset.overlap = minGap(P) < 30; layer.dataset.n = P.length; layer.dataset.rows = sp2.Rt + '/' + sp2.Rb;
+    const cb = barOf(host), cnt = cb && cb.querySelector('.mdgcnt');
+    if (cnt) cnt.textContent = `${P.length} 個編號`;
+  }
   function layout2d(host) {
     if (!cur || cur.host !== host || !host.isConnected) return;
+    if (isM4()) return layout2dRows(host);
     const layer = cur.layer;
     /* 2026-10-08（Andy：「編號…不要直接標在物件上，需要拉一條虛線，將編號放旁邊」）：整張模式（不是「放大」）圖的左右各讓出一條窄邊，
        編號排在兩側、依零件高度由上往下排、虛線拉回零件（同 3D 的 sideCols）。放大模式（原寸、左右捲）照舊推擠＋躲字。 */
@@ -2446,6 +2607,7 @@
     paintZ();
     cur = { host, layer, items, scroller: host, sel: null };
     host._mctx = cur;
+    ensureViewBtn(host);
     layer.onclick = (e) => { const b = e.target.closest('.mnum'); if (b) { e.stopPropagation(); openNo(+b.dataset.i); } };
     requestAnimationFrame(() => requestAnimationFrame(() => layout2d(host)));
     setTimeout(() => layout2d(host), 400);
@@ -2510,6 +2672,71 @@
   const leaders3d = (P) => P.filter(p => p.lead && Math.hypot(p.x - p.x0, p.y - p.y0) > 8)
     .map(p => `<path data-part="${esc(p.part)}" data-no="${esc(p.no)}" d="M${p.x0.toFixed(1)},${p.y0.toFixed(1)}L${p.x.toFixed(1)},${p.y.toFixed(1)}" stroke="${p.c}" stroke-width="1.2" fill="none" opacity=".8"/>`
       + `<circle cx="${p.x0.toFixed(1)}" cy="${p.y0.toFixed(1)}" r="2.5" fill="${p.c}"/>`).join('');
+  /* 手機 v2（html.m4）的 3D 編號：上下兩排泡泡（在畫布「外面」，.dg3dbox 上下 padding 留位置，見 m4 css 20261102）＋引線。
+     · 排數固定（依顆數算一次）：轉動時不能讓圖上下跳。
+     · 泡泡位置「黏住」：自轉每幀零件都在動，若泡泡跟著重排，手指按下去的那一顆會滑走。只有 x 順序真的變了（引線會交叉）、
+       而且手指不在上面（1.5 秒內沒碰過）才重排，重排時泡泡用 .35 秒滑過去。引線每次都重畫，所以一直接在零件的投影點上。
+     · 泡泡按鈕只建一次、之後只改 left／top，不整層重寫 —— 手指按下去的那顆不會在 click 之前被換掉。 */
+  function tick3dRows(h3, view, ctx, layer) {
+    const box = h3.closest('.dg3dbox');
+    const base0 = h3.getBoundingClientRect(), W = base0.width, H = base0.height;
+    if (!W || !H) return;
+    const n = ctx.items.length, F = Math.max(1, rowsFor(Math.ceil(n / 2), W));
+    const T = rowPad(F), B = rowPad(F);
+    if (box && box.dataset.mnpad !== T + '|' + B) { box.dataset.mnpad = T + '|' + B; box.style.setProperty('--mnTop', T + 'px'); box.style.setProperty('--mnBot', B + 'px'); box.classList.add('mrows'); }
+    const base = h3.getBoundingClientRect();
+    const Q = ctx.items.map(it => view.pointOf(it.part));
+    const sig = [base.left, base.top, W, H, ctx.sel, T].concat(Q.map(q => (q ? q.x.toFixed(1) + ',' + q.y.toFixed(1) + (q.front ? 'f' : 'b') : '-'))).join('|');
+    if (sig === ctx._sig) return;
+    ctx._sig = sig;
+    const P = ctx.items.map((it, i) => { const q = Q[i]; if (!q) return null;
+      let x = q.x - base.left, y = q.y - base.top, lead = true;
+      const r = view.rectOf ? view.rectOf(it.part) : undefined;
+      if (r === null) lead = false;
+      else if (r) {
+        const L = Math.max(0, r.l - base.left), R = Math.min(W, r.r - base.left), Tt = Math.max(0, r.t - base.top), Bb = Math.min(H, r.b - base.top);
+        if (L > R || Tt > Bb) lead = false;
+        else if (x < L - 6 || x > R + 6 || y < Tt - 6 || y > Bb + 6) { x = (L + R) / 2; y = (Tt + Bb) / 2; }
+      }
+      if (x < 0 || x > W || y < 0 || y > H) lead = false;
+      y = Math.max(0, Math.min(H, y));
+      return { i, x0: x, y0: y + T, rel: y / H, c: it.color, back: !q.front || !lead, lead, part: it.part, no: it.no }; }).filter(Boolean);
+    /* 泡泡：第一次建好（所有零件都建，沒有投影的先藏起來）*/
+    if (!layer._btnsBuilt || layer._btnsBuilt !== n) {
+      layer._btnsBuilt = n;
+      layer.innerHTML = '<svg style="position:absolute;left:0;top:0;overflow:hidden"></svg>' + ctx.items.map((it, i) =>
+        `<button type="button" class="mnum" data-i="${i}" data-no="${esc(it.no)}" style="--c:${esc(it.color)}" aria-label="編號 ${esc(it.no)}：${esc(it.title)}">${esc(it.no)}</button>`).join('');
+      layer.addEventListener('pointerdown', () => { ctx._touch = performance.now(); }, true);
+    }
+    const sp = splitRows(P, W, F);
+    // 新的切法：每側依 x0 排序後的編號串；跟黏住的比
+    const order = (arr) => arr.slice().sort((a, b) => a.x0 - b.x0).map(q => q.no).join(',');
+    const ordKey = order(sp.top) + '|' + order(sp.bot);
+    const touched = performance.now() - (ctx._touch || 0) < 1500;
+    const missing = !ctx._asg || P.some(q => !ctx._asg[q.no]);       // 新出現（以前沒有投影）的零件沒有黏住的位置 → 一定要重排，不然會疊在別顆上
+    if (missing || (ctx._ordKey !== ordKey && !touched)) {
+      placeSide(sp.top, W, sp.Rt, 'top'); placeSide(sp.bot, W, sp.Rb, 'bot');
+      ctx._asg = {}; P.forEach(q => { ctx._asg[q.no] = { sx: q.sx, row: q.row, side: q.side }; });
+      ctx._ordKey = ordKey;
+    }
+    P.forEach(q => { const a = ctx._asg[q.no]; if (a) { q.sx = a.sx; q.row = a.row; q.side = a.side; } else { q.sx = Math.max(RBR + 4, Math.min(W - RBR - 4, q.x0)); q.row = 0; q.side = q.rel < 0.5 ? 'top' : 'bot'; } });
+    putRows(P, T, T + H);
+    const LH = H + T + B;
+    layer.style.cssText = `left:0;top:${-T}px;width:${W}px;height:${LH}px`;
+    const sv = layer.firstElementChild;
+    sv.setAttribute('width', W); sv.setAttribute('height', LH);
+    sv.innerHTML = rowLeaders(P);
+    const byI = {}; P.forEach(q => { byI[q.i] = q; });
+    $$('.mnum', layer).forEach(b => {
+      const q = byI[+b.dataset.i];
+      if (!q) { b.style.display = 'none'; return; }
+      b.style.display = ''; b.style.left = q.x.toFixed(1) + 'px'; b.style.top = q.y.toFixed(1) + 'px';
+      b.style.opacity = q.back ? '.55' : ''; b.dataset.side = q.side;
+      b.classList.toggle('on', ctx.sel === ctx.items[q.i].no);
+    });
+    const sd = (el, k, v) => { v = String(v); if (el.dataset[k] !== v) el.dataset[k] = v; };
+    sd(layer, 'overlap', minGap(P) < 30); sd(layer, 'n', P.length); sd(layer, 'rows', sp.Rt + '/' + sp.Rb); sd(h3, 'mn', n);
+  }
   function mobileNums3d(h3, view) {
     if (!h3) return;
     const old = h3.querySelector(':scope > .mnumlayer'); if (old) old.remove();
@@ -2526,6 +2753,7 @@
          轉回直的編號層停在舊位置或空著。改成：不在手機寬度時慢慢等（0.5 秒看一次），回來就整層重排。桌機從沒建過這層，不受影響。*/
       if (!isM()) { ctx._sig = null; setTimeout(tick, 500); return; }
       if (!ctx.items.length) { ctx.items = items3d(h3); if (!ctx.items.length && tries++ < 40) { setTimeout(tick, 150); return; } }
+      if (!h3.hidden && h3.offsetParent && isM4() && ctx.items.length) { tick3dRows(h3, view, ctx, layer); setTimeout(() => requestAnimationFrame(tick), 60); return; }
       if (!h3.hidden && h3.offsetParent) {
         const base = h3.getBoundingClientRect(), W = base.width, H = base.height;
         /* ★ 2026-10-09（Andy：「圖四可以看到他的線條指到未知地方」）：引線的零件端一律要落在「這個零件現在的螢幕投影」裡、而且在畫布內。

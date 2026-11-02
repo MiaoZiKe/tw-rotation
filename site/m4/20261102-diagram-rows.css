@@ -1,0 +1,41 @@
+/* site/m4/20261102-diagram-rows.css —— 2026-11-02 手機剖析圖：圖放大、編號改上下兩排＋一條引線（Andy：「因為空間有限 所以你需將 2D 3D 圖片放大，
+   而他們的編號需要改到一條線引導到上下兩邊 這樣才有足夠空間看圖」「編號不能點擊 無法看圖片」）
+   排版邏輯在 diagrams.js（layout2dRows／tick3dRows）；這裡只管：圖框上下留排位、泡泡大小與命中範圍、3D 框允許泡泡排在畫布外。
+   只在 ≤640＋html.m4。 */
+@media (max-width:640px){
+  /* 2D：圖框上下的 padding 就是泡泡排的位置（JS 算排數寫進 --mnTop／--mnBot）；左右不再替編號留 24px，圖滿寬 */
+  :root.m4 .mnum2d.mrows{padding-top:var(--mnTop,0px)!important;padding-bottom:var(--mnBot,0px)!important;padding-left:0!important;padding-right:0!important}
+  :root.m4 .mnum2d.mrows .dgcanvas{padding-left:0!important;padding-right:0!important;justify-self:stretch!important;width:100%!important}
+  :root.m4 .mnum2d.mrows .dggrid{padding-left:0!important;padding-right:0!important;padding-top:0!important;padding-bottom:0!important}
+  /* 3D：.dg3dbox 上下留排位；#prod3d 本身 overflow:hidden 的圓角框不動，編號層（住在 #prod3d 裡）用負的 top 伸到框外，所以要 visible */
+  :root.m4 .dg3dbox.mrows:has(>#prod3d:not([hidden]):not(.m4c3dmin)){padding-top:var(--mnTop,0px);padding-bottom:var(--mnBot,0px)}
+  :root.m4 #prod3d.mnum3d{overflow:visible!important}
+  :root.m4 #prod3d.mnum3d>canvas{border-radius:10px}
+  /* 泡泡：30px、字 12px；命中範圍外擴到 36px（上下排距 34、同排間距 ≥34，不會蓋到隔壁） */
+  :root.m4 .mnumlayer .mnum{width:30px;height:30px;margin:-15px 0 0 -15px;font-size:12px;border-width:2px;box-shadow:0 1px 5px rgba(0,0,0,.35)}
+  :root.m4 .mnumlayer .mnum::after{inset:-3px}
+  :root.m4 .mnumlayer.m3d .mnum{transition:left .35s ease,top .35s ease}
+  :root.m4 .mnumlayer svg path{stroke-dasharray:3 3}
+}
+
+/* 全螢幕看大圖（diagrams.js openView）：2D 主圖右上角 ⤢、延伸閱讀抽屜裡的圖點一下 */
+@media (max-width:640px){
+  :root.m4 #dgSec #dgTools .mdvbtn{height:40px;min-height:40px!important;min-width:40px;padding:0 10px!important;border-radius:9px;border:1px solid var(--t4-ctl-edge,var(--line-2));background:var(--t4-ctl,var(--panel-3));color:var(--ink);font-size:13px;display:inline-flex;align-items:center;justify-content:center;white-space:nowrap;flex:none}
+  :root.m4 #dgSec.dgfold #dgTools .mdvbtn{display:none!important}
+  :root.m4 .msheet .mdvtap{cursor:zoom-in}
+  :root.m4 #mDgView{position:fixed;inset:0;z-index:400;display:flex;flex-direction:column;background:color-mix(in srgb,var(--bg) 94%,transparent);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px)}
+  :root.m4 #mDgView .mdv-bar{flex:none;display:flex;align-items:center;gap:8px;padding:8px 10px;border-bottom:1px solid var(--line-2)}
+  :root.m4 #mDgView .mdv-bar b{flex:1;min-width:0;font-size:14px;color:var(--ink);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  :root.m4 #mDgView .mdv-z{display:inline-flex;align-items:center;gap:4px}
+  :root.m4 #mDgView .mdv-z i{font-style:normal;font-size:12px;color:var(--ink-2);min-width:40px;text-align:center}
+  :root.m4 #mDgView button{width:44px;height:44px;min-width:44px!important;min-height:44px!important;padding:0!important;border-radius:10px;border:1px solid var(--line-2);background:var(--panel-3,var(--panel));color:var(--ink);font-size:18px;line-height:1}
+  :root.m4 #mDgView .mdv-body{flex:1;min-height:0;overflow:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:12px 10px 24px}
+  :root.m4 #mDgView .mdv-fig{margin:0 auto;border-radius:8px;background:var(--dg-bg,var(--illus))}
+  :root.m4 #mDgView .mdv-fig svg{display:block;width:100%!important;height:auto!important;min-width:0!important;max-width:none!important}
+  :root.m4.mdgview-on{overflow:hidden}
+}
+
+@media (max-width:640px){
+  /* 3D 時不出「放大」（那是 2D 圖的全螢幕檢視）*/
+  :root.m4 #dgSec:has(#prod3d:not([hidden])) #dgTools .mdvbtn{display:none!important}
+}
