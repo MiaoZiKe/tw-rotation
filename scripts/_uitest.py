@@ -19877,14 +19877,17 @@ def t_overlap1006(b, base):
             const T = [...s.querySelectorAll('text')].filter(t => !t.closest('.anc') && t.textContent.trim()).map(t => t.getBoundingClientRect()).filter(r => r.width > 1);
             let hit = 0, out = 0, ov = 0;
             bs.forEach((r, i) => { T.forEach(t => { const x = Math.min(r.right, t.right) - Math.max(r.left, t.left), y = Math.min(r.bottom, t.bottom) - Math.max(r.top, t.top); if (x > 0 && y > 0 && x * y > 2) hit++; });
-              if (r.left < sr.left - 1 || r.right > sr.right + 1 || r.top < sr.top - 1 || r.bottom > sr.bottom + 1) out++;
-              bs.slice(i + 1).forEach(q => { if (Math.hypot(r.x - q.x, r.y - q.y) < 20) ov++; }); });
+              /* 2026-11-02：編號改排在圖的上下兩排 → 「出畫布」改成「壓在圖上（跟圖的範圍交疊）或超出圖框左右」*/
+              const hr = h.getBoundingClientRect();
+              if (r.left < hr.left - 1 || r.right > hr.right + 1 || (r.bottom > sr.top + 1 && r.top < sr.bottom - 1)) out++;
+              bs.slice(i + 1).forEach(q => { if (Math.hypot(r.x - q.x, r.y - q.y) < 30) ov++; }); });
             return { n: bs.length, w: [...new Set(bs.map(r => Math.round(r.width)))], hit, out, ov }; }""")
-        ok(f"[重疊1006] 手機 #{route} 整張模式編號鈕：18～22px、不互疊、不壓字、不出畫布", bool(r) and r["n"] > 0 and all(18 <= x <= 22 for x in r["w"]) and r["hit"] == 0 and r["out"] == 0 and r["ov"] == 0, r)
+        ok(f"[重疊1006] 手機 #{route} 整張模式編號鈕：30px（命中範圍 36）、不互疊、不壓字、全在圖的上下兩排", bool(r) and r["n"] > 0 and all(29 <= x <= 31 for x in r["w"]) and r["hit"] == 0 and r["out"] == 0 and r["ov"] == 0, r)
         # 真的按「放大」：鈕回到 28px（原寸畫布上 28px 不會比零件大）
-        m.evaluate("() => { const b = document.querySelector('.mdgbar .mdgzoom button[data-z=\"big\"]'); if (b) b.click(); }"); m.wait_for_timeout(900)
+        # 2026-11-02：m4 的「整張／放大」兩顆早在 10-09 拿掉（Andy：「放大功能拿掉，沒屁用」），編號鈕一律 30px；改驗「沒有放大鈕、鈕仍是 30px」
+        m.evaluate("() => { const b = document.querySelector('.mdgbar .mdgzoom button[data-z=\"big\"]'); if (b && b.getClientRects().length) b.click(); }"); m.wait_for_timeout(900)
         wb = m.evaluate("() => [...new Set([...document.querySelectorAll('#prodDiagram .mnum')].map(b => Math.round(b.getBoundingClientRect().width)))]")
-        ok(f"[重疊1006] 手機 #{route} 按「放大」後編號鈕回到 28px", wb == [28], wb)
+        ok(f"[重疊1006] 手機 #{route} 沒有可按的「放大」鈕、編號鈕維持 30px", wb == [30], wb)
         m.evaluate("() => { try { localStorage.removeItem('tw.m3.dgzoom') } catch (e) {} }")
         m.close()
 
@@ -28280,9 +28283,11 @@ def t_mobile_m4_1008(b, base, code):
         J("() => { const b = document.getElementById('dgNum'); if (b && b.textContent.includes('關')) b.click(); }"); m.wait_for_timeout(800)
         ld = J("""() => { const l = document.querySelector('#prod3d .mnumlayer'); if (!l || !l.getClientRects().length) return null; const W = l.getBoundingClientRect();
             const ns = [...l.querySelectorAll('.mnum')].map(b => b.getBoundingClientRect());
-            const side = ns.filter(r => r.left - W.left < 40 || W.right - r.right < 40).length;
+            /* 2026-11-02：改成上下兩排——「排在圖外」＝跟 3D 畫布（#prod3d）的範圍不交疊 */
+            const cv = document.querySelector('#prod3d').getBoundingClientRect();
+            const side = ns.filter(r => r.bottom <= cv.top + 1 || r.top >= cv.bottom - 1).length;
             return { n: ns.length, side, lines: l.querySelectorAll('svg path').length }; }""")
-        ok(f"【{T}】3D 編號改成引線標註：編號圈都排在左右兩側、每個圈有一條引線（{ld}）", ld and ld["n"] > 0 and ld["side"] == ld["n"] and ld["lines"] >= ld["n"] - 1, ld)
+        ok(f"【{T}】3D 編號改成引線標註：編號圈都排在圖的上下兩排、每個圈有一條引線（{ld}）", ld and ld["n"] > 0 and ld["side"] == ld["n"] and ld["lines"] >= ld["n"] - 1, ld)
         # 2026-10-09（合併 claude/m4-3dfix）：3D 時圖下方的延伸閱讀列整列藏起來（Andy：「3D 圖為何還會出現下方欄位」）→ 先切回 2D 再點
         J("() => { const b = document.querySelector('#dg3d button[data-dm=\"2d\"]'); if (b) b.click(); }"); m.wait_for_timeout(1500)
         rows = J("() => [...document.querySelectorAll('.mdgfolds button[data-fold]')].filter(b => b.getClientRects().length).map(b => b.dataset.fold)")
@@ -28338,8 +28343,8 @@ def t_mobile_m4_1008(b, base, code):
         J("() => { const b = document.querySelector('#dg3d button[data-dm=\"2d\"]'); if (b) b.click(); }"); m.wait_for_timeout(1500)
         l2 = J("""() => { const l = document.querySelector('#prodDiagram .mnumlayer'); const s = document.querySelector('#prodDiagram .dgcanvas svg') || document.querySelector('#prodDiagram svg.dg');
             if (!l || !s) return null; const S = s.getBoundingClientRect(); const ns = [...l.querySelectorAll('.mnum')].map(b => b.getBoundingClientRect());
-            return { n: ns.length, out: ns.filter(r => r.right <= S.left + 2 || r.left >= S.right - 2).length, lines: l.querySelectorAll('svg path').length, dash: getComputedStyle(l.querySelector('svg path') || l).strokeDasharray }; }""")
-        ok(f"【{T}】2D 編號排在圖的兩側（不壓在零件上）、每顆有虛線引線（{l2}）", l2 and l2["n"] > 0 and l2["out"] == l2["n"] and l2["lines"] >= l2["n"] - 1 and l2["dash"] not in ("none", ""), l2)
+            return { n: ns.length, out: ns.filter(r => r.bottom <= S.top + 2 || r.top >= S.bottom - 2).length,   /* 2026-11-02：上下兩排 */ lines: l.querySelectorAll('svg path').length, dash: getComputedStyle(l.querySelector('svg path') || l).strokeDasharray }; }""")
+        ok(f"【{T}】2D 編號排在圖的上下兩排（不壓在零件上）、每顆有虛線引線（{l2}）", l2 and l2["n"] > 0 and l2["out"] == l2["n"] and l2["lines"] >= l2["n"] - 1 and l2["dash"] not in ("none", ""), l2)
         J("() => { try { localStorage.removeItem('tw.dgOpen'); localStorage.removeItem('tw.dgnum'); localStorage.removeItem('tw.dg3d'); } catch (e) {} }")
         # ⑰ 產業地圖：只留甜甜圈（第一屏看得到）、橫條圖預設收起、點收合列才出現；切到半導體 → 甜甜圈資料換掉
         go("industry", 3500)
@@ -30872,11 +30877,13 @@ M43D_CENSUS = r"""() => {
   const base = h.getBoundingClientRect();
   const btn = [...lay.querySelectorAll('.mnum')].map(b => ({ no: b.dataset.no, x: parseFloat(b.style.left), y: parseFloat(b.style.top) }));
   const bad = []; let n = 0;
-  btn.forEach(q => { if (q.y < 0 || q.y > base.height || q.x < 0 || q.x > base.width) bad.push({ why: '編號圈跑出圖框', no: q.no, at: [Math.round(q.x), Math.round(q.y)] }); });
+  /* ★ 2026-11-02 編號改排在圖的上下兩排（編號層往上／下伸出畫布，top 是負的）：泡泡 y 在畫布外是設計；x 仍要在畫布寬內，引線的兩個座標系差一個 T */
+  const OFS = -(parseFloat(lay.style.top) || 0);
+  btn.forEach(q => { if (q.x < 0 || q.x > base.width || q.y < -1 || q.y > base.height + 2 * OFS + 1) bad.push({ why: '編號圈跑出圖框', no: q.no, at: [Math.round(q.x), Math.round(q.y)] }); });
   [...lay.querySelectorAll('path')].forEach(p => {
     n++;
-    const m = (p.getAttribute('d') || '').match(/M([-\d.]+),([-\d.]+)L([-\d.]+),([-\d.]+)/); if (!m) { bad.push({ why: '引線格式' }); return; }
-    const x0 = +m[1], y0 = +m[2], x1 = +m[3], y1 = +m[4], part = p.dataset.part, no = p.dataset.no;
+    const m = (p.getAttribute('d') || '').match(/M([-\d.]+),([-\d.]+)(?:L[-\d.]+,[-\d.]+)*?L([-\d.]+),([-\d.]+)$/); if (!m) { bad.push({ why: '引線格式' }); return; }
+    const x0 = +m[1], y0 = +m[2] - OFS, x1 = +m[3], y1 = +m[4], part = p.dataset.part, no = p.dataset.no;   // y0 換回畫布座標（泡泡 b.y 仍在編號層座標，跟 y1 比）
     const b = btn.find(q => q.no === no);
     if (!b || Math.abs(b.x - x1) > 2 || Math.abs(b.y - y1) > 2) { bad.push({ why: '引線末端不在編號圈上', no, d: p.getAttribute('d') }); return; }
     const r = v.rectOf(part);
@@ -31248,7 +31255,7 @@ M43DNUM_ST = r"""() => {
   const b = document.getElementById('dgNum'), cbe = h.querySelector(':scope > .m4c3d'), cr = cbe && cbe.getClientRects().length ? cbe.getBoundingClientRect() : null;
   const cbHit = cr ? nums.filter(q => Math.min(q.r, cr.right - base.left) - Math.max(q.l, cr.left - base.left) > 1 && Math.min(q.b, cr.bottom - base.top) - Math.max(q.t, cr.top - base.top) > 1).map(q => q.no) : [];
   return { n: nums.length, nums, cbHit, noLine: nums.filter(q => !paths.includes(q.no)).map(q => q.no), ov, list, W: Math.round(W),
-    mid: nums.filter(q => q.cx > W * 0.25 && q.cx < W * 0.75).map(q => q.no), minFs: nums.length ? Math.min(...nums.map(q => q.fs)) : 0,
+    mid: nums.filter(q => q.b > 0 && q.t < h.getBoundingClientRect().height).map(q => q.no)   /* 2026-11-02：改成「壓在圖框範圍內的」＝不在上下兩排 */, minFs: nums.length ? Math.min(...nums.map(q => q.fs)) : 0,
     pressed: b && b.getAttribute('aria-pressed'), k4: localStorage.getItem('tw.m4.dgnum'), kd: localStorage.getItem('tw.dgnum') };
 }"""
 M43DNUM_BAR = r"""() => {
@@ -31290,7 +31297,7 @@ def t_m4_3dnum_1010(b, base):
                 ok(f"【{T}】{tag} 舊鑰匙 tw.dgnum＝0 也照樣看得到編號（{s['n']} 顆）、「編號」鈕是選中（aria-pressed＝{s['pressed']}）", s["n"] > 0 and s["pressed"] == "true", s)
                 ok(f"【{T}】{tag} 3D 圖下方沒有零件卡清單、零件上沒有編號圓點（看得到的：{s['list']}）", s["list"] == 0, s["list"])
                 ok(f"【{T}】{tag} 每個編號都有一條引線（缺：{s['noLine']}）", not s["noLine"], s["noLine"])
-                ok(f"【{T}】{tag} 編號泡泡都在圖框左右 25% 內（框寬 {s['W']}，在中間的：{s['mid']}）", not s["mid"], s["mid"])
+                ok(f"【{T}】{tag} 編號泡泡都排在圖的上方或下方（框寬 {s['W']}，壓在圖上的：{s['mid']}）", not s["mid"], s["mid"])
                 ok(f"【{T}】{tag} 編號泡泡互不重疊（{s['ov']} 對）、不被右上角收合鈕蓋到（{s['cbHit']}）、字 ≥ 12px（{s['minFs']}）", s["ov"] == 0 and not s["cbHit"] and s["minFs"] >= 12, s)
                 if route != "#industry/ai_server":
                     continue
@@ -31321,8 +31328,9 @@ def t_m4_3dnum_1010(b, base):
                 # 轉動：引線跟著錨點走（錨點落在零件投影內、末端在泡泡上）
                 J("() => { const v = Rack3D.current, c = v.cam(); v.look([0, 0, 0], [c[2], c[1], -c[0]]); }")
                 wait_until(m, M43D_CENSUS.replace("return { nums: btn.length, lines: n, bad };", "return bad.length === 0 && n > 0;"), 8000, 400)
+                m.wait_for_timeout(700)   # 2026-11-02：重排時泡泡用 .35 秒滑到新位置，滑完再量（滑動中兩顆交錯是動畫不是重疊）
                 r = J(M43D_CENSUS); s3 = J(M43DNUM_ST)
-                ok(f"【{T}】{W} 轉 90° 之後引線兩端合格（{r.get('lines')} 條，不合 {len(r.get('bad', []))}）、泡泡不重疊（{s3['ov']}）、不被收合鈕蓋到（{s3['cbHit']}）、仍在左右 25%（{s3['mid']}）",
+                ok(f"【{T}】{W} 轉 90° 之後引線兩端合格（{r.get('lines')} 條，不合 {len(r.get('bad', []))}）、泡泡不重疊（{s3['ov']}）、不被收合鈕蓋到（{s3['cbHit']}）、仍在圖的上下兩排（壓在圖上的：{s3['mid']}）",
                    not r.get("err") and not r.get("bad") and r.get("lines", 0) > 0 and s3["ov"] == 0 and not s3["cbHit"] and not s3["mid"], [r, s3])
                 if SHOT and W == 390:
                     m.screenshot(path=os.path.join(SHOT, f"m43dnum_{W}_{theme}_rot.png"))
