@@ -37,7 +37,7 @@
     'tw.acct.tok', 'tw.acct.user', 'tw.acct.n', 'tw.sess', 'tw.perm',  // 登入、帳號、權限（tw.acct.n／tw.sess 在 sessionStorage）
     'tw.watch', 'tw.watchlists', 'tw.watchlists.u', 'tw.watchcur',     // 自選清單（含目前在第幾頁）
     'tw.draw.style',                                                   // 畫筆樣式（手繪物件本身見下面前綴）
-    'tw.consent', 'tw.tour',                                           // 同意條款、新手導覽看過
+    'tw.consent', 'tw.tour', 'tw.tour.defer',                          // 同意條款、新手導覽看過、導覽延後（深層連結進站，2026-11-02）
     'tw.live.proxy', 'tw.live.on', 'tw.sse',                           // 即時來源與開關
     'tw.m3.nightpts', 'tw.m3.futsym',                                  // 資料快取（夜盤報價點、近月合約代號）
     'tw.search.recent',                                                // 最近搜尋
