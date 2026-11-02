@@ -55,7 +55,7 @@ body{{width:{W}px;height:{H}px;font-family:{FONT};color:{C1['t1']};background:{C
 CSS2 = f"""
 *{{box-sizing:border-box;margin:0;padding:0}}
 body{{width:{W}px;height:{H}px;font-family:{FONT};color:{C2['ink']};background:{C2['paper']};
- background-image:repeating-linear-gradient(to bottom,transparent 0,transparent 71px,{C2['line']} 71px,{C2['line']} 72px);
+ background-image:radial-gradient({C2['line']} 2.2px,transparent 2.6px);background-size:36px 36px;
  position:relative;overflow:hidden;padding:56px 64px 48px;display:flex;flex-direction:column}}
 .m{{font-family:'JetBrains Mono','DejaVu Sans Mono',monospace;font-weight:700;font-variant-numeric:tabular-nums}}
 .hd{{display:flex;align-items:center;gap:16px;height:64px;flex:none}}
@@ -70,7 +70,7 @@ body{{width:{W}px;height:{H}px;font-family:{FONT};color:{C2['ink']};background:{
 .pen{{color:{C2['pen']}}}
 .note{{color:{C2['blue']};font-weight:700;transform:rotate(-2deg);transform-origin:left center;display:inline-block}}
 .chip{{display:inline-block;font-family:'JetBrains Mono',monospace;font-weight:800;font-size:32px;border:3px solid {C2['ink']};padding:2px 16px;border-radius:6px;background:{C2['card']}}}
-.tape{{position:absolute;width:200px;height:56px;background:rgba(217,66,15,.28);transform:rotate(-4deg)}}
+.tape{{position:absolute;z-index:0;width:170px;height:44px;background:rgba(217,66,15,.28);transform:rotate(-3deg)}}
 .hl{{background:linear-gradient(transparent 58%,{C2['hl']} 58%)}}
 .bibi{{object-fit:contain}}
 .grow{{flex:1;display:flex;flex-direction:column;justify-content:center;gap:28px}}
@@ -93,7 +93,7 @@ def ft2(left="科技圈薪水透明（暫名）"):
 
 
 def hd2(pg=""):
-    return (f'<div class="hd"><div class="logo">[ ]</div><div class="nm">科技圈薪水透明</div>'
+    return (f'<div class="hd"><div class="logo">[·]</div><div class="nm">科技圈薪水透明</div>'
             f'<div class="pg">{pg}</div></div>')
 
 
@@ -149,7 +149,7 @@ def imp_row(name, desc, val, up):
 SLIDES["ch1_A4_hotimpact"] = (CSS1, f"""
 {hd1("4 / 5")}
 <div style="display:flex;flex-direction:column;gap:20px;margin-top:28px">
-  <div class="kick">台股影響</div>
+  <div class="kick">熱點解讀・對台股的影響</div>
   <div class="h2">台股誰受影響？</div>
 </div>
 <div class="grow" style="gap:18px">
@@ -206,7 +206,7 @@ SLIDES["ch1_C_etftable"] = (CSS1, f"""
   {etf_row("ETF-C","主動式","季配","4.0%","11/25")}
   {etf_row("ETF-D","高股息型","季配","5.2%","12/02")}
 </div>
-<div style="font-size:36px;color:{C1['t2']};margin-top:28px;line-height:1.4">殖利率是<span class="y" style="font-weight:800">歷史</span>配息率，不代表未來。</div>
+<div style="font-size:36px;color:{C1['t2']};margin-top:28px;line-height:1.4">殖利率是歷史配息率，不代表未來。</div>
 {ft1("ETF")}""")
 
 # D 產業輪動
@@ -238,7 +238,7 @@ SLIDES["ch1_D_rotation"] = (CSS1, f"""
 # E 純文字串（不附圖）規格圖
 def seg(no, label, text):
     return f"""<div style="display:flex;gap:22px;align-items:stretch">
-      <div style="width:210px;flex:none;display:flex;flex-direction:column;gap:6px"><div class="n y" style="font-size:56px;line-height:1">{no}</div><div style="font-size:34px;font-weight:700;color:{C1['t2']}">{label}</div></div>
+      <div style="width:210px;flex:none;display:flex;flex-direction:column;gap:6px"><div class="n y" style="font-size:60px;line-height:1.1">{no}</div><div style="font-size:34px;font-weight:700;color:{C1['t2']};line-height:1.3">{label}</div></div>
       <div class="box" style="flex:1;padding:18px 26px;font-size:36px;line-height:1.5">{text}</div></div>"""
 SLIDES["ch1_E_textthread"] = (CSS1, f"""
 {hd1("")}
@@ -247,34 +247,36 @@ SLIDES["ch1_E_textthread"] = (CSS1, f"""
   <div class="h2" style="font-size:68px">一則文字，五個段落</div>
 </div>
 <div class="grow" style="gap:20px;justify-content:flex-start;margin-top:26px">
-  {seg("①","鉤子","某晶片大廠一天跌 17%，台股供應鏈怎麼辦？")}
-  {seg("②","結論","先講結論：影響集中在兩段，不是全面崩。")}
-  {seg("③","三點","・原因：財測低於預期<br>・受影響：記憶體、封測<br>・相對抗跌：AI 伺服器")}
-  {seg("④","提醒","以上是邏輯整理，不是買賣建議。")}
-  {seg("⑤","問句","你覺得這波是殺錯還是殺對？")}
+  {seg("1","鉤子","某晶片大廠一天跌 17%，台股供應鏈怎麼辦？")}
+  {seg("2","結論","先講結論：影響集中在兩段，不是全面崩。")}
+  {seg("3","三點","・原因：財測低於預期<br>・受影響：記憶體、封測<br>・相對抗跌：AI 伺服器")}
+  {seg("4","提醒","以上是邏輯整理，不是買賣建議。")}
+  {seg("5","問句","你覺得這波是殺錯還是殺對？")}
 </div>
 {ft1("純文字串")}""")
 
 
 # =============== 頻道二 ===============
+def tight(t):
+    return t
 def ph(t="〔待填〕", fs=44):
-    return f'<span class="ph" style="font-size:{fs}px">{t}</span>'
+    return f'<span class="ph" style="font-size:{fs}px;white-space:nowrap">{tight(t)}</span>'
 
 # F1 薪資行情封面
 SLIDES["ch2_F1_salarycover"] = (CSS2, f"""
 {hd2("1 / 3")}
-<div class="tape" style="left:420px;top:26px"></div>
+<div class="tape" data-b style="left:520px;top:52px"></div>
 <div style="display:flex;flex-direction:column;gap:14px;margin-top:70px;position:relative">
   <div class="chip" style="align-self:flex-start">公司行情 / 01</div>
-  <div style="font-size:150px;font-weight:900;line-height:1.1;margin-top:12px"><span class="ph" style="font-size:150px;padding:0 20px;border-width:5px">〔公司名〕</span></div>
+  <div style="font-size:150px;font-weight:900;line-height:1.1;margin-top:12px">{ph("〔公司名〕",150).replace('white-space:nowrap','white-space:nowrap;letter-spacing:-.06em;border-width:5px')}</div>
   <div style="font-size:150px;font-weight:900;line-height:1.1"><span class="hl">薪資行情</span></div>
   <div style="font-size:44px;font-weight:700;color:{C2['ink2']};margin-top:14px">碩畢・職類 {ph("〔待填〕",40)}</div>
 </div>
 <div class="grow" style="justify-content:flex-end;gap:20px;padding-bottom:20px">
-  <div class="note" style="font-size:44px;align-self:flex-start">朋友提供，有誤請指正 ↘</div>
-  <div class="card" style="padding:26px 36px;display:flex;align-items:center;gap:24px">
-    <div style="font-size:44px;font-weight:800">碩畢月薪</div>{ph("〔待填〕K",88)}
-    <div style="margin-left:auto;font-size:36px;font-weight:700;color:{C2['ink3']}">滑動看欄位 →</div></div>
+  <div class="note" style="font-size:44px;align-self:flex-start;margin-bottom:10px">朋友提供，有誤請指正 ↓</div>
+  <div class="card box" style="padding:24px 36px;display:flex;align-items:center;gap:28px;align-self:flex-start">
+    <div style="font-size:40px;font-weight:800;white-space:nowrap">碩畢月薪</div>{ph("〔待填〕K",72)}</div>
+  <div style="font-size:38px;font-weight:700;color:{C2['ink3']};text-align:right;margin-top:6px">滑動看七個欄位　→</div>
 </div>
 {ft2()}""")
 
@@ -302,7 +304,7 @@ SLIDES["ch2_F3_cta"] = (CSS2, f"""
   <div class="card box" style="padding:26px 34px;width:100%;display:flex;flex-direction:column;gap:12px">
      <div style="font-size:36px;font-weight:700;color:{C2['ink3']}">留言格式</div>
      <div class="m" style="font-size:44px">職類 / 年資 / 月薪區間</div></div>
-  <div class="note" style="font-size:40px">只填你願意公開的範圍就好</div>
+  <div class="note" style="font-size:40px;margin-top:16px">只填你願意公開的範圍就好</div>
 </div>
 {ft2()}""")
 
@@ -310,7 +312,7 @@ SLIDES["ch2_F3_cta"] = (CSS2, f"""
 def seg2(no, label, text):
     return f"""<div style="display:flex;gap:20px;align-items:stretch">
       <div style="width:200px;flex:none;display:flex;flex-direction:column;gap:4px"><div class="m pen" style="font-size:52px;line-height:1">{no}</div><div style="font-size:32px;font-weight:700;color:{C2['blue']}">{label}</div></div>
-      <div class="card box" style="flex:1;padding:14px 24px;font-size:34px;line-height:1.5;box-shadow:5px 5px 0 {C2['ink']}">{text}</div></div>"""
+      <div class="card box" style="flex:1;padding:14px 24px;font-size:34px;line-height:1.5;box-shadow:5px 5px 0 {C2['ink']};display:flex;flex-direction:column;justify-content:center">{text}</div></div>"""
 SLIDES["ch2_G_textnote"] = (CSS2, f"""
 {hd2("")}
 <div style="display:flex;flex-direction:column;gap:12px;margin-top:20px">
@@ -331,10 +333,10 @@ SLIDES["ch2_G_textnote"] = (CSS2, f"""
 # H1 面試題卡
 SLIDES["ch2_H1_interviewQ"] = (CSS2, f"""
 {hd2("1 / 3")}
-<div class="tape" style="right:90px;top:30px;transform:rotate(5deg)"></div>
+<div class="tape" data-b style="left:560px;top:52px;transform:rotate(3deg)"></div>
 <div class="grow" style="align-items:flex-start;gap:22px;position:relative">
   <div class="chip">面試題 #〔編號〕・製程整合</div>
-  <div class="m pen" style="font-size:300px;line-height:.9;margin-left:-10px">Q.</div>
+  <div class="m pen" style="font-size:240px;line-height:1.15;margin-left:-6px">Q.</div>
   <div style="font-size:84px;font-weight:900;line-height:1.3">晶片面積放大 2 倍，<br><span class="hl">良率會剛好剩一半嗎？</span></div>
   <div class="note" style="font-size:46px;margin-top:10px">先想 10 秒，再滑動看答案 →</div>
 </div>
@@ -356,11 +358,13 @@ SLIDES["ch2_H2_interviewA"] = (CSS2, f"""
   {step("01","先講結論","比一半更少，良率會被「平方」")}
   {step("02","缺陷是隨機落點","面積越大，被打到的機率越高")}
   {step("03","一條公式收尾",'<span class="m">Y = e<sup style="font-size:36px">−A·D</sup></span>　面積 ×2 → 良率²',True)}
+  <div style="margin-top:10px;display:flex;flex-direction:column;gap:10px"><div class="chip" style="align-self:flex-start;border-color:{C2['pen']};color:{C2['pen2']}">常見踩雷</div>
+  <div style="font-size:44px;font-weight:800;line-height:1.4">只答「剩一半」，面試官會追問：<br>缺陷為什麼是<span class="hl">隨機</span>的？</div></div>
 </div>
 {ft2()}""")
 
 # I 知識圖解：良率（缺陷位置用固定種子模擬，數量用程式實際數）
-def wafer_svg(die_w, die_h, defects, size=440, name=""):
+def wafer_svg(die_w, die_h, defects, size=420, name=""):
     R = size / 2
     cx = cy = R
     ndies = bad = 0
@@ -382,12 +386,17 @@ def wafer_svg(die_w, die_h, defects, size=440, name=""):
            f'{"".join(rects)}{dots}</svg>')
     return svg, ndies, bad
 
-rnd = random.Random(7)
-DEF = []
-while len(DEF) < 8:
-    x, y = rnd.uniform(40, 400), rnd.uniform(40, 400)
-    if (x - 220) ** 2 + (y - 220) ** 2 <= 190 ** 2:
-        DEF.append((x, y))
+def make_defects(seed):
+    rnd = random.Random(seed)
+    out = []
+    while len(out) < 8:
+        x, y = rnd.uniform(40, 380), rnd.uniform(40, 380)
+        if (x - 210) ** 2 + (y - 210) ** 2 <= 180 ** 2:
+            out.append((x, y))
+    return out
+# 8 顆缺陷隨機落點；挑最接近期望值（小片壞約 7～8 顆、大片壞約 7 顆）的一次模擬當樣張，不是挑最戲劇化的
+SEED = min(range(300), key=lambda sd: abs(wafer_svg(40, 40, make_defects(sd))[2] - 8) + abs(wafer_svg(40, 80, make_defects(sd))[2] - 7))
+DEF = make_defects(SEED)
 svgS, nS, bS = wafer_svg(40, 40, DEF)
 svgB, nB, bB = wafer_svg(40, 80, DEF)    # 面積 2 倍：40×80
 yS, yB = (nS - bS) / nS, (nB - bB) / nB
@@ -395,9 +404,9 @@ SLIDES["ch2_I_diagram"] = (CSS2, f"""
 {hd2("")}
 <div style="margin-top:24px;display:flex;flex-direction:column;gap:12px">
   <div class="chip" style="align-self:flex-start">圖解・良率</div>
-  <div style="font-size:72px;font-weight:900;line-height:1.2">同樣 8 顆缺陷，<br><span class="hl">大晶片死更多</span></div>
+  <div style="font-size:70px;font-weight:900;line-height:1.2">同樣 8 顆缺陷，<br><span class="hl">大晶片良率更低</span></div>
 </div>
-<div style="display:flex;gap:32px;margin-top:34px;justify-content:space-between">
+<div style="display:flex;gap:40px;margin-top:26px;justify-content:space-between">
   <div style="display:flex;flex-direction:column;gap:14px;align-items:center">{svgS}
      <div style="font-size:42px;font-weight:800">小晶片</div>
      <div class="m" style="font-size:44px">好 {nS-bS} / 共 {nS}</div>
@@ -407,7 +416,7 @@ SLIDES["ch2_I_diagram"] = (CSS2, f"""
      <div class="m" style="font-size:44px">好 {nB-bB} / 共 {nB}</div>
      <div class="m pen" style="font-size:56px">{yB*100:.0f}%</div></div>
 </div>
-<div class="card box" style="margin-top:auto;margin-bottom:22px;padding:20px 34px;display:flex;align-items:center;gap:28px">
+<div class="card box" style="margin-top:auto;margin-bottom:30px;padding:16px 34px;display:flex;align-items:center;gap:28px">
   <div class="m" style="font-size:60px">Y = e<sup style="font-size:36px">−A·D</sup></div>
   <div style="font-size:38px;font-weight:700;color:{C2['ink2']};line-height:1.35">面積 ×2，<br>良率變平方</div></div>
 {ft2("業內知識")}""")
