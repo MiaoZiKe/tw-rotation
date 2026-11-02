@@ -186,10 +186,10 @@ def trend_g(x0, P, sw=18):
     ex, ey = cx + r * math.cos(rad(a0)), cy - r * math.sin(rad(a0))
     ring = S(f'M{n2(ex)},{n2(ey)} A{n2(r)},{n2(r)} 0 1 0 {n2(cx+r)},{n2(cy)} H{n2(cx+r-22)}', P['fg'], sw)
     d = (0.72, -0.69); n = (0.69, 0.72)
-    x1, y1 = cx - 20, cy + 22; x2, y2 = cx + 34, cy - 32
+    x1, y1 = cx - 12, cy + 16; x2, y2 = cx + 22, cy - 18
     tip = (x2 + 8, y2 - 8)
-    w1 = (tip[0] - 20 * d[0] + 15 * n[0], tip[1] - 20 * d[1] + 15 * n[1])
-    w2 = (tip[0] - 20 * d[0] - 15 * n[0], tip[1] - 20 * d[1] - 15 * n[1])
+    w1 = (tip[0] - 17 * d[0] + 12 * n[0], tip[1] - 17 * d[1] + 12 * n[1])
+    w2 = (tip[0] - 17 * d[0] - 12 * n[0], tip[1] - 17 * d[1] - 12 * n[1])
     arrow = S(f'M{n2(x1)},{n2(y1)} L{n2(x2)},{n2(y2)}', P['ac'], 14) + \
         S(f'M{n2(w1[0])},{n2(w1[1])} L{n2(tip[0])},{n2(tip[1])} L{n2(w2[0])},{n2(w2[1])}', P['ac'], 14)
     return ring + arrow
@@ -202,11 +202,11 @@ def h09(P, pk, mode):
     a, w = k.L(0, P['fg']); s += a
     s += candle(88, 28, 0, 100, 28, 76, up)
     s += trend_g(138, P)
-    ux = 268; w15 = 15
+    ux = 268; w15 = 17
     specs = [(0, 66, 6, 56, dn), (42, 92, 50, 80, dn), (66, 100, 74, 92, mid), (42, 92, 50, 80, up), (0, 66, 6, 56, up)]
     for i, (wy0, wy1, by0, by1, c) in enumerate(specs):
-        s += candle(ux + i * 22, w15, wy0, wy1, by0, by1, c)
-    word = (s, (0, 0, ux + 4 * 22 + 15, 100))
+        s += candle(ux + i * 25, w15, wy0, wy1, by0, by1, c)
+    word = (s, (0, 0, ux + 4 * 25 + 17, 100))
     ico = trend_g(0, P)
     return word, (ico, (0, -4, 112, 100))
 
