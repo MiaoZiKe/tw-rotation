@@ -1,0 +1,55 @@
+{
+ "slot": "intra",
+ "date": "2026-11-02",
+ "run_at": "2026-11-02T12:09+08:00",
+ "posted": [
+  {
+   "file": "2026-11-02_news-intra-1.md",
+   "publish_at": "2026-11-02T12:10+08:00",
+   "publish_at_ig": "2026-11-02T20:50+08:00",
+   "title": "EPS 每股盈餘是什麼",
+   "topic_category": "財報",
+   "content_type": "財報知識",
+   "layout": "D-知識卡(實景)",
+   "style": "常備文庫",
+   "has_ai_image": "false",
+   "explore": "false",
+   "heat": "0",
+   "news_ids": "",
+   "u_code": "newsintra1",
+   "evergreen": "true",
+   "topic_id": "eps",
+   "has_photo": "true",
+   "photo_kind": "類別",
+   "photo": "_category/總經/photo_9.jpg",
+   "format": "threads_v2",
+   "hook_type": "冷知識",
+   "emotion": "好笑",
+   "hook_id": "g_k1",
+   "tag": "EPS財報",
+   "lint": "pass"
+  }
+ ],
+ "skipped": [
+  {
+   "title": "11月2日盤前／台股失半年線 惟技術面進入超跌區 靜待籌碼沉澱",
+   "why": "沒有可當主旨的關鍵數字"
+  },
+  {
+   "title": "費半崩跌7.2%、台積電ADR重挫近6%！台股最慘還沒到→還有更大的崩跌在後？",
+   "why": "沒有可當主旨的關鍵數字"
+  },
+  {
+   "title": "NAND Flash 廠鎧俠純益估飆 14 倍、2027 年產能「售罄」",
+   "why": "沒有與前期的比較數字（季增／年增／前高）"
+  },
+  {
+   "title": "幣安追回遭竊資產 95%，宣布分階段恢復提款",
+   "why": "找不到主體（公司／機構／指數）"
+  }
+ ],
+ "evergreen": [
+  "eps"
+ ],
+ "overlap": "重疊檢查：程式 1 張 0 筆（有重疊的不排程）"
+}
