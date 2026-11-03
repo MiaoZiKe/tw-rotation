@@ -130,6 +130,9 @@
   /* 2026-10-14 精選文章（Andy 截圖標在總覽與財經日曆之間）：同 order 1、DOM 在財經日曆前面 → 總覽、精選文章、財經日曆。圖示＝打開的書頁 */
   :root.l4 .tab[data-view="articles"]{order:1;--l4-ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 4.5h6a2 2 0 0 1 2 2V20a1.6 1.6 0 0 0-1.6-1.6H4z'/%3E%3Cpath d='M20 4.5h-6a2 2 0 0 0-2 2V20a1.6 1.6 0 0 1 1.6-1.6H20z'/%3E%3Cpath d='M6.5 8.5h3M6.5 11.5h3M14.5 8.5h3M14.5 11.5h3'/%3E%3C/svg%3E")}
   /* 2026-10-25 科技透明圈：同「今日市場」組、order 1，圖示＝兩個人 */
+  /* 2026-11-04 頻道規劃：專案組，圖示＝規劃表（管理者限定，入口顯隱在 m4/20261104-channels.css） */
+  :root.l4 .tab[data-view="channels"]{order:8;--l4-ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='16' rx='2'/%3E%3Cpath d='M3 9h18M9 9v11'/%3E%3C/svg%3E")}
+  :root.l4m .tab[data-view="channels"],:root.l4m body.m3on .tab[data-view="channels"]{--l4-ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Crect x='3' y='4' width='18' height='16' rx='2'/%3E%3Cpath d='M3 9h18M9 9v11'/%3E%3C/svg%3E")}
   :root.l4 .tab[data-view="tc"]{order:4;--l4-ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='9' cy='8' r='3.2'/%3E%3Cpath d='M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6'/%3E%3Ccircle cx='17' cy='9' r='2.4'/%3E%3Cpath d='M17 14c2.5 0 4.5 2 4.5 4.5'/%3E%3C/svg%3E")}
   /* 2026-10-28 交易練習室：歷史規律組，圖示＝折線上升＋箭頭 */
   :root.l4 .tab[data-view="lab"]{order:6;--l4-ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 17l5-6 4 3 8-9'/%3E%3Cpath d='M15 5h5v5'/%3E%3C/svg%3E")}
@@ -532,7 +535,7 @@
   :root.l4.l4g:not(.l4-mini) .tabs[data-cg~="money"]>.l4subtab:is([data-parent="flow"],[data-parent="heatmap"]),
   :root.l4.l4g:not(.l4-mini) .tabs[data-cg~="stock"]>:is(.tab[data-view="industry"],.tab[data-view="stock"],.tab[data-view="market"],.tab[data-view="explore"],.tab[data-view="etf"]),
   :root.l4.l4g:not(.l4-mini) .tabs[data-cg~="hist"]>:is(.tab[data-view="season"],.tab[data-view="lab"]),
-  :root.l4.l4g:not(.l4-mini) .tabs[data-cg~="proj"]>:is(.tab[data-view="watch"],.tab[data-view="delivery"],.tab.l4perm),
+  :root.l4.l4g:not(.l4-mini) .tabs[data-cg~="proj"]>:is(.tab[data-view="watch"],.tab[data-view="delivery"],.tab[data-view="channels"],.tab.l4perm),
   :root.l4.l4g:not(.l4-mini) .tabs[data-cg~="proj"]>.l4subtab[data-parent="admin"],
   :root.l4.l4g:not(.l4-mini) .tabs[data-cs~="flow"]>.l4subtab[data-parent="flow"],
   :root.l4.l4g:not(.l4-mini) .tabs[data-cs~="heatmap"]>.l4subtab[data-parent="heatmap"],

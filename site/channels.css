@@ -1,0 +1,89 @@
+/* 頻道規劃（#channels）樣式 —— 桌機為主；≤640 的手機規則在 m4/20261104-channels.css（桌機手機互不侵犯）。
+   間距只用 --sp-1..5；顏色全用全站 token（深淺主題自動跟）。 */
+#v-channels .ch{display:flex;flex-direction:column;gap:var(--sp-3);min-width:0}
+#v-channels .ch>.card,#v-channels .ch-goals .card{margin:0}
+#v-channels .ch-card{padding:var(--sp-3) var(--sp-4)}
+#v-channels .ch-tabs{margin:0}
+#v-channels .ch-tabs a{gap:var(--sp-2)}
+#v-channels .ch-tn{white-space:nowrap}
+#v-channels .ch-dot{width:8px;height:8px;border-radius:50%;background:var(--ink-3);flex:0 0 auto}
+#v-channels .ch-hd{align-items:center;gap:var(--sp-2);margin-bottom:var(--sp-2)}
+#v-channels .ch-hd h3{display:flex;align-items:center;gap:var(--sp-2);margin:0;font-size:16px}
+#v-channels .ch-hd-r{display:flex;align-items:center;gap:var(--sp-3)}
+#v-channels .ch-upd{color:var(--ink-3);font-size:13px}
+#v-channels .ch-logo{border-radius:6px;object-fit:cover;flex:0 0 auto;background:var(--panel-3)}
+#v-channels .ch-logo-s{width:20px;height:20px}
+#v-channels .ch-logo-m{width:32px;height:32px}
+/* 「?」說明（同科技透明圈 .tc-how） */
+#v-channels .ch-how{position:relative;display:inline-block}
+#v-channels .ch-q{width:20px;height:20px;border-radius:50%;border:1px solid var(--line-2);background:var(--panel-3);color:var(--cyan);font-size:12px;cursor:pointer;padding:0}
+#v-channels .ch-pop{position:absolute;z-index:30;left:0;top:28px;width:min(380px,80vw);padding:var(--sp-3);background:var(--panel);border:1px solid var(--line-2);border-radius:var(--r-sm);font-size:13px;font-weight:400;line-height:1.6;color:var(--ink-2);box-shadow:0 8px 24px rgba(0,0,0,.35)}
+#v-channels .ch-pop[hidden]{display:none}
+/* 狀態徽章 */
+#v-channels .ch-st{display:inline-block;padding:2px var(--sp-2);border-radius:var(--r-pill);font-size:12px;border:1px solid var(--line-2);color:var(--ink-2);white-space:nowrap}
+#v-channels .ch-k-plan{color:var(--amber);border-color:var(--amber)}
+#v-channels .ch-k-live,#v-channels .ch-k-run{color:var(--lime);border-color:var(--lime)}
+#v-channels .ch-k-wait{color:var(--ink-3)}
+#v-channels i.ch-k-plan{background:var(--amber)}
+#v-channels i.ch-k-live,#v-channels i.ch-k-run{background:var(--lime)}
+#v-channels i.ch-k-wait{background:var(--ink-3);opacity:.5}
+/* 頂卡 */
+#v-channels .ch-tag{margin:0 0 var(--sp-2);font-size:15px;color:var(--ink)}
+#v-channels .ch-facts{display:grid;grid-template-columns:2fr 2fr 1fr 1fr;gap:var(--sp-3);font-size:13px}
+#v-channels .ch-facts span{display:flex;flex-direction:column;gap:2px;min-width:0}
+#v-channels .ch-facts i,#v-channels .ch-g3 i{font-style:normal;color:var(--ink-3);font-size:12px}
+#v-channels .ch-pend{color:var(--amber)}
+#v-channels .ch-lmean{margin:var(--sp-2) 0 0;font-size:13px;color:var(--ink-2)}
+#v-channels .ch-more{margin-top:var(--sp-2);font-size:13px}
+#v-channels .ch-more summary,#v-channels .ch-tp summary{cursor:pointer;color:var(--cyan)}
+#v-channels h5{margin:var(--sp-2) 0 var(--sp-1);font-size:13px;color:var(--ink-3);font-weight:600}
+#v-channels h5.ch-sub{margin-top:var(--sp-3)}
+#v-channels .ch-more p{margin:0 0 var(--sp-2);line-height:1.6}
+/* 目標三欄 */
+#v-channels .ch-goals{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--sp-3)}
+#v-channels .ch-gc h4{margin:0 0 var(--sp-2);font-size:14px}
+#v-channels .ch-gc-short h4{color:var(--cyan)}#v-channels .ch-gc-mid h4{color:var(--violet)}#v-channels .ch-gc-long h4{color:var(--amber)}
+#v-channels .ch-ul{margin:0;padding-left:18px;font-size:13px;line-height:1.7;color:var(--ink-2)}
+#v-channels .ch-gl li{color:var(--ink)}
+/* 主題方向 */
+#v-channels .ch-pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:var(--sp-3)}
+#v-channels .ch-pil{border:1px solid var(--line);border-radius:var(--r-sm);background:var(--panel-2);padding:var(--sp-3);display:flex;flex-direction:column;gap:var(--sp-2);min-width:0}
+#v-channels .ch-pil-h{display:flex;justify-content:space-between;align-items:baseline;gap:var(--sp-2)}
+#v-channels .ch-pct{color:var(--cyan);font-weight:700}
+#v-channels .ch-bar{height:6px;border-radius:3px;background:var(--panel-3);overflow:hidden}
+#v-channels .ch-bar i{display:block;height:100%;background:linear-gradient(90deg,var(--cyan),var(--violet))}
+#v-channels .ch-pt,#v-channels .ch-pp{margin:0;font-size:13px;color:var(--ink-2)}
+#v-channels .ch-pp em{font-style:normal;color:var(--ink-3)}
+#v-channels .ch-tl{font-size:13px;margin-top:var(--sp-2)}
+#v-channels .ch-note{margin:var(--sp-3) 0 0;font-size:13px;color:var(--ink-3)}
+/* 表格 */
+#v-channels .ch-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;max-width:100%}
+#v-channels .ch-tbl{width:100%;border-collapse:collapse;font-size:13px}
+#v-channels .ch-tbl th{text-align:left;color:var(--ink-3);font-weight:600;padding:var(--sp-2);border-bottom:1px solid var(--line-2);white-space:nowrap}
+#v-channels .ch-tbl td{padding:var(--sp-2);border-bottom:1px solid var(--line);vertical-align:top;line-height:1.5}
+#v-channels .ch-n{white-space:nowrap}
+#v-channels .ch-nm{display:flex;align-items:center;gap:var(--sp-2);color:var(--ink);text-decoration:none;white-space:nowrap}
+#v-channels .ch-nm:hover b{color:var(--cyan)}
+#v-channels .ch-c-tag{min-width:200px}
+#v-channels .ch-g3{display:flex;flex-direction:column;gap:2px;min-width:200px}
+#v-channels .ch-g3 i{margin-right:var(--sp-2)}
+#v-channels .ch-wait td{color:var(--ink-3)}
+#v-channels .ch-md{font-style:normal;font-size:12px;padding:1px var(--sp-2);border-radius:var(--r-pill);border:1px solid var(--line-2);white-space:nowrap}
+#v-channels .ch-md-man{color:var(--ink-2)}#v-channels .ch-md-semi{color:var(--amber);border-color:var(--amber)}#v-channels .ch-md-auto{color:var(--lime);border-color:var(--lime)}
+/* 排程階段 */
+#v-channels .ch-ptabs{margin-bottom:var(--sp-2)}
+#v-channels .ch-ptabs small{margin-left:6px;color:var(--ink-3);font-weight:400}
+#v-channels .ch-ps{margin:0 0 var(--sp-2);font-size:13px;color:var(--ink-2)}
+/* 收展區塊 */
+#v-channels .ch-sec{padding:0}
+#v-channels .ch-sec>summary{display:flex;align-items:center;gap:var(--sp-3);padding:var(--sp-3) var(--sp-4);cursor:pointer;list-style:none}
+#v-channels .ch-sec>summary::-webkit-details-marker{display:none}
+#v-channels .ch-sec>summary::before{content:"▸";color:var(--ink-3);transition:transform .15s}
+#v-channels .ch-sec[open]>summary::before{transform:rotate(90deg)}
+#v-channels .ch-sh{margin-left:auto;color:var(--ink-3);font-size:13px;text-align:right}
+#v-channels .ch-sb{padding:0 var(--sp-4) var(--sp-3)}
+#v-channels .ch-two{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:var(--sp-4)}
+#v-channels .ch-pcs{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:var(--sp-3)}
+#v-channels .ch-pc{border:1px solid var(--line);border-radius:var(--r-sm);background:var(--panel-2);padding:var(--sp-3)}
+#v-channels .ch-pc h5{margin:0 0 var(--sp-1)}#v-channels .ch-pc p{margin:0;font-size:13px;line-height:1.6;color:var(--ink-2)}
+#v-channels .ch-docs a{color:var(--cyan)}

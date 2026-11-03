@@ -5572,7 +5572,7 @@ h3 .howbtn.pop{font-family:inherit}
 <link rel="stylesheet" href="theme4.css">
 <!-- 版面 v2 結構（左側導覽、頁首、本頁功能跳轉列、手機頁名與線條圖示）。只排版、不寫任何色值，顏色全部吃上面 theme4.css 的變數，所以放在它後面。 -->
 <link rel="stylesheet" href="layout4.css">
-<link rel="stylesheet" href="flowcheck.css"><link rel="stylesheet" href="flowcheck3.css"><link rel="stylesheet" href="flowcheck4.css"><!-- 2026-10-30 流向驗證頁 #flowcheck（手機規則在 m4/20261030-flowcheck.css） -->
+<link rel="stylesheet" href="channels.css"><link rel="stylesheet" href="flowcheck.css"><link rel="stylesheet" href="flowcheck3.css"><link rel="stylesheet" href="flowcheck4.css"><!-- 2026-10-30 流向驗證頁 #flowcheck（手機規則在 m4/20261030-flowcheck.css） -->
 <link rel="stylesheet" href="mobile4.css">
 <!-- m4:css 開始（scripts/m4_css_links.py 依 site/m4/*.css 檔名排序產生，不要手改；合併撞到這段就重跑那支） -->
 <link rel="stylesheet" href="m4/20261016-01-card-frame.css">
@@ -5620,6 +5620,7 @@ h3 .howbtn.pop{font-family:inherit}
 <link rel="stylesheet" href="m4/20261102-ind-audit.css">
 <link rel="stylesheet" href="m4/20261102-relgraph.css">
 <link rel="stylesheet" href="m4/20261102-topbar-quota.css">
+<link rel="stylesheet" href="m4/20261104-channels.css">
 <!-- m4:css 結束 -->
 <!-- ★ 2026-10-03 一屏看完（DECISIONS #308，fit.css／fit.js）：每張圖表卡完整落在一屏可視高度內，只動桌機（≥821）的卡高與圖高。 -->
 <link rel="stylesheet" href="fit.css">
@@ -5677,6 +5678,8 @@ h3 .howbtn.pop{font-family:inherit}
     <button class="tab" data-view="earnings">財經日曆</button>
     <!-- 2026-10-28 交易練習室（site/lab/，管理者限定）：DOM 放最後（手機底部列用 nth-child） -->
     <button class="tab" data-view="lab">交易練習室</button>
+    <!-- 2026-11-04 頻道規劃（site/channels.js，管理者限定）：DOM 放最後（手機底部列用 nth-child） -->
+    <button class="tab" data-view="channels">頻道規劃</button>
     <!-- ★ 2026-09-23（Andy：「上方分頁任務板移除」）：入口收掉。
          `site/tasks.js`、`#v-tasks` 與 `#tasks` 路由**刻意留著**（他只說移除分頁）——
          直接貼 `…/#tasks` 會導到交付清單；`tasks.json` 2026-09-25 起不再產出（內部作業文字不上 public 網站）。
@@ -6026,6 +6029,8 @@ h3 .howbtn.pop{font-family:inherit}
   <!-- 科技透明圈（#tc，2026-10-25）整頁由 site/tc/tc.js 畫 -->
   <section class="view" id="v-tc"></section>
   <section class="view" id="v-flowcheck"></section>
+  <!-- 頻道規劃（#channels，2026-11-04）整頁由 site/channels.js 畫 -->
+  <section class="view" id="v-channels"></section>
   <!-- 交易練習室（#lab，2026-10-28）整頁由 site/lab/lab.js 畫 -->
   <section class="view" id="v-lab"></section>
 
@@ -6222,7 +6227,7 @@ return {load:load,ready:ready,srcs:srcs};})();
 <script src="multiselect.js"></script>
 <script src="searchclear.js"></script><!-- 2026-11-01 全站搜尋框「清除」× 共用小工具（自動掛在 input[type=search]、#q、#cgSearch） -->
 <script src="tape.js"></script>
-<script src="flowcheck.js"></script><script src="flowcheck3.js"></script><script src="flowcheck4.js"></script><!-- 2026-10-30 流向驗證頁（#flowcheck）：輪盤／資金樹／熱力圖與族群走勢、成分股走勢同步 -->
+<script src="channels.js"></script><!-- 2026-11-04 頻道規劃（#channels，管理者限定） --><script src="flowcheck.js"></script><script src="flowcheck3.js"></script><script src="flowcheck4.js"></script><!-- 2026-10-30 流向驗證頁（#flowcheck）：輪盤／資金樹／熱力圖與族群走勢、成分股走勢同步 -->
 <script src="app.js"></script>
 <script src="theme4.js"></script>
 <!-- ★ 2026-09-28 自選分頁（#watch）的整頁畫面；資料層是上面的 watchlists.js -->
