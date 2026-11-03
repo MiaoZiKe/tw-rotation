@@ -16,8 +16,8 @@
   const IND_ORDER = Object.keys(IND);
   const mob = () => window.matchMedia && window.matchMedia('(max-width:640px)').matches;
 
-  /* 開口圈 LOGO（頻道二瑞士極簡版：黑環＋瑞士紅點，無底色；原稿 docs/brand/tc_logo_1102/c1_開口圈） */
-  const LOGO = '<svg class="tcp-logo" viewBox="0 0 100 100" width="28" height="28" aria-hidden="true" focusable="false"><path d="M74.69 46.09 A25 25 0 1 1 53.91 25.31" fill="none" stroke="#111111" stroke-width="9" stroke-linecap="round"/><circle cx="67.68" cy="32.32" r="6.6" fill="#D4231A"/></svg>';
+  /* 開口圈 LOGO（Andy 11-02 定稿原色：藍環 #1F6FEB＋橘點 #FF9F1C，僅去掉圓角底色，不改環與點的顏色；原稿 docs/brand/tc_logo_1102/c1_開口圈） */
+  const LOGO = '<svg class="tcp-logo" viewBox="0 0 100 100" width="28" height="28" aria-hidden="true" focusable="false"><path d="M74.69 46.09 A25 25 0 1 1 53.91 25.31" fill="none" stroke="#1F6FEB" stroke-width="9" stroke-linecap="round"/><circle cx="67.68" cy="32.32" r="6.6" fill="#FF9F1C"/></svg>';
 
   /* 頁底固定文字：取自 docs/tc/legal.md ③，一字不改（改法遵文字要回去改那份文件） */
   const LEGAL = '<b>資料來源與免責聲明</b>' +
