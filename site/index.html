@@ -5620,6 +5620,7 @@ h3 .howbtn.pop{font-family:inherit}
 <link rel="stylesheet" href="m4/20261102-ind-audit.css">
 <link rel="stylesheet" href="m4/20261102-relgraph.css">
 <link rel="stylesheet" href="m4/20261102-topbar-quota.css">
+<link rel="stylesheet" href="m4/20261104-channels.css">
 <!-- m4:css 結束 -->
 <!-- ★ 2026-10-03 一屏看完（DECISIONS #308，fit.css／fit.js）：每張圖表卡完整落在一屏可視高度內，只動桌機（≥821）的卡高與圖高。 -->
 <link rel="stylesheet" href="fit.css">
@@ -5677,6 +5678,8 @@ h3 .howbtn.pop{font-family:inherit}
     <button class="tab" data-view="earnings">財經日曆</button>
     <!-- 2026-10-28 交易練習室（site/lab/，管理者限定）：DOM 放最後（手機底部列用 nth-child） -->
     <button class="tab" data-view="lab">交易練習室</button>
+    <!-- 2026-11-04 頻道規劃（site/channels/，管理者限定） -->
+    <button class="tab" data-view="channels">頻道規劃</button>
     <!-- ★ 2026-09-23（Andy：「上方分頁任務板移除」）：入口收掉。
          `site/tasks.js`、`#v-tasks` 與 `#tasks` 路由**刻意留著**（他只說移除分頁）——
          直接貼 `…/#tasks` 會導到交付清單；`tasks.json` 2026-09-25 起不再產出（內部作業文字不上 public 網站）。
@@ -6028,6 +6031,8 @@ h3 .howbtn.pop{font-family:inherit}
   <section class="view" id="v-flowcheck"></section>
   <!-- 交易練習室（#lab，2026-10-28）整頁由 site/lab/lab.js 畫 -->
   <section class="view" id="v-lab"></section>
+  <!-- 頻道規劃（#channels，2026-11-04）整頁由 site/channels/channels.js 畫 -->
+  <section class="view" id="v-channels"></section>
 
   <!-- ================= 週期統計（路由沿用 #season） =================
        ★ 2026-09-24（Andy：「下方的兩個表格都拿掉」）：「逐年明細」與「本月歷史最強族群」兩張卡整張移除。
@@ -6235,6 +6240,7 @@ return {load:load,ready:ready,srcs:srcs};})();
 <script src="futpages.js"></script><!-- 2026-10-20 市場明細：台指期三大法人未平倉、微台指散戶多空比 -->
 <script src="earnings.js"></script>
 <script src="artillus.js"></script><!-- 2026-10-16 精選文章的具象插圖（CoWoS 剖面、AI 機櫃）：{"t":"illus"} 區塊的 SVG 幾何與錨點；版面與引線在 articles.js -->
+<script src="channels/channels.js"></script><!-- 2026-11-04 頻道規劃 -->
 <script src="tc/logos.js"></script><script src="tc/tc.js"></script><!-- 2026-10-25 科技透明圈 -->
 <script src="lab/engine.js"></script><script src="lab/kview.js"></script><script src="lab/lab.js"></script><script src="lab/replay.js"></script><script src="lab/events.js"></script><script src="lab/futures.js"></script><script src="lab/expr.js"></script><script src="lab/standard_defs.js"></script><script src="lab/custom.js"></script><script src="lab/ux.js"></script><!-- 2026-10-28 交易練習室 -->
 <script src="articles.js"></script><!-- 2026-10-14 精選文章（列表／單篇）＋管理區 #admin/articles；資料在 site/articles/（不在 site/data/）-->

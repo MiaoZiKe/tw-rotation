@@ -143,6 +143,8 @@
   :root.l4 .tab[data-view="explore"]{order:5}   /* 2026-10-05 選股探索：DOM 緊接在市場明細後面，同 order 就照 DOM 排在它下面 */
   :root.l4 .tab[data-view="season"]{order:6}
   :root.l4 .tab[data-view="etf"]{order:5;--l4-ic:var(--l4-ic-etf)}
+  /* 2026-11-04 頻道規劃（管理者限定）：專案組，圖示＝廣播 */
+  :root.l4 .tab[data-view="channels"]{order:8;--l4-ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='2'/%3E%3Cpath d='M16.2 7.8a6 6 0 0 1 0 8.4M7.8 16.2a6 6 0 0 1 0-8.4M19 5a10 10 0 0 1 0 14M5 19a10 10 0 0 1 0-14'/%3E%3C/svg%3E")}
   :root.l4 .tab[data-view="watch"]{order:7}
   :root.l4 .tab[data-view="delivery"]{order:8}
   :root.l4 .tabs>:not(.tab){order:9}
@@ -532,7 +534,7 @@
   :root.l4.l4g:not(.l4-mini) .tabs[data-cg~="money"]>.l4subtab:is([data-parent="flow"],[data-parent="heatmap"]),
   :root.l4.l4g:not(.l4-mini) .tabs[data-cg~="stock"]>:is(.tab[data-view="industry"],.tab[data-view="stock"],.tab[data-view="market"],.tab[data-view="explore"],.tab[data-view="etf"]),
   :root.l4.l4g:not(.l4-mini) .tabs[data-cg~="hist"]>:is(.tab[data-view="season"],.tab[data-view="lab"]),
-  :root.l4.l4g:not(.l4-mini) .tabs[data-cg~="proj"]>:is(.tab[data-view="watch"],.tab[data-view="delivery"],.tab.l4perm),
+  :root.l4.l4g:not(.l4-mini) .tabs[data-cg~="proj"]>:is(.tab[data-view="watch"],.tab[data-view="delivery"],.tab[data-view="channels"],.tab.l4perm),
   :root.l4.l4g:not(.l4-mini) .tabs[data-cg~="proj"]>.l4subtab[data-parent="admin"],
   :root.l4.l4g:not(.l4-mini) .tabs[data-cs~="flow"]>.l4subtab[data-parent="flow"],
   :root.l4.l4g:not(.l4-mini) .tabs[data-cs~="heatmap"]>.l4subtab[data-parent="heatmap"],
