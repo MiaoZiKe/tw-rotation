@@ -21,7 +21,7 @@
   "swagger_path": "/fund/MI_QFIIS_sort_20"
  },
  {
-  "head": "<html><head><meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\"> <script type=\"application/javascript\">     var contactPhone = \"(02)8101-5921, (02)8101-5836\";     </script> </head> <bod",
+  "head": "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\"> <html xmlns=\"http://www.w3.org/1999/xhtml\"> <head> <meta http-equiv=\"Content-T",
   "http": 200,
   "url": "https://openapi.twse.com.tw/v1/fund/T86"
  },
@@ -41,8 +41,19 @@
   "url": "https://openapi.twse.com.tw/v1/fund/TWT44U"
  },
  {
-  "head": "ç¢æ¥­å¥,å®¶æ¸,ç¸½ç¼è¡è¡æ¸,åå¤è³åé¸è³ææç¸½è¡æ¸,åå¤è³åé¸è³æè¡æ¯ç\r \"ETF\",\"245\",\"272513417260\",\"3536850643\",\"1.30\"\r \"æ°´æ³¥å·¥æ¥­\",\"8\",\"14107198706\",\"1740643621\",\"12.34\"",
+  "head": "[ {\"IndustryCat\":\"ETF\",\"Numbers\":\"245\",\"ShareNumber\":\"272513417260\",\"ForeignMainlandAreaShare\":\"3536850643\",\"Percentage\":\"1.30\"}, {\"IndustryCat\":\"水泥工業\",\"Numbers\":\"8\",\"ShareNumber\":\"14107198706\",\"Forei",
   "http": 200,
+  "url": "https://openapi.twse.com.tw/v1/fund/MI_QFIIS_cat"
+ },
+ {
+  "cols": [
+   "IndustryCat",
+   "Numbers",
+   "ShareNumber",
+   "ForeignMainlandAreaShare",
+   "Percentage"
+  ],
+  "n": 36,
   "url": "https://openapi.twse.com.tw/v1/fund/MI_QFIIS_cat"
  },
  {
