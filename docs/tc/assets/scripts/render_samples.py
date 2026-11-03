@@ -40,8 +40,8 @@ body{{width:{W}px;height:{H}px;font-family:'Noto Sans TC','WenQuanYi Zen Hei',sa
 """
 
 
-def top(label, pg, icon=True):
-    ic = f'<img data-b src="{b64(ASSETS/"brand/icon_light.svg")}" width="64" height="64">' if icon else ""
+def top(label, pg):   # 統一決策：A/B/C 全系列頁首只放純文字「科技透明圈」，不放開口圈（A1 帶公司 LOGO，法遵 ② 不與開口圈組合；三系列一致才像同一頻道）
+    ic = ""   # 不放開口圈
     return f'<div class="top">{ic}<div class="b">科技透明圈</div><div class="t">{label}</div><div class="p">{pg}</div></div>'
 
 
@@ -73,7 +73,7 @@ def cells(items):
 def a_cover(with_logo):
     # LOGO 高度 80px ≤ 公司名字高 120px 的 1.5 倍（實際 0.67 倍），緊貼公司名左側，原色原比例
     lg = f'<img data-b src="{logo}" width="{LW}" height="{LH}" style="flex:none;display:block" alt="">' if with_logo else ""
-    return f"""{top('公司行情', '1 / 3', icon=False)}
+    return f"""{top('公司行情', '1 / 3')}
 <div class="body">
   <div style="display:flex;gap:14px"><span class="tag">公司薪資行情</span><span class="tag g">碩畢・研發職類</span></div>
   <div style="margin-top:56px;display:flex;align-items:center;gap:22px">{lg}<div style="font-size:120px;font-weight:900;line-height:1.2">{NAME}</div></div>
@@ -83,7 +83,7 @@ def a_cover(with_logo):
     {cells([('學歷', '〔待填〕'), ('年資', '〔待填〕')])}</div>
   <div class="callout" style="margin-top:56px;display:flex;align-items:center;gap:30px">
     <div style="font-size:46px;font-weight:800;line-height:1.2">碩畢<br>月薪</div><div class="n" style="font-size:96px;line-height:1">〔待填〕K</div></div>
-  <div style="margin-top:44px;font-size:38px;font-weight:700;color:{GREY}">朋友提供，有誤請指正</div>
+  <div style="margin-top:44px;font-size:38px;font-weight:700;color:{GREY}">網友回報，有誤請指正</div>
 </div>{ft(DISC)}"""
 
 
@@ -91,19 +91,19 @@ S["A1_cover_logo"] = a_cover(True)
 S["A1_cover_textonly"] = a_cover(False)
 rows = [("總部地點", "〔待填〕"), ("碩畢月薪", "〔待填〕K"), ("年終・分紅", "〔待填〕個月"), ("升等路徑", "〔待填〕"),
         ("加班時數", "〔待填〕h"), ("繁忙程度", "〔待填〕/ 5"), ("出差頻率", "〔待填〕")]
-trs = "".join(f'<div style="display:flex;align-items:center;height:104px;border-top:2px solid {LINE}">'
+trs = "".join(f'<div style="display:flex;align-items:center;height:118px;border-top:2px solid {LINE}">'
               f'<div class="n" style="width:78px;font-size:32px;color:{RED}">{i+1:02d}</div>'
               f'<div style="width:260px;font-size:40px;font-weight:800;white-space:nowrap">{a}</div>'
               f'<div style="width:360px;font-size:36px"><span class="ph">{b}</span></div>'
               f'<div style="flex:1;font-size:34px;color:{GREY};white-space:nowrap">〔一句評語〕</div></div>' for i, (a, b) in enumerate(rows))
 # 含「加班」等負面欄位：只寫公司名、不放 LOGO（法遵 ④）
-S["A2_fields_textonly"] = f"""{top('公司行情', '2 / 3', icon=False)}
+S["A2_fields_textonly"] = f"""{top('公司行情', '2 / 3')}
 <div class="body" style="padding-top:44px">
   <div style="display:flex;gap:14px"><span class="tag">{NAME}</span><span class="tag g">七欄固定，方便比較</span></div>
   <div style="font-size:78px;font-weight:900;line-height:1.2;margin-top:24px">七個欄位，一次看完</div>
   <div class="box" style="margin-top:28px">{trs}</div>
 </div>{ft(DISC)}"""
-S["A3_cta"] = f"""{top('公司行情', '3 / 3', icon=False)}
+S["A3_cta"] = f"""{top('公司行情', '3 / 3')}
 <div class="body">
   <div style="font-size:50px;font-weight:700;color:{GREY};margin-top:40px">你那一組的行情是多少？</div>
   <div style="font-size:112px;font-weight:900;line-height:1.25;margin-top:30px">留言告訴我們，<br>幫大家<span class="red">補齊</span>這張表</div>
@@ -124,11 +124,16 @@ S["B1_cover"] = f"""{top('技術白話', '1 / 3')}
   <div class="box" style="margin-top:56px;padding-top:30px;font-size:46px;font-weight:700;line-height:1.5">一句話：把運算晶粒和記憶體<br>放在同一片<span class="ph">矽中介層</span>上，<br>讓它們靠得很近、傳得很快。</div>
   <div style="margin-top:auto;margin-bottom:24px;font-size:36px;font-weight:700;color:{GREY}">往右滑，看剖面示意圖　→</div>
 </div>{ft('科技透明圈', '示意圖，非實物比例')}"""
+# B2：只取「主剖面」(裁掉原圖左上導言——它在講已移除的卡片；與圖內 12px 級小字)，放大到滿版，標題改 56px 大字
+_im = Image.open(DG).convert("RGB").crop((150, 285, 1235, 1080))
+_bio = io.BytesIO(); _im.save(_bio, "PNG"); dgc = "data:image/png;base64," + base64.b64encode(_bio.getvalue()).decode()
 S["B2_diagram"] = f"""{top('技術白話', '2 / 3')}
 <div class="body" style="padding-top:36px">
   <div style="display:flex;gap:14px;align-items:center"><span class="tag">剖面示意圖</span><span style="font-size:32px;color:{GREY}">由下往上看</span></div>
-  <div style="flex:1;min-height:0;margin-top:24px;border-top:3px solid {INK};padding-top:16px;display:flex;align-items:center;justify-content:center"><img data-b src="{dg}" style="max-width:100%;max-height:100%;display:block"></div>
-</div>{ft('示意圖，非實物比例、不代表任何公司產品', '示意圖')}"""
+  <div style="font-size:60px;font-weight:900;line-height:1.25;margin-top:22px">接點由下往上，<span class="red">一路變小</span></div>
+  <div style="margin-top:22px;border-top:3px solid {INK};padding-top:14px"><img data-b src="{dgc}" width="952" style="display:block;margin:0 auto;border-bottom:2px solid {LINE}"></div>
+  <div style="display:flex;margin-top:18px">{''.join(f'<div style="flex:1;font-size:34px;font-weight:800;line-height:1.35;white-space:nowrap;{"padding-left:18px;border-left:2px solid "+LINE if i else ""}"><span class="n red">{n}</span> {t}</div>' for i,(n,t) in enumerate([("上","晶粒＋記憶體"),("中","矽中介層"),("下","載板＋BGA 球")]))}</div>
+</div>{ft('示意圖，非實物比例、不代表任何公司產品', '科技透明圈')}"""
 S["B3_points"] = f"""{top('技術白話', '3 / 3')}
 <div class="body">
   <div style="display:flex;gap:14px"><span class="tag">三個重點</span></div>
@@ -190,18 +195,18 @@ S["C2_diagram"] = f"""{top('面試題庫', '2 / 3')}
   <div style="display:flex;gap:14px;align-items:center"><span class="tag">示意圖</span><span style="font-size:32px;color:{GREY}">同一片晶圓、同樣 8 顆缺陷</span></div>
   <div style="display:flex;gap:28px;margin-top:28px">{panel('小晶粒（面積 1 倍）', svS, nS, bS, yS)}{panel('大晶粒（面積 2 倍）', svB, nB, bB, yB)}</div>
   <div class="callout" style="margin-top:34px;font-size:40px;font-weight:700;line-height:1.5">缺陷數不變，大晶粒吃到缺陷的機會變大，<br>良品比例掉得比直覺快（下一頁用公式算平均）。</div>
-</div>{ft('示意圖，非實際晶圓資料（缺陷位置為隨機示意）', '示意圖')}"""
+</div>{ft('示意圖，非實際晶圓資料（缺陷位置為隨機示意）', '科技透明圈')}"""
 S["C3_answer"] = f"""{top('面試題庫', '3 / 3')}
 <div class="body">
   <div style="display:flex;align-items:center;gap:26px"><div class="n" style="width:150px;height:150px;background:{RED};color:#fff;font-size:112px;display:flex;align-items:center;justify-content:center;flex:none">A</div>
     <div style="font-size:38px;font-weight:700;color:{GREY};letter-spacing:.12em">參考答案</div></div>
   <div style="font-size:76px;font-weight:900;line-height:1.3;margin-top:36px">不是剛好剩一半，<br>而是<span class="ph">良率變平方</span></div>
-  <div class="callout" style="margin-top:40px"><div class="lab">一階模型（Poisson）</div><div class="n" style="font-size:64px;margin-top:6px">Y ＝ e<sup style="font-size:.55em">−A·D₀</sup></div></div>
+  <div class="callout" style="margin-top:32px;padding:20px 34px"><div class="lab">一階模型（Poisson）</div><div class="n" style="font-size:64px;margin-top:6px">Y ＝ e<sup style="font-size:.55em">−A·D₀</sup></div></div>
   <div style="margin-top:30px;border-top:3px solid {INK}">
     <div style="display:flex;align-items:center;height:96px;border-bottom:2px solid {LINE}"><div style="width:420px;font-size:36px;font-weight:700">面積 1 倍（D₀ 0.1）</div><div class="n" style="font-size:48px">e<sup style="font-size:.55em">−0.1</sup> ≈ 90.5%</div></div>
     <div style="display:flex;align-items:center;height:96px;border-bottom:2px solid {LINE}"><div style="width:420px;font-size:36px;font-weight:700">面積 2 倍（D₀ 0.1）</div><div class="n red" style="font-size:48px">e<sup style="font-size:.55em">−0.2</sup> ≈ 81.9%</div></div></div>
-  <div style="margin-top:28px;font-size:38px;line-height:1.55;font-weight:500">面積加倍 ＝ 良率自己乘自己（0.905² ≈ 0.819）。<br>真正變貴的是：每片晶圓能切的顆數少一半，<br>每顆好晶粒的成本因此不止翻倍。</div>
-</div>{ft('教學用假設值，非任何公司實際良率', '示意・範例')}"""
+  <div style="margin-top:22px;font-size:36px;line-height:1.5;font-weight:500">面積加倍 ＝ 良率自己乘自己（0.905² ≈ 0.819）。<br>真正變貴的是：每片晶圓能切的顆數少一半，<br>每顆好晶粒的成本因此不止翻倍。</div>
+</div>{ft('教學用假設值，非任何公司實際良率', '科技透明圈')}"""
 
 # ---------------- 轉圖 + 重疊檢查 ----------------
 JS = """() => {

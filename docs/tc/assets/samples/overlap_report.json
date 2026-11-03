@@ -32,41 +32,41 @@
   "oob": [],
   "ovf": false,
   "small": [],
-  "n": 17
+  "n": 16
  },
  "B2_diagram": {
   "bad": [],
   "oob": [],
   "ovf": false,
   "small": [],
-  "n": 9
+  "n": 16
  },
  "B3_points": {
   "bad": [],
   "oob": [],
   "ovf": false,
   "small": [],
-  "n": 18
+  "n": 17
  },
  "C1_question": {
   "bad": [],
   "oob": [],
   "ovf": false,
   "small": [],
-  "n": 20
+  "n": 19
  },
  "C2_diagram": {
   "bad": [],
   "oob": [],
   "ovf": false,
   "small": [],
-  "n": 18
+  "n": 17
  },
  "C3_answer": {
   "bad": [],
   "oob": [],
   "ovf": false,
   "small": [],
-  "n": 25
+  "n": 24
  }
 }
