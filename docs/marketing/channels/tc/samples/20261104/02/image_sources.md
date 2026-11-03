@@ -2,13 +2,12 @@
 
 | 項目 | 內容 |
 |---|---|
-| 類別 | ① Wikimedia Commons CC 授權實景照（repo 圖庫 `social/photo_lib/_category/記憶體/photo_5.jpg`） |
-| 內容 | 16GB DDR4 SO-DIMM 記憶體模組（晶片上可見廠牌標記，僅為照片原貌，與本文公司無關） |
-| 作者 | D-Kuru（Wikimedia Commons，Own work） |
-| 授權 | CC BY-SA 4.0（https://creativecommons.org/licenses/by-sa/4.0/） |
-| 原始網址 | https://commons.wikimedia.org/wiki/File:DDR_4_RAM_SO-DIMM_16GB_by_Micron-top_back_PNr%C2%B00841.jpg |
-| 取得日 | 2026-10-16（圖庫入庫日；已審通過）；本次使用 2026-11-04 |
-| 修改 | 裁切（cover 1080×420）、上方加標題條、下方加出處列；CC BY-SA 要求：修改後的圖仍以 CC BY-SA 4.0 釋出、標示作者與授權、註明有修改（圖上出處列已標作者／授權，修改說明在本檔） |
-| 圖上標示 | 出處列：作者／授權／Wikimedia Commons／照片內容說明（非官方素材、非示意目標的限制語） |
-| LOGO | 版面無任何公司 LOGO；文末一句「與各公司無合作或授權關係」 |
+| 類別 | 自行重繪的示意圖（非照片）：HBM 堆疊剖面，檔案 `hbm_diagram.svg`，由 `render.py` 嵌入 |
+| 內容 | DRAM 晶粒 ×12、TSV 矽穿孔（唯一用紅色）、基底晶粒、矽中介層、封裝基板、旁邊的 GPU；層數與比例為示意 |
+| 依據 | 依公開的 HBM 結構通則繪製（DRAM 晶粒垂直堆疊、TSV 穿孔相連、基底晶粒、矽中介層與 GPU 並排）；不描摹任何公司圖面、無任何公司標記 |
+| 授權 | 自製，無第三方素材；字型 Noto Sans TC（SIL OFL 1.1） |
+| 取代原因 | 原用 repo 圖庫「記憶體/photo_5」（一般 DDR4 模組，晶片上有記憶體廠牌標記，易與文中 SK hynix 混淆）；圖庫其餘記憶體照也都是有廠牌的模組／舊式晶片，故改自繪 |
+| 圖上標示 | 圖框右上「示意圖」；出處列「示意圖：依公開資料自行繪製…非任何公司產品圖」 |
+| LOGO | 無；文末一句「與各公司無合作或授權關係」 |
+| 審核 | 美編（art-director）複審 2026-11-04 通過；結構（mechanical-engineer）審：待 CEO 派工（本環境無法派 Agent） |
 | 禁止項檢查 | 非新聞照、非 AI 生成、無比比 |

@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="460" viewBox="0 0 1080 460" font-family="'Noto Sans TC',sans-serif">
+<rect width="1080" height="460" fill="#EFEFEF"/>
+<rect x="60" y="402" width="700" height="28" fill="#CFCFCF" stroke="#8A8A8A" stroke-width="1.5"/>
+<rect x="80" y="368" width="660" height="30" fill="#9A9A9A"/>
+<rect x="100" y="398" width="8" height="4" fill="#595959"/>
+<rect x="122" y="398" width="8" height="4" fill="#595959"/>
+<rect x="144" y="398" width="8" height="4" fill="#595959"/>
+<rect x="166" y="398" width="8" height="4" fill="#595959"/>
+<rect x="188" y="398" width="8" height="4" fill="#595959"/>
+<rect x="210" y="398" width="8" height="4" fill="#595959"/>
+<rect x="232" y="398" width="8" height="4" fill="#595959"/>
+<rect x="254" y="398" width="8" height="4" fill="#595959"/>
+<rect x="276" y="398" width="8" height="4" fill="#595959"/>
+<rect x="298" y="398" width="8" height="4" fill="#595959"/>
+<rect x="320" y="398" width="8" height="4" fill="#595959"/>
+<rect x="342" y="398" width="8" height="4" fill="#595959"/>
+<rect x="364" y="398" width="8" height="4" fill="#595959"/>
+<rect x="386" y="398" width="8" height="4" fill="#595959"/>
+<rect x="408" y="398" width="8" height="4" fill="#595959"/>
+<rect x="430" y="398" width="8" height="4" fill="#595959"/>
+<rect x="452" y="398" width="8" height="4" fill="#595959"/>
+<rect x="474" y="398" width="8" height="4" fill="#595959"/>
+<rect x="496" y="398" width="8" height="4" fill="#595959"/>
+<rect x="518" y="398" width="8" height="4" fill="#595959"/>
+<rect x="540" y="398" width="8" height="4" fill="#595959"/>
+<rect x="562" y="398" width="8" height="4" fill="#595959"/>
+<rect x="584" y="398" width="8" height="4" fill="#595959"/>
+<rect x="606" y="398" width="8" height="4" fill="#595959"/>
+<rect x="628" y="398" width="8" height="4" fill="#595959"/>
+<rect x="650" y="398" width="8" height="4" fill="#595959"/>
+<rect x="672" y="398" width="8" height="4" fill="#595959"/>
+<rect x="694" y="398" width="8" height="4" fill="#595959"/>
+<rect x="716" y="398" width="8" height="4" fill="#595959"/>
+<rect x="100" y="168" width="330" height="196" fill="#111"/>
+<text x="265" y="278" font-size="32" font-weight="700" fill="#fff" text-anchor="middle">GPU 運算晶片</text>
+<rect x="490" y="340" width="220" height="24" fill="#111"/>
+<rect x="496" y="319" width="208" height="17" fill="#595959"/>
+<rect x="496" y="298" width="208" height="17" fill="#595959"/>
+<rect x="496" y="277" width="208" height="17" fill="#595959"/>
+<rect x="496" y="256" width="208" height="17" fill="#595959"/>
+<rect x="496" y="235" width="208" height="17" fill="#595959"/>
+<rect x="496" y="214" width="208" height="17" fill="#595959"/>
+<rect x="496" y="193" width="208" height="17" fill="#595959"/>
+<rect x="496" y="172" width="208" height="17" fill="#595959"/>
+<rect x="496" y="151" width="208" height="17" fill="#595959"/>
+<rect x="496" y="130" width="208" height="17" fill="#595959"/>
+<rect x="496" y="109" width="208" height="17" fill="#595959"/>
+<rect x="496" y="88" width="208" height="17" fill="#595959"/>
+<rect x="527.5" y="88" width="5" height="276" fill="#D4231A"/>
+<rect x="572.5" y="88" width="5" height="276" fill="#D4231A"/>
+<rect x="622.5" y="88" width="5" height="276" fill="#D4231A"/>
+<rect x="667.5" y="88" width="5" height="276" fill="#D4231A"/>
+<line x1="704" y1="133" x2="782" y2="133" stroke="#111" stroke-width="1.5"/>
+<text x="796" y="142" font-size="28" font-weight="700" fill="#111">DRAM 晶粒 × 12</text>
+<line x1="670" y1="245" x2="782" y2="245" stroke="#111" stroke-width="1.5"/>
+<text x="796" y="254" font-size="28" font-weight="700" fill="#D4231A">TSV 矽穿孔</text>
+<line x1="710" y1="350" x2="782" y2="318" stroke="#111" stroke-width="1.5"/>
+<text x="796" y="327" font-size="28" font-weight="700" fill="#111">基底晶粒</text>
+<line x1="740" y1="382" x2="782" y2="382" stroke="#111" stroke-width="1.5"/>
+<text x="796" y="391" font-size="28" font-weight="700" fill="#111">矽中介層</text>
+<line x1="760" y1="416" x2="782" y2="432" stroke="#111" stroke-width="1.5"/>
+<text x="796" y="441" font-size="28" font-weight="700" fill="#111">封裝基板</text>
+<text x="600.0" y="74" font-size="28" font-weight="700" fill="#111" text-anchor="middle">HBM 堆疊</text>
+<text x="1030" y="42" font-size="24" fill="#595959" text-anchor="end">示意圖</text>
+</svg>
