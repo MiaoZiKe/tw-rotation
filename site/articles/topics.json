@@ -1,6 +1,121 @@
 {
- "updated": "2026-11-02",
+ "updated": "2026-11-03",
  "topics": [
+  {
+   "id": "n_capex_delay",
+   "cat": "news",
+   "title": "微軟 Alphabet 沒再上修資本支出，AI 訂單是延後還是取消",
+   "why": "10/28 財報後，CNBC（10/29）稱微軟全年資本支出預測由 1750 億調為 1700 億美元、部分產能因晶片供應延遲到 2027 上半年，Alphabet 維持 1950～2050 億美元；讀者會問是不是不買了。單一來源、另有說法是租約會計認列，寫稿前須查財報原文；與 Alphabet 資本支出題角度不同，切入延後或取消",
+   "score": 4,
+   "format_hint": "兩者",
+   "added": "2026-11-03",
+   "site_links": [
+    "#industry/ai_server",
+    "#industry/semiconductor"
+   ]
+  },
+  {
+   "id": "n_fed_nofwd",
+   "cat": "news",
+   "title": "聯準會不再給方向，市場靠什麼猜 12 月",
+   "why": "10/28 Fed 以 10 比 2 維持利率，CME FedWatch 顯示 12 月升息機率約 85%（CNN、Admiral Markets 10/28）；報導稱新主席除危機外不做前瞻指引，讀者會問不講了怎麼判斷。該說法與減少開會皆單一來源，須核對；只寫溝通方式改變，不重講升息成因",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-03",
+   "site_links": [
+    "#flow",
+    "#overview"
+   ]
+  },
+  {
+   "id": "n_nvda_cust",
+   "cat": "news",
+   "title": "輝達 10 月跌 11.4%，客戶支出為何成了股價主軸",
+   "why": "Investing.com 分析稱輝達 10 月跌 11.4%，市場把微軟說法解讀為訂單遞延而非取消，下個觀察點是財報；數字與財報日皆單一來源，須查官方；與資本支出延後題同源，擇一先寫，不點名值得關注的個股",
+   "score": 3,
+   "format_hint": "貼文",
+   "added": "2026-11-03",
+   "site_links": [
+    "#themes",
+    "#industry/semiconductor"
+   ]
+  },
+  {
+   "id": "i_fhc_chain",
+   "cat": "intro",
+   "title": "金融業鏈：銀行、壽險到證券怎麼分工",
+   "why": "站內有 bank、life_fhc、securities_fhc 族群頁；金控常把三塊綁在一起，讀者分不清收入來源與景氣敏感度，需附供應鏈圖，講環節不排受惠",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-03",
+   "site_links": [
+    "#industry/group/bank",
+    "#industry/group/life_fhc",
+    "#industry/group/securities_fhc"
+   ]
+  },
+  {
+   "id": "i_ecom_logistics",
+   "cat": "intro",
+   "title": "電商物流鏈：平台、倉儲到宅配怎麼銜接",
+   "why": "站內有 ecommerce、land_transport 族群頁；一個包裹從下單到送達涉及平台與陸運宅配，需附供應鏈圖，講環節不排受惠",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-03",
+   "site_links": [
+    "#industry/group/ecommerce",
+    "#industry/group/land_transport"
+   ]
+  },
+  {
+   "id": "i_connector_ind",
+   "cat": "intro",
+   "title": "連接器鏈：工業、消費到車用怎麼分",
+   "why": "站內有 connector_ind、connector_auto 族群頁；讀者只聽過高速連接器，不知工業與車用規格差異，需附供應鏈圖，講環節不排受惠；避開已有的高速傳輸鏈",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-03",
+   "site_links": [
+    "#industry/group/connector_ind",
+    "#industry/group/connector_auto"
+   ]
+  },
+  {
+   "id": "k_ai_rack",
+   "cat": "know",
+   "title": "AI 機櫃是什麼？一座 NVL72 拆開有哪幾層",
+   "why": "AI 機櫃新聞常提運算托盤與交換器，少有人拆開講層次；站內有 3D 圖 ai_server（AI 伺服器機櫃 NVL72 式），文章＋3D 圖，已上架 AI 伺服器入門可銜接，只講結構，不排受惠",
+   "score": 4,
+   "format_hint": "文章＋3D 圖",
+   "added": "2026-11-03",
+   "site_links": [
+    "#industry/ai_server"
+   ]
+  },
+  {
+   "id": "k_cowos_bridge",
+   "cat": "know",
+   "title": "CoWoS-L 是什麼？矽中介層與局部矽橋差在哪",
+   "why": "站內有 3D 圖 semiconductor（CoWoS-L 先進封裝立體剖面），已上架 CoWoS 文可銜接，本題講 CoWoS-L 結構與矽橋取捨，不排受惠；文章＋3D 圖",
+   "score": 3,
+   "format_hint": "文章＋3D 圖",
+   "added": "2026-11-03",
+   "site_links": [
+    "#industry/group/ai_adv_packaging"
+   ]
+  },
+  {
+   "id": "k_vapor_chamber",
+   "cat": "know",
+   "title": "均熱片是什麼？熱怎麼從晶片攤開到散熱器",
+   "why": "散熱新聞常提均熱片與熱管卻少有人講原理；站內有 2.5D 圖 thermal（散熱與液冷：熱從晶片到機房），文章＋2.5D 圖，已上架氣冷與水冷文可銜接，只講原理，不排受惠；圖內是否含均熱片須先對照圖面",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-03",
+   "site_links": [
+    "#heatmap/theme/thermal"
+   ]
+  },
   {
    "id": "n_rareearth_nov10",
    "cat": "news",
