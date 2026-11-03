@@ -124,7 +124,7 @@ def t_survey_1101(b, base, code):
         use = J("() => [...document.querySelectorAll('#svUseCard > .br')].map(r => r.querySelector('.nm').textContent + ':' + r.querySelector('.val').firstChild.textContent)")
         ok(f"{T}：最實用母分頁排行 個股10／資金流向4／總覽1（不重複加總子分頁）", use == ["個股:10", "資金流向:4", "總覽:1"], use)
         imp = J("() => [...document.querySelectorAll('#svImpCard > .br')].map(r => r.querySelector('.nm').textContent + ':' + r.querySelector('.val').firstChild.textContent)")
-        ok(f"{T}：需改善排行 產業地圖4／季節性2", imp == ["產業地圖:4", "季節性:2"], imp)
+        ok(f"{T}：需改善排行 產業地圖4／週期統計2", imp == ["產業地圖:4", "週期統計:2"], imp)
         ok(f"{T}：想要的功能統計 ETF 4 票最前", J("() => document.querySelector('#svWant .br .nm').textContent") == "ETF" and J("() => document.querySelector('#svWant .br .val').firstChild.textContent") == "4")
         n0 = J("() => document.querySelectorAll('#svUseCard .subs').length")
         pg.click("#svUseCard [data-par]"); pg.wait_for_timeout(300)
