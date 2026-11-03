@@ -128,12 +128,22 @@ S["B1_cover"] = f"""{top('技術白話', '1 / 3')}
 # B2：只取「主剖面」(裁掉原圖左上導言——它在講已移除的卡片；與圖內 12px 級小字)，放大到滿版，標題改 56px 大字
 _im = Image.open(DG).convert("RGB").crop((150, 285, 1235, 1080))
 _bio = io.BytesIO(); _im.save(_bio, "PNG"); dgc = "data:image/png;base64," + base64.b64encode(_bio.getvalue()).decode()
+# 分層標示：三列由上到下，順序＝圖上由上到下的實際層；每列第二欄寫「該層下緣的接點」：微凸塊（最小）、C4 凸塊（中）、BGA 球（最大），
+# 讓標題「一路變小」由標示直接對得上（上＝晶粒＋記憶體、中＝矽中介層、下＝載板＋BGA 球）。
+_IW = 790
+_bands = [("上", "晶粒＋記憶體", "下緣接點：微凸塊（最小）"), ("中", "矽中介層", "下緣接點：C4 凸塊（中）"), ("下", "載板＋BGA 球", "下緣接點：BGA 球（最大）")]
+_lab = "".join(
+    f'<div style="display:flex;align-items:baseline;gap:18px;border-top:2px solid {LINE};padding:8px 0 6px;line-height:1.35">'
+    f'<div style="width:300px;font-size:34px;font-weight:800;white-space:nowrap"><span class="n red">{n}</span> {x}</div>'
+    f'<div style="font-size:28px;font-weight:500;color:{GREY};white-space:nowrap">{y}</div></div>'
+    for n, x, y in _bands)
 S["B2_diagram"] = f"""{top('技術白話', '2 / 3')}
 <div class="body" style="padding-top:36px">
   <div style="display:flex;gap:14px;align-items:center"><span class="tag">2.5D 先進封裝剖面（以 CoWoS 為例）</span></div>
   <div style="font-size:60px;font-weight:900;line-height:1.25;margin-top:22px">接點由下往上，<span class="red">一路變小</span></div>
-  <div style="margin-top:22px;border-top:3px solid {INK};padding-top:14px"><img data-b src="{dgc}" width="952" style="display:block;margin:0 auto;border-bottom:2px solid {LINE}"></div>
-  <div style="display:flex;margin-top:18px">{''.join(f'<div style="flex:1;font-size:34px;font-weight:800;line-height:1.35;white-space:nowrap;{"padding-left:18px;border-left:2px solid "+LINE if i else ""}"><span class="n red">{n}</span> {t}</div>' for i,(n,t) in enumerate([("上","晶粒＋記憶體"),("中","矽中介層"),("下","載板＋BGA 球")]))}</div>
+  <div style="margin-top:22px;border-top:3px solid {INK};padding-top:14px"><img data-b src="{dgc}" width="{_IW}" style="display:block;margin:0 auto;border-bottom:2px solid {LINE}"></div>
+  <div style="margin-top:10px">{_lab}</div>
+  <div style="margin-top:8px;font-size:26px;color:{GREY};line-height:1.4">兩側是記憶體，中間是運算晶粒（其上另疊一顆）；<br>虛線＝訊號、供電、熱的走向示意。</div>
 </div>{ft('示意圖，非實物比例。CoWoS 為台積電之商標。', '科技透明圈')}"""
 S["B3_points"] = f"""{top('技術白話', '3 / 3')}
 <div class="body">

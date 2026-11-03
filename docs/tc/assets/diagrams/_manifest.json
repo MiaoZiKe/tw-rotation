@@ -6,7 +6,13 @@
    1350
   ],
   "cut": [],
-  "codes": []
+  "codes": [],
+  "review": {
+   "date": "2026-11-03",
+   "by": "mechanical-engineer",
+   "status": "暫不可用",
+   "note": "截圖導言與動線圖例被截掉、中央疊晶未標示；結構本身正確，僅可裁主剖面使用（見 B2）"
+  }
  },
  "foundry": {
   "title": "晶圓代工：電晶體與製程迴圈",
@@ -17,7 +23,13 @@
   "cut": [
    "三代電晶體改的都是同一件事 —— 閘極能管到通道的幾個面（1 → 3 → 4）。"
   ],
-  "codes": []
+  "codes": [],
+  "review": {
+   "date": "2026-11-03",
+   "by": "mechanical-engineer",
+   "status": "暫不可用",
+   "note": "「誰做的」卡片被截成空殼；GAA 左右箭頭存疑（網站原圖待修）"
+  }
  },
  "hbm": {
   "title": "HBM 堆疊記憶體",
@@ -28,7 +40,13 @@
   "cut": [
    "把多顆 DRAM 疊起來、用一根根穿透的孔（TSV）連成一整塊；最底下那顆不是記"
   ],
-  "codes": []
+  "codes": [],
+  "review": {
+   "date": "2026-11-03",
+   "by": "mechanical-engineer",
+   "status": "暫不可用",
+   "note": "僅 2D 版（「誰做的」卡片被截成空殼、「台股無直接對應」字樣殘留（截圖腳本待修）；結構正確）；3D 版通過"
+  }
  },
  "silicon_wafer": {
   "title": "矽晶圓：從熔湯到鏡面",
@@ -39,7 +57,13 @@
   "cut": [
    "一鍋熔湯 → 一根拉出來的單晶柱子 → 一片磨到鏡面的圓片。左邊是 CZ 提拉法"
   ],
-  "codes": []
+  "codes": [],
+  "review": {
+   "date": "2026-11-03",
+   "by": "mechanical-engineer",
+   "status": "通過",
+   "note": ""
+  }
  },
  "ai_server": {
   "title": "AI 伺服器機櫃與運算托盤",
@@ -48,7 +72,13 @@
    1350
   ],
   "cut": [],
-  "codes": []
+  "codes": [],
+  "review": {
+   "date": "2026-11-03",
+   "by": "mechanical-engineer",
+   "status": "通過",
+   "note": ""
+  }
  },
  "pcb_rigid": {
   "title": "PCB 硬板多層剖面",
@@ -57,7 +87,13 @@
    1350
   ],
   "cut": [],
-  "codes": []
+  "codes": [],
+  "review": {
+   "date": "2026-11-03",
+   "by": "mechanical-engineer",
+   "status": "通過",
+   "note": ""
+  }
  },
  "ic_substrate": {
   "title": "IC 載板 ABF 增層剖面",
@@ -66,7 +102,13 @@
    1350
   ],
   "cut": [],
-  "codes": []
+  "codes": [],
+  "review": {
+   "date": "2026-11-03",
+   "by": "mechanical-engineer",
+   "status": "通過",
+   "note": ""
+  }
  },
  "air_cooling": {
   "title": "氣冷散熱模組",
@@ -75,7 +117,13 @@
    1350
   ],
   "cut": [],
-  "codes": []
+  "codes": [],
+  "review": {
+   "date": "2026-11-03",
+   "by": "mechanical-engineer",
+   "status": "暫不可用",
+   "note": "僅 2D 版（反轉雙轉子只畫一顆馬達，與原廠與專利說法不符（網站原圖待修））；3D 版通過"
+  }
  },
  "liquid_cooling": {
   "title": "液冷：冷板與熱管",
@@ -84,7 +132,13 @@
    1350
   ],
   "cut": [],
-  "codes": []
+  "codes": [],
+  "review": {
+   "date": "2026-11-03",
+   "by": "mechanical-engineer",
+   "status": "通過",
+   "note": ""
+  }
  },
  "server_psu": {
   "title": "伺服器電源路徑",
@@ -93,7 +147,13 @@
    1350
   ],
   "cut": [],
-  "codes": []
+  "codes": [],
+  "review": {
+   "date": "2026-11-03",
+   "by": "mechanical-engineer",
+   "status": "通過",
+   "note": ""
+  }
  },
  "ai_interconnect": {
   "title": "高速互連連接器",
@@ -102,7 +162,13 @@
    1350
   ],
   "cut": [],
-  "codes": []
+  "codes": [],
+  "review": {
+   "date": "2026-11-03",
+   "by": "mechanical-engineer",
+   "status": "通過",
+   "note": ""
+  }
  },
  "switch_wireless": {
   "title": "交換器板卡與光模組",
@@ -111,7 +177,13 @@
    1350
   ],
   "cut": [],
-  "codes": []
+  "codes": [],
+  "review": {
+   "date": "2026-11-03",
+   "by": "mechanical-engineer",
+   "status": "暫不可用",
+   "note": "金色橫條被全站 CSS 拉長到板外（網站原圖待修）、「台股無直接對應」殘留"
+  }
  },
  "mlcc": {
   "title": "MLCC 疊層剖析",
@@ -120,6 +192,12 @@
    1350
   ],
   "cut": [],
-  "codes": []
+  "codes": [],
+  "review": {
+   "date": "2026-11-03",
+   "by": "mechanical-engineer",
+   "status": "通過",
+   "note": ""
+  }
  }
 }
