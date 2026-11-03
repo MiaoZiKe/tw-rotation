@@ -40,3 +40,6 @@ Andy 原話：「需要符合科技透明圈那樣有 LOGO 意義」。做法照
 ## 限制
 - 範例字型為 Chromium 後備字型，真字型寬度需再跑一次檢查。
 - 只量了 110／40px 圓形；沒有量過實機 IG 顯示。
+
+## 第二輪（依 review.md）
+見 `round2/`、`overview_round2.png`。推薦：1 錯高雙塊（2b，已更新為 `site/channels/logos/ai_intro.svg`）、2 整合雙色塊（2a）、3 2×2 實驗二綠一空一琥珀（8a）。封面標誌左緣 64px、高 44px，重疊 0 筆、最小間距 24px。重繪：`src/round2.py` 後跑 `src/shot2.js`。
