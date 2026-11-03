@@ -216,12 +216,12 @@
          閘極沿片寬方向把整片包起來，用工程圖慣用的記號畫：⊙＝朝向你、⊗＝進到紙面裡。
          數面數＝ path.arw（上、下）＋ circle.arwx（前、後），合計 4。*/
       const mid = lay.sheets[1];
-      const oop = (x, y, into) => `<circle class="arwx" cx="${x}" cy="${y}" r="5.5" fill="none" stroke="${C.cyan}" stroke-width="1.6"/>`
-        + (into ? `<path d="M${x - 3},${y - 3} L${x + 3},${y + 3} M${x - 3},${y + 3} L${x + 3},${y - 3}" stroke="${C.cyan}" stroke-width="1.6" fill="none"/>`
-                : `<circle cx="${x}" cy="${y}" r="1.8" fill="${C.cyan}"/>`);
-      g.push(part('fd_face4', arw(cx - 18, mid - 16, cx - 18, mid - 3)
-        + arw(cx - 18, mid + SH_T + 16, cx - 18, mid + SH_T + 3)
-        + oop(cx + 14, mid - 9.5, false) + oop(cx + 34, mid - 9.5, true)));
+      const oop = (x, y, into) => `<circle class="arwx" cx="${x}" cy="${y}" r="7.5" fill="none" stroke="${C.cyan}" stroke-width="1.8"/>`
+        + (into ? `<path d="M${x - 4.5},${y - 4.5} L${x + 4.5},${y + 4.5} M${x - 4.5},${y + 4.5} L${x + 4.5},${y - 4.5}" stroke="${C.cyan}" stroke-width="1.8" fill="none"/>`
+                : `<circle cx="${x}" cy="${y}" r="2.6" fill="${C.cyan}"/>`);
+      g.push(part('fd_face4', arw(cx - 30, mid - 16, cx - 30, mid - 3)
+        + arw(cx - 30, mid + SH_T + 16, cx - 30, mid + SH_T + 3)
+        + oop(cx + 8, mid - 9.5, false) + oop(cx + 32, mid - 9.5, true)));
       // 可變片寬（NanoFlex，示意）：兩疊寬窄不同的片，灰階小圖，**不寫任何寬度數字**（§7-B2）
       g.push(part('fd_flex', '<g opacity=".7">'
         + [0, 1, 2].map(i => R(L0 + 14, 142 + i * 11, 22, 6, C.mute, 'part', 1)).join('')
@@ -498,8 +498,8 @@
       ${card({ part: 'fd_face3', no: 10, side: 'l', color: C.cyan, ax: CXS[1] - 36, ay: 150, title: '閘極管到 3 面', sub: ['上、左、右各一支箭頭，指著左邊那片鰭的閘極。'] })}
       ${card({ part: 'fd_fin_iso', no: 11, side: 'r', color: C.mute, ax: CXS[1] + 60, ay: 145, title: '等角輔助：閘極跨過鰭', sub: ['主圖是「垂直於鰭」的橫剖面；這個小圖從斜上方看，說明閘極是橫跨過鰭的。'] })}
       ${card({ part: 'fd_gaa', no: 12, side: 'r', color: C.steel, ax: CXS[2] + 56, ay: 200, title: '閘極金屬（填進每一片之間）', sub: ['★ 這是「Gate-All-Around」這個名字的全部意義：每一對相鄰奈米片之間都有金屬，最下面那片的下方也有。只畫在最上面＝畫的是 FinFET。'] })}
-      ${card({ part: 'fd_sheet', no: 13, side: 'r', color: C.si, ax: CXS[2], ay: 210, title: '奈米片（nanosheet）', sub: ['2～4 片水平堆疊、彼此不相連；片寬遠大於片厚（本圖 8 倍）—— 正方形斷面那是奈米線，不是奈米片。'] })}
-      ${card({ part: 'fd_face4', no: 14, side: 'r', color: C.cyan, ax: CXS[2] - 18, ay: 196, title: '閘極管到 4 面', sub: ['這一格是沿通道切開的剖面，紙面裡只看得到上、下兩支箭頭；另外兩面在紙面前後 —— ⊙＝朝向你、⊗＝進紙面，閘極沿片寬把中間那一片整圈包住。'] })}
+      ${card({ part: 'fd_sheet', no: 13, side: 'r', color: C.si, ax: CXS[2] + 28, ay: 229, title: '奈米片（nanosheet）', sub: ['2～4 片水平堆疊、彼此不相連；片寬遠大於片厚（本圖 8 倍）—— 正方形斷面那是奈米線，不是奈米片。'] })}
+      ${card({ part: 'fd_face4', no: 14, side: 'r', color: C.cyan, ax: CXS[2] - 52, ay: 199, title: '閘極管到 4 面', sub: ['這一格是沿通道切開的剖面，紙面裡只看得到上、下兩支箭頭；另外兩面在紙面前後 —— ⊙＝朝向你、⊗＝進紙面，閘極沿片寬把中間那一片整圈包住。'] })}
       ${card({ part: 'fd_flex', no: 15, side: 'r', color: C.mute, ax: CXS[2] - 76, ay: 118, title: '片寬可調（NanoFlex，示意）', sub: ['要速度就加寬、要省電就變窄。★ 本圖不寫任何寬度數字。'] })}
       ${note({ side: 'r', order: 0, warn: true, title: '★ 誰做的（結論）', lines: ['先進節點（N3／N2／A16）台股只有 2330 台積電。族群成分股 7 檔裡有 4 檔（5347 世界先進／3105 穩懋／8086 宏捷科／4991 環宇-KY）不在供應鏈資料裡，所以零件小卡列不出它們 —— 那不是壞掉。逐段名單見最後一段。'] })}
       ${note({ side: 'r', order: 99, title: '示意圖，非實物比例', lines: ['各層厚度與尺寸均為誇張放大；剖面兩端的源／汲為示意，不與閘極同切面。', '節點效能數字為媒體整理（2026），會過期；本圖不寫任何良率、成本、市占率與產能數字。'] })}

@@ -49,6 +49,13 @@ def t_dg_fix_1103(b, base, code):
               return { f4: d.length, f4oop: q('[data-part="fd_face4"] circle.arwx').length, horiz: d.filter(a => Math.abs(a[1] - a[3]) < 0.5).length,
                        f3: q('[data-part="fd_face3"] path.arw').length, f1: q('[data-part="fd_face1"] path.arw').length }; }""")
             ok(f"【{T}】{w} GAA 格：沿通道剖面只畫上下兩支箭頭、左右（源汲方向）一支都不畫，前後兩面用 ⊙⊗，合計 4 面", f["f4"] == 2 and f["horiz"] == 0 and f["f4oop"] == 2, f)
+            ov = pg.evaluate("""() => { const A = [...document.querySelectorAll('svg.dg g.anc')].filter(g => ['12', '13', '14', '15'].includes((g.textContent || '').trim()))
+              .map(g => { const r = g.getBoundingClientRect(); return { n: g.textContent.trim(), cx: r.x + r.width / 2, cy: r.y + r.height / 2, r: Math.min(r.width, r.height) / 2 }; });
+              const bad = []; for (let i = 0; i < A.length; i++) for (let j = i + 1; j < A.length; j++) if (Math.hypot(A[i].cx - A[j].cx, A[i].cy - A[j].cy) < A[i].r + A[j].r) bad.push([A[i].n, A[j].n]);
+              const arw = [...document.querySelectorAll('[data-part="fd_face4"] path.arw, [data-part="fd_face4"] circle.arwx')].map(e => e.getBoundingClientRect());
+              const hit = []; A.filter(a => a.n === '14' || a.n === '13').forEach(a => arw.forEach(r => { if (a.cx > r.left - a.r && a.cx < r.right + a.r && a.cy > r.top - a.r && a.cy < r.bottom + a.r) hit.push(a.n); }));
+              return { n: A.length, bad, hit }; }""")
+            ok(f"【{T}】{w} GAA 格編號圓圈 12／13／14／15 兩兩不相交，13、14 也沒壓到箭頭或 ⊙⊗", ov["n"] == 4 and not ov["bad"] and not ov["hit"], ov)
             ok(f"【{T}】{w} 平面 1 面、FinFET 3 面不受影響", f["f1"] == 1 and f["f3"] == 3, f)
         except Exception as e:
             ok(f"【{T}】{w} 操作中途爆掉", False, repr(e)[:200])
