@@ -64,7 +64,7 @@ for k,n,m,fn in L:
     D,Li=uri(svg(fn,build.DARK)),uri(svg(fn,build.LIGHT))
     cells+=f'''<div class="c"><div class="row"><img src="{D}" width=260 height=260 style="border-radius:40px"><img src="{Li}" width=260 height=260 style="border-radius:40px;border:1px solid #cfd8e3"></div>
 <div class="row2"><img class="ci" src="{D}"><img class="ci" src="{Li}"><img class="ci s" src="{D}"><img class="ci s" src="{Li}"><span class="px">110px／40px 實際像素</span></div>
-<div class="n">{k[1:]}　{n}</div><div class="m">{m}</div></div>'''
+<div class="n">{ {'r27':'7','r28a':'8a','r28b':'8b'}.get(k,k[1:]) }　{n}</div><div class="m">{m}</div></div>'''
 page=f'''<html><body style="margin:0;background:#E9EEF4;font-family:{FONT}"><style>.g{{display:grid;grid-template-columns:repeat(3,640px);gap:28px;padding:40px}}.c{{background:#fff;border-radius:24px;padding:24px;height:640px;box-sizing:border-box}}
 .row{{display:flex;gap:24px}}.row2{{display:flex;gap:16px;align-items:center;margin:20px 0 14px}}.ci{{width:110px;height:110px;border-radius:50%}}.ci.s{{width:40px;height:40px}}.px{{font-size:18px;color:#5b6b7e}}.n{{font-size:32px;font-weight:800;color:#0F1722}}.m{{font-size:24px;color:#34465c;line-height:1.5;margin-top:6px}}h1{{margin:40px 40px 0;font-size:42px;color:#0F1722}}</style>
 <h1>頻道③ LOGO 第二輪（依審查修正）：深淺底、IG 圓形 110／40px 實際像素</h1><div class="g">{cells}</div></body></html>'''
