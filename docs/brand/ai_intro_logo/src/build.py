@@ -42,9 +42,7 @@ def l5(p):  # 日誌行
 def l6(p):  # 前後對照柱
     return (f'<rect x="120" y="262" width="110" height="130" rx="22" fill="{p["dim"]}"/>'
             f'<rect x="282" y="120" width="110" height="272" rx="22" fill="{p["g"]}"/>'
-            f'<path d="M175 226L175 206M150 226H200" stroke="{p["a"]}" stroke-width="0" />'
-            f'<circle cx="337" cy="158" r="0" fill="none"/>'
-            f'<path d="M96 424H416" stroke="{p["fg"]}" stroke-width="14" {S}/>')
+            f'<path d="M96 424H416" stroke="{p["a"]}" stroke-width="16" {S}/>')
 def l7(p):  # 放大驗證
     return (f'<circle cx="228" cy="228" r="110" stroke="{p["fg"]}" stroke-width="34" fill="none"/>'
             f'<path d="M306 306L398 398" stroke="{p["a"]}" stroke-width="40" {S}/>'

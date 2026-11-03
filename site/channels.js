@@ -296,7 +296,7 @@
     }
     bind(root);
     var want = (rest && rest[0]) || 'overview';
-    return (S.ids ? Promise.resolve() : load()).then(function () {
+    return (S.ids && S.ids.every(function (id) { return S.data[id]; }) ? Promise.resolve() : load()).then(function () {
       S.sub = want === 'overview' || S.ids.indexOf(want) >= 0 ? want : 'overview';
       paint();
     });

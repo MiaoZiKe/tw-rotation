@@ -1,0 +1,29 @@
+/* 頻道規劃（#channels）：入口只給管理者 + 手機版面（≤640 全包在 @media，桌機不動） */
+html:not(.ch-adm) .tab[data-view="channels"],html:not(.ch-adm) a[href="#channels"],html:not(.ch-adm) [data-v="channels"],html:not(.ch-adm) [data-h="#channels"]{display:none!important}
+@media (max-width:640px){
+  #v-channels .ch{gap:var(--sp-2)}
+  #v-channels .ch-card{padding:var(--sp-3)}
+  #v-channels .ch-tabs>a{padding:6px 12px 7px;min-height:40px}
+  /* 第一屏：頂卡只留標題、標語、四個重點數字（兩欄）；說明與頻道關係已收在 details */
+  #v-channels .ch-facts{grid-template-columns:1fr 1fr;gap:var(--sp-2)}
+  #v-channels .ch-hd{flex-wrap:wrap}
+  #v-channels .ch-tag{font-size:14px}
+  #v-channels .ch-lmean{display:none}
+  /* 目標三欄 → 手機直排，只留每欄前 3 條，其餘靠頻道文件 */
+  #v-channels .ch-goals{grid-template-columns:1fr;gap:var(--sp-2)}
+  #v-channels .ch-gl li:nth-child(n+4){display:none}
+  #v-channels .ch-pgrid{grid-template-columns:1fr 1fr;gap:var(--sp-2)}
+  #v-channels .ch-pil{padding:var(--sp-2)}
+  #v-channels .ch-pt{display:none}
+  #v-channels .ch-two{grid-template-columns:1fr}
+  #v-channels .ch-pcs{grid-template-columns:1fr}
+  #v-channels .ch-sec>summary{padding:var(--sp-3);min-height:44px}
+  #v-channels .ch-sh{font-size:12px}
+  #v-channels .ch-sb{padding:0 var(--sp-3) var(--sp-3)}
+  /* 表格：手指橫拖，欄寬給下限不擠成直條 */
+  #v-channels .ch-tbl{min-width:560px}
+  #v-channels .ch-ov{min-width:760px}
+  #v-channels .ch-ptabs>button{min-height:40px}
+  #v-channels .ch-q{width:32px;height:32px;font-size:14px}
+  #v-channels .ch-pop{left:auto;right:0;width:min(320px,calc(100vw - 32px))}
+}
