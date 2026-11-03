@@ -8,9 +8,9 @@ PAL = {'淺': dict(bg='#FBF4EA', ink='#3B2F2A', acc='#A34A30'), '深': dict(bg='
 SW = 15   # 符號線寬（單位座標），頭像放大 1.6 倍後在 44px 下約 2px
 def sym(n, c):  # 單位座標，以 (0,0) 為中心，半徑約 100
     a, k = c['acc'], c['ink']
-    op = ' opacity=".6"' if c['bg'] in ('#FBF4EA','#2B2622') and c['acc'] != c['ink'] else ''
+    op = ' opacity=".8"' if c['bg'] in ('#FBF4EA','#2B2622') and c['acc'] != c['ink'] else ''
     if n == 1:  # 把燈留著：一點燈光＋兩道弧
-        return f'<circle cx="0" cy="14" r="17" fill="{a}"/><path d="M-56 14 A56 56 0 0 1 56 14" fill="none" stroke="{a}" stroke-width="{SW}" stroke-linecap="round"/><path d="M-92 14 A92 92 0 0 1 92 14" fill="none" stroke="{a}" stroke-width="{SW}" stroke-linecap="round"{op}/>'
+        return f'<circle cx="0" cy="41" r="17" fill="{a}"/><path d="M-56 41 A56 56 0 0 1 56 41" fill="none" stroke="{a}" stroke-width="{SW}" stroke-linecap="round"/><path d="M-92 41 A92 92 0 0 1 92 41" fill="none" stroke="{a}" stroke-width="{SW}" stroke-linecap="round"{op}/>'
     if n == 2:  # 今天先這樣就好：一口氣的手繪弧線＋停頓的點
         return f'<circle cx="0" cy="-48" r="17" fill="{a}"/><path d="M-92 24 C-46 4, 8 48, 92 16" fill="none" stroke="{a}" stroke-width="{SW}" stroke-linecap="round"/>'
     # 3 沒關係的房間：圓章＋拱形十字窗（有窗格與窗台，不像手機）
