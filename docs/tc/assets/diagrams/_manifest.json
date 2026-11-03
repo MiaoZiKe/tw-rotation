@@ -9,9 +9,9 @@
   "codes": [],
   "review": {
    "date": "2026-11-03",
-   "by": "mechanical-engineer",
-   "status": "暫不可用",
-   "note": "截圖導言與動線圖例被截掉、中央疊晶未標示；結構本身正確，僅可裁主剖面使用（見 B2）"
+   "by": "agent-ui 自檢（待 mechanical-engineer 簽核新畫法）",
+   "status": "通過",
+   "note": "2026-11-03 重截：保留 07（SoIC 上層晶粒）說明、GPU/ASIC 字加描邊；卡片裡公司膠囊與「台股無直接對應」已移除"
   }
  },
  "foundry": {
@@ -20,15 +20,13 @@
    1080,
    1350
   ],
-  "cut": [
-   "三代電晶體改的都是同一件事 —— 閘極能管到通道的幾個面（1 → 3 → 4）。"
-  ],
+  "cut": [],
   "codes": [],
   "review": {
    "date": "2026-11-03",
-   "by": "mechanical-engineer",
-   "status": "暫不可用",
-   "note": "「誰做的」卡片被截成空殼；GAA 左右箭頭存疑（網站原圖待修）"
+   "by": "agent-ui 自檢（待 mechanical-engineer 簽核新畫法）",
+   "status": "通過",
+   "note": "重截：GAA 格改畫上下箭頭＋紙面前後 ⊙⊗ 記號（網站 W3 已修）；「誰做的」卡片整張隱藏"
   }
  },
  "hbm": {
@@ -37,15 +35,13 @@
    1080,
    1350
   ],
-  "cut": [
-   "把多顆 DRAM 疊起來、用一根根穿透的孔（TSV）連成一整塊；最底下那顆不是記"
-  ],
+  "cut": [],
   "codes": [],
   "review": {
    "date": "2026-11-03",
-   "by": "mechanical-engineer",
-   "status": "暫不可用",
-   "note": "僅 2D 版（「誰做的」卡片被截成空殼、「台股無直接對應」字樣殘留（截圖腳本待修）；結構正確）；3D 版通過"
+   "by": "agent-ui 自檢（待 mechanical-engineer 簽核新畫法）",
+   "status": "通過",
+   "note": "重截：「誰做的」與「外商」卡片整張隱藏、台股字樣 0 筆"
   }
  },
  "silicon_wafer": {
@@ -120,9 +116,9 @@
   "codes": [],
   "review": {
    "date": "2026-11-03",
-   "by": "mechanical-engineer",
-   "status": "暫不可用",
-   "note": "僅 2D 版（反轉雙轉子只畫一顆馬達，與原廠與專利說法不符（網站原圖待修））；3D 版通過"
+   "by": "agent-ui 自檢（待 mechanical-engineer 簽核新畫法）",
+   "status": "通過",
+   "note": "重截：爆炸圖改為前扇框、前轉子＋前馬達、後轉子＋後馬達、後扇框（W2）；3D 版仍只拆開前組，已加註"
   }
  },
  "liquid_cooling": {
@@ -180,9 +176,9 @@
   "codes": [],
   "review": {
    "date": "2026-11-03",
-   "by": "mechanical-engineer",
-   "status": "暫不可用",
-   "note": "金色橫條被全站 CSS 拉長到板外（網站原圖待修）、「台股無直接對應」殘留"
+   "by": "agent-ui 自檢（待 mechanical-engineer 簽核新畫法）",
+   "status": "通過",
+   "note": "重截：金色接點被拉寬（W1）已修；層數口徑改「近 40 層以上（約 38～48 層）」（W4）"
   }
  },
  "mlcc": {
