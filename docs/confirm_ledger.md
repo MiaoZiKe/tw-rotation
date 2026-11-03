@@ -551,3 +551,9 @@ Andy 原話：「後來訂閱才可以使用 基於這些數據 去分析的結�
 - 自設提醒：Plus＝體驗 5 條、Pro 20 條；通知方式 email＋網頁通知。
 - 新功能一律要有次數上限與權限設定才准上線（信用交易、期貨籌碼這次補）。
 - 待部署：會員後端批次（wip/member-invite-api）等 Andy 回「同意部署會員後端」。
+
+## 2026-11-04 01:55 頻道③「AI 介紹頻道」規劃（commit 97003d2，已在 main；未開任何自動發文）
+| 項目 | 要 Andy 做什麼 | 去哪看 | 起始 |
+|---|---|---|---|
+| 頻道③規劃待 Andy 決定 plan.md 第七節（10 題決定＋5 樣提供） | 回「照建議」或逐題改 | https://github.com/MiaoZiKe/tw-rotation/blob/main/docs/marketing/channels/ai_intro/plan.md | 11-04 01:55 |
+| CEO 待辦：版型第 2 版（A_cover/A_reels/A_shot/A_table/A_end）未經 art-director 複審，visual_review.md 只審第 1 版；A_table、A_end 從未被審 | 補複審後才准用於發文 | docs/marketing/channels/ai_intro/visual_review.md | 11-04 01:55 |

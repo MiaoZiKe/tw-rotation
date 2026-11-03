@@ -1,0 +1,6 @@
+()=>{const els=[...document.querySelectorAll('[data-o]')].map(e=>{const r=e.getBoundingClientRect();return {o:e.dataset.o,inn:e.dataset.in||'',x:r.left,y:r.top,w:r.right,h:r.bottom}});
+const bad=[];for(let i=0;i<els.length;i++)for(let j=i+1;j<els.length;j++){const a=els[i],b=els[j];
+if(a.inn===b.o||b.inn===a.o)continue; const ix=Math.min(a.w,b.w)-Math.max(a.x,b.x), iy=Math.min(a.h,b.h)-Math.max(a.y,b.y);
+if(ix>0&&iy>0)bad.push(a.o+'×'+b.o+' '+Math.round(ix)+'x'+Math.round(iy))}
+const oob=els.filter(e=>e.x<0||e.y<0||e.w>document.body.clientWidth||e.h>document.body.clientHeight).map(e=>e.o);
+return {n:els.length,bad,oob}}
