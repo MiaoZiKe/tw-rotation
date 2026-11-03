@@ -1,28 +1,56 @@
 {
- "logo1_小喘息": [
-  {
-   "tag": "g",
-   "maxR": 166
-  },
-  {
-   "tag": "text",
-   "maxR": 181
-  }
- ],
- "logo2_慢慢來": [
-  {
-   "tag": "text",
-   "maxR": 193
-  }
- ],
- "logo3_晚安信箱": [
-  {
-   "tag": "g",
-   "maxR": 149
-  },
-  {
-   "tag": "text",
-   "maxR": 169
-  }
- ]
+ "logo1_把燈留著_深": {
+  "maxR": 172,
+  "safeR": 204.8,
+  "inSafe": true,
+  "overlap": [
+   "circle0×path1"
+  ]
+ },
+ "logo1_把燈留著_淺": {
+  "maxR": 172,
+  "safeR": 204.8,
+  "inSafe": true,
+  "overlap": [
+   "circle0×path1"
+  ]
+ },
+ "logo2_今天先這樣就好_深": {
+  "maxR": 162,
+  "safeR": 204.8,
+  "inSafe": true,
+  "overlap": [
+   "text0×text1",
+   "text1×path2"
+  ]
+ },
+ "logo2_今天先這樣就好_淺": {
+  "maxR": 162,
+  "safeR": 204.8,
+  "inSafe": true,
+  "overlap": [
+   "text0×text1",
+   "text1×path2"
+  ]
+ },
+ "logo3_沒關係的房間_深": {
+  "maxR": 255,
+  "safeR": 204.8,
+  "inSafe": false,
+  "overlap": [
+   "circle0×text1",
+   "circle0×text2",
+   "text1×text2"
+  ]
+ },
+ "logo3_沒關係的房間_淺": {
+  "maxR": 255,
+  "safeR": 204.8,
+  "inSafe": false,
+  "overlap": [
+   "circle0×text1",
+   "circle0×text2",
+   "text1×text2"
+  ]
+ }
 }

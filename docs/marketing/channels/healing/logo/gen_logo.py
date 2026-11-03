@@ -1,14 +1,19 @@
-# 三款 LOGO 草圖：純向量／排版。輸出 SVG、PNG 512、IG 圓形頭像預覽。
-F = "'Noto Sans TC','WenQuanYi Zen Hei',sans-serif"
-L = {
- 'logo1_小喘息': ('#F4EEE2', f'''<g fill="none" stroke="#A23E2B" stroke-width="12" stroke-linecap="round"><path d="M176 190 A80 80 0 0 1 336 190"/><path d="M204 190 A52 52 0 0 1 308 190" opacity=".7"/><path d="M230 190 A26 26 0 0 1 282 190" opacity=".45"/></g>
-<text x="256" y="330" text-anchor="middle" font-family="{F}" font-size="92" font-weight="900" letter-spacing="6" fill="#2B2622">小喘息</text>'''),
- 'logo2_慢慢來': ('#2E2A57', f'''<circle cx="256" cy="196" r="62" fill="#D5CEE8"/><circle cx="286" cy="174" r="54" fill="#2E2A57"/>
-<text x="256" y="350" text-anchor="middle" font-family="{F}" font-size="92" font-weight="900" letter-spacing="6" fill="#F4F1FB">慢慢來</text>'''),
- 'logo3_晚安信箱': ('#FFE98A', f'''<g fill="none" stroke="#2E2A22" stroke-width="12" stroke-linejoin="round" stroke-linecap="round"><rect x="186" y="124" width="140" height="96" rx="10"/><path d="M190 132 L256 186 L322 132"/></g>
-<text x="256" y="324" text-anchor="middle" font-family="{F}" font-size="68" font-weight="900" letter-spacing="4" fill="#2E2A22">晚安信箱</text>'''),
-}
-for n, (bg, g) in L.items():
-    svg = f'<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512"><rect width="512" height="512" fill="{bg}"/>{g}</svg>'
-    open(f'{n}.svg', 'w', encoding='utf-8').write(svg)
-    open(f'_{n}.html', 'w', encoding='utf-8').write(f'<!doctype html><meta charset=utf-8><style>body{{margin:0;background:#fff}}.c{{width:512px;height:512px;border-radius:50%;overflow:hidden}}</style><body><div id=s>{svg}</div></body>')
+# 三款 LOGO 草圖（純向量／排版；名稱用 strategy.md 候選）。python3 gen_logo.py && node render_logo.js
+F = "'Noto Serif TC','Source Han Serif TC','WenQuanYi Zen Hei',serif"
+LI = dict(bg='#FBF4EA', ink='#3B2F2A', acc='#A34A30'); DK = dict(bg='#2B2622', ink='#F6EBDD', acc='#C8A58E')
+def l1(c):  # 把燈留著：字標＋燈光弧
+    return f'''<circle cx="256" cy="186" r="14" fill="{c['acc']}"/><path d="M214 186 A42 42 0 0 1 298 186" fill="none" stroke="{c['acc']}" stroke-width="8" stroke-linecap="round" opacity=".8"/>
+<text x="256" y="300" text-anchor="middle" font-family="{F}" font-size="74" font-weight="900" letter-spacing="4" fill="{c['ink']}">把燈留著</text>'''
+def l2(c):  # 今天先這樣就好：兩行字標＋手繪底線
+    return f'''<text x="256" y="236" text-anchor="middle" font-family="{F}" font-size="66" font-weight="900" letter-spacing="4" fill="{c['ink']}">今天先</text>
+<text x="256" y="318" text-anchor="middle" font-family="{F}" font-size="66" font-weight="900" letter-spacing="4" fill="{c['ink']}">這樣就好</text>
+<path d="M170 342 C 215 330, 270 350, 342 336" fill="none" stroke="{c['acc']}" stroke-width="8" stroke-linecap="round"/>'''
+def l3(c):  # 沒關係的房間：圓章＋窗
+    return f'''<circle cx="256" cy="256" r="180" fill="none" stroke="{c['acc']}" stroke-width="8"/>
+<rect x="238" y="148" width="36" height="46" rx="6" fill="none" stroke="{c['acc']}" stroke-width="7"/>
+<text x="256" y="262" text-anchor="middle" font-family="{F}" font-size="58" font-weight="900" letter-spacing="3" fill="{c['ink']}">沒關係</text>
+<text x="256" y="332" text-anchor="middle" font-family="{F}" font-size="58" font-weight="900" letter-spacing="3" fill="{c['ink']}">的房間</text>'''
+for n, f in [('logo1_把燈留著', l1), ('logo2_今天先這樣就好', l2), ('logo3_沒關係的房間', l3)]:
+    for tag, c in [('淺', LI), ('深', DK)]:
+        svg = f'<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512"><rect width="512" height="512" fill="{c["bg"]}"/>{f(c)}</svg>'
+        open(f'{n}_{tag}.svg', 'w', encoding='utf-8').write(svg)

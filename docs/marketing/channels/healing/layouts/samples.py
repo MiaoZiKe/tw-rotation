@@ -50,11 +50,11 @@ inner(2, '沒做完的事，<br>放在桌上就好。<br>它不會跑掉。')
 inner(3, '今天說了很多次「沒事」，<br>現在可以對自己<br>說一次實話：<br><span class=em>我有點累。</span>')
 inner(4, '不用逼自己馬上睡著。<br>躺著、呼吸、什麼都不想，<br>也算休息。')
 inner(5, '辛苦了。<br>明天的事，明天再說。<br>晚安。',
- '<div class=abs data-o=help style="left:88px;top:1090px;width:904px"><div class=s28>需要時，也可以找人聊聊。1925 安心專線（24 小時）〔電話與措辭待法務核對〕</div></div>')
+ '<div class=abs data-o=help style="left:88px;top:1090px;width:904px"><div class=s28>需要時，也可以找人聊聊。1925 安心專線〔待核〕</div></div>')
 # post3 範例3：語錄卡，淺色底
 P = 'post3'
 w(P, '01_quote', 'light', head('給累了的你', '') .replace('<div class=abs data-o=no style="right:88px;top:96px;width:240px"><div class=s30 style="text-align:right"></div></div>','') +
  '<div class="abs glow" style="left:80px;top:280px;width:920px;height:560px"></div>'
  '<div class=abs data-o=main style="left:88px;top:430px;width:904px"><div class="main ser">回訊息慢了，<br>不代表你<span class=em>不在乎</span>。</div></div>'
- + ul(480, 640, 218) +
+ + ul(388, 648, 226) +
  '<div class=abs data-o=sub style="left:88px;top:720px;width:904px"><div class=sub38 style="font-size:44px">你只是電量剩 3%。</div></div>' + foot)
