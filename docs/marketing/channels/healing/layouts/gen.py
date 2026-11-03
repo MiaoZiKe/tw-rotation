@@ -21,22 +21,22 @@ def page(name, W, H, css, body):
 A = dict(bg="#FBF4EA", ink="#3B2F2A", ink2="#6E5A4E", acc="#A34A30", line="#E2D3BF")
 tex = "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='300' height='300'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' seed='4'/><feColorMatrix values='0 0 0 0 .35  0 0 0 0 .28  0 0 0 0 .2  0 0 0 .09 0'/></filter><rect width='300' height='300' filter='url(%23n)'/></svg>\")"
 cssA = f"""body{{background:{A['bg']} {tex};color:{A['ink']};font-family:{FONT}}}
-.lab{{font-size:34px;font-weight:700;color:{A['acc']};letter-spacing:10px;line-height:1.4}}
+.lab{{font-size:34px;font-weight:700;color:{A['ink2']};letter-spacing:10px;line-height:1.4}}
 .rule{{height:3px;background:{A['line']}}}
-.q{{font-size:100px;font-weight:900;line-height:1.5;letter-spacing:4px}}
+.q{{font-size:84px;font-weight:900;line-height:1.6;letter-spacing:4px}}
 .q em{{font-style:normal;color:{A['acc']}}}
 .sub{{font-size:42px;color:{A['ink2']};line-height:1.7;letter-spacing:2px}}
 .no{{font-size:30px;color:{A['ink2']};letter-spacing:4px;line-height:1.4}}
 .acct{{font-size:28px;color:{A['ink2']};text-align:right;letter-spacing:2px;line-height:1.4}}
 .h{{font-size:62px;font-weight:900;line-height:1.4;letter-spacing:3px}}
-.p{{font-size:44px;line-height:1.85;letter-spacing:2px}}.p b{{color:{A['acc']}}}
-.seal{{border:4px solid {A['acc']};color:{A['acc']};font-size:34px;font-weight:900;padding:6px 14px;line-height:1.3;letter-spacing:2px}}"""
+.p{{font-size:44px;line-height:1.85;letter-spacing:2px}}.p b{{color:{A['ink']}}}.p b.k{{color:{A['acc']}}}
+.seal{{border:4px solid {A['ink2']};color:{A['ink2']};font-size:34px;font-weight:900;padding:6px 14px;line-height:1.3;letter-spacing:2px}}"""
 page('A_quote', 1080, 1350, cssA, f"""
 <div class=abs data-o=lab style="left:88px;top:96px;width:600px"><div class=lab>今晚的一句話</div></div>
 <div class=abs data-o=no style="right:88px;top:100px;width:240px;text-align:right"><div class=no style="text-align:right">No.001</div></div>
 <div class="abs rule" style="left:88px;top:176px;width:904px"></div>
 <div class=abs data-o=quote style="left:88px;top:300px;width:904px"><div class=q>今天沒有很好，<br>也<em>沒關係</em>。<br>你已經撐到<br>晚上了。</div></div>
-<div class=abs data-o=sub style="left:88px;top:1000px;width:904px"><div class=sub>先放下手機，喝口水。<br>明天的事，明天再說。</div></div>
+<div class=abs data-o=sub style="left:88px;top:960px;width:904px"><div class=sub>先放下手機，喝口水。<br>明天的事，明天再說。</div></div>
 <div class="abs rule" style="left:88px;top:1200px;width:904px"></div>
 <div class=abs data-o=acct style="right:88px;top:1236px;width:400px"><div class=acct>{ACCT}</div></div>
 """)
@@ -45,53 +45,53 @@ page('A_inner', 1080, 1350, cssA, f"""
 <div class=abs data-o=no style="right:88px;top:100px;width:240px"><div class=no style="text-align:right">2 / 4</div></div>
 <div class="abs rule" style="left:88px;top:176px;width:904px"></div>
 <div class=abs data-o=title style="left:88px;top:250px;width:904px"><div class=h>撐著的時候，<br>也算在努力。</div></div>
-<div class=abs data-o=body style="left:88px;top:520px;width:904px"><div class=p>不是每天都要<b>很有精神</b>。<br>有些日子，只是把該做的做完，<br>就已經用掉了全部力氣。<br><br>這樣的你，<b>不需要再道歉</b>。</div></div>
+<div class=abs data-o=body style="left:88px;top:520px;width:904px"><div class=p>不是每天都要<b>很有精神</b>。<br>有些日子，只是把該做的做完，<br>就已經用掉了全部力氣。<br><br>這樣的你，<b class=k>不需要再道歉</b>。</div></div>
 <div class=abs data-o=seal style="left:88px;top:1180px"><div class=seal>存起來，睡前看</div></div>
 <div class=abs data-o=acct style="right:88px;top:1236px;width:400px"><div class=acct>{ACCT}</div></div>
 """)
 
 # ---------- B 暮色 ----------
-B = dict(g1="#1E2444", g2="#3A3563", g3="#4B3F72", ink="#F4F1FB", ink2="#D5CEE8")
+B = dict(g1="#241F33", g2="#292339", g3="#2E2742", ink="#EFEAF7", ink2="#B9AEE0")
 def cssB(H):
-    return f"""body{{background:linear-gradient(170deg,{B['g1']} 0%,{B['g2']} 55%,{B['g3']} 100%);color:{B['ink']};font-family:{FONT_S}}}
+    return f"""body{{background:linear-gradient(170deg,{B['g1']} 0%,{B['g2']} 55%,{B['g3']} 100%);color:{B['ink']};font-family:{FONT}}}
 .lab{{font-size:34px;font-weight:700;color:{B['ink2']};letter-spacing:8px;line-height:1.4}}
-.txt{{font-size:52px;font-weight:500;line-height:2.0;letter-spacing:3px}}
-.txt b{{font-weight:800}}
-.big{{font-size:132px;font-weight:900;line-height:1.35;letter-spacing:6px}}
-.sub{{font-size:46px;font-weight:500;color:{B['ink2']};line-height:1.8;letter-spacing:3px}}
+.txt{{font-size:56px;font-weight:700;line-height:1.8;letter-spacing:3px}}
+.txt b{{font-weight:900}}
+.big{{font-size:96px;font-weight:700;line-height:1.45;letter-spacing:6px}}
+.sub{{font-size:44px;font-weight:400;color:{B['ink2']};line-height:1.8;letter-spacing:3px}}
 .acct{{font-size:28px;color:{B['ink2']};text-align:right;letter-spacing:2px;line-height:1.4}}
 .moon{{border-radius:50%;box-shadow:inset -26px -8px 0 0 {B['ink2']};width:84px;height:84px}}"""
 page('B_post', 1080, 1350, cssB(1350), f"""
 <div class=abs data-o=moon style="left:88px;top:96px"><div class=moon></div></div>
 <div class=abs data-o=lab style="left:216px;top:118px;width:500px"><div class=lab>睡前一分鐘</div></div>
-<div class=abs data-o=txt style="left:88px;top:300px;width:904px"><div class=txt>今天辛苦了。<br>那些沒做完的事，<br>不會在夜裡長腳跑掉。<br><b>先睡吧，</b><br><b>明天的你會接手。</b></div></div>
+<div class=abs data-o=txt style="left:88px;top:340px;width:904px"><div class=txt>今天辛苦了。<br>那些沒做完的事，<br>不會在夜裡長腳跑掉。<br><b>先睡吧，</b><br><b>明天的你會接手。</b></div></div>
 <div class=abs data-o=acct style="right:88px;top:1236px;width:400px"><div class=acct>{ACCT}</div></div>
 """)
 # Reels：上方 250、下方 340 為平台介面安全區，所有元素落在 250～1580
 page('B_reels', 1080, 1920, cssB(1920), f"""
 <div class=abs data-o=lab style="left:88px;top:300px;width:700px"><div class=lab>睡前一分鐘</div></div>
-<div class=abs data-o=big style="left:88px;top:640px;width:904px"><div class=big>把今天<br>放下吧。</div></div>
-<div class=abs data-o=sub style="left:88px;top:1100px;width:904px"><div class=sub>你已經做得<br>夠多了。</div></div>
+<div class=abs data-o=big style="left:88px;top:600px;width:904px"><div class=big>把今天<br>放下吧。</div></div>
+<div class=abs data-o=sub style="left:88px;top:960px;width:904px"><div class=sub>你已經做得<br>夠多了。</div></div>
 <div class=abs data-o=acct style="right:88px;top:1480px;width:400px"><div class=acct>{ACCT}</div></div>
 """)
 
 # ---------- C 便利貼 ----------
-C = dict(bg="#EFE7D8", ink="#2E2A22", ink2="#5A5346", notes=["#FFE98A", "#FFD3D9", "#D4EDC4", "#CFE6F5", "#FFE98A"])
+C = dict(bg="#FBF4EA", ink="#3B2F2A", ink2="#6E5A4E", notes=["#F3D9C2", "#F5E6C4", "#EFD0C4", "#F5E6C4", "#F3D9C2"])
 items = ["喝一杯水，慢慢喝完", "肩膀放下來，深呼吸三次", "看窗外十秒鐘", "回訊息前，先停三秒", "準時下班，也是一種努力"]
 rots = [-0.6, 0.5, -0.4, 0.6, -0.5]
 cssC = f"""body{{background:{C['bg']};color:{C['ink']};font-family:{FONT_W}}}
-.note{{width:860px;padding:0 40px;display:flex;align-items:center;gap:32px;box-shadow:0 8px 0 rgba(60,45,20,.12);}}
+.note{{width:900px;padding:0 40px;display:flex;align-items:center;gap:32px;box-shadow:0 8px 0 rgba(60,45,20,.12);}}
 .box{{flex:none;width:52px;height:52px;border:5px solid {C['ink']};border-radius:8px}}
 .t{{font-size:50px;font-weight:400;line-height:1.3;letter-spacing:2px}}
 .title{{font-size:68px;font-weight:400;line-height:1.3;letter-spacing:3px}}
-.tsub{{font-size:34px;font-weight:400;color:{C['ink2']};line-height:1.4;margin-top:8px;letter-spacing:2px}}
+.tsub{{font-family:{FONT_S};font-size:34px;font-weight:500;color:{C['ink2']};line-height:1.4;margin-top:8px;letter-spacing:2px}}
 .foot{{font-size:36px;font-weight:400;color:{C['ink2']};line-height:1.5;letter-spacing:2px}}
 .acct{{font-size:28px;color:{C['ink2']};text-align:right;letter-spacing:2px;line-height:1.4}}"""
-body = f"""<div class=abs data-o=title style="left:110px;top:72px;width:860px;height:180px;background:#FFE98A;transform:rotate(-0.6deg);padding:34px 40px;box-shadow:0 8px 0 rgba(60,45,20,.12)"><div class=title>上班族小喘息清單</div><div class=tsub>每一格，三十秒就做得到</div></div>"""
+body = f"""<div class=abs data-o=title style="left:90px;top:72px;width:900px;height:180px;background:#F3D9C2;transform:rotate(-0.6deg);padding:34px 40px;box-shadow:0 8px 0 rgba(60,45,20,.12)"><div class=title>上班族小喘息清單</div><div class=tsub>每一格，三十秒就做得到</div></div>"""
 for i, (t, r) in enumerate(zip(items, rots)):
     y = 310 + i*160
-    body += f'<div class="abs note" data-o=n{i+1} style="left:110px;top:{y}px;height:116px;background:{C["notes"][i]};transform:rotate({r}deg)"><i class=box></i><div class=t>{t}</div></div>'
-body += f"""<div class=abs data-o=foot style="left:88px;top:1150px;width:560px"><div class=foot>存起來，下班前看一眼。</div></div>
+    body += f'<div class="abs note" data-o=n{i+1} style="left:90px;top:{y}px;height:116px;background:{C["notes"][i]};transform:rotate({r}deg)"><i class=box></i><div class=t>{t}</div></div>'
+body += f"""<div class=abs data-o=foot style="left:90px;top:1150px;width:560px"><div class=foot>存起來，下班前看一眼。</div></div>
 <div class=abs data-o=acct style="right:88px;top:1260px;width:400px"><div class=acct>{ACCT}</div></div>"""
 page('C_list', 1080, 1350, cssC, body)
 

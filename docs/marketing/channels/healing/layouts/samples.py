@@ -34,7 +34,7 @@ def ul(x, y, wd, m='light'): return f'<svg class=abs style="left:{x}px;top:{y}px
 P = 'post1'
 w(P, 'threads', 'light', head('週日晚上', '') .replace('<div class=abs data-o=no style="right:88px;top:96px;width:240px"><div class=s30 style="text-align:right"></div></div>','') +
  '<div class="abs glow" style="left:190px;top:300px;width:700px;height:700px"></div>'
- '<div class="abs note" data-o=note1 style="left:104px;top:340px;width:872px;height:280px;transform:rotate(-0.8deg);padding:52px 56px;background:var(--hl-card)"><div class="s30 wk" style="color:var(--hl-accent)">今晚只做一件事</div><div class="wk" style="font-size:60px;font-weight:400;line-height:1.5;margin-top:10px">把明天最小的那件事<br>寫在紙上。</div></div>'
+ '<div class="abs note" data-o=note1 style="left:104px;top:340px;width:872px;height:280px;transform:rotate(-0.8deg);padding:52px 56px;background:var(--hl-card)"><div class="s30" style="color:var(--hl-accent);font-weight:500">今晚只做一件事</div><div class="wk" style="font-size:60px;font-weight:400;line-height:1.5;margin-top:10px">把明天最小的那件事<br>寫在紙上。</div></div>'
  '<div class="abs note" data-o=note2 style="left:104px;top:700px;width:872px;height:200px;transform:rotate(0.6deg);padding:46px 56px"><div class="wk" style="font-size:56px;font-weight:400;line-height:1.5">其他的，留給明天的你。</div></div>'
  + foot)
 # post2 範例2：IG 輪播 5 張，深色底
@@ -43,7 +43,7 @@ dark_glow = '<div class="abs glow" style="left:140px;top:360px;width:800px;heigh
 w(P, '01_cover', 'dark', head('睡前一段', '1 / 5') + dark_glow +
  '<div class=abs data-o=hook style="left:88px;top:300px;width:904px"><div class="hook ser">今天先<br>到這裡。</div></div>'
  '<div class=abs data-o=sub style="left:88px;top:690px;width:700px"><div class=sub38>給還沒睡的你</div></div>'
- '<svg class=abs data-o=deco style="left:760px;top:830px" width=232 height=232 viewBox="0 0 232 232"><circle cx="116" cy="116" r="84" fill="#C8A58E"/><circle cx="152" cy="92" r="72" fill="#2B2622"/></svg>'
+ '<svg class=abs data-o=deco style="left:760px;top:830px" width=232 height=232 viewBox="0 0 232 232"><defs><mask id=mm><rect width=232 height=232 fill="#fff"/><circle cx="152" cy="92" r="72" fill="#000"/></mask></defs><circle cx="116" cy="116" r="84" fill="#C8A58E" mask="url(#mm)"/></svg>'
  '<div class=abs data-o=swipe style="left:760px;top:1110px;width:232px"><div class=s30 style="text-align:right">往右滑 →</div></div>' + foot)
 def inner(n, t, extra=''):
     w('post2', f'0{n}_inner', 'dark', head('睡前一段', f'{n} / 5') + dark_glow + f'<div class=abs data-o=main style="left:88px;top:380px;width:904px"><div class="main64 ser">{t}</div></div>' + extra + foot)
@@ -51,7 +51,7 @@ inner(2, '沒做完的事，<br>放在桌上就好。<br>它不會跑掉。')
 inner(3, '今天說了很多次「沒事」，<br>現在可以對自己<br>說一次實話：<br><span class=em>我有點累。</span>')
 inner(4, '不用逼自己馬上睡著。<br>躺著、呼吸、什麼都不想，<br>也算休息。')
 inner(5, '辛苦了。<br>明天的事，明天再說。<br>晚安。',
- '<div class=abs data-o=help style="left:88px;top:940px;width:904px"><div class=s28 style="line-height:1.6">如果你最近很辛苦，不用一個人撐：<br>・安心專線 1925（24 小時、免付費）<br>・生命線 1995<br>・張老師 1980（非 24 小時）<br>有立即危險請撥 119 或 110。</div></div>')
+ '<div class=abs data-o=help style="left:88px;top:896px;width:904px"><div class=s28 style="line-height:1.6;font-size:32px">如果你最近很辛苦，不用一個人撐：<br>・安心專線 1925（24 小時、免付費）<br>・生命線 1995<br>・張老師 1980（非 24 小時）<br>有立即危險請撥 119 或 110。</div></div>')
 # post3 範例3：語錄卡，淺色底
 P = 'post3'
 w(P, '01_quote', 'light', head('給累了的你', '') .replace('<div class=abs data-o=no style="right:88px;top:96px;width:240px"><div class=s30 style="text-align:right"></div></div>','') +
