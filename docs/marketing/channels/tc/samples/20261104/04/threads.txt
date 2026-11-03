@@ -1,0 +1,19 @@
+光模組要往晶片靠近一步了：NPO 是什麼
+
+11/3 Tower Semiconductor 發布新聞稿：光通訊廠 Innolight 的第一款近封裝光學（NPO）元件，已在 Tower 的 200 毫米矽光子製程進入早期量產；後續世代的多款 NPO 產品，也已在 Tower 的 300 毫米平台完成設計定稿（公司新聞稿自述，2026-11-03）。
+
+白話版：
+・現在機櫃之間傳資料，多靠面板上可插拔的光模組，電訊號要先在電路板上跑一段才到光模組。
+・NPO＝把光學引擎移到靠近運算晶片封裝的位置，電訊號少跑一段；位置介於可插拔光模組與更激進的 CPO（共同封裝光學）之間。
+・矽光子＝用半導體製程把光學元件做在晶片上，所以光模組廠需要有矽光子製程的晶圓廠代工；Tower 稿中提到，其平台可把多種光學功能整合在同一顆晶片。
+
+對在這條鏈上工作的人：光學設計、封裝對位、測試與可靠度，會和晶片、封裝一起考慮，不再只是模組廠的事。
+
+你的工作離「光」與「晶片」的交界處有多近？
+
+【留言】
+出處（公司自己說的）：Tower Semiconductor 新聞稿，2026-11-03。https://www.globenewswire.com/news-release/2026/11/03/3394669/0/en/tower-semiconductor-and-innolight-advance-high-performance-near-package-optics-for-ai-infrastructure.html ；公司官網 https://towersemi.com/2026/11/03/11032026/
+媒體整理（只核對日期與說法）：https://convergedigest.com/innolight-tower-semiconductor-npo-silicon-photonics-production/
+（出處連結發文前人工核對；本次只讀到搜尋摘要，未讀到新聞稿全文。）
+圖：Faber／CC BY-SA 2.0／Wikimedia Commons https://commons.wikimedia.org/wiki/File:Server_farm_2.jpg（資料中心機房示意，非 NPO 產品）。
+本帳號為個人整理，與各公司無合作或授權關係；有錯請留言，48 小時內更正。

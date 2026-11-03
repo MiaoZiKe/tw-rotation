@@ -1,5 +1,5 @@
 """頻道二（科技透明圈）範例貼文圖：瑞士極簡版型＋CC 實景照。1080x1350。
-用法：python render.py   → 01/02/03 各輸出 image.png，並印出「重疊檢查」。
+用法：python render.py [編號…]   → 01/02/03/04 各輸出（可只指定部分編號） image.png，並印出「重疊檢查」。
 色票：白 #FFFFFF／黑 #111111／瑞士紅 #D4231A／灰 #595959／細線 #CFCFCF／淡灰面 #EFEFEF。
 字型：Noto Sans TC（OFL；可變字重 TTF 路徑由環境變數 TC_FONT 指定，預設 /tmp/.../font/NotoSansTC.ttf；
       取得：raw.githubusercontent.com/google/fonts/main/ofl/notosanstc/NotoSansTC[wght].ttf，12MB 不進 repo）。
@@ -28,8 +28,14 @@ POSTS = [
       steps=[("冷板","貼在晶片上吸熱"),("冷卻液管路","把熱帶出機櫃"),("CDU","二次水路換熱"),("機房外","排出熱")],
       credit="圖：Votpuske／CC BY-SA 4.0／Wikimedia Commons。機殼內 CPU 水冷示意，非 AI 伺服器。",
       src="出處：TrendForce 新聞稿（2026-08-17）"),
+ dict(n="04", no="04", kicker="供應鏈讀書筆記｜近封裝光學 NPO", photo=LIB/"資料中心"/"photo_7.jpg", pos="50% 36%",
+      title="光模組往晶片靠近一步<br>NPO 是什麼",
+      fact="2026-11-03 Tower Semiconductor 新聞稿：Innolight 的第一款近封裝光學（NPO）元件，已在 Tower 的 200 毫米矽光子製程進入早期量產。",
+      steps=[("運算晶片","產生高速電訊號"),("光學引擎","近封裝處電轉光"),("光纖","光訊號傳出機櫃"),("對端設備","光轉電再接收")],
+      credit="圖：Faber／CC BY-SA 2.0／Wikimedia Commons。機房示意，與文中公司、產品無關。",
+      src="出處：Tower Semiconductor 新聞稿（2026-11-03）"),
 ]
-CAP = {"01": "誰供應誰：角色分工示意（依公開資料繪製，非特定客戶關係）", "02": "流程示意（依公開資料繪製）", "03": "流程示意（依公開資料繪製）"}
+CAP = {"01": "誰供應誰：角色分工示意（依公開資料繪製，非特定客戶關係）", "02": "流程示意（依公開資料繪製）", "03": "流程示意（依公開資料繪製）", "04": "流程示意（依公開資料繪製，非特定產品架構）"}
 FONT = __import__('os').environ.get('TC_FONT') or '/tmp/claude-0/-home-user-tw-rotation/1662701f-8abb-57a6-b66d-4e0b4e90dd73/scratchpad/font/NotoSansTC.ttf'
 def b64(p): return base64.b64encode(Path(p).read_bytes()).decode()
 HBM_SVG = open(HERE / "hbm_diagram.svg", encoding="utf-8").read()
@@ -70,14 +76,14 @@ if(a[1]<b[3]-0.5&&b[1]<a[3]-0.5&&a[2]<b[4]-0.5&&b[2]<a[4]-0.5)bad.push(a[0]+'x'+
 const fl=document.querySelector('.flow').getBoundingClientRect();const c=document.querySelector('.cap').getBoundingClientRect();
 if(fl.bottom>c.top)bad.push('flow x cap');return bad}"""
 if __name__ == "__main__":
-    tot = 0
+    tot = 0; n_done = 0
     with sync_playwright() as pw:
         br = pw.chromium.launch(executable_path=__import__("os").environ.get("TW_CHROME") or None); pg = br.new_page(viewport=dict(width=1080, height=1350))
-        for p in POSTS:
+        for p in [q for q in POSTS if not __import__("sys").argv[1:] or q["n"] in __import__("sys").argv[1:]]:
             (HERE / '_tmp.html').write_text(html(p), encoding='utf-8'); pg.goto('file://' + str(HERE / '_tmp.html')); pg.evaluate('document.fonts.ready'); pg.wait_for_timeout(500)
-            bad = pg.evaluate(JS); tot += len(bad)
+            bad = pg.evaluate(JS); tot += len(bad); n_done += 1
             pg.screenshot(path=str(HERE / p["n"] / "image.png"))
             print(p["n"], "重疊/溢出", len(bad), bad)
         br.close()
     (HERE / "_tmp.html").unlink(missing_ok=True)
-    print("重疊檢查：程式 3 張", tot, "筆")
+    print("重疊檢查：程式", n_done, "張", tot, "筆")
