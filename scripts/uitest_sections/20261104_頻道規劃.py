@@ -7,7 +7,7 @@ def t_channels_1104(b, base, code):
     errs = []
     shots = pathlib.Path(os.environ.get("TW_CH_SHOTS", "")) if os.environ.get("TW_CH_SHOTS") else None
     SUBS = [("overview", "總覽", "頻道清單"), ("ch1", "① 哩股哩股", "內容柱與比重"), ("ch2", "② 科技透明圈", "公司待遇行情"),
-            ("ch3", "③ AI 介紹", "規劃中"), ("ch4", "④ 心靈雞湯", "內容柱與比重"), ("funnel", "LINE＋Email", "漏斗流程"), ("review", "檢討指標", "沒達標怎麼調")]
+            ("ch3", "③ AI 介紹", "上班族的 AI 實戰"), ("ch4", "④ 心靈雞湯", "內容柱與比重"), ("funnel", "LINE＋Email", "漏斗流程"), ("review", "檢討指標", "沒達標怎麼調")]
     for w in (1440, 390):
         mob = w <= 640
         c = b.new_context(viewport={"width": w, "height": 900 if not mob else 844}, is_mobile=mob, has_touch=mob)
