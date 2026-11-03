@@ -135,6 +135,7 @@ def _num_items(title: str, summary: str, subj: str, skip: str = "", k: int = 2) 
         if subj and lab.startswith(subj) and len(lab) > len(subj) + 1:
             lab = lab[len(subj):]
         lab = LAB_HEAD.sub("", lab).strip(" 的")
+        lab = re.sub(r"^年(?=第|度|初|底|前)", "", lab)     # 11-04：「2026 年第三季毛利率」數字被吃掉剩「年第三季毛利率」→「第三季毛利率」
         if cjk_len(lab) < 2 or re.search(r"\d", lab) and cjk_len(lab) < 3 or VERB_ONLY.match(lab):
             continue
         if not meaningful_label(lab if not subj else subj + lab):      # 主體在短標題，標籤加回主體再判斷（「營收」→「三星營收」）

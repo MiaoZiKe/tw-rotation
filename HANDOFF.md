@@ -1,5 +1,9 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
+## 2026-11-04 新聞短標題截斷＋圖卡拿掉比比角標（CEO 追加；social-ops-lead；最後更新 11-04 台北）
+- 短標題：數字中的逗號／冒號不斷句、開頭專欄名與日期欄頭先拿掉（social_premarket.CLAUSE_SEP／strip_column）。圖卡標題列改文字字標「哩股哩股」（social_theme.header_html），不再用 icon-192.png 比比頭像。
+- 這批只驗：pytest 社群相關（313 passed，含新增 tests/test_social_title_badge_1104.py 6 項）；本機重算 payload 後用 11-03 真資料只產生不發：盤前 6 張、盤中 8 張、盤後 12 張、融資融券 6 張、主題文章封面 1 張，重疊檢查程式全部 0 筆，人工看過標題列與內文。沒改 site/**，_preview／_uitest 沒跑。
+
 ## 2026-11-04 自動發文不放網站網址（Andy 11-03：「首先 網頁都不公開先，人數沒有起來，沒有建立信任關係，我覺得不妥」；social-ops-lead；最後更新 11-04 台北）
 - 改了：Threads 留言只留「以上為公開資料整理，非投資建議」（拿掉網址與「完整盤勢見網站」）；IG 主題文章文案拿掉「👉 點擊以下連結」＋網址；被停時段（盤前／盤中／融資／主題文章）產生器也一起改。開關 `PROMOTE_SITE=False`（threads_lint／social_snap／social_news）。lint 出現網址即錯誤；social_publish／threads_post／ig_post 送出前自動移除。`post_quota.json` 沒動。
 - 這批只驗：pytest `-k "social or threads or ig_post or news"`（306 passed，含新增 `tests/test_social_no_url_1103.py` 7 項）＋全套 pytest 1726 passed；用 11-03 盤後真 manifest 重跑 threads_v2 → social_publish --dry-run（留言只剩免責、lint 0 錯）。沒改 site/**，_preview／_uitest 不適用、沒跑。

@@ -1,9 +1,9 @@
 """哩股哩股社群貼文共用版型（亮色 HUD 科技風）。規範全文：docs/marketing/social_unit/post_design_system.md。
 
 social_snap.py（盤中、盤後法人、盤後融資融券）與 social_premarket.py（盤前）都從這裡拿：
-色票（token）、畫布與安全邊距、標題列（LOGO＋時段膠囊＋標題＋靠右日期）、卡片與四角括角的 CSS。
+色票（token）、畫布與安全邊距、標題列（字標「哩股哩股」＋時段膠囊＋標題＋靠右日期；11-02 起不放比比頭像）、卡片與四角括角的 CSS。
 值取自網站「科技 HUD・淺」主題（site/theme4.css @tokens hud light），貼文與網站同一組色；改色只改這個檔。
-圖上不放備註、來源、網址（Andy 規定）；日期只在標題列；品牌＝標題列 LOGO，不另放浮水印。
+圖上不放備註、來源、網址（Andy 規定）；日期只在標題列；品牌＝標題列文字字標，不另放浮水印。
 """
 from __future__ import annotations
 
@@ -43,11 +43,6 @@ CANVAS = {
 SEC_FS = {"threads": 30, "story": 32}
 
 
-def logo_uri() -> str:
-    f = ROOT / "site" / "brand" / "icon-192.png"
-    return "data:image/png;base64," + base64.b64encode(f.read_bytes()).decode() if f.exists() else ""
-
-
 def vars_css() -> str:
     return ":root{" + "".join(f"--{k}:{v};" for k, v in TOKENS.items()) + "}"
 
@@ -65,6 +60,7 @@ radial-gradient(900px 520px at 12% -10%,rgba(55,200,255,.24),rgba(55,200,255,0) 
 .num{{font-family:{NUM_FONT};font-variant-numeric:tabular-nums;letter-spacing:-.01em}}
 .hd{{display:flex;align-items:center;height:88px;gap:18px;flex:none}}
 .hd img{{width:72px;height:72px;border-radius:17px;flex:none;display:block}}
+.hd .wm{{font-size:30px;font-weight:900;line-height:1.2;letter-spacing:.02em;color:#0A6A86;flex:none;white-space:nowrap;padding:6px 14px;border:2.5px solid #0A6A86;border-radius:14px}}
 .hd .chip{{font-size:28px;font-weight:800;line-height:1.5;padding:2px 18px;border-radius:12px;color:#0A1B2A;flex:none;white-space:nowrap}}
 .hd .nm{{font-size:52px;font-weight:800;line-height:1.5;white-space:nowrap;min-width:0}}
 .hd .dt{{margin-left:auto;font-size:34px;font-weight:600;line-height:1.5;color:var(--ink2);white-space:nowrap;font-family:{NUM_FONT};font-variant-numeric:tabular-nums}}
@@ -80,12 +76,31 @@ background-repeat:no-repeat}}
 """
 
 
+# ★ 2026-11-02 Andy：「比比以後不會出現在貼文上」→ 標題列左上角不再放 icon-192.png（比比頭像），改純文字字標「哩股哩股」。
+#   新 LOGO 還沒定案（docs/brand/logo_110x 都是候選），定案前一律用文字，不准擅自換成任何一款候選圖。
+BRAND_TEXT = "哩股哩股"
+
+
+def logo_uri() -> str:
+    """舊的手動範例渲染腳本（docs/marketing/posts/**）還在呼叫：回傳「哩股／哩股」兩行文字的方形字標（SVG），不再是比比頭像。"""
+    svg = ('<svg xmlns="http://www.w3.org/2000/svg" width="144" height="144" viewBox="0 0 144 144">'
+           '<rect x="3" y="3" width="138" height="138" rx="30" fill="#FFFFFF" stroke="#0A6A86" stroke-width="6"/>'
+           '<text x="72" y="66" text-anchor="middle" font-family="Noto Sans TC, Noto Sans CJK TC, sans-serif" font-size="46" font-weight="900" fill="#0A6A86">哩股</text>'
+           '<text x="72" y="116" text-anchor="middle" font-family="Noto Sans TC, Noto Sans CJK TC, sans-serif" font-size="46" font-weight="900" fill="#0A6A86">哩股</text></svg>')
+    return "data:image/svg+xml;base64," + base64.b64encode(svg.encode("utf-8")).decode()
+
+
 def header_html(kind: str, title: str, date: str, logo: str | None = None, boxes: bool = True) -> str:
-    """標題列：LOGO｜時段膠囊｜標題｜日期（靠右）。boxes＝加 data-box 讓重疊檢查量得到。"""
+    """標題列：字標「哩股哩股」｜時段膠囊｜標題｜日期（靠右）。boxes＝加 data-box 讓重疊檢查量得到。
+    logo＝明確傳圖片 data URI 才放圖（預設 None＝文字字標；""＝都不放）。"""
     chip, col = SLOT[kind]
-    logo = logo_uri() if logo is None else logo
     d = (lambda n: f" data-box={n}") if boxes else (lambda n: "")
-    img = f'<img{d("logo")} src="{logo}">' if logo else ""
+    if logo:
+        img = f'<img{d("logo")} src="{logo}">'
+    elif logo is None:
+        img = f'<span class=wm{d("logo")}>{BRAND_TEXT}</span>'
+    else:
+        img = ""
     dt = f'<div class=dt{d("date")}>{date}</div>' if date else ""
     return (f'<div class=hd>{img}<span class=chip{d("chip")} style="background:{col}">{chip}</span>'
             f'<div class=nm{d("title")}>{title}</div>{dt}</div><div class=rule></div>')
