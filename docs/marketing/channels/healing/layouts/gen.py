@@ -1,7 +1,8 @@
 # 頻道④療癒系版型樣張（純排版：不用 AI 圖、照片、比比）。產出 html/*.html，再由 render.js 截圖＋重疊檢查。
 import os, json
-FONT = "'Noto Serif TC','Source Han Serif TC','Songti TC','WenQuanYi Zen Hei',serif"   # 容器僅有文泉驛正黑，正式上線請換思源宋體
-FONT_S = "'Noto Sans TC','WenQuanYi Zen Hei',sans-serif"
+FONT = "'Noto Serif CJK TC',serif"   # 思源宋體（已裝於 ~/.fonts），SIL OFL 1.1
+FONT_S = "'Noto Sans CJK TC',sans-serif"   # 思源黑體，SIL OFL 1.1
+FONT_W = "'LXGW WenKai TC','Noto Sans CJK TC',sans-serif"   # 霞鶩文楷 TC，SIL OFL 1.1，手寫感
 ACCT = "頻道名稱待定"
 BASE = "*{box-sizing:border-box;margin:0;padding:0}body{width:%dpx;height:%dpx;position:relative;overflow:hidden}.abs{position:absolute}"
 
@@ -78,13 +79,13 @@ page('B_reels', 1080, 1920, cssB(1920), f"""
 C = dict(bg="#EFE7D8", ink="#2E2A22", ink2="#5A5346", notes=["#FFE98A", "#FFD3D9", "#D4EDC4", "#CFE6F5", "#FFE98A"])
 items = ["喝一杯水，慢慢喝完", "肩膀放下來，深呼吸三次", "看窗外十秒鐘", "回訊息前，先停三秒", "準時下班，也是一種努力"]
 rots = [-0.6, 0.5, -0.4, 0.6, -0.5]
-cssC = f"""body{{background:{C['bg']};color:{C['ink']};font-family:{FONT_S}}}
+cssC = f"""body{{background:{C['bg']};color:{C['ink']};font-family:{FONT_W}}}
 .note{{width:860px;padding:0 40px;display:flex;align-items:center;gap:32px;box-shadow:0 8px 0 rgba(60,45,20,.12);}}
 .box{{flex:none;width:52px;height:52px;border:5px solid {C['ink']};border-radius:8px}}
-.t{{font-size:50px;font-weight:700;line-height:1.3;letter-spacing:2px}}
-.title{{font-size:68px;font-weight:900;line-height:1.3;letter-spacing:3px}}
-.tsub{{font-size:34px;font-weight:500;color:{C['ink2']};line-height:1.4;margin-top:8px;letter-spacing:2px}}
-.foot{{font-size:36px;font-weight:600;color:{C['ink2']};line-height:1.5;letter-spacing:2px}}
+.t{{font-size:50px;font-weight:400;line-height:1.3;letter-spacing:2px}}
+.title{{font-size:68px;font-weight:400;line-height:1.3;letter-spacing:3px}}
+.tsub{{font-size:34px;font-weight:400;color:{C['ink2']};line-height:1.4;margin-top:8px;letter-spacing:2px}}
+.foot{{font-size:36px;font-weight:400;color:{C['ink2']};line-height:1.5;letter-spacing:2px}}
 .acct{{font-size:28px;color:{C['ink2']};text-align:right;letter-spacing:2px;line-height:1.4}}"""
 body = f"""<div class=abs data-o=title style="left:110px;top:72px;width:860px;height:180px;background:#FFE98A;transform:rotate(-0.6deg);padding:34px 40px;box-shadow:0 8px 0 rgba(60,45,20,.12)"><div class=title>上班族小喘息清單</div><div class=tsub>每一格，三十秒就做得到</div></div>"""
 for i, (t, r) in enumerate(zip(items, rots)):
