@@ -59,6 +59,17 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          # 2026-11-04：main 已有進行中或排隊中的部署時不再重叫（那一輪結束後的下一輪本來就會帶到所有 preview/*），
+          # 否則每推一次預覽就重排一輪 main，互相頂掉、永遠部署不完（run 41697888481 被 40 分鐘上限砍掉）。
+          BUSY=0
+          for ST in in_progress queued; do
+            C=$(gh api "repos/${{ github.repository }}/actions/workflows/pages.yml/runs?branch=main&status=$ST&per_page=1" --jq '.total_count' 2>/dev/null || echo 0)
+            BUSY=$((BUSY + ${C:-0}))
+          done
+          if [ "$BUSY" -gt 0 ]; then
+            echo "main 已有 $BUSY 輪部署進行中或排隊中，不再重叫；預覽會在下一輪 main 部署時一起更新。"
+            exit 0
+          fi
           gh workflow run pages.yml --repo "${{ github.repository }}" --ref main
           N="${GITHUB_REF_NAME#preview/}"
           echo "已排入 main 的部署；完成後預覽網址：https://liguligu-puipui.com/preview/${N//\//-}/ （備援：https://miaozike.github.io/tw-rotation/preview/${N//\//-}/）"
@@ -67,7 +78,7 @@ jobs:
     # main 的 push／手動執行，或刪掉的是 preview/* 分支時才部署。其他分支刪除、preview 推送一律不跑。
     if: ${{ !startsWith(github.ref, 'refs/heads/preview/') && (github.event_name != 'delete' || (github.event.ref_type == 'branch' && startsWith(github.event.ref, 'preview/'))) }}
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 90
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
