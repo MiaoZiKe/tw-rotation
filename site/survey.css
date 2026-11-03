@@ -1,0 +1,56 @@
+/* 體驗到期前問卷（survey.js）。顏色全用主題 token，深淺色自動跟。 */
+.svov { position: fixed; inset: 0; z-index: 2600; background: var(--drop, rgba(0,0,0,.5)); display: flex; align-items: center; justify-content: center; padding: var(--sp-4); }
+.svbox { width: min(640px, 100%); max-height: min(720px, 100%); display: flex; flex-direction: column; background: var(--panel); color: var(--ink); border: 1px solid var(--line-2); border-radius: var(--r-md); box-shadow: var(--tip-sh); outline: 0; overflow: hidden; }
+.svhd { display: flex; align-items: center; justify-content: space-between; padding: var(--sp-3) var(--sp-4) var(--sp-2); }
+.svprog { font-size: var(--fs-sm); color: var(--ink-2); }
+.svprog b { font-family: var(--mono); color: var(--ink); }
+.svx { width: 36px; height: 36px; border: 0; background: transparent; color: var(--ink-2); font-size: 22px; cursor: pointer; border-radius: var(--r-sm); }
+.svx:hover { background: var(--panel-2); color: var(--ink); }
+.svbar { height: 3px; background: var(--line); }
+.svbar i { display: block; height: 100%; background: var(--cyan); transition: width var(--dur) var(--ease); }
+.svbody { padding: var(--sp-4); overflow-y: auto; flex: 1 1 auto; min-height: 0; }
+.svbody h2 { margin: 0 0 var(--sp-2); font-size: var(--fs-h2); font-weight: 600; outline: 0; }
+.svhint { margin: 0 0 var(--sp-4); font-size: var(--fs-sm); color: var(--ink-2); line-height: 1.5; }
+.svstars { display: flex; gap: var(--sp-2); justify-content: center; margin: var(--sp-4) 0 var(--sp-2); }
+.svstar { width: 52px; height: 52px; font-size: 34px; line-height: 1; border: 1px solid var(--line-2); background: var(--panel-2); color: var(--ink-3); border-radius: var(--r-sm); cursor: pointer; }
+.svstar.on { color: var(--amber); border-color: var(--amber); }
+.svsattx { text-align: center; font-size: var(--fs-body); color: var(--ink-2); min-height: 22px; }
+.svcount { font-size: var(--fs-sm); color: var(--ink-2); margin-bottom: var(--sp-2); }
+.svcount b { font-family: var(--mono); color: var(--ink); }
+.svgrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--sp-2); }
+.svpar { position: relative; min-height: 44px; padding: var(--sp-2) var(--sp-3); font-size: var(--fs-body); text-align: left; color: var(--ink); background: var(--panel-2); border: 1px solid var(--line-2); border-radius: var(--r-sm); cursor: pointer; }
+.svpar:hover { border-color: var(--cyan); }
+.svpar.on { border-color: var(--cyan); background: var(--panel-3); }
+.svpar.act { box-shadow: var(--glow); }
+.svbd { position: absolute; right: 6px; top: 6px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: var(--r-pill); background: var(--cyan); color: var(--ontop); font: 700 12px/18px var(--mono); text-align: center; }
+.svsub { margin-top: var(--sp-3); padding: var(--sp-3); background: var(--bg-2); border: 1px solid var(--line); border-radius: var(--r-sm); }
+.svsub.muted { color: var(--ink-3); font-size: var(--fs-sm); }
+.svsubh { font-size: var(--fs-body); margin-bottom: var(--sp-2); }
+.svsubh small { margin-left: var(--sp-2); font-size: var(--fs-min); color: var(--ink-3); }
+.svchips { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
+.svchip { min-height: 36px; padding: 0 var(--sp-3); font-size: var(--fs-sm); color: var(--ink); background: var(--panel-2); border: 1px solid var(--line-2); border-radius: var(--r-pill); cursor: pointer; }
+.svchip.on { background: var(--cyan); color: var(--ontop); border-color: var(--cyan); font-weight: 600; }
+.svchips.big .svchip { min-height: 40px; }
+.svdrop { margin-top: var(--sp-2); }
+.svlbl { display: block; margin: var(--sp-4) 0 var(--sp-1); font-size: var(--fs-sm); color: var(--ink-2); }
+.svin { width: 100%; box-sizing: border-box; min-height: 40px; padding: 0 var(--sp-3); font-size: 16px; color: var(--ink); background: var(--bg-2); border: 1px solid var(--line-2); border-radius: var(--r-sm); }
+.svwarn, .sverr { min-height: 0; margin-top: var(--sp-2); font-size: var(--fs-sm); color: var(--amber); }
+.sverr { color: var(--rise); }
+.svwarn:empty, .sverr:empty { display: none; }
+.svft { display: flex; align-items: center; gap: var(--sp-2); padding: var(--sp-3) var(--sp-4); border-top: 1px solid var(--line); background: var(--panel); }
+.svsp { flex: 1; }
+.svbtn { min-height: 40px; padding: 0 var(--sp-4); font-size: var(--fs-body); color: var(--ink); background: var(--panel-2); border: 1px solid var(--line-2); border-radius: var(--r-sm); cursor: pointer; }
+.svbtn.pri { background: var(--cyan); color: var(--ontop); border-color: var(--cyan); font-weight: 600; }
+.svbtn:disabled { opacity: .45; cursor: not-allowed; }
+.svlink { min-height: 40px; padding: 0 var(--sp-2); background: none; border: 0; color: var(--ink-3); font-size: var(--fs-sm); text-decoration: underline; cursor: pointer; }
+.svstar:focus-visible, .svpar:focus-visible, .svchip:focus-visible, .svbtn:focus-visible, .svlink:focus-visible, .svx:focus-visible, .svin:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.svok { padding: var(--sp-6, 32px) var(--sp-4); text-align: center; }
+.svokic { width: 56px; height: 56px; margin: 0 auto var(--sp-3); border-radius: 50%; background: var(--cyan); color: var(--ontop); font-size: 30px; line-height: 56px; }
+.svokp { font-size: var(--fs-body); color: var(--ink-2); margin: 0 0 var(--sp-4); }
+.svokp b { font-family: var(--mono); color: var(--ink); }
+@media (prefers-reduced-motion: reduce) { .svbar i { transition: none; } }
+.svpar.on .svpt::before { content: "✓ "; color: var(--cyan); font-weight: 700; }
+.svprv { padding: 0 var(--sp-4) var(--sp-2); text-align: right; font-size: var(--fs-min); background: var(--panel); }
+.svprv a { color: var(--ink-3); text-decoration: underline; }
+.svtest { margin-left: var(--sp-2); padding: 1px 6px; font-size: var(--fs-min); color: var(--amber); border: 1px solid var(--amber); border-radius: var(--r-pill); }
+.svbox:focus, .svbox:focus-visible { outline: 0; }

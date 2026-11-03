@@ -133,6 +133,8 @@
   :root.l4 .tab[data-view="tc"]{order:4;--l4-ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='9' cy='8' r='3.2'/%3E%3Cpath d='M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6'/%3E%3Ccircle cx='17' cy='9' r='2.4'/%3E%3Cpath d='M17 14c2.5 0 4.5 2 4.5 4.5'/%3E%3C/svg%3E")}
   /* 2026-10-28 交易練習室：歷史規律組，圖示＝折線上升＋箭頭 */
   :root.l4 .tab[data-view="lab"]{order:6;--l4-ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 17l5-6 4 3 8-9'/%3E%3Cpath d='M15 5h5v5'/%3E%3C/svg%3E")}
+  /* 2026-11-04 頻道規劃（只給管理者）：專案組，圖示＝對話框 */
+  :root.l4 .tab[data-view="channels"]{order:8;--l4-ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 5h16v11H10l-4 4v-4H4z'/%3E%3Cpath d='M8 9h8M8 12h5'/%3E%3C/svg%3E")}
   :root.l4 .tab[data-view="flow"]{order:2}
   :root.l4 .tab[data-view="heatmap"]{order:3}
   /* 2026-10-30 流向驗證：資金流水組，緊接熱力圖（同 order 3、DOM 較後）；圖示＝折線＋勾 */
@@ -143,8 +145,6 @@
   :root.l4 .tab[data-view="explore"]{order:5}   /* 2026-10-05 選股探索：DOM 緊接在市場明細後面，同 order 就照 DOM 排在它下面 */
   :root.l4 .tab[data-view="season"]{order:6}
   :root.l4 .tab[data-view="etf"]{order:5;--l4-ic:var(--l4-ic-etf)}
-  /* 2026-11-04 頻道規劃（管理者限定）：專案組，圖示＝廣播 */
-  :root.l4 .tab[data-view="channels"]{order:8;--l4-ic:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='2'/%3E%3Cpath d='M16.2 7.8a6 6 0 0 1 0 8.4M7.8 16.2a6 6 0 0 1 0-8.4M19 5a10 10 0 0 1 0 14M5 19a10 10 0 0 1 0-14'/%3E%3C/svg%3E")}
   :root.l4 .tab[data-view="watch"]{order:7}
   :root.l4 .tab[data-view="delivery"]{order:8}
   :root.l4 .tabs>:not(.tab){order:9}

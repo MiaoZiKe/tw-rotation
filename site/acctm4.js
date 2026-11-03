@@ -254,6 +254,7 @@ html.m4 .m4deldlg .msg{min-height:1.4em;font-size:13px;color:#ff6b7a;margin:4px 
     let h = head
       + `<button type="button" class="m4i" role="menuitem" data-m="pricing"><span class="t">訂閱方案</span><span class="r">目前：${esc(w.label)}</span></button>`
       + (window.TwBilling ? window.TwBilling.menuHTML('m4') : '')   // 取消訂閱／申請退款（帳本 48；付費方案才有、站主停用）
+      + (window.TwInvite ? window.TwInvite.menuHTML('m4') : '')   // 2026-11-01 邀請好友／許願（site/invite.js）
       + `<button type="button" class="m4i" role="menuitem" data-m="notify"><span class="t">通知</span><span class="num" ${n ? '' : 'hidden'} aria-label="${n} 則未讀">${n > 99 ? '99+' : n}</span></button>`
       + `<button type="button" class="m4i" role="menuitem" data-m="quota"><span class="t">額度上限</span><span class="r">${esc(remText())}</span></button>`
       + `<button type="button" class="m4i" role="menuitem" data-m="feedback"><span class="t">意見回饋</span></button>`

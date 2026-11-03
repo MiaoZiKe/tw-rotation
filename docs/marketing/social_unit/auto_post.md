@@ -35,6 +35,16 @@
 - **要放量（只有 Andy 說了才改）**：① 把 `post_quota.json` 對應的 `false` 改 `true` 推 main —— 盤後限動、主貼文類立刻生效；② 盤中／盤前備援、主題文章、IG 晚間這些要準時跑的，再把上面拿掉的排程加回來（`git log -- workers/gh-cron/src/schedule.js .github/workflows/social_news.yml` 找 11-02 這一筆還原）。
 - 監工：只剩盤後 18:20（CLAUDE.md 11-02 條）。被停掉的時段**不准補發**。
 
+## 〇之一、★★ 2026-11-03 起自動發文一律不放網站網址（蓋掉下面所有「網址」「👉 連結」「完整盤勢見網站」的寫法）
+
+> Andy 11-03：「**首先 網頁都不公開先，人數沒有起來，沒有建立信任關係，我覺得不妥**」。CEO 判斷：貼文、留言、圖卡、IG 文案都不放網站網址（liguligu-puipui.com／miaozike.github.io／tw-rotation.pages.dev），網站本身照常運作。依據 `diagnosis_1102/channel_playbook.md` 5-1「階段 0 一律不放網址」。
+
+- Threads 盤後主貼文＝主文＋**1 則留言**，留言只剩「以上為公開資料整理，非投資建議」；不放網址、不放「完整盤勢見網站」「👉 …都在網站」。
+- IG 文案（主題文章）最後只到免責那句，不放「👉 更多詳細資料可以點擊以下連結」與網址。圖卡本來就不放網址（第二節第 2 條）。
+- 被停的時段（盤前、盤中、融資融券、主題文章）程式也一起改，之後重開也不會帶網址。
+- 開關：`scripts/threads_lint.py`、`social_snap.py`、`social_news.py` 的 `PROMOTE_SITE = False`（三個都要改才恢復；**只有 Andy 說了才改**）。
+- 保險：`threads_lint.lint()` 主文／串文／留言出現網址或導流字即錯誤；`social_publish.py`、`threads_post.py`、`ig_post.py`、`threads_v2.convert_manifest` 送出前用 `strip_urls()` 自動移除（舊 manifest、補發一樣）；手寫佇列檔只拿掉本站網域，其他出處網址保留。測試 `tests/test_social_no_url_1103.py`。
+
 ## 一、四個時段
 
 | 時段 | 發文時間（台北） | Threads 輪播（順序固定） | IG 限動 | 狀態 |
@@ -165,6 +175,8 @@ https://liguligu-puipui.com/
 
 ## 修改紀錄
 
+- 2026-11-04：① **新聞短標題不再被數字截斷**（11-03 盤後實發「Marvell 擬以 1：Marvell 擬以 1,150 億美元」）：`social_premarket._clause`／`social_live_news.short_title` 的斷句改用 `CLAUSE_SEP`，數字中間的逗號、冒號（1,150、09:30）不算斷句；開頭的專欄名《…》【…】與「11月3日盤前／」欄頭先拿掉（`strip_column`）；`news_facts` 數字標籤開頭殘留的「年」拿掉。② **圖卡標題列不再放比比頭像**（Andy 11-02：「比比以後不會出現在貼文上」）：`social_theme.header_html` 改純文字字標「哩股哩股」，盤前／盤中／盤後／融資融券、IG 限動全部共用；主題文章封面本來就是文字字標。新 LOGO 未定，不用任何候選圖。測試 `tests/test_social_title_badge_1104.py`。
+- 2026-11-04：**自動發文不放網站網址**（Andy 11-03：「首先 網頁都不公開先，人數沒有起來，沒有建立信任關係，我覺得不妥」）。留言只留免責句、拿掉網址與「完整盤勢見網站」；IG 文案拿掉連結兩行；lint 加「出現網址即失敗」、發文前自動移除。細節第〇之一節；改 `threads_lint.py`、`threads_v2.py`、`social_snap.py`、`social_news.py`、`social_publish.py`、`threads_post.py`、`ig_post.py`，測試 `tests/test_social_no_url_1103.py`。`post_quota.json` 沒動。
 - 2026-11-02：**降量模式**（Andy：「同意降量」）。新增唯一開關檔 `post_quota.json`＋`scripts/post_quota.py`；`social_publish.py`、`threads_post.py`、`ig_post.py` 在呼叫 Meta API 前讀它，`social_news.py`、`ig_news_check.py`、`social-live.yml`、`social_news.yml`（新增 gate 工作）在動手前讀它；拿掉只為停發內容派工的 cron 與 Worker 派工（資料管線沒動）。只留交易日盤後主貼文 Threads 1 則。細節第〇節；測試 `tests/test_social_quota_1102.py`、`workers/gh-cron/test/schedule.test.mjs`。
 - 2026-11-01：IG 晚間主題文章 wk2（20:50）到 21:08 沒發（21:09 手動補發 https://www.instagram.com/p/DfMzr6fHD6w/ ）。根因：queue 白天寫好、publish_at 在晚上，但晚上沒有準時的派發者（social_news 只在 19:00／19:40 叫醒 ig_post 並等 20 分鐘，只罩得到 20:00；GitHub 的 schedule 11-01 整天只觸發一兩輪）。修法：gh-cron Worker 每天 19:42／20:32／21:22／21:32 派 ig_post（wait_max=20），20:04／20:54／21:44／21:54／22:04 再補派（wait_max=0），22:12 派晚間監工；交易日 20:58／21:08 派 social_news 產「備案」段；ig_post.yml 加 19:41／20:31／21:21／21:31 cron 備援（自動等 20 分鐘）。
 - 2026-10-26：盤中 4 張與文案格式 Andy 確認；網址只放最底下；限動用 C 方案結尾頁；同一格式套到盤後與融資融券。

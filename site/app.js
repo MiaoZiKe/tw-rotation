@@ -3288,6 +3288,9 @@
          側欄四個子項＝原本就有的 #market/<頁>；不帶頁（或舊書籤 #market/top5）＝漲跌家數，跟 drawMarket() 的落點同一套，所以不 replace 網址。
          手機（html.m4）不掛：手機抽屜沒有這組子項、頁內 #mktSeg2 照舊。 */
       l4sub = 'mkt-' + (MKT.some(m => m[0] === rest[0]) ? rest[0] : 'updown');
+    } else if (head === 'channels' && document.documentElement.classList.contains('l4')) {
+      /* 2026-11-04 頻道規劃：側欄六個子項（總覽／①②③／LINE＋Email／檢討指標）；不帶或打錯＝總覽，不 replace 網址 */
+      l4sub = 'chn-' + (['ch1', 'ch2', 'ch3', 'funnel', 'review'].includes(rest[0]) ? rest[0] : 'overview');
     } else if (head === 'explore' && document.documentElement.classList.contains('l4')) {
       /* 選股策略：#explore/<面向>（fund／tech／chip／news）；不帶＝基本面；#explore/<策略 id>（完整名單頁）亮那個策略所屬的面向。 */
       const xc = window.TwExplore && window.TwExplore.catOf ? window.TwExplore.catOf(rest[0]) : (['fund', 'tech', 'chip', 'news'].includes(rest[0]) ? rest[0] : 'fund');
@@ -3403,7 +3406,7 @@
     // 2026-10-14 精選文章：列表換分類／換篩選、點進單篇都由 articles.js 自己決定要重畫哪一塊（篩選狀態留在它的 S 裡），所以每次都交給它
     if (view === 'lab') { if (window.TwLab) await window.TwLab.show(head, rest); mia(); return; }   // 2026-10-28 交易練習室（管理者限定）：子頁狀態留在 lab.js 的 ST
     if (view === 'flowcheck') { if (window.TwFlowcheck) await window.TwFlowcheck.show(); else console.warn('flowcheck.js 沒載入'); mia(); setTimeout(resizeVisibleCharts, 30); return; }   // 2026-10-30 流向驗證：狀態在網址，每次進來都交給它
-    if (view === 'channels') { if (window.TwChannels) await window.TwChannels.show(head, rest); mia(); setTimeout(resizeVisibleCharts, 30); return; }   // 2026-11-04 頻道規劃（管理者限定）
+    if (view === 'channels') { if (window.TwChannels) await window.TwChannels.show(head, rest); else console.warn('channels.js 沒載入'); mia(); return; }   // 2026-11-04 頻道規劃（管理者限定）：內容在 site/channels/plan.json
     if (view === 'tc') { if (window.TwTc) await window.TwTc.show(head, rest); mia(); return; }   // 2026-10-25 科技透明圈：每次進來都交給 tc.js（篩選狀態留在它的 S）
     if (view === 'articles') { if (window.TwArticles) await window.TwArticles.show(head, rest); mia(); return; }
     if (view === 'industry') { if (!(await needLazy('ind', '#v-industry'))) return; if (location.hash !== h0) return; await window.Industry.route(head, rest); mia(); setTimeout(mia, 500); return; }

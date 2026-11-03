@@ -51,7 +51,6 @@
     overview: { grp: '今日市場', t: '總覽', d: '今天大盤怎麼走、錢集中在哪幾個族群、題材在做什麼 —— 從這裡開始，一頁看完今天的重點。' },
     articles: { grp: '今日市場', t: '精選文章', d: '站上整理過的文章：比比快訊（近期大事）、比比產業鏈（產業與公司）、比比知識（觀念與指標）；可依分類、族群、日期與標題關鍵字篩選，文中的股票與頁面都點得過去。' },
     lab: { grp: '歷史規律', t: '交易練習室', d: '把技術分析規則放到歷史上回測：台指期與個股、60 分到月線、進出場箭頭、績效與逐筆明細；也可 K 線重播練習、看事件前後的報酬、自己組策略。' },
-    channels: { grp: '專案', t: '頻道規劃', d: '三個社群頻道的規劃：主題方向、時程、短中長期目標、經營方式、發文排程與 IG／Threads 分配；只有管理者看得到。' },
     tc: { grp: '族群與個股', t: '科技透明圈', d: '科技業各產業、各公司、各單位的職位：工時、底薪、分紅月數、年薪、加班狀況，可依這五項篩選，每筆附來源與信心度。' },
     earnings: { grp: '今日市場', t: '財經日曆', d: '三大分類排在同一張月曆：公司財報（市值前 50 公告的財報董事會與已公布財報）、公司法說（全部上市櫃公司公告的法說會）、FED 消息（FOMC 與美國重大數據）；點一項看分析與說明。' },
     flow: { grp: '資金流水', t: '資金流向', d: '錢正在往哪個族群跑：輪盤看輪動階段、排行看誰進誰出、資金分流樹看錢從哪裡流到哪裡。' },
@@ -64,6 +63,7 @@
     season: { grp: '歷史規律', t: '週期統計', d: '每個族群在各月份的歷史表現：勝率、報酬中位數與超額報酬，看現在是不是它的旺季。' },
     etf: { grp: '族群與個股', t: 'ETF', d: 'ETF 分類、殖利率、配息行事曆與長期報酬比較（價格與含息分開算）—— 純資料整理，不構成投資建議。' },
     watch: { grp: '專案', t: '自選', d: '你自己的自選清單（最多五頁）：今天的漲跌與走勢，點名稱進個股頁。' },
+    channels: { grp: '專案', t: '頻道規劃', d: '所有社群頻道的規劃：主題方向、短中長期目標、經營與發文方式、IG／Threads 分配、時段、法遵紅線與每週檢討指標。只給管理者看。' },
     delivery: { grp: '專案', t: '交付清單', d: '提出過的需求與完成狀態，逐條可以點過去驗收。' },
   };
   const ALIAS = { themes: 'heatmap', tasks: 'delivery' };
@@ -106,6 +106,16 @@
     ],
     /* 2026-10-16 Andy：「精選文章已經裡面有分頁，側邊子分頁就拿掉」→ 精選文章不再有側欄子項（電腦版、手機抽屜都只剩一格「精選文章」）。
        類別切換只靠頁內那排分頁（articles.js #artCats）；#articles/<類別> 深連結照舊由 articles.js 讀網址選分頁。 */
+    /* 2026-11-04 頻道規劃（管理者限定）：電腦版側欄六個子項；手機抽屜只列母項、頁內 .nbsw 分頁負責切換（同市場明細） */
+    channels: [
+      { k: 'chn-overview', h: '#channels/overview', t: '總覽', s: '總覽', ic: 'treemap' },
+      { k: 'chn-ch1', h: '#channels/ch1', t: '① 哩股哩股', s: '哩股', ic: 'line' },
+      { k: 'chn-ch2', h: '#channels/ch2', t: '② 科技透明圈', s: '透明圈', ic: 'users' },
+      { k: 'chn-ch3', h: '#channels/ch3', t: '③ AI 介紹', s: 'AI', ic: 'flame' },
+      { k: 'chn-ch4', h: '#channels/ch4', t: '④ 心靈雞湯', s: '雞湯', ic: 'flame' },
+      { k: 'chn-funnel', h: '#channels/funnel', t: 'LINE＋Email', s: '漏斗', ic: 'split' },
+      { k: 'chn-review', h: '#channels/review', t: '檢討指標', s: '檢討', ic: 'target' },
+    ],
     explore: [
       { k: 'xp-fund', h: '#explore/fund', t: '基本面', s: '基本', ic: 'bars' },
       { k: 'xp-tech', h: '#explore/tech', t: '技術面', s: '技術', ic: 'pulse' },
@@ -114,7 +124,7 @@
     ],
   };
   SUBS.market.push({ k: 'mkt-fut', h: '#market/fut', t: '期貨籌碼', s: '期貨', ic: 'landmark' });   // 2026-10-20 futpages.js
-  const DESK_ONLY = ['market', 'explore'];   // 只有電腦版側欄有子項；手機抽屜（mobile4.js 讀 TwL4Nav.SUBS）不給
+  const DESK_ONLY = ['market', 'explore', 'channels'];   // 只有電腦版側欄有子項；手機抽屜（mobile4.js 讀 TwL4Nav.SUBS）不給
   /* 子分頁圖示：優先用 icons.js（全站同一套 Lucide、同一個線寬）；它被擋掉時退回這裡內嵌的同一組路徑 */
   const SUB_IC = {
     compass: '<circle cx="12" cy="12" r="10"/><path d="m16.24 7.76-1.804 5.411a2 2 0 0 1-1.265 1.265L7.76 16.24l1.804-5.411a2 2 0 0 1 1.265-1.265z"/>',
@@ -490,7 +500,7 @@
   // 2026-10-05（admin-v2c，Andy）：子項順序改成「會員管理」在上、「會員權限」在下，流量觀測維持最後
   // 2026-10-07（Andy：意見反饋要留在站上、只有我看得到）：管理區下加「意見反饋」（#admin/feedback，support.js 畫；未讀數紅點由 support.js 填 TwSupport.unread）
   // 10-07 15:25（Andy：意見反饋需要圖示）：原本寫 'mail'，但圖示表沒有這個鍵 → 畫出空 svg；改成對話泡泡 message（icons.js 新增）
-  const ADM_SUBS = [['admins', '管理權限', 'admTabAdmins', 'users'], ['perm', '會員權限', 'admTabPerm', 'scale'], ['traffic', '流量觀測', 'admTabTraffic', 'gauge'], ['feedback', '意見反饋', 'admTabFeedback', 'message'], ['grants', '體驗額度', 'admTabGrants', 'sparkles'], ['pay', '付款與訂單', 'admTabPay', 'wallet'], ['articles', '精選文章管理', 'admTabArticles', 'newspaper']];   // 2026-10-14 精選文章管理（site/articles.js）   // 2026-10-11 付款與訂單（site/admin_pay.js）   // 2026-10-09 體驗額度（site/admin_grants.js）；2026-10-07 15:45 Andy：管理權限移到會員權限上方
+  const ADM_SUBS = [['admins', '管理權限', 'admTabAdmins', 'users'], ['perm', '會員權限', 'admTabPerm', 'scale'], ['traffic', '流量觀測', 'admTabTraffic', 'gauge'], ['feedback', '意見反饋', 'admTabFeedback', 'message'], ['grants', '體驗額度', 'admTabGrants', 'sparkles'], ['pay', '付款與訂單', 'admTabPay', 'wallet'], ['articles', '精選文章管理', 'admTabArticles', 'newspaper'], ['survey', '問卷與願望', 'admTabSurvey', 'message']];   // 2026-10-14 精選文章管理（site/articles.js）   // 2026-10-11 付款與訂單（site/admin_pay.js）   // 2026-10-09 體驗額度（site/admin_grants.js）；2026-10-07 15:45 Andy：管理權限移到會員權限上方
   /* 2026-10-07 15:45 Andy：「旁邊的分頁 有在權限內的帳號也可以進行拖曳 但不能刪除」→ 管理區子項可拖曳排序（只有管理者看得到這一區，所以也只有管理者能拖）；
      沒有刪除。順序存本機 tw.l4.admOrd；滑鼠移動超過 6px 才算拖曳，放開後吞掉那一次 click。*/
   const ADM_ORD = 'tw.l4.admOrd';
@@ -550,7 +560,7 @@
       });
     }
     const on = /^#admin\b/.test(location.hash || '');
-    const m = /^#admin\/(perm|members|traffic|feedback|admins|grants|pay|articles)\b/.exec(location.hash || ''), cur = on ? (m ? (m[1] === 'members' ? 'perm' : m[1]) : 'traffic') : '';
+    const m = /^#admin\/(perm|members|traffic|feedback|admins|grants|pay|articles|survey)\b/.exec(location.hash || ''), cur = on ? (m ? (m[1] === 'members' ? 'perm' : m[1]) : 'traffic') : '';
     // 子項亮著時「管理區」本身不實心反白（同一個位置不要亮兩格，同資金流向），但保留 .on 讓「在管理區裡」這件事查得到
     b.classList.toggle('on', on); b.classList.toggle('l4hassub', on);
     if (on) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');

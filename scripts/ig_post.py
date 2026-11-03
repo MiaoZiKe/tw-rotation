@@ -44,6 +44,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "scripts"))
 import post_quota  # noqa: E402  2026-11-02 降量模式：docs/marketing/social_unit/post_quota.json
+import threads_lint as TL  # noqa: E402  2026-11-03 不放網站網址（strip_urls）
 
 QUEUE = ROOT / "social" / "ig" / "queue"
 API = "https://graph.instagram.com"
@@ -229,6 +230,10 @@ def process(path: Path, now: datetime, token: str | None, force_now: bool = Fals
         return f"{post_quota.SKIP_MSG}（post_quota.json queue.{grp}.ig=false；已改回 draft）"
     if not token:
         raise PostError("沒有 IG_ACCESS_TOKEN（請在 GitHub Secrets 設定）")
+    # ★ 2026-11-03 Andy：「網頁都不公開先」→ IG 文案送出前拿掉網址與「👉 點擊以下連結」（手寫檔只拿本站網域）
+    if not TL.PROMOTE_SITE and TL.has_url(caption, not post_quota.is_auto_news(path.name)):
+        caption = TL.strip_urls(caption, not post_quota.is_auto_news(path.name))
+        print("::notice::IG 文案有網址／導流字，已自動移除（11-03 起不放網站網址）")
     r = publish(images_of(meta), caption, token)
     rewrite_meta(path, {
         "status": "posted",

@@ -557,3 +557,13 @@ Andy 原話：「後來訂閱才可以使用 基於這些數據 去分析的結�
 |---|---|---|---|
 | 頻道③規劃待 Andy 決定 plan.md 第七節（10 題決定＋5 樣提供） | 回「照建議」或逐題改 | https://github.com/MiaoZiKe/tw-rotation/blob/main/docs/marketing/channels/ai_intro/plan.md | 11-04 01:55 |
 | CEO 待辦：版型第 2 版（A_cover/A_reels/A_shot/A_table/A_end）未經 art-director 複審，visual_review.md 只審第 1 版；A_table、A_end 從未被審 | 補複審後才准用於發文 | docs/marketing/channels/ai_intro/visual_review.md | 11-04 01:55 |
+
+## 2026-11-04 02:20 頻道④「心靈雞湯」規劃交件稽核（監察委員；分支 claude/healing，本機 eb5b3da 含 plan.md 尚未推上 origin，遠端只到 66709db；未進 main）
+| 項目 | 要 Andy 做什麼 | 去哪看 | 起始 |
+|---|---|---|---|
+| 頻道④規劃待 Andy 決定 plan.md 第九節（12 題＋4 樣提供） | CEO 修完下列待辦、推上去後才給 Andy | docs/marketing/channels/healing/plan.md（待推） | 待修 |
+| CEO 待辦1：排程四份互相矛盾未裁決——plan 第1～2週只發 Threads 5則；content.md 第1～2週 IG3＋Threads5、週一 07:50；ops.md 每週合計 3～5 則（含手寫）；strategy.md「IG 為主、Threads 為輔」。plan 第3～4週 Threads5＋IG2＝7則/週，超過 ops 上限 | plan 寫明採哪份、改掉其他分報告或註明作廢 | content.md 3.2、ops.md 〇-5／六-9、strategy.md 五 | 11-04 02:20 |
+| CEO 待辦2：plan 第十節稱有 art_review.md，實際整個資料夾沒有；無美術總監審查（頻道③有 visual_review.md） | 補 art-director 審 LOGO、版型、範例圖 | healing/ | 11-04 02:20 |
+| CEO 待辦3：plan 缺「互動方式」一節（Andy 點名要）與「專業人員編組」（頻道③有） | 補兩節 | plan.md | 11-04 02:20 |
+| CEO 待辦4：總覽圖檔名寫錯（plan 寫 contact_sheet_圓形與110px並排.png，實際 contact_sheet_頭像圓形_110_44_單色_橫式.png）；範例標註與 plan 排程對不上（範例1 標週二 21:00 支柱B，plan 週二是 21:30 C） | 改正 | plan.md 第十節、content.md 第五節 | 11-04 02:20 |
+| CEO 待辦5：研調 15 個案例沒有一個 Threads 帳號（Andy 點名 Threads）；版型 B、C 色票不在 visual.md | 再換關鍵字查 Threads，或明列查過的關鍵字；visual.md 補色票 | research_threads_pain.md、layouts/README.md | 11-04 02:20 |

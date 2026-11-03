@@ -1,0 +1,9 @@
+/* 新會員體驗訊息框的手機版（≤640；元素是新的，桌機不受影響）。第 2 版：底部留出比比客服鈕的位置 */
+@media (max-width:640px){
+  #pwOv{align-items:flex-start;padding:max(56px,env(safe-area-inset-top)) 16px 88px}
+  #pwOv .pw-card{max-height:calc(100vh - 56px - 88px);padding:18px 16px 14px}
+  #pwOv .pw-bibi{flex-basis:60px;width:60px;height:60px}
+  #pwOv .pw-title{font-size:18px}
+  #pwOv .pw-btns{flex-direction:column}
+  #pwOv .pw-x{width:44px;height:44px;top:4px;right:4px}
+}

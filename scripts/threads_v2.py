@@ -5,6 +5,8 @@
   → 主文＝鉤子（第一段 30–80 字）＋重點數據（標題、重點數字、代表什麼、接下來觀察…），用滿 Threads 單則 500 字；
     串文 0 則；只剩 1 則留言放網址（＋「完整盤勢見網站」）。放不下依序拿掉次要段落（fit(budget=…)）。
     主題文章圖只留 1 張（實景封面，數字卡不再產生）；主貼文圖照舊 0 或 2 張。
+★ 2026-11-03 Andy：「首先 網頁都不公開先，人數沒有起來，沒有建立信任關係，我覺得不妥」
+  → 留言只放「以上為公開資料整理，非投資建議」，不放網址、不放「完整盤勢見網站」（threads_lint.PROMOTE_SITE=False）。
   下面是 11-01 的原始設計（串文 ≤6 則那段已被上面取代）。
 
 把原本一整篇的盤前／盤中／盤後／主題文章文案，改成：
@@ -36,6 +38,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from threads_lint import BANNED, GENERIC_TAGS, HARD_MAX, MAIN_BUDGET, MAIN_LIMIT, MAX_THREADS, THREAD_MIN, THREAD_TARGET, clen, content_issues, lint, split_tag, tlen  # noqa: E402,F401
+import threads_lint as _TL  # noqa: E402  11-03 不放網址（PROMOTE_SITE／strip_urls／scrub_post）
 
 TPE = timezone(timedelta(hours=8))
 COOLDOWN_DAYS = 14
@@ -691,6 +694,10 @@ def fit(secs, title: str, item_max: int, max_posts: int = 6, budget: int | None 
 
 # ---------------------------------------------------------------- 組裝
 def reply_text(url: str, kind: str, legal: str = "", cut: list[str] | None = None) -> str:
+    # ★ 2026-11-03 Andy：「首先 網頁都不公開先，人數沒有起來，沒有建立信任關係，我覺得不妥」
+    #   → 留言只放免責那句；不放網址、不放「完整盤勢見網站」「👉 …都在網站」這類導流字（threads_lint.PROMOTE_SITE）
+    if not _TL.PROMOTE_SITE:
+        return legal or _TL.DEFAULT_LEGAL
     lead = {"intraday": "完整熱力圖、資金分流樹都在網站，族群一個一個點得開：",
             "close": "法人、融資融券完整排行都在網站，個股一檔一檔查得到：",
             "premarket": "美股、台指期夜盤與今天的事件行事曆都在網站：",
@@ -771,6 +778,8 @@ def convert_manifest(mp: Path, state_in: str | None, state_out: str | None) -> d
     state = load_state(state_in) if state_in else {"history": []}
     d = build(kind, th.get("text", ""), th.get("reply", ""), th.get("images", []), state=state, today=today)
     m["threads_v1"] = dict(th)
+    if _TL.scrub_post(d):                                  # 11-03：萬一主文／串文帶到網址（新聞原文等）→ 送出前拿掉
+        d["checklist_passed"] = not lint(d)[0]
     m["threads"] = dict(text=d["main_post"], images=d["images"], thread_posts=d["thread_posts"],
                         reply_post=d["reply_post"], v2={k: v for k, v in d.items() if k != "images"})
     if not d["checklist_passed"]:

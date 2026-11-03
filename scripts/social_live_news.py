@@ -221,7 +221,7 @@ def short_title(t: str, tl: int) -> str:
     不可以照空白切（10-29 實例：「招聘工程師使 OpenAI 採購…」被切成「招聘工程師使」）→ 這種取不出就跳過，由下一則遞補。"""
     import social_premarket as sp
     c = sp._clause(t, tl)
-    m = re.match(r"(.+?)([！!？?，,：:；;。　\n]| {2,}|$)", t.strip())
+    m = re.match(r"(.+?)(" + sp.CLAUSE_SEP + ")", sp.strip_column(t))      # 11-04：數字中間的逗號、冒號不是斷句（同 _clause）
     whole = m.group(1).strip() if m else ""
     core = c.rstrip("？")
     if c and len(whole) > len(core) and whole.startswith(core):      # 是照空白切出來的

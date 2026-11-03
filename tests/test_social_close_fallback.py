@@ -44,7 +44,7 @@ def test_保底文案_不引用舊法人_標明稍後補(monkeypatch):
              {"name": "retail-ratio", "ok": True, "read": [{"prod": "小台", "pct": "+12.3%"}]}]
     txt = ss.build_text("close", "10/29 19:05", shots, D, "20261029")
     assert "法人個股明細晚到，稍後補" in txt and "三大法人買賣超" not in txt and txt.splitlines()[0] == "🌙 盤後3分鐘"
-    assert len(txt) <= 480 and txt.count("https://") == 1
+    assert len(txt) <= 480 and "http" not in txt
 
 
 def test_補充貼文_標題與鍵不同於主貼文(monkeypatch):

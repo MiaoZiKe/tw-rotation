@@ -1136,9 +1136,26 @@ def premarket_news(D: dict) -> dict:
                        "published_at": n["published_at"], "coverage": n.get("coverage", {}), "summary": n.get("summary", "")} for n in D["news"]]}
 
 
+# 斷句符號（11-04 CEO：「Marvell 擬以 1,150 億美元」被逗號切成「Marvell 擬以 1」）：
+#   數字中間的逗號、冒號（1,150、1：3、09:30）不是斷句 → 只有「前面不是數字」或「後面不是數字」的逗號／冒號才斷
+CLAUSE_SEP = r"(?<!\d)[，,：:]|[，,：:](?!\d)|[！!？?；;。　\n]| {2,}|$"
+
+
+def strip_column(t: str) -> str:
+    """標題開頭的專欄名、日期欄頭不是內容（11-04 試產：「《價值型投資 最新產業研究報告》臻鼎…」被切成「《價值型投資」、
+    「11月3日盤前／油價回落…」）→ 先拿掉開頭成對的《…》【…】〈…〉［…］與「M月D日盤前／」這種欄頭。"""
+    t = (t or "").strip()
+    for _ in range(2):
+        t2 = re.sub(r"^(?:[《【〈［\[][^》】〉］\]]{1,20}[》】〉］\]]\s*|\d{1,2}月\d{1,2}日[^／/\s]{0,6}[／/]\s*)", "", t)
+        if t2 == t or not t2:
+            break
+        t = t2
+    return t
+
+
 def _clause(t: str, n: int) -> str:
-    """標題／摘要取第一個短句（到「！，：。」為止）；超過 n 字就不用（不截成半句加…）。問句保留問號，不把「台股不妙？」寫成斷言。"""
-    m = re.match(r"(.+?)([！!？?，,：:；;。　\n]| {2,}|$)", t.strip())
+    """標題／摘要取第一個短句（到「！，：。」為止；數字中間的逗號、冒號不算）；超過 n 字就不用（不截成半句加…）。問句保留問號，不把「台股不妙？」寫成斷言。"""
+    m = re.match(r"(.+?)(" + CLAUSE_SEP + ")", strip_column(t))
     if not m:
         return ""
     c = m.group(1).strip() + ("？" if m.group(2) and m.group(2) in "？?" else "")
