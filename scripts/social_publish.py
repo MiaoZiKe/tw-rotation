@@ -32,6 +32,7 @@ import requests
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import post_quota  # noqa: E402  2026-11-02 降量模式：docs/marketing/social_unit/post_quota.json
+import threads_lint as TL  # noqa: E402  2026-11-03 不放網站網址（scrub_post）
 
 THREADS_HOST = "https://graph.threads.net"
 THREADS_ME = "https://graph.threads.net/v1.0/me"
@@ -292,6 +293,12 @@ def run(manifest_path, base_url, dry_run=False, env=None, flag=None) -> int:
         return f"{base}/{quote(Path(rel).as_posix())}"
 
     th = m.get("threads") or {}
+    # ★ 2026-11-03 Andy：「首先 網頁都不公開先，人數沒有起來，沒有建立信任關係，我覺得不妥」
+    #   → 主文、串文、留言送出前一律拿掉網址與「完整盤勢見網站」這類導流字（舊 manifest、補發也一樣）；留言清空就只放免責句
+    if TL.scrub_post(th):
+        log("[threads] 文案有網址／導流字，已自動移除（11-03 起不放網站網址）")
+        if "thread_posts" in th and not th.get("reply_post"):
+            th["reply_post"] = TL.DEFAULT_LEGAL
     th_urls = [pub(i) for i in th.get("images", [])]
     st_urls = [pub(i) for i in m.get("story", [])]
     fail = False

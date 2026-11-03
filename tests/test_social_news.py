@@ -105,7 +105,9 @@ def test_evergreen_library_all_pass_gates():
         d = S.compose_evergreen(e, "wk1", 1, "2026-10-31")     # 法遵、長度、落點閘不過會丟 Skip
         assert d["meta"]["has_ai_image"] == "false" and d["card"]["photo_cats"]       # 10-29：常備文庫也要有實景封面
         assert "#stock/" not in d["caption_ig"]
-        assert "ig-newswk11-20261031" in d["caption_ig"]
+        assert "http" not in d["caption_ig"] and "ig-newswk11" not in d["caption_ig"] and "👉" not in d["caption_ig"]      # 11-03 起不放網址
+        assert not any("http" in t or "👉" in t for t in d["caption_threads"])
+        assert d["caption_ig"].rstrip().endswith("以上為公開資料整理，非投資建議")
         assert len(d["card"]["numbers"]) == 3
         assert all(len(x) <= S.TITLE_MAX + 2 for x in e["cover_title"])
 

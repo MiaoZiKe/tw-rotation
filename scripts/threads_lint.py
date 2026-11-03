@@ -9,7 +9,7 @@
   4. 第一句完整（≥10 字）；主文結尾不是句號（用感嘆或停在半句）
   5. 主文問句（「」裡的對話除外）必須具體：二選一（還是）或帶數字
   6. 圖：0 或 1 張（11-02 Andy：主題文章數字卡併進封面；「主貼文也改成只放 1 張」）；標籤恰 1 個、不在泛用黑名單、串文與留言不再掛標籤
-  7. reply_post 恰 1 個網址
+  7. reply_post 恰 1 個網址 → ★ 2026-11-03 起改成：主文／串文／留言都不准有網址與導流字（PROMOTE_SITE=False），留言只放免責那句
   8.（2026-11-02 CEO：盤前主題文章「台股融資融資約4200億元」那篇的生成瑕疵）
      同詞重複（「融資融資」「台股 台股」）、段落內容照抄前段（「和前期比」＝「重點數字」）、
      解讀只是重述數字（「下跌逾7%，代表…下跌約7%」）、分類與內容不符（講台股融資標成美股）、
@@ -46,6 +46,66 @@ GENERIC_TAGS = {"台股", "投資", "理財", "股票", "股市", "美股", "財
                 "台股盤勢", "股票投資", "存股", "賺錢"}
 URL_RE = re.compile(r"https?://|www\.|\.com\b|\.tw\b", re.I)
 TAG_RE = re.compile(r"#[^\s#，。！？、：；]+")
+
+# ★ 2026-11-03 Andy：「首先 網頁都不公開先，人數沒有起來，沒有建立信任關係，我覺得不妥」
+#   → CEO 判斷：自動發文（主文、串文、留言、IG 文案、圖卡）一律不放網站網址，也不放「完整盤勢見網站」這類導流字；網站本身照常運作。
+#   依據 diagnosis_1102/channel_playbook.md 5-1「階段 0 一律不放網址」。要恢復只有 Andy 說了才改（PROMOTE_SITE）。
+PROMOTE_SITE = False
+DEFAULT_LEGAL = "以上為公開資料整理，非投資建議"
+SITE_HOSTS = ("liguligu-puipui.com", "miaozike.github.io", "tw-rotation.pages.dev")
+ANY_URL_RE = re.compile(r"(?:https?://|www\.)\S+|(?<![\w@.])(?:" + "|".join(re.escape(h) for h in SITE_HOSTS) + r")\S*", re.I)
+SITE_URL_RE = re.compile(r"(?:https?://)?(?:www\.)?(?<![\w@])(?:" + "|".join(re.escape(h) for h in SITE_HOSTS) + r")\S*", re.I)
+# 導流句：網址拿掉之後這些行也一起拿掉（「👉 …」開頭的整行、提到「見網站／都在網站／點擊以下連結」的行）
+PROMO_RE = re.compile(r"^\s*👉|見網站|都在網站|點擊以下連結|更多詳細資料可以點擊|連結在(?:留言|下方)")
+
+
+def has_url(text: str, site_only: bool = False) -> bool:
+    """有沒有網址（site_only＝只認本站網域；手寫佇列檔用）或導流句。"""
+    t = text or ""
+    return bool((SITE_URL_RE if site_only else ANY_URL_RE).search(t) or any(PROMO_RE.search(l) for l in t.splitlines()))
+
+
+def strip_urls(text: str, site_only: bool = False) -> str:
+    """拿掉網址與導流句（11-03）。網址只佔一行的那行整行拿掉；連續空行壓成一行。不會把整則清空以外的內容動到。"""
+    if not text:
+        return text or ""
+    rx = SITE_URL_RE if site_only else ANY_URL_RE
+    out = []
+    for line in text.splitlines():
+        if PROMO_RE.search(line):
+            continue
+        if rx.search(line):
+            line = rx.sub("", line).rstrip(" →:：")
+            if not line.strip():
+                continue
+        out.append(line)
+    s = "\n".join(out)
+    s = re.sub(r"\n{3,}", "\n\n", s).strip()
+    return s
+
+
+def scrub_post(p: dict, site_only: bool = False) -> int:
+    """v2 貼文 dict（main_post／thread_posts／reply_post）或 manifest.threads（text／thread_posts／reply_post／reply）就地清網址。
+    回傳清掉幾處。留言清完是空的 → 補免責那句（留言只剩「以上為公開資料整理，非投資建議」）。"""
+    if PROMOTE_SITE or not isinstance(p, dict):
+        return 0
+    n = 0
+    for k in ("main_post", "text", "reply_post", "reply"):
+        v = p.get(k)
+        if isinstance(v, str) and v and has_url(v, site_only):
+            p[k] = strip_urls(v, site_only); n += 1
+            if k == "reply_post" and not p[k].strip():
+                p[k] = DEFAULT_LEGAL
+    tp = p.get("thread_posts")
+    if isinstance(tp, list):
+        new = []
+        for t in tp:
+            if isinstance(t, str) and has_url(t, site_only):
+                t = strip_urls(t, site_only); n += 1
+            if t:
+                new.append(t)
+        p["thread_posts"] = new
+    return n
 
 
 def clen(s: str) -> int:
@@ -275,8 +335,17 @@ def lint(p: dict) -> tuple[list[str], list[str]]:
     if len(p.get("thread_posts") or []) > MAX_THREADS:
         err.append(f"串文 {len(p['thread_posts'])} 則（最多 {MAX_THREADS} 則）")
     rp = p.get("reply_post") or ""
-    if len(re.findall(r"https?://", rp)) != 1:
-        err.append("留言（reply_post）要恰好 1 個網址")
+    if PROMOTE_SITE:
+        if len(re.findall(r"https?://", rp)) != 1:
+            err.append("留言（reply_post）要恰好 1 個網址")
+    else:
+        # 10. ★ 2026-11-03 Andy「網頁都不公開先」：主文、串文、留言出現任何網址或「完整盤勢見網站」這類導流字 → 錯誤；
+        #     發文程式（social_publish／threads_post／ig_post／threads_v2）送出前會用 strip_urls() 自動拿掉，不會因此不發
+        for where, t in allparts:
+            if has_url(t):
+                err.append(f"{where}出現網址或導流到網站的字（11-03 起不放網址，發文前會自動移除）")
+        if DEFAULT_LEGAL not in rp:
+            warn.append(f"留言沒有「{DEFAULT_LEGAL}」")
     if TAG_RE.search(re.sub(r"https?://\S+", "", rp)):
         err.append("留言又掛了標籤")
     if clen(rp) > 500:

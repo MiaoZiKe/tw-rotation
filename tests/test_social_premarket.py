@@ -249,11 +249,11 @@ def test_caption_and_premarket_news():
     D = _collect()
     txt = sp.caption(D, "20261027")
     lines = txt.splitlines()
-    assert lines[0] == "🌅 盤前3分鐘 10/27" and lines[-1].split("#")[0] == "https://liguligu-puipui.com/?u=th-pm-20261027" and "留言" not in txt      # 2026-10-26 盤前文案改成盤中盤後同格式
+    assert lines[0] == "🌅 盤前3分鐘 10/27" and lines[-1].startswith("#") and "http" not in txt and "留言" not in txt      # 2026-10-26 盤前文案改成盤中盤後同格式
     # 2026-10-27 Andy：「排版要整齊 一個一行 另外重點資訊至少5個且在多點描述」→ 主文「📌 今日焦點：」一則一行；盤面解讀＋融資改放回覆
     assert lines[1] == "📌 今日焦點：" and lines[2].startswith("・美股四大指數") and "費半持平" in lines[2] and "…" not in txt
     assert "・AI 投資疑慮未消、油價飆漲" in lines and "📰 昨日事件：" not in lines and "🧭 昨日盤面" not in txt and "資料：" not in txt
-    assert len(txt) <= 480 and "👉 更多詳細資料可以點擊以下連結：\nhttps://liguligu-puipui.com/?u=th-pm-20261027" in txt and txt.endswith("#earnings")      # 10-27 深層連結：夾具有 FOMC 事件 → 落點 #earnings
+    assert len(txt) <= 480 and "👉" not in txt and "liguligu" not in txt      # 11-03 起不放網址（原本 10-27 深層連結 #earnings）
     rp = sp.caption_reply(D)
     assert rp.startswith("🧭 昨日盤面（美股 10/23）：") and "https://" not in rp and "#台股" not in rp and len(rp) <= 480 and "查證中" not in txt
     pn = sp.premarket_news(D)

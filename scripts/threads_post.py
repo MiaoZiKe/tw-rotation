@@ -40,6 +40,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "scripts"))
 import post_quota  # noqa: E402  2026-11-02 降量模式：docs/marketing/social_unit/post_quota.json
+import threads_lint as TL  # noqa: E402  2026-11-03 不放網站網址（strip_urls）
 
 QUEUE = ROOT / "social" / "threads" / "queue"
 API = "https://graph.threads.net/v1.0"
@@ -231,6 +232,25 @@ def rewrite_meta(path: Path, updates: dict) -> None:
     path.write_text(m.group(1) + "\n".join(lines) + m.group(3) + m.group(4), encoding="utf-8")
 
 
+def scrub_posts(posts: list[str], name: str = "") -> list[str]:
+    """★ 2026-11-03 Andy：「網頁都不公開先」→ 送出前拿掉網址與導流句。自動主題文章：任何網址都拿掉；
+    手寫檔：只拿掉本站網域（liguligu-puipui.com／miaozike.github.io）與導流句。清完是空的那則不發；最後一則清空 → 補免責句。"""
+    if TL.PROMOTE_SITE:
+        return posts
+    site_only = not post_quota.is_auto_news(name)
+    out = []
+    for i, p in enumerate(posts):
+        if TL.has_url(p, site_only):
+            q = TL.strip_urls(p, site_only)
+            print(f"::notice::第 {i + 1} 則有網址／導流字，已自動移除（11-03 起不放網站網址）")
+            if not q and i == len(posts) - 1 and i > 0:
+                q = TL.DEFAULT_LEGAL
+            p = q
+        if p:
+            out.append(p)
+    return out
+
+
 def process(path: Path, now: datetime, token: str | None, force_now: bool = False) -> str:
     meta, posts = parse(path.read_text(encoding="utf-8"))
     errs = validate(meta, posts)
@@ -250,6 +270,7 @@ def process(path: Path, now: datetime, token: str | None, force_now: bool = Fals
         raise PostError("沒有 THREADS_ACCESS_TOKEN（請在 GitHub Secrets 設定）")
     imgs = images_of(meta)
     posts, imgs = legacy_v2(meta, posts, imgs, now)
+    posts = scrub_posts(posts, path.name)
     res = publish_chain(posts, token, imgs)
     rewrite_meta(path, {
         "status": "posted",

@@ -226,6 +226,11 @@ def ctx_from_shots(ok: dict) -> dict:
     return {"leaders": out}
 
 
+# ★ 2026-11-03 Andy：「首先 網頁都不公開先，人數沒有起來，沒有建立信任關係，我覺得不妥」→ 貼文一律不放網站網址。
+#   link_lines()／deep_link 後綴在 PROMOTE_SITE=False 時回空（盤前／盤中／盤後／融資融券、IG 都吃這兩支）。要恢復只有 Andy 說了才改。
+PROMOTE_SITE = False
+
+
 def link_url(kind: str, ymd: str, platform: str = "th", route: str = "", func: str = "") -> str:
     u = f"{SITE_URL}/?u={platform}-{func or SLOT_CODE.get(kind, 'xx')}-{ymd}"
     r = (route or "").lstrip("#")
@@ -234,6 +239,8 @@ def link_url(kind: str, ymd: str, platform: str = "th", route: str = "", func: s
 
 def link_lines(kind: str, ymd: str, platform: str = "th", route: str = "", func: str = "") -> list[str]:
     """文案最底下兩行：「👉 …」＋帶來源參數與落點的網址（整篇只放這一個網址）。"""
+    if not PROMOTE_SITE:
+        return []
     return [LINK_LINES[0], link_url(kind, ymd, platform, route, func)]
 # 標題與段名前的表情符號（2026-10-26 Andy：「搭配些表情符號，除了個股」→ 只加在標題／段名，列股票名稱的「・」行不加）
 EMOJI = {"盤面分析：": "🧭", "盤中3分鐘": "🕛", "盤後3分鐘": "🌙", "盤後3分鐘｜法人補充": "🌙", "盤後融資融券": "💳",
@@ -1930,6 +1937,8 @@ def _caption_lines(kind: str, stamp: str, shots: list[dict], data_date: str, ymd
     L = []
 
     def lk(route: str, idx: int) -> str:     # idx＝這是第幾個有內容的行（0 起算）
+        if not PROMOTE_SITE:
+            return ""
         return f" → {deep_link(route, kind, ymd)}" if links == "all" or (links == "two" and idx < 2) else ""
     if kind == "intraday":
         # 2026-10-26 Andy 指定格式：標題「盤中消息」、每段標題一行＋「・」條列；Andy：「連結只需要附在最底下就好」→ 只在最後一行放一個網址；文案末不放資料來源／免責

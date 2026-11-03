@@ -41,6 +41,13 @@ from news_legal import check as legal_check, clean_ok, is_promo, sanitize  # noq
 
 TPE = timezone(timedelta(hours=8))
 SITE = "https://liguligu-puipui.com/"
+# ★ 2026-11-03 Andy：「首先 網頁都不公開先，人數沒有起來，沒有建立信任關係，我覺得不妥」→ 主題文章 IG 文案、Threads 都不放網址與「👉 點擊以下連結」。
+PROMOTE_SITE = False
+
+
+def _link_tail(url: str) -> str:
+    """文案最後「👉 更多詳細資料…」＋網址兩行；11-03 起（PROMOTE_SITE=False）回空字串。"""
+    return f"\n👉 更多詳細資料可以點擊以下連結：\n{url}" if PROMOTE_SITE and url else ""
 IG_Q = ROOT / "social" / "ig" / "queue"
 TH_Q = ROOT / "social" / "threads" / "queue"
 IMG_DIR = ROOT / "social" / "ig" / "images" / "news"
@@ -1294,12 +1301,11 @@ def compose(c: dict, slot: str, idx: int, day: str, style: str, names: dict) -> 
     sec_rel = rel_news(c, subj, code, names)
     tail = "以上為公開資料整理，非投資建議"
     body = [intro, sec_num] + ([sec_cmp] if sec_cmp else []) + ([sec_mean] if style != "精簡重點" and sec_mean else []) + ([sec_more] if sec_more else []) + ([sec_hist] if sec_hist else []) + ([sec_rel] if sec_rel else []) + [sec_watch]
-    link_line = "👉 更多詳細資料可以點擊以下連結："
-    cap_ig = "\n".join(head) + "\n" + "\n\n".join(body) + f"\n\n{tail}\n{link_line}\n{url_ig}"
+    cap_ig = "\n".join(head) + "\n" + "\n\n".join(body) + f"\n\n{tail}" + _link_tail(url_ig)
     if sec_rel and len(cap_ig) > IG_MAX:          # IG 文案上限 2,200 字：放不下就拿掉相關公司這節，不擋整篇
         body.remove(sec_rel); sec_rel = ""
-        cap_ig = "\n".join(head) + "\n" + "\n\n".join(body) + f"\n\n{tail}\n{link_line}\n{url_ig}"
-    threads = pack_threads(["\n".join(head[:2]) + "\n\n" + intro] + body[1:] + [f"{tail}\n{link_line}\n{url_th}"])
+        cap_ig = "\n".join(head) + "\n" + "\n\n".join(body) + f"\n\n{tail}" + _link_tail(url_ig)
+    threads = pack_threads(["\n".join(head[:2]) + "\n\n" + intro] + body[1:] + [tail + _link_tail(url_th)])
     card = dict(title=l1 + l2, subtitle=SUBQ[c["ctype"]], numbers=[{k: x[k] for k in ("label", "value", "unit")} for x in rows],
                 category=c["cat"], subject=subj, foot="資料：" + "、".join(dict.fromkeys(SRC_NAME.get(n["source"], n["source"]) for n in c["group"])) + "・本站整理", cover_title=cover, cover_desc=desc_lines([f"{x['label']} {_fmt(x)}" for x in comps[:2]] or [SUBQ[c["ctype"]]], 22),
                 hero=key["value"].lstrip("約逾近超過") + key["unit"], hl=_fmt(key).replace(" ", "") if _fmt(key).replace(" ", "") in l2 else "",
@@ -1465,15 +1471,14 @@ def compose_evergreen(e: dict, slot: str, idx: int, day: str) -> dict:
     head = list(e["head"]) + [""]
     sec_watch = "👀 #為什麼值得知道\n" + e["watch"]
     tail = "以上為公開資料整理，非投資建議"
-    link_line = "👉 更多詳細資料可以點擊以下連結："
     sec_rel = rel_evergreen(e)
     secs = list(e["sections"]) + ([sec_rel] if sec_rel else [])
     body = [e["intro"]] + secs + [sec_watch]
-    cap_ig = "\n".join(head) + "\n" + "\n\n".join(body) + f"\n\n{tail}\n{link_line}\n{url_ig}"
+    cap_ig = "\n".join(head) + "\n" + "\n\n".join(body) + f"\n\n{tail}" + _link_tail(url_ig)
     if sec_rel and len(cap_ig) > 2000:            # 常備文庫 IG 上限沿用 2,000（留 200 字餘裕）：放不下就拿掉相關公司，不擋整篇
         secs.remove(sec_rel); body = [e["intro"]] + secs + [sec_watch]
-        cap_ig = "\n".join(head) + "\n" + "\n\n".join(body) + f"\n\n{tail}\n{link_line}\n{url_ig}"
-    threads = pack_threads(["\n".join(head[:2]) + "\n\n" + e["intro"]] + secs + [sec_watch, f"{tail}\n{link_line}\n{url_th}"])
+        cap_ig = "\n".join(head) + "\n" + "\n\n".join(body) + f"\n\n{tail}" + _link_tail(url_ig)
+    threads = pack_threads(["\n".join(head[:2]) + "\n\n" + e["intro"]] + secs + [sec_watch, tail + _link_tail(url_th)])
     card = dict(title=" ".join(e["cover_title"]), subtitle=e["ctype"], numbers=e["rows"], category=e["cat"], subject="",
                 cover_title=e["cover_title"], cover_desc=e["cover_desc"], hero=e["hero"], hero_label=e.get("hero_label", ""),
                 hl="", hdr=e["ctype"], foot="資料：公開資料整理・本站編輯", photo_cats=e.get("photo_cats") or [])
