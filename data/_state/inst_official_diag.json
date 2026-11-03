@@ -21,7 +21,7 @@
   "swagger_path": "/fund/MI_QFIIS_sort_20"
  },
  {
-  "head": "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\"> <html xmlns=\"http://www.w3.org/1999/xhtml\"> <head> <meta http-equiv=\"Content-T",
+  "head": "<html><head><meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\"> <script type=\"application/javascript\">     var contactPhone = \"(02)8101-5921, (02)8101-5836\";     </script> </head> <bod",
   "http": 200,
   "url": "https://openapi.twse.com.tw/v1/fund/T86"
  },
@@ -41,19 +41,8 @@
   "url": "https://openapi.twse.com.tw/v1/fund/TWT44U"
  },
  {
-  "head": "[ {\"IndustryCat\":\"ETF\",\"Numbers\":\"245\",\"ShareNumber\":\"272513417260\",\"ForeignMainlandAreaShare\":\"3536850643\",\"Percentage\":\"1.30\"}, {\"IndustryCat\":\"水泥工業\",\"Numbers\":\"8\",\"ShareNumber\":\"14107198706\",\"Forei",
+  "head": "ç¢æ¥­å¥,å®¶æ¸,ç¸½ç¼è¡è¡æ¸,åå¤è³åé¸è³ææç¸½è¡æ¸,åå¤è³åé¸è³æè¡æ¯ç\r \"ETF\",\"245\",\"272513417260\",\"3536850643\",\"1.30\"\r \"æ°´æ³¥å·¥æ¥­\",\"8\",\"14107198706\",\"1740643621\",\"12.34\"",
   "http": 200,
-  "url": "https://openapi.twse.com.tw/v1/fund/MI_QFIIS_cat"
- },
- {
-  "cols": [
-   "IndustryCat",
-   "Numbers",
-   "ShareNumber",
-   "ForeignMainlandAreaShare",
-   "Percentage"
-  ],
-  "n": 36,
   "url": "https://openapi.twse.com.tw/v1/fund/MI_QFIIS_cat"
  },
  {
@@ -124,61 +113,15 @@
   "swagger_path": "/tpex_3insti_qfii_trading"
  },
  {
-  "head": "[ {\"Date\":\"1151103\",\"Rank\":\"1\",\"SecuritiesCompanyCode\":\"1815\",\"CompanyName\":\"富喬\",\"Buy\":\"1861\",\"Sell\":\"0\",\"NetBuy\":\"1861\"}, {\"Date\":\"1151103\",\"Rank\":\"2\",\"SecuritiesCompanyCode\":\"5347\",\"CompanyName\":\"世界",
+  "head": "[ {\"Date\":\"1151103\",\"SecuritiesCompanyCode\":\"00411A\",\"CompanyName\":\"主動統一前沿科技\",\"Foreign Investors include Mainland Area Investors (Foreign Dealers excluded)-Total Buy\":\"370262\",\" Foreign Investors incl",
   "http": 200,
-  "url": "https://www.tpex.org.tw/openapi/v1/tpex_3insti_trading"
- },
- {
-  "cols": [
-   "Date",
-   "Rank",
-   "SecuritiesCompanyCode",
-   "CompanyName",
-   "Buy",
-   "Sell",
-   "NetBuy"
-  ],
-  "n": 48,
-  "url": "https://www.tpex.org.tw/openapi/v1/tpex_3insti_trading"
- },
- {
-  "head": "<!DOCTYPE html><html lang=\"zh-Hant-tw\"><head><title>404 - è­å¸æ«æª¯è²·è³£ä¸­å¿</title><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, maximum-scale=1, u",
-  "http": 200,
-  "url": "https://www.tpex.org.tw/openapi/tpex_3insti_qfii"
- },
- {
-  "head": "<!DOCTYPE html><html lang=\"zh-Hant-tw\"><head><title>404 - è­å¸æ«æª¯è²·è³£ä¸­å¿</title><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, maximum-scale=1, u",
-  "http": 200,
-  "url": "https://www.tpex.org.tw/openapi/tpex_3insti_qfii_industry"
- },
- {
-  "head": "<!DOCTYPE html><html lang=\"zh-Hant-tw\"><head><title>404 - è­å¸æ«æª¯è²·è³£ä¸­å¿</title><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, maximum-scale=1, u",
-  "http": 200,
-  "url": "https://www.tpex.org.tw/openapi/tpex_3insti_daily_trading"
- },
- {
-  "head": "<!DOCTYPE html><html lang=\"zh-Hant-tw\"><head><title>404 - è­å¸æ«æª¯è²·è³£ä¸­å¿</title><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, maximum-scale=1, u",
-  "http": 200,
-  "url": "https://www.tpex.org.tw/openapi/tpex_3insti_dealer_trading"
- },
- {
-  "head": "<!DOCTYPE html><html lang=\"zh-Hant-tw\"><head><title>404 - è­å¸æ«æª¯è²·è³£ä¸­å¿</title><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, maximum-scale=1, u",
-  "http": 200,
-  "url": "https://www.tpex.org.tw/openapi/tpex_3insti_summary"
- },
- {
-  "head": "<!DOCTYPE html><html lang=\"zh-Hant-tw\"><head><title>404 - è­å¸æ«æª¯è²·è³£ä¸­å¿</title><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, maximum-scale=1, u",
-  "http": 200,
-  "url": "https://www.tpex.org.tw/openapi/tpex_3insti_trading"
- },
- {
-  "head": "<!DOCTYPE html><html lang=\"zh-Hant-tw\"><head><title>404 - è­å¸æ«æª¯è²·è³£ä¸­å¿</title><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, maximum-scale=1, u",
-  "http": 200,
-  "url": "https://www.tpex.org.tw/openapi/tpex_3insti_qfii_trading"
+  "url": "https://www.tpex.org.tw/openapi/v1/tpex_3insti_daily_trading"
  },
  {
   "market": "上櫃",
-  "parts": [],
-  "rows": 0
+  "parts": [
+   913
+  ],
+  "rows": 913
  }
 ]
