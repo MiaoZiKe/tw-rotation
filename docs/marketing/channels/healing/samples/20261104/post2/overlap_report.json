@@ -1,0 +1,34 @@
+{
+ "01_cover": {
+  "n": 4,
+  "overlap": [],
+  "gap24": [],
+  "oob_48": [],
+  "outside_safe": [],
+  "minFont": 28
+ },
+ "02_inner": {
+  "n": 4,
+  "overlap": [],
+  "gap24": [],
+  "oob_48": [],
+  "outside_safe": [],
+  "minFont": 28
+ },
+ "03_inner": {
+  "n": 4,
+  "overlap": [],
+  "gap24": [],
+  "oob_48": [],
+  "outside_safe": [],
+  "minFont": 28
+ },
+ "threads": {
+  "n": 4,
+  "overlap": [],
+  "gap24": [],
+  "oob_48": [],
+  "outside_safe": [],
+  "minFont": 28
+ }
+}
