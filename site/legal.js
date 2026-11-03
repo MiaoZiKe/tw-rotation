@@ -23,7 +23,7 @@
   // 2026-10-07 Andy 定案站名「哩股哩股」：頁尾 © 用它；條文內文仍用 SITE_NAME「本網站」（法律文件的泛稱，不必跟著改名）
   const BRAND_NAME = '哩股哩股';
   const CONTACT_EMAIL = 'liguligu0818@gmail.com';   // 2026-10-11 Andy：「今天我正式成立新的商用mail : LIGULIGU0818@gmail.com 幫我把原來的所有Mail 改成新的」
-  const UPDATED = '2026-10-07';
+  const UPDATED = '2026-11-02';
 
   /* 驗收腳本用 add_init_script 注入 window.TW_LEGAL_OVERRIDE 來模擬「已經填好」的狀態。
      這不是後門：同意狀態本來就只存在使用者自己的瀏覽器，他要偽造也只是騙他自己。*/
@@ -232,7 +232,9 @@
           + '同時，為防止同一網路以重開瀏覽器等方式重複領取，伺服器會以保密金鑰對您的連線 IP 位址進行單向運算（HMAC）後保存 <b>8 日</b>，運算金鑰每 7 日更換，舊資料無法還原為原始 IP；<b>本網站不保存原始 IP</b>。'
           + '訪客編號若 <b>180 日</b>未使用即刪除。上述資料僅用於計算試用次數，<b>不用於行銷、不與會員帳號合併、不提供予第三方</b>（法令要求除外）。'
           + '您可隨時清除瀏覽器資料以刪除本機的訪客編號；清除後，同一網路於上述期間內的使用次數仍會合併計算。</p>'
-          + '<p><b>本網站不蒐集</b>：身分證字號、電話、地址、出生日期、<b>您的實際持股、成本價、損益或券商帳號</b>，也請您不要提供。</p>' },
+          + '<p><b>本網站不蒐集</b>：身分證字號、電話、地址、出生日期、<b>您的實際持股、成本價、損益或券商帳號</b>，也請您不要提供。</p>'
+          /* 2026-11-02 Andy 同意補條文但要收納、不影響版面：預設收合；邀請／許願對話框的「資料怎麼使用」連到 #privacy-promo（見 route） */
+          + '<details class="lgdet" id="privacy-promo"><summary>意見問卷、許願與邀請碼</summary><p>你自願填寫的滿意度、功能偏好與文字意見，會連同帳號識別碼儲存，用於改善服務與評估客製化需求，管理者可看到你的 email 與許願內容；刪除帳號時一併刪除。邀請碼功能會以雜湊方式暫存網路位址，僅用來防止重複領取，保存 30 天。</p></details>' },
         { h: '資料之利用與分享對象', b: ul([
           '僅於上表所列目的範圍內利用。<b>不販售、不出租、不交換您的個人資料，也不用於廣告追蹤。</b>',
           '為提供服務所必要，資料由下列服務供應商代為處理或傳輸：<b>Google</b>（驗證登入身分；會員大頭貼由 Google 伺服器提供）、'
@@ -703,6 +705,7 @@
 .lgtf{display:flex;align-items:center;justify-content:space-between;margin-top:32px}
 .lgtx{background:none;border:0;color:var(--ink-3);font:inherit;font-size:13px;font-weight:600;cursor:pointer;padding:6px 0}
 .lgtour .lgb1{height:40px;font-size:13px;font-weight:700}
+.lgdet{margin:10px 0;border:1px solid var(--line-2);border-radius:10px;padding:8px 12px}.lgdet summary{cursor:pointer;font-weight:700;min-height:24px}.lgdet p{margin:8px 0 2px}
 .lgflash{outline:2px solid var(--focus)!important;outline-offset:3px;transition:outline-color .3s}
 @media (max-width:600px){
   .lgmask{align-items:flex-end;padding:0}
@@ -1235,14 +1238,23 @@
        'legal'    → 這一頁由本檔接手（#terms／#privacy／#disclaimer／#leave），app.js 把其他 view 關掉就好
        'redirect' → 使用者剛按了「不同意」、又想去別頁：這一次瀏覽維持在 #leave（重新整理就解除）
        null       → 不關本檔的事，照舊 */
-  const ROUTES = ['terms', 'privacy', 'disclaimer', 'refund', 'leave'];
+  const ROUTES = ['terms', 'privacy', 'privacy-promo', 'disclaimer', 'refund', 'leave'];
   const DOC_ROUTES = ['terms', 'privacy', 'disclaimer', 'refund'];
   /* 會員功能的設定檔是非同步讀的（account.js），可能比第一次畫隱私權政策晚到：到了就重畫一次，才會出現那幾列 */
   window.addEventListener('tw:account-config', () => { if ((location.hash || '') === '#privacy') { renderDoc('privacy'); syncBanner(); } });
   function route(head) {
     syncBanner();
     if (ROUTES.includes(head)) {
-      if (head === 'leave') renderLeave(); else renderDoc(head);
+      if (head === 'leave') renderLeave();
+      else if (head === 'privacy-promo') {      // 錨點：畫隱私權政策、展開「意見問卷、許願與邀請碼」並捲過去
+        renderDoc('privacy');
+        const go = () => { const d = document.getElementById('privacy-promo'); if (!d) return; d.open = true; d.scrollIntoView({ block: 'center' }); return d; };
+        setTimeout(() => { const d = go(); if (d) { d.classList.add('lgflash'); setTimeout(() => d.classList.remove('lgflash'), 1200); } }, 80);
+        /* 版面（側欄、橫幅、字型）定型前位置會跑掉：到位之前每 0.4 秒再對一次，最多 3 秒，到位就停（不跟使用者的捲動打架） */
+        let tries = 0;
+        const fix = () => { const d = document.getElementById('privacy-promo'); if (!d || ++tries > 8) return; const r = d.getBoundingClientRect(); if (r.top < 0 || r.bottom > innerHeight) { go(); setTimeout(fix, 400); } };
+        setTimeout(fix, 500);
+      } else renderDoc(head);
       syncBanner();                          // renderDoc 換掉了 #v-legal 的內容（內嵌的橫幅跟著被清掉）→ 重新放回分頁下面
       return 'legal';
     }
