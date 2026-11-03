@@ -1,5 +1,10 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
+
+## 2026-11-04 網站剖析圖四處修正（科技透明圈聊天室，機構工程師審出；W1～W4）
+- 交換器 `tab`→`ftab`（被 layout4.css `.tab{width:100%}` 拉寬）、氣冷反轉雙轉子前後各一馬達、晶圓代工 GAA 改上下箭頭＋⊙⊗並錯開編號 13／14、交換器標題「近 40 層以上（約 38～48 層）」、CoWoS 中央 GPU／ASIC 字加描邊。W2／W3 機構工程師簽核通過。
+- 這批只驗：診斷圖修正1103、桌機守門1008、產業、產業鏈導覽、一般電子鏈（並行偶發逾時，單獨重跑 0）、手機剖析圖上下編號1102、_preview（只剩 #stock/3189/holders 舊紅）。pytest 跳過（只改 site/dg 與 _uitest 段落）。
+
 ## 2026-11-04 新聞短標題截斷＋圖卡拿掉比比角標（CEO 追加；social-ops-lead；最後更新 11-04 台北）
 - 短標題：數字中的逗號／冒號不斷句、開頭專欄名與日期欄頭先拿掉（social_premarket.CLAUSE_SEP／strip_column）。圖卡標題列改文字字標「哩股哩股」（social_theme.header_html），不再用 icon-192.png 比比頭像。
 - 這批只驗：pytest 社群相關（313 passed，含新增 tests/test_social_title_badge_1104.py 6 項）；本機重算 payload 後用 11-03 真資料只產生不發：盤前 6 張、盤中 8 張、盤後 12 張、融資融券 6 張、主題文章封面 1 張，重疊檢查程式全部 0 筆，人工看過標題列與內文。沒改 site/**，_preview／_uitest 沒跑。
