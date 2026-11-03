@@ -32,6 +32,7 @@
 #v-channels .ch-facts{display:grid;grid-template-columns:2fr 2fr 1fr 1fr;gap:var(--sp-3);font-size:13px}
 #v-channels .ch-facts span{display:flex;flex-direction:column;gap:2px;min-width:0}
 #v-channels .ch-facts i,#v-channels .ch-g3 i{font-style:normal;color:var(--ink-3);font-size:12px}
+#v-channels .ch-facts span{white-space:normal}#v-channels .ch-nw{white-space:nowrap;flex-direction:row!important;display:inline!important}
 #v-channels .ch-pend{color:var(--amber)}
 #v-channels .ch-lmean{margin:var(--sp-2) 0 0;font-size:13px;color:var(--ink-2)}
 #v-channels .ch-more{margin-top:var(--sp-2);font-size:13px}
@@ -60,6 +61,7 @@
 #v-channels .ch-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;max-width:100%}
 #v-channels .ch-tbl{width:100%;border-collapse:collapse;font-size:13px}
 #v-channels .ch-tbl th{text-align:left;color:var(--ink-3);font-weight:600;padding:var(--sp-2);border-bottom:1px solid var(--line-2);white-space:nowrap}
+#v-channels .ch-tbl td,#v-channels .ch-tbl th{text-align:left}
 #v-channels .ch-tbl td{padding:var(--sp-2);border-bottom:1px solid var(--line);vertical-align:top;line-height:1.5}
 #v-channels .ch-n{white-space:nowrap}
 #v-channels .ch-nm{display:flex;align-items:center;gap:var(--sp-2);color:var(--ink);text-decoration:none;white-space:nowrap}
@@ -87,3 +89,13 @@
 #v-channels .ch-pc{border:1px solid var(--line);border-radius:var(--r-sm);background:var(--panel-2);padding:var(--sp-3)}
 #v-channels .ch-pc h5{margin:0 0 var(--sp-1)}#v-channels .ch-pc p{margin:0;font-size:13px;line-height:1.6;color:var(--ink-2)}
 #v-channels .ch-docs a{color:var(--cyan)}
+/* 總覽表：桌機一屏放得下（固定欄寬、長字換行）；手機的 min-width 在 m4 檔，靠 .ch-scroll 橫拖 */
+#v-channels .ch-ov{table-layout:fixed}
+#v-channels .ch-ov th:nth-child(1){width:17%}#v-channels .ch-ov th:nth-child(2){width:19%}#v-channels .ch-ov th:nth-child(3){width:14%}
+#v-channels .ch-ov th:nth-child(4){width:14%}#v-channels .ch-ov th:nth-child(5){width:7%}#v-channels .ch-ov th:nth-child(6){width:23%}#v-channels .ch-ov th:nth-child(7){width:6%}
+#v-channels .ch-ov .ch-nm{white-space:normal}
+#v-channels .ch-ov .ch-st{white-space:normal;line-height:1.4}
+#v-channels .ch-ov .ch-c-tag,#v-channels .ch-ov .ch-g3{min-width:0}
+#v-channels .ch-tbl td{white-space:normal;overflow-wrap:anywhere}
+#v-channels .ch-tbl td.ch-n{white-space:nowrap}
+#v-channels .ch-ov .ch-st{border-radius:var(--r-sm)}

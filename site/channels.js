@@ -158,7 +158,7 @@
     return '<div class="card ch-card ch-top"><div class="row spread ch-hd"><h3>' + logoHtml(d, 'ch-logo-m') + numOf(d.id, i) + ' ' + esc(d.name || '') + how + '</h3>' +
       '<span class="ch-hd-r">' + badge(d) + (d.updated ? '<span class="ch-upd">更新 ' + esc(d.updated) + '</span>' : '') + '</span></div>' +
       '<p class="ch-tag">' + esc(d.tagline || '') + '</p>' +
-      '<div class="ch-facts"><span><i>主要受眾</i>' + esc(a.main || '—') + '</span><span><i>平台</i>' + esc(plat) + '</span><span><i>每週量</i>' + esc(weekly(d)) + '</span><span><i>待決定</i><b class="' + (pending(d) ? 'ch-pend' : '') + '">' + pending(d) + '</b> 項</span></div>' +
+      '<div class="ch-facts"><span><i>主要受眾</i>' + esc(a.main || '—') + '</span><span><i>平台</i>' + esc(plat) + '</span><span><i>每週量</i>' + esc(weekly(d)) + '</span><span><i>待決定</i><span class="ch-nw"><b class="' + (pending(d) ? 'ch-pend' : '') + '">' + pending(d) + '</b> 項</span></span></div>' +
       meaning +
       (more ? '<details class="ch-more"><summary>為什麼做・次要受眾・頻道關係</summary>' + more + '</details>' : '') + '</div>';
   }

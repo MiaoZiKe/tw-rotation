@@ -74,7 +74,7 @@ def t_channels(b, base):
     ok(f"[{T}] 點收展標題列：區塊內容展開", pg.evaluate("() => { const d=document.querySelector('#v-channels details.ch-sec'); return d.open && d.querySelector('table').getBoundingClientRect().height>0; }"))
     # 切到另一個有（假）資料的頻道，內容換成它
     pg.locator("#v-channels .ch-tabs a[data-ch=tech_transparency]").click(); pg.wait_for_timeout(500)
-    ok(f"[{T}] 切到頻道②：顯示該頻道內容（不是上一個的）", "測試頻道乙" in pg.evaluate("() => document.querySelector('#v-channels .ch-top h3').textContent") and "AI 介紹" not in pg.evaluate("() => document.querySelector('#v-channels .ch').innerText"))
+    ok(f"[{T}] 切到頻道②：顯示該頻道內容（不是上一個的）", "測試頻道乙" in pg.evaluate("() => document.querySelector('#v-channels .ch-top h3').textContent") and "AI 介紹" not in pg.evaluate("() => document.querySelector('#v-channels .ch-top').innerText") and pg.evaluate("() => document.querySelectorAll('#v-channels .ch-gc')[0].innerText.includes('乙短一')"))
     # 缺檔頻道頁
     pg.locator("#v-channels .ch-tabs a[data-ch=stock]").click(); pg.wait_for_timeout(500)
     ok(f"[{T}] 缺檔頻道頁：顯示「整理中」、頁面沒壞", pg.evaluate("() => !!document.querySelector('#v-channels .ch-waitcard') && document.querySelector('#v-channels .ch-waitcard').innerText.includes('整理中')"))
