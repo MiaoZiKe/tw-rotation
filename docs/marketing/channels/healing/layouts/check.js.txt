@@ -1,0 +1,11 @@
+(opts)=>{const els=[...document.querySelectorAll('[data-o]')].map(e=>{const rg=document.createRange();rg.selectNodeContents(e);let r=e.getBoundingClientRect();
+ // 文字實際範圍（含溢出），與容器框取聯集，旋轉元素用外接框
+ const t=rg.getBoundingClientRect();return {o:e.dataset.o,x:Math.min(r.left,t.width?t.left:r.left),y:Math.min(r.top,t.height?t.top:r.top),w:Math.max(r.right,t.width?t.right:r.right),h:Math.max(r.bottom,t.height?t.bottom:r.bottom)}});
+const ov=[],gap=[];for(let i=0;i<els.length;i++)for(let j=i+1;j<els.length;j++){const a=els[i],b=els[j];
+const g=Math.max(Math.max(a.x-b.w,b.x-a.w),Math.max(a.y-b.h,b.y-a.h));
+if(g<0)ov.push(a.o+'×'+b.o);else if(g<24)gap.push(a.o+'×'+b.o+' '+Math.round(g)+'px')}
+const W=document.body.clientWidth,H=document.body.clientHeight;
+const oob=els.filter(e=>e.x<48||e.y<48||e.w>W-48||e.h>H-48).map(e=>e.o);
+const safe=opts.safe?els.filter(e=>e.y<opts.safe[0]||e.h>opts.safe[1]).map(e=>e.o):[];
+const minFont=Math.min(...[...document.querySelectorAll('[data-o] *,[data-o]')].filter(e=>e.childNodes.length&&[...e.childNodes].some(n=>n.nodeType==3&&n.textContent.trim())).map(e=>parseFloat(getComputedStyle(e).fontSize)));
+return {n:els.length,overlap:ov,gap24:gap,oob_48:oob,outside_safe:safe,minFont}}
