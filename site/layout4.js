@@ -112,6 +112,7 @@
       { k: 'chn-ch1', h: '#channels/ch1', t: '① 哩股哩股', s: '哩股', ic: 'line' },
       { k: 'chn-ch2', h: '#channels/ch2', t: '② 科技透明圈', s: '透明圈', ic: 'users' },
       { k: 'chn-ch3', h: '#channels/ch3', t: '③ AI 介紹', s: 'AI', ic: 'flame' },
+      { k: 'chn-ch4', h: '#channels/ch4', t: '④ 心靈雞湯', s: '雞湯', ic: 'flame' },
       { k: 'chn-funnel', h: '#channels/funnel', t: 'LINE＋Email', s: '漏斗', ic: 'split' },
       { k: 'chn-review', h: '#channels/review', t: '檢討指標', s: '檢討', ic: 'target' },
     ],

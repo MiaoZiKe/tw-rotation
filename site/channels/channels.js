@@ -85,6 +85,66 @@
       + '<div class="chn-b">' + inner + '</div></section>';
   }
 
+
+  /* ---------------- 總覽加掛：頻道卡、週曆（撞時段標紅）、Andy 每週時數、缺漏清單（2026-11-04 併入） ----------------
+     資料在 plan.json 的 cards／schedule／gaps。週曆列＝出現過的時段、欄＝週一～週日；
+     撞時段＝同一天、不同頻道、相隔 60 分鐘內（回覆窗重疊；同格＝完全同時），兩格都標紅框。
+     「機動」或星期不明的排程另列在週曆下方。 */
+  const DAYS = ['週一', '週二', '週三', '週四', '週五', '週六', '週日'];
+  const dayOf = (d) => { const m = /^週[一二三四五六日]/.exec(String(d || '')); return m ? m[0] : ''; };
+  const minOf = (t) => { const m = /^(\d{1,2}):(\d{2})/.exec(String(t || '')); return m ? +m[1] * 60 + +m[2] : null; };
+  const cidx = (id) => (parseInt(String(id).replace(/\D/g, ''), 10) || 1) - 1;
+  const cardOf = (id) => (PLAN.cards || []).filter((c) => c.id === id)[0] || { id, no: id, name: id };
+  const weekOf = (id) => (PLAN.schedule || []).filter((w) => w.ch === id).length;
+  function cardsHtml() {
+    return '<div class="chx-cards">' + (PLAN.cards || []).map((c) => '<a class="chx-card c' + cidx(c.id) + '" href="#channels/' + esc(c.id) + '" data-ch="' + esc(c.id) + '">'
+      + '<div class="chx-h"><b class="chx-no">' + esc(c.no) + '</b><span class="chx-nm">' + esc(c.name) + '</span><span class="chx-st ' + TONE(c.status || '') + '">' + esc(c.status || '待補') + '</span></div>'
+      + '<p>' + esc(c.pos || '') + '</p><div class="chx-kv"><span><em>' + weekOf(c.id) + '</em>每週發文</span><span class="' + (c.todo ? 'warn' : '') + '"><em>' + (c.todo || 0) + '</em>待 Andy</span></div></a>').join('') + '</div>';
+  }
+  function calHtml() {
+    const cells = {}, times = {}, flex = [], all = [];
+    (PLAN.schedule || []).forEach((w) => {
+      const d = dayOf(w.day), tm = String(w.time || '');
+      if (!d || minOf(tm) == null) { flex.push(w); return; }
+      times[tm] = 1; const k = tm + '|' + DAYS.indexOf(d); (cells[k] = cells[k] || []).push(w);
+      all.push({ ch: w.ch, d, m: minOf(tm), k });
+    });
+    const bad = {};
+    all.forEach((x) => all.forEach((y) => { if (x.ch !== y.ch && x.d === y.d && Math.abs(x.m - y.m) <= 60) bad[x.k] = (bad[x.k] || '') + (x.m === y.m ? '同時段' : '相隔 ' + Math.abs(x.m - y.m) + ' 分') + '・' + cardOf(y.ch).name + '；'; }));
+    const chip = (w, txt) => '<a class="chx-chip c' + cidx(w.ch) + '" href="#channels/' + esc(w.ch) + '" title="' + esc(cardOf(w.ch).name + '・' + w.day + '・' + (w.platform || '') + '・' + (w.type || '')) + '"><b>' + esc(cardOf(w.ch).no) + '</b><span class="t">' + esc(txt) + '</span></a>';
+    const ts = Object.keys(times).sort();
+    if (!ts.length) return '<div class="chx-none">還沒有排程資料</div>';
+    let h = '<div class="chx-cal" role="table" aria-label="各頻道每週發文週曆"><div class="chx-cr hd" role="row"><span class="tm"></span>' + DAYS.map((d) => '<span role="columnheader">' + d.slice(1) + '</span>').join('') + '</div>';
+    ts.forEach((tm) => {
+      h += '<div class="chx-cr" role="row"><span class="tm">' + esc(tm) + '</span>';
+      DAYS.forEach((d, di) => {
+        const k = tm + '|' + di, cs = cells[k] || [], cl = !!bad[k];
+        h += '<span class="cell' + (cl ? ' clash' : '') + '" role="cell" data-day="' + d + '" data-tm="' + esc(tm) + '"' + (cl ? ' title="撞時段（回覆窗重疊）：' + esc(bad[k]) + '"' : '') + '>' + cs.map((w) => chip(w, String(w.type || '').replace(/[（(].*$/, '').slice(0, 7))).join('') + '</span>';
+      });
+      h += '</div>';
+    });
+    h += '</div>';
+    if (flex.length) h += '<div class="chx-flex"><em>機動（不限時段）</em>' + flex.map((w) => chip(w, w.platform || '')).join('') + '</div>';
+    return h;
+  }
+  function hoursHtml() {
+    const ids = (PLAN.cards || []).map((c) => c.id), mins = ids.map((id) => (PLAN.schedule || []).filter((w) => w.ch === id).reduce((n, w) => n + (+w.andy_min || 0), 0));
+    const mx = Math.max.apply(null, mins.concat([1])), tot = mins.reduce((a, b) => a + b, 0);
+    return '<div class="chx-hours">' + ids.map((id, i) => '<div class="chx-hr c' + cidx(id) + '"><span class="n">' + esc(cardOf(id).no) + ' ' + esc(cardOf(id).name) + '</span><i class="bar"><u style="width:' + Math.round(mins[i] / mx * 100) + '%"></u></i><b>' + mins[i] + ' 分</b></div>').join('')
+      + '</div><div class="chx-note">排程加總每週 <b>' + tot + ' 分</b>（約 ' + (tot / 60).toFixed(1) + ' 小時），只算要 Andy 動手的部分。</div>';
+  }
+  function gapsHtml() {
+    const g = PLAN.gaps || []; if (!g.length) return '';
+    return '<details class="chx-gaps" id="chxGaps"><summary>缺漏清單<small>（' + g.length + ' 項）</small></summary><div class="chx-gtab">' + g.map((x) => {
+      const c = (PLAN.cards || []).filter((k) => k.id === x.channel)[0];
+      return '<div class="chx-gr"><b>' + esc(c ? c.no + ' ' + c.name : x.channel) + '</b><span>' + esc(x.item) + '</span><em>原本：' + esc(x.was || '—') + '</em><em class="fx">處理：' + esc(x.fixed || '待補') + '</em></div>';
+    }).join('') + '</div></details>';
+  }
+  function overviewTop() {
+    return cardsHtml() + '<div class="chx-two"><section class="chx-sec"><h3>每週發文週曆<small>紅框＝同天兩頻道相隔 60 分內，回覆窗重疊</small></h3>' + calHtml() + '</section>'
+      + '<section class="chx-sec"><h3>Andy 每週要花的時間</h3>' + hoursHtml() + '</section></div>';
+  }
+
   function subOf(rest) {
     const id = (rest && rest[0]) || 'overview';
     return PLAN.tabs.some((t) => t.id === id) ? id : 'overview';
@@ -139,7 +199,9 @@
       '<a href="#channels/' + esc(t.id) + '" role="tab" data-sub="' + esc(t.id) + '" class="' + (t.id === sub ? 'on' : '') + '" aria-selected="' + (t.id === sub ? 'true' : 'false') + '">' + esc(t.t) + '</a>').join('') + '</div>';
     const tag = '<div class="chn-tag"><span>' + esc(pg.tag || '') + '</span><small>更新 ' + esc(PLAN.updated || '') + '</small></div>';
     root.innerHTML = tabs + (pg.tag ? tag : '<div class="chn-tag"><small>更新 ' + esc(PLAN.updated || '') + '</small></div>')
-      + '<div class="chn-grid" data-sub="' + esc(sub) + '">' + (pg.blocks || []).map((b, i) => blockHTML(sub, b, i)).join('') + '</div>';
+      + (sub === 'overview' && PLAN.cards ? overviewTop() : '')
+      + '<div class="chn-grid" data-sub="' + esc(sub) + '">' + (pg.blocks || []).map((b, i) => blockHTML(sub, b, i)).join('') + '</div>'
+      + (sub === 'overview' ? gapsHtml() : '');
     bind();
   }
 

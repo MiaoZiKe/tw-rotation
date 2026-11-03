@@ -68,3 +68,69 @@ html:not(.ch-adm) .tab[data-view="channels"],html:not(.ch-adm) a[href="#channels
   #v-channels .chn-t td{width:100%;white-space:normal!important}
   #v-channels .chn-t td.chn-c0{white-space:normal!important}
 }
+
+/* ---- 總覽加掛（頻道卡、週曆、時數、缺漏）：前綴 chx-，三頻道三色 c0 青／c1 紫／c2 琥珀／c3 綠，編號與文字一律並列（不靠色分辨） ---- */
+#v-channels .c0{--cc:var(--cyan)}#v-channels .c1{--cc:var(--violet)}#v-channels .c2{--cc:var(--amber)}#v-channels .c3{--cc:var(--lime)}
+#v-channels .chx-cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:var(--sp-3);margin:var(--sp-3) 0}
+#v-channels .chx-card{display:flex;flex-direction:column;gap:var(--sp-1);padding:var(--sp-3);border:1px solid var(--line-2);border-top:3px solid var(--cc);border-radius:var(--r-sm);background:var(--panel);color:var(--ink);text-decoration:none;min-width:0}
+#v-channels .chx-card:hover{border-color:var(--cc)}
+#v-channels .chx-card p{margin:0;color:var(--ink-2);font-size:var(--fs-sm);line-height:1.5}
+#v-channels .chx-h{display:flex;align-items:center;gap:var(--sp-2);flex-wrap:wrap;min-width:0}
+#v-channels .chx-no{color:var(--cc);font:700 20px/1 var(--mono,monospace)}
+#v-channels .chx-nm{font-weight:700;font-size:15px}
+#v-channels .chx-st{font-size:12px;padding:1px 8px;border-radius:999px;border:1px solid var(--line-2);color:var(--ink-2)}
+#v-channels .chx-st.ok{color:var(--lime);border-color:var(--lime)}#v-channels .chx-st.wait{color:var(--amber);border-color:var(--amber)}#v-channels .chx-st.plan{color:var(--violet);border-color:var(--violet)}
+#v-channels .chx-kv{display:flex;gap:var(--sp-4);margin-top:auto;font-size:12px;color:var(--ink-3)}
+#v-channels .chx-kv em{display:block;font:700 18px var(--mono,monospace);font-style:normal;color:var(--ink)}
+#v-channels .chx-kv .warn em{color:var(--amber)}
+#v-channels .chx-two{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:var(--sp-3);margin-bottom:var(--sp-3);align-items:start}
+#v-channels .chx-sec{background:var(--panel);border:1px solid var(--line-2);border-radius:var(--r-sm);padding:var(--sp-3) var(--sp-4);min-width:0}
+#v-channels .chx-sec h3{margin:0 0 var(--sp-2);font-size:var(--fs-h3);font-weight:600;display:flex;align-items:baseline;gap:var(--sp-2);flex-wrap:wrap}
+#v-channels .chx-sec h3 small{font-weight:400;color:var(--ink-3);font-size:12px}
+#v-channels .chx-none{color:var(--ink-3);font-size:13px}
+#v-channels .chx-cal{display:grid;gap:3px}
+#v-channels .chx-cr{display:grid;grid-template-columns:44px repeat(7,minmax(0,1fr));gap:3px;align-items:stretch}
+#v-channels .chx-cr.hd span{text-align:center;font-size:12.5px;color:var(--ink-3)}
+#v-channels .chx-cr .tm{font:12px var(--mono,monospace);color:var(--ink-3);align-self:center}
+#v-channels .chx-cr .cell{min-height:30px;border-radius:6px;background:var(--panel-3);display:flex;flex-direction:column;gap:2px;padding:2px;justify-content:center;min-width:0}
+#v-channels .chx-cr .cell.clash{outline:2px solid var(--rise,#ff5d6c);outline-offset:-2px;background:rgba(255,93,108,.10)}
+#v-channels .chx-chip{display:flex;align-items:center;gap:4px;padding:1px 5px;border-radius:5px;background:var(--cc);color:var(--ontop,#001018);font-size:12px;text-decoration:none;min-width:0;overflow:hidden;white-space:nowrap}
+#v-channels .chx-chip b{font:700 12px var(--mono,monospace);flex:none}
+#v-channels .chx-chip .t{overflow:hidden;text-overflow:ellipsis}
+#v-channels .chx-flex{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:var(--sp-2);font-size:12px;color:var(--ink-3)}
+#v-channels .chx-flex .chx-chip{padding:1px 8px}
+#v-channels .chx-hr{display:grid;grid-template-columns:minmax(110px,auto) 1fr 52px;gap:var(--sp-2);align-items:center;font-size:13px;margin-bottom:6px}
+#v-channels .chx-hr .n{color:var(--cc);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#v-channels .chx-hr .bar{display:block;height:10px;border-radius:3px;background:var(--panel-3);overflow:hidden}
+#v-channels .chx-hr .bar u{display:block;height:100%;border-radius:0 3px 3px 0;background:linear-gradient(90deg,color-mix(in srgb,var(--cc) 55%,transparent),var(--cc))}
+#v-channels .chx-hr b{text-align:right;font:600 12.5px var(--mono,monospace)}
+#v-channels .chx-note{font-size:12.5px;color:var(--ink-2)}#v-channels .chx-note b{color:var(--cyan)}
+#v-channels .chx-gaps{margin-top:var(--sp-3);border:1px solid var(--line-2);border-radius:var(--r-sm);background:var(--panel)}
+#v-channels .chx-gaps summary{cursor:pointer;padding:var(--sp-2) var(--sp-4);font-weight:600;font-size:14px}
+#v-channels .chx-gaps summary small{color:var(--ink-3);font-weight:400}
+#v-channels .chx-gtab{padding:0 var(--sp-4) var(--sp-3)}
+#v-channels .chx-gr{display:grid;grid-template-columns:110px minmax(0,1.2fr) minmax(0,1fr) minmax(0,1fr);gap:var(--sp-2);padding:6px 0;border-top:1px solid var(--line);font-size:13px}
+#v-channels .chx-gr em{font-style:normal;color:var(--ink-3)}#v-channels .chx-gr em.fx{color:var(--ink-2)}
+@media (max-width:1100px){#v-channels .chx-cards{grid-template-columns:repeat(2,minmax(0,1fr))}#v-channels .chx-two{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:640px){
+  #v-channels .chx-cards{grid-template-columns:minmax(0,1fr);gap:var(--sp-2);margin:var(--sp-2) 0}
+  #v-channels .chx-card{padding:6px var(--sp-3);gap:2px}
+  #v-channels .chx-card p{font-size:12.5px;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden}
+  #v-channels .chx-kv{margin-top:0;gap:var(--sp-3)}#v-channels .chx-kv span{display:flex;align-items:baseline;gap:4px}#v-channels .chx-kv em{display:inline;font-size:14px}
+  #v-channels .chx-two{gap:var(--sp-2);margin-bottom:var(--sp-2)}
+  #v-channels .chx-sec{padding:var(--sp-2) var(--sp-3)}
+  #v-channels .chx-cr{grid-template-columns:38px repeat(7,minmax(0,1fr))}
+  #v-channels .chx-chip .t{display:none}#v-channels .chx-chip{justify-content:center;padding:1px 0}
+  #v-channels .chx-cr .cell{min-height:26px}
+  #v-channels .chx-hr{grid-template-columns:104px 1fr 46px;margin-bottom:3px}
+  #v-channels .chx-gaps{margin-top:var(--sp-2)}
+  #v-channels .chx-gr{grid-template-columns:100px minmax(0,1fr)}#v-channels .chx-gr em{grid-column:2}
+  /* 收緊卡片列距（Andy 手機準則①）：表格轉卡片後每欄位一列，原本列距約 40px → 約 4px；「狀態：」等欄名前綴統一同距 */
+  #v-channels .chn-t tr{padding:4px 0!important}
+  #v-channels .chn-t td{padding:1px 0!important;margin:0!important;min-height:0!important;height:auto!important;line-height:1.45!important}
+  #v-channels .chn-t td.chn-st,#v-channels .chn-t td.chn-c0{padding:1px 0!important;margin:0!important}
+  #v-channels .chn-b{padding:0 var(--sp-3) var(--sp-2)}
+  #v-channels .chn-h{padding:var(--sp-2) var(--sp-3);min-height:40px}
+  #v-channels .chn-grid{gap:6px}
+  #v-channels .chn-ul{gap:2px}
+}

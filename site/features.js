@@ -185,6 +185,9 @@
       qnote: '期貨籌碼今日 {n} 次已用完・Plus 以上可增加', route: /^#market\/fut/, veil: [['#mktBody']], mark: [], block: [] },
     { id: 'mkt.inst.day', name: '市場明細：三大法人當天報告', cat: 'market', def: true, kind: 'bool', desc: '全市場外資／投信／自營當天淨買賣超與買賣超前 10（「連買賣」另有 mkt.streak）', limBy: { guest: 3, free: 5 },
       qnote: '三大法人當天報告今日 {n} 次已用完・Plus 以上可增加', route: /^#market\/inst/, veil: [['#instToday']], mark: [], block: [] },
+    /* 2026-11-04（Andy：頻道規劃母分頁）：#channels 只給站主／管理員（site/channels/channels.js 的閘門，非管理者導回總覽）。
+       依 11-02 規則登記功能鍵：adminOnly（訂閱頁權益表不列）、def false、四個方案範本都寫 false；不設次數、不蓋鎖頭（整頁根本不給一般人）。管理者功能不發 features.json 公告。 */
+    { id: 'chan.page', name: '頻道規劃（管理者專用）', cat: 'global', def: false, kind: 'bool', adminOnly: true, desc: '三個社群頻道的規劃總覽（#channels）；只有站主與管理員看得到，不是方案權益', veil: [], mark: [], block: [] },
     /* 2026-10-10 Andy：「註冊免費會員 今日關注限制不可以看」→ defBy 訪客／註冊會員關（範本沒寫這一項時的預設；範本寫了以範本為準），
        plan_presets.js 訪客／註冊會員也寫 false。今日關注依法遵不能放進體驗額度（grants GRANT_BAN）。*/
     /* 關掉時不再蓋需開通卡（veil 拿掉）：app.js 在原位置畫一塊反灰示意＋「Plus 以上可查看今日關注」（Andy 10-10：不要跳出視窗），名單根本不畫進畫面 */
