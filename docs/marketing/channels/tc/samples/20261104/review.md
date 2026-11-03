@@ -48,3 +48,18 @@
 
 ## 重出圖方式
 `TC_FONT=<NotoSansTC.ttf 路徑> TW_CHROME=<chromium 路徑> python render.py`
+
+
+## art-director 複審 04（2026-11-04）
+
+| 項目 | 結論 |
+|---|---|
+| 照片是否貼題 | 不過：資料中心機房全景與「光模組靠近晶片」關聯弱、畫質偏舊。已查圖庫 `網通`（9 張）、`資料中心`（16 張）、`AI伺服器`（11 張）：網通 photo_2 有 TP-Link 字樣、photo_1 為 DE-CIX 招牌、photo_3/4 為光纜加量尺、photo_5 有人手、photo_7 為光纖耦合器單品、photo_8 有 D-Link／Cisco／Panduit，其餘為機房／刀鋒伺服器，皆無貼題且無廠牌標記的 CC 照 → 不換照片 |
+| 處置 | 照片區（1080×460）改為自繪「三種位置對照」示意圖 `npo_diagram.svg`：① 可插拔光模組在機櫃面板（紅線電訊號最長）② NPO 光學引擎在板上、靠近晶片封裝但在封裝外（紅線短）③ CPO 光學引擎在封裝內；右側黑線為機櫃面板、灰虛線為光纖；圖說標「示意圖」，不標距離數字 |
+| NPO／CPO 位置敘述查證 | 本環境無法派 mechanical-engineer／ai-server-analyst，改 WebSearch 自查：可插拔＝前面板；NPO＝光引擎在主機板、靠近 ASIC 但封裝外；CPO＝封裝內或緊鄰。來源 https://www.wevolver.com/article/what-is-co-packaged-optics-architecture-benefits-challenges-and-performance（產業文章，非標準文件）。與貼文敘述「位置介於可插拔與 CPO 之間」一致。專業簽核待 CEO 補派 |
+| 字級／層次 | 圖內最小 22px、列標 28px 粗體；紅色只用於電訊號線（一個重點：越靠近越短），其餘黑灰；步驟卡與其他篇一致 |
+| 留白 | 示意圖三列等高等距、左欄標題與右側圖不頂邊；右側 CPO 列後段留白屬光纖延伸，不算空白 |
+| 修正過程 | 首版 CPO 列「晶片」字被紅線壓住，封裝框由 200 加寬到 260 後解決；重疊檢查程式新增 SVG 內文字兩兩相交、出界、壓線檢查 |
+| 文字檔 | threads.txt／ig.txt 出處行由 Faber CC 照改為「自行繪製示意圖」，Threads 留言附位置描述參考連結；`image_sources.md` 重寫 |
+
+**重疊檢查：程式 1 張 0 筆**（含 SVG 內文字相交／出界／壓線）；人工目視 1080×1350 全解析度 0 筆。

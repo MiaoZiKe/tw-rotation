@@ -28,17 +28,17 @@ POSTS = [
       steps=[("冷板","貼在晶片上吸熱"),("冷卻液管路","把熱帶出機櫃"),("CDU","二次水路換熱"),("機房外","排出熱")],
       credit="圖：Votpuske／CC BY-SA 4.0／Wikimedia Commons。機殼內 CPU 水冷示意，非 AI 伺服器。",
       src="出處：TrendForce 新聞稿（2026-08-17）"),
- dict(n="04", no="04", kicker="供應鏈讀書筆記｜近封裝光學 NPO", photo=LIB/"資料中心"/"photo_7.jpg", pos="50% 36%",
+ dict(n="04", no="04", kicker="供應鏈讀書筆記｜近封裝光學 NPO", photo=None, svgf="npo_diagram.svg", pos="50% 50%",
       title="光模組往晶片靠近一步<br>NPO 是什麼",
       fact="2026-11-03 Tower Semiconductor 新聞稿：Innolight 的第一款近封裝光學（NPO）元件，已在 Tower 的 200 毫米矽光子製程進入早期量產。",
       steps=[("運算晶片","產生高速電訊號"),("光學引擎","近封裝處電轉光"),("光纖","光訊號傳出機櫃"),("對端設備","光轉電再接收")],
-      credit="圖：Faber／CC BY-SA 2.0／Wikimedia Commons。機房示意，與文中公司、產品無關。",
+      credit="示意圖：依公開資料自行繪製的三種光學位置對照，比例與距離為示意，非任何公司產品圖。",
       src="出處：Tower Semiconductor 新聞稿（2026-11-03）"),
 ]
 CAP = {"01": "誰供應誰：角色分工示意（依公開資料繪製，非特定客戶關係）", "02": "流程示意（依公開資料繪製）", "03": "流程示意（依公開資料繪製）", "04": "流程示意（依公開資料繪製，非特定產品架構）"}
 FONT = __import__('os').environ.get('TC_FONT') or '/tmp/claude-0/-home-user-tw-rotation/1662701f-8abb-57a6-b66d-4e0b4e90dd73/scratchpad/font/NotoSansTC.ttf'
 def b64(p): return base64.b64encode(Path(p).read_bytes()).decode()
-HBM_SVG = open(HERE / "hbm_diagram.svg", encoding="utf-8").read()
+SVGS = {"02": open(HERE / "hbm_diagram.svg", encoding="utf-8").read(), "04": open(HERE / "npo_diagram.svg", encoding="utf-8").read()}
 def html(p):
     steps = "".join('<div class="st"><div class="si">%d</div><div class="sn">%s</div><div class="sd">%s</div></div>' % (i+1,a,b) + ('<div class="ar">→</div>' if i < 3 else '') for i,(a,b) in enumerate(p["steps"]))
     css = "@font-face{font-family:'Noto Sans TC';font-weight:100 900;src:url('file://" + FONT + "')}" + """*{margin:0;padding:0;box-sizing:border-box}
@@ -68,13 +68,21 @@ body{width:1080px;height:1350px;background:#fff;color:#111;font-family:'Noto San
       '<div class="f">%s</div><div class="flow">%s</div>'
       '<div class="cap">%s</div><div class="ln2"></div>'
       '<div class="cr">%s</div><div class="sr">%s</div><div class="dc">與各公司無合作或授權關係</div><div class="br">科技透明圈</div></body></html>'
-      % (p["no"], p["kicker"], p["title"], (HBM_SVG if not p["photo"] else ''), p["fact"], steps, CAP[p["n"]], p["credit"], p["src"]))
+      % (p["no"], p["kicker"], p["title"], (SVGS[p["n"]] if not p["photo"] else ''), p["fact"], steps, CAP[p["n"]], p["credit"], p["src"]))
 JS = """()=>{const els=[...document.querySelectorAll('.k,.t,.f,.cap,.cr,.sr,.dc,.br,.si,.sn,.sd,.ar,.ph,.bar')];
 const R=els.map(e=>{const r=e.getBoundingClientRect();let o=false;if(e.textContent.trim()){const g=document.createRange();g.selectNodeContents(e);const t=g.getBoundingClientRect();const fs=parseFloat(getComputedStyle(e).fontSize);const tol=fs*0.3;o=t.bottom>r.bottom+tol||t.right>r.right+1||t.top<r.top-tol}return [e.className,r.left,r.top,r.right,r.bottom,o]});
 const bad=[];for(let i=0;i<R.length;i++){if(R[i][5])bad.push('溢出:'+R[i][0]);for(let j=i+1;j<R.length;j++){const a=R[i],b=R[j];
 if(a[1]<b[3]-0.5&&b[1]<a[3]-0.5&&a[2]<b[4]-0.5&&b[2]<a[4]-0.5)bad.push(a[0]+'x'+b[0])}}
 const fl=document.querySelector('.flow').getBoundingClientRect();const c=document.querySelector('.cap').getBoundingClientRect();
-if(fl.bottom>c.top)bad.push('flow x cap');return bad}"""
+if(fl.bottom>c.top)bad.push('flow x cap');
+const sv=document.querySelector('.ph svg');if(sv){const T=[...sv.querySelectorAll('text')].map(t=>[t.textContent,t.getBoundingClientRect()]);
+for(let i=0;i<T.length;i++){const a=T[i][1];if(a.left<0||a.right>1080||a.top<296||a.bottom>756)bad.push('svg出界:'+T[i][0]);
+for(let j=i+1;j<T.length;j++){const b=T[j][1];if(a.left<b.right&&b.left<a.right&&a.top<b.bottom&&b.top<a.bottom)bad.push('svg字重疊:'+T[i][0]+'x'+T[j][0])}}
+const S=[...sv.querySelectorAll('rect')].filter(r=>r.getAttribute('fill')=='#111111'||r.getAttribute('fill')=='#EFEFEF'&&r.getAttribute('stroke'));
+T.forEach(([tx,a])=>{const hit=S.some(r=>{const b=r.getBoundingClientRect();return a.left>=b.left&&a.right<=b.right&&a.top>=b.top&&a.bottom<=b.bottom});
+const l=[...sv.querySelectorAll('line')].some(r=>{const b=r.getBoundingClientRect();return a.left<b.right&&b.left<a.right&&a.top<b.bottom&&b.top<a.bottom});
+if(l&&tx!='電訊號走很長一段')bad.push('svg字壓線:'+tx)})}
+return bad}"""
 if __name__ == "__main__":
     tot = 0; n_done = 0
     with sync_playwright() as pw:
