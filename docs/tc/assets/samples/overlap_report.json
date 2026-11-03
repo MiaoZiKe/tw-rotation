@@ -1,0 +1,72 @@
+{
+ "A1_cover_logo": {
+  "bad": [],
+  "oob": [],
+  "ovf": false,
+  "small": [],
+  "n": 20
+ },
+ "A1_cover_textonly": {
+  "bad": [],
+  "oob": [],
+  "ovf": false,
+  "small": [],
+  "n": 19
+ },
+ "A2_fields_textonly": {
+  "bad": [],
+  "oob": [],
+  "ovf": false,
+  "small": [],
+  "n": 36
+ },
+ "A3_cta": {
+  "bad": [],
+  "oob": [],
+  "ovf": false,
+  "small": [],
+  "n": 16
+ },
+ "B1_cover": {
+  "bad": [],
+  "oob": [],
+  "ovf": false,
+  "small": [],
+  "n": 17
+ },
+ "B2_diagram": {
+  "bad": [],
+  "oob": [],
+  "ovf": false,
+  "small": [],
+  "n": 9
+ },
+ "B3_points": {
+  "bad": [],
+  "oob": [],
+  "ovf": false,
+  "small": [],
+  "n": 18
+ },
+ "C1_question": {
+  "bad": [],
+  "oob": [],
+  "ovf": false,
+  "small": [],
+  "n": 20
+ },
+ "C2_diagram": {
+  "bad": [],
+  "oob": [],
+  "ovf": false,
+  "small": [],
+  "n": 18
+ },
+ "C3_answer": {
+  "bad": [],
+  "oob": [],
+  "ovf": false,
+  "small": [],
+  "n": 25
+ }
+}
