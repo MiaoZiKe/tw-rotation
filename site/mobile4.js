@@ -91,7 +91,7 @@
         }
         if (v === 'stock' || v === 'delivery' || !has(v)) return;
         if (window.TwNavHide && window.TwNavHide.off('v', v)) return;   // 2026-10-29 管理者用側欄小眼睛隱藏的項目：一般人抽屜不列（管理者照列、半透明＋眼睛）    // 個股頁沒有側欄入口；交付清單入口桌機也收掉了
-        if ((v === 'tc' && !root.classList.contains('tc-adm')) || (v === 'lab' && !root.classList.contains('lab-adm')) || (v === 'flowcheck' && !root.classList.contains('fc-adm'))) return;   // 管理者限定的頁：非管理者抽屜根本不列（光用 CSS 藏會讓「每一項都有圖示」的驗收把隱藏項算進去）
+        if ((v === 'lab' && !root.classList.contains('lab-adm')) || (v === 'flowcheck' && !root.classList.contains('fc-adm'))) return;   // 管理者限定的頁：非管理者抽屜根本不列（光用 CSS 藏會讓「每一項都有圖示」的驗收把隱藏項算進去）
         const P = N.PAGES[v] || { t: v };
         const subs = N.SUBS[v] || [];
         const on = pg === v || (v === 'industry' && pg === 'stock');

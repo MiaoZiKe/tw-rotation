@@ -83,3 +83,8 @@ GoodJob 為主、Dcard／PTT／其他做交叉比對，對不起來就寫進 not
 公司層加 `bonus_structure`：每一種獎金一筆 `{type, rule, months, sources}`，例如季獎金／員工酬勞、年終、運動會或其他獎金。
 台積電（已依中央社、經濟日報、科技新報核對）：季業績獎金每季提撥 50% 於 2／5／8／11 月發，另 50% 隔年 7 月發，一年 5 包；年終固定 2 個月；運動會獎金不固定。
 其他公司一律照這個格式查清楚：每種獎金的發放月份、月數或提撥方式，附來源；查不到 null，不准套用別家。
+
+## 2026-11-03 公開版（官方薪資）
+- 路由：`#tc` 與 `#tc/co/<代號>` 對所有人開放（site/tc/pub.js），只用官方「非擔任主管職務之全時員工薪資」；網友樣本分頁（`#tc/<產業>`、`#tc/stats`）仍只限管理者，非管理者導回 `#tc`。上面「可見範圍」那一條以這裡為準。
+- 資料：pipeline `sources/salary_official.py` → 資料湖 `salary_official`（鍵 year, code，一年一次）→ `site/data/tc_salary.json`；湖還空時前端讀 `site/tc/official_seed.json`（`scripts/mk_tc_official_seed.py` 產生；人工整理的媒體轉述數字，每筆標來源）。
+- 頁底法遵文字取自 `docs/tc/legal.md` ③，改文字要回去改那份文件。功能鍵 `tc.page`、`tc.click`（features.js／plan_presets.js）。

@@ -247,6 +247,37 @@ def export_tc_logos() -> dict:
     return mapping
 
 
+def export_tc_salary() -> dict:
+    """科技透明圈公開版（官方薪資）：資料湖 salary_official 每家取最新年度，另帶前一年算年增。
+
+    只讀資料湖（DECISIONS #155）；湖是空的 → 寫 {"year": null, "rows": []}，前端退回 site/tc/json/official_seed.json。
+    年增優先用官方欄位（yoy_median_pct），沒有才用前一年的中位數自己算；兩者都沒有就 null。
+    """
+    out: dict = {"year": None, "rows": []}
+    try:
+        df = store.read("salary_official")
+    except Exception as exc:  # noqa: BLE001 —— 不能拖垮整份 payload
+        log.warning("官方薪資讀取失敗：%s", exc)
+        df = None
+    if df is not None and not df.empty:
+        df = df.sort_values(["code", "year"])
+        prev = df.groupby("code")["median_wan"].shift(1)
+        df = df.assign(_prev=prev).groupby("code").tail(1)
+        ymax = int(df["year"].max())
+        out["year"] = ymax
+        for r in df[df["year"] == ymax].itertuples():
+            yoy = r.yoy_median_pct if pd.notna(r.yoy_median_pct) else (
+                round((r.median_wan / r._prev - 1) * 100, 1) if pd.notna(r.median_wan) and pd.notna(r._prev) and r._prev else None)
+            out["rows"].append({"code": r.code, "name": r.name, "market": r.market,
+                                "avg_wan": None if pd.isna(r.avg_wan) else float(r.avg_wan),
+                                "median_wan": None if pd.isna(r.median_wan) else float(r.median_wan),
+                                "n": None if pd.isna(r.n) else int(r.n),
+                                "yoy_pct": None if yoy is None or pd.isna(yoy) else float(yoy)})
+    config.SITE_DATA.mkdir(parents=True, exist_ok=True)
+    _write("tc_salary", out)
+    return out
+
+
 def export_logos() -> dict:
     """把資料湖的公司 Logo 複製到 site/data/logos/，並寫 site/data/logos.json（{代號: 相對路徑}）。
 
@@ -904,6 +935,7 @@ def build() -> None:
     _write("delivery", delivery_log.build(config.ROOT))
     export_logos()
     export_tc_logos()
+    export_tc_salary()
     _meta = meta_payload(latest, history_days)
     # 2026-10-07：前端只在 meta 寫著「這幾份小檔有產出」時才去抓（沒列就走舊流程，不發一個會 404 的請求）
     _meta["lite_files"] = [n for n in LITE_FILES if (config.SITE_DATA / f"{n}.json").exists()]

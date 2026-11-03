@@ -78,7 +78,7 @@ def t_tc_1025(b, base, code):
     ok(f"{T}：切產業 → 篩選回 Default（沒有反白的非『全部』鈕）", pg.evaluate("() => document.querySelectorAll('#v-tc .seg button.on:not([data-i=\"0\"])').length") == 0 and "#tc/memory" in pg.url)
     # ⑧ 逐筆樣本與樣本統計（資料有 samples 才驗；沒有就只驗分頁存在）
     pg.click("#v-tc .tc-tabs a[data-ind=stats]"); pg.wait_for_timeout(600)
-    ok(f"{T}：「樣本統計」分頁在產業分頁列最前面", pg.evaluate("() => document.querySelector('#v-tc .tc-tabs a').dataset.ind") == "stats" and "#tc/stats" in pg.url)
+    ok(f"{T}：「樣本統計」分頁緊接在「官方薪資（公開版）」之後、產業分頁之前（11-03 公開版多了第一顆）", pg.evaluate("() => [...document.querySelectorAll('#v-tc .tc-tabs a')].slice(0, 2).map(a => a.dataset.ind).join()") == "pub,stats" and "#tc/stats" in pg.url)
     tot = pg.evaluate("() => +document.querySelector('#tcAll')?.innerText || 0")
     if tot:
         ok(f"{T}：樣本統計樹狀預設收起，點產業後展開子層", pg.evaluate("() => document.querySelectorAll('#v-tc details.l1[open]').length") == 0 or pg.evaluate("() => document.querySelectorAll('#v-tc details.l1').length") == 1)
@@ -111,8 +111,8 @@ def t_tc_1025(b, base, code):
         c3.add_init_script("window.TW_TC_OVERRIDE=false;try{localStorage.setItem('tw.tour','done')}catch(e){};setTimeout(function(){window.dispatchEvent(new Event('tw:account'))},1000)")
         p3 = c3.new_page(); p3.on("pageerror", lambda e: errs.append(str(e)))
         p3.goto(base + "#tc/foundry", wait_until="load"); p3.wait_for_timeout(1800)
-        ok(f"{T}（非管理者・{tag}）：#tc 被導回總覽", p3.evaluate("() => location.hash") == "#overview", p3.url)
-        ok(f"{T}（非管理者・{tag}）：導覽列看不到「科技透明圈」", p3.evaluate("() => [...document.querySelectorAll('.tab[data-view=tc], a[href=\"#tc\"]')].every(e => e.offsetParent === null)"))
+        ok(f"{T}（非管理者・{tag}）：#tc/foundry 被導回公開版 #tc（11-03：不再導總覽，#tc 本身對所有人開放）", p3.evaluate("() => location.hash") == "#tc", p3.url)
+        ok(f"{T}（非管理者・{tag}）：導覽列看得到「科技透明圈」入口（11-03 公開版）", p3.evaluate("() => document.querySelectorAll('.tab[data-view=tc], a[href=\"#tc\"]').length > 0"))
         ok(f"{T}（非管理者・{tag}）：頁面沒畫公司卡", p3.evaluate("() => document.querySelectorAll('#v-tc .tc-co').length") == 0)
         c3.close()
     # ⑨ 身分晚 2 秒才到：管理者仍看得到內容（以前開頁當下 isAdm=false 就導走不畫）

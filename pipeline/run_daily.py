@@ -19,7 +19,7 @@ import pandas as pd
 from . import config, inst_bulk
 from .compute import flow
 from .groups import loader
-from .sources import exright_notice, inst_official, etf_pcf, finmind, macro, mis, mktfut, mops, news, taifex, tape, tdcc, tpex, twse
+from .sources import salary_official, exright_notice, inst_official, etf_pcf, finmind, macro, mis, mktfut, mops, news, taifex, tape, tdcc, tpex, twse
 from .util import freshness, http, store
 from .util.roc import is_tradable_security
 
@@ -970,6 +970,9 @@ def main() -> int:
         save("revenue_monthly", step("twse.revenue", twse.revenue_monthly))
         save("financial_q", step("twse.financial", twse.financial_q))
         save("dividend", step("twse.dividend", twse.dividend))
+        # 官方非主管薪資（2026-11-03）：一年才公布一次（6/30），只在表還是空的或 6～8 月才打，平常不浪費請求
+        if store.read("salary_official").empty or datetime.now(timezone.utc).month in (6, 7, 8):
+            save("salary_official", step("salary_official.fetch", salary_official.fetch))
         # 證交所的公告沒有除息日；只補資料湖裡還沒有的 (code, period, kind)，
         # 已由 FinMind 回補（含除息日、發放日）的列不要被蓋掉
         save("dividend_events", only_new_keys("dividend_events",

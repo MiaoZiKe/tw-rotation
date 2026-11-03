@@ -47,7 +47,8 @@
        管理頁與鎖頭各自呼叫 addGroups() 補進來（見下面 grpKey 的鍵對照）。*/
     { id: 'grp', name: '族群觀測' },
     { id: 'explore', name: '選股策略' },  // 2026-10-05 新分類（docs/explore_page_spec.md）
-    { id: 'earnings', name: '財經日曆' }   // 2026-10-05（晚）新分類（site/earnings.js）
+    { id: 'earnings', name: '財經日曆' },  // 2026-10-05（晚）新分類（site/earnings.js）
+    { id: 'tc', name: '科技透明圈' }       // 2026-11-03 公開版（官方薪資，site/tc/pub.js）
   ];
 
   /* 個股分頁：桌機（#stockTabs／#stockTab）與手機（#mbTabs／#mbBody）是兩套 DOM、兩套代號，這裡一次宣告兩邊 */
@@ -304,6 +305,14 @@
     { id: 'earn.click', name: '財經日曆：點事件標題／右側清單', cat: 'earnings', def: true, kind: 'bool', limBy: { guest: 3, free: 5 }, qper: 'each', qunit: '點擊', qspent: true,
       qbtn: '今日 {n} 次已用完・Plus 以上可增加', qblock: ['#earnGrid .chip', '#earnPanel .erow'], qcount: ['#earnGrid .chip', '#earnPanel .erow'],
       qnoteAfter: '#earnToday', route: /^#earnings/, desc: '月曆上的事件標題、右側清單的每一列，點一次算一次（回本週重點、切分類不算）', veil: [], mark: [], block: [] },
+    // ---- 科技透明圈（公開版：官方薪資）
+    /* ★ 2026-11-03（Andy：「照建議做，先從官方薪資版預覽開始」；CLAUDE.md 11-02：新功能一律註冊功能鍵、設各方案次數）：
+       tc.page＝整頁（訪客也開放，只有官方公開資料）；tc.click＝點公司列看公司卡，訪客 5／註冊會員 15／Plus 以上不限（上限值是我提的，Andy 可在權限頁改）。
+       網友樣本分頁（GoodJob／Dcard）不在這裡 —— 它永遠只限管理者，不是功能鍵能開的。 */
+    box('tc.page', 'tc', '科技透明圈：官方薪資頁', ['#v-tc'], '上市櫃科技公司的官方非主管薪資排行（平均、中位數、年增、員工數）'),
+    { id: 'tc.click', name: '科技透明圈：點公司看公司卡', cat: 'tc', def: true, kind: 'bool', limBy: { guest: 5, free: 15 }, qper: 'each', qunit: '點擊', qspent: true,
+      qbtn: '今日 {n} 次已用完・Plus 以上可增加', qblock: ['#v-tc a.tcp-go'], qcount: ['#v-tc a.tcp-go'],
+      qnoteAfter: '#tcpCount', route: /^#tc/, desc: '排行表每點一家公司進公司卡算一次（返回、排序、篩選不算）', veil: [], mark: [], block: [] },
     // ---- 自選
     box('watch.page', 'watch', '自選清單頁', ['#v-watch'], '自選分頁（整頁）'),
     /* ★ 2026-10-07（Andy：「註冊可以自選一個分頁且10檔股票…plus 可以新增5個分頁、pro 可以不限分頁」，docs/quota_plan.md）：

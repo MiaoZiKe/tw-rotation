@@ -35,7 +35,8 @@
   function gate() {
     const on = isAdm();
     document.documentElement.classList.toggle('tc-adm', on);
-    if (!on && known && /^#tc(\/|$)/.test(location.hash || '')) location.replace('#overview');
+    /* 2026-11-03 公開版：#tc 與 #tc/co/<代號>（官方薪資）對所有人開放；網友樣本的分頁（#tc/<產業>、#tc/stats）仍只限管理者，非管理者導回公開排行 */
+    if (!on && known && /^#tc\/(?!co\/)[^/]/.test(location.hash || '')) location.replace('#tc');
     return on;
   }
   gate();
@@ -553,7 +554,7 @@
   function paint() {
     const root = $('#v-tc'); if (!root) return;
     const d = S.data[S.ind];
-    const tabs = '<div class="nbsw tc-tabs" role="tablist" aria-label="產業"><a href="#tc/stats" role="tab" data-ind="stats" class="' + (S.ind === 'stats' ? 'on' : '') + '">樣本統計</a>' + INDS.map(([id, n]) => '<a href="#tc/' + id + '" role="tab" data-ind="' + id + '" class="' + (id === S.ind ? 'on' : '') + '">' + n + (S.data[id] ? '<small>' + (S.data[id].companies || []).length + '</small>' : '') + '</a>').join('') + '</div>';
+    const tabs = '<div class="nbsw tc-tabs" role="tablist" aria-label="產業"><a href="#tc" role="tab" data-ind="pub">官方薪資（公開版）</a><a href="#tc/stats" role="tab" data-ind="stats" class="' + (S.ind === 'stats' ? 'on' : '') + '">樣本統計</a>' + INDS.map(([id, n]) => '<a href="#tc/' + id + '" role="tab" data-ind="' + id + '" class="' + (id === S.ind ? 'on' : '') + '">' + n + (S.data[id] ? '<small>' + (S.data[id].companies || []).length + '</small>' : '') + '</a>').join('') + '</div>';
     let h = '<div class="card tc-card"><div class="row spread tc-hd"><h3>' + esc(S.ind === 'stats' ? '樣本統計' : (INDS.find((x) => x[0] === S.ind) || [])[1] || '') + howHtml() + '</h3><span class="tc-upd">' +
       (d ? '資料 ' + esc(d.updated || '') + '・近一年' : '') + '</span></div>' + tabs + '<div class="tc-body">';
     if (S.ind === 'stats') {
@@ -624,6 +625,8 @@
 
   async function show(head, rest) {
     const root = $('#v-tc'); if (!root) return;
+    /* 公開版：沒帶產業（#tc）或 #tc/co/<代號> 一律畫官方薪資；管理者要看網友樣本走 #tc/<產業>／#tc/stats */
+    if (!rest[0] || rest[0] === 'co') { gate(); if (window.TcPub) await window.TcPub.show(rest); return; }
     if (!gate()) { if (!known) { const v = document.getElementById('v-tc'); if (v) v.innerHTML = '<div class="empty">確認登入身分中…</div>'; } return; }   // 非管理者：gate() 已導回總覽；身分還沒確定先顯示確認中
     const ids = INDS.map((x) => x[0]);
     const ind = rest[0] === 'stats' ? 'stats' : ids.includes(rest[0]) ? rest[0] : ids[0];
@@ -636,5 +639,5 @@
     if (await hidRefresh()) { rebuild(); afterChange(); }   // 先用快取畫、再用伺服器清單校正（別的裝置刪的在這裡也要生效）
   }
 
-  window.TwTc = { show, state: () => S, INDS };
+  window.TwTc = { show, state: () => S, INDS, isAdm };
 })();

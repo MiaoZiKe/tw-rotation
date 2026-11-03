@@ -133,6 +133,7 @@ window.TW_PLAN_PRESETS = {
     "etf.returns": false,
     "earn.page": true,
     "earn.cal": true,
+    "tc.page": true,
     "watch.page": false,
     "watch.tabs": 0,
     "stock.page": true,
@@ -175,6 +176,7 @@ window.TW_PLAN_PRESETS = {
     "mkt.inst.day": 3,
     "etf.cal.click": 3,
     "earn.click": 3,
+    "tc.click": 5,
     "search": 5
    },
    "meta": {
@@ -267,6 +269,7 @@ window.TW_PLAN_PRESETS = {
     "etf.returns": true,
     "earn.page": true,
     "earn.cal": true,
+    "tc.page": true,
     "watch.page": true,
     "watch.tabs": 1,
     "stock.page": true,
@@ -324,6 +327,7 @@ window.TW_PLAN_PRESETS = {
     "mkt.updown.filter": 5,
     "etf.cal.click": 5,
     "earn.click": 5,
+    "tc.click": 15,
     "search": 10
    },
    "meta": {
@@ -418,6 +422,7 @@ window.TW_PLAN_PRESETS = {
     "etf.returns": true,
     "earn.page": true,
     "earn.cal": true,
+    "tc.page": true,
     "watch.page": true,
     "watch.tabs": 5,
     "stock.page": true,
@@ -541,6 +546,7 @@ window.TW_PLAN_PRESETS = {
     "etf.returns": true,
     "earn.page": true,
     "earn.cal": true,
+    "tc.page": true,
     "watch.page": true,
     "watch.tabs": 50,
     "stock.page": true,

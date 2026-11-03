@@ -1,0 +1,83 @@
+/* 科技透明圈公開版（官方薪資）：頻道二定調的「瑞士極簡」——白底 #FFFFFF、黑 #111111、瑞士紅 #D4231A、輔助灰 #595959、細線 #CFCFCF、淡灰面 #EFEFEF。
+   只作用在 #v-tc .tcp 底下，不碰全站樣式；深色主題下這一塊仍是白紙（品牌版面，不跟主題走）。手機規則全包在 @media (max-width:640px)。 */
+#v-tc .tcp{--tp-bg:#FFFFFF;--tp-ink:#111111;--tp-red:#D4231A;--tp-mut:#595959;--tp-line:#CFCFCF;--tp-face:#EFEFEF;
+  background:var(--tp-bg);color:var(--tp-ink);border:1px solid var(--tp-line);border-radius:2px;padding:24px 28px;font-family:"Helvetica Neue",Helvetica,Arial,"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif}
+#v-tc .tcp a{color:var(--tp-ink);text-decoration:none}
+#v-tc .tcp a:hover{color:var(--tp-red)}
+#v-tc .tcp-hd{border-bottom:2px solid var(--tp-ink);padding-bottom:12px;margin-bottom:16px}
+#v-tc .tcp-ttl{display:flex;align-items:center;gap:10px}
+#v-tc .tcp-ttl h2{margin:0;font-size:24px;font-weight:700;letter-spacing:.02em;color:var(--tp-ink)}
+#v-tc .tcp-code{font-size:14px;color:var(--tp-mut)}
+#v-tc .tcp-sub{margin-top:4px;font-size:13px;color:var(--tp-mut)}
+#v-tc .tcp-how{position:relative;display:inline-block}
+#v-tc .tcp-q{width:22px;height:22px;border-radius:50%;border:1px solid var(--tp-mut);background:var(--tp-bg);color:var(--tp-ink);font-size:12px;line-height:1;cursor:pointer;padding:0}
+#v-tc .tcp-q:hover{border-color:var(--tp-red);color:var(--tp-red)}
+#v-tc .tcp-pop{position:absolute;z-index:30;left:0;top:30px;width:min(380px,80vw);padding:12px 14px;background:var(--tp-bg);color:var(--tp-ink);border:1px solid var(--tp-ink);font-size:13px;font-weight:400;line-height:1.6;letter-spacing:0}
+#v-tc .tcp-pop[hidden]{display:none}
+#v-tc .tcp-adm{margin:-8px 0 14px;padding:6px 10px;background:var(--tp-face);font-size:12px;color:var(--tp-mut)}
+#v-tc .tcp-adm a{color:var(--tp-red);text-decoration:underline}
+#v-tc .tcp-inds{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+#v-tc .tcp-inds button{border:1px solid var(--tp-line);background:var(--tp-bg);color:var(--tp-ink);padding:5px 12px;font-size:13px;cursor:pointer;border-radius:0;min-height:32px}
+#v-tc .tcp-inds button small{margin-left:5px;color:var(--tp-mut)}
+#v-tc .tcp-inds button.on{background:var(--tp-ink);color:var(--tp-bg);border-color:var(--tp-ink)}
+#v-tc .tcp-inds button.on small{color:var(--tp-line)}
+#v-tc .tcp-cnt{font-size:13px;color:var(--tp-mut);margin-bottom:8px}
+#v-tc .tcp-cnt b{color:var(--tp-ink)}
+#v-tc .tcp-tw{overflow-x:auto}
+#v-tc .tcp-tbl{width:100%;border-collapse:collapse;font-size:14px}
+#v-tc .tcp-tbl th{border-bottom:1px solid var(--tp-ink);padding:6px 10px;text-align:right;font-weight:600;font-size:13px;white-space:nowrap}
+#v-tc .tcp-tbl th.l,#v-tc .tcp-tbl td.l{text-align:left}
+#v-tc .tcp-tbl th button{all:unset;cursor:pointer;display:inline-flex;gap:4px;align-items:center;min-height:28px}
+#v-tc .tcp-tbl th button:hover,#v-tc .tcp-tbl th.on button{color:var(--tp-red)}
+#v-tc .tcp-tbl th i{font-style:normal;font-size:11px;width:11px}
+#v-tc .tcp-tbl td{padding:9px 10px;border-bottom:1px solid var(--tp-line);text-align:left;vertical-align:baseline}
+#v-tc .tcp-tbl td.num{text-align:right;font-variant-numeric:tabular-nums}
+#v-tc .tcp-tbl td.strong{font-weight:700}
+#v-tc .tcp-tbl td.up,#v-tc .tcp-kpis b.up{color:var(--tp-red)}
+#v-tc .tcp-tbl td small{margin-left:8px;color:var(--tp-mut);font-size:12px}
+#v-tc .tcp-tbl .tcp-go{font-weight:600}
+#v-tc .tcp-tbl tbody tr:hover{background:var(--tp-face)}
+#v-tc .tcp-more{margin:10px 0 0;border:1px solid var(--tp-ink);background:var(--tp-bg);color:var(--tp-ink);padding:8px 16px;font-size:14px;cursor:pointer;min-height:40px;width:100%}
+#v-tc .tcp-miss{margin-top:16px;border-top:1px solid var(--tp-line);padding-top:10px;font-size:13px}
+#v-tc .tcp-miss summary{cursor:pointer;color:var(--tp-mut);min-height:28px}
+#v-tc .tcp-miss p{color:var(--tp-mut);margin:6px 0}
+#v-tc .tcp-chips{display:flex;flex-wrap:wrap;gap:4px 6px}
+#v-tc .tcp-chips span{background:var(--tp-face);padding:2px 8px;font-size:12px}
+#v-tc .tcp-crumb{margin-bottom:14px;font-size:14px}
+#v-tc .tcp-nodata{padding:20px;background:var(--tp-face);color:var(--tp-mut);font-size:14px}
+#v-tc .tcp-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:0;border:1px solid var(--tp-line);margin-bottom:20px}
+#v-tc .tcp-kpis>div{padding:14px 16px;border-right:1px solid var(--tp-line)}
+#v-tc .tcp-kpis>div:last-child{border-right:0}
+#v-tc .tcp-kpis span{display:block;font-size:12px;color:var(--tp-mut);margin-bottom:4px}
+#v-tc .tcp-kpis b{font-size:28px;font-weight:700;font-variant-numeric:tabular-nums}
+#v-tc .tcp-kpis b i{font-style:normal;font-size:13px;font-weight:400;margin-left:3px;color:var(--tp-mut)}
+#v-tc .tcp-peerh{font-size:14px;margin-bottom:8px}
+#v-tc .tcp-peerh b{color:var(--tp-red)}
+#v-tc .tcp-bar{display:grid;grid-template-columns:110px 1fr 56px;gap:10px;align-items:center;font-size:13px;padding:2px 0}
+#v-tc .tcp-bar .nm{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#v-tc .tcp-bar .bar{background:var(--tp-face);height:10px;display:block}
+#v-tc .tcp-bar .bar i{display:block;height:100%;background:var(--tp-mut)}
+#v-tc .tcp-bar.me .bar i{background:var(--tp-red)}
+#v-tc .tcp-bar.me .nm,#v-tc .tcp-bar.me .v{font-weight:700}
+#v-tc .tcp-bar .v{text-align:right;font-variant-numeric:tabular-nums}
+#v-tc .tcp-src{margin-top:16px;font-size:13px;color:var(--tp-mut)}
+#v-tc .tcp-src a{text-decoration:underline}
+#v-tc .tcp-legal{margin-top:24px;padding-top:14px;border-top:1px solid var(--tp-line);font-size:12.5px;line-height:1.7;color:var(--tp-mut)}
+#v-tc .tcp-legal p{margin:4px 0}
+#v-tc .tcp-legal b{color:var(--tp-ink)}
+#v-tc .tcp-lic{font-size:12px}
+#v-tc .tcp .empty{color:var(--tp-mut)}
+@media (max-width:640px){
+  #v-tc .tcp{padding:16px;border-left:0;border-right:0}
+  #v-tc .tcp-ttl h2{font-size:20px}
+  #v-tc .tcp-hm{display:none}
+  #v-tc .tcp-tbl th,#v-tc .tcp-tbl td{padding:8px 6px}
+  #v-tc .tcp-tbl td small{display:block;margin:0}
+  #v-tc .tcp-inds{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;margin-right:-16px;padding-right:16px}
+  #v-tc .tcp-inds button{white-space:nowrap;flex:0 0 auto}
+  #v-tc .tcp-kpis{grid-template-columns:repeat(2,1fr)}
+  #v-tc .tcp-kpis>div:nth-child(2){border-right:0}
+  #v-tc .tcp-kpis>div:nth-child(-n+2){border-bottom:1px solid var(--tp-line)}
+  #v-tc .tcp-bar{grid-template-columns:84px 1fr 48px}
+  #v-tc .tcp-legal{font-size:12px}
+}

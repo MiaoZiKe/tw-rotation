@@ -81,7 +81,7 @@
 }
 
 /* 2026-10-25 只限管理者：html 沒有 .tc-adm 時，側欄／手機導覽的入口一律藏（路由本身在 tc.js 導回總覽） */
-html:not(.tc-adm) .tab[data-view="tc"],html:not(.tc-adm) a[href="#tc"],html:not(.tc-adm) [data-v="tc"]{display:none!important}
+/* 2026-11-03 公開版（官方薪資）上線：入口對所有人顯示，不再藏（網友樣本分頁仍由 tc.js 擋非管理者） */
 #v-tc .tc-kvs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:4px var(--sp-3)}
 #v-tc .tc-kv{display:flex;justify-content:space-between;gap:6px;font-size:13px;min-width:0}
 #v-tc .tc-kv span{color:var(--ink-3);white-space:nowrap}

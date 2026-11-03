@@ -59,6 +59,7 @@ TABLES: dict[str, list[str]] = {
     "dividend":           ["code", "year"],   # 股利
     "shareholding_weekly": ["date", "code", "level"],   # 集保股權分散
     "company_info":       ["code"],           # 公司基本資料 + 產業別
+    "salary_official":    ["year", "code"],   # 2026-11-03 官方非主管全時員工薪資（證交所／櫃買，一年一次；sources/salary_official.py）
     "news":               ["news_id"],        # 新聞（含分類）
     "broker_views":       ["news_id", "code"], # 新聞裡引述的券商目標價
     "intl_daily":         ["date", "symbol"], # 國際指數 / 匯率 / 債息

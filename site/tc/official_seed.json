@@ -1,0 +1,633 @@
+{
+ "asof": "2026-11-03",
+ "unit": "萬元／年",
+ "scope": "非擔任主管職務之全時員工",
+ "source": "證交所／櫃買中心公告（經媒體轉述整理，人工核對標日期）；pipeline 上線後由官方開放資料自動取代",
+ "rows": [
+  {
+   "code": "2330",
+   "name": "台積電",
+   "ind": "foundry",
+   "year": 2025,
+   "avg_wan": 407.2,
+   "median_wan": 316.2,
+   "n": null,
+   "yoy_pct": 19.55,
+   "url": "https://money.udn.com/money/story/5607/9598746",
+   "note": null
+  },
+  {
+   "code": "2454",
+   "name": "聯發科",
+   "ind": "icdesign",
+   "year": 2025,
+   "avg_wan": 446.5,
+   "median_wan": 355.2,
+   "n": null,
+   "yoy_pct": null,
+   "url": "https://finance.technews.tw/2026/06/30/mediatek-tops-non-executive-average-pay-for-fifth-straight-year/",
+   "note": null
+  },
+  {
+   "code": "3034",
+   "name": "聯詠",
+   "ind": "icdesign",
+   "year": 2025,
+   "avg_wan": 324.6,
+   "median_wan": 265.2,
+   "n": null,
+   "yoy_pct": null,
+   "url": "https://www.managertoday.com.tw/articles/view/72434",
+   "note": "中位數取自經理人報導前十名表（上市第 7 名）；平均數另見官方公告轉述"
+  },
+  {
+   "code": "2379",
+   "name": "瑞昱",
+   "ind": "icdesign",
+   "year": 2025,
+   "avg_wan": 387.1,
+   "median_wan": 319.3,
+   "n": null,
+   "yoy_pct": null,
+   "url": "https://finance.technews.tw/2026/06/30/mediatek-tops-non-executive-average-pay-for-fifth-straight-year/",
+   "note": null
+  },
+  {
+   "code": "3014",
+   "name": "聯陽(ITE)",
+   "ind": "icdesign",
+   "year": 2025,
+   "avg_wan": null,
+   "median_wan": 229.7,
+   "n": null,
+   "yoy_pct": null,
+   "url": "https://www.managertoday.com.tw/articles/view/72434",
+   "note": "中位數取自經理人報導的上市前十名表；平均數未取得"
+  },
+  {
+   "code": "3529",
+   "name": "力旺",
+   "ind": "icdesign",
+   "year": 2025,
+   "avg_wan": 317.3,
+   "median_wan": null,
+   "n": null,
+   "yoy_pct": null,
+   "url": "https://money.udn.com/money/story/5607/9598748",
+   "note": "平均數取自媒體轉述上櫃排行（第三名）；中位數未取得"
+  },
+  {
+   "code": "4961",
+   "name": "天鈺",
+   "ind": "icdesign",
+   "year": 2025,
+   "avg_wan": null,
+   "median_wan": 230.3,
+   "n": null,
+   "yoy_pct": null,
+   "url": "https://www.managertoday.com.tw/articles/view/72434",
+   "note": "中位數取自經理人報導的上市前十名表；平均數未取得"
+  },
+  {
+   "code": "5274",
+   "name": "信驊",
+   "ind": "icdesign",
+   "year": 2025,
+   "avg_wan": 561.7,
+   "median_wan": 453.7,
+   "n": null,
+   "yoy_pct": 13.31,
+   "url": "https://money.udn.com/money/amp/story/5607/9598748",
+   "note": "上櫃第一（平均 561.7、中位數 453.7）"
+  },
+  {
+   "code": "6526",
+   "name": "達發",
+   "ind": "icdesign",
+   "year": 2025,
+   "avg_wan": null,
+   "median_wan": 280.5,
+   "n": null,
+   "yoy_pct": null,
+   "url": "https://www.managertoday.com.tw/articles/view/72434",
+   "note": "中位數取自經理人報導的上市前十名表；平均數未取得"
+  },
+  {
+   "code": "5269",
+   "name": "祥碩",
+   "ind": "icdesign",
+   "year": 2025,
+   "avg_wan": null,
+   "median_wan": 337.4,
+   "n": null,
+   "yoy_pct": 35.72,
+   "url": "https://wantrich.chinatimes.com/news/20260630900421-420101",
+   "note": "平均沒查到；GoodJob 引 ESG 報告：2023 年非主管中位數 205.4 萬（較舊僅參考）"
+  },
+  {
+   "code": "3443",
+   "name": "創意",
+   "ind": "icdesign",
+   "year": 2025,
+   "avg_wan": null,
+   "median_wan": 257.6,
+   "n": null,
+   "yoy_pct": null,
+   "url": "https://www.managertoday.com.tw/articles/view/72434",
+   "note": "中位數取自經理人報導的上市前十名表；平均數未取得"
+  },
+  {
+   "code": "2382",
+   "name": "廣達",
+   "ind": "odm",
+   "year": 2024,
+   "avg_wan": null,
+   "median_wan": 149,
+   "n": null,
+   "yoy_pct": null,
+   "url": "https://money.udn.com/money/story/5612/8841090",
+   "note": null
+  },
+  {
+   "code": "2357",
+   "name": "華碩",
+   "ind": "odm",
+   "year": 2024,
+   "avg_wan": null,
+   "median_wan": 147.3,
+   "n": null,
+   "yoy_pct": null,
+   "url": "https://money.udn.com/money/story/5612/8841090",
+   "note": null
+  },
+  {
+   "code": "3711",
+   "name": "日月光",
+   "ind": "osat",
+   "year": 2025,
+   "avg_wan": 628.0,
+   "median_wan": null,
+   "n": null,
+   "yoy_pct": null,
+   "url": "https://blog.104.com.tw/salary-rankings-of-listed-companies-in-2025/",
+   "note": "平均數取自 104 職場力整理（日月光投控）；中位數未取得"
+  }
+ ],
+ "cos": [
+  {
+   "code": "3707",
+   "name": "漢磊",
+   "ind": "equipment"
+  },
+  {
+   "code": "6223",
+   "name": "旺矽",
+   "ind": "equipment"
+  },
+  {
+   "code": "3583",
+   "name": "辛耘",
+   "ind": "equipment"
+  },
+  {
+   "code": "2330",
+   "name": "台積電",
+   "ind": "foundry"
+  },
+  {
+   "code": "2303",
+   "name": "聯電",
+   "ind": "foundry"
+  },
+  {
+   "code": "5347",
+   "name": "世界先進",
+   "ind": "foundry"
+  },
+  {
+   "code": "6770",
+   "name": "力積電",
+   "ind": "foundry"
+  },
+  {
+   "code": "3105",
+   "name": "穩懋",
+   "ind": "foundry"
+  },
+  {
+   "code": "2454",
+   "name": "聯發科",
+   "ind": "icdesign"
+  },
+  {
+   "code": "3034",
+   "name": "聯詠",
+   "ind": "icdesign"
+  },
+  {
+   "code": "2379",
+   "name": "瑞昱",
+   "ind": "icdesign"
+  },
+  {
+   "code": "8299",
+   "name": "群聯",
+   "ind": "icdesign"
+  },
+  {
+   "code": "3592",
+   "name": "瑞鼎",
+   "ind": "icdesign"
+  },
+  {
+   "code": "6286",
+   "name": "立錡",
+   "ind": "icdesign"
+  },
+  {
+   "code": "3014",
+   "name": "聯陽(ITE)",
+   "ind": "icdesign"
+  },
+  {
+   "code": "6962",
+   "name": "奕力",
+   "ind": "icdesign"
+  },
+  {
+   "code": "3529",
+   "name": "力旺",
+   "ind": "icdesign"
+  },
+  {
+   "code": "4961",
+   "name": "天鈺",
+   "ind": "icdesign"
+  },
+  {
+   "code": "3006",
+   "name": "晶豪科",
+   "ind": "icdesign"
+  },
+  {
+   "code": "5274",
+   "name": "信驊",
+   "ind": "icdesign"
+  },
+  {
+   "code": "6526",
+   "name": "達發",
+   "ind": "icdesign"
+  },
+  {
+   "code": "5269",
+   "name": "祥碩",
+   "ind": "icdesign"
+  },
+  {
+   "code": "2458",
+   "name": "義隆",
+   "ind": "icdesign"
+  },
+  {
+   "code": "3443",
+   "name": "創意",
+   "ind": "icdesign"
+  },
+  {
+   "code": "6643",
+   "name": "円星",
+   "ind": "icdesign"
+  },
+  {
+   "code": "3661",
+   "name": "世芯-KY",
+   "ind": "icdesign"
+  },
+  {
+   "code": "6129",
+   "name": "普誠",
+   "ind": "icdesign"
+  },
+  {
+   "code": "3530",
+   "name": "晶相光電",
+   "ind": "icdesign"
+  },
+  {
+   "code": "6531",
+   "name": "愛普",
+   "ind": "icdesign"
+  },
+  {
+   "code": "6756",
+   "name": "威鋒",
+   "ind": "icdesign"
+  },
+  {
+   "code": "5351",
+   "name": "鈺創",
+   "ind": "icdesign"
+  },
+  {
+   "code": "3545",
+   "name": "敦泰",
+   "ind": "icdesign"
+  },
+  {
+   "code": "6485",
+   "name": "點序",
+   "ind": "icdesign"
+  },
+  {
+   "code": "6243",
+   "name": "迅杰",
+   "ind": "icdesign"
+  },
+  {
+   "code": "5471",
+   "name": "松翰",
+   "ind": "icdesign"
+  },
+  {
+   "code": "3041",
+   "name": "揚智",
+   "ind": "icdesign"
+  },
+  {
+   "code": "3035",
+   "name": "智原",
+   "ind": "icdesign"
+  },
+  {
+   "code": "4919",
+   "name": "新唐",
+   "ind": "icdesign"
+  },
+  {
+   "code": "4958",
+   "name": "臻鼎",
+   "ind": "material"
+  },
+  {
+   "code": "3037",
+   "name": "欣興",
+   "ind": "material"
+  },
+  {
+   "code": "3189",
+   "name": "景碩",
+   "ind": "material"
+  },
+  {
+   "code": "8046",
+   "name": "南電",
+   "ind": "material"
+  },
+  {
+   "code": "2383",
+   "name": "台光電",
+   "ind": "material"
+  },
+  {
+   "code": "8215",
+   "name": "明基材料",
+   "ind": "material"
+  },
+  {
+   "code": "1785",
+   "name": "光洋應材",
+   "ind": "material"
+  },
+  {
+   "code": "2108",
+   "name": "南帝化工",
+   "ind": "material"
+  },
+  {
+   "code": "1717",
+   "name": "長興材料",
+   "ind": "material"
+  },
+  {
+   "code": "2344",
+   "name": "華邦電",
+   "ind": "memory"
+  },
+  {
+   "code": "2408",
+   "name": "南亞科",
+   "ind": "memory"
+  },
+  {
+   "code": "2337",
+   "name": "旺宏",
+   "ind": "memory"
+  },
+  {
+   "code": "2382",
+   "name": "廣達",
+   "ind": "odm"
+  },
+  {
+   "code": "2317",
+   "name": "鴻海",
+   "ind": "odm"
+  },
+  {
+   "code": "2345",
+   "name": "智邦",
+   "ind": "odm"
+  },
+  {
+   "code": "2308",
+   "name": "台達電",
+   "ind": "odm"
+  },
+  {
+   "code": "2357",
+   "name": "華碩",
+   "ind": "odm"
+  },
+  {
+   "code": "2385",
+   "name": "群光",
+   "ind": "odm"
+  },
+  {
+   "code": "4938",
+   "name": "和碩",
+   "ind": "odm"
+  },
+  {
+   "code": "2301",
+   "name": "光寶",
+   "ind": "odm"
+  },
+  {
+   "code": "2324",
+   "name": "仁寶",
+   "ind": "odm"
+  },
+  {
+   "code": "2356",
+   "name": "英業達",
+   "ind": "odm"
+  },
+  {
+   "code": "2376",
+   "name": "技嘉",
+   "ind": "odm"
+  },
+  {
+   "code": "3596",
+   "name": "智易",
+   "ind": "odm"
+  },
+  {
+   "code": "6669",
+   "name": "緯穎",
+   "ind": "odm"
+  },
+  {
+   "code": "3231",
+   "name": "緯創",
+   "ind": "odm"
+  },
+  {
+   "code": "2352",
+   "name": "明基",
+   "ind": "odm"
+  },
+  {
+   "code": "4704",
+   "name": "趨勢科技",
+   "ind": "odm"
+  },
+  {
+   "code": "6231",
+   "name": "系微",
+   "ind": "odm"
+  },
+  {
+   "code": "2377",
+   "name": "微星",
+   "ind": "odm"
+  },
+  {
+   "code": "8069",
+   "name": "元太",
+   "ind": "odm"
+  },
+  {
+   "code": "3704",
+   "name": "合勤",
+   "ind": "odm"
+  },
+  {
+   "code": "3558",
+   "name": "神準",
+   "ind": "odm"
+  },
+  {
+   "code": "3017",
+   "name": "奇鋐",
+   "ind": "odm"
+  },
+  {
+   "code": "6285",
+   "name": "啟碁",
+   "ind": "odm"
+  },
+  {
+   "code": "2489",
+   "name": "瑞軒",
+   "ind": "odm"
+  },
+  {
+   "code": "3005",
+   "name": "神基",
+   "ind": "odm"
+  },
+  {
+   "code": "3711",
+   "name": "日月光",
+   "ind": "osat"
+  },
+  {
+   "code": "2449",
+   "name": "京元電子",
+   "ind": "osat"
+  },
+  {
+   "code": "3374",
+   "name": "精材",
+   "ind": "osat"
+  },
+  {
+   "code": "6239",
+   "name": "力成",
+   "ind": "osat"
+  },
+  {
+   "code": "6683",
+   "name": "雍智",
+   "ind": "osat"
+  },
+  {
+   "code": "7856",
+   "name": "漢測",
+   "ind": "osat"
+  },
+  {
+   "code": "6515",
+   "name": "穎崴",
+   "ind": "osat"
+  },
+  {
+   "code": "6147",
+   "name": "頎邦",
+   "ind": "osat"
+  },
+  {
+   "code": "2452",
+   "name": "乾坤科技",
+   "ind": "other"
+  },
+  {
+   "code": "4931",
+   "name": "新盛力科技",
+   "ind": "other"
+  },
+  {
+   "code": "2258",
+   "name": "鴻華先進",
+   "ind": "other"
+  },
+  {
+   "code": "2201",
+   "name": "裕隆",
+   "ind": "other"
+  },
+  {
+   "code": "2409",
+   "name": "友達",
+   "ind": "panel"
+  },
+  {
+   "code": "3481",
+   "name": "群創",
+   "ind": "panel"
+  },
+  {
+   "code": "3008",
+   "name": "大立光",
+   "ind": "panel"
+  },
+  {
+   "code": "6176",
+   "name": "瑞儀光電",
+   "ind": "panel"
+  }
+ ]
+}

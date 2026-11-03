@@ -1,5 +1,7 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
+> **2026-11-03 科技透明圈公開版（官方薪資）預覽 `preview/tc-public`**（UI 專家）：新增 site/tc/pub.js、m4/20261103-tc-pub.css、pipeline/sources/salary_official.py（資料湖 salary_official）、features.js 功能鍵 tc.page／tc.click、uitest 段落「科技透明圈公開版1103」、公告 f-20261103-tc-official（推 main 才生效）。**待辦：**推 main 後要手動跑一次抓官方資料（daily.yml 的 salary 步驟在表空時自動抓；端點代號從 swagger 摘要「人力發展」找，未實測）；`桌機守門1008` 容器 OOM 無法產全站資料，推 main 前要在有資料的環境補跑。
+
 ## 2026-11-02 社群診斷與重啟（最高警戒，CEO 整合；最後更新 11-02 17:40 台北）
 - 診斷全文與決策：分支 `claude/serene-brown-e4sosy` 的 `docs/marketing/diagnosis_1102/README.md`（尚未合併 main，接手先合併或從該分支讀）。
 - 已上 main：新聞句子不照抄（12:39）、降量模式 post_quota.json（13:21，每天只自動發盤後 Threads 1 則）、深層連結不被導覽劫持＋手機同意細條＋頂欄登入鈕（17:36 兩站 ✅）。
