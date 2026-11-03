@@ -23,6 +23,20 @@ CODE_OK = re.compile(r"^[0-9][0-9A-Z]{3,5}$")
 EV_KIND = {"conf": "法說會", "invite": "法說會", "report": "財報公布"}
 
 
+def _txt(v) -> str | None:
+    """資料湖的文字欄可能是 None／NaN／NaT。NaN 是真值，`str(v or "")` 會變成字串 "nan" 印到畫面上
+    （2026-11-03 實測：月營收公布日 announce_date 1086 檔是 NaN → digest.json 出現 1086 個 "nan"）。一律轉 None。"""
+    if v is None:
+        return None
+    try:
+        if pd.isna(v):
+            return None
+    except (TypeError, ValueError):
+        pass
+    s = str(v).strip()
+    return None if s.lower() in ("", "nan", "none", "nat") else s
+
+
 def _streaks(inst: pd.DataFrame, latest: str, cols: list[str], n_days: int = 40) -> tuple[dict, str | None]:
     """每檔「截至最新一天，連續買超（正）／賣超（負）幾天」。0＝最新一天剛好不買不賣或沒資料。"""
     if inst is None or inst.empty:
@@ -86,7 +100,7 @@ def build(price: pd.DataFrame, inst: pd.DataFrame, revenue: pd.DataFrame, div_ev
             ym = str(r["ym"]); v = float(r["revenue"])
             ly = piv.at[code, shift(ym, -12)] if shift(ym, -12) in piv.columns else np.nan
             pm = piv.at[code, shift(ym, -1)] if shift(ym, -1) in piv.columns else np.nan
-            d = {"ym": ym, "rev": round(v / 1e8, 2), "ann": str(r.get("announce_date") or "")[:10] or None}
+            d = {"ym": ym, "rev": round(v / 1e8, 2), "ann": (_txt(r.get("announce_date")) or "")[:10] or None}
             d["yoy"] = round((v / ly - 1) * 100, 1) if pd.notna(ly) and ly > 0 else None
             d["mom"] = round((v / pm - 1) * 100, 1) if pd.notna(pm) and pm > 0 else None
             rev_out[str(code)] = d
@@ -118,7 +132,7 @@ def build(price: pd.DataFrame, inst: pd.DataFrame, revenue: pd.DataFrame, div_ev
         close = float(r["close"]) if pd.notna(r["close"]) else None
         if not close:
             continue
-        s: dict = {"n": str(names.get(code) or r.get("name") or code), "c": close,
+        s: dict = {"n": _txt(names.get(code)) or _txt(r.get("name")) or code, "c": close,
                    "v": round(float(r["volume"] or 0) / 1000)}
         if code in prev.index and pd.notna(prev[code]):
             s["pc"] = float(prev[code])

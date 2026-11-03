@@ -50,3 +50,17 @@ def test_digest_whitelist_no_advice():
             assert set(s["r"]) <= digest.R_KEYS
     blob = json.dumps(d, ensure_ascii=False)
     assert not re.search(r"評分|排名|訊號|燈號|建議|買點|賣點|進場|出場|目標價|看多|看空|推薦|score|rank|signal", blob)
+
+
+def test_digest_空值不會變成字串nan():
+    """2026-11-03：月營收公布日 announce_date 是 NaN 時，舊寫法 `str(v or "")` 會寫出字串 "nan"
+    （NaN 是真值），digest.json 出現 1086 個 "nan"、test_delivery_guard 抓到。空值一律要是 null。"""
+    import numpy as np
+    price, inst, rev, de, mops = _frames()
+    rev["announce_date"] = np.nan
+    price["name"] = np.nan                        # names 查不到、行情表名稱也是空 → 退回代號，不准是 "nan"
+    d = digest.build(price, inst, rev, de, mops, latest="2026-10-22", names={"2330": float("nan")})
+    assert d["s"]["2330"]["r"]["ann"] is None
+    assert d["s"]["2330"]["n"] == "2330" and d["s"]["1101"]["n"] == "1101"
+    txt = json.dumps(d, ensure_ascii=False, allow_nan=False)   # 有裸 NaN 會直接丟例外（瀏覽器 JSON.parse 會失敗）
+    assert '"nan"' not in txt.lower() and '"none"' not in txt.lower() and '"nat"' not in txt.lower()
