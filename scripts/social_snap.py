@@ -1657,11 +1657,6 @@ def _esc(t: str) -> str:
     return t.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
 
 
-def _logo_uri() -> str:
-    f = ROOT / "site" / "brand" / "icon-192.png"
-    return "data:image/png;base64," + base64.b64encode(f.read_bytes()).decode() if f.exists() else ""
-
-
 LABEL_COLOR = {"領先": "rise", "轉弱": "amber", "改善": "cyan", "落後": "fall", "流入前五": "rise", "流出前五": "fall"}
 
 
