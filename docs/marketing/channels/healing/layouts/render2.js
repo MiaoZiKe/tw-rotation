@@ -5,4 +5,4 @@ for(const [n,H] of Object.entries(mf)){const pg=await b.newPage({viewport:{width
 await pg.screenshot({path:d+'/'+n+'.png'});out[n]=await pg.evaluate(eval(CHECK),{});await pg.close()}
 fs.writeFileSync(d+'/overlap_report.json',JSON.stringify(out,null,1));all[p]=out}
 await b.close();let n=0,bad=0;for(const p in all)for(const k in all[p]){n++;if(all[p][k].overlap.length)bad+=all[p][k].overlap.length}console.log('張數',n,'重疊筆數',bad);
-for(const p in all)for(const k in all[p]){const r=all[p][k];if(r.overlap.length||r.oob_48.length||r.minFont<28)console.log(p,k,JSON.stringify(r))}})()
+for(const p in all)for(const k in all[p]){const r=all[p][k];if(r.overlap.length||r.oob_margin.length||r.gap32.length||r.minFont<28)console.log(p,k,JSON.stringify(r))}})()

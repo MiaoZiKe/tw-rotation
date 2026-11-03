@@ -2,45 +2,40 @@
  "A_quote": {
   "n": 5,
   "overlap": [],
-  "gap24": [],
-  "oob_48": [],
+  "gap32": [],
+  "oob_margin": [],
   "outside_safe": [],
   "minFont": 28
  },
  "A_inner": {
   "n": 6,
   "overlap": [],
-  "gap24": [],
-  "oob_48": [],
+  "gap32": [],
+  "oob_margin": [],
   "outside_safe": [],
   "minFont": 28
  },
  "B_post": {
   "n": 4,
   "overlap": [],
-  "gap24": [],
-  "oob_48": [],
+  "gap32": [],
+  "oob_margin": [],
   "outside_safe": [],
   "minFont": 28
  },
  "B_reels": {
   "n": 4,
   "overlap": [],
-  "gap24": [],
-  "oob_48": [],
+  "gap32": [],
+  "oob_margin": [],
   "outside_safe": [],
   "minFont": 28
  },
  "C_list": {
   "n": 8,
   "overlap": [],
-  "gap24": [
-   "n1×n2 15px",
-   "n2×n3 18px",
-   "n3×n4 17px",
-   "n4×n5 15px"
-  ],
-  "oob_48": [],
+  "gap32": [],
+  "oob_margin": [],
   "outside_safe": [],
   "minFont": 28
  }

@@ -1,42 +1,9 @@
 {
- "01_cover": {
-  "n": 8,
+ "01_quote": {
+  "n": 5,
   "overlap": [],
-  "gap24": [
-   "n1×n2 15px",
-   "n2×n3 18px",
-   "n3×n4 17px",
-   "n4×n5 15px"
-  ],
-  "oob_48": [],
-  "outside_safe": [],
-  "minFont": 28
- },
- "02_inner": {
-  "n": 7,
-  "overlap": [],
-  "gap24": [
-   "n1×n2 15px",
-   "n2×n3 18px",
-   "n3×n4 17px"
-  ],
-  "oob_48": [],
-  "outside_safe": [],
-  "minFont": 28
- },
- "03_inner": {
-  "n": 4,
-  "overlap": [],
-  "gap24": [],
-  "oob_48": [],
-  "outside_safe": [],
-  "minFont": 28
- },
- "threads": {
-  "n": 3,
-  "overlap": [],
-  "gap24": [],
-  "oob_48": [],
+  "gap32": [],
+  "oob_margin": [],
   "outside_safe": [],
   "minFont": 28
  }
