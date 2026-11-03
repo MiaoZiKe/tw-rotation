@@ -80,17 +80,23 @@
   function rankList(title, list, cls0) {
     // 長條照三大法人個股同款（軌道＋漸層；增加＝紅、減少＝綠），以該欄最大值為滿格
     const mx = Math.max(1, ...list.map(r => Math.abs(r.chg)));
-    return `<div class="mf-rank"><b class="${cls0}">${title}</b>${list.length ? list.map((r, i) => `<a class="mf-rk" href="#stock/${r.code}" title="到個股頁看融資融券"><span class="mf-n">${i + 1}</span><span class="mf-nm">${r.code} ${H.fmt.esc(r.name || '')}</span><span class="mf-sb"><span class="trk"><i class="${cls(r.chg)}" style="width:${Math.max(3, Math.abs(r.chg) / mx * 100).toFixed(1)}%"></i></span></span><span class="num mf-val ${cls(r.chg)}">${sg(r.chg / 1000, 2)} 千張</span></a>`).join('') : '<span class="muted">—</span>'}</div>`;
+    return `<div class="mf-rank"><b class="${cls0}">${title}</b>${list.length ? list.map((r, i) => `<a class="mf-rk" href="#stock/${r.code}" title="${r.code} ${H.fmt.esc(r.name || '')}（點一下到個股頁看融資融券）"><span class="mf-n">${i + 1}</span><span class="mf-nm"><b>${r.code}</b> ${H.fmt.esc(r.name || '')}</span><span class="num mf-val ${cls(r.chg)}">${sg(r.chg / 1000, 2)} 千張</span><span class="mf-sb"><span class="trk"><i class="${cls(r.chg)}" style="width:${Math.max(3, Math.abs(r.chg) / mx * 100).toFixed(1)}%"></i></span></span></a>`).join('') : '<span class="muted">—</span>'}</div>`;
   }
   const grpSel = new Set();
+  // 排除 ETF：站上通用判斷＝代號 00 開頭（含槓桿 L/反向 R、債券 B、主動 A，與 app.js／industry.js 同一條）；狀態記 localStorage，預設不排除
+  const isEtf = (c) => /^00/.test(String(c || ''));
+  const noEtfGet = () => { try { return localStorage.getItem('tw.mf.noetf') === '1'; } catch (e) { return false; } };
+  const noEtfSet = (v) => { try { localStorage.setItem('tw.mf.noetf', v ? '1' : '0'); } catch (e) { /* 無痕模式 */ } };
   function paintRank(body, rk) {
     const box = body.querySelector('#mfRankBody'); if (!box || !rk) return;
-    const rs = (rk.rows || []).filter(r => !grpSel.size || (r.g || []).some(g => grpSel.has(g)));
+    const ne = noEtfGet();
+    const rs = (rk.rows || []).filter(r => (!grpSel.size || (r.g || []).some(g => grpSel.has(g))) && !(ne && isEtf(r.code)));
     const up = rs.filter(r => r.chg > 0).sort((a, b) => b.chg - a.chg).slice(0, 8), dn = rs.filter(r => r.chg < 0).sort((a, b) => a.chg - b.chg).slice(0, 8);
     box.innerHTML = rankList('增加 Top 8', up, 'up') + rankList('減少 Top 8', dn, 'down');
   }
   function wireRank(body, rk) {
     const dd = body.querySelector('#mfGroupDD'); if (!dd || !rk || !H.msDD) return;
+    const ck = body.querySelector('#mfNoEtf'); if (ck) { ck.checked = noEtfGet(); ck.onchange = () => { noEtfSet(ck.checked); paintRank(body, rk); }; }
     const cnt = {}; (rk.rows || []).forEach(r => (r.g || []).forEach(g => { cnt[g] = (cnt[g] || 0) + 1; }));
     const names = Object.keys(cnt).sort((a, b) => cnt[b] - cnt[a]);
     let ms;
@@ -146,7 +152,8 @@
           <div class="ddpanel" aria-label="族群（可複選）" hidden>
             <input type="search" class="sndd-q" placeholder="搜尋族群名稱" aria-label="搜尋族群名稱" autocomplete="off">
             <div class="ddbar"><span class="muted sndd-n"></span><button type="button" class="btn small dd-all">全選</button><button type="button" class="btn small dd-none">全不選</button></div>
-            <div class="ddlist"></div></div></div></div>
+            <div class="ddlist"></div></div></div>
+          <label class="mf-noetf" title="勾選後，增加／減少 Top 8 都排除 ETF（代號 00 開頭：一般、槓桿、反向、債券、主動式）重算前 8 名"><input type="checkbox" id="mfNoEtf"> 排除 ETF</label></div>
         <div class="mf-rkgrid" id="mfRankBody"></div></div>` : '';
     const isRank = st.tab === 'rank';
     const bar = `<div class="mf-bar"><div class="seg fp-prod mf-tab" id="mfTab" role="group" aria-label="信用交易分頁"><button type="button" data-k="mkt" class="${isRank ? '' : 'on'}">大盤</button><button type="button" data-k="rank" class="${isRank ? 'on' : ''}">個股排行</button></div>${howBtn('credit')}
@@ -210,9 +217,9 @@
 @media (max-width:640px){.mf-cseg{display:block;margin:0 0 6px}.mf-split[data-chart="ratio"] .mf-cbox[data-c="bal"],.mf-split[data-chart="bal"] .mf-cbox[data-c="ratio"]{display:none}}
 @media (max-width:900px){.mf-top{grid-template-columns:1fr}.mf-split{display:flex;flex-direction:column}.mf-tblbox{contain:none;display:block}.mf-split .mf-tblbox .mf-scroll{max-height:320px!important}.mf-ch{height:220px}}
 #mfTbl tr.hl td{background:color-mix(in srgb,var(--cyan,#3ee0ff) 14%,transparent)}#mfTbl tr.lk td{background:color-mix(in srgb,var(--cyan,#3ee0ff) 26%,transparent)}#mfTbl td,#mfTbl th{text-align:center!important}#mfTbl td.l,#mfTbl th.l{text-align:left!important}
-.mf-ranks{margin-top:14px}.mf-rkhead{display:flex;align-items:center;gap:10px;margin:0 0 6px;flex-wrap:wrap}.mf-gsel{margin:0 0 8px}.mf-rkgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.mf-rank{display:flex;flex-direction:column;gap:4px}
-.mf-rk{display:flex;gap:8px;align-items:center;padding:3px 6px;border-radius:6px;text-decoration:none;color:inherit}.mf-rk:hover{background:rgba(142,160,196,.12)}.mf-n{width:16px;color:var(--ink-3,#8ea0c4)}.mf-nm{flex:0 0 9em;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.mf-sb{flex:1 1 auto;min-width:40px;display:flex}.mf-sb .trk{flex:1;height:12px;border-radius:3px;background:color-mix(in srgb,var(--ink-3,#8ea0c4) 16%,transparent);overflow:hidden}.mf-sb i{display:block;height:12px;border-radius:3px}
+.mf-ranks{margin-top:14px}.mf-rkhead{display:flex;align-items:center;gap:10px;margin:0 0 6px;flex-wrap:wrap}.mf-gsel{margin:0 0 8px;display:flex;align-items:center;gap:12px;flex-wrap:wrap}.mf-noetf{display:inline-flex;align-items:center;gap:5px;font-size:13px;cursor:pointer;white-space:nowrap}.mf-noetf input{width:16px;height:16px;margin:0}.mf-rkgrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}@media (max-width:760px){.mf-rkgrid{grid-template-columns:minmax(0,1fr)}}.mf-rank{min-width:0;display:flex;flex-direction:column;gap:4px}
+.mf-rank>b{padding-left:6px}.mf-rk{display:grid;grid-template-columns:18px minmax(0,1fr) auto;column-gap:8px;row-gap:3px;align-items:start;padding:4px 6px;border-radius:6px;text-decoration:none;color:inherit}.mf-rk:hover{background:rgba(142,160,196,.12)}.mf-n{width:16px;color:var(--ink-3,#8ea0c4)}.mf-nm{min-width:0;overflow-wrap:anywhere;line-height:1.35}.mf-nm b{font-weight:600;font-variant-numeric:tabular-nums}.mf-val{white-space:nowrap;font-size:13px}
+.mf-sb{grid-column:2 / 4;min-width:0;display:flex}.mf-sb .trk{flex:1;height:12px;border-radius:3px;background:color-mix(in srgb,var(--ink-3,#8ea0c4) 16%,transparent);overflow:hidden}.mf-sb i{display:block;height:12px;border-radius:3px}
 .mf-sb i.up{background:linear-gradient(90deg,color-mix(in srgb,var(--rise) 45%,transparent),var(--rise))}.mf-sb i.down{background:linear-gradient(90deg,color-mix(in srgb,var(--fall) 45%,transparent),var(--fall))}
 .mf-val{flex:0 0 6.5em;text-align:right;font-variant-numeric:tabular-nums;font-size:12.5px}`;
     document.head.appendChild(el);
