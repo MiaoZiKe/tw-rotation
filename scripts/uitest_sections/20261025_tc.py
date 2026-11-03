@@ -110,7 +110,7 @@ def t_tc_1025(b, base, code):
         c3 = b.new_context(viewport=vp, is_mobile=mob, has_touch=mob)
         c3.add_init_script("window.TW_TC_OVERRIDE=false;try{localStorage.setItem('tw.tour','done')}catch(e){};setTimeout(function(){window.dispatchEvent(new Event('tw:account'))},1000)")
         p3 = c3.new_page(); p3.on("pageerror", lambda e: errs.append(str(e)))
-        p3.goto(base + "#tc/foundry", wait_until="load"); p3.wait_for_timeout(1800)
+        p3.goto(base + "#tc/foundry", wait_until="load"); p3.wait_for_timeout(1800); wait_until(p3, "() => location.hash === '#tc'", 9000)
         ok(f"{T}（非管理者・{tag}）：#tc/foundry 被導回公開版 #tc（11-03：不再導總覽，#tc 本身對所有人開放）", p3.evaluate("() => location.hash") == "#tc", p3.url)
         ok(f"{T}（非管理者・{tag}）：導覽列看得到「科技透明圈」入口（11-03 公開版）", p3.evaluate("() => document.querySelectorAll('.tab[data-view=tc], a[href=\"#tc\"]').length > 0"))
         ok(f"{T}（非管理者・{tag}）：頁面沒畫公司卡", p3.evaluate("() => document.querySelectorAll('#v-tc .tc-co').length") == 0)
