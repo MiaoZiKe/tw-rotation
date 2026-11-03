@@ -63,3 +63,22 @@
 | 文字檔 | threads.txt／ig.txt 出處行由 Faber CC 照改為「自行繪製示意圖」，Threads 留言附位置描述參考連結；`image_sources.md` 重寫 |
 
 **重疊檢查：程式 1 張 0 筆**（含 SVG 內文字相交／出界／壓線）；人工目視 1080×1350 全解析度 0 筆。
+
+
+## ai-server-analyst 技術簽核 04（2026-11-04）
+
+結論：**通過（文案小修 2 處，圖不需改）**。
+
+| 項目 | 結論 | 來源／信心 |
+|---|---|---|
+| 新聞稿事實與日期 | 通過。Tower 新聞稿 2026-11-03 存在（GlobeNewswire、ir.towersemi.com、towersemi.com 皆有）；內容：Innolight 首款 NPO 元件在 Tower PH18M 矽光子製程早期量產（200mm，加州廠）；多款 NPO 已在 300mm 平台 tape-out（＝設計定稿）。貼文寫法照抄原文，未寫成已放量。Tower 另在 Q3 財報稱有逾十家客戶在試做 NPO，有意義的出貨目標是 2027 下半年，取決於採用度，與貼文「早期量產」不衝突，建議不加進貼文以免被讀成已放量 | 高（多個獨立轉述一致；本環境只讀到搜尋摘要，未讀全文，連結發文前人工核對） |
+| 圖：可插拔在面板、電訊號最長 | 通過 | 高（多來源一致：前面板可插拔，經長 PCB 走線到 ASIC） |
+| 圖：NPO 在主機板上、靠近 ASIC 封裝、在封裝外 | 通過。多來源描述 NPO 光學引擎在自己的基板／板上、靠近交換 ASIC、不在其封裝內，常以插座與板連接 | 中高（來源多為廠商／產業文章，無標準文件；圖未標距離，風險低） |
+| 圖：CPO 在封裝內 | 通過。CPO 光學引擎與 ASIC 共用封裝基板 | 高 |
+| 用詞：NPO 全名 | 有分歧：多數稱 near-package（near-packaged）optics，亦有文章稱 near-board optics；本次新聞稿用 Near-Package Optics，貼文「近封裝光學」與之一致。OBO（板載光學）則指光引擎與晶片間仍經大塊 PCB 連接，與 NPO 不同；貼文與圖都沒有混用 | 中高 |
+| 文案修正 1 | 「光模組廠需要有矽光子製程的晶圓廠代工」過度斷言（廠商可有自家產線）→ 改「常找」；Threads 並補「這次 Innolight 用的是 Tower 的矽光子平台」 | — |
+| 文案修正 2 | Threads 刪「Tower 稿中提到其平台可把多種光學功能整合在同一顆晶片」：搜尋摘要無法核實這句 → 刪除；Threads 新聞稿句末補「量產規模與時程以公司後續公告為準」 | — |
+| 圖 | 未改，故未重出 04.png，沿用既有 PNG（重疊檢查結果沿用前述 0 筆） | — |
+
+來源：https://www.globenewswire.com/news-release/2026/11/03/3394669/0/en/tower-semiconductor-and-innolight-advance-high-performance-near-package-optics-for-ai-infrastructure.html ；https://convergedigest.com/innolight-tower-semiconductor-npo-silicon-photonics-production/ ；https://resources.l-p.com/knowledge-center/npo-vs-cpo-optics-placement-speed-efficiency-data-center ；https://www.tomshardware.com/tech-industry/near-packaged-optics-gains-ground-aso-the-industry-hedges-against-co-packaged-optics-growing-pains
+未查到 OIF 的對應標準文件（搜尋未命中），故位置關係信心上限為中高。
