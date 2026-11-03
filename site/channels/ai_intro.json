@@ -1,0 +1,114 @@
+{
+  "id": "ai_intro",
+  "no": 3,
+  "name": "AI 介紹頻道",
+  "status": "規劃完成・待 Andy 決定",
+  "status_kind": "plan",
+  "updated": "2026-11-04",
+  "tagline": "上班族的 AI 實戰：只寫親手做過、附證據、包含翻車的做法",
+  "why": "市場研調：工具清單與三大 AI 比較已是紅海，缺口是真付費實測、附帳單與失敗紀錄；11-02 診斷：手寫切身內容平均 3.6 萬觀看，自動摘要中位數 56。",
+  "audience": {
+    "main": "25～40 歲台灣上班族（行政、行銷、業務、PM、一般工程師），用過 ChatGPT 但沒有固定流程",
+    "sub": "接案者、自媒體經營者",
+    "note": "畫像為假設，第 1 個月用前 20 則收藏率校正"
+  },
+  "relation": [
+    "與頻道②（科技透明圈）受眾最近（工程師），可互導",
+    "導流每月最多 2 則，只限方法類貼文（例如「我怎麼用 AI 整理月營收公告」→ 網站）",
+    "頻道①、②導到本頻道只放個人簡介或限動一行，不放貼文本文",
+    "禁止個股推薦、買賣訊號、目標價（投顧法紅線）"
+  ],
+  "pillars": [
+    {"name": "親手實測與比較", "share": 35, "types": "同任務多工具並排、長期實測、免費與付費比較、盲測", "platform": "Threads 短版＋IG 輪播完整版",
+     "topics": ["★同一份 80 頁財報丟給三個 AI，只問明年最大風險，兩個答案在原文找不到", "★「婉拒加班」同一封信請三個 AI 寫，讓同事猜主管想回哪封", "★用 AI 寫週報滿一個月：每週實際省 25 分鐘", "★免費版與付費版同時跑兩週，多花的錢買到什麼", "★1 小時會議錄音給三個 AI，數錯字與漏掉的待辦", "★40 頁英文規格書請 AI 翻譯，抽查 20 個術語", "★問五個會搜尋的 AI 特休怎麼算，引用的勞基法有幾條是真的", "★同一張報表截圖轉表格，誰抄錯最少", "★Excel 公式三種問法，只有一種一次寫對", "★履歷給 AI 改，請兩位資深同事盲評"]},
+    {"name": "工作流教學與提示詞範本", "share": 30, "types": "3 步驟教學、可複製提示詞、改前改後對照", "platform": "IG 輪播（收藏主力）",
+     "topics": ["Excel 一欄日期加姓名拆兩欄：貼給 AI 的 3 步", "50 頁簡報 5 分鐘抓重點的提示詞", "code review 留言不太兇的提示詞", "會議錄音變行動清單的 4 行提示詞", "英文信去掉 AI 腔的 5 個修正指令", "把 AI 當面試官連續追問 5 輪", "法說會逐字稿只抓管理層改口處（附原文）", "帳單給 AI 分類前先遮哪 4 個欄位", "報錯訊息貼給 AI 前先做的 3 件事", "請 AI 當魔鬼代言人找出想法最弱的三點"]},
+    {"name": "一週 AI 三則", "share": 15, "types": "每週只挑 3 件，附來源與日期，寫「對你的工作差在哪」", "platform": "Threads",
+     "topics": ["常用工具這週悄悄改了額度或價格", "哪家公司禁用或開放 AI、原因", "最多人轉的新功能，實際點開後的真實程度", "AI 詐騙新手法，家人要先知道", "新模型上線，只講可驗證的差異", "AI 與法規：台灣或國外新規定", "三則 AI 出包新聞與教訓", "值得試十分鐘與可以跳過的免費工具", "工程師該知道的 AI 開發工具更新", "三個職場相關的研究或財報數據"]},
+    {"name": "翻車、踩雷與風險", "share": 20, "types": "幻覺案例、資安、防詐、自己的失敗紀錄、訂閱花費", "platform": "Threads（好轉發）",
+     "topics": ["★AI 說勞基法有規定，查了根本沒這句", "★AI 把母公司與子公司數字混在一起", "同事把客戶名單貼進免費 AI 之後", "AI 換聲詐騙：家裡先約定的三件事", "「AI 選股訊號群」月費 999 的五句話術", "★問 AI 哪一檔會漲，為什麼答案不能用", "★AI 做的試算表少加一列，我怎麼發現", "AI 生成簡報圖被看出破綻的 3 個檢查點", "★訂了 5 個 AI 工具一年花多少、砍掉哪 3 個", "★AI 寫的程式碼上線前漏看的那一行"]}
+  ],
+  "topic_note": "★＝Andy 必須真的做過才能發；不做：純新聞轉述、泛泛工具清單、迷因、全 AI 配圖、個股推薦",
+  "schedule": [
+    {"phase": "第一階段", "weeks": "第 1～2 週", "summary": "只發 Threads，每週 3 則，Andy 每週約 1 小時",
+     "rows": [
+       {"day": "週一", "time": "21:00", "platform": "Threads", "type": "親手實測短版", "mode": "手動", "minutes": 25},
+       {"day": "週三", "time": "21:00", "platform": "Threads", "type": "提示詞範本短版", "mode": "半自動", "minutes": 20},
+       {"day": "週四", "time": "21:00", "platform": "Threads", "type": "翻車／踩雷", "mode": "手動", "minutes": 20}
+     ]},
+    {"phase": "第二階段", "weeks": "第 3～4 週", "summary": "Threads 3～4 則＋IG 輪播 1 則，Andy 每週約 2 小時",
+     "rows": [
+       {"day": "週一", "time": "21:00", "platform": "Threads", "type": "親手實測短版", "mode": "手動", "minutes": 25},
+       {"day": "週三", "time": "21:00", "platform": "Threads", "type": "提示詞範本短版", "mode": "半自動", "minutes": 20},
+       {"day": "週四", "time": "21:00", "platform": "Threads", "type": "翻車／踩雷", "mode": "手動", "minutes": 20},
+       {"day": "週六", "time": "20:30", "platform": "IG 輪播", "type": "前兩週最佳主題展開 6～8 張", "mode": "半自動", "minutes": 30},
+       {"day": "週日", "time": "20:00", "platform": "Threads", "type": "一週 AI 三則", "mode": "半自動", "minutes": 20}
+     ]},
+    {"phase": "第三階段", "weeks": "第 5 週起", "summary": "看數字再加：最多 IG 2～3 則＋Threads 4～5 則，Reels 每月 2～3 支；每天最多 1 則、每週最多 5 則（含手寫）",
+     "rows": []}
+  ],
+  "automation": [
+    {"type": "親手實測、比較、評測", "mode": "手動", "reason": "「我用過」只能是真的，AI 代寫等於造假"},
+    {"type": "翻車案例、觀點", "mode": "手動", "reason": "情緒與判斷要是本人的"},
+    {"type": "提示詞範本、教學", "mode": "半自動", "reason": "Claude 出稿，Andy 逐條實跑過才核准"},
+    {"type": "一週 AI 三則", "mode": "半自動", "reason": "Claude 彙整兩個獨立來源與日期，Andy 逐則核准"},
+    {"type": "排版出圖、重疊檢查、揭露列", "mode": "自動", "reason": "機器做得比人準"},
+    {"type": "發文", "mode": "自動（只發已核准）", "reason": "獨立開關檔預設全部關閉，草稿不會自己發出"},
+    {"type": "成效週報", "mode": "自動", "reason": "每週一給 Andy 一張表"}
+  ],
+  "platforms": {
+    "decision": "兩個都做、另開新帳號；先 Threads，第 3 週加 IG",
+    "threads": "台灣 25～34 歲常用 28.4%；純文字有分發、新帳號門檻低、成本低；放實測結論、翻車、觀點、提示詞短版",
+    "ig": "台灣 25～34 歲常用 59.3%；新帳號分發弱、成本高；輪播被收藏是變現入口；放比較表、步驟教學、提示詞範本",
+    "account": "另開（避免定位混雜）；Meta App 共用、權杖與佇列與發文紀錄全分開，開關檔 docs/marketing/channels/ai_intro/quota.json 預設全關"
+  },
+  "trust": ["第一人稱只寫真的", "實測附日期、次數、版本、自費或付費", "業配開「付費合作」標籤；聯盟連結旁寫「含推廣連結」", "公開自己的失敗（支柱佔 20%）", "每月一則更正文", "AI 生成內容一律標示", "不寫「省 10 小時」「必學」「月入」", "前 3 週不放聯盟連結"],
+  "monetize": [
+    {"path": "電子報", "threshold": "8 則以上高收藏貼文", "start": "第 1 個月建名單、第 2 個月首發"},
+    {"path": "工具推薦清單", "threshold": "5 則實測、約 1,000 粉", "start": "第 3 個月"},
+    {"path": "聯盟行銷（Make.com 35%、ElevenLabs 22%）", "threshold": "同上；台灣能否加入待查", "start": "第 3 個月"},
+    {"path": "提示詞／模板包 NT$199～499", "threshold": "電子報 300 人、10 個案例", "start": "第 4～5 個月"},
+    {"path": "業配", "threshold": "5,000 粉、20 則自有內容", "start": "第 6 個月後"},
+    {"path": "線上工作坊", "threshold": "電子報 1,000 人或 5,000 粉", "start": "第 8 個月後"},
+    {"path": "顧問", "threshold": "3 個可公開案例", "start": "第 9 個月後"}
+  ],
+  "goals": {
+    "short": {"label": "短期・第 1 個月", "items": ["追蹤合計 300～800", "單則觀看中位數 ≥ 500", "收藏率 ≥ 3%", "電子報落地頁上線、≥ 50 人", "累積 10 則真實案例", "停損線：中位數 < 200 要檢查定位"]},
+    "mid": {"label": "中期・第 3 個月", "items": ["追蹤 1,500～4,000", "中位數 ≥ 2,000", "收藏 ≥ 4%、分享 ≥ 1%", "電子報 ≥ 300 人", "30 則案例", "可能有第一筆聯盟收入"]},
+    "long": {"label": "長期・第 6 個月", "items": ["追蹤 5,000～12,000", "中位數 ≥ 5,000", "收藏 ≥ 4%、分享 ≥ 1.5%", "電子報 ≥ 800 人", "60 則案例", "模板包第一筆＋聯盟穩定（月收約 NT$0～8,000，信心低）"]}
+  },
+  "team": [
+    {"role": "頻道總負責", "who": "CEO", "duty": "整合、排工、每週回報"},
+    {"role": "選題與排程", "who": "content-planner", "duty": "每週一出選題單給 Andy 勾"},
+    {"role": "查證與新聞", "who": "finance-content-editor、market-researcher", "duty": "一週 AI 三則來源與信心度、每月競品回顧"},
+    {"role": "版型與審圖", "who": "visual-designer、art-director", "duty": "出圖、重疊檢查、審查紀錄"},
+    {"role": "法遵", "who": "legal-compliance", "duty": "業配、聯盟、課程上架前過稿"},
+    {"role": "發文營運", "who": "social-ops-lead", "duty": "核准後發文、發文紀錄、週報"},
+    {"role": "監察", "who": "inspector", "duty": "抽查已核准未發、揭露是否確實"}
+  ],
+  "decisions": [
+    {"q": "定位", "options": "A 每天新工具／B 上班族 AI 實戰／C 前工程師人設", "rec": "B", "status": "待決定"},
+    {"q": "帳號", "options": "另開／併入頻道①或②", "rec": "另開", "status": "待決定"},
+    {"q": "帳號名稱", "options": "小事交給 AI／AI 上班日記／下班前五分鐘 AI／AI 流程實驗室／自訂", "rec": "小事交給 AI 或 AI 上班日記", "status": "待決定"},
+    {"q": "平台順序", "options": "先 Threads 第 3 週加 IG／同時／只 IG", "rec": "先 Threads", "status": "待決定"},
+    {"q": "發文上限", "options": "每天 1 則、每週 5 則（起步 3 則）／其他", "rec": "照建議", "status": "待決定"},
+    {"q": "版型", "options": "A 實測終端／B 紙本實驗報告／C 清晨薄荷", "rec": "A", "status": "待決定"},
+    {"q": "第一個變現", "options": "電子報＋清單、第 3 個月加聯盟／一開始就放聯盟", "rec": "照建議", "status": "待決定"},
+    {"q": "收款與稅務", "options": "現在處理／第一筆收入前問會計", "rec": "第一筆收入前", "status": "待決定"},
+    {"q": "導流頻率", "options": "每月 2 則方法類／不導流", "rec": "每月 2 則", "status": "待決定"},
+    {"q": "Meta App", "options": "共用另產權杖／新開", "rec": "共用", "status": "待決定"}
+  ],
+  "needs": [
+    {"item": "5 個親自用過的 AI 流程，每個 3 行（做了什麼、用哪個工具、結果）", "use": "第 1～2 週貼文", "urgency": "最急・擋開跑"},
+    {"item": "目前訂閱的 AI 工具與月費", "use": "自費揭露、選題", "urgency": "第 2 週前"},
+    {"item": "開新 IG 專業帳號＋Threads", "use": "發文", "urgency": "決定名稱後"},
+    {"item": "每週一 10 分鐘勾選題、核准草稿", "use": "核准制", "urgency": "開跑後每週"},
+    {"item": "（可選）手機 30 分鐘看前 15 個 AI 帳號", "use": "補競品數據", "urgency": "不擋開跑"}
+  ],
+  "docs": [
+    {"label": "整合規劃 plan.md", "url": "https://github.com/MiaoZiKe/tw-rotation/blob/main/docs/marketing/channels/ai_intro/plan.md"},
+    {"label": "內容企劃 content.md", "url": "https://github.com/MiaoZiKe/tw-rotation/blob/main/docs/marketing/channels/ai_intro/content.md"},
+    {"label": "法遵 legal.md", "url": "https://github.com/MiaoZiKe/tw-rotation/blob/main/docs/marketing/channels/ai_intro/legal.md"},
+    {"label": "版型 visual.md", "url": "https://github.com/MiaoZiKe/tw-rotation/blob/main/docs/marketing/channels/ai_intro/visual.md"}
+  ]
+}
