@@ -1,5 +1,11 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
+## 2026-11-04 頻道④「心靈雞湯」規劃（CEO；只有文件與範例圖，未開任何發文、未申請帳號；最後更新 11-04 台北）
+- 規劃書 `docs/marketing/channels/healing/plan.md`（9 題＋追加 7 項），分報告：research_ig／research_threads_pain／research_web_money／strategy／content／legal／visual／ops。
+- 成品：`layouts/` 版型 5 張、`logo/` 3 款、`samples/20261104/` 範例 3 篇；美術總監審過，重疊檢查程式 12 張 0 筆、人工 12 張＋LOGO 0 筆。
+- 下一步：等 Andy 回第九節（名稱、平台、LOGO 等 12 題）；之後做 `--channel healing` 發文管線與 `healing/quota.json`（預設全關）。研調缺台灣 Threads 療癒帳號具名數據，需人工抽樣。
+- 字型：容器原本只有文泉驛，這次把 Noto Serif／Sans CJK TC、霞鶩文楷裝在 `~/.fonts`（容器重開會消失，重畫圖要先重裝）。
+
 ## 2026-11-02 社群診斷與重啟（最高警戒，CEO 整合；最後更新 11-02 17:40 台北）
 - 診斷全文與決策：分支 `claude/serene-brown-e4sosy` 的 `docs/marketing/diagnosis_1102/README.md`（尚未合併 main，接手先合併或從該分支讀）。
 - 已上 main：新聞句子不照抄（12:39）、降量模式 post_quota.json（13:21，每天只自動發盤後 Threads 1 則）、深層連結不被導覽劫持＋手機同意細條＋頂欄登入鈕（17:36 兩站 ✅）。

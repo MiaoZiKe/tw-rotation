@@ -1,0 +1,3 @@
+/* ETF 現金流試算分頁識別色（Andy 10-31「上面分頁幫我用不同顏色標註」）：手機的分頁列把上緣邊框清成 0，這裡補回色條；只在 html.m4（≤640），不動桌機 */
+:root.m4 #v-etf #incTabs.inctabs>button[data-tc]{box-shadow:inset 0 3px 0 var(--tc)!important;background:color-mix(in srgb,var(--tc) 9%,var(--panel-2))!important}
+:root.m4 #v-etf #incTabs.inctabs>button[data-tc].on{background:color-mix(in srgb,var(--tc) 24%,var(--panel))!important;font-weight:700}
