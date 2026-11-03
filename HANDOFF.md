@@ -10,6 +10,9 @@
 - 成品：`layouts/` 版型 5 張、`logo/` 3 款、`samples/20261104/` 範例 3 篇；美術總監審過，重疊檢查程式 12 張 0 筆、人工 12 張＋LOGO 0 筆。
 - 下一步：等 Andy 回第九節（名稱、平台、LOGO 等 12 題）；之後做 `--channel healing` 發文管線與 `healing/quota.json`（預設全關）。研調缺台灣 Threads 療癒帳號具名數據，需人工抽樣。
 - 字型：容器原本只有文泉驛，這次把 Noto Serif／Sans CJK TC、霞鶩文楷裝在 `~/.fonts`（容器重開會消失，重畫圖要先重裝）。
+## 2026-11-04 頻道規劃母分頁（#channels，管理者限定；frontend-ui）
+- 新增 `site/channels/channels.js`＋`plan.json`（內容只改 JSON）、`site/m4/20261104-channels.css`；側欄「專案」組加「頻道規劃」六個子項，手機抽屜只列母項、頁內 .nbsw 切換。判定沿用 tc／lab（TwAccount admin／owner，`.ch-adm`），不發功能公告、不設次數閘門。
+- 這批只驗：頻道規劃（39 項，本機驅動腳本跑，管理者／非管理者、1440／390）。`_uitest.py` 整支在本容器因 payload 建置 OOM 跑不起來，桌機守門1008 與 `_preview.py` 未跑，改動限於 `html:not(.ch-adm)` 隱藏與新增子項，非管理者畫面不變。
 
 ## 2026-11-02 社群診斷與重啟（最高警戒，CEO 整合；最後更新 11-02 17:40 台北）
 - 診斷全文與決策：分支 `claude/serene-brown-e4sosy` 的 `docs/marketing/diagnosis_1102/README.md`（尚未合併 main，接手先合併或從該分支讀）。
