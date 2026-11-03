@@ -1,5 +1,13 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
+## 2026-11-04 三頻道規劃＋網站「頻道規劃」母分頁（頻道③聊天室 CEO；最後更新 11-04 台北）
+- Andy 原話：「幫我建立幾個新專案…3.AI介紹頻道…」「以上我之前提到所有頻道 這邊沒提到的幫我清單補充 並且 幫我在我那網頁新增頻道規劃 母分頁…」「AI 是今天想到要創立 所以需要再給 LOGO 排版 我看看」「需要符合 科技透明圈那樣 有LOGO意義」。
+- 規劃文件：`docs/marketing/channels/{stock,tech_transparency,ai_intro}/plan.md`（頻道③另有 research／strategy／content／legal／finance_rules／ops／visual／visual_review 分報告與 3 篇範例貼文 `samples/20261104/`，只產出不排程）。
+- 網站：`#channels`（僅管理者；閘門照 flowcheck.js：TwAccount admin／owner）；資料是靜態 `site/channels/*.json`（知道網址就讀得到，不准放金鑰、收入數字），`index.json` 列頻道順序；`site/channels.js`、`site/channels.css`、`site/m4/20261104-channels.css`。
+- 頻道③ LOGO：`docs/brand/ai_intro_logo/`（第二輪推薦 2b 錯高雙塊，art-director 審過第一輪；`site/channels/logos/ai_intro.svg`）。**待 Andy 選定 LOGO、回覆 plan.md 第七節決定**；頻道③在 Andy 決定前不開任何自動發文。
+- 這批只驗：`頻道規劃1104`、`桌機守門1008` 皆 0 問題；`_preview.py` 只剩 `#stock/3189/holders` 文字交疊 3 組（origin/main 同資料同樣有，既有問題，另開任務）；pytest 跳過（site／docs 以外只新增 `scripts/uitest_sections/20261104_channels.py`，tests 無引用）。
+- ⚠ 容器環境：`/opt/pw-browsers/chromium-1243/chrome-linux64/chrome` 被子 agent 覆寫成會無限繞圈的包裝檔（修復被權限擋下）；Python playwright 被升到 1.64.1。本機驗收改用不進版控的 `scripts/_uitest_local.py`／`_preview_local.py`（只把瀏覽器路徑換成 headless shell、networkidle→load）。新容器不受影響。
+
 ## 2026-11-02 社群診斷與重啟（最高警戒，CEO 整合；最後更新 11-02 17:40 台北）
 - 診斷全文與決策：分支 `claude/serene-brown-e4sosy` 的 `docs/marketing/diagnosis_1102/README.md`（尚未合併 main，接手先合併或從該分支讀）。
 - 已上 main：新聞句子不照抄（12:39）、降量模式 post_quota.json（13:21，每天只自動發盤後 Threads 1 則）、深層連結不被導覽劫持＋手機同意細條＋頂欄登入鈕（17:36 兩站 ✅）。
