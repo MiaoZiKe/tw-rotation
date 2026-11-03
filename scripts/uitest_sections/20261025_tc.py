@@ -110,7 +110,7 @@ def t_tc_1025(b, base, code):
         c3 = b.new_context(viewport=vp, is_mobile=mob, has_touch=mob)
         c3.add_init_script("window.TW_TC_OVERRIDE=false;try{localStorage.setItem('tw.tour','done')}catch(e){};setTimeout(function(){window.dispatchEvent(new Event('tw:account'))},1000)")
         p3 = c3.new_page(); p3.on("pageerror", lambda e: errs.append(str(e)))
-        p3.goto(base + "#tc/foundry", wait_until="load"); p3.wait_for_timeout(1800)
+        p3.goto(base + "#tc/foundry", wait_until="load"); wait_until(p3, "() => location.hash === '#overview'", 9000); p3.wait_for_timeout(300)   # 完整資料下頁面較慢：等到導回再驗（6 秒保底逾時也算數）
         ok(f"{T}（非管理者・{tag}）：#tc 被導回總覽", p3.evaluate("() => location.hash") == "#overview", p3.url)
         ok(f"{T}（非管理者・{tag}）：導覽列看不到「科技透明圈」", p3.evaluate("() => [...document.querySelectorAll('.tab[data-view=tc], a[href=\"#tc\"]')].every(e => e.offsetParent === null)"))
         ok(f"{T}（非管理者・{tag}）：頁面沒畫公司卡", p3.evaluate("() => document.querySelectorAll('#v-tc .tc-co').length") == 0)

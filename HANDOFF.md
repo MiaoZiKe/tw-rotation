@@ -17,7 +17,7 @@
 ## 2026-11-04 頻道規劃母分頁（#channels，管理者限定；frontend-ui）
 - 新增 `site/channels/channels.js`＋`plan.json`（內容只改 JSON）、`site/m4/20261104-channels.css`；側欄「專案」組加「頻道規劃」六個子項，手機抽屜只列母項、頁內 .nbsw 切換。判定沿用 tc／lab（TwAccount admin／owner，`.ch-adm`），不發功能公告、不設次數閘門。
 - 這批只驗：頻道規劃（39 項，本機驅動腳本跑，管理者／非管理者、1440／390）。`_uitest.py` 整支在本容器因 payload 建置 OOM 跑不起來，桌機守門1008 與 `_preview.py` 未跑，改動限於 `html:not(.ch-adm)` 隱藏與新增子項，非管理者畫面不變。
-- 2026-11-04 合併（frontend-ui，ch/plan-hub）：總覽加掛頻道卡（含頻道④）、每週發文週曆（同天兩頻道相隔 60 分內標紅）、Andy 每週時數、缺漏清單（plan.json 的 cards／schedule／gaps）；新增 ④ 心靈雞湯子頁與 ch1／funnel 的新區塊；功能鍵 chan.page（adminOnly，四方案 false）；手機表格卡片列距收緊、每個子頁收起 ≤3 屏。這批驗了：頻道規劃（合併後 63 項，本機獨立驅動腳本）；_uitest 全套／桌機守門1008／科技透明圈1025／_preview 見後續紀錄。
+- 2026-11-04 合併（frontend-ui，ch/plan-hub）：總覽加掛頻道卡（含頻道④）、每週發文週曆（同天兩頻道相隔 60 分內標紅）、Andy 每週時數、缺漏清單（plan.json 的 cards／schedule／gaps）；新增 ④ 心靈雞湯子頁與 ch1／funnel 的新區塊；功能鍵 chan.page（adminOnly，四方案 false）；手機表格卡片列距收緊、每個子頁收起 ≤3 屏。這批驗了：頻道規劃（合併後 63 項，本機獨立驅動腳本）；桌機守門1008＝0（合併後完整資料）、科技透明圈1025＝0、_preview 只剩舊紅 #stock/3189/holders（與本批無關）；完整資料下非管理者導回的等待改為等到導回再驗。
 
 ## 2026-11-02 社群診斷與重啟（最高警戒，CEO 整合；最後更新 11-02 17:40 台北）
 - 診斷全文與決策：分支 `claude/serene-brown-e4sosy` 的 `docs/marketing/diagnosis_1102/README.md`（尚未合併 main，接手先合併或從該分支讀）。

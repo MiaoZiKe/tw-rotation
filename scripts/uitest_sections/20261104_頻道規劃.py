@@ -95,7 +95,7 @@ def t_channels_1104(b, base, code):
         c3 = b.new_context(viewport=vp, is_mobile=mob, has_touch=mob)
         c3.add_init_script("window.TW_CH_OVERRIDE=false;try{localStorage.setItem('tw.tour','done')}catch(e){};setTimeout(function(){window.dispatchEvent(new Event('tw:account'))},1000)")
         p3 = c3.new_page(); p3.on("pageerror", lambda e: errs.append(str(e)))
-        p3.goto(base + "#channels/ch1", wait_until="load"); p3.wait_for_timeout(1900)
+        p3.goto(base + "#channels/ch1", wait_until="load"); wait_until(p3, "() => location.hash === '#overview'", 9000); p3.wait_for_timeout(300)
         ok(f"【{T}】非管理者（{tag}）：#channels 被導回總覽", p3.evaluate("() => location.hash") == "#overview", p3.url)
         ok(f"【{T}】非管理者（{tag}）：導覽看不到「頻道規劃」", p3.evaluate("() => [...document.querySelectorAll('.tab[data-view=channels], .l4subtab[data-parent=channels], a[href=\"#channels\"]')].every(e => e.offsetParent === null)"))
         ok(f"【{T}】非管理者（{tag}）：沒畫任何區塊", p3.evaluate("() => document.querySelectorAll('#v-channels .chn-blk').length") == 0)
@@ -172,7 +172,7 @@ def open_page_nonadm(b, base, T):
     ctx = b.new_context(viewport={"width": 1440, "height": 900})
     ctx.add_init_script("window.TW_CH_OVERRIDE=false;try{localStorage.setItem('tw.tour','done')}catch(e){};setTimeout(function(){window.dispatchEvent(new Event('tw:account'))},1000)")
     pg = ctx.new_page()
-    pg.goto(base + "#channels/overview", wait_until="load"); pg.wait_for_timeout(1900)
+    pg.goto(base + "#channels/overview", wait_until="load"); wait_until(pg, "() => location.hash === '#overview'", 9000); pg.wait_for_timeout(300)
     ok(f"【{T}】非管理者：導回總覽、沒畫頻道卡與週曆", pg.evaluate("() => location.hash") == "#overview" and pg.evaluate("() => document.querySelectorAll('.chx-card, .chx-cal').length") == 0)
     return ctx, pg
 
