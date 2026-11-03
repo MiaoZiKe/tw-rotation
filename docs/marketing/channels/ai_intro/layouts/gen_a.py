@@ -29,9 +29,10 @@ body{width:%(W)dpx;height:%(H)dpx;background:%(bg)s;color:%(ink)s;font-family:%(
 .badge{font-size:28px;font-weight:800;padding:6px 18px;border-radius:8px;border:3px solid %(acc)s;color:%(acc)s;line-height:1.3}
 .disc{font-size:28px;color:%(ink2)s;font-weight:500;border-top:2px solid %(line)s;padding-top:12px;display:flex;justify-content:space-between;line-height:1.3}
 .disc .k{color:%(ink)s;font-weight:700}
-table{border-collapse:collapse;width:100%%;font-size:34px}
+table{border-collapse:collapse;width:100%%;font-size:34px;table-layout:fixed}
+col.c0{width:28%%}col.c1{width:24%%}
 th{font-size:32px;font-weight:800;text-align:left;padding:0 20px;height:96px;border-bottom:3px solid %(line)s;color:%(ink2)s}
-td{padding:0 20px;height:96px;border-bottom:2px solid %(line)s;font-weight:600}
+td{padding:0 20px;height:124px;border-bottom:2px solid %(line)s;font-weight:600}
 td.w{background:rgba(111,216,160,.14);color:%(acc)s;font-weight:800}
 .item{display:flex;gap:24px;align-items:flex-start}
 .item .n{flex:none;width:64px;height:64px;border-radius:50%%;border:3px solid %(acc)s;color:%(acc)s;font-weight:900;font-size:34px;display:flex;align-items:center;justify-content:center}
@@ -47,7 +48,7 @@ def cover(reels):
     ch = 466 if reels else 300
     cardtop = (H - bot - 56 - 24 - ch) if True else 0   # 揭露列約 56px 高，再留 24px
     dimcls = "shot dim"
-    return f"""<div class=abs data-o=tag style="left:64px;top:{top}px"><span class=tag>AI 實測 NO.07</span></div>
+    return f"""<div class=abs data-o=tag style="left:64px;top:{top}px"><span class=tag>AI 實測 第 07 期</span></div>
 <div class=abs data-o=date style="right:64px;top:{top}px"><span class=date>2026/11/03</span></div>
 <div class=abs data-o=hook style="left:64px;top:{hk}px;width:952px"><div class=hook>我用 <em>AI</em><br>一天寫完<br>一個月的報表</div></div>
 <div class=abs data-o=sub style="left:64px;top:{sub}px;width:952px"><div class=sub>實測 3 款工具，第 2 款最意外</div></div>
@@ -59,7 +60,7 @@ def head(n, tot, title):
 <div class=abs data-o=date style="right:64px;top:76px"><span class=date>{tot}</span></div>
 <div class=abs data-o=title style="left:64px;top:150px;width:952px"><div class=h2>{title}</div></div>"""
 def shot():
-    return head("STEP 2","2/6","貼上原始資料，一鍵出圖表") + f"""
+    return head("步驟 2","2/6","貼上原始資料，一鍵出圖表") + f"""
 <div class="abs shot" data-o=shot id=shot style="left:64px;top:300px;width:952px;height:640px"><div class=bar><i class=dot></i><i class=dot></i><i class=dot></i><span>某某工具 · 範例畫面</span></div><div class=ui><div class=b>輸入：2025 Q3 銷售表（已遮個資）</div><div class=b style="height:100px;color:#888">資料已貼上，共 120 列</div><div class=b>輸出：長條圖＋摘要</div></div></div>
 <div class=abs data-o=anno data-in=shot style="left:92px;top:590px;width:868px;height:96px">
  <div class=hl style="left:0;top:0;width:700px;height:96px"></div>
@@ -70,17 +71,18 @@ def shot():
 <div class=abs data-o=tdate style="right:64px;top:1124px"><span class=date>測試日 11/03</span></div>
 {disc(72)}"""
 def table():
-    return head("STEP 4","4/6","三款工具實測比較") + """
-<div class=abs data-o=table style="left:64px;top:300px;width:952px"><table>
+    return head("步驟 4","4/6","三款工具實測比較") + """
+<div class=abs data-o=table style="left:64px;top:300px;width:952px"><table><col class=c0><col class=c1><col class=c1><col class=c1>
 <tr><th>項目</th><th>工具 A</th><th>工具 B</th><th>工具 C</th></tr>
 <tr><td>120 列耗時</td><td>21 秒</td><td class=w>8 秒 ✓</td><td>35 秒</td></tr>
 <tr><td>欄位辨識</td><td>手動</td><td class=w>自動 ✓</td><td>自動</td></tr>
-<tr><td>免費額度</td><td class=w>每日 20 次 ✓</td><td>每日 5 次</td><td>無</td></tr>
+<tr><td>每日免費次數</td><td class=w>20 次 ✓</td><td>5 次</td><td>無</td></tr>
 <tr><td>輸出圖表</td><td>3 種</td><td class=w>9 種 ✓</td><td>5 種</td></tr></table></div>
-<div class=abs data-o=note style="left:64px;top:820px;width:952px"><div class=note><b>怎麼比的：</b>同一份 120 列銷售表、同一台電腦、各測 3 次取中位數，11/03 測試。</div></div>
+<div class=abs data-o=note style="left:64px;top:930px;width:952px"><div class=note><b>怎麼比的：</b>同一份 120 列銷售表、同一台電腦、各測 3 次取中位數，11/03 測試。</div></div>
+<div class=abs data-o=first style="left:64px;top:1070px;width:952px"><div class=note><b>結論先看：</b>工具 B 三項勝出，但免費次數只有 A 的四分之一。</div></div>
 """ + disc(72)
 def end():
-    items = [("先用免費版測 1 週","不用先付費，確認資料格式對得上再決定"),("表格整理少的人最有感","本來就整理好的資料，省的時間有限"),("結果要人工抽查","AI 出的圖表數字，交出去前至少核對 3 處")]
+    items = [("誰適合、誰不適合","適合常整理表格的人；資料本來就整齊的人省不了多少"),("結果要人工抽查","AI 出的圖表數字，交出去前至少核對 3 處"),("行動：先用免費版測 1 週","不用先付費，確認資料格式對得上再決定")]
     s = head("結論","6/6","結論：值得試，但要抽查")
     for i,(a,b) in enumerate(items):
         s += f'<div class=abs data-o=i{i+1} style="left:64px;top:{340+i*230}px;width:952px"><div class=item><div class=n>{i+1}</div><p>{a}<small>{b}</small></p></div></div>'
