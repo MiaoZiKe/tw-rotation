@@ -62,6 +62,7 @@ def trimmed(path):
     return "data:image/png;base64," + base64.b64encode(bio.getvalue()).decode(), im.size
 logo, LSZ = trimmed(ASSETS / "logos" / f"{NAME}.png")
 LH = 80; LW = round(LSZ[0] * LH / LSZ[1])
+DISC_LOGO = "文中公司標誌僅用於標示公司，本帳號與各公司無合作或授權關係。"   # 法遵 5：放 LOGO 的版本用完整固定句
 DISC = "網友回報，非公司公告・與各公司無合作或授權關係"
 
 
@@ -83,18 +84,18 @@ def a_cover(with_logo):
     {cells([('學歷', '〔待填〕'), ('年資', '〔待填〕')])}</div>
   <div class="callout" style="margin-top:56px;display:flex;align-items:center;gap:30px">
     <div style="font-size:46px;font-weight:800;line-height:1.2">碩畢<br>月薪</div><div class="n" style="font-size:96px;line-height:1">〔待填〕K</div></div>
-  <div style="margin-top:44px;font-size:38px;font-weight:700;color:{GREY}">網友回報，有誤請指正</div>
-</div>{ft(DISC)}"""
+  <div style="margin-top:44px;font-size:38px;font-weight:700;color:{GREY}">〔N〕位網友提供（2026）</div>
+</div>{ft(DISC_LOGO, "") if with_logo else ft(DISC)}"""
 
 
 S["A1_cover_logo"] = a_cover(True)
 S["A1_cover_textonly"] = a_cover(False)
 rows = [("總部地點", "〔待填〕"), ("碩畢月薪", "〔待填〕K"), ("年終・分紅", "〔待填〕個月"), ("升等路徑", "〔待填〕"),
-        ("加班時數", "〔待填〕h"), ("繁忙程度", "〔待填〕/ 5"), ("出差頻率", "〔待填〕")]
+        ("加班時數", "網友普遍回報工時偏長"), ("繁忙程度", "〔待填〕/ 5"), ("出差頻率", "〔待填〕")]
 trs = "".join(f'<div style="display:flex;align-items:center;height:118px;border-top:2px solid {LINE}">'
               f'<div class="n" style="width:78px;font-size:32px;color:{RED}">{i+1:02d}</div>'
-              f'<div style="width:260px;font-size:40px;font-weight:800;white-space:nowrap">{a}</div>'
-              f'<div style="width:360px;font-size:36px"><span class="ph">{b}</span></div>'
+              f'<div style="width:240px;font-size:40px;font-weight:800;white-space:nowrap">{a}</div>'
+              f'<div style="width:400px;font-size:36px"><span class="ph">{b}</span></div>'
               f'<div style="flex:1;font-size:34px;color:{GREY};white-space:nowrap">〔一句評語〕</div></div>' for i, (a, b) in enumerate(rows))
 # 含「加班」等負面欄位：只寫公司名、不放 LOGO（法遵 ④）
 S["A2_fields_textonly"] = f"""{top('公司行情', '2 / 3')}
@@ -118,22 +119,22 @@ DG = ASSETS / "diagrams" / "raw" / "ai_adv_packaging_2d_raw.png"
 dg = b64(DG)
 S["B1_cover"] = f"""{top('技術白話', '1 / 3')}
 <div class="body">
-  <div style="display:flex;gap:14px"><span class="tag">技術白話</span><span class="tag g">先進封裝</span></div>
+  <div style="display:flex;gap:14px"><span class="tag">技術白話</span><span class="tag g">2.5D 先進封裝</span></div>
   <div style="font-size:60px;font-weight:700;color:{GREY};margin-top:48px;margin-bottom:12px">AI 晶片為什麼要「疊」起來？</div>
   <div style="font-size:150px;font-weight:900;line-height:1.15;margin-top:36px">CoWoS<br>是什麼</div>
   <div class="box" style="margin-top:56px;padding-top:30px;font-size:46px;font-weight:700;line-height:1.5">一句話：把運算晶粒和記憶體<br>放在同一片<span class="ph">矽中介層</span>上，<br>讓它們靠得很近、傳得很快。</div>
   <div style="margin-top:auto;margin-bottom:24px;font-size:36px;font-weight:700;color:{GREY}">往右滑，看剖面示意圖　→</div>
-</div>{ft('科技透明圈', '示意圖，非實物比例')}"""
+</div>{ft('CoWoS 為台積電之商標。', '示意圖，非實物比例')}"""
 # B2：只取「主剖面」(裁掉原圖左上導言——它在講已移除的卡片；與圖內 12px 級小字)，放大到滿版，標題改 56px 大字
 _im = Image.open(DG).convert("RGB").crop((150, 285, 1235, 1080))
 _bio = io.BytesIO(); _im.save(_bio, "PNG"); dgc = "data:image/png;base64," + base64.b64encode(_bio.getvalue()).decode()
 S["B2_diagram"] = f"""{top('技術白話', '2 / 3')}
 <div class="body" style="padding-top:36px">
-  <div style="display:flex;gap:14px;align-items:center"><span class="tag">剖面示意圖</span><span style="font-size:32px;color:{GREY}">由下往上看</span></div>
+  <div style="display:flex;gap:14px;align-items:center"><span class="tag">2.5D 先進封裝剖面（以 CoWoS 為例）</span></div>
   <div style="font-size:60px;font-weight:900;line-height:1.25;margin-top:22px">接點由下往上，<span class="red">一路變小</span></div>
   <div style="margin-top:22px;border-top:3px solid {INK};padding-top:14px"><img data-b src="{dgc}" width="952" style="display:block;margin:0 auto;border-bottom:2px solid {LINE}"></div>
   <div style="display:flex;margin-top:18px">{''.join(f'<div style="flex:1;font-size:34px;font-weight:800;line-height:1.35;white-space:nowrap;{"padding-left:18px;border-left:2px solid "+LINE if i else ""}"><span class="n red">{n}</span> {t}</div>' for i,(n,t) in enumerate([("上","晶粒＋記憶體"),("中","矽中介層"),("下","載板＋BGA 球")]))}</div>
-</div>{ft('示意圖，非實物比例、不代表任何公司產品', '科技透明圈')}"""
+</div>{ft('示意圖，非實物比例。CoWoS 為台積電之商標。', '科技透明圈')}"""
 S["B3_points"] = f"""{top('技術白話', '3 / 3')}
 <div class="body">
   <div style="display:flex;gap:14px"><span class="tag">三個重點</span></div>
