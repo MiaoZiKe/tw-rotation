@@ -14,7 +14,7 @@
 | `finance_rules.md` | 財經內容編輯（finance-content-editor） | AI 概念股與投顧法紅線、5 組「不行→可以」改寫、一週 AI 新聞查證流程 |
 | `legal.md` | 法遵（legal-compliance） | 業配／聯盟揭露、AI 生成標示、著作權、課程消保、個資、發文前自查 |
 | `visual.md`、`layouts/` | 設計美編（visual-designer） | 三套版型、截圖規範、重疊檢查、範例圖 |
-| `visual_review.md` | 美術總監（art-director） | 七張範例逐張審查，推薦 A |
+| `visual_review.md` | 美術總監（art-director） | 第 1 版七張逐張審查並推薦 A；第 2 版複審：封面、Reels、截圖頁、結論頁通過，比較表頁與英文字（STEP→步驟、NO.→第 N 期）小修中 |
 | `ops.md` | 社群營運主管（social-ops-lead） | 帳號與權杖、核准流程、IG／Threads 分階段、留言範本、成效追蹤、監工 |
 
 ## 這個頻道的專業人員編組
