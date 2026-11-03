@@ -16,6 +16,7 @@
 - 容器 11-02 重開：/tmp/claude-0/locks/run_gate.sh、precheck.sh、csscheck.py 已重建（備份在 CEO scratchpad）；python3 需 `python3 -m pip install -r requirements.txt playwright`。
 
 ## ★ 最高警戒
+- **2026-11-03 誤報**：posted.json 沒有盤前／盤中／close-inst 是降量模式照規定不發，不是故障（查核方法見 auto_post.md 修改紀錄 11-03）。監工判「沒發」前先讀 `docs/marketing/social_unit/post_quota.json`；目前只有盤後主貼文 Threads 是應發。
 - **2026-11-02 社群自動發文降量模式（Andy：「同意降量」）**：自動只發交易日盤後主貼文 Threads 1 則（第 2 則留給 Andy 手寫）；盤前、盤中、所有 IG 限動、主題文章／新聞文、IG 晚間補發與 22:10 監工全停。唯一開關 `docs/marketing/social_unit/post_quota.json`（Andy 說了才准改）；被停的時段**不准補發**，監工只剩盤後 18:20。細節 `docs/marketing/social_unit/auto_post.md` 第〇節。分支 `social/quota-1102`（CEO 審過推 main；推 main 前今晚 20:00／20:50 兩篇已 approved 的 IG 主題文章仍會發）。這批只驗：`pytest -k "social or threads or ig_post or news or premarket or postmarket or gh_cron"`＋`tests/test_social_quota_1102.py`＋`node --test workers/gh-cron/test/schedule.test.mjs`。
 
 ## 2026-11-02 新聞句子不照抄（法遵 diagnosis_1102/legal_tech_transparency.md 6-2；分支 `fix/news-no-verbatim`，**等 CEO 審過才推 main**；最後更新 11-02 12:20 台北）
