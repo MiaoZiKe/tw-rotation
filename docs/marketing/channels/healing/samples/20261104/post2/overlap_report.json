@@ -1,6 +1,6 @@
 {
  "01_cover": {
-  "n": 8,
+  "n": 7,
   "overlap": [],
   "gap32": [],
   "oob_margin": [],
@@ -8,7 +8,7 @@
   "minFont": 28
  },
  "02_inner": {
-  "n": 5,
+  "n": 4,
   "overlap": [],
   "gap32": [],
   "oob_margin": [],
@@ -16,7 +16,7 @@
   "minFont": 28
  },
  "03_inner": {
-  "n": 5,
+  "n": 4,
   "overlap": [],
   "gap32": [],
   "oob_margin": [],
@@ -24,7 +24,7 @@
   "minFont": 28
  },
  "04_inner": {
-  "n": 5,
+  "n": 4,
   "overlap": [],
   "gap32": [],
   "oob_margin": [],
@@ -32,7 +32,7 @@
   "minFont": 28
  },
  "05_inner": {
-  "n": 6,
+  "n": 5,
   "overlap": [],
   "gap32": [],
   "oob_margin": [],

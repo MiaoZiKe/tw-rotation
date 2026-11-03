@@ -1,6 +1,6 @@
 {
  "threads": {
-  "n": 5,
+  "n": 4,
   "overlap": [],
   "gap32": [],
   "oob_margin": [],

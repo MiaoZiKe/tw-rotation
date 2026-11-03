@@ -1,10 +1,10 @@
 # 頻道④（療癒）版型樣張
 
-重疊檢查：程式 12 張 0 筆（版型樣張 5 張＋範例貼文 7 張；分別見 `layouts/overlap_report.json`、`samples/20261104/post*/overlap_report.json`；LOGO 6 張另見 `../logo/overlap_report.json`，該檢查對文字外接框偏嚴，結論見 logo/README.md）。人工：逐張看過縮圖，0 筆。
+重疊檢查：程式 12 張 0 筆（版型樣張 5 張＋範例貼文 7 張；分別見 `layouts/overlap_report.json`、`samples/20261104/post*/overlap_report.json`；LOGO 30 張另見 `../logo/overlap_report.json`）。人工：逐張看過縮圖，0 筆。
 檢查規則：每個文字框以「容器框 ∪ 文字實際範圍」計，兩兩相交＝重疊；另報間距 <32px、左右越出 88px 邊距、字級 <28px。便利貼因輕微旋轉以外接框計（較嚴）。
 
-## 字體（重要）
-容器只有文泉驛正黑（WenQuanYi Zen Hei）。CSS 已把 Noto Serif TC／Noto Sans TC 列在前面，**樣張實際用文泉驛渲染，所以 A 套「襯線」質感沒出來**；請美編裝好 Noto 後重跑 `python3 gen.py && node render.js`，斷行寬度可能微調。
+## 字體
+已改用 Noto Serif CJK TC（A 版型、語錄主句）、Noto Sans CJK TC（B、小字）、LXGW WenKai TC 霞鶩文楷（C 便利貼手寫感），皆 SIL OFL 1.1，字檔在 ~/.fonts，樣張已用它們重跑。
 
 ## 三套版面方向（5 張）
 | 套 | 檔案 | 色票 | 字級 | 用途 |
