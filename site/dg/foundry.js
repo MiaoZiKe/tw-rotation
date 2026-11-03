@@ -211,11 +211,17 @@
       // 源汲磊晶：**把所有奈米片的端部一起接起來**（§3-A F9／§6-T9）
       g.push(part('fd_sd', slab(L0 + 8, lay.top, (mx - 8) - (L0 + 8), 292 - lay.top, C.org, 2)
         + slab(mx + mw + 8, lay.top, (R0 - 8) - (mx + mw + 8), 292 - lay.top, C.org, 2)));
-      // 四面：上、下、左、右，圍著中間那一片
-      const mid = lay.sheets[1], mc = mid + SH_T / 2;
+      /* 四面：**這一格是沿通道方向的剖面**（左右兩端是源極／汲極與內間隙壁），所以紙面裡只看得到上、下兩面
+         —— 左右兩端不是閘極包的面，不能畫閘極箭頭（審查 W3，2026-11-03）。另外兩面在**紙面的前與後**：
+         閘極沿片寬方向把整片包起來，用工程圖慣用的記號畫：⊙＝朝向你、⊗＝進到紙面裡。
+         數面數＝ path.arw（上、下）＋ circle.arwx（前、後），合計 4。*/
+      const mid = lay.sheets[1];
+      const oop = (x, y, into) => `<circle class="arwx" cx="${x}" cy="${y}" r="5.5" fill="none" stroke="${C.cyan}" stroke-width="1.6"/>`
+        + (into ? `<path d="M${x - 3},${y - 3} L${x + 3},${y + 3} M${x - 3},${y + 3} L${x + 3},${y - 3}" stroke="${C.cyan}" stroke-width="1.6" fill="none"/>`
+                : `<circle cx="${x}" cy="${y}" r="1.8" fill="${C.cyan}"/>`);
       g.push(part('fd_face4', arw(cx - 18, mid - 16, cx - 18, mid - 3)
         + arw(cx - 18, mid + SH_T + 16, cx - 18, mid + SH_T + 3)
-        + arw(mx - 2, mc, sx - 4, mc) + arw(mx + mw + 2, mc, sx + SH_W + 4, mc)));
+        + oop(cx + 14, mid - 9.5, false) + oop(cx + 34, mid - 9.5, true)));
       // 可變片寬（NanoFlex，示意）：兩疊寬窄不同的片，灰階小圖，**不寫任何寬度數字**（§7-B2）
       g.push(part('fd_flex', '<g opacity=".7">'
         + [0, 1, 2].map(i => R(L0 + 14, 142 + i * 11, 22, 6, C.mute, 'part', 1)).join('')
@@ -238,7 +244,7 @@
     { k: 'fin', cx: CXS[1], no: '二', nm: 'FinFET 鰭式', fa: '管 3 面', wi: [1],
       cap: ['把通道立起來變成一片鰭。', '★ 虛線框那段鰭底包不到。'] },
     { k: 'gaa', cx: CXS[2], no: '三', nm: 'GAA 奈米片', fa: '管 4 面', wi: [],
-      cap: ['閘極金屬鑽進每一片之間', '的縫，上下左右都管得到。'] },
+      cap: ['閘極金屬鑽進每一片之間', '的縫，上下加紙面前後共 4 面。'] },
   ];
 
   function areaA() {
@@ -481,7 +487,7 @@
            04（high-k）改到閘極底下的右半段（仍在閘極寬度內）、05（間隙壁）往上移到左間隙壁的中段、
            06（源汲）移到左邊那塊的中間 —— 每一顆都還在自己那個零件上，彼此間距 ≥ 30px。 -->
       ${card({ part: 'fd_planar', no: 1, side: 'l', color: C.si, ax: CXS[0], ay: 255, title: '平面電晶體的通道', sub: ['基板表面下一條水平的薄層，閘極只從正上方蓋下來 —— 只管得到一面，其餘三面關不住。'] })}
-      ${card({ part: 'fd_face1', no: 2, side: 'l', color: C.cyan, ax: CXS[0], ay: 190, title: '閘極管到 1 面', sub: ['一支箭頭＝一個面。三格的箭頭數就是 1／3／4，數得出來。'] })}
+      ${card({ part: 'fd_face1', no: 2, side: 'l', color: C.cyan, ax: CXS[0], ay: 190, title: '閘極管到 1 面', sub: ['一支箭頭＝一個面（GAA 紙面前後兩面用 ⊙ ⊗ 記號）。三格的面數就是 1／3／4，數得出來。'] })}
       ${card({ part: 'fd_gate', no: 3, side: 'l', color: C.steel, ax: CXS[0], ay: 228, title: '閘極金屬', sub: ['平面只蓋在上面；FinFET 是 ㄇ 字形罩住頂＋左＋右；GAA 則鑽進每一片之間的縫。'] })}
       ${card({ part: 'fd_hk', no: 4, side: 'l', color: C.sn, ax: CXS[0] + 30, ay: 245, title: 'high-k 閘極介電層', sub: ['夾在閘極與通道之間，是全圖最薄的層之一。GAA 那一格它繞著每一片走一圈（封閉細框）。'] })}
       ${card({ part: 'fd_spacer', no: 5, side: 'l', color: C.mute, ax: CXS[0] - 46, ay: 220, title: '間隙壁／內間隙壁', sub: ['把閘極跟源汲擋開。GAA 那一格它只存在於「片」那幾層 —— 那就是「內」間隙壁。'] })}
@@ -493,7 +499,7 @@
       ${card({ part: 'fd_fin_iso', no: 11, side: 'r', color: C.mute, ax: CXS[1] + 60, ay: 145, title: '等角輔助：閘極跨過鰭', sub: ['主圖是「垂直於鰭」的橫剖面；這個小圖從斜上方看，說明閘極是橫跨過鰭的。'] })}
       ${card({ part: 'fd_gaa', no: 12, side: 'r', color: C.steel, ax: CXS[2] + 56, ay: 200, title: '閘極金屬（填進每一片之間）', sub: ['★ 這是「Gate-All-Around」這個名字的全部意義：每一對相鄰奈米片之間都有金屬，最下面那片的下方也有。只畫在最上面＝畫的是 FinFET。'] })}
       ${card({ part: 'fd_sheet', no: 13, side: 'r', color: C.si, ax: CXS[2], ay: 210, title: '奈米片（nanosheet）', sub: ['2～4 片水平堆疊、彼此不相連；片寬遠大於片厚（本圖 8 倍）—— 正方形斷面那是奈米線，不是奈米片。'] })}
-      ${card({ part: 'fd_face4', no: 14, side: 'r', color: C.cyan, ax: CXS[2] - 18, ay: 196, title: '閘極管到 4 面', sub: ['上、下、左、右四支箭頭圍著中間那一片。'] })}
+      ${card({ part: 'fd_face4', no: 14, side: 'r', color: C.cyan, ax: CXS[2] - 18, ay: 196, title: '閘極管到 4 面', sub: ['這一格是沿通道切開的剖面，紙面裡只看得到上、下兩支箭頭；另外兩面在紙面前後 —— ⊙＝朝向你、⊗＝進紙面，閘極沿片寬把中間那一片整圈包住。'] })}
       ${card({ part: 'fd_flex', no: 15, side: 'r', color: C.mute, ax: CXS[2] - 76, ay: 118, title: '片寬可調（NanoFlex，示意）', sub: ['要速度就加寬、要省電就變窄。★ 本圖不寫任何寬度數字。'] })}
       ${note({ side: 'r', order: 0, warn: true, title: '★ 誰做的（結論）', lines: ['先進節點（N3／N2／A16）台股只有 2330 台積電。族群成分股 7 檔裡有 4 檔（5347 世界先進／3105 穩懋／8086 宏捷科／4991 環宇-KY）不在供應鏈資料裡，所以零件小卡列不出它們 —— 那不是壞掉。逐段名單見最後一段。'] })}
       ${note({ side: 'r', order: 99, title: '示意圖，非實物比例', lines: ['各層厚度與尺寸均為誇張放大；剖面兩端的源／汲為示意，不與閘極同切面。', '節點效能數字為媒體整理（2026），會過期；本圖不寫任何良率、成本、市占率與產能數字。'] })}
@@ -578,7 +584,7 @@
       },
       fd_sd: {
         name: '源極／汲極（S／D）',
-        desc: '一律在通道的左右兩端。GAA 那格的源汲磊晶把所有奈米片的端部一起接起來，不是一片接一個。FinFET 與 GAA 畫的是垂直於鰭／片的橫剖面，源汲嚴格說不在這個切面上 —— 圖上畫在兩端是示意。',
+        desc: '一律在通道的左右兩端。GAA 那格的源汲磊晶把所有奈米片的端部一起接起來，不是一片接一個。FinFET 畫的是垂直於鰭的橫剖面，源汲嚴格說不在這個切面上，圖上畫在兩端是示意；GAA 那格是沿通道方向的剖面，源汲在左右兩端就是實際位置（閘極的前後兩面因此用 ⊙ ⊗ 記號表示）。',
       },
       fd_sub: {
         name: '矽基板',
@@ -591,7 +597,7 @@
       },
       fd_face1: { name: '閘極控制面：1 面', desc: '平面電晶體的閘極只從上方蓋下來。管得越少面，漏電越關不住。' },
       fd_face3: { name: '閘極控制面：3 面', desc: 'FinFET 的閘極罩住鰭的頂面與兩個側面 —— 鰭底那一段埋在 STI 裡，管不到。' },
-      fd_face4: { name: '閘極控制面：4 面', desc: 'GAA 的閘極金屬鑽進每一片之間，上下左右四面都管得到。管得越多面，同樣速度下越省電。' },
+      fd_face4: { name: '閘極控制面：4 面', desc: 'GAA 的閘極金屬鑽進每一片之間，上、下與紙面前後共四面都管得到（圖是沿通道的剖面，前後兩面用 ⊙ ⊗ 記號表示）。管得越多面，同樣速度下越省電。' },
       fd_loop: {
         name: '製程迴圈（繞 80～120 次）',
         desc: '晶圓廠不是「一次做完」，是同一個迴圈繞好幾十次：每一個圖案層都要走一次清洗 → 沉積 → 塗光阻 → 曝光 → 顯影 → 蝕刻 → 去光阻 → CMP → 量測。層數與光罩數是區間、來源是業界整理，不是某一個節點的確定值。',

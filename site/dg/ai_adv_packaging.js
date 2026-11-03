@@ -666,7 +666,7 @@
       <g data-seg="foundry" data-part="icp_die">
         <rect class="part" x="${M.dieL}" y="${M.dieT}" width="${M.dieR - M.dieL}" height="${M.dieB - M.dieT}" rx="2" fill="url(#igSi)"/>
         ${dieBeol}${diePads.join('')}
-        <text class="num" x="${M.cx}" y="${M.dieT + 32}" text-anchor="middle" style="fill:${C.mute}">GPU / ASIC</text>
+        <text class="num" x="${M.cx}" y="${M.dieT + 32}" text-anchor="middle" style="fill:var(--dg-ink);stroke:var(--dg-void);stroke-width:3;paint-order:stroke;stroke-linejoin:round">GPU / ASIC</text>
       </g>
       <g data-seg="adv_pkg" data-part="icp_soic">
         <rect class="part" x="${M.soicL}" y="${M.soicT}" width="${M.soicR - M.soicL}" height="${M.soicB - M.soicT}" rx="2" fill="url(#igSi)"/>

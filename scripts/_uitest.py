@@ -40048,7 +40048,7 @@ FD_GEOM = """() => {
     sd: A('[data-part="fd_sd"] rect.part').map(bx),
     faces: {p: A('[data-part="fd_face1"] path.arw').length,
             f: A('[data-part="fd_face3"] path.arw').length,
-            g: A('[data-part="fd_face4"] path.arw').length},
+            g: A('[data-part="fd_face4"] path.arw').length + A('[data-part="fd_face4"] circle.arwx').length},
     stack: gateStack, stackFills: gateStack.length ? A('[data-part="fd_gate_stack"] rect.part').map(fl) : [],
     st: st, ang: ang, ok9: ok9,
     rarr: A('path.rarr').length, rarrh: A('path.rarrh').length,

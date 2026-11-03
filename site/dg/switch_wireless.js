@@ -118,7 +118,7 @@
     .dgsw .fine{fill:var(--dg-alu)}
     .dgsw .cage{fill:var(--dg-alu-3);stroke:var(--dg-steel-2);stroke-width:.6}
     .dgsw .slot{fill:var(--dg-edge)}
-    .dgsw .tab{fill:var(--dg-sw-gold)}
+    .dgsw .ftab{fill:var(--dg-sw-gold)}
     .dgsw .fxbeam.rev .fxb-flow{animation-direction:reverse}
     /* 描邊與發光各降一階（只作用在這一張圖）：籠架 32×11、電感 8×8，共用的 2.2px 描邊套上去整個變成實心色塊。
        平時／選到的環節 → 不描邊；滑鼠移上去 → 1.4px；你點的那一個 → 2.4px ＋ 一圈暈開（閱讀模式 --dg-glow:none 就不暈）。*/
@@ -147,7 +147,7 @@
     for (let r = 0; r < 2; r++) for (let i = 0; i < NCAGE; i++) {
       const x = PX + CAGE_U0 + i * CAGE_P, y = PYT + (r ? 16.5 : 3.5), h = 11;
       cages.push(R(x, y, CAGE_W, h, '', 'cage part', 1.4) + R(x + 2.2, y + 2.2, 18, h - 4.4, '', 'slot', 1)
-        + R(x + 23, y + 3, 4, h - 6, '', 'tab', 1.2)
+        + R(x + 23, y + 3, 4, h - 6, '', 'ftab', 1.2)
         + `<circle class="blink b${(i + r) % 3 + 1}" cx="${(x + 2.8).toFixed(1)}" cy="${(y + h - 2.4).toFixed(1)}" r="1.4" fill="var(--dg-cool)"/>`);
     }
     return `<g data-seg="optical" data-part="sw_cage">${fx.glass(PX, PYT, BW, PANEL.h, { iso: { dx: 8, dy: -4.5 }, fill: 'var(--dg-alu)', rx: 2 })}${cages.join('')}</g>`;
@@ -384,8 +384,8 @@
     return `<svg class="dg dgm rs dgsw" viewBox="0 0 ${CW} ${Y4 + 520}" width="100%" style="display:block">${STYLE}${SW_STYLE}
       <defs>${fx.glowDefs({ r: 4, soft: 4 })}</defs>
       <!-- 標題與說明：v2 搬到 HTML 的 .dghead，SVG 裡不畫 -->
-      <text class="ttl ext" x="0" y="0">交換器板卡：一顆晶片對上所有的埠，逼出 40 層以上的板子</text>
-      <text class="cap ext" x="0" y="0">拆掉上蓋、從前上方看進去的 2U 板卡：前面板一整排光模組籠架（下方），一顆交換器晶片坐在正中央、載板／晶片／散熱片往上拆開浮著，上千條等長差動對從它底下扇出到每一個埠（近的埠繞路、遠的直走）；風扇與電源在後方（右上）。青綠光束＝光（光纖進出前面板）、藍色光束＝電（籠架 → 晶片 → 另一個籠架，雙向）、橘線＝供電（PSU → VRM → 晶片）。板子前緣看得到一疊層；為什麼要 40 層、800G 光模組裡有什麼、可插拔 vs CPO 收在下面三段。</text>
+      <text class="ttl ext" x="0" y="0">交換器板卡：一顆晶片對上所有的埠，逼出近 40 層以上的板子</text>
+      <text class="cap ext" x="0" y="0">拆掉上蓋、從前上方看進去的 2U 板卡：前面板一整排光模組籠架（下方），一顆交換器晶片坐在正中央、載板／晶片／散熱片往上拆開浮著，上千條等長差動對從它底下扇出到每一個埠（近的埠繞路、遠的直走）；風扇與電源在後方（右上）。青綠光束＝光（光纖進出前面板）、藍色光束＝電（籠架 → 晶片 → 另一個籠架，雙向）、橘線＝供電（PSU → VRM → 晶片）。板子前緣看得到一疊層（層數口徑：媒體與投顧對 800G 交換器板約 38～48 層，PCB 廠對 51.2T 另有 24～32 層的列法，依架構而異）；為什麼要近 40 層、800G 光模組裡有什麼、可插拔 vs CPO 收在下面三段。</text>
 
       <!-- ================= §1 半層疊的板卡 =================
            畫的順序＝由遠到近、由下往上：陰影 → 板子 → 前緣的層 → 走線 → 供電線 → 氣流 → 風扇／PSU／處理器（後方）→ VRM
@@ -411,7 +411,7 @@
       ${extRow({ side: 'l', no: 9, seg: 'optical', part: 'sw_cage', color: COL.opt, ax: PX + 5, ay: (PYT + PYB) / 2,
     title: '前面板光模組籠架', sub: '一整排同規格；2U 排 64 個' })}
       ${extRow({ side: 'l', no: 11, seg: 'hdi_pcb', part: 'sw_pcb', color: COL.pcb, ax: BX + 8, ay: BY + BT / 2,
-    title: '主板：高層數多層板 MLB', sub: '約 40 層以上，依架構而異' })}
+    title: '主板：高層數多層板 MLB', sub: '近 40 層以上（約 38～48 層）' })}
       ${extRow({ side: 'r', no: 2, seg: 'power', part: 'sw_psu', color: COL.pwr, ax: psuA.x + 6, ay: psuA.y - PSUS[1].h + 8,
     title: '電源供應器 PSU（後方）', sub: '1+1 冗餘、可熱抽換' })}
       ${extRow({ side: 'r', no: 4, seg: 'thermal', part: 'sw_hs', color: COL.therm, ax: HS.x + HS.w + 6, ay: LAY.hs[0] - 6,
@@ -422,11 +422,11 @@
     title: '前緣那一疊：core／prepreg', sub: 'CCL 廠交板材，PCB 廠蝕線路' })}
       ${note({ side: 'r', warn: true, title: '★ 族群名單比這張圖寬',
     lines: ['族群含電信與消費性網通；這張只畫資料中心交換器那一段。',
-      '示意圖，非實物比例；16 個籠架代表 64 個、19 條疊構代表約 40 層以上。',
+      '示意圖，非實物比例；16 個籠架代表 64 個、19 條疊構代表近 40 層以上（約 38～48 層，媒體與投顧對 800G 交換器板的口徑）。',
       '畫埠側進風機種；市占、良率、單價、瓦數一個都不寫。'] })}
 
       <!-- ================= ② 板子為什麼要這麼多層（預設收合；座標由 wireFolds 量）================= -->
-      ${fold('sw2', '② 層數是被訊號逼出來的：訊號—地—訊號—地', '疊構節律條、背鑽特寫、為什麼是 40 層以上', `
+      ${fold('sw2', '② 層數是被訊號逼出來的：訊號—地—訊號—地', '疊構節律條、背鑽特寫、為什麼是近 40 層以上', `
       <text class="hd" x="16" y="${Y2 + 20}">每一層高速訊號的上下都要各有一層完整接地層，而且疊構上下對稱</text>
       ${st.svg}
       ${ld('out', Y2 + 48)}${ld('gnd', Y2 + 92)}${ld('sig', Y2 + 136)}${ld('pwr', Y2 + 180)}
@@ -444,10 +444,10 @@
       <text class="lbl" x="404" y="${Y2 + 186}">背鑽（back-drill）</text>
       <text class="sub" x="404" y="${Y2 + 203}">通孔用不到的那段銅是天線</text>
       <rect class="frame" x="16" y="${Y2 + 220}" width="544" height="124" rx="8"/>
-      <text class="hd" x="30" y="${Y2 + 242}">為什麼是 40 層以上</text>
+      <text class="hd" x="30" y="${Y2 + 242}">為什麼是近 40 層以上</text>
       <text class="sub" x="30" y="${Y2 + 264}">一顆 51.2T 的晶片有 512 條 SerDes 通道，收發各一組差動對 —— 光是高速 I/O 就上千條，</text>
       <text class="sub" x="30" y="${Y2 + 282}">而且全部要從同一顆球柵陣列底下逃出來。每一層訊號層的上下都要各配一層完整接地層，</text>
-      <text class="sub" x="30" y="${Y2 + 300}">阻抗才守得住 → 線塞不下就只能往上疊層。圖上畫 19 條，實機約 40 層以上（依架構而異）。</text>
+      <text class="sub" x="30" y="${Y2 + 300}">阻抗才守得住 → 線塞不下就只能往上疊層。圖上畫 19 條，實機約 38～48 層（口徑：媒體與投顧對 800G 交換器板的說法；PCB 廠對 51.2T 另有 24～32 層的列法，依架構而異）。</text>
       <text class="sub" x="30" y="${Y2 + 322}" style="fill:var(--dg-warn)">層數多了還要換超低損耗板材、低粗糙度銅箔，而且是多次壓合 —— 錯一次整片報廢。</text>
       <text class="hd" x="16" y="${Y2 + 370}">速率怎麼換算（只用來檢查有沒有畫離譜，不當規格數字標在零件旁邊）</text>
       <text class="num" x="30" y="${Y2 + 392}">64 埠 × 800G ＝ 51.2T　｜　64 埠 × 1.6T ＝ 102.4T　｜　32 埠 × 800G ＝ 25.6T（1U）</text>
@@ -469,7 +469,7 @@
       <text class="sub" x="196" y="${Y3 + 286}">金手指：模組唯一的電接點，插進籠架就接到主板 —— 這就是「可插拔」</text>
       <text class="cap" x="16" y="${Y3 + 346}">從板材到交付雲端：這條鏈上台股站在哪幾格（點一格＝篩那個環節的成分股）</text>
       ${processBar(8, Y3 + 356, [{ seg: 'ccl', t: '銅箔基板 CCL', s: '超低損耗板材' },
-    { seg: 'hdi_pcb', t: '高層數多層板', s: '40 層以上・背鑽' },
+    { seg: 'hdi_pcb', t: '高層數多層板', s: '近 40 層・背鑽' },
     { seg: 'optical', t: '光模組／光引擎', s: '800G 可插拔・CPO' },
     { seg: 'connector', t: '高速連接／線材', s: '飛越纜線・籠架' },
     { seg: 'switch', t: '交換器整機', s: '白牌 ODM 組裝' }], 164, { cols: 3 })}`)}
@@ -483,7 +483,7 @@
       <text class="sub" x="16" y="${Y4 + 416}" style="fill:var(--dg-warn)">　 速率每升一級，這件事就更嚴重一次。</text>
       <text class="cap" x="16" y="${Y4 + 440}">CPO 那一側兩個來源給的損耗數字不同（1～2 dB 與約 4 dB），所以只寫「個位數」，不挑一個當定論。</text>
       <text class="cap" x="16" y="${Y4 + 458}">示意圖，非實物比例｜層數、走線條數、光模組數量與元件位置均為示意；圖上畫 16 個籠架（實機 64 個）、</text>
-      <text class="cap" x="16" y="${Y4 + 476}">19 條疊構（實機約 40 層以上，⋮ ×N，依架構而異）。零件顏色＝環節色，點零件只亮不篩</text>
+      <text class="cap" x="16" y="${Y4 + 476}">19 條疊構（實機約 38～48 層，⋮ ×N，依架構而異）。零件顏色＝環節色，點零件只亮不篩</text>
       `)}
     </svg>`;
   }

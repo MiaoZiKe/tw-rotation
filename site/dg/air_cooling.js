@@ -97,7 +97,8 @@
     const CW = 680;
     // ================================================================ ① 一顆風扇沿轉軸拆開（2.5D 斜投影的圓盤，一層一層）
     const K = 0.42, AX = 170;                        // 圓盤壓扁的比例、中軸的 x
-    const Y = { frame: 100, rot1: 180, motor: 250, brg: 302, rot2: 360 };
+    // 前後各一組風扇（反轉雙轉子＝兩顆各有馬達的風扇串聯）：前扇框 → 前轉子 → 前馬達 → 軸承 → 後轉子 → 後馬達 → 後扇框
+    const Y = { frame: 100, rot1: 170, motor: 226, brg: 266, rot2: 318, motor2: 374, frame2: 446 };
     // 一片有厚度的圓盤：先畫側壁（下半圈往下拉 T），再畫頂面；inner 畫在頂面座標（未壓扁）裡
     /* 玻璃材質走共用的 D.fx（diagrams.js 檔尾，波 1b 定的介面）：板＝fx.glass、流動＝fx.beam、濾鏡＝fx.glowDefs。
        圓盤（沿轉軸拆開的東西）fx 沒有現成的，這裡用 fx 的 class（fxg／fxb／fxs／fxe／fxr）拼一個：
@@ -107,17 +108,18 @@
       + `<circle class="fxb part" r="${r}"/><circle class="fxs" r="${r}"/><circle class="fxe" r="${r}"/>${inner || ''}</g>`;
     /* 前扇框：方形外框、圓形風道、四角鎖孔 —— 「這是鎖在機殼上的工業件」的第一個記號，
        家用電風扇的網罩、立柱、擺頭一律不畫（§6-M1）。*/
-    const frame = (() => {
+    const frameAt = (fy) => {
       const S = 75, T = 20, H = 66;
       const sq = (o) => `M${-S + 14},${-S + o}h${2 * S - 28}a14,14 0 0 1 14,14v${2 * S - 28}a14,14 0 0 1 -14,14h-${2 * S - 28}a14,14 0 0 1 -14,-14v-${2 * S - 28}a14,14 0 0 1 14,-14Z`;
       const hole = `M${H},0A${H},${H} 0 1 0 ${-H},0A${H},${H} 0 1 0 ${H},0Z`;
       const holes = [[-1, -1], [1, -1], [-1, 1], [1, 1]].map(([sx, sy]) => `<circle cx="${sx * (S - 13)}" cy="${sy * (S - 13)}" r="5" fill="var(--dg-void)"/>`).join('');
-      return `<g class="fxg" style="--fxc:var(--dg-alu)" transform="translate(${AX},${Y.frame}) scale(1,${K})">`
+      return `<g class="fxg" style="--fxc:var(--dg-alu)" transform="translate(${AX},${fy}) scale(1,${K})">`
         + `<path fill="var(--dg-alu-3)" d="${sq(T)}"/>`
         + `<path class="fxb part" fill-rule="evenodd" d="${sq(0)} ${hole}"/>`
         + `<path class="fxs" fill-rule="evenodd" d="${sq(0)} ${hole}"/><path class="fxe" fill-rule="evenodd" d="${sq(0)} ${hole}"/>`
         + `<path class="fxh" d="M${-S + 16},${-S + 1}H${S - 16}"/>${holes}</g>`;
-    })();
+    };
+    const frame = frameAt(Y.frame), frame2 = frameAt(Y.frame2);
     /* 轉子：輪轂是一個短圓柱、七片有傾角的扇葉從它長出來；整組真的在轉（CSS spin，動畫鈕關掉就停）。
        後面那組 dir 取 −1：葉片鏡射、轉向相反（§6-F4）。旋向另外用一個弧形箭頭標出來。*/
     const rotorLayer = (cy, dir, part) => {
@@ -132,27 +134,36 @@
         + arrow + `</g>`);
     };
     // 馬達：轉子磁鐵環（外圈）＋ 定子線圈（內，六個銅繞組）＋ 鐵芯 —— 藏在輪轂裡（§6-F3）
-    const motor = disc(Y.motor, 30, 16, 'var(--dg-mag)',
+    const motorAt = (my) => disc(my, 30, 16, 'var(--dg-mag)',
       `<circle r="22" fill="var(--dg-frame)"/>`
       + [0, 1, 2, 3, 4, 5].map(i => `<rect x="-4" y="-21" width="8" height="13" rx="1.5" fill="var(--dg-cu)" transform="rotate(${i * 60})"/>`).join('')
       + `<circle r="6" fill="var(--dg-steel)"/>`);
+    const motor = motorAt(Y.motor), motor2 = motorAt(Y.motor2);
     // 軸承：小小一圈，套在軸上、卡在軸與輪轂之間（四型的差別收在章節 ②）
     const bearing = disc(Y.brg, 13, 8, 'var(--dg-steel)', `<circle r="5" fill="var(--dg-void)"/>`);
     // 貫穿的軸（畫在圓盤後面，穿過軸承的孔）
-    const shaft = `<rect x="${AX - 3}" y="${Y.rot1 + 6}" width="6" height="${Y.rot2 - Y.rot1 - 14}" rx="3" fill="var(--dg-steel)"/>`;
+    // 前後兩組各有自己的軸（兩顆風扇串聯），中間不連：前組＝前轉子到軸承、後組＝後轉子到後馬達
+    const shaft = `<rect x="${AX - 3}" y="${Y.rot1 + 6}" width="6" height="${Y.brg - Y.rot1 - 6}" rx="3" fill="var(--dg-steel)"/>`
+      + `<rect x="${AX - 3}" y="${Y.rot2 + 6}" width="6" height="${Y.motor2 - Y.rot2 - 4}" rx="3" fill="var(--dg-steel)"/>`;
     // 四線接頭：從前扇框左下角出來的四條線（電源／地／轉速回授／PWM，Intel 4-wire 規格；只寫四條各是什麼）
     const wires = `<rect x="86" y="${Y.frame + 24}" width="10" height="22" rx="2" fill="var(--dg-plug)"/>`
       + [['var(--dg-err)', 0], ['var(--dg-ink-3)', 1], ['var(--dg-cold)', 2], ['var(--dg-hot)', 3]].map(([c, i]) =>
         `<path d="M86,${Y.frame + 28 + i * 5}H62" stroke="${c}" stroke-width="2.2" fill="none"/>`).join('');
-    const fan = shadow(`<path class="axis2" d="M${AX},44V${Y.rot2 + 40}"/>`
-      + `<path d="M${AX - 4},44l4,8l4,-8Z" fill="var(--dg-cold)"/><path d="M${AX - 4},${Y.rot2 + 40}l4,8l4,-8Z" fill="var(--dg-hot)"/>`
+    const fan = shadow(`<path class="axis2" d="M${AX},44V${Y.frame2 + 46}"/>`
+      + `<path d="M${AX - 4},44l4,8l4,-8Z" fill="var(--dg-cold)"/><path d="M${AX - 4},${Y.frame2 + 46}l4,8l4,-8Z" fill="var(--dg-hot)"/>`
       + `<text class="fine" x="${AX + 8}" y="54" style="fill:var(--dg-cold)">進氣（前）</text>`
-      + `<text class="fine" x="${AX + 8}" y="${Y.rot2 + 50}" style="fill:var(--dg-hot)">出氣（後）</text>`
+      + `<text class="fine" x="${AX + 8}" y="${Y.frame2 + 60}" style="fill:var(--dg-hot)">出氣（後）</text>`
       + shaft
       + P('fan_frame', frame) + P('wire4', wires)
+      + `<text class="fine" x="${AX + 80}" y="${Y.frame - 5}">前扇框</text>`
       + rotorLayer(Y.rot1, 1, 'blade')
       + P('motor', motor) + P('bearing', bearing)
-      + rotorLayer(Y.rot2, -1, 'counter_rot'));
+      + `<text class="fine" x="${AX + 38}" y="${Y.motor - 5}">前組馬達</text>`
+      + rotorLayer(Y.rot2, -1, 'counter_rot')
+      + P('motor', motor2)
+      + `<text class="fine" x="${AX + 38}" y="${Y.motor2 + 4}">後組馬達</text>`
+      + P('fan_frame', frame2)
+      + `<text class="fine" x="${AX + 80}" y="${Y.frame2 + 4}">後扇框</text>`);
 
     // ================================================================ ② 一股氣流走完全程：進氣 → 風扇牆 → 導風罩 → 鰭片 → 排氣
     const RK = { x: 344, y: 52, w: 328, h: 200 };
@@ -323,7 +334,7 @@
       <!-- 標題與說明：v2 搬到 HTML 的 .dghead，SVG 裡不畫 -->
       <text class="ttl ext" x="0" y="0">氣冷：風扇賣的是「推得過去」，不是「吹得多」</text>
       <text class="cap ext" x="0" y="0">家用電風扇前面沒有東西擋，所以比的是風量；伺服器風扇要穿過密排鰭片與擠滿零件的機殼，比的是靜壓。</text>
-      <text class="cap ext" x="0" y="0">左邊把一顆反轉雙轉子風扇沿著轉軸拆開（前扇框 → 前轉子 → 馬達 → 軸承 → 後轉子）；右上是一股氣流從前面板走到後方的完整路徑，右下是風壓—風量曲線。軸承四型、軸流與離心、噪音、混合散熱與誰做哪一塊收在下面三段。</text>
+      <text class="cap ext" x="0" y="0">左邊把一顆反轉雙轉子風扇沿著轉軸拆開（前扇框 → 前轉子 → 前馬達 → 軸承 → 後轉子 → 後馬達 → 後扇框，前後兩組各有自己的馬達）；右上是一股氣流從前面板走到後方的完整路徑，右下是風壓—風量曲線。軸承四型、軸流與離心、噪音、混合散熱與誰做哪一塊收在下面三段。</text>
       <text class="cap ext" x="0" y="0">示意圖，非實物比例｜扇葉片數、鰭片數與軸承比例均為示意；P-Q 曲線為示意，座標軸不標數值。</text>
 
       <!-- ================= §1 主畫面（永遠看得到）：爆炸拆解 ＋ 氣流路徑 ＋ P-Q ================= -->
@@ -336,9 +347,9 @@
       ${pq}
 
       <!-- 左欄：拆開的那五層 ＋ 四線（錨點在每一層的左端）；右欄：氣流路徑 ＋ P-Q（錨點在右端） -->
-      ${card({ part: 'fan_frame', no: 1, side: 'l', ax: 101, ay: Y.frame, color: C.alu, title: '扇框（四角鎖孔）', sub: '鎖在機殼上的工業件 —— 沒有網罩、立柱與擺頭，那是家用電風扇的事' })}
+      ${card({ part: 'fan_frame', no: 1, side: 'l', ax: 101, ay: Y.frame, color: C.alu, title: '扇框（四角鎖孔，前後各一）', sub: '鎖在機殼上的工業件 —— 沒有網罩、立柱與擺頭，那是家用電風扇的事' })}
       ${card({ part: 'blade', no: 2, side: 'l', ax: 112, ay: Y.rot1, color: C.alu, title: '扇葉有傾角（片數為示意）', sub: '靠斜面把空氣往後推；葉片數與角度決定同一顆馬達能推出多少風、產生多少噪音' })}
-      ${card({ part: 'motor', no: 3, side: 'l', ax: 146, ay: Y.motor, color: C.cu, title: '馬達藏在輪轂裡', sub: '定子線圈在內、轉子磁鐵在輪轂內壁；伺服器風扇長時間高速運轉，馬達要撐得住' })}
+      ${card({ part: 'motor', no: 3, side: 'l', ax: 146, ay: Y.motor, color: C.cu, title: '馬達藏在輪轂裡（前後各一組）', sub: '反轉雙轉子是兩顆風扇串聯，前後兩組各有自己的馬達；定子線圈在內、轉子磁鐵在輪轂內壁；伺服器風扇長時間高速運轉，馬達要撐得住' })}
       ${card({ part: 'bearing', no: 4, side: 'l', ax: 160, ay: Y.brg, color: C.steel, title: '軸承：在軸與輪轂之間', sub: '含油／滾珠／流體動壓／磁浮四型決定壽命與噪音 —— 機房裡一顆風扇壞掉要有人去換，壽命是錢（四型見 ②）' })}
       ${card({ part: 'counter_rot', no: 5, side: 'l', ax: 112, ay: Y.rot2, color: C.alu, title: '反轉雙轉子（counter-rotating）', sub: '前後兩組葉片旋向相反，後面那組把前面甩出來的旋轉氣流「扶正」，同樣厚度下拉高靜壓' })}
       ${card({ part: 'wire4', no: 6, side: 'l', ax: 60, ay: Y.frame + 35, color: C.hot, title: '四線：電源／地／轉速回授／PWM', sub: '轉速回授讓主機知道這顆有沒有在轉（壞了會報警），PWM 讓主機依溫度調速' })}
@@ -420,7 +431,7 @@
       fan_frame: { name: '扇框（frame／housing）', desc: '方形外框把風扇固定在機殼上，四角有鎖孔；中間的圓孔就是風道。沒有網罩、立柱、擺頭 —— 那是家用電風扇。', cos: ['2421'] },
       blade: { name: '前轉子：扇葉 ＋ 輪轂', desc: '七片有傾角的扇葉從輪轂長出來，靠斜面把空氣往後推；片數為示意。', cos: ['2421'] },
       hub: { name: '輪轂（hub）', desc: '中央那個短圓柱，扇葉從它長出來、馬達藏在它裡面。伺服器風扇的輪轂比家用風扇大（馬達要有力）—— 這是外觀觀察，畫面不標比例數字。', cos: ['2421'] },
-      motor: { name: '馬達（定子線圈 ＋ 轉子磁鐵）', desc: '藏在輪轂裡：外圈是轉子磁鐵環、裡面是定子的銅繞組與鐵芯。伺服器風扇長時間高速運轉，馬達要撐得住。', cos: ['2421'] },
+      motor: { name: '馬達（定子線圈 ＋ 轉子磁鐵）', desc: '藏在輪轂裡，反轉雙轉子前後兩組各有一顆：外圈是轉子磁鐵環、裡面是定子的銅繞組與鐵芯。伺服器風扇長時間高速運轉，馬達要撐得住。', cos: ['2421'] },
       bearing: { name: '軸承（在軸與輪轂之間）', desc: '含油／滾珠／流體動壓／磁浮四型決定壽命與噪音；四型的剖面差別在章節 ②。畫面不寫任何壽命小時數（來源自相矛盾）。', cos: ['2421'] },
       counter_rot: { name: '後轉子（反轉雙轉子的第二組）', desc: '前後兩組葉片旋向相反，後面那組把前面甩出來的旋轉氣流「扶正」，同樣厚度下能拉高靜壓；常見於機櫃這類又窄又擠的地方。', cos: ['2421'] },
       wire4: { name: '四線接頭（電源／地／轉速回授／PWM）', desc: 'Intel 4-wire PWM 規格：＋12 V、接地、轉速回授（tach，開集極、每轉兩個脈衝）、PWM 控制。轉速回授讓主機知道它有沒有在轉，PWM 讓主機依溫度調速。', cos: ['2421'] },
