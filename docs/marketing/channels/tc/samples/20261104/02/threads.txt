@@ -1,0 +1,17 @@
+HBM 為什麼難做：把 12 層記憶體晶片疊成一棟樓
+
+10/28 SK hynix 公布第三季財報，公司表示 DRAM 與 HBM 產能已被長約預訂到 2029 年前後，預期供不應求會延續到 2030 年；HBM4 的出貨量與營收預計在第四季超過 HBM3E（公司說法，細節以公司公告為準）。
+
+白話版：
+・HBM 是把 12 顆 DRAM 晶粒垂直疊起來，用矽穿孔（TSV）像電梯一樣上下相連，再放在 GPU 旁邊，資料進出比一般記憶體條快很多。
+・難在兩處：疊 12 層，任何一層有問題整疊報廢；中間的熱也很難散出來。SK hynix 自己的做法叫 MR-MUF（用封裝材料灌注填滿層間空隙）。
+・所以 HBM 需要的人，不只是設計記憶體電路，還有堆疊封裝、TSV 製程、測試與熱／可靠度。
+
+對在這條鏈上工作的人：缺的常是「會把東西疊起來又不壞」的製程與測試工程師。
+
+你覺得疊層良率的難度，卡在製程還是測試？
+
+【留言】
+出處（公司自己說的）：SK hynix 2026 第三季財報，2026-10-28；摘要見 https://www.trendforce.com/news/?p=65818 與 https://letsdatascience.com/news/sk-hynix-posts-record-q3-profit-and-100-trillion-won-payout-1458a688（各媒體對「產能預訂到 2029 或 2030」寫法略有出入，以公司公告為準）。12 層 HBM4E 與 MR-MUF：SK hynix 2026-06-18 新聞稿，報導 https://www.koreatimes.co.kr/business/tech-science/20260618/sk-hynix-ships-12-high-hbm4e-samples-to-customers
+圖：D-Kuru／CC BY-SA 4.0／Wikimedia Commons https://commons.wikimedia.org/wiki/File:DDR_4_RAM_SO-DIMM_16GB_by_Micron-top_back_PNr%C2%B00841.jpg（一般 DDR4 記憶體模組，示意用，非 HBM，與文中公司無關）。
+本帳號為個人整理，與各公司無合作或授權關係；有錯請留言，48 小時內更正。
