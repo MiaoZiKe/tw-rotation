@@ -19,61 +19,61 @@
     },
     "mis.index_minute": {
       "ok": true,
-      "rows": 840,
-      "seconds": 1.7
+      "rows": 367,
+      "seconds": 7.8
     },
     "index_intraday": {
-      "stored": 0
+      "stored": 837
     },
     "taifex.futures_minute": {
-      "ok": false,
-      "rows": 0,
-      "seconds": 1.7
+      "ok": true,
+      "rows": 837,
+      "seconds": 2.0
     },
     "news.collect": {
       "ok": true,
-      "rows": 134,
-      "seconds": 3.2
+      "rows": 139,
+      "seconds": 9.7
     },
     "news": {
-      "stored": 3
+      "stored": 78
     },
     "news.broker_views": {
       "ok": true,
-      "rows": 3,
+      "rows": 5,
       "seconds": 0.0
     },
     "broker_views": {
-      "stored": 0
+      "stored": 3
     },
     "mops.material_news": {
       "ok": true,
-      "rows": 4,
-      "seconds": 2.3
+      "rows": 92,
+      "seconds": 2.1
     },
     "material_news": {
-      "stored": 0
+      "stored": 92
     },
     "macro.intl": {
       "ok": true,
-      "rows": 4503,
-      "seconds": 2.4
+      "rows": 4506,
+      "seconds": 1.6
     },
     "intl_daily": {
-      "stored": 0
+      "stored": 2
     },
     "macro.fred": {
       "ok": true,
-      "rows": 15596,
-      "seconds": 3.7
+      "rows": 15599,
+      "seconds": 2.8
     },
     "macro": {
-      "stored": 0
+      "stored": 3
     },
     "macro.fred_calendar": {
       "ok": true,
       "rows": 23,
-      "seconds": 1.3
+      "seconds": 0.9
     },
     "macro_calendar": {
       "stored": 0
@@ -108,18 +108,24 @@
   "phase": "news",
   "index_minute_days": {
     "FUT": [
-      "2026-11-02"
+      "2026-11-03"
     ],
     "OTC": [
-      "2026-11-02"
+      "2026-11-03"
     ],
     "TSE": [
-      "2026-11-02"
+      "2026-11-03"
     ]
   },
-  "started_at": "2026-11-02T21:13:12.542497+00:00",
-  "finished_at": "2026-11-02T21:39:27.627203+00:00",
-  "duration_seconds": 1575.1,
+  "taifex_minute_days": {
+    "FUT_N": [
+      "2026-11-02",
+      "2026-11-03"
+    ]
+  },
+  "started_at": "2026-11-03T02:57:40.985346+00:00",
+  "finished_at": "2026-11-03T03:23:35.923109+00:00",
+  "duration_seconds": 1554.9,
   "trade_date": null,
   "complete": true,
   "freshness": {
@@ -128,7 +134,7 @@
       "inst_daily": {
         "label": "個股三大法人",
         "latest": "2026-11-02",
-        "rows": 1365,
+        "rows": 1491,
         "median": 2199.0,
         "status": "warn",
         "reason": "thin"
@@ -190,7 +196,7 @@
     },
     {
       "table": "margin_daily",
-      "rows": 2689531,
+      "rows": 2689781,
       "latest": "2026-11-02"
     },
     {
@@ -225,7 +231,7 @@
     },
     {
       "table": "inst_daily",
-      "rows": 5491870,
+      "rows": 5491996,
       "latest": "2026-11-02"
     },
     {
@@ -300,22 +306,22 @@
     },
     {
       "table": "news",
-      "rows": 8998,
+      "rows": 9076,
       "latest": "2026-11-03"
     },
     {
       "table": "broker_views",
-      "rows": 229,
-      "latest": "2026-11-02"
+      "rows": 232,
+      "latest": "2026-11-03"
     },
     {
       "table": "intl_daily",
-      "rows": 42678,
-      "latest": "2026-11-02"
+      "rows": 42680,
+      "latest": "2026-11-03"
     },
     {
       "table": "macro",
-      "rows": 15596,
+      "rows": 15599,
       "latest": "2026-11-02"
     },
     {
@@ -370,13 +376,13 @@
     },
     {
       "table": "index_intraday",
-      "rows": 266425,
+      "rows": 267629,
       "latest": "—"
     },
     {
       "table": "material_news",
-      "rows": 2682,
-      "latest": "2026-11-01"
+      "rows": 2774,
+      "latest": "2026-11-02"
     },
     {
       "table": "company_website",
@@ -385,13 +391,13 @@
     },
     {
       "table": "daytrade_daily",
-      "rows": 731124,
-      "latest": "2026-11-02"
+      "rows": 732546,
+      "latest": "2026-11-03"
     },
     {
       "table": "sbl_daily",
-      "rows": 802438,
-      "latest": "2026-10-30"
+      "rows": 803174,
+      "latest": "2026-11-02"
     },
     {
       "table": "insider_holding",
@@ -401,7 +407,7 @@
   ],
   "groups_health": {
     "reviewed": "2026-09-21",
-    "days_since_review": 42,
+    "days_since_review": 43,
     "is_stale": false,
     "group_count": 95,
     "code_count": 444,
