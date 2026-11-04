@@ -18,8 +18,8 @@ POSTS = [
       steps=[("晶圓廠","製造運算晶片"),("記憶體廠","製造 HBM 堆疊"),("封裝廠","以 CoWoS 接在同一片矽中介層"),("伺服器廠","組成機櫃出貨")],
       credit="圖：Mister rf／CC BY-SA 4.0／Wikimedia Commons。早期 ROM 晶片打線封裝，示意「晶片要裝進封裝」，非 CoWoS。",
       src="出處：台積電 2026 第三季法說會（2026-10-15）"),
- dict(n="02", no="02", kicker="供應鏈讀書筆記｜HBM 記憶體", photo=None, cover_photo=ROOT/"sk_hynix"/"photo_6.jpg", pos="50% 50%", sub="SK hynix 2026-10-28 第三季財報", hint="往右滑看圖解 →", foot="與各公司無合作或授權關係。",
-      ccredit="圖：ITEagle Europe - Sebastiaan Broekhoven／CC BY-SA 4.0／Wikimedia Commons。SK hynix DDR5 記憶體模組，非 HBM；已裁切。",
+ dict(n="02", no="02", kicker="供應鏈讀書筆記｜HBM 記憶體", photo=None, cover_photo=ROOT/"sk_hynix"/"photo_6.jpg", box=(447,350,1474,1073), pos="50% 50%", sub="SK hynix 2026-10-28 第三季財報", hint="往右滑看圖解 →", foot="與各公司無合作或授權關係。",
+      ccredit="圖：ITEagle Europe - Sebastiaan Broekhoven／CC BY-SA 4.0／Wikimedia Commons。SK hynix DDR5 記憶體模組背面晶片，非 HBM；已裁切（去除標籤）。",
       title="HBM 為什麼難做<br>把 12 層晶片疊成一棟樓",
       fact="2026-10-28 SK hynix 公布第三季財報：公司表示 DRAM 與 HBM 產能已被長約預訂到 2029 年前後，HBM4 預計第四季出貨量與營收超過 HBM3E。",
       steps=[("DRAM 晶粒","先做好 12 顆"),("TSV 矽穿孔","像電梯上下相連"),("堆疊封裝","灌膠散熱、測試"),("放在 GPU 旁","資料進出更快")],
@@ -32,8 +32,8 @@ POSTS = [
       steps=[("冷板","貼在晶片上吸熱"),("冷卻液管路","把熱帶出機櫃"),("CDU","二次水路換熱"),("機房外","排出熱")],
       credit="圖：Votpuske／CC BY-SA 4.0／Wikimedia Commons。機殼內 CPU 水冷示意，非 AI 伺服器。",
       src="出處：TrendForce 新聞稿（2026-08-17）"),
- dict(n="04", no="04", kicker="供應鏈讀書筆記｜近封裝光學 NPO", photo=None, svgf="npo_diagram.svg", cover_photo=LIB/"資料中心"/"photo_7.jpg", pos="50% 28%", sub="Tower Semiconductor 新聞稿 2026-11-03", hint="往右滑看圖解 →", foot="與各公司無合作或授權關係。",
-      ccredit="圖：Faber／CC BY-SA 2.0／Wikimedia Commons。機房伺服器機櫃示意，非光模組或 NPO 實物；已裁切。",
+ dict(n="04", no="04", kicker="供應鏈讀書筆記｜近封裝光學 NPO", photo=None, svgf="npo_diagram.svg", cover_photo=LIB/"資料中心"/"photo_16.jpg", pos="50% 50%", sub="Tower 新聞稿 2026-11-03", hint="往右滑看圖解 →", foot="與各公司無合作或授權關係。",
+      ccredit="圖：The National Archives (UK)／CC BY 3.0／Wikimedia Commons。機房機櫃走道示意，非光模組或 NPO 實物；已裁切。",
       title="光模組往晶片靠近一步<br>NPO 是什麼",
       fact="2026-11-03 Tower Semiconductor 新聞稿：Innolight 的第一款近封裝光學（NPO）元件，已在 Tower 的 200 毫米矽光子製程進入早期量產。",
       steps=[("運算晶片","產生高速電訊號"),("光學引擎","近封裝處電轉光"),("光纖","光訊號傳出機櫃"),("對端設備","光轉電再接收")],
@@ -58,10 +58,12 @@ body{width:1080px;height:1350px;background:#fff;color:#111;font-family:'Noto San
 .cr{position:absolute;left:60px;width:960px;font-size:23px;line-height:34px;color:#595959}
 .dc{position:absolute;left:60px;width:960px;height:30px;font-size:22px;color:#595959}"""
 COVER = """.ph{position:absolute;left:0;top:112px;width:1080px;height:760px;background-color:#EFEFEF;background-size:cover;background-repeat:no-repeat}
+.lg span{font-size:36px;letter-spacing:3px}
+.k{left:340px;top:34px;width:680px;height:46px;font-size:34px;line-height:46px;letter-spacing:0}
 .rl{position:absolute;left:60px;top:906px;width:120px;height:6px;background:#D4231A}
 .t{position:absolute;left:60px;top:930px;width:960px;height:180px;font-size:72px;font-weight:700;line-height:90px;color:#111}
-.sub{position:absolute;left:60px;top:1124px;width:560px;height:40px;font-size:27px;line-height:40px;color:#595959}
-.hint{position:absolute;left:640px;top:1124px;width:380px;height:40px;font-size:27px;line-height:40px;font-weight:700;color:#D4231A;text-align:right}
+.sub{position:absolute;left:60px;top:1122px;width:640px;height:44px;font-size:34px;line-height:44px;color:#595959}
+.hint{position:absolute;left:700px;top:1122px;width:320px;height:44px;font-size:34px;line-height:44px;font-weight:700;color:#D4231A;text-align:right}
 .ln2{position:absolute;left:60px;top:1186px;width:960px;height:2px;background:#CFCFCF}
 .cr{top:1200px;height:70px}
 .dc{top:1290px}"""
@@ -83,11 +85,17 @@ BSL = """.t{position:absolute;left:60px;top:106px;width:960px;height:164px;font-
 .dc{top:1284px}"""
 def head_html(p, css, body):
     return '<html><head><meta charset="utf-8"><style>' + FONTCSS + BASE + css + '</style></head><body><div class="bar"></div><div class="lg">' + LOGO + '<span>科技透明圈</span></div>' + body + '</body></html>'
+def cover_b64(p):
+    box = p.get("box")
+    if not box: return b64(p["cover_photo"])
+    import io; from PIL import Image
+    buf = io.BytesIO(); Image.open(p["cover_photo"]).convert("RGB").crop((box[0], box[1], box[2], box[3])).save(buf, "JPEG", quality=92)
+    return base64.b64encode(buf.getvalue()).decode()
 def cover_html(p):
-    css = COVER + '.ph{background-image:url(data:image/jpeg;base64,%s);background-position:%s}' % (b64(p["cover_photo"]), p["pos"])
+    css = COVER + '.ph{background-image:url(data:image/jpeg;base64,%s);background-position:%s}' % (cover_b64(p), p["pos"])
     body = ('<div class="k"><b>%s</b>　%s</div><div class="ph"></div><div class="rl"></div><div class="t">%s</div>'
             '<div class="sub">%s</div><div class="hint">%s</div><div class="ln2"></div><div class="cr">%s</div><div class="dc">%s</div>'
-            % (p["no"], p["kicker"], p["title"], p["sub"], p["hint"], p["ccredit"], p["foot"]))
+            % (p["no"], p["kicker"].split("｜")[-1], p["title"], p["sub"], p["hint"], p["ccredit"], p["foot"]))
     return head_html(p, css, body)
 def b_html(p):
     steps = "".join('<div class="st"><div class="si">%d</div><div class="sn">%s</div><div class="sd">%s</div></div>' % (i+1,a,b) + ('<div class="ar">→</div>' if i < 3 else '') for i,(a,b) in enumerate(p["steps"]))

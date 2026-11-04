@@ -363,9 +363,11 @@
    "width": 1920,
    "height": 1120,
    "fetched_at": "2026-11-01T23:06:11+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewed": true,
+   "reviewer": "art-director",
+   "review_note": "2026-11-04 art-director 通過（頻道二 04 封面）：機房走道、無廠牌／人物／文字、LED 光點呈現資料傳輸；裁成 1080×760 成立",
+   "reviewed_by": "art-director",
+   "reviewed_at": "2026-11-04"
   }
  ],
  "rejected": [
