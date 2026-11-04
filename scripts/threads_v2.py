@@ -76,21 +76,24 @@ def _ge(v, n):
 #   → 64 個口語／吐槽舊模板（「朋友問…我只能默默拍拍他…」）全部換掉：開頭＝1 句吊胃口問句，用當天數據帶入，專業中性，
 #     不用對話、第一人稱、感嘆、語助詞。第三欄改成「切入角度」（數據／對比／趨勢）供輪替（同角度不連續、同模板 14 天不重複）；
 #     輸出的 hook_type 一律「問句」、emotion「專業」、profile「auto」（threads_lint 自動貼文模式）。
+#   ★ 2026-11-05 CEO 法遵退件：開頭不點名個股（「買超第一名是旺矽，資金為什麼選它？」「外資賣超以台積電最多…」拿掉）、
+#     不問時機（「能撐多久」→「過去通常出現在什麼盤勢」）；開頭只講指數、族群、法人總量、期貨、家數層級。
+#     主題文章的 {subj} 若是公司名，lint 會擋下、自動改用保底模板（不點名）。
 HOOKS = [
     # ---- 盤後 ----
     ("c_t1", "close", "趨勢", "專業", "外資連 {fx_streak} 日{fx_act}、累計 {fx_cum_r} 億，這一波和前幾次有什麼不同？", lambda f: _ge(f.get("fx_streak"), 3) and f.get("fx_cum_r")),
-    ("c_t2", "close", "趨勢", "專業", "投信連 {trust_streak} 日{trust_act}、累計 {trust_cum_r} 億，和外資方向相反的布局能撐多久？", lambda f: _ge(f.get("trust_streak"), 3) and f.get("fx_act") and f.get("fx_act") != f.get("trust_act")),
+    ("c_t2", "close", "趨勢", "專業", "投信連 {trust_streak} 日{trust_act}、累計 {trust_cum_r} 億，和外資方向相反的買盤過去通常出現在什麼盤勢？", lambda f: _ge(f.get("trust_streak"), 3) and f.get("fx_act") and f.get("fx_act") != f.get("trust_act")),
     ("c_t3", "close", "趨勢", "專業", "外資今天{fx_act} {fx_amt_r} 億、已連 {fx_streak} 日，這股力道是在加速還是放緩？", lambda f: _ge(f.get("fx_streak"), 2)),
-    ("c_t4", "close", "趨勢", "專業", "投信已連 {trust_streak} 日{trust_act}、今天再{trust_act} {trust_amt_r} 億，資金集中在哪幾檔？", lambda f: _ge(f.get("trust_streak"), 5)),
+    ("c_t4", "close", "趨勢", "專業", "投信已連 {trust_streak} 日{trust_act}、今天再{trust_act} {trust_amt_r} 億，資金集中在哪幾個族群？", lambda f: _ge(f.get("trust_streak"), 5)),
     ("c_c1", "close", "對比", "專業", "加權指數{idx_dir} {idx_pts} 點，但漲停 {lim_up} 家、跌停只有 {lim_dn} 家，盤面透露什麼訊號？", lambda f: f.get("idx_dir") == "跌" and _num(f.get("lim_up")) >= 3 * max(_num(f.get("lim_dn")) or 0, 1)),
     ("c_c2", "close", "對比", "專業", "加權指數{idx_dir} {idx_pts} 點，跌停多達 {lim_dn} 家、漲停 {lim_up} 家，賣壓集中在哪一類股票？", lambda f: f.get("idx_dir") == "跌" and _num(f.get("lim_dn")) >= 2 * max(_num(f.get("lim_up")) or 0, 1)),
     ("c_c3", "close", "對比", "專業", "外資{fx_act} {fx_amt_r} 億，投信反向{trust_act} {trust_amt_r} 億，法人看法分歧的關鍵在哪裡？", lambda f: f.get("fx_act") and f.get("trust_act") and f.get("fx_act") != f.get("trust_act")),
     ("c_c4", "close", "對比", "專業", "加權指數{idx_dir} {idx_pts} 點，上漲家數卻只有 {adv} 家、下跌 {dec} 家，指數和個股為什麼走不同方向？", lambda f: f.get("idx_dir") == "漲" and _num(f.get("adv")) < _num(f.get("dec"))),
     ("c_c5", "close", "對比", "專業", "加權指數{idx_dir} {idx_pts} 點，上漲 {adv} 家、下跌 {dec} 家，跌勢是集中在權值股還是全面擴散？", lambda f: f.get("idx_dir") == "跌"),
     ("c_d1", "close", "數據", "專業", "只有 {above_ma} 的個股站在月線之上，這個比例代表市場走到哪個階段？", lambda f: (_num(f.get("above_ma")) or 100) < 40),
-    ("c_d2", "close", "數據", "專業", "外資{fx_act}以{fx_top}最多、達 {fx_top_amt_abs} 億，占當日{fx_act} {fx_top_share}，權值股比重正在調整嗎？", lambda f: f.get("fx_top_share") and f.get("fx_top_amt_abs")),
+    ("c_d2", "close", "數據", "專業", "外資{fx_act}集中度偏高、單一最大檔就占當日{fx_act} {fx_top_share}，這次調整和前幾波有何不同？", lambda f: f.get("fx_top_share") and _ge(f.get("fx_top_share"), 15)),
     ("c_d3", "close", "數據", "專業", "外資{fut_act}台指期 {fut_lots} 口、淨{fut_side}來到 {fut_oi} 口，期貨布局透露什麼方向？", lambda f: f.get("fut_oi")),
-    ("c_d4", "close", "數據", "專業", "外資{fx_act} {fx_amt_r} 億的盤面裡，買超第一名是{fbuy1}，資金為什麼選它？", lambda f: f.get("fx_act") == "賣超" and f.get("fbuy1")),
+    ("c_d4", "close", "數據", "專業", "外資{fx_act} {fx_amt_r} 億、投信{trust_act} {trust_amt_r} 億，兩大法人的資金各自流向哪些族群？", lambda f: f.get("fx_act") and f.get("trust_act")),
     ("c_d5", "close", "數據", "專業", "三大法人合計{tot_act} {tot_amt_r} 億、加權指數{idx_dir} {idx_pts} 點，這個量級在近期屬於什麼水準？", lambda f: f.get("tot_act")),
     ("c_d6", "close", "數據", "專業", "加權指數{idx_dir} {idx_pts} 點、幅度 {idx_pct_abs}，今天盤後最值得留意的是哪一個數字？", None),
     # ---- 盤中 ----
@@ -100,15 +103,15 @@ HOOKS = [
     ("i_d1", "intraday", "數據", "專業", "盤中漲幅最大的是{up1}（{up1p}），這波漲勢是消息帶動還是資金輪動？", lambda f: not _neg(f.get("up1p"))),
     ("i_d2", "intraday", "數據", "專業", "盤中跌幅最大的是{dn1}（{dn1p}），是短線獲利了結還是基本面轉弱？", lambda f: _neg(f.get("dn1p"))),
     ("i_d3", "intraday", "數據", "專業", "族群平均 {avg}，{up1}卻逆勢 {up1p}，它和大盤走勢分開的原因在哪裡？", lambda f: _neg(f.get("avg")) and not _neg(f.get("up1p"))),
-    ("i_t1", "intraday", "趨勢", "專業", "資金從{out1}流向{in1}，這個輪動方向是短線換手還是新一波主流？", None),
+    ("i_t1", "intraday", "趨勢", "專業", "資金從{out1}流向{in1}，這次輪動背後是消息面還是籌碼面？", None),
     ("i_t2", "intraday", "趨勢", "專業", "資金輪盤上{lead1}領先、{lag1}落後，族群強弱是延續前幾天還是出現換手？", None),
     # ---- 盤前 ----
-    ("p_d1", "premarket", "數據", "專業", "費半{sox_dir} {sox_pct}%、台積電 ADR {adr}，今天台股開盤要先看哪個訊號？", lambda f: f.get("adr")),
-    ("p_d2", "premarket", "數據", "專業", "費半一夜{sox_dir} {sox_pct}%，台股半導體族群今天會受到多大影響？", None),
-    ("p_d3", "premarket", "數據", "專業", "台積電 ADR 昨晚 {adr}，權值股今天開盤會跟著反應還是走自己的路？", None),
-    ("p_c1", "premarket", "對比", "專業", "美股四大指數{us_all}，台指期夜盤只變動 {tx_chg} 點，台股今天會跟進還是獨立走勢？", lambda f: f.get("us_all") and (_num(f.get("tx_chg_abs")) or 999) < 150),
-    ("p_c2", "premarket", "對比", "專業", "今日焦點是{news1}，這則消息會先反映在哪一個族群？", None),
-    ("p_t1", "premarket", "趨勢", "專業", "台指期夜盤收 {tx}、較日盤 {tx_chg} 點，開盤方向會延續夜盤還是回到日盤的節奏？", None),
+    ("p_d1", "premarket", "數據", "專業", "費半{sox_dir} {sox_pct}%、台指期夜盤 {tx_chg} 點，這兩個數字的方向一致還是分歧？", None),
+    ("p_d2", "premarket", "數據", "專業", "費半一夜{sox_dir} {sox_pct}%，這個幅度放在近一個月的波動裡屬於大還是小？", None),
+    ("p_d3", "premarket", "數據", "專業", "美股四大指數{us_all}、費半{sox_dir} {sox_pct}%，哪一個指數和台股半導體族群的連動最高？", lambda f: f.get("us_all")),
+    ("p_c1", "premarket", "對比", "專業", "美股四大指數{us_all}，台指期夜盤只變動 {tx_chg} 點，夜盤和美股的反應為什麼一大一小？", lambda f: f.get("us_all") and (_num(f.get("tx_chg_abs")) or 999) < 150),
+    ("p_c2", "premarket", "對比", "專業", "美股四大指數{us_all}，台指期夜盤卻變動 {tx_chg} 點，兩邊的落差來自哪個因素？", lambda f: f.get("us_all") and (_num(f.get("tx_chg_abs")) or 0) >= 150),
+    ("p_t1", "premarket", "趨勢", "專業", "台指期夜盤收 {tx}、較日盤 {tx_chg} 點，夜盤的變動幅度在近期屬於大還是小？", None),
     # ---- 融資融券 ----
     ("r_d1", "credit", "數據", "專業", "上市融資維持率估算 {margin_ratio}%，距離 130% 的追繳警戒線還有多少空間？", None),
     ("r_t1", "credit", "趨勢", "專業", "融資維持率較前日變動 {margin_chg} 個百分點、來到 {margin_ratio}%，槓桿資金是在降溫還是加溫？", None),

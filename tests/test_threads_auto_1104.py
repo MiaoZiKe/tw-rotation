@@ -85,6 +85,31 @@ def test_14_day_no_repeat_on_real_data():
     assert len(set(used)) >= 10
 
 
+# ---- 2026-11-05 CEO 法遵退件：開頭不點名個股、不問時機 ----
+def test_auto_lint_rejects_stock_name_and_timing():
+    e = "；".join(L.lint(_auto("外資賣超 1,499 億的盤面裡，買超第一名是旺矽，資金為什麼選它？"))[0])
+    assert "點名個股「旺矽」" in e
+    e = "；".join(L.lint(_auto("外資賣超以台積電最多、達 488.2 億，占當日賣超 33%，權值股比重正在調整嗎？"))[0])
+    assert "點名個股「台積電」" in e
+    e = "；".join(L.lint(_auto("投信連 17 日買超、累計 3,082 億，和外資方向相反的布局能撐多久？"))[0])
+    assert "時機" in e
+
+
+def test_stock_mask_no_false_positive():
+    assert L.stock_in("族群平均 -3.80%，貨櫃航運卻逆勢 +2.9%，它和大盤走勢分開的原因在哪裡？") == []
+    assert L.stock_in("加權指數跌 359 點、幅度 0.83%，今天盤後最值得留意的是哪一個數字？") == []
+
+
+def test_no_template_names_a_stock_or_timing_on_real_data():
+    for day in ("20261103", "20261104"):
+        th = fx(day)
+        f = V.facts("close", th["text"], th["reply"])
+        for h, t in V.candidates("close", f):
+            assert not L.stock_in(t) and not any(w in t for w in L.AUTO_TIMING), (h[0], t)
+    for h in V.HOOKS:
+        assert "{fbuy1}" not in h[4] and "{fsell1}" not in h[4] and "{fx_top}" not in h[4] and "{adr}" not in h[4], h[0]
+
+
 def test_casual_news_line_dropped_from_body():
     th = fx("20261104")
     d = V.build("close", th["text"], th["reply"] + "\n・投資人傻眼：台股又跌了啦", th["images"], today="2026-11-05")

@@ -20,6 +20,7 @@
   11.（2026-11-04）頻道①熱點文 rule: hot_1104：開頭問句、主文 200–250 字、擋口語
   12.（2026-11-04 Andy「要，盤後也改成專業語氣」）自動貼文 profile: auto（threads_v2 產出的主貼文、主題文章）：
      開頭類型「問句」、語氣「專業／中性」、開頭 15–80 字且以？收尾、擋口語吐槽字（AUTO_CASUAL／AUTO_HOOK_CASUAL）；長度照舊 ≤500
+     （2026-11-05 CEO 法遵退件）開頭不准點名個股（stock_names()：資料湖公司簡稱＋groups 對照＋保底名單）
 
 用法：
   python scripts/threads_lint.py <v2 JSON 檔 | manifest.json | queue .md> [...]
@@ -57,6 +58,8 @@ AUTO_HOOK_MIN, AUTO_HOOK_MAX = 15, 80
 AUTO_CASUAL = HOT_CASUAL + ("默默", "拍拍", "節哀", "先笑為敬", "八點檔", "嚇一跳", "打臉", "提款機", "平行宇宙", "存款餘額",
                             "加薪", "滷蛋", "我只能", "吐槽")
 # 只管開頭那句：不准是對話／第一人稱閒聊／感嘆（像朋友聊天那種開頭）
+# 開頭暗示時機判斷（2026-11-05 CEO 法遵：不給時機）→ 改成描述性問法
+AUTO_TIMING = ("撐多久", "能撐", "何時", "什麼時候", "進場", "出場", "時機", "買點", "賣點", "還會漲", "還會跌", "見底", "觸底")
 AUTO_HOOK_CASUAL = ("朋友", "同事", "老闆", "老婆", "主管", "群組", "我說", "我先", "冷知識", "吧", "笑", "！", "!", "…", "「")
 # 客套結尾、導流、喊單（主文、串文、留言全部適用）
 BANNED = ("歡迎留言", "謝謝大家", "留言告訴我", "你怎麼看", "私訊", "連結在留言", "連結在下方", "看留言", "買進", "加碼",
@@ -313,6 +316,61 @@ def is_hot(p: dict) -> bool:
     return p.get("profile") == "hot" or str(p.get("rule") or "").startswith("hot")
 
 
+# ★ 2026-11-05 CEO 退件（法遵）：11-04 試產「…買超第一名是旺矽，資金為什麼選它？」開頭點名單一個股＝接近個股推介
+#   （diagnosis_1102/channel_playbook.md 4-1 第 2 條、docs/legal/20261101_subscription_signals.md：不點名個股、不給時機）
+#   → 自動貼文開頭只准講指數、族群、法人總量、期貨、家數層級；開頭含任何上市櫃公司名稱即失敗。
+#   名稱表：資料湖 data/company_info（Actions 有完整 checkout）＋ pipeline/groups/*.yaml 註解裡的「代號 名稱」＋下面的常見名單（保底）。
+_ROOT = Path(__file__).resolve().parent.parent
+STOCK_FALLBACK = ("台積電", "聯發科", "鴻海", "廣達", "緯穎", "緯創", "日月光", "大立光", "台達電", "聯電", "瑞昱", "華碩", "國巨",
+                  "長榮", "陽明", "萬海", "富邦金", "國泰金", "中華電", "光寶科", "欣興", "南亞科", "華邦電", "力積電", "世芯", "創意",
+                  "奇鋐", "雙鴻", "健策", "智邦", "穩懋", "宏達電", "英業達", "仁寶", "和碩", "技嘉", "微星", "旺矽", "台玻", "力旺",
+                  "聯亞", "台燿", "南亞", "川湖", "環球晶", "華新科", "富喬", "禾伸堂", "漢測", "玉晶光", "藥華藥")
+_STOCK_NAMES: tuple[str, ...] | None = None
+
+
+def stock_names() -> tuple[str, ...]:
+    """上市櫃公司簡稱（拿掉 * 與 -KY／-創／-DR），長的排前面。讀不到資料湖也回得出保底名單。"""
+    global _STOCK_NAMES
+    if _STOCK_NAMES is not None:
+        return _STOCK_NAMES
+    names: set[str] = set(STOCK_FALLBACK)
+    clean = lambda v: re.sub(r"[-－](KY|創|DR)$", "", re.sub(r"[*＊]", "", str(v)).strip()).strip()   # noqa: E731
+    try:
+        import pandas as pd
+        fs = sorted((_ROOT / "data" / "company_info").glob("**/*.parquet"))
+        if fs:
+            d = pd.concat([pd.read_parquet(f, columns=["code", "name", "industry"]) for f in fs])
+            d = d[d["code"].astype(str).str.fullmatch(r"\d{4}[A-Z]?") & ~d["industry"].astype(str).isin(["大盤", "ETF"])]   # 只要個股（指數、ETF 不算）
+            names |= {clean(v) for v in d["name"].astype(str)}
+    except Exception:  # noqa: BLE001
+        pass
+    for y in (() if len(names) > 500 else ("groups.yaml", "supply_chain.yaml")):      # 資料湖讀不到時才從 yaml 註解補
+        try:
+            # 只認「# 2330 台積電、2303 聯電…」這種成分股註解行（一般說明文字裡的「2026 年報」「…完成」不算）
+            t = "\n".join(l for l in (_ROOT / "pipeline" / "groups" / y).read_text(encoding="utf-8").splitlines()
+                          if re.match(r"\s*#\s*\d{4}[A-Z]?\s+[一-鿿]", l))
+            names |= {clean(m.group(1)) for m in re.finditer(r"(?<![\d.])\d{4}[A-Z]?\s+([一-鿿][一-鿿A-Za-z*\-]{1,7})(?=[、，,）)\s])", t)
+                      if not re.match(r"[年月日季度]", m.group(1))}
+        except Exception:  # noqa: BLE001
+            pass
+    names -= {"漲價", "轉向", "完成", "年報", "試產"}           # yaml 註解裡混進來的一般詞
+    # 單字或純英數太短的簡稱不比（避免「AI」「IC」這類誤判）
+    _STOCK_NAMES = tuple(sorted((n for n in names if len(n) >= 2 and (re.search(r"[一-鿿]", n) or len(n) >= 4)), key=len, reverse=True))
+    return _STOCK_NAMES
+
+
+# 跟個股簡稱撞字的一般用語：比對前先遮掉（「它和大盤」裡的「和大」1536、「重點數字」裡的「數字」5287 不是點名個股）
+NAME_MASK = ("加權指數", "大盤", "數字", "台指期", "指數", "三大法人", "外資", "投信", "自營")
+
+
+def stock_in(text: str) -> list[str]:
+    """文字裡出現的個股名稱（自動貼文開頭用）。"""
+    t = text or ""
+    for w in NAME_MASK:
+        t = t.replace(w, "□")
+    return [n for n in stock_names() if n in t]
+
+
 def is_auto(p: dict) -> bool:
     """2026-11-04 自動主貼文／自動主題文章（threads_v2 產出）：JSON profile="auto" 或 queue 檔頭 rule: auto_1104。"""
     return p.get("profile") == "auto" or str(p.get("rule") or "").startswith("auto")
@@ -353,6 +411,10 @@ def lint(p: dict) -> tuple[list[str], list[str]]:
             err.append(f"自動貼文語氣要專業中性（情緒欄「專業」或「中性」），不是 {p.get('emotion')!r}")
         if not AUTO_HOOK_MIN <= n <= AUTO_HOOK_MAX or not hook.rstrip().endswith(("？", "?")):
             err.append(f"自動貼文開頭要 1 句問句（{AUTO_HOOK_MIN}–{AUTO_HOOK_MAX} 字、以？收尾），現在 {n} 字：{hook[:30]}")
+        for w in [w for w in AUTO_TIMING if w in hook]:
+            err.append(f"自動貼文開頭暗示時機判斷「{w}」（改成描述性問法）")
+        for nm in stock_in(hook)[:3]:
+            err.append(f"自動貼文開頭點名個股「{nm}」（只能講指數、族群、法人總量、期貨、家數，不點名個股）")
         for w in casual_words(hook, hook=True):
             err.append(f"自動貼文開頭口語／吐槽用字「{w}」（要專業中性）")
         for w in casual_words(rest):
