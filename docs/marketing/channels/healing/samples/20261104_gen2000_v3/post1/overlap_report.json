@@ -1,5 +1,46 @@
 {
- "threads": {
+ "threads_noperson": {
+  "n": 7,
+  "overlap": [],
+  "gap32": [],
+  "oob_margin": [],
+  "outside_safe": [],
+  "minFont": 28,
+  "extra": {
+   "bottom_over_1190": [],
+   "right_over_960": [],
+   "hint_uses": 1,
+   "glow_hits": [],
+   "illus_box": {
+    "x": 96,
+    "y": 176,
+    "w": 888,
+    "h": 236
+   },
+   "bars": [
+    {
+     "v": 9.89,
+     "w": 282,
+     "h": "bar"
+    },
+    {
+     "v": 8.58,
+     "w": 245,
+     "h": "bar"
+    },
+    {
+     "v": 15.41,
+     "w": 440,
+     "h": "bar now"
+    }
+   ],
+   "bar_ratio_spread": 0.0014403334640226365
+  },
+  "bodyScrollH": 1350,
+  "contrast_min": 5.39,
+  "contrast_pass": true
+ },
+ "threads_person": {
   "n": 7,
   "overlap": [],
   "gap32": [],

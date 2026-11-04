@@ -15,6 +15,7 @@ body[data-palette=N]{--w-bg:#3B4553;--w-card:#46515F;--w-text:#EEF2F6;--w-sub:#C
 body[data-palette=V]{--w-bg:#4A4454;--w-card:#554E60;--w-text:#F3EFF5;--w-sub:#DAD2DF;--w-hint:#E9CF9E;--w-line:#ABA0B5;--w-lamp:#F2D88E;--vig:rgba(0,0,0,.16);--g-op:.10}
 body[data-palette=C]{--w-bg:#56524D;--w-card:#615C56;--w-text:#F4F1EC;--w-sub:#D6D0C8;--w-hint:#EBD29E;--w-line:#B0A89E;--w-lamp:#F2D88E;--vig:rgba(0,0,0,.16);--g-op:.10}
 body[data-palette=F]{--w-bg:#E3E7E1;--w-card:#F1F3EE;--w-text:#2A302C;--w-sub:#4F574F;--w-hint:#6B5B30;--w-line:#6A746D;--w-lamp:#C9B97A;--vig:rgba(40,50,45,.10);--g-op:.10;--w-glow:.22;--w-glow2:.14;--w-glow3:.12}
+body[data-palette=W]{--w-bg:#52484F;--w-card:#5E525A;--w-text:#F6F0EE;--w-sub:#E3D6D4;--w-hint:#EDCF9E;--w-line:#B8A8AF;--w-lamp:#F5DC9A;--vig:rgba(0,0,0,.14);--g-op:.10;--w-glow:.30;--w-glow2:.22;--w-glow3:.18}
 body[data-palette=M]{--w-bg:#323C4C;--w-card:#3D4859;--w-text:#ECF0F5;--w-sub:#BFC9D5;--w-hint:#E6D49A;--w-line:#94A0B2;--w-lamp:#F0DC96;--vig:rgba(0,0,0,.18);--g-op:.10;--w-glow:.16;--w-glow2:.10;--w-glow3:.08}
 *{margin:0;padding:0;box-sizing:border-box}
 body{width:1080px;height:1350px;position:relative;overflow:hidden;background:var(--w-bg);color:var(--w-text);
@@ -142,9 +143,9 @@ def sources_page(lines):
     tail = rest[-1]; help_ = rest[:-1]
     return head, items, help_, tail
 
-def page(post, sl, idx, total, lines):
+def page(post, sl, idx, total, lines, person_on=False):
     pal = sl["palette"]
-    out = ['<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><style>%s</style></head><body data-palette="%s">' % (CSS, pal), GRAIN, '<div class="vig"></div>',
+    out = ['<!doctype html><html lang="zh-Hant"><head><meta charset="utf-8"><style>%s</style></head><body data-palette="%s"%s>' % (CSS, pal, ' style="--w-glow:.32;--w-glow2:.24;--w-glow3:.2"' if sl.get("hope") else ""), GRAIN, '<div class="vig"></div>',
            '<div data-o="lab" class="abs lab" style="left:96px;top:96px">%s</div>' % esc(post["series"])]
     if total > 1:
         out.append('<div data-o="pg" class="abs lab" style="right:96px;top:96px">%d／%d</div>' % (idx, total))
@@ -155,7 +156,7 @@ def page(post, sl, idx, total, lines):
     top = 168
     if sl.get("illus"):
         ih = sl["ih"]
-        out.append(scene_svg(sl["illus"], ih, sl.get("crop")))
+        out.append(scene_svg(sl["illus"], ih, person_on, bool(sl.get("hope") or pal == "W")))
         top = 176 + ih + 72
     if sl["type"] == "cover":
         hook = [l for l in lines if not l.startswith("副標：")]
@@ -175,7 +176,7 @@ def page(post, sl, idx, total, lines):
     return "".join(out)
 
 def main():
-    for p in sys.argv[1:] or ["post1", "post2", "post3"]:
+    for p in sys.argv[1:] or ["post1", "post2", "post3", "post4"]:
         d = os.path.join(BASE, p)
         post = json.load(open(os.path.join(d, "data.json"), encoding="utf-8"))
         txt = read_txt(post["txt"])
@@ -209,8 +210,10 @@ def main():
                     q = find(sp); sl["skip"] += list(range(len(lines), len(lines) + len(q))); lines += q
             else:
                 lines = sls[sl["n"]]
-            open(os.path.join(d, "html", sl["name"] + ".html"), "w", encoding="utf-8").write(page(post, sl, i, n, lines))
-            mf[sl["name"]] = 1350
+            for pon in (False, True):
+                nm = sl["name"] + ("_person" if pon else "_noperson")
+                open(os.path.join(d, "html", nm + ".html"), "w", encoding="utf-8").write(page(post, sl, i, n, lines, pon))
+                mf[nm] = 1350
         json.dump(mf, open(os.path.join(d, "manifest.json"), "w"))
         print(p, "ok", n)
 main()
