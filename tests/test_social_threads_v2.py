@@ -60,12 +60,14 @@ def test_lint_catches(patch, needle):
 
 # ---------------- 模板庫 ----------------
 def test_template_library_size_and_mix():
+    # 11-04 Andy「盤後也改成專業語氣」：模板全部是專業問句（角度：數據／對比／趨勢），≥20 個，語氣「專業」
+    assert len(V.HOOKS) >= 20
     for t in V.HOOKS:
-        assert t[2] in L.HOOK_TYPES and t[3] in L.EMOTIONS
-    for ty in L.HOOK_TYPES:
-        hs = [h for h in V.HOOKS if h[2] == ty]
-        assert len(hs) >= 15, ty
-        assert {h[3] for h in hs} == {"好笑", "吐槽"}, ty
+        assert t[2] in ("數據", "對比", "趨勢") and t[3] in L.AUTO_EMOTIONS, t[0]
+        assert t[4].endswith("？") and not L.casual_words(t[4], hook=True), t[0]
+    for k in ("close", "intraday", "premarket", "credit", "article", "any"):
+        assert len({h[2] for h in V.HOOKS if h[1] == k}) >= 2, k          # 每個時段至少兩種角度，輪替才有得換
+    assert len([h for h in V.HOOKS if h[1] == "close"]) >= 10
     assert len({h[0] for h in V.HOOKS}) == len(V.HOOKS)
     for t in V.HOOKS:      # 模板本身不准有禁用字詞、網址、#
         assert not any(w in t[4] for w in L.BANNED) and "#" not in t[4] and "http" not in t[4]
@@ -85,7 +87,8 @@ def test_build_main_post_condensed_into_one(kind):
     assert "http" not in d["main_post"] and "http" not in d["reply_post"] and d["reply_post"] == L.DEFAULT_LEGAL     # 11-03 留言只放免責
     assert d["thread_posts"] == [] and 300 <= L.tlen(d["main_post"]) <= 500          # 用滿主文、不超過上限
     hook, rest = L.hook_of(L.split_tag(d["main_post"])[0])
-    assert 30 <= L.clen(hook) <= 80 and rest
+    assert L.AUTO_HOOK_MIN <= L.clen(hook) <= 80 and hook.endswith("？") and rest      # 11-04：開頭是專業問句
+    assert d["profile"] == "auto" and d["hook_type"] == "問句" and d["emotion"] == "專業"
     data = [V._rewrite(l.strip()) for l in (th["text"] + "\n" + th.get("reply", "")).splitlines() if l.strip().startswith("・")]
     kept = [l for l in data if l in d["main_post"]]
     assert len(kept) >= 3                                                              # 主要數據在主文（次要細項會被精簡成第一個分號前）
@@ -112,12 +115,12 @@ def test_rotation_type_never_repeats_and_14_day_cooldown():
         assert d["checklist_passed"]
         if st["history"]:
             if d["level"] in ("全部規則", "放寬14天"):
-                assert d["hook_type"] != st["history"][-1]["type"]
+                assert d["angle"] != st["history"][-1]["type"]          # 11-04 起輪替看切入角度（hook_type 一律「問句」）
         if d["level"] == "全部規則":
             assert d["template"] not in [u for u in used[-13:]]
         V.record(st, d, "intraday", day)
         used.append(d["template"])
-    assert len(set(used)) >= 10          # 20 天至少 10 種開頭，不千篇一律
+    assert len(set(used)) >= 8           # 20 天至少 8 種開頭，不千篇一律（盤中 10/30 這份資料可用的模板約 11 個）
 
 
 def test_never_blocks_even_with_empty_text():

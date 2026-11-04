@@ -17,6 +17,10 @@
   9.（2026-11-02 法遵：數字照用、句子自己寫）貼文與來源新聞原文有連續 ≥ 15 個中文字相同 → 照抄原文（錯誤）；
      貼文 JSON 帶 source_texts（來源新聞標題＋摘要）才比對。主題文章品質閘擋下後換下一則新聞／常備文庫，不會整段不發。
 
+  11.（2026-11-04）頻道①熱點文 rule: hot_1104：開頭問句、主文 200–250 字、擋口語
+  12.（2026-11-04 Andy「要，盤後也改成專業語氣」）自動貼文 profile: auto（threads_v2 產出的主貼文、主題文章）：
+     開頭類型「問句」、語氣「專業／中性」、開頭 15–80 字且以？收尾、擋口語吐槽字（AUTO_CASUAL／AUTO_HOOK_CASUAL）；長度照舊 ≤500
+
 用法：
   python scripts/threads_lint.py <v2 JSON 檔 | manifest.json | queue .md> [...]
 結束碼：任一篇有錯誤 → 1（只供人工或 CI 檢查；發文程式自己會改寫或換模板，不會因為 lint 不過就整篇不發）。
@@ -43,6 +47,17 @@ HOT_EMOTIONS = (None, "", "中性", "專業")
 HOT_HOOK_MIN, HOT_HOOK_MAX = 10, 80
 HOT_BODY_MIN, HOT_BODY_MAX = 200, 250
 HOT_CASUAL = ("啦", "笑死", "超扯", "傻眼", "爆氣", "欸", "喔～", "XD", "哈哈", "靠北", "不是一路順風")
+# ★ 2026-11-04 Andy：「要，盤後也改成專業語氣」——自動主貼文（盤後；之後重開的盤前／盤中／融資融券）與自動主題文章（rule: auto_1104，
+#   threads_v2.build() 產出的一律 profile="auto"）：開頭＝1 句吊胃口問句（用當天數據帶入）、專業中性、禁口語吐槽。
+#   主文長度照舊 ≤500（自動盤後資料多，不套熱點文的 200～250）。
+AUTO_HOOK_TYPES = ("問句",)
+AUTO_EMOTIONS = ("專業", "中性")
+AUTO_HOOK_MIN, AUTO_HOOK_MAX = 15, 80
+# 主文（鉤子＋條列）都不准出現的口語／吐槽用字（11-04 實發「朋友問…我只能默默拍拍他…」那種）
+AUTO_CASUAL = HOT_CASUAL + ("默默", "拍拍", "節哀", "先笑為敬", "八點檔", "嚇一跳", "打臉", "提款機", "平行宇宙", "存款餘額",
+                            "加薪", "滷蛋", "我只能", "吐槽")
+# 只管開頭那句：不准是對話／第一人稱閒聊／感嘆（像朋友聊天那種開頭）
+AUTO_HOOK_CASUAL = ("朋友", "同事", "老闆", "老婆", "主管", "群組", "我說", "我先", "冷知識", "吧", "笑", "！", "!", "…", "「")
 # 客套結尾、導流、喊單（主文、串文、留言全部適用）
 BANNED = ("歡迎留言", "謝謝大家", "留言告訴我", "你怎麼看", "私訊", "連結在留言", "連結在下方", "看留言", "買進", "加碼",
           "推薦", "快上車", "必買", "穩賺", "跟單", "抄底", "飆股", "報明牌", "目標價", "趕快買", "現在進場")
@@ -298,6 +313,17 @@ def is_hot(p: dict) -> bool:
     return p.get("profile") == "hot" or str(p.get("rule") or "").startswith("hot")
 
 
+def is_auto(p: dict) -> bool:
+    """2026-11-04 自動主貼文／自動主題文章（threads_v2 產出）：JSON profile="auto" 或 queue 檔頭 rule: auto_1104。"""
+    return p.get("profile") == "auto" or str(p.get("rule") or "").startswith("auto")
+
+
+def casual_words(text: str, hook: bool = False) -> list[str]:
+    """口語／吐槽用字（自動貼文用）；hook=True 再加「開頭不准對話／閒聊／感嘆」那組。"""
+    words = AUTO_CASUAL + (AUTO_HOOK_CASUAL if hook else ())
+    return [w for w in words if w in (text or "")]
+
+
 def lint(p: dict) -> tuple[list[str], list[str]]:
     """回傳（錯誤, 警告）。錯誤＝不符規則，發文程式會改寫或換模板。"""
     err: list[str] = []
@@ -320,6 +346,17 @@ def lint(p: dict) -> tuple[list[str], list[str]]:
         for w in HOT_CASUAL:
             if w in body:
                 err.append(f"熱點文口語／吐槽用字「{w}」（要專業中性）")
+    elif is_auto(p):   # 12. 2026-11-04 Andy「盤後也改成專業語氣」
+        if p.get("hook_type") not in AUTO_HOOK_TYPES:
+            err.append(f"自動貼文開頭類型 {p.get('hook_type')!r} 要標「問句」")
+        if p.get("emotion") not in AUTO_EMOTIONS:
+            err.append(f"自動貼文語氣要專業中性（情緒欄「專業」或「中性」），不是 {p.get('emotion')!r}")
+        if not AUTO_HOOK_MIN <= n <= AUTO_HOOK_MAX or not hook.rstrip().endswith(("？", "?")):
+            err.append(f"自動貼文開頭要 1 句問句（{AUTO_HOOK_MIN}–{AUTO_HOOK_MAX} 字、以？收尾），現在 {n} 字：{hook[:30]}")
+        for w in casual_words(hook, hook=True):
+            err.append(f"自動貼文開頭口語／吐槽用字「{w}」（要專業中性）")
+        for w in casual_words(rest):
+            err.append(f"自動貼文主文口語／吐槽用字「{w}」（要專業中性）")
     else:
         if p.get("hook_type") not in HOOK_TYPES:
             err.append(f"開頭類型 {p.get('hook_type')!r} 不是 對話／冷知識／反差")

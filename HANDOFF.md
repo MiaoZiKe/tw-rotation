@@ -1,5 +1,8 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
+## 2026-11-04 深夜 盤後自動主貼文改專業語氣（Andy：「要，盤後也改成專業語氣」；social-ops-lead；11-05 盤後起生效）
+- `scripts/threads_v2.py` 鉤子全部換成 43 個專業問句（數據帶入）、`scripts/threads_lint.py` 加自動貼文模式（開頭問句、擋口語吐槽字），測試 `tests/test_threads_auto_1104.py`；細節見 `auto_post.md` 修改紀錄與 `threads_rules.md` 最上面一節。post_quota.json 沒動。待辦：11-05 18:35 台北確認盤後實發開頭是問句（已排提醒）。
+
 
 ## 2026-11-04 深夜 頻道④「我們這一代」：觀察家口吻、三輪 LOGO、v4 創意插圖範例（CEO；只有文件與範例圖，未開發文）
 - 詳見 `docs/marketing/channels/healing/plan.md` 最上面一節。名稱「我們這一代」、無人版預設、不導流、不接金融業配、前 6 個月不投廣告已定案。
