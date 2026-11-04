@@ -1,0 +1,2783 @@
+{
+  "schema_version": 1,
+  "entries": [
+    {
+      "asset_id": "bibi_asml_cheer_front",
+      "name": "比比・開場歡迎",
+      "version": "v001",
+      "status": "review",
+      "rights": "unknown：角色原畫歸屬未核實；本次生成與加工不覆蓋父素材權利",
+      "category": "author_unverified",
+      "fields": {
+        "pose": "站姿、歪頭 ",
+        "expression": "開心張嘴 ",
+        "orientation": "正面偏右  ",
+        "prop": "無 ",
+        "scene": "開場歡迎   本次ASML校準預覽；核可前不得自動挑選",
+        "tags": "比比 主持 cheer_front 開場歡迎 站姿、歪頭 "
+      },
+      "manifest": "docs/social_assets/author_unverified/bibi_asml_cheer_front/manifest.json",
+      "files": [
+        {
+          "path": "C:/哩股哩股/docs/social_assets/author_unverified/bibi_asml_cheer_front/v001.png",
+          "exists": true,
+          "bytes": 141122,
+          "sha256": "7829c94487898b2208c59ccd850ecb112793086756a7e54def26bb2411c094f6",
+          "dimensions": [
+            389,
+            413
+          ],
+          "format": "PNG",
+          "frames": 1,
+          "alpha_extrema": [
+            0,
+            255
+          ],
+          "has_transparent_pixels": true,
+          "duration_ms": null,
+          "fps": null
+        }
+      ]
+    },
+    {
+      "asset_id": "bibi_asml_euv_scene",
+      "name": "比比與曝光設備觀察場景",
+      "version": "v001",
+      "status": "review",
+      "rights": "unknown：角色原畫歸屬未核實；本次生成與加工不覆蓋父素材權利",
+      "category": "author_unverified",
+      "fields": {
+        "pose": "科技場景主持 ",
+        "expression": "待逐頁放大核實 ",
+        "orientation": "場景透視  ",
+        "prop": "曝光設備、晶圓 ",
+        "scene": "ASML曝光設備與晶圓教學示意   本次ASML校準預覽；核可前不得自動挑選",
+        "tags": "比比 EUV ASML 設備 封面 "
+      },
+      "manifest": "docs/social_assets/author_unverified/bibi_asml_euv_scene/manifest.json",
+      "files": [
+        {
+          "path": "C:/哩股哩股/docs/social_assets/author_unverified/bibi_asml_euv_scene/v001.png",
+          "exists": true,
+          "bytes": 2433826,
+          "sha256": "fcffdd8ad1e513a7c881d00198c208c5b52db7580924539c93000dc3742de228",
+          "dimensions": [
+            1536,
+            1024
+          ],
+          "format": "PNG",
+          "frames": 1,
+          "alpha_extrema": [
+            0,
+            254
+          ],
+          "has_transparent_pixels": true,
+          "duration_ms": null,
+          "fps": null
+        }
+      ]
+    },
+    {
+      "asset_id": "bibi_asml_happy_close",
+      "name": "比比・點頭總結",
+      "version": "v001",
+      "status": "review",
+      "rights": "unknown：角色原畫歸屬未核實；本次生成與加工不覆蓋父素材權利",
+      "category": "author_unverified",
+      "fields": {
+        "pose": "站姿 ",
+        "expression": "閉眼微笑 ",
+        "orientation": "正面  ",
+        "prop": "無 ",
+        "scene": "點頭總結   本次ASML校準預覽；核可前不得自動挑選",
+        "tags": "比比 主持 happy_close 點頭總結 站姿 "
+      },
+      "manifest": "docs/social_assets/author_unverified/bibi_asml_happy_close/manifest.json",
+      "files": [
+        {
+          "path": "C:/哩股哩股/docs/social_assets/author_unverified/bibi_asml_happy_close/v001.png",
+          "exists": true,
+          "bytes": 128712,
+          "sha256": "4d76870da2ffaa36a1fbbeab4aa557a33a5992ce1421d7774782878598ced61b",
+          "dimensions": [
+            418,
+            377
+          ],
+          "format": "PNG",
+          "frames": 1,
+          "alpha_extrema": [
+            0,
+            255
+          ],
+          "has_transparent_pixels": true,
+          "duration_ms": null,
+          "fps": null
+        }
+      ]
+    },
+    {
+      "asset_id": "bibi_asml_look_left",
+      "name": "比比・回望比較",
+      "version": "v001",
+      "status": "review",
+      "rights": "unknown：角色原畫歸屬未核實；本次生成與加工不覆蓋父素材權利",
+      "category": "author_unverified",
+      "fields": {
+        "pose": "側身站姿 ",
+        "expression": "專注微笑 ",
+        "orientation": "左側面  ",
+        "prop": "無 ",
+        "scene": "回望比較   本次ASML校準預覽；核可前不得自動挑選",
+        "tags": "比比 主持 look_left 回望比較 側身站姿 "
+      },
+      "manifest": "docs/social_assets/author_unverified/bibi_asml_look_left/manifest.json",
+      "files": [
+        {
+          "path": "C:/哩股哩股/docs/social_assets/author_unverified/bibi_asml_look_left/v001.png",
+          "exists": true,
+          "bytes": 132176,
+          "sha256": "9941c6647c9ecfb005ecae42c1cf86ba958a354631e6b2a07ddff1bbb180306f",
+          "dimensions": [
+            423,
+            393
+          ],
+          "format": "PNG",
+          "frames": 1,
+          "alpha_extrema": [
+            0,
+            255
+          ],
+          "has_transparent_pixels": true,
+          "duration_ms": null,
+          "fps": null
+        }
+      ]
+    },
+    {
+      "asset_id": "bibi_asml_look_right",
+      "name": "比比・側看介紹",
+      "version": "v001",
+      "status": "review",
+      "rights": "unknown：角色原畫歸屬未核實；本次生成與加工不覆蓋父素材權利",
+      "category": "author_unverified",
+      "fields": {
+        "pose": "四腳站姿 ",
+        "expression": "好奇微笑 ",
+        "orientation": "右側面  ",
+        "prop": "無 ",
+        "scene": "側看介紹   本次ASML校準預覽；核可前不得自動挑選",
+        "tags": "比比 主持 look_right 側看介紹 四腳站姿 "
+      },
+      "manifest": "docs/social_assets/author_unverified/bibi_asml_look_right/manifest.json",
+      "files": [
+        {
+          "path": "C:/哩股哩股/docs/social_assets/author_unverified/bibi_asml_look_right/v001.png",
+          "exists": true,
+          "bytes": 139893,
+          "sha256": "0533f2891e23841b164360f7134bea97287df991059ff7eacad8d430fa8e8168",
+          "dimensions": [
+            441,
+            431
+          ],
+          "format": "PNG",
+          "frames": 1,
+          "alpha_extrema": [
+            0,
+            255
+          ],
+          "has_transparent_pixels": true,
+          "duration_ms": null,
+          "fps": null
+        }
+      ]
+    },
+    {
+      "asset_id": "bibi_asml_prone_observe",
+      "name": "比比・趴著觀察",
+      "version": "v002",
+      "status": "review",
+      "rights": "unknown：角色原畫歸屬未核實；本次生成與加工不覆蓋父素材權利",
+      "category": "author_unverified",
+      "fields": {
+        "pose": "趴姿、前掌支撐 ",
+        "expression": "專注微笑 ",
+        "orientation": "正面  ",
+        "prop": "無 ",
+        "scene": "趴著觀察   本次ASML校準預覽；核可前不得自動挑選",
+        "tags": "比比 主持 prone_observe 趴著觀察 趴姿、前掌支撐 "
+      },
+      "manifest": "docs/social_assets/author_unverified/bibi_asml_prone_observe/manifest.json",
+      "files": [
+        {
+          "path": "C:/哩股哩股/docs/social_assets/author_unverified/bibi_asml_prone_observe/v002.png",
+          "exists": true,
+          "bytes": 753827,
+          "sha256": "d02e30253c1ff730087a50eb767afaf156d3a0ff523d5c5b49703497ed53ed86",
+          "dimensions": [
+            1358,
+            1159
+          ],
+          "format": "PNG",
+          "frames": 1,
+          "alpha_extrema": [
+            0,
+            255
+          ],
+          "has_transparent_pixels": true,
+          "duration_ms": null,
+          "fps": null
+        }
+      ]
+    },
+    {
+      "asset_id": "bibi_asml_think_tilt",
+      "name": "比比・歪頭思考",
+      "version": "v001",
+      "status": "review",
+      "rights": "unknown：角色原畫歸屬未核實；本次生成與加工不覆蓋父素材權利",
+      "category": "author_unverified",
+      "fields": {
+        "pose": "歪頭站姿 ",
+        "expression": "疑問挑眉 ",
+        "orientation": "正面偏右  ",
+        "prop": "無 ",
+        "scene": "歪頭思考   本次ASML校準預覽；核可前不得自動挑選",
+        "tags": "比比 主持 think_tilt 歪頭思考 歪頭站姿 "
+      },
+      "manifest": "docs/social_assets/author_unverified/bibi_asml_think_tilt/manifest.json",
+      "files": [
+        {
+          "path": "C:/哩股哩股/docs/social_assets/author_unverified/bibi_asml_think_tilt/v001.png",
+          "exists": true,
+          "bytes": 157768,
+          "sha256": "eb2b77c5f6d69ca6587f52e690b2dbd42870f48f8a0113bfff2458eec5dd1009",
+          "dimensions": [
+            427,
+            376
+          ],
+          "format": "PNG",
+          "frames": 1,
+          "alpha_extrema": [
+            0,
+            255
+          ],
+          "has_transparent_pixels": true,
+          "duration_ms": null,
+          "fps": null
+        }
+      ]
+    },
+    {
+      "asset_id": "bibi_asml_worried_sweat",
+      "name": "比比・風險提醒",
+      "version": "v001",
+      "status": "review",
+      "rights": "unknown：角色原畫歸屬未核實；本次生成與加工不覆蓋父素材權利",
+      "category": "author_unverified",
+      "fields": {
+        "pose": "低重心站姿 ",
+        "expression": "擔心、汗滴 ",
+        "orientation": "正面  ",
+        "prop": "汗滴效果 ",
+        "scene": "風險提醒   本次ASML校準預覽；核可前不得自動挑選",
+        "tags": "比比 主持 worried_sweat 風險提醒 低重心站姿 "
+      },
+      "manifest": "docs/social_assets/author_unverified/bibi_asml_worried_sweat/manifest.json",
+      "files": [
+        {
+          "path": "C:/哩股哩股/docs/social_assets/author_unverified/bibi_asml_worried_sweat/v001.png",
+          "exists": true,
+          "bytes": 139728,
+          "sha256": "305d6acd956f866bdb787b999b2bd37810e39ff56edcd23c18083d997a10c1b1",
+          "dimensions": [
+            442,
+            374
+          ],
+          "format": "PNG",
+          "frames": 1,
+          "alpha_extrema": [
+            0,
+            255
+          ],
+          "has_transparent_pixels": true,
+          "duration_ms": null,
+          "fps": null
+        }
+      ]
+    },
+    {
+      "asset_id": "bibi_asml_wow_front",
+      "name": "比比・驚訝提醒",
+      "version": "v001",
+      "status": "review",
+      "rights": "unknown：角色原畫歸屬未核實；本次生成與加工不覆蓋父素材權利",
+      "category": "author_unverified",
+      "fields": {
+        "pose": "低重心站姿 ",
+        "expression": "驚訝圓嘴 ",
+        "orientation": "正面  ",
+        "prop": "無 ",
+        "scene": "驚訝提醒   本次ASML校準預覽；核可前不得自動挑選",
+        "tags": "比比 主持 wow_front 驚訝提醒 低重心站姿 "
+      },
+      "manifest": "docs/social_assets/author_unverified/bibi_asml_wow_front/manifest.json",
+      "files": [
+        {
+          "path": "C:/哩股哩股/docs/social_assets/author_unverified/bibi_asml_wow_front/v001.png",
+          "exists": true,
+          "bytes": 136012,
+          "sha256": "61244648b436da594a3b0f0432ca18702f139d64eaf56416a6adb161794f3b9e",
+          "dimensions": [
+            398,
+            383
+          ],
+          "format": "PNG",
+          "frames": 1,
+          "alpha_extrema": [
+            0,
+            255
+          ],
+          "has_transparent_pixels": true,
+          "duration_ms": null,
+          "fps": null
+        }
+      ]
+    },
+    {
+      "asset_id": "bibi_chip_research_host",
+      "name": "比比放大鏡觀察晶片・主持情境",
+      "version": "v001",
+      "status": "review",
+      "rights": "新情境生成可追溯；原角色歷史作者與權利 unknown，不改掛全新自有角色原畫",
+      "category": "author_unverified",
+      "fields": {
+        "pose": " 短掌握放大鏡、另一掌接觸晶片平台、短腳站立",
+        "expression": " 好奇專注、閉口微笑",
+        "orientation": " 朝讀者介紹；放大鏡朝科技物件 ",
+        "prop": " 放大鏡、晶片平台、晶圓示意",
+        "scene": "  邀讀者觀察半導體主題，不把角色只當角落裝飾 半導體研究封面 晶片介紹 法說觀察題材",
+        "tags": " 比比 研究 放大鏡 晶片 晶圓 主持 引導"
+      },
+      "manifest": "docs/social_assets/author_unverified/bibi_chip_research_host/manifest.json",
+      "files": [
+        {
+          "path": "C:/哩股哩股/docs/social_assets/author_unverified/bibi_chip_research_host/v001.png",
+          "exists": true,
+          "bytes": 2106267,
+          "sha256": "e77cd9f36b91f4b37ceea485736bf04bef0e4a7109e390209155d46ebb728437",
+          "dimensions": [
+            1536,
+            1024
+          ],
+          "format": "PNG",
+          "frames": 1,
+          "alpha_extrema": [
+            0,
+            254
+          ],
+          "has_transparent_pixels": true,
+          "duration_ms": null,
+          "fps": null
+        }
+      ]
+    },
+    {
+      "asset_id": "bibi_tilt_cream",
+      "name": "比比歪頭奶白修正版",
+      "version": "v001",
+      "status": "review",
+      "rights": "unknown；不聲稱可公開自由使用",
+      "category": "author_unverified",
+      "fields": {
+        "pose": " 歪頭、短腳",
+        "expression": " 好奇微笑",
+        "orientation": " 朝讀者 ",
+        "prop": " 無",
+        "scene": "   內部風格校準",
+        "tags": " "
+      },
+      "manifest": "docs/social_assets/author_unverified/bibi_tilt_cream/manifest.json",
+      "files": [
+        {
+          "path": "C:/哩股哩股/docs/social_assets/author_unverified/bibi_tilt_cream/v001.png",
+          "exists": true,
+          "bytes": 704512,
+          "sha256": "97bd814d317844b0bb20f25a7b755e8cb3e37079dc730d8f9c3ecf2390733014",
+          "dimensions": [
+            1254,
+            1254
+          ],
+          "format": "PNG",
+          "frames": 1,
+          "alpha_extrema": [
+            0,
+            255
+          ],
+          "has_transparent_pixels": true,
+          "duration_ms": null,
+          "fps": null
+        }
+      ]
+    },
+    {
+      "asset_id": "tech_asml_euv_tool",
+      "name": "EUV曝光設備可編輯教學元件",
+      "version": "v001",
+      "status": "review",
+      "rights": "Codex 程式原創；可編輯教學示意",
+      "category": "codex_original",
+      "fields": {
+        "pose": "不適用 ",
+        "expression": "不適用 ",
+        "orientation": "示意透視  ",
+        "prop": "EUV曝光設備 ",
+        "scene": "半導體教學   本次ASML校準預覽；核可前不得自動挑選",
+        "tags": "euv_tool EUV曝光設備 科技物件 可編輯 SVG "
+      },
+      "manifest": "docs/social_assets/codex_original/tech_asml_euv_tool/manifest.json",
+      "files": [
+        {
+          "path": "C:/哩股哩股/docs/social_assets/codex_original/tech_asml_euv_tool/v001.svg",
+          "exists": true,
+          "bytes": 2778,
+          "sha256": "4d4489ce8967d3643cf9c7ce7ee5298c1da65403b3f557af161d932d5ab3cf2c",
+          "inspection_error": "cannot identify image file 'C:\\\\哩股哩股\\\\docs\\\\social_assets\\\\codex_original\\\\tech_asml_euv_tool\\\\v001.svg'"
+        },
+        {
+          "path": "C:/哩股哩股/docs/social_assets/codex_original/tech_asml_euv_tool/v001.png",
+          "exists": true,
+          "bytes": 34121,
+          "sha256": "53aab79de171b2420efc43722aced6012978f1830fac48bd7df8a4972133c121",
+          "dimensions": [
+            1000,
+            700
+          ],
+          "format": "PNG",
+          "frames": 1,
+          "alpha_extrema": [
+            0,
+            255
+          ],
+          "has_transparent_pixels": true,
+          "duration_ms": null,
+          "fps": null
+        }
+      ]
+    },
+    {
+      "asset_id": "tech_asml_optical_path",
+      "name": "EUV光路可編輯教學元件",
+      "version": "v001",
+      "status": "review",
+      "rights": "Codex 程式原創；可編輯教學示意",
+      "category": "codex_original",
+      "fields": {
+        "pose": "不適用 ",
+        "expression": "不適用 ",
+        "orientation": "平面光路  ",
+        "prop": "EUV光路 ",
+        "scene": "半導體教學   本次ASML校準預覽；核可前不得自動挑選",
+        "tags": "optical_path EUV光路 科技物件 可編輯 SVG "
+      },
+      "manifest": "docs/social_assets/codex_original/tech_asml_optical_path/manifest.json",
+      "files": [
+        {
+          "path": "C:/哩股哩股/docs/social_assets/codex_original/tech_asml_optical_path/v001.svg",
+          "exists": true,
+          "bytes": 2622,
+          "sha256": "2e6c96751568a6ab6ad1c88c63d742a134537bba3b6b018b726dba2e6f376a84",
+          "inspection_error": "cannot identify image file 'C:\\\\哩股哩股\\\\docs\\\\social_assets\\\\codex_original\\\\tech_asml_optical_path\\\\v001.svg'"
+        },
+        {
+          "path": "C:/哩股哩股/docs/social_assets/codex_original/tech_asml_optical_path/v001.png",
+          "exists": true,
+          "bytes": 46317,
+          "sha256": "8196e460f28f4b4665fc2706ed3b63905d66ac7a8b51ee999825d94f84e3e226",
+          "dimensions": [
+            1000,
+            700
+          ],
+          "format": "PNG",
+          "frames": 1,
+          "alpha_extrema": [
+            0,
+            255
+          ],
+          "has_transparent_pixels": true,
+          "duration_ms": null,
+          "fps": null
+        }
+      ]
+    },
+    {
+      "asset_id": "tech_asml_wafer",
+      "name": "晶圓可編輯教學元件",
+      "version": "v001",
+      "status": "review",
+      "rights": "Codex 程式原創；可編輯教學示意",
+      "category": "codex_original",
+      "fields": {
+        "pose": "不適用 ",
+        "expression": "不適用 ",
+        "orientation": "示意透視  ",
+        "prop": "晶圓 ",
+        "scene": "半導體教學   本次ASML校準預覽；核可前不得自動挑選",
+        "tags": "wafer 晶圓 科技物件 可編輯 SVG "
+      },
+      "manifest": "docs/social_assets/codex_original/tech_asml_wafer/manifest.json",
+      "files": [
+        {
+          "path": "C:/哩股哩股/docs/social_assets/codex_original/tech_asml_wafer/v001.svg",
+          "exists": true,
+          "bytes": 2387,
+          "sha256": "45af3542ac9a4279391f62d3cdd18090ff205ffe566fcc681fd1e31f9cf3cc0a",
+          "inspection_error": "cannot identify image file 'C:\\\\哩股哩股\\\\docs\\\\social_assets\\\\codex_original\\\\tech_asml_wafer\\\\v001.svg'"
+        },
+        {
+          "path": "C:/哩股哩股/docs/social_assets/codex_original/tech_asml_wafer/v001.png",
+          "exists": true,
+          "bytes": 57847,
+          "sha256": "df145025d8b8912008f8c40183396ce179bbadd1d870b107433a91c66c11c7d4",
+          "dimensions": [
+            1000,
+            700
+          ],
+          "format": "PNG",
+          "frames": 1,
+          "alpha_extrema": [
+            0,
+            255
+          ],
+          "has_transparent_pixels": true,
+          "duration_ms": null,
+          "fps": null
+        }
+      ]
+    },
+    {
+      "asset_id": "tech_illustrated_fab",
+      "name": "晶圓廠場景",
+      "version": "v001",
+      "status": "review",
+      "rights": "本次 imagegen 全新生成物件，可追溯；實際技術與品牌精緻度仍須審核",
+      "category": "gpt_original",
+      "fields": {
+        "pose": "不適用 ",
+        "expression": "不適用 ",
+        "orientation": "示意透視  ",
+        "prop": "晶圓廠場景 ",
+        "scene": "科技研究筆記／半導體科普   ",
+        "tags": "fab 晶圓廠場景 科技物件 bitmap PNG "
+      },
+      "manifest": "docs/social_assets/gpt_original/tech_illustrated_fab/manifest.json",
+      "files": [
+        {
+          "path": "C:/哩股哩股/docs/social_assets/gpt_original/tech_illustrated_fab/v001.png",
+          "exists": true,
+          "bytes": 497664,
+          "sha256": "5096613ee2edfa2b8a149780ea046a431655311a1b87cda3f7e385a23978f3fb",
+          "dimensions": [
+            610,
+            514
+          ],
+          "format": "PNG",
+          "frames": 1,
+          "alpha_extrema": [
+            0,
+            254
+          ],
+          "has_transparent_pixels": true,
+          "duration_ms": null,
+          "fps": null
+        }
+      ]
+    },
+    {
+      "asset_id": "tech_illustrated_laptop",
+      "name": "研究筆電物件",
+      "version": "v001",
+      "status": "review",
+      "rights": "本次 imagegen 全新生成物件，可追溯；實際技術與品牌精緻度仍須審核",
+      "category": "gpt_original",
+      "fields": {
+        "pose": "不適用 ",
+        "expression": "不適用 ",
+        "orientation": "示意透視  ",
+        "prop": "研究筆電物件 ",
+        "scene": "科技研究筆記／半導體科普   ",
+        "tags": "laptop 研究筆電物件 科技物件 bitmap PNG "
+      },
+      "manifest": "docs/social_assets/gpt_original/tech_illustrated_laptop/manifest.json",
+      "files": [
+        {
+          "path": "C:/哩股哩股/docs/social_assets/gpt_original/tech_illustrated_laptop/v001.png",
+          "exists": true,
+          "bytes": 343769,
+          "sha256": "44fbacc79684e7d3b9a1be0c0633733ebe0fa91730396f0cb9e72bc666af59ef",
+          "dimensions": [
+            490,
+            514
+          ],
+          "format": "PNG",
+          "frames": 1,
+          "alpha_extrema": [
+            0,
+            254
+          ],
+          "has_transparent_pixels": true,
+          "duration_ms": null,
+          "fps": null
+        }
+      ]
+    },
+    {
+      "asset_id": "tech_illustrated_machine",
+      "name": "曝光設備手繪物件",
+      "version": "v001",
+      "status": "review",
+      "rights": "本次 imagegen 全新生成物件，可追溯；實際技術與品牌精緻度仍須審核",
+      "category": "gpt_original",
+      "fields": {
+        "pose": "不適用 ",
+        "expression": "不適用 ",
+        "orientation": "示意透視  ",
+        "prop": "曝光設備手繪物件 ",
+        "scene": "科技研究筆記／半導體科普   ",
+        "tags": "machine 曝光設備手繪物件 科技物件 bitmap PNG "
+      },
+      "manifest": "docs/social_assets/gpt_original/tech_illustrated_machine/manifest.json",
+      "files": [
+        {
+          "path": "C:/哩股哩股/docs/social_assets/gpt_original/tech_illustrated_machine/v001.png",
+          "exists": true,
+          "bytes": 524856,
+          "sha256": "43b0e4cbdd273edda59629445aecca679ea7034ef07ea154ad6cb65d1287edee",
+          "dimensions": [
+            600,
+            501
+          ],
+          "format": "PNG",
+          "frames": 1,
+          "alpha_extrema": [
+            0,
+            254
+          ],
+          "has_transparent_pixels": true,
+          "duration_ms": null,
+          "fps": null
+        }
+      ]
+    },
+    {
+      "asset_id": "tech_illustrated_mirror",
+      "name": "反射鏡與光路手繪物件",
+      "version": "v001",
+      "status": "review",
+      "rights": "本次 imagegen 全新生成物件，可追溯；實際技術與品牌精緻度仍須審核",
+      "category": "gpt_original",
+      "fields": {
+        "pose": "不適用 ",
+        "expression": "不適用 ",
+        "orientation": "示意透視  ",
+        "prop": "反射鏡與光路手繪物件 ",
+        "scene": "科技研究筆記／半導體科普   ",
+        "tags": "mirror 反射鏡與光路手繪物件 科技物件 bitmap PNG "
+      },
+      "manifest": "docs/social_assets/gpt_original/tech_illustrated_mirror/manifest.json",
+      "files": [
+        {
+          "path": "C:/哩股哩股/docs/social_assets/gpt_original/tech_illustrated_mirror/v001.png",
+          "exists": true,
+          "bytes": 422337,
+          "sha256": "70a7d649d5c7b6668446dab0119c6041fe9cd9bb224d77064509322fc0b9c106",
+          "dimensions": [
+            477,
+            497
+          ],
+          "format": "PNG",
+          "frames": 1,
+          "alpha_extrema": [
+            0,
+            254
+          ],
+          "has_transparent_pixels": true,
+          "duration_ms": null,
+          "fps": null
+        }
+      ]
+    },
+    {
+      "asset_id": "tech_illustrated_server",
+      "name": "伺服器物件",
+      "version": "v001",
+      "status": "review",
+      "rights": "本次 imagegen 全新生成物件，可追溯；實際技術與品牌精緻度仍須審核",
+      "category": "gpt_original",
+      "fields": {
+        "pose": "不適用 ",
+        "expression": "不適用 ",
+        "orientation": "示意透視  ",
+        "prop": "伺服器物件 ",
+        "scene": "科技研究筆記／半導體科普   ",
+        "tags": "server 伺服器物件 科技物件 bitmap PNG "
+      },
+      "manifest": "docs/social_assets/gpt_original/tech_illustrated_server/manifest.json",
+      "files": [
+        {
+          "path": "C:/哩股哩股/docs/social_assets/gpt_original/tech_illustrated_server/v001.png",
+          "exists": true,
+          "bytes": 448722,
+          "sha256": "f8775679319e419a85c0c742a8a53c71b99988619c1536f9eb0d11d73967a2cc",
+          "dimensions": [
+            414,
+            492
+          ],
+          "format": "PNG",
+          "frames": 1,
+          "alpha_extrema": [
+            0,
+            254
+          ],
+          "has_transparent_pixels": true,
+          "duration_ms": null,
+          "fps": null
+        }
+      ]
+    },
+    {
+      "asset_id": "tech_illustrated_wafer",
+      "name": "晶圓手繪物件",
+      "version": "v001",
+      "status": "review",
+      "rights": "本次 imagegen 全新生成物件，可追溯；實際技術與品牌精緻度仍須審核",
+      "category": "gpt_original",
+      "fields": {
+        "pose": "不適用 ",
+        "expression": "不適用 ",
+        "orientation": "示意透視  ",
+        "prop": "晶圓手繪物件 ",
+        "scene": "科技研究筆記／半導體科普   ",
+        "tags": "wafer 晶圓手繪物件 科技物件 bitmap PNG "
+      },
+      "manifest": "docs/social_assets/gpt_original/tech_illustrated_wafer/manifest.json",
+      "files": [
+        {
+          "path": "C:/哩股哩股/docs/social_assets/gpt_original/tech_illustrated_wafer/v001.png",
+          "exists": true,
+          "bytes": 390313,
+          "sha256": "8a83341c40d6ea5b4fa7a76acb8f0b4bbedb58044334898e77e40138feaba212",
+          "dimensions": [
+            442,
+            510
+          ],
+          "format": "PNG",
+          "frames": 1,
+          "alpha_extrema": [
+            0,
+            254
+          ],
+          "has_transparent_pixels": true,
+          "duration_ms": null,
+          "fps": null
+        }
+      ]
+    },
+    {
+      "asset_id": "legacy_point_dr",
+      "name": "指向・右下",
+      "version": "main@8d947a7f18d0ee87f477acff5ebdabf3a782731e",
+      "status": "review",
+      "rights": "unknown",
+      "category": "author_unverified",
+      "fields": {
+        "pose": "指向・右下",
+        "expression": "指向・右下",
+        "orientation": "point_dr 指向右下方的按鈕／表格",
+        "prop": "",
+        "scene": "指向右下方的按鈕／表格",
+        "tags": "point_dr 動作"
+      },
+      "source_url": "https://github.com/MiaoZiKe/tw-rotation/blob/main/docs/anim/bibi_library/point_dr/key.png",
+      "declared_frames": 12,
+      "declared_duration": "0.93 秒",
+      "files": [],
+      "inspection": "remote_index_only_not_visually_verified"
+    },
+    {
+      "asset_id": "legacy_point_r",
+      "name": "指向・右",
+      "version": "main@8d947a7f18d0ee87f477acff5ebdabf3a782731e",
+      "status": "review",
+      "rights": "unknown",
+      "category": "author_unverified",
+      "fields": {
+        "pose": "指向・右",
+        "expression": "指向・右",
+        "orientation": "point_r 指向畫面右側的重點",
+        "prop": "",
+        "scene": "指向畫面右側的重點",
+        "tags": "point_r 動作"
+      },
+      "source_url": "https://github.com/MiaoZiKe/tw-rotation/blob/main/docs/anim/bibi_library/point_r/key.png",
+      "declared_frames": 12,
+      "declared_duration": "0.93 秒",
+      "files": [],
+      "inspection": "remote_index_only_not_visually_verified"
+    },
+    {
+      "asset_id": "legacy_point_ur",
+      "name": "指向・右上",
+      "version": "main@8d947a7f18d0ee87f477acff5ebdabf3a782731e",
+      "status": "review",
+      "rights": "unknown",
+      "category": "author_unverified",
+      "fields": {
+        "pose": "指向・右上",
+        "expression": "指向・右上",
+        "orientation": "point_ur 指向右上方的標題／數字",
+        "prop": "",
+        "scene": "指向右上方的標題／數字",
+        "tags": "point_ur 動作"
+      },
+      "source_url": "https://github.com/MiaoZiKe/tw-rotation/blob/main/docs/anim/bibi_library/point_ur/key.png",
+      "declared_frames": 12,
+      "declared_duration": "0.93 秒",
+      "files": [],
+      "inspection": "remote_index_only_not_visually_verified"
+    },
+    {
+      "asset_id": "legacy_tilt",
+      "name": "歪頭疑問",
+      "version": "main@8d947a7f18d0ee87f477acff5ebdabf3a782731e",
+      "status": "review",
+      "rights": "unknown",
+      "category": "author_unverified",
+      "fields": {
+        "pose": "歪頭疑問",
+        "expression": "歪頭疑問",
+        "orientation": "tilt 提出問題、「這是什麼？」",
+        "prop": "",
+        "scene": "提出問題、「這是什麼？」",
+        "tags": "tilt 動作"
+      },
+      "source_url": "https://github.com/MiaoZiKe/tw-rotation/blob/main/docs/anim/bibi_library/tilt/key.png",
+      "declared_frames": 12,
+      "declared_duration": "1.04 秒",
+      "files": [],
+      "inspection": "remote_index_only_not_visually_verified"
+    },
+    {
+      "asset_id": "legacy_wave",
+      "name": "揮手",
+      "version": "main@8d947a7f18d0ee87f477acff5ebdabf3a782731e",
+      "status": "review",
+      "rights": "unknown",
+      "category": "author_unverified",
+      "fields": {
+        "pose": "揮手",
+        "expression": "揮手",
+        "orientation": "wave 開場打招呼、片尾說再見",
+        "prop": "",
+        "scene": "開場打招呼、片尾說再見",
+        "tags": "wave 動作"
+      },
+      "source_url": "https://github.com/MiaoZiKe/tw-rotation/blob/main/docs/anim/bibi_library/wave/key.png",
+      "declared_frames": 12,
+      "declared_duration": "1.00 秒",
+      "files": [],
+      "inspection": "remote_index_only_not_visually_verified"
+    },
+    {
+      "asset_id": "legacy_wow",
+      "name": "驚嘆",
+      "version": "main@8d947a7f18d0ee87f477acff5ebdabf3a782731e",
+      "status": "review",
+      "rights": "unknown",
+      "category": "author_unverified",
+      "fields": {
+        "pose": "驚嘆",
+        "expression": "驚嘆",
+        "orientation": "wow 驚人數字出現時",
+        "prop": "",
+        "scene": "驚人數字出現時",
+        "tags": "wow 動作"
+      },
+      "source_url": "https://github.com/MiaoZiKe/tw-rotation/blob/main/docs/anim/bibi_library/wow/key.png",
+      "declared_frames": 12,
+      "declared_duration": "0.95 秒",
+      "files": [],
+      "inspection": "remote_index_only_not_visually_verified"
+    },
+    {
+      "asset_id": "legacy_intro",
+      "name": "自我介紹（彈進畫面、揮掌、名牌、眨眼）",
+      "version": "main@8d947a7f18d0ee87f477acff5ebdabf3a782731e",
+      "status": "review",
+      "rights": "unknown",
+      "category": "author_unverified",
+      "fields": {
+        "pose": "自我介紹（彈進畫面、揮掌、名牌、眨眼）",
+        "expression": "自我介紹（彈進畫面、揮掌、名牌、眨眼）",
+        "orientation": "intro 影片開場自我介紹",
+        "prop": "",
+        "scene": "影片開場自我介紹",
+        "tags": "intro 動作"
+      },
+      "source_url": "https://github.com/MiaoZiKe/tw-rotation/blob/main/docs/anim/bibi_library/intro/key.png",
+      "declared_frames": 16,
+      "declared_duration": "2.07 秒",
+      "files": [],
+      "inspection": "remote_index_only_not_visually_verified"
+    },
+    {
+      "asset_id": "legacy_intro_blank",
+      "name": "自我介紹・名牌留白版（影片自己放字）",
+      "version": "main@8d947a7f18d0ee87f477acff5ebdabf3a782731e",
+      "status": "review",
+      "rights": "unknown",
+      "category": "author_unverified",
+      "fields": {
+        "pose": "自我介紹・名牌留白版（影片自己放字）",
+        "expression": "自我介紹・名牌留白版（影片自己放字）",
+        "orientation": "intro_blank 開場自我介紹（名牌留白，自己放字）",
+        "prop": "",
+        "scene": "開場自我介紹（名牌留白，自己放字）",
+        "tags": "intro_blank 動作"
+      },
+      "source_url": "https://github.com/MiaoZiKe/tw-rotation/blob/main/docs/anim/bibi_library/intro_blank/key.png",
+      "declared_frames": 16,
+      "declared_duration": "2.07 秒",
+      "files": [],
+      "inspection": "remote_index_only_not_visually_verified"
+    },
+    {
+      "asset_id": "legacy_face_laugh",
+      "name": "表情・大笑瞇眼（身體抖）",
+      "version": "main@8d947a7f18d0ee87f477acff5ebdabf3a782731e",
+      "status": "review",
+      "rights": "unknown",
+      "category": "author_unverified",
+      "fields": {
+        "pose": "表情・大笑瞇眼（身體抖）",
+        "expression": "表情・大笑瞇眼（身體抖）",
+        "orientation": "face_laugh 輕鬆好笑的段落",
+        "prop": "",
+        "scene": "輕鬆好笑的段落",
+        "tags": "face_laugh 表情"
+      },
+      "source_url": "https://github.com/MiaoZiKe/tw-rotation/blob/main/docs/anim/bibi_library/face_laugh/key.png",
+      "declared_frames": 12,
+      "declared_duration": "1.35 秒",
+      "files": [],
+      "inspection": "remote_index_only_not_visually_verified"
+    },
+    {
+      "asset_id": "legacy_face_love",
+      "name": "表情・愛心眼（飄小愛心）",
+      "version": "main@8d947a7f18d0ee87f477acff5ebdabf3a782731e",
+      "status": "review",
+      "rights": "unknown",
+      "category": "author_unverified",
+      "fields": {
+        "pose": "表情・愛心眼（飄小愛心）",
+        "expression": "表情・愛心眼（飄小愛心）",
+        "orientation": "face_love 喜歡這個功能",
+        "prop": "",
+        "scene": "喜歡這個功能",
+        "tags": "face_love 表情"
+      },
+      "source_url": "https://github.com/MiaoZiKe/tw-rotation/blob/main/docs/anim/bibi_library/face_love/key.png",
+      "declared_frames": 12,
+      "declared_duration": "1.52 秒",
+      "files": [],
+      "inspection": "remote_index_only_not_visually_verified"
+    },
+    {
+      "asset_id": "legacy_face_nod",
+      "name": "表情・點頭嗯嗯（同意）",
+      "version": "main@8d947a7f18d0ee87f477acff5ebdabf3a782731e",
+      "status": "review",
+      "rights": "unknown",
+      "category": "author_unverified",
+      "fields": {
+        "pose": "表情・點頭嗯嗯（同意）",
+        "expression": "表情・點頭嗯嗯（同意）",
+        "orientation": "face_nod 同意、肯定",
+        "prop": "",
+        "scene": "同意、肯定",
+        "tags": "face_nod 表情"
+      },
+      "source_url": "https://github.com/MiaoZiKe/tw-rotation/blob/main/docs/anim/bibi_library/face_nod/key.png",
+      "declared_frames": 12,
+      "declared_duration": "1.41 秒",
+      "files": [],
+      "inspection": "remote_index_only_not_visually_verified"
+    },
+    {
+      "asset_id": "legacy_face_proud",
+      "name": "表情・得意（閉眼抬下巴、小閃光）",
+      "version": "main@8d947a7f18d0ee87f477acff5ebdabf3a782731e",
+      "status": "review",
+      "rights": "unknown",
+      "category": "author_unverified",
+      "fields": {
+        "pose": "表情・得意（閉眼抬下巴、小閃光）",
+        "expression": "表情・得意（閉眼抬下巴、小閃光）",
+        "orientation": "face_proud 自豪的功能介紹",
+        "prop": "",
+        "scene": "自豪的功能介紹",
+        "tags": "face_proud 表情"
+      },
+      "source_url": "https://github.com/MiaoZiKe/tw-rotation/blob/main/docs/anim/bibi_library/face_proud/key.png",
+      "declared_frames": 12,
+      "declared_duration": "1.63 秒",
+      "files": [],
+      "inspection": "remote_index_only_not_visually_verified"
+    },
+    {
+      "asset_id": "legacy_face_shock",
+      "name": "表情・嚇一跳（白眼圈、毛炸開）",
+      "version": "main@8d947a7f18d0ee87f477acff5ebdabf3a782731e",
+      "status": "review",
+      "rights": "unknown",
+      "category": "author_unverified",
+      "fields": {
+        "pose": "表情・嚇一跳（白眼圈、毛炸開）",
+        "expression": "表情・嚇一跳（白眼圈、毛炸開）",
+        "orientation": "face_shock 風險提醒、嚇一跳的數字",
+        "prop": "",
+        "scene": "風險提醒、嚇一跳的數字",
+        "tags": "face_shock 表情"
+      },
+      "source_url": "https://github.com/MiaoZiKe/tw-rotation/blob/main/docs/anim/bibi_library/face_shock/key.png",
+      "declared_frames": 12,
+      "declared_duration": "1.24 秒",
+      "files": [],
+      "inspection": "remote_index_only_not_visually_verified"
+    },
+    {
+      "asset_id": "legacy_face_sleepy",
+      "name": "表情・打瞌睡（Zzz、鼻涕泡、啵！）",
+      "version": "main@8d947a7f18d0ee87f477acff5ebdabf3a782731e",
+      "status": "review",
+      "rights": "unknown",
+      "category": "author_unverified",
+      "fields": {
+        "pose": "表情・打瞌睡（Zzz、鼻涕泡、啵！）",
+        "expression": "表情・打瞌睡（Zzz、鼻涕泡、啵！）",
+        "orientation": "face_sleepy 「不用熬夜看盤」",
+        "prop": "",
+        "scene": "「不用熬夜看盤」",
+        "tags": "face_sleepy 表情"
+      },
+      "source_url": "https://github.com/MiaoZiKe/tw-rotation/blob/main/docs/anim/bibi_library/face_sleepy/key.png",
+      "declared_frames": 12,
+      "declared_duration": "2.28 秒",
+      "files": [],
+      "inspection": "remote_index_only_not_visually_verified"
+    },
+    {
+      "asset_id": "legacy_face_star",
+      "name": "表情・星星眼（轉圈、閃閃）",
+      "version": "main@8d947a7f18d0ee87f477acff5ebdabf3a782731e",
+      "status": "review",
+      "rights": "unknown",
+      "category": "author_unverified",
+      "fields": {
+        "pose": "表情・星星眼（轉圈、閃閃）",
+        "expression": "表情・星星眼（轉圈、閃閃）",
+        "orientation": "face_star 超讚、驚豔",
+        "prop": "",
+        "scene": "超讚、驚豔",
+        "tags": "face_star 表情"
+      },
+      "source_url": "https://github.com/MiaoZiKe/tw-rotation/blob/main/docs/anim/bibi_library/face_star/key.png",
+      "declared_frames": 12,
+      "declared_duration": "1.37 秒",
+      "files": [],
+      "inspection": "remote_index_only_not_visually_verified"
+    },
+    {
+      "asset_id": "legacy_face_sweat",
+      "name": "表情・冒汗尷尬（汗滴滑落、抓抓頭）",
+      "version": "main@8d947a7f18d0ee87f477acff5ebdabf3a782731e",
+      "status": "review",
+      "rights": "unknown",
+      "category": "author_unverified",
+      "fields": {
+        "pose": "表情・冒汗尷尬（汗滴滑落、抓抓頭）",
+        "expression": "表情・冒汗尷尬（汗滴滑落、抓抓頭）",
+        "orientation": "face_sweat 常見錯誤、尷尬狀況",
+        "prop": "",
+        "scene": "常見錯誤、尷尬狀況",
+        "tags": "face_sweat 表情"
+      },
+      "source_url": "https://github.com/MiaoZiKe/tw-rotation/blob/main/docs/anim/bibi_library/face_sweat/key.png",
+      "declared_frames": 12,
+      "declared_duration": "1.51 秒",
+      "files": [],
+      "inspection": "remote_index_only_not_visually_verified"
+    },
+    {
+      "asset_id": "legacy_face_think",
+      "name": "表情・思考（往上看、點點點、想到了）",
+      "version": "main@8d947a7f18d0ee87f477acff5ebdabf3a782731e",
+      "status": "review",
+      "rights": "unknown",
+      "category": "author_unverified",
+      "fields": {
+        "pose": "表情・思考（往上看、點點點、想到了）",
+        "expression": "表情・思考（往上看、點點點、想到了）",
+        "orientation": "face_think 提出疑問、思考",
+        "prop": "",
+        "scene": "提出疑問、思考",
+        "tags": "face_think 表情"
+      },
+      "source_url": "https://github.com/MiaoZiKe/tw-rotation/blob/main/docs/anim/bibi_library/face_think/key.png",
+      "declared_frames": 12,
+      "declared_duration": "1.78 秒",
+      "files": [],
+      "inspection": "remote_index_only_not_visually_verified"
+    },
+    {
+      "asset_id": "legacy_face_wink",
+      "name": "表情・眨眼吐舌",
+      "version": "main@8d947a7f18d0ee87f477acff5ebdabf3a782731e",
+      "status": "review",
+      "rights": "unknown",
+      "category": "author_unverified",
+      "fields": {
+        "pose": "表情・眨眼吐舌",
+        "expression": "表情・眨眼吐舌",
+        "orientation": "face_wink 小撇步、俏皮提醒",
+        "prop": "",
+        "scene": "小撇步、俏皮提醒",
+        "tags": "face_wink 表情"
+      },
+      "source_url": "https://github.com/MiaoZiKe/tw-rotation/blob/main/docs/anim/bibi_library/face_wink/key.png",
+      "declared_frames": 12,
+      "declared_duration": "1.36 秒",
+      "files": [],
+      "inspection": "remote_index_only_not_visually_verified"
+    },
+    {
+      "asset_id": "legacy_talk_excited",
+      "name": "說話・興奮講（眼睛發亮、小星星）",
+      "version": "main@8d947a7f18d0ee87f477acff5ebdabf3a782731e",
+      "status": "review",
+      "rights": "unknown",
+      "category": "author_unverified",
+      "fields": {
+        "pose": "說話・興奮講（眼睛發亮、小星星）",
+        "expression": "說話・興奮講（眼睛發亮、小星星）",
+        "orientation": "talk_excited 旁白講解（亮點、新功能）",
+        "prop": "",
+        "scene": "旁白講解（亮點、新功能）",
+        "tags": "talk_excited 表情"
+      },
+      "source_url": "https://github.com/MiaoZiKe/tw-rotation/blob/main/docs/anim/bibi_library/talk_excited/key.png",
+      "declared_frames": 12,
+      "declared_duration": "1.08 秒",
+      "files": [],
+      "inspection": "remote_index_only_not_visually_verified"
+    },
+    {
+      "asset_id": "legacy_talk_explain",
+      "name": "說話・認真講（挑眉、小肉掌打拍子）",
+      "version": "main@8d947a7f18d0ee87f477acff5ebdabf3a782731e",
+      "status": "review",
+      "rights": "unknown",
+      "category": "author_unverified",
+      "fields": {
+        "pose": "說話・認真講（挑眉、小肉掌打拍子）",
+        "expression": "說話・認真講（挑眉、小肉掌打拍子）",
+        "orientation": "talk_explain 旁白講解（認真說明功能）",
+        "prop": "",
+        "scene": "旁白講解（認真說明功能）",
+        "tags": "talk_explain 表情"
+      },
+      "source_url": "https://github.com/MiaoZiKe/tw-rotation/blob/main/docs/anim/bibi_library/talk_explain/key.png",
+      "declared_frames": 12,
+      "declared_duration": "1.32 秒",
+      "files": [],
+      "inspection": "remote_index_only_not_visually_verified"
+    },
+    {
+      "asset_id": "legacy_talk_happy",
+      "name": "說話・開心講（嘴巴三種嘴型輪替、講到開心處瞇眼）",
+      "version": "main@8d947a7f18d0ee87f477acff5ebdabf3a782731e",
+      "status": "review",
+      "rights": "unknown",
+      "category": "author_unverified",
+      "fields": {
+        "pose": "說話・開心講（嘴巴三種嘴型輪替、講到開心處瞇眼）",
+        "expression": "說話・開心講（嘴巴三種嘴型輪替、講到開心處瞇眼）",
+        "orientation": "talk_happy 旁白講解（輕鬆）",
+        "prop": "",
+        "scene": "旁白講解（輕鬆）",
+        "tags": "talk_happy 表情"
+      },
+      "source_url": "https://github.com/MiaoZiKe/tw-rotation/blob/main/docs/anim/bibi_library/talk_happy/key.png",
+      "declared_frames": 12,
+      "declared_duration": "1.20 秒",
+      "files": [],
+      "inspection": "remote_index_only_not_visually_verified"
+    },
+    {
+      "asset_id": "legacy_face_bow",
+      "name": "表情・鞠躬謝謝（起身冒小花）",
+      "version": "main@8d947a7f18d0ee87f477acff5ebdabf3a782731e",
+      "status": "review",
+      "rights": "unknown",
+      "category": "author_unverified",
+      "fields": {
+        "pose": "表情・鞠躬謝謝（起身冒小花）",
+        "expression": "表情・鞠躬謝謝（起身冒小花）",
+        "orientation": "face_bow 片尾謝謝收看",
+        "prop": "",
+        "scene": "片尾謝謝收看",
+        "tags": "face_bow 表情"
+      },
+      "source_url": "https://github.com/MiaoZiKe/tw-rotation/blob/main/docs/anim/bibi_library/face_bow/key.png",
+      "declared_frames": 12,
+      "declared_duration": "1.64 秒",
+      "files": [],
+      "inspection": "remote_index_only_not_visually_verified"
+    },
+    {
+      "asset_id": "legacy_face_clap",
+      "name": "表情・拍手（小肉掌、啪啪）",
+      "version": "main@8d947a7f18d0ee87f477acff5ebdabf3a782731e",
+      "status": "review",
+      "rights": "unknown",
+      "category": "author_unverified",
+      "fields": {
+        "pose": "表情・拍手（小肉掌、啪啪）",
+        "expression": "表情・拍手（小肉掌、啪啪）",
+        "orientation": "face_clap 鼓掌、恭喜",
+        "prop": "",
+        "scene": "鼓掌、恭喜",
+        "tags": "face_clap 表情"
+      },
+      "source_url": "https://github.com/MiaoZiKe/tw-rotation/blob/main/docs/anim/bibi_library/face_clap/key.png",
+      "declared_frames": 12,
+      "declared_duration": "1.25 秒",
+      "files": [],
+      "inspection": "remote_index_only_not_visually_verified"
+    },
+    {
+      "asset_id": "legacy_face_cool",
+      "name": "表情・戴小墨鏡（從天而降、鏡片閃光）",
+      "version": "main@8d947a7f18d0ee87f477acff5ebdabf3a782731e",
+      "status": "review",
+      "rights": "unknown",
+      "category": "author_unverified",
+      "fields": {
+        "pose": "表情・戴小墨鏡（從天而降、鏡片閃光）",
+        "expression": "表情・戴小墨鏡（從天而降、鏡片閃光）",
+        "orientation": "face_cool 很酷的功能、帥氣登場",
+        "prop": "",
+        "scene": "很酷的功能、帥氣登場",
+        "tags": "face_cool 表情"
+      },
+      "source_url": "https://github.com/MiaoZiKe/tw-rotation/blob/main/docs/anim/bibi_library/face_cool/key.png",
+      "declared_frames": 12,
+      "declared_duration": "1.49 秒",
+      "files": [],
+      "inspection": "remote_index_only_not_visually_verified"
+    },
+    {
+      "asset_id": "legacy_face_curious",
+      "name": "表情・好奇湊近（歪頭、湊到鏡頭、嗅嗅）",
+      "version": "main@8d947a7f18d0ee87f477acff5ebdabf3a782731e",
+      "status": "review",
+      "rights": "unknown",
+      "category": "author_unverified",
+      "fields": {
+        "pose": "表情・好奇湊近（歪頭、湊到鏡頭、嗅嗅）",
+        "expression": "表情・好奇湊近（歪頭、湊到鏡頭、嗅嗅）",
+        "orientation": "face_curious 好奇湊近看新東西",
+        "prop": "",
+        "scene": "好奇湊近看新東西",
+        "tags": "face_curious 表情"
+      },
+      "source_url": "https://github.com/MiaoZiKe/tw-rotation/blob/main/docs/anim/bibi_library/face_curious/key.png",
+      "declared_frames": 12,
+      "declared_duration": "1.47 秒",
+      "files": [],
+      "inspection": "remote_index_only_not_visually_verified"
+    },
+    {
+      "asset_id": "legacy_face_determined",
+      "name": "表情・握拳加油（鬥志火焰）",
+      "version": "main@8d947a7f18d0ee87f477acff5ebdabf3a782731e",
+      "status": "review",
+      "rights": "unknown",
+      "category": "author_unverified",
+      "fields": {
+        "pose": "表情・握拳加油（鬥志火焰）",
+        "expression": "表情・握拳加油（鬥志火焰）",
+        "orientation": "face_determined 加油打氣、一起努力",
+        "prop": "",
+        "scene": "加油打氣、一起努力",
+        "tags": "face_determined 表情"
+      },
+      "source_url": "https://github.com/MiaoZiKe/tw-rotation/blob/main/docs/anim/bibi_library/face_determined/key.png",
+      "declared_frames": 12,
+      "declared_duration": "1.39 秒",
+      "files": [],
+      "inspection": "remote_index_only_not_visually_verified"
+    },
+    {
+      "asset_id": "legacy_face_relief",
+      "name": "表情・鬆一口氣（憋氣→哈氣→軟趴趴）",
+      "version": "main@8d947a7f18d0ee87f477acff5ebdabf3a782731e",
+      "status": "review",
+      "rights": "unknown",
+      "category": "author_unverified",
+      "fields": {
+        "pose": "表情・鬆一口氣（憋氣→哈氣→軟趴趴）",
+        "expression": "表情・鬆一口氣（憋氣→哈氣→軟趴趴）",
+        "orientation": "face_relief 問題解決、安心了",
+        "prop": "",
+        "scene": "問題解決、安心了",
+        "tags": "face_relief 表情"
+      },
+      "source_url": "https://github.com/MiaoZiKe/tw-rotation/blob/main/docs/anim/bibi_library/face_relief/key.png",
+      "declared_frames": 12,
+      "declared_duration": "1.65 秒",
+      "files": [],
+      "inspection": "remote_index_only_not_visually_verified"
+    },
+    {
+      "asset_id": "legacy_face_shy",
+      "name": "表情・害羞摀臉（小肉掌、指縫偷看）",
+      "version": "main@8d947a7f18d0ee87f477acff5ebdabf3a782731e",
+      "status": "review",
+      "rights": "unknown",
+      "category": "author_unverified",
+      "fields": {
+        "pose": "表情・害羞摀臉（小肉掌、指縫偷看）",
+        "expression": "表情・害羞摀臉（小肉掌、指縫偷看）",
+        "orientation": "face_shy 被稱讚、不好意思",
+        "prop": "",
+        "scene": "被稱讚、不好意思",
+        "tags": "face_shy 表情"
+      },
+      "source_url": "https://github.com/MiaoZiKe/tw-rotation/blob/main/docs/anim/bibi_library/face_shy/key.png",
+      "declared_frames": 12,
+      "declared_duration": "1.50 秒",
+      "files": [],
+      "inspection": "remote_index_only_not_visually_verified"
+    },
+    {
+      "asset_id": "legacy_face_surprise_happy",
+      "name": "表情・驚喜張大嘴（跳起、彩帶）",
+      "version": "main@8d947a7f18d0ee87f477acff5ebdabf3a782731e",
+      "status": "review",
+      "rights": "unknown",
+      "category": "author_unverified",
+      "fields": {
+        "pose": "表情・驚喜張大嘴（跳起、彩帶）",
+        "expression": "表情・驚喜張大嘴（跳起、彩帶）",
+        "orientation": "face_surprise_happy 驚喜、好消息公布",
+        "prop": "",
+        "scene": "驚喜、好消息公布",
+        "tags": "face_surprise_happy 表情"
+      },
+      "source_url": "https://github.com/MiaoZiKe/tw-rotation/blob/main/docs/anim/bibi_library/face_surprise_happy/key.png",
+      "declared_frames": 12,
+      "declared_duration": "1.30 秒",
+      "files": [],
+      "inspection": "remote_index_only_not_visually_verified"
+    },
+    {
+      "asset_id": "legacy_face_thinking_bulb",
+      "name": "表情・思考後點頭（燈泡亮、嗯嗯）",
+      "version": "main@8d947a7f18d0ee87f477acff5ebdabf3a782731e",
+      "status": "review",
+      "rights": "unknown",
+      "category": "author_unverified",
+      "fields": {
+        "pose": "表情・思考後點頭（燈泡亮、嗯嗯）",
+        "expression": "表情・思考後點頭（燈泡亮、嗯嗯）",
+        "orientation": "face_thinking_bulb 想通了、恍然大悟",
+        "prop": "",
+        "scene": "想通了、恍然大悟",
+        "tags": "face_thinking_bulb 表情"
+      },
+      "source_url": "https://github.com/MiaoZiKe/tw-rotation/blob/main/docs/anim/bibi_library/face_thinking_bulb/key.png",
+      "declared_frames": 12,
+      "declared_duration": "1.51 秒",
+      "files": [],
+      "inspection": "remote_index_only_not_visually_verified"
+    },
+    {
+      "asset_id": "legacy_face_thumbs",
+      "name": "表情・比讚（小肉掌在身前）",
+      "version": "main@8d947a7f18d0ee87f477acff5ebdabf3a782731e",
+      "status": "review",
+      "rights": "unknown",
+      "category": "author_unverified",
+      "fields": {
+        "pose": "表情・比讚（小肉掌在身前）",
+        "expression": "表情・比讚（小肉掌在身前）",
+        "orientation": "face_thumbs 推薦、按讚",
+        "prop": "",
+        "scene": "推薦、按讚",
+        "tags": "face_thumbs 表情"
+      },
+      "source_url": "https://github.com/MiaoZiKe/tw-rotation/blob/main/docs/anim/bibi_library/face_thumbs/key.png",
+      "declared_frames": 12,
+      "declared_duration": "1.48 秒",
+      "files": [],
+      "inspection": "remote_index_only_not_visually_verified"
+    },
+    {
+      "asset_id": "legacy_3dglasses",
+      "name": "戴 3D 眼鏡",
+      "version": "main@8d947a7f18d0ee87f477acff5ebdabf3a782731e",
+      "status": "review",
+      "rights": "unknown",
+      "category": "author_unverified",
+      "fields": {
+        "pose": "戴 3D 眼鏡",
+        "expression": "戴 3D 眼鏡",
+        "orientation": "3dglasses 介紹 3D 剖析圖",
+        "prop": "戴 3D 眼鏡",
+        "scene": "介紹 3D 剖析圖",
+        "tags": "3dglasses 情境道具"
+      },
+      "source_url": "https://github.com/MiaoZiKe/tw-rotation/blob/main/docs/anim/bibi_library/3dglasses/key.png",
+      "declared_frames": 12,
+      "declared_duration": "0.95 秒",
+      "files": [],
+      "inspection": "remote_index_only_not_visually_verified"
+    },
+    {
+      "asset_id": "legacy_celebrate",
+      "name": "慶祝",
+      "version": "main@8d947a7f18d0ee87f477acff5ebdabf3a782731e",
+      "status": "review",
+      "rights": "unknown",
+      "category": "author_unverified",
+      "fields": {
+        "pose": "慶祝",
+        "expression": "慶祝",
+        "orientation": "celebrate 達成、上線、好消息",
+        "prop": "慶祝",
+        "scene": "達成、上線、好消息",
+        "tags": "celebrate 情境道具"
+      },
+      "source_url": "https://github.com/MiaoZiKe/tw-rotation/blob/main/docs/anim/bibi_library/celebrate/key.png",
+      "declared_frames": 12,
+      "declared_duration": "0.88 秒",
+      "files": [],
+      "inspection": "remote_index_only_not_visually_verified"
+    },
+    {
+      "asset_id": "legacy_coins",
+      "name": "金幣飛過",
+      "version": "main@8d947a7f18d0ee87f477acff5ebdabf3a782731e",
+      "status": "rejected",
+      "rights": "unknown",
+      "category": "author_unverified",
+      "fields": {
+        "pose": "金幣飛過",
+        "expression": "金幣飛過",
+        "orientation": "coins 談收益、配息、錢流進來",
+        "prop": "金幣飛過",
+        "scene": "談收益、配息、錢流進來",
+        "tags": "coins 情境道具"
+      },
+      "source_url": "https://github.com/MiaoZiKe/tw-rotation/blob/main/docs/anim/bibi_library/coins/key.png",
+      "declared_frames": 12,
+      "declared_duration": "0.84 秒",
+      "files": [],
+      "inspection": "remote_index_only_not_visually_verified"
+    },
+    {
+      "asset_id": "legacy_magnifier",
+      "name": "放大鏡",
+      "version": "main@8d947a7f18d0ee87f477acff5ebdabf3a782731e",
+      "status": "review",
+      "rights": "unknown",
+      "category": "author_unverified",
+      "fields": {
+        "pose": "放大鏡",
+        "expression": "放大鏡",
+        "orientation": "magnifier 放大看細節、深入分析",
+        "prop": "放大鏡",
+        "scene": "放大看細節、深入分析",
+        "tags": "magnifier 情境道具"
+      },
+      "source_url": "https://github.com/MiaoZiKe/tw-rotation/blob/main/docs/anim/bibi_library/magnifier/key.png",
+      "declared_frames": 12,
+      "declared_duration": "1.05 秒",
+      "files": [],
+      "inspection": "remote_index_only_not_visually_verified"
+    },
+    {
+      "asset_id": "legacy_news",
+      "name": "看財經日曆",
+      "version": "main@8d947a7f18d0ee87f477acff5ebdabf3a782731e",
+      "status": "review",
+      "rights": "unknown",
+      "category": "author_unverified",
+      "fields": {
+        "pose": "看財經日曆",
+        "expression": "看財經日曆",
+        "orientation": "news 看財經新聞／日曆",
+        "prop": "看財經日曆",
+        "scene": "看財經新聞／日曆",
+        "tags": "news 情境道具"
+      },
+      "source_url": "https://github.com/MiaoZiKe/tw-rotation/blob/main/docs/anim/bibi_library/news/key.png",
+      "declared_frames": 12,
+      "declared_duration": "1.07 秒",
+      "files": [],
+      "inspection": "remote_index_only_not_visually_verified"
+    },
+    {
+      "asset_id": "legacy_sign",
+      "name": "許願牌懸空（牌面留白）",
+      "version": "main@8d947a7f18d0ee87f477acff5ebdabf3a782731e",
+      "status": "review",
+      "rights": "unknown",
+      "category": "author_unverified",
+      "fields": {
+        "pose": "許願牌懸空（牌面留白）",
+        "expression": "許願牌懸空（牌面留白）",
+        "orientation": "sign 頭上牌子（留白，影片自己放字）",
+        "prop": "許願牌懸空（牌面留白）",
+        "scene": "頭上牌子（留白，影片自己放字）",
+        "tags": "sign 情境道具"
+      },
+      "source_url": "https://github.com/MiaoZiKe/tw-rotation/blob/main/docs/anim/bibi_library/sign/key.png",
+      "declared_frames": 12,
+      "declared_duration": "1.01 秒",
+      "files": [],
+      "inspection": "remote_index_only_not_visually_verified"
+    },
+    {
+      "asset_id": "legacy_sign_text",
+      "name": "許願牌懸空（牌面「許願」）",
+      "version": "main@8d947a7f18d0ee87f477acff5ebdabf3a782731e",
+      "status": "review",
+      "rights": "unknown",
+      "category": "author_unverified",
+      "fields": {
+        "pose": "許願牌懸空（牌面「許願」）",
+        "expression": "許願牌懸空（牌面「許願」）",
+        "orientation": "sign_text 許願、許願清單段落",
+        "prop": "許願牌懸空（牌面「許願」）",
+        "scene": "許願、許願清單段落",
+        "tags": "sign_text 情境道具"
+      },
+      "source_url": "https://github.com/MiaoZiKe/tw-rotation/blob/main/docs/anim/bibi_library/sign_text/key.png",
+      "declared_frames": 12,
+      "declared_duration": "1.01 秒",
+      "files": [],
+      "inspection": "remote_index_only_not_visually_verified"
+    },
+    {
+      "asset_id": "legacy_boba",
+      "name": "喝珍奶（含吸管、鼓臉頰、滿足瞇眼）",
+      "version": "main@8d947a7f18d0ee87f477acff5ebdabf3a782731e",
+      "status": "review",
+      "rights": "unknown",
+      "category": "author_unverified",
+      "fields": {
+        "pose": "喝珍奶（含吸管、鼓臉頰、滿足瞇眼）",
+        "expression": "喝珍奶（含吸管、鼓臉頰、滿足瞇眼）",
+        "orientation": "boba 輕鬆段落、下班時間",
+        "prop": "喝珍奶（含吸管、鼓臉頰、滿足瞇眼）",
+        "scene": "輕鬆段落、下班時間",
+        "tags": "boba 情境道具"
+      },
+      "source_url": "https://github.com/MiaoZiKe/tw-rotation/blob/main/docs/anim/bibi_library/boba/key.png",
+      "declared_frames": 12,
+      "declared_duration": "1.29 秒",
+      "files": [],
+      "inspection": "remote_index_only_not_visually_verified"
+    },
+    {
+      "asset_id": "legacy_calc",
+      "name": "按計算機（螢幕數字跳、點頭）",
+      "version": "main@8d947a7f18d0ee87f477acff5ebdabf3a782731e",
+      "status": "review",
+      "rights": "unknown",
+      "category": "author_unverified",
+      "fields": {
+        "pose": "按計算機（螢幕數字跳、點頭）",
+        "expression": "按計算機（螢幕數字跳、點頭）",
+        "orientation": "calc 試算、計算報酬",
+        "prop": "按計算機（螢幕數字跳、點頭）",
+        "scene": "試算、計算報酬",
+        "tags": "calc 情境道具"
+      },
+      "source_url": "https://github.com/MiaoZiKe/tw-rotation/blob/main/docs/anim/bibi_library/calc/key.png",
+      "declared_frames": 12,
+      "declared_duration": "1.16 秒",
+      "files": [],
+      "inspection": "remote_index_only_not_visually_verified"
+    },
+    {
+      "asset_id": "legacy_calendar",
+      "name": "翻日曆（一頁頁往上翻、眨眼看）",
+      "version": "main@8d947a7f18d0ee87f477acff5ebdabf3a782731e",
+      "status": "review",
+      "rights": "unknown",
+      "category": "author_unverified",
+      "fields": {
+        "pose": "翻日曆（一頁頁往上翻、眨眼看）",
+        "expression": "翻日曆（一頁頁往上翻、眨眼看）",
+        "orientation": "calendar 日期、事件日曆、每天更新",
+        "prop": "翻日曆（一頁頁往上翻、眨眼看）",
+        "scene": "日期、事件日曆、每天更新",
+        "tags": "calendar 情境道具"
+      },
+      "source_url": "https://github.com/MiaoZiKe/tw-rotation/blob/main/docs/anim/bibi_library/calendar/key.png",
+      "declared_frames": 12,
+      "declared_duration": "1.16 秒",
+      "files": [],
+      "inspection": "remote_index_only_not_visually_verified"
+    },
+    {
+      "asset_id": "legacy_growth",
+      "name": "複利長大（金幣疊高、小芽長成樹）",
+      "version": "main@8d947a7f18d0ee87f477acff5ebdabf3a782731e",
+      "status": "rejected",
+      "rights": "unknown",
+      "category": "author_unverified",
+      "fields": {
+        "pose": "複利長大（金幣疊高、小芽長成樹）",
+        "expression": "複利長大（金幣疊高、小芽長成樹）",
+        "orientation": "growth 複利、長期成長",
+        "prop": "複利長大（金幣疊高、小芽長成樹）",
+        "scene": "複利、長期成長",
+        "tags": "growth 情境道具"
+      },
+      "source_url": "https://github.com/MiaoZiKe/tw-rotation/blob/main/docs/anim/bibi_library/growth/key.png",
+      "declared_frames": 12,
+      "declared_duration": "1.29 秒",
+      "files": [],
+      "inspection": "remote_index_only_not_visually_verified"
+    },
+    {
+      "asset_id": "legacy_piggy",
+      "name": "存錢筒（金幣投進去、叮）",
+      "version": "main@8d947a7f18d0ee87f477acff5ebdabf3a782731e",
+      "status": "rejected",
+      "rights": "unknown",
+      "category": "author_unverified",
+      "fields": {
+        "pose": "存錢筒（金幣投進去、叮）",
+        "expression": "存錢筒（金幣投進去、叮）",
+        "orientation": "piggy 存錢、配息、累積",
+        "prop": "存錢筒（金幣投進去、叮）",
+        "scene": "存錢、配息、累積",
+        "tags": "piggy 情境道具"
+      },
+      "source_url": "https://github.com/MiaoZiKe/tw-rotation/blob/main/docs/anim/bibi_library/piggy/key.png",
+      "declared_frames": 12,
+      "declared_duration": "1.03 秒",
+      "files": [],
+      "inspection": "remote_index_only_not_visually_verified"
+    },
+    {
+      "asset_id": "legacy_hop_l",
+      "name": "原地跳步・往左",
+      "version": "main@8d947a7f18d0ee87f477acff5ebdabf3a782731e",
+      "status": "review",
+      "rights": "unknown",
+      "category": "author_unverified",
+      "fields": {
+        "pose": "原地跳步・往左",
+        "expression": "原地跳步・往左",
+        "orientation": "hop_l 原地跳步・往左",
+        "prop": "",
+        "scene": "原地跳步・往左",
+        "tags": "hop_l 互動"
+      },
+      "source_url": "https://github.com/MiaoZiKe/tw-rotation/blob/main/docs/anim/bibi_library/hop_l/key.png",
+      "declared_frames": 12,
+      "declared_duration": "0.84 秒",
+      "files": [],
+      "inspection": "remote_index_only_not_visually_verified"
+    },
+    {
+      "asset_id": "legacy_hop_r",
+      "name": "原地跳步・往右",
+      "version": "main@8d947a7f18d0ee87f477acff5ebdabf3a782731e",
+      "status": "review",
+      "rights": "unknown",
+      "category": "author_unverified",
+      "fields": {
+        "pose": "原地跳步・往右",
+        "expression": "原地跳步・往右",
+        "orientation": "hop_r 原地跳步・往右",
+        "prop": "",
+        "scene": "原地跳步・往右",
+        "tags": "hop_r 互動"
+      },
+      "source_url": "https://github.com/MiaoZiKe/tw-rotation/blob/main/docs/anim/bibi_library/hop_r/key.png",
+      "declared_frames": 12,
+      "declared_duration": "0.84 秒",
+      "files": [],
+      "inspection": "remote_index_only_not_visually_verified"
+    },
+    {
+      "asset_id": "legacy_peek_l",
+      "name": "從左下角探頭",
+      "version": "main@8d947a7f18d0ee87f477acff5ebdabf3a782731e",
+      "status": "review",
+      "rights": "unknown",
+      "category": "author_unverified",
+      "fields": {
+        "pose": "從左下角探頭",
+        "expression": "從左下角探頭",
+        "orientation": "peek_l 從左下角探頭",
+        "prop": "",
+        "scene": "從左下角探頭",
+        "tags": "peek_l 互動"
+      },
+      "source_url": "https://github.com/MiaoZiKe/tw-rotation/blob/main/docs/anim/bibi_library/peek_l/key.png",
+      "declared_frames": 12,
+      "declared_duration": "1.48 秒",
+      "files": [],
+      "inspection": "remote_index_only_not_visually_verified"
+    },
+    {
+      "asset_id": "legacy_peek_r",
+      "name": "從右下角探頭",
+      "version": "main@8d947a7f18d0ee87f477acff5ebdabf3a782731e",
+      "status": "review",
+      "rights": "unknown",
+      "category": "author_unverified",
+      "fields": {
+        "pose": "從右下角探頭",
+        "expression": "從右下角探頭",
+        "orientation": "peek_r 從右下角探頭",
+        "prop": "",
+        "scene": "從右下角探頭",
+        "tags": "peek_r 互動"
+      },
+      "source_url": "https://github.com/MiaoZiKe/tw-rotation/blob/main/docs/anim/bibi_library/peek_r/key.png",
+      "declared_frames": 12,
+      "declared_duration": "1.48 秒",
+      "files": [],
+      "inspection": "remote_index_only_not_visually_verified"
+    },
+    {
+      "asset_id": "legacy_phone",
+      "name": "抱著懸空小手機（螢幕留白）",
+      "version": "main@8d947a7f18d0ee87f477acff5ebdabf3a782731e",
+      "status": "review",
+      "rights": "unknown",
+      "category": "author_unverified",
+      "fields": {
+        "pose": "抱著懸空小手機（螢幕留白）",
+        "expression": "抱著懸空小手機（螢幕留白）",
+        "orientation": "phone 抱著懸空小手機（螢幕留白）",
+        "prop": "",
+        "scene": "抱著懸空小手機（螢幕留白）",
+        "tags": "phone 互動"
+      },
+      "source_url": "https://github.com/MiaoZiKe/tw-rotation/blob/main/docs/anim/bibi_library/phone/key.png",
+      "declared_frames": 12,
+      "declared_duration": "1.66 秒",
+      "files": [],
+      "inspection": "remote_index_only_not_visually_verified"
+    },
+    {
+      "asset_id": "legacy_pointer_l",
+      "name": "懸空指示棒・往左上戳",
+      "version": "main@8d947a7f18d0ee87f477acff5ebdabf3a782731e",
+      "status": "review",
+      "rights": "unknown",
+      "category": "author_unverified",
+      "fields": {
+        "pose": "懸空指示棒・往左上戳",
+        "expression": "懸空指示棒・往左上戳",
+        "orientation": "pointer_l 懸空指示棒・往左上戳",
+        "prop": "",
+        "scene": "懸空指示棒・往左上戳",
+        "tags": "pointer_l 互動"
+      },
+      "source_url": "https://github.com/MiaoZiKe/tw-rotation/blob/main/docs/anim/bibi_library/pointer_l/key.png",
+      "declared_frames": 12,
+      "declared_duration": "1.26 秒",
+      "files": [],
+      "inspection": "remote_index_only_not_visually_verified"
+    },
+    {
+      "asset_id": "legacy_pointer_r",
+      "name": "懸空指示棒・往右上戳",
+      "version": "main@8d947a7f18d0ee87f477acff5ebdabf3a782731e",
+      "status": "review",
+      "rights": "unknown",
+      "category": "author_unverified",
+      "fields": {
+        "pose": "懸空指示棒・往右上戳",
+        "expression": "懸空指示棒・往右上戳",
+        "orientation": "pointer_r 懸空指示棒・往右上戳",
+        "prop": "",
+        "scene": "懸空指示棒・往右上戳",
+        "tags": "pointer_r 互動"
+      },
+      "source_url": "https://github.com/MiaoZiKe/tw-rotation/blob/main/docs/anim/bibi_library/pointer_r/key.png",
+      "declared_frames": 12,
+      "declared_duration": "1.26 秒",
+      "files": [],
+      "inspection": "remote_index_only_not_visually_verified"
+    },
+    {
+      "asset_id": "legacy_reveal",
+      "name": "拉開布幕",
+      "version": "main@8d947a7f18d0ee87f477acff5ebdabf3a782731e",
+      "status": "review",
+      "rights": "unknown",
+      "category": "author_unverified",
+      "fields": {
+        "pose": "拉開布幕",
+        "expression": "拉開布幕",
+        "orientation": "reveal 拉開布幕",
+        "prop": "",
+        "scene": "拉開布幕",
+        "tags": "reveal 互動"
+      },
+      "source_url": "https://github.com/MiaoZiKe/tw-rotation/blob/main/docs/anim/bibi_library/reveal/key.png",
+      "declared_frames": 12,
+      "declared_duration": "1.75 秒",
+      "files": [],
+      "inspection": "remote_index_only_not_visually_verified"
+    },
+    {
+      "asset_id": "legacy_slide_l",
+      "name": "坐滑板滑過・往左",
+      "version": "main@8d947a7f18d0ee87f477acff5ebdabf3a782731e",
+      "status": "review",
+      "rights": "unknown",
+      "category": "author_unverified",
+      "fields": {
+        "pose": "坐滑板滑過・往左",
+        "expression": "坐滑板滑過・往左",
+        "orientation": "slide_l 坐滑板滑過・往左",
+        "prop": "",
+        "scene": "坐滑板滑過・往左",
+        "tags": "slide_l 互動"
+      },
+      "source_url": "https://github.com/MiaoZiKe/tw-rotation/blob/main/docs/anim/bibi_library/slide_l/key.png",
+      "declared_frames": 12,
+      "declared_duration": "0.84 秒",
+      "files": [],
+      "inspection": "remote_index_only_not_visually_verified"
+    },
+    {
+      "asset_id": "legacy_slide_r",
+      "name": "坐滑板滑過・往右",
+      "version": "main@8d947a7f18d0ee87f477acff5ebdabf3a782731e",
+      "status": "review",
+      "rights": "unknown",
+      "category": "author_unverified",
+      "fields": {
+        "pose": "坐滑板滑過・往右",
+        "expression": "坐滑板滑過・往右",
+        "orientation": "slide_r 坐滑板滑過・往右",
+        "prop": "",
+        "scene": "坐滑板滑過・往右",
+        "tags": "slide_r 互動"
+      },
+      "source_url": "https://github.com/MiaoZiKe/tw-rotation/blob/main/docs/anim/bibi_library/slide_r/key.png",
+      "declared_frames": 12,
+      "declared_duration": "0.84 秒",
+      "files": [],
+      "inspection": "remote_index_only_not_visually_verified"
+    },
+    {
+      "asset_id": "legacy_spotlight",
+      "name": "聚光燈介紹",
+      "version": "main@8d947a7f18d0ee87f477acff5ebdabf3a782731e",
+      "status": "review",
+      "rights": "unknown",
+      "category": "author_unverified",
+      "fields": {
+        "pose": "聚光燈介紹",
+        "expression": "聚光燈介紹",
+        "orientation": "spotlight 聚光燈介紹",
+        "prop": "",
+        "scene": "聚光燈介紹",
+        "tags": "spotlight 互動"
+      },
+      "source_url": "https://github.com/MiaoZiKe/tw-rotation/blob/main/docs/anim/bibi_library/spotlight/key.png",
+      "declared_frames": 12,
+      "declared_duration": "1.35 秒",
+      "files": [],
+      "inspection": "remote_index_only_not_visually_verified"
+    },
+    {
+      "asset_id": "legacy_tap",
+      "name": "跳上去踩按鈕（漣漪）",
+      "version": "main@8d947a7f18d0ee87f477acff5ebdabf3a782731e",
+      "status": "review",
+      "rights": "unknown",
+      "category": "author_unverified",
+      "fields": {
+        "pose": "跳上去踩按鈕（漣漪）",
+        "expression": "跳上去踩按鈕（漣漪）",
+        "orientation": "tap 跳上去踩按鈕（漣漪）",
+        "prop": "",
+        "scene": "跳上去踩按鈕（漣漪）",
+        "tags": "tap 互動"
+      },
+      "source_url": "https://github.com/MiaoZiKe/tw-rotation/blob/main/docs/anim/bibi_library/tap/key.png",
+      "declared_frames": 12,
+      "declared_duration": "1.00 秒",
+      "files": [],
+      "inspection": "remote_index_only_not_visually_verified"
+    },
+    {
+      "asset_id": "legacy_alarm",
+      "name": "鬧鐘響→按掉（省時間）",
+      "version": "main@8d947a7f18d0ee87f477acff5ebdabf3a782731e",
+      "status": "review",
+      "rights": "unknown",
+      "category": "author_unverified",
+      "fields": {
+        "pose": "鬧鐘響→按掉（省時間）",
+        "expression": "鬧鐘響→按掉（省時間）",
+        "orientation": "alarm 鬧鐘響→按掉（省時間）",
+        "prop": "",
+        "scene": "鬧鐘響→按掉（省時間）",
+        "tags": "alarm 互動"
+      },
+      "source_url": "https://github.com/MiaoZiKe/tw-rotation/blob/main/docs/anim/bibi_library/alarm/key.png",
+      "declared_frames": 12,
+      "declared_duration": "1.05 秒",
+      "files": [],
+      "inspection": "remote_index_only_not_visually_verified"
+    },
+    {
+      "asset_id": "legacy_bulb",
+      "name": "頭上燈泡亮（原來如此）",
+      "version": "main@8d947a7f18d0ee87f477acff5ebdabf3a782731e",
+      "status": "review",
+      "rights": "unknown",
+      "category": "author_unverified",
+      "fields": {
+        "pose": "頭上燈泡亮（原來如此）",
+        "expression": "頭上燈泡亮（原來如此）",
+        "orientation": "bulb 頭上燈泡亮（原來如此）",
+        "prop": "",
+        "scene": "頭上燈泡亮（原來如此）",
+        "tags": "bulb 互動"
+      },
+      "source_url": "https://github.com/MiaoZiKe/tw-rotation/blob/main/docs/anim/bibi_library/bulb/key.png",
+      "declared_frames": 12,
+      "declared_duration": "1.05 秒",
+      "files": [],
+      "inspection": "remote_index_only_not_visually_verified"
+    },
+    {
+      "asset_id": "legacy_clock",
+      "name": "時鐘快轉→放鬆（30 分變 3 分）",
+      "version": "main@8d947a7f18d0ee87f477acff5ebdabf3a782731e",
+      "status": "review",
+      "rights": "unknown",
+      "category": "author_unverified",
+      "fields": {
+        "pose": "時鐘快轉→放鬆（30 分變 3 分）",
+        "expression": "時鐘快轉→放鬆（30 分變 3 分）",
+        "orientation": "clock 時鐘快轉→放鬆（30 分變 3 分）",
+        "prop": "",
+        "scene": "時鐘快轉→放鬆（30 分變 3 分）",
+        "tags": "clock 互動"
+      },
+      "source_url": "https://github.com/MiaoZiKe/tw-rotation/blob/main/docs/anim/bibi_library/clock/key.png",
+      "declared_frames": 12,
+      "declared_duration": "1.06 秒",
+      "files": [],
+      "inspection": "remote_index_only_not_visually_verified"
+    },
+    {
+      "asset_id": "legacy_fire",
+      "name": "火苗＋溫度計升高（題材熱度）",
+      "version": "main@8d947a7f18d0ee87f477acff5ebdabf3a782731e",
+      "status": "review",
+      "rights": "unknown",
+      "category": "author_unverified",
+      "fields": {
+        "pose": "火苗＋溫度計升高（題材熱度）",
+        "expression": "火苗＋溫度計升高（題材熱度）",
+        "orientation": "fire 火苗＋溫度計升高（題材熱度）",
+        "prop": "",
+        "scene": "火苗＋溫度計升高（題材熱度）",
+        "tags": "fire 互動"
+      },
+      "source_url": "https://github.com/MiaoZiKe/tw-rotation/blob/main/docs/anim/bibi_library/fire/key.png",
+      "declared_frames": 12,
+      "declared_duration": "1.05 秒",
+      "files": [],
+      "inspection": "remote_index_only_not_visually_verified"
+    },
+    {
+      "asset_id": "legacy_folder",
+      "name": "亂紙飛進資料夾（統整資料）",
+      "version": "main@8d947a7f18d0ee87f477acff5ebdabf3a782731e",
+      "status": "review",
+      "rights": "unknown",
+      "category": "author_unverified",
+      "fields": {
+        "pose": "亂紙飛進資料夾（統整資料）",
+        "expression": "亂紙飛進資料夾（統整資料）",
+        "orientation": "folder 亂紙飛進資料夾（統整資料）",
+        "prop": "",
+        "scene": "亂紙飛進資料夾（統整資料）",
+        "tags": "folder 互動"
+      },
+      "source_url": "https://github.com/MiaoZiKe/tw-rotation/blob/main/docs/anim/bibi_library/folder/key.png",
+      "declared_frames": 12,
+      "declared_duration": "1.01 秒",
+      "files": [],
+      "inspection": "remote_index_only_not_visually_verified"
+    },
+    {
+      "asset_id": "legacy_globe",
+      "name": "地球轉＋新聞卡飛出",
+      "version": "main@8d947a7f18d0ee87f477acff5ebdabf3a782731e",
+      "status": "review",
+      "rights": "unknown",
+      "category": "author_unverified",
+      "fields": {
+        "pose": "地球轉＋新聞卡飛出",
+        "expression": "地球轉＋新聞卡飛出",
+        "orientation": "globe 地球轉＋新聞卡飛出",
+        "prop": "",
+        "scene": "地球轉＋新聞卡飛出",
+        "tags": "globe 互動"
+      },
+      "source_url": "https://github.com/MiaoZiKe/tw-rotation/blob/main/docs/anim/bibi_library/globe/key.png",
+      "declared_frames": 12,
+      "declared_duration": "1.00 秒",
+      "files": [],
+      "inspection": "remote_index_only_not_visually_verified"
+    },
+    {
+      "asset_id": "legacy_heart_wish",
+      "name": "許願星星飛進許願瓶（會員許願）",
+      "version": "main@8d947a7f18d0ee87f477acff5ebdabf3a782731e",
+      "status": "review",
+      "rights": "unknown",
+      "category": "author_unverified",
+      "fields": {
+        "pose": "許願星星飛進許願瓶（會員許願）",
+        "expression": "許願星星飛進許願瓶（會員許願）",
+        "orientation": "heart_wish 許願星星飛進許願瓶（會員許願）",
+        "prop": "",
+        "scene": "許願星星飛進許願瓶（會員許願）",
+        "tags": "heart_wish 互動"
+      },
+      "source_url": "https://github.com/MiaoZiKe/tw-rotation/blob/main/docs/anim/bibi_library/heart_wish/key.png",
+      "declared_frames": 12,
+      "declared_duration": "1.05 秒",
+      "files": [],
+      "inspection": "remote_index_only_not_visually_verified"
+    },
+    {
+      "asset_id": "legacy_hourglass",
+      "name": "沙漏＋舊照片（週期統計看過往）",
+      "version": "main@8d947a7f18d0ee87f477acff5ebdabf3a782731e",
+      "status": "review",
+      "rights": "unknown",
+      "category": "author_unverified",
+      "fields": {
+        "pose": "沙漏＋舊照片（週期統計看過往）",
+        "expression": "沙漏＋舊照片（週期統計看過往）",
+        "orientation": "hourglass 沙漏＋舊照片（週期統計看過往）",
+        "prop": "",
+        "scene": "沙漏＋舊照片（週期統計看過往）",
+        "tags": "hourglass 互動"
+      },
+      "source_url": "https://github.com/MiaoZiKe/tw-rotation/blob/main/docs/anim/bibi_library/hourglass/key.png",
+      "declared_frames": 12,
+      "declared_duration": "1.09 秒",
+      "files": [],
+      "inspection": "remote_index_only_not_visually_verified"
+    },
+    {
+      "asset_id": "legacy_magic_frame",
+      "name": "揮小肉掌畫出發光方框（框住重點）",
+      "version": "main@8d947a7f18d0ee87f477acff5ebdabf3a782731e",
+      "status": "review",
+      "rights": "unknown",
+      "category": "author_unverified",
+      "fields": {
+        "pose": "揮小肉掌畫出發光方框（框住重點）",
+        "expression": "揮小肉掌畫出發光方框（框住重點）",
+        "orientation": "magic_frame 揮小肉掌畫出發光方框（框住重點）",
+        "prop": "",
+        "scene": "揮小肉掌畫出發光方框（框住重點）",
+        "tags": "magic_frame 互動"
+      },
+      "source_url": "https://github.com/MiaoZiKe/tw-rotation/blob/main/docs/anim/bibi_library/magic_frame/key.png",
+      "declared_frames": 12,
+      "declared_duration": "0.95 秒",
+      "files": [],
+      "inspection": "remote_index_only_not_visually_verified"
+    },
+    {
+      "asset_id": "legacy_rocket",
+      "name": "小火箭往上（持續進步）",
+      "version": "main@8d947a7f18d0ee87f477acff5ebdabf3a782731e",
+      "status": "review",
+      "rights": "unknown",
+      "category": "author_unverified",
+      "fields": {
+        "pose": "小火箭往上（持續進步）",
+        "expression": "小火箭往上（持續進步）",
+        "orientation": "rocket 小火箭往上（持續進步）",
+        "prop": "",
+        "scene": "小火箭往上（持續進步）",
+        "tags": "rocket 互動"
+      },
+      "source_url": "https://github.com/MiaoZiKe/tw-rotation/blob/main/docs/anim/bibi_library/rocket/key.png",
+      "declared_frames": 12,
+      "declared_duration": "0.88 秒",
+      "files": [],
+      "inspection": "remote_index_only_not_visually_verified"
+    },
+    {
+      "asset_id": "legacy_star_save",
+      "name": "星星收藏進盒子（自選清單）",
+      "version": "main@8d947a7f18d0ee87f477acff5ebdabf3a782731e",
+      "status": "review",
+      "rights": "unknown",
+      "category": "author_unverified",
+      "fields": {
+        "pose": "星星收藏進盒子（自選清單）",
+        "expression": "星星收藏進盒子（自選清單）",
+        "orientation": "star_save 星星收藏進盒子（自選清單）",
+        "prop": "",
+        "scene": "星星收藏進盒子（自選清單）",
+        "tags": "star_save 互動"
+      },
+      "source_url": "https://github.com/MiaoZiKe/tw-rotation/blob/main/docs/anim/bibi_library/star_save/key.png",
+      "declared_frames": 12,
+      "declared_duration": "1.00 秒",
+      "files": [],
+      "inspection": "remote_index_only_not_visually_verified"
+    },
+    {
+      "asset_id": "legacy_trophy",
+      "name": "獎盃＋1～5 名台階（ETF 前五名）",
+      "version": "main@8d947a7f18d0ee87f477acff5ebdabf3a782731e",
+      "status": "review",
+      "rights": "unknown",
+      "category": "author_unverified",
+      "fields": {
+        "pose": "獎盃＋1～5 名台階（ETF 前五名）",
+        "expression": "獎盃＋1～5 名台階（ETF 前五名）",
+        "orientation": "trophy 獎盃＋1～5 名台階（ETF 前五名）",
+        "prop": "",
+        "scene": "獎盃＋1～5 名台階（ETF 前五名）",
+        "tags": "trophy 互動"
+      },
+      "source_url": "https://github.com/MiaoZiKe/tw-rotation/blob/main/docs/anim/bibi_library/trophy/key.png",
+      "declared_frames": 12,
+      "declared_duration": "1.00 秒",
+      "files": [],
+      "inspection": "remote_index_only_not_visually_verified"
+    },
+    {
+      "asset_id": "basepose_front_jump",
+      "name": "front_jump.png",
+      "version": "4254dc7fa6ac310f2b0c8d318fcb8f24ae810fd6",
+      "status": "review",
+      "rights": "unknown",
+      "category": "author_unverified",
+      "fields": {
+        "pose": "front_jump.png",
+        "expression": "",
+        "orientation": "front_jump.png",
+        "prop": "無",
+        "scene": "基礎姿勢 待本次逐檔視覺檢查",
+        "tags": "四腳 歷史庫"
+      },
+      "source_url": "https://github.com/MiaoZiKe/tw-rotation/blob/main/docs/anim/bibi_basepose_1012/png/front_jump.png",
+      "files": [],
+      "inspection": "remote_listing_only_not_visually_verified"
+    },
+    {
+      "asset_id": "basepose_front_land",
+      "name": "front_land.png",
+      "version": "b9f96168cba5742ea3567701748418202916c1d3",
+      "status": "review",
+      "rights": "unknown",
+      "category": "author_unverified",
+      "fields": {
+        "pose": "front_land.png",
+        "expression": "",
+        "orientation": "front_land.png",
+        "prop": "無",
+        "scene": "基礎姿勢 待本次逐檔視覺檢查",
+        "tags": "四腳 歷史庫"
+      },
+      "source_url": "https://github.com/MiaoZiKe/tw-rotation/blob/main/docs/anim/bibi_basepose_1012/png/front_land.png",
+      "files": [],
+      "inspection": "remote_listing_only_not_visually_verified"
+    },
+    {
+      "asset_id": "basepose_front_squash",
+      "name": "front_squash.png",
+      "version": "d4e04bfa9c810e1fe2a1513a78629656c725cc0a",
+      "status": "review",
+      "rights": "unknown",
+      "category": "author_unverified",
+      "fields": {
+        "pose": "front_squash.png",
+        "expression": "",
+        "orientation": "front_squash.png",
+        "prop": "無",
+        "scene": "基礎姿勢 待本次逐檔視覺檢查",
+        "tags": "四腳 歷史庫"
+      },
+      "source_url": "https://github.com/MiaoZiKe/tw-rotation/blob/main/docs/anim/bibi_basepose_1012/png/front_squash.png",
+      "files": [],
+      "inspection": "remote_listing_only_not_visually_verified"
+    },
+    {
+      "asset_id": "basepose_front_stand",
+      "name": "front_stand.png",
+      "version": "85705900a59f416f2337f94cd7e668caec32e7ad",
+      "status": "review",
+      "rights": "unknown",
+      "category": "author_unverified",
+      "fields": {
+        "pose": "front_stand.png",
+        "expression": "",
+        "orientation": "front_stand.png",
+        "prop": "無",
+        "scene": "基礎姿勢 待本次逐檔視覺檢查",
+        "tags": "四腳 歷史庫"
+      },
+      "source_url": "https://github.com/MiaoZiKe/tw-rotation/blob/main/docs/anim/bibi_basepose_1012/png/front_stand.png",
+      "files": [],
+      "inspection": "remote_listing_only_not_visually_verified"
+    },
+    {
+      "asset_id": "basepose_front_stand_rebuild",
+      "name": "front_stand_rebuild.png",
+      "version": "4a49b98713efe4e6369ca5094d6cdb16f67ba7a6",
+      "status": "review",
+      "rights": "unknown",
+      "category": "author_unverified",
+      "fields": {
+        "pose": "front_stand_rebuild.png",
+        "expression": "",
+        "orientation": "front_stand_rebuild.png",
+        "prop": "無",
+        "scene": "基礎姿勢 待本次逐檔視覺檢查",
+        "tags": "四腳 歷史庫"
+      },
+      "source_url": "https://github.com/MiaoZiKe/tw-rotation/blob/main/docs/anim/bibi_basepose_1012/png/front_stand_rebuild.png",
+      "files": [],
+      "inspection": "remote_listing_only_not_visually_verified"
+    },
+    {
+      "asset_id": "basepose_front_stretch",
+      "name": "front_stretch.png",
+      "version": "920d6584ec3accf58e2c5d94b0a9bc072db4191e",
+      "status": "review",
+      "rights": "unknown",
+      "category": "author_unverified",
+      "fields": {
+        "pose": "front_stretch.png",
+        "expression": "",
+        "orientation": "front_stretch.png",
+        "prop": "無",
+        "scene": "基礎姿勢 待本次逐檔視覺檢查",
+        "tags": "四腳 歷史庫"
+      },
+      "source_url": "https://github.com/MiaoZiKe/tw-rotation/blob/main/docs/anim/bibi_basepose_1012/png/front_stretch.png",
+      "files": [],
+      "inspection": "remote_listing_only_not_visually_verified"
+    },
+    {
+      "asset_id": "basepose_lay_l",
+      "name": "lay_l.png",
+      "version": "46af5630cdc2df27bc0233e4fa0e4fc655ff9e4b",
+      "status": "review",
+      "rights": "unknown",
+      "category": "author_unverified",
+      "fields": {
+        "pose": "lay_l.png",
+        "expression": "",
+        "orientation": "lay_l.png",
+        "prop": "無",
+        "scene": "基礎姿勢 待本次逐檔視覺檢查",
+        "tags": "四腳 歷史庫"
+      },
+      "source_url": "https://github.com/MiaoZiKe/tw-rotation/blob/main/docs/anim/bibi_basepose_1012/png/lay_l.png",
+      "files": [],
+      "inspection": "remote_listing_only_not_visually_verified"
+    },
+    {
+      "asset_id": "basepose_lay_r",
+      "name": "lay_r.png",
+      "version": "03db7f75e80e89b5b5b61e6136f4ee124e155d3c",
+      "status": "review",
+      "rights": "unknown",
+      "category": "author_unverified",
+      "fields": {
+        "pose": "lay_r.png",
+        "expression": "",
+        "orientation": "lay_r.png",
+        "prop": "無",
+        "scene": "基礎姿勢 待本次逐檔視覺檢查",
+        "tags": "四腳 歷史庫"
+      },
+      "source_url": "https://github.com/MiaoZiKe/tw-rotation/blob/main/docs/anim/bibi_basepose_1012/png/lay_r.png",
+      "files": [],
+      "inspection": "remote_listing_only_not_visually_verified"
+    },
+    {
+      "asset_id": "basepose_lie_front",
+      "name": "lie_front.png",
+      "version": "22abe12aa557d16908c185127be1ffa67da15842",
+      "status": "review",
+      "rights": "unknown",
+      "category": "author_unverified",
+      "fields": {
+        "pose": "lie_front.png",
+        "expression": "",
+        "orientation": "lie_front.png",
+        "prop": "無",
+        "scene": "基礎姿勢 待本次逐檔視覺檢查",
+        "tags": "四腳 歷史庫"
+      },
+      "source_url": "https://github.com/MiaoZiKe/tw-rotation/blob/main/docs/anim/bibi_basepose_1012/png/lie_front.png",
+      "files": [],
+      "inspection": "remote_listing_only_not_visually_verified"
+    },
+    {
+      "asset_id": "basepose_lie_side_l",
+      "name": "lie_side_l.png",
+      "version": "8e68d33a3713115615608e758823f5401edfeac2",
+      "status": "review",
+      "rights": "unknown",
+      "category": "author_unverified",
+      "fields": {
+        "pose": "lie_side_l.png",
+        "expression": "",
+        "orientation": "lie_side_l.png",
+        "prop": "無",
+        "scene": "基礎姿勢 待本次逐檔視覺檢查",
+        "tags": "四腳 歷史庫"
+      },
+      "source_url": "https://github.com/MiaoZiKe/tw-rotation/blob/main/docs/anim/bibi_basepose_1012/png/lie_side_l.png",
+      "files": [],
+      "inspection": "remote_listing_only_not_visually_verified"
+    },
+    {
+      "asset_id": "basepose_lie_side_r",
+      "name": "lie_side_r.png",
+      "version": "9126ad12144a638b67303241a83c04ba9e5ee599",
+      "status": "review",
+      "rights": "unknown",
+      "category": "author_unverified",
+      "fields": {
+        "pose": "lie_side_r.png",
+        "expression": "",
+        "orientation": "lie_side_r.png",
+        "prop": "無",
+        "scene": "基礎姿勢 待本次逐檔視覺檢查",
+        "tags": "四腳 歷史庫"
+      },
+      "source_url": "https://github.com/MiaoZiKe/tw-rotation/blob/main/docs/anim/bibi_basepose_1012/png/lie_side_r.png",
+      "files": [],
+      "inspection": "remote_listing_only_not_visually_verified"
+    },
+    {
+      "asset_id": "basepose_q34_l",
+      "name": "q34_l.png",
+      "version": "e7bcc786fb0fcc348e30c6f7f34f6eef1a3173b2",
+      "status": "review",
+      "rights": "unknown",
+      "category": "author_unverified",
+      "fields": {
+        "pose": "q34_l.png",
+        "expression": "",
+        "orientation": "q34_l.png",
+        "prop": "無",
+        "scene": "基礎姿勢 待本次逐檔視覺檢查",
+        "tags": "四腳 歷史庫"
+      },
+      "source_url": "https://github.com/MiaoZiKe/tw-rotation/blob/main/docs/anim/bibi_basepose_1012/png/q34_l.png",
+      "files": [],
+      "inspection": "remote_listing_only_not_visually_verified"
+    },
+    {
+      "asset_id": "basepose_q34_r",
+      "name": "q34_r.png",
+      "version": "95aa9c89a65af518383c5ccae45ef93a5b2a7226",
+      "status": "review",
+      "rights": "unknown",
+      "category": "author_unverified",
+      "fields": {
+        "pose": "q34_r.png",
+        "expression": "",
+        "orientation": "q34_r.png",
+        "prop": "無",
+        "scene": "基礎姿勢 待本次逐檔視覺檢查",
+        "tags": "四腳 歷史庫"
+      },
+      "source_url": "https://github.com/MiaoZiKe/tw-rotation/blob/main/docs/anim/bibi_basepose_1012/png/q34_r.png",
+      "files": [],
+      "inspection": "remote_listing_only_not_visually_verified"
+    },
+    {
+      "asset_id": "basepose_run_l_A",
+      "name": "run_l_A.png",
+      "version": "fa94b1c15f4eadd93c3ddc63533a2e22e0587b62",
+      "status": "review",
+      "rights": "unknown",
+      "category": "author_unverified",
+      "fields": {
+        "pose": "run_l_A.png",
+        "expression": "",
+        "orientation": "run_l_A.png",
+        "prop": "無",
+        "scene": "基礎姿勢 待本次逐檔視覺檢查",
+        "tags": "四腳 歷史庫"
+      },
+      "source_url": "https://github.com/MiaoZiKe/tw-rotation/blob/main/docs/anim/bibi_basepose_1012/png/run_l_A.png",
+      "files": [],
+      "inspection": "remote_listing_only_not_visually_verified"
+    },
+    {
+      "asset_id": "basepose_run_l_B",
+      "name": "run_l_B.png",
+      "version": "03924c5a1f4ca961ee4800ad5312eb2fdfee7675",
+      "status": "review",
+      "rights": "unknown",
+      "category": "author_unverified",
+      "fields": {
+        "pose": "run_l_B.png",
+        "expression": "",
+        "orientation": "run_l_B.png",
+        "prop": "無",
+        "scene": "基礎姿勢 待本次逐檔視覺檢查",
+        "tags": "四腳 歷史庫"
+      },
+      "source_url": "https://github.com/MiaoZiKe/tw-rotation/blob/main/docs/anim/bibi_basepose_1012/png/run_l_B.png",
+      "files": [],
+      "inspection": "remote_listing_only_not_visually_verified"
+    },
+    {
+      "asset_id": "basepose_run_l_C",
+      "name": "run_l_C.png",
+      "version": "7472d830e60a552ab09589208a8b1ea016f21daa",
+      "status": "review",
+      "rights": "unknown",
+      "category": "author_unverified",
+      "fields": {
+        "pose": "run_l_C.png",
+        "expression": "",
+        "orientation": "run_l_C.png",
+        "prop": "無",
+        "scene": "基礎姿勢 待本次逐檔視覺檢查",
+        "tags": "四腳 歷史庫"
+      },
+      "source_url": "https://github.com/MiaoZiKe/tw-rotation/blob/main/docs/anim/bibi_basepose_1012/png/run_l_C.png",
+      "files": [],
+      "inspection": "remote_listing_only_not_visually_verified"
+    },
+    {
+      "asset_id": "basepose_run_r_A",
+      "name": "run_r_A.png",
+      "version": "51737fe61995fe12d63ee30459a79999e3d67211",
+      "status": "review",
+      "rights": "unknown",
+      "category": "author_unverified",
+      "fields": {
+        "pose": "run_r_A.png",
+        "expression": "",
+        "orientation": "run_r_A.png",
+        "prop": "無",
+        "scene": "基礎姿勢 待本次逐檔視覺檢查",
+        "tags": "四腳 歷史庫"
+      },
+      "source_url": "https://github.com/MiaoZiKe/tw-rotation/blob/main/docs/anim/bibi_basepose_1012/png/run_r_A.png",
+      "files": [],
+      "inspection": "remote_listing_only_not_visually_verified"
+    },
+    {
+      "asset_id": "basepose_run_r_B",
+      "name": "run_r_B.png",
+      "version": "11917fe91d8813a102d0f36e058426c4a22c6e24",
+      "status": "review",
+      "rights": "unknown",
+      "category": "author_unverified",
+      "fields": {
+        "pose": "run_r_B.png",
+        "expression": "",
+        "orientation": "run_r_B.png",
+        "prop": "無",
+        "scene": "基礎姿勢 待本次逐檔視覺檢查",
+        "tags": "四腳 歷史庫"
+      },
+      "source_url": "https://github.com/MiaoZiKe/tw-rotation/blob/main/docs/anim/bibi_basepose_1012/png/run_r_B.png",
+      "files": [],
+      "inspection": "remote_listing_only_not_visually_verified"
+    },
+    {
+      "asset_id": "basepose_run_r_C",
+      "name": "run_r_C.png",
+      "version": "54f94a9003039b0a67778172699f7bbb16ac07bb",
+      "status": "review",
+      "rights": "unknown",
+      "category": "author_unverified",
+      "fields": {
+        "pose": "run_r_C.png",
+        "expression": "",
+        "orientation": "run_r_C.png",
+        "prop": "無",
+        "scene": "基礎姿勢 待本次逐檔視覺檢查",
+        "tags": "四腳 歷史庫"
+      },
+      "source_url": "https://github.com/MiaoZiKe/tw-rotation/blob/main/docs/anim/bibi_basepose_1012/png/run_r_C.png",
+      "files": [],
+      "inspection": "remote_listing_only_not_visually_verified"
+    },
+    {
+      "asset_id": "basepose_side_apex_l",
+      "name": "side_apex_l.png",
+      "version": "42b4b51c55a64a64ac2e05dfd2ff39ba5673de3f",
+      "status": "review",
+      "rights": "unknown",
+      "category": "author_unverified",
+      "fields": {
+        "pose": "side_apex_l.png",
+        "expression": "",
+        "orientation": "side_apex_l.png",
+        "prop": "無",
+        "scene": "基礎姿勢 待本次逐檔視覺檢查",
+        "tags": "四腳 歷史庫"
+      },
+      "source_url": "https://github.com/MiaoZiKe/tw-rotation/blob/main/docs/anim/bibi_basepose_1012/png/side_apex_l.png",
+      "files": [],
+      "inspection": "remote_listing_only_not_visually_verified"
+    },
+    {
+      "asset_id": "basepose_side_apex_r",
+      "name": "side_apex_r.png",
+      "version": "40deb8828a2352f34a960883c9a6fddbd18c32b5",
+      "status": "review",
+      "rights": "unknown",
+      "category": "author_unverified",
+      "fields": {
+        "pose": "side_apex_r.png",
+        "expression": "",
+        "orientation": "side_apex_r.png",
+        "prop": "無",
+        "scene": "基礎姿勢 待本次逐檔視覺檢查",
+        "tags": "四腳 歷史庫"
+      },
+      "source_url": "https://github.com/MiaoZiKe/tw-rotation/blob/main/docs/anim/bibi_basepose_1012/png/side_apex_r.png",
+      "files": [],
+      "inspection": "remote_listing_only_not_visually_verified"
+    },
+    {
+      "asset_id": "basepose_side_l",
+      "name": "side_l.png",
+      "version": "5e3bbcb7bbc7649be00601c351c8d9eadb7a8848",
+      "status": "review",
+      "rights": "unknown",
+      "category": "author_unverified",
+      "fields": {
+        "pose": "side_l.png",
+        "expression": "",
+        "orientation": "side_l.png",
+        "prop": "無",
+        "scene": "基礎姿勢 待本次逐檔視覺檢查",
+        "tags": "四腳 歷史庫"
+      },
+      "source_url": "https://github.com/MiaoZiKe/tw-rotation/blob/main/docs/anim/bibi_basepose_1012/png/side_l.png",
+      "files": [],
+      "inspection": "remote_listing_only_not_visually_verified"
+    },
+    {
+      "asset_id": "basepose_side_land_l",
+      "name": "side_land_l.png",
+      "version": "5c1940613f176c8e3e732da40dc560ac0ae7538c",
+      "status": "review",
+      "rights": "unknown",
+      "category": "author_unverified",
+      "fields": {
+        "pose": "side_land_l.png",
+        "expression": "",
+        "orientation": "side_land_l.png",
+        "prop": "無",
+        "scene": "基礎姿勢 待本次逐檔視覺檢查",
+        "tags": "四腳 歷史庫"
+      },
+      "source_url": "https://github.com/MiaoZiKe/tw-rotation/blob/main/docs/anim/bibi_basepose_1012/png/side_land_l.png",
+      "files": [],
+      "inspection": "remote_listing_only_not_visually_verified"
+    },
+    {
+      "asset_id": "basepose_side_land_r",
+      "name": "side_land_r.png",
+      "version": "b87cd9783b1e20ca7b64ce5f6d663d99bd76db39",
+      "status": "review",
+      "rights": "unknown",
+      "category": "author_unverified",
+      "fields": {
+        "pose": "side_land_r.png",
+        "expression": "",
+        "orientation": "side_land_r.png",
+        "prop": "無",
+        "scene": "基礎姿勢 待本次逐檔視覺檢查",
+        "tags": "四腳 歷史庫"
+      },
+      "source_url": "https://github.com/MiaoZiKe/tw-rotation/blob/main/docs/anim/bibi_basepose_1012/png/side_land_r.png",
+      "files": [],
+      "inspection": "remote_listing_only_not_visually_verified"
+    },
+    {
+      "asset_id": "basepose_side_r",
+      "name": "side_r.png",
+      "version": "57d90dd0e9fb374676a86417d216ec9be52bf1d9",
+      "status": "review",
+      "rights": "unknown",
+      "category": "author_unverified",
+      "fields": {
+        "pose": "side_r.png",
+        "expression": "",
+        "orientation": "side_r.png",
+        "prop": "無",
+        "scene": "基礎姿勢 待本次逐檔視覺檢查",
+        "tags": "四腳 歷史庫"
+      },
+      "source_url": "https://github.com/MiaoZiKe/tw-rotation/blob/main/docs/anim/bibi_basepose_1012/png/side_r.png",
+      "files": [],
+      "inspection": "remote_listing_only_not_visually_verified"
+    },
+    {
+      "asset_id": "basepose_side_takeoff_l",
+      "name": "side_takeoff_l.png",
+      "version": "ef593ec2510cfbe6e58480728df9baf1da8447d4",
+      "status": "review",
+      "rights": "unknown",
+      "category": "author_unverified",
+      "fields": {
+        "pose": "side_takeoff_l.png",
+        "expression": "",
+        "orientation": "side_takeoff_l.png",
+        "prop": "無",
+        "scene": "基礎姿勢 待本次逐檔視覺檢查",
+        "tags": "四腳 歷史庫"
+      },
+      "source_url": "https://github.com/MiaoZiKe/tw-rotation/blob/main/docs/anim/bibi_basepose_1012/png/side_takeoff_l.png",
+      "files": [],
+      "inspection": "remote_listing_only_not_visually_verified"
+    },
+    {
+      "asset_id": "basepose_side_takeoff_r",
+      "name": "side_takeoff_r.png",
+      "version": "cb697444fa2d0964c27f24d8fe7b861d1a6e42e2",
+      "status": "review",
+      "rights": "unknown",
+      "category": "author_unverified",
+      "fields": {
+        "pose": "side_takeoff_r.png",
+        "expression": "",
+        "orientation": "side_takeoff_r.png",
+        "prop": "無",
+        "scene": "基礎姿勢 待本次逐檔視覺檢查",
+        "tags": "四腳 歷史庫"
+      },
+      "source_url": "https://github.com/MiaoZiKe/tw-rotation/blob/main/docs/anim/bibi_basepose_1012/png/side_takeoff_r.png",
+      "files": [],
+      "inspection": "remote_listing_only_not_visually_verified"
+    },
+    {
+      "asset_id": "basepose_sit_l",
+      "name": "sit_l.png",
+      "version": "020ccb66c0ed37ee1720b509c0f453ac5a7a5728",
+      "status": "review",
+      "rights": "unknown",
+      "category": "author_unverified",
+      "fields": {
+        "pose": "sit_l.png",
+        "expression": "",
+        "orientation": "sit_l.png",
+        "prop": "無",
+        "scene": "基礎姿勢 待本次逐檔視覺檢查",
+        "tags": "四腳 歷史庫"
+      },
+      "source_url": "https://github.com/MiaoZiKe/tw-rotation/blob/main/docs/anim/bibi_basepose_1012/png/sit_l.png",
+      "files": [],
+      "inspection": "remote_listing_only_not_visually_verified"
+    },
+    {
+      "asset_id": "basepose_sit_r",
+      "name": "sit_r.png",
+      "version": "37cc78969744c7c1018d4ef30945fa638daebc51",
+      "status": "review",
+      "rights": "unknown",
+      "category": "author_unverified",
+      "fields": {
+        "pose": "sit_r.png",
+        "expression": "",
+        "orientation": "sit_r.png",
+        "prop": "無",
+        "scene": "基礎姿勢 待本次逐檔視覺檢查",
+        "tags": "四腳 歷史庫"
+      },
+      "source_url": "https://github.com/MiaoZiKe/tw-rotation/blob/main/docs/anim/bibi_basepose_1012/png/sit_r.png",
+      "files": [],
+      "inspection": "remote_listing_only_not_visually_verified"
+    },
+    {
+      "asset_id": "basepose_sniff_l",
+      "name": "sniff_l.png",
+      "version": "fb33a7987c441ab11f9a38879c7a051442aa6305",
+      "status": "review",
+      "rights": "unknown",
+      "category": "author_unverified",
+      "fields": {
+        "pose": "sniff_l.png",
+        "expression": "",
+        "orientation": "sniff_l.png",
+        "prop": "無",
+        "scene": "基礎姿勢 待本次逐檔視覺檢查",
+        "tags": "四腳 歷史庫"
+      },
+      "source_url": "https://github.com/MiaoZiKe/tw-rotation/blob/main/docs/anim/bibi_basepose_1012/png/sniff_l.png",
+      "files": [],
+      "inspection": "remote_listing_only_not_visually_verified"
+    },
+    {
+      "asset_id": "basepose_sniff_r",
+      "name": "sniff_r.png",
+      "version": "255792ee60b0eac90da981a8e71dd7f41717e6a0",
+      "status": "review",
+      "rights": "unknown",
+      "category": "author_unverified",
+      "fields": {
+        "pose": "sniff_r.png",
+        "expression": "",
+        "orientation": "sniff_r.png",
+        "prop": "無",
+        "scene": "基礎姿勢 待本次逐檔視覺檢查",
+        "tags": "四腳 歷史庫"
+      },
+      "source_url": "https://github.com/MiaoZiKe/tw-rotation/blob/main/docs/anim/bibi_basepose_1012/png/sniff_r.png",
+      "files": [],
+      "inspection": "remote_listing_only_not_visually_verified"
+    }
+  ],
+  "warnings": []
+}

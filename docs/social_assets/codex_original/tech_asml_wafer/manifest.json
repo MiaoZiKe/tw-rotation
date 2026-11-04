@@ -1,0 +1,88 @@
+{
+  "asset_id": "tech_asml_wafer",
+  "中文名稱": "晶圓可編輯教學元件",
+  "category": "codex_original",
+  "original_author": "Codex",
+  "processed_by": "Codex：版本登錄、機械裁切／程式製圖",
+  "tool": "Python／scripts/social/tech_library.py",
+  "provenance_evidence": [
+    "scripts/social/tech_library.py",
+    "output/2026-10-17_asml-outlook/assets/tech/wafer.svg"
+  ],
+  "parent_asset_id": null,
+  "version": "v001",
+  "版本": "v001",
+  "files": [
+    {
+      "path": "v001.svg",
+      "exists": true,
+      "bytes": 2387,
+      "sha256": "45af3542ac9a4279391f62d3cdd18090ff205ffe566fcc681fd1e31f9cf3cc0a",
+      "dimensions": [
+        1000,
+        700
+      ],
+      "editable": true,
+      "measurement_note": "尺寸由SVG產生器viewBox確認；向量透明與技術結構須人工驗證"
+    },
+    {
+      "path": "v001.png",
+      "exists": true,
+      "bytes": 57847,
+      "sha256": "df145025d8b8912008f8c40183396ce179bbadd1d870b107433a91c66c11c7d4",
+      "dimensions": [
+        1000,
+        700
+      ],
+      "format": "PNG",
+      "frames": 1,
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "has_transparent_pixels": true,
+      "duration_ms": null,
+      "fps": null
+    }
+  ],
+  "檔案": "v001.png",
+  "是否透明底": true,
+  "status": "review",
+  "qa_status": "review",
+  "品管狀態": "review；Andy尚未核可品牌風格",
+  "approval_evidence": null,
+  "animation": {
+    "frames": 0,
+    "fps": null,
+    "duration_ms": null,
+    "note": "靜態素材；0表示無動畫，不代表PNG影像格數"
+  },
+  "rights": "Codex 程式原創；可編輯教學示意",
+  "權利狀態": "程式原創",
+  "可用用途": [
+    "本次ASML校準預覽；核可前不得自動挑選"
+  ],
+  "used_in": [
+    "2026-10-17_asml-outlook"
+  ],
+  "雲端備份狀態": "pending PR",
+  "fields_note": "標籤僅描述本次可見情境，不代表已通過逐頁品管",
+  "pose": "不適用",
+  "action": "技術示意",
+  "expression": "不適用",
+  "orientation": "示意透視",
+  "scene": "半導體教學",
+  "prop": "晶圓",
+  "tags": [
+    "wafer",
+    "晶圓",
+    "科技物件",
+    "可編輯",
+    "SVG"
+  ],
+  "limitations": "教學功能示意，非真實機型剖面；光路非光學設計比例且須人工驗證。",
+  "dimensions": [
+    1000,
+    700
+  ]
+}

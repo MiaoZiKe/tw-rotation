@@ -1,0 +1,208 @@
+[
+  {
+    "asset_id": "bibi_asml_prone_observe",
+    "name": "比比・趴著觀察",
+    "version": "v002",
+    "status": "review",
+    "rights": "unknown：角色原畫歸屬未核實；本次生成與加工不覆蓋父素材權利",
+    "category": "author_unverified",
+    "fields": {
+      "pose": "趴姿、前掌支撐 ",
+      "expression": "專注微笑 ",
+      "orientation": "正面  ",
+      "prop": "無 ",
+      "scene": "趴著觀察   本次ASML校準預覽；核可前不得自動挑選",
+      "tags": "比比 主持 prone_observe 趴著觀察 趴姿、前掌支撐 "
+    },
+    "manifest": "docs/social_assets/author_unverified/bibi_asml_prone_observe/manifest.json",
+    "files": [
+      {
+        "path": "C:/哩股哩股/docs/social_assets/author_unverified/bibi_asml_prone_observe/v002.png",
+        "exists": true,
+        "bytes": 753827,
+        "sha256": "d02e30253c1ff730087a50eb767afaf156d3a0ff523d5c5b49703497ed53ed86",
+        "dimensions": [
+          1358,
+          1159
+        ],
+        "format": "PNG",
+        "frames": 1,
+        "alpha_extrema": [
+          0,
+          255
+        ],
+        "has_transparent_pixels": true,
+        "duration_ms": null,
+        "fps": null
+      }
+    ],
+    "score": 66.7,
+    "selectable": false
+  },
+  {
+    "asset_id": "bibi_chip_research_host",
+    "name": "比比放大鏡觀察晶片・主持情境",
+    "version": "v001",
+    "status": "review",
+    "rights": "新情境生成可追溯；原角色歷史作者與權利 unknown，不改掛全新自有角色原畫",
+    "category": "author_unverified",
+    "fields": {
+      "pose": " 短掌握放大鏡、另一掌接觸晶片平台、短腳站立",
+      "expression": " 好奇專注、閉口微笑",
+      "orientation": " 朝讀者介紹；放大鏡朝科技物件 ",
+      "prop": " 放大鏡、晶片平台、晶圓示意",
+      "scene": "  邀讀者觀察半導體主題，不把角色只當角落裝飾 半導體研究封面 晶片介紹 法說觀察題材",
+      "tags": " 比比 研究 放大鏡 晶片 晶圓 主持 引導"
+    },
+    "manifest": "docs/social_assets/author_unverified/bibi_chip_research_host/manifest.json",
+    "files": [
+      {
+        "path": "C:/哩股哩股/docs/social_assets/author_unverified/bibi_chip_research_host/v001.png",
+        "exists": true,
+        "bytes": 2106267,
+        "sha256": "e77cd9f36b91f4b37ceea485736bf04bef0e4a7109e390209155d46ebb728437",
+        "dimensions": [
+          1536,
+          1024
+        ],
+        "format": "PNG",
+        "frames": 1,
+        "alpha_extrema": [
+          0,
+          254
+        ],
+        "has_transparent_pixels": true,
+        "duration_ms": null,
+        "fps": null
+      }
+    ],
+    "score": 66.7,
+    "selectable": false
+  },
+  {
+    "asset_id": "bibi_asml_euv_scene",
+    "name": "比比與曝光設備觀察場景",
+    "version": "v001",
+    "status": "review",
+    "rights": "unknown：角色原畫歸屬未核實；本次生成與加工不覆蓋父素材權利",
+    "category": "author_unverified",
+    "fields": {
+      "pose": "科技場景主持 ",
+      "expression": "待逐頁放大核實 ",
+      "orientation": "場景透視  ",
+      "prop": "曝光設備、晶圓 ",
+      "scene": "ASML曝光設備與晶圓教學示意   本次ASML校準預覽；核可前不得自動挑選",
+      "tags": "比比 EUV ASML 設備 封面 "
+    },
+    "manifest": "docs/social_assets/author_unverified/bibi_asml_euv_scene/manifest.json",
+    "files": [
+      {
+        "path": "C:/哩股哩股/docs/social_assets/author_unverified/bibi_asml_euv_scene/v001.png",
+        "exists": true,
+        "bytes": 2433826,
+        "sha256": "fcffdd8ad1e513a7c881d00198c208c5b52db7580924539c93000dc3742de228",
+        "dimensions": [
+          1536,
+          1024
+        ],
+        "format": "PNG",
+        "frames": 1,
+        "alpha_extrema": [
+          0,
+          254
+        ],
+        "has_transparent_pixels": true,
+        "duration_ms": null,
+        "fps": null
+      }
+    ],
+    "score": 33.3,
+    "selectable": false
+  },
+  {
+    "asset_id": "basepose_lie_front",
+    "name": "lie_front.png",
+    "version": "22abe12aa557d16908c185127be1ffa67da15842",
+    "status": "review",
+    "rights": "unknown",
+    "category": "author_unverified",
+    "fields": {
+      "pose": "lie_front.png",
+      "expression": "",
+      "orientation": "lie_front.png",
+      "prop": "無",
+      "scene": "基礎姿勢 待本次逐檔視覺檢查",
+      "tags": "四腳 歷史庫"
+    },
+    "source_url": "https://github.com/MiaoZiKe/tw-rotation/blob/main/docs/anim/bibi_basepose_1012/png/lie_front.png",
+    "files": [],
+    "inspection": "remote_listing_only_not_visually_verified",
+    "score": 33.3,
+    "selectable": false
+  },
+  {
+    "asset_id": "basepose_lie_side_l",
+    "name": "lie_side_l.png",
+    "version": "8e68d33a3713115615608e758823f5401edfeac2",
+    "status": "review",
+    "rights": "unknown",
+    "category": "author_unverified",
+    "fields": {
+      "pose": "lie_side_l.png",
+      "expression": "",
+      "orientation": "lie_side_l.png",
+      "prop": "無",
+      "scene": "基礎姿勢 待本次逐檔視覺檢查",
+      "tags": "四腳 歷史庫"
+    },
+    "source_url": "https://github.com/MiaoZiKe/tw-rotation/blob/main/docs/anim/bibi_basepose_1012/png/lie_side_l.png",
+    "files": [],
+    "inspection": "remote_listing_only_not_visually_verified",
+    "score": 33.3,
+    "selectable": false
+  },
+  {
+    "asset_id": "basepose_lie_side_r",
+    "name": "lie_side_r.png",
+    "version": "9126ad12144a638b67303241a83c04ba9e5ee599",
+    "status": "review",
+    "rights": "unknown",
+    "category": "author_unverified",
+    "fields": {
+      "pose": "lie_side_r.png",
+      "expression": "",
+      "orientation": "lie_side_r.png",
+      "prop": "無",
+      "scene": "基礎姿勢 待本次逐檔視覺檢查",
+      "tags": "四腳 歷史庫"
+    },
+    "source_url": "https://github.com/MiaoZiKe/tw-rotation/blob/main/docs/anim/bibi_basepose_1012/png/lie_side_r.png",
+    "files": [],
+    "inspection": "remote_listing_only_not_visually_verified",
+    "score": 33.3,
+    "selectable": false
+  },
+  {
+    "asset_id": "legacy_face_relief",
+    "name": "表情・鬆一口氣（憋氣→哈氣→軟趴趴）",
+    "version": "main@8d947a7f18d0ee87f477acff5ebdabf3a782731e",
+    "status": "review",
+    "rights": "unknown",
+    "category": "author_unverified",
+    "fields": {
+      "pose": "表情・鬆一口氣（憋氣→哈氣→軟趴趴）",
+      "expression": "表情・鬆一口氣（憋氣→哈氣→軟趴趴）",
+      "orientation": "face_relief 問題解決、安心了",
+      "prop": "",
+      "scene": "問題解決、安心了",
+      "tags": "face_relief 表情"
+    },
+    "source_url": "https://github.com/MiaoZiKe/tw-rotation/blob/main/docs/anim/bibi_library/face_relief/key.png",
+    "declared_frames": 12,
+    "declared_duration": "1.65 秒",
+    "files": [],
+    "inspection": "remote_index_only_not_visually_verified",
+    "score": 33.3,
+    "selectable": false
+  }
+]

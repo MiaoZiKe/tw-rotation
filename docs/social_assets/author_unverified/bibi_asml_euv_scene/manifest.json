@@ -1,0 +1,77 @@
+{
+  "asset_id": "bibi_asml_euv_scene",
+  "中文名稱": "比比與曝光設備觀察場景",
+  "category": "author_unverified",
+  "original_author": "角色參考原畫 unknown；新情境由 OpenAI imagegen 生成",
+  "processed_by": "Codex：版本登錄、機械裁切／程式製圖",
+  "tool": "image_gen.imagegen",
+  "provenance_evidence": [
+    "output/2026-10-17_asml-outlook/prompts.md",
+    "output/2026-10-17_asml-outlook/assets/cover_scene.png"
+  ],
+  "parent_asset_id": "bibi_clean",
+  "version": "v001",
+  "版本": "v001",
+  "files": [
+    {
+      "path": "v001.png",
+      "exists": true,
+      "bytes": 2433826,
+      "sha256": "fcffdd8ad1e513a7c881d00198c208c5b52db7580924539c93000dc3742de228",
+      "dimensions": [
+        1536,
+        1024
+      ],
+      "format": "PNG",
+      "frames": 1,
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "has_transparent_pixels": true,
+      "duration_ms": null,
+      "fps": null
+    }
+  ],
+  "檔案": "v001.png",
+  "是否透明底": true,
+  "status": "review",
+  "qa_status": "review",
+  "品管狀態": "review；Andy尚未核可品牌風格",
+  "approval_evidence": null,
+  "animation": {
+    "frames": 0,
+    "fps": null,
+    "duration_ms": null,
+    "note": "靜態素材；0表示無動畫，不代表PNG影像格數"
+  },
+  "rights": "unknown：角色原畫歸屬未核實；本次生成與加工不覆蓋父素材權利",
+  "權利狀態": "unknown",
+  "可用用途": [
+    "本次ASML校準預覽；核可前不得自動挑選"
+  ],
+  "used_in": [
+    "2026-10-17_asml-outlook"
+  ],
+  "雲端備份狀態": "pending PR",
+  "fields_note": "標籤僅描述本次可見情境，不代表已通過逐頁品管",
+  "pose": "科技場景主持",
+  "action": "引導讀者觀察設備",
+  "expression": "待逐頁放大核實",
+  "orientation": "場景透視",
+  "scene": "ASML曝光設備與晶圓教學示意",
+  "prop": "曝光設備、晶圓",
+  "tags": [
+    "比比",
+    "EUV",
+    "ASML",
+    "設備",
+    "封面"
+  ],
+  "prompt_summary": "奶油紙感手繪科技主場景；比比與曝光設備自然互動；不畫正式文字與數據。",
+  "limitations": "生成設備是教學場景，非ASML真實機型剖面，技術細節須人工審核。",
+  "dimensions": [
+    1536,
+    1024
+  ]
+}

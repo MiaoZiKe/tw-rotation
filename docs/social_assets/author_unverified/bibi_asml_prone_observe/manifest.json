@@ -1,0 +1,121 @@
+{
+  "asset_id": "bibi_asml_prone_observe",
+  "中文名稱": "比比・趴著觀察",
+  "category": "author_unverified",
+  "original_author": "角色參考原畫 unknown；新情境由 OpenAI imagegen 生成",
+  "processed_by": "Codex：版本登錄、機械裁切／程式製圖",
+  "tool": "image_gen.imagegen；固定格機械裁切",
+  "provenance_evidence": [
+    "output/2026-10-17_asml-outlook/prompts.md",
+    "output/2026-10-17_asml-outlook/assets/pose_sheet_source.png",
+    "output/2026-10-17_asml-outlook/assets/pose_cells.json",
+    "本對話 imagegen exec-f479d487-09cf-4eb7-a6c1-c49e6cb97466.png 同姿勢清理修正版"
+  ],
+  "parent_asset_id": "bibi_clean",
+  "version": "v002",
+  "版本": "v002",
+  "files": [
+    {
+      "path": "v002.png",
+      "exists": true,
+      "bytes": 753827,
+      "sha256": "d02e30253c1ff730087a50eb767afaf156d3a0ff523d5c5b49703497ed53ed86",
+      "dimensions": [
+        1358,
+        1159
+      ],
+      "format": "PNG",
+      "frames": 1,
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "has_transparent_pixels": true,
+      "duration_ms": null,
+      "fps": null
+    }
+  ],
+  "檔案": "v002.png",
+  "是否透明底": true,
+  "status": "review",
+  "qa_status": "review",
+  "品管狀態": "review；Andy尚未核可品牌風格",
+  "approval_evidence": null,
+  "animation": {
+    "frames": 0,
+    "fps": null,
+    "duration_ms": null,
+    "note": "靜態素材；0表示無動畫，不代表PNG影像格數"
+  },
+  "rights": "unknown：角色原畫歸屬未核實；本次生成與加工不覆蓋父素材權利",
+  "權利狀態": "unknown",
+  "可用用途": [
+    "本次ASML校準預覽；核可前不得自動挑選"
+  ],
+  "used_in": [
+    "2026-10-17_asml-outlook"
+  ],
+  "雲端備份狀態": "pending PR",
+  "fields_note": "標籤僅描述本次可見情境，不代表已通過逐頁品管",
+  "pose": "趴姿、前掌支撐",
+  "action": "趴姿、前掌支撐",
+  "expression": "專注微笑",
+  "orientation": "正面",
+  "scene": "趴著觀察",
+  "prop": "無",
+  "tags": [
+    "比比",
+    "主持",
+    "prone_observe",
+    "趴著觀察",
+    "趴姿、前掌支撐"
+  ],
+  "prompt_summary": "保留奶白毛球、咖啡輪廓、短掌短腳；八種主持表情與角度；透明底、不畫文字。",
+  "cleanup_note": "雙前腳間透明區局部去背碎點清理，像素紀錄見本篇 qa/pose06_cleanup.json",
+  "sha256": "eb58274ee1a2ba5f0243c9e694b300fcbf23baf4e0aec328a31e41b0eacb7cdc",
+  "version_history": [
+    {
+      "version": "v001",
+      "file": "v001.png",
+      "status": "rejected",
+      "reason": "原腳間異常碎片；退役，不正式再用"
+    },
+    {
+      "version": "v002",
+      "file": "v002.png",
+      "status": "review",
+      "reason": "imagegen清理同姿勢；風格仍待Andy核可"
+    }
+  ],
+  "crop_evidence_v001": {
+    "file": "06.png",
+    "source_cell": [
+      1,
+      1
+    ],
+    "source_sheet_size": [
+      1774,
+      887
+    ],
+    "crop_bbox": [
+      0,
+      33,
+      443,
+      411
+    ],
+    "dimensions": [
+      443,
+      378
+    ],
+    "alpha_extrema": [
+      0,
+      255
+    ],
+    "status": "review"
+  },
+  "repair_note": "v002 為imagegen新高解析度修正版，非原表機械裁切；v001留歷史禁用。",
+  "dimensions": [
+    1358,
+    1159
+  ]
+}

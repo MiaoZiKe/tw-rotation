@@ -1,0 +1,412 @@
+{
+  "title": "ASML為什麼被視為半導體景氣前哨？",
+  "as_of": "2026-10-17 Asia/Taipei",
+  "campaign": "asml-outlook",
+  "article_id": null,
+  "slides": [
+    {
+      "page": 1,
+      "title": "ASML景氣前哨？",
+      "headline": "ASML景氣前哨？",
+      "subtitle": "看懂曝光機背後的產業訊號",
+      "key_message": "看懂曝光機背後的產業訊號",
+      "body": [
+        "設備需求，藏著晶圓廠的未來規劃。"
+      ],
+      "bubble": "比比帶你追蹤產業訊號！",
+      "layout": "cover",
+      "source_refs": [
+        1,
+        5
+      ],
+      "source_note": "來源：ASML [1][5]",
+      "bibi": {
+        "pose": "四腳站立",
+        "expression": "好奇",
+        "gaze_target": "讀者與主題場景",
+        "interaction": "四腳低姿站在設備旁，朝讀者介紹研究主題",
+        "prop": null,
+        "host_intent": "看懂曝光機背後的產業訊號",
+        "contact": "前腳或身體自然接觸承載面；不新增人手"
+      },
+      "visuals": [
+        "euv_machine",
+        "wafer"
+      ],
+      "cover_title": "為何是半導體\n景氣前哨？"
+    },
+    {
+      "page": 2,
+      "title": "它賣的是造晶片工具",
+      "headline": "它賣的是造晶片工具",
+      "subtitle": "ASML：半導體微影設備供應商",
+      "key_message": "ASML：半導體微影設備供應商",
+      "body": [
+        "微影：把電路圖案曝光到晶圓。",
+        "晶圓廠再配合其他製程製造晶片。"
+      ],
+      "bubble": "先分清設備商與晶片廠！",
+      "layout": "definition",
+      "source_refs": [
+        1,
+        2
+      ],
+      "source_note": "來源：ASML [1][2]",
+      "bibi": {
+        "pose": "趴著觀察",
+        "expression": "專注",
+        "gaze_target": "晶圓",
+        "interaction": "鼻尖靠近示意晶圓而不觸及光路",
+        "prop": null,
+        "host_intent": "ASML：半導體微影設備供應商",
+        "contact": "前腳或身體自然接觸承載面；不新增人手"
+      },
+      "visuals": [
+        "machine",
+        "wafer"
+      ]
+    },
+    {
+      "page": 3,
+      "title": "為何能看見前方？",
+      "headline": "為何能看見前方？",
+      "subtitle": "設備需求反映客戶投資規劃",
+      "key_message": "設備需求反映客戶投資規劃",
+      "body": [
+        "晶圓廠規劃擴產與製程升級。",
+        "設備採購與交付，連結未來產能。",
+        "這是產業觀察框架，非股價預測。"
+      ],
+      "bubble": "我們要沿著需求往前看！",
+      "layout": "signal",
+      "source_refs": [
+        1
+      ],
+      "source_note": "來源：ASML [1]",
+      "bibi": {
+        "pose": "抬頭站立",
+        "expression": "思考",
+        "gaze_target": "需求路徑",
+        "interaction": "鼻尖沿需求路徑引導",
+        "prop": null,
+        "host_intent": "設備需求反映客戶投資規劃",
+        "contact": "前腳或身體自然接觸承載面；不新增人手"
+      },
+      "items": [
+        {
+          "title": "客戶需求",
+          "detail": "晶片與製程規劃"
+        },
+        {
+          "title": "設備投資",
+          "detail": "採購、交付與安裝"
+        },
+        {
+          "title": "未來產能",
+          "detail": "還需後續量產驗證"
+        }
+      ]
+    },
+    {
+      "page": 4,
+      "title": "EUV光從哪裡來？",
+      "headline": "EUV光從哪裡來？",
+      "subtitle": "極紫外光：13.5奈米波長",
+      "key_message": "極紫外光：13.5奈米波長",
+      "body": [
+        "雷射擊中錫滴，產生電漿與EUV光。",
+        "反射鏡引導光線，將圖案曝光到晶圓。",
+        "光路在真空中運作；本圖為簡化示意。"
+      ],
+      "bubble": "看光路！不要碰進機器喔。",
+      "layout": "euv",
+      "source_refs": [
+        3,
+        4
+      ],
+      "source_note": "來源：ASML [3][4]",
+      "bibi": {
+        "pose": "側身探頭",
+        "expression": "驚訝",
+        "gaze_target": "電漿光源",
+        "interaction": "從透明觀察窗外看光路",
+        "prop": null,
+        "host_intent": "極紫外光：13.5奈米波長",
+        "contact": "前腳或身體自然接觸承載面；不新增人手"
+      },
+      "annotations": [
+        "錫滴",
+        "雷射",
+        "電漿",
+        "反射鏡",
+        "光罩",
+        "晶圓"
+      ],
+      "visuals": [
+        "euv_cutaway"
+      ]
+    },
+    {
+      "page": 5,
+      "title": "三種訊號別混在一起",
+      "headline": "三種訊號別混在一起",
+      "subtitle": "需求、營收、財測代表不同時間",
+      "key_message": "需求、營收、財測代表不同時間",
+      "body": [
+        "需求看規劃；營收看已認列成果。",
+        "財測是公司預期，仍可能改變。"
+      ],
+      "bubble": "同一份財報，要分三層讀！",
+      "layout": "comparison",
+      "source_refs": [
+        1
+      ],
+      "source_note": "來源：ASML [1]",
+      "bibi": {
+        "pose": "坐在研究桌前",
+        "expression": "認真",
+        "gaze_target": "三欄比較",
+        "interaction": "前腳支在比較筆記下緣",
+        "prop": "研究筆記",
+        "host_intent": "需求、營收、財測代表不同時間",
+        "contact": "前腳或身體自然接觸承載面；不新增人手"
+      },
+      "columns": [
+        {
+          "title": "設備需求",
+          "items": [
+            "客戶規劃",
+            "不等於已認列營收"
+          ]
+        },
+        {
+          "title": "實際營收",
+          "items": [
+            "當期成果",
+            "受交付與認列影響"
+          ]
+        },
+        {
+          "title": "公司財測",
+          "items": [
+            "未來預期",
+            "不保證達成"
+          ]
+        }
+      ]
+    },
+    {
+      "page": 6,
+      "title": "實績和財測分開看",
+      "headline": "實績和財測分開看",
+      "subtitle": "2026年｜營收單位：億歐元",
+      "key_message": "2026年｜營收單位：億歐元",
+      "body": [
+        "Q2實績93.26；Q3實績116.62。",
+        "Q4財測142～152，不能當成實績。"
+      ],
+      "bubble": "實線看實績，框線看財測。",
+      "layout": "results",
+      "source_refs": [
+        1,
+        5
+      ],
+      "source_note": "來源：ASML [1][5]",
+      "bibi": {
+        "pose": "趴在筆電前",
+        "expression": "專注",
+        "gaze_target": "營收長條",
+        "interaction": "前腳自然靠在桌面",
+        "prop": "筆電",
+        "host_intent": "2026年｜營收單位：億歐元",
+        "contact": "前腳或身體自然接觸承載面；不新增人手"
+      },
+      "chart": {
+        "unit": "億歐元",
+        "labels": [
+          "Q2實績",
+          "Q3實績"
+        ],
+        "values": [
+          93.26,
+          116.62
+        ],
+        "forecast": {
+          "label": "Q4財測",
+          "low": 142,
+          "high": 152
+        },
+        "source": "ASML 2026/10/14 Q3 results"
+      },
+      "data_status": "實績／財測；僅換算單位，未推算成長率"
+    },
+    {
+      "page": 7,
+      "title": "一台設備連起產業鏈",
+      "headline": "一台設備連起產業鏈",
+      "subtitle": "從光學零件到晶圓廠",
+      "key_message": "從光學零件到晶圓廠",
+      "body": [
+        "專業供應商提供光學等關鍵元件。",
+        "ASML整合設備，再交付晶圓廠。",
+        "晶圓廠製造晶片，支援各種應用。"
+      ],
+      "bubble": "順著箭頭看，角色各不同！",
+      "layout": "chain",
+      "source_refs": [
+        1,
+        4,
+        5
+      ],
+      "source_note": "來源：ASML [1][4][5]",
+      "bibi": {
+        "pose": "向左側靠身",
+        "expression": "開心",
+        "gaze_target": "供應鏈箭頭",
+        "interaction": "身體靠在研究平台順視線引導",
+        "prop": null,
+        "host_intent": "從光學零件到晶圓廠",
+        "contact": "前腳或身體自然接觸承載面；不新增人手"
+      },
+      "items": [
+        {
+          "title": "專業供應商",
+          "detail": "光學與其他關鍵元件"
+        },
+        {
+          "title": "ASML",
+          "detail": "設備整合與服務"
+        },
+        {
+          "title": "晶圓廠",
+          "detail": "晶片製造"
+        },
+        {
+          "title": "終端應用",
+          "detail": "運算等各種用途"
+        }
+      ]
+    },
+    {
+      "page": 8,
+      "title": "前哨也有盲點",
+      "headline": "前哨也有盲點",
+      "subtitle": "單一指標無法代表全產業",
+      "key_message": "單一指標無法代表全產業",
+      "body": [
+        "客戶可能調整或延後訂單。",
+        "交付認列、供應限制會改變節奏。",
+        "出口管制與市場需求也要一起看。"
+      ],
+      "bubble": "先看限制，再下結論。",
+      "layout": "risks",
+      "source_refs": [
+        1
+      ],
+      "source_note": "來源：ASML [1]",
+      "bibi": {
+        "pose": "縮身四腳伏地",
+        "expression": "謹慎",
+        "gaze_target": "限制清單",
+        "interaction": "鼻尖面向警示筆記而非驚慌",
+        "prop": null,
+        "host_intent": "單一指標無法代表全產業",
+        "contact": "前腳或身體自然接觸承載面；不新增人手"
+      },
+      "items": [
+        {
+          "title": "需求會變",
+          "detail": "計畫不一定如期實現"
+        },
+        {
+          "title": "時間有差",
+          "detail": "交付與認列不是同一步"
+        },
+        {
+          "title": "外部限制",
+          "detail": "供應與出口規範等因素"
+        }
+      ]
+    },
+    {
+      "page": 9,
+      "title": "比比的三點筆記",
+      "headline": "比比的三點筆記",
+      "subtitle": "把技術、需求與限制一起讀",
+      "key_message": "把技術、需求與限制一起讀",
+      "body": [
+        "先懂工具：微影連結晶片製造。",
+        "再看投資：需求反映客戶規劃。",
+        "最後交叉驗證：別用單季斷景氣。"
+      ],
+      "bubble": "收藏這個看財報的順序！",
+      "layout": "summary",
+      "source_refs": [
+        1,
+        3,
+        4
+      ],
+      "source_note": "來源：ASML [1][3][4]",
+      "bibi": {
+        "pose": "坐在打開的筆記旁",
+        "expression": "微笑",
+        "gaze_target": "總結筆記",
+        "interaction": "前腳輕靠筆記邊緣",
+        "prop": "研究筆記",
+        "host_intent": "把技術、需求與限制一起讀",
+        "contact": "前腳或身體自然接觸承載面；不新增人手"
+      },
+      "items": [
+        {
+          "title": "懂技術",
+          "detail": "曝光機扮演什麼角色？"
+        },
+        {
+          "title": "看需求",
+          "detail": "客戶準備做什麼？"
+        },
+        {
+          "title": "查限制",
+          "detail": "哪些因素可能改變？"
+        }
+      ]
+    },
+    {
+      "page": 10,
+      "title": "你最想追蹤哪個訊號？",
+      "headline": "你最想追蹤哪個訊號？",
+      "subtitle": "留言：設備需求／營收／財測",
+      "key_message": "留言：設備需求／營收／財測",
+      "body": [
+        "來源：ASML官方財報與技術說明。",
+        "資料截止：2026/10/17（台北）。",
+        "整理公開資訊，非投顧，投資請自行判斷。"
+      ],
+      "bubble": "下一次，比比陪你一起拆解！",
+      "layout": "cta",
+      "source_refs": [
+        1,
+        3,
+        4,
+        5
+      ],
+      "source_note": "來源：ASML [1][3][4][5]",
+      "bibi": {
+        "pose": "面向觀眾四腳坐姿",
+        "expression": "眨眼",
+        "gaze_target": "讀者",
+        "interaction": "前腳自然著地與觀眾互動",
+        "prop": null,
+        "host_intent": "留言：設備需求／營收／財測",
+        "contact": "前腳或身體自然接觸承載面；不新增人手"
+      },
+      "source_urls": [
+        "https://investor.asml.com/quarterly-results",
+        "https://www.asml.com/en/technology/lithography-principles/light-and-lasers",
+        "https://www.asml.com/en/technology/lithography-principles/lenses-and-mirrors"
+      ],
+      "source_copy": "[1][5] ASML 2026 Q3財報｜2026/10/14\n[3] EUV技術：光與雷射\n[4] EUV技術：反射光學\nasml.com｜完整連結見貼文說明\n資料截止：2026/10/17（台北）\n整理公開資訊，非投顧，投資請自行判斷。"
+    }
+  ],
+  "brand_label": "ASML"
+}

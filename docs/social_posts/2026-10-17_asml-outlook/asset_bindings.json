@@ -1,0 +1,23 @@
+{
+  "assets/poses/01.png": "docs/social_assets/author_unverified/bibi_asml_cheer_front/v001.png",
+  "assets/poses/02.png": "docs/social_assets/author_unverified/bibi_asml_look_right/v001.png",
+  "assets/poses/03.png": "docs/social_assets/author_unverified/bibi_asml_think_tilt/v001.png",
+  "assets/poses/04.png": "docs/social_assets/author_unverified/bibi_asml_wow_front/v001.png",
+  "assets/poses/05.png": "docs/social_assets/author_unverified/bibi_asml_look_left/v001.png",
+  "assets/poses/06.png": "docs/social_assets/author_unverified/bibi_asml_prone_observe/v002.png",
+  "assets/poses/07.png": "docs/social_assets/author_unverified/bibi_asml_worried_sweat/v001.png",
+  "assets/poses/08.png": "docs/social_assets/author_unverified/bibi_asml_happy_close/v001.png",
+  "assets/cover_scene.png": "docs/social_assets/author_unverified/bibi_asml_euv_scene/v001.png",
+  "assets/tech_illustrated/machine.png": "docs/social_assets/gpt_original/tech_illustrated_machine/v001.png",
+  "assets/tech_illustrated/wafer.png": "docs/social_assets/gpt_original/tech_illustrated_wafer/v001.png",
+  "assets/tech_illustrated/mirror.png": "docs/social_assets/gpt_original/tech_illustrated_mirror/v001.png",
+  "assets/tech_illustrated/fab.png": "docs/social_assets/gpt_original/tech_illustrated_fab/v001.png",
+  "assets/tech_illustrated/laptop.png": "docs/social_assets/gpt_original/tech_illustrated_laptop/v001.png",
+  "assets/tech_illustrated/server.png": "docs/social_assets/gpt_original/tech_illustrated_server/v001.png",
+  "assets/tech/wafer.png": "docs/social_assets/codex_original/tech_asml_wafer/v001.png",
+  "assets/tech/wafer.svg": "docs/social_assets/codex_original/tech_asml_wafer/v001.svg",
+  "assets/tech/euv_tool.png": "docs/social_assets/codex_original/tech_asml_euv_tool/v001.png",
+  "assets/tech/euv_tool.svg": "docs/social_assets/codex_original/tech_asml_euv_tool/v001.svg",
+  "assets/tech/optical_path.png": "docs/social_assets/codex_original/tech_asml_optical_path/v001.png",
+  "assets/tech/optical_path.svg": "docs/social_assets/codex_original/tech_asml_optical_path/v001.svg"
+}
