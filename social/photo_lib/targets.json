@@ -2725,5 +2725,50 @@
    "https://www.emctw.com/",
    "https://www.emctw.com/en/"
   ]
+ },
+ {
+  "slug": "tower",
+  "name_en": "Tower Semiconductor",
+  "zh": [
+   "高塔半導體",
+   "Tower Semiconductor",
+   "Tower"
+  ],
+  "category": "半導體",
+  "queries": [
+   "Tower Semiconductor",
+   "Tower Semiconductor Migdal HaEmek fab",
+   "Tower Semiconductor Newport Beach"
+  ],
+  "product_queries": [
+   "silicon photonics chip",
+   "silicon wafer"
+  ],
+  "related_queries": [
+   "semiconductor fab",
+   "silicon wafer"
+  ]
+ },
+ {
+  "slug": "innolight",
+  "name_en": "Innolight",
+  "zh": [
+   "中際旭創",
+   "旭創",
+   "Innolight"
+  ],
+  "category": "網通",
+  "queries": [
+   "Innolight Technology",
+   "Innolight Suzhou"
+  ],
+  "product_queries": [
+   "optical transceiver module",
+   "QSFP optical transceiver"
+  ],
+  "related_queries": [
+   "optical fiber",
+   "data center"
+  ]
  }
 ]

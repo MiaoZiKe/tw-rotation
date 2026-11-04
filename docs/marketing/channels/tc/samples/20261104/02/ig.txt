@@ -10,7 +10,7 @@ HBM 為什麼難做？把 12 層晶片疊成一棟樓。
 你覺得疊層良率的難度，卡在製程還是測試？
 
 出處：SK hynix 2026 第三季財報（2026-10-28）
-圖：示意圖，依公開資料自行繪製的 HBM 堆疊剖面（非實際尺寸，非任何公司產品圖）。
+圖：封面為 ITEagle Europe - Sebastiaan Broekhoven／CC BY-SA 4.0／Wikimedia Commons（SK hynix DDR5 記憶體模組，非 HBM，已裁切）；第 2 張為依公開資料自行繪製的 HBM 堆疊剖面示意（非實際尺寸）。
 本帳號與各公司無合作或授權關係。
 
 #HBM #記憶體 #半導體 #科技透明圈

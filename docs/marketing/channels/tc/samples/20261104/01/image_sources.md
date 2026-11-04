@@ -1,14 +1,27 @@
 # 圖片來源（01）
 
+共 2 張，1080×1350。第 1 張＝封面（實景照＋頻道 LOGO），第 2 張＝重點與流程。
+
+## 第 1 張：封面（image.png）
+
 | 項目 | 內容 |
 |---|---|
-| 類別 | ① Wikimedia Commons CC 授權實景照（repo 圖庫 `social/photo_lib/_category/半導體/photo_3.jpg`） |
-| 內容 | D2316E 早期金屬光罩 ROM 的裸晶打線封裝照 |
-| 作者 | Mister rf（Wikimedia Commons，Own work） |
-| 授權 | CC BY-SA 4.0（https://creativecommons.org/licenses/by-sa/4.0/） |
-| 原始網址 | https://commons.wikimedia.org/wiki/File:D2316E_die_photo.jpg |
-| 取得日 | 2026-10-28（圖庫入庫日；art-director 2026-10-28 複審通過）；本次使用 2026-11-04 |
-| 修改 | 裁切（cover 1080×420）、上方加標題條、下方加出處列；CC BY-SA 要求：修改後的圖仍以 CC BY-SA 4.0 釋出、標示作者與授權、註明有修改（圖上出處列已標作者／授權，修改說明在本檔） |
-| 圖上標示 | 出處列：作者／授權／Wikimedia Commons／照片內容說明（非官方素材、非示意目標的限制語） |
-| LOGO | 版面無任何公司 LOGO；文末一句「與各公司無合作或授權關係」 |
+| 類別 | 公司實景照（主體公司＝台積電，官方新聞室／官網照片，DECISIONS #373） |
+| 圖庫檔案 | `social/photo_lib/tsmc/photo_19.jpg`（pool.json：reviewed: true，art-director 2026-10-30 官方照片審核通過） |
+| 內容 | 台積電廠區弧形大樓日間實景；建築上台積電字樣只是場景一部分 |
+| 作者／授權 | 台積電官方（`official-press`，官網 https://www.tsmc.com/english/aboutTSMC/TSMC_Fabs ，原檔 foundry_fab15b.jpg）；圖下署名「圖：台積電官方」 |
+| 修改 | 裁切成 1080×760 |
+| 為何這張 | 主體公司已審圖池優先（news_post_rules 第十二節）；本篇講台積電先進封裝，圖庫無 CoWoS／先進封裝產線已審照，故用廠區實景並於圖說標明「非先進封裝產線」 |
+| 頻道 LOGO | 「開口圈」原色（藍環＋橘點），取自 `docs/brand/tc_logo_1102/c1_開口圈/icon_light.svg`（claude/serene-brown-e4sosy 分支），左上固定位置＋「科技透明圈」字標；未改色、未與公司 LOGO 組合、無比比。封面無任何公司 LOGO 由我方放置 |
+| 法遵 | 頁底「CoWoS 為台積電之商標。」；公司 LOGO 不上封面（照片內建築字樣為場景，非我方放置） |
+| 禁止項檢查 | 非新聞照、非 AI 生成、無比比；頁底「與各公司無合作或授權關係」 |
+
+## 第 2 張（image2.png）
+
+| 項目 | 內容 |
+|---|---|
+| 類別 | 自製版面（無照片） |
+| 內容 | 新聞重點引言＋四段流程卡（誰供應誰） |
+| 授權 | 自製，無第三方素材；字型 Noto Sans TC（SIL OFL 1.1） |
+| 圖上標示 | 「示意圖：依公開資料自行繪製…」；頁底含「CoWoS 為台積電之商標。」 |
 | 禁止項檢查 | 非新聞照、非 AI 生成、無比比 |

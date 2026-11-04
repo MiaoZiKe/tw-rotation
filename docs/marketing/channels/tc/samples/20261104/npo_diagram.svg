@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="460" viewBox="0 0 1080 460" font-family="'Noto Sans TC',sans-serif">
+<rect width="1080" height="460" fill="#EFEFEF"/>
+<text x="60" y="34" font-size="22" fill="#595959">紅線＝電訊號　灰線＝光纖</text>
+<text x="1000" y="34" font-size="22" fill="#111111" font-weight="700" text-anchor="end">機櫃面板</text>
+<line x1="1008" y1="46" x2="1008" y2="450" stroke="#111111" stroke-width="5"/>
+<rect x="340" y="60" width="660" height="104" fill="#FFFFFF" stroke="#CFCFCF" stroke-width="2"/>
+<text x="60" y="104" font-size="28" font-weight="700" fill="#111111">① 可插拔光模組</text>
+<text x="60" y="146" font-size="22" fill="#595959">電訊號跑最長</text>
+<rect x="360" y="74" width="260" height="76" fill="#EFEFEF" stroke="#111111" stroke-width="3"/>
+<text x="490" y="120" font-size="22" fill="#111111" text-anchor="middle">晶片封裝</text>
+<line x1="620" y1="112" x2="880" y2="112" stroke="#D4231A" stroke-width="6"/>
+<text x="750" y="98" font-size="22" fill="#D4231A" font-weight="700" text-anchor="middle">電訊號走很長一段</text>
+<rect x="880" y="74" width="110" height="76" fill="#111111"/><text x="935" y="120" font-size="22" fill="#FFFFFF" text-anchor="middle">光模組</text>
+<line x1="990" y1="112" x2="1080" y2="112" stroke="#595959" stroke-width="4" stroke-dasharray="14 8"/>
+<rect x="340" y="196" width="660" height="104" fill="#FFFFFF" stroke="#CFCFCF" stroke-width="2"/>
+<text x="60" y="240" font-size="28" font-weight="700" fill="#111111">② NPO 近封裝</text>
+<text x="60" y="282" font-size="22" fill="#595959">靠近晶片，但在封裝外</text>
+<rect x="360" y="210" width="260" height="76" fill="#EFEFEF" stroke="#111111" stroke-width="3"/>
+<text x="490" y="256" font-size="22" fill="#111111" text-anchor="middle">晶片封裝</text>
+<line x1="620" y1="248" x2="660" y2="248" stroke="#D4231A" stroke-width="6"/>
+<rect x="660" y="210" width="120" height="76" fill="#111111"/><text x="720" y="256" font-size="22" fill="#FFFFFF" text-anchor="middle">光學引擎</text>
+<line x1="780" y1="248" x2="1080" y2="248" stroke="#595959" stroke-width="4" stroke-dasharray="14 8"/>
+<rect x="340" y="332" width="660" height="104" fill="#FFFFFF" stroke="#CFCFCF" stroke-width="2"/>
+<text x="60" y="376" font-size="28" font-weight="700" fill="#111111">③ CPO 共同封裝</text>
+<text x="60" y="418" font-size="22" fill="#595959">光學引擎在封裝內</text>
+<rect x="360" y="346" width="260" height="76" fill="#EFEFEF" stroke="#111111" stroke-width="3"/>
+<text x="392" y="392" font-size="22" fill="#111111" text-anchor="middle">晶片</text>
+<rect x="472" y="354" width="124" height="60" fill="#111111"/><text x="534" y="392" font-size="22" fill="#FFFFFF" text-anchor="middle">光學引擎</text>
+<line x1="418" y1="384" x2="472" y2="384" stroke="#D4231A" stroke-width="6"/>
+<line x1="596" y1="384" x2="1080" y2="384" stroke="#595959" stroke-width="4" stroke-dasharray="14 8"/>
+</svg>

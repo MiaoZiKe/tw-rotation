@@ -73,3 +73,55 @@
 - HBM 堆疊與 CoWoS-S 結構通則：bestpcbs.com CoWoS-S 系列、regantih.github.io 12-cowos-hbm 章節、SemiWiki TCB 文章，皆為二手整理，信心度中；未找到 TSMC／JEDEC 一手剖面圖
 
 重出：已依 TC_FONT、TW_CHROME 重跑 render.py，重疊檢查程式 3 張 0 筆；人工看過 02 全解析度 0 筆重疊。
+
+## art-director 複審 04（2026-11-04）
+
+| 項目 | 結論 |
+|---|---|
+| 照片是否貼題 | 不過：資料中心機房全景與「光模組靠近晶片」關聯弱、畫質偏舊。已查圖庫 `網通`（9 張）、`資料中心`（16 張）、`AI伺服器`（11 張）：網通 photo_2 有 TP-Link 字樣、photo_1 為 DE-CIX 招牌、photo_3/4 為光纜加量尺、photo_5 有人手、photo_7 為光纖耦合器單品、photo_8 有 D-Link／Cisco／Panduit，其餘為機房／刀鋒伺服器，皆無貼題且無廠牌標記的 CC 照 → 不換照片 |
+| 處置 | 照片區（1080×460）改為自繪「三種位置對照」示意圖 `npo_diagram.svg`：① 可插拔光模組在機櫃面板（紅線電訊號最長）② NPO 光學引擎在板上、靠近晶片封裝但在封裝外（紅線短）③ CPO 光學引擎在封裝內；右側黑線為機櫃面板、灰虛線為光纖；圖說標「示意圖」，不標距離數字 |
+| NPO／CPO 位置敘述查證 | 本環境無法派 mechanical-engineer／ai-server-analyst，改 WebSearch 自查：可插拔＝前面板；NPO＝光引擎在主機板、靠近 ASIC 但封裝外；CPO＝封裝內或緊鄰。來源 https://www.wevolver.com/article/what-is-co-packaged-optics-architecture-benefits-challenges-and-performance（產業文章，非標準文件）。與貼文敘述「位置介於可插拔與 CPO 之間」一致。專業簽核待 CEO 補派 |
+| 字級／層次 | 圖內最小 22px、列標 28px 粗體；紅色只用於電訊號線（一個重點：越靠近越短），其餘黑灰；步驟卡與其他篇一致 |
+| 留白 | 示意圖三列等高等距、左欄標題與右側圖不頂邊；右側 CPO 列後段留白屬光纖延伸，不算空白 |
+| 修正過程 | 首版 CPO 列「晶片」字被紅線壓住，封裝框由 200 加寬到 260 後解決；重疊檢查程式新增 SVG 內文字兩兩相交、出界、壓線檢查 |
+| 文字檔 | threads.txt／ig.txt 出處行由 Faber CC 照改為「自行繪製示意圖」，Threads 留言附位置描述參考連結；`image_sources.md` 重寫 |
+
+**重疊檢查：程式 1 張 0 筆**（含 SVG 內文字相交／出界／壓線）；人工目視 1080×1350 全解析度 0 筆。
+
+
+## ai-server-analyst 技術簽核 04（2026-11-04）
+
+結論：**通過（文案小修 2 處，圖不需改）**。
+
+| 項目 | 結論 | 來源／信心 |
+|---|---|---|
+| 新聞稿事實與日期 | 通過。Tower 新聞稿 2026-11-03 存在（GlobeNewswire、ir.towersemi.com、towersemi.com 皆有）；內容：Innolight 首款 NPO 元件在 Tower PH18M 矽光子製程早期量產（200mm，加州廠）；多款 NPO 已在 300mm 平台 tape-out（＝設計定稿）。貼文寫法照抄原文，未寫成已放量。Tower 另在 Q3 財報稱有逾十家客戶在試做 NPO，有意義的出貨目標是 2027 下半年，取決於採用度，與貼文「早期量產」不衝突，建議不加進貼文以免被讀成已放量 | 高（多個獨立轉述一致；本環境只讀到搜尋摘要，未讀全文，連結發文前人工核對） |
+| 圖：可插拔在面板、電訊號最長 | 通過 | 高（多來源一致：前面板可插拔，經長 PCB 走線到 ASIC） |
+| 圖：NPO 在主機板上、靠近 ASIC 封裝、在封裝外 | 通過。多來源描述 NPO 光學引擎在自己的基板／板上、靠近交換 ASIC、不在其封裝內，常以插座與板連接 | 中高（來源多為廠商／產業文章，無標準文件；圖未標距離，風險低） |
+| 圖：CPO 在封裝內 | 通過。CPO 光學引擎與 ASIC 共用封裝基板 | 高 |
+| 用詞：NPO 全名 | 有分歧：多數稱 near-package（near-packaged）optics，亦有文章稱 near-board optics；本次新聞稿用 Near-Package Optics，貼文「近封裝光學」與之一致。OBO（板載光學）則指光引擎與晶片間仍經大塊 PCB 連接，與 NPO 不同；貼文與圖都沒有混用 | 中高 |
+| 文案修正 1 | 「光模組廠需要有矽光子製程的晶圓廠代工」過度斷言（廠商可有自家產線）→ 改「常找」；Threads 並補「這次 Innolight 用的是 Tower 的矽光子平台」 | — |
+| 文案修正 2 | Threads 刪「Tower 稿中提到其平台可把多種光學功能整合在同一顆晶片」：搜尋摘要無法核實這句 → 刪除；Threads 新聞稿句末補「量產規模與時程以公司後續公告為準」 | — |
+| 圖 | 未改，故未重出 04.png，沿用既有 PNG（重疊檢查結果沿用前述 0 筆） | — |
+
+來源：https://www.globenewswire.com/news-release/2026/11/03/3394669/0/en/tower-semiconductor-and-innolight-advance-high-performance-near-package-optics-for-ai-infrastructure.html ；https://convergedigest.com/innolight-tower-semiconductor-npo-silicon-photonics-production/ ；https://resources.l-p.com/knowledge-center/npo-vs-cpo-optics-placement-speed-efficiency-data-center ；https://www.tomshardware.com/tech-industry/near-packaged-optics-gains-ground-aso-the-industry-hedges-against-co-packaged-optics-growing-pains
+未查到 OIF 的對應標準文件（搜尋未命中），故位置關係信心上限為中高。
+
+
+## 封面改版（Andy 11-04：「封面需要公司照片，另外風格之前有說過，請參照風格並附上 LOGO」）
+
+每篇改為 2 張：第 1 張＝封面（全幅實景照＋頻道 LOGO「開口圈」原色＋字標，左上固定；瑞士極簡配色字型），第 2 張＝圖解／重點。依 news_post_rules 第十二節與 DECISIONS #373 選照片：
+
+| 篇 | 封面照片 | 授權／署名 |
+|---|---|---|
+| 01 先進封裝 | `social/photo_lib/tsmc/photo_19.jpg`（台積電廠區大樓，主體公司圖池） | official-press，圖：台積電官方 |
+| 02 HBM | `social/photo_lib/sk_hynix/photo_6.jpg`（SK hynix DDR5 模組） | CC BY-SA 4.0，ITEagle Europe - Sebastiaan Broekhoven；已裁切 |
+| 03 液冷 | `_category/散熱/photo_5.jpg`（無單一公司主體，TrendForce 市調趨勢，故用類別池，不借別家公司的圖） | CC BY-SA 4.0，Votpuske；已裁切 |
+| 04 NPO | `_category/資料中心/photo_7.jpg`（Tower／Innolight 圖庫尚無，暫用類別池，已逐區檢視無廠牌標記） | CC BY-SA 2.0，Faber；已裁切 |
+
+- 公司 LOGO 不上封面；頁底「與各公司無合作或授權關係」，01 另加「CoWoS 為台積電之商標」。
+- 待補公司照：`social/photo_lib/targets.json` 補 tower、innolight 兩條，`aliases.json` 補別名；未推 main，待 CEO 決定何時讓 Actions 抓圖與審核。
+- SK hynix 已審圖池只有 DDR5 模組照（無廠區／HBM）；模組標籤與晶片上的 SK hynix 字樣屬產品本身。
+- 美編：本環境無法派 art-director，**未經美編審**，已逐張全解析度自查（標題、LOGO、署名、照片兩兩不相交，文字未溢出，淺色背景下均可讀）。
+
+**重疊檢查：程式 8 張 0 筆**（4 篇各封面＋第 2 張；封面含 LOGO 組、kicker、照片、標題、副標、滑動提示、署名、頁底；第 2 張另含 SVG 內文字相交／出界／壓線）。

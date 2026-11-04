@@ -10,7 +10,7 @@ TrendForce 8/17 預估：液冷在 AI 晶片的滲透率，2025 年約 33%、202
 你的工作比較接近「讓晶片不過熱」，還是「讓整櫃不漏水」？
 
 出處：TrendForce 新聞稿（2026-08-17）
-圖：Votpuske／CC BY-SA 4.0／Wikimedia Commons（伺服器機殼內的 CPU 水冷示意，非 AI 伺服器）
+圖：Votpuske／CC BY-SA 4.0／Wikimedia Commons（伺服器機殼內的 CPU 水冷示意，非 AI 伺服器，已裁切）
 本帳號與各公司無合作或授權關係。
 
 #液冷 #AI伺服器 #散熱 #科技透明圈
