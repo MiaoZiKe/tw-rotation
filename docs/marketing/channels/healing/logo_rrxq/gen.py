@@ -166,18 +166,18 @@ def s10(P):
     ink = P['ink']; R = 290
     s = f'<circle r="{R}" fill="{P["soft"]}" stroke="{ink}" stroke-width="16"/>'
     s += f'<circle r="188" fill="{P["bg"] if not P.get("mono") else P["bg"]}" stroke="{ink}" stroke-width="12"/>'
-    ring = '<path id="pt" d="M -236 0 A 236 236 0 0 1 236 0" fill="none"/><path id="pb" d="M -262 0 A 262 262 0 0 0 262 0" fill="none"/>'
+    ring = '<path id="pt" d="M -214 0 A 214 214 0 0 1 214 0" fill="none"/><path id="pb" d="M -258 0 A 258 258 0 0 0 258 0" fill="none"/>'
     fam, w, _ = FONTS['sans']
     t = f'<text font-family="{fam}" font-weight="{w}" font-size="62" letter-spacing="14" fill="{ink}" text-anchor="middle"><textPath href="#pt" startOffset="50%">{NAME}</textPath></text>'
     t += f'<text font-family="{fam}" font-weight="{w}" font-size="40" letter-spacing="8" fill="{ink}" text-anchor="middle"><textPath href="#pb" startOffset="50%">{SUB}</textPath></text>'
-    dots = f'<circle cx="-238" cy="2" r="12" fill="{P["S"] if not P.get("mono") else ink}" stroke="{ink}" stroke-width="5"/><circle cx="238" cy="2" r="12" fill="{P["S"] if not P.get("mono") else ink}" stroke="{ink}" stroke-width="5"/>'
+    dots = f'<circle cx="-241" cy="0" r="12" fill="{P["S"] if not P.get("mono") else ink}" stroke="{ink}" stroke-width="5"/><circle cx="241" cy="0" r="12" fill="{P["S"] if not P.get("mono") else ink}" stroke="{ink}" stroke-width="5"/>'
     inner = f'<clipPath id="c10"><circle r="176"/></clipPath><g clip-path="url(#c10)">'
     inner += f'<path d="M -50 40 A 100 100 0 0 1 150 40 Z" transform="translate(-50 -10)" fill="{P["S"]}" stroke="{ink}" stroke-width="14" stroke-linejoin="round"/>'
     inner += rays(50, 30, 120, 150, 5, 12, ink, 200, 340)
     inner += f'<rect x="-190" y="30" width="380" height="170" fill="{P["M"] if not P.get("mono") else P["bg"]}"/>' + line(-190, 30, 190, 30, 14, ink)
     inner += cloud(-80, 24, .55, P['bg'], ink, 7)
     inner += '</g>'
-    return L('a', s + ring + t + dots + inner)
+    return L('a', s + ring + dots + inner) + L('b', t)
 # ===== 11 手寫（楷體＋手繪太陽）=====
 def s11(P):
     ink = P['ink']
@@ -248,7 +248,7 @@ def wm_svg(P, n, sym, kind, ls, k, sub, bg=True):
         body += L('sym', f'<g transform="translate({x0+100} {ty})">{sun}</g>')
         tx0 = x0 + 230; tw = text_w(NAME, kind, fsz, ls); W = int(tx0 + tw + 70)
         body += L('txt', TX(NAME, kind, fsz, tx0, ty+.36*fsz, ink, ls=ls, bold=3))
-        wave = f'M {tx0} {ty+.36*fsz+34} q 28 -18 56 0 t 56 0 t 56 0 t 56 0 t 56 0 t 56 0'
+        wave = f'M {tx0} {ty+.36*fsz+52} q 28 -16 56 0 t 56 0 t 56 0 t 56 0 t 56 0'
         body += L('sym2', f'<path d="{wave}" fill="none" stroke="{P["S"] if not P.get("mono") else ink}" stroke-width="12" stroke-linecap="round"/>')
         if sub: pass
     else:
