@@ -25,17 +25,26 @@ def S1():  # 租屋小套房一盞燈＋帳單
       '<line x1="262" y1="340" x2="352" y2="340" %s/><line x1="272" y1="340" x2="272" y2="380" %s/><line x1="342" y1="340" x2="342" y2="380" %s/>' % (L, L, L) +
       '<rect x="270" y="318" width="64" height="22" rx="2" %s/><line x1="280" y1="327" x2="316" y2="327" %s/><line x1="280" y1="334" x2="302" y2="334" %s/>' % (LC, L, L))
 
-def S2():  # 末班捷運空座位（只畫車廂內，無月台、無軌道）
-    seat = ('<rect x="60" y="262" width="760" height="56" rx="14" %s/><rect x="60" y="322" width="760" height="24" rx="8" %s/>' % (LC, LC) +
-            "".join('<line x1="%d" y1="270" x2="%d" y2="340" %s/>' % (60 + i * 108.5, 60 + i * 108.5, L) for i in range(1, 7)))
-    wins = "".join('<rect x="%d" y="140" width="232" height="96" rx="8" %s/>' % (60 + i * 262, L) for i in range(3))
-    return ('<defs><linearGradient id="gb" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--w-lamp)" stop-opacity="1"/>'
-      '<stop offset="1" stop-color="var(--w-lamp)" stop-opacity="0"/></linearGradient></defs>' +
-      '<polygon data-g="1" points="140,114 740,114 840,350 40,350" fill="url(#gb)" opacity="var(--w-glow2)" style="filter:blur(24px)"/>' +
-      wins + '<line x1="30" y1="100" x2="30" y2="352" %s/><line x1="858" y1="100" x2="858" y2="352" %s/>' % (L, L) +
-      '<rect x="120" y="96" width="640" height="14" rx="7" %s/>' % LAMP + seat +
-      '<line x1="190" y1="112" x2="190" y2="352" %s/><line x1="620" y1="112" x2="620" y2="352" %s/>' % (L, L) +
-      '<line x1="30" y1="352" x2="860" y2="352" %s/>' % L)
+def S2():  # 末班捷運空車廂（透視：兩側座位與窗、遠端門、天花板日光燈；無月台、無軌道、無吊環）
+    def side(sign, t0, t1, f0, f1):
+        # sign=1 左牆、-1 右牆；t 為深度 0（近）~1（遠）；f 為高度比例（0 天花板~1 地板）
+        def pt(t, f):
+            x = 30 + 300 * t if sign == 1 else 858 - 300 * t
+            c = 90 + 80 * t; fl = 360 - 70 * t
+            return (round(x, 1), round(c + (fl - c) * f, 1))
+        p = [pt(t0, f0), pt(t1, f0), pt(t1, f1), pt(t0, f1)]
+        return ' '.join('%s,%s' % q for q in p)
+    out = '<defs><linearGradient id="gb" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--w-lamp)" stop-opacity="1"/><stop offset="1" stop-color="var(--w-lamp)" stop-opacity="0"/></linearGradient></defs>'
+    out += '<polygon data-g="1" points="344,100 544,100 700,350 188,350" fill="url(#gb)" opacity="var(--w-glow2)" style="filter:blur(24px)"/>'
+    out += '<rect x="30" y="90" width="828" height="270" %s/>' % L
+    out += '<rect x="330" y="170" width="228" height="120" %s/><rect x="400" y="190" width="88" height="70" %s/>' % (L, L)
+    out += '<line x1="30" y1="90" x2="330" y2="170" %s/><line x1="858" y1="90" x2="558" y2="170" %s/>' % (L, L)
+    out += '<line x1="30" y1="360" x2="330" y2="290" %s/><line x1="858" y1="360" x2="558" y2="290" %s/>' % (L, L)
+    for sg in (1, -1):
+        out += '<polygon points="%s" %s/>' % (side(sg, .12, .88, .2, .5), L)
+        out += '<polygon points="%s" %s/>' % (side(sg, .06, .94, .66, .86), LC)
+    out += '<polygon points="394,104 494,104 474,150 414,150" %s/>' % LAMP
+    return out
 
 def S3():  # 便利商店微波便當
     return (glow(360, 260, 200, "var(--w-glow)", "g3") +
@@ -74,9 +83,11 @@ def S6():  # 陽台晾衣（室內看向落地玻璃門）
                 % (cx - 14, cx - 50, cx - 70, cx - 52, cx - 40, cx - 40, cx + 40, cx + 40, cx + 52, cx + 70, cx + 50, cx + 14, LC) +
                 '<path d="M%d 238 Q%d 224 %d 238" %s/>' % (cx - 10, cx, cx + 10, L))
     return (pre + '<polygon data-g="1" points="110,380 490,380 560,446 10,446" fill="var(--w-lamp)" opacity="var(--w-glow2)" style="filter:blur(24px)"/>' +
-      '<rect x="100" y="60" width="400" height="320" fill="url(#gd6)" opacity="0.3"/>' +
-      '<rect x="100" y="60" width="400" height="320" %s/><line x1="300" y1="60" x2="300" y2="380" %s/>' % (L, L) +
-      '<line x1="272" y1="200" x2="272" y2="250" %s/><line x1="328" y1="200" x2="328" y2="250" %s/>' % (L, L) +
+      '<rect x="100" y="60" width="400" height="320" fill="url(#gd6)" opacity="0.16"/>' +
+      '<rect x="100" y="60" width="400" height="320" %s/><rect x="114" y="74" width="172" height="292" %s/><rect x="314" y="74" width="172" height="292" %s/>' % (L, L, L) +
+      '<line x1="150" y1="330" x2="236" y2="112" %s opacity="0.55"/><line x1="176" y1="330" x2="262" y2="112" %s opacity="0.55"/>' % (L, L) +
+      '<line x1="350" y1="330" x2="436" y2="112" %s opacity="0.55"/><line x1="376" y1="330" x2="462" y2="112" %s opacity="0.55"/>' % (L, L) +
+      '<line x1="300" y1="60" x2="300" y2="380" %s/><line x1="292" y1="200" x2="292" y2="236" %s/><line x1="308" y1="200" x2="308" y2="236" %s/>' % (L, L, L) +
       '<line x1="40" y1="380" x2="860" y2="380" %s/>' % L +
       '<line x1="580" y1="226" x2="860" y2="226" %s/>' % L +
       '<path d="M594 226 L568 380 M846 226 L872 380 M594 226 L632 380 M846 226 L808 380" %s/>' % L +
@@ -94,8 +105,8 @@ def S8():  # 沒有人坐的書桌（椅子推進桌下）
       '<line x1="40" y1="410" x2="860" y2="410" %s/>' % L +
       '<rect x="140" y="304" width="660" height="16" rx="4" %s/>' % LC +
       '<line x1="170" y1="320" x2="170" y2="408" %s/><line x1="770" y1="320" x2="770" y2="408" %s/>' % (L, L) +
-      '<rect x="230" y="256" width="130" height="46" rx="10" %s/><line x1="258" y1="320" x2="258" y2="400" %s/><line x1="332" y1="320" x2="332" y2="400" %s/>' % (LC, L, L) +
-      '<path d="M470 302 L690 302 L676 312 L484 312 Z" %s/><rect x="494" y="196" width="180" height="104" rx="6" %s/>' % (LC, LAMP))
+      '<rect x="236" y="214" width="118" height="92" rx="14" %s/><line x1="272" y1="226" x2="272" y2="294" %s/><line x1="295" y1="226" x2="295" y2="294" %s/><line x1="318" y1="226" x2="318" y2="294" %s/><line x1="258" y1="320" x2="258" y2="400" %s/><line x1="332" y1="320" x2="332" y2="400" %s/>' % (LC, L, L, L, L, L) +
+      '<path d="M470 302 L690 302 L676 312 L484 312 Z" %s/><rect x="484" y="186" width="200" height="116" rx="8" %s/><rect x="498" y="200" width="172" height="88" rx="3" %s/><line x1="514" y1="222" x2="620" y2="222" stroke="var(--w-card)" stroke-width="3" stroke-linecap="round"/><line x1="514" y1="244" x2="590" y2="244" stroke="var(--w-card)" stroke-width="3" stroke-linecap="round"/>' % (LC, LC, LAMP))
 
 def S9():  # 電腦上開著的履歷表
     return (glow(440, 210, 200, "var(--w-glow)", "g9") +
