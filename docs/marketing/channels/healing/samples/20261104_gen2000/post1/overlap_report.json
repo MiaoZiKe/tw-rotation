@@ -1,7 +1,9 @@
 {
  "threads": {
   "n": 6,
-  "overlap": [],
+  "overlap": [
+   "acct×t3"
+  ],
   "gap32": [],
   "oob_margin": [],
   "outside_safe": [],
