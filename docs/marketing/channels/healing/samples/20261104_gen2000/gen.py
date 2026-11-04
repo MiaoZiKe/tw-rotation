@@ -103,7 +103,9 @@ def page(post, s, idx, total):
         out.append('<div class="stack" style="top:%dpx">%s</div>' % (190 if not s.get("tag") else 190, "".join(parts)))
     elif s["type"] == "sources":
         items = []
-        for k in s["facts"]:
+        for i, ln in enumerate(s.get("lines", [])):
+            items.append('<div data-o=sl%d class="src-item sans">%s%s</div>' % (i, "" if ln.startswith("　") else "・", esc(sub(ln, facts))))
+        for k in s.get("facts", []) if not s.get("lines") else []:
             f = facts[k]
             items.append('<div data-o=s%s class="src-item sans">・%s，%s %s</div>' %
                          (k, esc(f["src"]), esc(f["year"]), esc(disp(f))))
