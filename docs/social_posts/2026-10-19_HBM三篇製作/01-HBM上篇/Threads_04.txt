@@ -1,0 +1,7 @@
+📚 延伸來源與查核
+
+SK hynix官方2024-04-19說明：core DRAM堆疊在底部base上，並以TSV連接；HBM與GPU透過中介層整合。
+https://news.skhynix.com/en/sk-hynix-partners-with-tsmc-to-strengthen-hbm-technological-leadership/
+
+查核日：2026-10-19。本串不引用產品頻寬、產能、市占或未確認供應商數字。倉庫與輸送帶為概念比喻，非實際製程。
+整理公開資訊，非投顧，投資請自行判斷。

@@ -1,0 +1,44 @@
+[
+  {
+    "file": "IG文案.txt",
+    "codepoints": 990,
+    "utf16": 997,
+    "limit": 2200,
+    "passed": true
+  },
+  {
+    "file": "FB文案.txt",
+    "codepoints": 1170,
+    "utf16": 1177,
+    "limit": 5000,
+    "passed": true
+  },
+  {
+    "file": "Threads_01.txt",
+    "codepoints": 276,
+    "utf16": 278,
+    "limit": 500,
+    "passed": true
+  },
+  {
+    "file": "Threads_02.txt",
+    "codepoints": 265,
+    "utf16": 266,
+    "limit": 500,
+    "passed": true
+  },
+  {
+    "file": "Threads_03.txt",
+    "codepoints": 291,
+    "utf16": 292,
+    "limit": 500,
+    "passed": true
+  },
+  {
+    "file": "Threads_04.txt",
+    "codepoints": 292,
+    "utf16": 295,
+    "limit": 500,
+    "passed": true
+  }
+]

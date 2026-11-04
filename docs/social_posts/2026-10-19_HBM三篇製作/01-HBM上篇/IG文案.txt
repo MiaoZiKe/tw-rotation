@@ -1,0 +1,28 @@
+GPU很快，資料卻還沒到？🔍
+
+HBM不是GPU，也不是硬碟。它是高頻寬記憶體，把多顆DRAM晶粒向上堆疊，配合寬介面處理大量資料傳輸。
+
+這10頁先記住三件事：
+
+🧩 容量，是能放多少；頻寬，是每秒能傳多少。裝得下，還要送得及。
+
+📌 典型堆疊的core die是記憶體晶粒，base die在最底部；TSV協助上下層連接。
+
+🔍 典型封裝裡，HBM與GPU並排在中介層上。中介層的細密繞線，讓兩者協作，不是把HBM疊在GPU頭頂。
+
+高頻寬不是滿速保證，還得看整體系統與應用。下一篇再拆：疊得越高，難在哪裡？
+
+💬 你之前把容量和頻寬當成同一件事嗎？
+
+官網：
+https://liguligu-puipui.com/?utm_source=instagram&utm_medium=social&utm_campaign=hbm_series&utm_content=01-HBM-upper#overview
+
+來源：哩股哩股產業地圖、Micron HBM FAQ、SK hynix官方結構說明。
+https://github.com/MiaoZiKe/tw-rotation/blob/32b22653fab6b819ed036200d436ed5c2449a9e7/site/dg/hbm.js
+https://www.micron.com/products/memory/hbm
+https://news.skhynix.com/en/sk-hynix-partners-with-tsmc-to-strengthen-hbm-technological-leadership/
+
+查核：2026-10-19。圖中層數、厚度、孔徑均為示意，非產品規格；倉庫/輸送帶僅為比喻。base die配置依架構而異，本篇為典型結構，不概括所有世代。
+整理公開資訊，非投顧，投資請自行判斷。
+
+#哩股哩股 #比比科技教室 #HBM #半導體 #高頻寬記憶體
