@@ -51,7 +51,7 @@ def s4(c):   # 鑰匙的齒，就是一條往上爬的房價線
             f'<path d="M-4 0 V52 L18 34 L36 44 L56 20 L74 28 L92 4" {Ls(c,7)}/><circle cx="92" cy="4" r="11" {Fl(c)}/></g>'), 100, 42
 def s5(c):   # 電池的形狀是一間房子，只充到 3%
     L = Ls(c, 8)
-    return (f'<g transform="translate(0 5)"><path d="M-54 -10 L0 -62 L54 -10 V74 H-54 Z" {L}/><rect x="-14" y="-88" width="28" height="18" rx="5" {Ls(c,7)}/>'
+    return (f'<g transform="translate(0 5)"><path d="M-54 -10 L0 -62 L54 -10 V74 H-54 Z" {L}/><rect x="-22" y="-84" width="44" height="14" rx="4" fill="{c['line']}"/>'
             f'<path d="M-36 6 H36 M-36 26 H36 M-36 46 H36" {Ls(c,4)} stroke-dasharray="10 9"{dim(c)}/>'
             f'<rect x="-40" y="58" width="80" height="10" rx="4" {Fl(c)}/></g>'), 58, 84
 def s6(c):   # 一盞燈泡裡，住著一間小套房
@@ -107,7 +107,7 @@ PAIRS = {}
 
 def avatar(st, c):
     s, hw, hh = st['sym'](c); import math
-    sc = min(3.4, 400 / math.hypot(hw, hh))
+    sc = min(4.6, 400 / math.hypot(hw, hh))
     return wrap(1080, 1080, c, f'<g id="sym" transform="translate(540 540) scale({sc:.3f})">{s}</g>'), sc
 def wordmark(st, c, transparent=False, H=400):
     s, hw, hh = st['sym'](c); ss = min(120 / hh, 175 / hw); fs = 120; ls = 0.1; pad = 70; cy = H / 2; base = cy + fs * 0.36
