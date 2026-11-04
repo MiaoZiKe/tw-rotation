@@ -11,7 +11,7 @@ def lum(rgb): return 0.2126 * lin(rgb[0]) + 0.7152 * lin(rgb[1]) + 0.0722 * lin(
 def cr(a, b):
     a, b = max(a, b), min(a, b); return (a + 0.05) / (b + 0.05)
 bad = 0; total = 0; worst_all = 99
-for p in ("post1", "post2", "post3"):
+for p in ("post1", "post2", "post3", "post4"):
     d = os.path.join(B, p); rep = json.load(open(d + "/overlap_report.json")); mf = json.load(open(d + "/manifest.json"))
     for name in mf:
         im = Image.open(f"{d}/{name}.bg.png").convert("RGB"); tx = json.load(open(f"{d}/{name}.tx.json"))

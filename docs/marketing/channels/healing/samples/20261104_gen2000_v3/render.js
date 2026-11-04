@@ -1,7 +1,7 @@
 const {chromium}=require('/opt/node-tools/node_modules/playwright');const fs=require('fs');
 const CHECK=fs.readFileSync(__dirname+'/../../layouts/check.js.txt','utf8');
 (async()=>{const b=await chromium.launch();let n=0,bad=0,lines=[];
-for(const p of ['post1','post2','post3']){const d=__dirname+'/'+p;const mf=JSON.parse(fs.readFileSync(d+'/manifest.json'));const out={};
+for(const p of ["post1","post2","post3","post4"]){const d=__dirname+'/'+p;const mf=JSON.parse(fs.readFileSync(d+'/manifest.json'));const out={};
 for(const [name,H] of Object.entries(mf)){const pg=await b.newPage({viewport:{width:1080,height:H}});await pg.goto('file://'+d+'/html/'+name+'.html');await pg.waitForTimeout(400);
 await pg.screenshot({path:d+'/'+name+'.png'});
 const r=await pg.evaluate(eval(CHECK),{});
