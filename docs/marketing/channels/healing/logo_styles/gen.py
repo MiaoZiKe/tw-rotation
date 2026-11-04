@@ -79,12 +79,17 @@ def sym6(c):   # 收據：鋸齒底、三行品項、合計線、條碼，燈是
     o += f'<path d="M-44 38 H44" {L}/>'
     for x in range(-42, 43, 12): o += f'<path d="M{x} 49 V62" {L}/>'
     return f'<g transform="rotate(3)">{o}</g>', 68, 92, GRAIN
-def sym7(c):   # 圓角徽章：拱形窗亮一盞燈
-    L = Ls(c, 8)
+def sym7(c):   # 圓角徽章：寬而矮的拱窗（像窗不像碑），窗台＋橫窗框，單色版整扇窗實心反白、燈挖空
+    L = Ls(c, 8); mono = c['mono']
+    win_fill = c['line'] if mono else c['bg']      # 單色：整扇窗實心（亮起）
+    cut = c['bg']                                   # 實心窗上用底色挖出燈與窗框
+    bar = f'<path d="M-54 14 H54 M0 14 V40" fill="none" stroke="{cut if mono else c["line"]}" stroke-width="7"/>'
+    lamp = f'<circle cx="0" cy="-10" r="13" fill="{cut if mono else c["lamp"]}"/>'
     return (f'<circle cx="0" cy="0" r="100" fill="{c["card"]}" {Ls(c,9)}/>'
-            f'<path d="M-34 56 V-14 A34 34 0 0 1 34 -14 V56 Z" fill="{c["bg"]}" {L}/>'
-            f'<circle cx="0" cy="20" r="13" fill="{c["lamp"]}"/><path d="M-48 62 H48" {L}/>'
-            f'<circle cx="-30" cy="-64" r="5" fill="{c["line"]}"/><circle cx="0" cy="-72" r="5" fill="{c["line"]}"/><circle cx="30" cy="-64" r="5" fill="{c["line"]}"/>'), 105, 105, ''
+            f'<path d="M-54 40 V-4 A54 38 0 0 1 54 -4 V40 Z" fill="{win_fill}" {L}/>'
+            + bar + lamp +
+            f'<path d="M-62 52 H62" {Ls(c,9)}/>'
+            f'<circle cx="-30" cy="-72" r="5" fill="{c["line"]}"/><circle cx="0" cy="-78" r="5" fill="{c["line"]}"/><circle cx="30" cy="-72" r="5" fill="{c["line"]}"/>'), 105, 105, ''
 
 STYLES = [
  dict(n=1, name='細線條極簡', sym=sym1, scale=3.1, fk='serifR', ls=0.16, concept='一盞只畫輪廓的落地燈，燈在罩子裡：最少的線，留下最多的安靜。'),
