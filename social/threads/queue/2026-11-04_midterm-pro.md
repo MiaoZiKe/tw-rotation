@@ -1,5 +1,5 @@
 ---
-status: approved
+status: posted
 publish_at: 2026-11-04T13:45+08:00
 title: 期中選舉後台股怎麼走？過去 6 次，3 個月後 6 次收紅（頻道① B 專業版，Andy 11-04 核可手動發文）
 images: social/ig/images/manual/2026-11-04-midterm-pro/01_cover.jpg
@@ -16,6 +16,8 @@ hook_type: 反差
 emotion: 吐槽
 tag: 美國期中選舉
 approved_by: Andy 2026-11-04 13:2x「B 專業版我喜歡等等發布」
+posted_at: 2026-11-04T13:37+08:00
+urls: https://www.threads.com/@liguligu0818/post/DfTuOemnHUL https://www.threads.com/@liguligu0818/post/DfTuRw7nHln
 ---
 都說選舉會讓市場大亂，但台股過去 6 次期中選舉後，3 個月後 6 次都收紅，只是途中最深真的回檔過 5.8%，不是一路順風啦！
 
