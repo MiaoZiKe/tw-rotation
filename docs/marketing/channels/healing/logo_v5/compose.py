@@ -107,7 +107,10 @@ for i, m in enumerate(meta):
 RS.save('可讀性_v5_110_44.png')
 # ---- 配合示意：字標放 01_cover 右下角 ----
 cov = Image.open('../samples/20261104_gen2000_v4/post2/01_cover.png').convert('RGB')
-patch = cov.crop((600, 1205, 600+190, 1205+80)); base = cov.copy(); base.paste(patch, (820, 1205))   # 蓋掉原本小字
+from PIL import ImageFilter
+patch = cov.crop((650, 1195, 830, 1295)); base = cov.copy()
+mk = Image.new('L', (180, 100), 0); ImageDraw.Draw(mk).rectangle((14, 14, 166, 86), fill=255); mk = mk.filter(ImageFilter.GaussianBlur(8))
+base.paste(patch, (828, 1195), mk)   # 蓋掉原本小字
 tiles = []
 for m in meta:
     wm = Image.open(f'{m["dir"]}/字標_透明_霧紫灰.png').convert('RGBA'); wm = wm.crop(wm.getbbox())
