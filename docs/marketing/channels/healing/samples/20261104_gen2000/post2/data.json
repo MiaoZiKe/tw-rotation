@@ -1,0 +1,32 @@
+{
+ "channel": "頻道名稱待定",
+ "series": "長輩的期待",
+ "facts": {
+  "burden": {"v": 43.12, "fmt": "{:.2f}", "unit": "%", "src": "內政部（媒體轉述 2025-11-28 發布）", "year": "2025 年第 2 季全國房貸負擔率"},
+  "tfr": {"v": 0.87, "fmt": "{:.2f}", "unit": "", "src": "內政部（媒體轉述）", "year": "2024 年總生育率"}
+ },
+ "slides": [
+  {"name": "01_cover", "type": "cover", "hook": ["過年被問", "「什麼時候要生」，", "我們心裡其實", "在算房租。"], "sub": "給被關心到有點喘的你"},
+  {"name": "02_inner", "type": "inner", "tag": "我們面臨什麼", "blocks": [
+   {"t": "text", "font": "serif", "size": 56, "bold": true, "lines": ["長輩問的是關心，", "我們算的是：", "房租、房貸、保母費。"]},
+   {"t": "big", "fact": "burden", "cap": "2025 年第 2 季，全國房貸負擔率"},
+   {"t": "text", "font": "sans", "size": 38, "lines": ["月收入有四成多，要拿去繳房貸。"]}
+  ]},
+  {"name": "03_inner", "type": "inner", "tag": "我們面臨什麼", "blocks": [
+   {"t": "big", "fact": "tfr", "cap": "2024 年台灣總生育率"},
+   {"t": "text", "font": "serif", "size": 52, "bold": true, "lines": ["數字背後有很多原因，", "不只是錢，", "但「算不過來」，", "是很多人沒說出口的那一個。"]}
+  ]},
+  {"name": "04_inner", "type": "inner", "tag": "我們怎麼面對", "blocks": [
+   {"t": "text", "font": "serif", "size": 56, "bold": true, "lines": ["準備一句不吵架的回答："]},
+   {"t": "text", "font": "serif", "size": 52, "lines": ["「我們有在想，", "想等穩一點。」"]},
+   {"t": "text", "font": "sans", "size": 38, "lines": ["或者反問一句："]},
+   {"t": "text", "font": "serif", "size": 52, "lines": ["「你們當年是怎麼決定的？」"]},
+   {"t": "text", "font": "sans", "size": 38, "lines": ["把話題變成聊天，不是審問。"]}
+  ]},
+  {"name": "05_inner", "type": "inner", "tag": "未來怎麼想", "blocks": [
+   {"t": "text", "font": "serif", "size": 64, "bold": true, "lines": ["晚一點、少一點、", "不一樣，", "都是選項，不是失敗。"]},
+   {"t": "text", "font": "sans", "size": 40, "lines": ["先把自己的日子過穩，", "這件事本身就很有分量。"]}
+  ]},
+  {"name": "06_sources", "type": "sources", "facts": ["burden", "tfr"], "closing": "存起來，過年前再看一次。"}
+ ]
+}

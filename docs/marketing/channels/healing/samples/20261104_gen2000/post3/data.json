@@ -1,0 +1,39 @@
+{
+ "channel": "頻道名稱待定",
+ "series": "經濟成長了，我呢",
+ "facts": {
+  "gdp": {"v": 4.59, "fmt": "{:.2f}", "unit": "%", "src": "主計總處（2025-02 公布，媒體轉述）", "year": "2024 年經濟成長率"},
+  "avg": {"v": 47803, "fmt": "{:,.0f}", "unit": " 元", "src": "主計總處（媒體轉述）", "year": "2025 年 1～10 月受僱員工經常性薪資平均"},
+  "med": {"v": 38319, "fmt": "{:,.0f}", "unit": " 元", "src": "主計總處（媒體轉述）", "year": "2025 年 1～10 月受僱員工經常性薪資中位數"},
+  "ratio": {"v": 6.17, "fmt": "{:.2f}", "unit": " 倍", "src": "主計總處家庭收支調查（媒體轉述）", "year": "2025 年最高與最低 20% 家庭可支配所得"},
+  "top20": {"v": 244.9, "fmt": "{:.1f}", "unit": " 萬", "src": "主計總處家庭收支調查（媒體轉述）", "year": "2025 年最高所得 20% 家庭平均每戶可支配所得"},
+  "low20": {"v": 39.7, "fmt": "{:.1f}", "unit": " 萬", "src": "主計總處家庭收支調查（媒體轉述）", "year": "2025 年最低所得 20% 家庭平均每戶可支配所得"}
+ },
+ "slides": [
+  {"name": "01_cover", "type": "cover", "hook": ["台灣的經濟在成長，", "我們卻沒有", "「變富」的感覺。"], "sub": "不是你的錯覺，也不是誰的錯"},
+  {"name": "02_inner", "type": "inner", "tag": "我們面臨什麼", "blocks": [
+   {"t": "big", "fact": "gdp", "cap": "2024 年經濟成長率"},
+   {"t": "bars", "title": "2025 年 1～10 月 受僱員工經常性薪資",
+    "items": [{"label": "平均", "fact": "avg"}, {"label": "中位數", "fact": "med", "hl": true}],
+    "source_facts": ["avg"]},
+   {"t": "text", "font": "sans", "size": 38, "lines": ["中位數：剛好一半的人比它少。"]}
+  ]},
+  {"name": "03_inner", "type": "inner", "tag": "我們面臨什麼", "blocks": [
+   {"t": "text", "font": "serif", "size": 44, "bold": true, "lines": ["最高所得 20% 的家庭，", "可支配所得是最低 20% 的"]},
+   {"t": "big", "fact": "ratio", "cap": "為近 14 年來最大差距"},
+   {"t": "bars", "title": "2025 年 平均每戶可支配所得",
+    "items": [{"label": "最高 20%", "fact": "top20"}, {"label": "最低 20%", "fact": "low20", "hl": true}],
+    "source_facts": ["top20"]}
+  ]},
+  {"name": "04_inner", "type": "inner", "tag": "我們怎麼面對", "blocks": [
+   {"t": "text", "font": "serif", "size": 56, "bold": true, "lines": ["一件小事："]},
+   {"t": "text", "font": "serif", "size": 52, "lines": ["下次看到「平均薪資」，", "先找「中位數」。"]},
+   {"t": "text", "font": "sans", "size": 38, "lines": ["再去薪資行情網站，", "查一次自己這個職位的區間。", "知道自己在哪，比怪自己有用。"]}
+  ]},
+  {"name": "05_inner", "type": "inner", "tag": "未來怎麼想", "blocks": [
+   {"t": "text", "font": "serif", "size": 56, "bold": true, "lines": ["成長要分到每個人手上，", "需要時間，", "也需要更多人把數字看懂。"]},
+   {"t": "text", "font": "sans", "size": 40, "lines": ["我們先把自己的小日子顧好，", "然後一起把問題問清楚。"]}
+  ]},
+  {"name": "06_sources", "type": "sources", "facts": ["gdp", "avg", "med", "ratio", "top20", "low20"], "closing": "存起來，下次看新聞時對照。"}
+ ]
+}

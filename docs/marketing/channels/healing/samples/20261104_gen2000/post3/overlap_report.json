@@ -1,0 +1,72 @@
+{
+ "01_cover": {
+  "n": 6,
+  "overlap": [],
+  "gap32": [],
+  "oob_margin": [],
+  "outside_safe": [],
+  "minFont": 30,
+  "bodyScrollH": 1350
+ },
+ "02_inner": {
+  "n": 7,
+  "overlap": [],
+  "gap32": [
+   "tag×b0 17px"
+  ],
+  "oob_margin": [],
+  "outside_safe": [],
+  "minFont": 28,
+  "bodyScrollH": 1350
+ },
+ "03_inner": {
+  "n": 7,
+  "overlap": [],
+  "gap32": [
+   "acct×c2 31px",
+   "t0×b1 17px"
+  ],
+  "oob_margin": [],
+  "outside_safe": [],
+  "minFont": 28,
+  "bodyScrollH": 1350
+ },
+ "04_inner": {
+  "n": 7,
+  "overlap": [],
+  "gap32": [],
+  "oob_margin": [],
+  "outside_safe": [],
+  "minFont": 30,
+  "bodyScrollH": 1350
+ },
+ "05_inner": {
+  "n": 6,
+  "overlap": [],
+  "gap32": [],
+  "oob_margin": [],
+  "outside_safe": [],
+  "minFont": 30,
+  "bodyScrollH": 1350
+ },
+ "06_sources": {
+  "n": 11,
+  "overlap": [
+   "acct×slow20"
+  ],
+  "gap32": [
+   "tag×sgdp 30px",
+   "sgdp×savg 30px",
+   "savg×smed 30px",
+   "smed×sratio 30px",
+   "sratio×stop20 30px",
+   "stop20×slow20 30px"
+  ],
+  "oob_margin": [
+   "close"
+  ],
+  "outside_safe": [],
+  "minFont": 28,
+  "bodyScrollH": 1385
+ }
+}

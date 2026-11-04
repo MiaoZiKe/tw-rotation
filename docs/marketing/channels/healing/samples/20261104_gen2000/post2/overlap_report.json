@@ -1,0 +1,63 @@
+{
+ "01_cover": {
+  "n": 6,
+  "overlap": [],
+  "gap32": [],
+  "oob_margin": [],
+  "outside_safe": [],
+  "minFont": 30,
+  "bodyScrollH": 1350
+ },
+ "02_inner": {
+  "n": 7,
+  "overlap": [],
+  "gap32": [
+   "t0×b1 17px"
+  ],
+  "oob_margin": [],
+  "outside_safe": [],
+  "minFont": 30,
+  "bodyScrollH": 1350
+ },
+ "03_inner": {
+  "n": 6,
+  "overlap": [],
+  "gap32": [
+   "tag×b0 17px"
+  ],
+  "oob_margin": [],
+  "outside_safe": [],
+  "minFont": 30,
+  "bodyScrollH": 1350
+ },
+ "04_inner": {
+  "n": 9,
+  "overlap": [],
+  "gap32": [],
+  "oob_margin": [],
+  "outside_safe": [],
+  "minFont": 30,
+  "bodyScrollH": 1350
+ },
+ "05_inner": {
+  "n": 6,
+  "overlap": [],
+  "gap32": [],
+  "oob_margin": [],
+  "outside_safe": [],
+  "minFont": 30,
+  "bodyScrollH": 1350
+ },
+ "06_sources": {
+  "n": 7,
+  "overlap": [],
+  "gap32": [
+   "tag×sburden 30px",
+   "sburden×stfr 30px"
+  ],
+  "oob_margin": [],
+  "outside_safe": [],
+  "minFont": 28,
+  "bodyScrollH": 1350
+ }
+}
