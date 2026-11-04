@@ -11,9 +11,7 @@
  "02_inner": {
   "n": 7,
   "overlap": [],
-  "gap32": [
-   "t0×b1 31px"
-  ],
+  "gap32": [],
   "oob_margin": [],
   "outside_safe": [],
   "minFont": 30,
@@ -22,9 +20,7 @@
  "03_inner": {
   "n": 6,
   "overlap": [],
-  "gap32": [
-   "tag×b0 31px"
-  ],
+  "gap32": [],
   "oob_margin": [],
   "outside_safe": [],
   "minFont": 30,
@@ -54,7 +50,7 @@
   "gap32": [],
   "oob_margin": [],
   "outside_safe": [],
-  "minFont": 30,
+  "minFont": 28,
   "bodyScrollH": 1350
  }
 }

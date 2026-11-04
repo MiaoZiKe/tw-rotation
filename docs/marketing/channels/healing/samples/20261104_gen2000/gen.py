@@ -17,15 +17,15 @@ body{width:1080px;height:1350px;position:relative;overflow:hidden;background:var
 .sans{font-family:'Noto Sans CJK TC',sans-serif}
 .lab{font-size:30px;color:var(--sub);letter-spacing:.06em;white-space:nowrap}
 .acct{font-size:30px;color:var(--sub);letter-spacing:.06em;text-align:right;white-space:nowrap}
-.stack{position:absolute;left:88px;width:904px;display:flex;flex-direction:column;gap:52px}
-.stack>div{width:100%}
+.stack{position:absolute;left:88px;width:904px;display:flex;flex-direction:column;gap:40px}
+.stack>div{width:fit-content;max-width:100%}.stack>.chart{width:100%}
 .tag{display:inline-block;width:auto!important;font-size:34px;color:var(--text);font-weight:700;padding:10px 26px;
  background:var(--glow);border-radius:999px;align-self:flex-start;letter-spacing:.06em}
 .acc{color:var(--accent)}
-.bignum{margin:12px 0;display:flex;flex-direction:column;gap:6px}
+.bignum{margin:28px 0;display:flex;flex-direction:column;gap:6px}
 .bignum .n{font-family:'Noto Serif CJK TC',serif;font-weight:700;font-size:150px;line-height:1.0;color:var(--accent);letter-spacing:.01em}
 .bignum .c{font-size:38px;color:var(--sub);line-height:1.5}
-.chart{background:var(--card);border-radius:20px;padding:40px 44px;box-shadow:0 2px 0 rgba(59,47,42,.06)}
+.chart{background:var(--card);border-radius:20px;padding:32px 44px;box-shadow:0 2px 0 rgba(59,47,42,.06)}
 .chart .ti{font-size:32px;color:var(--sub);line-height:1.5;margin-bottom:28px}
 .row{display:flex;align-items:center;margin-bottom:22px}
 .row .l{width:200px;font-size:34px;font-weight:700;flex:none}
@@ -37,7 +37,7 @@ body{width:1080px;height:1350px;position:relative;overflow:hidden;background:var
 .chart .src{font-size:28px;color:var(--sub);margin-top:14px;line-height:1.5}
 .cover-hook{font-family:'Noto Serif CJK TC',serif;font-weight:700;line-height:1.5;letter-spacing:.02em}
 .hand{width:260px;height:6px}
-.src-item{font-size:30px;line-height:1.5;color:var(--text)}
+.src-item{font-size:28px;line-height:1.5;color:var(--text)}
 .src-item small{display:block;font-size:28px;color:var(--sub)}
 """
 PAPER = ('<svg class="paper" width="1080" height="1350"><filter id="n"><feTurbulence type="fractalNoise" '
@@ -75,6 +75,7 @@ def block(b, facts, has_big):
                         '<div class="v">%s</div></div></div>' % (esc(it["label"]), bw, col, esc(disp(f)))
                         + ('<div class="note">%s</div>' % esc(it["note"]) if it.get("note") else ""))
         srcs = "<br>".join(esc(l) for l in dict.fromkeys(src_line(facts[k]) for k in b["source_facts"]))
+        if b.get("src_text"): srcs = esc(b["src_text"])
         return ('<div data-o=c%d class="chart"><div class="ti">%s</div>%s<div class="src">%s</div></div>'
                 % (b["_i"], esc(b["title"]), "".join(rows), srcs))
     raise ValueError(t)
@@ -106,8 +107,8 @@ def page(post, s, idx, total):
             f = facts[k]
             items.append('<div data-o=s%s class="src-item sans">・%s，%s %s</div>' %
                          (k, esc(f["src"]), esc(f["year"]), esc(disp(f))))
-        out.append('<div class="stack" style="top:190px;gap:36px"><div data-o=tag class="tag sans">出處</div>%s'
-                   '<div data-o=close class="serif" style="font-size:52px;font-weight:700;line-height:1.5;margin-top:8px">%s</div></div>'
+        out.append('<div class="stack" style="top:190px;gap:34px"><div data-o=tag class="tag sans">出處</div>%s'
+                   '<div data-o=close class="serif" style="font-size:44px;font-weight:700;line-height:1.5;margin-top:4px">%s</div></div>'
                    % ("".join(items), esc(s["closing"])))
     out.append("</body></html>")
     return "".join(out)
