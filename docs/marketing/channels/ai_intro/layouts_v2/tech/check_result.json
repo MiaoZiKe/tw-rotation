@@ -1,0 +1,146 @@
+{
+ "T4a_1": {
+  "n": 9,
+  "overlap": [],
+  "gap24": [],
+  "oob": [],
+  "clip": [
+   "高:標題"
+  ],
+  "decoOnText": [],
+  "minDisc": 28,
+  "small": []
+ },
+ "T4a_2": {
+  "n": 10,
+  "overlap": [],
+  "gap24": [],
+  "oob": [],
+  "clip": [
+   "高:標題"
+  ],
+  "decoOnText": [],
+  "minDisc": 28,
+  "small": []
+ },
+ "T4a_3": {
+  "n": 8,
+  "overlap": [],
+  "gap24": [],
+  "oob": [],
+  "clip": [
+   "高:標題"
+  ],
+  "decoOnText": [],
+  "minDisc": 28,
+  "small": []
+ },
+ "T4a_4": {
+  "n": 8,
+  "overlap": [],
+  "gap24": [],
+  "oob": [],
+  "clip": [
+   "高:標題"
+  ],
+  "decoOnText": [],
+  "minDisc": 28,
+  "small": []
+ },
+ "T4b_1": {
+  "n": 10,
+  "overlap": [],
+  "gap24": [],
+  "oob": [],
+  "clip": [
+   "高:標題"
+  ],
+  "decoOnText": [],
+  "minDisc": 28,
+  "small": []
+ },
+ "T4b_2": {
+  "n": 11,
+  "overlap": [],
+  "gap24": [],
+  "oob": [],
+  "clip": [
+   "高:標題"
+  ],
+  "decoOnText": [],
+  "minDisc": 28,
+  "small": []
+ },
+ "T4b_3": {
+  "n": 9,
+  "overlap": [],
+  "gap24": [],
+  "oob": [],
+  "clip": [
+   "高:標題"
+  ],
+  "decoOnText": [],
+  "minDisc": 28,
+  "small": []
+ },
+ "T4b_4": {
+  "n": 9,
+  "overlap": [],
+  "gap24": [],
+  "oob": [],
+  "clip": [
+   "高:標題"
+  ],
+  "decoOnText": [],
+  "minDisc": 28,
+  "small": []
+ },
+ "T4c_1": {
+  "n": 10,
+  "overlap": [],
+  "gap24": [],
+  "oob": [],
+  "clip": [
+   "高:標題"
+  ],
+  "decoOnText": [],
+  "minDisc": 28,
+  "small": []
+ },
+ "T4c_2": {
+  "n": 11,
+  "overlap": [],
+  "gap24": [],
+  "oob": [],
+  "clip": [
+   "高:標題"
+  ],
+  "decoOnText": [],
+  "minDisc": 28,
+  "small": []
+ },
+ "T4c_3": {
+  "n": 9,
+  "overlap": [],
+  "gap24": [],
+  "oob": [],
+  "clip": [
+   "高:標題"
+  ],
+  "decoOnText": [],
+  "minDisc": 28,
+  "small": []
+ },
+ "T4c_4": {
+  "n": 9,
+  "overlap": [],
+  "gap24": [],
+  "oob": [],
+  "clip": [
+   "高:標題"
+  ],
+  "decoOnText": [],
+  "minDisc": 28,
+  "small": []
+ }
+}
