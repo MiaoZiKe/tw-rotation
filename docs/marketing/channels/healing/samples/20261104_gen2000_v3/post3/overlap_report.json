@@ -1,0 +1,165 @@
+{
+ "01_cover": {
+  "n": 7,
+  "overlap": [],
+  "gap32": [],
+  "oob_margin": [],
+  "outside_safe": [],
+  "minFont": 28,
+  "extra": {
+   "bottom_over_1190": [],
+   "right_over_960": [],
+   "hint_uses": 0,
+   "glow_hits": [],
+   "illus_box": {
+    "x": 96,
+    "y": 176,
+    "w": 888,
+    "h": 448
+   },
+   "bars": []
+  },
+  "bodyScrollH": 1350,
+  "contrast_min": 5.68,
+  "contrast_pass": true
+ },
+ "02_inner": {
+  "n": 8,
+  "overlap": [],
+  "gap32": [],
+  "oob_margin": [],
+  "outside_safe": [],
+  "minFont": 28,
+  "extra": {
+   "bottom_over_1190": [],
+   "right_over_960": [],
+   "hint_uses": 1,
+   "glow_hits": [],
+   "illus_box": {
+    "x": 96,
+    "y": 176,
+    "w": 888,
+    "h": 310
+   },
+   "bars": [
+    {
+     "v": 47884,
+     "w": 400,
+     "h": "bar"
+    },
+    {
+     "v": 38406,
+     "w": 321,
+     "h": "bar"
+    }
+   ],
+   "bar_ratio_spread": 0.0005441499199389418
+  },
+  "bodyScrollH": 1350,
+  "contrast_min": 5.39,
+  "contrast_pass": true
+ },
+ "03_inner": {
+  "n": 9,
+  "overlap": [],
+  "gap32": [],
+  "oob_margin": [],
+  "outside_safe": [],
+  "minFont": 28,
+  "extra": {
+   "bottom_over_1190": [],
+   "right_over_960": [],
+   "hint_uses": 1,
+   "glow_hits": [],
+   "illus_box": {
+    "x": 96,
+    "y": 176,
+    "w": 888,
+    "h": 258
+   },
+   "bars": [
+    {
+     "v": 244.9,
+     "w": 400,
+     "h": "bar"
+    },
+    {
+     "v": 39.7,
+     "w": 65,
+     "h": "bar"
+    }
+   ],
+   "bar_ratio_spread": 0.0024185695888431146
+  },
+  "bodyScrollH": 1350,
+  "contrast_min": 5.39,
+  "contrast_pass": true
+ },
+ "04_inner": {
+  "n": 7,
+  "overlap": [],
+  "gap32": [],
+  "oob_margin": [],
+  "outside_safe": [],
+  "minFont": 28,
+  "extra": {
+   "bottom_over_1190": [],
+   "right_over_960": [],
+   "hint_uses": 0,
+   "glow_hits": [],
+   "illus_box": {
+    "x": 96,
+    "y": 176,
+    "w": 888,
+    "h": 460
+   },
+   "bars": []
+  },
+  "bodyScrollH": 1350,
+  "contrast_min": 5.83,
+  "contrast_pass": true
+ },
+ "05_inner": {
+  "n": 6,
+  "overlap": [],
+  "gap32": [],
+  "oob_margin": [],
+  "outside_safe": [],
+  "minFont": 28,
+  "extra": {
+   "bottom_over_1190": [],
+   "right_over_960": [],
+   "hint_uses": 0,
+   "glow_hits": [],
+   "illus_box": {
+    "x": 96,
+    "y": 176,
+    "w": 888,
+    "h": 460
+   },
+   "bars": []
+  },
+  "bodyScrollH": 1350,
+  "contrast_min": 5.83,
+  "contrast_pass": true
+ },
+ "06_sources": {
+  "n": 10,
+  "overlap": [],
+  "gap32": [],
+  "oob_margin": [],
+  "outside_safe": [],
+  "minFont": 28,
+  "extra": {
+   "bottom_over_1190": [],
+   "right_over_960": [],
+   "hint_uses": 0,
+   "glow_hits": [],
+   "illus_box": null,
+   "bars": []
+  },
+  "bodyScrollH": 1350,
+  "contrast_min": 5.96,
+  "contrast_pass": true
+ }
+}
