@@ -1,17 +1,10 @@
 {
- "A1_cover_logo": {
+ "A1_cover": {
   "bad": [],
   "oob": [],
   "ovf": false,
   "small": [],
-  "n": 19
- },
- "A1_cover_textonly": {
-  "bad": [],
-  "oob": [],
-  "ovf": false,
-  "small": [],
-  "n": 19
+  "n": 17
  },
  "A2_fields_textonly": {
   "bad": [],
@@ -32,7 +25,7 @@
   "oob": [],
   "ovf": false,
   "small": [],
-  "n": 16
+  "n": 11
  },
  "B2_diagram": {
   "bad": [],
@@ -53,7 +46,7 @@
   "oob": [],
   "ovf": false,
   "small": [],
-  "n": 19
+  "n": 13
  },
  "C2_diagram": {
   "bad": [],

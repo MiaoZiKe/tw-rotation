@@ -60,36 +60,59 @@ def trimmed(path):
     bb = ImageChops.difference(im, Image.new("RGB", im.size, (255, 255, 255))).convert("L").point(lambda v: 255 if v > 12 else 0).getbbox()
     im = im.crop(bb); bio = io.BytesIO(); im.save(bio, "PNG")
     return "data:image/png;base64," + base64.b64encode(bio.getvalue()).decode(), im.size
-logo, LSZ = trimmed(ASSETS / "logos" / f"{NAME}.png")
-LH = 80; LW = round(LSZ[0] * LH / LSZ[1])
-DISC_LOGO = "文中公司標誌僅用於標示公司，本帳號與各公司無合作或授權關係。"   # 法遵 5：放 LOGO 的版本用完整固定句
+
+
+# ---------------- 第 1 張封面共用規格（2026-11-04 Andy：封面需要公司照片，風格參照時事範例、附 LOGO，照片大、字維持現狀）----------------
+# 上半部照片全幅寬 1080x760（top 112），下半部白底標題；左上固定「開口圈」LOGO 原色＋「科技透明圈」字標（36px）。
+# 右上主題 34px、標題 72px、副標 34px、署名與頁底 24px（法遵檢查要求 ≥24px）。公司 LOGO 一律不上封面；照片裡建築本身的招牌不算我方放的 LOGO。
+PHOTO_ROOT = Path(os.environ.get("TC_PHOTO_ROOT") or Path(__file__).resolve().parents[4] / "social" / "photo_lib")
+OPEN_RING = ('<svg viewBox="0 0 100 100" width="52" height="52"><rect width="100" height="100" rx="22" fill="#F1F6FD"/>'
+             '<path d="M74.69 46.09 A25 25 0 1 1 53.91 25.31" fill="none" stroke="#1F6FEB" stroke-width="9" stroke-linecap="round"/>'
+             '<circle cx="67.68" cy="32.32" r="6.6" fill="#FF9F1C"/></svg>')   # 來源 docs/brand/tc_logo_1102/c1_開口圈/icon_light.svg（原色，不改）
+COVER_CSS = f"""
+.cv{{position:absolute;left:0;top:0;width:{W}px;height:{H}px;background:#fff}}
+.cv .bar{{position:absolute;left:0;top:0;width:{W}px;height:14px;background:{RED}}}
+.cv .lg{{position:absolute;left:60px;top:30px;height:52px;display:flex;align-items:center;gap:14px}}
+.cv .lg svg{{display:block;width:52px;height:52px}}
+.cv .lg span{{font-size:36px;font-weight:700;letter-spacing:3px;line-height:52px;white-space:nowrap;color:{INK}}}
+.cv .k{{position:absolute;left:340px;top:34px;width:680px;height:46px;font-size:34px;line-height:46px;color:{GREY};text-align:right;white-space:nowrap}}
+.cv .k b{{color:{RED}}}
+.cv .pic{{position:absolute;left:0;top:112px;width:{W}px;height:760px;background-color:{PALE};background-size:cover;background-repeat:no-repeat}}
+.cv .rl{{position:absolute;left:60px;top:906px;width:120px;height:6px;background:{RED}}}
+.cv .tt{{position:absolute;left:60px;top:930px;width:960px;height:180px;font-size:72px;font-weight:700;line-height:90px;color:{INK}}}
+.cv .sub{{position:absolute;left:60px;top:1122px;width:600px;height:44px;font-size:34px;line-height:44px;color:{GREY};white-space:nowrap}}
+.cv .hint{{position:absolute;left:660px;top:1122px;width:360px;height:44px;font-size:34px;line-height:44px;font-weight:700;color:{RED};text-align:right;white-space:nowrap}}
+.cv .ln2{{position:absolute;left:60px;top:1186px;width:960px;height:2px;background:{LINE}}}
+.cv .cr{{position:absolute;left:60px;top:1198px;width:960px;height:76px;font-size:24px;line-height:36px;color:{GREY}}}
+.cv .dc{{position:absolute;left:60px;top:1286px;width:960px;height:34px;font-size:24px;line-height:34px;color:{GREY}}}
+.cv .ph{{border-bottom:0;color:{RED};padding:0}}
+"""
+
+
+def photo_uri(rel, box=None):
+    im = Image.open(PHOTO_ROOT / rel).convert("RGB")
+    if box: im = im.crop(box)
+    bio = io.BytesIO(); im.save(bio, "JPEG", quality=92)
+    return "data:image/jpeg;base64," + base64.b64encode(bio.getvalue()).decode()
+
+
+def cover(kick, title, sub, hint, credit, foot, photo, pos="50% 50%"):
+    return (f'<div class="cv"><div class="bar"></div><div class="lg">{OPEN_RING}<span>科技透明圈</span></div>'
+            f'<div class="k">{kick}</div><div class="pic" data-b style="background-image:url({photo});background-position:{pos}"></div>'
+            f'<div class="rl"></div><div class="tt">{title}</div><div class="sub">{sub}</div><div class="hint">{hint}</div>'
+            f'<div class="ln2"></div><div class="cr">{credit}</div><div class="dc">{foot}</div></div>')
+
+
+PH = lambda t: f'<span class="ph">{t}</span>'
 DISC = "網友回報，非公司公告・與各公司無合作或授權關係"
 
-
-def cells(items):
-    return "".join(f'<div style="flex:1;padding:18px 24px;border-left:2px solid {LINE}"><div class="lab">{a}</div>'
-                   f'<div style="margin-top:8px;font-size:44px"><span class="ph">{b}</span></div></div>' for a, b in items)
-
-
-def a_cover(with_logo):
-    # LOGO 高度 80px ≤ 公司名字高 120px 的 1.5 倍（實際 0.67 倍），緊貼公司名左側，原色原比例
-    lg = f'<img data-b src="{logo}" width="{LW}" height="{LH}" style="flex:none;display:block" alt="">' if with_logo else ""
-    return f"""{top('公司行情', '1 / 3')}
-<div class="body">
-  <div style="display:flex;gap:14px"><span class="tag">公司薪資行情</span><span class="tag g">碩畢・研發職類</span></div>
-  <div style="margin-top:56px;display:flex;align-items:center;gap:22px">{lg}<div style="font-size:120px;font-weight:900;line-height:1.2">{NAME}</div></div>
-  <div style="font-size:150px;font-weight:900;line-height:1.2;margin-top:34px">薪資行情</div>
-  <div style="margin-top:56px;display:flex;border-top:3px solid {INK};border-bottom:2px solid {LINE}">
-    <div style="flex:1;padding:18px 24px 18px 0"><div class="lab">職類</div><div style="margin-top:8px;font-size:44px"><span class="ph">〔待填〕</span></div></div>
-    {cells([('學歷', '〔待填〕'), ('年資', '〔待填〕')])}</div>
-  <div class="callout" style="margin-top:56px;display:flex;align-items:center;gap:30px">
-    <div style="font-size:46px;font-weight:800;line-height:1.2">碩畢<br>月薪</div><div class="n" style="font-size:96px;line-height:1">〔待填〕K</div></div>
-  <div style="margin-top:44px;font-size:38px;font-weight:700;color:{GREY}">〔N〕位網友提供（2026）</div>
-</div>{ft(DISC_LOGO, "") if with_logo else ft(DISC)}"""
-
-
-S["A1_cover_logo"] = a_cover(True)
-S["A1_cover_textonly"] = a_cover(False)
+# ---------------- 範例 A：公司行情（法遵 7-3 六條）----------------
+# 封面：公司已審實景照＋標題；職類／學歷／年資移到副標，碩畢月薪放標題第二行；不放公司 LOGO（整篇有加班等負面欄位，法遵 ④）。
+S["A1_cover"] = cover(
+    f'<b>公司行情</b>　{PH("〔N〕")}位網友提供', f'{NAME}薪資行情<br>碩畢月薪 {PH("〔待填〕")}K',
+    f'職類 {PH("〔待填〕")}・碩畢・年資 {PH("〔待填〕")}', "往右滑 →",
+    "圖：台積電官方（官網 TSMC Fabs 頁）。廠區辦公大樓實景，示意用，與薪資資料無關。", DISC,
+    photo_uri("tsmc/photo_18.jpg"), "50% 55%")
 rows = [("總部地點", "〔待填〕"), ("碩畢月薪", "〔待填〕K"), ("年終・分紅", "〔待填〕個月"), ("升等路徑", "〔待填〕"),
         ("加班時數", "網友普遍回報工時偏長"), ("繁忙程度", "〔待填〕/ 5"), ("出差頻率", "〔待填〕")]
 trs = "".join(f'<div style="display:flex;align-items:center;height:118px;border-top:2px solid {LINE}">'
@@ -117,14 +140,11 @@ S["A3_cta"] = f"""{top('公司行情', '3 / 3')}
 # ---------------- 範例 B：技術白話（帶架構圖）----------------
 DG = ASSETS / "diagrams" / "raw" / "ai_adv_packaging_canvas.png"   # 只有主剖面、沒有編號圈（shoot2.py 另存）；內文字「GPU / ASIC」已在網站原圖加描邊，不再被底色吃掉
 dg = b64(DG)
-S["B1_cover"] = f"""{top('技術白話', '1 / 3')}
-<div class="body">
-  <div style="display:flex;gap:14px"><span class="tag">技術白話</span><span class="tag g">2.5D 先進封裝</span></div>
-  <div style="font-size:60px;font-weight:700;color:{GREY};margin-top:48px;margin-bottom:12px">AI 晶片為什麼要「疊」起來？</div>
-  <div style="font-size:150px;font-weight:900;line-height:1.15;margin-top:36px">CoWoS<br>是什麼</div>
-  <div class="box" style="margin-top:56px;padding-top:30px;font-size:46px;font-weight:700;line-height:1.5">一句話：把運算晶粒和記憶體<br>放在同一片<span class="ph">矽中介層</span>上，<br>讓它們靠得很近、傳得很快。</div>
-  <div style="margin-top:auto;margin-bottom:24px;font-size:36px;font-weight:700;color:{GREY}">往右滑，看剖面示意圖　→</div>
-</div>{ft('CoWoS 為台積電之商標。', '示意圖，非實物比例')}"""
+S["B1_cover"] = cover(
+    f'<b>技術白話</b>　2.5D 先進封裝', "AI 晶片為什麼要「疊」起來<br>CoWoS 是什麼",
+    "晶粒與記憶體共用一片矽中介層", "往右滑看剖面 →",
+    "圖：台積電官方（官網 TSMC Fabs 頁）。廠區大樓實景，非先進封裝產線，示意用。", "與各公司無合作或授權關係。CoWoS 為台積電之商標。",
+    photo_uri("tsmc/photo_17.jpg"), "50% 50%")
 # B2：只取「主剖面」(裁掉原圖左上導言——它在講已移除的卡片；與圖內 12px 級小字)，放大到滿版，標題改 56px 大字
 _im = Image.open(DG).convert("RGB").crop((110, 70, 1200, 862))
 _bio = io.BytesIO(); _im.save(_bio, "PNG"); dgc = "data:image/png;base64," + base64.b64encode(_bio.getvalue()).decode()
@@ -189,18 +209,12 @@ def panel(title, svg, n, b, y):
             f'<div class="n red" style="font-size:64px;line-height:1.1">{y*100:.0f}%</div></div>')
 
 
-S["C1_question"] = f"""{top('面試題庫', '1 / 3')}
-<div class="body">
-  <div style="display:flex;gap:14px"><span class="tag">面試題 #〔待填〕</span><span class="tag g">製程整合</span></div>
-  <div style="display:flex;align-items:center;gap:26px;margin-top:56px"><div class="n" style="width:150px;height:150px;background:{INK};color:#fff;font-size:112px;display:flex;align-items:center;justify-content:center;flex:none">Q</div>
-    <div style="font-size:38px;font-weight:700;color:{GREY};letter-spacing:.12em">題目</div></div>
-  <div style="font-size:88px;font-weight:900;line-height:1.3;margin-top:44px">晶片面積放大 2 倍，<br><span class="ph">良率會剛好剩一半</span>嗎？</div>
-  <div class="callout" style="margin-top:60px;font-size:46px;font-weight:700">先想 10 秒，再滑動看答案　→</div>
-  <div style="margin-top:60px;display:flex;border-top:3px solid {INK};border-bottom:2px solid {LINE}">
-    <div style="flex:1;padding:22px 24px 22px 0"><div class="lab">領域</div><div style="font-size:42px;font-weight:800;margin-top:6px">製程整合</div></div>
-    <div style="flex:1;padding:22px 24px;border-left:2px solid {LINE}"><div class="lab">考察重點</div><div style="font-size:42px;font-weight:800;margin-top:6px;white-space:nowrap">良率模型</div></div>
-    <div style="flex:1;padding:22px 24px;border-left:2px solid {LINE}"><div class="lab">建議作答</div><div style="font-size:42px;font-weight:800;margin-top:6px;white-space:nowrap">3 分鐘</div></div></div>
-</div>{ft('科技透明圈')}"""
+# C1：封面照用類別池晶粒顯微照（裁掉上緣型號印字，避開他牌標記）；題目大字照舊
+S["C1_question"] = cover(
+    f'<b>Q{PH("〔待填〕")}</b>　面試題庫・製程整合', "晶片面積放大 2 倍，<br>良率會剛好剩一半嗎？",
+    "良率模型・建議作答 3 分鐘", "先想 10 秒再滑 →",
+    "圖：Mister rf／CC BY-SA 4.0／Wikimedia Commons。早期 CMOS 電路晶粒顯微照，示意晶粒，非現行產品；已裁切（去除型號印字）。", "與各公司無合作或授權關係。",
+    photo_uri("_category/半導體/photo_5.jpg", (0, 420, 1920, 1771)), "50% 50%")
 S["C2_diagram"] = f"""{top('面試題庫', '2 / 3')}
 <div class="body" style="padding-top:40px">
   <div style="display:flex;gap:14px;align-items:center"><span class="tag">示意圖</span><span style="font-size:32px;color:{GREY}">同一片晶圓、同樣 8 顆缺陷</span></div>
@@ -244,7 +258,7 @@ report = {}
 with sync_playwright() as p:
     b = p.chromium.launch(executable_path="/opt/pw-browsers/chromium")
     for name, html in S.items():
-        doc = f'<!doctype html><html><head><meta charset="utf-8">{FONTCSS}<style>{CSS}</style></head><body>{html}</body></html>'
+        doc = f'<!doctype html><html><head><meta charset="utf-8">{FONTCSS}<style>{CSS}{COVER_CSS}</style></head><body>{html}</body></html>'
         f = OUT / f"_{name}.html"; f.write_text(doc, encoding="utf8")
         pg = b.new_page(viewport={"width": W, "height": H}, device_scale_factor=1)
         pg.goto(f"file://{f}", wait_until="networkidle"); pg.wait_for_timeout(600)
