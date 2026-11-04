@@ -98,4 +98,4 @@ ${V[v].pat?`.blk0{background-image:linear-gradient(${V[v].pat} 2px,transparent 2
    `<div class="main" style="top:330px"><div class="fr">${brk}<div class="ph" data-o="截圖框">${camera('#B27300',96)}<b>待 Andy 截圖</b><p>${TXT.ph1}</p><p style="font-size:30px;color:#6B4A00">${TXT.ph2}</p></div></div><div class="card" data-o="重點" style="font-size:34px;font-weight:700;line-height:1.45;padding:16px 24px"><span style="background:${am};padding:0 14px;margin-right:12px;display:inline-block">重點：</span>${TXT.key}</div><div class="brow"><div class="badge" data-o="標章">截圖為實測｜非 AI 生成</div>${tag('實測 01｜第 1 版｜11/03')}</div></div>${disc('截圖已遮個資')}`];
   return {css,pages:pages.map(mono).map(p=>p.replace(/(<div class="tag"[^>]*>)(.*?)(<\/div>)/g,(m,a,b,c)=>a+b.replace(/<span class="m">|<\/span>/g,'')+c))};
 }
-module.exports={build,V};
+module.exports={build,V,BASE,pageDeco,logo,camera,mono,MONO,FONT,ink,am,tl};
