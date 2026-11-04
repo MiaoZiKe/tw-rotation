@@ -1,7 +1,7 @@
 {
  "txt": "範例2_ig輪播.txt",
  "mode": "slides",
- "channel": "頻道名稱待定",
+ "channel": "我們這一代",
  "series": "長輩的期待",
  "slides": [
   {
@@ -82,7 +82,7 @@
    "n": 4,
    "palette": "V",
    "illus": "balcony",
-   "ih": 448,
+   "ih": 300,
    "blocks": [
     {
      "t": "b",
@@ -102,6 +102,13 @@
      "t": "b",
      "l": [
       4
+     ]
+    },
+    {
+     "t": "b",
+     "l": [
+      5,
+      6
      ]
     }
    ]
