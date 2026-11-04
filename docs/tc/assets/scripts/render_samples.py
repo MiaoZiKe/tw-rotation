@@ -66,22 +66,27 @@ def trimmed(path):
 # 上半部照片全幅寬 1080x760（top 112），下半部白底標題；左上固定「開口圈」LOGO 原色＋「科技透明圈」字標（36px）。
 # 右上主題 34px、標題 72px、副標 34px、署名與頁底 24px（法遵檢查要求 ≥24px）。公司 LOGO 一律不上封面；照片裡建築本身的招牌不算我方放的 LOGO。
 PHOTO_ROOT = Path(os.environ.get("TC_PHOTO_ROOT") or Path(__file__).resolve().parents[4] / "social" / "photo_lib")
-OPEN_RING = ('<svg viewBox="0 0 100 100" width="52" height="52"><rect width="100" height="100" rx="22" fill="#F1F6FD"/>'
-             '<path d="M74.69 46.09 A25 25 0 1 1 53.91 25.31" fill="none" stroke="#1F6FEB" stroke-width="9" stroke-linecap="round"/>'
-             '<circle cx="67.68" cy="32.32" r="6.6" fill="#FF9F1C"/></svg>')   # 來源 docs/brand/tc_logo_1102/c1_開口圈/icon_light.svg（原色，不改）
+# 頂列只放橫式 LOGO（開口圈＋「科技透明圈」字標，原色不改；2026-11-04 Andy：「上面應該直接放上LOGO即可 行情會寫在下方」）。
+# 來源 docs/brand/tc_logo_1102/c1_開口圈/horizontal_light.png（只有 PNG、無 svg），裁掉四周白邊後內嵌；高 76px、左 60px。
+def _hlogo():
+    p = Path(os.environ.get("TC_HLOGO") or Path(__file__).resolve().parents[1] / "brand" / "horizontal_light.png")
+    im = Image.open(p).convert("RGB"); im = im.crop((4, 4, im.width - 8, im.height - 4))   # 原檔右緣有 2px 灰線，先去掉再裁白邊
+    bb = ImageChops.difference(im, Image.new("RGB", im.size, (255, 255, 255))).convert("L").point(lambda v: 255 if v > 6 else 0).getbbox()
+    im = im.crop(bb); bio = io.BytesIO(); im.save(bio, "PNG")
+    return "data:image/png;base64," + base64.b64encode(bio.getvalue()).decode(), im.size
+_LU, _LS = _hlogo()
+LOGO_H = 76
+LOGO_W = round(LOGO_H * _LS[0] / _LS[1])
+OPEN_RING = f'<img data-b src="{_LU}" width="{LOGO_W}" height="{LOGO_H}" style="display:block">'
 COVER_CSS = f"""
 .cv{{position:absolute;left:0;top:0;width:{W}px;height:{H}px;background:#fff}}
 .cv .bar{{position:absolute;left:0;top:0;width:{W}px;height:14px;background:{RED}}}
-.cv .lg{{position:absolute;left:60px;top:30px;height:52px;display:flex;align-items:center;gap:14px}}
-.cv .lg svg{{display:block;width:52px;height:52px}}
-.cv .lg span{{font-size:36px;font-weight:700;letter-spacing:3px;line-height:52px;white-space:nowrap;color:{INK}}}
-.cv .k{{position:absolute;left:340px;top:34px;width:680px;height:46px;font-size:34px;line-height:46px;color:{GREY};text-align:right;white-space:nowrap}}
-.cv .k b{{color:{RED}}}
+.cv .lg{{position:absolute;left:60px;top:25px;height:{LOGO_H}px}}
 .cv .pic{{position:absolute;left:0;top:112px;width:{W}px;height:760px;background-color:{PALE};background-size:cover;background-repeat:no-repeat}}
 .cv .rl{{position:absolute;left:60px;top:906px;width:120px;height:6px;background:{RED}}}
 .cv .tt{{position:absolute;left:60px;top:930px;width:960px;height:180px;font-size:72px;font-weight:700;line-height:90px;color:{INK}}}
-.cv .sub{{position:absolute;left:60px;top:1122px;width:600px;height:44px;font-size:34px;line-height:44px;color:{GREY};white-space:nowrap}}
-.cv .hint{{position:absolute;left:660px;top:1122px;width:360px;height:44px;font-size:34px;line-height:44px;font-weight:700;color:{RED};text-align:right;white-space:nowrap}}
+.cv .sub{{position:absolute;left:60px;top:1122px;width:700px;height:44px;font-size:34px;line-height:44px;color:{GREY};white-space:nowrap}}
+.cv .hint{{position:absolute;left:760px;top:1122px;width:260px;height:44px;font-size:34px;line-height:44px;font-weight:700;color:{RED};text-align:right;white-space:nowrap}}
 .cv .ln2{{position:absolute;left:60px;top:1186px;width:960px;height:2px;background:{LINE}}}
 .cv .cr{{position:absolute;left:60px;top:1198px;width:960px;height:76px;font-size:24px;line-height:36px;color:{GREY}}}
 .cv .dc{{position:absolute;left:60px;top:1286px;width:960px;height:34px;font-size:24px;line-height:34px;color:{GREY}}}
@@ -96,9 +101,9 @@ def photo_uri(rel, box=None):
     return "data:image/jpeg;base64," + base64.b64encode(bio.getvalue()).decode()
 
 
-def cover(kick, title, sub, hint, credit, foot, photo, pos="50% 50%"):
-    return (f'<div class="cv"><div class="bar"></div><div class="lg">{OPEN_RING}<span>科技透明圈</span></div>'
-            f'<div class="k">{kick}</div><div class="pic" data-b style="background-image:url({photo});background-position:{pos}"></div>'
+def cover(title, sub, hint, credit, foot, photo, pos="50% 50%"):
+    return (f'<div class="cv"><div class="bar"></div><div class="lg">{OPEN_RING}</div>'
+            f'<div class="pic" data-b style="background-image:url({photo});background-position:{pos}"></div>'
             f'<div class="rl"></div><div class="tt">{title}</div><div class="sub">{sub}</div><div class="hint">{hint}</div>'
             f'<div class="ln2"></div><div class="cr">{credit}</div><div class="dc">{foot}</div></div>')
 
@@ -109,9 +114,9 @@ DISC = "網友回報，非公司公告・與各公司無合作或授權關係"
 # ---------------- 範例 A：公司行情（法遵 7-3 六條）----------------
 # 封面：公司已審實景照＋標題；職類／學歷／年資移到副標，碩畢月薪放標題第二行；不放公司 LOGO（整篇有加班等負面欄位，法遵 ④）。
 S["A1_cover"] = cover(
-    f'<b>公司行情</b>　{PH("〔N〕")}位網友提供', f'{NAME}薪資行情<br>碩畢月薪 {PH("〔待填〕")}K',
-    f'職類 {PH("〔待填〕")}・碩畢・年資 {PH("〔待填〕")}', "往右滑 →",
-    "圖：台積電官方（官網 TSMC Fabs 頁）。廠區辦公大樓實景，示意用，與薪資資料無關。", DISC,
+    f'{NAME}薪資行情<br>碩畢月薪 {PH("〔待填〕")}K',
+    f'職類{PH("〔待填〕")}・碩畢・年資{PH("〔待填〕")}', "往右滑 →",
+    f'{PH("〔N〕")}位網友提供（2026）<br>圖：台積電官方（官網 TSMC Fabs 頁）。廠區辦公大樓實景，示意用，與薪資資料無關。', DISC,
     photo_uri("tsmc/photo_18.jpg"), "50% 55%")
 rows = [("總部地點", "〔待填〕"), ("碩畢月薪", "〔待填〕K"), ("年終・分紅", "〔待填〕個月"), ("升等路徑", "〔待填〕"),
         ("加班時數", "網友普遍回報工時偏長"), ("繁忙程度", "〔待填〕/ 5"), ("出差頻率", "〔待填〕")]
@@ -141,7 +146,7 @@ S["A3_cta"] = f"""{top('公司行情', '3 / 3')}
 DG = ASSETS / "diagrams" / "raw" / "ai_adv_packaging_canvas.png"   # 只有主剖面、沒有編號圈（shoot2.py 另存）；內文字「GPU / ASIC」已在網站原圖加描邊，不再被底色吃掉
 dg = b64(DG)
 S["B1_cover"] = cover(
-    f'<b>技術白話</b>　2.5D 先進封裝', "AI 晶片為什麼要「疊」起來<br>CoWoS 是什麼",
+    "AI 晶片為什麼要「疊」起來<br>CoWoS 是什麼",
     "晶粒與記憶體共用一片矽中介層", "往右滑看剖面 →",
     "圖：Mister rf／CC BY-SA 4.0／Wikimedia Commons。早期晶片打線封裝顯微照，<br>非先進封裝，示意用；已裁切（去除型號印字）。", "與各公司無合作或授權關係。CoWoS 為台積電之商標。",
     photo_uri("_category/半導體/photo_6.jpg", (160, 30, 1760, 1156)), "50% 50%")   # B 為技術主題、不綁公司：改類別池封裝照（與 A 的台積電廠區、C 的晶粒滿版區隔）
@@ -211,8 +216,8 @@ def panel(title, svg, n, b, y):
 
 # C1：封面照用類別池晶粒顯微照（裁掉上緣型號印字，避開他牌標記）；題目大字照舊
 S["C1_question"] = cover(
-    f'<b>Q{PH("〔待填〕")}</b>　面試題庫・製程整合', "晶片面積放大 2 倍，<br>良率會剛好剩一半嗎？",
-    "良率模型・建議作答 3 分鐘", "先想 10 秒再滑 →",
+    "晶片面積放大 2 倍，<br>良率會剛好剩一半嗎？",
+    f'面試題{PH("〔待填〕")}・製程整合・建議作答 3 分鐘', "先想 10 秒再滑 →",
     "圖：Mister rf／CC BY-SA 4.0／Wikimedia Commons。早期 CMOS 電路晶粒顯微照，示意晶粒，非現行產品；已裁切（去除型號印字）。", "與各公司無合作或授權關係。",
     photo_uri("_category/半導體/photo_5.jpg", (0, 420, 1920, 1771)), "50% 50%")
 S["C2_diagram"] = f"""{top('面試題庫', '2 / 3')}
