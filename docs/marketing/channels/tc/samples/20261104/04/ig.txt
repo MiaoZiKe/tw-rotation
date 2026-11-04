@@ -12,7 +12,7 @@
 你的工作離「光」與「晶片」的交界處有多近？留言告訴我。
 
 出處：Tower Semiconductor 新聞稿（2026-11-03，公司自述）
-圖：封面為 Faber／CC BY-SA 2.0／Wikimedia Commons（機房伺服器機櫃示意，非光模組或 NPO 實物，已裁切）；第 2 張為依公開資料自行繪製的位置示意圖。
+圖：封面為 The National Archives (UK)／CC BY 3.0／Wikimedia Commons https://commons.wikimedia.org/wiki/File:A_view_of_the_server_room_at_The_National_Archives.jpg（機房機櫃走道示意，非光模組或 NPO 實物；已裁切）；第 2 張為依公開資料自行繪製的位置示意圖。
 本帳號與各公司無合作或授權關係。
 
 #矽光子 #光通訊 #NPO #科技透明圈

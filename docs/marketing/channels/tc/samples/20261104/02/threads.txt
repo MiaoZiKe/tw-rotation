@@ -13,5 +13,5 @@ HBM 為什麼難做：把 12 層記憶體晶片疊成一棟樓
 
 【留言】
 出處（公司自己說的）：SK hynix 2026 第三季財報，2026-10-28；摘要見 https://www.trendforce.com/news/?p=65818 與 https://letsdatascience.com/news/sk-hynix-posts-record-q3-profit-and-100-trillion-won-payout-1458a688（各媒體對「產能預訂到 2029 或 2030」寫法略有出入，以公司公告為準）。12 層 HBM4E 與 MR-MUF：SK hynix 2026-06-18 新聞稿，報導 https://www.koreatimes.co.kr/business/tech-science/20260618/sk-hynix-ships-12-high-hbm4e-samples-to-customers
-圖：封面為 ITEagle Europe - Sebastiaan Broekhoven／CC BY-SA 4.0／Wikimedia Commons https://commons.wikimedia.org/wiki/File:SK_hynix_16GB_DDR5-5600_UDIMM_HMCG78AGBUA084N_BA.jpg（SK hynix DDR5 記憶體模組，非 HBM，已裁切）；第 2 張為依公開資料自行繪製的 HBM 堆疊剖面示意（非實際尺寸）。
+圖：封面為 ITEagle Europe - Sebastiaan Broekhoven／CC BY-SA 4.0／Wikimedia Commons https://commons.wikimedia.org/wiki/File:SK_hynix_16GB_DDR5-5600_UDIMM_HMCG78AGBUA084N_BA.jpg（SK hynix DDR5 記憶體模組背面晶片，非 HBM；已裁切，去除標籤）；第 2 張為依公開資料自行繪製的 HBM 堆疊剖面示意（非實際尺寸）。
 本帳號為個人整理，與各公司無合作或授權關係；有錯請留言，48 小時內更正。

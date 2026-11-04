@@ -15,5 +15,5 @@
 出處（公司自己說的）：Tower Semiconductor 新聞稿，2026-11-03。https://www.globenewswire.com/news-release/2026/11/03/3394669/0/en/tower-semiconductor-and-innolight-advance-high-performance-near-package-optics-for-ai-infrastructure.html ；公司官網 https://towersemi.com/2026/11/03/11032026/
 媒體整理（只核對日期與說法）：https://convergedigest.com/innolight-tower-semiconductor-npo-silicon-photonics-production/
 （出處連結發文前人工核對；本次只讀到搜尋摘要，未讀到新聞稿全文。）
-圖：封面為 Faber／CC BY-SA 2.0／Wikimedia Commons https://commons.wikimedia.org/wiki/File:Server_farm_2.jpg（機房伺服器機櫃示意，非光模組或 NPO 實物，已裁切）；第 2 張為依公開資料自行繪製的位置示意圖（可插拔／NPO／CPO 位置對照）。位置描述參考：https://www.wevolver.com/article/what-is-co-packaged-optics-architecture-benefits-challenges-and-performance
+圖：封面為 The National Archives (UK)／CC BY 3.0／Wikimedia Commons https://commons.wikimedia.org/wiki/File:A_view_of_the_server_room_at_The_National_Archives.jpg（機房機櫃走道示意，非光模組或 NPO 實物；已裁切）；第 2 張為依公開資料自行繪製的位置示意圖（可插拔／NPO／CPO 位置對照）。位置描述參考：https://www.wevolver.com/article/what-is-co-packaged-optics-architecture-benefits-challenges-and-performance
 本帳號為個人整理，與各公司無合作或授權關係；有錯請留言，48 小時內更正。

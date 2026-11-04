@@ -7,9 +7,9 @@
 | 項目 | 內容 |
 |---|---|
 | 類別 | 類別池實景照（資料中心）——本篇主體公司 Tower Semiconductor、Innolight，圖庫目前沒有這兩家的已審照片（見下方「待補公司照」），暫用類別池 |
-| 圖庫檔案 | `social/photo_lib/_category/資料中心/photo_7.jpg`（reviewed: true，art-director 2026-10-28 通過） |
+| 圖庫檔案 | `social/photo_lib/_category/資料中心/photo_16.jpg`（art-director 2026-11-04 複審改用此張機房走道照） |
 | 內容 | 機房內伺服器機櫃與冷氣導管；畫面無可辨識廠牌標記（已在原圖逐區檢視） |
-| 作者／授權 | Faber／CC BY-SA 2.0／Wikimedia Commons；https://commons.wikimedia.org/wiki/File:Server_farm_2.jpg |
+| 作者／授權 | The National Archives (UK)／CC BY 3.0／Wikimedia Commons；https://commons.wikimedia.org/wiki/File:A_view_of_the_server_room_at_The_National_Archives.jpg |
 | 修改 | 裁切成 1080×760，圖說註明「已裁切」 |
 | 取捨 | 網通池其餘照片皆有他牌標記或為單品特寫（D-Link／TP-Link／Cisco 等），故用資料中心；此照偏舊、與「光模組」關聯弱，列為暫用，等公司照入庫後換 |
 | 頻道 LOGO | 「開口圈」原色（藍環＋橘點），取自 `docs/brand/tc_logo_1102/c1_開口圈/icon_light.svg`（claude/serene-brown-e4sosy 分支），左上固定位置＋「科技透明圈」字標；未改色、未與公司 LOGO 組合、無比比。封面無任何公司 LOGO 由我方放置 |

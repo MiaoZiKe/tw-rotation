@@ -41,6 +41,12 @@ POSTS = [
       src="出處：Tower Semiconductor 新聞稿（2026-11-03）"),
 ]
 CAP = {"01": "誰供應誰：角色分工示意（依公開資料繪製，非特定客戶關係）", "02": "流程示意（依公開資料繪製）", "03": "流程示意（依公開資料繪製）", "04": "流程示意（依公開資料繪製，非特定產品架構）"}
+# ---- 封面版面常數（2026-11-04 Andy：LOGO 縮小靠左、拿掉圖上備註、排版整齊；與模板 docs/tc/assets/scripts/render_samples.py 同一組數值）----
+M_L = 60; BAR_H = 14; LOGO_H = 48; LOGO_PAD = 20               # 左界；紅條；LOGO 高；LOGO 上下留白相等
+LOGO_TOP = BAR_H + LOGO_PAD; PIC_TOP = LOGO_TOP + LOGO_H + LOGO_PAD   # 34；照片上緣 102
+GAP = 56; RL_H, RL_GAP, TT_H, SUB_GAP, SUB_H = 6, 24, 180, 20, 44      # 照片→紅線、副標→頁底留白；紅線高、紅線→標題、標題高、標題→副標、副標列高
+PIC_H = 1350 - PIC_TOP - (GAP + RL_H + RL_GAP + TT_H + SUB_GAP + SUB_H + GAP)   # 862
+RL_TOP = PIC_TOP + PIC_H + GAP; TT_TOP = RL_TOP + RL_H + RL_GAP; SUB_TOP = TT_TOP + TT_H + SUB_GAP
 FONT = __import__('os').environ.get('TC_FONT') or '/tmp/claude-0/-home-user-tw-rotation/1662701f-8abb-57a6-b66d-4e0b4e90dd73/scratchpad/font/NotoSansTC.ttf'
 for _p in POSTS: _p.setdefault("cover_photo", _p["photo"]); _p["photo"] = None
 LOGO = '<svg viewBox="0 0 100 100" width="52" height="52"><rect width="100" height="100" rx="22" fill="#F1F6FD"/><path d="M74.69 46.09 A25 25 0 1 1 53.91 25.31" fill="none" stroke="#1F6FEB" stroke-width="9" stroke-linecap="round"/><circle cx="67.68" cy="32.32" r="6.6" fill="#FF9F1C"/></svg>'  # 頻道 LOGO「開口圈」原色，來源 docs/brand/tc_logo_1102/c1_開口圈/icon_light.svg
@@ -57,16 +63,13 @@ body{width:1080px;height:1350px;background:#fff;color:#111;font-family:'Noto San
 .k b{color:#D4231A}
 .cr{position:absolute;left:60px;width:960px;font-size:23px;line-height:34px;color:#595959}
 .dc{position:absolute;left:60px;width:960px;height:30px;font-size:22px;color:#595959}"""
-COVER = """.ph{position:absolute;left:0;top:112px;width:1080px;height:760px;background-color:#EFEFEF;background-size:cover;background-repeat:no-repeat}
-.lg span{font-size:36px;letter-spacing:3px}
-.k{left:340px;top:34px;width:680px;height:46px;font-size:34px;line-height:46px;letter-spacing:0}
-.rl{position:absolute;left:60px;top:906px;width:120px;height:6px;background:#D4231A}
-.t{position:absolute;left:60px;top:930px;width:960px;height:180px;font-size:72px;font-weight:700;line-height:90px;color:#111}
-.sub{position:absolute;left:60px;top:1122px;width:640px;height:44px;font-size:34px;line-height:44px;color:#595959}
-.hint{position:absolute;left:700px;top:1122px;width:320px;height:44px;font-size:34px;line-height:44px;font-weight:700;color:#D4231A;text-align:right}
-.ln2{position:absolute;left:60px;top:1186px;width:960px;height:2px;background:#CFCFCF}
-.cr{top:1200px;height:70px}
-.dc{top:1290px}"""
+COVER = f""".lg{{top:{LOGO_TOP}px;height:{LOGO_H}px;display:block}}
+.ph{{position:absolute;left:0;top:{PIC_TOP}px;width:1080px;height:{PIC_H}px;background-color:#EFEFEF;background-size:cover;background-repeat:no-repeat}}
+.rl{{position:absolute;left:{M_L}px;top:{RL_TOP}px;width:120px;height:{RL_H}px;background:#D4231A}}
+.t{{position:absolute;left:{M_L}px;top:{TT_TOP}px;width:{1080-2*M_L}px;height:{TT_H}px;font-size:72px;font-weight:700;line-height:90px;color:#111}}
+.row{{position:absolute;left:{M_L}px;top:{SUB_TOP}px;width:{1080-2*M_L}px;height:{SUB_H}px;display:flex;justify-content:space-between;align-items:baseline;font-size:34px;line-height:{SUB_H}px;white-space:nowrap}}
+.sub{{color:#595959}}
+.hint{{font-weight:700;color:#D4231A}}"""
 BSL = """.t{position:absolute;left:60px;top:106px;width:960px;height:164px;font-size:68px;font-weight:700;line-height:84px;color:#111}
 .ln{position:absolute;left:60px;top:284px;width:960px;height:2px;background:#CFCFCF}
 .ph{position:absolute;left:0;top:296px;width:1080px;height:460px;background-color:#EFEFEF}
@@ -84,7 +87,7 @@ BSL = """.t{position:absolute;left:60px;top:106px;width:960px;height:164px;font-
 .sr{position:absolute;left:60px;top:1236px;width:960px;height:36px;font-size:25px;font-weight:700;color:#111}
 .dc{top:1284px}"""
 def head_html(p, css, body, cover=False):
-    lg = ('<div class="lg" style="top:25px;height:76px;display:block"><img src="data:image/png;base64,' + b64(HERE / "logo_horizontal_light.png") + '" height="76" style="display:block"></div>'
+    lg = ('<div class="lg"><img src="data:image/png;base64,' + b64(HERE / "logo_horizontal_light.png") + '" height="%d" style="display:block"></div>' % LOGO_H
           if cover else '<div class="lg">' + LOGO + '<span>科技透明圈</span></div>')   # 封面頂列只放橫式 LOGO（Andy 11-04）；第 2、3 張頁首不動
     return '<html><head><meta charset="utf-8"><style>' + FONTCSS + BASE + css + '</style></head><body><div class="bar"></div>' + lg + body + '</body></html>'
 def cover_b64(p):
@@ -96,8 +99,8 @@ def cover_b64(p):
 def cover_html(p):
     css = COVER + '.ph{background-image:url(data:image/jpeg;base64,%s);background-position:%s}' % (cover_b64(p), p["pos"])
     body = ('<div class="ph"></div><div class="rl"></div><div class="t">%s</div>'
-            '<div class="sub">%s</div><div class="hint">%s</div><div class="ln2"></div><div class="cr">%s</div><div class="dc">%s</div>'
-            % (p["title"], p["sub"], p["hint"], p["ccredit"], p["foot"]))
+            '<div class="row"><div class="sub">%s</div><div class="hint">%s</div></div>'
+            % (p["title"], p["sub"], p["hint"]))   # 封面不印署名／免責／商標句（改放文案）
     return head_html(p, css, body, cover=True)
 def b_html(p):
     steps = "".join('<div class="st"><div class="si">%d</div><div class="sn">%s</div><div class="sd">%s</div></div>' % (i+1,a,b) + ('<div class="ar">→</div>' if i < 3 else '') for i,(a,b) in enumerate(p["steps"]))
