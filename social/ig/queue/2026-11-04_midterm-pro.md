@@ -1,5 +1,5 @@
 ---
-status: approved
+status: posted
 publish_at: 2026-11-04T13:45+08:00
 title: 期中選舉後台股怎麼走？過去 6 次，3 個月後 6 次收紅（頻道① B 專業版，Andy 11-04 核可手動發文）
 images: social/ig/images/manual/2026-11-04-midterm-pro/01_cover.jpg, social/ig/images/manual/2026-11-04-midterm-pro/02_now.jpg, social/ig/images/manual/2026-11-04-midterm-pro/03_history.jpg, social/ig/images/manual/2026-11-04-midterm-pro/04_worst.jpg, social/ig/images/manual/2026-11-04-midterm-pro/05_close.jpg
@@ -12,6 +12,8 @@ has_photo: true
 photo_kind: 類別
 photo: _category/總經_美國政治/photo_1.jpg
 approved_by: Andy 2026-11-04 13:2x「B 專業版我喜歡等等發布」
+posted_at: 2026-11-04T13:37+08:00
+urls: https://www.instagram.com/p/DfTuTK-FsT5/
 ---
 期中選舉開票了，台股接下來怎麼走？先看歷史數字。
 
