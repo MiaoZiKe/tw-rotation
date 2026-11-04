@@ -1,0 +1,51 @@
+{
+ "txt": "範例4_微光篇.txt",
+ "mode": "slides",
+ "series": "微光",
+ "slides": [
+  {
+   "name": "01_cover",
+   "type": "cover",
+   "n": 1,
+   "palette": "W",
+   "illus": "mailboxes"
+  },
+  {
+   "name": "02_inner",
+   "type": "inner",
+   "n": 2,
+   "palette": "W",
+   "illus": "windows",
+   "key": "87"
+  },
+  {
+   "name": "03_inner",
+   "type": "inner",
+   "n": 3,
+   "palette": "W",
+   "illus": "mailbox1",
+   "key": "2,000"
+  },
+  {
+   "name": "04_inner",
+   "type": "inner",
+   "n": 4,
+   "palette": "W",
+   "illus": "patch"
+  },
+  {
+   "name": "05_inner",
+   "type": "inner",
+   "n": 5,
+   "palette": "W",
+   "illus": "teacup"
+  },
+  {
+   "name": "06_sources",
+   "type": "sources",
+   "n": 6,
+   "palette": "W"
+  }
+ ],
+ "channel": "我們這一代"
+}

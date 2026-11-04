@@ -1,0 +1,16 @@
+{
+ "txt": "範例1_threads.txt",
+ "mode": "threads",
+ "series": "房價所得比",
+ "slides": [
+  {
+   "name": "threads",
+   "type": "inner",
+   "n": 1,
+   "palette": "V",
+   "illus": "price",
+   "key": "9.89"
+  }
+ ],
+ "channel": "我們這一代"
+}

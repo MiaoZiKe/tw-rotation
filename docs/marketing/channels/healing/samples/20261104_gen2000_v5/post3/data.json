@@ -1,0 +1,51 @@
+{
+ "txt": "範例3_ig輪播.txt",
+ "mode": "slides",
+ "series": "經濟成長了我呢",
+ "slides": [
+  {
+   "name": "01_cover",
+   "type": "cover",
+   "n": 1,
+   "palette": "V",
+   "illus": "treepot"
+  },
+  {
+   "name": "02_inner",
+   "type": "inner",
+   "n": 2,
+   "palette": "V",
+   "illus": "tree",
+   "key": "8.63%"
+  },
+  {
+   "name": "03_inner",
+   "type": "inner",
+   "n": 3,
+   "palette": "V",
+   "illus": "means",
+   "key": "38,406"
+  },
+  {
+   "name": "04_inner",
+   "type": "inner",
+   "n": 4,
+   "palette": "V",
+   "illus": "slips"
+  },
+  {
+   "name": "05_inner",
+   "type": "inner",
+   "n": 5,
+   "palette": "V",
+   "illus": "treepot2"
+  },
+  {
+   "name": "06_sources",
+   "type": "sources",
+   "n": 6,
+   "palette": "V"
+  }
+ ],
+ "channel": "我們這一代"
+}

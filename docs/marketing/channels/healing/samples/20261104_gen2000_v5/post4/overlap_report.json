@@ -1,0 +1,141 @@
+{
+ "01_cover": {
+  "n": 7,
+  "overlap": [],
+  "gap32": [],
+  "oob_margin": [],
+  "outside_safe": [],
+  "minFont": 30,
+  "extra": {
+   "bottom_over_1190": [],
+   "right_over_960": [],
+   "hint_uses": 0,
+   "glow_hits": [],
+   "illus_box": {
+    "x": 96,
+    "y": 176,
+    "w": 888,
+    "h": 764
+   },
+   "bars": []
+  },
+  "bodyScrollH": 1350,
+  "contrast_min": 7.76,
+  "contrast_pass": true
+ },
+ "02_inner": {
+  "n": 7,
+  "overlap": [],
+  "gap32": [],
+  "oob_margin": [],
+  "outside_safe": [],
+  "minFont": 30,
+  "extra": {
+   "bottom_over_1190": [],
+   "right_over_960": [],
+   "hint_uses": 1,
+   "glow_hits": [],
+   "illus_box": {
+    "x": 96,
+    "y": 176,
+    "w": 888,
+    "h": 764
+   },
+   "bars": []
+  },
+  "bodyScrollH": 1350,
+  "contrast_min": 7.35,
+  "contrast_pass": true
+ },
+ "03_inner": {
+  "n": 7,
+  "overlap": [],
+  "gap32": [],
+  "oob_margin": [],
+  "outside_safe": [],
+  "minFont": 30,
+  "extra": {
+   "bottom_over_1190": [],
+   "right_over_960": [],
+   "hint_uses": 1,
+   "glow_hits": [],
+   "illus_box": {
+    "x": 96,
+    "y": 176,
+    "w": 888,
+    "h": 764
+   },
+   "bars": []
+  },
+  "bodyScrollH": 1350,
+  "contrast_min": 7.35,
+  "contrast_pass": true
+ },
+ "04_inner": {
+  "n": 7,
+  "overlap": [],
+  "gap32": [],
+  "oob_margin": [],
+  "outside_safe": [],
+  "minFont": 30,
+  "extra": {
+   "bottom_over_1190": [],
+   "right_over_960": [],
+   "hint_uses": 0,
+   "glow_hits": [],
+   "illus_box": {
+    "x": 96,
+    "y": 176,
+    "w": 888,
+    "h": 764
+   },
+   "bars": []
+  },
+  "bodyScrollH": 1350,
+  "contrast_min": 7.76,
+  "contrast_pass": true
+ },
+ "05_inner": {
+  "n": 7,
+  "overlap": [],
+  "gap32": [],
+  "oob_margin": [],
+  "outside_safe": [],
+  "minFont": 30,
+  "extra": {
+   "bottom_over_1190": [],
+   "right_over_960": [],
+   "hint_uses": 0,
+   "glow_hits": [],
+   "illus_box": {
+    "x": 96,
+    "y": 176,
+    "w": 888,
+    "h": 764
+   },
+   "bars": []
+  },
+  "bodyScrollH": 1350,
+  "contrast_min": 7.76,
+  "contrast_pass": true
+ },
+ "06_sources": {
+  "n": 8,
+  "overlap": [],
+  "gap32": [],
+  "oob_margin": [],
+  "outside_safe": [],
+  "minFont": 30,
+  "extra": {
+   "bottom_over_1190": [],
+   "right_over_960": [],
+   "hint_uses": 0,
+   "glow_hits": [],
+   "illus_box": null,
+   "bars": []
+  },
+  "bodyScrollH": 1350,
+  "contrast_min": 7.76,
+  "contrast_pass": true
+ }
+}

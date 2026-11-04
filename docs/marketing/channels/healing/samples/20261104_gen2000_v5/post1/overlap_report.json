@@ -1,0 +1,26 @@
+{
+ "threads": {
+  "n": 6,
+  "overlap": [],
+  "gap32": [],
+  "oob_margin": [],
+  "outside_safe": [],
+  "minFont": 30,
+  "extra": {
+   "bottom_over_1190": [],
+   "right_over_960": [],
+   "hint_uses": 1,
+   "glow_hits": [],
+   "illus_box": {
+    "x": 96,
+    "y": 176,
+    "w": 888,
+    "h": 764
+   },
+   "bars": []
+  },
+  "bodyScrollH": 1350,
+  "contrast_min": 8.09,
+  "contrast_pass": true
+ }
+}
