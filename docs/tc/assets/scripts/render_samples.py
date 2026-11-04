@@ -143,8 +143,8 @@ dg = b64(DG)
 S["B1_cover"] = cover(
     f'<b>技術白話</b>　2.5D 先進封裝', "AI 晶片為什麼要「疊」起來<br>CoWoS 是什麼",
     "晶粒與記憶體共用一片矽中介層", "往右滑看剖面 →",
-    "圖：台積電官方（官網 TSMC Fabs 頁）。廠區大樓實景，非先進封裝產線，示意用。", "與各公司無合作或授權關係。CoWoS 為台積電之商標。",
-    photo_uri("tsmc/photo_17.jpg"), "50% 50%")
+    "圖：Mister rf／CC BY-SA 4.0／Wikimedia Commons。早期晶片打線封裝顯微照，<br>非先進封裝，示意用；已裁切（去除型號印字）。", "與各公司無合作或授權關係。CoWoS 為台積電之商標。",
+    photo_uri("_category/半導體/photo_6.jpg", (160, 30, 1760, 1156)), "50% 50%")   # B 為技術主題、不綁公司：改類別池封裝照（與 A 的台積電廠區、C 的晶粒滿版區隔）
 # B2：只取「主剖面」(裁掉原圖左上導言——它在講已移除的卡片；與圖內 12px 級小字)，放大到滿版，標題改 56px 大字
 _im = Image.open(DG).convert("RGB").crop((110, 70, 1200, 862))
 _bio = io.BytesIO(); _im.save(_bio, "PNG"); dgc = "data:image/png;base64," + base64.b64encode(_bio.getvalue()).decode()
