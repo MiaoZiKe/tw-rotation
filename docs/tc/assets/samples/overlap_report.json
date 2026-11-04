@@ -4,7 +4,7 @@
   "oob": [],
   "ovf": false,
   "small": [],
-  "n": 17
+  "n": 11
  },
  "A2_fields_textonly": {
   "bad": [],
@@ -25,7 +25,7 @@
   "oob": [],
   "ovf": false,
   "small": [],
-  "n": 11
+  "n": 6
  },
  "B2_diagram": {
   "bad": [],
@@ -46,7 +46,7 @@
   "oob": [],
   "ovf": false,
   "small": [],
-  "n": 13
+  "n": 8
  },
  "C2_diagram": {
   "bad": [],

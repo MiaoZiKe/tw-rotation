@@ -75,21 +75,32 @@ def _hlogo():
     im = im.crop(bb); bio = io.BytesIO(); im.save(bio, "PNG")
     return "data:image/png;base64," + base64.b64encode(bio.getvalue()).decode(), im.size
 _LU, _LS = _hlogo()
-LOGO_H = 76
+# ---- 封面版面常數（2026-11-04 Andy：LOGO 縮小靠左、拿掉圖上備註、排版整齊；A1／B1／C1 與時事範例 01～04 共用同一組數值）----
+M_L = 60                      # 左右邊界：LOGO、紅短線、標題、副標、「往右滑」右緣（W-60）同一條線
+BAR_H = 14                    # 頂紅條
+LOGO_H = 48                   # 橫式 LOGO 高度（原 76）
+LOGO_PAD = 20                 # LOGO 上方（紅條下緣到 LOGO）與下方（LOGO 到照片）留白相等
+LOGO_TOP = BAR_H + LOGO_PAD   # 34
+PIC_TOP = LOGO_TOP + LOGO_H + LOGO_PAD   # 102：照片上緣（頂列總高 = 紅條 + 88）
+GAP = 56                      # 照片到紅短線、副標到頁底，兩段留白相等
+RL_H, RL_GAP, TT_H, SUB_GAP, SUB_H = 6, 24, 180, 20, 44   # 紅短線高、紅線到標題、標題兩行高（72px／90 行高）、標題到副標、副標列高
+BELOW = GAP + RL_H + RL_GAP + TT_H + SUB_GAP + SUB_H + GAP   # 照片以下總高 386
+PIC_H = H - PIC_TOP - BELOW   # 862：拿掉備註後的空間全部給照片
+RL_TOP = PIC_TOP + PIC_H + GAP
+TT_TOP = RL_TOP + RL_H + RL_GAP
+SUB_TOP = TT_TOP + TT_H + SUB_GAP
 LOGO_W = round(LOGO_H * _LS[0] / _LS[1])
 OPEN_RING = f'<img data-b src="{_LU}" width="{LOGO_W}" height="{LOGO_H}" style="display:block">'
 COVER_CSS = f"""
 .cv{{position:absolute;left:0;top:0;width:{W}px;height:{H}px;background:#fff}}
-.cv .bar{{position:absolute;left:0;top:0;width:{W}px;height:14px;background:{RED}}}
-.cv .lg{{position:absolute;left:60px;top:25px;height:{LOGO_H}px}}
-.cv .pic{{position:absolute;left:0;top:112px;width:{W}px;height:760px;background-color:{PALE};background-size:cover;background-repeat:no-repeat}}
-.cv .rl{{position:absolute;left:60px;top:906px;width:120px;height:6px;background:{RED}}}
-.cv .tt{{position:absolute;left:60px;top:930px;width:960px;height:180px;font-size:72px;font-weight:700;line-height:90px;color:{INK}}}
-.cv .sub{{position:absolute;left:60px;top:1122px;width:700px;height:44px;font-size:34px;line-height:44px;color:{GREY};white-space:nowrap}}
-.cv .hint{{position:absolute;left:760px;top:1122px;width:260px;height:44px;font-size:34px;line-height:44px;font-weight:700;color:{RED};text-align:right;white-space:nowrap}}
-.cv .ln2{{position:absolute;left:60px;top:1186px;width:960px;height:2px;background:{LINE}}}
-.cv .cr{{position:absolute;left:60px;top:1198px;width:960px;height:76px;font-size:24px;line-height:36px;color:{GREY}}}
-.cv .dc{{position:absolute;left:60px;top:1286px;width:960px;height:34px;font-size:24px;line-height:34px;color:{GREY}}}
+.cv .bar{{position:absolute;left:0;top:0;width:{W}px;height:{BAR_H}px;background:{RED}}}
+.cv .lg{{position:absolute;left:{M_L}px;top:{LOGO_TOP}px;height:{LOGO_H}px}}
+.cv .pic{{position:absolute;left:0;top:{PIC_TOP}px;width:{W}px;height:{PIC_H}px;background-color:{PALE};background-size:cover;background-repeat:no-repeat}}
+.cv .rl{{position:absolute;left:{M_L}px;top:{RL_TOP}px;width:120px;height:{RL_H}px;background:{RED}}}
+.cv .tt{{position:absolute;left:{M_L}px;top:{TT_TOP}px;width:{W-2*M_L}px;height:{TT_H}px;font-size:72px;font-weight:700;line-height:90px;color:{INK}}}
+.cv .row{{position:absolute;left:{M_L}px;top:{SUB_TOP}px;width:{W-2*M_L}px;height:{SUB_H}px;display:flex;justify-content:space-between;align-items:baseline;font-size:34px;line-height:{SUB_H}px;white-space:nowrap}}
+.cv .sub{{color:{GREY}}}
+.cv .hint{{font-weight:700;color:{RED}}}
 .cv .ph{{border-bottom:0;color:{RED};padding:0}}
 """
 
@@ -101,11 +112,11 @@ def photo_uri(rel, box=None):
     return "data:image/jpeg;base64," + base64.b64encode(bio.getvalue()).decode()
 
 
-def cover(title, sub, hint, credit, foot, photo, pos="50% 50%"):
+def cover(title, sub, hint, photo, pos="50% 50%"):
+    """封面不放任何署名／免責／商標句（Andy 11-04：下方備註不用，文案備註就好）；署名與免責寫進貼文文案，範本句見 README。"""
     return (f'<div class="cv"><div class="bar"></div><div class="lg">{OPEN_RING}</div>'
             f'<div class="pic" data-b style="background-image:url({photo});background-position:{pos}"></div>'
-            f'<div class="rl"></div><div class="tt">{title}</div><div class="sub">{sub}</div><div class="hint">{hint}</div>'
-            f'<div class="ln2"></div><div class="cr">{credit}</div><div class="dc">{foot}</div></div>')
+            f'<div class="rl"></div><div class="tt">{title}</div><div class="row"><div class="sub">{sub}</div><div class="hint">{hint}</div></div></div>')
 
 
 PH = lambda t: f'<span class="ph">{t}</span>'
@@ -116,7 +127,6 @@ DISC = "網友回報，非公司公告・與各公司無合作或授權關係"
 S["A1_cover"] = cover(
     f'{NAME}薪資行情<br>碩畢月薪 {PH("〔待填〕")}K',
     f'職類{PH("〔待填〕")}・碩畢・年資{PH("〔待填〕")}', "往右滑 →",
-    f'{PH("〔N〕")}位網友提供（2026）<br>圖：台積電官方（官網 TSMC Fabs 頁）。廠區辦公大樓實景，示意用，與薪資資料無關。', DISC,
     photo_uri("tsmc/photo_18.jpg"), "50% 55%")
 rows = [("總部地點", "〔待填〕"), ("碩畢月薪", "〔待填〕K"), ("年終・分紅", "〔待填〕個月"), ("升等路徑", "〔待填〕"),
         ("加班時數", "網友普遍回報工時偏長"), ("繁忙程度", "〔待填〕/ 5"), ("出差頻率", "〔待填〕")]
@@ -148,7 +158,6 @@ dg = b64(DG)
 S["B1_cover"] = cover(
     "AI 晶片為什麼要「疊」起來<br>CoWoS 是什麼",
     "晶粒與記憶體共用一片矽中介層", "往右滑看剖面 →",
-    "圖：Mister rf／CC BY-SA 4.0／Wikimedia Commons。早期晶片打線封裝顯微照，<br>非先進封裝，示意用；已裁切（去除型號印字）。", "與各公司無合作或授權關係。CoWoS 為台積電之商標。",
     photo_uri("_category/半導體/photo_6.jpg", (160, 30, 1760, 1156)), "50% 50%")   # B 為技術主題、不綁公司：改類別池封裝照（與 A 的台積電廠區、C 的晶粒滿版區隔）
 # B2：只取「主剖面」(裁掉原圖左上導言——它在講已移除的卡片；與圖內 12px 級小字)，放大到滿版，標題改 56px 大字
 _im = Image.open(DG).convert("RGB").crop((110, 70, 1200, 862))
@@ -218,7 +227,6 @@ def panel(title, svg, n, b, y):
 S["C1_question"] = cover(
     "晶片面積放大 2 倍，<br>良率會剛好剩一半嗎？",
     f'面試題{PH("〔待填〕")}・製程整合・建議作答 3 分鐘', "先想 10 秒再滑 →",
-    "圖：Mister rf／CC BY-SA 4.0／Wikimedia Commons。早期 CMOS 電路晶粒顯微照，示意晶粒，非現行產品；已裁切（去除型號印字）。", "與各公司無合作或授權關係。",
     photo_uri("_category/半導體/photo_5.jpg", (0, 420, 1920, 1771)), "50% 50%")
 S["C2_diagram"] = f"""{top('面試題庫', '2 / 3')}
 <div class="body" style="padding-top:40px">
