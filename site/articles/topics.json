@@ -1,6 +1,111 @@
 {
- "updated": "2026-11-03",
+ "updated": "2026-11-04",
  "topics": [
+  {
+   "id": "n_fii_active_etf_sell",
+   "cat": "news",
+   "title": "外資為何先調節主動式 ETF",
+   "why": "11/3 加權指數收 43,307.54 點、單日跌 1,612.6 點，外資賣超 1,073 億元（史上第 8 大），調節前四名都是 ETF（經濟日報、鉅亨網 11/3）；讀者會問賣壓為什麼先落在 ETF。",
+   "score": 5,
+   "format_hint": "文章",
+   "added": "2026-11-04",
+   "site_links": [
+    "#flow"
+   ]
+  },
+  {
+   "id": "n_fed_hold_hike_dissent",
+   "cat": "news",
+   "title": "Fed 按兵不動，為何有兩票主張升息",
+   "why": "10/28 聯準會以 10 比 2 維持利率 3.75%～4%，兩位委員主張升息 1 碼（CNN、US News 10/28）；讀者想知道利率下一步往哪走。數字寫稿前須對聯準會原文。",
+   "score": 4,
+   "format_hint": "文章",
+   "added": "2026-11-04"
+  },
+  {
+   "id": "n_fii_sell_twd_weak",
+   "cat": "news",
+   "title": "外資賣超與新台幣貶值為何同時出現",
+   "why": "11/3 外資賣超 1,073 億元，新台幣同日走貶（聯合報、今周刊 11/3）；匯率數字僅單一摘要，寫稿前須用央行或第二來源查證。",
+   "score": 4,
+   "format_hint": "文章",
+   "added": "2026-11-04",
+   "site_links": [
+    "#flow"
+   ]
+  },
+  {
+   "id": "k_hbm4_base",
+   "cat": "know",
+   "title": "HBM4 基底晶粒是什麼？記憶體底下為何多一顆邏輯晶片",
+   "why": "HBM 3D 場景（hbm）可直接看堆疊與底下邏輯晶粒；與已上架 HBM 入門、TSV 角度不同，聚焦基底晶粒。",
+   "score": 4,
+   "format_hint": "文章＋3D 圖",
+   "added": "2026-11-04",
+   "site_links": [
+    "#industry/group/hbm"
+   ]
+  },
+  {
+   "id": "k_hybrid_bond",
+   "cat": "know",
+   "title": "混合鍵合是什麼？晶片堆疊為何不再用銲球",
+   "why": "先進封裝下一步的接合方式，搭配 CoWoS 2.5D 剖析圖（cowos）說明堆疊位置；與 CoWoS-L 矽橋題角度不同。",
+   "score": 3,
+   "format_hint": "文章＋2.5D 圖",
+   "added": "2026-11-04",
+   "site_links": [
+    "#heatmap/theme/cowos"
+   ]
+  },
+  {
+   "id": "k_bt_vs_abf",
+   "cat": "know",
+   "title": "BT 載板與 ABF 載板差在哪？材料與用途拆開看",
+   "why": "站內有 ABF 增層 3D 場景（ic_substrate）；已有 ABF 是什麼，這題補 BT 對照，講材料與終端用途差異。",
+   "score": 3,
+   "format_hint": "文章＋3D 圖",
+   "added": "2026-11-04",
+   "site_links": [
+    "#industry/group/ic_substrate"
+   ]
+  },
+  {
+   "id": "i_hvdc_chain",
+   "cat": "intro",
+   "title": "800V 高壓直流供電鏈：電源、電纜到配電怎麼分工",
+   "why": "機櫃功耗上升帶動供電架構討論；與 AI 電源鏈（PSU 到 BBU）切入點不同，講配電環節分工，不排誰受惠。",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-04",
+   "site_links": [
+    "#industry/group/server_psu"
+   ]
+  },
+  {
+   "id": "i_cable_chain",
+   "cat": "intro",
+   "title": "高速線纜鏈：銅纜、主動線纜到光纖怎麼分段",
+   "why": "機櫃內外依距離換不同傳輸媒介；與連接器鏈、AI 網通鏈角度不同，聚焦線纜分段。",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-04",
+   "site_links": [
+    "#industry/group/ai_interconnect"
+   ]
+  },
+  {
+   "id": "i_chiplet_chain",
+   "cat": "intro",
+   "title": "小晶片 Chiplet 鏈：設計、互連到封裝怎麼銜接",
+   "why": "多顆小晶片取代單顆大晶片的分工；與先進封裝鏈、IC 設計鏈相接但聚焦互連與整合環節。",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-04",
+   "site_links": [
+    "#industry/group/ai_adv_packaging"
+   ]
+  },
   {
    "id": "n_capex_delay",
    "cat": "news",
