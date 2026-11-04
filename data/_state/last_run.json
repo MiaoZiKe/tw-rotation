@@ -34,7 +34,7 @@
         {
           "url": "https://openapi.twse.com.tw/v1/fund/T86",
           "http": 200,
-          "head": "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\" \"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\"> <html xmlns=\"http://www.w3.org/1999/xhtml\"> <head> <meta http-equiv=\"Content-T"
+          "head": "<html><head><meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\"> <script type=\"application/javascript\">     var contactPhone = \"(02)8101-5921, (02)8101-5836\";     </script> </head> <bod"
         },
         {
           "url": "https://openapi.twse.com.tw/v1/fund/TWT38U",
@@ -172,19 +172,19 @@
     "finmind.institutional_bulk": {
       "ok": true,
       "rows": 915,
-      "seconds": 0.7
+      "seconds": 0.3
     },
     "inst_daily": {
-      "stored": 138
+      "stored": 31
     },
     "institutional_codes": {
-      "requested": 172,
-      "returned": 138
+      "requested": 34,
+      "returned": 31
     },
     "finmind.institutional": {
       "ok": true,
-      "rows": 138,
-      "seconds": 31.8
+      "rows": 31,
+      "seconds": 7.6
     },
     "inst_flags": {
       "rebuild": true,
@@ -204,7 +204,7 @@
       "inst_daily": {
         "label": "個股三大法人",
         "latest": "2026-11-04",
-        "rows": 1341,
+        "rows": 1372,
         "median": 2049.0,
         "status": "pending",
         "reason": "thin"
@@ -246,10 +246,10 @@
     "warn_labels": []
   },
   "warn": [],
-  "started_at": "2026-11-04T09:06:58.383816+00:00",
-  "finished_at": "2026-11-04T09:07:45.574786+00:00",
-  "duration_seconds": 47.2,
+  "started_at": "2026-11-04T09:48:03.599590+00:00",
+  "finished_at": "2026-11-04T09:48:23.386962+00:00",
+  "duration_seconds": 19.8,
   "trade_date": "2026-11-04",
   "complete": true,
-  "finmind_budget_left": 0
+  "finmind_budget_left": 468
 }
