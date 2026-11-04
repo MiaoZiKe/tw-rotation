@@ -5,7 +5,7 @@ from PIL import ImageFont
 HERE = os.path.dirname(os.path.abspath(__file__))
 SERIF_BOLD = os.path.expanduser('~/.fonts/NotoSerifCJKtc-Bold.otf')
 SER = "'Noto Serif CJK TC',serif"
-SW = 9  # 符號線寬（單位座標；頭像放大 3.2 倍＝1080 圖上約 29px）
+SW = 9  # 符號線寬（單位座標；頭像放大 3.0 倍＝1080 圖上約 27px）
 # 三種底色：bg 底、ink 字標、line 線條、lamp 燈（與樣張一致）
 PAL = {
  '④霧紫灰': dict(bg='#4A4454', ink='#F3EFF5', line='#ABA0B5', lamp='#E9CF9E'),
@@ -35,8 +35,8 @@ def sym(k, c):
         return (f'<rect x="-80" y="-68" width="160" height="148" rx="16" {L}/><path d="M-80 -28 H80" {L}/>'
                 f'<path d="M-38 -88 V-52 M38 -88 V-52" {L}/>{dots}<circle cx="40" cy="50" r="13" {P}/>')
     if k == '2a':
-        return (f'<rect x="-72" y="-86" width="144" height="156" rx="8" {L}/><path d="M0 -86 V70" {L}/>'
-                f'<path d="M-72 -86 L-36 -70 V54 L-72 70" {L}/><path d="M-92 90 H92" {L}/><circle cx="36" cy="-8" r="16" {P}/>')
+        return (f'<rect x="-88" y="-62" width="176" height="124" rx="8" {L}/><path d="M0 -62 V62" {L}/>'
+                f'<path d="M-88 -62 L-48 -46 V46 L-88 62" {L}/><path d="M-100 82 H100" {L}/><circle cx="44" cy="0" r="16" {P}/>')
     if k == '2b':
         return (f'<path d="M-90 62 C-46 62 -52 4 -10 4 C32 4 24 -56 70 -56" {L}/><circle cx="90" cy="-62" r="14" {P}/>'
                 f'<circle cx="-90" cy="62" r="6" fill="{c["line"]}"/>')
@@ -44,8 +44,8 @@ def sym(k, c):
         return (f'<g transform="rotate(-28)"><circle cx="-46" cy="0" r="38" {L}/><circle cx="-46" cy="0" r="12" {P}/>'
                 f'<path d="M-8 0 H92 M62 0 V26 M84 0 V22" {L}/></g>')
     if k == '3b':
-        return (f'<rect x="-30" y="-92" width="60" height="28" rx="6" {L}/><path d="M-46 90 V-8 A46 46 0 0 1 46 -8 V90" {L}/>'
-                f'<path d="M-92 90 H92" {L}/><circle cx="22" cy="46" r="11" {P}/>')
+        return (f'<rect x="-74" y="-76" width="88" height="166" rx="6" {L}/><circle cx="-8" cy="22" r="11" {P}/>'
+                f'<rect x="38" y="-36" width="54" height="34" rx="6" {L}/><path d="M50 -19 H80" {L}/><path d="M-96 90 H96" {L}/>')
     if k == '4a':
         out = ''
         for r in range(3):
@@ -62,7 +62,7 @@ def tw(name, fs):
     return f.getlength(name) * fs / 200 + 0.05 * fs * len(name)
 def avatar(k, c):
     return (f'<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="1080" viewBox="0 0 1080 1080"><rect width="1080" height="1080" fill="{c["bg"]}"/>'
-            f'<g id="sym" transform="translate(540 540) scale(3.2)">{sym(k, c)}</g></svg>')
+            f'<g id="sym" transform="translate(540 540) scale(3.0)">{sym(k, c)}</g></svg>')
 def wordmark(k, name, c, fs, ss, pad, H, transparent=False):
     gap = 0.5 * fs; sx = pad + 105 * ss; tx = pad + 210 * ss + gap
     W = round(tx + tw(name, fs) + pad)
