@@ -42,7 +42,7 @@ POSTS = [
 ]
 CAP = {"01": "誰供應誰：角色分工示意（依公開資料繪製，非特定客戶關係）", "02": "流程示意（依公開資料繪製）", "03": "流程示意（依公開資料繪製）", "04": "流程示意（依公開資料繪製，非特定產品架構）"}
 # ---- 封面版面常數（2026-11-04 Andy：LOGO 縮小靠左、拿掉圖上備註、排版整齊；與模板 docs/tc/assets/scripts/render_samples.py 同一組數值）----
-M_L = 60; BAR_H = 14; LOGO_H = 48; LOGO_PAD = 20               # 左界；紅條；LOGO 高；LOGO 上下留白相等
+M_L = 60; LOGO_X = 24; BAR_H = 14; LOGO_H = 48; LOGO_PAD = 20               # 左界；LOGO 左緣（淡藍底塊距畫布左緣，只管 LOGO）；紅條；LOGO 高；LOGO 上下留白相等
 LOGO_TOP = BAR_H + LOGO_PAD; PIC_TOP = LOGO_TOP + LOGO_H + LOGO_PAD   # 34；照片上緣 102
 GAP = 56; RL_H, RL_GAP, TT_H, SUB_GAP, SUB_H = 6, 24, 180, 20, 44      # 照片→紅線、副標→頁底留白；紅線高、紅線→標題、標題高、標題→副標、副標列高
 PIC_H = 1350 - PIC_TOP - (GAP + RL_H + RL_GAP + TT_H + SUB_GAP + SUB_H + GAP)   # 862
@@ -63,7 +63,7 @@ body{width:1080px;height:1350px;background:#fff;color:#111;font-family:'Noto San
 .k b{color:#D4231A}
 .cr{position:absolute;left:60px;width:960px;font-size:23px;line-height:34px;color:#595959}
 .dc{position:absolute;left:60px;width:960px;height:30px;font-size:22px;color:#595959}"""
-COVER = f""".lg{{top:{LOGO_TOP}px;height:{LOGO_H}px;display:block}}
+COVER = f""".lg{{left:{LOGO_X}px;top:{LOGO_TOP}px;height:{LOGO_H}px;display:block}}
 .ph{{position:absolute;left:0;top:{PIC_TOP}px;width:1080px;height:{PIC_H}px;background-color:#EFEFEF;background-size:cover;background-repeat:no-repeat}}
 .rl{{position:absolute;left:{M_L}px;top:{RL_TOP}px;width:120px;height:{RL_H}px;background:#D4231A}}
 .t{{position:absolute;left:{M_L}px;top:{TT_TOP}px;width:{1080-2*M_L}px;height:{TT_H}px;font-size:72px;font-weight:700;line-height:90px;color:#111}}
