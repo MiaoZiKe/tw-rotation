@@ -8,7 +8,7 @@ const ov=[],gap=[],clip=[];for(let i=0;i<els.length;i++)for(let j=i+1;j<els.leng
 const gx=Math.max(a.x-c.w,c.x-a.w),gy=Math.max(a.y-c.h,c.y-a.h),g=Math.max(gx,gy);
 if(g<0)ov.push(a.o+'×'+c.o);else if(g<24)gap.push(a.o+'×'+c.o+' '+Math.round(g)+'px')}
 const W=1080,H=1350;const oob=els.filter(e=>e.x<0||e.y<0||e.w>W||e.h>H).map(e=>e.o);
-document.querySelectorAll('[data-o],[data-o] *').forEach(e=>{if(e.scrollHeight>e.clientHeight+2&&e.clientHeight>0&&getComputedStyle(e).display!=='inline'&&e.tagName!=='TABLE'&&e.tagName!=='svg')clip.push((e.dataset&&e.dataset.o)||e.className||e.tagName)});
+document.querySelectorAll('[data-o],[data-o] *').forEach(e=>{if(e.scrollWidth>e.clientWidth+2&&e.clientWidth>0&&getComputedStyle(e).display!=='inline'&&e.tagName!=='TABLE'&&e.tagName!=='svg')clip.push('寬:'+((e.dataset&&e.dataset.o)||e.tagName));if(e.scrollHeight>e.clientHeight+2&&e.clientHeight>0&&getComputedStyle(e).display!=='inline'&&e.tagName!=='TABLE'&&e.tagName!=='svg')clip.push((e.dataset&&e.dataset.o)||e.className||e.tagName)});
 const minDisc=Math.min(...[...document.querySelectorAll('.disc')].map(e=>parseFloat(getComputedStyle(e).fontSize)));
 const small=[...document.querySelectorAll('[data-o],[data-o] *')].filter(e=>e.childNodes.length&&[...e.childNodes].some(n=>n.nodeType==3&&n.textContent.trim())&&parseFloat(getComputedStyle(e).fontSize)<28).map(e=>e.textContent.slice(0,8));
 return {n:els.length,overlap:ov,gap24:gap,oob,clip,minDisc,small}}`;
