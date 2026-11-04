@@ -61,6 +61,8 @@ def p_sit_phone(x, y, face=-1):
              ([(x, y - 14), (x + f * 52, y - 14), (x + f * 56, y + 52)], 22),  # 大腿＋小腿
              ([(x + f * -2, y - 56), (x + f * 22, y - 36), (x + f * 44, y - 56)], 15)]  # 手臂到手機
     return person(tubes, (x + f * 12, y - 92, 19), hood(x + f * 12, y - 92, 19, -f * 6)) + phone(x + f * 50, y - 62, f * 20)
+def sofa(x, y, w=150):  # 低矮單人沙發（座面在 y），人坐在上面
+    return R(x - w / 2, y, w, 26, 6, LC) + R(x - w / 2 + (w - 40 if False else 0), y - 50, 22, 76, 6, LC) + Ln(x - w / 2 + 10, y + 26, x - w / 2 + 10, y + 36) + Ln(x + w / 2 - 10, y + 26, x + w / 2 - 10, y + 36)
 def p_back_stand(x, y, h=170, look=0):
     """背面站立（室內、面向窗）：腳 y，頭頂約 y-h。"""
     hy = y - h + 18
@@ -167,17 +169,17 @@ def sc_window(person_on, dawn):
     o += P('M708 380 L712 350 L742 350 L746 380 Z', LC) + steam(727, 346, 28)
     # 左邊矮櫃＋立燈（光源）
     o += P('M100 170 L150 170 L158 214 L92 214 Z', LAMP) + Ln(125, 214, 125, 432) + Ln(104, 434, 146, 434)
-    if person_on: o += p_back_stand(470, 432, 176)
+    if person_on: o += sofa(470, 374, 150) + p_sit_phone(500, 366, -1)
     return o
 
 def sc_balcony(person_on, dawn):
     o = glow(130, 250, 190, "var(--w-glow)")
     o += Ln(40, 436, 848, 436)
-    # 背景：封閉式陽台的整排玻璃窗（遠景樓、細窗格）
+    # 背景：室內洗衣角（整面牆、牆腰線、掛畫與置物架；無窗、無外景）
     o += R(60, 100, 770, 280, 4, LC)
-    for k in range(1, 4): o += Ln(60 + k * 192, 100, 60 + k * 192, 380)
-    o += skyline(66, 824, 376, 40, 110, 5, .18, .4)
-    o += Ln(60, 240, 830, 240, FNT)
+    o += Ln(60, 300, 830, 300, FNT)
+    o += R(640, 140, 120, 70, 3, LC) + Ln(660, 170, 740, 170, FNT) + Ln(660, 190, 720, 190, FNT)
+    o += R(200, 150, 80, 60, 3, LC) + C(240, 180, 14, FNT)
     # 壁燈（光源）
     o += P('M96 132 L146 132 L138 170 L104 170 Z', LAMP)
     # 晾衣架（A 字）＋襯衫、毛巾
@@ -251,7 +253,7 @@ def sc_skyline(person_on, dawn):
     o += Ln(450, 110, 450, 400, FNT) + R(100, 400, 700, 12, 3, LC)
     # 窗台上的杯子
     o += P('M700 400 L704 372 L736 372 L740 400 Z', LC) + steam(718, 368, 26)
-    if person_on: o += p_back_stand(380, 436, 170, 4)
+    if person_on: o += sofa(380, 374, 150) + p_sit_phone(410, 366, -1)
     return o
 
 def sc_store(person_on, dawn):
@@ -345,7 +347,7 @@ def sc_blocks(person_on, dawn):
             o += R(344 + c * 30, 246 + r * 30, 18, 20, 0, FNT)
             if (r * 7 + c * 3) % 5 < 3: o += lit(346 + c * 30, 248 + r * 30, 14, 16, .6)
     o += R(80, 400, 730, 12, 3, LC) + P('M690 400 L694 372 L726 372 L730 400 Z', LC) + steam(710, 368, 26)
-    if person_on: o += p_back_stand(200, 436, 170, 3)
+    if person_on: o += sofa(200, 374, 150) + p_sit_phone(230, 366, -1)
     return o
 
 def sc_rent(person_on, dawn):
