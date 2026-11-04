@@ -1,0 +1,294 @@
+{
+ "01_cover_noperson": {
+  "n": 7,
+  "overlap": [],
+  "gap32": [],
+  "oob_margin": [],
+  "outside_safe": [],
+  "minFont": 28,
+  "extra": {
+   "bottom_over_1190": [],
+   "right_over_960": [],
+   "hint_uses": 0,
+   "glow_hits": [],
+   "illus_box": {
+    "x": 96,
+    "y": 176,
+    "w": 888,
+    "h": 350
+   },
+   "bars": []
+  },
+  "bodyScrollH": 1350,
+  "contrast_min": 5.65,
+  "contrast_pass": true
+ },
+ "01_cover_person": {
+  "n": 7,
+  "overlap": [],
+  "gap32": [],
+  "oob_margin": [],
+  "outside_safe": [],
+  "minFont": 28,
+  "extra": {
+   "bottom_over_1190": [],
+   "right_over_960": [],
+   "hint_uses": 0,
+   "glow_hits": [],
+   "illus_box": {
+    "x": 96,
+    "y": 176,
+    "w": 888,
+    "h": 350
+   },
+   "bars": []
+  },
+  "bodyScrollH": 1350,
+  "contrast_min": 5.65,
+  "contrast_pass": true
+ },
+ "02_inner_noperson": {
+  "n": 9,
+  "overlap": [],
+  "gap32": [],
+  "oob_margin": [],
+  "outside_safe": [],
+  "minFont": 28,
+  "extra": {
+   "bottom_over_1190": [],
+   "right_over_960": [],
+   "hint_uses": 1,
+   "glow_hits": [],
+   "illus_box": {
+    "x": 96,
+    "y": 176,
+    "w": 888,
+    "h": 260
+   },
+   "bars": [
+    {
+     "v": 43.12,
+     "w": 349.265625,
+     "h": "fl"
+    }
+   ],
+   "strip_pct": 43.11921296296296
+  },
+  "bodyScrollH": 1350,
+  "contrast_min": 5.39,
+  "contrast_pass": true
+ },
+ "02_inner_person": {
+  "n": 9,
+  "overlap": [],
+  "gap32": [],
+  "oob_margin": [],
+  "outside_safe": [],
+  "minFont": 28,
+  "extra": {
+   "bottom_over_1190": [],
+   "right_over_960": [],
+   "hint_uses": 1,
+   "glow_hits": [],
+   "illus_box": {
+    "x": 96,
+    "y": 176,
+    "w": 888,
+    "h": 260
+   },
+   "bars": [
+    {
+     "v": 43.12,
+     "w": 349.265625,
+     "h": "fl"
+    }
+   ],
+   "strip_pct": 43.11921296296296
+  },
+  "bodyScrollH": 1350,
+  "contrast_min": 5.39,
+  "contrast_pass": true
+ },
+ "03_inner_noperson": {
+  "n": 8,
+  "overlap": [],
+  "gap32": [],
+  "oob_margin": [],
+  "outside_safe": [],
+  "minFont": 28,
+  "extra": {
+   "bottom_over_1190": [],
+   "right_over_960": [],
+   "hint_uses": 1,
+   "glow_hits": [],
+   "illus_box": {
+    "x": 96,
+    "y": 176,
+    "w": 888,
+    "h": 460
+   },
+   "bars": []
+  },
+  "bodyScrollH": 1350,
+  "contrast_min": 5.5,
+  "contrast_pass": true
+ },
+ "03_inner_person": {
+  "n": 8,
+  "overlap": [],
+  "gap32": [],
+  "oob_margin": [],
+  "outside_safe": [],
+  "minFont": 28,
+  "extra": {
+   "bottom_over_1190": [],
+   "right_over_960": [],
+   "hint_uses": 1,
+   "glow_hits": [],
+   "illus_box": {
+    "x": 96,
+    "y": 176,
+    "w": 888,
+    "h": 460
+   },
+   "bars": []
+  },
+  "bodyScrollH": 1350,
+  "contrast_min": 5.5,
+  "contrast_pass": true
+ },
+ "04_inner_noperson": {
+  "n": 9,
+  "overlap": [],
+  "gap32": [],
+  "oob_margin": [],
+  "outside_safe": [],
+  "minFont": 28,
+  "extra": {
+   "bottom_over_1190": [],
+   "right_over_960": [],
+   "hint_uses": 0,
+   "glow_hits": [],
+   "illus_box": {
+    "x": 96,
+    "y": 176,
+    "w": 888,
+    "h": 300
+   },
+   "bars": []
+  },
+  "bodyScrollH": 1350,
+  "contrast_min": 5.83,
+  "contrast_pass": true
+ },
+ "04_inner_person": {
+  "n": 9,
+  "overlap": [],
+  "gap32": [],
+  "oob_margin": [],
+  "outside_safe": [],
+  "minFont": 28,
+  "extra": {
+   "bottom_over_1190": [],
+   "right_over_960": [],
+   "hint_uses": 0,
+   "glow_hits": [],
+   "illus_box": {
+    "x": 96,
+    "y": 176,
+    "w": 888,
+    "h": 300
+   },
+   "bars": []
+  },
+  "bodyScrollH": 1350,
+  "contrast_min": 5.83,
+  "contrast_pass": true
+ },
+ "05_inner_noperson": {
+  "n": 8,
+  "overlap": [],
+  "gap32": [],
+  "oob_margin": [],
+  "outside_safe": [],
+  "minFont": 28,
+  "extra": {
+   "bottom_over_1190": [],
+   "right_over_960": [],
+   "hint_uses": 0,
+   "glow_hits": [],
+   "illus_box": {
+    "x": 96,
+    "y": 176,
+    "w": 888,
+    "h": 350
+   },
+   "bars": []
+  },
+  "bodyScrollH": 1350,
+  "contrast_min": 5.83,
+  "contrast_pass": true
+ },
+ "05_inner_person": {
+  "n": 8,
+  "overlap": [],
+  "gap32": [],
+  "oob_margin": [],
+  "outside_safe": [],
+  "minFont": 28,
+  "extra": {
+   "bottom_over_1190": [],
+   "right_over_960": [],
+   "hint_uses": 0,
+   "glow_hits": [],
+   "illus_box": {
+    "x": 96,
+    "y": 176,
+    "w": 888,
+    "h": 350
+   },
+   "bars": []
+  },
+  "bodyScrollH": 1350,
+  "contrast_min": 5.83,
+  "contrast_pass": true
+ },
+ "06_sources_noperson": {
+  "n": 9,
+  "overlap": [],
+  "gap32": [],
+  "oob_margin": [],
+  "outside_safe": [],
+  "minFont": 28,
+  "extra": {
+   "bottom_over_1190": [],
+   "right_over_960": [],
+   "hint_uses": 0,
+   "glow_hits": [],
+   "illus_box": null,
+   "bars": []
+  },
+  "bodyScrollH": 1350,
+  "contrast_min": 6.06,
+  "contrast_pass": true
+ },
+ "06_sources_person": {
+  "n": 9,
+  "overlap": [],
+  "gap32": [],
+  "oob_margin": [],
+  "outside_safe": [],
+  "minFont": 28,
+  "extra": {
+   "bottom_over_1190": [],
+   "right_over_960": [],
+   "hint_uses": 0,
+   "glow_hits": [],
+   "illus_box": null,
+   "bars": []
+  },
+  "bodyScrollH": 1350,
+  "contrast_min": 6.06,
+  "contrast_pass": true
+ }
+}

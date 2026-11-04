@@ -1,0 +1,156 @@
+{
+ "txt": "範例2_ig輪播.txt",
+ "mode": "slides",
+ "channel": "我們這一代",
+ "series": "長輩的期待",
+ "slides": [
+  {
+   "name": "01_cover",
+   "type": "cover",
+   "n": 1,
+   "palette": "V",
+   "illus": "dinner",
+   "ih": 350
+  },
+  {
+   "name": "02_inner",
+   "type": "inner",
+   "n": 2,
+   "palette": "V",
+   "illus": "deskbills",
+   "ih": 260,
+   "blocks": [
+    {
+     "t": "b",
+     "l": [
+      0,
+      1
+     ]
+    },
+    {
+     "t": "num",
+     "l": 2,
+     "n": "43.12%"
+    },
+    {
+     "t": "strip",
+     "v": 43.12,
+     "max": 100,
+     "src": "資料來源：內政部 2025 年第 2 季（自行重繪）"
+    },
+    {
+     "t": "b",
+     "l": [
+      3
+     ]
+    }
+   ],
+   "skip": [
+    4
+   ]
+  },
+  {
+   "name": "03_inner",
+   "type": "inner",
+   "n": 3,
+   "palette": "V",
+   "illus": "window",
+   "ih": 460,
+   "blocks": [
+    {
+     "t": "num",
+     "l": 0,
+     "n": "0.695"
+    },
+    {
+     "t": "b",
+     "l": [
+      1,
+      2,
+      3
+     ]
+    },
+    {
+     "t": "note",
+     "text": ""
+    }
+   ]
+  },
+  {
+   "name": "04_inner",
+   "type": "inner",
+   "n": 4,
+   "palette": "V",
+   "illus": "balcony",
+   "ih": 300,
+   "blocks": [
+    {
+     "t": "b",
+     "l": [
+      0,
+      1,
+      2
+     ]
+    },
+    {
+     "t": "q",
+     "l": [
+      3
+     ]
+    },
+    {
+     "t": "b",
+     "l": [
+      4
+     ]
+    },
+    {
+     "t": "b",
+     "l": [
+      5,
+      6
+     ]
+    }
+   ]
+  },
+  {
+   "name": "05_inner",
+   "type": "inner",
+   "n": 5,
+   "palette": "V",
+   "illus": "bedroom",
+   "ih": 350,
+   "blocks": [
+    {
+     "t": "b",
+     "l": [
+      0,
+      1,
+      2
+     ]
+    },
+    {
+     "t": "q",
+     "l": [
+      3,
+      4
+     ]
+    },
+    {
+     "t": "q",
+     "l": [
+      5
+     ],
+     "size": 36
+    }
+   ],
+   "hope": 1
+  },
+  {
+   "name": "06_sources",
+   "type": "sources",
+   "n": 6,
+   "palette": "V"
+  }
+ ]
+}
