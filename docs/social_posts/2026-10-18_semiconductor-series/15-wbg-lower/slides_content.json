@@ -1,0 +1,210 @@
+{
+  "slug": "15-wbg-lower",
+  "topic": "第三代半導體",
+  "part": "下",
+  "title": "新材料如何變成生意",
+  "angle": "拆開基板、磊晶、元件、模組與系統驗證，提醒產業名詞不等於訂單或獲利。",
+  "next_hook": "本系列收束：回到官網產業地圖，沿材料、製造、記憶體、封裝與功率角色閱讀。",
+  "slides": [
+    {
+      "page": 1,
+      "title": "新材料如何變成生意",
+      "points": [
+        "從晶體到功率模組，要跨好幾站",
+        "每一站都要把技術做成可用產品"
+      ],
+      "bubble": "會做材料，不等於賣整機。",
+      "visual": "chain",
+      "diagram_labels": [
+        "基板",
+        "元件",
+        "模組與系統"
+      ],
+      "host": {
+        "expression": "微笑解說",
+        "gaze": "看左側提示板",
+        "action": "短掌握短指示棒",
+        "prop": "空白提示板",
+        "intent": "指讀本頁的新材料如何變成生意",
+        "contact": "短掌接觸所列道具，身體與腳受地面支撐；無道具頁以視線和短掌邀請讀者。",
+        "asset_id": "bibi_semiconductor_host_02",
+        "version": "v001"
+      }
+    },
+    {
+      "page": 2,
+      "title": "基板先提供生長基礎",
+      "points": [
+        "材料品質會影響後續製造條件",
+        "SiC 與 GaN 也有不同基板路線"
+      ],
+      "bubble": "不是所有晶圓同一條路。",
+      "visual": "layers",
+      "diagram_labels": [
+        "功能層",
+        "基板"
+      ],
+      "host": {
+        "expression": "專注",
+        "gaze": "看放大鏡",
+        "action": "短掌握鏡柄",
+        "prop": "放大鏡",
+        "intent": "指讀本頁的基板先提供生長基礎",
+        "contact": "短掌接觸所列道具，身體與腳受地面支撐；無道具頁以視線和短掌邀請讀者。",
+        "asset_id": "bibi_semiconductor_host_03",
+        "version": "v001"
+      }
+    },
+    {
+      "page": 3,
+      "title": "磊晶在基底上長功能層",
+      "points": [
+        "例如嘉晶提供SiC與GaN磊晶產品",
+        "這是材料加工，不等於完成元件"
+      ],
+      "bubble": "長好一層，才有下一站。",
+      "visual": "layers",
+      "diagram_labels": [
+        "磊晶層",
+        "基底"
+      ],
+      "host": {
+        "expression": "開心記錄",
+        "gaze": "看左下筆記",
+        "action": "短掌靠筆記",
+        "prop": "空白筆記本",
+        "intent": "指讀本頁的磊晶在基底上長功能層",
+        "contact": "短掌接觸所列道具，身體與腳受地面支撐；無道具頁以視線和短掌邀請讀者。",
+        "asset_id": "bibi_semiconductor_host_05",
+        "version": "v001"
+      }
+    },
+    {
+      "page": 4,
+      "title": "元件製造做出可控開關",
+      "points": [
+        "在材料上形成電極與元件結構",
+        "IDM整合設計與製造，和純代工不同"
+      ],
+      "bubble": "先分技術，再分模式。",
+      "visual": "compare",
+      "diagram_labels": [
+        "電極",
+        "半導體結構",
+        "外部控制"
+      ],
+      "host": {
+        "expression": "思考",
+        "gaze": "看右側樣品",
+        "action": "雙短掌靠桌",
+        "prop": "兩種樣品與矮桌",
+        "intent": "指讀本頁的元件製造做出可控開關",
+        "contact": "短掌接觸所列道具，身體與腳受地面支撐；無道具頁以視線和短掌邀請讀者。",
+        "asset_id": "bibi_semiconductor_host_04",
+        "version": "v001"
+      }
+    },
+    {
+      "page": 5,
+      "title": "封裝模組把電力接出去",
+      "points": [
+        "電性連接與熱路徑都要安排",
+        "還要配合驅動與終端系統設計"
+      ],
+      "bubble": "不是裝進殼就完成。",
+      "visual": "power",
+      "diagram_labels": [
+        "元件",
+        "模組",
+        "系統"
+      ],
+      "host": {
+        "expression": "微笑解說",
+        "gaze": "看左側提示板",
+        "action": "短掌握短指示棒",
+        "prop": "空白提示板",
+        "intent": "指讀本頁的封裝模組把電力接出去",
+        "contact": "短掌接觸所列道具，身體與腳受地面支撐；無道具頁以視線和短掌邀請讀者。",
+        "asset_id": "bibi_semiconductor_host_02",
+        "version": "v001"
+      }
+    },
+    {
+      "page": 6,
+      "title": "可靠度是必答題",
+      "points": [
+        "不同應用有自己的測試與認證要求",
+        "有樣品、通過驗證、量產是不同進度"
+      ],
+      "bubble": "不要把規劃寫成供貨。",
+      "visual": "checklist",
+      "diagram_labels": [
+        "樣品",
+        "驗證",
+        "量產"
+      ],
+      "host": {
+        "expression": "擔心檢查",
+        "gaze": "看左下警示牌",
+        "action": "短掌扶牌",
+        "prop": "無字警示牌",
+        "intent": "指讀本頁的可靠度是必答題",
+        "contact": "短掌接觸所列道具，身體與腳受地面支撐；無道具頁以視線和短掌邀請讀者。",
+        "asset_id": "bibi_semiconductor_host_06",
+        "version": "v001"
+      }
+    },
+    {
+      "page": 7,
+      "title": "產業趨勢不保證個別獲利",
+      "points": [
+        "材料、製造、封裝各有成本與風險",
+        "判讀公司仍要回到產品與實際進度"
+      ],
+      "bubble": "別讓熱門標籤代替研究。",
+      "visual": "balance",
+      "diagram_labels": [
+        "產品",
+        "進度",
+        "成本風險"
+      ],
+      "host": {
+        "expression": "點頭理解",
+        "gaze": "看右上",
+        "action": "短掌靠紙卡",
+        "prop": "三張筆記卡",
+        "intent": "指讀本頁的產業趨勢不保證個別獲利",
+        "contact": "短掌接觸所列道具，身體與腳受地面支撐；無道具頁以視線和短掌邀請讀者。",
+        "asset_id": "bibi_semiconductor_host_07",
+        "version": "v001"
+      }
+    },
+    {
+      "page": 8,
+      "title": "五張地圖串起一個產業",
+      "points": [
+        "材料、製造、記憶體、封裝各司其職",
+        "功率元件則幫系統管理電力"
+      ],
+      "bubble": "下一個，你想拆哪一題？",
+      "visual": "cta",
+      "diagram_labels": [
+        "材料",
+        "製造",
+        "記憶體",
+        "封裝",
+        "功率"
+      ],
+      "host": {
+        "expression": "微笑邀請",
+        "gaze": "看讀者",
+        "action": "短掌貼身揮手",
+        "prop": "無",
+        "intent": "指讀本頁的五張地圖串起一個產業",
+        "contact": "短掌接觸所列道具，身體與腳受地面支撐；無道具頁以視線和短掌邀請讀者。",
+        "asset_id": "bibi_semiconductor_host_08",
+        "version": "v001"
+      }
+    }
+  ]
+}

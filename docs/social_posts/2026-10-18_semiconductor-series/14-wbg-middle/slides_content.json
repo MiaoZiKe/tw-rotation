@@ -1,0 +1,209 @@
+{
+  "slug": "14-wbg-middle",
+  "topic": "第三代半導體",
+  "part": "中",
+  "title": "SiC和GaN怎麼選",
+  "angle": "用應用目標與工程取捨比較，不用固定電壓切一刀；需求方向不當成採用率或收益承諾。",
+  "next_hook": "下一篇：從材料到模組，中間還有哪些關卡？",
+  "slides": [
+    {
+      "page": 1,
+      "title": "SiC和GaN怎麼選",
+      "points": [
+        "都能服務高效率電力轉換",
+        "但產品目標與工程條件不同"
+      ],
+      "bubble": "不是一場單選冠軍賽。",
+      "visual": "compare",
+      "diagram_labels": [
+        "SiC",
+        "GaN"
+      ],
+      "host": {
+        "expression": "微笑解說",
+        "gaze": "看左側提示板",
+        "action": "短掌握短指示棒",
+        "prop": "空白提示板",
+        "intent": "指讀本頁的SiC和GaN怎麼選",
+        "contact": "短掌接觸所列道具，身體與腳受地面支撐；無道具頁以視線和短掌邀請讀者。",
+        "asset_id": "bibi_semiconductor_host_02",
+        "version": "v001"
+      }
+    },
+    {
+      "page": 2,
+      "title": "SiC常見於高功率場景",
+      "points": [
+        "電動車主驅、充電與工業電源",
+        "選擇仍取決於電壓、功率與系統"
+      ],
+      "bubble": "看場景，不看口號。",
+      "visual": "applications",
+      "diagram_labels": [
+        "車用主驅",
+        "充電",
+        "工業電源"
+      ],
+      "host": {
+        "expression": "專注",
+        "gaze": "看放大鏡",
+        "action": "短掌握鏡柄",
+        "prop": "放大鏡",
+        "intent": "指讀本頁的SiC常見於高功率場景",
+        "contact": "短掌接觸所列道具，身體與腳受地面支撐；無道具頁以視線和短掌邀請讀者。",
+        "asset_id": "bibi_semiconductor_host_03",
+        "version": "v001"
+      }
+    },
+    {
+      "page": 3,
+      "title": "GaN看重快速切換",
+      "points": [
+        "高頻開關有助縮小部分被動元件",
+        "充電器與伺服器電源是應用場景"
+      ],
+      "bubble": "快，還要搭配好電路。",
+      "visual": "applications",
+      "diagram_labels": [
+        "充電器",
+        "伺服器電源",
+        "高頻轉換"
+      ],
+      "host": {
+        "expression": "開心記錄",
+        "gaze": "看左下筆記",
+        "action": "短掌靠筆記",
+        "prop": "空白筆記本",
+        "intent": "指讀本頁的GaN看重快速切換",
+        "contact": "短掌接觸所列道具，身體與腳受地面支撐；無道具頁以視線和短掌邀請讀者。",
+        "asset_id": "bibi_semiconductor_host_05",
+        "version": "v001"
+      }
+    },
+    {
+      "page": 4,
+      "title": "別拿電壓畫死界線",
+      "points": [
+        "技術與產品組合會持續演進",
+        "不能用單一電壓決定所有材料"
+      ],
+      "bubble": "有重疊，也有取捨。",
+      "visual": "compare",
+      "diagram_labels": [
+        "電壓",
+        "功率",
+        "切換頻率"
+      ],
+      "host": {
+        "expression": "思考",
+        "gaze": "看右側樣品",
+        "action": "雙短掌靠桌",
+        "prop": "兩種樣品與矮桌",
+        "intent": "指讀本頁的別拿電壓畫死界線",
+        "contact": "短掌接觸所列道具，身體與腳受地面支撐；無道具頁以視線和短掌邀請讀者。",
+        "asset_id": "bibi_semiconductor_host_04",
+        "version": "v001"
+      }
+    },
+    {
+      "page": 5,
+      "title": "元件省電不等於整機保證",
+      "points": [
+        "驅動、佈局與磁性元件都影響結果",
+        "實際效率要在相同條件下比較"
+      ],
+      "bubble": "比較前，先對齊條件。",
+      "visual": "balance",
+      "diagram_labels": [
+        "元件",
+        "電路",
+        "整機"
+      ],
+      "host": {
+        "expression": "微笑解說",
+        "gaze": "看左側提示板",
+        "action": "短掌握短指示棒",
+        "prop": "空白提示板",
+        "intent": "指讀本頁的元件省電不等於整機保證",
+        "contact": "短掌接觸所列道具，身體與腳受地面支撐；無道具頁以視線和短掌邀請讀者。",
+        "asset_id": "bibi_semiconductor_host_02",
+        "version": "v001"
+      }
+    },
+    {
+      "page": 6,
+      "title": "功率密度高更要顧熱",
+      "points": [
+        "縮小尺寸不代表散熱問題消失",
+        "散熱路徑與可靠度必須一起驗證"
+      ],
+      "bubble": "小體積，也有考驗。",
+      "visual": "inspect",
+      "diagram_labels": [
+        "熱路徑",
+        "封裝",
+        "可靠度"
+      ],
+      "host": {
+        "expression": "擔心檢查",
+        "gaze": "看左下警示牌",
+        "action": "短掌扶牌",
+        "prop": "無字警示牌",
+        "intent": "指讀本頁的功率密度高更要顧熱",
+        "contact": "短掌接觸所列道具，身體與腳受地面支撐；無道具頁以視線和短掌邀請讀者。",
+        "asset_id": "bibi_semiconductor_host_06",
+        "version": "v001"
+      }
+    },
+    {
+      "page": 7,
+      "title": "選材要算整套代價",
+      "points": [
+        "看效率之外，也看成本與開發條件",
+        "適合某應用，不代表適合全部"
+      ],
+      "bubble": "需求才是選材起點。",
+      "visual": "checklist",
+      "diagram_labels": [
+        "應用目標",
+        "成本",
+        "開發條件"
+      ],
+      "host": {
+        "expression": "點頭理解",
+        "gaze": "看右上",
+        "action": "短掌靠紙卡",
+        "prop": "三張筆記卡",
+        "intent": "指讀本頁的選材要算整套代價",
+        "contact": "短掌接觸所列道具，身體與腳受地面支撐；無道具頁以視線和短掌邀請讀者。",
+        "asset_id": "bibi_semiconductor_host_07",
+        "version": "v001"
+      }
+    },
+    {
+      "page": 8,
+      "title": "下一篇回到製造現場",
+      "points": [
+        "材料優勢要經過製造與驗證",
+        "下一篇看從基板到模組的接力"
+      ],
+      "bubble": "誰把材料做成產品？",
+      "visual": "cta",
+      "diagram_labels": [
+        "基板",
+        "元件",
+        "模組"
+      ],
+      "host": {
+        "expression": "微笑邀請",
+        "gaze": "看讀者",
+        "action": "短掌貼身揮手",
+        "prop": "無",
+        "intent": "指讀本頁的下一篇回到製造現場",
+        "contact": "短掌接觸所列道具，身體與腳受地面支撐；無道具頁以視線和短掌邀請讀者。",
+        "asset_id": "bibi_semiconductor_host_08",
+        "version": "v001"
+      }
+    }
+  ]
+}

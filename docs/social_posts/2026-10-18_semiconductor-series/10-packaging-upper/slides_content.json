@@ -1,0 +1,209 @@
+{
+  "slug": "10-packaging-upper",
+  "topic": "先進封裝",
+  "part": "上",
+  "title": "封裝只是包個殼嗎",
+  "angle": "把封裝從保護外殼拉回電性連接與系統整合，清楚區分中介層、載板與 PCB。",
+  "next_hook": "下一篇：為什麼晶片開始分工，再把小晶片拼回一個系統？",
+  "slides": [
+    {
+      "page": 1,
+      "title": "封裝只是包個殼嗎",
+      "points": [
+        "晶粒做出來，還需要連接外部系統",
+        "封裝也影響訊號、供電與散熱"
+      ],
+      "bubble": "它不是最後一道包裝紙。",
+      "visual": "package",
+      "diagram_labels": [
+        "晶粒",
+        "連接層",
+        "載板"
+      ],
+      "host": {
+        "expression": "微笑解說",
+        "gaze": "看左側提示板",
+        "action": "短掌握短指示棒",
+        "prop": "空白提示板",
+        "intent": "指讀本頁的封裝只是包個殼嗎",
+        "contact": "短掌接觸所列道具，身體與腳受地面支撐；無道具頁以視線和短掌邀請讀者。",
+        "asset_id": "bibi_semiconductor_host_02",
+        "version": "v001"
+      }
+    },
+    {
+      "page": 2,
+      "title": "先把晶粒和晶片分開",
+      "points": [
+        "裸晶粒是切割出的半導體本體",
+        "封裝後，才能依設計整合進系統"
+      ],
+      "bubble": "外面那層也有工作。",
+      "visual": "compare",
+      "diagram_labels": [
+        "裸晶粒",
+        "封裝體"
+      ],
+      "host": {
+        "expression": "專注",
+        "gaze": "看放大鏡",
+        "action": "短掌握鏡柄",
+        "prop": "放大鏡",
+        "intent": "指讀本頁的先把晶粒和晶片分開",
+        "contact": "短掌接觸所列道具，身體與腳受地面支撐；無道具頁以視線和短掌邀請讀者。",
+        "asset_id": "bibi_semiconductor_host_03",
+        "version": "v001"
+      }
+    },
+    {
+      "page": 3,
+      "title": "保護之外還要接得通",
+      "points": [
+        "細小接點要連到外部電路",
+        "同時處理供電與機械支撐等需求"
+      ],
+      "bubble": "接點，才是主線。",
+      "visual": "layers",
+      "diagram_labels": [
+        "晶粒接點",
+        "封裝載板",
+        "外部連接"
+      ],
+      "host": {
+        "expression": "開心記錄",
+        "gaze": "看左下筆記",
+        "action": "短掌靠筆記",
+        "prop": "空白筆記本",
+        "intent": "指讀本頁的保護之外還要接得通",
+        "contact": "短掌接觸所列道具，身體與腳受地面支撐；無道具頁以視線和短掌邀請讀者。",
+        "asset_id": "bibi_semiconductor_host_05",
+        "version": "v001"
+      }
+    },
+    {
+      "page": 4,
+      "title": "多顆晶粒一起工作",
+      "points": [
+        "先進封裝可把不同晶粒整合",
+        "讓運算與記憶體靠近、密集連接"
+      ],
+      "bubble": "從單顆走向協作。",
+      "visual": "package",
+      "diagram_labels": [
+        "運算晶粒",
+        "記憶體",
+        "互連"
+      ],
+      "host": {
+        "expression": "思考",
+        "gaze": "看右側樣品",
+        "action": "雙短掌靠桌",
+        "prop": "兩種樣品與矮桌",
+        "intent": "指讀本頁的多顆晶粒一起工作",
+        "contact": "短掌接觸所列道具，身體與腳受地面支撐；無道具頁以視線和短掌邀請讀者。",
+        "asset_id": "bibi_semiconductor_host_04",
+        "version": "v001"
+      }
+    },
+    {
+      "page": 5,
+      "title": "中介層像密集轉接站",
+      "points": [
+        "在典型中介層封裝中連接晶粒",
+        "它不是最底下的封裝載板"
+      ],
+      "bubble": "這兩層別叫錯。",
+      "visual": "package",
+      "diagram_labels": [
+        "晶粒",
+        "中介層",
+        "封裝載板"
+      ],
+      "host": {
+        "expression": "微笑解說",
+        "gaze": "看左側提示板",
+        "action": "短掌握短指示棒",
+        "prop": "空白提示板",
+        "intent": "指讀本頁的中介層像密集轉接站",
+        "contact": "短掌接觸所列道具，身體與腳受地面支撐；無道具頁以視線和短掌邀請讀者。",
+        "asset_id": "bibi_semiconductor_host_02",
+        "version": "v001"
+      }
+    },
+    {
+      "page": 6,
+      "title": "載板也不是主機板",
+      "points": [
+        "封裝載板接出封裝內的訊號",
+        "再透過外部接點連到系統電路板"
+      ],
+      "bubble": "一層接一層。",
+      "visual": "layers",
+      "diagram_labels": [
+        "晶粒",
+        "載板",
+        "系統電路板"
+      ],
+      "host": {
+        "expression": "擔心檢查",
+        "gaze": "看左下警示牌",
+        "action": "短掌扶牌",
+        "prop": "無字警示牌",
+        "intent": "指讀本頁的載板也不是主機板",
+        "contact": "短掌接觸所列道具，身體與腳受地面支撐；無道具頁以視線和短掌邀請讀者。",
+        "asset_id": "bibi_semiconductor_host_06",
+        "version": "v001"
+      }
+    },
+    {
+      "page": 7,
+      "title": "連得密也要顧代價",
+      "points": [
+        "散熱、翹曲與測試都要配合",
+        "不是把晶粒靠近就自然成功"
+      ],
+      "bubble": "密集，也帶來挑戰。",
+      "visual": "checklist",
+      "diagram_labels": [
+        "散熱",
+        "翹曲",
+        "測試"
+      ],
+      "host": {
+        "expression": "點頭理解",
+        "gaze": "看右上",
+        "action": "短掌靠紙卡",
+        "prop": "三張筆記卡",
+        "intent": "指讀本頁的連得密也要顧代價",
+        "contact": "短掌接觸所列道具，身體與腳受地面支撐；無道具頁以視線和短掌邀請讀者。",
+        "asset_id": "bibi_semiconductor_host_07",
+        "version": "v001"
+      }
+    },
+    {
+      "page": 8,
+      "title": "下一篇看拼裝的理由",
+      "points": [
+        "封裝是系統設計的一部分",
+        "下一篇看小晶片如何分工合作"
+      ],
+      "bubble": "一整塊，還是拆開做？",
+      "visual": "cta",
+      "diagram_labels": [
+        "分工",
+        "互連",
+        "系統整合"
+      ],
+      "host": {
+        "expression": "微笑邀請",
+        "gaze": "看讀者",
+        "action": "短掌貼身揮手",
+        "prop": "無",
+        "intent": "指讀本頁的下一篇看拼裝的理由",
+        "contact": "短掌接觸所列道具，身體與腳受地面支撐；無道具頁以視線和短掌邀請讀者。",
+        "asset_id": "bibi_semiconductor_host_08",
+        "version": "v001"
+      }
+    }
+  ]
+}

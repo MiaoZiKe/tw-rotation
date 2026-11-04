@@ -1,0 +1,210 @@
+{
+  "slug": "02-foundry-middle",
+  "topic": "晶圓代工",
+  "part": "中",
+  "title": "電晶體為何站起來",
+  "angle": "由漏電控制切入 Planar、FinFET 與 GAA 的結構變化，不用奈米數字比大小。",
+  "next_hook": "下一篇：先進製程很重要，為什麼成熟製程仍然不能少？",
+  "slides": [
+    {
+      "page": 1,
+      "title": "電晶體為何站起來",
+      "points": [
+        "從平面、鰭式，到全包覆奈米片",
+        "改變形狀，是為了更好控制電流"
+      ],
+      "bubble": "小開關，越來越難管。",
+      "visual": "transistor",
+      "diagram_labels": [
+        "平面",
+        "FinFET",
+        "GAA"
+      ],
+      "host": {
+        "expression": "好奇歪頭",
+        "gaze": "看晶圓",
+        "action": "短掌靠晶圓",
+        "prop": "晶圓與支架",
+        "intent": "指讀本頁的電晶體為何站起來",
+        "contact": "短掌接觸所列道具，身體與腳受地面支撐；無道具頁以視線和短掌邀請讀者。",
+        "asset_id": "bibi_semiconductor_host_01",
+        "version": "v001"
+      }
+    },
+    {
+      "page": 2,
+      "title": "先把它想成可控開關",
+      "points": [
+        "源極與汲極之間，有電流通道",
+        "閘極像控制鈕，決定通道是否導通"
+      ],
+      "bubble": "先找控制鈕在哪。",
+      "visual": "gate",
+      "diagram_labels": [
+        "閘極",
+        "通道",
+        "源極與汲極"
+      ],
+      "host": {
+        "expression": "專注",
+        "gaze": "看放大鏡",
+        "action": "短掌握鏡柄",
+        "prop": "放大鏡",
+        "intent": "指讀本頁的先把它想成可控開關",
+        "contact": "短掌接觸所列道具，身體與腳受地面支撐；無道具頁以視線和短掌邀請讀者。",
+        "asset_id": "bibi_semiconductor_host_03",
+        "version": "v001"
+      }
+    },
+    {
+      "page": 3,
+      "title": "平面只從上方控制",
+      "points": [
+        "平面電晶體的通道貼著基板",
+        "縮小尺寸後，電流控制更具挑戰"
+      ],
+      "bubble": "關門，也可能漏風。",
+      "visual": "planar",
+      "diagram_labels": [
+        "閘極",
+        "介電層",
+        "通道"
+      ],
+      "host": {
+        "expression": "開心記錄",
+        "gaze": "看左下筆記",
+        "action": "短掌靠筆記",
+        "prop": "空白筆記本",
+        "intent": "指讀本頁的平面只從上方控制",
+        "contact": "短掌接觸所列道具，身體與腳受地面支撐；無道具頁以視線和短掌邀請讀者。",
+        "asset_id": "bibi_semiconductor_host_05",
+        "version": "v001"
+      }
+    },
+    {
+      "page": 4,
+      "title": "把通道立成一片鰭",
+      "points": [
+        "FinFET 讓閘極包住鰭的三面",
+        "控制不再只來自正上方"
+      ],
+      "bubble": "換形狀，增加包覆。",
+      "visual": "fin",
+      "diagram_labels": [
+        "鰭式通道",
+        "三面包覆",
+        "基板"
+      ],
+      "host": {
+        "expression": "思考",
+        "gaze": "看右側樣品",
+        "action": "雙短掌靠桌",
+        "prop": "兩種樣品與矮桌",
+        "intent": "指讀本頁的把通道立成一片鰭",
+        "contact": "短掌接觸所列道具，身體與腳受地面支撐；無道具頁以視線和短掌邀請讀者。",
+        "asset_id": "bibi_semiconductor_host_04",
+        "version": "v001"
+      }
+    },
+    {
+      "page": 5,
+      "title": "再把通道整圈包住",
+      "points": [
+        "GAA 是全包覆閘極結構",
+        "奈米片的上下左右都受到控制"
+      ],
+      "bubble": "不是只蓋最上面。",
+      "visual": "gaa",
+      "diagram_labels": [
+        "閘極",
+        "奈米片",
+        "全包覆"
+      ],
+      "host": {
+        "expression": "微笑解說",
+        "gaze": "看左側提示板",
+        "action": "短掌握短指示棒",
+        "prop": "空白提示板",
+        "intent": "指讀本頁的再把通道整圈包住",
+        "contact": "短掌接觸所列道具，身體與腳受地面支撐；無道具頁以視線和短掌邀請讀者。",
+        "asset_id": "bibi_semiconductor_host_02",
+        "version": "v001"
+      }
+    },
+    {
+      "page": 6,
+      "title": "多包住不等於沒代價",
+      "points": [
+        "結構更立體，製造與材料更複雜",
+        "實際效能仍取決於設計與製程"
+      ],
+      "bubble": "示意圖不是成績單。",
+      "visual": "compare",
+      "diagram_labels": [
+        "控制能力",
+        "製造複雜度",
+        "系統設計"
+      ],
+      "host": {
+        "expression": "擔心檢查",
+        "gaze": "看左下警示牌",
+        "action": "短掌扶牌",
+        "prop": "無字警示牌",
+        "intent": "指讀本頁的多包住不等於沒代價",
+        "contact": "短掌接觸所列道具，身體與腳受地面支撐；無道具頁以視線和短掌邀請讀者。",
+        "asset_id": "bibi_semiconductor_host_06",
+        "version": "v001"
+      }
+    },
+    {
+      "page": 7,
+      "title": "奈米名稱不是尺規",
+      "points": [
+        "製程名稱不能直接當單一實體尺寸",
+        "跨廠比較要看技術與使用條件"
+      ],
+      "bubble": "別只比較名字大小。",
+      "visual": "inspect",
+      "diagram_labels": [
+        "製程名稱",
+        "實際結構",
+        "適用條件"
+      ],
+      "host": {
+        "expression": "點頭理解",
+        "gaze": "看右上",
+        "action": "短掌靠紙卡",
+        "prop": "三張筆記卡",
+        "intent": "指讀本頁的奈米名稱不是尺規",
+        "contact": "短掌接觸所列道具，身體與腳受地面支撐；無道具頁以視線和短掌邀請讀者。",
+        "asset_id": "bibi_semiconductor_host_07",
+        "version": "v001"
+      }
+    },
+    {
+      "page": 8,
+      "title": "新技術會取代全部嗎",
+      "points": [
+        "先進電晶體服務特定效能需求",
+        "下篇看成熟製程為何持續有用"
+      ],
+      "bubble": "哪種需求，才是關鍵？",
+      "visual": "cta",
+      "diagram_labels": [
+        "先進製程",
+        "成熟製程",
+        "需求分工"
+      ],
+      "host": {
+        "expression": "微笑邀請",
+        "gaze": "看讀者",
+        "action": "短掌貼身揮手",
+        "prop": "無",
+        "intent": "指讀本頁的新技術會取代全部嗎",
+        "contact": "短掌接觸所列道具，身體與腳受地面支撐；無道具頁以視線和短掌邀請讀者。",
+        "asset_id": "bibi_semiconductor_host_08",
+        "version": "v001"
+      }
+    }
+  ]
+}

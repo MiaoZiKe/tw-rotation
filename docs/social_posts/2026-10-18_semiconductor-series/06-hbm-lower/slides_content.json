@@ -1,0 +1,211 @@
+{
+  "slug": "06-hbm-lower",
+  "topic": "HBM",
+  "part": "下",
+  "title": "誰真的在做HBM",
+  "angle": "拆開記憶體顆粒、邏輯晶粒、堆疊、系統封裝與測試；不把鄰近供應鏈全算成 HBM 本體。",
+  "next_hook": "下一組：矽晶圓，一片空白圓盤為何也有門檻？",
+  "slides": [
+    {
+      "page": 1,
+      "title": "誰真的在做HBM",
+      "points": [
+        "高頻寬記憶體HBM，背後有多種分工",
+        "名字同在產業鏈，不代表做同樣的事"
+      ],
+      "bubble": "先拆角色，再看公司。",
+      "visual": "chain",
+      "diagram_labels": [
+        "顆粒",
+        "堆疊",
+        "系統整合"
+      ],
+      "host": {
+        "expression": "微笑解說",
+        "gaze": "看左側提示板",
+        "action": "短掌握短指示棒",
+        "prop": "空白提示板",
+        "intent": "指讀本頁的誰真的在做HBM",
+        "contact": "短掌接觸所列道具，身體與腳受地面支撐；無道具頁以視線和短掌邀請讀者。",
+        "asset_id": "bibi_semiconductor_host_02",
+        "version": "v001"
+      }
+    },
+    {
+      "page": 2,
+      "title": "顆粒是記憶體本體",
+      "points": [
+        "SK hynix、Micron、Samsung有HBM產品",
+        "DRAM是動態記憶體；不全都做HBM"
+      ],
+      "bubble": "先確認實際產品。",
+      "visual": "hbm",
+      "diagram_labels": [
+        "DRAM晶粒",
+        "邏輯晶粒",
+        "連接"
+      ],
+      "host": {
+        "expression": "專注",
+        "gaze": "看放大鏡",
+        "action": "短掌握鏡柄",
+        "prop": "放大鏡",
+        "intent": "指讀本頁的顆粒是記憶體本體",
+        "contact": "短掌接觸所列道具，身體與腳受地面支撐；無道具頁以視線和短掌邀請讀者。",
+        "asset_id": "bibi_semiconductor_host_03",
+        "version": "v001"
+      }
+    },
+    {
+      "page": 3,
+      "title": "底下還有邏輯晶粒",
+      "points": [
+        "SK hynix與台積電合作開發HBM4",
+        "包含底部晶粒；不等於代工全部HBM"
+      ],
+      "bubble": "做底座，不等於做全套。",
+      "visual": "layers",
+      "diagram_labels": [
+        "記憶體晶粒",
+        "邏輯晶粒",
+        "外部連接"
+      ],
+      "host": {
+        "expression": "開心記錄",
+        "gaze": "看左下筆記",
+        "action": "短掌靠筆記",
+        "prop": "空白筆記本",
+        "intent": "指讀本頁的底下還有邏輯晶粒",
+        "contact": "短掌接觸所列道具，身體與腳受地面支撐；無道具頁以視線和短掌邀請讀者。",
+        "asset_id": "bibi_semiconductor_host_05",
+        "version": "v001"
+      }
+    },
+    {
+      "page": 4,
+      "title": "堆疊是另一道難題",
+      "points": [
+        "晶粒要連得通，也要能可靠運作",
+        "堆高本身不代表成品一定合格"
+      ],
+      "bubble": "接得好，才算完成。",
+      "visual": "hbm",
+      "diagram_labels": [
+        "晶粒",
+        "層間連接",
+        "檢查"
+      ],
+      "host": {
+        "expression": "思考",
+        "gaze": "看右側樣品",
+        "action": "雙短掌靠桌",
+        "prop": "兩種樣品與矮桌",
+        "intent": "指讀本頁的堆疊是另一道難題",
+        "contact": "短掌接觸所列道具，身體與腳受地面支撐；無道具頁以視線和短掌邀請讀者。",
+        "asset_id": "bibi_semiconductor_host_04",
+        "version": "v001"
+      }
+    },
+    {
+      "page": 5,
+      "title": "再跟運算晶粒一起封裝",
+      "points": [
+        "系統封裝把 HBM 與 GPU 接起來",
+        "與 HBM 自身的堆疊是不同層次"
+      ],
+      "bubble": "兩種封裝別混成一件。",
+      "visual": "package",
+      "diagram_labels": [
+        "HBM",
+        "GPU",
+        "中介層",
+        "載板"
+      ],
+      "host": {
+        "expression": "微笑解說",
+        "gaze": "看左側提示板",
+        "action": "短掌握短指示棒",
+        "prop": "空白提示板",
+        "intent": "指讀本頁的再跟運算晶粒一起封裝",
+        "contact": "短掌接觸所列道具，身體與腳受地面支撐；無道具頁以視線和短掌邀請讀者。",
+        "asset_id": "bibi_semiconductor_host_02",
+        "version": "v001"
+      }
+    },
+    {
+      "page": 6,
+      "title": "測試和設備也有角色",
+      "points": [
+        "測試介面、製程設備參與製造",
+        "但參與周邊不等於製造HBM顆粒"
+      ],
+      "bubble": "問清楚它供應什麼。",
+      "visual": "chain",
+      "diagram_labels": [
+        "設備材料",
+        "製造堆疊",
+        "測試"
+      ],
+      "host": {
+        "expression": "擔心檢查",
+        "gaze": "看左下警示牌",
+        "action": "短掌扶牌",
+        "prop": "無字警示牌",
+        "intent": "指讀本頁的測試和設備也有角色",
+        "contact": "短掌接觸所列道具，身體與腳受地面支撐；無道具頁以視線和短掌邀請讀者。",
+        "asset_id": "bibi_semiconductor_host_06",
+        "version": "v001"
+      }
+    },
+    {
+      "page": 7,
+      "title": "研究公司先過三道題",
+      "points": [
+        "實際產品是什麼？來源有沒有證據？",
+        "是已供貨、驗證中，還是規劃？"
+      ],
+      "bubble": "三種狀態，差很多。",
+      "visual": "checklist",
+      "diagram_labels": [
+        "產品",
+        "來源",
+        "進度"
+      ],
+      "host": {
+        "expression": "點頭理解",
+        "gaze": "看右上",
+        "action": "短掌靠紙卡",
+        "prop": "三張筆記卡",
+        "intent": "指讀本頁的研究公司先過三道題",
+        "contact": "短掌接觸所列道具，身體與腳受地面支撐；無道具頁以視線和短掌邀請讀者。",
+        "asset_id": "bibi_semiconductor_host_07",
+        "version": "v001"
+      }
+    },
+    {
+      "page": 8,
+      "title": "把角色圖收藏起來",
+      "points": [
+        "下次看到HBM新聞，先定位環節",
+        "留言：哪一段最容易讓你混淆？"
+      ],
+      "bubble": "看懂角色，少一點誤會。",
+      "visual": "cta",
+      "diagram_labels": [
+        "顆粒",
+        "邏輯晶粒",
+        "系統封裝"
+      ],
+      "host": {
+        "expression": "微笑邀請",
+        "gaze": "看讀者",
+        "action": "短掌貼身揮手",
+        "prop": "無",
+        "intent": "指讀本頁的把角色圖收藏起來",
+        "contact": "短掌接觸所列道具，身體與腳受地面支撐；無道具頁以視線和短掌邀請讀者。",
+        "asset_id": "bibi_semiconductor_host_08",
+        "version": "v001"
+      }
+    }
+  ]
+}

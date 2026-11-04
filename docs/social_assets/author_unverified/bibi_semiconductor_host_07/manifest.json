@@ -1,0 +1,29 @@
+{
+  "asset_id": "bibi_semiconductor_host_07",
+  "中文名稱": "比比半導體主持・點頭理解",
+  "category": "author_unverified",
+  "original_author": "unknown",
+  "illustration_author": "OpenAI imagegen",
+  "processed_by": "Codex",
+  "tool": "OpenAI imagegen；Codex等比排版",
+  "provenance_evidence": "本對話內建image_gen生成；角色參考為Andy提供跳跳.gif；原檔路徑與SHA256可核對。",
+  "parent_asset_id": "bibi_user_jump_gif",
+  "版本": "v001",
+  "尺寸": [
+    1254,
+    1254
+  ],
+  "是否透明底": true,
+  "姿勢表情道具": [
+    "點頭理解",
+    "看右上",
+    "短掌靠紙卡",
+    "三張筆記卡"
+  ],
+  "可用用途": "哩股哩股半導體介紹主持插畫；依情境使用，不作技術數據圖",
+  "權利狀態": "unknown：角色母版原作者權利未核實；新情境生成不覆蓋原畫歸屬",
+  "品管狀態": "review：待逐頁發布前核稿",
+  "prompt_summary": "奶白圓扁毛球；黑點眼；短掌、無尾巴；('點頭理解', '看右上', '短掌靠紙卡', '三張筆記卡')；透明底，不生成文字。",
+  "sha256": "e1f902563a3720fbe3a58fbab967ec107723c2853036efa4c541600b89132b14",
+  "source_file": "C:\\Users\\user\\.codex\\generated_images\\01a14c4f-1a7f-71e3-883c-de2d2fcd98b9\\exec-a0053c63-a013-4a93-87e4-ca3fbdade37e.png"
+}

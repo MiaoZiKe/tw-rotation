@@ -1,0 +1,210 @@
+{
+  "slug": "09-wafer-lower",
+  "topic": "矽晶圓",
+  "part": "下",
+  "title": "一片晶圓如何變訂單",
+  "angle": "以供應鏈位置與客戶驗證講商業邏輯；庫存、產能、終端需求是整理用觀察框架，非現況預測。",
+  "next_hook": "下一組：先進封裝，為什麼包裝會影響晶片效能？",
+  "slides": [
+    {
+      "page": 1,
+      "title": "一片晶圓如何變訂單",
+      "points": [
+        "做得出材料，還要符合客戶製程",
+        "規格、品質與供應穩定性都要看"
+      ],
+      "bubble": "有樣品，不等於有訂單。",
+      "visual": "chain",
+      "diagram_labels": [
+        "材料規格",
+        "客戶驗證",
+        "採用供貨"
+      ],
+      "host": {
+        "expression": "好奇歪頭",
+        "gaze": "看晶圓",
+        "action": "短掌靠晶圓",
+        "prop": "晶圓與支架",
+        "intent": "指讀本頁的一片晶圓如何變訂單",
+        "contact": "短掌接觸所列道具，身體與腳受地面支撐；無道具頁以視線和短掌邀請讀者。",
+        "asset_id": "bibi_semiconductor_host_01",
+        "version": "v001"
+      }
+    },
+    {
+      "page": 2,
+      "title": "先定位它在產業哪一站",
+      "points": [
+        "環球晶、SUMCO提供矽晶圓產品",
+        "製作材料基底，與製造晶片不同"
+      ],
+      "bubble": "先看位置，再看需求。",
+      "visual": "chain",
+      "diagram_labels": [
+        "原料設備",
+        "矽晶圓",
+        "晶片製造"
+      ],
+      "host": {
+        "expression": "專注",
+        "gaze": "看放大鏡",
+        "action": "短掌握鏡柄",
+        "prop": "放大鏡",
+        "intent": "指讀本頁的先定位它在產業哪一站",
+        "contact": "短掌接觸所列道具，身體與腳受地面支撐；無道具頁以視線和短掌邀請讀者。",
+        "asset_id": "bibi_semiconductor_host_03",
+        "version": "v001"
+      }
+    },
+    {
+      "page": 3,
+      "title": "客戶不只看一張規格表",
+      "points": [
+        "不同製程有自己的材料條件",
+        "實際導入需經客戶評估與驗證"
+      ],
+      "bubble": "能用，要在產線裡證明。",
+      "visual": "checklist",
+      "diagram_labels": [
+        "規格",
+        "品質",
+        "製程相容"
+      ],
+      "host": {
+        "expression": "開心記錄",
+        "gaze": "看左下筆記",
+        "action": "短掌靠筆記",
+        "prop": "空白筆記本",
+        "intent": "指讀本頁的客戶不只看一張規格表",
+        "contact": "短掌接觸所列道具，身體與腳受地面支撐；無道具頁以視線和短掌邀請讀者。",
+        "asset_id": "bibi_semiconductor_host_05",
+        "version": "v001"
+      }
+    },
+    {
+      "page": 4,
+      "title": "產業熱不會同時傳到每家",
+      "points": [
+        "邏輯、記憶體與功率產品需求不同",
+        "尺寸和產品組合也可能不同步"
+      ],
+      "bubble": "不要把全產業畫同一色。",
+      "visual": "applications",
+      "diagram_labels": [
+        "邏輯",
+        "記憶體",
+        "功率元件"
+      ],
+      "host": {
+        "expression": "思考",
+        "gaze": "看右側樣品",
+        "action": "雙短掌靠桌",
+        "prop": "兩種樣品與矮桌",
+        "intent": "指讀本頁的產業熱不會同時傳到每家",
+        "contact": "短掌接觸所列道具，身體與腳受地面支撐；無道具頁以視線和短掌邀請讀者。",
+        "asset_id": "bibi_semiconductor_host_04",
+        "version": "v001"
+      }
+    },
+    {
+      "page": 5,
+      "title": "庫存是一道時間差",
+      "points": [
+        "終端銷售、客戶備料與材料採購不同步",
+        "觀察需求時，也要問庫存在哪一站"
+      ],
+      "bubble": "出貨和消耗不是同一天。",
+      "visual": "flow",
+      "diagram_labels": [
+        "終端使用",
+        "客戶備料",
+        "材料採購"
+      ],
+      "host": {
+        "expression": "微笑解說",
+        "gaze": "看左側提示板",
+        "action": "短掌握短指示棒",
+        "prop": "空白提示板",
+        "intent": "指讀本頁的庫存是一道時間差",
+        "contact": "短掌接觸所列道具，身體與腳受地面支撐；無道具頁以視線和短掌邀請讀者。",
+        "asset_id": "bibi_semiconductor_host_02",
+        "version": "v001"
+      }
+    },
+    {
+      "page": 6,
+      "title": "擴產不是按鈕一按就好",
+      "points": [
+        "設備、工藝與認證都需要安排",
+        "新增產能仍要對應實際採用"
+      ],
+      "bubble": "有產能，也要有需求。",
+      "visual": "balance",
+      "diagram_labels": [
+        "產能",
+        "認證",
+        "需求"
+      ],
+      "host": {
+        "expression": "擔心檢查",
+        "gaze": "看左下警示牌",
+        "action": "短掌扶牌",
+        "prop": "無字警示牌",
+        "intent": "指讀本頁的擴產不是按鈕一按就好",
+        "contact": "短掌接觸所列道具，身體與腳受地面支撐；無道具頁以視線和短掌邀請讀者。",
+        "asset_id": "bibi_semiconductor_host_06",
+        "version": "v001"
+      }
+    },
+    {
+      "page": 7,
+      "title": "用這張清單讀營運",
+      "points": [
+        "先看產品與客戶應用，再看庫存",
+        "把產能、出貨與價格分開追蹤"
+      ],
+      "bubble": "這是框架，不是預測。",
+      "visual": "checklist",
+      "diagram_labels": [
+        "產品組合",
+        "庫存",
+        "產能與出貨"
+      ],
+      "host": {
+        "expression": "點頭理解",
+        "gaze": "看右上",
+        "action": "短掌靠紙卡",
+        "prop": "三張筆記卡",
+        "intent": "指讀本頁的用這張清單讀營運",
+        "contact": "短掌接觸所列道具，身體與腳受地面支撐；無道具頁以視線和短掌邀請讀者。",
+        "asset_id": "bibi_semiconductor_host_07",
+        "version": "v001"
+      }
+    },
+    {
+      "page": 8,
+      "title": "看懂材料的生意節奏",
+      "points": [
+        "關鍵不是只問半導體熱不熱",
+        "而是誰需要哪種片、何時採購"
+      ],
+      "bubble": "收藏，下次讀法說用。",
+      "visual": "cta",
+      "diagram_labels": [
+        "誰需要",
+        "哪種片",
+        "何時採購"
+      ],
+      "host": {
+        "expression": "微笑邀請",
+        "gaze": "看讀者",
+        "action": "短掌貼身揮手",
+        "prop": "無",
+        "intent": "指讀本頁的看懂材料的生意節奏",
+        "contact": "短掌接觸所列道具，身體與腳受地面支撐；無道具頁以視線和短掌邀請讀者。",
+        "asset_id": "bibi_semiconductor_host_08",
+        "version": "v001"
+      }
+    }
+  ]
+}
