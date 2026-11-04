@@ -155,21 +155,37 @@ def sc_deskbills(person_on, dawn):
     o += Ln(784, 346, 784, 250) + Ln(784, 250, 750, 232) + P('M722 214 L764 214 L754 240 L732 240 Z', LAMP)
     return o
 
+def small_window(x, y, w, h, seed, density, hmin, hmax, dawn=False, blocks=False):
+    """室內小窗：厚窗框、十字窗格、兩側窗簾、窗台；高樓只在窗內遠處看得到。"""
+    o = R(x - 8, y - 8, w + 16, h + 16, 4, LC) + R(x, y, w, h, 2, LC)
+    if blocks:
+        o += skyline(x + 4, x + w - 4, y + h - 4, hmin, hmax, seed, density, .6)
+    else:
+        o += skyline(x + 4, x + w - 4, y + h - 4, hmin, hmax, seed, density, .55)
+    if dawn: o += '<rect x="%d" y="%d" width="%d" height="%d" fill="var(--w-lamp)" opacity=".18"/>' % (x + 4, y + 4, w - 8, h * 0.4)
+    o += Ln(x + w / 2, y, x + w / 2, y + h) + Ln(x, y + h / 2, x + w, y + h / 2)
+    o += R(x - 14, y + h + 8, w + 28, 10, 3, LC)                       # 窗台
+    o += Ln(x - 36, y - 22, x + w + 36, y - 22)                        # 窗簾桿
+    for k in range(4):
+        o += Ln(x - 34 + k * 9, y - 20, x - 36 + k * 9, y + h + 40, FNT) + Ln(x + w + 34 - k * 9, y - 20, x + w + 36 - k * 9, y + h + 40, FNT)
+    o += P('M%d %d L%d %d L%d %d L%d %d Z' % (x - 38, y - 20, x - 6, y - 20, x - 12, y + h + 40, x - 38, y + h + 40), LC)
+    o += P('M%d %d L%d %d L%d %d L%d %d Z' % (x + w + 38, y - 20, x + w + 6, y - 20, x + w + 12, y + h + 40, x + w + 38, y + h + 40), LC)
+    return o
+def room_base():
+    """室內通則：牆腳踢腳線、地毯，說明這是房間內側。"""
+    return Ln(40, 436, 848, 436) + Ln(40, 420, 848, 420, FNT) + P('M120 440 q 240 14 480 0', FNT)
+def side_table_lamp(x):
+    return R(x - 30, 372, 60, 62, 4, LC) + Ln(x, 372, x, 352) + P('M%d 304 L%d 304 L%d 350 L%d 350 Z' % (x - 22, x + 22, x + 14, x - 14), LAMP) + glow(x, 330, 60, ".5") + P('M%d 372 L%d 346 L%d 346 L%d 372 Z' % (x + 40, x + 44, x + 62, x + 66), LC) + steam(x + 53, 342, 24)
+
 def sc_window(person_on, dawn):
-    o = glow(130, 330, 190, "var(--w-glow)")
-    o += Ln(40, 436, 848, 436)
-    # 大窗（關著）：樓群、窗格、窗鎖
-    o += R(200, 90, 560, 290, 4, LC) + skyline(206, 754, 376, 90, 240, 11, .30, .45)
-    o += Ln(480, 90, 480, 380) + Ln(200, 235, 760, 235) + R(490, 226, 12, 22, 3, L)
-    if dawn: o += '<rect x="206" y="96" width="548" height="120" fill="var(--w-lamp)" opacity=".14"/>'
-    o += R(190, 380, 580, 12, 3, LC)
-    # 窗簾（左）、窗台盆栽與杯子
-    o += P('M60 90 L190 90 L190 430 L60 430 Z', LC) + ''.join(Ln(60 + k * 22, 96, 66 + k * 22, 428, FNT) for k in range(1, 6))
-    o += P('M640 380 L650 352 L686 352 L696 380 Z', LC) + P('M668 352 q -14 -26 -2 -40 M668 352 q 14 -22 6 -36', L)
-    o += P('M708 380 L712 350 L742 350 L746 380 Z', LC) + steam(727, 346, 28)
-    # 左邊矮櫃＋立燈（光源）
-    o += P('M100 170 L150 170 L158 214 L92 214 Z', LAMP) + Ln(125, 214, 125, 432) + Ln(104, 434, 146, 434)
-    if person_on: o += sofa(470, 374, 150) + p_sit_phone(500, 366, -1)
+    o = glow(250, 330, 200, "var(--w-glow)") + room_base()
+    # 小窗在右側牆上（離人物約半個房間以上），窗外遠處樓群
+    o += small_window(620, 150, 150, 130, 11, .30, 40, 100, dawn)
+    o += R(560, 300, 250, 18, 3, LC) + R(576, 318, 218, 4, 0, FNT)    # 牆上矮架
+    o += R(100, 130, 80, 96, 3, LC) + ''.join(Ln(110, 156 + k * 16, 170, 156 + k * 16) for k in range(4)) + C(150, 204, 9, L)  # 月曆
+    o += R(210, 150, 56, 70, 3, LC)
+    o += side_table_lamp(370)
+    o += sofa(210, 374, 170) + (p_sit_phone(236, 366, 1) if person_on else '')
     return o
 
 def sc_balcony(person_on, dawn):
@@ -243,17 +259,13 @@ def sc_salary(person_on, dawn):
     return o
 
 def sc_skyline(person_on, dawn):
-    o = glow(500, 200, 260, "var(--w-glow)")
-    o += Ln(40, 436, 848, 436)
-    # 大窗：右側遠處高樓群（亮晃晃）、左側近處老公寓的一扇小窗
-    o += R(110, 110, 680, 290, 4, LC)
-    o += skyline(300, 784, 394, 120, 270, 21, .62, .65)
-    o += R(120, 250, 160, 144, 0, FNT) + skyline(122, 278, 394, 50, 110, 4, .1, .4)
-    o += R(168, 296, 44, 50, 3, LC) + R(176, 304, 28, 34, 0, '%s' % LAMP.replace('stroke-width="%.2f"' % SW, 'stroke-width="2"'))
-    o += Ln(450, 110, 450, 400, FNT) + R(100, 400, 700, 12, 3, LC)
-    # 窗台上的杯子
-    o += P('M700 400 L704 372 L736 372 L740 400 Z', LC) + steam(718, 368, 26)
-    if person_on: o += sofa(380, 374, 150) + p_sit_phone(410, 366, -1)
+    o = glow(250, 330, 200, "var(--w-glow)") + room_base()
+    # 室內：右牆一扇小窗，窗內遠處高樓群亮晃晃；左側沙發＋立燈，人坐在房間內側
+    o += small_window(620, 140, 160, 150, 21, .62, 70, 140, dawn)
+    o += R(110, 130, 90, 90, 3, LC) + R(224, 150, 56, 66, 3, LC) + Ln(124, 190, 186, 190, FNT)
+    o += Ln(340, 436, 340, 262) + P('M312 262 L368 262 L356 220 L324 220 Z', LAMP) + glow(340, 250, 60, ".5")
+    o += R(610, 380, 60, 54, 4, LC) + P('M700 436 L706 396 L744 396 L750 436 Z', LC) + P('M725 396 q -16 -28 -2 -44 M725 396 q 16 -24 8 -42', L)
+    o += sofa(200, 374, 170) + (p_sit_phone(226, 366, 1) if person_on else '')
     return o
 
 def sc_store(person_on, dawn):
@@ -336,18 +348,16 @@ def sc_morning(person_on, dawn):
     return o
 
 def sc_blocks(person_on, dawn):
-    o = glow(500, 220, 280, "var(--w-glow)")
-    o += Ln(40, 436, 848, 436)
-    o += R(90, 100, 710, 300, 4, LC) + '<rect x="96" y="106" width="698" height="130" fill="var(--w-lamp)" opacity=".2"/>'
-    o += skyline(96, 794, 394, 150, 260, 31, .5, .6)
-    # 近景：一整棟公寓，格狀窗戶（很多扇亮著）
-    o += R(330, 230, 440, 164, 0, LC)
-    for r in range(5):
-        for c in range(14):
-            o += R(344 + c * 30, 246 + r * 30, 18, 20, 0, FNT)
-            if (r * 7 + c * 3) % 5 < 3: o += lit(346 + c * 30, 248 + r * 30, 14, 16, .6)
-    o += R(80, 400, 730, 12, 3, LC) + P('M690 400 L694 372 L726 372 L730 400 Z', LC) + steam(710, 368, 26)
-    if person_on: o += sofa(200, 374, 150) + p_sit_phone(230, 366, -1)
+    o = glow(250, 330, 200, "var(--w-glow)") + room_base()
+    # 室內：小窗內是一整排公寓亮窗（只在窗內遠處）；人坐在書桌邊看手機與帳單
+    o += small_window(600, 140, 190, 140, 31, .55, 50, 110, dawn, True)
+    o += R(110, 130, 90, 96, 3, LC) + ''.join(Ln(120, 156 + k * 16, 190, 156 + k * 16) for k in range(4)) + C(160, 204, 9, L)
+    # 椅子＋人（側坐書桌邊）＋小圓桌
+    o += R(150, 270, 22, 100, 8, LC) + Ln(172, 372, 240, 372) + Ln(160, 372, 160, 434) + Ln(230, 372, 230, 434)
+    if person_on:
+        o += person([([(196, 358), (192, 300)], 46), ([(202, 366), (250, 366), (254, 430)], 20), ([(194, 310), (240, 324), (300, 336)], 14)], (208, 268, 19), hood(208, 268, 19, 6)) + phone(312, 332, 0, 22, 14)
+    o += R(280, 344, 190, 14, 4, LC) + Ln(300, 358, 300, 434) + Ln(450, 358, 450, 434) + R(330, 322, 70, 22, 2, LC) + Ln(340, 332, 390, 332) + P('M420 344 L424 318 L448 318 L452 344 Z', LC) + steam(436, 314, 24)
+    o += Ln(500, 436, 500, 250) + P('M474 250 L526 250 L516 210 L484 210 Z', LAMP) + glow(500, 240, 60, ".5")
     return o
 
 def sc_rent(person_on, dawn):
