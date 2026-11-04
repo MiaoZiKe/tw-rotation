@@ -25,7 +25,7 @@ const BASE=`*{box-sizing:border-box;margin:0;padding:0}html,body{width:1080px;he
 .card{border:4px solid ${ink};border-radius:14px;background:#fff;padding:22px 24px}.sh{box-shadow:6px 6px 0 ${ink}}
 .badge{border:3px solid ${ink};background:${am};border-radius:12px;padding:4px 24px;font-size:28px;font-weight:900;white-space:nowrap}
 .brow{display:flex;justify-content:space-between;align-items:center;gap:24px}
-.tag{border:3px solid ${tl};color:${tl};background:rgba(255,255,255,.75);padding:4px 18px 4px 16px;font-family:${MONO};font-size:28px;font-weight:700;white-space:nowrap;display:flex;gap:10px;align-items:center;border-radius:6px}.tag i{display:inline-block;width:12px;height:12px;background:${tl};flex:none}
+.tag{border:1.5px solid ${tl};color:${tl};background:transparent;padding:4px 18px 4px 16px;font-family:${MONO};font-size:28px;font-weight:500;white-space:nowrap;display:flex;gap:10px;align-items:center;border-radius:6px}.tag i{display:inline-block;width:12px;height:12px;background:${tl};flex:none}
 .g3{display:flex;gap:24px;flex:1}.g3 .card{flex:1;display:flex;flex-direction:column;justify-content:space-between}.g3 b.n{font-size:150px;line-height:1;font-weight:900;font-family:${MONO}}.g3 .nm{font-size:44px;font-weight:900;line-height:1.2}.g3 .sm{font-size:28px;font-weight:700}
 .g2{display:flex;gap:24px;flex:1}.g2 .card{flex:1}.card h3{font-size:34px;font-weight:900;margin-bottom:8px;background:${am};display:inline-block;padding:0 10px;border:3px solid ${ink}}.card p{font-size:38px;font-weight:600;line-height:1.5}
 table{width:100%;border-collapse:collapse;table-layout:fixed;height:100%}th{background:${ink};color:${am};font-size:34px;font-weight:900;text-align:left;padding:0 18px;height:88px}td{font-size:36px;font-weight:700;padding:0 18px;border-bottom:4px solid ${ink}}td:first-child{background:${am};font-weight:900}
@@ -53,11 +53,11 @@ function pageDeco(v,h0,pgNo,pgTot){const h=h0-6;const hp=h0; // 回傳 [頁面�
   bd+=L(0,26,150,26,tw)+L(150,26,176,8,tw)+L(176,8,380,8,tw)+N(380,8,tw,5)+L(700,26,1080,26,tw)+N(700,26,tw,5)+L(790,26,816,8,tw)+L(816,8,1000,8,tw)+N(1000,8,tw,5);
   bd+=L(560,h-22,1080,h-22,tw)+N(560,h-22,tw,5)+L(660,h-22,686,h-8,tw)+L(686,h-8,860,h-8,tw)+N(860,h-8,tw,5,'rgba(255,255,255,.5)');
   if(pgNo===1){ // 封面右下留白：標題第 3 行很短
-    bd+=L(560,h-120,1016,h-120,tw)+N(560,h-120,tw,6)+L(700,h-120,736,h-156,tw)+L(736,h-156,1016,h-156,tw)+N(1016,h-156,tw,6)+L(820,h-120,850,h-90,tw)+L(850,h-90,1016,h-90,tw)+N(1016,h-90,tw,6,'rgba(255,255,255,.5)');
+    bd+=L(560,h-120,1016,h-120,tw)+N(560,h-120,tw,6)+L(820,h-120,850,h-90,tw)+L(850,h-90,1016,h-90,tw)+N(1016,h-90,tw,6,'rgba(255,255,255,.5)');
   }
   // 頁面層：左右邊距（64px）內的垂直電路線；底部 72px 安全邊距內的橫線
-  for(const [x,d] of [[28,1],[1052,-1]]){
-    pg+=L(x,hp+6,x,1260,t)+N(x,hp+60,t,6,'#EAF1F6')+N(x,hp+520,t,6,'#EAF1F6')+L(x,hp+520,x+d*18,hp+538,t)+L(x+d*18,hp+538,x+d*18,hp+700,t)+N(x+d*18,hp+700,t,5)+N(x,1190,t,6,t);
+  for(const [x,d] of [[24,1],[1056,-1]]){
+    pg+=L(x,hp+6,x,1260,t)+N(x,hp+60,t,5,'#EAF1F6')+N(x,hp+520,t,5,'#EAF1F6')+L(x,hp+520,x-d*12,hp+538,t)+L(x-d*12,hp+538,x-d*12,hp+700,t)+N(x-d*12,hp+700,t,5)+N(x,1190,t,5,t);
   }
   pg+=L(64,1318,380,1318,t)+N(380,1318,t,5)+L(380,1318,404,1334,t)+L(404,1334,700,1334,t)+N(700,1334,t,5,t)+L(760,1318,1016,1318,t)+N(760,1318,t,5);
   if(o>=2){
@@ -89,13 +89,13 @@ ${V[v].pat?`.blk0{background-image:linear-gradient(${V[v].pat} 2px,transparent 2
   const blk=(h,n,inner)=>{const [pg,bd]=pageDeco(v,h,n,7);return `${pg}<div class="blk0" data-o="色塊" style="height:${h}px">${bd}${inner}</div>`};
   const pages=[
    blk(640,1,`${hdr('本週 AI 三則','10/28 ~ 11/03')}<div class="t" data-in="色塊" data-o="標題" style="font-size:122px">三則 AI 新聞，<br>只講跟你上班<br>有關的</div>`)+
-   `<div class="main" style="top:690px"><div class="brow"><div data-o="副標" style="font-size:44px;font-weight:800;white-space:nowrap">每則附來源、日期、可信度</div>${tag('W45 | v1 | 11/03')}</div><div class="g3">${rows.map((r,i)=>`<div class="card sh" data-o="卡${i}" style="background:${['#FFC857','#fff','#CDEFF3'][i]}"><b class="n">${i+1}</b><div class="nm">${r[0]}</div><div class="sm">來源 2｜信心 中</div></div>`).join('')}</div></div>${disc('自製圖文')}`,
+   `<div class="main" style="top:690px"><div class="brow"><div data-o="副標" style="font-size:44px;font-weight:800;white-space:nowrap">每則附來源、日期、可信度</div>${tag('第 45 週｜第 1 版')}</div><div class="g3">${rows.map((r,i)=>`<div class="card sh" data-o="卡${i}" style="background:${['#FFC857','#fff','#CDEFF3'][i]}"><b class="n">${i+1}</b><div class="nm">${r[0]}</div><div class="sm">來源 2｜信心 中</div></div>`).join('')}</div></div>${disc('自製圖文')}`,
    blk(430,2,`${hdr('本週 AI 三則','2/6')}<div class="t" data-in="色塊" data-o="標題" style="font-size:62px">新聞 1／3<br>微軟提出約 6 萬人自願離職方案</div><div style="display:flex;gap:16px" data-in="色塊" data-o="資訊列"><span class="pill">事件日 10/26 美東</span><span class="pill">查證日 11/03</span><span class="pill">信心度 中</span></div>`)+
-   `<div class="main" style="top:460px"><div class="g2"><div class="card" data-o="發生什麼"><h3>發生什麼</h3><p>${TXT.what}</p></div><div class="card" data-o="怎麼說"><h3>微軟怎麼說</h3><p>${TXT.say}</p></div></div><div class="card" data-o="差在哪" style="background:#FFF1C9"><h3 style="background:#fff">對上班族差在哪</h3><p>${TXT.diff}</p></div><div class="brow"><div class="badge" data-o="標章">整理自新聞｜我沒親自測</div>${tag('查證 N-01 | v1 | 11/03')}</div></div>${disc('自製圖文')}`,
+   `<div class="main" style="top:460px"><div class="g2"><div class="card" data-o="發生什麼"><h3>發生什麼</h3><p>${TXT.what}</p></div><div class="card" data-o="怎麼說"><h3>微軟怎麼說</h3><p>${TXT.say}</p></div></div><div class="card" data-o="差在哪" style="background:#FFF1C9"><h3 style="background:#fff">對上班族差在哪</h3><p>${TXT.diff}</p></div><div class="brow"><div class="badge" data-o="標章">整理自新聞｜我沒親自測</div>${tag('查證 01｜第 1 版｜11/03')}</div></div>${disc('自製圖文')}`,
    blk(300,3,`${hdr('AI 實測 第 01 期','3/7')}<div class="t" data-in="色塊" data-o="標題" style="font-size:62px">我怎麼測：5 種題目 × 2 次</div>`)+
-   `<div class="main" style="top:330px"><div class="fr">${brk}<div class="tw" data-o="表">${tbl([180,380,392])}</div></div><div data-o="條件" style="font-size:32px;font-weight:700">${TXT.cond}</div><div class="brow"><div class="badge" data-o="標章">自製表格｜非 AI 生成</div>${tag('實測 AI-01 | v1 | 11/03')}</div></div>${disc('自製圖文')}`,
+   `<div class="main" style="top:330px"><div class="fr">${brk}<div class="tw" data-o="表">${tbl([180,380,392])}</div></div><div data-o="條件" style="font-size:32px;font-weight:700">${TXT.cond}</div><div class="brow"><div class="badge" data-o="標章">自製表格｜非 AI 生成</div>${tag('實測 01｜第 1 版｜11/03')}</div></div>${disc('自製圖文')}`,
    blk(300,4,`${hdr('AI 實測 第 01 期','4/7')}<div class="t" data-in="色塊" data-o="標題" style="font-size:62px">步驟 1　它真的變出計算器了</div>`)+
-   `<div class="main" style="top:330px"><div class="fr">${brk}<div class="ph" data-o="截圖框">${camera('#B27300',96)}<b>待 Andy 截圖</b><p>${TXT.ph1}</p><p style="font-size:30px;color:#6B4A00">${TXT.ph2}</p></div></div><div class="card" data-o="重點" style="font-size:34px;font-weight:700;line-height:1.45;padding:16px 24px"><span style="background:${am};padding:0 14px;margin-right:12px;display:inline-block">重點：</span>${TXT.key}</div><div class="brow"><div class="badge" data-o="標章">截圖為實測｜非 AI 生成</div>${tag('實測 AI-01 | v1 | 11/03')}</div></div>${disc('截圖已遮個資')}`];
+   `<div class="main" style="top:330px"><div class="fr">${brk}<div class="ph" data-o="截圖框">${camera('#B27300',96)}<b>待 Andy 截圖</b><p>${TXT.ph1}</p><p style="font-size:30px;color:#6B4A00">${TXT.ph2}</p></div></div><div class="card" data-o="重點" style="font-size:34px;font-weight:700;line-height:1.45;padding:16px 24px"><span style="background:${am};padding:0 14px;margin-right:12px;display:inline-block">重點：</span>${TXT.key}</div><div class="brow"><div class="badge" data-o="標章">截圖為實測｜非 AI 生成</div>${tag('實測 01｜第 1 版｜11/03')}</div></div>${disc('截圖已遮個資')}`];
   return {css,pages:pages.map(mono).map(p=>p.replace(/(<div class="tag"[^>]*>)(.*?)(<\/div>)/g,(m,a,b,c)=>a+b.replace(/<span class="m">|<\/span>/g,'')+c))};
 }
 module.exports={build,V};
