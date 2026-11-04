@@ -1,6 +1,13 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
 
+## 2026-11-04 頻道①（股票網頁）：方針改時事熱點、去網址、期中選舉手動發文（頻道①聊天室；最後更新 11-04 13:45 台北）
+- Andy 11-03：網站先不公開推廣（貼文不放網址，7d79e7d99）、發文改時事熱點優先（定位與比重已交 #channels plan.json ch1）、LINE＋Email 漏斗（法遵 `claude/legal-line-1104` docs/legal/20261104_line_email_funnel.md，待 Andy 定三件事）。
+- 圖卡拿掉比比角標、新聞短標題不截斷（11436e9342）；pages.yml timeout 40→90＋relay 不重排 main（83471d59），11-04 06:51 兩站 ✅。
+- 11-04 13:37 期中選舉 B 專業版手動發出：Threads https://www.threads.com/@liguligu0818/post/DfTuOemnHUL 、IG https://www.instagram.com/p/DfTuTK-FsT5/ ；封面換國會大廈（Architect of the Capitol，公有領域）；新增圖池類別 總經_美國政治（pool.json 審查由 social-ops-lead 代執行，待 art-director 補審）。
+- 待 Andy：LOGO C1 第三版選款與橘色（`claude/logo-1103` docs/brand/logo_1103/c1v3/，推薦 ①＋#E9803F）；LINE＋Email 三件事；頻道③定位名稱；前 3 篇範例是否改 B 專業版後發。
+- 後續：B 專業版定為頻道①新版型（Andy：「B 專業版我喜歡」），之後熱點文照 render_AB.py 的 B 版產。
+
 ## 2026-11-04 網站剖析圖四處修正（科技透明圈聊天室，機構工程師審出；W1～W4）
 - 交換器 `tab`→`ftab`（被 layout4.css `.tab{width:100%}` 拉寬）、氣冷反轉雙轉子前後各一馬達、晶圓代工 GAA 改上下箭頭＋⊙⊗並錯開編號 13／14、交換器標題「近 40 層以上（約 38～48 層）」、CoWoS 中央 GPU／ASIC 字加描邊。W2／W3 機構工程師簽核通過。
 - 這批只驗：診斷圖修正1103、桌機守門1008、產業、產業鏈導覽、一般電子鏈（並行偶發逾時，單獨重跑 0）、手機剖析圖上下編號1102、_preview（只剩 #stock/3189/holders 舊紅）。pytest 跳過（只改 site/dg 與 _uitest 段落）。
