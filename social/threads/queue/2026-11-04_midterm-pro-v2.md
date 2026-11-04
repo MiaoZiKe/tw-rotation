@@ -1,5 +1,5 @@
 ---
-status: approved
+status: posted
 publish_at: 2026-11-04T16:15+08:00
 title: 美國期中選舉結束，台股接下來 3 個月會重演歷史嗎？（頻道①熱點文完整版，Andy 11-04「可以發，規則定下來」「刪掉重發」；取代 2026-11-04_midterm-pro）
 images: social/ig/images/manual/2026-11-04-midterm-pro-v2/01_B_01_cover_capitol.jpg
@@ -18,6 +18,8 @@ emotion: 中性
 tag: 美國期中選舉
 approved_by: Andy 2026-11-04「可以發，規則定下來」「刪掉重發」
 replaces: 2026-11-04_midterm-pro.md（舊文 https://www.threads.com/@liguligu0818/post/DfTuOemnHUL 與留言 DfTuRw7nHln，以 social_delete.yml 刪除）
+posted_at: 2026-11-04T15:53+08:00
+urls: https://www.threads.com/@liguligu0818/post/DfT907IltIu https://www.threads.com/@liguligu0818/post/DfT94a7lqt6
 ---
 美國期中選舉結束，台股接下來 3 個月會重演歷史嗎？
 
