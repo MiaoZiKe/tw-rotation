@@ -1,5 +1,5 @@
 {
- "01_cover_noperson": {
+ "01_cover": {
   "n": 7,
   "overlap": [],
   "gap32": [],
@@ -15,39 +15,15 @@
     "x": 96,
     "y": 176,
     "w": 888,
-    "h": 448
+    "h": 380
    },
    "bars": []
   },
   "bodyScrollH": 1350,
-  "contrast_min": 5.68,
+  "contrast_min": 5.65,
   "contrast_pass": true
  },
- "01_cover_person": {
-  "n": 7,
-  "overlap": [],
-  "gap32": [],
-  "oob_margin": [],
-  "outside_safe": [],
-  "minFont": 28,
-  "extra": {
-   "bottom_over_1190": [],
-   "right_over_960": [],
-   "hint_uses": 0,
-   "glow_hits": [],
-   "illus_box": {
-    "x": 96,
-    "y": 176,
-    "w": 888,
-    "h": 448
-   },
-   "bars": []
-  },
-  "bodyScrollH": 1350,
-  "contrast_min": 5.68,
-  "contrast_pass": true
- },
- "02_inner_noperson": {
+ "02_inner": {
   "n": 8,
   "overlap": [],
   "gap32": [],
@@ -83,43 +59,7 @@
   "contrast_min": 5.39,
   "contrast_pass": true
  },
- "02_inner_person": {
-  "n": 8,
-  "overlap": [],
-  "gap32": [],
-  "oob_margin": [],
-  "outside_safe": [],
-  "minFont": 28,
-  "extra": {
-   "bottom_over_1190": [],
-   "right_over_960": [],
-   "hint_uses": 1,
-   "glow_hits": [],
-   "illus_box": {
-    "x": 96,
-    "y": 176,
-    "w": 888,
-    "h": 310
-   },
-   "bars": [
-    {
-     "v": 47884,
-     "w": 400,
-     "h": "bar"
-    },
-    {
-     "v": 38406,
-     "w": 321,
-     "h": "bar"
-    }
-   ],
-   "bar_ratio_spread": 0.0005441499199389418
-  },
-  "bodyScrollH": 1350,
-  "contrast_min": 5.39,
-  "contrast_pass": true
- },
- "03_inner_noperson": {
+ "03_inner": {
   "n": 9,
   "overlap": [],
   "gap32": [],
@@ -135,7 +75,7 @@
     "x": 96,
     "y": 176,
     "w": 888,
-    "h": 258
+    "h": 290
    },
    "bars": [
     {
@@ -155,43 +95,7 @@
   "contrast_min": 5.39,
   "contrast_pass": true
  },
- "03_inner_person": {
-  "n": 9,
-  "overlap": [],
-  "gap32": [],
-  "oob_margin": [],
-  "outside_safe": [],
-  "minFont": 28,
-  "extra": {
-   "bottom_over_1190": [],
-   "right_over_960": [],
-   "hint_uses": 1,
-   "glow_hits": [],
-   "illus_box": {
-    "x": 96,
-    "y": 176,
-    "w": 888,
-    "h": 258
-   },
-   "bars": [
-    {
-     "v": 244.9,
-     "w": 400,
-     "h": "bar"
-    },
-    {
-     "v": 39.7,
-     "w": 65,
-     "h": "bar"
-    }
-   ],
-   "bar_ratio_spread": 0.0024185695888431146
-  },
-  "bodyScrollH": 1350,
-  "contrast_min": 5.39,
-  "contrast_pass": true
- },
- "04_inner_noperson": {
+ "04_inner": {
   "n": 8,
   "overlap": [],
   "gap32": [],
@@ -207,7 +111,7 @@
     "x": 96,
     "y": 176,
     "w": 888,
-    "h": 300
+    "h": 290
    },
    "bars": []
   },
@@ -215,7 +119,7 @@
   "contrast_min": 5.83,
   "contrast_pass": true
  },
- "04_inner_person": {
+ "05_inner": {
   "n": 8,
   "overlap": [],
   "gap32": [],
@@ -231,7 +135,7 @@
     "x": 96,
     "y": 176,
     "w": 888,
-    "h": 300
+    "h": 330
    },
    "bars": []
   },
@@ -239,74 +143,7 @@
   "contrast_min": 5.83,
   "contrast_pass": true
  },
- "05_inner_noperson": {
-  "n": 8,
-  "overlap": [],
-  "gap32": [],
-  "oob_margin": [],
-  "outside_safe": [],
-  "minFont": 28,
-  "extra": {
-   "bottom_over_1190": [],
-   "right_over_960": [],
-   "hint_uses": 0,
-   "glow_hits": [],
-   "illus_box": {
-    "x": 96,
-    "y": 176,
-    "w": 888,
-    "h": 380
-   },
-   "bars": []
-  },
-  "bodyScrollH": 1350,
-  "contrast_min": 5.83,
-  "contrast_pass": true
- },
- "05_inner_person": {
-  "n": 8,
-  "overlap": [],
-  "gap32": [],
-  "oob_margin": [],
-  "outside_safe": [],
-  "minFont": 28,
-  "extra": {
-   "bottom_over_1190": [],
-   "right_over_960": [],
-   "hint_uses": 0,
-   "glow_hits": [],
-   "illus_box": {
-    "x": 96,
-    "y": 176,
-    "w": 888,
-    "h": 380
-   },
-   "bars": []
-  },
-  "bodyScrollH": 1350,
-  "contrast_min": 5.83,
-  "contrast_pass": true
- },
- "06_sources_noperson": {
-  "n": 10,
-  "overlap": [],
-  "gap32": [],
-  "oob_margin": [],
-  "outside_safe": [],
-  "minFont": 28,
-  "extra": {
-   "bottom_over_1190": [],
-   "right_over_960": [],
-   "hint_uses": 0,
-   "glow_hits": [],
-   "illus_box": null,
-   "bars": []
-  },
-  "bodyScrollH": 1350,
-  "contrast_min": 5.96,
-  "contrast_pass": true
- },
- "06_sources_person": {
+ "06_sources": {
   "n": 10,
   "overlap": [],
   "gap32": [],

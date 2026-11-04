@@ -9,16 +9,23 @@
    "type": "cover",
    "n": 1,
    "palette": "V",
-   "illus": "dinner",
-   "ih": 350
+   "illus": "qtable",
+   "ih": 380,
+   "hook_size": 56,
+   "split": {
+    "常會聽到一句：什麼時候要生？": [
+     "常會聽到一句：",
+     "什麼時候要生？"
+    ]
+   }
   },
   {
    "name": "02_inner",
    "type": "inner",
    "n": 2,
    "palette": "V",
-   "illus": "deskbills",
-   "ih": 260,
+   "illus": "scale",
+   "ih": 290,
    "blocks": [
     {
      "t": "b",
@@ -54,8 +61,8 @@
    "type": "inner",
    "n": 3,
    "palette": "V",
-   "illus": "window",
-   "ih": 460,
+   "illus": "chairs",
+   "ih": 330,
    "blocks": [
     {
      "t": "num",
@@ -81,8 +88,8 @@
    "type": "inner",
    "n": 4,
    "palette": "V",
-   "illus": "balcony",
-   "ih": 300,
+   "illus": "steamq",
+   "ih": 290,
    "blocks": [
     {
      "t": "b",
@@ -118,8 +125,8 @@
    "type": "inner",
    "n": 5,
    "palette": "V",
-   "illus": "bedroom",
-   "ih": 350,
+   "illus": "ring",
+   "ih": 330,
    "blocks": [
     {
      "t": "b",

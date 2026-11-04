@@ -26,7 +26,7 @@ body[data-palette=F]::before{content:"";position:absolute;inset:0;background:rgb
 .abs{position:absolute}
 .serif{font-family:'Noto Serif CJK TC',serif}
 .lab{font-size:28px;line-height:40px;color:var(--w-sub);white-space:nowrap}
-.illus{position:absolute;left:96px;overflow:hidden;-webkit-mask-image:linear-gradient(to right,transparent 0,#000 28px),linear-gradient(to bottom,transparent 0,#000 28px);-webkit-mask-composite:source-in;mask-composite:intersect}
+.illus{position:absolute;left:96px;overflow:hidden;-webkit-mask-image:linear-gradient(to right,transparent 0,#000 28px),linear-gradient(to bottom,transparent 0,#000 12px);-webkit-mask-composite:source-in;mask-composite:intersect}
 .stack{position:absolute;left:96px;width:864px;display:flex;flex-direction:column;gap:44px}
 .stack>div{width:fit-content;max-width:864px}.stack>.card,.stack>.strip{width:864px}
 .h{font-family:'Noto Serif CJK TC',serif;font-size:44px;line-height:1.7;white-space:nowrap}
@@ -156,14 +156,17 @@ def page(post, sl, idx, total, lines, person_on=False):
     top = 168
     if sl.get("illus"):
         ih = sl["ih"]
-        out.append(scene_svg(sl["illus"], ih, person_on, bool(sl.get("hope") or pal == "W")))
+        out.append(scene_svg(sl["illus"], ih, bool(sl.get("hope") or pal == "W")))
         top = 176 + ih + 72
     if sl["type"] == "cover":
         hook = [l for l in lines if not l.startswith("副標：")]
+        for k0, parts in sl.get("split", {}).items():   # 只換行不改字：拆開後串回必須等於原句
+            assert "".join(parts) == k0, k0
+            i0 = hook.index(k0); hook[i0:i0 + 1] = parts
         sub = [l[3:] for l in lines if l.startswith("副標：")]
-        assert len(hook) <= 4 and all(len(l) <= 11 for l in hook), hook
-        out.append('<div class="stack" style="top:%dpx"><div data-o="hook" class="hook">%s</div>%s</div>' %
-                   (top, br(hook), '<div data-o="sub" class="cvsub" style="margin-top:20px">%s</div>' % esc(sub[0]) if sub else ""))
+        assert len(hook) <= 5 and all(len(l) <= 11 for l in hook), hook
+        out.append('<div class="stack" style="top:%dpx"><div data-o="hook" class="hook" style="font-size:%dpx">%s</div>%s</div>' %
+                   (top, sl.get("hook_size", 72), br(hook), '<div data-o="sub" class="cvsub" style="margin-top:20px">%s</div>' % esc(sub[0]) if sub else ""))
     elif sl["type"] == "sources":
         head, items, help_, tail = sources_page(lines)
         out.append('<div class="stack" style="top:168px;gap:36px"><div data-o="sh" class="h">%s</div>' % esc(head))
@@ -210,8 +213,8 @@ def main():
                     q = find(sp); sl["skip"] += list(range(len(lines), len(lines) + len(q))); lines += q
             else:
                 lines = sls[sl["n"]]
-            for pon in (False, True):
-                nm = sl["name"] + ("_person" if pon else "_noperson")
+            for pon in (False,):
+                nm = sl["name"]
                 open(os.path.join(d, "html", nm + ".html"), "w", encoding="utf-8").write(page(post, sl, i, n, lines, pon))
                 mf[nm] = 1350
         json.dump(mf, open(os.path.join(d, "manifest.json"), "w"))

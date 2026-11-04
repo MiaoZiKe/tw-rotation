@@ -8,12 +8,12 @@
    "name": "threads",
    "type": "inner",
    "palette": "V",
-   "illus": "home",
+   "illus": "price",
    "ih": 236,
    "blocks": [
     {
      "t": "h",
-     "para": "月底，打開存款。",
+     "para": "月底，有人打開存款。",
      "l": [
       0,
       1
@@ -54,7 +54,7 @@
     },
     {
      "t": "q",
-     "para": "不是我們不夠努力",
+     "para": "這不是誰不夠努力",
      "l": [
       0
      ],

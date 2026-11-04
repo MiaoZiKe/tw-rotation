@@ -9,7 +9,7 @@
    "type": "cover",
    "n": 1,
    "palette": "W",
-   "illus": "morning",
+   "illus": "mailboxes",
    "ih": 380
   },
   {
@@ -17,7 +17,7 @@
    "type": "inner",
    "n": 2,
    "palette": "W",
-   "illus": "blocks",
+   "illus": "windows",
    "ih": 280,
    "blocks": [
     {
@@ -51,8 +51,8 @@
    "type": "inner",
    "n": 3,
    "palette": "W",
-   "illus": "rent",
-   "ih": 280,
+   "illus": "patch",
+   "ih": 290,
    "blocks": [
     {
      "t": "b",
@@ -82,7 +82,7 @@
    "type": "inner",
    "n": 4,
    "palette": "W",
-   "illus": "bedroom",
+   "illus": "mailbox1",
    "ih": 300,
    "hope": 1,
    "blocks": [

@@ -9,15 +9,15 @@
    "type": "cover",
    "n": 1,
    "palette": "V",
-   "illus": "salary",
-   "ih": 448
+   "illus": "treepot",
+   "ih": 380
   },
   {
    "name": "02_inner",
    "type": "inner",
    "n": 2,
    "palette": "V",
-   "illus": "skyline",
+   "illus": "means",
    "ih": 310,
    "blocks": [
     {
@@ -55,8 +55,8 @@
    "type": "inner",
    "n": 3,
    "palette": "V",
-   "illus": "store",
-   "ih": 258,
+   "illus": "jars",
+   "ih": 290,
    "blocks": [
     {
      "t": "b",
@@ -105,8 +105,8 @@
    "type": "inner",
    "n": 4,
    "palette": "V",
-   "illus": "desk",
-   "ih": 300,
+   "illus": "slips",
+   "ih": 290,
    "blocks": [
     {
      "t": "b",
@@ -137,8 +137,8 @@
    "type": "inner",
    "n": 5,
    "palette": "V",
-   "illus": "mrt",
-   "ih": 380,
+   "illus": "treepot2",
+   "ih": 330,
    "blocks": [
     {
      "t": "b",
