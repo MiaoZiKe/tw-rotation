@@ -4,6 +4,8 @@
 ## 2026-11-04 頻道①期中選舉刪掉重發＋熱點文規則定案（social-ops-lead；最後更新 11-04 台北）
 - Andy：「可以發，規則定下來」「刪掉重發」。規則寫進 `docs/marketing/social_unit/threads_rules.md` 最上面一節，`threads_lint.py` 加 `rule: hot_1104` 熱點文標準（測試 `tests/test_threads_lint_hot_1104.py`）。
 - 刪文工具（原本只在 claude/serene-brown-e4sosy 分支）上 main：`scripts/social_delete.py`、`.github/workflows/social_delete.yml`、`social/delete_keep.json`；ids 檔 `social/delete/ids_20261104_midterm.txt`（貼文網址自動對回 id）。IG 舊文 API 不能刪，要 Andy 在 App 手動刪 https://www.instagram.com/p/DfTuTK-FsT5/ 。
+- 結果（11-04 15:53 台北發出）：Threads https://www.threads.com/@liguligu0818/post/DfT907IltIu （留言 DfT94a7lqt6）、IG 9 張 https://www.instagram.com/p/DfT9-STnAOa/ 。
+- ⚠️ 舊 Threads 沒刪掉：social_delete.yml 第 1 次執行（run 41795302633）回 HTTP 403 code=10，發文權杖沒有 `threads_delete`、`THREADS_DELETE_TOKEN` 也沒設 → 一則都沒刪。待 Andy 在 App 手動刪，或照 claude/serene-brown-e4sosy 分支 `docs/marketing/diagnosis_1102/delete_capability.md` 第 4 節做刪文權杖後重跑同一個 ids 檔。
 - 新版：`social/threads/queue/2026-11-04_midterm-pro-v2.md`（封面 1 張）、`social/ig/queue/2026-11-04_midterm-pro-v2.md`（9 張輪播）；佔第 2 則手動名額，post_quota.json 沒動。條件對照卡兩條偏弱來源已補第二來源（臨時預算：CRS、CRFB；美伊：Al Jazeera、Benzinga 11/2），計數不變（2 明確、3 部分）；參議院 AP 與其他追蹤站說法不一，政黨卡維持「預估」。
 
 ## 2026-11-04 傍晚 頻道④改成「無力感」視覺與語氣（CEO；只有文件與範例圖）
