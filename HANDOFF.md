@@ -13,6 +13,9 @@
 ## 2026-11-04 晚 頻道④：色調定案 ④霧紫灰、素材 v3（有人／無人）、希望感、新主題 LOGO（CEO；只有文件與範例圖）
 - 詳見 `docs/marketing/channels/healing/plan.md` 最上面兩節；範例 `samples/20261104_gen2000_v3/`、LOGO `logo_gen2000/`、色調統計 `samples/palette_test/`。
 - 待 Andy：頻道名稱與 LOGO、有人版使用規則；前 4 週三色輪測（④⑤①）第 5 週選定；數字發文前回官網核對；範例 4 建議 11-28 後發。
+## 2026-11-04 晚 頻道①期中選舉 v5 完整版重發（Andy「可以，9 張重發完整版 發之前我先看看」→「可以發」；social-ops-lead）
+- 佇列 `social/threads/queue/2026-11-04_midterm-pro-v3.md`（封面 1 張）、`social/ig/queue/2026-11-04_midterm-pro-v3.md`（9 張），圖在 `social/ig/images/manual/2026-11-04-midterm-pro-v3/`；佔第 2 則手動名額，post_quota.json 沒動。發文前重查：AP 已判定民主黨拿下參、眾兩院（AP 稿、Forbes、TIME），04 政黨卡 2026 列由「預估奪回」改「奪回」，其他數字未動。舊版 v2 要 Andy 手動刪：Threads DfT907IltIu、留言 DfT94a7lqt6、IG DfT9-STnAOa（新版 IG 辨認：封面標題在照片上方、照片上無出處字）。
+
 ## 2026-11-04 頻道①期中選舉刪掉重發＋熱點文規則定案（social-ops-lead；最後更新 11-04 台北）
 - Andy：「可以發，規則定下來」「刪掉重發」。規則寫進 `docs/marketing/social_unit/threads_rules.md` 最上面一節，`threads_lint.py` 加 `rule: hot_1104` 熱點文標準（測試 `tests/test_threads_lint_hot_1104.py`）。
 - 刪文工具（原本只在 claude/serene-brown-e4sosy 分支）上 main：`scripts/social_delete.py`、`.github/workflows/social_delete.yml`、`social/delete_keep.json`；ids 檔 `social/delete/ids_20261104_midterm.txt`（貼文網址自動對回 id）。IG 舊文 API 不能刪，要 Andy 在 App 手動刪 https://www.instagram.com/p/DfTuTK-FsT5/ 。
