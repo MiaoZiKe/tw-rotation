@@ -9,26 +9,16 @@
    "type": "cover",
    "n": 1,
    "palette": "V",
-   "illus": "S4",
-   "ih": 448,
-   "crop": [
-    40,
-    8.8,
-    1.018
-   ]
+   "illus": "salary",
+   "ih": 448
   },
   {
    "name": "02_inner",
    "type": "inner",
    "n": 2,
    "palette": "V",
-   "illus": "S3",
+   "illus": "skyline",
    "ih": 310,
-   "crop": [
-    100,
-    88.1,
-    1.086
-   ],
    "blocks": [
     {
      "t": "num",
@@ -65,13 +55,8 @@
    "type": "inner",
    "n": 3,
    "palette": "V",
-   "illus": "S3",
+   "illus": "store",
    "ih": 258,
-   "crop": [
-    180,
-    100,
-    0.9
-   ],
    "blocks": [
     {
      "t": "b",
@@ -120,13 +105,8 @@
    "type": "inner",
    "n": 4,
    "palette": "V",
-   "illus": "S8",
+   "illus": "desk",
    "ih": 460,
-   "crop": [
-    100,
-    58.4,
-    1.238
-   ],
    "blocks": [
     {
      "t": "b",
@@ -150,13 +130,8 @@
    "type": "inner",
    "n": 5,
    "palette": "V",
-   "illus": "S2",
+   "illus": "mrt",
    "ih": 460,
-   "crop": [
-    20,
-    -1.6,
-    1.047
-   ],
    "blocks": [
     {
      "t": "b",
@@ -167,7 +142,8 @@
       3
      ]
     }
-   ]
+   ],
+   "hope": 1
   },
   {
    "name": "06_sources",

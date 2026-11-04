@@ -9,26 +9,16 @@
    "type": "cover",
    "n": 1,
    "palette": "V",
-   "illus": "S6",
-   "ih": 350,
-   "crop": [
-    0,
-    50,
-    0.9
-   ]
+   "illus": "dinner",
+   "ih": 350
   },
   {
    "name": "02_inner",
    "type": "inner",
    "n": 2,
    "palette": "V",
-   "illus": "S4",
+   "illus": "deskbills",
    "ih": 260,
-   "crop": [
-    0,
-    84.3,
-    0.815
-   ],
    "blocks": [
     {
      "t": "b",
@@ -64,13 +54,8 @@
    "type": "inner",
    "n": 3,
    "palette": "V",
-   "illus": "S4",
+   "illus": "window",
    "ih": 460,
-   "crop": [
-    560,
-    60.0,
-    1.362
-   ],
    "blocks": [
     {
      "t": "num",
@@ -96,13 +81,8 @@
    "type": "inner",
    "n": 4,
    "palette": "V",
-   "illus": "S6",
+   "illus": "balcony",
    "ih": 448,
-   "crop": [
-    296,
-    64.4,
-    1.344
-   ],
    "blocks": [
     {
      "t": "b",
@@ -131,13 +111,8 @@
    "type": "inner",
    "n": 5,
    "palette": "V",
-   "illus": "S7",
+   "illus": "bedroom",
    "ih": 460,
-   "crop": [
-    0,
-    -35.1,
-    0.989
-   ],
    "blocks": [
     {
      "t": "b",
@@ -154,7 +129,8 @@
       4
      ]
     }
-   ]
+   ],
+   "hope": 1
   },
   {
    "name": "06_sources",
