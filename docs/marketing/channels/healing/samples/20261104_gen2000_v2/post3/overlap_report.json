@@ -140,7 +140,7 @@
    "bars": []
   },
   "bodyScrollH": 1350,
-  "contrast_min": 5.63,
+  "contrast_min": 6.23,
   "contrast_pass": true
  },
  "06_sources": {
@@ -159,7 +159,7 @@
    "bars": []
   },
   "bodyScrollH": 1350,
-  "contrast_min": 5.7,
+  "contrast_min": 6.35,
   "contrast_pass": true
  }
 }

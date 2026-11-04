@@ -20,7 +20,7 @@
    "bars": []
   },
   "bodyScrollH": 1350,
-  "contrast_min": 5.27,
+  "contrast_min": 5.36,
   "contrast_pass": true
  },
  "02_inner": {
@@ -51,7 +51,7 @@
    "strip_pct": 43.11921296296296
   },
   "bodyScrollH": 1350,
-  "contrast_min": 5.0,
+  "contrast_min": 4.97,
   "contrast_pass": true
  },
  "03_inner": {
@@ -75,7 +75,7 @@
    "bars": []
   },
   "bodyScrollH": 1350,
-  "contrast_min": 5.27,
+  "contrast_min": 5.36,
   "contrast_pass": true
  },
  "04_inner": {
@@ -99,7 +99,7 @@
    "bars": []
   },
   "bodyScrollH": 1350,
-  "contrast_min": 5.39,
+  "contrast_min": 5.53,
   "contrast_pass": true
  },
  "05_inner": {
@@ -123,7 +123,7 @@
    "bars": []
   },
   "bodyScrollH": 1350,
-  "contrast_min": 5.63,
+  "contrast_min": 6.23,
   "contrast_pass": true
  },
  "06_sources": {
@@ -142,7 +142,7 @@
    "bars": []
   },
   "bodyScrollH": 1350,
-  "contrast_min": 5.7,
+  "contrast_min": 6.43,
   "contrast_pass": true
  }
 }
