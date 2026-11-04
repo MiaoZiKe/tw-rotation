@@ -28,11 +28,12 @@ body{width:1080px;height:1350px;position:relative;overflow:hidden;background:var
 .chart{background:var(--card);border-radius:20px;padding:40px 44px;box-shadow:0 2px 0 rgba(59,47,42,.06)}
 .chart .ti{font-size:32px;color:var(--sub);line-height:1.5;margin-bottom:28px}
 .row{display:flex;align-items:center;margin-bottom:22px}
-.row .l{width:176px;font-size:34px;font-weight:700;flex:none}
+.row .l{width:200px;font-size:34px;font-weight:700;flex:none}
 .row .tr{flex:1;position:relative;height:60px}
 .row .b{height:60px;border-radius:10px;background:var(--bar)}
 .row .v{font-size:34px;font-weight:700;font-family:'Noto Serif CJK TC',serif;margin-left:0;white-space:nowrap}
 .bwrap{display:flex;align-items:center;gap:16px}
+.note{font-size:28px;color:var(--sub);margin:-10px 0 22px;line-height:1.5}
 .chart .src{font-size:28px;color:var(--sub);margin-top:14px;line-height:1.5}
 .cover-hook{font-family:'Noto Serif CJK TC',serif;font-weight:700;line-height:1.5;letter-spacing:.02em}
 .hand{width:260px;height:6px}
@@ -63,7 +64,7 @@ def block(b, facts, has_big):
                 % (b["_i"], esc(disp(f)), esc(sub(b["cap"], facts))))
     if t == "bars":
         vals = [facts[i["fact"]]["v"] for i in b["items"]]
-        mx = max(vals); W = 500  # 軌道最大寬度（含數字標籤要留空間）
+        mx = max(vals); W = 440  # 軌道最大寬度（含數字標籤要留空間）
         rows = []
         for it in b["items"]:
             f = facts[it["fact"]]
@@ -71,13 +72,11 @@ def block(b, facts, has_big):
             col = "var(--bar)"
             if it.get("hl"): col = "var(--sub)" if has_big else "var(--accent)"
             rows.append('<div class="row"><div class="l">%s</div><div class="bwrap"><div class="b" style="width:%dpx;background:%s"></div>'
-                        '<div class="v">%s</div></div></div>' % (esc(it["label"]), bw, col, esc(disp(f))))
-        srcs = "；".join(dict.fromkeys(src_line(facts[k]) for k in b["source_facts"]))
-        # 同一張圖若數字出自同一機構，合併為一行
-        f0 = facts[b["source_facts"][0]]
-        srcs = "資料來源：%s %s（自行重繪）" % (f0["src"], f0["year"].split("受僱")[0].strip() if False else f0["year"])
+                        '<div class="v">%s</div></div></div>' % (esc(it["label"]), bw, col, esc(disp(f)))
+                        + ('<div class="note">%s</div>' % esc(it["note"]) if it.get("note") else ""))
+        srcs = "<br>".join(esc(l) for l in dict.fromkeys(src_line(facts[k]) for k in b["source_facts"]))
         return ('<div data-o=c%d class="chart"><div class="ti">%s</div>%s<div class="src">%s</div></div>'
-                % (b["_i"], esc(b["title"]), "".join(rows), esc(srcs)))
+                % (b["_i"], esc(b["title"]), "".join(rows), srcs))
     raise ValueError(t)
 
 def page(post, s, idx, total):
