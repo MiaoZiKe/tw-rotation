@@ -12,6 +12,8 @@ esc = html.escape
 CSS = """
 :root{--w-glow:.18;--w-glow2:.12;--w-glow3:.10}
 body[data-palette=N]{--w-bg:#3B4553;--w-card:#46515F;--w-text:#EEF2F6;--w-sub:#C3CCD6;--w-hint:#E2CB98;--w-line:#9AA5B3;--w-lamp:#F2D88E;--vig:rgba(0,0,0,.16);--g-op:.10}
+body[data-palette=V]{--w-bg:#4A4454;--w-card:#554E60;--w-text:#F3EFF5;--w-sub:#DAD2DF;--w-hint:#E9CF9E;--w-line:#ABA0B5;--w-lamp:#F2D88E;--vig:rgba(0,0,0,.16);--g-op:.10}
+body[data-palette=C]{--w-bg:#56524D;--w-card:#615C56;--w-text:#F4F1EC;--w-sub:#D6D0C8;--w-hint:#EBD29E;--w-line:#B0A89E;--w-lamp:#F2D88E;--vig:rgba(0,0,0,.16);--g-op:.10}
 body[data-palette=F]{--w-bg:#E3E7E1;--w-card:#F1F3EE;--w-text:#2A302C;--w-sub:#4F574F;--w-hint:#6B5B30;--w-line:#6A746D;--w-lamp:#C9B97A;--vig:rgba(40,50,45,.10);--g-op:.10;--w-glow:.22;--w-glow2:.14;--w-glow3:.12}
 body[data-palette=M]{--w-bg:#323C4C;--w-card:#3D4859;--w-text:#ECF0F5;--w-sub:#BFC9D5;--w-hint:#E6D49A;--w-line:#94A0B2;--w-lamp:#F0DC96;--vig:rgba(0,0,0,.18);--g-op:.10;--w-glow:.16;--w-glow2:.10;--w-glow3:.08}
 *{margin:0;padding:0;box-sizing:border-box}

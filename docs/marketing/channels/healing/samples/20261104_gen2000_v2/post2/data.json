@@ -8,7 +8,7 @@
    "name": "01_cover",
    "type": "cover",
    "n": 1,
-   "palette": "N",
+   "palette": "V",
    "illus": "S6",
    "ih": 350,
    "crop": [
@@ -21,7 +21,7 @@
    "name": "02_inner",
    "type": "inner",
    "n": 2,
-   "palette": "N",
+   "palette": "V",
    "illus": "S4",
    "ih": 260,
    "crop": [
@@ -63,7 +63,7 @@
    "name": "03_inner",
    "type": "inner",
    "n": 3,
-   "palette": "N",
+   "palette": "V",
    "illus": "S4",
    "ih": 460,
    "crop": [
@@ -95,7 +95,7 @@
    "name": "04_inner",
    "type": "inner",
    "n": 4,
-   "palette": "N",
+   "palette": "V",
    "illus": "S6",
    "ih": 448,
    "crop": [
@@ -130,7 +130,7 @@
    "name": "05_inner",
    "type": "inner",
    "n": 5,
-   "palette": "M",
+   "palette": "V",
    "illus": "S7",
    "ih": 460,
    "crop": [
@@ -160,7 +160,7 @@
    "name": "06_sources",
    "type": "sources",
    "n": 6,
-   "palette": "M"
+   "palette": "V"
   }
  ]
 }
