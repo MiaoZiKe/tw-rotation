@@ -39,12 +39,13 @@ def s2(c):   # 放大鏡裡一整面公寓牆，只有一扇窗亮著
             if (r, k) == (0, 2): o += f'<rect x="{x-9}" y="{y-9}" width="18" height="18" rx="3" {Fl(c)}/>'
             else: o += f'<rect x="{x-9}" y="{y-9}" width="18" height="18" rx="3" {Ls(c,5)}{dim(c)}/>'
     return o + '</g>', 86, 86
-def s3(c):   # 沙漏的兩個玻璃球，是一間倒過來的房子和一間正的房子；沙正往下掉
+def s3(c):   # 沙漏：上球是有屋頂、兩格小窗的房子；下球的黃沙堆成小屋頂。時間往下掉，房子還是遠的
     L = Ls(c, 8)
-    o = (f'<path d="M-50 -84 V-46 L-6 -4 M50 -84 V-46 L6 -4" {L}/><path d="M-6 4 L-50 46 V84 M6 4 L50 46 V84" {L}/>'
-         f'<path d="M-64 -84 H64 M-64 84 H64" {Ls(c,10)}/>'
-         f'<path d="M0 -2 V44" {Ls(c,5,c["lamp"])}/><path d="M-26 78 L0 46 L26 78 Z" {Fl(c)} stroke="{c["lamp"]}" stroke-width="4" stroke-linejoin="round"/>')
-    return o, 68, 90
+    o = (f'<path d="M-6 -4 L-44 -26 V-52 M44 -52 V-26 L6 -4" {L}/><path d="M-60 -50 L0 -92 L60 -50" {Ls(c,9)}/>'
+         f'<rect x="-30" y="-46" width="16" height="16" rx="3" {Ls(c,5)}/><rect x="14" y="-46" width="16" height="16" rx="3" {Ls(c,5)}/>'
+         f'<path d="M-6 4 L-48 36 V84 M6 4 L48 36 V84" {L}/><path d="M-64 84 H64" {Ls(c,10)}/>'
+         f'<path d="M0 -2 V40" {Ls(c,5,c["lamp"])}/><path d="M-30 76 V62 L0 38 L30 62 V76 Z" {Fl(c)} stroke="{c["lamp"]}" stroke-width="6" stroke-linejoin="round"/>')
+    return o, 68, 92
 def s4(c):   # 鑰匙的齒，就是一條往上爬的房價線
     L = Ls(c, 8)
     return (f'<g transform="translate(-6 -12)"><circle cx="-62" cy="0" r="26" {L}/><path d="M-36 0 H92" {L}/>'
@@ -73,10 +74,12 @@ def s8(c):   # 燈泡是實心的，人形（抽象幾何、站著）是從燈�
     mk = ('<mask id="mk"><rect x="-100" y="-100" width="200" height="200" fill="#fff"/>' + cx(-27, -8) + cx(0, -22) + cx(27, -8) + '</mask>')
     return (f'<defs>{mk}</defs><g mask="url(#mk)"><circle cx="0" cy="-14" r="70" fill="{c["line"]}"/><rect x="-26" y="40" width="52" height="30" rx="7" fill="{c["line"]}"/></g>'
             f'<rect x="-18" y="74" width="36" height="12" rx="5" fill="{c["line"]}"/><circle cx="0" cy="-22" r="9" {Fl(c)}/>'), 70, 86
-def s9(c):   # 窗格的直框，長成一支向上的箭頭
-    L = Ls(c, 8)
-    return (f'<g transform="translate(0 -6)"><rect x="-62" y="-70" width="124" height="140" rx="18" {L}/><path d="M-74 84 H74" {Ls(c,7)}/>'
-            f'<path d="M-62 22 H62" {Ls(c,6)}/><path d="M0 70 V-40" {Ls(c,6)}/><path d="M-28 -16 L0 -44 L28 -16" {Ls(c,10,c["lamp"])}/></g>'), 76, 88
+def s9(c):   # 四格窗欞（無外框），中間的窗欞向上長成一支圓角的暖黃箭頭
+    P = Ls(c, 7)
+    o = ''.join(f'<rect x="{x}" y="{y}" width="52" height="48" rx="8" {P}/>' for x in (-60, 8) for y in (-38, 26))
+    o += (f'<path d="M0 74 V-40" {Ls(c,7)}/><path d="M0 -44 V-84" {Ls(c,8,c["lamp"])}/><path d="M-28 -58 L0 -86 L28 -58" {Ls(c,13,c["lamp"])}/>'
+          f'<path d="M-72 88 H72" {Ls(c,7)}/>')
+    return o, 74, 96
 def s10(c):  # 月曆的最後一格，透出一點光
     o = f'<g transform="translate(0 -8)"><rect x="-70" y="-66" width="140" height="148" rx="14" {Ls(c,7)}/><path d="M-70 -34 H70" {Ls(c,6)}/>'
     n = 0
@@ -92,13 +95,13 @@ def s10(c):  # 月曆的最後一格，透出一點光
 STYLES = [
  dict(n=1, name='窗是眼', sym=s1, exp='一扇窗同時是一隻眼睛：觀察家看見的，是每一戶只亮一格的窗。', how='兩個意象合一（窗＝眼）'),
  dict(n=2, name='放大鏡公寓', sym=s2, exp='放大鏡一照，一整面公寓牆，只有一扇窗亮著。', how='比例錯置＋小反差（放大鏡裡是整棟樓）'),
- dict(n=3, name='沙漏房子', sym=s3, exp='沙漏的兩個玻璃球是一正一倒的房子，時間往下掉，房子還是遠的。', how='雙關（沙漏＝等一間房）'),
+ dict(n=3, name='沙漏房子', sym=s3, exp='沙漏的上球是一間有屋頂、兩格窗的房子，下球的黃沙堆成小屋頂，時間往下掉，房子還是遠的。', how='雙關（沙漏＝等一間房）'),
  dict(n=4, name='鑰匙房價線', sym=s4, exp='鑰匙的齒是一條往上爬的房價線，終點那一點是暖黃。', how='兩個意象合一（鑰匙齒＝折線圖）'),
  dict(n=5, name='房子電池', sym=s5, exp='電池的形狀是一間房子，只充到了 3%。', how='兩個意象合一＋小反差（屋頂接電池頭）'),
  dict(n=6, name='燈泡套房', sym=s6, exp='一盞燈泡裡，住著一間亮著窗的小套房。', how='比例錯置（燈泡裡裝一個家）'),
  dict(n=7, name='窗拼人字', sym=s7, exp='整棟樓的窗，實心的那些拼成一個「人」字，頂端一格亮著。', how='負空間／像素拼字（窗＝人）'),
  dict(n=8, name='燈裡的人', sym=s8, exp='燈是實心的，三個站著的幾何人形是從燈裡挖出來的光，中間那顆頭亮著。', how='負空間（人形＝燈的缺口）'),
- dict(n=9, name='窗格向上', sym=s9, exp='窗格的直框長成一支向上的箭頭，箭尖是暖黃。', how='兩個意象合一（窗格＝箭頭）'),
+ dict(n=9, name='窗格向上', sym=s9, exp='四格窗欞（無外框）的中柱向上長成一支圓角箭頭，箭頭是暖黃。', how='兩個意象合一（窗欞＝箭頭）'),
  dict(n=10, name='月曆末格', sym=s10, exp='月曆最後一格，透出一點光。', how='小反差（整頁灰色格子裡，唯一發光的一天）'),
 ]
 def folder(st): return f"{st['n']:02d}_{st['name']}"

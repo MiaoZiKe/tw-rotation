@@ -1,0 +1,126 @@
+{
+ "txt": "範例4_微光篇.txt",
+ "mode": "slides",
+ "channel": "我們這一代",
+ "series": "微光",
+ "slides": [
+  {
+   "name": "01_cover",
+   "type": "cover",
+   "n": 1,
+   "palette": "W",
+   "illus": "morning",
+   "ih": 380
+  },
+  {
+   "name": "02_inner",
+   "type": "inner",
+   "n": 2,
+   "palette": "W",
+   "illus": "blocks",
+   "ih": 280,
+   "blocks": [
+    {
+     "t": "b",
+     "l": [
+      0
+     ]
+    },
+    {
+     "t": "num",
+     "l": 1,
+     "n": "102 萬戶"
+    },
+    {
+     "t": "b",
+     "l": [
+      2,
+      3
+     ]
+    },
+    {
+     "t": "note",
+     "l": [
+      4
+     ]
+    }
+   ]
+  },
+  {
+   "name": "03_inner",
+   "type": "inner",
+   "n": 3,
+   "palette": "W",
+   "illus": "rent",
+   "ih": 280,
+   "blocks": [
+    {
+     "t": "b",
+     "l": [
+      0,
+      1
+     ]
+    },
+    {
+     "t": "b",
+     "l": [
+      2,
+      3
+     ]
+    },
+    {
+     "t": "q",
+     "l": [
+      4
+     ],
+     "size": 36
+    }
+   ]
+  },
+  {
+   "name": "04_inner",
+   "type": "inner",
+   "n": 4,
+   "palette": "W",
+   "illus": "bedroom",
+   "ih": 300,
+   "hope": 1,
+   "blocks": [
+    {
+     "t": "b",
+     "l": [
+      0,
+      1
+     ]
+    },
+    {
+     "t": "b",
+     "l": [
+      2,
+      3
+     ]
+    },
+    {
+     "t": "q",
+     "l": [
+      4
+     ],
+     "size": 36
+    },
+    {
+     "t": "b",
+     "l": [
+      5,
+      6
+     ]
+    }
+   ]
+  },
+  {
+   "name": "05_sources",
+   "type": "sources",
+   "n": 5,
+   "palette": "W"
+  }
+ ]
+}
