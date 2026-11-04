@@ -17,6 +17,12 @@ SC = {"S1": "S1 租屋小套房一盞燈＋帳單", "S2": "S2 末班捷運車廂
 DS = {"post1": "內政部〈住宅價格負擔能力統計〉2025Q2（媒體轉述，2026-11-04 取用）；1989 臺北 8.58 倍為巢運引用估算、口徑不同（自行重繪）",
       "post2": "內政部 2025 年第 2 季全國房貸負擔率 43.12%（圖表）；內政部戶政統計 2025 總生育率 0.695（數字，媒體轉述）",
       "post3": "主計總處薪資及生產力統計 2025、國民所得統計 2025 概估、家庭收支調查 2025（媒體轉述）"}
+PER = {("post2","02_inner"): "內政部〈住宅價格負擔能力統計〉2025 年第 2 季全國房貸負擔率 43.12%（比例條自繪；媒體轉述）",
+       ("post2","03_inner"): "內政部戶政統計 2025 年總生育率 0.695（僅數字，無圖表；媒體轉述）",
+       ("post3","02_inner"): "主計總處〈國民所得統計〉2025 年經濟成長率概估 8.63%；〈薪資及生產力統計〉2025 全年全體受僱員工（含本國籍、外國籍、全時與部分工時）經常性薪資平均 47,884 元、中位數 38,406 元（長條自繪；媒體轉述）",
+       ("post3","03_inner"): "主計總處〈家庭收支調查〉2025 年最高與最低 20% 家庭每戶可支配所得 244.9 萬 vs 39.7 萬，6.17 倍（長條自繪；媒體轉述）",
+       ("post2","06_sources"): "內政部〈住宅價格負擔能力統計〉2025Q2 房貸負擔率 43.12%；內政部戶政統計總生育率 0.695（媒體轉述）",
+       ("post3","06_sources"): "主計總處〈國民所得統計〉、〈薪資及生產力統計〉、〈家庭收支調查〉2025 三項數字，全文列於出處頁（媒體轉述）"}
 for p in ("post1", "post2", "post3"):
     d = json.load(open(f"{B}/{p}/data.json", encoding="utf-8"))
     rows = ["| 檔案 | 來源 | 資料來源 | 字體授權 |", "|---|---|---|---|"]
@@ -24,7 +30,7 @@ for p in ("post1", "post2", "post3"):
         fn = "threads.png" if p == "post1" else s["name"] + ".png"
         kind = "自繪向量插圖（%s，程式產生，SVG）＋" % SC[s["illus"]] if s.get("illus") else ""
         chart = "長條／比例條自繪（長度依數值成比例）＋" if any(b["t"] in ("bars", "strip") for b in s.get("blocks", [])) else ""
-        rows.append("| %s | %s%s程式排版（HTML／CSS／SVG，Playwright 截圖）＋程式產生顆粒與暗角 | %s | %s |" % (fn, kind, chart, DS[p] if (chart or s["type"] == "sources" or s["name"].endswith(("02_inner", "03_inner"))) else "—（無資料圖表）", FONT))
+        rows.append("| %s | %s%s程式排版（HTML／CSS／SVG，Playwright 截圖）＋程式產生顆粒與暗角 | %s | %s |" % (fn, kind, chart, PER.get((p, s["name"]), DS[p]) if (chart or s["type"] == "sources" or s["name"].endswith(("02_inner", "03_inner"))) else "—（無資料圖表）", FONT))
     open(f"{B}/{p}/image_sources.md", "w", encoding="utf-8").write("# %s 圖片來源（逐張）\n\n" % p + "\n".join(rows) + "\n\n全部自製：無照片、無 AI 圖、無比比、無人物；所有色碼走 CSS 變數（--w-*）。\n")
 # 0.36 並排
 S = 0.36
