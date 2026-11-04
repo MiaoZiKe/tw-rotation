@@ -1,6 +1,6 @@
 {
  "enabled": true,
- "at": "2026-11-04T02:04:38.017652+00:00",
+ "at": "2026-11-04T03:06:36.389856+00:00",
  "manual": {
   "files": 0,
   "applied": [],
@@ -21,7 +21,7 @@
  "sites": 1991,
  "have": 1741,
  "next_due": "2026-11-27",
- "seconds": 0.1,
+ "seconds": 0.0,
  "deadline_hit": false,
  "strategy": 4,
  "svg": true,
