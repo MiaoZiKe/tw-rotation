@@ -158,7 +158,7 @@
   "contrast_pass": true
  },
  "04_inner_noperson": {
-  "n": 8,
+  "n": 9,
   "overlap": [],
   "gap32": [],
   "oob_margin": [],
@@ -173,7 +173,7 @@
     "x": 96,
     "y": 176,
     "w": 888,
-    "h": 448
+    "h": 300
    },
    "bars": []
   },
@@ -182,7 +182,7 @@
   "contrast_pass": true
  },
  "04_inner_person": {
-  "n": 8,
+  "n": 9,
   "overlap": [],
   "gap32": [],
   "oob_margin": [],
@@ -197,7 +197,7 @@
     "x": 96,
     "y": 176,
     "w": 888,
-    "h": 448
+    "h": 300
    },
    "bars": []
   },
@@ -269,7 +269,7 @@
    "bars": []
   },
   "bodyScrollH": 1350,
-  "contrast_min": 6.03,
+  "contrast_min": 6.06,
   "contrast_pass": true
  },
  "06_sources_person": {
@@ -288,7 +288,7 @@
    "bars": []
   },
   "bodyScrollH": 1350,
-  "contrast_min": 6.03,
+  "contrast_min": 6.06,
   "contrast_pass": true
  }
 }

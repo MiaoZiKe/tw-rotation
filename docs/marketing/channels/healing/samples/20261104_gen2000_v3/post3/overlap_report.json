@@ -192,7 +192,7 @@
   "contrast_pass": true
  },
  "04_inner_noperson": {
-  "n": 7,
+  "n": 8,
   "overlap": [],
   "gap32": [],
   "oob_margin": [],
@@ -207,7 +207,7 @@
     "x": 96,
     "y": 176,
     "w": 888,
-    "h": 460
+    "h": 300
    },
    "bars": []
   },
@@ -216,7 +216,7 @@
   "contrast_pass": true
  },
  "04_inner_person": {
-  "n": 7,
+  "n": 8,
   "overlap": [],
   "gap32": [],
   "oob_margin": [],
@@ -231,7 +231,7 @@
     "x": 96,
     "y": 176,
     "w": 888,
-    "h": 460
+    "h": 300
    },
    "bars": []
   },

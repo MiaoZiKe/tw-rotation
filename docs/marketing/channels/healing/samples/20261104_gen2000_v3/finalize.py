@@ -33,3 +33,12 @@ for p, out in (("post1", "compare_post1.png"), ("post2", "compare_post2.png"), (
     sheet([[f"{B}/{p}/{n}_noperson.png" for n in names], [f"{B}/{p}/{n}_person.png" for n in names]], f"{B}/{out}")
 for f in glob.glob(B + "/post*/*.bg.png") + glob.glob(B + "/post*/*.tx.json"): os.remove(f)
 print("finalize ok")
+# caption.md 與 txt 同步（2026-11-04 加入）：post1 取 txt 全文；post2～4 取「說明文字」之後，去掉重疊檢查行
+_CAP = {"post1": "範例1_threads.txt", "post2": "範例2_ig輪播.txt", "post3": "範例3_ig輪播.txt", "post4": "範例4_微光篇.txt"}
+for _p, _f in _CAP.items():
+    _t = open(os.path.join(SRC, _f), encoding="utf-8").read()
+    _t = "\n".join(l for l in _t.split("\n") if not l.startswith("重疊檢查")).strip()
+    if _p != "post1":
+        _t = re.split(r"^說明文字[^\n]*：\n", _t, flags=re.M)[1].strip()
+    open(f"{B}/{_p}/caption.md", "w", encoding="utf-8").write("# %s 說明文字（取自 %s 最新版，finalize.py 自動同步）\n\n%s\n" % (_p, _f, _t))
+print("caption sync ok")
