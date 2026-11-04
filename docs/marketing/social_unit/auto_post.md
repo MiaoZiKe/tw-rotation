@@ -175,6 +175,7 @@ https://liguligu-puipui.com/
 
 ## 修改紀錄
 
+- 2026-11-04：**頻道①熱點文新規則定案**（Andy：「可以發，規則定下來」「刪掉重發」）：開頭 1 句吊胃口問句、專業中性語氣、主文 200～250 字、歷史數據附表＋長條／曲線／圓餅、原因每點 2 來源、條件對照客觀評估卡、B 專業版＋真實照片封面與小字出處、不放網址。全文見 `threads_rules.md` 最上面「2026-11-04 Andy 定案」一節；lint 以 `rule: hot_1104` 切換。期中選舉舊文刪掉、以 `2026-11-04_midterm-pro-v2` 重發；刪文工具 `scripts/social_delete.py`／`social_delete.yml` 一併上 main（ids 檔可直接貼貼文網址）。
 - 2026-11-04：① **新聞短標題不再被數字截斷**（11-03 盤後實發「Marvell 擬以 1：Marvell 擬以 1,150 億美元」）：`social_premarket._clause`／`social_live_news.short_title` 的斷句改用 `CLAUSE_SEP`，數字中間的逗號、冒號（1,150、09:30）不算斷句；開頭的專欄名《…》【…】與「11月3日盤前／」欄頭先拿掉（`strip_column`）；`news_facts` 數字標籤開頭殘留的「年」拿掉。② **圖卡標題列不再放比比頭像**（Andy 11-02：「比比以後不會出現在貼文上」）：`social_theme.header_html` 改純文字字標「哩股哩股」，盤前／盤中／盤後／融資融券、IG 限動全部共用；主題文章封面本來就是文字字標。新 LOGO 未定，不用任何候選圖。測試 `tests/test_social_title_badge_1104.py`。
 - 2026-11-04：**自動發文不放網站網址**（Andy 11-03：「首先 網頁都不公開先，人數沒有起來，沒有建立信任關係，我覺得不妥」）。留言只留免責句、拿掉網址與「完整盤勢見網站」；IG 文案拿掉連結兩行；lint 加「出現網址即失敗」、發文前自動移除。細節第〇之一節；改 `threads_lint.py`、`threads_v2.py`、`social_snap.py`、`social_news.py`、`social_publish.py`、`threads_post.py`、`ig_post.py`，測試 `tests/test_social_no_url_1103.py`。`post_quota.json` 沒動。
 - 2026-11-02：**降量模式**（Andy：「同意降量」）。新增唯一開關檔 `post_quota.json`＋`scripts/post_quota.py`；`social_publish.py`、`threads_post.py`、`ig_post.py` 在呼叫 Meta API 前讀它，`social_news.py`、`ig_news_check.py`、`social-live.yml`、`social_news.yml`（新增 gate 工作）在動手前讀它；拿掉只為停發內容派工的 cron 與 Worker 派工（資料管線沒動）。只留交易日盤後主貼文 Threads 1 則。細節第〇節；測試 `tests/test_social_quota_1102.py`、`workers/gh-cron/test/schedule.test.mjs`。

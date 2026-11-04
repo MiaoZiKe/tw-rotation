@@ -37,6 +37,12 @@ THREAD_MIN, THREAD_TARGET = 30, 80
 MAIN_LIMIT = 500           # Threads 單則上限（emoji 以 UTF-8 位元組計，tlen()）
 MAIN_BUDGET = 490          # 產文用的目標上限，留 10 字餘裕
 MAX_THREADS = 0            # 11-01 CEO 的「≤6 則串文」→ 11-02 Andy 改成全部進主文
+# ★ 2026-11-04 Andy：「可以發，規則定下來」——頻道①熱點文（rule: hot_1104）。蓋掉第 2、3 條的「情緒一定要好笑／吐槽」。
+HOT_HOOK_TYPES = ("問句",)
+HOT_EMOTIONS = (None, "", "中性", "專業")
+HOT_HOOK_MIN, HOT_HOOK_MAX = 10, 80
+HOT_BODY_MIN, HOT_BODY_MAX = 200, 250
+HOT_CASUAL = ("啦", "笑死", "超扯", "傻眼", "爆氣", "欸", "喔～", "XD", "哈哈", "靠北", "不是一路順風")
 # 客套結尾、導流、喊單（主文、串文、留言全部適用）
 BANNED = ("歡迎留言", "謝謝大家", "留言告訴我", "你怎麼看", "私訊", "連結在留言", "連結在下方", "看留言", "買進", "加碼",
           "推薦", "快上車", "必買", "穩賺", "跟單", "抄底", "飆股", "報明牌", "目標價", "趕快買", "現在進場")
@@ -287,20 +293,40 @@ def content_issues(posts: list[str], category: str = "", title: str = "") -> lis
     return err
 
 
+def is_hot(p: dict) -> bool:
+    """2026-11-04 頻道①熱點文：JSON profile="hot" 或 queue 檔頭 rule: hot_1104。"""
+    return p.get("profile") == "hot" or str(p.get("rule") or "").startswith("hot")
+
+
 def lint(p: dict) -> tuple[list[str], list[str]]:
     """回傳（錯誤, 警告）。錯誤＝不符規則，發文程式會改寫或換模板。"""
     err: list[str] = []
     warn: list[str] = []
-    if p.get("hook_type") not in HOOK_TYPES:
-        err.append(f"開頭類型 {p.get('hook_type')!r} 不是 對話／冷知識／反差")
-    if p.get("emotion") not in EMOTIONS:
-        err.append(f"情緒 {p.get('emotion')!r} 不是 好笑／吐槽")
+    hot = is_hot(p)
     main = p.get("main_post") or ""
     body, tags = split_tag(main)
     hook, rest = hook_of(body)
     n = clen(hook)
-    if not MAIN_MIN <= n <= MAIN_MAX:
-        err.append(f"主文鉤子 {n} 字（要 {MAIN_MIN}–{MAIN_MAX}）")
+    if hot:   # 11. 2026-11-04 頻道①熱點文
+        if p.get("hook_type") not in HOT_HOOK_TYPES:
+            err.append(f"熱點文開頭類型 {p.get('hook_type')!r} 要標「問句」")
+        if p.get("emotion") not in HOT_EMOTIONS:
+            err.append(f"熱點文語氣要專業中性（情緒欄空白或「中性」），不是 {p.get('emotion')!r}")
+        if not HOT_HOOK_MIN <= n <= HOT_HOOK_MAX or not hook.rstrip().endswith(("？", "?")):
+            err.append(f"熱點文開頭要 1 句問句（{HOT_HOOK_MIN}–{HOT_HOOK_MAX} 字、以？收尾），現在 {n} 字")
+        bn = clen(body)
+        if not HOT_BODY_MIN <= bn <= HOT_BODY_MAX:
+            err.append(f"熱點文主文 {bn} 字（要 {HOT_BODY_MIN}–{HOT_BODY_MAX}，標籤不算）")
+        for w in HOT_CASUAL:
+            if w in body:
+                err.append(f"熱點文口語／吐槽用字「{w}」（要專業中性）")
+    else:
+        if p.get("hook_type") not in HOOK_TYPES:
+            err.append(f"開頭類型 {p.get('hook_type')!r} 不是 對話／冷知識／反差")
+        if p.get("emotion") not in EMOTIONS:
+            err.append(f"情緒 {p.get('emotion')!r} 不是 好笑／吐槽")
+        if not MAIN_MIN <= n <= MAIN_MAX:
+            err.append(f"主文鉤子 {n} 字（要 {MAIN_MIN}–{MAIN_MAX}）")
     if tlen(main) > MAIN_LIMIT:
         err.append(f"主文 {tlen(main)} 字，超過 Threads 上限 {MAIN_LIMIT}")
     if URL_RE.search(main):
@@ -390,7 +416,7 @@ def _load(path: Path) -> list[tuple[str, dict]]:
         return [(path.name, dict(hook_type=meta.get("hook_type"), emotion=meta.get("emotion"), main_post=posts[0] if posts else "",
                                  thread_posts=posts[1:-1], reply_post=posts[-1] if len(posts) > 1 else "",
                                  image_count=len(imgs), tag=meta.get("tag", ""), category=meta.get("topic_category", ""),
-                                 kind="article" if "_news-" in path.name else ""))]
+                                 kind="article" if "_news-" in path.name else "", rule=meta.get("rule", "")))]
     d = json.loads(txt)
     if "threads" in d and isinstance(d["threads"], dict):
         v2 = d["threads"].get("v2")

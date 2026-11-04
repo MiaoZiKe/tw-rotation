@@ -1,0 +1,102 @@
+name: 社群刪文（手動）
+
+# 只能手動觸發。預設 mode=list：只列出 Threads／IG 全部貼文（不刪），清單當 artifact 上傳。
+# mode=delete：只刪 Threads（IG 官方 API 不支援刪），而且 confirm 必須填「我確定刪除」一字不差。
+# 說明與 Andy 要做的設定：docs/marketing/diagnosis_1102/delete_capability.md
+# 權杖：THREADS_DELETE_TOKEN（含 threads_delete 權限的新權杖，Andy 另外加）優先，沒有才退回發文用的那把。
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "list＝只列清單（不刪）；delete＝真的刪 Threads"
+        type: choice
+        options: [list, delete]
+        default: list
+      confirm:
+        description: "mode=delete 時必填：我確定刪除"
+        type: string
+        default: ""
+      ids:
+        description: "mode=delete：要刪的 Threads id，用逗號或空白分隔（與 ids_file 二選一）"
+        type: string
+        default: ""
+      ids_file:
+        description: "mode=delete：repo 裡的 id 清單檔路徑（例如 social/delete/ids_1102.txt）"
+        type: string
+        default: ""
+      max:
+        description: "本次最多刪幾則（官方 24 小時上限 100）"
+        type: string
+        default: "90"
+      with_views:
+        description: "列清單時抓觀看數（較慢）"
+        type: boolean
+        default: true
+
+concurrency:
+  group: social-delete
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: 列清單（不刪）
+        if: inputs.mode == 'list'
+        env:
+          THREADS_DELETE_TOKEN: ${{ secrets.THREADS_DELETE_TOKEN }}
+          THREADS_ACCESS_TOKEN: ${{ secrets.THREADS_ACCESS_TOKEN_AUTO || secrets.THREADS_ACCESS_TOKEN }}
+          IG_ACCESS_TOKEN: ${{ secrets.IG_ACCESS_TOKEN_AUTO || secrets.IG_ACCESS_TOKEN }}
+          WITH_VIEWS: ${{ inputs.with_views }}
+        run: |
+          extra=""
+          if [ "$WITH_VIEWS" != "true" ]; then extra="--no-views"; fi
+          python scripts/social_delete.py --out out/social_delete/list.json $extra
+
+      - name: 真的刪 Threads
+        if: inputs.mode == 'delete'
+        env:
+          THREADS_DELETE_TOKEN: ${{ secrets.THREADS_DELETE_TOKEN }}
+          THREADS_ACCESS_TOKEN: ${{ secrets.THREADS_ACCESS_TOKEN_AUTO || secrets.THREADS_ACCESS_TOKEN }}
+          IN_CONFIRM: ${{ inputs.confirm }}
+          IN_IDS: ${{ inputs.ids }}
+          IN_IDS_FILE: ${{ inputs.ids_file }}
+          IN_MAX: ${{ inputs.max }}
+        run: |
+          set -e
+          if [ "$IN_CONFIRM" != "我確定刪除" ]; then
+            echo "::error::confirm 沒填「我確定刪除」，一則都沒刪"; exit 2
+          fi
+          case "$IN_MAX" in ''|*[!0-9]*) echo "::error::max 要填數字"; exit 2;; esac
+          mkdir -p out/social_delete
+          if [ -n "$IN_IDS_FILE" ]; then
+            cp -- "$IN_IDS_FILE" out/social_delete/ids.txt
+          else
+            printf '%s\n' "$IN_IDS" | tr ', ' '\n\n' | sed '/^$/d' > out/social_delete/ids.txt
+          fi
+          if [ ! -s out/social_delete/ids.txt ]; then
+            echo "::error::沒有要刪的 id（ids 或 ids_file 擇一填）"; exit 2
+          fi
+          python scripts/social_delete.py --execute --ids-file out/social_delete/ids.txt \
+            --confirm "$IN_CONFIRM" --max "$IN_MAX" --result out/social_delete/result.json
+
+      - name: 上傳清單／結果
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: social-delete-${{ inputs.mode }}-${{ github.run_id }}
+          path: out/social_delete/
+          if-no-files-found: warn
+          retention-days: 30

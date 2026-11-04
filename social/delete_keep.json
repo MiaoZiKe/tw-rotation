@@ -1,0 +1,19 @@
+{
+  "note": "social_delete.py 的保留清單：這裡的 id 永遠不刪（Threads 連同它底下自己的串文回覆）。2026-11-02 Andy 指定保留廣達、華碩兩篇薪資行情文。",
+  "threads": [
+    "17877487434633706",
+    "18017139806967577"
+  ],
+  "threads_labels": {
+    "17877487434633706": "廣達電腦－行情分享（2026-10-23 05:29 台北）https://www.threads.com/@liguligu0818/post/Dez801EExwB",
+    "18017139806967577": "華碩行情介紹（2026-10-27 23:51 台北）https://www.threads.com/@liguligu0818/post/DfAOJJpgU2o"
+  },
+  "ig": [
+    "18099107264560696",
+    "18207378916373397"
+  ],
+  "ig_labels": {
+    "18099107264560696": "廣達電腦－行情分享 https://www.instagram.com/p/Dez8-d9Ey68/",
+    "18207378916373397": "華碩行情介紹 https://www.instagram.com/p/De8r44-knSG/"
+  }
+}
