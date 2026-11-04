@@ -83,8 +83,10 @@ BSL = """.t{position:absolute;left:60px;top:106px;width:960px;height:164px;font-
 .cr{top:1158px;height:72px}
 .sr{position:absolute;left:60px;top:1236px;width:960px;height:36px;font-size:25px;font-weight:700;color:#111}
 .dc{top:1284px}"""
-def head_html(p, css, body):
-    return '<html><head><meta charset="utf-8"><style>' + FONTCSS + BASE + css + '</style></head><body><div class="bar"></div><div class="lg">' + LOGO + '<span>科技透明圈</span></div>' + body + '</body></html>'
+def head_html(p, css, body, cover=False):
+    lg = ('<div class="lg" style="top:25px;height:76px;display:block"><img src="data:image/png;base64,' + b64(HERE / "logo_horizontal_light.png") + '" height="76" style="display:block"></div>'
+          if cover else '<div class="lg">' + LOGO + '<span>科技透明圈</span></div>')   # 封面頂列只放橫式 LOGO（Andy 11-04）；第 2、3 張頁首不動
+    return '<html><head><meta charset="utf-8"><style>' + FONTCSS + BASE + css + '</style></head><body><div class="bar"></div>' + lg + body + '</body></html>'
 def cover_b64(p):
     box = p.get("box")
     if not box: return b64(p["cover_photo"])
@@ -93,10 +95,10 @@ def cover_b64(p):
     return base64.b64encode(buf.getvalue()).decode()
 def cover_html(p):
     css = COVER + '.ph{background-image:url(data:image/jpeg;base64,%s);background-position:%s}' % (cover_b64(p), p["pos"])
-    body = ('<div class="k"><b>%s</b>　%s</div><div class="ph"></div><div class="rl"></div><div class="t">%s</div>'
+    body = ('<div class="ph"></div><div class="rl"></div><div class="t">%s</div>'
             '<div class="sub">%s</div><div class="hint">%s</div><div class="ln2"></div><div class="cr">%s</div><div class="dc">%s</div>'
-            % (p["no"], p["kicker"].split("｜")[-1], p["title"], p["sub"], p["hint"], p["ccredit"], p["foot"]))
-    return head_html(p, css, body)
+            % (p["title"], p["sub"], p["hint"], p["ccredit"], p["foot"]))
+    return head_html(p, css, body, cover=True)
 def b_html(p):
     steps = "".join('<div class="st"><div class="si">%d</div><div class="sn">%s</div><div class="sd">%s</div></div>' % (i+1,a,b) + ('<div class="ar">→</div>' if i < 3 else '') for i,(a,b) in enumerate(p["steps"]))
     dia = p["n"] in SVGS
