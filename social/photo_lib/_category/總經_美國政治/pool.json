@@ -18,9 +18,11 @@
    "width": 1920,
    "height": 996,
    "fetched_at": "2026-11-04T05:33:53+00:00",
-   "reviewed": false,
-   "reviewer": "",
-   "review_note": ""
+   "reviewed": true,
+   "reviewer": "social-ops-lead（依 art-director 十條清單代執行並全解析度目視）",
+   "review_note": "2026-11-04 審核通過：美國國會大廈西側外觀實景，公有領域（Architect of the Capitol）；灰階平均 132（≥100）；無人物特寫、無文字、無 logo；可辨識建築只配講美國國會／期中選舉的貼文。套版 B 專業版封面 1080×520 裁切後穹頂完整、不擋標題。",
+   "reviewed_by": "art-director",
+   "prescreen": "pass"
   },
   {
    "file": "photo_2.jpg",
