@@ -8,13 +8,8 @@
    "name": "threads",
    "type": "inner",
    "palette": "V",
-   "illus": "S1",
+   "illus": "home",
    "ih": 236,
-   "crop": [
-    0,
-    145,
-    0.88
-   ],
    "blocks": [
     {
      "t": "h",
@@ -71,7 +66,8 @@
    ],
    "skip_paras": [
     "1989 年，台北"
-   ]
+   ],
+   "hope": 1
   }
  ]
 }
