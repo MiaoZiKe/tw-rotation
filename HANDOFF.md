@@ -1,6 +1,11 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
 
+## 2026-11-04 深夜 頻道④「我們這一代」：觀察家口吻、三輪 LOGO、v4 創意插圖範例（CEO；只有文件與範例圖，未開發文）
+- 詳見 `docs/marketing/channels/healing/plan.md` 最上面一節。名稱「我們這一代」、無人版預設、不導流、不接金融業配、前 6 個月不投廣告已定案。
+- 待 Andy：LOGO（建議 `logo_idea/` 第 1 款「窗是眼」）；IG／Threads 帳號名與商標查詢；數字發文前回官網核對；微光篇建議 11-28 投票後發。
+- ⚠ 本 session 多次 rebase 撞到工作分支的 ours 合併歷史；之後改用「從 origin/main 開新分支＋checkout 資料夾」的方式推 main。
+
 ## 2026-11-04 晚 頻道④：色調定案 ④霧紫灰、素材 v3（有人／無人）、希望感、新主題 LOGO（CEO；只有文件與範例圖）
 - 詳見 `docs/marketing/channels/healing/plan.md` 最上面兩節；範例 `samples/20261104_gen2000_v3/`、LOGO `logo_gen2000/`、色調統計 `samples/palette_test/`。
 - 待 Andy：頻道名稱與 LOGO、有人版使用規則；前 4 週三色輪測（④⑤①）第 5 週選定；數字發文前回官網核對；範例 4 建議 11-28 後發。

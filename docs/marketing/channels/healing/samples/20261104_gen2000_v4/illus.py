@@ -76,7 +76,7 @@ def sc_scale(dawn):
     for i in range(4):
         o += R(cxr - 52 + i * 3, cyr - 20 - i * 18, 104, 18, 2, LC)
     top = cyr - 20 - 4 * 18
-    o += R(cxr - 40, top - 72, 80, 70, 3, LC) + Ln(cxr - 30, top - 50, cxr + 30, top - 50, FNT) + Ln(cxr - 20, top - 78, cxr - 20, top - 66) + Ln(cxr + 20, top - 78, cxr + 20, top - 66) + C(cxr + 6, top - 30, 11, L)
+    o += R(cxr - 40, top - 72, 80, 70, 3, LC) + Ln(cxr - 30, top - 50, cxr + 30, top - 50, FNT) + Ln(cxr - 20, top - 78, cxr - 20, top - 66) + Ln(cxr + 20, top - 78, cxr + 20, top - 66) + ''.join(C(cxr - 22 + k * 22, top - 38 + j * 18, 2.5, L) for k in range(3) for j in range(2)) + C(cxr + 22, top - 20, 9, L)
     return o
 
 def chair_side(x, base, s, lit=False):
@@ -180,15 +180,14 @@ def sc_jars(dawn):
 def sc_slips(dawn):
     """找中位數：九張薪資單排成一列，被抽出來亮著的是正中間（第 5 張）。"""
     base = 392
-    o = glow(444, base - 90, 120, "var(--w-glow)") + Ln(60, base, 828, base)
-    w, gap, x0 = 66, 20, 84
+    o = glow(560, 290, 120, "var(--w-glow)")
+    w, h, gap, x0, y0 = 300, 17, 6, 230, 130
     for i in range(9):
-        x = x0 + i * (w + gap); up = 44 if i == 4 else 0
-        o += R(x, base - 150 - up, w, 150, 4, LAMP if i == 4 else LC)
-        for j in range(4):
-            o += Ln(x + 12, base - 128 - up + j * 20, x + w - 12 - (j % 2) * 14, base - 128 - up + j * 20, FNT)
-    mx = x0 + 4 * (w + gap) + w / 2
-    o += P('M%.1f %.1f l 14 -22 l 14 22 Z' % (mx - 14, base + 36), L)
+        y = y0 + i * (h + gap); sx = 70 if i == 4 else 0
+        o += R(x0 + sx, y, w, h, 3, LAMP if i == 4 else LC)
+        o += Ln(x0 + sx + 14, y + h / 2, x0 + sx + 14 + 90, y + h / 2, FNT)
+    my = y0 + 4 * (h + gap) + h / 2
+    o += P('M%.1f %.1f l 22 -12 l 0 24 Z' % (x0 - 34, my), L)
     return o
 
 # ---------- 微光篇 ----------
@@ -220,7 +219,7 @@ def sc_windows(dawn):
         if i in dark: o += R(x, y, cw, ch, 3, L)
         else: o += '<rect x="%.1f" y="%.1f" width="%d" height="%d" rx="3" fill="var(--w-lamp)" opacity=".38"/>' % (x, y, cw, ch)
     yb = y0 + rows * ch + (rows - 1) * gy + 64
-    o += T(x0 - 8, yb, "一格約 1 萬戶", "start") + T(x0 + ww + 8, yb, "亮格＝核准", "end")
+    o += T(x0 - 8, yb, "一格約 1 萬戶", "start") + T(x0 + ww + 8, yb, "空框＝未列入核准數", "end")
     return o
 
 def sc_patch(dawn):
