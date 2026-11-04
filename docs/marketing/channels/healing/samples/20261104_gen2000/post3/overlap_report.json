@@ -12,7 +12,7 @@
   "n": 7,
   "overlap": [],
   "gap32": [
-   "tag×b0 19px"
+   "tag×b0 31px"
   ],
   "oob_margin": [],
   "outside_safe": [],
@@ -23,7 +23,8 @@
   "n": 7,
   "overlap": [],
   "gap32": [
-   "t0×b1 19px"
+   "acct×c2 22px",
+   "t0×b1 31px"
   ],
   "oob_margin": [],
   "outside_safe": [],
@@ -49,8 +50,10 @@
   "bodyScrollH": 1350
  },
  "06_sources": {
-  "n": 11,
-  "overlap": [],
+  "n": 12,
+  "overlap": [
+   "acct×close"
+  ],
   "gap32": [],
   "oob_margin": [],
   "outside_safe": [],
