@@ -22,7 +22,7 @@ body{width:1080px;height:1350px;position:relative;overflow:hidden;background:var
 .tag{display:inline-block;width:auto!important;font-size:34px;color:var(--text);font-weight:700;padding:10px 26px;
  background:var(--glow);border-radius:999px;align-self:flex-start;letter-spacing:.06em}
 .acc{color:var(--accent)}
-.bignum{display:flex;flex-direction:column;gap:6px}
+.bignum{margin:12px 0;display:flex;flex-direction:column;gap:6px}
 .bignum .n{font-family:'Noto Serif CJK TC',serif;font-weight:700;font-size:150px;line-height:1.0;color:var(--accent);letter-spacing:.01em}
 .bignum .c{font-size:38px;color:var(--sub);line-height:1.5}
 .chart{background:var(--card);border-radius:20px;padding:40px 44px;box-shadow:0 2px 0 rgba(59,47,42,.06)}
