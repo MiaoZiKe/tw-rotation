@@ -1,0 +1,148 @@
+{
+ "01_cover": {
+  "n": 7,
+  "overlap": [],
+  "gap32": [],
+  "oob_margin": [],
+  "outside_safe": [],
+  "minFont": 28,
+  "extra": {
+   "bottom_over_1190": [],
+   "right_over_960": [],
+   "hint_uses": 0,
+   "glow_hits": [],
+   "illus_box": {
+    "x": 96,
+    "y": 176,
+    "w": 888,
+    "h": 350
+   },
+   "bars": []
+  },
+  "bodyScrollH": 1350,
+  "contrast_min": 5.39,
+  "contrast_pass": true
+ },
+ "02_inner": {
+  "n": 9,
+  "overlap": [],
+  "gap32": [],
+  "oob_margin": [],
+  "outside_safe": [],
+  "minFont": 28,
+  "extra": {
+   "bottom_over_1190": [],
+   "right_over_960": [],
+   "hint_uses": 1,
+   "glow_hits": [],
+   "illus_box": {
+    "x": 96,
+    "y": 176,
+    "w": 888,
+    "h": 260
+   },
+   "bars": [
+    {
+     "v": 43.12,
+     "w": 349.265625,
+     "h": "fl"
+    }
+   ],
+   "strip_pct": 43.11921296296296
+  },
+  "bodyScrollH": 1350,
+  "contrast_min": 5.0,
+  "contrast_pass": true
+ },
+ "03_inner": {
+  "n": 8,
+  "overlap": [],
+  "gap32": [],
+  "oob_margin": [],
+  "outside_safe": [],
+  "minFont": 28,
+  "extra": {
+   "bottom_over_1190": [],
+   "right_over_960": [],
+   "hint_uses": 1,
+   "glow_hits": [],
+   "illus_box": {
+    "x": 96,
+    "y": 176,
+    "w": 888,
+    "h": 460
+   },
+   "bars": []
+  },
+  "bodyScrollH": 1350,
+  "contrast_min": 5.39,
+  "contrast_pass": true
+ },
+ "04_inner": {
+  "n": 8,
+  "overlap": [],
+  "gap32": [],
+  "oob_margin": [],
+  "outside_safe": [],
+  "minFont": 28,
+  "extra": {
+   "bottom_over_1190": [],
+   "right_over_960": [],
+   "hint_uses": 0,
+   "glow_hits": [],
+   "illus_box": {
+    "x": 96,
+    "y": 176,
+    "w": 888,
+    "h": 448
+   },
+   "bars": []
+  },
+  "bodyScrollH": 1350,
+  "contrast_min": 5.46,
+  "contrast_pass": true
+ },
+ "05_inner": {
+  "n": 7,
+  "overlap": [],
+  "gap32": [],
+  "oob_margin": [],
+  "outside_safe": [],
+  "minFont": 28,
+  "extra": {
+   "bottom_over_1190": [],
+   "right_over_960": [],
+   "hint_uses": 0,
+   "glow_hits": [],
+   "illus_box": {
+    "x": 96,
+    "y": 176,
+    "w": 888,
+    "h": 460
+   },
+   "bars": []
+  },
+  "bodyScrollH": 1350,
+  "contrast_min": 5.69,
+  "contrast_pass": true
+ },
+ "06_sources": {
+  "n": 9,
+  "overlap": [],
+  "gap32": [],
+  "oob_margin": [],
+  "outside_safe": [],
+  "minFont": 28,
+  "extra": {
+   "bottom_over_1190": [],
+   "right_over_960": [],
+   "hint_uses": 0,
+   "glow_hits": [],
+   "illus_box": null,
+   "bars": []
+  },
+  "bodyScrollH": 1350,
+  "contrast_min": 5.76,
+  "contrast_pass": true
+ }
+}
