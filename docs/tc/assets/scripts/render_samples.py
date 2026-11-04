@@ -78,6 +78,7 @@ _LU, _LS = _hlogo()
 # ---- 封面版面常數（2026-11-04 Andy：LOGO 縮小靠左、拿掉圖上備註、排版整齊；A1／B1／C1 與時事範例 01～04 共用同一組數值）----
 M_L = 60                      # 左右邊界：LOGO、紅短線、標題、副標、「往右滑」右緣（W-60）同一條線
 BAR_H = 14                    # 頂紅條
+LOGO_X = 24                   # LOGO 左緣（淡藍底塊左緣距畫布左緣；只管 LOGO，其餘仍用 M_L）
 LOGO_H = 48                   # 橫式 LOGO 高度（原 76）
 LOGO_PAD = 20                 # LOGO 上方（紅條下緣到 LOGO）與下方（LOGO 到照片）留白相等
 LOGO_TOP = BAR_H + LOGO_PAD   # 34
@@ -94,7 +95,7 @@ OPEN_RING = f'<img data-b src="{_LU}" width="{LOGO_W}" height="{LOGO_H}" style="
 COVER_CSS = f"""
 .cv{{position:absolute;left:0;top:0;width:{W}px;height:{H}px;background:#fff}}
 .cv .bar{{position:absolute;left:0;top:0;width:{W}px;height:{BAR_H}px;background:{RED}}}
-.cv .lg{{position:absolute;left:{M_L}px;top:{LOGO_TOP}px;height:{LOGO_H}px}}
+.cv .lg{{position:absolute;left:{LOGO_X}px;top:{LOGO_TOP}px;height:{LOGO_H}px}}
 .cv .pic{{position:absolute;left:0;top:{PIC_TOP}px;width:{W}px;height:{PIC_H}px;background-color:{PALE};background-size:cover;background-repeat:no-repeat}}
 .cv .rl{{position:absolute;left:{M_L}px;top:{RL_TOP}px;width:120px;height:{RL_H}px;background:{RED}}}
 .cv .tt{{position:absolute;left:{M_L}px;top:{TT_TOP}px;width:{W-2*M_L}px;height:{TT_H}px;font-size:72px;font-weight:700;line-height:90px;color:{INK}}}
