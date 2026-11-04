@@ -1,0 +1,6 @@
+const {chromium}=require('/opt/node-tools/node_modules/playwright');
+const D=process.cwd();
+const R=[['S3 軌道儀表（主推・修訂版）','已刪十字星、帶底合併、標籤改琥珀底線、標題不掛逗號、改為只留發佈日、帶底加讀數條','png/S3_'],['S2 深空觀測（夜間備案・修訂版）','卡片改實色底、地平線下移不碰徽記、內頁加讀數條','png/S2_']];
+(async()=>{const b=await chromium.launch();const pg=await b.newPage({viewport:{width:1700,height:800}});
+const h=`<body style="margin:0;background:#0B0D12;font-family:'Noto Sans TC','WenQuanYi Zen Hei',sans-serif;color:#fff;padding:40px;width:1700px;box-sizing:border-box"><div style="font-size:48px;font-weight:700;margin-bottom:8px">頻道③ AI 介紹頻道｜近未來硬科幻質感：S3 與 S2 修訂</div><div style="font-size:28px;color:#AAB4C6;margin-bottom:36px">同一組內容：封面／新聞卡／比較表／待截圖頁　1080×1350 縮至 380×475</div>`+R.map(n=>`<div style="margin-bottom:36px"><div style="font-size:38px;font-weight:700">${n[0]}</div><div style="font-size:28px;color:#C9D2E2;margin:4px 0 16px">${n[1]}</div><div style="display:flex;gap:20px">${[1,2,3,4].map(i=>`<img src="file://${D}/${n[2]}${i}.png" style="width:380px;height:475px;border-radius:6px;display:block">`).join('')}</div></div>`).join('')+`</body>`;
+require('fs').writeFileSync('overview_scifi_r2.html','<meta charset=utf-8>'+h);await pg.goto('file://'+D+'/overview_scifi_r2.html');await pg.waitForTimeout(600);await pg.screenshot({path:'overview_scifi_r2.png',fullPage:true});await b.close()})()

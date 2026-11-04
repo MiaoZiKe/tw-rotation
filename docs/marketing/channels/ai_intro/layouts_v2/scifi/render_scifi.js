@@ -18,6 +18,10 @@ const dcx=[];document.querySelectorAll('.dc').forEach(d=>{let pts=[];const m=d.g
  else{const q=d.getBoundingClientRect();pts=[[q.left,q.top],[q.right,q.bottom]]}
  const sw=parseFloat(d.getAttribute('stroke-width')||0)/2;
  for(const t of tr){if(pts.some(p=>p[0]>t.x-3-sw&&p[0]<t.w+3+sw&&p[1]>t.y-3-sw&&p[1]<t.h+3+sw)){dcx.push(t.t+'×'+d.tagName);break}}});
+
+// 裝飾疊裝飾：不同群組（刻度尺／儀表／側刻度／底部／地平線…）的取樣點距離 <2.5px 即算
+const gp={};document.querySelectorAll('.dc:not(.st)').forEach(d=>{const g=d.closest('[data-g]');if(!g)return;const m=d.getScreenCTM();const L=d.getTotalLength?d.getTotalLength():0;const k=Math.max(1,Math.ceil(L/3));const a=gp[g.dataset.g]=gp[g.dataset.g]||[];for(let i=0;i<=k;i++){const p=L?d.getPointAtLength(L*i/k):{x:0,y:0};a.push([m.a*p.x+m.c*p.y+m.e,m.b*p.x+m.d*p.y+m.f])}});
+const dd=[];const ks=Object.keys(gp);for(let i=0;i<ks.length;i++)for(let j=i+1;j<ks.length;j++){let hit=false;for(const p of gp[ks[i]]){for(const q of gp[ks[j]]){if(Math.abs(p[0]-q[0])<2.5&&Math.abs(p[1]-q[1])<2.5){hit=true;break}}if(hit)break}if(hit)dd.push(ks[i]+'×'+ks[j])}
 const small=[...document.querySelectorAll('[data-o],[data-o] *')].filter(e=>[...e.childNodes].some(x=>x.nodeType==3&&x.textContent.trim())&&parseFloat(getComputedStyle(e).fontSize)<28).map(e=>e.textContent.slice(0,8));
 const minDisc=Math.min(...[...document.querySelectorAll('.disc')].map(e=>parseFloat(getComputedStyle(e).fontSize)));
 const badge=Math.min(...[...document.querySelectorAll('.badge')].map(e=>parseFloat(getComputedStyle(e).fontSize)));
@@ -32,7 +36,7 @@ document.querySelectorAll('[data-o],[data-o] *').forEach(e=>{if(!([...e.childNod
  let bg=hex(BASE);for(let i=chain.length-1;i>=0;i--){const c=P(getComputedStyle(chain[i]).backgroundColor);if(c.a>0)bg=over(c,bg);if(chain[i].classList.contains('hd')&&HD)bg=hex(HD)}
  const fg=over(P(getComputedStyle(e).color),bg);const l1=lum(fg),l2=lum(bg);const cr=(Math.max(l1,l2)+.05)/(Math.min(l1,l2)+.05);
  if(cr<minC)minC=cr;if(cr<4.5)low.push(e.textContent.trim().slice(0,8)+' '+cr.toFixed(1))});
-return {n:els.length,overlap:ov,gap24:gap,oob,clip,side,decoOnText:dcx,minDisc,badge,small,minContrast:+minC.toFixed(2),lowContrast:low}}`;
+return {n:els.length,overlap:ov,gap24:gap,oob,clip,side,decoOnText:dcx,decoOnDeco:dd,minDisc,badge,small,minContrast:+minC.toFixed(2),lowContrast:low}}`;
 (async()=>{const b=await chromium.launch();const res={};
 for(const v of ['s1','s2','s3']){const {css,pages}=build(v);const nm=v.toUpperCase();
  for(let i=0;i<4;i++){const f=`html/${nm}_${i+1}.html`;
@@ -42,5 +46,5 @@ for(const v of ['s1','s2','s3']){const {css,pages}=build(v);const nm=v.toUpperCa
   await pg.screenshot({path:`png/${nm}_${i+1}.png`});
   const r=await pg.evaluate(eval(CHECK),[THEMES[v].base,v==='s3'?'#0C1D33':'']);r.starsPruned=rm;res[`${nm}_${i+1}`]=r;await pg.close()}}
 await b.close();fs.writeFileSync('check_result.json',JSON.stringify(res,null,1));
-for(const k in res){const r=res[k];const bad=[...r.overlap,...r.gap24.map(x=>'間距'+x),...r.oob.map(x=>'越界'+x),...r.clip.filter(x=>x!=='高:標題').map(x=>'溢出'+x),...r.side,...r.decoOnText.map(x=>'穿字'+x),...r.small.map(x=>'小字'+x)];
+for(const k in res){const r=res[k];const bad=[...r.overlap,...r.gap24.map(x=>'間距'+x),...r.oob.map(x=>'越界'+x),...r.clip.filter(x=>x!=='高:標題').map(x=>'溢出'+x),...r.side,...r.decoOnText.map(x=>'穿字'+x),...r.decoOnDeco.map(x=>'疊裝飾'+x),...r.small.map(x=>'小字'+x)];
  console.log(k,bad.length?bad.join(' | '):'OK',' 對比最低',r.minContrast,r.lowContrast.join(','),' 揭露',r.minDisc,'標章',r.badge,'星點移除',r.starsPruned)}})()

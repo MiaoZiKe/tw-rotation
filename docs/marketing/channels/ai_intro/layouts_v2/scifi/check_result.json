@@ -9,6 +9,7 @@
   ],
   "side": [],
   "decoOnText": [],
+  "decoOnDeco": [],
   "minDisc": 28,
   "badge": null,
   "small": [],
@@ -26,6 +27,7 @@
   ],
   "side": [],
   "decoOnText": [],
+  "decoOnDeco": [],
   "minDisc": 28,
   "badge": 28,
   "small": [],
@@ -43,6 +45,7 @@
   ],
   "side": [],
   "decoOnText": [],
+  "decoOnDeco": [],
   "minDisc": 28,
   "badge": 28,
   "small": [],
@@ -60,6 +63,7 @@
   ],
   "side": [],
   "decoOnText": [],
+  "decoOnDeco": [],
   "minDisc": 28,
   "badge": 28,
   "small": [],
@@ -77,12 +81,13 @@
   ],
   "side": [],
   "decoOnText": [],
+  "decoOnDeco": [],
   "minDisc": 28,
   "badge": null,
   "small": [],
-  "minContrast": 8.15,
+  "minContrast": 9.75,
   "lowContrast": [],
-  "starsPruned": 178
+  "starsPruned": 165
  },
  "S2_2": {
   "n": 12,
@@ -94,12 +99,13 @@
   ],
   "side": [],
   "decoOnText": [],
+  "decoOnDeco": [],
   "minDisc": 28,
   "badge": 28,
   "small": [],
-  "minContrast": 8.28,
+  "minContrast": 9.63,
   "lowContrast": [],
-  "starsPruned": 183
+  "starsPruned": 175
  },
  "S2_3": {
   "n": 10,
@@ -111,12 +117,13 @@
   ],
   "side": [],
   "decoOnText": [],
+  "decoOnDeco": [],
   "minDisc": 28,
   "badge": 28,
   "small": [],
-  "minContrast": 8.46,
+  "minContrast": 8.39,
   "lowContrast": [],
-  "starsPruned": 185
+  "starsPruned": 180
  },
  "S2_4": {
   "n": 10,
@@ -128,12 +135,13 @@
   ],
   "side": [],
   "decoOnText": [],
+  "decoOnDeco": [],
   "minDisc": 28,
   "badge": 28,
   "small": [],
   "minContrast": 9.75,
   "lowContrast": [],
-  "starsPruned": 181
+  "starsPruned": 172
  },
  "S3_1": {
   "n": 11,
@@ -145,12 +153,13 @@
   ],
   "side": [],
   "decoOnText": [],
+  "decoOnDeco": [],
   "minDisc": 28,
   "badge": null,
   "small": [],
   "minContrast": 8.21,
   "lowContrast": [],
-  "starsPruned": 24
+  "starsPruned": 21
  },
  "S3_2": {
   "n": 12,
@@ -162,12 +171,13 @@
   ],
   "side": [],
   "decoOnText": [],
+  "decoOnDeco": [],
   "minDisc": 28,
   "badge": 28,
   "small": [],
   "minContrast": 8.65,
   "lowContrast": [],
-  "starsPruned": 26
+  "starsPruned": 25
  },
  "S3_3": {
   "n": 10,
@@ -179,12 +189,13 @@
   ],
   "side": [],
   "decoOnText": [],
+  "decoOnDeco": [],
   "minDisc": 28,
   "badge": 28,
   "small": [],
   "minContrast": 8.65,
   "lowContrast": [],
-  "starsPruned": 29
+  "starsPruned": 27
  },
  "S3_4": {
   "n": 10,
@@ -196,11 +207,12 @@
   ],
   "side": [],
   "decoOnText": [],
+  "decoOnDeco": [],
   "minDisc": 28,
   "badge": 28,
   "small": [],
   "minContrast": 7.51,
   "lowContrast": [],
-  "starsPruned": 27
+  "starsPruned": 25
  }
 }
