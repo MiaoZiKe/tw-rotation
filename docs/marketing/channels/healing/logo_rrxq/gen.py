@@ -148,9 +148,9 @@ def s8(P):
     u += f'<path d="M 0 -245 L 0 30 M 0 -245 Q 30 -100 28 40 M 0 -245 Q -30 -100 -28 40" fill="none" stroke="{ink}" stroke-width="9" stroke-linecap="round"/>'
     u += f'<rect x="-54" y="-70" width="108" height="30" rx="8" fill="{P["S"]}" stroke="{ink}" stroke-width="10"/>'
     u += f'<path d="M 0 30 L 0 215 Q 0 262 -40 262 Q -78 262 -78 222" fill="none" stroke="{ink}" stroke-width="24" stroke-linecap="round"/>'
-    um = f'<g transform="translate(-45 30) rotate(26) scale(.92)">{u}</g>'
-    sx, sy = 168, -168
-    sun = f'<circle cx="{sx}" cy="{sy}" r="60" fill="{P["S"]}" {stroke(P, 16, True)}/>' + rays(sx, sy, 84, 108, 8, 13, ink)
+    um = f'<g transform="translate(-62 42) rotate(25) scale(.9)">{u}</g>'
+    sx, sy = 182, -182
+    sun = f'<circle cx="{sx}" cy="{sy}" r="58" fill="{P["S"]}" {stroke(P, 16, True)}/>' + rays(sx, sy, 84, 108, 8, 13, ink)
     return L('a', um) + L('b', sun)
 # ===== 9 日日小晴印（印章）=====
 def s9(P):
@@ -158,26 +158,26 @@ def s9(P):
     s = f'<g filter="url(#rough)"><rect x="-270" y="-270" width="540" height="540" rx="26" fill="{body}"/>'
     s += f'<rect x="-238" y="-238" width="476" height="476" rx="12" fill="none" stroke="{tc}" stroke-width="12"/></g>'
     t = ''
-    for ch, (cx, cy) in {'小': (-122, -122), '日': (122, -122), '晴': (-122, 122), '日 ': (122, 122)}.items():
-        t += glyph(ch.strip(), 'kai', 214, cx, cy, tc, bold=7)
+    for ch, (cx, cy) in {'小': (-118, -118), '日': (118, -118), '晴': (-118, 118), '日 ': (118, 118)}.items():
+        t += glyph(ch.strip(), 'kai', 196, cx, cy, tc, bold=7)
     return L('a', s) + L('b', t)
 # ===== 10 日光徽章 =====
 def s10(P):
     ink = P['ink']; R = 290
     s = f'<circle r="{R}" fill="{P["soft"]}" stroke="{ink}" stroke-width="16"/>'
     s += f'<circle r="188" fill="{P["bg"] if not P.get("mono") else P["bg"]}" stroke="{ink}" stroke-width="12"/>'
-    ring = '<path id="pt" d="M -236 0 A 236 236 0 0 1 236 0" fill="none"/><path id="pb" d="M -262 0 A 262 262 0 0 0 262 0" fill="none"/>'
+    ring = '<path id="pt" d="M -214 0 A 214 214 0 0 1 214 0" fill="none"/><path id="pb" d="M -258 0 A 258 258 0 0 0 258 0" fill="none"/>'
     fam, w, _ = FONTS['sans']
     t = f'<text font-family="{fam}" font-weight="{w}" font-size="62" letter-spacing="14" fill="{ink}" text-anchor="middle"><textPath href="#pt" startOffset="50%">{NAME}</textPath></text>'
     t += f'<text font-family="{fam}" font-weight="{w}" font-size="40" letter-spacing="8" fill="{ink}" text-anchor="middle"><textPath href="#pb" startOffset="50%">{SUB}</textPath></text>'
-    dots = f'<circle cx="-238" cy="2" r="12" fill="{P["S"] if not P.get("mono") else ink}" stroke="{ink}" stroke-width="5"/><circle cx="238" cy="2" r="12" fill="{P["S"] if not P.get("mono") else ink}" stroke="{ink}" stroke-width="5"/>'
+    dots = f'<circle cx="-241" cy="0" r="12" fill="{P["S"] if not P.get("mono") else ink}" stroke="{ink}" stroke-width="5"/><circle cx="241" cy="0" r="12" fill="{P["S"] if not P.get("mono") else ink}" stroke="{ink}" stroke-width="5"/>'
     inner = f'<clipPath id="c10"><circle r="176"/></clipPath><g clip-path="url(#c10)">'
-    inner += f'<path d="M -50 40 A 100 100 0 0 1 150 40 Z" transform="translate(-50 -10)" fill="{P["S"]}" stroke="{ink}" stroke-width="14" stroke-linejoin="round"/>'
-    inner += rays(50, 30, 120, 150, 5, 12, ink, 200, 340)
+    inner += f'<path d="M -100 30 A 100 100 0 0 1 100 30 Z" fill="{P["S"]}" stroke="{ink}" stroke-width="14" stroke-linejoin="round"/>'
+    inner += rays(0, 30, 122, 150, 5, 12, ink, 205, 335)
     inner += f'<rect x="-190" y="30" width="380" height="170" fill="{P["M"] if not P.get("mono") else P["bg"]}"/>' + line(-190, 30, 190, 30, 14, ink)
-    inner += cloud(-80, 24, .55, P['bg'], ink, 7)
+    inner += cloud(-112, 24, .5, P['bg'], ink, 7)
     inner += '</g>'
-    return L('a', s + ring + t + dots + inner)
+    return L('a', s + ring + dots + inner) + L('b', t)
 # ===== 11 手寫（楷體＋手繪太陽）=====
 def s11(P):
     ink = P['ink']
@@ -192,14 +192,14 @@ def s11(P):
     return L('b', t) + L('a', sun) + L('c', w)
 # ===== 12 窗光落地板（平塗光影）=====
 def s12(P):
-    m = P.get('mono'); ink = P['ink']; ground = ink if m else P['M']; light = P['bg'] if m else P['S']
-    s = f'<clipPath id="c12"><rect x="-270" y="-270" width="540" height="540" rx="60"/></clipPath><rect x="-270" y="-270" width="540" height="540" rx="60" fill="{ground}"/><g clip-path="url(#c12)">'
+    m = P.get('mono'); ink = P['ink']; ground = P['bg'] if m else P['M']; light = ink if m else P['S']
+    s = f'<clipPath id="c12"><rect x="-270" y="-270" width="540" height="540" rx="60"/></clipPath><rect x="-270" y="-270" width="540" height="540" rx="60" fill="{ground}" {stroke(P, 18)}/><g clip-path="url(#c12)">'
     s += f'<polygon points="-110,-290 70,-290 200,-30 20,-30" fill="{light}"/><polygon points="10,10 190,10 320,270 140,270" fill="{light}"/>'
     lf = P['bg'] if not m else ink
-    leaf = ''
-    leaf += f'<path d="M 110 290 C 100 220 120 160 150 100" fill="none" stroke="{ink}" stroke-width="16" stroke-linecap="round" opacity="{1 if m else .6}"/>'
+    leaf = ''; lc = P['bg'] if m else ink
+    leaf += f'<path d="M 110 290 C 100 220 120 160 150 100" fill="none" stroke="{lc}" stroke-width="16" stroke-linecap="round" opacity="{1 if m else .6}"/>'
     for (x, y, a) in ((150, 215, -25), (190, 170, -50), (112, 175, 205), (160, 115, -80)):
-        leaf += f'<ellipse cx="{x}" cy="{y}" rx="66" ry="26" transform="rotate({a} {x} {y})" fill="{ink}" opacity="{1 if m else .6}"/>'
+        leaf += f'<ellipse cx="{x}" cy="{y}" rx="66" ry="26" transform="rotate({a} {x} {y})" fill="{lc}" opacity="{1 if m else .6}"/>'
     s += leaf + '</g>'
     return L('a', s)
 
@@ -248,7 +248,7 @@ def wm_svg(P, n, sym, kind, ls, k, sub, bg=True):
         body += L('sym', f'<g transform="translate({x0+100} {ty})">{sun}</g>')
         tx0 = x0 + 230; tw = text_w(NAME, kind, fsz, ls); W = int(tx0 + tw + 70)
         body += L('txt', TX(NAME, kind, fsz, tx0, ty+.36*fsz, ink, ls=ls, bold=3))
-        wave = f'M {tx0} {ty+.36*fsz+34} q 28 -18 56 0 t 56 0 t 56 0 t 56 0 t 56 0 t 56 0'
+        wave = f'M {tx0} {ty+.36*fsz+52} q 28 -16 56 0 t 56 0 t 56 0 t 56 0 t 56 0'
         body += L('sym2', f'<path d="{wave}" fill="none" stroke="{P["S"] if not P.get("mono") else ink}" stroke-width="12" stroke-linecap="round"/>')
         if sub: pass
     else:
@@ -263,7 +263,7 @@ if __name__ == '__main__':
     for (n, fo, nm, sty, mean, fn, kind, ls, k, self44) in STYLES:
         os.makedirs(fo, exist_ok=True)
         meta.append(dict(n=n, dir=fo, name=nm, style=sty, mean=mean, kind=kind, self44=self44))
-        far1 = FIT.get(str(n), 300); ka = min(420/far1, 1.6); kw = min(188/far1, 1.2)
+        far1 = FIT.get(str(n), 300); ka = min(420/far1, 1.6); kw = min(172/far1, 1.2)
         meta[-1].update(far1=far1, ka=ka, kw=kw)
         for tag, P in TONES.items():
             sym = fn(P)
