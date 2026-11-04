@@ -1,0 +1,11 @@
+{
+ "threads": {
+  "n": 6,
+  "overlap": [],
+  "gap32": [],
+  "oob_margin": [],
+  "outside_safe": [],
+  "minFont": 28,
+  "bodyScrollH": 1350
+ }
+}
