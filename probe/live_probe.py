@@ -9,8 +9,13 @@ USER = {"email": "probe@example.com", "name": "probe", "owner": True, "admin": T
 log = {"req": [], "resp": [], "fail": [], "console": [], "frames": []}
 def now(): return time.strftime("%H:%M:%S")
 with sync_playwright() as p:
-    br = p.chromium.launch()
-    ctx = br.new_context(viewport={"width": 1440, "height": 900}, timezone_id="Asia/Taipei", locale="zh-TW")
+    BRW = os.environ.get("BRW", "chromium"); DEV = os.environ.get("DEV", "")
+    br = getattr(p, BRW).launch()
+    kw = dict(p.devices[DEV]) if DEV else {"viewport": {"width": 1440, "height": 900}}
+    ctx = br.new_context(timezone_id="Asia/Taipei", locale="zh-TW", **kw)
+    EXTRA = json.loads(os.environ.get("EXTRA_LS", "{}"))
+    if EXTRA:
+        ctx.add_init_script("(() => { try { if (location.hostname.indexOf('liguligu') >= 0 && !sessionStorage.getItem('_px')) { sessionStorage.setItem('_px','1'); const o = %s; for (const k in o) localStorage.setItem(k, o[k]); } } catch (e) {} })();" % json.dumps(EXTRA))
     ctx.add_init_script("""(() => { try { if (location.hostname.indexOf('liguligu') >= 0 && !localStorage.getItem('tw.acct.tok')) {
       localStorage.setItem('tw.acct.tok', 'probe-fake-tok');
       localStorage.setItem('tw.acct.user', JSON.stringify(%s)); } } catch (e) {} })();""" % json.dumps(USER))
@@ -43,7 +48,7 @@ with sync_playwright() as p:
     if FORCE:
         try: pg.evaluate("() => window.Market3 && window.Market3.forceClock && window.Market3.forceClock('night')")
         except Exception as e: log["console"].append("forceClock err " + str(e))
-    pg.wait_for_timeout(30000)
+    pg.wait_for_timeout(int(os.environ.get("WAIT","30000")))
     st = pg.evaluate("""() => { const ss = document.getElementById('futSess'); const f = document.getElementById('twFutBridge');
       const M = window.Market3 || {};
       return { build: (document.querySelector('meta[name="tw:build"]')||{}).content, origin: location.origin,
