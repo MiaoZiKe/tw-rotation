@@ -84,7 +84,7 @@ LOGO_PAD = 20                 # LOGO 上方（紅條下緣到 LOGO）與下方�
 LOGO_TOP = BAR_H + LOGO_PAD   # 34
 PIC_TOP = LOGO_TOP + LOGO_H + LOGO_PAD   # 102：照片上緣（頂列總高 = 紅條 + 88）
 GAP = 56                      # 照片到紅短線、副標到頁底，兩段留白相等
-RL_H, RL_GAP, TT_H, SUB_GAP, SUB_H = 6, 24, 180, 20, 44   # 紅短線高、紅線到標題、標題兩行高（72px／90 行高）、標題到副標、副標列高
+RL_H, RL_GAP, TT_H, SUB_GAP, SUB_H = 6, 24, 212, 0, 0   # 紅短線高、紅線到標題、標題兩行高（72px／106 行高，兩行分開的 div 字框不互疊）；廣達這篇沒有副標列（Andy 11-05：「下方只需要表示廣達行情」），提示併入標題第二行右側
 BELOW = GAP + RL_H + RL_GAP + TT_H + SUB_GAP + SUB_H + GAP   # 照片以下總高 386
 PIC_H = H - PIC_TOP - BELOW   # 862：拿掉備註後的空間全部給照片
 RL_TOP = PIC_TOP + PIC_H + GAP
@@ -126,10 +126,12 @@ DISC = "網友回報，非公司公告・與各公司無合作或授權關係"
 # ================= 廣達待遇文（2 頁）：A1 封面＋A2 待遇欄位表 =================
 NAME = "廣達"
 S = {}
-S["1_cover"] = cover(
-    f'{NAME}薪資行情<br>碩畢月薪 約 58～69K',
-    "研發職・碩畢・年資 0～2 年", "往右滑 →",
-    photo_uri("quanta/photo_12.jpg", (0, 130, 1920, 1440)), "10% 50%")
+# 2026-11-05 Andy：「下方只需要表示廣達行情 並且嘗試有點偷偷說的感覺標題」→ 兩行標題、第二行瑞士紅，提示與第二行基線對齊靠右；不放副標、不放表情符號
+S["1_cover"] = (f'<div class="cv"><div class="bar"></div><div class="lg">{OPEN_RING}</div>'
+    f'<div class="pic" data-b style="background-image:url({photo_uri("quanta/photo_12.jpg", (0, 130, 1920, 1440))});background-position:10% 50%"></div>'
+    f'<div class="rl"></div><div class="tt" style="line-height:106px"><div>噓，偷偷跟你說</div>'
+    f'<div style="display:flex;justify-content:space-between;align-items:baseline"><span style="color:{RED};font-weight:900">{NAME}行情</span>'
+    f'<span class="hint" style="font-size:34px;line-height:44px;white-space:nowrap">往右滑看行情 →</span></div></div></div>')
 rows = [
     ("總部地點", "桃園龜山", "網友提到的地點另有林口、桃園"),
     ("碩畢月薪", "約 58～69K・中位約 62K", "業內朋友 1 位＋網友 21 筆（2025～2026）對得上<br>網友樣本多未標學歷"),
