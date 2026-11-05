@@ -1,5 +1,12 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
+
+## 2026-11-05 夜 台指期夜盤在正式網域沒有即時 → 修（DECISIONS #380）
+- 根因：Deno 部署金鑰 10-11 失效，線上 Deno 還是 10-02 版、白名單沒有 liguligu-puipui.com → 正式網域被 CORS 擋，Worker 又被期交所擋（520）→ 卡片只能畫日盤。證據 `docs/fixtures/taifex_deno_origin_1105_probe.json`（run 42005914871）。
+- 修：`site/taifex_bridge.html`（GitHub Pages 轉打頁）＋ `market3.js futGet()` 直連丟例外後改經轉打頁；`live.js` 加 `Live.taifexBridge()`。`probe_sources.py taifex_night` 加 Deno 帶正式網域 Origin 的探測。
+- 這批只驗了：`夜盤轉打1105`（新）、`台指期Deno優先`、`夜盤盤後0930`、`盤中即時`、`新-大盤三張圖`、`_preview.py`（3 條既有問題與 main 相同）、pytest 全綠。
+- 待 Andy：換 Deno 部署金鑰（DENO_DEPLOY_TOKEN）才是根治；沒換之前靠轉打頁。
+
 ## 2026-11-04 深夜 盤後自動主貼文改專業語氣（Andy：「要，盤後也改成專業語氣」；social-ops-lead；11-05 盤後起生效）
 - `scripts/threads_v2.py` 鉤子全部換成 43 個專業問句（數據帶入）、`scripts/threads_lint.py` 加自動貼文模式（開頭問句、擋口語吐槽字），測試 `tests/test_threads_auto_1104.py`；細節見 `auto_post.md` 修改紀錄與 `threads_rules.md` 最上面一節。post_quota.json 沒動。待辦：11-05 18:35 台北確認盤後實發開頭是問句（已排提醒）。
 - 11-05 CEO 法遵退件已修：開頭不點名個股、不問時機；lint 擋個股簡稱（資料湖 company_info）與時機用語。

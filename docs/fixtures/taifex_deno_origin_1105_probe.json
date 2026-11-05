@@ -1,0 +1,553 @@
+{
+  "probe": "taifex_night（Deno 帶正式網域 Origin）",
+  "at": "2026-11-05T17:54:17+08:00",
+  "run": "https://github.com/MiaoZiKe/tw-rotation/actions/runs/42005914871",
+  "note": "2026-11-05 夜盤 Andy 回報台指期卡仍是日盤的取證。只留跟結論有關的幾支；sample 只留狀態與前段。",
+  "results": [
+    {
+      "id": "taifex_quotelist_night",
+      "url": "https://mis.taifex.com.tw/futures/api/getQuoteList",
+      "note": "夜盤報價清單：MarketType=1，夜盤近月的 SymbolID 是 -M 結尾",
+      "method": "POST",
+      "probed_at": "2026-11-05T17:53:37+08:00",
+      "req": {
+        "MarketType": "1",
+        "SymbolType": "F",
+        "KindID": "1",
+        "CID": "TXF",
+        "ExpireMonth": "",
+        "RowSize": "全部",
+        "PageNo": "",
+        "SortColumn": "",
+        "AscDesc": "A"
+      },
+      "req_headers": {
+        "User-Agent": "Mozilla/5.0 (compatible; tw-rotation/1.0; +https://github.com/MiaoZiKe/tw-rotation)",
+        "Accept": "application/json, */*",
+        "Referer": "https://mis.taifex.com.tw/futures/",
+        "Origin": "https://mis.taifex.com.tw"
+      },
+      "status": 200,
+      "elapsed_ms": 1182,
+      "content_type": "application/json",
+      "bytes": 4358,
+      "resp_headers": {
+        "server": "cloudflare",
+        "vary": "Accept-Encoding",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a55af8f0bcf5d638-IAD"
+      },
+      "kind": "dict",
+      "keys": [
+        "RtCode",
+        "RtData",
+        "RtMsg"
+      ],
+      "sequences": {
+        "RtData.QuoteList": {
+          "n": 7,
+          "fields": [
+            "CAmpRate",
+            "CAskPrice1",
+            "CAskSize1",
+            "CBestAskPrice",
+            "CBestAskSize",
+            "CBestBidPrice",
+            "CBestBidSize",
+            "CBidPrice1",
+            "CBidSize1",
+            "CCeilPrice",
+            "CDate",
+            "CDiff",
+            "CDiffRate",
+            "CFloorPrice",
+            "CHighPrice",
+            "CLastPrice",
+            "CLowPrice",
+            "COpenPrice",
+            "CRefPrice",
+            "CTestPrice",
+            "CTestTime",
+            "CTestVolume",
+            "CTime",
+            "CTotalVolume",
+            "DispCName",
+            "DispEName",
+            "OpenInterest",
+            "SettlementPrice",
+            "SpotID",
+            "Status",
+            "SymbolID"
+          ]
+        }
+      }
+    },
+    {
+      "id": "taifex_chartdata_1m_night",
+      "url": "https://mis.taifex.com.tw/futures/api/getChartData1M",
+      "note": "★夜盤 1 分鐘分時：SymbolID 改成字串（上一輪送陣列被回 400），代號取夜盤近月",
+      "method": "POST",
+      "probed_at": "2026-11-05T17:53:38+08:00",
+      "symbol_used": "TXFK6-M",
+      "symbol_source": "上一支回應",
+      "req": {
+        "SymbolID": "TXFK6-M"
+      },
+      "req_headers": {
+        "User-Agent": "Mozilla/5.0 (compatible; tw-rotation/1.0; +https://github.com/MiaoZiKe/tw-rotation)",
+        "Accept": "application/json, */*",
+        "Referer": "https://mis.taifex.com.tw/futures/",
+        "Origin": "https://mis.taifex.com.tw"
+      },
+      "status": 200,
+      "elapsed_ms": 326,
+      "content_type": "application/json",
+      "bytes": 11525,
+      "resp_headers": {
+        "server": "cloudflare",
+        "vary": "Accept-Encoding",
+        "cf-cache-status": "DYNAMIC",
+        "cf-ray": "a55af8f7bcff061b-IAD"
+      },
+      "kind": "dict",
+      "keys": [
+        "RtCode",
+        "RtData",
+        "RtMsg"
+      ],
+      "sequences": {
+        "RtData.Field": {
+          "n": 6,
+          "fields": null
+        },
+        "RtData.Ticks": {
+          "n": 174,
+          "fields": null
+        }
+      },
+      "series_stats": {
+        "n": 174,
+        "session": {
+          "start": "1500",
+          "end": "0500",
+          "grid_minutes": 840
+        },
+        "first": "150100",
+        "last": "175400",
+        "weird_times": {},
+        "duplicate_minutes": [],
+        "missing_minutes": [
+          1075,
+          1076,
+          1077,
+          1078,
+          1079,
+          1080,
+          1081,
+          1082,
+          1083,
+          1084,
+          1085,
+          1086,
+          1087,
+          1088,
+          1089,
+          1090,
+          1091,
+          1092,
+          1093,
+          1094,
+          1095,
+          1096,
+          1097,
+          1098,
+          1099,
+          1100,
+          1101,
+          1102,
+          1103,
+          1104,
+          1105,
+          1106,
+          1107,
+          1108,
+          1109,
+          1110,
+          1111,
+          1112,
+          1113,
+          1114,
+          1115,
+          1116,
+          1117,
+          1118,
+          1119,
+          1120,
+          1121,
+          1122,
+          1123,
+          1124,
+          1125,
+          1126,
+          1127,
+          1128,
+          1129,
+          1130,
+          1131,
+          1132,
+          1133,
+          1134
+        ],
+        "missing_n": 666,
+        "monotonic": true,
+        "volume_sum": 11358.0,
+        "quote_total_volume": 11358.0,
+        "volume_matches_quote": true
+      }
+    },
+    {
+      "id": "our_worker_fut_night",
+      "url": "https://tw-quote.kcq01010909.workers.dev/fut?session=night",
+      "note": "★自家 Worker 的夜盤報價：跟上面 taifex_quotelist_night 逐欄對照，一樣就是 Worker 沒問題、問題在瀏覽器端",
+      "method": "GET",
+      "probed_at": "2026-11-05T17:53:42+08:00",
+      "req": null,
+      "req_headers": {
+        "User-Agent": "Mozilla/5.0 (compatible; tw-rotation/1.0; +https://github.com/MiaoZiKe/tw-rotation)",
+        "Accept": "application/json, */*"
+      },
+      "status": 502,
+      "elapsed_ms": 1457,
+      "content_type": "application/json; charset=utf-8",
+      "bytes": 347,
+      "resp_headers": {
+        "vary": "Origin",
+        "access-control-allow-headers": "content-type",
+        "access-control-allow-methods": "GET,OPTIONS",
+        "access-control-max-age": "86400",
+        "server": "cloudflare",
+        "cf-ray": "a55af911b86c57a2-IAD"
+      },
+      "kind": "dict",
+      "keys": [
+        "colo",
+        "elapsed_ms",
+        "error",
+        "head",
+        "hint",
+        "session",
+        "upstream",
+        "upstream_ray",
+        "upstream_status",
+        "which"
+      ],
+      "sample": {
+        "error": "upstream",
+        "which": "fut",
+        "session": "night",
+        "upstream": "mis.taifex.com.tw getQuoteList",
+        "upstream_status": 520,
+        "elapsed_ms": 1418,
+        "colo": "IAD",
+        "upstream_ray": "a55af911da9e966d-IAD",
+        "head": "error code: 520\n",
+        "hint": "期交所在 Cloudflare 後面；Worker 打它時對方看到的是全體 Worker 共用的來源 IP（見 DECISIONS #281）"
+      }
+    },
+    {
+      "id": "our_worker_futchart_night",
+      "url": "https://tw-quote.kcq01010909.workers.dev/futchart?symbol=TXFJ6-M",
+      "note": "★自家 Worker 的夜盤分時：跟 taifex_chartdata_1m_night 對照筆數",
+      "method": "GET",
+      "probed_at": "2026-11-05T17:53:44+08:00",
+      "req": null,
+      "req_headers": {
+        "User-Agent": "Mozilla/5.0 (compatible; tw-rotation/1.0; +https://github.com/MiaoZiKe/tw-rotation)",
+        "Accept": "application/json, */*"
+      },
+      "status": 502,
+      "elapsed_ms": 1669,
+      "content_type": "application/json; charset=utf-8",
+      "bytes": 354,
+      "resp_headers": {
+        "vary": "Origin",
+        "access-control-allow-headers": "content-type",
+        "access-control-allow-methods": "GET,OPTIONS",
+        "access-control-max-age": "86400",
+        "server": "cloudflare",
+        "cf-ray": "a55af91adb4520ac-IAD"
+      },
+      "kind": "dict",
+      "keys": [
+        "colo",
+        "elapsed_ms",
+        "error",
+        "head",
+        "hint",
+        "session",
+        "upstream",
+        "upstream_ray",
+        "upstream_status",
+        "which"
+      ],
+      "sample": {
+        "error": "upstream",
+        "which": "futchart",
+        "session": "night",
+        "upstream": "mis.taifex.com.tw getChartData1M",
+        "upstream_status": 520,
+        "elapsed_ms": 1612,
+        "colo": "IAD",
+        "upstream_ray": "a55af91b180c28c2-IAD",
+        "head": "error code: 520\n",
+        "hint": "期交所在 Cloudflare 後面；Worker 打它時對方看到的是全體 Worker 共用的來源 IP（見 DECISIONS #281）"
+      },
+      "series_stats": {
+        "n": 0,
+        "note": "序列是空的或路徑不對"
+      }
+    },
+    {
+      "id": "deno_health",
+      "url": "https://tw-taifex.miaozike.deno.net/health",
+      "note": "Deno 代理健康檢查（Origin＝正式網域）",
+      "method": "GET",
+      "probed_at": "2026-11-05T17:54:11+08:00",
+      "req": null,
+      "req_headers": {
+        "Origin": "https://liguligu-puipui.com",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36",
+        "Accept": "*/*"
+      },
+      "status": 200,
+      "elapsed_ms": 318,
+      "content_type": "application/json; charset=utf-8",
+      "bytes": 140,
+      "resp_headers": {
+        "access-control-allow-methods": "GET,OPTIONS",
+        "access-control-allow-headers": "content-type",
+        "access-control-max-age": "86400",
+        "vary": "Accept-Encoding, Origin",
+        "via": "HTTP/1.1 ord.vultr.prod.deno-cluster.net",
+        "server": "deployd"
+      },
+      "kind": "dict",
+      "keys": [
+        "features",
+        "ok",
+        "region",
+        "service",
+        "sse_test",
+        "upstream"
+      ],
+      "sample": {
+        "ok": true,
+        "service": "tw-rotation taifex-deno",
+        "upstream": "mis.taifex.com.tw",
+        "features": [
+          "fut",
+          "futchart"
+        ],
+        "region": "ord",
+        "sse_test": false
+      }
+    },
+    {
+      "id": "deno_fut_night_main_origin",
+      "url": "https://tw-taifex.miaozike.deno.net/fut?session=night",
+      "note": "★Deno 夜盤報價，Origin＝正式網域 liguligu-puipui.com：看 access-control-allow-origin 有沒有回",
+      "method": "GET",
+      "probed_at": "2026-11-05T17:54:12+08:00",
+      "req": null,
+      "req_headers": {
+        "Origin": "https://liguligu-puipui.com",
+        "Referer": "https://liguligu-puipui.com/",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36",
+        "Accept": "*/*"
+      },
+      "status": 403,
+      "elapsed_ms": 67,
+      "content_type": "application/json; charset=utf-8",
+      "bytes": 69,
+      "resp_headers": {
+        "access-control-allow-methods": "GET,OPTIONS",
+        "access-control-allow-headers": "content-type",
+        "access-control-max-age": "86400",
+        "vary": "Accept-Encoding, Origin",
+        "via": "HTTP/1.1 ord.vultr.prod.deno-cluster.net",
+        "server": "deployd"
+      },
+      "kind": "dict",
+      "keys": [
+        "error",
+        "origin"
+      ],
+      "sample": {
+        "error": "origin not allowed",
+        "origin": "https://liguligu-puipui.com"
+      }
+    },
+    {
+      "id": "deno_fut_night_ghpages_origin",
+      "url": "https://tw-taifex.miaozike.deno.net/fut?session=night",
+      "note": "對照組：Deno 夜盤報價，Origin＝備援 miaozike.github.io",
+      "method": "GET",
+      "probed_at": "2026-11-05T17:54:12+08:00",
+      "req": null,
+      "req_headers": {
+        "Origin": "https://miaozike.github.io",
+        "Referer": "https://miaozike.github.io/",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36",
+        "Accept": "*/*"
+      },
+      "status": 200,
+      "elapsed_ms": 1137,
+      "content_type": "application/json; charset=utf-8",
+      "bytes": 4358,
+      "resp_headers": {
+        "access-control-allow-methods": "GET,OPTIONS",
+        "access-control-allow-headers": "content-type",
+        "access-control-max-age": "86400",
+        "vary": "Accept-Encoding, Origin",
+        "access-control-allow-origin": "https://miaozike.github.io",
+        "via": "HTTP/1.1 ord.vultr.prod.deno-cluster.net",
+        "server": "deployd"
+      },
+      "kind": "dict",
+      "keys": [
+        "RtCode",
+        "RtData",
+        "RtMsg"
+      ],
+      "sequences": {
+        "RtData.QuoteList": {
+          "n": 7,
+          "fields": [
+            "CAmpRate",
+            "CAskPrice1",
+            "CAskSize1",
+            "CBestAskPrice",
+            "CBestAskSize",
+            "CBestBidPrice",
+            "CBestBidSize",
+            "CBidPrice1",
+            "CBidSize1",
+            "CCeilPrice",
+            "CDate",
+            "CDiff",
+            "CDiffRate",
+            "CFloorPrice",
+            "CHighPrice",
+            "CLastPrice",
+            "CLowPrice",
+            "COpenPrice",
+            "CRefPrice",
+            "CTestPrice",
+            "CTestTime",
+            "CTestVolume",
+            "CTime",
+            "CTotalVolume",
+            "DispCName",
+            "DispEName",
+            "OpenInterest",
+            "SettlementPrice",
+            "SpotID",
+            "Status",
+            "SymbolID"
+          ]
+        }
+      }
+    },
+    {
+      "id": "deno_futchart_night_main_origin",
+      "url": "https://tw-taifex.miaozike.deno.net/futchart?symbol=TXFK6-M",
+      "note": "★Deno 夜盤分時（11 月近月 TXFK6-M），Origin＝正式網域",
+      "method": "GET",
+      "probed_at": "2026-11-05T17:54:13+08:00",
+      "req": null,
+      "req_headers": {
+        "Origin": "https://liguligu-puipui.com",
+        "Referer": "https://liguligu-puipui.com/",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36",
+        "Accept": "*/*"
+      },
+      "status": 403,
+      "elapsed_ms": 85,
+      "content_type": "application/json; charset=utf-8",
+      "bytes": 69,
+      "resp_headers": {
+        "access-control-allow-methods": "GET,OPTIONS",
+        "access-control-allow-headers": "content-type",
+        "access-control-max-age": "86400",
+        "vary": "Accept-Encoding, Origin",
+        "via": "HTTP/1.1 ord.vultr.prod.deno-cluster.net",
+        "server": "deployd"
+      },
+      "kind": "dict",
+      "keys": [
+        "error",
+        "origin"
+      ],
+      "sample": {
+        "error": "origin not allowed",
+        "origin": "https://liguligu-puipui.com"
+      },
+      "series_stats": {
+        "n": 0,
+        "note": "序列是空的或路徑不對"
+      }
+    },
+    {
+      "id": "our_worker_fut_night_main_origin",
+      "url": "https://tw-quote.kcq01010909.workers.dev/fut?session=night",
+      "note": "備援 Worker 夜盤報價，Origin＝正式網域：看是不是仍 520/502",
+      "method": "GET",
+      "probed_at": "2026-11-05T17:54:13+08:00",
+      "req": null,
+      "req_headers": {
+        "Origin": "https://liguligu-puipui.com",
+        "Referer": "https://liguligu-puipui.com/",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36",
+        "Accept": "*/*"
+      },
+      "status": 502,
+      "elapsed_ms": 307,
+      "content_type": "application/json; charset=utf-8",
+      "bytes": 346,
+      "resp_headers": {
+        "access-control-allow-origin": "https://liguligu-puipui.com",
+        "vary": "Origin",
+        "access-control-allow-headers": "content-type",
+        "access-control-allow-methods": "GET,OPTIONS",
+        "access-control-max-age": "86400",
+        "server": "cloudflare",
+        "cf-ray": "a55af9d1687a20ac-IAD"
+      },
+      "kind": "dict",
+      "keys": [
+        "colo",
+        "elapsed_ms",
+        "error",
+        "head",
+        "hint",
+        "session",
+        "upstream",
+        "upstream_ray",
+        "upstream_status",
+        "which"
+      ],
+      "sample": {
+        "error": "upstream",
+        "which": "fut",
+        "session": "night",
+        "upstream": "mis.taifex.com.tw getQuoteList",
+        "upstream_status": 520,
+        "elapsed_ms": 252,
+        "colo": "IAD",
+        "upstream_ray": "a55af9d1af8e28c2-IAD",
+        "head": "error code: 520\n",
+        "hint": "期交所在 Cloudflare 後面；Worker 打它時對方看到的是全體 Worker 共用的來源 IP（見 DECISIONS #281）"
+      }
+    }
+  ]
+}

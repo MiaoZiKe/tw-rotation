@@ -214,7 +214,7 @@
     // 期交所 getChartData1M 回來的**真正的分時序列**（2026-09-20 接上）
     futChart: null, futChartErr: '',
     // 台指期最後一次走哪條路（'deno'／'worker'）與 Deno 沒用上的原因（DECISIONS #286；只給除錯與驗收看）
-    futVia: '', futDenoWhy: '',
+    futVia: '', futDenoWhy: '', futDenoDirectBad: false,
     /* 「這兩份資料各自是什麼時候拿到的」。用途只有一個：`nightSeries()` 要決定
        官方分時的最後一根（＝還沒收的那一分鐘）該不該被更新的報價改寫。
        只有「報價比分時新」才准改 —— 不然會把線往回拉，那比慢一分鐘更糟。*/
@@ -677,11 +677,62 @@
    *    deno ＝ Deno 那一趟為什麼沒用上（成功或沒試就是空字串）；兩條路都壞時要一起講出來，
    *           不然畫面只寫得出 Worker 的 502，讀者會以為新的那條路根本沒去試。
    *  兩條路都連不上（例外）就丟一個把兩個原因串起來的錯誤。 */
+  /* ---- ★ 2026-11-05 轉打頁（DECISIONS #380）：正式網域打不進 Deno（CORS 被拒）時，
+     請 GitHub Pages 上的 taifex_bridge.html（來源 miaozike.github.io，在 Deno 白名單裡）代打。
+     iframe 只開一個、整頁共用；握手 5 秒沒回就當它壞了，這次開頁不再試（不讓每一輪都多等 5 秒）。 */
+  const BRIDGE_TIMEOUT_MS = 8000;
+  const bridge = { el: null, ready: null, dead: false, seq: 0, wait: {} };
+  function taifexBridge() {
+    return (window.Live && window.Live.taifexBridge) ? String(window.Live.taifexBridge() || '') : '';
+  }
+  function bridgeOpen(url) {
+    if (bridge.ready) return bridge.ready;
+    const origin = new URL(url).origin;
+    bridge.ready = new Promise((res, rej) => {
+      const t = setTimeout(() => { bridge.dead = true; rej(new Error('轉打頁沒有回應')); }, 5000);
+      window.addEventListener('message', (ev) => {
+        if (ev.origin !== origin || !bridge.el || ev.source !== bridge.el.contentWindow) return;
+        const m = ev.data || {};
+        if (m.type === 'twfut-ready') { clearTimeout(t); res(true); return; }
+        if (m.type === 'twfut-r' && bridge.wait[m.id]) { const f = bridge.wait[m.id]; delete bridge.wait[m.id]; f(m); }
+      });
+      const f = document.createElement('iframe');
+      f.src = url; f.title = ''; f.setAttribute('aria-hidden', 'true'); f.tabIndex = -1;
+      f.id = 'twFutBridge';
+      f.style.cssText = 'position:absolute;width:0;height:0;border:0;visibility:hidden;left:-9999px;top:0';
+      bridge.el = f;
+      document.body.appendChild(f);
+    });
+    bridge.ready.catch(() => {});
+    return bridge.ready;
+  }
+  /** 經轉打頁打一次 Deno。成功回一個真的 Response（下游解析一個字都不用改）；失敗丟例外。 */
+  async function bridgeGet(url, path) {
+    await bridgeOpen(url);
+    const id = ++bridge.seq;
+    const origin = new URL(url).origin;
+    const m = await new Promise((res, rej) => {
+      const t = setTimeout(() => { delete bridge.wait[id]; rej(new Error('轉打逾時')); }, BRIDGE_TIMEOUT_MS);
+      bridge.wait[id] = (x) => { clearTimeout(t); res(x); };
+      bridge.el.contentWindow.postMessage({ type: 'twfut', id, path }, origin);
+    });
+    if (!m.ok) throw new Error('轉打失敗（' + (m.err || '?') + '）');
+    return new Response(String(m.body || ''), { status: m.status || 200,
+      headers: { 'Content-Type': 'application/json; charset=utf-8' } });
+  }
   async function futGet(path) {
     const deno = taifexProxy();
     const base = proxy();
+    const brg = taifexBridge();
     let why = '';
-    if (deno) {
+    /* 直連 Deno 這次開頁已經丟過例外（正式網域被 CORS 擋）→ 直接走轉打頁，不再白打一次直連。 */
+    if (deno && brg && !bridge.dead && state.futDenoDirectBad) {
+      try {
+        const r = await bridgeGet(brg, path);
+        if (r.ok) { state.futVia = 'bridge'; state.futDenoWhy = ''; return { r, deno: '' }; }
+        why = 'Deno 回 HTTP ' + r.status + '（經轉打頁）';
+      } catch (e) { why = 'Deno 連不上（' + ((e && e.message) || e) + '）'; }
+    } else if (deno) {
       try {
         const opt = { cache: 'no-store' };
         if (typeof AbortSignal !== 'undefined' && AbortSignal.timeout) opt.signal = AbortSignal.timeout(FUT_DENO_TIMEOUT_MS);
@@ -692,10 +743,19 @@
         if (!base) { state.futVia = 'deno'; state.futDenoWhy = why; return { r, deno: '' }; }
       } catch (e) {
         why = 'Deno 連不上（' + ((e && e.name) || e) + '）';
+        /* ★ 直連丟例外（正式網域被 Deno 的 CORS 擋就是這一種）→ 先試轉打頁，再退 Worker。 */
+        if (brg && !bridge.dead) {
+          try {
+            const r = await bridgeGet(brg, path);
+            state.futDenoDirectBad = true;
+            if (r.ok) { state.futVia = 'bridge'; state.futDenoWhy = ''; return { r, deno: '' }; }
+            why = 'Deno 回 HTTP ' + r.status + '（經轉打頁）';
+          } catch (e2) { why += '；轉打頁也不行（' + ((e2 && e2.message) || e2) + '）'; }
+        }
         if (!base) { state.futVia = 'deno'; state.futDenoWhy = why; throw new Error(pubWhy(why)); }
       }
     }
-    if (!base) throw new Error('還沒設定即時來源');
+    if (!base) { if (why) { state.futVia = 'deno'; state.futDenoWhy = why; throw new Error(pubWhy(why)); } throw new Error('還沒設定即時來源'); }
     state.futVia = 'worker';
     state.futDenoWhy = why;
     try {

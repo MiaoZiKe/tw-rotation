@@ -134,6 +134,24 @@
   // 原始碼 workers/taifex-deno/main.ts，推上 main 由 .github/workflows/deploy-deno.yml 部署。這不是密鑰。
   const TAIFEX_PROXY = 'https://tw-taifex.miaozike.deno.net';
 
+  /* ★ 2026-11-05 夜盤沒即時的根因（DECISIONS #380）：Deno 線上還是 10-02 那一版 ——
+     10-11 起 deploy-deno.yml 兩次都因 DENO_DEPLOY_TOKEN 失效（AUTH_INVALID_TOKEN）沒部署上去，
+     所以它的允許來源**沒有正式網域**：從 https://liguligu-puipui.com 打 /fut 回 403「origin not allowed」、
+     沒有 Access-Control-Allow-Origin，瀏覽器丟 TypeError → 退回 Worker → 期交所擋 Cloudflare 出口回 520 → 卡片只能畫日盤。
+     （probe run 42005914871：同一支 Deno，Origin＝miaozike.github.io 回 200 帶 ACAO；Origin＝正式網域回 403。）
+     換路：GitHub Pages 上放一頁 taifex_bridge.html（它的來源 miaozike.github.io 在 Deno 的白名單裡），
+     正式網域開一個隱形 iframe 叫它代打 Deno，結果用 postMessage 傳回來。只在「Deno 直連丟例外」之後才用；
+     Deno 換上新版（允許正式網域）之後直連就會成功，這條路自己不會再被走到。*/
+  const TAIFEX_BRIDGE = 'https://miaozike.github.io/tw-rotation/taifex_bridge.html';
+  const BRIDGE_FOR = ['https://liguligu-puipui.com', 'https://www.liguligu-puipui.com'];
+  // 驗收後門：只有本機（127.0.0.1／localhost）認 window.TW_TAIFEX_BRIDGE===true，正式站不認
+  const bridgeHere = () => {
+    try {
+      if (BRIDGE_FOR.indexOf(location.origin) >= 0) return true;
+      return /^(127\.0\.0\.1|localhost)$/.test(location.hostname) && window.TW_TAIFEX_BRIDGE === true;
+    } catch (e) { return false; }
+  };
+
   const state = {
     quotes: {},        // code -> { price, prevClose, chgPct, open, high, low, volume, time, name }
     timer: null,
@@ -964,6 +982,7 @@
     proxy,                                     // market3.js／livek.js 共用同一組來源（非管理者回空字串，DECISIONS #326）
     allowed: gateOK,                           // 即時僅管理者的閘門（＝TwLive.allowed()，給其他模組少打幾個字）
     taifexProxy: () => (gateOK() ? TAIFEX_PROXY : ''),   // 台指期優先走的 Deno 代理（market3.js 用；非管理者回空字串）
+    taifexBridge: () => (gateOK() && bridgeHere() ? TAIFEX_BRIDGE : ''),   // 2026-11-05：正式網域打不進 Deno 時的轉打頁（market3.js 用；非管理者回空字串）
     /* ★ 2026-09-21：對外開放這一支，給「即時資金分流樹」批次抓板塊成分股用。
        它要的不是「畫面上看得到的代號」（那是 codesOnScreen 的工作），
        而是一組指定的代號 —— 但 Worker 代理、上市上櫃判定（exch）、

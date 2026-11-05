@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>台指期轉打頁</title>
+<style>html,body{margin:0;background:transparent}</style>
+</head>
+<body>
+<script>
+/* 台指期轉打頁（DECISIONS #380，2026-11-05）
+ *
+ * 為什麼有這一頁：台指期的即時報價走 Deno 代理（workers/taifex-deno/main.ts），它只接受白名單網域的請求。
+ * 線上那台 Deno 還是 10-02 的版本（10-11 起部署金鑰 DENO_DEPLOY_TOKEN 失效，新版沒推上去），
+ * 白名單裡沒有正式網域 liguligu-puipui.com，所以正式網域打 Deno 會被 CORS 擋，夜盤就只能顯示日盤。
+ * 這一頁放在 GitHub Pages（miaozike.github.io，在白名單裡），由正式網域用隱形 iframe 叫它代打，
+ * 結果用 postMessage 傳回去。Deno 換上新版之後正式網域直連就會成功，這一頁自然不會再被用到。
+ *
+ * 不是通用代理：只接受下面 PARENTS（與本機驗收）的頁面送來的訊息，路徑只准 /fut 與 /futchart 兩種形狀，
+ * 目的地寫死是那台 Deno。Deno 本身是公開端點（不需要任何金鑰），這一頁沒有放大任何權限。
+ */
+(function () {
+  var DENO = 'https://tw-taifex.miaozike.deno.net';
+  var PARENTS = ['https://liguligu-puipui.com', 'https://www.liguligu-puipui.com'];
+  // 本機驗收（_preview.py／_uitest.py；平行跑時每一份用不同的埠）：只有自己電腦上的頁面才會是這種來源
+  var LOCAL = /^http:\/\/(127\.0\.0\.1|localhost):\d{2,5}$/;
+  var PATH = /^\/(fut\?session=(day|night)|futchart\?symbol=[A-Za-z0-9]{3,8}-[FM])(&t=\d+)?$/;
+  if (window.parent === window) return;
+  window.addEventListener('message', function (ev) {
+    if (PARENTS.indexOf(ev.origin) < 0 && !LOCAL.test(ev.origin)) return;
+    var m = ev.data || {};
+    if (m.type !== 'twfut' || typeof m.path !== 'string' || !PATH.test(m.path)) return;
+    var src = ev.source, to = ev.origin;
+    var reply = function (o) { o.type = 'twfut-r'; o.id = m.id; try { src.postMessage(o, to); } catch (e) {} };
+    var ctl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+    var t = setTimeout(function () { if (ctl) ctl.abort(); }, 7000);
+    fetch(DENO + m.path, { cache: 'no-store', signal: ctl ? ctl.signal : undefined })
+      .then(function (r) { return r.text().then(function (x) { clearTimeout(t); reply({ ok: true, status: r.status, body: x }); }); })
+      .catch(function (e) { clearTimeout(t); reply({ ok: false, err: String((e && e.name) || e) }); });
+  });
+  // 「準備好了」只是一個訊號、不帶任何資料，所以目標來源用 '*'（這時候還不知道是哪一個網域開的）
+  window.parent.postMessage({ type: 'twfut-ready' }, '*');
+})();
+</script>
+</body>
+</html>

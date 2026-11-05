@@ -7179,3 +7179,24 @@ Andy：「編號不能點擊 無法看圖片…因為空間有限 所以你需�
    手指按下去的那顆鈕在放開（click）之前被換成新節點，click 落空；另外 16 顆擠進左右兩欄，最後兩顆被推到頂欄底下、寬度 0。新版鈕只建一次、之後只改 left／top。
 5. **「無法看圖片」**：剖析圖頁沒有點陣圖（零件都是 SVG／Three.js），所以對應成「圖太小、點了不能放大」：2D 圖設定列加「⤢ 放大」鈕、延伸閱讀抽屜裡的圖點一下，開全螢幕大圖（`#mDgView`：✕、－／＋ 100～300%、點背景關閉、上下左右用手指拖）。3D 不做大圖（3D 本身可雙指縮放）。
 6. 沒動 three3d.js：3D 模型在畫布裡的大小由相機取景決定（#306／#317 Andy 拍板「回到之前的大小」），這次只讓畫布滿寬、把編號搬出畫布。
+
+## #380 台指期夜盤在正式網域沒有即時：Deno 部署金鑰失效、白名單沒有正式網域 → 改經 GitHub Pages 轉打頁（2026-11-05；合併時若撞號請改號）
+Andy（11-05 台北 17:40，夜盤時段）：「為何夜盤沒有即時功能」。總覽台指期卡小標「日盤」、數字是日盤收盤 41,915 −1,288。
+
+**根因（有證據，不是推論）**
+1. `deploy-deno.yml` 10-11 兩次（run 38142144701、38144702094）都失敗：`AUTH_INVALID_TOKEN`（DENO_DEPLOY_TOKEN 失效）。
+   10-11 把正式網域加進 `workers/taifex-deno/main.ts` 允許來源的那一版**從來沒部署上去**；線上 Deno 還是 10-02 版（run 37054455160，允許來源只有 miaozike.github.io 與本機）。
+2. 探測 run 42005914871（`docs/fixtures/taifex_deno_origin_1105_probe.json`，台北 17:53）：
+   Deno `/fut?session=night` Origin＝liguligu-puipui.com → **403 `origin not allowed`、沒有 ACAO**；同一支 Origin＝miaozike.github.io → 200、7 檔、ACAO 正確；
+   Worker `/fut`、`/futchart` 日夜盤全部 502（期交所擋 Cloudflare 出口，上游 520，#281 至今沒變）；期交所直連 200、TXFK6-M 174 筆。
+3. 瀏覽器在正式網域：Deno 直連 TypeError → 退 Worker 502 → `nightHas()` false → 卡片顯示日盤。10-29 主站改成正式網域之前 Andy 用 github.io，所以一直沒人發現。
+   排除：合約代號（11 月 L 是錯的，A~L＝1~12 月，11 月是 K；TXFK6-M 期交所有資料）、時鐘、livegate（加權卡即時鈕有開、Live.taifexProxy 有回網址）。
+
+**修法**：`site/taifex_bridge.html`（只部署在 GitHub Pages 那份有用：來源 miaozike.github.io 在 Deno 白名單）。正式網域的 market3.js 在 Deno 直連丟例外後，
+開一個隱形 iframe 叫它代打 Deno、postMessage 傳回原始 JSON，下游解析不動；之後每一輪直接走轉打頁。轉打頁 5 秒沒握手就判定壞掉、這次開頁不再試，退回 Worker。
+轉打頁只收正式網域（與本機驗收）的訊息、只准 `/fut`、`/futchart` 兩種路徑、目的地寫死 Deno；Deno 本身公開、不需金鑰，沒有放大權限。
+`Live.taifexBridge()` 跟 taifexProxy 一樣經即時閘門，非管理者回空字串。
+
+**根治仍要 Andy 換 Deno 部署金鑰**（console.deno.com → Access Tokens → 新權杖 → GitHub Secrets `DENO_DEPLOY_TOKEN` → 重跑 deploy-deno.yml）。
+換好之後正式網域直連就會成功，轉打頁自動不再被用到（可以留著當保險）。
+驗收：`_uitest --sections 夜盤轉打1105`（B 重現當晚日盤、A 經轉打頁小標夜盤並畫線且 Worker 0 次、C 轉打頁壞掉退 Worker）。
