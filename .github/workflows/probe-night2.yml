@@ -7,7 +7,7 @@ permissions:
   contents: write
 jobs:
   probe:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
@@ -26,7 +26,7 @@ jobs:
       - uses: actions/setup-python@v5
         with: { python-version: "3.12" }
       - name: 裝 Playwright
-        run: pip install playwright==1.48.0 && python -m playwright install --with-deps chromium webkit
+        run: pip install playwright==1.48.0 && python -m playwright install --with-deps chromium
       - name: 真實瀏覽器（強制夜盤）
         continue-on-error: true
         env: { OUT: out_force, FORCE: "1" }
@@ -35,9 +35,9 @@ jobs:
         continue-on-error: true
         env: { OUT: out_nobridge, FORCE: "1", BLOCK_BRIDGE: "1", WAIT: "40000" }
         run: python probe/live_probe.py
-      - name: WebKit iPhone 13
+      - name: 手機 Pixel 7（強制夜盤）
         continue-on-error: true
-        env: { OUT: out_webkit, FORCE: "1", BRW: webkit, DEV: "iPhone 13", WAIT: "30000" }
+        env: { OUT: out_mobile, FORCE: "1", DEV: "Pixel 7", WAIT: "30000" }
         run: python probe/live_probe.py
       - name: 存結果到 probe-log 分支
         if: always()
