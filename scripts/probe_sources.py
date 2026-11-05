@@ -273,6 +273,37 @@ PROBES: dict[str, list[dict]] = {
         # ---- Worker 的診斷模式（2026-10-01 部署的版本才有；舊版會照一般 /fut 回）：
         #      從同一個 Worker 依序打「原樣／換成瀏覽器標頭／GET 行情看板靜態首頁」三個變體。
         #      三個都 520 → 期交所那一側整個網域拒絕 Worker 來的請求，換標頭、換路徑都沒用。
+        # ★★★★ 2026-11-05 加的：探測 **Deno 代理**（瀏覽器台指期的第一條路，DECISIONS #286），
+        #    而且**帶上讀者網站的 Origin**，看回應有沒有 Access-Control-Allow-Origin。
+        #    起因：11-05 夜盤 Andy 在正式網域看到台指期卡仍是「日盤」；deploy-deno.yml 從 10-11 起
+        #    兩次都因 DENO_DEPLOY_TOKEN 失效而失敗，線上 Deno 可能還是 10-02 那版（允許來源沒有正式網域）。
+        #    瀏覽器的 fetch 是簡單 GET，不會先送預檢；回應少了 ACAO，瀏覽器就丟 TypeError → 退回 Worker（520）。
+        {"id": "deno_health", "method": "GET",
+         "url": "https://tw-taifex.miaozike.deno.net/health",
+         "exact_headers": {"Origin": "https://liguligu-puipui.com", "User-Agent": _BROWSER_UA, "Accept": "*/*"},
+         "note": "Deno 代理健康檢查（Origin＝正式網域）"},
+        {"id": "deno_fut_night_main_origin", "method": "GET",
+         "url": "https://tw-taifex.miaozike.deno.net/fut?session=night",
+         "exact_headers": {"Origin": "https://liguligu-puipui.com", "Referer": "https://liguligu-puipui.com/",
+                           "User-Agent": _BROWSER_UA, "Accept": "*/*"},
+         "note": "★Deno 夜盤報價，Origin＝正式網域 liguligu-puipui.com：看 access-control-allow-origin 有沒有回"},
+        {"id": "deno_fut_night_ghpages_origin", "method": "GET",
+         "url": "https://tw-taifex.miaozike.deno.net/fut?session=night",
+         "exact_headers": {"Origin": "https://miaozike.github.io", "Referer": "https://miaozike.github.io/",
+                           "User-Agent": _BROWSER_UA, "Accept": "*/*"},
+         "note": "對照組：Deno 夜盤報價，Origin＝備援 miaozike.github.io"},
+        {"id": "deno_futchart_night_main_origin", "method": "GET",
+         "url": "https://tw-taifex.miaozike.deno.net/futchart?symbol=TXFK6-M",
+         "exact_headers": {"Origin": "https://liguligu-puipui.com", "Referer": "https://liguligu-puipui.com/",
+                           "User-Agent": _BROWSER_UA, "Accept": "*/*"},
+         "series_stats": {"path": "RtData.Ticks", "session": "RtData.Info.Sessions",
+                          "total": "RtData.Quote.CTotalVolume"},
+         "note": "★Deno 夜盤分時（11 月近月 TXFK6-M），Origin＝正式網域"},
+        {"id": "our_worker_fut_night_main_origin", "method": "GET",
+         "url": "https://tw-quote.kcq01010909.workers.dev/fut?session=night",
+         "exact_headers": {"Origin": "https://liguligu-puipui.com", "Referer": "https://liguligu-puipui.com/",
+                           "User-Agent": _BROWSER_UA, "Accept": "*/*"},
+         "note": "備援 Worker 夜盤報價，Origin＝正式網域：看是不是仍 520/502"},
         {"id": "our_worker_fut_night_diag", "method": "GET",
          "url": "https://tw-quote.kcq01010909.workers.dev/fut?session=night&diag=1",
          "note": "★Worker 診斷：同一機房打三個變體（原樣／瀏覽器標頭／靜態首頁 GET），看換標頭或換路徑有沒有差"},
