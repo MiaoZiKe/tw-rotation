@@ -681,7 +681,18 @@
      請 GitHub Pages 上的 taifex_bridge.html（來源 miaozike.github.io，在 Deno 白名單裡）代打。
      iframe 只開一個、整頁共用；握手 5 秒沒回就當它壞了，這次開頁不再試（不讓每一輪都多等 5 秒）。 */
   const BRIDGE_TIMEOUT_MS = 8000;
-  const bridge = { el: null, ready: null, dead: false, seq: 0, wait: {} };
+  /* ★ 2026-11-06（DECISIONS #381）：握手逾時不再「這次開頁永遠不試」。
+     11-06 04:37 Andy 在正式網域看到夜盤仍是日盤，同一時間 Actions 上三種瀏覽器（桌機 Chromium、iPhone WebKit、
+     手機 Chromium）開同一版都經轉打頁拿到夜盤（probe run 42106454144／42107920925）——
+     差別在使用者的環境：手機慢網路、開頁時一次載一堆資料、分頁在背景被凍結時，5 秒握手很容易逾時，
+     以前一逾時就 dead＝true 到重新整理為止，之後每一輪都只剩 Worker（當時 502）→ 整晚顯示日盤。
+     現在：握手給 12 秒；逾時就拆掉那個 iframe，冷卻 60 秒後下一輪重開一個再試。 */
+  const BRIDGE_HELLO_MS = 12000, BRIDGE_COOLDOWN_MS = 60000;
+  const bridge = { el: null, ready: null, dead: false, deadUntil: 0, seq: 0, wait: {} };
+  function bridgeOK() {
+    if (bridge.dead && Date.now() >= bridge.deadUntil) { bridge.dead = false; }
+    return !bridge.dead;
+  }
   function taifexBridge() {
     return (window.Live && window.Live.taifexBridge) ? String(window.Live.taifexBridge() || '') : '';
   }
@@ -689,7 +700,12 @@
     if (bridge.ready) return bridge.ready;
     const origin = new URL(url).origin;
     bridge.ready = new Promise((res, rej) => {
-      const t = setTimeout(() => { bridge.dead = true; rej(new Error('轉打頁沒有回應')); }, 5000);
+      const t = setTimeout(() => {
+        bridge.dead = true; bridge.deadUntil = Date.now() + BRIDGE_COOLDOWN_MS;
+        try { if (bridge.el && bridge.el.parentNode) bridge.el.parentNode.removeChild(bridge.el); } catch (e) { /* 拆不掉也無妨 */ }
+        bridge.el = null; bridge.ready = null;
+        rej(new Error('轉打頁沒有回應'));
+      }, BRIDGE_HELLO_MS);
       window.addEventListener('message', (ev) => {
         if (ev.origin !== origin || !bridge.el || ev.source !== bridge.el.contentWindow) return;
         const m = ev.data || {};
@@ -726,7 +742,7 @@
     const brg = taifexBridge();
     let why = '';
     /* 直連 Deno 這次開頁已經丟過例外（正式網域被 CORS 擋）→ 直接走轉打頁，不再白打一次直連。 */
-    if (deno && brg && !bridge.dead && state.futDenoDirectBad) {
+    if (deno && brg && bridgeOK() && state.futDenoDirectBad) {
       try {
         const r = await bridgeGet(brg, path);
         if (r.ok) { state.futVia = 'bridge'; state.futDenoWhy = ''; return { r, deno: '' }; }
@@ -744,7 +760,7 @@
       } catch (e) {
         why = 'Deno 連不上（' + ((e && e.name) || e) + '）';
         /* ★ 直連丟例外（正式網域被 Deno 的 CORS 擋就是這一種）→ 先試轉打頁，再退 Worker。 */
-        if (brg && !bridge.dead) {
+        if (brg && bridgeOK()) {
           try {
             const r = await bridgeGet(brg, path);
             state.futDenoDirectBad = true;

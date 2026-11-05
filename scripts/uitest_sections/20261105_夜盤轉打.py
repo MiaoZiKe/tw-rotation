@@ -14,7 +14,8 @@
 #   B（重現當晚）：轉打頁關著 → Deno 直連丟例外、Worker 502 → 小標「日盤」，說明講得出兩條路都失敗
 #   A（修好之後）：轉打頁開著 → Deno 直連丟例外 → 經轉打頁拿到夜盤 → 小標「夜盤」、畫出夜盤線、Worker 一次都沒打；
 #                 下一輪（60 秒）直接走轉打頁，不再白打直連
-#   C（轉打頁也壞）：iframe 載不到 → 5 秒內放棄、退回 Worker，頁面不爆
+#   C（轉打頁也壞）：iframe 載不到 → 12 秒內放棄、退回 Worker，頁面不爆；冷卻 60 秒後重開再試（11-06 改）
+#   D（11-06，#381）：轉打頁壞、Worker 已改成先經 Deno 拿 → 照樣顯示夜盤
 
 def t_night_bridge_1105(b, base):
     import json as _json
@@ -81,7 +82,7 @@ def t_night_bridge_1105(b, base):
         except (TypeError, ValueError):
             return None
 
-    def open_page(bridge_on, bridge_mode="ok"):
+    def open_page(bridge_on, bridge_mode="ok", worker_ok=False):
         ctx = b.new_context(viewport={"width": 1500, "height": 1000}, timezone_id="Asia/Taipei")
         if bridge_on:
             ctx.add_init_script("window.TW_TAIFEX_BRIDGE = true;")
@@ -126,6 +127,11 @@ def t_night_bridge_1105(b, base):
 
         def on_worker(route):
             hits["worker"] += 1
+            if worker_ok:   # 2026-11-06（#381）：Worker 改成先經 Deno 拿 → 回的就是期交所那份夜盤 JSON
+                body = CHART_NIGHT if "/futchart?" in route.request.url else FUT_NIGHT
+                route.fulfill(status=200, content_type="application/json; charset=utf-8",
+                              headers={"Access-Control-Allow-Origin": "*", "X-TW-Via": "deno"}, body=_json.dumps(body))
+                return
             route.fulfill(status=502, content_type="application/json; charset=utf-8", body=W502)
 
         ctx.route("https://tw-taifex.miaozike.deno.net/**", on_deno)
@@ -198,13 +204,32 @@ def t_night_bridge_1105(b, base):
     ctx.close()
 
     # ---------------- C. 轉打頁載不到 → 放棄轉打、退回 Worker，頁面不爆
+    # 2026-11-06（#381）：握手逾時改 12 秒、冷卻 60 秒後重試（以前一逾時就整頁永遠不再試）
     ctx, pg, hits, boom = open_page(True, "dead")
-    pg.wait_for_timeout(5500)
+    pg.clock.run_for(13 * 1000)
+    pg.wait_for_timeout(2500)
     r = pg.evaluate(PROBE)
     ok(f"[{T}] C. 轉打頁載不到 → 退回 Worker 有被試", hits["worker"] >= 1, hits)
     ok(f"[{T}] C. 小標退回「日盤」、走的是 Worker（轉打頁壞了不會卡住整條路）", r["label"] == "日盤" and r["via"] == "worker", r)
-    ok(f"[{T}] C. 轉打頁只試載一次（判定壞掉之後不再每一輪多等 5 秒）", hits["bridge_page"] == 1, hits)
+    ok(f"[{T}] C. 冷卻期間轉打頁只試載一次（不每一輪多等 12 秒）", hits["bridge_page"] == 1, hits)
+    ok(f"[{T}] C. 逾時後那個 iframe 已拆掉", r["iframe"] is None, r["iframe"])
+    # 冷卻到 12+60＝72 秒；輪詢每 60 秒一輪 → 第 120 秒那一輪才會重開。往前推 125 秒。
+    pg.clock.run_for(125 * 1000)
+    pg.wait_for_timeout(3000)
+    ok(f"[{T}] ★ C. 冷卻 60 秒後會重開轉打頁再試（不再整頁永遠放棄）", hits["bridge_page"] >= 2, hits)
     ok(f"[{T}] C. 頁面沒爆", not boom, boom)
+    ctx.close()
+
+    # ---------------- D. 轉打頁壞了、但 Worker 已改成先經 Deno 拿（#381）→ 照樣顯示夜盤
+    ctx, pg, hits, boom = open_page(True, "dead", worker_ok=True)
+    pg.clock.run_for(13 * 1000)
+    pg.wait_for_timeout(2500)
+    wait_until(pg, "() => window.Market3.shown === 'night'", 8000)
+    r = pg.evaluate(PROBE)
+    ok(f"[{T}] ★ D. 轉打頁壞了也顯示「夜盤」（走 Worker → Deno）", r["label"] == "夜盤" and r["shown"] == "night" and r["via"] == "worker", r)
+    lv = lastnum(r["last"])
+    ok(f"[{T}] D. 畫出夜盤線（最後一點＝{LAST}）", r["n"] >= 2 and lv is not None and abs(lv - LAST) < 0.5, {"n": r["n"], "last": r["last"]})
+    ok(f"[{T}] D. 頁面沒爆", not boom, boom)
     ctx.close()
 
 

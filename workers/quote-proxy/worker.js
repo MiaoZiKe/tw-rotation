@@ -55,6 +55,31 @@ const TAIFEX_BODY = (night) => JSON.stringify({
 const TAIFEX_CHART = 'https://mis.taifex.com.tw/futures/api/getChartData1M';
 const FUT_SYMBOL = /^[A-Z0-9]{3,8}-[FM]$/;
 
+/* ★ 2026-11-06（DECISIONS #381）：/fut、/futchart 先經 Deno 代理拿，拿不到才直連期交所。
+   為什麼：期交所擋 Cloudflare 出口（上游 520，#281），這支 Worker 直連期交所日盤夜盤都是 502；
+   Deno（tw-taifex.miaozike.deno.net）不走 Cloudflare 出口，打得到期交所，但線上那台還是 10-02 版，
+   CORS 白名單只有 miaozike.github.io —— 正式網域的瀏覽器直連被擋（#380）。
+   伺服器對伺服器不受 CORS 管：Worker 帶 Origin＝白名單裡的 miaozike.github.io 去問 Deno，
+   拿到的就是同一份期交所原始 JSON，再用這支 Worker 自己的 CORS（已含正式網域）回給瀏覽器。
+   這樣正式網域就不必依賴 GitHub Pages 上那個隱形 iframe 轉打頁（手機背景分頁、慢網路時握手會逾時）。
+   探測 run 42106454144：同一支 Deno，Origin＝miaozike.github.io → 200、帶 ACAO。
+   ⚠ 路徑一樣鎖死成 /fut?session=day|night 與 /futchart?symbol=<合約代號>，不是通用代理。
+   ⚠ Deno 不通（逾時、非 200、不是 JSON）就照舊直連期交所，原本那條路一個字都沒改。 */
+const FUT_DENO = 'https://tw-taifex.miaozike.deno.net';
+const FUT_DENO_ORIGIN = 'https://miaozike.github.io';
+const FUT_DENO_TIMEOUT_MS = 5000;
+async function futViaDeno(path) {
+  try {
+    const opt = { headers: { 'Origin': FUT_DENO_ORIGIN, 'Accept': 'application/json' } };
+    if (typeof AbortSignal !== 'undefined' && AbortSignal.timeout) opt.signal = AbortSignal.timeout(FUT_DENO_TIMEOUT_MS);
+    const r = await fetch(FUT_DENO + path, opt);
+    if (!r || r.status !== 200) return null;
+    const txt = await r.text();
+    if (!/^\s*\{/.test(txt)) return null;
+    return txt;
+  } catch (e) { return null; }
+}
+
 // 大盤／櫃買／台指期的「當日分時」檔。就是證交所基本市況報導那三張走勢圖的資料來源，
 // 每一筆是 {t: epoch 毫秒, ts: "090100", c: 指數, s: 該分鐘成交量}，09:01 起每分鐘一筆。
 // 同樣鎖死成白名單 —— 只放行這幾個檔名，不接受任意路徑。
@@ -406,6 +431,10 @@ const handle = async (request, env, ctx) => {
       const upstream = futQuoteRequest(night);
       // 診斷模式只給夜盤、只在明確帶 diag=1 時跑（探測工作流用），一般流量完全不會走到。
       if (night && url.searchParams.get('diag') === '1') return futDiag(request, origin);
+      const viaDeno = await futViaDeno('/fut?session=' + (night ? 'night' : 'day'));
+      if (viaDeno) return new Response(viaDeno, { status: 200,
+        headers: { 'Content-Type': 'application/json; charset=utf-8', 'X-TW-Via': 'deno',
+                   'Cache-Control': `public, max-age=${CACHE_QUOTE}`, ...cors(origin) } });
       const t0 = Date.now();
       try {
         /* ★ 2026-09-23：這裡原本帶 cf: { cacheTtl, cacheEverything: true }。
@@ -434,6 +463,10 @@ const handle = async (request, env, ctx) => {
     if (url.pathname === '/futchart') {
       const sym = (url.searchParams.get('symbol') || '').toUpperCase();
       if (!FUT_SYMBOL.test(sym)) return json({ error: 'bad symbol', got: sym }, 400, origin);
+      const viaDeno = await futViaDeno('/futchart?symbol=' + sym);
+      if (viaDeno) return new Response(viaDeno, { status: 200,
+        headers: { 'Content-Type': 'application/json; charset=utf-8', 'X-TW-Via': 'deno',
+                   'Cache-Control': `public, max-age=${CACHE_CHART}`, ...cors(origin) } });
       const upstream = futChartRequest(sym);
       const t0 = Date.now();
       try {

@@ -15,7 +15,14 @@ const ok = (n, c, d = '') => { console.log((c ? '  OK  ' : '  XX  ') + n + (c ? 
 
 let hits = 0, lastReq = null;
 let next = () => new Response('{"RtCode":"0","RtData":{"QuoteList":[]}}', { status: 200 });
-globalThis.fetch = async (req) => { hits++; lastReq = req; return next(req); };
+// 2026-11-06（#381）：/fut、/futchart 會先問 Deno。這支測的是「Deno 不通、直連期交所」那條路，
+// 所以 Deno 一律當它連不上（不算進 hits）；Deno 通的那條路另外在檔尾驗。
+let denoNext = () => { throw new Error('deno down'); }, denoHits = 0, denoReq = null;
+globalThis.fetch = async (req, init) => {
+  const u = String((req && req.url) || req);
+  if (u.startsWith('https://tw-taifex.miaozike.deno.net')) { denoHits++; denoReq = { u, init }; return denoNext(u); }
+  hits++; lastReq = req; return next(req);
+};
 globalThis.caches = { default: { async match() { return null; }, async put() {} } };
 
 const ctx = { waitUntil() {} };
@@ -111,6 +118,31 @@ hits = 0;
   next = () => new Response('{"RtCode":"0"}', { status: 200 });
   const r3 = await call(worker, 'https://w/fut?session=day&diag=1');
   ok('日盤帶 diag=1 不會進診斷（照一般 /fut 走）', r3.status === 200 && r3.body === '{"RtCode":"0"}' && hits === 1, r3);
+}
+
+// ---- ④ 2026-11-06（#381）：Deno 通 → 回 Deno 那份、不直連期交所；Deno 回非 200／非 JSON → 照舊直連
+{
+  const NIGHT = '{"RtCode":"0","RtData":{"QuoteList":[{"SymbolID":"TXFK6-M","CLastPrice":"38868"}]}}';
+  denoNext = () => new Response(NIGHT, { status: 200 });
+  next = () => new Response('error code: 520\n', { status: 520 });
+  for (const [u, dp] of [['https://w/fut?session=night&t=1', '/fut?session=night'], ['https://w/fut?session=day', '/fut?session=day'],
+                         ['https://w/futchart?symbol=txfk6-m', '/futchart?symbol=TXFK6-M']]) {
+    hits = 0; denoHits = 0; denoReq = null;
+    const r = await call(worker, u);
+    ok(`${u}：Deno 通 → 200 且內容就是 Deno 那份`, r.status === 200 && r.body === NIGHT, r);
+    ok(`${u}：標頭註明經 Deno`, r.headers['x-tw-via'] === 'deno', r.headers);
+    ok(`${u}：瀏覽器讀得到（有 CORS）`, r.headers['access-control-allow-origin'] === 'https://miaozike.github.io', r.headers);
+    ok(`${u}：期交所一次都沒打`, hits === 0, hits);
+    ok(`${u}：問 Deno 的路徑鎖死、帶白名單 Origin`, denoHits === 1 && denoReq.u === 'https://tw-taifex.miaozike.deno.net' + dp
+       && denoReq.init && denoReq.init.headers && denoReq.init.headers.Origin === 'https://miaozike.github.io', denoReq);
+  }
+  for (const [name, f] of [['Deno 回 403', () => new Response('{"error":"origin not allowed"}', { status: 403 })],
+                           ['Deno 回 HTML', () => new Response('<html>oops</html>', { status: 200 })]]) {
+    denoNext = f; hits = 0;
+    const r = await call(worker, 'https://w/fut?session=night');
+    ok(`${name} → 照舊直連期交所（520 → 502 JSON）`, r.status === 502 && hits === 1, { s: r.status, hits });
+  }
+  denoNext = () => { throw new Error('deno down'); };
 }
 
 console.log(fails.length ? `\n${fails.length} 條沒過` : '\n全部通過');
