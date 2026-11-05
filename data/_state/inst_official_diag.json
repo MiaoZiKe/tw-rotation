@@ -57,8 +57,23 @@
   "url": "https://openapi.twse.com.tw/v1/fund/MI_QFIIS_cat"
  },
  {
-  "head": "æè¡,è­å¸ä»£è,è­å¸åç¨±,ç¼è¡è¡æ¸,å¤è³åé¸è³å°å¯æè³è¡æ¸,å¨é«å¤è³åé¸è³ææè¡æ¸,å¨é«å¤è³åé¸è³å°å¯æè³æ¯ç,å¨é«å¤è³åé¸è³æè¡æ¯ç,æ³ä»¤æè³",
+  "head": "[ {\"Rank\":\"1\",\"Code\":\"2923\",\"Name\":\"鼎固-KY\",\"ShareNumber\":\"1740296982\",\"AvailableShare\":\"7924946\",\"SharesHeld\":\"1732372036\",\"AvailableInvestPer\":\"0.45\",\"SharesHeldPer\":\"99.54\",\"Upperlimit\":\"100.00\"}, {",
   "http": 200,
+  "url": "https://openapi.twse.com.tw/v1/fund/MI_QFIIS_sort_20"
+ },
+ {
+  "cols": [
+   "Rank",
+   "Code",
+   "Name",
+   "ShareNumber",
+   "AvailableShare",
+   "SharesHeld",
+   "AvailableInvestPer",
+   "SharesHeldPer",
+   "Upperlimit"
+  ],
+  "n": 20,
   "url": "https://openapi.twse.com.tw/v1/fund/MI_QFIIS_sort_20"
  },
  {
