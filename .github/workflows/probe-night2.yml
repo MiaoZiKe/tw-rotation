@@ -21,6 +21,7 @@ jobs:
           echo "=== _headers"; curl -sS --max-time 20 https://liguligu-puipui.com/_headers | head -40
           for o in https://miaozike.github.io https://liguligu-puipui.com; do for path in "/fut?session=night" "/futchart?symbol=TXFK6-M" "/fut?session=day"; do
             echo "=== Deno $path Origin=$o"; curl -sS -D - -o /tmp/b --max-time 20 -H "Origin: $o" "https://tw-taifex.miaozike.deno.net$path" | grep -iE "^(HTTP|access-control)"; head -c 300 /tmp/b; echo; done; done
+          for path in "/fut?session=night" "/futchart?symbol=TXFK6-M"; do echo "=== Worker $path Origin=liguligu"; curl -sS -D - -o /tmp/b --max-time 20 -H "Origin: https://liguligu-puipui.com" "https://tw-quote.kcq01010909.workers.dev$path" | grep -iE "^(HTTP|access-control-allow-origin|x-tw-via)"; head -c 200 /tmp/b; echo; done
           echo "=== Deno OPTIONS"; curl -sS -D - -o /dev/null -X OPTIONS -H "Origin: https://miaozike.github.io" -H "Access-Control-Request-Method: GET" https://tw-taifex.miaozike.deno.net/fut?session=night | grep -iE "^(HTTP|access-control)"
       - uses: actions/setup-python@v5
         with: { python-version: "3.12" }
@@ -30,13 +31,13 @@ jobs:
         continue-on-error: true
         env: { OUT: out_force, FORCE: "1" }
         run: python probe/live_probe.py
-      - name: WebKit iPhone 13（不強制時鐘）
+      - name: 真實瀏覽器（轉打頁擋掉，只剩 Worker）
         continue-on-error: true
-        env: { OUT: out_webkit, FORCE: "1", BRW: webkit, DEV: "iPhone 13", WAIT: "25000" }
+        env: { OUT: out_nobridge, FORCE: "1", BLOCK_BRIDGE: "1", WAIT: "40000" }
         run: python probe/live_probe.py
-      - name: Chromium 手機 + 舊合約代號 TXFJ6-M
+      - name: WebKit iPhone 13
         continue-on-error: true
-        env: { OUT: out_oldsym, FORCE: "1", DEV: "Pixel 7", WAIT: "25000", EXTRA_LS: '{"tw.m3.futsym":"TXFJ6-M"}' }
+        env: { OUT: out_webkit, FORCE: "1", BRW: webkit, DEV: "iPhone 13", WAIT: "30000" }
         run: python probe/live_probe.py
       - name: 存結果到 probe-log 分支
         if: always()

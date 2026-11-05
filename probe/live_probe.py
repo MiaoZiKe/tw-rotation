@@ -28,8 +28,10 @@ with sync_playwright() as p:
             route.fulfill(status=200, content_type="application/json", headers={"Access-Control-Allow-Origin": "*"}, body='{"ok":true}')
     ctx.route("**/v1/**", acct)
     ctx.route("**/auth/**", acct)
+    if os.environ.get("BLOCK_BRIDGE") == "1":
+        ctx.route("https://miaozike.github.io/tw-rotation/taifex_bridge.html*", lambda r: r.abort("failed"))
     pg = ctx.new_page()
-    KEY = ("deno", "taifex", "bridge", "workers.dev", "github.io", "/fut")
+    KEY = ("deno", "taifex", "bridge", "tw-quote", "github.io", "/fut")
     def interesting(u): return any(k in u for k in KEY)
     pg.on("console", lambda m: log["console"].append(f"{now()} [{m.type}] {m.text[:400]}"))
     pg.on("pageerror", lambda e: log["console"].append(f"{now()} [pageerror] {str(e)[:400]}"))
@@ -38,7 +40,7 @@ with sync_playwright() as p:
     def onresp(r):
         if interesting(r.url):
             h = r.headers
-            log["resp"].append(f"{now()} {r.status} {r.url} acao={h.get('access-control-allow-origin')} xfo={h.get('x-frame-options')} csp={h.get('content-security-policy')}")
+            log["resp"].append(f"{now()} {r.status} {r.url} acao={h.get('access-control-allow-origin')} via={h.get('x-tw-via')} xfo={h.get('x-frame-options')} csp={h.get('content-security-policy')}")
     def onfail(r):
         if interesting(r.url): log["fail"].append(f"{now()} FAIL {r.url} {r.failure}")
     pg.on("request", onreq); pg.on("response", onresp); pg.on("requestfailed", onfail)
