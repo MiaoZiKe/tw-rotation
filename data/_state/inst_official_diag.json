@@ -57,23 +57,8 @@
   "url": "https://openapi.twse.com.tw/v1/fund/MI_QFIIS_cat"
  },
  {
-  "head": "[ {\"Rank\":\"1\",\"Code\":\"2923\",\"Name\":\"鼎固-KY\",\"ShareNumber\":\"1740296982\",\"AvailableShare\":\"7924946\",\"SharesHeld\":\"1732372036\",\"AvailableInvestPer\":\"0.45\",\"SharesHeldPer\":\"99.54\",\"Upperlimit\":\"100.00\"}, {",
+  "head": "æè¡,è­å¸ä»£è,è­å¸åç¨±,ç¼è¡è¡æ¸,å¤è³åé¸è³å°å¯æè³è¡æ¸,å¨é«å¤è³åé¸è³ææè¡æ¸,å¨é«å¤è³åé¸è³å°å¯æè³æ¯ç,å¨é«å¤è³åé¸è³æè¡æ¯ç,æ³ä»¤æè³",
   "http": 200,
-  "url": "https://openapi.twse.com.tw/v1/fund/MI_QFIIS_sort_20"
- },
- {
-  "cols": [
-   "Rank",
-   "Code",
-   "Name",
-   "ShareNumber",
-   "AvailableShare",
-   "SharesHeld",
-   "AvailableInvestPer",
-   "SharesHeldPer",
-   "Upperlimit"
-  ],
-  "n": 20,
   "url": "https://openapi.twse.com.tw/v1/fund/MI_QFIIS_sort_20"
  },
  {
@@ -124,15 +109,15 @@
   "swagger_path": "/tpex_3insti_qfii_trading"
  },
  {
-  "head": "[ {\"Date\":\"1151104\",\"SecuritiesCompanyCode\":\"00411A\",\"CompanyName\":\"主動統一前沿科技\",\"Foreign Investors include Mainland Area Investors (Foreign Dealers excluded)-Total Buy\":\"917200\",\" Foreign Investors incl",
+  "head": "[ {\"Date\":\"1151105\",\"SecuritiesCompanyCode\":\"00411A\",\"CompanyName\":\"主動統一前沿科技\",\"Foreign Investors include Mainland Area Investors (Foreign Dealers excluded)-Total Buy\":\"1694099\",\" Foreign Investors inc",
   "http": 200,
   "url": "https://www.tpex.org.tw/openapi/v1/tpex_3insti_daily_trading"
  },
  {
   "market": "上櫃",
   "parts": [
-   915
+   907
   ],
-  "rows": 915
+  "rows": 907
  }
 ]
