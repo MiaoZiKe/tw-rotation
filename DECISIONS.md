@@ -7200,3 +7200,24 @@ Andy（11-05 台北 17:40，夜盤時段）：「為何夜盤沒有即時功能�
 **根治仍要 Andy 換 Deno 部署金鑰**（console.deno.com → Access Tokens → 新權杖 → GitHub Secrets `DENO_DEPLOY_TOKEN` → 重跑 deploy-deno.yml）。
 換好之後正式網域直連就會成功，轉打頁自動不再被用到（可以留著當保險）。
 驗收：`_uitest --sections 夜盤轉打1105`（B 重現當晚日盤、A 經轉打頁小標夜盤並畫線且 Worker 0 次、C 轉打頁壞掉退 Worker）。
+
+## #381 夜盤轉打頁在 Andy 那邊沒生效 → Worker 改先經 Deno 拿、轉打頁逾時不再永久放棄（2026-11-06；合併時若撞號請改號）
+Andy（11-06 台北 04:37，夜盤時段）開 https://liguligu-puipui.com/#overview，台指期小標仍是「日盤」、41,915 −1,289。
+
+**排除過程（全部在 Actions 上實測）**
+1. 部署產物：run 42106454144 curl github.io `/tw-rotation/taifex_bridge.html` → 200、內容就是 repo 那一版；正式網域主頁沒有 CSP／X-Frame-Options，只有 `referrer-policy`；github.io 那頁也沒有 X-Frame-Options／frame-ancestors。
+2. Deno：Origin＝miaozike.github.io → 200 帶 ACAO；Origin＝正式網域 → 403、**沒有 ACAO** → 瀏覽器丟 TypeError（不是拿到 r.ok=false），futGet 確實會改走轉打頁。
+3. 真實瀏覽器（正式網域、假站主登入、/v1/** 攔截）：run 42106454144（台北 04:46 桌機 Chromium）、run 42107920925（04:56～04:59 桌機 Chromium、**iPhone 13 WebKit**、Pixel 7 Chromium＋舊合約代號 TXFJ6-M）
+   四次全部 `futVia=bridge`、小標「夜盤」、data-why 空白、38,868 −3,014（參考價 41,882）；iframe 內對 Deno 的請求 Origin＝miaozike.github.io、回 200。
+   ⇒ 線上這一版在乾淨的瀏覽器是好的；Andy 那邊失敗只能是使用者環境：① 分頁是 19:09 部署前就開著的舊程式（沒有轉打頁），
+   或 ② 轉打頁握手逾時（舊碼 5 秒，手機慢網路／開頁同時載一堆資料／分頁在背景被凍結都會超過）→ `bridge.dead=true` 到重新整理為止，之後每一輪只剩 Worker 502 → 整晚日盤。
+   兩者都沒辦法從這裡證明是哪一個，所以兩個都修，而且讓「轉打頁」不再是唯一的路。
+
+**修法**
+- `workers/quote-proxy/worker.js`：`/fut`、`/futchart` 先由 Worker 伺服器端帶 `Origin: https://miaozike.github.io` 問 Deno（伺服器對伺服器不受 CORS 管，Deno 不走 Cloudflare 出口打得到期交所），
+  拿到 200＋JSON 就用 Worker 自己的 CORS（已含正式網域）回給瀏覽器、標頭 `X-TW-Via: deno`；Deno 不通才照舊直連期交所。路徑一樣鎖死，不是通用代理。
+  ⇒ 正式網域即使轉打頁壞了，退到 Worker 也拿得到夜盤。
+- `site/market3.js`：轉打頁握手 5→12 秒；逾時拆掉 iframe、冷卻 60 秒後下一輪重開再試（以前整頁永遠不再試）。
+- 驗收 `夜盤轉打1105` 加 C（冷卻後重試）、D（轉打頁壞、Worker 經 Deno 回夜盤 → 小標夜盤）；Worker 離線驗收 `fut_fail_check.mjs` 加 Deno 通／403／HTML 三種。
+- 根治仍是 Andy 換 `DENO_DEPLOY_TOKEN` 讓新版 Deno（白名單有正式網域）上線，見 #380。
+

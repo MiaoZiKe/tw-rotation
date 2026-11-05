@@ -1,6 +1,12 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
 
+## 2026-11-06 清晨 夜盤轉打頁在 Andy 那邊沒生效 → Worker 先經 Deno、轉打頁可重試（DECISIONS #381）
+- 實測（Actions run 42106454144、42107920925）：線上 c708682e 在桌機 Chromium／iPhone WebKit／手機 Chromium 都經轉打頁顯示夜盤 → 失敗在使用者環境（舊分頁或握手逾時後永久放棄）。
+- 修：Worker `/fut`、`/futchart` 先帶白名單 Origin 問 Deno；`market3.js` 轉打頁握手 12 秒、逾時冷卻 60 秒後重試。
+- 這批只驗了：`夜盤轉打1105`（加 C 重試、D Worker 經 Deno）、`台指期Deno優先`、`盤中即時`、`新-大盤三張圖`（週日 OTC y 軸 1 條，origin/main 同樣紅＝既有）、`_preview.py`（3 條與 main 相同）、Worker 離線驗收五支（futstream_check 4 條既有紅，main 同樣）、pytest。
+- 待 Andy：換 DENO_DEPLOY_TOKEN 仍是根治（#380）。
+
 ## 2026-11-05 夜 台指期夜盤在正式網域沒有即時 → 修（DECISIONS #380）
 - 根因：Deno 部署金鑰 10-11 失效，線上 Deno 還是 10-02 版、白名單沒有 liguligu-puipui.com → 正式網域被 CORS 擋，Worker 又被期交所擋（520）→ 卡片只能畫日盤。證據 `docs/fixtures/taifex_deno_origin_1105_probe.json`（run 42005914871）。
 - 修：`site/taifex_bridge.html`（GitHub Pages 轉打頁）＋ `market3.js futGet()` 直連丟例外後改經轉打頁；`live.js` 加 `Live.taifexBridge()`。`probe_sources.py taifex_night` 加 Deno 帶正式網域 Origin 的探測。
