@@ -1,0 +1,68 @@
+{
+ "req": [
+  "21:50:21 GET https://liguligu-puipui.com/futpages.js?v=c708682e frame=https://liguligu-puipui.com/#overview origin=None",
+  "21:50:21 GET https://liguligu-puipui.com/lab/futures.js?v=c708682e frame=https://liguligu-puipui.com/#overview origin=None",
+  "21:50:22 GET https://tw-quote.kcq01010909.workers.dev/chart?id=TSE&t=1793915422960 frame=https://liguligu-puipui.com/#overview origin=https://liguligu-puipui.com",
+  "21:50:22 GET https://tw-quote.kcq01010909.workers.dev/chart?id=OTC&t=1793915422960 frame=https://liguligu-puipui.com/#overview origin=https://liguligu-puipui.com",
+  "21:50:22 GET https://tw-quote.kcq01010909.workers.dev/chart?id=FUT&t=1793915422961 frame=https://liguligu-puipui.com/#overview origin=https://liguligu-puipui.com",
+  "21:51:00 GET https://tw-taifex.miaozike.deno.net/fut?session=night frame=https://liguligu-puipui.com/#overview origin=https://liguligu-puipui.com"
+ ],
+ "resp": [
+  "21:50:21 200 https://liguligu-puipui.com/futpages.js?v=c708682e acao=* via=None xfo=None csp=None",
+  "21:50:21 200 https://liguligu-puipui.com/lab/futures.js?v=c708682e acao=* via=None xfo=None csp=None",
+  "21:50:24 200 https://tw-quote.kcq01010909.workers.dev/chart?id=FUT&t=1793915422961 acao=https://liguligu-puipui.com via=None xfo=None csp=None",
+  "21:50:24 200 https://tw-quote.kcq01010909.workers.dev/chart?id=OTC&t=1793915422960 acao=https://liguligu-puipui.com via=None xfo=None csp=None",
+  "21:50:24 200 https://tw-quote.kcq01010909.workers.dev/chart?id=TSE&t=1793915422960 acao=https://liguligu-puipui.com via=None xfo=None csp=None"
+ ],
+ "fail": [
+  "21:51:00 FAIL https://tw-taifex.miaozike.deno.net/fut?session=night Origin https://liguligu-puipui.com is not allowed by Access-Control-Allow-Origin. Status code: 403"
+ ],
+ "console": [
+  "21:50:23 [error] Failed to load resource: the server responded with a status of 401 (Unauthorized)",
+  "21:51:00 [error] Origin https://liguligu-puipui.com is not allowed by Access-Control-Allow-Origin. Status code: 403",
+  "21:51:00 [pageerror] /tw-taifex.miaozike.deno.net/fut?session=night due to access control checks.",
+  "21:51:00 [error] Failed to load resource: Origin https://liguligu-puipui.com is not allowed by Access-Control-Allow-Origin. Status code: 403"
+ ],
+ "frames": [
+  "https://liguligu-puipui.com/#overview"
+ ],
+ "main_headers": {
+  "date": "Thu, 05 Nov 2026 21:50:21 GMT",
+  "content-type": "text/html; charset=utf-8",
+  "x-content-type-options": "nosniff",
+  "access-control-allow-origin": "*",
+  "cache-control": "public, max-age=0, must-revalidate",
+  "referrer-policy": "strict-origin-when-cross-origin",
+  "vary": "accept-encoding",
+  "server-timing": "cfCacheStatus;desc=\"DYNAMIC\", cfEdge;dur=44, cfOrigin;dur=70",
+  "content-encoding": "br",
+  "report-to": "{\"group\":\"cf-nel\", \"max_age\":604800, \"endpoints\":[{\"url\":\"https://a.nel.cloudflare.com/report/v4?s=IJhArRfef6OHmBwmA1ZA60LOPzqtcUGD7xznu5%2B%2Biwi4st3e%2BYJQ0tFiyHzCA49PhZhQpxP4S16R1%2F8XK8JRT15VSYgiwGGCUaXvkIRA%2BUGJVETt1%2FmaQimeaCGd3KvBfSZY%2Fgmj\"}]}",
+  "server": "cloudflare",
+  "nel": "{\"report_to\":\"cf-nel\", \"success_fraction\":0.0, \"max_age\":604800}",
+  "cf-cache-status": "DYNAMIC",
+  "cf-ray": "a55f12d54a554235-EWR",
+  "alt-svc": "h3=\":443\"; ma=86400"
+ },
+ "state": {
+  "build": "2026-11-05 第 2 版|19:00",
+  "origin": "https://liguligu-puipui.com",
+  "allowed": false,
+  "brg": "",
+  "deno": "",
+  "session": "night",
+  "shown": "day",
+  "via": "",
+  "dwhy": "",
+  "label": "日盤",
+  "why": "",
+  "title": "夜盤時段，尚無夜盤資料，先顯示日盤",
+  "iframe": null,
+  "scripts": [
+   "https://liguligu-puipui.com/livegate.js?v=c708682e",
+   "https://liguligu-puipui.com/livek.js?v=c708682e",
+   "https://liguligu-puipui.com/market3.js?v=c708682e",
+   "https://liguligu-puipui.com/live.js?v=c708682e"
+  ]
+ },
+ "direct": "throw TypeError: Load failed"
+}

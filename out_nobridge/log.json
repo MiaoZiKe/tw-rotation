@@ -1,0 +1,89 @@
+{
+ "req": [
+  "21:49:23 GET https://liguligu-puipui.com/futpages.js?v=c708682e frame=https://liguligu-puipui.com/#overview origin=None",
+  "21:49:23 GET https://liguligu-puipui.com/lab/futures.js?v=c708682e frame=https://liguligu-puipui.com/#overview origin=None",
+  "21:49:24 GET https://tw-quote.kcq01010909.workers.dev/chart?id=TSE&t=1793915364752 frame=https://liguligu-puipui.com/#overview origin=https://liguligu-puipui.com",
+  "21:49:24 GET https://tw-quote.kcq01010909.workers.dev/chart?id=OTC&t=1793915364753 frame=https://liguligu-puipui.com/#overview origin=https://liguligu-puipui.com",
+  "21:49:24 GET https://tw-quote.kcq01010909.workers.dev/chart?id=FUT&t=1793915364753 frame=https://liguligu-puipui.com/#overview origin=https://liguligu-puipui.com",
+  "21:49:29 GET https://tw-quote.kcq01010909.workers.dev/quote?ex_ch=tse_t00.tw%7Cotc_o00.tw frame=https://liguligu-puipui.com/#overview origin=https://liguligu-puipui.com",
+  "21:49:32 GET https://tw-taifex.miaozike.deno.net/fut?session=night&t=1793915372137 frame=https://liguligu-puipui.com/#overview origin=https://liguligu-puipui.com",
+  "21:49:32 GET https://tw-quote.kcq01010909.workers.dev/chart?id=TSE&t=1793915372139 frame=https://liguligu-puipui.com/#overview origin=https://liguligu-puipui.com",
+  "21:49:32 GET https://tw-quote.kcq01010909.workers.dev/chart?id=OTC&t=1793915372139 frame=https://liguligu-puipui.com/#overview origin=https://liguligu-puipui.com",
+  "21:49:32 GET https://miaozike.github.io/tw-rotation/taifex_bridge.html frame= origin=None",
+  "21:49:34 GET https://tw-quote.kcq01010909.workers.dev/chart?id=FUT&t=1793915374772 frame=https://liguligu-puipui.com/#overview origin=https://liguligu-puipui.com",
+  "21:49:37 GET https://tw-quote.kcq01010909.workers.dev/fut?session=night&t=1793915372137 frame=https://liguligu-puipui.com/#overview origin=https://liguligu-puipui.com",
+  "21:49:37 GET https://tw-taifex.miaozike.deno.net/futchart?symbol=TXFK6-M&t=1793915377900 frame=https://liguligu-puipui.com/#overview origin=https://liguligu-puipui.com",
+  "21:49:37 GET https://tw-quote.kcq01010909.workers.dev/futchart?symbol=TXFK6-M&t=1793915377900 frame=https://liguligu-puipui.com/#overview origin=https://liguligu-puipui.com",
+  "21:50:18 GET https://tw-taifex.miaozike.deno.net/fut?session=night frame=https://liguligu-puipui.com/#overview origin=https://liguligu-puipui.com"
+ ],
+ "resp": [
+  "21:49:23 200 https://liguligu-puipui.com/lab/futures.js?v=c708682e acao=* via=None xfo=None csp=None",
+  "21:49:23 200 https://liguligu-puipui.com/futpages.js?v=c708682e acao=* via=None xfo=None csp=None",
+  "21:49:25 200 https://tw-quote.kcq01010909.workers.dev/chart?id=TSE&t=1793915364752 acao=https://liguligu-puipui.com via=None xfo=None csp=None",
+  "21:49:25 200 https://tw-quote.kcq01010909.workers.dev/chart?id=FUT&t=1793915364753 acao=https://liguligu-puipui.com via=None xfo=None csp=None",
+  "21:49:26 200 https://tw-quote.kcq01010909.workers.dev/chart?id=OTC&t=1793915364753 acao=https://liguligu-puipui.com via=None xfo=None csp=None",
+  "21:49:30 200 https://tw-quote.kcq01010909.workers.dev/quote?ex_ch=tse_t00.tw%7Cotc_o00.tw acao=https://liguligu-puipui.com via=None xfo=None csp=None",
+  "21:49:33 200 https://tw-quote.kcq01010909.workers.dev/chart?id=TSE&t=1793915372139 acao=https://liguligu-puipui.com via=None xfo=None csp=None",
+  "21:49:33 200 https://tw-quote.kcq01010909.workers.dev/chart?id=OTC&t=1793915372139 acao=https://liguligu-puipui.com via=None xfo=None csp=None",
+  "21:49:35 200 https://tw-quote.kcq01010909.workers.dev/chart?id=FUT&t=1793915374772 acao=https://liguligu-puipui.com via=None xfo=None csp=None",
+  "21:49:37 200 https://tw-quote.kcq01010909.workers.dev/fut?session=night&t=1793915372137 acao=https://liguligu-puipui.com via=deno xfo=None csp=None",
+  "21:49:38 200 https://tw-quote.kcq01010909.workers.dev/futchart?symbol=TXFK6-M&t=1793915377900 acao=https://liguligu-puipui.com via=deno xfo=None csp=None"
+ ],
+ "fail": [
+  "21:49:32 FAIL https://tw-taifex.miaozike.deno.net/fut?session=night&t=1793915372137 net::ERR_FAILED",
+  "21:49:32 FAIL https://miaozike.github.io/tw-rotation/taifex_bridge.html net::ERR_FAILED",
+  "21:49:37 FAIL https://tw-taifex.miaozike.deno.net/futchart?symbol=TXFK6-M&t=1793915377900 net::ERR_FAILED",
+  "21:50:18 FAIL https://tw-taifex.miaozike.deno.net/fut?session=night net::ERR_FAILED"
+ ],
+ "console": [
+  "21:49:32 [error] Access to fetch at 'https://tw-taifex.miaozike.deno.net/fut?session=night&t=1793915372137' from origin 'https://liguligu-puipui.com' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource. If an opaque response serves your needs, set the request's mode to 'no-cors' to fetch the resource with CORS disabled.",
+  "21:49:32 [error] Failed to load resource: net::ERR_FAILED",
+  "21:49:37 [error] Access to fetch at 'https://tw-taifex.miaozike.deno.net/futchart?symbol=TXFK6-M&t=1793915377900' from origin 'https://liguligu-puipui.com' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource. If an opaque response serves your needs, set the request's mode to 'no-cors' to fetch the resource with CORS disabled.",
+  "21:49:37 [error] Failed to load resource: net::ERR_FAILED",
+  "21:50:18 [error] Access to fetch at 'https://tw-taifex.miaozike.deno.net/fut?session=night' from origin 'https://liguligu-puipui.com' has been blocked by CORS policy: No 'Access-Control-Allow-Origin' header is present on the requested resource. If an opaque response serves your needs, set the request's mode to 'no-cors' to fetch the resource with CORS disabled.",
+  "21:50:18 [error] Failed to load resource: net::ERR_FAILED"
+ ],
+ "frames": [
+  "https://liguligu-puipui.com/#overview",
+  "chrome-error://chromewebdata/"
+ ],
+ "main_headers": {
+  "access-control-allow-origin": "*",
+  "alt-svc": "h3=\":443\"; ma=86400",
+  "cache-control": "public, max-age=0, must-revalidate",
+  "cf-cache-status": "DYNAMIC",
+  "cf-ray": "a55f116b4b278844-IAD",
+  "content-encoding": "br",
+  "content-type": "text/html; charset=utf-8",
+  "date": "Thu, 05 Nov 2026 21:49:23 GMT",
+  "nel": "{\"report_to\":\"cf-nel\",\"success_fraction\":0.0,\"max_age\":604800}",
+  "referrer-policy": "strict-origin-when-cross-origin",
+  "report-to": "{\"group\":\"cf-nel\",\"max_age\":604800,\"endpoints\":[{\"url\":\"https://a.nel.cloudflare.com/report/v4?s=9vkHW4jnarqUSzQGcBlTF%2Bt8OVeWuJuHkf%2F6%2FEk3KiJhmm7UOIURJEQD%2BmrIN%2Ff8Hq3p3mvLETGYdhchrRfiMRhrstXGE5TNubmDkMrYsq%2BGbkBKSVaXNZPYsLpsw6bnBb3Qkdrn\"}]}",
+  "server": "cloudflare",
+  "server-timing": "cfCacheStatus;desc=\"DYNAMIC\"\ncfEdge;dur=13,cfOrigin;dur=62",
+  "vary": "accept-encoding",
+  "x-content-type-options": "nosniff"
+ },
+ "state": {
+  "build": "2026-11-05 第 2 版|19:00",
+  "origin": "https://liguligu-puipui.com",
+  "allowed": true,
+  "brg": "https://miaozike.github.io/tw-rotation/taifex_bridge.html",
+  "deno": "https://tw-taifex.miaozike.deno.net",
+  "session": "night",
+  "shown": "night",
+  "via": "worker",
+  "dwhy": "Deno 連不上（TypeError）",
+  "label": "夜盤",
+  "why": "",
+  "title": "夜盤（15:00～翌日 05:00）有資料，顯示夜盤",
+  "iframe": "https://miaozike.github.io/tw-rotation/taifex_bridge.html",
+  "scripts": [
+   "https://liguligu-puipui.com/livegate.js?v=c708682e",
+   "https://liguligu-puipui.com/livek.js?v=c708682e",
+   "https://liguligu-puipui.com/market3.js?v=c708682e",
+   "https://liguligu-puipui.com/live.js?v=c708682e"
+  ]
+ },
+ "direct": "throw TypeError: Failed to fetch"
+}
