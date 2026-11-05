@@ -1,13 +1,13 @@
 🥩 代號「肉鬆」的廣達，碩畢待遇長怎樣？
 
 由來很簡單：以前有個賣肉鬆的也叫廣達，圈內就這樣叫開了 😂
-廣達早年靠電腦 ODM 起家，近年伺服器事業群成為主力，也是大家討論最多的單位 🖥️
+廣達早年靠電腦 ODM 起家，近年伺服器事業群是大家討論最多的單位 🖥️
 
 📍 總部：桃園龜山
 💰 碩畢月薪：約 58～69K（中位約 62K）
 🎁 整包：約 18～22 個月（含底薪，隨單位差很多）
 📈 升等：調薪幅度依單位而異，網友回報近年較難升
-⏰ 工時：網友普遍回報工時長、壓力大；月延長工時上限 46 小時是勞基法規定。網友回報其他事業群工時較穩定（單一來源）
+⏰ 工時：網友普遍回報工時長、壓力大，隨單位與專案差很多（勞基法每月延長工時原則上限 46 小時）
 ✈️ 出差：時間不定，依客戶與專案
 
 🎤 FW 面談題型（朋友分享）
@@ -16,8 +16,8 @@ C 語言偏指標、bitwise，難度約 LeetCode easy～medium；介面問 I2C�
 💬 你那一組大概落在哪個區間？留言補一筆（區間就好、不用講部門），下一家想看誰？
 
 —
-科技透明圈 整理｜業內朋友 1 位＋網友回報 21 筆（2025～2026）；網友回報，非公司公告，未經查證，僅供參考，隨單位與客戶而異。
-圖：Alison Cassidy／CC BY-SA 4.0／Wikimedia Commons（廣達上海製造城廠區外觀，已裁切；非桃園總部）。https://commons.wikimedia.org/wiki/File:Quanta_Shanghai_Manufacturing_City_(QSMC).jpg 授權 https://creativecommons.org/licenses/by-sa/4.0
+科技透明圈 整理｜業內朋友 1 位＋網友回報 21 筆（2025～2026，網友樣本多未標學歷）；網友回報，非公司公告，未經查證，僅供參考，隨單位與客戶而異。
+圖：Alison Cassidy／CC BY-SA 4.0／Wikimedia Commons（廣達上海製造城廠區外觀，已裁切，裁切後照片同樣依 CC BY-SA 4.0 授權；非桃園總部）。https://commons.wikimedia.org/wiki/File:Quanta_Shanghai_Manufacturing_City_(QSMC).jpg 授權 https://creativecommons.org/licenses/by-sa/4.0
 本帳號為個人整理，與各公司無合作或授權關係；有錯請留言，48 小時內更正。
 
 #科技透明圈 #工程師 #薪資透明 #新鮮人 #職涯
