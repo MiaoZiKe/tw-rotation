@@ -1,0 +1,20 @@
+{
+ "1_cover": {
+  "bad": [],
+  "oob": [],
+  "ovf": false,
+  "small": [],
+  "clip": [],
+  "wide": [],
+  "n": 6
+ },
+ "2_fields": {
+  "bad": [],
+  "oob": [],
+  "ovf": false,
+  "small": [],
+  "clip": [],
+  "wide": [],
+  "n": 36
+ }
+}
