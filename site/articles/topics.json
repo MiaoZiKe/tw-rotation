@@ -1,6 +1,114 @@
 {
- "updated": "2026-11-04",
+ "updated": "2026-11-05",
  "topics": [
+  {
+   "id": "n_midterm_dc_policy",
+   "cat": "news",
+   "title": "期中選舉與 AI 資料中心監管疑慮",
+   "why": "今周刊（11/4）、經濟日報（11/2）整理：市場擔心選後國會加強限制資料中心興建；台股 11/4 盤中一度重挫逾 1,450 點、尾盤急拉，收 42,948.91 點。選後結果與轉述來源寫稿前須再核對。",
+   "score": 5,
+   "format_hint": "文章",
+   "added": "2026-11-05",
+   "site_links": [
+    "#flow"
+   ]
+  },
+  {
+   "id": "n_dow_sox_split",
+   "cat": "news",
+   "title": "道瓊大漲、費半大跌：科技與傳產分歧",
+   "why": "自由財經、MoneyDJ（11/4）：道瓊大漲約 3%、費半跌約 3.1%、台積電 ADR 收 395.75 美元為 7/29 以來新低；不同日期的費半漲跌幅易混淆，寫稿只用同一天數字。",
+   "score": 4,
+   "format_hint": "文章",
+   "added": "2026-11-05",
+   "site_links": [
+    "#flow"
+   ]
+  },
+  {
+   "id": "n_margin_call_mech",
+   "cat": "news",
+   "title": "台股連兩日重挫，融資斷頭疑慮是什麼",
+   "why": "台股 11/3 跌 1,612.60 點、11/4 收 42,948.91 點（今周刊、鉅亨網 11/4）；講融資維持率與斷頭的運作，不預測是否發生；最新維持率數據須另查證。",
+   "score": 4,
+   "format_hint": "文章",
+   "added": "2026-11-05",
+   "site_links": [
+    "#market/credit"
+   ]
+  },
+  {
+   "id": "k_photomask",
+   "cat": "know",
+   "title": "光罩是什麼？電路圖怎麼變成曝光用的底片",
+   "why": "晶圓代工 3D 場景（foundry）可看製程迴圈中曝光那一步；讀者常問電路圖如何刻到矽上。光罩是曝光的圖樣來源，與已上架 EUV 題互補。",
+   "score": 4,
+   "format_hint": "文章＋3D 圖",
+   "added": "2026-11-05",
+   "site_links": [
+    "#industry/group/foundry"
+   ]
+  },
+  {
+   "id": "k_cmp",
+   "cat": "know",
+   "title": "CMP 化學機械研磨是什麼？晶圓為何要反覆拋光",
+   "why": "晶圓層層堆疊後每層都要磨平才能再曝光；可借 foundry 製程迴圈與 silicon_wafer 3D 場景說明拋光位置。",
+   "score": 3,
+   "format_hint": "文章＋3D 圖",
+   "added": "2026-11-05",
+   "site_links": [
+    "#industry/group/silicon_wafer"
+   ]
+  },
+  {
+   "id": "k_wire_bond",
+   "cat": "know",
+   "title": "打線封裝是什麼？一根金線怎麼把晶片接出來",
+   "why": "封裝後段入門：導線架、打線、封膠怎麼把晶片包成成品；站內有導線架與化學品族群頁可連。尚無專屬 3D，以 style:2 插圖重繪。",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-05",
+   "site_links": [
+    "#industry/group/leadframe_chem"
+   ]
+  },
+  {
+   "id": "i_fab_material",
+   "cat": "intro",
+   "title": "前段製程材料鏈：矽晶圓、光阻到特用氣體",
+   "why": "站內有「前段製程材料」族群頁；講環節分工，不排誰受惠。須附供應鏈圖。",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-05",
+   "site_links": [
+    "#industry/group/fab_material"
+   ]
+  },
+  {
+   "id": "i_semi_facility",
+   "cat": "intro",
+   "title": "半導體廠務鏈：無塵室、水氣電到化學品供應",
+   "why": "站內有「廠務工程」族群頁；晶圓廠蓋好之後誰負責無塵室與公用設施；講環節，不排誰受惠。",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-05",
+   "site_links": [
+    "#industry/group/semi_facility"
+   ]
+  },
+  {
+   "id": "i_edge_ai",
+   "cat": "intro",
+   "title": "Edge AI 鏈：邊緣晶片、模組到終端裝置",
+   "why": "站內有「Edge AI AIoT」族群頁；AI 從雲端走到終端的環節分工；須附供應鏈圖。",
+   "score": 3,
+   "format_hint": "文章",
+   "added": "2026-11-05",
+   "site_links": [
+    "#industry/group/edge_ai"
+   ]
+  },
   {
    "id": "n_fii_active_etf_sell",
    "cat": "news",
