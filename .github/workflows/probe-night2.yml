@@ -7,7 +7,7 @@ permissions:
   contents: write
 jobs:
   probe:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
@@ -32,11 +32,11 @@ jobs:
         run: python probe/live_probe.py
       - name: WebKit iPhone 13（不強制時鐘）
         continue-on-error: true
-        env: { OUT: out_webkit, FORCE: "0", BRW: webkit, DEV: "iPhone 13", WAIT: "25000" }
+        env: { OUT: out_webkit, FORCE: "1", BRW: webkit, DEV: "iPhone 13", WAIT: "25000" }
         run: python probe/live_probe.py
       - name: Chromium 手機 + 舊合約代號 TXFJ6-M
         continue-on-error: true
-        env: { OUT: out_oldsym, FORCE: "0", DEV: "Pixel 7", WAIT: "25000", EXTRA_LS: '{"tw.m3.futsym":"TXFJ6-M"}' }
+        env: { OUT: out_oldsym, FORCE: "1", DEV: "Pixel 7", WAIT: "25000", EXTRA_LS: '{"tw.m3.futsym":"TXFJ6-M"}' }
         run: python probe/live_probe.py
       - name: 存結果到 probe-log 分支
         if: always()
