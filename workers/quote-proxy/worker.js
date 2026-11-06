@@ -1052,7 +1052,7 @@ const TAPE_SITES = ['https://liguligu-puipui.com', 'https://miaozike.github.io/t
 const TAPE_FIRST_MIN = 9 * 60;           // 09:00
 const TAPE_LAST_MIN = 13 * 60 + 35;      // 13:35（13:30 收盤試撮結果會在 13:30 那筆）
 const TAPE_BATCH = 100;
-const TAPE_TTL = 8 * 24 * 3600;          // 一週後自動過期
+const TAPE_TTL = 30 * 24 * 3600;         // 30 天後自動過期（2026-11-06 由 8 天拉長：10-28、10-29 落地失敗時 KV 已過期補不回來；一天約 0.4MB，30 天 12MB，遠低於免費額度）
 
 /** 台北時間的 { date:'YYYYMMDD', mins, dow }。 */
 function tpeParts(ms) {

@@ -9,6 +9,16 @@
 - 這批只驗了：pytest 全跑（sparse 工作樹缺 docs／workers 的 34 失敗＋12 錯誤與 origin/main 相同，新增 2 條守門測試綠）、`_uitest` 大盤融資維持率1020／信用交易r3／總覽摘要卡列／漲跌家數市場別 0 問題；
   漲跌連結1006 手機 m4 前提、新-大盤三張圖 夜盤三條在 origin/main 同樣紅（既有）；`_preview.py` 只有本機資料不全的 404。本機沒有重算 payload，用線上 JSON 套同一規則模擬。
 
+## 2026-11-06 上午 信用交易：融資維持率（估算）上市／上櫃／合計＋每週檢查官方有沒有開放儀表板資料（金融專家；DECISIONS #382）
+- 追繳／處分戶數與金額**不做**（只在證交所儀表板頁，背後 rwd／tpex-api 禁爬；OpenAPI、FinMind 免費版都沒有）。
+- 上櫃分母新表 `margin_total_otc`（`pipeline/sources/tpex_margin.py`，櫃買 OpenAPI 信用交易彙總；swagger 自動找端點）。**端點名與欄位沒有實測**（容器連不到櫃買）：
+  第一次 daily 跑完看 `data/_state/last_run.json` 的 `steps["tpex.margin_total_otc"].diag`；`ok:false` 就照裡面的端點與欄位名修 `parse_summary`。
+- 櫃買 OpenAPI 只給最新一天 → 上櫃／合計從第一筆起逐日累積，畫面沒資料時顯示「資料累積中」。
+- 每週檢查 `.github/workflows/open-data-watch.yml`（週六台北 11:43）→ `data/_state/official_open_watch.json` → meta.json `official_open` → 資料狀態提示。誤判寫進狀態檔 `ignore`。
+- 這批只驗了：pytest（sparse checkout 缺 docs／data 的 39 條環境性失敗除外）、`信用上櫃1106`（新）、`信用排行1104`、`大盤融資維持率1020`、`信用交易r3`、`資料狀態`、`_preview.py`（5 條都在總覽／資金流向／財報日曆，本機 site/data 是 10-26 舊檔，跟這批無關）。
+  本機完整 `build_payload` 三次都在記憶體不足被系統砍掉（主機與其他 session 共用 15G），只確認到 `market_fut.json` 新格式寫得出來；線上由 pages.yml 重算。
+- 遠端臨時分支 `probe/margin-call` 刪不掉（git 代理斷線、gh api 刪除被權限擋），要刪請 Andy 或有權限的 session 處理。
+
 ## 2026-11-06 清晨 夜盤轉打頁在 Andy 那邊沒生效 → Worker 先經 Deno、轉打頁可重試（DECISIONS #381）
 - 實測（Actions run 42106454144、42107920925）：線上 c708682e 在桌機 Chromium／iPhone WebKit／手機 Chromium 都經轉打頁顯示夜盤 → 失敗在使用者環境（舊分頁或握手逾時後永久放棄）。
 - 修：Worker `/fut`、`/futchart` 先帶白名單 Origin 問 Deno；`market3.js` 轉打頁握手 12 秒、逾時冷卻 60 秒後重試。
@@ -5840,3 +5850,16 @@ agent 改了 13 處，我合併後又補上漏掉的 2 處（`t_mlcc` 的回歸�
 - 驗了：pytest 全 1409 通過；_preview 正常；`桌機守門1008` 0 問題；`科技透明圈1025` 0 問題（含 390 寬公司頁 ≤4 屏）；`科技透明圈LOGO不裁切` 0 問題。
 - 未收斂：`科技透明圈圖表1026`（5 項）與 `科技透明圈站內LOGO`（2 項）在容器紅，原因是容器連不到 Google／gstatic 外部 LOGO 圖（改動前同樣紅，線上不受影響）。
 - 樣本數 Andy 要再查；網站那邊的來源由他請人繼續找。
+
+## 2026-11-06 資料來源健康 A 段（盤中快照缺口明示）
+- 改了：`pipeline/sources/tape.py`（`lake_calendar`、`gap_report`，`GAP_SINCE=20261028`）、`pipeline/run_daily.py`（`_tape_step()` 取代兩處靜默移除；`RESULT["gaps"]`）、`pipeline/build_payload.py`（`meta_payload()` 輸出 `gaps`，不進 errors）、`site/app.js`（資料狀態提示列出永久缺口，`renderFreshness` 只加 3 行）。
+- 驗了：pytest 相關檔（tape／freshness／meta／daily／inst／heal）112 項全綠；`_uitest --sections 永久缺口1106` 0 問題。
+- 未驗（要寫清楚）：資料狀態段因機器負載 `Page.goto` 逾時未驗；`_preview.py` 在 412 行崩潰（`#themeDiagram` 找不到元素），因為本機 site/data 是 10-22 舊快照沒有題材圖資料，屬環境問題，未跑完。
+- 沒跑：social_*、gh_cron、delivery_log、mis、mops、taifex（sparse 缺 social/、workers/、data/）。
+- 未做：B（source_health.json）、C（盤後官方交叉比對）。
+
+## 2026-11-06 來源健康 B／C（同日）
+- B：`pipeline/util/source_health.py`；run_daily 每次寫狀態時更新 `data/_state/source_health.json`（依天累積 consecutive_fail，同日多輪只計一次）；meta 輸出 `source_failing`（連續 ≥2 天才在資料狀態列講，不列內部代號）。驗了：pytest 相關檔 141 項綠；前端用獨立 route 腳本三項斷言通過。**未驗**：`_uitest` 段落「來源健康1106」因機器負載（共用 helper 第 145 行 networkidle 逾時）。
+- C：`pipeline/compute/crosscheck.py`，daily.yml 獨立步驟（continue-on-error，放在回寫資料湖之前）。結果寫進 source_health.json 的 `crosscheck`。驗了：tests/test_crosscheck.py 7 項綠。**未驗**：真實官方端點與湖的比對結果（要等 Actions 跑一輪看 crosscheck 欄位）；前端還沒顯示 crosscheck。
+- A 的部署：`deploy_wait --branch main` 對 f4427f7e 仍在等 Pages（佇列排隊）。B、C 之後再跑一次 deploy_wait 對 c5dca60ae。
+- 仍未做：`_preview.py` 在 412 行崩潰（本機 site/data 是 10-22 舊快照，缺題材圖資料，環境問題）；`_uitest 資料狀態` 因機器負載 goto 逾時未驗。
