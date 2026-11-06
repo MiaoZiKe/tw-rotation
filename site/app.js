@@ -15975,6 +15975,14 @@
     /* 2026-11-06（稽核）：永久缺口只列出來，不亮燈 —— 超過來源保存期、補不回來，不是「這一輪壞掉」。 */
     const gaps = meta.gaps || [];
     if (gaps.length) bits.push(`盤中快照有 <b>${gaps.length}</b> 個交易日<b>永久缺口</b>（${gaps.map(g => fmt.esc(String(g.date))).join('、')}），來源已過期、無法補回`);
+    /* 2026-11-06（稽核 B）：來源連續失敗 ≥2 天才講（單日回空可能是端點偶發）。只講幾項、連續幾天，不列內部代號（2026-09-28 規則）。 */
+    const sfail = meta.source_failing || [];
+    if (sfail.length) {
+      const maxd = Math.max(...sfail.map(x => Number(x.days) || 0));
+      const lastOk = sfail.map(x => x.last_ok_date).filter(Boolean).sort()[0];
+      bits.push(`部分來源已<b>連續 ${maxd} 天</b>沒有取得資料（${sfail.length} 項）${lastOk ? `，最後一次取得資料是 <b>${fmt.esc(String(lastOk))}</b>` : ''}`);
+      level = level || 'warn';
+    }
     /* 2026-10-20（Andy：「確保數據每天都有更新」）資料新鮮度把關：管線每輪檢查法人／融資券／期貨籌碼，
        最新交易日缺資料或筆數不到近期中位數 8 成就列在這裡（徽章提示會寫出是哪幾項過期）。 */
     const stale = meta.freshness_warn || [];

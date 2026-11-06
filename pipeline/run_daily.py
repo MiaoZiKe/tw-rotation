@@ -1118,6 +1118,15 @@ def main() -> int:
                 "tables": store.table_summary().to_dict("records"),
                 "groups_health": loader.health(),
             })
+        # 來源健康紀錄（跨執行累積，跟 data/ 一起 commit）：每次寫入都更新，同一天重複寫是冪等的（見 util/source_health.py）
+        try:
+            from datetime import timedelta as _td
+            from .util import source_health as _sh
+            day = trade_date or (now + _td(hours=8)).date().isoformat()
+            hp = config.STATE / "source_health.json"
+            _sh.save(hp, _sh.update(_sh.load(hp), RESULT["steps"], day, now_iso=now.isoformat()))
+        except Exception:  # noqa: BLE001 —— 健康紀錄寫不進去不能拖垮管線，但要留痕跡
+            log.exception("來源健康紀錄寫入失敗（不影響其他步驟）")
         (config.STATE / "last_run.json").write_text(
             json.dumps(RESULT, ensure_ascii=False, indent=2))
 
