@@ -3,7 +3,7 @@
     "tape.collect": {
       "ok": false,
       "rows": 0,
-      "seconds": 0.0
+      "seconds": 0.1
     },
     "inst_official": {
       "ok": true,
@@ -156,11 +156,11 @@
       "rows": 8
     },
     "fut_inst": {
-      "stored": 0
+      "stored": 9
     },
     "mktfut.fut_inst": {
       "ok": true,
-      "rows": 72
+      "rows": 81
     },
     "fut_oi": {
       "stored": 0
@@ -172,86 +172,40 @@
     "finmind.institutional_bulk": {
       "ok": true,
       "rows": 918,
-      "seconds": 0.1
+      "seconds": 0.2
     },
     "inst_daily": {
-      "stored": 31
+      "stored": 0
     },
     "institutional_codes": {
-      "requested": 33,
-      "returned": 31
+      "requested": 2,
+      "returned": 0
     },
     "finmind.institutional": {
-      "ok": true,
-      "rows": 31,
-      "seconds": 6.5
+      "ok": false,
+      "rows": 0,
+      "seconds": 0.8
     },
     "inst_flags": {
-      "rebuild": true,
+      "rebuild": false,
       "post": true
     },
     "build_payload": {
       "ok": true,
-      "deferred": true
+      "skipped": "沒有新增今天的法人"
     }
   },
   "errors": [],
-  "empty": [],
+  "empty": [
+    "finmind.institutional"
+  ],
   "gaps": [],
   "rebuilt": [],
   "phase": "inst",
-  "freshness": {
-    "trade_date": "2026-11-05",
-    "tables": {
-      "inst_daily": {
-        "label": "個股三大法人",
-        "latest": "2026-11-06",
-        "rows": 1918,
-        "median": 2053.5,
-        "status": "ok",
-        "reason": null
-      },
-      "inst_market_daily": {
-        "label": "全市場三大法人金額",
-        "latest": "2026-11-05",
-        "rows": 1,
-        "median": 1.0,
-        "status": "ok",
-        "reason": null
-      },
-      "margin_total": {
-        "label": "整體融資融券",
-        "latest": "2026-11-05",
-        "rows": 1,
-        "median": 1.0,
-        "status": "ok",
-        "reason": null
-      },
-      "fut_inst": {
-        "label": "期貨三大法人",
-        "latest": "2026-11-05",
-        "rows": 9,
-        "median": 9.0,
-        "status": "ok",
-        "reason": null
-      },
-      "fut_oi": {
-        "label": "期貨全市場未平倉",
-        "latest": "2026-11-05",
-        "rows": 3,
-        "median": 3.0,
-        "status": "ok",
-        "reason": null
-      }
-    },
-    "warn": [],
-    "warn_labels": []
-  },
-  "warn": [],
-  "started_at": "2026-11-06T09:50:15.329279+00:00",
-  "finished_at": "2026-11-06T09:50:56.317677+00:00",
-  "duration_seconds": 41.0,
+  "started_at": "2026-11-06T10:37:56.145036+00:00",
+  "finished_at": "2026-11-06T10:38:16.030209+00:00",
+  "duration_seconds": 19.9,
   "trade_date": "2026-11-06",
   "complete": true,
-  "finmind_budget_left": 470
+  "finmind_budget_left": 501
 }
