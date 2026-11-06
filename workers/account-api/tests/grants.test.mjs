@@ -2,7 +2,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { makeHub } from '../harness.mjs';
-import { GRANT_BAN, grantMailNorm, WELCOME_1027_FEATS } from '../worker.js';
+import { GRANT_BAN, GRANT_MAX_FEATS, grantMailNorm, WELCOME_1027_FEATS } from '../worker.js';
 
 const ORIGIN = 'https://miaozike.github.io';
 const API = 'https://tw-account.example.workers.dev';
@@ -249,4 +249,29 @@ test('2026-10-27 T-1：新會員體驗 14 天、每天計次、不含 GRANT_BAN�
   assert.equal((await pj(hub, '/v1/delete', { t: rf })).s, 200);
   const rf2 = await login(hub, 'rf@example.com', '198.51.100.24', 'sub-rf2');
   assert.deepEqual((await pj(hub, '/v1/grants/me', { t: rf2 })).j.grants, [], '退款過不能再領體驗');
+});
+
+/* 2026-11-07 Andy：新會員體驗勾 88／93 項按儲存，紅字「至少要勾一個功能」——原因是上限 40，而且「太多」跟「沒勾」共用 bad_feats */
+test('體驗功能上限 200：88 項存得進去、201 項回 too_many_feats、0 項回 bad_feats、清單回 max_feats', async () => {
+  const { hub, andy } = await setup();
+  assert.equal(GRANT_MAX_FEATS, 200);
+  const mk = (n) => Object.fromEntries(Array.from({ length: n }, (_, i) => ['fx.k' + String(i).padStart(3, '0'), 3]));
+  const f88 = mk(88);
+  let r = await pj(hub, '/v1/admin/grants/defs/put', { t: andy, ...WELCOME, feats: f88 });
+  assert.equal(r.s, 200, JSON.stringify(r.j));
+  const w = r.j.defs.find((d) => d.id === 'welcome');
+  assert.equal(Object.keys(w.feats).length, 88, '88 項全部存進去');
+  assert.deepEqual(w.feats, f88);
+  assert.equal(r.j.max_feats, 200, '清單回 max_feats（前端預檢用）');
+  assert.equal((await pj(hub, '/v1/admin/grants/defs/list', { t: andy })).j.max_feats, 200);
+  r = await pj(hub, '/v1/admin/grants/defs/put', { t: andy, ...WELCOME, feats: mk(201) });
+  assert.equal(r.s, 400); assert.equal(r.j.error, 'too_many_feats'); assert.equal(r.j.max, 200);
+  r = await pj(hub, '/v1/admin/grants/defs/put', { t: andy, ...WELCOME, feats: {} });
+  assert.equal(r.s, 400); assert.equal(r.j.error, 'bad_feats', '一個都沒勾仍是 bad_feats');
+  assert.equal(Object.keys((await pj(hub, '/v1/admin/grants/defs/list', { t: andy })).j.defs.find((d) => d.id === 'welcome').feats).length, 88, '被擋的沒蓋掉原本的');
+  /* 最壞情況：剛好 200 項、每個鍵都是最長 40 字、次數 999 —— 本體仍在 16KB 內，存得進去 */
+  const big = Object.fromEntries(Array.from({ length: 200 }, (_, i) => [('k' + String(i).padStart(3, '0')).padEnd(40, 'z'), 999]));
+  r = await pj(hub, '/v1/admin/grants/defs/put', { t: andy, ...WELCOME, feats: big });
+  assert.equal(r.s, 200, JSON.stringify(r.j).slice(0, 200));
+  assert.equal(Object.keys(r.j.defs.find((d) => d.id === 'welcome').feats).length, 200);
 });

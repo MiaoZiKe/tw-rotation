@@ -2408,7 +2408,11 @@ export const WELCOME_1027_FEATS = { 'ind.3d': 10, 'ind.rel': 10, 'ind.groups': 1
   'flow.sankey.drill': 20, 'etf.cashflow': 10, 'etf.inc.params': 10, 'etf.inc.comp': 10, 'etf.cmp': 10, 'etf.ret.period': 5, 'stock.draw': 10, 'stock.ind': 10,
   'stock.page': 20, 'season.groups': 20 };
 const GRANT_ID_RE = /^[a-z0-9_-]{1,24}$/;
-const GRANT_MAX_FEATS = 40, GRANT_M_MAX = 999, GRANT_DAYS_MAX = 60, GRANT_IP_DAY = 3;
+/* 2026-11-07：40 → 200（Andy 在新會員體驗勾 88／93 項被擋）。目前 features.js 共 105 個鍵、能放進體驗的 93 個，200 留約一倍餘裕。
+   大小：200 項 × 最長鍵 40 字 × 999 次 ≈ 9.4KB JSON，仍在 POST 本體上限 16KB 內（測試有一條實測 200 個 40 字鍵存得進去）；
+   grant_defs.feats 是 Durable Object SQLite 的 TEXT 欄（單值上限 2MB），不受影響。管理區清單回 max_feats，前端照這個值預檢。 */
+export const GRANT_MAX_FEATS = 200;
+const GRANT_M_MAX = 999, GRANT_DAYS_MAX = 60, GRANT_IP_DAY = 3;
 const GRANT_HIT_KEEP_DAYS = 30, GRANT_KEEP_MONTHS = 13;
 /* 範本沒寫這一項時的預設（＝site/features.js 的 defBy；改一邊要改另一邊）：熱力圖跳頁訪客／註冊會員預設關 */
 /* 2026-10-10：ETF 試算參數鎖、報酬比較、複利試算表三個新鍵也是 defBy 訪客／註冊會員關（體驗額度才認得它們被鎖、會扣體驗）；
@@ -2562,7 +2566,8 @@ Hub.prototype.grantClean = function (b) {
   if (!name) return { error: 'bad_name' };
   if (!b.feats || typeof b.feats !== 'object' || Array.isArray(b.feats)) return { error: 'bad_feats' };
   const ent = Object.entries(b.feats);
-  if (!ent.length || ent.length > GRANT_MAX_FEATS) return { error: 'bad_feats' };
+  if (!ent.length) return { error: 'bad_feats' };
+  if (ent.length > GRANT_MAX_FEATS) return { error: 'too_many_feats', max: GRANT_MAX_FEATS };   // 和「一個都沒勾」分開，前端才不會講錯
   const feats = {};
   for (const [k, m] of ent) {
     if (!V3_FEAT_K_RE.test(k) || k.startsWith('grp.')) return { error: 'bad_feats' };
@@ -2630,7 +2635,7 @@ Object.assign(Hub.prototype.subRoutes, {
     const defs = this.grantDefs().map((d) => ({ ...d,
       issued: this.q('SELECT COUNT(*) AS c FROM grants WHERE gid = ?', d.id)[0].c,
       used: this.q('SELECT COUNT(*) AS c FROM grant_hits WHERE gid = ?', d.id)[0].c }));
-    return this.json(req, { defs, ban: GRANT_BAN, now: this.now() });
+    return this.json(req, { defs, ban: GRANT_BAN, max_feats: GRANT_MAX_FEATS, now: this.now() });
   },
   '/v1/admin/grants/defs/put': async function (req, b) {
     if (!(await this.admin(req, b))) return this.json(req, { error: 'forbidden' }, 403);
