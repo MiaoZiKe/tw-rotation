@@ -73,21 +73,21 @@ def t_articles_hide_1027(b, base, code):
             except Exception: pass
         wait_until(pg, "() => !!document.querySelector('#artCats>button[data-cat=postmarket]')", 20000)
         if admin:
-            wait_until(pg, "() => document.querySelectorAll('#artCats .arteye:not([hidden])').length === 5", 10000)
+            wait_until(pg, "() => document.querySelectorAll('#artCats .arteye:not([hidden])').length === 6", 10000)
         pg.wait_for_timeout(900)   # 等 /v1/articles/tabs 回來並重畫
 
     vis = "() => [...document.querySelectorAll('#artCats>button')].filter(b => b.getClientRects().length).map(b => b.dataset.cat)"
     for W in (1440, 390):
         mob = W <= 640
         st["hidden"] = []; st["fail"] = False; st["puts"].clear()
-        # ── 管理者：六個分頁、五顆眼睛（全部那格沒有）
+        # ── 管理者：六個分頁、六顆眼睛（11-06 起全部那格也有）
         c, pg = ctx("andy@example.com", W)
         open_articles(pg, admin=True)
         ok(f"★ [{T}（{W}）] 管理者：分頁順序 全部→快訊→產業鏈→知識→盤前→盤後（盤後在盤前右邊）", pg.evaluate(vis) == ["all", "news", "intro", "know", "premarket", "postmarket"], pg.evaluate(vis))
         geo = pg.evaluate("""() => [...document.querySelectorAll('#artCats .arteye')].map(e => { const t = e.closest('button'), a = e.getBoundingClientRect(), r = t.getBoundingClientRect(), lb = t.querySelector(':scope > span:not(.arteye)').getBoundingClientRect();
             return { cat: e.dataset.cat, own: t.dataset.cat === e.dataset.cat, inside: a.left >= r.left - 0.5 && a.right <= r.right + 0.5 && a.top >= r.top - 0.5 && a.bottom <= r.bottom + 0.5,
               right: (a.left + a.width / 2) > (r.left + r.width / 2), vc: Math.abs((a.top + a.height / 2) - (r.top + r.height / 2)) <= 3, noOverlap: a.left >= lb.right - 0.5, w: a.width, h: a.height }; })""")
-        ok(f"★ [{T}（{W}）] 管理者：眼睛 5 顆都在自己標籤裡面、靠右半邊、垂直置中、不壓到標題文字、沒有分頁上方那一列", len(geo) == 5 and all(g["own"] and g["inside"] and g["right"] and g["vc"] and g["noOverlap"] for g in geo)
+        ok(f"★ [{T}（{W}）] 管理者：眼睛 6 顆都在自己標籤裡面、靠右半邊、垂直置中、不壓到標題文字、沒有分頁上方那一列", len(geo) == 6 and all(g["own"] and g["inside"] and g["right"] and g["vc"] and g["noOverlap"] for g in geo)
            and pg.locator("#artEyes").count() == 0, geo)
         ok(f"[{T}（{W}）] 管理者：眼睛點擊區 ≥ 24×24", all(g["w"] >= 24 and g["h"] >= 24 for g in geo), geo)
         ok(f"[{T}（{W}）] 管理者：分頁文字沒被切成「…」（用 canvas 量短名／全名寬度，要放得進標籤扣掉眼睛後的空間）", pg.evaluate("""() => [...document.querySelectorAll('#artCats>button:not([hidden])')].every(b => {
@@ -107,8 +107,7 @@ def t_articles_hide_1027(b, base, code):
         ok(f"★ [{T}（{W}）] 管理者點「盤前」眼睛 → 分頁變半透明（還看得到）、眼睛斜線、伺服器收到 ['premarket']",
            s1["hid"] and s1["op"] < 0.8 and s1["shown"] and s1["pressed"] == "true" and s1["off"] and st["hidden"] == ["premarket"], [s1, st["hidden"]])
         pg.click("#artCats .arteye[data-cat=postmarket]"); pg.wait_for_timeout(500)
-        ok(f"[{T}（{W}）] 再點「盤後」眼睛 → 伺服器 ['premarket','postmarket']、全部那格沒有眼睛", sorted(st["hidden"]) == ["postmarket", "premarket"]
-           and pg.locator("#artCats .arteye[data-cat=all]").count() == 0, st["hidden"])
+        ok(f"[{T}（{W}）] 再點「盤後」眼睛 → 伺服器 ['premarket','postmarket']", sorted(st["hidden"]) == ["postmarket", "premarket"], st["hidden"])
         # 重新整理後設定還在（存在伺服器，不是只在畫面）
         pg.reload(wait_until="domcontentloaded"); wait_until(pg, "() => !!document.querySelector('.arteye.off')", 15000); pg.wait_for_timeout(600)
         ok(f"[{T}（{W}）] 管理者重新整理 → 兩顆眼睛仍是斜線", pg.locator(".arteye.off").count() == 2)

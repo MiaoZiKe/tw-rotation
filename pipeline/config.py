@@ -24,6 +24,8 @@ TABLES: dict[str, list[str]] = {
     "margin_daily":       ["date", "code"],   # 融資融券
     # v17（2026-10-20，市場明細大盤融資維持率＋期貨三大法人／微台散戶多空比頁；來源 pipeline/sources/mktfut.py，FinMind）
     "margin_total":       ["date"],           # 整體市場融資融券（上市）：張數與融資金額（元）
+    # 2026-11-06：上櫃整體融資融券（櫃買 OpenAPI 信用交易彙總，sources/tpex_margin.py）：信用交易頁「上櫃／合計」維持率估算的分母
+    "margin_total_otc":   ["date"],
     "fut_inst":           ["date", "futures_id", "who"],   # 期貨三大法人未平倉口數（TX 大台／TMF 微台；foreign／trust／dealer）
     "fut_oi":             ["date", "futures_id"],          # 微台全市場未平倉口數（各月份加總）
     # 2026-10-26（台指期第四輪，選擇權情緒資料）：臺指選擇權（TXO）每日買賣權比；來源 sources/optpc.py（FinMind TaiwanOptionDaily 逐契約加總）。

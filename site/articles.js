@@ -128,7 +128,7 @@
 /* 10-27 管理者的「眼睛」：放在每個分頁標籤裡面的最右側（Andy 紅框位置），一般人與會員整顆 hidden。
    標籤右邊留位置（.adm）才不會壓到標題與數量；眼睛垂直置中、點擊區 ≥24px，圖示 16px。 */
 #artCats>button{position:relative}
-#artCats.adm>button:not([data-cat=all]){padding-right:30px}
+#artCats.adm>button{padding-right:30px}
 .arteye[hidden]{display:none}
 .arteye{position:absolute;right:4px;top:50%;transform:translateY(-50%);display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:999px;color:var(--k,var(--ink-2));cursor:pointer}
 .arteye:hover{background:color-mix(in srgb,var(--k,var(--cyan)) 22%,transparent)}
@@ -1018,7 +1018,7 @@
   <div class="howtxt" id="how-artpre" hidden>${HOW_PRE}</div>
   <div class="howtxt" id="how-artpost" hidden>${HOW_POST}</div>
   <div class="nbsw" id="artCats" role="tablist" aria-label="文章分類">
-    ${TAB_KEYS.map((k) => `<button type="button" role="tab" class="k-${k}" data-cat="${k}" data-s="${esc(CAT_S[k])}" title="${esc(catT(k))}">${icon(k, 15)}<span>${esc(catT(k))}</span><em></em>${k === 'all' ? '' : `<span class="arteye" role="button" tabindex="0" hidden data-cat="${k}">${EYE_ON}</span>`}</button>`).join('')}
+    ${TAB_KEYS.map((k) => `<button type="button" role="tab" class="k-${k}" data-cat="${k}" data-s="${esc(CAT_S[k])}" title="${esc(catT(k))}">${icon(k, 15)}<span>${esc(catT(k))}</span><em></em><span class="arteye" role="button" tabindex="0" hidden data-cat="${k}">${EYE_ON}</span></button>`).join('')}
   </div>
   <div class="nbbody">
     <div id="artPre"></div>
@@ -1233,9 +1233,10 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
      · 一般人與會員：被隱藏的分頁標籤不出現、直接打該路由導回「全部」（#articles）。
      · 管理者：標籤照舊在（半透明＋刪除線），分頁上方多一列眼睛，眼睛斜線＝目前對外隱藏。
      · 預覽版（TW_PREVIEW）會員 API 寫入被擋，所以眼睛只改這個瀏覽器（tw.art.hid.pv），讓 Andy 能試、又不會動到正式站。
-     · 「全部」不能隱藏（它是被隱藏分頁的導回點）。文章本身不受影響：隱藏的是分頁入口，不是文章。 */
+     · 11-06 Andy：「補上隱藏功能」→ 「全部文章」也有眼睛、也能隱藏（以前不行，因為它是導回點）。
+       被隱藏的分頁（一般人）一律導到第一個沒被隱藏的分頁；全部都隱藏就導回 #overview。文章本身不受影響：隱藏的是分頁入口，不是文章。 */
   const HID_KEY = window.TW_PREVIEW ? 'tw.art.hid.pv' : 'tw.art.hid';
-  const hidRead = () => { try { const a = JSON.parse(localStorage.getItem(HID_KEY) || '[]'); return new Set(Array.isArray(a) ? a.filter((k) => TAB_KEYS.includes(k) && k !== 'all') : []); } catch (e) { return new Set(); } };
+  const hidRead = () => { try { const a = JSON.parse(localStorage.getItem(HID_KEY) || '[]'); return new Set(Array.isArray(a) ? a.filter((k) => TAB_KEYS.includes(k)) : []); } catch (e) { return new Set(); } };
   const hidSave = () => { try { localStorage.setItem(HID_KEY, JSON.stringify([...S.hid])); } catch (e) { /* 存不了就只留在記憶體 */ } };
   const hiddenNow = () => (S.hid || (S.hid = hidRead()));
   const canEye = () => !!window.TW_PREVIEW || isAdminUser();
@@ -1246,17 +1247,21 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
       const cfg = window.TW_ACCOUNT_OVERRIDE || window.TW_ACCOUNT;
       const ready = !(cfg && cfg.api) || (A && A.on && A.on()) ? Promise.resolve() : new Promise((res) => { const t = setTimeout(res, 3000); window.addEventListener('tw:account-config', () => { clearTimeout(t); res(); }, { once: true }); });
       S.hidP = ready.then(() => acctCall('/v1/articles/tabs', {})).then((j) => {
-        if (j && j._s === 200 && Array.isArray(j.hidden)) { S.hid = new Set(j.hidden.filter((k) => TAB_KEYS.includes(k) && k !== 'all')); hidSave(); }
+        if (j && j._s === 200 && Array.isArray(j.hidden)) { S.hid = new Set(j.hidden.filter((k) => TAB_KEYS.includes(k))); hidSave(); }
         return hiddenNow();
       }).catch(() => hiddenNow()).finally(() => { setTimeout(() => { S.hidP = null; }, 60000); });   // 一分鐘內不重問；回來看時會再讀一次
     }
     return S.hidP;
   }
-  /* 一般人打到被隱藏的分頁 → 導回「全部」。回 true＝已導走，呼叫端不要再往下畫 */
+  /* 一般人打到被隱藏的分頁 → 導到第一個沒被隱藏的分頁（11-06 起「全部」也能隱藏，所以導回點不再固定是全部）；
+     全部分頁都被隱藏＝整個精選文章對一般人關閉，比照側欄「隱藏分頁」（navhide.js）導回 #overview。
+     回 true＝已導走，呼叫端不要再往下畫。管理者永遠看得到，不導。 */
   function guardHidden() {
-    if (!NW[S.cat] && !CATS[S.cat]) return false;
-    if (!hiddenNow().has(S.cat) || canEye()) return false;
-    location.replace('#articles');
+    if (canEye()) return false;
+    const hid = hiddenNow();
+    if (!hid.has(S.cat)) return false;
+    const first = TAB_KEYS.find((k) => !hid.has(k));
+    location.replace(first ? (first === 'all' ? '#articles' : '#articles/' + first) : '#overview');
     return true;
   }
   function paintHide(root) {
@@ -1288,14 +1293,14 @@ ${gs.length ? `<section><h5>熱門族群</h5><div class="gps">${gs.map((g) => `<
     });
   }
   async function toggleHide(k) {
-    if (!canEye() || k === 'all') return;
+    if (!canEye() || !TAB_KEYS.includes(k)) return;
     const root = document.getElementById('v-articles'); if (!root) return;
     const was = new Set(hiddenNow()), next = new Set(was);
     if (next.has(k)) next.delete(k); else next.add(k);
     S.hid = next; hidSave(); paintHide(root);   // 先改畫面（點了馬上有感），伺服器回失敗再還原
     if (window.TW_PREVIEW) return;
     const r = await acctCall('/v1/articles/tabs/put', { hidden: [...next] });
-    if (r && r._s === 200 && Array.isArray(r.hidden)) { S.hid = new Set(r.hidden.filter((x) => TAB_KEYS.includes(x) && x !== 'all')); hidSave(); paintHide(root); return; }
+    if (r && r._s === 200 && Array.isArray(r.hidden)) { S.hid = new Set(r.hidden.filter((x) => TAB_KEYS.includes(x))); hidSave(); paintHide(root); return; }
     S.hid = was; hidSave(); paintHide(root);
     const e = $(`.arteye[data-cat="${k}"]`, root);
     if (e) { const t = e.title; e.title = '儲存失敗，請稍後再試'; e.classList.add('err'); setTimeout(() => { e.classList.remove('err'); paintHide(root); }, 2500); void t; }
