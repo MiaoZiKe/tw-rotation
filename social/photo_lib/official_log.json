@@ -1,5 +1,5 @@
 {
- "at": "2026-11-05T20:36:54+00:00",
+ "at": "2026-11-06T07:44:38+00:00",
  "items": [
   {
    "slug": "tsmc",
@@ -1567,6 +1567,59 @@
      "url": "https://www.emctw.com/upload/media/New_Investors/Financial_Information/Annual_Reports/CH/2023.pdf",
      "pdf": true,
      "saved": 0
+    }
+   ]
+  },
+  {
+   "slug": "quanta",
+   "source": "official",
+   "added": 1,
+   "pages": [
+    {
+     "url": "https://www.quantatw.com/",
+     "title": "廣達電腦",
+     "imgs": 17,
+     "saved": 1,
+     "skipped": {
+      "檔名像標誌/人像/活動": 3,
+      "太小": 13
+     }
+    },
+    {
+     "url": "https://www.quantatw.com/Quanta/chinese/",
+     "title": "Radware Bot Manager Captcha",
+     "imgs": 1,
+     "saved": 0,
+     "skipped": {
+      "檔名像標誌/人像/活動": 1
+     }
+    },
+    {
+     "url": "https://www.quantatw.com/Quanta/english/",
+     "title": "Radware Bot Manager Captcha",
+     "imgs": 1,
+     "saved": 0,
+     "skipped": {
+      "檔名像標誌/人像/活動": 1
+     }
+    },
+    {
+     "url": "https://www.quantatw.com/Quanta/chinese/about/serviceinfo.aspx",
+     "title": "Radware Bot Manager Captcha",
+     "imgs": 1,
+     "saved": 0,
+     "skipped": {
+      "檔名像標誌/人像/活動": 1
+     }
+    },
+    {
+     "url": "https://www.quantatw.com/Quanta/chinese/about/company.aspx",
+     "title": "Radware Bot Manager Captcha",
+     "imgs": 1,
+     "saved": 0,
+     "skipped": {
+      "檔名像標誌/人像/活動": 1
+     }
     }
    ]
   }

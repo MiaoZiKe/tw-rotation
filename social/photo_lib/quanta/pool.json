@@ -320,6 +320,31 @@
    "reviewer": "",
    "review_note": "",
    "origin": "公司分類"
+  },
+  {
+   "file": "photo_15.jpg",
+   "kind": "總部/廠房",
+   "slug": "quanta",
+   "name_en": "Quanta Computer",
+   "origin": "official",
+   "query": "official",
+   "file_title": "https://www.quantatw.com/Quanta/index/img/400_top50_cn.jpg",
+   "source_page": "https://www.quantatw.com/",
+   "source_url": "https://www.quantatw.com/",
+   "image_url": "https://www.quantatw.com/Quanta/index/img/400_top50_cn.jpg",
+   "license": "official-press",
+   "license_url": "",
+   "author": "廣達官方",
+   "credit": "圖：廣達官方",
+   "description": "廣達電腦",
+   "width": 1920,
+   "height": 533,
+   "sha1": "b107da47ef20057367ef8385676be4efe54a8a8b",
+   "fetched_at": "2026-11-06",
+   "fetched_at_utc": "2026-11-06T07:44:08+00:00",
+   "reviewed": false,
+   "reviewer": "",
+   "review_note": ""
   }
  ],
  "rejected": [
