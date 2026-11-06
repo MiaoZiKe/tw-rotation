@@ -70,6 +70,14 @@ def t_tier_1027(b, base, code):
         done = wait_until(pg, "() => window.TwGrants.left('ind.3d') === 9", 4000)
         ok(f"{T}（{W}）用 3D 一次 → 體驗剩餘 {l0} → 9、伺服器收到 1 次 hit", bool(done) and l0 == 10 and st["hit"] == 1, [l0, st])
         # 明細對話框
+        # 2026-11-06：11-01 起新帳號回首頁會先跳「新會員體驗活動訊息框」#pwOv（z-index 1500、aria-modal，刻意蓋住整頁）。
+        # 它不是付費遮罩，使用者按 Esc／×／點遮罩就能關；橫幅被蓋住是設計，不是 bug。真實流程是先關訊息框再點橫幅，測試照做。
+        # 付費功能的鎖（perm.js [data-plk]）與「用體驗繼續看」都在功能頁，訊息框只在首頁出現，離開首頁會自己收掉，兩者不會同時蓋住。
+        pw_up = wait_until(pg, "() => !!document.getElementById('pwOv')", 3000)
+        if pw_up:
+            pg.keyboard.press("Escape")
+            pw_gone = wait_until(pg, "() => !document.getElementById('pwOv')", 3000)
+            ok(f"{T}（{W}）新帳號首頁的體驗訊息框按 Esc 就關掉（使用者點得到下面的橫幅）", bool(pw_gone))
         pg.click("#grantBar .gb-t")
         dlg = wait_until(pg, "() => !!document.getElementById('grantRules') && /不含/.test(document.getElementById('grantRules').textContent)", 3000)
         ok(f"{T}（{W}）點橫幅 → 明細對話框列出每天次數與「不含」", bool(dlg), pg.evaluate("() => (document.getElementById('grantRules')||{}).textContent||''")[:120])
