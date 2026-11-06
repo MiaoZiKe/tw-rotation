@@ -44,4 +44,5 @@
   .adt-g{height:46px;padding:4px 6px}
   .adt-s{height:56px;padding:4px 6px}
   .adt-b,.adt-clr{min-height:40px}
+  .adt-go{display:inline-flex;align-items:center;min-height:40px;padding:0 8px}   /* 手機按鈕普查：觸控目標 ≥ 40px */
 }
