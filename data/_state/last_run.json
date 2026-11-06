@@ -1,73 +1,88 @@
 {
   "steps": {
+    "twse.price_daily": {
+      "ok": true,
+      "rows": 1336,
+      "seconds": 1.3
+    },
+    "price_daily": {
+      "stored": 0
+    },
+    "twse.market": {
+      "ok": true,
+      "rows": 4,
+      "seconds": 0.1
+    },
+    "market_daily": {
+      "stored": 0
+    },
+    "tpex.price_daily": {
+      "ok": true,
+      "rows": 1010,
+      "seconds": 8.1
+    },
     "tape.collect": {
       "ok": false,
       "rows": 0,
-      "seconds": 0.2,
-      "dates_todo": [
-        "20261029"
-      ],
-      "dates_miss": [
-        "20261029"
-      ]
+      "seconds": 0.0
     },
     "mis.index_minute": {
       "ok": true,
-      "rows": 118,
-      "seconds": 2.1
+      "rows": 781,
+      "seconds": 1.9
     },
     "index_intraday": {
-      "stored": 840
+      "stored": 663
     },
     "taifex.futures_minute": {
-      "ok": true,
-      "rows": 840,
-      "seconds": 4.3
+      "ok": false,
+      "rows": 0,
+      "seconds": 0.0
     },
     "news.collect": {
       "ok": true,
-      "rows": 136,
-      "seconds": 17.5
+      "rows": 140,
+      "seconds": 2.7
     },
     "news": {
-      "stored": 70
+      "stored": 88
     },
     "news.broker_views": {
       "ok": true,
-      "rows": 7,
+      "rows": 2,
       "seconds": 0.0
     },
     "broker_views": {
-      "stored": 6
+      "stored": 2
     },
     "mops.material_news": {
       "ok": true,
       "rows": 381,
-      "seconds": 2.3
+      "seconds": 0.6
     },
     "material_news": {
-      "stored": 381
+      "stored": 0
     },
     "macro.intl": {
       "ok": true,
-      "rows": 4515,
-      "seconds": 3.3
+      "rows": 4517,
+      "seconds": 2.4
     },
     "intl_daily": {
-      "stored": 2
+      "stored": 1
     },
     "macro.fred": {
       "ok": true,
       "rows": 15611,
-      "seconds": 3.2
+      "seconds": 6.7
     },
     "macro": {
-      "stored": 2
+      "stored": 0
     },
     "macro.fred_calendar": {
       "ok": true,
       "rows": 23,
-      "seconds": 0.9
+      "seconds": 1.1
     },
     "macro_calendar": {
       "stored": 0
@@ -93,12 +108,63 @@
       "ok": true,
       "rows": 24
     },
+    "tpex.margin_total_otc": {
+      "ok": false,
+      "rows": 0,
+      "diag": [
+        {
+          "url": "https://www.tpex.org.tw/openapi/swagger.json",
+          "http": 200,
+          "head": "{\"openapi\":\"3.0.0\",\"info\":{\"description\":\"\\u672c\\u5e73\\u81fa\\u63d0\\u4f9b\\u6ac3\\u6aaf\\u8cb7\\u8ce3\\u5e02\\u5834\\u8cc7\\u6599\\u670d\\u52d9API\\uff0c\\u5305\\u542b\\u4e0a\\u6ac3\\u3001\\u8208\\u6ac3\\u3001\\u5275\\u6ac"
+        },
+        {
+          "swagger_path": "/v1/tpex_margin_trading_marginspot",
+          "summary": "上櫃信用交易餘額概況表"
+        },
+        {
+          "url": "https://www.tpex.org.tw/openapi/v1/tpex_margin_trading_marginspot",
+          "http": 200,
+          "head": "[ {\"Month\":\"11510\",\"Ranking\":\"1\",\"SecuritiesCompanyCode\":\"9800\",\"CompanyName\":\"元大\",\"MonthlyAverageMarginPurchaseBalance\":\"31136797526\",\"MarketShare\":\"14.29\",\"MonthlyAverageShortSaleBalance\":\"105417522"
+        },
+        {
+          "url": "https://www.tpex.org.tw/openapi/v1/tpex_margin_trading_marginspot",
+          "n": 34,
+          "cols": [
+            "Month",
+            "Ranking",
+            "SecuritiesCompanyCode",
+            "CompanyName",
+            "MonthlyAverageMarginPurchaseBalance",
+            "MarketShare",
+            "MonthlyAverageShortSaleBalance",
+            "MonthlyAverageMarginTradingBalance"
+          ]
+        },
+        {
+          "url": "https://www.tpex.org.tw/openapi/v1/tpex_mainboard_margin_summary",
+          "http": 200,
+          "head": "<!DOCTYPE html><html lang=\"zh-Hant-tw\"><head><title>è­å¸æ«æª¯è²·è³£ä¸­å¿</title><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, maximum-scale=1, user-sc"
+        },
+        {
+          "url": "https://www.tpex.org.tw/openapi/v1/tpex_margin_summary",
+          "http": 200,
+          "head": "<!DOCTYPE html><html lang=\"zh-Hant-tw\"><head><title>è­å¸æ«æª¯è²·è³£ä¸­å¿</title><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, maximum-scale=1, user-sc"
+        },
+        {
+          "url": "https://www.tpex.org.tw/openapi/v1/tpex_mainboard_margin_trading_summary",
+          "http": 200,
+          "head": "<!DOCTYPE html><html lang=\"zh-Hant-tw\"><head><title>è­å¸æ«æª¯è²·è³£ä¸­å¿</title><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, maximum-scale=1, user-sc"
+        }
+      ]
+    },
     "build_payload": {
       "ok": true
     }
   },
   "errors": [],
   "empty": [],
+  "gaps": [],
+  "rebuilt": [],
   "phase": "news",
   "index_minute_days": {
     "FUT": [
@@ -111,15 +177,9 @@
       "2026-11-06"
     ]
   },
-  "taifex_minute_days": {
-    "FUT_N": [
-      "2026-11-05",
-      "2026-11-06"
-    ]
-  },
-  "started_at": "2026-11-06T01:34:42.207473+00:00",
-  "finished_at": "2026-11-06T01:56:24.343435+00:00",
-  "duration_seconds": 1302.1,
+  "started_at": "2026-11-06T05:15:31.510976+00:00",
+  "finished_at": "2026-11-06T05:30:02.198247+00:00",
+  "duration_seconds": 870.7,
   "trade_date": null,
   "complete": true,
   "freshness": {
@@ -128,8 +188,8 @@
       "inst_daily": {
         "label": "個股三大法人",
         "latest": "2026-11-05",
-        "rows": 1696,
-        "median": 2049.5,
+        "rows": 1786,
+        "median": 2053.5,
         "status": "ok",
         "reason": null
       },
@@ -184,13 +244,18 @@
     },
     {
       "table": "margin_daily",
-      "rows": 2696090,
+      "rows": 2696802,
       "latest": "2026-11-05"
     },
     {
       "table": "margin_total",
       "rows": 1416,
       "latest": "2026-11-05"
+    },
+    {
+      "table": "margin_total_otc",
+      "rows": 0,
+      "latest": "—"
     },
     {
       "table": "fut_inst",
@@ -219,7 +284,7 @@
     },
     {
       "table": "inst_daily",
-      "rows": 5498326,
+      "rows": 5498428,
       "latest": "2026-11-05"
     },
     {
@@ -294,17 +359,17 @@
     },
     {
       "table": "news",
-      "rows": 9991,
+      "rows": 10079,
       "latest": "2026-11-06"
     },
     {
       "table": "broker_views",
-      "rows": 254,
+      "rows": 256,
       "latest": "2026-11-06"
     },
     {
       "table": "intl_daily",
-      "rows": 42707,
+      "rows": 42708,
       "latest": "2026-11-06"
     },
     {
@@ -359,12 +424,12 @@
     },
     {
       "table": "tape_5m",
-      "rows": 120094,
+      "rows": 165840,
       "latest": "—"
     },
     {
       "table": "index_intraday",
-      "rows": 283894,
+      "rows": 284557,
       "latest": "—"
     },
     {
@@ -384,7 +449,7 @@
     },
     {
       "table": "sbl_daily",
-      "rows": 809114,
+      "rows": 809912,
       "latest": "2026-11-05"
     },
     {

@@ -1,0 +1,145 @@
+{
+  "build_payload": {
+    "consecutive_fail": 0,
+    "last_error": null,
+    "last_fail_date": null,
+    "last_ok_date": "2026-11-06",
+    "last_seen": "2026-11-06T05:30:02.198247+00:00"
+  },
+  "crosscheck": {
+    "TPEX": {
+      "lake_date": "2026-11-05",
+      "lake_rows": 1000,
+      "official_date": "2026-11-05",
+      "official_rows": 1000,
+      "rows_ok": true,
+      "sample_checked": 5,
+      "sample_mismatch": [],
+      "verdict": "ok"
+    },
+    "TWSE": {
+      "lake_date": "2026-11-05",
+      "lake_rows": 1333,
+      "official_date": "2026-11-05",
+      "official_rows": 1333,
+      "rows_ok": true,
+      "sample_checked": 5,
+      "sample_mismatch": [],
+      "verdict": "ok"
+    },
+    "at": "2026-11-06T13:30:08+08:00",
+    "verdict": "ok"
+  },
+  "macro.fred": {
+    "consecutive_fail": 0,
+    "last_error": null,
+    "last_fail_date": null,
+    "last_ok_date": "2026-11-06",
+    "last_seen": "2026-11-06T05:30:02.198247+00:00"
+  },
+  "macro.fred_calendar": {
+    "consecutive_fail": 0,
+    "last_error": null,
+    "last_fail_date": null,
+    "last_ok_date": "2026-11-06",
+    "last_seen": "2026-11-06T05:30:02.198247+00:00"
+  },
+  "macro.intl": {
+    "consecutive_fail": 0,
+    "last_error": null,
+    "last_fail_date": null,
+    "last_ok_date": "2026-11-06",
+    "last_seen": "2026-11-06T05:30:02.198247+00:00"
+  },
+  "mis.index_minute": {
+    "consecutive_fail": 0,
+    "last_error": null,
+    "last_fail_date": null,
+    "last_ok_date": "2026-11-06",
+    "last_seen": "2026-11-06T05:30:02.198247+00:00"
+  },
+  "mktfut.fut_inst": {
+    "consecutive_fail": 0,
+    "last_error": null,
+    "last_fail_date": null,
+    "last_ok_date": "2026-11-06",
+    "last_seen": "2026-11-06T05:30:02.198247+00:00"
+  },
+  "mktfut.fut_oi": {
+    "consecutive_fail": 0,
+    "last_error": null,
+    "last_fail_date": null,
+    "last_ok_date": "2026-11-06",
+    "last_seen": "2026-11-06T05:30:02.198247+00:00"
+  },
+  "mktfut.margin_total": {
+    "consecutive_fail": 0,
+    "last_error": null,
+    "last_fail_date": null,
+    "last_ok_date": "2026-11-06",
+    "last_seen": "2026-11-06T05:30:02.198247+00:00"
+  },
+  "mops.material_news": {
+    "consecutive_fail": 0,
+    "last_error": null,
+    "last_fail_date": null,
+    "last_ok_date": "2026-11-06",
+    "last_seen": "2026-11-06T05:30:02.198247+00:00"
+  },
+  "news.broker_views": {
+    "consecutive_fail": 0,
+    "last_error": null,
+    "last_fail_date": null,
+    "last_ok_date": "2026-11-06",
+    "last_seen": "2026-11-06T05:30:02.198247+00:00"
+  },
+  "news.collect": {
+    "consecutive_fail": 0,
+    "last_error": null,
+    "last_fail_date": null,
+    "last_ok_date": "2026-11-06",
+    "last_seen": "2026-11-06T05:30:02.198247+00:00"
+  },
+  "taifex.futures_minute": {
+    "consecutive_fail": 1,
+    "last_error": "回空（0 筆）",
+    "last_fail_date": "2026-11-06",
+    "last_ok_date": null,
+    "last_seen": "2026-11-06T05:30:02.198247+00:00"
+  },
+  "tape.collect": {
+    "consecutive_fail": 1,
+    "last_error": "回空（0 筆）",
+    "last_fail_date": "2026-11-06",
+    "last_ok_date": null,
+    "last_seen": "2026-11-06T05:30:02.198247+00:00"
+  },
+  "tpex.margin_total_otc": {
+    "consecutive_fail": 1,
+    "last_error": "回空（0 筆）",
+    "last_fail_date": "2026-11-06",
+    "last_ok_date": null,
+    "last_seen": "2026-11-06T05:30:02.198247+00:00"
+  },
+  "tpex.price_daily": {
+    "consecutive_fail": 0,
+    "last_error": null,
+    "last_fail_date": null,
+    "last_ok_date": "2026-11-06",
+    "last_seen": "2026-11-06T05:30:02.198247+00:00"
+  },
+  "twse.market": {
+    "consecutive_fail": 0,
+    "last_error": null,
+    "last_fail_date": null,
+    "last_ok_date": "2026-11-06",
+    "last_seen": "2026-11-06T05:30:02.198247+00:00"
+  },
+  "twse.price_daily": {
+    "consecutive_fail": 0,
+    "last_error": null,
+    "last_fail_date": null,
+    "last_ok_date": "2026-11-06",
+    "last_seen": "2026-11-06T05:30:02.198247+00:00"
+  }
+}
