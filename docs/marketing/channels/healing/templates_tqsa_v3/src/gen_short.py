@@ -98,7 +98,10 @@ def pager(style, n, total=3):
             if i + 1 == n: out += sun(cx)
             elif last: out += '<circle cx="%d" cy="22" r="7.5" fill="%s" opacity=".4"/>' % (cx, lp)
             else: out += '<circle cx="%d" cy="22" r="7.5" fill="none" stroke="%s" stroke-width="2"/>' % (cx, ln)
-        return '<svg width="124" height="44" viewBox="0 0 124 44">%s</svg>' % out
+        if last: return '<svg width="124" height="44" viewBox="0 0 124 44">%s</svg>' % out
+        # 2026-11-06 Andy：「右下角需要補上箭頭 除了最後一頁」
+        out += '<path d="M134 22 H156 M148 14 L157 22 L148 30" stroke="%s" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/>' % ln
+        return '<svg width="164" height="44" viewBox="0 0 164 44">%s</svg>' % out
     if style == "B":
         dots = ''.join('<circle cx="%d" cy="18" r="7.5" fill="%s" stroke="%s" stroke-width="2"/>' % (10 + i * 26, lp if (i + 1 == n or last) else "none", lp if (i + 1 == n or last) else ln) for i in range(total))
         arrow = '' if last else '<path d="M92 10 L102 18 L92 26" stroke="%s" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" fill="none"/>' % ln
