@@ -5811,6 +5811,13 @@ h3 .howbtn.pop{font-family:inherit}
         <div id="adtWrap" hidden data-mode="tiles"><div class="adt-bins" id="adtBins" role="group" aria-label="級距篩選（可多選）"></div><div id="adtSub"></div><div id="adtGrid"></div></div>
         <div class="ovmore"><a id="ovTrustLink" href="#market/streak">法人連續買賣超 → 市場明細</a></div></div>
     </div>
+    <!-- ★ 2026-11-06（Andy：「圖示需要在優化，文字有點多，曲線圖放在最底下即可」）：恐慌指數走勢圖放總覽最底下的獨立卡（site/fearcard.js）。
+         單一組、預設直接展開；圖本體（#ovFearFull）捲到才建（功能鍵 ov.fear 才不會沒看到就被計次）。點上方摘要卡＝捲到這裡並亮一下。 -->
+    <div class="grid ovlow" style="margin-top:var(--gap-card)">
+      <div class="card" id="ovFearCard"><div class="row spread"><h3>恐慌指數走勢 <button class="howbtn pop" data-how="fearfull" data-ttl="恐慌指數走勢" type="button" aria-label="恐慌指數走勢怎麼看">?</button></h3>
+        <span class="fz-leg"><i style="--c:var(--rise)"></i>台指自算<i style="--c:var(--cyan)"></i>美股 VIX</span></div>
+        <div class="howtxt" id="how-fearfull" hidden></div></div>
+    </div>
   </section>
 
   <!-- ================= 市場明細 ================= -->

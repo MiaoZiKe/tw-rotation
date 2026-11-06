@@ -4881,7 +4881,12 @@
         ovsJump('熱門題材', 'ovThemeCard');
         return;
       }
-      if (k === 'fear') { if (window.FearCard) window.FearCard.toggle(); return; }   // 恐慌指數：卡列下方展開／收起完整圖（不捲走）
+      if (k === 'fear') {   // 恐慌指數（Andy 11-06：曲線圖放最底下）：捲到總覽最底下的走勢圖卡、亮一下；圖第一次露出才建
+        ovsJump('市場寬度', 'ovFearCard', true, 2);
+        if (window.FearCard) window.FearCard.reveal();
+        cardSpot($('#ovFearCard'));
+        return;
+      }
       if (k === 'rot') ovsJump('強弱輪動', 'ovRotCard');
       if (k === 'flow') ovsJump('資金分流樹', 'ovFlowHead', true);
     };

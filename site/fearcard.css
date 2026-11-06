@@ -2,16 +2,14 @@
    卡片外框沿用同一排的 .osc（index.html）；本體＝左邊時速表（ECharts gauge）＋右邊小字。顏色全走主題變數，深淺主題自動跟著換。
    手機（≤640／html.m4）的調整在 m4/20261106-fearcard.css。*/
 .osc.fz .osc-n.fz-body{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);grid-auto-flow:row;gap:8px;align-items:center;flex:1 1 auto;min-height:0}
-.osc.fz .fz-g{height:70px;min-width:0}
-.osc.fz .fz-na{font-size:12px;line-height:70px;text-align:center}
-.osc.fz .fz-side{display:flex;flex-direction:column;gap:4px;min-width:0}
-.osc.fz .fz-row{display:flex;flex-direction:column;gap:0;min-width:0}
-.osc.fz .fz-row small{font-size:11.5px;line-height:15px;color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.osc.fz .fz-row .osn-v{gap:3px}
-.osc.fz .fz-row .osn-v b{font-size:15px;line-height:18px}
-.osc.fz .fz-row .osn-v em,.osc.fz .fz-row small em{font-size:11.5px;font-style:normal;font-family:var(--mono)}
-.osc.fz .fz-row small em.fz-up{color:var(--rise)} .osc.fz .fz-row small em.fz-dn{color:var(--fall)}
-.osc.fz .osn-v em.fz-up{color:var(--rise)} .osc.fz .osn-v em.fz-dn{color:var(--fall)}
+.osc.fz .fz-g{height:64px;min-width:0}
+.osc.fz .fz-na{font-size:12px;line-height:64px;text-align:center}
+.osc.fz .fz-side{display:flex;flex-direction:column;gap:2px;min-width:0;justify-content:center}
+.osc.fz .fz-big{display:flex;flex-direction:column;gap:0;min-width:0}
+.osc.fz .fz-num{font:700 28px/30px var(--mono);letter-spacing:-.5px;white-space:nowrap}
+.osc.fz .fz-st{font-size:13px;line-height:18px;font-weight:700}
+.osc.fz .fz-row small{display:block;font-size:12px;line-height:16px;color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.osc.fz .fz-row small b{color:var(--ink);font-family:var(--mono);font-size:12px}
 .osc.fz .osc-h > .howbtn{margin-left:auto}
 /* 五張一排（1440 每張約 218px）時，站主看得到的「即時」鈕會把「資金分流樹」卡名擠成「資金分流…」：
    有恐慌指數卡的那一排，標題列間距 8→6、即時鈕左右留白 8→6（只動這一排的桌機寬；手機 ≤640 另有規則）。*/
@@ -19,15 +17,15 @@
   #hero .ovsum-track:has(.osc.fz) .osc-h{gap:6px}
   #hero .ovsum-track:has(.osc.fz) .osc-d{padding:0 6px}
 }
-/* 展開的完整圖：卡列正下方一整條，高度固定（圖表不跟內容伸縮，避免 ECharts resize 抖動） */
-.fz-full{margin-top:var(--sp-2,8px);border:1px solid var(--line);border-radius:12px;background:color-mix(in srgb,var(--panel-3) 55%,transparent);
-  padding:var(--sp-2,8px) var(--sp-3,12px);box-sizing:border-box;min-width:0;position:relative}
-.fz-fh{display:flex;align-items:center;flex-wrap:wrap;gap:6px 10px;min-width:0}
-.fz-fh > b{font-size:13.5px;color:var(--ink)}
+/* 總覽最底下的走勢圖卡（#ovFearCard）：高度固定（圖表不跟內容伸縮，避免 ECharts resize 抖動） */
+.fz-full{min-width:0}
 .fz-leg{display:inline-flex;align-items:center;gap:4px 8px;font-size:12px;color:var(--ink-2);flex-wrap:wrap}
 .fz-leg i{display:inline-block;width:12px;height:2px;background:var(--c);vertical-align:middle;margin-right:2px}
-.fz-x{margin-left:auto;flex:none;width:28px;height:28px;border-radius:8px;border:1px solid var(--line);background:transparent;color:var(--ink-2);font-size:17px;line-height:1;cursor:pointer}
-.fz-x:hover{border-color:var(--cyan);color:var(--cyan)}
-.fz-cv{height:300px;min-width:0;margin-top:6px}
+.fz-cv{height:280px;min-width:0;margin-top:6px}
 .fz-note{font-size:12px;line-height:17px;color:var(--ink-3);margin-top:4px}
 .fz-note b{color:var(--ink);font-family:var(--mono)}
+@media (max-width:640px){
+  .osc.fz .fz-g{height:62px}
+  .osc.fz .fz-num{font-size:26px}
+  .fz-cv{height:240px}
+}

@@ -9,9 +9,11 @@
      · 狀態＝本站自算序列在「到那天為止」最近 750 個交易日的分位：< 50% 平靜、50～85% 警戒、≥ 85% 恐慌；
        歷史不到 120 天不給標籤（樣本不足），n 一律寫出來。
    為什麼放一支獨立檔：同事同時在改 app.js 的總覽（提示框、漲跌家數字卡），這張卡的邏輯全部放這裡，
-   app.js 只留三個接點（renderOvSummary 加卡片、點卡片 → toggle、畫完 → mounted）。
+   app.js 只留三個接點（renderOvSummary 加卡片、點卡片 → 捲到底部走勢圖並 reveal、畫完 → mounted）。
    卡片長相沿用同一排的 .osc（標題列、比例條、數字、底線），比例條＝分位（0～100%）。
-   點卡片 → 卡列下方展開完整圖（#ovFearFull，ECharts，拉Bar 可拖）；功能鍵 ov.fear 計的是這張完整圖（site/features.js）。
+   2026-11-06 第二版（Andy：「圖示需要在優化，文字有點多，曲線圖放在最底下即可」）：卡片只留標題、時速表、大數字＋狀態字、一行「美股 VIX」；
+   日期、漲跌、分位、n 全搬進「?」。走勢圖改放在總覽最底下的獨立卡（#ovFearCard，index.html），點摘要卡＝捲過去並亮一下；
+   圖的本體（#ovFearFull）是第一次露出（捲到或點卡片）才建，功能鍵 ov.fear 計的是它（site/features.js）。
    ============================================================================ */
 (function () {
   'use strict';
@@ -52,18 +54,16 @@
   function inner(d) {
     const tw = d && d.tw, us = d && d.us;
     const st = tw && ST[tw.state];
-    const pct = tw && tw.pct != null ? Math.round(tw.pct * 100) : null;
+    /* 卡片只留：大數字＋狀態字（右側）、一行美股 VIX。日期、漲跌、分位、n 全在「?」裡（Andy 11-06：文字有點多；#329 日期不放卡片）。*/
     const side = !d ? '<span class="muted">載入中…</span>'
-      : `<div class="fz-row fz-tw" data-v="tw"><small>台指 ${md(tw && tw.date)} ${tw ? chg(tw.chg) : '<em>回補中</em>'}</small>`
-        + `<small class="fz-pc" title="今天的值在最近 ${tw ? tw.n_hist : 0} 個交易日裡的分位">${tw ? `分位${pct != null ? pct + '%' : '—'} n=${tw.n_hist}` : ''}</small></div>`
-        + `<div class="fz-row fz-us" data-v="us"><small>美股VIX ${md(us && us.date)}</small><span class="osn-v"><b>${n2(us && us.value)}</b>${us ? chg(us.chg) : ''}</span></div>`;
-    return { side, st, aria: `恐慌指數 ${n2(tw && tw.value)}${st ? '，' + st.n : ''}；美股 VIX ${n2(us && us.value)}。點一下展開完整圖` };
+      : `<div class="fz-big" data-v="tw"><b class="fz-num" style="color:${st ? st.c : 'var(--ink)'}">${tw ? Number(tw.value).toFixed(1) : '—'}</b>`
+        + `<span class="fz-st" style="color:${st ? st.c : 'var(--ink-3)'}">${tw ? (st ? st.n : '樣本不足') : '回補中'}</span></div>`
+        + `<div class="fz-row fz-us" data-v="us"><small>美股 VIX <b>${us && us.value != null ? Number(us.value).toFixed(1) : '—'}</b></small></div>`;
+    return { side, st, aria: `恐慌指數 ${n2(tw && tw.value)}${st ? '，' + st.n : ''}；美股 VIX ${n2(us && us.value)}。點一下捲到走勢圖` };
   }
   function card() {
     const o = inner(S.data);
-    /* 卡片本體＝左邊時速表（ECharts gauge，#ovFearGauge）＋右邊小字（台指漲跌與日期、分位與樣本數、美股 VIX 與日期）。
-       保留 .osc-n 這個 class：同一排共用的量測（數字區有沒有被切到卡外）會找它。*/
-    return `<div class="osc fz" data-k="fear" role="button" tabindex="0" aria-expanded="${S.open}" aria-label="${esc(o.aria)}" title="點一下展開完整圖">`
+    return `<div class="osc fz" data-k="fear" role="button" tabindex="0" aria-label="${esc(o.aria)}" title="點一下看走勢圖">`
       + `<div class="osc-h"><span class="osc-ic" data-icon="gauge" style="--ic:var(--rise)" aria-hidden="true">${ICON}</span><b class="osc-t">恐慌指數</b>`
       + `<button class="howbtn pop" data-how="ovs-fear" data-ttl="恐慌指數" type="button" aria-label="恐慌指數怎麼看">?</button></div>`
       + `<div class="osc-n fz-body"><div class="fz-g" id="ovFearGauge" role="img" aria-label="${esc(o.aria)}"></div><div class="fz-side">${o.side}</div></div></div>`;
@@ -71,7 +71,11 @@
   function howText(d) {
     const m = (d && d.method) || {};
     const lo = Math.round((m.calm || 0.5) * 100), hi = Math.round((m.panic || 0.85) * 100);
-    return '<b class="howq">市場現在有多緊張：選擇權價格隱含的未來 30 天波動。</b><ul>'
+    const tw = d && d.tw, us = d && d.us;
+    const sg = (v) => (v == null || !isFinite(v) ? '' : `（${v > 0 ? '+' : ''}${Number(v).toFixed(2)}）`);
+    const rd = tw ? `<li>最新讀數：台指 ${md(tw.date)} <b>${n2(tw.value)}</b>${sg(tw.chg)}・分位 ${tw.pct != null ? Math.round(tw.pct * 100) + '%' : '—'}・n=${tw.n_hist}`
+      + (us ? `；美股 VIX ${md(us.date)} <b>${n2(us.value)}</b>${sg(us.chg)}` : '') + '</li>' : '';
+    return '<b class="howq">市場現在有多緊張：選擇權價格隱含的未來 30 天波動。</b><ul>' + rd
       + '<li>時速表的指針＝<b>台指選擇權隱含波動率</b>，本站依期交所公開的臺指選擇權（TXO）每日行情自算，與期交所公布的台指VIX會有差異（非期交所官方數字）</li>'
       + '<li>算法：近月、次近月月契約各履約價的結算價，照芝加哥期權交易所公開的波動率指數白皮書公式，插補成 30 天期，單位是年化 %</li>'
       + `<li>無風險利率固定 ${((m.rate || 0.015) * 100).toFixed(1)}%；近月剩最後兩個交易日就改用次近月＋第三近月（同期交所換月規則）</li>`
@@ -79,8 +83,8 @@
       + `<li>三段顏色＝今天的值在最近 ${m.window || 750} 個交易日（到今天為止，不含未來）裡的分位：低於 ${lo}% 平靜（綠）、${lo}～${hi}% 警戒（黃）、${hi}% 以上恐慌（紅）；刻度上的分界就是那兩個分位對應的數值</li>`
       + `<li>門檻依據：${lo}%＝中位數（比一半的日子高才開始警戒）；${hi}%≈平均加一個標準差（常態分配下約 84%），不是對著歷史挑出來的數字</li>`
       + `<li>歷史不到 ${m.min_hist || 120} 個交易日只給數字、不給狀態；右邊的 n＝分位用到的天數</li>`
-      + '<li>右下＝美股恐慌指數 VIX（芝加哥期權交易所），日期是美國交易日，跟台股差一天是正常的</li>'
-      + '<li>點卡片展開完整圖：預設顯示近 60 個交易日，拖下方拉Bar 看更早</li></ul>';
+      + '<li>卡片下方的「美股 VIX」＝美股恐慌指數（芝加哥期權交易所），日期是美國交易日，跟台股差一天是正常的</li>'
+      + '<li>點卡片捲到總覽最底下的走勢圖：預設顯示近 60 個交易日，拖下方拉Bar 看更早</li></ul>';
   }
 
   /* 時速表本體。每次卡列重畫（換主題、回總覽）節點都是新的，所以每次 refresh 都重新 setOption；顏色當下從主題變數讀。*/
@@ -88,7 +92,7 @@
     const el = document.getElementById('ovFearGauge'); const a = A(); const d = S.data;
     if (!el || !a || !a.chart || !d) return;
     const tw = d.tw;
-    const ink = cssv('--ink', '#e8eeff'), ink3 = cssv('--ink-3', '#6f7ea3'), line = cssv('--line', '#1e2a48');
+    const ink = cssv('--ink', '#e8eeff'), line = cssv('--line', '#1e2a48');
     if (!tw) { el.innerHTML = '<div class="fz-na muted">台指自算值回補中</div>'; return; }
     const { lo, hi } = gaugeRange(tw);
     const f = (v) => Math.min(1, Math.max(0, (v - lo) / (hi - lo)));
@@ -96,24 +100,21 @@
     const stops = tw.q50 != null && tw.q85 != null && tw.state
       ? [[f(tw.q50), C.calm], [f(tw.q85), C.alert], [1, C.panic]]
       : [[1, line]];                                   // 樣本不足：不畫分段（不給狀態就不准用顏色暗示狀態）
-    const st = ST[tw.state];
-    /* 版面（Andy 10-11「不可以重疊」）：弧在上半、數字與狀態字放在圓心「下方」——指針只會往上指，兩者不會相交；
-       半徑用像素算（ECharts 的 % 是對寬高較小那一邊的一半，矮卡片裡會縮成一小團）。刻度數字不畫：窄卡兩端會被切掉。*/
-    const W = el.clientWidth || 90, H = el.clientHeight || 70;
-    const R = Math.max(24, Math.min(W / 2 - 3, H * 0.6 - 3)), CY = Math.round(H * 0.6);
-    const mob = W > 150;
+    /* 版面：只畫弧與指針（數字、狀態字改在右側 HTML，大而清楚）。圓心貼近底邊、半徑用像素算（ECharts 的 % 在矮卡片會縮成一小團）；
+       弧線粗 10、兩端圓頭；分界靠顏色變化（不畫刻度與刻度數字）；指針細長、圓心加一圈與卡底同色的外框，深淺主題都清楚。*/
+    const W = el.clientWidth || 90, H = el.clientHeight || 64;
+    const CY = H - 8, R = Math.max(24, Math.min(W / 2 - 3, CY - 2));
+    const bg = cssv('--panel', '#0d1426');
     a.chart(el, {
       animation: false, m4dz: false, timeGrid: false,
       series: [{
         type: 'gauge', startAngle: 180, endAngle: 0, min: lo, max: hi, splitNumber: 2,
         center: ['50%', CY], radius: R,
-        axisLine: { lineStyle: { width: mob ? 9 : 8, color: stops } },
-        pointer: { length: '72%', width: 3, itemStyle: { color: ink } }, anchor: { show: true, size: 6, itemStyle: { color: ink } },
-        axisTick: { show: false }, splitLine: { show: false },
-        axisLabel: { show: false },
-        title: { show: false },
-        detail: { valueAnimation: false, offsetCenter: [0, Math.round(H - CY) - 9], formatter: (v) => `{v|${Number(v).toFixed(1)}}{s| ${st ? st.n : '—'}}`,
-          rich: { v: { fontSize: 15, fontWeight: 700, color: ink, fontFamily: (a.NUM_FONT || 'monospace') }, s: { fontSize: 12, fontWeight: 700, color: st ? C[tw.state] : ink3 } } },
+        axisLine: { roundCap: true, lineStyle: { width: 10, color: stops } },
+        pointer: { length: '66%', width: 4, offsetCenter: [0, 0], itemStyle: { color: ink } },
+        anchor: { show: true, size: 9, showAbove: true, itemStyle: { color: ink, borderColor: bg, borderWidth: 3 } },
+        axisTick: { show: false }, splitLine: { show: false }, axisLabel: { show: false },
+        title: { show: false }, detail: { show: false },
         data: [{ value: tw.value }],
       }],
     });
@@ -124,8 +125,8 @@
     const c = document.querySelector('#hero .osc[data-k="fear"]'); if (!c) return;
     const o = inner(S.data);
     const side = c.querySelector('.fz-side'); if (side && side.innerHTML !== o.side) side.innerHTML = o.side;
-    c.setAttribute('aria-label', o.aria); c.setAttribute('aria-expanded', String(S.open));
-    const hb = document.getElementById('how-ovs-fear'); if (hb) hb.innerHTML = howText(S.data);
+    c.setAttribute('aria-label', o.aria);
+    ['how-ovs-fear', 'how-fearfull'].forEach((id) => { const hb = document.getElementById(id); if (hb) hb.innerHTML = howText(S.data); });
     const host = document.getElementById('hero');
     if (host && S.data) { host.dataset.fearTw = S.data.tw ? String(S.data.tw.value) : ''; host.dataset.fearUs = S.data.us ? String(S.data.us.value) : ''; host.dataset.fearState = (S.data.tw && S.data.tw.state) || ''; }
     drawGauge();
@@ -136,40 +137,40 @@
     if (!host) return;
     if (!document.getElementById('how-ovs-fear')) { const b = document.createElement('div'); b.className = 'howtxt'; b.id = 'how-ovs-fear'; b.hidden = true; host.appendChild(b); }
     refresh();
+    watch();
     load().then(() => { refresh(); if (S.open) openFull(); });
   }
 
-  function closeFull() {
-    S.open = false;
-    const p = document.getElementById('ovFearFull');
-    if (S.chart) { try { S.chart.dispose(); } catch (e) { /* 已經沒了 */ } S.chart = null; }
-    if (p) p.remove();
-    refresh();
-  }
+  /* 走勢圖在總覽最底下的獨立卡（#ovFearCard，index.html）。卡片外框一直在；圖的本體 #ovFearFull 第一次露出才建
+     （點摘要卡、或捲到卡片）——功能鍵 ov.fear 的 veil 蓋的是它，沒看到就不計次。預設直接展開（總覽底部只有這一組）。*/
   function openFull() {
-    const host = document.getElementById('hero'); if (!host) return;
+    const host = document.getElementById('ovFearCard'); if (!host) return;
     S.open = true;
     let p = document.getElementById('ovFearFull');
     if (!p) {
-      p = document.createElement('section'); p.id = 'ovFearFull'; p.className = 'fz-full'; p.setAttribute('aria-label', '恐慌指數完整圖');
-      p.innerHTML = '<div class="fz-fh"><b>恐慌指數（台指選擇權隱含波動率・本站自算）</b>'
-        + '<span class="fz-leg"><i style="--c:var(--rise)"></i>台指自算<i style="--c:var(--cyan)"></i>美股 VIX（芝加哥期權交易所）</span>'
-        + '<button type="button" class="fz-x" aria-label="收起恐慌指數完整圖">×</button></div>'
-        + '<div class="fz-cv" id="ovFearChart"></div><div class="fz-note" id="ovFearNote"></div>';
+      p = document.createElement('div'); p.id = 'ovFearFull'; p.className = 'fz-full'; p.setAttribute('aria-label', '恐慌指數走勢圖');
+      p.innerHTML = '<div class="fz-cv" id="ovFearChart"></div><div class="fz-note" id="ovFearNote"></div>';
       host.appendChild(p);
-      p.querySelector('.fz-x').onclick = (e) => { e.stopPropagation(); closeFull(); };
     }
     refresh();
     draw();
   }
+  /* 底部卡：標題列（含圖例與「?」）由 index.html 放好；這裡只負責「露出才畫」 */
+  function watch() {
+    const host = document.getElementById('ovFearCard'); if (!host || host._fzIO) return;
+    if (typeof IntersectionObserver === 'undefined') { load().then(openFull); return; }
+    const io = new IntersectionObserver((es) => { if (es.some((x) => x.isIntersecting)) { io.disconnect(); host._fzIO = null; load().then(openFull); } }, { rootMargin: '200px' });
+    host._fzIO = io; io.observe(host);
+  }
+  function reveal() { load().then(() => { if (!S.open || !document.getElementById('ovFearFull')) openFull(); else draw(); }); }
   function draw() {
     const el = document.getElementById('ovFearChart'); const a = A(); const d = S.data || {};
     const tw = d.tw, us = d.us;
     const note = document.getElementById('ovFearNote');
+    /* 圖下面只留一行（其餘在標題旁的「?」）：台指自算 ＋ 美股 VIX 的最新值 */
     if (note) note.innerHTML = tw
-      ? `台指自算 <b>${n2(tw.value)}</b>（${esc(tw.date)}，近月 ${esc((tw.near || {}).exp || '—')}／次近月 ${esc((tw.next || {}).exp || '—')}）・分位 ${tw.pct != null ? Math.round(tw.pct * 100) + '%' : '—'}（n=${tw.n_hist}）・50% 分位 ${n2(tw.q50)}／85% 分位 ${n2(tw.q85)}`
-        + (us ? `　｜　美股 VIX <b>${n2(us.value)}</b>（${esc(us.date)}）` : '')
-      : '台指自算值還在回補（FinMind 臺指選擇權每日行情）；先只顯示美股 VIX。';
+      ? `台指自算 <b>${n2(tw.value)}</b>・50% 分位 ${n2(tw.q50)}／85% 分位 ${n2(tw.q85)}` + (us ? `・美股 VIX <b>${n2(us.value)}</b>` : '')
+      : '台指自算值還在回補；先只顯示美股 VIX。';
     if (!el || !a || !a.chart) return;
     if (!tw && !us) { el.innerHTML = '<div class="empty">尚無資料</div>'; return; }
     const CH = a.CH || {};
@@ -182,7 +183,7 @@
     const mob = window.matchMedia && window.matchMedia('(max-width:640px)').matches;
     const ser = [];
     if (tw) ser.push({ name: '台指自算', type: 'line', data: dates.map((x) => (x in mt ? mt[x] : null)), connectNulls: true, showSymbol: false, lineStyle: { width: 1.8, color: CH.up }, itemStyle: { color: CH.up },
-      markLine: tw.q85 != null ? { symbol: 'none', silent: true, lineStyle: { type: 'dashed', width: 1 }, label: { formatter: (p) => p.name, color: CH.ink3 || '#8a94a6', fontSize: 11 },
+      markLine: tw.q85 != null ? { symbol: 'none', silent: true, lineStyle: { type: 'dashed', width: 1 }, label: { formatter: (p) => p.name, position: mob ? 'insideEndTop' : 'end', color: CH.ink3 || '#8a94a6', fontSize: 11 },
         data: [{ name: '50% 分位', yAxis: tw.q50, lineStyle: { color: CH.amber } }, { name: '85% 分位', yAxis: tw.q85, lineStyle: { color: CH.up } }] } : undefined });
     if (us) ser.push({ name: '美股 VIX', type: 'line', data: dates.map((x) => (x in mu ? mu[x] : null)), connectNulls: true, showSymbol: false, lineStyle: { width: 1.4, color: CH.cyan }, itemStyle: { color: CH.cyan } });
     S.chart = a.chart(el, {
@@ -195,7 +196,5 @@
     });
     if (window.App) window.App._fear = { n: dates.length, tw: tw ? tw.series.length : 0, us: us ? us.series.length : 0, open: true };
   }
-  function toggle() { if (S.open) closeFull(); else load().then(openFull); }
-
-  window.FearCard = { card, mounted, toggle, load, refresh, _s: S };
+  window.FearCard = { card, mounted, reveal, load, refresh, _s: S };
 })();
