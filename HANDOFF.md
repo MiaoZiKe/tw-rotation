@@ -1,5 +1,13 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
+## 2026-11-07 每日簽到預覽版（preview/checkin；Andy 11-07 要求：日曆簽到、節點換文章與許願、比比互動補簽、站主自己簽到驗證）
+- 規格 `docs/feature_proposals/checkin_spec_1107.md`（附錄「CEO 11-07 拍板」優先）。新檔 `site/checkin.js`（月曆面板＋比比寶箱＋比比補簽＋許願＋站主測試工具）、`site/articles/vault/`（12 篇＋manifest）、`site/bibi_facts.json`（補簽互動的小知識／測驗題）。改 `app.js`（手機總覽簽到卡）、`articles.js`（比比寶箱分頁）、`bibi.js`（小圈多兩顆：聽比比說、比比考考你）、`features.js`＋`plan_presets.js`（功能鍵 ci.sign／ci.makeup／ci.wish／art.cat.vault）、`index.html`（頂欄簽到鈕、載入 checkin.js）、`notices/features.json`。
+- 預覽版狀態只存本機 localStorage（階段 1，不碰後端）；願望每項各打一次現有 `/v1/feedback`（type=wish，內文帶【預覽】【簽到願望】）；「Plus 3 天」只在畫面模擬。正式版要做的後端（簽到／兌換／補簽計數搬 Worker、寶箱硬閘門、真的發 Plus 天數）列在規格第 11.3 節，上正式站前要 Andy 同意。
+- 法遵：寶箱文章只能靠簽到解鎖（`unlocked()` 不看方案、不看站主身分）；不佔 art.read.n 額度。
+- 桌機摘要卡列維持五張（簽到卡只在手機 ≤820 出現，桌機走頂欄小圖示）；寶箱分頁不進管理者「眼睛」隱藏機制（`HID_KEYS`）。
+- 驗收段落 `scripts/uitest_sections/20261107_每日簽到.py`（每日簽到）；既有的 精選文章分頁1016／文章分頁隱藏1027／文章全部分頁隱藏1106／精選文章共通功能1016／_uitest 手機摘要卡 因多一個分頁或手機多一張卡已同步改期望值。
+- 容器內本來就紅、與本批無關（main 同樣）：摘要卡即時 1 項、精選文章共通功能 導覽 5 項、精選文章收合 2 項、手機一屏 6 項。
+
 ## 2026-11-06 夜 資料維修：last_run 8 個 ok:false 的真相（爬蟲專家；Andy：「找不到的 要在安排 維修人員去修復」）
 - **8 個步驟分類**（證據＝11-06 19:00 台北那輪 full，run 42206369140 的 collect log）：
   tape.collect／taifex.futures_minute／sitca.etf_top10／finmind.futures_60m／finmind.otc_60m／optivx.daily／news.broker_views ＝ **(a) 本輪本來就不用抓**（log：「窗內 34 個候選日都處理過了」「公會前十大 202609 已在資料湖，跳過」「台指期 2026-11-05 的 60 分 K 已在湖裡，跳過」「櫃買 …已在湖裡」；optivx 當天 FinMind 選擇權還沒出；券商引述當天新聞沒有目標價句），但 `step()` 一律把 rows==0 記成 ok:false。

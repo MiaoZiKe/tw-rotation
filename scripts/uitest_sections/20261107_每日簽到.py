@@ -11,7 +11,7 @@
 # ② 填到 7 天再兌換 → 又 2 篇、不重複；填到 20 天 → 許願券 → 送出 3 個願望 → 真的 worker 收到 3 筆 /v1/feedback（帶預覽＋簽到許願標記）、
 #    站主的意見回饋清單看得到；模擬「會做」→ 畫面顯示站主打算做；管理端標「不做」→ 同步 → 畫面顯示送 Plus 3 天（預覽模擬）
 # ③ 補簽：聽比比說／比比考考你真的互動；連點、20 秒內、每日上限都不算；滿 5 次 → 開始補簽 → 點空白日兩下 → 月曆出現「補」註記
-# ④ 一般會員（Bob）：月曆開得起來、DOM 裡完全沒有站主測試；手機 390 一屏看完、不橫捲、字不小於 11px
+# ④ 一般會員（Bob）；桌機摘要卡列不變（五張）、手機（≤820）第一張才是簽到卡；：月曆開得起來、DOM 裡完全沒有站主測試；手機 390 一屏看完、不橫捲、字不小於 11px
 # ⑤ 功能鍵：ci.sign／ci.makeup／ci.wish／art.cat.vault 四個方案都有值；關掉 ci.sign → 簽到鈕鎖住、按了也不會簽
 
 def t_checkin_1107(b, base):
@@ -84,9 +84,9 @@ def t_checkin_1107(b, base):
         ad.on("request", lambda r: fb_posts.append(json.loads(r.post_data or "{}")) if "/v1/feedback" in r.url and r.method == "POST" else None)
         ad.on("request", lambda r: vault_fetch.append(r.url) if "/articles/vault/posts/" in r.url else None)
         login(ad, "andy")
-        ok(f"{T}：總覽第一張摘要卡是「簽到」", ad.evaluate("() => { const c = document.querySelector('.ovsum .osc'); return !!c && c.classList.contains('ci'); }"))
+        ok(f"{T}：桌機總覽摘要卡列維持原本五張、沒有多出簽到卡（桌機走頂欄小圖示，版面不動）", ad.evaluate("() => document.querySelectorAll('.ovsum .osc').length") == 5 and ad.query_selector(".osc.ci") is None)
         ok(f"{T}：頂欄簽到鈕有圖示", ad.evaluate("() => !!document.querySelector('#ciBtn svg')"))
-        opencal(ad, via_card=True)
+        opencal(ad)
         ok(f"{T}：①月曆有 7 欄星期標題與本月每一天", ad.evaluate("() => document.querySelectorAll('.ci-wk').length === 7 && document.querySelectorAll('.ci-c[data-d]').length >= 28"))
         ok(f"{T}：①站主看得到「站主測試」", ad.query_selector("#ciAdm") is not None)
         ok(f"{T}：①桌機節點清單直接攤開（3／7／14／20 四列）", ad.evaluate("() => { const u = document.getElementById('ciNodes'); return !!u && u.offsetHeight > 0 && u.querySelectorAll('li').length === 4; }"))

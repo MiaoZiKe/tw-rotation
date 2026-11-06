@@ -119,7 +119,7 @@ def t_articles_hide_1027(b, base, code):
             open_articles(pg)
             ok(f"★ [{T}（{W}）] {who}：只看到 全部／快訊／產業鏈／知識（盤前、盤後不見）", pg.evaluate(vis) == ["all", "news", "intro", "know"], pg.evaluate(vis))
             ok(f"[{T}（{W}）] {who}：看不到任何眼睛、欄數跟著變 4（分頁沒擠成一角）", pg.evaluate("() => [...document.querySelectorAll('.arteye')].every(e => e.getClientRects().length === 0)")
-               and pg.evaluate("() => getComputedStyle(document.getElementById('artCats')).gridTemplateColumns.split(' ').length") == 5   # 4 格＋比比寶箱)
+               and pg.evaluate("() => getComputedStyle(document.getElementById('artCats')).gridTemplateColumns.split(' ').length") == 5)
             pg.goto(base + "#articles/premarket", wait_until="domcontentloaded"); pg.wait_for_timeout(1800)
             ok(f"★ [{T}（{W}）] {who}：直接打 #articles/premarket → 導回 #articles（停在全部文章）", pg.evaluate("() => location.hash") == "#articles"
                and pg.evaluate("() => document.querySelector('#artCats>button.on').dataset.cat") == "all", pg.evaluate("() => location.hash"))
