@@ -49,6 +49,9 @@
      新鍵 mkt.credit（信用交易）、mkt.fut（期貨籌碼）、mkt.inst.day（三大法人當天報告）：四個方案都開；每日次數 訪客 3、註冊會員 5、Plus 50、Pro 不設＝不限
      （跟市場明細漲跌家數／法人連買賣／站上均線同一口徑，單位＝一次造訪；features.js 的 limBy 也寫了 訪客 3／註冊會員 5，按「套用建議方案」之前就照這個跑）。
      這三個鍵不在 GRANT_BAN，會自動出現在「編輯：新會員體驗」清單；體驗的次數由 Andy 自己在那邊設，這裡不預設。
+   · ★ 2026-11-06（Andy：「另外需要新增恐慌指數再右上」）：新鍵 ov.fear（總覽恐慌指數卡「點開的完整圖」；卡片本身的盤後值人人看得到、不計次）：
+     四個方案都開；每日次數 訪客 3、註冊會員 5、Plus 50、Pro 不設＝不限（跟 mkt.credit 同口徑，單位＝一次造訪裡打開過完整圖）。
+     不在 GRANT_BAN，會自動出現在「編輯：新會員體驗」清單；體驗次數由 Andy 自己設，這裡不預設。
    這支是**資料**，不是設定：改了不會自動生效，要管理者在 #admin/perm 按一次「套用建議方案」。
    ============================================================================ */
 window.TW_PLAN_PRESETS = {
@@ -70,6 +73,7 @@ window.TW_PLAN_PRESETS = {
     "ov.rot": true,
     "ov.flow": true,
     "ov.breadth": true,
+    "ov.fear": true,
     "flow.rot": true,
     "flow.sankey": true,
     "flow.inst": true,
@@ -172,6 +176,7 @@ window.TW_PLAN_PRESETS = {
     "flow.filter": 3,
     "mkt.updown.filter": 3,
     "mkt.credit": 3,
+    "ov.fear": 3,
     "mkt.fut": 3,
     "mkt.inst.day": 3,
     "etf.cal.click": 3,
@@ -208,6 +213,7 @@ window.TW_PLAN_PRESETS = {
     "ov.rot": true,
     "ov.flow": true,
     "ov.breadth": true,
+    "ov.fear": true,
     "flow.rot": true,
     "flow.sankey": true,
     "flow.inst": true,
@@ -318,6 +324,7 @@ window.TW_PLAN_PRESETS = {
     "mkt.streak": 5,
     "mkt.ma": 5,
     "mkt.credit": 5,
+    "ov.fear": 5,
     "mkt.fut": 5,
     "mkt.inst.day": 5,
     "season.month": 10,
@@ -360,6 +367,7 @@ window.TW_PLAN_PRESETS = {
     "ov.rot": true,
     "ov.flow": true,
     "ov.breadth": true,
+    "ov.fear": true,
     "flow.rot": true,
     "flow.sankey": true,
     "flow.inst": true,
@@ -449,6 +457,7 @@ window.TW_PLAN_PRESETS = {
     "ind.rel": 50,
     "stock.page": 50,
     "mkt.credit": 50,
+    "ov.fear": 50,
     "mkt.fut": 50,
     "mkt.inst.day": 50
    },
@@ -484,6 +493,7 @@ window.TW_PLAN_PRESETS = {
     "ov.rot": true,
     "ov.flow": true,
     "ov.breadth": true,
+    "ov.fear": true,
     "flow.rot": true,
     "flow.sankey": true,
     "flow.inst": true,

@@ -19,6 +19,7 @@ from . import config, delivery_log, indicators
 from .compute import explore, inst_market, inst_today
 from .compute import mktfut as mktfut_c
 from .compute import futures_page
+from .compute import ivx as ivx_c
 from .compute import lab as lab_compute
 from .compute import analysis, digest, earnings, etf, etf_holdings, flow, flowcheck, fundamental, mtf, money_wheel, rrg, scoring, season, stockpage, technical, themes
 from .groups import loader
@@ -511,6 +512,13 @@ def build() -> None:
     except Exception as exc:  # noqa: BLE001
         log.warning("季節性 v3 產出失敗：%s", exc)
         _write("seasonality_v3", {"periods": {}, "groups": [], "note": str(exc)})
+    # 總覽「恐慌指數」卡（2026-11-06，Andy：「另外需要新增恐慌指數再右上」）：本站自算臺指選擇權隱含波動率＋美股 VIX。
+    # 只重算這一份：python -m pipeline.compute.ivx（不用跑整份 payload）。
+    try:
+        _write("fear", ivx_c.build_json(store.read("opt_ivx"), intl_all))
+    except Exception as exc:  # noqa: BLE001
+        log.warning("恐慌指數產出失敗（只影響總覽恐慌指數卡）：%s", exc)
+        _write("fear", {"tw": None, "us": None, "note": str(exc)})
 
     lap("M4 季節性")
 

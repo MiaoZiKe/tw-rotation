@@ -4813,9 +4813,12 @@
       }));
     }
 
+    /* ⑤ 恐慌指數（2026-11-06，Andy：「另外需要新增恐慌指數再右上」）：邏輯全在 site/fearcard.js（自己載 data/fear.json），這裡只排進同一排最右邊。*/
+    if (window.FearCard) cards.push(window.FearCard.card());
+
     host.classList.add('ovsum');
     host.classList.remove('hero', 'ovstrip');
-    host.setAttribute('aria-label', '今日摘要：漲跌家數、強弱輪動、資金分流樹、熱門題材');
+    host.setAttribute('aria-label', '今日摘要：漲跌家數、強弱輪動、資金分流樹、熱門題材、恐慌指數');
     /* ⚠ 最後那個看不見的 [data-lc="t00"]：以前 KPI 細列的「加權指數」格帶著它，live.js 靠掃畫面上的 [data-lc] 決定要跟 mis 要哪些報價
        （codesOnScreen）。那一格拿掉之後總覽上就沒有人要加權 —— 手機指數列（mobile3.js hmLiveIdx）讀的 window.Live.quotes.t00
        會永遠停在盤後值。留一個標記讓 live.js 照舊把加權抓回來；它沒有 data-live，所以 live.js 不會去改它的字。
@@ -4827,6 +4830,7 @@
       /* ★ 2026-10-04（docs/howto_audit_1004.md 第三節）：四格摘要卡各一顆「?」，說明盒放在卡片外（howPop 關的時候搬回這裡）。*/
       + ['updown', 'rot', 'flow', 'theme'].map(k => `<div class="howtxt" id="how-ovs-${k}" hidden></div>`).join('');
     Object.keys(OVS.eod).forEach(k => Object.entries(OVS.eod[k].ds || {}).forEach(([a, v]) => { host.dataset[a] = String(v); }));
+    if (window.FearCard) window.FearCard.mounted(host);   // 恐慌指數卡：補「?」說明盒、資料到了原地換、開著的完整圖掛回來
 
     const track = $('#ovSumTrack');
     const go = (k, e) => {
@@ -4844,6 +4848,7 @@
         ovsJump('熱門題材', 'ovThemeCard');
         return;
       }
+      if (k === 'fear') { if (window.FearCard) window.FearCard.toggle(); return; }   // 恐慌指數：卡列下方展開／收起完整圖（不捲走）
       if (k === 'rot') ovsJump('強弱輪動', 'ovRotCard');
       if (k === 'flow') ovsJump('資金分流樹', 'ovFlowHead', true);
     };

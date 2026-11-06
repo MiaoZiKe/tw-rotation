@@ -19,7 +19,7 @@ import pandas as pd
 from . import config, inst_bulk
 from .compute import flow
 from .groups import loader
-from .sources import exright_notice, inst_official, etf_pcf, finmind, macro, mis, mktfut, mops, news, taifex, tape, tdcc, tpex, twse
+from .sources import exright_notice, inst_official, etf_pcf, finmind, macro, mis, mktfut, mops, news, optivx, taifex, tape, tdcc, tpex, twse
 from .util import freshness, http, store
 from .util.roc import is_tradable_security
 
@@ -1037,6 +1037,8 @@ def main() -> int:
                 RESULT["steps"]["mktfut." + _t] = {"ok": not _df.empty, "rows": int(len(_df))}
         except Exception as exc:  # noqa: BLE001
             log.warning("市場明細期貨／融資抓取失敗（不影響其他步驟）：%s", exc)
+        # 2026-11-06 恐慌指數（Andy：「另外需要新增恐慌指數再右上」）：TXO 逐履約價 → 本站自算隱含波動率，湖裡最後一天的隔天起增量，1 次額度。
+        save("opt_ivx", step("optivx.daily", optivx.daily_update))
 
     # 台指期 60 分 K（逐筆聚合，一天 1 次額度）。只在傍晚完整那輪做：15:30 時 FinMind 多半還沒出當天逐筆。
     if not light and not news_only and not args.skip_finmind and trade_date:

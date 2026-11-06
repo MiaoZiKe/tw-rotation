@@ -43,6 +43,7 @@ def _run(monkeypatch, phase, tmp_path):
         "mops": ["material_news"],
         "finmind": ["stock_info"],
         "mis": ["price_snapshot"],
+        "optivx": ["daily_update"],   # 2026-11-06 恐慌指數每日增量（FinMind）：測試不准真的連網
     }.items():
         target = getattr(run_daily, mod)
         for a in attrs:
