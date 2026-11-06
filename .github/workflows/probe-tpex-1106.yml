@@ -11,19 +11,12 @@ jobs:
           python3 - <<'PY'
           import json, re, time, requests
           H={"User-Agent":"Mozilla/5.0","Accept":"application/json","Referer":"https://www.tpex.org.tw/"}
-          r=requests.get("https://www.tpex.org.tw/openapi/swagger.json",headers=H,timeout=60)
-          sw=r.json()
-          for p,spec in sw["paths"].items():
-              s=" ".join(str((o or {}).get("summary","")) for o in spec.values() if isinstance(o,dict))
-              if re.search(r"信用|融資|融券|margin",s+p,re.I): print("PATH",p,"|",s)
-          # 穩定性：預設 vs identity 編碼，各 6 次
-          U="https://www.tpex.org.tw/openapi/v1/tpex_mainboard_daily_close_quotes"
-          for name,hh in (("default",H),("identity",{**H,"Accept-Encoding":"identity"})):
-              ok=0;errs=[]
-              for i in range(6):
+          for p in ("tpex_mainboard_margin_balance","tpex_margin_trading_margin_used","tpex_margin_trading_short_sell","tpex_short_sell"):
+              for t in range(4):
                   try:
-                      x=requests.get(U,headers=hh,timeout=60); n=len(x.json()); ok+=1
-                  except Exception as e: errs.append(str(e)[:60])
-                  time.sleep(2)
-              print("STAB",name,ok,"/6",errs[:3])
+                      j=requests.get("https://www.tpex.org.tw/openapi/v1/"+p,headers=H,timeout=60).json(); break
+                  except Exception as e: j=str(e)[:80]
+              if isinstance(j,list):
+                  print("EP",p,"n=",len(j)); print("EP0",json.dumps(j[0],ensure_ascii=False)[:700]); print("EPL",json.dumps(j[-1],ensure_ascii=False)[:400])
+              else: print("EP",p,j)
           PY
