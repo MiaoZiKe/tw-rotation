@@ -5841,3 +5841,16 @@ agent 改了 13 處，我合併後又補上漏掉的 2 處（`t_mlcc` 的回歸�
 - 驗了：pytest 全 1409 通過；_preview 正常；`桌機守門1008` 0 問題；`科技透明圈1025` 0 問題（含 390 寬公司頁 ≤4 屏）；`科技透明圈LOGO不裁切` 0 問題。
 - 未收斂：`科技透明圈圖表1026`（5 項）與 `科技透明圈站內LOGO`（2 項）在容器紅，原因是容器連不到 Google／gstatic 外部 LOGO 圖（改動前同樣紅，線上不受影響）。
 - 樣本數 Andy 要再查；網站那邊的來源由他請人繼續找。
+
+## 2026-11-06 資料來源健康 A 段（盤中快照缺口明示）
+- 改了：`pipeline/sources/tape.py`（`lake_calendar`、`gap_report`，`GAP_SINCE=20261028`）、`pipeline/run_daily.py`（`_tape_step()` 取代兩處靜默移除；`RESULT["gaps"]`）、`pipeline/build_payload.py`（`meta_payload()` 輸出 `gaps`，不進 errors）、`site/app.js`（資料狀態提示列出永久缺口，`renderFreshness` 只加 3 行）。
+- 驗了：pytest 相關檔（tape／freshness／meta／daily／inst／heal）112 項全綠；`_uitest --sections 永久缺口1106` 0 問題。
+- 未驗（要寫清楚）：資料狀態段因機器負載 `Page.goto` 逾時未驗；`_preview.py` 在 412 行崩潰（`#themeDiagram` 找不到元素），因為本機 site/data 是 10-22 舊快照沒有題材圖資料，屬環境問題，未跑完。
+- 沒跑：social_*、gh_cron、delivery_log、mis、mops、taifex（sparse 缺 social/、workers/、data/）。
+- 未做：B（source_health.json）、C（盤後官方交叉比對）。
+
+## 2026-11-06 來源健康 B／C（同日）
+- B：`pipeline/util/source_health.py`；run_daily 每次寫狀態時更新 `data/_state/source_health.json`（依天累積 consecutive_fail，同日多輪只計一次）；meta 輸出 `source_failing`（連續 ≥2 天才在資料狀態列講，不列內部代號）。驗了：pytest 相關檔 141 項綠；前端用獨立 route 腳本三項斷言通過。**未驗**：`_uitest` 段落「來源健康1106」因機器負載（共用 helper 第 145 行 networkidle 逾時）。
+- C：`pipeline/compute/crosscheck.py`，daily.yml 獨立步驟（continue-on-error，放在回寫資料湖之前）。結果寫進 source_health.json 的 `crosscheck`。驗了：tests/test_crosscheck.py 7 項綠。**未驗**：真實官方端點與湖的比對結果（要等 Actions 跑一輪看 crosscheck 欄位）；前端還沒顯示 crosscheck。
+- A 的部署：`deploy_wait --branch main` 對 f4427f7e 仍在等 Pages（佇列排隊）。B、C 之後再跑一次 deploy_wait 對 c5dca60ae。
+- 仍未做：`_preview.py` 在 412 行崩潰（本機 site/data 是 10-22 舊快照，缺題材圖資料，環境問題）；`_uitest 資料狀態` 因機器負載 goto 逾時未驗。

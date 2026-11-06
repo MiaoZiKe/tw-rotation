@@ -171,6 +171,13 @@ jobs:
         timeout-minutes: 5
         run: python scripts/postmarket_pick.py
 
+      # 2026-11-06 稽核 C：盤後官方交叉比對（獨立步驟，失敗不擋其他步驟）。
+      #   直接去證交所 OpenAPI 與櫃買 OpenAPI 抓一次，比最新日、檔數、抽樣 5 檔收盤價；結果寫進
+      #   data/_state/source_health.json 的 crosscheck，跟資料一起 commit。不爬 www.twse.com.tw/rwd。
+      - name: 盤後官方交叉比對（失敗不影響其他步驟）
+        continue-on-error: true
+        run: python -m pipeline.compute.crosscheck
+
       - name: 回寫資料湖
         if: steps.fetch.outputs.inst_new != 'false'
         run: |

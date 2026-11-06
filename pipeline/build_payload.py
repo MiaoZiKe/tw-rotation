@@ -16,6 +16,7 @@ import numpy as np
 import pandas as pd
 
 from . import config, delivery_log, indicators
+from .util import source_health
 from .compute import explore, inst_market, inst_today
 from .compute import mktfut as mktfut_c
 from .compute import futures_page
@@ -1007,6 +1008,13 @@ def meta_payload(latest: str, history_days: int) -> dict:
         # 2026-11-06 每週官方開放檢查（pipeline/open_watch.py）：儀表板那類維持率／追繳／處分資料一旦進官方 OpenAPI，資料狀態提示可以接上
         "official_open": _official_open(),
         "last_run_empty": last_run.get("empty", []),
+        # 永久缺口：已超過來源保存期、補不回來。刻意不放進 last_run_errors，也不影響燈號；
+        # 資料狀態列會把它講出來，讓人知道「那幾天的盤中資料本來就沒有」，而不是以為是今天沒抓到。
+        "gaps": list(last_run.get("gaps") or []),
+        # 已用替代來源補回的交易日（口徑與原始快照略有不同，資料狀態要明說）
+        "tape_rebuilt": list(last_run.get("rebuilt") or []),
+        # 來源健康（B）：連續失敗 ≥2 天的來源，資料狀態列講「幾項來源連續沒有資料」（不列內部代號）
+        "source_failing": source_health.failing(source_health.load(config.STATE / "source_health.json")),
     }
 
 

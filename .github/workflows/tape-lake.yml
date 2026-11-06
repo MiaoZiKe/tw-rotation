@@ -13,6 +13,11 @@ on:
   schedule:
     - cron: "7 6,7 * * 1-5"
   workflow_dispatch:
+    inputs:
+      rebuild_dates:
+        description: "一次性回補：用 Yahoo 5 分 K 重建這些交易日（YYYYMMDD，空白分隔，例如 20261028 20261029）；留空＝只做一般落地"
+        required: false
+        default: ""
 
 # 獨立的 concurrency group（2026-10-30 修）：以前與 daily／backfill 共用 tw-rotation-data-write，
 # 但 GitHub 一個 group 只留一個 pending、新的進來會把舊 pending 取消 —— 收盤後 inst 輪每 10 分鐘一輪，tape-lake 永遠排不上。
@@ -41,10 +46,15 @@ jobs:
 
       # 抓取是冪等的（去重），所以推送被拒時不做 rebase 合併 Parquet，而是對齊遠端後「重抓重寫」再推，最多 5 次。
       - name: 抓取、落地、回寫資料湖
+        env:
+          REBUILD_DATES: ${{ inputs.rebuild_dates }}      # 走環境變數，不直接把輸入拼進 shell
         run: |
           git config user.name  "tw-rotation-bot"
           git config user.email "actions@github.com"
           for i in 1 2 3 4 5; do
+            if [ -n "$REBUILD_DATES" ]; then
+              python -m pipeline.sources.tape_rebuild $REBUILD_DATES || echo "::warning::tape 重建失敗（第 $i 次），不擋流程"
+            fi
             python -m pipeline.sources.tape || echo "::warning::tape 落地失敗（第 $i 次），不擋流程"
             git add data/tape_5m data/_state/tape_last.json
             if git diff --staged --quiet; then
