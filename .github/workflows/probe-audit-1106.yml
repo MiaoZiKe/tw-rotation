@@ -1,0 +1,34 @@
+name: 臨時稽核 11-06（probe 分支專用，不合併）
+on:
+  push:
+    branches: ["probe/audit-1106"]
+    paths: ["probe_audit/**", ".github/workflows/probe-audit-1106.yml"]
+permissions:
+  contents: write
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: probe/audit-1106
+          sparse-checkout: |
+            probe_audit
+            .github
+      - name: 抓線上 JSON 與官方 openapi
+        run: bash probe_audit/fetch.sh
+        continue-on-error: true
+      - name: 讀 swagger 補抓、FinMind 補市場總量
+        env:
+          FINMIND_TOKEN: ${{ secrets.FINMIND_TOKEN }}
+        run: python3 probe_audit/fetch2.py
+        continue-on-error: true
+      - name: 打包帶回
+        run: |
+          cat raw/status.txt | sort | uniq -c | sort -rn | head -150
+          tar czf probe_audit/raw.tgz raw
+          ls -la probe_audit
+          git config user.name "audit-bot"; git config user.email "audit-bot@users.noreply.github.com"
+          git add probe_audit/raw.tgz
+          git commit -m "稽核原始資料 $(TZ=Asia/Taipei date '+%F %T')（臨時，不合併）"
+          git push origin HEAD:probe/audit-1106
