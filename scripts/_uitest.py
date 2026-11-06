@@ -63042,7 +63042,7 @@ def t_admin_v3(b, base, code):
         wait_until(pg, "() => location.hash === '#admin/perm' && !!document.getElementById('ptTableBox') && document.querySelectorAll('#ptTable tr[data-email]').length > 0", 6000)
         ok(f"{T}・合併：舊網址 #admin/members → 導到 #admin/perm 的「註冊會員」→「會員名單」", pg.evaluate("() => location.hash === '#admin/perm' && document.querySelector('#ptTier button.on').dataset.tier === 'free' && document.querySelector('#ptSubList').classList.contains('on')"))
         ok(f"{T}・合併：會員名單內有 搜尋、狀態篩選；沒有新增會員、沒有逐人微調輸入（2026-10-06 拿掉）", all(pg.locator(x).count() == 1 for x in ("#pmSearch", "#pmStatF")) and all(pg.locator(x).count() == 0 for x in ("#pmAddEmail", "#pmAddPlan", "#pmAddExp", "#pmAddGo", "#pmTuneEmail", "#pmTuneGo")))
-        pg.click("#ptTable tr[data-email] >> nth=0"); pg.click("#ptTable button[data-tune] >> nth=0")
+        pg.click("#ptTable tr[data-email] >> nth=0 >> td.c-who"); pg.click("#ptTable button[data-tune] >> nth=0")
         wait_until(pg, "() => !!document.getElementById('pmEmail') && document.getElementById('pmHead').classList.contains('medit')", 5000)
         ok(f"{T}・合併：展開一列 →「逐人微調…」→ 進到這個人的設定（層級／範本、到期日、開關），範本頁籤暫時收起、有「← 回會員名單」", pg.evaluate("() => document.getElementById('ptTier').offsetParent === null && !!document.getElementById('pmBack') && !!document.getElementById('pmPlan') && !!document.getElementById('pmExp') && document.querySelectorAll('#pmCats input[role=switch]').length > 5"))
         pg.click("#pmBack")
