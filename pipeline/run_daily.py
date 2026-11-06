@@ -19,7 +19,7 @@ import pandas as pd
 from . import config, inst_bulk
 from .compute import flow
 from .groups import loader
-from .sources import exright_notice, inst_official, etf_pcf, finmind, macro, mis, mktfut, mops, news, taifex, tape, tdcc, tpex, twse
+from .sources import exright_notice, inst_official, etf_pcf, tpex_margin, finmind, macro, mis, mktfut, mops, news, taifex, tape, tdcc, tpex, twse
 from .util import freshness, http, store
 from .util.roc import is_tradable_security
 
@@ -593,6 +593,20 @@ def collect_etf_holdings_monthly() -> pd.DataFrame:
     return sitca.top10(names, have_yms=have)
 
 
+def _otc_margin() -> int:
+    """上櫃整體融資融券（櫃買 OpenAPI，免 FinMind 額度）→ margin_total_otc。只有最新一天，所以 price／full／news 每輪都抓、依 date 去重。
+    phase=inst（收盤後每 30 分）不抓：那一輪只為了搶法人，多一個網路請求會讓「法人還沒出就整輪不動」的判斷變複雜。
+    探測紀錄（端點、HTTP 狀態、欄位名）寫進 last_run.json 的 steps，容器連不到外網時靠它修欄位對應。"""
+    try:
+        df = tpex_margin.fetch()
+        n = save("margin_total_otc", df) if not df.empty else 0
+        RESULT["steps"]["tpex.margin_total_otc"] = {"ok": not df.empty, "rows": int(len(df)), "diag": tpex_margin.DIAG[-12:]}
+        return n or 0
+    except Exception as exc:  # noqa: BLE001
+        log.warning("上櫃信用彙總抓取失敗（不影響其他步驟）：%s", exc)
+        return 0
+
+
 def _set_gh_output(key: str, value: str) -> None:
     """把結果交給 GitHub Actions 的後續步驟（本機跑沒有這個環境變數就略過）。"""
     import os
@@ -1037,6 +1051,7 @@ def main() -> int:
                 RESULT["steps"]["mktfut." + _t] = {"ok": not _df.empty, "rows": int(len(_df))}
         except Exception as exc:  # noqa: BLE001
             log.warning("市場明細期貨／融資抓取失敗（不影響其他步驟）：%s", exc)
+    _otc_margin()
 
     # 台指期 60 分 K（逐筆聚合，一天 1 次額度）。只在傍晚完整那輪做：15:30 時 FinMind 多半還沒出當天逐筆。
     if not light and not news_only and not args.skip_finmind and trade_date:

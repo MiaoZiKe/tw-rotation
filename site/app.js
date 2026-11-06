@@ -15977,6 +15977,10 @@
     const stale = meta.freshness_warn || [];
     if (stale.length) { bits.push(`以下資料<b>過期或不完整</b>：${stale.map(x => fmt.esc(String(x))).join('、')}`); level = level || 'warn'; }
     if (meta.demo) { bits.push('這是示範資料，不是真實行情'); level = 'bad'; }
+    /* 2026-11-06 每週官方開放檢查（pipeline/open_watch.py）：證交所／櫃買 OpenAPI 或 FinMind 一旦出現融資維持率／追繳／處分資料就提示可以接上。
+       這不是錯誤，不改燈號等級。 */
+    const oo = meta.official_open || {};
+    if (oo.open && oo.msg) bits.push(fmt.esc(String(oo.msg)));
 
     const tail = [];
     // 盤後第一輪（台北 15:30）只抓價量，法人／融資券要傍晚才出。

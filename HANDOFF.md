@@ -1,6 +1,15 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
 
+
+## 2026-11-06 上午 信用交易：融資維持率（估算）上市／上櫃／合計＋每週檢查官方有沒有開放儀表板資料（金融專家；DECISIONS #382）
+- 追繳／處分戶數與金額**不做**（只在證交所儀表板頁，背後 rwd／tpex-api 禁爬；OpenAPI、FinMind 免費版都沒有）。
+- 上櫃分母新表 `margin_total_otc`（`pipeline/sources/tpex_margin.py`，櫃買 OpenAPI 信用交易彙總；swagger 自動找端點）。**端點名與欄位沒有實測**（容器連不到櫃買）：
+  第一次 daily 跑完看 `data/_state/last_run.json` 的 `steps["tpex.margin_total_otc"].diag`；`ok:false` 就照裡面的端點與欄位名修 `parse_summary`。
+- 櫃買 OpenAPI 只給最新一天 → 上櫃／合計從第一筆起逐日累積，畫面沒資料時顯示「資料累積中」。
+- 每週檢查 `.github/workflows/open-data-watch.yml`（週六台北 11:43）→ `data/_state/official_open_watch.json` → meta.json `official_open` → 資料狀態提示。誤判寫進狀態檔 `ignore`。
+- 這批只驗了：pytest（sparse checkout 缺 docs／data 的 39 條環境性失敗除外）、`信用上櫃1106`（新）、`信用排行1104`、`大盤融資維持率1020`、`信用交易r3`、`資料狀態`、`_preview.py`。
+
 ## 2026-11-06 清晨 夜盤轉打頁在 Andy 那邊沒生效 → Worker 先經 Deno、轉打頁可重試（DECISIONS #381）
 - 實測（Actions run 42106454144、42107920925）：線上 c708682e 在桌機 Chromium／iPhone WebKit／手機 Chromium 都經轉打頁顯示夜盤 → 失敗在使用者環境（舊分頁或握手逾時後永久放棄）。
 - 修：Worker `/fut`、`/futchart` 先帶白名單 Origin 問 Deno；`market3.js` 轉打頁握手 12 秒、逾時冷卻 60 秒後重試。

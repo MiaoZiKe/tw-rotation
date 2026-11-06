@@ -440,7 +440,8 @@ def build() -> None:
     try:
         _ohlc = store.read("index_ohlc")
         _fi, _oi = store.read("fut_inst"), store.read("fut_oi")
-        _write("market_fut", mktfut_c.build(store.read("margin_total"), margin, company, price, _ohlc, loader.membership()))
+        _write("market_fut", mktfut_c.build(store.read("margin_total"), margin, company, price, _ohlc, loader.membership(),
+                                            mt_otc=store.read("margin_total_otc")))
         _write("fut_oi", mktfut_c.fut_oi_json(_fi, _ohlc, "期交所三大法人區分各期貨契約（經 FinMind TaiwanFuturesInstitutionalInvestors），臺股期貨 TX，所有到期月份合計"))
         _write("retail_ratio", mktfut_c.retail_ratio_json(_fi, _oi, _ohlc, "期交所三大法人未平倉＋期貨每日行情未平倉（經 FinMind），大台 TX／小台 MTX／微台 TMF，所有到期月份合計"))
     except Exception as exc:  # noqa: BLE001
@@ -1003,8 +1004,19 @@ def meta_payload(latest: str, history_days: int) -> dict:
         "table_summary": tbl,
         "last_run_errors": errors,
         "meta_token": meta_token,
+        # 2026-11-06 每週官方開放檢查（pipeline/open_watch.py）：儀表板那類維持率／追繳／處分資料一旦進官方 OpenAPI，資料狀態提示可以接上
+        "official_open": _official_open(),
         "last_run_empty": last_run.get("empty", []),
     }
+
+
+def _official_open() -> dict:
+    try:
+        from . import open_watch
+        return open_watch.for_meta()
+    except Exception as exc:  # noqa: BLE001 —— 狀態檔壞掉不該讓 meta.json 掛掉
+        log.warning("讀官方開放檢查狀態失敗：%s", exc)
+        return {}
 
 
 def seasonality(price: pd.DataFrame, company: pd.DataFrame) -> pd.DataFrame:

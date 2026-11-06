@@ -1,0 +1,48 @@
+name: 官方開放資料每週檢查（融資維持率／追繳／處分）
+
+# 2026-11-06：證交所臺股儀表板的「全市場擔保維持率、追繳／處分戶數與金額」只在網頁介面（rwd／tpex-api，條款禁爬，
+# DECISIONS #265），OpenAPI、FinMind 免費版都沒有。這支每週掃一次兩家 OpenAPI 的 swagger 與 FinMind 資料集清單，
+# 結果寫 data/_state/official_open_watch.json（推回 main）；下一次網站建置時資料狀態會提示「官方已開放，可以接上」。
+# 不寄信、不開 issue（Andy 11-06：「不要寄信」）。只寫狀態檔，不寫資料湖。
+on:
+  schedule:
+    - cron: "43 3 * * 6"   # 每週六 03:43 UTC＝台北 11:43（非交易日，避開盤後管線與發文時段）
+  workflow_dispatch:
+permissions:
+  contents: write   # 只為了把狀態檔推回 main
+concurrency:
+  group: open-data-watch
+  cancel-in-progress: false
+jobs:
+  watch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -q -r requirements.txt
+      - name: 掃 swagger 與 FinMind 資料集清單
+        env:
+          FINMIND_TOKEN: ${{ secrets.FINMIND_TOKEN }}
+        run: python -m pipeline.open_watch
+      - name: 狀態寫回 main
+        run: |
+          F=data/_state/official_open_watch.json
+          [ -f "$F" ] || { echo "沒有狀態檔"; exit 0; }
+          git config user.name  "tw-rotation-bot"
+          git config user.email "actions@github.com"
+          git add "$F"
+          if git diff --staged --quiet; then echo "狀態沒變"; exit 0; fi
+          git commit -q -m "官方開放資料每週檢查 $(date -u '+%Y-%m-%d')"
+          for i in 1 2 3 4 5; do
+            if git push origin HEAD:main; then echo "推送成功"; exit 0; fi
+            cp "$F" "$RUNNER_TEMP/w.json"
+            git fetch -q origin main && git reset -q --hard origin/main
+            cp "$RUNNER_TEMP/w.json" "$F"
+            git add "$F"
+            git diff --staged --quiet && { echo "遠端已是同一份狀態"; exit 0; }
+            git commit -q -m "官方開放資料每週檢查 $(date -u '+%Y-%m-%d')"
+            sleep $((i * 5))
+          done
+          echo "::warning::狀態檔推不上 main"

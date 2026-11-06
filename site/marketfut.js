@@ -7,7 +7,10 @@
 (function () {
   const KINDS = { credit: '信用交易' };
   const SNAP = { credit: 'margin' };
-  const st = { days: 126, who: 'foreign', view: 'bal', tab: 'mkt', chart: 'ratio', rk: 'margin' };   // rk＝個股排行看融資（margin）或融券（short）
+  const st = { days: 126, who: 'foreign', view: 'bal', tab: 'mkt', chart: 'ratio', rk: 'margin', mk: 'twse' };   // rk＝個股排行看融資（margin）或融券（short）；mk＝大盤看上市／上櫃／合計
+  // 2026-11-06 Andy：信用交易頁維持率擴大成「上市＋上櫃」，分段開關切換；選擇記在 localStorage（拿不到就用預設上市）
+  const MKL = { twse: '上市', tpex: '上櫃', all: '上市＋上櫃' };
+  try { const v = localStorage.getItem('tw.mf.mk'); if (MKL[v]) st.mk = v; } catch (e) { /* 私密視窗 */ }
   let H = null, DATA = null, META = null;
   const txColor = () => css('--c-tx', document.documentElement.getAttribute('data-theme') !== 'light' ? '#E2E8F0' : '#0F172A');
 
@@ -22,8 +25,10 @@
     credit: `<b>信用交易（大盤融資維持率）怎麼看</b><br>融資＝向券商借錢買股票。<b>維持率 ＝ 融資股票總市值 ÷ 融資總餘額 × 100%</b>：數字越高，整體融資部位的安全墊越厚；越接近 130%，越多帳戶面臨追繳。<br><br>
       <b>大盤融資維持率是什麼？</b> 向券商借錢買股票（融資）時，股票現值對借款的比例。比例越高越安全；大盤整體的數字能看出槓桿部位的「安全墊」還剩多厚。<br><br>
       <b>130% 追繳門檻是什麼意思？</b> 個別融資帳戶的擔保品現值跌到借款的 130% 以下，券商會通知補錢（追繳），補不上就可能被強制賣出。這條線是個別帳戶的規則；大盤整體數字接近 130% 不代表全面斷頭，因為各戶成本不同（圖上虛線）。<br><br>
-      <b>和證交所公布的維持率一樣嗎？</b> 不一樣。證交所自 2026/07/29 起暫停公布官方整體維持率，這裡自行推算：用上市個股融資餘額 × 當日收盤價加總，除以整體市場融資金額。證交所的整戶擔保維持率要有每戶的借款與擔保品，沒有公開的逐戶資料，所以這裡只能當趨勢參考。<br><br>
-      <b>部分估算</b>：維持率旁若標「部分估算」，代表當日部分個股資料尚未到齊，以前一日餘額補算。<br><br><b>限制</b>：只含上市、不含上櫃；融資成本與市值有時間差；當日資料不足八成檔數的日子不收。融資增加標紅、減少標綠（台股慣例）。<br><br><b>個股排行</b>：分段開關切「融資／融券」。融資增減排行＝當日融資餘額增減（千張）；融券增減排行＝當日融券餘額增減（千張），融券增加代表放空的人變多（同樣增加標紅、減少標綠）。兩個排行是同一個資料日，範圍是上市個股。想看個股層級請到<a href="#stock">個股頁</a>看融資融券。資料來源：證交所公開資料。`,
+      <b>上市／上櫃／合計</b>：分段開關切換。上市＝上市個股融資餘額 × 當日收盤價加總 ÷ 上市整體融資金額；上櫃＝同一個算法換成上櫃個股與上櫃整體融資金額（櫃買中心開放資料），右軸改看櫃買指數；合計＝兩邊市值相加 ÷ 兩邊融資金額相加（不是兩個比率平均），只收兩邊都有資料的日子。上櫃整體融資金額的開放資料只給最新一天，所以上櫃與合計從開始收集那天起逐日累積，沒有更早的歷史。<br><br>
+      <b>和證交所公布的維持率一樣嗎？</b> 不一樣，這裡一律是<b>估算</b>。官方公布的是「整戶擔保維持率」（例如 2026/11/05 官方 159.77%），這裡的數字通常比官方高，差異來自兩處：① <b>不是整戶</b>：官方把每一戶的融資、融券部位合在一起算，這裡只能用全市場的融資股票現值 ÷ 融資借款；② <b>沒有融券保證金</b>：整戶維持率的分子、分母都含融券的擔保品與保證金，公開資料沒有逐戶的數字，這裡完全沒算進去。所以只能看趨勢方向，不能拿來對官方數字。<br><br>
+      <b>追繳是看整戶，不看單一個股</b>：證交所 2026 年 8 月重申，追繳與處分依投資人的<b>整戶</b>擔保維持率判斷，「不存在單一個股維持率低於 130% 即追繳」；坊間推估的個股維持率因為不知道每一戶的全部部位，不能當成會不會被追繳的依據。這裡也因此不提供「維持率低於 130% 的個股檔數」這類數字。<br><br>
+      <b>部分估算</b>：維持率旁若標「部分估算」，代表當日部分個股資料尚未到齊，以前一日餘額補算。<br><br><b>限制</b>：融資成本與市值有時間差；個股排行只含上市；當日資料不足八成檔數的日子不收。融資增加標紅、減少標綠（台股慣例）。<br><br><b>個股排行</b>：分段開關切「融資／融券」。融資增減排行＝當日融資餘額增減（千張）；融券增減排行＝當日融券餘額增減（千張），融券增加代表放空的人變多（同樣增加標紅、減少標綠）。兩個排行是同一個資料日，範圍是上市個股。想看個股層級請到<a href="#stock">個股頁</a>看融資融券。資料來源：證交所公開資料。`,
   };
 
   function howBtn(kind) {
@@ -115,8 +120,24 @@
     // ★ 2026-10-20「圖五重複出現錯誤」根因：換期間／排序／換分頁都會 body.innerHTML 重建，上一輪的圖實例沒收 ——
     // 它仍在 echarts.connect 群組裡，提示框又 appendToBody 留在 body，連動事件一來就在舊位置多冒一個。重建前先收掉。
     body.querySelectorAll('[_echarts_instance_]').forEach((d) => { try { const i = window.echarts.getInstanceByDom(d); if (i && !i.isDisposed()) i.dispose(); } catch (e) { /* 已收掉 */ } });
-    const m = (DATA && DATA.margin) || {}, all = m.rows || [];
-    if (!all.length) { body.innerHTML = shell('credit', '信用交易', '上市融資維持率（估算）、融資融券餘額與加權指數', '', empty('尚無資料'), null); return; }
+    const m = (DATA && DATA.margin) || {};
+    if (!(m.rows || []).length) { body.innerHTML = shell('credit', '信用交易', '融資維持率（估算）、融資融券餘額與加權指數', '', empty('尚無資料'), null); return; }
+    const mks = m.mkts || { twse: m.rows };
+    if (!MKL[st.mk]) st.mk = 'twse';
+    // 個股排行只有上市（排行不分市場），排行分頁一律拿上市的列，免得選了上櫃又還沒資料時排行也被擋掉
+    const all = st.tab === 'rank' ? (mks.twse || m.rows) : (mks[st.mk] || []);
+    const idxName = (m.idx_name || {})[st.mk] || '加權指數', mkl = MKL[st.mk];
+    const mkSeg = `<div class="seg tiny mf-mkseg" id="mfMkSeg" role="group" aria-label="市場">${Object.keys(MKL).map(k => `<button type="button" data-k="${k}" class="${st.mk === k ? 'on' : ''}">${k === 'all' ? '合計' : MKL[k]}</button>`).join('')}</div>`;
+    const wireMk = () => body.querySelectorAll('#mfMkSeg button').forEach(b => b.onclick = () => { if (b.dataset.k === st.mk) return; st.mk = b.dataset.k;
+      try { localStorage.setItem('tw.mf.mk', st.mk); } catch (e) { /* 私密視窗 */ } render('credit', body); });
+    if (!all.length) {
+      // 上櫃／合計還沒有任何一天的整體融資金額（櫃買開放資料只給最新一天，從開始收集那天起累積）：留著開關讓人切回上市
+      body.innerHTML = `<div class="card mf-card" data-snap="margin" id="mf-credit"><div class="mf-bar"><div class="seg fp-prod mf-tab" id="mfTab" role="group" aria-label="信用交易分頁"><button type="button" data-k="mkt" class="on">大盤</button><button type="button" data-k="rank">個股排行</button></div>${howBtn('credit')}</div>${mkSeg}`
+        + empty(`${mkl}融資維持率（估算）資料累積中：上櫃整體融資金額來自櫃買中心開放資料，只提供最新一天，自開始收集那天起逐日累積，第一筆收進來後就會出現。`) + `</div>`;
+      wireMk();
+      body.querySelectorAll('#mfTab button').forEach(b => b.onclick = () => { if (b.dataset.k === st.tab) return; st.tab = b.dataset.k; render('credit', body); });
+      return;
+    }
     const last = all[all.length - 1], prev = all[all.length - 2] || {};
     // 期間鈕：資料不足該期間（< 90%）就反灰，title 寫「資料自 MM/DD 起」；目前選的若不足 → 退到「全部」
     const dayOk = (d) => !d || all.length >= d * 0.9;
@@ -132,13 +153,14 @@
     const rOld = rIdx >= 0 && rIdx < all.length - 1;
     const dr = dlt(rLast.ratio, rPrev.ratio), dY = dlt(last.margin_yi, prev.margin_yi);
     const dayStale = !!(META && META.data_date && last.d && last.d < META.data_date);
-    const hero = `<div class="mf-top"><div class="mf-big"><span class="mf-l">上市融資維持率（估算）${rOld ? ` <small class="mf-rd" title="${md(last.d).replace('-', '/')} 的上市個股融資還沒到齊，維持率先顯示最近一個算得出來的日子">${md(rLast.d).replace('-', '/')}</small>` : ''}</span><b class="mf-bn ${cls(dr)}">${rLast.ratio == null ? '—' : num(rLast.ratio, 2) + '%'}${rLast.partial ? ' <small class="mf-part" title="當日部分個股資料尚未到齊，以前一日餘額補算">部分估算</small>' : ''}</b>
+    const hero = `<div class="mf-top"><div class="mf-big">${mkSeg}<span class="mf-l">${mkl}融資維持率（估算）${rOld ? ` <small class="mf-rd" title="${md(last.d).replace('-', '/')} 的${mkl}個股融資還沒到齊，維持率先顯示最近一個算得出來的日子">${md(rLast.d).replace('-', '/')}</small>` : ''}</span><b class="mf-bn ${cls(dr)}">${rLast.ratio == null ? '—' : num(rLast.ratio, 2) + '%'}${rLast.partial ? ' <small class="mf-part" title="當日部分個股資料尚未到齊，以前一日餘額補算">部分估算</small>' : ''}</b>
         <span class="${cls(dr)}">較前日 ${dr == null ? '—' : sg(dr, 2) + ' pp'}</span></div>`;
     const tiles = `<div class="mf-tiles">` + tile('融資餘額（億元）', num(last.margin_yi, 1), '', '')
       + tile('較前日（億元）', sg(dY, 1), '', cls(dY))
       + tile('融券餘額（張）', num(last.short_lots), '', '')
       + tile('融券增減（張）', sg(last.short_chg), '', cls(last.short_chg)) + `</div></div>`;
-    const sorted = tail(all).sort((a, b) => { const x = a[sortSt.k], y = b[sortSt.k]; return ((x == null ? -Infinity : x) > (y == null ? -Infinity : y) ? 1 : -1) * sortSt.dir; });
+    const sorted = [...tail(all)].sort(   /* 複製一份再排：「全部」時 tail 回原陣列，就地排序會讓圖的 X 軸跟著倒過來 */
+      (a, b) => { const x = a[sortSt.k], y = b[sortSt.k]; return ((x == null ? -Infinity : x) > (y == null ? -Infinity : y) ? 1 : -1) * sortSt.dir; });
     const tb = `<div class="tw mf-scroll"><table id="mfTbl"><thead><tr>${MCOLS.map(c => `<th class="${c[3] === 'l' ? 'l' : ''} mf-sort${sortSt.k === c[0] ? ' on' : ''}" data-s="${c[0]}">${c[1]}${sortSt.k === c[0] ? (sortSt.dir > 0 ? ' ▲' : ' ▼') : ''}</th>`).join('')}</tr></thead><tbody>${
       sorted.map(r => `<tr data-d="${r.d}">${MCOLS.map(c => `<td class="${c[3] === 'l' ? 'l' : 'num'} ${c[3] === 'chg' ? cls(r[c[0]]) : ''}">${c[2](r)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
     // 個股排行：分段開關切「融資／融券」（2026-10-26 Andy：「需要新增一個融券的」）；同一位置換內容，不上下堆兩區（andy_ui_rules 〇-6）
@@ -160,8 +182,8 @@
         <div class="mf-ctl">${dayStale ? '<span class="mf-stale" title="資料日 ${last.d}，比最近一個交易日舊，雲端管線還沒更新到">資料未更新</span>' : ''}${isRank ? '' : `<div class="seg tiny" id="mfDays" role="group" aria-label="期間">${dayBtns}</div>`}</div></div>`;
     const mktPane = `${hero}${tiles}<div class="mf-split" data-chart="${st.chart}"><div class="mf-charts">
         <div class="mf-cseg"><div class="seg tiny" id="mfCSeg" role="group" aria-label="圖表"><button type="button" data-k="ratio" class="${st.chart === 'bal' ? '' : 'on'}">維持率</button><button type="button" data-k="bal" class="${st.chart === 'bal' ? 'on' : ''}">融資餘額</button></div></div>
-        <div class="mf-cbox" data-c="ratio"><h4 class="mf-h">融資維持率 × 加權指數</h4><div id="mfChart" class="chart mf-ch"></div></div>
-        <div class="mf-cbox" data-c="bal"><h4 class="mf-h">大盤融資餘額 × 加權指數</h4><div id="mfChart2" class="chart mf-ch"></div></div></div>
+        <div class="mf-cbox" data-c="ratio"><h4 class="mf-h">${mkl}融資維持率 × ${idxName}</h4><div id="mfChart" class="chart mf-ch"></div></div>
+        <div class="mf-cbox" data-c="bal"><h4 class="mf-h">${mkl}融資餘額 × ${idxName}</h4><div id="mfChart2" class="chart mf-ch"></div></div></div>
         <div class="mf-tblbox"><h4 class="mf-h">每日明細 <small class="muted">（點欄名排序・點一列鎖定）</small></h4>${tb}</div></div>`;
     body.innerHTML = `<div class="card mf-card" data-snap="margin" id="mf-credit">${bar}${isRank ? (rankHtml || empty('尚無資料')) : mktPane}</div>`;
     const paint = () => {
@@ -174,12 +196,12 @@
       yAxis: [{ type: 'value', scale: true, min: (v) => Math.floor(Math.min(v.min, 130) - 5), axisLabel: { formatter: v => num(v, 0) + '%' }, splitLine: gl }, { type: 'value', scale: true, axisLabel: { formatter: v => num(v, 0) }, splitLine: { show: false } }],
       series: [{ name: '融資維持率(%)', type: 'line', symbol: 'none', lineStyle: { width: 2, color: c1 }, itemStyle: { color: c1 }, data: rows.map(r => r.ratio),
                  markLine: { silent: true, symbol: 'none', lineStyle: { type: 'dashed', color: amber }, label: { formatter: '130% 個別帳戶追繳線', color: amber, position: 'insideEndTop' }, data: [{ yAxis: 130 }] } },
-               { name: '加權指數(右軸)', type: 'line', yAxisIndex: 1, symbol: 'none', lineStyle: { width: 2, color: c2 }, itemStyle: { color: c2 }, data: rows.map(r => r.taiex) }] });
+               { name: idxName + '(右軸)', type: 'line', yAxisIndex: 1, symbol: 'none', lineStyle: { width: 2, color: c2 }, itemStyle: { color: c2 }, data: rows.map(r => r.taiex) }] });
     const ch2 = H.chart('mfChart2', { grid: { left: 56, right: 56, top: 30, bottom: 28 }, legend: { top: 0, right: 0, textStyle: { color: ink } }, tooltip: { trigger: 'axis', axisPointer: { type: 'cross' } }, xAxis: xs,
       yAxis: [{ type: 'value', scale: true, axisLabel: { formatter: v => num(v, 0) }, splitLine: gl },
               { type: 'value', scale: true, axisLabel: { formatter: v => num(v, 0) }, splitLine: { show: false } }],
       series: [{ name: '融資餘額(億元)', type: 'line', symbol: 'none', lineStyle: { width: 2, color: cm }, itemStyle: { color: cm }, data: rows.map(r => r.margin_yi) },
-               { name: '加權指數', type: 'line', yAxisIndex: 1, symbol: 'none', lineStyle: { width: 2, color: c2 }, itemStyle: { color: c2 }, data: rows.map(r => r.taiex) }] });
+               { name: idxName, type: 'line', yAxisIndex: 1, symbol: 'none', lineStyle: { width: 2, color: c2 }, itemStyle: { color: c2 }, data: rows.map(r => r.taiex) }] });
     return [ch1, ch2];
     };
     const cs = paint();
@@ -187,6 +209,7 @@
     wireRank(body, rk); 
     body.querySelectorAll('#mfTab button').forEach(b => b.onclick = () => { if (b.dataset.k === st.tab) return; st.tab = b.dataset.k; render('credit', body); });
     body.querySelectorAll('#mfRkSeg button').forEach(b => b.onclick = () => { if (b.disabled || b.dataset.k === st.rk) return; st.rk = b.dataset.k; render('credit', body); });
+    wireMk();
     body.querySelectorAll('#mfCSeg button').forEach(b => b.onclick = () => { st.chart = b.dataset.k; render('credit', body); });
     // 換期間：整頁重畫（圖、明細表、區間一起換；圖實例沿用，事件在 linkCharts 先拆再綁）
     body.querySelectorAll('#mfDays button').forEach(b => b.onclick = () => { if (b.disabled) return; st.days = +b.dataset.k; render('credit', body); });
@@ -197,7 +220,7 @@
     if (document.getElementById('mfStyle')) return;
     const el = document.createElement('style'); el.id = 'mfStyle';
     el.textContent = `.mf-card{margin:0 0 14px;padding:12px 14px}.mf-head{gap:10px;flex-wrap:wrap}.mf-asof{color:var(--ink-3,#8ea0c4);font-weight:400;margin-left:6px}
-.mf-ctl{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.mf-sub{font-size:12.5px;margin:6px 0 10px}
+.mf-ctl{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.mf-big .mf-mkseg{align-self:flex-start;margin:0 0 4px}.mf-sub{font-size:12.5px;margin:6px 0 10px}
 .mf-tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:0 0 10px}
 .mf-tile{display:flex;flex-direction:column;gap:2px;padding:8px 10px;border:1px solid var(--line,rgba(142,160,196,.2));border-radius:8px;min-width:0}
 .mf-l{font-size:12px;color:var(--ink-3,#8ea0c4)}.mf-v{font-size:18px;font-variant-numeric:tabular-nums}.mf-s{font-size:12px}
