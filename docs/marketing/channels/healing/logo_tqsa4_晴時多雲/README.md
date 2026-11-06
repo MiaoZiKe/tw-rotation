@@ -22,3 +22,4 @@ Andy 原話：「這個挺不錯的 但在多點東西和其他色系」（指 l
 - 重跑：rm -f fit.json; python3 gen_tq4.py && node render.js && python3 fit_tq4.py && python3 gen_tq4.py && node render.js && python3 post_tq4.py
 - 沿用 logo_tqsa3_簡約/gen_tq3.py 的工具（同一線寬、襯線字標、對比修正）
 - 2026-11-06：Andy「礙這字顏色不明顯」→ 字標「礙」改雨雲藍（淺底 #3F5E78、深底 #A9C3D8）；比較圖 礙字顏色比較.png（目前／A 深炭灰／B 石板藍灰／C 雨雲藍，採 C）。
+- 2026-11-06 第二次：Andy「礙 顏色不搭 在換」→ 改黃昏灰紫（淺底 #655A72、深底 #C3B8D1）；比較圖 礙字顏色比較2.png（A 暖灰褐／B 深雲灰／C 黃昏灰紫／D 陶土棕／E 鼠尾草灰綠，採 C）。

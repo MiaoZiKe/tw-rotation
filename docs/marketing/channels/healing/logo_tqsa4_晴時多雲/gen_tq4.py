@@ -24,9 +24,9 @@ T = {
 TONES = {k: dict(bg=v[0], ink=v[1], sub=v[2], a=v[3], q=v[4]) for k, v in T.items()}
 for P in TONES.values():   # 符號色對底至少 3:1（圖形門檻）
     P['q'] = g.fix(P['q'], P['bg'], P['ink'], 3.0); P['a'] = g.fix(P['a'], P['bg'], P['ink'], 3.0)
-# 2026-11-06 Andy：「礙這字顏色不明顯」→ 字標裡的「礙」改用雨雲藍（淺底 #3F5E78、深底 #A9C3D8），和「談說」的墨色、「晴」的橘都分得開
+# 2026-11-06 Andy：「礙這字顏色不明顯」→ 字標裡的「礙」改用黃昏灰紫（淺底 #655A72、深底 #C3B8D1；第一次試雨雲藍，Andy 說不搭），和「談說」的墨色、「晴」的橘都分得開
 for k, P in TONES.items():
-    P['at'] = g.fix('#A9C3D8', P['bg'], P['ink']) if g.lum(P['bg']) < .2 else g.fix('#3F5E78', P['bg'], P['ink'])
+    P['at'] = g.fix('#C3B8D1', P['bg'], P['ink']) if g.lum(P['bg']) < .2 else g.fix('#655A72', P['bg'], P['ink'])
 _ta = g.ta_text
 g.ta_text = lambda P: P['at'] if 'at' in P else _ta(P)
 TONES['單色黑'] = g.TONES['單色黑']; TONES['單色白'] = g.TONES['單色白']
