@@ -1,0 +1,21 @@
+name: 台指VIX 探測（臨時）
+on:
+  push:
+    branches: ["probe/vix"]
+permissions:
+  contents: write
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: {ref: probe/vix, sparse-checkout: "scripts\n.github", sparse-checkout-cone-mode: false}
+      - run: pip install requests
+      - run: python scripts/probe_vix.py
+        env:
+          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+          FINMIND_TOKEN: ${{ secrets.FINMIND_TOKEN }}
+        continue-on-error: true
+      - run: |
+          git config user.name probe-bot; git config user.email probe@users.noreply.github.com
+          git add -f --sparse probe_out/vix_probe.json && git commit -m "探測結果（臨時）" && git push origin HEAD:probe/vix
