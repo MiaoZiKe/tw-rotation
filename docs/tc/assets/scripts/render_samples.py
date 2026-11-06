@@ -134,28 +134,32 @@ DISC = "網友回報，非公司公告・與各公司無合作或授權關係"
 
 # ---------------- 範例 A：公司行情（法遵 7-3 六條）----------------
 # 2026-11-06 Andy：「需要有句話代表我的頻道，所以寫在上面」「右滑看透明圈，並且需要不一樣的箭頭」「提示下方的空白不平均」
-# 封面下半部：頻道標語（TAGLINE，一處可換，7～10 字單行）＋「〇〇行情」大標題＋右側「右滑看透明圈」膠囊鈕（自繪 SVG 圓盤箭頭＋橘點，不用文字箭頭），
-# 三者在照片下緣到頁底之間垂直置中（上下留白差 ≤ 2px）。
-TAGLINE = os.environ.get("TC_TAGLINE") or "談薪前，先看這張"   # 頻道標語（暫定；Andy 還沒定稿）
+# 2026-11-06 第二輪 Andy：「移動到右下 並在換一個樣式」「廣達透明說 這樣好點 為第一行」「下方第二行…隱晦的表示我這邊有大家不知道的祕密 但說法不能太直白」「地圖增加細緻度」
+# 封面下半部：第一行「〇〇透明說」（TITLE_FMT）、第二行隱晦短句（HINT），兩行在照片下方垂直置中靠左；「右滑看透明圈」輕量白底藍框小標籤（右側 ››› 由淡到深）獨立貼右下角。
+TITLE_FMT = "{公司}透明說"            # 封面第一行大標（公司名＋透明說）
+HINT = os.environ.get("TC_HINT") or "大人才知道的那些事"   # 封面第二行（隱晦、不直白；7～10 字單行；法遵：不得出現內部／爆料／內幕／獨家／祕密）
 COVER_HINT = "右滑看透明圈"
 SECTION_TITLE = "工程師待遇"     # 欄位標題；文章若是特定單位，寫成「廣達 BU9 透明圈」這種
 HQ_LABEL = "總部：〔待填〕"   # 地圖上的標示，填成「總部：桃園龜山」之類
-TAG_PX, TT_PX = 48, 108
+TT_PX, HT_PX = 108, 60
+# 提示：白底細藍框圓角小標籤＋右側三個由淡到深的箭頭（›››，自繪 SVG，非文字箭頭）
 SWIPE = (f'<div class="sw"><span>{COVER_HINT}</span>'
-         f'<svg data-b width="76" height="76" viewBox="0 0 76 76"><circle cx="38" cy="38" r="36" fill="#fff"/>'
-         f'<path d="M20 38 H50 M40 26 L52 38 L40 50" fill="none" stroke="{BLUE}" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>'
-         f'<circle cx="62" cy="14" r="9" fill="{ORG}" stroke="#fff" stroke-width="3"/></svg></div>')
+         f'<svg data-b width="64" height="36" viewBox="0 0 64 36" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke-width="6">'
+         f'<path d="M6 6 L18 18 L6 30" stroke="{BLUE}" stroke-opacity=".3"/><path d="M26 6 L38 18 L26 30" stroke="{BLUE}" stroke-opacity=".6"/>'
+         f'<path d="M46 6 L58 18 L46 30" stroke="{BLUE}"/></svg></div>')
+SW_R, SW_B, SW_H = M_L, 40, 72      # 小標籤右緣與標題左緣同邊距 60、底距 40、高 72
+LOW_TOP = PIC_TOP + PIC_H
 SWIPE_CSS = f"""
-.cv .low{{position:absolute;left:{M_L}px;top:{PIC_TOP+PIC_H}px;width:{W-2*M_L}px;height:{H-PIC_TOP-PIC_H}px;display:flex;align-items:center;justify-content:space-between}}
-.cv .tg{{font-size:{TAG_PX}px;font-weight:700;line-height:64px;margin-bottom:16px;color:{INK};white-space:nowrap}}
+.cv .low{{position:absolute;left:{M_L}px;top:{LOW_TOP}px;width:{W-2*M_L}px;height:{H-LOW_TOP-SW_B-SW_H-16}px;display:flex;flex-direction:column;justify-content:center}}
 .cv .nm{{font-size:{TT_PX}px;font-weight:900;line-height:132px;color:{BLUE};white-space:nowrap}}
-.cv .sw{{display:flex;align-items:center;gap:18px;height:92px;padding:0 8px 0 34px;border-radius:46px;background:{BLUE};color:#fff;font-size:34px;font-weight:700;white-space:nowrap;box-shadow:{SHADOW}}}
+.cv .tg{{font-size:{HT_PX}px;font-weight:700;line-height:80px;margin-top:16px;color:{INK};white-space:nowrap}}
+.cv .sw{{position:absolute;right:{SW_R}px;bottom:{SW_B}px;height:{SW_H}px;display:flex;align-items:center;gap:14px;padding:0 24px 0 28px;border-radius:{SW_H//2}px;background:#fff;border:3px solid {BLUE};color:{BLUE};font-size:32px;font-weight:700;white-space:nowrap}}
 .cv .sw svg{{display:block}}
 """
-# 封面：公司已審實景照＋標語＋標題；不放公司 LOGO（整篇有加班等負面欄位，法遵 ④）。職類／年資等限定語寫進文案。
 S["A1_cover"] = (f'<div class="cv"><div class="hd"></div><div class="strip"><i></i></div><div class="lg">{OPEN_RING}</div>'
     f'<div class="pic" data-b style="background-image:url({photo_uri("tsmc/photo_18.jpg")});background-position:50% 55%"></div>'
-    f'<div class="low"><div><div class="tg">{TAGLINE}</div><div class="nm">{NAME}行情</div></div>{SWIPE}</div></div>')
+    f'<div class="low"><div class="nm">{TITLE_FMT.format(公司=NAME)}</div><div class="tg">{HINT}</div></div>{SWIPE}</div>')
+
 # 待遇表：上半台灣地圖＋總部位置（world-atlas countries-50m，ISC／Natural Earth 公有領域），下半「工程師待遇」6 欄；每欄只有欄名＋重點值，不放備註與頁底免責（Andy 11-06）
 rows = [("碩畢月薪", "〔待填〕K"), ("年終・分紅", "〔待填〕個月"), ("升等路徑", "〔待填〕"),
         ("加班時數", "網友普遍回報工時偏長"), ("繁忙程度", "〔待填〕"), ("出差頻率", "〔待填〕")]
@@ -165,7 +169,7 @@ trs = "".join(f'<div class="rw" style="display:flex;align-items:center;flex:1;bo
               f'<div style="flex:1;min-width:0;font-size:36px;font-weight:700;white-space:nowrap"><span class="ph">{b}</span></div></div>' for i, (a, b) in enumerate(rows))
 TW = json.load(open(Path(__file__).resolve().parent / "taiwan_path.json"))   # 由 make_taiwan_path.mjs 產生
 MAP_W, MAP_H = 980, 496           # 地圖 svg 尺寸（卡片 984x500 扣 2px 邊框；body 左右各 48）
-IS_H = 448                        # 台灣本島高度（寬依比例）
+IS_H = 448                        # 台灣（含澎湖）高度，寬依比例
 IS_W = IS_H * TW["w"] / TW["h"]
 IS_X, IS_Y = (MAP_W - IS_W) / 2, (MAP_H - IS_H) / 2
 k = IS_H / TW["h"]
@@ -173,7 +177,8 @@ PX_, PY_ = IS_X + TW["pt"][0] * k, IS_Y + TW["pt"][1] * k   # 桃園龜山（25.
 LBL_W, LBL_H = 380, 76
 LBL_X, LBL_Y = 70, PY_ - LBL_H / 2
 MAP_SVG = (f'<svg data-b width="{MAP_W}" height="{MAP_H}" viewBox="0 0 {MAP_W} {MAP_H}" style="display:block">'
-    f'<g transform="translate({IS_X:.1f} {IS_Y:.1f}) scale({k:.5f})"><path d="{TW["d"]}" fill="#D3E2FA" stroke="#fff" stroke-width="{4/k:.1f}" stroke-linejoin="round"/></g>'
+    f'<g transform="translate({IS_X:.1f} {IS_Y:.1f}) scale({k:.5f})"><path d="{TW["land"]}" fill="#D3E2FA" stroke="#fff" stroke-width="{3/k:.1f}" stroke-linejoin="round"/>'
+    f'<path d="{TW["borders"]}" fill="none" stroke="#A9C3EC" stroke-width="{1.6/k:.1f}" stroke-linejoin="round" stroke-linecap="round"/></g>'
     f'<line x1="{LBL_X+LBL_W}" y1="{PY_:.1f}" x2="{PX_-30:.1f}" y2="{PY_:.1f}" stroke="{BLUE}" stroke-width="3" stroke-dasharray="2 8" stroke-linecap="round"/>'
     f'<circle cx="{PX_:.1f}" cy="{PY_:.1f}" r="30" fill="#fff" fill-opacity=".7" stroke="{BLUE}" stroke-width="8"/>'
     f'<circle cx="{PX_+19:.1f}" cy="{PY_-19:.1f}" r="13" fill="{ORG}" stroke="#fff" stroke-width="4"/>'

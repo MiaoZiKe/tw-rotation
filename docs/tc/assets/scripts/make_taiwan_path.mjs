@@ -1,21 +1,24 @@
-// 由 world-atlas@2.0.2（ISC 授權；資料 Natural Earth，公有領域）的 countries-50m 取出台灣本島輪廓，
-// 以麥卡托投影轉成 SVG path；另算桃園龜山（北緯 25.03、東經 121.36）的點位。
-// 用法：npm i world-atlas@2.0.2 topojson-client@3.1.0 d3-geo@3.1.1 && node make_taiwan_path.mjs > taiwan_path.json
+// 台灣本島＋澎湖輪廓與縣市界：npm `taiwan-atlas@2021.9.20`（MIT）的 counties-10t.json，
+// 資料原始來源 內政部國土測繪中心「直轄市、縣市界線(TWD97經緯度)」（data.gov.tw，政府資料開放授權條款－第1版，使用須標示來源）。
+// 輪廓與縣市界取自同一份資料，海岸線和縣市線才對得齊；不含金門、連江。
+// 用法：npm i taiwan-atlas@2021.9.20 topojson-client@3.1.0 d3-geo@3.1.1 && node make_taiwan_path.mjs > taiwan_path.json
 import fs from 'fs';
 import * as topo from 'topojson-client';
 import {geoMercator, geoPath} from 'd3-geo';
-const t = JSON.parse(fs.readFileSync('node_modules/world-atlas/countries-50m.json'));
-const g = t.objects.countries.geometries.filter(x => x.properties.name === 'Taiwan');
-const geom = topo.feature(t, {type: 'GeometryCollection', geometries: g}).features[0].geometry;
-const polys = geom.type === 'MultiPolygon' ? geom.coordinates : [geom.coordinates];
-const main = polys.reduce((a, b) => (b[0].length > a[0].length ? b : a));   // 本島（另一塊是金門）
-const feat = {type: 'Feature', geometry: {type: 'Polygon', coordinates: main}};
+const t = JSON.parse(fs.readFileSync('node_modules/taiwan-atlas/counties-10t.json'));
+const all = t.objects.counties.geometries;
+const keep = all.filter(g => !/金門|連江/.test(g.properties.COUNTYNAME || g.properties.NAME || ''));
+const obj = {type: 'GeometryCollection', geometries: keep};
+// 只留本島、澎湖與台灣周邊小島（龜山島、綠島、蘭嶼、小琉球）；高雄市轄的東沙、南沙離太遠，排除
+const inBox = c => c[0] > 119.2 && c[0] < 122.2 && c[1] > 21.7 && c[1] < 25.5;
+const land0 = topo.merge(t, keep), mesh0 = topo.mesh(t, obj, (a, b) => a !== b);
+const land = {type: 'MultiPolygon', coordinates: land0.coordinates.filter(p => inBox(p[0][0]))};
+const mesh = {type: 'MultiLineString', coordinates: mesh0.coordinates.filter(l => inBox(l[0]))};
+const feat = {type: 'Feature', geometry: land};
 const H = 1000;
-const proj = geoMercator().fitExtent([[0, 0], [10000, H]], feat);
-const b = geoPath(proj).bounds(feat);
-const w = Math.ceil(b[1][0] - b[0][0]) + 0, h = Math.ceil(b[1][1] - b[0][1]);
-const proj2 = geoMercator().fitExtent([[0, 0], [w, h]], feat);
-const p2 = geoPath(proj2);
-const bb = p2.bounds(feat);
-const pt = proj2([121.36, 25.03]);
-console.log(JSON.stringify({w, h, d: p2(feat), pt, bounds: bb, src: 'world-atlas@2.0.2 countries-50m (ISC; Natural Earth, public domain)'}));
+const p0 = geoMercator().fitExtent([[0, 0], [10000, H]], feat);
+const b0 = geoPath(p0).bounds(feat);
+const w = Math.ceil(b0[1][0] - b0[0][0]), h = Math.ceil(b0[1][1] - b0[0][1]);
+const proj = geoMercator().fitExtent([[0, 0], [w, h]], feat);
+const path = geoPath(proj).digits(1);
+console.log(JSON.stringify({w, h, land: path(feat), borders: path(mesh), pt: proj([121.36, 25.03]), src: 'taiwan-atlas@2021.9.20 counties-10t (MIT); 內政部國土測繪中心 直轄市、縣市界線 (政府資料開放授權條款第1版)'}));
