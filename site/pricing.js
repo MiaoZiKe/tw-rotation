@@ -636,7 +636,7 @@
     Ft.cats.filter((c) => c.id !== 'grp').forEach((c) => {
       const fs = Ft.inCat(c.id).filter((f) => !f.adminOnly && f.id !== 'watch.size' && (f.kind === 'bool' || f.kind === 'limit'));   // 每頁檔數併進「自選分頁數」那一格（watchCell）
       /* 同一列有方案寫「每日 N 次」時，不限的那格寫「不限」而不是 ✓（不然看起來像「有」但不知道幾次）*/
-      const diff = fs.map((f) => { const cs = plans.map((p) => cell(p, f)); return [f, cs.some((x) => /^每日/.test(x.t)) ? cs.map((x) => (x.c === 'y' ? { c: 'y', t: '不限' } : x)) : cs]; }).filter(([, cs]) => { if (new Set(cs.map((x) => x.t)).size > 1) return true; same++; return false; });
+      const diff = fs.map((f) => { const cs = plans.map((p) => cell(p, f)); return [f, cs.some((x) => /^每日/.test(x.t)) ? cs.map((x) => (x.c === 'y' ? { c: 'y', t: '不限' } : x)) : cs]; }).filter(([, cs]) => { if (new Set(cs.map((x) => x.t)).size > 1) return true; if (cs.every((x) => x.c === 'n')) return false; same++; return false; });   // 2026-11-07：四個方案都沒開（暫不開放，例 stock.bigsmall）不算進「全部方案皆可用」
       if (!diff.length) return;
       rows += `<tr class="cat"${fi + 1 > MORE_N ? ' data-more=""' : ''}><td colspan="${plans.length + 1}">${esc(c.name)}</td></tr>` + diff.map(([f, cs]) => `<tr data-f="${esc(f.id)}"${more()}${needF && needF.id === f.id ? ' class="hl"' : ''}><td title="${esc(f.desc || f.name)}">${esc(f.name)}</td>${cs.map((x, i) => `<td class="${x.c}${hc(plans[i])}">${esc(x.t)}</td>`).join('')}</tr>`).join('');
     });

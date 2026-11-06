@@ -1726,9 +1726,12 @@
     if (!W.length) { body.innerHTML = empty('尚無大戶／散戶持股資料'); return; }
     const A = skApp(), CH = A.CH;
     const hasIns = !!(pg.insider && typeof pg.insider === 'object');
-    const SEG = [['lines', '持股比例']].concat(hasIns ? [['ins', '董監持股']] : []);
+    /* 2026-11-07 大戶／散戶買賣（推估）：多一個分段（site/bigsmall.js；功能鍵 stock.bigsmall 暫不開放、站主看得到，沒開＝這個分段不列）。ETF 沒有。*/
+    const SEG = [['lines', '持股比例']].concat(hasIns ? [['ins', '董監持股']] : []).concat(window.TwBigSmall && window.TwBigSmall.can() && !skEtf(pg) ? [['bs', '買賣推估']] : []);
     const seg = SEG.some(x => x[0] === skSeg('big', 'lines')) ? skSeg('big', 'lines') : 'lines';
     if (seg === 'ins') { skInsider(pg, body, SEG); return; }
+    if (seg === 'bs') { body.innerHTML = segBar('big', SEG, 'bs') + '<div id="mbBsHost"></div>'; wireSeg(body, 'big'); window.TwBigSmall.mount(pg, $('#mbBsHost', body)); return; }
+    if (window.TwBigSmall) window.TwBigSmall.stop();
     const raw = String(LS.get('sk.hoLines', 'big,mid,ret'));
     const on = new Set(raw.split(',').filter(k => SK_HO.some(h => h.k === k)));
     const last = W[W.length - 1];
