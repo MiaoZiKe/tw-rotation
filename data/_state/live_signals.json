@@ -71,74 +71,9 @@
   "disclaimer": "研究用，不是買賣建議，不會下單。",
   "start": "2026-10-29",
   "status": "ok",
-  "rows_added": 2,
-  "signal_rows_added": 4,
+  "rows_added": 0,
+  "signal_rows_added": 0,
   "data_last": "2026-11-06",
-  "watch_top": [
-   {
-    "rank": 1,
-    "code": "2465",
-    "name": "麗臺",
-    "group": "ai_pc",
-    "score": 99.4
-   },
-   {
-    "rank": 2,
-    "code": "6214",
-    "name": "精誠",
-    "group": "cloud_msp",
-    "score": 94.1
-   },
-   {
-    "rank": 3,
-    "code": "6467",
-    "name": "泰合",
-    "group": "ind_生技醫療業",
-    "score": 92.8
-   },
-   {
-    "rank": 4,
-    "code": "3147",
-    "name": "大綜",
-    "group": "ind_資訊服務業",
-    "score": 91.5
-   },
-   {
-    "rank": 5,
-    "code": "7711",
-    "name": "永擎",
-    "group": "ai_server_odm",
-    "score": 91.2
-   },
-   {
-    "rank": 6,
-    "code": "6199",
-    "name": "天品",
-    "group": "ind_其他",
-    "score": 88.8
-   },
-   {
-    "rank": 7,
-    "code": "4770",
-    "name": "上品",
-    "group": "semi_facility",
-    "score": 86.9
-   },
-   {
-    "rank": 8,
-    "code": "4526",
-    "name": "東台",
-    "group": "machine_tool",
-    "score": 86.1
-   },
-   {
-    "rank": 9,
-    "code": "6782",
-    "name": "視陽",
-    "group": "ind_生技醫療業",
-    "score": 84.2
-   }
-  ],
   "SWING": {
    "nav": 9457944.104284735,
    "positions": [],
@@ -150,5 +85,5 @@
    "tomorrow_candidates": []
   }
  },
- "generated": "2026-11-06T11:42Z"
+ "generated": "2026-11-06T12:25Z"
 }

@@ -9,9 +9,13 @@
   "crosscheck": {
     "TPEX": {
       "lake_date": "2026-11-06",
-      "note": "官方端點這一輪抓不到，無法判定（不是湖的問題）",
-      "official_date": null,
-      "verdict": "unknown"
+      "lake_rows": 991,
+      "official_date": "2026-11-06",
+      "official_rows": 991,
+      "rows_ok": true,
+      "sample_checked": 5,
+      "sample_mismatch": [],
+      "verdict": "ok"
     },
     "TWSE": {
       "lake_date": "2026-11-06",
@@ -21,7 +25,7 @@
       "official_rows": 1333,
       "verdict": "lake_ahead"
     },
-    "at": "2026-11-06T19:42:39+08:00",
+    "at": "2026-11-06T20:26:01+08:00",
     "verdict": "ok"
   },
   "etf.exright_notice": {
