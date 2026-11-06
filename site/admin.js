@@ -33,12 +33,23 @@
     watch_panel: '打開自選清單', watch_tab_new: '新增自選分頁' };
   const TAB_NAME = { overview: '總覽', basics: '基本資料', tags: '指標', revenue: '營收', profit: '獲利', dividend: '除權息', inst: '法人', margin: '資券',
     holders: '大戶／散戶', news: '公告／新聞', rev: '營收', fin: '財務', div: '除權息', big: '大戶', basic: '基本資料', tag: '指標', ai: 'AI' };
+  /* 2026-11-07 Andy：會員名單「最常用的功能 Top3」與「功能使用排行」不准出現內部代號（fn.land、sub.sankey…）。
+     伺服器記的元件碼有四種前綴：fn./fx.（行銷漏斗，名稱取自 EV_NAME）、sub.（各頁子頁，account.js subOf 產生）、tab./kp.（個股分頁／K 線週期），
+     其餘走 COMP_NAME。全部對不到才顯示「其他」，原代碼只放在滑過提示（compCode）。 */
+  const SUB_NAME = { rotation: '輪動時鐘', sankey: '資金分流樹', inst: '三大法人／族群×法人', industry: '產業熱力圖', theme: '題材熱力圖', chains: '產業鏈總覽', chain: '單一產業鏈', group: '族群頁',
+    updown: '漲跌家數', ma: '站上均線', cand: '今日關注', credit: '信用交易', fut: '期貨籌碼', pick: '選股', margin: '資券', streak: '連續買賣超', top5: '前五大', retail: '散戶多空比', futoi: '期貨未平倉',
+    all: '全部文章', news: '新聞文章', intro: '入門文章', know: '知識文章', post: '單篇文章' };
   const compName = (c) => {
+    c = String(c == null ? '' : c);
     if (COMP_NAME[c]) return COMP_NAME[c];
     if (c.startsWith('tab.')) return '分頁：' + (TAB_NAME[c.slice(4)] || c.slice(4));
     if (c.startsWith('kp.')) return 'K 線週期：' + c.slice(3).toUpperCase().replace(/^(\d+)M$/, '$1 分');
-    return c;
+    if (c.startsWith('sub.') && SUB_NAME[c.slice(4)]) return '子頁：' + SUB_NAME[c.slice(4)];
+    if ((c.startsWith('fn.') || c.startsWith('fx.')) && EV_NAME[c.slice(3)]) return EV_NAME[c.slice(3)] + (c[1] === 'n' ? '（來源）' : '（功能）');
+    if (EV_NAME[c]) return EV_NAME[c];
+    return /^[a-z][a-z0-9_.]*$/i.test(c) ? '其他' : c;   // 真的對不到的代號：不顯示英文，滑過看原碼
   };
+  const compCode = (c) => (compName(c) === '其他' ? `（代號 ${c}）` : '');
   const S = { days: 30, period: '30', since: '', until: '', tab: 'all', sub: 'all', timer: 0, v: null, A: null, page: 'flow', st: null, on: null };
   const TABS = [['admins', '管理權限', 'admTabAdmins'], ['perm', '會員權限', 'admTabPerm'], ['traffic', '流量觀測', 'admTabTraffic']];   // 10-07 15:45：管理權限在會員權限上方   // 2026-10-05：會員管理拿掉（新增會員、逐人微調併進會員權限的會員名單）
   const tabOf = () => { const m = /^#admin\/(perm|members|traffic|admins)\b/.exec(location.hash || ''); return m ? (m[1] === 'members' ? 'perm' : m[1]) : 'traffic'; };
@@ -491,9 +502,7 @@ html[data-theme="light"] #v-admin{--pgL:40%}
 #v-admin .mdays i{flex:1;background:linear-gradient(180deg,var(--cyan),color-mix(in srgb,var(--cyan) 45%,transparent));border-radius:3px 3px 0 0;min-width:4px}
 #v-admin .bars.sm{grid-template-columns:minmax(0,9em) minmax(0,1fr) auto;font-size:12.5px;gap:4px 8px}
 #v-admin .bars.sm .bt{height:10px}
-@media (max-width:1320px){#v-admin .memtbl .c-cr{display:none}}
-@media (max-width:1180px){#v-admin .memtbl .c-stk,#v-admin .memtbl .c-vw{display:none}#v-admin .mdgrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media (max-width:900px){#v-admin .memtbl .c-feat,#v-admin .memtbl .c-on,#v-admin .memtbl .c-seen{display:none}}
+@media (max-width:1180px){#v-admin .mdgrid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media (max-width:600px){#v-admin .memtbl .c-tpl,#v-admin .memtbl .c-exp,#v-admin .memtbl .c-vis{display:none}#v-admin .mdgrid{grid-template-columns:minmax(0,1fr)}#v-admin .pmrow.wlim{grid-template-columns:auto minmax(0,1fr) auto}#v-admin .pmrow.wlim .pmside{display:none}}
 /* ==== perm-v4（2026-10-05，Andy）：資料夾頁籤、範本資訊列、卡片同寬同高、頁籤拖曳／⋮ 選單、會員名單統計圖 ====
    放在最後、選擇器刻意比前面的規則多一層，讓這一段蓋過舊的（舊規則不刪：會員管理頁 #admin/members 還在用一部分）。 */
@@ -747,17 +756,82 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
 #v-admin .tstlegend b{color:var(--ink);font-size:13px}
 #v-admin .tstlegend .lgi{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
 #v-admin .tstlegend .bar{display:inline-block;width:4px;height:16px;border-radius:2px}
-#v-admin .tstlegend .bar.gold{background:var(--paidbar)}#v-admin .tstlegend .bar.tst{background:var(--tst)}
+#v-admin .tstlegend .bar.gold{background:var(--paidbar)}#v-admin .tstlegend .bar.tst{background:var(--ink-3)}
 #v-admin .tstlegend .tint{display:inline-block;width:18px;height:14px;border-radius:3px;background:color-mix(in srgb,var(--cyan) 12%,transparent);border:1px solid var(--line-2)}
+/* ===== 2026-11-07 會員清單表重排（Andy：排版／文字／字體／寬度都再三確認）=====
+   固定欄寬（px，依內容量過）＋表格外包 .memscroll：整頁不橫捲，欄位太多只有表格自己橫向捲，第一欄「會員」固定。
+   字級照 docs/style_guide.md：表頭 12/600（--fs-min）、內文 13/400（--fs-sm）、晶片 12；列高 32、文字垂直置中、一律單行（放不下 … 收尾，滑過看全文）。
+   數字（次數、時間）靠右＋等寬數字；日期、狀態置中；文字欄靠左。 */
+#v-admin .memscroll{position:relative;overflow-x:auto;overflow-y:hidden;max-width:100%;border:1px solid var(--line);border-radius:10px}
+#v-admin .memscroll table.memtbl{table-layout:fixed;border-collapse:separate;border-spacing:0;font-size:var(--fs-sm,13px);font-weight:400;line-height:20px;width:100%}
+#v-admin .memscroll table.memtbl th,#v-admin .memscroll table.memtbl tbody tr:not(.pmdet)>td{height:32px;padding:0 8px;vertical-align:middle;white-space:nowrap!important;overflow:hidden;text-overflow:ellipsis;overflow-wrap:normal;border-bottom:1px solid var(--line);box-sizing:border-box}
+#v-admin .memscroll table.memtbl thead th{font-size:var(--fs-min,12px);font-weight:600;color:var(--ink-2);background:var(--panel);height:36px;position:relative}
+#v-admin .memscroll table.memtbl thead th.sorted{color:var(--ink)}
+#v-admin .memscroll table.memtbl thead th:not(.c-who),#v-admin .memscroll table.memtbl tbody tr:not(.pmdet)>td:not(.c-who){text-align:center!important}
+#v-admin .memscroll table.memtbl thead th.num,#v-admin .memscroll table.memtbl tbody tr:not(.pmdet)>td.num{text-align:right!important;font-family:var(--mono);font-variant-numeric:tabular-nums}
+#v-admin .memscroll table.memtbl td.c-cr,#v-admin .memscroll table.memtbl td.c-exp,#v-admin .memscroll table.memtbl td.c-seen,#v-admin .memscroll table.memtbl td.c-wel{font-family:var(--mono);font-variant-numeric:tabular-nums}
+#v-admin .memscroll table.memtbl tbody tr:not(.pmdet)>td.c-feat,#v-admin .memscroll table.memtbl tbody tr:not(.pmdet)>td.c-stk,#v-admin .memscroll table.memtbl thead th.c-feat,#v-admin .memscroll table.memtbl thead th.c-stk{text-align:left!important}
+#v-admin .memscroll table.memtbl th[draggable-col]{cursor:grab}
+#v-admin .memscroll table.memtbl thead th.c-who,#v-admin .memscroll table.memtbl tbody tr:not(.pmdet)>td.c-who{text-align:left!important}
+#v-admin .memscroll table.memtbl td.c-who{padding-left:10px}
+/* 第一欄固定：不透明底色（淡青／滑過的疊色用 background-image，才不會讓橫向捲過去的欄位透出來） */
+#v-admin .memscroll table.memtbl th.c-who,#v-admin .memscroll table.memtbl td.c-who{position:sticky;left:0;z-index:2;background-color:var(--panel);box-shadow:1px 0 0 var(--line)}
+#v-admin .memscroll table.memtbl thead th.c-who{z-index:3}
+#v-admin .memscroll table.memtbl tbody tr.on td.c-who{background-image:linear-gradient(color-mix(in srgb,var(--cyan) 12%,transparent),color-mix(in srgb,var(--cyan) 12%,transparent))}
+#v-admin .memscroll table.memtbl tbody tr[data-email]:hover td.c-who{background-image:linear-gradient(var(--row-hover),var(--row-hover))}
+#v-admin .memscroll table.memtbl tr.paid td.c-who{box-shadow:inset 3px 0 0 var(--paidbar,#e8b54a),1px 0 0 var(--line)}
+#v-admin .memscroll table.memtbl tr.tst td.c-who,#v-admin .memscroll table.memtbl tr.paid.tst td.c-who{box-shadow:inset 3px 0 0 var(--ink-3),1px 0 0 var(--line)}
+#v-admin .memscroll table.memtbl tr.pmdet>td{white-space:normal!important;overflow:visible}
+#v-admin .memscroll table.memtbl tr.pmdet>td>.mdet{position:sticky!important;left:0;width:calc(var(--memvw,100%) - 32px);max-width:100%}
+/* 會員欄：email 優先，名字放不下就收；全文在 title */
+#v-admin .memscroll table.memtbl td.c-who .who1{display:flex;align-items:center;gap:6px;min-width:0;white-space:nowrap}
+#v-admin .memscroll table.memtbl td.c-who .who1 b{display:block;flex:0 1 auto;min-width:0;max-width:none;overflow:hidden;text-overflow:ellipsis;font-weight:600}
+#v-admin .memscroll table.memtbl td.c-who .who1 small{display:block;flex:0 100 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;color:var(--ink-3);font-size:var(--fs-min,12px)}
+#v-admin .memscroll table.memtbl td.c-who .who1 .car,#v-admin .memscroll table.memtbl td.c-who .who1 .pdbadge,#v-admin .memscroll table.memtbl td.c-who .who1 .tbadge{flex:none}
+/* 測試帳標示：小小灰字「測試」，不再蓋住名字與方案（全文在滑過提示） */
+#v-admin .tbadge{margin-left:0;padding:0 6px;font-size:11px;line-height:16px;font-weight:500;border-radius:4px;color:var(--ink-2);background:var(--panel-3);border:1px solid var(--line-2);cursor:help}
+#v-admin .memtbl tr.tst td:not(.c-who){opacity:.55}
+/* Top3 晶片：單行、放不下以 … 收尾，滑過整格看全部 */
+#v-admin .memscroll table.memtbl td.c-feat,#v-admin .memscroll table.memtbl td.c-stk{padding-top:0;padding-bottom:0}
+#v-admin .memscroll table.memtbl .mchips{display:flex;align-items:center;gap:4px;min-width:0;height:100%;flex-wrap:nowrap;overflow:hidden}
+#v-admin .memscroll table.memtbl .mchip{flex:0 1 auto;min-width:0;margin:0;max-width:none;padding:0 7px;line-height:20px;font-size:var(--fs-min,12px);vertical-align:middle}
+#v-admin .memscroll table.memtbl .mchip .mcn{flex:0 1 auto;min-width:0;max-width:11em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#v-admin .memscroll table.memtbl .mchip i{flex:none}
+/* 方案欄：可點的小按鈕（點了跳選單改會員等級） */
+#v-admin .memscroll table.memtbl td.c-tpl{overflow:visible}
+#v-admin .plbtn{display:inline-flex;align-items:center;gap:4px;max-width:100%;height:24px;padding:0 8px;border-radius:7px;border:1px solid var(--line-2);background:var(--panel-2);color:var(--ink);font:inherit;font-size:var(--fs-sm,13px);cursor:pointer;white-space:nowrap}
+#v-admin .plbtn span{overflow:hidden;text-overflow:ellipsis;min-width:0}
+#v-admin .plbtn:hover{border-color:var(--cyan);color:var(--cyan)}
+#v-admin .plbtn:focus-visible{outline:2px solid var(--focus,var(--cyan));outline-offset:1px}
+#v-admin .plbtn i{font-style:normal;font-size:10px;color:var(--ink-3);flex:none}
+.plmenu{position:fixed;z-index:9000;min-width:200px;max-width:min(320px,calc(100vw - 16px));padding:6px;border-radius:10px;background:var(--panel,#fff);color:var(--ink);border:1px solid var(--line-2);box-shadow:0 8px 28px rgba(0,0,0,.28);font-size:13px}
+.plmenu h5{margin:2px 6px 4px;font-size:12px;font-weight:600;color:var(--ink-3)}
+.plmenu button{display:flex;align-items:center;justify-content:space-between;gap:8px;width:100%;height:32px;padding:0 10px;border:0;border-radius:7px;background:transparent;color:inherit;font:inherit;text-align:left;cursor:pointer}
+.plmenu button:hover:not(:disabled),.plmenu button:focus-visible{background:var(--panel-3)}
+.plmenu button[aria-checked="true"]{color:var(--cyan);font-weight:600}
+.plmenu button:disabled{opacity:.5;cursor:not-allowed}
+.plmenu hr{border:0;border-top:1px solid var(--line);margin:4px 0}
+.plmenu small{color:var(--ink-3);font-size:12px}
+.plcf label{display:flex;align-items:center;gap:8px;margin:10px 0 0;font-size:13px}
+.plcf label{flex-direction:column;align-items:stretch;gap:6px}
+.plcf select{height:38px;line-height:1.3;border-radius:8px;border:1px solid var(--line-2);background:var(--panel-2);color:var(--ink);padding:0 10px;font-size:14px;width:100%}
+/* 欄位拖曳：落點直線＋拖動中的標籤；手機不開放拖（欄位本來就只留重點） */
+#v-admin .memdrop{position:absolute;top:0;width:3px;border-radius:2px;background:var(--cyan);box-shadow:0 0 0 1px color-mix(in srgb,var(--cyan) 40%,transparent);pointer-events:none;z-index:5}
+.memghost{position:fixed;z-index:9500;padding:3px 10px;border-radius:8px;background:var(--cyan);color:var(--ontop,#001018);font-size:12px;font-weight:600;pointer-events:none;box-shadow:0 4px 14px rgba(0,0,0,.3);white-space:nowrap}
+#v-admin .memtools{display:inline-flex;align-items:center;gap:8px}
+#v-admin .memtools button{height:28px;padding:0 10px;font-size:12px;border-radius:7px;border:1px solid var(--line-2);background:var(--panel-2);color:var(--ink);cursor:pointer}
+#v-admin .memtools button:disabled{opacity:.45;cursor:default}
+@media (max-width:640px){
+  #v-admin .memscroll table.memtbl{table-layout:auto;min-width:0!important}
+  #v-admin .memscroll table.memtbl .c-cr,#v-admin .memscroll table.memtbl .c-exp,#v-admin .memscroll table.memtbl .c-inv,#v-admin .memscroll table.memtbl .c-invd,#v-admin .memscroll table.memtbl .c-seen,#v-admin .memscroll table.memtbl .c-on,#v-admin .memscroll table.memtbl .c-vis,#v-admin .memscroll table.memtbl .c-vw,#v-admin .memscroll table.memtbl .c-feat,#v-admin .memscroll table.memtbl .c-stk{display:none}
+  #v-admin .memtools{display:none}
+}
 #v-admin .pmhide{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:var(--ink-2);white-space:nowrap}
 #v-admin .pmtest{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin:6px 0}
 #v-admin .pmtest input{flex:1 1 260px;min-width:0}
 #v-admin .msex{margin-left:8px;color:var(--amber,#e0a030)}
 #v-admin table.memtbl td.c-who b{display:inline-block;vertical-align:top;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;overflow-wrap:normal;max-width:calc(100% - 1.4em)}
 #v-admin table.memtbl td.c-who{min-width:10em}
-@media (max-width:1500px){#v-admin .memtbl .c-cr{display:none}}
-@media (max-width:1240px){#v-admin .memtbl .c-vw{display:none}}
-@media (max-width:1320px){#v-admin table.memtbl th,#v-admin table.memtbl td{padding-left:4px;padding-right:4px}#v-admin table.memtbl .mchip .mcn{max-width:6em}}
 /* Top3 小標籤：名稱太長就省略（全名在 title），次數一定看得到 —— 不讓一個長名稱把整欄撐寬、擠到別欄 */
 #v-admin table.memtbl .mchip{max-width:100%;vertical-align:top}
 #v-admin table.memtbl .mchip .mcn{display:inline-block;max-width:7.5em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:bottom}
@@ -842,7 +916,7 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
     if (!list.length) return '<div class="empty">沒有資料</div>';
     const max = Math.max(...list.map((x) => x[1]), 1), o = opt || {};
     const nm = (k) => typeof names === 'function' ? names(k) : (names[k] || k);
-    return `<div class="bars" data-chart="bars"${o.id ? ` id="${o.id}"` : ''}>` + list.map(([k, n], r) => { const t = tp(`<b>${esc(nm(k))}</b><br>${nf(n)} 次${total ? `・占 ${(n / total * 100).toFixed(1)}%` : ''}`);
+    return `<div class="bars" data-chart="bars"${o.id ? ` id="${o.id}"` : ''}>` + list.map(([k, n], r) => { const t = tp(`<b>${esc(nm(k))}</b>${nm(k) === '其他' ? esc(compCode(k)) : ''}<br>${nf(n)} 次${total ? `・占 ${(n / total * 100).toFixed(1)}%` : ''}`);
       const lk = o.lk ? ` data-lk="${esc(k)}"` : '';   // 10-19 多圖連動：跟同一個 .trpair 的圓餅用同一個 key
       return (o.click ? `<button type="button" class="bl" data-row="${r}"${t}${lk} data-k="${esc(k)}">${esc(nm(k))}</button>` : `<span class="bl" data-row="${r}"${t}${lk}>${esc(nm(k))}</span>`)
       + `<span class="bt" data-row="${r}"${t}${lk}><i style="width:${(n / max * 100).toFixed(1)}%"></i></span>`
@@ -2949,6 +3023,20 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
   const COLS = [['email', '會員', 'c-who'], ['plan', '方案', 'c-tpl'], ['created', '加入日', 'c-cr'], ['expires', '到期日', 'c-exp'], ['wel', '體驗到期', 'c-wel'], ['inv', '邀請人數', 'c-inv num'], ['invd', '邀請延長天數', 'c-invd num'], ['seen', '最後上線', 'c-seen'],
     ['online', '累計在線', 'c-on num'], ['visits', '近 30 天造訪', 'c-vis num'], ['views', '觀看次數', 'c-vw num'], ['feat', '最常用的功能 Top3', 'c-feat'],
     ['stock', '最常看的股票 Top3', 'c-stk'], ['st', '狀態', 'c-st']];
+  /* 2026-11-07 欄寬（px，依內容量過：13px 字、左右內距各 8）與欄位順序（可拖，存 localStorage；「會員」固定第一欄不能拖）。
+     表格 table-layout:fixed ＋ min-width＝欄寬加總：整頁不橫捲，放不下時只有 .memscroll（表格自己）橫向捲。 */
+  const COLW = { email: 270, plan: 124, created: 100, expires: 100, wel: 124, inv: 92, invd: 124, seen: 112, online: 128, visits: 124, views: 92, feat: 380, stock: 240, st: 92 };
+  const ORD_KEY = 'tw.adm.memCols';
+  const colsOrdered = () => {
+    let sv = null; try { sv = JSON.parse(localStorage.getItem(ORD_KEY) || 'null'); } catch (e) { sv = null; }
+    const by = new Map(COLS.map((c) => [c[0], c]));
+    const seen = new Set(['email']), out = [by.get('email')];
+    (Array.isArray(sv) ? sv : []).forEach((k) => { if (by.has(k) && !seen.has(k)) { seen.add(k); out.push(by.get(k)); } });
+    COLS.forEach((c) => { if (!seen.has(c[0])) out.push(c); });
+    return out;
+  };
+  const colsIsDefault = () => colsOrdered().map((c) => c[0]).join() === COLS.map((c) => c[0]).join();
+  const colsSave = (keys) => { try { if (keys) localStorage.setItem(ORD_KEY, JSON.stringify(keys)); else localStorage.removeItem(ORD_KEY); } catch (e) { /* 私密視窗：這次有效 */ } };
   /* 會員權限 → 會員名單：註冊會員＝所有註冊會員（付費的也在、金色標示）；付費＝這個範本的人 */
   function listRows() { const a = listRows0(); return PS.hideTest ? a.filter((r) => !r.test) : a; }
   const statRows = () => listRows0().filter((r) => !r.test);   // 統計區一律排除測試帳（不管有沒有勾「隱藏測試帳」）
@@ -2972,22 +3060,39 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
   }
   function memTable(rows, id) {
     const key = PS.sort, dir = PS.dir;
-    rows = rows.slice().sort((a, b) => { const x = sortVal(a, key), y = sortVal(b, key); return (x > y ? 1 : x < y ? -1 : 0) * dir || a.email.localeCompare(b.email); });
-    const top = (a, nm) => (a.length ? a.map(([k, n]) => `<span class="mchip" title="${esc(nm(k))}：${nf(n)} 次"><span class="mcn">${esc(nm(k))}</span><i>${nf(n)}</i></span>`).join('') : '<span class="mdim">—</span>');
+    /* 測試帳一律排最後（Andy 11-07：不管依哪一欄、升冪降冪）；兩群各自照選的欄位排 */
+    const cmp = (a, b) => { const x = sortVal(a, key), y = sortVal(b, key); return (x > y ? 1 : x < y ? -1 : 0) * dir || a.email.localeCompare(b.email); };
+    rows = rows.filter((r) => !r.test).sort(cmp).concat(rows.filter((r) => r.test).sort(cmp));
+    /* Top3 晶片單行（放不下 … 收尾）；整格的 title 列出全部，對不到名稱的功能代號只放在這裡 */
+    const top = (a, nm, code) => (a.length ? `<div class="mchips" title="${esc(a.map(([k, n]) => `${nm(k)}${code ? code(k) : ''} ${nf(n)} 次`).join('、'))}">${a.map(([k, n]) => `<span class="mchip"><span class="mcn">${esc(nm(k))}</span><i>${nf(n)}</i></span>`).join('')}</div>` : '<span class="mdim">—</span>');
     /* 付費標示縮成一顆金色 ★（方案名已在「方案」欄；全名在滑過提示），讓會員欄永遠一行（Andy 10-05：所有文字一行）*/
     const badge = (r) => (r.paid ? `<span class="pdbadge" title="付費會員：${esc(r.planName)}" aria-label="付費會員：${esc(r.planName)}">★</span>` : r.tier === 'paid' ? `<span class="pdbadge off" title="付費已過期：${esc(r.planName)}" aria-label="付費已過期">★</span>` : '');
+    const cols = colsOrdered();
+    const cell = {
+      email: (r, open) => `<td class="c-who"><span class="who1"><span class="car" aria-hidden="true">${open ? '▾' : '▸'}</span><b title="${esc(r.email)}">${esc(r.email)}</b>${r.name ? `<small title="${esc(r.name)}">${esc(r.name)}</small>` : ''}${badge(r)}${r.test ? '<span class="tbadge" title="不計入統計（站主自己標記的測試帳）">測試</span>' : ''}</span></td>`,
+      plan: (r) => { const nm = r.tier === 'paid' ? r.planName : '註冊會員'; return `<td class="c-tpl"${r.set ? '' : ' title="尚未個別設定"'}><button type="button" class="plbtn" data-plan-btn="${esc(r.email)}" aria-haspopup="menu" aria-label="${esc(r.email)} 的方案：${esc(nm)}，點一下可更改" title="點一下更改會員等級"><span>${esc(nm)}</span><i aria-hidden="true">▾</i></button></td>`; },
+      created: (r) => `<td class="c-cr">${dday(r.created)}</td>`,
+      expires: (r) => `<td class="c-exp">${dday(r.expires)}</td>`,
+      wel: (r) => `<td class="c-wel">${welCell(r)}</td>`,
+      inv: (r) => `<td class="c-inv num">${r.invN == null ? '<span class="mdim">—</span>' : nf(r.invN)}</td>`,
+      invd: (r) => `<td class="c-invd num">${r.invD == null ? '<span class="mdim">—</span>' : nf(r.invD)}</td>`,
+      seen: (r) => `<td class="c-seen" title="${r.seen ? dstr(r.seen) : ''}">${seenTxt(r.seen)}</td>`,
+      online: (r) => `<td class="c-on num" title="累計在線 ${dur(r.onlineMs)}">${dur(r.onlineMs)}</td>`,
+      visits: (r) => `<td class="c-vis num">${nf(r.visits30)}</td>`,
+      views: (r) => `<td class="c-vw num">${nf(r.views30)}</td>`,
+      feat: (r) => `<td class="c-feat">${top(r.topFeat, compName, compCode)}</td>`,
+      stock: (r) => `<td class="c-stk">${top(r.topStock, (k) => k)}</td>`,
+      st: (r) => `<td class="c-st"><span class="stt ${stOf(r)}">${ST_NAME[stOf(r)]}</span></td>`,
+    };
     const body = rows.map((r) => {
       const open = PS.exp.has(r.email);
       return `<tr data-email="${esc(r.email)}" class="${PS.rec && r.email === PS.rec.email ? 'on' : ''}${r.paid ? ' paid' : ''}${r.test ? ' tst' : ''}" aria-expanded="${open}">`
-        + `<td class="c-who"><span class="who1"><span class="car" aria-hidden="true">${open ? '▾' : '▸'}</span><b title="${esc(r.email)}">${esc(r.email)}</b>${r.name ? `<small title="${esc(r.name)}">${esc(r.name)}</small>` : ''}${badge(r)}${r.test ? '<span class="tbadge" title="這個帳號不列入上方統計（站主自己標記的測試帳）">🧪 測試帳・不計入統計</span>' : ''}</span></td>`
-        + `<td class="c-tpl"${r.set ? '' : ' title="尚未個別設定"'}>${r.tier === 'paid' ? esc(r.planName) : '註冊會員'}</td>`
-        + `<td class="c-cr">${dday(r.created)}</td><td class="c-exp">${dday(r.expires)}</td><td class="c-wel">${welCell(r)}</td><td class="c-inv num">${r.invN == null ? '<span class="mdim">—</span>' : nf(r.invN)}</td><td class="c-invd num">${r.invD == null ? '<span class="mdim">—</span>' : nf(r.invD)}</td><td class="c-seen" title="${r.seen ? dstr(r.seen) : ''}">${seenTxt(r.seen)}</td>`
-        + `<td class="c-on num">${dur(r.onlineMs)}</td><td class="c-vis num">${nf(r.visits30)}</td><td class="c-vw num">${nf(r.views30)}</td>`
-        + `<td class="c-feat">${top(r.topFeat, compName)}</td><td class="c-stk">${top(r.topStock, (k) => k)}</td>`
-        + `<td class="c-st"><span class="stt ${stOf(r)}">${ST_NAME[stOf(r)]}</span></td></tr>`
-        + (open ? `<tr class="pmdet" data-for="${esc(r.email)}"><td colspan="${COLS.length}">${detailHtml(r)}</td></tr>` : '');
+        + cols.map((c) => cell[c[0]](r, open)).join('') + '</tr>'
+        + (open ? `<tr class="pmdet" data-for="${esc(r.email)}"><td colspan="${cols.length}">${detailHtml(r)}</td></tr>` : '');
     }).join('');
-    return `<table class="pmlist memtbl" id="${id}"><thead><tr>${COLS.map(([k, n, cls]) => `<th data-sort="${k}" class="${cls}${PS.sort === k ? ' sorted' : ''}" aria-sort="${PS.sort === k ? (PS.dir > 0 ? 'ascending' : 'descending') : 'none'}">${n}${PS.sort === k ? (PS.dir > 0 ? ' ▲' : ' ▼') : ''}</th>`).join('')}</tr></thead><tbody>${body}</tbody></table>`;
+    const sumW = cols.reduce((t, c) => t + COLW[c[0]], 0);
+    const head = cols.map(([k, n, cls]) => `<th data-sort="${k}"${k === 'email' ? '' : ' data-colk="' + k + '" draggable-col="1"'} class="${cls}${PS.sort === k ? ' sorted' : ''}" style="width:${COLW[k]}px" aria-sort="${PS.sort === k ? (PS.dir > 0 ? 'ascending' : 'descending') : 'none'}"${k === 'email' ? '' : ' title="點一下排序；按住拖曳可換欄位順序"'}>${n}${PS.sort === k ? (PS.dir > 0 ? ' ▲' : ' ▼') : ''}</th>`).join('');
+    return `<div class="memscroll" id="${id}Scroll"><table class="pmlist memtbl" id="${id}" style="min-width:${sumW}px"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div>`;
   }
   /* ---------------------------------------------------------------- perm-v4 統計圖小元件（會員名單上方＋展開明細共用）
      選型照流量觀測頁「？ 圖表怎麼選」那條規則：佔比、≤ 5 類、加總＝全部 → 甜甜圈；類別比大小 → 橫向長條（排序過）；每天的量 → 直條。
@@ -3231,14 +3336,14 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
         box.dataset.shell = shellKey;
         box.innerHTML = `<div class="ptinner" id="ptMail"><div class="mstats" id="ptStats"></div>
           <div class="pmbar pmfbar"><input type="search" id="pmSearch" placeholder="搜尋 email、名字、層級或範本" aria-label="搜尋會員" value="${esc(PS.q)}">
-            <select id="pmStatF" aria-label="依狀態篩選"><option value="">全部狀態</option><option value="ok">有效</option><option value="exp">過期</option><option value="new">未登入過</option></select><label class="pmhide"><input type="checkbox" id="pmHideTest"> <span id="pmHideTxt">隱藏測試帳</span></label><span class="pmcnt" id="pmCnt"></span>
+            <select id="pmStatF" aria-label="依狀態篩選"><option value="">全部狀態</option><option value="ok">有效</option><option value="exp">過期</option><option value="new">未登入過</option></select><label class="pmhide"><input type="checkbox" id="pmHideTest"> <span id="pmHideTxt">隱藏測試帳</span></label><span class="pmcnt" id="pmCnt"></span><span class="memtools"><button type="button" id="pmColReset" title="把欄位順序換回預設">欄位還原</button></span>
             ${PS.tier === 'paid' ? '<span class="sp"></span><button type="button" class="pri pmadd" id="pmAddBtn">＋ 加入會員</button>' : ''}</div>
           ${PS.tier === 'paid' ? '<div class="pmaddf" id="pmAddF" hidden><input type="email" id="pmAddMail" placeholder="輸入 email，指定到這個方案" aria-label="要加入的 email"><button type="button" class="pri" id="pmAddGo">加入</button><button type="button" id="pmAddX">取消</button></div>' : ''}
           <div class="pmbar pmtest" id="pmTestBar"><input type="text" id="pmTestMail" placeholder="依 email 標記測試帳（整個 email 或開頭幾個字）" aria-label="依 email 標記測試帳" autocomplete="off"><button type="button" id="pmTestGo">標記為測試帳</button><span class="muted" id="pmTestSt" role="status"></span></div>
           <div class="tstlegend" id="pmLegend"><b>顏色說明</b>
             <span class="lgi"><span class="bar gold"></span><span class="pdbadge" style="margin:0">★</span> 付費會員（付費方案有效）</span>
             <span class="lgi"><span class="pdbadge off" style="margin:0">★</span> 付費方案已過期</span>
-            <span class="lgi"><span class="bar tst"></span><span class="tbadge" style="margin:0">🧪 測試帳</span> 不計入統計，整列淡化</span>
+            <span class="lgi"><span class="bar tst"></span><span class="tbadge" style="margin:0">測試</span> 不計入統計，整列淡化，固定排在名單最下面</span>
             <span class="lgi"><span class="tint" id="lgOn"></span> 淡青底＝目前展開的那一列</span>
             <span class="lgi">狀態：<span class="stt ok">有效</span><span class="stt soon">即將到期</span>（7 天內）<span class="stt exp">過期</span><span class="stt new">未登入過</span></span>
             <span class="lgi">體驗到期：<span class="wel soon" id="lgSoon">琥珀</span> 3 天內到期・<span class="wel exp" id="lgExp">灰字</span> 已過期</span></div>
@@ -3246,6 +3351,7 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
         const vv = PS.v; vv.querySelector('#pmStatF').value = PS.stf;
         vv.querySelector('#pmSearch').oninput = (e) => { PS.q = e.target.value; paintList(); };
         vv.querySelector('#pmStatF').onchange = (e) => { PS.stf = e.target.value; paintList(); };
+        const cr = vv.querySelector('#pmColReset'); if (cr) cr.onclick = () => { colsSave(null); paintList(); };
         const ht = vv.querySelector('#pmHideTest'); if (ht) { ht.checked = !!PS.hideTest; ht.onchange = () => { PS.hideTest = ht.checked; paintList(); }; }
         const tg = vv.querySelector('#pmTestGo');
         if (tg) tg.onclick = () => {
@@ -3272,6 +3378,7 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
       /* ★ 2026-10-07 Andy：「下方移除會員部分 幫我優化介面」「更直觀操作」→ 付費範本的名單改成一列一人的操作列（改方案／移出／勾選批次移出），
          空的時候是一張置中小卡（不再一大片空白「沒有人」）。註冊會員那層（所有人員）維持原本的統計表。 */
       if (PS.tier === 'paid') { paintPlanMembers(tb, fr, rows.length, !!(q || PS.stf)); return; }
+      { const cr = box.querySelector('#pmColReset'); if (cr) cr.disabled = colsIsDefault(); }
       tb.innerHTML = fr.length ? memTable(fr, 'ptTable') : `<div class="empty">${q || PS.stf ? '沒有符合條件的會員。' : '沒有人'}</div>`;
       wireList(tb);
       return;
@@ -3296,14 +3403,15 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
     if (!f.hidden) { const i = f.querySelector('#pmAddMail'); i.value = ''; i.focus(); }
   }
   /* 指定方案：保留這個人原本的個別微調與到期日（perm/get 讀回來再寫），只換 plan */
-  async function setPlan(email, plan) {
+  async function setPlan(email, plan, expires) {
     const g = await PS.A.call('/v1/admin/perm/get', { email });
     if (!g || g._s !== 200) return { ok: false, err: g };
     const prev = g.set ? g.plan : 'free';
     const body = { email, plan, over: g.over || {} };
-    if (g.expires) body.expires = g.expires;
+    /* expires：沒給＝維持原到期日（舊行為）；null＝不限；數字＝新的到期毫秒（會員清單「方案」欄改等級時使用） */
+    if (expires === undefined) { if (g.expires) body.expires = g.expires; } else body.expires = expires;
     const j = await PS.A.call('/v1/admin/perm/put', body);
-    return { ok: !!(j && j._s === 200), err: j, prev };
+    return { ok: !!(j && j._s === 200), err: j, prev, prevExp: g.expires || null };
   }
   function undoToast(text, undo) {
     let t = PS.v.querySelector('#pmUndo');
@@ -3394,9 +3502,117 @@ html[data-theme="light"] #v-admin{--pm-blue:#1f4fd8;--pm-blue-2:#163fb4}
     const h = PS.v.querySelector('#pmHead'); if (h) h.classList.remove('medit');
     pickTierPlan(); paintAll(); setStat(''); refreshList();
   }
+  /* ---------------------------------------------------------------- 方案欄：點了跳小選單改會員等級（Andy 11-07）
+     選項＝註冊會員（免費）｜各付費方案（Plus、Pro…）｜體驗活動（welcome 新會員體驗等，來自 /v1/admin/grants/defs/list）。
+     選完再跳一次確認；方案走既有 perm/put（同「範本會員名單」的改方案），期限可選 7／14／30／365 天或不限；
+     體驗走 /v1/admin/grants/issue（後端另案，見 workers/account-api 的 feat/member-plan-worker 分支）：探測不到就把體驗選項停用並寫「需要更新後端」。 */
+  const closePlanMenu = () => { const m = document.getElementById('plMenu'); if (m) m.remove(); document.removeEventListener('pointerdown', closePlanMenu._o, true); document.removeEventListener('keydown', closePlanMenu._k, true); };
+  async function probeIssue() {
+    if (PS.issueOk !== undefined) return PS.issueOk;
+    const j = await PS.A.call('/v1/admin/grants/issue', { probe: true }).catch(() => null);
+    return (PS.issueOk = !!(j && j._s === 200 && j.probe === true));
+  }
+  function planMenu(btn) {
+    const email = btn.dataset.planBtn, r = members().find((x) => x.email === email); if (!r) return;
+    closePlanMenu();
+    const cur = r.tier === 'paid' ? r.plan : 'free';
+    const plans = [['free', '註冊會員（免費）']].concat(PS.plans.filter((p) => p.id !== 'guest' && p.id !== 'free').map((p) => [p.id, planNm(p.id)]));
+    const defs = (PS.gd || []).filter((d) => d.on);
+    const m = document.createElement('div'); m.id = 'plMenu'; m.className = 'plmenu'; m.setAttribute('role', 'menu'); m.setAttribute('aria-label', '更改會員等級');
+    const drawGrants = () => defs.map((d) => `<button type="button" role="menuitem" data-pg="${esc(d.id)}"${PS.issueOk ? '' : ' disabled'}><span>體驗：${esc(d.name)}</span>${PS.issueOk === undefined ? '<small>確認中…</small>' : PS.issueOk ? '' : '<small>需要更新後端</small>'}</button>`).join('');
+    m.innerHTML = `<h5>會員等級</h5>${plans.map(([id, nm]) => `<button type="button" role="menuitemradio" aria-checked="${id === cur}" data-pp="${esc(id)}"><span>${esc(nm)}</span>${id === cur ? '<small>目前</small>' : ''}</button>`).join('')}`
+      + (defs.length ? `<hr><h5>體驗方案（發放一份體驗給這位會員）</h5><div id="plGrants">${drawGrants()}</div>` : '');
+    document.body.appendChild(m);
+    const br = btn.getBoundingClientRect(), mr = m.getBoundingClientRect();
+    m.style.left = Math.max(8, Math.min(br.left, innerWidth - mr.width - 8)) + 'px';
+    m.style.top = (br.bottom + 4 + mr.height > innerHeight - 8 ? Math.max(8, br.top - mr.height - 4) : br.bottom + 4) + 'px';
+    closePlanMenu._o = (ev) => { if (!m.contains(ev.target) && !btn.contains(ev.target)) closePlanMenu(); };
+    closePlanMenu._k = (ev) => { if (ev.key === 'Escape') { closePlanMenu(); btn.focus(); } };
+    document.addEventListener('pointerdown', closePlanMenu._o, true); document.addEventListener('keydown', closePlanMenu._k, true);
+    m.onclick = (ev) => {
+      const b = ev.target.closest('button'); if (!b || b.disabled) return;
+      closePlanMenu();
+      if (b.dataset.pp !== undefined) { askPlan(r, b.dataset.pp); }
+      else askGrant(r, b.dataset.pg);
+    };
+    if (defs.length && PS.issueOk === undefined) probeIssue().then(() => { const g = document.getElementById('plGrants'); if (g) g.innerHTML = drawGrants(); });
+    const first = m.querySelector('button[aria-checked="true"]') || m.querySelector('button'); if (first) first.focus();
+  }
+  const DAY_OPTS = [[0, '不限（不會到期）'], [7, '7 天'], [14, '14 天'], [30, '30 天'], [365, '365 天']];
+  function askPlan(r, plan) {
+    const D = window.TwSub && window.TwSub.dialog, now = (PS.list && PS.list.now) || Date.now();
+    const curNm = r.tier === 'paid' ? r.planName : '註冊會員', toNm = planNm(plan), paid = plan !== 'free';
+    if (plan === (r.tier === 'paid' ? r.plan : 'free') && !paid) { setStat(`${r.email} 本來就是「${toNm}」`, 'ok'); return; }
+    const keep = paid && r.expires && r.expires > now;
+    const opts = (keep ? `<option value="keep">維持目前到期日（${esc(dday(r.expires))}）</option>` : '') + DAY_OPTS.map(([d, t]) => `<option value="${d}"${!keep && d === 0 ? ' selected' : ''}>從今天起 ${esc(t)}</option>`).join('');
+    const html = `<h3>把這位會員改成「${esc(toNm)}」？</h3><p><b>${esc(r.email)}</b><br>目前：${esc(curNm)} → 改成：<b>${esc(toNm)}</b>。確定後立即生效。</p>`
+      + (paid ? `<div class="plcf"><label>期限 <select id="plDays" aria-label="方案期限">${opts}</select></label></div>` : '<p class="muted">改回註冊會員：原本的個別微調與到期日保留，5 秒內可復原。</p>')
+      + '<div class="row2"><button type="button" data-close>取消</button><button type="button" class="pri" id="plGo">確定更改</button></div>';
+    const run = async (days) => {
+      const exp = !paid || days === 'keep' ? undefined : +days === 0 ? null : now + (+days) * 86400000;
+      const res = await setPlan(r.email, plan, exp);
+      if (!res.ok) { setStat(`${r.email} 改成「${toNm}」失敗：${errText(res.err)}`, 'bad'); return; }
+      await refreshList();
+      undoToast(`已把 ${r.email} 改成「${toNm}」`, async () => { await setPlan(r.email, res.prev, res.prevExp === null ? null : res.prevExp); await refreshList(); undoToast('已復原'); });
+    };
+    if (!D) { if (window.confirm(`把 ${r.email} 改成「${toNm}」？`)) run(keep ? 'keep' : 0); return; }
+    D(html, (d) => { d.querySelector('#plGo').onclick = async () => { const dv = d.querySelector('#plDays'); const v = dv ? dv.value : 0; d.hidden = true; await run(v); }; });
+  }
+  function askGrant(r, gid) {
+    const D = window.TwSub && window.TwSub.dialog, def = (PS.gd || []).find((d) => d.id === gid); if (!def) return;
+    const span = def.kind === 'welcome' ? `從今天起 ${def.days} 天` : `到 ${dday(def.t1)} 為止`;
+    const run = async () => {
+      const j = await PS.A.call('/v1/admin/grants/issue', { email: r.email, gid });
+      if (!j || j._s !== 200) { setStat(j && j._s === 404 ? '發放體驗需要更新後端（尚未部署）' : `${r.email} 發放體驗失敗：${errText(j)}`, 'bad'); return; }
+      await refreshList(); undoToast(`已發放體驗「${def.name}」給 ${r.email}（${span}）`);
+    };
+    if (!D) { if (window.confirm(`發放體驗「${def.name}」給 ${r.email}？`)) run(); return; }
+    D(`<h3>發放體驗「${esc(def.name)}」？</h3><p><b>${esc(r.email)}</b><br>期限：${esc(span)}。方案等級不變，只是多一份體驗額度；確定後立即生效。</p>
+      <div class="row2"><button type="button" data-close>取消</button><button type="button" class="pri" id="plGo">確定發放</button></div>`, (d) => { d.querySelector('#plGo').onclick = async () => { d.hidden = true; await run(); }; });
+  }
+  /* 欄位拖曳換位置（桌機滑鼠；手機不開放）：按住表頭移動 6px 以上才算拖，落點用青色直線標出，放開後存 localStorage */
+  function colDrag(box, e) {
+    if (e.button !== 0 || e.pointerType !== 'mouse') return;
+    const th0 = e.target.closest('th[data-colk]'), sc = box.querySelector('.memscroll'); if (!th0 || !sc || window.innerWidth <= 640) return;
+    const x0 = e.clientX, y0 = e.clientY; let drag = false, ghost = null, line = null, to = null;
+    const ths = () => [...sc.querySelectorAll('thead th')];
+    const move = (ev) => {
+      if (!drag) {
+        if (Math.hypot(ev.clientX - x0, ev.clientY - y0) < 6) return;
+        drag = true;
+        ghost = document.createElement('div'); ghost.className = 'memghost'; ghost.textContent = '移動「' + th0.textContent.replace(/[▲▼\s]+$/, '') + '」'; document.body.appendChild(ghost);
+        line = document.createElement('div'); line.className = 'memdrop'; sc.appendChild(line);
+      }
+      ghost.style.left = ev.clientX + 14 + 'px'; ghost.style.top = ev.clientY + 14 + 'px';
+      const sr = sc.getBoundingClientRect();
+      if (ev.clientX < sr.left + 48) sc.scrollLeft -= 18; else if (ev.clientX > sr.right - 48) sc.scrollLeft += 18;
+      const all = ths(); let hit = null;
+      for (const t of all) { const r = t.getBoundingClientRect(); if (ev.clientX >= r.left && ev.clientX < r.right) { hit = { k: t.dataset.colk || 'email', after: ev.clientX > r.left + r.width / 2, r }; break; } }
+      if (!hit) { const t = ev.clientX < sr.left ? all[0] : all[all.length - 1], r = t.getBoundingClientRect(); hit = { k: t.dataset.colk || 'email', after: ev.clientX >= sr.right, r }; }
+      if (hit.k === 'email') hit.after = true;      // 「會員」固定第一欄：只能放在它後面
+      const rr = hit.r, xEdge = (hit.after ? rr.right : rr.left) - sr.left + sc.scrollLeft;
+      line.style.left = Math.max(0, xEdge - 1.5) + 'px'; line.style.height = sc.querySelector('table').offsetHeight + 'px';
+      to = hit;
+    };
+    const up = () => {
+      document.removeEventListener('pointermove', move); document.removeEventListener('pointerup', up);
+      if (ghost) ghost.remove(); if (line) line.remove();
+      if (!drag) return;
+      PS.noSortClick = true; setTimeout(() => { PS.noSortClick = false; }, 80);
+      const from = th0.dataset.colk; if (!to || to.k === from) return;
+      const keys = ths().map((t) => t.dataset.colk || 'email').filter((k) => k !== from);
+      const i = keys.indexOf(to.k); keys.splice(i + (to.after ? 1 : 0), 0, from);
+      colsSave(keys); paintList();
+    };
+    document.addEventListener('pointermove', move); document.addEventListener('pointerup', up);
+  }
   function wireList(box) {
+    box.onpointerdown = (e) => colDrag(box, e);
+    { const sc = box.querySelector('.memscroll'); if (sc && window.ResizeObserver) { const fit = () => sc.style.setProperty('--memvw', sc.clientWidth + 'px'); fit(); new ResizeObserver(fit).observe(sc); } }
     box.onclick = (e) => {
+      const pb = e.target.closest('button[data-plan-btn]'); if (pb) { e.stopPropagation(); planMenu(pb); return; }
       const th = e.target.closest('th[data-sort]');
+      if (th && PS.noSortClick) return;
       if (th) { if (PS.sort === th.dataset.sort) PS.dir = -PS.dir; else { PS.sort = th.dataset.sort; PS.dir = th.dataset.sort === 'email' ? 1 : -1; } paintList(); return; }
       const tt = e.target.closest('button[data-test]'); if (tt) { const em = tt.dataset.test.toLowerCase(), S = testSet(), X = exSet(), dh = !!(PS.dh && PS.dh.get(em));
         if (isTest({ email: em })) { S.delete(em); if (dh) { X.add(em); exSave(); } } else { X.delete(em); exSave(); S.add(em); }

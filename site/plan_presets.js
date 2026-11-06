@@ -53,6 +53,9 @@
    · ★ 2026-11-06（Andy：「另外需要新增恐慌指數再右上」）：新鍵 ov.fear（總覽恐慌指數卡「點開的完整圖」；卡片本身的盤後值人人看得到、不計次）：
      四個方案都開；每日次數 訪客 3、註冊會員 5、Plus 50、Pro 不設＝不限（跟 mkt.credit 同口徑，單位＝一次造訪裡打開過完整圖）。
      不在 GRANT_BAN，會自動出現在「編輯：新會員體驗」清單；體驗次數由 Andy 自己設，這裡不預設。
+   · ★ 2026-11-07（Andy：「個股可以看到 大戶 散戶 當前買賣狀況…這功能記得也要顯在權限內 但暫不開放」）：新鍵 stock.bigsmall（個股大戶／散戶買賣推估）
+     四個方案都寫 false＝暫不開放、不設次數；stock.bigsmall.live（今日即時）比照 live.tick 四個方案 false（只有站主／管理員，範本管不到）。
+     Andy 要開時在 #admin/perm 把方案撥開；體驗次數不預設。
    這支是**資料**，不是設定：改了不會自動生效，要管理者在 #admin/perm 按一次「套用建議方案」。
    ============================================================================ */
 window.TW_PLAN_PRESETS = {
@@ -120,6 +123,8 @@ window.TW_PLAN_PRESETS = {
     "stock.inst": false,
     "stock.margin": false,
     "stock.holders": false,
+    "stock.bigsmall": false,
+    "stock.bigsmall.live": false,
     "stock.news": false,
     "live.tick": false,
     "events": true,
@@ -266,6 +271,8 @@ window.TW_PLAN_PRESETS = {
     "stock.inst": true,
     "stock.margin": true,
     "stock.holders": true,
+    "stock.bigsmall": false,
+    "stock.bigsmall.live": false,
     "stock.news": true,
     "live.tick": false,
     "events": true,
@@ -426,6 +433,8 @@ window.TW_PLAN_PRESETS = {
     "stock.inst": true,
     "stock.margin": true,
     "stock.holders": true,
+    "stock.bigsmall": false,
+    "stock.bigsmall.live": false,
     "stock.news": true,
     "live.tick": false,
     "events": true,
@@ -558,6 +567,8 @@ window.TW_PLAN_PRESETS = {
     "stock.inst": true,
     "stock.margin": true,
     "stock.holders": true,
+    "stock.bigsmall": false,
+    "stock.bigsmall.live": false,
     "stock.news": true,
     "live.tick": false,
     "events": true,

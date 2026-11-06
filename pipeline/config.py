@@ -139,6 +139,13 @@ TABLES: dict[str, list[str]] = {
     # v12（2026-09-27）：董監事持股（證交所 OpenAPI t187ap11_L／櫃買 mopsfin_t187ap11_O，每月一次）。
     #   只存每家公司每月的合計（sources/mops.parse_insider），不存個人姓名。按年分割、一年約 2.4 萬列。
     "insider_holding":    ["ym", "code"],
+    # v19（2026-11-07，個股「大戶／散戶買賣（推估）」日 K 級別；Andy：「個股可以看到 大戶 散戶 當前買賣狀況…以及 日K級別資訊」）：
+    #   來源＝盤中自己輪詢 mis（白名單 #108）的快照增量，收盤後彙整一天一列（pipeline/sources/bigsmall_collect.py，
+    #   演算法 pipeline/compute/bigsmall.py，口徑與誤差 docs/bigsmall_sources.md）。量的單位＝張、金額＝元，**全部是推估**。
+    #   big_/small_ buy/sell＝大單／小單的外盤（主動買）／內盤（主動賣）張數；neutral＝不分方向（含集合競價 auction）；
+    #   observed＝收集期間的成交量、pre＝開始收集前已成交的量（沒看到）、sampled＝真的看到單筆大小的量、coverage＝sampled÷observed；
+    #   threshold＝當天大單門檻（元）；src＝mis-snap。名單＝tape 同一份族群成分股（約 455 檔），從 2026-11 開始收集起逐日累積，補不了過去。
+    "bigsmall_daily":     ["date", "code"],
 }
 
 # 按「月」分割的表（其餘一律按年）。

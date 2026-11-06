@@ -8,6 +8,21 @@
 - 驗收段落 `scripts/uitest_sections/20261107_每日簽到.py`（每日簽到）；既有的 精選文章分頁1016／文章分頁隱藏1027／文章全部分頁隱藏1106／精選文章共通功能1016／_uitest 手機摘要卡 因多一個分頁或手機多一張卡已同步改期望值。
 - 容器內本來就紅、與本批無關（main 同樣）：摘要卡即時 1 項、精選文章共通功能 導覽 5 項、精選文章收合 2 項、手機一屏 6 項。
 
+## 2026-11-07 會員清單表四項＋排版（UI 專家；Andy：Top3 中文名、方案欄可改、測試帳簡化置底、欄位可拖）
+- 改：`site/admin.js`（compName／SUB_NAME、memTable 重寫、方案選單與確認、欄位拖曳、固定欄寬與橫捲）、`scripts/uitest_sections/20261107_會員清單表.py`、`docs/account_analytics.md`。
+- 後端另案：`feat/member-plan-worker`（`/v1/admin/grants/issue`，已推遠端分支、**未推 main、未部署**）；部署前要 Andy 同意。前端先探測，舊後端自動停用體驗選項。
+- 接手補完（同日）：驗收全綠＝會員清單表1107（0）、桌機守門1008（0）、_preview（只剩財報日曆月曆無標籤＋2 個 404，與本批無關）；逐人微調驗收改點「會員」欄展開（整列中心點現在會落在別欄）。管理區v3／管理區1005／會員權限開關／會員名單1006 本來在 main 就有舊紅燈（欄位清單、價格、全部關…），本批沒新增、反而修掉「1440 橫捲」那兩條。
+- 這批只驗：會員清單表1107＋會員名單1006、管理區1005、管理區v3、會員權限開關、測試帳不計1102、邀請欄1102、管理區重疊普查1017 等管理區段落。
+
+## 2026-11-07 個股「大戶／散戶買賣（推估）」（Andy 11-07：「個股可以看到 大戶 散戶 當前買賣狀況，即時的資訊 以及 日K級別資訊 這功能記得也要顯在權限內 但暫不開放」；DECISIONS #384）
+- 做了：個股「大戶／散戶」分頁多一張卡（site/bigsmall.js）：今日即時（只有站主／管理員，每 5 秒）＋日 K 級別（每日大單／小單淨買賣柱＋日 K 對照）＋集保千張大戶週參考。
+  演算法 pipeline/compute/bigsmall.py，盤中收集器 pipeline/sources/bigsmall_collect.py＋.github/workflows/bigsmall-collect.yml（台北 08:50～13:36），資料湖 bigsmall_daily，前端 JSON site/data/bigsmall/。查證全文 docs/bigsmall_sources.md。
+- 權限：stock.bigsmall 四個方案都 false（暫不開放）、站主看得到；stock.bigsmall.live 比照 live.tick。沒開的人整張卡不畫。
+- ⚠ **暫不開放，所以這批沒有發 site/notices/features.json 公告**。Andy 在 #admin/perm 開放某個方案時，同一批要補一則「功能更新」公告（連到 #stock/<代號> 的大戶／散戶分頁）。
+- ⚠ 日資料從第一個收集日（2026-11-09 週一）起才有；收滿 20 個交易日後要檢查「大單占量」是否落在 10～30%，再決定門檻倍數（AVG_MULT=4）要不要調。
+- 待確認：第一次收集（11-09）跑完看 Actions 摘要 data/_state/bigsmall_last.json 的 coverage_median、pre_lots_median；mis 若鎖 IP 會在 log 看到連續失敗退避。
+- 這批驗了：pytest（全）、_uitest 大戶散戶買賣1107、個股、個股即時分K、即時僅管理1008、桌機守門1008（--workers 1）、_preview.py。
+
 ## 2026-11-06 夜 資料維修：last_run 8 個 ok:false 的真相（爬蟲專家；Andy：「找不到的 要在安排 維修人員去修復」）
 - **8 個步驟分類**（證據＝11-06 19:00 台北那輪 full，run 42206369140 的 collect log）：
   tape.collect／taifex.futures_minute／sitca.etf_top10／finmind.futures_60m／finmind.otc_60m／optivx.daily／news.broker_views ＝ **(a) 本輪本來就不用抓**（log：「窗內 34 個候選日都處理過了」「公會前十大 202609 已在資料湖，跳過」「台指期 2026-11-05 的 60 分 K 已在湖裡，跳過」「櫃買 …已在湖裡」；optivx 當天 FinMind 選擇權還沒出；券商引述當天新聞沒有目標價句），但 `step()` 一律把 rows==0 記成 ok:false。

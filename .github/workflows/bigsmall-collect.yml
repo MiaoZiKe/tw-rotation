@@ -1,0 +1,69 @@
+name: 大戶散戶買賣收集（盤中 mis → 資料湖）
+
+# 2026-11-07（Andy：「個股可以看到 大戶 散戶 當前買賣狀況，即時的資訊 以及 日K級別資訊」）：
+# 日 K 級別的大單／小單淨買賣沒有免費合規來源（docs/bigsmall_sources.md），所以自己收：
+# 台北 08:50 開一個 job 跑到 13:36，輪詢 mis（白名單 #108）族群成分股約 455 檔，收盤後彙整一天一列寫進 data/bigsmall_daily
+# （pipeline/sources/bigsmall_collect.py）。這支只寫 data/bigsmall_daily 與 data/_state/bigsmall_*.json。
+#
+# 排程（UTC，週一～五）：00:50＝台北 08:50（主）；01:23＝台北 09:23（保底：主排程被 GitHub 延遲或沒觸發時，從這時候開始收，
+#   開盤前已成交的量記成 pre、涵蓋率照實寫）。兩個都觸發時第二個會排隊（cancel-in-progress: false），等第一個寫完湖、
+#   開跑時看到當天已經有了就直接結束，不會重複寫。
+# GitHub 一個 job 最多 6 小時；08:50～13:40 約 4 小時 50 分，timeout 設 330 分鐘。
+on:
+  schedule:
+    - cron: "50 0 * * 1-5"
+    - cron: "23 1 * * 1-5"
+  workflow_dispatch: {}
+
+concurrency:
+  group: bigsmall-collect
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 330
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - name: 安裝相依套件
+        run: pip install -r requirements.txt
+
+      - name: 盤中收集（到 13:36 自己結束）
+        run: python -m pipeline.sources.bigsmall_collect || echo "::warning::大小單收集失敗，不擋流程（看上面的 log）"
+
+      # 收集一次就好（一跑好幾個小時）：推送被拒時只對齊遠端、把湖檔案搬回來重 commit，不重收。
+      - name: 回寫資料湖
+        run: |
+          git config user.name  "tw-rotation-bot"
+          git config user.email "actions@github.com"
+          mkdir -p /tmp/bs && cp -r data/bigsmall_daily /tmp/bs/ 2>/dev/null || true
+          cp data/_state/bigsmall_last.json /tmp/bs/ 2>/dev/null || true
+          for i in 1 2 3 4 5; do
+            git add data/bigsmall_daily data/_state/bigsmall_last.json 2>/dev/null || true
+            if git diff --staged --quiet; then echo "沒有資料變動，跳過 commit"; break; fi
+            git commit -m "大戶散戶買賣（推估）收集 $(TZ=Asia/Taipei date '+%Y-%m-%d %H:%M')"
+            if git push origin "${{ github.ref_name }}"; then echo "推送成功"; break; fi
+            echo "推送被拒（第 $i 次），對齊遠端後重放…"
+            git fetch origin "${{ github.ref_name }}"
+            git reset -q --hard "origin/${{ github.ref_name }}"
+            rm -rf data/bigsmall_daily && cp -r /tmp/bs/bigsmall_daily data/ 2>/dev/null || true
+            mkdir -p data/_state && cp /tmp/bs/bigsmall_last.json data/_state/ 2>/dev/null || true
+            sleep $((i * 5))
+          done
+
+      - name: 執行摘要
+        if: always()
+        run: |
+          {
+            echo "### 大戶散戶買賣收集"
+            if [ -f data/_state/bigsmall_last.json ]; then echo '```json'; cat data/_state/bigsmall_last.json; echo; echo '```'; fi
+          } >> "$GITHUB_STEP_SUMMARY"

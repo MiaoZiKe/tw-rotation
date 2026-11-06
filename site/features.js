@@ -271,6 +271,21 @@
     stab('stock.inst', '法人', 'inst', ['inst'], '三大法人買賣超'),
     stab('stock.margin', '資券', 'margin', ['margin'], '融資融券'),
     stab('stock.holders', '大戶／散戶', 'holders', ['big'], '集保大戶與散戶持股'),
+    /* ★ 2026-11-07 Andy：「個股可以看到 大戶 散戶 當前買賣狀況，即時的資訊 以及 日K級別資訊 這功能記得也要顯在權限內 但暫不開放」（DECISIONS #384）。
+       「大戶／散戶」分頁裡的「大戶／散戶買賣（推估）」卡（site/bigsmall.js）：日 K 級別（每日大單／小單淨買賣＋日 K 對照）＋今日即時。
+       暫不開放＝def false、plan_presets.js 四個方案（訪客／註冊會員／Plus／Pro）都寫 false；站主不受限（perm.js owner）。
+       Andy 要開時在 #admin/perm 把某個方案撥開即可；體驗額度不預設（不在 GRANT_BAN，會出現在「編輯：新會員體驗」清單，由 Andy 自己設）。
+       開放那天才發 site/notices/features.json 公告（HANDOFF 有記）。
+       沒開：整張卡不畫（鎖頭卡會寫「升級 Plus」，但目前沒有方案有它，不能這樣講）、手機不列「買賣推估」分段，bigsmall.js 不抓資料、不打報價；
+       veil 留著當第二道（萬一卡片已經畫出來、權限才被關掉，例如 Andy 在管理頁關掉時）。手機是「大戶／散戶」分頁的「買賣推估」分段（同一張 #bsCard）。*/
+    { id: 'stock.bigsmall', name: '大戶／散戶買賣（推估）', cat: 'stocktab', def: false, kind: 'bool',
+      desc: '個股「大戶／散戶」分頁的大單／小單買賣推估：每日大單、小單淨買賣柱狀圖＋日 K 對照（今日即時部分另受「僅站主或管理員」閘門）',
+      veil: [['#bsCard']], mark: ['#mbBody[data-tab="big"] .mbseg button[data-s="bs"]'], block: [] },
+    /* 即時部分（今日累計、每 5 秒）比照盤中即時 live.tick：只有站主／管理員（site/livegate.js），方案範本管不到 —— ownerOnly 鎖住開關、adminOnly 不進訂閱頁權益表，
+       也因為 adminOnly，「編輯：新會員體驗」清單不列（admin_grants.js feats() 濾掉 adminOnly），等同 GRANT_BAN，不必另外改會員 Worker。 */
+    { id: 'stock.bigsmall.live', name: '大戶／散戶買賣：今日即時（僅站主或管理員）', cat: 'stocktab', def: true, kind: 'bool', adminOnly: true, ownerOnly: true,
+      desc: '「大戶／散戶買賣（推估）」卡的「今日即時」：盤中每 5 秒累計大單／小單買賣與走勢線。跟盤中即時同一道閘門，只有站主與管理員看得到 —— 這個開關對會員範本沒有作用',
+      veil: [], mark: [], block: [] },
     stab('stock.news', '公告／新聞', 'news', ['news'], '重大訊息與新聞'),
     // ---- 即時與全站工具
     /* ★ 2026-10-06（Andy：「所有的即時功能，只有在我這帳號才會出現，其他帳號都隱藏」，DECISIONS #326）：

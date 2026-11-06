@@ -6578,6 +6578,9 @@ html.m4 #etfHoldCard tr.hi td{background:color-mix(in srgb,var(--accent,#4ea1ff)
     if (!T[tab]) { tab = tab === 'chips' ? 'inst' : 'overview'; state.tab = tab; $$('#stockTabs button').forEach(x => x.classList.toggle('on', x.dataset.t === tab)); }
     delete el.dataset.chip;
     T[tab](pg, el);
+    /* 2026-11-07 大戶／散戶買賣（推估）：集保圖下面多一張卡（site/bigsmall.js；功能鍵 stock.bigsmall 暫不開放、站主看得到）。ETF 沒有這分頁。*/
+    if (tab === 'holders' && window.TwBigSmall && !/^00/.test(String((pg.meta && pg.meta.code) || ''))) { try { window.TwBigSmall.mount(pg, el); } catch (e) { console.warn('大戶散戶買賣面板', e); } }
+    else if (window.TwBigSmall) window.TwBigSmall.stop();
     setTimeout(() => Object.values(A.charts).forEach(c => c && c.resize && c.resize()), 20);
   }
   /* ★ 2026-09-24 積木化第一梯次（docs/feature_modules.md §4 第 3 項）：
