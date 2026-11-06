@@ -1854,13 +1854,14 @@
        某個來源比其他舊＝資料源自己停在那天 → 那之後的格子寫「未提供」（不是 0），表下寫「更新到 MM-DD」。*/
     const AS = pg.margin_asof || {};
     const asRef = [AS.margin, AS.daytrade, AS.sbl].filter(Boolean).sort().pop() || '';
-    const CUT = { dt: AS.daytrade && AS.daytrade < asRef ? AS.daytrade : null, sl: AS.sbl && AS.sbl < asRef ? AS.sbl : null };
+    const CUT = { dt: AS.daytrade && AS.daytrade < asRef ? AS.daytrade : null, sl: AS.sbl && AS.sbl < asRef ? AS.sbl : null, mg: AS.margin && AS.margin < asRef ? AS.margin : null };
     for (const c of cols) {
-      const k = c.h === '當沖' ? 'dt' : c.h === '借券賣' ? 'sl' : null;
-      if (!k || !CUT[k]) continue;
-      const f0 = c.f; c.f = r => (r[k] == null && String(r.d).slice(0, 10) > CUT[k] ? ['未提供', 'mbna'] : f0(r));
+      const k = c.h === '當沖' ? 'dt' : c.h === '借券賣' ? 'sl' : c.h === '融資' ? 'mc' : c.h === '融券' ? 'sc' : null;
+      const ck = k === 'mc' || k === 'sc' ? 'mg' : k;
+      if (!k || !CUT[ck]) continue;
+      const f0 = c.f; c.f = r => (r[k] == null && String(r.d).slice(0, 10) > CUT[ck] ? ['未提供', 'mbna'] : f0(r));
     }
-    const srcFoot = [hasCol.dt && CUT.dt && `當沖資料只更新到 ${md(CUT.dt)}`, hasCol.sl && CUT.sl && `借券賣出資料只更新到 ${md(CUT.sl)}`].filter(Boolean).join('、');
+    const srcFoot = [CUT.mg && `融資融券資料只更新到 ${md(CUT.mg)}`, hasCol.dt && CUT.dt && `當沖資料只更新到 ${md(CUT.dt)}`, hasCol.sl && CUT.sl && `借券賣出資料只更新到 ${md(CUT.sl)}`].filter(Boolean).join('、');
     const srcTxt = srcFoot ? `<span class="mbsrc" data-src-cut="1">${srcFoot}；之後寫「未提供」，不是 0。</span>` : '';
     const cap = '單位：張；融資／融券＝當日增減（紅＝增加、綠＝減少）' + (hasCol.dt ? '；當沖＝當沖成交張數' : '') + (hasCol.sl ? '；借券賣＝當日借券賣出張數（向借券系統借來賣，多為法人避險，不是融券）' : '；資餘／券餘＝餘額');
     const tbl = table(cols, rows.slice().reverse(), sel, cap, r => r.d);

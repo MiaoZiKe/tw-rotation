@@ -521,7 +521,21 @@ def _cols(block: dict, key: str) -> list[dict]:
     return [dict(zip(cols, r)) for r in (block.get(key) or [])]
 
 
-def section_focus(rev_rows: list[dict], prof_rows: list[dict], target: str) -> dict:
+def published_event(events: list[dict], code: str, target: str, latest: str) -> dict | None:
+    """「最新已公布季」判斷（不能只看資料湖有沒有季損益）：該公司有目標季、或目標季的前一季（日曆的「下一份」
+    已經跳到下一季時，前一季可能已公布但數字還沒入湖）的董事會通過財報（report）或已召開法說會（conf），日期 <= 資料日。
+    法說會要在該季季底之後才算（避免更早一季的法說會被誤當成這一季已公布）。回傳事件並附 "q"＝它對應的季。"""
+    y, q = int(target[:4]), int(target[-1])
+    for qy, qq in ((y, q), (y - 1, 4) if q == 1 else (y, q - 1)):
+        tq, qe = f"{qy}Q{qq}", quarter_end(qy, qq)
+        hit = [e for e in events if e.get("code") == code and e.get("q") == tq and e["k"] in ("report", "conf")
+               and e["d"] <= latest and e["d"] > qe and e.get("status") == "公告"]
+        if hit:
+            return {**max(hit, key=lambda e: e["d"]), "q": tq}
+    return None
+
+
+def section_focus(rev_rows: list[dict], prof_rows: list[dict], target: str, pub: dict | None = None) -> dict:
     """本次財報看點：目標季的月營收已經公布了幾個月、合計跟去年同期／上一季同期比。"""
     y, q = int(target[:4]), int(target[-1])
     months = [f"{y}-{m:02d}" for m in range(q * 3 - 2, q * 3 + 1)]
@@ -549,14 +563,25 @@ def section_focus(rev_rows: list[dict], prof_rows: list[dict], target: str) -> d
         last = done[-1]
         gm, om = _f(last.get("gross_margin")), _f(last.get("op_margin"))
         eps, dy = _f(last.get("eps")), _f(last.get("eps_yoy_diff"))
-        t = f"上一份財報（{last['period']}）：EPS {eps:.2f} 元"
+        # 2026-11-06：標籤改「最新已公布季」。判斷「已公布」不能只看資料湖有沒有季損益 ——
+        # 法說會／董事會公告已經出來（pub）但數字還沒入湖時，湖裡最後一季其實是「前一季」，
+        # 直接寫「上一份財報 2026Q2」會讓人以為 Q3 還沒公布（台積電 10/15 法說已報 Q3）。
+        pq_ = pub["q"] if pub else target
+        in_lake = last["period"] >= pq_
+        t = f"最新已公布季（{last['period']}）：EPS {eps:.2f} 元"
         if dy is not None:
             t += f"（較去年同季 {dy:+.2f} 元）"
         if gm is not None:
             t += f"、毛利率 {gm:.1f}%"
         if om is not None:
             t += f"、營益率 {om:.1f}%"
-        lines.append(t + "；這次要比的基準就是這組數字。")
+        if pub and not in_lake:
+            lines.append(f"{pq_} 財報已公布（{pub['d'][5:].replace('-', '/')} {'法說會' if pub['k'] == 'conf' else '董事會通過'}），"
+                         f"{pq_} 季損益數字待入湖；資料湖目前最新一季損益是 {last['period']}：" + t.split("：", 1)[1] + "。")
+        elif in_lake and last["period"] == target:
+            lines.append(t + "。")
+        else:
+            lines.append(t + "；這次要比的基準就是這組數字。")
     if not lines:
         return None
     return {"key": "focus", "t": "這次財報看什麼", "tone": tone, "lines": lines,
@@ -705,10 +730,10 @@ def summary_tags(secs: list[dict]) -> list[dict]:
 
 def company_analysis(code: str, *, rev: dict, prof: dict, pe_now, pe_hist, close, close_date: str,
                      inst: pd.DataFrame | None, vol: pd.Series | None, news_rows: list, mops_rows: list,
-                     target: str) -> dict:
+                     target: str, pub: dict | None = None) -> dict:
     rev_rows = _cols(rev, "monthly")
     prof_rows = _cols(prof, "quarters")
-    secs = [section_focus(rev_rows, prof_rows, target), section_revenue(rev_rows), section_profit(prof_rows),
+    secs = [section_focus(rev_rows, prof_rows, target, pub), section_revenue(rev_rows), section_profit(prof_rows),
             section_valuation(pe_now, pe_hist, _f(close) or 0, close_date), section_inst(inst, vol),
             section_news(news_rows, mops_rows)]
     secs = [s for s in secs if s]
@@ -834,11 +859,12 @@ def build(*, val: pd.DataFrame, names: dict, latest: str, price: pd.DataFrame, p
             vol = raw.sort_values("date")["volume"] if raw is not None and "volume" in raw else None
             ne = next_ev.get(c)
             target = (ne.get("q") if ne and ne.get("q") else None) or default_target
+            pub = published_event(events, c, target, latest)
             companies[c] = {"name": u["name"], "rank": u["rank"], "mcap": u["mcap"], "close": u["close"],
                             "next": {k: ne[k] for k in ("d", "k", "status", "title") if k in ne} if ne else None,
                             **company_analysis(c, rev=rv, prof=pf, pe_now=pe_map.get(c), pe_hist=ph, close=u["close"],
                                                close_date=latest, inst=inst_by.get(c), vol=vol, news_rows=news_by.get(c, []),
-                                               mops_rows=mops_by.get(c, []), target=target)}
+                                               mops_rows=mops_by.get(c, []), target=target, pub=pub)}
         except Exception as exc:  # noqa: BLE001 —— 一家算壞不能讓整頁沒有
             log.warning("財報日曆 %s 分析失敗：%s", c, exc)
             companies[c] = {"name": u["name"], "rank": u["rank"], "mcap": u["mcap"], "close": u["close"], "next": None,
