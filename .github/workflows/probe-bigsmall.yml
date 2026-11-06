@@ -1,0 +1,25 @@
+name: probe bigsmall
+on:
+  push:
+    branches: ["probe/bigsmall"]
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            scripts/probe_bigsmall.py
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install requests
+      - name: probe
+        env:
+          FINMIND_TOKEN: ${{ secrets.FINMIND_TOKEN }}
+        run: python scripts/probe_bigsmall.py
+        continue-on-error: true
+      - uses: actions/upload-artifact@v4
+        with: { name: bigsmall-probe, path: probe_out/ }
