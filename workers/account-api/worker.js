@@ -2689,6 +2689,34 @@ Object.assign(Hub.prototype.subRoutes, {
     return this.json(req, { email, known: true, name: u.name, created: u.created, grants: all, hits, now });
   },
 });
+/* 2026-11-07 管理區會員清單「方案」欄可發放體驗（Andy：點方案 → 選「體驗方案」→ 確認）。
+   以前體驗只會依註冊時間／活動期間自動發；這裡讓管理者手動發某一份已存在且開著的體驗給某位已登入過的會員：
+   · welcome：從現在起算 days 天；promo：到活動結束（t1）為止（活動已結束不能發）。
+   · 重發同一份＝刷新起訖並清掉已用次數（管理者明確要再給一次）；不碰 benefit_hash／IP 計數（那是防濫用自動發放用的）。
+   · { probe: true } 只回 ok：前端用它判斷後端有沒有這個端點（舊後端回 404 → 前端把體驗選項停用）。 */
+Object.assign(Hub.prototype.subRoutes, {
+  '/v1/admin/grants/issue': async function (req, b) {
+    if (!(await this.admin(req, b))) return this.json(req, { error: 'forbidden' }, 403);
+    if (b.probe === true) return this.json(req, { ok: true, probe: true });
+    this.grantInit();
+    const email = this.cleanEmail(b.email);
+    if (!email) return this.json(req, { error: 'bad_email' }, 400);
+    const gid = String(b.gid == null ? '' : b.gid);
+    if (!GRANT_ID_RE.test(gid)) return this.json(req, { error: 'bad_id' }, 400);
+    const u = this.q('SELECT * FROM users WHERE lower(email) = ?', email)[0];
+    if (!u) return this.json(req, { error: 'no_user' }, 404);        // 還沒登入過的人沒有帳號可掛
+    const d = this.grantDefs().find((x) => x.id === gid);
+    if (!d) return this.json(req, { error: 'no_def' }, 404);
+    if (!d.on) return this.json(req, { error: 'def_off' }, 400);     // 範本關著：發了也不會生效，擋下來免得管理者以為有發
+    const now = this.now();
+    const start = now, end = d.kind === 'welcome' ? now + d.days * 86400 * 1000 : d.t1;
+    if (!(end > now)) return this.json(req, { error: 'ended' }, 400);
+    this.q('INSERT INTO grants (uid, gid, start, end_, created) VALUES (?, ?, ?, ?, ?) ON CONFLICT(uid, gid) DO UPDATE SET start = excluded.start, end_ = excluded.end_',
+      u.uid, gid, start, end, now);
+    this.q('DELETE FROM grant_hits WHERE uid = ? AND gid = ?', u.uid, gid);
+    return this.json(req, { ok: true, email, gid, name: d.name, start, end });
+  },
+});
 /* /v1/perm/me 多回 grants：{ 功能鍵: 剩餘次數 }（所有有效體驗合併）。前端與 data-gw 都讀這一份 */
 const grantOrigPermMe = Hub.prototype.permMe;
 Hub.prototype.permMe = async function (req, b) {
