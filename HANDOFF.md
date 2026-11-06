@@ -1,6 +1,11 @@
 # HANDOFF.md — 目前進度（接手先讀這份）
 
 
+## 2026-11-06 頂欄「N 人在線」框加「今天」段（站主專用；前端已推 main，後端在分支 feat/online-today 等 Andy 同意才部署）
+- 前端：`site/account.js` `paintToday()`（今天來過的會員：累積停留、前 3 頁、最後出現；訪客今天／本週／累積；固定高度框內捲動）；`site/admin.js` 多 `TwAdmin.testEmails()`（測試帳雜湊排除）；順手修手機上框左緣掉出螢幕外（改 left 夾在畫面內）。
+- **後端沒部署**：`/v1/admin/online/today`、`pdwell`／`visagg` 兩表在分支 `feat/online-today`（`workers/account-api/worker.js` 檔尾、`tests/today.test.mjs`），**不准推 main 觸發 deploy-account-worker.yml，要 Andy 明確同意**。部署前前端顯示「需要更新會員後端」。部署時隱私權政策「個人使用明細」那段要補「各頁停留時間」。
+- 驗：`_uitest --sections 線上今天1106`（站主 1440／手機 390、假 Worker 回應、20 筆固定高度可捲、一般會員與訪客看不到）、`線上名單1017`、`站主工具1101`、`桌機守門1008`、`node --test workers/account-api/tests/*.mjs`（206 條）。
+
 ## 2026-11-06 信用交易「全市場信用風險（官方儀表板）」人工登錄（Andy 11-06 決定：儀表板條款不准自動抓 → 站主每天手動填五個數字）
 - 前端（已推 main）：`site/margindash.js`（新檔）接在 #market/credit 大盤分頁的融資維持率卡下方；`marketfut.js` 只在 `render()` 加一行 `TwMarginDash.mount`。整塊在 #mktBody 裡 → 沿用 `mkt.credit` 閘門，不另開功能鍵。公告 `f-20261106-credit-official`。
 - 資料來源順序：會員 Worker `/v1/mdash/get` → 沒有這支端點時讀 `site/margin_dashboard_seed.json`（Andy 截圖 11/05、10/30 兩筆）。站主在 Worker 沒開通時按儲存＝只存這台瀏覽器（表單明寫）。
