@@ -1,18 +1,10 @@
-/* 手機（≤640）恐慌指數卡（site/fearcard.js）：卡片一張＝整個可用寬（mobile4.css 的 scroll-snap），三欄排得下；
-   卡片壓矮時「最後一行」會被 index.html 的 @container ovsum (max-width:560px) 收掉 —— 狀態膠囊搬到第一欄名稱旁，不能跟著消失。
-   完整圖在手機矮一點（第一屏要看得到大盤圖）。只限 ≤640，桌機不受影響（CLAUDE.md 2026-10-08「兩者不可侵犯」）。*/
+/* 手機（≤640）恐慌指數卡（site/fearcard.js）：卡片一張＝整個可用寬（mobile4.css 的 scroll-snap），時速表＋右邊小字排得下；
+   卡片高度守同一排的上限（_uitest「總覽摘要卡列」390：≤ 120px）。完整圖在手機矮一點。只限 ≤640，桌機不受影響（CLAUDE.md 2026-10-08）。*/
 @media (max-width:640px){
-  .osc.fz svg.fz-sp{width:72px;height:15px}
+  .osc.fz .fz-g{height:66px}
+  .osc.fz .fz-row small{font-size:12px}
+  .osc.fz .fz-row .osn-v em{font-size:12px}
   .fz-cv{height:240px}
   .fz-fh > b{font-size:13px}
   .fz-x{width:32px;height:32px}
-}
-/* 卡片壓矮時（@container ovsum ≤560）同排的卡會把最後一行收掉；這張的最後一行是「狀態＋分位＋非官方」，收掉就看不到狀態 → 留著（字級守 12px 下限）。*/
-@media (max-width:640px){
-  @container ovsum (max-width:560px){
-    .osc.fz .osc-f{display:flex;font-size:12px;line-height:15px}
-    .osc.fz .fz-st{font-size:12px;line-height:15px}
-    .osc.fz .osc-h .fz-tag{font-size:12px}
-    .osc.fz .osn-v em{font-size:12px}
-  }
 }

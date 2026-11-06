@@ -1,8 +1,8 @@
 # 驗收段落「恐慌指數1106」
 # 這支由 _uitest.py 用 exec 載入它自己的全域命名空間：ok()、wait_until()、_p12_ctx()、_sub_ctx()、P12_INL、OP_POP 直接可用，不要 import _uitest。
-# Andy 2026-11-06：「另外需要新增恐慌指數再右上」—— 總覽摘要卡列最右邊一張「恐慌指數」（site/fearcard.js）。
+# Andy 2026-11-06：「另外需要新增恐慌指數再右上」「恐慌指數用時速表那樣表示，並且拿掉 非官方那句」—— 總覽摘要卡列最右邊一張「恐慌指數」（site/fearcard.js）。
 # 真的操作：
-#   1. 卡片排在同一排最右邊、數字是 fear.json 的值；按「?」說明打開、寫明「本站自算／非期交所官方」與門檻
+#   1. 卡片排在同一排最右邊、主視覺是時速表（指針值＝fear.json）、卡片上沒有「非期交所官方」那句；按「?」說明寫明本站自算、與期交所台指VIX有差異、門檻
 #   2. 點卡片 → 完整圖真的展開（ECharts 有畫出資料點）、拖下方拉Bar 視窗真的變；按 × → 收起（節點拿掉）
 #   3. 390 手機：卡片在可視寬內、整頁沒有橫向捲軸、卡片高度 ≤ 120；滑到最後一張看得到它
 #   4. 功能鍵 ov.fear：註冊會員第 5 次照常、第 6 次（新分頁）完整圖反灰＋一行字；訪客第 4 次被鎖；站主種 99 次不鎖；
@@ -38,26 +38,31 @@ def t_fear_1106(b, base, code):
     d = pg.evaluate(f"""() => {{ const t = document.querySelector('#ovSumTrack'), c = document.querySelector('{_T1106_CARD}');
         const ks = [...t.children].map(x => x.dataset.k); const D = FearCard._s.data || {{}};
         return {{ ks, last: t.lastElementChild === c, title: c.querySelector('.osc-t').innerText,
-          tw: c.querySelector('.fz-tw b') ? c.querySelector('.fz-tw b').innerText : null, us: c.querySelector('.fz-us b') ? c.querySelector('.fz-us b').innerText : null,
-          dtw: D.tw ? D.tw.value : null, dus: D.us ? D.us.value : null, foot: c.querySelector('.osc-f').innerText, tag: (c.querySelector('.osc-h .fz-tag') || {{}}).innerText,
-          spark: !!c.querySelector('svg.fz-sp path') || !(D.tw && D.tw.spark && D.tw.spark.length > 1),
+          gauge: (() => {{ const g = document.getElementById('ovFearGauge'), ch = g && echarts.getInstanceByDom(g); if (!ch) return null; const o = ch.getOption().series[0];
+            return {{ type: o.type, v: o.data[0].value, segs: (o.axisLine.lineStyle.color || []).length, cv: g.querySelectorAll('canvas, svg').length, h: Math.round(g.getBoundingClientRect().height) }}; }})(),
+          us: c.querySelector('.fz-us b') ? c.querySelector('.fz-us b').innerText : null, side: c.querySelector('.fz-side').innerText,
+          dtw: D.tw ? D.tw.value : null, dus: D.us ? D.us.value : null, dstate: D.tw ? D.tw.state : null, text: c.innerText,
           h: Math.round(c.getBoundingClientRect().height), hs: [...t.children].map(x => Math.round(x.getBoundingClientRect().height)) }}; }}""")
     ok(f"{T} 卡片排在摘要卡列最右邊（第 5 張）、標題「恐慌指數」", d["ks"][-1] == "fear" and d["last"] and d["title"] == "恐慌指數" and len(d["ks"]) >= 5, d)
     fmt2 = lambda v: "—" if v is None else f"{v:.2f}"  # noqa: E731
-    ok(f"{T} 主數字＝fear.json 台指自算、副數字＝美股 VIX；標題旁標「非期交所官方」；走勢線有畫", d["tw"] == fmt2(d["dtw"]) and d["us"] == fmt2(d["dus"]) and d["tag"] == "非期交所官方" and d["spark"], d)
+    g = d["gauge"] or {}
+    # Andy 11-06：「恐慌指數用時速表那樣表示，並且拿掉 非官方那句」
+    ok(f"{T} 主視覺是時速表（ECharts gauge），指針值＝fear.json 台指自算；有狀態時刻度分三段顏色", g.get("type") == "gauge" and g.get("cv", 0) > 0 and g.get("h", 0) > 40
+       and (d["dtw"] is None or abs(g.get("v", -1) - d["dtw"]) < 1e-9) and (g.get("segs") == 3 if d["dstate"] else True), d)
+    ok(f"{T} 右側小字：美股 VIX＝fear.json、帶日期；卡片畫面上沒有「非期交所官方」那句", d["us"] == fmt2(d["dus"]) and "美股VIX" in d["side"] and "/" in d["side"] and "非期交所官方" not in d["text"] and "非官方" not in d["text"], d)
     ok(f"{T} 五張卡同一排等高", len(set(d["hs"])) == 1, d["hs"])
     pg.locator(f"{_T1106_CARD} .howbtn").click()
     wait_until(pg, "() => { const e = document.getElementById('how-ovs-fear'); return !!e && !e.hidden && e.getClientRects().length > 0; }", 4000)
     hw = pg.evaluate("() => (document.getElementById('how-ovs-fear') || {}).innerText || ''")
-    ok(f"{T} 按「?」→ 說明打開，寫明本站自算、非期交所官方、平靜／警戒／恐慌門檻與樣本數", all(s in hw for s in ("本站自算", "非期交所官方", "50%", "85%", "平靜", "恐慌", "n")), hw[:200])
+    ok(f"{T} 按「?」→ 說明打開，寫明本站自算、與期交所台指VIX有差異、資料來源、平靜／警戒／恐慌門檻與樣本數", all(s in hw for s in ("本站", "自算", "會有差異", "資料來源", "50%", "85%", "平靜", "恐慌", "n")), hw[:300])
     pg.keyboard.press("Escape"); pg.wait_for_timeout(300)
     opened = open_full(pg)
     wait_until(pg, "() => !!(window.App && App._fear && App._fear.n > 0) || !!document.querySelector('#ovFearChart .empty')", 6000)
     f = pg.evaluate("""() => { const el = document.getElementById('ovFearChart'); const ch = el && echarts.getInstanceByDom(el);
         const o = ch && ch.getOption(); return { n: o ? o.xAxis[0].data.length : 0, ser: o ? o.series.map(s => s.name) : [],
           dz: o ? [o.dataZoom[1].start, o.dataZoom[1].end] : null, exp: document.querySelector('#hero .osc[data-k="fear"]').getAttribute('aria-expanded'),
-          tag: (document.querySelector('#ovFearFull .fz-tag') || {}).innerText }; }""")
-    ok(f"{T} 點卡片 → 完整圖展開（有資料點、標「非期交所官方」、aria-expanded=true）", bool(opened) and f["n"] > 0 and f["tag"] == "非期交所官方" and f["exp"] == "true", f)
+          tag: (document.querySelector('#ovFearFull .fz-fh') || {}).innerText }; }""")
+    ok(f"{T} 點卡片 → 完整圖展開（有資料點、預設近 60 個交易日、aria-expanded=true）", bool(opened) and f["n"] > 0 and "本站自算" in (f["tag"] or "") and f["exp"] == "true" and f["dz"] and f["dz"][0] > 0, f)
     # 拖拉Bar 左把手往右：可視區間真的變
     box = pg.evaluate("() => { const r = document.getElementById('ovFearChart').getBoundingClientRect(); return [r.left, r.bottom, r.width]; }")
     if f["dz"] and f["dz"][0] > 1:
@@ -81,9 +86,9 @@ def t_fear_1106(b, base, code):
     pg.evaluate("() => { const t = document.querySelector('#ovSumTrack'); t.scrollLeft = t.scrollWidth; }"); pg.wait_for_timeout(700)
     m = pg.evaluate(f"""() => {{ const c = document.querySelector('{_T1106_CARD}').getBoundingClientRect();
         return {{ l: Math.round(c.left), r: Math.round(c.right), h: Math.round(c.height), vw: innerWidth, sw: document.documentElement.scrollWidth,
-          st: (document.querySelector('{_T1106_CARD} .osc-f') || {{}}).offsetHeight || 0 }}; }}""")
-    ok(f"{T} 390：滑到最後一張，恐慌指數卡整張在畫面內、整頁沒有橫向捲軸、卡高 ≤ 120、狀態那一行沒被收掉",
-       m["l"] >= 0 and m["r"] <= m["vw"] and m["sw"] <= m["vw"] and m["h"] <= 120 and m["st"] > 0, m)
+          st: (document.getElementById('ovFearGauge') || {{}}).offsetHeight || 0, sd: (document.querySelector('{_T1106_CARD} .fz-side') || {{}}).offsetHeight || 0 }}; }}""")
+    ok(f"{T} 390：滑到最後一張，恐慌指數卡整張在畫面內、整頁沒有橫向捲軸、卡高 ≤ 120、時速表與右側小字都看得到",
+       m["l"] >= 0 and m["r"] <= m["vw"] and m["sw"] <= m["vw"] and m["h"] <= 120 and m["st"] > 40 and m["sd"] > 0, m)
     opened = open_full(pg)
     mm = pg.evaluate("() => { const r = document.getElementById('ovFearFull').getBoundingClientRect(); return { w: Math.round(r.width), r: Math.round(r.right), vw: innerWidth, sw: document.documentElement.scrollWidth }; }") if opened else {}
     ok(f"{T} 390：點卡片展開完整圖，寬度不超出畫面", bool(opened) and mm.get("r", 999) <= mm.get("vw", 0) and mm.get("sw", 999) <= mm.get("vw", 0), mm)

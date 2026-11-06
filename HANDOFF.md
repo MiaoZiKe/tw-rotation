@@ -5,6 +5,7 @@
 ## 2026-11-06 總覽新增「恐慌指數」卡（Andy：「另外需要新增恐慌指數再右上」；DECISIONS #383）
 - 主數字＝臺指選擇權隱含波動率（本站自算，CBOE 白皮書公式、TXO 月契約近月＋次近月結算價、30 天期），標「非期交所官方」；副數字＝美股 VIX（intl_daily ^VIX）。
 - 新表 `opt_ivx`：每日 `optivx.daily_update`（run_daily）＋回補 `optivx.backfill`（run_backfill，一輪補完 2023-01 起；backfill.yml 的跳過閘門已放行 opt_ivx 未完成）。
+- 11-06 下午 Andy：「恐慌指數用時速表那樣表示，並且拿掉 非官方那句」→ 卡片改 ECharts 半圓時速表（綠／黃／紅＝50%／85% 分位），「非期交所官方」只留在「?」；圖表庫加 F 款（docs/chart_library.md）。
 - 前端 `site/fearcard.js`／`fearcard.css`／`m4/20261106-fearcard.css`；app.js 只加三個接點。功能鍵 `ov.fear`（計的是點開的完整圖）。
 - 既有驗收「摘要卡四張」改五張（`_uitest.py` 四處、`_preview.py` 一處）；即時口徑檢查排除恐慌指數卡（它沒有即時）。
 - 這批只驗了：pytest 全部、`恐慌指數1106`、`總覽摘要卡列`、`總覽摘要卡即時`、`KPI工具列頁尾0926`、`總覽`、`新-大盤三張圖`、`手機v3`、`手機一屏`、`桌機守門1008`（基準重寫）、`_preview.py`。
